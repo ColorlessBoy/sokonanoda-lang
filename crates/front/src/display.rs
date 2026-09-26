@@ -148,10 +148,36 @@ pub fn print_back(text: &str, notations: &DisplayNotations) -> DisplayText {
     if text.contains('$') {
         return DisplayText::new(text);
     }
+    let once = fold_once(text, notations);
+    // **第二趟（A1 收尾，2026-09-26）**：第一趟里被"外层重渲染"吞掉的 `->`。
+    //
+    // 为什么需要它：`fold_spine` / App 父节点那两条路会用
+    // `proof::render_expr(&folded)` **重渲染整段**，而 `render_expr` 是**回读
+    // 通道的输入**（判卷靠它）⇒ 它打的永远是 ASCII `->`（改它 = 改判定文本 ✗）。
+    // 于是折出来的记法里若含箭头（`↔ (∀ (x : α), (f x) = (f y)) -> x = y` 的
+    // `∀` 被 `↔` 那条脊重渲染），那一处箭头又变回 `->`。
+    // 实测：全课程 273 条 `ty_text`/`val_text` 里第一趟之后还剩 **9** 条带 `->`，
+    // 全是这个形状。
+    //
+    // 为什么**两趟就够**：第二趟的输入已经是**显示文本**——折过的记法重新解析
+    // 回来还是记法节点（`fold_spine` 对 Notation 头返回 `None`）⇒ 第二趟只会
+    // 补**窄 span** 的箭头编辑，不会再有"整段重渲染"把它吞掉。所以这里不写
+    // 循环（有界两趟 = 可终止，且没有振荡的余地）。
+    if once.contains("->") {
+        let twice = fold_once(&once, notations);
+        if twice != once {
+            return DisplayText::new(twice);
+        }
+    }
+    DisplayText::new(once)
+}
+
+/// 一趟折叠：解析 → 收集编辑 → 按 span 拼接。失败一律**原样返回**（绝不乱切）。
+fn fold_once(text: &str, notations: &DisplayNotations) -> String {
     // F2/F4：pp 会折行；`@Eq.{u, v}` 的 head 是 `UniverseApp`。parser 都容忍，
     // 解析不了就原样返回。
     let Ok(ast) = crate::proof::parse_expr_text_with(text, &notations.table) else {
-        return DisplayText::new(text);
+        return text.to_string();
     };
     // `parse_expr_text_with` 解析的是 `"#check " + text` ⇒ AST 的 span 比 `text`
     // 多**那个前缀**。偏移量**只有一个源**：前缀常量自己（`proof::CHECK_PREFIX`）。
@@ -169,12 +195,12 @@ pub fn print_back(text: &str, notations: &DisplayNotations) -> DisplayText {
     let mut edits: Vec<(Span, String)> = Vec::new();
     let _ = fold_collecting(ast, notations, &mut edits, text, base);
     if edits.is_empty() {
-        return DisplayText::new(text);
+        return text.to_string();
     }
     match splice(text, base, edits) {
-        Some(out) => DisplayText::new(out),
+        Some(out) => out,
         // span 换算越界（解析器换了前缀形状之类）⇒ **原样返回**，绝不乱切。
-        None => DisplayText::new(text),
+        None => text.to_string(),
     }
 }
 
@@ -200,6 +226,12 @@ impl DisplayNotations {
     /// ⚠ 入参 `folded` **必须是 `fold`/`render` 的产物** ✓ —— 传点形式文本进来就会
     /// 得到点形式分段（2026-09-25 的用户报告正是这么来的 ✗：`query::runs` 拿的是
     /// 未折过的文本 ✓）。
+    ///
+    /// **`self` 在这一步不参与**（T-N4，2026-09-26 ✓）：分段只看文本 + 名字表
+    /// （`decls`/`binders`/`notations` 都是调用方按名字传的），不读记法表 ⇒
+    /// 拿不到表的消费者（`query::runs`）用 `DisplayNotations::default()` 调它是
+    /// **接口约定**，不是绕过 ✓。保留 `&self` 是为了"分段也只有这一个入口"——
+    /// 它是 [`Self::fold`] / [`Self::render`] 的同族操作，三者必须同处一地 ✓。
     pub fn runs(
         &self,
         folded: &str,
@@ -1199,6 +1231,17 @@ infixr:80 \" '' \" => Set.image\n";
         // 幂等：折过的文本再折一次逐字节不变
         let once = fold_text("forall (α : Type 0), α -> α", &dn);
         assert_eq!(fold_text(&once, &dn), once);
+        // **第二趟**（A1 收尾）：`↔` 那条脊会把它的操作数**整段重渲染**，
+        // 而 `render_expr` 打的是 ASCII 箭头 ⇒ 第一趟折好的 `∀ … -> …` 又被画回
+        // `->`。实测这一条是课程产物里 9/273 条残留的形状。
+        let swallowed = fold_text(
+            "Iff (Function.Injective α β f) (forall (x : α), f x = f y -> x = y)",
+            &dn,
+        );
+        assert!(
+            swallowed.contains('→') && !swallowed.contains("->"),
+            "被外层重渲染吞掉的箭头必须由第二趟补折，实际 = {swallowed}"
+        );
     }
 
     /// **A2 判据**（2026-09-26 用户报告第 2 条）：集合字面量的**点名展开**必须折回

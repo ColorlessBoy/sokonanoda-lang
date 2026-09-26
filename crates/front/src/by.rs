@@ -962,7 +962,7 @@ fn run_tactics(
                             ErrorKind::ElabTacticFailed,
                             mismatch_message(
                                 &format!("`have {name}` 的值类型不匹配"),
-                                &render_expr(ty),
+                                &display_expr(prefix_src, ty),
                                 &term,
                                 &spec,
                                 prefix_src,
@@ -1346,9 +1346,9 @@ fn apply_tactic(
                         ErrorKind::ElabTacticFailed,
                         format!(
                             "`apply` 的目标不匹配：`{}` 的结果是 `{}`，无法对齐当前目标 `{}`",
-                            render_expr(expr),
-                            render_expr(&codomain),
-                            render_expr(&goal)
+                            display_expr(prefix_src, expr),
+                            display_expr(prefix_src, &codomain),
+                            display_expr(prefix_src, &goal)
                         ),
                         span,
                     )
@@ -1483,7 +1483,7 @@ fn cases_tactic(
             format!(
                 "`cases {scrutinee_name}` 暂不支持**目标依赖该假设**的情形（dependent elimination）：\
                  目标 `{}` 里提到了 `{scrutinee_name}`",
-                render_expr(&goal_ty)
+                display_expr(prefix_src, &goal_ty)
             ),
             span,
         ));
@@ -1547,7 +1547,7 @@ fn cases_tactic(
             return Err(tactic_error(
                 format!(
                     "`cases` 的被消去项不是归纳类型的值：`{}`",
-                    render_expr(&scrutinee_ty)
+                    display_expr(prefix_src, &scrutinee_ty)
                 ),
                 span,
             ))
@@ -1557,7 +1557,7 @@ fn cases_tactic(
         return Err(tactic_error(
             format!(
                 "`cases` 只支持**归纳类型**，但 `{scrutinee_name} : {}` 的头 `{ind_name}` 不在归纳表里",
-                render_expr(&scrutinee_ty)
+                display_expr(prefix_src, &scrutinee_ty)
             ),
             span,
         ));
@@ -1956,6 +1956,17 @@ fn is_universe_domain(domain: &Expr) -> bool {
 /// `exact h1 ha` 在目标 `B` 上就长这样（`have` 与 `exact` 同病）。这里改说人话：
 /// **期望 `<目标>`，实际是 `<值的类型>`**——后者用 `judge_infer` 拿**值本身**的
 /// 类型文本（只在**错误路径**上多问一次内核，好路径零开销）。
+/// 诊断消息里的表达式文本（**A0 / T-N4**，2026-09-26 ✓）：走**显示路径的唯一
+/// 接口** —— [`crate::compile::fold_for_display`] 从源文本建表再
+/// [`crate::display::DisplayNotations::fold`]，与 Infoview/声明栏用的是同一份
+/// 记法转化。
+///
+/// ⚠ **只给消息用**：判定与解析路径一律走 `render_expr`（折了会改判定 = 内核
+/// 红线）。折不动（源解析不了）时原样返回，绝不比从前差。
+fn display_expr(prefix_src: &str, expr: &Expr) -> String {
+    crate::compile::fold_for_display(prefix_src, &render_expr(expr))
+}
+
 fn mismatch_message(
     // `what` 是完整的动词短语：`` `exact` 类型不匹配 `` / `` `have hb` 的值类型不匹配 ``。
     what: &str,
@@ -2012,7 +2023,7 @@ fn exact_tactic(
             ErrorKind::ElabTacticFailed,
             mismatch_message(
                 "`exact` 类型不匹配",
-                &render_expr(&nodes[cur].ty),
+                &display_expr(prefix_src, &nodes[cur].ty),
                 &term,
                 &spec_of(nodes, cur, universe),
                 prefix_src,

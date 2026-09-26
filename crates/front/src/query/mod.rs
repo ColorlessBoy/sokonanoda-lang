@@ -485,6 +485,16 @@ impl QueryDoc {
     }
 
     /// 把一段内核文本切成 wire runs（着色单一来源）。
+    ///
+    /// **走唯一接口**（A0 / T-N4，2026-09-26 ✓）：分段这一步由
+    /// [`DisplayNotations::runs`] 提供，本模块**不再**直接调
+    /// `semantic::tag_runs_with_notations` —— 那是"第五套实现"的入口形状，
+    /// 守卫 `scripts/audit-notation-paths.py` 就是拦它的。
+    ///
+    /// 为什么用 `DisplayNotations::default()`：**分段与记法表无关**（记法符号是
+    /// 按 `&[String]` 传进来的，折过的文本才是输入），所以 `runs` 不读 `self`。
+    /// 那是接口的**约定**，不是绕过；将来分段规则要改，改的还是 `display.rs`
+    /// 那一处。
     fn runs(
         &self,
         decls: &[(String, SemanticKind)],
@@ -492,7 +502,8 @@ impl QueryDoc {
         text: &str,
         binders: &[String],
     ) -> Vec<RunInfo> {
-        semantic::tag_runs_with_notations(text, decls, binders, notations)
+        crate::display::DisplayNotations::default()
+            .runs(text, decls, binders, notations)
             .into_iter()
             .map(|run| RunInfo {
                 text: run.text,
