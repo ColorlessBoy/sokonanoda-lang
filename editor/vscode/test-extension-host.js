@@ -882,6 +882,70 @@ test("Clean Cache clears both stores and does not compile anything (E31)", async
   }
 });
 
+test("Infoview empty states: loading / ready-empty / error are told apart (E28)", async () => {
+  // **E28**：三种空态在 **webview 侧**早就有渲染判据（`test-webview.js` 的
+  // `decls empty: the three reasons are told apart (T-B12)`），但**主机侧到底发了
+  // 哪个 `status.state`** 从来没人守 ✗ ⇒ 面板完全可能永远停在「编译中…」、
+  // 或者把"请求失败"说成"这个文件没有声明"（用户看到的是"插件坏了"✗）。
+  //
+  // 这条判据钉**主机发出的三态**（真 provider 的 `setStatus`，逐次记下来）：
+  //   ① 请求**在飞** ⇒ `loading`（= "服务器还没编完"）；
+  //   ② 空数组**成功**返回 ⇒ `ready` + `decls: 0`（= "真的没声明"）—— **必须与 ① 不同**；
+  //   ③ 请求**失败** ⇒ `error`（= "读取声明失败"，webview 会提示看输出面板/重启服务器）。
+  await activateExtension();
+  const provider = vscodeStub.__infoview;
+  assert.ok(provider, "activate() 必须建 Infoview provider");
+  const states = [];
+  const original = provider.setStatus.bind(provider);
+  provider.setStatus = (status) => {
+    states.push(status);
+    return original(status);
+  };
+  const docA = "/repo/units/u01.sokonanoda";
+  const docB = "/repo/units/u02.sokonanoda";
+  try {
+    // ① 在飞 ⇒ loading。用一个**不 resolve** 的 promise 把请求钉在半空。
+    let release;
+    stubbedResponses["soko/goals"] = () =>
+      new Promise((resolve) => {
+        release = () => resolve({ decls: [] });
+      });
+    focus(fakeDocument(docA));
+    await settle();
+    assert.strictEqual(
+      states[states.length - 1]?.state,
+      "loading",
+      `取数在飞时必须发 loading（否则"还在编译"会被说成"没有声明"）：${JSON.stringify(states)}`,
+    );
+
+    // ② 空数组成功返回 ⇒ ready + 0（**与 loading 是两态**）。
+    release();
+    await settle();
+    assert.deepStrictEqual(
+      states[states.length - 1],
+      { state: "ready", decls: 0 },
+      `空数组是"真的没声明"（ready + 0），不是 loading：${JSON.stringify(states)}`,
+    );
+
+    // ③ 请求失败 ⇒ error（切走再切回来触发一次新的取数）。
+    stubbedResponses["soko/goals"] = () => {
+      throw new Error("boom");
+    };
+    focus(fakeDocument(docB));
+    await settle();
+    focus(fakeDocument(docA));
+    await settle();
+    assert.strictEqual(
+      states[states.length - 1]?.state,
+      "error",
+      `请求失败必须发 error（面板要提示看输出面板/重启服务器）：${JSON.stringify(states)}`,
+    );
+  } finally {
+    provider.setStatus = original;
+    stubbedResponses["soko/goals"] = () => ({ decls: [] });
+  }
+});
+
 test("diagnostics from other languages never drive soko/goals", async () => {
   await activateExtension();
   focus(fakeDocument("/repo/playground.sokonanoda"));
