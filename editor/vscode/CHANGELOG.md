@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.73.0] — 2026-09-27
 
 ### Changed
 
@@ -33,6 +33,10 @@
   `Set.singleton α a` / `Set.pair α a b` fold back to `{a}` / `{a, b}`.
 - **`F12` on a `{a}` set literal** now lands on `Set.singleton` (it used to
   return nothing).
+- **Leading type arguments in notation are filled in for you.** Writing `a ∈ A`
+  or `f '' A` no longer requires spelling the leading type parameter out
+  (`Set.mem α a A`); it is inserted from the operands, so the notation you write
+  is the notation that is checked.
 
 ## [0.72.0] — 2026-09-25
 
