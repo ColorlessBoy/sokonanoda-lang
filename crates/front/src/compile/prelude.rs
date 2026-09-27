@@ -237,6 +237,19 @@ def Eq.ndrec {u, v} (α : Sort u) (a : α) (motive : α -> Sort v) (m : motive a
 def Eq.mp {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) : α -> β := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => α -> x) (fun (a : α) => a) β h
 def Eq.mpr {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) : β -> α := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => x -> α) (fun (a : α) => a) β h
 def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq.mp.{u} α β h a
+-- **E10（v0.76.0）：内建记法的声明点** —— `∧ ∨ ↔ ¬ ≠` 是**语言内建**记法，语言
+-- **故意拒绝**重新声明它们（实测 `notation-shape`：「符号 `∧` 是语言内建记法……不需要也不能重新声明」✗✓ —— 那条守卫防的是「记法概念分叉」，与 E11 第 ③ 条同一纪律 ✓）。
+-- ⇒ 这里用仓库**已有**的 `-- sokonanoda:<指令>` 约定**登记声明点**（**零新增语法** ✓）：
+-- 记法表据此把每条内建记法的 `span` 指到**下面这一行** ⇒ 「名字 → 记法行 → 定义 →
+-- 回记法」那条双向路才有落点 ✓。判据：
+-- `crates/front/src/notation.rs::every_builtin_notation_has_a_directive_line_in_the_prelude`
+-- ⚠ **`=` 不登记**：词法的符号匹配是最长匹配且排在专用分支之前，`=` 进了符号表
+-- 就会把 `=>` 吃成 `=` + `>`（`parser.rs` 有实测注释 ✗）。
+-- sokonanoda:builtin-notation \"∧\" => And
+-- sokonanoda:builtin-notation \"∨\" => Or
+-- sokonanoda:builtin-notation \"↔\" => Iff
+-- sokonanoda:builtin-notation \"¬\" => Not
+-- sokonanoda:builtin-notation \"≠\" => Ne
 ";
 
 /// **A4（2026-09-26 用户报告第 4 条）**：prelude 的**只读源文本** —— 编辑器要

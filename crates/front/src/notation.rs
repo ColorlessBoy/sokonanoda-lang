@@ -69,6 +69,7 @@ pub fn notation_table(commands: &[Command]) -> Vec<NotationDecl> {
 /// **只给显示层用**：回读路径（judge / by）走的是 parser 的原生内建表，
 /// 往里塞一份反而可能撞车。
 pub(crate) fn builtin_notation_decls() -> Vec<NotationDecl> {
+    let prelude = crate::compile::prelude_source();
     crate::parser::builtin_notations()
         .iter()
         .map(|(symbol, assoc, precedence, target)| NotationDecl {
@@ -78,12 +79,47 @@ pub(crate) fn builtin_notation_decls() -> Vec<NotationDecl> {
             target: (*target).to_string(),
             // 内建记法一直生效（没有 `scoped` 形式）。
             scope: None,
-            // **没有声明点**（T-D10）：内建记法不在任何源文本里（parser 硬编码），
-            // 所以 `span` 是空的、`module` 是 `None`——"跳转"对它们无意义。
-            span: crate::Span::default(),
+            // **E10（v0.76.0）：声明点** —— 语言**故意拒绝**重新声明内建记法
+            //（实测 `notation-shape`：符号 `∧` 是语言内建记法、不需要也不能重新声明 ✗✓；
+            // 那条守卫防的是「记法概念分叉」，与 E11 第 ③ 条同一纪律 ✓）。
+            // ⇒ 走仓库**已有**的 `-- sokonanoda:<指令>` 注释约定登记声明点
+            //（**零新增语法** ✓）：span 指向 prelude 源里那一行 ✓。
+            span: builtin_directive_span(prelude, symbol).unwrap_or_default(),
+            // 内建仍**不属于任何模块**（prelude 不是模块）—— 落点那一跳由 LSP 侧
+            // 走 prelude 源（`prelude_source_path()`）✓，不靠模块路径 ✗。
             module: None,
         })
         .collect()
+}
+
+/// **E10**：内建记法在 prelude 源里的**指令行** span。
+///
+/// 那一行的形状是 `-- sokonanoda:builtin-notation "<符号>" => <目标>`（见
+/// `compile/prelude.rs` 的 `PRELUDE_L1_SRC` 尾部 ✓）。返回**整行**的 span ——
+/// 与 `infix:50 " ∈ " => Set.mem` 的 span 口径一致
+/// （见 `span_tests::a_notation_decl_carries_its_own_span` ✓）。
+fn builtin_directive_span(prelude: &str, symbol: &str) -> Option<crate::Span> {
+    let needle = format!("-- sokonanoda:builtin-notation \"{symbol}\" =>");
+    let mut offset = 0usize;
+    for (index, line) in prelude.split_inclusive('\n').enumerate() {
+        let trimmed = line.trim_end_matches('\n');
+        if trimmed.trim_start().starts_with(&needle) {
+            let indent = trimmed.len() - trimmed.trim_start().len();
+            let start = offset + indent;
+            let end = offset + trimmed.len();
+            let pos = |at: usize, column: usize| crate::Pos {
+                offset: at,
+                line: index + 1,
+                column,
+            };
+            return Some(crate::Span::new(
+                pos(start, indent + 1),
+                pos(end, trimmed.len() + 1),
+            ));
+        }
+        offset += line.len();
+    }
+    None
 }
 
 #[cfg(test)]
@@ -188,14 +224,50 @@ mod span_tests {
         assert_eq!(decl.module, None);
     }
 
-    /// 内建记法**不在内建表里带声明点**（表是 `Bare` 模式的兜底）——但**在 prelude 模式
-    /// 下它们有真的声明点**（见下一条 ✓）。
+    /// **E10（v0.76.0）：内建记法现在**有**声明点** —— 在 prelude 源里那条
+    /// `-- sokonanoda:builtin-notation "∧" => And` **指令行**上 ✓。
+    ///
+    /// 旧判据（T-D10）断言的是「内建没有声明点：`span.start.offset == 0`」✗ ——
+    /// 那是**当时的真相**，也是学生按 F12 无处可去的原因 ✓。E10 换了路
+    /// （不能重声明 ⇒ 用指令登记 ✓，见 `redeclaring_a_builtin_notation_is_rejected`），
+    /// 所以这条判据**跟着行为一起改** ✓（改行为不改判据 = 没做完 ✗）。
+    ///
+    /// 断言的是**具体值**：`span` 圈出来的文本**逐字等于**那一行指令 ✓ ——
+    /// 只断言"不是默认值"会放过"指到了别的行" ✗。
     #[test]
-    fn builtin_notations_have_no_declaration_site() {
+    fn builtin_notations_carry_their_directive_line_as_the_declaration_site() {
+        let prelude = crate::compile::prelude_source();
+        let mut checked = 0;
         for decl in builtin_notation_decls() {
-            assert_eq!(decl.module, None, "内建表里没有模块：{}", decl.symbol);
-            assert_eq!(decl.span.start.offset, 0, "内建表里没有声明点：{}", decl.symbol);
+            // `=` 不在 prelude 里登记（最长匹配会把 `=>` 吃坏 ✗）⇒ 它仍然没有声明点 ✓。
+            if decl.symbol == "=" {
+                assert_eq!(decl.span.start.offset, 0, "`=` 不登记，见 prelude 的注释 ✗");
+                continue;
+            }
+            assert_eq!(
+                decl.module, None,
+                "内建不属于任何模块（prelude 不是模块）：{}",
+                decl.symbol
+            );
+            let at = &prelude[decl.span.start.offset..decl.span.end.offset];
+            assert!(
+                at.starts_with(&format!(
+                    "-- sokonanoda:builtin-notation \"{}\" =>",
+                    decl.symbol
+                )),
+                "声明点必须**逐字**指向那条指令行 ✗（实际圈到：{at:?}）"
+            );
+            assert!(
+                at.ends_with(decl.target.as_str()),
+                "指令行必须以目标名结尾（{at:?} vs {}）",
+                decl.target
+            );
+            checked += 1;
         }
+        assert!(
+            checked >= 5,
+            "至少要覆盖 ∧/∨/↔/¬/≠ 五条（实测 {checked} 条）"
+        );
     }
 
     /// **E10 的判据（v0.76.0）—— 先钉住"为什么不能直接声明"** ✗✓。
