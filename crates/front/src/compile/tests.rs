@@ -8178,9 +8178,11 @@ theorem sing_eq (\u{3b1} : Type) (a : \u{3b1}) : Set.singleton \u{3b1} a = {a} :
 /// **R5 判据**（A5，2026-09-26 用户要求）：**集合字面量 / 零元记法嵌套在记法里**
 /// 时，前导类型参数必须解得出来。
 ///
-/// 这是 `courses/set-theory/units/unit12-synthesis.sokonanoda` 里那 **5 个**
+/// 这是 `courses/set-theory/units/unit12-synthesis.sokonanoda` 里**当时那 5 个**
 /// `-- soko:notation-ok: R5` 标记的根因 —— 学习者被迫把整条式子写成点名形式
 /// （`Set.singleton (Set Nat) ∅` …）✗。
+/// （R5 修好后该文件的 `R5` 标记**已清零**，只剩 3 个别的理由的标记 ✓ —— 这行记的是
+/// **当时的**现场，别再按 5 去找 ✗。）
 ///
 /// 病灶是 `elab.rs::solve_prefix_args` 的**两条路线都缺 delta 展开**
 /// （`implicit::solve_prefix` 早就有，记法这条没有）：

@@ -568,7 +568,9 @@ fn query_check_matches_grade_on_a_real_course_unit() {
         code, 0,
         "an open `sorry` exercise is a legal state: {value}"
     );
-    assert_eq!(value["data"]["counts"]["decl_checked"], 5, "{value}");
+    // ⚠ 基线在 **E02（0.74.0）** 变过：`def Set.prod` 从单元⑤ 画布收进了 `lib/Prod`
+    // ⇒ 这个画布的 `decl_checked` **5 → 4**（练习数与 open 数一条没动）。别再按 5 钉 ✗。
+    assert_eq!(value["data"]["counts"]["decl_checked"], 4, "{value}");
     assert_eq!(value["data"]["counts"]["exercise_open"], 7, "{value}");
     assert_eq!(
         value["data"]["failed"].as_array().map(Vec::len),

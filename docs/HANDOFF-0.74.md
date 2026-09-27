@@ -1,18 +1,21 @@
-# 交接单 —— v0.74.0 进行中（E03 起）
+# 交接单 —— v0.74.0 进行中（**E04 起**）
 
-> 写于 2026-09-27，本会话上下文已用掉一大截（E01+E02 两个环节，全程带验证）⇒ **按换会话信号收尾** ✓。
+> 写于 2026-09-27，本会话已完成 **E01/E02/E03** 三个环节（全程带验证）并**推了一次 CI**（run `36314757444`）
+> ⇒ 下一会话从 **E04** 接上（CI 结果见 §1 末行；若那一轮没绿，先修 CI 再开 E04 ✗）。
 > **唯一真相 = `docs/PLAN-0.74-0.79.md`**（顶部「⚡ 执行索引」；环节与判据**以当前发版点章节为准，不凭记忆** ✗）。
 > 本文件只是**起点快照**，不取代 PLAN 或 census ✓。
 
-## 1. 当前进度（v0.74.0：**2/11** ✓）
+## 1. 当前进度（v0.74.0：**3/11** ✓）
 
 | 环节 | 状态 | 证据 |
 |---|---|---|
 | **E01** `Rel.comp`/`Function.comp` 记法（`•`/`∘`） | ✅ **7a4a58b**（状态 `95a831b`） | 判据三层（front 记法表 / CLI 真课程库契约 / notation-lint 自动派生）· 反向验证 ✓ · 台账 **G-45** |
 | **E02** `Set.prod` 收进 `lib/Prod` | ✅ **8376391**（状态 `d55701f`） | 判据两层（front 目标在库 + CLI 只拷 `lib/` 的闭包）· 反向验证 ✓ · 台账 **G-46** |
-| E03 · E04 · E21 · E22 · E23 · E27 · E28 · E29 · E30 · E31 | ⬜ **9 个未开工** | — |
+| **E03** `r ⁻¹` / `A ≈ B` 记法 | ✅ **4e093dd**（状态 `37a8d44`） | 判据两层（front 记法表含 `⁻¹`/`⁻¹'` 共存 · CLI 真课程库契约）· 反向验证逐字一致 ✓ · 台账 **G-47**（fixed）+ **G-48**/**G-49**（新登记 open） |
+| E04 · E21 · E22 · E23 · E27 · E28 · E29 · E30 · E31 | ⬜ **8 个未开工** | — |
 
-**工作树干净 ✓**（`git status --short` 空）；**未 push**（批次制：批次收尾才推一次 ✓）。
+**已 push ✓**：`b63e77f..a9b4f4b`（**fast-forward，没有 force** ✓）；pre-push 钩子跑了**完整本地门禁**（fmt/clippy/课程门禁 327/99/0/缺口台账/记法守卫/wire 守卫/stub 宿主）**全绿** ✓。
+**CI**：run **`36314757444`**（headSha `a9b4f4b`）—— 判定用 `python3 scripts/ci-green.py --run 36314757444`（**逐 job**；`perf-gate` 是 `continue-on-error`、`fast-fail` 是条件 job）。
 
 ## 2. ✅ 验收数字已定（**用户 2026-09-27 拍板：按 327 读**）
 
@@ -29,10 +32,10 @@ PLAN/目标的收敛判据原先写「课程门禁 **36 目标 · 328 checked ·
 |---|---|
 | 课程门禁 `check.py` | ✅ **36 目标 · 327 checked · 99 open · 0 判负**（EXIT=0） |
 | `cargo test -p sokonanoda-cli --test course` | ✅ **6 passed / 0 failed** |
-| `cargo test -p sokonanoda-cli --test notation` | ✅ **49 passed / 0 failed** |
-| `cargo test -p sokonanoda-front --test prelude_shape` | ✅ **4 passed / 0 failed** |
-| `scripts/notation-lint.py` | ✅ 84 文件零旧写法（569 处显式豁免） |
-| `scripts/gap.py check` | ✅ 全部与台账一致（G-45 sokonanoda 通过 · G-46 script 行为已变） |
+| `cargo test -p sokonanoda-cli --test notation` | ✅ **50 passed / 0 failed** |
+| `cargo test -p sokonanoda-front --test prelude_shape` | ✅ **5 passed / 0 failed** |
+| `scripts/notation-lint.py` | ✅ 84 文件零旧写法（572 处显式豁免） |
+| `scripts/gap.py check` | ✅ 全部与台账一致（G-45/G-46/G-47 fixed · G-48/G-49 open） |
 | `scripts/docs-lint.py` / `scripts/status-lint.py` | ✅ 全绿 |
 
 ## 4. 已知坑（**别再重新发现一遍** ✗）
@@ -51,28 +54,26 @@ PLAN/目标的收敛判据原先写「课程门禁 **36 目标 · 328 checked ·
 | macOS `grep` 的 BRE 没有 `\|`/`\b` | **一律 `grep -E`** ✓ |
 | 网络 | **代理 `http://127.0.0.1:7890`**（`curl -x` ✓；`web_fetch` 走不通 ✗） |
 
-## 5. 下一步第一件事：**E03**（`r ⁻¹` / `A ≈ B` 记法）
+## 5. 下一步第一件事：**E04**（hover 折记法）
 
-**判红已确立 ✓**（本会话实测，**不必重造**）：临时模块根（只拷 `lib/`）写
-`def equiv_sq … : Prop := s ≈ t` ⇒ exit 1，内核原文
-**「符号 `≈` 在本文件里还没有声明过记法；先用 infix/notation 命令声明它，或改用点名写法」**；
-`r ⁻¹` 同类（parse 在第一条错处停）。
+**要什么**：悬停 `{a}` 显示 **`{a}`**，而不是内核 pp 的点名形式 `Set.singleton α a`。
 
-**取证已做 ✓（省一大步）**：`∘` 是 Lean core 逐字（`src/Init/Notation.lean:274`）；
-但 **`⁻¹` 与 `≈` 在 mathlib4 master 里查不到对应声明** ——
-`Mathlib/Logic/Relation.lean` 里既没有 `Relation.inv` 也没有 `⁻¹`（只有 `local infixr:80 " ∘r "`）；
-`Mathlib/Logic/Equiv/Defs.lean:80` 是 `infixl:25 " ≃ " => Equiv`（**`≃` 不是 `≈`**）；
-`Mathlib/SetTheory/Cardinal/Basic.lean` 无 `≈`。
-⇒ **两条都按"本课自定"落地**（PLAN 已指定符号），**并顺手更正**
-`lib/Rel.sokonanoda` / `lib/Equiv.sokonanoda` 头部"这是 Mathlib 的记法"那两处**不准确**的引用
-（E01 已经为 `•` 做过同样的更正，照那个样子写 ✓）。建议形状：
-`postfix:100 " ⁻¹ " => Rel.inv`（与 `ᶜ`/`𝒫` 同档）· `infix:50 " ≈ " => Set.Equiv`（与 `=`/`∈`/`⊆` 同档）。
+**根因（PLAN 已实测定位 ✓，不必重查）**：`crates/front/src/compile/check/mod.rs` 的
+`resolve_hovers`（约 `:1217-1260`）里，hover 文本来自
+`tc.with_pp_scoped(…, |pp| pp.pp_expr(ty))` —— **内核 pp 直出，没过显示层的 `fold`** ✗。
+显示层的唯一接口是 `DisplayNotations`：同文件 `check/kernel_phase.rs:106 / :125 / :322`
+已经在用 `display.fold(&text)`（goal / 声明类型 / 目标行那三处 ✓）—— E04 就是把
+`resolve_hovers` 这条第四路也接上去（`check/mod.rs:387` 已经拿得到 `display` ✓）。
 
-**E03 的机械量比 E01 大**（`Set.Equiv` 的点名用法遍布单元⑨⑩⑫ 与解答）⇒ 建议：
-先加两条声明 → 跑 `python3 scripts/notation-lint.py`（**新声明会自动派生点形式判据** ✓，
-它给出的清单就是待改文件表）→ 一处一改 → 再判据。
-⚠ 判据照 E01/E02 的三层写：front 记法表（`prelude_shape.rs`）· CLI 真课程库契约（`notation.rs`）·
-notation-lint 零残留；**反向验证**：撤声明必须判红。
+**判据（照 PLAN §E04）**：悬停 `{a}` 显示 `{a}`；**反向验证**：拿掉 fold 必须判红。
+三层照 E01/E03 的样子写：front 单测（真相：`resolve_hovers` 的文本）+ LSP 单测（**wire 契约**：
+`HoverType.text` 真的在 wire 里）+ 有现成 e2e 的话补一条（用户可见结果）；
+⚠ `python3 scripts/audit-notation-paths.py` 是**记法路径棘轮**（基线 59 是地板）——
+新增/减少折叠路径会让它动，按它的提示同步 ✓。
+
+**开工纪律**（本会话已跑通三遍）：先判红（贴内核原文）→ 一处一 commit →
+判据与测试**同 commit** → 反向验证（撤掉必须判红、且**逐字一致**）→ 总览表标 `✅ <commit>` →
+回写 `docs/gaps/ledger.jsonl` → 课程门禁**计数中性**（**36 目标 · 327 checked · 99 open · 0 判负**）。
 
 ## 6. 关键指针（file:line）
 
