@@ -76,7 +76,15 @@
   `cli/perf_project.rs` 断言 `warm<cold` · `warm<300ms` · `2×warm<cold`。**只有 P1 里那两条例外**。
 - `notation.rs` · `notation_fold.rs` · `namespace.rs` · `judge_batch.rs` · `course.rs` ·
   `course_project.rs` · `skill.rs` · `protocol.rs`（除两点）· `kernel/pretty_printer.rs`（逐例精确 pp 串）·
-  `memory_api.rs`（除 `:40`）· `arena.rs`（除跳过）· `lsp_edit_concurrency.rs` · `imports.rs` · `dsh.rs` · `watch.rs`。
+  `memory_api.rs`（除 `:40`）· `arena.rs`（除跳过）· `lsp_edit_concurrency.rs` · **`crates/cli/tests/imports.rs`（⚠ 除 `:471-474`）** · `dsh.rs` · `watch.rs`。
+  ⚠ **两处更正（2026-09-27 抽查）**：
+  · **路径**：`imports.rs` 在 **`crates/cli/tests/`**，**不是** `crates/front/tests/` ✗
+    （按后者去找会得到 `No such file or directory` ✓）；
+  · **它不该被无条件列进"判为强"** ✗ —— 实测 `:471-474` 是
+    `assert!(text.contains("Main.sokonanoda") && text.contains("Bar.sokonanoda"), "both files are visited")`
+    ⇒ **只 `contains` 两个文件名**，而用例名说的是 per-file status ✓
+    ⇒ 属 **②**（只断言"有这两个名字"、不断言每份文件的 status ✓）；
+  · 与 `memory_api.rs`（除 `:40`）/ `arena.rs`（除跳过）**同一写法**：**文件级判强要给例外** ✗ —— 我原来漏写了这一个 ✓。
 - **`G3` 本身不弱** ✓（C 片实测纠正了我的预设）：`decl.checked > 0` 形式上像 ②，但"覆盖该覆盖的"
   由 **G4** 兜着，而 G4 断言**是哪几个名字**（比 ② 强）；G3 不可替代的作用是"解答不能是空文件/全灭"。
   **真正弱的是 G4 的输入集**（见 P1 两条）。
