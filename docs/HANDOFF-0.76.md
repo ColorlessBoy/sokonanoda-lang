@@ -54,6 +54,34 @@ $ scripts/soko grade /tmp/t.sokonanoda --json     # 文件里写 infixr:35 " ∧
 - ⚠ 试过"直接把 5 行 `infixr:` 写进 `PRELUDE_L1_SRC`" ⇒ `crate::parse(PRELUDE_L1_SRC)` 失败 ⇒
   **475 个 front 测试同时红** ✗✓（已完整回退；镜子已重新生成 ✓）。**别重试这条** ✗。
 
+### E10 **进度：前半已落地（`d4e61e4`），后半卡在 `notation_at`**（2026-09-28 round 2 实测）
+
+**已做（已提交 ✓）**：
+- `PRELUDE_L1_SRC` 尾部 5 行指令注释 `-- sokonanoda:builtin-notation "∧" => And`（`∨ ↔ ¬ ≠` 同）——
+  注释**惰性** ⇒ `crate::parse(PRELUDE_L1_SRC)` 照常成功 ✓（对照：直接写 `infixr:` ⇒ 475 测试同时红 ✗）。
+- `notation.rs::builtin_notation_decls()` 把每条内建的 `span` 指向**它那一行指令**
+  （新 helper `builtin_directive_span`，整行口径 ✓）；`module` 仍 `None` ✓。
+- 判据跟着行为改了：`builtin_notations_carry_their_directive_line_as_the_declaration_site`
+  （逐字比对那一行 + 以目标名结尾；`=` 仍必须**没有**声明点 ✓）；反向验证：删一行 ⇒ 红
+  （`实际圈到：""` ✓）。
+
+**后半卡住（下一会话从这里接）**：让**学生文件里按 F12 落到 prelude 那条指令行**。
+本轮试过、**都还不够**（别原样重试 ✗）：
+1. 在 `crates/lsp/src/lib.rs` 的记法符号分支里加「`module.is_none() && span.start.offset != 0`
+   ⇒ 走 `prelude_source_path()`」——**加了也不触发** ✗（落点仍是学生文件自己 = 后续分支的自跳 ✗）；
+2. 在 `crates/front/src/project/graph.rs` 的闭包表里 seed `builtin_notation_decls()` ——
+   **仍不触发** ✗；
+3. 给 LSP 夹具加 `sokonanoda.toml`（`notation_at` 开头 `self.project.as_ref()?`，单文件模式必 `None` ✓
+   —— 这一条**是对的、要保留** ✓）。
+
+⇒ **下一步要查的**（按顺序）：① `notation_at`（`crates/front/src/query/mod.rs:398`）里
+`symbol_at_with_sources(text, offset, &sources)` 对 `∧` **是否认得出**（它只喂闭包符号名 ✗，
+内建符号走的是 `merge_known` 那条词法路 ✓ —— 这两条**可能没接上** ✗）；
+② seed 进闭包表的那些 decl **是否真的到了 `Query::project.notations`**（`project/mod.rs:411`
+`notations: closure.notations.clone()` ✓）；③ 只有 ①② 都通，`lib.rs` 里那段 prelude 分支才有机会跑 ✓。
+⚠ 判据已写好又**撤掉**了（红着不提交 ✗）—— 重写时照 `goto_definition_on_a_prelude_name_lands_in_the_prelude_source`
+的样式（那条是**已有的、绿的**参照 ✓，断言"落点文件里有 `-- sokonanoda:builtin-notation`" + 落在那一行 ✓）。
+
 ### E10 —— 内建记法 `∧ ∨ ↔ ¬ →` 写进 prelude 当**声明点**（双向）
 
 - 现在内建记法是**硬编码表**：`crates/front/src/parser.rs::builtin_notations()`
