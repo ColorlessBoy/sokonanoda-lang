@@ -114,10 +114,21 @@ async function responseFor(lsp, id) { for (;;) { const m = await lsp.next(); if 
   //      （`Set.image`/`Set.preimage`/`Set.prod`，声明在别的模块）**诚实为
   //      null**：这份文件没 import 那个模块，没有可跳的目标，编不出来。
   //   ③ `documentHighlight` 本轮**不做**（那要 use→def 映射，属于另一条线）。
-  const hoverOk = cases.every(([label]) => {
+  // ⚠ **hover 这一半原来也是弱判据，2026-09-27 一并升级** ✗✓（E00 切片 A1 抓到的 ✓）：
+  //   我上一轮只升级了 definition 那一半，hover 还留着 `summary !== 'null'` ✗ ——
+  //   那**正是骗过台账的同一个形状**，只是搬到了另一半：答一张「未知标识符/错误卡片」
+  //   也是非 null ⇒ 照样判绿 ✗。⇒ 现在断言 hover 首行**逐字**等于 LSP 发的那一行
+  //   （`crates/lsp/src/lib.rs:1679` 发 `` `Set.<name>` —— 记法的目标 `` ✓）。
+  const hoverLine = (label) => {
     const entry = out.get(`${label}|hover`);
-    return entry && entry.summary && entry.summary !== 'null';
-  });
+    const v = entry && entry.r && entry.r.result;
+    const text = v && v.contents && (v.contents.value || '');
+    return text ? text.split('\n')[0] : null;
+  };
+  // ⚠ **期望只算一次**（单一真相 ✓）：原来判定与报告**各写一遍** ⇒ 我反向验证时
+  //   改了判定那处、报告那处没改 ⇒ 报告仍打 ✓ 而 hoverOk 已是假 ✗（**两处会互相矛盾** ✗）。
+  const hoverWant = (label) => `\`${label.replace(/ \(.*\)$/, '')}\` —— 记法的目标`;
+  const hoverOk = cases.every(([label]) => hoverLine(label) === hoverWant(label));
   const inScope = ['Set.powerset (prefix)', 'Set.compl (postfix)'];
   // ⚠ **判据升级（E00 / 对应 E06）**：原来只断言 `summary !== 'null'` ✗ ——
   //   那会把「**F12 跳到光标自己那一行**」也判绿 ✗✓（2026-09-27 实测：台账写着
@@ -147,6 +158,12 @@ async function responseFor(lsp, id) { for (;;) { const m = await lsp.next(); if 
     const want = d.want === null ? '?' : `L${d.want + 1}`;
     const tag = d.line !== null && d.line === d.cursor ? '  ← **自跳**（= 光标自己那一行）✗' : '';
     console.log(`   ${label.padEnd(24)} 落 ${where.padEnd(6)} · 期望 ${want.padEnd(6)}${tag}`);
+  }
+  console.log('== hover 核对（升级后的判据：首行必须逐字等于 LSP 发的那一行）==');
+  for (const [label] of cases) {
+    const got = hoverLine(label);
+    const want = hoverWant(label);   // ← 与 hoverOk **同一个** want ✓
+    console.log(`   ${label.padEnd(24)} ${got === want ? '✓' : '✗'}  ${JSON.stringify(got)}`);
   }
   if (hoverOk && defOk) {
     console.log('结论：G-37 已修——目标名 hover 五条全答得上；在闭包里的两条 definition 也答得上');
