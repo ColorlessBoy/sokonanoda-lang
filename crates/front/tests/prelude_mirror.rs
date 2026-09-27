@@ -76,3 +76,84 @@ fn the_repo_mirror_is_byte_identical_to_the_compiled_prelude() {
         );
     }
 }
+
+/// **E10 的判据（闭包记法表这一层）**：内建记法必须在**闭包记法表**里、
+/// 且带 **prelude 指令行**的 span ✓ —— 否则 `Query::notation_at`（只查
+/// `project.notations`）认不出 `∧`，学生文件里按 F12 **毫无反应** ✗。
+///
+/// ⚠ 这条是**接缝判据**：`notation.rs` 里"有声明点"（另一条判据 ✓）**不等于**
+/// 查询层拿得到 —— 实测踩过：只在 `notation.rs` 里给 span，`notation_at` 仍然
+/// 找不到 `∧`（它走的是 `project.notations` ✗）✓。
+#[test]
+fn builtin_notations_reach_the_closure_notation_table() {
+    use sokonanoda_front::compile::CompileOptions;
+    use sokonanoda_front::project;
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-builtin-table-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    std::fs::write(
+        dir.join("sokonanoda.toml"),
+        "entry = \"Canvas.sokonanoda\"\n",
+    )
+    .expect("write manifest");
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(&entry, "theorem t (a b : Prop) (h : a ∧ b) : a ∧ b := h\n")
+        .expect("write entry");
+    let report = project::compile_project(&entry, None, &CompileOptions::default(), None);
+    let table = report.notations;
+    let prelude = prelude_source();
+    let mut checked = 0;
+    for decl in sokonanoda_front::notation::builtin_notation_decls_for_test() {
+        // `=` **故意**没有指令行（最长匹配会把 `=>` 吃坏 ✗）⇒ 它不在这条判据里 ✓。
+        if decl.symbol == "=" {
+            continue;
+        }
+        let found = table
+            .iter()
+            .find(|it| it.symbol == decl.symbol)
+            .unwrap_or_else(|| {
+                panic!(
+                    "闭包记法表里没有内建 `{}` ✗（`notation_at` 会找不到它）",
+                    decl.symbol
+                )
+            });
+        let at = &prelude[found.span.start.offset..found.span.end.offset];
+        assert!(
+            at.starts_with("-- sokonanoda:builtin-notation"),
+            "闭包表里的内建 `{}` 必须带 prelude 指令行的 span ✗（实际圈到：{at:?}）",
+            decl.symbol
+        );
+        checked += 1;
+    }
+    assert!(checked >= 5, "至少 5 条（实测 {checked}）");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **E10 的接缝判据（词法那一段）**：`notation_at` 的第一步是
+/// `notation_input::symbol_at_with_sources(text, offset, &闭包符号名)` —— 它对
+/// **内建**符号（`∧`）必须也认得出 ✓（内建不在闭包符号表里，走的是
+/// `symbol_at` 的"本文件声明 + 内建"那条路 ✓）。
+///
+/// ⚠ 这条单独钉住，是因为"闭包表里有 `∧`"（上一条 ✓）**不等于**"光标处的 `∧`
+/// 能被认出来" ✗ —— 两步都通，`notation_at` 才答得上 ✓。
+#[test]
+fn the_lexer_recognises_a_builtin_notation_symbol_at_the_cursor() {
+    use sokonanoda_front::notation_input::symbol_at_with_sources;
+    let src = "theorem t (a b : Prop) (h : a ∧ b) : a ∧ b := h\n";
+    let offset = src.find('∧').expect("the symbol");
+    let found = symbol_at_with_sources(src, offset, &[]);
+    assert!(
+        found.is_some(),
+        "内建记法 `∧` 必须被认得出（否则 `notation_at` 第一步就断了 ✗）"
+    );
+    let (symbol, target) = found.expect("checked");
+    assert_eq!(symbol, "∧");
+    assert_eq!(target.as_deref(), Some("And"), "内建的目标名来自内建表 ✓");
+}

@@ -109,7 +109,16 @@ pub fn load_closure_with_overlay(
         &mut exports,
     );
 
-    let notations = exports.remove(&entry_name).unwrap_or_default();
+    let mut notations = exports.remove(&entry_name).unwrap_or_default();
+    // **E10（v0.76.0）**：内建记法（`∧ ∨ ↔ ¬ ≠`）是**语言级**的（不属于任何模块）
+    // ⇒ 不在任何模块的导出表里，但**必须在闭包记法表里** ✗✓ —— 否则
+    // `Query::notation_at`（它只查 `project.notations`）认不出 `∧` ⇒ 学生文件里
+    // 按 F12 **毫无反应** ✗。它们带的是 prelude 那条指令行的 span（E10 登记 ✓）。
+    for decl in crate::notation::builtin_notation_decls() {
+        if !notations.iter().any(|it| it.symbol == decl.symbol) {
+            notations.push(decl);
+        }
+    }
     let mut closure = Closure {
         modules,
         diagnostics,

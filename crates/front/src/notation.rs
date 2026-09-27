@@ -92,6 +92,12 @@ pub(crate) fn builtin_notation_decls() -> Vec<NotationDecl> {
         .collect()
 }
 
+/// **E10 的接缝判据要用它**（集成测试在 crate 外，`builtin_notation_decls` 是
+/// `pub(crate)` ✗）—— 只读、无副作用 ✓。
+pub fn builtin_notation_decls_for_test() -> Vec<NotationDecl> {
+    builtin_notation_decls()
+}
+
 /// **E10**：内建记法在 prelude 源里的**指令行** span。
 ///
 /// 那一行的形状是 `-- sokonanoda:builtin-notation "<符号>" => <目标>`（见
