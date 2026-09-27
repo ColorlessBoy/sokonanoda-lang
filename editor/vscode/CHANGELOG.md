@@ -1,3 +1,26 @@
+## [0.76.0] — 2026-09-28
+
+> 「prelude 显式化 + 两跳」（E09–E11）。
+
+### Added
+
+- **The prelude is a real file in the repository now.** `prelude/Prelude.sokonanoda`
+  is the exact text the checker installs (`Eq`, `And`, `Or`, `Iff`, `Not`, `Ne`,
+  `False.elim`, the recursors …), so you can read what the logic you use is built
+  from instead of reading Rust. It is a **mirror**: the compile-time constant is
+  still the single source of truth, and a guard fails the build if the two drift
+  by even one byte (regenerate with
+  `SOKO_WRITE_PRELUDE=1 cargo test -p sokonanoda-front --test prelude_mirror`).
+- **Built-in notations have a declaration point.** `∧ ∨ ↔ ¬ ≠` are language-level
+  (re-declaring them is refused on purpose), so they used to have no source line
+  anywhere — `F12` on `∧` did nothing. They are now registered in the prelude with
+  the repository's existing `-- sokonanoda:builtin-notation "∧" => And` comment
+  convention (no new syntax), and `F12` lands on that line.
+- **Built-in sugar is registered too.** `{a}` → `Set.singleton`, `{a, b}` →
+  `Set.pair`, and `⟨a, b⟩` → *decided by the expected type* (which is what the
+  elaborator really does — the registry says so instead of inventing a target).
+  A guard keeps the registry and `elab.rs` word-for-word consistent.
+
 ## [0.75.0] — 2026-09-27
 
 > 「跳转与高亮」（E05–E08）。
