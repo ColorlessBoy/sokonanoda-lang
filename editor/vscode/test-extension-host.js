@@ -146,6 +146,9 @@ const vscodeStub = {
       this.character = character;
     }
   },
+  // 真 API 的取值（VS Code `ProgressLocation`：SourceControl=1 / Window=10 /
+  // Notification=15）✓ —— E23 的 `withProgress` 要读它，stub 缺了就会 TypeError。
+  ProgressLocation: { SourceControl: 1, Window: 10, Notification: 15 },
   Range: class Range {
     constructor(startLine, startCharacter, endLine, endCharacter) {
       if (typeof startLine === "object") {
@@ -216,7 +219,18 @@ const vscodeStub = {
       return { dispose() {}, reveal: async () => {} };
     },
     createStatusBarItem: () => {
-      const item = { show() {}, hide() {}, dispose() {}, text: "", tooltip: "" };
+      const item = { show() {}, hide() {}, dispose() {}, tooltip: "" };
+      // **E23**：状态栏文案要能**逐帧**看 —— 「3/13 文件 · …」是**中间态**，
+      // 只在跑完看一眼是抓不到的 ✗（而那正是"有没有进度"的全部证据）。
+      vscodeStub.__statusBarHistory = [];
+      let text = "";
+      Object.defineProperty(item, "text", {
+        get: () => text,
+        set: (value) => {
+          text = value;
+          vscodeStub.__statusBarHistory.push(value);
+        },
+      });
       vscodeStub.__statusBar = item;
       return item;
     },
@@ -230,7 +244,24 @@ const vscodeStub = {
     showErrorMessage: async () => undefined,
     showTextDocument: async () => undefined,
     registerUriHandler: () => makeDisposable(),
-    withProgress: async (_options, task) => task({ report() {} }),
+    // **E23**：`withProgress` 不再是空壳 —— 它记下 options、把每次 `report`
+    // 收进 `__progress.reports`（判据要断言**中间态发生过**：至少一次
+    // `increment > 0`，只断言首尾 = 等于没进度 ✗），并给出**取消令牌**
+    // （`runBuild` 的取消要一路传到 `child.kill()`）。
+    withProgress: async (options, task) => {
+      vscodeStub.__progress = { options, reports: [] };
+      const token = {
+        isCancellationRequested: false,
+        onCancellationRequested: (handler) => {
+          vscodeStub.__progress.cancelHandler = handler;
+          return makeDisposable();
+        },
+      };
+      return task(
+        { report: (value) => vscodeStub.__progress.reports.push(value) },
+        token,
+      );
+    },
   },
   languages: {
     onDidChangeDiagnostics: (listener) => listeners.diagnostics.event(listener),
@@ -310,6 +341,13 @@ let courseEvents = [];
 function setCourseEvents(events) {
   courseEvents = events || [];
 }
+// **E23**：`build --json` 的事件流（默认空 ⇒ 老用例行为不变 ✓）。
+let buildEvents = [];
+function setBuildEvents(events) {
+  buildEvents = events || [];
+}
+/// `child.kill()` 的调用记录（E23 的取消判据要它）。
+const kills = [];
 function fakeSpawn(command, args) {
   spawns.push({ command, args });
   const child = new EventEmitter();
@@ -317,10 +355,20 @@ function fakeSpawn(command, args) {
     Object.assign(new EventEmitter(), { setEncoding: () => {}, resume: () => {} });
   child.stdout = stream();
   child.stderr = stream();
-  child.kill = () => {};
+  // **E23**：取消要能验 —— 记下 `child.kill()` 真的被叫过（不是只断言
+  // "注册了回调"✗：回调里不 kill 的话，用户点取消什么也不会发生）。
+  child.kill = () => {
+    kills.push({ command, args });
+  };
   process.nextTick(() => {
     if (Array.isArray(args) && args[0] === "course" && courseEvents.length) {
       child.stdout.emit("data", courseEvents.map((event) => JSON.stringify(event)).join("\n") + "\n");
+    }
+    if (Array.isArray(args) && args[0] === "build" && buildEvents.length) {
+      // **E23**：像真子进程那样**按行**吐 `build.begin` / `build.file` /
+      // `build.summary`（`--json` 事件流）—— 扩展是流式消费的，一次全给
+      // 也能逐行处理，但"中间态"必须真的被记下来（状态栏历史 ✓）。
+      child.stdout.emit("data", buildEvents.map((event) => JSON.stringify(event)).join("\n") + "\n");
     }
     child.emit("close", 0);
   });
@@ -505,6 +553,8 @@ function resetListeners() {
 async function activateExtension(config = {}) {
   requests.length = 0;
   spawns.length = 0;
+  kills.length = 0;
+  buildEvents = [];
   timers = [];
   // 每个测试重新激活一次：监听器必须重新挂，否则上一个测试的监听器还在
   //（一次事件会被处理两遍——这正是我们要测的那类放大问题）。
@@ -643,6 +693,115 @@ test("build/rebuild target the project root, not the active file (E22)", async (
       reason: "no-imports",
     });
   }
+});
+
+test("build streams per-file progress to the status bar and the Infoview (E23)", async () => {
+  // **E23（用户 I2②：「我要求有进度条，**现在是没有进度**」）**。
+  //
+  // 修前的形态：`runBuildProcess` 把子进程 stdout **攒到最后**才 resolve，
+  // 而 `parseBuildEvents` 只用了 `build.clean` / `build.summary` ⇒ 用户点
+  // Build 看到的是"弹一个面板 + 滚 JSON + 结束才弹通知" ✗ —— **没有状态栏、
+  // 没有 Infoview 进度区、没有概览尺**。
+  //
+  // 这条判据钉**三处同时、数字同一份**（设计 `compile-progress-ui.md` §3）：
+  //   ① 状态栏**逐帧**（`__statusBarHistory`：`0/3` → `1/3` → `2/3` → `3/3`）；
+  //   ② Infoview 的进度载荷（真 provider 的 `setProgress`，逐帧记下来）；
+  //   ③ 原生进度条的 `report` —— **必须有 `increment > 0` 的那一次**（只断言
+  //      首尾 = 等于没进度 ✗，这是设计里点名的假绿形态）。
+  // 外加取消：`withProgress` 必须 `cancellable`，且令牌真的接到 `child.kill()`。
+  // ⚠ 输出面板**不是**进度：这里一条都不拿它当证据 ✗。
+  await activateExtension();
+  focus(fakeDocument("/repo/units/u01.sokonanoda"));
+  await settle();
+  const provider = vscodeStub.__infoview;
+  assert.ok(provider, "activate() 必须建 Infoview provider");
+  const frames = [];
+  const original = provider.setProgress.bind(provider);
+  provider.setProgress = (progress) => {
+    frames.push(progress);
+    return original(progress);
+  };
+  setBuildEvents([
+    { type: "build.begin", files: 3 },
+    { type: "build.file", file: "/repo/lib/Set.sokonanoda", status: "compiled" },
+    { type: "build.file", file: "/repo/units/u01.sokonanoda", status: "hit" },
+    { type: "build.file", file: "/repo/units/u02.sokonanoda", status: "hit" },
+    { type: "build.summary", files: 3, hit: 2, compiled: 1, failed: 0 },
+  ]);
+  vscodeStub.__statusBarHistory = [];
+  spawns.length = 0;
+  let summary;
+  try {
+    summary = await vscodeStub.__commands["sokonanoda.build"]();
+  } finally {
+    provider.setProgress = original;
+  }
+
+  // ① 状态栏：**每一帧都在**（顺序即进度顺序）。只看 `$(sync~spin)` 那几帧 ——
+  // 收工后状态栏会退回"本文件 N"态（那也含"文件"两个字，别混进来 ✗）。
+  const statusFrames = vscodeStub.__statusBarHistory.filter((line) =>
+    String(line).startsWith("$(sync~spin)"),
+  );
+  assert.deepStrictEqual(
+    statusFrames,
+    [
+      "$(sync~spin) Sokonanoda: 0/3 文件",
+      "$(sync~spin) Sokonanoda: 1/3 文件 · Set.sokonanoda ✓",
+      "$(sync~spin) Sokonanoda: 2/3 文件 · u01.sokonanoda ✓",
+      "$(sync~spin) Sokonanoda: 3/3 文件 · u02.sokonanoda ✓",
+    ],
+    "状态栏必须逐文件更新（这些就是「中间态」）",
+  );
+
+  // ② Infoview：同一份数字、同样的顺序，且 `end` 收干净。
+  const infoviewFrames = frames.filter((f) => f && f.phase !== "end");
+  assert.deepStrictEqual(
+    infoviewFrames.map((f) => f.label),
+    [
+      "编译项目（3 个文件）",
+      "1/3 · Set.sokonanoda",
+      "2/3 · u01.sokonanoda",
+      "3/3 · u02.sokonanoda",
+    ],
+    "Infoview 进度区必须与状态栏同一份进度",
+  );
+  assert.deepStrictEqual(
+    infoviewFrames.map((f) => f.percent),
+    [0, 33, 67, 100],
+    "百分比必须随推进递增（不是假的常量）",
+  );
+  assert.strictEqual(
+    frames[frames.length - 1].phase,
+    "end",
+    "结束必须发 end（否则进度块永远留在面板上）",
+  );
+
+  // ③ 原生进度条：**至少一次 increment > 0 的 report**（反假绿第 ② 条）。
+  const reports = vscodeStub.__progress?.reports ?? [];
+  assert.ok(
+    reports.some((r) => Number(r.increment) > 0),
+    `原生进度必须有中间推进（只报首尾 = 没进度）：${JSON.stringify(reports)}`,
+  );
+  assert.ok(
+    reports.some((r) => String(r.message).includes("2/3")),
+    `原生进度的 message 要带逐文件计数：${JSON.stringify(reports)}`,
+  );
+
+  // ④ 可取消：令牌已注册，且回调**真的** kill 了子进程。
+  assert.strictEqual(
+    vscodeStub.__progress.options.cancellable,
+    true,
+    "build 必须可取消（修前完全不能取消）",
+  );
+  assert.strictEqual(typeof vscodeStub.__progress.cancelHandler, "function", "取消回调必须注册");
+  kills.length = 0;
+  vscodeStub.__progress.cancelHandler();
+  assert.strictEqual(kills.length, 1, "点取消必须 kill 掉 CLI 子进程");
+
+  assert.ok(
+    String(summary).includes("3 个文件"),
+    `结束通知仍是 build.summary 的真实计数：${summary}`,
+  );
 });
 
 test("diagnostics from other languages never drive soko/goals", async () => {

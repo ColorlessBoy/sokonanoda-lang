@@ -1263,16 +1263,24 @@ function setCompileDecorations(on) {
 function applyProgress(info) {
   if (info.phase === "begin") {
     statusBarCompiling = true;
+    // E23：build/rebuild 那条路带**逐文件计数**（`3/13 · lib/Set.sokonanoda`）；
+    // LSP 那条路不带 `detail` ⇒ 状态栏文案与以前**逐字相同** ✓（零行为变化）。
+    statusBarCompilingDetail = typeof info.detail === "string" ? info.detail : "";
     updateStatusBar(goalProvider);
     setCompileDecorations(true);
   } else if (info.phase === "end") {
     statusBarCompiling = false;
+    statusBarCompilingDetail = "";
     updateStatusBar(goalProvider);
     setCompileDecorations(false);
     // 收工时把进度块**清干净**（webview 侧 `end` 会删块 ✓）；同时别让
     // 下一次面板重开回放出一块**已经结束**的进度 ✗（T8 的边界）。
     infoviewProvider?.setProgress({ phase: "end", label: null, percent: null });
     return;
+  } else if (typeof info.detail === "string") {
+    // `report`：状态栏跟着逐文件走（**中间态**就是进度的证据 ✓）。
+    statusBarCompilingDetail = info.detail;
+    updateStatusBar(goalProvider);
   }
   infoviewProvider?.setProgress(info);
 }
@@ -1281,13 +1289,19 @@ function applyProgress(info) {
 /// **必须排在"没文档就 hide"之前**：编译可能在文档刚关掉时还在跑，这时
 /// 状态栏该说"在编"，不是消失 ✓。`end` 一到就退回原来的两态 ✓。
 let statusBarCompiling = false;
+/// 编译中那行后面的**明细**（E23：build/rebuild 的 `3/13 · 文件名`）。
+let statusBarCompilingDetail = "";
 
 function updateStatusBar(provider) {
   if (!statusBar) return;
   if (statusBarCompiling) {
-    statusBar.text = "$(sync~spin) Sokonanoda: 编译中…";
+    statusBar.text = statusBarCompilingDetail
+      ? `$(sync~spin) Sokonanoda: ${statusBarCompilingDetail}`
+      : "$(sync~spin) Sokonanoda: 编译中…";
     statusBar.tooltip = new vscode.MarkdownString(
-      "正在编译当前文件所在的 import 闭包（长文件第一次编会比较久）。",
+      statusBarCompilingDetail
+        ? `正在编译**项目**（逐文件）：${statusBarCompilingDetail}`
+        : "正在编译当前文件所在的 import 闭包（长文件第一次编会比较久）。",
     );
     statusBar.show();
     return;
@@ -1773,15 +1787,34 @@ function buildTarget() {
 
 /// 子进程纪律与课程树同款：stdout 是 JSON Lines、stderr 进输出面板、
 /// 有界运行（超时就 kill），**永不阻塞**（build 失败不是异常路径）。
-function runBuildProcess(command, args, channel) {
+///
+/// **E23 起是流式的** ✓：`hooks.onLine` 每来一整行就回调一次（进度要**逐文件**
+/// 更新，攒到最后再解析等于没进度 ✗）；`hooks.token`（`withProgress` 的取消令牌）
+/// 一到就 `child.kill()` —— 顺手修掉「`runBuild` 完全不能取消」这个真缺陷 ✓。
+/// 行缓冲：`data` 块**不保证**按行切 ✗ ⇒ 不完整的尾巴留到下一块（以前是把半行
+/// 直接写进面板）。
+function runBuildProcess(command, args, channel, hooks = {}) {
   return new Promise((resolve) => {
     let stdout = "";
+    let pending = "";
     let child;
+    const emit = (line) => {
+      const text = line.trimEnd();
+      if (!text.trim()) return;
+      channel?.appendLine(text);
+      hooks.onLine?.(text);
+    };
     try {
       child = cp.spawn(command, args);
     } catch (error) {
       resolve({ code: -1, stdout: "", error: String(error?.message ?? error) });
       return;
+    }
+    if (typeof hooks.token?.onCancellationRequested === "function") {
+      hooks.token.onCancellationRequested(() => {
+        channel?.appendLine("[cancel] 用户取消了这次 build");
+        child.kill();
+      });
     }
     const timer = setTimeout(() => {
       channel?.appendLine(`[timeout] ${command} ${args.join(" ")} (> ${BUILD_TIMEOUT_MS}ms)`);
@@ -1791,9 +1824,10 @@ function runBuildProcess(command, args, channel) {
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", (chunk) => {
       stdout += chunk;
-      for (const line of chunk.split("\n")) {
-        if (line.trim()) channel?.appendLine(line.trimEnd());
-      }
+      pending += chunk;
+      const lines = pending.split("\n");
+      pending = lines.pop() ?? "";
+      for (const line of lines) emit(line);
     });
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (chunk) => channel?.appendLine(String(chunk).trimEnd()));
@@ -1803,6 +1837,7 @@ function runBuildProcess(command, args, channel) {
     });
     child.on("close", (code) => {
       clearTimeout(timer);
+      if (pending.trim()) emit(pending);
       resolve({ code: code ?? -1, stdout });
     });
   });
@@ -1883,31 +1918,106 @@ async function runBuild(context, { clean = false, courseProvider } = {}) {
   const started = Date.now();
   channel.appendLine(`> ${command} build ${clean ? "--clean " : ""}${target}`);
   let removed;
-  if (clean) {
-    // ⚠ **`--clean` 必须带目标**（E22 同族，实测）：不带参数时 CLI 的
-    // `project_roots([])` 是空的 ⇒ 只清**全局**缓存、**项目条目留在原地** ⇒
-    // 紧接着的 build 全是 `hit` ⇒「Rebuild（清空编译缓存后重编译）」其实
-    // 什么都没重编（实测 `build --json --clean` 给
-    // `{"global":0,"project":0,"removed":0}`，而 `<root>/.sokonanoda/compiled/`
-    // 里的条目还在）。这正是 CLI 注释里点名的 R-3/T-B5 陷阱。
-    const cleaned = await runBuildProcess(
-      command,
-      ["build", "--json", "--clean", target],
-      channel,
-    );
-    for (const event of parseBuildEvents(cleaned.stdout)) {
-      if (event.type === "build.clean") removed = event.removed ?? 0;
+  // **E23：build/rebuild 的进度**（用户 I2②「我要求有进度条，**现在是没有进度**」）。
+  //
+  // 数据源 = CLI 的事件流（**流式**，不是攒到最后 ✗）：
+  //  * `build.begin`（总数，E23 新加）⇒ 才报得出「3/13 文件」；
+  //  * `build.file`（逐文件）⇒ 每来一条更新一次；
+  //  * `build.summary`（真实计数）⇒ 结束那一帧。
+  //
+  // 落到**三处**（与 LSP 编译那条路**同一套** `applyProgress`，所以数字只有一份）：
+  //  ① 状态栏 `$(sync~spin) Sokonanoda: 3/13 文件 · lib/Set.sokonanoda`（`detail`）
+  //  ② Infoview 三行进度区（`infoviewProvider.setProgress`）
+  //  ③ 概览尺 + 整行背景（`setCompileDecorations`）
+  // 外加 VS Code 原生进度通知（`withProgress`，**可取消** —— 取消令牌一路传到
+  // `runBuildProcess` 去 `child.kill()`）。
+  // ⚠ **输出面板不是进度** ✗ —— 它只是日志（判据里不许拿它当"有进度"的证据）。
+  let total = 0;
+  let done = 0;
+  // VS Code **原生**进度条那一路（`withProgress` 的 `progress.report`）——
+  // 它只在 `run` 里拿得到，所以留个模块内的转发口给 `onLine`。
+  let nativeReport = null;
+  const shortName = (file) => String(file ?? "").split(/[\\/]/).pop();
+  const onLine = (line) => {
+    const text = line.trim();
+    if (!text.startsWith("{")) return; // 非 JSON 行是噪声（诊断走 stderr）
+    let event;
+    try {
+      event = JSON.parse(text);
+    } catch {
+      return;
     }
-    if (cleaned.error) channel.appendLine(`[error] clean: ${cleaned.error}`);
+    if (event.type === "build.begin") {
+      total = Number(event.files) || 0;
+      nativeReport?.(`0/${total} 文件`, 0);
+      applyProgress({
+        phase: "begin",
+        label: `编译项目（${total} 个文件）`,
+        percent: 0,
+        detail: `0/${total} 文件`,
+      });
+    } else if (event.type === "build.file") {
+      done += 1;
+      const name = shortName(event.file);
+      const mark = event.status === "failed" ? "✗" : "✓";
+      // ⚠ **每一帧都要 report**（不是只在首尾 ✗）：`increment > 0` 的那次
+      // 才是"中间态发生过"的证据（设计 §3 反假绿第 ② 条）。
+      nativeReport?.(`${done}/${total || "?"} · ${name}`, total > 0 ? 100 / total : 0);
+      applyProgress({
+        phase: "report",
+        label: `${done}/${total || "?"} · ${name}`,
+        percent: total > 0 ? Math.round((done * 100) / total) : null,
+        detail: `${done}/${total || "?"} 文件 · ${name} ${mark}`,
+      });
+    } else if (event.type === "build.clean") {
+      removed = event.removed ?? 0;
+    }
+  };
+  const run = async (progress, token) => {
+    nativeReport = (message, increment) => progress.report({ message, increment });
+    if (clean) {
+      // ⚠ **`--clean` 必须带目标**（E22 同族，实测）：不带参数时 CLI 的
+      // `project_roots([])` 是空的 ⇒ 只清**全局**缓存、**项目条目留在原地** ⇒
+      // 紧接着的 build 全是 `hit` ⇒「Rebuild（清空编译缓存后重编译）」其实
+      // 什么都没重编（实测 `build --json --clean` 给
+      // `{"global":0,"project":0,"removed":0}`，而 `<root>/.sokonanoda/compiled/`
+      // 里的条目还在）。这正是 CLI 注释里点名的 R-3/T-B5 陷阱。
+      const cleaned = await runBuildProcess(
+        command,
+        ["build", "--json", "--clean", target],
+        channel,
+      );
+      for (const event of parseBuildEvents(cleaned.stdout)) {
+        if (event.type === "build.clean") removed = event.removed ?? 0;
+      }
+      if (cleaned.error) channel.appendLine(`[error] clean: ${cleaned.error}`);
+    }
+    return runBuildProcess(command, ["build", "--json", target], channel, { onLine, token });
+  };
+  let result;
+  try {
+    result = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: clean ? "sokonanoda rebuild（编译项目）" : "sokonanoda build（编译项目）",
+        cancellable: true,
+      },
+      run,
+    );
+  } finally {
+    // **成对**：无论成功、失败还是被取消，三处进度都必须收干净 ✗（否则那条
+    // 高亮/进度块会永远留着 —— 进度类 bug 的第二种形态）。
+    applyProgress({ phase: "end", label: null, percent: null, detail: "" });
   }
-  const result = await runBuildProcess(command, ["build", "--json", target], channel);
-  if (result.error) {
+  if (result?.error) {
     const text = `sokonanoda: build 失败 — ${result.error}`;
     channel.appendLine(text);
     vscode.window.showErrorMessage(text);
     return undefined;
   }
-  const summary = parseBuildEvents(result.stdout).find((event) => event.type === "build.summary");
+  const summary = parseBuildEvents(result?.stdout ?? "").find(
+    (event) => event.type === "build.summary",
+  );
   const elapsed = Date.now() - started;
   const counts = summary
     ? `${summary.files} 个文件 · 编译 ${summary.compiled} · 命中 ${summary.hit} · 失败 ${summary.failed}`

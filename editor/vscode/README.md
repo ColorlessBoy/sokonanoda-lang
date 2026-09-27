@@ -255,6 +255,11 @@ are hits instead of full recompiles. Two commands drive it from the editor:
   not answered yet. It is never "just the file you have open" — the CLI compiles
   exactly what you hand it, so passing the file made a 35-file course report
   `1 个文件`. The result line reports `files · compiled · hit · failed`.
+  **It shows progress while it runs** (0.73.0): the CLI's per-file event stream
+  drives the status bar (`$(sync~spin) Sokonanoda: 3/13 文件 · lib/Set.sokonanoda`),
+  the Infoview's three-line progress block and the overview ruler, and a VS Code
+  progress notification carries a **cancel** button — cancelling kills the CLI
+  subprocess.
 - **`Sokonanoda: Rebuild (清空编译缓存后重编译)`** (`alt+shift+b`) — the same, but first runs
   `build --clean <module root>` to drop the cache, i.e. "recompile everything from scratch"
   (it clears **both** the global cache and the module root's `.sokonanoda/`).

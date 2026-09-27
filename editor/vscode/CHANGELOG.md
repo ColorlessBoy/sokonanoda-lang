@@ -2,6 +2,21 @@
 
 ### Changed
 
+- **`Build` / `Rebuild` show real progress — and can be cancelled.** The CLI
+  already emitted one `build.file` event per file, but the extension buffered the
+  subprocess output until exit and only read `build.clean` / `build.summary`, so a
+  manual build was "an output panel scrolling JSON, then a notification" — no
+  status bar, no Infoview progress, nothing on the overview ruler (the complaint
+  behind this: *"我要求有进度条，现在是没有进度"*). The stream is now consumed
+  line by line and drives the same three surfaces the automatic (language-server)
+  compiles already use — status bar (`$(sync~spin) Sokonanoda: 3/13 文件 ·
+  lib/Set.sokonanoda`), the Infoview's three-line progress block, and the overview
+  ruler — plus a VS Code progress notification with a **cancel** button. A new
+  additive CLI event, `build.begin` (`{type, files}`), carries the total so the
+  count can read `3/13` instead of just "3 so far". The output panel now renders
+  those events as readable lines (`[3/13] lib/Set.sokonanoda ✓`) instead of raw
+  JSON.
+
 - **`Build` / `Rebuild` compile the project, not the file you happen to have
   open.** Both commands passed the active `.sokonanoda` file to the CLI, and the
   CLI compiles exactly what you hand it — so on a 35-file course the status line
@@ -32,6 +47,10 @@
 
 ### Fixed
 
+- **A running `Build` / `Rebuild` can be stopped.** `runBuild` had no
+  cancellation path at all: once started, the only way out was the five-minute
+  timeout. The run is now wrapped in `window.withProgress(…, cancellable: true)`
+  and the cancellation token is wired to `child.kill()`.
 - **`Rebuild` really rebuilds.** Its `--clean` step ran without a target, and
   `sokonanoda build --clean` with no path only clears the **global** cache — the
   module root's `.sokonanoda/compiled/` entries survived, so the build that

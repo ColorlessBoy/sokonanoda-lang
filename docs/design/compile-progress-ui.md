@@ -80,3 +80,27 @@ withProgress({ location: { viewId: "sokonanoda.infoview" }, title: "编译项目
 → **6**（可选）Task 化。
 
 **归属 v0.74.0**（与 E22/E23 同版，同一条 build 链路 ✓）。
+
+## 5. As-built（E23/E29，2026-09-27）—— **做了一半的 `{viewId}`，如实记账**
+
+**做了什么**：通道 **1（`ProgressLocation.Notification`，`cancellable: true`）** +
+通道 **2（状态栏逐文件 `3/13 文件 · 文件名`）** + 通道 **3（Infoview 三行进度区）** +
+概览尺/整行背景（`setCompileDecorations`）+ 输出面板 JSON→人话。数据源 = CLI 的
+`build.begin`（**E23 新加的 additive 事件**，带总数 ⇒ 才报得出 `3/13`；`docs/protocol.md`
+已同步）+ `build.file` + `build.summary`，**流式**消费（`runBuildProcess` 的
+`onLine`，行缓冲跨 `data` 块）。
+
+**⚠ 没做 `{viewId: "sokonanoda.infoview"}`**（设计 §2 通道 1 的第二个落点）——
+**探针没做**：它的效果是"Infoview **标题栏**出现原生进度条"，而**扩展宿主看不见
+webview 所在的那个视图 chrome** ⇒ 写了也**没有判据能咬住** ✗（同 R-1/R-2 的
+"数据对了 ≠ 用户看见了"，但这次连"数据"都不可观测）。而 Infoview **面板内**
+已经有通道 3 的进度区（同一份数字 ✓）⇒ 标题栏那条是**冗余的第二块**，先不做。
+**要做的条件**：有一条能断言"标题栏真的出现了进度条"的判据（例如 e2e 侧的可视化
+断言）；在那之前它是**已知未做项**，不是"已做 ✓"。
+
+**判据（三处同一份，撤任一处判红 ✓ 实测）**：`editor/vscode/test-extension-host.js::build
+streams per-file progress to the status bar and the Infoview (E23)` —— ① 状态栏逐帧
+`0/3 → 1/3 → 2/3 → 3/3`；② Infoview 载荷同序同数（百分比 0/33/67/100）；③ 原生
+`report` 里**至少一次 `increment > 0`**（只报首尾 = 没进度 ✗，设计 §3 第 ② 条）；
+④ 取消令牌真的 kill 子进程。**反向验证**：拿掉逐文件更新 ⇒ ①红（只剩 `0/3`）；
+只拿掉 Infoview 那一推 ⇒ ②红（= E29 的"只留状态栏必须判红" ✓）。
