@@ -302,7 +302,9 @@
   （`lib/Rel.sokonanoda:47` · `lib/Fun.sokonanoda:61`）**但全课程没有 `∘`/`•` 记法声明**。
   按 `infixr` 补两条声明，涉及的单元改用记法。
   **判据**：`r • s` / `g ∘ f` 能编译且判卷与点名形式一致；`notation-lint` 通过。
-- **E02** `Set.prod` 从单元⑤画布**收进 `lib/Prod.sokonanoda`**。
+- **E02** ✅ **已做（8376391）**：`Set.prod` 从单元⑤画布**收进 `lib/Prod.sokonanoda`**（+ `import lib.Set`）；
+  ⚠ **净账（用户 2026-09-27 拍板）**：画布与 `unit05-solution` 的两份副本必须删 ⇒ 课程门禁
+  checked **328 → 327**（练习 99 · open · 0 判负 · 36 目标全未动）——**判据按 327 读**，别再追 328 ✗。
   理由：现在 `lib/Set.sokonanoda` 的三条记法目标里，`Set.prod` 根本不在任何库里 ⇒
   E07 的跨模块问题有一半是它造成的。收进库里，目标就都在闭包内。
   **判据**：课程门禁不变；`lib/Set` 的三条记法目标至少 prod 可解析。
