@@ -344,6 +344,12 @@ def scan_text(text: str, line_no: int, is_comment: bool) -> list[dict]:
 class Linter:
     def __init__(self, roots: list[Path]) -> None:
         self.roots = roots
+        # ⚠ **被 `soko:notation-ok` 显式豁免的命中数** ✗✓（E00 切片 B 第 13 条，实测 ✓）：
+        #   原来 MARKER 命中**丢掉且不计数** ✗ ⇒ 门禁印「**OK —— N 个文件零旧写法**」、
+        #   `--json` 的 `counts.total = 0` ✗，而实测有 **271 个标记行静默豁免 569 处旧写法** ✗
+        #   ⇒ **报告在说谎**（docstring 第 28 行本来就承诺"报告里会注明" ✗）。
+        #   ⇒ 计数并**如实报出来** ✓（豁免是**显式**的、可评审 ✓；**假装零命中** ✗ 不可接受）。
+        self.exempt_marker = 0
         # 判据 = 手写底座 + **从记法声明派生**（见 derived_pointful 的说明）。
         # 存成模块级全局：消费点 `scan_text` 是自由函数，拿不到 `self` ✓。
         global POINTFUL_ALL
@@ -415,6 +421,7 @@ class Linter:
                 window = raw + (lines[idx - 1] if idx > 0 else "")
                 if MARKER in window:
                     h["exempt"] = MARKER
+                    self.exempt_marker += 1   # ← 如实计数 ✓（不再静默丢掉 ✗）
                     continue
                 hits.append(h)
         return hits, "scanned"
@@ -539,7 +546,7 @@ def main(argv: list[str] | None = None) -> int:
                     "ok": total == 0,
                     "scanned": scanned,
                     "files_with_hits": sum(1 for f in per_file if f.get("hits")),
-                    "counts": {"total": total},
+                    "counts": {"total": total, "exempt_marker": linter.exempt_marker},
                     "files": per_file,
                 },
                 ensure_ascii=False,
@@ -561,10 +568,15 @@ def main(argv: list[str] | None = None) -> int:
 
     if total == 0:
         if not args.quiet:
-            print(f"notation-lint: OK —— {scanned} 个文件零旧写法")
+            _ex = linter.exempt_marker
+            _extra = (f"（另有 **{_ex} 处**被 `soko:notation-ok` **显式豁免** ✓"
+                      f" —— 是**标记过的**，不是「没扫到」✗）") if _ex else ""
+            print(f"notation-lint: OK —— {scanned} 个文件零旧写法{_extra}")
         return 0
 
-    print(f"notation-lint: {total} 处旧写法（{scanned} 个文件）\n")
+    _ex = linter.exempt_marker
+    _extra = f"；另有 {_ex} 处被 `soko:notation-ok` 显式豁免" if _ex else ""
+    print(f"notation-lint: {total} 处旧写法（{scanned} 个文件{_extra}）\n")
     for f in per_file:
         if not f.get("hits"):
             continue
