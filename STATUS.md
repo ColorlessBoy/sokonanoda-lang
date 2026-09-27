@@ -1,6 +1,6 @@
 # 当前快照（2026-09-27）
 
-- **进度**：**64/66**（E2 50/50 ✓ + **批次 N** 记法×隐式参数×产品交互 14/16 ✓）· 🚀 **v0.74.0：E01 ✓ · E02 ✓ / 11**（`•`/`∘` 复合记法 · `Set.prod` 收进 `lib/Prod`）
+- **进度**：**64/66**（E2 50/50 ✓ + **批次 N** 记法×隐式参数×产品交互 14/16 ✓）· 🚀 **v0.74.0：E01 ✓ · E02 ✓ · E03 ✓ / 11**
 - **已发布**：**`sokonanoda v0.72.0`** ✓（`gh release list` 显示 **Latest** ✓ · 2026-09-25T23:25:07Z ✓）
 - **A 组（A0–A5）全部落地** ✓：显示层混合形态（`ty_text` ASCII `->` **227 → 0**）· `{a}` 折回 ·
   `{a}` 可跳转（根因：开放练习的签名**一条 hover 行都没有**）· prelude 可跳转（F12 落到前奏源文件
@@ -106,6 +106,33 @@
   `34a2814` 同样只改 `editor/**` + `if` 带 `!cancelled()` ⇒ **success** ✓✓。
 - **纪律** ✓：**凡 `needs` 里可能有 skipped 的 job，`if` 都要带状态函数** ✓
   （否则它会静默消失 ✗）。
+
+## 第 480 轮（2026-09-27）：E03 —— `r ⁻¹` / `A ≈ B` 记法 ✓（v0.74.0 第 3 个环节）
+
+- **变了什么** ✓：`lib/Rel` 声明 `postfix:100 " ⁻¹ " => Rel.inv`、`lib/Equiv` 声明
+  `infix:50 " ≈ " => Set.Equiv`；lib/Rel · lib/Equiv · lib/Demo · 单元⑥⑨⑩⑫ · 四份解答改用记法
+  （`notation-lint` 零残留）。**记法零事件 ⇒ 计数中性**（36/327/99/0 不变 ✓）。
+- **判红** ✓（内核原文）：`A ≈ B` ⇒ exit 1「符号 `≈` 在本文件里还没有声明过记法」；
+  `r ⁻¹` ⇒ exit 1「unknown identifier `⁻¹`」（`⁻¹` 不在数学码点类里，未声明时连符号都不是）。
+- **判据两层** ✓：front `the_course_libraries_declare_the_inverse_and_equinumerous_notations`
+  （`⁻¹`→Rel.inv/100/Postfix · `≈`→Set.Equiv/50/Infix · 且 `⁻¹'`→Set.preimage **同时可见**）·
+  CLI `the_course_inverse_and_equinumerous_notations_grade_like_the_pointful_forms`
+  （真课程库、两种写法五元计数相等，含 `f ⁻¹' B` 共存用例）。
+- **反向验证** ✓：撤两条声明 ⇒ 两层都红，诊断与判红逐字一致（已还原 ✓）。
+- ⚠ **取证又更正两处引用** ✗✓：`lib/Rel` / `lib/Equiv` 头部原写「是 Mathlib 的记法」——
+  **两条都不是**：mathlib4 master 的 `Logic/Relation.lean` 没有 `Relation.inv`/`⁻¹`；
+  `Logic/Equiv/Defs.lean:80` 的 `≃` 是**等价的类型**不是等势；`SetTheory/Cardinal/Basic.lean` 无 `≈`
+  ⇒ 两条都按**本课自定**落地（与 E01 的 `•` 同一个毛病）。
+- ⚠ **新暴露一个真边界（G-48，open）** ✗✓：`≈` 的**两侧都是零元糖**时（`∅ ≈ {b}`）补不出论域
+  ⇒ `elab-notation-argument-unsolved`；单元⑨ 练习 5 按设计写点名 + 行内标记（画布与解答都写明理由）。
+  修法方向 = E19 甲案（求解器加元变量）。
+- **台账** ✓：**G-47**（记法缺失，fixed，自足复现件）· **G-48**（零元糖操作数，open）·
+  **G-49**（类型错误报裸 de Bruijn 编号 `期望 $4，实际是 $5`，open——写复现件时实测到的诊断质量问题）；
+  `scripts/gap.py check` ⇒ **全部与台账一致** ✓（5 条 E01/E02/E03 条目逐条对）。
+- **子代理** ✓：4 份解答的机械改写外包（prompt 自带判据+边界+三条取证纪律）⇒ 我**抽查后**
+  自己补了它明确说"没做"的那一步：**画布↔解答签名逐字对拍**，当场抓出 **3 处括号不一致**
+  （`Set.univ Nat ≈ …` vs `(Set.univ Nat) ≈ …`）⇒ 已按画布改齐（10 条全一致 ✓）。
+- **未决** ✓：E04 · E21–E23 · E27–E31 共 8 个环节未开工；v0.74.0 收尾要**推一次 CI 逐 job 真绿** ✓。
 
 ## 第 479 轮（2026-09-27）：E02 —— `Set.prod` 收进 `lib/Prod` ✓（v0.74.0 第 2 个环节）
 

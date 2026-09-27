@@ -1,0 +1,63 @@
+-- G-47 最小复现：**课程标准库缺 `r ⁻¹`（关系逆）与 `A ≈ B`（等势）两条记法**
+-- （速查表原话：「Mathlib 有记法、本课程没声明（**写不了，别抄**）」）。
+--
+-- 期望（数学书的读法，PLAN v0.74.0 的 E03 指定符号）：
+--   · `r ⁻¹` = `Rel.inv A B r`（把两个参数对调）；
+--   · `A ≈ B` = `Set.Equiv α β A B`（一对互逆映射 + 四条域条件，跨论域）。
+-- ⚠ **取证（E03）**：这两条**不是** Mathlib 的记法 —— mathlib4 master 里
+--   `Mathlib/Logic/Relation.lean` **没有** `Relation.inv`、也没有 `⁻¹`
+--   （那里只有 `local infixr:80 " ∘r " => Relation.Comp`）；
+--   `Mathlib/Logic/Equiv/Defs.lean:80` 的 `infixl:25 " ≃ " => Equiv` 是**等价的类型**，
+--   不是集合等势；`Mathlib/SetTheory/Cardinal/Basic.lean` 里也没有 `≈`。
+--   ⇒ 两条都是**本课自定**（符号按数学书读法取）。本文件早先的注释说"是 Mathlib 的记法"
+--   是**不准确**的引用，E03 已更正（见 lib/Rel、lib/Equiv 的文件头）。
+--
+-- 历史表现（0.74.0 **修前**，实测）：
+--   · 写 `r ⁻¹` ⇒ exit 1，`elab-unknown-identifier`：`unknown identifier `⁻¹``
+--     （`⁻¹` 不在数学码点类里，**没有声明时连符号都不是**，被词法读成标识符）；
+--   · 写 `A ≈ B` ⇒ exit 1，`符号 `≈` 在本文件里还没有声明过记法；先用 infix/notation
+--     命令声明它，或改用点名写法`（rule = `notation`）。
+--
+-- 修后（E03，0.74.0）：`lib/Rel.sokonanoda` 声明 `postfix:100 " ⁻¹ " => Rel.inv`、
+-- `lib/Equiv.sokonanoda` 声明 `infix:50 " ≈ " => Set.Equiv`（随 `import` 传播）。
+--
+-- ⚠ 本文件**自足**（`scripts/gap.py check` 直接判它、不带模块根 ⇒ 不能写 `import`）；
+--   **真课程库上**的判据是 `crates/cli/tests/notation.rs::the_course_inverse_and_equinumerous_notations_grade_like_the_pointful_forms`
+--   与 `crates/front/tests/prelude_shape.rs::the_course_libraries_declare_the_inverse_and_equinumerous_notations`。
+--
+-- 下面从 `def Rel` 起是**修复后的期望形状**：本文件必须判卷干净
+-- （exit 0 + 有 `decl.checked` + 无 diagnostic）。
+
+def Rel (A B : Type) : Type := A → B → Prop
+
+def Rel.inv (A B : Type) (r : Rel A B) : Rel B A :=
+  fun (b : B) => fun (a : A) => r a b
+
+postfix:100 " ⁻¹ " => Rel.inv
+
+def Set (α : Type) : Type := α → Prop
+
+-- ⚠ 夹具只用**能过类型检查的最小形状**（跨论域、各自一侧一个 ∀）：
+-- 语义不是本复现件的重点，重点是**记法能不能展开到这个名字**。
+def Set.Equiv (α β : Type) (A : Set α) (B : Set β) : Prop :=
+  (∀ (x : α), A x → A x) ∧ (∀ (y : β), B y → B y)
+
+infix:50 " ≈ " => Set.Equiv
+
+-- 记法版：修前两条语句都判红（`⁻¹` ⇒ unknown identifier；`≈` ⇒ notation-unknown-symbol）
+theorem inv_notation (A B : Type) (r : Rel A B) (b : B) (a : A) :
+    (r ⁻¹) b a ↔ r a b :=
+  Iff.refl (r a b)
+
+theorem equiv_notation (α β : Type) (A : Set α) (B : Set β) :
+    A ≈ B ↔ (∀ (x : α), A x → A x) ∧ (∀ (y : β), B y → B y) :=
+  Iff.refl ((∀ (x : α), A x → A x) ∧ (∀ (y : β), B y → B y))
+
+-- 点名形式永久可用（N4.3）：同两条命题写成点名形式，与本文件上面的记法版同判。
+theorem inv_pointful (A B : Type) (r : Rel A B) (b : B) (a : A) :
+    Rel.inv A B r b a ↔ r a b :=
+  Iff.refl (r a b)
+
+theorem equiv_pointful (α β : Type) (A : Set α) (B : Set β) :
+    Set.Equiv α β A B ↔ (∀ (x : α), A x → A x) ∧ (∀ (y : β), B y → B y) :=
+  Iff.refl ((∀ (x : α), A x → A x) ∧ (∀ (y : β), B y → B y))

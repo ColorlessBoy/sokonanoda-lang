@@ -59,7 +59,7 @@ theorem demo_empty_transitive (A : Type) : Transitive A (EmptyRelation A) := by
 -- 目标写成 `… = r`（记法），`rfl` 只认头是裸 `Eq` 的目标，所以交 `Eq.refl` 的点名项。
 -- ─────────────────────────────────────────────────────────────────────────
 theorem rel_inv_inv (A B : Type) (r : Rel A B) :
-    Rel.inv B A (Rel.inv A B r) = r := by
+    (r ⁻¹) ⁻¹ = r := by
   exact Eq.refl.{1} (Rel A B) r
 
 -- ─────────────────────────────────────────────────────────────────────────
@@ -132,16 +132,16 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- 6.3 练习 3（T）：逆保持传递（三律性质之一）
--- Transitive A (Rel.inv A A r) 展开后是 `∀ x y z, r y x → r z y → r z x`：
+-- Transitive A (r ⁻¹) 展开后是 `∀ x y z, r y x → r z y → r z x`：
 -- 想得到 `r a c`，三个人依次填 c、b、a。两个方向的代码一样（这正是"逆"的作用）。
 -- ─────────────────────────────────────────────────────────────────────────
 theorem transitive_inv (A : Type) (r : Rel A A) :
-    Transitive A (Rel.inv A A r) ↔ Transitive A r := by
+    Transitive A (r ⁻¹) ↔ Transitive A r := by
   exact Iff.intro
-    (fun (h : Transitive A (Rel.inv A A r)) => fun (a b c : A) =>
+    (fun (h : Transitive A (r ⁻¹)) => fun (a b c : A) =>
       fun (hab : r a b) => fun (hbc : r b c) => h c b a hbc hab)
     (fun (h : Transitive A r) => fun (a b c : A) =>
-      fun (hab : Rel.inv A A r a b) => fun (hbc : Rel.inv A A r b c) => h c b a hbc hab)
+      fun (hab : (r ⁻¹) a b) => fun (hbc : (r ⁻¹) b c) => h c b a hbc hab)
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- 6.4 等价类（画布上给好的定义）

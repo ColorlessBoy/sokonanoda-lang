@@ -28,7 +28,7 @@ import lib.Equiv
 -- ─────────────────────────────────────────────────────────────
 
 -- 演示 1（必证①）：等势自反——恒等映射，四条条件都是一行。
-theorem Set.Equiv.refl (α : Type) (A : Set α) : Set.Equiv α α A A := by
+theorem Set.Equiv.refl (α : Type) (A : Set α) : A ≈ A := by
   exact Set.Equiv.mk α α A A (fun (x : α) => x) (fun (x : α) => x)
     (fun (x : α) => fun (hx : x ∈ A) => hx)
     (fun (y : α) => fun (hy : y ∈ A) => hy)
@@ -45,7 +45,7 @@ theorem Set.Equiv.of_inj_surj (α β : Type) (A : Set α) (B : Set β)
     (hg : Set.MapsTo β α g B A)
     (hinj : ∀ (x1 x2 : α), (f x1) = (f x2) → x1 = x2)
     (hsec : Set.RightInvOn α β f g B) :
-    Set.Equiv α β A B := by
+    A ≈ B := by
   exact Set.Equiv.mk α β A B f g hf hg
     (fun (x : α) => fun (hx : x ∈ A) =>
       hinj (g (f x)) x (hsec (f x) (hf x hx)))
@@ -76,10 +76,10 @@ def nonzero : Set Nat := fun (n : Nat) => ¬ (n = Nat.zero)
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 1（T 类，必证②）：等势对称——交换两把映射。
--- 结论 `Set.Equiv β α B A` 里不出现 f、g，正好满足 Exists.elim 的纪律。
+-- 结论 `B ≈ A` 里不出现 f、g，正好满足 Exists.elim 的纪律。
 -- ─────────────────────────────────────────────────────────────
 theorem Set.Equiv.symm (α β : Type) (A : Set α) (B : Set β)
-    (h : Set.Equiv α β A B) : Set.Equiv β α B A := by
+    (h : A ≈ B) : B ≈ A := by
   exact Exists.elim h (fun (f : α → β) =>
       fun (hf : Set.MapsTo α β f A B ∧
           (∃ (g : β → α), Set.MapsTo β α g B A ∧
@@ -95,13 +95,13 @@ theorem Set.Equiv.symm (α β : Type) (A : Set α) (B : Set β)
                 (And.left
                   (And.right hg))))
 theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
-    (h1 : Set.Equiv α β A B) (h2 : Set.Equiv β γ B C) : Set.Equiv α γ A C := by
+    (h1 : A ≈ B) (h2 : B ≈ C) : A ≈ C := by
   exact Exists.elim (α → β)
     (fun (f1 : α → β) =>
       Set.MapsTo α β f1 A B ∧
         (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
             (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)))
-    (Set.Equiv α γ A C)
+    (A ≈ C)
     h1
     (fun (f1 : α → β) =>
       fun (hf1 : Set.MapsTo α β f1 A B ∧
@@ -111,7 +111,7 @@ theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
           (fun (g1 : β → α) =>
             Set.MapsTo β α g1 B A ∧
               (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B))
-          (Set.Equiv α γ A C)
+          (A ≈ C)
           (And.right (Set.MapsTo α β f1 A B)
             (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
                 (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hf1)
@@ -123,7 +123,7 @@ theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
                   Set.MapsTo β γ f2 B C ∧
                     (∃ (g2 : γ → β), Set.MapsTo γ β g2 C B ∧
                         (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)))
-                (Set.Equiv α γ A C)
+                (A ≈ C)
                 h2
                 (fun (f2 : β → γ) =>
                   fun (hf2 : Set.MapsTo β γ f2 B C ∧
@@ -133,7 +133,7 @@ theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
                       (fun (g2 : γ → β) =>
                         Set.MapsTo γ β g2 C B ∧
                           (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C))
-                      (Set.Equiv α γ A C)
+                      (A ≈ C)
                       (And.right (Set.MapsTo β γ f2 B C)
                         (∃ (g2 : γ → β), Set.MapsTo γ β g2 C B ∧
                             (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hf2)
@@ -196,7 +196,7 @@ theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
 -- "x ∈ {a}"（就是一个等式 x = a）掉个头。
 -- ─────────────────────────────────────────────────────────────
 theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
-    Set.Equiv α β {a} {b} := by
+    {a} ≈ {b} := by
   exact Set.Equiv.mk α β {a} {b} (fun (x : α) => b) (fun (y : β) => a)
     (fun (x : α) => fun (hx : x ∈ {a}) => Eq.refl.{1} β b)
     (fun (y : β) => fun (hy : y ∈ {b}) => Eq.refl.{1} α a)
@@ -209,7 +209,7 @@ theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
 -- （Eq.subst），反向那条搬的是 Eq.symm 过的等式。
 -- ─────────────────────────────────────────────────────────────
 theorem Set.equivOfEq (α : Type) (A B : Set α) (h : A = B) :
-    Set.Equiv α α A B := by
+    A ≈ B := by
   exact Set.Equiv.mk α α A B (fun (x : α) => x) (fun (x : α) => x)
     (fun (x : α) => fun (hx : x ∈ A) =>
       Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X) A B h hx)
@@ -225,7 +225,7 @@ theorem Set.equivOfEq (α : Type) (A B : Set α) (h : A = B) :
 -- 结论 False 里不出现 f、g，所以两次 Exists.elim 都合法。
 -- ─────────────────────────────────────────────────────────────
 theorem not_equiv_empty_singleton (α β : Type) (b : β) :
-    ¬ (Set.Equiv α β ∅ {b}) := by
+    ¬ (Set.Equiv α β ∅ {b}) := by  -- soko:notation-ok: `∅`/`{b}` 两侧都是零元糖 ⇒ `≈` 补不出论域（G-48）；点名形式把 α β 写在参数位上
   exact fun (h : Set.Equiv α β ∅ {b}) =>
     Exists.elim (α → β)
       (fun (f : α → β) =>
@@ -259,7 +259,7 @@ theorem not_equiv_empty_singleton (α β : Type) (b : β) :
 -- 每个方向的结论（∃ (y : β), y ∈ B 或 ∃ (x : α), x ∈ A）都不提证人，两次嵌套 elim 都合法。
 -- ─────────────────────────────────────────────────────────────
 theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
-    (h : Set.Equiv α β A B) :
+    (h : A ≈ B) :
     (∃ (x : α), x ∈ A) ↔ (∃ (y : β), y ∈ B) := by
   exact Iff.intro (∃ (x : α), x ∈ A) (∃ (y : β), y ∈ B)
     (fun (ha : ∃ (x : α), x ∈ A) =>
@@ -321,13 +321,13 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
 -- ─────────────────────────────────────────────────────────────
 theorem proper_subset_counterexample :
     Set.subset Nat nonzero (Set.univ Nat) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-      (nonzero ≠ Set.univ Nat ∧ Set.Equiv Nat Nat nonzero (Set.univ Nat)) := by
+      (nonzero ≠ Set.univ Nat ∧ nonzero ≈ (Set.univ Nat)) := by
   exact And.intro (Set.subset Nat nonzero (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
     (¬ (Eq.{1} (Set Nat) nonzero (Set.univ Nat)) ∧
-         Set.Equiv Nat Nat nonzero (Set.univ Nat))
+         nonzero ≈ (Set.univ Nat))
     (fun (x : Nat) => fun (hx : x ∈ nonzero) => True.intro)
     (And.intro (¬ (Eq.{1} (Set Nat) nonzero (Set.univ Nat)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-      (Set.Equiv Nat Nat nonzero (Set.univ Nat))
+      (nonzero ≈ (Set.univ Nat))
       (fun (h : Eq.{1} (Set Nat) nonzero (Set.univ Nat)) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         (fun (h0 : Nat.zero ∈ nonzero) => h0 (Eq.refl.{1} Nat Nat.zero))
           (Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => Nat.zero ∈ X)

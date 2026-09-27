@@ -43,7 +43,7 @@
 -- 援引"双射判据"的学生极少真的把映射写出来）。
 --
 -- ── 形状：嵌套 ∧ 的四条件（外层用两次 ∃ 绑住那一对映射）────────────────────
---   Set.Equiv α β A B 展开为
+--   A ≈ B 展开为
 --     ∃ (f : α → β), Set.MapsTo α β f A B ∧                          -- ① 正向：A 送进 B
 --       ∃ (g : β → α), Set.MapsTo β α g B A ∧                        -- ② 反向：B 送进 A
 --         Set.LeftInvOn α β g f A ∧                                  -- ③ 左互逆律（在 A 上）
@@ -75,7 +75,7 @@
 -- ── 用法三条（读法纪律）──────────────────────────────────────────────────
 --   · **造**：`Set.Equiv.mk α β A B f g ① ② ③ ④` —— 四样证据缺一不可，
 --     顺序就是上面 ①②③④；
---   · **用**：拿 `h : Set.Equiv α β A B` 时只能走 `Exists.elim` 两次，
+--   · **用**：拿 `h : A ≈ B` 时只能走 `Exists.elim` 两次，
 --     而且每次的结论 `Q` **不许提到证人** `f` / `g`（lib/Exists 文件头写明：
 --     用的时候"证人是哪一个"还不知道）。于是所有"用等势"的结论都必须是
 --     只谈 A 与 B 的 Prop——这正是等势该有的样子；
@@ -83,10 +83,12 @@
 --     `∀` 定义，内核直接展开，**不需要** rfl 级展开引理（不像 lib/Set 的
 --     `Set.subset_def` 那样要显式给一条：那是给"想点名展开"的人用的）。
 --
--- 记法对照（`≈` 是 **Mathlib 的**记法，本课程还没有声明它——归 E03；课程库今天
--- 声明的记法 = lib/Set 末尾的 11 条集合符号 + lib/Rel 的 `•` + lib/Fun 的 `∘`）：
---   Set.Equiv α β A B ↔ A ≈ B（跨论域版本：A : Set α，B : Set β；
---   α = β 时就是同一论域里两个集合等势）。
+-- 记法：等势 `A ≈ B` 在**本文件里声明**（E03，`infix:50`）。⚠ **取证更正（E03）**：
+-- 本文件早先写「`≈` 是 **Mathlib 的**记法」——**不准确**：mathlib4 master 里查不到 `≈`
+-- 的声明（`Mathlib/Logic/Equiv/Defs.lean:80` 是 `infixl:25 " ≃ " => Equiv`，那是**等价的
+-- 类型**、不是集合等势；`Mathlib/SetTheory/Cardinal/Basic.lean` 无 `≈`）⇒ **本课自定**。
+-- 课程库今天声明的记法 = lib/Set 末尾 11 条集合符号 + lib/Rel 的 `•`/`⁻¹` + lib/Fun 的 `∘`。
+-- 读法：`A ≈ B` 是**跨论域**版本（A : Set α，B : Set β）；α = β 时就是同一论域里两个集合等势。
 import lib.Logic
 import lib.Exists
 import lib.Set
@@ -108,12 +110,21 @@ def Set.RightInvOn (α β : Type) (f : α → β) (g : β → α) (B : Set β) :
   ∀ (y : β), y ∈ B → f (g y) = y
 
 -- ── 等势（数据版）──────────────────────────────────────────────────────────
--- `Set.Equiv α β A B` 是**一对互逆映射 + 域条件**的打包（不是"存在双射"的
+-- 等势（记法 `A ≈ B`）是**一对互逆映射 + 域条件**的打包（不是"存在双射"的
 -- ∃-命题：那需要选择公理，见文件头）。四条件按 ①②③④ 嵌在嵌套 `And` 里。
 def Set.Equiv (α β : Type) (A : Set α) (B : Set β) : Prop :=
   ∃ (f : α → β), Set.MapsTo α β f A B ∧
     (∃ (g : β → α), Set.MapsTo β α g B A ∧
       ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
+
+-- ── 记法（E03）：等势 `A ≈ B` ──────────────────────────────────────────────
+-- 源级糖、**零事件、不进声明表** ⇒ 加这一行不改变任何计数。形状取 `infix:50`
+-- （与 `=`/`∈`/`⊆` 同档、无结合：`A ≈ B` 是一句**命题**，不是链式关系）。
+-- ⚠ **取证更正（E03）**：本文件早先写"`≈` 是 **Mathlib 的**记法"——**不准确**：
+-- mathlib4 master 里查不到 `≈` 的声明（`Mathlib/Logic/Equiv/Defs.lean:80` 是
+-- `infixl:25 " ≃ " => Equiv`，那是**等价的类型**不是集合等势；`Mathlib/SetTheory/
+-- Cardinal/Basic.lean` 无 `≈`）⇒ 这条记法是**本课自定**（符号按数学书读法）。
+infix:50 " ≈ " => Set.Equiv
 
 -- ── 构造子（Mathlib: `Equiv.mk`；L2：把四条件按 ①②③④ 装进嵌套 And）───────
 -- 名字与参数顺序都照着 `Equiv.mk` 的读法：先两把映射（f 去、g 回），
@@ -128,7 +139,7 @@ theorem Set.Equiv.mk (α β : Type) (A : Set α) (B : Set β)
     (hg : Set.MapsTo β α g B A)
     (hgf : Set.LeftInvOn α β g f A)
     (hfg : Set.RightInvOn α β f g B) :
-    Set.Equiv α β A B := by
+    A ≈ B := by
   exact Exists.intro (α → β)
     (fun (f : α → β) => Set.MapsTo α β f A B ∧
       (∃ (g : β → α), Set.MapsTo β α g B A ∧

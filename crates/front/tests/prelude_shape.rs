@@ -238,3 +238,60 @@ fn the_set_product_notation_target_lives_in_the_library() {
         "画布不该再声明 `Set.prod`（副本必须删掉，否则与 lib.Prod 撞名）"
     );
 }
+
+/// **E03 的判据（真相层）**：`r ⁻¹`（`Rel.inv`）与 `A ≈ B`（`Set.Equiv`）两条记法。
+///
+/// 取证（E03）：**两条都是本课自定** —— mathlib4 master 里查不到它们的声明
+/// （`Mathlib/Logic/Relation.lean` 只有 `local infixr:80 " ∘r " => Relation.Comp`；
+/// `Mathlib/Logic/Equiv/Defs.lean:80` 的 `infixl:25 " ≃ " => Equiv` 是**等价的类型**，
+/// 不是集合等势；`Mathlib/SetTheory/Cardinal/Basic.lean` 无 `≈`）。符号按数学书读法取。
+#[test]
+fn the_course_libraries_declare_the_inverse_and_equinumerous_notations() {
+    use sokonanoda_front::NotationAssoc;
+
+    let entry = course_dir().join("units/unit12-synthesis.sokonanoda");
+    let text = std::fs::read_to_string(&entry).expect("读入口");
+    let plan = project::plan_project(&entry, Some(&text), None);
+    let report = project::compile_plan(plan, &Default::default());
+
+    let find = |sym: &str| {
+        report
+            .notations
+            .iter()
+            .find(|n| n.symbol == sym)
+            .unwrap_or_else(|| panic!("入口可见 `{sym}`（它声明在被 import 的库里）"))
+    };
+    let decl_line = |module: &str, span: sokonanoda_front::Span| {
+        let src = std::fs::read_to_string(course_dir().join(format!("{module}.sokonanoda")))
+            .unwrap_or_else(|e| panic!("读 {module}: {e}"));
+        src[span.start.offset..span.end.offset].to_string()
+    };
+
+    let inv = find("⁻¹");
+    assert_eq!(inv.target, "Rel.inv");
+    assert_eq!(inv.precedence, Some(100));
+    assert_eq!(inv.assoc, NotationAssoc::Postfix);
+    assert_eq!(inv.module.as_deref(), Some("lib.Rel"));
+    let line = decl_line("lib/Rel", inv.span);
+    assert!(
+        line.contains("postfix:100") && line.contains("Rel.inv"),
+        "声明点必须落在 `postfix:100 \" ⁻¹ \" => Rel.inv` 那一行：{line:?}"
+    );
+
+    let equiv = find("≈");
+    assert_eq!(equiv.target, "Set.Equiv");
+    assert_eq!(equiv.precedence, Some(50));
+    assert_eq!(equiv.assoc, NotationAssoc::Infix);
+    assert_eq!(equiv.module.as_deref(), Some("lib.Equiv"));
+    let line = decl_line("lib/Equiv", equiv.span);
+    assert!(
+        line.contains("infix:50") && line.contains("Set.Equiv"),
+        "声明点必须落在 `infix:50 \" ≈ \" => Set.Equiv` 那一行：{line:?}"
+    );
+
+    // ⚠ `⁻¹`（逆关系）与 `⁻¹'`（原像，lib/Set）是**两个符号**：词法按声明最长匹配，
+    // 两条必须同时出现在闭包记法表里（单元⑧⑫ 同文件共存）。
+    let preimage = find("⁻¹'");
+    assert_eq!(preimage.target, "Set.preimage");
+    assert_eq!(preimage.module.as_deref(), Some("lib.Set"));
+}

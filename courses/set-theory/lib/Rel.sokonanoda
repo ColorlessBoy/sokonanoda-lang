@@ -18,7 +18,7 @@
 --
 -- 记法：复合 `r • s` 在**本文件里声明**（E01，紧跟 `def Rel.comp`），单元
 -- `import lib.Rel` 即可用；
--- 逆 `r ⁻¹` **仍未声明**（E03 处理）⇒ 逆关系今天一律写点名 `Rel.inv A B r`。
+-- 逆 `r ⁻¹` 与复合 `r • s` 都在**本文件里声明**（E01/E03）⇒ 单元 `import lib.Rel` 即可用。
 --   ⚠ 引用更正（E01）：本文件原来写"`r • s` 是 Mathlib 的记法"——**不准确**。
 --   Mathlib 的 `Relation.Comp` 用的是 **`local infixr:80 " ∘r "`**
 --   （`Mathlib/Logic/Relation.lean:158` 逐字），而且 `local`（出了那个 section 就没了）。
@@ -42,9 +42,20 @@ import lib.Exists
 -- 关系就是"两元谓词"：`Rel A B` 与 `A → B → Prop` 是同一个东西（定义等式）。
 def Rel (A B : Type) : Type := A → B → Prop
 
--- 逆关系：把两个参数对调（Mathlib `Relation.inv`，记法 r ⁻¹）。
+-- 逆关系：把两个参数对调（记法 r ⁻¹）。
 def Rel.inv (A B : Type) (r : Rel A B) : Rel B A :=
   fun (b : B) => fun (a : A) => r a b
+
+-- ── 记法（E03）：逆关系 `r ⁻¹` ─────────────────────────────────────────────
+-- 与 `r • s` 同族：源级糖、**零事件、不进声明表** ⇒ 加这一行不改变任何计数。
+-- 形状取 `postfix:100`（与 lib/Set 的 `ᶜ`/`𝒫` 同档：贴着操作数、比二元算子都紧）。
+-- ⚠ **取证更正（E03）**：本文件早先写"Mathlib `Relation.inv`，即记法 r ⁻¹"——
+-- mathlib4 master 的 `Mathlib/Logic/Relation.lean` 里**既没有 `Relation.inv`
+-- 也没有 `⁻¹` 记法**（那里只有 `local infixr:80 " ∘r " => Relation.Comp`）
+-- ⇒ 这条记法是**本课自定**（符号按数学书读法，PLAN v0.74.0 指定）。
+-- 与 lib/Set 的 `⁻¹'`（原像，`infixr:80`）是**两个符号**：词法按声明**最长匹配**
+-- ⇒ `f ⁻¹' B` 仍读作 `⁻¹'`（单元⑧⑫ 两个符号同文件共存，已实测 ✓）。
+postfix:100 " ⁻¹ " => Rel.inv
 
 -- 复合（关系串接，Mathlib `Relation.comp`，记法 r • s；参数顺序与 Mathlib 一致：
 -- `r • s` 里 r : Rel A B 先走，s : Rel B C 后走）。中缀的 `∃ b, …`
@@ -71,13 +82,13 @@ axiom Rel.ext : (A B : Type) → (r s : Rel A B) →
 -- 与 lib/Set 的 `Set.mem_union` 一族同款：右端就是把左端**定义**里的东西照抄一遍，
 -- 所以证明是**恒等**——`constructor` 拆开 `↔`，两个方向各 `intro h; exact h`。
 theorem Rel.inv_apply (A B : Type) (r : Rel A B) (b : B) (a : A) :
-    Rel.inv A B r b a ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A（↔ 记法的期望类型走不通）
+    (r ⁻¹) b a ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A（↔ 记法的期望类型走不通）
 
 theorem Rel.comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
     (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl (∃ (b : B), r a b ∧ s b c)  -- soko:notation-ok: `Iff.refl` 短写解不出 A
 
 -- ── 库自检：两条展开引理合起来，把"逆的逆"退回原关系（`rfl` 级）。────────────
 -- 单元⑥ 的必证题 `rel_inv_inv` 在画布上由学习者自己写：它的证明项与本条同款
--- （函数外延性在这里用不上——`Rel.inv B A (Rel.inv A B r)` 与 `r` 是定义等式）。
+-- （函数外延性在这里用不上——`(r ⁻¹) ⁻¹` 与 `r` 是定义等式）。
 theorem Rel.inv_inv_apply (A B : Type) (r : Rel A B) (a : A) (b : B) :
-    Rel.inv B A (Rel.inv A B r) a b ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A
+    ((r ⁻¹) ⁻¹) a b ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A

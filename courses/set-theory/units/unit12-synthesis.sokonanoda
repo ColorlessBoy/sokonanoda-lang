@@ -47,9 +47,9 @@
 --       Set.mem_powerset_iff · Set.mem_image · Set.mem_preimage · Set.image_subset_iff ·
 --       Set.image_mono；
 --       Exists / Exists.intro / Exists.elim / Exists.imp；
---       Set.MapsTo / Set.LeftInvOn / Set.RightInvOn · 等势 Set.Equiv · 构造子 Set.Equiv.mk
+--       Set.MapsTo / Set.LeftInvOn / Set.RightInvOn · 等势（记法 `A ≈ B`）· 构造子 Set.Equiv.mk
 --       （读法见 lib/Equiv.sokonanoda 文件头：**拿**数据靠 Exists.elim 两次，**造**数据靠 mk）；
---       Rel / Rel.inv / 关系复合（记法 `r • s`）/ **公理 Rel.ext** / Rel.inv_apply · Rel.comp_apply ·
+--       Rel / 逆关系（记法 `r ⁻¹`）/ 关系复合（记法 `r • s`）/ **公理 Rel.ext** / Rel.inv_apply · Rel.comp_apply ·
 --       Rel.inv_inv_apply；
 --       函数复合（记法 `g ∘ f`）/ Injective / Surjective / Bijective / LeftInverse /
 --       RightInverse / Inverse 及它们的定义展开引理；
@@ -203,13 +203,13 @@ theorem xlat_compl_union (α : Type) (A B : Set α) :
 --
 --   「关系先复合、再取逆，等于把两个关系各自取逆、再按**相反的顺序**复合。」
 --
--- （读法：`r • s` 里 r : Rel A B 先走、s : Rel B C 后走；Rel.inv 把两个
+-- （读法：`r • s` 里 r : Rel A B 先走、s : Rel B C 后走；`⁻¹` 把两个
 --   参数对调。所以形式版右边先出现 s 的逆、后出现 r 的逆——顺序正是"相反"。）
 -- soko:hint 思路：两个关系相等只能用公理 Rel.ext 逐点证 Iff；把"逆"与"复合"都展开成 ∃ 之后，剩下的只是 ∧ 的两支换序。
--- soko:hint 目标形态：Rel.inv A C (r • s) = (Rel.inv B C s) • (Rel.inv A B r)；逐点是 (∃ (b : B), r a b ∧ s b c) ↔ (∃ (b : B), s b c ∧ r a b)——参数顺序是 c a，与 Rel.inv 对调有关。
+-- soko:hint 目标形态：(r • s) ⁻¹ = (s ⁻¹) • (r ⁻¹)；逐点是 (∃ (b : B), r a b ∧ s b c) ↔ (∃ (b : B), s b c ∧ r a b)——参数顺序是 c a，与 `⁻¹` 对调有关。
 -- soko:hint 关键件：触发条件是"要证的是两个 Rel 相等"⇒ Rel.ext（它吃"每个 c a 的 Iff"）；每个方向一次 Exists.elim 拆证人（Q 取目标那个 ∃），再用 And.left / And.right 换序、Exists.intro 装回；展开可用 Rel.comp_apply / Rel.inv_apply，也可以直接让定义展开。
 theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
-    Rel.inv A C (r • s) = (Rel.inv B C s) • (Rel.inv A B r) := by
+    (r • s) ⁻¹ = (s ⁻¹) • (r ⁻¹) := by
   sorry
 
 -- 练习 3（X 类：形式↔散文互译）。散文：
@@ -309,9 +309,9 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
 --     形状；代价是反向映射的域条件**第一次真的用上**（它保证 `g D` 落在 C' 里，缺了它矛盾合不上）。
 -- 两半合起来说的一句话：等势对复合与搬运封闭，但对幂集永远差一档。
 -- soko:hint 思路：① 走"拆 h 拿两把映射、再 mk 重新打包"，只在成员关系上用 hC 搬三处；② 反证——假设有等势，取对角线集 D，用反向映射把它拉回一点，撞出"某个命题等于自己的否定"。
--- soko:hint 目标形态：Set.Equiv α γ A C' ∧ ¬ Set.Equiv γ (Set γ) C' (𝒫 C')；② 拆开后目标是 False，手里有 f : γ → Set γ、g : Set γ → γ 与四条条件，对角线集取 D := C' \ (fun (y : γ) => f y y)。
+-- soko:hint 目标形态：A ≈ C' ∧ ¬ (C' ≈ (𝒫 C'))；② 拆开后目标是 False，手里有 f : γ → Set γ、g : Set γ → γ 与四条条件，对角线集取 D := C' \ (fun (y : γ) => f y y)。
 -- soko:hint 关键件：① 触发条件是"两个集合只差一条等式"⇒ 成员关系用 Eq.subst 搬（motive 取 fun (X : Set γ) => z ∈ X），反侧那一处先把 hC 用 Eq.symm 掉头；打包仍用 Set.Equiv.mk（两条互逆律不必动）。② D 属于 𝒫C' 的证据是一行 And.left（D y 展开就是 C' y ∧ ¬ (f y y)）；④号互逆律在 D 上给出 f (g D) = D，用 congrArg 把它作用到 g D 上，得到"(f (g D)) (g D) 与 D (g D) 相等"这条**命题等式**，再用 Eq.subst 两个方向互喂（D (g D) 展开后用 And.right 取否定那一半；反向映射的域条件给出 C' (g D)，正是 And.intro 缺的那一半）。
 theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
-    (h : Set.Equiv α γ A C) (hC : C = C') :
-    Set.Equiv α γ A C' ∧ ¬ Set.Equiv γ (Set γ) C' (𝒫 C') := by
+    (h : A ≈ C) (hC : C = C') :
+    A ≈ C' ∧ ¬ (C' ≈ (𝒫 C')) := by
   sorry

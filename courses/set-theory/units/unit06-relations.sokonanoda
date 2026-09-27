@@ -78,17 +78,17 @@ theorem demo_empty_transitive (A : Type) : Transitive A (EmptyRelation A) := by
 -- ─────────────────────────────────────────────────────────────────────────
 -- 6.2 逆与复合（lib/Rel 给的两个运算）
 --
---   Rel.inv A B r b a ↔ r a b        （r ⁻¹：把两个参数对调）
+--   (r ⁻¹) b a ↔ r a b        （把两个参数对调）
 --   (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c   （先走 r 再走 s）
 -- 两条展开引理 Rel.inv_apply / Rel.comp_apply 在 lib/Rel 里（证明是 Iff.refl）。
 -- ─────────────────────────────────────────────────────────────────────────
 
 -- 练习 1（T 类）：逆的逆。
--- soko:hint 思路：把 `Rel.inv B A (Rel.inv A B r)` 当成函数作用一次——外层换一次 b、a，里层又换回来。
--- soko:hint 目标形态：`Rel.inv B A (Rel.inv A B r) = r`；两边逐元素展开都是同一个 `r a b`，是**定义等式**。
+-- soko:hint 思路：把 `(r ⁻¹) ⁻¹` 当成函数作用一次——外层换一次 b、a，里层又换回来。
+-- soko:hint 目标形态：`(r ⁻¹) ⁻¹ = r`；两边逐元素展开都是同一个 `r a b`，是**定义等式**。
 -- soko:hint 关键件：这是定义等式，不需要任何引理——`Eq.refl` 那一族里有一条正好能用（别去动 `Rel.ext`）。
 theorem rel_inv_inv (A B : Type) (r : Rel A B) :
-    Rel.inv B A (Rel.inv A B r) = r := by
+    (r ⁻¹) ⁻¹ = r := by
   sorry
 
 -- 练习 2（T 类）：复合的结合律（本单元的必证题）。
@@ -104,11 +104,11 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
 -- ─────────────────────────────────────────────────────────────────────────
 
 -- 练习 3（T 类）：逆关系保持传递性（三律性质之一）。
--- soko:hint 思路：`↔` 的两个方向都要做；`Transitive A (Rel.inv A A r)` 展开后，三个参数与前提的顺序整个反了过来。
+-- soko:hint 思路：`↔` 的两个方向都要做；`Transitive A (r ⁻¹)` 展开后，三个参数与前提的顺序整个反了过来。
 -- soko:hint 目标形态：左端展开是 `∀ (a b c : A), r b a → r c b → r c a`；右端是 `∀ (a b c : A), r a b → r b c → r a c`。
 -- soko:hint 关键件：先弄清 `h` 展开后三个参数各占什么位置（它的结论是"第三个参数与第一个参数"），再决定三个位置分别填谁；两个方向写出来会几乎一样。
 theorem transitive_inv (A : Type) (r : Rel A A) :
-    Transitive A (Rel.inv A A r) ↔ Transitive A r := by
+    Transitive A (r ⁻¹) ↔ Transitive A r := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────────────────

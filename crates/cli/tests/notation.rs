@@ -1172,6 +1172,54 @@ def sq (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=\n\
     assert_eq!(diagnostics, 0, "{events:?}");
 }
 
+/// **E03 判据（契约层）**：`r ⁻¹`（`Rel.inv`）与 `A ≈ B`（`Set.Equiv`）在**真课程库**上
+/// 判卷，且与点名形式**五元计数一致**；顺带钉住 `⁻¹` 与 `⁻¹'`（原像）**共存**——
+/// 词法按声明**最长匹配** ⇒ `f ⁻¹' B` 不能被读成 `(f ⁻¹)' B`。
+///
+/// 取证（E03）：两条记法都是**本课自定**（mathlib4 master 里 `Relation.inv` 与 `≈`
+/// 都查不到声明）——符号按数学书读法，优先级 `postfix:100` / `infix:50`。
+#[test]
+fn the_course_inverse_and_equinumerous_notations_grade_like_the_pointful_forms() {
+    let root = course_lib_dir("inv-equiv-notation");
+    let pointful = "import lib.Set\nimport lib.Rel\nimport lib.Equiv\nimport lib.Image\n\n\
+def inv_sq (A B : Type) (r : Rel A B) : Rel B A :=\n\
+  Rel.inv A B r\n\n\
+def equiv_sq (A B : Type) (s : Set A) (t : Set B) : Prop :=\n\
+  Set.Equiv A B s t\n\n\
+def pre (α β : Type) (f : α → β) (B : Set β) : Set α :=\n\
+  Set.preimage α β f B\n";
+    let notation = "import lib.Set\nimport lib.Rel\nimport lib.Equiv\nimport lib.Image\n\n\
+def inv_sq (A B : Type) (r : Rel A B) : Rel B A :=\n\
+  r ⁻¹\n\n\
+def equiv_sq (A B : Type) (s : Set A) (t : Set B) : Prop :=\n\
+  s ≈ t\n\n\
+def pre (α β : Type) (f : α → β) (B : Set β) : Set α :=\n\
+  f ⁻¹' B\n";
+    let pointful_path = root.join("pointful.sokonanoda");
+    let notation_path = root.join("notation.sokonanoda");
+    std::fs::write(&pointful_path, pointful).expect("write pointful canvas");
+    std::fs::write(&notation_path, notation).expect("write notation canvas");
+
+    let (pointful_code, pointful_events) = grade_json_root(&root, &pointful_path);
+    let (notation_code, notation_events) = grade_json_root(&root, &notation_path);
+    assert_eq!(
+        pointful_code, 0,
+        "the pointful canvas must grade clean: {pointful_events:?}"
+    );
+    assert_eq!(
+        notation_code, 0,
+        "the notation canvas must grade clean: {notation_events:?}"
+    );
+    assert_eq!(
+        counts(&pointful_events),
+        counts(&notation_events),
+        "the two spellings must produce identical five-way counts"
+    );
+    let (checked, _, _, _, diagnostics) = counts(&notation_events);
+    assert!(checked >= 3, "all three definitions must check: {notation_events:?}");
+    assert_eq!(diagnostics, 0, "{notation_events:?}");
+}
+
 #[test]
 fn a_scoped_notation_grades_only_after_open_scoped() {
     // §12.3：`scoped` 默认不生效（未 open scoped ⇒ notation-unknown-symbol +

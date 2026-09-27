@@ -1,0 +1,44 @@
+-- G-48 最小复现：**`≈` 的两侧都是零元糖时补不出论域**（`∅ ≈ {b}` 判红）
+--
+-- 期望（官方 Lean 4 语义）：`∅ ≈ {b}` 应当能 elaborate —— Lean 有**元变量**，
+-- 两侧的论域由合一解出（`∅ : Set ?α`、`{b} : Set ?β`，`≈` 的两个前导参数再统一）。
+--
+-- 今天（0.74.0，E03 实测）：本语言的记法求解**没有元变量**（台账 G-43 的同一族），
+-- 前导类型参数只能从**操作数的类型**反解 —— 而 `∅`（`Set.empty`）与 `{b}`
+-- （`Set.singleton`）**都是零元糖、自己也要靠期望类型才能定论域** ⇒ 鸡生蛋：
+--     `elab-notation-argument-unsolved`：
+--     「记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式
+--       （例如 Set.empty α …）」
+-- 点名形式把 `α β` 写在 `Set.Equiv` 的参数位上，两侧的期望类型就都有了 ✓
+-- ⇒ 课程里那一条（单元⑨ 练习 5）**按设计写点名 + 行内 `soko:notation-ok` 标记**。
+--
+-- 同族：G-19（零元记法落在**被应用**的位置 + `by` 块）已修；本条是**另一个形状**
+-- （两侧都是零元糖、落在记法的**操作数**位）。修法方向 = E19 甲案（给求解器加元变量）。
+--
+-- 退出码（`scripts/gap.py` 的 `.sokonanoda` 约定）：本文件**必须判红**
+-- （`status: open` ⇒ 期望"仍有失败"）：exit 1 + 上面那条 diagnostic。
+
+def Set (α : Type) : Type := α → Prop
+
+def Set.empty (α : Type) : Set α :=
+  fun (_ : α) => False
+
+def Set.singleton (α : Type) (a : α) : Set α :=
+  fun (x : α) => x = a
+
+def Set.Equiv (α β : Type) (A : Set α) (B : Set β) : Prop :=
+  (∀ (x : α), A x → A x) ∧ (∀ (y : β), B y → B y)
+
+notation "∅" => Set.empty
+
+infix:50 " ≈ " => Set.Equiv
+
+-- 这一条就是缺口本身：`∅` 与 `{b}` 两侧都补不出论域 ⇒ 判红（签名 elaborate 不了）。
+theorem empty_not_equiv_singleton (α β : Type) (b : β) :
+    ¬ (∅ ≈ {b}) := by
+  sorry
+
+-- 对照组（应当 checked）：点名形式把两侧论域写在参数位上 ⇒ 解得出来 ✓
+theorem empty_not_equiv_singleton_pointful (α β : Type) (b : β) :
+    ¬ (Set.Equiv α β ∅ {b}) := by
+  sorry

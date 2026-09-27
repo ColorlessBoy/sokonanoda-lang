@@ -13,7 +13,7 @@
 -- **引理名照旧点名**（`Or.inl`、`And.left`、`Set.mem_union`、`Eq.subst.{1} …`）
 -- ——记法是连接符的糖，不是引理名的糖。
 -- 画布 12.3 的环 6 `demo_equiv_comp`（等势的复合仍是等势）是**演示**、画布上已写好，
--- 本文件不重复它；它是环 7 那道题的读法样板（本文件里 Set.Equiv 的用法与它同款）。
+-- 本文件不重复它；它是环 7 那道题的读法样板（本文件里 `≈` 的用法与它同款）。
 --
 -- 反例一律落在 `Set Nat` 上（∅ 与 univ 两个元素现成可分辨：Set.mem_univ / Set.notMem_empty），
 -- 这样既不用新增归纳类型，也不需要 Decidable/classical（语言里都没有）。
@@ -56,14 +56,14 @@ theorem xlat_compl_union (α : Type) (A B : Set α) :
           hor))
 
 -- X2：复合的逆 = 逆的反序复合。两个方向都是"拆一个 ∃、换序 ∧、再装回 ∃"。
--- `Rel.ext C A` 逐点给的是 `c a` 上的 Iff（参数顺序与 Rel.inv 对调有关）。
+-- `Rel.ext C A` 逐点给的是 `c a` 上的 Iff（参数顺序与 `⁻¹` 对调有关）。
 theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
-    Rel.inv A C (r • s) = (Rel.inv B C s) • (Rel.inv A B r) :=
-  Rel.ext C A (Rel.inv A C (r • s)) ((Rel.inv B C s) • (Rel.inv A B r))
+    (r • s) ⁻¹ = (s ⁻¹) • (r ⁻¹) :=
+  Rel.ext C A ((r • s) ⁻¹) ((s ⁻¹) • (r ⁻¹))
     (fun (c : C) => fun (a : A) =>
-      Iff.intro (Rel.inv A C (r • s) c a)
-        (((Rel.inv B C s) • (Rel.inv A B r)) c a)
-        (fun (h : Rel.inv A C (r • s) c a) =>
+      Iff.intro (((r • s) ⁻¹) c a)
+        (((s ⁻¹) • (r ⁻¹)) c a)
+        (fun (h : ((r • s) ⁻¹) c a) =>
           Exists.elim B (fun (b : B) => r a b ∧ s b c)
             (∃ (b : B), s b c ∧ r a b) h
             (fun (b : B) => fun (hb : r a b ∧ s b c) =>
@@ -71,7 +71,7 @@ theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
                 (And.intro (s b c) (r a b)
                   (And.right (r a b) (s b c) hb)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                   (And.left (r a b) (s b c) hb))))
-        (fun (h : ((Rel.inv B C s) • (Rel.inv A B r)) c a) =>
+        (fun (h : ((s ⁻¹) • (r ⁻¹)) c a) =>
           Exists.elim B (fun (b : B) => s b c ∧ r a b)
             (∃ (b : B), r a b ∧ s b c) h
             (fun (b : B) => fun (hb : s b c ∧ r a b) =>
@@ -386,11 +386,11 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
 -- 必须用括号整个包住（`(Exists.elim …)`、`(And.right … hg D hD)` 都算），
 -- 否则那些参数会散成外层脊上的参数，内核报出来的是一条"类型不匹配"的怪消息。
 theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
-    (h : Set.Equiv α γ A C) (hC : C = C') :
-    Set.Equiv α γ A C' ∧ ¬ Set.Equiv γ (Set γ) C' (𝒫 C') :=
+    (h : A ≈ C) (hC : C = C') :
+    A ≈ C' ∧ ¬ (C' ≈ (𝒫 C')) :=
   And.intro
-    (Set.Equiv α γ A C')
-    (¬ Set.Equiv γ (Set γ) C' (𝒫 C'))
+    (A ≈ C')
+    (¬ (C' ≈ (𝒫 C')))
     -- `cases` 需要一条**命名**的局部假设（类型要 delta 两步才到 `Exists` 的那种
     -- 假设它吃不下），所以先用 `have` 把类型摊开——记法写 `∃` 即可。
     (Exists.elim (α → γ)
@@ -399,7 +399,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
           (∃ (g : γ → α),
             Set.MapsTo γ α g C A ∧
               ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C))))
-      (Set.Equiv α γ A C') h
+      (A ≈ C') h
       (fun (f : α → γ) =>
         fun (hf :
           Set.MapsTo α γ f A C ∧
@@ -411,7 +411,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
             (fun (g : γ → α) =>
               Set.MapsTo γ α g C A ∧
                 ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)))
-            (Set.Equiv α γ A C')
+            (A ≈ C')
             (And.right (Set.MapsTo α γ f A C)
               (∃ (g : γ → α),
                 Set.MapsTo γ α g C A ∧
@@ -443,7 +443,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                       z
                       (Eq.subst.{1} (Set γ) (fun (X : Set γ) => z ∈ X) C' C
                         (Eq.symm.{1} (Set γ) C C' hC) hz)))))
-    (fun (h2 : Set.Equiv γ (Set γ) C' (𝒫 C')) =>
+    (fun (h2 : C' ≈ (𝒫 C')) =>
       Exists.elim (γ → Set γ)
         (fun (f : γ → Set γ) =>
           Set.MapsTo γ (Set γ) f C' (𝒫 C') ∧

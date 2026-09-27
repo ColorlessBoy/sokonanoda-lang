@@ -28,12 +28,12 @@ import lib.Equiv
 
 -- 练习 1（T）：可数的定义 = 与 ℕ 等势。
 def Set.Countable (α : Type) : Prop :=
-  Set.Equiv Nat α (Set.univ Nat) (Set.univ α)
+  Set.univ Nat ≈ Set.univ α
 
 -- 练习 2（L）：恒等映射给出 ℕ 与自己的等势（=「ℕ 可数」的实例）。
 -- 两条"进集合"的域条件是 True 的证明，两条互逆律是 rfl 级。
 -- `apply Set.Equiv.mk` 把四条条件留成子目标；映射本身（两把恒等函数）写在 apply 行上。
-theorem nat_equiv_nat : Set.Equiv Nat Nat (Set.univ Nat) (Set.univ Nat) := by
+theorem nat_equiv_nat : (Set.univ Nat) ≈ (Set.univ Nat) := by
   apply Set.Equiv.mk Nat Nat (Set.univ Nat) (Set.univ Nat)
     (fun (n : Nat) => n) (fun (n : Nat) => n)
   intro x
@@ -67,7 +67,7 @@ theorem diag_mem_iff (α : Type) (f : α → Set α) (x : α) :
 -- （画布里的 demo_diag 就是这条对角线矛盾；解答是独立文件（不 import 画布），
 --   所以这里就地写开（练习 6 同理）。）
 theorem cantor (α : Type) :
-    ¬ (Set.Equiv α (Set α) (Set.univ α) (Set.univ (Set α))) := by
+    ¬ ((Set.univ α) ≈ (Set.univ (Set α))) := by
   have diag : ∀ (f : α → Set α) (D : Set α) (g : (Set α) → α),
       D = (fun (y : α) => ¬ (f y y)) → f (g D) = D → False := by
     intro f D g hDL hgD
@@ -121,7 +121,7 @@ theorem cantor (α : Type) :
 
 -- 练习 5（D）：「𝒫ℕ 可数」为假——Cantor 定理在 α := Nat 上的实例。
 theorem powerset_nat_not_countable :
-    ¬ (Set.Equiv Nat (Set Nat) (Set.univ Nat) (Set.univ (Set Nat))) := by
+    ¬ ((Set.univ Nat) ≈ (Set.univ (Set Nat))) := by
   exact cantor Nat
 
 -- 练习 6（D）：不存在 α → Set α 的满射（假的枚举补不成满射）。

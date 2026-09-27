@@ -903,3 +903,40 @@ N1–N7 讲的是**语言**（怎么解析、怎么消解、怎么判卷）；�
 **反向验证**：撤掉两条声明 ⇒ 真相层与契约层**都红**，内核报
 `符号 '∘' 在本文件里还没有声明过记法`（`•` 更早一步：未声明时它连符号都不是，
 被读成 `Ident("•")` ⇒ `unknown identifier`）。
+
+## 17. E03（0.74.0）：课程库补 `r ⁻¹` / `A ≈ B` 两条记法（2026-09-27）
+
+**做**：把速查表里「Mathlib 有记法、本课程没声明（**写不了，别抄**）」那批的最后两条
+补上（`r • s` / `g ∘ f` 由 E01 补）：
+
+| 记法 | 形状 | 目标 | 声明点 | 取证 |
+|---|---|---|---|---|
+| `r ⁻¹` | `postfix:100` | `Rel.inv` | `courses/set-theory/lib/Rel.sokonanoda` | **本课自定**：mathlib4 master 的 `Mathlib/Logic/Relation.lean` **既没有 `Relation.inv` 也没有 `⁻¹`**（只有 `local infixr:80 " ∘r " => Relation.Comp`） |
+| `A ≈ B` | `infix:50` | `Set.Equiv` | `courses/set-theory/lib/Equiv.sokonanoda` | **本课自定**：`Mathlib/Logic/Equiv/Defs.lean:80` 的 `infixl:25 " ≃ " => Equiv` 是**等价的类型**、不是集合等势；`Mathlib/SetTheory/Cardinal/Basic.lean` 无 `≈` |
+
+**⚠ 又更正一处引用错误**：`lib/Rel` / `lib/Equiv` 的文件头原来都写"这是 **Mathlib 的**记法"
+——两处都**不准确**（与 E01 的 `•` 同一个毛病）。已改，取证行号写在库里。
+
+**三条边界（都实测过）**：
+1. **`⁻¹` 与 `⁻¹'` 是两个符号**：词法按声明**最长匹配** ⇒ 单元⑧⑫ 里 `f ⁻¹' B` 仍读作原像
+   （闭包记法表里两条并存，判据钉住 ✓）；
+2. **`r ⁻¹` 应用到参数上要加括号**：`(r ⁻¹) b a`（**不是** `r ⁻¹ b a`）；
+3. ⚠ **`≈` 的两侧不能都是零元糖**（**新缺口 G-48**）：`∅ ≈ {b}` 补不出论域
+   （`∅`/`{b}` 自己也要靠期望类型才能定论域 ⇒ 鸡生蛋），报
+   `elab-notation-argument-unsolved`；这种题按设计写点名 `Set.Equiv α β ∅ {b}`
+   + 行内 `soko:notation-ok` 标记（单元⑨ 练习 5 的画布与解答都这么写）。
+   修法方向 = E19 甲案（给求解器加元变量）。
+
+**判据（两层 + 课程层）**：
+* **真相层** `crates/front/tests/prelude_shape.rs::the_course_libraries_declare_the_inverse_and_equinumerous_notations`
+  ——`⁻¹`→`Rel.inv`（lib.Rel、100、`Postfix`）· `≈`→`Set.Equiv`（lib.Equiv、50、`Infix`）·
+  且 `⁻¹'`→`Set.preimage`（lib.Set）**同时可见**；
+* **契约层** `crates/cli/tests/notation.rs::the_course_inverse_and_equinumerous_notations_grade_like_the_pointful_forms`
+  ——真课程库上记法版与点名版 `grade` 都 exit 0、**五元计数逐项相等**，并含 `f ⁻¹' B` 共存用例；
+* **课程层** `python3 scripts/notation-lint.py` 零残留（新声明**自动**派生点形式判据）。
+
+**反向验证**：撤掉两条声明 ⇒ 两层判据都红，内核报 `符号 '≈' 在本文件里还没有声明过记法`
+与 `unknown identifier '⁻¹'`（与判红时逐字一致 ✓）。
+
+**台账**：G-47（记法缺失，fixed）· **G-48（零元糖操作数，open）** · G-49（类型错误报
+裸 de Bruijn 编号 `期望 $4，实际是 $5`，open——写复现件时实测到的诊断质量问题）。
