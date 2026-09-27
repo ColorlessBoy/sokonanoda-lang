@@ -805,6 +805,18 @@ class InfoviewProvider {
           );
         }
         break;
+      // **E27**：Infoview 里点声明名 ⇒ **跳到定义**。语义与编辑器 F12 **同一条**
+      //（`vscode.executeDefinitionProvider`）⇒ 落点跨文件正确 ✓，且与编辑器
+      // F12 逐字段可比 ✓。
+      // ⚠ **不是 `reveal`** ✗✓：`reveal` 只把编辑器滚到**那个 span**（源码位置），
+      // 两者表现太像（编辑器都跳了一下）⇒ 历史上正是"reveal 被当成跳转"而假绿 ✗。
+      // 判据（PLAN §E27）：发出端不许发 reveal（webview 判据）；落点端必须等于
+      // 编辑器 F12 的落点（stub 宿主判据）。
+      case "definition":
+        if (typeof message.uri === "string" && message.position) {
+          await gotoDefinition(message.uri, message.position);
+        }
+        break;
     }
   }
 
@@ -1354,6 +1366,30 @@ function updateStatusBar(provider) {
   }
   statusBar.tooltip = new vscode.MarkdownString(lines.join("\n\n"));
   statusBar.show();
+}
+
+/// **E27**：Infoview 里点声明名 ⇒ **跳到定义**，语义与编辑器 F12 **完全同一条**
+/// （`vscode.executeDefinitionProvider` —— 这就是 VS Code 给 "Go to Definition"
+/// 用的那条命令）⇒ 落点跨文件正确 ✓、且与编辑器 F12 的落点**逐字段可比** ✓。
+///
+/// 为什么不复用 `reveal`：`reveal` 只把编辑器滚到**那个源码 span**，不查定义、
+/// 不跨文件 —— 而它与"跳到定义"**表现太像**（编辑器都跳了一下）⇒ 历史上正是
+/// 把 `reveal` 当成跳转而**假绿** ✗✓（PLAN §E27 的"机制 2"）。
+async function gotoDefinition(uriString, position) {
+  const uri = vscode.Uri.parse(uriString);
+  const locations = await vscode.commands.executeCommand(
+    "vscode.executeDefinitionProvider",
+    uri,
+    new vscode.Position(position.line, position.character),
+  );
+  const first = Array.isArray(locations) ? locations[0] : locations;
+  if (!first || !first.uri || !first.range) {
+    // 没有定义就**如实说**，别假装跳过了（假动作比没有动作更糟 ✗）。
+    vscode.window.showInformationMessage("sokonanoda: 这里没有可跳转的定义。");
+    return undefined;
+  }
+  await revealRange(first.uri, first.range);
+  return { uri: first.uri.toString(), line: first.range.start.line };
 }
 
 async function revealRange(uriString, range) {

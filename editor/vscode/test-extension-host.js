@@ -115,6 +115,10 @@ const vscodeStub = {
   },
   // 真 API 的取值（`vscode.OverviewRulerLane`）：Left=1 / Center=2 / Right=4 / Full=7 ✓。
   OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },
+  // E27 的跳转走 `editor.revealRange(range, TextEditorRevealType.InCenter)` ⇒
+  // stub 缺这个枚举就会 TypeError（真 API 的取值：Default=0 / InCenter=1 /
+  // InCenterIfOutsideViewport=2 / AtTop=3）✓。
+  TextEditorRevealType: { Default: 0, InCenter: 1, InCenterIfOutsideViewport: 2, AtTop: 3 },
   ThemeColor: class ThemeColor {
     constructor(id) {
       this.id = id;
@@ -168,6 +172,22 @@ const vscodeStub = {
       this.pattern = pattern;
     }
   },
+  // E27：跳转落点用 `editor.selection = new vscode.Selection(start, end)` ⇒
+  // stub 缺它就会 TypeError（真 API 里 Selection 是 Range 的子类 ✓）。
+  Selection: class Selection {
+    constructor(start, end) {
+      this.start = start;
+      this.end = end ?? start;
+      this.isEmpty =
+        this.start.line === this.end.line && this.start.character === this.end.character;
+    }
+    get active() {
+      return this.end;
+    }
+    get anchor() {
+      return this.start;
+    }
+  },
   Disposable: { from: () => makeDisposable() },
   EventEmitter: class EventEmitter {
     constructor() {
@@ -194,6 +214,14 @@ const vscodeStub = {
       if (id === "setContext") {
         vscodeStub.__contexts = vscodeStub.__contexts ?? {};
         vscodeStub.__contexts[args[0]] = args[1];
+      }
+      // **E27**：记下每一次 `executeCommand` —— 判据要区分
+      // `vscode.executeDefinitionProvider`（= 编辑器 F12 的那条命令 ✓）
+      // 与 `sokonanoda.revealRange`（只是"滚到源码 span" ✗）。
+      vscodeStub.__commandsCalled = vscodeStub.__commandsCalled ?? [];
+      vscodeStub.__commandsCalled.push({ id, args });
+      if (id === "vscode.executeDefinitionProvider") {
+        return vscodeStub.__definitions ?? [];
       }
       return undefined;
     },
@@ -992,6 +1020,64 @@ test("Infoview receives the project view the server answered (E30)", async () =>
       reason: "no-imports",
     });
   }
+});
+
+test("Infoview 'definition' jumps like F12, never a plain reveal (E27)", async () => {
+  // **E27**：点 Infoview 的声明名 ⇒ 扩展必须走**与编辑器 F12 同一条**命令
+  //（`vscode.executeDefinitionProvider`），落点 = 定义所在文件 + 行（**跨文件** ✓）。
+  //
+  // ⚠ 这条判据是针对性的：历史上"跳转失败"的真因不是坏了，而是**从来不存在**
+  //（webview 只发 `ready`/`reveal`，扩展侧没有 `definition` 分支 ✗），而且
+  // `reveal`（滚到源码 span）与"跳到定义"**表现太像** ⇒ 拿"编辑器动了一下"
+  // 当判据会**假绿** ✗✓（PLAN §E27 的机制 2）。所以这里同时钉两端：
+  //   ① 必须问 `vscode.executeDefinitionProvider`（F12 语义）；
+  //   ② 最终落点必须是**定义返回的** uri+range（跨文件），不是点击处那个 span。
+  await activateExtension();
+  const provider = vscodeStub.__infoview;
+  assert.ok(provider, "activate() 必须建 Infoview provider");
+  const clicked = "file:///repo/units/u01.sokonanoda";
+  const definition = {
+    uri: vscodeStub.Uri.file("/repo/lib/Set.sokonanoda"),
+    range: new vscodeStub.Range(11, 4, 11, 20),
+  };
+  vscodeStub.__definitions = [definition];
+  vscodeStub.__commandsCalled = [];
+  // 落点端：把**定义所在文件**设成活动编辑器 ⇒ 跳转会把光标落在那一行
+  //（`revealRange` 走"已经是活动文档"那一支 ⇒ 直接 `selection = range` ✓）。
+  const target = fakeDocument("/repo/lib/Set.sokonanoda");
+  const editor = editorFor(target);
+  vscodeStub.window.activeTextEditor = editor;
+  await provider._onMessage({
+    protocol: 1,
+    type: "definition",
+    uri: clicked,
+    position: { line: 3, character: 8 },
+  });
+
+  const calls = vscodeStub.__commandsCalled;
+  const query = calls.find((call) => call.id === "vscode.executeDefinitionProvider");
+  assert.ok(
+    query,
+    `必须走 F12 同一条命令（vscode.executeDefinitionProvider）：${JSON.stringify(calls.map((c) => c.id))}`,
+  );
+  assert.strictEqual(query.args[0].toString(), clicked, "问的是点击处那份文档");
+  assert.strictEqual(query.args[1].line, 3, "位置用点击处的源位置（行）");
+  assert.strictEqual(query.args[1].character, 8, "位置用点击处的源位置（列）");
+
+  // **落点**：定义所在文件 + 定义那一行（跨文件 ✓）。
+  assert.strictEqual(
+    editor.document.uri.toString(),
+    "file:///repo/lib/Set.sokonanoda",
+    "落点必须是**定义所在文件**（跨文件 ✓），不是点击处那个 span ✗",
+  );
+  assert.strictEqual(editor.selection.start.line, 11, "光标必须落在定义那一行");
+  assert.strictEqual(editor.selection.start.character, 4, "列也要用定义的范围");
+  // 反向守卫：落点**不等于**点击处 ⇒ 不是 `reveal`（点哪滚哪 = 假跳转）。
+  assert.notStrictEqual(
+    editor.document.uri.toString(),
+    clicked,
+    "落点等于点击处 ⇒ 那是 reveal（滚到源码位置），不是跳定义 ✗",
+  );
 });
 
 test("diagnostics from other languages never drive soko/goals", async () => {

@@ -388,7 +388,25 @@
       const name = decl && decl.name ? decl.name : "?";
       const row = el("div", "decl " + ((decl && decl.status) || ""));
       const head = el("div", "decl-head");
-      head.appendChild(el("span", "decl-name", name));
+      // **E27**：声明名可点 —— 语义是**跳到定义**（与编辑器 F12 同一条：
+      // `vscode.executeDefinitionProvider`），**不是** `reveal` ✗✓。
+      // 为什么必须写清这条：`reveal`（滚到源码 span）与"跳到定义"**表现太像**
+      // （编辑器都跳了一下）⇒ 历史上正是把 reveal 当成跳转而**假绿**过 ✗。
+      // 发的是**源位置**（`decl.range.start`，LSP 的 0-based 行/列）—— webview
+      // 不猜定义在哪，落点由扩展问服务器（跨文件正确 ✓）。
+      const nameButton = el("button", "decl-name", name);
+      nameButton.type = "button";
+      nameButton.addEventListener("click", function () {
+        if (typeof lastUri === "string" && decl && decl.range && decl.range.start) {
+          vscode.postMessage({
+            protocol: PROTOCOL,
+            type: "definition",
+            uri: lastUri,
+            position: decl.range.start,
+          });
+        }
+      });
+      head.appendChild(nameButton);
       head.appendChild(el("span", "decl-kind", (decl && decl.kind) || ""));
       const hint = declLineHint(decl);
       if (hint) head.appendChild(el("span", "decl-line-hint", hint));

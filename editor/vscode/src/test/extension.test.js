@@ -715,6 +715,74 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("Infoview 'definition' lands exactly where the editor F12 lands (E27)", async () => {
+    // **E27 的落点判据（PLAN §E27 判据 ②）**：真宿主 + 真 LSP。
+    //
+    // ⚠ **老实说**：webview 的 DOM 在 iframe 里，**e2e 点不到** ✗ ⇒ 这里从
+    // **真的消息处理器**（`infoview._onMessage` —— 扩展侧唯一入口）喂一条
+    // `definition` 消息，走完 `executeDefinitionProvider` → 落点的整条链；
+    // 「点击真的发出 `definition`（而不是 `reveal`）」那一端由 webview 判据钉
+    //（`test-webview.js::decls: clicking a name asks for the DEFINITION…`，
+    // 含"不许发 reveal"的反向守卫）。**两条合起来才是完整的链** ✓；
+    // 单看这一条**不算**"点得动"的真宿主 e2e ✗（如实记账，不记成 e2e 通过）。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const doc = await vscode.workspace.openTextDocument(entry);
+    const text = doc.getText();
+    // 位置取**记法符号 `∈`**（夹具 `units/u01` 第 9 行）：它是**跨文件**定义
+    //（lib/Set 的 `Set.mem`）—— 与既有 F12 用例同款，也是 PLAN §E27 说的
+    // "落点必须**跨文件正确**" ✓。
+    // ⚠ 实测：本 LSP 的 definition 解析的是**使用处**，声明名本身**不返回定义**
+    //（拿声明名当位置 ⇒ 空结果 ⇒ 面板如实说"这里没有可跳转的定义"）。⇒ 判据取
+    // 使用处；**webview 目前接的是声明名**（见下面的如实记账）。
+    const offset = text.indexOf("∈", text.indexOf("theorem"));
+    assert.ok(offset >= 0, "夹具前提：u01 里要有记法符号 `∈`");
+    const before = text.slice(0, offset);
+    const line = before.split("\n").length - 1;
+    const character = (before.split("\n").pop() || "").length;
+    const position = new vscode.Position(line, character);
+
+    // 基准：编辑器里按 F12（VS Code 自己的那条命令）。
+    const editorLanding = await requestUntil(
+      "E27 基准：编辑器 F12 的落点",
+      () => vscode.commands.executeCommand("vscode.executeDefinitionProvider", entry, position),
+      (result) => Array.isArray(result) && result.length > 0,
+    );
+    assert.ok(
+      Array.isArray(editorLanding) && editorLanding.length > 0,
+      "基准：编辑器 F12 必须能跳到定义（否则这条判据没有比较对象）",
+    );
+    assert.ok(
+      editorLanding.some((loc) => String(loc.uri.fsPath).endsWith("Set.sokonanoda")),
+      `基准必须落在库里（跨文件）：${JSON.stringify(editorLanding.map((l) => l.uri.fsPath))}`,
+    );
+
+    // Infoview 那条链：喂给**真的**处理器（同一条消息、同一个位置）。
+    await extensionApi.infoview._onMessage({
+      protocol: 1,
+      type: "definition",
+      uri: entry.toString(),
+      position: { line, character },
+    });
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "跳转之后必须有活动编辑器");
+    assert.strictEqual(
+      editor.document.uri.toString(),
+      editorLanding[0].uri.toString(),
+      "Infoview 的落点文件必须与编辑器 F12 **逐字段相同**（uri）",
+    );
+    assert.strictEqual(
+      editor.selection.start.line,
+      editorLanding[0].range.start.line,
+      "落点行必须与编辑器 F12 相同（line）",
+    );
+    // **如实记账**：webview 目前把**声明名**接到这条消息上（用户报的"声明名点不动"✓）；
+    // 记法符号（`{a}`/`∈`）**还没接** ✗ —— 它们需要 wire 的 runs 带**位置**，
+    // 而 runs 现在只有 `{text, kind}`（加位置是 front + LSP 的协议改动，另立条目）。
+    // ⇒ 这条判据证的是**主机那一半链**（消息 → F12 语义 → 跨文件落点）✓，
+    // **不是**"在 Infoview 里点 `∈` 能跳" ✗。
+  });
+
   test("doctor command returns a read-only source + version report", async () => {
     // 冒烟（docs/design/extension-server-policy.md §5 集成层）：doctor 命令可
     // 执行，返回报告文本且包含来源（source=）与版本行；只读、绝不抛。

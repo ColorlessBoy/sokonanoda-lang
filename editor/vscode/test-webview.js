@@ -457,6 +457,55 @@ test("decls: a step-0 open exercise still shows its goal row (E21)", () => {
   );
 });
 
+test("decls: clicking a name asks for the DEFINITION, never a reveal (E27)", () => {
+  // **E27（用户 [53][54]：「Infoview 里点 `{a}`/`∈`/声明名**点不动**」）**。
+  //
+  // 这一条钉**发出端**（PLAN §E27 判据 ①）：点击后 webview 发出的消息**语义必须
+  // 是 go-to-definition**（带要解析的源位置），**不许发 `reveal`** ✗ ——
+  // 这一条**直接封死**历史上那个假绿：`reveal` 只是"滚到源码 span"，而它与
+  // "跳到定义"**表现太像**（编辑器都跳了一下）⇒ 被当成跳转成功 ✗✓。
+  const { root, messages, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    uri: "file:///repo/units/u01.sokonanoda",
+    version: 1,
+  });
+  send({
+    protocol: 1,
+    type: "decls",
+    decls: [
+      {
+        name: "mem_self",
+        kind: "theorem",
+        status: "checked",
+        range: { start: { line: 7, character: 8 }, end: { line: 7, character: 16 } },
+      },
+    ],
+  });
+  const before = messages.length;
+  const name = byClass(root, "decl-name")[0];
+  assert.ok(name._listeners.click, "声明名必须可点（E27：以前是纯 span，点了没反应 ✗）");
+  name._listeners.click();
+  const posted = messages.slice(before);
+  assert.strictEqual(posted.length, 1, `点一次发一条：${JSON.stringify(posted)}`);
+  assert.strictEqual(
+    posted[0].type,
+    "definition",
+    `语义必须是 go-to-definition（**不是** reveal ✗）：${JSON.stringify(posted[0])}`,
+  );
+  assert.deepStrictEqual(
+    posted[0].position,
+    { line: 7, character: 8 },
+    "要发**源位置**（`decl.range.start`，LSP 0-based）—— webview 不猜定义在哪",
+  );
+  assert.strictEqual(posted[0].uri, "file:///repo/units/u01.sokonanoda");
+  assert.ok(
+    !posted.some((message) => message.type === "reveal"),
+    "绝不许退化成 reveal（那是「滚到源码位置」，不是跳定义）",
+  );
+});
+
 test("decls: name, 1-based line hint and type line; rows are not interactive", () => {
   const { root, messages, send } = loadInfoview();
   const before = messages.length;
@@ -484,15 +533,16 @@ test("decls: name, 1-based line hint and type line; rows are not interactive", (
   const ty = byClass(row, "decl-ty")[0];
   assert.ok(ty, "the type line must render");
   assert.strictEqual(textOf(ty), "Nat");
-  // Non-interactive: no click listener anywhere in the row, and nothing may
-  // be posted (jumping is the tree's job; the webview is read-only).
-  for (const node of descendants(row)) {
-    assert.ok(
-      !node._listeners.click,
-      "declaration rows must not register click handlers",
-    );
-  }
-  assert.strictEqual(messages.length, before, "rows must not postMessage");
+  // **E27 起**：**只有声明名**可点（跳到定义），**行/其它部分仍然不可交互** ✓ ——
+  // 这条断言从"整行都不可点"改成"除名字外都不可点"（用户报的正是
+  // 「声明名**点不动**」，见 PLAN §E27）。
+  const clickable = descendants(row).filter((node) => node._listeners.click);
+  assert.deepStrictEqual(
+    clickable.map((node) => node.className),
+    ["decl-name"],
+    "只有 `decl-name` 可以有 click（E27）；行的其它部分必须仍然不可交互",
+  );
+  assert.strictEqual(messages.length, before, "渲染本身不许 postMessage");
   assert.ok(
     messages.every((message) => message.type !== "focusExercise"),
     "the webview must not emit focusExercise",
