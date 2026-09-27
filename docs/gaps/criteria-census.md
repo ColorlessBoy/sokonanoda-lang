@@ -24,7 +24,7 @@
 | # | 位置 | 类 | 一句话 | 状态 |
 |---|---|---|---|---|
 | 1 | `scripts/audit-wire-fields.py:107-114` | ④ | 写死行域 `lo=150,hi=234` 把 binder/run 读取点**全排除**（实测在 236/240/241 与 54/55）⇒ 抹 `GoalBinderInfo.ty_runs` 仍印 `NONE ✓` exit 0 —— **全仓唯一能咬 R-1 的守卫** | **已修 ✓** `564918f` |
-| 2 | `courses/set-theory/tools/check.py:791-850` | ③ | **`--selftest` 从不调用 `evaluate()`**（唯一调用点在 `run()` 里）⇒ G1/G2/G3/G4/G5 **零负例**；patch 成 raise 仍 PASS | **部分修** `90ab11e`（`evaluate()` **第一次进自检** ✓ —— 先补 **G4** 正/负两条；**G1/G2/G3/G5 仍未补** ✗） |
+| 2 | `courses/set-theory/tools/check.py:791-850` | ③ | **`--selftest` 从不调用 `evaluate()`**（唯一调用点在 `run()` 里）⇒ G1/G2/G3/G4/G5 **零负例**；patch 成 raise 仍 PASS | **已修 ✓** `90ab11e` + `b18062b`（`evaluate()` 全面进自检：G4 · G1 · G3×2 · G5 + 两条正控制 ✓；**G2 不在该函数内**、覆盖不到，已注明 ✓。反向验证：`evaluate` 变 no-op ⇒ **一次报 5 条失效** ✓） |
 | 3 | 五个门禁脚本（`--x in argv` 子串判模式） | ④ | **错拼参数被静默忽略、回落全量检查并 exit 0** ⇒「自检没跑，退出码却是绿的」 | **已修 ✓** `acbb88e` |
 | 4 | `crates/cli/tests/query.rs:822,940,1033` | ④ | LSP 二进制不存在 ⇒ `eprintln+return` ⇒ **三个 CLI≡LSP 一致性用例整条变绿**（防"两套真相"的唯一端到端守卫可静默消失） | **待修** |
 | 5 | `crates/kernel/tests/arena.rs:163-167` | ④ | `LEAN_KERNEL_ARENA` 未设 ⇒ 打印+return ⇒ **accept/reject 语料对拍整层绿** | **待修** |
