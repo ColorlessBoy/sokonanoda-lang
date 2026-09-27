@@ -10,6 +10,24 @@ license = "Apache-2.0"
 rust-version = "1.96"
 
 
+# ⚠ **别在这里加 `incremental = false`** ✗✓（2026-09-27 用户拍板 ✓）
+#
+# 实测数字（**机制记录** ✓，探针 `/tmp/incr-probe.sh`：改内容强制真重编 ⇒ 绕开 Fresh 与 sccache ✓）：
+#   incremental **ON**  ⇒ 一次重编 **Δ = +233** 个 `deps/*.rcgu.o`（522 → 755）· incremental/ 426 MB
+#   incremental **OFF** ⇒ 一次重编 **Δ = 0**（CGU 目标名确定 ⇒ 原地覆盖）· incremental/ 0 B
+# 代价的另一面（3 周累计实测）：`target/` **205 GB** · `deps/*.rcgu.o` **966,858 个**（171 GB）
+#   · `target/debug/incremental/` **82 GB** ✗ —— 两个大头都**没人回收** ✗。
+#
+# **结论 = 保住增量 ✓、磁盘另解 ✓**（用户 2026-09-27 明确：性能/迭代速度最重要 ✓）：
+#   ① 增量让「改一行就重编」快 ⇒ **不许关** ✗（关掉等于拿用户最在意的东西换磁盘 ✗）；
+#   ② 磁盘走**守卫 + 回收**：`python3 scripts/target-hygiene.py` 超阈判红 ✓，
+#      回收 `rm -rf target/debug/deps target/debug/incremental`（⚠ 本机 `cargo clean` 会被
+#      EPERM 拦 ✗，见 `docs/E2-HANDOVER.md` 陷阱清单 ✓）；
+#   ③ sccache 命中率 0% 是**同一根因的另一面** ✓（sccache 见 `-C incremental` 主动放弃缓存 ✓）
+#      —— 这是**已知且接受**的代价 ✓，**不是待修的 bug** ✗。
+#
+# ⚠ 与 `~/.cargo/config.toml` 2026-09-26 那条**经用户批准**的记录一致 ✓（"不要全局关增量"✓）。
+
 [profile.release]
 opt-level = 3
 overflow-checks = false
