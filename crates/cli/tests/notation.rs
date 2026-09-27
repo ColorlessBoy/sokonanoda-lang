@@ -1141,7 +1141,10 @@ def fun_comp (α β γ : Type) (g : β → γ) (f : α → β) : α → γ :=\n\
         "the two spellings must produce identical five-way counts"
     );
     let (checked, _, _, _, diagnostics) = counts(&notation_events);
-    assert!(checked >= 2, "both definitions must check: {notation_events:?}");
+    assert!(
+        checked >= 2,
+        "both definitions must check: {notation_events:?}"
+    );
     assert_eq!(diagnostics, 0, "{notation_events:?}");
 }
 
@@ -1216,7 +1219,10 @@ def pre (α β : Type) (f : α → β) (B : Set β) : Set α :=\n\
         "the two spellings must produce identical five-way counts"
     );
     let (checked, _, _, _, diagnostics) = counts(&notation_events);
-    assert!(checked >= 3, "all three definitions must check: {notation_events:?}");
+    assert!(
+        checked >= 3,
+        "all three definitions must check: {notation_events:?}"
+    );
     assert_eq!(diagnostics, 0, "{notation_events:?}");
 }
 
