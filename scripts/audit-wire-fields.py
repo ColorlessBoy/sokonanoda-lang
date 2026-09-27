@@ -41,6 +41,16 @@ PT = "editor/vscode/project-tree.js"
 # 本守卫的契约是"扩展读了 / **LSP** 从不发"，而这条缝里 LSP 本来就不该发这三个名字 ✓。
 LOCAL = {"start", "line", "length", "text", "kind", "phase", "label", "percent"}
 
+# **扩展 ↔ webview 的信封**（`infoview.js` 里 `window.addEventListener("message")` 的那个
+# `msg`）：它**不是 LSP wire** —— 走的是扩展**自定**的 `INFOVIEW_PROTOCOL`，字段是
+# `protocol`/`type`/`fontScale`/`decls`… ⇒ 与 `phase`/`label`/`percent` **同性质** ✓。
+#
+# ⚠ **不能**把它们塞进 `LOCAL` ✗✓：`decls` **同时**是 `GoalsResponse.decls`（**真的 LSP wire
+# 字段**，见下面 `collect(EX, "response", ("GoalsResponse",), only=("uri","decls","version"))`）
+# ⇒ 全局放行会**顺手把那条判据也关掉** ✗（这正是"为让判据变绿而放宽守卫"的反面教材 ✓）。
+# ⇒ 按 `(path, var)` **定点排除** ✓。
+ENVELOPE = {"protocol", "type", "fontScale", "decls"}
+
 
 def fields(src: str, struct: str) -> set[str]:
     m = re.search(r"struct %s \{(.*?)\n\}" % struct, src, re.S)
@@ -82,17 +92,21 @@ def main() -> int:
     if os.environ.get("SOKO_WIRE_SELFTEST") == "1":
         if "GoalDeclInfo" in wire:
             wire["GoalDeclInfo"] = {f for f in wire["GoalDeclInfo"] if f != "value_runs"}
-
+        # ⚠ **扩到 binder/run**（E00 切片 B 第 4 条：原来只覆盖 9 个结构体里的 1 个 ✗）
+        if "GoalBinderInfo" in wire:
+            wire["GoalBinderInfo"] = {f for f in wire["GoalBinderInfo"] if f != "ty_runs"}
+        
     missing: dict[str, list[str]] = {}
 
-    def collect(path, var, structs, only=None, lo=1, hi=10**9):
+    def collect(path, var, structs, only=None, lo=1, hi=10**9, skip=None):
         """`path` 里 `var.<field>` 的每个读取点：字段必须在 `structs` 里。
 
-        `only` 限定只看哪几个字段名（用在同名变量承载多种载荷的地方）。"""
+        `only` 限定只看哪几个字段名（用在同名变量承载多种载荷的地方）；
+        `skip` **定点排除**若干字段名（同一个变量名承载**两种载荷**时用，见 `ENVELOPE`）。"""
         allowed = set().union(*(wire[s] for s in structs))
         where = os.path.basename(path)
         for k, lines in reads(path, var, lo, hi).items():
-            if k in allowed or k in LOCAL:
+            if k in allowed or k in LOCAL or (skip and k in skip):
                 continue
             if only is not None and k not in only:
                 continue
@@ -104,13 +118,19 @@ def main() -> int:
     # 随改动漂移，新加的渲染代码一落到区间外守卫就瞎了 —— T-A5 加目标行时踩到）。
     collect(IV, "decl", ("GoalDeclInfo", "StateDeclInfo"))
     # 目标面板（`soko/stateAt`）及其嵌套结构。
+    # ⚠ **不许写死行区间** ✗✓（2026-09-27 E00 切片 B 的 P0-1，**已实测复现** ✓）：
+    #   这里原来写死 `lo=150, hi=234` ⇒ `binder`/`run` 的读取点
+    #   （实测 binder 在 236/240/241、run 在 54/55）**全在区间外** ✗ ⇒
+    #   **抹掉 `GoalBinderInfo.ty_runs` / `RunInfo.kind` 仍印 `NONE ✓` 且 exit 0** ✗
+    #   —— 与紧邻上面那句「**扫整份文件**（不写死行区间：区间会随改动漂移，新加的渲染
+    #   代码一落到区间外守卫就瞎了）」**自相矛盾** ✗✓。实测（先判红）：
+    #   同时抹 ty_runs + kind ⇒ 输出里**只有** `value_runs`，binder/run 一个字都没有 ✗。
     for var in ("msg", "state", "binder", "run"):
         collect(
             IV,
             var,
             ("StateAtResponse", "StateGoalInfo", "GoalBinderInfo", "RunInfo"),
-            lo=150,
-            hi=234,
+            skip=ENVELOPE if var == "msg" else None,   # `msg` 兼作 webview 信封 ⇒ 定点排除 ✓
         )
     # 练习树：`soko/goals` 的 decls[] + `soko/stateAt` + `soko/nextHole`。
     collect(EX, "decl", ("GoalDeclInfo",))
@@ -144,12 +164,19 @@ if __name__ == "__main__":
             text=True,
             env=env,
         )
-        caught = probe.returncode == 1 and "value_runs" in probe.stdout
-        if caught:
-            print("wire-fields self-test: OK（抹掉 value_runs ⇒ 被抓到 ✓ —— 能咬住 R-1 ✓）")
+        # ⚠ 断言**三个**名字都出现在 MISSING 里（原来只断言 value_runs 一个 ✗）——
+        #   E00 切片 B 第 4 条：反向验证只抹 9 个结构体里的 1 个 ⇒ 其余 8 个的
+        #   "读取点在不在扫描域内"**从来没被验证过** ✗（binder/run 就是这样瞎了 ✓）。
+        # ⚠ **不**断言 `kind` ✗：它在 `LOCAL` 里、**按设计**豁免 ✓（我第一版把它写进
+        #   期望，实测当场判红 ✓ —— 是**我的期望错**，不是守卫错）。
+        want = ("value_runs", "ty_runs")
+        absent = [n for n in want if n not in probe.stdout]
+        if probe.returncode == 1 and not absent:
+            print("wire-fields self-test: OK（抹掉 value_runs + ty_runs ⇒ **两个都被抓到** ✓"
+                  " —— 能咬住 R-1，且 binder 不再瞎 ✓）")
             raise SystemExit(0)
         print(
-            "wire-fields self-test: FAIL（抹掉 value_runs 却没报 ✗ ⇒ 守卫咬不住 R-1 ✓；"
+            f"wire-fields self-test: FAIL（抹掉后没报全 ✗；缺 {absent}；"
             f"exit={probe.returncode}, out={probe.stdout.strip()[:200]!r}）",
             file=sys.stderr,
         )
