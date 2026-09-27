@@ -225,10 +225,10 @@
 | E04 | hover 折记法（`{a}` 在 hover 里显示为 `{a}`） | A3 · F3 | 低 | 🚀 0.74 | ✅ 8660908（判据三层：front 真相 / LSP wire / e2e 子表达式 hover；反向验证 `SOKO_NO_NOTATION_FOLD=1` 判红；G-50 fixed） |
 | E21 | Infoview 声明卡片「目标 ⊢」行 —— **I1 复核：该行不冗余，保留**（原判"去掉"前提不成立） | I1 | 低 | 🚀 0.74 | ✅ **不改（resolved-no-change）** `ce0371b`（复核依据 + 防漂移判据 + 反向验证；依据进 `docs/gaps/criteria-census.md`） |
 | E22 | **build/rebuild 以项目为默认目标**（现在按当前打开的文件编） | I2① | 低 | 🚀 0.74 | ✅ `b90c0ff`（目标 = `soko/project` 的模块根；**rebuild 的 `--clean` 也带目标**；判据：stub 宿主 argv + e2e 文件数；反向验证两半各自判红；G-51 fixed） |
-| E23 | **build/rebuild 加进度**（流式 `build.file` 事件 → 状态栏/进度条） | I2② | 低 | 🚀 0.74 | |
+| E23 | **build/rebuild 加进度**（流式 `build.file` 事件 → 状态栏/进度条） | I2② | 低 | 🚀 0.74 | ✅ `3a5e94f`（三处同一份：状态栏逐帧 / Infoview / 概览尺 + 原生进度条**可取消**；`build.begin` 事件 `0ad970f`；判据 stub 宿主 39/39；反向验证两处各自判红；⚠ `{viewId}` 标题栏如实记为**未做**；G-52 fixed） |
 | **E27** | **Infoview 内导航到定义**（现在只发 `ready`/`reveal`，点目标标题只跳源码 span；`{a}`/`∈`/声明名**点不动**） | I-面核对 · [53][54] | 中 | 🚀 0.74 | |
 | **E28** | **Infoview 空态/错误态判据**（三种空态文案已实现，但**无 e2e**） | I-面核对 | 低 | 🚀 0.74 | |
-| **E29** | **Infoview 进度区要覆盖 build/rebuild**（E23 只写了状态栏 ⇒ **漏了 Infoview 那一路**） | I-面核对 · I2② | 中 | 🚀 0.74 | |
+| **E29** | **Infoview 进度区要覆盖 build/rebuild**（E23 只写了状态栏 ⇒ **漏了 Infoview 那一路**） | I-面核对 · I2② | 中 | 🚀 0.74 | ✅ `3a5e94f`（与 E23 **同一份判据**：Infoview 的帧 == 状态栏的帧、百分比 0/33/67/100；**只留状态栏**的反向验证判红 ✓；webview 三行区的渲染判据既有 ✓） |
 | **E30** | **Infoview 增加「项目」区块**（清单/模块根/模块表/计数/产物；**`requires_warning` 必须显眼、不许只在 tooltip**） | I-面核对 · G-24 | 中 | 🚀 0.74 | |
 | **E31** | **补一条「Clean Cache（清除缓存）」命令**（CLI 早有 `build --clean`，**扩展里没有入口** ✗） | I-面核对 | 低 | 🚀 0.74 | |
 | — | **发版点 🚀 v0.74.0「记法补齐 + 编译体验修复 + Infoview 面」** | | | | |
@@ -350,8 +350,19 @@
   **反向验证**：撤 `buildTarget()` ⇒ 判红且与判红时**逐字一致**；只撤 clean 的目标 ⇒
   第二条断言判红；两处恢复 ⇒ 38/38 复绿 ✓。附带修一条被暴露的守卫缺口：
   `crates/cli/tests/common/mod.rs` 的 `LSP_CUSTOM_METHODS` 漏了 `soko/project`（`1d17818`）。
-- **E23** **build/rebuild 加进度**。
-  实测机制：0.73.0 的编译进度（P1–P4/P6）走的是 **LSP `$/progress`**；
+- **E23** ✅ **已做（`3a5e94f` + CLI 事件 `0ad970f`）**：**build/rebuild 加进度**。
+  **as-built（详见 `docs/design/compile-progress-ui.md` §5）**：`runBuildProcess` 流式化
+  （逐行回调 + 跨块行缓冲）⇒ `build.begin`（**新加的 additive 事件**，带总数 ⇒ 才报得出
+  `3/13`）/`build.file`/`build.summary` 接到**与 LSP 编译同一套** `applyProgress`：
+  ① 状态栏逐帧 `$(sync~spin) Sokonanoda: 3/13 文件 · lib/Set.sokonanoda` ·
+  ② Infoview 三行进度区 · ③ 概览尺/整行背景；外加 `withProgress(Notification, cancellable)`
+  ⇒ **原生进度条 + 取消按钮**（顺手修掉「`runBuild` 完全不能取消」✗）。
+  **判据**：stub 宿主 39/39（逐帧断言 + `increment > 0` 的中间态 + 取消真 kill）；
+  **反向验证**：拿掉逐文件更新 ⇒ 判红、只拿掉 Infoview ⇒ 判红 ✓。
+  ⚠ **如实记账**：设计里的 `{viewId: "sokonanoda.infoview"}`（标题栏原生进度条）**未做** ✗
+  —— 它的效果在视图 chrome、**扩展宿主看不见** ⇒ 没有判据能咬住；面板内已有进度区
+  （同一份数字）⇒ 那条是冗余的第二块。**不记成已做** ✓。
+  实测机制（原判，仍然成立）：0.73.0 的编译进度（P1–P4/P6）走的是 **LSP `$/progress`**；
   build/rebuild 走的是**独立 CLI 子进程**（`extension.js:1770 runBuildProcess`）⇒ **不经过 LSP ⇒ 无进度**。
   **可做性（已核实）**：CLI 的 build **本来就逐文件发事件** —— `crates/cli/src/build.rs:88` 的
   `build.file`（另有 `build.clean` / `build.summary`），而扩展的 `parseBuildEvents` 已经解析了它们、
