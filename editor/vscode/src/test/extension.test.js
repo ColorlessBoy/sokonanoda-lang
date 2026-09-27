@@ -695,9 +695,16 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     // 断言 `requires_warning` **是可见文本、不是 tooltip**）。
     const entry = fixtureEntry();
     await showDoc(entry);
-    await waitFor("E30：项目载荷到达 Infoview", async () => {
+    // ⚠ **等的东西必须覆盖后面断言的东西** ✗✓ —— CI run `36340364435`（macos）实测红：
+    //   原来只等 `infoview.lastProject()`，却在最后一条断言里读
+    //   `extensionApi.project.answer.project.root`（**项目树**那份答案，走另一条路 ✗）
+    //   ⇒ 慢 runner 上树还没答，`answer` 是 `undefined` ⇒
+    //   `TypeError: Cannot read properties of undefined (reading 'project')` ✗。
+    //   ⇒ 两个信号都等到再往下走 ✓。
+    await waitFor("E30：项目载荷到达 Infoview 与项目树", async () => {
       const posted = extensionApi?.infoview?.lastProject?.();
-      return !!(posted && posted.project);
+      const answer = extensionApi?.project?.answer;
+      return !!(posted && posted.project && answer && answer.project);
     });
     const posted = extensionApi.infoview.lastProject();
     assert.ok(

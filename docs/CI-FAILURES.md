@@ -1,8 +1,24 @@
-# CI 失败台账（**同一类失败不犯第二次** ✓）
+## 2026-09-27 · run `36340364435` · `e2e (macos-latest · VS Code 1.138.0)`
 
-> **规则**（`AGENTS.md` §CI 失败记录 ✓）：每次 CI 红了就**追加一条** ✓
-> （原因 / 修复 / 预防 ✓）。**本文件只留最近 15 条** ✓（用户 2026-09-26 文档瘦身要求）；
-> 更早的 53 条 ⇒ `docs/archive/ci-failures-2026-09-10-to-2026-09-25.md.gz`（gzip ✓，**归档 ≠ 销毁** ✓）。
+**现象**：`the Infoview receives the project view (E30)` 判红 —— `TypeError: Cannot read
+properties of undefined (reading 'project')` at `src/test/extension.test.js:713`。
+同轮 **ubuntu 两条腿都绿**、本机（darwin release）也绿 ⇒ 先按值守口径 rerun 一次
+（`gh run rerun --job 108679507624`）⇒ **仍红** ✗ ⇒ 不是 flake，去取 artifact 定位 ✓。
+
+**真因**：不是 macos 的问题，是**判据自己"等 A 断 B"** ✗✓ —— 那条 e2e 等的是
+`infoview.lastProject()`，最后一条断言读的却是 `extensionApi.project.answer.project.root`
+（**项目树**那份答案，另一条路填 ✗）。快机器上两条路几乎同时到 ⇒ 看不见 ✗；
+macos runner 慢 ⇒ 树还没答 ⇒ `answer` 为 `undefined` ⇒ TypeError ✓。
+
+**修复**：`waitFor` 的条件**同时**等两个信号（`infoview.lastProject()` **和**
+`project.answer`）—— 等到的与要断言的一致 ✓。
+
+**预防**：**"等 A 断 B"是 e2e 的经典假红，且只在慢 runner 上现形** ✗✓ ⇒ 把"后面要读的
+每一个异步状态"都列进 `waitFor` 条件 ✓；**快机器绿、慢机器红的，先怀疑它，别叫 flake** ✗。
+⚠ **rerun 只能证伪 flake，不能消红** ✓ —— 仍红就去取 artifact（`gh run download <run-id>`
+⇒ `e2e-<os>-vscode-<ver>/logs/<date>-<sha>-*.log` 的「## 失败详情」✓；沙箱里取日志要
+`XDG_CACHE_HOME=/tmp/ghcache` ✓）。
+
 ## 2026-09-27 · **T-A60-2 的 1.5s 窗口被「迟到的落盘」压红** ✗（run `36323798295` 的 `e2e (ubuntu-24.04 · VS Code 1.138.0)`）
 **现象** ✓：同一 commit（`f2ec5d0`）在 **macos 1.138.0 与 ubuntu 1.106.0 都 32/32 绿** ✓，
 只有 **ubuntu 1.138.0** 红 1 条 ✗：`rewriting an unchanged project unit does not recompile`
