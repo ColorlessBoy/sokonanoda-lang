@@ -194,6 +194,7 @@
 | **E28** | **Infoview 空态/错误态判据**（三种空态文案已实现，但**无 e2e**） | I-面核对 | 低 | 🚀 0.74 |
 | **E29** | **Infoview 进度区要覆盖 build/rebuild**（E23 只写了状态栏 ⇒ **漏了 Infoview 那一路**） | I-面核对 · I2② | 中 | 🚀 0.74 |
 | **E30** | **Infoview 增加「项目」区块**（清单/模块根/模块表/计数/产物；**`requires_warning` 必须显眼、不许只在 tooltip**） | I-面核对 · G-24 | 中 | 🚀 0.74 |
+| **E31** | **补一条「Clean Cache（清除缓存）」命令**（CLI 早有 `build --clean`，**扩展里没有入口** ✗） | I-面核对 | 低 | 🚀 0.74 |
 | — | **发版点 🚀 v0.74.0「记法补齐 + 编译体验修复 + Infoview 面」** | | | |
 | E05 | 记法目标名 F12 落点修正（Bug A，一行级） | A11 · A12 | 低 | 🚀 0.75 |
 | E06 | G-37 判据升级：非 null → 落点==期望行号 + 反向验证 | B1/B2 | 低 | 🚀 0.75 |
@@ -427,6 +428,29 @@
   **判据**：把 `courses/set-theory/sokonanoda.toml` 的 `requires` 改成**不匹配**的版本
   ⇒ **Infoview 的「项目」区块必须显示该告警**（且**不是藏在 tooltip 里**）；
   **反向验证**：撤掉显示 ⇒ **必须判红** ✓。
+
+- **E31** **补一条「Clean Cache（清除编译缓存）」命令**（2026-09-27 用户要求：「**vscode 命令缺一个 clean，清除缓存**」）。
+  **现状（已核实）**：CLI **早就有「只清不编」** ✓（`crates/cli/src/build.rs:22-48`，`if clean { …; return ExitCode::SUCCESS; }`
+  —— **清完立刻返回**），清**两处**：全局缓存 `cache::clean()` + **每个模块根**的 `<root>/.sokonanoda/compiled/`，
+  并以 `build.clean` 报告 `{"removed": N, "global": X, "project": Y}` ✓。
+  **而扩展里没有这条命令** ✗：`package.json` 的 `contributes.commands` 共 15 条，只有 `build` 与 `rebuild`，
+  `Rebuild` 还是「**clean → build 串成一步**」（`extension.js:1880-1887`）⇒ **没有任何「只清缓存」的入口** ✗。
+  **做**：① 新命令 `sokonanoda.clean`，标题 **「Clean Cache (清除编译缓存)」**、category `Sokonanoda`（与现有 15 条同格式）；
+  ② 仿 `runBuild` 的 clean 段但**去掉后面那次 build**（`build --json --clean` → 解析 `build.clean`）；
+  ③ ⚠ **报告给三个数、不许只给总数**：`sokonanoda clean：清掉 N 条缓存（全局 X · 项目 Y）（Elapsedms）`
+  —— `build.rs:22-30` 的注释写着：**「`--clean` 必须两处都清 —— 只清全局的话 `rebuild` 会命中项目条目
+  ⇒ 表面「清空了」、实际什么都没重编（用户可见的假动作）」** ✗✓；
+  ④ `Build`/`Rebuild`/`Clean` 三条并列、标题风格一致；⑤ **与 E23/E29 一致**：至少状态栏 `$(sync~spin) Sokonanoda: 清除缓存…`、结束退回；
+  ⑥ ⚠ **同轮更新 `skills/` 三个技能 + `docs/vscode-dev-guide.md` + 扩展 README/CHANGELOG**
+  （AGENTS.md 硬规则：**用户可见改动必须同轮同步** ✓；`crates/cli/tests/skill.rs` 挡漂移 ✗）。
+  **判据（按 E27/E29 那套反假绿）**：跑 `Clean` 后 —— ① **项目条目确实被清**：`<模块根>/.sokonanoda/compiled/`
+  条目数 **N → 0**（**实测数字**，不是「看起来清了」✗）；② **全局缓存确实被清**：`build.clean` 的 `global > 0`
+  （测试里**先塞一条进去再清** ✓）；③ ⚠ **不触发重编**：clean 后 `counts.compiled` **保持 0** 直到下一次真 build
+  —— **这条专门防「clean 偷偷跟着编了一次」**（= Rebuild 的行为）✗，**必须断言** ✓。
+  **反向验证**：把 `Clean` 改成「clean 后接着 build」⇒ **必须判红** ✓；把「只清全局」改回去（不清项目条目）⇒ **必须判红** ✓
+  （**正是 `build.rs` 注释里那个假动作** ✓）。报告里的 `global`/`project` **必须来自 CLI 事件**，**不许前端自己数** ✗。
+  **与 E30 联动**：clean 后 Infoview「项目」区块的 `counts.compiled` 应**跟着变 0** ⇒ 作为 **E30 的附带判据**
+  （「clean 后 Infoview 项目区块反映缓存已空」）✓ —— 两条互相咬合 ✓。
 
 ---
 
@@ -676,7 +700,7 @@ objective 的**形状**照抄上一轮那条成功 goal 的写法（它跑完 32
 ```
 /goal 实现 ⟨路径⟩ §E00「判据强度普查」：普查全部 docs/gaps/repro/*（含 .sh/.js）· scripts/*lint*.py · scripts/audit-*.py · courses/set-theory/tools/check.py · crates/*/tests/ 的 e2e，找出四类弱判据（只断言非空/非 null/exit 0 而不断言具体值 · 只断言数量>0 不断言是哪几个 · 缺反向验证 · 把 skipped 当绿）；交付弱判据清单（文件:行 + 弱在哪类 + 升级后判据）并逐条升级；最后做一次变异测试（故意改坏 N 处实现）报出"有几条判据会红"。每条先判红、一处一 commit、带反向验证。
 
-/goal 实现 ⟨路径⟩ §v0.74.0「记法补齐 + 编译体验修复」：E01 补 Rel.comp/Function.comp 的记法（•/∘，声明进 lib/Rel 与 lib/Fun，涉及单元改用记法）· E02 把 Set.prod 从单元⑤画布收进 lib/Prod.sokonanoda（让 lib/Set 的记法目标全在库内）· E03 补 r ⁻¹（Rel.inv）与 A ≈ B（Set.Equiv）记法 · E04 让 hover 折记法（resolve_hovers 过 display.fold，悬停 {a} 要显示 {a} 而不是 Set.singleton α a）· E21 Infoview 声明卡片去掉多余的「目标 ⊢」行（theorem 上重复了它自己的语句；该行本意是给开放练习的，见 media/infoview.js:333-348 注释；优先在服务端决定发不发，客户端加守卫；有 sorry 的开放声明仍要显示）· E22 build/rebuild 以项目为默认目标（现在 extension.js:1755 buildTarget() 优先取当前活动文件；要保留只编当前文件就做成单独命令）· E23 build/rebuild 加进度（机制：0.73.0 的进度走 LSP $/progress，而 build 走独立 CLI 子进程不经过 LSP；可做性：CLI 逐文件发 build.file 事件——crates/cli/src/build.rs:88——扩展已解析却只用 clean/summary，改成流式回调即可）。· E27 **Infoview 内导航到定义**（现状 webview 只发 ready/reveal，点目标标题只跳源码 span，`{a}`/`∈`/声明名**点不动**；要做成与编辑器 F12 **同一语义**；**判据**：真宿主 e2e 在 Infoview 里点 `{a}`/`∈`/声明名必须落到**与编辑器 F12 相同的定义位置**，反向验证撤掉必须判红；这条正好补上用户 [53][54]「跳转到 definition 有没有测试」的**另一半**——那半只覆盖了编辑器）· E28 **Infoview 空态/错误态判据**（三种空态文案已实现但**无 e2e**；三条各一条判据，至少把「服务器还没编完」与「真的没声明」区分开）。· E29 **Infoview 进度区要覆盖 build/rebuild**（E23 只写了状态栏 ⇒ 漏了 Infoview 那一路；build 走独立 CLI 子进程不经过 LSP ⇒ Infoview 收不到；要把 `build.file` 流式事件也推给 Infoview；判据：三行进度区逐文件更新、与状态栏**同一份进度**；反向验证只留状态栏必须判红）· E30 **Infoview 增加「项目」区块**（用现成数据源 LSP `soko/project` / CLI `query project`，别自己造；显示优先级：**`requires_warning` 提到显眼位置（不许只在 tooltip）** > 清单/root/entry > 模块表 > 计数 > 产物与版本；⚠ 取数不能有重编副作用（`query project` 会写删 `.sokonanoda/compiled/*.tmp`）⇒ 优先用 LSP 推送；⚠ 新增 Infoview 读取后**必须同步更新 `scripts/audit-wire-fields.py`**，否则守卫会红；判据：把 `courses/set-theory/sokonanoda.toml` 的 requires 改成不匹配版本 ⇒ 项目区块必须显示该告警且不在 tooltip；反向验证撤掉显示必须判红。**理由**：G-24 下 requires 漂移会让 `is_clean()` 为假 ⇒ 项目编译缓存被静默关掉⇒ 整个卷 I 每个文件每次打开都从零重编，而界面什么都看不出来）。每条先判红、一处一 commit、带反向验证（撤掉必须判红）；课程门禁保持 36/328/99/0；全部完成且 CI 逐 job 真绿后 bump 0.74.0 发版。
+/goal 实现 ⟨路径⟩ §v0.74.0「记法补齐 + 编译体验修复」：E01 补 Rel.comp/Function.comp 的记法（•/∘，声明进 lib/Rel 与 lib/Fun，涉及单元改用记法）· E02 把 Set.prod 从单元⑤画布收进 lib/Prod.sokonanoda（让 lib/Set 的记法目标全在库内）· E03 补 r ⁻¹（Rel.inv）与 A ≈ B（Set.Equiv）记法 · E04 让 hover 折记法（resolve_hovers 过 display.fold，悬停 {a} 要显示 {a} 而不是 Set.singleton α a）· E21 Infoview 声明卡片去掉多余的「目标 ⊢」行（theorem 上重复了它自己的语句；该行本意是给开放练习的，见 media/infoview.js:333-348 注释；优先在服务端决定发不发，客户端加守卫；有 sorry 的开放声明仍要显示）· E22 build/rebuild 以项目为默认目标（现在 extension.js:1755 buildTarget() 优先取当前活动文件；要保留只编当前文件就做成单独命令）· E23 build/rebuild 加进度（机制：0.73.0 的进度走 LSP $/progress，而 build 走独立 CLI 子进程不经过 LSP；可做性：CLI 逐文件发 build.file 事件——crates/cli/src/build.rs:88——扩展已解析却只用 clean/summary，改成流式回调即可）。· E27 **Infoview 内导航到定义**（现状 webview 只发 ready/reveal，点目标标题只跳源码 span，`{a}`/`∈`/声明名**点不动**；要做成与编辑器 F12 **同一语义**；**判据**：真宿主 e2e 在 Infoview 里点 `{a}`/`∈`/声明名必须落到**与编辑器 F12 相同的定义位置**，反向验证撤掉必须判红；这条正好补上用户 [53][54]「跳转到 definition 有没有测试」的**另一半**——那半只覆盖了编辑器）· E28 **Infoview 空态/错误态判据**（三种空态文案已实现但**无 e2e**；三条各一条判据，至少把「服务器还没编完」与「真的没声明」区分开）。· E29 **Infoview 进度区要覆盖 build/rebuild**（E23 只写了状态栏 ⇒ 漏了 Infoview 那一路；build 走独立 CLI 子进程不经过 LSP ⇒ Infoview 收不到；要把 `build.file` 流式事件也推给 Infoview；判据：三行进度区逐文件更新、与状态栏**同一份进度**；反向验证只留状态栏必须判红）· E30 **Infoview 增加「项目」区块**（用现成数据源 LSP `soko/project` / CLI `query project`，别自己造；显示优先级：**`requires_warning` 提到显眼位置（不许只在 tooltip）** > 清单/root/entry > 模块表 > 计数 > 产物与版本；⚠ 取数不能有重编副作用（`query project` 会写删 `.sokonanoda/compiled/*.tmp`）⇒ 优先用 LSP 推送；⚠ 新增 Infoview 读取后**必须同步更新 `scripts/audit-wire-fields.py`**，否则守卫会红；判据：把 `courses/set-theory/sokonanoda.toml` 的 requires 改成不匹配版本 ⇒ 项目区块必须显示该告警且不在 tooltip；反向验证撤掉显示必须判红。**理由**：G-24 下 requires 漂移会让 `is_clean()` 为假 ⇒ 项目编译缓存被静默关掉⇒ 整个卷 I 每个文件每次打开都从零重编，而界面什么都看不出来）。每条先判红、一处一 commit、带反向验证（撤掉必须判红）；E31 **补「Clean Cache（清除编译缓存）」命令**（用户：「vscode 命令缺一个 clean，清除缓存」；CLI 早有 `build --clean`（清全局 + 每个模块根的 .sokonanoda/compiled/，`build.clean` 报 removed/global/project），**扩展里没有入口** —— 15 条命令只有 build/rebuild，而 Rebuild 是 clean→build 串成一步；做：`sokonanoda.clean`「Clean Cache (清除编译缓存)」、去掉后面那次 build、**通知给三个数**（清掉 N 条（全局 X · 项目 Y））；判据：clean 后项目条目 **N → 0**（实测数字）· `global > 0` · ⚠ **不触发重编**（`counts.compiled` 保持 0，专防 clean 偷偷跟着编）；反向验证：改成 clean 后接着 build 必须判红 · 改回「只清全局」必须判红；报告数字必须来自 CLI 事件、不许前端自己数；与 E30 联动：clean 后 Infoview 项目区块 compiled 应跟着变 0）。课程门禁保持 36/328/99/0；全部完成且 CI 逐 job 真绿后 bump 0.74.0 发版。
 
 /goal 实现 ⟨路径⟩ §v0.75.0「跳转与高亮」：E05 修 crates/lsp/src/lib.rs:1896 把 project_definition 返回的真定义 span 用 _ 丢掉的问题（F12 现在跳到光标自己那一行；Set.mem 应落 L60 而非 L115）· E06 把 docs/gaps/repro/G37-notation-decl-target-not-a-use-point.js 的断言从"非 null"升级为"落点==期望行号"+反向验证 · E07 定案跨模块记法目标（Set.image/Set.preimage 在 lib/Image、Set.prod 在单元⑤）的高亮与跳转语义（语义 token 现在落 UnknownIdent→variable，另 8 条是 function）· E08 处理 documentHighlight 对记法目标名全 null。每条先判红、一处一 commit、带反向验证；全部完成且 CI 逐 job 真绿后 bump 0.75.0 发版。
 
