@@ -30,7 +30,7 @@
 | 5 | `crates/kernel/tests/arena.rs:163-167` | ④ | `LEAN_KERNEL_ARENA` 未设 ⇒ 打印+return ⇒ **accept/reject 语料对拍整层绿** | **待修** |
 | 6 | `crates/front/tests/module_batch.rs:186` | ④ | `#[ignore]` 掉**真课程等价性**用例（夹具绿，而同文件另有断言"真课程形状不等价"） | **待修** |
 | 7 | `crates/cli/tests/launcher.rs:42-58` | ④ | node 不在 PATH ⇒ 打印+return ⇒ **唯一跑启动器的 5 条用例绿** | **待修** |
-| 8 | `docs/gaps/repro/G39-….js:81,85` | ① | definition/hover **只断言非 null** ⇒ **与 G-37 事故同形**（自跳、答错目标照样绿），而台账已写 `fixed` | **待修** |
+| 8 | `docs/gaps/repro/G39-….js:81,85` | ① | definition/hover **只断言非 null** ⇒ **与 G-37 事故同形**（自跳、答错目标照样绿），而台账已写 `fixed` | **已修 ✓** `8af25ba`（**升级后行为仍对** ⇒ 台账不用改回 open ✓） |
 | 9 | `docs/gaps/repro/G38-….js:45` | ③ | `JSON.parse(...).data` 从不查退出码/信封 `ok` ⇒ 解析失败时 `undefined.find` 抛异常 ⇒ node **exit 1** ⇒ 台账 `fixed` 恰好把「行为已变」读成**一致**（`gap.py:220`）⇒ **坏环境静默判绿** | **待修** |
 | 10 | `courses/set-theory/tools/check.py:602-610` | ④ | `--only` 下画布被判红时 `continue` 的前提不成立 ⇒ **画布那次判红无人报告**，exit 0（**已实测复现**） | **待修** |
 | 11 | `scripts/audit-notation-paths.py:186` | ② | 自检只断言"walk.rs 里 ≥1 处"，而 8 处**全是 render_expr** ⇒ 删掉另两个模式仍 exit 0；且 T-U5 迁完后会**假红** | **待修** |
