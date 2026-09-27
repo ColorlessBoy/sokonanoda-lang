@@ -764,7 +764,10 @@ global fallback validates that the entry's module root matches the current one
   can resolve from the positionals (without positionals: global only, and
   `project` is reported as 0) — and prints `removed N cached file(s)
   (G global, P project)`;
-- `--json` emits one `build.file` per resolved file
+- `--json` emits `build.begin` (`{type, files}` — the **total** resolved file
+  count, so a client can render `3/13`; it comes **before** the first
+  `build.file`, and `files` equals both the number of `build.file` events and
+  `build.summary.files`), then one `build.file` per resolved file
   (`{type, file, status}` with `status` ∈ `hit` / `compiled` / `failed`),
   then `build.summary` (`{type, files, hit, compiled, failed}`); `build --clean
   --json` emits `build.clean` (`{type, removed, global, project}`, additive:

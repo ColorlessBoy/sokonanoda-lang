@@ -1998,6 +1998,37 @@ fn cli_build_warms_and_reuses_cache() {
     assert_eq!(summary["compiled"], 1, "cold build compiles: {summary}");
     assert_eq!(summary["hit"], 0, "cold build cannot hit: {summary}");
 
+    // **E23（进度要有总数）**：`build.begin` 是这次加的事件（additive：老消费者
+    // 忽略未知 `type` ✓）。没有它，前端只能报"已编 3 个"、报不出「3/13 文件」✗ ——
+    // 因为总数只在 `build.summary` 里，而那已经是**结束之后**了。
+    // 判据：① 它排在第一条 `build.file` **之前**；② 它的 `files` == 真正会编的
+    // 文件数 == `build.file` 的条数 == `build.summary.files`（三者必须同一份）。
+    let begin_index = events
+        .iter()
+        .position(|e| e["type"] == "build.begin")
+        .unwrap_or_else(|| panic!("build.begin must carry the progress total (E23): {events:?}"));
+    let first_file_index = events
+        .iter()
+        .position(|e| e["type"] == "build.file")
+        .expect("build.file must be emitted");
+    assert!(
+        begin_index < first_file_index,
+        "build.begin 必须排在第一条 build.file 之前（否则前端第一帧就没有总数）：{events:?}"
+    );
+    let declared = events[begin_index]["files"]
+        .as_u64()
+        .expect("build.begin.files must be a number");
+    let seen = events.iter().filter(|e| e["type"] == "build.file").count() as u64;
+    assert_eq!(
+        declared, seen,
+        "build.begin.files 必须等于 build.file 的条数"
+    );
+    assert_eq!(
+        declared,
+        summary["files"].as_u64().expect("summary files"),
+        "build.begin.files 必须等于 build.summary.files（同一份计数）"
+    );
+
     let second = run_args_with_cache(&["build", "--json", path], None, &cache);
     assert!(
         second.status.success(),

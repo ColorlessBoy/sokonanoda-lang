@@ -65,6 +65,15 @@ pub(crate) fn build(
     let mut hit = 0usize;
     let mut compiled = 0usize;
     let mut failed = 0usize;
+    // **E23**：先把**总数**说出去 —— 进度条要报「3/13 文件」，而总数只在
+    // `build.summary` 里、那已经是结束之后了 ✗。additive：老消费者忽略未知
+    // `type` ✓（`docs/protocol.md` 的 build 事件契约已同步）。
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({"type": "build.begin", "files": files.len()})
+        );
+    }
     for file in &files {
         let status = std::fs::read_to_string(file)
             .map_err(|e| format!("cannot read: {e}"))
