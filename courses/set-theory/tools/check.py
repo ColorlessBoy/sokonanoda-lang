@@ -205,6 +205,27 @@ def resolve_channel(root: Path, explicit: str | None) -> Channel:
             f"启动器解析到的二进制不可信：{path} [{source}]。\n"
             f"  先跑 `scripts/soko update`（或 `scripts/soko doctor --json`）再重试——不判绿。"
         )
+    # ⚠ **补上 `--bin` 分支早就有的精确探针** ✗✓（E00 切片 C 第 12 条）：
+    #   上面那条黑名单只能挡**标签文案里写了** STALE/unknown/unverified 的情形 ✗；
+    #   而 `Channel.version` 记的是**版本钉**、不是二进制自报 ✗ ⇒
+    #   **「marker 写 0.65.5、二进制其实是 0.65.4」** 这类**看不出来** ✗
+    #   —— 那正是 `docs/E2-HANDOVER.md` §5 记的**真实事故** ✓。
+    #   ⇒ 照 `--bin` 分支（:165-172）**同口径**：跑一次 `--version`，
+    #     跑不起来 **或** 与版本钉不一致 ⇒ 都 `Prerequisite`（exit 2）✓。
+    #   ⚠ **不改 `Channel.version` 的语义**（仍记版本钉 ✓）—— 只加**交叉核对**，
+    #     免得动到台账契约 ✗（C 片提醒过这一点 ✓）。
+    reported = binary_version(Path(path))
+    if reported is None:
+        raise Prerequisite(
+            f"启动器解析到的 CLI 跑不起来（或不回答 --version）：{path} [{source}] —— 不判绿。"
+        )
+    if reported != report.get("version"):
+        raise Prerequisite(
+            f"启动器解析到的 CLI **自报版本与版本钉不一致**：自报 {reported} · "
+            f"钉 {report.get('version')}（{path} [{source}]）——\n"
+            f"  ⚠ 这正是 E2-HANDOVER §5 记的那次事故（marker 写 0.65.5、二进制其实是 0.65.4）✗\n"
+            f"  先跑 `scripts/soko update` 再重试——不判绿。"
+        )
     return Channel([path], source, path, report.get("version"))
 
 
