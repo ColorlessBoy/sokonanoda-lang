@@ -375,6 +375,14 @@ def freeze() -> int:
 
 
 def main(argv: list[str]) -> int:
+    # ⚠ **不许静默回落** ✗✓（E00 切片 B 实测 ✓）：这几个脚本原来用 `"--x" in argv`
+    # **子串**判模式 ⇒ **错拼的参数被静默忽略、回落成全量检查并 exit 0** ✗ ⇒
+    # 表现是「**自检没跑，退出码却是绿的**」✗（我上次"它没有自检"的错结论就是这么来的 ✓）。
+    # ⇒ 未知参数一律 **exit 2**（只有 `notation-lint.py` 本来就用 argparse、是对的 ✓）。
+    unknown = [a for a in argv if a.startswith("-") and a not in {"--help", "-h", "--freeze", "--selftest", "--json"}]
+    if unknown:
+        print(f"✗ 未知参数 {unknown} ⇒ 拒绝执行（**不许静默回落全量检查** ✗）", file=sys.stderr)
+        return 2
     if "--help" in argv or "-h" in argv:
         print(__doc__)
         return 0
