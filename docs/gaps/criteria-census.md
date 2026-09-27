@@ -24,7 +24,7 @@
 | # | 位置 | 类 | 一句话 | 状态 |
 |---|---|---|---|---|
 | 1 | `scripts/audit-wire-fields.py:107-114` | ④ | 写死行域 `lo=150,hi=234` 把 binder/run 读取点**全排除**（实测在 236/240/241 与 54/55）⇒ 抹 `GoalBinderInfo.ty_runs` 仍印 `NONE ✓` exit 0 —— **全仓唯一能咬 R-1 的守卫** | **已修 ✓** `564918f` |
-| 2 | `courses/set-theory/tools/check.py:791-850` | ③ | **`--selftest` 从不调用 `evaluate()`**（唯一调用点在 `run()` 里）⇒ G1/G2/G3/G4/G5 **零负例**；patch 成 raise 仍 PASS | **待修** |
+| 2 | `courses/set-theory/tools/check.py:791-850` | ③ | **`--selftest` 从不调用 `evaluate()`**（唯一调用点在 `run()` 里）⇒ G1/G2/G3/G4/G5 **零负例**；patch 成 raise 仍 PASS | **部分修** `90ab11e`（`evaluate()` **第一次进自检** ✓ —— 先补 **G4** 正/负两条；**G1/G2/G3/G5 仍未补** ✗） |
 | 3 | 五个门禁脚本（`--x in argv` 子串判模式） | ④ | **错拼参数被静默忽略、回落全量检查并 exit 0** ⇒「自检没跑，退出码却是绿的」 | **已修 ✓** `acbb88e` |
 | 4 | `crates/cli/tests/query.rs:822,940,1033` | ④ | LSP 二进制不存在 ⇒ `eprintln+return` ⇒ **三个 CLI≡LSP 一致性用例整条变绿**（防"两套真相"的唯一端到端守卫可静默消失） | **待修** |
 | 5 | `crates/kernel/tests/arena.rs:163-167` | ④ | `LEAN_KERNEL_ARENA` 未设 ⇒ 打印+return ⇒ **accept/reject 语料对拍整层绿** | **待修** |
@@ -50,8 +50,8 @@
 - **`status-lint.py:95`**：禁词只覆盖 1/7（删其余 6 个仍 7/7）；`growth()` 无自检。
 - **`docs-lint.py:245…320`**：9 条自检全是 `any(...)`=≥1、不绑夹具（LESSONS.md 探针失效、别的文件替它红，仍 9/9）。
 - **`ci-yml-lint.py:69-70`**：`isinstance(st, dict)` 分支零用例；`okc` 只断条数不断文案。
-- **`check.py:612`**：G4 的 `missing` 在 `open_names` 为空时恒空 ⇒ **无「画布必须有具名练习」的非空守卫**
-  （旧测试 `crates/cli/tests/course.rs:228-231` 有、check.py 的"无计数版"丢了）。
+- ~~**`check.py:612`**：G4 的 `missing` 在 `open_names` 为空时恒空 ⇒ **无「画布必须有具名练习」的非空守卫**
+  （旧测试 `crates/cli/tests/course.rs:228-231` 有、check.py 的"无计数版"丢了）。~~ ⇒ **已修 ✓** `90ab11e`（同口径守卫 + 正/负两条自检）
 - **`check.py:611-614`**：G4 **只比名字不比命题** ⇒ 同名换命题照样绿。
 - ~~**`check.py:785`**：自检只断言子串 `"99"`（差额算成 `+99` 或 `0` 也过）—— 与校准事故同形。~~ ⇒ **已修 ✓** `d9d84e7`（正则取三个数逐一断言 99/0/-99）
 - **`check.py:683-685`**：`--bisect` 把「行首没扫到声明」印成「**整份文件判绿**」—— 方向性错误。
