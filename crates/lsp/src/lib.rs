@@ -1887,17 +1887,25 @@ impl LanguageServer for Backend {
         // 里 `=>` 后面的名字是**普通引用**，但它在 AST 里不是使用点 ⇒
         // `definition_at` 答不上来。词法认出它之后，走与上面**同一条闭包通道**
         // （`project_definition` 握着整个闭包的名字 → 模块）。
+        //
+        // **E05（Bug A，2026-09-27）：span 用错了一个** ✗✓ —— 原来把
+        // `project_definition` 返回的**真定义 span** 用 `_` 丢掉，`range` 用了
+        // **光标处**那个 span（就是目标名自己）⇒ F12 **原地跳**（视觉上等于
+        // 没反应 ✗）。真课程库实测：`Set.powerset` 应落 **L81** 实落 **L125**、
+        // `Set.compl` 应落 **L79** 实落 **L126** ✓。⇒ 现在用**定义那一处**的 span。
+        // 判据：`goto_definition_on_a_notation_target_name_lands_on_the_definition`
+        // （断言落点行号 == `def` 那一行，**不许自跳** ✗）。
         {
             let text = docs.text().to_string();
             let offset = position_to_offset(&text, pos);
-            if let Some((name, span)) =
+            if let Some((name, _)) =
                 sokonanoda_front::notation_input::notation_target_at(&text, offset)
             {
-                if let Some((path, _)) = docs.query().project_definition(&name) {
+                if let Some((path, def_span)) = docs.query().project_definition(&name) {
                     if let Ok(uri) = Url::from_file_path(&path) {
                         return Ok(Some(GotoDefinitionResponse::Scalar(Location {
                             uri,
-                            range: range_of(span),
+                            range: range_of(def_span),
                         })));
                     }
                 }

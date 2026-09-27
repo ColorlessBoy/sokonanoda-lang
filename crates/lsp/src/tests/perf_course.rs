@@ -27,7 +27,7 @@ const COURSE_ENTRIES: &[(&str, &str)] = &[
 ];
 
 /// 课程目录（相对 `crates/lsp/`）。找不到就跳过——课程仓与语言仓可以分开检出。
-fn course_root() -> Option<std::path::PathBuf> {
+pub(super) fn course_root() -> Option<std::path::PathBuf> {
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..")

@@ -550,9 +550,116 @@ infix:50 \" ∈ \" => Set.mem\n",
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-/// **A3**（用户 2026-09-26 报告第 3 条）：**带操作数的括号记法** `{a}` 也要能跳
-/// 到它的展开目标 `Set.singleton`。
+/// **E05 的判据（T-D50 / 缺口 G-37 的「跳转那一半」）**：光标落在**记法声明的
+/// 目标名**上（`prefix:70 " 𝒫 " => Set.powerset` 里的 `Set.powerset`）⇒
+/// 落点必须是 **`def powerset` 那一行**，**不许是光标自己那一行** ✗✓。
 ///
+/// 现场（2026-09-27 实测真课程库 `courses/set-theory/lib/Set.sokonanoda`）：
+/// `Set.powerset` **应落 L81 实落 L125**、`Set.compl` **应落 L79 实落 L126** ——
+/// 落的都是光标自己那一行 ⇒ F12 **视觉上等于没反应** ✗。
+/// 根因：`crates/lsp/src/lib.rs` 的记法目标分支把 `project_definition` 返回的
+/// **真定义 span** 用 `_` 丢掉，`range` 用了**光标处**那个 span（就是目标名自己）✗。
+///
+/// ⚠ 判据断言的是**落点行号 == `def` 那一行**这个**具体值** ✓ —— 只断言"非 null"
+/// 是**看不见**这个 bug 的（自跳也是非 null ✗，G-37 的 status 就这样被误标成
+/// `fixed` 过 ✓）。真课程库那两条的**端到端**核对由复现件
+/// `docs/gaps/repro/G37-notation-decl-target-not-a-use-point.js` 承担 ✓（它要起真
+/// LSP、跑真课程闭包；这里用**小项目夹具**是为了单测能秒级反馈 ✓）。
+///
+/// **反向验证**：把 `range_of(def_span)` 换回光标那个 span ⇒ 本用例判红 ✓。
+#[tokio::test]
+async fn goto_definition_on_a_notation_target_name_lands_on_the_definition() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-def-notation-target-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp project");
+    // 记法声明与目标**必须在同一个模块（入口）里**：单文件 / 非入口模块下
+    // `project_definition()` 返回 `None`（`crates/front/src/query/mod.rs:377`）
+    // ⇒ 测到的就不是本条这个 bug 了 ✗✓（实测：合成夹具把记法声明放 lib 里 ⇒ 得到 null ✗）。
+    // ⚠ 目标名是**限定名**（`Set.powerset`），而 `project_definition()` 按
+    //   `decl.name` **逐字**匹配（`crates/front/src/query/mod.rs:383`）⇒ 声明必须
+    //   在 `namespace Set` 里（真课程库就是这种写法）✗✓ —— 写成裸 `def powerset`
+    //   会得到 null（那是"测不到这条 bug"，不是"bug 没了"✗）。
+    // 行号（0-based）：0 = import · 2 = `namespace Set` · 3 = `def powerset`
+    // · 4 = 记法声明（**光标在这行**）· 5 = `end Set`。
+    let src = "import SetLib\n\
+               \n\
+               namespace Set\n\
+               def powerset (α : Type) (A : Set α) : Set α := fun (a : α) => A a\n\
+               prefix:70 \" 𝒫 \" => Set.powerset\n\
+               end Set\n";
+    // ⚠ **必须有清单**：`project_definition()` 只在**项目模式**下工作
+    //   （`crates/front/src/query/mod.rs:377`「单文件模式返回 None」）——
+    //   真课程库有 `courses/set-theory/sokonanoda.toml` ✓，夹具没有就永远是 null ✗✓。
+    std::fs::write(
+        dir.join("sokonanoda.toml"),
+        "entry = \"Canvas.sokonanoda\"\n",
+    )
+    .expect("write manifest");
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(&entry, src).expect("write entry");
+    let lib = dir.join("SetLib.sokonanoda");
+    std::fs::write(
+        &lib,
+        "def Set (α : Type) : Type := α -> Prop\n\
+         def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+         infix:50 \" ∈ \" => Set.mem\n",
+    )
+    .expect("write lib");
+    let uri = Url::from_file_path(&entry).expect("file url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "notation target definition").await;
+
+    // 光标落在记法声明的**目标名**上（`=>` 后面的 `Set.powerset`）。
+    let decl_line = 4usize;
+    let want_line = 3u32; // `def powerset`
+    let column = src
+        .lines()
+        .nth(decl_line)
+        .expect("notation line")
+        .find("Set.powerset")
+        .expect("target name on the notation line");
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/definition")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": {"line": decl_line, "character": column},
+            }))
+            .id(4)
+            .finish(),
+    )
+    .await
+    .expect("definition must answer");
+    let location: Option<GotoDefinitionResponse> =
+        serde_json::from_value(result).expect("valid definition response");
+    let location = location.expect("记法声明的目标名必须有跳转目标（G-37 前半：不许 null）");
+    let (landed, range) = match location {
+        GotoDefinitionResponse::Scalar(location) => (location.uri, location.range),
+        other => panic!("expected a single location: {other:?}"),
+    };
+    assert_eq!(landed, uri, "定义就在这份文件里");
+    assert_ne!(
+        range.start.line, decl_line as u32,
+        "**自跳**（落在光标自己那一行 = F12 视觉上没反应）✗：{range:?}"
+    );
+    assert_eq!(
+        range.start.line, want_line,
+        "必须落在 `def powerset` 那一行（0-based {want_line}）：{range:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+
 /// 为什么它和 `∈` 不是一条路：`∈` 是 `infix:` 声明出来的**记法**，跳转走
 /// `notation_at`（查记法表 ✓）；`{a}` 是**内建语法**（`ast::Expr::SetLiteral`），
 /// 根本不在记法表里 ⇒ 那条分支够不着，而 `definition_at` 只读 hover 的
