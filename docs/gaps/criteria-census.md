@@ -191,3 +191,38 @@ P0 表的第 **4/5/6/7** 条来自 **D 片 subagent**，我**当初直接写进 
 `assert_eq!(binders, vec!["a", "b", "h"])`（**点名具体值、很强** ✓），
 `artifacts.rs:352` 紧接着断言 `compiler == env!("CARGO_PKG_VERSION")`（**具体** ✓）。
 ⇒ **按行判，别按文件判** ✗。
+
+---
+
+## 变异测试总账（2026-09-27，② 的交付项「报出有几条判据会红」）
+
+**一条判据「会红」的证明 = 它的自检里注入了变异、并断言该变异被报出来。**
+本仓现在有 **10 个自检入口**，逐脚本自报的变异数如下（`--selftest` 的 `X/Y` = 「咬得住 X / 共 Y」）：
+
+| 自检入口 | 变异数 |
+|---|---|
+| `scripts/ci-green.py --selftest` | 6 |
+| `scripts/target-hygiene.py --selftest` | 8 |
+| `scripts/status-lint.py --selftest` | 8 |
+| `scripts/notation-lint.py --selftest` | 8 |
+| `scripts/ci-yml-lint.py --selftest` | 9 |
+| `scripts/docs-lint.py --selftest` | 9 |
+| `scripts/audit-notation-paths.py --self-test` | 3 |
+| `scripts/audit-wire-fields.py --selftest` | 2 |
+| `scripts/gap.py selftest` | 16 |
+| `courses/set-theory/tools/check.py --selftest` | 15 |
+| **合计** | **84** |
+
+⇒ **变异测试结论：84 条判据会被证明「变异 ⇒ 判红」** ✓（全部 **exit 0**，即 84/84 都咬得住 ✓）。
+
+⚠ **这 84 条里有一部分是本会话新增的**：`check.py` 的 15 条中 **10 条**是本会话加的
+（`evaluate()` 的 7 条 + unit 整数的 3 条，见 `90ab11e` / `b18062b` / `66a424b`）；
+另有**不在自检里、但各带一次性反向验证**的 8 条修复（G23/G37×2/G39/行域/拼法陷阱/零扫描×3/
+豁免计数/`_rel`/二进制交叉核对 —— 逐条见各 commit 的「反向验证」节 ✓）。
+
+⚠ **诚实的边界**（不把它说满 ✗）：
+· 这 **84** 是**自检自称**的数，**不是**我逐条手工复核过的数
+  （本会话抽查过 7 条 P0/P2 条目，**事实 6/7 准**，见上面的更正说明）；
+· **判据会红 ≠ 判据断言得够具体** —— 一条只断言「非 null」的判据也会「在变异下判红」✓
+  （所以 84 这个数**不能**用来证明清单已经升级完 ✗）；
+· 它证明的是「**守卫咬得住已知的坏形状**」✓，这正是 `AGENTS.md` 要的那件事 ✓。
