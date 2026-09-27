@@ -94,3 +94,42 @@
 ⇒ 即「**文件里有 `#reduce` ⇒ `--expr` 被忽略/取到文件自己的第一个 reduced 值**」——
 **这是 agent 判卷通道上的错答案**，而 `query.rs:265-278` 对 reduce 的覆盖只有 `--text` + `1+1` 一条
 ——**正是本文件要找的"判据太弱 = 等于没有判据"的活样本**。
+
+---
+
+## 剩余工作（**交给下一条会话**，2026-09-27 收尾时写）
+
+**当前状态**：普查 **111 条** · **已落地 16 条修复**（各有独立 commit + 先判红 + 反向验证）·
+`--selftest` 从「三条门禁没有自检入口」变成 **10/10 绿** ·
+⚠ **38 个提交仍未推**（全部本地验证过，**一次 CI 都没跑过** ⇒ 「真绿」尚未被证明 ✗）。
+
+### 一键复核「已落地的都还在」
+```bash
+python3 scripts/{ci-green,target-hygiene,status-lint,notation-lint,ci-yml-lint,docs-lint,audit-wire-fields}.py --selftest
+python3 scripts/audit-notation-paths.py --self-test
+python3 scripts/gap.py selftest
+python3 courses/set-theory/tools/check.py --selftest
+python3 courses/set-theory/tools/check.py          # 必须仍是 36 目标 · 328 checked · 99 open · 0 判负
+```
+
+### 仍待修 4 条（按「能不能安全动」排序）
+
+| # | 位置 | 病灶 | 升级方案 | ⚠ 卡点 |
+|---|---|---|---|---|
+| 1 | `crates/cli/tests/query.rs:822,940,1033` · `arena.rs:163-167` · `module_batch.rs:186` · `launcher.rs:42-58` | 四条**「环境缺东西 ⇒ 跳过 ⇒ 整条绿」**（LSP 二进制不在 / `LEAN_KERNEL_ARENA` 未设 / `#[ignore]` / node 不在 PATH） | 缺前置就 `assert!` 或 `panic!`；要跳过必须**显式环境变量**（`SOKO_SKIP_*=1`） | **验证要 cargo**，本机需预留时间 |
+| 2 | `courses/set-theory/tools/check.py:611-614` | G4 **只比名字不比命题** ⇒ 同名换命题（`theorem prod_fst_mk : True := True.intro`）照样绿 | 让内核在 `decl.checked` 事件里带上**该声明 elaborate 后的类型**（或类型指纹），断言逐字相等 | **跨层**：要改内核/协议 ⇒ 属 v0.79 范围，别在 E00 里顺手做 |
+| 3 | `scripts/docs-lint.py`（`--selftest` 的 9 条） | 自检全是 `any(...)` = 「≥1 条」、**不绑夹具** ⇒ 别的文件替它红也照样 9/9 | 每条绑到自己的夹具文件，断言**是哪一条**判据开火 | 编辑量中等；**改门禁判据前先补自检** |
+| 4 | `courses/set-theory/tools/check.py:203-208` | 走启动器时「二进制可信」只靠标签**子串黑名单**（`"STALE"/"unknown"`），而精确探针 `binary_version()` 只用在 `--bin` 分支 | 启动器分支也跑 `binary_version()`，要求 `reported == report["version"]` 且 `pin is not None`，否则 exit 2 | 会给课程门禁**加一次子进程调用**（性能/时序），先量再改 |
+
+### 本轮新立的判据模式：**第 ⑤ 类「自指期望」**
+见 `docs/design/criteria-strength.md` §2.5（期望值从**被测对象**派生 ⇒ 恒成立 ✗；
+与 `G29-….js:97` 的 `budget = 10 * warmOpen + 200` 同型）。
+**自测方法**：改坏被测对象，若判据**照样绿** ⇒ **先怀疑期望本身是自指的**，而不是先怀疑反向验证没做对 ✓。
+**实例**：修 `audit-notation-paths --self-test` 时，我第一版把夹具与期望**都从 `CALLS` 派生** ⇒
+删一个模式时两边一起缩 ⇒ 自检恒过 ✗（**反向验证当场抓到** ✓，见 `86ab324`）。
+
+### 已知但**未修**、也不要顺手修的
+· `crates/cli/tests/*` 的 35 条 P2（「断言不够具体」）—— **不是活洞**（当前行为是对的），
+  但一旦漂移不会红 ⇒ **随各自文件的下一轮改动顺带升级** ✓，不要为它们开专场 ✗。
+· **X1 文档分层**：`docs/PLAN-0.74-0.79.md` **792/800 行** · `docs/design/criteria-strength.md` **136/150 行**
+  ⇒ **下一次往这两份里加内容之前，必须先拆一段出去** ✗（`docs-lint` 判据 ③ 会在 801 行判红）。
