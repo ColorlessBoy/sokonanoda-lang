@@ -27,7 +27,9 @@ const SOKO = path.join(ROOT, 'scripts', 'soko');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'soko-g39-'));
 const lib = path.join(dir, 'Lib.sokonanoda');
 const entry = path.join(dir, 'Canvas.sokonanoda');
-fs.writeFileSync(lib, 'def Lib.op (a b : Prop) : Prop := a\ninfix:60 " ⊗ " => Lib.op\n');
+// 判据要从**同一份**源码推期望 ⇒ 提成常量（单一真相 ✓）
+const LIB_SRC = 'def Lib.op (a b : Prop) : Prop := a\ninfix:60 " ⊗ " => Lib.op\n';
+fs.writeFileSync(lib, LIB_SRC);
 const SRC = 'import Lib\n\ntheorem t (a b : Prop) (h : a ⊗ b) : a ⊗ b := h\n';
 fs.writeFileSync(entry, SRC);
 const uri = 'file://' + entry;
@@ -72,22 +74,49 @@ async function responseFor(lsp, id) { for (;;) { const m = await lsp.next(); if 
     lsp.send({ jsonrpc: '2.0', id, method, params: { textDocument: { uri }, position: pos } });
     answers.set(label, id); id += 1;
   }
+  // ⚠ **判据升级（E00，2026-09-27；切片 A1 与 A2 都把它排第一）** ✗✓：
+  //   原来只数「definition/hover **都不是 null**」（`answered === asks.length`）✗ ——
+  //   那**正是骗过台账的同一个形状**（G-37 事故：非 null 也判绿，而实际是自跳）✗。
+  //   ⇒ 现在两头都断言**具体值** ✓：
+  //     · definition：uri 必须是声明 `⊗` 的那个库文件，且落点**行号 == 记法声明那一行**
+  //       （「第一跳 = 记法声明行」的既定口径 ✓，与 G-23/G-37 一致）；
+  //     · hover：必须含**签名行** `` `Lib.op : ``（`crates/lsp/src/lib.rs:1294` 发的那一行 ✓），
+  //       而不是只"答得上"（答一张错误卡片也是非 null ✗）。
+  const wantDefLine = LIB_SRC.split('\n').findIndex((l) => /^infix:.*" ⊗ ".*=>\s*Lib\.op/.test(l));
   let answered = 0;
+  const detail = {};
   for (const [label, rid] of answers) {
     const r = await responseFor(lsp, rid);
     const v = r.result;
     const isNull = v === null || v === undefined;
     console.log(`${label.padEnd(11)} @${pos.line + 1}:${pos.character + 1}  ${isNull ? 'null' : JSON.stringify(v).slice(0, 90)}`);
     if (!isNull) answered += 1;
+    detail[label] = v;
+    void r;
   }
   lsp.stop();
   fs.rmSync(dir, { recursive: true, force: true });
-  if (answered === asks.length) {
-    console.log('结论：G-39 已修——import 的用户记法符号在使用处也能跳转、也能悬停。');
+
+  const def = detail['definition'];
+  const first = Array.isArray(def) ? def[0] : def;
+  const defUri = first && first.uri ? String(first.uri) : null;
+  const defLine = first && first.range && first.range.start ? first.range.start.line : null;
+  const defOk = defUri !== null && defUri.endsWith('Lib.sokonanoda') && defLine === wantDefLine;
+  const hoverText = (detail['hover'] && detail['hover'].contents && detail['hover'].contents.value) || '';
+  const hoverOk = hoverText.includes('`Lib.op :');
+  console.log('== 落点/内容核对（升级后的判据：断言具体值）==');
+  console.log(`   definition  uri=${defUri === null ? 'null' : defUri.split('/').pop()}`
+    + ` 落 L${defLine === null ? 'null' : defLine + 1} · 期望 L${wantDefLine + 1}（记法声明行）`
+    + `  ${defOk ? '✓' : '✗'}`);
+  console.log(`   hover       含签名行 \`Lib.op :  ${hoverOk ? '✓' : '✗'}`);
+
+  if (defOk && hoverOk) {
+    console.log('结论：G-39 已修——import 的用户记法符号在使用处能跳转（**落到记法声明行**）也能悬停（**带签名行**）。');
     process.exit(1);
   }
-  console.error('结论：G-39 仍在——import 进来的用户自定义记法符号在使用它的文件里认不出来');
-  console.error('      （definition/hover 全 null；根因见脚本头部注释）。');
+  console.error('结论：G-39 仍在——import 进来的用户自定义记法符号在使用它的文件里认不出来，');
+  console.error(`      或**落点/内容不对**（definition ${defOk ? '✓' : '✗'} · hover ${hoverOk ? '✓' : '✗'}）。`);
+  console.error('      判据只断言"非 null"时**看不见**这类偏差（G-37 事故同形）⇒ 见 docs/gaps/criteria-census.md。');
   process.exit(0);
 })().catch((error) => {
   console.error('复现脚本自身出错（环境/形状异常）：', error);
