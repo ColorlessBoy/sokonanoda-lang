@@ -55,3 +55,14 @@ def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq
 -- sokonanoda:builtin-notation "↔" => Iff
 -- sokonanoda:builtin-notation "¬" => Not
 -- sokonanoda:builtin-notation "≠" => Ne
+-- **E11（v0.76.0）：内建糖的登记区** —— `{a}` / `{a, b}` / `⟨a, b⟩` 这三样是
+-- **内建语法糖**（`elab.rs` 里硬编码展开目标 ✗），学生看源码时同样「无处可查」✗。
+-- 用**同一条** `-- sokonanoda:<指令>` 约定登记（**零新增语法** ✓，与上面的记法登记同一套 ✓）：
+--   · 前两条有**单一目标** ⇒ 如实写目标名 ✓
+--   · `⟨a, b⟩` **没有单一目标**（目标构造子由**期望类型**的头决定，`elab.rs` 的
+--     「路线 C」✓）⇒ 登记**如实说明**这件事，**不许编一个目标名** ✗
+-- 守卫：`crates/front/tests/prelude_mirror.rs::builtin_sugar_registry_matches_the_elaborator`
+-- （与 `elab.rs` 里的硬编码目标**逐字一致** ✓；反向验证：改一个字 ⇒ 判红 ✓）。
+-- sokonanoda:builtin-sugar "{a}" => Set.singleton
+-- sokonanoda:builtin-sugar "{a, b}" => Set.pair
+-- sokonanoda:builtin-sugar "⟨a, b⟩" => 期望类型决定

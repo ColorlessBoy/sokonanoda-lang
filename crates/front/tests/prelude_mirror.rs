@@ -157,3 +157,43 @@ fn the_lexer_recognises_a_builtin_notation_symbol_at_the_cursor() {
     assert_eq!(symbol, "∧");
     assert_eq!(target.as_deref(), Some("And"), "内建的目标名来自内建表 ✓");
 }
+
+/// **E11 的判据**：内建糖（`{a}` / `{a, b}` / `⟨a, b⟩`）在 prelude 里有**登记行**，
+/// 且与 `elab.rs` 里的**硬编码目标逐字一致** ✓。
+///
+/// 判红（2026-09-28 实测）：全仓 `grep -rn "builtin-sugar"` **只有注释里提过这个名字** ✗
+/// ⇒ 登记区**不存在**；而 `elab.rs` 里 `{a}`/`{a, b}` 的目标是硬编码的
+/// （**L1330**：`Set.singleton` / `Set.pair` ✓）⇒ 学生查不到、也没人能证明两边一致 ✗。
+///
+/// ⚠ `⟨a, b⟩` **没有单一目标**（目标构造子由**期望类型**的头决定，`elab.rs` **L2836**
+/// 的"路线 C" ✓）⇒ 本判据只要求它**如实登记**这件事 ✓，**不许**断言某个具体目标 ✗。
+///
+/// **反向验证**：把登记行里的 `Set.singleton` 改成别的名字 ⇒ 判红 ✓。
+#[test]
+fn builtin_sugar_registry_matches_the_elaborator() {
+    let prelude = prelude_source();
+    let elab = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/compile/elab.rs"),
+    )
+    .expect("read elab.rs");
+
+    // 有单一目标的两条：登记的目标名必须**同时**出现在 elab.rs 里（逐字 ✓）。
+    for (sugar, target) in [("{a}", "Set.singleton"), ("{a, b}", "Set.pair")] {
+        let want = format!("-- sokonanoda:builtin-sugar \"{sugar}\" => {target}");
+        assert!(
+            prelude.lines().any(|line| line == want),
+            "prelude 里必须有逐字登记行：{want:?} ✗（E11：登记区）"
+        );
+        assert!(
+            elab.contains(target),
+            "登记的目标 `{target}` 必须在 `elab.rs` 里真的存在（逐字一致 ✗）：{sugar}"
+        );
+    }
+    // 无单一目标的那条：**如实**登记"由期望类型决定"，不许编目标 ✗。
+    assert!(
+        prelude
+            .lines()
+            .any(|line| line.starts_with("-- sokonanoda:builtin-sugar \"⟨a, b⟩\" => 期望类型决定")),
+        "`⟨a, b⟩` 必须**如实**登记「期望类型决定」（`elab.rs` L2836 的路线 C ✓）—— 不许编一个目标名 ✗"
+    );
+}
