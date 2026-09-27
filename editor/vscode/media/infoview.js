@@ -78,12 +78,19 @@
   const declsBox = section("声明");
   const declsBody = el("div", "decls");
   declsBox.appendChild(declsBody);
+  // **E30**：项目区块（用户：「**监测到 toml 等项目信息也应该在 infoview 里展现
+  // 出来**」）。数据源 = 主机转发的 `soko/project` 回答（**推送式**，不额外取数 ✗
+  // —— `query project` 会写删 `compiled/*.tmp`，刷新一次就重编一次）。
+  const projectBox = section("项目");
+  const projectBody = el("div", "project");
+  projectBox.appendChild(projectBody);
 
   clear(root);
   root.appendChild(serverLine);
   root.appendChild(statusLine);
   root.appendChild(goalsBox);
   root.appendChild(declsBox);
+  root.appendChild(projectBox);
 
   // Skeleton on load (user feedback): never a silent blank. The host replaces
   // each placeholder as data arrives (`status`/`server`/`state`/`decls`).
@@ -94,6 +101,92 @@
   declsBody.appendChild(el("p", "empty", "等待编译…"));
 
   // -- renderers -----------------------------------------------------------
+
+  /// **E30 · 项目区块**。显示优先级（PLAN §E30，**按这个顺序渲染**）：
+  /// ① `requires_warning`（**最显眼、绝不是 tooltip** —— 它一响就说明
+  ///    `is_clean()` 为假 ⇒ **项目编译缓存被静默关掉** ⇒ 整个卷 I 每个文件
+  ///    每次打开都从零重编；界面什么都不说的话，用户只会觉得"编译坏了"✗）
+  /// ② 清单 `manifest` + 模块根 `root` + 入口 `entry`
+  /// ③ 模块列表（名·状态·声明数·错误/警告数·是否入口）
+  /// ④ 计数汇总 ⑤ 产物与版本。
+  function renderProject(msg) {
+    clear(projectBody);
+    const project = msg && msg.project;
+    if (!project) {
+      const reason = msg && msg.reason;
+      const text =
+        reason === "no-imports"
+          ? "单文件（没有 import）——项目视图不适用。"
+          : reason === "no-path"
+            ? "有 import，但解不出入口路径。"
+            : reason === "parse-error"
+              ? "先修语法错误，再看项目视图。"
+              : "还没有项目信息。";
+      projectBody.appendChild(el("p", "empty", text));
+      return;
+    }
+    const num = (value) => (typeof value === "number" ? value : 0);
+    // ① 清单告警：**第一眼就要看到**（不是 tooltip ✗）。
+    if (project.requires_warning) {
+      const warn = el("div", "project-warning");
+      warn.appendChild(el("span", "project-warning-label", "⚠ 清单告警"));
+      warn.appendChild(el("span", "project-warning-text", String(project.requires_warning)));
+      projectBody.appendChild(warn);
+    }
+    // ② 清单 / 模块根 / 入口。
+    const facts = el("dl", "project-facts");
+    const fact = (key, value) => {
+      facts.appendChild(el("dt", "project-fact-key", key));
+      facts.appendChild(el("dd", "project-fact-value", String(value ?? "（无）")));
+    };
+    fact("清单", project.manifest ? project.manifest : "零配置（根 = 入口文件目录）");
+    fact("模块根", project.root);
+    fact("入口", project.entry);
+    projectBody.appendChild(facts);
+    // ③ 模块列表（拓扑序，入口在最后 —— 服务端给的顺序，别重排 ✗）。
+    const modules = Array.isArray(project.modules) ? project.modules : [];
+    if (modules.length > 0) {
+      const list = el("ul", "project-modules");
+      for (const mod of modules) {
+        const row = el("li", "project-module");
+        row.appendChild(
+          el("span", "project-module-name", `${mod.entry ? "★ " : ""}${mod.name ?? "?"}`),
+        );
+        row.appendChild(el("span", "project-module-status", String(mod.status ?? "?")));
+        row.appendChild(
+          el(
+            "span",
+            "project-module-counts",
+            `${num(mod.decls)} 声明 · ${num(mod.errors)} 错 · ${num(mod.warnings)} 警` +
+              `${num(mod.open_exercises) > 0 ? ` · ${num(mod.open_exercises)} 练习` : ""}`,
+          ),
+        );
+        list.appendChild(row);
+      }
+      projectBody.appendChild(list);
+    }
+    // ④ 计数汇总。
+    const counts = project.counts || {};
+    projectBody.appendChild(
+      el(
+        "p",
+        "project-counts",
+        `${num(counts.modules)} 模块 · ${num(counts.decls)} 声明 · 编译 ${num(counts.compiled)}` +
+          ` · 失败 ${num(counts.failed)} · 开放练习 ${num(counts.open_exercises)}`,
+      ),
+    );
+    // ⑤ 产物与版本。
+    const artifacts = project.artifacts;
+    projectBody.appendChild(
+      el(
+        "p",
+        "project-artifacts",
+        artifacts
+          ? `产物：${num(artifacts.entries)} 条 · ${num(artifacts.bytes)} 字节 · ${artifacts.compiler ?? "?"}`
+          : "产物：还没有（下一次编译会写入模块根的 .sokonanoda/compiled/）",
+      ),
+    );
+  }
 
   function renderServer(server) {
     clear(serverLine);
@@ -381,6 +474,9 @@
         break;
       case "decls":
         renderDecls(msg.decls);
+        break;
+      case "project":
+        renderProject(msg);
         break;
       case "status":
         renderStatus(msg);

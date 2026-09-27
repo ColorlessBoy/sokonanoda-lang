@@ -425,3 +425,64 @@ body {
   color: var(--vscode-descriptionForeground);
   font-variant-numeric: tabular-nums;
 }
+
+/* ── E30：项目区块 ─────────────────────────────────────────────────────
+   清单告警要**一眼看到**：`requires` 漂移 ⇒ is_clean() 为假 ⇒ 项目编译缓存被
+   静默关掉 ⇒ 每个文件每次打开都从零重编。用 VS Code 自己的告警色（主题自适应），
+   不自造颜色。 */
+.project-warning {
+  display: block;
+  margin: 4px 0 8px;
+  padding: 6px 8px;
+  border-left: 3px solid var(--vscode-editorWarning-foreground, #cca700);
+  background: var(--vscode-inputValidation-warningBackground, rgba(204, 167, 0, 0.12));
+  line-height: 1.5;
+}
+
+.project-warning-label {
+  font-weight: 600;
+  margin-right: 6px;
+  color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.project-warning-text {
+  color: var(--vscode-foreground);
+}
+
+.project-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 8px;
+  margin: 4px 0;
+}
+
+.project-fact-key {
+  color: var(--vscode-descriptionForeground);
+}
+
+.project-fact-value {
+  margin: 0;
+  word-break: break-all;
+}
+
+.project-modules {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.project-module {
+  line-height: 1.5;
+}
+
+.project-module-status,
+.project-module-counts {
+  margin-left: 8px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.project-counts,
+.project-artifacts {
+  margin: 2px 0;
+  color: var(--vscode-descriptionForeground);
+  font-variant-numeric: tabular-nums;
+}

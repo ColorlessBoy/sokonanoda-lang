@@ -2,6 +2,19 @@
 
 ### Added
 
+- **The Infoview shows the project.** Manifest path, module root, entry, the
+  module table (status · declarations · errors/warnings · which module is the
+  entry), the counts and the artifact/compiler line — in the centre panel, so you
+  no longer have to switch to the sidebar project tree to see them. The data is
+  the language server's `soko/project` answer, forwarded as-is; the CLI's
+  `query project` writes and deletes `compiled/*.tmp`, so polling it would
+  recompile on every refresh.
+  A `requires` mismatch is a **visible warning block at the top of the section**,
+  never a tooltip: when the manifest's `requires` drifts, `is_clean()` goes false
+  and the **project cache is silently switched off** — every file is then
+  recompiled from scratch on every open, and a tooltip is exactly how that stays
+  invisible.
+
 - **`Sokonanoda: Clean Cache (清除编译缓存)`** — clear the compile cache
   *without* compiling anything. The CLI has always had this (`build --clean`
   clears both the global cache and every module root's `.sokonanoda/compiled/`,

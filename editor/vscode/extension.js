@@ -748,6 +748,11 @@ class InfoviewProvider {
     return Array.isArray(this._lastDecls) ? this._lastDecls : [];
   }
 
+  /// E30：e2e 用它断言"项目区块收到了什么"（与 `lastDecls` 同款）。
+  lastProject() {
+    return this._lastProject;
+  }
+
   lastState() {
     return this._lastState ? this._lastState.state : null;
   }
@@ -810,7 +815,26 @@ class InfoviewProvider {
     this._pushState();
     this.postStatus();
     this.postProgress();
+    this.postProject();
     this.postServer();
+  }
+
+  /// **E30**：项目区块的数据（= `soko/project` 的**推送式**回答）。
+  ///
+  /// ⚠ 为什么是"主机转发"而不是"webview 自己去取" ✗：CLI 的 `query project`
+  /// 会写/删 `<模块根>/.sokonanoda/compiled/*.tmp` ⇒ 每次刷新都触发一次重编 ✗。
+  /// 主机本来就在 `loadProject()` 里拿这份答案（项目树/状态栏都在用）⇒ 转发即可 ✓。
+  setProject(answer) {
+    this._lastProject = {
+      project: (answer && answer.project) || null,
+      reason: (answer && answer.reason) || null,
+    };
+    this.postProject();
+  }
+
+  postProject() {
+    if (!this._lastProject) return;
+    this._post(Object.assign({ type: "project" }, this._lastProject));
   }
 
   postProgress() {
@@ -1165,6 +1189,8 @@ async function loadProject() {
       return;
     }
     projectStatusLine = projectStatusText(answer);
+    // **E30**：同一份答案转发给 Infoview 的「项目」区块（**零额外取数** ✓）。
+    infoviewProvider?.setProject(answer);
     e2eLog(
       `soko/project ok: project=${answer?.project ? `${answer.project.entry} (${answer.project.counts?.modules} modules)` : "null"} reason=${answer?.reason ?? "null"}`,
     );

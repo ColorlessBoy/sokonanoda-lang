@@ -946,6 +946,54 @@ test("Infoview empty states: loading / ready-empty / error are told apart (E28)"
   }
 });
 
+test("Infoview receives the project view the server answered (E30)", async () => {
+  // **E30**：Infoview 的「项目」区块**不自己取数** ✗ —— CLI 的 `query project`
+  // 会写/删 `<模块根>/.sokonanoda/compiled/*.tmp`（刷新一次就重编一次 ✗），
+  // 所以数据是主机**转发**的 `soko/project` 回答（它本来就在 `loadProject()` 里
+  // 拿这份答案，项目树/状态栏都在用）。
+  //
+  // 判据钉的是**转发这件事**：`soko/project` 答了 ⇒ Infoview 的 `_lastProject`
+  // 必须拿到 `{project, reason}`（`requires_warning` **原样**转发 —— 它是
+  // "项目缓存被静默关掉"的唯一可见信号，见 G-24）。
+  const root = "/repo/courses/set-theory";
+  const warning = "清单 requires 0.73.0 与当前 0.74.0 不一致：项目编译缓存已关闭。";
+  stubbedResponses["soko/project"] = () => ({
+    uri: "file:///repo/courses/set-theory/units/u01.sokonanoda",
+    version: 1,
+    project: {
+      entry: "units.u01",
+      root,
+      manifest: `${root}/sokonanoda.toml`,
+      requires_warning: warning,
+      modules: [{ name: "units.u01", path: "units/u01.sokonanoda", status: "compiled", entry: true, imports: [], decls: 5, errors: 0, warnings: 2, open_exercises: 1 }],
+      diagnostics: [],
+      counts: { modules: 1, decls: 5, compiled: 1, failed: 0, open_exercises: 1 },
+    },
+    reason: null,
+  });
+  try {
+    await activateExtension();
+    focus(fakeDocument("/repo/courses/set-theory/units/u01.sokonanoda"));
+    await settle();
+    const posted = vscodeStub.__infoview.lastProject();
+    assert.ok(posted, "Infoview 必须收到项目载荷（E30）");
+    assert.strictEqual(posted.project.root, root, "模块根要原样转发");
+    assert.strictEqual(
+      posted.project.requires_warning,
+      warning,
+      "requires_warning 必须**原样**转发（它是「缓存被静默关掉」的唯一可见信号）",
+    );
+    assert.strictEqual(posted.reason, null, "有项目时 reason 是 null");
+  } finally {
+    stubbedResponses["soko/project"] = () => ({
+      uri: "",
+      version: 1,
+      project: null,
+      reason: "no-imports",
+    });
+  }
+});
+
 test("diagnostics from other languages never drive soko/goals", async () => {
   await activateExtension();
   focus(fakeDocument("/repo/playground.sokonanoda"));

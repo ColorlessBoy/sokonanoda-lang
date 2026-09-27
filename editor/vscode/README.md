@@ -133,6 +133,14 @@ skills.
 - **Readable declarations**: the Infoview prints types, `:=` values and `⊢`
   goals at body size with generous line height (no double-dimming), and
   `sokonanoda.infoview.fontScale` scales them to taste
+- **The Infoview shows the project** (0.73.0): manifest path, module root, entry,
+  the module table, the counts and the artifact/compiler line — the same
+  `soko/project` answer the sidebar tree uses, forwarded as-is (no extra
+  round trip: the CLI's `query project` touches `compiled/*.tmp`). A `requires`
+  mismatch appears as a **visible warning block at the top of the section**, not
+  a tooltip — that mismatch silently disables the project cache, so every file
+  would otherwise be recompiled from scratch on every open with nothing on
+  screen to explain it.
 - **The built-in prelude is navigable too**: `F12` on `Or`, `And`, `Iff`,
   `False`, `Eq.refl`, … opens the **prelude source** (the same bytes the
   checker installs, materialized as a real read-only-by-convention file) and

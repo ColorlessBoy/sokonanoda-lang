@@ -559,6 +559,89 @@ test("decls empty: the three reasons are told apart (T-B12)", () => {
   }
 });
 
+test("project: the manifest warning is visible text, never a tooltip (E30)", () => {
+  // **E30（用户：「监测到 toml 等项目信息也应该在 infoview 里展现出来」）**。
+  //
+  // 这一条钉的是 PLAN §E30 的**最高优先级**：`requires_warning` 必须**看得见**
+  //（不是 tooltip ✗）。后果很重（G-24）：`requires` 不跟着 bump ⇒ `is_clean()`
+  // 为假 ⇒ **项目编译缓存被静默关掉** ⇒ 整个卷 I 每个文件每次打开都从零重编，
+  // 而界面上什么都看不出来 —— 用户只会觉得「编译坏了/特别慢」✗。
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "project",
+    project: {
+      entry: "units.u01",
+      root: "/repo/courses/set-theory",
+      manifest: "/repo/courses/set-theory/sokonanoda.toml",
+      requires_warning: "清单 requires 0.73.0 与当前 0.74.0 不一致：项目编译缓存已关闭。",
+      modules: [
+        { name: "lib.Set", status: "compiled", decls: 12, errors: 0, warnings: 0, entry: false },
+        { name: "units.u01", status: "compiled", decls: 5, errors: 0, warnings: 2, entry: true },
+      ],
+      counts: { modules: 2, decls: 17, compiled: 2, failed: 0, open_exercises: 3 },
+      artifacts: { dir: "/repo/courses/set-theory/.sokonanoda/compiled", entries: 2, bytes: 2048, compiler: "0.73.0" },
+    },
+    reason: null,
+  });
+  const body = byClass(root, "project")[0];
+  assert.ok(body, "必须有「项目」区块（E30）");
+  const warning = byClass(body, "project-warning")[0];
+  assert.ok(warning, "requires_warning 必须有**独立可见**的元素（不是 tooltip ✗）");
+  assert.ok(
+    textOf(warning).includes("requires"),
+    `告警文本必须原样看得见（含 requires 细节）：${textOf(warning)}`,
+  );
+  // **顺序**：告警排在模块列表/计数**之前**（"显眼位置"= 区块第一眼）。
+  const order = body.childNodes.map((node) => node.className);
+  assert.ok(
+    order.indexOf("project-warning") < order.indexOf("project-modules"),
+    `告警必须排在模块列表之前（实际顺序 ${JSON.stringify(order)}）`,
+  );
+  // 清单 / 模块根 / 入口。
+  const facts = textOf(byClass(body, "project-facts")[0]);
+  for (const needle of ["sokonanoda.toml", "/repo/courses/set-theory", "units.u01"]) {
+    assert.ok(facts.includes(needle), `事实行必须含 ${needle}：${facts}`);
+  }
+  // 模块列表（入口带 ★）。
+  const rows = byClass(body, "project-module");
+  assert.strictEqual(rows.length, 2, `两个模块两行：${rows.length}`);
+  assert.ok(
+    textOf(rows[1]).startsWith("★"),
+    `入口模块要有标记：${textOf(rows[1])}`,
+  );
+  assert.ok(
+    textOf(rows[1]).includes("5 声明") && textOf(rows[1]).includes("2 警"),
+    `模块行要有计数：${textOf(rows[1])}`,
+  );
+  // 计数汇总 + 产物。
+  assert.ok(
+    textOf(byClass(body, "project-counts")[0]).includes("2 模块"),
+    "计数汇总必须显示",
+  );
+  assert.ok(
+    textOf(byClass(body, "project-artifacts")[0]).includes("2048"),
+    "产物行必须显示 entries/bytes/compiler",
+  );
+});
+
+test("project: no project tells the reason apart, never a blank (E30)", () => {
+  // 没有项目时也要**说出原因**（单文件 / 解不出路径 / 先修语法）——
+  // 空区块会让用户以为"面板坏了"✗（与 T-B12 的三态同一个道理）。
+  const { root, send } = loadInfoview();
+  send({ protocol: 1, type: "project", project: null, reason: "no-imports" });
+  const body = byClass(root, "project")[0];
+  assert.ok(
+    textOf(body).includes("单文件"),
+    `无项目要说清是"单文件"：${textOf(body)}`,
+  );
+  send({ protocol: 1, type: "project", project: null, reason: "parse-error" });
+  assert.ok(
+    textOf(body).includes("语法错误"),
+    `parse 失败要说清"先修语法"：${textOf(body)}`,
+  );
+});
+
 test("status: loading shows 编译中…", () => {
   const { root, send } = loadInfoview();
   send({ protocol: 1, type: "status", state: "loading" });

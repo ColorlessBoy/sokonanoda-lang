@@ -3,25 +3,25 @@
   "kind": "vscode-integration",
   "version": "0.73.0",
   "commit": "ffe225d4f9705a96d9538dc05a6dacef41f882c4",
-  "dirty": false,
-  "date": "2026-09-27T14:52:49Z",
+  "dirty": true,
+  "date": "2026-09-27T14:57:56Z",
   "host": {
-    "system": "Linux",
-    "machine": "x86_64",
-    "release": "6.17.0-1022-azure"
+    "system": "Darwin",
+    "machine": "arm64",
+    "release": "25.6.0"
   },
   "vscode": "1.138.0",
   "tests": {
-    "passed": 33,
+    "passed": 4,
     "failed": 0,
     "pending": 0,
     "failing_cases": [],
     "failing_details": ""
   },
   "exit": 0,
-  "server": "0.73.0 (pid 3119) == 扩展 v0.73.0 (source=bundled)",
-  "lsp_sha256_16": "ea160745af000dba",
+  "server": "0.73.0 (pid 42846) == 扩展 v0.73.0 (source=bundled)",
+  "lsp_sha256_16": "33e4f0d86f58cd4f",
   "log": "docs/e2e/logs/2026-09-27-ffe225d-vc1.138.0.log",
-  "profile": "release",
-  "grep": null
+  "profile": "debug",
+  "grep": "receives the project view|Clean Cache|build / rebuild|rewriting an unchanged"
 }

@@ -1,9 +1,14 @@
 # scripts/vscode-e2e.sh — VS Code 1.138.0 · extension v0.73.0 · ffe225d4f9705a96d9538dc05a6dacef41f882c4
+<<<<<<< HEAD
 # 结果：33 passing / 0 failing / 0 pending（exit=0）
+=======
+# 结果：4 passing / 0 failing / 0 pending（exit=0）
+>>>>>>> 5323889 (feat(infoview): E30 —— 「项目」区块（转发 `soko/project`，requires 告警必须看得见）)
 
 ## doctor（服务器解析与版本自述）
 --- doctor ---
 sokonanoda doctor — 扩展 v0.73.0 (6 checks)
+<<<<<<< HEAD
 [ok] 1/6 resolution：bundled — /home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/bin/linux-x64/sokonanoda-lsp (source=bundled)
 [ok] 2/6 server-version：0.73.0 (pid 3119) == 扩展 v0.73.0 (source=bundled)
 [ok] 3/6 host-version：运行宿主 v0.73.0
@@ -197,3 +202,48 @@ PERF e2e fanout: entry diagnostics signature=152 字节 · 稳定 ✓
 2026-09-27T14:55:02.294Z active document changed: (none)
 2026-09-27T14:55:02.294Z loadProject: no active .sokonanoda document
 2026-09-27T14:55:02.331Z client state: stopped
+=======
+[ok] 1/6 resolution：bundled — /Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/bin/darwin-arm64/sokonanoda-lsp (source=bundled)
+[ok] 2/6 server-version：0.73.0 (pid 42846) == 扩展 v0.73.0 (source=bundled)
+[ok] 3/6 host-version：运行宿主 v0.73.0
+[ok] 4/6 ignored-override：没有被忽略的 serverPath/env 覆盖
+[info] 5/6 download-cache：缓存 marker 0.73.0 darwin-arm64 != 扩展 v0.73.0；可运行 sokonanoda update
+[info] 6/6 obsolete-versions：检测到 0 个扩展版本快照、0 个 .obsolete 条目；完整重启 VS Code 会自动清理
+
+## 用例
+    ✔ build / rebuild commands warm the compile cache through the CLI (1463ms)
+    ✔ Clean Cache empties the project store and does not compile (E31) (2503ms)
+    ✔ the Infoview receives the project view (E30)
+    ✔ rewriting an unchanged project unit does not recompile (1931ms)
+
+## 扩展接线日志（SOKO_E2E_LOG）
+2026-09-27T14:58:01.899Z server command: /Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/bin/darwin-arm64/sokonanoda-lsp (source=bundled)
+2026-09-27T14:58:01.900Z client state: starting
+2026-09-27T14:58:02.914Z warmCacheOnOpen: exit=0
+2026-09-27T14:58:03.256Z client state: running
+2026-09-27T14:58:03.262Z loadProject: no active .sokonanoda document
+2026-09-27T14:58:03.340Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-27T14:58:03.371Z soko/project ok: project=null reason=no-imports
+2026-09-27T14:58:03.594Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-27T14:58:03.733Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-27T14:58:04.732Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-27T14:58:04.743Z active document changed: (none)
+2026-09-27T14:58:04.744Z loadProject: no active .sokonanoda document
+2026-09-27T14:58:04.757Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-27T14:58:04.764Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-27T14:58:04.846Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-27T14:58:04.859Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-27T14:58:07.252Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-27T14:58:07.260Z active document changed: (none)
+2026-09-27T14:58:07.260Z loadProject: no active .sokonanoda document
+2026-09-27T14:58:07.279Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-27T14:58:07.285Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-27T14:58:07.310Z active document changed: (none)
+2026-09-27T14:58:07.311Z loadProject: no active .sokonanoda document
+2026-09-27T14:58:07.323Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-27T14:58:07.330Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-27T14:58:08.371Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-27T14:58:09.255Z active document changed: (none)
+2026-09-27T14:58:09.255Z loadProject: no active .sokonanoda document
+2026-09-27T14:58:09.280Z client state: stopped
+>>>>>>> 5323889 (feat(infoview): E30 —— 「项目」区块（转发 `soko/project`，requires 告警必须看得见）)

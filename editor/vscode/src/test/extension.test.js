@@ -686,6 +686,35 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("the Infoview receives the project view (E30)", async () => {
+    // **E30**（用户：「监测到 toml 等项目信息也应该在 infoview 里展现出来」）。
+    //
+    // 真宿主这一层能断言的最强事实是"**webview 收到了什么**"（webview 的 DOM 在
+    // iframe 里，扩展宿主够不到 ✗ —— 与 T-A5 同款）。渲染结果那一跳由
+    // `test-webview.js` 的 stub DOM 承担（那里跑的是真的 `infoview.js`，
+    // 断言 `requires_warning` **是可见文本、不是 tooltip**）。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    await waitFor("E30：项目载荷到达 Infoview", async () => {
+      const posted = extensionApi?.infoview?.lastProject?.();
+      return !!(posted && posted.project);
+    });
+    const posted = extensionApi.infoview.lastProject();
+    assert.ok(
+      typeof posted.project.root === "string" && posted.project.root.length > 0,
+      `项目载荷必须带模块根：${JSON.stringify(posted)}`,
+    );
+    assert.ok(
+      Array.isArray(posted.project.modules) && posted.project.modules.length > 0,
+      `项目载荷必须带模块表（Infoview 要画模块行）：${JSON.stringify(posted.project.modules)}`,
+    );
+    assert.strictEqual(
+      posted.project.root,
+      extensionApi.project.answer.project.root,
+      "Infoview 拿到的必须是**同一份**答案（不是第二次取数 ✗）",
+    );
+  });
+
   test("doctor command returns a read-only source + version report", async () => {
     // 冒烟（docs/design/extension-server-policy.md §5 集成层）：doctor 命令可
     // 执行，返回报告文本且包含来源（source=）与版本行；只读、绝不抛。

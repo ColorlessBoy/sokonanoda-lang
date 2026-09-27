@@ -18,6 +18,13 @@ import re
 import sys
 
 PROTO = "crates/lsp/src/protocol.rs"
+# **front 侧的 wire 结构**（E30，2026-09-27 接上）：`soko/project` 的载荷是
+# `ProjectResponse.project`，而 `ProjectView`/`ProjectModule`/`ProjectCounts`/
+# `ProjectArtifacts` 定义在 **front**（`crates/front/src/query/types.rs`）——
+# 只解析 `protocol.rs` 会"解析不到 ≠ 没发" ✗（审计 #17 早就点名了这一点，
+# `project-tree.js` 因此一直不在消费点表里 ✗）。E30 让 Infoview 也读这些字段
+# ⇒ 顺手把这条缝补上 ✓（同一个 commit，见 `docs/PLAN-0.74-0.79.md` §E30）。
+FRONT_TYPES = "crates/front/src/query/types.rs"
 IV = "editor/vscode/media/infoview.js"
 EX = "editor/vscode/extension.js"
 PT = "editor/vscode/project-tree.js"
@@ -57,22 +64,79 @@ def fields(src: str, struct: str) -> set[str]:
     if not m:
         sys.stderr.write(f"audit: 找不到结构体 {struct}\n")
         sys.exit(2)
-    return set(re.findall(r"pub\(crate\)\s+(\w+):", m.group(1)))
+    # `pub(crate)`（LSP 侧）与 `pub`（front 侧）两种可见性都要认 ✓。
+    return set(re.findall(r"pub(?:\(crate\))?\s+(\w+):", m.group(1)))
+
+
+def wire_struct(struct: str) -> set[str]:
+    """结构体定义在 `protocol.rs`（LSP）或 `query/types.rs`（front）——两处都找 ✓。"""
+    for path in (PROTO, FRONT_TYPES):
+        src = open(path, encoding="utf-8").read()
+        if re.search(r"struct %s \{" % struct, src):
+            return fields(src, struct)
+    sys.stderr.write(f"audit: 两个文件里都找不到结构体 {struct}\n")
+    sys.exit(2)
+
+
+def strip_line_comment(line: str) -> str:
+    """去掉 `//` 行注释（**不动字符串**：模板串里的 `${decl.name}` 是**真的**读取点 ✓）。
+
+    ⚠ 顺序很重要：**先去掉 `//`，再找 `/*`** ✗✓ —— 反过来会把散文里的
+    `compiled/*.tmp`（出现在一行 `//` 注释里）当成块注释开头 ⇒ `in_block` 卡住
+    ⇒ **整份文件后半段被静默跳过**（实测：infoview.js 的 `decl.value_runs`
+    因此读不到，`--selftest` 也就不咬了 ✗）。
+    """
+    i = line.find("//")
+    if i >= 0 and line[:i].count('"') % 2 == 0 and line[:i].count("'") % 2 == 0:
+        return line[:i]
+    return line
 
 
 def reads(path: str, var: str, lo: int = 1, hi: int = 10**9) -> dict[str, list[int]]:
+    """`path` 里 `var.<field>` 的读取点。
+
+    ⚠ **注释与字符串里的"读取"不是读取** ✗✓（2026-09-27 E30 接 `project-tree.js`
+    时实测到三个假阳性）：① 一句散文 `answer. Answers for another document` 被
+    `\\.\\s*(\\w+)` 当成 `answer.Answers` ✗；② 字符串字面量
+    `"sokonanoda.project.module"` 被当成 `project.module` ✗；③ Node 的
+    `module.exports` 被当成 `ProjectModule.exports` ✗。
+    ⇒ 扫之前**去注释**，命中处**在引号里就丢掉**（奇偶引号计数），`exports`
+    另在调用点定点排除 —— **收紧扫描器，而不是放宽判据** ✓。
+    """
     out: dict[str, list[int]] = {}
-    for i, line in enumerate(open(path, encoding="utf-8").read().split("\n"), 1):
-        if lo <= i <= hi:
-            for k in re.findall(r"\b%s\s*(?:&&\s*)?\??\.\s*(\w+)" % re.escape(var), line):
-                out.setdefault(k, []).append(i)
+    in_block = False
+    for i, raw in enumerate(open(path, encoding="utf-8").read().split("\n"), 1):
+        line = raw
+        if in_block:
+            end = line.find("*/")
+            if end < 0:
+                continue
+            line = line[end + 2 :]
+            in_block = False
+        line = strip_line_comment(line)
+        start = line.find("/*")
+        if start >= 0:
+            end = line.find("*/", start + 2)
+            if end < 0:
+                line = line[:start]
+                in_block = True
+            else:
+                line = line[:start] + line[end + 2 :]
+        if not (lo <= i <= hi):
+            continue
+        for m in re.finditer(r"\b%s\s*(?:&&\s*)?\??\.\s*(\w+)" % re.escape(var), line):
+            # 命中点**在引号里** ⇒ 那是字符串，不是读取 ✗。
+            before = line[: m.start()]
+            if before.count('"') % 2 == 1 or before.count("'") % 2 == 1:
+                continue
+            out.setdefault(m.group(1), []).append(i)
     return out
 
 
 def main() -> int:
     proto = open(PROTO, encoding="utf-8").read()
     wire = {
-        name: fields(proto, name)
+        name: wire_struct(name)
         for name in (
             "GoalDeclInfo",
             "StateAtResponse",
@@ -83,6 +147,12 @@ def main() -> int:
             "SubGoalInfo",
             "RunInfo",
             "GoalBinderInfo",
+            # E30：`soko/project` 一族（定义在 front 的 query/types.rs ✓）。
+            "ProjectResponse",
+            "ProjectView",
+            "ProjectModule",
+            "ProjectCounts",
+            "ProjectArtifacts",
         )
     }
 
@@ -129,7 +199,11 @@ def main() -> int:
         collect(
             IV,
             var,
-            ("StateAtResponse", "StateGoalInfo", "GoalBinderInfo", "RunInfo"),
+            # `msg` 兼作 webview 信封，承载多种载荷 ⇒ 它的允许集合要含
+            # `ProjectResponse`（E30 的 `{type:"project", project, reason}` ✓）。
+            ("StateAtResponse", "StateGoalInfo", "GoalBinderInfo", "RunInfo", "ProjectResponse")
+            if var == "msg"
+            else ("StateAtResponse", "StateGoalInfo", "GoalBinderInfo", "RunInfo"),
             skip=ENVELOPE if var == "msg" else None,   # `msg` 兼作 webview 信封 ⇒ 定点排除 ✓
         )
     # 练习树：`soko/goals` 的 decls[] + `soko/stateAt` + `soko/nextHole`。
@@ -141,6 +215,22 @@ def main() -> int:
     # （`soko/hints` 的 `response.hints`、树视图自己的 `state`）。
     collect(EX, "state", ("StateAtResponse",), only=("goal", "binders"))
     collect(EX, "response", ("GoalsResponse",), only=("uri", "decls", "version"))
+    # **E30：项目一族**（`soko/project`）。`msg.project`/`msg.reason` 已由上面那条
+    # `msg` 的允许集合覆盖（ProjectResponse ✓）；这里是渲染器里的局部变量：
+    collect(IV, "project", ("ProjectView",))
+    collect(IV, "mod", ("ProjectModule",))
+    collect(IV, "counts", ("ProjectCounts",))
+    collect(IV, "artifacts", ("ProjectArtifacts",))
+    # **项目树**（`project-tree.js`）—— 审计 #17 点名的那个"7 处 wire 读取永远不被扫" ✗；
+    # 现在 front 侧结构能解析了，把它接上 ✓（`project` 是 ProjectView、`module` 是
+    # ProjectModule、`answer` 是 ProjectResponse 一族）。
+    collect(PT, "answer", ("ProjectResponse",))
+    collect(PT, "project", ("ProjectView",))
+    # `skip={"exports"}`：`module.exports = {…}`（Node 的模块导出语法）不是
+    # `ProjectModule.exports` ✗ —— 定点排除，**不是**放宽（`module.<其它字段>`
+    # 仍然逐个受检 ✓）。
+    collect(PT, "module", ("ProjectModule",), skip={"exports"})
+    collect(PT, "counts", ("ProjectCounts",))
 
 
     print(
