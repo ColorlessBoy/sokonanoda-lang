@@ -659,6 +659,97 @@ async fn goto_definition_on_a_notation_target_name_lands_on_the_definition() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// **E10 的判据（用户可见的那一跳）**：在**学生文件**里对**内建记法** `∧` 按 `F12`
+/// ⇒ 必须落在 **prelude 源**里那条声明行上（`-- sokonanoda:builtin-notation "∧" => And` ✓）。
+///
+/// 前置（两条 front 接缝判据，已绿 ✓）：闭包记法表**带**内建（含指令行 span）
+/// · 词法在光标处**认得出** `∧` ⇒ `notation_at` 才答得上 ✓；本条钉的是 **LSP 那一跳**：
+/// `module: None` 的内建要走 `prelude_source_path()` ✓
+///（以前 `let module = module?` 把内建直接丢掉 ⇒ F12 毫无反应 ✗）。
+///
+/// ⚠ **夹具必须满足两条**（E10 后半四次红**真正的成因**，探针实测 ✓）：
+/// ① 有 `sokonanoda.toml`；② **源里必须有 `import` 行** —— LSP 侧"是不是项目"看的是
+/// `project::source_has_import_line`/`is_project_source` ✓，光有清单不够 ✗
+///（缺 import 时 `project_modules() => None` ⇒ `notation_at` 第一行
+/// `self.project.as_ref()?` 直接断掉 ⇒ 落到后续分支 = 学生文件自跳 ✗）。
+///
+/// **反向验证**：删掉 `lib.rs` 里 `module.is_none() && span.start.offset != 0` 那段 ⇒ 判红 ✓。
+#[tokio::test]
+async fn goto_definition_on_a_builtin_notation_lands_in_the_prelude() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-def-builtin-notation-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    std::fs::write(
+        dir.join("sokonanoda.toml"),
+        "entry = \"Canvas.sokonanoda\"\n",
+    )
+    .expect("manifest");
+    std::fs::write(
+        dir.join("SetLib.sokonanoda"),
+        "def Set (α : Type) : Type := α -> Prop\n",
+    )
+    .expect("lib");
+    let src = "import SetLib\n\ntheorem and_comm (a b : Prop) (h : a ∧ b) : b ∧ a :=\n  And.intro b a (And.right a b h) (And.left a b h)\n";
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(&entry, src).expect("entry");
+    let uri = Url::from_file_path(&entry).expect("url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "builtin notation definition").await;
+
+    let offset = src.find('∧').expect("symbol");
+    let before = &src[..offset];
+    let line = before.matches('\n').count() as u32;
+    let character = before
+        .rsplit('\n')
+        .next()
+        .map(|s| s.chars().count())
+        .unwrap_or(0) as u32;
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/definition")
+            .params(json!({"textDocument": {"uri": uri}, "position": {"line": line, "character": character}}))
+            .id(9)
+            .finish(),
+    )
+    .await
+    .expect("definition answers");
+    let location: Option<GotoDefinitionResponse> =
+        serde_json::from_value(result).expect("valid response");
+    let location = location.expect("内建记法必须有跳转目标（E10：指令登记的声明点）✗");
+    let (landed, range) = match location {
+        GotoDefinitionResponse::Scalar(location) => (location.uri, location.range),
+        other => panic!("expected a single location: {other:?}"),
+    };
+    let path = landed.to_file_path().expect("file url");
+    let text = std::fs::read_to_string(&path).expect("read the landed file");
+    assert!(
+        text.contains("-- sokonanoda:builtin-notation"),
+        "落点必须是 **prelude 源**（里面有 E10 的指令行）：{}",
+        path.display()
+    );
+    let landed_line = text
+        .lines()
+        .nth(range.start.line as usize)
+        .expect("landed line");
+    assert!(
+        landed_line
+            .trim_start()
+            .starts_with("-- sokonanoda:builtin-notation \"∧\" =>"),
+        "必须落在 `∧` 那条指令行上 ✗（实际：{landed_line:?}）"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// **E08 的判据（定案：本轮不做，但要钉住现状别漂）**。
 ///
 /// 现场（实测，真课程库）：`textDocument/documentHighlight` 对那 11 条记法**目标名**

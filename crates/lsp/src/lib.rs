@@ -1866,20 +1866,34 @@ impl LanguageServer for Backend {
         {
             let text = docs.text().to_string();
             let offset = position_to_offset(&text, pos);
-            let resolved =
-                docs.query()
-                    .notation_at(&text, offset)
-                    .and_then(|(_, _, module, span)| {
-                        let module = module?;
-                        let path = docs.query().module_path(&module)?;
-                        Some((path, span))
-                    });
-            if let Some((path, span)) = resolved {
-                if let Ok(uri) = Url::from_file_path(&path) {
-                    return Ok(Some(GotoDefinitionResponse::Scalar(Location {
-                        uri,
-                        range: range_of(span),
-                    })));
+            if let Some((_, _, module, span)) = docs.query().notation_at(&text, offset) {
+                // **E10（v0.76.0）**：内建记法（`∧ ∨ ↔ ¬ ≠`）**不属于任何模块**
+                //（`module: None`：prelude 不是模块 ✓），但 prelude 里那行
+                // `-- sokonanoda:builtin-notation "∧" => And` 给了它们 span
+                //（`notation::builtin_directive_span` ✓）⇒ 落点走 **prelude 源**
+                //（与 `Or`/`And` 这些 prelude 名字同一条路：`prelude_source_path()`
+                // 物化出与喂进编译**同一份字节** ✓）。
+                // ⚠ 以前 `let module = module?` 会把内建**直接丢掉** ⇒ 学生对 `∧`
+                // 按 F12 **毫无反应** ✗（E10 要修的「回记法」那一跳 ✓）。
+                if module.is_none() && span.start.offset != 0 {
+                    if let Some(path) = sokonanoda_front::compile::prelude_source_path() {
+                        if let Ok(uri) = Url::from_file_path(&path) {
+                            return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                                uri,
+                                range: range_of(span),
+                            })));
+                        }
+                    }
+                }
+                if let Some(module) = module {
+                    if let Some(path) = docs.query().module_path(&module) {
+                        if let Ok(uri) = Url::from_file_path(&path) {
+                            return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                                uri,
+                                range: range_of(span),
+                            })));
+                        }
+                    }
                 }
             }
         }
