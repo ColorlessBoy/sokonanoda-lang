@@ -312,13 +312,23 @@
 - **E04** hover 折记法。实测根因：`crates/front/src/compile/check/mod.rs:1220-1262` 的
   `resolve_hovers` 用内核 pp **直出**，**不过 `display.fold`**。
   **判据**：悬停 `{a}` 显示 `{a}` 而不是 `Set.singleton α a`；**反向验证**：拿掉 fold 必须判红。
-- **E21** Infoview 声明卡片**去掉多余的「目标 ⊢」行**。
-  实测位置：`editor/vscode/media/infoview.js:333-348` —— 渲染条件只是"有 `goals`/`goal` 就画"，
-  **没有排除 `theorem`**（而该行本意是给"开放练习"用的，见同处注释 T-A5 / R-2 ②）。
-  定理的目标就等于它自己的语句 ⇒ 纯重复。
-  **判据**：`theorem` 卡片上**不出现**「目标 ⊢」行；开放练习/有 `sorry` 的声明**仍然出现**（这是它原本的用途）。
-  ⚠ 优先在**服务端**决定要不要发 `goal`（规则要写清），客户端再加一道守卫；**别只改客户端**。
-  **反向验证**：把过滤去掉，复现件必须判红。
+- **E21** ✅ **不改（resolved-no-change）—— 经复核：该行不冗余，保留**（2026-09-27 用户拍板）。
+  原判（I1）是「Infoview 声明卡片上那条「目标 ⊢ A = B」多余、没有人要求增加」⇒ 去掉它。
+  **复核推翻了前提** ✓：那一行显示的是**还没证完的目标**，不是"把语句又说一遍" ——
+  对一道 `:= by sorry` 的练习（课程画布上所有练习都是这个形状），剩余目标**确实**等于
+  整个命题（实测 `units/unit01` 的 `eq_of_same_elements : A = B := by sorry` ⇒
+  `soko/goals` 给 `goal="A = B"`、`goals=["A = B"]`），**那正是"你还欠什么没证"的如实表达**；
+  证明动过之后同一行显示的就是**剩下的**目标（`intro h` 之后 `a ∈ A → a ∈ B` → `a ∈ B`）✓。
+  另：**闭合**的 `theorem`/`def` 本来就没有这一行（`goal=null`、`goals=[]`，实测 t1/d1 ⇒ 零行），
+  所以"在 theorem 上重复语句"这个现象只出现在**开放**声明上，而开放声明的目标行是 T-A5/R-2 ②
+  的既定用途。
+  **处置**：① 行为**零改动**（判定侧与渲染侧都不动）；② 在渲染点写死这条结论
+  （`media/infoview.js` 的注释：**不许按"theorem 上重复了语句"过滤掉** ✗）；
+  ③ **防漂移判据** `editor/vscode/test-webview.js` 的
+  `decls: a step-0 open exercise still shows its goal row (E21)`（夹具逐字取自 unit01 的实测载荷）；
+  ④ **反向验证**：把"目标 == 语句就不画"的过滤真加回去 ⇒ 该判据当场判红
+  （实测 `AssertionError … 实际渲染了 0 行`）✓；⑤ 复核依据进 `docs/gaps/criteria-census.md`
+  （「复核：I1 … 不是缺口」），免得以后又被当成 bug 重新发现一遍。
 - **E22** **build/rebuild 以项目为默认目标**。
   实测根因：`editor/vscode/extension.js:1755-1766 buildTarget()` **优先返回当前活动编辑器里那个
   `.sokonanoda` 文件**，只有没有活动文件时才退回工作区根目录 ⇒ 用户感觉"点哪个文件编译哪个文件"。

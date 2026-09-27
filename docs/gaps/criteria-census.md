@@ -346,3 +346,31 @@ G-44  open  script  行为已变  ← 台账写的是「缺口仍在」，请更
 ③ 若契约要长期支持"复发"关系 ⇒ 给台账加**显式字段**（如 `recurs_of`）✓，而不是共用 `repro` ✗。
 **四条共用的都要一并处理** ✓（不然修完 G-07/G-44，另外三组还在跷跷板上 ✗）。
 ⚠ **不许**为了让 `check` 变绿而**把状态改成与复现件一致** ✗ —— 那是"改判据迁就现状" ✓。
+
+---
+
+## 复核：I1「声明卡片的目标 ⊢ 行多余」**不是缺口**（E21，2026-09-27 用户拍板）
+
+**原判**（PLAN 的 I1 / E21）：Infoview 的 `theorem` 卡片上那行「目标 ⊢ A = B」多余
+（用户原话「**没有人要求增加**」）⇒ 去掉它。**复核结论：前提不成立 ⇒ 不改
+（resolved-no-change）** ✓。三条实测依据：
+
+| # | 事实 | 取证（`scripts/soko query goals --file …`） |
+|---|---|---|
+| 1 | **闭合**声明本来就没有这一行 | `theorem t1 … := by intro h; exact h` · `example …` · `def d1 : Nat := 1` ⇒ 全是 `goal=null`、`goals=[]` ⇒ 卡片零行（`test-webview.js::decls: a closed declaration renders no goal row` 钉着） |
+| 2 | 有这一行的**只有开放声明**，而它给的是**剩余目标** | `p1 : A → B := by intro h; sorry` ⇒ `goal="B"`（**已经不等于语句** ✓）；`p2 : A ∧ B := by constructor; sorry; sorry` ⇒ `goals=["A","B"]`（多目标各一行） |
+| 3 | 对 `:= by sorry`（一步没写）剩余目标**等于整个命题** —— 这是**如实**、不是重复 | `units/unit01` 的 `eq_of_same_elements : A = B := by sorry` ⇒ `goal="A = B"`、`goals=["A = B"]`；课程画布上**所有**练习都是这个形状（`theorem … := by sorry`）⇒ 那不是"把语句又说一遍"，而是"**你还欠什么没证**"；一旦证明动过，同一行立刻变成剩下的目标（第 2 条） |
+
+⇒ 这一行正是 T-A5 / R-2 ② 的既定用途（开放练习的目标要**看得见且有颜色**），
+与用户的抱怨**不冲突** —— 冲突只存在于"把开放练习的目标当成语句重复"这个前提里。
+
+**处置**（E21 的四件事，全程零行为改动）：
+
+1. **不改行为**：判定侧与渲染侧一个字节都没动 ✓；
+2. **写死结论**：`editor/vscode/media/infoview.js` 的渲染点注释写明
+   「**不许按"theorem 上重复了语句"把它过滤掉** ✗」+ 依据指向本文件与 PLAN §v0.74.0 E21；
+3. **防漂移判据**：`editor/vscode/test-webview.js::decls: a step-0 open exercise still shows
+   its goal row (E21)`（夹具逐字取自 unit01 的实测载荷：`kind=theorem`、`status=open`、
+   `goal="A = B"`、`goals=["A = B"]`）；
+4. **反向验证**：把"目标 == 语句就不画"的过滤**真加回去** ⇒ 该判据当场判红
+   （实测 `AssertionError … 实际渲染了 0 行`）✓ —— 守卫**咬得住**这个历史判法 ✓。

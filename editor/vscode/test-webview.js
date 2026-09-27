@@ -392,6 +392,71 @@ test("decls: a closed declaration renders no goal row", () => {
   );
 });
 
+// **E21 防漂移判据（2026-09-27 用户拍板：不改，保留）**。
+//
+// 用户 I1 报的是「infoview 里的声明里的 'theorem' 有多余的 '目标 ⊢ A = B' 这条
+// 语句，没有人要求增加」⇒ 计划里写的是"去掉这一行"。**复核结论：前提不成立** ✓
+// —— 那行显示的是**还没证完的目标**：对一道 `:= by sorry` 的练习，剩余目标确实
+// 等于整个命题（`units/unit01` 的 `eq_of_same_elements : A = B := by sorry`，
+// `soko/goals` 实测 `goal="A = B"`、`goals=["A = B"]`），那不是冗余，那正是
+// "你还欠什么没证"的如实表达；证明动过之后它显示的是**剩下的**目标。
+// ⇒ E21 结案为「不改（resolved-no-change）」，依据进 `docs/gaps/criteria-census.md`。
+//
+// 这条测试就是那次拍板的**守卫**：谁再把"目标 == 语句"的卡片过滤掉（即把 I1 的
+// 原判当成 bug 修一遍），它当场判红 ✓ —— 反向验证实测过（见提交说明）。
+test("decls: a step-0 open exercise still shows its goal row (E21)", () => {
+  const { root, send } = loadInfoview();
+  // 夹具逐字取自 `courses/set-theory/units/unit01-sets-membership.sokonanoda`
+  // 的 `eq_of_same_elements`（`soko/goals` 的实测载荷）。
+  send({
+    protocol: 1,
+    type: "decls",
+    decls: [
+      {
+        name: "eq_of_same_elements",
+        kind: "theorem",
+        status: "open",
+        ty: "∀ (α : Type 0) (A B : Set α), (∀ (x : α), A x ↔ B x) → A = B",
+        ty_runs: [
+          { text: "∀ (α : Type 0) (A B : Set α), (∀ (x : α), A x ↔ B x) → A = B" },
+        ],
+        goal: "A = B",
+        goal_runs: [
+          { text: "A" },
+          { text: " " },
+          { text: "=", kind: "keyword" },
+          { text: " " },
+          { text: "B" },
+        ],
+        goals: ["A = B"],
+        goals_runs: [
+          [
+            { text: "A" },
+            { text: " " },
+            { text: "=", kind: "keyword" },
+            { text: " " },
+            { text: "B" },
+          ],
+        ],
+      },
+    ],
+  });
+  const row = byClass(root, "decl")[0];
+  const lines = byClass(row, "decl-goal-line");
+  assert.strictEqual(
+    lines.length,
+    1,
+    "E21：`theorem` + `:= by sorry` 的练习**必须**保留「目标 ⊢ …」行" +
+      "（用户 2026-09-27 拍板：它显示的是「还没证完的目标」，不是冗余）——" +
+      `实际渲染了 ${lines.length} 行`,
+  );
+  assert.strictEqual(
+    textOf(byClass(lines[0], "decl-goal")[0]),
+    "⊢ A = B",
+    "目标行必须逐字节等于服务端给的剩余目标（`⊢ ` 前缀）",
+  );
+});
+
 test("decls: name, 1-based line hint and type line; rows are not interactive", () => {
   const { root, messages, send } = loadInfoview();
   const before = messages.length;
