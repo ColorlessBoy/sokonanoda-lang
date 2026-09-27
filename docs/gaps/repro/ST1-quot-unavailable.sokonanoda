@@ -1,0 +1,28 @@
+-- ST1 探针 ③：**商类型 `Quot` 现在写不出来** —— 两层原因，各自一条诊断。
+--
+-- 期望：**2 条都判红**（`decl.checked` 0 条），且两条诊断的**码与消息逐字固定**
+-- （守卫 `crates/cli/tests/st1_boundary.rs` 逐字断言，改一个字就判红）：
+--   ① `kernel-rejected` / 「类型不匹配：期望 `Pi (P : Sort(0)), Sort(1)`，
+--      实际是 `Pi (P : Sort(0)), Sort(0)`」—— **没有累积性**（L-06）：
+--      `def T : Type := P`（`P : Prop`）被内核拒绝，所以"把命题抬成类型"这条商类型的
+--      地基不存在；
+--   ② `elab-unknown-identifier` / 「unknown identifier `Quot`」—— **源语言里没有 `Quot`**：
+--      内核其实**内建**了商（`Declar::Quot` + `Quot.lift`/`Quot.ind` 的 iota 归约 +
+--      `RigidHead::QuotConst`），但**前端不会产出 `Declar::Quot`**，prelude 里也没有它
+--      ⇒ 学生一个字符都写不出来。对照：`Eq.rec`/`Eq.mp`/`cast` 当年（L-03）是**前端补的
+--      prelude 公理**，说明"补 prelude"这条路在本仓库有先例 —— 但 `Quot` 不是普通公理，
+--      它是**声明种类**，见决策记录 §4。
+--
+-- 基准（出处见决策记录）：Lean TPiL §12.4 —— `Quot`/`Quot.mk`/`Quot.ind`/`Quot.lift`
+-- 属**逻辑框架**（不算额外公理），**只有 `Quot.sound` 是公理**；`Quotient`/`Setoid`
+-- 是它的特化。Mathlib 的 `Cardinal` = `Type u` 在"双射存在"下的**商**、`ZFSet` =
+-- `Quotient PSet.setoid` —— 没有商，这两样都写不出来。
+--
+-- 本文件自足（无 `import`）⇒ `--no-project` 单文件判卷即可。
+-- 判据（`crates/cli/tests/st1_boundary.rs`）：0 checked / 2 失败，且诊断逐字一致。
+
+-- ① 累积性：命题当类型用（L-06 第一条边界）
+def propAsType (P : Prop) : Type := P
+
+-- ② 商类型本体：内核有、源语言无名
+def mkQuot (α : Type) (r : α → α → Prop) : Type := Quot r

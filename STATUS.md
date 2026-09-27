@@ -1,6 +1,6 @@
-# 当前快照（2026-09-27）
+# 当前快照（2026-09-28）
 
-- **进度**：**64/66**（E2 50/50 ✓ + **批次 N** 记法×隐式参数×产品交互 14/16 ✓）· 🚀 **v0.74.0：11/11 全部 ✅ 已发布** · 🚀 **v0.75.0：4/4 ✅ 已发布** · 🚀 **v0.76.0：E09 ✓ · E10 ✓ · E11 ✓ —— 3/3 ✅ 已发布**
+- **进度**：**64/66**（E2 50/50 ✓ + **批次 N** 记法×隐式参数×产品交互 14/16 ✓）· 🚀 **v0.74.0：11/11 全部 ✅ 已发布** · 🚀 **v0.75.0：4/4 ✅ 已发布** · 🚀 **v0.76.0：3/3 ✅ 已发布** · 🚀 **v0.77.0：ST1 ✅（决策记录 + 两端对账守卫）· ST2 未开（等用户确认）**
 - **已发布**：**`sokonanoda v0.76.0`** ✓（`gh release list` 显示 **Latest** ✓ · **2026-09-27T22:44:45Z** ✓ · tag `v0.76.0` · bump `b907a20` · CI run `36354848755` 真绿 · release workflow `36356038826` **11/11 success** ✓）
 - **A 组（A0–A5）全部落地** ✓：显示层混合形态（`ty_text` ASCII `->` **227 → 0**）· `{a}` 折回 ·
   `{a}` 可跳转（根因：开放练习的签名**一条 hover 行都没有**）· prelude 可跳转（F12 落到前奏源文件
@@ -27,6 +27,32 @@
   改动 ✓）。⚠ 第一版放宽到"任意富余实参"**当场打红 prelude** ⇒ 收紧到 `explicit_layers == 0`
   （那一档**没有**旧写法歧义 ✓）；放宽要先能判定"旧写法是否良型"（Lean 用元变量 ✗）。
 - ⚠ **本轮的工作方式教训（耗时账 / CI 被顶掉 / clippy 被本地门禁抓到）** ⇒ 见下面「未决项」✓
+
+## 第 485 轮（2026-09-28）：🚀 v0.77.0 · **ST1 ✅**（类型论/外挂分界 —— 决策记录 + 两端对账守卫）
+
+- **变了什么** ✓：**新增决策记录** `docs/design/v077-st1-boundary.md`（89 行）—— 逐项判定
+  「哪些用类型论自身表达、哪些确实必须外挂」：① `Set α` 谓词式**够用**（分离 / 无限并交 / 幂集）
+  ② **序数写成谓词**（Isabelle `Ord x ≡ Transset x ∧ …`；**全体序数 `ON` 不是集合** ⇒ 本来就不该是类型）
+  ③ **基数必须有商**（Mathlib `Cardinal := Quotient Cardinal.isEquivalent`）④ **秩/超限递归两条路都要
+  「良基递归可用」**（Mathlib `Acc.recOn` · Isabelle `foundation` **公理** + `wfrec`）。
+  **基准逐条带 URL**（Mathlib `Ordinal/Basic` · `Cardinal/Defs` · `Ordinal/Rank` · Lean core `Init/WF`
+  · AFP `ZFC_in_HOL` §1.4/§2.7/§2.6 · TPiL §12.4）—— 用户要求「不许凭记忆编」✓。
+- **判红（实测原文）** ✓：**两条新的** —— ① 源语言**没有 `Quot`**：`elab-unknown-identifier` /
+  「unknown identifier `Quot`」（内核其实**内建** `Declar::Quot` + `Quot.lift`/`ind` 的 iota 归约 ⇒
+  缺的是**前端产出**，不是内核）② **`Acc` 立不起来**：`kernel-rejected` /「rejected: inductive
+  occurrence is not applied uniformly to the block parameters and universe levels」——**对照组**
+  `Even : Nat → Prop` 同形状能过 ⇒ 被拒的是「**下标会变**」，不是「载体是函数」。
+- **判据与测试** ✓：**新增** `crates/cli/tests/st1_boundary.rs`（2 个判据）+ **4 个自足复现件**
+  `docs/gaps/repro/ST1-*.sokonanoda`（无 `import` ⇒ 单文件判卷）+ **新缺口 G-56**
+  （`docs/gaps/repro/G56-acc-well-founded-recursion.sh`，含对照组；`scripts/gap.py check` 全绿 ✓）。
+  守卫是**两端对账**：记录里写的诊断必须在探针输出里**逐字**出现，探针输出的每条诊断也必须在记录里
+  找到（记录漏记 / 结论过期都判红）✓；另有「`ST1-*.sokonanoda` 与对账表一一对应」的反向守卫 ✓。
+- **反向验证两次** ✓：① 把记录里 `Quot` 那行改成 `positive / 7` ⇒ 判红「`decl.checked` 数与记录不符
+  （记录 7 / 内核 0）」；② 把 `Acc` 探针换成一条必过的声明 ⇒ 判红「记录 0 / 内核 1」；两次都**撤掉即回绿** ✓。
+- **没做** ✗：**ST2（商类型）未开** —— 用户明确「等我对 ST1 的决策记录确认后再开」✓；
+  内核判定零改动 ✓、课程内容零改动 ✓。
+- **耗时账** ✓：`cargo test -p sokonanoda-cli --test st1_boundary` **0.6 s**（2 判据，跑 4 个复现件）；
+  `python3 scripts/gap.py check` 全量 **~1 min**（含 G-56）；`python3 scripts/docs-lint.py` ✓。
 
 ## 未决项
 
@@ -132,31 +158,6 @@
   （`scripts/status-lint.py` 的 `MAX_TOTAL`）—— 原因：一轮里落了 6 个环节，200 行顶格后**只能删旧轮**，
   而归档目标 `docs/STATUS-ARCHIVE.md` 也被冻结 ⇒ 实际是"逼着删历史" ✗；`MAX_GROWTH`（≤60）**不动** ✓。
   **后续统一 refactor 时清理**（旧轮搬进 `docs/archive/` 再调回 200）。
-
-## 第 478 轮（2026-09-27）：🚀 v0.74.0 开工 —— **E01 复合记法 `•` / `∘`** ✓（11 个环节的第 1 个）
-
-- **变了什么** ✓：`Rel.comp` / `Function.comp` 补记法 —— `lib/Rel.sokonanoda` 声明
-  `infixr:80 " • "`、`lib/Fun.sokonanoda` 声明 `infixr:90 " ∘ "`（各紧跟自己的 `def`）；
-  单元⑥⑦⑫ 与三份解答改用记法（点形式一律消除）。**记法零事件 ⇒ 门禁 36/328/99/0 不变** ✓。
-- **判红** ✓（内核原文）：`g ∘ f` ⇒ `符号 '∘' 在本文件里还没有声明过记法`；
-  `r • s` ⇒ `unknown identifier '•'`（`•` 不在数学码点类里，未声明时连符号都不是 ✓）。
-- **判据三层** ✓：front `the_course_libraries_declare_the_composition_notations`
-  （记法表：`•`→`Rel.comp`/lib.Rel/80、`∘`→`Function.comp`/lib.Fun/90）·
-  CLI `the_course_composition_notations_grade_like_the_pointful_forms`（真课程库、
-  两种写法五元计数相等）· `scripts/notation-lint.py` 零残留（新声明**自动**派生点形式判据 ✓）。
-- **反向验证** ✓：撤掉两条声明 ⇒ 两层判据**都红**，诊断逐字回到上面那两条 ✓（已还原 ✓）。
-- ⚠ **取证更正** ✗✓：`lib/Rel` 头部原写「`r • s` 是 Mathlib 的记法」——**不准确**：
-  Mathlib 的 `Relation.Comp` 是 `local infixr:80 " ∘r "`（`Mathlib/Logic/Relation.lean:158`）；
-  `∘` 取 Lean core 逐字（`src/Init/Notation.lean:274`）。本课用 `•` 是为了与 `∘` 区分 ✓。
-- **台账** ✓：新登记 **G-45**（library/painful/fixed_in 0.74.0，自足复现件 `G45-comp-notation.sokonanoda`）；
-  `scripts/gap.py check` ⇒ **全部与台账一致** ✓。
-- **文档** ✓：as-built 进 `docs/design/notation-subset.md` §16；速查表补【速查表 2b】+ 梯子两行；
-  ⚠ 预算按规矩**手改** `scripts/docs-budget.json`（notation-subset 873→905，评审可见 ✓），
-  另删掉 syllabus 里一段**无表头的重复表**（陈旧名 `Set.diff`/`Set.power`）⇒ 该文件 303→294 ✓。
-- **未决** ✓：E02–E04 · E21–E23 · E27–E31 共 10 个环节未开工；v0.74.0 收尾要**推一次 CI 逐 job 真绿** ✓。
-- ⚠ **本轮踩到的坑（两次同形 ✗✓）**：**判据跑完之前别改文件** ✗ —— 反向验证期间课程门禁读到
-  半棵树（报 `符号 '∘' 还没有声明过记法` ✗）、front 判据读到**撕裂**的库文件（假红 ✗）。
-  **判据必须在"冻结树"上跑** ✓：改完 → 跑 → 不再碰 ✓。
 
 ## 第 481 轮（2026-09-27）：E04 —— hover 的类型面接上折叠 ✓（v0.74.0 第 4 个环节）
 

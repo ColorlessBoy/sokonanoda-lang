@@ -1,0 +1,48 @@
+-- ST1 探针 ①：**谓词式集合论能表达什么** —— 分离（`{x : P}`）与无限并/交。
+--
+-- 期望：**7 条全部 `decl.checked`，0 失败**（这一档不需要任何外挂：
+-- `Set α := α → Prop` 本身就是谓词 ⇒ 分离 = 谓词取交、无限并 = 存在量化、
+-- 无限交 = 全称量化）。
+--
+-- 基准（出处见决策记录 `docs/design/v077-st1-boundary.md` 的基准表）：
+--   · Mathlib `Mathlib/Data/Set/Defs.lean`：`Set.sep` / `Set.sUnion` / `Set.sInter`
+--     —— 它们就活在 `Set α := α → Prop` 这一层，与我们的写法同构；
+--   · Mathlib `Mathlib/SetTheory/ZFC/Basic.lean` 的 `ZFSet.sep` / `mem_sep`
+--     是**另一层**（`ZFSet = Quotient PSet.setoid`）—— 那是"在类型论内部造 ZF 模型"，
+--     不是谓词式那一层的必需件；
+--   · Isabelle AFP `ZFC_in_HOL`：`down_raw` 公理（`Y ⊆ elts x ⟹ Y ∈ range elts`）
+--     就是分离，`Union_raw` 就是无限并 —— 它也只用到 `V set = V ⇒ bool`。
+--
+-- 本文件**自足**（无 `import`）：`Set` 与它的词汇内联，`∃` 用本文件自己的
+-- `inductive Exists`（与课程库 `lib/Exists` 同形，逐字同款）⇒ `--no-project`
+-- 单文件判卷即可（决策记录的探针一律这个形状）。
+-- 判据（`crates/cli/tests/st1_boundary.rs` 逐条断言）：7 checked / 0 失败。
+
+def Set (α : Type) : Type := α → Prop
+
+-- `∃` 的目标常量（Lean core `Init/Logic.lean` 的 `Exists`，与 `lib/Exists` 同形）
+inductive Exists (A : Type) (p : A → Prop) : Prop
+ctor Exists.intro (w : A) (h : p w) : Exists A p
+end
+
+namespace Set
+
+def mem (α : Type) (a : α) (A : Set α) : Prop := A a
+
+def sep (α : Type) (A : Set α) (P : α → Prop) : Set α :=
+  fun (x : α) => A x ∧ P x
+
+def sUnion (α : Type) (F : Set (Set α)) : Set α :=
+  fun (x : α) => Exists (Set α) (fun (A : Set α) => F A ∧ A x)
+
+def sInter (α : Type) (F : Set (Set α)) : Set α :=
+  fun (x : α) => ∀ (A : Set α), F A → A x
+
+end Set
+
+infix:50 " ∈ " => Set.mem
+
+-- 定义展开引理：谓词式里是 `Iff.refl` 级的管道，没有数学内容（L2 层）
+theorem mem_sep_iff (α : Type) (A : Set α) (P : α → Prop) (x : α) :
+    x ∈ Set.sep α A P ↔ (x ∈ A ∧ P x) :=
+  Iff.intro (fun (h : x ∈ Set.sep α A P) => h) (fun (h : x ∈ A ∧ P x) => h)

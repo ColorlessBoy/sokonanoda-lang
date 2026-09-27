@@ -1712,3 +1712,27 @@
   才去读"这个数从哪来" ✓），而**仓库一直有正规入口** ✓（`perf-ledger.sh` ✓）；
   ③ `ci-push.sh` 小 bug ✓（网络超时时打出**空 run id** ✗ ⇒ 应"拿到 id 才打印" ✓）。
 
+## 第 478 轮（2026-09-27）：🚀 v0.74.0 开工 —— **E01 复合记法 `•` / `∘`** ✓（11 个环节的第 1 个）
+
+- **变了什么** ✓：`Rel.comp` / `Function.comp` 补记法 —— `lib/Rel.sokonanoda` 声明
+  `infixr:80 " • "`、`lib/Fun.sokonanoda` 声明 `infixr:90 " ∘ "`（各紧跟自己的 `def`）；
+  单元⑥⑦⑫ 与三份解答改用记法（点形式一律消除）。**记法零事件 ⇒ 门禁 36/328/99/0 不变** ✓。
+- **判红** ✓（内核原文）：`g ∘ f` ⇒ `符号 '∘' 在本文件里还没有声明过记法`；
+  `r • s` ⇒ `unknown identifier '•'`（`•` 不在数学码点类里，未声明时连符号都不是 ✓）。
+- **判据三层** ✓：front `the_course_libraries_declare_the_composition_notations`
+  （记法表：`•`→`Rel.comp`/lib.Rel/80、`∘`→`Function.comp`/lib.Fun/90）·
+  CLI `the_course_composition_notations_grade_like_the_pointful_forms`（真课程库、
+  两种写法五元计数相等）· `scripts/notation-lint.py` 零残留（新声明**自动**派生点形式判据 ✓）。
+- **反向验证** ✓：撤掉两条声明 ⇒ 两层判据**都红**，诊断逐字回到上面那两条 ✓（已还原 ✓）。
+- ⚠ **取证更正** ✗✓：`lib/Rel` 头部原写「`r • s` 是 Mathlib 的记法」——**不准确**：
+  Mathlib 的 `Relation.Comp` 是 `local infixr:80 " ∘r "`（`Mathlib/Logic/Relation.lean:158`）；
+  `∘` 取 Lean core 逐字（`src/Init/Notation.lean:274`）。本课用 `•` 是为了与 `∘` 区分 ✓。
+- **台账** ✓：新登记 **G-45**（library/painful/fixed_in 0.74.0，自足复现件 `G45-comp-notation.sokonanoda`）；
+  `scripts/gap.py check` ⇒ **全部与台账一致** ✓。
+- **文档** ✓：as-built 进 `docs/design/notation-subset.md` §16；速查表补【速查表 2b】+ 梯子两行；
+  ⚠ 预算按规矩**手改** `scripts/docs-budget.json`（notation-subset 873→905，评审可见 ✓），
+  另删掉 syllabus 里一段**无表头的重复表**（陈旧名 `Set.diff`/`Set.power`）⇒ 该文件 303→294 ✓。
+- **未决** ✓：E02–E04 · E21–E23 · E27–E31 共 10 个环节未开工；v0.74.0 收尾要**推一次 CI 逐 job 真绿** ✓。
+- ⚠ **本轮踩到的坑（两次同形 ✗✓）**：**判据跑完之前别改文件** ✗ —— 反向验证期间课程门禁读到
+  半棵树（报 `符号 '∘' 还没有声明过记法` ✗）、front 判据读到**撕裂**的库文件（假红 ✗）。
+  **判据必须在"冻结树"上跑** ✓：改完 → 跑 → 不再碰 ✓。

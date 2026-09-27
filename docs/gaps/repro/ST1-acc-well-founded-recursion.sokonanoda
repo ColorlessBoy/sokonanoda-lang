@@ -1,0 +1,26 @@
+-- ST1 探针 ④：**良基递归 `Acc` 立不起来** —— 序数/秩 rank 的桥被这一条挡住。
+--
+-- 期望：**判红**，诊断逐字为：
+--     kernel-rejected /
+--     「rejected: inductive occurrence is not applied uniformly to the block
+--       parameters and universe levels」
+--
+-- 为什么它是 ST1 的关键证据：谓词式序数（探针 ②）**写得出来**，但要往下走一步 ——
+-- 定义「秩 rank」「超限递归」「V 层级」—— 就必须有**良基递归**，而良基递归的地基是
+-- `Acc`。本语言里 `Acc` 立不起来：它的递归出现 `Acc α r y` 的**下标 `y` 与块参数
+-- `x` 不同**，内核的"uniform"检查直接拒（同一形状的 `Even : Nat → Prop`、
+-- `All α P Q` 都能过 ⇒ 被拒的正是"下标会变"这件事，不是"载体是函数"）。
+--
+-- 基准（出处见决策记录）：
+--   · Isabelle AFP `ZFC_in_HOL` 把良基性做成**公理** `foundation: "wf {(x,y). x ∈ elts y}"`，
+--     再用 HOL 的 `wfrec` 做 `transrec` / `rank` —— 它不需要"在对象语言里立一个 Acc"；
+--   · Mathlib 的 `Ordinal.rank` 走 `WellFounded.fix`（Lean core 的 `Acc` 派生）；
+--   · ⇒ **两条路都要"良基递归可用"**，区别只是它由公理给还是由归纳类型给。
+--
+-- 本文件自足（无 `import`）⇒ `--no-project` 单文件判卷即可。
+-- 判据（`crates/cli/tests/st1_boundary.rs`）：0 checked / 1 失败，诊断逐字一致。
+
+-- 块头带上全部参数（Lean 的标准写法）—— 仍被拒
+inductive Acc (α : Type) (r : α → α → Prop) (x : α) : Prop
+ctor Acc.intro (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x
+end

@@ -1,0 +1,46 @@
+-- ST1 探针 ②：**序数在谓词式 set theory 里怎么写** —— 答案是"写成谓词"。
+--
+-- 期望：**7 条全部 `decl.checked`，0 失败**。
+--
+-- 基准（出处见决策记录 `docs/design/v077-st1-boundary.md`）：
+--   Isabelle AFP `ZFC_in_HOL`（`ZFC_in_HOL.thy` §1.4）把序数写成**谓词**，不是商类型：
+--       definition Transset where "Transset x ≡ ∀y ∈ elts x. y ≤ x"
+--       definition Ord      where "Ord x      ≡ Transset x ∧ (∀y ∈ elts x. Transset y)"
+--       abbreviation ON     where "ON ≡ Collect Ord"
+--   而且 `ON`（全体序数）**不是** small（`lemma big_ON [simp]: "¬ small ON"`，Burali-Forti）
+--   ⇒ 「全体序数」在任何一路里都不是一个类型，只能是一个类/谓词 ✓。
+--   Mathlib 走的是**另一条**路（`Ordinal` = 良序的商），代价见决策记录 §3。
+--
+-- 写法：把整个论域取成**一个类型** `α`，成员关系取成二元谓词 `E : α → α → Prop`
+-- （这正是 `Set α := α → Prop` 的"宇宙内化"读法：`E y x` 读作 `y ∈ x`）。
+-- 于是"传递集""∈ 良基""序数"三件都是 Prop，零外挂。
+--
+-- 本文件自足（无 `import`；`∃` 用本文件自己的 `inductive Exists`）
+-- ⇒ `--no-project` 单文件判卷即可。
+-- 判据（`crates/cli/tests/st1_boundary.rs`）：7 checked / 0 失败。
+
+-- `∃` 的目标常量（Lean core `Init/Logic.lean` 的 `Exists`，与 `lib/Exists` 同形）
+inductive Exists (A : Type) (p : A → Prop) : Prop
+ctor Exists.intro (w : A) (h : p w) : Exists A p
+end
+
+def IsTransitive (α : Type) (E : α → α → Prop) (x : α) : Prop :=
+  ∀ (y : α), E y x → ∀ (z : α), E z y → E z x
+
+def ETrans (α : Type) (E : α → α → Prop) : Prop :=
+  ∀ (x y z : α), E x y → E y z → E x z
+
+def HasLeast (α : Type) (E : α → α → Prop) (P : α → Prop) : Prop :=
+  Exists α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ (E y m))
+
+def EWellFounded (α : Type) (E : α → α → Prop) : Prop :=
+  ∀ (P : α → Prop), Exists α P → HasLeast α E P
+
+-- 序数 = 传递 + ∈ 良基（Isabelle 的 `Ord` 把良基性放在 `foundation` 公理里，
+-- 我们这里显式带上，因为本语言没有内建的 `wf`）
+def IsOrdinal (α : Type) (E : α → α → Prop) (x : α) : Prop :=
+  IsTransitive α E x ∧ ETrans α E ∧ EWellFounded α E
+
+-- 对照：`x` 是序数 `y` 的**后继**（把后继也写成谓词，不需要新的类型构造子）
+def IsSuccOf (α : Type) (E : α → α → Prop) (x y : α) : Prop :=
+  IsOrdinal α E y ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y)
