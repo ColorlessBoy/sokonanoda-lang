@@ -365,3 +365,18 @@ B1/B2 → B3 → B4 → B5 → B6 → B7（`And.elim` 在 `And.left/right` 之�
    `True/False/And/Or/Not/Iff` 族；`unit5` 的中英画布与解答自带 `theorem Eq.symm … := sorry`，
    实判 `checked 0 · open 6`，`Eq.symm` 就在 `exercise.open` 名单里（所以它必须落在 B7 的让位范围，
    否则这条教学练习会被 prelude 变成重复声明）。
+
+---
+
+## 5. as-built（2026-09-28 · v0.76.0 的 E09）
+
+- **镜子文件已落地**：`prelude/Prelude.sokonanoda`（44 行 / 3642 字节）——
+  内容**从编译期常量生成**（`SOKO_WRITE_PRELUDE=1 cargo test -p sokonanoda-front --test prelude_mirror`），
+  **不手抄** ✗（手抄必然漂移 ✓）。
+- **守卫**：`crates/front/tests/prelude_mirror.rs` 断言 `prelude_source()` 与那份文件**逐字节相等**；
+  漂移时报**第一处**差异（行号 + 两边原文）✓。它在 `cargo test --workspace` 里 ⇒ 已在
+  `scripts/soko gate` / CI 的 gate 路径上 ✓。
+- ⚠ **本提案第 2 节的"单一真相"没有变**：真相仍是 `PRELUDE_EQ_SRC` + `PRELUDE_L1_SRC`，
+  镜子是**产物**；**没有**改成运行时读文件（那会碰 `PreludeMode::Bare` 的红线 ✗）。
+- ⚠ F12 跳 prelude 仍走 `prelude_source_path()` 的**临时物化** ✓（安装态扩展没有仓库 ⇒
+  不能依赖 `prelude/` 存在 ✓）；仓库里的镜子是给**人/agent 读**的 ✓。
