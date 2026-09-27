@@ -176,7 +176,7 @@
 | # | 你的原话 | 要求 | 状态 | 我已定位的根因 |
 |---|---|---|---|---|
 | I1 | 「我想要 infoview 里的声明里的 'theorem' 有多余的 '目标 ⊢ A = B' 这条语句，**没有人要求增加**」 | 声明卡片上这条**多余的目标行**要去掉 | ❌ 未做 | `editor/vscode/media/infoview.js:333-348`。注释写它是给「**开放练习**」加的（T-A5 / R-2 ②），但渲染条件只是"有 `goals`/`goal` 就画"，**没有排除 `theorem`**。而定理的目标**就等于它自己的语句** ⇒ 纯重复。 |
-| I2 | 「**项目编译功能不正常**，我要求有进度条，**现在是没有进度**，**点哪个文件，编译哪个文件**」 | ① 项目级 build/rebuild 要按**项目**编，不是按当前打开的文件；② 要有**进度** | ❌ 未做 | **没有进度的机制**：0.73.0 的编译进度（P1–P4/P6）走的是 **LSP `$/progress`**，而 build/rebuild 走的是**独立 CLI 子进程**（`editor/vscode/extension.js:1770 runBuildProcess`）⇒ **不经过 LSP ⇒ 收不到任何进度事件**。<br>**"点哪个编哪个"的机制**：`extension.js:1755-1766 buildTarget()` **优先返回当前活动编辑器里那个 `.sokonanoda` 文件**，只有没有活动文件时才退回工作区根目录。<br>**可做性**：CLI 的 build **本来就逐文件发事件**（`crates/cli/src/build.rs:88` 的 `build.file`，另有 `build.clean` / `build.summary`），而 `parseBuildEvents` 已经解析了它们、却只用了 clean 和 summary ⇒ **进度条做得出来**。 |
+| I2 | 「**项目编译功能不正常**，我要求有进度条，**现在是没有进度**，**点哪个文件，编译哪个文件**」 | ① 项目级 build/rebuild 要按**项目**编，不是按当前打开的文件；② 要有**进度** | ⚠️ **① 已做**（E22 `b90c0ff`）· **② 未做**（E23） | **没有进度的机制**：0.73.0 的编译进度（P1–P4/P6）走的是 **LSP `$/progress`**，而 build/rebuild 走的是**独立 CLI 子进程**（`editor/vscode/extension.js:1770 runBuildProcess`）⇒ **不经过 LSP ⇒ 收不到任何进度事件**。<br>**"点哪个编哪个"的机制**：`extension.js` 的 `buildTarget()` **优先返回当前活动编辑器里那个 `.sokonanoda` 文件**，只有没有活动文件时才退回工作区根目录 ⇒ **E22 已改**：目标 = 服务端 `soko/project` 的**模块根**（没答上来时退回工作区根），**永远是目录** ✓。<br>**可做性**：CLI 的 build **本来就逐文件发事件**（`crates/cli/src/build.rs:88` 的 `build.file`，另有 `build.clean` / `build.summary`），而 `parseBuildEvents` 已经解析了它们、却只用了 clean 和 summary ⇒ **进度条做得出来**。 |
 
 ---
 
@@ -224,7 +224,7 @@
 | E03 | `r ⁻¹` / `A ≈ B` 记法（速查表"写不了"清账） | A4 同类 | 低 | 🚀 0.74 | ✅ 4e093dd（判据两层 + 反向验证；G-47 fixed · G-48/G-49 新登记） |
 | E04 | hover 折记法（`{a}` 在 hover 里显示为 `{a}`） | A3 · F3 | 低 | 🚀 0.74 | ✅ 8660908（判据三层：front 真相 / LSP wire / e2e 子表达式 hover；反向验证 `SOKO_NO_NOTATION_FOLD=1` 判红；G-50 fixed） |
 | E21 | Infoview 声明卡片「目标 ⊢」行 —— **I1 复核：该行不冗余，保留**（原判"去掉"前提不成立） | I1 | 低 | 🚀 0.74 | ✅ **不改（resolved-no-change）** `ce0371b`（复核依据 + 防漂移判据 + 反向验证；依据进 `docs/gaps/criteria-census.md`） |
-| E22 | **build/rebuild 以项目为默认目标**（现在按当前打开的文件编） | I2① | 低 | 🚀 0.74 | |
+| E22 | **build/rebuild 以项目为默认目标**（现在按当前打开的文件编） | I2① | 低 | 🚀 0.74 | ✅ `b90c0ff`（目标 = `soko/project` 的模块根；**rebuild 的 `--clean` 也带目标**；判据：stub 宿主 argv + e2e 文件数；反向验证两半各自判红；G-51 fixed） |
 | E23 | **build/rebuild 加进度**（流式 `build.file` 事件 → 状态栏/进度条） | I2② | 低 | 🚀 0.74 | |
 | **E27** | **Infoview 内导航到定义**（现在只发 `ready`/`reveal`，点目标标题只跳源码 span；`{a}`/`∈`/声明名**点不动**） | I-面核对 · [53][54] | 中 | 🚀 0.74 | |
 | **E28** | **Infoview 空态/错误态判据**（三种空态文案已实现，但**无 e2e**） | I-面核对 | 低 | 🚀 0.74 | |
@@ -329,11 +329,27 @@
   ④ **反向验证**：把"目标 == 语句就不画"的过滤真加回去 ⇒ 该判据当场判红
   （实测 `AssertionError … 实际渲染了 0 行`）✓；⑤ 复核依据进 `docs/gaps/criteria-census.md`
   （「复核：I1 … 不是缺口」），免得以后又被当成 bug 重新发现一遍。
-- **E22** **build/rebuild 以项目为默认目标**。
-  实测根因：`editor/vscode/extension.js:1755-1766 buildTarget()` **优先返回当前活动编辑器里那个
-  `.sokonanoda` 文件**，只有没有活动文件时才退回工作区根目录 ⇒ 用户感觉"点哪个文件编译哪个文件"。
-  **判据**：`Sokonanoda: Build` / `Rebuild` 在**有任何活动文件**时也编**项目**；
-  若还要保留"只编当前文件"，做成**单独的命令**并在 UI 上可区分（别让同一个命令有两种语义）。
+- **E22** ✅ **已做（`b90c0ff`）**：**build/rebuild 以项目为默认目标** + rebuild 真的清项目缓存。
+  实测根因（原判，两条）：① `buildTarget()` **优先返回当前活动编辑器里那个
+  `.sokonanoda` 文件** ⇒ CLI 拿到文件只编那一个（实测 `files: 1`，而项目是 2+）；
+  ② **同族的第二半（本环节新查出）**：`runBuild` 的 clean 步骤跑 `build --json --clean`
+  **不带目标** ⇒ CLI 的 `project_roots([])` 为空 ⇒ 只清**全局**缓存，
+  `<模块根>/.sokonanoda/compiled/` 原地不动（实测 `{"global":0,"project":0,"removed":0}`）
+  ⇒ 紧跟的 build 全是 `hit` ⇒「Rebuild（清空编译缓存后重编译）」是**假动作**（= CLI 注释
+  点名的 R-3/T-B5 陷阱；已登记 **G-51**）。
+  **改法**：目标是**模块根**（服务端 `soko/project` 的 `project.root`；客户端**不自己找清单** ✗
+  ——那是第二份真相），服务器还没答时退回第一个工作区文件夹（**也是目录，绝不是文件** ✓）；
+  clean 那一步带同一个目标。命令标题随之改成 `Build (编译项目，预热缓存)`
+  —— **一个命令一种语义** ✓（要只编一个文件走 CLI `sokonanoda build <file>`；
+  本环节**没有**新增"Build Current File"命令，PLAN 里那句"若还要保留"的选项**未采纳** ✓）。
+  **判据（三层）**：stub 宿主 `build/rebuild target the project root, not the active file (E22)`
+  （夹具让活动文件/工作区根/模块根**三者互不相同**，钉 `spawns` 的 argv）·
+  真宿主 e2e 断言**用户看得见的数字**（`N 个文件` == 项目根下 `.sokonanoda` 文件数 > 1；
+  `清掉 N 条缓存` 的 N ≥ 1）· 文档同步（package.json / README / CHANGELOG / teacher skill /
+  AGENTS.md / `docs/design/command-naming.md`）。
+  **反向验证**：撤 `buildTarget()` ⇒ 判红且与判红时**逐字一致**；只撤 clean 的目标 ⇒
+  第二条断言判红；两处恢复 ⇒ 38/38 复绿 ✓。附带修一条被暴露的守卫缺口：
+  `crates/cli/tests/common/mod.rs` 的 `LSP_CUSTOM_METHODS` 漏了 `soko/project`（`1d17818`）。
 - **E23** **build/rebuild 加进度**。
   实测机制：0.73.0 的编译进度（P1–P4/P6）走的是 **LSP `$/progress`**；
   build/rebuild 走的是**独立 CLI 子进程**（`extension.js:1770 runBuildProcess`）⇒ **不经过 LSP ⇒ 无进度**。
