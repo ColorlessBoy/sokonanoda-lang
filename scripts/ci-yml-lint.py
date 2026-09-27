@@ -46,7 +46,81 @@ StrictLoader.add_constructor(
     yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_duplicates)
 
 
-def main() -> int:
+def check_workflow(text: str, label: str) -> list:
+    """解析 + 校验**一份** workflow 文本 ⇒ 问题列表。
+
+    **纯函数** ✓（只吃字符串）⇒ `--selftest` 可以喂合成 YAML（不碰文件系统 ✓）。
+    """
+    bad = []
+    try:
+        doc = yaml.load(text, Loader=StrictLoader)
+    except yaml.YAMLError as e:
+        mark = getattr(e, "problem_mark", None)
+        where = f"{label}:{mark.line + 1}:{mark.column + 1}" if mark else str(label)
+        return [f"{where} YAML 不合法 ✗：{getattr(e, 'problem', e)}"]
+    if not isinstance(doc, dict) or "jobs" not in doc:
+        return [f"{label} 没有 jobs ✗"]
+    for job_name, job in (doc.get("jobs") or {}).items():
+        steps = (job or {}).get("steps")
+        if not steps:
+            bad.append(f"{label} 的 job `{job_name}` 没有 steps ✗")
+            continue
+        for i, st in enumerate(steps):
+            if not isinstance(st, dict):
+                bad.append(f"{label} 的 job `{job_name}` 第 {i+1} 步不是映射 ✗")
+            elif "run" not in st and "uses" not in st:
+                bad.append(f"{label} 的 job `{job_name}` 第 {i+1} 步既无 run 也无 uses ✗")
+    return bad
+
+
+def selftest() -> int:
+    """**故意喂已知形状** ✓：判据通道自己坏了必须在这里判红 ✓。
+
+    ⚠ 2026-09-27 补（E00 判据强度普查，见 `docs/design/criteria-strength.md` §3.2）：
+    本脚本原来**没有任何自检入口** ⇒ 无法自证"能咬住" ✗。
+    ⚠ 第 2 个用例是**当年真实事故的形态**（同一个 step 两个 `run:` ⇒ `yaml.safe_load`
+    静默取最后一个 ✗ ⇒ GitHub 拒绝整个 workflow ⇒ 整轮 0 job ✗）——
+    **守卫必须能咬住这个已知事故** ✓，否则等于没有 ✓。
+    """
+    good = (
+        "name: t\non: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n"
+        "    steps:\n      - uses: actions/checkout@v5\n      - run: echo hi\n"
+    )
+    cases = [
+        ("正常 workflow（不该误红）", good, 0),
+        ("**重复键**（= 当年事故：一个 step 两个 run）",
+         "name: t\non: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n"
+         "    steps:\n      - run: echo one\n        run: echo two\n", 1),
+        ("job 没有 steps",
+         "name: t\non: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n", 1),
+        ("step 既无 run 也无 uses",
+         "name: t\non: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n"
+         "    steps:\n      - name: only-a-name\n", 1),
+        ("YAML 语法不合法",
+         "name: t\non: push\njobs:\n  a:\n   - broken: [\n", 1),
+        ("没有 jobs 键", "name: t\non: push\n", 1),
+    ]
+    bad = 0
+    for label, text, want in cases:
+        got = check_workflow(text, "<selftest>")
+        okc = len(got) == want
+        print(f"  {'✓' if okc else '✗'} {label:<44} → {len(got)} 条（期望 {want}）")
+        if not okc:
+            bad += 1
+            for b in got:
+                print(f"        ↳ {b}")
+    print()
+    if bad:
+        print(f"✗ selftest 判红：{bad}/{len(cases)} 个用例不符 ✗")
+        return 1
+    print(f"✓ selftest 全过：{len(cases)}/{len(cases)} 个用例符合 ✓")
+    return 0
+
+
+def main(argv=None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if "--selftest" in argv:
+        return selftest()
     root = Path(".github/workflows")
     if not root.is_dir():
         print("找不到 .github/workflows ✗", file=sys.stderr)
@@ -58,26 +132,7 @@ def main() -> int:
 
     bad = []
     for f in files:
-        try:
-            doc = yaml.load(f.read_text(encoding="utf-8"), Loader=StrictLoader)
-        except yaml.YAMLError as e:
-            mark = getattr(e, "problem_mark", None)
-            where = f":{mark.line + 1}:{mark.column + 1}" if mark else str(f)
-            bad.append(f"{where} YAML 不合法 ✗：{getattr(e, 'problem', e)}")
-            continue
-        if not isinstance(doc, dict) or "jobs" not in doc:
-            bad.append(f"{f} 没有 jobs ✗")
-            continue
-        for job_name, job in (doc.get("jobs") or {}).items():
-            steps = (job or {}).get("steps")
-            if not steps:
-                bad.append(f"{f} 的 job `{job_name}` 没有 steps ✗")
-                continue
-            for i, st in enumerate(steps):
-                if not isinstance(st, dict):
-                    bad.append(f"{f} 的 job `{job_name}` 第 {i+1} 步不是映射 ✗")
-                elif "run" not in st and "uses" not in st:
-                    bad.append(f"{f} 的 job `{job_name}` 第 {i+1} 步既无 run 也无 uses ✗")
+        bad.extend(check_workflow(f.read_text(encoding="utf-8"), str(f)))
 
     if bad:
         print(f"ci-yml-lint：{len(bad)} 条不通过 ✗", file=sys.stderr)
@@ -91,4 +146,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

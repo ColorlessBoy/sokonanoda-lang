@@ -49,12 +49,8 @@ def growth(path):
     return len(path and Path(path).read_text(encoding="utf-8").splitlines()) - len(old.splitlines())
 
 
-def main() -> int:
-    path = Path("STATUS.md")
-    if not path.exists():
-        print("STATUS.md 不存在 ✗", file=sys.stderr)
-        return 2
-    lines = path.read_text(encoding="utf-8").splitlines()
+def judge(lines, g) -> list:
+    """**纯函数** ✓：只吃行列表与净增数 ⇒ `--selftest` 直接喂合成数据（不碰文件系统 ✓）。"""
     bad = []
 
     # ① 总行数
@@ -74,9 +70,62 @@ def main() -> int:
             bad.append(f"段「{title}」（第 {start} 行起）{n} 行 > {limit} ✗")
 
     # ④ 净增行数
-    g = growth("STATUS.md")
     if g > MAX_GROWTH:
         bad.append(f"本次净增 {g} 行 > {MAX_GROWTH} ✗（一轮别灌几十行 ✗）")
+
+    return bad
+
+
+def selftest() -> int:
+    """**故意喂已知形状** ✓：判据通道自己坏了必须在这里判红 ✓。
+
+    ⚠ 2026-09-27 补（E00 判据强度普查，见 `docs/design/criteria-strength.md` §3.2）：
+    本脚本原来**没有任何自检入口** ⇒ **无法自证"能咬住"** ✗（咬不住的守卫等于没有 ✓）。
+    每个用例都断言**具体条数**（不是"有没有红"✗），并且**含不误红的反例** ✓。
+    """
+    ok = ["# STATUS", "", "## 当前快照", "一行", "", "## 上一轮", "两行", "三行"]
+    snap = lambda n: ["# T", "", "## 当前快照"] + ["a"] * n
+    cases = [
+        ("正常（不该误红）", ok, 0, 0),
+        # ⚠ 夹具要**只触发一条**判据 ✗：一开始写 `["x"] * 201` ⇒ 那是一个 201 行的
+        # 「(前言)」段 ⇒ **同时**踩 ③ 段超限 ⇒ 报 2 条（**是我的夹具错，不是判据错** ✓）。
+        # 改成"很多小段" ⇒ 只有 ① 总行数该红 ✓。
+        ("总行数 > 200（切成小段 ⇒ 只该红 ①）",
+         ["# T"] + [x for i in range(67) for x in (f"## s{i}", "a", "b")], 0, 1),
+        ("命中禁词「在跑」", ["# T", "", "## 当前快照", "CI 在跑"], 0, 1),
+        ("普通段 > 30 行", ["# T", "", "## 当前快照", "a", "", "## 下一段"] + ["b"] * 31, 0, 1),
+        ("首段「当前快照」40 行 ⇒ **不误红**", snap(39), 0, 0),
+        ("首段「当前快照」41 行 ⇒ 判红", snap(40), 0, 1),
+        ("净增 > 60", ok, MAX_GROWTH + 1, 1),
+    ]
+    bad = 0
+    for label, lines, g, want in cases:
+        got = judge(lines, g)
+        okc = len(got) == want
+        print(f"  {'✓' if okc else '✗'} {label:<34} → {len(got)} 条（期望 {want}）")
+        if not okc:
+            bad += 1
+            for b in got:
+                print(f"        ↳ {b}")
+    print()
+    if bad:
+        print(f"✗ selftest 判红：{bad}/{len(cases)} 个用例不符 ✗")
+        return 1
+    print(f"✓ selftest 全过：{len(cases)}/{len(cases)} 个用例符合 ✓")
+    return 0
+
+
+def main(argv=None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if "--selftest" in argv:
+        return selftest()
+    path = Path("STATUS.md")
+    if not path.exists():
+        print("STATUS.md 不存在 ✗", file=sys.stderr)
+        return 2
+    lines = path.read_text(encoding="utf-8").splitlines()
+    g = growth("STATUS.md")
+    bad = judge(lines, g)
 
     if bad:
         print(f"status-lint：{len(bad)} 条不通过 ✗", file=sys.stderr)

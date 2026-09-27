@@ -39,17 +39,28 @@
 
 ### 3.2 类 ③（缺反向验证 —— 守卫咬不住）
 
-**有 `--selftest`（能自证咬得住）✓**：`docs-lint.py` · `audit-wire-fields.py` ·
-`gap.py` · `courses/set-theory/tools/check.py` · 本轮新增 `ci-green.py` · `target-hygiene.py`
+**有自检（能自证咬得住）✓**：`docs-lint.py` · `audit-wire-fields.py` ·
+`gap.py`（子命令 `selftest`）· `courses/set-theory/tools/check.py` ·
+**`audit-notation-paths.py`**（拼法是 **`--self-test`** ✓）· 本轮新增 `ci-green.py` ·
+`target-hygiene.py` · **`status-lint.py`** · **`notation-lint.py`** · **`ci-yml-lint.py`**
 
-**没有 selftest ✗**：
+> ⚠ **本表第一次是错的，已更正** ✗✓：我原来只按 `--selftest` **一个拼法**扫 ⇒ 漏掉了
+> `audit-notation-paths.py` 的 **`--self-test`**（连字符 ✗）与 `gap.py` 的
+> **`selftest` 子命令** ✗ ⇒ 把两个**本来有**自检的守卫误报成"没有" ✗。
+> **教训：「没扫到」不等于「不存在」** —— 断言"没有"之前，要把**拼法与调用形式列全** ✓。
+> （这正是本文件要治的病：**弱判据/错判据 = 等于没有判据** ✓。）
 
-| 文件 | 风险 |
-|---|---|
-| `scripts/audit-notation-paths.py` | **棘轮基线 59 是地板**，却无法自证"能咬住**新增**绕过" |
-| `scripts/notation-lint.py` | 课程记法门禁（进 gate 与 CI） |
-| `scripts/status-lint.py` | STATUS.md 瘦身门禁 |
-| `scripts/ci-yml-lint.py` | 工作流 lint |
+**原来没有自检、本轮已补 ✓（3 个）**：
+
+| 文件 | 补了什么 | 反向验证（改坏判据 ⇒ 自检必须判红） |
+|---|---|---|
+| `scripts/status-lint.py` | 7 个用例（总行数 / 禁词 / 段长 / 净增 + **不误红**反例） | 上限抬到无穷 ⇒ **exit 1** ✓（1 个用例不符） |
+| `scripts/notation-lint.py` | 7 个用例（5 条旧写法必红 + 2 条正确记法**不许红**） | 删掉 `Set.mem` 判据 ⇒ **exit 1** ✓ |
+| `scripts/ci-yml-lint.py` | 6 个用例（含**当年事故的形态**：同 step 两个 `run:`） | 关掉重复键检查 ⇒ **exit 1** ✓ |
+
+三条自检都接进了**它们各自被跑的地方** ✓（自检没人跑 = 死重量 ✗）：
+`notation-lint` → `scripts/soko gate`；`status-lint` / `ci-yml-lint` → CI 对应 job，
+且**先跑 `--selftest` 再跑全量** ✓（照 `check.py` / `gap.py` 的先例 ✓）。
 
 ### 3.3 类 ④（把 skipped 当绿）
 
@@ -70,13 +81,18 @@
 | M3 | `target/` 里 **966,858** 个 `.rcgu.o` + 第二套 target | `target-hygiene.py` | **红** ✓（selftest 用例） |
 | M4 | `docs/PLAN-….md` 626 行**未登记** | `docs-lint.py` | **红** ✓（626 > 400，本轮实测过一次） |
 | M5 | **旧判据**（非 null）对 M1 | —— | **绿** ✗ ← **这就是 E00 要修的东西** |
+| M6 | `status-lint` 的总行数上限抬到无穷 | `status-lint.py --selftest` | **红** ✓（1 个用例不符） |
+| M7 | `notation-lint` 删掉 `Set.mem` 判据 | `notation-lint.py --selftest` | **红** ✓ |
+| M8 | `ci-yml-lint` 关掉重复键检查 | `ci-yml-lint.py --selftest` | **红** ✓ |
 
-**结论：4 条判据能咬住各自的已知 bug ✓；M5 是升级前的状态**（判据本身是坏的）。
+**结论：7 条判据能咬住各自的已知 bug ✓（M1–M4 + M6–M8）；M5 是升级前的状态**
+（判据本身是坏的 ✗）—— 它正是 E00 存在的理由 ✓。
 
 ## 5. 还没做（**如实记**，别当已完成）
 
 - 3.1 里 **G23 / G24 / G27 三条升级还没落地**（**G37 已落地 ✓**）；
-- 3.2 的**四个 `--selftest` 还没补**；
+- ~~3.2 的四个 `--selftest`~~ ⇒ **已补 3 个** ✓（第 4 个 `audit-notation-paths.py`
+  本来就有 `--self-test` ✓，是我扫漏了 ✗）；
 - 变异测试目前是**手工 5 条**，不是计划里说的"故意改坏 N 处"的**全量**；
 - `docs/gaps/ledger.jsonl` 的 **G-37 已按新判据改回 `open`** —— 原 `fixed` 是
   **弱判据下的误判** ✓（这条是"坏消息自己找上门"的实例：升级判据 ⇒ 台账门禁判红 ⇒

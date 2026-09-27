@@ -51,7 +51,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: STATUS.md 瘦身 lint（≤200 行 · 禁词 0 · 每段 ≤30 · 净增 ≤60）
-        run: python3 scripts/status-lint.py
+        # `--selftest` **先跑**（2026-09-27 E00 补）：故意坏的形状必须被判负 ——
+        # 判据通道自己坏了要在这里就红 ✗，别等真 STATUS.md 漂移了才发现 ✓。
+        run: |
+          python3 scripts/status-lint.py --selftest
+          python3 scripts/status-lint.py
 
   # **文档预算**（用户 2026-09-26：「文档太重了，还没实现多少东西文档先爆炸了」✗）。
   # 与 `status-lint` 同形、同样**独立且不设 `if:`** ✗（理由同上：只改 docs 的推送
@@ -547,12 +551,19 @@ jobs:
         # `And X Y` → `X ∧ Y`、基础类型省前导隐式实参……）。纯文本扫描、秒级、
         # 不需要判卷通道；`scripts/soko gate` 里的同一条就是它。
         shell: bash
-        run: python3 "$GITHUB_WORKSPACE/scripts/notation-lint.py"
+        # `--selftest` 先跑（2026-09-27 E00 补）：只用手写底座 ⇒ 不随仓库漂移 ✓。
+        run: |
+          python3 "$GITHUB_WORKSPACE/scripts/notation-lint.py" --selftest
+          python3 "$GITHUB_WORKSPACE/scripts/notation-lint.py"
       - name: Workflow 文件严格校验（禁重复键）
         # 2026-09-26 事故：同一 step 两个 `run:` 键 ⇒ GitHub 拒绝整个 workflow
         # （0 job、0 秒失败），而 `yaml.safe_load` 静默取最后一个 ⇒ 本地"验过了"是假的。
         shell: bash
-        run: python3 "$GITHUB_WORKSPACE/scripts/ci-yml-lint.py"
+        # `--selftest` 先跑（2026-09-27 E00 补）：含**当年事故的形态** ——
+        # 同一 step 两个 `run:` 键必须被判红 ✓（否则整轮 0 job ✗）。
+        run: |
+          python3 "$GITHUB_WORKSPACE/scripts/ci-yml-lint.py" --selftest
+          python3 "$GITHUB_WORKSPACE/scripts/ci-yml-lint.py"
       - name: Machine events are well-formed JSON
         run: |
           printf 'def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n' \

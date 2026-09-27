@@ -420,6 +420,53 @@ class Linter:
         return hits, "scanned"
 
 
+def selftest() -> int:
+    """**故意喂已知形状** ✓：判据通道自己坏了必须在这里判红 ✓。
+
+    ⚠ 2026-09-27 补（E00 判据强度普查，见 `docs/design/criteria-strength.md` §3.2）：
+    本脚本原来**没有任何自检入口** ⇒ **无法自证"能咬住"** ✗ —— 而它是**课程记法门禁**，
+    已进 `scripts/soko gate` 与 CI ✓（咬不住的守卫等于没有 ✓）。
+
+    ⚠ 只用手写底座 `POINTFUL`（把 `POINTFUL_ALL` 置 None ⇒ **不扫文件**）✓：
+    派生表依赖仓库现状，**拿它自检会随仓库漂移** ✗。
+    每个用例都断言**具体条数 + 具体规则名** ✓（不是"有没有红" ✗），并含**不误红**的反例 ✓。
+    """
+    global POINTFUL_ALL
+    saved = POINTFUL_ALL
+    POINTFUL_ALL = None
+    try:
+        cases = [
+            ("`Eq.{1} T a b` ⇒ 该写 `a = b`", "theorem t : Eq.{1} T a b := h", 1, "Eq.{…}"),
+            ("`Ne.{1} T a b` ⇒ 该写 `a ≠ b`", "theorem t : Ne.{1} T a b := h", 1, "Ne.{…}"),
+            ("`Set.mem α a A` ⇒ 该写 `a ∈ A`", "theorem t : Set.mem α a A := h", 1, "Set.mem"),
+            ("`Set.singleton α a` ⇒ 该写 `{a}`",
+             "def s : Set α := Set.singleton α a", 1, "Set.singleton"),
+            ("`And X Y` ⇒ 该写 `X ∧ Y`", "theorem t : And X Y := h", 1, "And X Y"),
+            ("`a = b` 已是记法 ⇒ **不该红**", "theorem t : a = b := h", 0, None),
+            ("`a ∈ A` 已是记法 ⇒ **不该红**", "theorem t : a ∈ A := h", 0, None),
+        ]
+        bad = 0
+        for label, src, want_n, want_rule in cases:
+            hits = scan_text(src, 1, False)
+            okc = len(hits) == want_n and (
+                want_rule is None or any(h["rule"] == want_rule for h in hits)
+            )
+            got = ", ".join(h["rule"] for h in hits) or "(无)"
+            extra = "" if want_rule is None else " · 含 " + want_rule
+            print(f"  {'✓' if okc else '✗'} {label:<36} → {len(hits)} 条 [{got}]"
+                  f"（期望 {want_n} 条{extra}）")
+            if not okc:
+                bad += 1
+        print()
+        if bad:
+            print(f"✗ selftest 判红：{bad}/{len(cases)} 个用例不符 ✗")
+            return 1
+        print(f"✓ selftest 全过：{len(cases)}/{len(cases)} 个用例符合 ✓")
+        return 0
+    finally:
+        POINTFUL_ALL = saved
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="notation-lint.py",
@@ -434,7 +481,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true", help="单 JSON 对象输出")
     parser.add_argument("--list", action="store_true", help="只列文件与计数")
     parser.add_argument("--quiet", action="store_true", help="无残留时不打印")
+    parser.add_argument("--selftest", action="store_true",
+                        help="离线判据通道自检（不扫仓库 ✓）")
     args = parser.parse_args(argv)
+    if args.selftest:
+        return selftest()
 
     roots = [Path(r) for r in (args.root or DEFAULT_ROOTS)]
     missing = [str(r) for r in roots if not (REPO / r if not r.is_absolute() else r).exists()]
