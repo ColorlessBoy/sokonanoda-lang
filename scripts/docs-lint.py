@@ -177,6 +177,9 @@ def check() -> tuple[list[str], dict]:
     # ⑤ 垃圾
     bad += [f"⑤ 垃圾残留：{j}" for j in scan_junk()]
 
+    if not live:
+        bad.append("① 活文档 **0 个** ⇒ **没扫到 ≠ 绿** ✗（检查 cwd 与 `git ls-files`）")
+
     # ⑥ 归档可追溯
     arch_files = []
     if ARCHIVE.exists():
@@ -196,8 +199,15 @@ def check() -> tuple[list[str], dict]:
                 if Path(f).name not in index:
                     bad.append(f"⑥ {f} 没在 {ARCHIVE_INDEX} 里点名（归档≠销毁）")
     else:
+        # ⚠ **零扫描 ≠ 绿** ✗✓（E00 切片 B）：原来这里只把字节数置 0、**不判红** ⇒
+        # 归档目录一旦不在，⑥「**归档≠销毁**」这条红线**真空通过** ✗。
         arch_bytes = 0
+        bad.append(f"⑥ 找不到归档目录 {ARCHIVE} ⇒ 判据 ⑥ **无法判定 ≠ 绿** ✗")
 
+    # ⚠ **零扫描 ≠ 绿** ✗✓（E00 切片 B 实测）：`cd scripts && python3 docs-lint.py` 会印
+    # 「活文档 **0 个** / 0.00 MB ✓ · 归档 0 个 … 归档索引齐 ✓」并 **exit 0** ✗ ——
+    # 各条判据都在"什么都没扫到"上**真空中通过** ✗。判据 ① 的本意是"活文档 ≤ 上限"，
+    # **0 个活文档不是"通过"，是"没量到"** ✗ ⇒ 补地板 ✓。
     stats = {
         "live_bytes": live_bytes,
         "live_files": sum(1 for f in live if Path(f).exists()),

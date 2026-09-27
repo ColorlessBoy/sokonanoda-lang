@@ -40,12 +40,18 @@ def sections(lines):
 
 
 def growth(path):
-    """与 HEAD 版比净增行数；无 HEAD 版（新文件）⇒ 0。"""
+    """与 HEAD 版比净增行数。
+
+    ⚠ **取不到 HEAD 基线 ⇒ 返回 `None`，不是 0** ✗✓（E00 切片 B 实测）：
+    原来 `except: return 0` 把「**没量到**」与「**零增长**」混为一谈 ⇒ STATUS.md 未被
+    git 跟踪 / git 不可用时，判据 ④ **静默失效**，门禁还印「**净增 0 ≤ 60 ✓**」✗
+    —— 看起来像"量过了" ✗。「没量到 ≠ 零」✓（与"扫不到 ≠ 绿"同一条纪律 ✓）。
+    """
     try:
         old = subprocess.run(["git", "show", f"HEAD:{path}"], capture_output=True,
                              text=True, check=True).stdout
     except Exception:  # noqa: BLE001
-        return 0
+        return None
     return len(path and Path(path).read_text(encoding="utf-8").splitlines()) - len(old.splitlines())
 
 
@@ -70,7 +76,9 @@ def judge(lines, g) -> list:
             bad.append(f"段「{title}」（第 {start} 行起）{n} 行 > {limit} ✗")
 
     # ④ 净增行数
-    if g > MAX_GROWTH:
+    if g is None:
+        bad.append("④ 净增 **未测**（取不到 HEAD 基线）⇒ **无法判定 ≠ 零增长** ✗")
+    elif g > MAX_GROWTH:
         bad.append(f"本次净增 {g} 行 > {MAX_GROWTH} ✗（一轮别灌几十行 ✗）")
 
     return bad
@@ -97,6 +105,8 @@ def selftest() -> int:
         ("首段「当前快照」40 行 ⇒ **不误红**", snap(39), 0, 0),
         ("首段「当前快照」41 行 ⇒ 判红", snap(40), 0, 1),
         ("净增 > 60", ok, MAX_GROWTH + 1, 1),
+        # ⚠ E00 切片 B：`except: return 0` 会把"没量到"当成"零增长"⇒ 补这条负例 ✓
+        ("净增**未测**（取不到 HEAD 基线）⇒ 该红", ok, None, 1),
     ]
     bad = 0
     for label, lines, g, want in cases:
@@ -141,7 +151,7 @@ def main(argv=None) -> int:
             print(f"  - {b}", file=sys.stderr)
         return 1
     print(f"status-lint ✓ 总行数 {len(lines)} ≤ {MAX_TOTAL} ✓ · 禁词 0 ✓ · "
-          f"段数 {len(sections(lines))} ✓ · 净增 {g} ≤ {MAX_GROWTH} ✓")
+          f"段数 {len(sections(lines))} ✓ · 净增 {g if g is not None else '未测'} ≤ {MAX_GROWTH} ✓")
     return 0
 
 

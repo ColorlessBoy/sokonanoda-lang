@@ -444,6 +444,10 @@ def selftest() -> int:
             ("`And X Y` ⇒ 该写 `X ∧ Y`", "theorem t : And X Y := h", 1, "And X Y"),
             ("`a = b` 已是记法 ⇒ **不该红**", "theorem t : a = b := h", 0, None),
             ("`a ∈ A` 已是记法 ⇒ **不该红**", "theorem t : a ∈ A := h", 0, None),
+            # ⚠ E00 切片 B 第 12 条：`PRELUDE_CALLS`（docstring 三大规则之一的"写全了前导实参"）
+            #   原来**整类零覆盖** ✗ —— 实测把它置空，7/7 仍全过 ✓ ⇒ 补这一条钉住它 ✓。
+            ("`And.left A B h` 写全了前导实参 ⇒ 该红",
+             "theorem t : And.left A B h := h", 1, "And.left 写全了前导参数（3 个实参）"),
         ]
         bad = 0
         for label, src, want_n, want_rule in cases:
@@ -521,6 +525,13 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     scanned = sum(1 for f in per_file if "exempt" not in f)
+    # ⚠ **零扫描 ≠ 绿** ✗✓（E00 切片 B 实测）：原来 `scanned == 0` 照样 `return 0` 并印
+    # 「OK —— **0 个文件**零旧写法」✗（实测 `--root skills` 就是 —— 目录存在但没有
+    # `.sokonanoda`）。对照 `audit-notation-paths.py:194-196` 有「扫不到 ⇒ exit 2」的地板 ✓。
+    if scanned == 0:
+        print("notation-lint: 扫到 **0 个文件** ⇒ **无法判定 ≠ 绿** ✗"
+              "（检查 --root 与课程树在不在）", file=sys.stderr)
+        return 2
     if args.json:
         print(
             json.dumps(
