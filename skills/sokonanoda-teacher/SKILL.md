@@ -422,6 +422,9 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   ⚠ **两个命令都编「项目」**（E22，0.73.0 起）：目标是服务端 `soko/project` 给的
   **模块根**（没答上来时退回工作区根），**不是当前打开的那个文件** ✗——所以要
   **只编一个文件**得走 CLI（`sokonanoda build <file.sokonanoda>`）；
+  **`Sokonanoda: Clean Cache (清除编译缓存)`**（E31，0.73.0 起）= **只清不编**
+  （清全局 + 模块根两处，通知给三个数 `清掉 N（全局 X · 项目 Y）`）——学习者
+  抱怨"缓存坏了 / 想从头来"又不想等一次重编时用它；
 - `soko/goals` / `soko/nextHole` / `soko/hints` / `soko/stateAt` 自定义请求可供
   工具深挖 goal 视图、提示与光标处 goal（见 `docs/protocol.md`）。
 

@@ -19,7 +19,7 @@
     "docs/design/by-tactics.md": 400,
     "docs/design/ci-parallelism.md": 240,
     "docs/design/closure-incremental.md": 155,
-    "docs/design/command-naming.md": 102,
+    "docs/design/command-naming.md": 103,
     "docs/design/compile-cache.md": 262,
     "docs/design/compiler-service-events.md": 138,
     "docs/design/course-bilingual.md": 87,

@@ -804,6 +804,84 @@ test("build streams per-file progress to the status bar and the Infoview (E23)",
   );
 });
 
+test("Clean Cache clears both stores and does not compile anything (E31)", async () => {
+  // **E31（用户：「vscode 命令缺一个 clean，清除缓存」）**。
+  //
+  // CLI 早就有「只清不编」（`build --clean` 清完立刻 return ✓），**扩展里没有入口** ✗：
+  // 15 条命令只有 build/rebuild，而 Rebuild 是「clean → build 串成一步」
+  // ⇒ 用户没有"清完就停"的办法。
+  //
+  // 判据（PLAN §E31 的三条 + 反假绿）：
+  //   ① spawn **只有一次**、且 argv 是 `build --json --clean <模块根>`
+  //      —— **绝不能跟着第二次 build** ✗（那正是 Rebuild 的行为，也是"clean 偷偷
+  //      编了一次"这个假动作）；
+  //   ② 报告里的**三个数**（removed/global/project）**逐字来自 CLI 的 `build.clean`
+  //      事件** —— 前端自己数就错了 ✗（只给总数还会把"只清了全局"藏起来）；
+  //   ③ 状态栏先动起来、结束退回（与 E23/E29 一致）。
+  const root = "/repo/courses/set-theory";
+  stubbedResponses["soko/project"] = () => ({
+    uri: "file:///repo/courses/set-theory/units/u01.sokonanoda",
+    version: 1,
+    project: {
+      entry: "units.u01",
+      root,
+      manifest: `${root}/sokonanoda.toml`,
+      requires_warning: null,
+      modules: [],
+      diagnostics: [],
+      counts: { modules: 1, compiled: 3, failed: 0, open: 0 },
+    },
+    reason: null,
+  });
+  try {
+    await activateExtension();
+    focus(fakeDocument("/repo/courses/set-theory/units/u01.sokonanoda"));
+    await settle();
+    assert.ok(
+      Object.keys(vscodeStub.__commands).includes("sokonanoda.clean"),
+      "package.json 与 registerCommand 都必须有 sokonanoda.clean",
+    );
+    // 三个数**故意互不相同**：总数 7 ≠ 全局 5 + 项目 2 之外的样子一眼可辨
+    //（谁把 project 写成 0、或前端自己数，断言就会红 ✓）。
+    setBuildEvents([{ type: "build.clean", removed: 7, global: 5, project: 2 }]);
+    spawns.length = 0;
+    vscodeStub.__statusBarHistory = [];
+    const text = await vscodeStub.__commands["sokonanoda.clean"]();
+
+    // ① 只清、不编：**一次** spawn，argv 带模块根。
+    assert.deepStrictEqual(
+      spawns.map((s) => s.args),
+      [["build", "--json", "--clean", root]],
+      "Clean 只能跑一次 `build --clean <模块根>`（**不许**跟着再 build 一次）",
+    );
+    // ② 三个数来自 CLI 事件（`（Nms）` 是耗时后缀，允许变化）。
+    assert.ok(
+      String(text).startsWith("sokonanoda clean：清掉 7 条缓存（全局 5 · 项目 2）（"),
+      `报告必须给三个数、且逐字来自 build.clean 事件：${text}`,
+    );
+    // ③ 状态栏：编译中那几帧里出现过"清除缓存"，且收工后不再有。
+    const frames = vscodeStub.__statusBarHistory.filter((line) =>
+      String(line).startsWith("$(sync~spin)"),
+    );
+    assert.deepStrictEqual(
+      frames,
+      ["$(sync~spin) Sokonanoda: 清除缓存…"],
+      `Clean 期间状态栏要有反馈：${JSON.stringify(vscodeStub.__statusBarHistory)}`,
+    );
+    assert.ok(
+      !String(vscodeStub.__statusBar.text).startsWith("$(sync~spin)"),
+      "结束必须退回（不能把「清除缓存」永远留在状态栏）",
+    );
+  } finally {
+    stubbedResponses["soko/project"] = () => ({
+      uri: "",
+      version: 1,
+      project: null,
+      reason: "no-imports",
+    });
+  }
+});
+
 test("diagnostics from other languages never drive soko/goals", async () => {
   await activateExtension();
   focus(fakeDocument("/repo/playground.sokonanoda"));

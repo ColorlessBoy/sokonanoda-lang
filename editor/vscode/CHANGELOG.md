@@ -1,5 +1,18 @@
 ## [0.73.0] — 2026-09-27
 
+### Added
+
+- **`Sokonanoda: Clean Cache (清除编译缓存)`** — clear the compile cache
+  *without* compiling anything. The CLI has always had this (`build --clean`
+  clears both the global cache and every module root's `.sokonanoda/compiled/`,
+  then returns), but the extension only exposed `Build` and `Rebuild` — and
+  `Rebuild` is "clean, then build" in one step, so there was no way to just
+  clear. The notification reports **three** numbers —
+  `清掉 N 条缓存（全局 X · 项目 Y）` — taken verbatim from the CLI's
+  `build.clean` event: "cleared 0 project entries" is precisely the fake action
+  the CLI comments warn about (a global-only clean leaves project entries in
+  place and the next build is all hits).
+
 ### Changed
 
 - **`Build` / `Rebuild` show real progress — and can be cancelled.** The CLI

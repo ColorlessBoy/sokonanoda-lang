@@ -189,6 +189,9 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 是同一条路——第一次按键慢、或在编辑器外改了依赖后面板像"没反应"，先 rebuild。
 ⚠ 扩展里的这两个命令**都编「项目」**（E22）：目标是 `soko/project` 的**模块根**，
 不是当前打开的文件 ✗（要只编一个文件用 CLI）。
+另有 `Sokonanoda: Clean Cache (清除编译缓存)`（E31）= **只清不编**（清全局 + 模块根两处，
+通知给三个数 `清掉 N（全局 X · 项目 Y）`）——「Rebuild 是 clean→build 串成一步」，
+要"清完就停"用这条。
 两种接线：
 
 - **opencode**：启动插件自动接线（解析原生 `sokonanoda-lsp`——仓库构建 /

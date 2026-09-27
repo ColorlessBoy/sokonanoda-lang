@@ -269,6 +269,12 @@ are hits instead of full recompiles. Two commands drive it from the editor:
   want it visible there too (committing the artifacts needs `git add -f`) — and the
   language server reads that directory first, so `build` warms exactly what the
   editor then opens. Single-file entries still live in the global cache.
+- **`Sokonanoda: Clean Cache (清除编译缓存)`** — clear the cache and **stop**:
+  no compile follows. It runs `build --clean <module root>`, which clears both
+  the global cache and the module root's `.sokonanoda/compiled/`, and reports the
+  three numbers from the CLI's `build.clean` event
+  (`清掉 N 条缓存（全局 X · 项目 Y）`). Use it when you want the next compile to
+  start from scratch but do not want to pay for a rebuild right now.
   `SOKONANODA_NO_PROJECT_ARTIFACTS=1` opts back into the global-only behaviour.
 
 Both write the CLI's JSON Lines events (`build.file` / `build.clean` /

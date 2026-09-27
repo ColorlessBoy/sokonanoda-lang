@@ -3,25 +3,25 @@
   "kind": "vscode-integration",
   "version": "0.73.0",
   "commit": "b1799c8dd6dce8aa8e1c7ce8c593cb756c51c312",
-  "dirty": false,
-  "date": "2026-09-27T14:21:42Z",
+  "dirty": true,
+  "date": "2026-09-27T14:26:53Z",
   "host": {
-    "system": "Linux",
-    "machine": "x86_64",
-    "release": "6.17.0-1022-azure"
+    "system": "Darwin",
+    "machine": "arm64",
+    "release": "25.6.0"
   },
-  "vscode": "1.106.0",
+  "vscode": "1.138.0",
   "tests": {
-    "passed": 32,
+    "passed": 3,
     "failed": 0,
     "pending": 0,
     "failing_cases": [],
     "failing_details": ""
   },
   "exit": 0,
-  "server": "0.73.0 (pid 2840) == 扩展 v0.73.0 (source=bundled)",
-  "lsp_sha256_16": "ea160745af000dba",
-  "log": "docs/e2e/logs/2026-09-27-b1799c8-vc1.106.0.log",
-  "profile": "release",
-  "grep": null
+  "server": "0.73.0 (pid 13292) == 扩展 v0.73.0 (source=bundled)",
+  "lsp_sha256_16": "33e4f0d86f58cd4f",
+  "log": "docs/e2e/logs/2026-09-27-b1799c8-vc1.138.0.log",
+  "profile": "debug",
+  "grep": "Clean Cache|build / rebuild|rewriting an unchanged"
 }

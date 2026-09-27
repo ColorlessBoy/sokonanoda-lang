@@ -633,6 +633,59 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("Clean Cache empties the project store and does not compile (E31)", async () => {
+    // **E31（用户：「vscode 命令缺一个 clean，清除缓存」）** —— 这一条钉**用户看得见
+    // 的结果**，而且是**实测数字**（不是"看起来清了"✗）：
+    //   ① 先 `build` 把项目缓存**填上**（前置：条目数 N > 0）；
+    //   ② 跑 `Clean Cache` ⇒ `<模块根>/.sokonanoda/compiled/` 条目数 **N → 0**；
+    //   ③ **不触发重编**：clean 之后缓存目录必须**仍然是空的**（等一会儿再数一次）
+    //      —— 这条专门防「clean 偷偷跟着编了一次」（= Rebuild 的行为）✗；
+    //   ④ 报告里三个数都来自 CLI 的 `build.clean` 事件。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    await waitFor("E31：项目视图就绪", async () => {
+      return typeof extensionApi?.project?.answer?.project?.root === "string";
+    });
+    const root = extensionApi.project.answer.project.root;
+    const compiledDir = path.join(root, ".sokonanoda", "compiled");
+    const entries = () =>
+      fs.existsSync(compiledDir) ? fs.readdirSync(compiledDir).filter((f) => f.endsWith(".json")) : [];
+
+    await vscode.commands.executeCommand("sokonanoda.build");
+    assert.ok(entries().length > 0, `前置：build 之后项目缓存里要有条目（实际 ${entries().length}）`);
+
+    const text = await vscode.commands.executeCommand("sokonanoda.clean");
+    assert.strictEqual(typeof text, "string", "clean 必须返回它的报告文本");
+    assert.match(
+      text,
+      /^sokonanoda clean：清掉 \d+ 条缓存（全局 \d+ · 项目 \d+）（\d+ms）$/,
+      `报告必须是三个数、且来自 CLI 事件：${text}`,
+    );
+    assert.strictEqual(
+      entries().length,
+      0,
+      `Clean 之后项目条目必须 N → 0（实际还剩 ${entries().length}）`,
+    );
+    // ③ 不重编：给它时间，缓存目录必须**仍然**是空的。
+    await sleep(1500);
+    assert.strictEqual(
+      entries().length,
+      0,
+      `Clean **不许**跟着重编（那是 Rebuild 的行为）：${JSON.stringify(entries())}`,
+    );
+
+    // **还原共享状态** ✓：这条用例把项目缓存清空了，而**后续用例默认夹具的闭包
+    // 已经在缓存里**（如 T-A60-2 的前置 `stamp.length > 0`）—— 实测漏了这一步
+    // ⇒ T-A60-2 当场判红（`前置：夹具的闭包必须已经在缓存里` ✗）。
+    // 纪律：**动了共享缓存的用例要自己负责预热回去** ✓
+    //（`docs/CI-FAILURES.md` 的同一条：共享缓存是跨用例的隐式状态）。
+    await vscode.commands.executeCommand("sokonanoda.build");
+    assert.ok(
+      entries().length > 0,
+      `收尾：必须把项目缓存预热回去，别把空缓存留给后面的用例（实际 ${entries().length}）`,
+    );
+  });
+
   test("doctor command returns a read-only source + version report", async () => {
     // 冒烟（docs/design/extension-server-policy.md §5 集成层）：doctor 命令可
     // 执行，返回报告文本且包含来源（source=）与版本行；只读、绝不抛。

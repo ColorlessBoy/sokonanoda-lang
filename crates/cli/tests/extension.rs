@@ -1347,7 +1347,11 @@ fn build_and_rebuild_commands_warm_the_compile_cache() {
     let commands = manifest["contributes"]["commands"]
         .as_array()
         .expect("contributes.commands");
-    for id in ["sokonanoda.build", "sokonanoda.rebuild"] {
+    // E31：第三条命令 —— **只清不编**（Rebuild 是 clean→build 串成一步）。
+    // 契约层能咬住的是"声明了就必须注册"（`package.json` ↔ `extension.js` 不漂移）；
+    // "真的只清不编 / 三个数来自 CLI 事件"由 stub 宿主那条判据钉
+    //（`test-extension-host.js::Clean Cache clears both stores and does not compile anything`）。
+    for id in ["sokonanoda.build", "sokonanoda.rebuild", "sokonanoda.clean"] {
         assert!(
             commands.iter().any(|c| c["command"].as_str() == Some(id)),
             "package.json must declare {id}"
@@ -1366,6 +1370,7 @@ fn build_and_rebuild_commands_warm_the_compile_cache() {
     for (id, needle) in [
         ("sokonanoda.build", "build"),
         ("sokonanoda.rebuild", "rebuild"),
+        ("sokonanoda.clean", "clean"),
     ] {
         let title = commands
             .iter()

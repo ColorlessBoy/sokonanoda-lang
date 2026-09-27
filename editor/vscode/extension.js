@@ -2041,6 +2041,83 @@ async function runBuild(context, { clean = false, courseProvider } = {}) {
   return text;
 }
 
+/// **E31**：`Clean Cache` —— **只清、不编**（用户：「vscode 命令缺一个 clean，清除缓存」）。
+///
+/// CLI 早就有这条语义（`build --clean` 清完**立刻** `return ExitCode::SUCCESS` ✓，
+/// 清**两处**：全局缓存 + 每个模块根的 `<root>/.sokonanoda/compiled/`），但扩展里
+/// 没有入口 ✗ —— 15 条命令只有 `build`/`rebuild`，而 Rebuild 是「clean → build
+/// **串成一步**」⇒ 用户没有"清完就停"的办法。
+///
+/// 三条纪律：
+///  * 目标与 E22 同源（**模块根**，不是当前文件）；
+///  * 报告**三个数**（`removed` / `global` / `project`，**全部逐字来自 CLI 的
+///    `build.clean` 事件** —— 前端自己数就错了 ✗）。只给总数会把"只清了全局"
+///    这个假动作藏起来 ✗：`crates/cli/src/build.rs` 的注释点名的就是它
+///    （「只清全局 ⇒ rebuild 命中项目条目 ⇒ 表面清空了、实际什么都没重编」）；
+///  * **绝不跟着再 build** ✗（那是 Rebuild 的行为；"clean 偷偷编了一次"是这条
+///    命令最要防的假动作）。
+async function runClean(context, { courseProvider } = {}) {
+  const channel = buildOutput(context);
+  const target = buildTarget();
+  if (!target) {
+    vscode.window.showWarningMessage(
+      "sokonanoda: 先打开一个 .sokonanoda 文件或一个工作区文件夹，再清缓存。",
+    );
+    return undefined;
+  }
+  let command;
+  try {
+    command = resolveCliCommand();
+  } catch {
+    command = undefined;
+  }
+  if (!command) {
+    vscode.window.showErrorMessage(
+      "sokonanoda: 找不到 CLI（清缓存需要它；VSIX 自带，其他情况见 sokonanoda doctor）。",
+    );
+    return undefined;
+  }
+
+  const started = Date.now();
+  channel.appendLine(`> ${command} build --clean ${target}`);
+  // 与 E23/E29 同款：状态栏先动起来，**成对**地退回（不能把"清除缓存"永远留着）。
+  applyProgress({ phase: "begin", label: "清除编译缓存…", percent: null, detail: "清除缓存…" });
+  let result;
+  try {
+    result = await runBuildProcess(command, ["build", "--json", "--clean", target], channel);
+  } finally {
+    applyProgress({ phase: "end", label: null, percent: null, detail: "" });
+  }
+  if (result?.error) {
+    const text = `sokonanoda: 清缓存失败 — ${result.error}`;
+    channel.appendLine(text);
+    vscode.window.showErrorMessage(text);
+    return undefined;
+  }
+  const event = parseBuildEvents(result?.stdout ?? "").find((e) => e.type === "build.clean");
+  if (!event) {
+    // 拿不到事件就**别编数字** ✗ —— 说清楚"没拿到"，而不是报一个前端猜的 0。
+    const text = "sokonanoda: 清缓存没有拿到 build.clean 事件（CLI 版本太老？）";
+    channel.appendLine(text);
+    vscode.window.showWarningMessage(text);
+    return undefined;
+  }
+  const text =
+    `sokonanoda clean：清掉 ${event.removed ?? 0} 条缓存` +
+    `（全局 ${event.global ?? 0} · 项目 ${event.project ?? 0}）（${Date.now() - started}ms）`;
+  channel.appendLine(text);
+  vscode.window.showInformationMessage(text, "显示输出").then((pick) => {
+    if (pick) channel.show(true);
+  });
+
+  // 缓存空了 ⇒ 读缓存的视图重算（与 runBuild 同一套）。
+  goalProvider?.refresh?.();
+  projectProvider?.refresh?.();
+  loadProject();
+  courseProvider?.refresh?.();
+  return text;
+}
+
 function registerCommands(context, provider, courseProvider) {
   const showStatus = async () => {
     const editor = vscode.window.activeTextEditor;
@@ -2110,6 +2187,10 @@ function registerCommands(context, provider, courseProvider) {
     ),
     vscode.commands.registerCommand("sokonanoda.rebuild", () =>
       runBuild(context, { clean: true, courseProvider }),
+    ),
+    // E31：只清不编（Rebuild 是 clean→build 串成一步，这条是"清完就停"）。
+    vscode.commands.registerCommand("sokonanoda.clean", () =>
+      runClean(context, { courseProvider }),
     ),
     // 记法缩写改写器（NI-2）：键位 Tab，`when` 子句由 abbreviation-rewriter.js
     // 置位的 context key 把关（普通 Tab 照旧缩进）。命令注册在这里、状态机在
