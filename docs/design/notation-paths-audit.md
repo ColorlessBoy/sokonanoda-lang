@@ -45,6 +45,13 @@
 | `query/mod.rs::runs` | Infoview 里**每一个**目标/类型/假设的着色：7 条 wire 字段全出自它（`query/mod.rs:700/707/767/795/809/819/830`） | 改调唯一接口 `DisplayNotations::runs`（分段与记法表无关 ⇒ `default()` 调它是**约定**不是绕过，已写进接口文档） |
 | `by.rs:965`（`have` 值类型不匹配）、`:1349/:1350/:1351`（`apply` 目标不匹配，同一条 `format!`）、`:1486`（`cases` dependent elimination）、`:1550`（`cases` 被消去项不是归纳值）、`:1560`（`cases` 头不在归纳表）、`:2015`（`exact` 类型不匹配） | **用户可见的诊断消息**（错误路径）；`prefix_src` 本来就在每个函数签名里 | 新增 `display_expr(prefix_src, expr)` = `fold_for_display(prefix_src, &render_expr(expr))`（**零签名改动** ✓） |
 
+**⚠ E04 追加一条（2026-09-27，v0.74.0）**：`resolve_hovers`（`compile/check/mod.rs`）
+产出 `HoverType.text`（用户可见的 `expr : type` 行）而**没过折叠** ✗ —— 已迁到
+`display.fold` ✓（判据见台账 G-50）。基线**仍写 59**：守卫数的是**未迁移的绕过**，
+这一处此前被上面那行「已迁 ✓」的**错误结论**盖住了（守卫按 `fold`/`render` 的调用
+点计数，`resolve_hovers` 里没有调用点 ⇒ 它本来就在「台账不做/立判据」的记账里，
+不是 59 里的迁移项）⇒ **本次是纠正结论 + 补一条迁移**，基线口径不变 ✓。
+
 **⚠ 修正既有审计**：`docs/design/duplication-audit.md` 的 C 组把 `by.rs` 22 条全判成
 "**全部在判定侧，一个显示面的都没有**" ✗ —— 实测 **8 条是显示面**（证据
 `by.rs:963-967 / 1347-1352 / 1483-1487 / 1548-1551 / 1558-1561 / 2013-2016`）。
@@ -83,7 +90,7 @@
 | 面 | 结论 |
 |---|---|
 | **Infoview 目标/类型/假设的着色** | ✅ 已迁（`query::runs` ⇒ 唯一接口）；A1/A2 另修了两处**折叠本身**的缺口（`->` 不折、`{a}` 不折）✓ |
-| **LSP hover** | ✅ 走 `HoverType.text`（内核 pp + `fold_for_display` 一族，T-U11 A 组已迁 ✓）；**新发现**：开放练习的**签名**以前一条 hover 行都没有 ⇒ 在未解出的练习里 hover/F12/高亮/引用**全部失效**（A3 的根因，已修 ✓） |
+| **LSP hover** | ✅ 走 `HoverType.text`；⚠ **2026-09-27（E04）更正**：本行早先写「内核 pp + `fold_for_display` 一族，T-U11 A 组已迁 ✓」**不准确** ✗ —— `HoverType.text` 实际出自 `compile/check/mod.rs::resolve_hovers`，那里是 `pp.pp_expr(ty)` **直出、没过 `fold`** ✗（同报告另外三处显示面都折了 ⇒ 只有这一条漏 ✗）。E04 已接上 `&DisplayNotations` + `display.fold` ✓，判据三层（front 真相 / LSP wire / e2e 子表达式 hover）+ 反向验证 ✓，台账 **G-50**。**新发现**：开放练习的**签名**以前一条 hover 行都没有 ⇒ 在未解出的练习里 hover/F12/高亮/引用**全部失效**（A3 的根因，已修 ✓） |
 | **诊断 message** | ✅ 已迁（`elab.rs` 的 `render_msg` + `by.rs` 的 8 处 `display_expr`）✓ |
 | **状态栏 / 项目树** | 读 wire 的**计数**（不是文本）⇒ 与记法无关 ✓；但**未处理区域不给 goal/hover/诊断**那条"诚实降级"本轮**未做**（见批次 N 之外的进度展示需求）⏳ |
 | **CLI `--json` 的 display 字段** | 与 wire 同源（`ty_text`/`val_text`/`goal*`）⇒ 随上面几条一起好 ✓ |

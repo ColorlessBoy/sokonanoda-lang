@@ -76,15 +76,21 @@ async fn hover_on_operator_shows_enclosing_type() {
 #[tokio::test]
 async fn hover_on_brackets_of_and_right_group_shows_step_type() {
     // 用户样例 1：`(And.right a (Not a) h)` 的 `(` 与 `)` 都显示
-    // `And.right a (Not a) h : Not a`——`Not` 保持折叠、`a` 是真名。
+    // `And.right a (Not a) h : ¬ a`——**左边是源码切片**（`And.right …`，原样 ✓），
+    // **右边是类型文本**：**E04 起过折叠** ⇒ `Not a` 折成 `¬ a` ✓
+    //（此前这里是 `Not a` ✗ —— 类型面漏点形式，用户看得见）。
     let (mut service, _socket) = open_and_wait(AND_NOT_ABSURD).await;
     let group = AND_NOT_ABSURD.find("(And.right").expect("group exists");
     let close = group_close(AND_NOT_ABSURD, group);
     for offset in [group, close] {
         let markup = hover_markup_at(&mut service, AND_NOT_ABSURD, offset).await;
         assert!(
-            markup.contains("And.right a (Not a) h : Not a"),
-            "bracket {offset} must show the step type: {markup:?}"
+            markup.contains("And.right a (Not a) h : ¬ a"),
+            "bracket {offset} must show the step type（E04 起类型面折记法）: {markup:?}"
+        );
+        assert!(
+            !markup.contains(": Not a"),
+            "类型面不许漏点形式 `Not `（E04 判据）: {markup:?}"
         );
     }
     shutdown(&mut service).await;

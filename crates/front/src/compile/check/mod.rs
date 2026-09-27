@@ -1217,8 +1217,15 @@ pub(crate) fn failed_state(
 /// Infer a type per recorded sub-expression (in its binder scope) and render
 /// it as text. Panics (kernel rejection on intermediate sub-terms) are caught
 /// per node so one bad sub-term cannot kill the hover map.
+///
+/// **E04（0.74.0）**：这里的文本是**显示面**（编辑器 / Infoview 的 `expr : type` 行）
+/// ⇒ 必须与另外三处（声明 `ty_text`、Infoview `⊢`、`by` 步进的 goals）**走同一个
+/// 折叠入口** `display.fold` ✓。以前它是内核 pp **直出** ✗ ⇒ 悬停里漏出
+/// `Set.subset α A B` / `forall …` 这类点形式（用户看得见 ✗）。判据：
+/// `crates/front/src/compile/tests.rs::hover_types_are_folded_like_the_other_display_surfaces`。
 pub(crate) fn resolve_hovers(
     env: &sokonanoda::util::ExportFile<'_>,
+    display: &crate::display::DisplayNotations,
     cmd_hovers: Vec<CmdHover<'_>>,
     out: &mut Vec<HoverType>,
     out_cmds: &mut Vec<usize>,
@@ -1240,7 +1247,9 @@ pub(crate) fn resolve_hovers(
                     })
                 }));
                 match result {
-                    Ok(t) => name_loose_bvars(&t, &node.scope_names),
+                    // **E04**：pp 之后**必须过折叠**（`$N` 还原在前、折叠在后——
+                    // 折叠是纯文本改写，与松散变量名无关 ✓）。
+                    Ok(t) => display.fold(&name_loose_bvars(&t, &node.scope_names)),
                     // infer_under_binders panic（delta 展开限制）：保留 span、
                     // text 置空——LSP 层的括号回退仍能定位到正确的子表达式，
                     // hover 显示源码切片（不带类型后缀）。

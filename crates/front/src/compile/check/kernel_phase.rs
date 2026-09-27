@@ -524,7 +524,14 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
             }
         }
         let mut hover_cmds = Vec::new();
-        resolve_hovers(&env, cmd_hovers, &mut report.hovers, &mut hover_cmds);
+        // E04：hover 也是显示面 ⇒ 把显示表传进去（文本要过 `display.fold`）。
+        resolve_hovers(
+            &env,
+            &display,
+            cmd_hovers,
+            &mut report.hovers,
+            &mut hover_cmds,
+        );
         report.hover_cmds = hover_cmds;
         report.checks = out
             .events

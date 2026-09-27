@@ -940,3 +940,42 @@ N1–N7 讲的是**语言**（怎么解析、怎么消解、怎么判卷）；�
 
 **台账**：G-47（记法缺失，fixed）· **G-48（零元糖操作数，open）** · G-49（类型错误报
 裸 de Bruijn 编号 `期望 $4，实际是 $5`，open——写复现件时实测到的诊断质量问题）。
+
+## 18. E04（0.74.0）：hover 的类型面接上折叠（2026-09-27）
+
+**做**：`crates/front/src/compile/check/mod.rs::resolve_hovers` 的文本从
+`pp.pp_expr(ty)` **直出** ✗ 改成 `display.fold(&name_loose_bvars(…))` ✓
+（`$N` 还原在前、折叠在后 —— 折叠是纯文本改写，与松散变量名无关 ✓），
+并把 `&DisplayNotations` 从调用点（`check/kernel_phase.rs`，那里本来就有 `display` ✓）传进去。
+
+**为什么这条以前没人发现**：同一份报告里另外三处显示面（声明 `ty_text`、Infoview `⊢`、
+`by` 步进的 goals）都过 `fold` ✓，只有 hover 这条漏 ✗；而
+`docs/design/notation-paths-audit.md` 的「用户可见面」表里那一行早先写的是
+「**已迁 ✓**」——**不准确的结论把缺口盖住了** ✗（已更正，见该文件 §5）。
+⇒ 教训与 AGENTS.md 的「真相与显示是两条路」同源：**结论也要有判据**，
+「某面已迁」这种话必须能指到**调用点**或**一条会判红的测试**。
+
+**用户看得见的变化**：编辑器/Infoview 里悬停**子表达式或假设**时，类型面从
+`Set.subset α A B` / `Not a` / `forall …` 变成 `A ⊆ B` / `¬ a` / `∀ …` ✓
+（**悬停声明名**那条走 `ty_text`，本来就折 ✓ —— 所以 e2e 里那条老断言一直绿 ✗，
+它测不到这条缝 ✓）。
+
+**判据三层**：
+* **真相层** `crates/front/src/compile/tests.rs::hover_types_are_folded_like_the_other_display_surfaces`
+  （新写，**修前判红**：文本里没有 `⊆`、却有 `Set.subset `）；
+* **wire 契约层** `crates/lsp/src/tests/hover_brackets.rs::hover_on_brackets_of_and_right_group_shows_step_type`
+  （`… h : ¬ a` + **反向**断言类型面不许出现 `: Not `）；
+* **用户可见层** e2e `editor/vscode/src/test/extension.test.js` 的记法 hover 那条
+  **补了子表达式 hover**（夹具 `units/u01.sokonanoda:11` 的假设使用处 `h`）。
+
+**反向验证**（不改代码 ✓）：`SOKO_NO_NOTATION_FOLD=1 cargo test -p sokonanoda-front
+--lib hover_types_are_folded_like_the_other_display_surfaces` ⇒ **判红** ✓（实测 exit 101）。
+
+**同步更新的旧判据**（它们钉的是修前的点形式 ⇒ 必须一起改，否则"改了行为没动测试" ✗）：
+front 5 条（`Prop -> Prop`→`Prop → Prop`、`Nat -> Nat`→`Nat → Nat`、
+`b -> a -> And b a`→`b → a → b ∧ a`、`And a b`→`a ∧ b`、
+`Not a`→`¬ a` 等 4 处期望值**按实测文本**写，含 `a ∧ (¬ a)` 的括号）+ LSP 1 条。
+**实测数字**：front 全量 **748 passed / 0 failed** · LSP 全量 **164 passed** ·
+CLI 全量 **25 target / 0 FAILED** · 完整 `scripts/soko gate` **exit 0** ✓。
+
+**台账**：**G-50**（fixed）。

@@ -379,6 +379,26 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       !text.includes("Set.subset "),
       `hover 不应漏点形式 Set.subset（实际 = ${text}）`,
     );
+
+    // **E04 面**：上面那条悬停的是**声明名**（走 `ty_text`，早就折了）。
+    // 这一条悬停的是**子表达式 `h`（假设的使用处）** —— 它的类型文本走
+    // `resolve_hovers`，**E04 之前是内核 pp 直出** ✗ ⇒ 屏幕上会显示
+    // `h : Set.subset α A B` ✗。E04 起同一个折叠入口 ⇒ `h : A ⊆ B` ✓。
+    const bodyCol = lines[line].lastIndexOf("h");
+    assert.ok(bodyCol > col, "夹具前提：该行末尾要有假设 `h` 的使用处");
+    const bodyText = await hoverTextAt(entry, line, bodyCol);
+    assert.ok(
+      bodyText.trim().length > 0,
+      `假设使用处的 hover 不该是空的（实际 = ${JSON.stringify(bodyText)}）`,
+    );
+    assert.ok(
+      bodyText.includes("⊆"),
+      `假设使用处的类型面应折成记法 ⊆（E04；实际 = ${bodyText}）`,
+    );
+    assert.ok(
+      !bodyText.includes("Set.subset "),
+      `假设使用处的类型面不应漏点形式 Set.subset（E04；实际 = ${bodyText}）`,
+    );
   });
 
   test("notation input: the rewriter produces ∧ and hover teaches \\and", async () => {

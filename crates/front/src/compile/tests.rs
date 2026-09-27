@@ -822,8 +822,8 @@ fn document_report_produces_hover_types_for_subexpressions() {
             .collect::<Vec<_>>()
     );
     assert!(
-        report.hovers.iter().any(|h| h.text == "Prop -> Prop"),
-        "expected a function-type hover, got {:?}",
+        report.hovers.iter().any(|h| h.text == "Prop → Prop"),
+        "expected a function-type hover（E04 起折成 `→`）, got {:?}",
         report
             .hovers
             .iter()
@@ -838,6 +838,38 @@ fn document_report_produces_hover_types_for_subexpressions() {
             .iter()
             .map(|h| h.text.clone())
             .collect::<Vec<_>>()
+    );
+}
+
+/// **E04 判据（真相层）**：hover 的 `expr : type` 行**必须过记法折叠** ——
+/// 类型文本里漏出点名形式（`Set.subset α A B` / `forall …`）就是缺陷 ✗。
+///
+/// **为什么以前漏了**：`resolve_hovers`（`compile/check/mod.rs`）的文本是
+/// `pp.pp_expr(ty)` **直出** ✗ —— 显示层的折叠只接在另外三处（Infoview `⊢`、
+/// 声明类型 `ty_text`、`by` 步进的 goals）✗。用户看得见的那一面：
+/// 编辑器 / Infoview 里悬停一个假设或子表达式，类型行写成点名形式。
+///
+/// **反向验证**（不改代码 ✓）：`SOKO_NO_NOTATION_FOLD=1 cargo test -p sokonanoda-front
+/// --lib hover_types_are_folded_like_the_other_display_surfaces` ⇒ 必须**判红** ✗
+/// （那个开关让显示表返回**空表** ⇒ 折不出来）。
+#[test]
+fn hover_types_are_folded_like_the_other_display_surfaces() {
+    let file = parse(
+        "def Set (α : Type) : Type := α -> Prop\n\
+         def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x\n\
+         infix:50 \" ⊆ \" => Set.subset\n\
+         def use (α : Type) (A B : Set α) (h : Set.subset α A B) : Set.subset α A B := h\n",
+    )
+    .expect("parse");
+    let report = check_document(&file);
+    let texts: Vec<String> = report.hovers.iter().map(|h| h.text.clone()).collect();
+    assert!(
+        texts.iter().any(|t| t.contains('⊆')),
+        "hover 的类型文本里应当出现折叠后的 `⊆`（用户看得见的那一面）✗：{texts:?}"
+    );
+    assert!(
+        !texts.iter().any(|t| t.contains("Set.subset ")),
+        "hover 的类型文本里漏出了点形式 `Set.subset ` ✗：{texts:?}"
     );
 }
 
@@ -1325,8 +1357,8 @@ fn hover_map_covers_subexpressions() {
         );
     }
     assert!(
-        report.hovers.iter().any(|h| h.text == "Nat -> Nat"),
-        "expected the outermost `Nat -> Nat` hover, got {:?}",
+        report.hovers.iter().any(|h| h.text == "Nat → Nat"),
+        "expected the outermost `Nat → Nat` hover（E04 起 `->` 折成 `→`）, got {:?}",
         report
             .hovers
             .iter()
@@ -3470,17 +3502,15 @@ fn hover_rows_of_and_not_absurd_show_real_names() {
             .find(|h| h.span.start.offset == start && h.span.end.offset == end)
             .unwrap_or_else(|| panic!("no hover row at {start}..{end}"))
     };
-    // 用户样例 1：`(And.right a (Not a) h)` → `Not a`（Not 保持折叠）
-    assert_eq!(row(right_group, right_app_end).text, "Not a");
+    // 用户样例 1：`(And.right a (Not a) h)` → `¬ a`
+    // （E04 起 hover 也过折叠 ⇒ `Not _` 折成 `¬ _`、`And _ _` 折成 `_ ∧ _`、`forall` → `∀`）
+    assert_eq!(row(right_group, right_app_end).text, "¬ a");
     // 用户样例 2：`And.left a (Not a) h` → `a`
     assert_eq!(row(left_group, left_app_end).text, "a");
     // 假设的使用：`h` → `And a (Not a)`
-    assert_eq!(row(h_of_right, h_of_right + 1).text, "And a (Not a)");
+    assert_eq!(row(h_of_right, h_of_right + 1).text, "a ∧ (¬ a)");
     // 部分应用：`And.right a (Not a)` → `And a (Not a) -> Not a`
-    assert_eq!(
-        row(right_group, right_partial_end).text,
-        "And a (Not a) -> Not a"
-    );
+    assert_eq!(row(right_group, right_partial_end).text, "a ∧ (¬ a) → ¬ a");
     // 整条应用链 → `False`
     assert_eq!(row(right_group, left_app_end).text, "False");
     // lambda 整体 → 带真名的 forall
@@ -3489,7 +3519,7 @@ fn hover_rows_of_and_not_absurd_show_real_names() {
         .iter()
         .find(|h| src[h.span.start.offset..h.span.end.offset].starts_with("fun (a : Prop) (h"))
         .expect("lambda row");
-    assert_eq!(lambda.text, "forall (a : Prop), And a (Not a) -> False");
+    assert_eq!(lambda.text, "∀ (a : Prop), a ∧ (¬ a) → False");
 }
 
 #[test]
@@ -3525,11 +3555,12 @@ fn hover_rows_of_partial_applications_use_scope_names() {
     let intro = src.find("And.intro b a").expect("And.intro b a exists");
     assert_eq!(
         row(intro, intro + "And.intro b a".len()).text,
-        "b -> a -> And b a"
+        // E04：hover 文本过折叠 ⇒ `->` 折成 `→`、`And _ _` 折成 `_ ∧ _`
+        "b → a → b ∧ a"
     );
     // And.right a b：剩余类型里的 scope 引用是真名
     let arb = src.find("And.right a b").expect("And.right a b exists");
-    assert_eq!(row(arb, arb + "And.right a b".len()).text, "And a b -> b");
+    assert_eq!(row(arb, arb + "And.right a b".len()).text, "a ∧ b → b");
     // 全应用：And.right a b h : b
     assert_eq!(row(arb, arb + "And.right a b h".len()).text, "b");
 }
@@ -3667,8 +3698,8 @@ fn hover_rows_exist_for_proposition_and_axioms() {
         "should have hover rows for type sub-expressions"
     );
     assert!(
-        report.hovers.iter().any(|h| h.text.contains("And a b")),
-        "should have hover rows mentioning And a b"
+        report.hovers.iter().any(|h| h.text.contains("a ∧ b")),
+        "should have hover rows mentioning a ∧ b（E04 起折叠）"
     );
 }
 #[test]
