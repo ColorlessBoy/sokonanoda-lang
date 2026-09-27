@@ -238,21 +238,25 @@ command.
 
 ## Build and rebuild the compile cache
 
-> **`Sokonanoda: Build (编译当前文件/工作区，预热缓存)`（`alt+b`）在大项目上是分钟级**：它按**文件**逐个预热，
+> **`Sokonanoda: Build (编译项目，预热缓存)`（`alt+b`）在大项目上是分钟级**：它编**整个项目**，
 > 每个文件各编一遍自己那一份 import 闭包（文件之间不共享）。实测
 > `courses/set-theory`（35 个文件）约 **2.5 分钟**（debug CLI、冷热都一样——
 > 冷热差异取决于项目缓存有没有命中，见 `docs/PERF.md`）。只想快速看一个文件时
-> 直接打开它即可，不必先 `build`。
+> 直接打开它即可，不必先 `build`（要只编一个文件用 CLI：
+> `sokonanoda build <file.sokonanoda>`）。
 
 The compiler keeps a **persistent compile cache** (`.sokonanoda` → compiled
 report), so the second run of a file — and the first keystroke in a project —
 are hits instead of full recompiles. Two commands drive it from the editor:
 
-- **`Sokonanoda: Build (编译当前文件/工作区，预热缓存)`** (`alt+b`) — compile the active `.sokonanoda` file
-  (the CLI follows its `import` closure), or the first workspace folder when no
-  file is open. The result line reports `files · compiled · hit · failed`.
+- **`Sokonanoda: Build (编译项目，预热缓存)`** (`alt+b`) — compile the **project**:
+  the module root the language server reports for the active document
+  (`soko/project` → `root`), or the first workspace folder while the server has
+  not answered yet. It is never "just the file you have open" — the CLI compiles
+  exactly what you hand it, so passing the file made a 35-file course report
+  `1 个文件`. The result line reports `files · compiled · hit · failed`.
 - **`Sokonanoda: Rebuild (清空编译缓存后重编译)`** (`alt+shift+b`) — the same, but first runs
-  `build --clean` to drop the cache, i.e. "recompile everything from scratch"
+  `build --clean <module root>` to drop the cache, i.e. "recompile everything from scratch"
   (it clears **both** the global cache and the module root's `.sokonanoda/`).
   Project artifacts live in **`<module root>/.sokonanoda/`** — a self-ignoring
   `.gitignore` (one line, `*`) keeps them out of your repository, so there is

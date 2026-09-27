@@ -39,7 +39,7 @@ T-B2 照"目标"两列改，T-B3 走四份同步。
 | 9 | `sokonanoda.restartServer` | `restart server` | `sokonanoda` | `sokonanoda: restart server` | `Sokonanoda` | `Restart Server (重启服务器)` |
 | 10 | `sokonanoda.openInfoview` | `sokonanoda: 打开目标面板 (Infoview)` | `sokonanoda` | `sokonanoda: sokonanoda: 打开目标面板 (Infoview)` ✗ **前缀双写** | `Sokonanoda` | `Infoview (目标面板)` |
 | 11 | `sokonanoda.doctor` | `doctor: 诊断服务器与版本` | `sokonanoda` | `sokonanoda: doctor: 诊断服务器与版本` ✗ | `Sokonanoda` | `Doctor (诊断服务器与版本)` |
-| 12 | `sokonanoda.build` | `build（编译当前文件/工作区，预热缓存）` | `sokonanoda` | `sokonanoda: build（编译当前文件/工作区，预热缓存）` | `Sokonanoda` | `Build (编译当前文件/工作区，预热缓存)` |
+| 12 | `sokonanoda.build` | `build（编译当前文件/工作区，预热缓存）` | `sokonanoda` | `sokonanoda: build（编译当前文件/工作区，预热缓存）` | `Sokonanoda` | `Build (编译项目，预热缓存)`（E22 起：目标 = 模块根，不再是当前文件） |
 | 13 | `sokonanoda.rebuild` | `rebuild（清空编译缓存后重编译）` | `sokonanoda` | `sokonanoda: rebuild（清空编译缓存后重编译）` | `Sokonanoda` | `Rebuild (清空编译缓存后重编译)` |
 | 14 | `sokonanoda.project.refresh` | `sokonanoda: refresh project view` | — | `sokonanoda: refresh project view` | `Sokonanoda` | `Refresh Project View (刷新项目视图)` |
 | 15 | `sokonanoda.input.replaceAbbreviation` | `替换记法缩写（\and → ∧）` | `sokonanoda` | `sokonanoda: 替换记法缩写（\and → ∧）` | `Sokonanoda` | `Replace Notation Abbreviation (替换记法缩写：\and → ∧)` |

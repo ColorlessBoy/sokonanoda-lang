@@ -1360,7 +1360,8 @@ fn build_and_rebuild_commands_warm_the_compile_cache() {
     // 命令面板标题里带 build/rebuild 字样（用户是照这个名字找的）。
     //
     // **大小写不敏感**（T-B2 / R-4）：R-4 要求命令词首字母大写 ⇒ 标题是
-    // `Build (编译当前文件/工作区，预热缓存)`；原来的 `contains("build")` 会因为
+    // `Build (编译项目，预热缓存)`（E22 起目标 = 模块根；更早写的是"编译当前
+    // 文件/工作区"）；原来的 `contains("build")` 会因为
     // 大写 B 而判红 ✗。找的是"这个名字还在不在"，不是它的字面大小写。
     for (id, needle) in [
         ("sokonanoda.build", "build"),

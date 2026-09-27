@@ -121,7 +121,7 @@
       },
       {
         "command": "sokonanoda.build",
-        "title": "Build (编译当前文件/工作区，预热缓存)",
+        "title": "Build (编译项目，预热缓存)",
         "category": "Sokonanoda"
       },
       {

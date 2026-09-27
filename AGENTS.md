@@ -185,8 +185,10 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 （同格式同键、自忽略；`--clean` **两处都清**；逃生门
 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`；设计 `docs/design/project-artifacts.md`）。
 `sokonanoda build [--clean] [<file>|<dir>]`（CLI）与编辑器里的
-`Sokonanoda: Build (编译当前文件/工作区，预热缓存)`（`alt+b`）/ `Sokonanoda: Rebuild (清空编译缓存后重编译)`（`alt+shift+b`，先清缓存）
+`Sokonanoda: Build (编译项目，预热缓存)`（`alt+b`）/ `Sokonanoda: Rebuild (清空编译缓存后重编译)`（`alt+shift+b`，先清缓存）
 是同一条路——第一次按键慢、或在编辑器外改了依赖后面板像"没反应"，先 rebuild。
+⚠ 扩展里的这两个命令**都编「项目」**（E22）：目标是 `soko/project` 的**模块根**，
+不是当前打开的文件 ✗（要只编一个文件用 CLI）。
 两种接线：
 
 - **opencode**：启动插件自动接线（解析原生 `sokonanoda-lsp`——仓库构建 /

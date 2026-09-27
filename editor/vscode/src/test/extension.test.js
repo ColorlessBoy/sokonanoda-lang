@@ -125,6 +125,22 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     await vscode.window.showTextDocument(uri, { preview: false });
   }
 
+  /// 项目根下 `.sokonanoda` 文件的个数 —— **与 CLI 的 `build <dir>` 同一口径**
+  /// （`crates/cli/src/build.rs::collect_files`：递归、只认 `.sokonanoda` 扩展名）。
+  /// E22 的 e2e 判据拿它当期望值，免得把夹具的文件数写死。
+  function countSokonanodaFiles(root) {
+    let count = 0;
+    const walk = (dir) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.name.endsWith(".sokonanoda")) count += 1;
+      }
+    };
+    walk(root);
+    return count;
+  }
+
   /// 项目树的第一行（等真实 `soko/project` 答案到达）。
   ///
   /// 单文件是**一条占位行**（没有 children），项目是一条根行（有 children）——
@@ -576,24 +592,44 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     // 冒烟：两个命令都注册；build 走真实 CLI 子进程并把 build.summary 渲染成
     // 人话返回（与 doctor 一样返回文本，测试可断言）；rebuild 额外报告清掉的
     // 缓存条数（`build --clean` 的 build.clean 事件）。
+    //
+    // **E22 起目标是「项目」**（用户 I2①：「点哪个文件，编译哪个文件」）：
+    // 活动文件是夹具入口 `units/u01.sokonanoda`（有 `import lib.Set`）⇒ 模块根
+    // = 夹具工作区根 ⇒ 编的必须是**整个项目**，而不是活动文件那一个。
+    // 判据钉在**用户看得见的数字**上：通知里的 `N 个文件`（= CLI 的
+    // `build.summary.files`）—— 修前这里是 1（只有活动文件）。
     const commands = await vscode.commands.getCommands(true);
     for (const id of ["sokonanoda.build", "sokonanoda.rebuild"]) {
       assert.ok(commands.includes(id), `${id} must be registered`);
     }
-    const uri = await writeDoc("build-smoke.sokonanoda", LESSON_CLEAN);
-    const doc = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(doc);
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    // build 的目标取自服务端 `soko/project` 的模块根 ⇒ 先等那份答案到
+    // （与声明栏/项目树同一份，客户端不自己找清单）。
+    await waitFor("E22：项目视图就绪（build 的目标取它的 root）", async () => {
+      return typeof extensionApi?.project?.answer?.project?.root === "string";
+    });
+    const root = extensionApi.project.answer.project.root;
+    const expected = countSokonanodaFiles(root);
+    assert.ok(
+      expected > 1,
+      `夹具项目必须不止一个文件，否则这条断言会空转（数到 ${expected} 个）`,
+    );
     const built = await vscode.commands.executeCommand("sokonanoda.build");
     assert.strictEqual(typeof built, "string", "build must return its summary text");
-    assert.ok(
-      built.includes("sokonanoda build") && /\d+ 个文件/.test(built),
-      `build summary must name the file count, got: ${built}`,
+    const files = Number((/build：(\d+) 个文件/.exec(built) ?? [])[1]);
+    assert.strictEqual(
+      files,
+      expected,
+      `Build 必须编**整个项目**（${expected} 个文件），不是活动文件那一个 —— 实际：${built}`,
     );
     const rebuilt = await vscode.commands.executeCommand("sokonanoda.rebuild");
     assert.strictEqual(typeof rebuilt, "string", "rebuild must return its summary text");
+    const removed = Number((/清掉 (\d+) 条缓存/.exec(rebuilt) ?? [])[1]);
     assert.ok(
-      rebuilt.includes("rebuild") && rebuilt.includes("清掉"),
-      `rebuild summary must report the cleaned cache entries, got: ${rebuilt}`,
+      rebuilt.includes("rebuild") && removed >= 1,
+      "Rebuild 必须真的清掉**项目**的缓存条目（`--clean` 不带目标时实测是 0，" +
+        `紧跟的 build 全是命中）—— 实际：${rebuilt}`,
     );
   });
 

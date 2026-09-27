@@ -2,6 +2,16 @@
 
 ### Changed
 
+- **`Build` / `Rebuild` compile the project, not the file you happen to have
+  open.** Both commands passed the active `.sokonanoda` file to the CLI, and the
+  CLI compiles exactly what you hand it — so on a 35-file course the status line
+  said `1 个文件` and every other file's cache stayed cold (the complaint that
+  started this: *"点哪个文件，编译哪个文件"*). The target is now the **module
+  root** the language server reports for the active document (`soko/project` →
+  `root`), falling back to the workspace folder while the server has not answered
+  yet. It is a directory in every case, never a single file; to compile one file
+  on purpose, use the CLI: `sokonanoda build <file.sokonanoda>`.
+
 - **You can see that it is compiling.** The language server reports `$/progress`
   around every compile; the extension turns it into a status-bar *compiling…*
   state, a three-line progress block in the Infoview, and a whole-document mark
@@ -22,6 +32,11 @@
 
 ### Fixed
 
+- **`Rebuild` really rebuilds.** Its `--clean` step ran without a target, and
+  `sokonanoda build --clean` with no path only clears the **global** cache — the
+  module root's `.sokonanoda/compiled/` entries survived, so the build that
+  followed was all cache hits and the summary said `清掉 0 条缓存`. The clean step
+  now names the same project target, so "clear the cache and recompile" does that.
 - **`F12` on a prelude name now works.** `Or` / `And` / `Iff` / `False` /
   `Eq.refl` … are installed by the trusted prelude, so their hover rows carry no
   `resolution` — jumping did **nothing** (silently). The command now materializes

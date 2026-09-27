@@ -1751,16 +1751,22 @@ function buildOutput(context) {
   return buildChannel;
 }
 
-/// build 的目标路径：活动 .sokonanoda 文件 → 第一个工作区文件夹 → undefined。
+/// build/rebuild 的目标路径 —— **永远是"项目"，不是"当前文件"**（E22）。
+///
+/// 用户 I2① 的原话是「**点哪个文件，编译哪个文件**」✗：以前这里优先返回活动
+/// `.sokonanoda` 文件，而 CLI 拿到**文件**就只编那一个（`build.summary.files` = 1）
+/// ⇒ 大项目上"Build 好像没编什么"。
+///
+/// 现在取**模块根**（服务端 `soko/project` 的 `project.root`，绝对路径）——
+/// 客户端**不自己找清单** ✗：那会变成第二份真相（项目发现只有一处实现：
+/// `sokonanoda_front::project`）。服务器还没答（刚打开、服务器没起、文件没有
+/// import ⇒ `project: null`）时退回第一个工作区文件夹 —— **也是目录，绝不是文件** ✓。
+///
+/// 判据：`test-extension-host.js::build/rebuild target the project root, not the
+/// active file (E22)`（夹具让活动文件 / 工作区根 / 模块根三者互不相同）。
 function buildTarget() {
-  const editor = vscode.window.activeTextEditor;
-  if (
-    editor &&
-    editor.document.languageId === "sokonanoda" &&
-    editor.document.uri.scheme === "file"
-  ) {
-    return editor.document.uri.fsPath;
-  }
+  const projectRoot = projectProvider?.answer?.project?.root;
+  if (typeof projectRoot === "string" && projectRoot.length > 0) return projectRoot;
   const folder = (vscode.workspace.workspaceFolders ?? [])[0];
   return folder?.uri?.fsPath;
 }
@@ -1878,7 +1884,17 @@ async function runBuild(context, { clean = false, courseProvider } = {}) {
   channel.appendLine(`> ${command} build ${clean ? "--clean " : ""}${target}`);
   let removed;
   if (clean) {
-    const cleaned = await runBuildProcess(command, ["build", "--json", "--clean"], channel);
+    // ⚠ **`--clean` 必须带目标**（E22 同族，实测）：不带参数时 CLI 的
+    // `project_roots([])` 是空的 ⇒ 只清**全局**缓存、**项目条目留在原地** ⇒
+    // 紧接着的 build 全是 `hit` ⇒「Rebuild（清空编译缓存后重编译）」其实
+    // 什么都没重编（实测 `build --json --clean` 给
+    // `{"global":0,"project":0,"removed":0}`，而 `<root>/.sokonanoda/compiled/`
+    // 里的条目还在）。这正是 CLI 注释里点名的 R-3/T-B5 陷阱。
+    const cleaned = await runBuildProcess(
+      command,
+      ["build", "--json", "--clean", target],
+      channel,
+    );
     for (const event of parseBuildEvents(cleaned.stdout)) {
       if (event.type === "build.clean") removed = event.removed ?? 0;
     }

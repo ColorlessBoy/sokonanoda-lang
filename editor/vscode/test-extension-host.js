@@ -580,6 +580,71 @@ test("warmCacheOnOpen on: activation builds the workspace root once", async () =
   assert.ok(context, "activate 必须返回 context");
 });
 
+test("build/rebuild target the project root, not the active file (E22)", async () => {
+  // **E22（用户 I2①：「点哪个文件，编译哪个文件」）**。扩展以前把**活动文件**
+  // 当目标（`buildTarget()`：活动 `.sokonanoda` 文件 → 工作区根），而 CLI 拿到
+  // 文件就只编那一个 ⇒ 用户点 Build 看到的永远是"1 个文件"。
+  //
+  // 现在目标是**项目**：模块根取自服务端 `soko/project` 的 `root`（客户端**不自己
+  // 找清单** —— 那是第二份真相 ✗），服务端还没答时退回工作区根（**也绝不是文件**）。
+  //
+  // 这条判据钉的是**扩展真的让 CLI 编了什么**（`spawns` 的 argv），比"通知里有
+  // 几个文件"更靠上游，且不需要真宿主。夹具故意让**三者互不相同**：
+  // 活动文件 `/repo/courses/set-theory/units/u01.sokonanoda`、工作区根 `/repo`、
+  // 模块根 `/repo/courses/set-theory` ⇒ 断言能分辨"取自哪一份"。
+  const root = "/repo/courses/set-theory";
+  stubbedResponses["soko/project"] = () => ({
+    uri: "file:///repo/courses/set-theory/units/u01.sokonanoda",
+    version: 1,
+    project: {
+      entry: "units.u01",
+      root,
+      manifest: `${root}/sokonanoda.toml`,
+      requires_warning: null,
+      modules: [],
+      diagnostics: [],
+      counts: { modules: 1, compiled: 0, failed: 0, open: 0 },
+    },
+    reason: null,
+  });
+  try {
+    await activateExtension();
+    focus(fakeDocument("/repo/courses/set-theory/units/u01.sokonanoda"));
+    await settle();
+    spawns.length = 0;
+
+    await vscodeStub.__commands["sokonanoda.build"]();
+    assert.deepStrictEqual(
+      spawns.map((s) => s.args),
+      [["build", "--json", root]],
+      "Build 必须编**项目**（服务端给的模块根），不是活动文件",
+    );
+
+    // rebuild = 先清**这个项目**的缓存，再编项目。
+    // ⚠ 清缓存那一步以前**不带目标** ⇒ CLI 只清全局、项目条目留在原地 ⇒
+    // 紧接着的 build 全是 `hit` ⇒「Rebuild」其实什么都没重编（实测
+    // `build --json --clean` 给 `{"global":0,"project":0,"removed":0}`）。
+    spawns.length = 0;
+    await vscodeStub.__commands["sokonanoda.rebuild"]();
+    assert.deepStrictEqual(
+      spawns.map((s) => s.args),
+      [
+        ["build", "--json", "--clean", root],
+        ["build", "--json", root],
+      ],
+      "Rebuild 必须先清**项目**的缓存（带目标）再编项目",
+    );
+  } finally {
+    // 假客户端是模块级共享的：还原默认答案，别污染后面的测试。
+    stubbedResponses["soko/project"] = () => ({
+      uri: "",
+      version: 1,
+      project: null,
+      reason: "no-imports",
+    });
+  }
+});
+
 test("diagnostics from other languages never drive soko/goals", async () => {
   await activateExtension();
   focus(fakeDocument("/repo/playground.sokonanoda"));
