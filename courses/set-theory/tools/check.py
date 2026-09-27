@@ -406,8 +406,22 @@ def flatten_manifest(value, source: Path) -> tuple[list[dict], list[str], Manife
                 if not isinstance(file, str) or not file.strip():
                     problems.append(f"G6：chapter {chapter_id} 里有条目缺 file：{raw!r}")
                     continue
-                if raw.get("unit") is None:
+                _unit = raw.get("unit")
+                # ⚠ **不只断言「非 null」，还要断言「是整数」** ✗✓（E00 切片 C 第 13 条，实测 ✓）：
+                #   原来 `if raw.get("unit") is None` **只挡 None** ✗ ⇒ 实测
+                #   `"unit": "abc"` 与 `"unit": true` **都返回 `problems == []`** ✗
+                #   （`true` 还会被后面的 `int()` **静默当成 1 号** ✗）；
+                #   而 `"abc"` 随后在 `int(number)` 抛 ValueError、**不被 `except Prerequisite`
+                #   接住** ✗ ⇒ 门禁以 **traceback 收场**（退出码 1，**伪装成「有目标被判负」** ✗）。
+                #   同文件的 `_quota_of` 早就严谨地用
+                #   `isinstance(exercises, int) and not isinstance(exercises, bool)` ✓
+                #   ⇒ 这里照**同一口径** ✓（`bool` 是 `int` 的子类，**必须显式排除** ✗）。
+                if _unit is None:
                     problems.append(f"G6：chapter {chapter_id} 的 {file} 缺 unit 号")
+                elif not isinstance(_unit, int) or isinstance(_unit, bool):
+                    problems.append(
+                        f"G6：chapter {chapter_id} 的 {file} 的 unit 号**必须是整数**，"
+                        f"实得 {type(_unit).__name__}（{_unit!r}）")
                 if file in seen_files:
                     problems.append(
                         f"G6：单元 {file} 同时属于 {seen_files[file]} 与 {chapter_id}"
