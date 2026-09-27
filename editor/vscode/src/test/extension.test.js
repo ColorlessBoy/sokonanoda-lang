@@ -1058,6 +1058,22 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     await infoviewDecls("T-A60-2 前置");
 
     const before = JSON.stringify(await infoviewDecls("T-A60-2 改前"));
+    // ⚠ **先等缓存静止，再取基线**（2026-09-27 实测，ubuntu-24.04 · VS Code 1.138.0 判红）：
+    // 这一条判的是"同一份字节重写 ⇒ 不许写新条目"，而它的 1.5s 窗口对**邻居用例
+    // 迟到的落盘**毫无免疫力 ✗ —— 那一轮基线之后多出 `949171fc…`（2101B）与
+    // `c2a5a26a…`（5174B）两条，**两条都不是夹具闭包**（u01 的条目是 155KB 级、
+    // `lib/Set` 单独编是 26KB 级 ⇒ 是别处的编译迟到了）。E22 起 build/rebuild
+    // 真的编**整个项目**、rebuild 真的清项目缓存 ⇒ 共享夹具的缓存被扰动得更多
+    // ⇒ 慢 runner 上更容易撞上。治法与 T-A60-3 同款：**先等稳定、再取基线**
+    //（幂等判据，不赌时间 ✗）。判据本身一个字没松：基线之后仍必须逐条相等 ✓。
+    let previous = cacheStamp();
+    await waitFor("T-A60-2：缓存先静止（基线不许被迟到的落盘污染）", async () => {
+      await sleep(400);
+      const current = cacheStamp();
+      const stable = JSON.stringify(current) === JSON.stringify(previous);
+      previous = current;
+      return stable;
+    });
     const stamp = cacheStamp();
     assert.ok(stamp.length > 0, "前置：夹具的闭包必须已经在缓存里");
 
