@@ -58,8 +58,8 @@
 - **`check.py:203-208`**：走启动器时"二进制可信"只靠标签**子串黑名单**，而精确探针 `binary_version()` 只在 `--bin` 分支用。
 - **`query.rs:169-172`**：`!goal_runs.is_empty()` —— **正是 R-2 事故的形状**（降级成 1 个无 kind run 也绿）。
 - **`course_shared.rs:135-138`**：只断言存在 `expr.reduced` 事件，**注释却声称断言了归约值**。
-- **`cli/perf_project.rs:145-162`**：只断言 `status.success()`（注释说"必 miss 且结果正确"）⇒ 错误命中旧报告仍绿。
-- **`front/perf_project.rs:283-309`**：量了但**零阈值**（同文件 `:224` 有 `worst<2000`）。
+- **`crates/cli/tests/perf_project.rs:145-162`**：只断言 `status.success()`（注释说"必 miss 且结果正确"）⇒ 错误命中旧报告仍绿。
+- **`crates/front/tests/perf_project.rs:283-309`**：量了但**零阈值**（同文件 `:224` 有 `worst<2000`）。
 - **`lsp_cache.rs:103-107,124`**：`written_entries()>=1` 分不清项目条目到底写没写。
 
 ## P2（"自检断言不够具体"，按类计数）
@@ -71,12 +71,28 @@
 
 ## 明确判为**强**的（不为凑数压低）
 
-- **性能片整体是硬的** ✓：`front/tests/perf.rs` 断言缩放比 <20.0 · 编辑中位数 <50ms · 最坏 <250ms；
+- **性能片整体是硬的** ✓：`crates/front/tests/perf.rs` 断言缩放比 <20.0 · 编辑中位数 <50ms · 最坏 <250ms；
   `perf_module_batch.rs` 断言 `reports.len()==files.len()` 且 `batch<=per_entry*1.5`；
-  `cli/perf_project.rs` 断言 `warm<cold` · `warm<300ms` · `2×warm<cold`。**只有 P1 里那两条例外**。
-- `notation.rs` · `notation_fold.rs` · `namespace.rs` · `judge_batch.rs` · `course.rs` ·
-  `course_project.rs` · `skill.rs` · `protocol.rs`（除两点）· `kernel/pretty_printer.rs`（逐例精确 pp 串）·
-  `memory_api.rs`（除 `:40`）· `arena.rs`（除跳过）· `lsp_edit_concurrency.rs` · **`crates/cli/tests/imports.rs`（⚠ 除 `:471-474`）** · `dsh.rs` · `watch.rs`。
+  `crates/cli/tests/perf_project.rs` 断言 `warm<cold` · `warm<300ms` · `2×warm<cold`。**只有 P1 里那两条例外**。
+- **`crates/cli/tests/notation.rs`** · `notation_fold.rs` · `namespace.rs` · `judge_batch.rs` · `course.rs` ·
+  `course_project.rs` · `skill.rs` · **`crates/cli/tests/protocol.rs`**（除两点）·
+  **`crates/kernel/tests/pretty_printer.rs`**（逐例精确 pp 串）·
+  `memory_api.rs`（除 `:40`）· `arena.rs`（除跳过）· `lsp_edit_concurrency.rs` ·
+  **`crates/cli/tests/imports.rs`（⚠ 除 `:471-474`）** · `dsh.rs` · **`crates/cli/tests/watch.rs`**。
+  ⚠ **`crates/{cli,front}/tests/perf_project.rs`** 与 **`crates/front/tests/perf.rs`**（见下方性能片结论 ✓）。
+
+  ### ⚠ 引用位置批量体检（2026-09-27，**一次扫完全部 52 个引用** ✓）
+  用脚本抽出 census 里**所有** `` `xxx.py:N` ``/`` `xxx.rs:N` `` 形态的引用，逐个核存在性 ✓：
+  · **唯一解析成功 43** ✓；
+  · ✗ **坏了 4 个**（都是**从子代报告转录时丢了 `crates/<crate>/tests/` 前缀** ✗）：
+    ~~`cli/perf_project.rs`~~ · ~~`front/perf_project.rs`~~ · ~~`front/tests/perf.rs`~~ · ~~`kernel/pretty_printer.rs`~~（**历史举例，已全部改成全路径 ✓**）
+    —— **四个文件都真实存在**，只是**路径不完整** ✓（照原样去找会 `No such file` ✗）；
+  · ⚠ **裸名有歧义 5 个**（仓库里同名两份 ⇒ 读者可能翻错 crate ✗）：
+    `notation.rs`（`cli/tests` vs `front/src`）· `protocol.rs`（`cli/tests` vs `lsp/src`）·
+    `query.rs`（`cli/src` vs `cli/tests`）· `watch.rs`（`cli/src` vs `cli/tests`）· `AGENTS.md`（根 vs `courses/set-theory/`）。
+  ⇒ **纪律**：**引用位置一律写全 `crates/<crate>/tests/<file>`** ✓，
+    且**动手前先 `ls`/`grep` 确认** ✓ —— 本轮这 9 处**没有一处是子代判错的**，
+    **全是我转录时压缩路径造成的** ✗（与第 18 轮"没抽查就并入"同一个病根 ✓）。
   ⚠ **两处更正（2026-09-27 抽查）**：
   · **路径**：`imports.rs` 在 **`crates/cli/tests/`**，**不是** `crates/front/tests/` ✗
     （按后者去找会得到 `No such file or directory` ✓）；
