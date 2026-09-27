@@ -3,6 +3,22 @@
 > **规则**（`AGENTS.md` §CI 失败记录 ✓）：每次 CI 红了就**追加一条** ✓
 > （原因 / 修复 / 预防 ✓）。**本文件只留最近 15 条** ✓（用户 2026-09-26 文档瘦身要求）；
 > 更早的 53 条 ⇒ `docs/archive/ci-failures-2026-09-10-to-2026-09-25.md.gz`（gzip ✓，**归档 ≠ 销毁** ✓）。
+## 2026-09-27 · **改了课程计数，漏改一个测试钉子** ✗（run `36314757444` 的 `test (sokonanoda-cli, tests)`）
+**现象** ✓：整轮 `failure`，逐 job 查只有 `test (sokonanoda-cli, tests)` 红 ✗ ——
+`query_check_matches_grade_on_a_real_course_unit` FAILED：
+`assertion left == right failed: …"decl_checked":4…`，`left: 4` / `right: 5` ✓。
+**根因** ✓：E02 把 `def Set.prod` 从单元⑤ 画布收进 `lib/Prod` ⇒ 该画布 `decl_checked` **5 → 4**
+（练习数/open 数没动 ✓）；而 E02 当时找计数钉子只 grep 了 `course.rs`/`course_status.rs`/`cli.rs`
+**三个文件** ✗ —— **漏了 `query.rs`**（它拿真课程文件当夹具 ✗，名字里没有 "course" ✗）。
+**修复** ✓（`a30ffc7`）：钉子改 4 + 原地写明"基线在 E02 变过"；顺手修 `front/src/compile/tests.rs`
+一处陈旧注释（说 unit12 有"那 5 个 R5 标记"，其实已清零）。
+**预防** ✓：**改了课程计数 ⇒ 全测试树 grep 计数钉子** ✓（`decl_checked`/`exercise_open` + 被改文件名），
+**不许只 grep 名字里带 course 的那几个文件** ✗；并且**本地跑全套**
+`cargo test -p sokonanoda-cli`（25 个 target）确认"只有这一处" ✓（实测 0 FAILED ✓）。
+**监控教训（与上一轮同源）** ✗✓：我先前用 `sleep 300/420` 长轮询**只盯整轮 conclusion** ✗ ——
+而 matrix 里一个 job 早挂了、整轮还在 `in_progress` ⇒ 白等几分钟 ✗。
+**改成 60–90s 逐 job 看** ✓：`gh run view <id> --json jobs | jq -r '.jobs[] | "\(.conclusion // .status)\t\(.name)"'` ✓。
+
 ## 判据
 本机行为**不变** ✓（本地本来就解析仓库构建 ✓）；**CI 侧由下一轮确认** ✓
 —— 这是**必须推**的那类改动 ✓（本地绿 ≠ CI 绿 ✓ 本 session 已证 ✓）。
@@ -410,56 +426,3 @@ AssertionError: 内容没变 ⇒ 不许写出新的缓存条目（说明闭包�
 **预防** ✓：**新增/修改 `needs` 时，先问"它会不会在本次路径下被 skip"** ✗ ——
 **skipped 的依赖会让下游静默消失** ✗，而**整轮还报 `success`** ✗。
 
-## 2026-09-26 · **skip 沿依赖链传播：`e2e-ledger` 在 editor-only 推送里被静默跳过** ✗
-
-**症状** ✓：`6e19f23`（**只改 `editor/**`**）那一轮 **`success`** ✓，但
-**三条 e2e 全 success** ✓ 而 **`e2e ledger (commit back on main)` 是 `skipped`、`steps=0`** ✗。
-
-**先钉事实** ✓（**不推理** ✗）：
-- `headSha=6e19f23` ✓（确认就是那一轮 ✓）；
-- **三份 artifact 都在** ✓（含 `e2e-macos-latest-vscode-1.138.0` ✓）
-  ⇒ **`e2e` 与 `e2e-macos` 都真跑了** ✓；
-- `e2e` 矩阵**只有 2 条 ubuntu 腿** ✓（文件原文 ✓）；
-- `e2e-ledger` 的 `if` **解析值**就是 `github.event_name == 'push' && github.ref == 'refs/heads/main'` ✓
-  （**用 YAML 解析器看的** ✓，不是肉眼读的 ✗）；`needs: [e2e, e2e-macos]` ✓ 两条都 `success` ✓。
-
-⇒ **按"只有 `needs` 里有 skipped 才拖垮下游"的直觉，它必须跑** ✗ —— **可它没跑** ✗。
-
-**机制** ✓（**GitHub 文档** ✓）：
-> a failure or skip applies to **all jobs in the dependency chain** from the point of failure or skip onwards
-—— **是"链条"，不是"直接依赖"** ✗✓。`gates-fast` 被 skip ✗ ⇒ `e2e` 靠**它自己的**
-`!cancelled()` 跑起来了 ✓，**但那个 skip 仍污染链条** ✗ ⇒ `e2e-ledger` 的 `if` 里
-**没有状态函数** ⇒ **被跳过** ✗。
-
-**实验** ✓（**唯一变量** ✓）：
-| 推 | 路径 | `e2e-ledger` 的 `if` | 结果 |
-|---|---|---|---|
-| `6e19f23` | 只 `editor/**` | `push && main` | **skipped** ✗ |
-| `34a2814` | 只 `editor/**`（+ 非 rust 路径 ✓） | `!cancelled() && push && main` | **success** ✓✓ |
-
-⇒ **同样的 editor-only 场景，唯一的变化就是那个状态函数** ✓ ⇒ **机制确认** ✓。
-
-**修复** ✓：`e2e-ledger` 的 `if` 加 `!cancelled()` ✓。
-
-**⚠ 实验设计上我自己先踩的坑** ✗：第一版想一次推完（`ci.yml` + `editor/**`）✗ ——
-而**改 `ci.yml` 会让 `rust=true`** ✗，`rust=true` 时 `e2e-ledger` **本来就会跑** ✓
-⇒ **实验等于白做** ✗ ⇒ **拆成两推** ✓（先布条件、再复现 ✓）。
-
-**⇒ 纪律** ✓：**凡 `needs` 里可能有 skipped 的 job，`if` 都要带状态函数** ✓
-（`always()` / `!cancelled()` / `success()` / `failure()` ✓）——
-**否则它会静默消失，而整轮还报 `success`** ✗。
-
-## 2026-09-26 · `e2e-ledger` 在 e2e 全 skipped 时**假红** ✗
-
-**现象**：连续三轮 `e2e`/`e2e-macos` 矩阵**全 skipped**，而 `e2e-ledger` job **failure**、
-整轮 `cancelled` —— 看起来像"CI 从来没绿过"，把"推完确认绿"这条纪律堵死 ✗。
-
-**真因**：本 job 的 `if` 没查两条 e2e 腿的结果 ✗ ⇒ 它们被 skip 时本 job 照样跑，
-而第一步 `actions/download-artifact`（`pattern: e2e-*`）**找不到 artifact 就直接失败** ✗
-（该 action **没有** `if-no-files-found` 这种输入 —— 那是 `upload-artifact` 的）。
-
-**修复**：`if` 里加 `&& needs.e2e.result == 'success' && needs.e2e-macos.result == 'success'` ✓。
-
-**预防**：凡 `needs` 里可能有 skipped 的 job，`if` 都要带**状态函数**，且要分清两件事 ——
-① "**要不要跑**"（`!cancelled()` 之类）；② "**跑起来会不会假红**"（`needs.X.result == 'success'`）。
-`download-artifact` 这种"没产物就报错"的步骤必须用 ② 兜住 ✓。
