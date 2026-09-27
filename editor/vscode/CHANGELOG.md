@@ -1,3 +1,23 @@
+## [0.75.0] — 2026-09-27
+
+> 「跳转与高亮」（E05–E08）。
+
+### Fixed
+
+- **`F12` on a notation declaration's target name lands on the definition.** The
+  name after `=>` (`prefix:100 " 𝒫 " => Set.powerset`) used to answer with **the
+  cursor's own span**, so `F12` moved the editor to the line you were already on —
+  visually "nothing happened". In the course library `Set.powerset` landed on
+  L125 instead of L81 and `Set.compl` on L126 instead of L79. The real definition
+  span was being computed and then dropped (`if let Some((path, _)) = …`); it is
+  now the one used. A name whose definition lives **outside** the current file's
+  closure (e.g. `Set.image`, defined in `lib/Image.sokonanoda`) still answers
+  `null` on purpose — that is the same answer `F12` gives for a name that is not
+  in scope, and fabricating a location would be worse than admitting it. Notation
+  target names are also painted **one** colour now (they were already uniform in
+  the current corpus; the criterion that pins it is new, so a regression cannot
+  slip through silently).
+
 ## [0.74.0] — 2026-09-27
 
 > 「记法补齐 + 编译体验修复 + Infoview 面」（E01–E04 · E21–E23 · E27–E31）。

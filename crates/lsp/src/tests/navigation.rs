@@ -659,7 +659,6 @@ async fn goto_definition_on_a_notation_target_name_lands_on_the_definition() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-
 /// **E08 的判据（定案：本轮不做，但要钉住现状别漂）**。
 ///
 /// 现场（实测，真课程库）：`textDocument/documentHighlight` 对那 11 条记法**目标名**
@@ -685,8 +684,11 @@ async fn document_highlight_on_a_notation_target_is_null_today() {
     ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("temp project");
-    std::fs::write(dir.join("sokonanoda.toml"), "entry = \"Canvas.sokonanoda\"\n")
-        .expect("write manifest");
+    std::fs::write(
+        dir.join("sokonanoda.toml"),
+        "entry = \"Canvas.sokonanoda\"\n",
+    )
+    .expect("write manifest");
     // 目标**在闭包内**（`Set.powerset` 就在本文件里）—— 即便这样 highlight 也是 null，
     // 所以 null 的成因是"目标名不是使用点"，不是"解不出定义" ✓。
     let src = "def Set (α : Type) : Type := α -> Prop\n\
@@ -761,8 +763,11 @@ async fn a_notation_target_out_of_the_closure_is_not_fabricated() {
     ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("temp project");
-    std::fs::write(dir.join("sokonanoda.toml"), "entry = \"Canvas.sokonanoda\"\n")
-        .expect("write manifest");
+    std::fs::write(
+        dir.join("sokonanoda.toml"),
+        "entry = \"Canvas.sokonanoda\"\n",
+    )
+    .expect("write manifest");
     // `Set.image` **没有任何模块声明它**（真场景：它声明在闭包外的 `lib/Image`）。
     let src = "def Set (α : Type) : Type := α -> Prop\n\
                infixr:80 \" '' \" => Set.image\n";
@@ -773,7 +778,8 @@ async fn a_notation_target_out_of_the_closure_is_not_fabricated() {
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
     testutil::did_open_at(&mut service, &uri, src).await;
-    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "out-of-closure notation target").await;
+    let _ =
+        testutil::wait_diagnostics_for(&mut socket, &uri, "out-of-closure notation target").await;
 
     let decl_line = 1usize;
     let column = src
@@ -802,7 +808,6 @@ async fn a_notation_target_out_of_the_closure_is_not_fabricated() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
-
 
 /// 为什么它和 `∈` 不是一条路：`∈` 是 `infix:` 声明出来的**记法**，跳转走
 /// `notation_at`（查记法表 ✓）；`{a}` 是**内建语法**（`ast::Expr::SetLiteral`），

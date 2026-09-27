@@ -1909,7 +1909,6 @@ impl LanguageServer for Backend {
                         })));
                     }
                 }
-
             }
         }
         let Some(target) = definition_at(&report.hovers, pos.line, pos.character) else {

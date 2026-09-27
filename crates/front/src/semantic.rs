@@ -1213,7 +1213,13 @@ end
         // run"。**逐行**分类即可精确对上：记法声明那一行里目标名只出现一次 ✓。
         let mut targets: Vec<(String, Option<SemanticKind>)> = Vec::new();
         const KEYWORDS: &[&str] = &[
-            "infix", "infixl", "infixr", "prefix", "postfix", "notation", "binder_notation",
+            "infix",
+            "infixl",
+            "infixr",
+            "prefix",
+            "postfix",
+            "notation",
+            "binder_notation",
         ];
         for line in src.lines() {
             // ⚠ 只看**记法声明行** ✗✓ —— 第一版只按 `contains("=>")` 过滤，把
@@ -1242,7 +1248,10 @@ end
         );
         let kinds: Vec<Option<SemanticKind>> = targets.iter().map(|(_, k)| *k).collect();
         let first = kinds.first().copied().flatten();
-        assert!(first.is_some(), "目标名必须着得上色（不能是 None）✗：{targets:?}");
+        assert!(
+            first.is_some(),
+            "目标名必须着得上色（不能是 None）✗：{targets:?}"
+        );
         assert!(
             kinds.iter().all(|k| *k == first),
             "**同一种语法角色必须同色** ✗✓ —— 实测：本文件里声明过的拿到 `Function`，\
