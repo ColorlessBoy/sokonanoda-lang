@@ -608,6 +608,18 @@ def evaluate(rows: list[dict], judge) -> None:
             canvas = {"exit": result.code, "open_names": result.open_names}
         if canvas["exit"] != 0:
             continue  # 画布自己判负 ⇒ G1 已报，覆盖度无从谈起
+        if not canvas["open_names"]:
+            # ⚠ **空集 ⇒ G4 真空通过** ✗✓（E00 切片 C 第 2 条）：`open_names` 为空 ⇒
+            #   `missing` 必为空 ⇒ G4 **判绿** —— 而它**声称镜像的那个旧测试自带这条
+            #   防空洞** ✓（`crates/cli/tests/course.rs:228-231`：
+            #   `assert!(!exercises.is_empty(), "canvas … has no named exercises — nothing to cross-check")`）
+            #   ⇒ check.py 的"无计数版"把它丢了 ✗。
+            #   今天 13 个画布 open 全 ≥1（**潜在洞、不是活洞** ✓），但 `exercise.open` 的
+            #   `name` 在协议里是 **optional**（`docs/protocol.md:60`，匿名 `example` 就是无名 ✓）
+            #   ⇒ 一旦出现就**静默失效** ✗ ⇒ 补与旧测试同口径的守卫 ✓。
+            row["reasons"].append(
+                "G4：画布没有具名练习，覆盖度无从谈起"
+                f"（{Path(row['canvas']).name} 的 open_names 为空）")
         covered = set(row["checked_names"])
         missing = [name for name in canvas["open_names"] if name not in covered]
         if missing:
@@ -797,6 +809,41 @@ def selftest_g6(failures: list[str], tmp: Path) -> None:
                 f"差额={_delta}，期望 99 / 0 / -99）")
     if len(units) != 1:
         failures.append(f"G6 自检失败（正控制）：展平后应有 1 个单元，实得 {len(units)}")
+
+    # **判红逻辑也进自检** ✓（E00 切片 C 第 1 条：`evaluate()` 原来一行没被覆盖 ✗）
+    _evaluate_selftest(failures)
+
+
+def _evaluate_selftest(failures: list) -> None:
+    """**让 `evaluate()` 第一次进自检** ✓（E00 切片 C 第 1/2 条）。
+
+    ⚠ 切片 C 实测：`--selftest` **从不调用 `evaluate()`** ✗（唯一调用点在 `run()` 里）
+    ⇒ **G1/G2/G3/G4/G5 零负例** —— 把它 patch 成"一调用就 raise"，自检**仍 PASS** ✗。
+    这里先补 **G4 的两条**（负例：画布没有具名练习；正控制：覆盖完整不该红）✓ ——
+    其余四条（G1/G2/G3/G5）仍需后续补 ✓。
+    """
+
+    class _Judged:
+        def __init__(self, code, open_names):
+            self.code, self.open_names = code, open_names
+
+    base = {
+        "kind": "solution", "canvas": "/nonexistent/Canvas.sokonanoda",
+        "exit": 0, "status": "ok", "reasons": [], "open": 0, "open_names": [],
+        "checked": 3, "checked_names": ["p1"],
+    }
+    # 负例：画布**没有具名练习** ⇒ 覆盖度无从谈起（不许真空判绿 ✗）
+    neg = dict(base, reasons=[])
+    evaluate([neg], lambda _p: _Judged(0, []))
+    if not any("G4：画布没有具名练习" in r for r in neg["reasons"]):
+        failures.append(
+            "G4 自检失效：画布 `open_names` 为空时 **G4 真空判绿**（vacuously true）"
+            f"—— reasons={neg['reasons']}")
+    # 正控制：画布有具名练习、且解答全覆盖 ⇒ **不该红**（防误伤 ✓）
+    pos = dict(base, reasons=[])
+    evaluate([pos], lambda _p: _Judged(0, ["p1"]))
+    if any("G4" in r for r in pos["reasons"]):
+        failures.append(f"G4 自检失败（正控制）：覆盖完整却被判负 —— reasons={pos['reasons']}")
 
 
 def selftest(channel: Channel, check_py: Path) -> int:
