@@ -42,12 +42,20 @@ pub const WATCH_VOCABULARY: [&str; 8] = [
 pub const WATCH_HANDSHAKE: &str = "service.hello";
 
 /// Custom LSP requests exposed to clients (goal view + hint ladder +
-/// per-tactic cursor state, docs/protocol.md).
-pub const LSP_CUSTOM_METHODS: [&str; 5] = [
+/// per-tactic cursor state + project closure, docs/protocol.md).
+///
+/// `soko/project` was missing from this list (E22, 2026-09-27): the server has
+/// registered it since 0.58.0 (`crates/lsp/src/lib.rs` 的
+/// `custom_method("soko/project", …)`) and `docs/protocol.md` §`soko/project`
+/// documents it, but the skill vocabulary guard did not know the name — so any
+/// skill that mentioned it was rejected as "not part of the protocol contract"
+/// even though it is. Keeping this list in sync is the point of the guard.
+pub const LSP_CUSTOM_METHODS: [&str; 6] = [
     "soko/goals",
     "soko/nextHole",
     "soko/hints",
     "soko/stateAt",
+    "soko/project",
     "soko/version",
 ];
 
