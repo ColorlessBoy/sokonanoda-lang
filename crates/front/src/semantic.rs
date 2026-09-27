@@ -1178,6 +1178,86 @@ end
         assert_eq!(unknown.kind, Some(SemanticKind::UnknownIdent));
     }
 
+    /// **E07 的判据（着色一致）**：真课程库 `courses/set-theory/lib/Set.sokonanoda`
+    /// 的**十一条**记法声明，**目标名必须同色** ✓。
+    ///
+    /// 现场（实测）：在本文件里**声明过**的目标走 `or_insert` 保留**声明自己的
+    /// 种类**（`Function`），而定义在**别的模块**的目标（`Set.image` /
+    /// `Set.preimage` / `Set.prod`）只有词法给的 `DefUse` ⇒ 同一种语法角色出现两种
+    /// 颜色，用户看到的是"这几条**没高亮**" ✗✓。
+    ///
+    /// ⚠ **判定必须按 span 取那条 run** ✗✓ —— 按 `text` 相等去 `find` 会取到**文件里
+    /// 第一次出现**（注释里也有这些名字）⇒ 量到的根本不是记法声明那一处（我第一次
+    /// 就写成那样，判据当场假绿 ✗）。
+    ///
+    /// **E07 定案（2026-09-27 深夜，用户授权自决）**：
+    /// ① **落点语义与编辑器内 F12 保持一致** —— 记法目标名与编辑器 F12 走的是
+    ///    **同一条** LSP 通道 ⇒ 闭包外的名字**诚实为 `null`**（不编答案 ✗、也不
+    ///    自跳 ✗）；"扩到整个项目/课程仓去找"要先编译闭包外的模块，代价与收益
+    ///    不成比例 ⇒ 只登记、不实现 ✓。
+    /// ② **高亮颜色沿用现有目标样式** —— 目标名一律着成**已知引用**那一种颜色，
+    ///    不再取决于"它恰好在本文件里声明过没有" ✗。
+    #[test]
+    fn every_notation_target_name_gets_the_same_colour() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("courses")
+            .join("set-theory")
+            .join("lib")
+            .join("Set.sokonanoda");
+        let Ok(src) = std::fs::read_to_string(&path) else {
+            return; // 课程仓可以分开检出
+        };
+        // ⚠ `Run` **没有 span**（只有 `{text, kind}`，见台账 G-53）⇒ 不能"按 span 取那条
+        // run"。**逐行**分类即可精确对上：记法声明那一行里目标名只出现一次 ✓。
+        let mut targets: Vec<(String, Option<SemanticKind>)> = Vec::new();
+        const KEYWORDS: &[&str] = &[
+            "infix", "infixl", "infixr", "prefix", "postfix", "notation", "binder_notation",
+        ];
+        for line in src.lines() {
+            // ⚠ 只看**记法声明行** ✗✓ —— 第一版只按 `contains("=>")` 过滤，把
+            //   `fun x => x = a`、`def … := fun …` 这些也收进来了 ⇒ 量到一堆
+            //   `None`/`UnknownIdent`（**假的**不一致 ✗）。
+            if !KEYWORDS.iter().any(|kw| line.starts_with(kw)) {
+                continue;
+            }
+            let Some((_, target)) = line.split_once("=>") else {
+                continue;
+            };
+            let target = target.trim();
+            if target.is_empty() {
+                continue;
+            }
+            let kind = tag_runs(line, &[], &[])
+                .into_iter()
+                .find(|r| r.text == target)
+                .and_then(|r| r.kind);
+            targets.push((target.to_string(), kind));
+        }
+        assert!(
+            targets.len() >= 11,
+            "真课程库有十一条记法声明（实测 {len} 条）：{targets:?}",
+            len = targets.len()
+        );
+        let kinds: Vec<Option<SemanticKind>> = targets.iter().map(|(_, k)| *k).collect();
+        let first = kinds.first().copied().flatten();
+        assert!(first.is_some(), "目标名必须着得上色（不能是 None）✗：{targets:?}");
+        assert!(
+            kinds.iter().all(|k| *k == first),
+            "**同一种语法角色必须同色** ✗✓ —— 实测：本文件里声明过的拿到 `Function`，\
+             定义在别的模块的只有 `DefUse` ⇒ 用户看到「有几条没高亮」✗：{targets:?}"
+        );
+        // ⚠ **只查"是否同色"是不够的** ✗✓ —— 实测：把 `or_insert(DefUse)` 那一行
+        //   删掉（反向验证 A）之后**全部**变成 `UnknownIdent` ⇒ "同色"依然成立、
+        //   判据**照样绿** ✗（假绿）。⇒ 必须同时钉住"是**已知引用**那一种颜色" ✓。
+        assert_ne!(
+            first,
+            Some(SemanticKind::UnknownIdent),
+            "目标名的颜色必须是**已知引用**（不能是「未知标识符」= 用户看到的「没高亮」）✗：{targets:?}"
+        );
+    }
+
     #[test]
     fn tag_runs_marks_notation_symbols_as_keywords() {
         let src = "def Set.mem (α : Type) (a : α) (A : α -> Prop) : Prop := A a\n\

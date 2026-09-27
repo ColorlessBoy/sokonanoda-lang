@@ -660,6 +660,150 @@ async fn goto_definition_on_a_notation_target_name_lands_on_the_definition() {
 }
 
 
+/// **E08 的判据（定案：本轮不做，但要钉住现状别漂）**。
+///
+/// 现场（实测，真课程库）：`textDocument/documentHighlight` 对那 11 条记法**目标名**
+/// **全部返回 `null`** ✗ —— 因为目标名在 AST 里不是使用点、也没有 `resolution`，
+/// 而 `document_highlight` 是按**定义 → 所有引用**反查的。
+///
+/// **E08 定案（2026-09-27 深夜，用户授权自决）：本轮不做，理由要写死** ✗✓ ——
+/// 要做就得先回答一个**设计问题**：「目标名的『同一个定义』包含哪些位置？」
+/// 备选至少三种（① 只高亮记法声明行上的那一个名字 ② 连**该记法符号的所有使用处**
+/// 一起高亮 ③ 连**目标名的真实定义处**一起高亮），三种的用户语义完全不同，
+/// 而且 ③ 还依赖"闭包外也能解析"（正是 G-54 定案不做的那件事 ✗）。
+/// ⇒ 这是**设计决定**，不该顺手拍；登记 **G-55**，并用本条**断言当前行为**
+/// （`null`）防漂移 —— 将来真做时，这条判据会**判红**，提醒改判据而不是悄悄改行为 ✓。
+#[tokio::test]
+async fn document_highlight_on_a_notation_target_is_null_today() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-hl-notation-target-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp project");
+    std::fs::write(dir.join("sokonanoda.toml"), "entry = \"Canvas.sokonanoda\"\n")
+        .expect("write manifest");
+    // 目标**在闭包内**（`Set.powerset` 就在本文件里）—— 即便这样 highlight 也是 null，
+    // 所以 null 的成因是"目标名不是使用点"，不是"解不出定义" ✓。
+    let src = "def Set (α : Type) : Type := α -> Prop\n\
+               namespace Set\n\
+               def powerset (α : Type) (A : Set α) : Set α := fun (a : α) => A a\n\
+               prefix:70 \" 𝒫 \" => Set.powerset\n\
+               end Set\n";
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(&entry, src).expect("write entry");
+    let uri = Url::from_file_path(&entry).expect("file url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "notation target highlight").await;
+
+    let decl_line = 3usize;
+    let column = src
+        .lines()
+        .nth(decl_line)
+        .expect("notation line")
+        .find("Set.powerset")
+        .expect("target name");
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/documentHighlight")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": {"line": decl_line, "character": column},
+            }))
+            .id(6)
+            .finish(),
+    )
+    .await
+    .expect("documentHighlight must answer");
+    let highlights: Option<serde_json::Value> =
+        serde_json::from_value(result).expect("valid highlight response");
+    assert!(
+        highlights.as_ref().is_none_or(|v| v.is_null()),
+        "**现状是 `null`**（E08 定案：本轮不做）—— 这条判据是**防漂移**用的：\
+         真做了就必须改判据，而不是让行为悄悄变 ✗：{highlights:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **E07 的判据（落点语义定案的那一半）**：记法声明的目标名**不在闭包里**时
+/// （真课程库 `lib/Set.sokonanoda` 的 `Set.image`/`Set.preimage`/`Set.prod` —— 它们
+/// 定义在 `lib/Image.sokonanoda:32,37`，那份文件**不在** `lib/Set.sokonanoda` 的
+/// 闭包里）⇒ `textDocument/definition` **诚实返回 `null`** ✓：
+/// **不编一个位置** ✗、**也不自跳** ✗（自跳正是 E05 修掉的那个假动作）。
+///
+/// **E07 定案（2026-09-27 深夜，用户授权自决）**：
+/// ① **落点语义与编辑器内 F12 保持一致** —— 这条分支就是编辑器 F12 走的那条
+///    （`textDocument/definition` 的唯一入口）⇒ "一致"是**构造上成立**的 ✓：
+///    闭包里 ⇒ 落定义行（E05 ✓）；闭包外 ⇒ `null`（本用例 ✓）。
+///    "扩到整个项目/课程仓去找"要先编译闭包外的模块，代价与收益不成比例 ⇒
+///    **只登记、不实现** ✓（台账 G-37 + PLAN §E07）。
+/// ② **高亮颜色沿用现有目标样式** —— 实测**已经一致** ✓：真课程库那 11 条目标名
+///    在 front 层全是 `SemanticKind::DefUse`（防漂移判据
+///    `crates/front/src/semantic.rs::every_notation_target_name_gets_the_same_colour` ✓）。
+///    ⚠ 计划里"这 3 条落 `UnknownIdent` → `variable`、另 8 条是 `function`"是
+///    **过时描述** ✗✓（T-D50 的 `or_insert(DefUse)` 已经改掉了 ✓）。
+#[tokio::test]
+async fn a_notation_target_out_of_the_closure_is_not_fabricated() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-def-notation-outside-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp project");
+    std::fs::write(dir.join("sokonanoda.toml"), "entry = \"Canvas.sokonanoda\"\n")
+        .expect("write manifest");
+    // `Set.image` **没有任何模块声明它**（真场景：它声明在闭包外的 `lib/Image`）。
+    let src = "def Set (α : Type) : Type := α -> Prop\n\
+               infixr:80 \" '' \" => Set.image\n";
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(&entry, src).expect("write entry");
+    let uri = Url::from_file_path(&entry).expect("file url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "out-of-closure notation target").await;
+
+    let decl_line = 1usize;
+    let column = src
+        .lines()
+        .nth(decl_line)
+        .expect("notation line")
+        .find("Set.image")
+        .expect("target name");
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/definition")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": {"line": decl_line, "character": column},
+            }))
+            .id(5)
+            .finish(),
+    )
+    .await
+    .expect("definition must answer");
+    let location: Option<GotoDefinitionResponse> =
+        serde_json::from_value(result).expect("valid definition response");
+    assert!(
+        location.is_none(),
+        "闭包外的记法目标必须**诚实为 null**（不编位置、也不自跳）✗：{location:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+
 /// 为什么它和 `∈` 不是一条路：`∈` 是 `infix:` 声明出来的**记法**，跳转走
 /// `notation_at`（查记法表 ✓）；`{a}` 是**内建语法**（`ast::Expr::SetLiteral`），
 /// 根本不在记法表里 ⇒ 那条分支够不着，而 `definition_at` 只读 hover 的
