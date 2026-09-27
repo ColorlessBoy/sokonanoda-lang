@@ -119,14 +119,46 @@ async function responseFor(lsp, id) { for (;;) { const m = await lsp.next(); if 
     return entry && entry.summary && entry.summary !== 'null';
   });
   const inScope = ['Set.powerset (prefix)', 'Set.compl (postfix)'];
-  const defOk = inScope.every((label) => {
+  // ⚠ **判据升级（E00 / 对应 E06）**：原来只断言 `summary !== 'null'` ✗ ——
+  //   那会把「**F12 跳到光标自己那一行**」也判绿 ✗✓（2026-09-27 实测：台账写着
+  //   `fixed` ✓，而这两条**全是自跳** ✗：`Set.powerset` 应落 L81 实落 L124、
+  //   `Set.compl` 应落 L79 实落 L125 —— 落的都是**光标自己那一行** ✗）。
+  //   ⇒ 现在必须断言**落点行号 == 定义行号** ✓（断言具体值 ✓，不是"非 null" ✗）。
+  const defLineOf = (label) => {
+    const bare = label.replace(/ \(.*\)$/, '').split('.').pop(); // 'Set.powerset' → 'powerset'
+    const m = new RegExp(`^def ${bare}\\b`, 'm').exec(SRC);
+    return m ? SRC.slice(0, m.index).split('\n').length - 1 : null; // 0-based
+  };
+  const landed = (label) => {
     const entry = out.get(`${label}|def`);
-    return entry && entry.summary && entry.summary !== 'null';
+    const r = entry && entry.r && entry.r.result;
+    const first = Array.isArray(r) ? r[0] : r;
+    const line = first && first.range && first.range.start ? first.range.start.line : null;
+    return { line, want: defLineOf(label), cursor: entry ? entry.target.line : null };
+  };
+  const defOk = inScope.every((label) => {
+    const d = landed(label);
+    return d.line !== null && d.line === d.want;
   });
+  console.log('== 落点核对（升级后的判据：必须落到定义行，不许自跳）==');
+  for (const label of inScope) {
+    const d = landed(label);
+    const where = d.line === null ? 'null' : `L${d.line + 1}`;
+    const want = d.want === null ? '?' : `L${d.want + 1}`;
+    const tag = d.line !== null && d.line === d.cursor ? '  ← **自跳**（= 光标自己那一行）✗' : '';
+    console.log(`   ${label.padEnd(24)} 落 ${where.padEnd(6)} · 期望 ${want.padEnd(6)}${tag}`);
+  }
   if (hoverOk && defOk) {
     console.log('结论：G-37 已修——目标名 hover 五条全答得上；在闭包里的两条 definition 也答得上');
     console.log('      （不在闭包里的三条诚实为 null——那份文件没 import 声明它们的模块）。');
     process.exit(1);
+  }
+  if (hoverOk && !defOk) {
+    console.error('结论：G-37 仍在（**跳转那一半**）——hover 五条都答得上 ✓，但在闭包里的');
+    console.error('      两条 definition **没有落到定义行** ✗（见上面的落点核对：');
+    console.error('      「自跳」= 返回的是光标自己那一行的 span，视觉上等于没反应 ✗）。');
+    console.error('      ⇒ 这就是判据只断言"非 null"时**看不见**的那个 bug（E05 修它）。');
+    process.exit(0);
   }
   console.error('结论：G-37 仍在——记法声明的目标名不是使用点（definition/hover/');
   console.error('      documentHighlight 全为 null）⇒ ctrl+点击不能跳转，且名字');
