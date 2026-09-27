@@ -34,9 +34,9 @@
 | 9 | `docs/gaps/repro/G38-….js:45` | ③ | `JSON.parse(...).data` 从不查退出码/信封 `ok` ⇒ 解析失败时 `undefined.find` 抛异常 ⇒ node **exit 1** ⇒ 台账 `fixed` 恰好把「行为已变」读成**一致**（`gap.py:220`）⇒ **坏环境静默判绿** | **待修** |
 | 10 | `courses/set-theory/tools/check.py:602-610` | ④ | `--only` 下画布被判红时 `continue` 的前提不成立 ⇒ **画布那次判红无人报告**，exit 0（**已实测复现**） | **待修** |
 | 11 | `scripts/audit-notation-paths.py:186` | ② | 自检只断言"walk.rs 里 ≥1 处"，而 8 处**全是 render_expr** ⇒ 删掉另两个模式仍 exit 0；且 T-U5 迁完后会**假红** | **待修** |
-| 12 | `scripts/docs-lint.py:141,198-199,203` | ④ | **零扫描 = 全绿**：`cd scripts && python3 docs-lint.py` ⇒「活文档 0 个 ✓ · 归档 0 个 ✓」exit 0 | **待修** |
-| 13 | `scripts/notation-lint.py:415-418` | ④ | `MARKER` 命中**丢掉且不计数**：271 个标记行静默豁免 **569 处**旧写法，门禁却印「零旧写法」、`--json` 的 `total=0` | **待修** |
-| 14 | `scripts/status-lint.py:42-48` | ④ | `except: return 0` 把「取不到 HEAD 基线」与「零增长」混为一谈 ⇒ 判据 ④ 静默失效、仍印「净增 0 ✓」 | **待修** |
+| 12 | `scripts/docs-lint.py:141,198-199,203` | ④ | **零扫描 = 全绿**：`cd scripts && python3 docs-lint.py` ⇒「活文档 0 个 ✓ · 归档 0 个 ✓」exit 0 | **已修 ✓** `2984527`（两条地板：`live==0` + 归档目录缺失） |
+| 13 | `scripts/notation-lint.py:415-418` | ④ | `MARKER` 命中**丢掉且不计数**：271 个标记行静默豁免 **569 处**旧写法，门禁却印「零旧写法」、`--json` 的 `total=0` | **部分修** `2984527`（`scanned==0 ⇒ exit 2` + `PRELUDE_CALLS` 用例 ✓；**豁免计数仍未修** ✗） |
+| 14 | `scripts/status-lint.py:42-48` | ④ | `except: return 0` 把「取不到 HEAD 基线」与「零增长」混为一谈 ⇒ 判据 ④ 静默失效、仍印「净增 0 ✓」 | **已修 ✓** `2984527`（`growth()` 取不到 ⇒ `None` ⇒ 判红） |
 | 15 | `scripts/ci-yml-lint.py:63-73` | ① | `jobs:` 为空时循环 0 次 ⇒ exit 0 —— 而**该工具正是因"0 job、0 秒失败"而生** | **已修 ✓** `b313fef` |
 | 16 | `docs/gaps/repro/G37-….js:119` | ① | definition 那半已升级，**hover 那半仍是 `!== 'null'`** —— 同一事故的另一半 | **已修 ✓** `a9def6d` |
 
