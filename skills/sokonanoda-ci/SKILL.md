@@ -95,6 +95,27 @@ gh run view <id> --json jobs --jq '.jobs[] | {name, conclusion}'
 gh run view <id> --log-failed | tail -30  # 只看失败 step 的日志尾部
 ```
 
+### 2.0 「真绿」判定：**skipped 不算绿**（2026-09-27 前置 2）
+
+**整轮 `conclusion` 会骗人** ✗：纯 docs 推送 ⇒ `changes` 过滤器判定 rust/courses/editor
+都没变 ⇒ `test` / `gates-course` / `ledger` / `contract` / `e2e` **全部 skipped** ✗，
+只剩 5 个 lint 类 job 真跑 ⇒ **整轮照样是 `success`** ✗。
+2026-09-27 复盘第 1 条就是这个：所谓「CI 连续 6 次绿」**一次重活都没跑** ✗。
+⚠ `scripts/ci-watch.sh` **只判 failure** ✗ ⇒ 它对这种轮次照样 `exit 0` ✗（咬不住 = 没有守卫）。
+
+```bash
+scripts/ci-green.py --run <id>          # 0=真绿 · 1=红 · 2=假绿 · 3=还不能判
+scripts/ci-green.py                     # 默认判最新一轮 ci
+scripts/ci-green.py --json              # 单个 JSON 对象（给 agent 消费）
+python3 scripts/ci-green.py --selftest  # 离线判据通道自检（不需要 gh / 网络）
+```
+
+判据 = **重活真跑且 success**：`test` · `perf-gate` · `gates-fast` · `gates-course` ·
+`ledger` · `contract` · `editor` · `e2e` · `e2e-macos`（+ **main push** 上的 `e2e-ledger`）；
+`auto-tag` / `fast-fail` 按设计可合法 skip ✓。**发版前必须 `exit 0`** ✓ ——
+版本 bump 会同时动 `Cargo.toml` 与 `package.json` ⇒ 那时重活一定会跑 ✓。
+`exit 2` = 无失败但重活全 skipped ⇒ **不构成证据** ✗，别当成绿 ✓。
+
 **`gh` 未必存在**（2026-09-12 本机实测 `command not found: gh`）。不能因为没装
 `gh` 就说"看不了 CI"——公开仓库可用未认证 REST（`curl` + `node`/`python3`
 解析）；把下面这段存成习惯（`$SHA`=提交，`$RUN`=run id）：
