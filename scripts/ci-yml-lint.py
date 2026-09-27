@@ -60,6 +60,11 @@ def check_workflow(text: str, label: str) -> list:
         return [f"{where} YAML 不合法 ✗：{getattr(e, 'problem', e)}"]
     if not isinstance(doc, dict) or "jobs" not in doc:
         return [f"{label} 没有 jobs ✗"]
+    if not doc.get("jobs"):
+        # ⚠ **本工具存在的理由就是这个** ✗✓（E00 切片 B 抓到的 ✓）：2026-09-26 的事故
+        # 形态是「**0 个 job、0 秒失败**」⇒ 而 `jobs:` 为空/`{}` 时下面的 for 循环
+        # **跑 0 次** ⇒ 0 条问题 ⇒ **exit 0 判绿** ✗ —— 门禁在自己的核心场景上瞎了 ✗。
+        return [f"{label} 的 jobs 为空 ✗（= 当年事故形态：0 个 job ⇒ GitHub 整轮 0 秒失败）"]
     for job_name, job in (doc.get("jobs") or {}).items():
         steps = (job or {}).get("steps")
         if not steps:
@@ -99,6 +104,12 @@ def selftest() -> int:
         ("YAML 语法不合法",
          "name: t\non: push\njobs:\n  a:\n   - broken: [\n", 1),
         ("没有 jobs 键", "name: t\non: push\n", 1),
+        # ⚠ 下面三条是 E00 切片 B 指出的**漏掉维度** ✓（原来这三条一条用例都没有）
+        ("jobs 为空（= 当年事故形态）", "name: t\non: push\njobs:\n", 1),
+        ("jobs 是空映射 {}", "name: t\non: push\njobs: {}\n", 1),
+        ("step 不是映射（是字符串）",
+         "name: t\non: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n"
+         "    steps:\n      - echo hi\n", 1),
     ]
     bad = 0
     for label, text, want in cases:
