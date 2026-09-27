@@ -819,8 +819,11 @@ def _evaluate_selftest(failures: list) -> None:
 
     ⚠ 切片 C 实测：`--selftest` **从不调用 `evaluate()`** ✗（唯一调用点在 `run()` 里）
     ⇒ **G1/G2/G3/G4/G5 零负例** —— 把它 patch 成"一调用就 raise"，自检**仍 PASS** ✗。
-    这里先补 **G4 的两条**（负例：画布没有具名练习；正控制：覆盖完整不该红）✓ ——
-    其余四条（G1/G2/G3/G5）仍需后续补 ✓。
+
+    **现已覆盖 `evaluate()` 里的全部四条** ✓（`90ab11e` 起补 G4，本轮补齐其余三条）：
+    G4（画布空集 / 正控制）· G1（退出码非 0）· G3（有洞 / 全灭）· G5（库里有 sorry），
+    外加两条**正控制**（覆盖完整、干净的一行 ⇒ 都不许红 ✓）。
+    ⚠ **G2 不在 `evaluate()` 里**（它在 `run()` 里做"点名具体缺失文件"）⇒ 本函数**覆盖不到** ✓。
     """
 
     class _Judged:
@@ -844,6 +847,35 @@ def _evaluate_selftest(failures: list) -> None:
     evaluate([pos], lambda _p: _Judged(0, ["p1"]))
     if any("G4" in r for r in pos["reasons"]):
         failures.append(f"G4 自检失败（正控制）：覆盖完整却被判负 —— reasons={pos['reasons']}")
+
+    # ⚠ 下面把 `evaluate()` 里**其余三条判据**也各补一条负例 ✓（2026-09-27 补，续 90ab11e）。
+    #   每条都断言**是哪一条判据开火**（前缀点名 ✓），不是"有没有红" ✗。
+    #   ⚠ **G2 不在 `evaluate()` 里**（它是 `run()` 里"点名具体缺失文件"的那条）⇒
+    #     **本函数覆盖不到它** ✓ —— 不含糊地说成"全覆盖" ✗。
+    def _case(label, want_prefix, **over):
+        row = dict(base, reasons=[], canvas=None, open=0, open_names=[],
+                   checked=3, checked_names=["p1"], exit=0)
+        row.update(over)
+        evaluate([row], lambda _p: _Judged(0, []))
+        if not any(r.startswith(want_prefix) for r in row["reasons"]):
+            failures.append(
+                f"{label} 自检失效：期望 `{want_prefix}` 开火，实际 reasons={row['reasons']}")
+
+    # G1：`grade` 退出码非 0
+    _case("G1", "G1：", exit=1)
+    # G3-a：解答里还有未填的洞
+    _case("G3(有洞)", "G3：解答里还有未填的洞", open=2, open_names=["a", "b"])
+    # G3-b：解答没有任何声明通过内核
+    _case("G3(全灭)", "G3：解答没有任何声明通过内核", checked=0)
+    # G5：课程标准库里有 sorry
+    _case("G5", "G5：", kind="lib", open=1, open_names=["x"])
+
+    # 正控制：完全干净的一行 ⇒ **一条理由都不该有**（防误伤 ✓）
+    clean = dict(base, reasons=[], canvas=None, open=0, open_names=[],
+                 checked=3, checked_names=["p1"], exit=0)
+    evaluate([clean], lambda _p: _Judged(0, []))
+    if clean["reasons"]:
+        failures.append(f"evaluate 自检失败（正控制）：干净的一行被判负 —— reasons={clean['reasons']}")
 
 
 def selftest(channel: Channel, check_py: Path) -> int:
