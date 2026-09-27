@@ -600,7 +600,7 @@ objective 的**形状**照抄上一轮那条成功 goal 的写法（它跑完 32
 | 1 | **判据强度到位**（E00 做完） | ❌ 未做 —— 不做这个，后面每个环节做完都**看不出来** |
 | 2 | **「真绿」定义**（逐 job 判定，skipped 不算绿） | ❌ 未做 |
 | 3 | **隔离**：一条会话一个 worktree | ❌ 未做（skill 已在清单上游，加两行即可） |
-| 4 | **磁盘**：`target/` 205 GB、只剩 159 GB | ❌ 要先 `cargo clean` |
+| 4 | **磁盘**：`target/` 曾 **205 GB**（`deps/*.rcgu.o` **966,858 个 / 171 GB** · `incremental/` **82 GB**） | ✅ **已清 + 守卫已就位**（2026-09-27 15:00 清到 **2.0 GB** —— **不是待办** ✓）<br>① **不动增量编译** ✗✓（用户 2026-09-27 拍板：**性能/迭代速度优先** ✓；依据 `~/.cargo/config.toml` 2026-09-26 那条**已批准**记录「不要全局关增量」✓）<br>② 磁盘走**守卫 + 回收** ✓：`python3 scripts/target-hygiene.py`（`target/` **40 GB 报警 / 100 GB 判红** —— 日常不误触发 ✓）<br>③ 回收：`rm -rf target/debug/deps target/debug/incremental`（⚠ 本机 **`cargo clean` 会被 EPERM 拦** ✗）<br>④ 实测（探针改内容强制真重编 ⇒ 绕开 Fresh 与 sccache ✓）：`incremental ON ⇒ 一次重编 Δ=+233` 个 `.rcgu.o`（522→755）· `OFF ⇒ Δ=0` |
 | 5 | **回退点存在**：当前 HEAD 已发版 | ✅ **满足**（0.73.0 已发布，`git revert` 有落脚处） |
 
 ## 每个环节的 4 条硬判据（缺一条就不算做完）
