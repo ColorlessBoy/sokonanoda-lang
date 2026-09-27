@@ -31,6 +31,29 @@
 - **判红怎么取**：现在 `prelude/Prelude.sokonanoda` **不存在** ⇒ 直接贴 `ls`/`git ls-files` 的实测
   （或"学生点不到、只能看到临时物化文件"的实测路径 ✓）；守卫要先在**没有**那份文件时判红 ✓。
 
+### ⚠ E10 **已换路**（2026-09-28 实测，**先读这段再动手**）
+
+计划原话「内建记法写进 prelude 当声明点（`infixr:35 " ∧ " => And` 这类）」**走不通** ✗✓：
+
+```text
+$ scripts/soko grade /tmp/t.sokonanoda --json     # 文件里写 infixr:35 " ∧ " => And
+{"code":"notation-shape",
+ "message":"符号 `∧` 是**语言内建记法**（Lean core 级的逻辑符号），不需要也不能重新声明；直接用就行"}
+```
+
+这条守卫是**对的** ✓（防"记法概念分叉"，与 E11 第 ③ 条同一纪律 ✓）⇒ **不许绕过** ✗。
+**换路**：走仓库**已有**的 `-- sokonanoda:<指令>` 注释约定（**与 E11 的 `builtin-sugar` 同一套机制** ✓，
+**零新增语法** ✓）—— 在 prelude 源里用指令登记内建记法（如 `-- sokonanoda:builtin-notation "∧" => And`），
+让内建表 / 记法表带上 prelude 里那一行的 **span** ⇒ 「名字 → 记法行 → 定义 → 回记法」双向成立 ✓。
+
+- 已钉的现状判据（**换路实现后仍须绿** ✓）：`crates/front/src/notation.rs::redeclaring_a_builtin_notation_is_rejected`
+  （含**对照组**：非内建 `⊗` 照常合法 ✓）。
+- ⚠ **`→` 不在内建记法表里**（`parser.rs::BUILTIN_NOTATIONS` 只有 `∧ ∨ ↔ ¬ = ≠`）⇒ 它是**词法/语法级箭头**，
+  没有"记法声明点"这回事 ✗（计划清单里列了它是**松的** ✓）。
+- ⚠ **`=` 永远不能进源**（最长匹配会把 `=>` 吃成 `=` + `>` —— `parser.rs` 有实测注释 ✓）。
+- ⚠ 试过"直接把 5 行 `infixr:` 写进 `PRELUDE_L1_SRC`" ⇒ `crate::parse(PRELUDE_L1_SRC)` 失败 ⇒
+  **475 个 front 测试同时红** ✗✓（已完整回退；镜子已重新生成 ✓）。**别重试这条** ✗。
+
 ### E10 —— 内建记法 `∧ ∨ ↔ ¬ →` 写进 prelude 当**声明点**（双向）
 
 - 现在内建记法是**硬编码表**：`crates/front/src/parser.rs::builtin_notations()`

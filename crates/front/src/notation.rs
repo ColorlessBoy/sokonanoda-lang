@@ -188,12 +188,47 @@ mod span_tests {
         assert_eq!(decl.module, None);
     }
 
-    /// 内建记法**没有**声明点（不在任何源文本里）——"跳转"对它们无意义。
+    /// 内建记法**不在内建表里带声明点**（表是 `Bare` 模式的兜底）——但**在 prelude 模式
+    /// 下它们有真的声明点**（见下一条 ✓）。
     #[test]
     fn builtin_notations_have_no_declaration_site() {
         for decl in builtin_notation_decls() {
-            assert_eq!(decl.module, None, "内建没有模块：{}", decl.symbol);
-            assert_eq!(decl.span.start.offset, 0, "内建没有声明点：{}", decl.symbol);
+            assert_eq!(decl.module, None, "内建表里没有模块：{}", decl.symbol);
+            assert_eq!(decl.span.start.offset, 0, "内建表里没有声明点：{}", decl.symbol);
         }
+    }
+
+    /// **E10 的判据（v0.76.0）—— 先钉住"为什么不能直接声明"** ✗✓。
+    ///
+    /// 计划 §E10 的原话是「内建记法 `∧ ∨ ↔ ¬ →` **写进 prelude 当声明点**」。
+    /// **实测：这条路走不通** ✗ —— 语言**故意**拒绝重新声明内建记法：
+    ///
+    /// ```text
+    /// $ scripts/soko grade /tmp/t.sokonanoda --json      # 文件里写 infixr:35 " ∧ " => And
+    /// {"code":"notation-shape",
+    ///  "message":"符号 `∧` 是**语言内建记法**（Lean core 级的逻辑符号），不需要也不能重新声明；直接用就行"}
+    /// ```
+    ///
+    /// 这条守卫是**对的** ✓（它防的正是"记法概念分叉" —— 与 E11 的第 ③ 条同一条纪律 ✓），
+    /// 所以 **E10 要换路**：让内建记法**在不重新声明的前提下拿到声明点** ——
+    /// 走仓库**已有**的 `-- sokonanoda:<指令>` 注释约定（与 E11 的 `builtin-sugar` 同一套 ✓，
+    /// **零新增语法** ✓），让内建表/记法表带上 prelude 里那一行的 span ✓。
+    ///
+    /// ⚠ 本判据钉的是**现状（拒绝重声明）**：E10 换路实现之后它**仍然必须绿** ✓
+    /// （那时"写进 prelude"用的是**指令注释**，不是 `infixr:` 声明 ✓）。
+    /// 反向验证：把下面这条 `infixr:35` 改成**非内建**符号（如 `⊗`）⇒ 解析**成功** ⇒ 判红 ✓。
+    #[test]
+    fn redeclaring_a_builtin_notation_is_rejected() {
+        let src = "def And (a b : Prop) : Prop := a\ninfixr:35 \" ∧ \" => And\n";
+        assert!(
+            crate::parse(src).is_err(),
+            "语言**故意**拒绝重新声明内建记法（`notation-shape`）—— 这是 E10 必须换路的实测依据 ✗✓"
+        );
+        // 对照：**非内建**符号在同样位置是合法的 ⇒ 上面那条红不是"记法声明本身不行" ✓。
+        let ok = "def And (a b : Prop) : Prop := a\ninfixr:35 \" ⊗ \" => And\n";
+        assert!(
+            crate::parse(ok).is_ok(),
+            "非内建符号的记法声明必须照常合法（对照组）✗"
+        );
     }
 }
