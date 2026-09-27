@@ -54,6 +54,29 @@ $ scripts/soko grade /tmp/t.sokonanoda --json     # 文件里写 infixr:35 " ∧
 - ⚠ 试过"直接把 5 行 `infixr:` 写进 `PRELUDE_L1_SRC`" ⇒ `crate::parse(PRELUDE_L1_SRC)` 失败 ⇒
   **475 个 front 测试同时红** ✗✓（已完整回退；镜子已重新生成 ✓）。**别重试这条** ✗。
 
+### ✅ 基线：**CI run `36348821935` 逐 job 真绿**（2026-09-28 04:50 实测）
+
+`python3 scripts/ci-green.py --run 36348821935` ⇒ **exit 0**（重活 **10/10** 实跑且 success、
+failure **0**）✓ —— 也就是说下面这一批**已经站在真绿基线上**，可以直接往上加东西 ✓：
+
+- `1dd1a92` **E09 ✅**（prelude 镜子 `prelude/Prelude.sokonanoda` + 逐字节守卫）
+- `d4e61e4` **E10 前半 ✅**（prelude 指令行登记声明点 · 判据迁移 · 反向验证）
+- `e074350` **E10 接缝判据 ✅**（闭包表带内建含 span · 词法认得出 `∧`）
+- `7fbb036` **perf 哨兵修复**（180s → 300s，含"不是我们改慢"的对照实验 ⇒ 已进 `docs/CI-FAILURES.md`）
+
+⚠ 上一轮那条红（`test (sokonanoda-lsp, tests)` 的 `perf_course` 绝对哨兵）**已关** ✓ ——
+修法是放宽哨兵 + 保留与机器无关的比值判据 ✓，**不是**靠重跑 ✓。
+
+**下一会话从这里接**（E10 后半，唯一未做的一步）：让**学生文件里对 `∧` 按 F12 落到 prelude 那条指令行**。
+按 round 3 夹小的三步走：① **先打印** `docs.query().notation_at(&text, offset)` 对 `∧` 的
+**四项返回值**（`symbol / target / module / span`）—— 怀疑 `module` 是 `Some("Canvas")` 而不是
+`None`（那样就会走"模块路径"支路、落到学生文件 ✓，这正是 round 2/3 四次红的形态 ✗）；
+② 若 `module` 非 `None`，查 seed（`project/graph.rs` 闭包表）与每模块 `absorb_notations` 的**先后/覆盖**；
+③ 判据照已有的绿用例 `goto_definition_on_a_prelude_name_lands_in_the_prelude_source` 写
+（断言"落点文件里有 `-- sokonanoda:builtin-notation`" + 落在那一行 ✓），反向验证 = 删掉
+`lib.rs` 里 `module.is_none() && span.start.offset != 0` 那段 ⇒ 判红 ✓。
+⚠ 夹具**必须有 `sokonanoda.toml`**（`notation_at` 开头 `self.project.as_ref()?` ✗ 单文件模式必 `None` ✓）。
+
 ### E10 **进度：前半已落地（`d4e61e4`），后半卡在 `notation_at`**（2026-09-28 round 2 实测）
 
 **已做（已提交 ✓）**：
