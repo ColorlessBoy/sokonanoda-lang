@@ -2,26 +2,26 @@
   "schema": "soko.e2e/1",
   "kind": "vscode-integration",
   "version": "0.73.0",
-  "commit": "b1799c8dd6dce8aa8e1c7ce8c593cb756c51c312",
-  "dirty": true,
-  "date": "2026-09-27T14:26:53Z",
+  "commit": "ffe225d4f9705a96d9538dc05a6dacef41f882c4",
+  "dirty": false,
+  "date": "2026-09-27T14:52:49Z",
   "host": {
-    "system": "Darwin",
-    "machine": "arm64",
-    "release": "25.6.0"
+    "system": "Linux",
+    "machine": "x86_64",
+    "release": "6.17.0-1022-azure"
   },
   "vscode": "1.138.0",
   "tests": {
-    "passed": 3,
+    "passed": 33,
     "failed": 0,
     "pending": 0,
     "failing_cases": [],
     "failing_details": ""
   },
   "exit": 0,
-  "server": "0.73.0 (pid 13292) == 扩展 v0.73.0 (source=bundled)",
-  "lsp_sha256_16": "33e4f0d86f58cd4f",
-  "log": "docs/e2e/logs/2026-09-27-b1799c8-vc1.138.0.log",
-  "profile": "debug",
-  "grep": "Clean Cache|build / rebuild|rewriting an unchanged"
+  "server": "0.73.0 (pid 3119) == 扩展 v0.73.0 (source=bundled)",
+  "lsp_sha256_16": "ea160745af000dba",
+  "log": "docs/e2e/logs/2026-09-27-ffe225d-vc1.138.0.log",
+  "profile": "release",
+  "grep": null
 }
