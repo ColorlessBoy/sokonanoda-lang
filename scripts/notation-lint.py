@@ -371,7 +371,7 @@ class Linter:
         return out
 
     def scan_file(self, path: Path) -> tuple[list[dict], str]:
-        rel = path.resolve().relative_to(REPO).as_posix()
+        rel = _rel(path)   # 仓外 ⇒ 明确 exit 2（不是 traceback ✗）
         if rel in EXEMPT_FILES:
             return [], "exempt:cheatsheet"
         src = path.read_text(encoding="utf-8")
@@ -425,6 +425,24 @@ class Linter:
                     continue
                 hits.append(h)
         return hits, "scanned"
+
+
+def _rel(path: Path) -> str:
+    """仓库相对路径（报告里用的形态）。
+
+    ⚠ **仓外的文件 ⇒ 明确 exit 2，不是 traceback** ✗✓（E00，2026-09-27 实测）：
+    `per_file` 里直接 `path.resolve().relative_to(REPO)` ⇒ 传仓外文件时**抛 ValueError
+    且不被捕获** ✗（实测：`'/private/var/…/p.sokonanoda' is not in the subpath of '…/sokonanoda-lang'`）
+    —— 而 `--root` 的 help 只说「扫描根」、**没写必须在仓库内** ✗ ⇒ **用法与实现不符** ✗。
+    这里改成：**说清楚为什么不能扫、并给出可行做法** ✓（exit 2 = 用法错误，与其它脚本同口径 ✓）。
+    """
+    try:
+        return path.resolve().relative_to(REPO).as_posix()
+    except ValueError:
+        print(f"notation-lint: {path} **不在仓库内** ⇒ 无法判定（报告的路径是仓库相对路径）✗\n"
+              f"  仓库根：{REPO}\n"
+              f"  ⇒ 把待检文件放到仓库下，或直接跑默认的全课程扫描 ✓", file=sys.stderr)
+        raise SystemExit(2) from None
 
 
 def selftest() -> int:
@@ -513,7 +531,7 @@ def main(argv: list[str] | None = None) -> int:
         if status.startswith("exempt"):
             per_file.append(
                 {
-                    "file": path.resolve().relative_to(REPO).as_posix(),
+                    "file": _rel(path),
                     "exempt": status.split(":", 1)[1],
                     "hits": [],
                 }
@@ -524,7 +542,7 @@ def main(argv: list[str] | None = None) -> int:
         total += len(hits)
         per_file.append(
             {
-                "file": path.resolve().relative_to(REPO).as_posix(),
+                "file": _rel(path),
                 "code": code,
                 "comment": comment,
                 "hits": hits,
