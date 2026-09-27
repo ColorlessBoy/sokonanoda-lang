@@ -12,7 +12,8 @@
 //   115–125 行的目标名（`Set.mem`/`Set.powerset`/`Set.compl`…）→ **4 = FUNCTION**
 //            （名字**在本文件里声明** ⇒ 作用域查得到）
 //   126–128 行的目标名（`Set.image`/`Set.preimage`/`Set.prod`）→ **5 = VARIABLE**
-//            （名字**不在本文件作用域**，在 `lib/Image.sokonanoda` / 单元⑤ 画布里
+//            （名字**不在本文件作用域**，在 `lib/Image.sokonanoda` /
+//             `lib/Prod.sokonanoda`（E02 起收进库；以前在单元⑤ 画布里）
 //             ⇒ 落成 `SemanticKind::UnknownIdent`）
 // ⇒ 三条"没高亮"是**同一个根因的第二种症状**：目标名不是"已知引用"，
 //    只能退回作用域查找，查不到就只好说"不知道这是什么"。

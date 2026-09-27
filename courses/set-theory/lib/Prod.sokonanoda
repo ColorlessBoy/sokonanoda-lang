@@ -39,6 +39,7 @@
 -- （`Or`/`False`）目标本来就在 `Prop`，默认 `0` 恰好够用，所以只在投影这种
 -- **Type 值**的消去上会咬人。
 import lib.Logic
+import lib.Set
 
 -- ── 类型与构造子（Mathlib: Mathlib/Data/Prod.lean，逐字同款语义）─────────────
 inductive Prod (A B : Type) : Type
@@ -59,6 +60,18 @@ theorem Prod.fst_mk (A B : Type) (a : A) (b : B) :
 
 theorem Prod.snd_mk (A B : Type) (a : A) (b : B) :
     Prod.snd A B (prod_mk A B a b) = b :=  Eq.refl.{1} B b
+
+-- ── 集合积（Mathlib: `Set.prod`，记法 `s ×ˢ t`）──────────────────────────────
+-- **E02（0.74.0）把它从单元⑤ 的画布收进这里**：记法 `×ˢ` 由 `lib/Set` 声明，
+-- 而它的**目标**原先只活在单元⑤ 里 ⇒ 任何别的地方写 `s ×ˢ t` 都报
+-- `elab-notation-unknown-target`（"记法 `×ˢ` 指向的目标 `Set.prod` 不存在"）✗。
+-- 收进库之后，`import lib.Set`（记法声明）+ `import lib.Prod`（目标）就能用，
+-- 目标也在闭包内 ✓（`lib/Set` 的注释里"三条记法目标"那条跨模块尾巴因此收口）。
+--
+-- 返回值是 `Set (Prod A B)`——也就是谓词 `Prod A B → Prop`；定义体照课程库的
+-- 统一写法**点名**（定义是词汇，不是证明）：两个坐标分别满足 s 与 t。
+def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=
+  fun (p : Prod A B) => (s (Prod.fst A B p)) ∧ (t (Prod.snd A B p))
 
 -- ── 演示（库自检）：两条展开引理合起来 = 序对的两个坐标都被还原。────────────
 -- 单元⑤ 的配对定理（从 (a,b) = (a',b') 推出 a = a' ∧ b = b'）**不在这里**：

@@ -59,7 +59,7 @@
 | A7 | [49]（10:34） | 「**全面一点，专门针对 notation，产品交互**。包括**多来点隐式参数**，让 notation 更直观」 | ⚠️ 部分 | B1 扩宽隐式求解 ✅ · B3 三刀收口 G-40/41/42 ✅ · **B2 课程库隐式化 ❌ 卡在设计级缺口**（记法求解器无元变量）。另外「不许新建大 plan 文件」你后来也提过 |
 | A8 | [106].1（11:53） | 「prelude 能够有**显式的文件**，And Or Iff 这些定义的代码能让学生看到」 | ❌ 未做 | 同 A1 |
 | A9 | [106].2 | 「Singleton、And、Or 等都应该能**跳转到对应的 notation，notation 再跳转到对应的定义**」（两跳） | ❌ 未做 | 实测：`∧ ∨ ↔ ¬` 是**内建记法、零声明点** ⇒ 「跳到 notation」**没有落点**。你已拍板"写进 prelude 文件当声明点" |
-| A10 | [106].3 | 「`Set.image`/`Set.preimage`/`Set.prod` **高亮和前面颜色不一样**」 | ❌ 未做 | 实测（真 LSP 语义 token）：前 8 条 `function`，这三条 `variable`（落 `UnknownIdent`）。根因是它们**不在 `lib/Set.sokonanoda` 的闭包里**（image/preimage 在 `lib/Image.sokonanoda:32,37`；prod 是单元⑤画布给的词汇） |
+| A10 | [106].3 | 「`Set.image`/`Set.preimage`/`Set.prod` **高亮和前面颜色不一样**」 | ❌ 未做 | 实测（真 LSP 语义 token）：前 8 条 `function`，这三条 `variable`（落 `UnknownIdent`）。根因是它们**不在 `lib/Set.sokonanoda` 的闭包里**（image/preimage 在 `lib/Image.sokonanoda:32,37`；prod 原先只活在单元⑤ 画布里，**E02 已收进 `lib/Prod.sokonanoda:73`** —— 但"不在 `lib/Set` 闭包里"这条对 prod **仍然成立**，所以 A10 的症状与 E07 的定案不受 E02 影响） |
 | A11 | [106].3 后半 | 「这里 notation 语法这里**想再跳转定义**的」 | ❌ 未做 | 实测：**11 条全部有问题** —— 8 条落 `function` 的**F12 跳到光标自己那一行**（自跳，视觉上等于没反应）；3 条返回 `null`。Bug A 在 `crates/lsp/src/lib.rs:1896`（`project_definition` 返回的真 span 被 `_` 丢掉） |
 | A12 | [107]（11:57） | 「`infix:50 " ∈ " => Set.mem` 这一句高亮的 `Set.mem` **也无法跳转**呀」 | ❌ 未做 | 同上；实测落 L115（应落 L60 `def mem`） |
 | A13 | [108]（12:05） | 「Singleton 的 notation 在哪里声明的」 | ✅ 已答 | **没有声明** —— `{a}` 是内建语法 `Expr::SetLiteral`（`ast.rs:120`/`parser.rs:2446`/`elab.rs:3403`） |

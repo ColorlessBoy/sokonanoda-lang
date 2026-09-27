@@ -182,7 +182,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 三条要记住的边界（都能在 `docs/design/notation-subset.md` §10–§12 找到实测）：
 
 1. **目标名在使用点解析**：`''`/`⁻¹'` 的目标在 `lib/Image.sokonanoda`、`×ˢ` 的目标
-   `Set.prod` 是**单元⑤ 给出的词汇**。用到某个符号时那个名字必须在作用域里，
+   `Set.prod` 在 `lib/Prod.sokonanoda`（E02 起收进库）。用到某个符号时那个名字必须在作用域里，
    否则报 `elab-notation-unknown-target`（报错点名缺的是哪个名字）。
 2. **同一个符号全课程只能声明一次**（重复声明是 parse 错误）——库声明过的，
    单元不能再声明一遍。

@@ -66,7 +66,8 @@
 --    parse 错误）。本页 `import lib.Set` ⇒ 从文件头就可用，不用自己重声明。
 -- ⚠️ **目标名在"使用点"解析**：`Set.powerset` / `Set.compl` 就在 `lib/Set` 里；
 --    `Set.image` / `Set.preimage` 在 `lib/Image.sokonanoda`（单元⑧⑫ import 它）；
---    `Set.prod` 是**单元⑤ 给出的词汇**（`def Set.prod` 写在那个画布里）。
+--    `Set.prod` 在 `lib/Prod.sokonanoda`（**E02 起收进库**；以前它只活在单元⑤
+--    的画布里 ⇒ 别处写 `×ˢ` 会报"目标不存在"）。
 --    没 import 对模块就用该符号 ⇒ `elab-notation-unknown-target`，报错会点名缺谁。
 --    ⇒ **本页只演示目标就在 `lib/Set` 里的两个**（`𝒫` 与 `ᶜ`），另外三个要
 --    import 对模块才有意义（这本身也是教学设计：报错会告诉你缺哪个名字）。
@@ -314,8 +315,8 @@ import lib.Set
 --     infixr:80   " ×ˢ "  => Set.prod         A ×ˢ B       集合积
 --
 -- **目标名在使用点解析**：`Set.image`/`Set.preimage` 在 `lib/Image.sokonanoda`
--- （单元⑧⑫ import 它）、`Set.prod` 是**单元⑤ 给出的词汇**（`def Set.prod` 写在
--- 画布里）。所以本页只演示目标就在 `lib/Set` 里的两个——另外三个要 import 对
+-- （单元⑧⑫ import 它）、`Set.prod` 在 `lib/Prod.sokonanoda`（E02 起收进库）。
+-- 所以本页只演示目标就在 `lib/Set` 里的两个——另外三个要 import 对
 -- 模块才有意义（这也是"报错会点名缺哪个名字"的教学设计）。
 --
 -- **一元记法在实参位要加括号**（与二元记法一致）：`f (𝒫 A)`、`f (Aᶜ)`；

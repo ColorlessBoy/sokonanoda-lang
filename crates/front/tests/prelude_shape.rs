@@ -181,3 +181,60 @@ fn the_course_libraries_declare_the_composition_notations() {
         "声明点必须落在 `infixr:90 \" ∘ \" => Function.comp` 那一行：{line:?}"
     );
 }
+
+/// **E02 的判据（真相层）**：`×ˢ` 的目标 `Set.prod` 住在**库里**（`lib.Prod`）。
+///
+/// 为什么这条重要：记法 `×ˢ` 由 `lib/Set` 声明，而它的**目标**原先只活在单元⑤ 的
+/// 画布里 ⇒ 任何"只 `import` 库"的闭包写 `s ×ˢ t` 都报
+/// `elab-notation-unknown-target`（"记法 `×ˢ` 指向的目标 `Set.prod` 不存在"）。
+/// 收进 `lib/Prod` 之后目标在库内 ⇒ 闭包自足（这也是 E07「跨模块目标」的一半）。
+#[test]
+fn the_set_product_notation_target_lives_in_the_library() {
+    use sokonanoda_front::NotationAssoc;
+
+    let entry = course_dir().join("units/unit05-pairs-products.sokonanoda");
+    let text = std::fs::read_to_string(&entry).expect("读入口");
+    let plan = project::plan_project(&entry, Some(&text), None);
+    let report = project::compile_plan(plan, &Default::default());
+
+    let prod = report
+        .notations
+        .iter()
+        .find(|n| n.symbol == "×ˢ")
+        .expect("入口可见 `×ˢ`（它声明在被 import 的 lib.Set 里）");
+    assert_eq!(prod.target, "Set.prod");
+    assert_eq!(prod.precedence, Some(80));
+    assert_eq!(prod.assoc, NotationAssoc::Infixr);
+    assert_eq!(
+        prod.module.as_deref(),
+        Some("lib.Set"),
+        "记法本身仍声明在 lib.Set（目标搬了、声明点没搬）"
+    );
+
+    // 目标由**库**提供：`lib.Prod` 的声明表里有一条 checked 的 `Set.prod`。
+    let lib = report
+        .module("lib.Prod")
+        .expect("闭包里有 lib.Prod（单元⑤ import 了它）");
+    let decl = lib
+        .report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("Set.prod"))
+        .expect("`Set.prod` 必须由 lib.Prod 提供（E02 收进库）");
+    assert!(
+        matches!(decl.status, sokonanoda_front::compile::DeclStatus::Checked),
+        "lib.Prod 里的 `Set.prod` 必须 checked：{:?}",
+        decl.status
+    );
+
+    // 画布自己**不再**声明它——同名重声明会被判 `import-name-collision`。
+    let entry_module = report.entry_module().expect("入口模块报告");
+    assert!(
+        !entry_module
+            .report
+            .decls
+            .iter()
+            .any(|d| d.name.as_deref() == Some("Set.prod")),
+        "画布不该再声明 `Set.prod`（副本必须删掉，否则与 lib.Prod 撞名）"
+    );
+}

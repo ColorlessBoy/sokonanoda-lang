@@ -5,9 +5,10 @@
 --     prod_fst_mk · prod_snd_mk · prod_mk_inj · prod_mk_eq_iff ·
 --     mem_prod_iff · prod_set_swap_ne · kura_degenerate
 --
--- 本文件自带 `def Set.prod`：画布里的同一条定义是**给定词汇**（不是练习），而两个文件
--- 之间无法共享名字（模块名不能带 `-`，台账 G-12 的同一族限制；同名重声明会被内核判
--- import-name-collision），所以这里原样抄一遍。因此本文件的 decl_checked = 7 条练习 + 1 条 def。
+-- `def Set.prod` **不再自带**：E02（0.74.0）把它收进了 `lib/Prod`，本文件 `import lib.Prod`
+-- 就拿到它 ⇒ 自己再抄一遍会撞 `import-name-collision`（同名重声明）。
+-- 因此本文件的 decl_checked = 7 条练习 + 0 条 def = 7（比 E02 之前少 1 —— 那是**副本消失**，
+-- 不是练习变少；课程门禁的总数随之 328 → 327，已在 E02 的提交与台账里写明）。
 --
 -- 全部改写为 **tactic 模式**（设计 docs/design/course-lean-style.md R2）：语句与画布
 -- 逐字一致，记法用 Lean core 的符号（`∈ ⊆ ×ˢ = ≠ ∧ ∨ ↔` 与集合字面量 `{a}` / `{a, b}`），
@@ -21,10 +22,8 @@ import lib.Logic
 import lib.Set
 import lib.Prod
 
--- 画布 5.2 的给定定义（笛卡尔积），此处原样重抄，供下面的练习使用。
--- `×ˢ` 记法的目标就是它——所以本文件里 `s ×ˢ t` 只在**这一行之后**可用。
-def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=
-  fun (p : Prod A B) => (s (Prod.fst A B p)) ∧ (t (Prod.snd A B p))
+-- 画布 5.2 的给定定义（笛卡尔积）现在住在 **lib/Prod**（E02）；`×ˢ` 记法的目标就是它
+-- ⇒ 本文件**从文件头**就能写 `s ×ˢ t`（不必再等某一行定义）。
 
 -- 练习 1（T 类）：投影算在构造子上（直接点名库里的展开引理）。
 theorem prod_fst_mk (A B : Type) (a : A) (b : B) :

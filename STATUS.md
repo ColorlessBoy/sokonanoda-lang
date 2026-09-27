@@ -1,6 +1,6 @@
 # 当前快照（2026-09-27）
 
-- **进度**：**64/66**（E2 50/50 ✓ + **批次 N** 记法×隐式参数×产品交互 14/16 ✓）· 🚀 **v0.74.0：E01 ✓ / 11**（`•`/`∘` 复合记法）
+- **进度**：**64/66**（E2 50/50 ✓ + **批次 N** 记法×隐式参数×产品交互 14/16 ✓）· 🚀 **v0.74.0：E01 ✓ · E02 ✓ / 11**（`•`/`∘` 复合记法 · `Set.prod` 收进 `lib/Prod`）
 - **已发布**：**`sokonanoda v0.72.0`** ✓（`gh release list` 显示 **Latest** ✓ · 2026-09-25T23:25:07Z ✓）
 - **A 组（A0–A5）全部落地** ✓：显示层混合形态（`ty_text` ASCII `->` **227 → 0**）· `{a}` 折回 ·
   `{a}` 可跳转（根因：开放练习的签名**一条 hover 行都没有**）· prelude 可跳转（F12 落到前奏源文件
@@ -107,33 +107,26 @@
 - **纪律** ✓：**凡 `needs` 里可能有 skipped 的 job，`if` 都要带状态函数** ✓
   （否则它会静默消失 ✗）。
 
-## 第 476 轮（2026-09-26）：**文档瘦身 + 判据守护** ✓（用户要求：「文档太重了」✓）
+## 第 479 轮（2026-09-27）：E02 —— `Set.prod` 收进 `lib/Prod` ✓（v0.74.0 第 2 个环节）
 
-- **变了什么** ✓（三类分治，全部落成机制 ✓）：
-  * **垃圾** ✓：**48 个 / 1.54 MB 删净**（`.tmpdir` 6 个 + 产物残留 `*.tmp-<pid>` 26 个
-    + 编辑器残留）✓；`.gitignore` 补 `.*.tmp` / `*.tmp-*` / `*.orig` / `*.rej` / `*~` ✓。
-  * **活规范瘦身** ✓：`REQUIREMENTS.md` **3112 → 214 行** ✓（§9 历史**逐字**进
-    `docs/archive/REQUIREMENTS-ARCHIVE.md` ✓）· `e2-plan` **3105 → 379 行** ✓
-    （`plan.py check/list/bumps` 仍全绿 ✓）· E1 计划 **4375 → 240 行** ✓ ·
-    `TESTING` / `HANDOVER` / `imports-and-projects` / `course-lean-style` /
-    `duplication-audit` 各**只留契约** ✓。
-  * **过程记录归档** ✓（`docs/archive/` + 索引 ✓，**归档≠销毁** ✓）：`STATUS-ARCHIVE`
-    （7392 → 1666 行）· `CI-FAILURES`（1823 → 446 行）· e2e 台账（253 → 50 条 + 140 日志）·
-    调研笔记 20 篇 · 站点重构 17 篇 · 缺口工作单 13 篇 · 自述已废弃设计 5 篇 ✓。
-  * **判据** ✓：`scripts/docs-lint.py` **六条** ✓ + `--selftest` ✓，接进
-    `scripts/soko gate` / `ci-local.sh` / CI 的**独立 `docs-lint` job** ✓（不设 `if:` ⇒ 永远跑 ✓）。
-- **现在的状态** ✓：`docs-lint` **绿** ✓（活文档 2.90 MB ≤ 3.0 · 归档 2.15 MB ≤ 2.5 ·
-  垃圾 0 · 归档索引齐 ✓）· `status-lint` / `plan.py check` / `ci-yml-lint` /
-  `e2e-merge --check` 全绿 ✓ · 站点 `check-site.py` **9/9** ✓。
-- **未决** ✓：**是否现在 push**（见下）。
-- ⚠ **两条顺带查出的既有缺陷** ✓（都不是本轮造成的 ✗）：
-  ① `site/data/site.json` 停在 **0.66.0** ✗（最新 tag 是 v0.72.0）—— 真因是
-  **`scripts/check-site.py` 既不在 CI 也不在 `ci-local.sh`** ✗ ⇒ 从 0.66.0 起没人拦；
-  已按它给的补救命令**重生成** ✓（diff 只有 3 行 ✓，点检回到 9/9 ✓）。
-  ② `crates/front/src/compile/check/mod.rsY3mLag`（49 KB）是**被 git 跟踪的畸形残留** ✗
-  （`mod.rs` 的旧快照、零引用、不参与编译）⇒ **已删** ✓。
-- ⚠ **并发写者** ✗（本轮**唯一不能自行收口**的点）：`crates/front/src/display.rs` 在
-  10:59 被**另一个会话**改了 139 行（注释写着「2026-09-26 用户报告第 1 条」= A1 箭头折叠）✗
-  ⇒ 它新增的两个测试（`arrows_fold_to_the_unicode_arrow` / `set_literals_fold_back_to_braces`）
-  当前**红** ✗，但**不在 HEAD 里** ✓ ⇒ 与本轮**零关系**（本轮**零 Rust 改动** ✓）⇒ 本轮**不 push** ✓。
+- **变了什么** ✓：`def Set.prod` 从**单元⑤ 画布**收进 `courses/set-theory/lib/Prod.sokonanoda:73`
+  （`lib/Prod` 新增 `import lib.Set`；记法 `×ˢ` 仍由 `lib/Set` 声明）；画布与
+  `unit05-solution` 里那**两份副本删掉**（不删就撞 `import-name-collision`）。
+- **判红** ✓（内核原文，修前实测）：临时模块根只放 `lib/` 时写 `s ×ˢ t` ⇒ exit 1
+  `elab-notation-unknown-target`「记法 `×ˢ` 指向的目标 `Set.prod` 不存在」。
+- **判据两层** ✓：front `the_set_product_notation_target_lives_in_the_library`
+  （`×ˢ`→`Set.prod`/80/Infixr、声明点仍在 lib.Set；`Set.prod` 由 **lib.Prod** 提供且 checked；
+  画布不再声明它）· CLI `the_set_product_notation_resolves_from_the_libraries_alone`
+  （只拷 `lib/` 的模块根 + 只 import 库的画布 ⇒ exit 0）。
+- **反向验证** ✓：把 `def Set.prod` 从 `lib/Prod` 撤掉 ⇒ 两层判据都红，诊断逐字回到上面那条（已还原 ✓）。
+- ⚠ **净账（要记住）** ✗✓：副本消失 ⇒ 课程门禁 checked **328 → 327**（**练习数与 open 数一条未动**；
+  `lib/` 合计 74 → 75）。**这是 E02 的正确结果、不是回归** —— 目标从「两份副本」变成「一份库定义」。
+  门禁其余全绿：**36 目标 · 327 checked · 99 open · 0 判负** ✓。
+- **台账** ✓：新登记 **G-46**（library/painful/fixed_in 0.74.0 + 自断言脚本复现件）；
+  复现件**两个方向都自测过**（缺口在 ⇒ exit 0；修好 ⇒ exit 1）——自测当场抓到脚本里
+  `$CODE）` 被 `set -u` 判 unbound（全角括号被吃进变量名）✗✓，已改 `${CODE}` ✓。
+- **子代理** ✓：派了一次**只读取证**（普查全仓 `Set.prod`/`×ˢ` 的 stale 说法，带 file:line + 原文，
+  禁夸大、禁下判断）⇒ 我抽查后并入 3 处：`course-lean-style.md:268`（C4 边界 #7 标已落）、
+  PLAN A10 根因行、G-37 复现件注释 ✓。
+- **未决** ✓：E03 · E04 · E21–E23 · E27–E31 共 9 个环节未开工；v0.74.0 收尾要**推一次 CI 逐 job 真绿** ✓。
 

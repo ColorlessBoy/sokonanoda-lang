@@ -97,7 +97,8 @@ axiom ext : (α : Type) → (A B : Set α) →
 --
 -- 目标名在**使用点**解析（§9.4）：`Set.powerset` / `Set.compl` 就在本文件里，
 -- `Set.image` / `Set.preimage` 在 `lib/Image.sokonanoda`（单元⑧⑫ 会 import 它），
--- `Set.prod` 是**单元⑤ 给出的词汇**（`def Set.prod` 在画布里）。用到某个符号
+-- `Set.prod` 在 `lib/Prod.sokonanoda`（**E02 起收进库**——以前它只活在单元⑤ 的
+-- 画布里 ⇒ 别处写 `×ˢ` 报"目标不存在"）。用到某个符号
 -- 时，那个目标必须在作用域里——否则报 `elab-notation-unknown-target`，
 -- 报错信息会点名缺的是哪个名字。
 --

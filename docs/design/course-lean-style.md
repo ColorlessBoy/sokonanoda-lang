@@ -265,7 +265,7 @@ theorem union_comm (α : Type) (A B : Set α) : A ∪ B = B ∪ A := by
 | 4 | `∃` 走 `binder_notation`，**目标必须在作用域**，且只能在表达式开头 | **单元 1–5 要补 `import lib.Exists`**；库里声明 `∃` 后必须删 `unit08:141` 的本地声明（T5 冲突） |
 | 5 | **`∅` 在 `Eq` 操作数位解不出 `α`** | 课程 **37 处** `Eq.{1} (Set …) … (Set.empty …)`（`unit02:63/71`、`unit04:146`、`unit06:149`、`unit08:212/241` …）**只能继续写 `Set.empty α`**——**除非 L2.4b 的 `=` 糖落地**（`A = ∅` 里 `∅` 有期望类型）⇒ 这是 `=` 的**第二个理由**（不只是好看） |
 | 6 | **同一符号全课程只能声明一次** | `∈ ⊆ ∪ ∩ \ ∅` 必须**移进 `lib/Set`** 并删掉记法对照页 + 解答里的本地声明（L2.6 定案） |
-| 7 | **`×ˢ` 的目标 `Set.prod` 定义在单元⑤ 画布**（不在 lib） | 单元 1–4 不能用 `×ˢ`。**二选一**：(a) 把 `Set.prod` 挪进 `lib/Set`（推荐——Lean 里 `Set.prod` 是 core/Mathlib 级）；(b) 接受单元 1–4 不出现 `×ˢ`。**推荐 (a)**，但它是 L2/L3 分层判据（`docs/design/course-stdlib.md`）的一次调整，要写进大纲 |
+| 7 | **`×ˢ` 的目标 `Set.prod` 定义在单元⑤ 画布**（不在 lib） | 单元 1–4 不能用 `×ˢ`。**二选一**：(a) 把 `Set.prod` 挪进 `lib/Set`（推荐——Lean 里 `Set.prod` 是 core/Mathlib 级）；(b) 接受单元 1–4 不出现 `×ˢ`。**推荐 (a)**，但它是 L2/L3 分层判据（`docs/design/course-stdlib.md`）的一次调整，要写进大纲。**✅ 已落（E02，0.74.0）**：收进了 **`lib/Prod`**（不是 `lib/Set`——`Set.prod` 要用 `Prod`/`Prod.fst`/`Prod.snd`，放 `lib/Set` 会造成 `lib.Set ↔ lib.Prod` 循环）；记法仍由 `lib/Set` 声明、目标在 `lib/Prod` ⇒ 只 import 库就能用 `×ˢ`（判据 `crates/cli/tests/notation.rs::the_set_product_notation_resolves_from_the_libraries_alone`） |
 
 > 附（S3 实测）：`infix:50 " = " => Eq` 与 `infix:50 "=" => Eq` **都 parse 错**
 > （声明行自己的 `=>` 被抢）⇒ `=` 只能走语言侧内建糖（L2.4a + L2.4b），记法命令做不到。

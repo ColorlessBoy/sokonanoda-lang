@@ -107,17 +107,20 @@ L-01…L-13）——P4 之后该文件不再声明任何名字，签名一律以
 | `lib/Logic.sokonanoda` | **空壳模块（P4，2026-09-19）**：**0 条声明**，只留注释——30 个名字由 prelude 自带（`PRELUDE_L1_SRC`：真伪 / `And.*` / `Or.*` / `Not.*` / `absurd` / `Iff.*` / `Eq.symm` / `Eq.trans` / `congrArg`）；历史内容是 L1 的 16 条 + `Iff.refl/symm/trans` 共 26 条 | **0** | 名字照抄 Lean core 真名（`And.intro`/`Or.inl`/`Or.inr`/`Or.elim`/`Iff.mp`…）——**签名现在以 `PRELUDE_L1_SRC` 为准**，别在本文件里复活它们 | —（空壳；历史上是根模块） |
 | `lib/Set.sokonanoda` | 定义 12 条（`Set`/`mem`/`subset`/`empty`/`univ`/`singleton`/`pair`/`union`/`inter`/`sdiff`/`compl`/`powerset`）+ `Set.ext`（**公理**）+ 展开引理 10 条 | **23** | **Loogle 取证版**：`Set.notMem_empty`（大写 M）、`Set.mem_powerset_iff`（不是 power）、`Set.mem_sdiff`（不是 diff）；`Set.Subset.refl/trans/antisymm` 的点号**在 `Subset` 上**但**不在本库**（它们是 L3，在单元②④） | `lib.Logic` |
 | `lib/Exists.sokonanoda` | **G-03 的公理三件套**：`Exists`/`Exists.intro`/`Exists.elim`，外加便利引理 `Exists.imp`（∃ 的函子性） | **4**（3 axiom + 1 theorem） | Lean core 真名（`Exists.intro`/`Exists.elim`）；`Exists.imp` = Mathlib 真名 | `lib.Logic` |
-| `lib/Prod.sokonanoda` | G-02 的实况样本：`inductive Prod` + 构造子 `prod_mk` + 投影 `Prod.fst`/`Prod.snd` + 展开引理 `Prod.fst_mk`/`Prod.snd_mk` + 库自检 `Prod.fst_snd_mk` | **6** | ⚠️ **构造子是裸名**（全项目唯一，G-02）⇒ 只能叫 `prod_mk` 而不是 `Prod.mk`；投影/展开引理照抄 Mathlib（`Prod.fst`/`Prod.fst_mk`）。改名计划见 **§3.2-A** | `lib.Logic` |
+| `lib/Prod.sokonanoda` | G-02 的实况样本：`inductive Prod` + 构造子 `prod_mk` + 投影 `Prod.fst`/`Prod.snd` + 展开引理 `Prod.fst_mk`/`Prod.snd_mk` + 库自检 `Prod.fst_snd_mk` + **集合积 `Set.prod`（E02 从单元⑤ 画布收进库）** | **7** | ⚠️ **构造子是裸名**（全项目唯一，G-02）⇒ 只能叫 `prod_mk` 而不是 `Prod.mk`；投影/展开引理照抄 Mathlib（`Prod.fst`/`Prod.fst_mk`）。改名计划见 **§3.2-A** | `lib.Logic`、`lib.Set` |
 | `lib/Rel.sokonanoda` | 关系词汇 3 条（`Rel` = `A -> B -> Prop`、`Rel.inv`、`Rel.comp`）+ `Rel.ext`（**公理**：函数外延性）+ 展开引理 3 条（`Rel.inv_apply`/`Rel.comp_apply`/`Rel.inv_inv_apply`） | **7** | Mathlib 真名（`Relation.inv`/`Relation.comp` 的语义与参数顺序逐字同款；`Rel` 按 Tao §3.3 直接展开成箭头）；`Rel.ext` 是本卷**仅有的两条外延性公理**之一 | `lib.Logic`、`lib.Exists` |
 | `lib/Fun.sokonanoda` | `Function.comp`；`Injective`/`Surjective`/`Bijective`；**数据版**的 `LeftInverse`/`RightInverse`/`Inverse`；展开引理 7 条（`comp_apply` 是 `rfl` 级，其余是双向恒等） | **14** | 全部 Mathlib 真名（`Function.comp`/`Injective`/`Surjective`/`Bijective`/`LeftInverse`/`RightInverse`）；**唯一例外** `Function.Inverse` 是**设计判断**（Mathlib 没有这个名字，它有 `invFun`/`Equiv`）——理由见 §3.2-B | `lib.Logic`、`lib.Exists` |
 | `lib/Image.sokonanoda` | 像 `Set.image`（用 `Exists` 写）、原像 `Set.preimage`（只有一个函数应用）；展开引理 `Set.mem_image`/`Set.mem_preimage`；包装引理 `Set.image_mono`/`Set.image_subset_iff` | **6**（2 def + 4 theorem） | Mathlib 真名，含参数顺序（`Set.image α β f A`、`Set.preimage α β f B`） | `lib.Logic`、`lib.Exists`、`lib.Set` |
 | `lib/Equiv.sokonanoda` | 等势的四条件（`Set.MapsTo`/`Set.LeftInvOn`/`Set.RightInvOn`，全在 `Mathlib/Data/Set/Function.lean`）+ 等势本体 `Set.Equiv`（**Prop 值**，数据 = 一对互逆映射）+ 构造子 `Set.Equiv.mk` | **5**（3 def + 1 def + 1 theorem） | 三条条件逐字照抄 Mathlib；**`Set.Equiv` 不是 Mathlib 名**（Loogle 精确查 `Set.Equiv` = `unknown identifier`，`Set.EquivalentOn` 同样不存在）⇒ 术语收在 `Set.Equiv`、构造子照 `Equiv.mk` 命名，**标"我们自定名"**。为什么必须是 Prop 见 **§3.2-C** | `lib.Logic`、`lib.Exists`、`lib.Set` |
 | `lib/Demo.sokonanoda` | **自检入口**：`import` 各模块并真的判卷（今天 3 条演示：`And` 交换、`Set.subset_def` 展开、`mem_powerset_iff` 用法） | **3** | —（入口，不是 API） | `lib.Logic`、`lib.Set`（**待补**：其余 6 个模块，见 §3.3） |
 
-**模块合计（P4 后重算）**：`lib/` **74 条声明全 checked、0 open、0 failed**
+**模块合计（P4 后重算；E02 再 +1）**：`lib/` **75 条声明全 checked、0 open、0 failed**
 （`--json` 的逐目标：Demo 10 · Equiv 5 · Exists 3 · Fun 14 · Image 6 · **Logic 0** ·
-Prod 6 · Rel 7 · Set 23；P4 前是 100，差额 = `Logic` 的 26 条）。
-其中 `Set`+`Exists`+`Prod` = **32** 条是"从 0 补出来的标准库欠账"
+Prod 7 · Rel 7 · Set 23；P4 前是 100，差额 = `Logic` 的 26 条）。
+⚠ **E02 的净账**：`Set.prod` 从单元⑤ 画布收进 `lib/Prod`（+1），而画布与 `unit05-solution`
+里的两份**副本**必须删掉（同名重声明 = `import-name-collision`，-2）⇒ 课程门禁总数
+**328 → 327 checked**（练习数与 open 数一条未动 ✓）。
+其中 `Set`+`Exists`+`Prod` = **33** 条是"从 0 补出来的标准库欠账"
 （L-02…L-04 + G-02/G-03 的变形产物；原本还算上 `Logic` 的 26 条，已由 prelude 接管，
 所以标准库欠账**净减 26**——这正是"消除暴力"要的效果）。
 

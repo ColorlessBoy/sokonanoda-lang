@@ -1145,6 +1145,33 @@ def fun_comp (α β γ : Type) (g : β → γ) (f : α → β) : α → γ :=\n\
     assert_eq!(diagnostics, 0, "{notation_events:?}");
 }
 
+/// **E02 判据（契约层）**：**只 `import` 课程库**（不 import 任何单元）就能写 `s ×ˢ t`。
+///
+/// 修前（0.74.0 之前）：`Set.prod` 只定义在**单元⑤ 的画布里** ⇒ 临时模块根里
+/// 只有 `lib/` 时，`×ˢ` 报 `elab-notation-unknown-target`（"记法 `×ˢ` 指向的
+/// 目标 `Set.prod` 不存在"）⇒ exit 1。修后：目标在 `lib/Prod` ⇒ exit 0。
+///
+/// 为什么用 `course_lib_dir`（只拷 `lib/`）：这条判据问的正是"**库闭包自足**吗"，
+/// 所以夹具里**不能**出现任何 `units/`（否则单元⑤ 里那份定义会把缺口遮住 ✗）。
+#[test]
+fn the_set_product_notation_resolves_from_the_libraries_alone() {
+    let root = course_lib_dir("prod-notation");
+    let canvas = "import lib.Set\nimport lib.Prod\n\n\
+def sq (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=\n\
+  s ×ˢ t\n";
+    let path = root.join("prod.sokonanoda");
+    std::fs::write(&path, canvas).expect("write canvas");
+
+    let (code, events) = grade_json_root(&root, &path);
+    assert_eq!(
+        code, 0,
+        "the set-product notation must resolve from the libraries alone: {events:?}"
+    );
+    let (checked, _, _, _, diagnostics) = counts(&events);
+    assert!(checked >= 1, "the definition must check: {events:?}");
+    assert_eq!(diagnostics, 0, "{events:?}");
+}
+
 #[test]
 fn a_scoped_notation_grades_only_after_open_scoped() {
     // §12.3：`scoped` 默认不生效（未 open scoped ⇒ notation-unknown-symbol +
