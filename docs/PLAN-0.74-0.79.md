@@ -292,8 +292,28 @@
   `build.file`（另有 `build.clean` / `build.summary`），而扩展的 `parseBuildEvents` 已经解析了它们、
   **却只用了 clean 与 summary** ⇒ 只要把 `build.file` **流式**接到进度 UI 即可
   （现在 `runBuildProcess` 是把 stdout 攒到最后才 resolve 的，要改成一到达就回调）。
-  **判据**：build/rebuild 期间状态栏（或进度通知）**逐文件更新**，形如 `3/13 文件`；
-  结束显示 `build.summary` 的真实计数；**反向验证**：把流式回调去掉必须判红（回落到只有首尾两条）。
+  **⚠ 现状地图（2026-09-27 逐个查过 —— 按这张改，别只补一处）**：
+  用户的追问「**build/rebuild 的进度条在哪里？不在 infoview 里还能在哪里看**」本身
+  就说明现状不可接受 ✗。精确现状：
+  · **LSP 触发的编译（打开文件 / 编辑后）—— 三处都有** ✅：
+    `$/progress` → `onCompileProgress` → `applyProgress`（`extension.js:1263-1278`）⇒
+    **① 状态栏** `$(sync~spin) Sokonanoda: 编译中…`（`extension.js:1285-1289` `updateStatusBar`）·
+    **② Infoview 三行进度区**（`extension.js:1277` `infoviewProvider.setProgress(info)` → webview `progress` 消息）·
+    **③ 概览尺 + 整行背景**（`extension.js:1267` `setCompileDecorations(true)`，`overviewRulerColor`）。
+    （节流 `sokonanoda.progress.throttleMs` 只节流 `report`，`begin`/`end` 不节流 ✓。）
+  · **手动 `Sokonanoda: Build` / `Rebuild` —— 三处全没有** ❌：`runBuild`（`extension.js:1854+`）⇒
+    ① 弹一个叫 **「sokonanoda build」的输出面板**（`extension.js:1746-1752`，且 L1856 一开始就 `channel.show(true)`）·
+    ② `runBuildProcess`（L1770）把子进程 stdout **逐行原样**追加进去 —— 而它跑的是 **`build --json`**
+    ⇒ **面板里滚的是逐行 JSON**（人看不懂）✗ · ③ **结束才**弹一个通知
+    `build/rebuild：N 个文件 · 编译 x · 命中 y · 失败 z（Elapsedms）`（L1894-1908）。
+    ⇒ **手动 build/rebuild 的"进度"= 一个自动弹出的面板 + 里面滚 JSON 行** ⇒
+    **没有状态栏、没有 Infoview 进度区、没有概览尺** —— **这就是用户找不到进度条的原因** ✓。
+  **判据（三处对齐，不是只补一处）**：
+  · build/rebuild 期间 **状态栏**显示编译中 + 计数（逐文件，形如 `3/13 文件`）；
+  · 结束显示 `build.summary` 的**真实计数**；
+  · **反向验证**：把流式回调去掉必须判红（回落到只有首尾两条）；
+  · ⚠ **输出面板不是"进度"** ✗ —— **判据里不许拿"输出面板有内容"当进度存在的证据** ✓
+    （那正是现在这个"看起来什么都没有"的状态，也是 `extension.test.js:1083` 那条**"假绿"**的同型错误 ✗✓）。
   ⚠ 与 E22 配套：编**项目**时才有多个文件可显示进度，正好对应你要的"项目编译"。
 - **E27** **Infoview 内声明名/记法符号跳转到定义**（2026-09-27 用户挖到底 + 面核对确认）。
   **⚠ 根因：这个功能从来不存在，不是"坏了"** ✗✓（实测 ✓）：
@@ -345,10 +365,21 @@
   ⇒ **只覆盖"打开文件触发的编译"**；而 **E23 只写了"状态栏/进度条"、没写 Infoview 的三行进度区** ✗；
   build/rebuild 走**独立 CLI 子进程**（`editor/vscode/extension.js:1770`）、**不经过 LSP**
   ⇒ **Infoview 的进度区完全收不到** ✗。
-  **做**：把 `build.file` 流式事件**也推给 Infoview**（不只是状态栏）。
-  **判据**：build / rebuild 期间 **Infoview 的三行进度区逐文件更新**（形如 `3/13 文件`），
-  与状态栏显示**同一份进度**（**不许一个有一个没有** ✗）。
-  **反向验证**：只保留状态栏、撤掉 Infoview 通道 ⇒ **必须判红** ✓。
+  **做**：**手动 build/rebuild 与 LSP 编译走同一套三处显示** ✓（① 状态栏 ② Infoview 三行进度区
+  ③ 概览尺），只是**数据源不同**（LSP 用 `$/progress`；build 用 CLI 的 `build.file` 事件流）——
+  现状地图见 **E23** ✓。
+  · **E23 = 状态栏**那一处 · **E29 = Infoview 三行进度区**那一处；
+  · **概览尺建议一并覆盖**：编项目时是多个文档，概览尺可以标"**当前在编哪一个**" ✓。
+  **输出面板**：**保留**（它是详细日志的地方 ✓），但 ⚠ **不该把逐行 JSON 直接摊给人看** ✗ ——
+  至少把 `build.file` 渲染成人话行（`[3/13] lib/Set.sokonanoda`），JSON 留到手动跑
+  `sokonanoda build --json` 时再看 ✓。
+  **判据**：
+  · build/rebuild 期间，**三处（状态栏 · Infoview · 概览尺）同时**反映进度 ✓；
+  · Infoview 的数字与状态栏**同一份**（**不许一个有一个没有** ✗）；
+  · **反向验证**：只保留状态栏、撤掉 Infoview ⇒ **必须判红** ✓；
+    **把输出面板当唯一出口 ⇒ 必须判红** ✓。
+  ⚠ **输出面板不是"进度"** ✗ —— **判据里不许拿"输出面板有内容"当进度存在的证据** ✓
+  （那正是现在这个"看起来什么都没有"的状态，也是 `extension.test.js:1083` 那条**"假绿"**的同型错误 ✗✓）。
   ⚠ **与 E23 同属一条链但拆开做**：E23 = 状态栏（已有条目），**E29 = Infoview 那一路** ✓。
 - **E30** **Infoview 增加「项目」区块**（用户：「**监测到 toml 等项目信息也应该在 infoview 里展现出来**」）。
   **现状（逐个核过）**：侧边栏**已经有一个「项目」树**（`sokonanoda.project`，挂在 `secondarySidebar`
