@@ -15,7 +15,11 @@
 | E04 · E21 · E22 · E23 · E27 · E28 · E29 · E30 · E31 | ⬜ **8 个未开工** | — |
 
 **已 push ✓**：`b63e77f..a9b4f4b`（**fast-forward，没有 force** ✓）；pre-push 钩子跑了**完整本地门禁**（fmt/clippy/课程门禁 327/99/0/缺口台账/记法守卫/wire 守卫/stub 宿主）**全绿** ✓。
-**CI**：run **`36314757444`**（headSha `a9b4f4b`）—— 判定用 `python3 scripts/ci-green.py --run 36314757444`（**逐 job**；`perf-gate` 是 `continue-on-error`、`fast-fail` 是条件 job）。
+**CI**：第一轮 run `36314757444` **红了一个 job** ✗（`test (sokonanoda-cli, tests)`：`query.rs` 把单元⑤ 的
+`decl_checked` 钉在 5，而 E02 之后是 4）⇒ 已修（`7b77589`）+ 记进 `docs/CI-FAILURES.md`（`5cd382b`）
+⇒ 重推后 run **`36316083145` 真绿 ✓**：`python3 scripts/ci-green.py --run 36316083145` **exit 0** ——
+**28 success · 1 skipped（`fast-fail`，条件 job）· 0 failure · 重活 10/10 实跑且 success** ✓。
+（`auto-tag` 是 no-op ✓：版本仍 0.73.0、无新 tag/release ✓。远端此后多一条 CI 回写的 e2e 台账提交，推前记得 `fetch + rebase` ✓。）
 
 ## 2. ✅ 验收数字已定（**用户 2026-09-27 拍板：按 327 读**）
 
