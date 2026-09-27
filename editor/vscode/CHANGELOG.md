@@ -1,4 +1,8 @@
-## [0.73.0] — 2026-09-27
+## [0.74.0] — 2026-09-27
+
+> 「记法补齐 + 编译体验修复 + Infoview 面」（E01–E04 · E21–E23 · E27–E31）。
+> 这一节只收 **v0.73.0 tag 之后**新加的条目；tag 当时已写进 0.73.0 的那几条
+> （记法显示、`{a}` 跳转、前导类型参数补全）留在下面，不重复搬。
 
 ### Added
 
@@ -53,6 +57,31 @@
   yet. It is a directory in every case, never a single file; to compile one file
   on purpose, use the CLI: `sokonanoda build <file.sokonanoda>`.
 
+### Fixed
+
+- **A running `Build` / `Rebuild` can be stopped.** `runBuild` had no
+  cancellation path at all: once started, the only way out was the five-minute
+  timeout. The run is now wrapped in `window.withProgress(…, cancellable: true)`
+  and the cancellation token is wired to `child.kill()`.
+- **`Rebuild` really rebuilds.** Its `--clean` step ran without a target, and
+  `sokonanoda build --clean` with no path only clears the **global** cache — the
+  module root's `.sokonanoda/compiled/` entries survived, so the build that
+  followed was all cache hits and the summary said `清掉 0 条缓存`. The clean step
+  now names the same project target, so "clear the cache and recompile" does that.
+- **Declaration names in the Infoview jump to the definition.** Clicking the name
+  on a declaration card now asks the same question `F12` asks
+  (`vscode.executeDefinitionProvider`) instead of scrolling to the source span —
+  the two look alike (the editor moves either way), which is exactly why a plain
+  `reveal` had been passing as "the jump works". The result is a real definition
+  location, correct across files. ⚠ Notation symbols (`{a}`, `∈`) inside types and
+  goals are **not** clickable yet: the semantic runs on the wire carry
+  `{text, kind}` and no source position, so there is nothing to ask the definition
+  provider *about* (tracked as gap G-53).
+
+## [0.73.0] — 2026-09-27
+
+### Changed
+
 - **You can see that it is compiling.** The language server reports `$/progress`
   around every compile; the extension turns it into a status-bar *compiling…*
   state, a three-line progress block in the Infoview, and a whole-document mark
@@ -73,15 +102,6 @@
 
 ### Fixed
 
-- **A running `Build` / `Rebuild` can be stopped.** `runBuild` had no
-  cancellation path at all: once started, the only way out was the five-minute
-  timeout. The run is now wrapped in `window.withProgress(…, cancellable: true)`
-  and the cancellation token is wired to `child.kill()`.
-- **`Rebuild` really rebuilds.** Its `--clean` step ran without a target, and
-  `sokonanoda build --clean` with no path only clears the **global** cache — the
-  module root's `.sokonanoda/compiled/` entries survived, so the build that
-  followed was all cache hits and the summary said `清掉 0 条缓存`. The clean step
-  now names the same project target, so "clear the cache and recompile" does that.
 - **`F12` on a prelude name now works.** `Or` / `And` / `Iff` / `False` /
   `Eq.refl` … are installed by the trusted prelude, so their hover rows carry no
   `resolution` — jumping did **nothing** (silently). The command now materializes
