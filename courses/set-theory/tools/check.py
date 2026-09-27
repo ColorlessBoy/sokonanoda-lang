@@ -827,6 +827,24 @@ def selftest_g6(failures: list[str], tmp: Path) -> None:
     # **判红逻辑也进自检** ✓（E00 切片 C 第 1 条：`evaluate()` 原来一行没被覆盖 ✗）
     _evaluate_selftest(failures)
 
+    # **G6：unit 号必须是「非 bool 的整数」** ✓（E00 切片 C 第 13 条）。
+    # `99336f4` 修了守卫，但**只做了一次性演示、没固化进自检** ✗ ⇒ 这里补上 ✓
+    # （**判据不落成守卫、守卫不落成自检 ⇒ 几轮之后必然失效** ✓）。
+    def _mk_manifest(unit_value):
+        return {"schema": "soko.course/2", "volumes": [{"id": "I", "chapters": [
+            {"id": "I.1", "units": [{"file": "units/a.sokonanoda", "unit": unit_value}]}]}]}
+
+    for _bad, _label in (("abc", "字符串"), (True, "布尔")):
+        _, _probs, _ = flatten_manifest(_mk_manifest(_bad), tmp / "course.json")
+        if not any("必须是整数" in x for x in _probs):
+            failures.append(
+                f"G6 自检失效：unit 号是{_label}时**没判红**（problems={_probs}）"
+                "—— 正是 99336f4 修掉的那个洞 ✗")
+    # 正控制：合法整数 unit ⇒ **不该**因这条红（防误伤 ✓）
+    _, _probs, _ = flatten_manifest(_mk_manifest(1), tmp / "course.json")
+    if any("必须是整数" in x for x in _probs):
+        failures.append(f"G6 自检失败（正控制）：合法整数 unit 被判负（problems={_probs}）")
+
 
 def _evaluate_selftest(failures: list) -> None:
     """**让 `evaluate()` 第一次进自检** ✓（E00 切片 C 第 1/2 条）。
