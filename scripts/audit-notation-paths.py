@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import json
 import re
+import tempfile
 import sys
 from pathlib import Path
 
@@ -189,13 +190,33 @@ def main(argv: list[str]) -> int:
     if "--self-test" in argv:
         # **反向验证**（硬要求 ✓）：本阶段之前那些调用点必须**被抓到** ✗ ——
         # 咬不住的守卫等于没有 ✓（照 `audit-wire-fields.py` 的先例 ✓）。
-        fake = REPO / "crates" / "front" / "src" / "compile" / "check" / "walk.rs"
-        hits = scan([fake])
-        ok = any(h["file"].endswith("walk.rs") and h["line"] for h in hits)
-        if ok:
-            print(f"notation-paths self-test: OK（walk.rs 里 {len(hits)} 处绕过被抓到 ✓）")
+        # ⚠ **原来只断言「≥1 处」+ 绑死在真 `walk.rs` 上** ✗✓（E00 切片 B 第 11 条，实测 ✓）：
+        #   · `any(...)` = "**有至少一处**" ⇒ 而 walk.rs 今天 8 处**全是 `render_expr`** ✗ ⇒
+        #     把 `print_back` / `tag_runs_with_notations` 两个模式**删掉，自检仍 exit 0** ✗
+        #     ⇒ **咬不住"某个模式整体失效"**（而那正是它该守的东西 ✗）；
+        #   · 它还**绑死在一个会变的文件**上 ⇒ **T-U5 一旦把 walk.rs 迁完，这条自检会假红** ✗。
+        #   ⇒ 改用**合成夹具**：`CALLS` 里每个模式各放一处 ⇒ 断言**每一类都被抓到** ✓
+        #     （断言具体值 = 模式集合相等 ✓，不是"有没有" ✗；且不随仓库漂移 ✓）。
+        # ⚠⚠ **夹具与期望都不能从 `CALLS` 派生** ✗✓（我第一版就是这么写的，**反向验证当场抓到** ✓）：
+        #   若 `WANT` 取自 `CALLS`、夹具也从 `CALLS` 生成 ⇒ **删掉一个模式时两边一起缩** ✗
+        #   ⇒ `got == want` 仍然成立 ⇒ **自检照样 exit 0** ✗ —— 这正是它该守的那个 bug ✗
+        #   （**自指期望**，与 G-29 的 `budget = 10 * warmOpen + 200` 同型 ✗）。
+        #   ⇒ 期望写成**独立字面量** ✓：CALLS 少一个模式 ⇒ `got` 里就没有它 ⇒ **判红** ✓。
+        WANT_PATTERNS = ("render_expr", "print_back", "tag_runs_with_notations")
+        with tempfile.TemporaryDirectory() as _td:
+            _probe = Path(_td) / "probe.rs"
+            _probe.write_text(
+                "".join(f"fn f{i}() {{ {n}(x); }}\n" for i, n in enumerate(WANT_PATTERNS)),
+                encoding="utf-8",
+            )
+            hits = scan([_probe])
+        got, want = {h["call"] for h in hits}, set(WANT_PATTERNS)
+        if got == want:
+            print(f"notation-paths self-test: OK（合成夹具里 {len(want)}/{len(want)} 个模式"
+                  f"**逐一被抓到** ✓：{' · '.join(sorted(want))}）")
             return 0
-        print("notation-paths self-test: FAIL（应当抓到 walk.rs 里的绕过，实际没抓到 ✗）", file=sys.stderr)
+        print(f"notation-paths self-test: FAIL（期望抓到 {sorted(want)}，实际只抓到 {sorted(got)} ✗"
+              f" —— 某个模式**整体失效**了 ✓）", file=sys.stderr)
         return 1
 
     files = rust_files()
