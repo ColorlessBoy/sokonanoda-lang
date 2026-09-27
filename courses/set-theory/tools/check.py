@@ -782,8 +782,19 @@ def selftest_g6(failures: list[str], tmp: Path) -> None:
         failures.append(f"G6 自检失败（正控制）：卷/章计数错（volumes={info.volumes} chapters={len(info.chapters)}）")
     # 配额 99 vs 画布 0 道 sorry：**只报告**，绝不进 problems。
     notes = quota_notes(SELFTEST_G6_GOOD, good / "course.json", {"units/a.sokonanoda": 0})
-    if not any("99" in note for note in notes):
-        failures.append(f"G6 自检失效：配额差额没有被报告（notes={notes}）")
+    # ⚠ **断言具体值，不是子串** ✗✓（E00 切片 C 第 6 条，实测 ✓）：原来只查
+    #   `any("99" in note ...)` —— 而 note 里 **99 / 0 / -99 同时出现** ✗ ⇒
+    #   差额算成 `+99` 或 `0` 都**照样过** ✗ ⇒ 与校准事故 `summary !== 'null'` **同形** ✗。
+    #   ⇒ 按正则取出三个数**逐一断言** ✓。
+    _m = re.search(r"计划练习 (\d+) · 画布实测 (\d+)（差额 ([+-]?\d+)）", " ".join(notes))
+    if not _m:
+        failures.append(f"G6 自检失效：配额差额 note 形状不对（notes={notes}）")
+    else:
+        _planned, _measured, _delta = (int(_m.group(1)), int(_m.group(2)), int(_m.group(3)))
+        if (_planned, _measured, _delta) != (99, 0, -99):
+            failures.append(
+                f"G6 自检失效：配额差额**被算错**（计划练习={_planned} 画布实测={_measured} "
+                f"差额={_delta}，期望 99 / 0 / -99）")
     if len(units) != 1:
         failures.append(f"G6 自检失败（正控制）：展平后应有 1 个单元，实得 {len(units)}")
 
