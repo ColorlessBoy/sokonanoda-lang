@@ -45,7 +45,7 @@ theorem demo_rel_inv_inv_apply (A B : Type) (r : Rel A B) (a : A) (b : B) :
 
 -- Fun：函数词汇
 theorem demo_fun_comp_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : α) :
-    Function.comp α β γ g f x = g (f x) :=  Function.comp_apply α β γ g f x
+    (g ∘ f) x = g (f x) :=  Function.comp_apply α β γ g f x
 
 -- Image：像与原像
 theorem demo_mem_preimage (α β : Type) (f : α → β) (B : Set β) (x : α) :

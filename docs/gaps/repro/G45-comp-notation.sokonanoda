@@ -1,0 +1,64 @@
+-- G-45 最小复现：**课程标准的两个复合算子没有记法**（用户 [48].4，09-26 10:25 报：
+-- 「Rel.comp、Function.comp 啥的都没有正确 notation 化」）。
+--
+-- 期望（官方 Lean 4 / Mathlib 语义，逐字取证）：
+--   · 函数复合 —— Lean 4 core `src/Init/Notation.lean:274`：
+--         @[inherit_doc] infixr:90 " ∘ "  => Function.comp
+--   · 关系复合 —— Mathlib 用的是 **local** 记法，`Mathlib/Logic/Relation.lean:158`：
+--         local infixr:80 " ∘r " => Relation.Comp
+--   本课取 `•` 给 `Rel.comp`：同一个符号在一个闭包里只能有一个目标（记法表按符号查），
+--   所以不能与函数复合的 `∘` 共用；优先级沿用 Mathlib `Relation.Comp` 那一档 80。
+--   声明点：`courses/set-theory/lib/Rel.sokonanoda` 与 `lib/Fun.sokonanoda`。
+--
+-- 历史表现（0.74.0 **修前**，实测）：
+--   · 写 `r • s` ⇒ exit 1，`elab-unknown-identifier`：`unknown identifier `•``
+--     （`•` 不在数学码点类里，**没有声明时连符号都不是**，被词法读成标识符）；
+--   · 写 `g ∘ f` ⇒ exit 1，`符号 `∘` 在本文件里还没有声明过记法；先用 infix/notation
+--     命令声明它，或改用点名写法`（rule = `notation`）。
+--   后果：速查表自认「Mathlib 有记法、本课程没声明（**写不了，别抄**）」，
+--   单元⑥⑦⑫ 的语句只能写点名形式。
+--
+-- 修后（0.74.0）：两条声明各进自己的库、随 `import` 传播（设计 §10.3）⇒ 单元从
+-- **文件头**就能用；点名形式永久可用（N4.3），两种写法判卷一致（N7）。
+--
+-- ⚠ 本文件**自足**（`scripts/gap.py check` 直接判它、不带模块根 ⇒ 不能写 `import`），
+--   所以 Rel/Fun 的最小形状内联在这里。**真课程库上**的判据在
+--   `crates/cli/tests/notation.rs::the_course_composition_notations_grade_like_the_pointful_forms`
+--   与 `crates/front/tests/prelude_shape.rs::the_course_libraries_declare_the_composition_notations`。
+--
+-- 下面从 `def Rel` 起是**修复后的期望形状**：本文件必须判卷干净
+-- （exit 0 + 有 `decl.checked` + 无 diagnostic，见 `scripts/gap.py` 的判据）。
+
+def Rel (A B : Type) : Type := A → B → Prop
+
+inductive Exists (A : Type) (p : A → Prop) : Prop
+ctor intro (w : A) (h : p w) : Exists A p
+end
+
+def Rel.comp (A B C : Type) (r : Rel A B) (s : Rel B C) : Rel A C :=
+  fun (a : A) => fun (c : C) => Exists B (fun (b : B) => And (r a b) (s b c))
+
+def Function.comp (α β γ : Type) (g : β → γ) (f : α → β) : α → γ :=
+  fun (x : α) => g (f x)
+
+-- 记法：两个符号各声明一次 —— 这就是修复内容本身（记法是源级糖、零事件、不进声明表）
+infixr:80 " • " => Rel.comp
+infixr:90 " ∘ " => Function.comp
+
+-- 记法版：修前这两条语句都判红（`•` ⇒ unknown identifier；`∘` ⇒ notation-unknown-symbol）
+theorem rel_comp_notation (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
+    (r • s) a c ↔ Exists B (fun (b : B) => And (r a b) (s b c)) :=
+  Iff.refl (Exists B (fun (b : B) => And (r a b) (s b c)))
+
+theorem fun_comp_notation (α β γ : Type) (g : β → γ) (f : α → β) (x : α) :
+    (g ∘ f) x = g (f x) :=
+  Eq.refl.{1} γ (g (f x))
+
+-- 点名形式永久可用（N4.3）：同两条命题写成点名形式，与本文件上面的记法版同判。
+theorem rel_comp_pointful (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
+    Rel.comp A B C r s a c ↔ Exists B (fun (b : B) => And (r a b) (s b c)) :=
+  Iff.refl (Exists B (fun (b : B) => And (r a b) (s b c)))
+
+theorem fun_comp_pointful (α β γ : Type) (g : β → γ) (f : α → β) (x : α) :
+    Function.comp α β γ g f x = g (f x) :=
+  Eq.refl.{1} γ (g (f x))

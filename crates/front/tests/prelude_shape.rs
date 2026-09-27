@@ -121,3 +121,63 @@ fn the_entry_notation_table_points_at_the_declaring_module() {
         "声明点必须落在 `infix:50 \" ∈ \" => Set.mem` 那一行：{line:?}"
     );
 }
+
+/// **E01 的判据（真相层）**：卷 I 的**复合记法**真的声明在库里、且跨 `import` 可见。
+///
+/// 符号与优先级都是**取证过**的，不是随手挑的数字：
+///
+/// * `∘` = `infixr:90 " ∘ " => Function.comp` —— Lean 4 core 逐字
+///   （`src/Init/Notation.lean:274`：`@[inherit_doc] infixr:90 " ∘ "  => Function.comp`）；
+/// * `•` = `infixr:80 " • " => Rel.comp` —— **本课自定**（PLAN v0.74.0 指定用 `•`）。
+///   ⚠ 顺带纠正一条**原来写错的引用**：`lib/Rel.sokonanoda` 头部曾写"Mathlib
+///   `Relation.comp`，即记法 `r • s`"——**Mathlib 用的是 `∘r`，而且是 `local`**：
+///   `Mathlib/Logic/Relation.lean:158` 逐字是
+///   `local infixr:80 " ∘r " => Relation.Comp`。本课取 `•` 是为了与 `Function.comp`
+///   的 `∘` 区分（同一个符号在同一闭包里只能有一个目标），优先级沿用 Mathlib 那一档 80。
+///
+/// 这一层守的是**真相**：`report.notations` 是入口闭包的记法表（T-D11）——它红了，
+/// 说明库没声明、或声明没随 `import` 传播、或优先级/目标名被改动。
+#[test]
+fn the_course_libraries_declare_the_composition_notations() {
+    use sokonanoda_front::NotationAssoc;
+
+    let entry = course_dir().join("units/unit12-synthesis.sokonanoda");
+    let text = std::fs::read_to_string(&entry).expect("读入口");
+    let plan = project::plan_project(&entry, Some(&text), None);
+    let report = project::compile_plan(plan, &Default::default());
+
+    let find = |sym: &str| {
+        report
+            .notations
+            .iter()
+            .find(|n| n.symbol == sym)
+            .unwrap_or_else(|| panic!("入口可见 `{sym}`（它声明在被 import 的库里）"))
+    };
+    let decl_line = |module: &str, span: sokonanoda_front::Span| {
+        let src = std::fs::read_to_string(course_dir().join(format!("{module}.sokonanoda")))
+            .unwrap_or_else(|e| panic!("读 {module}: {e}"));
+        src[span.start.offset..span.end.offset].to_string()
+    };
+
+    let comp = find("•");
+    assert_eq!(comp.target, "Rel.comp");
+    assert_eq!(comp.precedence, Some(80));
+    assert_eq!(comp.assoc, NotationAssoc::Infixr);
+    assert_eq!(comp.module.as_deref(), Some("lib.Rel"));
+    let line = decl_line("lib/Rel", comp.span);
+    assert!(
+        line.contains("infixr:80") && line.contains("Rel.comp"),
+        "声明点必须落在 `infixr:80 \" • \" => Rel.comp` 那一行：{line:?}"
+    );
+
+    let fun = find("∘");
+    assert_eq!(fun.target, "Function.comp");
+    assert_eq!(fun.precedence, Some(90));
+    assert_eq!(fun.assoc, NotationAssoc::Infixr);
+    assert_eq!(fun.module.as_deref(), Some("lib.Fun"));
+    let line = decl_line("lib/Fun", fun.span);
+    assert!(
+        line.contains("infixr:90") && line.contains("Function.comp"),
+        "声明点必须落在 `infixr:90 \" ∘ \" => Function.comp` 那一行：{line:?}"
+    );
+}

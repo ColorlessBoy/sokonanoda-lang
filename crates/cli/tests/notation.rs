@@ -1097,6 +1097,54 @@ def some (α : Type) (s : Set α) (p : α -> Prop) : Prop :=\n\
     assert_same_counts(&pointful, &notation, "two-stage");
 }
 
+/// **E01 判据（契约层）**：卷 I 的两个**复合记法**——`r • s`（`Rel.comp`）与
+/// `g ∘ f`（`Function.comp`）——在**真课程库**上判卷，与点名形式**五元计数一致**。
+///
+/// 为什么用真库、不用内联夹具：`•` / `∘` 的声明在 `lib/Rel.sokonanoda` /
+/// `lib/Fun.sokonanoda`，入口**从文件头**就能用靠的是 §10.3 的**跨 `import` 传播**
+/// ——内联夹具（`{LIB}` 那种）验不到那条路。所以这里把真 `courses/set-theory/lib`
+/// 拷进临时模块根，入口只 `import`。
+///
+/// 符号与优先级的取证见 `crates/front/tests/prelude_shape.rs`
+/// （`∘` = Lean 4 `Init/Notation.lean:274` 逐字 `infixr:90`；`•` = 本课自定，80）。
+#[test]
+fn the_course_composition_notations_grade_like_the_pointful_forms() {
+    let root = course_lib_dir("comp-notation");
+    let pointful = "import lib.Rel\nimport lib.Fun\n\n\
+def rel_comp (A B C : Type) (r : Rel A B) (s : Rel B C) : Rel A C :=\n\
+  Rel.comp A B C r s\n\n\
+def fun_comp (α β γ : Type) (g : β → γ) (f : α → β) : α → γ :=\n\
+  Function.comp α β γ g f\n";
+    let notation = "import lib.Rel\nimport lib.Fun\n\n\
+def rel_comp (A B C : Type) (r : Rel A B) (s : Rel B C) : Rel A C :=\n\
+  r • s\n\n\
+def fun_comp (α β γ : Type) (g : β → γ) (f : α → β) : α → γ :=\n\
+  g ∘ f\n";
+    let pointful_path = root.join("pointful.sokonanoda");
+    let notation_path = root.join("notation.sokonanoda");
+    std::fs::write(&pointful_path, pointful).expect("write pointful canvas");
+    std::fs::write(&notation_path, notation).expect("write notation canvas");
+
+    let (pointful_code, pointful_events) = grade_json_root(&root, &pointful_path);
+    let (notation_code, notation_events) = grade_json_root(&root, &notation_path);
+    assert_eq!(
+        pointful_code, 0,
+        "the pointful canvas must grade clean: {pointful_events:?}"
+    );
+    assert_eq!(
+        notation_code, 0,
+        "the notation canvas must grade clean: {notation_events:?}"
+    );
+    assert_eq!(
+        counts(&pointful_events),
+        counts(&notation_events),
+        "the two spellings must produce identical five-way counts"
+    );
+    let (checked, _, _, _, diagnostics) = counts(&notation_events);
+    assert!(checked >= 2, "both definitions must check: {notation_events:?}");
+    assert_eq!(diagnostics, 0, "{notation_events:?}");
+}
+
 #[test]
 fn a_scoped_notation_grades_only_after_open_scoped() {
     // §12.3：`scoped` 默认不生效（未 open scoped ⇒ notation-unknown-symbol +

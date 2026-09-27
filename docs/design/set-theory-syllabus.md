@@ -223,23 +223,14 @@ G-01）、12（G-01）。
 | `A ∪ B` / `A ∩ B` / `A \ B` | `Set.union α A B` / `Set.inter α A B` / `Set.sdiff α A B` | 单元 3 |
 | `𝒫 A` | `Set.powerset α A` | 单元 3 |
 | `(a,b)` / `A × B` | `Prod.mk`（裸名 `mk`，见 G-02） / `Prod A B` | 单元 5 |
-| `r ⁻¹` / `r ∘ s` | `Rel.inv α r` / `Rel.comp α r s` | 单元 6 |
+| `r ⁻¹` / `r • s` | `Rel.inv α r` / `Rel.comp α r s` | 单元 6 |
+| `g ∘ f` | `Function.comp α β γ g f` | 单元 7 |
 | `f '' A` / `f ⁻¹' B` | `Set.image α β f A` / `Set.preimage α β f B` | 单元 8 |
 | `A ≈ B`（等势） | `Set.equiv α β A B` | 单元 9 |
 
 **逻辑连接符不在上表**：`∧ ∨ ↔ ¬ → = ≠ ∀ ∃` 是**语言内建/预置**记法
 （`docs/design/course-lean-style.md` L2.2；`∃` 由 `lib/Exists` 的 `binder_notation`
 提供），任何文件零声明可用。
-| 1 | `x ∈ A` | `Set.mem α x A`（= `A x`） | 单元 1 |
-| 2 | `A ⊆ B` | `Set.subset α A B` | 单元 2 |
-| 3 | `∅` | `Set.empty α` | 单元 2 |
-| 4 | `{a}` / `{a,b}` | `Set.singleton α a` / `Set.pair α a b` | 单元 2 |
-| 5 | `A ∪ B` / `A ∩ B` / `A \ B` | `Set.union α A B` / `Set.inter α A B` / `Set.diff α A B` | 单元 3 |
-| 6 | `𝒫 A` | `Set.power α A` | 单元 3 |
-| 7 | `(a,b)` / `A × B` | `Prod.mk`（裸名 `mk`，见 G-02） / `Prod A B` | 单元 5 |
-| 8 | `r ⁻¹` / `r ∘ s` | `Rel.inv α r` / `Rel.comp α r s` | 单元 6 |
-| 9 | `f '' A` / `f ⁻¹' B` | `Set.image α β f A` / `Set.preimage α β f B` | 单元 8 |
-| 10 | `A ≈ B`（等势） | `Set.equiv α β A B` | 单元 9 |
 
 > analysis 项目**一次都没用 `𝒫`**（它用自家 `A ^ B` 幂集）——说明"幂集用子集谓词"这条
 > 连成熟项目都这么选，我们照抄。

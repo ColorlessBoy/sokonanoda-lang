@@ -58,12 +58,12 @@ theorem xlat_compl_union (α : Type) (A B : Set α) :
 -- X2：复合的逆 = 逆的反序复合。两个方向都是"拆一个 ∃、换序 ∧、再装回 ∃"。
 -- `Rel.ext C A` 逐点给的是 `c a` 上的 Iff（参数顺序与 Rel.inv 对调有关）。
 theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
-    Rel.inv A C (Rel.comp A B C r s) = Rel.comp C B A (Rel.inv B C s) (Rel.inv A B r) :=
-  Rel.ext C A (Rel.inv A C (Rel.comp A B C r s)) (Rel.comp C B A (Rel.inv B C s) (Rel.inv A B r))
+    Rel.inv A C (r • s) = (Rel.inv B C s) • (Rel.inv A B r) :=
+  Rel.ext C A (Rel.inv A C (r • s)) ((Rel.inv B C s) • (Rel.inv A B r))
     (fun (c : C) => fun (a : A) =>
-      Iff.intro (Rel.inv A C (Rel.comp A B C r s) c a)
-        (Rel.comp C B A (Rel.inv B C s) (Rel.inv A B r) c a)
-        (fun (h : Rel.inv A C (Rel.comp A B C r s) c a) =>
+      Iff.intro (Rel.inv A C (r • s) c a)
+        (((Rel.inv B C s) • (Rel.inv A B r)) c a)
+        (fun (h : Rel.inv A C (r • s) c a) =>
           Exists.elim B (fun (b : B) => r a b ∧ s b c)
             (∃ (b : B), s b c ∧ r a b) h
             (fun (b : B) => fun (hb : r a b ∧ s b c) =>
@@ -71,7 +71,7 @@ theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
                 (And.intro (s b c) (r a b)
                   (And.right (r a b) (s b c) hb)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                   (And.left (r a b) (s b c) hb))))
-        (fun (h : Rel.comp C B A (Rel.inv B C s) (Rel.inv A B r) c a) =>
+        (fun (h : ((Rel.inv B C s) • (Rel.inv A B r)) c a) =>
           Exists.elim B (fun (b : B) => s b c ∧ r a b)
             (∃ (b : B), r a b ∧ s b c) h
             (fun (b : B) => fun (hb : s b c ∧ r a b) =>
@@ -83,15 +83,15 @@ theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
 -- X3：单射在复合下封闭——先用外层的单射把等式降一层，再交给内层。
 theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
-    Function.Injective α γ (Function.comp α β γ g f) :=
+    Function.Injective α γ (g ∘ f) :=
   fun (x : α) => fun (y : α) =>
-    fun (h : Function.comp α β γ g f x = Function.comp α β γ g f y) =>
+    fun (h : (g ∘ f) x = (g ∘ f) y) =>
       hf x y (hg (f x) (f y) h)
 
 -- X4：复合的原像 = 先拉后拉。两边展开后是同一个命题，所以逐元素是 Iff.refl。
 theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C : Set γ) :
-    f ⁻¹' (g ⁻¹' C) = (Function.comp α β γ g f) ⁻¹' C :=
-  Set.ext α (f ⁻¹' (g ⁻¹' C)) ((Function.comp α β γ g f) ⁻¹' C)
+    f ⁻¹' (g ⁻¹' C) = (g ∘ f) ⁻¹' C :=
+  Set.ext α (f ⁻¹' (g ⁻¹' C)) ((g ∘ f) ⁻¹' C)
     (fun (x : α) => Iff.refl (C (g (f x))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
 
 -- R1：错证明 A 的改正版——"反向显然"里偷用的前提被摆到台面上（hC）。
@@ -319,25 +319,21 @@ theorem flawed_equalities_refuted :
 --   关系层：函数的图像（`fun a b => f a = b`）也是关系，复合图像的**关系复合** = 复合函数的图像；
 --   集合层：复合函数的**像** = 先取内层像、再取外层像。
 theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set α) :
-    Rel.comp α β γ (fun (a : α) => fun (b : β) => f a = b)
-        (fun (b : β) => fun (c : γ) => g b = c)
+    (fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)
       = (fun (a : α) => fun (c : γ) => g (f a) = c)
-    ∧ (Function.comp α β γ g f) '' A = g '' (f '' A) :=
+    ∧ (g ∘ f) '' A = g '' (f '' A) :=
   And.intro
-    (Rel.comp α β γ (fun (a : α) => fun (b : β) => f a = b)
-        (fun (b : β) => fun (c : γ) => g b = c)
+    ((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)
       = (fun (a : α) => fun (c : γ) => g (f a) = c))
-    ((Function.comp α β γ g f) '' A = g '' (f '' A))
+    ((g ∘ f) '' A = g '' (f '' A))
     (Rel.ext α γ
-      (Rel.comp α β γ (fun (a : α) => fun (b : β) => f a = b) (fun (b : β) => fun (c : γ) => g b = c))
+      ((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c))
       (fun (a : α) => fun (c : γ) => g (f a) = c)
       (fun (a : α) => fun (c : γ) =>
         Iff.intro
-          (Rel.comp α β γ (fun (a : α) => fun (b : β) => f a = b)
-            (fun (b : β) => fun (c : γ) => g b = c) a c)
+          (((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)) a c)
           ((fun (a : α) => fun (c : γ) => g (f a) = c) a c)
-          (fun (h : Rel.comp α β γ (fun (a : α) => fun (b : β) => f a = b)
-              (fun (b : β) => fun (c : γ) => g b = c) a c) =>
+          (fun (h : ((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)) a c) =>
             Exists.elim β (fun (b : β) => f a = b ∧ g b = c) (g (f a) = c) h
               (fun (b : β) => fun (hb : f a = b ∧ g b = c) =>
                 Eq.trans.{1} γ (g (f a)) (g b) c
@@ -346,30 +342,30 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
           (fun (h : (fun (a : α) => fun (c : γ) => g (f a) = c) a c) =>
             Exists.intro β (fun (b : β) => f a = b ∧ g b = c) (f a)
               (And.intro (f a = f a) (g (f a) = c) (Eq.refl.{1} β (f a)) h))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-    (Set.ext γ ((Function.comp α β γ g f) '' A) (g '' (f '' A)) (fun (y : γ) =>
-      Iff.intro (y ∈ (Function.comp α β γ g f) '' A) (y ∈ g '' (f '' A))
-        (fun (hy : y ∈ (Function.comp α β γ g f) '' A) =>
-          Exists.elim α (fun (x : α) => (A x) ∧ ((Function.comp α β γ g f x) = y))
+    (Set.ext γ ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =>
+      Iff.intro (y ∈ (g ∘ f) '' A) (y ∈ g '' (f '' A))
+        (fun (hy : y ∈ (g ∘ f) '' A) =>
+          Exists.elim α (fun (x : α) => (A x) ∧ (((g ∘ f) x) = y))
             (y ∈ g '' (f '' A)) hy
-            (fun (x : α) => fun (hx : (x ∈ A) ∧ (Function.comp α β γ g f x = y)) =>
+            (fun (x : α) => fun (hx : (x ∈ A) ∧ ((g ∘ f) x = y)) =>
               Exists.intro β (fun (b : β) => b ∈ f '' A ∧ g b = y) (f x)
                 (And.intro (f x ∈ f '' A) (g (f x) = y)
                   (Exists.intro α (fun (t : α) => t ∈ A ∧ f t = f x) x
                     (And.intro (x ∈ A) (f x = f x)
-                      (And.left (x ∈ A) (Function.comp α β γ g f x = y) hx)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      (And.left (x ∈ A) ((g ∘ f) x = y) hx)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                       (Eq.refl.{1} β (f x))))
-                  (And.right (x ∈ A) (Function.comp α β γ g f x = y) hx))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (And.right (x ∈ A) ((g ∘ f) x = y) hx))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         (fun (hy : y ∈ g '' (f '' A)) =>
           Exists.elim β (fun (b : β) => ((f '' A) b) ∧ ((g b) = y))
-            (y ∈ (Function.comp α β γ g f) '' A) hy
+            (y ∈ (g ∘ f) '' A) hy
             (fun (b : β) => fun (hb : ((f '' A) b) ∧ ((g b) = y)) =>
               -- 嵌套 `cases` 里再 `cases` 会错位，内层改成 `Exists.elim` 项。
               Exists.elim α (fun (x : α) => (A x) ∧ ((f x) = b))
-                (y ∈ (Function.comp α β γ g f) '' A)
+                (y ∈ (g ∘ f) '' A)
                 (And.left ((f '' A) b) ((g b) = y) hb)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (fun (x : α) => fun (hx : (A x) ∧ ((f x) = b)) =>
-                  Exists.intro α (fun (t : α) => (A t) ∧ (Function.comp α β γ g f t) = y) x
-                    (And.intro (A x) ((Function.comp α β γ g f x) = y)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  Exists.intro α (fun (t : α) => (A t) ∧ ((g ∘ f) t) = y) x
+                    (And.intro (A x) (((g ∘ f) x) = y)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                       (And.left (A x) ((f x) = b) hx)
                       (Eq.trans.{1} γ (g (f x)) (g b) y
                         (congrArg.{1} g (And.right (A x) ((f x) = b) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）

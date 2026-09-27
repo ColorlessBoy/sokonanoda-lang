@@ -79,7 +79,7 @@ theorem demo_empty_transitive (A : Type) : Transitive A (EmptyRelation A) := by
 -- 6.2 逆与复合（lib/Rel 给的两个运算）
 --
 --   Rel.inv A B r b a ↔ r a b        （r ⁻¹：把两个参数对调）
---   Rel.comp A B C r s a c ↔ ∃ (b : B), r a b ∧ s b c   （先走 r 再走 s）
+--   (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c   （先走 r 再走 s）
 -- 两条展开引理 Rel.inv_apply / Rel.comp_apply 在 lib/Rel 里（证明是 Iff.refl）。
 -- ─────────────────────────────────────────────────────────────────────────
 
@@ -96,7 +96,7 @@ theorem rel_inv_inv (A B : Type) (r : Rel A B) :
 -- soko:hint 目标形态：`Rel.ext` 之后是 `∀ (a : A) (d : D), (∃ (b : B), r a b ∧ (∃ (c : C), s b c ∧ t c d)) ↔ (∃ (c : C), (∃ (b : B), r a b ∧ s b c) ∧ t c d)`。
 -- soko:hint 关键件：拆 `∃` 用 `cases`（或 `Exists.elim`），两块用 `And.left` / `And.right` 取，最后 `Exists.intro` 按新顺序把证人交回去。
 theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
-    Rel.comp A B D r (Rel.comp B C D s t) = Rel.comp A C D (Rel.comp A B C r s) t := by
+    r • (s • t) = (r • s) • t := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────────────────

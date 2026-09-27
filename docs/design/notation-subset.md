@@ -871,3 +871,35 @@ N1–N7 讲的是**语言**（怎么解析、怎么消解、怎么判卷）；�
 
 **权威设计**：[`notation-aware-printing.md`](notation-aware-printing.md)（含
 "为什么不走内核 pp"、arity 口径、损失护栏三层、性能账）。
+
+## 16. E01（0.74.0）：课程库补 `•` / `∘` 两条**复合记法**（2026-09-27）
+
+**做**：卷 I 的两个复合算子补上记法，各声明进**自己的库**——同一个符号在一个闭包里
+只能有一个目标（§10.3 的遮蔽规则），所以两条不能都叫 `∘`：
+
+| 记法 | 形状 | 目标 | 声明点 | 取证 |
+|---|---|---|---|---|
+| `g ∘ f` | `infixr:90` | `Function.comp` | `courses/set-theory/lib/Fun.sokonanoda` | **Lean 4 core 逐字**：`src/Init/Notation.lean:274` 的 `@[inherit_doc] infixr:90 " ∘ "  => Function.comp` |
+| `r • s` | `infixr:80` | `Rel.comp` | `courses/set-theory/lib/Rel.sokonanoda` | **本课自定**：Mathlib 的 `Relation.Comp` 用的是 `local infixr:80 " ∘r "`（`Mathlib/Logic/Relation.lean:158`）；取 `•` 是为了与函数复合的 `∘` 区分，优先级沿用 Mathlib 那一档 80 |
+
+**⚠ 顺带更正一处引用错误**：`lib/Rel.sokonanoda` 头部原来写"`r • s` 是 Mathlib 的记法"
+——**不准确**（Mathlib 是 `∘r`，而且是 `local`）。已改，取证行号写在库里。
+
+**两条边界（都实测过）**：
+1. **符号与目标成对、不可互换**：`∘` 只给 `Function.comp`、`•` 只给 `Rel.comp`；
+2. **应用到参数上要加括号**：`(g ∘ f) x` / `(r • s) a c`——函数应用比 90 还紧，
+   `g ∘ f x` 读作 `g ∘ (f x)`。**这是 Lean 的读法，不是本课的怪癖**。
+
+**判据（三层，各钉一段）**：
+* **真相层** `crates/front/tests/prelude_shape.rs::the_course_libraries_declare_the_composition_notations`
+  ——入口闭包的记法表里 `•`→`Rel.comp`（module `lib.Rel`、80、`Infixr`）、
+  `∘`→`Function.comp`（module `lib.Fun`、90、`Infixr`），且声明点文本逐字是那一行；
+* **契约层** `crates/cli/tests/notation.rs::the_course_composition_notations_grade_like_the_pointful_forms`
+  ——把**真课程库**拷进临时模块根、入口只 `import` ⇒ 记法版与点名版 `grade` 都 exit 0、
+  **五元计数逐项相等**（N7 教学契约 + §10.3 跨 `import` 传播）；
+* **课程层** `python3 scripts/notation-lint.py` **零残留**——新声明**自动**派生点形式
+  判据（脚本 `derived_pointful`）⇒「涉及单元改用记法」这条由 lint 判红，不靠人眼。
+
+**反向验证**：撤掉两条声明 ⇒ 真相层与契约层**都红**，内核报
+`符号 '∘' 在本文件里还没有声明过记法`（`•` 更早一步：未声明时它连符号都不是，
+被读成 `Ident("•")` ⇒ `unknown identifier`）。

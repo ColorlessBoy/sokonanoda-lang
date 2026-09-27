@@ -21,16 +21,15 @@ import lib.Fun
 -- 题 1：两边 delta/beta 展开后是同一个 λ，所以 `Eq.refl` 直接成立（没有 funext，
 -- 这是本语言里唯一能证函数等式的方式）。目标用 `=` 写，证明体点名交 `Eq.refl`。
 theorem comp_assoc (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
-    Function.comp α γ δ h (Function.comp α β γ g f)
-      = Function.comp α β δ (Function.comp β γ δ h g) f := by
-  exact Eq.refl.{1} (α → δ) (Function.comp α β δ (Function.comp β γ δ h g) f)
+    h ∘ (g ∘ f) = (h ∘ g) ∘ f := by
+  exact Eq.refl.{1} (α → δ) ((h ∘ g) ∘ f)
 
 -- 题 2：先把复合等式经 g 的单射降到 f 层，再交给 f 的单射。
 -- `intro` 会把 `Function.Injective` 展开到 Pi；`apply` 用引理的**结论**对齐目标，
 -- 其余参数（两个点、以及"值相等"这条前提）变子目标。
 theorem injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
-    Function.Injective α γ (Function.comp α β γ g f) := by
+    Function.Injective α γ (g ∘ f) := by
   intro x y h
   apply hf
   apply hg
@@ -41,14 +40,14 @@ theorem injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
 -- 等式用 congrArg 把 hx 抬过 g，再与 hy 经 Eq.trans 接起来。
 theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     (hf : Function.Surjective α β f) (hg : Function.Surjective β γ g) :
-    Function.Surjective α γ (Function.comp α β γ g f) := by
+    Function.Surjective α γ (g ∘ f) := by
   intro z
   exact Exists.elim β (fun (y : β) => g y = z)
-    (∃ (x : α), Function.comp α β γ g f x = z)
+    (∃ (x : α), (g ∘ f) x = z)
     (hg z)
     (fun (y : β) => fun (hy : g y = z) =>
       Exists.elim α (fun (x : α) => f x = y)
-        (∃ (x : α), Function.comp α β γ g f x = z)
+        (∃ (x : α), (g ∘ f) x = z)
         (hf y)
         (fun (x : α) => fun (hx : f x = y) =>
           Exists.intro x
@@ -93,7 +92,7 @@ theorem bijective_iff_inverse (α β : Type) (f : α → β) (g : β → α)
 
 -- 题 7：题 2 的逆命题方向；congrArg 把 f 层等式抬成复合等式。
 theorem injective_of_comp_injective (α β γ : Type) (f : α → β) (g : β → γ)
-    (h : Function.Injective α γ (Function.comp α β γ g f)) : Function.Injective α β f := by
+    (h : Function.Injective α γ (g ∘ f)) : Function.Injective α β f := by
   intro x y hxy
   exact h x y (congrArg.{1} g hxy)
 

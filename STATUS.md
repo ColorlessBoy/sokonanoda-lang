@@ -1,6 +1,6 @@
-# 当前快照（2026-09-26）
+# 当前快照（2026-09-27）
 
-- **进度**：**64/66**（E2 50/50 ✓ + **批次 N** 记法×隐式参数×产品交互 14/16 ✓）
+- **进度**：**64/66**（E2 50/50 ✓ + **批次 N** 记法×隐式参数×产品交互 14/16 ✓）· 🚀 **v0.74.0：E01 ✓ / 11**（`•`/`∘` 复合记法）
 - **已发布**：**`sokonanoda v0.72.0`** ✓（`gh release list` 显示 **Latest** ✓ · 2026-09-25T23:25:07Z ✓）
 - **A 组（A0–A5）全部落地** ✓：显示层混合形态（`ty_text` ASCII `->` **227 → 0**）· `{a}` 折回 ·
   `{a}` 可跳转（根因：开放练习的签名**一条 hover 行都没有**）· prelude 可跳转（F12 落到前奏源文件
@@ -70,6 +70,31 @@
 
 ---
 
+## 第 478 轮（2026-09-27）：🚀 v0.74.0 开工 —— **E01 复合记法 `•` / `∘`** ✓（11 个环节的第 1 个）
+
+- **变了什么** ✓：`Rel.comp` / `Function.comp` 补记法 —— `lib/Rel.sokonanoda` 声明
+  `infixr:80 " • "`、`lib/Fun.sokonanoda` 声明 `infixr:90 " ∘ "`（各紧跟自己的 `def`）；
+  单元⑥⑦⑫ 与三份解答改用记法（点形式一律消除）。**记法零事件 ⇒ 门禁 36/328/99/0 不变** ✓。
+- **判红** ✓（内核原文）：`g ∘ f` ⇒ `符号 '∘' 在本文件里还没有声明过记法`；
+  `r • s` ⇒ `unknown identifier '•'`（`•` 不在数学码点类里，未声明时连符号都不是 ✓）。
+- **判据三层** ✓：front `the_course_libraries_declare_the_composition_notations`
+  （记法表：`•`→`Rel.comp`/lib.Rel/80、`∘`→`Function.comp`/lib.Fun/90）·
+  CLI `the_course_composition_notations_grade_like_the_pointful_forms`（真课程库、
+  两种写法五元计数相等）· `scripts/notation-lint.py` 零残留（新声明**自动**派生点形式判据 ✓）。
+- **反向验证** ✓：撤掉两条声明 ⇒ 两层判据**都红**，诊断逐字回到上面那两条 ✓（已还原 ✓）。
+- ⚠ **取证更正** ✗✓：`lib/Rel` 头部原写「`r • s` 是 Mathlib 的记法」——**不准确**：
+  Mathlib 的 `Relation.Comp` 是 `local infixr:80 " ∘r "`（`Mathlib/Logic/Relation.lean:158`）；
+  `∘` 取 Lean core 逐字（`src/Init/Notation.lean:274`）。本课用 `•` 是为了与 `∘` 区分 ✓。
+- **台账** ✓：新登记 **G-45**（library/painful/fixed_in 0.74.0，自足复现件 `G45-comp-notation.sokonanoda`）；
+  `scripts/gap.py check` ⇒ **全部与台账一致** ✓。
+- **文档** ✓：as-built 进 `docs/design/notation-subset.md` §16；速查表补【速查表 2b】+ 梯子两行；
+  ⚠ 预算按规矩**手改** `scripts/docs-budget.json`（notation-subset 873→905，评审可见 ✓），
+  另删掉 syllabus 里一段**无表头的重复表**（陈旧名 `Set.diff`/`Set.power`）⇒ 该文件 303→294 ✓。
+- **未决** ✓：E02–E04 · E21–E23 · E27–E31 共 10 个环节未开工；v0.74.0 收尾要**推一次 CI 逐 job 真绿** ✓。
+- ⚠ **本轮踩到的坑（两次同形 ✗✓）**：**判据跑完之前别改文件** ✗ —— 反向验证期间课程门禁读到
+  半棵树（报 `符号 '∘' 还没有声明过记法` ✗）、front 判据读到**撕裂**的库文件（假红 ✗）。
+  **判据必须在"冻结树"上跑** ✓：改完 → 跑 → 不再碰 ✓。
+
 ## 第 477 轮（2026-09-26）：CI 实验结论 —— `e2e-ledger` 为何被静默跳过 ✓
 
 - **变了什么** ✓：`e2e-ledger` 的 `if` 加 **`!cancelled()`** ✓（`.github/workflows/ci.yml` ✓）。
@@ -112,21 +137,3 @@
   ⇒ 它新增的两个测试（`arrows_fold_to_the_unicode_arrow` / `set_literals_fold_back_to_braces`）
   当前**红** ✗，但**不在 HEAD 里** ✓ ⇒ 与本轮**零关系**（本轮**零 Rust 改动** ✓）⇒ 本轮**不 push** ✓。
 
-## 第 475 轮（2026-09-26）：🎉 **e2e 通过 —— `28 passed / 0 failed`** ✓✓（T-U12 面 #3 闭环 ✓）
-
-- **变了什么** ✓：改用 `axiom` 后 **`e2e exit=0`** ✓ · **`28 passed / 0 failed`** ✓✓
-  ⇒ **T-U12 面 #3 的两层都闭环** ✓：**front 侧**（`hover_text_is_folded_like_the_lsp_does` ✓）
-  + **e2e 侧**（**真宿主 + 真 hover** ✓）。
-- **状态** ✓：`docs/e2e/ledger.jsonl` 已追加 ✓ · `docs/e2e/latest.json` 已更新 ✓。
-- ⚠ **五次尝试、四个夹具 bug** ✗ —— **每一个都是从失败文本里读出来的** ✓：
-  ① **`waitFor` gate 在断言上** ✗（**只报超时** ✗）⇒ 改成"等非空" ✓；
-  ② **`A`/`B` 不在作用域** ✗；③ **`Set` 未声明** ✗ + **元数不匹配** ✗（3 参 vs 2 参 ✗）；
-  ④ **体的定义相等** ✗（`True` vs `Set.subset A B` ✗）⇒ **改 `axiom`** ✓。
-
-## 第 474 轮（2026-09-26）：失败文本**前进了** ✓ —— `def usesWeird` ⇒ `def Weird` ✓
-
-- **变了什么** ✓：夹具修好 `Set` + 元数后仍红 ✗，而**失败文本前进了一格** ✓：
-  现在是 **`def Weird`** ✓ ⇒ **卡在 `Weird` 的体** ✗ —— `def … := True` 要求 `True` 与
-  `Set.subset A B` **定义相等** ✗，而 elaborate 不展开它 ✗ ⇒ **改用 `axiom`** ✓。
-- ⚠ **"失败文本前进"是好信号** ✓：**它说明前面的错都被修掉了** ✓ ——
-  这一面的调试**每一步都有可读的下一步** ✓。

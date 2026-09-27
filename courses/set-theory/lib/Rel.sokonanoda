@@ -12,13 +12,19 @@
 -- 名字一律照抄 **Mathlib/core 取证名**（docs/design/course-stdlib.md §3.1）：
 --   Rel A B ↔ A → B → Prop（Tao §3.3 的"关系"；Mathlib `Relation` 是
 --             `α → β → Prop` 的同义词，本课按 Tao 的写法直接展开成箭头）
---   Rel.inv（Mathlib `Relation.inv`，即记法 r ⁻¹）
---   Rel.comp（Mathlib `Relation.comp`，即记法 r • s；官方定义逐字同款：
+--   Rel.inv（Mathlib `Relation.inv`）
+--   Rel.comp（Mathlib `Relation.comp`；官方定义逐字同款：
 --             `comp r s x z ↔ ∃ y, r x y ∧ s y z`）
 --
--- 记法对照（`r ⁻¹` / `r • s` 是 **Mathlib 的**记法，本课程没有声明它们——课程库
--- 只声明集合符号 `∈ ⊆ ∪ ∩ \ ∅ 𝒫 ᶜ '' ⁻¹' ×ˢ`，见 lib/Set 文件末尾）：
---   Rel.inv A B r b a ↔ (r ⁻¹) b a      ·   Rel.comp A B C r s a c ↔ (r • s) a c
+-- 记法：复合 `r • s` 在**本文件里声明**（E01，紧跟 `def Rel.comp`），单元
+-- `import lib.Rel` 即可用；
+-- 逆 `r ⁻¹` **仍未声明**（E03 处理）⇒ 逆关系今天一律写点名 `Rel.inv A B r`。
+--   ⚠ 引用更正（E01）：本文件原来写"`r • s` 是 Mathlib 的记法"——**不准确**。
+--   Mathlib 的 `Relation.Comp` 用的是 **`local infixr:80 " ∘r "`**
+--   （`Mathlib/Logic/Relation.lean:158` 逐字），而且 `local`（出了那个 section 就没了）。
+--   本课取 `•`（PLAN v0.74.0 指定）：`∘` 已经给了函数复合
+--   （Lean 4 `Init/Notation.lean:274` 的 `infixr:90`），同一符号在一个闭包里
+--   只能有一个目标；优先级沿用 Mathlib `Relation.Comp` 那一档 80。
 --
 -- ⚠ 为什么必须有 `Rel.ext`（**公理**）：
 --   单元⑥ 的必证题 `rel_comp_assoc`（复合结合律）与 `rel_inv_inv`（逆的逆）都是
@@ -41,12 +47,20 @@ def Rel.inv (A B : Type) (r : Rel A B) : Rel B A :=
   fun (b : B) => fun (a : A) => r a b
 
 -- 复合（关系串接，Mathlib `Relation.comp`，记法 r • s；参数顺序与 Mathlib 一致：
--- `Rel.comp A B C r s` 里 r : Rel A B 先走，s : Rel B C 后走）。中缀的 `∃ b, …`
+-- `r • s` 里 r : Rel A B 先走，s : Rel B C 后走）。中缀的 `∃ b, …`
 -- 在这里就是带标注的 `∃ (b : B), …`；定义体照课程库的统一写法用 `∃` 记法
 -- （定义是词汇，不是证明——`∃` 记法本身由 lib/Exists 声明）。
 def Rel.comp (A B C : Type) (r : Rel A B) (s : Rel B C) : Rel A C :=
   fun (a : A) => fun (c : C) =>
     ∃ (b : B), (r a b) ∧ (s b c)
+
+-- ── 记法（E01）：关系复合 `r • s` ───────────────────────────────────────────
+-- 与 lib/Set 末尾那段记法同族：源级糖、**零事件、不进声明表** ⇒ 加这一行
+-- 不改变课程门禁的任何计数。被 import 的模块声明的记法在**入口文件里从文件头
+-- 就可用**（docs/design/notation-subset.md §10.3）⇒ 单元只要 `import lib.Rel`
+-- 就能写 `r • s`；同一符号全课程只能声明一次（重声明是 parse 错误）。
+-- 点名形式永久可用（N4.3）：`Rel.comp` 写全前导类型参数时，两种写法判卷一致。
+infixr:80 " • " => Rel.comp
 
 -- ── 外延性（**公理**：Mathlib 由 funext + propext 推出，我们两者都没有）──────
 -- 用法与 `Set.ext` 同款：要证两条关系相等，就逐元素证两个方向。
@@ -60,7 +74,7 @@ theorem Rel.inv_apply (A B : Type) (r : Rel A B) (b : B) (a : A) :
     Rel.inv A B r b a ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A（↔ 记法的期望类型走不通）
 
 theorem Rel.comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
-    Rel.comp A B C r s a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl (∃ (b : B), r a b ∧ s b c)  -- soko:notation-ok: `Iff.refl` 短写解不出 A
+    (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl (∃ (b : B), r a b ∧ s b c)  -- soko:notation-ok: `Iff.refl` 短写解不出 A
 
 -- ── 库自检：两条展开引理合起来，把"逆的逆"退回原关系（`rfl` 级）。────────────
 -- 单元⑥ 的必证题 `rel_inv_inv` 在画布上由学习者自己写：它的证明项与本条同款

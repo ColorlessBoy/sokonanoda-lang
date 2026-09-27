@@ -70,34 +70,34 @@ theorem rel_inv_inv (A B : Type) (r : Rel A B) :
 -- 会把第二个类型参数解成同名的类型变量（内层 binder 拿到 `B` 而不是 `D`），
 -- 所以逐对的 ↔ 由 `fun (a : A) => fun (d : D) => …` 直接交给 Rel.ext。
 -- 拆 `∃` 用 `Exists.elim`、打包用点名的 `Exists.intro` / `And.intro`
--- （目标两侧都是 Rel.comp 的**定义**，头不在归纳表里，`use`/`constructor` 够不着）。
+-- （目标两侧都是关系复合的**定义**，头不在归纳表里，`use`/`constructor` 够不着）。
 -- ─────────────────────────────────────────────────────────────────────────
 theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
-    Rel.comp A B D r (Rel.comp B C D s t) = Rel.comp A C D (Rel.comp A B C r s) t := by
+    r • (s • t) = (r • s) • t := by
   exact Rel.ext A D
-    (Rel.comp A B D r (Rel.comp B C D s t))
-    (Rel.comp A C D (Rel.comp A B C r s) t)
+    (r • (s • t))
+    ((r • s) • t)
     (fun (a : A) => fun (d : D) =>
       Iff.intro
-        (Rel.comp A B D r (Rel.comp B C D s t) a d)
-        (Rel.comp A C D (Rel.comp A B C r s) t a d)
+        ((r • (s • t)) a d)
+        (((r • s) • t) a d)
         -- →：先拆出 b，再拆出 c，然后按 c、b 的顺序重新打包
-        (fun (h : Rel.comp A B D r (Rel.comp B C D s t) a d) =>
+        (fun (h : (r • (s • t)) a d) =>
           Exists.elim B
-            (fun (b : B) => (r a b) ∧ (Rel.comp B C D s t b d))
-            (Rel.comp A C D (Rel.comp A B C r s) t a d)
+            (fun (b : B) => (r a b) ∧ ((s • t) b d))
+            (((r • s) • t) a d)
             h
-            (fun (b : B) => fun (hb : (r a b) ∧ (Rel.comp B C D s t b d)) =>
+            (fun (b : B) => fun (hb : (r a b) ∧ ((s • t) b d)) =>
               Exists.elim C
                 (fun (c : C) => (s b c) ∧ (t c d))
-                (Rel.comp A C D (Rel.comp A B C r s) t a d)
+                (((r • s) • t) a d)
                 (And.right hb)
                 (fun (c : C) => fun (hc : (s b c) ∧ (t c d)) =>
                   Exists.intro C
-                    (fun (c2 : C) => (Rel.comp A B C r s a c2) ∧ (t c2 d))
+                    (fun (c2 : C) => ((r • s) a c2) ∧ (t c2 d))
                     c
                     (And.intro
-                      (Rel.comp A B C r s a c)
+                      ((r • s) a c)
                       (t c d)
                       (Exists.intro B
                         (fun (b2 : B) => (r a b2) ∧ (s b2 c))
@@ -107,19 +107,19 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
                           (And.left hc)))
                       (And.right hc)))))
         -- ←：先拆出 c，再拆出 b，然后按 b、c 的顺序重新打包
-        (fun (h : Rel.comp A C D (Rel.comp A B C r s) t a d) =>
+        (fun (h : ((r • s) • t) a d) =>
           Exists.elim C
-            (fun (c : C) => (Rel.comp A B C r s a c) ∧ (t c d))
-            (Rel.comp A B D r (Rel.comp B C D s t) a d)
+            (fun (c : C) => ((r • s) a c) ∧ (t c d))
+            ((r • (s • t)) a d)
             h
-            (fun (c : C) => fun (hc : (Rel.comp A B C r s a c) ∧ (t c d)) =>
+            (fun (c : C) => fun (hc : ((r • s) a c) ∧ (t c d)) =>
               Exists.elim B
                 (fun (b : B) => (r a b) ∧ (s b c))
-                (Rel.comp A B D r (Rel.comp B C D s t) a d)
+                ((r • (s • t)) a d)
                 (And.left hc)
                 (fun (b : B) => fun (hb : (r a b) ∧ (s b c)) =>
                   Exists.intro B
-                    (fun (b2 : B) => (r a b2) ∧ (Rel.comp B C D s t b2 d))
+                    (fun (b2 : B) => (r a b2) ∧ ((s • t) b2 d))
                     b
                     (And.intro
                       (And.left hb)

@@ -13,7 +13,9 @@ python3 scripts/notation-lint.py --root <file>   # 单文件
 ```
 
 - `Eq.{1} T a b` → `a = b`（用户原话：`Eq.{1}` 直接就是一个等于号）；`Ne` 同理；
-  `And/Or/Iff/Not/forall/Exists/->` → `∧ ∨ ↔ ¬ ∀ ∃ →`；`Set.*` → `∈ ⊆ ∪ ∩ \ ᶜ 𝒫 ∅ '' ⁻¹' ×ˢ {a} {a,b}`。
+  `And/Or/Iff/Not/forall/Exists/->` → `∧ ∨ ↔ ¬ ∀ ∃ →`；`Set.*` → `∈ ⊆ ∪ ∩ \ ᶜ 𝒫 ∅ '' ⁻¹' ×ˢ {a} {a,b}`；
+  **复合** → `g ∘ f`（`Function.comp`，lib/Fun）与 `r • s`（`Rel.comp`，lib/Rel）
+  —— 两个都是二元算子，**应用到参数上要加括号**：`(g ∘ f) x`、`(r • s) a c`。
 - 基础类型**省前导隐式实参**（对齐 Lean）：`And.intro h1 h2` / `And.left h` /
   `Or.inl h` / `Exists.intro w hw` / `Exists.elim h f`……能判绿就省。
 - **代码与注释（含 `-- soko:hint`）都算**；`units/notation-cheatsheet*.sokonanoda`

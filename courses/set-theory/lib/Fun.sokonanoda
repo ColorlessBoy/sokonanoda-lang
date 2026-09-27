@@ -9,15 +9,17 @@
 --                 所以单元⑦ 的 9 道题**一条都不在这里**。
 --
 -- 名字一律照抄 **Mathlib 取证名**（docs/design/course-stdlib.md §3.1）：
---   Function.comp / Function.Injective / Function.Surjective / Function.Bijective /
+--   函数复合（记法 `g ∘ f`）/ Function.Injective / Function.Surjective / Function.Bijective /
 --   Function.LeftInverse / Function.RightInverse
 -- 唯一的例外是 `Function.Inverse`：Mathlib 没有这个名字（它有 `Function.invFun` /
 -- `Equiv` / `Function.LeftInverse`）。这里是**设计判断**（不是取证名）：卷 I 的"逆"
 -- 只能以**数据版**出现——见下面 §逆 的长注释。
 --
--- 记法对照（`g ∘ f` 是 **Mathlib 的**记法，本课程没有声明它；课程库声明的记法
--- 清单见 lib/Set 文件末尾——函数这一层今天仍然全部点名）：
---   Function.comp α β γ g f        ↔  g ∘ f      （先 f 后 g）
+-- 记法：函数复合 `g ∘ f` 在**本文件里声明**（E01，紧跟 `def Function.comp`；
+-- `infixr:90`，Lean 4 `src/Init/Notation.lean:274` 的
+-- `infixr:90 " ∘ " => Function.comp` 逐字）
+-- ⇒ 单元只要 `import lib.Fun` 就能写 `g ∘ f`。其余五个名字**没有记法**，一律点名：
+--   g ∘ f                          ↔  先 f 后 g 的复合（展开见下）
 --   Function.Injective α β f       ↔  f 单射
 --   Function.Surjective α β f      ↔  f 满射
 --   Function.Bijective α β f       ↔  f 双射（单射 ∧ 满射）
@@ -34,11 +36,11 @@
 -- 代价是每次调用都要把 α β γ 写全——本卷接受这个代价（写在每道题的注释里）。
 --
 -- ── 复合的顺序（务必与 Mathlib 对齐）─────────────────────────────────────────
--- Mathlib: `Function.comp f g x = f (g x)`，即**第一个函数参数最后作用**：
---     Function.comp α β γ g f  就是  g ∘ f  ：先 f（α → β），再 g（β → γ），得 α → γ。
--- 所以 `Function.comp α β γ g f` 的类型是 `α → γ`，单元⑦ 的
+-- Mathlib: `(f ∘ g) x = f (g x)`，即**第一个函数参数最后作用**：
+--     `g ∘ f` 先 f（α → β）、再 g（β → γ），得 α → γ。
+-- 所以 `g ∘ f` 的类型是 `α → γ`，单元⑦ 的
 -- `injective_comp`（f 在前还是 g 在前）就是按这条顺序写的：
---     Injective f → Injective g → Injective (Function.comp g f)。
+--     Injective f → Injective g → Injective (g ∘ f)。
 --
 -- ── 逆（数据版）：为什么不是 "∃ g, …" ───────────────────────────────────────
 -- 拆开看，官方 Lean 里"逆"有**两个层次**：
@@ -55,11 +57,20 @@
 import lib.Logic
 import lib.Exists
 
--- ── 复合（Mathlib: Mathlib/Logic/Function/Defs.lean，`Function.comp`）──────────
--- `Function.comp α β γ g f` 展开就是 `fun x => g (f x)`；定义体直接是 λ，所以
+-- ── 复合（Mathlib: Mathlib/Logic/Function/Defs.lean）─────────────────────────
+-- `g ∘ f` 展开就是 `fun x => g (f x)`；定义体直接是 λ，所以
 -- 复合**不引入任何数学内容**，`Function.comp_apply` 是 `rfl` 级展开引理。
 def Function.comp (α β γ : Type) (g : β → γ) (f : α → β) : α → γ :=
   fun (x : α) => g (f x)
+
+-- ── 记法（E01）：函数复合 `g ∘ f` ───────────────────────────────────────────
+-- 与 lib/Set、lib/Rel 的记法块同族：源级糖、**零事件、不进声明表** ⇒ 加这一行
+-- 不改变课程门禁的任何计数。被 import 的模块声明的记法在**入口文件里从文件头
+-- 就可用**（docs/design/notation-subset.md §10.3）；同一符号全课程只能声明一次。
+-- 符号与优先级是 **Lean 4 core 逐字**（`src/Init/Notation.lean:274`：
+-- `@[inherit_doc] infixr:90 " ∘ "  => Function.comp`）——90 比 `''`/`⁻¹'`/`×ˢ`
+-- 的 80 紧，与官方一致。点名形式永久可用（N4.3）。
+infixr:90 " ∘ " => Function.comp
 
 -- ── 单射 / 满射 / 双射（Mathlib: Mathlib/Logic/Function/Defs.lean）────────────
 -- 单射按题面要求的形状写：`∀ x y, f x = f y → x = y`（Mathlib 逐字同款）。
@@ -96,7 +107,7 @@ def Function.Inverse (α β : Type) (f : α → β) (g : β → α) : Prop :=
 
 -- `rfl` 级：复合算在参数上就是"先 f 后 g"（Mathlib: `Function.comp_apply`）。
 theorem Function.comp_apply (α β γ : Type) (g : β → γ) (f : α → β) (x : α) :
-    Function.comp α β γ g f x = g (f x) :=  Eq.refl.{1} γ (g (f x))
+    (g ∘ f) x = g (f x) :=  Eq.refl.{1} γ (g (f x))
 
 theorem Function.injective_def (α β : Type) (f : α → β) :
     Function.Injective α β f ↔ ∀ (x : α), ∀ (y : α), f x = f y → x = y :=
