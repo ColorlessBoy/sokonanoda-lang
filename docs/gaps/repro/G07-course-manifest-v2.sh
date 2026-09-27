@@ -126,13 +126,28 @@ echo "== ④ 课程门禁 --json：course.chapters 与清单一致（G6）=="
 # 由第 ① 段直接从 `course.json` 断言，不在这里重复。
 GATE_JSON="$TMP/gate.json"
 GATE_BIN="${SOKONANODA_BIN:-$PWD/target/debug/sokonanoda}"
+GATE_ERR="$TMP/gate.err"
+# ⚠ **不许把门禁的 stderr 丢掉** ✗✓（2026-09-27 实测）：原来是 `2>/dev/null` ✗ ⇒
+#   门禁以 **exit 2（前置/环境问题）** 收场时，**原因被扔了**，本复现件于是把
+#   「**环境坏了**」读成「**缺口回来了**」✗ ⇒ 让**过期的 debug 产物**伪装成**行为回退** ✗✓。
+#   （实测：`target/debug/sokonanoda` 自报 **0.72.0**、仓库钉 **0.73.0** ⇒
+#    `--bin` 分支的版本核对**正确地** exit 2 ✓ —— 那不是缺口 ✗。）
+#   ⇒ 保留 stderr，并在下面把 **exit 2 单独认成「环境/形状异常」** ✓
+#     （与本复现件的契约一致：`0 = 缺口仍在 · 1 = 已修 · 2 = 环境/形状异常` ✓）。
 if [ -x "$GATE_BIN" ]; then
   python3 "$PWD/courses/set-theory/tools/check.py" --bin "$GATE_BIN" \
-    --only "单元 1" --json > "$GATE_JSON" 2>/dev/null
+    --only "单元 1" --json > "$GATE_JSON" 2>"$GATE_ERR"
   GATE_EXIT=$?
 else
-  python3 "$PWD/courses/set-theory/tools/check.py" --only "单元 1" --json > "$GATE_JSON" 2>/dev/null
+  python3 "$PWD/courses/set-theory/tools/check.py" --only "单元 1" --json \
+    > "$GATE_JSON" 2>"$GATE_ERR"
   GATE_EXIT=$?
+fi
+if [ "$GATE_EXIT" = 2 ]; then
+  echo "  ⚠ 门禁 **exit 2 = 前置/环境问题**，**不是**「缺口回来了」✗ —— 本复现件不作 G-07 的判断" >&2
+  sed 's/^/      /' "$GATE_ERR" >&2
+  echo "  ⇒ 按契约报 **2 = 环境/形状异常** ✓（先修环境，别改台账 ✗）" >&2
+  exit 2
 fi
 GATE_COUNTS="$(python3 - "$GATE_JSON" <<'PY'
 import json, sys
