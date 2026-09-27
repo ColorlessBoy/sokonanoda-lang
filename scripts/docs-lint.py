@@ -252,6 +252,9 @@ def selftest() -> int:
         bad, _ = check()
     finally:
         MAX_LIVE_BYTES = saved_cap
+    # ⚠ **① 是唯一没绑夹具的** ✗：它的报错文案里**不含任何文件名**（是总量），
+    #   没法按文件名绑 ✓ —— 但它本来就**不靠夹具**：把上限压到「当前总量 − 1」
+    #   ⇒ **只有它可能触发** ✓（与 ②/④ 的"灌同一个文件"不同 ✓）。如实注明，不假装绑了 ✗。
     results.append(("①", "活文档总量 > 上限", any(b.startswith("①") for b in bad)))
 
     # ② 单文件行数 + ④ 冻结预算：往一份活文档灌 2200 行
@@ -263,8 +266,10 @@ def selftest() -> int:
             bad, _ = check()
         finally:
             p.write_text(old, encoding="utf-8")
-        results.append(("②", "单文件 > 2000 行", any(b.startswith("②") for b in bad)))
-        results.append(("④", "冻结预算被撑大", any(b.startswith("④") for b in bad)))
+        results.append(("②", "单文件 > 2000 行", any(
+            b.startswith("②") and "LESSONS.md" in b for b in bad)))
+        results.append(("④", "冻结预算被撑大", any(
+            b.startswith("④") and "LESSONS.md" in b for b in bad)))
 
     # ③ 入口文件 > 800 行
     if Path("REQUIREMENTS.md").exists():
@@ -273,7 +278,8 @@ def selftest() -> int:
             bad, _ = check()
         finally:
             restore()
-        results.append(("③", "入口文件 > 800 行", any(b.startswith("③") for b in bad)))
+        results.append(("③", "入口文件 > 800 行", any(
+            b.startswith("③") and "REQUIREMENTS.md" in b for b in bad)))
 
     # ③/④ **方向性**（用户 2026-09-26 要求 ✓）：入口文件（`e2-plan` 这类**计划**）
     # ① 正常推进（+138 行 = 「批次 N」的量级）⇒ **不误红** ✓
@@ -318,7 +324,8 @@ def selftest() -> int:
         bad, _ = check()
     finally:
         junk.unlink()
-    results.append(("⑤", "docs/** 垃圾残留", any(b.startswith("⑤") for b in bad)))
+    results.append(("⑤", "docs/** 垃圾残留", any(
+            b.startswith("⑤") and "__docs-lint-selftest.tmp" in b for b in bad)))
 
     # ⑥ 归档文件没被索引点名
     stray = Path("docs/archive/__selftest-unindexed.md.gz")
@@ -327,7 +334,8 @@ def selftest() -> int:
         bad, _ = check()
     finally:
         stray.unlink()
-    results.append(("⑥", "归档文件未被点名", any(b.startswith("⑥") for b in bad)))
+    results.append(("⑥", "归档文件未被点名", any(
+            b.startswith("⑥") and "__selftest-unindexed" in b for b in bad)))
 
     ok = all(hit for _, _, hit in results)
     for code, label, hit in results:
