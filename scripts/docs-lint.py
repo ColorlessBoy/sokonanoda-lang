@@ -69,6 +69,11 @@ ENTRY_FILES = {
     "docs/HANDOVER.md",
     "docs/E2-HANDOVER.md",
     "docs/design/e2-plan.md",
+    # 0.74–0.79 的总账 + 环节拆解（626 行）：**计划入口** ✓ —— 它是这一段开发的
+    # 唯一真相，goal 的 objective 逐条指向它 ⇒ 按本集合的定义就该在这里 ✓。
+    # ⚠ **不要**把它放进 `docs-budget.json` 的 `frozen` ✗：计划会随新批次合法长大，
+    # 冻结它必然误红 ✗（那份 JSON 的 `_comment` 已写明这条 ✓）。
+    "docs/PLAN-0.74-0.79.md",
 }
 
 # ⑤ 垃圾模式（路径 → 是否目录）
