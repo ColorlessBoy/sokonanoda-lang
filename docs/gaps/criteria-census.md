@@ -26,10 +26,10 @@
 | 1 | `scripts/audit-wire-fields.py:107-114` | ④ | 写死行域 `lo=150,hi=234` 把 binder/run 读取点**全排除**（实测在 236/240/241 与 54/55）⇒ 抹 `GoalBinderInfo.ty_runs` 仍印 `NONE ✓` exit 0 —— **全仓唯一能咬 R-1 的守卫** | **已修 ✓** `564918f` |
 | 2 | `courses/set-theory/tools/check.py:791-850` | ③ | **`--selftest` 从不调用 `evaluate()`**（唯一调用点在 `run()` 里）⇒ G1/G2/G3/G4/G5 **零负例**；patch 成 raise 仍 PASS | **已修 ✓** `90ab11e` + `b18062b`（`evaluate()` 全面进自检：G4 · G1 · G3×2 · G5 + 两条正控制 ✓；**G2 不在该函数内**、覆盖不到，已注明 ✓。反向验证：`evaluate` 变 no-op ⇒ **一次报 5 条失效** ✓） |
 | 3 | 五个门禁脚本（`--x in argv` 子串判模式） | ④ | **错拼参数被静默忽略、回落全量检查并 exit 0** ⇒「自检没跑，退出码却是绿的」 | **已修 ✓** `acbb88e` |
-| 4 | `crates/cli/tests/query.rs:822,940,1033` | ④ | LSP 二进制不存在 ⇒ `eprintln+return` ⇒ **三个 CLI≡LSP 一致性用例整条变绿**（防"两套真相"的唯一端到端守卫可静默消失） | **待修** |
-| 5 | `crates/kernel/tests/arena.rs:163-167` | ④ | `LEAN_KERNEL_ARENA` 未设 ⇒ 打印+return ⇒ **accept/reject 语料对拍整层绿** | **待修** |
-| 6 | `crates/front/tests/module_batch.rs:186` | ④ | `#[ignore]` 掉**真课程等价性**用例（夹具绿，而同文件另有断言"真课程形状不等价"） | **待修** |
-| 7 | `crates/cli/tests/launcher.rs:42-58` | ④ | node 不在 PATH ⇒ 打印+return ⇒ **唯一跑启动器的 5 条用例绿** | **待修** |
+| 4 | `crates/cli/tests/query.rs:822,940,1033` | ④→**降级 P1** | ⚠ **复核后修正**：**不是静默跳过** ✗ —— 源码注释写明「**不静默跳过**，但也别让无关的测试套件红——**打印一条明确的提示**」✓，skip **会打印** ✓；缺的只是「CI 里缺前置 ⇒ 判红」这一层 | **降级**（见文末更正说明） |
+| 5 | `crates/kernel/tests/arena.rs:163-167` | ④→**降级 P1** | ⚠ **复核后修正**：skip **会 `eprintln`** ✓（不是静默 ✗），且**同文件已被 T-K02 加固过**（注释：「原来『只收集到 1 条』是**完全静默**的」⇒ 已修 ✓）；缺的同样只是「CI 缺前置 ⇒ 判红」 | **降级** |
+| 6 | `crates/front/tests/module_batch.rs:186` | ④→**降级 P1** | ⚠ **复核后修正**：`#[ignore]` **带成文理由** ✓（「整门课 35 个文件、每份报告 MB 量级，跑一次要分钟级；**CI 用夹具那条守回归**，这条用来回答『真实课程里等价性成不成立』」）；且**测试体本来就只拷切片**（N 个真单元）✗ ⇒ 子代建议的「切片进 CI」**它已经在做** | **降级** |
+| 7 | `crates/cli/tests/launcher.rs:42-58` | ~~④~~ **判错** | ❌ **复核后推翻**：它有 `assert!(std::env::var_os(CI).is_none(), …)` ⇒ **CI 里缺 node 是硬失败** ✓（不是「绿」✗）；docstring 写明这是**故意的**：「a silent skip would hide the only behavioral pin on the launcher, so **the skip is printed, and under CI it is a hard failure**」✓ | **撤回**（不是缺口 ✓） |
 | 8 | `docs/gaps/repro/G39-….js:81,85` | ① | definition/hover **只断言非 null** ⇒ **与 G-37 事故同形**（自跳、答错目标照样绿），而台账已写 `fixed` | **已修 ✓** `8af25ba`（**升级后行为仍对** ⇒ 台账不用改回 open ✓） |
 | 9 | `docs/gaps/repro/G38-….js:45` | ③ | `JSON.parse(...).data` 从不查退出码/信封 `ok` ⇒ 解析失败时 `undefined.find` 抛异常 ⇒ node **exit 1** ⇒ 台账 `fixed` 恰好把「行为已变」读成**一致**（`gap.py:220`）⇒ **坏环境静默判绿** | **待修** |
 | 10 | `courses/set-theory/tools/check.py:602-610` | ④ | `--only` 下画布被判红时 `continue` 的前提不成立 ⇒ **画布那次判红无人报告**，exit 0（**已实测复现**） | **待修** |
@@ -116,7 +116,8 @@ python3 courses/set-theory/tools/check.py          # 必须仍是 36 目标 · 3
 
 | # | 位置 | 病灶 | 升级方案 | ⚠ 卡点 |
 |---|---|---|---|---|
-| 1 | `crates/cli/tests/query.rs:822,940,1033` · `arena.rs:163-167` · `module_batch.rs:186` · `launcher.rs:42-58` | 四条**「环境缺东西 ⇒ 跳过 ⇒ 整条绿」**（LSP 二进制不在 / `LEAN_KERNEL_ARENA` 未设 / `#[ignore]` / node 不在 PATH） | 缺前置就 `assert!` 或 `panic!`；要跳过必须**显式环境变量**（`SOKO_SKIP_*=1`） | **验证要 cargo**，本机需预留时间 |
+| 1 | `crates/cli/tests/query.rs:822,940,1033` · `arena.rs:163-167` · `module_batch.rs:186` | **降级为 P1** ⚠ —— **复核后修正**：三条**都会打印跳过** ✓、**都有成文理由** ✓（详见文末更正说明）；残余缺口只有「**本地缺前置时测试仍通过**」（CI 侧 `launcher` 已硬失败 ✓） | 可选加固：缺前置**且 `CI` 已设** ⇒ `panic!`；**动手前先读源码** ✓（别照抄本条 ✗） | 验证要 cargo |
+| ~~1b~~ | ~~`launcher.rs:42-58`~~ | ❌ **判错、已撤回**（它 CI 里是硬失败 ✓） | — | — |
 | 2 | `courses/set-theory/tools/check.py:611-614` | G4 **只比名字不比命题** ⇒ 同名换命题（`theorem prod_fst_mk : True := True.intro`）照样绿 | 让内核在 `decl.checked` 事件里带上**该声明 elaborate 后的类型**（或类型指纹），断言逐字相等 | **跨层**：要改内核/协议 ⇒ 属 v0.79 范围，别在 E00 里顺手做 |
 | 3 | `scripts/docs-lint.py`（`--selftest` 的 9 条） | 自检全是 `any(...)` = 「≥1 条」、**不绑夹具** ⇒ 别的文件替它红也照样 9/9 | 每条绑到自己的夹具文件，断言**是哪一条**判据开火 | 编辑量中等；**改门禁判据前先补自检** |
 | 4 | `courses/set-theory/tools/check.py:203-208` | 走启动器时「二进制可信」只靠标签**子串黑名单**（`"STALE"/"unknown"`），而精确探针 `binary_version()` 只用在 `--bin` 分支 | 启动器分支也跑 `binary_version()`，要求 `reported == report["version"]` 且 `pin is not None`，否则 exit 2 | 会给课程门禁**加一次子进程调用**（性能/时序），先量再改 |
@@ -133,3 +134,31 @@ python3 courses/set-theory/tools/check.py          # 必须仍是 36 目标 · 3
   但一旦漂移不会红 ⇒ **随各自文件的下一轮改动顺带升级** ✓，不要为它们开专场 ✗。
 · **X1 文档分层**：`docs/PLAN-0.74-0.79.md` **792/800 行** · `docs/design/criteria-strength.md` **136/150 行**
   ⇒ **下一次往这两份里加内容之前，必须先拆一段出去** ✗（`docs-lint` 判据 ③ 会在 801 行判红）。
+
+---
+
+## ⚠ 更正说明（2026-09-27，**我自己复核出来的**）
+
+P0 表的第 **4/5/6/7** 条来自 **D 片 subagent**，我**当初直接写进 P0、没有逐条复核** ✗。
+本轮抽这 4 条**去读源码**，结果：
+
+| 原判 | 复核结论 |
+|---|---|
+| #4 `query.rs:822`「静默跳过」 | **不静默** ✓ —— 注释写明「**不静默跳过**…**打印一条明确的提示**」 |
+| #5 `arena.rs:163`「打印+return」 | 说明里就写了「打印」✓，且**同文件已被 T-K02 加固过**（原「只收集到 1 条」才是完全静默的，已修 ✓） |
+| #6 `module_batch.rs:186` `#[ignore]` | **带成文理由** ✓；子代建议的「切片进 CI」**它已经在做**（测试体只拷 N 个真单元） |
+| #7 `launcher.rs:42` | **判错** ❌ —— 它有 `assert!(CI 未设)`，**CI 里缺 node 是硬失败** ✓ |
+
+**⇒ 四条里 1 条判错、3 条把「有打印的、有理由的跳过」说成了「静默当绿」** ✗。
+**残余的真实缺口只有一层**：本地缺前置时**测试仍然通过**（但**跳过会打印** ✓，CI 侧 `launcher` 已硬失败 ✓）
+⇒ 应作 **P1**（可选加固：缺前置且 `CI` 已设 ⇒ panic），**不是 P0** ✓。
+
+### 我违犯了哪条纪律（如实记，不粉饰）
+`AGENTS.md` §并行与 subagent 纪律第 4 条：**「产出必须验证后才并入 ✓：复跑它给的判据 ✓、
+抽查结论 ✓（『错误百出』那次就是没人验 ✗）」**。
+我**没有抽查就并入** ✗ —— 把 5 片共 **111 条**照单写进清单，并把 D 片这 4 条直接标成 **P0** ✗。
+**抽查 4 条 ⇒ 1 条错、3 条夸大** ⇒ **其余 107 条的可信度同样未知** ✗。
+
+**⇒ 给下一条会话的告诫**：本清单每一条在动手前**都要先读源码确认** ✓。
+**已修的那 18 条都是读过源码的** ✓，可信度高于未复核的条目 ✓。
+**别把「子代说了」当成「已核实」** ✗ —— 这条我自己就犯了 ✓。
