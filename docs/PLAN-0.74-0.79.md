@@ -226,10 +226,10 @@
 | E21 | Infoview 声明卡片「目标 ⊢」行 —— **I1 复核：该行不冗余，保留**（原判"去掉"前提不成立） | I1 | 低 | 🚀 0.74 | ✅ **不改（resolved-no-change）** `ce0371b`（复核依据 + 防漂移判据 + 反向验证；依据进 `docs/gaps/criteria-census.md`） |
 | E22 | **build/rebuild 以项目为默认目标**（现在按当前打开的文件编） | I2① | 低 | 🚀 0.74 | ✅ `b90c0ff`（目标 = `soko/project` 的模块根；**rebuild 的 `--clean` 也带目标**；判据：stub 宿主 argv + e2e 文件数；反向验证两半各自判红；G-51 fixed） |
 | E23 | **build/rebuild 加进度**（流式 `build.file` 事件 → 状态栏/进度条） | I2② | 低 | 🚀 0.74 | ✅ `3a5e94f`（三处同一份：状态栏逐帧 / Infoview / 概览尺 + 原生进度条**可取消**；`build.begin` 事件 `0ad970f`；判据 stub 宿主 39/39；反向验证两处各自判红；⚠ `{viewId}` 标题栏如实记为**未做**；G-52 fixed） |
-| **E27** | **Infoview 内导航到定义**（现在只发 `ready`/`reveal`，点目标标题只跳源码 span；`{a}`/`∈`/声明名**点不动**） | I-面核对 · [53][54] | 中 | 🚀 0.74 | |
+| **E27** | **Infoview 内导航到定义**（现在只发 `ready`/`reveal`，点目标标题只跳源码 span；`{a}`/`∈`/声明名**点不动**） | I-面核对 · [53][54] | 中 | 🚀 0.74 | ✅ `1444780`（**声明名**可点 ⇒ `definition` 消息 ⇒ `executeDefinitionProvider` = 编辑器 F12 同语义；判据三端：发出端不许发 `reveal`（webview 23/23）· 落点端与 F12 **逐字段相同**（真宿主，跨文件）· stub 宿主 43/43；反向验证退回 `reveal` 判红；⚠ **记法符号那半未接** ⇒ **G-53**（runs 无源位置，要动 wire）） |
 | **E28** | **Infoview 空态/错误态判据**（三种空态文案已实现，但**无 e2e**） | I-面核对 | 低 | 🚀 0.74 | |
 | **E29** | **Infoview 进度区要覆盖 build/rebuild**（E23 只写了状态栏 ⇒ **漏了 Infoview 那一路**） | I-面核对 · I2② | 中 | 🚀 0.74 | ✅ `3a5e94f`（与 E23 **同一份判据**：Infoview 的帧 == 状态栏的帧、百分比 0/33/67/100；**只留状态栏**的反向验证判红 ✓；webview 三行区的渲染判据既有 ✓） |
-| **E30** | **Infoview 增加「项目」区块**（清单/模块根/模块表/计数/产物；**`requires_warning` 必须显眼、不许只在 tooltip**） | I-面核对 · G-24 | 中 | 🚀 0.74 | ✅ `<E30>`（主机**转发** `soko/project` 回答、零额外取数；区块按 ①告警→⑤产物 的优先级渲染；判据：webview 可见文本 + stub 转发 + e2e 载荷；反向验证撤告警判红；**顺手补上 `audit-wire-fields.py` 的 front 侧结构解析** = 审计 #17） |
+| **E30** | **Infoview 增加「项目」区块**（清单/模块根/模块表/计数/产物；**`requires_warning` 必须显眼、不许只在 tooltip**） | I-面核对 · G-24 | 中 | 🚀 0.74 | ✅ `5323889`（主机**转发** `soko/project` 回答、零额外取数；区块按 ①告警→⑤产物 的优先级渲染；判据：webview 可见文本 + stub 转发 + e2e 载荷；反向验证撤告警判红；**顺手补上 `audit-wire-fields.py` 的 front 侧结构解析** = 审计 #17） |
 | **E31** | **补一条「Clean Cache（清除缓存）」命令**（CLI 早有 `build --clean`，**扩展里没有入口** ✗） | I-面核对 | 低 | 🚀 0.74 | ✅ `bc9a62c`（`sokonanoda.clean` 只清不编；三个数逐字来自 `build.clean` 事件；判据 stub 40/40 + e2e 实测 N→0 且不重编；反向验证两条各自判红；预算 102→103 已记账） |
 | — | **发版点 🚀 v0.74.0「记法补齐 + 编译体验修复 + Infoview 面」** | | | | |
 | E05 | 记法目标名 F12 落点修正（Bug A，一行级） | A11 · A12 | 低 | 🚀 0.75 | |
@@ -403,7 +403,19 @@
   ② **必须断言"中间态发生过"** —— **只断言 `begin`/`end` 出现 ⇒ 判红** ✗，
   要断言**至少一次 `increment > 0` 的 `report`** ✓（只判首尾 = 现在 LSP 路径的形态，**等于没进度** ✗）；
   ③ **不许**拿「输出面板有内容」当"有进度"的证据 ✗。
-- **E27** **Infoview 内声明名/记法符号跳转到定义**（2026-09-27 用户挖到底 + 面核对确认）。
+- **E27** ✅ **已做（`1444780`）—— 声明名那一半**：Infoview 内声明名/记法符号跳转到定义（2026-09-27 用户挖到底 + 面核对确认）。
+  **as-built**：`decl-name` 变成按钮 ⇒ 发 `{type:"definition", uri, position: decl.range.start}`
+  （**源位置**，webview 不猜定义在哪）⇒ 扩展 `gotoDefinition()` 走 **`vscode.executeDefinitionProvider`**
+  （= 编辑器 F12 的**同一条**命令）⇒ 跨文件落点 ✓、与 F12 逐字段可比 ✓；拿不到定义**如实说**，
+  不假装跳过。**判据三端**：发出端（webview 23/23：`type` 必须是 `definition`、**不许** `reveal`）·
+  落点端（真宿主 + 真 LSP：与编辑器 F12 的 uri+line **逐字段相同**，实测落在 `lib/Set`）·
+  stub 宿主 43/43（必须问 `executeDefinitionProvider`、落点 = 定义返回的位置）。
+  **反向验证**：退回 `reveal` ⇒ 发出端判红 ✓。
+  ⚠ **未接的一半（如实记账）**：**记法符号**（`{a}`/`∈`）✗ —— 它们要**每个 run 的源位置**，
+  而 wire 的 runs 只有 `{text, kind}`（实测 577 条）⇒ 属 front+LSP 协议改动，登记 **G-53**（open，
+  带自足复现件）。⚠ 另实测：本 LSP 的 definition 解析**使用处**，**声明名本身不返回定义**
+  ⇒ 点声明名会看到「这里没有可跳转的定义」（诚实但用处有限）—— 真正有价值的符号落点正是被 G-53 挡住的。
+  **原判（根因，仍然成立）**：
   **⚠ 根因：这个功能从来不存在，不是"坏了"** ✗✓（实测 ✓）：
   · `media/infoview.js` 只有**两处** `addEventListener` —— L216 目标标题 `goal-head`（发 `reveal`）、
     L359 窗口 `message`；**声明名 `decl-name` 是纯 `<span>`（L294–L302 渲染，无任何点击绑定）**
