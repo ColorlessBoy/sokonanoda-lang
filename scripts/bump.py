@@ -13,7 +13,7 @@
 这个脚本是**单一来源**：版本号只在这里被写进去，别处都从它读。
 
     python3 scripts/bump.py 0.63.4          # 写四处 + 所有清单的 requires
-    python3 scripts/bump.py 0.63.4 --check  # 只检查，不写（= check-manifests.py）
+    python3 scripts/bump.py 0.63.4 --check  # 只检查，不写（原先独立的 check-manifests.py 已并入本脚本 ✓）
 
 写的位置：
 

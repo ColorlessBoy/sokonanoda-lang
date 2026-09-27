@@ -192,6 +192,8 @@
 | E23 | **build/rebuild 加进度**（流式 `build.file` 事件 → 状态栏/进度条） | I2② | 低 | 🚀 0.74 |
 | **E27** | **Infoview 内导航到定义**（现在只发 `ready`/`reveal`，点目标标题只跳源码 span；`{a}`/`∈`/声明名**点不动**） | I-面核对 · [53][54] | 中 | 🚀 0.74 |
 | **E28** | **Infoview 空态/错误态判据**（三种空态文案已实现，但**无 e2e**） | I-面核对 | 低 | 🚀 0.74 |
+| **E29** | **Infoview 进度区要覆盖 build/rebuild**（E23 只写了状态栏 ⇒ **漏了 Infoview 那一路**） | I-面核对 · I2② | 中 | 🚀 0.74 |
+| **E30** | **Infoview 增加「项目」区块**（清单/模块根/模块表/计数/产物；**`requires_warning` 必须显眼、不许只在 tooltip**） | I-面核对 · G-24 | 中 | 🚀 0.74 |
 | — | **发版点 🚀 v0.74.0「记法补齐 + 编译体验修复 + Infoview 面」** | | | |
 | E05 | 记法目标名 F12 落点修正（Bug A，一行级） | A11 · A12 | 低 | 🚀 0.75 |
 | E06 | G-37 判据升级：非 null → 落点==期望行号 + 反向验证 | B1/B2 | 低 | 🚀 0.75 |
@@ -338,6 +340,46 @@
   这条路径**没人守** ✗。要做：三条空态各一条判据（真宿主 e2e 或载荷级），
   至少把「服务器还没编完」与「真的没声明」区分开 ✓。
 
+- **E29** **Infoview 的编译进度区必须覆盖 build/rebuild**（2026-09-27 用户指出 —— **这是 E23 的漏** ✗✓）。
+  **现状（核实）**：C2 标的「✅ 已做」是 **0.73.0 的 P1–P4/P6**，它走 **LSP `$/progress`**
+  ⇒ **只覆盖"打开文件触发的编译"**；而 **E23 只写了"状态栏/进度条"、没写 Infoview 的三行进度区** ✗；
+  build/rebuild 走**独立 CLI 子进程**（`editor/vscode/extension.js:1770`）、**不经过 LSP**
+  ⇒ **Infoview 的进度区完全收不到** ✗。
+  **做**：把 `build.file` 流式事件**也推给 Infoview**（不只是状态栏）。
+  **判据**：build / rebuild 期间 **Infoview 的三行进度区逐文件更新**（形如 `3/13 文件`），
+  与状态栏显示**同一份进度**（**不许一个有一个没有** ✗）。
+  **反向验证**：只保留状态栏、撤掉 Infoview 通道 ⇒ **必须判红** ✓。
+  ⚠ **与 E23 同属一条链但拆开做**：E23 = 状态栏（已有条目），**E29 = Infoview 那一路** ✓。
+- **E30** **Infoview 增加「项目」区块**（用户：「**监测到 toml 等项目信息也应该在 infoview 里展现出来**」）。
+  **现状（逐个核过）**：侧边栏**已经有一个「项目」树**（`sokonanoda.project`，挂在 `secondarySidebar`
+  的 sokonanoda 容器，`editor/vscode/project-tree.js`，数据来自 server 的 **`soko/project`**），
+  显示模块根 `root` · **清单路径** `manifest`（「清单：<path>」）· 模块列表（入口/依赖 + 声明·错误·警告数）·
+  计数汇总；**`requires_warning` 已经接了，但只在 tooltip 里**（`project-tree.js:174`）。
+  ⇒ **Infoview 里完全没有这些** ✗ —— 用户要的正是「**在编辑器中央也能看到**」（不切侧边栏）✓。
+  **数据源现成，别自己造** ✓：LSP `soko/project`（**推送式**，`docs/protocol.md` §soko/project）·
+  CLI `sokonanoda query project`（字段：`root` · `manifest` · `entry` ·
+  `modules[]{name,path,status,decls,imports,errors,warnings,open_exercises,entry}` ·
+  `counts{modules,decls,compiled,failed,errors,warnings,open_exercises,blocked}` ·
+  `artifacts{dir,entries,bytes,compiler}` · **`requires_warning`**）。
+  **区块显示优先级**：① **`requires_warning` 提到显眼位置（不是 tooltip）** ② 清单 `manifest` +
+  模块根 `root` + 入口 `entry` ③ 模块列表（名·状态·声明数·错误/警告数·是否入口）
+  ④ 计数汇总 ⑤ 产物与版本（`artifacts.dir`/`entries`/`bytes`/**`compiler`**）。
+  **⚠ 为什么 `requires_warning` 必须显眼（后果很重）**：`docs/vscode-dev-guide.md:98-101`（**= 缺口 G-24**）——
+  清单 `requires` 若不跟着 bump，`requires_warning` 会让 `ProjectReport::is_clean()` 为假
+  ⇒ **项目编译缓存被静默关掉**（实测：**整个卷 I 每个文件每次打开都从零重编**）✗。
+  ⇒ **一个只在 tooltip 里的小告警，后果是"每个文件每次打开都从零重编"** —— 用户只会感觉
+  「编译坏了/特别慢」，而界面上**什么都看不出来** ✗✓。这正是用户这句话的所指 ✓。
+  **两条硬约束**：
+  · ⚠ **取数不能有重编副作用**：实测 `sokonanoda query project` 会写/删
+    `courses/*/.sokonanoda/compiled/*.tmp` ⇒ 面板刷新**优先用 LSP 已有的 `soko/project` 推送回答**，
+    **别每次刷新都触发一次重编** ✗；
+  · ⚠ **`scripts/audit-wire-fields.py` 是 wire 字段守卫**（按"哪个前端读哪些字段"记账，注释里点名
+    `project-tree.js` 读 `project.{root,manifest,counts,modules,diagnostics,requires_warning,entry,module}`）
+    ⇒ **新增 Infoview 读取后必须同步更新那个审计**，否则守卫会红 ✗。
+  **判据**：把 `courses/set-theory/sokonanoda.toml` 的 `requires` 改成**不匹配**的版本
+  ⇒ **Infoview 的「项目」区块必须显示该告警**（且**不是藏在 tooltip 里**）；
+  **反向验证**：撤掉显示 ⇒ **必须判红** ✓。
+
 ---
 
 ### 🚀 v0.75.0「跳转与高亮」（E05–E08，依赖 E00）
@@ -376,116 +418,14 @@
 
 ---
 
-### 🚀 v0.77.0「完整集合论 = kernel 压力面」（ST1–ST5 + ST6–ST15，配套 ST16–ST19）
+### 🚀 v0.77.0「完整集合论 = kernel 压力面」（E12–E16 + ST1–ST19）
 
-> **用户原话**：「把真正完整的集合论加进来。**才能知道 kernel 的不足**」·
-> 追加要求：「**也要多多调研，不要太依靠大模型自身 pretrain 的东西**」。
-
-**定位**：完整集合论不是「教材补完」，而是**给 kernel 做压力测试的唯一手段** ——
-今天那两个 bug（F12 自跳、跨模块目标色不对）都是**人肉按 F12** 才发现的，
-**课程门禁永远发现不了，因为课程不按 F12**；同理**课程越简单，kernel 的不足就越藏得住**。
-
-#### 外部基准（**每条都已实查，动手前必须再读一遍**；**不许凭记忆编章节** ✗）
-
-| 基准 | 关键事实 | 对我们的意义 |
-|---|---|---|
-| **Mathlib（Lean 4）** | **两层 + 桥**：`Set α := α → Prop`（**与我们同构**）；另有独立 ZFC 模型 `Mathlib/SetTheory/ZFC/`，`ZFSet = Quotient PSet.setoid`（**前置集合 PSet 对外延等价做商**）；桥接 = `ZFSet.toSet` + `SetLike` 实例 + `coe_*` 一致性引理（`coe_sUnion`/`coe_sInter`/`coe_powerset`/`coe_sep`…）+ `powersetEquiv` | **路线 A 的模板**；也是「商是硬需求」的证据 |
-| **Mathlib 基数** | `Cardinal` = **`Type u` 在「双射存在」下的商**（`Quotient` of `Equiv`）+ `Cardinal.lift` 处理宇宙多态 | **没有商类型，基数写不出来** ⇒ 商必须排最前 |
-| **Isabelle AFP `ZFC_in_HOL`（Paulson）** | **最接近我们处境**：引入独立类型 `V`（`elts :: V ⇒ V set`），用**类型类** `embeddable`/`small` 桥接；目标原话 **"minimising the amount of new notations and exploiting type classes"**；章节序见下 | **路线 B 的模板**；**章节顺序可直接当我们的目录基准** |
-| **Lean TPiL §12.4** | `Quot`/`Quot.mk`/`Quot.ind`/`Quot.lift` **属逻辑框架**（不算额外公理）；**只有 `Quot.sound` 是公理**；`Quotient`/`Setoid` 是其特化 | **「商」在依赖类型论里有标准做法，不需要发明** ✓ |
-
-**Isabelle 的章节序（我们的目录基准）**：① ZF 公理 + 序数（§1.4 传递集 · 0/后继/sups ·
-归纳/线性 · 自然数 · limit · LEAST）+ §1.5 超限递归与 V-levels → ② 有序对 · 广义笛卡尔积 ·
-不交并 · 广义函数空间与 lambda · **传递闭包** · **秩 rank** · **基数** · **序型 ordertype** ·
-基数性 · 超限递归（按序数三情形）· 基数加/乘/不等式 · 有限与无限基数 · **Aleph 序列** · **ω₁**
-→ ③ 一般集合的加与乘 · 序数指数 · **Cantor 正规形**（依 Kirby）。
-
-#### 调研带出的三条结论（**这才是这一版的价值**）
-
-1. **⚠ 框架更正（用户 2026-09-27 指正）**：**不要把「造 ZF 宇宙」当目标** ✗✓。
-   **类型论式集合论 ≠ ZFC** —— 主线就是**类型论自身的表达**：`Set α := α → Prop`（谓词式）、
-   `Quot`/`Quotient`/`Setoid`（商）、宇宙层级。**这已经是一门「集合论」，不需要再外挂 ZF** ✓。
-   · Mathlib 的 `ZFSet = Quotient PSet.setoid` **不是「集合论的做法」，而是「在类型论内部造一个
-     ZFC 模型」**（元数学用途：讨论 ZF 的可证性）—— **那是副产品，不是目标** ✓；
-   · Isabelle 的 `V + embeddable/small` 同理：它是**在带类型的 HOL 里模拟无类型 ZF**，
-     是**「因为 HOL 不是依赖类型论」才需要的补丁** ⇒ **我们不一定要走那条路** ✓。
-   ⇒ **ST1 因此重写**：**定出「哪些用类型论自身表达、哪些确实必须外挂」的分界** ——
-   逐项判定：`Set α` 谓词式能表达什么？`Quot`/`Setoid` 能表达什么？序数/基数/秩 在
-   **谓词式 set theory** 里怎么写（参考 Mathlib 的 `SetTheory/Ordinal/*`、`Cardinal/*` ——
-   它们是**类型论式**的，**不是 ZF 式**的 ✓）？**只有那些确实写不出来的，才讨论外挂** ✓。
-2. **`Quot` 是「完整集合论」的入场券** ⇒ 应**提前成第一个探针**（ST2），不是中段：
-   Mathlib 的基数是**类型的商**、ZFC 模型是 **PSet 的商**；而台账里
-   **L-06**（没有累积性；`Exists.elim` 的 Q 只能 Prop）与 **L-03**（Type 层重写不可表达）
-   **正好是商类型所需的两块地基**。
-3. **v1 漏了两个关键中间层：「传递闭包」与「秩 rank」**（ST6/ST7）—— Isabelle 把这两个
-   **列在基数之前**；秩是把「良基性/∈-归纳」接到「基数/序数」的桥梁。
-   ⇒ **章节顺序必须按基准校准，不能凭感觉拍** ✗。
-
-#### 判据（⚠ **不要求"全绿"** —— 那等于要求先修 kernel，本末倒置）
-
-- 要求**每一章都写出来、都跑一遍**，把 kernel 露出的不足**逐条登记进
-  `docs/gaps/ledger.jsonl`**（缺口号 + **可执行最小复现件** + 现在的绕法）✓；
-- **产出物 = 「kernel 不足清单」（ST15），不是「教材完成度」** ✓ —— 它会**直接影响
-  v0.79 B2 甲案**要不要加元变量/累积性的技术路线；
-- 撞到 **L-03 / L-06 / G-03** 已登记的点 ⇒ **引用缺口号，不要新开一条** ✓；
-- **每章动手前先读基准**（Mathlib 对应文件 / Isabelle 对应章节）；**有分歧写
-  「我们与 X 不同，因为 Y」** ✓。
-- ⚠ **调研由 dsh 自己做，且必须留痕**（用户 2026-09-27 明确要求 ✓）：
-  每一章动手前，**自己去查**（Mathlib 对应文件 / Isabelle 对应章节 / Lean TPiL / 相关论文），
-  **把查到的出处与结论写进该章的提交说明** ✓。
-  **「我没查、按印象写」是不可接受的** ✗ —— **不许凭记忆编章节与定义顺序** ✗。
-
-#### 执行顺序（**先探针，再铺开**）
-
-**先做 ST1（路线决策）+ ST2（商类型）两件当探针** —— 它们**决定后面成不成**；
-量出「撞出来的缺口密度」，再决定 ST3–ST15 的铺开节奏 ✓。每章一个提交
-（`feat(course)：单元 X 完整集合论 —— <撞到的缺口>`）。
-
-- **ST1** **定出「哪些用类型论自身表达、哪些确实必须外挂」的分界**（框架见上面「结论 1」）——
-  逐项判定谓词式 `Set α` / `Quot`·`Setoid` / 序数·基数·秩，**只有确实写不出来的才讨论外挂**；
-  产出**决策记录**。⚠ **不许自己拍** —— 摆两边代价给用户 ✓。
-- **ST2** 商类型 / `Quot`（`Quot.mk`/`ind`/`lift`；`Quot.sound` 是否作公理）。
-  **已知撞点**：L-06（累积性）· L-03（Type 层重写）—— **入场券**。
-- **ST3** 集合建构式 `{x : P}`（分离），含 `{x ∈ A | P x}` binder 记法。
-  基准：Mathlib `ZFSet.sep`/`mem_sep`/`sep_subset`；Isabelle §1。**撞点**：binder 记法。
-- **ST4** 集族与无限并交（`⋃₀`/`⋂₀`、`Set.sUnion`/`sInter`）。
-  基准：Mathlib `coe_sUnion`/`coe_sInter`；Isabelle §2.2/2.3。**撞点**：**L-06**（`Exists` 取不出数据）。
-- **ST5** 有序对 / 广义笛卡尔积 / 不交并 / 广义函数空间与 lambda。
-  基准：Isabelle §2.1–2.4；Mathlib `ZFSet.prod`/`funs`。**撞点**：依赖类型 + 隐式参数。
-- **ST6** **传递闭包**。基准：Isabelle §2.5。**撞点**：递归定义（撞 L-06）。
-- **ST7** **秩 rank**。基准：Isabelle §2.6。**撞点**：良基递归。
-- **ST8** **序数**（传递集 · 0/后继/sups · 归纳/线性 · limit · LEAST）。
-  基准：Isabelle §1.4；Mathlib `SetTheory/Ordinal/*`。**撞点**：累积性（L-06）。
-- **ST9** **超限递归**（含按序数三情形的递归）。基准：Isabelle §1.5 + §2.13。
-  **撞点**：结构递归（`Nat.rec` 之外）。
-- **ST10** **基数**（`Cardinal = Quotient of Equiv`；`lift`）。
-  基准：Mathlib `Cardinal/Defs`；Isabelle §2.7。**撞点**：**需要商（ST2）**。
-- **ST11** **序型 ordertype · Aleph 序列 · ω₁ · Cantor 正规形**。
-  基准：Isabelle §2.8/2.20/2.21/§3。**撞点**：序数算术。
-- **ST12** **选择公理**（`ZFSet.choice` · Zorn · 良序定理）。基准：Mathlib `ZFSet.choice`。
-  **已知撞点**：**已实测「满射可裂」证不出来**（L-06 原话「需要选择公理」）⇒ 直接登记。
-- **ST13** **ZF 公理系统本体**（分离/替换/幂集/**正则性**…）。
-  基准：Mathlib `ZFSet.regularity`；Isabelle §1.1。**撞点**：语言能否表达**公理模式 schema**。
-- **ST14** **funext / propext /（univalence）**。基准：Lean TPiL §12；Mathlib 用 `propext` + `Quot.sound`。
-  **撞点**：课程注释已写「**语言里根本没有**」⇒ 直接登记。
-- **ST15** **汇总：产出「kernel 不足清单」** —— 逐条：缺口号 + **最小复现件** + 影响面 +
-  是 `workaround` 还是需动内核。
-
-**配套（v1 保留，别丢）**：**ST16** 三元素 `{a,b,c}`（语言明确拒绝 `parser.rs:2473-2482`）·
-**ST17** `abbrev`/`scoped` 各补一处真实用法（现零覆盖）·
-**ST18** 速查表 `notation-cheatsheet.sokonanoda:65-91` 清账 ·
-**ST19** 清账后**逐个补上真能用的记法**（不只是标注 ✗）。
-
-> ⚠ **编号说明**（2026-09-27，**第三次 / 已定案**）：E 号空间已被 v0.74/0.75/0.76/0.78/0.79
-> 五条线挤满，用户前后三次给 v0.77 章节分配 E12–E26，**每次都与既有号冲突**
-> （E17/E18 = v0.78 性能与纪律 · E19/E20 = B2 甲/乙案 · E21/E22/E23 = v0.74 Infoview/build）。
-> ⇒ **定案：v0.77 的集合论章节一律改用 `ST` 前缀（ST1–ST19，自解释、零冲突、以后加章不撞号）** ✓：
-> **ST1** 类型论/外挂分界 · **ST2** 商类型 `Quot` · **ST3** 集合建构式 · **ST4** 集族与无限并交 ·
-> **ST5** 有序对/笛卡尔积/函数空间 · **ST6** 传递闭包 · **ST7** 秩 rank · **ST8** 序数 ·
-> **ST9** 超限递归 · **ST10** 基数 · **ST11** 序型/Aleph/ω₁/Cantor 正规形 · **ST12** 选择公理 ·
-> **ST13** ZF 公理系统本体 · **ST14** funext/propext · **ST15** 汇总 kernel 不足清单 ·
-> **ST16** 三元素 · **ST17** abbrev/scoped · **ST18** 速查表清账 · **ST19** 补上真能用的记法。
-> ⇒ **E27 / E28 因此空出来，归 Infoview 两条**（用户一直这么叫 ✓）；E12–E16 与 E24–E39 全部释放 ✓。
+> **详情已拆到 `docs/design/v077-set-theory.md`** ✓（2026-09-27：计划到 822/800 行、
+> 触发入口上限 ⇒ 按 X1 方向「计划留索引、详情落设计文档」，**内容一字未删**）。
+> 要点：**类型论式集合论 ≠ ZFC**（别把造 ZF 宇宙当目标）· 外部基准 Mathlib / Isabelle
+> `ZFC_in_HOL` / Lean TPiL §12.4 · **先做 ST1（分界）+ ST2（商 `Quot`）两个探针** ·
+> **判据：不要求全绿**，每章写出来跑一遍 + 逐条登记台账，**产出物 = kernel 不足清单（ST15）** ·
+> **每章动手前 dsh 自己去查基准、把出处写进提交说明**（「我没查、按印象写」不可接受）。
 
 ### 🚀 v0.78.0「性能与纪律固化」（E17–E18）
 
@@ -688,7 +628,7 @@ objective 的**形状**照抄上一轮那条成功 goal 的写法（它跑完 32
 ```
 /goal 实现 ⟨路径⟩ §E00「判据强度普查」：普查全部 docs/gaps/repro/*（含 .sh/.js）· scripts/*lint*.py · scripts/audit-*.py · courses/set-theory/tools/check.py · crates/*/tests/ 的 e2e，找出四类弱判据（只断言非空/非 null/exit 0 而不断言具体值 · 只断言数量>0 不断言是哪几个 · 缺反向验证 · 把 skipped 当绿）；交付弱判据清单（文件:行 + 弱在哪类 + 升级后判据）并逐条升级；最后做一次变异测试（故意改坏 N 处实现）报出"有几条判据会红"。每条先判红、一处一 commit、带反向验证。
 
-/goal 实现 ⟨路径⟩ §v0.74.0「记法补齐 + 编译体验修复」：E01 补 Rel.comp/Function.comp 的记法（•/∘，声明进 lib/Rel 与 lib/Fun，涉及单元改用记法）· E02 把 Set.prod 从单元⑤画布收进 lib/Prod.sokonanoda（让 lib/Set 的记法目标全在库内）· E03 补 r ⁻¹（Rel.inv）与 A ≈ B（Set.Equiv）记法 · E04 让 hover 折记法（resolve_hovers 过 display.fold，悬停 {a} 要显示 {a} 而不是 Set.singleton α a）· E21 Infoview 声明卡片去掉多余的「目标 ⊢」行（theorem 上重复了它自己的语句；该行本意是给开放练习的，见 media/infoview.js:333-348 注释；优先在服务端决定发不发，客户端加守卫；有 sorry 的开放声明仍要显示）· E22 build/rebuild 以项目为默认目标（现在 extension.js:1755 buildTarget() 优先取当前活动文件；要保留只编当前文件就做成单独命令）· E23 build/rebuild 加进度（机制：0.73.0 的进度走 LSP $/progress，而 build 走独立 CLI 子进程不经过 LSP；可做性：CLI 逐文件发 build.file 事件——crates/cli/src/build.rs:88——扩展已解析却只用 clean/summary，改成流式回调即可）。· E27 **Infoview 内导航到定义**（现状 webview 只发 ready/reveal，点目标标题只跳源码 span，`{a}`/`∈`/声明名**点不动**；要做成与编辑器 F12 **同一语义**；**判据**：真宿主 e2e 在 Infoview 里点 `{a}`/`∈`/声明名必须落到**与编辑器 F12 相同的定义位置**，反向验证撤掉必须判红；这条正好补上用户 [53][54]「跳转到 definition 有没有测试」的**另一半**——那半只覆盖了编辑器）· E28 **Infoview 空态/错误态判据**（三种空态文案已实现但**无 e2e**；三条各一条判据，至少把「服务器还没编完」与「真的没声明」区分开）。每条先判红、一处一 commit、带反向验证（撤掉必须判红）；课程门禁保持 36/328/99/0；全部完成且 CI 逐 job 真绿后 bump 0.74.0 发版。
+/goal 实现 ⟨路径⟩ §v0.74.0「记法补齐 + 编译体验修复」：E01 补 Rel.comp/Function.comp 的记法（•/∘，声明进 lib/Rel 与 lib/Fun，涉及单元改用记法）· E02 把 Set.prod 从单元⑤画布收进 lib/Prod.sokonanoda（让 lib/Set 的记法目标全在库内）· E03 补 r ⁻¹（Rel.inv）与 A ≈ B（Set.Equiv）记法 · E04 让 hover 折记法（resolve_hovers 过 display.fold，悬停 {a} 要显示 {a} 而不是 Set.singleton α a）· E21 Infoview 声明卡片去掉多余的「目标 ⊢」行（theorem 上重复了它自己的语句；该行本意是给开放练习的，见 media/infoview.js:333-348 注释；优先在服务端决定发不发，客户端加守卫；有 sorry 的开放声明仍要显示）· E22 build/rebuild 以项目为默认目标（现在 extension.js:1755 buildTarget() 优先取当前活动文件；要保留只编当前文件就做成单独命令）· E23 build/rebuild 加进度（机制：0.73.0 的进度走 LSP $/progress，而 build 走独立 CLI 子进程不经过 LSP；可做性：CLI 逐文件发 build.file 事件——crates/cli/src/build.rs:88——扩展已解析却只用 clean/summary，改成流式回调即可）。· E27 **Infoview 内导航到定义**（现状 webview 只发 ready/reveal，点目标标题只跳源码 span，`{a}`/`∈`/声明名**点不动**；要做成与编辑器 F12 **同一语义**；**判据**：真宿主 e2e 在 Infoview 里点 `{a}`/`∈`/声明名必须落到**与编辑器 F12 相同的定义位置**，反向验证撤掉必须判红；这条正好补上用户 [53][54]「跳转到 definition 有没有测试」的**另一半**——那半只覆盖了编辑器）· E28 **Infoview 空态/错误态判据**（三种空态文案已实现但**无 e2e**；三条各一条判据，至少把「服务器还没编完」与「真的没声明」区分开）。· E29 **Infoview 进度区要覆盖 build/rebuild**（E23 只写了状态栏 ⇒ 漏了 Infoview 那一路；build 走独立 CLI 子进程不经过 LSP ⇒ Infoview 收不到；要把 `build.file` 流式事件也推给 Infoview；判据：三行进度区逐文件更新、与状态栏**同一份进度**；反向验证只留状态栏必须判红）· E30 **Infoview 增加「项目」区块**（用现成数据源 LSP `soko/project` / CLI `query project`，别自己造；显示优先级：**`requires_warning` 提到显眼位置（不许只在 tooltip）** > 清单/root/entry > 模块表 > 计数 > 产物与版本；⚠ 取数不能有重编副作用（`query project` 会写删 `.sokonanoda/compiled/*.tmp`）⇒ 优先用 LSP 推送；⚠ 新增 Infoview 读取后**必须同步更新 `scripts/audit-wire-fields.py`**，否则守卫会红；判据：把 `courses/set-theory/sokonanoda.toml` 的 requires 改成不匹配版本 ⇒ 项目区块必须显示该告警且不在 tooltip；反向验证撤掉显示必须判红。**理由**：G-24 下 requires 漂移会让 `is_clean()` 为假 ⇒ 项目编译缓存被静默关掉⇒ 整个卷 I 每个文件每次打开都从零重编，而界面什么都看不出来）。每条先判红、一处一 commit、带反向验证（撤掉必须判红）；课程门禁保持 36/328/99/0；全部完成且 CI 逐 job 真绿后 bump 0.74.0 发版。
 
 /goal 实现 ⟨路径⟩ §v0.75.0「跳转与高亮」：E05 修 crates/lsp/src/lib.rs:1896 把 project_definition 返回的真定义 span 用 _ 丢掉的问题（F12 现在跳到光标自己那一行；Set.mem 应落 L60 而非 L115）· E06 把 docs/gaps/repro/G37-notation-decl-target-not-a-use-point.js 的断言从"非 null"升级为"落点==期望行号"+反向验证 · E07 定案跨模块记法目标（Set.image/Set.preimage 在 lib/Image、Set.prod 在单元⑤）的高亮与跳转语义（语义 token 现在落 UnknownIdent→variable，另 8 条是 function）· E08 处理 documentHighlight 对记法目标名全 null。每条先判红、一处一 commit、带反向验证；全部完成且 CI 逐 job 真绿后 bump 0.75.0 发版。
 
