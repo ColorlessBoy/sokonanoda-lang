@@ -180,7 +180,30 @@ function positionOf(text, needle) {
     console.error(`   → definition 跳到了 ${JSON.stringify(defList.map((d) => d.uri))}，不是声明 \`∈\` 的库 ⇒ 需要人看。`);
     process.exit(2);
   }
-  console.log('结论：G-23 已修——hover 给出 `Set.mem` 的原始类型，definition 跳到库里的声明。');
+  // ⚠ **判据升级（E00，2026-09-27）**：原来 `jumps = defList.length > 0` 只问「有没有」✗，
+  //   再加「落到哪个文件」✓ —— 但**仍不断言落在哪一行** ✗ ⇒ 跳到**同一个文件里的别的行**
+  //   （甚至**光标自己那一行**）照样判绿 ✗。G-37 就是这么骗过台账的 ✓（台账写 fixed，
+  //   实测全是自跳 ✗）⇒ 这里断言**落点行号 == `def Set.mem` 在 LIB 里的行号** ✓。
+  // ⚠ **期望的是"记法声明"那一行，不是 `def Set.mem` 那一行** ✗✓ —— 我第一版写错过 ✓：
+  //   本文件开头的**修后契约**写的是「指向**声明 `∈`** 的那个文件」✓，而计划 §A9 把
+  //   「`∈` → 记法声明 → 定义」明确建模成**两跳** ✓（第二跳是 E10 的活 ✓）。
+  //   ⇒ 第一跳的正确落点 = `infix:… " ∈ " => Set.mem` 那一行 ✓。
+  //   （拿 `def Set.mem` 当期望会造出一条**假红**判据 ✗ —— 判据不能凭假设写，要照契约写 ✓。）
+  const wantLine = LIB.split('\n').findIndex((l) => /^infix:.*" ∈ ".*=>\s*Set\.mem/.test(l));
+  const first = defList[0];
+  const landedLine = first && first.range && first.range.start ? first.range.start.line : null;
+  const lineOk = landedLine !== null && landedLine === wantLine;
+  console.log(`   落点核对：definition 落 L${landedLine === null ? 'null' : landedLine + 1}`
+    + ` · 期望 L${wantLine + 1}（记法声明 \`infix " ∈ " => Set.mem\` 那一行）`
+    + (lineOk ? '  ✓' : '  ✗'));
+  if (!lineOk) {
+    console.error('结论：G-23 仍在（**落点不对**）—— definition 答上了 ✓、也落在 SetLib 里 ✓，');
+    console.error(`      但**没落到记法声明那一行** ✗（落 L${landedLine === null ? 'null' : landedLine + 1}`
+      + `、期望 L${wantLine + 1}）⇒ 这正是「只断言非 null / 只断言落到哪个文件」`);
+    console.error('      **看不见**的那个 bug ✗（判据升级见 docs/design/criteria-strength.md ✓）。');
+    process.exit(0);
+  }
+  console.log('结论：G-23 已修——hover 给出 `Set.mem` 的原始类型，definition 落到库里的声明**行**。');
   process.exit(1);
 })().catch((error) => {
   console.error(`   → 探针异常：${error && error.stack ? error.stack : error}`);
