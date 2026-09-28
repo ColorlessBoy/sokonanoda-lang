@@ -11,7 +11,7 @@
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::util::Config;
 
-use crate::compile::{run_pass_with, CompileOptions, SourceUnit};
+use crate::compile::{run_pass_with, split_report, CompileOptions, SourceUnit};
 use crate::compile::{CompileOutput, DocumentReport};
 
 /// 跑一次"库层一次 + 各入口各自"的编译会话；每个入口的结果经 `on_entry` 交回。
@@ -22,13 +22,21 @@ pub fn with_project_session<R>(
     lib_units: &[SourceUnit<'_>],
     entries: &[Vec<SourceUnit<'_>>],
     options: &CompileOptions,
-    mut on_entry: impl FnMut(usize, CompileOutput, DocumentReport) -> R,
+    mut on_entry: impl FnMut(usize, CompileOutput, Vec<DocumentReport>, &[DocumentReport]) -> R,
 ) -> Vec<R> {
     let arena = stumpalo::Arena::new();
     let builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     // ① 库层编一次（影子不建：`None` ⇒ 不需要额外的局部 arena，见 `run_pass_with` 的注释）。
-    let (_, mut builder) = run_pass_with(
+    let (lib_pass, mut builder) = run_pass_with(
         builder, None, true, lib_units, options, true, None, None, None,
+    );
+    // **逐模块报告**（与 `check::run` 同构）：库层那趟的报告按单元切分 ⇒ 接线方
+    // 能组装出与今天**逐字节相同**的 `ProjectReport`（缓存内容不变）。
+    let lib_reports = split_report(
+        lib_pass.report,
+        &lib_pass.out.error_cmds,
+        &lib_pass.out.warning_cmds,
+        lib_units,
     );
     // ② 检查点 = "只有库层"的环境（`DeclarMap: Clone` 由 `snapshot()` 已在用）。
     let checkpoint = builder.hide_declars();
@@ -48,7 +56,13 @@ pub fn with_project_session<R>(
             None,
         );
         builder = next;
-        out.push(on_entry(index, pass.out, pass.report));
+        let entry_reports = split_report(
+            pass.report,
+            &pass.out.error_cmds,
+            &pass.out.warning_cmds,
+            entry_units,
+        );
+        out.push(on_entry(index, pass.out, entry_reports, &lib_reports));
         // ④ 丢掉这个入口的声明（下一次循环再装回检查点）。
         drop(builder.hide_declars());
     }
