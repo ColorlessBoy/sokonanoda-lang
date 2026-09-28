@@ -153,6 +153,114 @@ pub(crate) fn build(
         return ExitCode::FAILURE;
     }
 
+    // **切片 1b**：共享库层只编一次 —— 未命中缓存的入口交给**一次** `with_project_session`
+    // （库层编一次、各入口复用同一套 DAG）；结果按路径存好，循环里经 `build_one` 的
+    // `precomputed` 用掉。命中缓存的入口照旧走老路（"hit" 语义不变）。
+    let mut precomputed: std::collections::HashMap<
+        PathBuf,
+        sokonanoda_front::project::ProjectReport,
+    > = std::collections::HashMap::new();
+    {
+        use sokonanoda_front::project as pj;
+        struct Pending {
+            file: PathBuf,
+            plan: pj::ProjectPlan,
+            options: CompileOptions,
+        }
+        let mut pending: Vec<Pending> = Vec::new();
+        for file in &files {
+            let Ok(src) = std::fs::read_to_string(file) else {
+                continue;
+            };
+            if !pj::is_project_source(&src) {
+                continue;
+            }
+            let root_override = if no_project {
+                file.parent().map(Path::to_path_buf)
+            } else {
+                root.map(PathBuf::from)
+            };
+            let options = CompileOptions {
+                prelude: prelude_mode_from_source(&src),
+            };
+            let plan = pj::plan_project(file, Some(&src), root_override.as_deref());
+            let digest = plan.digest(&options);
+            let artifacts_root = plan.root.clone();
+            if let Some(entry) = pj::cache::load_at(&artifacts_root, &digest, &options) {
+                if entry.output.is_some() {
+                    continue;
+                }
+            }
+            let _ = &artifacts_root; // 已用于上面的命中判断
+            pending.push(Pending {
+                file: file.clone(),
+                plan,
+                options,
+            });
+        }
+        if pending.len() > 1 {
+            // 库层 = 各闭包里**非入口**模块的并集（按模块名去重，保持拓扑序）。
+            let mut seen = std::collections::HashSet::new();
+            let mut lib_units = Vec::new();
+            for p in &pending {
+                for unit in pj::units_for_modules(&p.plan, |m| m.path != p.plan.entry) {
+                    if seen.insert(unit.name.to_string()) {
+                        lib_units.push(unit)
+                    }
+                }
+            }
+            let entries: Vec<Vec<sokonanoda_front::compile::SourceUnit<'_>>> = pending
+                .iter()
+                .map(|p| pj::units_for_modules(&p.plan, |m| m.path == p.plan.entry))
+                .collect();
+            let opts = pending[0].options;
+            let mut produced = Vec::new();
+            pj::session::with_project_session(
+                &lib_units,
+                &entries,
+                &opts,
+                |i, out, entry_reports, lib_reports| {
+                    produced.push((i, out, entry_reports, lib_reports.to_vec()));
+                },
+            );
+            for (i, out, entry_reports, lib_reports) in produced {
+                let p = &pending[i];
+                let compilable = p.plan.closure.compilable();
+                let mut by_name: std::collections::HashMap<
+                    String,
+                    sokonanoda_front::compile::DocumentReport,
+                > = std::collections::HashMap::new();
+                for (unit, report) in lib_units.iter().zip(lib_reports.iter()) {
+                    by_name.insert(unit.name.to_string(), report.clone());
+                }
+                for (unit, report) in entries[i].iter().zip(entry_reports.iter()) {
+                    by_name.insert(unit.name.to_string(), report.clone());
+                }
+                // 报告表必须与 `closure.compilable()` **同序**（组装段按它重建 units）。
+                let reports: Vec<sokonanoda_front::compile::DocumentReport> = compilable
+                    .iter()
+                    .map(|&index| {
+                        by_name
+                            .get(&p.plan.closure.modules[index].name)
+                            .cloned()
+                            .unwrap_or_default()
+                    })
+                    .collect();
+                let report = pj::assemble_report(pj::PlanCompiled {
+                    compilable,
+                    flat_out: out,
+                    reports,
+                    closure: &p.plan.closure,
+                    diagnostics: p.plan.diagnostics.clone(),
+                    entry_path: p.plan.entry.clone(),
+                    root: p.plan.root.clone(),
+                    manifest_path: p.plan.manifest.clone(),
+                    requires_warning: p.plan.requires_warning.clone(),
+                });
+                precomputed.insert(p.file.clone(), report);
+            }
+        }
+    }
     let mut hit = 0usize;
     let mut compiled = 0usize;
     let mut failed = 0usize;
@@ -187,7 +295,16 @@ pub(crate) fn build(
             if json { Some(&mut sink) } else { None };
         let status = std::fs::read_to_string(file)
             .map_err(|e| format!("cannot read: {e}"))
-            .and_then(|src| build_one(file, &src, root, no_project, progress, None));
+            .and_then(|src| {
+                build_one(
+                    file,
+                    &src,
+                    root,
+                    no_project,
+                    progress,
+                    precomputed.remove(file),
+                )
+            });
         let status = match status {
             Ok(status) => status,
             Err(message) => {

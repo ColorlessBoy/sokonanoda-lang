@@ -139,7 +139,7 @@ pub struct ProjectPlan {
     pub requires_warning: Option<String>,
     /// 加载期诊断（找不到/环/语法错误），编译期诊断由 `compile_plan` 追加。
     pub diagnostics: Vec<ProjectDiagnostic>,
-    closure: Closure,
+    pub closure: Closure,
 }
 
 impl ProjectPlan {
