@@ -1133,6 +1133,23 @@ async function main(argv) {
         )
         return 3
       }
+      // **Infoview「项目」第一屏守卫**（G-67，2026-09-28 用户 18:24）：
+      // 第一屏必须一眼回答 **编完了吗 / 哪个版本 / 有没有问题** ✓ ——
+      // 判据跑**真的** `media/infoview.js`（极简 DOM shim）取**未被 `<details>` 收起**
+      // 的文本 ⇒ 绑的是「用户看到什么」✓（AGENTS.md 验证设计纪律第 0 条 (a)）。
+      const firstScreen = path.join(REPO, 'editor', 'vscode', 'test-project-first-screen.js')
+      if (!existsSync(firstScreen)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, firstScreen)} —— 项目第一屏无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const screen = spawnSync(process.execPath, [firstScreen, '--check'], { stdio: 'inherit', cwd: REPO })
+      if (screen.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${firstScreen}: ${screen.error.message}\n`)
+        return 3
+      }
+      if ((screen.status ?? 3) !== 0) return screen.status ?? 3
       // **文档预算**（用户 2026-09-26：「文档太重了，还没实现多少东西文档先爆炸了」✗）：
       // 六条判据 —— ① 活文档总量 ② 单文件行数 ③ 入口文件行数 ④ 设计文档预算
       // （`scripts/docs-budget.json` 冻结表，只许减不许增）⑤ `docs/**` 禁垃圾

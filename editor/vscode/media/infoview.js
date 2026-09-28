@@ -102,13 +102,22 @@
 
   // -- renderers -----------------------------------------------------------
 
-  /// **E30 · 项目区块**。显示优先级（PLAN §E30，**按这个顺序渲染**）：
-  /// ① `requires_warning`（**最显眼、绝不是 tooltip** —— 它一响就说明
-  ///    `is_clean()` 为假 ⇒ **项目编译缓存被静默关掉** ⇒ 整个卷 I 每个文件
-  ///    每次打开都从零重编；界面什么都不说的话，用户只会觉得"编译坏了"✗）
-  /// ② 清单 `manifest` + 模块根 `root` + 入口 `entry`
-  /// ③ 模块列表（名·状态·声明数·错误/警告数·是否入口）
-  /// ④ 计数汇总 ⑤ 产物与版本。
+  /// **项目区块**（**2026-09-28 用户实测后重设计**，G-67）。
+  ///
+  /// **用户原话**：「项目模块的内容**没有从用户角度设计**，用户关心的是**编译版本、
+  /// 编译进度、或者编译已完成**等等信息，给太多**不明所以的过程信息**，需要重新设计」✗。
+  ///
+  /// **⇒ 重设计原则：按「用户想知道什么」排序，不是按「我们有什么数据」排序** ✓。
+  /// **第一屏必须一眼回答三个问题**：
+  ///   ① **编完了吗** ⇒ 一个明确状态（`已完成` / `编译中 3/12` / `失败 2 处`）
+  ///      —— **不许出现「编译 8」这种数** ✗（编完了还是没编完？看不懂）；
+  ///   ② **用的哪个版本** ⇒ **单独一行、显眼**；
+  ///   ③ **有没有问题** ⇒ **没问题就什么都别显示** ✓；有问题才出现，且**翻译成人话 + 说清后果**
+  ///      （例：`requires_warning` 写成「清单版本不一致 ⇒ 每次打开都会重新编译（变慢）」，
+  ///      **不吐内部字符串** ✗）。
+  /// **次要信息**：模块列表**默认折叠**；**产物字节数 / 模块根 / 入口路径**进「高级」折叠区
+  /// （**不许占第一屏** ✗）；措辞**面向学习者** —— 不出现 `manifest`/`artifacts`/`root`/`entry`
+  /// 这类内部词 ✓。
   function renderProject(msg) {
     clear(projectBody);
     const project = msg && msg.project;
@@ -126,25 +135,72 @@
       return;
     }
     const num = (value) => (typeof value === "number" ? value : 0);
-    // ① 清单告警：**第一眼就要看到**（不是 tooltip ✗）。
-    if (project.requires_warning) {
-      const warn = el("div", "project-warning");
-      warn.appendChild(el("span", "project-warning-label", "⚠ 清单告警"));
-      warn.appendChild(el("span", "project-warning-text", String(project.requires_warning)));
-      projectBody.appendChild(warn);
-    }
-    // ② 清单 / 模块根 / 入口。
-    const facts = el("dl", "project-facts");
-    const fact = (key, value) => {
-      facts.appendChild(el("dt", "project-fact-key", key));
-      facts.appendChild(el("dd", "project-fact-value", String(value ?? "（无）")));
-    };
-    fact("清单", project.manifest ? project.manifest : "零配置（根 = 入口文件目录）");
-    fact("模块根", project.root);
-    fact("入口", project.entry);
-    projectBody.appendChild(facts);
-    // ③ 模块列表（拓扑序，入口在最后 —— 服务端给的顺序，别重排 ✗）。
+    const counts = project.counts || {};
     const modules = Array.isArray(project.modules) ? project.modules : [];
+
+    // ── ① 编完了吗（第一屏第一行，**明确状态**）─────────────────────────
+    const failed = num(counts.failed);
+    const total = num(counts.modules) || modules.length;
+    const done = num(counts.compiled);
+    let stateText;
+    let stateKind;
+    if (failed > 0) {
+      stateKind = "failed";
+      stateText = `失败 ${failed} 处`;
+    } else if (total > 0 && done < total) {
+      stateKind = "running";
+      stateText = `编译中 ${done}/${total}`;
+    } else if (total > 0) {
+      stateKind = "done";
+      stateText = "已完成";
+    } else {
+      stateKind = "done";
+      stateText = "已完成";
+    }
+    const state = el("div", `project-state project-state-${stateKind}`);
+    state.appendChild(el("span", "project-state-label", stateText));
+    if (failed === 0 && total > 0) {
+      state.appendChild(
+        el("span", "project-state-detail", `${total} 个文件 · ${num(counts.decls)} 条声明`),
+      );
+    }
+    projectBody.appendChild(state);
+
+    // ── ② 用的哪个版本（**单独一行、显眼**）────────────────────────────
+    const artifacts = project.artifacts;
+    const compiler = (artifacts && artifacts.compiler) || "（未知）";
+    projectBody.appendChild(el("div", "project-version", `编译器 ${compiler}`));
+
+    // ── ③ 有没有问题（**没问题什么都不显示** ✓）────────────────────────
+    // 措辞**面向学习者**：说清"会发生什么"，不吐内部字符串 ✗。
+    const issues = el("div", "project-issues");
+    if (project.requires_warning) {
+      // `requires_warning` 的内部含义：`is_clean()` 为假 ⇒ **编译缓存被静默关掉**
+      // ⇒ 每个文件每次打开都从零重编。⇒ 翻成人话 + 说清后果 ✓。
+      issues.appendChild(
+        el(
+          "p",
+          "project-issue",
+          "⚠ 项目声明的编译器版本与实际不一致 ⇒ 每次打开都会重新编译（变慢）。" +
+            "把项目配置里的版本改成与当前编译器一致即可。",
+        ),
+      );
+    }
+    if (failed > 0) {
+      const bad = modules.filter((m) => num(m.errors) > 0).map((m) => m.name ?? "?");
+      issues.appendChild(
+        el(
+          "p",
+          "project-issue",
+          bad.length > 0
+            ? `⚠ 有 ${failed} 个文件没通过：${bad.join("、")}`
+            : `⚠ 有 ${failed} 个文件没通过。`,
+        ),
+      );
+    }
+    if (issues.childNodes.length > 0) projectBody.appendChild(issues);
+
+    // ── 次要信息：**默认折叠**（模块列表 / 高级）────────────────────────
     if (modules.length > 0) {
       const list = el("ul", "project-modules");
       for (const mod of modules) {
@@ -163,29 +219,33 @@
         );
         list.appendChild(row);
       }
-      projectBody.appendChild(list);
+      projectBody.appendChild(collapsible("逐个文件", list, false));
     }
-    // ④ 计数汇总。
-    const counts = project.counts || {};
-    projectBody.appendChild(
-      el(
-        "p",
-        "project-counts",
-        `${num(counts.modules)} 模块 · ${num(counts.decls)} 声明 · 编译 ${num(counts.compiled)}` +
-          ` · 失败 ${num(counts.failed)} · 开放练习 ${num(counts.open_exercises)}`,
-      ),
-    );
-    // ⑤ 产物与版本。
-    const artifacts = project.artifacts;
-    projectBody.appendChild(
-      el(
-        "p",
-        "project-artifacts",
-        artifacts
-          ? `产物：${num(artifacts.entries)} 条 · ${num(artifacts.bytes)} 字节 · ${artifacts.compiler ?? "?"}`
-          : "产物：还没有（下一次编译会写入模块根的 .sokonanoda/compiled/）",
-      ),
-    );
+
+    // 高级：**内部路径与字节数**（第一屏不出现 ✓）。
+    const advanced = el("div", "project-advanced");
+    const fact = (key, value) => {
+      advanced.appendChild(el("div", "project-fact", `${key}：${String(value ?? "（无）")}`));
+    };
+    fact("项目配置", project.manifest ? project.manifest : "零配置（根 = 入口文件目录）");
+    fact("模块根", project.root);
+    fact("入口文件", project.entry);
+    if (artifacts) {
+      fact("编译产物", `${num(artifacts.entries)} 条 · ${num(artifacts.bytes)} 字节`);
+    } else {
+      fact("编译产物", "还没有（下一次编译会写入）");
+    }
+    if (num(counts.open_exercises) > 0) fact("开放练习", num(counts.open_exercises));
+    projectBody.appendChild(collapsible("高级", advanced, false));
+  }
+
+  /// 可折叠块（`<details>`）：**默认收起** ⇒ 第一屏只留用户真正要看的东西 ✓。
+  function collapsible(summary, body, open) {
+    const box = el("details", "project-fold");
+    if (open) box.setAttribute("open", "");
+    box.appendChild(el("summary", "project-fold-summary", summary));
+    box.appendChild(body);
+    return box;
   }
 
   function renderServer(server) {

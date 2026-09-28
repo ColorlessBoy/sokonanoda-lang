@@ -46,7 +46,16 @@ PT = "editor/vscode/project-tree.js"
 # 扩展把它翻成 `{type:"progress", phase, label, percent}` 再转给 Infoview ✓。
 # ⇒ 它**不是** LSP wire 字段，登记在这里是**如实**而不是放宽 ✗：
 # 本守卫的契约是"扩展读了 / **LSP** 从不发"，而这条缝里 LSP 本来就不该发这三个名字 ✓。
-LOCAL = {"start", "line", "length", "text", "kind", "phase", "label", "percent"}
+LOCAL = {
+    "start", "line", "length", "text", "kind", "phase", "label", "percent",
+    # **DOM 方法**（2026-09-28 G-67 重设计时实测踩到 ✓）：`row.appendChild(...)`
+    # 里的 `row` 是 `document.createElement` 出来的**节点** ✗ 不是 wire 载荷 ⇒
+    # 它当然不在任何 `*Info` 结构体里 ✓。**为什么可以放 LOCAL**：`appendChild`
+    # **不可能**是 wire 字段（它没有对应的 Rust 结构体字段名）⇒ 全局放行**不会**
+    # 关掉任何真判据 ✓（与 `decls` 那种"两边同名"的情形**不同** ✗ —— 那一条
+    # 见下面 `ENVELOPE` 的注释：那种必须按 `(path, var)` 定点排除 ✓）。
+    "appendChild", "setAttribute", "addEventListener",
+}
 
 # **扩展 ↔ webview 的信封**（`infoview.js` 里 `window.addEventListener("message")` 的那个
 # `msg`）：它**不是 LSP wire** —— 走的是扩展**自定**的 `INFOVIEW_PROTOCOL`，字段是

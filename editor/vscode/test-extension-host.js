@@ -982,6 +982,19 @@ test("Infoview empty states: loading / ready-empty / error are told apart (E28)"
   }
 });
 
+// **G-67 的判据不在这里** ✓：这一层（stub 宿主）只能验**消息通道**，看不到 webview
+// 真正渲染出什么 ✗ —— 而用户要的正是「**第一屏渲染文本对照**」⇒ 判据落在
+// `editor/vscode/test-project-first-screen.js`（跑**真的** `media/infoview.js` +
+// 极简 DOM shim，取**未被 `<details>` 收起**的文本）✓：
+//     node editor/vscode/test-project-first-screen.js --check
+// 实测（2026-09-28）——
+//   改前：`清单 /repo/…/sokonanoda.toml 模块根 /repo/courses/set-theory 入口 units.u01
+//          lib.Set compiled 28 声明 · 0 错 · 0 警 ★ units.u01 compiled 5 声明 · 0 错 · 0 警
+//          2 模块 · 33 声明 · 编译 2 · 失败 0 · 开放练习 0 产物：7 条 · 20480 字节 · 0.78.0`
+//         ⇒ **答不上三问**（无"编完了吗"、版本埋在产物行、内部路径/字节数占第一屏）✗
+//   改后：`已完成 2 个文件 · 33 条声明 编译器 0.78.0 逐个文件 高级`
+//         ⇒ 三问一眼答得上 ✓，模块列表与内部信息在折叠区 ✓
+
 test("Infoview receives the project view the server answered (E30)", async () => {
   // **E30**：Infoview 的「项目」区块**不自己取数** ✗ —— CLI 的 `query project`
   // 会写/删 `<模块根>/.sokonanoda/compiled/*.tmp`（刷新一次就重编一次 ✗），

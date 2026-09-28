@@ -485,3 +485,54 @@ body {
   color: var(--vscode-descriptionForeground);
   font-variant-numeric: tabular-nums;
 }
+
+/* ── **项目区块（G-67 重设计，2026-09-28）** ────────────────────────────────
+ * 第一屏只回答三个问题（编完了吗 / 哪个版本 / 有没有问题）✓；
+ * 模块列表与内部路径进 `<details>` 折叠区 ✓。
+ * 字号一律 ≥ 正文（见 `scripts/check-infoview-hierarchy.py` 的判据 ①）✓。 */
+.project-state {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  margin: 0 0 2px;
+  font-size: 1em;
+  font-weight: 600;
+}
+.project-state-label {
+  /* 状态本身就是最重要的信息 ⇒ 用语义色，不压暗 ✓ */
+  color: var(--vscode-foreground);
+}
+.project-state-done .project-state-label {
+  color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, #89d185));
+}
+.project-state-failed .project-state-label {
+  color: var(--vscode-errorForeground, #f48771);
+}
+.project-state-detail {
+  font-weight: 400;
+  color: var(--vscode-descriptionForeground);
+}
+.project-version {
+  margin: 0 0 6px;
+  font-size: 1em;
+  color: var(--vscode-descriptionForeground);
+}
+.project-issues {
+  margin: 0 0 6px;
+}
+.project-issue {
+  margin: 2px 0;
+  color: var(--vscode-editorWarning-foreground, var(--vscode-charts-yellow, #cca700));
+}
+.project-fold {
+  margin: 4px 0;
+}
+.project-fold-summary {
+  cursor: pointer;
+  color: var(--vscode-descriptionForeground);
+}
+.project-fact {
+  margin: 2px 0;
+  font-family: var(--vscode-editor-font-family, monospace);
+  color: var(--vscode-descriptionForeground);
+}
