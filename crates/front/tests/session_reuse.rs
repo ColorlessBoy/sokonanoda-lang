@@ -37,12 +37,28 @@ fn session_shares_the_dependency_across_entries() {
         .iter()
         .map(|e| vec![SourceUnit::single("E", e)])
         .collect();
+    let mut seen: Vec<(usize, usize, usize, usize)> = Vec::new();
     with_project_session(
         &[SourceUnit::single("Dep", &dep)],
         &entry_units,
         &options,
-        |_, _, _, _, _, _| (),
+        |i, out, entry_reports, lib_reports, _ranges, _entry_range| {
+            // **判据加强**（2026-09-29）：不只数 `by_calls`，还要断言**入口真的编过** ——
+            // 回调里该入口的 `CompileOutput` 与逐模块报告都必须**无 errors**，且库层报告齐。
+            seen.push((
+                i,
+                out.errors.len(),
+                entry_reports.iter().map(|r| r.errors.len()).sum::<usize>(),
+                lib_reports.len(),
+            ));
+        },
     );
+    assert_eq!(seen.len(), 3, "三个入口都要回调到：{seen:?}");
+    for (i, out_errors, report_errors, lib_len) in &seen {
+        assert_eq!(*out_errors, 0, "入口 {i} 的 CompileOutput 有错误：{seen:?}");
+        assert_eq!(*report_errors, 0, "入口 {i} 的逐模块报告有错误：{seen:?}");
+        assert!(*lib_len >= 1, "库层报告不该为空（入口 {i}）：{seen:?}");
+    }
     let b = by_calls_total() - before;
 
     assert_eq!(a, 3, "改前：共享依赖被编 3 次（by_calls）");
