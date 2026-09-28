@@ -799,6 +799,7 @@ fn run_pass_in<'a>(
     run_pass_with(
         builder,
         Some(shadow),
+        true,
         units,
         options,
         collect,
@@ -817,6 +818,8 @@ fn run_pass_in<'a>(
 pub(crate) fn run_pass_with<'a, 's>(
     mut builder: EnvBuilder<'a>,
     mut shadow: Option<EnvBuilder<'s>>,
+    // **只装一次**：session 第二趟起必须 `false`（实测重复装 ⇒ `duplicate declaration Nat` ✗）。
+    install_preludes: bool,
     units: &'a [SourceUnit<'a>],
     options: &CompileOptions,
     collect: bool,
@@ -834,14 +837,16 @@ where
     let mut inductives = InductiveTable::new();
     // 源级 delta 表（课程 Lean 化）：`by` 引擎靠它看穿 def 头（`A ⊆ B`/`¬ A`）。
     let mut defs = DefTable::new();
-    install_all_preludes(
-        &mut builder,
-        &mut known,
-        &mut inductives,
-        &mut defs,
-        units,
-        options,
-    );
+    if install_preludes {
+        install_all_preludes(
+            &mut builder,
+            &mut known,
+            &mut inductives,
+            &mut defs,
+            units,
+            options,
+        );
+    }
     // **影子环境**（T-K12b）：一份**只给 judge 用**的环境。prelude 走**同一个助手**
     // ⇒ 条件与顺序不可能与主环境分叉 ✓（分叉 = 判定义分叉 = 红线）。
     // 它从 walk 的 `ops` **惰性重放**（不用就零成本 ✓）。

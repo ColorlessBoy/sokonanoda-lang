@@ -27,15 +27,26 @@ pub fn with_project_session<R>(
     let arena = stumpalo::Arena::new();
     let builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     // ① 库层编一次（影子不建：`None` ⇒ 不需要额外的局部 arena，见 `run_pass_with` 的注释）。
-    let (_, mut builder) = run_pass_with(builder, None, lib_units, options, true, None, None, None);
+    let (_, mut builder) = run_pass_with(
+        builder, None, true, lib_units, options, true, None, None, None,
+    );
     // ② 检查点 = "只有库层"的环境（`DeclarMap: Clone` 由 `snapshot()` 已在用）。
     let checkpoint = builder.hide_declars();
     let mut out = Vec::with_capacity(entries.len());
     for (index, entry_units) in entries.iter().enumerate() {
         // ③ 回到只有库层的状态 ⇒ 入口之间不共享环境。
         builder.restore_declars(checkpoint.clone());
-        let (pass, next) =
-            run_pass_with(builder, None, entry_units, options, true, None, None, None);
+        let (pass, next) = run_pass_with(
+            builder,
+            None,
+            false,
+            entry_units,
+            options,
+            true,
+            None,
+            None,
+            None,
+        );
         builder = next;
         out.push(on_entry(index, pass.out, pass.report));
         // ④ 丢掉这个入口的声明（下一次循环再装回检查点）。
