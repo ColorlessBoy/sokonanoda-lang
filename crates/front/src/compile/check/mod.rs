@@ -638,6 +638,13 @@ fn pass_trace_spec() -> Option<&'static str> {
 /// **一次判定调用（`judge_pairs_uncached` → `check_document_with`）里，
 /// 「前端 elaborate」「内核检查」「`by` 引擎自己」各占多少**——
 /// 不量清楚就选不出刀（`docs/design/by-judge-reuse.md` §5）。
+/// 进程内 `by` 引擎调用次数（**只给判据用**：集成测试各自独立进程 ⇒ 天然隔离，
+/// lib 内并行测试会互相干扰 —— 实测过）。
+#[doc(hidden)]
+pub fn by_calls_total() -> u64 {
+    stage_stats::BYS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 pub(crate) mod stage_stats {
     use std::sync::atomic::{AtomicU64, Ordering};
 
