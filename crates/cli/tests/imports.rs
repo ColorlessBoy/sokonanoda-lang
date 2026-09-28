@@ -822,3 +822,38 @@ fn two_identical_projects_in_different_directories_do_not_share_a_key() {
         "b 的模块根必须是 b 自己那个：{b}"
     );
 }
+
+/// **切片 1b 的守卫（多入口 `build <dir>`）**：共享 1 个依赖的多个入口必须**全部编译成功**。
+///
+/// 咬住的真实回归（2026-09-29）：第一版 session 接线把 **41/42** 个入口编成 `failed`
+/// （库层是跨入口去重的**并集**、按首个 plan 的闭包顺序编，而 `assemble_report` 按**该入口
+/// 自己的闭包顺序**切分 ⇒ 命令区间错位 ⇒ 事件/错误归错模块），而当时的 `imports` 用例
+/// **全绿** ✗ —— "咬不住的守卫等于没有"，这条就是为它写的。
+#[test]
+fn build_a_directory_of_entries_sharing_a_dependency_compiles_them_all() {
+    let dir = tmp_dir("build-multi-entry");
+    write(&dir, "Dep.sokonanoda", "def shared : Nat := 1\n");
+    for i in 0..3 {
+        write(
+            &dir,
+            &format!("E{i}.sokonanoda"),
+            &format!("import Dep\ndef e{i} : Nat := shared\n"),
+        );
+    }
+    let cache = tmp_dir("build-multi-entry-cache");
+    let out = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
+    assert!(out.status.success(), "build 应成功：{}", stderr(&out));
+    let text = stdout(&out);
+    let summary = text
+        .lines()
+        .find(|line| line.contains("\"type\":\"build.summary\""))
+        .unwrap_or_else(|| panic!("没有 build.summary：{text}"));
+    assert!(
+        summary.contains("\"failed\":0"),
+        "多入口 build 不许有失败：{summary}"
+    );
+    assert!(
+        summary.contains("\"compiled\":4"),
+        "Dep + 3 个入口都应编译（0 hit）：{summary}"
+    );
+}
