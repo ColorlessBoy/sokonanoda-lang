@@ -366,11 +366,11 @@ pub fn units_for_modules<'a>(
 
 /// **切片 1b**：把「编」与「组装」分开 —— session 可用**预算结果**替换「编」
 /// （库层只编一次、各入口复用同一套 DAG）。组装段**逐字**搬自原 `compile_plan_with_progress`。
-pub struct PlanCompiled {
+pub struct PlanCompiled<'a> {
     pub compilable: Vec<usize>,
     pub flat_out: CompileOutput,
     pub reports: Vec<DocumentReport>,
-    pub closure: crate::project::graph::Closure,
+    pub closure: &'a crate::project::graph::Closure,
     pub diagnostics: Vec<ProjectDiagnostic>,
     pub entry_path: std::path::PathBuf,
     pub root: std::path::PathBuf,
@@ -378,7 +378,7 @@ pub struct PlanCompiled {
     pub requires_warning: Option<String>,
 }
 
-pub fn assemble_report(c: PlanCompiled) -> ProjectReport {
+pub fn assemble_report(c: PlanCompiled<'_>) -> ProjectReport {
     let PlanCompiled {
         compilable,
         flat_out,
@@ -457,14 +457,14 @@ pub fn assemble_report(c: PlanCompiled) -> ProjectReport {
     }
 
     // 6) 开放练习提示：被导入模块里的 `sorry` 对下游不可见，值得在 import 行上说一句。
-    collect_open_exercise_warnings(&closure, &modules, &mut diagnostics);
+    collect_open_exercise_warnings(closure, &modules, &mut diagnostics);
 
     // 7) 依赖的**编译失败**同样阻断下游（check-then-add 的跨模块版本）：
     //    一个非入口模块的报告里有错误 ⇒ 所有（传递）import 它的模块不保留
     //    编译结果，只在 import 行上留一条 `import-dependency-failed`。
     //    v1 是"全编译后再丢弃"：闭包共用一次 arena/builder，教学规模下这点浪费
     //    可以接受；等 P7 有 decl 级产物时再做真正的早停。
-    let result_blocked = block_on_compile_failures(&closure, &modules, &mut diagnostics);
+    let result_blocked = block_on_compile_failures(closure, &modules, &mut diagnostics);
     for module in &mut modules {
         if result_blocked.contains(&module.name) {
             module.report = DocumentReport::default();
@@ -521,7 +521,7 @@ pub fn compile_plan_with_progress(
         compilable,
         flat_out,
         reports,
-        closure,
+        closure: &closure,
         diagnostics,
         entry_path,
         root,
