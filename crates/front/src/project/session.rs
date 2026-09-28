@@ -32,6 +32,7 @@ pub fn with_project_session<R>(
     );
     // **逐模块报告**（与 `check::run` 同构）：库层那趟的报告按单元切分 ⇒ 接线方
     // 能组装出与今天**逐字节相同**的 `ProjectReport`（缓存内容不变）。
+    let lib_n = lib_pass.n_commands;
     let lib_reports = split_report(
         lib_pass.report,
         &lib_pass.out.error_cmds,
@@ -39,6 +40,7 @@ pub fn with_project_session<R>(
         lib_units,
     );
     // ② 检查点 = "只有库层"的环境（`DeclarMap: Clone` 由 `snapshot()` 已在用）。
+    let lib_out = lib_pass.out;
     let checkpoint = builder.hide_declars();
     let mut out = Vec::with_capacity(entries.len());
     for (index, entry_units) in entries.iter().enumerate() {
@@ -62,7 +64,23 @@ pub fn with_project_session<R>(
             &pass.out.warning_cmds,
             entry_units,
         );
-        out.push(on_entry(index, pass.out, entry_reports, &lib_reports));
+        // **闭包级扁平输出**（库层在前、入口在后，命令号整体偏移 `lib_n`）⇒ 接线方
+        // 能按 `unit_ranges(闭包 units)` 正确切分事件（与今天逐字节等价的前提）。
+        let mut merged = lib_out.clone();
+        merged.events.extend(pass.out.events.iter().cloned());
+        merged
+            .event_cmds
+            .extend(pass.out.event_cmds.iter().map(|c| c + lib_n));
+        merged.errors.extend(pass.out.errors.iter().cloned());
+        merged
+            .error_cmds
+            .extend(pass.out.error_cmds.iter().map(|c| c + lib_n));
+        merged.warnings.extend(pass.out.warnings.iter().cloned());
+        merged
+            .warning_cmds
+            .extend(pass.out.warning_cmds.iter().map(|c| c + lib_n));
+        merged.stats.kernel_checks += pass.out.stats.kernel_checks;
+        out.push(on_entry(index, merged, entry_reports, &lib_reports));
         // ④ 丢掉这个入口的声明（下一次循环再装回检查点）。
         drop(builder.hide_declars());
     }

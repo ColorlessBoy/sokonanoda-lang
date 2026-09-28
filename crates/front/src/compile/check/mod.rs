@@ -134,6 +134,9 @@ pub(crate) struct TrustPlan {
 pub(crate) struct PassResult {
     pub(crate) out: CompileOutput,
     pub(crate) report: DocumentReport,
+    /// 本趟的**命令总数**（切片 1b：把多趟的扁平输出拼成闭包级输出时，后一趟的
+    /// `event_cmds`/`error_cmds`/`warning_cmds` 要整体偏移这么多）。
+    pub(crate) n_commands: usize,
     failed: KernelFailed,
     checks: usize,
     /// Per-command environment signatures (length = current command count).

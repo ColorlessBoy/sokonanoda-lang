@@ -580,6 +580,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
     PassResult {
         out,
         report,
+        n_commands: n,
         failed: failed_cmds,
         checks: kernel_checks,
         sigs,
