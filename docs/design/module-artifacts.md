@@ -122,21 +122,15 @@ key(M) = H( format, 编译器版本, build stamp, prelude 模式,
 
 ## 9. 切片 1b 的**判定实验**（先定判据，再写代码）
 
-切片 1a（arena 提到调用方，`run_pass_in`）只解决"产物活得过一次 pass"。**1b 才是声音性问题**：
-能不能用 `snapshot()` 的 `declars`（`crates/kernel/src/util.rs:630`，**公开字段**）+
-`restore_declars()`（`crates/kernel/src/builder.rs:108`）给入口的 builder **播种**依赖环境，
-然后**继续 `add_declar`**？—— T-K12c 正是死在这类"共享 `decl_idx` 槽位"上（`docs/architecture.md:543-545`）。
+切片 1a（arena 提到调用方，`run_pass_in`）只让产物活得过一次 pass。**1b 才是声音性问题**：
+能否用 `snapshot()` 的 `declars`（`util.rs:630`，**公开字段**）+ `restore_declars()`（`builder.rs:108`）
+给入口的 builder **播种**依赖环境并**继续 `add_declar`**？T-K12c 正是死在这类"共享 `decl_idx`
+槽位"上（`architecture.md:543-545`）。
 
-**实验（`crates/front/tests/module_reuse.rs`，新增文件；不改既有判据）**：
-夹具 = 1 个共享依赖（含 1 个 `by` 证明）+ 3 个入口（项风格）。
-
-| # | 断言 | 为什么是它 |
-|---|---|---|
-| ① | **播种路径 vs 今天的逐入口路径**：同一份入口的 `DocumentReport` + `CompileOutput` **逐字节相同**（含事件序列、诊断、`decl.checked` 计数） | 语义不变 = 错编红线；这是唯一的验收口径 |
-| ② | 播种路径下 `SOKO_STAGE_STATS` 的 `by_calls` **3 → 1** | 用户要的数字（`scripts/check-recompile-factor.py` 同口径） |
-| ③ | **改依赖一行 ⇒ 入口必须重编**（`module_key` 变 ⇒ 不命中），且结果与新依赖一致 | 反例（切片 2） |
-| ④ | **arena 隔离**：两个入口的播种互不影响（顺序交换 ⇒ 结果不变） | 槽位共享类 bug 的典型形态 |
-| ⑤ | 降级路径也量：**只复用叶子依赖**（`import` 为空的模块，如 `lib.Logic`）能砍掉多少 | 若 ① 不成立 ⇒ 按用户给的降级 a/b/c 往下拆，**不许整块退回** |
-
-**判定**：① 过 ⇒ 切片 1 成立，直接量真课程 **174 → ?** / **222.1s → ?**；
-① 不过 ⇒ **贴出具体是哪一条断言、哪一行**，按降级顺序继续拆（b → c），每级都给实测数字。
+**实验**（`crates/front/tests/module_reuse.rs` 或 crate 内测试）夹具 = 1 个共享依赖（含 1 个 `by`）
++ 1 个入口。五条断言：① **播种路径 vs 今天逐入口路径的报告/事件逐字节相同**（错编红线，唯一验收口径）·
+② 播种下 `by_calls` **3 → 1**（`check-recompile-factor.py` 同口径；**改前实测 = 3**）·
+③ **改依赖一行 ⇒ 必 miss 重编**（反例）· ④ arena 隔离（顺序交换结果不变）· ⑤ 降级路径
+（只复用叶子依赖）也要给数字。
+**判定**：① 过 ⇒ 量真课程 **174 → ?** / **222.1s → ?**；① 不过 ⇒ 贴具体断言与行号，
+按降级 a（只复用干净模块）→ b（只复用叶子依赖）→ c（先一个共享模块）继续拆，每级都给数字。
