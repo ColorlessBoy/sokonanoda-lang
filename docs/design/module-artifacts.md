@@ -122,13 +122,6 @@ key(M) = H( format, 编译器版本, build stamp, prelude 模式,
 
 ## 9. 切片 1b：**一个 builder 贯穿全场**（跨 builder 播种已被证否）
 
-**先记一条实测发现（2026-09-28，读 `util.rs` 的 `Dag::new_local` + 子代理复核）**：
-"把上一次编译的 `declars` 播种进**新建的** builder"这条路**不成立** ——
-`EnvBuilder::new` 每次都 `Dag::new_local` ⇒ **每个 builder 自带一套 interner**；
-`decl_idx` 槽位挂在被 intern 的 `NameNode` 上，所以旧表里的名字指针属于**老 DAG**，
-而第二趟重新 intern 出来的 `Shared.shared_and` 是**新节点**（`decl_idx = NO_DECL`）
-⇒ 查不到 ⇒ 复用不了。⇒ **产物必须与"建它的那套 DAG"待在一起**。
-
 **改后的做法（全部前端，内核零改动）**：
 1. **一个 session arena + 一个 `EnvBuilder`** 贯穿整次 `build <dir>`（arena 提升 = 切片 1a ✓ 已合入）；
 2. 先编**共享库层**（各 `lib/*` 各一次），在库层边界留一份 **`declars` 检查点**
@@ -143,8 +136,15 @@ key(M) = H( format, 编译器版本, build stamp, prelude 模式,
 ⑤ 真课程 **174 → ?** / **222.1s → ?**。
 **待实验回答的唯一未知**：walk 的前端表（`known`/`inductives`/`defs`）能否跨入口复用，还是必须逐入口重建
 （① 会直接给出答案）。
-**为什么不需要内核授权（2026-09-28 核实，行号为准）**：加声明在 **walk 阶段**
-（`check/walk.rs:220/222/561/677/799/933/1018` 的 `self.builder.add_declar(...)`），
-`kernel_phase` 对环境**只有读**（`with_tc`/`try_check_declar`/`with_pp`，**无 add**）⇒
-`:192` 的 `builder.finish()` 可换成 `builder.with_env(|env| …)`（`builder.rs:112`，
-同为纯字段搬移、回调后原样装回）⇒ **builder 留在 session 手里**，跨入口复用同一套 DAG。
+**已落地的三刀（2026-09-28，全部实测行为零变化、内核零改动）**：
+① `Walked.builder` 改借用 + `finish_pass` 用 `builder.with_env` **借出**环境（不再消费 builder）；
+② 影子环境改 `Option<EnvBuilder>`（解开"影子重放主 arena 的 `Declar` ⇒ 两套环境被 `ops` 焊死"）；
+③ **`run_pass_with(builder, shadow, …) -> (PassResult, EnvBuilder<'a>)`**（`'a: 's`；`units: &'a [SourceUnit<'a>]`；
+`PassResult` 已 `pub(crate)`）。⚠ `Walk` 的生命周期方向必须是 **`<'arena: 'shadow, 'shadow>`**（主环境寿命 ⊇ 影子；
+反过来 `walk.rs:230` 报 `lifetime may not live long enough`）。
+判据：`clippy --all-targets` exit 0 · fmt ✓ · front lib **757 passed** · CLI imports **21 passed** ·
+`check-recompile-factor.py` 仍 **`by_calls=3`**（这三刀不改行为）。
+
+**下一步（只剩"用起来"，无结构未知）**：`ProjectSession`（新文件 `crates/front/src/project/session.rs`）——
+session 持 arena + builder ⇒ 库层**编一次** ⇒ `hide_declars()` 留检查点 ⇒ 每个入口 `restore_declars(检查点)`
+→ 用**该入口自己的 units** 调 `run_pass_with` → 编完 `hide_declars()` ⇒ 跑 ① 逐字节等价 → ② `by_calls` 3 → 1 → ③ 改依赖必 miss → ⑤ 真课程 174 → 42 / 222.1s → ?。
