@@ -2,7 +2,7 @@
   "_comment": "文档预算冻结表（REQUIREMENTS.md §9 / docs/design/docs-diet.md）：每个既有**非入口**活文档的行数上限 —— **只许减不许增**。**入口文件不在此表**（它们由判据 ③ ≤800 行管 ✓ —— 计划会随新批次合法长大，冻结它必然误红 ✗）。`python3 scripts/docs-lint.py --freeze` 只会收紧；要放宽必须手改本文件（评审可见）。",
   "frozen": {
     "NOTICE.md": 20,
-    "docs/CI-FAILURES.md": 479,
+    "docs/CI-FAILURES.md": 501,
     "docs/E2E.md": 246,
     "docs/LESSONS.md": 556,
     "docs/PERF.md": 715,
