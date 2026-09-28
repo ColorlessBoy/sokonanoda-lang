@@ -1,0 +1,48 @@
+-- Sum.sokonanoda —— 卷 I 的**不交并**（ST5，v0.77.0）
+--
+-- 分层判据（docs/design/course-stdlib.md）：本文件是 **L2（词汇 + 定义展开）**：
+--   · 1 个归纳块：`Sum` + 两个构造子 `Sum.inl` / `Sum.inr`；
+--   · 1 条消去子（派生）：`Sum.rec`；
+--   · 3 条 L2 展开引理：`Sum.rec_inl` / `Sum.rec_inr`（iota 级）+ `Sum.elim`。
+-- 有数学内容的（交换律、结合律、与 `Prod` 的分配律）属 **L3**，留作单元练习 ✗。
+--
+-- **基准**（Mathlib `Mathlib/Data/Sum/Basic.lean`，逐字同款）：
+--   `inductive Sum (α β : Type u)` + `Sum.inl`/`Sum.inr` + `Sum.rec` + `Sum.elim`（soko:notation-ok: 引用 Mathlib 的真名，必须点名）。
+--   Isabelle AFP `ZFC_in_HOL` §2.3 的 `Disjoint Sum` 是集合论版本（`A ⊕ B`）；
+--   我们的 `Sum` 是**类型层**的不交并（谓词式集合论里它直接可用，零外挂 ✓）。
+--
+-- **为什么单独一个文件**（而不是并进 `lib/Prod`）：`Sum` 与 `Prod` **零依赖**
+-- （都是语言原语级的归纳块），拆开是为了让「用到哪个就 import 哪个」成立 ✓。
+-- Mathlib 里它们是同一个文件（`Data/Sum/Basic.lean` 与 `Data/Prod.lean` 其实也是分开的 ✓）。
+--
+-- ⚠ **记法**：Mathlib 的 `α ⊕ β` 是**类型层**的记法（`Sum α β` —— soko:notation-ok: 讨论记法本身必须点名）；本文件声明它。
+-- 集合层的「不交并」`s ⊕ t`（`Set.disjUnion`）**本版不做** —— 它要用 `Sum`（soko:notation-ok: 同上）的
+-- 像/原像拼，属 L3（练习），且记法与类型层那个会**撞符号**（同一符号全课程只能声明一次）✗。
+import lib.Logic
+
+-- ── 类型与构造子（Mathlib: Mathlib/Data/Sum/Basic.lean，逐字同款语义）────────
+inductive Sum (α β : Type) : Type
+ctor Sum.inl (a : α) : Sum α β
+ctor Sum.inr (b : β) : Sum α β
+end
+
+namespace Sum
+
+-- ── 消去子（`Sum.rec` 由归纳块自动派生；这里只包一条**便利形式**）────────────
+-- `Sum.elim f g`：两个分支都给出同一个结果类型 ⇒ 调用点不用写 motive
+-- （与 `Or.elim` / `Prod.fst` 同一族的「便利消去」）。
+def elim (α β γ : Type) (f : α → γ) (g : β → γ) (s : Sum α β) : γ :=  -- soko:notation-ok: `⊕` 记法在本文件末尾才声明，声明点之前只能点名
+  Sum.rec.{1} α β (fun (_ : Sum α β) => γ) f g s  -- soko:notation-ok: 同上（motive 的域必须点名）
+
+-- ── 展开引理（L2：`Sum.elim` 算在构造子上就还原 —— iota 级，证明是 `Eq.refl`）──
+theorem elim_inl (α β γ : Type) (f : α → γ) (g : β → γ) (a : α) :
+    elim α β γ f g (Sum.inl α β a) = f a := Eq.refl.{1} γ (f a)
+
+theorem elim_inr (α β γ : Type) (f : α → γ) (g : β → γ) (b : β) :
+    elim α β γ f g (Sum.inr α β b) = g b := Eq.refl.{1} γ (g b)
+
+end Sum
+
+-- ── 记法（Mathlib: `α ⊕ β`，逐字同款）──────────────────────────────────────
+-- 目标名在使用点解析 ⇒ 用到就得 `import lib.Sum`。
+infixr:30 " ⊕ " => Sum

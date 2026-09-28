@@ -56,6 +56,7 @@
 -- "谁是谁的逆"的自然语序把 f 放前面。
 import lib.Logic
 import lib.Exists
+import lib.Set
 
 -- ── 复合（Mathlib: Mathlib/Logic/Function/Defs.lean）─────────────────────────
 -- `g ∘ f` 展开就是 `fun x => g (f x)`；定义体直接是 λ，所以
@@ -140,3 +141,22 @@ theorem Function.inverse_def (α β : Type) (f : α → β) (g : β → α) :
       ↔ Function.LeftInverse α β g f ∧ Function.RightInverse α β g f :=
     Iff.intro (fun (h : Function.Inverse α β f g) => h)
       (fun (h : (Function.LeftInverse α β g f) ∧ (Function.RightInverse α β g f)) => h)
+
+-- ── **ST5（v0.77.0）：广义函数空间**（Mathlib `Mathlib/Data/Set/Function.lean`）────
+-- 基准（Mathlib 真名，Loogle 取证版）：`Set.pi`（依赖函数空间）与 `Set.mem_pi`。
+-- Isabelle AFP `ZFC_in_HOL` §2.4 的 `Generalised function space and lambda` 是集合论版本；
+-- 我们的函数空间是**类型层**的 `(x : α) → β x`（依赖函数类型是语言原语）⇒ 零外挂 ✓。
+--
+-- ⚠ **名字的有意选择**：Mathlib 只有 `Set.pi`（依赖版），非依赖版就是
+-- `Set.pi s (fun _ => t)`。我们**不另立** `Set.funSpace` —— 多一个名字就多一条
+-- 「同一概念两个家」的分叉（E11 第 ③ 条同一纪律）✗。
+def Set.pi (α : Type) (β : α → Type) (s : Set α) (t : ∀ (x : α), Set (β x)) :
+    Set ((x : α) → β x) :=
+  fun (f : (x : α) → β x) => ∀ (x : α), x ∈ s → f x ∈ t x
+
+-- 展开引理（L2：定义就是 `∀`，没有数学内容）
+theorem Set.mem_pi (α : Type) (β : α → Type) (s : Set α) (t : ∀ (x : α), Set (β x))
+    (f : (x : α) → β x) :
+    f ∈ Set.pi α β s t ↔ ∀ (x : α), x ∈ s → f x ∈ t x :=
+  Iff.intro (fun (h : f ∈ Set.pi α β s t) => h)
+    (fun (h : ∀ (x : α), x ∈ s → f x ∈ t x) => h)
