@@ -518,3 +518,25 @@ run `36378945287` 的 `test (sokonanoda-front, tests)` 判红：`best 1599.6ms �
 
 **预防**：① 判据读全量输出（上）；② **推送前先 `git status --short` 确认没有"不是我做的"改动**；
 ③ 门禁红了先读**明细行**（哪一条、哪个文件、哪个数字），再决定改什么。
+
+## 2026-09-29 · 切片 1b 接线：**"变快"其实是"失败得快"**（本机，非 CI）
+
+**症状**：`build --clean courses/set-theory` + `build --json` 从基线 **222.1s** 掉到 **15s** ——
+看起来像 15× 提速。**真相**：`build.summary` 是 `{'compiled': 1, 'failed': 41}` ✗ ——
+41 个入口**快速失败**，所以"快"。**已回滚**（`git revert`），回滚后冷全量实测
+`{'compiled': 42, 'failed': 0}` ✓（墙钟 **625s**，见下条）。
+
+**根因（假设）**：session 的库层是**跨入口去重的并集**（按首个 plan 的闭包顺序编），
+而 `assemble_report` 按**该入口自己的闭包顺序**用 `unit_ranges` 切分 ⇒ 命令区间错位
+⇒ 事件/错误归到错的模块 ⇒ 大面积 `failed`。
+
+**四条教训（都已变成动作）**：
+1. **性能数字必须先看 `failed`/`compiled` 计数** —— "快"可能是"错得快"✗；
+2. **revert ≠ rebuild**：`git revert` 后用**旧二进制**复测会得出假结论（本次差点据此误判
+   根因不在接线）⇒ 回滚后**必须重建**再测；
+3. **咬不住的守卫等于没有**：当时 `cargo test -p sokonanoda-cli --test imports` 的 **21 项全绿** ✗
+   ⇒ 已补 **`build <dir>` 多入口守卫**（`build_a_directory_of_entries_sharing_a_dependency_compiles_them_all`，
+   断言 `failed:0` + `compiled:4`）并做**反向验证**：接线版 **1 failed**（红的正是它）、
+   正确代码 **22 passed** ✓；
+4. **跨机比数字无效**：今天本机正确冷全量 **625s** vs 09-28 基线 **222.1s**（≈2.8×）
+   ⇒ 性能对比**只能同机 A/B**，禁止拿不同日期的绝对值对比 ✗。
