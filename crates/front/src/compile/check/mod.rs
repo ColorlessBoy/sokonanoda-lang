@@ -131,7 +131,7 @@ pub(crate) struct TrustPlan {
 }
 
 /// One `run_pass` result, including the early-cutoff bookkeeping.
-struct PassResult {
+pub(crate) struct PassResult {
     out: CompileOutput,
     report: DocumentReport,
     failed: KernelFailed,
@@ -792,10 +792,44 @@ fn run_pass_in<'a>(
     trust: Option<&TrustPlan>,
     progress: Option<&mut dyn crate::compile::ProgressSink>,
 ) -> PassResult {
+    let builder = EnvBuilder::new(arena, Config::default());
+    // 影子只服务 `SOKO_SHADOW_*` 实验：局部 arena，寿命短于主环境 ✓（`'a: 's`）。
+    let shadow_arena = stumpalo::Arena::new();
+    let shadow = EnvBuilder::new(shadow_arena.as_arena_ref(), Config::default());
+    run_pass_with(
+        builder,
+        Some(shadow),
+        units,
+        options,
+        collect,
+        skip,
+        trust,
+        progress,
+    )
+    .0
+}
+
+/// **切片 1b**：`builder`（与可选影子）**由调用方提供、编译完交回** ⇒ session 能把
+/// **同一套 DAG** 交给每个入口（库层只编一次；`restore_declars`/`hide_declars`
+/// 检查点由 session 做）。`'a: 's` 是必要的：影子要重放主 arena 产出的
+/// `Declar<'arena>`（`ops`），只有主环境寿命 ⊇ 影子才合法 ✓。
+#[allow(clippy::too_many_arguments)] // 与 run_pass_in 同参数表 + builder/shadow（切片 1b）
+pub(crate) fn run_pass_with<'a, 's>(
+    mut builder: EnvBuilder<'a>,
+    mut shadow: Option<EnvBuilder<'s>>,
+    units: &'a [SourceUnit<'a>],
+    options: &CompileOptions,
+    collect: bool,
+    skip: Option<&KernelFailed>,
+    trust: Option<&TrustPlan>,
+    progress: Option<&mut dyn crate::compile::ProgressSink>,
+) -> (PassResult, EnvBuilder<'a>)
+where
+    'a: 's,
+{
     stage_stats::install();
     stage_stats::PASSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let _pass_timer = StageTimer(&stage_stats::PASS_NANOS, std::time::Instant::now());
-    let mut builder = EnvBuilder::new(arena, Config::default());
     let mut known: KnownTable = KnownTable::new();
     let mut inductives = InductiveTable::new();
     // 源级 delta 表（课程 Lean 化）：`by` 引擎靠它看穿 def 头（`A ⊆ B`/`¬ A`）。
@@ -821,17 +855,17 @@ fn run_pass_in<'a>(
     // （实测：STRICT=1 => MISMATCH=0 且退出码 0 ✗）。
     let shadow_experiment =
         std::env::var("SOKO_SHADOW_CHECK").is_ok() || std::env::var("SOKO_SHADOW_STRICT").is_ok();
-    let shadow_arena = stumpalo::Arena::new();
-    let mut shadow = EnvBuilder::new(shadow_arena.as_arena_ref(), Config::default());
     if shadow_experiment {
-        install_all_preludes(
-            &mut shadow,
-            &mut KnownTable::new(),
-            &mut InductiveTable::new(),
-            &mut DefTable::new(),
-            units,
-            options,
-        );
+        if let Some(sh) = shadow.as_mut() {
+            install_all_preludes(
+                sh,
+                &mut KnownTable::new(),
+                &mut InductiveTable::new(),
+                &mut DefTable::new(),
+                units,
+                options,
+            );
+        }
     }
     let out = CompileOutput::default();
     let report = DocumentReport::default();
@@ -894,7 +928,7 @@ fn run_pass_in<'a>(
     // 命令走查（elaborate → `PendingOp`）：批次 3 第三刀切到 `walk.rs`；
     // 这里的累加器按值交给 `Walk`，内核阶段再从 `walk` 取回（见文件尾）。
     let mut walk = walk::Walk {
-        shadow: Some(shadow),
+        shadow,
         shadow_upto: 0,
         shadow_failed: Vec::new(),
         shadow_failed_msg: Vec::new(),
@@ -1028,7 +1062,7 @@ fn run_pass_in<'a>(
             );
         }
     }
-    pass
+    (pass, walk.builder)
 }
 
 /// Every top-level name this file declares, mapped to the span of the command

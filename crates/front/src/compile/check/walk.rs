@@ -33,7 +33,7 @@ use sokonanoda::util::ExprPtr;
 use std::borrow::Cow;
 
 /// 命令走查的**可变累加器**（原 `run_pass` 主循环里被 arm 改写的局部变量）。
-pub(super) struct Walk<'arena> {
+pub(super) struct Walk<'arena: 'shadow, 'shadow> {
     /// **显示期的记法表**（线 C）：整趟建一次，给 `ty_text` 与 `by` 步进的
     /// 展示副本共用（`check/mod.rs` 的 `display_notations`）。
     pub(super) display: crate::display::DisplayNotations,
@@ -47,7 +47,7 @@ pub(super) struct Walk<'arena> {
     /// 为什么不直接用 `builder`：`builder` 最终要被 `kernel_phase` 的
     /// `finish()` **消费**，而且 walk 阶段**不往里 add** 文件声明 ✗
     /// （它只装 prelude + intern 名字）⇒ judge 拿它查不到前缀 ✓。
-    pub(super) shadow: Option<EnvBuilder<'arena>>,
+    pub(super) shadow: Option<EnvBuilder<'shadow>>,
     /// 影子环境已重放到 `ops` 的哪个下标。
     pub(super) shadow_upto: usize,
     /// 影子重放中**内核拒绝**的那些 `ops` 下标（与 `kernel_phase` 的失败表同键：
@@ -114,7 +114,7 @@ fn local<T: ?Sized>(r: &T) -> &T {
     r
 }
 
-impl<'arena> Walk<'arena> {
+impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
     /// **把影子环境推进到"当前已 elaborate 的前缀"**（T-K12b）。
     ///
     /// 惰性：只在第一次（以及每次有新 `ops` 之后）被调用时才重放新增的那几条
@@ -122,7 +122,7 @@ impl<'arena> Walk<'arena> {
     /// 主声明走 `try_check_declar`（`ByName` 形式，同 `kernel_phase.rs:251`），
     /// 归纳块逐成员检查（同 `kernel_phase.rs:315`）；**内核拒绝的不进环境**
     /// （check-then-add 语义 ✓），名字记进 `shadow_failed`。
-    pub(super) fn shadow_env(&mut self) -> Option<&mut EnvBuilder<'arena>> {
+    pub(super) fn shadow_env(&mut self) -> Option<&mut EnvBuilder<'shadow>> {
         self.shadow.as_ref()?;
         while self.shadow_upto < self.ops.len() {
             // 失败表按 **`cmd`（命令下标）** 记 —— 与 `kernel_phase` 的
