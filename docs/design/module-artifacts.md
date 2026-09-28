@@ -143,3 +143,8 @@ key(M) = H( format, 编译器版本, build stamp, prelude 模式,
 ⑤ 真课程 **174 → ?** / **222.1s → ?**。
 **待实验回答的唯一未知**：walk 的前端表（`known`/`inductives`/`defs`）能否跨入口复用，还是必须逐入口重建
 （① 会直接给出答案）。
+**为什么不需要内核授权（2026-09-28 核实，行号为准）**：加声明在 **walk 阶段**
+（`check/walk.rs:220/222/561/677/799/933/1018` 的 `self.builder.add_declar(...)`），
+`kernel_phase` 对环境**只有读**（`with_tc`/`try_check_declar`/`with_pp`，**无 add**）⇒
+`:192` 的 `builder.finish()` 可换成 `builder.with_env(|env| …)`（`builder.rs:112`，
+同为纯字段搬移、回调后原样装回）⇒ **builder 留在 session 手里**，跨入口复用同一套 DAG。
