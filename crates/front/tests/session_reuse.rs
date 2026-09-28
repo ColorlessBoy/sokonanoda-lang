@@ -64,3 +64,66 @@ fn session_shares_the_dependency_across_entries() {
     assert_eq!(a, 3, "改前：共享依赖被编 3 次（by_calls）");
     assert_eq!(b, 1, "改后：共享依赖只编 1 次（by_calls）—— 3 → 1");
 }
+
+/// **决定性实验（2026-09-29）**：CLI 的单元来自 `plan_project`（带 import 解析），
+/// 而上面那条用**裸 `SourceUnit`** —— 若本用例转红，说明 session 对"入口带 `import`"是坏的
+/// （库层声明在环境里 ✓，但入口那趟缺 import 的解析上下文），与入口个数无关。
+#[test]
+#[ignore = "已知缺陷（2026-09-29）：入口那趟看不到 prelude ⇒ unknown identifier `Nat`；修好后去掉 ignore"]
+fn session_compiles_entries_that_import_the_lib_layer() {
+    let dir = std::env::temp_dir().join(format!("soko-session-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("Dep.sokonanoda"), "def shared : Nat := 1\n").unwrap();
+    std::fs::write(
+        dir.join("E0.sokonanoda"),
+        "import Dep\ndef e0 : Nat := shared\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("E1.sokonanoda"),
+        "import Dep\ndef e1 : Nat := shared\n",
+    )
+    .unwrap();
+    let options = CompileOptions::default();
+    let p0 = sokonanoda_front::project::plan_project(
+        &dir.join("E0.sokonanoda"),
+        None,
+        Some(dir.as_path()),
+    );
+    let p1 = sokonanoda_front::project::plan_project(
+        &dir.join("E1.sokonanoda"),
+        None,
+        Some(dir.as_path()),
+    );
+    let lib0 = sokonanoda_front::project::units_for_modules(&p0, |m| m.path != p0.entry);
+    let lib1 = sokonanoda_front::project::units_for_modules(&p1, |m| m.path != p1.entry);
+    let e0 = sokonanoda_front::project::units_for_modules(&p0, |m| m.path == p0.entry);
+    let e1 = sokonanoda_front::project::units_for_modules(&p1, |m| m.path == p1.entry);
+    let mut lib_units: Vec<sokonanoda_front::compile::SourceUnit<'_>> = Vec::new();
+    for u in lib0.iter().chain(lib1.iter()) {
+        if !lib_units.iter().any(|x| x.name == u.name) {
+            lib_units.push(sokonanoda_front::compile::SourceUnit {
+                name: u.name,
+                path: u.path,
+                file: u.file,
+            });
+        }
+    }
+    let entries = vec![e0, e1];
+    let mut seen: Vec<(usize, Vec<String>, usize)> = Vec::new();
+    with_project_session(&lib_units, &entries, &options, |i, out, er, lr, _, _| {
+        seen.push((
+            i,
+            out.errors.iter().map(|e| e.message.clone()).collect(),
+            er.iter().map(|r| r.errors.len()).sum(),
+        ));
+        assert!(!lr.is_empty());
+    });
+    assert_eq!(seen.len(), 2, "{seen:?}");
+    for (i, errors, rep_errors) in seen {
+        assert!(errors.is_empty(), "入口 {i} 有错误（CLI 路径）：{errors:?}");
+        assert_eq!(rep_errors, 0, "入口 {i} 报告有错误（CLI 路径）");
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}
