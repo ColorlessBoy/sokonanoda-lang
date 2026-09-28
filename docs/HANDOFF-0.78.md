@@ -1,4 +1,7 @@
-# 交接单：X2 多会话 / 多分支（worktree）—— 未完，交给下一棒
+# 交接单：**内核 · `Acc` 索引族**（头号优先级）+ X2 收尾（3/5）
+
+> ⚠ **2026-09-28 用户拍板：「卡内核的，改内核就好了嘛」⇒ 不要再停在"登记完成"**；**X2 让路**（已收尾 3/5，见本文 §4）✓。内核是现在的头号优先级 ✓。
+> 分支 **`kernel/acc-indexed-families`**（从 `main` 开出，本地）。
 
 > 上一棒：2026-09-28 会话（已发生 1 次 compaction）。**本地已全部 commit 并推送** ✓。
 > 起点 `592a2e1e` → 终点 **`070a363d`**（`main`，工作区干净）。
@@ -91,3 +94,66 @@ X2 段写「`target/` 已 **205 GB**、磁盘只剩 **159 GB** ⇒ 开 worktree 
 
 **建议顺序**：`X2` 收口（本档 §4.1）→ `E19-0`（零风险）→ `E19-1/2`（真风险所在）→ `E19-3/4` → `E20` 视 E19-2 结果定。
 **`E19-2` 是唯一可能动判定输出的环节** ⇒ 那一环走内核改动那套（先留判红证据 → 单独 commit → 三层回归 + 语料对拍 + `--json` 逐字节不变）。
+
+---
+
+# 附：内核 `Acc` 一棒的**精确接续点**（2026-09-28 第二轮实测）
+
+## 目标（用户给的顺序，逐个交付）
+
+1. **G-56** —— 让下面 4 行 `checked`（参数位逐字相同 + 指标位任意但不含递归出现）：
+   ```
+   inductive Acc (α : Type) (r : α → α → Prop) : α → Prop
+   ctor intro (x : α) (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x
+   end
+   ```
+2. **G-64** —— 递归子能派生：宇宙代入 + `Acc.rec` 的 motive 与前端生成的 `Sort` 对齐。
+3. **G-58 / G-59 大消去** —— 只对「单构造子 + 字段全在 Prop」的 **sub-singleton** 开；
+   **`Or` 这种多构造子 Prop 归纳仍不许**消去到 Type（**反向判据**）。
+4. **ST6（传递闭包）/ ST7（秩）真落地**；ST9 / ST11 能落就落，落不了**如实说是卡在哪一层**。
+
+## ⭐ 本轮拿到的**新精确机制**（比本文档早先版本准，优先看这段）
+
+**复现**（`end` 必须有）：上述 4 行 ⇒
+`kernel-rejected: assertion left == right failed (left: 0 / right: 1)` ✓。
+
+**调用栈**（把 `crates/kernel/src/util.rs` 的**静默 panic hook** ——
+`try_check_declar_at` 里的 `std::panic::set_hook(Box::new(|_| {}))` —— 临时换成打
+`std::backtrace::Backtrace::force_capture()` 就能拿到）：
+```
+subst_expr_levels (expr.rs:383)  ←  assert_nonnested_recursors_def_eq (inductive.rs:1692)
+                                 ←  check_inductive_declar
+```
+⚠ **`expr.rs:383` 在 `if ks == vs || self.read_levels(ks).is_empty()` 这个短路块里** ⇒
+只要 `ks` 的**指针**等于 `vs`（或 `ks` 空），它就**总是**求值 ⇒ panic 位置**不代表**根因 ✓。
+
+**精确行 = `inductive.rs:1705`**：
+`self.ctx.subst_expr_levels(old.info().ty, old.info().uparams, st.rec_uparams.unwrap())`
+—— 拿**环境里那份同名递归子**的 `uparams` 去代入**新块要用的** `rec_uparams`。
+
+⚠ **`left: 0 / right: 1` 的真实含义**：`left` = `old.info().uparams` **为空** ⇒
+**`Acc` 递归子在环境里的那份 `uparams` 是空的**；`right` = `st.rec_uparams` 有 1 个
+⇒ **两个来源的 universe 参数表不一致** ✗。
+
+**⇒ 为什么"放宽 uniform 检查"必然没用**（上一轮已实测，这里给出原因）：
+`Acc α r y` 的 `args_rev.len() = 3 > num_params = 2` ⇒ `inductive.rs:168` 的卫为**假**
+⇒ 整支**跳过**（既不检查、也不判红）⇒ **判红根本不在 uniform 那一层** ✓。
+
+**下一刀的两个方向**（**都要先量、不许猜** ✗）：
+① `old.info().uparams` 为什么是空的 —— `Acc` 是**本次新声明**（不是 import），
+所以这个"old"是**检查过程中先前一步写进环境的那份** ⇒ 查清写进去时 `uparams` 怎么算的；
+② `st.rec_uparams` 怎么来的 ⇒ `mk_recursor_aux`（`inductive.rs:1727`）。
+
+## 四道保险（用户重申）
+
+内核 commit **单独** · 三件套（三层回归 / 全语料对拍 / `--json` 逐字节不变）**实测数字贴 message** ·
+`grep '@@@'` 查插桩残留（**我这次插桩已完整还原**：`git diff crates/kernel/` 空 + `@@@` 0 处 ✓）·
+**不许硬凑 / 不许为绿色改判据 / 不许压低难度**。
+
+**反向判据（缺一条不算做成）**：参数位变化的出现**仍判红** · 指标位里含递归出现**仍判红** ·
+**多构造子 Prop 归纳（如 `Or`）仍不许**消去到 Type · 现有全语料对拍**零差异**（除新增 `Acc` 相关）。
+
+**分支与落地**：`kernel/acc-indexed-families`，**推分支跑 CI**（`concurrency.group: ci-${{ github.ref }}`
+按 ref 隔离 ⇒ **不会取消 main 的 run** ✓，本档 §1 已实测过同类 ✓）；真绿再合 main；
+落地后 bump **v0.79.0「良基递归」** ✓。
+

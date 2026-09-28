@@ -23,6 +23,20 @@
 # "良基递归可用"**，区别只是它由归纳类型给还是由公理给。
 set -uo pipefail
 
+# ── **2026-09-28 追加：索引族形态（第二道门）** ──────────────────────────────
+# `G56-acc-indexed-family.sh` 覆盖**另一个形状**（指标位含递归出现）：
+#   `inductive Acc (α : Type) (r : α → α → Prop) : α → Prop` + `ctor intro … : Acc α r x`
+# 它走的**不是** uniform 检查（`args_rev.len()=3 > num_params=2` ⇒ 卫为假 ⇒ 跳过 ✓），
+# 而是 `inductive.rs:1705` 的 `assert_nonnested_recursors_def_eq`
+# （`old.info().uparams` **空** vs `st.rec_uparams` **1 个**）⇒ 判红原文
+# `assertion left == right failed (left: 0 / right: 1)` ✓。
+# ⇒ **两道门都要过**才算缺口修好，所以这里**依次**跑两份 ✓。
+here=$(cd "$(dirname "$0")" && pwd)
+"$here/G56-acc-indexed-family.sh"; fam=$?
+if [ "$fam" -ne 0 ]; then
+  echo "G-56：⚠ **索引族那道门已变**（G56-acc-indexed-family.sh exit=$fam）⇒ 形态变了，回来更新本脚本" >&2
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT"
 

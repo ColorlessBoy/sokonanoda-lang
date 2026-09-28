@@ -7,7 +7,7 @@
     "docs/LESSONS.md": 556,
     "docs/PERF.md": 715,
     "docs/RELEASE.md": 187,
-    "docs/STATUS-ARCHIVE.md": 9,
+    "docs/STATUS-ARCHIVE.md": 38,
     "docs/TESTING.md": 279,
     "docs/architecture.md": 750,
     "docs/design/abbrev.md": 156,
@@ -119,13 +119,13 @@
     ],
     "onboarding_max_lines": 1220,
     "layer_max_lines": {
-      "L0": 1855,
+      "L0": 1856,
       "L1": 9013,
       "L2": 20170,
       "L3": 5330
     },
     "_measured": {
-      "L0": 1855,
+      "L0": 1856,
       "L1": 7008,
       "L2": 20170,
       "L3": 5330,

@@ -28,35 +28,6 @@
   （那一档**没有**旧写法歧义 ✓）；放宽要先能判定"旧写法是否良型"（Lean 用元变量 ✗）。
 - ⚠ **本轮的工作方式教训（耗时账 / CI 被顶掉 / clippy 被本地门禁抓到）** ⇒ 见下面「未决项」✓
 
-## 第 490 轮（2026-09-28）：G-56/G-64 内核可行性探针（**两道门都定死，都不修**）+ 交接书
-
-- **用户授权**：Acc 那条内核活「肯定要做」⇒ 派了两轮有界探针（**时间盒 2–3 轮，已用满**）。
-  **结论：带索引归纳类型有两道门，本版两条都不修**（用户：不可行 ⇒ 登记 +
-  补 ST15 清单，**登记本身就是交付物，不许硬凑**）✓。
-- **写法 A（下标写块头）⇒ G-56**：判定本体 `inductive.rs:153`（唯一调用点 `:44`，前端零镜像）。
-  **插桩把机制钉死了**：卫 `args_rev.len() <= num_params` 对 `Acc` **为假 ⇒ 完全跳过**；
-  **判红其实来自另一个块**（`num_params=3`、单构造子、实参 `Var(4)·Var(3)·Var(1)` 期望 `4,3,2`）。
-  ⚠ **放宽不是挪一个比较符**：改成 `>=`（只校验前 `num_params` 个实参）**打破了原本能过的块**
-  （它靠"跳过"过关）⇒ 实测判红 ⇒ 正解要**区分参数位与指标位两段语义**。
-- **写法 B（下标写返回位，Lean 官方写法）⇒ G-64**：**过了 uniform 与 `SPEC0`**
-  （实测 `local_params.len=2 indices.len=1` ✓）—— 只剩最后一步，比写法 A **窄得多**。
-  卡在 `expr.rs:381` `subst_expr_levels` 的 `assert_eq!(ks.len(), vs.len())`（`left: 0 / right: 1`）。
-  **定位手法**：内核 `try_check_declar_at`（`util.rs:674`）**自己装了静默 hook** 吞栈 ⇒
-  改那个 hook 打 `Backtrace::force_capture()` 才拿到（改 `main.rs` 会被 `quiet()` 覆盖 ✗）。
-- **第 2 轮（最后一次）**：定死**不是调用方传错，是断言对「无可代入」那一支写得过强**
-  （`ks` 空 ⇒ 原样返回；`vs` 多出的层级**没有消费者**）。**已验证修法**（实测有效、**未合入**）：
-  `ks.is_empty()` 单独提前返回、保留 `ks` 非空时的长度断言（**反向判据**：真不匹配仍判红 ✓）。
-  改完 `left: 0 / right: 1` **消失** ✓，但 variant ② **换成 G-59 的判红**（motive 被钉在 `Sort 0`）
-  ⇒ **G-64 是第一道门、G-59 是下一道** ⇒ 时间盒用满，**停手**。
-- **红线** ✓：**内核零改动**（`git diff crates/kernel/` 为空）· `grep '@@@' crates/kernel/src/` **0 处** ✓。
-- **交付** ✓：**新登记 G-64**（`expr.rs:383` 的断言 + 触发形状 + `left/right` 含义 + 已验证修法）·
-  G-56 机制补全 · ST15 清单同步（现 **3 blocker + 5 painful**）·
-  **交接书 `docs/HANDOFF-0.77.md`**（状态 / 两道门 / 下一步 / 硬规则 / 本轮 5 个坑）。
-- **v0.77.0 已发布** ✓（tag `v0.77.0`；release `36382099817` **11/11 success**；
-  发版依据轮 `36378945287` ⇒ `ci-green.py` **exit 0**）。
-  ⚠ 发版轮那条红是 **`keystroke_recompile_closure` 的绝对毫秒判据跨机不可转移**（同代码 44ms↔2431ms）
-  ⇒ 已换成**同机比值 + 宽天花板**并记入 `docs/CI-FAILURES.md` ✓。
-
 ## 第 491 轮（2026-09-28）：**ST16–ST19 收口**（v1 保留的四项）
 
 - **用户拍板**：「ST16/ST18/ST19 收完 ⇒ 本地 `soko gate` exit 0 ⇒ bump `v0.77.1`」
@@ -181,6 +152,36 @@
   （下一步与候选机制见交接单 §4.2）。
 - **⬜ 未完成**（交接单 §4）：e2e ledger 落后守卫（判据已想清）· 两个假红（候选机制未验证）✓。
 - **门禁** ✓：`docs-lint` ✓（含 ⑦）· `plan.py check` ✓ · **内核零改动** ✓ · 工作区干净 ✓。
+
+## 第 495 轮（2026-09-28）：**转内核 · `Acc` 索引族**（机制定死，交接 `docs/HANDOFF-0.78.md`）
+
+- **用户拍板**：「**卡内核的，改内核就好了嘛** ⇒ **不要再停在"登记完成"**。登记只是把门找到，
+  现在门要**打开**」「**X2 让路**（当前这步收个尾就停）」⇒ 本节起头号优先级 = **内核** ✓。
+- **X2 收尾（3/5）✓**：剩余 §3 / §4 写进交接单与 PLAN ✓；**探针零幽灵** ✓
+  （两个 worktree 物理删除、三个探针分支全清、远端只剩 `main`；**原有分支一个没动** ✓）。
+- **内核：拿到精确机制（本轮最大产出）**。复现 4 行（`end` 必须有）：
+  `inductive Acc (α : Type) (r : α → α → Prop) : α → Prop` +
+  `ctor intro (x : α) (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x` ⇒
+  **`kernel-rejected: assertion left == right failed (left: 0 / right: 1)`** ✓。
+  **调用栈**（把 `util.rs` 的**静默 panic hook** 临时换成 `Backtrace::force_capture()` 拿到）：
+  `subst_expr_levels (expr.rs:383)` ← **`assert_nonnested_recursors_def_eq`（`inductive.rs:1692`）**
+  ← `check_inductive_declar` ✓。
+  **精确行 = `inductive.rs:1705`**：`subst_expr_levels(old.info().ty, old.info().uparams,
+  st.rec_uparams.unwrap())` ⇒ ⚠ **`left: 0 / right: 1` 的真义** = **`Acc` 递归子在环境里的
+  `uparams` 是空的**，而新块要用的 `rec_uparams` 有 **1** 个 ⇒ **两个来源不一致** ✗
+  （比上一轮"读者/写者"的猜测准得多 ✓）。
+- ⚠ **由此解释了为什么"放宽 uniform 检查"必然没用**：`Acc α r y` 的 `args_rev.len() = 3 >
+  num_params = 2` ⇒ `inductive.rs:168` 的卫为**假** ⇒ 整支**跳过**（既不检查也不判红）
+  ⇒ **判红根本不在 uniform 那一层** ✓。
+- **两道门都进了门禁** ✓：新复现件 `docs/gaps/repro/G56-acc-indexed-family.sh`
+  （含**对照组 `Box`**：参数位归纳必须**仍过** ✓）**链进**已注册的
+  `G56-acc-well-founded-recursion.sh` ⇒ 两份依次跑，**任一形态变了都会报** ✓；
+  `gap.py check` 全一致 ✓。
+- **红线** ✓：插桩**已完整还原**（`git diff crates/kernel/` 空 · `@@@` **0 处**）✓；
+  分枝 `kernel/acc-indexed-families` 已开（本地）✓。
+- **下一刀的两个方向**（**都要先量、不许猜**）：① `old.info().uparams` 为什么空
+  （`Acc` 是本次新声明 ⇒ 那个"old"是检查过程中先前写进环境的）；
+  ② `st.rec_uparams` 怎么来的（`mk_recursor_aux`，`inductive.rs:1727`）✓。
 
 ## 未决项
 
