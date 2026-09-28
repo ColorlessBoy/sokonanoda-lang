@@ -364,25 +364,33 @@ pub fn units_for_modules<'a>(
         .collect()
 }
 
-pub fn compile_plan_with_progress(
-    mut plan: ProjectPlan,
-    options: &CompileOptions,
-    progress: Option<&mut dyn crate::compile::ProgressSink>,
-) -> ProjectReport {
-    let entry_path = plan.entry.clone();
-    let root = plan.root.clone();
-    let manifest_path = plan.manifest.clone();
-    let requires_warning = plan.requires_warning.clone();
-    let mut diagnostics = std::mem::take(&mut plan.diagnostics);
-    let mut closure = plan.closure;
-    diagnostics.append(&mut closure.diagnostics);
+/// **切片 1b**：把「编」与「组装」分开 —— session 可用**预算结果**替换「编」
+/// （库层只编一次、各入口复用同一套 DAG）。组装段**逐字**搬自原 `compile_plan_with_progress`。
+pub(crate) struct PlanCompiled {
+    pub compilable: Vec<usize>,
+    pub flat_out: CompileOutput,
+    pub reports: Vec<DocumentReport>,
+    pub closure: crate::project::graph::Closure,
+    pub diagnostics: Vec<ProjectDiagnostic>,
+    pub entry_path: std::path::PathBuf,
+    pub root: std::path::PathBuf,
+    pub manifest_path: Option<PathBuf>,
+    pub requires_warning: Option<String>,
+}
 
-    // 3) 闭包级检查：重名 + prelude 冲突（都在入内核之前拦下，避免内核文案）。
-    check_name_collisions(&mut closure, &mut diagnostics);
-    check_prelude_conflicts(&closure, options, &mut diagnostics);
-
-    // 4) 只编译未被阻断的模块（拓扑序，入口在最后）。
-    let compilable = closure.compilable();
+pub(crate) fn assemble_report(c: PlanCompiled) -> ProjectReport {
+    let PlanCompiled {
+        compilable,
+        flat_out,
+        reports,
+        closure,
+        mut diagnostics,
+        entry_path,
+        root,
+        manifest_path,
+        requires_warning,
+    } = c;
+    // `units` 借用 `closure` ⇒ 不能与它同处一个结构体（自引用 ✗）；这里**重建**（与编段同构）。
     let units: Vec<SourceUnit<'_>> = compilable
         .iter()
         .map(|&index| SourceUnit {
@@ -391,9 +399,6 @@ pub fn compile_plan_with_progress(
             file: &closure.modules[index].file,
         })
         .collect();
-    let (flat_out, reports) =
-        crate::compile::compile_all_units_with_progress(&units, options, progress);
-
     // 5) 逐模块事件（扁平事件按单元区间切分，`cmd` 重基到模块内）。
     //    被阻断的模块不编译，但**仍然出现在报告里**（入口永远在最后，
     //    否则入口的阻塞诊断无处安放）。
@@ -480,6 +485,49 @@ pub fn compile_plan_with_progress(
     };
     project.attach_diagnostics();
     project
+}
+
+pub fn compile_plan_with_progress(
+    mut plan: ProjectPlan,
+    options: &CompileOptions,
+    progress: Option<&mut dyn crate::compile::ProgressSink>,
+) -> ProjectReport {
+    let entry_path = plan.entry.clone();
+    let root = plan.root.clone();
+    let manifest_path = plan.manifest.clone();
+    let requires_warning = plan.requires_warning.clone();
+    let mut diagnostics = std::mem::take(&mut plan.diagnostics);
+    let mut closure = plan.closure;
+    diagnostics.append(&mut closure.diagnostics);
+
+    // 3) 闭包级检查：重名 + prelude 冲突（都在入内核之前拦下，避免内核文案）。
+    check_name_collisions(&mut closure, &mut diagnostics);
+    check_prelude_conflicts(&closure, options, &mut diagnostics);
+
+    // 4) 只编译未被阻断的模块（拓扑序，入口在最后）。
+    let compilable = closure.compilable();
+    let units: Vec<SourceUnit<'_>> = compilable
+        .iter()
+        .map(|&index| SourceUnit {
+            name: &closure.modules[index].name,
+            path: Some(closure.modules[index].path.as_path()),
+            file: &closure.modules[index].file,
+        })
+        .collect();
+
+    let (flat_out, reports) =
+        crate::compile::compile_all_units_with_progress(&units, options, progress);
+    assemble_report(PlanCompiled {
+        compilable,
+        flat_out,
+        reports,
+        closure,
+        diagnostics,
+        entry_path,
+        root,
+        manifest_path,
+        requires_warning,
+    })
 }
 
 /// 顶层名字在闭包里必须唯一：第二个声明它的模块报 `import-name-collision`。
