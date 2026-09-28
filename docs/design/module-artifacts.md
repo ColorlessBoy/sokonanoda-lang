@@ -130,17 +130,10 @@ key(M) = H( format, 编译器版本, build stamp, prelude 模式,
 4. ⇒ **单元之间从不共处一个环境**（09-25 假"重复声明"的结构性根因消失），
    **前缀也不膨胀**（每个入口的前缀仍是它自己的闭包），而**共享库只编一次**。
 **判据（`crates/front/tests/module_reuse.rs`）**：① 复用路径 vs 今天逐入口路径的报告/事件
-**逐字节相同**（错编红线，唯一验收口径）· ② `by_calls` **3 → 1**（`check-recompile-factor.py`
-同口径；**改前实测 = 3**）· ③ **改依赖一行 ⇒ 必 miss 重编**（反例）· ④ 入口顺序交换结果不变 ·
+**逐字节相同**（错编红线，唯一验收口径）· ② `by_calls` **3 → 1**（`check-recompile-factor.py`同口径；**改前实测 = 3**）· ③ **改依赖一行 ⇒ 必 miss 重编**（反例）· ④ 入口顺序交换结果不变 ·
 ⑤ 真课程 **174 → ?** / **222.1s → ?**。
-**待实验回答的唯一未知**：walk 的前端表（`known`/`inductives`/`defs`）能否跨入口复用，还是必须逐入口重建
-（① 会直接给出答案）。
-**已落地的三刀（2026-09-28，全部实测行为零变化、内核零改动）**：
-① `Walked.builder` 改借用 + `finish_pass` 用 `builder.with_env` **借出**环境（不再消费 builder）； ② 影子环境改 `Option<EnvBuilder>`（解开"影子重放主 arena 的 `Declar` ⇒ 两套环境被 `ops` 焊死"）； ③ **`run_pass_with(builder, shadow, …) -> (PassResult, EnvBuilder<'a>)`**（`'a: 's`；`units: &'a [SourceUnit<'a>]`；
-`PassResult` 已 `pub(crate)`）。⚠ `Walk` 的生命周期方向必须是 **`<'arena: 'shadow, 'shadow>`**（主环境寿命 ⊇ 影子；
-反过来 `walk.rs:230` 报 `lifetime may not live long enough`）。
-判据：`clippy --all-targets` exit 0 · fmt ✓ · front lib **757 passed** · CLI imports **21 passed** ·
-`check-recompile-factor.py` 仍 **`by_calls=3`**（这三刀不改行为）。
+**待实验回答的唯一未知**：walk 的前端表（`known`/`inductives`/`defs`）能否跨入口复用，还是必须逐入口重建（① 会直接给出答案）。
+**已落地的三刀**（`27ebca0e`/`58c7b239`/`b3104132`，各自 commit message 有细节）：① `finish_pass` 借出环境；② 影子改 `Option`；③ `run_pass_with(builder, shadow, …) -> (PassResult, EnvBuilder<'a>)`（`Walk<'arena: 'shadow, 'shadow>` 方向是关键）。判据：clippy exit 0 · fmt ✓ · front 757 · CLI imports 21 · `by_calls=3`。
 
 ⚠ **session 不能"自持 arena + builder"**（自引用结构 ✗）⇒ 用**闭包式 API**：
 `with_project_session(|s| { …整个 build 循环… })` —— arena 是它体内的局部、builder 借用它 ✓；
@@ -148,3 +141,10 @@ key(M) = H( format, 编译器版本, build stamp, prelude 模式,
 **下一步（只剩"用起来"，无结构未知）**：`ProjectSession`（新文件 `crates/front/src/project/session.rs`）——
 session 持 arena + builder ⇒ 库层**编一次** ⇒ `hide_declars()` 留检查点 ⇒ 每个入口 `restore_declars(检查点)`
 → 用**该入口自己的 units** 调 `run_pass_with` → 编完 `hide_declars()` ⇒ 跑 ① 逐字节等价 → ② `by_calls` 3 → 1 → ③ 改依赖必 miss → ⑤ 真课程 174 → 42 / 222.1s → ?。
+
+**session 的接口形状（定型，2026-09-28）**：front **不能命名** kernel 的 `pub(crate)` 别名 `DeclarMap`
+⇒ 检查点不能进具名字段 ⇒ **把"库层 + 各入口"的循环整个放进 session 函数体**，检查点只做**局部变量**：
+`with_project_session(lib_units, entries, options, on_entry)` —— 内部 `run_pass_with(lib)` 编库层一次 →
+`let checkpoint = builder.hide_declars();` → 每个入口 `restore_declars(checkpoint.clone())` → 只跑该入口的 units
+→ `drop(builder.hide_declars())`（单元从不共处一个环境）→ 回调交出 `PassResult`。
+配套：`compile/mod.rs:23` 的 re-export 加 `run_pass_with, PassResult`（**必须与 session.rs 同批**，否则 unused-import 判红）；`project/mod.rs` 加 `pub mod session;`；`crates/cli/src/build.rs:295` 改传 session。
