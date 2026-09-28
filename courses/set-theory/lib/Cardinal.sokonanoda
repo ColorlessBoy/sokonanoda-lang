@@ -1,0 +1,108 @@
+-- Cardinal.sokonanoda —— 卷 I 的**基数**（ST10，v0.77.0）
+--
+-- **定位**：基数是**类型的商** —— `Cardinal := Quot (类型等价关系)`。
+-- 这正是 ST2 把 `Quot` 装进 prelude 的**第一个实战检验** ✓，也与 ST1 决策记录
+-- 结论 ③ 一致：「基数必须有商」（Mathlib `Cardinal := Quotient Cardinal.isEquivalent`）。
+--
+-- **基准**（逐条实查，出处见 `docs/design/v077-st1-boundary.md` §2）：
+--   Mathlib `Mathlib/SetTheory/Cardinal/Defs.lean`：
+--       instance Cardinal.isEquivalent : Setoid (Type u) where
+--         r α β := Nonempty (α ≃ β)
+--       def Cardinal : Type (u + 1) := Quotient Cardinal.isEquivalent
+--       def mk : Type u → Cardinal := Quotient.mk'
+--   ⚠ **我们与 Mathlib 的一处不同**（有意）：Mathlib 的 `r α β` 是
+--   `Nonempty (α ≃ β)`（"存在双射"，**Prop**）；本语言**没有 `Nonempty`**、
+--   也没有 `≃`（L-06：`Surjective f ⇒ ∃ g, RightInverse g f` 证不出来）
+--   ⇒ 我们用**数据版**等价（一对互逆函数 + 两条互逆律，与 `lib/Equiv` 的
+--   `Set.Equiv` 同一种打包）✓。
+--
+-- **为什么不用 `Quotient`/`Setoid`**（Lean core 的两个包装）：它们需要
+-- **单构造子的 η**（`Setoid.mk s.r s.iseqv = s`）才能让 `Quotient s` 与 `Quot s.r`
+-- 定义相等，而本语言**没有 η**（实测：`def eta_test (b : Box α) : Box.get α b = b :=
+-- Eq.refl …` ⇒ `kernel-rejected` /「期望 `$1`，实际是 `(Box.[] $1)`」）
+-- ⇒ 那两个包装层今天做不出来 ⇒ **登记 G-61**，本文件**直接用 `Quot`** ✓。
+--
+-- **分层判据**（docs/design/course-stdlib.md）：本文件是 **L2（词汇 + 定义展开）**。
+-- 有数学内容的（Cantor 定理、Schröder–Bernstein、基数算术）属 **L3**，留作练习 ✗。
+import lib.Logic
+import lib.Exists
+import lib.Fun
+
+-- ── 类型等价（数据版：一对互逆函数 + 两条互逆律）────────────────────────────
+-- ⚠ **写法说明（G-30 同族，实测踩过两次）**：
+--   ① `Type.Equiv α β` 是 **def** ⇒ 当**期望类型**时**不会**自动展开成 `∃`，
+--      而 `⟨…⟩`/`Exists.intro` 只认归纳类型 ⇒ 构造这种值必须**先把展开形式
+--      证明出来**，再用 `Type.Equiv.iff` 折回 `def` 形态 ✓；
+--   ② 嵌套 `Exists.elim` 的括号极易少一个（实测：`trans` 少一个 `)` ⇒
+--      整份文件 `expected ')'`、且报错指向**下一行的 `def`**，极难定位 ✗）
+--      ⇒ 三条等价律一律写成**先展开、再 `Iff.mpr` 折回**的两段式 ✓。
+def Type.Equiv (α β : Type) : Prop :=
+  ∃ (f : α → β), ∃ (g : β → α),
+    (∀ (a : α), g (f a) = a) ∧ (∀ (b : β), f (g b) = b)
+
+-- 展开引理（L2）：把 `def` 形态与展开形态来回搬
+theorem Type.Equiv.iff (α β : Type) :
+    Type.Equiv α β ↔ ∃ (f : α → β), ∃ (g : β → α),
+      (∀ (a : α), g (f a) = a) ∧ (∀ (b : β), f (g b) = b) :=
+  Iff.intro
+    (fun (h : Type.Equiv α β) => h)
+    (fun (h : ∃ (f : α → β), ∃ (g : β → α),
+        (∀ (a : α), g (f a) = a) ∧ (∀ (b : β), f (g b) = b)) => h)
+
+-- ── 三条等价律：**本版不做**（登记 G-62）────────────────────────────────────
+-- `Type.Equiv.refl` / `.symm` / `.trans` 三条**写不出来**：它们要构造嵌套 `∃`，
+-- 而 `Type.Equiv` 是 **def**（期望类型不展开）+ 本语言**没有元变量/隐式实参插入**
+-- ⇒ 实测三种写法都判红：
+--   · 直接 `exact Exists.intro …`（展开形态；soko:notation-ok: 讨论写法本身必须点名）⇒「期望 `Type.Equiv α α`，实际是
+--     `Exists (α → α) …`」（def 与展开形态**不同一**）；
+--   · `Iff.mpr (Type.Equiv.iff …)` 折回 ⇒「期望 `Type.Equiv α α`，实际是
+--     `Type.Equiv α α`」（**同字面**却判不等 —— 两边的宇宙/实例化不同）；
+--   · 加 `by exact` ⇒ 同上。
+-- ⇒ **登记 G-62**；本文件只用 `Type.Equiv`（不需要它的三条律）✓。
+-- ⚠ 这对 `Cardinal` 的核心**无影响**：`Quot` 只要求关系**成立**（`Quot.sound` 是
+-- 公理），不要求我们**证明**它是等价关系 ✓。
+
+-- ── **基数 = 类型的商**（本档的核心；用上 ST2 装好的 `Quot`）────────────────
+-- `Cardinal : Type 1` —— 与 Mathlib 的 `Cardinal.{0} : Type 1` 位置一致 ✓。
+-- ⚠ **两处实测坑（都写在这里，免得后来者重复踩）**：
+--   ① `Quot.{2} ((Type)) Type.Equiv` 会被 parse 成「`Quot.{2}` 只吃一个实参、
+--      后面是多余 token」⇒ 关系必须写成**字面 λ**（`fun (x : Type) (y : Type) =>
+--      Type.Equiv x y`）✓；
+--   ② 宇宙：`Type : Sort 2` ⇒ 要 `Quot.{2}`（`Quot.{u}` 取 `A : Sort u`、
+--      返回 `Sort u`）⇒ `Quot.{2} ((Type)) … : Sort 2 = Type 1` ✓。
+def Cardinal : Type 1 :=
+  Quot.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y)
+
+-- 一个类型的基数（Mathlib 的 `Cardinal.mk` / `#α`；记法 `#` 本版不做 —— 见文件尾）
+def Cardinal.mk (α : Type) : Cardinal :=
+  Quot.mk.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y) α
+
+-- ── `Quot.sound` 的直接实例（**这就是"商"给的回报**）────────────────────────
+-- 等价的类型**基数相等** —— 证明是一行：`Quot.sound` 就是那条公理 ✓。
+theorem Cardinal.sound (α β : Type) (h : Type.Equiv α β) :
+    Cardinal.mk α = Cardinal.mk β :=
+  Quot.sound.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y) α β h
+
+-- ── `Quot.lift` 的实例：**从类型出发的函数降到商上** ────────────────────────
+-- 这是 `Cardinal` 上一切构造（算术、序）的模板：给出一个对类型定义的函数 `f`
+-- 与"它尊重等价"的证明，就得到 `Cardinal → β` 的函数 ✓。
+-- ⚠ 这条**依赖 `Quot.lift` 的 iota 归约**（ST2 的 `Declar::Quot`）——
+-- 判据见 `Cardinal.lift_mk`（`Eq.refl` 级，算不出来就判红）✓。
+def Cardinal.lift (β : Type) (f : Type → β)
+    (h : ∀ (α₁ α₂ : Type), Type.Equiv α₁ α₂ → f α₁ = f α₂) :
+    Cardinal → β :=
+  Quot.lift.{2, 1} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y) β f h
+
+-- L2 展开引理：`Cardinal.lift f h (Cardinal.mk α)` 算成 `f α`（`Eq.refl` 判过 ⇒
+-- 归约真的发生 ✓ —— 这正是 ST2 判据的实战检验）
+theorem Cardinal.lift_mk (β : Type) (f : Type → β)
+    (h : ∀ (α₁ α₂ : Type), Type.Equiv α₁ α₂ → f α₁ = f α₂) (α : Type) :
+    Cardinal.lift β f h (Cardinal.mk α) = f α :=
+  Eq.refl.{1} β (f α)
+
+-- ── 本版不做（记在这里，免得后来者重复踩）──────────────────────────────────
+-- · `#α` 记法：`#` 是**词法级的行注释起点** ⇒ `scoped prefix "#"` 会撞词法 ✗；
+-- · `Cardinal.ord` / `Cardinal.aleph0` / 基数算术：要**序数**上的函数 ⇒ L3 或后续；
+-- · Mathlib 那个**跨宇宙**的 `Cardinal.lift`（用 `ULift` 处理无累积性）：
+--   本语言没有 `ULift`（要新归纳块）⇒ 本文件的 `Cardinal.lift` 是**降函数**
+--   （`Cardinal → β`），**不是** Mathlib 的宇宙提升 —— 名字**有意复用但语义不同** ✓。

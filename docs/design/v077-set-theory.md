@@ -117,6 +117,10 @@
 - **ST9** **超限递归**（含按序数三情形的递归）。基准：Isabelle §1.5 + §2.13。
   **撞点**：结构递归（`Nat.rec` 之外）。
 - **ST10** **基数**（`Cardinal = Quotient of Equiv`；`lift`）。
+  ✅ **已完成（2026-09-28）**：`lib/Cardinal.sokonanoda` 7 条全 checked（ST2 的 `Quot` 第一次实战 ✓）。
+  ⚠ **三条新缺口**：G-61（没有 η ⇒ `Quotient`/`Setoid` 包装做不出来）、G-62（def/展开不同一 ⇒ 三条等价律）、
+  G-63（`Quot.lift` 的宇宙实参难对准；**实测推翻**「Quot 消去只进 Prop」的初判 —— `Quot.lift.{1, 2}` 能进 `Type` ✓）。
+  **基数算术**属 L3/后续 ⇒ ST15 清单。
   基准：Mathlib `Cardinal/Defs`；Isabelle §2.7。**撞点**：**需要商（ST2）**。
 - **ST11** **序型 ordertype · Aleph 序列 · ω₁ · Cantor 正规形**。
   基准：Isabelle §2.8/2.20/2.21/§3。**撞点**：序数算术。

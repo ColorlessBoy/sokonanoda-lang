@@ -110,6 +110,35 @@
 - **结论与下一步** ✓：G-56 那四个环节（ST6/ST7/ST9/ST11）**本版不做**、留给 ST15；
   按用户决策规则**直接开 ST3/ST4/ST5**（按 ST1 结论只差 binder 记法、不需要任何新机制）。
 
+## 第 488 轮（2026-09-28）：ST3 / ST4 / ST5 / ST8 / ST10 —— **五章收口** + 四条新缺口（G-60…G-63）
+
+- **用户拍板顺序**：「① 先推进不依赖 Acc 的：ST8 → ST10 → ST12 → ST13 → ST14 → ST15；
+  ② 撞墙的一律不硬做，登记进台账 + 进 ST15 清单（**登记本身就是交付物**）；
+  ③ 卡住的四项（ST6/ST7/ST9/ST11）放到最后，别自己开工」。本轮按此推进 ✓。
+- **ST3 分离** ✓：`lib/Set` 新增 `Set.sep` + `mem_sep_iff`/`sep_subset`/`sep_self`。
+  ⚠ **记法那一半做不到** ⇒ 新登记 **G-60**（`{x | P x}` ⇒ `set-literal-shape`；
+  `{x : α | x ∈ A}` ⇒ `unexpected-token`「found Pipe」；根因：六种记法形状里**没有
+  「操作数在括号里」**，且 `{` 被判成 binder 组）⇒ 课程点名写 `Set.sep` ✓。
+- **ST4 集族并交** ✓：**新模块** `lib/SUnion`（`Set.sUnion`/`Set.sInter` + 四条展开引理 +
+  **记法 `⋃₀`/`⋂₀`**）。**有意偏离 Mathlib**：按**依赖**拆模块（无限并要 `∃`，
+  而 `lib/Set` 不 import `Exists`）⇒ 理由写进文件头 ✓。
+- **ST5 不交并 / 函数空间** ✓：**新模块** `lib/Sum`（+ 记法 `⊕`）；`lib/Fun` 增 `Set.pi`
+  + `Set.mem_pi`（**不另立** `Set.funSpace` —— 非依赖版就是 `Set.pi s (fun _ => t)` ✓）。
+- **ST8 序数（谓词式）** ✓：**新模块** `lib/Ordinal`（7 定义 + 3 条 L2 引理），**零新类型**。
+  ⚠ 与 Isabelle 的**两处有意不同**写进文件头：① Isabelle 的 `Ord` **不含良基性**（靠全局
+  公理 `foundation`），我们**显式写进 `IsOrdinal`**（本语言没有那条公理、也没有 `Acc`）；
+  ② `Transset` 用 `E` 的传递性而非子集序 ✓。
+- **ST10 基数（类型的商）** ✓：**新模块** `lib/Cardinal`，**7 条全 checked**（含 `Cardinal.sound`
+  = `Quot.sound` 直接实例、`Cardinal.lift_mk` = `Eq.refl` 级 ⇒ **ST2 的归约真的发生** ✓）
+  —— **ST2 的 `Quot` 第一次实战检验通过** ✓。
+  ⚠ **三条新缺口**（ST15 条目）：**G-61** 没有 η ⇒ `Quotient`/`Setoid` 包装做不出来；
+  **G-62** def/展开不同一 ⇒ `Type.Equiv` 三条等价律写不出来（核心不受影响）；
+  **G-63** `Quot.lift` 宇宙实参对不上内核签名 —— ⚠ **实测推翻「Quot 消去只进 Prop」的初判**
+  ✗✓（`Quot.lift.{1, 2}` **能**进 `Type` ✓）⇒ 是**实参难对准**，不是缺能力。
+- **门禁** ✓：课程 **40 目标 · 360 checked · 99 open · 0 判负**；`notation-lint` OK；
+  `scripts/gap.py check` 全部与台账一致（G-56…G-63 八条 open 全带复现件）；
+  `scripts/soko gate` **exit 0** ✓。
+
 ## 未决项
 
 - ✅ **清理推送 CI 全绿** ✓（`42be634` ✓ · **绿 28 · 红 0 · skipped 1** ✓ —— 只有 `fast-fail` ✓，
@@ -151,33 +180,6 @@
 - **本文件受 lint 约束** ✓：`python3 scripts/status-lint.py` ✓（≤200 行 · 禁词 0 · 每段 ≤30 ✓）
 
 ---
-
-## 第 482 轮（2026-09-27）：E21 结案「**不改**」+ E22 **build/rebuild 以项目为目标** ✓（v0.74.0 第 5–6 个）
-
-- **先推后验** ✓：上一会话的 4 个提交（含 E04）rebase 后推上 main ⇒ run **`36321102036`** 逐 job 真绿
-  （28 success · 1 skipped = `fast-fail` 条件 job · 0 failure · **重活 10/10** ✓ `ci-green.py` exit 0）。
-- **E21 = 不改（resolved-no-change）** ✓（`ce0371b` · 状态 `9530851`）：用户 I1 说「theorem 卡片那行
-  『目标 ⊢ A = B』多余」、计划原判是删；**复核推翻前提** —— 那行是**还没证完的目标**（闭合声明本就没有它，
-  实测 `goal=null`；`intro h` 之后变成剩下的 `B`）⇒ 用户拍板保留。行为零改动 + 渲染点写死结论 +
-  **防漂移判据**（`test-webview.js` 的 E21 用例）+ 依据进 `docs/gaps/criteria-census.md`；反向验证：
-  把「目标 == 语句就不画」加回去 ⇒ 判据判红 ✓。
-- **E22** ✓（`b90c0ff`）：判红两半 —— ① `buildTarget()` 取活动文件 ⇒ 只编一个（实测 `files: 1` vs 项目 2）；
-  ② rebuild 的 `--clean` **不带目标** ⇒ 只清全局、项目条目原地不动 ⇒ 紧跟的 build 全是 `hit`（假动作 = R-3/T-B5）
-  ⇒ **G-51**（fixed）。改法：目标 = 服务端 `soko/project` 的**模块根**（不自己找清单；没答上来退回工作区根，
-  **永远是目录**）+ clean 带同一目标。判据：stub 宿主钉 argv（38/38）+ e2e 钉**用户看得见的数字**
-  （`N 个文件` == 项目文件数、`清掉 N` ≥ 1）+ 文档同步；反向验证两半**各自**判红、逐字一致 ✓。
-- 附带 ✓（`1d17818`）：`LSP_CUSTOM_METHODS` 漏了 `soko/project` ⇒ 同步 skill 时被守卫误判；补上后仍咬得住
-  （`soko/bogus` 判红 ✓）。**未决**：E23 · E27–E31 共 **7 个**；门禁 **36/327/99/0** ✓。
-- **E23 + E29** ✓（`3a5e94f` + CLI 事件 `0ad970f`）：build/rebuild 的进度接到**三处同一份**
-  （状态栏逐帧 `3/13 文件 · lib/Set.sokonanoda` / Infoview 三行区 / 概览尺）+ 原生进度条**可取消**
-  （顺手修「完全不能取消」✗）；`runBuildProcess` 流式化，CLI 新增 additive 事件 `build.begin`（带总数）。
-  判据 stub 宿主 39/39（**中间态**逐帧 + `increment > 0` + 取消真 kill）；**反向验证**两处各自判红 ✓。
-  ⚠ 如实记账：设计里的 `{viewId}` 标题栏进度条**未做**（扩展宿主看不见视图 chrome ⇒ 无判据）。
-- ⚠ **上一批 CI 红了一条（已修）** ✗✓：run `36323798295` 的 **e2e (ubuntu 1.138.0)** ——
-  `T-A60-2` 的 1.5s 窗口被**邻居用例迟到的落盘**压红（多出的两条 2101/5174B **不是夹具闭包**：
-  u01 是 155KB 级、`lib/Set` 单独编 26KB 级）⇒ 治法与 T-A60-3 同款：**先等缓存静止再取基线**
-  （`90cb15b`），台账进 `docs/CI-FAILURES.md` ✓。⚠ 那轮最终是 **`cancelled`**（26 success · 1 failure ·
-  2 skipped）—— 不是 `failure` 收尾，**别把它读成"绿过"** ✗。
 
 ## 第 484 轮（2026-09-27 深夜）：🚀 v0.75.0「跳转与高亮」**E05–E08 全 ✅**
 
