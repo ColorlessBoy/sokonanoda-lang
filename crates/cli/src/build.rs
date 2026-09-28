@@ -187,7 +187,7 @@ pub(crate) fn build(
             if json { Some(&mut sink) } else { None };
         let status = std::fs::read_to_string(file)
             .map_err(|e| format!("cannot read: {e}"))
-            .and_then(|src| build_one(file, &src, root, no_project, progress));
+            .and_then(|src| build_one(file, &src, root, no_project, progress, None));
         let status = match status {
             Ok(status) => status,
             Err(message) => {
@@ -263,6 +263,8 @@ fn build_one(
     root: Option<&str>,
     no_project: bool,
     progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink>,
+    // **切片 1b**：由 `with_project_session` 预先算好的结果（`None` = 老路径，自己编）。
+    precomputed: Option<sokonanoda_front::project::ProjectReport>,
 ) -> Result<&'static str, String> {
     let options = CompileOptions {
         prelude: prelude_mode_from_source(src),
@@ -291,8 +293,10 @@ fn build_one(
                 return Ok("hit");
             }
         }
-        let project =
-            sokonanoda_front::project::compile_plan_with_progress(plan, &options, progress);
+        let project = match precomputed {
+            Some(project) => project,
+            None => sokonanoda_front::project::compile_plan_with_progress(plan, &options, progress),
+        };
         let ok = project
             .entry_module()
             .is_none_or(|module| module.events.errors.is_empty())
