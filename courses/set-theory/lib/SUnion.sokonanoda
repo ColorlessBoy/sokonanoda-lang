@@ -1,0 +1,71 @@
+-- SUnion.sokonanoda —— 卷 I 的**集族与无限并/交**（ST4，v0.77.0）
+--
+-- 分层判据（docs/design/course-stdlib.md）：本文件是 **L2（词汇 + 定义展开）**：
+--   · 2 个定义：`Set.sUnion` / `Set.sInter`；
+--   · 4 条定义展开引理：`Set.mem_sUnion_iff` / `Set.mem_sInter_iff` /
+--     `Set.subset_sUnion` / `Set.sInter_subset`。
+-- 有数学内容的（如 `sUnion_pair`、单调性、`sUnion_empty`）属 **L3**，留作单元练习 ✗。
+--
+-- **依赖方向**：`lib/Logic` + `lib/Exists` + `lib/Set`（无限并要用 `∃`）。
+-- 为什么单独一个文件而不是并进 `lib/Set`：`lib/Set` 不 import `Exists`（它只依赖
+-- 语言内建的逻辑符号），而无限并**必须**用存在量化 ⇒ 并进 `Set` 会把 `Exists` 的
+-- 依赖方向拧成环。**Mathlib 里它们是同一个文件**（`Mathlib/Data/Set/Defs.lean`），
+-- 我们按**依赖**拆开 —— 这是有意的偏离，理由记在这里 ✓。
+--
+-- 名字一律用 Loogle 取证版：`Set.sUnion`（不是 `sUnion₀`）、`Set.mem_sUnion_iff`、
+-- `Set.subset_sUnion`、`Set.sInter_subset`（Mathlib 的四个真名）。
+import lib.Logic
+import lib.Exists
+import lib.Set
+
+namespace Set
+
+-- ── 词汇（Mathlib: Mathlib/Data/Set/Defs.lean，逐字同款）────────────────────
+-- `F : Set (Set α)` 是一族集合。
+--   · `⋃₀ F`：**存在**一个 `A ∈ F` 使 `x ∈ A`；
+--   · `⋂₀ F`：对**每个** `A ∈ F` 都有 `x ∈ A`。
+-- 谓词式里这两条就是存在/全称量化，零外挂（ST1 决策记录结论 ① ✓）。
+def sUnion (α : Type) (F : Set (Set α)) : Set α :=
+  fun (x : α) => ∃ (A : Set α), A ∈ F ∧ x ∈ A
+
+def sInter (α : Type) (F : Set (Set α)) : Set α :=
+  fun (x : α) => ∀ (A : Set α), A ∈ F → x ∈ A
+
+-- ── 定义展开引理（L2：Mathlib 里是 `rfl` 或一行，没有数学内容）──────────────
+theorem mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ sUnion α F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_sInter_iff (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ sInter α F ↔ ∀ (A : Set α), A ∈ F → x ∈ A := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+-- 族里的每个 `A` 都包含在 `⋃₀ F` 里。
+-- ⚠ 结论写成**展开形式**（`x ∈ sUnion α F` 会让期望类型头是 `Set.sUnion`，
+-- 而 `⟨…⟩` 只认单构造子归纳）⇒ 展开成 `∃` 之后 `⟨A, h, hx⟩` 才解析得出来 ✓。
+theorem subset_sUnion (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    ∀ (x : α), x ∈ A → ∃ (B : Set α), B ∈ F ∧ x ∈ B := by
+  intro x
+  intro hx
+  exact Exists.intro A (And.intro h hx)
+
+theorem sInter_subset (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    sInter α F ⊆ A := by
+  intro x
+  intro hx
+  exact hx A h
+
+end Set
+
+-- ── 记法（Mathlib: `⋃₀` / `⋂₀`，逐字同款）────────────────────────────────
+-- 与 `lib/Set` 的记法同一套约定：目标名在**使用点**解析 ⇒ 用到就得在作用域里。
+prefix:100 " ⋃₀ " => Set.sUnion
+prefix:100 " ⋂₀ " => Set.sInter

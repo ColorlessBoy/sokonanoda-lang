@@ -93,6 +93,10 @@
   「操作数在括号里」，`binder_notation` 的符号还必须是数学符号）⇒ 课程点名写 `Set.sep` ✓。
 - **ST4** 集族与无限并交（`⋃₀`/`⋂₀`、`Set.sUnion`/`sInter`）。
   基准：Mathlib `coe_sUnion`/`coe_sInter`；Isabelle §2.2/2.3。**撞点**：**L-06**（`Exists` 取不出数据）。
+  ✅ **已完成（2026-09-28）**：**新模块** `lib/SUnion.sokonanoda`（`Set.sUnion`/`Set.sInter`
+  + 四条 L2 展开引理 + **记法 `⋃₀`/`⋂₀`**）；课程门禁 **37 目标 · 337 checked · 99 open · 0 判负** ✓。
+  ⚠ **L-06 的实际影响**：定义与展开引理**不需要**取出数据 ⇒ 本档**没撞上** L-06 ✓；
+  但「取数据的引理」（如 `sUnion` 的成员给出所属集合**并取回**它）会撞 ⇒ 那类属 L3（练习）。
 - **ST5** 有序对 / 广义笛卡尔积 / 不交并 / 广义函数空间与 lambda。
   基准：Isabelle §2.1–2.4；Mathlib `ZFSet.prod`/`funs`。**撞点**：依赖类型 + 隐式参数。
 - **ST6** **传递闭包**。基准：Isabelle §2.5。**撞点**：递归定义（撞 L-06）。
