@@ -66,3 +66,33 @@
 - ⚠ **ST6 / ST7 / ST9 / ST11 = blocked-by-kernel**（**不含糊**）：四条都卡在
   **G-56**（`Acc` 立不起来：`check_uniform_inductive_occurrences_at` 的「参数位/指标位」两段语义
   没做出来）+ **G-58/G-59**（大消去）；**下标写返回位**那条另卡 **G-64**（递归子的宇宙代入）✓。
+## 第 492 轮（2026-09-28）：**v0.78.0 · E17–E18**（perf 台账 + 内核性能结论 + 时序证据守卫）
+
+- **E17 ✅**：台账 **0.68.0 → 0.77.1**（`scripts/perf-ledger.sh`，20 条 case、同 schema）✓。
+  **结论：设计上不可达**（三选一的第一项）⇒ 新文件 `docs/perf/E17-kernel-conclusion.md`（79 行）：
+  - **先证明没退化**：同机/同 profile/同负载、跨 **9 个版本** —— `closure_compile_scaling`
+    **23.37/40.61/76.58 → 23.17/40.90/75.60ms**、`teaching_scale_keystroke`
+    **17.31/22.35/32.90 → 17.28/22.84/32.65ms** ⇒ **全部 ±4% 内** ✓；
+  - **唯一大涨的是真实课程闭包**（`lsp-course/did_open` **9085 → 16889ms**）—— 课程同时
+    **331 → 376 checked** ⇒ **归一后每声明 44.9 → 44.9ms** ✓ **是课程变大不是变慢** ✓；
+  - **为什么不可达**：`docs/PERF.md` 的分阶段 profile 实测 **`by` 判定占 68%，而采样里没有独立的
+    `sokonanoda_kernel` 帧**（被内联进前端）⇒ **动内核的上界只有 27%**；项风格后大头换人成
+    **`JUDGE_INFER calls=126105 total_ms=12304`**（记法消解：缓存键含**整段前缀** ⇒ 未命中一次 =
+    整段前缀从零重跑）⇒ **内核只是那趟 pass 里的一环**；两条已立项的刀
+    （`by-prefix-reuse.md` 的 K1-a/K1-b）**都不是内核刀**（K1-a 已实测零收益；K1-b 是
+    **内核加接口 + 前端省跑**）⇒ **要提速就做 K1-b，不是"优化内核"** ✓。**回滚不成立**（没退化）✓。
+  - ⚠ **顺带修掉一个让结论量不出来的缺陷**：`SOKO_JUDGE_STATS` 的打印机**只在 `by` 路径装**
+    ⇒ 解答全改项风格后 `calls == 0` **早退** ⇒ **`JUDGE_INFER` 一行都不打** ✗（而它正是项风格下
+    **唯一的大头**）⇒ 在 `judge_infer_with` 也调一次 `install_printer()`（`call_once`、非热路径）✓；
+    **修后实测**：`JUDGE_STATS calls=13 total_ms=648` · `JUDGE_INFER calls=668 total_ms=500 avg_us=749` ✓。
+- **E18 ✅**：**新守卫** `scripts/check-timing-evidence.py` —— 动了**内核源码**、或 subject **自称 perf**
+  的提交，commit message 里**必须有实测计时数字**（或显式豁免 `soko:no-timing: <理由>`）⇒ 否则
+  **exit 1** ✓。接线：`scripts/githooks/pre-push` + CI 的 `gates-fast`（`--selftest`）✓。
+  ⚠ **范围实测收窄过**（这决定守卫是活是死）：第一版把整个 `crates/*/` 算敏感 ⇒ **11 个假阳性** ✗；
+  第二版只认"非测试的 `crates/*/src/**.rs`" ⇒ 5 个，但全是**与性能无关的功能提交** ✗（要求它们写计时
+  只会把人**逼去编数字**）；**最终档**只认两类（内核源码 / subject 自称 perf）⇒ **最近 50 个提交
+  只受检 2 个、0 假阳性** ✓。**反向验证**：自检 **16 个反例**（含 4 个"必须判红"）+ **真实探针提交**
+  （无计时 ⇒ **exit 1** ✓；带 `实测 5.2s → 0.4s` ⇒ **exit 0** ✓）。
+- **红线** ✓：**内核零改动**（`git diff crates/kernel/` 为空）· `@@@` 插桩 **0 处** ✓。
+
+
