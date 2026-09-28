@@ -132,8 +132,8 @@ pub(crate) struct TrustPlan {
 
 /// One `run_pass` result, including the early-cutoff bookkeeping.
 pub(crate) struct PassResult {
-    out: CompileOutput,
-    report: DocumentReport,
+    pub(crate) out: CompileOutput,
+    pub(crate) report: DocumentReport,
     failed: KernelFailed,
     checks: usize,
     /// Per-command environment signatures (length = current command count).
