@@ -4,10 +4,10 @@
 > 已达成：**判据 ② `by_calls` 3 → 1**（`crates/front/tests/session_reuse.rs`，CI 真绿）。
 > 本文只讲**怎么接**，不讲为什么（为什么见 `module-artifacts.md` §9）。
 
-## 1. 前端：拆 `compile_plan_with_progress`（`crates/front/src/project/mod.rs:345`）
+## 1. 前端：拆 `compile_plan_with_progress`（`crates/front/src/project/mod.rs:367`）
 
-现状：一个函数里做两件事 —— **编**（`:362-372`：`compilable()` → `units` → `compile_all_units_with_progress`）
-与 **组装 `ProjectReport`**（`:357-400`：逐模块事件切分 / 诊断归并 / `unit_ranges` / `compiled` 映射）。
+现状：一个函数里做两件事 —— **编**（`:386-398`：`compilable()` → `units` → `compile_all_units_with_progress`）
+与 **组装 `ProjectReport`**（`:400` 起：`unit_ranges` → 逐模块事件切分 / 诊断归并 / `compiled` 映射）。
 
 **拆法**（纯重构，行为不变）：
 
@@ -33,7 +33,7 @@ pub fn compile_plan_with_progress(plan, options, progress) -> ProjectReport {
 ```
 
 **要点**：
-* `assemble_report` 必须**逐字**搬 `:357-400`（事件切分用 `unit_ranges(&units)`、`cmd` 重基到模块内、
+* `assemble_report` 必须**逐字**搬 `:400` 起那段（事件切分用 `unit_ranges(&units)`、`cmd` 重基到模块内、
   被阻断模块仍出现在报告里）——**不许改判定口径**（红线，见 §4）。
 * session 接线时：`with_project_session` 的回调给出**每个入口那趟**的 `(CompileOutput, DocumentReport)`
   （入口趟只有它自己一个单元 ⇒ `report` 就是入口模块的报告）；把它连同 `units=[entry]`、
