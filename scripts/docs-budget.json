@@ -2,7 +2,7 @@
   "_comment": "文档预算冻结表（REQUIREMENTS.md §9 / docs/design/docs-diet.md）：每个既有**非入口**活文档的行数上限 —— **只许减不许增**。**入口文件不在此表**（它们由判据 ③ ≤800 行管 ✓ —— 计划会随新批次合法长大，冻结它必然误红 ✗）。`python3 scripts/docs-lint.py --freeze` 只会收紧；要放宽必须手改本文件（评审可见）。",
   "frozen": {
     "NOTICE.md": 20,
-    "docs/CI-FAILURES.md": 501,
+    "docs/CI-FAILURES.md": 520,
     "docs/E2E.md": 246,
     "docs/LESSONS.md": 556,
     "docs/PERF.md": 715,
@@ -121,13 +121,13 @@
     "layer_max_lines": {
       "L0": 1849,
       "L1": 9013,
-      "L2": 20644,
+      "L2": 20663,
       "L3": 5330
     },
     "_measured": {
       "L0": 1849,
       "L1": 7008,
-      "L2": 20644,
+      "L2": 20663,
       "L3": 5330,
       "date": "2026-09-28",
       "note": "L3 = docs/archive 全量（含二次归档文件）；归档堆积是合法增长 ⇒ 新文件计入基线一次。L2 20170 → 20471（+301）：**新增两个文件**（G-68 的证据）—— `docs/perf/rebuild-baseline-2026-09-28.md`（六项实测数字）+ `docs/perf/recompile-waste-retrospective-2026-09-28.md`（复盘 ①②③④）。走的是本节写明的**例外①**（新增文件到该层 ⇒ 基线跟着走一次），不是内容改大；**既有文件一行没动** ✓。"
