@@ -28,32 +28,6 @@
   （那一档**没有**旧写法歧义 ✓）；放宽要先能判定"旧写法是否良型"（Lean 用元变量 ✗）。
 - ⚠ **本轮的工作方式教训（耗时账 / CI 被顶掉 / clippy 被本地门禁抓到）** ⇒ 见下面「未决项」✓
 
-## 第 485 轮（2026-09-28）：🚀 v0.77.0 · **ST1 ✅**（类型论/外挂分界 —— 决策记录 + 两端对账守卫）
-
-- **变了什么** ✓：**新增决策记录** `docs/design/v077-st1-boundary.md`（89 行）—— 逐项判定
-  「哪些用类型论自身表达、哪些确实必须外挂」：① `Set α` 谓词式**够用**（分离 / 无限并交 / 幂集）
-  ② **序数写成谓词**（Isabelle `Ord x ≡ Transset x ∧ …`；**全体序数 `ON` 不是集合** ⇒ 本来就不该是类型）
-  ③ **基数必须有商**（Mathlib `Cardinal := Quotient Cardinal.isEquivalent`）④ **秩/超限递归两条路都要
-  「良基递归可用」**（Mathlib `Acc.recOn` · Isabelle `foundation` **公理** + `wfrec`）。
-  **基准逐条带 URL**（Mathlib `Ordinal/Basic` · `Cardinal/Defs` · `Ordinal/Rank` · Lean core `Init/WF`
-  · AFP `ZFC_in_HOL` §1.4/§2.7/§2.6 · TPiL §12.4）—— 用户要求「不许凭记忆编」✓。
-- **判红（实测原文）** ✓：**两条新的** —— ① 源语言**没有 `Quot`**：`elab-unknown-identifier` /
-  「unknown identifier `Quot`」（内核其实**内建** `Declar::Quot` + `Quot.lift`/`ind` 的 iota 归约 ⇒
-  缺的是**前端产出**，不是内核）② **`Acc` 立不起来**：`kernel-rejected` /「rejected: inductive
-  occurrence is not applied uniformly to the block parameters and universe levels」——**对照组**
-  `Even : Nat → Prop` 同形状能过 ⇒ 被拒的是「**下标会变**」，不是「载体是函数」。
-- **判据与测试** ✓：**新增** `crates/cli/tests/st1_boundary.rs`（2 个判据）+ **4 个自足复现件**
-  `docs/gaps/repro/ST1-*.sokonanoda`（无 `import` ⇒ 单文件判卷）+ **新缺口 G-56**
-  （`docs/gaps/repro/G56-acc-well-founded-recursion.sh`，含对照组；`scripts/gap.py check` 全绿 ✓）。
-  守卫是**两端对账**：记录里写的诊断必须在探针输出里**逐字**出现，探针输出的每条诊断也必须在记录里
-  找到（记录漏记 / 结论过期都判红）✓；另有「`ST1-*.sokonanoda` 与对账表一一对应」的反向守卫 ✓。
-- **反向验证两次** ✓：① 把记录里 `Quot` 那行改成 `positive / 7` ⇒ 判红「`decl.checked` 数与记录不符
-  （记录 7 / 内核 0）」；② 把 `Acc` 探针换成一条必过的声明 ⇒ 判红「记录 0 / 内核 1」；两次都**撤掉即回绿** ✓。
-- **没做** ✗：**ST2（商类型）未开** —— 用户明确「等我对 ST1 的决策记录确认后再开」✓；
-  内核判定零改动 ✓、课程内容零改动 ✓。
-- **耗时账** ✓：`cargo test -p sokonanoda-cli --test st1_boundary` **0.6 s**（2 判据，跑 4 个复现件）；
-  `python3 scripts/gap.py check` 全量 **~1 min**（含 G-56）；`python3 scripts/docs-lint.py` ✓。
-
 ## 第 486 轮（2026-09-28）：🚀 v0.77.0 · **ST2 ✅**（商类型 `Quot` 装进源语言 —— 路线 A）
 
 - **变了什么** ✓：`install_quot`（`crates/front/src/compile/prelude.rs`）把 `QUOT_TYPES_SRC`
@@ -166,6 +140,35 @@
 - **改内核判定：零** ✓（`git diff crates/kernel/` 为空）—— 用户明确「不许为了让它 checked
   通过去改内核判定」✓。
 
+## 第 490 轮（2026-09-28）：G-56/G-64 内核可行性探针（**两道门都定死，都不修**）+ 交接书
+
+- **用户授权**：Acc 那条内核活「肯定要做」⇒ 派了两轮有界探针（**时间盒 2–3 轮，已用满**）。
+  **结论：带索引归纳类型有两道门，本版两条都不修**（用户：不可行 ⇒ 登记 +
+  补 ST15 清单，**登记本身就是交付物，不许硬凑**）✓。
+- **写法 A（下标写块头）⇒ G-56**：判定本体 `inductive.rs:153`（唯一调用点 `:44`，前端零镜像）。
+  **插桩把机制钉死了**：卫 `args_rev.len() <= num_params` 对 `Acc` **为假 ⇒ 完全跳过**；
+  **判红其实来自另一个块**（`num_params=3`、单构造子、实参 `Var(4)·Var(3)·Var(1)` 期望 `4,3,2`）。
+  ⚠ **放宽不是挪一个比较符**：改成 `>=`（只校验前 `num_params` 个实参）**打破了原本能过的块**
+  （它靠"跳过"过关）⇒ 实测判红 ⇒ 正解要**区分参数位与指标位两段语义**。
+- **写法 B（下标写返回位，Lean 官方写法）⇒ G-64**：**过了 uniform 与 `SPEC0`**
+  （实测 `local_params.len=2 indices.len=1` ✓）—— 只剩最后一步，比写法 A **窄得多**。
+  卡在 `expr.rs:381` `subst_expr_levels` 的 `assert_eq!(ks.len(), vs.len())`（`left: 0 / right: 1`）。
+  **定位手法**：内核 `try_check_declar_at`（`util.rs:674`）**自己装了静默 hook** 吞栈 ⇒
+  改那个 hook 打 `Backtrace::force_capture()` 才拿到（改 `main.rs` 会被 `quiet()` 覆盖 ✗）。
+- **第 2 轮（最后一次）**：定死**不是调用方传错，是断言对「无可代入」那一支写得过强**
+  （`ks` 空 ⇒ 原样返回；`vs` 多出的层级**没有消费者**）。**已验证修法**（实测有效、**未合入**）：
+  `ks.is_empty()` 单独提前返回、保留 `ks` 非空时的长度断言（**反向判据**：真不匹配仍判红 ✓）。
+  改完 `left: 0 / right: 1` **消失** ✓，但 variant ② **换成 G-59 的判红**（motive 被钉在 `Sort 0`）
+  ⇒ **G-64 是第一道门、G-59 是下一道** ⇒ 时间盒用满，**停手**。
+- **红线** ✓：**内核零改动**（`git diff crates/kernel/` 为空）· `grep '@@@' crates/kernel/src/` **0 处** ✓。
+- **交付** ✓：**新登记 G-64**（`expr.rs:383` 的断言 + 触发形状 + `left/right` 含义 + 已验证修法）·
+  G-56 机制补全 · ST15 清单同步（现 **3 blocker + 5 painful**）·
+  **交接书 `docs/HANDOFF-0.77.md`**（状态 / 两道门 / 下一步 / 硬规则 / 本轮 5 个坑）。
+- **v0.77.0 已发布** ✓（tag `v0.77.0`；release `36382099817` **11/11 success**；
+  发版依据轮 `36378945287` ⇒ `ci-green.py` **exit 0**）。
+  ⚠ 发版轮那条红是 **`keystroke_recompile_closure` 的绝对毫秒判据跨机不可转移**（同代码 44ms↔2431ms）
+  ⇒ 已换成**同机比值 + 宽天花板**并记入 `docs/CI-FAILURES.md` ✓。
+
 ## 未决项
 
 - ✅ **清理推送 CI 全绿** ✓（`42be634` ✓ · **绿 28 · 红 0 · skipped 1** ✓ —— 只有 `fast-fail` ✓，
@@ -208,24 +211,3 @@
 
 ---
 
-## 第 483 轮（2026-09-27）：Infoview 面收口 —— **E27 / E28 / E30 / E31** ✓（v0.74.0 收尾，11/11）
-
-- **E31** ✓（`bc9a62c`）：新命令 **`Clean Cache (清除编译缓存)`** —— **只清不编**（Rebuild 是
-  clean→build 串成一步，用户没有"清完就停"的入口 ✗）；三个数逐字来自 CLI 的 `build.clean` 事件；
-  判据 stub 40/40 + e2e **实测 N→0 且等 1.5s 仍为 0**（专防"clean 偷偷编了一次"）；反向验证两条各自判红 ✓。
-- **E28** ✓（`086c220`）：**主机侧**三态判据（loading / ready-empty / error 分得开）—— 渲染层早有
-  判据、**接缝没人验** ✗；反向验证：把失败说成"没有声明" ⇒ 判红 ✓（E28 只补判据、不改行为 ✓）。
-- **E30** ✓（`5323889`）：Infoview **「项目」区块**（转发 `soko/project`、**零额外取数**；
-  `requires_warning` 是**可见块不是 tooltip** = G-24 的唯一可见信号）；顺手补上
-  `audit-wire-fields.py` 的 **front 侧结构解析**（= 审计 #17 的 7 处盲区）并**收紧扫描器**
-  （去注释 + 引号内不算读取；⚠ 顺序错会让 `compiled/*.tmp` 的散文卡住 `in_block` ⇒ **整份文件后半段被静默跳过**，
-  实测把 `value_runs` 也扫没了 ✗）。
-- **E27** ✓（`1444780`）：Infoview **声明名可点 ⇒ 跳到定义**（`executeDefinitionProvider` = 编辑器 F12
-  同一条命令；落点与 F12 **逐字段相同**、跨文件 ✓）；反向验证退回 `reveal` 判红 ✓。
-  ⚠ **未接的一半**：**记法符号**（`{a}`/`∈`）—— runs 只有 `{text,kind}`（实测 577 条）⇒ 要动 wire，
-  登记 **G-53**（open，带自足复现件）✓；⚠ 另实测**声明名位置不返回定义**（本 LSP 解析使用处）⇒ 点名字会
-  看到"这里没有可跳转的定义"（诚实，但有用的落点正是被 G-53 挡住的符号）。
-- **预算放宽（用户 23:12 拍板：可放宽，但同一 commit 记一笔）**：`STATUS.md` 上限 **200 → 240 行**
-  （`scripts/status-lint.py` 的 `MAX_TOTAL`）—— 原因：一轮里落了 6 个环节，200 行顶格后**只能删旧轮**，
-  而归档目标 `docs/STATUS-ARCHIVE.md` 也被冻结 ⇒ 实际是"逼着删历史" ✗；`MAX_GROWTH`（≤60）**不动** ✓。
-  **后续统一 refactor 时清理**（旧轮搬进 `docs/archive/` 再调回 200）。

@@ -20,6 +20,24 @@
   ⇒ 直接 assert 失败（索引 `b` 根本轮不到判定）。前端**零镜像**。
   ⚠ 同文件 `which_valid_ind_app_v`（`:1049`）用 `is_bvar_at` 判参数位置、**允许索引位任意**
   ⇒ 最小放宽应**对齐它**，不必新发明规则。
+- ⚠ **2026-09-28 探针把机制钉死了，并证明「放宽不是挪一个比较符」**（用户授权的可行性探针）：
+  - 判定本体的卫是 `args_rev.len() <= num_params` 才进断言；对 `Acc`（出现 `Acc α r y`，
+  2 个实参 > `num_params=1`）**卫为假 ⇒ 完全跳过**，根本不检查；
+  - 而**判红来自另一个块**（插桩实测：`num_params=3`、单构造子、`head_is_target=true`、
+  `args_rev.len=3`、`offset=5`）：它的三个实参是 `Var(4) · Var(3) · Var(1)`，
+  前两个是参数（对齐 ✓）、第三个不是（期望 `Var(2)`）⇒ 卫为真 ⇒ 断言触发；
+  - 把卫改成 `>=` 并只校验**前** `num_params` 个实参 ⇒ **打破了上面那个原本能过的块**
+  （它原本靠"跳过"过关）⇒ **判红，实测**；实验**已完整还原**，内核**零改动**。
+  - ⇒ **修复的正确形状**：必须区分「**参数位**」（必须逐字是块参数）与「**指标位**」
+  （允许任意、且 `Acc` 那种尾部多出的实参也是指标）**两段语义**，而不是挪一个比较符。
+- ⚠ **另一条路（下标写返回位）也被堵死 ⇒ G-64**：`inductive Acc (α : Type) (r : α → α → Prop) :
+  α → Prop` + `ctor Acc.intro (x : α) (h : ∀ y, r y x → Acc α r y) : Acc α r x`（**Lean core
+  的官方写法**）能过 uniform 与 `SPEC0`（实测 `local_params.len=2 indices.len=1` ✓），
+  但死在**递归子的宇宙代入** —— `crates/kernel/src/expr.rs:383`
+  `assert_eq!(self.read_levels(ks).len(), self.read_levels(vs).len())` ⇒
+  **`left: 0`（目标常量无宇宙参数）/ `right: 1`（要代入 1 个层级）**。
+  ⇒ **带索引归纳有两道门**：G-56（声明级 uniform）与更晚的 G-64（递归子宇宙代入），
+  本版**两条都不修**（用户 2026-09-28：「不可行 ⇒ 登记 + 补清单，登记本身就是交付物」）✓。
 - **改动局部性**：只跑在**声明级**（`check_ctor` 里、`mk_elim_level` 之前），**不参与**
   `check_generated_recursors` / `check_positivity1` / 归约（`eval.rs` 的 `fire_quot`、iota）。
 - **堵住**：ST6 传递闭包 · ST7 秩 · ST9 超限递归 · ST11 序型/Aleph。
