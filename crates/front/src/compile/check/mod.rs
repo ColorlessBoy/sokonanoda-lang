@@ -964,7 +964,7 @@ fn run_pass_in<'a>(
         n_commands: flat.len(),
         collect,
         trust,
-        builder: walk.builder,
+        builder: &mut walk.builder,
         out: walk.out,
         report,
         ops: walk.ops,

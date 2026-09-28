@@ -30,7 +30,7 @@ pub(super) struct Walked<'a, 'arena> {
     pub(super) n_commands: usize,
     pub(super) collect: bool,
     pub(super) trust: Option<&'a TrustPlan>,
-    pub(super) builder: EnvBuilder<'arena>,
+    pub(super) builder: &'a mut EnvBuilder<'arena>,
     pub(super) out: CompileOutput,
     pub(super) report: DocumentReport,
     pub(super) ops: Vec<PendingOp<'arena>>,
@@ -189,7 +189,11 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
         mut failed_cmds,
         mut kernel_checks,
     } = walked;
-    let mut env = builder.finish();
+    // **切片 1b**：内核阶段只**读**环境（加声明在 walk 阶段，见 `check/walk.rs` 的
+    // `self.builder.add_declar(...)`）⇒ 用 `with_env` 借出即可，**不消费 builder**
+    // ⇒ 调用方（session）能跨入口复用**同一套 DAG**（`builder.rs:112`；与 `finish`
+    // 同为纯字段搬移、回调后原样装回 ⇒ 指针恒等式与 intern 表逐字节不变）。
+    return builder.with_env(move |mut env| {
     // Print proof terms as terms instead of suppressing them to `_`; the
     // suppression path would try to infer types of open binder bodies.
     env.config.pp_options.proofs = true;
@@ -581,8 +585,8 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
         sigs,
         cutoff,
     }
+    });
 }
-
 /// 开练习的**签名终审**（G-01 / WO-004）：`None` = 签名通过。
 ///
 /// 两步都走内核，消息/判据与 checked 路径同源：
