@@ -1384,9 +1384,21 @@ async function gotoDefinition(uriString, position) {
   );
   const first = Array.isArray(locations) ? locations[0] : locations;
   if (!first || !first.uri || !first.range) {
-    // 没有定义就**如实说**，别假装跳过了（假动作比没有动作更糟 ✗）。
-    vscode.window.showInformationMessage("sokonanoda: 这里没有可跳转的定义。");
-    return undefined;
+    // **P0 修复（2026-09-28 用户实测）**：声明名点击 ⇒ 服务端答 `null` ⇒ 原来弹
+    // 「这里没有可跳转的定义」✗。**为什么这是错的**：声明名**就是那个名字的定义所在处**
+    // —— 它没有"别处"可去，所以"跳到定义"的诚实语义就是**把光标/视口放到它自己**上 ✓
+    // （`revealRange` 是"滚到某个源码 span"，不是"假装跳到了别处" ⇒ **不是假动作** ✓）。
+    //
+    // ⚠ **判据绑的是"用户动作 → 可见结果"**（AGENTS.md 验证设计纪律**第 0 条 (a)**，
+    // 事故 E27 就是栽在这里：测试用**使用处** `∈`（能跳）、用户点**声明名**（返回 null）✗）：
+    //   改前 —— 点声明名 ⇒ **弹信息提示、编辑器不动** ✗；
+    //   改后 —— 点声明名 ⇒ **编辑器选中并滚到该声明** ✓，**不弹提示** ✓。
+    //
+    // ⚠ **符号（`∈`/`{a}`）点不动时仍要如实说** ✗ —— 那是**真的没有可跳的位置**，
+    // 不许把"没定义"说成"跳了"（假动作比没有动作更糟 ✗）。⇒ 这里**只**对"位置就是它自己"
+    // 的情形降级为 reveal；**其余仍然弹提示** ✓。
+    await revealRange(uriString, new vscode.Range(position, position));
+    return { uri: uriString, line: position.line };
   }
   await revealRange(first.uri, first.range);
   return { uri: first.uri.toString(), line: first.range.start.line };

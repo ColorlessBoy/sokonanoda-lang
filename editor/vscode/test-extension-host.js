@@ -267,8 +267,16 @@ const vscodeStub = {
       vscodeStub.__infoview = provider;
       return makeDisposable();
     },
-    showInformationMessage: async () => undefined,
-    showWarningMessage: async () => undefined,
+    // **P0 判据要用**：记录弹出的信息提示 ⇒ 断言"点声明名**不弹提示**" ✓
+    //（原来这里是个丢弃返回值的空实现 ⇒ 弹了什么**测不到** ✗）。
+    showInformationMessage: async (msg) => {
+      (vscodeStub.__messages ??= []).push(String(msg));
+      return undefined;
+    },
+    showWarningMessage: async (msg) => {
+      (vscodeStub.__messages ??= []).push(String(msg));
+      return undefined;
+    },
     showErrorMessage: async () => undefined,
     showTextDocument: async () => undefined,
     registerUriHandler: () => makeDisposable(),
@@ -1077,6 +1085,53 @@ test("Infoview 'definition' jumps like F12, never a plain reveal (E27)", async (
     editor.document.uri.toString(),
     clicked,
     "落点等于点击处 ⇒ 那是 reveal（滚到源码位置），不是跳定义 ✗",
+  );
+});
+
+test("clicking a declaration name never pops an empty notice (P0)", async () => {
+  // **P0（2026-09-28 用户实测）**：点 Infoview 的**声明名** ⇒ 右下角弹
+  // 「sokonanoda: 这里没有可跳转的定义」✗。
+  //
+  // **根因**：webview 发的是 `decl.range.start`（**声明名**的位置），而本 LSP 的
+  // definition 解析的是**使用处** ⇒ 在声明名处返回 `null` ⇒ 弹提示。
+  // ⚠ E27 的旧判据用**使用处**（`∈`，能跳）验，**绕开了用户实际点的位置** ✗ ——
+  // 这就是 AGENTS.md 验证设计纪律**第 0 条 (a)** 记的那次事故 ✓。
+  //
+  // **判据绑用户动作**：点声明名 ⇒ ① **编辑器滚到/选中该声明**（可见结果 ✓）；
+  // ② **不许弹任何信息提示** ✗。反向：真没有定义时**仍要如实说**（不许静默 ✗）。
+  await activateExtension();
+  const provider = vscodeStub.__infoview;
+  assert.ok(provider, "activate() 必须建 Infoview provider");
+
+  // 情形 ①：服务端答 `null`（= 声明名处的真实行为）⇒ 必须 reveal 到点击处、**不弹提示**
+  const declUri = "file:///repo/units/u01.sokonanoda";
+  const target = fakeDocument("/repo/units/u01.sokonanoda");
+  const editor = editorFor(target);
+  vscodeStub.window.activeTextEditor = editor;
+  vscodeStub.__definitions = []; // ← 服务端在声明名处答的就是这个
+  vscodeStub.__messages = [];
+  vscodeStub.__commandsCalled = [];
+  await provider._onMessage({
+    protocol: 1,
+    type: "definition",
+    uri: declUri,
+    position: { line: 31, character: 10 },
+  });
+  assert.deepStrictEqual(
+    vscodeStub.__messages,
+    [],
+    `点声明名**不许弹提示**（用户实测的就是这条 ✗）：${JSON.stringify(vscodeStub.__messages)}`,
+  );
+  assert.strictEqual(
+    editor.selection.start.line,
+    31,
+    "必须**真的动**：光标落到声明名那一行（用户动作 → 可见结果 ✓）",
+  );
+  assert.strictEqual(editor.selection.start.character, 10, "列也用点击处的位置");
+  // 仍然走 F12 同一条命令（E27 的语义没被削弱 ✓）—— 先问服务端，答不出才降级。
+  assert.ok(
+    vscodeStub.__commandsCalled.some((c) => c.id === "vscode.executeDefinitionProvider"),
+    "降级前仍必须先问 definition（不许跳过服务端直接 reveal ✗）",
   );
 });
 
