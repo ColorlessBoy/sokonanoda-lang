@@ -22,7 +22,15 @@ pub fn with_project_session<R>(
     lib_units: &[SourceUnit<'_>],
     entries: &[Vec<SourceUnit<'_>>],
     options: &CompileOptions,
-    mut on_entry: impl FnMut(usize, CompileOutput, Vec<DocumentReport>, &[DocumentReport]) -> R,
+    mut on_entry: impl FnMut(
+        usize,
+        CompileOutput,
+        Vec<DocumentReport>,
+        &[DocumentReport],
+        // **并集顺序**下每个库模块的命令区间（修法 A：接线方按各入口自己的闭包顺序
+        // 拼接 + 重编号 ⇒ 与今天逐字节等价的闭包级扁平输出）。
+        &[std::ops::Range<usize>],
+    ) -> R,
 ) -> Vec<R> {
     let arena = stumpalo::Arena::new();
     let builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
@@ -33,6 +41,7 @@ pub fn with_project_session<R>(
     // **逐模块报告**（与 `check::run` 同构）：库层那趟的报告按单元切分 ⇒ 接线方
     // 能组装出与今天**逐字节相同**的 `ProjectReport`（缓存内容不变）。
     let lib_n = lib_pass.n_commands;
+    let lib_ranges = crate::compile::unit_ranges(lib_units);
     let lib_reports = split_report(
         lib_pass.report,
         &lib_pass.out.error_cmds,
@@ -80,7 +89,13 @@ pub fn with_project_session<R>(
             .warning_cmds
             .extend(pass.out.warning_cmds.iter().map(|c| c + lib_n));
         merged.stats.kernel_checks += pass.out.stats.kernel_checks;
-        out.push(on_entry(index, merged, entry_reports, &lib_reports));
+        out.push(on_entry(
+            index,
+            merged,
+            entry_reports,
+            &lib_reports,
+            &lib_ranges,
+        ));
         // ④ 丢掉这个入口的声明（下一次循环再装回检查点）。
         drop(builder.hide_declars());
     }
