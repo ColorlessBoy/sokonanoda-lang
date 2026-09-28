@@ -4,7 +4,7 @@
 > 分支 **`kernel/acc-indexed-families`**（从 `main` 开出，本地）。
 
 > 上一棒：2026-09-28 会话（已发生 1 次 compaction）。**本地已全部 commit 并推送** ✓。
-> 起点 `592a2e1e` → 终点 **`070a363d`**（`main`，工作区干净）。
+> 起点 `592a2e1e` → 终点 **`77617f1f`**（`main`，工作区干净 ✓；**CI `36417501766` 真绿**：`ci-green.py` exit 0 · 重活 10/10 · failure 0 ✓）。
 
 ## 1. 用户任务（原话要点）
 
@@ -223,3 +223,90 @@ null，第一版就是这么误判的 ✗）：
 # 3) 两个位置：声明名 (31, 10) 0-based；使用处 `∈` (31, 47) 0-based
 # 实测：声明名 → null；`∈` → file …/lib/Set.sokonanoda, line 55 (0-based) = 第 56 行 ✓
 ```
+
+---
+
+# 2026-09-28 18:00 之后这一整段（**已全部落地并推 main**，HEAD `77617f1f`）
+
+## 已交付（按时间）
+
+| commit | 内容 | 关键判据 |
+|---|---|---|
+| `192404bd` | **P0 纪律落 main**：`AGENTS.md` 验证设计纪律**第 0 条**（(a) 判据绑用户动作 · (b) 同类问题横向排查）· PLAN 的 **E27 改如实状态** · 台账 **G-65/G-66/G-67** | `docs-lint` ✓（⑦ 咬住 6 次，**全部真删行**：AGENTS.md 436→429） |
+| `6d0af61c` | **G-66 横向排查 7 处双重压暗**（用户只指了 `.section-title` 一处）· 标题字号 `0.8em → 1em` · 删 `uppercase`/`letter-spacing` | 新 `scripts/check-infoview-hierarchy.py`（**进 `soko gate`** + `--selftest` **9 反例/5 必须判红**） |
+| `d4da5359` | **P0-b**：点声明名**不再弹空** ⇒ `revealRange` 到声明自身；符号点不动时**仍如实弹提示** | 新 stub 用例（**绑用户动作**：编辑器真动 + `__messages` 空 + 降级前仍问服务端）；**反向验证 43/44 → 44/44** |
+| `7eb93699` | **G-67 项目区块重设计**：三问（编完了吗/哪个版本/有没有问题）放最前 | 新 `editor/vscode/test-project-first-screen.js`（跑**真的** `infoview.js` + DOM shim，取**未收起**文本）· **反向验证：旧版 5 条判红** |
+| `612c6a39` + `77617f1f` | **E30 回归修复**（见下）+ **连推守卫** | `test-webview.js` **23/23** · `test-extension-host.js` **44/44** · `soko gate` exit 0 |
+
+## ⚠ 本轮最重要的教训：**G-67 撞掉 E30**（"重设计"不等于"删掉既有交付"）
+
+**CI `editor` job 判红**：`project: the manifest warning is visible text, never a tooltip (E30)`。
+**我犯的三处错**（都是"重设计过头"）：
+1. 把 **`.project-warning` 这个独立可见元素删了**、只留人话 ⇒ 撞「必须独立可见」+「文本原样含 `requires`」；
+2. 把**模块列表包进 `<details>`** ⇒ E30 按**直接子节点**的 className 比顺序 ⇒ `indexOf("project-modules")` = **-1** ⇒ 判红；
+3. 把 `.project-facts`/`.project-counts`/`.project-artifacts` **折进「高级」** ⇒ 撞「事实行含 toml/根/入口」+「产物行含字节数」。
+
+**⇒ 教训**：**E30 钉的是「整个区块的交付契约」，不是"某一行好看"** ✗ ——
+**"重设计"≠"删掉既有交付"** ✓。⚠ 用户 18:24 说的是「产物字节数 ⇒ **删掉或**放进高级折叠区」
+—— 而**"删掉"会让 E30 判红** ⇒ 取**次要**那一支 ✓（用户给的是二选一，我选了会撞判据的那支 ✗）。
+
+**修法（两者都给，不是二选一）**：**E30 的元素全部原样保留 + 三问摘要加在它们前面** ✓（顺序即优先级）；
+`requires_warning` = **人话在前 + 原始细节在后**（`.project-warning-detail`）✓；
+`编译 N` → **`已编译 N/M`**（给分母；**不是删数据** —— E30 只看「2 模块」✓）。
+⚠ **没回滚 G-67、没放松 E30、没改测试** ✓。
+
+**G-67 守卫也同步修正**：撤掉「内部词一律不许上第一屏」✗（**与 E30 正面冲突**）
+⇒ 改为只管用户真正抱怨的两件：**三问答得上** + **版本出现在内部细节之前** + **不许「编译 N」** ✓。
+
+## ⚠ 第二条教训：**连推三次 ⇒ HEAD 一条跑完的 CI 都没有**
+
+用户 19:00：「`36402084828` / `36403200616` / `36410130673` / `36412806730` **全部 cancelled** ⇒
+**当前 HEAD 一条跑完的 CI 都没有** ✗ —— **这就是"本地绿就算绿"的翻版**」✓。
+
+**已落成守卫** ✓：**`scripts/check-one-run.py`** —— 推送前若已有未完成的 `ci` run ⇒
+**exit 1 拒绝推送**并指名那条 run + 三条出路；**接进 `scripts/githooks/pre-push`** ✓；
+`--selftest` **3 反例**（含 2 个必须判红）✓。
+**设计取舍**（写进脚本头）：**不自动关旧 run** ✗ —— `scripts/ci-push.sh` 那样做，而**连推时
+关掉的是上一批** ⇒ 那批**永远没被验证过** ✗；`gh` 不可用 ⇒ **exit 2「判不了」**（不是绿 ✗）
+⇒ pre-push 放行但**说出来**（不许静默）✓。
+
+⚠ **另一条实测**：**空提交（只改 git、不动 rust/courses/editor）会得到"假绿"**
+—— `ci-green.py` 判 **exit 2**：「重活被 skipped ⇒ **这一轮没有验证任何东西**」✗
+（`bf151f74` 就是）。⇒ **要拿真绿证据，必须推一个动了 rust/courses/editor 的 commit** ✓。
+
+## 接手第一件事：**P1（rebuild 非常卡、非常慢）**
+
+用户原话：「一个这么小的项目就这么卡，后面大项目完全吃不消」。
+**按顺序做，别跳**：
+1. **先确认用户说的 "rebuild" 是哪个命令**（VS Code `Sokonanoda: Rebuild`（`alt+shift+b`，clean→build）？
+   还是 `soko build`？`cargo build`？）—— **别猜**；不确定就**列候选各测一次**，用数字定位 ✓。
+2. **量化，不许凭印象优化**：一次 rebuild **总时长 + 各阶段**；**编译了几次**（同一文件有没有被
+   重复编译 —— 用户点名怀疑这条）；**增量缓存是否每次失效**（失效 = 全量重编）；有没有**全量重扫**。
+   量具：`closure_compile_scaling` / `keystroke_recompile_closure`（`docs/perf/ledger.jsonl`）·
+   `SOKO_JUDGE_STATS`（⚠ 见下）· `cargo build --timings`；不够就补，**但先有数字** ✓。
+3. **拿到数字再定改法**；若真是重复编译 ⇒ **架构问题**（缓存键/失效判定），**不是调参能解决的，如实说** ✓。
+
+**⚠ `SOKO_JUDGE_STATS` 的一个坑（本会话修过 ✓）**：它原来只在 **`by` 路径**装打印机 ⇒
+项风格下 `calls == 0` **早退** ⇒ `JUDGE_INFER` 一行都不打 ✗。**已修**（`judge_infer_with` 也调
+`install_printer()`）⇒ 现在**打得出来** ✓（实测 `JUDGE_INFER calls=668 total_ms=500 avg_us=749`）。
+
+## 其余未做（不占 P1）
+
+- **P2** 进度粒度（声明级/目标级/阶段级 + **"最长无输出间隔 ≤ N 秒"**判据）；
+- **G-65 的 ③**（接 **G-53**：给 wire 的 runs 加**源位置** ⇒ 类型/目标里的**符号**能跳）——
+  实测 **503 条 run 字段只有 `kind`/`text`** ⇒ webview 无从知道"点的是源码哪一处" ✓；
+- **X2 剩余 3/5**（§3 e2e ledger 落后守卫 · §4 两个假红，**"pyyaml 缺失"已被实测推翻**）；
+- **内核**（`kernel/acc-indexed-families`，`3a4e1c5e` **挂起保留**）：下一刀 =
+  `inductive.rs:1705` 的 `old.info().uparams`（空）vs `st.rec_uparams`（1 个）⇒ 查
+  `mk_recursor_aux`（`inductive.rs:1727`）✓。
+
+## 本轮新落地的守卫（都在 `soko gate` 或 `pre-push` 里，**别绕过**）
+
+| 守卫 | 挡什么 | 自检 |
+|---|---|---|
+| `scripts/check-infoview-hierarchy.py` | 标题字号 < 正文 · `<1em` + `opacity` 双重压暗 | **9 反例 / 5 必须判红** ✓ |
+| `editor/vscode/test-project-first-screen.js --check` | 项目第一屏答不上三问 · 版本排在内部细节之后 · 「编译 N」 | 旧版跑出 **5 条判红** ✓ |
+| `scripts/check-one-run.py`（**pre-push**） | 已有未完成的 run 时**拒绝推送** | **3 反例 / 2 必须判红** ✓ |
+| `scripts/check-timing-evidence.py`（pre-push + gate） | 动内核 / 自称 perf 的提交缺实测计时 | **17 反例 / 4 必须判红** ✓ |
+| `docs-lint.py` 判据 ⑦ | 接手路径超标（**只许收紧，不许抬上限**） | **11/11** ✓ |
+
