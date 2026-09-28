@@ -41,7 +41,7 @@ fn session_shares_the_dependency_across_entries() {
         &[SourceUnit::single("Dep", &dep)],
         &entry_units,
         &options,
-        |_, _, _, _, _| (),
+        |_, _, _, _, _, _| (),
     );
     let b = by_calls_total() - before;
 

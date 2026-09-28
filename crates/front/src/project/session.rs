@@ -27,9 +27,10 @@ pub fn with_project_session<R>(
         CompileOutput,
         Vec<DocumentReport>,
         &[DocumentReport],
-        // **并集顺序**下每个库模块的命令区间（修法 A：接线方按各入口自己的闭包顺序
-        // 拼接 + 重编号 ⇒ 与今天逐字节等价的闭包级扁平输出）。
+        // **并集顺序**下每个库模块的命令区间（修法 A：按各入口自己的闭包顺序拼接 + 重编号）。
         &[std::ops::Range<usize>],
+        // 该入口在**合并输出**里的命令区间（`lib_n..lib_n + 入口那趟命令数`）。
+        std::ops::Range<usize>,
     ) -> R,
 ) -> Vec<R> {
     let arena = stumpalo::Arena::new();
@@ -67,6 +68,7 @@ pub fn with_project_session<R>(
             None,
         );
         builder = next;
+        let entry_range = lib_n..lib_n + pass.n_commands;
         let entry_reports = split_report(
             pass.report,
             &pass.out.error_cmds,
@@ -95,6 +97,7 @@ pub fn with_project_session<R>(
             entry_reports,
             &lib_reports,
             &lib_ranges,
+            entry_range,
         ));
         // ④ 丢掉这个入口的声明（下一次循环再装回检查点）。
         drop(builder.hide_declars());
