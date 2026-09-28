@@ -1,3 +1,48 @@
+## [0.78.0] — 2026-09-28
+
+> 「性能与纪律固化」（E17–E18）。
+
+### Added
+
+- **A guard that makes "waiting on a black box" fail the build.** If a commit
+  changes kernel source, or its subject claims a performance result, its message
+  must carry a measured timing number (`123ms`, `1.5s`, `1m23s`, a `PERFJSON`
+  line, `ratio 1.02`, …) or an explicit, line-anchored exemption
+  (`soko:no-timing: <reason>`). Otherwise `scripts/check-timing-evidence.py`
+  exits 1 and names the commit. It runs in the `pre-push` hook and in CI.
+  The trigger was narrowed against real history: a first version that watched all
+  of `crates/**` produced eleven false positives, and a second that watched
+  non-test `crates/*/src/**` still flagged ordinary feature work — requiring
+  timings there would only push people to invent numbers. The shipped version
+  watches kernel source and self-declared perf commits: three commits out of the
+  last fifty, zero false positives.
+
+### Changed
+
+- **The performance ledger is current again.** It had been frozen at
+  `0.68.0 / 2026-09-25`; a `0.77.1` entry was measured and appended (same schema,
+  same 20 cases).
+
+### Fixed
+
+- **`SOKO_JUDGE_STATS` printed nothing for term-style files.** The reporter was
+  only installed on the `by`-block path, so once the course solutions moved to
+  term style the `by` call count was zero and the whole report bailed out early —
+  including `JUDGE_INFER`, which is precisely the dominant cost in that style.
+  It is now also installed on the `judge_infer` path. This is an observability
+  fix: no kernel judgement changed.
+
+> **The kernel performance question now has an answer.** Measured across nine
+> versions on one machine with identical workloads, every synthetic baseline sits
+> within ±4% — there is no regression to roll back. The one large increase is the
+> real course closure (+86%), and it tracks the course growing from 331 to 376
+> checked declarations: per-declaration cost is flat at 44.9ms. The reason kernel
+> speed has not moved the needle is architectural — profiling puts `by`-block
+> judgement at 68% with no separate kernel frame, and after the switch to term
+> style the cost is `JUDGE_INFER` re-elaborating the whole prefix on every cache
+> miss. Making the kernel faster has a 27% ceiling; the speedups worth doing
+> reuse the prefix instead. Details: `docs/perf/E17-kernel-conclusion.md`.
+
 ## [0.77.1] — 2026-09-28
 
 > 「课程尾巴：速查表清账 + 记法边界登记」（ST16–ST19）。
