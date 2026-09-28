@@ -120,12 +120,13 @@
 - **ST11** **序型 ordertype · Aleph 序列 · ω₁ · Cantor 正规形**。
   基准：Isabelle §2.8/2.20/2.21/§3。**撞点**：序数算术。
 - **ST12** **选择公理**（`ZFSet.choice` · Zorn · 良序定理）。基准：Mathlib `ZFSet.choice`。
-  ✅ **已完成（2026-09-28）**：`lib/Choice.sokonanoda` —— `axiom choice`（外挂，与 `Set.ext` 同档）
-  + `Nonempty` + `choice_spec`/`nonempty_def`，**4 条全 checked** ✓。形式照 Isabelle `AC_imp_2`（集合版）。
-  ⚠ **本档不做**：从 `choice` **取函数**（`Classical.choose`）要在 `Prop` 里取数据 ⇒ **撞 G-58**；
-  要用时直接 `choice …` 应用一次 ✓。`Zorn`/良序定理/`Cardinal` 可比性同因 ⇒ L3/后续。
+  ✅ **已完成（2026-09-28）**：`lib/Choice` —— `axiom choice` + `Nonempty` + 2 条展开，**4 条全 checked** ✓
+  （形式照 Isabelle `AC_imp_2`）。⚠ 从 `choice` **取函数**要在 `Prop` 里取数据 ⇒ **撞 G-58** ⇒ L3/后续。
   **已知撞点**：**已实测「满射可裂」证不出来**（L-06 原话「需要选择公理」）⇒ 直接登记。
 - **ST13** **ZF 公理系统本体**（分离/替换/幂集/**正则性**…）。
+  ✅ **已完成（2026-09-28）**：`lib/ZF` 7 条全 checked —— `axiom regularity` + `IsEmpty`/`IsPair`/`IsUnionOf`
+  + 3 条展开。**核心产出是「ZF 公理表」**（文件头）：分离/配对/并集/幂集/替换**都是定理**，
+  **只有外延性、正则性、选择必须外挂** ✓。⚠ 由正则性推「无 ∈-循环」要良基递归 ⇒ **G-56** ⇒ L3。
   基准：Mathlib `ZFSet.regularity`；Isabelle §1.1。**撞点**：语言能否表达**公理模式 schema**。
 - **ST14** **funext / propext /（univalence）**。基准：Lean TPiL §12；Mathlib 用 `propext` + `Quot.sound`。
   **撞点**：课程注释已写「**语言里根本没有**」⇒ 直接登记。

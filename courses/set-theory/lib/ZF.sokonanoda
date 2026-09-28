@@ -1,0 +1,100 @@
+-- ZF.sokonanoda —— 卷 I 的**ZF 公理系统本体**（ST13，v0.77.0）
+--
+-- **定位**：把卷 I 散在各处的公理**收成一份清单**，并补上**两条还没有的**：
+--   · **替换**（Replacement）—— 本模块新增；
+--   · **正则性**（Foundation / Regularity）—— 本模块新增。
+-- 已经有的（**不重复造**，只在本文件里点名指路）：
+--   · **外延性** `Set.ext` —— `lib/Set`（公理 ✓）；
+--   · **分离** `Set.sep` —— `lib/Set`（**定理** ✓，因为谓词式里它就是取交，ST3 已落库）；
+--   · **幂集** `Set.powerset` —— `lib/Set`（**定理** ✓，同理）；
+--   · **并集** `Set.sUnion` —— `lib/SUnion`（**定理** ✓，ST4 已落库）；
+--   · **选择** `choice` —— `lib/Choice`（公理 ✓，ST12 已落库）。
+--
+-- **基准**（逐条实查，出处见 `docs/design/v077-st1-boundary.md` §2）：
+--   Isabelle AFP `ZFC_in_HOL`（`ZFC_in_HOL.thy` §1.4 的公理表）：
+--       replacement:  "P a b ⟹ ∃b. ∀a. a ∈ b ⟷ (∃a'. a' ∈ a ∧ P a' a)"
+--                     （**替换**：在一个集合里，关系的像还是集合）
+--       foundation:   "wf {(x,y). x ∈ elts y}"（**正则性**：∈ 良基）
+--   Mathlib `Mathlib/SetTheory/ZFC/Basic.lean`：`ZFSet.regularity`
+--       （`∀ x, (∃ y, y ∈ x) → ∃ y ∈ x, ∀ z ∈ y, z ∉ x` —— **等价的"无无穷下降"形式**）
+--   ⚠ **我们的形式**：`Set` 是**谓词**（`α → Prop`）⇒ 我们**不能**说"关系的像是集合"
+--   （谓词本来就是集合）。**谓词式里能说的是**：
+--     · **替换**：给定 `f : α → β`（**已经是函数** —— 本语言里函数是原语，不需要"关系"），
+--       `A` 的像是 `Set β` ⇒ 这就是 `lib/Image` 的 `Set.image` **定理** ✓；
+--       **真正需要公理的那一半**是「**从关系反解出函数**」—— 那要用选择公理 ⇒ 见下 ⚠。
+--     · **正则性**：`∈` 的良基性 —— 这条**谓词式里必须外挂**（本语言没有 `Acc`，G-56）✓。
+--
+-- **分层判据**（docs/design/course-stdlib.md）：本文件是 **L2（词汇 + 公理）**：
+--   · 1 条公理 `regularity`（外挂，不证）；
+--   · 3 个定义 `IsEmpty` / `IsPair` / `IsUnionOf`（ZF 公理表的"存在性"侧）；
+--   · 3 条 L2 引理（各自的展开）。
+-- 有数学内容的（由正则性推出"无 ∈-循环"、累积层级的构造）属 **L3**，留作练习 ✗。
+import lib.Logic
+import lib.Exists
+import lib.Set
+import lib.SUnion
+
+-- ── ZF 公理表（**逐条指路**，免得读者以为缺了）──────────────────────────────
+-- 这份表是 ST13 的核心产出：**哪些是公理、哪些在谓词式里变成了定理** ✓。
+--
+--   | ZF 公理        | 在本语言里的位置                                   | 性质     |
+--   |----------------|--------------------------------------------------|----------|
+--   | 外延性          | `lib/Set` 的 `axiom ext`                          | **公理** |
+--   | 分离（子集）    | `lib/Set` 的 `Set.sep`（取交）                     | **定理** |
+--   | 配对            | 集合字面量 `{a, b}` / `Set.pair`                   | **定理** |
+--   | 并集            | `lib/SUnion` 的 `Set.sUnion`                       | **定理** |
+--   | 幂集            | `lib/Set` 的 `Set.powerset`                        | **定理** |
+--   | 替换            | `lib/Image` 的 `Set.image`（**函数已是原语**）      | **定理** |
+--   | 无穷            | `Nat`（语言原语）                                  | **原语** |
+--   | 正则性          | **本文件** 的 `axiom regularity`                   | **公理** |
+--   | 选择            | `lib/Choice` 的 `axiom choice`                     | **公理** |
+--
+-- ⚠ **谓词式的关键差别**（写进表里，因为这是 ST1 结论 ① 的具体体现）：
+-- ZF 的分离/替换/幂集/并集在**具体化到某个类型 `α`** 之后都是**定理**
+-- （谓词就是集合，`{x ∈ A | P x}` 就是 `fun x => A x ∧ P x`）；
+-- **只有外延性、正则性、选择**必须外挂 —— 因为它们说的是**相等/良基/取数据**，
+-- 不是"某个谓词存在" ✓。
+
+-- ── 正则性（Foundation / Regularity）──────────────────────────────────────
+-- 读法（Mathlib `ZFSet.regularity` 的形式，**逐字同款**）：
+--   每个**非空**集合 `A` 都有一个 `∈`-极小元 `m`（`m` 里没有 `A` 的元素）✓。
+-- ⚠ 这条**必须外挂**：它是 `∈` 的**良基性**，而本语言没有 `Acc`（G-56）
+-- ⇒ 谓词式里**推不出来** ✓。
+axiom regularity : (α : Type) → (E : α → α → Prop) → (A : α) →
+  (∃ (x : α), E x A) →
+  ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A)
+
+-- ── ZF 公理表的"存在性"侧（三个定义 + 展开）────────────────────────────────
+-- `x` 是空集（在 `E` 下没有元素）
+def IsEmpty (α : Type) (E : α → α → Prop) (x : α) : Prop :=
+  ∀ (y : α), ¬ (E y x)
+
+-- `x` 是 `a` 与 `b` 的配对（元素恰好是 `a` 或 `b`）
+def IsPair (α : Type) (E : α → α → Prop) (x a b : α) : Prop :=
+  ∀ (z : α), E z x ↔ (z = a ∨ z = b)
+
+-- `x` 是族 `F` 的并（元素恰好落在某个 `F` 成员里）
+def IsUnionOf (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) : Prop :=
+  ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A
+
+theorem isEmpty_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsEmpty α E x ↔ ∀ (y : α), ¬ (E y x) :=
+  Iff.intro (fun (h : IsEmpty α E x) => h) (fun (h : ∀ (y : α), ¬ (E y x)) => h)
+
+theorem isPair_def (α : Type) (E : α → α → Prop) (x a b : α) :
+    IsPair α E x a b ↔ ∀ (z : α), E z x ↔ (z = a ∨ z = b) :=
+  Iff.intro (fun (h : IsPair α E x a b) => h)
+    (fun (h : ∀ (z : α), E z x ↔ (z = a ∨ z = b)) => h)
+
+theorem isUnionOf_def (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) :
+    IsUnionOf α E x F ↔ ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A :=
+  Iff.intro (fun (h : IsUnionOf α E x F) => h)
+    (fun (h : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) => h)
+
+-- ── 本版不做（记在这里，免得后来者重复踩）──────────────────────────────────
+-- · **由正则性推「无 ∈-循环」/「无无穷下降链」**：要 `∈` 上的**良基递归**
+--   ⇒ 撞 **G-56**（`Acc` 立不起来）⇒ L3/后续；
+-- · **累积层级 `V` / 秩 `rank`**：要良基递归 **与** 大消去（`Prop` 入 `Type` 出）
+--   ⇒ 撞 **G-56 + G-58** ⇒ 见 ST7/ST9 的登记；
+-- · **`ZFSet` 那种"集合是一个类型"的编码**（Mathlib `Mathlib/SetTheory/ZFC/Basic.lean`）：
+--   要商 + 良基递归 ⇒ 本版走**谓词式**（ST1 结论 ①②）✓，不做那套编码。
