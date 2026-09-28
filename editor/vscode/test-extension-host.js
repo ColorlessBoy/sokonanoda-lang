@@ -840,6 +840,58 @@ test("build streams per-file progress to the status bar and the Infoview (E23)",
   );
 });
 
+test("build progress keeps moving inside a file (P2: decl + tick)", async () => {
+  // **P2（用户 2026-09-28）**：最小进度粒度以前是**文件** ⇒ 大文件时 UI 长时间不动
+  // 像卡死（实测冷编课程 `unit08-solution` **39s 无输出** ✗）。
+  // 判据**绑用户可见结果**：`build.decl`（声明级）与 `build.tick`（心跳）必须
+  // **真的改到状态栏与 Infoview 的文本**上 —— 不是"链路通"就完事 ✗。
+  await activateExtension();
+  focus(fakeDocument("/repo/units/u01.sokonanoda"));
+  await settle();
+  const provider = vscodeStub.__infoview;
+  assert.ok(provider, "activate() 必须建 Infoview provider");
+  const frames = [];
+  const original = provider.setProgress.bind(provider);
+  provider.setProgress = (progress) => {
+    frames.push(progress);
+    return original(progress);
+  };
+  setBuildEvents([
+    { type: "build.begin", files: 2 },
+    { type: "build.decl", file: "/repo/units/big.sokonanoda", module: "big", index: 0, total: 31 },
+    { type: "build.decl", file: "/repo/units/big.sokonanoda", module: "big", index: 6, total: 31 },
+    { type: "build.tick", file: "/repo/units/big.sokonanoda", elapsed_ms: 12345 },
+    { type: "build.file", file: "/repo/units/big.sokonanoda", status: "compiled" },
+    { type: "build.summary", files: 2, hit: 1, compiled: 1, failed: 0 },
+  ]);
+  vscodeStub.__statusBarHistory = [];
+  try {
+    await vscodeStub.__commands["sokonanoda.build"]();
+  } finally {
+    provider.setProgress = original;
+  }
+  const statusFrames = vscodeStub.__statusBarHistory.filter((line) =>
+    String(line).startsWith("$(sync~spin)"),
+  );
+  assert.ok(
+    statusFrames.some((l) => String(l).includes("声明 1/31")),
+    `声明级进度必须上状态栏：${JSON.stringify(statusFrames)}`,
+  );
+  assert.ok(
+    statusFrames.some((l) => String(l).includes("声明 7/31")),
+    `同一条文件内的后续声明也要更新（不是只报第一拍）：${JSON.stringify(statusFrames)}`,
+  );
+  assert.ok(
+    statusFrames.some((l) => String(l).includes("已用 12.3s")),
+    `心跳必须把"已用时"显示出来（用户可见面持续在动）：${JSON.stringify(statusFrames)}`,
+  );
+  const details = frames.filter((f) => f && f.phase === "report").map((f) => f.detail);
+  assert.ok(
+    details.some((d) => String(d).includes("声明 7/31")) && details.some((d) => String(d).includes("已用 12.3s")),
+    `Infoview 同一份数字也要更新：${JSON.stringify(details)}`,
+  );
+});
+
 test("Clean Cache clears both stores and does not compile anything (E31)", async () => {
   // **E31（用户：「vscode 命令缺一个 clean，清除缓存」）**。
   //

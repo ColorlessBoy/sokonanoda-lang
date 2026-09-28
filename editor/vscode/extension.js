@@ -2043,6 +2043,31 @@ async function runBuild(context, { clean = false, courseProvider } = {}) {
         percent: total > 0 ? Math.round((done * 100) / total) : null,
         detail: `${done}/${total || "?"} 文件 · ${name} ${mark}`,
       });
+    } else if (event.type === "build.decl") {
+      // **P2 声明级进度**（2026-09-28）：文件内也持续更新 —— 改前一条 `build.file`
+      // 要等整个文件编完（实测 `unit08-solution` **39s 不动** ✗）。
+      const name = shortName(event.file);
+      const declTotal = Number(event.total) || 0;
+      const declIndex = (Number(event.index) || 0) + 1;
+      nativeReport?.(`${done}/${total || "?"} · ${name} · 声明 ${declIndex}/${declTotal}`, 0);
+      applyProgress({
+        phase: "report",
+        label: `${done}/${total || "?"} · ${name}`,
+        percent: total > 0 ? Math.round((done * 100) / total) : null,
+        detail: `${done}/${total || "?"} 文件 · ${name} · 声明 ${declIndex}/${declTotal}`,
+      });
+    } else if (event.type === "build.tick") {
+      // **P2 心跳**（CLI 至多每秒一条，**只报已用时**）：单条声明内部也可能跑十几秒
+      // （实测最贵 ~14s）⇒ 没有它，UI 仍会"长时间不动" ✗。
+      const name = shortName(event.file);
+      const secs = ((Number(event.elapsed_ms) || 0) / 1000).toFixed(1);
+      nativeReport?.(`${done}/${total || "?"} · ${name} · 已用 ${secs}s`, 0);
+      applyProgress({
+        phase: "report",
+        label: `${done}/${total || "?"} · ${name}`,
+        percent: total > 0 ? Math.round((done * 100) / total) : null,
+        detail: `${done}/${total || "?"} 文件 · ${name} · 已用 ${secs}s`,
+      });
     } else if (event.type === "build.clean") {
       removed = event.removed ?? 0;
     }
