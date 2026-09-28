@@ -772,6 +772,15 @@ global fallback validates that the entry's module root matches the current one
   then `build.summary` (`{type, files, hit, compiled, failed}`); `build --clean
   --json` emits `build.clean` (`{type, removed, global, project}`, additive:
   `removed == global + project`);
+- **P2 进度粒度**（2026-09-28，additive —— 老消费者忽略未知 `type` ✓，两条都**只在
+  真编译**时发、`hit` 文件不发）：
+  `build.decl` (`{type, file, module, index, total}`) 每处理**一条命令（声明）**一条，
+  `index` 在 `module` 内**从 0 起**、`total` 是该单元的命令总数（客户端可渲染
+  `声明 7/31 · lib.Set`）；`build.tick` (`{type, elapsed_ms, file}`) 是**心跳**——
+  **至多每秒一条**、且只在"这一秒内没有别的输出"时发（**只报已用时，不假装百分比** ✓）。
+  为什么需要心跳：声明级事件之间的间隔仍可能很长（实测 `unit08-solution` 里**单条
+  声明**最贵 ~14s）⇒ 判据「**最长无输出间隔 ≤ 2s**」由它兜底，见
+  `scripts/check-progress-gap.py`（gate + CI 里跑；反向验证：合成一段 5s 空档必须判红）；
 - the human summary is `built K file(s) — H hit, M compiled, F failed`.
 
 Environment: `SOKONANODA_CACHE_DIR` relocates the cache root,

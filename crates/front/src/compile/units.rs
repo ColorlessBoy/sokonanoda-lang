@@ -107,6 +107,38 @@ pub fn split_report(
     reports
 }
 
+/// 编译进度的一拍（**声明级**，P2「进度粒度」）。
+///
+/// `module` = 正在处理的单元名（单文件模式是空串）；`index`/`total` = 该单元内的
+/// 命令（声明）序号（**从 0 起**）与总数。**为什么要有它**：`build`/`rebuild` 的
+/// 最小进度粒度以前是**文件** ⇒ 大文件时 UI 长时间不动像卡死（实测冷编
+/// `courses/set-theory` 的**最长无输出间隔 39.0s**，`unit08-solution`）✗。
+///
+/// **零成本纪律**：不传回调（`None`）⇒ 热路径上每条命令只多一次 `Option` 分支；
+/// 既有入口 `compile_all_units` 的行为逐字节不变。
+pub struct ProgressTick<'a> {
+    pub module: &'a str,
+    pub index: usize,
+    pub total: usize,
+}
+
+/// 进度接收端（P2）。**为什么是 trait 而不是 `&mut dyn FnMut(ProgressTick<'_>)`**：
+/// 后者在函数签名里会把 `ProgressTick` 的生命周期钉成**某一个**具体生命周期，
+/// 于是同一个 sink 传不了两趟 pass（`run` 的 pass 1 / pass 2）✗；trait 的方法签名
+/// 天然是 higher-ranked（`for<'x> fn(&mut self, ProgressTick<'x>)`）⇒ 可以反复重借 ✓。
+pub trait ProgressSink {
+    fn tick(&mut self, tick: ProgressTick<'_>);
+}
+
+impl<F> ProgressSink for F
+where
+    F: for<'x> FnMut(ProgressTick<'x>),
+{
+    fn tick(&mut self, tick: ProgressTick<'_>) {
+        self(tick);
+    }
+}
+
 /// 项目闭包编译的唯一入口：`units` 按拓扑序排列、**入口在最后**。
 /// 返回扁平事件流 + 与 `units` 同序（且 `cmd` 已重基）的逐模块报告。
 /// 单文件编译走同一条路径（一个单元），行为与 `compile_all_with` 逐字节一致。
@@ -114,5 +146,14 @@ pub fn compile_all_units(
     units: &[SourceUnit<'_>],
     options: &CompileOptions,
 ) -> (CompileOutput, Vec<DocumentReport>) {
-    run(units, options, true)
+    run(units, options, true, None)
+}
+
+/// 同 [`compile_all_units`]，但每处理一条命令回调一次（**声明级进度**，P2）。
+pub fn compile_all_units_with_progress(
+    units: &[SourceUnit<'_>],
+    options: &CompileOptions,
+    progress: Option<&mut dyn ProgressSink>,
+) -> (CompileOutput, Vec<DocumentReport>) {
+    run(units, options, true, progress)
 }

@@ -254,6 +254,7 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
         &[SourceUnit::single("", file)],
         &CompileOptions::default(),
         false,
+        None,
     )
     .0
 }
@@ -261,7 +262,7 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
 /// Compile with explicit options (e.g. `PreludeMode::Bare` for a fully bare
 /// teaching file that builds every concept from scratch).
 pub fn compile_fol_with(file: &FolFile, options: &CompileOptions) -> CompileOutput {
-    run(&[SourceUnit::single("", file)], options, false).0
+    run(&[SourceUnit::single("", file)], options, false, None).0
 }
 
 /// Compile a file and return the detailed document report (per-declaration
@@ -271,6 +272,7 @@ pub fn check_document(file: &FolFile) -> DocumentReport {
         &[SourceUnit::single("", file)],
         &CompileOptions::default(),
         true,
+        None,
     )
     .1
     .into_iter()
@@ -285,7 +287,7 @@ pub fn check_document_with(file: &FolFile, options: &CompileOptions) -> Document
         &stage_stats::VIA_CHECK_DOCUMENT_NANOS,
         std::time::Instant::now(),
     );
-    run(&[SourceUnit::single("", file)], options, true)
+    run(&[SourceUnit::single("", file)], options, true, None)
         .1
         .into_iter()
         .next()
@@ -298,7 +300,7 @@ pub fn compile_all_with(
     file: &FolFile,
     options: &CompileOptions,
 ) -> (CompileOutput, DocumentReport) {
-    let (out, mut reports) = run(&[SourceUnit::single("", file)], options, true);
+    let (out, mut reports) = run(&[SourceUnit::single("", file)], options, true, None);
     (out, reports.pop().unwrap_or_default())
 }
 
@@ -501,6 +503,7 @@ pub(crate) fn run(
     units: &[SourceUnit<'_>],
     options: &CompileOptions,
     collect: bool,
+    progress: Option<&mut dyn crate::compile::ProgressSink>,
 ) -> (CompileOutput, Vec<DocumentReport>) {
     // 常驻诊断（`SOKO_PASS_TRACE=<n>`）：在第 n 次 `run` 上打一份调用栈，
     // 用来回答"这几百趟 pass 到底是谁在调"——G-31/G-34 就是这么定位的
@@ -520,7 +523,10 @@ pub(crate) fn run(
     // unsound for teaching. Pass 2 recomputes in a fresh session with the
     // kernel-failed declarations removed (check-then-add semantics): their
     // names are free again and dependents fail with a proper diagnosis.
-    let pass = run_pass(units, options, collect, None, None);
+    // **进度只挂在 pass 1**（P2）：pass 2 只在 pass 1 出现内核失败时才跑
+    // （`check-then-add` 语义），它会把同一批命令**再走一遍** ⇒ 挂上去只会让
+    // 同一个声明报两次 ✗；而"大文件卡住"的场景几乎都是干净文件（pass 1 一次过）✓。
+    let pass = run_pass(units, options, collect, None, None, progress);
     let mut out = pass.out;
     out.stats.kernel_checks = pass.checks;
     if std::env::var("SOKO_DEBUG_PASS1").is_ok() {
@@ -531,7 +537,7 @@ pub(crate) fn run(
     let (out, flat) = if pass.failed.is_empty() {
         (out, pass.report)
     } else {
-        let pass2 = run_pass(units, options, collect, Some(&pass.failed), None);
+        let pass2 = run_pass(units, options, collect, Some(&pass.failed), None, None);
         let mut out2 = pass2.out;
         out2.stats.kernel_checks = pass.checks + pass2.checks;
         (out2, pass2.report)
@@ -570,7 +576,14 @@ pub(crate) fn run_incremental(
     // ——`run_pass` 期间发生的判定（`by` 块/judge_infer/judge_type_of）因此可以
     // 走 `run_incremental` 而不重查前缀。栈式，进出成对。
     let pass1 = crate::judge::with_trusted_prefix(trust.before, prefix_failures, || {
-        run_pass(&units, options, true, Some(prefix_failures), Some(trust))
+        run_pass(
+            &units,
+            options,
+            true,
+            Some(prefix_failures),
+            Some(trust),
+            None,
+        )
     });
     if pass1.failed.is_empty() {
         let mut out = pass1.out;
@@ -599,7 +612,7 @@ pub(crate) fn run_incremental(
         allow_cutoff: false,
     };
     let pass2 = crate::judge::with_trusted_prefix(trust2.before, &skip2, || {
-        run_pass(&units, options, true, Some(&skip2), Some(&trust2))
+        run_pass(&units, options, true, Some(&skip2), Some(&trust2), None)
     });
     let checks = pass1.checks + pass2.checks;
     let mut out = pass2.out;
@@ -744,6 +757,7 @@ fn run_pass(
     collect: bool,
     skip: Option<&KernelFailed>,
     trust: Option<&TrustPlan>,
+    progress: Option<&mut dyn crate::compile::ProgressSink>,
 ) -> PassResult {
     stage_stats::install();
     stage_stats::PASSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -877,6 +891,7 @@ fn run_pass(
         trust,
         &all_templates,
         &closure_prefixes,
+        progress,
     );
     // **T-K12b 的一致性观测**：把影子环境推进到"全部已 elaborate 的前缀"
     // （`finish_pass` 会把 `walk` 的字段移走 ⇒ 必须在这之前取数 ✓）。

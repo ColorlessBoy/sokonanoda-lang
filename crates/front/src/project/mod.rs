@@ -20,9 +20,8 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use crate::compile::{
-    compile_all_units, explicit_prelude_mode, unit_ranges, CompileOptions, CompileOutput,
-    DeclStatus, DocumentReport, ErrorKind, PreludeMode, SourceUnit, WarningKind,
-    PRELUDE_NEVER_YIELDS,
+    explicit_prelude_mode, unit_ranges, CompileOptions, CompileOutput, DeclStatus, DocumentReport,
+    ErrorKind, PreludeMode, SourceUnit, WarningKind, PRELUDE_NEVER_YIELDS,
 };
 
 pub use graph::{load_closure, Closure, LoadedModule};
@@ -189,6 +188,41 @@ impl ProjectPlan {
         }
         format!("closure-{hash:016x}")
     }
+
+    /// **模块级 Merkle 键**（per-module 产物的键；设计 `docs/design/module-artifacts.md` §3）。
+    ///
+    /// 与 [`ProjectPlan::digest`] **同一个哈希函数、同一条 Merkle 链**，差别只在**粒度**：
+    /// `digest` 把**整条闭包**折成一条键 ⇒ 42 个入口各存一份、共享依赖各编一遍（**G-68** ✗）；
+    /// 这里给**每个模块**一条键 ⇒ 依赖没变时它的键**逐字节不变** ⇒ 产物可被所有下游复用 ✓。
+    ///
+    /// `key(M) = cache::key("soko.module-artifact/1\0" + 路径(M) + 源文本(M) + [name(D), key(D)]…)`
+    /// —— 复用 `compile::cache::key`，于是**版本 / build stamp / prelude 模式**仍是单一真相，
+    /// 且"依赖变 ⇒ `key(D)` 变 ⇒ 所有下游 key 变"是**构造性**成立的（这是**不许错编**的底线）。
+    /// 路径进键的理由与 T-A06 相同：**内容相同不代表位置相同**。
+    /// 返回**拓扑序**的 `(模块名, 键)`（依赖在前、入口在最后）。
+    pub fn module_keys(&self, options: &CompileOptions) -> Vec<(String, String)> {
+        let mut keys: Vec<(String, String)> = Vec::with_capacity(self.closure.modules.len());
+        let mut seen: HashMap<&str, usize> = HashMap::new();
+        for module in &self.closure.modules {
+            let mut text = String::from("soko.module-artifact/1\0");
+            text.push_str(&digest_path(&module.path));
+            text.push('\0');
+            text.push_str(&module.file.src);
+            text.push('\0');
+            for (dep, _) in &module.imports {
+                text.push_str(dep);
+                text.push('\0');
+                if let Some(&idx) = seen.get(dep.as_str()) {
+                    text.push_str(&keys[idx].1);
+                }
+                text.push('\0');
+            }
+            let key = crate::compile::cache::key(&text, options);
+            seen.insert(module.name.as_str(), keys.len());
+            keys.push((module.name.clone(), key));
+        }
+        keys
+    }
 }
 
 /// 解析项目根、加载闭包（不编译）。
@@ -301,7 +335,17 @@ pub fn plan_project_with_overlay(
 }
 
 /// 执行计划：闭包级检查 → 一次编译 → 逐模块报告 → 挂诊断。
-pub fn compile_plan(mut plan: ProjectPlan, options: &CompileOptions) -> ProjectReport {
+pub fn compile_plan(plan: ProjectPlan, options: &CompileOptions) -> ProjectReport {
+    compile_plan_with_progress(plan, options, None)
+}
+
+/// 同 [`compile_plan`]，但每处理一条命令回调一次（**声明级进度**，P2）——
+/// `build`/`rebuild` 用它把"文件级"进度细化到"声明级"（`docs/protocol.md` 的 `build.decl`）。
+pub fn compile_plan_with_progress(
+    mut plan: ProjectPlan,
+    options: &CompileOptions,
+    progress: Option<&mut dyn crate::compile::ProgressSink>,
+) -> ProjectReport {
     let entry_path = plan.entry.clone();
     let root = plan.root.clone();
     let manifest_path = plan.manifest.clone();
@@ -324,7 +368,8 @@ pub fn compile_plan(mut plan: ProjectPlan, options: &CompileOptions) -> ProjectR
             file: &closure.modules[index].file,
         })
         .collect();
-    let (flat_out, reports) = compile_all_units(&units, options);
+    let (flat_out, reports) =
+        crate::compile::compile_all_units_with_progress(&units, options, progress);
 
     // 5) 逐模块事件（扁平事件按单元区间切分，`cmd` 重基到模块内）。
     //    被阻断的模块不编译，但**仍然出现在报告里**（入口永远在最后，

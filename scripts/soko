@@ -1253,6 +1253,34 @@ async function main(argv) {
         )
         return 3
       }
+      // **P2 进度判据**（用户 2026-09-28）：`build`/`rebuild` 的最小进度粒度以前是
+      // **文件** ⇒ 大文件时用户可见面长时间不动像卡死（实测冷编课程**最长无输出间隔
+      // 39.0s**）✗。判据直接量**事件流最长空档**（`build.decl` 声明级 + `build.tick`
+      // 心跳两条通道）≤ 2.5s；反向验证（合成 5s 空档必须判红）也进 gate ✓。
+      // 快（~3s）⇒ `--fast` 也跑 ✓。
+      const progressGap = path.join(REPO, 'scripts', 'check-progress-gap.py')
+      if (!existsSync(progressGap)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, progressGap)} —— 进度粒度无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const gapRun = spawnSync(python.cmd, [...python.args, progressGap], { stdio: 'inherit', cwd: REPO })
+      if (gapRun.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${progressGap}: ${gapRun.error.message}\n`)
+        return 3
+      }
+      if ((gapRun.status ?? 3) !== 0) return gapRun.status ?? 3
+      const gapSelf = spawnSync(python.cmd, [...python.args, progressGap, '--selftest'], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (gapSelf.error || (gapSelf.status ?? 3) !== 0) {
+        process.stderr.write(
+          `scripts/soko gate: ${path.relative(REPO, progressGap)} --selftest 失败 —— 判据咬不住空档（exit 3）。\n`,
+        )
+        return 3
+      }
       if (fast) {
         process.stderr.write(
           'scripts/soko gate --fast: 跳过缺口台账门禁（~94s；它是**提交前**的契约，' +

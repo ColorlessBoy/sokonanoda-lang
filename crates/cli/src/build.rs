@@ -12,6 +12,97 @@ use sokonanoda_front::compile::{compile_all_with, prelude_mode_from_source, Comp
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+/// **P2 心跳周期**：这么久没有任何其它输出 ⇒ 发一条 `build.tick`。
+const TICK_MS: u64 = 1000;
+
+/// 所有 `--json` 输出走同一把锁：心跳线程与编译线程都会写 stdout，
+/// 不加锁会**串行交错**（两条 JSON 拼在一行 ⇒ 消费者解析失败）✗。
+static PRINT_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn emit_json(value: serde_json::Value) {
+    let _guard = PRINT_LOCK
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    println!("{value}");
+}
+
+/// **P2 心跳**：声明级事件之间的间隔仍可能很长（实测 `unit08-solution` 里**单条声明**
+/// 最贵 ~14s —— 那是一条 `by` 证明内部的判定，前端没有更细的回调点）⇒ 光有声明级
+/// 事件，UI 还是会"长时间不动"✗。心跳**只报"已用时 + 当前文件"**（**不假装百分比** ✓），
+/// 保证用户可见面持续在动 ⇒ 判据「最长无输出间隔 ≤ N 秒」的 N 由它兜底。
+struct Heartbeat {
+    t0: std::time::Instant,
+    last_ms: std::sync::Arc<std::sync::atomic::AtomicU64>,
+    current: std::sync::Arc<std::sync::Mutex<String>>,
+    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    join: Option<std::thread::JoinHandle<()>>,
+}
+
+impl Heartbeat {
+    fn start(enabled: bool) -> Self {
+        use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+        use std::sync::{Arc, Mutex};
+        let t0 = std::time::Instant::now();
+        let last_ms = Arc::new(AtomicU64::new(0));
+        let current = Arc::new(Mutex::new(String::new()));
+        let stop = Arc::new(AtomicBool::new(false));
+        let join = enabled.then(|| {
+            let (last, cur, st) = (
+                Arc::clone(&last_ms),
+                Arc::clone(&current),
+                Arc::clone(&stop),
+            );
+            std::thread::spawn(move || {
+                let base = std::time::Instant::now();
+                while !st.load(Ordering::Relaxed) {
+                    std::thread::sleep(std::time::Duration::from_millis(TICK_MS));
+                    if st.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    let now = base.elapsed().as_millis() as u64;
+                    if now.saturating_sub(last.load(Ordering::Relaxed)) >= TICK_MS {
+                        last.store(now, Ordering::Relaxed);
+                        let file = cur.lock().map(|g| g.clone()).unwrap_or_default();
+                        emit_json(serde_json::json!({
+                            "type": "build.tick",
+                            "elapsed_ms": now,
+                            "file": file,
+                        }));
+                    }
+                }
+            })
+        });
+        Self {
+            t0,
+            last_ms,
+            current,
+            stop,
+            join,
+        }
+    }
+
+    /// 刚发过一条**真**事件 ⇒ 心跳让位（避免"真事件 + 心跳"刷屏）。
+    fn note(&self) {
+        self.last_ms.store(
+            self.t0.elapsed().as_millis() as u64,
+            std::sync::atomic::Ordering::Relaxed,
+        );
+    }
+
+    fn set_file(&self, file: &str) {
+        if let Ok(mut guard) = self.current.lock() {
+            *guard = file.to_string();
+        }
+    }
+
+    fn stop(&mut self) {
+        self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+        if let Some(handle) = self.join.take() {
+            let _ = handle.join();
+        }
+    }
+}
+
 pub(crate) fn build(
     args: &[String],
     json: bool,
@@ -74,10 +165,29 @@ pub(crate) fn build(
             serde_json::json!({"type": "build.begin", "files": files.len()})
         );
     }
+    // **P2 心跳**：`--json` 时启动（人类可读模式零线程、输出逐字节不变）。
+    let mut heartbeat = Heartbeat::start(json);
     for file in &files {
+        // **P2 进度粒度**：`--json` 时把**声明级**进度逐条发出去
+        // （`build.decl`；人类可读模式不发，保持原有输出逐字节不变）。
+        let file_text = file.display().to_string();
+        heartbeat.set_file(&file_text);
+        heartbeat.note();
+        let mut sink = |tick: sokonanoda_front::compile::ProgressTick<'_>| {
+            emit_json(serde_json::json!({
+                "type": "build.decl",
+                "file": file_text,
+                "module": tick.module,
+                "index": tick.index,
+                "total": tick.total,
+            }));
+            heartbeat.note();
+        };
+        let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> =
+            if json { Some(&mut sink) } else { None };
         let status = std::fs::read_to_string(file)
             .map_err(|e| format!("cannot read: {e}"))
-            .and_then(|src| build_one(file, &src, root, no_project));
+            .and_then(|src| build_one(file, &src, root, no_project, progress));
         let status = match status {
             Ok(status) => status,
             Err(message) => {
@@ -91,16 +201,15 @@ pub(crate) fn build(
             _ => failed += 1,
         }
         if json {
-            println!(
-                "{}",
-                serde_json::json!({
-                    "type": "build.file",
-                    "file": file.display().to_string(),
-                    "status": status,
-                })
-            );
+            emit_json(serde_json::json!({
+                "type": "build.file",
+                "file": file.display().to_string(),
+                "status": status,
+            }));
+            heartbeat.note();
         }
     }
+    heartbeat.stop();
 
     let total = hit + compiled + failed;
     if json {
@@ -153,6 +262,7 @@ fn build_one(
     src: &str,
     root: Option<&str>,
     no_project: bool,
+    progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink>,
 ) -> Result<&'static str, String> {
     let options = CompileOptions {
         prelude: prelude_mode_from_source(src),
@@ -181,7 +291,8 @@ fn build_one(
                 return Ok("hit");
             }
         }
-        let project = sokonanoda_front::project::compile_plan(plan, &options);
+        let project =
+            sokonanoda_front::project::compile_plan_with_progress(plan, &options, progress);
         let ok = project
             .entry_module()
             .is_none_or(|module| module.events.errors.is_empty())

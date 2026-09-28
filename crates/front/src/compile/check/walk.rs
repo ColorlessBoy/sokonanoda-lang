@@ -241,6 +241,7 @@ impl<'arena> Walk<'arena> {
         trust: Option<&TrustPlan>,
         all_templates: &[GoalTemplates],
         closure_prefixes: &[String],
+        mut progress: Option<&mut dyn crate::compile::ProgressSink>,
     ) {
         // 影子重放要**同样跳过**本轮已知失败的命令（见 `shadow_skip` 的注释）。
         self.shadow_skip = skip.cloned();
@@ -262,8 +263,27 @@ impl<'arena> Walk<'arena> {
                 })
             })
             .collect();
+        // **P2 进度粒度**：每单元的命令（声明）总数，供回调报 `k/n`。
+        let unit_totals: Vec<usize> = {
+            let mut totals = vec![0usize; units.len()];
+            for (unit_idx, _) in flat {
+                totals[*unit_idx] += 1;
+            }
+            totals
+        };
+        let mut unit_seen: Vec<usize> = vec![0usize; units.len()];
         for (idx, &(unit_idx, command)) in flat.iter().enumerate() {
             let unit = &units[unit_idx];
+            // 每处理**一条命令**回调一次（声明级）：先报"开始处理这一条"，
+            // 于是首拍在编译一开始就到、末拍覆盖到最后一条命令 ✓。
+            if let Some(sink) = progress.as_deref_mut() {
+                sink.tick(crate::compile::ProgressTick {
+                    module: unit.name,
+                    index: unit_seen[unit_idx],
+                    total: unit_totals[unit_idx],
+                });
+            }
+            unit_seen[unit_idx] += 1;
             // G-05 N5：单元（文件）切换处清空作用域——`open` 与 `namespace`
             // 都是文件内的（`import` 不做模块限定，但被导入模块的**全局名**
             // 本来就可见，所以入口里的 `open Set` 对依赖的 `Set.mem` 仍然有效）。

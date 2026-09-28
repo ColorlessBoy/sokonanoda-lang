@@ -509,6 +509,80 @@ fn closure_digest_is_stable_and_dependency_sensitive() {
 }
 
 #[test]
+fn module_keys_are_dependency_scoped_not_entry_scoped() {
+    // **per-module 产物键的性质判据**（设计 `docs/design/module-artifacts.md` §3）：
+    // 这是"结果复用"能成立、且**不会错编**的那两条性质。
+    //
+    // 为什么必须有它：per-entry 的 `digest` 把整条闭包折成一条键 ⇒ **改任何一个依赖，
+    // 42 个入口全部失效**（G-68 的 4.14× 重复功）；而 per-module 键要让
+    // **没变的模块键逐字节不变**（⇒ 产物可复用），同时**变了的下游必须全变**（⇒ 不错编）。
+    let dir = tmp_dir("module-keys");
+    write(&dir, "Bar.sokonanoda", "def bar : Nat := 2\n");
+    write(&dir, "Baz.sokonanoda", "def baz : Nat := 4\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Bar\nimport Baz\n\ndef two : Nat := bar\n",
+    );
+    let path = dir.join("Main.sokonanoda");
+    let options = CompileOptions::default();
+    let keys = || plan_project(&path, None, None).module_keys(&options);
+    let key_of = |list: &[(String, String)], name: &str| {
+        list.iter()
+            .find(|(module, _)| module == name)
+            .unwrap_or_else(|| panic!("{name} 必须在闭包里：{list:?}"))
+            .1
+            .clone()
+    };
+
+    let first = keys();
+    // ① 确定性：同一份输入两次算出同一批键。
+    assert_eq!(first, keys(), "模块键必须确定性");
+    // ② 拓扑序：依赖在前、入口在最后（`ProjectPlan::digest` 同一条纪律）。
+    assert_eq!(first.last().map(|(name, _)| name.as_str()), Some("Main"));
+    // ③ 每个模块一条键，互不相同（不是把整条闭包又折成一条）。
+    let unique: std::collections::HashSet<&String> = first.iter().map(|(_, key)| key).collect();
+    assert_eq!(
+        unique.len(),
+        first.len(),
+        "每个模块必须有自己的一条键：{first:?}"
+    );
+
+    let bar_before = key_of(&first, "Bar");
+    let main_before = key_of(&first, "Main");
+
+    // ④ **无关模块变 ⇒ 别人的键逐字节不变**（这就是 per-module 相对 per-entry 的收益：
+    //    `Baz` 与 `Bar` 互不依赖 ⇒ 改 `Baz` 不该让 `Bar` 的产物失效）。
+    write(&dir, "Baz.sokonanoda", "def baz : Nat := 9\n");
+    let after_unrelated = keys();
+    assert_eq!(
+        key_of(&after_unrelated, "Bar"),
+        bar_before,
+        "无关模块（Baz）改了，Bar 的键必须逐字节不变（否则共享依赖的产物永远复用不上）"
+    );
+    assert_ne!(
+        key_of(&after_unrelated, "Main"),
+        main_before,
+        "入口直接 import 了 Baz ⇒ 它的键必须变"
+    );
+
+    // ⑤ **依赖变 ⇒ 它自己与所有下游都变**（红线：错编比慢严重得多）。
+    let main_after_unrelated = key_of(&after_unrelated, "Main");
+    write(&dir, "Bar.sokonanoda", "def bar : Nat := 3\n");
+    let after_dep = keys();
+    assert_ne!(
+        key_of(&after_dep, "Bar"),
+        bar_before,
+        "依赖自己变了，键必须变"
+    );
+    assert_ne!(
+        key_of(&after_dep, "Main"),
+        main_after_unrelated,
+        "**依赖变了，入口的键必须变** —— 不变就是拿旧产物回放，会错编"
+    );
+}
+
+#[test]
 fn closure_digest_marks_the_module_set() {
     let dir = tmp_dir("digest-set");
     write(&dir, "Bar.sokonanoda", "def bar : Nat := 2\n");

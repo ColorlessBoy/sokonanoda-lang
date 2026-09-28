@@ -36,7 +36,10 @@ pub use report::{
     GoalBinder, HoverType, ResolvedTarget, SubGoal,
 };
 pub(crate) use scope::{join_ns, NamespaceScope};
-pub use units::{compile_all_units, split_report, unit_ranges, SourceUnit};
+pub use units::{
+    compile_all_units, compile_all_units_with_progress, split_report, unit_ranges, ProgressSink,
+    ProgressTick, SourceUnit,
+};
 pub use warning::{collect_warnings, CompileWarning, WarningKind, RESERVED_SORT_NAMES};
 
 #[cfg(test)]
