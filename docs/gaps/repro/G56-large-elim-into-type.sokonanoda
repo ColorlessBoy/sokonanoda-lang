@@ -1,0 +1,25 @@
+-- G-56 探针 ②：**大消去（large elimination）不可用** —— 住在 `Prop` 的归纳类型
+-- 消去不到 `Type`。
+--
+-- 期望：**0 条 `decl.checked`，1 条诊断**，逐字为：
+--     kernel-rejected /
+--     「类型不匹配：期望 `Pi (x : ((And.[] $2) $1)), Sort(0)`，
+--       实际是 `Pi (_ : ((And.[] $2) $1)), Sort(2)`」
+--
+-- 为什么它决定 ST7 的成败：`Acc` 住在 `Prop`，而 `rank` 要返回 `Ordinal`（在 `Type`）
+-- ⇒ **即使 `Acc` 声明成功，rank 也返回不了序数** ✗。实测：**被拒**。
+--
+-- 机制（`crates/kernel/src/inductive.rs`，**只读**结论）：
+--   `mk_elim_level` 问 `large_elim_test`；为 false ⇒ `st.elim_level = Some(zero())`
+--   ⇒ `mk_motive_dep` 把 motive 建成 `major → Sort(0)`（= Prop）⇒ 用户写 `Sort(2)`
+--   的 motive 判红。对 Prop 值归纳块，`large_elim_test` 走 `large_elim_test_aux`
+--   （要求「每个非 Prop 的构造子字段都是参数或指标」）—— `And`（字段全是 Prop）
+--   **应当**通过，但实测没通过。**根因未定位**（时间盒到了，留给 ST15）。
+--
+-- 对照组（同一条路、消去到 `Prop`）：**checked** ✓ ⇒ 不是"写错了 recursor"。
+--
+-- 本文件自足（无 `import`）⇒ `--no-project` 单文件判卷即可。
+-- 判据：`docs/gaps/ledger.jsonl` 的 G-56（`repro_expect: rejected`）。
+
+def andToType (A B : Prop) (h : A ∧ B) : Type :=
+  And.rec A B (fun (_ : A ∧ B) => Type) A B h

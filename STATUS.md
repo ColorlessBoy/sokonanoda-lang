@@ -81,6 +81,35 @@
   `ST1-no-cumulativity.sokonanoda`）✓。
 - **没做** ✗：**ST10（基数）未开**（用户明确「做完停下，不要顺手开」）· **G-56 本轮不修** ✓。
 
+## 第 487 轮（2026-09-28）：G-56 顶层探针 —— **大消去不可用**（ST15 第一批条目：G-56 / G-58 / G-59）
+
+- **用户指派**：「先用最低成本把 G-56 的『顶层能不能通』探清楚，再决定投入多少」+ **时间盒 2–3 轮**、
+  「把不足逼出来才算是做完，把它修好不是本版目标」。**零改动**（`git diff crates/kernel/` 空 ✓）。
+- **① 大消去探针 ⇒ 被拒** ✗：`def andToType (A B : Prop) (h : A ∧ B) : Type :=
+  And.rec A B (fun (_ : A ∧ B) => Type) A B h` ⇒ `kernel-rejected` /「期望
+  `Pi (x : ((And.[] $2) $1)), Sort(0)`，实际是 `Pi (_ : ((And.[] $2) $1)), Sort(2)`」。
+  **对照组**（消去到 `Prop`）**checked** ✓ ⇒ 不是写错 recursor。机制：`mk_elim_level` 问
+  `large_elim_test`，false ⇒ `elim_level = 0` ⇒ `mk_motive_dep` 把 motive 钉在 `Sort(0)`。
+  ⇒ **即使 `Acc` 声明成功，ST7 的 rank 也返回不了序数**（`Acc` 在 Prop、`Ordinal` 在 Type）✗。
+- **② 拦路点确认唯一**（只读）✓：`crates/kernel/src/inductive.rs:44`（`check_ctor` 循环）调
+  `check_uniform_inductive_occurrences`；`:150` 是 `_at` 入口包装、其余全自递归；**前端零镜像**。
+  它要求递归出现**恰好**套用 `num_params` 个实参（`args_rev.len() <= num_params` 才进断言）⇒
+  `Acc r b` 有 2 个实参 > `num_params=1` ⇒ 直接 assert 失败。⚠ 同文件 `which_valid_ind_app_v`
+  （`:1049`）用 `is_bvar_at` 判参数位置、**允许索引位任意** ⇒ 最小放宽应**对齐它**。
+  改动**局部**：只跑在声明级（`check_ctor` 里、`mk_elim_level` 之前），不参与
+  `check_generated_recursors` / `check_positivity1` / 归约。
+- **③ 顺带发现（独立）** ✗：住在 `Type` 的归纳块**默认 motive 也是 `Prop`**；显式 `.{1}` 只修好
+  「`#check` 的显示」，**消去仍被拒**（`Sort(1)` vs `Sort(2)`）⇒ **本版没有绕法**。
+  内核探针实测（临时 `eprintln`，**已还原**）：该块 `large_elim_test` 返回 **true** ⇒
+  疑似**前端派生递归子的宇宙参数默认值**与内核期望不一致（根因未定位，时间盒到了）。
+- **落台账（ST15 第一批条目）** ✓：**G-56**（`Acc` 声明被拒，收敛为一条 + 拦路点定位）·
+  **G-58**（大消去不可用）· **G-59**（`Type` 值块默认 motive + 无绕法）；两个 `.sokonanoda`
+  复现件 + `scripts/gap.py check` 全绿 ✓；判据
+  `crates/front/src/compile/tests.rs::g58_g59_large_elimination_is_unavailable`（三条断言，含
+  「显式 `.{1}` 仍被拒」的防漂移）。
+- **结论与下一步** ✓：G-56 那四个环节（ST6/ST7/ST9/ST11）**本版不做**、留给 ST15；
+  按用户决策规则**直接开 ST3/ST4/ST5**（按 ST1 结论只差 binder 记法、不需要任何新机制）。
+
 ## 未决项
 
 - ✅ **清理推送 CI 全绿** ✓（`42be634` ✓ · **绿 28 · 红 0 · skipped 1** ✓ —— 只有 `fast-fail` ✓，
@@ -185,56 +214,3 @@
   （`scripts/status-lint.py` 的 `MAX_TOTAL`）—— 原因：一轮里落了 6 个环节，200 行顶格后**只能删旧轮**，
   而归档目标 `docs/STATUS-ARCHIVE.md` 也被冻结 ⇒ 实际是"逼着删历史" ✗；`MAX_GROWTH`（≤60）**不动** ✓。
   **后续统一 refactor 时清理**（旧轮搬进 `docs/archive/` 再调回 200）。
-
-## 第 481 轮（2026-09-27）：E04 —— hover 的类型面接上折叠 ✓（v0.74.0 第 4 个环节）
-
-- **变了什么** ✓：`compile/check/mod.rs::resolve_hovers` 的文本从内核 pp **直出** ✗
-  改成 `display.fold(&name_loose_bvars(…))` ✓（显示表从调用点传进去，那里本来就有 ✓）。
-  用户看得见：编辑器/Infoview 里悬停**子表达式或假设**，类型面从 `Set.subset α A B` /
-  `Not a` / `forall …` 变成 `A ⊆ B` / `¬ a` / `∀ …` ✓。
-- **判红** ✓（实测，修前）：`report.hovers` 里没有 `⊆`、却有 `Set.subset α A B` 与
-  `forall (α : Type 0) (A B : Set α), Set.subset α A B -> Set.subset α A B` ✗。
-- **判据三层** ✓：真相层 front 新单测（修前判红）· **wire 契约层** LSP hover_brackets
-  （`… h : ¬ a` + 反向断言不许出现 `: Not `）· **用户可见层** e2e 补**子表达式** hover
-  （夹具 `u01:11` 的假设使用处 `h`）。
-- **反向验证** ✓：`SOKO_NO_NOTATION_FOLD=1` ⇒ 那条 front 判据**判红** ✓（exit 101，不改代码）。
-- **同步更新的旧判据** ✓（钉的是修前点形式 ⇒ 必须一起改）：front **5 条** + LSP **1 条**
-  （期望值按**实测文本**写，含 `a ∧ (¬ a)` 的括号 —— 先 dump 再定，别一条条猜 ✗✓）。
-- **实测数字** ✓：front **748 passed / 0 failed** · LSP **164 passed** ·
-  CLI **25 target / 0 FAILED** · 完整 `scripts/soko gate` **exit 0** ✓。
-- ⚠ **更正一条既有结论** ✗✓：`notation-paths-audit.md` 的用户可见面表早先写
-  「LSP hover … 已迁 ✓」——**不准确**：`HoverType.text` 出自 `resolve_hovers`，那条没过
-  `fold` ✗（**错误结论把缺口盖住了**）。已更正 + 记 E04。教训：**"某面已迁"必须能指到
-  调用点或一条会判红的测试**。
-- **台账** ✓：**G-50**（hover 漏折叠，fixed）；`gap.py check` 仍**全部与台账一致** ✓。
-- **CI** ✓：E03 批次那次 run **`36316083145` 真绿**（28 success · 1 skipped=fast-fail ·
-  重活 10/10）✓ —— v0.74.0 **第一次**拿到完整的逐 job 真绿。
-- **未决** ✓：E04 未推（按批次制留给下一批）；E21–E23 · E27–E31 共 **7 个环节**未开工。
-
-## 第 480 轮（2026-09-27）：E03 —— `r ⁻¹` / `A ≈ B` 记法 ✓（v0.74.0 第 3 个环节）
-
-- **变了什么** ✓：`lib/Rel` 声明 `postfix:100 " ⁻¹ " => Rel.inv`、`lib/Equiv` 声明
-  `infix:50 " ≈ " => Set.Equiv`；lib/Rel · lib/Equiv · lib/Demo · 单元⑥⑨⑩⑫ · 四份解答改用记法
-  （`notation-lint` 零残留）。**记法零事件 ⇒ 计数中性**（36/327/99/0 不变 ✓）。
-- **判红** ✓（内核原文）：`A ≈ B` ⇒ exit 1「符号 `≈` 在本文件里还没有声明过记法」；
-  `r ⁻¹` ⇒ exit 1「unknown identifier `⁻¹`」（`⁻¹` 不在数学码点类里，未声明时连符号都不是）。
-- **判据两层** ✓：front `the_course_libraries_declare_the_inverse_and_equinumerous_notations`
-  （`⁻¹`→Rel.inv/100/Postfix · `≈`→Set.Equiv/50/Infix · 且 `⁻¹'`→Set.preimage **同时可见**）·
-  CLI `the_course_inverse_and_equinumerous_notations_grade_like_the_pointful_forms`
-  （真课程库、两种写法五元计数相等，含 `f ⁻¹' B` 共存用例）。
-- **反向验证** ✓：撤两条声明 ⇒ 两层都红，诊断与判红逐字一致（已还原 ✓）。
-- ⚠ **取证又更正两处引用** ✗✓：`lib/Rel` / `lib/Equiv` 头部原写「是 Mathlib 的记法」——
-  **两条都不是**：mathlib4 master 的 `Logic/Relation.lean` 没有 `Relation.inv`/`⁻¹`；
-  `Logic/Equiv/Defs.lean:80` 的 `≃` 是**等价的类型**不是等势；`SetTheory/Cardinal/Basic.lean` 无 `≈`
-  ⇒ 两条都按**本课自定**落地（与 E01 的 `•` 同一个毛病）。
-- ⚠ **新暴露一个真边界（G-48，open）** ✗✓：`≈` 的**两侧都是零元糖**时（`∅ ≈ {b}`）补不出论域
-  ⇒ `elab-notation-argument-unsolved`；单元⑨ 练习 5 按设计写点名 + 行内标记（画布与解答都写明理由）。
-  修法方向 = E19 甲案（求解器加元变量）。
-- **台账** ✓：**G-47**（记法缺失，fixed，自足复现件）· **G-48**（零元糖操作数，open）·
-  **G-49**（类型错误报裸 de Bruijn 编号 `期望 $4，实际是 $5`，open——写复现件时实测到的诊断质量问题）；
-  `scripts/gap.py check` ⇒ **全部与台账一致** ✓（5 条 E01/E02/E03 条目逐条对）。
-- **子代理** ✓：4 份解答的机械改写外包（prompt 自带判据+边界+三条取证纪律）⇒ 我**抽查后**
-  自己补了它明确说"没做"的那一步：**画布↔解答签名逐字对拍**，当场抓出 **3 处括号不一致**
-  （`Set.univ Nat ≈ …` vs `(Set.univ Nat) ≈ …`）⇒ 已按画布改齐（10 条全一致 ✓）。
-- **未决** ✓：E04 · E21–E23 · E27–E31 共 8 个环节未开工；v0.74.0 收尾要**推一次 CI 逐 job 真绿** ✓。
-

@@ -1,0 +1,27 @@
+-- G-56 探针 ③：**住在 `Type` 的归纳块，`#check` 的默认 motive 也是 `Prop`**。
+--
+-- 期望：**1 条 `decl.checked`（`MyBox` 本身）+ 1 条诊断**，逐字为：
+--     kernel-rejected /
+--     「类型不匹配：期望 `Pi (x : MyBox.[]), Sort(0)`，实际是 `Pi (_ : MyBox.[]), Sort(2)`」
+--
+-- 这条记录的是一个**未定位**的异常（ST15 的第一批条目之一）：
+--   · `#check MyBox.rec` ⇒ `motive : MyBox -> Prop`（**默认 motive 是 Prop** ✗）
+--   · `#check MyBox.rec.{1}` ⇒ `motive : MyBox -> Type 0` ✓（显式给宇宙就对）
+--   · 内核**探针实测**（临时插 `eprintln`，已还原）：这个块的
+--     `large_elim_test` 返回 **true**、`is_nonzero = Some(true)`、`mk_elim_level: LARGE`
+--     ⇒ **内核自己认为该大消去**，但默认（不带 `.{1}`）的 motive 仍是 `Prop`。
+--   · ⇒ 疑似**前端派生递归子的宇宙参数默认值**与内核期望不一致（**不是** G-56 的
+--     `Acc` 那条，是独立的一条）。**根因未定位**（时间盒到了）。
+--
+-- ⚠ **实测更正：显式 `.{1}` 也不够** —— `MyBox.rec.{1}` 的 motive 是 `MyBox → Sort 1`，
+-- 而 `Type`/`Type 0` 的 motive 是 `Sort 2` ⇒ 仍判红（`Sort(1)` vs `Sort(2)`）。
+-- ⇒ **本版没有绕法**（比最初记的更重）。
+--
+-- 本文件自足（无 `import`）⇒ `--no-project` 单文件判卷即可。
+-- 判据：`docs/gaps/ledger.jsonl` 的 G-56（`repro_expect: rejected`）。
+
+inductive MyBox : Type
+ctor MyBox.mk (n : Nat) : MyBox
+end
+
+def boxElim (h : MyBox) : Type := MyBox.rec (fun (_ : MyBox) => Type) (fun (n : Nat) => Nat) h
