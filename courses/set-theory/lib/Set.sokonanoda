@@ -80,6 +80,12 @@ def compl (α : Type) (A : Set α) : Set α := fun (x : α) => ¬ (A x)
 
 def powerset (α : Type) (A : Set α) : Set (Set α) := fun (B : Set α) => subset α B A
 
+-- **ST3（v0.77.0）：分离**（Mathlib `Mathlib/Data/Set/Defs.lean` 的 `Set.sep`，
+-- 逐字同款）：`{x ∈ A | P x}` 的**目标常量**。谓词式里它就是"谓词取交"——
+-- 定义展开引理（L2 层）见文件下半段。
+def sep (α : Type) (A : Set α) (P : α → Prop) : Set α :=
+  fun (x : α) => A x ∧ P x
+
 -- ── 外延性（**公理**：Mathlib 由 propext + funext 推出，我们两者都没有）──────
 axiom ext : (α : Type) → (A B : Set α) →
   (∀ (x : α), A x ↔ B x) → A = B
@@ -197,5 +203,30 @@ theorem mem_powerset_iff (α : Type) (A B : Set α) :
   exact h
   intro h
   exact h
+
+-- ── ST3：分离的展开引理（L2 层，Mathlib 的 `Set.mem_sep_iff`）──────────────
+theorem mem_sep_iff (α : Type) (A : Set α) (P : α → Prop) (a : α) :
+    a ∈ sep α A P ↔ (a ∈ A ∧ P a) := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem sep_subset (α : Type) (A : Set α) (P : α → Prop) :
+    sep α A P ⊆ A := by
+  intro x
+  intro h
+  exact And.left (Iff.mp (mem_sep_iff α A P x) h)
+
+theorem sep_self (α : Type) (A : Set α) :
+    sep α A (fun (x : α) => x ∈ A) = A := by
+  apply Set.ext α (sep α A (fun (x : α) => x ∈ A)) A
+  intro x
+  constructor
+  intro h
+  exact And.left (Iff.mp (mem_sep_iff α A (fun (x : α) => x ∈ A) x) h)
+  intro h
+  exact Iff.mpr (mem_sep_iff α A (fun (x : α) => x ∈ A) x) (And.intro h h)
 
 end Set

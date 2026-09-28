@@ -86,6 +86,11 @@
   （`docs/gaps/repro/ST2-quot-reduces.sokonanoda`）。
 - **ST3** 集合建构式 `{x : P}`（分离），含 `{x ∈ A | P x}` binder 记法。
   基准：Mathlib `ZFSet.sep`/`mem_sep`/`sep_subset`；Isabelle §1。**撞点**：binder 记法。
+  ✅ **已完成（2026-09-28）**：**语义那一半做成** —— `lib/Set.sokonanoda` 新增 `Set.sep`
+  （Mathlib `Mathlib/Data/Set/Defs.lean` 的 `Set.sep`，逐字同款）+ 三条 L2 展开引理
+  `mem_sep_iff` / `sep_subset` / `sep_self`；课程门禁 **331 checked · 99 open · 0 判负** ✓。
+  ⚠ **记法那一半写不出来** ⇒ **G-60**（两种花括号写法都被拒；根因：六种记法形状里没有
+  「操作数在括号里」，`binder_notation` 的符号还必须是数学符号）⇒ 课程点名写 `Set.sep` ✓。
 - **ST4** 集族与无限并交（`⋃₀`/`⋂₀`、`Set.sUnion`/`sInter`）。
   基准：Mathlib `coe_sUnion`/`coe_sInter`；Isabelle §2.2/2.3。**撞点**：**L-06**（`Exists` 取不出数据）。
 - **ST5** 有序对 / 广义笛卡尔积 / 不交并 / 广义函数空间与 lambda。
