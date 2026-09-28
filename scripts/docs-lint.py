@@ -118,6 +118,13 @@ def load_budget() -> dict[str, int]:
     return json.loads(BUDGET.read_text(encoding="utf-8")).get("frozen", {})
 
 
+def load_raw_budget() -> dict:
+    """整份 `docs-budget.json`（判据 ⑦ 要读 `onboarding` 一节，不只是 `frozen`）。"""
+    if not BUDGET.exists():
+        return {}
+    return json.loads(BUDGET.read_text(encoding="utf-8"))
+
+
 def scan_junk() -> list[str]:
     """⑤ 扫 docs/ 下的垃圾（**含未跟踪** ✗）。"""
     bad = []
@@ -130,6 +137,42 @@ def scan_junk() -> list[str]:
             if JUNK_FILE_RE.search(f):
                 bad.append(f"{dirpath}/{f}")
     return sorted(bad)
+
+
+LAYER_GLOBS = {
+    # 四层（X1 / docs/ONBOARDING.md 的同一份口径）
+    "L0": ("README.md", "AGENTS.md", "ROADMAP.md", "REQUIREMENTS.md", "STATUS.md"),
+    "L1": None,   # `docs/` 顶层（非递归）
+    "L2": None,   # `docs/design|notes|gaps|perf|e2e`
+    "L3": None,   # `docs/archive`
+}
+
+
+def layer_files(layer: str) -> list[str]:
+    out = []
+    for f in tracked():
+        if not f.endswith(".md"):
+            continue
+        if layer == "L0":
+            if f in LAYER_GLOBS["L0"]:
+                out.append(f)
+        elif layer == "L1":
+            if f.startswith("docs/") and f.count("/") == 1 and not f.startswith("docs/archive/"):
+                out.append(f)
+        elif layer == "L2":
+            if f.startswith(("docs/design/", "docs/notes/", "docs/gaps/", "docs/perf/", "docs/e2e/")):
+                out.append(f)
+        elif layer == "L3":
+            if f.startswith("docs/archive/"):
+                out.append(f)
+    return [f for f in out if Path(f).exists()]
+
+
+def layer_lines(layer: str) -> int | None:
+    fs = layer_files(layer)
+    if not fs:
+        return None
+    return sum(line_count(Path(f)) for f in fs)
 
 
 def check() -> tuple[list[str], dict]:
@@ -146,6 +189,7 @@ def check() -> tuple[list[str], dict]:
 
     # ②③④ 行数
     budget = load_budget()
+    raw_budget = load_raw_budget()
     for f in live:
         p = Path(f)
         if p.suffix != ".md" or not p.exists():
@@ -176,6 +220,47 @@ def check() -> tuple[list[str], dict]:
 
     # ⑤ 垃圾
     bad += [f"⑤ 垃圾残留：{j}" for j in scan_junk()]
+
+    # ⑦ 接手路径（X1，2026-09-28）：**把"接手要读多少"变成会判红的数字** ✓。
+    # 口径：`docs-budget.json` 的 `onboarding.path` 是**必读**（全读）清单，
+    # 每项有行数上限，全表有 `onboarding_max_lines`；`layer_max_lines` 管四层总行数。
+    # ⚠ 用户 2026-09-26：「把上限从 3 MB 抬到 10 MB **不算完成** —— 要的是**少消耗
+    # 注意力**，不是允许更多」⇒ 这条判据的**方向只能是收紧** ✓。
+    ob = raw_budget.get("onboarding") if isinstance(raw_budget, dict) else None
+    if not ob:
+        bad.append(f"⑦ {BUDGET} 缺 `onboarding` 一节（接手路径没有权威 ⇒ 判据 ⑦ 空转 ✗）")
+    else:
+        total = 0
+        for item in ob.get("path", []):
+            f, cap = item.get("file"), item.get("max_lines")
+            if not f or not isinstance(cap, int):
+                bad.append(f"⑦ onboarding.path 条目非法：{item!r}")
+                continue
+            fp = Path(f)
+            if not fp.exists():
+                bad.append(f"⑦ 必读路径里的 {f} 不存在（接手会撞空 ✗）")
+                continue
+            n = line_count(fp)
+            total += n
+            if n > cap:
+                bad.append(
+                    f"⑦ 必读文件 {f}：{n} 行 > 上限 {cap}（**接手成本涨了** ✗；"
+                    f"要么删内容、要么把它移出必读表 ⇒ 改 {BUDGET} 评审可见 ✓）"
+                )
+        ceiling = ob.get("onboarding_max_lines")
+        if isinstance(ceiling, int) and total > ceiling:
+            bad.append(
+                f"⑦ 必读路径合计 {total} 行 > 上限 {ceiling} ⇒ **接手要读的变多了** ✗"
+                f"（书就一本：要么删、要么把某文件移出必读表）"
+            )
+        for layer, cap in (ob.get("layer_max_lines") or {}).items():
+            if not isinstance(cap, int):
+                continue
+            got = layer_lines(layer)
+            if got is None:
+                continue  # 该层今天没有文件（不判红：空层不是错误 ✓）
+            if got > cap:
+                bad.append(f"⑦ {layer} 层 {got} 行 > 上限 {cap}（只许减不许增 ✗）")
 
     if not live:
         bad.append("① 活文档 **0 个** ⇒ **没扫到 ≠ 绿** ✗（检查 cwd 与 `git ls-files`）")
@@ -224,7 +309,7 @@ def selftest() -> int:
     把判据**逐条故意弄红一次** ⇒ 每条都必须被报出来 ✗；再加**三条方向性**用例
     （用户 2026-09-26 要求 ✓）：**回胖必须判红** ✓、**正常推进必须不误红** ✓、
     **非入口的冻结仍要咬** ✓。改完**一律还原** ✓（`finally` 里还原，跑完再核对
-    工作区回到原样 ✓）。判据：`python3 scripts/docs-lint.py --selftest` ⇒ exit 0 + `9/9`。
+    工作区回到原样 ✓）。判据：`python3 scripts/docs-lint.py --selftest` ⇒ exit 0 + `11/11`。
 
     为什么要有它 ✗：本仓**三次**出现过"判据永远绿"的摆设 ✓ —— 一条判据如果
     没人证明它咬得住，就不能算守卫 ✓；而**误红**同样是坏判据 ✗（它会把所有人的
@@ -336,6 +421,31 @@ def selftest() -> int:
         stray.unlink()
     results.append(("⑥", "归档文件未被点名", any(
             b.startswith("⑥") and "__selftest-unindexed" in b for b in bad)))
+
+    # ⑦ 接手路径：把**必读表的合计上限**临时压到 1 行 ⇒ 必须判红 ✓
+    # （X1，2026-09-28：这条判据自己也要能被证明咬得住 ✓）
+    budget_path = Path(BUDGET)
+    budget_old = budget_path.read_text(encoding="utf-8")
+    try:
+        data = json.loads(budget_old)
+        data["onboarding"]["onboarding_max_lines"] = 1
+        budget_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        bad, _ = check()
+    finally:
+        budget_path.write_text(budget_old, encoding="utf-8")
+    results.append(("⑦", "接手路径合计超上限", any(
+            b.startswith("⑦") and "必读路径合计" in b for b in bad)))
+
+    # ⑦b 接手路径：把**某个必读文件的上限**压到 1 行 ⇒ 也必须判红 ✓
+    try:
+        data = json.loads(budget_old)
+        data["onboarding"]["path"][0]["max_lines"] = 1
+        budget_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        bad, _ = check()
+    finally:
+        budget_path.write_text(budget_old, encoding="utf-8")
+    results.append(("⑦", "必读单文件超上限", any(
+            b.startswith("⑦") and "必读文件" in b for b in bad)))
 
     ok = all(hit for _, _, hit in results)
     for code, label, hit in results:

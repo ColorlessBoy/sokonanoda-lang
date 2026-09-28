@@ -1,15 +1,15 @@
 # AGENTS.md — sokonanoda-lang
 
 给任何 code agent 的项目入口（DeepSeek Harness / opencode / Claude Code 等原生
-读取本文件）。按序读完再动手：
+读取本文件）。**接手路径以 `docs/ONBOARDING.md` 为唯一权威** ✓（X1，2026-09-28）——
+那份表列了**必读的 5 个文件**、每个的行数上限，以及**合计上限**（判据
+`scripts/docs-lint.py` ⑦，**超标即判红** ✓ ⇒ 「接手要读多少」不再是一句希望）。
 
-1. `REQUIREMENTS.md` —— 用户全部要求的**权威总账**（硬规则、新要求追加到 §9）；
-2. `docs/HANDOVER.md` —— **交接汇总**（现在在哪、还剩什么、怎么继续）；
-   **接手新计划请看 `docs/E2-HANDOVER.md`** ✓（E2 计划的一页交接书：
-   当前状态、怎么开工、硬规则、陷阱清单、验收命令）；
-3. `STATUS.md` —— 当前进度（最新一轮在最上）；
-4. `ROADMAP.md` §10 —— 待办与验收标准；
-5. `docs/architecture.md` —— 流水线与内核 gotchas（§8 必读）。
+**最快开工**：本文件 → `docs/ONBOARDING.md` → `REQUIREMENTS.md` → `docs/HANDOVER.md`
+→ `STATUS.md`（**合计 ≈ 1124 行 / 上限 1220** ✓）。其余按需查：
+`ROADMAP.md` **§10**（待办与验收）· `docs/architecture.md` **§6/§8**（内核台账与 gotchas，
+**动内核前必读**）· `docs/protocol.md`（`--json`/`query` 契约，**改输出前必读**）·
+`docs/PERF.md` · `docs/TESTING.md` · 当版交接书 `docs/HANDOFF-<version>.md`。
 
 文档已分层：入口/权威在仓库根（`README.md`/`AGENTS.md`/`ROADMAP.md`/
 `REQUIREMENTS.md`/`STATUS.md`），开发者参考在 `docs/` 顶层，设计与调研笔记在
@@ -402,12 +402,18 @@ CI 的第 15 个 job ✓（**快层** ✓）：**每次 rust 改动的 push** �
 - 落 commit 前更新 `STATUS.md`（只保留最近 3 轮，旧轮归档
   `docs/STATUS-ARCHIVE.md`）；
 - **文档预算**（用户 2026-09-26：「文档太重了，还没实现多少东西文档先爆炸了」）：
-  `python3 scripts/docs-lint.py`（已进 `scripts/soko gate` 与 CI）—— 活文档 ≤3.0 MB ·
-  单文件 ≤2000 行 · 入口文件 ≤800 行 · 新设计文档 ≤150 行（**既有按
-  `scripts/docs-budget.json` 冻结：只许减不许增**）· `docs/**` 禁 `.tmp`/`.tmpdir` ·
-  **归档必须被 `docs/archive/README.md` 点名**（归档≠销毁）。**设计先行只写契约不写过程**
-  （过程进 commit message 与 `STATUS.md`）；要放宽预算 ⇒ **手改那份 JSON**（评审可见）。
-  设计与判据：`docs/design/docs-diet.md`。
+  `python3 scripts/docs-lint.py`（已进 `scripts/soko gate` 与 CI）—— **判据 ①–⑦**
+  （**实测值**，别抄旧数字 ✗）：① 活文档 **≤10.0 MB** · ② 单文件 **≤2000 行** ·
+  ③ 入口文件 **≤800 行** · ④ 既有非入口文档按 `scripts/docs-budget.json` **冻结**
+  （**只许减不许增**）· ⑤ `docs/**` 禁 `.tmp`/`.tmpdir` ·
+  ⑥ **归档必须被 `docs/archive/README.md` 点名**（归档≠销毁）·
+  **⑦ 接手路径**（X1，2026-09-28）：`docs/ONBOARDING.md` 的**必读表** —— 每文件有行数上限、
+  **合计有 `onboarding_max_lines`（当前 1124 / 上限 1220）**，**超标即判红** ✓
+  ⇒ 「接手要读多少」是**会判红的数字**，不是一句希望 ✓。
+  ⚠ **不许靠抬上限达标**（用户 2026-09-26：「把上限从 3 MB 抬到 10 MB **不算完成** ——
+  要的是**少消耗注意力**，不是允许更多」）⇒ 上限方向**只能是收紧** ✓。
+  **设计先行只写契约不写过程**（过程进 commit message 与 `STATUS.md`）；
+  确需放宽 ⇒ **手改那份 JSON**（评审可见 ✓）。设计与判据：`docs/design/docs-diet.md`。
 - 用户新要求追加进 `REQUIREMENTS.md` §9 并注明日期（冲突以该文件为准）；
 - 设计先行：新功能先写设计进 `docs/`，再动手；多用 subagent 并行调研。
 - **VS Code + skills 同步**：任何用户可见改动（命令/键位/视图/反馈/语法/协议/发布形态）

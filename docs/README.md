@@ -5,9 +5,14 @@
 > （`docs/archive/`，历史层 —— **不进"活文档"预算** ✗，见文末「归档」一节）。
 > 接手项目先看仓库根 `AGENTS.md`，再按下方顺序读。
 >
-> **预算与判据** ✓：`python3 scripts/docs-lint.py`（活文档 ≤3.0 MB · 单文件 ≤2000 行 ·
-> 入口 ≤800 行 · 新设计 ≤150 行 / 既有冻结 · `docs/**` 禁垃圾 · **归档必须被索引点名** ✓）
-> —— 设计 `docs/design/docs-diet.md` ✓，已进 `scripts/soko gate` 与 CI ✓。
+> **预算与判据** ✓：`python3 scripts/docs-lint.py`（**判据 ①–⑦**：活文档 **≤10.0 MB** ·
+> 单文件 ≤2000 行 · 入口 ≤800 行 · 新设计 ≤150 行 / 既有按 `scripts/docs-budget.json` **冻结** ·
+> `docs/**` 禁垃圾 · **归档必须被索引点名** · **⑦ 接手路径**：`docs/ONBOARDING.md` 的必读表
+> **每文件 + 合计**都有上限，**超标判红** ✓）—— 设计 `docs/design/docs-diet.md` ✓，
+> 已进 `scripts/soko gate` 与 CI ✓。
+>
+> **接手先看 `docs/ONBOARDING.md`** ✓（X1，2026-09-28）：那份表是「读多少才能开工」的**唯一权威**，
+> 当前 **5 个文件 / 1130 行 / 上限 1220** ✓。
 
 ## 仓库根（入口与权威，与 `README.md`/`AGENTS.md`/`ROADMAP.md` 并列）
 
