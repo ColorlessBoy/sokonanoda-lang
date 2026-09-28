@@ -70,6 +70,18 @@ def singleton (α : Type) (a : α) : Set α := fun (x : α) => x = a
 def pair (α : Type) (a b : α) : Set α :=
   fun (x : α) => x = a ∨ x = b
 
+-- **ST17（v0.77.0）：`abbrev` 的真实用法** ─────────────────────────────────
+-- `abbrev` 与 `def` **同语义**（`docs/design/abbrev.md`），差别只在**读法**：
+-- 它是"给已有东西起个短名字" ⇒ 这里给 `Set.pair` 起一个**读起来就是"无序对"**的
+-- 别名，供**三元素及以上**的集合字面量手工嵌套时用：
+--   `{a, b, c}` 今天写不出来（G-60 同族：集合字面量 v1 只支持 1–2 个元素，
+--   三个及以上要给专用诊断）⇒ 点名写法是 `Set.triple α a b c`（下面那条）
+--   或 `Set.pair α a b`（soko:notation-ok: 讨论三元素时要点名那个二元目标）再套 `Set.union`。
+-- ⚠ 为什么用 `abbrev` 而不是 `def`：它是**别名**（名字换名字，没有新数学内容），
+-- 正是 `abbrev` 的语义位置 ✓；`def` 会让人以为"这里定义了一个新概念"✗。
+abbrev triple (α : Type) (a b c : α) : Set α :=
+  fun (x : α) => x = a ∨ x = b ∨ x = c
+
 def union (α : Type) (A B : Set α) : Set α := fun (x : α) => A x ∨ B x
 
 def inter (α : Type) (A B : Set α) : Set α := fun (x : α) => A x ∧ B x
@@ -228,5 +240,17 @@ theorem sep_self (α : Type) (A : Set α) :
   exact And.left (Iff.mp (mem_sep_iff α A (fun (x : α) => x ∈ A) x) h)
   intro h
   exact Iff.mpr (mem_sep_iff α A (fun (x : α) => x ∈ A) x) (And.intro h h)
+
+-- ── **ST17（v0.77.0）：`scoped` 的真实用法 —— 本版未落（边界已实测）** ──────
+-- 试过并**放弃**：`scoped notation "⋂ₚ" => Set.sep` 放在 `namespace Set` 里。
+-- 它**在同模块内可用**，但**跨模块必然失败**：使用者 `import lib.Set` +
+-- `open scoped Set` 之后写 `A ⋂ₚ P` ⇒ `elab-notation-argument-unsolved`
+-- （「补不出前面的类型参数」）。**对照组证明这不是 `scoped` 的毛病**：
+-- 同一形状的**非 scoped** 写法（`notation "∈₉" => Set.mem` 写在别的文件里）
+-- **报同一个错** ⇒ 这是记法的**既有边界**：**前导类型参数只在「目标与记法声明
+-- 在同一个模块」时解得出**（设计 `docs/design/notation-subset.md` 的边界）。
+-- ⇒ 一门课要用的记法**都得住在库模块里**，`scoped` 交给"同模块内的可选拼写"。
+-- ⚠ 所以本文件**不放**这条记法（放了会误导：库内可用、学习者一用就报错）✗。
+-- `abbrev` 那一半**已落**（见上面的 `triple`）✓。
 
 end Set

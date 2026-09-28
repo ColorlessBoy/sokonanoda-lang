@@ -1,3 +1,40 @@
+## [0.77.1] — 2026-09-28
+
+> 「课程尾巴：速查表清账 + 记法边界登记」（ST16–ST19）。
+
+### Added
+
+- **`abbrev triple` in the set-theory library** — a pointful stand-in for the
+  three-element set literal `{a, b, c}`, which the language still refuses with a
+  dedicated `set-literal-shape` diagnostic. This is the first real use of
+  `abbrev` in the course, and it gives learners an explicit landing spot instead
+  of leaving "why do three elements not work?" unanswered.
+
+### Changed
+
+- **The notation cheat sheet is reconciled with the implementation.** Two claims
+  were marked "to be filed in the ledger" back in 0.62.0 and had never been
+  re-measured. Both were re-measured on 0.77.0: the diagnostic for a pointful
+  `Set.mem a A` that omits `α` is unchanged, and `∅ = A` / `∅ ≠ A` is still
+  rejected — now with the verbatim text
+  ``def_eq failed: def_eq mismatch expected: Sort(0) | actual: Sort(1)``. Two
+  forms that *do* work today were added: `(Set.empty α) = (Set.empty α)` and
+  `(Set.empty α) = A → A = (Set.empty α)`.
+
+### Fixed
+
+- **Nothing in the kernel.** `git diff crates/kernel/` is empty for this release
+  as well.
+
+> **A `scoped` notation was tried and rejected.** `scoped notation "⋂ₚ" => Set.sep`
+  works inside the module that declares it, but fails for every consumer that
+  writes `open scoped Set` — `elab-notation-argument-unsolved`. A control case
+  proves this is **not** the `scoped` mechanism: the same shape written *without*
+  `scoped` in another file reports the identical error. The real boundary is that
+  leading type parameters are only solved when the notation and its target live in
+  the same module. The notation was removed rather than shipped, and the boundary
+  is now recorded in the library itself.
+
 ## [0.77.0] — 2026-09-28
 
 > 「卷 I 集合论：类型论自身能表达多少」（ST1–ST5 · ST8 · ST10 · ST12–ST15）。

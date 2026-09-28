@@ -72,59 +72,36 @@
 - **ST1** **定出「哪些用类型论自身表达、哪些确实必须外挂」的分界**（框架见上面「结论 1」）——
   逐项判定谓词式 `Set α` / `Quot`·`Setoid` / 序数·基数·秩，**只有确实写不出来的才讨论外挂**；
   产出**决策记录**。⚠ **不许自己拍** —— 摆两边代价给用户 ✓。
-  ✅ **已完成（2026-09-28）**：决策记录 = **`docs/design/v077-st1-boundary.md`**（89 行，含基准 URL、
-  四条分界、两条路的代价、影响面）；判据 = `crates/cli/tests/st1_boundary.rs` +
-  `docs/gaps/repro/ST1-*.sokonanoda`（4 件，自足）；新缺口 **G-56**（`Acc` 立不起来）。
-  **四条分界一句话**：①`Set α` 谓词式**够用** ②**序数写成谓词** ③**基数必须有商** ④**秩/超限递归两条路都要良基递归**。
-  ⚠ **ST2 仍未开**（用户要求先确认本记录）✓。
+  ✅ **已完成（2026-09-28）**：决策记录 = **`docs/design/v077-st1-boundary.md`**（89 行，含基准 URL、 四条分界、两条路的代价、影响面）；判据 = `crates/cli/tests/st1_boundary.rs` + `docs/gaps/repro/ST1-*.sokonanoda`（4 件，自足）；新缺口 **G-56**（`Acc` 立不起来）。 **四条分界一句话**：①`Set α` 谓词式**够用** ②**序数写成谓词** ③**基数必须有商** ④**秩/超限递归两条路都要良基递归**。 ⚠ **ST2 仍未开**（用户要求先确认本记录）✓。
 - **ST2** 商类型 / `Quot`（`Quot.mk`/`ind`/`lift`；`Quot.sound` 是否作公理）。
   **已知撞点**：L-06（累积性）· L-03（Type 层重写）—— **入场券**。
-  ✅ **已完成（2026-09-28）**：用户拍板**路线 A**（把 `Quot` 暴露到源语言，理由见
-  `docs/design/v077-st1-boundary.md` §3）；落地 = `install_quot` 把 `QUOT_TYPES_SRC`
-  交给前端 elaborator 建成 **`Declar::Quot`**（四条）+ `Quot.sound`（唯一公理）。
-  **内核零改动** ✓；缺口 **G-57**（fixed_in 0.77.0）；判据在**归约**上
-  （`docs/gaps/repro/ST2-quot-reduces.sokonanoda`）。
+  ✅ **已完成（2026-09-28）**：用户拍板**路线 A**（把 `Quot` 暴露到源语言，理由见 `docs/design/v077-st1-boundary.md` §3）；落地 = `install_quot` 把 `QUOT_TYPES_SRC` 交给前端 elaborator 建成 **`Declar::Quot`**（四条）+ `Quot.sound`（唯一公理）。 **内核零改动** ✓；缺口 **G-57**（fixed_in 0.77.0）；判据在**归约**上 （`docs/gaps/repro/ST2-quot-reduces.sokonanoda`）。
 - **ST3** 集合建构式 `{x : P}`（分离），含 `{x ∈ A | P x}` binder 记法。
   基准：Mathlib `ZFSet.sep`/`mem_sep`/`sep_subset`；Isabelle §1。**撞点**：binder 记法。
   ✅ **已完成**：`lib/Set` 新增 `Set.sep` + 3 条展开。⚠ **记法那一半写不出来** ⇒ **G-60** ⇒ 点名写 `Set.sep` ✓。
 - **ST4** 集族与无限并交（`⋃₀`/`⋂₀`、`Set.sUnion`/`sInter`）。
   基准：Mathlib `coe_sUnion`/`coe_sInter`；Isabelle §2.2/2.3。**撞点**：**L-06**（`Exists` 取不出数据）。
-  ✅ **已完成**：**新模块** `lib/SUnion`（+ 记法 `⋃₀`/`⋂₀`）。⚠ **没撞上 L-06** ✓（取数据的引理属 L3）。
+  ✅ **已完成**：**新模块** `lib/SUnion`（+ 记法 `⋃₀`/`⋂₀`）。⚠ **没撞上 L-06** ✓。
 - **ST5** 有序对 / 广义笛卡尔积 / 不交并 / 广义函数空间与 lambda。
   基准：Isabelle §2.1–2.4；Mathlib `ZFSet.prod`/`funs`。**撞点**：依赖类型 + 隐式参数。
-  ✅ **已完成**：① 有序对/笛卡尔积**已在库**；② 新模块 `lib/Sum`（+ 记法 `⊕`）；
-  ③ `lib/Fun` 增 `Set.pi`。**lambda 是语言原语** ⇒ 零外挂 ✓；**撞点未出现** ✓。
+  ✅ **已完成**：① 有序对/笛卡尔积**已在库**；② 新模块 `lib/Sum`（+ 记法 `⊕`）； ③ `lib/Fun` 增 `Set.pi`。**lambda 是语言原语** ⇒ 零外挂 ✓；**撞点未出现** ✓。
 - **ST6** **传递闭包**。基准：Isabelle §2.5。**撞点**：递归定义（撞 L-06）。
 - **ST7** **秩 rank**。基准：Isabelle §2.6。**撞点**：良基递归。
 - **ST8** **序数**（传递集 · 0/后继/sups · 归纳/线性 · limit · LEAST）。
   基准：Isabelle §1.4；Mathlib `SetTheory/Ordinal/*`。**撞点**：累积性（L-06）。
-  ✅ **已完成**：**序数写成谓词**（零新类型，`lib/Ordinal`）。⚠ 与 Isabelle 两处有意不同（良基性
-  显式写进 `IsOrdinal`；`Transset` 用 `E` 传递性）已写进文件头。**未撞 L-06** ✓；
-  **`rank`/超限递归仍过不去**（G-56+G-58）⇒ ST7/ST9 留给 ST15。
+  ✅ **已完成**：序数写成谓词（`lib/Ordinal`，零新类型）。⚠ 与 Isabelle 两处有意不同已写进文件头。 **`rank`/超限递归仍过不去**（G-56+G-58）⇒ ST7/ST9 留给 ST15。
 - **ST9** **超限递归**（含按序数三情形的递归）。基准：Isabelle §1.5 + §2.13。
   **撞点**：结构递归（`Nat.rec` 之外）。
 - **ST10** **基数**（`Cardinal = Quotient of Equiv`；`lift`）。
-  ✅ **已完成（2026-09-28）**：`lib/Cardinal.sokonanoda` 7 条全 checked（ST2 的 `Quot` 第一次实战 ✓）。
-  ⚠ **三条新缺口**：G-61（没有 η ⇒ `Quotient`/`Setoid` 包装做不出来）、G-62（def/展开不同一 ⇒ 三条等价律）、
-  G-63（`Quot.lift` 的宇宙实参难对准；**实测推翻**「Quot 消去只进 Prop」的初判 —— `Quot.lift.{1, 2}` 能进 `Type` ✓）。
-  **基数算术**属 L3/后续 ⇒ ST15 清单。
-  基准：Mathlib `Cardinal/Defs`；Isabelle §2.7。**撞点**：**需要商（ST2）**。
+  ✅ **已完成（2026-09-28）**：`lib/Cardinal.sokonanoda` 7 条全 checked（ST2 的 `Quot` 第一次实战 ✓）。 ⚠ **三条新缺口**：G-61（没有 η ⇒ `Quotient`/`Setoid` 包装做不出来）、G-62（def/展开不同一 ⇒ 三条等价律）、 G-63（`Quot.lift` 的宇宙实参难对准；**实测推翻**「Quot 消去只进 Prop」的初判 —— `Quot.lift.{1, 2}` 能进 `Type` ✓）。 **基数算术**属 L3/后续 ⇒ ST15 清单。 基准：Mathlib `Cardinal/Defs`；Isabelle §2.7。**撞点**：**需要商（ST2）**。
 - **ST11** **序型 ordertype · Aleph 序列 · ω₁ · Cantor 正规形**。
   基准：Isabelle §2.8/2.20/2.21/§3。**撞点**：序数算术。
 - **ST12** **选择公理**（`ZFSet.choice` · Zorn · 良序定理）。基准：Mathlib `ZFSet.choice`。
-  ✅ **已完成**：`lib/Choice` —— `axiom choice` + `Nonempty` + 2 条展开，4 条全 checked ✓。
-  ⚠ 从 `choice` **取函数**要在 `Prop` 里取数据 ⇒ **撞 G-58** ⇒ L3/后续。
-  **已知撞点**：**已实测「满射可裂」证不出来**（L-06 原话「需要选择公理」）⇒ 直接登记。
+  ✅ **已完成**：`lib/Choice` —— `axiom choice` + `Nonempty` + 2 条展开，4 条全 checked ✓。 ⚠ 从 `choice` **取函数**要在 `Prop` 里取数据 ⇒ **撞 G-58** ⇒ L3/后续。 **已知撞点**：**已实测「满射可裂」证不出来**（L-06 原话「需要选择公理」）⇒ 直接登记。
 - **ST13** **ZF 公理系统本体**（分离/替换/幂集/**正则性**…）。
-  ✅ **已完成**：`lib/ZF` 7 条全 checked。**核心产出是「ZF 公理表」**（文件头）：分离/配对/并集/幂集/替换
-  **都是定理**，**只有外延性、正则性、选择必须外挂** ✓。⚠ 由正则性推「无 ∈-循环」⇒ **G-56** ⇒ L3。
-  基准：Mathlib `ZFSet.regularity`；Isabelle §1.1。**撞点**：语言能否表达**公理模式 schema**。
+  ✅ **已完成**：`lib/ZF` 7 条全 checked。**核心产出是「ZF 公理表」**（文件头）：只有外延性、 正则性、选择必须外挂，其余都是定理 ✓。⚠ 由正则性推「无 ∈-循环」⇒ **G-56** ⇒ L3。 基准：Mathlib `ZFSet.regularity`；Isabelle §1.1。**撞点**：语言能否表达**公理模式 schema**。
 - **ST14** **funext / propext /（univalence）**。基准：Lean TPiL §12；Mathlib 用 `propext` + `Quot.sound`。
-  ✅ **已完成（2026-09-28）**：`lib/Extensionality` —— `axiom propext` + `axiom funext`（**依赖版**）
-  + 2 条展开，**4 条全 checked** ✓。⚠ **核心判断**：`Set.ext`/`Rel.ext` 在 Mathlib 里是这两条的推论，
-  我们两者都没有 ⇒ 那两条一直是**公理**；本档立起来之后**原则上可改写**，但**本版不做**（重构 ≠ 补缺口）✗。
-  **univalence 本版不做**、也不登记（更强的公理，不是本课必需件）✓。
-  **撞点**：课程注释已写「**语言里根本没有**」⇒ 直接登记。
+  ✅ **已完成（2026-09-28）**：`lib/Extensionality` —— `axiom propext` + `axiom funext`（**依赖版**） + 2 条展开，**4 条全 checked** ✓。⚠ **核心判断**：`Set.ext`/`Rel.ext` 在 Mathlib 里是这两条的推论， 我们两者都没有 ⇒ 那两条一直是**公理**；本档立起来之后**原则上可改写**，但**本版不做**（重构 ≠ 补缺口）✗。 **univalence 本版不做**、也不登记（更强的公理，不是本课必需件）✓。 **撞点**：课程注释已写「**语言里根本没有**」⇒ 直接登记。
 - **ST15** **汇总：产出「kernel 不足清单」** —— 逐条：缺口号 + **最小复现件** + 影响面 +
   是 `workaround` 还是需动内核。
 
@@ -141,10 +118,17 @@
 > **ST5** 有序对/笛卡尔积/函数空间 · **ST6** 传递闭包 · **ST7** 秩 rank · **ST8** 序数 ·
 > **ST9** 超限递归 · **ST10** 基数 · **ST11** 序型/Aleph/ω₁/Cantor 正规形 · **ST12** 选择公理 ·
 - **ST15** **汇总 kernel 不足清单**（本版验收物）。
-  ✅ **已完成（2026-09-28）**：`docs/design/v077-kernel-deficiencies.md`（130 行）——
-  3 条 blocker（G-56/G-58/G-59）+ 4 条 painful（G-60…G-63），每条带复现件、影响面、
-  绕法、**拦路点源码定位**、动手顺序建议；卡住的四章（ST6/ST7/ST9/ST11）逐条对照
-  「被谁挡住」；**本版完成 9 章** + 门禁 **43/375/99/0** + **改内核判定：零** ✓。
+  ✅ **已完成（2026-09-28）**：`docs/design/v077-kernel-deficiencies.md`（130 行）—— 3 条 blocker（G-56/G-58/G-59）+ 4 条 painful（G-60…G-63），每条带复现件、影响面、 绕法、**拦路点源码定位**、动手顺序建议；卡住的四章（ST6/ST7/ST9/ST11）逐条对照 「被谁挡住」；**本版完成 9 章** + 门禁 **43/375/99/0** + **改内核判定：零** ✓。
 > **ST13** ZF 公理系统本体 · **ST14** funext/propext · **ST15** 汇总 kernel 不足清单 ·
 > **ST16** 三元素 · **ST17** abbrev/scoped · **ST18** 速查表清账 · **ST19** 补上真能用的记法。
 > ⇒ **E27 / E28 因此空出来，归 Infoview 两条**（用户一直这么叫 ✓）；E12–E16 与 E24–E39 全部释放 ✓。
+
+- **ST16–ST19（v1 保留的四项）** —— 2026-09-28 收口 ✓：
+  **ST16** 三元素 `{a,b,c}`：语言侧**不做**（`set-literal-shape` 专用诊断 + §14.4 的 N11 边界），
+  教学侧补落点 **`abbrev triple`** ✓。**ST17** `abbrev` ✅ / **`scoped` ✗** —— 跨模块必失败，
+  ⚠ **对照组证明不是 `scoped` 机制**（非 scoped 的同样写法在别的文件里报同一个
+  `elab-notation-argument-unsolved`）⇒ 根因是**补不出前导类型参数**这条既有边界。
+  **ST18** 速查表两处「待登记台账」的旧声称全部 0.77.0 实测复核（报错形态**一字未变**；
+  `∅ = A` **仍红**并拿到原文；**新增两条今天能过的形态**）✓。**ST19** 表 1/2/2b/2c 的记法
+  **全部真能用**（速查表 18 checked ✓）；补不了的三条（`{x ∈ A | P x}` · 三元素 · 跨模块 `scoped`）
+  **登记即交付物** ✓。

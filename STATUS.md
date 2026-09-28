@@ -28,33 +28,6 @@
   （那一档**没有**旧写法歧义 ✓）；放宽要先能判定"旧写法是否良型"（Lean 用元变量 ✗）。
 - ⚠ **本轮的工作方式教训（耗时账 / CI 被顶掉 / clippy 被本地门禁抓到）** ⇒ 见下面「未决项」✓
 
-## 第 486 轮（2026-09-28）：🚀 v0.77.0 · **ST2 ✅**（商类型 `Quot` 装进源语言 —— 路线 A）
-
-- **变了什么** ✓：`install_quot`（`crates/front/src/compile/prelude.rs`）把 `QUOT_TYPES_SRC`
-  五条类型交给**前端自己的 elaborator** 建成 **`Declar::Quot`**（`Quot`/`Quot.mk`/`Quot.lift`/
-  `Quot.ind`）+ `Quot.sound`（**唯一**公理，TPiL §12.4）。**内核零改动** ✓（用户核实：
-  `quot.rs`、`RigidHead::QuotConst`、`STANDARD_AXIOMS`、按名查找四条全在，缺的只是前端产出）。
-  用户拍板**路线 A**（理由见 `docs/design/v077-st1-boundary.md` §3）。
-- **判红（修前原文）** ✓：`def mkQuot … := Quot α r` ⇒ `elab-unknown-identifier` /
-  「unknown identifier `Quot`」。
-- **⚠ 最贵的一课（10+ 轮）** ✗✓：内核 `quot.rs::check_quot` 的 `mk_var(n)` 索引与「按
-  de Bruijn 深度推」**不一致** —— 手搓 `EnvBuilder` 表达式结构「看起来对」（`#check` 能渲染
-  对的形状），但 `def q … := Quot.{1} α r` 判红「期望 `… $0 …`，实际 `… $2 …`」✗。
-  **正解 = 类型写成源文本交给前端 elaborator，只改声明种类** ✓（文本是真的、与
-  `prelude_source()` 同源、F12 可用）。
-- **判据（放在归约上）** ✓：`docs/gaps/repro/ST2-quot-reduces.sokonanoda`（4 checked，含
-  `Eq.refl` 证 `Quot.lift … (Quot.mk …) = f a`）+ `ST2-quot-family-yields`（让位口径）+
-  `crates/front/src/compile/tests.rs` 的 `st2_*` **五条** + `crates/cli/tests/st2_quot.rs`
-  **两条**；新登记 **G-57**（fixed_in 0.77.0）。**为什么必须在归约上**：装成普通 `Axiom`
-  时名字在、类型对、**归约死** ⇒ 只有「算得出来」同时证明「装上了 + 类型对 + 种类对」✓。
-- **反向验证** ✓：撤掉 re-kind ⇒ `st2_quot_lift_computes_on_quot_mk` **判红**（`Quot.ind`
-  那条仍绿 —— 它靠 `False.elim` 也能过，**这正是"判据要选对那条"的实测**）；
-  撤掉 `install_quot` ⇒ `st2_quot_names_are_installed` 判红。
-- **ST1 记录随之更新** ✓：ST2 一落地，ST1 守卫**当场咬住**（`ST1-quot-unavailable` 记录 0 /
-  内核 1 ⇒ 判红）⇒ 商那一半搬进 ST2 探针，ST1 只留「没有累积性」（L-06，改名
-  `ST1-no-cumulativity.sokonanoda`）✓。
-- **没做** ✗：**ST10（基数）未开**（用户明确「做完停下，不要顺手开」）· **G-56 本轮不修** ✓。
-
 ## 第 487 轮（2026-09-28）：G-56 顶层探针 —— **大消去不可用**（ST15 第一批条目：G-56 / G-58 / G-59）
 
 - **用户指派**：「先用最低成本把 G-56 的『顶层能不能通』探清楚，再决定投入多少」+ **时间盒 2–3 轮**、
@@ -168,6 +141,48 @@
   发版依据轮 `36378945287` ⇒ `ci-green.py` **exit 0**）。
   ⚠ 发版轮那条红是 **`keystroke_recompile_closure` 的绝对毫秒判据跨机不可转移**（同代码 44ms↔2431ms）
   ⇒ 已换成**同机比值 + 宽天花板**并记入 `docs/CI-FAILURES.md` ✓。
+
+## 第 491 轮（2026-09-28）：**ST16–ST19 收口**（v1 保留的四项）
+
+- **用户拍板**：「ST16/ST18/ST19 收完 ⇒ 本地 `soko gate` exit 0 ⇒ bump `v0.77.1`」
+  「**严禁为了让 scoped"有用"去改记法判定或硬造一个用法**」「登记即交付物，这条不算失败」✓。
+- **ST16 三元素 `{a,b,c}`** ✓（**教学侧做、语言侧不做**）：今天报专用诊断 `set-literal-shape`
+  （「集合字面量 v1 只支持 1–2 个元素…三个及以上请用点名形式」）；本档补**教学落点** ——
+  `lib/Set` 新增 `abbrev triple`（三元素的点名替身）⇒ 学习者有明确替代，不用猜 ✓。
+  语言侧实现要递归嵌套 + hover/跳转接线（`notation-subset.md` §14.4 的 N11）⇒ 归 G-60 同族、本版不做 ✓。
+- **ST17 `abbrev` ✅ / `scoped` ✗（边界已实测，不再挖）**：`abbrev` 落了真实用法
+  （`abbrev triple`）✓。`scoped` 试过 `scoped notation "⋂ₚ" => Set.sep` 放 `namespace Set`：
+  **同模块可用、跨模块必然失败**（使用者 `open scoped Set` 后报 `elab-notation-argument-unsolved`）
+  ⚠ **对照组钉死根因**：同一形状的**非 scoped** 顶层写法（`notation "∈₉" => Set.mem` 写在
+  **另一个文件**里）**报同一个错** ⇒ **不是 `scoped` 机制的问题**，是**记法展开时补不出前导类型
+  参数**这条**既有边界**（前导参数只在「目标与记法声明同模块」时解得出）⇒ 那条记法**已从库里移除**
+  （留着会误导：库内可用、学习者一用就报错），结论与理由写进 `lib/Set` 文件尾 ✓。
+- **ST18 速查表清账** ✓：两处「待登记台账」的旧声称**全部 0.77.0 实测复核** ——
+  ① 「点名漏 `α` 的报错形态在 0.62.0 变了」⇒ 复测**逐字相同**（`expected A a` / `actual Set.mem a A`）；
+  ② 「`∅ = A` / `∅ ≠ A` 仍判红」⇒ **仍红**，拿到 0.77.0 原文
+  「`def_eq failed: def_eq mismatch expected: Sort(0) | actual: Sort(1)`」；
+  **新增两条今天能过的形态**（`(Set.empty α) = (Set.empty α)`、`(Set.empty α) = A → A = (Set.empty α)`）
+  ⇒ 文档与实现对齐 ✓；速查表判卷 **18 checked / 0 诊断** ✓。
+- **ST19 补记法**（能做的那半做了）✓：清账后确认**表 1/2/2b/2c 的记法全部真能用** ✓；
+  **补不了的三条如实登记**：`{x ∈ A | P x}`（**G-60**）· 三元素 `{a,b,c}`（G-60 同族）·
+  **跨模块的 `scoped` 记法**（ST17 的边界）—— 三条都**不是记法写错**，是**语言边界** ✓。
+- **门禁** ✓：课程 **43 目标 · 376 checked · 99 open · 0 判负** · `docs-lint` ✓ · `status-lint` ✓ ·
+  **内核零改动**（`git diff crates/kernel/` 为空）✓。
+- ⚠ **ST6 / ST7 / ST9 / ST11 = blocked-by-kernel**（**不含糊**）：四条都卡在
+  **G-56**（`Acc` 立不起来：`check_uniform_inductive_occurrences_at` 的「参数位/指标位」两段语义
+  没做出来）+ **G-58/G-59**（大消去）；**下标写返回位**那条另卡 **G-64**（递归子的宇宙代入）✓。
+
+## 当前快照（2026-09-28 · 第 491 轮）
+
+- **v0.77.0 已发布** ✓（tag `v0.77.0`；release `36382099817` **11/11 success**）。
+- **本版验收产出物** = `docs/design/v077-kernel-deficiencies.md`（内核不足清单：
+  **3 blocker** G-56/G-58/G-59 + **5 painful** G-60…G-64，每条带自断言复现件）。
+- **v0.77.0 已完成 10 章**：ST1 · ST2 · ST3 · ST4 · ST5 · ST8 · ST10 · ST12 · ST13 · ST14；
+  **ST15** 清单 + **ST16–ST19** 收口 ✓。
+- **卡住的四章 = blocked-by-kernel**：**ST6** · **ST7** · **ST9** · **ST11**
+  —— 卡在 **G-56**（`Acc`：参数位/指标位两段语义未做）+ **G-58/G-59**（大消去）；
+  下标写返回位那条另卡 **G-64**（递归子的宇宙代入）✓。
+- **内核零改动** ✓（`git diff crates/kernel/` 为空）；交接书 `docs/HANDOFF-0.77.md` ✓。
 
 ## 未决项
 

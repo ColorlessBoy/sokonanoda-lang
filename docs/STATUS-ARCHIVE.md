@@ -1900,3 +1900,30 @@
   内核判定零改动 ✓、课程内容零改动 ✓。
 - **耗时账** ✓：`cargo test -p sokonanoda-cli --test st1_boundary` **0.6 s**（2 判据，跑 4 个复现件）；
   `python3 scripts/gap.py check` 全量 **~1 min**（含 G-56）；`python3 scripts/docs-lint.py` ✓。
+
+## 第 486 轮（2026-09-28）：🚀 v0.77.0 · **ST2 ✅**（商类型 `Quot` 装进源语言 —— 路线 A）
+
+- **变了什么** ✓：`install_quot`（`crates/front/src/compile/prelude.rs`）把 `QUOT_TYPES_SRC`
+  五条类型交给**前端自己的 elaborator** 建成 **`Declar::Quot`**（`Quot`/`Quot.mk`/`Quot.lift`/
+  `Quot.ind`）+ `Quot.sound`（**唯一**公理，TPiL §12.4）。**内核零改动** ✓（用户核实：
+  `quot.rs`、`RigidHead::QuotConst`、`STANDARD_AXIOMS`、按名查找四条全在，缺的只是前端产出）。
+  用户拍板**路线 A**（理由见 `docs/design/v077-st1-boundary.md` §3）。
+- **判红（修前原文）** ✓：`def mkQuot … := Quot α r` ⇒ `elab-unknown-identifier` /
+  「unknown identifier `Quot`」。
+- **⚠ 最贵的一课（10+ 轮）** ✗✓：内核 `quot.rs::check_quot` 的 `mk_var(n)` 索引与「按
+  de Bruijn 深度推」**不一致** —— 手搓 `EnvBuilder` 表达式结构「看起来对」（`#check` 能渲染
+  对的形状），但 `def q … := Quot.{1} α r` 判红「期望 `… $0 …`，实际 `… $2 …`」✗。
+  **正解 = 类型写成源文本交给前端 elaborator，只改声明种类** ✓（文本是真的、与
+  `prelude_source()` 同源、F12 可用）。
+- **判据（放在归约上）** ✓：`docs/gaps/repro/ST2-quot-reduces.sokonanoda`（4 checked，含
+  `Eq.refl` 证 `Quot.lift … (Quot.mk …) = f a`）+ `ST2-quot-family-yields`（让位口径）+
+  `crates/front/src/compile/tests.rs` 的 `st2_*` **五条** + `crates/cli/tests/st2_quot.rs`
+  **两条**；新登记 **G-57**（fixed_in 0.77.0）。**为什么必须在归约上**：装成普通 `Axiom`
+  时名字在、类型对、**归约死** ⇒ 只有「算得出来」同时证明「装上了 + 类型对 + 种类对」✓。
+- **反向验证** ✓：撤掉 re-kind ⇒ `st2_quot_lift_computes_on_quot_mk` **判红**（`Quot.ind`
+  那条仍绿 —— 它靠 `False.elim` 也能过，**这正是"判据要选对那条"的实测**）；
+  撤掉 `install_quot` ⇒ `st2_quot_names_are_installed` 判红。
+- **ST1 记录随之更新** ✓：ST2 一落地，ST1 守卫**当场咬住**（`ST1-quot-unavailable` 记录 0 /
+  内核 1 ⇒ 判红）⇒ 商那一半搬进 ST2 探针，ST1 只留「没有累积性」（L-06，改名
+  `ST1-no-cumulativity.sokonanoda`）✓。
+- **没做** ✗：**ST10（基数）未开**（用户明确「做完停下，不要顺手开」）· **G-56 本轮不修** ✓。
