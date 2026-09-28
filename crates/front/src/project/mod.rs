@@ -366,7 +366,7 @@ pub fn units_for_modules<'a>(
 
 /// **切片 1b**：把「编」与「组装」分开 —— session 可用**预算结果**替换「编」
 /// （库层只编一次、各入口复用同一套 DAG）。组装段**逐字**搬自原 `compile_plan_with_progress`。
-pub(crate) struct PlanCompiled {
+pub struct PlanCompiled {
     pub compilable: Vec<usize>,
     pub flat_out: CompileOutput,
     pub reports: Vec<DocumentReport>,
@@ -378,7 +378,7 @@ pub(crate) struct PlanCompiled {
     pub requires_warning: Option<String>,
 }
 
-pub(crate) fn assemble_report(c: PlanCompiled) -> ProjectReport {
+pub fn assemble_report(c: PlanCompiled) -> ProjectReport {
     let PlanCompiled {
         compilable,
         flat_out,
