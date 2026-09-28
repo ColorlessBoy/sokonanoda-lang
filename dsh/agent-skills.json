@@ -8,7 +8,7 @@
       "ref": "main",
       "license": "MIT",
       "strip": "skills/",
-      "why": "流程纪律。用户原话是「ai 比较急，为了完成完全忽略完美」——这一包正对着这个毛病：verification-before-completion 把「先跑验证命令、拿到输出，再声称完成」变成硬规则；subagent-driven-development 给出实现者/审查者/复审三段提示词，正是「每个环节一个 subagent + 独立验收」的做法。",
+      "why": "流程纪律。用户原话是「ai 比较急，为了完成完全忽略完美」——这一包正对着这个毛病：verification-before-completion 把「先跑验证命令、拿到输出，再声称完成」变成硬规则；subagent-driven-development 给出实现者/审查者/复审三段提示词，正是「每个环节一个 subagent + 独立验收」的做法。 **X2（2026-09-28）加两行**：`using-git-worktrees` 与 `finishing-a-development-branch` —— 多会话并行的主解法是 **worktree 隔离**（加锁只作兜底），这两条正是它的操作手册 ✓。",
       "skills": [
         "verification-before-completion",
         "subagent-driven-development",
@@ -18,7 +18,9 @@
         "dispatching-parallel-agents",
         "requesting-code-review",
         "receiving-code-review",
-        "brainstorming"
+        "brainstorming",
+        "using-git-worktrees",
+        "finishing-a-development-branch"
       ]
     },
     {
