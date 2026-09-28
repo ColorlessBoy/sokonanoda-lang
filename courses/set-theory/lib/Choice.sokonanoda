@@ -1,0 +1,60 @@
+-- Choice.sokonanoda —— 卷 I 的**选择公理**（ST12，v0.77.0）
+--
+-- **定位**：选择公理是**外挂**（不是定理）—— 与 `Set.ext`（外延性）同一档：
+-- 本语言没有 `propext`/`funext`（见 ST14），也没有 `Classical.choice`，
+-- 所以「从 `∀ x ∈ A, ∃ y, P x y` 拿到一个**选择函数**」必须**作为公理**加进来。
+-- 这与 ST1 决策记录结论 ①（「谓词式够用」）**不矛盾**：够用的是**分离/并交/幂集**，
+-- 选择公理在 ZF 里本来就是**公理**（不是从分离推出来的）✓。
+--
+-- **基准**（逐条实查，出处见 `docs/design/v077-st1-boundary.md` §2）：
+--   Isabelle AFP `ZFC_in_HOL`（`ZFC_in_HOL.thy` §1.4）：
+--       lemma AC_iff_1: "AC ⟷ (∀f. (∀x. x ∈ domain f ⟶ f x ≠ 0) ⟶
+--                                     (∃g. ∀x. x ∈ domain f ⟶ g x ∈ f x))"
+--       lemma AC_imp_2: "AC ⟹ ∀A. ∀B. (∀x∈A. ∃y. y∈B ∧ P x y) ⟹
+--                                     ∃f. ∀x∈A. f x ∈ B ∧ P x (f x)"
+--   Mathlib `Mathlib/Logic/Choice.lean`：`Classical.choice` / `Classical.choose`
+--       / `Classical.choose_spec`（`noncomputable`，因为它是公理）。
+--   ⚠ **我们的形式**：照 Isabelle 的 **AC_imp_2**（「集合版」）—— 因为它**不需要**
+--   `domain`/`f x ≠ 0` 那套编码（那是 Isabelle 把函数当集合的副产品）；我们的函数
+--   是**类型原语** `α → β` ⇒ 直接写「`∀ x ∈ A, ∃ y ∈ B, P x y` ⇒ `∃ f, ∀ x ∈ A,
+--   f x ∈ B ∧ P x (f x)`」✓。
+--
+-- **分层判据**（docs/design/course-stdlib.md）：本文件是 **L2（词汇 + 公理）**：
+--   · 1 条公理 `choice`（外挂，不证）；
+--   · 1 个定义 `Nonempty`（"存在元素"，Isabelle `small`/`0` 的对应物）；
+--   · 2 条 L2 引理：`choice_spec`（公理的展开）/ `nonempty_def`。
+-- 有数学内容的（Zorn 引理、良序定理、`Cardinal` 的可比性）属 **L3**，留作练习 ✗。
+import lib.Logic
+import lib.Exists
+import lib.Set
+
+-- ── 「非空」谓词（Mathlib `Nonempty`；本语言没有它，见 G-61 的说明）──────────
+-- 读法：`Nonempty α` = "类型 α 有一个元素"。**注意它在 `Prop`**（不是 `Type`）——
+-- 这正是 Mathlib `Nonempty` 的位置 ✓。
+def Nonempty (α : Type) : Prop := ∃ (a : α), a = a
+
+-- 展开引理（L2）
+theorem nonempty_def (α : Type) : Nonempty α ↔ ∃ (a : α), a = a :=
+  Iff.intro (fun (h : Nonempty α) => h) (fun (h : ∃ (a : α), a = a) => h)
+
+-- ── **选择公理**（外挂；Isabelle `AC_imp_2` 的集合版，逐字同款）──────────────
+-- 读法：给定集合 `A`、目标集合 `B`、关系 `P`，
+--   若「对每个 `x ∈ A` 都存在 `y ∈ B` 使 `P x y`」，
+--   则「**存在一个函数** `f : α → β`，对每个 `x ∈ A` 都有 `f x ∈ B ∧ P x (f x)」✓。
+-- ⚠ 这条是**公理**：`∃` 是 `Prop`（G-58 的世界）⇒ 从 `Prop` 里**取不出**数据；
+-- 选择公理就是那个"允许取出"的开关 ✓。
+axiom choice : (α β : Type) → (A : Set α) → (B : Set β) → (P : α → β → Prop) →
+  (∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) →
+  ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)
+
+-- ── 公理的展开（L2：`choice` 就是上面那个类型，没有数学内容）────────────────
+theorem choice_spec (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) :
+    ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x) :=
+  choice α β A B P h
+
+-- ── 本版不做（记在这里，免得后来者重复踩）──────────────────────────────────
+-- · **从 `choice` 里取函数**（`Classical.choose`）：要 `Exists.elim` 的**数据版**
+--   （`Prop` 里取数据）—— 那正是 G-58（大消去不可用）挡住的 ⇒ **本版不做**，
+--   要用的时候**直接 `choice …` 应用一次**（公理本身的结论是 `∃`，可以继续用）✓；
+-- · `Zorn` / `wellOrdering` / `Cardinal` 可比性：要**从选择公理取数据** ⇒ 撞 G-58 ⇒ L3/后续。

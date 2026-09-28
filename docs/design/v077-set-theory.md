@@ -86,17 +86,12 @@
   （`docs/gaps/repro/ST2-quot-reduces.sokonanoda`）。
 - **ST3** 集合建构式 `{x : P}`（分离），含 `{x ∈ A | P x}` binder 记法。
   基准：Mathlib `ZFSet.sep`/`mem_sep`/`sep_subset`；Isabelle §1。**撞点**：binder 记法。
-  ✅ **已完成（2026-09-28）**：**语义那一半做成** —— `lib/Set.sokonanoda` 新增 `Set.sep`
-  （Mathlib `Mathlib/Data/Set/Defs.lean` 的 `Set.sep`，逐字同款）+ 三条 L2 展开引理
-  `mem_sep_iff` / `sep_subset` / `sep_self`；课程门禁 **331 checked · 99 open · 0 判负** ✓。
-  ⚠ **记法那一半写不出来** ⇒ **G-60**（两种花括号写法都被拒；根因：六种记法形状里没有
-  「操作数在括号里」，`binder_notation` 的符号还必须是数学符号）⇒ 课程点名写 `Set.sep` ✓。
+  ✅ **已完成（2026-09-28）**：`lib/Set` 新增 `Set.sep` + 三条 L2 展开引理（`mem_sep_iff`/`sep_subset`/`sep_self`）。
+  ⚠ **记法那一半写不出来** ⇒ **G-60**（花括号不是记法形状）⇒ 课程点名写 `Set.sep` ✓。
 - **ST4** 集族与无限并交（`⋃₀`/`⋂₀`、`Set.sUnion`/`sInter`）。
   基准：Mathlib `coe_sUnion`/`coe_sInter`；Isabelle §2.2/2.3。**撞点**：**L-06**（`Exists` 取不出数据）。
-  ✅ **已完成（2026-09-28）**：**新模块** `lib/SUnion.sokonanoda`（`Set.sUnion`/`Set.sInter`
-  + 四条 L2 展开引理 + **记法 `⋃₀`/`⋂₀`**）；课程门禁 **37 目标 · 337 checked · 99 open · 0 判负** ✓。
-  ⚠ **L-06 的实际影响**：定义与展开引理**不需要**取出数据 ⇒ 本档**没撞上** L-06 ✓；
-  但「取数据的引理」（如 `sUnion` 的成员给出所属集合**并取回**它）会撞 ⇒ 那类属 L3（练习）。
+  ✅ **已完成（2026-09-28）**：**新模块** `lib/SUnion`（`sUnion`/`sInter` + 四条展开引理 + 记法 `⋃₀`/`⋂₀`）。
+  ⚠ 定义与展开引理**不需要**取出数据 ⇒ **没撞上 L-06** ✓（取数据的引理属 L3）。
 - **ST5** 有序对 / 广义笛卡尔积 / 不交并 / 广义函数空间与 lambda。
   基准：Isabelle §2.1–2.4；Mathlib `ZFSet.prod`/`funs`。**撞点**：依赖类型 + 隐式参数。
   ✅ **已完成（2026-09-28）**：① 有序对/笛卡尔积**已在库**（`lib/Prod`，E02 收进）；
@@ -125,6 +120,10 @@
 - **ST11** **序型 ordertype · Aleph 序列 · ω₁ · Cantor 正规形**。
   基准：Isabelle §2.8/2.20/2.21/§3。**撞点**：序数算术。
 - **ST12** **选择公理**（`ZFSet.choice` · Zorn · 良序定理）。基准：Mathlib `ZFSet.choice`。
+  ✅ **已完成（2026-09-28）**：`lib/Choice.sokonanoda` —— `axiom choice`（外挂，与 `Set.ext` 同档）
+  + `Nonempty` + `choice_spec`/`nonempty_def`，**4 条全 checked** ✓。形式照 Isabelle `AC_imp_2`（集合版）。
+  ⚠ **本档不做**：从 `choice` **取函数**（`Classical.choose`）要在 `Prop` 里取数据 ⇒ **撞 G-58**；
+  要用时直接 `choice …` 应用一次 ✓。`Zorn`/良序定理/`Cardinal` 可比性同因 ⇒ L3/后续。
   **已知撞点**：**已实测「满射可裂」证不出来**（L-06 原话「需要选择公理」）⇒ 直接登记。
 - **ST13** **ZF 公理系统本体**（分离/替换/幂集/**正则性**…）。
   基准：Mathlib `ZFSet.regularity`；Isabelle §1.1。**撞点**：语言能否表达**公理模式 schema**。
