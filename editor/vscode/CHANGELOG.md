@@ -1,3 +1,57 @@
+## [0.77.0] — 2026-09-28
+
+> 「卷 I 集合论：类型论自身能表达多少」（ST1–ST5 · ST8 · ST10 · ST12–ST15）。
+
+### Added
+
+- **Quotients are usable from source.** `Quot` / `Quot.mk` / `Quot.lift` /
+  `Quot.ind` / `Quot.sound` are installed by the prelude (the kernel already had
+  `Declar::Quot`; what was missing was the front end producing it). `Quot.lift`
+  and `Quot.ind` really compute on `Quot.mk` — the regression asserts it with
+  `Eq.refl`-level goals, not by looking at text. A file that declares its own
+  `Quot` still takes over the family, as before.
+- **Six new course libraries for predicate-style set theory**
+  (`courses/set-theory/lib/`): `Set.sep` (separation) · `SUnion`
+  (`Set.sUnion`/`Set.sInter`, notations `⋃₀`/`⋂₀`) · `Sum` (notation `⊕`) ·
+  `Set.pi` · `Ordinal` (ordinals **as predicates** — no new type) ·
+  `Cardinal` (`Cardinal := Quot` of type equivalence; `Cardinal.sound` is
+  `Quot.sound`, and `Cardinal.lift_mk` is `Eq.refl`-level, so the quotient
+  reduction is exercised for real) · `Choice` (`axiom choice`) · `ZF`
+  (`axiom regularity` + a table saying which ZF axioms are theorems here) ·
+  `Extensionality` (`propext` + dependent `funext`).
+- **`docs/design/v077-kernel-deficiencies.md` — the release's actual deliverable.**
+  Every gap the course ran into, with a self-asserting reproduction under
+  `docs/gaps/repro/`, its blast radius, its workaround, and the source location of
+  the blocker. Seven entries: **G-56** (`Acc` cannot be declared — a recursive
+  occurrence whose index changes trips the kernel's uniformity check) · **G-58**
+  (large elimination is unavailable, so `Prop`-valued inductives cannot eliminate
+  into `Type`) · **G-59** (a `Type`-valued block's recursor does not eliminate
+  into `Type` either) · **G-60** (set-builder braces are not a notation shape) ·
+  **G-61** (no η, so Lean core's `Quotient`/`Setoid` wrappers cannot be defined) ·
+  **G-62** (`def` and its unfolding are not interchangeable, so the three
+  equivalence laws of a `def`-encoded relation cannot be written) · **G-63**
+  (`Quot.lift`'s explicit universe arguments are hard to line up).
+
+### Changed
+
+- **The course is checked against the kernel on both ends.** ST1's decision record
+  (`docs/design/v077-st1-boundary.md`) is reconciled with four self-contained
+  probes: the record's claimed diagnostic text and checked counts are compared
+  against what the kernel actually says, in both directions.
+- **`STATUS.md` / `docs/design/v077-set-theory.md`** record which chapters are done
+  and which are blocked, so "blocked" is a documented state rather than a silence.
+
+### Fixed
+
+- **`docs-lint` no longer trips on `docs/design/v077-set-theory.md`** — the design
+  notes were compressed back under the 150-line budget for new design docs.
+
+> **Not fixed on purpose.** ST6 (transitive closure), ST7 (rank), ST9
+> (transfinite recursion) and ST11 (order types / Aleph) are blocked by G-56 and
+> G-58. The kernel was **not** touched in this release: `git diff` over
+> `crates/kernel/` is empty. Each gap is registered instead of worked around
+> silently — that registration *is* the deliverable.
+
 ## [0.76.0] — 2026-09-28
 
 > 「prelude 显式化 + 两跳」（E09–E11）。

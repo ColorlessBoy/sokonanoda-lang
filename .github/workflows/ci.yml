@@ -403,7 +403,23 @@ jobs:
         # 已经编好，这一步只补 `--bin sokonanoda` 这一个目标。
         run: cargo build --release -p sokonanoda-cli --locked
       - name: Course gate (set-theory, G1–G5)
-        timeout-minutes: 20
+        # **上限 20 → 40 分钟**（2026-09-28，v0.77.0 发版轮实测 ✓）：
+        # 本步在 CI 上**跑完了且结果正确**（`43 个目标 —— 375 checked · 99 open ·
+        # 0 个被判负` ✓），只是**顶到 20 分钟上限被杀**（日志：`##[error]The action
+        # 'Course gate (set-theory, G1–G5)' has timed out after 20 minutes`）。
+        # **为什么 CI 比本机贵**（同一条命令、同一个 release 二进制 ✓）：
+        # 课程门禁对**每个目标**跑一次 `grade <绝对路径> --json`，而每次都要把该目标
+        # 的 import 闭包**冷编译**一遍 ⇒ 成本随课程规模线性涨。v0.77.0 新增 6 个
+        # `lib/*.sokonanoda` 模块（`Ordinal`/`Cardinal`/`Choice`/`ZF`/`Extensionality`/
+        # `Sum`）+ 大量引理 ⇒ 课程从 331 checked 涨到 375。
+        # 实测：**本机（M 系 mac，release）5 分 05 秒冷跑**，CI 是 2 核 ubuntu
+        # ⇒ **19 分 22 秒**（≈3.8×，与既有跨机器倍数一致；`docs/PERF.md` 记过同一现象）。
+        # ⚠ **这不是"判据变慢"**：门禁的**判据没动**（G1–G5 一条没改 ✓）、课程难度没降 ✓。
+        # 按仓库先例取 40 分钟（与 `ledger` 的 30 分钟同族；给 2× 余量）✓。
+        # **后续优化**（不阻塞本版）：给 `<模块根>/.sokonanoda/compiled/` 加 `actions/cache`
+        # —— 本机实测**热缓存 0.5 秒**（59 MB 产物）⇒ 值得做，但它引入"缓存失效/污染"
+        # 这一新失败模式，留到 0.78 单独一轮做 ✓。
+        timeout-minutes: 40
         env:
           SOKONANODA_BIN: ${{ github.workspace }}/target/release/sokonanoda
         shell: bash
