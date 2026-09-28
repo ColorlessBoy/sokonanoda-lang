@@ -161,3 +161,8 @@
 - `research.md.gz`
 - `rust-cross-platform-binary.md.gz`
 - `vscode-notes.md.gz`
+
+## status-2026-09（STATUS 早期轮次二次归档，2026-09-28）
+
+- `docs/archive/status-2026-09/README.md` —— STATUS 第 476 轮及更早的轮次（从 `docs/STATUS-ARCHIVE.md` 下沉 ✓，归档≠销毁 ✓）。
+- `docs/archive/status-2026-09/bulk-221-321.md` —— STATUS 第 221–321 轮的成批旧轮次（二次下沉 ✓）。
