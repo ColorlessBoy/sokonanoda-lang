@@ -84,18 +84,11 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
   exit 3 + 人话）；缓存**过期就拒绝运行并提示**（它是历史上最常见的故障源）。
 - 已经有 `sokonanoda` 在 PATH 上时，上表的 `scripts/soko …` 可换成
   `sokonanoda …`（等价）；DSH 里没有项目级 PATH 注入，所以文档一律先给启动器形式。
-- 环境能力本身是 `sokonanoda` 二进制的子命令（内嵌下载器，跨平台；旧的
-  `scripts/soko.sh` 已删除）。
-- opencode 额外有：`/sokonanoda/setup` `/sokonanoda/update`
-  `/sokonanoda/version` `/sokonanoda/doctor` `/sokonanoda/check`
-  `/sokonanoda/gate`，以及启动插件自动 provision。
-- DeepSeek Harness 额外有：技能目录自动发现（`.agents/skills/`），技能名即
-  `/sokonanoda-teacher` 等命令；两个**人工**运维命令
-  `/sokonanoda-update`（刷新缓存）与 `/sokonanoda-doctor`（就绪诊断）也已上架
-  （`disable-model-invocation`，不进模型目录）；编辑器 LSP 需显式
-  `dsh web --patch ./dsh/cordis.patch.yml`（详见 `dsh/README.md`）。
-  DSH 的斜杠命令文法不允许 `/`，所以 opencode 的 `/sokonanoda/update` 在 DSH
-  侧只能拼成 `/sokonanoda-update`。
+- 环境能力本身是 `sokonanoda` 二进制的子命令（内嵌下载器；旧的 `scripts/soko.sh` 已删除）。
+- opencode 额外有：`/sokonanoda/{setup,update,version,doctor,check,gate}` + 启动插件自动 provision。
+- DeepSeek Harness 额外有：技能目录自动发现（`.agents/skills/`）、`/sokonanoda-*` 命令
+  （DSH 斜杠命令文法不许 `/` ⇒ opencode 的 `/sokonanoda/update` 在 DSH 侧拼成
+  `/sokonanoda-update`）；编辑器 LSP 需显式 `dsh web --patch ./dsh/cordis.patch.yml`。
 - 贡献者（需要 Rust）：`scripts/soko gate`（= fmt + clippy + test + playground
   锚点 **+ 课程门禁** `courses/set-theory/tools/check.py` **+ 缺口台账门禁**
   `scripts/gap.py check`；后两步要 python3，探不到就 **exit 3**、绝不静默跳过）
@@ -199,11 +192,9 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
   ——并改写 `lsp.command`；`shell.env` 注入 PATH；`opencode.json` 不含 lsp
   命令）；另有 `skills/` 自动加载、`/sokonanoda/*` 命令、`teacher` 主 agent、
   Lean 工具链命令 deny。
-- **DeepSeek Harness**：技能与 `/sokonanoda-*` 命令自动可用
-  （`.agents/skills/`），但 LSP 需显式启用
-  `dsh web --patch ./dsh/cordis.patch.yml`；且**服务端诊断不会被投递给
-  agent**——判卷一律走 CLI `--json`（`dsh/README.md`、
-  `docs/design/deepseek-harness.md`）。
+- **DeepSeek Harness**：技能与 `/sokonanoda-*` 命令自动可用（`.agents/skills/`），
+  但 LSP 需显式启用 `dsh web --patch ./dsh/cordis.patch.yml`；且**服务端诊断不会被
+  投递给 agent** ⇒ 判卷一律走 CLI `--json`（`docs/design/deepseek-harness.md`）。
 - 其他 harness 可用 `.opencode/lsp/sokonanoda-lsp.sh` shim →
   `scripts/soko lsp`。
 
@@ -276,6 +267,14 @@ CI 强制的只有 `Cargo.toml` 与 `package.json` **相等**，且版本号只�
 **⇒ 病根**：**真相**与**显示**是两条路，bug 活在**接缝**里。**数据对了 ≠ 用户看见了**。
 
 **四条硬规则**：
+
+0. ⭐ **（2026-09-28）UI/交互类交付的两条硬规矩**：
+   **(a) 判据必须绑「用户动作」**：**点下去 ⇒ 可见结果** ✓；**不许只验"链路通"** ✗，
+   **更不许用"能跑通的位置"代替"用户实际点的位置"** ✗✗（事故 E27：测试用**使用处** `∈` 能跳、
+   用户点**声明名**返回 `null` ⇒ 弹「这里没有可跳转的定义」）。标 **✅** 的 UI 类项必须有这样一条判据 ✓。
+   **(b) 同类问题横向排查，不许修单点**：2026-09-26 修 `.decl-ty`「太小太暗」时**没横向排查**
+   ⇒ 一个月内第二次同形反馈（`.section-title` 更小更暗，而它是 `<h2>` ⇒ 层级更高、视觉更弱 ✗）。
+   ⇒ 收到一条 UI 反馈 ⇒ **先问"同类还有哪些"**，一次改齐 + 落**可查**的守卫（lint 或 checklist）✓。
 
 1. **每条用户可见的改动，必须先回答一句**：**"屏幕上会多/少什么？那条断言在哪一层？"**
    答不上来 ⇒ **验收不完整**，不许勾环节。

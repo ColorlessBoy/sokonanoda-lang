@@ -1,4 +1,7 @@
-# 交接单：X2 多会话 / 多分支（worktree）—— 未完，交给下一棒
+# 交接单：**内核 · `Acc` 索引族**（头号优先级）+ X2 收尾（3/5）
+
+> ⚠ **2026-09-28 用户拍板：「卡内核的，改内核就好了嘛」⇒ 不要再停在"登记完成"**；**X2 让路**（已收尾 3/5，见本文 §4）✓。内核是现在的头号优先级 ✓。
+> 分支 **`kernel/acc-indexed-families`**（从 `main` 开出，本地）。
 
 > 上一棒：2026-09-28 会话（已发生 1 次 compaction）。**本地已全部 commit 并推送** ✓。
 > 起点 `592a2e1e` → 终点 **`070a363d`**（`main`，工作区干净）。
@@ -91,3 +94,132 @@ X2 段写「`target/` 已 **205 GB**、磁盘只剩 **159 GB** ⇒ 开 worktree 
 
 **建议顺序**：`X2` 收口（本档 §4.1）→ `E19-0`（零风险）→ `E19-1/2`（真风险所在）→ `E19-3/4` → `E20` 视 E19-2 结果定。
 **`E19-2` 是唯一可能动判定输出的环节** ⇒ 那一环走内核改动那套（先留判红证据 → 单独 commit → 三层回归 + 语料对拍 + `--json` 逐字节不变）。
+
+---
+
+# 附：内核 `Acc` 一棒的**精确接续点**（2026-09-28 第二轮实测）
+
+## 目标（用户给的顺序，逐个交付）
+
+1. **G-56** —— 让下面 4 行 `checked`（参数位逐字相同 + 指标位任意但不含递归出现）：
+   ```
+   inductive Acc (α : Type) (r : α → α → Prop) : α → Prop
+   ctor intro (x : α) (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x
+   end
+   ```
+2. **G-64** —— 递归子能派生：宇宙代入 + `Acc.rec` 的 motive 与前端生成的 `Sort` 对齐。
+3. **G-58 / G-59 大消去** —— 只对「单构造子 + 字段全在 Prop」的 **sub-singleton** 开；
+   **`Or` 这种多构造子 Prop 归纳仍不许**消去到 Type（**反向判据**）。
+4. **ST6（传递闭包）/ ST7（秩）真落地**；ST9 / ST11 能落就落，落不了**如实说是卡在哪一层**。
+
+## ⭐ 本轮拿到的**新精确机制**（比本文档早先版本准，优先看这段）
+
+**复现**（`end` 必须有）：上述 4 行 ⇒
+`kernel-rejected: assertion left == right failed (left: 0 / right: 1)` ✓。
+
+**调用栈**（把 `crates/kernel/src/util.rs` 的**静默 panic hook** ——
+`try_check_declar_at` 里的 `std::panic::set_hook(Box::new(|_| {}))` —— 临时换成打
+`std::backtrace::Backtrace::force_capture()` 就能拿到）：
+```
+subst_expr_levels (expr.rs:383)  ←  assert_nonnested_recursors_def_eq (inductive.rs:1692)
+                                 ←  check_inductive_declar
+```
+⚠ **`expr.rs:383` 在 `if ks == vs || self.read_levels(ks).is_empty()` 这个短路块里** ⇒
+只要 `ks` 的**指针**等于 `vs`（或 `ks` 空），它就**总是**求值 ⇒ panic 位置**不代表**根因 ✓。
+
+**精确行 = `inductive.rs:1705`**：
+`self.ctx.subst_expr_levels(old.info().ty, old.info().uparams, st.rec_uparams.unwrap())`
+—— 拿**环境里那份同名递归子**的 `uparams` 去代入**新块要用的** `rec_uparams`。
+
+⚠ **`left: 0 / right: 1` 的真实含义**：`left` = `old.info().uparams` **为空** ⇒
+**`Acc` 递归子在环境里的那份 `uparams` 是空的**；`right` = `st.rec_uparams` 有 1 个
+⇒ **两个来源的 universe 参数表不一致** ✗。
+
+**⇒ 为什么"放宽 uniform 检查"必然没用**（上一轮已实测，这里给出原因）：
+`Acc α r y` 的 `args_rev.len() = 3 > num_params = 2` ⇒ `inductive.rs:168` 的卫为**假**
+⇒ 整支**跳过**（既不检查、也不判红）⇒ **判红根本不在 uniform 那一层** ✓。
+
+**下一刀的两个方向**（**都要先量、不许猜** ✗）：
+① `old.info().uparams` 为什么是空的 —— `Acc` 是**本次新声明**（不是 import），
+所以这个"old"是**检查过程中先前一步写进环境的那份** ⇒ 查清写进去时 `uparams` 怎么算的；
+② `st.rec_uparams` 怎么来的 ⇒ `mk_recursor_aux`（`inductive.rs:1727`）。
+
+## 四道保险（用户重申）
+
+内核 commit **单独** · 三件套（三层回归 / 全语料对拍 / `--json` 逐字节不变）**实测数字贴 message** ·
+`grep '@@@'` 查插桩残留（**我这次插桩已完整还原**：`git diff crates/kernel/` 空 + `@@@` 0 处 ✓）·
+**不许硬凑 / 不许为绿色改判据 / 不许压低难度**。
+
+**反向判据（缺一条不算做成）**：参数位变化的出现**仍判红** · 指标位里含递归出现**仍判红** ·
+**多构造子 Prop 归纳（如 `Or`）仍不许**消去到 Type · 现有全语料对拍**零差异**（除新增 `Acc` 相关）。
+
+**分支与落地**：`kernel/acc-indexed-families`，**推分支跑 CI**（`concurrency.group: ci-${{ github.ref }}`
+按 ref 隔离 ⇒ **不会取消 main 的 run** ✓，本档 §1 已实测过同类 ✓）；真绿再合 main；
+落地后 bump **v0.79.0「良基递归」** ✓。
+
+---
+
+# 🔴 P0（用户 18:11 实测，**最高优先级**）：Infoview 点声明名 ⇒ 弹空
+
+## 0. 用户动作级实测（**改前**，2026-09-28 · 真 LSP，脚本 `/tmp/p0/lsp_probe.py` 的配方见下）
+
+夹具 `courses/set-theory/units/unit01-sets-membership.sokonanoda`，用**真 `sokonanoda-lsp`** 走
+`initialize` → `didOpen` → **轮询** `textDocument/definition`（轮询是必需的：编译完成前问会得到
+null，第一版就是这么误判的 ✗）：
+
+| 位置 | 结果 |
+|---|---|
+| **① 声明名** `demo_mem_def`（第 32 行第 11 列，1-based） | **`null`** ⇒ 面板弹「**这里没有可跳转的定义**」✗ |
+| **② 使用处** `∈`（第 32 行第 48 列） | **跳到 `Set.sokonanoda:56`** ✓ |
+
+⇒ **用户报的现象复现了** ✓，且**测试用②、用户点①** 的错位也被实测坐实 ✓。
+
+## 1. 事故根因（判据绑错了对象）
+
+`editor/vscode/src/test/extension.test.js:743` 的注释**自己写明**了：
+「本 LSP 的 definition 解析的是**使用处**，声明名本身**不返回定义**（拿声明名当位置 ⇒ 空结果）
+⇒ 判据取使用处；**webview 目前接的是声明名**」。
+⇒ **判据验的是"链路通"（`decl-name` → `definition` → `executeDefinitionProvider`），
+不是"用户点下去看到什么"** ⇒ 标 ✅、用户一点就空 ✓。
+
+**另一条独立的机制**（G-53，用当前数据实测）：`query goals` 的 `ty_runs`/`goal_runs`/`goals_runs`
+共 **503 条 run，字段集合 = `['kind','text']`** ⇒ **没有源位置** ⇒ webview 渲染的 `tok-*` span
+**无从知道"点的是源码哪一处"** ⇒ 类型/目标里的**符号**（`∈`/`{a}`）**点不动** ✗。
+
+## 2. 三条修法（用户倾向 ③ 为主、② 兜底）—— **规格已定，实现留给下一棒**
+
+| | 做法 | 判据（**必须绑用户动作**） | 风险 |
+|---|---|---|---|
+| **②**（兜底，最小） | 声明名点击 ⇒ **本文件内 `reveal` 到声明自身**（诚实、不弹空）；**符号**点不动时**仍弹**「没有可跳转的定义」（不许把"没定义"说成"跳了"） | 点声明名 ⇒ 编辑器选中/滚动到该声明（**不是**弹提示） | 低 |
+| **③**（主，用户真正要的那半） | **接上 G-53**：给 wire 的 runs 加**源位置**（`start/end` 偏移）⇒ webview 的 `tok-*` span 带位置 ⇒ 点击发 `definition` | 在 Infoview 里**点类型行里的 `∈`** ⇒ 跳到 `lib/Set` 的定义行（跨文件 ✓） | 中（动 wire 契约 ⇒ `docs/protocol.md` 同步 + LSP 单测断言**字段存在性**） |
+| **①** | definition 在声明名处返回自身 | 同 ②，但要证明**不与 F12 语义冲突** | 中 |
+
+**为何 ③ 是正解**：`∈` 在**类型行里**被渲染成源级记法（A3/A5 的折叠）⇒ 用户**看得见**它、
+**想点**它 ⇒ 那才是"跳转"有用的地方 ✓；而②只让**声明名**这一处不再弹空 ✓。
+
+**⛔ 若时间不够**：**至少落 ②** —— 它把"弹空"消掉（用户的可见症状），并**如实标注**
+「符号跳转仍缺（G-53 open）」✗，**不许把 ② 说成"跳转做好了"** ✗。
+
+## 3. ⚠ 流程修复（用户：「这条比 bug 本身重要，必须落地」）
+
+**新增硬规矩**：凡**可点击 / 可跳转 / UI 交互**类交付，判据**必须绑用户动作**
+（点下去 ⇒ 发生什么**可见结果**）；**不许只验"消息发出 / 函数被调用 / 链路通"**；
+**更不许用"能跑通的位置"代替"用户实际点的位置"** ✗（E27 就是这么漏的）。
+**外加**：STATUS / PLAN 里标 **✅** 的项，**必须有一条判据是"用户动作 → 可见结果"** ✓。
+
+**⇒ 已落成三样东西**（只写文档几轮就失效 —— E18 已证明过一次 ✓）：
+1. **`AGENTS.md`** 的「验证设计纪律」四条硬规则**前面**加一条第 0 条（本节原文）；
+2. **`scripts/check-user-action-evidence.py`** —— 扫 STATUS/PLAN 里标 ✅ 的 UI 类环节，
+   **必须**在测试里找到"用户动作 → 可见结果"的证据（见脚本头注释的判据）；
+3. **E27 的标记改成如实状态**（已做一半：机制通了 + **用户点的那一处仍空**）✗。
+
+## 4. 怎么复现本节 §0 的实测（配方，免得下一棒重写）
+
+```python
+# /tmp/p0/lsp_probe.py 的要点（真 LSP、真夹具）
+# 1) initialize（rootUri = 课程根）→ initialized → didOpen（uri + 全文 text）
+# 2) **轮询**：反复发 textDocument/definition，直到有非 null 结果或超时；
+#    ⚠ 编译完成前一律 null ⇒ 不轮询会误判成"缺口" ✗（第一版就踩了）
+# 3) 两个位置：声明名 (31, 10) 0-based；使用处 `∈` (31, 47) 0-based
+# 实测：声明名 → null；`∈` → file …/lib/Set.sokonanoda, line 55 (0-based) = 第 56 行 ✓
+```
