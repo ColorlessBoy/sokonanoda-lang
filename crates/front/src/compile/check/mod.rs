@@ -131,6 +131,25 @@ pub(crate) struct TrustPlan {
 }
 
 /// One `run_pass` result, including the early-cutoff bookkeeping.
+/// **切片 1b（2026-09-29）**：prelude 的登记表（`Nat`/`Bool`/`Eq`/L1）—— 它们**不在 `declars` 里**，
+/// 所以 `hide_declars`/`restore_declars` 救不了它们 ✗。让它们**跨趟复用**（库层装一次、
+/// 各入口趟接着用）⇒ 入口才看得见 `Nat`，且不会重复登记。
+pub(crate) struct PassTables<'a> {
+    pub(crate) known: KnownTable,
+    pub(crate) inductives: InductiveTable<'a>,
+    pub(crate) defs: DefTable,
+}
+
+impl<'a> PassTables<'a> {
+    pub(crate) fn new() -> Self {
+        Self {
+            known: KnownTable::new(),
+            inductives: InductiveTable::new(),
+            defs: DefTable::new(),
+        }
+    }
+}
+
 pub(crate) struct PassResult {
     pub(crate) out: CompileOutput,
     pub(crate) report: DocumentReport,
@@ -806,10 +825,12 @@ fn run_pass_in<'a>(
     // 影子只服务 `SOKO_SHADOW_*` 实验：局部 arena，寿命短于主环境 ✓（`'a: 's`）。
     let shadow_arena = stumpalo::Arena::new();
     let shadow = EnvBuilder::new(shadow_arena.as_arena_ref(), Config::default());
+    let tables = PassTables::new();
     run_pass_with(
         builder,
         Some(shadow),
         true,
+        tables,
         units,
         options,
         collect,
@@ -830,29 +851,29 @@ pub(crate) fn run_pass_with<'a, 's>(
     mut shadow: Option<EnvBuilder<'s>>,
     // **只装一次**：session 第二趟起必须 `false`（实测重复装 ⇒ `duplicate declaration Nat` ✗）。
     install_preludes: bool,
+    // **切片 1b**：prelude 登记表（跨趟复用；库层趟装好，入口趟接着用）。
+    tables: PassTables<'a>,
     units: &'a [SourceUnit<'a>],
     options: &CompileOptions,
     collect: bool,
     skip: Option<&KernelFailed>,
     trust: Option<&TrustPlan>,
     progress: Option<&mut dyn crate::compile::ProgressSink>,
-) -> (PassResult, EnvBuilder<'a>)
+) -> (PassResult, EnvBuilder<'a>, PassTables<'a>)
 where
     'a: 's,
 {
     stage_stats::install();
     stage_stats::PASSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let _pass_timer = StageTimer(&stage_stats::PASS_NANOS, std::time::Instant::now());
-    let mut known: KnownTable = KnownTable::new();
-    let mut inductives = InductiveTable::new();
-    // 源级 delta 表（课程 Lean 化）：`by` 引擎靠它看穿 def 头（`A ⊆ B`/`¬ A`）。
-    let mut defs = DefTable::new();
+    // **切片 1b**：三张表由调用方提供（session 跨趟复用）⇒ 这里不再 `new()`。
+    let mut tables = tables;
     if install_preludes {
         install_all_preludes(
             &mut builder,
-            &mut known,
-            &mut inductives,
-            &mut defs,
+            &mut tables.known,
+            &mut tables.inductives,
+            &mut tables.defs,
             units,
             options,
         );
@@ -950,9 +971,9 @@ where
         shadow_skip: None,
         display: display_notations(units),
         builder,
-        known,
-        inductives,
-        defs,
+        known: tables.known,
+        inductives: tables.inductives,
+        defs: tables.defs,
         out,
         ops,
         cmd_hovers,
@@ -1022,6 +1043,12 @@ where
         failed_cmds,
         kernel_checks,
     });
+    // **切片 1b**：把 prelude 登记表从 walk 取回 ⇒ 交回调用方（session 跨趟复用）。
+    let tables = PassTables {
+        known: walk.known,
+        inductives: walk.inductives,
+        defs: walk.defs,
+    };
     // **T-K12b 的对照判据**：影子的失败表 vs 内核阶段的失败表，逐条比（同键 ✓）。
     // 只在影子覆盖的命令上比（见 `shadow_covered` 的注释）。
     let mut kernel_failed: Vec<usize> = pass
@@ -1077,7 +1104,7 @@ where
             );
         }
     }
-    (pass, walk.builder)
+    (pass, walk.builder, tables)
 }
 
 /// Every top-level name this file declares, mapped to the span of the command

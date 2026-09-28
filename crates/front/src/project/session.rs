@@ -11,7 +11,7 @@
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::util::Config;
 
-use crate::compile::{run_pass_with, split_report, CompileOptions, SourceUnit};
+use crate::compile::{run_pass_with, split_report, CompileOptions, PassTables, SourceUnit};
 use crate::compile::{CompileOutput, DocumentReport};
 
 /// 跑一次"库层一次 + 各入口各自"的编译会话；每个入口的结果经 `on_entry` 交回。
@@ -36,9 +36,13 @@ pub fn with_project_session<R>(
     let arena = stumpalo::Arena::new();
     let builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     // ① 库层编一次（影子不建：`None` ⇒ 不需要额外的局部 arena，见 `run_pass_with` 的注释）。
-    let (lib_pass, mut builder) = run_pass_with(
-        builder, None, true, lib_units, options, true, None, None, None,
+    // **切片 1b**：prelude 登记表**跨趟复用**（库层趟装好、入口趟接着用）——
+    // 它们不在 `declars` 里，检查点救不了 ✗（2026-09-29 定位）。
+    let mut tables = PassTables::new();
+    let (lib_pass, mut builder, lib_tables) = run_pass_with(
+        builder, None, true, tables, lib_units, options, true, None, None, None,
     );
+    tables = lib_tables;
     // **逐模块报告**（与 `check::run` 同构）：库层那趟的报告按单元切分 ⇒ 接线方
     // 能组装出与今天**逐字节相同**的 `ProjectReport`（缓存内容不变）。
     let lib_n = lib_pass.n_commands;
@@ -56,10 +60,11 @@ pub fn with_project_session<R>(
     for (index, entry_units) in entries.iter().enumerate() {
         // ③ 回到只有库层的状态 ⇒ 入口之间不共享环境。
         builder.restore_declars(checkpoint.clone());
-        let (pass, next) = run_pass_with(
+        let (pass, next, next_tables) = run_pass_with(
             builder,
             None,
             false,
+            tables,
             entry_units,
             options,
             true,
@@ -68,6 +73,7 @@ pub fn with_project_session<R>(
             None,
         );
         builder = next;
+        tables = next_tables;
         let entry_range = lib_n..lib_n + pass.n_commands;
         let entry_reports = split_report(
             pass.report,

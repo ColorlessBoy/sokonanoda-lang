@@ -21,7 +21,9 @@ pub use check::{
     check_document, check_document_with, compile_all_with, compile_fol, compile_fol_with,
     display_notations_from_commands, fold_for_display, prelude_shape, render_expr, PreludeShape,
 };
-pub(crate) use check::{run_incremental, run_pass_with, top_level_def_spans, TrustPlan};
+pub(crate) use check::{
+    run_incremental, run_pass_with, top_level_def_spans, PassTables, TrustPlan,
+};
 pub(crate) use elab::canonical_ctor_name;
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput, CompileStats};

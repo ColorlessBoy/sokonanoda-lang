@@ -69,7 +69,6 @@ fn session_shares_the_dependency_across_entries() {
 /// 而上面那条用**裸 `SourceUnit`** —— 若本用例转红，说明 session 对"入口带 `import`"是坏的
 /// （库层声明在环境里 ✓，但入口那趟缺 import 的解析上下文），与入口个数无关。
 #[test]
-#[ignore = "已知缺陷（2026-09-29）：入口那趟看不到 prelude ⇒ unknown identifier `Nat`；修好后去掉 ignore"]
 fn session_compiles_entries_that_import_the_lib_layer() {
     let dir = std::env::temp_dir().join(format!("soko-session-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
