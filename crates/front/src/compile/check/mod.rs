@@ -751,7 +751,40 @@ fn install_all_preludes<'a>(
     }
 }
 
+/// Thin wrapper over [`run_pass_in`] that owns the arena for the duration of
+/// one pass — the arena still dies when this call returns, so behavior is
+/// byte-for-byte today's. A caller that needs the compilation environment to
+/// **outlive** a single pass (per-module artifacts, G-68) calls `run_pass_in`
+/// directly with an arena it owns.
 fn run_pass(
+    units: &[SourceUnit<'_>],
+    options: &CompileOptions,
+    collect: bool,
+    skip: Option<&KernelFailed>,
+    trust: Option<&TrustPlan>,
+    progress: Option<&mut dyn crate::compile::ProgressSink>,
+) -> PassResult {
+    let arena = stumpalo::Arena::new();
+    run_pass_in(
+        arena.as_arena_ref(),
+        units,
+        options,
+        collect,
+        skip,
+        trust,
+        progress,
+    )
+}
+
+/// The body of a pass, with the arena supplied by the caller.
+///
+/// Identical line-for-line to what `run_pass` used to do; the only change is
+/// that the main arena is no longer created here (the shadow arena below is
+/// still local — it only serves the `SOKO_SHADOW_*` experiment). Hoisting the
+/// arena out is the prerequisite for "compile each module once, reuse the
+/// artifact for later entries" (`docs/design/module-artifacts.md`).
+fn run_pass_in<'a>(
+    arena: &'a stumpalo::ArenaRef<'a>,
     units: &[SourceUnit<'_>],
     options: &CompileOptions,
     collect: bool,
@@ -762,8 +795,7 @@ fn run_pass(
     stage_stats::install();
     stage_stats::PASSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let _pass_timer = StageTimer(&stage_stats::PASS_NANOS, std::time::Instant::now());
-    let arena = stumpalo::Arena::new();
-    let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    let mut builder = EnvBuilder::new(arena, Config::default());
     let mut known: KnownTable = KnownTable::new();
     let mut inductives = InductiveTable::new();
     // 源级 delta 表（课程 Lean 化）：`by` 引擎靠它看穿 def 头（`A ⊆ B`/`¬ A`）。
