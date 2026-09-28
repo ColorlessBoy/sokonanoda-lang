@@ -30,4 +30,23 @@ if ! (cd "$root" && ./scripts/ci-local.sh --fast); then
 MSG
   exit 1
 fi
-echo "[pre-push] ✅ 本地快层全绿 ✓ ⇒ 放行 ✓"
+# **E18 · 时序证据守卫**（2026-09-28）：动了内核源码、或 subject 自称 perf 的提交，
+# commit message 里必须有**实测计时数字**（或显式豁免 `soko:no-timing: <理由>`）✓。
+# 用户 D10：「**干等一个后台任务 30 分钟，还是黑箱**……后续完全没有优化的可能」⇒
+# 这条纪律必须**可判红** ✓（只写在文档里，几轮之后就失效 ✗ —— 已经被验证过一次 ✓）。
+base=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo '')
+if [ -n "$base" ]; then range="$base..HEAD"; else range="HEAD~1..HEAD"; fi
+if ! (cd "$root" && python3 scripts/check-timing-evidence.py ${range%%..*} HEAD); then
+  cat >&2 <<'MSG'
+
+[pre-push] ❌ **时序证据守卫判红** ✗ ⇒ 拒绝推送 ✓（E18）。
+  * 上面**指名**了是哪个提交、为什么受检 ✓；
+  * 三选一补齐（**不许编数字** ✗）：① 真去量并把数字写进 commit message；
+    ② 加一行 `soko:no-timing: <理由>`（≥8 字，说明为什么与时间无关）；
+    ③ 把计时记进 `docs/perf/ledger.jsonl`（`scripts/perf-ledger.sh`）✓；
+  * 逃生门（诊断性推送）：`git push --no-verify` / `SOKO_SKIP_HOOK=1` ✓ —— 但要在
+    `STATUS.md` 写明原因 ✓。
+MSG
+  exit 1
+fi
+echo "[pre-push] ✅ 本地快层全绿 + 时序证据齐 ✓ ⇒ 放行 ✓"

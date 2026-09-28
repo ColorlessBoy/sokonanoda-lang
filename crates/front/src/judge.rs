@@ -937,6 +937,13 @@ pub fn judge_infer_with(
     term: &str,
 ) -> Result<String, Judgement> {
     let t0 = std::time::Instant::now();
+    // ⚠ **这里也必须装打印机**（2026-09-28 修 ✓）：`install_printer` 原来只在
+    // `judge_pairs_uncached`（**`by` 路径**）里调 ⇒ 项风格之后 `by` 调用数归零
+    // ⇒ `report()` 里那句 `calls == 0 → return` **直接早退** ⇒ **`JUDGE_INFER`
+    // 一行都不打** ✗ —— 而 `JUDGE_INFER` 恰恰是项风格下的**唯一大头**
+    //（`docs/PERF.md`：`calls=126105 total_ms=12304`）⇒ 量具等于失效 ✗。
+    // 它本身是 `call_once`（幂等 ✓、非热路径 ✓），两处都调是安全的 ✓。
+    stats::install_printer();
     let r = judge_infer_cached(extra_prefix, prefix_src, options, binders, term);
     stats::INFER_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     stats::INFER_NANOS.fetch_add(

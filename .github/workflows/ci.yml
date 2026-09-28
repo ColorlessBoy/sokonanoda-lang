@@ -347,6 +347,17 @@ jobs:
             echo "checking $f"
             "$bin" "$f" >/dev/null
           done
+      - name: Timing evidence is checked (E18)
+        # **E18**（用户 D10：「**干等一个后台任务 30 分钟，还是黑箱**……后续完全没有
+        # 优化的可能」）⇒ 把那条**文字纪律**变成**可判红的东西** ✓：
+        # 动了**内核源码**、或 subject **自称 perf** 的提交，commit message 里**必须有
+        # 实测计时数字**（或显式豁免 `soko:no-timing: <理由>`）✗⇒判红 ✓。
+        # ⚠ 范围是**实测收窄过的**（见脚本头注释）：第一版把整个 `crates/*/` 都算敏感 ⇒
+        # 拿真实历史跑出 **11 个假阳性**（含 CI 自动的 `perf(e2e): 台账 …`）✗ ——
+        # 守卫一旦那么宽，正确的反应就变成"加豁免"，那它就死了 ✓。
+        # 这里只跑**自检**（反例必须判红 ⇒ 守卫没空转 ✓）；区间判定在 pre-push 里做
+        # （CI 里 `HEAD~1..HEAD` 对 merge 提交不等于"这一推的提交" ✗）。
+        run: python3 scripts/check-timing-evidence.py --selftest
       - name: Course layer is guarded (canvases, solutions, course.json)
         run: cargo test -p sokonanoda-cli --test course --locked
   gates-course:

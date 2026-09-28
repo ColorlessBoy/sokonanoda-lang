@@ -1927,3 +1927,61 @@
   内核 1 ⇒ 判红）⇒ 商那一半搬进 ST2 探针，ST1 只留「没有累积性」（L-06，改名
   `ST1-no-cumulativity.sokonanoda`）✓。
 - **没做** ✗：**ST10（基数）未开**（用户明确「做完停下，不要顺手开」）· **G-56 本轮不修** ✓。
+
+## 第 487 轮（2026-09-28）：G-56 顶层探针 —— **大消去不可用**（ST15 第一批条目：G-56 / G-58 / G-59）
+
+- **用户指派**：「先用最低成本把 G-56 的『顶层能不能通』探清楚，再决定投入多少」+ **时间盒 2–3 轮**、
+  「把不足逼出来才算是做完，把它修好不是本版目标」。**零改动**（`git diff crates/kernel/` 空 ✓）。
+- **① 大消去探针 ⇒ 被拒** ✗：`def andToType (A B : Prop) (h : A ∧ B) : Type :=
+  And.rec A B (fun (_ : A ∧ B) => Type) A B h` ⇒ `kernel-rejected` /「期望
+  `Pi (x : ((And.[] $2) $1)), Sort(0)`，实际是 `Pi (_ : ((And.[] $2) $1)), Sort(2)`」。
+  **对照组**（消去到 `Prop`）**checked** ✓ ⇒ 不是写错 recursor。机制：`mk_elim_level` 问
+  `large_elim_test`，false ⇒ `elim_level = 0` ⇒ `mk_motive_dep` 把 motive 钉在 `Sort(0)`。
+  ⇒ **即使 `Acc` 声明成功，ST7 的 rank 也返回不了序数**（`Acc` 在 Prop、`Ordinal` 在 Type）✗。
+- **② 拦路点确认唯一**（只读）✓：`crates/kernel/src/inductive.rs:44`（`check_ctor` 循环）调
+  `check_uniform_inductive_occurrences`；`:150` 是 `_at` 入口包装、其余全自递归；**前端零镜像**。
+  它要求递归出现**恰好**套用 `num_params` 个实参（`args_rev.len() <= num_params` 才进断言）⇒
+  `Acc r b` 有 2 个实参 > `num_params=1` ⇒ 直接 assert 失败。⚠ 同文件 `which_valid_ind_app_v`
+  （`:1049`）用 `is_bvar_at` 判参数位置、**允许索引位任意** ⇒ 最小放宽应**对齐它**。
+  改动**局部**：只跑在声明级（`check_ctor` 里、`mk_elim_level` 之前），不参与
+  `check_generated_recursors` / `check_positivity1` / 归约。
+- **③ 顺带发现（独立）** ✗：住在 `Type` 的归纳块**默认 motive 也是 `Prop`**；显式 `.{1}` 只修好
+  「`#check` 的显示」，**消去仍被拒**（`Sort(1)` vs `Sort(2)`）⇒ **本版没有绕法**。
+  内核探针实测（临时 `eprintln`，**已还原**）：该块 `large_elim_test` 返回 **true** ⇒
+  疑似**前端派生递归子的宇宙参数默认值**与内核期望不一致（根因未定位，时间盒到了）。
+- **落台账（ST15 第一批条目）** ✓：**G-56**（`Acc` 声明被拒，收敛为一条 + 拦路点定位）·
+  **G-58**（大消去不可用）· **G-59**（`Type` 值块默认 motive + 无绕法）；两个 `.sokonanoda`
+  复现件 + `scripts/gap.py check` 全绿 ✓；判据
+  `crates/front/src/compile/tests.rs::g58_g59_large_elimination_is_unavailable`（三条断言，含
+  「显式 `.{1}` 仍被拒」的防漂移）。
+- **结论与下一步** ✓：G-56 那四个环节（ST6/ST7/ST9/ST11）**本版不做**、留给 ST15；
+  按用户决策规则**直接开 ST3/ST4/ST5**（按 ST1 结论只差 binder 记法、不需要任何新机制）。
+
+## 第 488 轮（2026-09-28）：ST3 / ST4 / ST5 / ST8 / ST10 —— **五章收口** + 四条新缺口（G-60…G-63）
+
+- **用户拍板顺序**：「① 先推进不依赖 Acc 的：ST8 → ST10 → ST12 → ST13 → ST14 → ST15；
+  ② 撞墙的一律不硬做，登记进台账 + 进 ST15 清单（**登记本身就是交付物**）；
+  ③ 卡住的四项（ST6/ST7/ST9/ST11）放到最后，别自己开工」。本轮按此推进 ✓。
+- **ST3 分离** ✓：`lib/Set` 新增 `Set.sep` + `mem_sep_iff`/`sep_subset`/`sep_self`。
+  ⚠ **记法那一半做不到** ⇒ 新登记 **G-60**（`{x | P x}` ⇒ `set-literal-shape`；
+  `{x : α | x ∈ A}` ⇒ `unexpected-token`「found Pipe」；根因：六种记法形状里**没有
+  「操作数在括号里」**，且 `{` 被判成 binder 组）⇒ 课程点名写 `Set.sep` ✓。
+- **ST4 集族并交** ✓：**新模块** `lib/SUnion`（`Set.sUnion`/`Set.sInter` + 四条展开引理 +
+  **记法 `⋃₀`/`⋂₀`**）。**有意偏离 Mathlib**：按**依赖**拆模块（无限并要 `∃`，
+  而 `lib/Set` 不 import `Exists`）⇒ 理由写进文件头 ✓。
+- **ST5 不交并 / 函数空间** ✓：**新模块** `lib/Sum`（+ 记法 `⊕`）；`lib/Fun` 增 `Set.pi`
+  + `Set.mem_pi`（**不另立** `Set.funSpace` —— 非依赖版就是 `Set.pi s (fun _ => t)` ✓）。
+- **ST8 序数（谓词式）** ✓：**新模块** `lib/Ordinal`（7 定义 + 3 条 L2 引理），**零新类型**。
+  ⚠ 与 Isabelle 的**两处有意不同**写进文件头：① Isabelle 的 `Ord` **不含良基性**（靠全局
+  公理 `foundation`），我们**显式写进 `IsOrdinal`**（本语言没有那条公理、也没有 `Acc`）；
+  ② `Transset` 用 `E` 的传递性而非子集序 ✓。
+- **ST10 基数（类型的商）** ✓：**新模块** `lib/Cardinal`，**7 条全 checked**（含 `Cardinal.sound`
+  = `Quot.sound` 直接实例、`Cardinal.lift_mk` = `Eq.refl` 级 ⇒ **ST2 的归约真的发生** ✓）
+  —— **ST2 的 `Quot` 第一次实战检验通过** ✓。
+  ⚠ **三条新缺口**（ST15 条目）：**G-61** 没有 η ⇒ `Quotient`/`Setoid` 包装做不出来；
+  **G-62** def/展开不同一 ⇒ `Type.Equiv` 三条等价律写不出来（核心不受影响）；
+  **G-63** `Quot.lift` 宇宙实参对不上内核签名 —— ⚠ **实测推翻「Quot 消去只进 Prop」的初判**
+  ✗✓（`Quot.lift.{1, 2}` **能**进 `Type` ✓）⇒ 是**实参难对准**，不是缺能力。
+- **门禁** ✓：课程 **40 目标 · 360 checked · 99 open · 0 判负**；`notation-lint` OK；
+  `scripts/gap.py check` 全部与台账一致（G-56…G-63 八条 open 全带复现件）；
+  `scripts/soko gate` **exit 0** ✓。

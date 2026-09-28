@@ -28,64 +28,6 @@
   （那一档**没有**旧写法歧义 ✓）；放宽要先能判定"旧写法是否良型"（Lean 用元变量 ✗）。
 - ⚠ **本轮的工作方式教训（耗时账 / CI 被顶掉 / clippy 被本地门禁抓到）** ⇒ 见下面「未决项」✓
 
-## 第 487 轮（2026-09-28）：G-56 顶层探针 —— **大消去不可用**（ST15 第一批条目：G-56 / G-58 / G-59）
-
-- **用户指派**：「先用最低成本把 G-56 的『顶层能不能通』探清楚，再决定投入多少」+ **时间盒 2–3 轮**、
-  「把不足逼出来才算是做完，把它修好不是本版目标」。**零改动**（`git diff crates/kernel/` 空 ✓）。
-- **① 大消去探针 ⇒ 被拒** ✗：`def andToType (A B : Prop) (h : A ∧ B) : Type :=
-  And.rec A B (fun (_ : A ∧ B) => Type) A B h` ⇒ `kernel-rejected` /「期望
-  `Pi (x : ((And.[] $2) $1)), Sort(0)`，实际是 `Pi (_ : ((And.[] $2) $1)), Sort(2)`」。
-  **对照组**（消去到 `Prop`）**checked** ✓ ⇒ 不是写错 recursor。机制：`mk_elim_level` 问
-  `large_elim_test`，false ⇒ `elim_level = 0` ⇒ `mk_motive_dep` 把 motive 钉在 `Sort(0)`。
-  ⇒ **即使 `Acc` 声明成功，ST7 的 rank 也返回不了序数**（`Acc` 在 Prop、`Ordinal` 在 Type）✗。
-- **② 拦路点确认唯一**（只读）✓：`crates/kernel/src/inductive.rs:44`（`check_ctor` 循环）调
-  `check_uniform_inductive_occurrences`；`:150` 是 `_at` 入口包装、其余全自递归；**前端零镜像**。
-  它要求递归出现**恰好**套用 `num_params` 个实参（`args_rev.len() <= num_params` 才进断言）⇒
-  `Acc r b` 有 2 个实参 > `num_params=1` ⇒ 直接 assert 失败。⚠ 同文件 `which_valid_ind_app_v`
-  （`:1049`）用 `is_bvar_at` 判参数位置、**允许索引位任意** ⇒ 最小放宽应**对齐它**。
-  改动**局部**：只跑在声明级（`check_ctor` 里、`mk_elim_level` 之前），不参与
-  `check_generated_recursors` / `check_positivity1` / 归约。
-- **③ 顺带发现（独立）** ✗：住在 `Type` 的归纳块**默认 motive 也是 `Prop`**；显式 `.{1}` 只修好
-  「`#check` 的显示」，**消去仍被拒**（`Sort(1)` vs `Sort(2)`）⇒ **本版没有绕法**。
-  内核探针实测（临时 `eprintln`，**已还原**）：该块 `large_elim_test` 返回 **true** ⇒
-  疑似**前端派生递归子的宇宙参数默认值**与内核期望不一致（根因未定位，时间盒到了）。
-- **落台账（ST15 第一批条目）** ✓：**G-56**（`Acc` 声明被拒，收敛为一条 + 拦路点定位）·
-  **G-58**（大消去不可用）· **G-59**（`Type` 值块默认 motive + 无绕法）；两个 `.sokonanoda`
-  复现件 + `scripts/gap.py check` 全绿 ✓；判据
-  `crates/front/src/compile/tests.rs::g58_g59_large_elimination_is_unavailable`（三条断言，含
-  「显式 `.{1}` 仍被拒」的防漂移）。
-- **结论与下一步** ✓：G-56 那四个环节（ST6/ST7/ST9/ST11）**本版不做**、留给 ST15；
-  按用户决策规则**直接开 ST3/ST4/ST5**（按 ST1 结论只差 binder 记法、不需要任何新机制）。
-
-## 第 488 轮（2026-09-28）：ST3 / ST4 / ST5 / ST8 / ST10 —— **五章收口** + 四条新缺口（G-60…G-63）
-
-- **用户拍板顺序**：「① 先推进不依赖 Acc 的：ST8 → ST10 → ST12 → ST13 → ST14 → ST15；
-  ② 撞墙的一律不硬做，登记进台账 + 进 ST15 清单（**登记本身就是交付物**）；
-  ③ 卡住的四项（ST6/ST7/ST9/ST11）放到最后，别自己开工」。本轮按此推进 ✓。
-- **ST3 分离** ✓：`lib/Set` 新增 `Set.sep` + `mem_sep_iff`/`sep_subset`/`sep_self`。
-  ⚠ **记法那一半做不到** ⇒ 新登记 **G-60**（`{x | P x}` ⇒ `set-literal-shape`；
-  `{x : α | x ∈ A}` ⇒ `unexpected-token`「found Pipe」；根因：六种记法形状里**没有
-  「操作数在括号里」**，且 `{` 被判成 binder 组）⇒ 课程点名写 `Set.sep` ✓。
-- **ST4 集族并交** ✓：**新模块** `lib/SUnion`（`Set.sUnion`/`Set.sInter` + 四条展开引理 +
-  **记法 `⋃₀`/`⋂₀`**）。**有意偏离 Mathlib**：按**依赖**拆模块（无限并要 `∃`，
-  而 `lib/Set` 不 import `Exists`）⇒ 理由写进文件头 ✓。
-- **ST5 不交并 / 函数空间** ✓：**新模块** `lib/Sum`（+ 记法 `⊕`）；`lib/Fun` 增 `Set.pi`
-  + `Set.mem_pi`（**不另立** `Set.funSpace` —— 非依赖版就是 `Set.pi s (fun _ => t)` ✓）。
-- **ST8 序数（谓词式）** ✓：**新模块** `lib/Ordinal`（7 定义 + 3 条 L2 引理），**零新类型**。
-  ⚠ 与 Isabelle 的**两处有意不同**写进文件头：① Isabelle 的 `Ord` **不含良基性**（靠全局
-  公理 `foundation`），我们**显式写进 `IsOrdinal`**（本语言没有那条公理、也没有 `Acc`）；
-  ② `Transset` 用 `E` 的传递性而非子集序 ✓。
-- **ST10 基数（类型的商）** ✓：**新模块** `lib/Cardinal`，**7 条全 checked**（含 `Cardinal.sound`
-  = `Quot.sound` 直接实例、`Cardinal.lift_mk` = `Eq.refl` 级 ⇒ **ST2 的归约真的发生** ✓）
-  —— **ST2 的 `Quot` 第一次实战检验通过** ✓。
-  ⚠ **三条新缺口**（ST15 条目）：**G-61** 没有 η ⇒ `Quotient`/`Setoid` 包装做不出来；
-  **G-62** def/展开不同一 ⇒ `Type.Equiv` 三条等价律写不出来（核心不受影响）；
-  **G-63** `Quot.lift` 宇宙实参对不上内核签名 —— ⚠ **实测推翻「Quot 消去只进 Prop」的初判**
-  ✗✓（`Quot.lift.{1, 2}` **能**进 `Type` ✓）⇒ 是**实参难对准**，不是缺能力。
-- **门禁** ✓：课程 **40 目标 · 360 checked · 99 open · 0 判负**；`notation-lint` OK；
-  `scripts/gap.py check` 全部与台账一致（G-56…G-63 八条 open 全带复现件）；
-  `scripts/soko gate` **exit 0** ✓。
-
 ## 第 489 轮（2026-09-28）：**v0.77.0 分批表收口** —— ST12/ST13/ST14/ST15 四章 + **内核不足清单**
 
 - **用户拍板顺序**「① ST8 → ST10 → **ST12 → ST13 → ST14 → ST15**；② 撞墙的不硬做，
@@ -183,6 +125,36 @@
   —— 卡在 **G-56**（`Acc`：参数位/指标位两段语义未做）+ **G-58/G-59**（大消去）；
   下标写返回位那条另卡 **G-64**（递归子的宇宙代入）✓。
 - **内核零改动** ✓（`git diff crates/kernel/` 为空）；交接书 `docs/HANDOFF-0.77.md` ✓。
+
+## 第 492 轮（2026-09-28）：**v0.78.0 · E17–E18**（perf 台账 + 内核性能结论 + 时序证据守卫）
+
+- **E17 ✅**：台账 **0.68.0 → 0.77.1**（`scripts/perf-ledger.sh`，20 条 case、同 schema）✓。
+  **结论：设计上不可达**（三选一的第一项）⇒ 新文件 `docs/perf/E17-kernel-conclusion.md`（79 行）：
+  - **先证明没退化**：同机/同 profile/同负载、跨 **9 个版本** —— `closure_compile_scaling`
+    **23.37/40.61/76.58 → 23.17/40.90/75.60ms**、`teaching_scale_keystroke`
+    **17.31/22.35/32.90 → 17.28/22.84/32.65ms** ⇒ **全部 ±4% 内** ✓；
+  - **唯一大涨的是真实课程闭包**（`lsp-course/did_open` **9085 → 16889ms**）—— 课程同时
+    **331 → 376 checked** ⇒ **归一后每声明 44.9 → 44.9ms** ✓ **是课程变大不是变慢** ✓；
+  - **为什么不可达**：`docs/PERF.md` 的分阶段 profile 实测 **`by` 判定占 68%，而采样里没有独立的
+    `sokonanoda_kernel` 帧**（被内联进前端）⇒ **动内核的上界只有 27%**；项风格后大头换人成
+    **`JUDGE_INFER calls=126105 total_ms=12304`**（记法消解：缓存键含**整段前缀** ⇒ 未命中一次 =
+    整段前缀从零重跑）⇒ **内核只是那趟 pass 里的一环**；两条已立项的刀
+    （`by-prefix-reuse.md` 的 K1-a/K1-b）**都不是内核刀**（K1-a 已实测零收益；K1-b 是
+    **内核加接口 + 前端省跑**）⇒ **要提速就做 K1-b，不是"优化内核"** ✓。**回滚不成立**（没退化）✓。
+  - ⚠ **顺带修掉一个让结论量不出来的缺陷**：`SOKO_JUDGE_STATS` 的打印机**只在 `by` 路径装**
+    ⇒ 解答全改项风格后 `calls == 0` **早退** ⇒ **`JUDGE_INFER` 一行都不打** ✗（而它正是项风格下
+    **唯一的大头**）⇒ 在 `judge_infer_with` 也调一次 `install_printer()`（`call_once`、非热路径）✓；
+    **修后实测**：`JUDGE_STATS calls=13 total_ms=648` · `JUDGE_INFER calls=668 total_ms=500 avg_us=749` ✓。
+- **E18 ✅**：**新守卫** `scripts/check-timing-evidence.py` —— 动了**内核源码**、或 subject **自称 perf**
+  的提交，commit message 里**必须有实测计时数字**（或显式豁免 `soko:no-timing: <理由>`）⇒ 否则
+  **exit 1** ✓。接线：`scripts/githooks/pre-push` + CI 的 `gates-fast`（`--selftest`）✓。
+  ⚠ **范围实测收窄过**（这决定守卫是活是死）：第一版把整个 `crates/*/` 算敏感 ⇒ **11 个假阳性** ✗；
+  第二版只认"非测试的 `crates/*/src/**.rs`" ⇒ 5 个，但全是**与性能无关的功能提交** ✗（要求它们写计时
+  只会把人**逼去编数字**）；**最终档**只认两类（内核源码 / subject 自称 perf）⇒ **最近 50 个提交
+  只受检 2 个、0 假阳性** ✓。**反向验证**：自检 **16 个反例**（含 4 个"必须判红"）+ **真实探针提交**
+  （无计时 ⇒ **exit 1** ✓；带 `实测 5.2s → 0.4s` ⇒ **exit 0** ✓）。
+- **红线** ✓：**内核零改动**（`git diff crates/kernel/` 为空）· `@@@` 插桩 **0 处** ✓。
+
 
 ## 未决项
 
