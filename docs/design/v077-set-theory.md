@@ -108,6 +108,12 @@
 - **ST7** **秩 rank**。基准：Isabelle §2.6。**撞点**：良基递归。
 - **ST8** **序数**（传递集 · 0/后继/sups · 归纳/线性 · limit · LEAST）。
   基准：Isabelle §1.4；Mathlib `SetTheory/Ordinal/*`。**撞点**：累积性（L-06）。
+  ✅ **已完成（2026-09-28）**：**序数写成谓词**（零新类型）—— 新模块 `lib/Ordinal.sokonanoda`
+  （7 定义 + 3 条 L2 引理）；课程门禁 **39 目标 · 353 checked · 99 open · 0 判负** ✓。
+  ⚠ **与 Isabelle 的两处有意不同**已写进文件头（① 良基性显式写进 `IsOrdinal`，因为本语言
+  没有 `foundation` 公理、也没有 `Acc`；② `Transset` 用 `E` 的传递性而非子集序）。
+  **L-06（累积性）本档未撞上** ✓（序数是谓词，不需要把 Prop 抬成 Type）；
+  **但 `rank`/超限递归仍过不去**（G-56 + G-58）⇒ ST7/ST9 留给 ST15。
 - **ST9** **超限递归**（含按序数三情形的递归）。基准：Isabelle §1.5 + §2.13。
   **撞点**：结构递归（`Nat.rec` 之外）。
 - **ST10** **基数**（`Cardinal = Quotient of Equiv`；`lift`）。

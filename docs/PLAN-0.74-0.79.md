@@ -248,7 +248,7 @@
 | ST5 | 有序对 / 广义笛卡尔积 / 不交并 / 广义函数空间与 lambda | A15 | 中 | 🚀 0.77 | ✅ `<ST5>`（**三块**：① 有序对/笛卡尔积 **已在库**（`lib/Prod`：`Prod`/`prod_mk`/`Prod.fst`/`Prod.snd`/`Set.prod` + 记法 `×ˢ`，E02 收进）✓；② **不交并** 新模块 `lib/Sum.sokonanoda`（`Sum`/`Sum.inl`/`Sum.inr`/`Sum.elim` + 记法 `⊕` + 两条 iota 展开引理）；③ **广义函数空间** 进 `lib/Fun`（`Set.pi` + `Set.mem_pi`，Mathlib 真名；**不另立** `Set.funSpace` —— 非依赖版就是 `Set.pi s (fun _ => t)`，多一个名字就多一条分叉 ✗）✓；课程门禁 **38 目标 · 343 checked · 99 open · 0 判负** ✓。**lambda 本身是语言原语**（`fun x => e`）⇒ 零外挂 ✓） |
 | **ST6** | **传递闭包** | A15 | 中 | 🚀 0.77 | |
 | **ST7** | **秩 rank**（把良基性/∈-归纳接到基数/序数的桥） | A15 | 中 | 🚀 0.77 | |
-| **ST8** | **序数**（传递集 · 0/后继/sups · 归纳/线性 · limit · LEAST） | A15 | 中 | 🚀 0.77 | |
+| **ST8** | **序数**（传递集 · 0/后继/sups · 归纳/线性 · limit · LEAST） | A15 | 中 | 🚀 0.77 | ✅ `<ST8>`（**序数写成谓词**，零新类型 ✓ —— 与 ST1 结论 ② 一致：全体序数 `ON` 不是集合（Burali-Forti）⇒ 本就不该是类型；**新模块** `courses/set-theory/lib/Ordinal.sokonanoda`：7 定义 `IsTransitive`/`ETotal`/`ETrans`/`HasLeast`/`EWellFounded`/`IsOrdinal`/`IsSuccOf` + 3 条 L2 引理 ✓；课程门禁 **39 目标 · 353 checked · 99 open · 0 判负**。⚠ **与 Isabelle 的两处有意不同**（写进文件头）：① Isabelle 的 `Ord` **不含良基性**（靠全局公理 `foundation`），我们**显式写进 `IsOrdinal`**（本语言没有那条公理，也没有 `Acc`，见 G-56）；② `Transset` 用子集序、我们用 `E` 的传递性（`E` 就是 `∈` 时等价）✓。⚠ **本档不碰 `rank`/超限递归**（要 G-56 良基递归 **与** G-58 大消去，两条本版都不修）⇒ ST7/ST9 留给 ST15 ✓） |
 | **ST9** | **超限递归**（含按序数三情形的递归） | A15 | 中 | 🚀 0.77 | |
 | **ST10** | **基数**（`Cardinal = Quotient of Equiv`；`lift`） | A15 | 中 | 🚀 0.77 | |
 | **ST11** | **序型 ordertype · Aleph 序列 · ω₁ · Cantor 正规形** | A15 | 中 | 🚀 0.77 | |

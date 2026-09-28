@@ -1,0 +1,81 @@
+-- Ordinal.sokonanoda —— 卷 I 的**序数（谓词式）**（ST8，v0.77.0）
+--
+-- **定位**：这一档**不引入任何新类型** —— 序数写成**谓词**（`α → Prop`），
+-- 与 ST1 决策记录结论 ② 一致：「序数写成谓词；全体序数 `ON` **不是集合**
+-- （Burali-Forti）⇒ 序数本来就不该是一个类型」✓。
+--
+-- **基准**（逐条实查，出处见 `docs/design/v077-st1-boundary.md` §2）：
+--   Isabelle AFP `ZFC_in_HOL`（`ZFC_in_HOL.thy` §1.4）——
+--       definition Transset where "Transset x ≡ ∀y ∈ elts x. y ≤ x"
+--       definition Ord      where "Ord x      ≡ Transset x ∧ (∀y ∈ elts x. Transset y)"
+--       abbreviation ON     where "ON ≡ Collect Ord"
+--   而 `lemma big_ON [simp]: "¬ small ON"` ⇒ **全体序数不是集合** ✓。
+--   ⚠ **我们与 Isabelle 的两处不同**（有意，理由在下面）：
+--   ① Isabelle 的 `Ord` **不含良基性**（良基性来自全局公理
+--      `foundation: "wf {(x,y). x ∈ elts y}"`）；本语言**没有**那条公理
+--      （也没有 `Acc`，见 G-56）⇒ 我们把**良基性显式写进 `IsOrdinal`** ✓。
+--   ② Isabelle 的 `Transset x` 用 `y ≤ x`（子集序）；我们的 `IsTransitive`
+--      用 `E z y → E z x`（∈ 的传递性）—— 在 `E` 就是 `∈` 时两者等价 ✓。
+--
+-- **分层判据**（docs/design/course-stdlib.md）：本文件是 **L2（词汇 + 定义展开）**：
+--   · 7 个定义：`IsTransitive` / `ETotal` / `ETrans` / `HasLeast` / `EWellFounded` /
+--     `IsOrdinal` / `IsSuccOf`；
+--   · 3 条 L2 引理：`isOrdinal_def` / `isSuccOf_def` / `ordinal_isTransitive`。
+-- 有数学内容的（序数的三歧性、`∈` 的良序性、后继唯一、极限序数的性质）属 **L3**，
+-- 留作单元练习 ✗。
+--
+-- ⚠ **本档不碰 `rank`/超限递归**：那要良基递归（G-56）**与**大消去（G-58），
+-- 两条都是本版不修的 kernel 不足 ⇒ ST7/ST9 留给 ST15 清单 ✓。
+import lib.Logic
+import lib.Exists
+
+-- ── 词汇：把「论域 + 成员关系」内化成谓词 ────────────────────────────────────
+-- 读法：整个论域取成**一个类型** `α`，成员关系取成二元谓词 `E : α → α → Prop`
+-- （`E y x` 读作 `y ∈ x`）。这正是 `Set α := α → Prop` 的「宇宙内化」读法 ✓。
+
+-- 传递集：`x` 的元素还是 `x` 的元素
+def IsTransitive (α : Type) (E : α → α → Prop) (x : α) : Prop :=
+  ∀ (y : α), E y x → ∀ (z : α), E z y → E z x
+
+-- 三歧（全序）：任意两个元素可比或相等
+def ETotal (α : Type) (E : α → α → Prop) : Prop :=
+  ∀ (x y : α), E x y ∨ E y x ∨ x = y
+
+-- 传递（关系本身的传递性）
+def ETrans (α : Type) (E : α → α → Prop) : Prop :=
+  ∀ (x y z : α), E x y → E y z → E x z
+
+-- 非空子集有 `E`-最小元
+def HasLeast (α : Type) (E : α → α → Prop) (P : α → Prop) : Prop :=
+  ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (E y m)
+
+-- 良基：每个非空子集都有 `E`-最小元（Isabelle 的 `wf` 在集合论里的等价形式）
+def EWellFounded (α : Type) (E : α → α → Prop) : Prop :=
+  ∀ (P : α → Prop), (∃ (x : α), P x) → HasLeast α E P
+
+-- ── **序数 = 谓词** ─────────────────────────────────────────────────────────
+-- 传递 + `E` 传递 + 良基。**注意良基性在这里是显式的**（见文件头 ⚠ ①）。
+def IsOrdinal (α : Type) (E : α → α → Prop) (x : α) : Prop :=
+  IsTransitive α E x ∧ ETrans α E ∧ EWellFounded α E
+
+-- `x` 是序数 `y` 的**后继**：`x` 是序数，且 `x` 的元素恰好是 `y` 的元素加上 `y` 自己
+-- （Isabelle `ZFC_in_HOL` §1.3 的 `succ`：`succ i = i ∪ {i}` ✓）
+def IsSuccOf (α : Type) (E : α → α → Prop) (x y : α) : Prop :=
+  IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y)
+
+-- ── 定义展开引理（L2：Mathlib/Isabelle 里都是 `iff` 或一行，没有数学内容）──────
+theorem isOrdinal_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsOrdinal α E x ↔ IsTransitive α E x ∧ ETrans α E ∧ EWellFounded α E :=
+  Iff.intro (fun (h : IsOrdinal α E x) => h)
+    (fun (h : IsTransitive α E x ∧ ETrans α E ∧ EWellFounded α E) => h)
+
+theorem isSuccOf_def (α : Type) (E : α → α → Prop) (x y : α) :
+    IsSuccOf α E x y ↔
+      IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y) :=
+  Iff.intro (fun (h : IsSuccOf α E x y) => h)
+    (fun (h : IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y)) => h)
+
+-- 序数 ⇒ 传递集（Isabelle `Ord x ⟹ Transset x` 的对应物；这里直接取合取左支）
+theorem ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  And.left (Iff.mp (isOrdinal_def α E x) h)
