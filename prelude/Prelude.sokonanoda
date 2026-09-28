@@ -66,3 +66,9 @@ def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq
 -- sokonanoda:builtin-sugar "{a}" => Set.singleton
 -- sokonanoda:builtin-sugar "{a, b}" => Set.pair
 -- sokonanoda:builtin-sugar "⟨a, b⟩" => 期望类型决定
+
+axiom Quot {u} : {A : Sort u} -> (A -> A -> Prop) -> Sort u
+axiom Quot.mk {u} : {A : Sort u} -> (r : A -> A -> Prop) -> A -> Quot.{u} A r
+axiom Quot.lift {u, v} : {A : Sort u} -> {r : A -> A -> Prop} -> {B : Sort v} -> (f : A -> B) -> (forall (a b : A), r a b -> Eq.{v} B (f a) (f b)) -> Quot.{u} A r -> B
+axiom Quot.ind {u} : {A : Sort u} -> {r : A -> A -> Prop} -> {B : Quot.{u} A r -> Prop} -> (forall (a : A), B (Quot.mk.{u} A r a)) -> (forall (q : Quot.{u} A r), B q)
+axiom Quot.sound {u} : {A : Sort u} -> {r : A -> A -> Prop} -> (a b : A) -> r a b -> Eq.{u} (Quot.{u} A r) (Quot.mk.{u} A r a) (Quot.mk.{u} A r b)

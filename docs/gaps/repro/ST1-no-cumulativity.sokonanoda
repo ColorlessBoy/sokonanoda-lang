@@ -1,0 +1,22 @@
+-- ST1 探针 ③：**没有累积性** —— 命题当类型用被拒（L-06 的第一条边界）。
+--
+-- ⚠ **本探针在 ST2（v0.77.0）落地后改过**（守卫咬住的那一次 ✓）：它原来还包含
+-- `def mkQuot (α : Type) (r : α → α → Prop) : Type := Quot α r`，那条**现在能过**
+-- （ST2 把 `Quot` 装进了 prelude）⇒ `crates/cli/tests/st1_boundary.rs` 判红
+-- 「`decl.checked` 数与记录不符（记录 0 / 内核 1）」✓ —— 这正是那条守卫的设计目的
+-- （决策一旦过期就判红，逼人更新记录）。**商的那一半搬到 ST2 探针**
+-- （`docs/gaps/repro/ST2-quot-reduces.sokonanoda`）；本文件只留**仍然成立**的那一半。
+--
+-- 期望：**判红**，诊断逐字为：
+--     kernel-rejected /
+--     「类型不匹配：期望 `Pi (P : Sort(0)), Sort(1)`，实际是 `Pi (P : Sort(0)), Sort(0)`」
+--
+-- 为什么它还是 ST1 的分界证据：谓词式集合论与商类型都**不需要**累积性，但
+-- 「把命题抬成类型」是很多构造（子类型、`PSet` 式的模型层、`Type` 层的商）
+-- 的隐含前提 ⇒ 这条边界**独立于 ST2**，仍在台账 L-06 上。
+--
+-- 本文件自足（无 `import`）⇒ `--no-project` 单文件判卷即可。
+-- 判据（`crates/cli/tests/st1_boundary.rs` 逐条断言）：0 checked / 1 失败，诊断逐字一致。
+
+-- 命题当类型用（L-06 第一条边界）
+def propAsType (P : Prop) : Type := P

@@ -1944,10 +1944,11 @@ fn prelude_names_match_installs() {
     // 设计 §3.3 的守卫：数字变了必须是有意为之（review 时一眼看见）。
     // 12（Nat/Bool/Eq）+ 30（L1：28 条声明 + 派生的 And.rec/Or.rec）
     // + 5（B8：Eq.rec/Eq.ndrec/Eq.mp/Eq.mpr/cast，L-03）
-    // + 2（B9：`Ne`/`Ne.intro`，L2.3 的 `≠` 目标）= 49。
+    // + 2（B9：`Ne`/`Ne.intro`，L2.3 的 `≠` 目标）
+    // + 5（ST2：`Quot`/`Quot.mk`/`Quot.lift`/`Quot.ind`/`Quot.sound`，v0.77.0）= 54。
     assert_eq!(
         super::PRELUDE_NAMES.len(),
-        49,
+        54,
         "PRELUDE_NAMES drifted: {:?}",
         super::PRELUDE_NAMES
     );
@@ -1960,6 +1961,107 @@ fn prelude_names_match_installs() {
             out.errors
         );
     }
+}
+
+// ─────────────────────────── ST2（v0.77.0）：商类型 `Quot` ───────────────────────────
+//
+// 判据的形状（与 ST1 的「记录 ↔ 内核两端对账」同一条纪律：**断言用户可见的结果**）：
+//   ① 五条名字**真的装上了**（`#check` 不报未知标识符）；
+//   ② **`Quot.lift`/`Quot.ind` 在 `Quot.mk` 上算得出来** —— 这是 ST2 的**核心判据**：
+//      它们只有在被登记成 `Declar::Quot`（⇒ `RigidHead::QuotConst` ⇒ `fire_quot`
+//      的 iota 归约）时才算得出来；装成 `Declar::Axiom` 名字照样在、**归约不发生**
+//      ⇒ `Eq.refl` 证不出 `Quot.lift … (Quot.mk …) = f a`（实测过，见 install_quot 的注释）；
+//   ③ `Quot.sound` 是**公理**且能用（`r a b ⇒ Quot.mk a = Quot.mk b`）；
+//   ④ **让位口径**：文件自己声明 `Quot` ⇒ 整族不装（不装一半）。
+
+/// ST2 ①：五条名字真的在环境里。
+#[test]
+fn st2_quot_names_are_installed() {
+    for name in ["Quot", "Quot.mk", "Quot.lift", "Quot.ind", "Quot.sound"] {
+        let out = compile_fol(&parse(&format!("#check {name}\n")).unwrap());
+        assert!(
+            out.errors.is_empty(),
+            "ST2：`{name}` 没装上：{:?}",
+            out.errors
+        );
+    }
+}
+
+/// ST2 ②（**核心判据**）：`Quot.lift` 在 `Quot.mk` 上**算得出来** —— iota 归约活着。
+///
+/// 证明项写 `Eq.refl`：只有 `Quot.lift … (Quot.mk …)` 与 `f a` **定义相等**才判过。
+/// 把 `Quot` 装成普通 `Axiom` ⇒ 这条判红（名字在、归约死）—— 这就是它咬得住的地方 ✓。
+#[test]
+fn st2_quot_lift_computes_on_quot_mk() {
+    let src = "\
+theorem lift_computes (α : Type) (r : α → α → Prop) (β : Type)
+    (f : α → β) (h : ∀ (a b : α), r a b → Eq.{1} β (f a) (f b)) (a : α) :
+    Eq.{1} β (Quot.lift.{1, 1} α r β f h (Quot.mk.{1} α r a)) (f a) :=
+  Eq.refl.{1} β (f a)
+";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(
+        out.errors,
+        vec![],
+        "ST2：`Quot.lift` 必须能算：{:?}",
+        out.errors
+    );
+}
+
+/// ST2 ②（第二半）：`Quot.ind` 在 `Quot.mk` 上算得出来。
+#[test]
+fn st2_quot_ind_computes_on_quot_mk() {
+    let src = "\
+theorem ind_computes (α : Type) (r : α → α → Prop)
+    (B : Quot.{1} α r → Prop) (h : ∀ (a : α), B (Quot.mk.{1} α r a)) (a : α) :
+    B (Quot.mk.{1} α r a) :=
+  Quot.ind.{1} α r B h (Quot.mk.{1} α r a)
+";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(
+        out.errors,
+        vec![],
+        "ST2：`Quot.ind` 必须能算：{:?}",
+        out.errors
+    );
+}
+
+/// ST2 ③：`Quot.sound` 是**唯一**的公理 —— 用得上（不是装饰）。
+#[test]
+fn st2_quot_sound_is_the_axiom() {
+    let src = "\
+theorem sound_works (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
+    Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=
+  Quot.sound.{1} α r a b h
+";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(
+        out.errors,
+        vec![],
+        "ST2：`Quot.sound` 必须能用：{:?}",
+        out.errors
+    );
+}
+
+/// ST2 ④：**让位口径** —— 文件自己声明 `Quot` ⇒ 整族不装（不许装一半）。
+///
+/// 判据形状：文件自己写 `axiom Quot {u} : ...`（一个**不同**的类型），
+/// 那么 `Quot.lift` **不该**被 prelude 装上 —— 用 `#check Quot.lift` 断言它是
+/// 未知标识符（`elab-unknown-identifier`），而不是"悄悄用了 prelude 的"。
+#[test]
+fn st2_file_declaring_quot_takes_over_the_family() {
+    let src = "\
+axiom Quot {u} : {A : Sort u} -> Sort u
+#check Quot.lift
+";
+    let out = compile_fol(&parse(src).unwrap());
+    assert!(
+        out.errors
+            .iter()
+            .any(|e| e.kind == crate::compile::error::ErrorKind::ElabUnknownIdentifier),
+        "ST2：文件自己声明 `Quot` ⇒ 整族必须让位（`Quot.lift` 应报未知标识符）：{:?}",
+        out.errors
+    );
 }
 
 /// `Eq.symm` 不只**可导出**（既有测试），它现在**已安装**。

@@ -79,6 +79,11 @@
   ⚠ **ST2 仍未开**（用户要求先确认本记录）✓。
 - **ST2** 商类型 / `Quot`（`Quot.mk`/`ind`/`lift`；`Quot.sound` 是否作公理）。
   **已知撞点**：L-06（累积性）· L-03（Type 层重写）—— **入场券**。
+  ✅ **已完成（2026-09-28）**：用户拍板**路线 A**（把 `Quot` 暴露到源语言，理由见
+  `docs/design/v077-st1-boundary.md` §3）；落地 = `install_quot` 把 `QUOT_TYPES_SRC`
+  交给前端 elaborator 建成 **`Declar::Quot`**（四条）+ `Quot.sound`（唯一公理）。
+  **内核零改动** ✓；缺口 **G-57**（fixed_in 0.77.0）；判据在**归约**上
+  （`docs/gaps/repro/ST2-quot-reduces.sokonanoda`）。
 - **ST3** 集合建构式 `{x : P}`（分离），含 `{x ∈ A | P x}` binder 记法。
   基准：Mathlib `ZFSet.sep`/`mem_sep`/`sep_subset`；Isabelle §1。**撞点**：binder 记法。
 - **ST4** 集族与无限并交（`⋃₀`/`⋂₀`、`Set.sUnion`/`sInter`）。

@@ -1,0 +1,38 @@
+-- ST2 探针 ①：**商类型可用，且 `Quot.lift`/`Quot.ind` 在 `Quot.mk` 上算得出来**。
+--
+-- 期望：**4 条全部 `decl.checked`，0 失败**。
+--
+-- 为什么这是 ST2 的**核心判据**：`Quot.lift`/`Quot.ind` 只有在被登记成
+-- **`Declar::Quot`**（⇒ 内核 `RigidHead::QuotConst` ⇒ `eval.rs` 的 `fire_quot`
+-- 做 iota 归约）时才算得出来。把它们装成普通 `Declar::Axiom`：名字照样在、
+-- 类型照样对，但 **`Quot.lift f h (Quot.mk r a)` 卡住** ⇒ `Eq.refl` 证不出
+-- `… = f a`（实测：撤掉 re-kind 后本文件第 3 条判红 ✓）。
+--
+-- 出处（ST1 决策记录 `docs/design/v077-st1-boundary.md` §2 已实查）：
+--   Lean TPiL §12.4 —— `Quot`/`Quot.mk`/`Quot.ind`/`Quot.lift` 属**逻辑框架**
+--   （不算额外公理），**只有 `Quot.sound` 是公理**；
+--   Mathlib `Cardinal := Quotient Cardinal.isEquivalent`、`ZFSet := Quotient PSet.setoid`
+--   —— 没有商，基数（ST10）与 Alef/ω₁（ST11）都写不出来。
+--
+-- 本文件自足（无 `import`）⇒ `--no-project` 单文件判卷即可。
+-- 判据（`crates/front/src/compile/tests.rs` 的 `st2_*` 五条 + `scripts/gap.py check`）。
+
+-- ① 命名（以前是 `unknown identifier Quot`）
+def mkQuot (α : Type) (r : α → α → Prop) : Type := Quot.{1} α r
+
+-- ② `Quot.sound` 是唯一公理：`r a b ⇒ Quot.mk a = Quot.mk b`
+theorem sound_works (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
+    Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=
+  Quot.sound.{1} α r a b h
+
+-- ③ **归约**：`Quot.lift … (Quot.mk …)` 必须与 `f a` **定义相等**（`Eq.refl` 判过）
+theorem lift_computes (α : Type) (r : α → α → Prop) (β : Type)
+    (f : α → β) (h : ∀ (a b : α), r a b → Eq.{1} β (f a) (f b)) (a : α) :
+    Eq.{1} β (Quot.lift.{1, 1} α r β f h (Quot.mk.{1} α r a)) (f a) :=
+  Eq.refl.{1} β (f a)
+
+-- ④ **归约**：`Quot.ind … (Quot.mk …)` 在 `Quot.mk` 上算得出来
+theorem ind_computes (α : Type) (r : α → α → Prop)
+    (B : Quot.{1} α r → Prop) (h : ∀ (a : α), B (Quot.mk.{1} α r a)) (a : α) :
+    B (Quot.mk.{1} α r a) :=
+  Quot.ind.{1} α r B h (Quot.mk.{1} α r a)

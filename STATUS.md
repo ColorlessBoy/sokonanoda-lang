@@ -1,6 +1,6 @@
 # 当前快照（2026-09-28）
 
-- **进度**：**64/66**（E2 50/50 ✓ + **批次 N** 记法×隐式参数×产品交互 14/16 ✓）· 🚀 **v0.74.0：11/11 全部 ✅ 已发布** · 🚀 **v0.75.0：4/4 ✅ 已发布** · 🚀 **v0.76.0：3/3 ✅ 已发布** · 🚀 **v0.77.0：ST1 ✅（决策记录 + 两端对账守卫）· ST2 未开（等用户确认）**
+- **进度**：**64/66**（E2 50/50 ✓ + **批次 N** 记法×隐式参数×产品交互 14/16 ✓）· 🚀 **v0.74.0：11/11 全部 ✅ 已发布** · 🚀 **v0.75.0：4/4 ✅ 已发布** · 🚀 **v0.76.0：3/3 ✅ 已发布** · 🚀 **v0.77.0：ST1 ✅（决策记录 + 两端对账守卫）· ST2 ✅（商类型 `Quot` 装进源语言，路线 A）· ST10 未开**
 - **已发布**：**`sokonanoda v0.76.0`** ✓（`gh release list` 显示 **Latest** ✓ · **2026-09-27T22:44:45Z** ✓ · tag `v0.76.0` · bump `b907a20` · CI run `36354848755` 真绿 · release workflow `36356038826` **11/11 success** ✓）
 - **A 组（A0–A5）全部落地** ✓：显示层混合形态（`ty_text` ASCII `->` **227 → 0**）· `{a}` 折回 ·
   `{a}` 可跳转（根因：开放练习的签名**一条 hover 行都没有**）· prelude 可跳转（F12 落到前奏源文件
@@ -53,6 +53,33 @@
   内核判定零改动 ✓、课程内容零改动 ✓。
 - **耗时账** ✓：`cargo test -p sokonanoda-cli --test st1_boundary` **0.6 s**（2 判据，跑 4 个复现件）；
   `python3 scripts/gap.py check` 全量 **~1 min**（含 G-56）；`python3 scripts/docs-lint.py` ✓。
+
+## 第 486 轮（2026-09-28）：🚀 v0.77.0 · **ST2 ✅**（商类型 `Quot` 装进源语言 —— 路线 A）
+
+- **变了什么** ✓：`install_quot`（`crates/front/src/compile/prelude.rs`）把 `QUOT_TYPES_SRC`
+  五条类型交给**前端自己的 elaborator** 建成 **`Declar::Quot`**（`Quot`/`Quot.mk`/`Quot.lift`/
+  `Quot.ind`）+ `Quot.sound`（**唯一**公理，TPiL §12.4）。**内核零改动** ✓（用户核实：
+  `quot.rs`、`RigidHead::QuotConst`、`STANDARD_AXIOMS`、按名查找四条全在，缺的只是前端产出）。
+  用户拍板**路线 A**（理由见 `docs/design/v077-st1-boundary.md` §3）。
+- **判红（修前原文）** ✓：`def mkQuot … := Quot α r` ⇒ `elab-unknown-identifier` /
+  「unknown identifier `Quot`」。
+- **⚠ 最贵的一课（10+ 轮）** ✗✓：内核 `quot.rs::check_quot` 的 `mk_var(n)` 索引与「按
+  de Bruijn 深度推」**不一致** —— 手搓 `EnvBuilder` 表达式结构「看起来对」（`#check` 能渲染
+  对的形状），但 `def q … := Quot.{1} α r` 判红「期望 `… $0 …`，实际 `… $2 …`」✗。
+  **正解 = 类型写成源文本交给前端 elaborator，只改声明种类** ✓（文本是真的、与
+  `prelude_source()` 同源、F12 可用）。
+- **判据（放在归约上）** ✓：`docs/gaps/repro/ST2-quot-reduces.sokonanoda`（4 checked，含
+  `Eq.refl` 证 `Quot.lift … (Quot.mk …) = f a`）+ `ST2-quot-family-yields`（让位口径）+
+  `crates/front/src/compile/tests.rs` 的 `st2_*` **五条** + `crates/cli/tests/st2_quot.rs`
+  **两条**；新登记 **G-57**（fixed_in 0.77.0）。**为什么必须在归约上**：装成普通 `Axiom`
+  时名字在、类型对、**归约死** ⇒ 只有「算得出来」同时证明「装上了 + 类型对 + 种类对」✓。
+- **反向验证** ✓：撤掉 re-kind ⇒ `st2_quot_lift_computes_on_quot_mk` **判红**（`Quot.ind`
+  那条仍绿 —— 它靠 `False.elim` 也能过，**这正是"判据要选对那条"的实测**）；
+  撤掉 `install_quot` ⇒ `st2_quot_names_are_installed` 判红。
+- **ST1 记录随之更新** ✓：ST2 一落地，ST1 守卫**当场咬住**（`ST1-quot-unavailable` 记录 0 /
+  内核 1 ⇒ 判红）⇒ 商那一半搬进 ST2 探针，ST1 只留「没有累积性」（L-06，改名
+  `ST1-no-cumulativity.sokonanoda`）✓。
+- **没做** ✗：**ST10（基数）未开**（用户明确「做完停下，不要顺手开」）· **G-56 本轮不修** ✓。
 
 ## 未决项
 
@@ -210,27 +237,4 @@
   自己补了它明确说"没做"的那一步：**画布↔解答签名逐字对拍**，当场抓出 **3 处括号不一致**
   （`Set.univ Nat ≈ …` vs `(Set.univ Nat) ≈ …`）⇒ 已按画布改齐（10 条全一致 ✓）。
 - **未决** ✓：E04 · E21–E23 · E27–E31 共 8 个环节未开工；v0.74.0 收尾要**推一次 CI 逐 job 真绿** ✓。
-
-## 第 479 轮（2026-09-27）：E02 —— `Set.prod` 收进 `lib/Prod` ✓（v0.74.0 第 2 个环节）
-
-- **变了什么** ✓：`def Set.prod` 从**单元⑤ 画布**收进 `courses/set-theory/lib/Prod.sokonanoda:73`
-  （`lib/Prod` 新增 `import lib.Set`；记法 `×ˢ` 仍由 `lib/Set` 声明）；画布与
-  `unit05-solution` 里那**两份副本删掉**（不删就撞 `import-name-collision`）。
-- **判红** ✓（内核原文，修前实测）：临时模块根只放 `lib/` 时写 `s ×ˢ t` ⇒ exit 1
-  `elab-notation-unknown-target`「记法 `×ˢ` 指向的目标 `Set.prod` 不存在」。
-- **判据两层** ✓：front `the_set_product_notation_target_lives_in_the_library`
-  （`×ˢ`→`Set.prod`/80/Infixr、声明点仍在 lib.Set；`Set.prod` 由 **lib.Prod** 提供且 checked；
-  画布不再声明它）· CLI `the_set_product_notation_resolves_from_the_libraries_alone`
-  （只拷 `lib/` 的模块根 + 只 import 库的画布 ⇒ exit 0）。
-- **反向验证** ✓：把 `def Set.prod` 从 `lib/Prod` 撤掉 ⇒ 两层判据都红，诊断逐字回到上面那条（已还原 ✓）。
-- ⚠ **净账（要记住）** ✗✓：副本消失 ⇒ 课程门禁 checked **328 → 327**（**练习数与 open 数一条未动**；
-  `lib/` 合计 74 → 75）。**这是 E02 的正确结果、不是回归** —— 目标从「两份副本」变成「一份库定义」。
-  门禁其余全绿：**36 目标 · 327 checked · 99 open · 0 判负** ✓。
-- **台账** ✓：新登记 **G-46**（library/painful/fixed_in 0.74.0 + 自断言脚本复现件）；
-  复现件**两个方向都自测过**（缺口在 ⇒ exit 0；修好 ⇒ exit 1）——自测当场抓到脚本里
-  `$CODE）` 被 `set -u` 判 unbound（全角括号被吃进变量名）✗✓，已改 `${CODE}` ✓。
-- **子代理** ✓：派了一次**只读取证**（普查全仓 `Set.prod`/`×ˢ` 的 stale 说法，带 file:line + 原文，
-  禁夸大、禁下判断）⇒ 我抽查后并入 3 处：`course-lean-style.md:268`（C4 边界 #7 标已落）、
-  PLAN A10 根因行、G-37 复现件注释 ✓。
-- **未决** ✓：E03 · E04 · E21–E23 · E27–E31 共 9 个环节未开工；v0.74.0 收尾要**推一次 CI 逐 job 真绿** ✓。
 

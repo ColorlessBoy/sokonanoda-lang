@@ -14,13 +14,18 @@
 |---|---|---|---|
 | 1 | `Set α` 谓词式（分离 / 无限并交 / 幂集） | ✅ **自身表达**，**零外挂** | Mathlib `Set α := α → Prop` 就是这一层；Isabelle `down_raw`/`Union_raw` 同样只用 `V ⇒ bool` |
 | 2 | **序数** | ✅ **自身表达**（写成**谓词**） | Isabelle `Ord x ≡ Transset x ∧ …`（`V ⇒ bool`）；**全体序数 `ON` 不是集合**（Burali-Forti）⇒ 序数**本来就不该是一个类型** |
-| 3 | **基数** | ❌ **必须有商** | Mathlib `Cardinal := Quotient Cardinal.isEquivalent`（`Type u` 在「双射存在」下做商）；Isabelle 用 `LEAST` 选代表绕开，代价是每条定理都带 `Ord i` 假设 |
+| 3 | **基数** | ✅ **商已在源语言可用**（ST2 落地，2026-09-28） | Mathlib `Cardinal := Quotient Cardinal.isEquivalent`；Isabelle 用 `LEAST` 选代表绕开（代价：每条定理都带 `Ord i`）⇒ **用户 2026-09-28 拍板走路线 A**：`Quot` 装进 prelude，基数不再被商挡住 |
 | 4 | **秩 rank**（及其前置：超限递归 / V 层级） | ⚠️ **两条路都要「良基递归可用」**；且 **rank 作为函数**还要商 | Isabelle `transrec ≡ wfrec {(x,y). x ∈ elts y} H`（良基性来自 `foundation` **公理**）；Mathlib `rank (h : Acc r a) : Ordinal` 走 `Acc.recOn`（**不是** `WellFounded.fix`）—— 递归本身零 `Quot`，**值域 `Ordinal` 才要商** |
 | 5 | **传递闭包 / 超限递归 / ω₁ / Aleph** | ⚠️ 同上（ST6/ST9/ST11 逐章再判） | Isabelle §2.5/§2.13/§2.20/§2.21 |
 
 **⇒ 对本仓库的直接含义**：`Set α` 谓词式**已经够用**（结论 1/2 已实测通过，见 §对账表）；
 **卡住整条 v0.77 的不是"缺 ZF 公理"，是两件更小的东西** ——
 **(a) 源语言里没有 `Quot`**（结论 3）、**(b) `Acc` 立不起来 ⇒ 没有良基递归**（结论 4）。
+
+**⚠ 更新（2026-09-28，ST2 落地后）**：**(a) 已修** ✓ —— 用户拍板路线 A，`Quot`/`Quot.mk`/
+`Quot.lift`/`Quot.ind`（`Declar::Quot`）+ `Quot.sound`（唯一公理）已装进 prelude，
+判据在**归约**上（`Quot.lift f h (Quot.mk r a)` 必须与 `f a` 定义相等）。
+**(b) 仍未修**（G-56，blocker）—— 那是 ST7/ST9 的门槛。
 
 ## §2 基准（**每条都已实查**，动手前必须再读一遍）
 
@@ -49,9 +54,14 @@
   **要付**：每条定理都带 `Ord i` / `Card i` 假设；`vcard` 需要**选择**（我们连"满射可裂"都证不出来，
   见 L-06 原文）；而且 Isabelle 的 `V` 是**公理化的抽象类型**（7 条公理）——**那才是"外挂"**。
   **换来**：不需要商。
-* **⚠ 必须由用户拍的那一刀**：**要不要为了 ST10（基数）把 `Quot` 做进语言（ST2）**。
-  本记录**只给代价，不代替决定** —— 因为 ST2 是"入场券级的大活"（用户原话），
-  它的技术路线（改前端产出 `Declar::Quot`？还是 prelude 走别的路？）取决于这一刀。
+* **✅ 这一刀已由用户拍（2026-09-28）：走路线 A —— 做 ST2**，把 `Quot` 暴露到源语言。
+  理由（用户核实过）：① 内核**已经内建**商（`crates/kernel/src/quot.rs` 12KB、
+  `RigidHead::QuotConst` 进了 `conv.rs`、`Quot.sound` 在 `STANDARD_AXIOMS`、
+  `util.rs` 按名查找四条）⇒ 缺的只是**声明没暴露**，成本远低于路线 B；
+  ② 路线 B 要付的「选择代表」（Isabelle 的 `LEAST`）我们**也没有**（L-06：连满射可裂
+  都证不出来），且每条定理都要带 `Ord i`/`Card i` 假设 ⇒ 更贵还更丑；
+  ③ 基数（ST10）、Aleph/ω₁（ST11）是 **`Ordinal` 上的函数**，路线 B 的窄路救不了。
+  **落地情况**：见 G-57（fixed_in 0.77.0）与 `docs/gaps/repro/ST2-*.sokonanoda`。
 * **不拍那一刀也能走的一条窄路**（Mathlib 调研带出来的，记在这里供用户选）：
   **把 rank 写成关系/谓词**（`Rank r a o : Prop`）而不是"值域是 `Ordinal` 的函数"——
   因为 `Acc`/`WellFounded` **零 `Quot`**（Lean core 实测），而"函数值域是商类型"才要商。
@@ -74,12 +84,15 @@
 > 由 `crates/cli/tests/st1_boundary.rs` 解析并**两端对账**：
 > 记录里写的诊断必须在探针输出里**逐字**出现；探针输出的每条诊断也必须在记录里找到
 > ⇒ 记录腐烂、或探针改行为，**两边都会判红**。
+> **实测咬过一次** ✓：ST2 把 `Quot` 装进 prelude 之后，本表的
+> `ST1-quot-unavailable` 行**当场判红**（记录 0 / 内核 1）⇒ 记录随之更新：
+> 商那一半搬到 ST2 探针，本表只留**仍然成立**的「没有累积性」（L-06）。
 
 | 复现件 | 判据 | checked | 逐字诊断（多条用 `;;` 分隔，**不加引号**） |
 |---|---|---|---|
 | ST1-predicate-set-operations.sokonanoda | positive | 7 | — |
 | ST1-predicate-ordinal.sokonanoda | positive | 7 | — |
-| ST1-quot-unavailable.sokonanoda | negative | 0 | kernel-rejected ;; 类型不匹配：期望 Pi (P : Sort(0)), Sort(1)，实际是 Pi (P : Sort(0)), Sort(0) ;; elab-unknown-identifier ;; unknown identifier Quot |
+| ST1-no-cumulativity.sokonanoda | negative | 0 | kernel-rejected ;; 类型不匹配：期望 Pi (P : Sort(0)), Sort(1)，实际是 Pi (P : Sort(0)), Sort(0) |
 | ST1-acc-well-founded-recursion.sokonanoda | negative | 0 | kernel-rejected ;; rejected: inductive occurrence is not applied uniformly to the block parameters and universe levels |
 
 ## §不做什么（本环节的边界）

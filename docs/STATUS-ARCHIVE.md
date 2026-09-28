@@ -1736,3 +1736,26 @@
 - ⚠ **本轮踩到的坑（两次同形 ✗✓）**：**判据跑完之前别改文件** ✗ —— 反向验证期间课程门禁读到
   半棵树（报 `符号 '∘' 还没有声明过记法` ✗）、front 判据读到**撕裂**的库文件（假红 ✗）。
   **判据必须在"冻结树"上跑** ✓：改完 → 跑 → 不再碰 ✓。
+
+## 第 479 轮（2026-09-27）：E02 —— `Set.prod` 收进 `lib/Prod` ✓（v0.74.0 第 2 个环节）
+
+- **变了什么** ✓：`def Set.prod` 从**单元⑤ 画布**收进 `courses/set-theory/lib/Prod.sokonanoda:73`
+  （`lib/Prod` 新增 `import lib.Set`；记法 `×ˢ` 仍由 `lib/Set` 声明）；画布与
+  `unit05-solution` 里那**两份副本删掉**（不删就撞 `import-name-collision`）。
+- **判红** ✓（内核原文，修前实测）：临时模块根只放 `lib/` 时写 `s ×ˢ t` ⇒ exit 1
+  `elab-notation-unknown-target`「记法 `×ˢ` 指向的目标 `Set.prod` 不存在」。
+- **判据两层** ✓：front `the_set_product_notation_target_lives_in_the_library`
+  （`×ˢ`→`Set.prod`/80/Infixr、声明点仍在 lib.Set；`Set.prod` 由 **lib.Prod** 提供且 checked；
+  画布不再声明它）· CLI `the_set_product_notation_resolves_from_the_libraries_alone`
+  （只拷 `lib/` 的模块根 + 只 import 库的画布 ⇒ exit 0）。
+- **反向验证** ✓：把 `def Set.prod` 从 `lib/Prod` 撤掉 ⇒ 两层判据都红，诊断逐字回到上面那条（已还原 ✓）。
+- ⚠ **净账（要记住）** ✗✓：副本消失 ⇒ 课程门禁 checked **328 → 327**（**练习数与 open 数一条未动**；
+  `lib/` 合计 74 → 75）。**这是 E02 的正确结果、不是回归** —— 目标从「两份副本」变成「一份库定义」。
+  门禁其余全绿：**36 目标 · 327 checked · 99 open · 0 判负** ✓。
+- **台账** ✓：新登记 **G-46**（library/painful/fixed_in 0.74.0 + 自断言脚本复现件）；
+  复现件**两个方向都自测过**（缺口在 ⇒ exit 0；修好 ⇒ exit 1）——自测当场抓到脚本里
+  `$CODE）` 被 `set -u` 判 unbound（全角括号被吃进变量名）✗✓，已改 `${CODE}` ✓。
+- **子代理** ✓：派了一次**只读取证**（普查全仓 `Set.prod`/`×ˢ` 的 stale 说法，带 file:line + 原文，
+  禁夸大、禁下判断）⇒ 我抽查后并入 3 处：`course-lean-style.md:268`（C4 边界 #7 标已落）、
+  PLAN A10 根因行、G-37 复现件注释 ✓。
+- **未决** ✓：E03 · E04 · E21–E23 · E27–E31 共 9 个环节未开工；v0.74.0 收尾要**推一次 CI 逐 job 真绿** ✓。

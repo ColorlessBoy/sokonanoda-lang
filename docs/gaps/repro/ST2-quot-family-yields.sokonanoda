@@ -1,0 +1,15 @@
+-- ST2 探针 ②：**让位口径** —— 文件自己声明 `Quot` ⇒ 整族不装（不许装一半）。
+--
+-- 期望：**0 条 `decl.checked`，1 条诊断**，码为 `elab-unknown-identifier`、
+-- 消息为「unknown identifier `Quot.lift`」。
+--
+-- 为什么要有这条：`Quot` 族与 L1 的族同一条纪律（`L1_FAMILIES` 的 all-or-nothing）
+-- —— 文件自带 `Quot` 时若还偷偷用 prelude 的 `Quot.lift`，就会得到"两个不同的
+-- `Quot` 混用"的静默不一致 ✗。判据 = **断言 `Quot.lift` 是未知标识符**
+-- （而不是"悄悄用上了 prelude 的"）。
+--
+-- 本文件自足（无 `import`）⇒ `--no-project` 单文件判卷即可。
+-- 判据：`crates/front/src/compile/tests.rs::st2_file_declaring_quot_takes_over_the_family`。
+
+axiom Quot {u} : {A : Sort u} -> Sort u
+#check Quot.lift

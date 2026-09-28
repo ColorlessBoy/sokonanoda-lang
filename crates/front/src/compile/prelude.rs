@@ -140,6 +140,12 @@ pub const PRELUDE_NAMES: &[&str] = &[
     "Eq.mp",
     "Eq.mpr",
     "cast",
+    // ---- ST2: 商类型 Quot（v0.77.0，内核内建的声明种类）----
+    "Quot",
+    "Quot.mk",
+    "Quot.lift",
+    "Quot.ind",
+    "Quot.sound",
 ];
 
 /// Full 模式下**永不**让位的 prelude 名字（`Nat`/`Bool` 家族）。
@@ -263,6 +269,31 @@ def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq
 -- sokonanoda:builtin-sugar \"⟨a, b⟩\" => 期望类型决定
 ";
 
+/// **ST2（v0.77.0）**：`Quot` 五条的类型**源文本** —— 由 [`install_quot`] 交给
+/// **前端自己的 elaborator** 建成 `Declar::Quot`（四条）+ `Declar::Axiom`（`Quot.sound`）。
+///
+/// **为什么写成源文本**（本环节最贵的一课，实测踩了 10+ 轮）：内核
+/// `crates/kernel/src/quot.rs::check_quot` 里那些 `mk_var(n)` 的索引**与"按
+/// de Bruijn 深度推"的直觉不一致** —— 手搓 `EnvBuilder` 表达式时结构"看起来对"
+/// （`#check Quot.{1}` 甚至能渲染成正确形状），但 `def q … := Quot.{1} α r`
+/// 判红「期望 `… $0 …`，实际 `… $2 …`」✗。交给前端 elaborator 就没有这个问题
+/// （它就是平时建 `axiom`/`def` 类型的那条路）✓，且类型文本是**真的**、与
+/// [`prelude_source`] 同源、F12 直接可用 ✓。
+///
+/// 形状（与内核期望**语义一致**：`{A : Sort u}` 隐式 / 其余显式 / `Quot.lift` 带 `{v}`）：
+/// `Quot.sound` 是**唯一**的公理（Lean TPiL §12.4：`Quot`/`Quot.mk`/`Quot.ind`/`Quot.lift`
+/// 属逻辑框架，只有 `Quot.sound` 是公理 ✓）。
+///
+/// 判据不是"文本看起来对不对"，而是**归约**：`Quot.lift`/`Quot.ind` 在 `Quot.mk`
+/// 上必须**算得出来**（见 `crates/front/src/compile/tests.rs` 的 ST2 判据）。
+pub const QUOT_TYPES_SRC: &str = "\
+axiom Quot {u} : {A : Sort u} -> (A -> A -> Prop) -> Sort u
+axiom Quot.mk {u} : {A : Sort u} -> (r : A -> A -> Prop) -> A -> Quot.{u} A r
+axiom Quot.lift {u, v} : {A : Sort u} -> {r : A -> A -> Prop} -> {B : Sort v} -> (f : A -> B) -> (forall (a b : A), r a b -> Eq.{v} B (f a) (f b)) -> Quot.{u} A r -> B
+axiom Quot.ind {u} : {A : Sort u} -> {r : A -> A -> Prop} -> {B : Quot.{u} A r -> Prop} -> (forall (a : A), B (Quot.mk.{u} A r a)) -> (forall (q : Quot.{u} A r), B q)
+axiom Quot.sound {u} : {A : Sort u} -> {r : A -> A -> Prop} -> (a b : A) -> r a b -> Eq.{u} (Quot.{u} A r) (Quot.mk.{u} A r a) (Quot.mk.{u} A r b)
+";
+
 /// **A4（2026-09-26 用户报告第 4 条）**：prelude 的**只读源文本** —— 编辑器要
 /// "跳进 prelude"就得有一份能打开的源 ✓。
 ///
@@ -270,7 +301,7 @@ def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq
 /// 与真正喂进编译的是**同一份字节** ✓）。`OnceLock` 缓存：拼一次。
 pub fn prelude_source() -> &'static str {
     static SRC: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    SRC.get_or_init(|| format!("{PRELUDE_EQ_SRC}\n{PRELUDE_L1_SRC}"))
+    SRC.get_or_init(|| format!("{PRELUDE_EQ_SRC}\n{PRELUDE_L1_SRC}\n{QUOT_TYPES_SRC}"))
 }
 
 /// prelude 名字 → 它在 [`prelude_source`] 里的**真 span**。
@@ -521,6 +552,8 @@ pub(crate) fn install_l1_prelude<'a>(
         }
     }
     L1_INSTALL_DEPTH.with(|d| d.set(d.get() - 1));
+    // ST2：商类型（**不是** L1 的源级命令，见 `install_quot`）。
+    install_quot(builder, known, taken);
 }
 
 /// 这条命令是不是本族的（按顶层名字判定；`ctor`/`rec` 归它们的归纳块）。
@@ -639,6 +672,89 @@ fn install_l1_command<'a>(
             .expect("L1 prelude inductive block installs");
         }
         _ => panic!("L1 prelude must only contain axiom/def/inductive commands"),
+    }
+}
+
+/// **ST2（v0.77.0）**：装 `Quot` 族 —— 四条 `Declar::Quot` + 唯一公理 `Quot.sound`。
+///
+/// 为什么必须是 `Declar::Quot`：内核按**声明种类**认商（`Declar::Quot` ⇒
+/// `RigidHead::QuotConst` ⇒ `Quot.lift`/`Quot.ind` 的 iota 归约，见
+/// `crates/kernel/src/eval.rs` 的 `fire_quot` 与 `conv.rs` 的刚性头）。写成
+/// `Declar::Axiom` 名字对、**归约不发生** ⇒ `Quot.lift f h (Quot.mk r a)` 卡住 ✗
+/// （实测：装成 `Axiom` 时 `Eq.refl` 证不出 `Quot.lift … (Quot.mk …) = f a`）。
+///
+/// 类型**从 [`QUOT_TYPES_SRC`] 源文本 elaborate**（见那个常量的注释：手搓
+/// `EnvBuilder` 表达式会撞内核索引约定）。
+///
+/// ⚠ 这条路径是**受信任安装**（与 Nat/Bool/Eq/L1 同一条：不进 `PendingOp`、内核
+/// 不重查）⇒ `check_quot` 不会跑；它跑不了还有第二个原因 —— `check_quot` 的前置
+/// `check_eq` 要求 `Eq` 是**归纳块**（`env.get_inductive("Eq")` + 一个构造子
+/// `Eq.refl`），而本语言 prelude 的 `Eq` 是**公理**（[`PRELUDE_EQ_SRC`]）⇒ 真走
+/// 内核那条路会 panic（`cannot add Quot; improperly formed Eq type`）。
+/// 判据因此放在**归约**上 ✓。
+///
+/// 让位口径与 L1 族一致：文件自己声明 `Quot` 族任一名字 ⇒ 整族不装（`taken`）。
+fn install_quot<'a>(builder: &mut EnvBuilder<'a>, known: &mut KnownTable, taken: &HashSet<String>) {
+    const QUOT_NAMES: [&str; 5] = ["Quot", "Quot.mk", "Quot.lift", "Quot.ind", "Quot.sound"];
+    if QUOT_NAMES.iter().any(|name| taken.contains(*name)) {
+        return;
+    }
+    // prelude 安装期间关闭隐式实参插入（与 Eq/L1 同一个守卫）。
+    let _implicit_guard = crate::compile::elab::PreludeInstallGuard::enter();
+    let Ok(file) = crate::parse(QUOT_TYPES_SRC) else {
+        panic!("Quot type source parses");
+    };
+    let options = CompileOptions::default();
+    let ns = NamespaceScope::new();
+    let empty_inductives: InductiveTable<'_> = InductiveTable::new();
+    let empty_defs: DefTable = DefTable::new();
+    let ctx = ElabCtx {
+        notations: None,
+        prefix_src: "",
+        options: &options,
+        inductives: &empty_inductives,
+        ns: &ns,
+        defs: &empty_defs,
+    };
+    let mut hovers = Vec::new();
+    // **`Eq` 可能不在 `known` 里**（`-- sokonanoda:prelude none` 的 Bare 模式、
+    // 或文件自己声明了 `Eq` 三件套 ⇒ Eq 族让位）—— 但 `Quot.lift`/`Quot.sound`
+    // 的类型**点名引用 `Eq`** ⇒ 先确认它在，否则整族不装（与 L1 的让位口径一致：
+    // 依赖缺了就不装，绝不装一半 ✗）。
+    if !known.contains_key("Eq") {
+        return;
+    }
+    // 装前几条时要把 `Quot`/`Quot.mk` 放进作用域（后几条的类型点名引用它们）
+    // ⇒ 在**局部副本**上做，不污染调用方的 `known`（那由本函数末尾统一登记）。
+    let mut scope_known = known.clone();
+    for command in &file.commands {
+        let Command::Axiom {
+            name, universe, ty, ..
+        } = command
+        else {
+            panic!("QUOT_TYPES_SRC must only contain axiom commands");
+        };
+        let decl = build_axiom(builder, name, universe, ty, &scope_known, &mut hovers, &ctx)
+            .expect("Quot type elaborates");
+        // **只改声明种类**：`Quot.sound` 保持公理，其余四条变 `Declar::Quot`。
+        let decl = match decl {
+            Declar::Axiom { info } if name != "Quot.sound" => Declar::Quot { info },
+            other => other,
+        };
+        builder
+            .add_declar(decl)
+            .expect("duplicate Quot prelude declaration");
+        // 立刻登记（**两份都写**）：`scope_known` 给本函数后面几条的类型解析用
+        // （`Quot.lift`/`Quot.sound` 点名引用 `Eq`/`Quot`/`Quot.mk`），
+        // `known` 给**调用方**用（后续 `#check`/应用路径都要能解析到这五个名字）。
+        let entry = KnownName::Decl {
+            universes: universe.clone(),
+            implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+            explicit_arity: crate::compile::elab::explicit_arity(ty),
+            signature: Some(crate::proof::render_expr(ty)),
+        };
+        scope_known.insert(name.clone(), entry.clone());
+        known.insert(name.clone(), entry);
     }
 }
 
