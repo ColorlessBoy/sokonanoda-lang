@@ -342,6 +342,28 @@ pub fn compile_plan(plan: ProjectPlan, options: &CompileOptions) -> ProjectRepor
 
 /// 同 [`compile_plan`]，但每处理一条命令回调一次（**声明级进度**，P2）——
 /// `build`/`rebuild` 用它把"文件级"进度细化到"声明级"（`docs/protocol.md` 的 `build.decl`）。
+/// **切片 1b 的接线助手**：从 plan 的闭包里取"满足 `keep` 的模块"的单元
+/// （**拓扑序**，与 `compile_plan` 同序 —— 依赖必须先于被依赖，否则编译会失败）。
+///
+/// 用途：把"共享库层"与"各入口自己"分开交给 [`crate::project::session::with_project_session`]
+/// （库层只编一次，入口各自复用同一套 DAG）。
+pub fn units_for_modules<'a>(
+    plan: &'a ProjectPlan,
+    keep: impl Fn(&crate::project::graph::LoadedModule) -> bool,
+) -> Vec<crate::compile::SourceUnit<'a>> {
+    plan.closure
+        .compilable()
+        .iter()
+        .map(|&index| &plan.closure.modules[index])
+        .filter(|module| keep(module))
+        .map(|module| crate::compile::SourceUnit {
+            name: &module.name,
+            path: Some(module.path.as_path()),
+            file: &module.file,
+        })
+        .collect()
+}
+
 pub fn compile_plan_with_progress(
     mut plan: ProjectPlan,
     options: &CompileOptions,
