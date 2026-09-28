@@ -1101,6 +1101,38 @@ async function main(argv) {
         )
         return 3
       }
+      // **Infoview 视觉层级守卫**（G-66，2026-09-28 用户 18:24 实测）：
+      // 分区标题是 `<h2>` 却**比正文小 20%、暗 30%** ✗ —— 而且是**一个月内第二次**
+      // 同形反馈（2026-09-26 修过 `.decl-ty`，当时**没横向排查**）⇒ 按 AGENTS.md
+      // 验证设计纪律**第 0 条 (b)** 落成判据 ✓：① 标题字号 ≥ 正文；
+      // ② 同一规则里不许 `<1em` 又叠 `opacity`（双重压暗）✓。
+      const infoviewHierarchy = path.join(REPO, 'scripts', 'check-infoview-hierarchy.py')
+      if (!existsSync(infoviewHierarchy)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, infoviewHierarchy)} —— 视觉层级无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const hierarchy = spawnSync(python.cmd, [...python.args, infoviewHierarchy], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (hierarchy.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${infoviewHierarchy}: ${hierarchy.error.message}\n`)
+        return 3
+      }
+      if ((hierarchy.status ?? 3) !== 0) return hierarchy.status ?? 3
+      // 反向验证也进 gate ✓（咬不住的守卫等于没有 ✓）。
+      const hierarchySelf = spawnSync(python.cmd, [...python.args, infoviewHierarchy, '--selftest'], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (hierarchySelf.error || (hierarchySelf.status ?? 3) !== 0) {
+        process.stderr.write(
+          `scripts/soko gate: ${path.relative(REPO, infoviewHierarchy)} --selftest 失败 —— 守卫咬不住 G-66（exit 3）。\n`,
+        )
+        return 3
+      }
       // **文档预算**（用户 2026-09-26：「文档太重了，还没实现多少东西文档先爆炸了」✗）：
       // 六条判据 —— ① 活文档总量 ② 单文件行数 ③ 入口文件行数 ④ 设计文档预算
       // （`scripts/docs-budget.json` 冻结表，只许减不许增）⑤ `docs/**` 禁垃圾
