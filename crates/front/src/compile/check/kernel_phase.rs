@@ -193,7 +193,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
     // `self.builder.add_declar(...)`）⇒ 用 `with_env` 借出即可，**不消费 builder**
     // ⇒ 调用方（session）能跨入口复用**同一套 DAG**（`builder.rs:112`；与 `finish`
     // 同为纯字段搬移、回调后原样装回 ⇒ 指针恒等式与 intern 表逐字节不变）。
-    return builder.with_env(move |mut env| {
+    builder.with_env(move |env| {
     // Print proof terms as terms instead of suppressing them to `_`; the
     // suppression path would try to infer types of open binder bodies.
     env.config.pp_options.proofs = true;
@@ -235,9 +235,9 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
         };
         let mut contribution = if want_sigs {
             op.as_ref().and_then(|op| match op {
-                PendingOp::Decl { declar, .. } => Some(declar_signature(&mut env, declar)),
+                PendingOp::Decl { declar, .. } => Some(declar_signature(env, declar)),
                 PendingOp::InductiveBlock { declars, .. } => {
-                    Some(inductive_signature(&mut env, declars))
+                    Some(inductive_signature(env, declars))
                 }
                 _ => None,
             })
@@ -272,7 +272,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     // 不过 ⇒ 与值位 elaborate 失败完全同罪：报诊断、声明
                     // Failed、**不**发 `exercise.open`（`sorry` 救不回来）。
                     match open_signature_failure(
-                        &env,
+                        env,
                         &sig_probe,
                         kind,
                         declared_ty,
@@ -349,7 +349,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                 }
                 PendingOp::Decl { .. } => {
                     if check_then_add_decl(
-                        &mut env,
+                        env,
                         &display,
                         &mut out,
                         &mut decl_states,
@@ -530,7 +530,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
         let mut hover_cmds = Vec::new();
         // E04：hover 也是显示面 ⇒ 把显示表传进去（文本要过 `display.fold`）。
         resolve_hovers(
-            &env,
+            env,
             &display,
             cmd_hovers,
             &mut report.hovers,
@@ -585,7 +585,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
         sigs,
         cutoff,
     }
-    });
+    })
 }
 /// 开练习的**签名终审**（G-01 / WO-004）：`None` = 签名通过。
 ///

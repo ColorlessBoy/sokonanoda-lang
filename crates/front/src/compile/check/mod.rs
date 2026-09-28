@@ -894,7 +894,7 @@ fn run_pass_in<'a>(
     // 命令走查（elaborate → `PendingOp`）：批次 3 第三刀切到 `walk.rs`；
     // 这里的累加器按值交给 `Walk`，内核阶段再从 `walk` 取回（见文件尾）。
     let mut walk = walk::Walk {
-        shadow,
+        shadow: Some(shadow),
         shadow_upto: 0,
         shadow_failed: Vec::new(),
         shadow_failed_msg: Vec::new(),
@@ -930,7 +930,7 @@ fn run_pass_in<'a>(
     // `SOKO_SHADOW_CHECK=1` 时打印影子的规模与失败数，供与内核阶段对照
     // ——"影子可不可信"就是靠这条观测来判的（下一步升级成断言 ✓）。
     let shadow_decls = if shadow_experiment {
-        walk.shadow_env().declaration_count()
+        walk.shadow_env().map_or(0, |sh| sh.declaration_count())
     } else {
         0
     };

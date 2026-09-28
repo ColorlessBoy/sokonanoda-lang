@@ -47,7 +47,7 @@ pub(super) struct Walk<'arena> {
     /// 为什么不直接用 `builder`：`builder` 最终要被 `kernel_phase` 的
     /// `finish()` **消费**，而且 walk 阶段**不往里 add** 文件声明 ✗
     /// （它只装 prelude + intern 名字）⇒ judge 拿它查不到前缀 ✓。
-    pub(super) shadow: EnvBuilder<'arena>,
+    pub(super) shadow: Option<EnvBuilder<'arena>>,
     /// 影子环境已重放到 `ops` 的哪个下标。
     pub(super) shadow_upto: usize,
     /// 影子重放中**内核拒绝**的那些 `ops` 下标（与 `kernel_phase` 的失败表同键：
@@ -122,7 +122,8 @@ impl<'arena> Walk<'arena> {
     /// 主声明走 `try_check_declar`（`ByName` 形式，同 `kernel_phase.rs:251`），
     /// 归纳块逐成员检查（同 `kernel_phase.rs:315`）；**内核拒绝的不进环境**
     /// （check-then-add 语义 ✓），名字记进 `shadow_failed`。
-    pub(super) fn shadow_env(&mut self) -> &mut EnvBuilder<'arena> {
+    pub(super) fn shadow_env(&mut self) -> Option<&mut EnvBuilder<'arena>> {
+        self.shadow.as_ref()?;
         while self.shadow_upto < self.ops.len() {
             // 失败表按 **`cmd`（命令下标）** 记 —— 与 `kernel_phase` 的
             // `failed_cmds: KernelFailed` **同键**，这样两张表能逐条对照 ✓。
@@ -162,7 +163,7 @@ impl<'arena> Walk<'arena> {
             }
             self.shadow_upto += 1;
         }
-        &mut self.shadow
+        self.shadow.as_mut()
     }
 
     /// **D-2 的 A 步开关**（2026-09-25 round 260）：让 walk 的 check-then-add
@@ -209,8 +210,15 @@ impl<'arena> Walk<'arena> {
     /// **内核拒绝的不进环境** ✓，只记下标。
     /// 返回"是否通过"（归纳块要在首个失败处 `break` ✓）。
     fn shadow_check_and_add(&mut self, declar: &Declar<'arena>, cmd: usize) -> bool {
+        if self.shadow.is_none() {
+            return true; // 影子未启用（session 路径）⇒ 不记录、不建环境
+        }
         let declar = declar.clone();
-        let result = self.shadow.with_env(|env| env.try_check_declar(&declar));
+        let result = self
+            .shadow
+            .as_mut()
+            .unwrap()
+            .with_env(|env| env.try_check_declar(&declar));
         match result {
             Ok(()) => {
                 // **A 步**（round 260）：开关下**同时**落到真 `builder` ✓ ——
@@ -219,7 +227,7 @@ impl<'arena> Walk<'arena> {
                 if Self::walk_real_add_enabled() {
                     let _ = self.builder.add_declar(declar.clone());
                 }
-                let _ = self.shadow.add_declar(declar);
+                let _ = self.shadow.as_mut().unwrap().add_declar(declar);
                 true
             }
             Err(e) => {
