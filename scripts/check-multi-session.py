@@ -89,10 +89,32 @@ def check(base: str = "main") -> int:
         branch = branch or "(detached)"
         for led in SHARED_LEDGERS:
             if not file_matches(base, led):
-                bad.append(
-                    f"① 链接工作树（分支 `{branch}`）改了**共享台账** `{led}` ✗ —— "
-                    f"它只在 `{base}` 上改（合回时必与 `{base}` 冲突：`e2e ledger` job 会往 `{base}` 回提交）"
-                )
+                # ⚠ **文案必须分清三种情形**（2026-09-28 两轮实测才修对 ✓）：
+                #   ① 工作区改了（未提交）· ② 分支提交里改了 · ③ **只是落后**（用户什么都没改 ✗✓）。
+                # 判据对三者**都一样判红** ✓（都会冲突），但"怎么修"完全不同 ⇒ 说出来 ✓。
+                # 第一版一律说"你改了" ✗ —— 在**只是落后**的分支上那句话是错的 ✓；
+                # 第二版拿"工作区 vs HEAD"分辨 ✗ —— 落后时两者**相同** ⇒ 仍被误判成"提交里改了" ✓。
+                # **正解**：拿**合并基**分辨 —— 分支相对合并基有没有动过台账 ✓。
+                # ⚠ **顺序有讲究**（第三轮实测 ✓）：先判**工作区**（相对 HEAD），
+                # 再判**合并基**（分支提交相对"分叉点"动没动）。
+                # 反过来写会漏：在"从旧提交开出来的分支"上，工作区改了台账，
+                # 但**合并基上那份台账本来就没动** ⇒ 落到"落后"分支 ⇒ 说错话 ✗✓。
+                if not file_matches("HEAD", led):
+                    where, kind = "工作区里", "工作区"
+                else:
+                    rc_mb, mb = git("merge-base", "HEAD", base)
+                    touched = rc_mb != 0 or blob(mb, led) != blob("HEAD", led)
+                    where, kind = ("提交里", "提交") if touched else ("", "落后")
+                if kind == "落后":
+                    why = (f"分支 `{branch}` 的 `{led}` **落后于 `{base}`**（本分支没动过它，"
+                           f"是 `{base}` 往前走了 —— `e2e ledger` job 每轮往 `{base}` 回提交）")
+                    fix = f"`git rebase {base}`（落后不是你的错，但不 rebase 就合不回去 ✓）"
+                else:
+                    why = (f"分支 `{branch}` **在{where}改了** `{led}` ✗ —— 它只在 `{base}` 上改"
+                           f"（合回时必与 `{base}` 冲突）")
+                    fix = (f"把该改动**撤出本分支**，改到 `{base}` 上做："
+                           f"`git checkout {base} -- {led}`；确需保留 ⇒ rebase 后只留 `{base}` 版 ✓")
+                bad.append(f"① 链接工作树：{why}；修法：{fix}")
     else:
         pass  # 主工作树（= main 的场地）改台账是**正常**的 ✓
 
