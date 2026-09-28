@@ -86,29 +86,21 @@
   （`docs/gaps/repro/ST2-quot-reduces.sokonanoda`）。
 - **ST3** 集合建构式 `{x : P}`（分离），含 `{x ∈ A | P x}` binder 记法。
   基准：Mathlib `ZFSet.sep`/`mem_sep`/`sep_subset`；Isabelle §1。**撞点**：binder 记法。
-  ✅ **已完成（2026-09-28）**：`lib/Set` 新增 `Set.sep` + 三条 L2 展开引理（`mem_sep_iff`/`sep_subset`/`sep_self`）。
-  ⚠ **记法那一半写不出来** ⇒ **G-60**（花括号不是记法形状）⇒ 课程点名写 `Set.sep` ✓。
+  ✅ **已完成**：`lib/Set` 新增 `Set.sep` + 3 条展开。⚠ **记法那一半写不出来** ⇒ **G-60** ⇒ 点名写 `Set.sep` ✓。
 - **ST4** 集族与无限并交（`⋃₀`/`⋂₀`、`Set.sUnion`/`sInter`）。
   基准：Mathlib `coe_sUnion`/`coe_sInter`；Isabelle §2.2/2.3。**撞点**：**L-06**（`Exists` 取不出数据）。
-  ✅ **已完成（2026-09-28）**：**新模块** `lib/SUnion`（`sUnion`/`sInter` + 四条展开引理 + 记法 `⋃₀`/`⋂₀`）。
-  ⚠ 定义与展开引理**不需要**取出数据 ⇒ **没撞上 L-06** ✓（取数据的引理属 L3）。
+  ✅ **已完成**：**新模块** `lib/SUnion`（+ 记法 `⋃₀`/`⋂₀`）。⚠ **没撞上 L-06** ✓（取数据的引理属 L3）。
 - **ST5** 有序对 / 广义笛卡尔积 / 不交并 / 广义函数空间与 lambda。
   基准：Isabelle §2.1–2.4；Mathlib `ZFSet.prod`/`funs`。**撞点**：依赖类型 + 隐式参数。
-  ✅ **已完成（2026-09-28）**：① 有序对/笛卡尔积**已在库**（`lib/Prod`，E02 收进）；
-  ② **不交并** 新模块 `lib/Sum.sokonanoda`（+ 记法 `⊕`）；③ **广义函数空间** 进 `lib/Fun`
-  （`Set.pi` + `Set.mem_pi`，Mathlib 真名；**不另立** `Set.funSpace`）。课程门禁
-  **38 目标 · 343 checked · 99 open · 0 判负** ✓。**lambda 是语言原语** ⇒ 本档零外挂 ✓；
-  **撞点未出现**（依赖类型 + 隐式参数在 `Set.pi` 的 `β : α → Type` 上正常工作 ✓）。
+  ✅ **已完成**：① 有序对/笛卡尔积**已在库**；② 新模块 `lib/Sum`（+ 记法 `⊕`）；
+  ③ `lib/Fun` 增 `Set.pi`。**lambda 是语言原语** ⇒ 零外挂 ✓；**撞点未出现** ✓。
 - **ST6** **传递闭包**。基准：Isabelle §2.5。**撞点**：递归定义（撞 L-06）。
 - **ST7** **秩 rank**。基准：Isabelle §2.6。**撞点**：良基递归。
 - **ST8** **序数**（传递集 · 0/后继/sups · 归纳/线性 · limit · LEAST）。
   基准：Isabelle §1.4；Mathlib `SetTheory/Ordinal/*`。**撞点**：累积性（L-06）。
-  ✅ **已完成（2026-09-28）**：**序数写成谓词**（零新类型）—— 新模块 `lib/Ordinal.sokonanoda`
-  （7 定义 + 3 条 L2 引理）；课程门禁 **39 目标 · 353 checked · 99 open · 0 判负** ✓。
-  ⚠ **与 Isabelle 的两处有意不同**已写进文件头（① 良基性显式写进 `IsOrdinal`，因为本语言
-  没有 `foundation` 公理、也没有 `Acc`；② `Transset` 用 `E` 的传递性而非子集序）。
-  **L-06（累积性）本档未撞上** ✓（序数是谓词，不需要把 Prop 抬成 Type）；
-  **但 `rank`/超限递归仍过不去**（G-56 + G-58）⇒ ST7/ST9 留给 ST15。
+  ✅ **已完成**：**序数写成谓词**（零新类型，`lib/Ordinal`）。⚠ 与 Isabelle 两处有意不同（良基性
+  显式写进 `IsOrdinal`；`Transset` 用 `E` 传递性）已写进文件头。**未撞 L-06** ✓；
+  **`rank`/超限递归仍过不去**（G-56+G-58）⇒ ST7/ST9 留给 ST15。
 - **ST9** **超限递归**（含按序数三情形的递归）。基准：Isabelle §1.5 + §2.13。
   **撞点**：结构递归（`Nat.rec` 之外）。
 - **ST10** **基数**（`Cardinal = Quotient of Equiv`；`lift`）。
@@ -120,15 +112,18 @@
 - **ST11** **序型 ordertype · Aleph 序列 · ω₁ · Cantor 正规形**。
   基准：Isabelle §2.8/2.20/2.21/§3。**撞点**：序数算术。
 - **ST12** **选择公理**（`ZFSet.choice` · Zorn · 良序定理）。基准：Mathlib `ZFSet.choice`。
-  ✅ **已完成（2026-09-28）**：`lib/Choice` —— `axiom choice` + `Nonempty` + 2 条展开，**4 条全 checked** ✓
-  （形式照 Isabelle `AC_imp_2`）。⚠ 从 `choice` **取函数**要在 `Prop` 里取数据 ⇒ **撞 G-58** ⇒ L3/后续。
+  ✅ **已完成**：`lib/Choice` —— `axiom choice` + `Nonempty` + 2 条展开，4 条全 checked ✓。
+  ⚠ 从 `choice` **取函数**要在 `Prop` 里取数据 ⇒ **撞 G-58** ⇒ L3/后续。
   **已知撞点**：**已实测「满射可裂」证不出来**（L-06 原话「需要选择公理」）⇒ 直接登记。
 - **ST13** **ZF 公理系统本体**（分离/替换/幂集/**正则性**…）。
-  ✅ **已完成（2026-09-28）**：`lib/ZF` 7 条全 checked —— `axiom regularity` + `IsEmpty`/`IsPair`/`IsUnionOf`
-  + 3 条展开。**核心产出是「ZF 公理表」**（文件头）：分离/配对/并集/幂集/替换**都是定理**，
-  **只有外延性、正则性、选择必须外挂** ✓。⚠ 由正则性推「无 ∈-循环」要良基递归 ⇒ **G-56** ⇒ L3。
+  ✅ **已完成**：`lib/ZF` 7 条全 checked。**核心产出是「ZF 公理表」**（文件头）：分离/配对/并集/幂集/替换
+  **都是定理**，**只有外延性、正则性、选择必须外挂** ✓。⚠ 由正则性推「无 ∈-循环」⇒ **G-56** ⇒ L3。
   基准：Mathlib `ZFSet.regularity`；Isabelle §1.1。**撞点**：语言能否表达**公理模式 schema**。
 - **ST14** **funext / propext /（univalence）**。基准：Lean TPiL §12；Mathlib 用 `propext` + `Quot.sound`。
+  ✅ **已完成（2026-09-28）**：`lib/Extensionality` —— `axiom propext` + `axiom funext`（**依赖版**）
+  + 2 条展开，**4 条全 checked** ✓。⚠ **核心判断**：`Set.ext`/`Rel.ext` 在 Mathlib 里是这两条的推论，
+  我们两者都没有 ⇒ 那两条一直是**公理**；本档立起来之后**原则上可改写**，但**本版不做**（重构 ≠ 补缺口）✗。
+  **univalence 本版不做**、也不登记（更强的公理，不是本课必需件）✓。
   **撞点**：课程注释已写「**语言里根本没有**」⇒ 直接登记。
 - **ST15** **汇总：产出「kernel 不足清单」** —— 逐条：缺口号 + **最小复现件** + 影响面 +
   是 `workaround` 还是需动内核。

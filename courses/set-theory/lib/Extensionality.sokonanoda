@@ -1,0 +1,60 @@
+-- Extensionality.sokonanoda —— 卷 I 的**外延性原则**（ST14，v0.77.0）
+--
+-- **定位**：本模块补上**命题外延**（`propext`）与**函数外延**（`funext`）——
+-- 两条都是**外挂公理**（本语言没有它们；见 `lib/Fun` 文件头、`lib/Set` 的 `Set.ext` 注释）。
+-- ⚠ **这是 ST14 的核心判断**：`Set.ext`（外延性）与 `Rel.ext` 在 Mathlib 里是
+-- **`propext` + `funext` 的推论**；我们两者都没有 ⇒ 那两条一直是**公理**（各写各的）。
+-- 本模块把 `propext`/`funext` 立起来之后，**那两条原则上可以改写成定理** ——
+-- 但**本版不做**（见文件尾的说明：改写要动 `lib/Set`/`lib/Rel` 的既有公理，
+-- 会影响全课程的声明计数与 `Set.ext` 的使用点 ⇒ 留给后续）✗。
+--
+-- **基准**（逐条实查，出处见 `docs/design/v077-st1-boundary.md` §2）：
+--   Mathlib `Mathlib/Logic/Basic.lean`：
+--       theorem propext {a b : Prop} (h : a ↔ b) : a = b
+--   Mathlib `Mathlib/Logic/Function/Basic.lean`：
+--       theorem funext {f g : α → β} (h : ∀ x, f x = g x) : f = g
+--   Mathlib `Mathlib/Logic/Function/Basic.lean`（`funext` 的**依赖版**）：
+--       theorem funext {β : α → Sort v} {f g : ∀ x, β x} (h : ∀ x, f x = g x) : f = g
+--   ⚠ **univalence**（`(A ≃ B) ≃ (A = B)`，HoTT/Lean 4 的 `Mathlib/Logic/Equiv/Defs.lean`
+--   之外）：**本版不做** —— 它要求「类型的宇宙本身是一个类型 + 等价就是相等」，
+--   而本语言**没有累积性**（L-06）、也没有 `≃` 的类型层版本 ⇒ 见文件尾 ✗。
+--
+-- **分层判据**（docs/design/course-stdlib.md）：本文件是 **L2（词汇 + 公理）**：
+--   · 2 条公理 `propext` / `funext`（外挂，不证）；
+--   · 2 条 L2 引理（公理的展开）。
+-- 有数学内容的（用它们推 `Set.ext`、函数相等的推理）属 **L3**，留作练习 ✗。
+import lib.Logic
+import lib.Fun
+
+-- ── 命题外延（propext）────────────────────────────────────────────────────
+-- 读法：两个命题**逻辑等价** ⇒ 它们**相等**（作为 `Prop` 的元素）✓。
+-- ⚠ 这是**公理**：它说的不是"能互推"，而是"互推 ⇒ 相等" ——
+-- 在 `Prop` 是"命题的集合"这个读法下才成立 ✓（Mathlib 逐字同款）。
+axiom propext : (a b : Prop) → (a ↔ b) → a = b
+
+-- ── 函数外延（funext，**依赖版**）──────────────────────────────────────────
+-- 读法：两个函数**逐点相等** ⇒ 它们**相等** ✓。
+-- ⚠ 取**依赖版**（`β : α → Type`）—— 非依赖版是它的特例（`β` 常值）✓；
+-- Mathlib 的 `funext` 就是依赖版（`β : α → Sort v`），我们照抄它的形状 ✓。
+axiom funext : (α : Type) → (β : α → Type) →
+  (f : (x : α) → β x) → (g : (x : α) → β x) →
+  (∀ (x : α), f x = g x) → f = g
+
+-- ── 公理的展开（L2：两条就是上面那两个类型，没有数学内容）──────────────────
+theorem propext_spec (a b : Prop) (h : a ↔ b) : a = b :=
+  propext a b h
+
+theorem funext_spec (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x)
+    (h : ∀ (x : α), f x = g x) : f = g :=
+  funext α β f g h
+
+-- ── 本版不做（记在这里，免得后来者重复踩）──────────────────────────────────
+-- · **把 `Set.ext` / `Rel.ext` 改写成 `propext`+`funext` 的推论**：那要动
+--   `lib/Set`（公理 → 定理）与 `lib/Rel`（同），会影响**全课程的声明计数**与
+--   所有 `Set.ext` 的使用点 ⇒ **本版不做**（用户 2026-09-28：v0.77 不要求全绿，
+--   且这类改写属"重构"不是"补缺口"）✗；
+-- · **univalence**：要「类型的宇宙是类型 + 等价即相等」，而本语言**没有累积性**
+--   （L-06）、也没有类型层的 `≃`（`Type.Equiv` 是**数据版**关系，不是 `Type` 的元素）
+--   ⇒ **本版不做**，也不登记为缺口（它是**更强的**公理，不是本课程的必需件）✓；
+-- · **由 `funext` 推「`Quot.lift` 的唯一性」等**：属 L3/后续。
