@@ -120,17 +120,26 @@ key(M) = H( format, 编译器版本, build stamp, prelude 模式,
 磁盘格式还没定型 ⇒ **先刀 1、后刀 2**。两刀共用**同一条键**（§3）⇒ P3 不是第二套缓存，
 只是同一条键的**第二个来源**（本地编译 vs 下载）。
 
-## 9. 切片 1b 的**判定实验**（先定判据，再写代码）
+## 9. 切片 1b：**一个 builder 贯穿全场**（跨 builder 播种已被证否）
 
-切片 1a（arena 提到调用方，`run_pass_in`）只让产物活得过一次 pass。**1b 才是声音性问题**：
-能否用 `snapshot()` 的 `declars`（`util.rs:630`，**公开字段**）+ `restore_declars()`（`builder.rs:108`）
-给入口的 builder **播种**依赖环境并**继续 `add_declar`**？T-K12c 正是死在这类"共享 `decl_idx`
-槽位"上（`architecture.md:543-545`）。
+**先记一条实测发现（2026-09-28，读 `util.rs` 的 `Dag::new_local` + 子代理复核）**：
+"把上一次编译的 `declars` 播种进**新建的** builder"这条路**不成立** ——
+`EnvBuilder::new` 每次都 `Dag::new_local` ⇒ **每个 builder 自带一套 interner**；
+`decl_idx` 槽位挂在被 intern 的 `NameNode` 上，所以旧表里的名字指针属于**老 DAG**，
+而第二趟重新 intern 出来的 `Shared.shared_and` 是**新节点**（`decl_idx = NO_DECL`）
+⇒ 查不到 ⇒ 复用不了。⇒ **产物必须与"建它的那套 DAG"待在一起**。
 
-**实验**（`crates/front/tests/module_reuse.rs` 或 crate 内测试）夹具 = 1 个共享依赖（含 1 个 `by`）
-+ 1 个入口。五条断言：① **播种路径 vs 今天逐入口路径的报告/事件逐字节相同**（错编红线，唯一验收口径）·
-② 播种下 `by_calls` **3 → 1**（`check-recompile-factor.py` 同口径；**改前实测 = 3**）·
-③ **改依赖一行 ⇒ 必 miss 重编**（反例）· ④ arena 隔离（顺序交换结果不变）· ⑤ 降级路径
-（只复用叶子依赖）也要给数字。
-**判定**：① 过 ⇒ 量真课程 **174 → ?** / **222.1s → ?**；① 不过 ⇒ 贴具体断言与行号，
-按降级 a（只复用干净模块）→ b（只复用叶子依赖）→ c（先一个共享模块）继续拆，每级都给数字。
+**改后的做法（全部前端，内核零改动）**：
+1. **一个 session arena + 一个 `EnvBuilder`** 贯穿整次 `build <dir>`（arena 提升 = 切片 1a ✓ 已合入）；
+2. 先编**共享库层**（各 `lib/*` 各一次），在库层边界留一份 **`declars` 检查点**
+   （`hide_declars()` 取走、`Clone` 留一份 —— `Clone` 由 `snapshot()` 已在用，不必命名那个 `pub(crate)` 类型）；
+3. 每个入口：`restore_declars(库层检查点)` ⇒ 只走**入口自己的命令** ⇒ 编完 `hide_declars()` 丢掉入口的声明；
+4. ⇒ **单元之间从不共处一个环境**（09-25 假"重复声明"的结构性根因消失），
+   **前缀也不膨胀**（每个入口的前缀仍是它自己的闭包），而**共享库只编一次**。
+
+**判据（`crates/front/tests/module_reuse.rs`）**：① 复用路径 vs 今天逐入口路径的报告/事件
+**逐字节相同**（错编红线，唯一验收口径）· ② `by_calls` **3 → 1**（`check-recompile-factor.py`
+同口径；**改前实测 = 3**）· ③ **改依赖一行 ⇒ 必 miss 重编**（反例）· ④ 入口顺序交换结果不变 ·
+⑤ 真课程 **174 → ?** / **222.1s → ?**。
+**待实验回答的唯一未知**：walk 的前端表（`known`/`inductives`/`defs`）能否跨入口复用，还是必须逐入口重建
+（① 会直接给出答案）。
