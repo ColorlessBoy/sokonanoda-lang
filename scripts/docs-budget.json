@@ -7,7 +7,7 @@
     "docs/LESSONS.md": 556,
     "docs/PERF.md": 715,
     "docs/RELEASE.md": 187,
-    "docs/STATUS-ARCHIVE.md": 39,
+    "docs/STATUS-ARCHIVE.md": 68,
     "docs/TESTING.md": 279,
     "docs/architecture.md": 750,
     "docs/design/abbrev.md": 156,
@@ -121,16 +121,16 @@
     "layer_max_lines": {
       "L0": 1855,
       "L1": 9013,
-      "L2": 20170,
+      "L2": 20471,
       "L3": 5330
     },
     "_measured": {
       "L0": 1855,
       "L1": 7008,
-      "L2": 20170,
+      "L2": 20471,
       "L3": 5330,
       "date": "2026-09-28",
-      "note": "L3 = docs/archive 全量（含二次归档文件）；归档堆积是合法增长 ⇒ 新文件计入基线一次"
+      "note": "L3 = docs/archive 全量（含二次归档文件）；归档堆积是合法增长 ⇒ 新文件计入基线一次。L2 20170 → 20471（+301）：**新增两个文件**（G-68 的证据）—— `docs/perf/rebuild-baseline-2026-09-28.md`（六项实测数字）+ `docs/perf/recompile-waste-retrospective-2026-09-28.md`（复盘 ①②③④）。走的是本节写明的**例外①**（新增文件到该层 ⇒ 基线跟着走一次），不是内容改大；**既有文件一行没动** ✓。"
     }
   }
 }
