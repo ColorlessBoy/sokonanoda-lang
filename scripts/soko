@@ -1215,6 +1215,44 @@ async function main(argv) {
         return 3
       }
       if ((versionCheck.status ?? 3) !== 0) return versionCheck.status ?? 3
+      // **重复功守卫**（G-68，2026-09-28 用户 22:09「重复编译这种灾难怎么会发生」）：
+      // 既有性能纪律**全是相对量** —— `perf-gate` 比"与台账上一次同名记录的 delta"、
+      // E17 按"每声明"归一 ⇒ **基线里已经包含的浪费在定义上不可见**：per-entry-closure
+      // 键让共享依赖在每个入口里各编一遍（课程项目实测 **174 次模块编译 = 4.14×**、
+      // rebuild **222.1s**），而它在 0.68.0→0.78.0 **每个版本都是同一个常数** ⇒
+      // 恒定 `0%` delta、归一化后 `44.9 → 44.9 ms` ✓✓。
+      // ⇒ 补一条**测次数**（不测耗时）的守卫：夹具 = 3 个入口共享 1 个依赖，
+      // `SOKO_STAGE_STATS` 的 `by_calls` 就是"共享依赖被编了几次"的直接读数；
+      // 上界在 `scripts/recompile-budget.json`（**只许减不许增**）。
+      // 复盘（时间线 + 为什么七条纪律一条都没抓到）：docs/perf/recompile-waste-retrospective-2026-09-28.md
+      const recompile = path.join(REPO, 'scripts', 'check-recompile-factor.py')
+      if (!existsSync(recompile)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, recompile)} —— 重复功无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const recompileRun = spawnSync(python.cmd, [...python.args, recompile], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (recompileRun.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${recompile}: ${recompileRun.error.message}\n`)
+        return 3
+      }
+      if ((recompileRun.status ?? 3) !== 0) return recompileRun.status ?? 3
+      // 反向验证也进 gate ✓（`AGENTS.md`：**咬不住的守卫等于没有** ✓）：
+      // 造一个"5 个入口共享 1 个依赖"的场景，它**必须判红** ✗⇒✓。
+      const recompileSelf = spawnSync(python.cmd, [...python.args, recompile, '--selftest'], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (recompileSelf.error || (recompileSelf.status ?? 3) !== 0) {
+        process.stderr.write(
+          `scripts/soko gate: ${path.relative(REPO, recompile)} --selftest 失败 —— 守卫咬不住 G-68（exit 3）。\n`,
+        )
+        return 3
+      }
       if (fast) {
         process.stderr.write(
           'scripts/soko gate --fast: 跳过缺口台账门禁（~94s；它是**提交前**的契约，' +

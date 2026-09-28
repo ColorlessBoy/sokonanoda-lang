@@ -358,6 +358,22 @@ jobs:
         # 这里只跑**自检**（反例必须判红 ⇒ 守卫没空转 ✓）；区间判定在 pre-push 里做
         # （CI 里 `HEAD~1..HEAD` 对 merge 提交不等于"这一推的提交" ✗）。
         run: python3 scripts/check-timing-evidence.py --selftest
+      - name: Recompiled work is counted, not timed (G-68)
+        # **测次数，不测耗时** ✓（2026-09-28 用户 22:09「重复编译这种灾难怎么会发生」）：
+        # 既有性能门禁全是**相对量**（`perf-gate` 比台账上一次同名记录的 delta、
+        # E17 按"每声明"归一）⇒ **基线里已经包含的浪费在定义上不可见** ✗ ——
+        # per-entry-closure 键让共享依赖在每个入口里各编一遍（实测 **174 次模块编译
+        # = 4.14×**、rebuild **222.1s**），而它在 0.68.0→0.78.0 每个版本都是同一个
+        # 常数 ⇒ 恒定 0% delta、归一化后 44.9 → 44.9 ms ✓✓。
+        # 夹具 = 3 个入口共享 1 个依赖；判据 = `SOKO_STAGE_STATS` 的 `by_calls`
+        # （"共享依赖被编了几次"的直接读数）≤ `scripts/recompile-budget.json` 的上界
+        # （**只许减不许增**）。`--selftest` = 反向验证：5 入口的重复场景必须判红。
+        # 二进制：上一 step 刚 `cargo build` 出的 `target/debug/sokonanoda`
+        # （守卫测的是**结构计数**，与 debug/release 无关）。
+        # 复盘：docs/perf/recompile-waste-retrospective-2026-09-28.md
+        run: |
+          python3 scripts/check-recompile-factor.py
+          python3 scripts/check-recompile-factor.py --selftest
       - name: Course layer is guarded (canvases, solutions, course.json)
         run: cargo test -p sokonanoda-cli --test course --locked
   gates-course:
