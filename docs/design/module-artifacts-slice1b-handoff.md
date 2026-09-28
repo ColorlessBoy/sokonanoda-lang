@@ -87,3 +87,34 @@ time ./target/debug/sokonanoda build --json courses/set-theory > /dev/null
 * **`crates/kernel/` 零改动**（全程只用既有公开 API）。
 * 判绿口径：`python3 scripts/ci-green.py --run <id>` **exit 0** + 重活 **10/10** + **failure 0**；
   **本地 gate 绿不算绿**。一次只让一条 run 活着，**推一次就停**。
+
+## 5. 2026-09-29 实测：最后一刀的**真根因**与修法（已冻结）
+
+**症状**：CLI 接线后 `build <dir>` 多入口 `failed: 3/4`；而**前端 session 本身正确**
+（加强后的 `session_reuse` 绿：入口无 errors、库层报告齐）。
+
+**真根因**（决定性实验：把判据从**裸 `SourceUnit`** 换成 **`plan_project`** 的单元后立刻转红）：
+```
+入口 0 有错误（CLI 路径）：["unknown identifier `Nat`"]
+```
+prelude 的 `Nat`/`Bool`/`Eq`/L1 登记在 **`run_pass_with` 每趟重建**的三张表里
+（`crates/front/src/compile/check/mod.rs:846-849` 的 `KnownTable`/`InductiveTable`/`DefTable`），
+而 `hide_declars`/`restore_declars` 只搬 `declars` ⇒ **入口趟看不到 prelude** ✗。
+（装 `install_preludes=true` ⇒ `duplicate declaration Nat`；`false` ⇒ `unknown identifier Nat`。）
+
+**修法（纯前端，不碰 `crates/kernel/`）**：让三张表**跨趟复用** ——
+1. `check/mod.rs`：加 `pub(crate) struct PassTables<'a> { known, inductives, defs }`；
+   `run_pass_with` 加形参 `tables: PassTables<'a>`（`:846-849` 不再 `new()`；`:853-855` 借用；
+   `:953-955` 移入 `Walked`），返回值带上它；
+2. `kernel_phase.rs`：`finish_pass<'a>(walked: Walked<'a, '_>) -> (PassResult, PassTables<'a>)`
+   （`:580` 的 `PassResult{…}` 处一并交回）；
+3. 调用点：`run_pass_in`（`:801`）与 `project/session.rs` 各建一份并**跨趟复用**
+   （库层 `install_preludes=true`、入口 `false`）。
+
+**判据**：去掉 `session_reuse.rs` 里 `session_compiles_entries_that_import_the_lib_layer` 的
+`#[ignore]` ⇒ 必须绿；`session_reuse`（判据 ② `by_calls` **3 → 1**）绿；`clippy --all-targets`
+**0 error**；**内核零改动**。随后才接 CLI ⇒ 多入口守卫（`failed:0` / `compiled:4`）⇒
+真课程**同机 A/B**（本机冷全量基线 **625s**，**禁止**与 09-28 的 222.1s 跨机比）⇒ `--json` 对拍。
+
+**四条已记入 `docs/CI-FAILURES.md` 的教训**：性能数字先看 `failed` 计数（15s 假提速）·
+**revert ≠ rebuild** · 咬不住的守卫等于没有（已补多入口守卫并反向验证）· 跨机比数字无效。
