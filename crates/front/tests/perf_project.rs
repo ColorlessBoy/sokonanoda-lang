@@ -189,6 +189,27 @@ fn project_closure_compile_scales_linearly() {
 
 // ── 3. 按键路径：改一行 ⇒ 重编译整个闭包（项目模式今天的真实成本）──
 
+/// **同机参考量**：全新项目上的**冷编译**耗时（`gen_project` + 一次编译，不带覆盖）。
+///
+/// 为什么要它（2026-09-28 实测，见下）：本用例原来的判据是**绝对**墙上时钟
+/// `worst < 2000.0`，而**绝对毫秒跨机器不可转移** —— 同一份 `crates/` 代码实测：
+/// 本机 **44–71ms**、CI run `36362709263` **240ms**、`36373825237` **343ms**、
+/// `36378945287` attempt 1 **2431ms**（判红）/ attempt 2 **511ms**（判绿）。
+/// 同一 job 同代码两次差 **4.8×**、跨机差 **55×** ⇒ 那个断言其实在**量机器**，不是在量代码。
+///
+/// 而**比值**是稳的：本机实测 `keystroke_worst / cold_ref = 44.6 / 74.5 = 0.60`。
+/// ⇒ 判据改成「**按键重编译 vs 同机冷编译**」的比值，再配一个**很宽的**绝对天花板
+/// （防"两边一起变慢"）：真正的量级回归两者都会咬住，机器抖动咬不住。
+fn cold_reference_ms(tag: &str, options: &CompileOptions) -> f64 {
+    let (dir, entry) = gen_project(tag, 4, 20);
+    let started = Instant::now();
+    let report = compile_project(&entry, None, options, None);
+    let elapsed = ms(started.elapsed());
+    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
+    let _ = std::fs::remove_dir_all(&dir);
+    elapsed
+}
+
 #[test]
 fn project_keystroke_recompiles_the_closure_within_budget() {
     let options = CompileOptions::default();
@@ -208,9 +229,14 @@ fn project_keystroke_recompiles_the_closure_within_budget() {
         worst = worst.max(elapsed);
         best = best.min(elapsed);
     }
+    // 同机参考量取 3 次里最快的（最接近"这台机器的干净速度"，干扰最小）。
+    let cold_ref = (0..3)
+        .map(|i| cold_reference_ms(&format!("keystroke-ref{i}"), &options))
+        .fold(f64::MAX, f64::min);
+    let ratio = worst / cold_ref;
     println!(
         "PERF project keystroke: recompile closure (4 modules × 20 decls) \
-         best {best:.1}ms · worst {worst:.1}ms"
+         best {best:.1}ms · worst {worst:.1}ms · cold-ref {cold_ref:.1}ms · ratio {ratio:.2}"
     );
     perf_json(serde_json::json!({
         "schema": "soko.perf/1",
@@ -220,9 +246,21 @@ fn project_keystroke_recompiles_the_closure_within_budget() {
         "decls_per_module": 20,
         "best_ms": (best * 100.0).round() / 100.0,
         "worst_ms": (worst * 100.0).round() / 100.0,
+        "cold_ref_ms": (cold_ref * 100.0).round() / 100.0,
+        "ratio": (ratio * 100.0).round() / 100.0,
     }));
+    // ① **机器无关的量级判据**：按键重编译不该比同机冷编译贵一个量级。
+    //    实测比值 **0.60** ⇒ 8× 留 13 倍余量（只咬量级回归，不咬机器抖动）。
     assert!(
-        worst < 2000.0,
+        ratio < 8.0,
+        "one keystroke cost {worst:.1}ms vs a same-machine cold compile of {cold_ref:.1}ms \
+         (ratio {ratio:.2}) — order-of-magnitude regression?"
+    );
+    // ② **很宽的绝对天花板**：防"重编译与冷编译一起变慢"（比值看不出来那种）。
+    //    取 30000ms ⇒ 相对实测（本机 71ms / CI 2431ms 最坏那次）仍有 12× 以上余量；
+    //    它挡的是"整条路慢掉一个数量级"，不是"机器今天很吵"。
+    assert!(
+        worst < 30000.0,
         "one keystroke cost {worst:.1}ms on a 4×20 project — order-of-magnitude regression?"
     );
     let _ = std::fs::remove_dir_all(&dir);
