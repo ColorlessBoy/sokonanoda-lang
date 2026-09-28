@@ -49,4 +49,25 @@ if ! (cd "$root" && python3 scripts/check-timing-evidence.py ${range%%..*} HEAD)
 MSG
   exit 1
 fi
-echo "[pre-push] ✅ 本地快层全绿 + 时序证据齐 ✓ ⇒ 放行 ✓"
+# **一次只让一条 CI run 活着**（2026-09-28 用户红线 ✓）：连推三次 ⇒
+# `cancel-in-progress` 把每轮都顶掉 ⇒ **HEAD 一条跑完的 CI 都没有** = 「本地绿就算绿」的翻版 ✗。
+# ⚠ **`gh` 不可用 ⇒ exit 2 ⇒ 判不了**（**不是绿**）⇒ 这里按"判不了就放行 + 提示"处理 ✓
+# （`gh` 是运维工具，不该因为它缺席就把所有人的推送堵死 ✗ —— 但**要说出来** ✓）。
+if (cd "$root" && python3 scripts/check-one-run.py); then
+  :
+else
+  rc=$?
+  if [ "$rc" = 1 ]; then
+    cat >&2 <<'MSG'
+
+[pre-push] ❌ **已有未完成的 CI run** ✗ ⇒ 拒绝推送 ✓（用户 2026-09-28 红线）。
+  * **等它跑完**（推荐）：`scripts/ci-watch.sh --follow` ⇒ 然后
+    `python3 scripts/ci-green.py --run <id>` 判**真绿**（exit 0 + 重活 x/10 + failure 0）✓；
+  * 确认那批**不需要验证** ⇒ `scripts/ci-push.sh`（会先关旧 run ✓）；
+  * 紧急逃生门：`git push --no-verify` / `SOKO_SKIP_HOOK=1` ⇒ **必须在 `STATUS.md` 写明原因** ✓。
+MSG
+    exit 1
+  fi
+  echo "[pre-push] ⚠ one-run 守卫**判不了**（exit $rc）⇒ 放行，但请手动确认没有未完成的 run ✓"
+fi
+echo "[pre-push] ✅ 本地快层全绿 + 时序证据齐 + 无并发 run ✓ ⇒ 放行 ✓"
