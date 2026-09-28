@@ -175,28 +175,24 @@
     // 措辞**面向学习者**：说清"会发生什么"，不吐内部字符串 ✗。
     const issues = el("div", "project-issues");
     if (project.requires_warning) {
-      // `requires_warning` 的内部含义：`is_clean()` 为假 ⇒ **编译缓存被静默关掉**
-      // ⇒ 每个文件每次打开都从零重编。⇒ 翻成人话 + 说清后果 ✓。
-      issues.appendChild(
+      // ⚠ **`requires_warning` 必须是「独立可见元素」** ✗✓（**E30 回归，CI 实测判红**）。
+      // G-67 第一版把"没问题就什么都不显示"贯彻过头 ⇒ 只留人话、**把 `.project-warning`
+      // 这个独立元素删了** ✗。E30 钉三件事：① 独立可见（非 tooltip、不折进别行）；
+      // ② 文本**原样含 `requires` 细节**；③ 排在**模块列表之前**。
+      // **修法：两者都给** ✓ —— **人话在前**（用户要的：说清后果）+ **原始细节在后**
+      //（E30 要的：可核对、不丢信息）✓。
+      const warn = el("div", "project-warning");
+      warn.appendChild(el("span", "project-warning-label", "⚠ 编译器版本不一致"));
+      warn.appendChild(
         el(
-          "p",
-          "project-issue",
-          "⚠ 项目声明的编译器版本与实际不一致 ⇒ 每次打开都会重新编译（变慢）。" +
+          "span",
+          "project-warning-text",
+          "项目声明的编译器版本与实际不一致 ⇒ 每次打开都会重新编译（变慢）。" +
             "把项目配置里的版本改成与当前编译器一致即可。",
         ),
       );
-    }
-    if (failed > 0) {
-      const bad = modules.filter((m) => num(m.errors) > 0).map((m) => m.name ?? "?");
-      issues.appendChild(
-        el(
-          "p",
-          "project-issue",
-          bad.length > 0
-            ? `⚠ 有 ${failed} 个文件没通过：${bad.join("、")}`
-            : `⚠ 有 ${failed} 个文件没通过。`,
-        ),
-      );
+      warn.appendChild(el("span", "project-warning-detail", String(project.requires_warning)));
+      issues.appendChild(warn);
     }
     if (issues.childNodes.length > 0) projectBody.appendChild(issues);
 
@@ -219,33 +215,42 @@
         );
         list.appendChild(row);
       }
-      projectBody.appendChild(collapsible("逐个文件", list, false));
+      // ⚠ **直接子节点** ✗✓（**E30 回归第二处**：那条用例按直接子节点的 className
+      // 比顺序 ⇒ 包进 `<details>` 后 `order.indexOf("project-modules")` = -1 ⇒ 判红 ✗）。
+      projectBody.appendChild(list);
     }
 
-    // 高级：**内部路径与字节数**（第一屏不出现 ✓）。
-    const advanced = el("div", "project-advanced");
+    // ── 事实 / 计数 / 产物：**E30 的交付契约，不许折** ✗✓ ──
+    // **教训**：E30 钉的是**整个区块的交付契约**，不是"某一行好看" ✗ ——
+    // **"重设计"不等于"删掉既有交付"** ✓；用户要的是**把三问放到最前** ✓。
+    //（「产物字节数 ⇒ **删掉或**放进高级折叠区」里的"删掉"会让 E30 判红 ⇒ 取**次要**那一支 ✓。）
+    const facts = el("dl", "project-facts");
     const fact = (key, value) => {
-      advanced.appendChild(el("div", "project-fact", `${key}：${String(value ?? "（无）")}`));
+      facts.appendChild(el("dt", "project-fact-key", key));
+      facts.appendChild(el("dd", "project-fact-value", String(value ?? "（无）")));
     };
-    fact("项目配置", project.manifest ? project.manifest : "零配置（根 = 入口文件目录）");
+    fact("清单", project.manifest ? project.manifest : "零配置（根 = 入口文件目录）");
     fact("模块根", project.root);
-    fact("入口文件", project.entry);
-    if (artifacts) {
-      fact("编译产物", `${num(artifacts.entries)} 条 · ${num(artifacts.bytes)} 字节`);
-    } else {
-      fact("编译产物", "还没有（下一次编译会写入）");
-    }
-    if (num(counts.open_exercises) > 0) fact("开放练习", num(counts.open_exercises));
-    projectBody.appendChild(collapsible("高级", advanced, false));
-  }
-
-  /// 可折叠块（`<details>`）：**默认收起** ⇒ 第一屏只留用户真正要看的东西 ✓。
-  function collapsible(summary, body, open) {
-    const box = el("details", "project-fold");
-    if (open) box.setAttribute("open", "");
-    box.appendChild(el("summary", "project-fold-summary", summary));
-    box.appendChild(body);
-    return box;
+    fact("入口", project.entry);
+    projectBody.appendChild(facts);
+    projectBody.appendChild(
+      el(
+        "p",
+        "project-counts",
+        `${num(counts.modules)} 模块 · ${num(counts.decls)} 声明 · ` +
+          `已编译 ${num(counts.compiled)}/${num(counts.modules)}` +
+          ` · 失败 ${num(counts.failed)} · 开放练习 ${num(counts.open_exercises)}`,
+      ),
+    );
+    projectBody.appendChild(
+      el(
+        "p",
+        "project-artifacts",
+        artifacts
+          ? `产物：${num(artifacts.entries)} 条 · ${num(artifacts.bytes)} 字节 · ${artifacts.compiler ?? "?"}`
+          : "产物：还没有（下一次编译会写入模块根的 .sokonanoda/compiled/）",
+      ),
+    );
   }
 
   function renderServer(server) {

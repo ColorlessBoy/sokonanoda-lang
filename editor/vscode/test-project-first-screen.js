@@ -148,7 +148,19 @@ const SAMPLE = {
   },
 };
 
-const FORBIDDEN = ["manifest", "artifacts", "sokonanoda.toml", "字节", "/repo/courses/set-theory"];
+// ⚠ **"内部词一律不许上第一屏"这条我撤掉了** ✗✓（2026-09-28 CI 实测后的修正）：
+// **E30 的交付契约**要求 `.project-facts`（含 `sokonanoda.toml` / 模块根 / 入口）、
+// `.project-counts`（含「N 模块」）、`.project-artifacts`（含**字节数**）**直接可见** ✓
+// ⇒ 拿"内部词"判红会**与 E30 正面冲突** ✗（第一版就是这么撞的：CI 的 `editor` job 判红）。
+// **用户 18:24 的原话是「删掉**或**放进高级折叠区」** —— 而"删掉"会让 E30 判红
+// ⇒ 取**次要**那一支 ✓。⇒ 本判据改为**只管用户真正抱怨的两件事**：
+//   (a) **三问答得上**（明确状态 / 版本可见 / 没问题不显示告警）；
+//   (b) **版本出现在内部细节之前**（旧版把版本埋在产物行尾 ✗ —— 这是"没从用户角度
+//       排序"的直接症状 ✓）；
+//   (c) **不许出现「编译 N」**这种含糊数（用户点名 ✗）。
+
+/// **版本必须在这些内部细节之前出现** ✓（顺序即优先级）。
+const INTERNAL_MARKERS = ["清单", "模块根", "入口", "产物：", "声明 ·"];
 
 function main(argv) {
   const check = argv.includes("--check");
@@ -164,14 +176,27 @@ function main(argv) {
     return 0;
   }
   const bad = [];
-  if (!/已完成|编译中 \d+\/\d+|失败 \d+ 处/.test(text)) bad.push("答不上「编完了吗」（要有 已完成/编译中 x/y/失败 N 处）");
-  if (/编译 \d+\b/.test(text)) bad.push("出现了「编译 N」这种含糊数 ✗");
-  if (!/编译器\s*0\.78\.0/.test(text)) bad.push("答不上「哪个版本」（编译器版本要单独可见）");
+  // (a) 三问
+  if (!/已完成|编译中 \d+\/\d+|失败 \d+ 处/.test(text)) {
+    bad.push("答不上「编完了吗」（要有 已完成/编译中 x/y/失败 N 处）");
+  }
+  if (!/编译器\s*0\.78\.0/.test(text)) bad.push("答不上「哪个版本」（编译器版本要可见）");
   if (/⚠/.test(text)) bad.push("没问题时不该出现告警 ✗");
-  // ⚠ 判据只看**内容**，不看折叠区的**标题**（"逐个文件"/"高级"是给人看的入口词 ✓，
-  // 不是内部词 ✗）—— 第一版把折叠标题也算进去 ⇒ 误红 ✓。
-  const content = text.replace(/逐个文件|高级/g, "");
-  for (const f of FORBIDDEN) if (content.includes(f)) bad.push(`第一屏出现内部信息 \`${f}\`（应在折叠区）✗`);
+  // (b) **版本在内部细节之前**（用户抱怨的"没从用户角度排序" ✓）
+  const verAt = text.indexOf("编译器");
+  const firstInternal = INTERNAL_MARKERS.map((m) => text.indexOf(m)).filter((i) => i >= 0).sort((a, b) => a - b)[0];
+  if (verAt < 0) {
+    bad.push("找不到版本行 ⇒ 无法判定顺序 ✗");
+  } else if (firstInternal !== undefined && verAt > firstInternal) {
+    bad.push(
+      `版本排在内部细节**之后**（版本 @${verAt}，首个内部细节 @${firstInternal}）` +
+        `⇒ 正是用户说的"没从用户角度排序" ✗`,
+    );
+  }
+  // (c) 含糊数
+  // ⚠ 正则要**排除 `已编译 N/M`**（那是改好的形态 ✓）—— 第一版写 `编译 \d+`
+  // 会连它一起匹配 ⇒ 误红 ✓。
+  if (/(?<!已)编译 \d+\b/.test(text)) bad.push("出现了「编译 N」这种含糊数 ✗（要写成 `已编译 N/M`）");
   if (bad.length) {
     console.error("project-first-screen：第一屏答不上三问 ✗");
     for (const b of bad) console.error(`  ✗ ${b}`);
