@@ -857,3 +857,37 @@ fn build_a_directory_of_entries_sharing_a_dependency_compiles_them_all() {
         "Dep + 3 个入口都应编译（0 hit）：{summary}"
     );
 }
+
+/// **切片 1b 的第二个守卫（多库链）**：真课程是 `lib.Logic`/`lib.Set`/… **多库模块 + 相互依赖**，
+/// 而上面那条夹具只有 **1 个库模块** ⇒ 它过不代表真课程过 ✗（2026-09-29 实测：
+/// 夹具 `failed:0/compiled:4` ✓ 而真课程 `failed:38/42` ✗）。
+/// 本用例把形状补上：`L1` → `L2`（import L1）→ `E0`/`E1`（import L2）。
+#[test]
+fn build_a_directory_with_a_library_chain_compiles_them_all() {
+    let dir = tmp_dir("build-lib-chain");
+    write(&dir, "L1.sokonanoda", "def base : Nat := 1\n");
+    write(&dir, "L2.sokonanoda", "import L1\ndef mid : Nat := base\n");
+    for i in 0..2 {
+        write(
+            &dir,
+            &format!("E{i}.sokonanoda"),
+            &format!("import L2\ndef e{i} : Nat := mid\n"),
+        );
+    }
+    let cache = tmp_dir("build-lib-chain-cache");
+    let out = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
+    assert!(out.status.success(), "build 应成功：{}", stderr(&out));
+    let text = stdout(&out);
+    let summary = text
+        .lines()
+        .find(|line| line.contains("\"type\":\"build.summary\""))
+        .unwrap_or_else(|| panic!("没有 build.summary：{text}"));
+    assert!(
+        summary.contains("\"failed\":0"),
+        "多库链 build 不许有失败：{summary}"
+    );
+    assert!(
+        summary.contains("\"compiled\":4"),
+        "L1 + L2 + 2 个入口都应编译（0 hit）：{summary}"
+    );
+}
