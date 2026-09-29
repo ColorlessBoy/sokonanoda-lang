@@ -900,3 +900,40 @@ session 回调里能拼出来的"闭包单元列表"只能是 **`lib_units`（�
 **⇒ 收口 = 在 `build` 侧写一个 adapter**（拿 plan + 回调的 `out`/`entry_reports`
 ⇒ 组 `PlanCompiled` ⇒ `assemble_report` ⇒ 喂 `build_one` 的 `precomputed`），
 **`session.rs` 不用再改** ✓。
+
+## 24. adapter 的**最后一道门**：`ProjectPlan.closure` 是**私有的**
+
+§23.3 判"接线方自己调 `assemble_report` 即可"——**再核一层**：还差**一样可见性** ✗。
+
+`PlanCompiled` 要 `closure: &'a Closure`（`project/mod.rs:373`），而：
+
+* `ProjectPlan` 的字段 `closure: Closure`（`project/mod.rs:142`）**没有 `pub`** ✗；
+* 它只暴露 `pub fn modules(&self) -> &[LoadedModule]`（`:146`）——**不是 `&Closure`** ✗；
+* `Closure` 类型**本身是 `pub`**（`:28` 的 re-export）✓ ⇒ 只是**拿不到 plan 里那一份**。
+
+⇒ **接线方（CLI）拿不到 `&Closure`** ⇒ 组不出 `PlanCompiled` ⇒ 调不了 `assemble_report` ✗。
+
+### 24.1 两种收口（都很小，选一）
+
+* **收口 1（最小，前端加一个访问器）**：
+  `ProjectPlan` 加 `pub fn closure(&self) -> &Closure { &self.closure }`。
+  **纯新增、零语义变化** ✓。接线方就能自己组 `PlanCompiled` ✓。
+* **收口 2（前端直接给一个"从 session 结果出报告"的函数）**：
+  在 `project/mod.rs` 加
+  `pub fn assemble_from_session(plan: &ProjectPlan, flat_out: CompileOutput, reports: Vec<DocumentReport>) -> ProjectReport`
+  —— 把"组 `PlanCompiled`"这件事**收进前端**（不让 CLI 知道 `PlanCompiled` 的细节）✓
+  **更干净**（CLI 少依赖一个内部结构），推荐这条。
+
+**⇒ 选收口 2。**
+
+### 24.2 于是切片 1 的最后一步是（三处小改，都已定位）
+
+1. **前端**：`project/mod.rs` 加 `assemble_from_session(plan, flat_out, reports) -> ProjectReport`
+   （内部组 `PlanCompiled` + 调 `assemble_report`；`plan` 的私有 `closure` **在前端内部** ⇒ 够得着 ✓）；
+2. **CLI**：`build <dir>` 先跑**一次**跨全部入口的 `with_project_session`
+   （`lib_units` = 各入口库层的**并集**（去重、拓扑序），`entries` = 各入口自己的单元），
+   回调里对每个入口调 `assemble_from_session` ⇒ 存进 `Vec<Option<ProjectReport>>`；
+3. **CLI**：批量循环把 `build_one(..., None)` 的 `None` 换成 `precomputed[index]`
+   （`crates/cli/src/build.rs:228` 并行路径 / `:255` 串行路径）；
+   `build_one` 里 `:405` 的 `match precomputed { Some(p) => p, None => compile_plan_with_progress(...) }`
+   **已经写好了** ✓ —— **这个参数从切片 1b 起就留着，一直没人喂过**。
