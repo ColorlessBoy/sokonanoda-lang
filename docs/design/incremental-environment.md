@@ -761,3 +761,51 @@ for M in closure (拓扑序):
 
 任何性能数字**先报 `failed` 与合成 pass 计数，再看墙钟**；
 **174→42 是计数、≠ 快 4 倍**（实测墙钟只省 10–25%）；**禁止写"大幅提速"**。
+
+## 21. 切片 1 的**落地位置已定位**（2026-09-29，精确到行）
+
+### 21.1 关键发现：`build <dir>` **今天对每个入口各编一遍共享库**
+
+`crates/cli/src/build.rs` 的批量循环：
+
+* 串行路径 `:255`：`build_one(file, &src, root, no_project, progress, **None**)`；
+* 并行路径 `:228`：同样传 **`None`**；
+* `build_one`（`:367`）收到 `precomputed: None` ⇒ 走
+  `:405` `compile_plan_with_progress(plan, &options, progress)` ——
+  **每个入口独立编它自己的整条闭包**（`lib/*` + 自己）。
+
+⇒ 共享 `lib/*` 被**每个入口各编一遍** ✗ —— **这正是 4.14×（174 次模块编译 / 42 入口）
+与"分片无效"（单片 **317.71s** ≈ 全量 **313.78s**）的同一个根**。
+
+**`precomputed` 这个参数本来就是为切片 1b 留的接口**（注释写着"由 `with_project_session`
+预先算好的结果"），只是**从来没有人喂过它** —— 因为 `with_project_session` 是
+**per-entry** 形状（`lib_units` + `entries`），而 `build <dir>` 需要
+**一次 session 覆盖全部 42 个入口**。
+
+### 21.2 改法（最小）
+
+**`build <dir>` 先跑一次跨全部入口的 session**，再把结果喂给 `build_one`：
+
+1. 收集阶段：把 `files` 里**有 `import` 的**（项目源）逐个 `plan_project`，
+   取出各自的闭包单元 ⇒ **库层并集**（去重，拓扑序）+ 每入口自己的单元；
+2. **一次** `with_project_session(lib_units, entries, options, …)` ⇒
+   库层**只编一次**，每个入口只编自己的命令；
+3. 把每个入口的 `ProjectReport` 存进 `Vec<Option<ProjectReport>>`（按 `files` 下标）；
+4. 批量循环里把 `None` 换成 `precomputed[index]` ⇒ `build_one` 直接用，
+   **不再自己编闭包** ✓。
+
+**判据（值守第 3/4 条）**：
+* **先报计数**：`module_compiles_total()` 的 **174 → ?**（期望 ≈ 库模块数 + 入口数）；
+* 再看墙钟（同机同口径；**174→42 是计数 ≠ 快 4 倍**）；
+* **`--json` 逐字节不变**（红线；`build.decl`/`build.file`/`build.summary` 必须逐字节相同）；
+* **反向判据**：改 `lib/Shared` 一行 ⇒ 该 `module_key` **必须 miss 重编**
+  （守卫 `slice1_changing_a_dependency_forces_recompile` 已绿，实现写错它会红）；
+* 删掉 `slice1_shared_module_is_compiled_once_across_entries` 的 `#[ignore]` ⇒ 必须转绿 ✓。
+
+### 21.3 已知的两个坑（前面踩过，别再踩）
+
+1. **前缀必须 per-entry 保持原样**：切片 1b 的实测失败（42/42 通过但 **252.7s vs 218.8s**）
+   根因是"共享库层"用了**并集顺序的前缀**，与基线 per-entry 闭包前缀**对不上** ⇒
+   `passes` 4126→**5404**、`judge_ms` 148.4→**162.9** ⇒ 更慢 ✗。
+   ⇒ 切片 1 必须**保持每个入口自己的闭包前缀不变**（只把"库层只编一次"这件事做对）。
+2. **不许批编**（实测慢 **6.2×**）· **不许按前缀复用**（前缀是 per-entry 的）。
