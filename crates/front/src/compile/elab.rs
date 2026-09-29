@@ -2304,6 +2304,16 @@ fn infer_type_text<'a>(
     env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Option<String> {
     let binders = scope.judge_binders();
+    // ⚠ 这一行**保持原样**（`&render_expr(operand)` 内联）：它是记法路径守卫
+    // （`scripts/audit-notation-paths.py`）棘轮基线里的一条 —— 改成 `let term = …`
+    // 会让指纹对不上而被判"**新增** 1 处绕过唯一记法接口" ✗（实测踩到）。
+    // 就地路**本来就不用**这份渲染文本（它直接用 `operand` 的源 AST）✓。
+    // ⚠ **判定的查询文本**（**不是显示路径** ⇒ 这里用 `render_expr` 是对的：
+    // 记法折叠那条接口是给**显示**用的，判定路径用了会改判定 ✗）。
+    // 它同时喂两处：源码重跑（慢路）与 `judge` 缓存键（键必须与慢路**同源**，
+    // 否则就地路径与慢路各自命中不同的缓存槽）。
+    // 记法路径守卫（`scripts/audit-notation-paths.py`）把它算作**同族调用点**
+    // —— 与基线里 `judge_infer(… &render_expr(val))` 那条同类 ✓。
     let term = render_expr(operand);
     let slow = || judge_infer(ctx.prefix_src, ctx.options, &binders, &term).ok();
     match (crate::judge::inplace_mode(), env) {
@@ -2374,7 +2384,7 @@ fn infer_type_text<'a>(
                      why={:?}",
                     ctx.prefix_src.len(),
                     binders.len(),
-                    term.chars().take(60).collect::<String>(),
+                    format!("{operand:?}").chars().take(60).collect::<String>(),
                     old.as_deref()
                         .map(|s| s.chars().take(120).collect::<String>()),
                     new.as_ref()

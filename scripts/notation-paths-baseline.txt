@@ -24,11 +24,11 @@ crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof:
 crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
 crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
 crates/front/src/compile/elab.rs|render_expr|&render_expr(scrutinee),
-crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(operand)).ok()
 crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(val))
 crates/front/src/compile/elab.rs|render_expr|let ctor_src_sig = render_expr(&ctor_ty);
 crates/front/src/compile/elab.rs|render_expr|let head_text = render_expr(head);
 crates/front/src/compile/elab.rs|render_expr|let term = render_expr(expected_src);
+crates/front/src/compile/elab.rs|render_expr|let term = render_expr(operand);
 crates/front/src/compile/elab.rs|render_expr|let term = render_expr(src_ty);
 crates/front/src/compile/elab.rs|render_expr|let text = judge_infer(ctx.prefix_src, ctx.options, &judge, &render_expr(args[n])).ok()?;
 crates/front/src/compile/elab.rs|render_expr|let text = render_expr(&Expr::Ident {
