@@ -490,6 +490,35 @@ jobs:
         # release profile 的依赖在上面的 perf report 步（`--release ... perf_project`）
         # 已经编好，这一步只补 `--bin sokonanoda` 这一个目标。
         run: cargo build --release -p sokonanoda-cli --locked
+      # ── 课程产物的**内容寻址缓存**（2026-09-29 用户要求 ✓）────────────────────
+      # **为什么值得**：门禁对**每个目标**跑一次 `grade`，每次都把该目标的 import
+      # 闭包**冷编译**一遍 ⇒ 成本随课程规模线性涨。实测：**本机（M 系）5 分 05 秒 ·
+      # CI 2 核 ubuntu 19 分 22 秒（≈3.8×）**；而本机**热缓存 0.5 秒**（59 MB 产物）
+      # ⇒ **100× 级**，比任何并行都值 ✓（这段本来写在下面的注释里"留到 0.78 单独一轮"，
+      # **现在就是那一轮** ✓）。
+      #
+      # **键含课程源码哈希**（`courses/set-theory/**` + `tools/check.py`）⇒ 源码一变
+      # 键就变 ⇒ **不会拿旧产物判新课程** ✓（用户红线："错判比慢严重"）。
+      # ⚠ **故意不给 `restore-keys` 兜底**：要兜底就得容忍"部分旧产物"，那正是
+      # "缓存污染"这一新失败模式的入口。**精确命中或全冷** ⇒ 语义最干净 ✓。
+      # 产物本身还是**内容寻址**的（`<模块根>/.sokonanoda/compiled/`，键含源文本 +
+      # 依赖闭包）⇒ 即使命中了不该命中的条目，也只会**重编**、不会错判 ✓。
+      - name: Restore course artifacts（内容寻址缓存）
+        id: course-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: courses/set-theory/.sokonanoda
+          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/**', 'courses/set-theory/tools/check.py') }}
+      - name: Course artifacts（冷启动时说明一句；命中/未命中都可见）
+        # 只做**可观测性**：让人在日志里一眼看出这次是冷是热（缓存是否命中）。
+        shell: bash
+        run: |
+          if [ -d courses/set-theory/.sokonanoda/compiled ]; then
+            echo "course artifacts present"
+            du -sh courses/set-theory/.sokonanoda
+          else
+            echo "course artifacts absent"
+          fi
       - name: Course gate (set-theory, G1–G5)
         # **上限 20 → 40 分钟**（2026-09-28，v0.77.0 发版轮实测 ✓）：
         # 本步在 CI 上**跑完了且结果正确**（`43 个目标 —— 375 checked · 99 open ·
@@ -517,6 +546,12 @@ jobs:
             --annotations \
             --report /tmp/course-gate.json \
             --summary "$GITHUB_STEP_SUMMARY"
+      - name: Save course artifacts（仅 main；门禁跑完后产物才齐）
+        if: always() && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: courses/set-theory/.sokonanoda
+          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/**', 'courses/set-theory/tools/check.py') }}
       - name: Upload course gate report (always)
         # 判负时也要拿到全量报告（`--json` 的落盘版）：artifact + step summary 是
         # 公开仓库上无需 token 的自助诊断通道（同 cargo-test-log 的先例）。

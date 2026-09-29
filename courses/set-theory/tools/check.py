@@ -962,6 +962,77 @@ def selftest(channel: Channel, check_py: Path) -> int:
     elif found.get("green_decls") != 2:
         failures.append(f"二分自检失败：期望最后全绿前缀 = 前 2 个声明，实得 {found.get('green_decls')!r}")
 
+    # ③b **缓存一致性**（2026-09-29 用户要求 ✓："缓存失效/污染这条新失败模式要有守卫：
+    #     命中缓存与冷跑**结果必须一致**"）——CI 的 `actions/cache` 缓存
+    #     `<模块根>/.sokonanoda/compiled/`（实测冷 **313.8s** → 热 **0.51s**，**615×**），
+    #     而**缓存污染 = 拿旧产物判新课程 = 错判**（用户红线："错判比慢严重"）⇒
+    #     必须有守卫**咬住**它。
+    #     **做法**：造一个**带 import 的**最小课程 → 先**清掉产物冷跑**取基线 →
+    #     再**热跑**（走产物）⇒ 两次的判卷结果（exit/checked/open/名字集）**必须逐项相同**。
+    #     **反向验证**：把产物目录换成一个**内容被篡改**的副本 ⇒ 守卫必须能报不一致
+    #     （下面 ③c 真做这件事，不是只写在注释里 ✓）。
+    cache_root = tmp / "cache-fixture"
+    (cache_root / "lib").mkdir(parents=True, exist_ok=True)
+    (cache_root / "lib" / "L.sokonanoda").write_text(
+        "def cacheId (P : Prop) : Prop := P\n", encoding="utf-8")
+    cache_unit = cache_root / "U.sokonanoda"
+    cache_unit.write_text(
+        "import lib.L\n\ndef u2 (P : Prop) : Prop := cacheId P\n"
+        "theorem t2 (P : Prop) : P -> P := fun h => h\n", encoding="utf-8")
+    # 冷跑：先清掉这个夹具自己的产物（只清夹具，不碰真课程）。
+    import shutil as _shutil
+    _shutil.rmtree(cache_root / ".sokonanoda", ignore_errors=True)
+    cold = grade(channel, cache_unit, cwd=tmp)
+    if cold.code != 0:
+        failures.append(f"缓存一致性自检的**冷跑**就没过（exit={cold.code}）⇒ 夹具坏了，守卫不可信")
+    else:
+        hot = grade(channel, cache_unit, cwd=tmp)  # 第二次：走产物
+        same = (hot.code == cold.code and hot.checked == cold.checked and hot.open == cold.open
+                and sorted(hot.checked_names) == sorted(cold.checked_names)
+                and sorted(hot.open_names) == sorted(cold.open_names))
+        if not same:
+            failures.append(
+                "**缓存污染**：热跑与冷跑结果不一致 "
+                f"（冷 exit={cold.code} checked={cold.checked} open={cold.open}；"
+                f"热 exit={hot.code} checked={hot.checked} open={hot.open}）"
+                "—— 拿旧产物判新课程就是错判 ✗")
+        elif not (cache_root / ".sokonanoda").is_dir():
+            failures.append("缓存一致性自检没造出产物（热跑其实还是冷跑）⇒ 守卫**空转** ✗")
+
+    # ③c **反向验证**：篡改产物 ⇒ 守卫必须咬得住（"咬不住的守卫等于没有"）。
+    #     把产物目录整体复制一份、改掉其中一个 `.json` 的字节 ⇒ 判卷**必须**与冷跑不同
+    #     （内容寻址的意义：改了内容就 miss ⇒ 重编 ⇒ 结果回到正确值）。
+    #     ⚠ 这条**不是**要求"篡改后判错"，而是要求**系统不静默采信坏产物**：
+    #     要么重编得正确结果（= 与冷跑相同 ✓），要么报错；**唯一不可接受的是**给出
+    #     一个与冷跑不同、又不报错的"第三种答案" ✗。
+    tampered = False
+    compiled = cache_root / ".sokonanoda" / "compiled"
+    if compiled.is_dir():
+        victim = sorted(compiled.glob("*.json"))
+        if victim:
+            # **全部**产物都写坏（不只一个）：只坏一个的话，判卷可能**根本不读它**
+            # （那个模块在这次判卷里没被问到）⇒ 守卫会**空转** ✗（"咬不住的守卫等于没有"）。
+            for path in victim:
+                path.write_bytes(b"not json at all\n")
+            tampered = True
+            after = grade(channel, cache_unit, cwd=tmp)
+            # **判据**：坏产物**不许产生"第三种答案"** ✗ ——
+            # 内容寻址的正解是"读不出来 ⇒ 当不存在 ⇒ 重编" ⇒ 结果应与冷跑**一致**；
+            # 或者干脆报错（exit != 0）。**唯一不可接受**：给出一个与冷跑不同、
+            # 又不报错的答案（= 静默采信坏产物 ⇒ 错判）。
+            if after.code == 0 and (
+                after.checked != cold.checked
+                or after.open != cold.open
+                or sorted(after.checked_names) != sorted(cold.checked_names)
+                or sorted(after.open_names) != sorted(cold.open_names)
+            ):
+                failures.append(
+                    "**坏产物被静默采信**（缓存污染的实质）：全部产物写成非 JSON 后，"
+                    f"判卷给出与冷跑**不同**的答案且不报错 —— 冷 checked={cold.checked} "
+                    f"open={cold.open} / 坏产物后 checked={after.checked} open={after.open} ✗")
+    if not tampered:
+        failures.append("反向验证没跑到（没有可篡改的产物）⇒ 咬不住 ✗")
+
     # ④ G6 清单自检：三类结构非法必须判负 + 一份合法 v2 清单必须判绿。
     selftest_g6(failures, tmp)
 
@@ -987,8 +1058,8 @@ def selftest(channel: Channel, check_py: Path) -> int:
         print("--selftest FAIL：判据通道不可信，门禁不判绿。")
         return 1
     print("  ✓ 正控制（另一个 cwd + import lib.*）判绿 · ✓ 故意坏的单元被判负 · "
-          "✓ 二分点名坏声明 · ✓ G6 三类结构非法被判负 + 合法 v2 判绿 · "
-          "✓ 成本台账字段齐全")
+          "✓ 二分点名坏声明 · ✓ **缓存冷热一致 + 坏产物不被静默采信** · "
+          "✓ G6 三类结构非法被判负 + 合法 v2 判绿 · ✓ 成本台账字段齐全")
     print("--selftest PASS")
     return 0
 
