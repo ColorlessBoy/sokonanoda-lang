@@ -306,3 +306,46 @@ A 会碰 check-then-add（判定语义），C 收益太小（parse 不是瓶颈�
   闭包会让 `self` 被可变借两次 ✗）。
 * `NatLit` **按指针比较** ⇒ 复用的环境必须与当前 arena 同一个（切片 1a 已把 arena 提到调用方 ✓）。
 * `decl_idx` 与**插入顺序**绑定 ⇒ 必须**同一张 map 实例**、**原序**加入。
+
+## 12. 阶段 1 步 2 的**真障碍**：借用冲突（实测勘明，2026-09-29）
+
+§11.2 步 2 说"把 `EnvView` 接进 `ElabCtx` / `judge_infer`"。**动手时撞到硬冲突** ✗：
+
+### 12.1 冲突的形状
+
+| 事实 | 位置 |
+|---|---|
+| `elab_expr` **已经**接收 `builder: &mut EnvBuilder<'a>` | `elab.rs:2913` |
+| `judge_infer` 是在 **`elab_expr` 的调用链内部**被调用的（10 处，全部持 `ctx: &ElabCtx`） | `elab.rs:1363`/`:1396`/`:2089`/`:3512`/`:4212`/`:4658`… |
+| `ElabCtx` **没有** builder 字段（只有 `prefix_src`/`options`/`inductives`/`ns`/`notations`/`defs`） | `elab.rs:445` |
+| `elab.rs` 里 `with_env` **用了 0 次** | `grep -c with_env elab.rs` = **0** |
+
+⇒ 要让 `judge_infer` 用**当前环境**，就得让 `ElabCtx` 能拿到 builder 的环境；
+**但 `elab_expr` 已经可变借了那个 builder** ⇒ 同时再借一次是**借用冲突** ✗
+（`&mut EnvBuilder` 与 `&EnvBuilder` 不能共存）。
+
+### 12.2 这不是"加个字段"能解决的 —— 它要求**换共享模型**
+
+三条出路（**都需要改结构，不是改签名**）：
+
+| 出路 | 做什么 | 代价 |
+|---|---|---|
+| **A′. 环境与 builder 分离** | 把 `declars`/`notations` 从"builder 独占"改成**可共享**（`Rc<RefCell<…>>` 或把 `Env` 提到 `ElabCtx` 能持有的地方）⇒ `elab_expr` 与 `judge_infer` 各持一份引用 | **中**：`EnvBuilder` 的字段是私有的，要么内核加访问器（**要授权**），要么前端把环境**镜像**出来 |
+| **B′. 判定后移** | `by` 引擎两阶段化：walk 只收集、判定在"文件编完、环境齐了"之后做 | **大**：动 `by` 引擎的批次结构 |
+| **C′. 只复用 parse** | 不碰环境，只缓存"前缀 → AST" | 小，但**收益也小**（§5 实测大头是**前端重新 elaborate**，不是 parse）✗ |
+
+**⚠ 关键约束（决定选哪条）**：`EnvBuilder::with_env` 期间 builder 被 `mem::replace`
+成占位 ⇒ **回调里不能再碰 builder**。而 `judge_infer` 是在 elaborate **中间**被调的
+⇒ 若走 A′，**镜像**（前端持一份 `Env`）比"回调里借用"更现实 ——
+因为回调式 API 与"elaborate 中途要查环境"在生命周期上对不上。
+
+### 12.3 我（agent）的判断
+
+**A′ 的"镜像"变体最小**：前端已经**无条件**把声明 `add_declar` 进 builder（§8.1 实测 9 处），
+若再维护一份**只读的 `Env` 镜像**（`Env::new(&declars, &notations, EnvLimit::PpUnlimited)`），
+`ElabCtx` 就能持有它、`judge_infer` 就能查表 —— **不必动 `elab_expr` 的 `&mut builder`** ✓。
+代价是"镜像"要与 builder **同步**（每条声明后更新一次），
+且**必须证明**镜像与 builder 语义一致（步 2 的逐字节判据正是抓这个）。
+
+**但这需要内核给一个"从 builder 取只读 `Env` 引用"的口子**（或前端自建镜像）
+⇒ 按硬规矩**要单独授权 `crates/kernel/`**，**不许顺手改**。
