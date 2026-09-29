@@ -517,6 +517,11 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             ns: &self.ns,
             defs: &defs_for_ctx,
         };
+        // **P1-b 第二刀**：`by` 引擎的就地判定用调用方手里的活环境
+        // （开关关着 ⇒ `None` ⇒ 逐字节回到今天 ✓）。先落到**具名变量**再借出去
+        // （`Option<InplaceEnv>` 直接传是临时值 ⇒ temporary-dropped ✗）。
+        let mut by_env = None;
+        crate::judge::inplace_env_for_by(&mut by_env, &mut self.builder, &self.known);
         let lowered = match lower_value(
             ty,
             val,
@@ -526,6 +531,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             c.canonical_goal,
             &self.inductives,
             &self.defs,
+            &elab_ctx,
+            by_env.as_mut(),
         ) {
             Ok(v) => v,
             Err(e) => {
@@ -781,6 +788,11 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             ns: &self.ns,
             defs: &defs_for_ctx,
         };
+        // **P1-b 第二刀**：`by` 引擎的就地判定用调用方手里的活环境
+        // （开关关着 ⇒ `None` ⇒ 逐字节回到今天 ✓）。先落到**具名变量**再借出去
+        // （`Option<InplaceEnv>` 直接传是临时值 ⇒ temporary-dropped ✗）。
+        let mut by_env = None;
+        crate::judge::inplace_env_for_by(&mut by_env, &mut self.builder, &self.known);
         let lowered = match lower_value(
             ty,
             val,
@@ -790,6 +802,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             c.canonical_goal,
             &self.inductives,
             &self.defs,
+            &elab_ctx,
+            by_env.as_mut(),
         ) {
             Ok(v) => v,
             Err(e) => {
@@ -1150,6 +1164,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             ns: &self.ns,
             defs: &defs_for_ctx,
         };
+        let mut by_env = None;
+        crate::judge::inplace_env_for_by(&mut by_env, &mut self.builder, &self.known);
         let lowered = match lower_value(
             ty,
             val,
@@ -1160,6 +1176,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             c.canonical_goal,
             &self.inductives,
             &self.defs,
+            &elab_ctx,
+            by_env.as_mut(),
         ) {
             Ok(v) => v,
             Err(e) => {

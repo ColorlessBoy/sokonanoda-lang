@@ -376,6 +376,50 @@ pub(crate) mod stats {
     pub(crate) static INPLACE_FALLBACK: AtomicU64 = AtomicU64::new(0);
     pub(crate) static INPLACE_SHADOW_SAME: AtomicU64 = AtomicU64::new(0);
     pub(crate) static INPLACE_SHADOW_DIFF: AtomicU64 = AtomicU64::new(0);
+    /// **P1-b 第二刀（`by` 路径）**的两个数：`INPLACE_BY_USED` = `judge_render_type`
+    /// 那一趟就地答上了（**没跑前缀**）· `INPLACE_BY_FALLBACK` = 就地答不出/开关关着。
+    /// ⚠ 单独一组：`INPLACE_USED` 只记 `elab` 那条路，混在一起就**看不出
+    /// `by` 这一档到底有没有生效**（"判据不许空转"）。
+    pub(crate) static INPLACE_BY_USED: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_BY_FALLBACK: AtomicU64 = AtomicU64::new(0);
+    /// **影子档**（`SOKO_JUDGE_INPLACE_BY=shadow`）的两个数：两条路的文本
+    /// **逐字节是否相同**。`SHADOW_DIFF > 0` ⇒ 这一档**不许开**，先查分叉。
+    pub(crate) static INPLACE_BY_SHADOW_SAME: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_BY_SHADOW_DIFF: AtomicU64 = AtomicU64::new(0);
+    /// 影子档**第一个分叉**的原样记录（诊断；只记第一条，免得刷爆 ✗）。
+    pub(crate) static INPLACE_BY_FIRST_DIFF: std::sync::Mutex<Option<String>> =
+        std::sync::Mutex::new(None);
+
+    /// 影子档报告 `(same, diff)`。
+    pub fn inplace_by_shadow() -> (u64, u64) {
+        (
+            INPLACE_BY_SHADOW_SAME.load(Ordering::Relaxed),
+            INPLACE_BY_SHADOW_DIFF.load(Ordering::Relaxed),
+        )
+    }
+
+    /// `by` 就地路径**答不出的原因**直方图（诊断用）。
+    /// ⚠ **这一档没有它就是盲飞**：本轮全靠它才从"`used=0`"定位到
+    /// `eval: loose bvar` 与 `peel`（附十）。
+    pub(crate) static INPLACE_BY_REASONS: std::sync::Mutex<String> =
+        std::sync::Mutex::new(String::new());
+
+    /// 记一笔 `by` 就地路径的放弃原因。
+    pub(crate) fn note_by_reason(why: &str) {
+        if let Ok(mut reasons) = INPLACE_BY_REASONS.lock() {
+            reasons.push_str(why);
+            reasons.push(' ');
+        }
+    }
+
+    /// **`by` 路径**的两个数 `(used, fallback)`（P1-b 第二刀）。
+    pub fn inplace_by() -> (u64, u64) {
+        (
+            INPLACE_BY_USED.load(Ordering::Relaxed),
+            INPLACE_BY_FALLBACK.load(Ordering::Relaxed),
+        )
+    }
+
     /// 就地路径**答不出的原因**直方图（诊断用；影子档每分叉一次记一笔）。
     pub(crate) static INPLACE_FAIL_REASONS: std::sync::Mutex<String> =
         std::sync::Mutex::new(String::new());
@@ -533,6 +577,21 @@ pub(crate) mod stats {
                         "JUDGE_INPLACE used={used} fallback={fallback} shadow_same={same} \
                          shadow_diff={diff}"
                     );
+                    let (bu, bf) = inplace_by();
+                    let (bs, bd) = inplace_by_shadow();
+                    eprintln!("JUDGE_INPLACE_BY used={bu} fallback={bf} shadow_same={bs} shadow_diff={bd}");
+                    if let Ok(first) = INPLACE_BY_FIRST_DIFF.lock() {
+                        if let Some(text) = first.as_ref() {
+                            eprintln!("JUDGE_INPLACE_BY_FIRST_DIFF {text}");
+                        }
+                    }
+                    if let Ok(reasons) = INPLACE_BY_REASONS.lock() {
+                        if !reasons.is_empty() {
+                            // ⚠ **截断**：未命中可能几万条，全打会把终端刷爆 ✗
+                            let head: String = reasons.chars().take(240).collect();
+                            eprintln!("JUDGE_INPLACE_BY_WHY {head}");
+                        }
+                    }
                     if let Ok(mut reasons) = INPLACE_FAIL_REASONS.lock() {
                         if !reasons.is_empty() {
                             let mut counts: Vec<(String, usize)> = Vec::new();
@@ -908,6 +967,134 @@ pub(crate) fn inplace_wide() -> bool {
     *WIDE.get_or_init(|| std::env::var("SOKO_JUDGE_INPLACE_WIDE").is_ok_and(|v| v != "0"))
 }
 
+/// **P1-b 第二刀：`by` 路径**（`judge_render_type` 那 536 趟）是否生效。
+///
+/// 单独一个开关（**不是** `inplace_wide` 的附带效果）—— 附九 §4 的顺序要求
+/// 「**先只接一个调用点**（`canonical_goal_type`）→ shadow + 全课程对拍 →
+/// 再铺另三处」。两个开关分开才做得到"先接一处" ✓。
+///
+/// ⚠ **`by` 引擎的判定决定后续 tactic 步进** ⇒ 两条路一旦分叉，症状是
+/// "步进不同"（比 `elab` 路径难定位得多）⇒ **影子档是这一档的必需品**。
+pub(crate) fn inplace_by() -> bool {
+    static BY: OnceLock<bool> = OnceLock::new();
+    *BY.get_or_init(|| std::env::var("SOKO_JUDGE_INPLACE_BY").is_ok_and(|v| v != "0"))
+}
+
+/// **`by` 路径的档位**（与 P1-a 的 `InplaceMode` 同形；附九："影子档是这一档的
+/// **必需品**，不是可选项" —— 因为 `by` 的判定决定后续 tactic 步进，分叉会以
+/// "步进不同"出现，比 `elab` 路径难定位得多）。
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum ByMode {
+    Off,
+    Shadow,
+    On,
+}
+
+/// `SOKO_JUDGE_INPLACE_BY` = `off` / `shadow` / `1|on`（**默认 `off`**）。
+///
+/// * `off`：这一档逐字节回到今天 ✓
+/// * `shadow`：**两条路都跑**，比对文本、记 `same/diff`，**返回慢路那一份**
+///   ⇒ 行为零变化，只取证 ✓
+/// * `on`：三步（命中 → 就地 → 慢路）✓
+pub(crate) fn inplace_by_mode() -> ByMode {
+    static MODE: OnceLock<ByMode> = OnceLock::new();
+    *MODE.get_or_init(
+        || match std::env::var("SOKO_JUDGE_INPLACE_BY").ok().as_deref() {
+            Some("off") | None => ByMode::Off,
+            Some("shadow") => ByMode::Shadow,
+            _ => ByMode::On,
+        },
+    )
+}
+
+/// **`by` 路径的就地环境**：开关关着 ⇒ `None`（`walk` 那边一行都不用改行为）。
+///
+/// ⚠ 收成一个函数：`walk.rs` 有三个 `lower_value` 调用点，写三遍
+/// `if inplace_by() { Some(…) } else { None }` 就是三份重复的**开关判定** ✗。
+pub(crate) fn inplace_env_for_by<'e, 'a>(
+    slot: &mut Option<crate::compile::elab::InplaceEnv<'e, 'a>>,
+    builder: &'e mut sokonanoda::builder::EnvBuilder<'a>,
+    known: &'e crate::compile::elab::KnownTable,
+) {
+    *slot = if inplace_by() {
+        Some(crate::compile::elab::InplaceEnv { builder, known })
+    } else {
+        None
+    };
+}
+
+/// `judge_render_type` 的**查询文本**（慢路与缓存键共用同一份，必须同源）。
+pub(crate) fn render_type_query(ty: &str) -> String {
+    // 绑定名必须**不可能与目标里的自由变量同名**（见 `judge_render_type` 的注释：
+    // `fun (x : x = x) => x` 会把目标里的 `x` 捕获掉）。
+    format!("fun (__soko_render : {ty}) => __soko_render")
+}
+
+/// **收尾**：内核 pp 文本 → 剥 `extra_binders` 层 → 剥 `__soko_render` 那层 →
+/// 回读 → `render_roundtrip`。**三条出口（命中 / 就地 / 慢路）共用一个实现** ✓。
+///
+/// ⚠ `peel_binders` 失败时是 `break`（**静默**原样返回）—— 所以就地路**不许**
+/// 依赖"文本剥层"来对齐形态（附十）：就地路现在**在项层面剥完**才交进来
+/// ⇒ 这里传 `extra_binders = 0`。
+/// **`judge_render_type` 的就地兄弟**（P1-b 第二刀，2026-09-30）。
+///
+/// 与慢路的**唯一**差别：查询项**不渲染成文本、不合成前缀重跑**，而是拿调用方
+/// 手里的**源 AST** 直接 elaborate（`elab_expr`），再 `infer_type_text_at_peeled`
+/// 在**项层面**剥掉整条望远镜后 pp ✓（为什么必须项层面剥：见 `elab.rs` 那条的注释）。
+///
+/// ⚠ 收 `ty: &Expr` 而**不是** `&str`：一旦经过 `render_expr`→`parse_expr_text`，
+/// 前缀里声明的**源级记法**（`∈` / `ᶜ` / `''`）就解析不回来了
+/// （P1-a 实测：单文件 **77822 次 Parse 失败**）。
+///
+/// `None` ⇒ 调用方**逐字**退回慢路 ✓。
+pub(crate) fn judge_render_type_inplace<'a>(
+    env: &mut crate::compile::elab::InplaceEnv<'_, 'a>,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    binders: &[crate::ast::Binder],
+    ty: &Expr,
+) -> Option<String> {
+    crate::compile::elab::inplace_render_type(env, ctx, binders, ty)
+}
+
+pub(crate) fn judge_render_type_finish(text: &str, extra_binders: usize) -> Option<String> {
+    let rest = peel_binders(text.to_string(), extra_binders);
+    let parsed = parse_expr_text(&rest).ok()?;
+    let rest = peel_one_binder(&parsed)?;
+    Some(render_roundtrip(&rest))
+}
+
+/// **只查缓存**（不跑前缀）：命中 ⇒ `Some(judge_infer` 那一份已剥 `n` 层的文本`)`。
+///
+/// P1-a 的同一条纪律：就地路径**只做未命中** —— 慢路对命中只花一次哈希
+/// （~11 µs），换成一次 elaborate+推断+pp（~1 ms）是**负优化** ✓。
+pub(crate) fn judge_render_type_lookup(
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> Option<String> {
+    judge_infer_lookup("", prefix_src, options, binders, term)?.ok()
+}
+
+/// 与 [`judge_render_type_lookup`] 配对：把**就地**答出的文本写回**同一张缓存**
+/// （键不变 ⇒ 下一次同样的问只花一次哈希 ✓）。
+pub(crate) fn judge_render_type_store(
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+    text: &str,
+) {
+    judge_infer_store(
+        "",
+        prefix_src,
+        options,
+        binders,
+        term,
+        &Ok(text.to_string()),
+    );
+}
+
 /// **就地判定只在"未命中"时接管**所需的两个口子（P1-a，2026-09-29）。
 ///
 /// **为什么必须让调用方先查缓存**（实测教训，不是设计偏好）：慢路对**缓存命中**
@@ -959,6 +1146,19 @@ fn judge_infer_key(
         &format!("{binders:?}"),
         term,
     ])
+}
+
+/// **P1-b 第二刀（`by` 路径）的读数**：`(used, fallback)`。
+///
+/// 判据用法（`crates/front/tests/judge_inplace_by.rs`）：`used > 0` 证明
+/// **就地路径真的走到了**（否则判据空转 ✗），`fallback` 只作参考。
+pub fn inplace_by_report() -> (u64, u64) {
+    stats::inplace_by()
+}
+
+/// **`by` 影子档的读数**：`(same, diff)`。`diff == 0` 是这一档能开的前提 ✓。
+pub fn inplace_by_shadow() -> (u64, u64) {
+    stats::inplace_by_shadow()
 }
 
 /// **P1-a 就地判定的读数**（集成测试 / 诊断用；进程级，见 [`stats::inplace`]）：
@@ -1612,11 +1812,11 @@ pub fn judge_render_type(
     // 目标里的 `x` 捕获掉（`judge_infer` 随后 elaborate 不了 / 返回错的类型），
     // 于是 `canonical_goal_with_spec` 静默退回源 AST，`rfl` 这类要读目标结构的
     // tactic 在 `= ` 记法目标上就永远拿不到规范形态（实测：`x = x` / `A = A`）。
-    let term = format!("fun (__soko_render : {ty}) => __soko_render");
+    let term = render_type_query(ty);
+    // `judge_infer` 交出来的文本**已经剥过 `binders.len()` 层**（见
+    // `judge_infer_uncached` 的结尾）⇒ 收尾不用再剥，传 0 ✓。
     let text = judge_infer(prefix_src, options, binders, &term).ok()?;
-    let parsed = parse_expr_text(&text).ok()?;
-    let rest = peel_one_binder(&parsed)?;
-    Some(render_roundtrip(&rest))
+    judge_render_type_finish(&text, 0)
 }
 
 /// 把 doc 中 decl_span 命令里的 hole_span 替换为候选 term，改名合成声明

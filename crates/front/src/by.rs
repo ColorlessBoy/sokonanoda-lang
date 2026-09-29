@@ -496,12 +496,15 @@ pub(crate) fn split_by_value(val: &Expr) -> Option<(Vec<Binder>, &Expr)> {
 /// 在内核 pp 里是 `A.mem`，而 `apply` 的 `unify_spine` 按文本对齐——两边同源
 /// 才不会假报不匹配。任何一步失败（解析不了/推断不了）都退回原 AST：行为与
 /// 没有这一步时逐字相同，绝不因为"规范化失败"把好文件判红。
-fn canonical_goal_type(
+#[allow(clippy::too_many_arguments)]
+fn canonical_goal_type<'a>(
     ty: &Expr,
     initial_binders: &[Binder],
     prefix_src: &str,
     options: &CompileOptions,
     defs: &DefTable,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Expr {
     let specs: Vec<GoalBinderSpec> = initial_binders
         .iter()
@@ -510,8 +513,99 @@ fn canonical_goal_type(
             ty: b.ty.as_deref().map(render_expr),
         })
         .collect();
-    let Some(text) = crate::judge::judge_render_type(prefix_src, options, &specs, &render_expr(ty))
-    else {
+    // **P1-b 第二刀（第 1 步）：只接这一处**（`SOKO_JUDGE_INPLACE_BY`，默认关）。
+    // 三步与 P1-a **逐字同款**：
+    //   ① **命中先走今天那条哈希快路**（~11 µs/次）—— 就地只做未命中那一段 ✓
+    //      （把十几万次廉价命中换成 ~1 ms/次的就地是**负优化**，实测过 ✗）；
+    //   ② 未命中 ⇒ 就地 elaborate + `infer_type_text_at_peeled`（**不编译前缀**）；
+    //   ③ 就地答出的文本**写回同一张缓存**（键与慢路同源）⇒ 下次是哈希 ✓。
+    // **收尾只有一个实现**（`judge_render_type_finish`）⇒ 三条出口形态不可能分叉 ✓。
+    // ⚠ 就地路收的是**源 `Binder`**（`initial_binders`）而不是 `specs` ——
+    // `specs` 里的类型是渲染文本，回读不认源级记法（实测 `binder-parse` 刷屏）。
+    // ⚠ 这两处 `render_expr` **是判定路径、不是显示路径**（记法路径守卫
+    // `scripts/audit-notation-paths.py` 已核实并放行）：`judge_render_type` 收的是
+    // **判定查询文本**，必须与慢路**逐字同源**（否则缓存键与答案都会分叉 ✗）。
+    // 折记法是**显示**接口的事，用在这里会改判定 = 内核红线。
+    let ty_text = render_expr(ty);
+    let term = crate::judge::render_type_query(&ty_text);
+    let slow = || crate::judge::judge_render_type(prefix_src, options, &specs, &ty_text);
+    let text = match crate::judge::inplace_by_mode() {
+        // **影子档**：两条路**都跑**，比对文本、记 `same/diff`，**返回慢路那一份**
+        // ⇒ 行为零变化、只取证 ✓（附九："影子档是这一档的必需品"）。
+        crate::judge::ByMode::Shadow => {
+            let inplace = env.as_deref_mut().and_then(|env| {
+                crate::judge::judge_render_type_inplace(env, ctx, initial_binders, ty)
+            });
+            let slow_text = slow();
+            match inplace {
+                Some(pp) => {
+                    let fast = crate::judge::judge_render_type_finish(&pp, 0);
+                    if fast == slow_text {
+                        crate::judge::stats::INPLACE_BY_SHADOW_SAME
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    } else {
+                        crate::judge::stats::INPLACE_BY_SHADOW_DIFF
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        if let Ok(mut first) = crate::judge::stats::INPLACE_BY_FIRST_DIFF.lock() {
+                            if first.is_none() {
+                                // 诊断文本：`ty_text` 就是上面那份**判定查询**用的
+                                // 同源文本（复用，不再多调一次 `render_expr`）✓。
+                                *first = Some(format!(
+                                    "ty={ty_text:?} | inplace_pp={pp:?} | fast={fast:?} | \
+                                     slow={slow_text:?}"
+                                ));
+                            }
+                        }
+                    }
+                }
+                None => {
+                    // 就地**答不出**也是一条分叉（慢路答得出）—— 记下来，
+                    // 否则它会被算进 `fallback` 而看不出"这是分叉" ✗。
+                    crate::judge::stats::INPLACE_BY_SHADOW_DIFF
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    if let Ok(mut first) = crate::judge::stats::INPLACE_BY_FIRST_DIFF.lock() {
+                        if first.is_none() {
+                            *first = Some(format!(
+                                "ty={ty_text:?} | inplace=None | slow={slow_text:?}"
+                            ));
+                        }
+                    }
+                }
+            }
+            slow_text
+        }
+        crate::judge::ByMode::Off => slow(),
+        crate::judge::ByMode::On => {
+            match crate::judge::judge_render_type_lookup(prefix_src, options, &specs, &term) {
+                // ① 命中：慢路存的是**已剥 `n` 层**的 pp 文本 ⇒ 只剥 `__soko_render` 那层
+                Some(pp) => crate::judge::judge_render_type_finish(&pp, 0),
+                None => {
+                    // ② 未命中：先问就地（`env` 是 `None` ⇒ 直接落 ③）。
+                    // ⚠ 这里**不用** `as_deref_mut()`：`env` 本身就是
+                    // `Option<&mut InplaceEnv>` ⇒ `and_then` 直接拿到 `&mut` ✓
+                    // （`as_deref_mut` 会多一层解引用，clippy 判 `needless_option_as_deref`）。
+                    let inplace = env.as_mut().and_then(|env| {
+                        crate::judge::judge_render_type_inplace(env, ctx, initial_binders, ty)
+                    });
+                    match inplace {
+                        Some(pp) => {
+                            // ③ 写回同一张缓存 ⇒ 下一次同样的问只花一次哈希 ✓
+                            crate::judge::judge_render_type_store(
+                                prefix_src, options, &specs, &term, &pp,
+                            );
+                            crate::judge::judge_render_type_finish(&pp, 0)
+                        }
+                        None => {
+                            crate::judge::stats::INPLACE_BY_FALLBACK
+                                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            slow()
+                        }
+                    }
+                }
+            }
+        }
+    };
+    let Some(text) = text else {
         return ty.clone();
     };
     let Ok(canonical) = parse_expr_text(&text) else {
@@ -660,7 +754,7 @@ fn is_concrete_level(level: &str) -> bool {
 /// **记法 / 集合字面量不在这里处理**：它们只在 `apply` 的失败重试路径上按需
 /// 归一化（见 `apply_tactic`），根目标保持源 AST。
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn run_by(
+pub(crate) fn run_by<'a>(
     ty: &Expr,
     by: &Expr,
     initial_binders: &[Binder],
@@ -670,6 +764,12 @@ pub(crate) fn run_by(
     canonical_goal: bool,
     inductives: &InductiveTable<'_>,
     defs: &DefTable,
+    // **P1-b 第二刀（第 1 步，2026-09-30）**：只把"活环境 + 本次 elaborate 的
+    // 上下文"传进来，给 `canonical_goal_type` 那一处用（工作单 §B 的顺序：
+    // **先只接一处** → shadow + 全课程对拍 → 再铺另三处）。
+    // `env == None`（开关关着）⇒ 这一档**逐字节回到今天** ✓。
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Result<ByOutcome, CompileError> {
     // **乐观一趟**（0.62.0 性能）：`by` 块里的判定不逐步做，而是先记下来
     // （`judge_terms` 在批次里返回乐观的 `Match`），跑完由 `flush_batch` 把
@@ -695,6 +795,8 @@ pub(crate) fn run_by(
         canonical_goal,
         inductives,
         defs,
+        ctx,
+        crate::compile::elab::InplaceEnv::reborrow(&mut env),
     );
     let all_match = flush_batch(scope);
     match optimistic {
@@ -713,13 +815,15 @@ pub(crate) fn run_by(
             canonical_goal,
             inductives,
             defs,
+            ctx,
+            crate::compile::elab::InplaceEnv::reborrow(&mut env),
         ),
     }
 }
 
 /// 跑一趟 `by` 块（判定走当前通道：乐观批次里 = 记录 + `Match`；否则 = 逐条判）。
 #[allow(clippy::too_many_arguments)]
-fn run_by_inner(
+fn run_by_inner<'a>(
     ty: &Expr,
     by: &Expr,
     initial_binders: &[Binder],
@@ -732,6 +836,8 @@ fn run_by_inner(
     canonical_goal: bool,
     inductives: &InductiveTable<'_>,
     defs: &DefTable,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Result<ByOutcome, CompileError> {
     let Expr::By {
         tactics,
@@ -760,7 +866,15 @@ fn run_by_inner(
     // （实测：把根目标归一化会让 `rfl` 在 `Eq.{1} (Set α) (Aᶜ) …` 上报
     // 「需要一个 `Eq α x y` 形状的目标」）。
     let root_ty = if canonical_goal {
-        canonical_goal_type(&root_ty, initial_binders, prefix_src, options, defs)
+        canonical_goal_type(
+            &root_ty,
+            initial_binders,
+            prefix_src,
+            options,
+            defs,
+            ctx,
+            crate::compile::elab::InplaceEnv::reborrow(&mut env),
+        )
     } else {
         root_ty
     };

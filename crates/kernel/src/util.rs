@@ -742,6 +742,54 @@ impl<'p> ExportFile<'p> {
         })
     }
 
+    /// **就地在当前环境上求类型、先剥掉 `peel` 层 Pi、再打印**（P1-b 第二刀，
+    /// 2026-09-30）。
+    ///
+    /// ## 为什么必须在**项层面**剥（而不是让调用方去剥文本）
+    ///
+    /// 前端 `judge_render_type` 的收尾要剥 `n` 层声明 binder + 1 层查询 binder。
+    /// 那条路今天靠 `judge::peel_binders` 在**文本**上剥 —— 而它第一步就是
+    /// `parse_expr_text`，**不认前缀里声明的源级记法**，且失败时是 `break`
+    /// （**静默**原样返回）⇒ 就地路径（拿到的是**未剥过**的原始类型文本）
+    /// 会**一层都剥不掉**，交出去一个多层的函数类型 ⇒ 判定分叉
+    /// （实测：全课程 38 个文件从 `compiled` 变 `failed`）。
+    ///
+    /// ⇒ 在**项层面**剥：`ty` 本来就是内核项，剥 Pi 只是沿 `body` 走指针
+    /// （零解析、零记法风险），**剥完再 pp** ⇒ 交出去的形态与"先 pp 再文本剥"
+    /// 天然同构，且不可能因为记法解析失败而静默走偏 ✓。
+    ///
+    /// `peel` 层不够（项不是 Pi）⇒ **照常打印剩下的**（与文本剥的 `break`
+    /// 语义一致：宁可少剥，绝不报错）。
+    pub fn infer_type_text_at_peeled<F, A>(
+        &self,
+        env_limit: EnvLimit<'p>,
+        expr: ExprPtr<'p>,
+        peel: usize,
+        scope: &[String],
+        f: F,
+    ) -> A
+    where
+        F: FnOnce(&str) -> A, {
+        self.with_tc(env_limit, |tc| {
+            let mut ty = tc.infer_closed_type(expr);
+            for _ in 0..peel {
+                match tc.ctx.read_expr(ty) {
+                    crate::expr::Expr::Pi { body, .. } => ty = body,
+                    // 剥不动就停（与 `judge::peel_binders` 的 `break` 同语义）
+                    _ => break,
+                }
+            }
+            // ⚠ **必须带 `scope` 播种 binder 名**（`with_pp_scoped`）✗✓：
+            // 剥完 `n` 层之后剩下的项对那 `n` 个 binder 是**松散的**，
+            // 裸 `with_pp` 会把它们印成 `$3 $2 $1`（实测：`inplace_pp="Iff
+            // (Set.subset $3 $2 $1) …"`）⇒ 与慢路（pp 时 binder 仍在作用域里、
+            // 印的是真名 `α A B`）**文本不同** ⇒ 判定分叉 ✗。
+            // `scope` = 那 `n` 个 binder 的名字（**外层在前**）。
+            let text = tc.with_pp_scoped(scope, |pp| pp.pp_expr(ty));
+            f(&text)
+        })
+    }
+
     pub fn with_pp<F, A>(&self, f: F) -> A
     where
         F: FnOnce(&mut PrettyPrinter<'_, '_, 'p>) -> A, {

@@ -335,7 +335,7 @@ pub fn compile_all_with(
 // 参数，见 `docs/design/by-tactics.md` §12）。为压 clippy 把参数打包成
 // 结构体只会给热路径加一层间接，得不偿失。
 #[allow(clippy::too_many_arguments)]
-fn lower_by_val(
+fn lower_by_val<'a>(
     ty: &Expr,
     val: &Expr,
     universe: &[String],
@@ -344,6 +344,8 @@ fn lower_by_val(
     canonical_goal: bool,
     inductives: &crate::compile::elab::InductiveTable<'_>,
     defs: &crate::compile::elab::DefTable,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Result<(Expr, Vec<crate::by::ByStep>), CompileError> {
     if let Some((binders, by)) = crate::by::split_by_value(val) {
         stage_stats::BYS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -358,6 +360,8 @@ fn lower_by_val(
             canonical_goal,
             inductives,
             defs,
+            ctx,
+            env,
         )
         .map(|o| (o.expr, o.steps))
     } else {
@@ -383,7 +387,7 @@ pub(crate) type LoweredValue = (Expr, Vec<crate::by::ByStep>);
 // 参数，见 `docs/design/by-tactics.md` §12）。为压 clippy 把参数打包成
 // 结构体只会给热路径加一层间接，得不偿失。
 #[allow(clippy::too_many_arguments)]
-fn lower_value(
+fn lower_value<'a>(
     ty: &Expr,
     val: &Expr,
     universe: &[String],
@@ -392,6 +396,8 @@ fn lower_value(
     canonical_goal: bool,
     inductives: &crate::compile::elab::InductiveTable<'_>,
     defs: &crate::compile::elab::DefTable,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Result<LoweredValue, CompileError> {
     lower_by_val(
         ty,
@@ -402,6 +408,8 @@ fn lower_value(
         canonical_goal,
         inductives,
         defs,
+        ctx,
+        env,
     )
 }
 

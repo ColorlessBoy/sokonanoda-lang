@@ -2181,7 +2181,7 @@ impl<'e, 'a> InplaceEnv<'e, 'a> {
     /// 但那要求 `Self: DerefMut` —— 这里要的是**整个 `InplaceEnv`** 的可变重借，
     /// 不是它内部某个字段的 ⇒ 只有这一处的 `#[allow]`，理由写在这里。
     #[allow(clippy::option_as_ref_deref)]
-    fn reborrow<'x>(env: &'x mut Option<&mut Self>) -> Option<&'x mut Self> {
+    pub(crate) fn reborrow<'x>(env: &'x mut Option<&mut Self>) -> Option<&'x mut Self> {
         env.as_mut().map(|e| &mut **e)
     }
 }
@@ -2211,6 +2211,129 @@ impl<'e, 'a> InplaceEnv<'e, 'a> {
 ///
 /// ⚠ **失败就返回 `Err(reason)`**（= "这条环境答不了"）⇒ 调用方**必须**回退到源码
 /// 重跑，与 `EnvProvider::infer_type_text` 的 `None` 约定一致 ✓。
+/// **`judge_render_type` 的就地实现**（P1-b 第二刀，2026-09-30）。
+///
+/// 与 [`infer_type_text_inplace`] **同形**（照抄那三步，含两个实测坑），
+/// 差别在**收尾**：慢路是把内核 pp 文本交给 `judge::peel_binders` **在文本上剥**，
+/// 而就地路**在项层面剥完再 pp**（`infer_type_text_at_peeled`）✓。
+///
+/// ## ⚠ 为什么必须在项层面剥（附十的根因）
+///
+/// `judge::peel_binders` 的第一步是 `parse_expr_text`，它**不认前缀里声明的源级
+/// 记法**，而且失败时是 `break`（**静默**原样返回）⇒ 就地路拿到的是**未剥过**的
+/// 原始类型文本（`… -> Set.mem α h (Set.empty α) -> …` 里就有 `Set.empty` 这类
+/// 点名），**一层都剥不掉** ⇒ 交出去一个多层的函数类型 ⇒ 判定分叉
+/// （实测：全课程 38 个文件从 `compiled` 变 `failed`）。
+/// ⇒ 在**项层面**沿 `Pi.body` 走指针（零解析、零记法风险），**剥完再 pp** ✓。
+///
+/// ## 三条走不通的死路（别再试）
+///
+/// ① 手搓 `mk_lambda(nm, Default, ty, ty)`（体错传成 `ty`）⇒ 推断成 `T -> T` ✗；
+/// ② 手搓 `mk_lambda(nm, Default, ty, mk_var(0))` ⇒ `eval: loose bvar` **每趟 panic**
+///    （`infer_type_text_at` 走 `infer_closed_type`，那个 `mk_var(0)` 在它自己的
+///    局部上下文里没有条目）；
+/// ③ 把声明 binder 先 `push` 进 `ElabScope` 再 elaborate `ty` ⇒ 产物是**开项**
+///    ⇒ 还是 `loose bvar` ✗（最隐蔽：scope 看着"更完整"，其实正是病根）。
+///
+/// **唯一走通的**：把查询写成**一整条源级 λ**（`fun (b1:T1) … (bn:Tn)
+/// (__soko_render : ty) => __soko_render`），交给 `elab_expr` 的 `Expr::Lambda`
+/// 分支 —— de Bruijn 的推入/抬升全由它负责 ⇒ 产物必然是**闭项** ✓。
+/// 这也正是慢路在跑的东西（那边是同一形状的**文本**）⇒ 两条路同源 ✓。
+pub(crate) fn inplace_render_type<'a>(
+    env: &mut InplaceEnv<'_, 'a>,
+    ctx: &ElabCtx<'a, '_>,
+    binders: &[crate::ast::Binder],
+    ty: &Expr,
+) -> Option<String> {
+    // 每个"放弃"都记一笔原因 —— 否则"就地没生效"只能靠猜 ✗
+    // （P1-a 就是靠这组原因才发现"夹具没踩到接线点"的）。
+    macro_rules! give_up {
+        ($why:expr) => {{
+            crate::judge::stats::note_by_reason($why);
+            return None;
+        }};
+    }
+
+    const RENDER: &str = "__soko_render";
+    let mut telescope: Vec<crate::ast::Binder> = binders.to_vec();
+    telescope.push(crate::ast::Binder {
+        name: RENDER.to_string(),
+        ty: Some(Box::new(ty.clone())),
+        style: crate::ast::BinderKind::Explicit,
+        span: ty.span(),
+    });
+    let query = Expr::Lambda {
+        binders: telescope,
+        body: Box::new(Expr::Ident {
+            name: RENDER.to_string(),
+            span: ty.span(),
+        }),
+        span: ty.span(),
+    };
+    // **空 `UnivMap` + scratch hovers**：与 `#check` 的处理器（`Walk::check`）
+    // 逐字一致（`#check` 没有宇宙参数可解 ⇒ 读到宇宙变量的查询在两条路上一样失败 ✓）。
+    let no_universe: UnivMap<'_> = UnivMap::new();
+    let mut scratch_hovers: Vec<HoverNode<'a>> = Vec::new();
+    let mut sc = ElabScope::new();
+    let term = match quiet_catch(|| {
+        elab_expr(
+            env.builder,
+            &query,
+            &mut sc,
+            &no_universe,
+            env.known,
+            &mut scratch_hovers,
+            None,
+            None,
+            ctx,
+        )
+    }) {
+        Ok(Ok(ptr)) => ptr,
+        Ok(Err(_)) => give_up!("query-elab"),
+        Err(_) => give_up!("query-panic"),
+    };
+    // **项层面剥掉整条望远镜**（`n` 个声明 binder + 1 个 `__soko_render`），
+    // 再 pp ⇒ 交出去的形态与"慢路先 pp 再文本剥 `n+1` 层"**同构** ✓。
+    let limit = sokonanoda::env::EnvLimit::ByIndex(env.builder.declaration_count());
+    let text = env.builder.with_env(|ef| {
+        // ⚠ **必须与 `kernel_phase` 的 `#check` 同档**（`proofs = true`）：
+        // 默认 `proofs = false` 时 pp 会对**每个子项**调 `is_proof`（用**空局部
+        // 上下文**推类型）⇒ binder 内的 `Eq n m` 直接 `loose bvar in infer` panic ✗
+        // （P1-a 实测踩到 7 次，不是理论风险）。
+        ef.config.pp_options.proofs = true;
+        // ⚠ **剥 `n` 层，不是 `n+1`** —— 必须与慢路**对称**：
+        //   * 慢路：`judge_infer` 剥掉 `n` 层声明 binder（`judge_infer_uncached`
+        //     结尾），**留下 `ty -> ty`**，再由 `judge_render_type_finish` 的
+        //     `peel_one_binder` 剥掉 `__soko_render` 那一层 ⇒ 得到 `ty` ✓；
+        //   * 就地路：**同样剥 `n` 层**（留下 `ty -> ty`），交给**同一个**收尾 ✓。
+        // 第一版写成 `n + 1`（自己把 `__soko_render` 也剥了）⇒ 收尾再剥一层就
+        // **多剥** ⇒ `peel_one_binder` 对非 Pi 返回 `None` ⇒ 就地路径**全部答不出**
+        // ✗ —— 而 `on` 档的 `--json` 居然是**逐字节相同**的（因为那些答案下游
+        // 会被 `is_rereadable`/`keep_if_lossless` 丢掉）⇒ **影子档才抓得住**
+        // （实测：`shadow_diff=37508 / shadow_same=0`，`inplace=None`）。
+        // `scope` = 那 `n` 个声明 binder 的名字（**外层在前**）⇒ 剥完 `n` 层后
+        // 剩下的松散变量印回**真名**（与慢路逐字同形）✓。
+        let scope: Vec<String> = binders.iter().map(|b| b.name.clone()).collect();
+        quiet_catch(|| {
+            ef.infer_type_text_at_peeled(limit, term, binders.len(), &scope, |t| t.to_string())
+        })
+    });
+    match text {
+        Ok(text) => {
+            crate::judge::stats::INPLACE_BY_USED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            Some(text)
+        }
+        Err(why) => {
+            // 把内核的原话记下来（只写 "kernel" 查不出任何东西 ✗）
+            crate::judge::stats::note_by_reason(&format!(
+                "kernel({})",
+                why.chars().take(60).collect::<String>()
+            ));
+            None
+        }
+    }
+}
+
 fn infer_type_text_inplace<'a>(
     env: &mut InplaceEnv<'_, 'a>,
     ctx: &ElabCtx<'a, '_>,
