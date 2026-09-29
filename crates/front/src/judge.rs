@@ -861,11 +861,17 @@ pub fn set_batching(on: bool) -> bool {
 
 /// `SOKO_JUDGE_INPLACE` 的三个档位（**P1-a 的就地判定**，2026-09-29）。
 ///
-/// * `Off`（**默认**）⇒ 只走源码重跑（今天的路，逐字节不变 ✓）；
-/// * `Shadow` ⇒ **两条都跑**、比对文本，**不一致就计数并打印**（返回源码重跑那份
-///   ⇒ 判定结果仍逐字节不变 ✓）—— 这是"就地路径可不可信"的判据档；
-/// * `On` ⇒ 就地优先，答不出（elaborate 失败）⇒ **退回源码重跑**（`None` 的语义
-///   与 `EnvProvider::infer_type_text` 的约定一致 ✓）。
+/// * `On`（**默认**，2026-09-29 开）⇒ **未命中**时就地答（**不编译前缀**），
+///   答不出（elaborate 失败 / 内核拒绝）⇒ **退回源码重跑** ✓；
+///   命中仍走今天那条哈希快路（[`judge_infer_lookup`]）✓；
+/// * `off` ⇒ **完全回到今天的行为**（只走源码重跑）—— 回退开关，逐字节不变 ✓；
+/// * `shadow` ⇒ **两条都跑**、比对文本，不一致就计数并打印（返回源码重跑那份
+///   ⇒ 判定结果仍逐字节不变 ✓）—— 这是"就地路径可不可信"的判据档。
+///
+/// **为什么敢默认开**（判据，不是感觉）：`shadow` 档**全课程**实测
+/// `shadow_same=555552` · **`shadow_diff=0`** ✓；且 `off` vs `on` 两份
+/// `build --json`（剔除按设计随墙钟变的 `build.tick` 心跳）**逐字节相同** ✓
+/// —— 读数见 `docs/design/p1a-measurements.md` 附七。
 ///
 /// 只读一次环境（热路径上）。
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -879,9 +885,10 @@ pub(crate) fn inplace_mode() -> InplaceMode {
     static MODE: OnceLock<InplaceMode> = OnceLock::new();
     *MODE.get_or_init(
         || match std::env::var("SOKO_JUDGE_INPLACE").ok().as_deref() {
+            Some("off") => InplaceMode::Off,
             Some("shadow") => InplaceMode::Shadow,
-            Some("on") => InplaceMode::On,
-            _ => InplaceMode::Off,
+            // 未设 / `on` / 其它 ⇒ 就地（默认开）。
+            _ => InplaceMode::On,
         },
     )
 }

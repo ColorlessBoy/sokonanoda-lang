@@ -1,3 +1,26 @@
+## [0.78.1] — 2026-09-29
+
+> 「编译提速」：判定就地查环境（P1-a 第一步）。**课程/练习的编译快 1.35×**。
+
+### Changed
+
+- **Compilation is ~1.35× faster on the full set-theory course** (cold cache, 1 job,
+  same machine): wall clock **214.19 s → 158.90 s**. The judge no longer re-parses and
+  re-elaborates the whole document prefix on every cache miss — it answers in place
+  against the environment the elaborator already holds, and only on a miss
+  (`crates/front/src/judge.rs`, `crates/front/src/compile/elab.rs`).
+  Structural counts (noise-immune): prefix re-runs **3759 → 1881** (−50.0%),
+  re-parsed prefix bytes **174,213,583 → 93,858,420** (−46.1%), internal pass count
+  **4126 → 2248** (−45.5%), `judge_ms` **146.6 s → 120.4 s**.
+- **Nothing you see changes.** `build --json` is byte-for-byte identical with the
+  feature off vs on (excluding the time-based `build.tick` heartbeat): 2691 lines,
+  zero differing lines, `build.decl` 2647 / `build.file` 42 / `build.begin` 1 /
+  `build.summary` 1 on both sides. A shadow mode that runs *both* ways and compares
+  the answer text reported `shadow_diff = 0` across the whole course
+  (`shadow_same = 555552`).
+- **Escape hatch**: `SOKO_JUDGE_INPLACE=off` restores the previous behaviour exactly;
+  `=shadow` runs both paths and reports any divergence.
+
 ## [0.78.0] — 2026-09-28
 
 > 「性能与纪律固化」（E17–E18）。

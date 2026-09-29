@@ -318,3 +318,88 @@ STAGE_STATS       passes=4126    judge_ms=146904
 ⇒ **每次从零造 `EnvBuilder`**；`EnvBuilder` 不是 `Clone` ⇒ 需要
 **per-前缀 builder 池**（`HashMap<前缀哈希, EnvBuilder>`）或让 judge 接收
 调用方已有的 builder（受限于"只有源 `Expr`、没有 `ExprPtr`"）。
+
+---
+
+# 附七：✅ **P1-a 第一步落地 —— 就地判定接在「一个判定点」上**（2026-09-29，默认已开）
+
+## 1. 🔑 切法由**数据**定：3759 趟按调用点归因
+
+把上一轮 `SOKO_INFER_TRACE=all` 的 3759 条 `INFER_MISS`（含回溯）逐条归因到**最内层调用点**：
+
+| 调用点（`elab.rs`） | 趟数 | 字节 | 占比 |
+|---|---|---|---|
+| **`infer_type_text`** | **2697** | **120.5 MB** | **72% / 73%** |
+| ↳ 其中经 `args_fit_layers_in_order` | 1759 | 76.0 MB | 47% |
+| ↳ 其中经 `elab_notation`（`universe_level_text_of_operands` 内） | 938 | 44.5 MB | 25% |
+| `universe_level_text_of_operands` 的**第二问**（输入已是文本） | 468 | 21.4 MB | 12% |
+| `judge_render_type` / `lower_value`（`by` 路径） | 536 | 19.8 MB | 14% |
+| `application_arg_expected` | 34 | 1.4 MB | 1% |
+| **`infer_expected_level`** | **18** | 0.8 MB | **0.5%** |
+
+**⇒ 附二 §E 原先定死的"唯一判定点 = `infer_expected_level`"被数据判死**（只占 0.5%）；
+真判定点是 **`infer_type_text`（72%）**，而且它的两个上游（`args_fit_layers_in_order`
+与 `elab_notation`）**手里本来就有** `&mut EnvBuilder` + `KnownTable` ✓。
+
+## 2. 这一刀怎么切最小（对账结论）
+
+* **不改 `judge_infer` 的签名**（那要动 10 个调用点，且仍缺"把源 `Expr` elaborate 成
+  `ExprPtr`"这一环）⇒ **反向接**：让**调用方**用它手里的活环境就地答；
+* 新增 `InplaceEnv { builder, known }`（两个字段都是**借用**，同一个 `dag` ⇒
+  指针同一性保住 ✓ —— 这正是 §17 否掉"重建 builder"的那条红线）；
+* 就地三步与慢路**逐字对齐**：`judge::synthesized_check_term`（造项的唯一实现）→
+  `elab_expr`（空 `UnivMap` + scratch hovers，与 `Walk::check` 同形）→
+  **`ExportFile::infer_type_text_at`**（内核里那个**零调用点**的零件**首次接线**）
+  → `judge::peel_binders`（剥 binder 的唯一实现）；
+* ⚠ **只做"未命中"**：命中仍走今天那条哈希快路（`judge::judge_infer_lookup`）——
+  每题都走就地是**负优化**（§4 的坑③）；就地答出后写回**同一张缓存**（键不变）。
+
+## 3. 判据（release · 冷缓存 · 1 job · 全课程 `build --json courses/set-theory`）
+
+| 读数 | `off` | `on` | Δ |
+|---|---|---|---|
+| `build.decl` / `build.file` / `build.begin` / `build.summary` | 2647 / 42 / 1 / 1 | **同** | **0** ✓ |
+| `--json`（剔除 `build.tick` 心跳） | — | — | **逐字节相同**（2691 行等长、0 行不同）✓ |
+| `passes` | 4126 | **2248** | **−45.5%** |
+| `doc_passes` | 266 | 266 | 0 ✓ |
+| `JUDGE_PREFIX runs` | 3759 | **1881** | **−50.0%** |
+| `JUDGE_PREFIX bytes` | 174,213,583 | **93,858,420** | **−46.1%** |
+| `judge_ms` | 146,580 | **120,359** | −17.9% |
+| `by_calls`（judge 重跑顺带重跑的 `by` 块） | 69085 | 37760 | −45.4% |
+| `JUDGE_INPLACE used / fallback` | — | **1878 / 39** | fallback **2.0%** |
+| **墙钟** | 214.19 s | **158.90 s** | **1.35×** |
+| `shadow` 档两条路文本 | — | `shadow_same=555552` · **`shadow_diff=0`** | ✓ |
+
+**账对得上**：`used(1878) + runs_on(1881) = runs_off(3759)` ✓ —— 每一趟省下的前缀重跑
+都对应一次就地作答。
+
+## 4. 三个**实测**踩到的坑（都写进了代码注释）
+
+1. **pp 档位**：`kernel_phase.rs:199` 的 `#check` 会先把 `config.pp_options.proofs = true`；
+   少了它，pp 对**每个子项**调 `is_proof`（**空局部上下文**推类型）⇒ binder 内的
+   `Eq n m` 之类直接 `loose bvar in infer` panic ✗（实测 7 次）。另：`with_env` 的
+   `quiet_catch` 必须包在**内层**，否则 panic 时"装回 `dag`/`declars`"会被 unwind 跳过 ⇒
+   builder 停在坏状态 ✗。
+2. **回读用的解析器**：只用 `proof::parse_expr_text`（**pp 文本**的回读入口）⇒ 它不认识
+   前缀里声明的**源级记法**（`∈` / `ᶜ` / `''` / `⁻¹'`）⇒ `unit12-solution` 单文件实测
+   **77822 次 Parse 失败**（占全部分叉的 **88%**）。
+3. **前缀解析太贵**：改成"接上整段前缀再 `parse_fragment`"（慢路就是这么解析的）⇒ 解析**对**了，
+   但本路径对**每一次** `infer_type_text` 都生效（含十几万次**缓存命中**的调用，慢路那边它们
+   是不花前缀钱的）⇒ **400 s 跑不完** ✗✗ ⇒ 最终选"**不解析**、直接用源 AST 造项"
+   （成本只随**项**大小走，不随前缀走）+ **只做未命中** ✓。
+
+## 5. 判据怎么防"空转"
+
+两个集成测试都**断言路径真被走到**（否则一个永远走不到的实现也能让"逐字节相同"变绿 ✗）：
+`crates/front/tests/judge_inplace.rs`（`shadow_same > 0` 且 `shadow_diff == 0`）·
+`crates/front/tests/judge_inplace_on.rs`（**反向判据**：换依赖里一个声明的类型 ⇒ 结论变
+**且** `INPLACE_USED` 增长 ⇒ 证明是**重算**而不是捞旧结论；顺带一条"判据不空转"断言）。
+
+## 6. 没做的 / 下一步
+
+* **仍剩 1881 趟前缀重跑**（`off` 3759 的一半）：`by` 路径的 `judge_render_type`/`lower_value`
+  （536 趟）· `universe_level_text_of_operands` 的第二问（468 趟，输入已是**文本** ⇒ 天生
+  不适合就地）· 未接线的小调用点 —— 都在 `elab.rs` 的其它判定点上，属 **P1-b**。
+* **真正的大头仍是"前缀环境可保存/可恢复"**（`JUDGE_PREFIX runs` 要从 1881 再大幅降，
+  而不是只降 46%）：即 `with_env_scope` 那条腿（per-前缀 builder 池 / 增量环境），
+  与本次"就地判定"是**两条腿**、不互相替代。

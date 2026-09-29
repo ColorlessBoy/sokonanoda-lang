@@ -92,7 +92,7 @@
 - **下一刀**：让前缀不再重跑（per-前缀 builder 池 / judge 接收调用方 builder）；
   ⚠ 真障碍：`compile_fol_with`（`check/mod.rs:286`）每次**从零造 `EnvBuilder`**，而它不是 `Clone`。
 
-## 第 502 轮（2026-09-29）：**P1-a 第一步落地 —— 就地判定接在一个判定点上**（默认 `off`）
+## 第 502 轮（2026-09-29）：**P1-a 第一步落地 —— 就地判定接在一个判定点上**（🚀 v0.78.1 · 默认已开）
 - **按调用点归因 3759 趟**（全量 `INFER_MISS` 回溯，`/tmp/base-trace.txt`）：**`infer_type_text`
   一个判定点 = 2697 趟（72%）/ 120.5 MB（73%）**；其余 `lower_value` 536 · `universe_level_text_of_operands`
   468（第二问）· `judge_render_type` · `application_arg_expected` 34 · **`infer_expected_level` 只 18 趟（0.5%）**
@@ -109,6 +109,19 @@
   ⇒ `loose bvar in infer` panic（必须与 `kernel_phase` 的 `#check` 同档设 `proofs=true`）；
   ② `parse_expr_text` 不认识前缀里声明的**源级记法** ⇒ 单文件 77822 次 Parse 失败；
   ③ "接上前缀再解析" ⇒ 每问 46 KB、而对**每次调用**生效 ⇒ 400s 跑不完 ⇒ 改"不解析"。
+
+
+- **全课程实测（release · 冷缓存 · 1 job · `build --json courses/set-theory`）**：
+  `--json` 剔 `build.tick` **逐字节相同**（2691 行 / 0 行不同；`build.decl` 2647 ·
+  `build.file` 42 · `build.begin` 1 · `build.summary` 1 两边一致）✓ ·
+  `passes` **4126 → 2248（−45.5%）** · `doc_passes` 266 → 266 ✓ ·
+  `JUDGE_PREFIX runs` **3759 → 1881（−50.0%）** · bytes **1.74 亿 → 9386 万（−46.1%）** ·
+  `judge_ms` **146.6s → 120.4s** · `used=1878 fallback=39`（2.0%）·
+  **墙钟 214.19s → 158.90s（1.35×）** ⇒ **默认已开**（`SOKO_JUDGE_INPLACE=off` 是回退开关）·
+  账对得上：`used(1878) + runs_on(1881) = runs_off(3759)` ✓。
+- **下一刀（不是终点）**：仍剩 1881 趟前缀重跑（`by` 路径 536 · `universe_level_text_of_operands`
+  第二问 468 · 未接线小点）；**真正的大头是"前缀环境可保存/恢复"**（`with_env_scope` 那条腿），
+  与"就地判定"是**两条腿**、不互相替代。
 
 ## 未决项
 
