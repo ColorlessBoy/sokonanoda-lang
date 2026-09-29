@@ -153,7 +153,7 @@ pub(crate) struct ElabCtx<'a, 'b> {
 
 | 出路 | 做什么 | 代价 | 风险 |
 |---|---|---|---|
-| **A. walk 里就填环境** | 把 `SOKO_WALK_REAL_ADD` 变成默认（walk 边 elaborate 边 `add_declar`） | 中：要保证"内核拒绝的不进环境"与 `kernel_phase` 同序同语义 | **高**：`kernel_phase` 的 check-then-add 是**判定语义**的一部分（两趟 + `skip` + `trust`）；改了会**动判定** ⇒ 红线 1 |
+| **A. walk 里就填环境** | **新写**一段"walk 边 elaborate 边 check-then-add"（**今天没有这段代码**，见下） | 中 | 中：要与 `kernel_phase` **同序同语义**（两趟 + `skip` + `trust`）；对拍能兜住 ⇒ 逐字节判据 |
 | **B. 复用点移出 walk** | 判定改成"先编完文件、再对**已建好的环境**逐条判" | 大：`by` 引擎要改成**两阶段**（先收集、后判定） | 中：判定结果应当不变（同一批查询），但**诊断顺序/文本**可能变 ⇒ 要逐字节对拍 |
 | **C. 只复用 `judge_infer` 的**解析产物** | 不碰环境，只缓存"前缀 → `parse_prefix` 的 AST"（省掉重复 parse） | 小 | 低，但**收益也小**（§5 实测：大头是**前端重新 elaborate**，不是 parse） |
 
@@ -162,3 +162,35 @@ A 会碰 check-then-add（判定语义），C 收益太小（parse 不是瓶颈�
 但 B 的改动面比 §6 列的清单大（要动 `by` 引擎的两阶段化），**所以必须先回报再动手** ✓。
 
 **在用户定夺前，阶段 1 不动手**（避免按错的前提铺开代码）。
+
+### 8.1 ⚠ 二次更正：**没有任何现成开关能填环境**（2026-09-29 实测）
+
+§8 的表格原本把出路 A 写成"把 `SOKO_WALK_REAL_ADD` 变成默认"。**这是误读** ✗✓ ——
+逐行核对后：
+
+* `SOKO_WALK_REAL_ADD` 的唯一 `add_declar` 落在 **`shadow_check_and_add`** 内部
+  （`walk.rs:227`），而那个函数**开头就早退**：`if self.shadow.is_none() { return true; }`
+  （`walk.rs:213`）⇒ 影子没建时它**根本不会执行到** `add_declar` ✗；
+* 影子本身**默认不建**（`SOKO_SHADOW_CHECK` 才建，`check/mod.rs:884`），而且文档写明
+  它是**实验品**、与内核阶段**不等价**（"差在增量记账：`skip`/`trust`/pass1-pass2 ⇒ 影子偏严"）
+  ⇒ **不能进判定路径** ✗。
+
+**实测印证**（真课程冷编，release，1 job）：
+
+| 配置 | `passes` | `judge_ms` |
+|---|---|---|
+| 基线 | 4126 | 146.4s |
+| `SOKO_WALK_REAL_ADD=1` | 4126（**无变化** ⇒ 果然没填环境）| 146.4s |
+| `SOKO_SHADOW_CHECK=1 SOKO_WALK_REAL_ADD=1` | **5653（更差）** | **179.2s** |
+
+⇒ **出路 A = 新写一段代码**（不是翻一个开关）；**出路 B 不变**（复用点移出 walk）。
+**两条路的改动面都比 §6 的清单大** ⇒ 阶段 1 的"最小切片"不成立，
+需要先定 A/B 再重写 §6 的依赖清单。
+
+**我（agent）的判断**：**A 更小**——它只需要在 walk 的 `PendingOp::Decl` 生成点补一次
+"就地 `try_check_declar` + `add_declar`"（`ExportFile::try_check_declar` 与
+`EnvBuilder::add_declar` **都已是 `pub`** ✓，内核零改动 ✓），
+且"内核拒绝的不进环境"这条语义**照抄 `kernel_phase` 的 `check_then_add_decl`** 即可；
+B 则要动 `by` 引擎的批次结构（两阶段化），面更大。
+**A 的判据**：`--json` 逐字节不变（这条**已有先例**：D-2 那次实测 CLI `--json` 逐字节相同 ✓）
++ front 736/0 + 真课程 `passes` 下降。
