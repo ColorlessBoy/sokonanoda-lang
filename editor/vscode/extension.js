@@ -2012,6 +2012,84 @@ async function warmCacheOnOpen(context) {
   e2eLog(`warmCacheOnOpen: exit=${result.code}`);
 }
 
+/// **Q2：安装命令行**（用户 2026-09-29 18:39 原话：「我希望插件能带上安装 cli 的功能，
+/// **像 lean4 一样的**」；18:53 拍板走法：「**直接装插件自带的 cli，版本还能对齐**」）。
+///
+/// **自带即装**：把 VSIX 里那个 CLI 拷到 `~/.local/share/sokonanoda/bin/`
+/// （与 LSP 的缓存目录同处）—— **不下载、不联网、不校 SHA256、不需要镜像**，
+/// 因为装的就是包里那个 ⇒ **版本对齐结构性成立** ✓。
+///
+/// ⚠ **判据是"值"不是"形状"**（Q2 的硬要求）：装完**跑一次 `--version`**，
+/// 把**输出**与插件版本比对 —— 不一致就**判红**并给可行动的文案。
+/// 为什么非这样不可：现有守卫全是"声明对声明"
+/// （`extension.rs` 的 `cargo_and_extension_versions_match` 只比
+/// `Cargo.toml` ↔ `package.json`），**没有任何东西会跑那个二进制问它版本** ⇒
+/// 「版本对齐」在 Q2 之前是一句**没有守卫的声明** ✗
+/// （实测抓到：本机 `bin/darwin-arm64/sokonanoda --version` = **0.74.0** 而插件 0.78.0）。
+async function installCli(context) {
+  const extensionPath = context.extensionPath;
+  const version = extensionVersion(context);
+  let installed;
+  try {
+    installed = server.installBundledCli({
+      extensionPath,
+      platform: process.platform,
+      arch: process.arch,
+      version,
+    });
+  } catch (error) {
+    const text = `sokonanoda: 安装命令行失败（${error?.message ?? error}）。`;
+    vscode.window.showErrorMessage(text);
+    return text;
+  }
+  if (!installed.source) {
+    const text =
+      "sokonanoda: 这个安装包里**没有**自带命令行（通用包要在首次使用时下载）。" +
+      "请改装对应平台的插件包，或用 `sokonanoda.setup` 走下载那条路。";
+    vscode.window.showWarningMessage(text);
+    return text;
+  }
+  // **值断言**：跑一次 `--version`，拿**输出**与插件版本比。
+  // 用 `cp.execFile` 的 promise 形态（与 build 那条路同款：不阻塞扩展宿主）。
+  let reported = "";
+  try {
+    reported = await new Promise((resolve, reject) => {
+      cp.execFile(installed.dest, ["--version"], (error, stdout) => {
+        if (error) reject(error);
+        else resolve(String(stdout ?? "").trim());
+      });
+    });
+  } catch (error) {
+    reported = `（跑不起来：${error?.message ?? error}）`;
+  }
+  // ⚠ CLI 打的是 `sokonanoda 0.78.1`（**带程序名前缀**），不是裸版本号
+  // ⇒ 必须**取出版本 token** 再比（实测：直接 `reported === version` 永远不成立 ✗）。
+  const reportedVersion = (reported.match(/\d+\.\d+\.\d+/) ?? [""])[0];
+  const aligned = reportedVersion === version;
+  const lines = [
+    `sokonanoda: 命令行已安装到 ${installed.dest}`,
+    `  版本自述：${reported || "（空）"} · 插件：${version}`,
+  ];
+  if (aligned) {
+    lines.push("  ✓ 版本对齐（装的就是包里那个）");
+    const text = lines.join("\n");
+    vscode.window.showInformationMessage(
+      `sokonanoda: 命令行已安装（${version}）—— 重新打开终端后 sokonanoda 即可用。`,
+    );
+    return text;
+  }
+  // **不一致 ⇒ 判红**（开发者：本机 bin/ 陈旧 ⇒ 重新打包；用户：升级插件）
+  lines.push(
+    "  ✗ **版本不一致** —— 开发者：本机 `bin/` 是陈旧构建，跑 `npm run stage:lsp` 重新暂存；" +
+      "用户：请升级插件后重试。",
+  );
+  const text = lines.join("\n");
+  vscode.window.showErrorMessage(
+    `sokonanoda: 装出来的命令行是 ${reported || "?"}，插件是 ${version} —— 版本不一致。`,
+  );
+  return text;
+}
+
 /// 跑一次 build/rebuild；返回给用户/测试看的摘要文本（跑不起来时 undefined）。
 /// 会刷新三个视图：build 改变了缓存状态，"面板像是没反应"正是它要回答的问题。
 async function runBuild(context, { clean = false, courseProvider } = {}) {
@@ -2360,6 +2438,8 @@ function registerCommands(context, provider, courseProvider) {
     vscode.commands.registerCommand("sokonanoda.clean", () =>
       runClean(context, { courseProvider }),
     ),
+    // Q2：把插件自带的 CLI 装到用户目录（离线、自带即装、版本对齐有值断言）。
+    vscode.commands.registerCommand("sokonanoda.installCli", () => installCli(context)),
     // 记法缩写改写器（NI-2）：键位 Tab，`when` 子句由 abbreviation-rewriter.js
     // 置位的 context key 把关（普通 Tab 照旧缩进）。命令注册在这里、状态机在
     // src/abbreviation-rewriter.js —— 与开发规范 §1 的文件职责一致。

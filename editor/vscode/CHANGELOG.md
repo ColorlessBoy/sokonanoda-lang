@@ -1,3 +1,50 @@
+## [Unreleased]
+
+> 「编译提速」的**第二、三档**（P1-b 收口 + P1-c）与三条用户实测 UI 缺陷的收口。
+
+### Changed
+
+- **Compilation is now ~1.69× faster than the 0.78.1 baseline** (cold cache, 1 job,
+  same machine, median of 3 runs): wall clock **214.08 s → 126.80 s**. The judge
+  answers in place for the `by` engine too, so prefix re-runs fell
+  **3759 → 791** (−79%). Structural counts (noise-immune): re-parsed prefix bytes
+  **174,213,583 → 43,329,596**, internal pass count **4126 → 1157**.
+- **Nothing you see changes.** `build --json` (excluding the time-based
+  `build.tick` and the new `build.progress`) is **byte-for-byte identical** between
+  the old baseline and the new default: 2691 lines, **zero differing lines**. A
+  shadow mode that runs *both* ways over the whole course reported
+  `shadow_diff = 0` across 44234 comparisons.
+- **The Infoview no longer shows two unreconciled version numbers.** The project
+  block's number is the artifact stamp from `<module root>/.sokonanoda/meta.json`,
+  which used to be written **once** when the directory was created — so after an
+  upgrade it kept showing the old version forever. It is now refreshed whenever
+  artifacts are written, and both version numbers carry labels
+  (`服务器 …` / `由编译器 … 写入`).
+- **`build --json` no longer prints a heartbeat every second.** All 159 ticks in a
+  cold course build carried `file: ""`, so they were pure noise for anyone
+  watching a terminal. The heartbeat is now **off unless asked for**
+  (`SOKO_BUILD_TICK_MS=<ms>`; `SOKO_BUILD_NO_TICK=1` forces it off).
+
+### Added
+
+- **`Sokonanoda: Install Command Line (安装命令行)`** — install the CLI bundled in
+  this extension into `~/.local/share/sokonanoda/bin/`. Offline, no download, and
+  the version is the extension's version by construction (verified by running
+  `--version`, not by assertion).
+- **`sokonanoda.build.timeoutMs`** — the `build`/`rebuild` timeout (default
+  300000 ms, **`0` = no limit**). A cold build of a whole course takes ~314 s, so
+  the old hard-coded 300 s made the first build after clearing the cache fail.
+- **`build.progress`** (`{type, done, total, file}`) in `build --json` — one event
+  per finished file, emitted **while compiling**. `build.file` only arrives after
+  every file is done, which is why the progress bar used to sit at `0%` and then
+  jump to `100%`. Additive: older consumers ignore unknown types.
+
+### Fixed
+
+- **Rebuild no longer shows `0%` and then jumps to "done".** Reproduced in a real
+  VS Code host (`percent` values seen: `[null, 0, 100]`) before the fix; the
+  progress bar now moves from the fourth second onward.
+
 ## [0.78.1] — 2026-09-29
 
 > 「编译提速」：判定就地查环境（P1-a 第一步）。**课程/练习的编译快 1.35×**。

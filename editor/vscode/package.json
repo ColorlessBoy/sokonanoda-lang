@@ -135,6 +135,11 @@
         "category": "Sokonanoda"
       },
       {
+        "command": "sokonanoda.installCli",
+        "title": "Install Command Line (安装命令行)",
+        "category": "Sokonanoda"
+      },
+      {
         "command": "sokonanoda.project.refresh",
         "title": "Refresh Project View (刷新项目视图)",
         "icon": "$(refresh)",

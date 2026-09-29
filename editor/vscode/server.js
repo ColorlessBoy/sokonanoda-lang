@@ -355,6 +355,50 @@ async function downloadLspBinary(options) {
   }
 }
 
+/// **Q2：把插件自带的 CLI 装到用户目录**（"自带即装"）。
+///
+/// 用户 2026-09-29 拍板走法：「**直接装插件自带的 cli，版本还能对齐**」——
+/// ⇒ **离线自带即装**：不下载、不联网、不校 SHA256、不需要镜像，
+/// 因为**装的就是包里那个** ⇒ **版本对齐结构性成立**（不靠人记）✓。
+///
+/// ⚠ **必须拷贝、不许软链**：VSIX 安装目录带版本号（`…/sokonanoda-0.78.1/`），
+/// 软链会在插件升级后失效 ✗。
+///
+/// ⚠ **先查 `--version` 再决定**（Q2 的核心判据）：`bin/` 是 `.gitignore` 的
+/// **构建产物**、靠打包时 `stage:lsp` 现拷 ⇒ **F5 开发宿主解析到的可能就是陈旧
+/// 的那份**（实测抓到过 `bin/darwin-arm64/sokonanoda --version` = **0.74.0**
+/// 而插件是 0.78.0，**静默差 4 个版本**）✗。
+/// ⇒ 拷完**跑一次 `--version` 与插件版本比对**，不一致就**判红**并给人话。
+///
+/// 返回 `{dest, version, aligned, source}`；`source` 为 `undefined` 时表示
+/// **没有自带二进制**（调用方给"请先重新安装插件"的人话）。
+function installBundledCli(options) {
+  const { extensionPath, platform, arch, version, fsImpl = fs } = options;
+  const src = resolveBundledBinary({
+    extensionPath,
+    platform,
+    arch,
+    baseName: "sokonanoda",
+    fs: fsImpl,
+  });
+  if (!src) return { source: undefined, aligned: false };
+  const dir = serverCacheDir();
+  fsImpl.mkdirSync(dir, { recursive: true });
+  const name = platform === "win32" ? "sokonanoda.exe" : "sokonanoda";
+  const dest = path.join(dir, name);
+  fsImpl.copyFileSync(src, dest);
+  if (platform !== "win32") {
+    try {
+      fsImpl.chmodSync(dest, 0o755);
+    } catch {
+      // 只读缓存目录：让调用方在 spawn 失败时给可行动的文案
+    }
+  }
+  // 版本标记（与 LSP 的 `serverVersionMarker` 同款机制）
+  fsImpl.writeFileSync(dest + ".version", `${version}\n`);
+  return { dest, source: src, aligned: false, version };
+}
+
 module.exports = {
   RELEASES_BASE,
   isAlpineLinux,
@@ -376,4 +420,5 @@ module.exports = {
   downloadLspBinary,
   resolveServerCommand,
   followRedirects,
+  installBundledCli,
 };

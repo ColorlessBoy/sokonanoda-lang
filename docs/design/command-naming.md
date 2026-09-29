@@ -44,6 +44,7 @@ T-B2 照"目标"两列改，T-B3 走四份同步。
 | 14 | `sokonanoda.project.refresh` | `sokonanoda: refresh project view` | — | `sokonanoda: refresh project view` | `Sokonanoda` | `Refresh Project View (刷新项目视图)` |
 | 15 | `sokonanoda.input.replaceAbbreviation` | `替换记法缩写（\and → ∧）` | `sokonanoda` | `sokonanoda: 替换记法缩写（\and → ∧）` | `Sokonanoda` | `Replace Notation Abbreviation (替换记法缩写：\and → ∧)` |
 | 16 | `sokonanoda.clean` | （E31 新增）`clean（清除编译缓存）` | `sokonanoda` | `sokonanoda: clean（清除编译缓存）` | `Sokonanoda` | `Clean Cache (清除编译缓存)` |
+| 17 | `sokonanoda.installCli` | （Q2 新增）`安装命令行` | `sokonanoda` | `sokonanoda: 安装命令行` | `Sokonanoda` | `Install Command Line (安装命令行)` |
 
 **盘点发现的三类毛病**：
 1. **前缀双写**（#10/#11）：`category` 已经提供 `sokonanoda:`，标题里又写一遍

@@ -277,7 +277,13 @@ const vscodeStub = {
       (vscodeStub.__messages ??= []).push(String(msg));
       return undefined;
     },
-    showErrorMessage: async () => undefined,
+    // **Q2**：错误提示也要**可观测** —— 原来这里是丢弃返回值的空实现
+    // ⇒ "不一致时有没有报错"**测不到** ✗（与上面 `showInformationMessage`
+    // 那条注释同一个理由：判据要断言"屏幕上弹了什么"）。
+    showErrorMessage: async (msg) => {
+      (vscodeStub.__messages ??= []).push(String(msg));
+      return undefined;
+    },
     showTextDocument: async () => undefined,
     registerUriHandler: () => makeDisposable(),
     // **E23**：`withProgress` 不再是空壳 —— 它记下 options、把每次 `report`
@@ -423,12 +429,35 @@ const serverStub = {
   serverVersionMarker: () => "/stub/version",
   newestInstalledExtensionVersion: () => undefined,
   downloadLspBinary: async () => "/stub/sokonanoda-lsp",
+  // **Q2**：stub 的"装自带 CLI"。默认**对齐**（与插件同版本）—— 不一致那一档
+  // 由专门用例覆写 `__cliVersion` 来造 ✓。
+  installBundledCli: () => {
+    if (vscodeStub.__noBundledCli) return { source: undefined, aligned: false };
+    return {
+      dest: "/stub/bin/sokonanoda",
+      source: "/stub/extension/bin/darwin-arm64/sokonanoda",
+      version: "0.58.0",
+      aligned: false,
+    };
+  },
 };
 const originalLoad = Module._load;
 Module._load = function patched(request, parent, isMain) {
   if (request === "vscode") return vscodeStub;
   if (request === "vscode-languageclient/node") return vscodeLanguageclientStub;
-  if (request === "child_process") return { spawn: fakeSpawn, execFile: () => {}, execSync: () => "" };
+  if (request === "child_process") {
+    return {
+      spawn: fakeSpawn,
+      // **Q2**：`installCli` 靠它跑 `--version`。回调形态
+      //（`(cmd, args, cb)`）—— stub 输出由 `__cliVersion` 控制 ✓。
+      execFile: (cmd, args, cb) => {
+        const out = `sokonanoda ${vscodeStub.__cliVersion ?? "0.58.0"}\n`;
+        if (typeof cb === "function") cb(null, out, "");
+        return { on: () => {} };
+      },
+      execSync: () => "",
+    };
+  }
   if (request === "./server" && parent && parent.filename === extensionPath) return serverStub;
   return originalLoad.call(this, request, parent, isMain);
 };
@@ -890,6 +919,50 @@ test("build progress keeps moving inside a file (P2: decl + tick)", async () => 
     details.some((d) => String(d).includes("声明 7/31")) && details.some((d) => String(d).includes("已用 12.3s")),
     `Infoview 同一份数字也要更新：${JSON.stringify(details)}`,
   );
+});
+
+test("Install Command Line copies the bundled CLI and checks its version (Q2)", async () => {
+  // **Q2（用户 09-29 18:53）**：「**直接装插件自带的 cli，版本还能对齐**」。
+  //
+  // 判据绑**用户动作 ⇒ 可见结果**：
+  //   ① 命令真的注册了（`sokonanoda.installCli`）；
+  //   ② 跑一次 ⇒ 弹**信息**提示（成功路径），**且**返回值里写明装到哪；
+  //   ③ **版本对齐是"值"断言**：stub 自述与插件**一致** ⇒ ✓；
+  //      自述**不一致** ⇒ **弹错误**（不是静默成功 ✗）。
+  // ③ 是关键：Q2 之前「版本对齐」是一句**没有守卫的声明**
+  //（`extension.rs` 只比 `Cargo.toml` ↔ `package.json`，**没有任何东西跑那个二进制**）。
+  await activateExtension({});
+  const handler = vscodeStub.__commands["sokonanoda.installCli"];
+  assert.ok(handler, "sokonanoda.installCli 必须注册（Q2）");
+
+  // ① 对齐：stub 的 `--version` == 插件版本（context.extension.packageJSON.version）
+  vscodeStub.__cliVersion = "0.58.0";
+  vscodeStub.__messages = [];
+  const ok = await handler();
+  assert.match(String(ok), /已安装到/, `报告要写明装到哪：${ok}`);
+  assert.match(String(ok), /版本对齐/, `对齐时必须说清"版本对齐"：${ok}`);
+  assert.ok(
+    (vscodeStub.__messages ?? []).some((m) => /命令行已安装/.test(m)),
+    `成功路径必须给可见提示：${JSON.stringify(vscodeStub.__messages)}`,
+  );
+
+  // ② 不对齐：自述 0.74.0 而插件 0.58.0 ⇒ **必须报错**（用户现场那个形状）
+  vscodeStub.__cliVersion = "0.74.0";
+  vscodeStub.__messages = [];
+  const bad = await handler();
+  assert.match(String(bad), /版本不一致/, `不一致时必须判红：${bad}`);
+  assert.match(String(bad), /0\.74\.0/, `要报出实际自述版本：${bad}`);
+  assert.ok(
+    (vscodeStub.__messages ?? []).length > 0,
+    "不一致时必须有可见错误提示（不许静默）",
+  );
+
+  // ③ 没有自带二进制：给人话，不假装成功
+  vscodeStub.__noBundledCli = true;
+  vscodeStub.__messages = [];
+  const none = await handler();
+  assert.match(String(none), /没有/, `通用包要给人话：${none}`);
+  vscodeStub.__noBundledCli = false;
 });
 
 test("Clean Cache clears both stores and does not compile anything (E31)", async () => {

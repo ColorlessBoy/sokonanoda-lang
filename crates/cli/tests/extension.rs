@@ -413,6 +413,77 @@ fn server_acquisition_prefers_the_bundled_binary() {
     );
 }
 
+/// **Q2 的判据：`--version` 的**值**必须与插件版本一致**（不是形状断言）。
+///
+/// 用户 09-29 18:53 拍板「**直接装插件自带的 cli，版本还能对齐**」—— 前提是
+/// **"自带 CLI 版本 = 插件版本"结构性成立**。而 Q2 之前**没有任何东西会跑那个
+/// 二进制问它版本**：现有守卫全是"声明对声明"（`cargo_and_extension_versions_match`
+/// 只比 `Cargo.toml` ↔ `package.json`）⇒ 「版本对齐」是一句**没有守卫的声明** ✗。
+///
+/// 实测抓到过的现场：本机 `editor/vscode/bin/darwin-arm64/sokonanoda --version`
+/// = **0.74.0**，而插件是 **0.78.0** —— `bin/` 是 `.gitignore` 的构建产物、
+/// 靠打包时 `stage:lsp` 现拷 ⇒ **F5 开发宿主解析到的就是它**，静默差 4 个版本 ✗。
+///
+/// ⇒ 这条**跑真二进制、断言真输出**：
+///   ① 从 `package.json` 的 version 出发（**唯一出处**）；
+///   ② 在 `bin/<target>/` 里找**存在**的那份；
+///   ③ 跑 `--version`，**取出版本 token** 与 ① 比。
+/// 找不到二进制 ⇒ **`return`（跳过）而不是判绿** —— 未 stage 的检出不该判红，
+/// 但也**绝不假装对齐** ✓（与 `docs/TESTING.md` 的"没扫到 ≠ 绿"同一条纪律）。
+#[test]
+fn the_bundled_cli_reports_the_extension_version() {
+    let root = repo_root();
+    let vscode = root.join("editor").join("vscode");
+    let manifest: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(vscode.join("package.json")).expect("package.json"),
+    )
+    .expect("package.json is json");
+    let version = manifest["version"].as_str().expect("version").to_string();
+
+    let bin = vscode.join("bin");
+    let Ok(entries) = fs::read_dir(&bin) else {
+        eprintln!("Q2: 没有 editor/vscode/bin/（未 stage）⇒ 跳过，不判绿也不判红");
+        return;
+    };
+    let name = if cfg!(windows) {
+        "sokonanoda.exe"
+    } else {
+        "sokonanoda"
+    };
+    let mut checked = 0usize;
+    for entry in entries.flatten() {
+        let candidate = entry.path().join(name);
+        if !candidate.is_file() {
+            continue;
+        }
+        let out = std::process::Command::new(&candidate)
+            .arg("--version")
+            .output()
+            .unwrap_or_else(|e| panic!("跑 {} --version 失败：{e}", candidate.display()));
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        // CLI 打的是 `sokonanoda 0.78.1`（带程序名前缀）⇒ 取版本 token。
+        let reported = stdout
+            .split_whitespace()
+            .find(|tok| tok.chars().filter(|c| *c == '.').count() == 2)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Q2：{} --version 的输出里找不到版本号：{stdout:?}",
+                    candidate.display()
+                )
+            });
+        assert_eq!(
+            reported,
+            version,
+            "Q2：`{}` 自述 **{reported}**，而插件是 **{version}** —— \
+             「自带 CLI 版本 = 插件版本」这条前提**不成立** ⇒ 用户装到的 CLI 与插件对不上。\
+             开发者：跑 `node editor/vscode/scripts/stage-lsp.js` 重新暂存（`bin/` 是构建产物）。",
+            candidate.display()
+        );
+        checked += 1;
+    }
+    eprintln!("Q2: 核对了 {checked} 份自带 CLI 的 `--version`（都 == {version}）");
+}
+
 #[test]
 fn bundled_first_policy_and_doctor_are_wired() {
     // Server policy (docs/design/extension-server-policy.md §2/§3/§5): the
@@ -1351,7 +1422,13 @@ fn build_and_rebuild_commands_warm_the_compile_cache() {
     // 契约层能咬住的是"声明了就必须注册"（`package.json` ↔ `extension.js` 不漂移）；
     // "真的只清不编 / 三个数来自 CLI 事件"由 stub 宿主那条判据钉
     //（`test-extension-host.js::Clean Cache clears both stores and does not compile anything`）。
-    for id in ["sokonanoda.build", "sokonanoda.rebuild", "sokonanoda.clean"] {
+    for id in [
+        "sokonanoda.build",
+        "sokonanoda.rebuild",
+        "sokonanoda.clean",
+        // **Q2**：把插件自带的 CLI 装到用户目录（"自带即装"，离线、版本对齐）
+        "sokonanoda.installCli",
+    ] {
         assert!(
             commands.iter().any(|c| c["command"].as_str() == Some(id)),
             "package.json must declare {id}"
@@ -1371,6 +1448,7 @@ fn build_and_rebuild_commands_warm_the_compile_cache() {
         ("sokonanoda.build", "build"),
         ("sokonanoda.rebuild", "rebuild"),
         ("sokonanoda.clean", "clean"),
+        ("sokonanoda.installCli", "command line"),
     ] {
         let title = commands
             .iter()

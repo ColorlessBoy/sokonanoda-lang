@@ -290,6 +290,18 @@ Both write the CLI's JSON Lines events (`build.file` / `build.clean` /
 exercise/project/course views afterwards (a warm cache changes what they show),
 and warn — never fail silently — when a file does not compile.
 
+`build`/`rebuild` time out after `sokonanoda.build.timeoutMs` (default 300000 ms;
+**`0` = no limit**) — a cold build of a whole course can exceed the default, and
+the timeout message names the setting so you know where to change it.
+
+- **`Sokonanoda: Install Command Line (安装命令行)`** — copy the CLI that ships
+  **inside this extension** to `~/.local/share/sokonanoda/bin/`, so you get a
+  `sokonanoda` command **without downloading anything** (no network, no mirror,
+  no `cargo`). Because it installs the bundled binary, **its version is the
+  extension's version by construction** — and the command verifies that by
+  running `--version` and comparing the answer, so a stale build is reported
+  instead of silently installed.
+
 **Warming on open** — set `sokonanoda.warmCacheOnOpen` to `true` and the
 extension runs one `build` over the **workspace root** in the background when
 the window activates, so the first unit you open is already a cache hit.
