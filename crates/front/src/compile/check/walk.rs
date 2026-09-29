@@ -282,6 +282,16 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         let mut unit_seen: Vec<usize> = vec![0usize; units.len()];
         for (idx, &(unit_idx, command)) in flat.iter().enumerate() {
             let unit = &units[unit_idx];
+            // **每条声明一个计时事件**（`SOKO_DECL_PROFILE=1`；默认零开销 ✓）。
+            // 为什么要有它：218.8s 只给聚合数答不了"花在哪一步"，更验不了
+            // "单条成本是否随序号线性增长"（O(N²) 前缀重跑）——见
+            // `docs/perf/course-profile-2026-09-29.md` 与 `scripts/profile-course.sh`。
+            let profile_on = decl_profile::enabled();
+            let decl_start = if profile_on {
+                Some(std::time::Instant::now())
+            } else {
+                None
+            };
             // 每处理**一条命令**回调一次（声明级）：先报"开始处理这一条"，
             // 于是首拍在编译一开始就到、末拍覆盖到最后一条命令 ✓。
             if let Some(sink) = progress.as_deref_mut() {
@@ -336,6 +346,15 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 src: &unit.file.src,
             };
             self.command(&c, command);
+            if let Some(start) = decl_start {
+                decl_profile::emit(
+                    unit.name,
+                    decl_profile::decl_name(command),
+                    unit_seen[unit_idx] - 1,
+                    unit_totals[unit_idx],
+                    start.elapsed(),
+                );
+            }
         }
     }
 
@@ -1647,4 +1666,64 @@ fn build_redundant_probes<'arena>(
         }
     }
     probes
+}
+
+/// **逐声明耗时事件**（`SOKO_DECL_PROFILE=1`）：JSON lines 到 stderr。
+///
+/// 形状（**常设**，`scripts/profile-course.sh` 消费）：
+/// `{"soko":"decl","module":…,"name":…,"index":…,"total":…,"ms":…}`
+/// —— `index` 是**该声明在它自己文件里的序号** ⇒ 直接支撑"耗时 vs 序号"的
+/// O(N²) 判定（假设 A）✓。默认关：开关没开时 `enabled()` 只读一次 `OnceLock`。
+pub(crate) mod decl_profile {
+    use std::io::Write;
+    use std::sync::OnceLock;
+    use std::time::Duration;
+
+    static ON: OnceLock<bool> = OnceLock::new();
+
+    pub(crate) fn enabled() -> bool {
+        *ON.get_or_init(|| std::env::var_os("SOKO_DECL_PROFILE").is_some())
+    }
+
+    /// **只报超过阈值的声明**（仿 Lean 的 `profiler.threshold`，默认 100ms）。
+    ///
+    /// 为什么必须有：真课程实测 **256160 条**逐声明事件（`judge_infer` 每未命中一次
+    /// 就合成一趟 pass，那一趟也逐条打）⇒ 全打出来没法看 ✗。
+    /// 出处：<https://vca-epfl.github.io/wiki/lean-profiling/>（"a threshold of at least
+    /// 100ms before the result is shown… adjusted by `trace.profiler.threshold`"）。
+    /// 设 `SOKO_DECL_PROFILE_MS=0` ⇒ 全打（要画"耗时 vs 序号"的分布时用）。
+    pub(crate) fn threshold_ms() -> f64 {
+        static MS: OnceLock<f64> = OnceLock::new();
+        *MS.get_or_init(|| {
+            std::env::var("SOKO_DECL_PROFILE_MS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(100.0)
+        })
+    }
+
+    /// 命令的**声明名**（`import`/`open` 之类没有名字 ⇒ 用它的命令种类当名字）。
+    pub(crate) fn decl_name(command: &crate::ast::Command) -> &str {
+        match command {
+            crate::ast::Command::Def { name, .. }
+            | crate::ast::Command::Theorem { name, .. }
+            | crate::ast::Command::Axiom { name, .. }
+            | crate::ast::Command::InductiveBlock { name, .. } => name,
+            crate::ast::Command::Example { .. } => "<example>",
+            crate::ast::Command::Import { .. } => "<import>",
+            _ => "<cmd>",
+        }
+    }
+
+    pub(crate) fn emit(module: &str, name: &str, index: usize, total: usize, elapsed: Duration) {
+        let ms = elapsed.as_secs_f64() * 1000.0;
+        if ms < threshold_ms() {
+            return;
+        }
+        let line = format!(
+            "{{\"soko\":\"decl\",\"module\":{module:?},\"name\":{name:?},\"index\":{index},\"total\":{total},\"ms\":{ms:.3}}}"
+        );
+        let mut err = std::io::stderr().lock();
+        let _ = writeln!(err, "{line}");
+    }
 }

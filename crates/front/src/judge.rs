@@ -232,6 +232,16 @@ pub fn judge_terms_with(
     open: &OpenGoalSpec,
     terms: &[&str],
 ) -> Vec<Judgement> {
+    // **测量开关**（`SOKO_NO_JUDGE=1`）：跳过真正的判定、一律答"过"。
+    //
+    // ⚠ **只许用来量成本，绝不许进判定路径** ✗ —— 它会**改判定**（本来该报错的
+    // 现在不报），所以它永远不能默认开、也不能用来"让构建变快"。
+    // 它的用途只有一个：回答"**judge 环节占 build 多少**"（用户 09:22 的问题 2）
+    // ⇒ 真课程实测：`218.8s → 见 docs/perf/course-profile-2026-09-29.md`。
+    // 它**不写缓存**（否则污染后续真实判定）✓。
+    if no_judge() {
+        return terms.iter().map(|_| Judgement::Match).collect::<Vec<_>>();
+    }
     let key = judge_cache_key(&[
         extra_prefix,
         prefix_src,
@@ -694,6 +704,13 @@ pub fn set_batching(on: bool) -> bool {
     BATCHING.swap(on, std::sync::atomic::Ordering::Relaxed)
 }
 
+/// `SOKO_NO_JUDGE=1`：**测量专用**开关（跳过判定、一律答"过"）。
+/// 见 [`judge_terms_with`] 里的注释 —— **绝不许进判定路径**。
+fn no_judge() -> bool {
+    static OFF: OnceLock<bool> = OnceLock::new();
+    *OFF.get_or_init(|| std::env::var("SOKO_NO_JUDGE").is_ok())
+}
+
 /// `SOKO_NO_JUDGE_BATCH=1` 强制关掉乐观批处理（**对拍用**：开与关必须给出
 /// 逐字相同的结论与诊断）。只读一次环境（进程级开关）。
 fn batching_on() -> bool {
@@ -944,6 +961,15 @@ pub fn judge_infer_with(
     //（`docs/PERF.md`：`calls=126105 total_ms=12304`）⇒ 量具等于失效 ✗。
     // 它本身是 `call_once`（幂等 ✓、非热路径 ✓），两处都调是安全的 ✓。
     stats::install_printer();
+    // **测量开关**（与 `judge_terms_with` 的 `no_judge()` 同一个）：`judge_infer`
+    // 占 `judge_ms` 的**大头**（真课程实测：只跳 `judge_terms` ⇒ 218.8s → 221.7s，
+    // **只有 3%** ✗；跳掉 `judge_infer` 才看得见另一半）。⚠ 同样**只许量成本**。
+    if no_judge() {
+        return Err(Judgement::Error {
+            code: "skipped".to_string(),
+            message: "SOKO_NO_JUDGE=1（测量专用）".to_string(),
+        });
+    }
     let r = judge_infer_cached(extra_prefix, prefix_src, options, binders, term);
     stats::INFER_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     stats::INFER_NANOS.fetch_add(
