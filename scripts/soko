@@ -1305,6 +1305,29 @@ async function main(argv) {
         )
         return 3
       }
+      // **测试的环境档位隔离**（2026-09-30 事故）：`SOKO_JUDGE_INPLACE*` 走
+      // `OnceLock` 只读一次环境，而**同一文件的多个 `#[test]` 共享一个进程**
+      // ⇒ 两条判据抢同一个档位 ⇒ **间歇判红**（实测 6 连跑 4 红 2 绿；
+      // 症状是"单独跑绿、gate 里红"，最容易被误读成"gate 有问题" ✗）。
+      // 纯静态扫描、**毫秒级** ⇒ `--fast` 也跑 ✓。
+      const envIsolation = path.join(REPO, 'scripts', 'check-test-env-isolation.py')
+      if (!existsSync(envIsolation)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, envIsolation)} —— 档位隔离无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      for (const extra of [[], ['--selftest']]) {
+        const r = spawnSync(python.cmd, [...python.args, envIsolation, ...extra], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (r.error) {
+          process.stderr.write(`scripts/soko gate: failed to run ${envIsolation}: ${r.error.message}\n`)
+          return 3
+        }
+        if ((r.status ?? 3) !== 0) return r.status ?? 3
+      }
       if (fast) {
         process.stderr.write(
           'scripts/soko gate --fast: 跳过缺口台账门禁（~94s；它是**提交前**的契约，' +

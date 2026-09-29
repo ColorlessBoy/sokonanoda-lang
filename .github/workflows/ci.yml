@@ -427,6 +427,16 @@ jobs:
         run: |
           python3 scripts/check-recompile-factor.py
           python3 scripts/check-recompile-factor.py --selftest
+      - name: Test files that set env must hold exactly one #[test]
+        # **环境档位隔离**（2026-09-30 事故）：`SOKO_JUDGE_INPLACE*` 走 `OnceLock`
+        # 只读一次环境，而**同一文件的多个 `#[test]` 共享一个进程** ⇒ 两条判据
+        # 抢同一个档位 ⇒ **间歇判红**（实测 6 连跑 4 红 2 绿；症状是"单独跑绿、
+        # gate 里红"）。判据 = 配 `env::set_var` 的集成测试文件**必须恰好一个
+        # `#[test]`**（一个档位一个文件 = 独立进程 ✓）。
+        # `--selftest` = 反向验证：两个 test 的夹具**必须判红**。
+        run: |
+          python3 scripts/check-test-env-isolation.py
+          python3 scripts/check-test-env-isolation.py --selftest
       - name: Progress events never go quiet for long (P2)
         # **量事件流最长空档**（不是"有没有进度条" ✗）：`build.decl` 声明级 +
         # `build.tick` 心跳（≤1/s，只报已用时、不假装百分比）两条通道 ⇒ ≤ 2.5s。

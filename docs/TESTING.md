@@ -189,6 +189,18 @@ file=…::` 注解、`--report` 进 `course-gate-report` artifact、表格进 st
    这两项后来都做完了：`didChangeWatchedFiles` 在批次 1（0.57.0），`soko/project`
    在批次 4（0.58.0，见 §1「项目状态视图」行与 `docs/design/project-view.md`）。
 
+8. **测试文件的"环境档位隔离"**（2026-09-30 事故，已加守卫）：
+   凡是**配环境档位**的集成测试（`env::set_var` + 目标侧 `OnceLock`/静态量），
+   **一个档位一个文件** ✓。同一个 `crates/*/tests/*.rs` 里的多个 `#[test]`
+   **共享一个进程**（`cargo test` 默认多线程）⇒ 它们抢同一个 `OnceLock`、
+   **谁先跑到谁定档** ⇒ **间歇判红**（实测 `judge_inplace_by.rs` 6 连跑
+   **4 红 2 绿**）。症状是 **"单独跑绿、`gate` 里红"** —— 最容易被误读成
+   "gate 有问题" ✗。
+   守卫：`python3 scripts/check-test-env-isolation.py`（+ `--selftest`），
+   已进 `scripts/soko gate`（含 `--fast`）与 CI 的 `gates-fast` ✓。
+   确有理由（文件内自串行等）⇒ 加一行 `// soko:env-isolation-ok: <理由 ≥8 字>`。
+   复盘：`docs/CI-FAILURES.md` 2026-09-30 第三条。
+
 ## 6. 初始规模快照（历史，最新数字以 STATUS.md 各轮为准）
 
 - `cargo test -p sokonanoda-front`：**74** 个单测全绿（token 10 / parser 10 / proof 3 / compile 51）；
