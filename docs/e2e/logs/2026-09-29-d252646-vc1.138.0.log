@@ -1,0 +1,217 @@
+# scripts/vscode-e2e.sh — VS Code 1.138.0 · extension v0.78.1 · d252646dd6d8ac8ffad5428c8b82b27d35f9df1b
+# 结果：35 passing / 0 failing / 0 pending（exit=0）
+
+## doctor（服务器解析与版本自述）
+--- doctor ---
+sokonanoda doctor — 扩展 v0.78.1 (6 checks)
+[ok] 1/6 resolution：bundled — /home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/bin/linux-x64/sokonanoda-lsp (source=bundled)
+[ok] 2/6 server-version：0.78.1 (pid 3112) == 扩展 v0.78.1 (source=bundled)
+[ok] 3/6 host-version：运行宿主 v0.78.1
+[ok] 4/6 ignored-override：没有被忽略的 serverPath/env 覆盖
+[info] 5/6 download-cache：无下载缓存（仅影响 CLI/universal 兜底，不影响内置服务器）
+[info] 6/6 obsolete-versions：检测到 0 个扩展版本快照、0 个 .obsolete 条目；完整重启 VS Code 会自动清理
+
+## 用例
+    ✔ .sokonanoda files get the sokonanoda language id (346ms)
+    ✔ confusable-character highlight is off for sokonanoda files
+    ✔ #check results appear as inlay hints (484ms)
+    ✔ clean lesson publishes empty diagnostics (245ms)
+    ✔ kernel-rejected declaration carries the kernel-rejected code (158ms)
+    ✔ open exercise carries a sorry warning, not an error (80ms)
+    ✔ a declaration named Prop warns, not errors (65ms)
+    ✔ open exercise shows a hover on the hole (136ms)
+    ✔ hover 的类型文本折成记法（T-U12 面 #3，e2e 那一份） (277ms)
+    ✔ notation input: the rewriter produces ∧ and hover teaches \and (363ms)
+    ✔ restart server command re-syncs open documents (197ms)
+    ✔ infoview command is registered and revealable (160ms)
+    ✔ the project tree shows the real closure of an imported module (420ms)
+    ✔ the project tree names the file a single-file document is (199ms)
+    ✔ the project tree marks a broken import as the root cause (152ms)
+    ✔ build / rebuild commands warm the compile cache through the CLI (11192ms)
+    ✔ Clean Cache empties the project store and does not compile (E31) (8568ms)
+    ✔ the Infoview receives the project view (E30) (43ms)
+    ✔ Infoview 'definition' lands exactly where the editor F12 lands (E27) (111ms)
+    ✔ doctor command returns a read-only source + version report
+    ✔ declarations panel lists a project unit's declarations
+    ✔ open declaration ships coloured goal runs to the Infoview
+    ✔ next hole jumps inside a project unit
+    ✔ warmCacheOnOpen pre-builds the workspace at activation
+    ✔ reopening a project unit hits the compile cache (4894ms)
+    ✔ rewriting an unchanged project unit does not recompile (1952ms)
+    ✔ editing a dependency refreshes the open unit once (6040ms)
+    ✔ goal text uses the file's notation (644ms)
+    ✔ goal text folds a binder notation whose type contains a lambda (338ms)
+    ✔ Infoview 的 `⊢` 用记法箭头 `→`，且 runs 与 text 同源 (341ms)
+    ✔ Infoview 里集合字面量显示成 `{a}`（不是 `Set.singleton α a`） (339ms)
+    ✔ go to definition on a `{a}` set literal lands on `Set.singleton` (118ms)
+    ✔ go to definition on a prelude name lands in the prelude source (121ms)
+    ✔ go to definition on a notation symbol lands on its declaration (192ms)
+    ✔ hover on a notation symbol shows the target's signature (179ms)
+
+## 扩展接线日志（SOKO_E2E_LOG）
+2026-09-29T14:50:04.424Z server command: /home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/bin/linux-x64/sokonanoda-lsp (source=bundled)
+2026-09-29T14:50:04.425Z client state: starting
+2026-09-29T14:50:04.454Z client state: running
+2026-09-29T14:50:04.462Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:05.121Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:05.305Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/check.sokonanoda
+2026-09-29T14:50:05.329Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:05.484Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:05.613Z active document changed: (none)
+2026-09-29T14:50:05.613Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:05.725Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/lesson-clean.sokonanoda
+2026-09-29T14:50:05.743Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:05.893Z active document changed: (none)
+2026-09-29T14:50:05.893Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:05.938Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/kernel-bad.sokonanoda
+2026-09-29T14:50:05.966Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:05.988Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:06.081Z active document changed: (none)
+2026-09-29T14:50:06.081Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:06.154Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/exercise.sokonanoda
+2026-09-29T14:50:06.165Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:06.170Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:06.218Z active document changed: (none)
+2026-09-29T14:50:06.218Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:06.281Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/reserved.sokonanoda
+2026-09-29T14:50:06.295Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:06.361Z active document changed: (none)
+2026-09-29T14:50:06.361Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:06.419Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/exercise-hover.sokonanoda
+2026-09-29T14:50:06.434Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:06.512Z active document changed: (none)
+2026-09-29T14:50:06.513Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:06.582Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:06.617Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:06.619Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:06.832Z active document changed: (none)
+2026-09-29T14:50:06.832Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:06.903Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:06.990Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/notation-input.sokonanoda
+2026-09-29T14:50:07.010Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:07.196Z soko/project ok: project=null reason=parse-error
+2026-09-29T14:50:07.256Z active document changed: (none)
+2026-09-29T14:50:07.256Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:07.397Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/restart.sokonanoda
+2026-09-29T14:50:07.411Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:07.412Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:07.418Z client state: stopped
+2026-09-29T14:50:07.421Z client state: starting
+2026-09-29T14:50:07.458Z client state: running
+2026-09-29T14:50:07.522Z active document changed: (none)
+2026-09-29T14:50:07.522Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:07.675Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:07.849Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/proj-ok/Main.sokonanoda
+2026-09-29T14:50:07.872Z soko/project ok: project=Main (2 modules) reason=null
+2026-09-29T14:50:07.925Z soko/project ok: project=Main (2 modules) reason=null
+2026-09-29T14:50:08.024Z soko/project ok: project=Main (2 modules) reason=null
+2026-09-29T14:50:08.072Z soko/project ok: project=Main (2 modules) reason=null
+2026-09-29T14:50:08.138Z active document changed: (none)
+2026-09-29T14:50:08.138Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:08.221Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/single.sokonanoda
+2026-09-29T14:50:08.238Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:08.245Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:08.351Z active document changed: (none)
+2026-09-29T14:50:08.351Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:08.389Z active document changed: file:///tmp/sokonanoda-vscode-test-ECNZPf/proj-broken/Main.sokonanoda
+2026-09-29T14:50:08.402Z soko/project ok: project=Main (1 modules) reason=null
+2026-09-29T14:50:08.403Z soko/project ok: project=Main (1 modules) reason=null
+2026-09-29T14:50:08.406Z soko/project ok: project=Main (1 modules) reason=null
+2026-09-29T14:50:08.513Z active document changed: (none)
+2026-09-29T14:50:08.513Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:08.550Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:08.580Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:08.632Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:13.412Z warmCacheOnOpen: exit=0
+2026-09-29T14:50:14.695Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:19.711Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:19.724Z active document changed: (none)
+2026-09-29T14:50:19.724Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:19.751Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:19.760Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:20.780Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:20.787Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:28.296Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:28.312Z active document changed: (none)
+2026-09-29T14:50:28.312Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:28.345Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:28.354Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:28.411Z active document changed: (none)
+2026-09-29T14:50:28.411Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:28.434Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:28.443Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:28.508Z active document changed: (none)
+2026-09-29T14:50:28.508Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:28.516Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/lib/Set.sokonanoda
+2026-09-29T14:50:28.523Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:28.563Z active document changed: (none)
+2026-09-29T14:50:28.563Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:28.602Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:28.613Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:28.687Z active document changed: (none)
+2026-09-29T14:50:28.687Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:28.706Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:28.708Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:28.716Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:28.772Z active document changed: (none)
+2026-09-29T14:50:28.772Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:28.794Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:28.806Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:28.856Z active document changed: (none)
+2026-09-29T14:50:28.856Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:28.898Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u02-cold-open.sokonanoda
+2026-09-29T14:50:28.923Z soko/project ok: project=null reason=no-imports
+2026-09-29T14:50:33.709Z client state: stopped
+2026-09-29T14:50:33.711Z client state: starting
+2026-09-29T14:50:33.720Z client state: running
+PERF e2e cache: cold=4838ms warm=54ms
+2026-09-29T14:50:33.819Z active document changed: (none)
+2026-09-29T14:50:33.819Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:33.856Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:33.871Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:34.108Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:34.399Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:34.859Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:35.782Z active document changed: (none)
+2026-09-29T14:50:35.782Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:35.800Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:35.808Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:36.492Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:37.438Z soko/project ok: project=units.u01 (2 modules) reason=null
+PERF e2e fanout: entry diagnostics signature=152 字节 · 稳定 ✓
+2026-09-29T14:50:41.832Z active document changed: (none)
+2026-09-29T14:50:41.832Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:41.864Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:41.876Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:42.472Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:42.491Z active document changed: (none)
+2026-09-29T14:50:42.491Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:42.516Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:42.528Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:42.843Z active document changed: (none)
+2026-09-29T14:50:42.843Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:42.870Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:42.879Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:43.195Z active document changed: (none)
+2026-09-29T14:50:43.195Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:43.218Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:43.232Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:43.546Z active document changed: (none)
+2026-09-29T14:50:43.546Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:43.578Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:43.589Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:43.681Z active document changed: (none)
+2026-09-29T14:50:43.681Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:43.704Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:43.720Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:43.819Z active document changed: (none)
+2026-09-29T14:50:43.819Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:43.876Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:43.907Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:44.033Z active document changed: (none)
+2026-09-29T14:50:44.033Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:44.074Z active document changed: file:///home/runner/work/sokonanoda-lang/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-29T14:50:44.098Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-29T14:50:44.235Z active document changed: (none)
+2026-09-29T14:50:44.235Z loadProject: no active .sokonanoda document
+2026-09-29T14:50:44.292Z client state: stopped
