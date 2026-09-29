@@ -22,6 +22,11 @@ const vm = require("vm");
 const MEDIA = path.join(__dirname, "media");
 
 /// 极简 DOM：够 `infoview.js` 的 `el()` / `appendChild` / `textContent` 用 ✓。
+///
+/// ⚠ **`firstChild` + `removeChild` 是必需品，不是装饰**（2026-09-30 实测）：
+/// `infoview.js` 的 `clear()` 是 `while (node.firstChild) node.removeChild(...)`，
+/// 少了它们 `clear()` **静默空转** ⇒ 骨架行「○ 语言服务器启动中…」**永远留着**，
+/// 判出来的"第一屏"就成了**用户永远看不到的文本** ✗（判据必须绑"屏幕上有什么"）。
 function makeDom() {
   class Node {
     constructor(tag) {
@@ -33,6 +38,14 @@ function makeDom() {
     appendChild(c) {
       this.childNodes.push(c);
       return c;
+    }
+    removeChild(c) {
+      const index = this.childNodes.indexOf(c);
+      if (index >= 0) this.childNodes.splice(index, 1);
+      return c;
+    }
+    get firstChild() {
+      return this.childNodes[0] || null;
     }
     setAttribute(k, v) {
       this.attributes[k] = String(v);
@@ -64,8 +77,12 @@ function makeDom() {
   return { Node, document, window };
 }
 
-/// 跑真 `infoview.js`，返回它渲染完的 `projectBody` 节点。
-function renderProject(msg) {
+/// 跑真 `infoview.js`，把 `messages` 逐条喂进去，返回它渲染完的 `root` 节点。
+///
+/// ⚠ **必须喂「整块面板」而不是只喂 project**（2026-09-30）：用户实测的缺陷是
+/// 「同一 Infoview 里 `server 0.78.1` vs 项目区块 `… · 0.78.0`」—— **两个数字在
+/// 两行里**，只渲染 project 那一半就**永远看不见这个冲突** ✗（判据空转）。
+function renderPanel(messages) {
   const dom = makeDom();
   // ⚠ `getElementById` **必须返回同一个节点** ✗（第一版每次 new 一个 ⇒ 渲染到了
   // 被丢弃的对象上 ⇒ 第一屏**空**，而且看不出错 ✗✓）。⇒ 用一张缓存表 ✓。
@@ -101,10 +118,16 @@ function renderProject(msg) {
     throw new Error(`跑 infoview.js 失败：${e.message}`);
   }
   if (handlers.length === 0) throw new Error("infoview.js 没注册 message handler ⇒ shim 与实现脱节 ✗");
-  for (const h of handlers) h({ data: { protocol: 1, type: "project", ...msg } });
+  for (const msg of messages) {
+    for (const h of handlers) h({ data: { protocol: 1, ...msg } });
+  }
   // ⚠ `projectBody` 是按 **class** 建的（`el("div", "project")`）✗ 不是 id ⇒
   // 从 `root` 容器**遍历**找它 ✓（第二版踩的坑：按 id 找 ⇒ 找不到 ✗✓）。
-  const root = byId.get("root") || dom.document.body;
+  return byId.get("root") || dom.document.body;
+}
+
+/// 只要**项目区块**那一个节点（老接口，供只关心项目块的判据用）。
+function projectBodyOf(root) {
   const find = (n) => {
     if (!n) return null;
     if (n.tagName === "DIV" && n.className === "project") return n;
@@ -117,6 +140,10 @@ function renderProject(msg) {
   const body = find(root);
   if (!body) throw new Error("找不到 .project 容器 ⇒ shim 与实现脱节 ✗");
   return body;
+}
+
+function renderProject(msg) {
+  return projectBodyOf(renderPanel([{ type: "project", ...msg }]));
 }
 
 /// **第一屏文本**：`<details>` 收起 ⇒ 只算它的 `<summary>` ✓。
@@ -148,6 +175,30 @@ const SAMPLE = {
   },
 };
 
+/// ⚠ **夹具就是用户报的那一对数**（2026-09-29）：「顶部 `server 0.78.1`，项目区块
+/// 仍 `12 条 · 8032745 字节 · 0.78.0`」⇒ 服务器 **0.78.1** + 产物戳 **0.78.0**。
+/// 用真数字（不是两个编造的版本）才能保证判据**咬的是那一次事故** ✓。
+const SAMPLE_SERVER = { type: "server", running: true, version: "0.78.1", pid: 4242 };
+
+/// **屏幕上的每个版本号都必须带标签**（`服务器` / `编译器`）—— 见 §0 的判据。
+///
+/// 修前：`.project-artifacts` 那行是 `产物：7 条 · 20480 字节 · 0.78.0` ⇒
+/// **光秃秃一个 0.78.0**，用户只能拿它跟顶上 `server 0.78.1` 对看 ⇒ 无法调和 ✗。
+/// 这条判据**咬得住那次事故**：把那行改回裸版本号 ⇒ 当场判红 ✓（反向验证已做）。
+const VERSION_RE = /\d+\.\d+\.\d+/g;
+function unlabelledVersions(text) {
+  const bad = [];
+  let m;
+  while ((m = VERSION_RE.exec(text)) !== null) {
+    const before = text.slice(Math.max(0, m.index - 12), m.index);
+    if (!/(服务器|编译器)\s*$/.test(before)) {
+      const at = text.slice(Math.max(0, m.index - 14), m.index + m[0].length);
+      bad.push(`「${m[0]}」前面没有标签（服务器/编译器）—— 上下文：…${at}…`);
+    }
+  }
+  return bad;
+}
+
 // ⚠ **"内部词一律不许上第一屏"这条我撤掉了** ✗✓（2026-09-28 CI 实测后的修正）：
 // **E30 的交付契约**要求 `.project-facts`（含 `sokonanoda.toml` / 模块根 / 入口）、
 // `.project-counts`（含「N 模块」）、`.project-artifacts`（含**字节数**）**直接可见** ✓
@@ -157,7 +208,8 @@ const SAMPLE = {
 //   (a) **三问答得上**（明确状态 / 版本可见 / 没问题不显示告警）；
 //   (b) **版本出现在内部细节之前**（旧版把版本埋在产物行尾 ✗ —— 这是"没从用户角度
 //       排序"的直接症状 ✓）；
-//   (c) **不许出现「编译 N」**这种含糊数（用户点名 ✗）。
+//   (c) **不许出现「编译 N」**这种含糊数（用户点名 ✗）；
+//   (d) **每个版本号都必须带标签**（2026-09-30 补，见 `unlabelledVersions`）。
 
 /// **版本必须在这些内部细节之前出现** ✓（顺序即优先级）。
 const INTERNAL_MARKERS = ["清单", "模块根", "入口", "产物：", "声明 ·"];
@@ -166,7 +218,9 @@ function main(argv) {
   const check = argv.includes("--check");
   let text;
   try {
-    text = firstScreenText(renderProject(SAMPLE));
+    // ⚠ 判的是**整块面板**（服务器行 + 状态行 + 目标/声明 + 项目块）——
+    // 用户看到的就是这一整块 ✓（只渲染项目块会让"两个版本打架"这条判据空转 ✗）。
+    text = firstScreenText(renderPanel([SAMPLE_SERVER, { type: "project", ...SAMPLE }]));
   } catch (e) {
     console.error(`project-first-screen: ${e.message} ⇒ 环境错 ✗`);
     return 2;
@@ -197,6 +251,10 @@ function main(argv) {
   // ⚠ 正则要**排除 `已编译 N/M`**（那是改好的形态 ✓）—— 第一版写 `编译 \d+`
   // 会连它一起匹配 ⇒ 误红 ✓。
   if (/(?<!已)编译 \d+\b/.test(text)) bad.push("出现了「编译 N」这种含糊数 ✗（要写成 `已编译 N/M`）");
+  // (d) **每个版本号都要带标签** —— 用户实测那次的直接症状 ✓
+  for (const b of unlabelledVersions(text)) bad.push(`版本号没标签 ✗ ${b}`);
+  // (d2) **服务器与编译器两行都得在**：修前判据只看 `编译器`，把服务器行删了也全绿 ✗。
+  if (!/服务器\s*0\.78\.1/.test(text)) bad.push("服务器那行必须写明 `服务器 <版本>`（不许光秃秃一个 server）");
   if (bad.length) {
     console.error("project-first-screen：第一屏答不上三问 ✗");
     for (const b of bad) console.error(`  ✗ ${b}`);
@@ -208,4 +266,4 @@ function main(argv) {
 }
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));
-module.exports = { renderProject, firstScreenText };
+module.exports = { renderProject, renderPanel, projectBodyOf, firstScreenText, unlabelledVersions };

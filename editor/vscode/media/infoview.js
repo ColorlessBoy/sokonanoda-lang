@@ -247,7 +247,8 @@
         "p",
         "project-artifacts",
         artifacts
-          ? `产物：${num(artifacts.entries)} 条 · ${num(artifacts.bytes)} 字节 · ${artifacts.compiler ?? "?"}`
+          ? `产物：${num(artifacts.entries)} 条 · ${num(artifacts.bytes)} 字节 · ` +
+              `由编译器 ${artifacts.compiler ?? "?"} 写入`
           : "产物：还没有（下一次编译会写入模块根的 .sokonanoda/compiled/）",
       ),
     );
@@ -259,7 +260,7 @@
     if (info.running) {
       serverLine.appendChild(el("span", "dot dot-on", "●"));
       const pid = info.pid !== undefined && info.pid !== null ? " (pid " + info.pid + ")" : "";
-      serverLine.appendChild(el("span", null, " server " + (info.version || "?") + pid));
+      serverLine.appendChild(el("span", null, " 服务器 " + (info.version || "?") + pid));
     } else {
       serverLine.appendChild(el("span", "dot", "○"));
       serverLine.appendChild(el("span", null, " 语言服务器未运行"));

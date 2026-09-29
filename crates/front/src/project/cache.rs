@@ -132,6 +132,23 @@ fn now_unix() -> u64 {
         .unwrap_or(0)
 }
 
+/// 当前编译器的**版本戳** `(compiler, build_stamp)`。
+///
+/// ⚠ 它必须**跟着"最后写产物的那次编译"走**，不能只在建目录时写一次 ✗：
+/// 2026-09-29 用户实测 —— 升级到 0.78.1 后 Infoview 顶上写 `server 0.78.1`、
+/// 项目区块却写 `编译器 0.78.0`（`meta.json` 是 0.78.0 那次建的）⇒ 两个版本号
+/// **无法调和**。
+///
+/// 刷新它**不影响缓存正确性**：作废靠的是**键**里的版本 + stamp
+/// （`compile::cache::key_parts`），`meta.json` 这两个字段按设计
+/// 「只作诊断与提示」（`docs/design/project-artifacts.md` §3.2）✓。
+fn current_stamp() -> (&'static str, String) {
+    (
+        env!("CARGO_PKG_VERSION"),
+        format!("{:016x}", compiled::build_stamp()),
+    )
+}
+
 /// 建目录 + `.gitignore`（一行 `*`，自忽略）+ `meta.json`。
 ///
 /// `.gitignore` 的内容**恰好一行 `*`**：实测 `git status --porcelain` 完全看不见
@@ -148,10 +165,11 @@ fn ensure_layout(root: &Path) -> bool {
     }
     let meta = dir.join("meta.json");
     if !meta.exists() {
+        let (compiler, build_stamp) = current_stamp();
         let payload = serde_json::json!({
             "schema": format!("soko.artifacts/{ARTIFACTS_FORMAT}"),
-            "compiler": env!("CARGO_PKG_VERSION"),
-            "build_stamp": format!("{:016x}", compiled::build_stamp()),
+            "compiler": compiler,
+            "build_stamp": build_stamp,
             "platform": format!("{}/{}", std::env::consts::OS, std::env::consts::ARCH),
             "created_unix": now_unix(),
             "written_unix": now_unix(),
@@ -297,5 +315,83 @@ fn update_index(root: &Path, entry_path: &Path, key: &str) {
     }
     entries.insert(entry, serde_json::json!(key));
     object.insert("written_unix".into(), serde_json::json!(now_unix()));
+    // **版本戳跟着"最后写产物的那次编译"走** ✓（见 [`current_stamp`]）——
+    // 不刷新的话，升级后 `meta.json` 里永远留着建目录那天的版本号，
+    // 而它会被 Infoview 画成「编译器 X」⇒ 与顶上那行 `服务器 Y` 打架 ✗。
+    let (compiler, build_stamp) = current_stamp();
+    object.insert("compiler".into(), serde_json::json!(compiler));
+    object.insert("build_stamp".into(), serde_json::json!(build_stamp));
     let _ = std::fs::write(&path, format!("{meta}\n"));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tmp_root(tag: &str) -> PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("soko-project-cache-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    /// **③ 的真相层判据**（2026-09-29 用户实测「同一 Infoview 版本号不一致」）。
+    ///
+    /// `meta.json` 的版本戳必须**跟着写产物的编译器走**。修前它只在**建目录**时写
+    /// 一次 ⇒ 用户升级到 0.78.1 之后，目录里永远留着 `0.78.0`，而 Infoview 会把它
+    /// 画成「编译器 0.78.0」⇒ 与顶上 `服务器 0.78.1` **打架** ✗。
+    ///
+    /// 这条判据**咬得住那个 bug**：把 `update_index` 里那两行 `object.insert` 删掉
+    /// ⇒ `compiler` 停在 `9.9.9` ⇒ 当场判红 ✓（反向验证已做）。
+    #[test]
+    fn the_artifact_stamp_follows_the_writing_compiler() {
+        let root = tmp_root("stamp");
+        assert!(ensure_layout(&root), "产物目录要建得起来");
+        // 伪造一份「**旧编译器**建的目录」—— 就是用户现场那个形状。
+        let meta = artifacts_dir(&root).join("meta.json");
+        let schema = format!("soko.artifacts/{ARTIFACTS_FORMAT}");
+        let stale = serde_json::json!({
+            "schema": schema,
+            "compiler": "9.9.9",
+            "build_stamp": "0000000000000000",
+            "platform": "test/test",
+            "created_unix": 1,
+            "written_unix": 1,
+        });
+        std::fs::write(&meta, format!("{stale}\n")).expect("write stale meta");
+
+        let entry = root.join("Entry.sokonanoda");
+        update_index(&root, &entry, "abc123");
+
+        let raw = std::fs::read_to_string(&meta).expect("meta readable");
+        let after: serde_json::Value = serde_json::from_str(&raw).expect("meta is json");
+        let (compiler, build_stamp) = current_stamp();
+        assert_eq!(
+            after.get("compiler").and_then(|v| v.as_str()),
+            Some(compiler),
+            "版本戳必须刷新成**当前**编译器（修前这里停在 9.9.9）：{raw}"
+        );
+        assert_eq!(
+            after.get("build_stamp").and_then(|v| v.as_str()),
+            Some(build_stamp.as_str()),
+            "build_stamp 同理：{raw}"
+        );
+        // 刷新**不许**碰 schema（否则会命中「schema 不符 ⇒ 整个目录当不存在」）。
+        assert_eq!(
+            after.get("schema").and_then(|v| v.as_str()),
+            Some(schema.as_str()),
+            "schema 不许动：{raw}"
+        );
+        // 索引照常写入（这条是既有行为，顺带钉住"刷新没把别的字段挤掉"）。
+        assert_eq!(
+            after
+                .get("entries")
+                .and_then(|entries| entries.get(entry.display().to_string()))
+                .and_then(|v| v.as_str()),
+            Some("abc123"),
+            "索引照常写入：{raw}"
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }
