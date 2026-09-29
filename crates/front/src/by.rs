@@ -646,16 +646,83 @@ fn keep_if_lossless(original: &Expr, canonical: Expr) -> Expr {
 /// 同 [`canonical_goal_type`]，但直接吃**已经算好的 `OpenGoalSpec`**
 /// （`apply` 的重试路径手上正好有一份，见 [`apply_tactic`]）。
 /// 失败一律退回原 AST：绝不因为「规范化失败」把好文件判红。
-fn canonical_goal_with_spec(
+#[allow(clippy::too_many_arguments)]
+fn canonical_goal_with_spec<'a>(
     ty: &Expr,
     spec: &OpenGoalSpec,
+    // **源 AST 的上下文 binder**（`context_binders(nodes, id)`）—— 就地路要用它
+    // elaborate 望远镜；`spec.binders` 是**渲染文本**，回读不认源级记法（附十）。
+    src_binders: &[Binder],
     prefix_src: &str,
     options: &CompileOptions,
     defs: &DefTable,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Expr {
-    let Some(text) =
-        crate::judge::judge_render_type(prefix_src, options, &spec.binders, &render_expr(ty))
-    else {
+    // **P1-b 第二刀（第 2 步）：与 [`canonical_goal_type`] 同一条三步**
+    // （命中 → 就地 → 慢路），收尾共用 `judge_render_type_finish` ✓。
+    // ⚠ 就地路收**源 AST** binder（`src_binders`）：`spec.binders` 是渲染文本，
+    // 回读不认源级记法（附十实测 `binder-parse` 刷屏）。
+    let ty_text = render_expr(ty);
+    let term = crate::judge::render_type_query(&ty_text);
+    let slow = || crate::judge::judge_render_type(prefix_src, options, &spec.binders, &ty_text);
+    let text = match crate::judge::inplace_by_mode() {
+        crate::judge::ByMode::Shadow => {
+            let inplace = env
+                .as_mut()
+                .and_then(|env| crate::judge::judge_render_type_inplace(env, ctx, src_binders, ty));
+            let slow_text = slow();
+            match inplace {
+                Some(pp) => {
+                    let fast = crate::judge::judge_render_type_finish(&pp, 0);
+                    if fast == slow_text {
+                        crate::judge::stats::INPLACE_BY_SHADOW_SAME
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    } else {
+                        crate::judge::stats::INPLACE_BY_SHADOW_DIFF
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        crate::judge::stats::note_first_diff(&ty_text, &pp, &fast, &slow_text);
+                    }
+                }
+                None => {
+                    crate::judge::stats::INPLACE_BY_SHADOW_DIFF
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    crate::judge::stats::note_first_diff(&ty_text, "", &None, &slow_text);
+                }
+            }
+            slow_text
+        }
+        crate::judge::ByMode::Off => slow(),
+        crate::judge::ByMode::On => {
+            match crate::judge::judge_render_type_lookup(prefix_src, options, &spec.binders, &term)
+            {
+                Some(pp) => crate::judge::judge_render_type_finish(&pp, 0),
+                None => {
+                    let inplace = env.as_mut().and_then(|env| {
+                        crate::judge::judge_render_type_inplace(env, ctx, src_binders, ty)
+                    });
+                    match inplace {
+                        Some(pp) => {
+                            crate::judge::judge_render_type_store(
+                                prefix_src,
+                                options,
+                                &spec.binders,
+                                &term,
+                                &pp,
+                            );
+                            crate::judge::judge_render_type_finish(&pp, 0)
+                        }
+                        None => {
+                            crate::judge::stats::INPLACE_BY_FALLBACK
+                                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            slow()
+                        }
+                    }
+                }
+            }
+        }
+    };
+    let Some(text) = text else {
         return ty.clone();
     };
     match parse_expr_text(&text) {
@@ -901,6 +968,8 @@ fn run_by_inner<'a>(
         options,
         inductives,
         defs,
+        ctx,
+        env,
     )?;
     let expr = assemble(&nodes, 0, hole_span(tactics, *by_span));
     Ok(ByOutcome { expr, steps })
@@ -908,7 +977,7 @@ fn run_by_inner<'a>(
 
 /// 跑一串 tactic（`by` 块的主循环，`cases` 的臂体递归复用它）。
 #[allow(clippy::too_many_arguments)]
-fn run_tactics(
+fn run_tactics<'a>(
     tactics: &[Tactic],
     nodes: &mut Vec<GoalNode>,
     worklist: &mut Vec<usize>,
@@ -918,6 +987,8 @@ fn run_tactics(
     options: &CompileOptions,
     inductives: &InductiveTable<'_>,
     defs: &DefTable,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Result<(), CompileError> {
     for tactic in tactics {
         // 当前要解的目标 = worklist 末尾。
@@ -948,12 +1019,16 @@ fn run_tactics(
                         // 因为归一化把好文件判红。归一化后仍剥不动才报错。
                         None => {
                             let spec = spec_of(nodes, cur, universe);
+                            let src_binders = context_binders(nodes, cur);
                             let canonical = canonical_goal_with_spec(
                                 &nodes[cur].ty,
                                 &spec,
+                                &src_binders,
                                 prefix_src,
                                 options,
                                 defs,
+                                ctx,
+                                crate::compile::elab::InplaceEnv::reborrow(&mut env),
                             );
                             // 层级提示按**各自要展开的那个表达式**算：源 AST 是
                             // 记法节点（`{a} ≠ ∅`）、规范形态是点名（`Ne …`），
@@ -1052,8 +1127,17 @@ fn run_tactics(
                         let base = worklist.len();
                         worklist.push(id);
                         run_tactics(
-                            tactics, nodes, worklist, steps, universe, prefix_src, options,
-                            inductives, defs,
+                            tactics,
+                            nodes,
+                            worklist,
+                            steps,
+                            universe,
+                            prefix_src,
+                            options,
+                            inductives,
+                            defs,
+                            ctx,
+                            crate::compile::elab::InplaceEnv::reborrow(&mut env),
                         )?;
                         worklist.truncate(base);
                         assemble(nodes, id, *span)
@@ -1126,26 +1210,58 @@ fn run_tactics(
                     options,
                     inductives,
                     defs,
+                    ctx,
+                    crate::compile::elab::InplaceEnv::reborrow(&mut env),
                 )?;
             }
             Tactic::Left { span } => {
                 ctor_tactic(
-                    0, "left", *span, nodes, worklist, universe, prefix_src, options, inductives,
+                    0,
+                    "left",
+                    *span,
+                    nodes,
+                    worklist,
+                    universe,
+                    prefix_src,
+                    options,
+                    inductives,
                     defs,
+                    ctx,
+                    crate::compile::elab::InplaceEnv::reborrow(&mut env),
                 )?;
             }
             Tactic::Right { span } => {
                 ctor_tactic(
-                    1, "right", *span, nodes, worklist, universe, prefix_src, options, inductives,
+                    1,
+                    "right",
+                    *span,
+                    nodes,
+                    worklist,
+                    universe,
+                    prefix_src,
+                    options,
+                    inductives,
                     defs,
+                    ctx,
+                    crate::compile::elab::InplaceEnv::reborrow(&mut env),
                 )?;
             }
             Tactic::Use { expr, span } => {
                 // `use w` = `apply <唯一构造子>` + 立刻把**第一个子目标**
                 // （证人位）用 `exact w` 交出去。
                 ctor_tactic(
-                    0, "use", *span, nodes, worklist, universe, prefix_src, options, inductives,
+                    0,
+                    "use",
+                    *span,
+                    nodes,
+                    worklist,
+                    universe,
+                    prefix_src,
+                    options,
+                    inductives,
                     defs,
+                    ctx,
+                    crate::compile::elab::InplaceEnv::reborrow(&mut env),
                 )?;
                 exact_tactic(
                     expr, *span, nodes, worklist, universe, prefix_src, options, defs,
@@ -1211,8 +1327,17 @@ fn run_tactics(
                 // 归一化失败也一律退回原 AST（绝不因为 rfl 把好文件判红）。
                 let candidate_and_closed = rfl_candidate(&nodes[cur].ty).or_else(|| {
                     let spec = spec_of(nodes, cur, universe);
-                    let canonical =
-                        canonical_goal_with_spec(&nodes[cur].ty, &spec, prefix_src, options, defs);
+                    let src_binders = context_binders(nodes, cur);
+                    let canonical = canonical_goal_with_spec(
+                        &nodes[cur].ty,
+                        &spec,
+                        &src_binders,
+                        prefix_src,
+                        options,
+                        defs,
+                        ctx,
+                        crate::compile::elab::InplaceEnv::reborrow(&mut env),
+                    );
                     rfl_candidate(&canonical)
                 });
                 let Some((candidate, closed)) = candidate_and_closed else {
@@ -1257,13 +1382,33 @@ fn run_tactics(
             }
             Tactic::Apply { expr, span } => {
                 apply_tactic(
-                    expr, *span, nodes, worklist, universe, prefix_src, options, defs,
+                    expr,
+                    *span,
+                    nodes,
+                    worklist,
+                    universe,
+                    prefix_src,
+                    options,
+                    defs,
+                    ctx,
+                    crate::compile::elab::InplaceEnv::reborrow(&mut env),
                 )?;
             }
             Tactic::Cases { expr, arms, span } => {
                 cases_tactic(
-                    expr, arms, *span, nodes, worklist, steps, universe, prefix_src, options,
-                    inductives, defs,
+                    expr,
+                    arms,
+                    *span,
+                    nodes,
+                    worklist,
+                    steps,
+                    universe,
+                    prefix_src,
+                    options,
+                    inductives,
+                    defs,
+                    ctx,
+                    crate::compile::elab::InplaceEnv::reborrow(&mut env),
                 )?;
             }
             // `sorry` = 占位：当前目标保持开放（no-op，节点仍是 Hole）。
@@ -1375,7 +1520,7 @@ fn solve_type_params(
 // 参数，见 `docs/design/by-tactics.md` §12）。为压 clippy 把参数打包成
 // 结构体只会给热路径加一层间接，得不偿失。
 #[allow(clippy::too_many_arguments)]
-fn apply_tactic(
+fn apply_tactic<'a>(
     expr: &Expr,
     span: Span,
     nodes: &mut Vec<GoalNode>,
@@ -1384,6 +1529,8 @@ fn apply_tactic(
     prefix_src: &str,
     options: &CompileOptions,
     defs: &DefTable,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Result<(), CompileError> {
     let cur = *worklist.last().ok_or_else(|| {
         CompileError::elab(ErrorKind::ElabTacticFailed, "by 块里没有待解目标", span)
@@ -1443,7 +1590,17 @@ fn apply_tactic(
             // ——`rfl`/`match` 这些要读目标结构的 tactic 继续看源 AST
             // （实测：替换根目标会让 `rfl` 在 `Eq.{1} (Set α) (Aᶜ) …` 上报
             // 「需要一个 `Eq α x y` 形状的目标」，因为 pp 会丢掉隐式实参）。
-            let canonical = canonical_goal_with_spec(&goal, &spec, prefix_src, options, defs);
+            let src_binders = context_binders(nodes, cur);
+            let canonical = canonical_goal_with_spec(
+                &goal,
+                &spec,
+                &src_binders,
+                prefix_src,
+                options,
+                defs,
+                ctx,
+                crate::compile::elab::InplaceEnv::reborrow(&mut env),
+            );
             // 第二刀重试：**目标头再展开一层**。`h : A ⊆ B` 被 delta 展开后
             // codomain 是 `B x`（谓词应用形状），而目标 `a ∈ B` 是
             // `Set.mem α a B`——两边处在不同的展开层级，仍然对不上。
@@ -1565,7 +1722,7 @@ fn apply_tactic(
 /// （`judge_infer`）——源里写的是 `A x ∨ B x`（记法节点），pp 之后才是
 /// `Or (A x) (B x)` 这种带全部实参的点名形状。
 #[allow(clippy::too_many_arguments)]
-fn cases_tactic(
+fn cases_tactic<'a>(
     expr: &Expr,
     arms: &[crate::ast::CasesArm],
     span: Span,
@@ -1577,6 +1734,8 @@ fn cases_tactic(
     options: &CompileOptions,
     inductives: &InductiveTable<'_>,
     defs: &DefTable,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Result<(), CompileError> {
     let cur = *worklist
         .last()
@@ -1846,6 +2005,8 @@ fn cases_tactic(
             options,
             inductives,
             defs,
+            ctx,
+            crate::compile::elab::InplaceEnv::reborrow(&mut env),
         )?;
         worklist.truncate(base);
     }
@@ -2171,7 +2332,7 @@ use crate::compile::elab::builtin_constructor_of;
 /// `And a b`（实测报「目标不匹配」）。apply 之后**还原**原目标——子目标已经
 /// 建好，还原只是让目标面板继续显示记法形态（教学更好读）。
 #[allow(clippy::too_many_arguments)]
-fn ctor_tactic(
+fn ctor_tactic<'a>(
     index: usize,
     what: &str,
     span: Span,
@@ -2182,6 +2343,8 @@ fn ctor_tactic(
     options: &CompileOptions,
     inductives: &InductiveTable<'_>,
     defs: &DefTable,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Result<(), CompileError> {
     let cur = *worklist
         .last()
@@ -2197,12 +2360,15 @@ fn ctor_tactic(
         options,
     );
     nodes[cur].ty = unfolded.clone();
-    let result = (|| {
+    // ⚠ 这个闭包要**同时**可变借 `nodes` 与 `env` ⇒ 两个都当参数传进去，
+    // 让借用检查器看清"它们不是同一个东西"（否则 `env` 会被闭包整体捕获 ✗）。
+    let result = (|nodes: &mut Vec<GoalNode>,
+                   env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>| {
         let ctor = nth_constructor(inductives, &unfolded, index, span, what)?;
         apply_tactic(
-            &ctor, span, nodes, worklist, universe, prefix_src, options, defs,
+            &ctor, span, nodes, worklist, universe, prefix_src, options, defs, ctx, env,
         )
-    })();
+    })(nodes, env);
     if let Some(node) = nodes.get_mut(cur) {
         node.ty = original;
     }

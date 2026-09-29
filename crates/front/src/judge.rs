@@ -404,6 +404,23 @@ pub(crate) mod stats {
     pub(crate) static INPLACE_BY_REASONS: std::sync::Mutex<String> =
         std::sync::Mutex::new(String::new());
 
+    /// 影子档**第一条分叉**的原样记录（只记第一条，免得刷爆 ✗）。
+    pub(crate) fn note_first_diff(
+        ty_text: &str,
+        pp: &str,
+        fast: &Option<String>,
+        slow: &Option<String>,
+    ) {
+        if let Ok(mut first) = INPLACE_BY_FIRST_DIFF.lock() {
+            if first.is_none() {
+                let pp = if pp.is_empty() { "<none>" } else { pp };
+                *first = Some(format!(
+                    "ty={ty_text:?} | inplace_pp={pp:?} | fast={fast:?} | slow={slow:?}"
+                ));
+            }
+        }
+    }
+
     /// 记一笔 `by` 就地路径的放弃原因。
     pub(crate) fn note_by_reason(why: &str) {
         if let Ok(mut reasons) = INPLACE_BY_REASONS.lock() {
