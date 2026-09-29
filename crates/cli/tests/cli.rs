@@ -2132,6 +2132,33 @@ fn cli_build_heartbeat_is_off_unless_asked_for() {
         "build must succeed, stderr: {}",
         String::from_utf8_lossy(&quiet.stderr)
     );
+    // ⑤ **心跳线程不许让 build 白等一个周期**（2026-09-30 实测踩到 ✗）。
+    // ⚠ 这一条**独立于上面那个 1.5s 自检**：修前的 `sleep(period)` 会让**每次**
+    // build 多付 up to 1s，夹具快慢都测得出 ⇒ 放在自检**之前**跑，
+    // 免得被它 `panic` 掉而**看不见这条判据**（实测：注入 sleep 后自检先红，
+    // ⑤ 根本没跑到 ⇒ 反向验证失效 ✗）。
+    //
+    // 机理：`Heartbeat::stop()` 会 `join()` 那条线程，而它原来在 `sleep(period)`
+    // 里 ⇒ **每一次 build 都多付 up to 一个周期**。实测后果：`perf_project` 的
+    // 冷/热两趟从 `60ms / 4.5ms` **一起**变成 `~1025ms`（两边都白等 1s ✗✗），
+    // 而那条判据是 `warm * 2 < cold` ⇒ 直接判红（**根因却在这条心跳线程**）。
+    // ⇒ 判据：**同一份冷编，管道模式与 `NO_TICK` 的墙钟不许差出一个数量级**
+    //（`Condvar` 唤醒后两者应当基本同速）。
+    let (lat_pipe, lat_pipe_wall) = run("tick-latency-pipe", &[]);
+    let (lat_quiet, lat_quiet_wall) = run("tick-latency-quiet", &[("SOKO_BUILD_NO_TICK", "1")]);
+    assert!(lat_pipe.status.success() && lat_quiet.status.success());
+    // ⚠ 用**差值**不用比值：两者都含进程启动的固定开销（实测 ~0.66s），
+    // 比值会被它稀释 ⇒ 差值才直接对应"多等了一个周期" ✓。
+    // 实测（修后）：40 条声明的夹具 pipe **2.48s** / no-tick **2.48s**（差 0.00s）；
+    // 修前（`sleep`）：每次 build 多付 up to 1000ms ⇒ 差 ≈ **1.0s**。
+    let slack = lat_pipe_wall.as_secs_f64() - lat_quiet_wall.as_secs_f64();
+    assert!(
+        slack < 0.5,
+        "心跳线程**拖慢了 build**（管道 {lat_pipe_wall:?} vs 无心跳 {lat_quiet_wall:?}，\
+         多付 {slack:.2}s）—— `stop()` 的 `join()` 不许等满一个周期 \
+         （用 `Condvar` 唤醒，别用 `sleep`）"
+    );
+
     // ② **自检（防空转）**：夹具不够慢 ⇒ ① 恒真 ⇒ 这条判据咬不住任何东西 ✗。
     // 旧版（`--json` 就每秒一条）在这个时长下会发 ~6 条 ⇒ 判据真的能咬 ✓。
     assert!(

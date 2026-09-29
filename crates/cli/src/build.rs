@@ -146,31 +146,42 @@ struct Heartbeat {
     t0: std::time::Instant,
     last_ms: std::sync::Arc<std::sync::atomic::AtomicU64>,
     current: std::sync::Arc<std::sync::Mutex<String>>,
-    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    /// **停**（`Condvar` 唤醒，见 [`Heartbeat::stop`]）—— 不用 `sleep` 干等。
+    gate: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>,
     join: Option<std::thread::JoinHandle<()>>,
 }
 
 impl Heartbeat {
     /// `period_ms = None` ⇒ **不发心跳**（默认路径：零线程、零输出 ✓）。
     fn start(period_ms: Option<u64>) -> Self {
-        use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-        use std::sync::{Arc, Mutex};
+        use std::sync::atomic::{AtomicU64, Ordering};
+        use std::sync::{Arc, Condvar, Mutex};
         let t0 = std::time::Instant::now();
         let last_ms = Arc::new(AtomicU64::new(0));
         let current = Arc::new(Mutex::new(String::new()));
-        let stop = Arc::new(AtomicBool::new(false));
+        let gate = Arc::new((Mutex::new(false), Condvar::new()));
         let join = period_ms.map(|period| {
-            let (last, cur, st) = (
-                Arc::clone(&last_ms),
-                Arc::clone(&current),
-                Arc::clone(&stop),
-            );
+            let (last, cur) = (Arc::clone(&last_ms), Arc::clone(&current));
+            let g = Arc::clone(&gate);
             std::thread::spawn(move || {
                 let base = std::time::Instant::now();
-                while !st.load(Ordering::Relaxed) {
-                    std::thread::sleep(std::time::Duration::from_millis(period));
-                    if st.load(Ordering::Relaxed) {
-                        break;
+                loop {
+                    // ⚠ **不许用 `sleep(period)` 干等** ✗（2026-09-30 CI 实测）：
+                    // `stop()` 会 `join()` 这个线程，而 `sleep` 中的线程要**睡满
+                    // 一整个周期**才醒来检查停止位 ⇒ **每一次 build 都白等 up to
+                    // `period`**（实测：`perf_project` 的冷/热两趟从 60ms/4.5ms
+                    // 一起变成 **~1025ms**，因为两边都多付了 1s ✗✗）。
+                    // `wait_timeout` 既能被 `stop()` 立刻唤醒、又保留周期语义 ✓。
+                    let (lock, cvar) = &*g;
+                    let stopped = {
+                        let guard = lock.lock().unwrap_or_else(|p| p.into_inner());
+                        let (guard, _timeout) = cvar
+                            .wait_timeout(guard, std::time::Duration::from_millis(period))
+                            .unwrap_or_else(|p| p.into_inner());
+                        *guard
+                    };
+                    if stopped {
+                        return;
                     }
                     let now = base.elapsed().as_millis() as u64;
                     if now.saturating_sub(last.load(Ordering::Relaxed)) >= period {
@@ -189,7 +200,7 @@ impl Heartbeat {
             t0,
             last_ms,
             current,
-            stop,
+            gate,
             join,
         }
     }
@@ -209,7 +220,13 @@ impl Heartbeat {
     }
 
     fn stop(&mut self) {
-        self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+        // **置位 + 立刻唤醒**（`Condvar`）⇒ 不用等满一个周期 ✓。
+        {
+            let (lock, cvar) = &*self.gate;
+            let mut stopped = lock.lock().unwrap_or_else(|p| p.into_inner());
+            *stopped = true;
+            cvar.notify_all();
+        }
         if let Some(handle) = self.join.take() {
             let _ = handle.join();
         }

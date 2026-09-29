@@ -626,3 +626,44 @@ run `36378945287` 的 `test (sokonanoda-front, tests)` 判红：`best 1599.6ms �
 改成**按 crate 分开选**（有 `src/lib.rs` ⇒ `--lib`，否则 `--bins`）✓
 （`--lib --bins` 也不行：cargo 对"某个被 `-p` 指名的包没有那类 target"是硬错误）。
 
+## 2026-09-30 — `test (sokonanoda-cli, tests)` 判红：`perf_project` 冷/热都是 ~1025ms
+
+**现象**：`ci` run `36634513370` 的 `test (sokonanoda-cli, tests)` 判红：
+`the second build must be far cheaper than a cold one (cold 1002.5ms, warm 1002.1ms)`。
+⚠ **冷热两个数几乎相等**（差 0.4ms）是**关键线索** —— 噪声不会这么对称，
+"两边都多付了同一笔固定开销"才会。
+
+**真因**：**`Heartbeat::stop()` 等满一个周期** ✗。
+① 的"非管道不发"让**测试（stdout 是管道）**也开始起心跳线程，而
+`stop()` 是"置停止位 + `join()`"，线程却在 `sleep(period)` 里 ⇒
+**每次 build 都白等 up to 1000ms**（冷跑和热跑**各**白等一次 ⇒ 两个数一起变 ~1025ms，
+比值判据 `warm * 2 < cold` 必红）。
+
+**怎么定位的（二分法，值得复用）**：`git worktree add` 逐 commit 建独立检出、
+各自 `cargo build --release` + 跑同一条测试 ⇒ 一次锁定到 `291cae9f`：
+| commit | cold / warm |
+|---|---|
+| `eaf1b155`（批次前基线） | 65.0 / 5.3 ms ✓ |
+| `87e3d218`（① 第一版，默认一律不发） | 63.5 / 4.8 ms ✓ |
+| `9616c848`（P1-b/P1-c/Q1/Q2 全批） | 56.0 / 5.3 ms ✓ |
+| **`291cae9f`（① 改"非管道不发"）** | **1024.0 / 1025.1 ms ✗** |
+⇒ **是本轮引入的，且就是"管道也开始发心跳"那一步的副作用**。
+
+**修法**：`sleep(period)` → **`Condvar::wait_timeout`** ⇒ `stop()` 置位 + `notify_all()`
+**立刻**唤醒，不再等满周期 ✓。修后：**cold 72.8ms / warm 4.7ms**（比值 15×✓）；
+CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（**差 0.00s**）。
+
+**预防**：
+1. 判据加"**心跳不许拖慢 build**"（`cli_build_heartbeat_is_off_unless_asked_for` 的 ⑤）：
+   同一夹具管道 vs `NO_TICK` 的**墙钟差 < 0.5s** ✓
+   —— ⚠ 用**差值不用比值**：两者都含 ~0.66s 进程启动固定开销，比值会被它稀释；
+   ⚠ 这一条**放在"夹具够慢"自检之前**：否则注入 `sleep` 时自检先 `panic`、
+   ⑤ 根本跑不到 ⇒ **反向验证失效**（第一版就是这么假绿的 ✗）。
+   **反向验证**：注入 `sleep(period)` ⇒ `多付 0.57s` **判红** ✓。
+2. **"停一个后台线程"永远不要用 `sleep` 轮询**（`join()` 会等满一个周期）——
+   用 `Condvar` / channel / `park_timeout` ✓；
+3. ⚠ **本次教训的元层**：① 的第一版（一律不发）与第二版（非管道发）**各引入一个
+   不同的 bug**，而两版都过了 `gate --fast` —— 因为 `--fast` **跳过集成测试**
+   （`perf_project` 就在里面）⇒ **改了 CLI 的运行时行为，要跑那个 crate 的
+   `--test` 全集，不能只看 `--fast`** ✓。
+
