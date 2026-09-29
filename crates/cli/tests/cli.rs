@@ -2059,6 +2059,107 @@ fn cli_build_warms_and_reuses_cache() {
     );
 }
 
+/// **① 的判据（用户 2026-09-29 实测：终端每秒刷 `build.tick`）**。
+///
+/// 症状原话：`{"elapsed_ms":1001,"file":"","type":"build.tick"}` **每秒一条**。
+/// 实测根因（冷编 `courses/set-theory`，159 条 tick）：`file` **全是空串**，
+/// 而且**全部排在第一条 `build.decl` 之前** —— 文件级进度要等全部文件编译完
+/// 才按 `files` 顺序重放，所以 `set_file` 在整个编译期间恒为空。
+///
+/// ⇒ 口径 = **默认不发**；要心跳的人显式 `SOKO_BUILD_TICK_MS=<ms>`。
+/// 判据钉**用户看得见的输出**（`--json` 的 stdout 行），不是内部开关：
+///   ① 默认流里 **0 条** `build.tick`（终端不再刷屏 ✓）；
+///   ② **自检：这份夹具必须跑得够久**（> 1.5s）—— 否则 ① 是**空转**的：
+///      实测踩过 ✗，快夹具下**连旧版"每秒一条"也是 0 条**，撤掉修复判据照样绿；
+///   ③ 显式打开时**真有** tick（⇒ 心跳没被删掉，只是默认关）；
+///   ④ 逃生门 `SOKO_BUILD_NO_TICK=1` 压过 `SOKO_BUILD_TICK_MS`。
+#[test]
+fn cli_build_heartbeat_is_off_unless_asked_for() {
+    // ⚠ **夹具要够慢**：60 条 `by` 证明在 debug 下实测 **6.0s**（两次复跑同值）。
+    // 冷缓存 ⇒ 走真编译（不是 hit），且 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`
+    // 保证条目落全局、每次都能用新的缓存目录重来。
+    let body: String = (0..60)
+        .map(|i| {
+            format!(
+                "theorem big_{i} (P Q : Prop) (hp : P) (hq : Q) : P ∧ Q := by\n\
+                 \x20 apply And.intro\n\x20 exact hp\n\x20 exact hq\n"
+            )
+        })
+        .collect();
+    let dir = temp_home();
+    let file = dir.join("tick-big.sokonanoda");
+    std::fs::write(&file, body).expect("write slow canvas");
+    let path = file.to_str().expect("utf-8 path");
+
+    let run = |tag: &str, envs: &[(&str, &str)]| -> (std::process::Output, std::time::Duration) {
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_sokonanoda"));
+        cmd.args(["build", "--json", path])
+            .env("SOKONANODA_CACHE_DIR", cache_dir(tag))
+            .env("SOKONANODA_NO_PROJECT_ARTIFACTS", "1")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        for (key, value) in envs {
+            cmd.env(key, value);
+        }
+        let started = std::time::Instant::now();
+        let out = cmd.output().expect("run sokonanoda build");
+        (out, started.elapsed())
+    };
+    let ticks = |out: &std::process::Output| -> usize {
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .filter(|line| line.contains("\"build.tick\""))
+            .count()
+    };
+
+    // ① 默认：人看的终端 / 普通管道消费者都不再被刷屏。
+    let (quiet, quiet_wall) = run("tick-off", &[]);
+    assert!(
+        quiet.status.success(),
+        "build must succeed, stderr: {}",
+        String::from_utf8_lossy(&quiet.stderr)
+    );
+    // ② **自检（防空转）**：夹具不够慢 ⇒ ① 恒真 ⇒ 这条判据咬不住任何东西 ✗。
+    // 旧版（`--json` 就每秒一条）在这个时长下会发 ~6 条 ⇒ 判据真的能咬 ✓。
+    assert!(
+        quiet_wall >= std::time::Duration::from_millis(1500),
+        "夹具只跑了 {quiet_wall:?} —— 太快的夹具会让「0 条 tick」这条断言**空转** \
+         （旧版每秒一条也测不出来），必须让它真的编译几秒"
+    );
+    assert_eq!(
+        ticks(&quiet),
+        0,
+        "默认**不许**发 build.tick（用户实测的刷屏，夹具跑了 {quiet_wall:?}）：\n{}",
+        String::from_utf8_lossy(&quiet.stdout)
+    );
+
+    // ③ **判据不空转**：显式要，就必须真有 —— 证明心跳是"默认关"而不是"被删了"。
+    let (asked, _) = run("tick-on", &[("SOKO_BUILD_TICK_MS", "1")]);
+    assert!(
+        asked.status.success(),
+        "build must succeed, stderr: {}",
+        String::from_utf8_lossy(&asked.stderr)
+    );
+    assert!(
+        ticks(&asked) > 0,
+        "显式 `SOKO_BUILD_TICK_MS=1` ⇒ 必须真发心跳（否则判据①空转）：\n{}",
+        String::from_utf8_lossy(&asked.stdout)
+    );
+
+    // ④ 逃生门：显式关掉，即使周期也给了 ⇒ 一条都不发。
+    let (vetoed, _) = run(
+        "tick-veto",
+        &[("SOKO_BUILD_TICK_MS", "1"), ("SOKO_BUILD_NO_TICK", "1")],
+    );
+    assert_eq!(
+        ticks(&vetoed),
+        0,
+        "`SOKO_BUILD_NO_TICK=1` 必须压过 `SOKO_BUILD_TICK_MS`：\n{}",
+        String::from_utf8_lossy(&vetoed.stdout)
+    );
+}
+
 #[test]
 fn cli_build_clean_removes_entries() {
     let file = write_canvas("build-clean");
