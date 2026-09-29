@@ -1124,3 +1124,48 @@ distinct library-prefix sequences (N): 15
 * **N=15 完全可接受**（15 个 session 而不是 1 个或 42 个）；
 * **判据**：`--json` 逐字节不变（`build.decl` **2647** · `compiled:42 failed:0`）·
   `passes` 下降 · 反向判据 · 删 `#[ignore]` 后正向守卫转绿。
+
+## 29. 🎯 **三次接线失败的同一个根因找到了**（接口对账，2026-09-29 17:0x）
+
+按值守规则①（**动手前先做接口对账**）逐条核对后，找到了**三次都栽在同一处**的根因 ——
+**不是报告拼接、也不是并集前缀，而是：session 的入口趟拿不到"闭包前缀"** ✗。
+
+### 29.1 对账结果（逐条，全部读代码确认）
+
+| # | 项目 | 基线（`compile_plan_with_progress`）| session 的入口趟 | 一致？ |
+|---|---|---|---|---|
+| 1 | `units` 传给谁 | `compile_all_units_with_progress(&units, …)`，`units` = **整个闭包**（`lib/*` + 入口）| `run_pass_with(builder, …, **entry_units**, …)` = **只有入口** | ✗ |
+| 2 | `closure_prefixes` | `units.len() > 1` ⇒ **按拓扑序累加每个单元的声明文本**（`check/mod.rs:973`）| `entry_units.len() == 1` ⇒ **`Vec::new()`（空）** | ✗ |
+| 3 | 入口的 `prefix_src` | `Cow::Owned(format!("{deps}{own_prefix}"))`（`walk.rs:326-334`）⇒ **含库层** | 走 `_ =>` 分支 ⇒ **只有入口自己** | ✗ |
+| 4 | `display: display_notations(units)` | `units` = **整个闭包** ⇒ 记法表覆盖全闭包 | `units` = **只有入口** ⇒ 记法表**不覆盖库层** | ✗ |
+
+**⇒ 根因一句话**：`judge_infer` 只吃**源码字符串**（`extra_prefix` + `prefix_src`，
+`judge.rs:949`，**没有环境参数**）⇒ 它必须**从源码重跑前缀** ⇒
+session 的入口趟 `prefix_src` **不含库层声明** ⇒ 入口里任何"问库层声明的类型/宇宙"的
+`judge_infer` 都**看不到它们** ⇒ 失败 ✗。
+
+**这也解释了 §25 的怪现象**：第一次尝试 `passes` 只有 **271**（judge 几乎不跑）
+—— 不是"省了"，是**入口的 judge 因为看不到库层而大量走不到**；随后表现为崩/失败。
+
+### 29.2 ⇒ 修法（**唯一**，且这正是 goal 里那句"记法表覆盖整个闭包"）
+
+**session 的入口趟必须拿到"该入口闭包"的前缀与记法表** —— 也就是 §21.2 里
+"`lib_units` 只当库层"这件事**不够**：入口趟还需要
+**`closure_prefixes`（按该入口闭包顺序）** 与 **`display_notations(该入口闭包)`**。
+
+**两条实现路**（下一轮选一，**都已勘明**）：
+
+* **路甲（改 session 签名，最小）**：`with_project_session` 的入口趟把
+  **`lib_units ++ entry_units`** 作为 `units` 传给 `run_pass_with`（这样
+  `closure_prefixes` 与 `display` 都自动覆盖全闭包 ✓），但**只走入口自己的命令** ——
+  需要一个"跳过已编单元"的机制（`skip`/`TrustPlan` 已有类似能力，`run_pass_with` 的
+  `skip: Option<&KernelFailed>` 与 `trust: Option<&TrustPlan>` 就是干这个的）；
+* **路乙（改 `run_pass_with` 签名）**：显式加 `closure_prefixes: Option<&[String]>`
+  与 `display: Option<&DisplayNotations>` 两个可选参数 ⇒ session 直接喂
+  "该入口闭包"的那一份（**不改变 units**）⇒ 语义最清晰 ✓。
+
+**⇒ 选路乙**（不动 `units` ⇒ 不碰"哪些命令被走"的语义 ⇒ 风险最小）。
+**对账清单（下一轮动手前逐条勾）**：① `units` 语义不变 ✓ ② `closure_prefixes` 按
+**该入口自己的闭包顺序** ③ `display` 覆盖**该入口闭包** ④ 报告拼接仍走
+`merge_session_reports`（但**类内顺序一致 ⇒ 不需要重排**，见 §28.3）⑤ 可见性（`closure` 私有 ⇒
+用 `assemble_from_session`）。
