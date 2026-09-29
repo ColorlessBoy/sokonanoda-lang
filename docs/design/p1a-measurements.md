@@ -535,3 +535,76 @@ pub fn judge_render_type(prefix_src, options, binders, ty: &str) -> Option<Strin
 
 ⚠ 两条都要带**"判据不空转"断言**（`INPLACE_USED` 必须增长）—— 我这一档就是靠它
 发现"夹具没踩到接线点"的（第一次写的 `c = x` 夹具 `used=0`，当场判红 ✓）。
+
+---
+
+# 附十：🔴 **P1-b 第二刀（`by` 路径）第 1 步 —— 接线已试、判定分叉 ⇒ 已精确回退**（2026-09-30）
+
+**结论先行**：`judge_render_type` 的就地兄弟**写出来了、也被走到了**
+（`JUDGE_INPLACE_BY used=213 fallback=0`），但它与慢路**判定不一致**
+（全课程 `--json` **38 行不同**：`lib/*` 从 `compiled` 变 `failed`）⇒
+按"判定正确性不变"这条红线，**接线已 `git checkout` 精确回退**（五个文件零残留）。
+下面是**勘明的根因与三条死路**，下一轮直接用，别再重走。
+
+## 1. 唯一根因：`peel_binders` 的**静默失败**
+
+`judge_render_type` 的收尾是三步（两条路都必须逐字相同）：
+
+| 步 | 慢路 | 就地路（原始 pp 文本） |
+|---|---|---|
+| ① 剥声明 binder | **`judge_infer` 自己剥了 `n` 层**（`judge_infer_uncached` 结尾 `peel_binders(ty, binders.len())`） | 没剥 ⇒ 要剥 `n` |
+| ② 剥 `__soko_render` | 1 层 | 1 层 |
+| ③ 回读 + `render_roundtrip` | `parse_expr_text` | **同一个** |
+
+⚠ **`peel_binders` 失败时是 `break`，不是 `Err`**（`judge.rs:1479`）——
+而它的第一步就是 `parse_expr_text(&t)`，**不认前缀里声明的源级记法**。
+⇒ 剥不动时它**原样返回**，于是：
+
+* 慢路拿到的是 `judge_infer` 已剥过 `n` 层的文本 ⇒ 那一层能剥动 ⇒ 正常；
+* 就地路拿到的是**带 `n` 层 binder 的原始文本**（`… -> Set.mem α h (Set.empty α) -> …`
+  里就有 `Set.empty` 这类**点名前缀**）⇒ `parse_expr_text` 直接失败 ⇒
+  **一层都没剥** ⇒ 交出去的"规范形态"其实是**没剥过的类型**
+  ⇒ `apply` 的目标对齐拿到一个多层的函数类型 ⇒ 报
+  「期望 `Not (…) -> Not (…)`，实际是 `α`」这类**看起来毫不相干**的错 ✗。
+
+**症状的形状**（下一轮认这个）：错误集中在 `lib/Set.sokonanoda` 的
+`exact` / `constructor`，文案是"期望一个 `A -> B` 形状，实际是 `α`/`True`/`Eq a a`"
+——**期望的那一项正好是当前目标的类型**（说明目标没被剥）。
+
+**⇒ 下一轮的正确切口**：**不要**让就地路去走"文本剥层"。
+就地路手里有**内核项**（`term`），应该在**项层面**剥掉 `n + 1` 层 Pi
+（内核有现成的项级剥法），**再把结果 pp 成文本** ⇒ 交出去的形态与慢路天然同构，
+`parse_expr_text` 那一步的记法风险也随之消失 ✓。
+
+## 2. 三条**实测走不通**的死路（别再试）
+
+1. **手搓内核项 `mk_lambda(nm, Default, ty_ptr, ty_ptr)`**（体错传成 `ty`）⇒
+   推断出来是 `T -> T`，剥一层得不到目标 ✗（低级但当时就是这么写的）；
+2. **手搓 `mk_lambda(nm, Default, ty_ptr, mk_var(0))`**（体 = de Bruijn 0）⇒
+   `eval: loose bvar` **每趟 panic**：`infer_type_text_at` 走 `infer_closed_type`
+   （**闭项**判定），而 `mk_var(0)` 在**它自己的**局部上下文里没有条目
+   —— 与 P1-a 坑①同一个 panic 家族；
+3. **把声明 binder 先 `push` 进 `ElabScope` 再 elaborate `ty`** ⇒ `ty` 里对 binder
+   的引用变成**局部变量**，elaborate 出来是**开项** ⇒ 还是 `eval: loose bvar` ✗
+   （这条最隐蔽：scope 看着"更完整"，其实正是病根）。
+
+**唯一走通的那条**：把查询写成**一整条源级 λ**
+`fun (b1:T1) … (bn:Tn) (__soko_render : ty) => __soko_render`，
+**交给 `elab_expr` 的 `Expr::Lambda` 分支**去 elaborate
+（de Bruijn 的推入/抬升全由它负责 ⇒ 产物必然是闭项 ✓）。`used=213` 就是这么来的。
+
+## 3. 另两条**必须一起做**的纪律（本轮各踩一次）
+
+* **只做未命中**：就地路**必须先 `judge_infer_lookup` 查同一张缓存**再动手
+  —— 第一版没查，`passes` 直接从 2248 涨到 3061（把十几万次 ~11 µs 的命中
+  换成了 ~1 ms 的就地）✗；补上"命中 → 就地 → 慢路"三步后 `passes` 才回到 1854；
+* **就地答出的 pp 文本要写回同一张缓存**（键与慢路同源），否则下一次同样的问
+  还要再算一遍（`misses 266 → 488` 那一半就是这么来的）✓。
+
+## 4. 本轮的**副产品**（已在回退里删掉，下一轮直接重加）
+
+`JUDGE_INPLACE_BY used=/fallback=` + `JUDGE_INPLACE_BY_WHY <原因>` 两组计数
+（`INPLACE_BY_REASONS` 记 `binder-no-ty` / `query-elab` / `query-panic` /
+`kernel(<内核原话>)` / `reread` / `peel`）—— **这一档没有它就是盲飞**：
+本轮全靠 `WHY` 才从"`used=0`"一路定位到 `eval: loose bvar` 与 `peel`。
+⚠ 打印要**截断**（未命中几万条，全打会把终端刷爆 ✗）。
