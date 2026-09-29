@@ -464,3 +464,56 @@ STAGE_STATS       passes=4126    judge_ms=146904
 2. **468 趟文本输入**：先放着（值守口径 ✓），要动就从"上游别渲染"下手；
 3. 小点（`application_arg_expected` 34 · `field_sort_via_kernel`/`infer_expected_level` 24）
    —— 都是同一个形状的复制，但收益小。
+
+---
+
+# 附九：P1-b 第二刀的**勘明**（`by` 路径 536 趟）—— 只勘不做，成本已量到"要动哪些函数"
+
+## 1. 目标形状
+
+`judge_render_type`（`judge.rs:1605`）与 `judge_infer` **收的都是文本**：
+
+```rust
+pub fn judge_render_type(prefix_src, options, binders, ty: &str) -> Option<String> {
+    let term = format!("fun (__soko_render : {ty}) => __soko_render");
+    let text = judge_infer(prefix_src, options, binders, &term).ok()?;   // ← 未命中就重跑整段前缀
+    …
+}
+```
+
+⇒ 就地版需要一个**源 `Expr`**（`ty` 的 AST）与**活环境**。前者在调用点**有** ✓，
+后者**没有** ✗。
+
+## 2. 环境要从哪来（逐级，已读代码）
+
+| 层 | 位置 | 现状 | 要加什么 |
+|---|---|---|---|
+| 入口 | `elab.rs` 的 `elab_expr` → `by::run_by`（`:349` 一带） | 手里**有** `&mut EnvBuilder` + `known` ✓ | 传 `Option<&mut InplaceEnv>` |
+| `by.rs:489` | `fn run_by(...)` | 只有 `prefix_src/options/defs` | 同上 |
+| `by.rs:722` | `fn run_by_inner(...)` | 同上（**递归**） | 同上 |
+| `by.rs:797` | `fn run_tactics(...)` | 同上 | 同上 |
+| `by.rs:499` | `fn canonical_goal_type(...)`（调 `judge_render_type` `:513`） | 只有文本 | 同上 + **`ty: &Expr`**（已在手 ✓）|
+| `by.rs:555` | `fn canonical_goal_with_spec(...)`（`:563`） | 同上 | 同上 |
+
+**⇒ 6 个函数、一条 3 级递归的管道**（`run_by_inner`/`run_tactics` 都要跟着改签名）。
+`judge_render_type` 本身要加一个"就地兄弟"（`judge_render_type_inplace(builder, known, ctx, ty: &Expr, binders)`），
+形状与 `infer_type_text_inplace` 同（**源 AST + scratch hovers + `infer_type_text_at` + proofs=true**）。
+
+## 3. 成本 / 收益（决定值不值）
+
+* **收益上界**：536 趟 / 19.8 MB = 剩余 runs 的 **49%**、剩余字节的 **24%**
+  （按本档实测 795 趟 ≈ 24.1 s 墙钟折算 ⇒ 约 **16 s**，134.8s → **≈119s**，即 1.13×）；
+* **成本**：6 个签名 + 一条递归管道；`by.rs` 是 1600 行的大模块，且 `run_tactics`
+  有多处早退/回溯 ⇒ **改动面明显大于前两档**（前两档各只动 `elab.rs` 内部）；
+* **风险**：中 —— `by` 引擎的判定结果**决定后续 tactic 步进**（§19.4 的"结果被中途消费"），
+  所以就地与慢路**必须逐字节一致**；证据链仍用 `shadow` 档 + 全课程 `--json` 对拍 ✓。
+
+## 4. 建议顺序（下一轮直接用，不用重勘）
+
+1. 先给 `judge_render_type` 写就地兄弟 + 一个**只接 1 个调用点**（`canonical_goal_type`，
+   `by.rs:763` 一处）的暂存开关，走一遍 shadow + 全课程对拍；
+2. 通了再把 `canonical_goal_with_spec`（`:837`/`:1101`/`:1332` 三处）接上；
+3. 两处都绿之后，把 `SOKO_JUDGE_INPLACE_WIDE` **并进 `SOKO_JUDGE_INPLACE`**（删暂存开关）。
+
+⚠ **别在没量 shadow 之前默认开**：`by` 引擎的分叉会以"tactic 步进不同"的形式出现，
+比 `elab` 路径更难定位 ⇒ 影子档是这一档的**必需品**，不是可选项。
