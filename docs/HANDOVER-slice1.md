@@ -111,7 +111,35 @@ fn precompute_project_reports(files: &[PathBuf], root: Option<&str>, no_project:
 
 **⚠ 唯一缺口就是 §3.6 的 `build.decl` 心跳**（2647 → 353）。
 
-## 4. 下一步（唯一，新会话直接做）
+## 4. 下一步（唯一）—— **从哪一行开始动手**
+
+**第 0 步（五分钟，只读）**：翻开这三处，确认"每次未命中都从零造环境"这个事实：
+
+| 行 | 看什么 |
+|---|---|
+| `crates/front/src/judge.rs:1046` | `judge_infer_cached` —— 未命中 ⇒ 下面那行 |
+| `crates/front/src/judge.rs:1204` | `judge_infer_uncached` —— `:1245` `synthesized_prefix` + `parse_fragment` |
+| `crates/front/src/compile/check/mod.rs:286` | `compile_fol_with` ⇒ `run(&[SourceUnit::single(...)])` |
+| `crates/front/src/compile/check/mod.rs:855` | `let builder = EnvBuilder::new(arena, Config::default());` ← **每次从零造** |
+
+**第 1 步（动手前先交接口对账）**：两条路各自"要动哪些签名 + 每处风险"，
+照 [`docs/design/p1a-measurements.md`](design/p1a-measurements.md) 附二的表格逐点写：
+
+* **路 A｜per-前缀 builder 池**：`HashMap<前缀哈希, EnvBuilder>` ——
+  ⚠ `EnvBuilder` **不是 `Clone`**，且它借 arena 的生命周期 `'a`
+  ⇒ 池的存放位置/生命周期是**第一个要过的坎**；
+* **路 B｜judge 接收调用方已有的 builder**（最终形态"judge 走 EnvView"）——
+  ⚠ 受限于**调用点只有源 `Expr`、没有 `ExprPtr`**（附二 C2）⇒ 需要先补
+  "由源 `Expr` elaborate 成 `ExprPtr`"（§19.4 候选 A / K-2）。
+
+**第 2 步**：挑**路 A 的"解析结果 memo"**先做（风险最低、不依赖未接线零件，
+且**能立刻用 `JUDGE_PREFIX bytes` 判定**：解析与 elaborate 是两笔账 ⇒
+先加一个 `PARSE_BYTES` 计数器把两笔分开）。
+
+**第 3 步**：判据五件套（`--json` 逐字节 · `JUDGE_PREFIX bytes` 下降 ·
+墙钟改前/改后双数字 · 三层回归 · 反向判据）。
+
+## 4.1 更早的下一步（切片 1，**已挂起，不要接着做**）
 
 1. **已修**：session 入口趟现在传"该入口闭包"（`lib_units ++ entry_units`）的前缀与记法表
    （`3f61ad95`）✓ —— 这是 §3 根因的修法（路乙：`run_pass_with` 加两个**可选**参数）。
