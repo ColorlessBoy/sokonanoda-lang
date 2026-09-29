@@ -937,3 +937,54 @@ session 回调里能拼出来的"闭包单元列表"只能是 **`lib_units`（�
    （`crates/cli/src/build.rs:228` 并行路径 / `:255` 串行路径）；
    `build_one` 里 `:405` 的 `match precomputed { Some(p) => p, None => compile_plan_with_progress(...) }`
    **已经写好了** ✓ —— **这个参数从切片 1b 起就留着，一直没人喂过**。
+
+## 25. 切片 1 接线**第一次尝试：收益巨大但组装错了**（实测数字，非常重要）
+
+把 §24.2 的三步接上（CLI 侧，本机 release、冷缓存、1 job）后实测：
+
+| 读数 | 基线 | 接线后 | 倍率 |
+|---|---|---|---|
+| `passes` | **4126** | **271** | **15.2×** ↓ |
+| `judge_ms` | **146.4s** | **5.3s** | **27.6×** ↓ |
+| `doc_passes` | **266** | **19** | **14×** ↓ |
+| `misses` | 266 | **19** | — |
+
+⇒ **方向完全正确**（这正是 88% 那一刀该有的形状 ✓）。
+
+**但它 `exit=101` 崩了**：`crates/front/src/project/mod.rs:480`
+`index out of bounds: the len is 1 but the index is 1`。
+
+### 25.1 崩因（已定位到行）
+
+`assemble_report` 里：
+
+```rust
+let mut compiled: HashMap<usize, usize> = compilable.iter().enumerate()
+    .map(|(slot, &index)| (index, slot)).collect();     // slot = 闭包内第几个**模块**
+…
+events.errors = reports[slot].errors.clone();            // ← 这里 :480
+```
+
+它要的 `reports` 是 **整个闭包（`lib/*` + 入口）逐模块**的报告（长度 = `compilable.len()`）。
+而 session 回调交的是 **`entry_reports`（只有入口那一个模块）** ⇒ `len == 1`，
+而 `slot` 到了 `1` ⇒ **越界** ✗。
+
+**正解**：`reports` 必须是 **`lib_reports` + `entry_reports` 按该入口闭包顺序拼起来** ——
+这正是 session 回调**为什么要交 `lib_ranges`（并集顺序下每个库模块的区间）** 的原因
+（它的注释原文："修法 A：按各入口自己的闭包顺序拼接 + 重编号"）✓。
+
+⇒ **接线方必须做"拼接 + 重编号"**，而不是直接把 `entry_reports` 递进去 ✗。
+**这不是"缺参数"，是"接线方少做了一步变换"** —— §22/§23 两次都判偏了，
+**这次有越界 panic 的精确行号**（`:480`）作证。
+
+### 25.2 下一步（唯一，且形状已明）
+
+在 `build` 侧（或前端加一个 helper）把 session 交的两份报告拼成"该入口闭包的逐模块报告"：
+
+1. 用 `entry_closure`（**该入口自己的**闭包单元顺序 —— 注意**不是** `lib_units` 并集顺序）
+   算出**期望的报告序列**；
+2. 用 `lib_ranges`（并集顺序的库模块区间）把 `lib_reports` 映射到该入口的库模块；
+3. 拼 `lib_reports' ++ entry_reports` ⇒ 交给 `assemble_from_session`。
+
+⚠ **§21.3 的坑仍适用**：拼接必须按**该入口自己的闭包顺序**，用并集顺序会
+`--json` 对不上 ✗。

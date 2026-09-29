@@ -378,6 +378,20 @@ pub struct PlanCompiled<'a> {
     pub requires_warning: Option<String>,
 }
 
+/// **切片 1 接线的前置步骤**：跑那两步**闭包级检查**并把诊断**并进 plan**。
+///
+/// `compile_plan_with_progress` 在**编之前**跑 `check_name_collisions` 与
+/// `check_prelude_conflicts`（`:538`/`:539`），两者都要 **`&mut Closure` / `options`**。
+/// 切片 1 的接线方（CLI）**够不着**私有 `closure` ⇒ 由本函数代跑 ✓。
+///
+/// **必须在跑 session 之前调用**（检查可能把模块标成 blocked，
+/// 那会改变"编哪些模块"）⇒ 顺序不能反 ✗。
+/// **不跑 = 丢诊断 = `--json` 会变** ✗。
+pub fn precheck_plan(plan: &mut ProjectPlan, options: &CompileOptions) {
+    check_name_collisions(&mut plan.closure, &mut plan.diagnostics);
+    check_prelude_conflicts(&plan.closure, options, &mut plan.diagnostics);
+}
+
 /// **切片 1（G-68）的接线口**：把"一次 session 的结果"组装成该入口的 `ProjectReport`。
 ///
 /// **为什么需要**：`build <dir>` 今天对**每个入口**走 `compile_plan_with_progress`
@@ -393,13 +407,8 @@ pub struct PlanCompiled<'a> {
 /// **语义**：与 `compile_plan_with_progress` 的组装段**逐字同构**
 /// （都是 `assemble_report(PlanCompiled { … })`）⇒ `--json` 逐字节不变的前提 ✓。
 ///
-/// ⚠ **接线时还必须补两步**（`compile_plan_with_progress` 在编**之前**跑的，
-/// 见 `:538`/`:539`）：`check_name_collisions(&mut closure, &mut diagnostics)` 与
-/// `check_prelude_conflicts(&closure, options, &mut diagnostics)` —— 两者都要
-/// **`&mut Closure` / `options`**，而本函数只拿 `&ProjectPlan` ⇒ **够不着** ✗。
-/// ⇒ 接线方必须在**跑 session 之前**先对每个 plan 跑这两步并把诊断**并进**
-/// `plan.diagnostics`（或本函数改成收 `&mut ProjectPlan` + `options`）。
-/// **不补 = 丢诊断 = `--json` 会变** ✗（这就是接线前必须解决的最后一件）。
+/// ⚠ **接线方必须先调 [`precheck_plan`]**（那两步闭包级检查要 `&mut Closure`，
+/// 本函数够不着）—— **不调 = 丢诊断 = `--json` 会变** ✗。
 pub fn assemble_from_session(
     plan: &ProjectPlan,
     flat_out: crate::compile::CompileOutput,
