@@ -29,10 +29,12 @@
 |---|---|
 | **靶子（实测 · 09-29 18:2x 已按新读数改准）** | `judge_infer` 只吃**源码字符串**（`crates/front/src/judge.rs:949`，没有环境参数）⇒ 每次判定都**从零重跑整段前缀**（`:1245 synthesized_prefix` + `parse_fragment`）⇒ `compile_fol_with`（`check/mod.rs:286`）**从零造 `EnvBuilder`** ⇒ 前缀被**重新 elaborate + 重新过内核检查** ⇒ **O(N²)**。<br>**新读数（release · 冷缓存 · 1 job）**：墙钟 **215.0s** · judge **146.9s ≈ 68%** · `JUDGE_PREFIX runs=3759 / bytes=174213583 / 每趟 46 KB` ⇒ **1.74 亿字节被重解析**。<br>⚠ **作废两条**：① 旧「**88%**」出自另一次口径（跳法比较），**不要引用** ✗ ② 旧「合成 pass **253513**」是 `judge::stats::PASSES`（judge 内部子趟），**不是** `STAGE_STATS` 的 `passes=4126`，两者别混 ✓ |
 | **唯一存活的解法** | **A / K-2**：判定**就地查当前环境**，不再合成源码重跑。<br>候选 B **判死**（`ExportFile::mk_*` 的 arena 是 `with_ctx` 局部 ⇒ 指针同一性不成立）· 候选 D **判死**（`judge` 结果在 `walk` 中途被消费、决定后续 elaborate ⇒ 不能后移） |
-| **基础零件（已上 main、⚠ 零调用点）** | ① `EnvBuilder::with_env_scope`（`crates/kernel/src/builder.rs:138`）② `ExportFile::infer_type_text_at`（`crates/kernel/src/util.rs:735`）—— **两个零件自落地起从未被任何代码调用** —— **P1-a 已回答**：`infer_type_text_at` **首次接线**（在调用方手里的活环境上就地答）；`with_env_scope` **仍未接线** |
+| **基础零件** | ① `EnvBuilder::with_env_scope`（`crates/kernel/src/builder.rs:138`）—— **仍未接线** ✗ ② `ExportFile::infer_type_text_at`（`crates/kernel/src/util.rs:735`）—— **P1-a 已接线** ✓（在调用方手里的活环境上就地答） |
+| **✅ 已落地（P1-a + P1-b 第一档 · v0.78.1 已发）** | **P1-a**：`infer_type_text` 这一个判定点就地化（`InplaceEnv { builder, known }`，`judge.rs` + `elab.rs`），开关 `SOKO_JUDGE_INPLACE=off/shadow/on`（**默认 on**）；**P1-b 第一档**：同一形状铺到 `guarded_binder_type` / `solve_prefix_args`，开关 `SOKO_JUDGE_INPLACE_WIDE`（**默认关**，待默认开）。<br>**读数（release · 冷缓存 · 1 job · 全课程）**：`JUDGE_PREFIX runs` **3759 → 1881 → 1086** · bytes **1.74 亿 → 9386 万 → 5457 万** · `passes` **4126 → 2248 → 1452** · 墙钟 **216.14s → 158.90s → 134.77s（1.60×）** · `shadow_diff=0` · off/on `--json`（剔 `build.tick`）**逐字节相同** · 反向判据三档各有实测（`crates/front/tests/judge_inplace{,_on,_wide}.rs`）。<br>**详情**：`docs/design/p1a-measurements.md` **附七 / 附八 / 附九** |
+| **⬜ P1-b 剩余** | **`by` 路径 536 趟 / 19.8 MB**（剩余 runs 的 **49%**，收益上界 ≈16s）：缺的是把 `EnvBuilder` 穿过 `by.rs` 的 3 级递归（`run_by → run_by_inner → run_tactics → canonical_goal_type / canonical_goal_with_spec → judge_render_type`）+ `judge_render_type` 的就地兄弟。<br>**逐级函数表 + 分阶段顺序 + 风险点已勘明** ⇒ 附九 §1–§4，**照做即可、不需重勘**；另 468 趟"输入已是渲染文本"按值守口径先放着 |
 | **授权** | 用户 14:12 **无条件授权改内核**（原话「**改内核能加速编译的话，就是能改内核，不需要『否则』**」）⇒ 不必逐次请示、不必先穷尽前端方案 |
 | **两条"正确"（不是闸门）** | ① 判定语义**绝对不许变**（`--json` / 报告逐字节不变）② **反向判据**：前缀 / 依赖真变**必须重算** |
-| **落地后必做** | **打包 + bump `v0.78.1`** —— 性能改动不 bump，用户完全感觉不到（不动 v0.79.0） |
+| **落地后必做** | ~~打包 + bump `v0.78.1`~~ ✅ **已发**（`v0.78.1` = Latest · 2026-09-29T14:17:55Z · 26 资产 · release run `36580846639` success）。**下一版候选 `v0.78.2`**：翻 `SOKO_JUDGE_INPLACE_WIDE` 默认开（wide 档**六条判据已齐备** —— 附八 §3 + `crates/front/tests/judge_inplace_wide.rs`），**发不发由值守定** |
 | **详情** | `docs/design/incremental-environment.md` §18–§19 · 零件清单 `docs/HANDOVER-slice1.md` §6 |
 
 ### 待做队列（优先级从上到下）
