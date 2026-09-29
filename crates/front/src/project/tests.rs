@@ -582,6 +582,54 @@ fn module_keys_are_dependency_scoped_not_entry_scoped() {
     );
 }
 
+/// **阶段 1b 的目标判据**（`docs/design/incremental-environment.md` §9.1）：
+/// **同一个模块，在不同入口的闭包里必须算出同一条 `module_key`** ——
+/// 这是"按 key 复用产物"能成立的**充要前提**：
+/// 若同一个模块在两个入口下 key 不同，产物就永远复用不上（G-68 的 4.14× 回来了 ✗）；
+/// 若 key 相同却内容不同，就是**错编**（比慢严重得多 ✗）。
+///
+/// ⚠ **本用例现在就该绿**（`module_keys` 是 per-module 的，不是 per-entry 的）；
+/// 它守的是"**接线时别把它退回 per-entry**"——接线（把 key 用进 `build`）在阶段 1b，
+/// 而那条路一旦写成"按入口算 key"，本用例立刻判红 ✓。
+#[test]
+fn the_same_module_has_one_key_across_different_entries() {
+    let dir = tmp_dir("module-key-shared");
+    write(&dir, "Shared.sokonanoda", "def shared : Nat := 1\n");
+    write(
+        &dir,
+        "E0.sokonanoda",
+        "import Shared\ndef e0 : Nat := shared\n",
+    );
+    write(
+        &dir,
+        "E1.sokonanoda",
+        "import Shared\ndef e1 : Nat := shared\n",
+    );
+    let options = CompileOptions::default();
+    let keys_for = |entry: &str| {
+        plan_project(&dir.join(entry), None, Some(dir.as_path())).module_keys(&options)
+    };
+    let key_of = |list: &[(String, String)], name: &str| {
+        list.iter()
+            .find(|(module, _)| module == name)
+            .unwrap_or_else(|| panic!("{name} 必须在闭包里：{list:?}"))
+            .1
+            .clone()
+    };
+    let a = keys_for("E0.sokonanoda");
+    let b = keys_for("E1.sokonanoda");
+    assert_eq!(
+        key_of(&a, "Shared"),
+        key_of(&b, "Shared"),
+        "**同一个模块在两个入口下必须是同一条 key** —— 不同就永远复用不上产物（G-68 回来）✗"
+    );
+    assert_ne!(
+        key_of(&a, "E0"),
+        key_of(&b, "E1"),
+        "两个入口自己是不同模块 ⇒ key 必须不同"
+    );
+}
+
 #[test]
 fn closure_digest_marks_the_module_set() {
     let dir = tmp_dir("digest-set");
