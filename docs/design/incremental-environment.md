@@ -489,3 +489,42 @@ impl<'a> EnvProvider for SnapshotProvider<'a> {
 
 **⇒ 结论：走 §15.2 的第 2 条**。它把"查环境"变成"查已经 elaborate 好的指针"，
 **借用冲突自然消失**，且**不需要内核改动** ✓。
+
+## 16. 阶段 1 的**最终卡点定位**（2026-09-29，勘到底）
+
+§15.2 定了"把 `judge_infer` 的入参改成已经 elaborate 好的 `ExprPtr`"。**再往下核一层，
+发现真正的卡点比 §15.2 描述的更靠前**：
+
+### 16.1 卡点：**"elaborate 一个项"本身需要 `&mut EnvBuilder`**
+
+`elab_expr(builder: &mut EnvBuilder<'a>, …)`（`elab.rs:2913`）**不是**只读环境查表 ——
+它**用 builder 构造内核项**（实测它调 `builder.zero()`/`mk_sort`/`mk_var`/`mk_const`/
+`mk_app`/`mk_lambda`/`mk_pi`… 等 **`&mut self`** 方法）。
+
+而 `EnvBuilder` 的**公开 API 里没有任何"只读借出声明表"的口子**（实测：
+`pub fn` 列表里只有 `declaration_count(&self)` 与 `add_declar(&mut self)`；
+`hide_declars`/`restore_declars` 是**挪走/还回**，不是借出）。
+
+⇒ **要"就地 elaborate + 查快照环境"，必须同时持有"一个能写项的 builder"与"一份只读环境"**
+—— 而今天这两者**是同一个对象**（`EnvBuilder` 既持 `dag` 又持 `declars`，且 `declars` 私有）。
+
+### 16.2 三条收口（**都要改结构，我无法凭现有信息判定哪条更小**）
+
+| 出路 | 做什么 | 需要授权？ |
+|---|---|---|
+| **A″** | 内核加 `EnvBuilder::with_declars(&self, f)`（**只读借出**）⇒ 前端可在"写项"的同时"读环境" | **要**（`crates/kernel/`）|
+| **B″** | 前端**重建一个 builder**：从快照的 `declars`（`pub`）逐条 `add_declar` 进新 builder ⇒ 用它 elaborate | 不要（但要确认**指针同一性**：`NatLit` 按指针比较，`conv.rs:169`）|
+| **C″** | `by` 引擎两阶段化（判定移出 walk）—— **完全绕开**这个冲突 | 不要（但改动面最大）|
+
+### 16.3 我的判断与**请求**
+
+* **B″ 看起来最小**（内核零改动），但有一个**必须先验证**的点：
+  从快照 `declars` 重建的 builder，与 walk 里那个 builder，**是不是同一个 arena / 同一批指针**
+  —— 若不是，`NatLit` 的指针比较会让**判定结果变**（红线 ✗）。
+  **这一步可以用一条单测验证**（不需要跑真课程）：建 builder → 加几条声明 → `snapshot()`
+  → 用快照的 `declars` 重建 builder → 在两者上查**同一条 `Nat` 字面量**的类型 → 必须相同。
+* **若 B″ 的指针同一性验证不过** ⇒ 只能走 **A″（要授权）** 或 **C″（改动面最大）**。
+
+**⚠ 我停在"能判定"的边界上**：B″ 的指针同一性是一条**可执行的单测**，
+但我这一轮的上下文已用尽，没有余量把它跑完并据此定案。
+**下一步（明确、可执行）**：先跑那条指针同一性单测；过 ⇒ 走 B″；不过 ⇒ 回来请示 A″/C″。
