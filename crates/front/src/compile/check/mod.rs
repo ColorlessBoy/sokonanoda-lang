@@ -863,8 +863,38 @@ fn run_pass_in<'a>(
         skip,
         trust,
         progress,
+        None,
+        None,
     )
     .0
+}
+
+/// **闭包前缀**：按拓扑序把**前面每个单元**的声明文本接起来（`import` 行去掉）。
+///
+/// **唯一实现**（2026-09-29 抽出）：`run_pass_in` 与 `session` 都用它 ⇒
+/// **不会出现"两处各算一遍、算法分叉"** ✗。
+/// **为什么需要它**：`judge_infer` 只吃**源码字符串**（`judge.rs:949`，没有环境参数）
+/// ⇒ 它必须**从源码重跑前缀** ⇒ 入口那趟若只拿到自己的源码，
+/// **入口里"问库层声明的类型/宇宙"的 `judge_infer` 就看不到库层** ✗
+/// （实测：这正是切片 1 三次接线失败的**同一个根因**，见
+/// `docs/design/incremental-environment.md` §29）。
+///
+/// **单单元**（`units.len() == 1`）⇒ 返回**空 `Vec`** ⇒ 调用方走"本文件前缀"那条路
+/// ⇒ 与今天逐字节相同（A1 纪律）✓。
+pub fn closure_prefixes_for(units: &[SourceUnit<'_>]) -> Vec<String> {
+    if units.len() <= 1 {
+        return Vec::new();
+    }
+    let mut prefixes = Vec::with_capacity(units.len());
+    let mut accumulated = String::new();
+    for unit in units {
+        prefixes.push(accumulated.clone());
+        accumulated.push_str(&crate::project::importless_source(&unit.file.src));
+        if !accumulated.ends_with('\n') {
+            accumulated.push('\n');
+        }
+    }
+    prefixes
 }
 
 /// **切片 1b**：`builder`（与可选影子）**由调用方提供、编译完交回** ⇒ session 能把
@@ -885,6 +915,11 @@ pub(crate) fn run_pass_with<'a, 's>(
     skip: Option<&KernelFailed>,
     trust: Option<&TrustPlan>,
     progress: Option<&mut dyn crate::compile::ProgressSink>,
+    // **切片 1（G-68）路乙**：调用方可**显式覆盖**闭包前缀与记法表 ——
+    // session 的入口趟要用"**该入口闭包**"的那一份（否则 `judge_infer` 看不到库层，
+    // 见 §29）。`None` ⇒ 按 `units` 自己算（**今天的行为，逐字节不变** ✓）。
+    closure_prefixes_override: Option<&[String]>,
+    display_override: Option<&crate::display::DisplayNotations>,
 ) -> (PassResult, EnvBuilder<'a>, PassTables<'a>)
 where
     'a: 's,
@@ -970,19 +1005,15 @@ where
     // `elab-match-no-expected-type`（实测：`import Logic` + `match h with … Or …`）。
     // 所以这里按拓扑序把**前面每个单元的声明文本**接成闭包前缀；单文件模式
     // （`units.len() == 1`）不构造，行为与今天逐字节相同（A1）。
-    let closure_prefixes: Vec<String> = if units.len() > 1 {
-        let mut prefixes = Vec::with_capacity(units.len());
-        let mut accumulated = String::new();
-        for unit in units {
-            prefixes.push(accumulated.clone());
-            accumulated.push_str(&crate::project::importless_source(&unit.file.src));
-            if !accumulated.ends_with('\n') {
-                accumulated.push('\n');
-            }
+    // **路乙**：调用方给了就用它的（session 入口趟传"该入口闭包"的那份）；
+    // 没给就按 `units` 自己算（**今天的行为** ✓）。
+    let closure_prefixes_owned: Vec<String>;
+    let closure_prefixes: &[String] = match closure_prefixes_override {
+        Some(p) => p,
+        None => {
+            closure_prefixes_owned = closure_prefixes_for(units);
+            &closure_prefixes_owned
         }
-        prefixes
-    } else {
-        Vec::new()
     };
 
     let failed_cmds: KernelFailed = HashMap::new();
@@ -995,7 +1026,10 @@ where
         shadow_failed: Vec::new(),
         shadow_failed_msg: Vec::new(),
         shadow_skip: None,
-        display: display_notations(units),
+        display: match display_override {
+            Some(d) => d.clone(),
+            None => display_notations(units),
+        },
         builder,
         known: tables.known,
         inductives: tables.inductives,
@@ -1018,7 +1052,7 @@ where
         skip,
         trust,
         &all_templates,
-        &closure_prefixes,
+        closure_prefixes,
         progress,
     );
     // **T-K12b 的一致性观测**：把影子环境推进到"全部已 elaborate 的前缀"

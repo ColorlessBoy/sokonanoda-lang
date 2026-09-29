@@ -18,8 +18,9 @@ pub mod cache;
 
 pub use check::by_calls_total;
 pub use check::{
-    check_document, check_document_with, compile_all_with, compile_fol, compile_fol_with,
-    display_notations_from_commands, fold_for_display, prelude_shape, render_expr, PreludeShape,
+    check_document, check_document_with, closure_prefixes_for, compile_all_with, compile_fol,
+    compile_fol_with, display_notations, display_notations_from_commands, fold_for_display,
+    prelude_shape, render_expr, PreludeShape,
 };
 pub use check::{module_compiles_total, note_module_compile};
 pub(crate) use check::{

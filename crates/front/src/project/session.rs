@@ -40,7 +40,7 @@ pub fn with_project_session<R>(
     // 它们不在 `declars` 里，检查点救不了 ✗（2026-09-29 定位）。
     let mut tables = PassTables::new();
     let (lib_pass, mut builder, lib_tables) = run_pass_with(
-        builder, None, true, tables, lib_units, options, true, None, None, None,
+        builder, None, true, tables, lib_units, options, true, None, None, None, None, None,
     );
     tables = lib_tables;
     // **逐模块报告**（与 `check::run` 同构）：库层那趟的报告按单元切分 ⇒ 接线方
@@ -60,6 +60,22 @@ pub fn with_project_session<R>(
     for (index, entry_units) in entries.iter().enumerate() {
         // ③ 回到只有库层的状态 ⇒ 入口之间不共享环境。
         builder.restore_declars(checkpoint.clone());
+        // **切片 1 路乙**：入口趟必须拿到"**该入口闭包**"的闭包前缀与记法表 ——
+        // 否则入口里的 `judge_infer` **看不到库层声明**（它只吃源码字符串，
+        // `judge.rs:949`）⇒ 实测这是三次接线失败的同一个根因
+        //（`docs/design/incremental-environment.md` §29）。
+        // 该入口闭包 = `lib_units`（本 session 的库层）+ 该入口自己的单元。
+        let entry_closure: Vec<SourceUnit<'_>> = lib_units
+            .iter()
+            .chain(entry_units.iter())
+            .map(|u| SourceUnit {
+                name: u.name,
+                path: u.path,
+                file: u.file,
+            })
+            .collect();
+        let entry_prefixes = crate::compile::closure_prefixes_for(&entry_closure);
+        let entry_display = crate::compile::display_notations(&entry_closure);
         let (pass, next, next_tables) = run_pass_with(
             builder,
             None,
@@ -71,6 +87,8 @@ pub fn with_project_session<R>(
             None,
             None,
             None,
+            Some(&entry_prefixes),
+            Some(&entry_display),
         );
         builder = next;
         tables = next_tables;
