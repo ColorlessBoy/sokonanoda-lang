@@ -105,7 +105,7 @@ UI 缺陷、以及**另一条腿**（前缀环境可保存/恢复）。
 | 文档 | 管什么 | 什么时候读 |
 |---|---|---|
 | **本文件** | 接手索引 + **P1 档位定义** + 下一步 + prompt | **每次开工先读** |
-| `docs/design/p1a-measurements.md` | **动手细节**：附一~六（量具/对账/读数）· **附七**（P1-a 判据 + 三个实测坑）· **附八**（1881 趟逐条归因 + 第一档读数）· **附九**（`by` 路径逐级函数表 + 阶段顺序 + wide ⑤ 夹具 recipe） | 动 P1 任一档前 |
+| `docs/design/p1a-measurements.md` | **动手细节**：附一~六（量具/对账/读数）· **附七**（P1-a 判据 + 三个实测坑）· **附八**（1881 趟逐条归因 + 第一档读数）· **附九**（`by` 路径逐级函数表 + 阶段顺序）· **附十**（`by` 第 1 步：判定分叉 ⇒ 已回退 + 唯一根因 + 三条死路） | 动 P1 任一档前 |
 | `STATUS.md`（未决项 + 最近 3 轮） | 轮次流水 · **用户实测的三条 UI 缺陷**（含行号/复现/修法选项） | 每次开工 + 收尾记账 |
 | `docs/design/incremental-environment.md` §18–§19 | 「前缀环境」那条腿的设计来源（`with_env_scope` / K-2 / 候选 A 存活、B/D 判死） | 开 §3.C 前 |
 | `docs/design/e2-plan.md` | E2 系列（含 E19/E20）的完整设计 | 做 E19/E20 前 |
@@ -124,14 +124,18 @@ UI 缺陷、以及**另一条腿**（前缀环境可保存/恢复）。
 | ① | 终端每秒刷 `{"type":"build.tick","file":""}` | `crates/cli/src/build.rs:15`（`TICK_MS=1000`）+ `:44-70` `Heartbeat` | 人看的终端**不再刷**（三选一：非管道不发 / 周期 5s / `file` 空不发）；机器消费者仍能拿到心跳 | 小 |
 | ② | Rebuild 长时间 `0%` → 突跳"编译已完成" | `build.decl`/`build.file` → LSP → webview（E23/E29 线） | `scripts/vscode-e2e.sh` 加"**rebuild 中途必须看到非 0 百分比**"；⚠ 必须在**真宿主**里复现 | 中 |
 
-### B. P1-b 剩余：`by` 路径 536 趟 / 19.8 MB（**勘明在附九，别重勘**）
+### B. P1-b 剩余：`by` 路径 536 趟 / 19.8 MB（**勘明在附九，第 1 步的实测在附十**）
 
 管道（6 个函数 + 3 级递归）：`elab_expr → by::run_by(663) → run_by_inner(722) → run_tactics(797) → canonical_goal_type(499) / canonical_goal_with_spec(555) → judge_render_type(1605)`。
-顺序：**先只接 `canonical_goal_type`（`by.rs:763`）一处** → 加 `judge_render_type` 的就地兄弟（形状同
-`infer_type_text_inplace`：源 AST + scratch hovers + `infer_type_text_at` + `proofs=true`）→
-**shadow + 全课程对拍** → 再铺另三处（`by.rs:837/1101/1332`）→ 最后把 `SOKO_JUDGE_INPLACE_WIDE`
-并进主开关（那一档六条判据已齐备，**默认开与否请值守定**）。
-⚠ **风险**：`by` 引擎的判定**决定后续 tactic 步进** ⇒ 分叉会以"步进不同"出现，**影子档是必需品**。
+⚠ **2026-09-30 第 1 步已试过一次、判定分叉、已精确回退**（`docs/design/p1a-measurements.md`
+**附十**有全部勘明：唯一根因 + 三条死路 + 两条纪律 + 必须重加的计数）。
+**下一轮从这里开始**：就地路**不要**走"文本剥层"（`peel_binders` 会静默 `break`），
+改成**在项层面剥 `n+1` 层 Pi 再 pp** ⇒ 与慢路天然同构。
+之后：shadow + 全课程对拍 → 再铺 `canonical_goal_with_spec` 的三处
+（`by.rs:837/1101/1332`，它只拿得到**渲染文本**的 binder ⇒ 要先解决"规格 → 源 AST"）
+→ 最后把 `SOKO_JUDGE_INPLACE_WIDE` 并进主开关。
+⚠ **风险**：`by` 引擎的判定**决定后续 tactic 步进** ⇒ 分叉会以"步进不同"出现，
+**影子档是必需品**；本轮实测的形态是 `--json` 里 `lib/*` 从 `compiled` 变 `failed`。
 
 ### C. 前缀环境"可保存/可恢复"（**真正的大头，不是 P1-c/P1-d**）
 
