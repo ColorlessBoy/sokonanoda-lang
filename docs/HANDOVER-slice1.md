@@ -70,6 +70,45 @@ session 趟数 56 → 56（**不变**，每个入口仍要自己那趟）。
 **判据**：`build.decl` **2647** · `build.file` **42** · `compiled:42 failed:0` ·
 `--json` 逐字节不变。
 
+## 3.7 ✅ 已验证可用的「等价类分组」代码形状（**照抄即可，17:2x 实测跑通**）
+
+CLI 侧 `crates/cli/src/build.rs` 加一个函数，在批量循环**之前**调用一次：
+
+```rust
+// 返回与 files 等长的 Vec；None = 该文件不是入口（lib/*）⇒ 调用方走老路。
+// 调用点：在 `let jobs = build_jobs(files.len());` **之前**
+//   let precomputed = std::sync::Mutex::new(precompute_project_reports(
+//       &files, root, no_project, prelude_mode_from_source));
+// 并行/串行两条路径把 build_one 的最后一个参数 None 换成
+//   precomputed.lock().unwrap()[index].take()
+// （Mutex 不是 RefCell：后者不 Sync，thread::scope 里编译不过 ✗）
+fn precompute_project_reports(files: &[PathBuf], root: Option<&str>, no_project: bool,
+    prelude_of: impl Fn(&str) -> sokonanoda_front::compile::PreludeMode)
+    -> Vec<Option<sokonanoda_front::project::ProjectReport>>
+{
+    // ① 每个文件一个 plan + precheck_plan(&mut plan, &options)   // ← 不跑 = 丢诊断
+    // ② 分类：出现在「别的 plan 的非入口模块」里 ⇒ 是库（用 unit.path 收集成 HashSet<PathBuf>）
+    //    entry_slots = 那些不被判为库的 plan
+    // ③ 分组成 HashMap<Vec<String>, Vec<usize>>：
+    //    key = units_for_modules(&plan, |m| m.path != plan.entry) 的 **name 序列**（拓扑序）
+    // ④ 每组一次 session：
+    //    let lib_units = units_for_modules(&plans[first].1, |m| m.path != plans[first].1.entry);
+    //    let closures[i] = units_for_modules(&plans[members[i]].1, |_| true);
+    //    let entries[i]  = units_for_modules(&plans[members[i]].1, |m| m.path == plans[members[i]].1.entry);
+    //    with_project_session(&lib_units, &entries, &options, |i, out, entry_reports,
+    //        lib_reports, _r, _e| {
+    //        let reports = merge_session_reports(&closures[i], &lib_units, lib_reports, entry_reports);
+    //        assemble_from_session(&plans[members[i]].1, out, reports) })
+    //    ⇒ out[plans[slot].0] = Some(report)
+    out
+}
+```
+
+**实测结果（17:2x）**：全课 **`compiled:42 failed:0`** ✓（接之前是 12/30）·
+`passes` **4141** · `judge_ms` **146.9s** · 单入口 `errors=[]` ✓。
+
+**⚠ 唯一缺口就是 §3.6 的 `build.decl` 心跳**（2647 → 353）。
+
 ## 4. 下一步（唯一，新会话直接做）
 
 1. **已修**：session 入口趟现在传"该入口闭包"（`lib_units ++ entry_units`）的前缀与记法表
