@@ -853,3 +853,50 @@ for M in closure (拓扑序):
 * **不许按 module_key 逐模块编**（那是"重写编译模型"，会改事件/诊断 ⇒ 破 `--json` 红线 ✗）；
 * ⇒ **唯一保持 per-entry 前缀不变、又让共享库只编一次的路 = 一次 session 覆盖全部入口** ✓
   （这正是 §21.2，也是"收口甲"要补的那一个参数）。
+
+## 23. ⚠ **撤回 §22 的"收口甲"** —— 那个参数是多余的，且有 §21.3 的风险
+
+§22.2 我判"session 回调缺一个参数（该入口自己的闭包单元列表）"，并照此加了参数
+（commit `0a83378f`）。**再核一层后：判错了** ✗✓，**已 revert**（`7ac6447f`）。
+
+### 23.1 为什么多余
+
+`assemble_report`（`project/mod.rs:381`）**自己就会重建 `units`**：
+
+```rust
+let units: Vec<SourceUnit<'_>> = compilable.iter()
+    .map(|&index| SourceUnit { name: &closure.modules[index].name, … })
+    .collect();
+```
+
+它从 **`closure`**（plan 里的 `Closure`）按 `compilable` 的下标重建 ⇒
+**根本不需要调用方再交一份单元列表** ✗。§22.1 的表里我自己抄了那段注释
+（"这里**重建**"），却没读出"**从 closure 重建**"这半句 ⇒ 判错。
+
+### 23.2 而且加了它**有风险**
+
+session 回调里能拼出来的"闭包单元列表"只能是 **`lib_units`（并集）+ 入口** ——
+而 §21.3 记着：**并集顺序的前缀**正是切片 1b 失败的根因
+（`passes` 4126→**5404**、`judge_ms` 148.4→**162.9** ⇒ 更慢 ✗）。
+把一个"看起来对、实际是并集"的东西交出去，**等于把坑递给接线方** ✗。
+
+### 23.3 那 §22 的真缺口是什么
+
+**重新判**：`build_one` 要的是**完整 `ProjectReport`**，而它由
+`assemble_report(PlanCompiled { … })` 组装，`PlanCompiled` 需要：
+
+| 字段 | session 能给？ |
+|---|---|
+| `flat_out` / `reports` | ✓（回调已有）|
+| `compilable: Vec<usize>` | ✗ **没给**（但它是 **plan** 的 `closure.compilable()` ⇒ **接线方自己就有** ✓）|
+| `closure: &Closure` | ✗ 没给（但同样是 **plan** 的 ⇒ 接线方自己就有 ✓）|
+| `diagnostics`/`entry_path`/`root`/`manifest_path`/`requires_warning` | 全是 **plan** 的 ⇒ 接线方自己就有 ✓ |
+
+⇒ **真缺口不是"缺参数"，而是"session 的回调签名把 `ProjectReport` 的组装拆散了"**：
+接线方手里**有 plan**（⇒ `closure`/`compilable`/诊断全都有），**只差**
+`flat_out` 与 `reports`（这两个正是回调给的）⇒ **接线方可以自己调
+`assemble_report`**，**不需要新参数** ✓。
+
+**⇒ 收口 = 在 `build` 侧写一个 adapter**（拿 plan + 回调的 `out`/`entry_reports`
+⇒ 组 `PlanCompiled` ⇒ `assemble_report` ⇒ 喂 `build_one` 的 `precomputed`），
+**`session.rs` 不用再改** ✓。
