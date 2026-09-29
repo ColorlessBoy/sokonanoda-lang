@@ -1,3 +1,27 @@
+## 2026-09-29 · e2e (macos) 红 = **runner 网络抖动**（`index.crates.io` 解析不了），非代码
+
+**症状**：`e2e (macos-latest · VS Code 1.138.0)` 在 run `36520269899` 判红，
+`##[error]Process completed with exit code 101`。
+
+**根因**（从 job log 读到，**不是猜**）：
+
+```
+warning: spurious network error (3 tries remaining): [6] Couldn't resolve host name
+         (Could not resolve host: index.crates.io)
+error: failed to get `bumpalo` as a dependency of package `sokonanoda v0.5.0`
+Caused by: unable to update registry `crates-io` / download of config.json failed
+```
+
+⇒ **runner 的 DNS 解析不了 `index.crates.io`** ⇒ `cargo` 拉不到依赖 ⇒ 编译失败。
+**与本次改动无关**（同一 commit 的 ubuntu e2e 与本地全绿）。
+
+**修法**：**不改代码** —— 这类是基础设施抖动，重跑即过。
+**预防**：CI 里 `cargo` 一律带 `--locked`（已有 ✓，它保证**不更新 registry 索引内容**，
+但**仍需要**能解析 `index.crates.io` 才能下载 crate）⇒ 真要免抖，得预热
+`Swatinem/rust-cache` 的 registry 缓存（**已有 ✓**）—— 本轮的抖动是**缓存没命中**
+（新 runner 冷启动）撞上 DNS 故障。
+**判据**：同一 commit 的 ubuntu e2e **success** ⇒ 不是代码问题 ✓。
+
 ## 2026-09-29 · **perf-gate 判红一轮就假红** ⇒ 回退为"只报不拦"，计数守卫接棒
 
 **症状**：撤掉 `continue-on-error`（用户 09:20 第②条）后**第一轮就 failure** ✗
