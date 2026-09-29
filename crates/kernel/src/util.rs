@@ -715,6 +715,33 @@ impl<'p> ExportFile<'p> {
         })
     }
 
+    /// **就地在当前环境上求一个项的类型的打印文本**（judge 的增量路径，2026-09-29）。
+    ///
+    /// **为什么需要它**：前端 `judge_infer` 要回答"这个项什么类型"，而它今天只拿到
+    /// `prefix_src: &str` ⇒ 只能把**整段前缀**合成一份文件、走 `check_document_with`
+    /// **从零重跑一趟 pass** ✗。缓存键含**整段前缀哈希** ⇒ 前缀随声明序号线性变长
+    /// ⇒ 后段全 miss ⇒ **O(N²)**。实测：judge 占墙钟 **≈88%**（219.3s → 跳掉后 26.8s）、
+    /// 合成 pass **253513** 次 = 自身声明事件的 **95.8×**。
+    ///
+    /// **本方法提供的能力**：在**同一份 `ExportFile`**（⇒ 同一个 `Dag`、同一批指针 ✓）
+    /// 上，对**已经 elaborate 好的** `ExprPtr` 直接求类型并打印 ⇒ **不重跑前缀** ✓。
+    ///
+    /// **语义**：与 `#check <term>` 走的是**同一套**内核判定
+    /// （`TypeChecker::infer_closed_type` + `PrettyPrinter::pp_expr`）⇒ 结果同源 ✓。
+    /// `env_limit` 决定"看得到哪些声明"——调用方传**当前环境**对应的 limit 即可。
+    ///
+    /// ⚠ **本方法纯新增**：不改任何既有调用点的行为（read-only + 一个 `&self`）⇒
+    /// 判定语义零变化 ✓（`--json` 逐字节不变的红线由此保住）。
+    pub fn infer_type_text_at<F, A>(&self, env_limit: EnvLimit<'p>, expr: ExprPtr<'p>, f: F) -> A
+    where
+        F: FnOnce(&str) -> A, {
+        self.with_tc(env_limit, |tc| {
+            let ty = tc.infer_closed_type(expr);
+            let text = tc.with_pp(|pp| pp.pp_expr(ty));
+            f(&text)
+        })
+    }
+
     pub fn with_pp<F, A>(&self, f: F) -> A
     where
         F: FnOnce(&mut PrettyPrinter<'_, '_, 'p>) -> A, {
