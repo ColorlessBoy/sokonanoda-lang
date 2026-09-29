@@ -409,6 +409,53 @@ pub fn precheck_plan(plan: &mut ProjectPlan, options: &CompileOptions) {
 ///
 /// ⚠ **接线方必须先调 [`precheck_plan`]**（那两步闭包级检查要 `&mut Closure`，
 /// 本函数够不着）—— **不调 = 丢诊断 = `--json` 会变** ✗。
+/// **切片 1 接线用**：把 session 交的两份报告**按该入口自己的闭包顺序**拼成一份。
+///
+/// **为什么需要**：`assemble_report` 要的 `reports` 是**整个闭包（`lib/*` + 入口）
+/// 逐模块**的报告（长度 = `compilable.len()`，下标 = `compilable` 里的槽位）。
+/// 而 session 回调交的是**两份**：`lib_reports`（**并集顺序**，与 `lib_units` 对齐）
+/// 与 `entry_reports`（只有入口）。
+///
+/// ⚠ **必须按该入口自己的闭包顺序**重排 —— 用并集顺序会让 `--json` 对不上 ✗
+/// （切片 1b 实测：`passes` 4126→**5404**、`judge_ms` 148.4→**162.9** ⇒ 更慢）。
+///
+/// **参数**：`closure_units` = 该入口闭包的单元（**拓扑序、入口在最后**）；
+/// `lib_units` = session 收到的库层（**并集顺序**，与 `lib_reports` 一一对应）；
+/// `entry_reports` = 该入口自己的报告（session 交的那份）。
+///
+/// **返回**：与 `closure_units` 等长、逐槽位对齐的报告序列。
+pub fn merge_session_reports(
+    closure_units: &[crate::compile::SourceUnit<'_>],
+    lib_units: &[crate::compile::SourceUnit<'_>],
+    lib_reports: &[crate::compile::DocumentReport],
+    entry_reports: Vec<crate::compile::DocumentReport>,
+) -> Vec<crate::compile::DocumentReport> {
+    let lib_slot: std::collections::HashMap<&str, usize> = lib_units
+        .iter()
+        .enumerate()
+        .map(|(slot, unit)| (unit.name, slot))
+        .collect();
+    // 入口那份报告按**名字**对到闭包里的入口单元（闭包最后一个）。
+    let entry_name = closure_units.last().map(|unit| unit.name);
+    let mut entry_reports = entry_reports.into_iter();
+    closure_units
+        .iter()
+        .map(|unit| {
+            if Some(unit.name) == entry_name {
+                entry_reports
+                    .next()
+                    .unwrap_or_else(crate::compile::DocumentReport::default)
+            } else {
+                lib_slot
+                    .get(unit.name)
+                    .and_then(|&slot| lib_reports.get(slot))
+                    .cloned()
+                    .unwrap_or_else(crate::compile::DocumentReport::default)
+            }
+        })
+        .collect()
+}
+
 pub fn assemble_from_session(
     plan: &ProjectPlan,
     flat_out: crate::compile::CompileOutput,

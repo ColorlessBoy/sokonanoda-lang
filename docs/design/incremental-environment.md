@@ -988,3 +988,48 @@ events.errors = reports[slot].errors.clone();            // ← 这里 :480
 
 ⚠ **§21.3 的坑仍适用**：拼接必须按**该入口自己的闭包顺序**，用并集顺序会
 `--json` 对不上 ✗。
+
+## 26. 切片 1 接线**第二次尝试**：不再崩，但**结果错了**（`compiled:4 failed:38`）
+
+按 §25.2 加了 `merge_session_reports`（按**该入口自己的**闭包顺序拼
+`lib_reports` + `entry_reports`）后重接 CLI 线：
+
+| 读数 | 基线 | 第一次（§25） | **第二次** |
+|---|---|---|---|
+| `exit` | 0 | **101**（越界崩） | **0** ✓ |
+| `passes` | 4126 | 271 | **590** |
+| `judge_ms` | 146.4s | 5.3s | **6.9s** |
+| `doc_passes` | 266 | 19 | **90** |
+| `compiled / failed` | **42 / 0** | —（崩） | **4 / 38** ✗ |
+| `build.decl` | **2647** | — | **0** ✗ |
+
+⇒ **不崩了，但结果错** ✗ —— `--json` 与基线**不一致**（红线），
+**已 revert 接线**（只留 `merge_session_reports` 这个纯新增 helper）。
+
+### 26.1 失败形状（实测）
+
+`build.summary` = `{compiled: 4, failed: 38, files: 42}`；
+`build.file` 的 failed 里**包括 `lib/*.sokonanoda`**（`lib/Cardinal`、`lib/Choice`…）
+—— 而**基线里 `lib/*` 根本不是 `build.file` 的目标**（基线 42 个 `build.file` 全是入口）。
+
+⇒ **根因方向**：我把**全部 42 个文件**都当成"项目入口"喂进 session 的 `entries`，
+但其中 **8 个是 `lib/*`（库模块，不是入口）** ⇒ 它们被当入口编 ⇒ 失败；
+而真正的入口因为报告槽位错配也判 failed ⇒ `build.decl` 一个都没发。
+
+**⚠ 这条修正了 §21.2 第 ① 步的表述**：`build <dir>` 的 `files` **包含库模块**，
+必须**先按"是不是入口"分类**（库模块只作库层、不当 entry），
+而不是"把所有有 `import` 的都当入口" ✗。
+
+### 26.2 下一步（唯一，形状已更精确）
+
+1. **分类**：`files` 里哪些是**入口**（被别的模块 `import` 的 ⇒ 库模块；其余 ⇒ 入口）。
+   现成的判据：`plan.closure` 的拓扑序里**入口恒在最后**，且
+   `units_for_modules(plan, |m| m.path == plan.entry)` 给的就是入口 ——
+   但**跨入口**判断"这个文件是不是别人的库"需要**全局**看一眼（例如
+   "它出现在别的 plan 的 `m.path != plan.entry` 集合里" ⇒ 它是库）。
+2. **库层 = 全部库模块的并集**；**entries = 只有入口**；
+3. 回调里对**每个入口**用 `merge_session_reports` 拼报告 ⇒ `assemble_from_session`。
+
+**判据（一个都不许少）**：`--json` **逐字节不变**（`build.decl` **2647**、
+`build.file` **42**、`compiled:42 failed:0`）· `passes`/`judge_ms` 下降 ·
+**反向判据**（改依赖必须 miss）· 删 `#[ignore]` 后正向守卫转绿。
