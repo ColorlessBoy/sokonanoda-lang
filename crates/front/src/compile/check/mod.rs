@@ -527,6 +527,12 @@ pub(crate) fn run(
     collect: bool,
     progress: Option<&mut dyn crate::compile::ProgressSink>,
 ) -> (CompileOutput, Vec<DocumentReport>) {
+    // **模块编译计数**（切片 1 / G-68 的判据读数）：一次 `run` = 一趟 pass，
+    // 而"这一趟编了几个模块"就是 `units.len()` —— 复用生效时它会降下来 ✓。
+    // 计数点选在**入口**而不是深处：`run` 是"编一批 unit"的唯一入口
+    // （`compile_all_units*` 都走它），所以它数的正是"模块被编了几次" ✓。
+    stage_stats::MODULE_COMPILES
+        .fetch_add(units.len() as u64, std::sync::atomic::Ordering::Relaxed);
     // 常驻诊断（`SOKO_PASS_TRACE=<n>`）：在第 n 次 `run` 上打一份调用栈，
     // 用来回答"这几百趟 pass 到底是谁在调"——G-31/G-34 就是这么定位的
     // （380 趟来自记法消解里的 `judge_infer`）。读一次就缓存，它在热路径上。
@@ -667,11 +673,31 @@ pub fn by_calls_total() -> u64 {
     stage_stats::BYS.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// **模块编译次数**（切片 1 的判据读数，G-68）—— 进程级，与 [`by_calls_total`] 同纪律
+/// （集成测试各自独立进程 ⇒ 天然隔离）。
+///
+/// **为什么需要它**：`by_calls` 数的是 **`by` 引擎调用**，而"依赖被编了几次"是
+/// **模块编译次数** —— 用 `by_calls` 量复用会**量错东西**（实测：一个只含 `def`
+/// 的夹具改依赖后 `by_calls` 增量为 **0**，因为根本没有 `by`）✗。
+/// 这个计数是"**174 → 42**"那条口径的**直接读数** ✓。
+#[doc(hidden)]
+pub fn module_compiles_total() -> u64 {
+    stage_stats::MODULE_COMPILES.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// 记一次模块编译（由 `compile` 路径调用；**只给判据用**）。
+#[doc(hidden)]
+pub fn note_module_compile() {
+    stage_stats::MODULE_COMPILES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+}
+
 pub(crate) mod stage_stats {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     pub(crate) static PASS_NANOS: AtomicU64 = AtomicU64::new(0);
     pub(crate) static PASSES: AtomicU64 = AtomicU64::new(0);
+    /// 模块编译次数（切片 1 / G-68 的判据读数）。
+    pub(crate) static MODULE_COMPILES: AtomicU64 = AtomicU64::new(0);
     pub(crate) static BY_NANOS: AtomicU64 = AtomicU64::new(0);
     /// 经由 `check_document_with` 进来的 pass 次数（T-K20′ 诊断：394 趟里谁占大头）。
     pub(crate) static RUNS: AtomicU64 = AtomicU64::new(0);

@@ -3,7 +3,9 @@
 //!
 //! 为什么放**集成测试**：`by_calls_total()` 是**进程级**计数 ⇒ 放进 lib 测试会被
 //! 并行的别的测试干扰（实测：单独绿、全量红）；集成测试各自独立进程 ⇒ 天然隔离 ✓。
-use sokonanoda_front::compile::{by_calls_total, compile_all_units, CompileOptions, SourceUnit};
+use sokonanoda_front::compile::{
+    by_calls_total, compile_all_units, module_compiles_total, CompileOptions, SourceUnit,
+};
 use sokonanoda_front::parse;
 use sokonanoda_front::project::session::with_project_session;
 
@@ -125,4 +127,104 @@ fn session_compiles_entries_that_import_the_lib_layer() {
         assert_eq!(rep_errors, 0, "入口 {i} 报告有错误（CLI 路径）");
     }
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+// ── 切片 1（G-68）：**按 `module_key` 复用依赖产物** ──────────────────────────
+//
+// 用户 2026-09-29 定死的形状：产物键 = `module_key` + 自身源码哈希 +
+// **直接依赖**的产物哈希；**拓扑序**算，**与入口无关**
+// （前缀是 per-entry 的 ⇒ **不许按前缀复用**；批编**已实测慢 6.2×** ⇒ 不许回）。
+//
+// 这两条判据**先写、必须先红**（TDD）：它们咬的是"缓存住错误结果"这一失败模式 ——
+// 比慢严重得多 ✗。
+
+/// **正向**：两个入口共享 `Shared` ⇒ 走**计划**路径编两次时，
+/// `Shared` 只该被编**一次**（第二次按 `module_key` 取产物）。
+#[test]
+fn slice1_shared_module_is_compiled_once_across_entries() {
+    use sokonanoda_front::project::{compile_plan, plan_project};
+    let dir = std::env::temp_dir().join(format!("soko-slice1-once-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("Shared.sokonanoda"), "def shared : Nat := 1\n").unwrap();
+    std::fs::write(
+        dir.join("E0.sokonanoda"),
+        "import Shared\ndef e0 : Nat := shared\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("E1.sokonanoda"),
+        "import Shared\ndef e1 : Nat := shared\n",
+    )
+    .unwrap();
+    let options = CompileOptions::default();
+
+    let before = module_compiles_total();
+    let p0 = plan_project(&dir.join("E0.sokonanoda"), None, Some(dir.as_path()));
+    let r0 = compile_plan(p0, &options);
+    assert!(
+        r0.diagnostics.is_empty(),
+        "E0 必须编过：{:?}",
+        r0.diagnostics
+    );
+    let after_e0 = module_compiles_total();
+    let p1 = plan_project(&dir.join("E1.sokonanoda"), None, Some(dir.as_path()));
+    let r1 = compile_plan(p1, &options);
+    assert!(
+        r1.diagnostics.is_empty(),
+        "E1 必须编过：{:?}",
+        r1.diagnostics
+    );
+    let after_e1 = module_compiles_total();
+
+    let _first = after_e0 - before;
+    let second = after_e1 - after_e0;
+    // E1 的闭包是 [Shared, E1]；`Shared` 已在 E0 那轮编过 ⇒ 第二次只该编 **E1 自己**。
+    // ⚠ 这条**现在会红**（还没有按 module_key 复用）—— 那就是切片 1 的 TDD 起点 ✓。
+    assert!(
+        second <= 1,
+        "切片 1 未生效：编 E1 时又编了 {second} 个模块（期望 ≤1：Shared 应命中产物）"
+    );
+}
+
+/// **反向（红线）**：改**前面**那条声明（依赖源码变）⇒ 下游**必须重算**，
+/// 不许拿旧产物回放（错编比慢严重 ✗）。
+#[test]
+fn slice1_changing_a_dependency_forces_recompile() {
+    use sokonanoda_front::project::{compile_plan, plan_project};
+    let dir = std::env::temp_dir().join(format!("soko-slice1-invalidate-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("Shared.sokonanoda"), "def shared : Nat := 1\n").unwrap();
+    std::fs::write(
+        dir.join("E0.sokonanoda"),
+        "import Shared\ndef e0 : Nat := shared\n",
+    )
+    .unwrap();
+    let options = CompileOptions::default();
+
+    let p = plan_project(&dir.join("E0.sokonanoda"), None, Some(dir.as_path()));
+    let r = compile_plan(p, &options);
+    assert!(
+        r.diagnostics.is_empty(),
+        "第一次必须编过：{:?}",
+        r.diagnostics
+    );
+
+    // 改**依赖**（不是入口）⇒ 下游键必变 ⇒ 必须重编。
+    std::fs::write(dir.join("Shared.sokonanoda"), "def shared : Nat := 2\n").unwrap();
+    let before = module_compiles_total();
+    let p2 = plan_project(&dir.join("E0.sokonanoda"), None, Some(dir.as_path()));
+    let r2 = compile_plan(p2, &options);
+    assert!(
+        r2.diagnostics.is_empty(),
+        "改依赖后必须仍编过：{:?}",
+        r2.diagnostics
+    );
+    let work = module_compiles_total() - before;
+    assert!(
+        work >= 2,
+        "**错编风险**：改了依赖（Shared 1 → 2）却只做了 {work} 次模块编译 —— \
+         说明拿旧产物回放了 ✗（依赖变必须让 Shared 与下游 E0 都重编）"
+    );
 }
