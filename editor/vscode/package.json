@@ -263,6 +263,11 @@
           "minimum": 0,
           "markdownDescription": "编译进度的刷新节流（毫秒）。`report` 可能在长文件编译时很密 —— 窗口内只刷最后一次；`begin`/`end` **不受**它影响（成对的状态边界，漏一个界面就卡住）。0 = 不节流。"
         },
+        "sokonanoda.build.timeoutMs": {
+          "type": "number",
+          "default": 300000,
+          "markdownDescription": "`Sokonanoda: Build` / `Rebuild` 的超时（毫秒）。**0 = 不限制**。冷编整门课（`courses/set-theory` 基线实测 **313.8s**）会超过默认的 300000ms ⇒ 大项目请调大，否则第一次（清缓存后）编译会被中断。"
+        },
         "sokonanoda.serverPath": {
           "type": "string",
           "default": "",

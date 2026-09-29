@@ -1837,7 +1837,30 @@ async function restartServer(context) {
 // （清缓存）+ `build`（重新预热），也就是"从头重编译一遍"。
 // 作用域：有活动 .sokonanoda 文件就编它（CLI 会顺着 import 编整个闭包），
 // 否则编第一个工作区文件夹（CLI 递归遍历目录）。
+/// **超时上限的兜底**（Q1，2026-09-30）。
+///
+/// 用户原话：「`build` 超时**导致插件完全不能使用了**」—— 而这个常量是
+/// `a948f65d`（09-19）由本 agent 写下、**注释零理由**、抄的是"与课程树同款"，
+/// 10 天没动。实测：冷编 `courses/set-theory` 基线 **313.8s > 300s**
+/// ⇒ **清缓存后第一次编一定超时** ✗。
+///
+/// ⚠ **常量名必须保留**（`crates/cli/tests/extension.rs:1412` 断言
+/// `script.contains("BUILD_TIMEOUT_MS")`）⇒ 读配置之后**仍以它兜底** ✓。
+/// ⚠ 那条守卫只锁"有超时常量 + 会 kill"这个**形状**，**从没断言这个值够不够用**
+/// —— 所以这里补的是**值**的判据（见 `extension.rs` 的新断言）。
 const BUILD_TIMEOUT_MS = 300000;
+
+/// `build`/`rebuild` 的超时（毫秒）。
+///
+/// 读 `sokonanoda.build.timeoutMs`；**非法值 / 非正数 / 缺失 ⇒ 回退
+/// [`BUILD_TIMEOUT_MS`]** ✓（绝不因为一个坏配置把 build 变成"立刻超时" ✗）。
+/// 设成 `0` 或负数 = 不限制（长课程冷编跑多久都行）。
+function buildTimeoutMs() {
+  const raw = vscode.workspace.getConfiguration("sokonanoda").get("build.timeoutMs");
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return BUILD_TIMEOUT_MS;
+  return raw;
+}
+
 let buildChannel;
 
 function buildOutput(context) {
@@ -1899,11 +1922,27 @@ function runBuildProcess(command, args, channel, hooks = {}) {
         child.kill();
       });
     }
-    const timer = setTimeout(() => {
-      channel?.appendLine(`[timeout] ${command} ${args.join(" ")} (> ${BUILD_TIMEOUT_MS}ms)`);
-      child.kill();
-      resolve({ code: -1, stdout, error: `timeout after ${BUILD_TIMEOUT_MS}ms` });
-    }, BUILD_TIMEOUT_MS);
+    const timeoutMs = buildTimeoutMs();
+    // `0` / 负数 = **不限制**（长课程冷编 313.8s > 默认 300s ⇒ 用户必须能调）✓
+    const timer =
+      timeoutMs > 0
+        ? setTimeout(() => {
+            // ⚠ 消息里必须写**去哪改**（旧版只有 `timeout after 300000ms`，
+            // 用户拿到这个数也不知道该动什么 ✗）。
+            channel?.appendLine(
+              `[timeout] ${command} ${args.join(" ")} (> ${timeoutMs}ms)` +
+                `—— 可以在设置里调大 \`sokonanoda.build.timeoutMs\`（0 = 不限制）`,
+            );
+            child.kill();
+            resolve({
+              code: -1,
+              stdout,
+              error:
+                `timeout after ${timeoutMs}ms —— 设置 \`sokonanoda.build.timeoutMs\`` +
+                ` 可以调大（0 = 不限制）`,
+            });
+          }, timeoutMs)
+        : undefined;
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", (chunk) => {
       stdout += chunk;
@@ -1915,11 +1954,11 @@ function runBuildProcess(command, args, channel, hooks = {}) {
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (chunk) => channel?.appendLine(String(chunk).trimEnd()));
     child.on("error", (error) => {
-      clearTimeout(timer);
+      if (timer !== undefined) clearTimeout(timer);
       resolve({ code: -1, stdout, error: String(error?.message ?? error) });
     });
     child.on("close", (code) => {
-      clearTimeout(timer);
+      if (timer !== undefined) clearTimeout(timer);
       if (pending.trim()) emit(pending);
       resolve({ code: code ?? -1, stdout });
     });

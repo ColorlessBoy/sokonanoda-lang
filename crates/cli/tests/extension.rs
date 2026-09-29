@@ -1412,6 +1412,33 @@ fn build_and_rebuild_commands_warm_the_compile_cache() {
         script.contains("BUILD_TIMEOUT_MS") && script.contains("kill()"),
         "the build subprocess must be killed on timeout"
     );
+    // **Q1（2026-09-30）：超时必须可配，且"够不够用"要有判据**。
+    //
+    // 上面那条只锁**形状**（有常量 + 会 kill），**从没断言这个值够不够用** ✗ ——
+    // 而实测冷编 `courses/set-theory` **313.8s > 300000ms** ⇒ 清缓存后第一次编
+    // **一定超时**（用户原话「导致插件完全不能使用了」）。
+    // ⇒ 这条断言**值**：① 读配置；② 非法/缺失回退常量；③ 超时消息里写**去哪改**。
+    for needle in [
+        "build.timeoutMs",
+        "function buildTimeoutMs()",
+        "Number.isFinite",
+        "sokonanoda.build.timeoutMs",
+    ] {
+        assert!(
+            script.contains(needle),
+            "Q1：`build` 超时必须可配、且超时消息要告诉用户去哪改 —— 缺 `{needle}`"
+        );
+    }
+    // 回退链必须**指向那个常量**（不是另写一个字面量 ⇒ 常量名才是唯一出处）。
+    assert!(
+        script.contains("return BUILD_TIMEOUT_MS;"),
+        "Q1：非法/缺失配置必须回退到 `BUILD_TIMEOUT_MS`（常量是唯一出处）"
+    );
+    // `0` = 不限制：定时器必须**条件创建**（`timeoutMs > 0`），否则 0 会变成"立刻超时" ✗。
+    assert!(
+        script.contains("timeoutMs > 0"),
+        "Q1：`0` 必须表示**不限制**（定时器条件创建），否则 0 会立刻超时"
+    );
     // 解析出的 CLI 命令必须来自共享解析器（bundled → target → PATH），
     // 不许自己拼路径（与 server.js 的版本/来源纪律一致）。
     assert!(
