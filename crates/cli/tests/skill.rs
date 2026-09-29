@@ -146,6 +146,50 @@ fn skill_referenced_repo_paths_exist() {
     );
 }
 
+/// **`.agents/skills/**` 的薄入口也要过同一条路存在性判据**（2026-09-30 补）。
+///
+/// 为什么补：`load_skills()` 只扫 `skills/`，而 DSH 的薄入口在
+/// `.agents/skills/`（`crates/cli/tests/dsh.rs` 守的是"名字成对 + 指向正文"，
+/// **不查它提到的别的路径**）⇒ 正文里那处 `docs/HANDOVER.md` 被删除后，
+/// **薄入口仍引用它、三层判据全绿** ✗ —— 又一个"守卫的输入不存在"。
+/// 这里复用同一份 `referenced_paths`（判据只有一处实现）。
+#[test]
+fn dsh_skill_entry_referenced_repo_paths_exist() {
+    let root = repo_root();
+    let entries = root.join(".agents/skills");
+    let Ok(read) = fs::read_dir(&entries) else {
+        panic!("{} must exist (the DSH skill root)", entries.display());
+    };
+    let mut checked = 0usize;
+    for entry in read {
+        let path = entry.expect("entry readable").path();
+        let skill_md = path.join("SKILL.md");
+        if !path.is_dir() || !skill_md.is_file() {
+            continue;
+        }
+        let body = fs::read_to_string(&skill_md).expect("entry SKILL.md readable");
+        let name = path
+            .file_name()
+            .expect("dir name")
+            .to_string_lossy()
+            .into_owned();
+        for referenced in referenced_paths(&body) {
+            // 薄入口**自身**要指向正文（`skills/<name>/SKILL.md`）——由
+            // `dsh.rs` 断言；这里只管"提到的每个仓库路径都真的在"。
+            assert!(
+                root.join(&referenced).exists(),
+                ".agents/skills/{name}/SKILL.md references `{referenced}` which does not exist \
+                 in the repo"
+            );
+            checked += 1;
+        }
+    }
+    assert!(
+        checked >= 4,
+        "DSH entries should anchor to real repo paths, checked {checked}"
+    );
+}
+
 #[test]
 fn skill_event_and_method_vocabulary_is_closed() {
     let protocol = fs::read_to_string(repo_root().join("docs/protocol.md"))

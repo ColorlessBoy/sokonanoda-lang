@@ -195,8 +195,8 @@ package.json）**与** `skills/` 三个技能 + `AGENTS.md` + `docs/vscode-dev-g
 
 ① **活文档总量 ≤ 3.0 MB**（= 仓根 `*.md` + `docs/**`，**不含** `docs/archive/**` ✗）；
 ② **单文件 ≤ 2000 行**；③ **入口文件 ≤ 800 行**（`AGENTS.md`/`README.md`/
-`REQUIREMENTS.md`/`ROADMAP.md`/`STATUS.md`/`docs/README.md`/`docs/HANDOVER.md`/
-`docs/E2-HANDOVER.md`/`docs/design/e2-plan.md`）；④ **设计文档**：`docs/design/**`
+`REQUIREMENTS.md`/`ROADMAP.md`/`STATUS.md`/`docs/README.md`/`docs/ONBOARDING.md`/
+`docs/design/e2-plan.md`）；④ **设计文档**：`docs/design/**`
 **新增** ≤150 行 ✓、**既有**按 `scripts/docs-budget.json` **冻结**（**只许减不许增** ✗
 —— 要放宽必须手改那份 JSON ⇒ 评审可见 ✓）；⑤ **禁垃圾**：`docs/**` 下不得有
 `.tmpdir` / `.tmp` / `.tmp-<pid>` / `.DS_Store` / `*.orig` / `*.rej` / `*~`

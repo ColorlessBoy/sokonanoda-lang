@@ -14,7 +14,7 @@ Read it **before** acting, then follow it exactly. It is the single source of
 truth for:
 
 - the takeover reading order (`AGENTS.md` → `REQUIREMENTS.md` →
-  `docs/HANDOVER.md` → `STATUS.md` → `ROADMAP.md` → `docs/README.md` →
+  `docs/ONBOARDING.md` → `STATUS.md` → `ROADMAP.md` → `docs/README.md` →
   `docs/architecture.md` → `docs/design/`);
 - the inviolable hard rules (frozen kernel, no official Lean toolchain, teaching
   syntax as a real Lean 4 subset, kernel-only judgement, structured feedback);

@@ -23,7 +23,7 @@ import json, pathlib, re, subprocess, sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 KEEP_ALWAYS = {
-    "docs/ONBOARDING.md", "docs/README.md", "docs/NEXT.md",
+    "docs/ONBOARDING.md", "docs/README.md",
     "docs/STATUS-ARCHIVE.md", "docs/architecture.md", "docs/protocol.md",
     "docs/TESTING.md", "docs/PERF.md", "docs/RELEASE.md", "docs/E2E.md",
     "docs/LESSONS.md", "docs/CI-FAILURES.md", "docs/vscode-dev-guide.md",
@@ -105,7 +105,7 @@ def main(argv: list[str]) -> int:
     for r in rows:
         print(f"  {r['file']:60s} {r['lines']:5d} 行  last={r['last']}  ← {' · '.join(r['reasons'])}")
     if rows:
-        print("\n处置（人工/agent 决定，落 commit ⇒ 评审可见）：① 并入 `docs/NEXT.md` 后删除"
+        print("\n处置（人工/agent 决定，落 commit ⇒ 评审可见）：① 并入 `docs/ONBOARDING.md` 后删除"
               "（**默认**，用户 2026-09-29 口径：不需要归档）② 移进 `docs/archive/` 并在"
               " `docs/archive/README.md` 点名 ③ 加回本脚本的 KEEP_ALWAYS 并写明理由。")
     return 0

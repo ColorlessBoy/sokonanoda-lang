@@ -173,6 +173,7 @@
   **直接删除**（不归档）：`docs/PLAN-0.74-0.79.md` · `docs/HANDOVER.md` · `docs/HANDOVER-slice1.md` ·
   `docs/HANDOFF-0.74…0.78.md` · `docs/HANDOFF-session-2026-09-27.md` · `docs/E2-HANDOVER.md` ·
   `docs/design/PLAN-appendix-goal-and-antifragile.md`（共 11 份）。
-- **接手/计划的唯一入口 = `docs/NEXT.md`**（开工单）；仍在维护的总账是 `STATUS.md`（流水）、
+- **接手/计划的唯一入口 = `docs/ONBOARDING.md`**（接手路径 + 开工单；2026-09-29 由它与原
+  `docs/NEXT.md` **合并成一份**）；仍在维护的总账是 `STATUS.md`（流水）、
   `REQUIREMENTS.md`（权威）、`docs/design/e2-plan.md`（`scripts/plan.py` 的判据输入）。
 - 机制：`scripts/docs-gc.py`（报告式，不自删）⇒ 定期报「哪些活文档已经没人引用/没在维护」。
