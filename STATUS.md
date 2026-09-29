@@ -110,7 +110,6 @@
   ② `parse_expr_text` 不认识前缀里声明的**源级记法** ⇒ 单文件 77822 次 Parse 失败；
   ③ "接上前缀再解析" ⇒ 每问 46 KB、而对**每次调用**生效 ⇒ 400s 跑不完 ⇒ 改"不解析"。
 
-
 - **全课程实测（release · 冷缓存 · 1 job · `build --json courses/set-theory`）**：
   `--json` 剔 `build.tick` **逐字节相同**（2691 行 / 0 行不同；`build.decl` 2647 ·
   `build.file` 42 · `build.begin` 1 · `build.summary` 1 两边一致）✓ ·
