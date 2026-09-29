@@ -893,6 +893,21 @@ pub(crate) fn inplace_mode() -> InplaceMode {
     )
 }
 
+/// **P1-b 的新接线点**是否生效（**暂存开关，默认关** —— 值守 2026-09-29 的口径：
+/// "一档一个 commit，默认 `off` 或 `shadow`，别默认开"）。
+///
+/// 语义：`SOKO_JUDGE_INPLACE_WIDE=1` ⇒ **除 P1-a 已开的两个判定点之外**，
+/// 再让 `guarded_binder_type` / `solve_prefix_args` 两条路也走就地判定
+/// （`elab.rs` 的 4 个签名多一个 `InplaceEnv`）。关掉 ⇒ 那两条路**逐字节回到今天** ✓。
+///
+/// 为什么分开：P1-a 的默认开是靠"全课程 shadow_diff=0 + off/on `--json` 逐字节相同"
+/// 两件证据换来的；**新接线点要各自走一遍同样的证据链**才配默认开 ✓。
+/// 验证完之后这个开关应当**并进 `SOKO_JUDGE_INPLACE`**（或直接删掉）。
+pub(crate) fn inplace_wide() -> bool {
+    static WIDE: OnceLock<bool> = OnceLock::new();
+    *WIDE.get_or_init(|| std::env::var("SOKO_JUDGE_INPLACE_WIDE").is_ok_and(|v| v != "0"))
+}
+
 /// **就地判定只在"未命中"时接管**所需的两个口子（P1-a，2026-09-29）。
 ///
 /// **为什么必须让调用方先查缓存**（实测教训，不是设计偏好）：慢路对**缓存命中**
@@ -1188,6 +1203,7 @@ fn judge_type_of_uncached(
 /// `apply` 读取被应用函数的类型）。合成 `<prefix>\n#check fun <binders> =>
 /// <term>\n` 走完整流水线，取 `TypeChecked` 事件文本，再剥掉 n 层
 /// binder 箭头得 `term` 的类型。
+#[track_caller]
 pub fn judge_infer(
     prefix_src: &str,
     options: &CompileOptions,
@@ -1198,6 +1214,7 @@ pub fn judge_infer(
 }
 
 /// 同 [`judge_infer`]，但把 `extra_prefix`（闭包上下文）拼在文档前缀之前。
+#[track_caller]
 pub fn judge_infer_with(
     extra_prefix: &str,
     prefix_src: &str,
@@ -1234,6 +1251,7 @@ pub fn judge_infer_with(
     r
 }
 
+#[track_caller]
 fn judge_infer_cached(
     extra_prefix: &str,
     prefix_src: &str,
@@ -1310,11 +1328,13 @@ fn judge_infer_cached(
             String::new()
         };
         eprintln!(
-            "INFER_MISS #{} prefix={} binders={} term={}{}",
+            "INFER_MISS #{} prefix={} binders={} term={} at={}:{}{}",
             miss,
             prefix_src.len(),
             binders.len(),
             term.chars().take(60).collect::<String>(),
+            std::panic::Location::caller().file(),
+            std::panic::Location::caller().line(),
             bt
         );
     }

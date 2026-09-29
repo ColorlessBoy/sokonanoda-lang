@@ -403,3 +403,64 @@ STAGE_STATS       passes=4126    judge_ms=146904
 * **真正的大头仍是"前缀环境可保存/可恢复"**（`JUDGE_PREFIX runs` 要从 1881 再大幅降，
   而不是只降 46%）：即 `with_env_scope` 那条腿（per-前缀 builder 池 / 增量环境），
   与本次"就地判定"是**两条腿**、不互相替代。
+
+---
+
+# 附八：P1-b 第一档 —— 剩 1881 趟的**逐条归因** + 两个未接线点（默认关）
+
+## 1. 🔑 1881 趟逐条归因（`SOKO_INFER_TRACE=all` + `#[track_caller]` 打**行号**）
+
+做法：`judge_infer`/`judge_infer_with`/`judge_infer_cached` 加 `#[track_caller]`，
+`INFER_MISS` 行多打一个 `at=file:line` ⇒ **每个未命中直接带调用点行号**（比回溯可靠，回溯会被内联搅乱）。
+
+| 调用点 | 趟数 | 字节 | 是什么 | 能不能就地 |
+|---|---|---|---|---|
+| **`elab.rs:2275`**（`infer_type_text` 里的 `slow()` 闭包） | **819** | 40.1 MB | **未接线**的两个判定点（`guarded_binder_type` / `solve_prefix_args`） | **能** ✓（本档做了）|
+| `elab.rs:1423` | 468 | 21.4 MB | `universe_level_text_of_operands` 的**第二问**：输入已是**渲染文本** | ✗（上游别渲染才行）|
+| `judge.rs:1601` | 320 | 12.3 MB | `judge_render_type`（`by` 引擎的根目标规范化） | 要先把 `EnvBuilder` 通进 `by` 引擎 |
+| `by.rs:58` / `by.rs:1279` / `by.rs:1241` / `by.rs:1499` | 216 | 7.5 MB | `by` 引擎内部 | 同上 |
+| `elab.rs:1387` | 34 | 1.4 MB | `application_arg_expected` | 要（小）|
+| `elab.rs:5002` / `:5004` / `:5438` | 24 | 0.9 MB | `field_sort_via_kernel` / `infer_expected_level` 等 | 要（小）|
+
+**⚠ 归因方法上的一个坑**：`slow` 是**闭包** ⇒ `Location::caller()` 只会给**闭包定义行**
+（2275）⇒ 那一行是"**所有走 `slow()` 的未接线调用**"的合计，不是某一个调用点。
+要再细分就得把两条路拆成各自的行（本档直接按下面的代码清单定位：未接线的只有两处）✓。
+
+## 2. 本档切的两个点（819 趟 / 40.1 MB = 剩余的四成四）
+
+* `guarded_binder_type`（binder 记法 `{x ∈ s | p}` 的 guard 反解）—— 唯一调用方
+  `binder_notation_operand`（在 `elab_expr` 里）✓；
+* `solve_prefix_args`（记法前导参数反解）—— 唯一调用方 `notation_prefix_args`
+  （在 `elab_notation` 里）✓。
+
+两处都只是**把 P1-a 的 `InplaceEnv` 形状沿签名多传一级**（4 个签名 + 6 个调用点），
+**没有新机制**。新接线点挂在**暂存开关** `SOKO_JUDGE_INPLACE_WIDE=1` 下（**默认关** ——
+值守口径「一档一个 commit，默认 `off`/`shadow`」）；关掉 ⇒ 那两条路逐字节回到今天 ✓。
+
+## 3. 读数（release · 冷缓存 · 1 job · 全课程 `build --json courses/set-theory`）
+
+| 读数 | `off` | P1-a（`on`） | **P1-b 本档（`on`+`wide`）** |
+|---|---|---|---|
+| `--json`（剔 `build.tick`） | 基线 | 逐字节相同 ✓ | **逐字节相同** ✓（2691 行 / 0 行不同）|
+| `build.decl` / `build.file` / `build.summary` | 2647 / 42 / `compiled:42 failed:0` | 同 | **同** ✓ |
+| `JUDGE_PREFIX runs` | 3759 | 1881 | **1086**（−42%）|
+| `JUDGE_PREFIX bytes` | 174,213,583 | 93,858,420 | **54,570,202**（−42%）|
+| `passes` | 4126 | 2248 | **1452**（−35%）|
+| `judge_ms` | 146,580 | 120,359 | **111,772** |
+| `JUDGE_INPLACE used / fallback` | — | 1878 / 39 | **2641 / 50** |
+| `shadow`（wide 档） | — | diff=0 | **`shadow_same`>0 · `shadow_diff=0`** ✓ |
+| **墙钟** | 216.14 s | 158.90 s | **134.77 s**（**vs off 1.60×**）|
+
+**判据不空转**：这一档的"走到了"证据是**结构性**的 —— `runs` 从 1881 掉到 1086
+（少了 795 ≈ 新增接线点的作答数）；接线死掉的话 `runs` 不会动 ✓。
+⚠ `doc_passes` 266 → **265**（差 1）：**计数口径**差异（少了一次被判为"真文档"的趟），
+`--json` 逐字节相同 ⇒ 不影响判定 ✓，但如实记录。
+
+## 4. 下一刀（按同一张表）
+
+1. **`by` 路径（536 趟 / 19.8 MB）**：`judge_render_type` 收的也是**文本**，但它的调用方
+   （`by.rs:513`/`:563`）手里**有源 `Expr`**；缺的是"把 `EnvBuilder` 通进 `by` 引擎"
+   —— 那是**另一条管道**（`by` 引擎现在只拿 `prefix_src`），要单独勘明成本；
+2. **468 趟文本输入**：先放着（值守口径 ✓），要动就从"上游别渲染"下手；
+3. 小点（`application_arg_expected` 34 · `field_sort_via_kernel`/`infer_expected_level` 24）
+   —— 都是同一个形状的复制，但收益小。

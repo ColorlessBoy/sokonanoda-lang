@@ -123,6 +123,20 @@
   第二问 468 · 未接线小点）；**真正的大头是"前缀环境可保存/恢复"**（`with_env_scope` 那条腿），
   与"就地判定"是**两条腿**、不互相替代。
 
+## 第 503 轮（2026-09-29）：**P1-b 第一档 —— 1881 趟逐条归因 + 两个未接线点**（暂存开关默认关）
+- **先量后动**：给 `judge_infer*` 加 `#[track_caller]`，`INFER_MISS` 行多打 `at=file:line`
+  ⇒ **1881 趟逐条归因到行**（附八表）：`infer_type_text` 的 `slow()` 闭包 **819 趟（44%）**
+  = 两个**未接线**判定点 · `universe_level_text_of_operands` 第二问 468（**文本输入**，先放着）·
+  `by` 路径 536（`judge_render_type` 320 + `by.rs` 216）· 其余小点 58。
+- **本档只做 819 那两条**（`guarded_binder_type` / `solve_prefix_args` —— 各只有一个调用方，
+  照抄 P1-a 的 `InplaceEnv` 形状，多传一级签名）+ `SOKO_JUDGE_INPLACE_WIDE`（**默认关**）。
+- **读数（release · 冷缓存 · 1 job · 全课程）**：`--json` 剔 `build.tick` **逐字节相同**
+  （2691 行 / 0 行不同；`compiled:42 failed:0`）✓ · `JUDGE_PREFIX runs` **1881 → 1086（−42%）** ·
+  bytes **9386 万 → 5457 万** · `passes` **2248 → 1452（−35%）** · `judge_ms` 120.4s → 111.8s ·
+  `used=2641 fallback=50` · shadow（wide）**diff=0** ✓ · **墙钟 158.90s → 134.77s**
+  （**vs off 216.14s = 1.60×**）✓。⚠ `doc_passes` 266→265（计数口径差 1，输出逐字节相同）。
+- **判据不空转**：证据是结构性的 —— `runs` 掉 795 ≈ 新增接线点的作答数（接线死掉不会动）✓。
+
 ## 未决项
 
 - ✅ **清理推送 CI 全绿** ✓（`42be634` ✓ · **绿 28 · 红 0 · skipped 1** ✓ —— 只有 `fast-fail` ✓，

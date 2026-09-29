@@ -1261,7 +1261,17 @@ fn elab_notation<'a>(
     // 前导参数：先走既有的裸变量匹配；解不出时用调用方给的**回退**
     // （第三刀 §12.4 的集合字面量：`{∅}` 的元素类型只能从期望类型解，
     // 既有路径的结构化匹配在这里够不着——回退只加解、不改既有解）。
-    let prefix_args = match notation_prefix_args(&signature, operands, expected_src, ctx, scope)? {
+    let prefix_args = match notation_prefix_args(
+        &signature,
+        operands,
+        expected_src,
+        ctx,
+        scope,
+        Some(&mut InplaceEnv {
+            builder: &mut *builder,
+            known,
+        }),
+    )? {
         Some(args) => args,
         None => match fallback_prefix_args {
             Some(args) => args.to_vec(),
@@ -1524,12 +1534,14 @@ fn render_msg(ctx: &ElabCtx<'_, '_>, expr: &Expr) -> String {
 /// binder 记法的操作数（`fun (x : A) => …`）在 binder 没写类型时**由 guard
 /// 反解**出类型并填进注解（第三刀 §12.1）。不需要动 ⇒ `None`（走原路径）；
 /// guard 在、但解不出 ⇒ `elab-binder-notation-unsolved`。
-fn binder_notation_operand(
+fn binder_notation_operand<'a>(
     symbol: &str,
     operand: Option<&Expr>,
-    scope: &ElabScope<'_>,
+    scope: &ElabScope<'a>,
     known: &KnownTable,
-    ctx: &ElabCtx<'_, '_>,
+    ctx: &ElabCtx<'a, '_>,
+    // **P1-b**：`Some` ⇒ 就地判定（调用方手里有活环境）；`None` ⇒ 今天的老路。
+    mut env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Result<Option<Expr>, CompileError> {
     let Some(Expr::Lambda {
         binders,
@@ -1548,7 +1560,12 @@ fn binder_notation_operand(
     let ty = match split_and_guard(body, &binder.name) {
         // 两段式：由 guard 的关系（`∈`）反解；解不出是**专用诊断**（不猜）。
         Some(guard) => {
-            let Some(ty) = guarded_binder_type(guard, &binder.name, scope, known, ctx) else {
+            let wide = if crate::judge::inplace_wide() {
+                InplaceEnv::reborrow(&mut env)
+            } else {
+                None
+            };
+            let Some(ty) = guarded_binder_type(guard, &binder.name, scope, known, ctx, wide) else {
                 return Err(CompileError::elab(
                     ErrorKind::ElabBinderNotationUnsolved,
                     format!(
@@ -1621,12 +1638,14 @@ fn set_literal_prefix_args(
 ///    ⇒ `x : α₀`）。
 ///
 /// 解不出 ⇒ `None`（调用方报专用诊断，绝不猜）。
-fn guarded_binder_type(
+fn guarded_binder_type<'a>(
     guard: &Expr,
     binder_name: &str,
-    scope: &ElabScope<'_>,
+    scope: &ElabScope<'a>,
     known: &KnownTable,
-    ctx: &ElabCtx<'_, '_>,
+    ctx: &ElabCtx<'a, '_>,
+    // **P1-b**：`Some` ⇒ 就地判定（调用方手里有活环境）；`None` ⇒ 今天的老路。
+    mut env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Option<Expr> {
     let Expr::Notation {
         target,
@@ -1677,7 +1696,12 @@ fn guarded_binder_type(
             let Some(operand) = operands.get(k) else {
                 continue;
             };
-            let Some(actual) = operand_type_expr(ctx, scope, operand, None) else {
+            let wide = if crate::judge::inplace_wide() {
+                InplaceEnv::reborrow(&mut env)
+            } else {
+                None
+            };
+            let Some(actual) = operand_type_expr(ctx, scope, operand, wide) else {
                 continue;
             };
             if let Some(found) = unify_extract(&layer.1, &actual, &param) {
@@ -1869,12 +1893,14 @@ fn judgement_message(j: &crate::judge::Judgement) -> String {
 /// ② **由期望类型解出**（零操作数时唯一的路）：把已解出的参数代进 telescope
 ///    剩余部分，与期望类型头部匹配（`Set.empty : (α) → Set α` 对上
 ///    `Set α₀` ⇒ `α := α₀`）。
-fn notation_prefix_args(
+fn notation_prefix_args<'a>(
     signature: &str,
     operands: &[&Expr],
     expected_src: Option<&Expr>,
-    ctx: &ElabCtx<'_, '_>,
-    scope: &ElabScope<'_>,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    // **P1-b**：`Some` ⇒ 就地判定（调用方手里有活环境）；`None` ⇒ 今天的老路。
+    mut env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Result<Option<Vec<Expr>>, CompileError> {
     let Some((layers, result)) = notation_telescope(signature) else {
         return Ok(None);
@@ -1901,6 +1927,7 @@ fn notation_prefix_args(
             expected_src,
             ctx,
             scope,
+            InplaceEnv::reborrow(&mut env),
         ) {
             return Ok(Some(solved));
         }
@@ -1922,14 +1949,16 @@ fn notation_telescope(signature: &str) -> Option<(Vec<(String, Expr)>, Expr)> {
 
 /// 固定 `missing` 时解前导参数；解不出（或某一位**没有名字**）⇒ `None`。
 #[allow(clippy::too_many_arguments)]
-fn solve_prefix_args(
+#[allow(clippy::too_many_arguments)] // P1-b 多一个 `env`（就地判定的活环境）
+fn solve_prefix_args<'a>(
     layers: &[(String, Expr)],
     result: &Expr,
     missing: usize,
     operands: &[&Expr],
     expected_src: Option<&Expr>,
-    ctx: &ElabCtx<'_, '_>,
-    scope: &ElabScope<'_>,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    mut env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Option<Vec<Expr>> {
     // 只在参数是**显式**形态时补：隐式 binder（`{α : Type}`）在 v1 的展开里
     // 不插实参（语言不插入隐式实参，设计 §1 第 3 条）。
@@ -1951,7 +1980,12 @@ fn solve_prefix_args(
             if !mentions_ident(&layer.1, &name) {
                 continue;
             }
-            let Some(actual) = operand_type_expr(ctx, scope, operand, None) else {
+            let wide = if crate::judge::inplace_wide() {
+                InplaceEnv::reborrow(&mut env)
+            } else {
+                None
+            };
+            let Some(actual) = operand_type_expr(ctx, scope, operand, wide) else {
                 continue;
             };
             if let Some(found) = unify_extract(&layer.1, &actual, &name) {
@@ -3560,7 +3594,17 @@ pub(crate) fn elab_expr<'a>(
                     // （`∀ x ∈ s, p`）能反解出 x 的类型（第三刀 §12.1）。
                     // 其余无注解 binder 走**逐字不变**的 `elab-untyped-binder`。
                     None => match split_arrow_guard(body, &binder.name).and_then(|guard| {
-                        guarded_binder_type(guard, &binder.name, scope, known, ctx)
+                        guarded_binder_type(
+                            guard,
+                            &binder.name,
+                            scope,
+                            known,
+                            ctx,
+                            Some(&mut InplaceEnv {
+                                builder: &mut *builder,
+                                known,
+                            }),
+                        )
                     }) {
                         Some(source_ty) => elab_expr(
                             builder, &source_ty, scope, univ, known, hovers, None, None, ctx,
@@ -3656,7 +3700,17 @@ pub(crate) fn elab_expr<'a>(
             // 出类型、填进源级 AST 的 binder 注解，之后走与前缀记法**逐字相同**
             // 的展开路径（`notation_operand_expected` 给出 `A -> Prop`）。
             let annotated = if *assoc == NotationAssoc::Binder {
-                binder_notation_operand(symbol, rhs.as_deref(), scope, known, ctx)?
+                binder_notation_operand(
+                    symbol,
+                    rhs.as_deref(),
+                    scope,
+                    known,
+                    ctx,
+                    Some(&mut InplaceEnv {
+                        builder: &mut *builder,
+                        known,
+                    }),
+                )?
             } else {
                 None
             };

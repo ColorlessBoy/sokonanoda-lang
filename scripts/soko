@@ -683,7 +683,10 @@ function refuseUntrusted(base, found, pin) {
       (pin.error
         ? ''
         : `Next: run \`scripts/soko update\` to refresh the cache to the pinned version, or\n` +
-          `      fix the file named above so every pin agrees.\n`) +
+          `      just bumped the version in this checkout? then the *repository* build is the\n` +
+          `      one that is stale — rebuild it first (no network, no release needed):\n` +
+          `        cargo build -p sokonanoda-cli --bin sokonanoda   # then re-run the command\n` +
+          `      otherwise fix the file named above so every pin agrees.\n`) +
       `  ${files.versionTxt} is the pin for a course repository.\n`,
   )
   return 3
