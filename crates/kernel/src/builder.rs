@@ -109,6 +109,45 @@ impl<'a> EnvBuilder<'a> {
         self.declars = saved;
     }
 
+    /// **同时**借出"只读环境"与"可变 builder"（judge 增量路径的最小切口，2026-09-29）。
+    ///
+    /// **为什么需要它**（实测链条）：
+    /// * 前端 `judge_infer` 要回答"这个项什么类型"，但它今天只拿到 `prefix_src: &str`
+    ///   ⇒ 只能把**整段前缀**合成文件、走 `check_document_with` **从零重跑一趟 pass** ✗。
+    ///   缓存键含**整段前缀哈希** ⇒ 前缀随声明序号线性变长 ⇒ 后段全 miss ⇒ **O(N²)**。
+    ///   实测：judge 占墙钟 **≈88%**（219.3s → 跳掉后 **26.8s**）、合成 pass **253513** 次
+    ///   = 自身声明事件的 **95.8×**、最贵单条 **4680ms**。
+    /// * 要就地查表，就得**同时**"读当前环境"（`Env`）与"写新项"（builder 的 `mk_*`）。
+    ///   而 `elab_expr` 已经 `&mut EnvBuilder` ⇒ 再借一次是冲突 ✗（§12）。
+    /// * **关键观察**：`Env` 只需要 `&declars` + `&notations`，而 `mk_*` 只需要 `dag`
+    ///   —— 它们是**不同字段** ⇒ **Rust 的分离字段借用允许同时借** ✓。
+    ///
+    /// **本方法提供的**：闭包拿到 `(&Env, &mut EnvBuilder)` ——
+    /// `Env` 的 `cutoff` 用 `EnvLimit::PpUnlimited`（看得到**已落地**的全部声明；
+    /// 要"只看前缀"由调用方按需用 `Env::new` + `EnvLimit::ByIndex` 自建）。
+    ///
+    /// **语义**：**纯新增**，没有任何既有调用点改用它 ⇒ 既有行为零变化 ✓。
+    /// **指针同一性保住** ✓：`Env` 借的是**同一个** `declars`/`notations`，
+    /// `EnvBuilder` 还是**同一个** `dag` ⇒ `NatLit` 的指针比较不受影响
+    /// （这正是 §17 否掉 B″ 的那条红线）。
+    /// ⚠ **实现用 `mem::take`（与 `with_env` 同一手法）**：Rust 不允许在同一表达式里
+    /// `&self.declars` 与 `&mut self` 共存（**即使字段不同** —— 因为 `f(&env, self)`
+    /// 里 `self` 是**整体**可变借）✗。所以把两张表**挪出去**、借它们、调用完再还回来：
+    /// 期间 `self` 的 `declars`/`notations` 是**空的** ⇒ **回调里不许依赖它们**
+    /// （`mk_*` 只碰 `dag`/`arena`，满足 ✓）。
+    pub fn with_env_scope<R>(
+        &mut self,
+        f: impl FnOnce(&crate::env::Env<'_, 'a>, &mut EnvBuilder<'a>) -> R,
+    ) -> R {
+        let declars = std::mem::take(&mut self.declars);
+        let notations = std::mem::take(&mut self.notations);
+        let env = crate::env::Env::new(&declars, &notations, crate::env::EnvLimit::PpUnlimited);
+        let out = f(&env, self);
+        self.declars = declars;
+        self.notations = notations;
+        out
+    }
+
     pub fn with_env<R>(&mut self, f: impl FnOnce(&mut ExportFile<'a>) -> R) -> R {
         // 占位 dag：回调期间 builder 不可用 ⇒ 占位不会被读到（`new_local` 很便宜）。
         let placeholder = Dag::new_local(&self.config);

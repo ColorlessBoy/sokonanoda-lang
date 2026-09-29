@@ -238,11 +238,15 @@ pub enum EnvLimit<'a> {
 /// When a tyep checker looks up a declaration in the environment, it will check the temporary
 /// extension first if there is one, then fall back to the persistent map.
 pub struct Env<'x, 'a: 'x> {
-    declars: &'a FxIndexMap<NamePtr<'a>, Declar<'a>>,
+    /// ⚠ **借用生命周期是 `'x`（不是 `'a`）** —— 2026-09-29 放宽，为
+    /// `EnvBuilder::with_env_scope` 让路：那里两张表是**局部 `mem::take` 出来的**
+    /// ⇒ 只能借 `'x`（短），而表**内部**的指针仍是 `'a`（长）✓。
+    /// 这是**纯泛化**（原来 `'a` 能过的，现在 `'x` 都能过）⇒ 既有调用点零变化 ✓。
+    declars: &'x FxIndexMap<NamePtr<'a>, Declar<'a>>,
     /// Used for checking nested inductives.
     temp_declars: Option<&'x FxIndexMap<NamePtr<'a>, Declar<'a>>>,
     #[allow(dead_code)]
-    pub(crate) notation: &'a FxHashMap<NamePtr<'a>, Notation<'a>>,
+    pub(crate) notation: &'x FxHashMap<NamePtr<'a>, Notation<'a>>,
     /// `cutoff` is used to mark the end of what should be the "visible" environment.
     /// This allows us to make the complete environment at parse time, and then control visibility
     /// between threads by only making a particular slice of that environment available to a thread.
@@ -254,16 +258,16 @@ pub(crate) type NotationMap<'a> = FxHashMap<NamePtr<'a>, Notation<'a>>;
 
 impl<'x, 'a: 'x> Env<'x, 'a> {
     /// Create a new environment (without any temporary extension)
-    pub fn new(declars: &'a DeclarMap<'a>, notation: &'a NotationMap<'a>, limit: EnvLimit<'a>) -> Self {
+    pub fn new(declars: &'x DeclarMap<'a>, notation: &'x NotationMap<'a>, limit: EnvLimit<'a>) -> Self {
         Self::new_w_temp_ext(declars, None, notation, limit)
     }
 
     /// Create a new environment that includes some temporary extension; the temporary
     /// extension is used for checking nested inductives.
     pub fn new_w_temp_ext(
-        declars: &'a DeclarMap<'a>,
+        declars: &'x DeclarMap<'a>,
         temp_declars: Option<&'x DeclarMap<'a>>,
-        notation: &'a NotationMap<'a>,
+        notation: &'x NotationMap<'a>,
         limit: EnvLimit<'a>
     ) -> Self {
         let cutoff = match limit {
