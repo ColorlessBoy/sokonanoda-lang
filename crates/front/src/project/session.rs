@@ -31,6 +31,8 @@ pub fn with_project_session<R>(
         &[std::ops::Range<usize>],
         // 该入口在**合并输出**里的命令区间（`lib_n..lib_n + 入口那趟命令数`）。
         std::ops::Range<usize>,
+        // **该入口自己的闭包单元列表**（见上）。
+        &[SourceUnit<'_>],
     ) -> R,
 ) -> Vec<R> {
     let arena = stumpalo::Arena::new();
@@ -97,6 +99,20 @@ pub fn with_project_session<R>(
             .warning_cmds
             .extend(pass.out.warning_cmds.iter().map(|c| c + lib_n));
         merged.stats.kernel_checks += pass.out.stats.kernel_checks;
+        // **该入口自己的闭包单元列表**（拓扑序、入口在最后）—— 接线方靠它
+        // `assemble_report`（后者内部**重建** `units`，见 `project/mod.rs:381`）。
+        // ⚠ 用 `lib_units`（本 session 收到的库层）+ 该入口自己的单元 ——
+        // 这**就是基线 per-entry 闭包的顺序**（调用方按该入口的闭包拓扑序传库层）✓。
+        // `SourceUnit` 不是 `Clone` ⇒ 逐字段重建（它就是三个引用，零成本）。
+        let entry_closure: Vec<SourceUnit<'_>> = lib_units
+            .iter()
+            .chain(entry_units.iter())
+            .map(|u| SourceUnit {
+                name: u.name,
+                path: u.path,
+                file: u.file,
+            })
+            .collect();
         out.push(on_entry(
             index,
             merged,
@@ -104,6 +120,7 @@ pub fn with_project_session<R>(
             &lib_reports,
             &lib_ranges,
             entry_range,
+            &entry_closure,
         ));
         // ④ 丢掉这个入口的声明（下一次循环再装回检查点）。
         drop(builder.hide_declars());

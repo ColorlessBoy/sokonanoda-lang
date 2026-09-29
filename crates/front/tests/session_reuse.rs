@@ -44,7 +44,7 @@ fn session_shares_the_dependency_across_entries() {
         &[SourceUnit::single("Dep", &dep)],
         &entry_units,
         &options,
-        |i, out, entry_reports, lib_reports, _ranges, _entry_range| {
+        |i, out, entry_reports, lib_reports, _ranges, _entry_range, _closure| {
             // **判据加强**（2026-09-29）：不只数 `by_calls`，还要断言**入口真的编过** ——
             // 回调里该入口的 `CompileOutput` 与逐模块报告都必须**无 errors**，且库层报告齐。
             seen.push((
@@ -113,7 +113,7 @@ fn session_compiles_entries_that_import_the_lib_layer() {
     }
     let entries = vec![e0, e1];
     let mut seen: Vec<(usize, Vec<String>, usize)> = Vec::new();
-    with_project_session(&lib_units, &entries, &options, |i, out, er, lr, _, _| {
+    with_project_session(&lib_units, &entries, &options, |i, out, er, lr, _, _, _| {
         seen.push((
             i,
             out.errors.iter().map(|e| e.message.clone()).collect(),
