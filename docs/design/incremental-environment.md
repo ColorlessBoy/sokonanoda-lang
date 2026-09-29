@@ -280,3 +280,37 @@ B 则要动 `by` 引擎的批次结构（两阶段化），面更大。
 5. **墙钟**（同机同口径；**不许拿计数冒充提速** —— 上一版就是栽在这：
    计数降了 4.14×、墙钟**反而 +15%** ✗）；
 6. **不得回归 §10.1 的坑**：`passes` **不许**高于基线（这是"前缀错配"的哨兵）。
+
+## 11. 阶段 1 的**落地计划**（实测勘明，2026-09-29）
+
+### 11.1 出路 A 已勘明可行（不需要动内核）
+
+逐行核对结论：
+
+| 需要的能力 | 位置 | 状态 |
+|---|---|---|
+| walk 里**拿得到 `Declar`** | `walk.rs:726`/`:982`/`:1103` 的 `PendingOp::Decl { declar: decl, .. }` 构造点 | ✓ **已拿到** |
+| **就地检查**一条声明 | `ExportFile::try_check_declar(&self, d) -> Result<(), CheckError>`（`util.rs:667`，**`pub`**） | ✓ 可用 |
+| 检查不过 ⇒ 不进环境 | 照抄 `kernel_phase::check_then_add_decl` 的 check-then-add | ✓ 语义可对齐 |
+| `ExportFile` 在 front 可见 | `check/mod.rs:22` **已经 `use sokonanoda::util::ExportFile`** | ✓ 已用 |
+
+⇒ **出路 A = 在 walk 的 `PendingOp::Decl` 构造点补一次"`try_check_declar` + `add_declar`"**，
+**内核零改动** ✓。**不需要** `SOKO_WALK_REAL_ADD`（它的 `add_declar` 在早退分支里，见 §8.1）。
+
+### 11.2 三步（每步独立可验）
+
+| 步 | 做什么 | 判据 |
+|---|---|---|
+| **1** | walk 边 elaborate 边 check-then-add（环境在 walk 期间**逐条长起来**） | ① front **758/0** ② **`--json` 逐字节不变**（红线）③ 真课程 `failed:0` ④ 内核零改动 |
+| **2** | `judge_infer` 接上环境：`ElabCtx` 加 `env_view: Option<&EnvView>`；`judge_infer_with` 加形参；缓存键**含前缀长度** | ① judge 合成 pass **253513 → 接近 2647 量级** ② 真课程冷编 **219.3s → ?** ③ `unit12-solution` → ? ④ 最贵单条 **4680ms → ?** ⑤ `--json` 逐字节不变 |
+| **3** | `EnvView = None` ⇒ **逐字节回退**；反向判据 | ① 反向判据**必须能咬住"缓存住错误结果"的坏实现**（先造坏实现让它红）② `None` 路径与今天逐字节相同 |
+
+### 11.3 风险与已知坑（照 §6）
+
+* `with_env` 期间 builder 被 `mem::replace` ⇒ **回调里不许再碰 builder**；
+  而 walk 的 `PendingOp::Decl` 构造点**正要写 `self.ops`** ⇒ 必须**先出回调再 push**，
+  或**先 push 再检查**（用 `hide_declars`/`restore_declars` 那两个方法而非闭包 ——
+  `walk.rs:647` 的既有注释说明过：那里同时借 `&mut self.builder` 与 `&self.known`，
+  闭包会让 `self` 被可变借两次 ✗）。
+* `NatLit` **按指针比较** ⇒ 复用的环境必须与当前 arena 同一个（切片 1a 已把 arena 提到调用方 ✓）。
+* `decl_idx` 与**插入顺序**绑定 ⇒ 必须**同一张 map 实例**、**原序**加入。
