@@ -368,6 +368,17 @@ pub(crate) mod stats {
     /// **重跑前缀的趟数**（判据的第二个读数；字节数用上面既有的 `PREFIX_BYTES`）。
     /// 噪声免疫（确定性）、不会被并发重复计时污染 ⇒ 可以作判据 ✓。
     pub(crate) static PREFIX_RUNS: AtomicU64 = AtomicU64::new(0);
+    /// **P1-a 就地判定**（`SOKO_JUDGE_INPLACE`）的四个数：
+    /// `USED` = 就地答上了（**没跑前缀**）· `FALLBACK` = 就地答不出、退回源码重跑 ·
+    /// `SHADOW_SAME` / `SHADOW_DIFF` = 影子档下两条路的文本**逐字节是否相同**。
+    /// `SHADOW_DIFF > 0` ⇒ 就地路径**不许开**（`on`），先查分叉。
+    pub(crate) static INPLACE_USED: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_FALLBACK: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_SHADOW_SAME: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_SHADOW_DIFF: AtomicU64 = AtomicU64::new(0);
+    /// 就地路径**答不出的原因**直方图（诊断用；影子档每分叉一次记一笔）。
+    pub(crate) static INPLACE_FAIL_REASONS: std::sync::Mutex<String> =
+        std::sync::Mutex::new(String::new());
 
     /// 未命中按 **[是否裸常量][term 长度桶]** 的 (次数, 耗时)。
     /// 桶：0 = `<16` 字节 · 1 = `<48` · 2 = `<160` · 3 = `≥160`。
@@ -396,6 +407,16 @@ pub(crate) mod stats {
         (
             PREFIX_RUNS.load(Ordering::Relaxed),
             PREFIX_BYTES.load(Ordering::Relaxed),
+        )
+    }
+
+    /// 就地判定的四个数（`JUDGE_INPLACE` 行）。
+    pub fn inplace() -> (u64, u64, u64, u64) {
+        (
+            INPLACE_USED.load(Ordering::Relaxed),
+            INPLACE_FALLBACK.load(Ordering::Relaxed),
+            INPLACE_SHADOW_SAME.load(Ordering::Relaxed),
+            INPLACE_SHADOW_DIFF.load(Ordering::Relaxed),
         )
     }
 
@@ -461,7 +482,10 @@ pub(crate) mod stats {
     }
 
     pub(crate) fn install_printer() {
-        if std::env::var_os("SOKO_JUDGE_STATS").is_none() {
+        // `SOKO_JUDGE_INPLACE` 也要能打（就地路径的四个数是它自己的判据）。
+        if std::env::var_os("SOKO_JUDGE_STATS").is_none()
+            && std::env::var_os("SOKO_JUDGE_INPLACE").is_none()
+        {
             return;
         }
         PRINTED.call_once(|| {
@@ -469,7 +493,17 @@ pub(crate) mod stats {
             // 最后一步 ⇒ 这个时机正好。
             extern "C" fn report() {
                 let calls = CALLS.load(Ordering::Relaxed);
-                if calls == 0 {
+                // `SOKO_JUDGE_INPLACE` 下有可能**一次 `by` 判定都没发生**
+                // （命中直接由调用方查表返回 ⇒ `judge_infer` 也不进）⇒ 只看 `CALLS`
+                // 会把整份报告吞掉 ✗（实测：`on` 档单文件跑完一行都不打）。
+                let (iu, ifb, iss, isd) = inplace();
+                if calls == 0
+                    && INFER_CALLS.load(Ordering::Relaxed) == 0
+                    && iu == 0
+                    && ifb == 0
+                    && iss == 0
+                    && isd == 0
+                {
                     return;
                 }
                 let ms = NANOS.load(Ordering::Relaxed) / 1_000_000;
@@ -493,6 +527,29 @@ pub(crate) mod stats {
                     KEY_NANOS.load(Ordering::Relaxed) / 1_000_000,
                     HIT_NANOS.load(Ordering::Relaxed) / 1_000_000,
                 );
+                let (used, fallback, same, diff) = inplace();
+                if std::env::var_os("SOKO_JUDGE_INPLACE").is_some() {
+                    eprintln!(
+                        "JUDGE_INPLACE used={used} fallback={fallback} shadow_same={same} \
+                         shadow_diff={diff}"
+                    );
+                    if let Ok(mut reasons) = INPLACE_FAIL_REASONS.lock() {
+                        if !reasons.is_empty() {
+                            let mut counts: Vec<(String, usize)> = Vec::new();
+                            for word in reasons.split_whitespace() {
+                                match counts.iter_mut().find(|(k, _)| k == word) {
+                                    Some((_, n)) => *n += 1,
+                                    None => counts.push((word.to_string(), 1)),
+                                }
+                            }
+                            counts.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+                            let shown: Vec<String> =
+                                counts.iter().map(|(k, n)| format!("{k}={n}")).collect();
+                            eprintln!("JUDGE_INPLACE_WHY {}", shown.join(" "));
+                            reasons.clear();
+                        }
+                    }
+                }
             }
             unsafe extern "C" {
                 fn atexit(cb: extern "C" fn()) -> i32;
@@ -800,6 +857,96 @@ static BATCHING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::
 /// 打开/关闭乐观批处理；返回原值。
 pub fn set_batching(on: bool) -> bool {
     BATCHING.swap(on, std::sync::atomic::Ordering::Relaxed)
+}
+
+/// `SOKO_JUDGE_INPLACE` 的三个档位（**P1-a 的就地判定**，2026-09-29）。
+///
+/// * `Off`（**默认**）⇒ 只走源码重跑（今天的路，逐字节不变 ✓）；
+/// * `Shadow` ⇒ **两条都跑**、比对文本，**不一致就计数并打印**（返回源码重跑那份
+///   ⇒ 判定结果仍逐字节不变 ✓）—— 这是"就地路径可不可信"的判据档；
+/// * `On` ⇒ 就地优先，答不出（elaborate 失败）⇒ **退回源码重跑**（`None` 的语义
+///   与 `EnvProvider::infer_type_text` 的约定一致 ✓）。
+///
+/// 只读一次环境（热路径上）。
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum InplaceMode {
+    Off,
+    Shadow,
+    On,
+}
+
+pub(crate) fn inplace_mode() -> InplaceMode {
+    static MODE: OnceLock<InplaceMode> = OnceLock::new();
+    *MODE.get_or_init(
+        || match std::env::var("SOKO_JUDGE_INPLACE").ok().as_deref() {
+            Some("shadow") => InplaceMode::Shadow,
+            Some("on") => InplaceMode::On,
+            _ => InplaceMode::Off,
+        },
+    )
+}
+
+/// **就地判定只在"未命中"时接管**所需的两个口子（P1-a，2026-09-29）。
+///
+/// **为什么必须让调用方先查缓存**（实测教训，不是设计偏好）：慢路对**缓存命中**
+/// 只花一次哈希（实测 110 万次命中一共 **12.1 s ≈ 11 µs/次**），而就地路径每次都要
+/// elaborate + 推断 + pp（**~1 ms/次**）⇒ 若在**每一次**调用上生效，就把 15 万次
+/// 廉价命中换成 150 s 的活儿 ✗✗（实测：`unit12-solution` 单文件在 shadow 档
+/// **400 s 跑不完**）。⇒ **就地只做那 3759 趟未命中**，命中仍走今天那条快路 ✓。
+///
+/// 两个函数与 `judge_infer_cached` **共用同一个键**（`judge_cache_key` 的同一串），
+/// 所以"同样的键 ⇒ 同样的答案"这条性质不变 ✓。
+pub(crate) fn judge_infer_lookup(
+    extra_prefix: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> Option<Result<String, Judgement>> {
+    let key = judge_infer_key(extra_prefix, prefix_src, options, binders, term);
+    match judge_cache_get(key) {
+        Some(JudgeCacheValue::Infer(r)) => Some(r),
+        _ => None,
+    }
+}
+
+/// 与 [`judge_infer_lookup`] 配对：把就地的答案写回**同一张缓存**（键不变）✓。
+pub(crate) fn judge_infer_store(
+    extra_prefix: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+    r: &Result<String, Judgement>,
+) {
+    let key = judge_infer_key(extra_prefix, prefix_src, options, binders, term);
+    judge_cache_put(key, JudgeCacheValue::Infer(r.clone()));
+}
+
+fn judge_infer_key(
+    extra_prefix: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> u64 {
+    judge_cache_key(&[
+        extra_prefix,
+        prefix_src,
+        &options_key(options),
+        &format!("{binders:?}"),
+        term,
+    ])
+}
+
+/// **P1-a 就地判定的读数**（集成测试 / 诊断用；进程级，见 [`stats::inplace`]）：
+/// `(used, fallback, shadow_same, shadow_diff)`。
+///
+/// 判据用法（`crates/front/tests/judge_inplace.rs`）：
+/// `shadow_same > 0` 证明**就地路径真的走到了**（否则判据空转 ✗ ——
+/// "咬不住的守卫等于没有"），`shadow_diff == 0` 证明两条路**文本逐字节相同** ✓。
+pub fn inplace_report() -> (u64, u64, u64, u64) {
+    stats::inplace()
 }
 
 /// `SOKO_NO_JUDGE=1`：**测量专用**开关（跳过判定、一律答"过"）。
@@ -1213,6 +1360,55 @@ fn infer_trace_spec() -> Option<&'static str> {
         .as_deref()
 }
 
+/// 合成查询项 `fun (b1 : T1) (b2 : T2) => <term>` 的**唯一实现**。
+///
+/// **为什么单独抽出来**（P1-a，2026-09-29）：判定有两条路 ——
+/// ① **源码重跑**（今天）：把它拼成 `#check <它>` 交内核从零编前缀；
+/// ② **就地**（P1-a 新增）：把它 `parse_expr_text` 回一个项，在**活环境**上
+/// elaborate（`elab.rs::infer_type_text_inplace`）。
+/// 两条路必须给出**逐字节相同**的文本 ⇒ 项形态由这一处决定，
+/// **不可能分叉** ✓（附二 D1/D2 的风险就靠这条挡住）。
+///
+/// `Err` = 某个 binder 缺类型标注（今天的 `elab-untyped-binder`，一个字都不改）。
+pub(crate) fn synthesized_check_term(
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> Result<String, String> {
+    let mut text = String::from("fun ");
+    for b in binders {
+        match &b.ty {
+            Some(ty) => text.push_str(&format!("({} : {}) ", b.name, ty)),
+            None => {
+                return Err(format!("binder `{}` 缺少类型标注，无法推断", b.name));
+            }
+        }
+    }
+    text.push_str("=> ");
+    text.push_str(term);
+    Ok(text)
+}
+
+/// 剥掉 `fun (b1:T1) => … => <codomain>` 的 n 层 binder 箭头（**两条路共用的唯一实现**）。
+///
+/// pp 可能把相邻 binder 折叠成 `forall (a b : Prop), …`（一个 Forall 多
+/// binder），所以逐 **单个** binder 剥；余下重渲染成可回读的单箭头链。
+///
+/// ⚠ **就地路径必须复用它**（不许自己再写一套剥法）：只要两边喂进来的类型文本
+/// 相同，剥法相同 ⇒ 交出去的文本**逐字节相同** ✓。
+pub(crate) fn peel_binders(ty: String, n: usize) -> String {
+    let mut t = ty;
+    for _ in 0..n {
+        let Ok(e) = parse_expr_text(&t) else {
+            break;
+        };
+        match peel_one_binder(&e) {
+            Some(rest) => t = render_roundtrip(&rest),
+            None => break,
+        }
+    }
+    t
+}
+
 fn judge_infer_uncached(
     extra_prefix: &str,
     prefix_src: &str,
@@ -1220,22 +1416,17 @@ fn judge_infer_uncached(
     binders: &[GoalBinderSpec],
     term: &str,
 ) -> Result<String, Judgement> {
+    let query = match synthesized_check_term(binders, term) {
+        Ok(q) => q,
+        Err(message) => {
+            return Err(Judgement::Error {
+                code: "elab-untyped-binder".to_string(),
+                message,
+            })
+        }
+    };
     let mut text = String::from("#check ");
-    text.push_str("fun ");
-    for b in binders {
-        let ty = match &b.ty {
-            Some(t) => t.clone(),
-            None => {
-                return Err(Judgement::Error {
-                    code: "elab-untyped-binder".to_string(),
-                    message: format!("binder `{}` 缺少类型标注，无法推断", b.name),
-                })
-            }
-        };
-        text.push_str(&format!("({} : {}) ", b.name, ty));
-    }
-    text.push_str("=> ");
-    text.push_str(term);
+    text.push_str(&query);
     text.push('\n');
     // **P1-a 结构量具**（判据用，噪声免疫）：重跑前缀的**字节数**累计 ——
     // 它是 O(N²) 放大最直接的读数（前缀随声明序号线性变长 ⇒ 总字节随 N² 涨）。
@@ -1291,17 +1482,7 @@ fn judge_infer_uncached(
     // 剥掉 `fun (b1:T1) => ... => <codomain>` 的 n 层 binder 箭头。
     // pp 可能把相邻 binder 折叠成 `forall (a b : Prop), ...`（一个 Forall 多
     // binder），所以逐 **单个** binder 剥；余下重渲染成可回读的单箭头链。
-    let mut t = ty;
-    for _ in 0..binders.len() {
-        let Ok(e) = parse_expr_text(&t) else {
-            break;
-        };
-        match peel_one_binder(&e) {
-            Some(rest) => t = render_roundtrip(&rest),
-            None => break,
-        }
-    }
-    Ok(t)
+    Ok(peel_binders(ty, binders.len()))
 }
 
 /// 剥掉 `expr` 的第一个 binder（多 binder Forall 去掉首个、单 binder 去 body、

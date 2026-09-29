@@ -1,5 +1,6 @@
 //! AST → 内核表达式的 elaborate、声明构建（build_*）与 hover 记录。
 
+use super::check::quiet_catch;
 use super::error::{CompileError, ErrorKind};
 use super::prelude::CompileOptions;
 use super::report::ResolvedTarget;
@@ -522,6 +523,21 @@ impl<'a> ElabScope<'a> {
             })
             .collect()
     }
+    /// [`judge_binders`] 的**源 AST 版**（P1-a 就地判定用）：同样的筛选
+    /// （有名字 + **有书写类型**）、同样的顺序，但给的是**源 `Expr`** 而不是渲染文本。
+    ///
+    /// 为什么需要它：就地路径要**直接造项**（binder 源类型 + 调用点的源 `Expr`），
+    /// 不能走 render→回读 —— 回读要么不认识前缀里声明的记法、要么得把 ~46 KB
+    /// 前缀整个解析一遍（见 [`infer_type_text_inplace`] 的两条实测死路）。
+    fn judge_binder_srcs(&self) -> Vec<(String, Expr)> {
+        self.names
+            .iter()
+            .zip(self.src_tys.iter())
+            .filter(|(name, _)| !name.is_empty())
+            .filter_map(|(name, src)| src.as_ref().map(|ty| (name.clone(), ty.clone())))
+            .collect()
+    }
+
     /// Like [`judge_binders`], but keeps only the binders `expr` (transitively)
     /// depends on, in scope order.
     ///
@@ -1281,7 +1297,15 @@ fn elab_notation<'a>(
     } else {
         let mut texts: Vec<String> = uparams.iter().map(|_| "0".to_string()).collect();
         if uparams.len() == 1 {
-            if let Some(text) = universe_level_text_of_operands(operands, ctx, scope) {
+            if let Some(text) = universe_level_text_of_operands(
+                operands,
+                ctx,
+                scope,
+                Some(&mut InplaceEnv {
+                    builder: &mut *builder,
+                    known,
+                }),
+            ) {
                 texts[0] = text;
             }
         }
@@ -1386,13 +1410,16 @@ fn application_arg_expected(
 ///
 /// 判据全部问内核（`judge_infer`），**不做文本猜测**：`infer_type_text` 拿
 /// 操作数的类型文本，再对那份文本问一次它的类型（= sort）。
-fn universe_level_text_of_operands(
+fn universe_level_text_of_operands<'a>(
     operands: &[&Expr],
-    ctx: &ElabCtx<'_, '_>,
-    scope: &ElabScope<'_>,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    // **P1-a**：`Some` ⇒ 第一问（操作数的类型文本）就地答；第二问吃的是**文本**，
+    // 天生不适合就地路径（附二 B 表 `1396` 那行）⇒ 保持源码重跑 ✓。
+    mut env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Option<String> {
     for operand in operands {
-        let ty_text = infer_type_text(ctx, scope, operand)?;
+        let ty_text = infer_type_text(ctx, scope, operand, InplaceEnv::reborrow(&mut env))?;
         let Ok(sort_text) = judge_infer(
             ctx.prefix_src,
             ctx.options,
@@ -1650,7 +1677,7 @@ fn guarded_binder_type(
             let Some(operand) = operands.get(k) else {
                 continue;
             };
-            let Some(actual) = operand_type_expr(ctx, scope, operand) else {
+            let Some(actual) = operand_type_expr(ctx, scope, operand, None) else {
                 continue;
             };
             if let Some(found) = unify_extract(&layer.1, &actual, &param) {
@@ -1924,7 +1951,7 @@ fn solve_prefix_args(
             if !mentions_ident(&layer.1, &name) {
                 continue;
             }
-            let Some(actual) = operand_type_expr(ctx, scope, operand) else {
+            let Some(actual) = operand_type_expr(ctx, scope, operand, None) else {
                 continue;
             };
             if let Some(found) = unify_extract(&layer.1, &actual, &name) {
@@ -2082,11 +2109,251 @@ fn substitute_prefix_params(
     super::goals::substitute_names(&rest, &sigma, &HashMap::new())
 }
 
+/// **就地判定那一刻手里的活环境**（P1-a 第一步，2026-09-29）。
+///
+/// **为什么需要它**：`judge_infer` 只吃 `prefix_src: &str` ⇒ 每次未命中都要把
+/// **整段前缀**合成文件、从零重跑一趟 pass（解析 + elaborate + 内核检查）。
+/// 实测（冷缓存 · 1 job · 全课）：`JUDGE_PREFIX runs=3759 / bytes=174213583`
+/// —— 而只有 **488 个不同前缀** ⇒ **7.7× 纯重复**。其中
+/// **`infer_type_text` 一个判定点就占 2697 趟（72%）**，
+/// 而它的调用方（`try_implicit_application` / `elab_notation`）**手里本来就有**
+/// 当前的 `EnvBuilder` 与 `KnownTable` ✓。
+///
+/// **只装"读环境 + 写项"需要的那两样**：`builder`（同一个 `dag` ⇒
+/// 指针同一性保住 ✓，这正是 §17 否掉"重建 builder"那条红线）、`known`（名字解析表）。
+///
+/// ⚠ **`None` = 走今天的老路**（源码重跑）⇒ 回退零成本、语义零变化 ✓。
+/// 就地路径**答不出**的原因（诊断用；`On` 档一律当"答不出"⇒回退源码重跑）。
+///
+/// 直方图由 `SOKO_JUDGE_INPLACE=shadow` 打印（`JUDGE_INPLACE_WHY`）——
+/// 它是"这条路为什么不够快"的**唯一**直接证据（本步就是靠它定位到
+/// `Parse=77822` 那次分叉的 ✓）。
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum InplaceFail {
+    /// 在活环境上 elaborate 失败 / 内核 panic。
+    Elab,
+    /// 求类型那一步被内核拒绝（panic）。
+    Kernel,
+}
+
+pub(crate) struct InplaceEnv<'e, 'a> {
+    pub builder: &'e mut EnvBuilder<'a>,
+    pub known: &'e KnownTable,
+}
+
+impl<'e, 'a> InplaceEnv<'e, 'a> {
+    /// 在循环里把 `Option<&mut Self>` **重借**一次（它不是 `Copy`）。
+    ///
+    /// 为什么单开一个方法：clippy 的 `option_as_ref_deref` 建议 `.as_deref_mut()`，
+    /// 但那要求 `Self: DerefMut` —— 这里要的是**整个 `InplaceEnv`** 的可变重借，
+    /// 不是它内部某个字段的 ⇒ 只有这一处的 `#[allow]`，理由写在这里。
+    #[allow(clippy::option_as_ref_deref)]
+    fn reborrow<'x>(env: &'x mut Option<&mut Self>) -> Option<&'x mut Self> {
+        env.as_mut().map(|e| &mut **e)
+    }
+}
+
+/// **就地求类型文本**：在**活环境**上 elaborate，不再合成整段前缀。
+///
+/// 三步，每一步都刻意与"源码重跑那条路"**逐字对齐**：
+/// 1. **造项**：**直接用源 AST**（`scope` 里各 binder 的源类型 + 调用点的
+///    `operand`）造出与慢路同形的 `fun (b1:T1) … => term`；
+/// 2. **elaborate**：形态对齐 `Walk::check`（`#check` 命令的处理器）——
+///    **空 `UnivMap` + scratch hovers** ✓；
+/// 3. **求类型**：`ExportFile::infer_type_text_at` —— 与 `kernel_phase` 里
+///    `PendingOp::Check` 的 `with_tc(ByIndex(env_at)) + infer_closed_type + pp_expr`
+///    **同一条内核调用** ✓；binder 剥离复用 `judge::peel_binders` ✓。
+///
+/// ## ⚠ 第 ① 步为什么**必须**避开 render→回读（两条都是实测踩到的死路）
+///
+/// * **只用 `proof::parse_expr_text` 解析查询文本** ⇒ 那是**内核 pp 文本**的回读
+///   入口，**不认识前缀里声明的源级记法**（`∈` / `ᶜ` / `''` / `⁻¹'`）⇒
+///   `unit12-solution` 单文件实测 **77822 次 `Parse` 失败**（占全部分叉的 88%）✗；
+/// * **改成"接上整段前缀再 `parse_fragment`"**（慢路就是这么解析的）⇒ 解析**对**了，
+///   但每一问都要解析 **≈46 KB 前缀**；而本路径对**每一次** `infer_type_text`
+///   都生效（含十几万次缓存命中的调用，慢路那边它们是**不花前缀钱**的）
+///   ⇒ 实测 **300 s 都跑不完** ✗✗。
+///
+/// ⇒ 只有"**不解析**"配得上这条路径：成本只随**项**大小走，**不随前缀走** ✓。
+///
+/// ⚠ **失败就返回 `Err(reason)`**（= "这条环境答不了"）⇒ 调用方**必须**回退到源码
+/// 重跑，与 `EnvProvider::infer_type_text` 的 `None` 约定一致 ✓。
+fn infer_type_text_inplace<'a>(
+    env: &mut InplaceEnv<'_, 'a>,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    operand: &Expr,
+    binder_count: usize,
+) -> Result<String, InplaceFail> {
+    let binder_srcs = scope.judge_binder_srcs();
+    debug_assert_eq!(
+        binder_srcs.len(),
+        binder_count,
+        "binder 筛选必须与 `judge_binders()` 完全一致（剥层数靠它）"
+    );
+    // ① 在活环境上 elaborate。空宇宙表：**与 `#check` 的处理器逐字一致**
+    //    （`#check` 没有宇宙参数可解 ⇒ 读到宇宙变量的查询在两条路上**一样失败** ✓）。
+    let no_universe: UnivMap<'_> = UnivMap::new();
+    let mut scratch_hovers: Vec<HoverNode<'a>> = Vec::new();
+    // 逐 binder：**先 elaborate 它的源类型、再推进作用域**（依赖顺序与源一致 ✓）。
+    // ⚠ **内核以 panic 报拒绝**（架构 §8 gotcha 0）⇒ 每步都包 `quiet_catch`。
+    let mut sc = ElabScope::new();
+    let mut tys: Vec<ExprPtr<'a>> = Vec::with_capacity(binder_srcs.len());
+    for (name, src_ty) in &binder_srcs {
+        let ty = quiet_catch(|| {
+            elab_expr(
+                env.builder,
+                src_ty,
+                &mut sc,
+                &no_universe,
+                env.known,
+                &mut scratch_hovers,
+                None,
+                None,
+                ctx,
+            )
+        })
+        .map_err(|_| InplaceFail::Elab)?
+        .map_err(|_| InplaceFail::Elab)?;
+        tys.push(ty);
+        sc.push(name.clone(), ty, Some(src_ty.clone()), operand.span());
+    }
+    // ② 项本身（`fun` 的体）。
+    let body = quiet_catch(|| {
+        elab_expr(
+            env.builder,
+            operand,
+            &mut sc,
+            &no_universe,
+            env.known,
+            &mut scratch_hovers,
+            None,
+            None,
+            ctx,
+        )
+    })
+    .map_err(|_| InplaceFail::Elab)?
+    .map_err(|_| InplaceFail::Elab)?;
+    // ③ 从内往外包 λ —— 与 `elab_expr` 的 `Expr::Lambda` 分支同序同形 ✓。
+    let mut term = body;
+    for ((name, _), ty) in binder_srcs.iter().zip(tys).rev() {
+        let nm = env.builder.name_from_str(name);
+        term = env.builder.mk_lambda(nm, BinderStyle::Default, ty, term);
+    }
+    // ④ 就地求类型文本：**只看"到此刻为止已落地"的声明**（= 前缀）——
+    //    与合成文件里 `#check` 的 `env_at` 同一口径（`ByIndex`）✓。
+    let limit = sokonanoda::env::EnvLimit::ByIndex(env.builder.declaration_count());
+    let ty = env.builder.with_env(|ef| {
+        // ⚠ **必须与 `kernel_phase` 的 `#check` 同档**（`kernel_phase.rs:199`：
+        // `env.config.pp_options.proofs = true`）。默认 `proofs = false` 时，
+        // pp 会对**每一个子项**调 `is_proof`（用**空局部上下文**推它的类型）
+        // ⇒ 打印到 binder 内的 `Eq n m` 这类子项就 `loose bvar in infer` panic ✗
+        // （本步实测踩到 **7 次**，不是理论风险）。`#check` 那条路正是靠这一行
+        // 躲开的 —— 少了它，两条路的**文本与成败都会分叉** ✓。
+        // `with_env` 的 `config` 是**克隆**进来的、不回写 ✓ ⇒ 不会污染主环境。
+        ef.config.pp_options.proofs = true;
+        quiet_catch(|| ef.infer_type_text_at(limit, term, |t| t.to_string()))
+    });
+    let ty = ty.map_err(|_| InplaceFail::Kernel)?;
+    Ok(crate::judge::peel_binders(ty, binder_count))
+}
+
 /// 问内核要 `operand` 在**当前 binder 上下文**里的类型文本（与 `apply`
 /// 读被应用函数类型同一条路：`judge_infer`，不做文本比对）。
-fn infer_type_text(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr) -> Option<String> {
+///
+/// **P1-a 第一步（2026-09-29）**：多收一个 [`InplaceEnv`] ——
+/// `Some` 且开关允许时就地答（**不再合成整段前缀**）；
+/// `None` / 开关 `off` / 就地答不出 ⇒ **逐字节回退到今天的行为** ✓。
+fn infer_type_text<'a>(
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    operand: &Expr,
+    env: Option<&mut InplaceEnv<'_, 'a>>,
+) -> Option<String> {
     let binders = scope.judge_binders();
-    judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(operand)).ok()
+    let term = render_expr(operand);
+    let slow = || judge_infer(ctx.prefix_src, ctx.options, &binders, &term).ok();
+    match (crate::judge::inplace_mode(), env) {
+        (crate::judge::InplaceMode::On, Some(env)) => {
+            // ① **命中先走今天那条快路**（一次哈希即可）—— 就地只做未命中那一段 ✓
+            //    （理由见 `judge::judge_infer_lookup` 的注释：把廉价命中换成
+            //    ~1 ms/次 的就地路径是**负优化**，实测过 ✗）。
+            if let Some(hit) =
+                crate::judge::judge_infer_lookup("", ctx.prefix_src, ctx.options, &binders, &term)
+            {
+                return hit.ok();
+            }
+            // ② 未命中 ⇒ 就地答（**不编译前缀**）；答出来了就写回同一张缓存 ✓。
+            match infer_type_text_inplace(env, ctx, scope, operand, binders.len()) {
+                Ok(text) => {
+                    crate::judge::stats::INPLACE_USED
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let r = Ok(text.clone());
+                    crate::judge::judge_infer_store(
+                        "",
+                        ctx.prefix_src,
+                        ctx.options,
+                        &binders,
+                        &term,
+                        &r,
+                    );
+                    Some(text)
+                }
+                // 就地答不出 ⇒ **回退**（不是猜、也不是答 None）✓。
+                Err(_) => {
+                    crate::judge::stats::INPLACE_FALLBACK
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    slow()
+                }
+            }
+        }
+        // 影子档：**两条都跑**、比对文本；**返回源码重跑那份** ⇒ 判定逐字节不变 ✓。
+        (crate::judge::InplaceMode::Shadow, Some(env)) => {
+            // 命中 ⇒ 两条路**都轮不到**（`On` 档同样直接返回缓存）⇒ 记一笔 same 即可。
+            // 不在这里跑就地：那是 15 万次 × ~1 ms 的账 ✗（真正要比的是**未命中**那批）。
+            if let Some(hit) =
+                crate::judge::judge_infer_lookup("", ctx.prefix_src, ctx.options, &binders, &term)
+            {
+                crate::judge::stats::INPLACE_SHADOW_SAME
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                return hit.ok();
+            }
+            let old = slow();
+            let new = infer_type_text_inplace(env, ctx, scope, operand, binders.len());
+            let same = match (&old, &new) {
+                (Some(a), Ok(b)) => a == b,
+                (None, Err(_)) => true,
+                _ => false,
+            };
+            if same {
+                crate::judge::stats::INPLACE_SHADOW_SAME
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            } else {
+                crate::judge::stats::INPLACE_SHADOW_DIFF
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                if let Err(why) = &new {
+                    if let Ok(mut reasons) = crate::judge::stats::INPLACE_FAIL_REASONS.lock() {
+                        reasons.push_str(&format!("{why:?} "));
+                    }
+                }
+                eprintln!(
+                    "JUDGE_INPLACE_MISMATCH prefix={} binders={} term={} slow={:?} inplace={:?} \
+                     why={:?}",
+                    ctx.prefix_src.len(),
+                    binders.len(),
+                    term.chars().take(60).collect::<String>(),
+                    old.as_deref()
+                        .map(|s| s.chars().take(120).collect::<String>()),
+                    new.as_ref()
+                        .ok()
+                        .map(|s| s.chars().take(120).collect::<String>()),
+                    new.as_ref().err(),
+                );
+            }
+            old
+        }
+        _ => slow(),
+    }
 }
 
 /// `operand` 的类型（**源级 AST**）：局部变量**优先取书写类型**，零内核调用。
@@ -2149,12 +2416,15 @@ fn type_head(e: &Expr) -> Option<String> {
 ///
 /// 这里要的只是"两种写法是不是同一个类型"的**启发式**（决定试哪种读法 ✓，
 /// **不是判定** ✗ —— 判定永远走 kernel ✓），所以比归一的 pp 文本是合适的 ✓。
-fn args_fit_layers_in_order(
+fn args_fit_layers_in_order<'a>(
     layers: &[crate::compile::implicit::Layer],
     args: &[&Expr],
-    ctx: &ElabCtx<'_, '_>,
-    scope: &ElabScope<'_>,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    // **P1-a**：`Some` ⇒ 就地判定（调用方手里有活环境）；`None` ⇒ 今天的老路。
+    env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> bool {
+    let mut env = env;
     if args.is_empty() || args.len() > layers.len() {
         return false;
     }
@@ -2172,7 +2442,8 @@ fn args_fit_layers_in_order(
     };
     let mut sigma: HashMap<String, Expr> = HashMap::new();
     for (i, a) in args.iter().enumerate() {
-        let Some(actual) = operand_type_expr(ctx, scope, a) else {
+        // `env` 按 `&mut` 逐次借用（`Option<&mut _>` 不是 `Copy`）——**每轮只借一次**。
+        let Some(actual) = operand_type_expr(ctx, scope, a, InplaceEnv::reborrow(&mut env)) else {
             return false;
         };
         let domain = crate::spine::substitute(&layers[i].domain, &sigma);
@@ -2194,13 +2465,19 @@ fn args_fit_layers_in_order(
     true
 }
 
-fn operand_type_expr(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr) -> Option<Expr> {
+fn operand_type_expr<'a>(
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    operand: &Expr,
+    env: Option<&mut InplaceEnv<'_, 'a>>,
+) -> Option<Expr> {
     if let Expr::Ident { name, .. } = operand {
         if let Some(src) = scope.source_type_of(name) {
             return Some(src);
         }
     }
-    infer_type_text(ctx, scope, operand).and_then(|text| crate::proof::parse_expr_text(&text).ok())
+    infer_type_text(ctx, scope, operand, env)
+        .and_then(|text| crate::proof::parse_expr_text(&text).ok())
 }
 
 /// **IA-1 的唯一钩子**（设计 `docs/design/implicit-arguments.md` §3.2）：`expr`
@@ -2393,8 +2670,17 @@ fn try_implicit_application<'a>(
     // `And.intro a b ha hb` 逐位贴合 ⇒ 旧写法 ✓（不许被"富余实参落到结果上"抢走 ✗）；
     // `Set.image f A y` 不贴合（`f` 是函数、不是 `Type` ✗）⇒ 让给路线③ ✓。
     // ⚠ 必须在块**外**算：下面两个分支都要用它 ✓。
-    let fits_old_style =
-        args.len() <= layers.len() && args_fit_layers_in_order(&layers, &args, ctx, scope);
+    let fits_old_style = args.len() <= layers.len()
+        && args_fit_layers_in_order(
+            &layers,
+            &args,
+            ctx,
+            scope,
+            Some(&mut InplaceEnv {
+                builder: &mut *builder,
+                known,
+            }),
+        );
     {
         // **闸门 = 「实参比显式层多」且「旧写法不贴合」** ✓。
         //
@@ -2460,7 +2746,15 @@ fn try_implicit_application<'a>(
                 extended.extend(tail);
                 let mut arg_tys: Vec<Option<Expr>> = Vec::with_capacity(args.len());
                 for a in &args {
-                    arg_tys.push(operand_type_expr(ctx, scope, a));
+                    arg_tys.push(operand_type_expr(
+                        ctx,
+                        scope,
+                        a,
+                        Some(&mut InplaceEnv {
+                            builder: &mut *builder,
+                            known,
+                        }),
+                    ));
                 }
                 let is_inductive = |n: &str| ctx.inductives.contains_key(n);
                 if let Some(solved) = crate::compile::implicit::solve_prefix(
@@ -2561,7 +2855,15 @@ fn try_implicit_application<'a>(
     // 局部变量**优先取书写类型**（零内核调用，且不会像 pp 那样丢隐式实参）。
     let mut arg_tys: Vec<Option<Expr>> = Vec::with_capacity(args.len());
     for a in &args {
-        arg_tys.push(operand_type_expr(ctx, scope, a));
+        arg_tys.push(operand_type_expr(
+            ctx,
+            scope,
+            a,
+            Some(&mut InplaceEnv {
+                builder: &mut *builder,
+                known,
+            }),
+        ));
     }
     // 期望类型/实参类型的 delta 展开要用 `defs` + `is_inductive`（`a ∈ A ∪ B`
     // 是 `Set.mem … (Set.union …)`，展开到 `Or …` 才能反解 `Or.inl` 的另一个析取项）。

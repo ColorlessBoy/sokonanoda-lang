@@ -40,74 +40,6 @@
   下标写返回位那条另卡 **G-64**（递归子的宇宙代入）✓。
 - **内核零改动** ✓（`git diff crates/kernel/` 为空）；交接书 `docs/HANDOFF-0.77.md` ✓。
 
-## 第 496 轮（2026-09-28）：**P0 纪律 + G-66 + G-67 + E30 回归 + 连推守卫**（HEAD `77617f1f`）
-
-- **用户 18:11 / 18:24 / 18:47 / 19:00 / 19:26 五条指示全部落地** ✓；交接单
-  `docs/HANDOFF-0.78.md`（312 行）已补 18:00 之后整段 ✓。
-- **P0 纪律落 `main`**（`192404bd`）：`AGENTS.md` 验证设计纪律**第 0 条** —— **(a) 判据绑「用户动作」**
-  （事故 E27：测试用**使用处** `∈` 能跳、用户点**声明名**返回 `null`）· **(b) 同类问题横向排查** ✓；
-  PLAN 的 **E27 改如实状态**（"标 ✅ 是骗人的"）✓；台账 **G-65/G-66/G-67** ✓。
-- **G-66 横向排查 7 处双重压暗**（`6d0af61c`）：`.section-title` **0.8em+0.7 ⇒ 1em、无 opacity**、
-  删 `uppercase`/`letter-spacing`（对中文无益）✓；另 6 处只删 opacity ✓；**新守卫
-  `check-infoview-hierarchy.py` 进 `soko gate`**（9 反例 / 5 必须判红）✓。
-- **P0-b 点声明名不再弹空**（`d4da5359`）：服务端答不出 ⇒ `revealRange` 到**声明自身**
-  （理由：声明名就是那个名字的定义所在处 ✓）；**符号点不动时仍如实弹提示** ✓；
-  判据**绑用户动作**（编辑器真动 + `__messages` 空 + 降级前仍问服务端）· **反向验证 43/44 → 44/44** ✓。
-- **G-67 项目区块重设计**（`7eb93699`）：三问（**编完了吗 / 哪个版本 / 有没有问题**）放最前；
-  判据 `test-project-first-screen.js`（跑**真的** `infoview.js`，取**未收起**文本）·
-  **反向验证旧版 5 条判红** ✓。
-- ⚠ **E30 回归（19:26 判红）已修**（`612c6a39` + `77617f1f`）：G-67 撞掉 E30 **三条既有判据**
-  （删了 `.project-warning` 独立元素 / 模块列表包进 `<details>` / facts·counts·artifacts 折进「高级」）✗
-  ⇒ **教训：「重设计」≠「删掉既有交付」** ✓；修法 = **E30 元素全部原样 + 三问摘要加在最前** ✓
-  （`requires_warning` 人话在前 + 原始细节在后；`编译 N` → `已编译 N/M`）；
-  **没回滚 G-67、没放松 E30、没改测试** ✓。
-- **连推守卫上线**（`77617f1f`）：**`scripts/check-one-run.py` 接进 `pre-push`** ——
-  已有未完成的 run ⇒ **拒绝推送** ✓（用户 19:00 红线：连推三次 ⇒ HEAD 无绿证据 = 「本地绿就算绿」）✓；
-  ⚠ 顺带实测：**空提交会得到「假绿」**（重活 skipped ⇒ `ci-green.py` exit 2）✗。
-- **CI 真绿证据** ✓：**run `36417501766`（`77617f1f`）⇒ `ci-green.py` exit 0 ·
-  重活 10/10 实跑且 success · failure 0** ✓（`editor` job = success ⇒ E30 用例过 ✓）。
-- **门禁** ✓：`soko gate` exit 0 · `test-webview.js` **23/23** · `test-extension-host.js` **44/44** ·
-  `docs-lint` ✓ · `gap.py check` 一致 · **`git diff crates/` 为空** ✓。
-- **下一棒 = P1（rebuild 慢）**：**先确认用户说的 "rebuild" 是哪个命令**（别猜）⇒ 再量化 ⇒ 拿到数字再定改法 ✓。
-
-## 第 498 轮（2026-09-28）：**P2 进度粒度** + **P1′ 方案与卡点**（等内核授权）
-
-- **P2 ✅（用户 22:38/22:40 的判据）**：最小粒度从「文件」细到「**声明**」+ **心跳** ——
-  CLI `build --json` 新增 `build.decl`（每命令一拍）与 `build.tick`（≤1/s，**只报已用时、不假装百分比**）。
-  **实测（冷编 `courses/set-theory`，42 文件）：最长无输出间隔 39.0s → 1.98s**（事件 42 → **1727**）；
-  扩展三处（状态栏/Infoview/概览尺）**渲染** + stub 判据 **45/45** ✓；`docs/protocol.md` 同步（+9 行，预算记账）。
-  **判据进 gate + CI**：`scripts/check-progress-gap.py`（≤2.5s；`--selftest` **造 5s 空档必须判红** ✓）。
-- **P1′ 方案文档** ✓：`docs/design/module-artifacts.md`（82 行）—— 产物三块（**内核环境** / 前端表 / 报告）·
-  per-module Merkle 键 · 失效与回滚 · **要动的文件清单** · 两刀（进程内 fork → 磁盘 `.olean` 式，后者 = P3）。
-- **P1′ 前端半已落** ✓：`ProjectPlan::module_keys()` + 性质判据 —— **无关模块变 ⇒ 别的模块键逐字节不变**
-  （复用的收益）· **依赖变 ⇒ 下游键必变**（不许错编的红线）。判据 1 passed ✓。
-- ⚠ **P1′ 卡点（已按规矩停报）**：切片的"加载产物"需要 importer **已持有依赖的内核环境**，
-  而 `EnvBuilder` 无 `Clone`（`crates/kernel/src/builder.rs:26`）、`snapshot()` 只读（`:75`）、
-  T-K12c 死因 = 独立环境 `add_declar` 改写共享 `decl_idx` 槽位 ⇒ 需**新增 `EnvBuilder::fork()`**
-  （纯能力、不改判定路径）⇒ **内核改动，等授权**（`kernel/*` 分支 vs main 白名单）。**未硬推** ✓。
-- **批编复查（同口径冷跑，已停）**：真课程切片 2 单元 **6,026ms vs 970ms（6.2× 慢）** · 4 单元 1.10× · 8 单元 1.00×
-  ⇒ **平坦批编在真实形状上从不快**（合成小单元才 1.98× 快）⇒ 结论：**共享 ≠ 合并环境**，正解是**结果复用**。
-- **门禁** ✓：`soko gate` exit 0 · `docs-lint` ✓（L2 随**新增文件**走一次）· `status-lint` ✓ · 内核零改动 ✓。
-
-## 第 499 轮（2026-09-28）：**P2 进度粒度落地** + **P1′ 收益估算实测**（切片 1 先决条件已合入）
-
-- **P2 ✅ 已落地**：`build --json` 新增 `build.decl`（每条命令一拍）+ `build.tick`（≤1/s 心跳，
-  **只报已用时**）。冷编 42 文件：**最长无输出间隔 39.0s → 1.98s**，事件 **42 → 1727**；
-  A/B 证明**无编译开销**（128.21s vs 124.34s）。判据 `scripts/check-progress-gap.py`
-  （≤2.5s + `--selftest` 反向验证）已进 gate 与 CI；扩展三处渲染 + stub **45/45** ✓。
-- **P1′ 设计**（`docs/design/module-artifacts.md`）：产物三块 · per-module Merkle 键 ·
-  **§8.6 业界对照**（Lean/Lake/mathlib/Coq/rustc/Salsa，带出处 + 我们缺的 4 条）·
-  **§9 做法改写**：跨 builder 播种**已被证否**（`EnvBuilder::new` 每次 `Dag::new_local`
-  ⇒ `decl_idx` 槽位随 `NameNode` 走，旧表指针取不到）⇒ 改**一个 session arena + 一个 builder
-  贯穿全场**（库层编一次 + 检查点 → 每入口 restore → 只走自己的命令 → `hide_declars`）。
-- **切片 1a ✅ 已合入并复核**：`run_pass_in<'a>(arena, …)`（arena 提到调用方；行为零变化：
-  fmt ✓ · clippy 无 error · front **757 passed** · CLI imports **21 passed**）。
-- **收益估算（实测，切片 1 的输入）**：依赖占比 —— `unit08` **≈10%**（54.35/48.35s vs 5.08/5.06s）·
-  `unit12` **≈25%** · `unit05` **≈50%** ⇒ **计数 174 → 42（4.14× → 1×），但墙钟只省 ≈10–25%**
-  （课程总墙钟由重解答主导）。量具 `scripts/measure-rebuild.sh` **已入库**（原先在 `/tmp`，不可复现 ✗）。
-- **未做（切片 1b/2/3/4）**：session 实现与 ① 逐字节等价判据 · 反例（改依赖必 miss）·
-  产物落盘 · 可下载。**内核零改动** ✓。
-
 ## 第 500 轮（2026-09-29）：**剖面链路 + perf-gate 判红 + 入口级并行**（HEAD `afc82709`）
 - **用户 09:12/09:20/09:22/10:06 四条**全部落地；**内核零改动** ✓ · 工作区干净 ✓。
 - **① 剖面链路**（`11cd7272`）：`scripts/profile-course.py`（一条命令 · 四段 · JSON 进
@@ -159,6 +91,24 @@
   **⑥ 靶子重定**：「裸常量就地查表」判死 ⇒ 真靶子 = **那 3759 趟前缀重跑本身**。
 - **下一刀**：让前缀不再重跑（per-前缀 builder 池 / judge 接收调用方 builder）；
   ⚠ 真障碍：`compile_fol_with`（`check/mod.rs:286`）每次**从零造 `EnvBuilder`**，而它不是 `Clone`。
+
+## 第 502 轮（2026-09-29）：**P1-a 第一步落地 —— 就地判定接在一个判定点上**（默认 `off`）
+- **按调用点归因 3759 趟**（全量 `INFER_MISS` 回溯，`/tmp/base-trace.txt`）：**`infer_type_text`
+  一个判定点 = 2697 趟（72%）/ 120.5 MB（73%）**；其余 `lower_value` 536 · `universe_level_text_of_operands`
+  468（第二问）· `judge_render_type` · `application_arg_expected` 34 · **`infer_expected_level` 只 18 趟（0.5%）**
+  ⇒ 附二 §E 原定的"判定点"**被数据判死**，真判定点是 `infer_type_text` ✓。
+- **落地**（`crates/front/src/judge.rs` + `compile/elab.rs`，开关 `SOKO_JUDGE_INPLACE=off|shadow|on`，**默认 off**）：
+  把 `EnvProvider` 的意图**反向**接 —— 判定**就地**用调用方手里的 `&mut EnvBuilder` + `KnownTable`
+  （`InplaceEnv`）elaborate **源 AST**（不 render/回读、不碰前缀），再走
+  `ExportFile::infer_type_text_at`（内核里那个**零调用点**的零件首次接线）；
+  **只做未命中**（命中仍走今天 ~11µs 的哈希快路 —— 每题都就地是**负优化**，实测过）。
+- **判据**：`shadow` 档单文件 `unit12-solution` **`shadow_same=139561 shadow_diff=0`** ✓；
+  反向判据**有实测**（`crates/front/tests/judge_inplace_on.rs`：换依赖里一个声明的类型 ⇒
+  结论变 **且** `INPLACE_USED` 增长）；两个测试都断言**判据不空转**（就地路径真被走到）✓。
+- **三个实测坑**（都写进注释）：① pp 默认 `proofs=false` ⇒ 对每个子项 `is_proof`（空上下文）
+  ⇒ `loose bvar in infer` panic（必须与 `kernel_phase` 的 `#check` 同档设 `proofs=true`）；
+  ② `parse_expr_text` 不认识前缀里声明的**源级记法** ⇒ 单文件 77822 次 Parse 失败；
+  ③ "接上前缀再解析" ⇒ 每问 46 KB、而对**每次调用**生效 ⇒ 400s 跑不完 ⇒ 改"不解析"。
 
 ## 未决项
 
