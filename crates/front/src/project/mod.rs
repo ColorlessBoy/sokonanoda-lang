@@ -378,6 +378,48 @@ pub struct PlanCompiled<'a> {
     pub requires_warning: Option<String>,
 }
 
+/// **切片 1（G-68）的接线口**：把"一次 session 的结果"组装成该入口的 `ProjectReport`。
+///
+/// **为什么需要**：`build <dir>` 今天对**每个入口**走 `compile_plan_with_progress`
+/// ⇒ 共享 `lib/*` 被**每个入口各编一遍** ✗（这正是 4.14× 与"分片无效"的同一个根，
+/// 见 `docs/design/incremental-environment.md` §21）。切片 1 的做法是
+/// **一次 `with_project_session` 覆盖全部入口**（库层只编一次），
+/// 而 session 的回调交的是**片段**（`flat_out` + `reports`）⇒ 需要在这里组装。
+///
+/// **为什么不直接把 `PlanCompiled` 交给 CLI**：它的 `closure` 字段要 `&Closure`，
+/// 而 `ProjectPlan::closure` 是**私有的**（§24）⇒ CLI 组不出来。
+/// 本函数在前端内部 ⇒ **够得着** ✓，且 CLI 不必知道 `PlanCompiled` 的细节 ✓。
+///
+/// **语义**：与 `compile_plan_with_progress` 的组装段**逐字同构**
+/// （都是 `assemble_report(PlanCompiled { … })`）⇒ `--json` 逐字节不变的前提 ✓。
+///
+/// ⚠ **接线时还必须补两步**（`compile_plan_with_progress` 在编**之前**跑的，
+/// 见 `:538`/`:539`）：`check_name_collisions(&mut closure, &mut diagnostics)` 与
+/// `check_prelude_conflicts(&closure, options, &mut diagnostics)` —— 两者都要
+/// **`&mut Closure` / `options`**，而本函数只拿 `&ProjectPlan` ⇒ **够不着** ✗。
+/// ⇒ 接线方必须在**跑 session 之前**先对每个 plan 跑这两步并把诊断**并进**
+/// `plan.diagnostics`（或本函数改成收 `&mut ProjectPlan` + `options`）。
+/// **不补 = 丢诊断 = `--json` 会变** ✗（这就是接线前必须解决的最后一件）。
+pub fn assemble_from_session(
+    plan: &ProjectPlan,
+    flat_out: crate::compile::CompileOutput,
+    reports: Vec<crate::compile::DocumentReport>,
+) -> ProjectReport {
+    let mut diagnostics = plan.diagnostics.clone();
+    diagnostics.extend(plan.closure.diagnostics.iter().cloned());
+    assemble_report(PlanCompiled {
+        compilable: plan.closure.compilable(),
+        flat_out,
+        reports,
+        closure: &plan.closure,
+        diagnostics,
+        entry_path: plan.entry.clone(),
+        root: plan.root.clone(),
+        manifest_path: plan.manifest.clone(),
+        requires_warning: plan.requires_warning.clone(),
+    })
+}
+
 pub fn assemble_report(c: PlanCompiled<'_>) -> ProjectReport {
     let PlanCompiled {
         compilable,
