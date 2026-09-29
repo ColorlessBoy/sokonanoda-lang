@@ -809,3 +809,47 @@ for M in closure (拓扑序):
    `passes` 4126→**5404**、`judge_ms` 148.4→**162.9** ⇒ 更慢 ✗。
    ⇒ 切片 1 必须**保持每个入口自己的闭包前缀不变**（只把"库层只编一次"这件事做对）。
 2. **不许批编**（实测慢 **6.2×**）· **不许按前缀复用**（前缀是 per-entry 的）。
+
+## 22. 切片 1 的**确切 API 缺口**（2026-09-29 实测；这就是卡点，不是"待办"）
+
+动手接线时撞到**一处**具体缺口。记在这里，避免下一轮重复勘。
+
+### 22.1 缺口：session 的回调**交不出** `build_one` 需要的 `ProjectReport`
+
+`build_one`（`crates/cli/src/build.rs:367`）要的是**完整** `ProjectReport`，
+它由 `assemble_report(PlanCompiled { … })`（`project/mod.rs:381`）组装，而 `PlanCompiled` 要：
+
+| 字段 | 谁能给 |
+|---|---|
+| `compilable: Vec<usize>` | plan 的 `closure.compilable()` ✓ |
+| `flat_out: CompileOutput` | session 回调的 `out` ✓ |
+| `reports: Vec<DocumentReport>` | session 回调的 `entry_reports` ✓ |
+| `closure: &Closure` | **plan**（`PlanCompiled` 借它）✓ |
+| `diagnostics` / `entry_path` / `root` / `manifest_path` / `requires_warning` | plan ✓ |
+
+**⇒ 只差一样**：`assemble_report` 内部要**重建** `units`（它注释写着
+"`units` 借用 `closure` ⇒ 不能与它同处一个结构体（自引用 ✗）；这里**重建**"），
+而重建用的是**该入口自己的闭包顺序**。session 回调**没有把它交出来**
+（它只给 `lib_ranges`（并集顺序的库区间）与 `entry_range`）。
+
+### 22.2 两种收口（下一轮选一，都不大）
+
+* **收口甲（改 session 签名，最小）**：回调多交一个参数
+  —— **该入口自己的闭包单元列表**（或它的 `Vec<Range<usize>>`）。
+  session 内部本来就有 `entry_units`（`entries[i]`）与 `lib_units`，
+  按**该入口的闭包顺序**（`units_for_modules(plan, |_| true)`）拼出来即可 ✓。
+  改动面：`session.rs` 的签名 + 它的 2 个调用点（本文件测试 + CLI）。
+* **收口乙（不改 session）**：让 `build_one` 接受"**片段**"而不是完整 `ProjectReport`，
+  由调用方在 session 回调里就地组装 —— 但 `build_one` 的缓存写盘
+  （`cache::store_at`，`:411`）要完整报告 ⇒ 面更大 ✗。
+
+**⇒ 选甲。**
+
+### 22.3 为什么必须走 session（而不是别的路）
+
+* **不许批编**（实测慢 **6.2×**）✗；
+* **不许按前缀复用**（前缀是 per-entry 的 ⇒ 切片 1b 实测 `passes` 4126→**5404**、
+  `judge_ms` 148.4→**162.9** ⇒ 更慢 ✗）；
+* **不许按 module_key 逐模块编**（那是"重写编译模型"，会改事件/诊断 ⇒ 破 `--json` 红线 ✗）；
+* ⇒ **唯一保持 per-entry 前缀不变、又让共享库只编一次的路 = 一次 session 覆盖全部入口** ✓
+  （这正是 §21.2，也是"收口甲"要补的那一个参数）。
