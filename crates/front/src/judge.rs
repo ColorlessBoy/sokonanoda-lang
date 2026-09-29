@@ -345,6 +345,104 @@ pub(crate) mod stats {
     pub(crate) static KEY_NANOS: AtomicU64 = AtomicU64::new(0);
     pub(crate) static HIT_NANOS: AtomicU64 = AtomicU64::new(0);
 
+    // ── **P1-a 定向量具**（2026-09-29）：回答"judge 那 147s 里有多少能被
+    //    「裸常量就地查表」消掉"。**只加计数、不改判定**（零语义风险 ✓）。
+    //
+    //    `judge_infer` 收的是**源码文本**（`term: &str`）⇒ 就地查表要先把文本
+    //    认成"一个常量名"。
+    /// `judge_infer` 总调用数（= 唯一可优化的分母）。
+    pub(crate) static CLASSIFY_CALLS: AtomicU64 = AtomicU64::new(0);
+    /// 其中 **term 可解析且是"裸常量"**（`Ident`/`UniverseApp`，**至少一段限定**，
+    /// 即 `A.b` 这种）⇒ **结构上有可能**就地查表。
+    pub(crate) static CLASSIFY_BARE: AtomicU64 = AtomicU64::new(0);
+    /// 其中 **未命中**的（命中本来就不贵 ⇒ 只该打未命中）且是裸常量。
+    pub(crate) static CLASSIFY_BARE_MISS: AtomicU64 = AtomicU64::new(0);
+    /// 裸常量里，**名字在 prefix 文本中能原样找到**的（弱信号：说明它来自前缀，
+    /// 大概率能在环境里查到）。**只作交叉参考**，不是判据。
+    pub(crate) static CLASSIFY_RESOLVABLE: AtomicU64 = AtomicU64::new(0);
+    /// 裸常量 + 未命中 + 可解析 的**累计耗时**（纳秒，只算 judge_infer 那一段）。
+    pub(crate) static CLASSIFY_BARE_MISS_NANOS: AtomicU64 = AtomicU64::new(0);
+    /// **所有**未命中的数与耗时（用来对照"是不是只有裸常量贵"）。
+    pub(crate) static CLASSIFY_ALL_MISS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static CLASSIFY_ALL_MISS_NANOS: AtomicU64 = AtomicU64::new(0);
+    /// **重跑前缀的趟数**（判据的第二个读数；字节数用上面既有的 `PREFIX_BYTES`）。
+    /// 噪声免疫（确定性）、不会被并发重复计时污染 ⇒ 可以作判据 ✓。
+    pub(crate) static PREFIX_RUNS: AtomicU64 = AtomicU64::new(0);
+
+    /// 未命中按 **[是否裸常量][term 长度桶]** 的 (次数, 耗时)。
+    /// 桶：0 = `<16` 字节 · 1 = `<48` · 2 = `<160` · 3 = `≥160`。
+    pub(crate) static CLASSIFY_BUCKET_N: [[AtomicU64; 4]; 2] =
+        [const { [const { AtomicU64::new(0) }; 4] }; 2];
+    pub(crate) static CLASSIFY_BUCKET_NS: [[AtomicU64; 4]; 2] =
+        [const { [const { AtomicU64::new(0) }; 4] }; 2];
+
+    /// 分桶报告（`SOKO_JUDGE_CLASSIFY=1`）。
+    pub fn classify_buckets() -> [(u64, u64); 8] {
+        let mut out = [(0u64, 0u64); 8];
+        for bare in 0..2 {
+            for b in 0..4 {
+                out[bare * 4 + b] = (
+                    CLASSIFY_BUCKET_N[bare][b].load(Ordering::Relaxed),
+                    CLASSIFY_BUCKET_NS[bare][b].load(Ordering::Relaxed),
+                );
+            }
+        }
+        out
+    }
+
+    /// P1-a 量具报告（`SOKO_JUDGE_CLASSIFY=1` 时由 `check` 的 stage_stats 一起打）。
+    /// 重跑前缀的结构读数（判据用）。
+    pub fn prefix_runs() -> (u64, u64) {
+        (
+            PREFIX_RUNS.load(Ordering::Relaxed),
+            PREFIX_BYTES.load(Ordering::Relaxed),
+        )
+    }
+
+    pub fn classify() -> (u64, u64, u64, u64, u64, u64, u64) {
+        (
+            CLASSIFY_CALLS.load(Ordering::Relaxed),
+            CLASSIFY_BARE.load(Ordering::Relaxed),
+            CLASSIFY_BARE_MISS.load(Ordering::Relaxed),
+            CLASSIFY_RESOLVABLE.load(Ordering::Relaxed),
+            CLASSIFY_BARE_MISS_NANOS.load(Ordering::Relaxed),
+            CLASSIFY_ALL_MISS.load(Ordering::Relaxed),
+            CLASSIFY_ALL_MISS_NANOS.load(Ordering::Relaxed),
+        )
+    }
+
+    /// 判断 `term` 是不是"**裸常量**"（`A.b` / `A.b.{u}`，不含空格、不含记法）。
+    ///
+    /// **为什么用"至少一段限定"**：裸的 `x` 更可能是**局部变量**（T-K22 那条快路
+    /// 已经先拦了），而 `Set.mem` 这种限定名**必然来自环境** ⇒ 它才是可查表的。
+    /// ⚠ 这是**启发式**（不做完整 parse，省得在热路径上付 parse 成本）；
+    /// 它只用来**估上界**，不作判据 ✓。
+    pub(crate) fn looks_like_bare_const(term: &str) -> bool {
+        // 去掉宇宙层 `.{u, v}` 尾巴。
+        let head = match term.find(".{") {
+            Some(i) if term.ends_with('}') => &term[..i],
+            _ => term,
+        };
+        if head.is_empty() || head.contains(' ') || head.contains('(') || head.contains(')') {
+            return false;
+        }
+        // 至少要有一段 `.`（限定名）；且每段都是标识符字符。
+        let mut segs = head.split('.');
+        let first = segs.next().unwrap_or("");
+        if first.is_empty() || !first.chars().all(is_ident_char) {
+            return false;
+        }
+        let rest: Vec<&str> = segs.collect();
+        !rest.is_empty()
+            && rest
+                .iter()
+                .all(|s| !s.is_empty() && s.chars().all(is_ident_char))
+    }
+
+    fn is_ident_char(c: char) -> bool {
+        c.is_alphanumeric() || c == '_' || c == '\'' || c == '!' || c == '?'
+    }
+
     /// 判定累计耗时（纳秒）——给 `check::stage_stats` 的分段账单用。
     pub fn hits() -> u64 {
         HITS.load(Ordering::Relaxed)
@@ -1001,6 +1099,24 @@ fn judge_infer_cached(
         t0.elapsed().as_nanos() as u64,
         std::sync::atomic::Ordering::Relaxed,
     );
+    // **P1-a 量具**（只计数、不改判定 ✓）：这一趟是不是"裸常量"查询？
+    // 先算分类，命中与未命中都要记 —— 因为**可优化的只有未命中**那部分。
+    let classify = std::env::var_os("SOKO_JUDGE_CLASSIFY").is_some();
+    let bare = classify && stats::looks_like_bare_const(term);
+    if classify {
+        stats::CLASSIFY_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if bare {
+            stats::CLASSIFY_BARE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            // 弱信号：名字在**前缀文本**里能原样找到 ⇒ 它来自前缀，大概率可查表。
+            let short = match term.find(".{") {
+                Some(i) => &term[..i],
+                None => term,
+            };
+            if prefix_src.contains(short) {
+                stats::CLASSIFY_RESOLVABLE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            }
+        }
+    }
     if let Some(JudgeCacheValue::Infer(r)) = judge_cache_get(key) {
         stats::INFER_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         stats::HIT_NANOS.fetch_add(
@@ -1008,6 +1124,26 @@ fn judge_infer_cached(
             std::sync::atomic::Ordering::Relaxed,
         );
         return r;
+    }
+    // **P1-a**：所有未命中都记（`bare` 只是其中一类）—— 要能回答
+    // "**是不是只有裸常量那类才贵**"。
+    let miss_t0 = std::time::Instant::now();
+    // **P1-a 分布量具**：未命中按 `term` 前缀长度分桶累计（回答"贵的那些长什么样"）。
+    let term_len = term.len();
+    let bucket = if term_len < 16 {
+        0
+    } else if term_len < 48 {
+        1
+    } else if term_len < 160 {
+        2
+    } else {
+        3
+    };
+    if classify {
+        stats::CLASSIFY_ALL_MISS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if bare {
+            stats::CLASSIFY_BARE_MISS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
     }
     let miss = stats::INFER_MISSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
     // 常驻诊断（`SOKO_INFER_TRACE=<n>[,<n>…]|all`）：打出每次未命中的查询与
@@ -1029,6 +1165,21 @@ fn judge_infer_cached(
         );
     }
     let r = judge_infer_uncached(extra_prefix, prefix_src, options, binders, term);
+    // **P1-a**：未命中的**完整**耗时（重跑前缀那段）——这才是可就地消掉的部分。
+    if classify {
+        let dt = miss_t0.elapsed().as_nanos() as u64;
+        stats::CLASSIFY_BUCKET_N[bare as usize][bucket]
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        stats::CLASSIFY_BUCKET_NS[bare as usize][bucket]
+            .fetch_add(dt, std::sync::atomic::Ordering::Relaxed);
+        stats::CLASSIFY_ALL_MISS_NANOS.fetch_add(dt, std::sync::atomic::Ordering::Relaxed);
+        if bare {
+            stats::CLASSIFY_BARE_MISS_NANOS.fetch_add(
+                miss_t0.elapsed().as_nanos() as u64,
+                std::sync::atomic::Ordering::Relaxed,
+            );
+        }
+    }
     judge_cache_put(key, JudgeCacheValue::Infer(r.clone()));
     r
 }
@@ -1086,6 +1237,15 @@ fn judge_infer_uncached(
     text.push_str("=> ");
     text.push_str(term);
     text.push('\n');
+    // **P1-a 结构量具**（判据用，噪声免疫）：重跑前缀的**字节数**累计 ——
+    // 它是 O(N²) 放大最直接的读数（前缀随声明序号线性变长 ⇒ 总字节随 N² 涨）。
+    // ⚠ **不要用"miss 耗时"下结论**：未命中可能并发/嵌套重叠 ⇒ 累加会**超过墙钟** ✗
+    // （实测 235.7s > 216.9s）。字节数**没有这个问题** ✓。
+    stats::PREFIX_BYTES.fetch_add(
+        (extra_prefix.len() + prefix_src.len()) as u64,
+        std::sync::atomic::Ordering::Relaxed,
+    );
+    stats::PREFIX_RUNS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let mut src = synthesized_prefix(extra_prefix, prefix_src);
     let query_start = src.len();
     src.push_str(&text);

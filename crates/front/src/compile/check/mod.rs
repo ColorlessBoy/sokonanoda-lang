@@ -713,6 +713,50 @@ pub(crate) mod stage_stats {
         }
         PRINTED.call_once(|| {
             extern "C" fn report() {
+                // **P1-a 量具**（`SOKO_JUDGE_CLASSIFY=1`）：回答"judge 那 147s 里
+                // 有多少能被「裸常量就地查表」消掉"。**只加计数、不改判定** ✓。
+                // **P1-a 判据读数**（总是打，`SOKO_STAGE_STATS` 开了就有）：
+                // 重跑前缀的**字节数**与**趟数** —— 结构计数，噪声免疫 ✓。
+                {
+                    let (runs, bytes) = crate::judge::stats::prefix_runs();
+                    eprintln!(
+                        "JUDGE_PREFIX runs={runs} bytes={bytes} bytes_per_run={}",
+                        bytes.checked_div(runs).unwrap_or(0)
+                    );
+                }
+                if std::env::var_os("SOKO_JUDGE_CLASSIFY").is_some() {
+                    let (calls, bare, bare_miss, resolvable, bare_miss_ns, all_miss, all_ns) =
+                        crate::judge::stats::classify();
+                    let share = |ns: u64| {
+                        if crate::judge::stats::nanos() == 0 {
+                            0.0
+                        } else {
+                            ns as f64 / crate::judge::stats::nanos() as f64
+                        }
+                    };
+                    eprintln!(
+                        "JUDGE_CLASSIFY calls={calls} bare={bare} resolvable={resolvable} \
+all_miss={all_miss} all_miss_ms={} all_miss_share={:.3} bare_miss={bare_miss} \
+bare_miss_ms={} bare_miss_share={:.3}",
+                        all_ns / 1_000_000,
+                        share(all_ns),
+                        bare_miss_ns / 1_000_000,
+                        share(bare_miss_ns)
+                    );
+                    let head = ["<16", "<48", "<160", ">=160"];
+                    for (i, (n, ns)) in crate::judge::stats::classify_buckets().iter().enumerate() {
+                        if *n == 0 && *ns == 0 {
+                            continue;
+                        }
+                        eprintln!(
+                            "JUDGE_MISS_BUCKET bare={} len={} n={n} ms={} share_of_judge={:.3}",
+                            i / 4,
+                            head[i % 4],
+                            ns / 1_000_000,
+                            share(*ns)
+                        );
+                    }
+                }
                 let passes = PASSES.load(Ordering::Relaxed);
                 let bys = BYS.load(Ordering::Relaxed);
                 let ms = |n: u64| n / 1_000_000;
