@@ -74,7 +74,18 @@ pub fn with_project_session<R>(
                 file: u.file,
             })
             .collect();
-        let entry_prefixes = crate::compile::closure_prefixes_for(&entry_closure);
+        // ⚠ **取"最后一格"是必须的**（2026-09-29 实测踩到）：入口趟传给
+        // `run_pass_with` 的 `units` 是 **`entry_units`（长度 1）** ⇒ walk 里
+        // `unit_idx` **恒为 0** ⇒ 它要的是"**入口那一格**"的前缀
+        // = `entry_prefixes` 的**最后一格**（前几格属于库单元，第一格还是**空串**）。
+        // 直接把整个 `entry_prefixes` 传进去 ⇒ `get(0)` = 空串 ⇒ 走 `_ =>` 分支
+        // ⇒ **入口没有库层前缀** ✗ ⇒ 实测报「前缀源码无法解析」+ 一串记法解析失败
+        // （`≠`/`{a,b}`/`=`/`∈` 全都"读不到目标类型"）。
+        let entry_prefixes_all = crate::compile::closure_prefixes_for(&entry_closure);
+        let entry_prefixes: Vec<String> = entry_prefixes_all
+            .last()
+            .map(|last| vec![last.clone()])
+            .unwrap_or_default();
         let entry_display = crate::compile::display_notations(&entry_closure);
         let (pass, next, next_tables) = run_pass_with(
             builder,
