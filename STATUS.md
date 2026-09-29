@@ -40,34 +40,6 @@
   下标写返回位那条另卡 **G-64**（递归子的宇宙代入）✓。
 - **内核零改动** ✓（`git diff crates/kernel/` 为空）；交接书 `docs/HANDOFF-0.77.md` ✓。
 
-## 第 494 轮（2026-09-28）：**X2 多会话/多分支**（3/5 完成，交接 `docs/HANDOFF-0.78.md`）
-
-- **用户拍板**：「**主解法改成 worktree，加锁只作兜底**」「**先只开一个 worktree 跑通全流程**……
-  **跑通再谈并行**」「共享账本……**只有 main 能改台账**，并且**写成守卫**，别只写进文档」
-  「**不许删任何已有会话/分支（要删先问我）**」「不许为跑通改判据」✓。
-- **过时数据修正**（用户实测 + 本人复核）：PLAN 的 X2 段写「`target/` 205 GB、磁盘只剩 159 GB
-  ⇒ 开 worktree 就爆盘」——**实测不成立** ✗：`target` = **32 GB**、`df -h /` 可用 **322 GiB** ✓
-  ⇒ **独立 target 可行**（**别共享**：共享会被 cargo 加锁串行、抵消并行收益 ✗）；PLAN 本段已改 ✓。
-- **§1 worktree 全流程实测 ✅**：建 → 改 → 提交 → 推**全通**；**推分支不取消 main 的 CI**
-  （分支 run `36403617878` 与 main 的 `36403200616` **同期 in_progress** ✓）；**不触发 auto-tag** ✓。
-  探针**已清**（本地 + 远端，远端只剩 `main` ✓）；**原有分支 `kernel/g56-indexed-inductives` 一个没动** ✓。
-- **§2 共享台账守卫 ✅**（新 `scripts/check-multi-session.py`）：
-  - **① 链接工作树里不许改台账**（worktree 判据 = `git rev-parse --git-dir` 含 `/worktrees/`）；
-  - **② 台账与 main 不一致 ⇒ 判红**。⚠ **判据是"台账落后"而非"总提交数落后"** ——
-    `e2e ledger` 每轮往 main 回提交，用总提交数判红会**每轮都红**（假红 ⇒ 守卫失效）；
-  - ⚠ **文案必须分三情形**（**两轮实测才修对**）：工作区改 / 提交里改 / **只是落后**
-    ⇒ **先判工作区、再判合并基**（顺序反过来会说错话）；**三种都实测判对** ✓；
-  - **反向验证** ✓：`--selftest` 3 反例 + 真 worktree 三情形逐一实测 ✓。
-- **§5 skill 清单 ✅**：`obra/superpowers` 加 `using-git-worktrees` + `finishing-a-development-branch`
-  ⇒ 实测 **28 skills → .dsh/skills** ✓。
-- **§4 假红：一条旧归因被推翻** ⚠：PLAN 写「本机 pre-push 有已知假红（**pyyaml 缺失**、
-  版本钉二进制拿不到）」⇒ **实测**：`/opt/homebrew/bin/python3`（PATH 第一个）**有 yaml 6.0.3** ✓
-  ⇒ **复现不出来**；且清理探针时 pre-push **完整跑过一次、全绿** ✓（`gap.py check --strict` ✓ ·
-  `docs-lint --selftest` **11/11** ✓ · `editor` 43/43 ✓）。**未找到真机制 ⇒ 不改判据、不写错归因** ✓
-  （下一步与候选机制见交接单 §4.2）。
-- **⬜ 未完成**（交接单 §4）：e2e ledger 落后守卫（判据已想清）· 两个假红（候选机制未验证）✓。
-- **门禁** ✓：`docs-lint` ✓（含 ⑦）· `plan.py check` ✓ · **内核零改动** ✓ · 工作区干净 ✓。
-
 ## 第 496 轮（2026-09-28）：**P0 纪律 + G-66 + G-67 + E30 回归 + 连推守卫**（HEAD `77617f1f`）
 
 - **用户 18:11 / 18:24 / 18:47 / 19:00 / 19:26 五条指示全部落地** ✓；交接单
@@ -165,6 +137,28 @@
   （LSP 12.8 万次判卷、命中率 99.6%）⇒ 按"收益不成立就默认关"关掉了 —— **命中率 99.6%
   ⇒ 复用只作用在已经很便宜的路径上**，**88% 全在 miss 上**。四阶段：**0 定接口 → 1 judge
   走环境 → 2 elaboration 主路径 → 3 并行下复用**；每阶段独立 commit + 独立真绿 + 独立回退。
+
+## 第 501 轮（2026-09-29）：**分片否决 · 切片 1 三次失败全勘明 · 主线转 judge 前缀增量**（HEAD `620a0a4b`）
+- **详细交接 → [`docs/HANDOVER-slice1.md`](HANDOVER-slice1.md)（162 行）+
+  [`docs/design/p1a-measurements.md`](design/p1a-measurements.md)（320 行附录）**；本文只留结论。
+- **① 分片实测否决 + 精确 revert**（`89b91fa6`）：单片冷跑 **317.71s** ≈ 全量 **313.78s**
+  （期望 ~78s）⇒ 切的是"目标数"、切不掉共享 `lib/*` 闭包重复编译。**保留**课程产物缓存
+  （冷 313.8s → 热 **0.50s**，**628×**）与 `ci-green.py --selftest` 夹具修复（**3/6 → 6/6**）。
+- **② 切片 1（一次 session 覆盖全部入口）三次接线全失败，根因**：
+  ① 报告拼接越界崩（`project/mod.rs:480`）② 把 `lib/*` 当入口 ③ **session 入口趟拿不到闭包前缀**
+  （`judge_infer` 只吃源码字符串 `judge.rs:949`）⇒ 全部修掉（`9543405a` 前缀取**最后一格**是关键），
+  **但 17:36 实测 `passes 4141` / `judge_ms 146.9s` ≈ 基线 ⇒ 不提速** ⇒ **接线已撤、切片 1 挂起**。
+  零件留 main（`assemble_from_session`/`merge_session_reports`/`precheck_plan`/`closure_prefixes_for` + 内核两笔）。
+- **③ 🎯 主线转「judge 前缀增量」**（用户 17:52「内核层级编译优化势在必行」）。**权威读数**
+  （release · 冷缓存 · 1 job · 墙钟 **215.0s**）：`JUDGE_INFER total_ms **247.4s**` ·
+  `misses **3759**` ⇒ **未命中 ≈ 222.6s（90%）** · `JUDGE_PREFIX runs=3759 bytes=**1.74 亿**`
+  （**结构判据**，噪声免疫）· **3759 趟只对应 488 个前缀（7.7× 重复）** · `judge/墙钟 ≈ 68%`。
+- **④ 新增量具**（`b9ee531d`，**只加计数、不改判定**）：`JUDGE_PREFIX runs/bytes` +
+  `SOKO_JUDGE_CLASSIFY` 分桶。**⑤ 两个假口径主动作废**：`all_miss_ms 235.7s`（**> 墙钟** ⇒
+  并发重复计时）· `SOKO_NO_JUDGE=1` 26.17s（实测 **`compiled:1 failed:41`**）。
+  **⑥ 靶子重定**：「裸常量就地查表」判死 ⇒ 真靶子 = **那 3759 趟前缀重跑本身**。
+- **下一刀**：让前缀不再重跑（per-前缀 builder 池 / judge 接收调用方 builder）；
+  ⚠ 真障碍：`compile_fol_with`（`check/mod.rs:286`）每次**从零造 `EnvBuilder`**，而它不是 `Clone`。
 
 ## 未决项
 
