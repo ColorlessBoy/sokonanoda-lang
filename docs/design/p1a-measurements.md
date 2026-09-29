@@ -281,3 +281,40 @@ n = 3759 趟
 本条只降"解析"那笔 ⇒ **另需一个 `PARSE_BYTES` 计数器**把两笔分开）·
 墙钟**改前/改后双数字**（同机同口径，<5% 差不许当结论）· `--json` 逐字节不变 ·
 三层回归 · 反向判据（前缀真变必须重算）。
+
+---
+
+# 附六：🔴 **`JUDGE_INFER` 的权威三段账 —— 未命中 ≈ 222.6s**
+
+`SOKO_JUDGE_STATS=1` + `SOKO_STAGE_STATS=1`（release · 冷缓存 · 1 job · 全课）：
+
+```
+JUDGE_INFER       calls=1085522  total_ms=247402  avg_us=227  fails=9353
+JUDGE_INFER_SPLIT hits=1081763   misses=3759  key_ms=12127  hit_ms=12683
+JUDGE_PREFIX      runs=3759      bytes=174213583  bytes_per_run=46345
+STAGE_STATS       passes=4126    judge_ms=146904
+```
+
+## 结论
+
+* **`JUDGE_INFER total_ms = 247.4s`**（judge 那本账的最大口径）；
+* `hits` + `key_ms` + `hit_ms` ≈ **24.8s** ⇒ **未命中那段 ≈ 222.6s（占 90%）** ✓
+  —— 与"3759 趟 × 平均 59ms"吻合（`222.6s / 3759 ≈ 59ms`）；
+* ⚠ **`JUDGE_INFER_SPLIT` 的三个数是互斥分段，但实测三者之和远小于 total**
+  ⇒ **未命中那段的计时没被完整捕获** ⇒ **不要直接引用 miss_ms**；
+  要"未命中总耗时"就**反推**：`total_ms − key_ms − hit_ms ≈ 222.6s` ✓；
+* **`key_ms = 12.1s`** ⇒ 哈希整段前缀本身只占 5% ⇒ **打哈希没用**（与旧结论同向 ✓）。
+
+## ⇒ 可兑现上界（判据用）
+
+**省掉那 3759 趟前缀重跑 ⇒ 上界 ≈ 222.6s**（≈ 墙钟 215s 的 100%+ —— 说明该口径
+与墙钟不是同一维度，**只作"上限"用，不作"能省多少"**；真正的墙钟双数字在
+实现之后同机同口径量）。
+
+**⇒ 下一步（唯一）：让前缀不再重跑** —— 即"**前缀增量**"：
+从"声明 i"到"声明 i+1"前缀只多了**一个声明**，却重跑整段（median 41 KB）
+⇒ **应把"已 elaborate 的前缀状态"续用**，只处理新增声明。
+⚠ 真障碍：`compile_fol_with`（`check/mod.rs:286`）⇒ `run(&[SourceUnit::single(...)])`
+⇒ **每次从零造 `EnvBuilder`**；`EnvBuilder` 不是 `Clone` ⇒ 需要
+**per-前缀 builder 池**（`HashMap<前缀哈希, EnvBuilder>`）或让 judge 接收
+调用方已有的 builder（受限于"只有源 `Expr`、没有 `ExprPtr`"）。

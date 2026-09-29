@@ -718,6 +718,12 @@ pub(crate) mod stage_stats {
                 // **P1-a 判据读数**（总是打，`SOKO_STAGE_STATS` 开了就有）：
                 // 重跑前缀的**字节数**与**趟数** —— 结构计数，噪声免疫 ✓。
                 {
+                    // ⚠ **口径警告**：`JUDGE_INFER_SPLIT` 的三个数是**互斥分段**，
+                    // 但实测 `hits+misses+key_ms` **远小于** `JUDGE_INFER.total_ms`
+                    //（24.8s vs 247.4s）⇒ **未命中那段的计时没被完整捕获**
+                    //（见 `docs/design/p1a-measurements.md` 附五）⇒
+                    // **要用"未命中总耗时"就以 `JUDGE_INFER.total_ms − hits − key_ms` 反推**，
+                    // 别直接引用 `miss_ms` ✗。
                     let (runs, bytes) = crate::judge::stats::prefix_runs();
                     eprintln!(
                         "JUDGE_PREFIX runs={runs} bytes={bytes} bytes_per_run={}",
