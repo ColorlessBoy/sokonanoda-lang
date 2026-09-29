@@ -380,3 +380,58 @@ A 会碰 check-then-add（判定语义），C 收益太小（parse 不是瓶颈�
 
 ⚠ 按硬规矩（`AGENTS.md`：`crates/kernel/` 在 main 上零改动，除非明确授权）——
 **本请求等用户明确授权后才动手**，**不顺手改**。
+
+## 14. ⚠⚠ **§13 的授权请求撤回** —— `snapshot()` 这条路是通的（2026-09-29 实测勘明）
+
+§13 说"前端造不出镜像 ⇒ 要内核加访问器"。**再往下核一层后：不需要** ✗✓。
+关键是我上一轮漏看的两条：
+
+| 我上轮以为 | 实测 |
+|---|---|
+| `Env::new` 要 `&DeclarMap`，而 `DeclarMap` 是 `pub(crate)` ⇒ 前端造不出 | ✓ 类型确实不可命名 —— **但不必命名它**：`ExportFile` 的 `declars`/`notations` 是 **`pub` 字段**，直接当实参传即可（**类型推断**，无需写出类型名）|
+| 得从 builder **借**一份（借用冲突） | ✗ **不必借**：`EnvBuilder::snapshot(&self) -> ExportFile<'a>`（**`pub`**）给的是**拥有**的一份 ⇒ 它自己就是"镜像" |
+
+**另外两条（决定可行性）**：
+
+* `ExportFile::with_tc(&self, EnvLimit, f)` 收 **`&self`**（`util.rs:708`）⇒
+  镜像**不需要 `&mut`** ⇒ 可以**多处同时查** ✓；
+* `ExportFile::new_env(&self, EnvLimit) -> Env`（`util.rs:694`）也是 `&self` ✓。
+
+### 14.1 于是形状是（**内核零改动** ✓）
+
+```rust
+// 每条命令**之前**（此时 elab_expr 还没借走 builder）：
+let mirror: ExportFile<'a> = self.builder.snapshot();   // 拥有的一份，pub API
+// 把它挂到 CmdCtx → ElabCtx（ElabCtx 加一个字段）
+// judge_infer 未命中时：
+mirror.with_tc(EnvLimit::PpUnlimited, |tc| {
+    let ty = tc.infer_closed_type(expr);
+    tc.with_pp(|pp| pp.pp_expr(ty))
+})
+```
+
+* **借用冲突解决**：`snapshot()` 在 `elab_expr` 借走 builder **之前**取 ⇒ 之后
+  `ElabCtx` 持的是**拥有的一份**，与 `&mut builder` **不冲突** ✓；
+* **内核零改动** ✓（`snapshot`/`with_tc`/`new_env`/`EnvLimit` **全是 `pub`**）；
+* **`EnvProvider` 接口不用改**（`crates/front/src/judge.rs` 已落 `30ae685c`）✓。
+
+### 14.2 唯一要量的成本（决定成败）
+
+`snapshot()` 会 `declars.clone()` + `notations.clone()` + `dag.clone()`。
+**每条命令取一次** ⇒ 整文件 O(N²) 次 map 复制。
+**但**它比"重跑整段前缀"（parse + elaborate + 内核检查）**大概率便宜得多** ——
+这正是 §5 账单说的"大头是**前端重新 elaborate**"。
+⚠ **必须实测**（不许拍脑袋）：`SOKO_DECL_PROFILE` 量"每条命令的 snapshot 成本" vs
+"judge 合成 pass 的成本"。
+**降级方案（若 snapshot 太贵）**：只在 `judge_infer` **真未命中时**才取快照
+（即"惰性快照"）⇒ 命中路径零成本 ✓。
+
+### 14.3 下一步（可立即执行，无需授权）
+
+1. `ElabCtx` 加 `mirror: Option<&ExportFile<'a>>`（或让 `EnvProvider` 的实现者持有）；
+2. `Walk` 在每条命令**之前** `snapshot()`，挂进 `CmdCtx`；
+3. `judge_infer` 未命中时**先试镜像**（`with_tc` + `infer_closed_type` + `pp_expr`），
+   失败/无镜像 ⇒ **回退**合成前缀（逐字节等价）；
+4. 判据：judge 合成 pass **253513 → 接近 2647 量级** · 真课程 **219.3s → ?** ·
+   `--json` **逐字节不变** · 反向判据**能咬住"缓存住错误结果"的坏实现** ·
+   `None` ⇒ **逐字节回退**。
