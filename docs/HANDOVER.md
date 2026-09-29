@@ -71,6 +71,11 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
+> **接手 G-68「重复编译 / 切片 1」的人先读
+> [`docs/HANDOVER-slice1.md`](HANDOVER-slice1.md)**（87 行）——
+> 那里有：三次失败分类 · 根因（session 入口趟看不到库层前缀）· 下一步唯一路径
+> （按库层前缀等价类分组，**N=15**）· 判据 · **已上 main 但零调用点的零件清单**。
+
 ## 4. 已知限制 / 技术债
 
 - **0.58.0 新增（批次 4，已完成）**：项目状态视图 `query project` / 对应 MCP 工具
