@@ -349,3 +349,34 @@ A 会碰 check-then-add（判定语义），C 收益太小（parse 不是瓶颈�
 
 **但这需要内核给一个"从 builder 取只读 `Env` 引用"的口子**（或前端自建镜像）
 ⇒ 按硬规矩**要单独授权 `crates/kernel/`**，**不许顺手改**。
+
+## 13. 阶段 1 步 2 的**授权请求**（精确到一行 API）
+
+§12.3 说"镜像变体最小"。**把镜像路走到底后确认：它需要内核加一个访问器** —— 精确到：
+
+### 13.1 为什么前端**造不出**那个镜像（逐条实测）
+
+| 需要 | 现状 | 结论 |
+|---|---|---|
+| 从 builder 拿 `declars` **的引用** | `EnvBuilder` 只有 `hide_declars(&mut self) -> DeclarMap`（**挪走**）与 `restore_declars` | ✗ 没有"借出"的口子 |
+| 同上（另一条路） | `snapshot(&self) -> ExportFile` ⇒ `pub declars` 可读，但 `ExportFile` 是**拥有**的 ⇒ `file.declars` 只活在闭包/局部里 | ✗ 引用出不来 |
+| 拿 `notations` 的引用 | 同上（`ExportFile.notations` 是 `pub` 字段，但 `ExportFile` 拥有它） | ✗ 同上 |
+| `Env::new(&DeclarMap, &NotationMap, EnvLimit)` | **是 `pub`** ✓ —— 但 `DeclarMap` 是 `pub(crate) type`（`env.rs:252`） | ✗ **类型不可命名** |
+| `clone()` 一份当镜像 | `DeclarMap: Clone` ✓ | ✗ **热路径**：每条声明后 clone 整张表 ⇒ 比今天更慢 |
+
+⇒ **前端造不出"活的、不 clone 的"镜像** ✗。
+
+### 13.2 请求（**最小**，一行 API）
+
+> **在 `EnvBuilder` 上加一个只读借出入口**，例如
+> `pub fn with_declars<R>(&self, f: impl FnOnce(&DeclarMap<'a>, &NotationMap<'a>) -> R) -> R`
+> （或等价的"借出 `Env`"形式），**不改任何现有语义**、**不动判定路径**。
+
+* **性质**：纯**能力**新增（read-only）· 不改判定 · 不改事件计数 · 不改 `--json`；
+* **为什么必须**：`DeclarMap` 是 `pub(crate)` ⇒ 前端**永远**造不出 `Env::new` 需要的那个引用；
+* **替代方案（若不想加）**：把 `DeclarMap` 改成 `pub`（**更大**的面，不推荐）；
+* **拿到之后**：`Walk` 用它在每条声明后建/更新一个只读 `Env` 镜像 ⇒ `ElabCtx` 持有 ⇒
+  `judge_infer` 查表 ⇒ **不再重跑前缀** ⇒ 目标是那 **88%**。
+
+⚠ 按硬规矩（`AGENTS.md`：`crates/kernel/` 在 main 上零改动，除非明确授权）——
+**本请求等用户明确授权后才动手**，**不顺手改**。
