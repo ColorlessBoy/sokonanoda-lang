@@ -167,33 +167,121 @@ pub(crate) fn build(
     }
     // **P2 心跳**：`--json` 时启动（人类可读模式零线程、输出逐字节不变）。
     let mut heartbeat = Heartbeat::start(json);
-    for file in &files {
-        // **P2 进度粒度**：`--json` 时把**声明级**进度逐条发出去
-        // （`build.decl`；人类可读模式不发，保持原有输出逐字节不变）。
+
+    // ═══ **入口级并行编译**（2026-09-29，用户 09:43「那就并行编译」）═══
+    //
+    // **为什么入口级**：基线本来就是"**每个入口独立编自己的闭包**"（42 个入口互不共享
+    // 环境）⇒ 并行 = 把这个 for 循环并行跑，**架构上现成**，不需要任何产物复用 ✓。
+    // （模块级并行要按拓扑序排依赖、还要处理共享环境 —— 那是另一个形状，
+    //  等"模块级产物"落地后再做。）
+    //
+    // **线程安全**（逐项核对过，2026-09-29）：
+    //   * arena：`run_pass_in` 起就是 **per-call**（切片 1a 把 arena 提到调用方）✓
+    //   * judge 的两张缓存：`OnceLock<Mutex<HashMap>>` ✓（锁竞争是唯一代价）
+    //   * `quiet_catch` / prelude 安装深度 / judge 批次：**thread_local** ✓
+    //   * 统计计数器：`AtomicU64` ✓ · `install_printer`/`install_quiet_hook`：`Once` ✓
+    //   * LSP 侧全局只有 `OnceLock` ✓（`build` 路径不经它）
+    //
+    // **确定性红线**：并行**只**并行"编译"，**输出仍在主线程按 `files` 顺序重放** ✓
+    // ⇒ `--json` 与串行**逐字节相同**（含 `build.decl` 逐条事件 —— 事件内容与顺序
+    //    都由被编译文件自己决定，与谁先跑完无关）✓
+    //
+    // **并发度**：`SOKONANODA_BUILD_JOBS` 可配；默认 = 可用核数；`1` ⇒ 走**串行原路**
+    // （逐字节等价的最强保证，也方便 A/B）✓
+    let jobs = build_jobs(files.len());
+    let mut per_file: Vec<Option<Result<&'static str, String>>> =
+        (0..files.len()).map(|_| None).collect();
+    let mut per_file_ticks: Vec<Vec<(String, usize, usize)>> =
+        (0..files.len()).map(|_| Vec::new()).collect();
+    if jobs > 1 {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        // **每个 worker 自己攒结果**（`Vec` 各归各的 ⇒ 不用锁 ✓），
+        // `scope` 结束后由主线程按 `files` 顺序归位 —— 这样连"写结果"都不需要同步 ✓。
+        type Slot = (
+            usize,
+            Result<&'static str, String>,
+            Vec<(String, usize, usize)>,
+        );
+        let next = AtomicUsize::new(0);
+        let next = &next;
+        let files = &files;
+        let collected: Vec<Vec<Slot>> = std::thread::scope(|scope| {
+            let handles: Vec<_> = (0..jobs)
+                .map(|_| {
+                    scope.spawn(move || {
+                        let mut mine: Vec<Slot> = Vec::new();
+                        loop {
+                            let index = next.fetch_add(1, Ordering::Relaxed);
+                            if index >= files.len() {
+                                break;
+                            }
+                            let file = &files[index];
+                            let mut ticks: Vec<(String, usize, usize)> = Vec::new();
+                            let mut sink = |tick: sokonanoda_front::compile::ProgressTick<'_>| {
+                                ticks.push((tick.module.to_string(), tick.index, tick.total));
+                            };
+                            let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> =
+                                if json { Some(&mut sink) } else { None };
+                            let status = std::fs::read_to_string(file)
+                                .map_err(|e| format!("cannot read: {e}"))
+                                .and_then(|src| {
+                                    build_one(file, &src, root, no_project, progress, None)
+                                });
+                            mine.push((index, status, ticks));
+                        }
+                        mine
+                    })
+                })
+                .collect();
+            handles
+                .into_iter()
+                .map(|handle| handle.join().unwrap_or_default())
+                .collect()
+        });
+        for slot in collected.into_iter().flatten() {
+            per_file[slot.0] = Some(slot.1);
+            per_file_ticks[slot.0] = slot.2;
+        }
+    } else {
+        for (index, file) in files.iter().enumerate() {
+            let mut ticks: Vec<(String, usize, usize)> = Vec::new();
+            let mut sink = |tick: sokonanoda_front::compile::ProgressTick<'_>| {
+                ticks.push((tick.module.to_string(), tick.index, tick.total));
+            };
+            let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> =
+                if json { Some(&mut sink) } else { None };
+            let status = std::fs::read_to_string(file)
+                .map_err(|e| format!("cannot read: {e}"))
+                .and_then(|src| build_one(file, &src, root, no_project, progress, None));
+            per_file_ticks[index] = ticks;
+            per_file[index] = Some(status);
+        }
+    }
+
+    // **按 `files` 顺序重放**（输出确定性 = 与串行逐字节相同的前提）。
+    for (index, file) in files.iter().enumerate() {
         let file_text = file.display().to_string();
         heartbeat.set_file(&file_text);
         heartbeat.note();
-        let mut sink = |tick: sokonanoda_front::compile::ProgressTick<'_>| {
-            emit_json(serde_json::json!({
-                "type": "build.decl",
-                "file": file_text,
-                "module": tick.module,
-                "index": tick.index,
-                "total": tick.total,
-            }));
-            heartbeat.note();
-        };
-        let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> =
-            if json { Some(&mut sink) } else { None };
-        let status = std::fs::read_to_string(file)
-            .map_err(|e| format!("cannot read: {e}"))
-            .and_then(|src| build_one(file, &src, root, no_project, progress, None));
-        let status = match status {
-            Ok(status) => status,
-            Err(message) => {
+        if json {
+            for (module, tick_index, total) in &per_file_ticks[index] {
+                emit_json(serde_json::json!({
+                    "type": "build.decl",
+                    "file": file_text,
+                    "module": module,
+                    "index": tick_index,
+                    "total": total,
+                }));
+                heartbeat.note();
+            }
+        }
+        let status = match per_file[index].take() {
+            Some(Ok(status)) => status,
+            Some(Err(message)) => {
                 eprintln!("error: {}: {message}", file.display());
                 "failed"
             }
+            None => "failed",
         };
         match status {
             "hit" => hit += 1,
@@ -203,7 +291,7 @@ pub(crate) fn build(
         if json {
             emit_json(serde_json::json!({
                 "type": "build.file",
-                "file": file.display().to_string(),
+                "file": file_text,
                 "status": status,
             }));
             heartbeat.note();
@@ -227,6 +315,25 @@ pub(crate) fn build(
         println!("built {total} file(s) — {hit} hit, {compiled} compiled, {failed} failed");
     }
     ExitCode::SUCCESS
+}
+
+/// **并行度**（入口级并行）：`SOKONANODA_BUILD_JOBS` 可配，默认 = 可用核数。
+///
+/// `1` ⇒ 走串行原路（A/B 与"逐字节等价"的最强保证）；上限 = 文件数（开更多线程没意义）。
+/// 出处（业界先例）：官方建议**量单文件时逐文件单独跑**以免并行开销污染
+/// ⇒ 所以本函数可退化成 1 ✓
+/// <https://leanprover-community.github.io/archive/stream/270676-lean4/topic/profiling.20a.20project.html#500637969>
+fn build_jobs(files: usize) -> usize {
+    let requested = std::env::var("SOKONANODA_BUILD_JOBS")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .filter(|n| *n > 0)
+        .unwrap_or_else(|| {
+            std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(1)
+        });
+    requested.clamp(1, files.max(1))
 }
 
 /// `--clean` 用：从位置参数解析出**模块根**（项目入口的 `plan.root`）并去重。
