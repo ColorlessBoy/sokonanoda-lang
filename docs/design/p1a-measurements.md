@@ -517,3 +517,21 @@ pub fn judge_render_type(prefix_src, options, binders, ty: &str) -> Option<Strin
 
 ⚠ **别在没量 shadow 之前默认开**：`by` 引擎的分叉会以"tactic 步进不同"的形式出现，
 比 `elab` 路径更难定位 ⇒ 影子档是这一档的**必需品**，不是可选项。
+
+## 5. ⚠ 本档**还缺**的一条判据：⑤ 反向判据的 wide 版（recipe，别再重勘）
+
+`crates/front/tests/judge_inplace_on.rs` 只覆盖 P1-a 那两个点（它设 `SOKO_JUDGE_INPLACE=on`、
+**不设** wide）。wide 那两个点（`guarded_binder_type` / `solve_prefix_args`）要各有一个
+"依赖真变 ⇒ 必须重算"的实测。**触发条件已勘明**：
+
+* `guarded_binder_type`（`binder_notation_operand` → guard 反解）：走**两段式 binder 记法**，
+  即 `∃ x ∈ s, p x`（binder 不写类型、由 guard `x ∈ s` 反解）——
+  见 `courses/set-theory/lib/Exists.sokonanoda:103` 的 `binder_notation "∃" => Exists`
+  与注释「一段式要写标注，**两段式靠 guard**」。⇒ 夹具要自带：`Set` + `∈` 记法 + `Exists`
+  + `binder_notation "∃" => Exists`，然后**改 guard 里 `∈` 的目标签名**（例如把 `Set.mem`
+  的第二个参数类型换掉）⇒ 结论必须变 **且** `INPLACE_USED` 增长。
+* `solve_prefix_args`（`notation_prefix_args` → 前导参数反解）：走**缺前导参数的记法**，
+  如集合字面量 `{a, b}`（课程侧见 `Set.pair` 一族）；夹具同样自带声明即可。
+
+⚠ 两条都要带**"判据不空转"断言**（`INPLACE_USED` 必须增长）—— 我这一档就是靠它
+发现"夹具没踩到接线点"的（第一次写的 `c = x` 夹具 `used=0`，当场判红 ✓）。
