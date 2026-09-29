@@ -70,6 +70,54 @@ fn emit_json(value: serde_json::Value) {
     println!("{value}");
 }
 
+/// **② 文件级进度**（2026-09-30）：一个文件**编译完**就报一条 `build.progress`。
+///
+/// 为什么非加不可（用户 2026-09-29 实测「Rebuild 长时间 0%、最后突跳」）：
+/// `build.file` 要等**全部**文件编译完才按 `files` 顺序重放 ⇒ 编译期间**一条
+/// 进度都没有**（实测冷编课程：首条 `build.decl` 在 **160.8s** 之后），
+/// 于是前端只能把 `0%` 一直挂着、最后几十毫秒里从 0 跳到 100 ✗。
+///
+/// **为什么是新事件而不是"提前发 `build.file`"**：`build.file` 的顺序与内容是
+/// `--json` 的**确定性红线**（并行只并行编译，输出仍按 `files` 顺序重放 ⇒ 与串行
+/// 逐字节相同）。提前发就会让顺序随线程完成次序变 ⇒ 破红线 ✗。
+/// ⇒ **additive 的新 `type`**（老消费者忽略未知 `type` ✓，`docs/protocol.md` 已同步）：
+/// 它**只带"已完成几个"**（`done`/`total`/`file`），是**进度**不是结果，
+/// 消费者按"最后一条为准"渲染 ⇒ 天然并发安全（少一条只是少一次刷新）✓。
+///
+/// **它替代了心跳的位置**：有了它，可见面**只在真有文件编完时才动**
+/// （不假装百分比 ✓）；而 `build.tick` 是**按墙钟**的兜底（默认关，见
+/// [`tick_period_ms`]）—— 两者互补，不是二选一。
+struct ProgressCounter {
+    done: std::sync::atomic::AtomicUsize,
+    total: usize,
+    enabled: bool,
+}
+
+impl ProgressCounter {
+    fn new(total: usize, enabled: bool) -> Self {
+        Self {
+            done: std::sync::atomic::AtomicUsize::new(0),
+            total,
+            enabled,
+        }
+    }
+
+    /// 一个文件编完了 ⇒ 报一条。**只报"已完成几个"**（不报是谁：结果按顺序重放）。
+    fn note_file(&self, file: &Path) {
+        use std::sync::atomic::Ordering;
+        if !self.enabled {
+            return;
+        }
+        let done = self.done.fetch_add(1, Ordering::Relaxed) + 1;
+        emit_json(serde_json::json!({
+            "type": "build.progress",
+            "done": done,
+            "total": self.total,
+            "file": file.display().to_string(),
+        }));
+    }
+}
+
 /// **P2 心跳**：声明级事件之间的间隔仍可能很长（实测 `unit08-solution` 里**单条声明**
 /// 最贵 ~14s —— 那是一条 `by` 证明内部的判定，前端没有更细的回调点）⇒ 光有声明级
 /// 事件，UI 还是会"长时间不动"✗。心跳**只报"已用时 + 当前文件"**（**不假装百分比** ✓），
@@ -234,6 +282,8 @@ pub(crate) fn build(
     // **并发度**：`SOKONANODA_BUILD_JOBS` 可配；默认 = 可用核数；`1` ⇒ 走**串行原路**
     // （逐字节等价的最强保证，也方便 A/B）✓
     let jobs = build_jobs(files.len());
+    // **② 文件级进度**：并行阶段每编完一个就报一条（additive，见 [`ProgressCounter`]）。
+    let progress_counter = ProgressCounter::new(files.len(), json);
     let mut per_file: Vec<Option<Result<&'static str, String>>> =
         (0..files.len()).map(|_| None).collect();
     let mut per_file_ticks: Vec<Vec<(String, usize, usize)>> =
@@ -250,6 +300,7 @@ pub(crate) fn build(
         let next = AtomicUsize::new(0);
         let next = &next;
         let files = &files;
+        let counter = &progress_counter;
         let collected: Vec<Vec<Slot>> = std::thread::scope(|scope| {
             let handles: Vec<_> = (0..jobs)
                 .map(|_| {
@@ -272,6 +323,7 @@ pub(crate) fn build(
                                 .and_then(|src| {
                                     build_one(file, &src, root, no_project, progress, None)
                                 });
+                            counter.note_file(file);
                             mine.push((index, status, ticks));
                         }
                         mine
@@ -298,6 +350,7 @@ pub(crate) fn build(
             let status = std::fs::read_to_string(file)
                 .map_err(|e| format!("cannot read: {e}"))
                 .and_then(|src| build_one(file, &src, root, no_project, progress, None));
+            progress_counter.note_file(file);
             per_file_ticks[index] = ticks;
             per_file[index] = Some(status);
         }

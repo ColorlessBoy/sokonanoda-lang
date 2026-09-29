@@ -2160,6 +2160,82 @@ fn cli_build_heartbeat_is_off_unless_asked_for() {
     );
 }
 
+/// **② 的判据（用户 2026-09-29：「Rebuild 长时间 `0%`、最后突跳」）—— CLI 那一半**。
+///
+/// 根因：`build.file` 要等**全部**文件编译完才按 `files` 顺序重放
+/// ⇒ 编译期间**一条进度都没有**（实测冷编课程：首条 `build.decl` 在 **160.8s** 之后）
+/// ⇒ 前端只能把 `0%` 一直挂着。修法 = **additive 的新事件 `build.progress`**，
+/// 每个文件**编完就报**（只带 `done`/`total`/`file`，是**进度**不是结果）。
+///
+/// ⚠ **为什么不能"提前发 `build.file`"**：它的顺序是 `--json` 的确定性红线
+/// （并行只并行编译、输出仍按 `files` 顺序重放 ⇒ 与串行逐字节相同）。
+/// 这条判据**同时钉住那件事**：`build.progress` 必须**全部**排在第一条
+/// `build.file` 之前（= 结果段没被搅乱）。
+#[test]
+fn cli_build_reports_file_progress_while_it_compiles() {
+    // 多文件夹具：**一个文件不够**（`done < total` 的中间态根本不存在 ⇒ 判据空转）。
+    let dir = temp_home();
+    for i in 0..4 {
+        std::fs::write(
+            dir.join(format!("p{i}.sokonanoda")),
+            "def id : Prop -> Prop := fun (x : Prop) => x\n",
+        )
+        .expect("write canvas");
+    }
+    let path = dir.to_str().expect("utf-8 path");
+
+    let out = run_args_with_cache(&["build", "--json", path], None, &cache_dir("progress"));
+    assert!(
+        out.status.success(),
+        "build must succeed, stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let events = json_events(&String::from_utf8_lossy(&out.stdout));
+
+    let progress: Vec<&serde_json::Value> = events
+        .iter()
+        .filter(|e| e["type"] == "build.progress")
+        .collect();
+    let total = events
+        .iter()
+        .find(|e| e["type"] == "build.begin")
+        .and_then(|e| e["files"].as_u64())
+        .expect("build.begin.files");
+    assert_eq!(
+        progress.len() as u64,
+        total,
+        "每个文件编完都要报一条 `build.progress`（改前一条都没有）：{events:?}"
+    );
+    // `done` 从 1 数到 total，且**每一步都是绝对值**（消费者不累加 ✓）。
+    let dones: Vec<u64> = progress
+        .iter()
+        .map(|e| e["done"].as_u64().expect("done"))
+        .collect();
+    assert_eq!(
+        dones,
+        (1..=total).collect::<Vec<u64>>(),
+        "`done` 必须是 1..=total 的绝对值序列：{dones:?}"
+    );
+    assert!(
+        progress.iter().all(|e| e["total"].as_u64() == Some(total)),
+        "每条都要带同一个 `total`（消费者才知道分母）"
+    );
+    // **确定性红线**：结果段（`build.file`）一条都不许被提前。
+    let last_progress = events
+        .iter()
+        .rposition(|e| e["type"] == "build.progress")
+        .expect("progress");
+    let first_file = events
+        .iter()
+        .position(|e| e["type"] == "build.file")
+        .expect("build.file");
+    assert!(
+        last_progress < first_file,
+        "`build.progress` 必须**全部**排在第一条 `build.file` 之前 —— 结果段的顺序是 \
+         `--json` 的确定性红线，不许被并发完成次序搅乱：{events:?}"
+    );
+}
+
 #[test]
 fn cli_build_clean_removes_entries() {
     let file = write_canvas("build-clean");

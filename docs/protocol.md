@@ -772,15 +772,15 @@ global fallback validates that the entry's module root matches the current one
   then `build.summary` (`{type, files, hit, compiled, failed}`); `build --clean
   --json` emits `build.clean` (`{type, removed, global, project}`, additive:
   `removed == global + project`);
-- **P2 进度粒度**（2026-09-28，additive —— 老消费者忽略未知 `type` ✓，两条都**只在
-  真编译**时发、`hit` 文件不发）：
-  `build.decl` (`{type, file, module, index, total}`) 每处理**一条命令（声明）**一条，
-  `index` 在 `module` 内**从 0 起**、`total` 是该单元的命令总数（客户端可渲染
-  `声明 7/31 · lib.Set`）；`build.tick` (`{type, elapsed_ms, file}`) 是**心跳**——
-  **默认不发**（2026-09-30 实测：`file` 159/159 空串、且全在首条 `build.decl` 之前
-  ⇒ 对可见面零贡献、只是刷屏）；要就 `SOKO_BUILD_TICK_MS=<ms>`（默认 5s，
-  `SOKO_BUILD_NO_TICK=1` 关），发时**只报已用时** ✓。它兜"声明级事件之间仍可能很长"
-  （单条声明最贵 ~14s）⇒ 判据「最长无输出间隔 ≤ 2s」见 `check-progress-gap.py`；
+- **P2/P4 进度粒度**（2026-09-28/30，additive —— 老消费者忽略未知 `type` ✓，只在
+  **真编译**时发、`hit` 不发）：`build.progress` (`{type, done, total, file}`) ——
+  **② 每个文件编完就报**（`done` 是**绝对值**、消费者不累加），且**全部排在结果段
+  之前**（结果段顺序是确定性红线）；`build.decl` (`{type, file, module, index, total}`)
+  每条**命令（声明）**一条，`index` 从 0 起（渲染 `声明 7/31 · lib.Set`）；
+  `build.tick` (`{type, elapsed_ms, file}`) 是**心跳**、**默认不发**（实测 `file`
+  159/159 空串、全在首条 `build.decl` 之前 ⇒ 只是刷屏）；要就
+  `SOKO_BUILD_TICK_MS=<ms>`（默认 5s，`SOKO_BUILD_NO_TICK=1` 关）。兜底判据
+  「最长无输出间隔 ≤ 2s」见 `scripts/check-progress-gap.py`；
 - the human summary is `built K file(s) — H hit, M compiled, F failed`.
 
 Environment: `SOKONANODA_CACHE_DIR` relocates the cache root,

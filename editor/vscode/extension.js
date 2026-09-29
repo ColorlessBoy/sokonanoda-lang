@@ -753,6 +753,15 @@ class InfoviewProvider {
     return this._lastProject;
   }
 
+  /// **e2e 用**：面板上**当前**那一帧进度（`{phase, label, percent, detail}`）。
+  ///
+  /// ② 的判据（「rebuild 中途必须看到**非 0** 百分比」）必须在**真宿主**里读
+  /// **真的推送过什么** —— webview 的 DOM 在 iframe 里够不到 ✗，所以读这条
+  /// 「最后一帧」就是"屏幕上那一刻显示的是什么"的最强可达事实 ✓。
+  lastProgress() {
+    return this._lastProgress;
+  }
+
   lastState() {
     return this._lastState ? this._lastState.state : null;
   }
@@ -2008,6 +2017,10 @@ async function runBuild(context, { clean = false, courseProvider } = {}) {
   // ⚠ **输出面板不是进度** ✗ —— 它只是日志（判据里不许拿它当"有进度"的证据）。
   let total = 0;
   let done = 0;
+  // ②（2026-09-30）：CLI 是否发过 `build.progress`。发过就以**它**为准
+  // （`done` 是绝对值），否则退回"自己数 `build.file`"（老 CLI 兼容）。
+  // ⚠ 不这样分就会**双重计数**：progress 报 42、随后重放再 `+= 1` 四十二次 ✗。
+  let sawProgress = false;
   // VS Code **原生**进度条那一路（`withProgress` 的 `progress.report`）——
   // 它只在 `run` 里拿得到，所以留个模块内的转发口给 `onLine`。
   let nativeReport = null;
@@ -2030,8 +2043,25 @@ async function runBuild(context, { clean = false, courseProvider } = {}) {
         percent: 0,
         detail: `0/${total} 文件`,
       });
+    } else if (event.type === "build.progress") {
+      // **② 文件级进度**（2026-09-30）：编译**期间**每编完一个文件就来一条。
+      // 改前这里什么都没有 —— `build.file` 要等**全部**文件编译完才按 `files`
+      // 顺序重放（实测冷编课程：首条在 **160.8s** 之后）⇒ 屏幕上从头到尾一个
+      // `0%`，最后几十毫秒跳到 100（用户原话「虚假的进度展现」）。
+      sawProgress = true;
+      total = Number(event.total) || total;
+      done = Number(event.done) || 0;
+      const name = shortName(event.file);
+      nativeReport?.(`${done}/${total || "?"} · ${name}`, 0);
+      applyProgress({
+        phase: "report",
+        label: `${done}/${total || "?"} · ${name}`,
+        percent: total > 0 ? Math.round((done * 100) / total) : null,
+        detail: `${done}/${total || "?"} 文件 · ${name}`,
+      });
     } else if (event.type === "build.file") {
-      done += 1;
+      // 老 CLI（不发 `build.progress`）才自己数；新 CLI 的 `done` 由上面那条驱动。
+      if (!sawProgress) done += 1;
       const name = shortName(event.file);
       const mark = event.status === "failed" ? "✗" : "✓";
       // ⚠ **每一帧都要 report**（不是只在首尾 ✗）：`increment > 0` 的那次

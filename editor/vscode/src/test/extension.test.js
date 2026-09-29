@@ -686,6 +686,85 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("Rebuild shows a non-zero percent while it is still running (②)", async () => {
+    // **② 用户 2026-09-29 实测**：*「Rebuild 时 Infoview 长时间 `0%`、最后几秒突跳
+    // 『编译已完成』」* —— 原话「属于**虚假的进度展现**」。
+    //
+    // ## 根因（本轮实测，在 CLI 侧量出来的）
+    //
+    // `runBuild` 的进度是**文件级**的，`percent = done/total`；而 `build.file`
+    // 要等**全部**文件编译完才按 `files` 顺序重放（`crates/cli/src/build.rs`：
+    // 并行编译阶段只往 `per_file` 里塞结果，**一条事件都不发**）⇒ 于是：
+    //   * `build.begin` 一帧 `0%`；
+    //   * 然后**整段编译期间一条 `build.file` 都没有**（实测冷编课程：首条
+    //     `build.decl` 在 **160.8s** 之后）；
+    //   * 重放阶段几十毫秒内把 42 条 `build.file` 全发完 ⇒ `0% → 100%` 突跳。
+    //
+    // ⇒ 这是**真缺陷**，不是观感问题：屏幕上确实从头到尾只有一个 `0%`。
+    //
+    // ## 判据（绑"屏幕上看什么"）
+    //
+    // 在**真 VS Code 宿主**里跑 `rebuild`，**轮询面板当前那一帧**，
+    // 要求**至少有一帧** `0 < percent < 100`。修前这一条必然拿不到（只有 0 与 100）。
+    //
+    // ⚠ **不许靠"事件在流里出现过"代替** ✗ —— 用户看到的是**某一帧**，
+    // 不是事件流的全集（这正是 §0 那条"判据必须绑用户可见结果"）。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    await waitFor("②：项目视图就绪（rebuild 的目标取它的 root）", async () => {
+      return typeof extensionApi?.project?.answer?.project?.root === "string";
+    });
+
+    // 前置：先 build 一次把缓存**填上**，这样 rebuild 是一次**真的冷编**
+    // （`--clean` 之后全是 miss）—— 否则 rebuild 秒完，判据会**空转** ✗。
+    await vscode.commands.executeCommand("sokonanoda.build");
+
+    // 采样器：`lastProgress()` 就是 webview 收到的那一帧（`setProgress` 先存再发）。
+    const frames = [];
+    let sampling = true;
+    const sampler = (async () => {
+      while (sampling) {
+        const frame = extensionApi?.infoview?.lastProgress?.();
+        if (frame) frames.push({ ...frame, at: Date.now() });
+        await sleep(25);
+      }
+    })();
+
+    const started = Date.now();
+    let rebuilt;
+    try {
+      rebuilt = await vscode.commands.executeCommand("sokonanoda.rebuild");
+    } finally {
+      sampling = false;
+      await sampler;
+    }
+    const wall = Date.now() - started;
+    assert.strictEqual(typeof rebuilt, "string", "rebuild 必须返回摘要文本");
+
+    // **自检（防空转）**：夹具不够慢 ⇒ "中途"根本不存在 ⇒ 判据无意义 ✗。
+    assert.ok(
+      wall >= 400,
+      `rebuild 只跑了 ${wall}ms —— 太快的夹具会让"中途必须看到非 0%"**空转**，` +
+        `必须让它真的编一会儿`,
+    );
+
+    const mid = frames.filter(
+      (f) => typeof f.percent === "number" && f.percent > 0 && f.percent < 100,
+    );
+    assert.ok(
+      mid.length > 0,
+      `rebuild 中途**必须**至少有一帧非 0 百分比（用户实测的"长时间 0% 突跳"）—— ` +
+        `采样 ${frames.length} 帧、耗时 ${wall}ms，percent 取值集合：` +
+        `${JSON.stringify([...new Set(frames.map((f) => f.percent))])}`,
+    );
+    // 顺带钉住"它是**持续在动**、不是某一帧的毛刺"：至少两帧不同的中间值。
+    assert.ok(
+      new Set(mid.map((f) => f.percent)).size >= 2,
+      `中间帧必须**持续在动**（用户要的是"进度在走"，不是一帧毛刺）：` +
+        `${JSON.stringify(mid.map((f) => f.percent))}`,
+    );
+  });
+
   test("the Infoview receives the project view (E30)", async () => {
     // **E30**（用户：「监测到 toml 等项目信息也应该在 infoview 里展现出来」）。
     //
