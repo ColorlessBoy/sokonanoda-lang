@@ -37,9 +37,12 @@
 
 ### 待做队列（优先级从上到下）
 
-1. **P1-a → P1-b → P1-c → P1-d** —— 编译提速（**内核层级**：让判定就地查环境、打那 88%）。
+1. **P1-a → P1-b → P1-c → P1-d** —— 编译提速（**内核层级**：让判定就地查环境、打那 **68%**）。
    ⚠ **必须给出用户体感的"改前 / 改后"数字**（**截至 09-29 17:52 仍为 0**）
-2. **Q1** —— 插件 `build` 超时做成配置项（用户原话：「**导致插件完全不能使用了**」）
+2. **Q1 + Q2**（插件可用性，同批做）—— **Q1** `build` 超时做成配置项（用户原话：「**导致插件完全不能使用了**」）；
+   **Q2** 插件自带「**安装 CLI**」（用户 18:53 拍板走法：「**直接装插件自带的 cli，版本还能对齐**」⇒
+   **离线自带即装**，不下载不联网；**但「版本对齐」必须配一条 `--version` 值断言**，见 §2 Q 组 ——
+   本机 `bin/` 现在就是 **0.74.0 vs 插件 0.78.0**，差 4 个版本）
 3. **E19 甲案** = `v0.79.0`（高风险，单独发版）· E20 乙案 = 降级路径
 4. P2 / P3 · X2 剩余（§3 / §4）
 
@@ -189,7 +192,7 @@
 | 环节 | 内容 | 状态 |
 |---|---|---|
 | **Q1** | `sokonanoda: build` 超时**做成配置项**：`editor/vscode/extension.js:1831` 硬编码 `const BUILD_TIMEOUT_MS = 300000;`（**`a948f65d` 09-19 由本 agent 写下、10 天未动、注释零理由**，抄的是「与课程树同款」）⇒ 改读 `sokonanoda.build.timeoutMs`，并把「去哪改」写进超时消息（现在只有 `timeout after 300000ms`）。CLI 侧**没有任何超时**（终端自建不受限，是当下的推荐出路） | ⬜ **未做** —— **用户必然踩线**：冷编 `courses/set-theory` 基线 **313.8s > 300s** ⇒ 清缓存后第一次编一定超时<br>⚠ **硬约束**：`crates/cli/tests/extension.rs:1412` 断言 `script.contains("BUILD_TIMEOUT_MS")` ⇒ **必须保留该常量名**（读配置后仍以它兜底），改名即判红<br>⚠ 该守卫只锁「有超时常量 + 会 kill」这个**形状**，**从没断言这个值够不够用**；且「非法值回退」这条判据**撤改动验不出来**，必须**注入 bug** 才红<br>优先级：**低**（排在 P1 收口之后）· 登记时间 16:12（此前只在会话上下文，goal 与 PLAN 均无） |
-| **Q2** | **插件自带「安装 / 更新 CLI」** —— 用户 2026-09-29 18:39 原话：「我希望插件能带上安装cli的功能，**像 lean4 一样的**」 | ⬜ **未做**（**排在 P1 收口之后**，与 Q1 同批）<br>**对标 Lean 4（已调研，别重勘）**：Lean 扩展**不内嵌** Lean 二进制 —— 启动时检测版本管理器 `elan`，**没装就弹提示 + 一个按钮**「Install Lean using Elan」，点了**在 VS Code 内置终端里跑官方安装脚本**；另有 `Docs: Show Setup Guide` 向导，左侧列进度清单（文档 / 依赖 / Elan / 项目初始化）逐项点选；工具链版本按项目里的 `lean-toolchain` 拉。<br>**sokonanoda 现状（已查实）**：① **8 个平台各一个 `.vsix`**（各 ~6MB）⇒ **内嵌二进制**，**插件版本 = CLI 版本**；② 但 release 里**已经有** `sokonanoda-cli-<target>.tar.gz`（8 平台）+ **`SHA256SUMS`** ⇒ **下载源已就绪，不必新造**；③ 解析入口 `editor/vscode/extension.js:129 resolveCliCommand()` → `server.resolveCliCommand()`。<br>**病根（今天实测过）**：内置二进制**落后于 `target/release`** ⇒ 用户「插件完全不能用了」的那次就是它。<br>**甲案（推荐）**：加命令 `sokonanoda: install / update CLI` + **检测失败时给可点击按钮**（不是干巴巴的报错）⇒ 按平台/架构从 Release 取 `sokonanoda-cli-<target>.tar.gz`，**校 `SHA256SUMS`** 后解到用户目录（如 `~/.sokonanoda/bin`）；解析优先级 **配置 `sokonanoda.cliPath` > 用户目录 > 插件内置（兜底）**；**显示两边版本 + 不一致时提示**（解今天那个坑）。<br>⚠ **必须留的后门**：GitHub 直连在中文网络下可能不通 ⇒ 下载 URL **要可配镜像**（Lean 4 用的是 `raw.githubusercontent.com`，别照抄）。<br>⚠ **不要做乙案（自造版本管理器）** —— 太重，当前 8 平台资产 + SHA256SUMS 已经够用。 |
+| **Q2** | **插件自带「安装 CLI」** —— 用户 09-29 18:39 原话：「我希望插件能带上安装cli的功能，**像 lean4 一样的**」；**18:53 拍板走法**：「**直接装插件自带的 cli，版本还能对齐**」 | ⬜ **未做**（**排在 P1 收口之后**，与 Q1 同批）<br>**走法 = 「自带即装」**：把 VSIX 里那个 CLI 拷到用户目录 —— **不下载 · 不联网 · 不校 SHA256 · 不需要镜像**，因为**装的就是包里那个** ⇒ **版本对齐结构性成立**，不靠人记。<br>**实测（09-29 18:55，别重勘）**：已发布 `sokonanoda-darwin-arm64.vsix`（v0.78.0）内含 `package.json` **0.78.0** + `bin/darwin-arm64/sokonanoda --version` = **0.78.0** ⇒ **发布物里是对齐的** ✓<br>**⚠ 唯一真缺口（同一次实测抓到）**：本机 `editor/vscode/bin/darwin-arm64/sokonanoda --version` = **0.74.0**（9-28 02:51 遗留）—— `bin/` 是 `.gitignore:15` 的构建产物、靠打包时 `stage:lsp` 现拷 ⇒ **F5 开发宿主解析到的就是它** ⇒ **静默差 4 个版本**。<br>**根因**：现有守卫全是**「声明对声明」**（`crates/cli/tests/extension.rs:976 cargo_and_extension_versions_match` 只比 `Cargo.toml` ↔ `package.json`）—— **没有任何东西会跑那个二进制问它版本** ⇒ 「版本对齐」目前是一句**没有守卫的声明**（＝ §5 归纳的第 5 类病根：**锁形状不锁值**）。<br>**现成零件（别重造）**：① 插件侧已有 LSP 同款机制 `serverCacheDir()` = **`~/.local/share/sokonanoda/bin`**（`server.js:182`）/ `serverDest()` / `serverVersionMarker()` / `cachedServerIsCurrent()` / `downloadLspBinary()`（`:303`：`tar xzf` + `chmod 755` + 写 `<name>.version`）⇒ **装内置 CLI = 同一条路去掉网络那一半** ② CLI 侧自带 `version / doctor / setup / update`（`docs/design/binary-cli.md`，0.13.0 起；缓存标记 `<version> <vsce-target>`）。<br>**落点（四条）**：① 命令 `sokonanoda: 安装命令行`：拷 `extensionPath/bin/<target>/sokonanoda` → `~/.local/share/sokonanoda/bin/` + `chmod 755` + 写 `.version` 标记 —— **必须拷贝、不许软链**（VSIX 目录带版本号，升级即失效）② 装完**跑一次 `--version` 与插件版本比对**，不一致 **判红** + 可行动文案（开发者：本机 `bin/` 陈旧 ⇒ 重新打包；用户：升级插件）③ `resolveCliCommand()`（`server.js:162`）现为 **bundled → workspace build → PATH**、**不读 setting/env/cache**、返回**裸字符串** ⇒ 加缓存位置 + 版本一致性；**改返回形状会踩契约测试**（`:397` 断言 server.js 含 `resolveCliCommand`+`sokonanoda.exe` · `:1418` 断言 `script.contains("resolveCliCommand()")`）④ 挂进已有 `sokonanoda doctor` 六项（`DOCTOR_CHECKS`，`extension.js:1606`）⇒ 第 7 项 `cli-version`。<br>**⚠ 新守卫必须是值断言**（`--version` **输出** == `package.json` version），**不许再写形状断言** —— 否则就是 `BUILD_TIMEOUT_MS` 那条「锁名字不锁值」的复刻。<br>**保留出口**：`sokonanoda.cliPath`（+ `SOKONANODA_BIN`）给「我要用自己编的」，与 server 的 `serverOverride` 同构，**默认仍 bundled-first**（不破 `:417`）· **不做**「自造版本管理器」（太重）· **不再需要镜像后门**（离线可装） |
 
 > **为什么单列一组**：P 组是 rebuild 性能一条线，Q1 是**插件可用性缺口**（不同根因）。
 > 它与 P1′ 同属「清缓存后的冷编代价」，但**修法无关**（一个改数字可配，一个改架构）⇒ 不混进 P 组。
