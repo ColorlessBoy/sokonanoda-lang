@@ -37,6 +37,39 @@
 **N 已实测 = 15**（41 个入口）：库模块编译 **132 → 58**（**2.28×**）；
 session 趟数 56 → 56（**不变**，每个入口仍要自己那趟）。
 
+## 3.5 🔑 已修的两个 bug（2026-09-29 17:2x 实测，别重踩）
+
+**(a) 前缀要取"最后一格"**（`3f61ad95` + `d20cb305`）：入口趟的 `units` 是
+`entry_units`（**长度 1**）⇒ walk 的 `unit_idx` **恒为 0** ⇒ 要的是
+`closure_prefixes` 的**最后一格**；而第 0 格是**空串**。传整个数组 ⇒ 入口拿不到库层前缀
+⇒ 实测「前缀源码无法解析」+ `≠`/`{a,b}`/`=`/`∈` 全读不到目标类型。
+**修后单入口 `errors=[]`、`compiled:1 failed:0`** ✓。
+⚠ **前缀数组按「闭包下标」编号，walk 的 `unit_idx` 按「本趟 units 下标」编号 —— 只跑一个单元时两者不是同一套** ✗。
+
+**(b) 等价类分组**（CLI 侧，`build.rs`）：类键 = 库模块名序列（拓扑序）；
+组内库层逐字节相同 ⇒ 与该组入口自己的前缀一致 ✓。**N=15**（41 入口）。
+修后全课 `compiled:42 failed:0` ✓（此前 12/30）。
+
+## 3.6 ⚠ **仍未接完：`build.decl` 心跳**（下一个 bug，已定位到形状）
+
+切片 1 的编译发生在 **session 内部** ⇒ tick 必须由 session 转发
+（基线由 `compile_all_units_with_progress` 发）。**不转发 ⇒ `build.decl` 2647 → 353** ✗
+（`--json` 红线）。
+
+**已试过并失败的形状**：给 `with_project_session` 加
+`Option<&mut dyn ProgressSink>` 或 `Option<Box<dyn ProgressSink + '_>>`
+⇒ 都在逐趟重借处撞 **E0597（does not live long enough）** / **E0521（borrowed data escapes）**。
+
+**待试形状（按推荐序）**：
+1. **每趟一个 sink 的工厂**：`sink_for: impl FnMut(usize) -> &mut dyn ProgressSink`
+   —— 生命周期仍可能卡，但语义最贴；
+2. **session 内建收集器**：session 自己收 `(entry_index, module, index, total)`，
+   调用方从回调里一次取走（**不传 sink**）⇒ 躲开重借问题 ✓ **最可能一次过**；
+3. 把入口趟的编译**留在调用方**（session 只编库层）—— 面最大，且会退回"每入口各编一趟"。
+
+**判据**：`build.decl` **2647** · `build.file` **42** · `compiled:42 failed:0` ·
+`--json` 逐字节不变。
+
 ## 4. 下一步（唯一，新会话直接做）
 
 1. **已修**：session 入口趟现在传"该入口闭包"（`lib_units ++ entry_units`）的前缀与记法表
