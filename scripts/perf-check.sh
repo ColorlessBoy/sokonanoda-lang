@@ -28,12 +28,16 @@ filter=""
 threshold=25
 list_only=0
 suite="fast"
+# **记录模式**（`--emit-records <文件>`）：把本轮跑到的记录写成 ledger 形状的一行，
+# 供 CI 更新"同 runner 家族的基线"用（见 `.github/workflows/ci.yml` 的 perf-gate）。
+emit_records=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --case) shift; filter="${1:-}"; [ -n "$filter" ] || { echo "error: --case 需要一个值" >&2; exit 2; } ;;
     --threshold) shift; threshold="${1:-25}" ;;
     --suite) shift; suite="${1:-fast}"; case "$suite" in fast | cli | all) ;; *) echo "error: --suite 只吃 fast/cli/all" >&2; exit 2 ;; esac ;;
     --list) list_only=1 ;;
+    --emit-records) shift; emit_records="${1:-}"; [ -n "$emit_records" ] || { echo "error: --emit-records 需要一个路径" >&2; exit 2; } ;;
     -h | --help) sed -n '2,22p' "$0"; exit 0 ;;
     *) echo "error: unknown flag: $1" >&2; exit 2 ;;
   esac
@@ -43,7 +47,7 @@ done
 if [ "$list_only" = 1 ]; then
   python3 - <<'PY'
 import json, pathlib
-path = pathlib.Path("docs/perf/ledger.jsonl")
+path = pathlib.Path(os.environ.get("SOKO_PERF_LEDGER", "docs/perf/ledger.jsonl"))
 if not path.exists():
     print("（还没有台账：先跑 scripts/perf-ledger.sh）")
     raise SystemExit(0)
@@ -74,7 +78,8 @@ if [ "$suite" != "fast" ]; then
     --nocapture --test-threads=1 2>&1 | grep -E '^PERFJSON ' | tee -a "$raw" >/dev/null || true
 fi
 
-RAW="$raw" THRESHOLD="$threshold" python3 - <<'PY'
+RAW="$raw" THRESHOLD="$threshold" SOKO_EMIT_RECORDS="$emit_records" \
+SOKO_VERSION="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)" python3 - <<'PY'
 import json
 import os
 import pathlib
@@ -110,7 +115,11 @@ if not records:
 
 # 台账里上一次的 (scope, case) → ms
 baseline = {}
-ledger = pathlib.Path("docs/perf/ledger.jsonl")
+# **基线来源可覆盖**（`SOKO_PERF_LEDGER`）：CI 用它指向**同 runner 家族**的
+# 缓存基线（Actions cache）—— 因为仓库台账里只有 Darwin 记录，而 CI 是
+# ubuntu-24.04 ⇒ 按宿主过滤后**永远"（无基线）"** ⇒ 守卫**空转** ✗
+# （2026-09-29 实测：`grep -c "(无基线)"` = 全部）。本地默认仍是仓库台账 ✓。
+ledger = pathlib.Path(os.environ.get("SOKO_PERF_LEDGER", "docs/perf/ledger.jsonl"))
 if ledger.exists():
     for line in ledger.read_text(encoding="utf-8").strip().splitlines()[-5:]:
         try:
@@ -168,4 +177,24 @@ if regressed:
     print("先复测一次；仍然退化就查这一版改了什么（docs/PERF.md 的判读纪律）。", file=sys.stderr)
     raise SystemExit(1)
 print(f"没有超过 {threshold:.0f}% 的退化。")
+# **记录模式**：把本轮记录追加成一行 ledger 形状（CI 的基线来源）。
+if os.environ.get("SOKO_EMIT_RECORDS"):
+    import datetime, platform as _p, subprocess as _sp
+    def _git(*a):
+        try:
+            return _sp.run(["git", *a], capture_output=True, text=True).stdout.strip()
+        except Exception:
+            return ""
+    entry = {
+        "schema": "soko.perf-ledger/1",
+        "version": os.environ.get("SOKO_VERSION", ""),
+        "commit": _git("rev-parse", "HEAD"),
+        "dirty": False,
+        "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "cli_profile": "release",
+        "host": {"system": _p.system(), "machine": _p.machine(), "release": _p.release()},
+        "records": records,
+    }
+    with open(os.environ["SOKO_EMIT_RECORDS"], "a", encoding="utf-8") as _h:
+        _h.write(json.dumps(entry, ensure_ascii=False) + "\n")
 PY

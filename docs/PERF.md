@@ -2,7 +2,13 @@
 
 性能是本项目的生命线（REQUIREMENTS §9 四十四）。本文档描述性能测试的
 三层结构、阈值设计原则与当前基线；**每次 push 都会在 CI 上例行执行**，
-回归即红，且每版留档（`perf-report` artifact，带版本 + commit SHA）。
+且每版留档（`perf-report` artifact，带版本 + commit SHA）。
+
+> ⚠ **「回归即红」曾经是假的** ✗（2026-09-29 修好）：`perf-gate` 带 `continue-on-error`
+> + 每 case `|| true`，且台账**只有 Darwin 记录**（CI 是 ubuntu）⇒ 按宿主过滤后每条都
+> "（无基线）" ⇒ 撤开关也抓不到东西。**已修**：基线换成**同 runner 家族的 Actions cache**
+> （`SOKO_PERF_LEDGER`，`main` 更新）· 撤两处 `|| true`（阈值 50%）· 反向验证：伪造
+> 10× 快基线 ⇒ `exit 1` ✓。**教训进 `AGENTS.md`**：声称"必红/例行"的逐条核对是否真拦。
 
 ## 分层结构
 

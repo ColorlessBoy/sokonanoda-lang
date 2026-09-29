@@ -286,21 +286,37 @@ jobs:
   # ⇒ **必须先量一次 CI 上的抖动** ✓ ⇒ 再定阈值 ✓ ⇒ 再转成拦 ✓
   # （**门禁假红比没有门禁更糟** ✗）。
   perf-gate:
-    name: perf-gate（性能 smoke，第一轮只报不拦）
+    # **判红**（2026-09-29 撤掉 `continue-on-error`；用户 09:20 第②条）。
+    # 撤的前提不是"CI 不吵"，而是**基线换成了同 runner 家族的缓存基线**：
+    # 仓库台账里只有 Darwin 记录，按宿主过滤后 CI **永远"（无基线）"** ⇒ 守卫空转 ✗
+    # （实测：全部 case 都是"（无基线）"）⇒ 撤掉 `|| true` 也抓不到任何东西 ✗。
+    # 现在：`main` 跑完把本轮数字**存进 Actions cache**；后续 run 从缓存取基线比较。
+    # 阈值 50% ⇒ 只抓**大幅退化**（CI runner 的抖动比本地大，见噪声量化 step 的输出）。
+    name: perf-gate（性能 smoke，判红）
     needs: changes
     if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
-      - name: Perf smoke（对比台账，阈值放宽到 50%）
+      # **同 runner 家族的基线**（跨 run 持久）：仓库台账只有 Darwin ⇒ CI 拿不到
+      # 可比基线 ⇒ 这条缓存就是 CI 的"台账" ✓（key 带 runner 标签，别跨 runner 家族混）。
+      - name: Restore perf baseline（同 runner 家族）
+        uses: actions/cache/restore@v4
+        with:
+          path: .perf-baseline.jsonl
+          key: perf-baseline-${{ runner.os }}-${{ runner.arch }}-${{ github.base_ref || github.ref_name }}
+          restore-keys: |
+            perf-baseline-${{ runner.os }}-${{ runner.arch }}-
+      - name: Perf smoke（对比同 runner 基线；阈值 50%）
         # `--threshold 50` = **比默认 25% 更松** ✓（T-E1 要求"阈值宽松 ✓"）
         # ⇒ CI runner 的抖动比本地大 ✗，宽松阈值只抓**大幅退化** ✓。
+        env:
+          SOKO_PERF_LEDGER: .perf-baseline.jsonl
         run: |
           # ⚠ **`--case` 是"测试名子串"** ✗ —— **不是**台账里的 `(scope, case)` 名 ✗
           # （2026-09-25 round 313 实测 ✓：拿台账名当过滤器 ⇒ **5 个里 3 个 exit=2** ✗
@@ -308,14 +324,41 @@ jobs:
           # `perf_course_did_open_is_recorded` ✓ 一条覆盖台账四条 ✓：
           # `did_open` 的 1905/4644/9085ms **与** `did_open_same_session` 的 **134ms** ✓
           # —— 后者正是 **D-1/D-2 动过的那条热路径** ✓（"同一会话里再判一次" ✓）。
+          # 没有基线文件 ⇒ 先建一个空台账（否则 perf-check 的 --list 段会报错）。
+          [ -f .perf-baseline.jsonl ] || : > .perf-baseline.jsonl
+          failed=0
           for case in judge_prefix_with_imported \
                       keystroke_recompiles_the_closure \
                       teaching_scale_keystroke \
                       keystroke \
                       perf_course_did_open_is_recorded; do
             echo "── perf smoke: $case"
-            scripts/perf-check.sh --case "$case" --threshold 50 || true
+            # **不许 `|| true`** ✗ —— 那会让"退化"也变成绿（用户 09:20 第②条）。
+            scripts/perf-check.sh --case "$case" --threshold 50 || failed=1
           done
+          exit $failed
+      - name: Record perf baseline（仅 main，把本轮数字写进缓存文件）
+        if: github.ref == 'refs/heads/main'
+        env:
+          SOKO_PERF_LEDGER: .perf-baseline.jsonl
+        run: |
+          for case in judge_prefix_with_imported \
+                      keystroke_recompiles_the_closure \
+                      teaching_scale_keystroke \
+                      keystroke \
+                      perf_course_did_open_is_recorded; do
+            scripts/perf-check.sh --case "$case" --threshold 100000 \
+              --emit-records .perf-baseline.jsonl >/dev/null 2>&1 || true
+          done
+          echo "baseline 现在有 $(wc -l < .perf-baseline.jsonl) 条记录"
+      - name: Persist perf baseline（仅 main）
+        # 基线**只在 `main` 上更新** ⇒ PR 比的永远是"已合并的代码" ✓。
+        # 用 `--emit-records` 把上面那一轮的数字追加进缓存文件 ✓。
+        if: github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: .perf-baseline.jsonl
+          key: perf-baseline-${{ runner.os }}-${{ runner.arch }}-${{ github.ref_name }}-${{ github.run_id }}
 
   gates-fast:
     name: gates-fast（课程语料 + 契约，debug 路径）
