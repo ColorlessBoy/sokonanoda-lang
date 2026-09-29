@@ -1033,6 +1033,28 @@ fn judge_infer_cached(
     r
 }
 
+/// **当前 pass 的只读环境视图**（`docs/design/incremental-environment.md` §2）。
+///
+/// **为什么需要它**：`judge_infer` 今天只拿到 `prefix_src: &str` ⇒ 只能把**整段前缀**
+/// 合成一份文件、交 `check_document_with` **从零重跑一趟 pass** ✗。实测（真课程）：
+/// judge 占墙钟 **≈88%**（219.3s → 跳掉后 **26.8s**）、合成 pass **253513** 次
+/// = 自身声明事件（2647）的 **95.8×**，且成本**随声明在文件里的序号线性增长**
+/// （41 模块里 20 个 r>0.5、均值 +0.44）⇒ **O(N²)**。
+///
+/// 机理：缓存键含**整段前缀的哈希** ⇒ 前缀随序号变长 ⇒ 后段全 miss ⇒ 前缀从零重跑。
+///
+/// **实现方**：`Walk`（`compile/check/walk.rs`）—— 它在 walk 期间**无条件**
+/// `add_declar`（9 处）⇒ 环境里**已经有到当前命令为止的声明** ✓。
+///
+/// **`None` 的语义**：没有环境（单文件/测试路径）⇒ **逐字节回退到今天的行为**
+/// （合成前缀 + 重跑）。这是**回退机制**，也是判据之一 ✓。
+pub trait EnvProvider {
+    /// 在**当前环境**上求 `term` 在 `binders` 语境下的类型文本（与今天 `#check` 同形）。
+    ///
+    /// `None` ⇒ 这条环境答不了（调用方**必须**回退到合成前缀那条路，不许猜）。
+    fn infer_type_text(&self, binders: &[GoalBinderSpec], term: &str) -> Option<String>;
+}
+
 /// `SOKO_INFER_TRACE` 的取值（读一次就缓存——它在热路径上）。
 fn infer_trace_spec() -> Option<&'static str> {
     static SPEC: OnceLock<Option<String>> = OnceLock::new();
