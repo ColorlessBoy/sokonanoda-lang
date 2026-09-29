@@ -166,3 +166,13 @@
 
 - `docs/archive/status-2026-09/README.md` —— STATUS 第 476 轮及更早的轮次（从 `docs/STATUS-ARCHIVE.md` 下沉 ✓，归档≠销毁 ✓）。
 - `docs/archive/status-2026-09/bulk-221-321.md` —— STATUS 第 221–321 轮的成批旧轮次（二次下沉 ✓）。
+
+## 销毁记录：计划/交接类收敛（2026-09-29，**删除、未归档**）
+
+- 用户 2026-09-29：「一堆 HANDOVER 都可以删了，没必要」+「没建立起来很好的 doc 清理机制」⇒
+  **直接删除**（不归档）：`docs/PLAN-0.74-0.79.md` · `docs/HANDOVER.md` · `docs/HANDOVER-slice1.md` ·
+  `docs/HANDOFF-0.74…0.78.md` · `docs/HANDOFF-session-2026-09-27.md` · `docs/E2-HANDOVER.md` ·
+  `docs/design/PLAN-appendix-goal-and-antifragile.md`（共 11 份）。
+- **接手/计划的唯一入口 = `docs/NEXT.md`**（开工单）；仍在维护的总账是 `STATUS.md`（流水）、
+  `REQUIREMENTS.md`（权威）、`docs/design/e2-plan.md`（`scripts/plan.py` 的判据输入）。
+- 机制：`scripts/docs-gc.py`（报告式，不自删）⇒ 定期报「哪些活文档已经没人引用/没在维护」。

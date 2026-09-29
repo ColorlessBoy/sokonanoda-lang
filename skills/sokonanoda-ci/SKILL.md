@@ -28,7 +28,7 @@ scripts/soko grade playground.sokonanoda --json
 > 版本匹配（`--version` 校验）的仓库构建与缓存**，所以先 `cargo build`，
 > 否则 gate 会以 exit 3 拒绝跑旧二进制。
 > 本机若 Xcode 许可未接受（`xcrun`/`ar` 被系统拦），加
-> `DEVELOPER_DIR=/Library/Developer/CommandLineTools` 再跑 cargo（`docs/HANDOVER.md` §5）。
+> `DEVELOPER_DIR=/Library/Developer/CommandLineTools` 再跑 cargo（`docs/ONBOARDING.md` §5）。
 
 纪律：
 

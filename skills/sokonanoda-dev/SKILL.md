@@ -9,7 +9,7 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 
 1. `AGENTS.md` —— 仓库根入口（硬规则速记 + 命令 + 收尾义务）；
 2. `REQUIREMENTS.md` —— 用户全部要求的权威总账（含硬规则）；
-3. `docs/HANDOVER.md` —— 交接汇总（现在在哪、还剩什么、怎么继续）；
+3. `docs/ONBOARDING.md` —— 交接汇总（现在在哪、还剩什么、怎么继续）；
 4. `STATUS.md` —— 当前进度日志（最新一轮在最上）；
 5. `ROADMAP.md` —— 里程碑与 §10 待办（I 系列编号）；
 6. `docs/README.md` —— 文档地图（根入口 / `docs/` 顶层参考 / `design/` / `notes/`）；
@@ -79,7 +79,7 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 - **VS Code + skills 同步**：用户可见改动必须**同一轮**改 `editor/vscode/` **与**
   `skills/` 三个技能 + `AGENTS.md` + `docs/vscode-dev-guide.md`（测试 `crates/cli/tests/skill.rs`）。
 - **code agent 适配是一等公民**：计划里先定「agent 怎么用/验证」——`--json` 结构化输出、
-  写进 skills、命令可直接执行、`docs/HANDOVER.md` 同步。
+  写进 skills、命令可直接执行、`docs/ONBOARDING.md` 同步。
 - **skill 写法**：给**确切可执行的一条命令**，少 token，不写"建议/可以考虑"式散文。
 
 ## 3. 质量门禁（CI 与本地一致）

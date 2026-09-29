@@ -136,6 +136,22 @@
   （**vs off 216.14s = 1.60×**）✓。⚠ `doc_passes` 266→265（计数口径差 1，输出逐字节相同）。
 - **判据不空转**：证据是结构性的 —— `runs` 掉 795 ≈ 新增接线点的作答数（接线死掉不会动）✓。
 
+## 第 504 轮（2026-09-29）：**文档收敛 —— 计划/交接类 11 份删除，接手入口只剩一份**
+- 用户口径：*「一堆 HANDOVER 都可以删了，没必要」* + *「没建立起来很好的 doc 清理机制」* +
+  *「为什么需要两个文件」* ⇒ ① **删**（**不归档**：`PLAN-0.74-0.79` · `HANDOVER.md` ·
+  `HANDOVER-slice1.md` · `HANDOFF-0.74…0.78` · `HANDOFF-session-2026-09-27` · `E2-HANDOVER` ·
+  `PLAN-appendix-goal-and-antifragile`，共 **11 份**）② **`docs/NEXT.md` 与 `docs/ONBOARDING.md`
+  合并为一份**（保留被门禁/引用锚定的 `ONBOARDING.md`；它现在 = 必读表 + **开工单**
+  〔现在在哪 / 下一步 / 判据 / 纪律 / 续做 prompt〕）③ 新增**清理机制** `scripts/docs-gc.py`
+  （**报告式**：零引用 / 不在权威链 / ≥30 天没动 ⇒ 报候选，**不自删**；首次跑报 7 个候选）。
+- **被删文件里必须活下来的东西已并入 ONBOARDING**：推送节奏四条（中间环节不推 CI · 攒到发版点
+  一次推 · 不 `--watch` · 不连推 —— **本会话违反了前两条**，如实记）· P/Q/E 组状态 · 零件清单结论。
+- **判据**：`docs-lint ✓`（活文档 411 → **399** · 6.26 → **6.05 MB**）· `status-lint ✓` ·
+  `plan.py check ✓`（66 环节）· `gap.py check ✓` · **`cargo test -p sokonanoda-cli --test skill`
+  4 passed**（它咬住过一处：skills 里引用的 `docs/HANDOVER.md` 已删 ⇒ **守卫工作正常** ✓）。
+- ⚠ 遗留：`docs/design/**` 与 `ROADMAP.md`/`REQUIREMENTS.md` 里仍有指向已删文件的**文字引用**
+  （无判据咬，已记入 `docs-gc.py` 的后续处置）。
+
 ## 未决项
 
 - 🔴 **用户实测 2026-09-29（v0.78.1）：「编译 UI 与功能没联动」= 三条真缺陷**（原话：*"属于虚假的进度展现"*）。

@@ -2,14 +2,14 @@
 
 给任何 code agent 的项目入口（DeepSeek Harness / opencode / Claude Code 等原生
 读取本文件）。**接手路径以 `docs/ONBOARDING.md` 为唯一权威** ✓（X1，2026-09-28）——
-那份表列了**必读的 5 个文件**、每个的行数上限，以及**合计上限**（判据
+那份表列了**必读的 4 个文件**、每个的行数上限，以及**合计上限**（判据
 `scripts/docs-lint.py` ⑦，**超标即判红** ✓ ⇒ 「接手要读多少」不再是一句希望）。
 
-**最快开工**：本文件 → `docs/ONBOARDING.md` → `REQUIREMENTS.md` → `docs/HANDOVER.md`
-→ `STATUS.md`（**合计 ≈ 1124 行 / 上限 1220** ✓）。其余按需查：
+**最快开工**：本文件 → `docs/ONBOARDING.md` → `REQUIREMENTS.md`
+→ `STATUS.md`（**合计见 `python3 scripts/docs-lint.py` 判据 ⑦** ✓）。其余按需查：
 `ROADMAP.md` **§10**（待办与验收）· `docs/architecture.md` **§6/§8**（内核台账与 gotchas，
 **动内核前必读**）· `docs/protocol.md`（`--json`/`query` 契约，**改输出前必读**）·
-`docs/PERF.md` · `docs/TESTING.md` · 当版交接书 `docs/HANDOFF-<version>.md`。
+`docs/PERF.md` · `docs/TESTING.md` · 当版开工单 `docs/ONBOARDING.md`（历史交接书已删）。
 
 文档已分层：入口/权威在仓库根（`README.md`/`AGENTS.md`/`ROADMAP.md`/
 `REQUIREMENTS.md`/`STATUS.md`），开发者参考在 `docs/` 顶层，设计与调研笔记在
@@ -305,7 +305,7 @@ CI 强制的只有 `Cargo.toml` 与 `package.json` **相等**，且版本号只�
 2. **并发上限 2–4 个** ✓；**写操作串行** ✗ —— 同一文件/同一模块同一时间
    只允许一个写者，避免互相覆盖 ✓。
 3. **每个 subagent 的 prompt 必须自带三样** ✗（缺一样就会重复踩坑、结论不可用）：
-   * `docs/E2-HANDOVER.md` 的**规则与陷阱摘要** ✓（尤其 §5 陷阱清单 ✓）；
+   * 本文件「验证设计纪律 / 长命令 / 连红 3 次」三节的**规则与陷阱摘要** ✓；
    * 它要交付的**判据**（**可执行的验收命令** ✓，不是"看看对不对" ✗）；
    * 明确的**"不许改什么"边界** ✓（例如"只读，不许改 `crates/kernel/`" ✓）。
 4. **产出必须验证后才并入** ✓：复跑它给的判据 ✓、抽查结论 ✓
@@ -413,7 +413,7 @@ CI 的**快层** job：**每次 rust 改动的 push** 跑一组 **smoke**（**~1
   （**只许减不许增**）· ⑤ `docs/**` 禁 `.tmp`/`.tmpdir` ·
   ⑥ **归档必须被 `docs/archive/README.md` 点名**（归档≠销毁）·
   **⑦ 接手路径**（X1，2026-09-28）：`docs/ONBOARDING.md` 的**必读表** —— 每文件有行数上限、
-  **合计有 `onboarding_max_lines`（当前 1124 / 上限 1220）**，**超标即判红** ✓
+  **合计有 `onboarding_max_lines`（实测以 `docs-lint` 输出为准）**，**超标即判红** ✓
   ⇒ 「接手要读多少」是**会判红的数字**，不是一句希望 ✓。
   ⚠ **不许靠抬上限达标**（用户 2026-09-26：「把上限从 3 MB 抬到 10 MB **不算完成** ——
   要的是**少消耗注意力**，不是允许更多」）⇒ 上限方向**只能是收紧** ✓。
@@ -430,6 +430,6 @@ CI 的**快层** job：**每次 rust 改动的 push** 跑一组 **smoke**（**~1
   （插件/`/sokonanoda/*`/teacher agent）与 DSH 专属（`dsh/cordis.patch.yml`）
   各自在同一轮同步；能力差异以 `docs/design/deepseek-harness.md` 为准。
 - **code agent 适配是一等公民**：每个开发计划先问「agent 怎么用/怎么验证」——提供
-  `--json` 结构化输出、把能力写进 skills、命令可直接执行、`docs/HANDOVER.md` 同步。
+  `--json` 结构化输出、把能力写进 skills、命令可直接执行、`docs/ONBOARDING.md` 同步。
 - **skill 写法**：命令用**确切可执行的一条命令**（`scripts/soko version --json`），
   少用 token、少用"你应该考虑…"式散文；skill 是给 agent 执行的操作手册。
