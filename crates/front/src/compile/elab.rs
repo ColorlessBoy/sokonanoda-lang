@@ -1949,7 +1949,6 @@ fn notation_telescope(signature: &str) -> Option<(Vec<(String, Expr)>, Expr)> {
 
 /// 固定 `missing` 时解前导参数；解不出（或某一位**没有名字**）⇒ `None`。
 #[allow(clippy::too_many_arguments)]
-#[allow(clippy::too_many_arguments)] // P1-b 多一个 `env`（就地判定的活环境）
 fn solve_prefix_args<'a>(
     layers: &[(String, Expr)],
     result: &Expr,
