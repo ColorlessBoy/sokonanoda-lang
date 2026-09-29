@@ -966,20 +966,41 @@ async function main(argv) {
             'scripts/soko gate --fast: `crates/` 下没有改动 ⇒ 跳过 Rust 单测（课程门禁照跑）。\n',
           )
         } else {
-          const argv = ['test', ...crates.flatMap((c) => ['-p', c]), '--lib']
-          process.stderr.write(`+ cargo ${argv.join(' ')}（--fast：只跑改动过的 crate 的单测）\n`)
-          const t = spawnSync('cargo', argv, {
-            stdio: 'inherit',
-            cwd: REPO,
-            // 课程规模的测试（`perf_course` / `project` / `judge_batch`）会整门课
-            // 编一遍——给它们同一个**持久缓存**，第二次起就是命中。
-            env: {
-              ...process.env,
-              SOKONANODA_CACHE_DIR:
-                process.env.SOKONANODA_CACHE_DIR || path.join(REPO, 'target', 'gate-cache'),
-            },
-          })
-          if ((t.status ?? 3) !== 0) return t.status ?? 3
+          // ⚠ **不能写死 `--lib`**：`sokonanoda-cli` **没有 lib target**（bin crate）
+          // ⇒ `cargo test -p sokonanoda-cli --lib` 报 `no library targets found`
+          // 并**以非 0 退出** ⇒ `gate --fast` 判红 ✗（2026-09-30 实测踩到：
+          // 改了 `crates/cli/` 就必红，与代码无关）。
+          // ⚠ **`--lib --bins` 也不行**：cargo 对"某个被 `-p` 指名的包没有那类
+          // target"是**硬错误**（实测：`-p sokonanoda-cli -p sokonanoda-front --lib --bins`
+          // 仍然报 `no library targets found` ✗）。
+          // ⇒ **按 crate 分开选**：有 `src/lib.rs` 的用 `--lib`，否则用 `--bins` ✓。
+          const hasLib = (c) =>
+            existsSync(path.join(REPO, 'crates', c.replace(/^sokonanoda-/, ''), 'src', 'lib.rs')) ||
+            existsSync(path.join(REPO, 'crates', c, 'src', 'lib.rs'))
+          const libCrates = crates.filter(hasLib)
+          const binCrates = crates.filter((c) => !hasLib(c))
+          const runs = []
+          if (libCrates.length) runs.push(['-p', ...libCrates, '--lib'])
+          if (binCrates.length) runs.push(['-p', ...binCrates, '--bins'])
+          if (runs.length === 0) {
+            process.stderr.write('scripts/soko gate --fast: 改动过的 crate 都没有可跑的 target（跳过）\n')
+          }
+          for (const one of runs) {
+            const argv = ['test', ...one]
+            process.stderr.write(`+ cargo ${argv.join(' ')}（--fast：只跑改动过的 crate 的单测）\n`)
+            const t = spawnSync('cargo', argv, {
+              stdio: 'inherit',
+              cwd: REPO,
+              // 课程规模的测试（`perf_course` / `project` / `judge_batch`）会整门课
+              // 编一遍——给它们同一个**持久缓存**，第二次起就是命中。
+              env: {
+                ...process.env,
+                SOKONANODA_CACHE_DIR:
+                  process.env.SOKONANODA_CACHE_DIR || path.join(REPO, 'target', 'gate-cache'),
+              },
+            })
+            if ((t.status ?? 3) !== 0) return t.status ?? 3
+          }
         }
       }
       if (cargoStatus !== 0) return cargoStatus

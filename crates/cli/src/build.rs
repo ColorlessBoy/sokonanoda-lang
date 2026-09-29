@@ -12,17 +12,23 @@ use sokonanoda_front::compile::{compile_all_with, prelude_mode_from_source, Comp
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-/// **P2 心跳周期**：机器消费者显式要求时，这么久没有任何其它输出 ⇒ 发一条 `build.tick`。
+/// **P2 心跳周期**（**1000ms，不变**）：这么久没有任何其它输出 ⇒ 发一条 `build.tick`。
 ///
-/// ⚠ 2026-09-30 从 **1000ms 放宽到 5000ms**，并且**默认根本不发**（见 [`tick_period_ms`]）。
-/// 依据是**实测**，不是口味：冷编 `courses/set-theory` 的 `--json` 流里
-/// **159 条 tick 的 `file` 全是空串**，而且**全部 159 条都排在第一条 `build.decl` 之前**
-/// —— 文件级进度要等**全部**文件编译完才按 `files` 顺序重放（本文件下面那段），
-/// 所以 `set_file` 在整个编译期间恒为空 ⇒ 这些 tick 既不是文件级进度、
-/// 也没被任何仓库内消费者用来渲染百分比（`extension.js` 的 `percent` 始终是文件级）
-/// ⇒ 对"用户可见面在不在动"贡献为零，纯粹是刷屏 ✗。
-/// 5s 仍足以兜住消费者侧的"长时间静默"。
-const DEFAULT_TICK_MS: u64 = 5000;
+/// ⚠ 2026-09-30 一度把它放宽到 5000ms 并"默认一律不发"，**实测证明那是错的** ✗
+/// （CI 当场判红：`scripts/check-progress-gap.py` 报 `最长无输出间隔 4.99s > 2.5s`）：
+/// 那条判据要的是"**能力上限** —— 两条通道都在时能做到多好"，而 5s 的周期
+/// **本身就达不到 2.5s** ⇒ 放宽周期等于把契约悄悄改掉 ✗。
+///
+/// **正确的口径是工作单三选一里的第一项「非管道不发」**（见 [`tick_period_ms`]）：
+/// 周期**不动**（机器消费者拿到的仍是 1s 心跳，契约照旧 ✓），
+/// 只是**人看的终端**不再发 ✓ —— 那才是用户抱怨的东西。
+///
+/// 用户实测（冷编 `courses/set-theory`，159 条 tick）：`file` **全是空串**、
+/// 且**全排在第一条 `build.decl` 之前** —— 文件级进度要等**全部**文件编译完才按
+/// `files` 顺序重放，所以 `set_file` 在整个编译期间恒为空。这说明**心跳不是进度**
+/// （扩展的 `percent` 一直是文件级，且由 `build.progress` 驱动），
+/// 但它**仍是"可见面在动"的兜底**，对**管道消费者**保留 ✓。
+const DEFAULT_TICK_MS: u64 = 1000;
 
 /// **心跳要不要发、按什么周期**（`None` = 不发；**默认不发** ✓）。
 ///
@@ -36,17 +42,25 @@ const DEFAULT_TICK_MS: u64 = 5000;
 /// 它把每一行原样 `appendLine` 进「sokonanoda build」输出面板 ⇒ 159 行 JSON 刷屏
 /// 对用户是噪声，而它渲染的百分比本来就是文件级（`build.file`）✓。
 ///
-/// 开关：
-/// * `SOKO_BUILD_TICK_MS=<毫秒>` ⇒ **发**，用这个周期（给终端里想看心跳的人/脚本）；
-///   **不写**就是 [`DEFAULT_TICK_MS`]（5s）—— 显式要了心跳的人要的是"别太久没动静"，
-///   不是"每秒一条" ✓；
-/// * `SOKO_BUILD_TICK_MS=0` 或 `SOKO_BUILD_NO_TICK=1` ⇒ **不发**（显式关，也是默认）。
+/// 开关（**三档，默认那档就是工作单的「非管道不发」**）：
+///
+/// 1. **默认**：`stdout` **是管道**（机器消费者：扩展 spawn 的子进程、`| jq`、
+///    CI 的重定向）⇒ **发**，周期 [`DEFAULT_TICK_MS`]；**是终端**（人在看）
+///    ⇒ **不发** ✓ —— 这正是"人看的终端不再刷 + 机器消费者仍能拿到心跳"两句话的
+///    合取，也是工作单三选一里的第一项；
+/// 2. `SOKO_BUILD_TICK_MS=<毫秒>` ⇒ **强制发**，用这个周期（终端里想看心跳的人/脚本）；
+///    **空串** = 要心跳但用默认周期；
+/// 3. `SOKO_BUILD_TICK_MS=0` 或 `SOKO_BUILD_NO_TICK=1` ⇒ **强制不发**（逃生门）。
+///
+/// ⚠ **第一版把默认写成"一律不发"是错的** ✗（CI 当场判红）：那样**机器消费者也拿不到
+/// 心跳**，`scripts/check-progress-gap.py` 的「最长无输出间隔 ≤ 2.5s」立刻假红
+/// （实测 `4.99s > 2.5s`）—— 而那条判据要的正是"**能力上限**：两条通道都在时能做到
+/// 多好"。用户抱怨的是**终端**刷屏，不是管道里有心跳 ✓。
 fn tick_period_ms() -> Option<u64> {
     if std::env::var_os("SOKO_BUILD_NO_TICK").is_some() {
         return None;
     }
     match std::env::var("SOKO_BUILD_TICK_MS") {
-        Err(_) => None,
         Ok(raw) => match raw.trim() {
             // 空串 = "要心跳，但没指定周期" ⇒ 用默认周期
             "" => Some(DEFAULT_TICK_MS),
@@ -57,6 +71,12 @@ fn tick_period_ms() -> Option<u64> {
                 Err(_) => None,
             },
         },
+        // 没显式设置 ⇒ **看 stdout 是不是管道**：管道 = 机器消费者 ⇒ 发；
+        // 终端 = 人在看 ⇒ 不发 ✓。
+        Err(_) => {
+            use std::io::IsTerminal;
+            (!std::io::stdout().is_terminal()).then_some(DEFAULT_TICK_MS)
+        }
     }
 }
 /// 所有 `--json` 输出走同一把锁：心跳线程与编译线程都会写 stdout，

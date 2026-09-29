@@ -2066,13 +2066,25 @@ fn cli_build_warms_and_reuses_cache() {
 /// 而且**全部排在第一条 `build.decl` 之前** —— 文件级进度要等全部文件编译完
 /// 才按 `files` 顺序重放，所以 `set_file` 在整个编译期间恒为空。
 ///
-/// ⇒ 口径 = **默认不发**；要心跳的人显式 `SOKO_BUILD_TICK_MS=<ms>`。
+/// ⇒ 口径 = **「非管道不发」**（工作单三选一的第一项）：
+///   * `stdout` **是终端**（人在看）⇒ **不发** ✓ —— 用户抱怨的就是这个；
+///   * `stdout` **是管道**（扩展 spawn 的子进程 / `| jq` / CI 重定向）⇒ **发**
+///     （周期 1s，**契约不变**）✓ —— "机器消费者仍能拿到心跳"。
+///
+/// ⚠ **第一版把默认写成"一律不发"是错的** ✗（**CI 当场判红**）：
+/// `scripts/check-progress-gap.py` 报 `最长无输出间隔 4.99s > 2.5s` ——
+/// 那条判据要的是"**能力上限**：两条通道都在时能做到多好"，而机器消费者拿不到
+/// 心跳时它立刻假红。用户抱怨的是**终端**刷屏，不是管道里有心跳 ✓。
+///
 /// 判据钉**用户看得见的输出**（`--json` 的 stdout 行），不是内部开关：
-///   ① 默认流里 **0 条** `build.tick`（终端不再刷屏 ✓）；
+///   ① **管道**（测试里天然就是管道）⇒ 有 tick（契约照旧 ✓）；
 ///   ② **自检：这份夹具必须跑得够久**（> 1.5s）—— 否则 ① 是**空转**的：
 ///      实测踩过 ✗，快夹具下**连旧版"每秒一条"也是 0 条**，撤掉修复判据照样绿；
-///   ③ 显式打开时**真有** tick（⇒ 心跳没被删掉，只是默认关）；
-///   ④ 逃生门 `SOKO_BUILD_NO_TICK=1` 压过 `SOKO_BUILD_TICK_MS`。
+///   ③ 逃生门 `SOKO_BUILD_NO_TICK=1` 压过 `SOKO_BUILD_TICK_MS`；
+///   ④ **显式 `SOKO_BUILD_TICK_MS`** 能强制发（终端里想看心跳的人）✓。
+///   ⚠ **"终端不发"那一半在集成测试里测不到**（测试的 stdout 永远是管道 ✗）——
+///   它由 `std::io::IsTerminal` 那一行保证，并已用真 TTY 手工验证过 ✓
+///   （`pty` 起子进程 ⇒ `build.tick` **0 条**；管道 ⇒ 5 条）。
 #[test]
 fn cli_build_heartbeat_is_off_unless_asked_for() {
     // ⚠ **夹具要够慢**：60 条 `by` 证明在 debug 下实测 **6.0s**（两次复跑同值）。
@@ -2127,10 +2139,11 @@ fn cli_build_heartbeat_is_off_unless_asked_for() {
         "夹具只跑了 {quiet_wall:?} —— 太快的夹具会让「0 条 tick」这条断言**空转** \
          （旧版每秒一条也测不出来），必须让它真的编译几秒"
     );
-    assert_eq!(
-        ticks(&quiet),
-        0,
-        "默认**不许**发 build.tick（用户实测的刷屏，夹具跑了 {quiet_wall:?}）：\n{}",
+    assert!(
+        ticks(&quiet) > 0,
+        "**管道**（机器消费者）默认**必须**拿得到 build.tick —— 契约是「最长无输出间隔 \
+         ≤ 2.5s」，拿掉它 `check-progress-gap.py` 会假红（CI 实测 4.99s）。\
+         夹具跑了 {quiet_wall:?}：\n{}",
         String::from_utf8_lossy(&quiet.stdout)
     );
 

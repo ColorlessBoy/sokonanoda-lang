@@ -777,10 +777,10 @@ global fallback validates that the entry's module root matches the current one
   **② 每个文件编完就报**（`done` 是**绝对值**、消费者不累加），且**全部排在结果段
   之前**（结果段顺序是确定性红线）；`build.decl` (`{type, file, module, index, total}`)
   每条**命令（声明）**一条，`index` 从 0 起（渲染 `声明 7/31 · lib.Set`）；
-  `build.tick` (`{type, elapsed_ms, file}`) 是**心跳**、**默认不发**（实测 `file`
-  159/159 空串、全在首条 `build.decl` 之前 ⇒ 只是刷屏）；要就
-  `SOKO_BUILD_TICK_MS=<ms>`（默认 5s，`SOKO_BUILD_NO_TICK=1` 关）。兜底判据
-  「最长无输出间隔 ≤ 2s」见 `scripts/check-progress-gap.py`；
+  `build.tick` (`{type, elapsed_ms, file}`) 是**心跳**（**1s**，**契约不变**）——
+  **`stdout` 是终端时默认不发**（用户实测"终端每秒刷"），**是管道时照发**（机器
+  消费者仍拿得到）；`SOKO_BUILD_TICK_MS=<ms>` 强制发/换周期、`SOKO_BUILD_NO_TICK=1`
+  强制关。兜底判据「最长无输出间隔 ≤ 2.5s」见 `scripts/check-progress-gap.py`；
 - the human summary is `built K file(s) — H hit, M compiled, F failed`.
 
 Environment: `SOKONANODA_CACHE_DIR` relocates the cache root,
