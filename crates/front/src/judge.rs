@@ -969,32 +969,40 @@ pub(crate) fn inplace_mode() -> InplaceMode {
     )
 }
 
-/// **P1-b 的新接线点**是否生效（**暂存开关，默认关** —— 值守 2026-09-29 的口径：
-/// "一档一个 commit，默认 `off` 或 `shadow`，别默认开"）。
+/// **P1-b 的 wide 那两个接线点**是否生效（`guarded_binder_type` /
+/// `solve_prefix_args`；`elab.rs` 的 4 个签名多一个 `InplaceEnv`）。
 ///
-/// 语义：`SOKO_JUDGE_INPLACE_WIDE=1` ⇒ **除 P1-a 已开的两个判定点之外**，
-/// 再让 `guarded_binder_type` / `solve_prefix_args` 两条路也走就地判定
-/// （`elab.rs` 的 4 个签名多一个 `InplaceEnv`）。关掉 ⇒ 那两条路**逐字节回到今天** ✓。
-///
-/// 为什么分开：P1-a 的默认开是靠"全课程 shadow_diff=0 + off/on `--json` 逐字节相同"
-/// 两件证据换来的；**新接线点要各自走一遍同样的证据链**才配默认开 ✓。
-/// 验证完之后这个开关应当**并进 `SOKO_JUDGE_INPLACE`**（或直接删掉）。
+/// **2026-09-30 起默认开**（P1-b 收口）—— 与 `by` 那一档**同一个口径**：
+/// 主开关 `SOKO_JUDGE_INPLACE=on`（默认）⇒ 本档也开；`=off` ⇒ 全关 ✓。
+/// 单独回退留 `SOKO_JUDGE_INPLACE_WIDE=0`（**保留逃生门**，不改主开关就关掉它）。
 pub(crate) fn inplace_wide() -> bool {
     static WIDE: OnceLock<bool> = OnceLock::new();
-    *WIDE.get_or_init(|| std::env::var("SOKO_JUDGE_INPLACE_WIDE").is_ok_and(|v| v != "0"))
+    *WIDE.get_or_init(|| {
+        // 显式 `=0` ⇒ 只关这一档（逃生门）；否则跟主开关走。
+        if std::env::var("SOKO_JUDGE_INPLACE_WIDE").is_ok_and(|v| v == "0") {
+            return false;
+        }
+        inplace_mode() != InplaceMode::Off
+    })
 }
 
 /// **P1-b 第二刀：`by` 路径**（`judge_render_type` 那 536 趟）是否生效。
 ///
-/// 单独一个开关（**不是** `inplace_wide` 的附带效果）—— 附九 §4 的顺序要求
-/// 「**先只接一个调用点**（`canonical_goal_type`）→ shadow + 全课程对拍 →
-/// 再铺另三处」。两个开关分开才做得到"先接一处" ✓。
+/// **2026-09-30 起默认开**（P1-b 收口）：与 wide 同一条口径 ——
+/// 主开关 `on`（默认）⇒ 开；`off` ⇒ 关；单独回退 `SOKO_JUDGE_INPLACE_BY=0` ✓。
 ///
-/// ⚠ **`by` 引擎的判定决定后续 tactic 步进** ⇒ 两条路一旦分叉，症状是
-/// "步进不同"（比 `elab` 路径难定位得多）⇒ **影子档是这一档的必需品**。
+/// ⚠ 默认开的**证据链**（缺一不可）：① 全课程影子档 **`shadow_same=44234` ·
+/// `shadow_diff=0`**；② `off` vs `on` 的 `--json`（剔 `build.tick`/`build.progress`）
+/// **逐行不同 0 行**；③ 反向判据实测（`crates/front/tests/judge_inplace_by.rs`）；
+/// ④ 每个接线点都断言"**路径真被走到**"（`used=320`）✓。
 pub(crate) fn inplace_by() -> bool {
     static BY: OnceLock<bool> = OnceLock::new();
-    *BY.get_or_init(|| std::env::var("SOKO_JUDGE_INPLACE_BY").is_ok_and(|v| v != "0"))
+    *BY.get_or_init(|| {
+        if std::env::var("SOKO_JUDGE_INPLACE_BY").is_ok_and(|v| v == "0") {
+            return false;
+        }
+        inplace_mode() != InplaceMode::Off
+    })
 }
 
 /// **`by` 路径的档位**（与 P1-a 的 `InplaceMode` 同形；附九："影子档是这一档的
@@ -1007,21 +1015,28 @@ pub(crate) enum ByMode {
     On,
 }
 
-/// `SOKO_JUDGE_INPLACE_BY` = `off` / `shadow` / `1|on`（**默认 `off`**）。
+/// **`by` 路径的档位**：跟主开关走，另留两个显式值 ✓。
 ///
-/// * `off`：这一档逐字节回到今天 ✓
-/// * `shadow`：**两条路都跑**，比对文本、记 `same/diff`，**返回慢路那一份**
-///   ⇒ 行为零变化，只取证 ✓
-/// * `on`：三步（命中 → 就地 → 慢路）✓
+/// * `SOKO_JUDGE_INPLACE_BY=shadow` ⇒ **两条路都跑**，比对文本、记 `same/diff`，
+///   **返回慢路那一份**（行为零变化，只取证 —— 这一档**永远**可以单独开影子）✓；
+/// * `SOKO_JUDGE_INPLACE_BY=0|off` ⇒ **只关这一档**（逃生门）；
+/// * 其它 / 未设 ⇒ 跟 `SOKO_JUDGE_INPLACE`：`off` ⇒ `Off`，否则 ⇒ `On` ✓。
 pub(crate) fn inplace_by_mode() -> ByMode {
     static MODE: OnceLock<ByMode> = OnceLock::new();
-    *MODE.get_or_init(
-        || match std::env::var("SOKO_JUDGE_INPLACE_BY").ok().as_deref() {
-            Some("off") | None => ByMode::Off,
-            Some("shadow") => ByMode::Shadow,
-            _ => ByMode::On,
-        },
-    )
+    *MODE.get_or_init(|| {
+        match std::env::var("SOKO_JUDGE_INPLACE_BY").ok().as_deref() {
+            // 影子档**优先**：它行为零变化，任何时候都该能开 ✓
+            Some("shadow") => return ByMode::Shadow,
+            Some("0") | Some("off") => return ByMode::Off,
+            _ => {}
+        }
+        match inplace_mode() {
+            InplaceMode::Off => ByMode::Off,
+            // 主开关的 `shadow` 对 `by` 这一档也意味着"两条路都跑" ✓
+            InplaceMode::Shadow => ByMode::Shadow,
+            InplaceMode::On => ByMode::On,
+        }
+    })
 }
 
 /// **`by` 路径的就地环境**：开关关着 ⇒ `None`（`walk` 那边一行都不用改行为）。

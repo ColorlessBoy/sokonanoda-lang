@@ -62,8 +62,8 @@ UI 缺陷、以及**另一条腿**（前缀环境可保存/恢复）。
 |---|---|---|
 | **P1** | rebuild 慢：**只量化** | ✅ 六项数字 `docs/perf/rebuild-baseline-2026-09-28.md`（42 模块 ⇒ **174 次模块编译 = 4.14×**、rebuild **222.1s**）；守卫 `scripts/check-recompile-factor.py` |
 | **P1-a** | **接通第一个判定点**（`infer_type_text`）+ 开关 | ✅ 已发（v0.78.1，**默认 on**）：墙钟 216.14s → **158.90s** |
-| **P1-b** | **铺开到全部判定点**（`incremental-environment.md` §19.4 列 10 处） | 🔄 第一档 ✅（`guarded_binder_type`/`solve_prefix_args`，`SOKO_JUDGE_INPLACE_WIDE` **默认关**）→ **剩 `by` 路径 536 趟**（§3.B） |
-| **P1-c** | **收益兑现**：全课 `build` 端到端墙钟「**改前 / 改后**」（用户体感），**必须给双数字** | ⬜ 随 P1-b 收口做；方差 ±2.7% ⇒ **<5% 差不许当结论** |
+| **P1-b** | **铺开到全部判定点**（`incremental-environment.md` §19.4 列 10 处） | ✅ **两档都落地、已并进主开关**：第一档（`guarded_binder_type`/`solve_prefix_args`）+ **`by` 路径**（`judge_render_type` 四处）；**`runs` 3759 → 791**，默认开（§1） |
+| **P1-c** | **收益兑现**：全课 `build` 端到端墙钟「**改前 / 改后**」（用户体感），**必须给双数字** | ⬜ **下一档**（P1-b 已收口）；方差 ±2.7% ⇒ **<5% 差不许当结论** |
 | **P1-d** | **打包 + bump**（性能改动不 bump 用户感觉不到） | ⬜ P1-c 成立后做；与 **Q1** 合推一次 CI |
 | **P1-e** | **可回退**：每环节单独 commit、可精确回退，主线不留残留 | ✅ 已具备 |
 
@@ -83,20 +83,24 @@ UI 缺陷、以及**另一条腿**（前缀环境可保存/恢复）。
 
 ## 1. 已交付与读数（同机同口径：release · 冷缓存 · `SOKONANODA_BUILD_JOBS=1` · 全课程 `build --json courses/set-theory`）
 
-| 读数 | `off`（基线） | P1-a | **P1-b 第一档** |
-|---|---|---|---|
-| `JUDGE_PREFIX runs` | 3759 | 1881 | **1086** |
-| `JUDGE_PREFIX bytes` | 174,213,583 | 93,858,420 | **54,570,202** |
-| `passes` / `doc_passes` | 4126 / 266 | 2248 / 266 | **1452 / 265** ⚠ |
-| `judge_ms` | 146,580 | 120,359 | **111,772** |
-| **墙钟** | **216.14 s** | **158.90 s** | **134.77 s（1.60×）** |
+| 读数 | `off`（基线） | P1-a | P1-b 第一档 | **P1-b 收口（默认全开）** |
+|---|---|---|---|---|
+| `JUDGE_PREFIX runs` | 3759 | 1881 | 1086 | **791**（P1-b 收口） |
+| `JUDGE_PREFIX bytes` | 174,213,583 | 93,858,420 | 54,570,202 | **43,329,596** |
+| `passes` / `doc_passes` | 4126 / 266 | 2248 / 266 | 1452 / 265 ⚠ | **1157 / 265** ⚠ |
+| `judge_ms` | 146,580 | 120,359 | 111,772 | **113,835** |
+| **墙钟** | **216.14 s** | **158.90 s** | 134.77 s | 见 **P1-c**（下一档给双数字） |
 | `--json`（剔 `build.tick`） | 基线 | 逐字节相同 ✓ | **逐字节相同** ✓（2691 行 / 0 行不同） |
 | shadow | — | diff=0 | **diff=0** |
 | 反向判据 | — | ✅ | ✅（P1-a 两点 + wide 两点） |
 
 ⚠ `doc_passes` 266 → 265 是**计数口径**差 1（输出逐字节相同 ⇒ 不影响判定），**如实记账**。
+**红线（P1-b 收口）**：`SOKO_JUDGE_INPLACE=off`（**基线 3759**）vs **默认全开**（791）的
+`--json`（剔 `build.tick`/`build.progress`）**逐行不同 0 行**（2691/2691）✓；
+全课程**影子档 `shadow_same=44234` · `shadow_diff=0`** ✓。
 **发版**：`v0.78.1` = Latest（2026-09-29T14:17:55Z，26 资产 = 8 CLI + 8 LSP + 9 VSIX + `SHA256SUMS`）。
-**开关**：`SOKO_JUDGE_INPLACE=off|shadow|on`（默认 `on`）· `SOKO_JUDGE_INPLACE_WIDE=1`（默认关）。
+**开关**：`SOKO_JUDGE_INPLACE=off|shadow|on`（默认 `on`，**三档全含**）；单独回退
+`SOKO_JUDGE_INPLACE_WIDE=0` / `SOKO_JUDGE_INPLACE_BY=0|off`，取证用 `..._BY=shadow`（两条路都跑、返回慢路）。
 
 ---
 
@@ -133,7 +137,7 @@ UI 缺陷、以及**另一条腿**（前缀环境可保存/恢复）。
 改成**在项层面剥 `n+1` 层 Pi 再 pp** ⇒ 与慢路天然同构。
 之后：shadow + 全课程对拍 → 再铺 `canonical_goal_with_spec` 的三处
 （`by.rs:837/1101/1332`，它只拿得到**渲染文本**的 binder ⇒ 要先解决"规格 → 源 AST"）
-→ 最后把 `SOKO_JUDGE_INPLACE_WIDE` 并进主开关。
+✅ **已并进主开关**（2026-09-30）—— 见 §1 与 `p1a-measurements.md` 附十一。
 ⚠ **风险**：`by` 引擎的判定**决定后续 tactic 步进** ⇒ 分叉会以"步进不同"出现，
 **影子档是必需品**；本轮实测的形态是 `--json` 里 `lib/*` 从 `compiled` 变 `failed`。
 
