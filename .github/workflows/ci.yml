@@ -438,34 +438,19 @@ jobs:
       - name: Course layer is guarded (canvases, solutions, course.json)
         run: cargo test -p sokonanoda-cli --test course --locked
   gates-course:
-    # **矩阵并行 4 片**（2026-09-29 用户要求 ✓）：缓存（键含课程源码哈希）只解决
-    # "课程没变时的重复"——**课程一改键就变 ⇒ 必然 miss ⇒ 还是冷跑** ✗，
-    # 而开发期一直在改课程 ⇒ 冷跑才是常态 ⇒ **分片解决"单次冷跑本身太慢"** ✓。
-    # 两者**不能互相替代**。
-    # **N=4 的理由（实测曲线）**：本机冷跑 **313.8s** ⇒ 4 片理论 ~78s；
-    # 再往上加，每片仍要**各自** restore 缓存 + 编一次 release CLI（固定开销 ~2–3 分钟
-    # 在 CI 上），且 ubuntu runner 只有 2 核 ⇒ 分片越多，**同机并行反而互相抢核**。
-    # ⚠ 分片**按成本均衡**（`shard_assignment` 的 LPT），实测 4 片权重
-    # **46/45/46/46**（≈2% 差）⇒ 不是"最慢片决定墙钟" ✓。
-    # ⚠ **job name 里不许写 `${{ matrix.shard }}`**：GitHub 会自动给矩阵 job 的
-    # 名字加 ` (1, 2, 3, 4)` 后缀 ✓，而 `ci-green.py` 的匹配器是**按名字前缀**认 job 的
-    # —— 名字里带未展开的模板串会让它**匹配不上** ⇒ 整轮被判 `not-judged`（实测踩到 ✗）。
+    # ⚠ **分片试过、实测无效 ⇒ 已回退**（2026-09-29，用户 14:45「如果分片没用那就改回去」）：
+    # 曾做成 4 片矩阵（`check.py --shard i/N`），但**决定性测量**否掉了它 ——
+    # 单片冷跑 **317.71s** ≈ 全量 **313.78s**（期望 ~78s）✗。
+    # **为什么无效**：门禁对**每个目标**跑一次 `grade`，每次都把该目标的 import 闭包
+    # **从零编一遍** ⇒ 分片切的是"**目标数**"，切不掉"**共享 `lib/*` 闭包的重复编译**"。
+    # ⇒ 这与 judge 重跑前缀是**同一个病**（§18：`judge` 占 88%）⇒ 修那个才是大头 ✓。
+    # **保留**（与本刀无关的真收益）：① 课程产物缓存（冷 313.8s → 热 0.50s，**628×**）；
+    # ② `ci-green.py --selftest` 的夹具漂移修复（真 bug）。
     name: gates-course（release 构建 + 课程门禁）
     needs: [changes, lint-fmt, lint-clippy, gates-fast]
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
     runs-on: ubuntu-24.04
-    # **超时按实测重标定**：分片后单片 ≈ 全量的 1/4 ⇒ 40 分钟的上限已远高于需要；
-    # 给 15 分钟（含 release 构建 + 缓存 restore 的固定开销）留足余量 ✓。
-    timeout-minutes: 15
-    strategy:
-      # **一片坏不许掐掉别的片** ⇒ 否则拿不到"哪几片红"的全貌（用户要求 ✓）。
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-    # **拆成两条并行路径**（2026-09-25 用户要求 ✓："gates 要跑 16 分钟…完全阻碍了前期开发" ✓）：
-    # 同一个 job 的另一半：release 路径（原来与 debug 路径串行 ✓） **debug 路径**（语料 `cargo run` + 契约 `cargo test`）与
-    # **release 路径**（`cargo build --release` + 课程门禁 ✓）⇒ 墙钟 = **两段之和** ✗；
-    # 拆开后 = **两段的最大值** ✓（两者互不依赖 ✓）。
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust
@@ -527,7 +512,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: courses/set-theory/.sokonanoda
-          key: course-artifacts-${{ runner.os }}-shard${{ matrix.shard }}-${{ hashFiles('courses/set-theory/**', 'courses/set-theory/tools/check.py') }}
+          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/**', 'courses/set-theory/tools/check.py') }}
       - name: Course artifacts（冷启动时说明一句；命中/未命中都可见）
         # 只做**可观测性**：让人在日志里一眼看出这次是冷是热（缓存是否命中）。
         shell: bash
@@ -558,18 +543,12 @@ jobs:
         timeout-minutes: 40
         env:
           SOKONANODA_BIN: ${{ github.workspace }}/target/release/sokonanoda
-          # **矩阵的 N**（防"矩阵被悄悄改小"：只有 3 片上报而每片都绿 ⇒ 会假绿 ✗）。
-          SOKO_COURSE_SHARDS: "4"
         shell: bash
         run: |
           # `--selftest` **不分片**：它是**判据通道**的自检（正控制/变异/二分/缓存一致/
           # 分片覆盖），与"判哪些目标"无关 ⇒ 每片都跑一遍（几秒，且它自己就是守卫）✓。
           python3 "$GITHUB_WORKSPACE/courses/set-theory/tools/check.py" --selftest
-          # **分片只影响"判哪些目标"**：`--shard i/4` 按成本均衡取第 i 片。
-          # ⚠ **判据 G1–G5 一条没改** ✓（分片只是把同一批判据分给 4 个 job 并行做）；
-          # 覆盖性由 `check.py` 内部的并集自检 + `--selftest` 的断言守住 ✓。
           python3 "$GITHUB_WORKSPACE/courses/set-theory/tools/check.py" \
-            --shard "${{ matrix.shard }}/4" \
             --annotations \
             --report /tmp/course-gate.json \
             --summary "$GITHUB_STEP_SUMMARY"
@@ -578,15 +557,14 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: courses/set-theory/.sokonanoda
-          key: course-artifacts-${{ runner.os }}-shard${{ matrix.shard }}-${{ hashFiles('courses/set-theory/**', 'courses/set-theory/tools/check.py') }}
+          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/**', 'courses/set-theory/tools/check.py') }}
       - name: Upload course gate report (always)
         # 判负时也要拿到全量报告（`--json` 的落盘版）：artifact + step summary 是
         # 公开仓库上无需 token 的自助诊断通道（同 cargo-test-log 的先例）。
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          # **每片一份报告**（用户要求 ✓）：判负时要能直接看出**是哪片、哪些目标**红。
-          name: course-gate-report-shard${{ matrix.shard }}
+          name: course-gate-report
           path: /tmp/course-gate.json
           include-hidden-files: false
           if-no-files-found: warn

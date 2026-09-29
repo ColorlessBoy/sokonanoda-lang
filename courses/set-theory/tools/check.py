@@ -1033,31 +1033,6 @@ def selftest(channel: Channel, check_py: Path) -> int:
     if not tampered:
         failures.append("反向验证没跑到（没有可篡改的产物）⇒ 咬不住 ✗")
 
-    # ③d **分片覆盖性 + 均衡性**（用户要求"造一个断言"）——
-    #     `--shard i/N` 是 CI 矩阵的判据通道：**并集必须不多不少覆盖全部目标** ✗
-    #     （少一个 ⇒ 那个目标从没被判过 ⇒ **假绿**；多一个 ⇒ 重复判、浪费）。
-    #     均衡性也要断言：LPT 的结果**最慢片不该显著高于理论下界**（否则"最慢片决定墙钟"）。
-    for n in (1, 2, 3, 4, 8):
-        w = [float(i % 7) + 1.0 for i in range(43)]  # 造一组"有轻有重"的权重
-        shards = shard_assignment(w, n)
-        union = sorted(i for shard in shards for i in shard)
-        if union != list(range(43)):
-            failures.append(f"分片覆盖性失败（N={n}）：并集 {union[:8]}… ≠ 全部下标 0..42")
-            continue
-        loads = [sum(w[i] for i in shard) for shard in shards]
-        lower = max(max(w), sum(w) / n)
-        if max(loads) > lower * 4 / 3 + 1e-9:
-            failures.append(
-                f"分片均衡性失败（N={n}）：最慢片 {max(loads):.2f} > 下界 {lower:.2f} × 4/3"
-                " ⇒ 最慢片会决定墙钟")
-    # 非法 `i/N` 必须被拒（否则 CI 配错了会静默跑全量或空跑 ✗）。
-    for bad in ("1", "0/4", "5/4", "1/0", "a/b"):
-        try:
-            parse_shard(bad, 43)
-            failures.append(f"非法 --shard {bad!r} 竟被接受 ⇒ CI 配错时会静默跑错片 ✗")
-        except Prerequisite:
-            pass
-
     # ④ G6 清单自检：三类结构非法必须判负 + 一份合法 v2 清单必须判绿。
     selftest_g6(failures, tmp)
 
@@ -1084,7 +1059,6 @@ def selftest(channel: Channel, check_py: Path) -> int:
         return 1
     print("  ✓ 正控制（另一个 cwd + import lib.*）判绿 · ✓ 故意坏的单元被判负 · "
           "✓ 二分点名坏声明 · ✓ **缓存冷热一致 + 坏产物不被静默采信** · "
-          "✓ **分片覆盖/均衡 + 非法 i/N 被拒** · "
           "✓ G6 三类结构非法被判负 + 合法 v2 判绿 · ✓ 成本台账字段齐全")
     print("--selftest PASS")
     return 0
@@ -1176,101 +1150,12 @@ def ledger_entry(rows: list[dict], summary: dict, root: Path, *,
 # ── main ────────────────────────────────────────────────────────────────────
 
 
-# ── 分片（CI 矩阵并行）─────────────────────────────────────────────────────
-#
-# **为什么要按成本均衡、而不是取模**：取模会出现"**最慢片决定墙钟**" ✗ ——
-# 一个重单元落进某片，那片就拖住整轮，别的片早跑完了。所以按**实测成本权重**
-# 做静态均衡分配（同 `gap.py check --shard i/3` 的精神，但那个是均分，这里是均衡）。
-#
-# **权重从哪来**：课程门禁的成本 ≈ 该目标的 **import 闭包规模**（每次 `grade` 都把
-# 闭包冷编一遍 ⇒ 成本随闭包线性涨）。所以权重 = **闭包里的模块数**（由
-# `Closure` 算，**确定性、与机器无关** ⇒ 不需要把"本机秒数"写进仓库 ✗，
-# 那样跨机器就失真了）。`SHARD_COST_WEIGHTS` 是**实测标定的兜底表**
-# （单元号 → 权重），用于**闭包信息拿不到**时（例如结构非法）退化成"重的排前面"。
-SHARD_COST_WEIGHTS: dict[str, int] = {
-    # 卷 I 实测：后面的单元 import 更多 lib ⇒ 闭包更大 ⇒ 更贵（与
-    # `docs/perf/course-profile-2026-09-29.md` 的"成本随序号增长"同源）。
-    # 这张表**只用于排序兜底**，真正的权重优先取闭包模块数。
-}
-
-def target_cost(channel: Channel, target: Target) -> float:
-    """一个目标的**成本权重** = 它 import 闭包里的模块数（`query project` 的
-    `counts.modules`）。
-
-    **为什么用闭包模块数**：门禁对每个目标跑一次 `grade`，每次都把该目标的闭包
-    **冷编一遍** ⇒ 成本随闭包规模线性涨（`docs/PERF.md` 记过同一现象）。
-    这个量**确定性、与机器无关** ✓ ⇒ 不把"本机秒数"写进仓库（跨机器会失真 ✗）。
-    拿不到（结构非法 / 通道不支持 `query`）⇒ 退化成 `SHARD_COST_WEIGHTS` 或单元号，
-    至少保住 LPT 的前提"重的排前面"。
-    """
-    try:
-        proc = subprocess.run([*channel.argv, "query", "project",
-                               "--file", str(target.path.resolve())],
-                              capture_output=True, text=True, cwd=str(COURSE),
-                              timeout=GRADE_TIMEOUT)
-        payload = json.loads(proc.stdout)
-        modules = payload["data"]["project"]["counts"]["modules"]
-        if modules:
-            return float(modules)
-    except Exception:
-        pass
-    key = target.label
-    if key in SHARD_COST_WEIGHTS:
-        return float(SHARD_COST_WEIGHTS[key])
-    return float(target.unit or 1) or 1.0
-
-
-# 分片表的**唯一真相**：`i/N` → 目标下标集合。纯函数 ⇒ 可单测 ✓。
-def shard_assignment(weights: list[float], n: int) -> list[list[int]]:
-    """把 `weights` 的下标按**成本均衡**分成 `n` 片（LPT：重的先放最轻的片）。
-
-    LPT（longest-processing-time-first）是经典的**近似最优**多机调度：
-    把任务按权重降序，每次放到当前负载最小的机器上 ⇒ 最慢片与理论下界
-    `max(max_w, sum/n)` 的比不超过 `4/3 - 1/(3n)`。
-    **确定性**（同权重同结果）⇒ 分片可复现 ✓。
-    """
-    if n <= 0:
-        raise ValueError("N 必须 ≥ 1")
-    order = sorted(range(len(weights)), key=lambda i: (-weights[i], i))
-    loads = [0.0] * n
-    shards: list[list[int]] = [[] for _ in range(n)]
-    for index in order:
-        target = min(range(n), key=lambda k: (loads[k], k))
-        shards[target].append(index)
-        loads[target] += weights[index]
-    for shard in shards:
-        shard.sort()
-    return shards
-
-
-def parse_shard(spec: str, total: int) -> tuple[int, int]:
-    """解析 `i/N`（1-based i）⇒ `(i, N)`；非法即 `Prerequisite`（⇒ exit 2）。"""
-    if "/" not in spec:
-        raise Prerequisite(f"--shard 要写成 `i/N`（例如 1/4），实得 {spec!r}")
-    left, _, right = spec.partition("/")
-    try:
-        i, n = int(left), int(right)
-    except ValueError:
-        raise Prerequisite(f"--shard 的两边都要是整数，实得 {spec!r}") from None
-    if n < 1:
-        raise Prerequisite(f"--shard 的 N 必须 ≥ 1，实得 {n}")
-    if not (1 <= i <= n):
-        raise Prerequisite(f"--shard 的 i 必须在 1..{n} 内，实得 {i}")
-    if total == 0:
-        raise Prerequisite("--shard 没有可分的目标（课程里一个目标都没有）")
-    return i, n
-
-
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="check.py",
         description="课程门禁（卷 I 集合论）：判据 G1–G6，与课程规模无关。",
     )
     parser.add_argument("--json", action="store_true", help="机器可读报告（含计数）打到 stdout")
-    parser.add_argument("--shard", metavar="i/N", default=None,
-                        help="只判第 i 片（1..N）。**按成本均衡**分配（见 SHARD_COST_WEIGHTS），"
-                             "片内目标数不必相等；`i/N` 非法或越界即 exit 2。"
-                             "用途：CI 矩阵并行（照 `gap.py check --shard i/3` 先例）")
     parser.add_argument("--only", metavar="标签", action="append", default=[],
                         help="只判匹配这个标签的目标（可重复；子串匹配）")
     parser.add_argument("--bisect", action="store_true",
@@ -1443,50 +1328,6 @@ def main(argv: list[str] | None = None) -> int:
                   f"  可用标签：" + "、".join(target.label for target in targets), file=sys.stderr)
             return 2
         targets = unique
-
-    # ── 分片（CI 矩阵并行）──────────────────────────────────────────────────
-    # 权重 = **该目标 import 闭包里的模块数**（成本 ≈ 闭包规模：每次 `grade` 都把
-    # 闭包冷编一遍）。**确定性、与机器无关** ✓ ⇒ 不把本机秒数写进仓库（跨机器会失真 ✗）。
-    # 拿不到闭包信息（例如结构非法）⇒ 退化成按 `SHARD_COST_WEIGHTS`/单元号排序兜底。
-    if args.shard:
-        shard_index, shard_count = parse_shard(args.shard, len(targets))
-        # **分片总数的期望值**（CI 用 `SOKO_COURSE_SHARDS` 传矩阵的 N）——
-        # 防的是"**矩阵被悄悄改小**"这一失败模式：`strategy.matrix.shard: [1,2,3]`
-        # 会让只有 3 片上报，而**每片都绿** ⇒ `ci-green.py` 只看"名字前缀命中且全绿"
-        # ⇒ 会判 **true-green** ✗（实测过这个洞）。有了这条比对，
-        # "期望 4 片、实际跑 3 片" 会在**片内**就 exit 2 ⇒ 整体红 ✓。
-        expected = os.environ.get("SOKO_COURSE_SHARDS")
-        if expected:
-            try:
-                want = int(expected)
-            except ValueError:
-                print(f"error: SOKO_COURSE_SHARDS 不是整数：{expected!r}", file=sys.stderr)
-                return 2
-            if want != shard_count:
-                print(f"error: 期望 {want} 片（SOKO_COURSE_SHARDS），"
-                      f"而 --shard 说的是 {shard_count} 片 ⇒ 矩阵与门禁不一致 ✗",
-                      file=sys.stderr)
-                return 2
-        weights: list[float] = [
-            target_cost(channel, target) for target in targets
-        ]
-        shards = shard_assignment(weights, shard_count)
-        chosen = shards[shard_index - 1]
-        picked = [targets[i] for i in chosen]
-        # **覆盖性自检**（用户要求"造一个断言"）：分片必须**不多不少**覆盖全部目标。
-        union: list[int] = []
-        for shard in shards:
-            union.extend(shard)
-        if sorted(union) != list(range(len(targets))):
-            print(f"error: 分片覆盖性自检失败 —— 并集 {sorted(union)} ≠ 全部下标 "
-                  f"{list(range(len(targets)))}", file=sys.stderr)
-            return 2
-        print(f"--shard {shard_index}/{shard_count}：本片 {len(picked)} 个目标"
-              f"（全课 {len(targets)} 个；各片目标数 "
-              f"{[len(shard) for shard in shards]}，权重合计 "
-              f"{[round(sum(weights[i] for i in shard), 1) for shard in shards]}）",
-              file=sys.stderr)
-        targets = picked
 
     cache: dict[Path, GradeResult] = {}
 
