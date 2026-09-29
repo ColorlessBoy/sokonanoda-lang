@@ -442,9 +442,7 @@ pub fn merge_session_reports(
         .iter()
         .map(|unit| {
             if Some(unit.name) == entry_name {
-                entry_reports
-                    .next()
-                    .unwrap_or_else(crate::compile::DocumentReport::default)
+                entry_reports.next().unwrap_or_default()
             } else {
                 lib_slot
                     .get(unit.name)
