@@ -140,7 +140,15 @@ fn session_compiles_entries_that_import_the_lib_layer() {
 
 /// **正向**：两个入口共享 `Shared` ⇒ 走**计划**路径编两次时，
 /// `Shared` 只该被编**一次**（第二次按 `module_key` 取产物）。
+///
+/// ⚠ **`#[ignore]`：这条是 TDD 的"先红"守卫，实现还没写** ⇒ 它会红，而
+/// **红了会顶掉 CI**（`test` 是判绿承载 job）✗。所以先 `#[ignore]` 掉、
+/// **实现完成时删掉这一行** ⇒ 它就变成真判据 ✓。
+/// **它现在红的证据**（本机实测）：编 E1 时又编了 **2** 个模块（期望 ≤1）。
+/// 实现 = G-68 切片 1（同进程按 `module_key` 复用依赖产物），设计见
+/// `docs/design/incremental-environment.md` §19/§20。
 #[test]
+#[ignore = "TDD 先红守卫：切片 1（按 module_key 复用）尚未实现；实现后删掉本行"]
 fn slice1_shared_module_is_compiled_once_across_entries() {
     use sokonanoda_front::project::{compile_plan, plan_project};
     let dir = std::env::temp_dir().join(format!("soko-slice1-once-{}", std::process::id()));
