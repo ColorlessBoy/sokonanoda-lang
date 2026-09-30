@@ -73,8 +73,8 @@ Q1/Q2、K1 线（按前缀复用）与**批次 N（66/66）**也已收口 ⇒ **
 
 | # | 线 | 是什么 | 入口（先读） | 判据 |
 |---|---|---|---|---|
-| 1 | **E19 甲案 = `v0.79.0`**（高风险，**单独发版**；**刀 0 冻结** ✓ + **刀 1 收口** ✓ ⇒ 下一步 **刀 2**） | 给**记法求解器加元变量**（治 G-48 一类"零元糖操作数补不出论域"）。用户 2026-09-30 拍板：**不走乙案**，直接甲案；三刀 = 刀0 基线冻结（✓）→ 刀1 记法**操作数位**的待定参数（✓，`SOKO_NOTATION_METAVAR=1` **默认关**）→ **刀2 推广到 `solve_prefix` 一般路径**（`by` 块 / `apply`；**同一个开关、默认关** ✓） | **`docs/design/e19-baseline.md`（§1 四个指纹 + §6 刀1 as-built —— 判据口径**只认它**）** · `docs/design/e19-evaluation.md` · `docs/design/notation-subset.md` §17 | 每刀：G-48 复现件两态 + **172 组对拍**（`bash scripts/kernel-diff.sh --non-course <前> <后>`）+ **结构计数**（`JUDGE_PREFIX runs`）+ front/notation/门禁 —— 逐项与 `e19-baseline.md` §4 比；刀2 另要**逐条重审** `ElabImplicitArgumentUnsolved` 的既有判据（`crates/cli/tests/notation.rs`）+ 反向验证 |
-| 2 | ✅ **两个决策点已拍板**（用户 2026-09-30） | ① 刀1 的语义（`∅ ≈ {b}` ⇒ `Set.Equiv β β ∅ {b}`，论域跟**同形的已解兄弟**）**接受** ✓；② 刀2 沿用**同一个开关、默认关** ✓ | `docs/design/e19-baseline.md` §6「语义」 | **默认开**留到刀2 收口后另行决定 ✓（默认关 = 零风险 ✓） |
+| 1 | **E19 甲案 = `v0.79.0`**（高风险，**单独发版**；**刀 0/1/2 全收口** ✓ ⇒ 下一步 = **默认开 + 发版**） | 给**求解器加元变量**（治 G-48 一类"零元糖操作数补不出论域"）。用户 2026-09-30 拍板：**不走乙案**，直接甲案；三刀全部落地，**同一个开关** `SOKO_NOTATION_METAVAR=1` **默认关**（刀1 记法操作数位 · 刀2 `solve_prefix` 一般路径）| **`docs/design/e19-baseline.md`（§1 四个指纹 + §6/§7 两刀 as-built —— 判据口径**只认它**）** · `docs/design/e19-evaluation.md` | 已实测：两态判据 + **172 组对拍** + **结构计数**（`JUDGE_PREFIX runs` 关态逐项等于基线）+ front/notation/门禁 ✓ |
+| 2 | ⚠ **默认开 + 发版（要用户点头）** | 拆掉 `SOKO_NOTATION_METAVAR` 开关（默认开）⇒ 课程计数 +N（用户已接受）· 语义已拍板（论域跟**同形的已解兄弟**）· 之后 bump + 一次 push + CI 绿 + release | `docs/design/e19-baseline.md` §6/§7 | 默认开那一步要重跑全套（172 组会**有意**变：G-48 那一份）并**逐条记账** ✓ |
 
 ## 1. 读数（同机同口径：release · 冷缓存 · `SOKONANODA_BUILD_JOBS=1` · 全课程 `build --json courses/set-theory`）
 

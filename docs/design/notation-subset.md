@@ -925,7 +925,7 @@ N1–N7 讲的是**语言**（怎么解析、怎么消解、怎么判卷）；�
    （`∅`/`{b}` 自己也要靠期望类型才能定论域 ⇒ 鸡生蛋），报
    `elab-notation-argument-unsolved`；这种题按设计写点名 `Set.Equiv α β ∅ {b}`
    + 行内 `soko:notation-ok` 标记（单元⑨ 练习 5 的画布与解答都这么写）。
-   修法方向 = E19 甲案（给求解器加元变量）。
+   修法方向 = E19 甲案（给求解器加元变量）—— **已落地**（`SOKO_NOTATION_METAVAR=1`，**默认关**）：as-built 与逐项判据 ⇒ `docs/design/e19-baseline.md` §6/§7 ✓。
 
 **判据（两层 + 课程层）**：
 * **真相层** `crates/front/tests/prelude_shape.rs::the_course_libraries_declare_the_inverse_and_equinumerous_notations`

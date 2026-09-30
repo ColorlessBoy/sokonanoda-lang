@@ -6,7 +6,29 @@
 >
 > **已删（不归档，2026-09-30 激进删档）**：**第 1–104 轮**（2026-09-06 → 09-19）与更早的散段
 > —— 原文 ⇒ `git log --all -- docs/STATUS-ARCHIVE.md` ✓。
-> **本文件保留**：**最近 12 段**（第 494–518 轮，按**写入顺序**排，别当时间线读）。
+> **本文件保留**：**最近 13 段**（第 494–519 轮，按**写入顺序**排，别当时间线读；**最老的段压缩成
+> 结论 + git 指针** ⇒ 它是"合法的堆积"，但 **L1 层预算只许减不许增** ✓）。
+
+## 第 519 轮（2026-09-30）：**T-N15 C 收尾 —— 「看得见的变化」索引 + 四处同步（批次 N 66/66）**
+
+- **新增活文档 `docs/visible-changes.md`**（判据面）：每条 = **用户报的什么 → 屏幕上多/少什么 →
+  哪一层的哪条断言咬住它**。覆盖用户报的 **6 条**（`build.tick` 刷屏 · Rebuild 恒 `0%` · Infoview
+  版本戳陈旧 · Q1 `build.timeoutMs` · Q2 `installCli` · K1 改一行等很久）+ **隐式参数**（B2/B3）+
+  记法铺面 A1–A5；⚠ **够不到的面不假装**（终端 stdout / 状态栏 / webview DOM 钉「载荷到达」那一层）。
+- **登记与同步**：`REQUIREMENTS.md` §9.5 的 B3 行升级为 **B2/B3（T-N13/T-N14 收口）** + 指向新清单 ·
+  `ONBOARDING.md` §0.2 队列改成「批次 N 最后 1 条」· VS Code + skills 同步（`README.md` 记法那条 ·
+  `CHANGELOG.md` Unreleased · `teacher/SKILL.md` · `AGENTS.md` 硬规则 3）。
+- **判据**：`docs-lint ✓` · `status-lint ✓` · `plan.py check` OK · `skill`+`dsh` 守卫 **8/0 + 5/0** ✓ ·
+  课程门禁 **43/377/99/0** ✓ · `scripts/soko gate` **EXIT=0** ✓。
+- **顺手修掉守卫自身的洞**（`no_course_signature_uses_an_implicit_binder`）：它原来对**带 import 的
+  文件静默 `continue`**（空记法表下 `parse` 报 `NotationUnknownSymbol`）⇒ 迁移过的 4 个库里只看得到
+  `lib/Set` 的 27 条 ✗。修法 = 带**继承记法表**解析（逐文件剔自声明符号）+ **解析失败也记 offender**
+  ⇒ 立刻抓到 **37 条**并进白名单（**棘轮**：加签名要改清单，评审可见 ✓）。
+- **端到端那条 `cases` 判据撞判定缝** ⇒ 立台账 **G-71**（`open` + **自包含复现件**，判红 = 缺口仍在 ✓，
+  已进 `gap.py check` ✓）；判据主体移到真相层（夹具换纯 ∃ 形状）。
+- **更正上一轮的一处误判** ✗：G-29/G-31 由 `fixed` **改回 `open`** —— 复现件的预算 `10×热开 + 200ms` 不稳定（热开 14ms ↔ 483ms）⇒ 同一天两次跑出**相反**结论；已换成**同 run 比值** `edit < 0.35 × cold`（连跑两次都判「仍在」✓），结构计数留作后续。
+- **遗留**：判定缝没修（T-N13 的 4 条声明是换写法过的；pp 形态只丢**第一个**隐式实参 ⇒ 两种读法都
+  不对，见 **G-71**）；点名叫法没全量迁移（仍有一批标记）；G-31 的复现件缺位。
 
 ## 第 518 轮（2026-09-30）：**T-N13 收口 —— B2 课程库改隐式风格（迁移本体 + 六条前端根因）**
 
@@ -237,24 +259,11 @@
   走环境 → 2 elaboration 主路径 → 3 并行下复用**；每阶段独立 commit + 独立真绿 + 独立回退。
 
 ## 第 501 轮（2026-09-29）：**分片否决 · 切片 1 三次失败全勘明 · 主线转 judge 前缀增量**（HEAD `620a0a4b`）
-- **详细交接 → [`docs/HANDOVER-slice1.md`](HANDOVER-slice1.md)（162 行）+
-  [`docs/design/p1a-measurements.md`](design/p1a-measurements.md)（320 行附录）**；本文只留结论。
-- **① 分片实测否决 + 精确 revert**（`89b91fa6`）：单片冷跑 **317.71s** ≈ 全量 **313.78s**
-  （期望 ~78s）⇒ 切的是"目标数"、切不掉共享 `lib/*` 闭包重复编译。**保留**课程产物缓存
-  （冷 313.8s → 热 **0.50s**，**628×**）与 `ci-green.py --selftest` 夹具修复（**3/6 → 6/6**）。
-- **② 切片 1（一次 session 覆盖全部入口）三次接线全失败，根因**：
-  ① 报告拼接越界崩（`project/mod.rs:480`）② 把 `lib/*` 当入口 ③ **session 入口趟拿不到闭包前缀**
-  （`judge_infer` 只吃源码字符串 `judge.rs:949`）⇒ 全部修掉（`9543405a` 前缀取**最后一格**是关键），
-  **但 17:36 实测 `passes 4141` / `judge_ms 146.9s` ≈ 基线 ⇒ 不提速** ⇒ **接线已撤、切片 1 挂起**。
-  零件留 main（`assemble_from_session`/`merge_session_reports`/`precheck_plan`/`closure_prefixes_for` + 内核两笔）。
-- **③ 🎯 主线转「judge 前缀增量」**（用户 17:52「内核层级编译优化势在必行」）。**权威读数**
-  （release · 冷缓存 · 1 job · 墙钟 **215.0s**）：`JUDGE_INFER total_ms **247.4s**` ·
-  `misses **3759**` ⇒ **未命中 ≈ 222.6s（90%）** · `JUDGE_PREFIX runs=3759 bytes=**1.74 亿**`
-  （**结构判据**，噪声免疫）· **3759 趟只对应 488 个前缀（7.7× 重复）** · `judge/墙钟 ≈ 68%`。
-- **④ 新增量具**（`b9ee531d`，**只加计数、不改判定**）：`JUDGE_PREFIX runs/bytes` +
-  `SOKO_JUDGE_CLASSIFY` 分桶。**⑤ 两个假口径主动作废**：`all_miss_ms 235.7s`（**> 墙钟** ⇒
-  并发重复计时）· `SOKO_NO_JUDGE=1` 26.17s（实测 **`compiled:1 failed:41`**）。
-  **⑥ 靶子重定**：「裸常量就地查表」判死 ⇒ 真靶子 = **那 3759 趟前缀重跑本身**。
-- **下一刀**：让前缀不再重跑（per-前缀 builder 池 / judge 接收调用方 builder）；
-  ⚠ 真障碍：`compile_fol_with`（`check/mod.rs:286`）每次**从零造 `EnvBuilder`**，而它不是 `Clone`。
 
+> **原文 ⇒ `git log --all -- docs/STATUS-ARCHIVE.md`**（2026-09-30 压缩：本段已超出"最近 12 段"，
+> 只留结论）。**结论**：① 分片实测否决（单片 317.71s ≈ 全量 313.78s；课程产物缓存 628× 保留）；
+> ② 切片 1 三次接线全失败 ⇒ **撤线挂起**（零件留 main）；③ 主线转**judge 前缀增量**——权威读数
+> `JUDGE_PREFIX runs=3759` / `bytes=1.74 亿` · `misses 3759` ⇒ 未命中 ≈ **90%** 判定耗时，
+> 靶子 = **那 3759 趟前缀重跑本身**。⚠ 当时的两份交接件（`HANDOVER-slice1.md` /
+> `design/p1a-measurements.md`）已在 2026-09-30 文档清理里删掉 ⇒ **原文只在本文件的 git 历史里**
+> （`git log --all -- docs/STATUS-ARCHIVE.md docs/design/p1a-measurements.md`）✓。

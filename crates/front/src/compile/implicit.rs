@@ -117,6 +117,11 @@ pub(crate) fn leading_implicit(layers: &[Layer]) -> usize {
 /// 两条路都带**期望类型/实参类型的 delta 展开兜底**：`Or.inl h` 的目标常写成
 /// `a ∈ A ∪ B`（`Set.mem … (Set.union …)`，两层 `def`），`And.left h` 的 `h`
 /// 常写成 `a ∈ A ∩ B`——不展开到 `Or`/`And` 归纳头就匹配不上。
+///
+/// **E19 刀2（`SOKO_NOTATION_METAVAR=1`，默认关）**：严格档解不出时，开关开 ⇒
+/// 再走一遍**待定档**（[`solve_prefix_pending`]）—— 解不出的位先记成待定，走完由
+/// [`fill_pending_by_shape`] 与**同形的已解兄弟**合一 ✓。
+/// **默认关 ⇒ 逐字节等于刀0/刀1 的行为**（严格档一次都不多跑）✓。
 pub(crate) fn solve_prefix(
     layers: &[Layer],
     result: &Expr,
@@ -126,8 +131,123 @@ pub(crate) fn solve_prefix(
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
 ) -> Option<Vec<Expr>> {
+    if let Some(solved) = solve_prefix_impl(
+        layers,
+        result,
+        k,
+        arg_tys,
+        expected,
+        defs,
+        is_inductive,
+        false,
+    ) {
+        return Some(solved);
+    }
+    if metavar_enabled() {
+        return solve_prefix_pending(layers, result, k, arg_tys, expected, defs, is_inductive);
+    }
+    None
+}
+
+/// **E19 的开关**（刀1 记法路径 + 刀2 一般路径**共用同一个开关**，用户 2026-09-30
+/// 拍板"沿用同一个开关、默认关" ✓）：给求解器引入**待定参数**（`?α`）。
+///
+/// **默认关** ⇒ 关态逐字节等于刀0 的基线（四个指纹 ✓）；回退 = 这一处改回 `false`。
+pub(crate) fn metavar_enabled() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var("SOKO_NOTATION_METAVAR").is_ok_and(|v| v == "1"))
+}
+
+/// **待定位的合一**（E19 刀1/刀2 **共用一份**）：把每一个还没解出的前导参数 `?i`
+/// 与一个**已解出**的兄弟 `?j` 合一 —— 判据是两层的**域同形**
+/// （[`crate::spine::same_shape`]，忽略 span）。
+///
+/// **为什么是这条判据**：`{α β : Type}` 的两个类型参数**域都是 `Type`** ⇒ 它们
+/// "同一种东西"；`{b}` 已经把 `β` 定成 `β` 了，那么定不出来的 `α` 只能跟着它
+/// （`Set.Equiv ∅ {b}` 读作 `Set.Equiv β β ∅ {b}`）✓。
+/// **一个都定不出来就仍然失败**（没有兄弟可依 ⇒ 照旧报"补不出参数"，不猜、
+/// 不发明类型 ✓）。
+pub(crate) fn fill_pending_by_shape(
+    layers: &[(String, Expr)],
+    solved: &mut [Option<Expr>],
+) -> Option<()> {
+    // 域里的**前导参数名**先代成已解值 —— 同形比较要看**代换后**的形状。
+    let mut sigma: std::collections::HashMap<String, Expr> = std::collections::HashMap::new();
+    for (k, value) in solved.iter().enumerate() {
+        if let (Some((name, _)), Some(value)) = (layers.get(k), value.as_ref()) {
+            sigma.insert(name.clone(), value.clone());
+        }
+    }
+    let domains: Vec<Expr> = layers
+        .iter()
+        .map(|(_, domain)| super::goals::substitute_names(domain, &sigma, &Default::default()))
+        .collect();
+    for i in 0..solved.len() {
+        if solved[i].is_some() {
+            continue;
+        }
+        let mut picked: Option<Expr> = None;
+        for j in 0..solved.len() {
+            if j == i {
+                continue;
+            }
+            let Some(value) = solved[j].as_ref() else {
+                continue;
+            };
+            if crate::spine::same_shape(&domains[i], &domains[j]) {
+                picked = Some(value.clone());
+                break;
+            }
+        }
+        solved[i] = Some(picked?);
+    }
+    Some(())
+}
+
+/// **待定档**（E19 刀2）：某一位解不出时**不立刻失败**，先记成**待定**（`?α`），
+/// 等所有位都走完再用 [`fill_pending_by_shape`] 合一 ✓。
+///
+/// ⚠ **待定值从不进入项**：合一在**实参 elaborate 之前**完成 ⇒ 实参拿到的期望类型
+/// 永远是**具体**类型，内核看到的项里没有任何占位符 ✓。
+#[allow(clippy::too_many_arguments)]
+fn solve_prefix_pending(
+    layers: &[Layer],
+    result: &Expr,
+    k: usize,
+    arg_tys: &[Option<Expr>],
+    expected: Option<&Expr>,
+    defs: &crate::compile::elab::DefTable,
+    is_inductive: &dyn Fn(&str) -> bool,
+) -> Option<Vec<Expr>> {
+    solve_prefix_impl(
+        layers,
+        result,
+        k,
+        arg_tys,
+        expected,
+        defs,
+        is_inductive,
+        true,
+    )
+}
+
+/// 严格档（`allow_pending = false`）= **既有行为，逐字节不变**：任何一位解不出就
+/// 整体 `None`（调用方报专用错误码，**不猜**）✓。
+#[allow(clippy::too_many_arguments)]
+fn solve_prefix_impl(
+    layers: &[Layer],
+    result: &Expr,
+    k: usize,
+    arg_tys: &[Option<Expr>],
+    expected: Option<&Expr>,
+    defs: &crate::compile::elab::DefTable,
+    is_inductive: &dyn Fn(&str) -> bool,
+    allow_pending: bool,
+) -> Option<Vec<Expr>> {
     let unfold = |e: &Expr| crate::spine::unfold_to_inductive(e, is_inductive, defs, 8, None);
-    let mut solved: Vec<Expr> = Vec::with_capacity(k);
+    // **`Option` 槽**（E19 刀2）：严格档里它**永远全是 `Some`**（解不出就提前
+    // `return None`）⇒ 与改动前逐字节同行为 ✓；待定档里 `None` = "这一位待定" ✓。
+    let mut solved: Vec<Option<Expr>> = Vec::with_capacity(k);
     for i in 0..k {
         let name = layers[i].name.clone();
         if name.is_empty() {
@@ -136,7 +256,9 @@ pub(crate) fn solve_prefix(
         let mut sigma: std::collections::HashMap<String, Expr> = std::collections::HashMap::new();
         for (j, s) in solved.iter().enumerate() {
             if !layers[j].name.is_empty() {
-                sigma.insert(layers[j].name.clone(), s.clone());
+                if let Some(s) = s {
+                    sigma.insert(layers[j].name.clone(), s.clone());
+                }
             }
         }
         let mut found: Option<Expr> = None;
@@ -238,9 +360,23 @@ pub(crate) fn solve_prefix(
                 }
             }
         }
-        solved.push(found?);
+        match found {
+            Some(value) => solved.push(Some(value)),
+            // **待定档**：记成 `None`，等 `fill_pending_by_shape` 合一 ✓。
+            None if allow_pending => solved.push(None),
+            // **严格档**（既有行为）：一位解不出 ⇒ 整体失败，调用方报专用码 ✓。
+            None => return None,
+        }
     }
-    Some(solved)
+    if allow_pending {
+        let pairs: Vec<(String, Expr)> = layers
+            .iter()
+            .map(|l| (l.name.clone(), l.domain.clone()))
+            .collect();
+        fill_pending_by_shape(&pairs, &mut solved)?;
+    }
+    // 还有 `None` ⇒ 整体失败（严格档恒不成立；待定档 = "一个兄弟都借不到"）✓。
+    solved.into_iter().collect()
 }
 
 #[cfg(test)]
@@ -388,6 +524,59 @@ mod tests {
             None,
             &empty_defs(),
             &|_| false,
+        )
+        .is_none());
+    }
+
+    /// **E19 刀2 的待定档**（真值层，直接调 [`solve_prefix_pending`]，不碰环境）：
+    /// `{α β : Type}` 两位，`α` 那一位**解不出**（实参类型拿不到），`β` 由第二个
+    /// 实参的类型解出 ⇒ `α` 与**同形的已解兄弟** `β` 合一 ✓；
+    /// **两个都解不出**（没有兄弟可依）⇒ 仍 `None`（不猜、不发明类型 ✓）；
+    /// **严格档**在同样输入上仍是 `None` ⇒ 刀2 不改它的语义 ✓。
+    #[test]
+    fn pending_solver_unifies_same_shape_siblings_and_never_guesses() {
+        let (layers, result) =
+            telescope("forall {α : Type 0} {β : Type 0}, (A : Set α) -> (B : Set β) -> Prop")
+                .expect("telescope");
+        assert_eq!(leading_implicit(&layers), 2);
+        let beta_ty = crate::proof::parse_expr_text("Set β").expect("parse");
+        // ① 第一位拿不到类型（`∅`），第二位是 `Set β` ⇒ `α := β`（同形合一）。
+        let solved = solve_prefix_pending(
+            &layers,
+            &result,
+            2,
+            &[None, Some(beta_ty.clone())],
+            None,
+            &empty_defs(),
+            &|_| false,
+        )
+        .expect("pending solved");
+        assert_eq!(solved.len(), 2);
+        assert!(
+            matches!(&solved[0], Expr::Ident { name, .. } if name == "β"),
+            "待定位必须跟同形兄弟 `β` 合一：{solved:?}"
+        );
+        assert!(matches!(&solved[1], Expr::Ident { name, .. } if name == "β"));
+        // ② 两位都拿不到 ⇒ 没有兄弟可依 ⇒ `None`（不猜）。
+        assert!(solve_prefix_pending(
+            &layers,
+            &result,
+            2,
+            &[None, None],
+            None,
+            &empty_defs(),
+            &|_| false
+        )
+        .is_none());
+        // ③ **严格档**（既有入口）在同样的输入上仍是 `None` ✓。
+        assert!(solve_prefix(
+            &layers,
+            &result,
+            2,
+            &[None, Some(beta_ty)],
+            None,
+            &empty_defs(),
+            &|_| false
         )
         .is_none());
     }
