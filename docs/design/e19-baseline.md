@@ -69,11 +69,43 @@
 | `python3 scripts/notation-lint.py` | OK —— 91 文件零旧写法（**587 处显式豁免**，全带标记） |
 | `python3 scripts/audit-notation-paths.py` | OK —— 无新增绕过（命中 50 处；**基线 46 条指纹是地板**） |
 
-## 6. 刀1 预登记的开关与回退（写在这里，实现时照抄）
+## 6. 刀1 as-built（2026-09-30 **收口 ✓**）
 
-* 开关 `SOKO_NOTATION_METAVAR=1` 开、**默认关**（关 = 逐字节等于 §1 的 R1–R4 ✓）；
-* 判据两条**同时**成立：G-48 复现件 **exit 0** ✓ **且** R1 **172 组 0 差异** ✓；
-* 回退 = 删开关分支（或默认值改回关）⇒ 回到本文件的四条摘要 ✓。
+**开关**：`SOKO_NOTATION_METAVAR=1` 开、**默认关**（关态逐字节等于 §1 的 R1–R4 ✓）；
+回退 = 把 `notation_metavar_enabled()` 的判据改回 `false`（一处）⇒ 立刻回到刀0 的四个指纹 ✓。
+
+**实现**（`crates/front/src/compile/elab.rs` + `spine.rs`，`implicit.rs` **一字未动**）：
+记法前导参数的求解在**最大候选**（操作数对齐到**最后** `operands.len()` 层 —— 语义上
+正确的那一读）上失败时，开关开 ⇒ 走**待定档**（`solve_prefix_args_pending`）：解不出的位
+先记成待定（`?α`），全部走完后由 `fill_pending_by_shape` 与**同形的已解兄弟**合一
+（判据 = `spine::same_shape`，**忽略 span** 的结构比较）。**一个兄弟都借不到 ⇒ 照旧失败**
+（不猜、不发明类型 ✓）。
+⚠ **只放宽最大候选**：更小的候选是**错位读法** —— 实测 `∅ ≈ {b}` 今天会掉到 `missing=1`
+（把 `{b}` 对到 `A : Set α` 上、解出 `α := β`），再让 `∅` 拿到期望类型 `Type` ⇒ 报
+"补不出参数" ✗；那一档**不放宽** ✓。
+
+**语义（用户可见的那一条，写清楚）**：开关开时 `∅ ≈ {b}` 读作 **`Set.Equiv β β ∅ {b}`**
+（`α` 跟着已定的 `β`）—— 论域是**选出来的**，不是推出来的；`∅ ≈ ∅`（两侧都定不出、
+**没有兄弟可依**）**仍然判红** ✓。⇒ 这条语义要在刀2（默认开）之前让用户点头 ✓。
+
+**判据（逐项实测，同机同口径）**：
+
+| 判据 | 关态（默认） | 开态 |
+|---|---|---|
+| **G-48 复现件** | **exit 1**（既有诊断，逐字节不变 ✓） | **exit 0**（两条声明都 checked）✓ |
+| 非课程 172 组对拍 | **0 差异** ✓（20.09s） | **2/172** —— **恰好**是 G-48 复现件那两份（`grade` 1→0 · `check` 1→0），其余 **170 组逐字节相同** ✓ |
+| §1 摘要（非课程 / 课程 / 全语料） | **三个 sha256 逐字节相同** ✓ | 课程 **不变** ✓ · 非课程/全语料变（就是 G-48 那一份） |
+| front lib | **770/0**（+1 = `same_shape` 的新判据）· 1.45s | — |
+| notation 契约 | **49/0** · 6.21s | — |
+| 课程门禁（冷缓存） | **43/377/99/0 逐项不变** ✓ · 80.01s | **43/377/99/0**（当前课程语料**没有** G-48 形状 ⇒ 计数不变 ✓）· 80.00s |
+| 冷 `build` 结构计数 | `JUDGE_PREFIX runs=905` / `bytes=47,866,553` · `passes=1362` · `by_calls=21,551` · `JUDGE_INFER 87,507（misses 905）` —— **逐项等于 §4 基线** ✓ | — |
+
+**新判据**（`crates/cli/tests/notation_metavar.rs`，一个 `#[test]`、三条断言，缺一不算成立）：
+① 开 ⇒ 绿 · ② **反向**（关 ⇒ 红，同一份源码）· ③ **不猜**（`∅ ≈ ∅` 开也红）✓。
+
+⚠ **墙钟口径**：§4 的 `69.70s` 是刀0 那一次单独跑的读数；本表用**同序列复测**的
+`80.69s（基线二进制）/ 80.01s（新二进制）` —— 同一份二进制两次跑差 **15%** ⇒
+**墙钟只当数量级兜底**，退化看结构计数 ✓。
 
 ## 7. 复跑（三条命令）
 
@@ -82,4 +114,5 @@ cargo build --release -p sokonanoda-cli --bin sokonanoda
 bash scripts/kernel-diff.sh --digest ./target/release/sokonanoda
 bash scripts/kernel-diff.sh --non-course ./target/release/sokonanoda ./target/release/sokonanoda
 SOKONANODA_BIN=./target/release/sokonanoda python3 courses/set-theory/tools/check.py --json
+SOKO_NOTATION_METAVAR=1 ./target/release/sokonanoda docs/gaps/repro/G48-notation-nullary-sugar-operands.sokonanoda
 ```

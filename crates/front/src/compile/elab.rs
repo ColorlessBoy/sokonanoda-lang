@@ -2080,8 +2080,45 @@ fn notation_prefix_args<'a>(
         ) {
             return Ok(Some(solved));
         }
+        // **E19 刀1：待定参数（`SOKO_NOTATION_METAVAR=1`，默认关）** ——
+        // 只放宽**最大候选**这一读（操作数对齐到**最后** `operands.len()` 层，
+        // 也就是语义上正确的那一读）。更小的候选是"错位读法"（实测 `∅ ≈ {b}`
+        // 会掉到 `missing=1`：把 `{b}` 对到 `A : Set α` 上，解出 `α := β`，
+        // 再让 `∅` 拿到期望类型 `Type` ⇒ 报"补不出参数" ✗）⇒ **不在那里放宽** ✓。
+        if notation_metavar_enabled() && missing == max_missing {
+            if let Some(solved) = solve_prefix_args_pending(
+                &layers,
+                &result,
+                missing,
+                operands,
+                expected_src,
+                ctx,
+                scope,
+                InplaceEnv::reborrow(&mut env),
+            ) {
+                return Ok(Some(solved));
+            }
+        }
     }
     Ok(None)
+}
+
+/// **E19 刀1 的开关**：给记法**操作数位**引入**待定参数**（`?α` 只在这一处
+/// 产生、只在这一处消费）。**默认关** ⇒ 关态逐字节等于刀0 的基线（四个指纹 ✓）。
+///
+/// 为什么是"待定"而不是"不猜"：`∅ ≈ {b}` 的两个操作数**都是零元糖 / 集合字面量**
+/// ——各自都要靠**期望类型**才能定论域，而期望类型又要靠它们自己定 ⇒ 鸡生蛋
+/// （缺口 G-48）。待定参数把"解不出就报错"换成"**先记 `?α`、走完再合一**"：
+/// 每一位仍先走既有的两条路（操作数类型 / 期望类型），解不出的位在全部走完后由
+/// **同形的已解兄弟**填上（[`fill_pending_by_shape`]）。
+/// ⚠ **待定值从不进入项**：合一在**操作数 elaborate 之前**完成 ⇒ 操作数拿到的
+/// 期望类型永远是**具体**类型（`Set β`），内核看到的项里没有任何占位符 ✓。
+///
+/// 与甲案的完整形态（`solve_prefix` 一般路径上的元变量 + 合一）相比，这一刀
+/// **只碰记法这一条路**：`implicit.rs` 的求解骨架与它的报错契约**一字不动** ✓。
+fn notation_metavar_enabled() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var("SOKO_NOTATION_METAVAR").is_ok_and(|v| v == "1"))
 }
 
 /// `signature` 的 Pi 望远镜：`(名字, 域)` 逐层 + 余下的结果类型。解析不出 ⇒ `None`。
@@ -2097,6 +2134,9 @@ fn notation_telescope(signature: &str) -> Option<(Vec<(String, Expr)>, Expr)> {
 }
 
 /// 固定 `missing` 时解前导参数；解不出（或某一位**没有名字**）⇒ `None`。
+///
+/// **严格档**（`allow_pending = false`）：既有行为，逐字节不变 —— 任何一位解不出
+/// 就整体 `None`（调用方报专用错误码，**不猜**）✓。
 #[allow(clippy::too_many_arguments)]
 fn solve_prefix_args<'a>(
     layers: &[(String, Expr)],
@@ -2106,11 +2146,111 @@ fn solve_prefix_args<'a>(
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
+    env: Option<&mut InplaceEnv<'_, 'a>>,
+) -> Option<Vec<Expr>> {
+    solve_prefix_args_impl(
+        layers,
+        result,
+        missing,
+        operands,
+        expected_src,
+        ctx,
+        scope,
+        env,
+        false,
+    )
+}
+
+/// **E19 刀1 的待定参数档**（开关 [`notation_metavar_enabled`]）：某一位解不出时
+/// **不立刻失败**，先记成**待定**（`?α`），等所有位都走完再用
+/// [`fill_pending_by_shape`] 把待定位与**同形的已解兄弟**合一 ✓。
+#[allow(clippy::too_many_arguments)]
+fn solve_prefix_args_pending<'a>(
+    layers: &[(String, Expr)],
+    result: &Expr,
+    missing: usize,
+    operands: &[&Expr],
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    env: Option<&mut InplaceEnv<'_, 'a>>,
+) -> Option<Vec<Expr>> {
+    solve_prefix_args_impl(
+        layers,
+        result,
+        missing,
+        operands,
+        expected_src,
+        ctx,
+        scope,
+        env,
+        true,
+    )
+}
+
+/// **待定位的合一**（E19 刀1 的"合一"最小切片）：把每一个还没解出的前导参数
+/// `?i` 与一个**已解出**的兄弟 `?j` 合一 —— 判据是两层的**域同形**
+/// （[`crate::spine::same_shape`]，忽略 span）。
+///
+/// **为什么是这条判据**：`Set.Equiv (α β : Type) (A : Set α) (B : Set β)` 的两个
+/// 类型参数**域都是 `Type`** ⇒ 它们"同一种东西"；`{b}` 已经把 `β` 定成 `β` 了，
+/// 那么定不出来的 `α` 只能跟着它（`∅ ≈ {b}` 读作 `Set.Equiv β β ∅ {b}`）✓。
+/// **一个都定不出来就仍然失败**（`∅ ≈ ∅`：没有兄弟可依 ⇒ 照旧报"补不出参数"，
+/// 不猜、不发明类型 ✓）。
+fn fill_pending_by_shape(layers: &[(String, Expr)], solved: &mut [Option<Expr>]) -> Option<()> {
+    // 域里的**前导参数名**先代成已解值 —— 同形比较要看**代换后**的形状。
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for (k, value) in solved.iter().enumerate() {
+        if let (Some((name, _)), Some(value)) = (layers.get(k), value.as_ref()) {
+            sigma.insert(name.clone(), value.clone());
+        }
+    }
+    let domains: Vec<Expr> = layers
+        .iter()
+        .map(|(_, domain)| super::goals::substitute_names(domain, &sigma, &HashMap::new()))
+        .collect();
+    for i in 0..solved.len() {
+        if solved[i].is_some() {
+            continue;
+        }
+        let mut picked: Option<Expr> = None;
+        for j in 0..solved.len() {
+            if j == i {
+                continue;
+            }
+            let Some(value) = solved[j].as_ref() else {
+                continue;
+            };
+            if crate::spine::same_shape(&domains[i], &domains[j]) {
+                picked = Some(value.clone());
+                break;
+            }
+        }
+        solved[i] = Some(picked?);
+    }
+    Some(())
+}
+
+/// 固定 `missing` 时解前导参数；解不出（或某一位**没有名字**）⇒ `None`。
+#[allow(clippy::too_many_arguments)]
+fn solve_prefix_args_impl<'a>(
+    layers: &[(String, Expr)],
+    result: &Expr,
+    missing: usize,
+    operands: &[&Expr],
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
     mut env: Option<&mut InplaceEnv<'_, 'a>>,
+    allow_pending: bool,
 ) -> Option<Vec<Expr>> {
     // 只在参数是**显式**形态时补：隐式 binder（`{α : Type}`）在 v1 的展开里
     // 不插实参（语言不插入隐式实参，设计 §1 第 3 条）。
-    let mut solved: Vec<Expr> = Vec::with_capacity(missing);
+    //
+    // **`Option` 槽**（E19 刀1）：严格档里它**永远全是 `Some`**（解不出就提前
+    // `return None`）⇒ 与改动前的 `Vec<Expr>` 逐字节同行为 ✓；待定档里
+    // `None` = "这一位待定" ✓。
+    let mut solved: Vec<Option<Expr>> = Vec::with_capacity(missing);
     for i in 0..missing {
         let name = layers[i].0.clone();
         if name.is_empty() {
@@ -2215,9 +2355,19 @@ fn solve_prefix_args<'a>(
                 }
             }
         }
-        solved.push(arg?);
+        match arg {
+            Some(value) => solved.push(Some(value)),
+            // **待定档**：记成 `None`，等 `fill_pending_by_shape` 合一 ✓。
+            None if allow_pending => solved.push(None),
+            // **严格档**（既有行为）：一位解不出 ⇒ 整体失败，调用方报专用码 ✓。
+            None => return None,
+        }
     }
-    Some(solved)
+    if allow_pending {
+        fill_pending_by_shape(layers, &mut solved)?;
+    }
+    // 还有 `None` ⇒ 整体失败（严格档恒不成立；待定档 = "一个兄弟都借不到"）✓。
+    solved.into_iter().collect()
 }
 
 /// 目标 telescope 里**操作数位**的期望类型（源级 AST），按已解出的前导参数
@@ -2263,13 +2413,16 @@ fn notation_operand_expected(
 /// ⇒ `Set α₀`。
 fn substitute_prefix_params(
     layers: &[(String, Expr)],
-    solved: &[Expr],
+    solved: &[Option<Expr>],
     i: usize,
     result: &Expr,
 ) -> Expr {
     let mut sigma: HashMap<String, Expr> = HashMap::new();
+    // 待定位（`None`）**没有值可代** ⇒ 跳过 ✓（严格档里不存在待定位）。
     for (k, arg) in solved.iter().enumerate() {
-        sigma.insert(layers[k].0.clone(), arg.clone());
+        if let Some(arg) = arg {
+            sigma.insert(layers[k].0.clone(), arg.clone());
+        }
     }
     let mut rest = result.clone();
     for (name, domain) in layers[(i + 1).min(layers.len())..].iter().rev() {

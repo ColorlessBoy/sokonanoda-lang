@@ -654,6 +654,108 @@ pub(crate) fn spine_of(expr: &Expr) -> (&Expr, Vec<&Expr>) {
     (cur, args)
 }
 
+/// 两个表达式**同形**吗（结构相同、**忽略 span**）—— E19 刀1 的**合一判据**。
+///
+/// 用途只有一个：记法的**待定参数**（[`crate::compile::elab`] 的
+/// `solve_prefix_args_pending`）要看"有没有一个**同形**的已解兄弟"可以合一 ——
+/// `Set.Equiv (α β : Type) (A : Set α) (B : Set β)` 的两个类型参数**域都是
+/// `Type`** ⇒ 同形；`{b}` 已把 `β` 定成 `β` ⇒ 定不出来的 `α` 跟着它
+/// （`∅ ≈ {b}` 读作 `Set.Equiv β β ∅ {b}`）✓。
+///
+/// **保守**：没覆盖的变体一律 `false`（不同形 ⇒ 不合一 ⇒ 退回既有行为 ✓）。
+/// 名字按**字面**比（不做 α-等价）：域这一档里出现的自由名要么是签名自己的参数
+/// （调用方已把外层参数代换过），要么是全局常量 —— 字面比足够，且更保守 ✓。
+pub(crate) fn same_shape(a: &Expr, b: &Expr) -> bool {
+    match (a, b) {
+        (Expr::Sort { sort: x, .. }, Expr::Sort { sort: y, .. }) => x == y,
+        (Expr::Ident { name: x, .. }, Expr::Ident { name: y, .. }) => x == y,
+        (
+            Expr::UniverseApp {
+                name: x,
+                levels: lx,
+                ..
+            },
+            Expr::UniverseApp {
+                name: y,
+                levels: ly,
+                ..
+            },
+        ) => x == y && lx == ly,
+        (Expr::Num { value: x, .. }, Expr::Num { value: y, .. }) => x == y,
+        (Expr::Hole { .. }, Expr::Hole { .. }) => true,
+        (
+            Expr::App {
+                fun: f1, arg: a1, ..
+            },
+            Expr::App {
+                fun: f2, arg: a2, ..
+            },
+        ) => same_shape(f1, f2) && same_shape(a1, a2),
+        (
+            Expr::Arrow {
+                domain: d1,
+                codomain: c1,
+                ..
+            },
+            Expr::Arrow {
+                domain: d2,
+                codomain: c2,
+                ..
+            },
+        ) => same_shape(d1, d2) && same_shape(c1, c2),
+        (
+            Expr::Forall {
+                binders: b1,
+                body: y1,
+                ..
+            },
+            Expr::Forall {
+                binders: b2,
+                body: y2,
+                ..
+            },
+        ) => {
+            b1.len() == b2.len()
+                && b1
+                    .iter()
+                    .zip(b2.iter())
+                    .all(|(x, y)| binder_same_shape(x, y))
+                && same_shape(y1, y2)
+        }
+        (
+            Expr::Notation {
+                target: t1,
+                lhs: l1,
+                rhs: r1,
+                ..
+            },
+            Expr::Notation {
+                target: t2,
+                lhs: l2,
+                rhs: r2,
+                ..
+            },
+        ) => t1 == t2 && opt_same_shape(l1, l2) && opt_same_shape(r1, r2),
+        _ => false,
+    }
+}
+
+fn binder_same_shape(a: &Binder, b: &Binder) -> bool {
+    match (a.ty.as_deref(), b.ty.as_deref()) {
+        (Some(x), Some(y)) => same_shape(x, y),
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+fn opt_same_shape(a: &Option<Box<Expr>>, b: &Option<Box<Expr>>) -> bool {
+    match (a.as_deref(), b.as_deref()) {
+        (Some(x), Some(y)) => same_shape(x, y),
+        (None, None) => true,
+        _ => false,
+    }
+}
+
 pub(crate) fn same_head(a: &Expr, b: &Expr) -> bool {
     // **只比名字，不比宇宙层级**：内核 pp 会把显式层级打掉
     // （`Eq.{1} (Set α) A B` 打成 `Eq A B`），而 `apply` 的两边一边来自
@@ -1248,5 +1350,38 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             span: *span,
             symbol_span: *symbol_span,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::proof::parse_expr_text;
+
+    fn p(text: &str) -> Expr {
+        parse_expr_text(text).expect("parse")
+    }
+
+    /// **同形 = 结构相同、忽略 span**（E19 刀1 的合一判据）。
+    ///
+    /// 反向那半同样重要：两份文本的 span **真的不同** ⇒ `PartialEq`（含 span）
+    /// 本来就不等 —— 否则这条判据就是"在比 span"的空转 ✓。
+    #[test]
+    fn same_shape_ignores_spans_but_not_structure() {
+        assert!(same_shape(&p("Type 0"), &p("Type 0")));
+        assert!(!same_shape(&p("Type 0"), &p("Prop")));
+        assert!(same_shape(&p("Set α"), &p("Set α")));
+        assert!(!same_shape(&p("Set α"), &p("Set β")));
+        assert!(same_shape(&p("α → Prop"), &p("α → Prop")));
+        assert!(!same_shape(&p("α → Prop"), &p("β → Prop")));
+        // 没覆盖的变体 ⇒ **保守** `false`（不合一 ⇒ 退回既有行为 ✓）。
+        assert!(!same_shape(
+            &p("fun (x : Nat) => x"),
+            &p("fun (x : Nat) => x")
+        ));
+
+        let (a, b) = (p("Type 0"), p("  Type 0  "));
+        assert_ne!(a, b, "两份文本的 span 不同 ⇒ `PartialEq` 本来就不等");
+        assert!(same_shape(&a, &b), "同形必须忽略 span");
     }
 }
