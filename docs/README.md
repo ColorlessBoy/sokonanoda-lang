@@ -12,7 +12,7 @@
 > 已进 `scripts/soko gate` 与 CI ✓。
 >
 > **接手先看 `docs/ONBOARDING.md`** ✓（X1，2026-09-28）：那份表是「读多少才能开工」的**唯一权威**，
-> 当前 **5 个文件 / 1130 行 / 上限 1220** ✓。
+> 当前 **4 个文件 / 958 行 / 上限 1220** ✓（实测值以 `python3 scripts/docs-lint.py --json` 为准 ✗ 别抄旧数字）。
 
 ## 仓库根（入口与权威，与 `README.md`/`AGENTS.md`/`ROADMAP.md` 并列）
 
@@ -20,11 +20,13 @@
 |---|---|---|
 | `AGENTS.md` | **项目入口**：阅读顺序、硬规则速记、命令 | 第一份 |
 | `README.md` | 对外门面（用户/agent 怎么用） | 对外 |
-| `ROADMAP.md` | 里程碑与 §10 验收标准 | 规划 |
+| `ROADMAP.md` | 里程碑 + §10 待办的**验收口径与收口状态**（**队列不在这里**） | 规划 |
 | `REQUIREMENTS.md` | **用户全部要求的权威总账**（硬规则、§9 追加日志） | 动手前必读；冲突以它为准 |
-| `STATUS.md` | 当前进度与逐轮日志（最新在最上） | 每轮开始/收尾 |
+| `STATUS.md` | 当前快照 + **最近 3 轮** + 未决项（最新在最上；旧轮见 `STATUS-ARCHIVE.md` / `docs/archive/`） | 每轮开始/收尾 |
 
-> **计划/接手的唯一入口是 `docs/ONBOARDING.md`**（开工单）；历史交接书已归档（见「核心」表）。
+> **计划 / 队列的唯一入口是 `docs/ONBOARDING.md`**（开工单 §0.2）✓ —— `STATUS.md` 与
+> `ROADMAP.md` §10 **不再各写一份"下一步"**（2026-09-30 收敛）；历史交接书已于 2026-09-29
+> **删除（不归档）**，内容并入该文件 ✓。
 > 站点索引页 `site/docs.html` 的作者核出过这处错——本文早先把它列在根目录，
 > 那个路径会 404。
 
@@ -32,12 +34,12 @@
 
 | 文档 | 作用 | 何时读 |
 |---|---|---|
-| `ONBOARDING.md` | **开工单**：现在在哪 / 下一步 / 判据 / 纪律；历史交接书已于 2026-09-29 删除（内容并入本表首行） | 接手第一份 |
+| `ONBOARDING.md` | **开工单**：现在在哪 / **唯一队列（§0.2）** / 判据 / 纪律 + **计划·提案类文档索引（§2）**；历史交接书已于 2026-09-29 删除（内容并入本文件） | 接手第一份 |
 | `architecture.md` | 流水线、内核机制、§6 内核改动清单、§8 gotchas | 改内核/front 前 |
 | `protocol.md` | `--json` 事件、`soko/*` 自定义请求的对外契约 | 改事件/输出格式前 |
 | `TESTING.md` | 测试地图（哪类改动跑哪层） | 加测试时 |
 | `RELEASE.md` | 发布手册（main 全绿自动 tag、8 平台 + 9 VSIX、Marketplace） | 发版前 |
-| `STATUS-ARCHIVE.md` | STATUS 的历史轮次（**只留最近 8 段** ✓；更早 ⇒ `docs/archive/status-archive-older-rounds.md.gz`） | 查旧轮/缺陷修复时间线 |
+| `STATUS-ARCHIVE.md` | STATUS 的历史轮次（**只留最近 12 段** ✓；更早 ⇒ `docs/archive/status-archive-older-rounds.md.gz`；`STATUS.md` 移出的段落 ⇒ `docs/archive/status-removed-rounds-502-504-2026-09-30.md.gz`） | 查旧轮/缺陷修复时间线 |
 | `vscode-dev-guide.md` | VS Code 扩展开发规范（版本纪律、测试三层、常见坑） | 改 `editor/vscode/` 前 |
 | `LESSONS.md` | 经验台账（subagent/流程教训） | 接手/复盘 |
 | `PERF.md` | 性能测试结构、阈值原则与基线 | 改动涉及热路径/验收 |
@@ -48,6 +50,11 @@
 ## 设计记录（`docs/design/`）
 
 已确认并落地的设计（含取舍、验收、as-built）。新功能先在这里加一篇，再动手。
+
+> **计划 / 提案 / 交接类文档**（`e2-plan.md` · `vscode-editor-feedback-plan.md` ·
+> `module-artifacts-slice1b-handoff.md` · `prelude-l1-proposal.md` · `p1a-measurements.md` ·
+> `incremental-environment.md`）**的索引在 `docs/ONBOARDING.md` §2** ✓ —— 讲什么 / 什么状态 /
+> 何时读，一处维护（**本表不重复列**，免得两处漂移 ✗）。
 
 - `infrastructure.md` — LSP-first 总体设计 v2
 - `i8-i9.md` — 真增量（Session/TrustPlan）+ goal 视图第一段

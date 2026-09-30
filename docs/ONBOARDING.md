@@ -95,9 +95,9 @@ Q1/Q2 与 K1 线（按前缀复用）也已收口 ⇒ **剩下的队列只有两
 
 | 文档 | 讲什么 | 状态（2026-09-30） | 什么时候读 |
 |---|---|---|---|
-| `docs/design/e2-plan.md` | E2 计划**现行契约 + 收口索引**（§0 三条硬约束 · §1 阶段总览 · §13 一行一条清单）；逐字原文 ⇒ `docs/archive/e2-plan-full-2026-09-26.md.gz` | **E2 50/50 收口**；**批次 N 14/16**（剩 T-N13/T-N14/T-N15 ⇒ `plan.py` 权威） | 做批次 N 前（先跑 `plan.py next`） |
+| `docs/design/e2-plan.md` | E2 计划**现行契约 + 收口索引**（§0 三条硬约束 · §1 阶段总览 · §13 一行一条清单）；逐字原文 ⇒ `docs/archive/e2-plan-full-2026-09-26.md.gz` | **E2 阶段 A–E 全收口**；**批次 N 25/28**（`plan.py` 总进度 **63/66**，剩 T-N13/T-N14/T-N15 ⇒ `plan.py next` 权威） | 做批次 N 前（先跑 `plan.py next`） |
 | `docs/design/vscode-editor-feedback-plan.md` | E1（VS Code 六条反馈）**收口索引**：六条根因一句话 + E2 继承的四条结论（T-K11/K12c/K13/K30/K31）；逐字原文 ⇒ `…-full-2026-09-26.md.gz` | **124/124 全部收口**（结论已被 E2 继承） | 改编辑器体验前（**防重走**那四条） |
-| `docs/design/module-artifacts-slice1b-handoff.md` | 切片 1b 最后一刀**交接书**：把 `ProjectSession` 接进 `build <dir>`（共享库层只编一次；判据 ② `by_calls` 3 → 1 已达成） | **待接**（"怎么接"已写到函数/行号） | 做**模块级产物 / 结果复用**那条线前（为什么见 `docs/design/module-artifacts.md` §9） |
+| `docs/design/module-artifacts-slice1b-handoff.md` | 切片 1b（把 `ProjectSession` 接进 `build <dir>`，共享库层只编一次）的**交接书 → 已降级为 as-built 记录**：§1 落点 · §2 判据 · §4 真根因（prelude 表跨趟复用）· §5 计数≠墙钟 | ✅ **已收口**（2026-09-30 核实：`build_one(…, precomputed)` + `PassTables` + `crates/cli/tests/imports.rs` 的多入口守卫）；**仍未做** = §5 的**刀 2（产物落盘 / P3 可下载 cache）** | 做**模块级产物 / 结果复用**那条线前（为什么见 `docs/design/module-artifacts.md` §9） |
 | `docs/design/prelude-l1-proposal.md` | L1 prelude 提案：把 Lean core 的逻辑与等式骨架装进 prelude（三层分界、清单、四阶段） | **P1–P4 全部落地**（0.59.0）；残留欠账在 `docs/gaps/ledger.jsonl` | 动 prelude / 课程标准库分层前 |
 | `docs/design/p1a-measurements.md` | P1 的**量具 / 对账 / 读数**（附一~附十一；附十 = `by` 路径勘明，附十一 = 收口账） | **P1 全档收口**（历史证据，不动它就够） | 动 P1 任一档 / 复现读数前 |
 | `docs/design/incremental-environment.md` | 「前缀环境」那条腿的设计与逐轮勘明（§18–§31） | **§3.C 已落地**（2.65×，`v0.78.3`） | 继续这条腿前 |
