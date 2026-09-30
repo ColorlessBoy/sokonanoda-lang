@@ -1,3 +1,20 @@
+## [Unreleased]
+
+### Changed
+
+- **The course standard library no longer makes you spell out leading type
+  parameters.** `Set.image` / `Set.preimage` / `Set.mem` / `Set.subset` and
+  friends, plus `Function.comp` / `Rel.comp`, now take `{α : Type}` implicitly,
+  so `a ∈ A`, `f '' A`, `A ⊆ B`, `A ∩ B`, `(∅) x` mean what they read as — no
+  `Two`, no `α β`. The pointful spelling (`Set.mem α a A`) still grades
+  identically; the course now uses the short one.
+- **Six front-end root causes behind that change were fixed** (delta-unfold
+  alignment for `cases`, nullary notation in function position, nested implicit
+  positions, template-side unfolding, the old-style gate on route ③, expected
+  types for solved implicit arguments) — each with a unit test that was verified
+  to fail when the fix is reverted. Course gate: **43 targets · 377 checked ·
+  99 open · 0 rejected**; the non-course corpus is byte-for-byte unchanged.
+
 ## [0.78.3] — 2026-09-30
 
 > 编译提速的**最后一条腿**：判定不再重复检查它刚刚检查过的前缀。

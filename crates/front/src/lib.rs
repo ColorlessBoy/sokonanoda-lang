@@ -42,6 +42,6 @@ pub use ast::{
     RecDecl, SortKind, Tactic,
 };
 pub use diagnostic::{Diagnostic, DiagnosticKind, Result};
-pub use parser::{parse, parse_fragment, Parser};
+pub use parser::{parse, parse_fragment, parse_with_inherited, Parser};
 pub use span::{Pos, Span};
 pub use token::{tokenize, Lexer, Token, TokenKind};

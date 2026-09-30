@@ -1,0 +1,40 @@
+-- G-71 最小复现（**自包含，不 import**）：课标库签名隐式化（IA-2 / T-N13）之后，
+-- `cases` 在 `have … := by` 里派生的假设类型走**内核 pp 形态**（`Set.image β f A`：
+-- 只丢**第一个**隐式实参），而这条文本在 tactic 上下文里**读不回来** ⇒ 臂里
+-- `exact …intro x hx` 报「（值的类型也读不出来，检查它里面的名字）」✗。
+--
+-- 形状与 `crates/cli/tests/notation.rs` 里那条端到端判据同款（那条判据因此移到
+-- 真相层，见该文件的指针注释）。
+--
+-- 退出码约定（`docs/gaps/README.md`）：**本文件判红 = 缺口仍在** ✓（`repro_expect: rejected`）。
+
+-- 自己带一个 ∃（不 import lib/Exists ⇒ 复现件自包含）
+inductive Witness (A : Type) (p : A → Prop) : Prop
+ctor intro (w : A) (h : p w) : Witness A p
+end
+
+binder_notation "∃" => Witness
+
+def Set (α : Type) : Type := α → Prop
+
+namespace Set
+
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+
+def preimage {α β : Type} (f : α → β) (B : Set β) : Set α := fun (x : α) => B (f x)
+
+def image {α β : Type} (f : α → β) (A : Set α) : Set β :=
+  fun (y : β) => ∃ (x : α), A x ∧ f x = y
+
+end Set
+
+infix:50 " ∈ " => Set.mem
+infixr:80 " '' " => Set.image
+infixr:80 " ⁻¹' " => Set.preimage
+
+theorem t (α β : Type) (f : α → β) (C : Set β) (y : β)
+    (hy : y ∈ (f '' (f ⁻¹' C))) :
+    ∃ (x : α), (x ∈ (f ⁻¹' C)) ∧ (f x = y) := by
+  cases hy with
+  | intro x hx =>
+    exact Witness.intro x hx

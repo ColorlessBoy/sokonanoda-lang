@@ -8,6 +8,20 @@
 > —— 原文 ⇒ `git log --all -- docs/STATUS-ARCHIVE.md` ✓。
 > **本文件保留**：**最近 12 段**（第 490–505 轮，按**写入顺序**排，别当时间线读）。
 
+## 第 516 轮（2026-09-30）：**G-69 收口 —— 归一化护栏补「逐位递归」（T-N13 的第二个前置）**
+
+- **病根**：`by.rs::keep_if_lossless` 只比**顶层** spine 实参个数，而记法节点在 `spine_of` 里
+  算 **1 个** ⇒ `Set.subset (A ∩ B) A` 与 pp 形态 `Set.subset (Set.inter A B) A` **顶层相等**、
+  护栏放行 ✗ —— 可 pp 已把内层 `Set.inter` 的隐式 `α` 省掉 ⇒ `intro` 派生的假设成了**丢了参数的
+  点形式** ⇒ `unfold_one` 把 `Set.inter A B x` 对成 `α := A, A := B, B := x` ✗。
+- **修法**：护栏补**逐位递归**（新 `notation_positions_keep_implicit_prefix`）—— 源级记法节点在
+  pp 形态里必须把该目标的**前导隐式实参**写出来（实参个数 ≥ 操作数 + `implicit_prefix`）；
+  `DefInfo` 因此新增 `implicit_prefix`（两个构造点与 `KnownName::Decl` 同源 ✓）。
+- **判据**：`compile/tests.rs::a_derived_hypothesis_solves_implicit_arguments_like_a_written_binder`（**反向验证** ✓：让该函数 `return true` ⇒ 当场判红）· 复现件 `G69-*.sh` **exit 1** ✓ · 对照组仍绿 ✓。
+- **红线（逐项实测）**：全语料对拍 **644 组逐字节相同** ✓（今天全部记法目标 `implicit_prefix`
+  都是 0 ⇒ 新判据**一次都不触发** ✓）· 课程门禁 **43/376/99/0** ✓ · front **796/0** · 记法契约 **50/0** ✓。
+- **⇒ T-N13 的两个前置（G-43 / G-69）都已收口**；剩**迁移本体**（9 文件 / 19 诊断，逐站点改）。
+
 ## 第 515 轮（2026-09-30）：**G-43 收口 —— lambda 实参按「书写类型」求解（T-N13 的前置）**
 
 - **病根（探针实测）**：**显示与判定共用一条 pp 文本** —— 内核 pp 会**丢掉第一个隐式实参**

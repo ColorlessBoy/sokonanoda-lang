@@ -135,7 +135,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [x] `T-N13` **B2**：课程库改隐式风格（`Set.image`/`Set.preimage` 一族 + `Function.comp`/`Rel.comp`）+ 调用点数量级下降。**三个前置已收口** ✓（G-43 第 515 轮 · G-69 第 516 轮 · G-70 第 517 轮）；**签名隐式化本身干净** ✓（四个 lib 各 0 诊断）；**批量改写证伪** ✗（脚本一次 649 处 ⇒ 16 文件判红）⇒ 剩 **10 文件 / 19 诊断**的调用点迁移，**逐站点核**（失败分类见 §阶段 N 的 T-N13 as-built）
 - [x] `T-N14` **B3**（**先行**：B2 的前置）：**记法路径改走唯一钩子**（隐式档，`elab_notation_implicit`）+ **唯一钩子的实参期望类型**（先解前缀、再逐位给期望类型）⇒ **模式 B**（`Set.univ ∩ A` ⇒ `α := Type 0`）与 **模式 D**（`Set.image f A y` 一族）**都已收口** ✓；补参 hack **收窄**到 `implicit_prefix == 0` 那一档（护城河：`=` 等内建记法，隐式目标上执行次数 0）✓；全语料对拍 **644 组逐字节相同** ✓ · front **794/0** · 记法契约 **50/0** · 两条新判据带反向验证 ✓。**剩 G-43**（构造子 + lambda 实参）⇒ 归 T-N13
 - [x] `T-N16` **A0 立判据收尾**：`SubGoal.ty` 那 9 处**两半分开钉** —— 显示副本（wire 克隆 + LSP hover）**必须折** + 真相字段（`DeclState.sub_goals[].ty`，`suggest.rs` 回读它算建议）**一个字节都不许折**；两条判据各带反向验证 ✓；**「59 是地板」的结论**进审计 §1.5（再降要改记账口径，不是再迁几处 ✓）
-- [ ] `T-N15` **C 收尾**：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9（2026-09-26）+ VS Code/skills 同步
+- [x] `T-N15` **C 收尾**：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9（2026-09-26）+ VS Code/skills 同步
 ## 3. 风险与刹车点（每阶段都有一条"停下"的判据）
 
 | 阶段 | 刹车点 | 停下后做什么 |
@@ -552,8 +552,12 @@ kernel_phase.rs` 的 `resolution` 回填只查用户文件的 `top_level_def_spa
 
 1. **判定缝本身没修**：上面 4 条声明是**换写法**过的，不是根因修好。缝的形状固定为
    「tactic 路径把目标/假设过一遍 pp 回读 ⇒ 类型与项在**隐式实参或宇宙层级**上不同形」——
-   与 E19/E20（给求解器加元变量）是同一片地；**复现件**留作 E19 的取证材料（`unit08-solution`
-   的 `preimage_inter` 原写法：`apply Set.ext; intro x; constructor; intro h; exact And.intro (And.left h) (And.right h)`）。
+   与 E19/E20（给求解器加元变量）是同一片地。**已立台账 G-71**（`status: open`）+
+   **自包含复现件** `docs/gaps/repro/G71-tactic-context-pp-form-not-rereadable.sokonanoda`
+   （判红 = 缺口仍在 ✓，`gap.py check` 已把它接进门禁 ✓）：pp 形态只丢**第一个**隐式实参
+   ⇒ `unfold_one_with` 的两种读法都不对（第三种 = 对齐 `params[implicit_prefix-1..]`，
+   实测能修好 `cases` 那一步、端到端仍红），且那条 pp 文本在 tactic 上下文里**读不回来**
+   ⇒ 两半要一起修（细节与实测写在台账的 `where.why_open` 与 `today`）。
 2. **点名叫法没有全量迁移**：单元里仍有一批「写全前导类型参数」的调用点（带 `soko:notation-ok` 标记，
    例如 `Set.image` 的操作数是零元记法 `∅` 时没有类型来源）⇒ 契约里「调用点数量级下降」这一条
    **只做到「不再必须写」**，没做到「全部改写成短写」；逐站点迁移是后续独立工作。

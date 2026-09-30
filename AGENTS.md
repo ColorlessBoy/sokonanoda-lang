@@ -138,9 +138,9 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
    `docs/design/notation-subset.md`；
    **课程一律写记法**（2026-09-21 用户拍板，脚本判红）：`Eq.{1} T a b` → `a = b`、
    `Set.mem α a A` → `a ∈ A`、`And X Y` → `X ∧ Y`、基础类型省前导隐式实参
-   （`And.left h` / `Or.inl h` / `Exists.intro w hw`）；判据
-   `python3 scripts/notation-lint.py`（已进 `scripts/soko gate` 与 CI），
-   细则原文 ⇒ `git log --all -- docs/notes/course-lean-style/notation-rewrite-brief.md`；
+   （`And.left h` / `Or.inl h` / `Exists.intro w hw`；**课标库前导类型参数已隐式** ⇒
+   `a ∈ A` / `f '' A` / `A ⊆ B` 不写 `α β`）；判据 `python3 scripts/notation-lint.py`
+   （已进 `scripts/soko gate` 与 CI），细则原文 ⇒ `git log --all -- docs/notes/course-lean-style/notation-rewrite-brief.md`；
 4. 判定永远走 kernel——**禁止文本比对**（tactic 判定范例：`front::judge`）；
 5. 模块化：文件接近 ~500 行即拆分；公开 API 用 re-export 保持稳定；
 6. **用户/agent 路径零工具链依赖**：获取与运行只用 Release 二进制或平台

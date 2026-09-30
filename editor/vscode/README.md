@@ -71,7 +71,10 @@ skills.
   tokens, declared symbols are highlighted as operators, and notation is pure
   sugar: it emits no event, and the pointful spelling keeps grading
   identically. Scope is per file, after the declaration (not across `import`
-  yet).
+  yet). The course standard library's **leading type parameters are implicit**
+  (`Set.image`, `Set.preimage`, `Set.mem`, `Function.comp`, `Rel.comp`, …), so
+  `a ∈ A`, `f '' A`, `A ⊆ B`, `A ∩ B` need no `α β` — write the mathematics, not
+  the telescope.
 - **Multi-file projects** — start a file with `import Logic` and the whole
   import closure is compiled as one program: declarations from imported
   modules are in scope for diagnostics, hover, completion and code actions,

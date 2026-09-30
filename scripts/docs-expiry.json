@@ -228,6 +228,12 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
+    "docs/visible-changes.md": {
+      "expires": "2027-09-30",
+      "renewed": "2026-09-30",
+      "tier": "spec",
+      "reason": "批次 N 收尾的验收索引：用户可见变化 ↔ 断言名，长期有效"
+    },
     "docs/vscode-dev-guide.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",

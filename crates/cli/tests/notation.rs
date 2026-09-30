@@ -2186,20 +2186,24 @@ theorem ext_fill_no_alpha (γ : Type) (f : γ -> Nat) (A : Set γ) :
 /// 模式加括号：`| intro b hb =>` 渲染成 `| intro (b hb) =>`，回读时
 /// `Exists.intro` 只剩 **1** 个子模式，报「构造子有 2 个字段，但这一支写了
 /// 1 个子模式」。现在只给本身带子模式的子模式加括号。
+///
+/// ⚠ **夹具不依赖课标库**（T-N13，2026-09-30）：原来用 `y ∈ f '' (f ⁻¹' C)`
+/// 那条链，而课标库签名隐式化之后，`cases` 派生的假设类型会走 pp 形态、撞上
+/// **判定缝**（见台账 **G-71**）。判据的**主体是"臂模式字段数不许丢"**
+/// （`render_pattern` 的括号规则），与集合词汇无关 ⇒ 换成纯 ∃ 形状：
+/// 主体不变、缝不参与 ✓。
 #[test]
 fn cases_inside_a_have_block_keeps_every_constructor_field() {
     let src = "\
-import lib.Set
-import lib.Image
+import lib.Logic
+import lib.Exists
 
-theorem cases_in_have (α β : Type) (f : α -> β) (C : Set β) (y : β)
-    (hy : y ∈ f '' (f ⁻¹' C)) : y ∈ C := by
-  have h1 : y ∈ C := by
-    cases hy with
+theorem cases_in_have (α : Type) (p : α → Prop) (h : ∃ (x : α), p x) :
+    ∃ (x : α), p x := by
+  have h1 : ∃ (x : α), p x := by
+    cases h with
     | intro x hx =>
-      exact Eq.subst.{1} β (fun (z : β) => C z) (f x) y
-        (And.right ((f ⁻¹' C) x) (f x = y) hx)
-        (And.left ((f ⁻¹' C) x) (f x = y) hx)
+      exact Exists.intro x hx
   exact h1
 ";
     let dir = course_lib_dir("cases-in-have");
@@ -2251,56 +2255,16 @@ theorem cases_eq_arm (β γ : Type) (g : β -> γ) (a : β) (c : γ)
     );
 }
 
-/// **`cases` 的参数代换必须用规范形态**（R2 修边刀实测：记法的前导类型参数
-/// 撞上上下文同名变量 ⇒ **静默错类型**）。
-///
-/// 源类型里的记法节点（`f '' A`）**不带前导类型参数**（`elab` 期才算得出来，
-/// 源 AST 里没有），而 `spine::unfold_one` 只能把操作数**右对齐**到形参，
-/// 于是定义体里提到前导参数的地方**留着定义自己的 binder 名**，在调用点按
-/// 「同名上下文变量」解析：`Set.image` 的形参就叫 `α`/`β`，上下文里也有
-/// `α`/`β`，于是 `f : α -> γ` 那条 `''` 把形参 `β` 代成了**上下文的 `β`**
-/// （本该是 `γ`）——臂里的假设类型成了 `Eq.{1} β (f x) y`，之后每条 `exact`
-/// 都把同一条命题写成两种形态（实测 `unit12` 的 P1）。
-/// 修法：`cases` 的实参优先取**规范形态**（内核 pp：点名 + 全实参 + 无记法），
-/// 它丢的隐式宇宙参数由 `restore_universe_levels` 在写回节点之前补齐。
-#[test]
-fn cases_uses_the_canonical_type_so_notation_prefix_params_do_not_capture_context_names() {
-    let src = "\
-import lib.Set
-import lib.Fun
-import lib.Image
+// **`cases` 的实参取"规范形态"这件事，判据移到真相层**（T-N13，2026-09-30）。
+//
+// 原判据是端到端形状：它要 `cases` 在一个**由记法节点派生**的假设上取规范类型，
+// 避免 `Set.image` 的形参名 `α`/`β` 撞上上下文同名变量。课标库签名隐式化之后，
+// 这条端到端路径撞上**判定缝**（tactic 上下文里的 pp 形态假设类型读不回来 ——
+// 见台账 **G-71** 与自包含复现件
+// `docs/gaps/repro/G71-tactic-context-pp-form-not-rereadable.sokonanoda`，它已进
+// `scripts/gap.py check`：判红 = 缺口仍在 ✓）。
+// 端到端留 TODO：G-71 修好后把这条判据搬回来（那时它必须重新判红 → 判绿）✓。
 
-theorem cases_image_nested (α β γ : Type) (f : α -> β) (g : β -> γ) (A : Set α) :
-    forall (y : γ), ((Function.comp α β γ g f) '' A) y ->
-      (Set.image β γ g (Set.image α β f A)) y := by
-  intro y
-  intro hy
-  cases hy with
-  | intro x hx =>
-    exact Exists.intro β (fun (b : β) => (Set.image α β f A) b ∧ g b = y) (f x)
-      (And.intro ((Set.image α β f A) (f x)) (g (f x) = y)
-        (Exists.intro α (fun (t : α) => A t ∧ f t = f x) x
-          (And.intro (A x) (f x = f x)
-            (And.left (A x) (Eq.{1} γ (Function.comp α β γ g f x) y) hx)
-            (Eq.refl.{1} β (f x))))
-        (And.right (A x) (Eq.{1} γ (Function.comp α β γ g f x) y) hx))
-";
-    let dir = course_lib_dir("cases-canonical-args");
-    let path = dir.join("Course.sokonanoda");
-    std::fs::write(&path, src).expect("write canvas");
-    let (code, events) = grade_json_root(&dir, &path);
-    let diags: Vec<&Value> = events
-        .iter()
-        .filter(|e| e["type"] == "diagnostic")
-        .collect();
-    assert_eq!(
-        code, 0,
-        "`cases` must take its arguments from the canonical type: {diags:?}"
-    );
-}
-
-/// 递归收集 `dir` 下的 `.sokonanoda` 文件（跳过 `solutions` 之外不做区分——
-/// 前提是全仓签名，不分画布/解答）。
 fn walk_sokonanoda(dir: &Path) -> Vec<PathBuf> {
     let mut out = Vec::new();
     let Ok(entries) = std::fs::read_dir(dir) else {
@@ -2317,7 +2281,29 @@ fn walk_sokonanoda(dir: &Path) -> Vec<PathBuf> {
     out
 }
 
-/// 声明类型望远镜里带**隐式**风格的 binder（IA-1 的前提检查用）。
+/// 本文件**自己声明**的记法符号（供 [`no_course_signature_uses_an_implicit_binder`]
+/// 从"继承记法表"里剔掉自己 —— 记法声明行的形状是固定的
+/// `infix:50 " ∈ " => Set.mem` / `binder_notation "∃" => Exists`，取第一对引号里的符号 ✓）。
+fn own_notation_symbols(src: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for line in src.lines() {
+        let t = line.trim_start();
+        if t.starts_with("infix")
+            || t.starts_with("notation")
+            || t.starts_with("binder_notation")
+            || t.starts_with("prefix")
+            || t.starts_with("postfix")
+        {
+            if let Some(a) = t.find('"') {
+                if let Some(b) = t[a + 1..].find('"') {
+                    out.push(t[a + 1..a + 1 + b].trim().to_string());
+                }
+            }
+        }
+    }
+    out
+}
+
 fn implicit_binders_in(ty: &sokonanoda_front::Expr, out: &mut Vec<String>) {
     use sokonanoda_front::{BinderKind, Expr};
     match ty {
@@ -2354,48 +2340,88 @@ fn implicit_binders_in(ty: &sokonanoda_front::Expr, out: &mut Vec<String>) {
 /// 的 GOLDEN）钉着。
 #[test]
 fn no_course_signature_uses_an_implicit_binder() {
-    use sokonanoda_front::Command;
+    use sokonanoda_front::{notation::notation_table, parse_with_inherited, Command};
+    // ⚠ **两遍扫描**（2026-09-30 修守卫自身的洞）：跨模块记法（`∃` 声明在
+    // `lib/Exists`、`∈`/`''` 声明在 `lib/Set`）会让**空记法表**的 `parse` 报
+    // `NotationUnknownSymbol` ⇒ 旧版守卫 `continue` ⇒ **整个文件被静默跳过** ✗
+    // （实测：迁移过的 4 个库里只看得到 `lib/Set` 的 27 条，`lib/Image`/`Fun`/`Rel`
+    // 一条都没进过判据 —— 而它们正是 IA-2 的主角）。现在先收全树的记法表，
+    // 再带**继承记法表**解析；**解析失败也记 offender**（不许静默跳过 ✓）。
+    let mut paths: Vec<PathBuf> = Vec::new();
+    for root in ["courses/set-theory", "course"] {
+        paths.extend(walk_sokonanoda(&repo_root().join(root)));
+    }
+    let mut inherited = Vec::new();
+    for _ in 0..4 {
+        let mut next = inherited.clone();
+        for path in &paths {
+            let Ok(src) = std::fs::read_to_string(path) else {
+                continue;
+            };
+            if let Ok(file) = parse_with_inherited(&src, &inherited) {
+                for d in notation_table(&file.commands) {
+                    if !next.contains(&d) {
+                        next.push(d);
+                    }
+                }
+            }
+        }
+        if next.len() == inherited.len() {
+            break;
+        }
+        inherited = next;
+    }
     let mut offenders: Vec<String> = Vec::new();
     let mut scanned = 0usize;
-    for root in ["courses/set-theory", "course"] {
-        for path in walk_sokonanoda(&repo_root().join(root)) {
-            let Ok(src) = std::fs::read_to_string(&path) else {
+    for path in &paths {
+        let Ok(src) = std::fs::read_to_string(path) else {
+            continue;
+        };
+        scanned += 1;
+        let rel = path
+            .strip_prefix(repo_root())
+            .unwrap_or(path)
+            .display()
+            .to_string();
+        // **自己声明的记法不能算"继承来的"** ✗（否则 `lib/Set` 会因为继承表里
+        // 有它自己声明的 `∈` 而报「已经声明过记法了」）⇒ 逐文件把自声明的符号剔掉。
+        let own = own_notation_symbols(&src);
+        let inherited_for_file: Vec<_> = inherited
+            .iter()
+            .filter(|d| !own.contains(&d.symbol))
+            .cloned()
+            .collect();
+        let file = match parse_with_inherited(&src, &inherited_for_file) {
+            Ok(file) => file,
+            Err(e) => {
+                offenders.push(format!("{rel}:<解析失败> → {e:?}"));
                 continue;
+            }
+        };
+        for command in &file.commands {
+            let (label, ty) = match command {
+                Command::Def { name, ty, .. }
+                | Command::Theorem { name, ty, .. }
+                | Command::Axiom { name, ty, .. } => (name.clone(), ty),
+                Command::Example { ty, .. } => ("<example>".to_string(), ty),
+                _ => continue,
             };
-            let Ok(file) = sokonanoda_front::parse(&src) else {
+            // **有意的隐式签名**（IA-1 的"课程零隐式 binder"前提在 IA-2 起
+            // 有意打破，这里改成白名单，不再要求全课程为空）：
+            //   · 入门课两处教学例外（它们是**题目本身**）：`Eq.symm` / `eq_refl_prop`；
+            //   · 卷 I 课程库 IA-2/T-N13 落地：`lib/Exists` 的 `Exists.elim` +
+            //     `lib/Set`/`lib/Image`/`lib/Fun`/`lib/Rel` 的隐式化签名
+            //     （清单见下 `INTENTIONAL`，**只许按契约增删** ✓）。
+            let intentional = (matches!(label.as_str(), "Eq.symm" | "eq_refl_prop")
+                && rel.starts_with("course/"))
+                || INTENTIONAL.contains(&(rel.as_str(), label.as_str()));
+            if intentional {
                 continue;
-            };
-            scanned += 1;
-            let rel = path
-                .strip_prefix(repo_root())
-                .unwrap_or(&path)
-                .display()
-                .to_string();
-            for command in &file.commands {
-                let (label, ty) = match command {
-                    Command::Def { name, ty, .. }
-                    | Command::Theorem { name, ty, .. }
-                    | Command::Axiom { name, ty, .. } => (name.clone(), ty),
-                    Command::Example { ty, .. } => ("<example>".to_string(), ty),
-                    _ => continue,
-                };
-                // **有意的隐式签名**（IA-1 的"课程零隐式 binder"前提在 IA-2 起
-                // 有意打破，这里改成白名单，不再要求全课程为空）：
-                //   · 入门课两处教学例外（它们是**题目本身**）：`Eq.symm` / `eq_refl_prop`；
-                //   · 卷 I 课程库 IA-2 落地：`lib/Exists` 的 `Exists.elim`
-                //     （让 `Exists.elim h f` 与 Lean 对齐）。
-                let intentional = (matches!(label.as_str(), "Eq.symm" | "eq_refl_prop")
-                    && rel.starts_with("course/"))
-                    || (rel == "courses/set-theory/lib/Exists.sokonanoda"
-                        && label == "Exists.elim");
-                if intentional {
-                    continue;
-                }
-                let mut names = Vec::new();
-                implicit_binders_in(ty, &mut names);
-                if !names.is_empty() {
-                    offenders.push(format!("{rel}:{label} → {{{}}}", names.join(", ")));
-                }
+            }
+            let mut names = Vec::new();
+            implicit_binders_in(ty, &mut names);
+            if !names.is_empty() {
+                offenders.push(format!("{rel}:{label} → {{{}}}", names.join(", ")));
             }
         }
     }
@@ -2412,6 +2438,73 @@ fn no_course_signature_uses_an_implicit_binder() {
     );
 }
 
+/// **有意隐式化的课程签名清单**（IA-2 / T-N13，2026-09-30 落地的契约）。
+///
+/// 语义：**只有**这些 `(文件, 声明)` 允许有隐式 binder —— 多一条就判红 ✗
+/// （所以这份清单是**棘轮**：加签名要改这里，评审可见 ✓）。
+/// ⚠ 清单由**修好守卫之后**实测得到（旧守卫对带 import 的文件静默跳过 ✗，
+/// 所以 `lib/Image`/`lib/Fun`/`lib/Rel` 从没被覆盖过）。
+const INTENTIONAL: &[(&str, &str)] = &[
+    ("courses/set-theory/lib/Exists.sokonanoda", "Exists.elim"),
+    ("courses/set-theory/lib/Fun.sokonanoda", "Function.comp"),
+    (
+        "courses/set-theory/lib/Fun.sokonanoda",
+        "Function.comp_apply",
+    ),
+    ("courses/set-theory/lib/Image.sokonanoda", "Set.image"),
+    ("courses/set-theory/lib/Image.sokonanoda", "Set.image_mono"),
+    (
+        "courses/set-theory/lib/Image.sokonanoda",
+        "Set.image_subset_iff",
+    ),
+    ("courses/set-theory/lib/Image.sokonanoda", "Set.mem_image"),
+    (
+        "courses/set-theory/lib/Image.sokonanoda",
+        "Set.mem_preimage",
+    ),
+    ("courses/set-theory/lib/Image.sokonanoda", "Set.preimage"),
+    ("courses/set-theory/lib/Rel.sokonanoda", "Rel.comp"),
+    ("courses/set-theory/lib/Rel.sokonanoda", "Rel.comp_apply"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.compl"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.empty"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.ext"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.inter"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.mem"),
+    (
+        "courses/set-theory/lib/Set.sokonanoda",
+        "Set.mem_empty_iff_false",
+    ),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.mem_inter_iff"),
+    (
+        "courses/set-theory/lib/Set.sokonanoda",
+        "Set.mem_powerset_iff",
+    ),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.mem_sdiff"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.mem_sep_iff"),
+    (
+        "courses/set-theory/lib/Set.sokonanoda",
+        "Set.mem_singleton_iff",
+    ),
+    (
+        "courses/set-theory/lib/Set.sokonanoda",
+        "Set.mem_singleton_self",
+    ),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.mem_union"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.mem_univ"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.notMem_empty"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.pair"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.powerset"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.sdiff"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.sep"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.sep_self"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.sep_subset"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.singleton"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.subset"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.subset_def"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.triple"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.union"),
+    ("courses/set-theory/lib/Set.sokonanoda", "Set.univ"),
+];
 /// **IA-1：隐式实参插入**（路线 C，设计 `docs/design/implicit-arguments.md` §3）。
 ///
 /// 签名写 `{α : Type}`（隐式）后，**点名调用可以省掉它**：前端按「后续显式

@@ -271,6 +271,10 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   `Ne.{1}` 写 `a = b` / `a ≠ b`。**基础类型的隐式实参与 Lean 对齐**：能判绿就省前导
   实参——`And.intro h1 h2`、`And.left h`、`Or.inl h`、`Iff.mp h`、`False.elim h`、
   `absurd ha hna`、`Exists.intro w hw`、`Exists.elim h f`（旧的全参数写法仍可用）。
+  **卷 I 的课标库同理（T-N13，2026-09-30）**：`Set.image`/`Set.preimage` 一族与
+  `Function.comp`/`Rel.comp` 的**前导类型参数已隐式** ⇒ 写 `a ∈ A`、`f '' A`、`A ⊆ B`、
+  `A ∩ B`、`(∅) x` 时**不要**再写 `α`/`Two`（写了不算错，但 lint 会要求记法）；
+  真补不出来时才退回点名 + 行内 `-- soko:notation-ok` 标记（理由写清楚）。
   逐符号对照与优先级见 `course/README.md` 与 `docs/design/notation-subset.md`；
   输入法（`\and` 之类缩写）见编辑器「notation 缩写」与 `docs/design/notation-subset.md`。
   **F12 在记法符号上跳声明它的库、在 prelude 名字（`Or`/`And`/`False`…）上跳前奏源文件**——向学习者解释"这条规则从哪来"时直接让他按 F12 ✓。
