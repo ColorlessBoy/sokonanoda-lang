@@ -144,6 +144,12 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
+    "docs/design/e19-evaluation.md": {
+      "expires": "2027-03-31",
+      "renewed": "2026-09-30",
+      "tier": "spec",
+      "reason": "E19 评估：开工前的决策依据，与 v0.79.0 计划同期"
+    },
     "docs/design/e2-plan.md": {
       "expires": "2026-12-29",
       "renewed": "2026-09-30",

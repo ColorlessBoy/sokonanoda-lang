@@ -71,7 +71,7 @@ Q1/Q2 与 K1 线（按前缀复用）也已收口 ⇒ **剩下的队列只有两
 | # | 线 | 是什么 | 入口（先读） | 判据 |
 |---|---|---|---|---|
 | 1 | **批次 N 最后 1 条**（`plan.py` **65/66**） | **T-N15**（C 收尾：台账 + 「看得见的变化」清单 ⇒ `docs/visible-changes.md` + `REQUIREMENTS.md` §9 + VS Code/skills 同步）。**T-N13 已收口** ✓（B2 课程库改隐式风格：三档 commit + 六条前端根因；as-built 与遗留 ⇒ `docs/design/e2-plan.md`） | `python3 scripts/plan.py next`（规格全文）· `docs/design/e2-plan.md` §13/§阶段 N | `python3 scripts/plan.py check` + 每条环节自带的三条判据；课程计数用 `python3 courses/set-theory/tools/check.py` |
-| 2 | **E19 甲案 = `v0.79.0`**（高风险，**单独发版**）· E20 乙案 | 给**记法求解器加元变量**（治 G-48 一类"零元糖操作数补不出论域"） | `docs/design/notation-subset.md` §17 的 E19 行 · `docs/design/v077-kernel-deficiencies.md` §三（挡住 ST6/7/9/11 的 G-56/58/59 根因） | ⚠ **开工前必须重新冻结基线**；三层判据（真相 / 契约 / 课程） |
+| 2 | **E19 甲案 = `v0.79.0`**（高风险，**单独发版**）· E20 乙案 | 给**记法求解器加元变量**（治 G-48 一类"零元糖操作数补不出论域"）—— **评估已写**：`docs/design/e19-evaluation.md`（收益窄/成本宽；建议**先冻结基线 → 先做乙案**，甲案留到"乙案治不了的形状 ≥2 条"） | `docs/design/e19-evaluation.md` · `docs/design/notation-subset.md` §17 的 E19 行 · `docs/design/v077-kernel-deficiencies.md` §三（挡住 ST6/7/9/11 的 G-56/58/59 根因） | ⚠ **开工前必须重新冻结基线**；三层判据（真相 / 契约 / 课程） |
 
 ## 1. 读数（同机同口径：release · 冷缓存 · `SOKONANODA_BUILD_JOBS=1` · 全课程 `build --json courses/set-theory`）
 
