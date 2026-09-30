@@ -223,11 +223,14 @@
 > `docs/STATUS-ARCHIVE.md`；要看原文 ⇒ `git log -- <路径>` ✓。**见到这些路径就当
 > "看 `docs/ONBOARDING.md`"** ✓（2026-09-29 用户口径：「一堆 HANDOVER 都可以删了，没必要」）。
 >
-> **不许动的例外** ✗（有真消费者，动了就判红）：`docs/gaps/repro/**`（**66 条**复现被
-> `gap.py check` 在 gate + CI 三片矩阵里真跑 ✓）、活台账里**被引用**的
-> `docs/e2e/logs/*.log`（`e2e-merge.py --check` 校验存在 ✓）、`docs/protocol.md`
+> **不许动的例外** ✗（有真消费者，动了就判红）：`docs/gaps/repro/**`（复现被
+> `gap.py check` 在 gate + CI 三片矩阵里真跑 ✓）、`docs/protocol.md`
 > （**4 个测试读它正文并断言** ✗）、`docs/perf/ledger.jsonl` / `docs/gaps/ledger.jsonl` /
 > `docs/courses/ledger.jsonl`（门禁基线 ✓）。设计与判据：`docs/design/docs-diet.md` ✓。
+>
+> **已删（机器产物，不归档）** ✗：`docs/e2e/logs/**`（**206 个**测试日志，2026-09-30 激进删档）——
+> 活台账里指向它们的 `log` 字段**同轮摘掉**（`e2e-merge.py --check` 校验"记录引用的日志必须存在"
+> ⇒ 留着就是死指针 ✗）；`scripts/vscode-e2e.sh` 之后仍会为新跑写新日志 ✓。
 
 ## 关联目录
 
