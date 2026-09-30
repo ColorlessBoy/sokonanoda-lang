@@ -1,5 +1,7 @@
 # 性能测试与基线（I13-S5c）
 
+> ⚠ 本文引用的 `docs/design/*.md` 若不在 `docs/README.md` 的设计清单里 ⇒ 已在第 512 轮**删档**，原文 ⇒ `git log --all` ✓。
+
 性能是本项目的生命线（REQUIREMENTS §9 四十四 / §2 第 11 条）。本文档描述性能测试的
 三层结构、阈值设计原则与当前基线；**每次 push 都会在 CI 上跑**，且每版留档
 （`perf-report` artifact，带版本 + commit SHA）。

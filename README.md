@@ -76,7 +76,7 @@ box.
 **In this repo**: the `sokonanoda` binary is the single entrypoint (the
 opencode plugin provisions it and puts it on PATH; contributors can
 `cargo build -p sokonanoda-cli` and run `target/debug/sokonanoda`). Design:
-`docs/design/binary-cli.md`.
+`docs/design/binary-cli.md`（**已删档**，原文 ⇒ `git log --all -- docs/design/binary-cli.md`）.
 
 ```bash
 sokonanoda setup && sokonanoda doctor

@@ -388,7 +388,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 > **本节只记「待办的验收口径 + 收口状态」** ✓ —— **"下一步 / 队列"的唯一入口是
 > `docs/ONBOARDING.md` §0.2** ✗（2026-09-30 文档收敛：三份顶层计划文档不再各写一份队列）。
-> 详细验收与设计依据：`docs/design/infrastructure.md`（F1–F8、工作流 I0–I9）·
+> 详细验收与设计依据：`docs/design/e2-plan.md`（现行契约 + 收口索引）·
 > 逐轮流水：`STATUS.md` · 已收口项的逐字历史：`git log -- ROADMAP.md` / `docs/STATUS-ARCHIVE.md`。
 
 ### 10.1 已收口（一行一条；细节看设计文档，别在这里找验收）

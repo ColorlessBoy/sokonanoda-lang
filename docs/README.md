@@ -97,7 +97,8 @@
 >
 > **布局** ✓：`docs/archive/<批次>-<日期>/<原文件名>.gz`（**保留原相对路径** ⇒
 > 映射机械可算 ✓）。**全局规则** ✓（2026-09-30 激进删档后**一句话覆盖全部历史指针**）：
-> **任何指向已删/已归档路径的引用** ⇒ `git log --all -- <原路径>` /
+> **任何指向已删/已归档路径的引用**（含 `docs/design/**` 里**不在下面设计清单**的 64 份、
+> `docs/perf/*.md`、`docs/gaps/{criteria-census,spike}/**`、`docs/e2e/logs/**`）⇒ `git log --all -- <原路径>` /
 > `git show <旧提交>:<原路径>` 取原文 ✓ —— **历史由 git 追溯**，不再单独归档 ✗。
 > 归档目录只留**最近 3 轮**（`docs/archive/README.md` 逐个点名 ✓）。
 >
@@ -126,7 +127,7 @@
   `WO-*.md` 工作单）；协议见 `docs/design/teaching-project.md` §6
 - `playground.sokonanoda`（仓库根）— 共享教学画布
 - `scripts/install.sh` — 终端用户零 cargo 安装器（版本锁定 Release 资产，
-  见 `docs/design/onboarding.md` §5）
+  见 `scripts/install.sh` 头部注释与 `docs/ONBOARDING.md`；原设计 `docs/design/onboarding.md` 已删档，原文 ⇒ `git log --all`）
 - `scripts/new-course-repo.sh` — **生成「独立课程仓」骨架**（教学项目 P0.0；生成器留在
   语言仓是因为它编码版本钉约定，见 `docs/design/teaching-project.md` §3.5）
 - `.devcontainer/` — 仅贡献者的 Rust 容器（终端用户无需 Rust）
