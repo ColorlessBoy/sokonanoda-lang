@@ -133,7 +133,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [x] `T-N11` **B1 修**：扩宽 `solve_prefix`（期望类型参与 + 逐层 deferral）
 - [x] `T-N12` **B1 三件套判据**：② 反向 ✓（撤兜底 ⇒ 判据红）· ③ 红线 ✓（36/328/99/0 逐项不变）· ① 正向**部分达成**：`flawed_equalities_refuted` 从整条点名（5 标记）改成除 **λ 体内的 `∅`** 外全记法（3 标记）—— 该残例连 Lean 都要 `(e : T)` 标注，属语言级缺口
 - [ ] `T-N13` **B2**（**⛔ 被 T-N14 挡住**，见 G-40）：课程库改隐式风格（`Set.image`/`Set.preimage` 一族）+ 调用点数量级下降
-- [ ] `T-N14` **B3**（**先行**：B2 的前置 · **两刀已落**）—— ① **零显式实参的常量**（`∅` = 裸 `Set.empty`）**已修** ✓（G-40 收口）；② **路线③：只有隐式 binder 的常量被应用**（`Set.univ x` ⇒ α 从富余实参的类型解出）**已修** ✓（**G-41 收口**：判据先判红 + 反向验证 ✓ · 内核零改动 ✓ · 课程门禁 `36/328/99/0` 逐项不变 ✓ · front **744** ✓）；**剩**：**G-42**（查签名表用裸名 ⇒ `namespace` 里裸名引用不触发）—— 路线③ 之后**再试** `resolve_known` 仍撞红 `#check some Nat` ✗，新根因是**短写路线太宽**（层域是裸变量时「解」永远成功 ✗，见台账），修它要先给短写路线加「域是否有信息」的判据 ✓；以及 S1 地图里的 **模式 B**（`Set.univ ∩ A` 把首操作数拆域 ⇒ `α := Type 0` ✗）与 **模式 D**（点名旧写法 / pp 往返）✓
+- [x] `T-N14` **B3**（**先行**：B2 的前置）：**记法路径改走唯一钩子**（隐式档，`elab_notation_implicit`）+ **唯一钩子的实参期望类型**（先解前缀、再逐位给期望类型）⇒ **模式 B**（`Set.univ ∩ A` ⇒ `α := Type 0`）与 **模式 D**（`Set.image f A y` 一族）**都已收口** ✓；补参 hack **收窄**到 `implicit_prefix == 0` 那一档（护城河：`=` 等内建记法，隐式目标上执行次数 0）✓；全语料对拍 **644 组逐字节相同** ✓ · front **794/0** · 记法契约 **50/0** · 两条新判据带反向验证 ✓。**剩 G-43**（构造子 + lambda 实参）⇒ 归 T-N13
 - [x] `T-N16` **A0 立判据收尾**：`SubGoal.ty` 那 9 处**两半分开钉** —— 显示副本（wire 克隆 + LSP hover）**必须折** + 真相字段（`DeclState.sub_goals[].ty`，`suggest.rs` 回读它算建议）**一个字节都不许折**；两条判据各带反向验证 ✓；**「59 是地板」的结论**进审计 §1.5（再降要改记账口径，不是再迁几处 ✓）
 - [ ] `T-N15` **C 收尾**：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9（2026-09-26）+ VS Code/skills 同步
 ## 3. 风险与刹车点（每阶段都有一条"停下"的判据）
@@ -514,11 +514,37 @@ kernel_phase.rs` 的 `resolution` 回填只查用户文件的 `top_level_def_spa
 计数与判定不变（`python3 courses/set-theory/tools/check.py`）。
 
 ### T-N14 B3：记法路径改走隐式插入，收窄补参 hack
+
 契约：`elab_notation` 今天自己 `mk_const` + 补前导实参（绕过 `Expr::App` 的唯一
 钩子）⇒ 让它复用 `try_implicit_application` 的同一条机械；`notation_prefix_args` /
 `solve_prefix_args` 的调用点数量**降到 0**（给前后数字），
 `implicit_prefix == 0` 时行为**逐字节不变**（免费闸门仍在）。
 判据：N7 五元组相等契约（`crates/cli/tests/notation.rs`）仍绿 + 全语料对拍。
+
+**as-built（2026-09-30 收口 ✓）**：
+
+* **隐式档走唯一钩子**（`elab_notation_implicit`）：目标签名 `implicit_prefix > 0`
+  时，把 `symbol(op₁ … opₙ)` 还原成**源级应用脊** `target op₁ … opₙ` 交给
+  `elab_expr` —— 前缀由 `try_implicit_application` 解出，记法路径不再有第二套补参
+  机械。**模式 B**（`Set.univ ∩ A` 把 `α` 解成 `Type 0` ⇒ `Sort(2)` 撞 `Sort(1)`）
+  由此收口 ✓。
+* **唯一钩子的第二个缺口**：`try_implicit_application` 原来**先** elaborate 第一个
+  显式实参、再解前缀 ⇒ 该实参拿不到期望类型。`Set.inter Set.univ A` /
+  `Set.union Set.empty A` 这种"实参本身是零元隐式常量"的形状因此停在 Pi 上 ✗。
+  改成**先解前缀、再逐个实参给「代入后」的期望类型**（第一位与其余一视同仁）⇒
+  **模式 D**（`Set.image f A y` 一族）收口 ✓。
+* **调用点数字（实测）**：`notation_prefix_args` / `solve_prefix_args` 各 **1 个**
+  调用点，**都留在 `implicit_prefix == 0` 那条分支里** —— 它们是**护城河**：内建
+  记法（`=` `∧` `∨` `↔` `¬` `∃`，探针实测目标全是 `k=0`）与用户显式签名的目标
+  必须靠"操作数反解前导**显式**参数"才写得出来（`Eq α a b`），而应用路径**不许**
+  补显式前导参数（那正是 `Set.mem a A` 被拒的那条设计）。⇒ **隐式目标上的执行次数
+  是 0**（这才是 B2 需要的），k==0 那一档**收窄保留** ✓。
+* **红线**：全语料对拍 **644 组逐字节相同** ✓ · 课程门禁 **43 目标 / 376 checked /
+  99 open / 0 判负** 逐项不变 ✓ · front **794/0** ✓ · CLI 记法契约 **50/0** ✓ ·
+  两条新判据带**反向验证**（撤掉任一改动 ⇒ 当场判红）✓。
+* **G-43 不在本条**（它是 T-N13/B2 的剩余）：`Iff.intro (fun (h : y ∈ f '' A) => h) …`
+  这一族（构造子 + lambda 实参，binder 类型里含导入模块的 def）仍红 ✗ —— 与记法
+  路径无关（`@Iff.intro` 版是绿的），复现件 `docs/gaps/repro/G43-*.sh` 仍 exit 0。
 
 ### T-N15 C 收尾：台账 + 清单 + 需求登记
 契约：每条改动的数字进 `docs/perf/ledger.jsonl` 或对应台账；给一份**「看得见的

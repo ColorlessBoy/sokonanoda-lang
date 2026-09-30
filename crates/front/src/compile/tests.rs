@@ -8627,6 +8627,67 @@ theorem univ_applies (\u{3b1} : Type) (x : \u{3b1}) : (x \u{2208} Set.univ) = Se
     );
 }
 
+/// **B3-④ / T-N14 判据**（2026-09-30）：记法目标带**前导隐式** binder 时，记法
+/// 展开走 `Expr::App` 臂的**唯一钩子**（不是记法路径自己那套补参机械）。
+///
+/// 形状就是 S1 地图的**模式 B**：`Set.univ ∩ A` 的首操作数 `Set.univ` 自己是个
+/// **零元隐式常量**（`{α : Type} → Set α`），记法路径那套"后续 binder 的域里提到
+/// 这个裸变量"的结构化匹配会把 `α` 解成 `Type 0`（`Sort(2)` 撞 `Sort(1)` ✗）。
+/// 借道唯一钩子之后，`α` 由**第二个操作数** `A : Set α` 解出 ⇒ `Set.inter α Set.univ A` ✓。
+///
+/// **反向验证**：把 `elab_notation` 里那个 `implicit_prefix() > 0` 的提前返回撤掉
+/// ⇒ 本条当场判红（实测：`类型不匹配：期望 Sort(1)，实际是 Sort(2)`）✓。
+#[test]
+fn a_notation_target_with_implicit_binders_takes_its_prefix_from_the_shared_hook() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def univ {\u{3b1} : Type} : Set \u{3b1} := fun (x : \u{3b1}) => True\n\
+def inter {\u{3b1} : Type} (A B : Set \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => A x \u{2227} B x\n\
+end Set\n\
+infixl:70 \" \u{2229} \" => Set.inter\n\
+def patternB (\u{3b1} : Type) (A : Set \u{3b1}) : Set \u{3b1} := Set.univ \u{2229} A\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "patternB")),
+        "`Set.univ ∩ A` 必须借唯一钩子解出 α（修前记法路径把它解成 `Type 0` ⇒ \
+         `期望 Sort(1)，实际是 Sort(2)`）。事件：{:?}",
+        out.events
+    );
+}
+
+/// **B3-④ 的第二半**（与上一条同源）：唯一钩子里，**第一个**显式实参也要拿到
+/// 「隐式前缀代入后」的期望类型。
+///
+/// 形状是点名写法 `Set.inter Set.univ A`（不经过记法）：`Set.inter` 的前缀 `α` 由
+/// `A : Set α` 解出之后，第一个实参 `Set.univ` 必须拿到期望类型 `Set α` 才会
+/// 补出自己的 `α`。修前第一位实参是在求解**之前** elaborate 的（`None` 期望类型）
+/// ⇒ `Set.univ` 停在 Pi 上 ⇒ `期望 (Set.[] $1)，实际是 Pi (α : Sort(1)), (Set.[] $0)` ✗。
+///
+/// **反向验证**：把 `try_implicit_application` 的组装改回"第一位先 elaborate、
+/// 不给期望类型"⇒ 本条当场判红 ✓。
+#[test]
+fn the_first_explicit_argument_also_takes_its_expected_type() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def univ {\u{3b1} : Type} : Set \u{3b1} := fun (x : \u{3b1}) => True\n\
+def inter {\u{3b1} : Type} (A B : Set \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => A x \u{2227} B x\n\
+end Set\n\
+def pointed (\u{3b1} : Type) (A : Set \u{3b1}) : Set \u{3b1} := Set.inter Set.univ A\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "pointed")),
+        "`Set.inter Set.univ A` 的第一位实参必须拿到期望类型 `Set α`（修前它停在 Pi 上 \
+         ⇒ `期望 (Set.[] $1)，实际是 Pi (α : Sort(1)), (Set.[] $0)`）。事件：{:?}",
+        out.events
+    );
+}
+
 /// **G-42 判据**（2026-09-26）：`namespace` 里的**裸名**调用也要触发隐式插入。
 ///
 /// `namespace Foo` 里写 `subset B A` 时，AST 上是**裸名** `subset`，而签名表按

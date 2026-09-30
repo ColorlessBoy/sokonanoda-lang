@@ -1261,6 +1261,42 @@ fn elab_notation<'a>(
     // 前导参数：先走既有的裸变量匹配；解不出时用调用方给的**回退**
     // （第三刀 §12.4 的集合字面量：`{∅}` 的元素类型只能从期望类型解，
     // 既有路径的结构化匹配在这里够不着——回退只加解、不改既有解）。
+    let uparams = known
+        .get(&canonical)
+        .map(|entry| entry.universes().to_vec())
+        .unwrap_or_default();
+    // **隐式档：走唯一钩子**（T-N14 的核心，2026-09-30）。目标签名有前导隐式
+    // binder ⇒ 把 `symbol(op1 … opn)` 还原成**源级应用脊** `target op1 … opn`，
+    // 整条交给 `elab_expr` —— 前缀由 `try_implicit_application` 解出，记法路径
+    // **不再有第二套补参机械** ✗（那套只做"后续 binder 的域里提到这个裸变量"
+    // 的结构化匹配，没有唯一钩子的三条判据 ⇒ 实测把 `Set.univ ∩ A` 的 `α` 解成
+    // `Type 0`、`Sort(2)` 撞 `Sort(1)` ✗ —— 就是 S1 地图的**模式 B**）。
+    //
+    // **免费闸门**：`implicit_prefix == 0` 的记法（内建的 `= ∧ ∨ ↔ ¬ ∃` 与今天
+    // 全部课程库记法）**根本走不到这里** ⇒ 下面那段**逐字节不变** ✓。
+    if known
+        .get(&canonical)
+        .map(|entry| entry.implicit_prefix())
+        .unwrap_or(0)
+        > 0
+    {
+        let level_texts = notation_level_texts(builder, &uparams, operands, ctx, scope, known);
+        return elab_notation_implicit(
+            builder,
+            symbol,
+            target,
+            &canonical,
+            &level_texts,
+            operands,
+            span,
+            scope,
+            univ,
+            known,
+            hovers,
+            expected_src,
+            ctx,
+        );
+    }
     let prefix_args = match notation_prefix_args(
         &signature,
         operands,
@@ -1276,13 +1312,7 @@ fn elab_notation<'a>(
         None => match fallback_prefix_args {
             Some(args) => args.to_vec(),
             None => {
-                return Err(CompileError::elab(
-                    ErrorKind::ElabNotationArgumentUnsolved,
-                    format!(
-                        "记法 `{symbol}` 展开成 `{target}` 时补不出前面的类型参数：请写出点名形式（例如 {target} α …）"
-                    ),
-                    span,
-                ));
+                return Err(notation_argument_unsolved(symbol, target, span));
             }
         },
     };
@@ -1298,29 +1328,15 @@ fn elab_notation<'a>(
     // 而 `Eq.{1} (Set α) A B` 与 `Eq.{0} A B`（`A B : Prop`）是**两个不同的
     // 常量应用**——点名路径靠源里的 `.{1}` 写死，记法路径必须自己解。
     // 解不出时保持既有行为（全 0，与不写 `.{u}` 的点名写法同判）。
-    let uparams = known
-        .get(&canonical)
-        .map(|entry| entry.universes().to_vec())
-        .unwrap_or_default();
-    let levels = if uparams.is_empty() {
+    //
+    // ⚠ **位置**：这一段在 k==0 路径里必须留在**解前导参数之后**（与 B3-④ 之前
+    // 逐字一致）；隐式档在上面的分支里另算一份。
+    let level_texts = notation_level_texts(builder, &uparams, operands, ctx, scope, known);
+    let levels = if level_texts.is_empty() {
         builder.alloc_levels_slice(&[])
     } else {
-        let mut texts: Vec<String> = uparams.iter().map(|_| "0".to_string()).collect();
-        if uparams.len() == 1 {
-            if let Some(text) = universe_level_text_of_operands(
-                operands,
-                ctx,
-                scope,
-                Some(&mut InplaceEnv {
-                    builder: &mut *builder,
-                    known,
-                }),
-            ) {
-                texts[0] = text;
-            }
-        }
-        let mut resolved = Vec::with_capacity(texts.len());
-        for text in &texts {
+        let mut resolved = Vec::with_capacity(level_texts.len());
+        for text in &level_texts {
             // **解不出就退回 0**（= 这条记法在引入宇宙求解之前的旧行为），
             // 不报错。为什么不能报错：层级文本来自**内核 pp**，而 pp 会打出
             // **宇宙变量名**（`Eq.{u}`）——那个 `u` 在我们这层作用域里根本不存在，
@@ -1355,6 +1371,130 @@ fn elab_notation<'a>(
         app = builder.mk_app(app, operand);
     }
     Ok(app)
+}
+
+/// 记法目标的**宇宙层级文本**（`Eq.{u}` 那一档）：目标只带 1 个宇宙参数时由
+/// **操作数**解（`a : Set α` ⇒ `Set α : Type 0` ⇒ `u = 1`），其余位默认 `"0"`；
+/// 目标没有宇宙参数 ⇒ 空表（调用方据此走"零层级"那条）。
+///
+/// 两条路（k==0 的老路与隐式档）共用这一份；解不出时**保持既有行为**（全 0，
+/// 与不写 `.{u}` 的点名写法同判），见调用点那段注释。
+fn notation_level_texts<'a>(
+    builder: &mut EnvBuilder<'a>,
+    uparams: &[String],
+    operands: &[&Expr],
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    known: &KnownTable,
+) -> Vec<String> {
+    if uparams.is_empty() {
+        return Vec::new();
+    }
+    let mut texts: Vec<String> = uparams.iter().map(|_| "0".to_string()).collect();
+    if uparams.len() == 1 {
+        if let Some(text) = universe_level_text_of_operands(
+            operands,
+            ctx,
+            scope,
+            Some(&mut InplaceEnv {
+                builder: &mut *builder,
+                known,
+            }),
+        ) {
+            texts[0] = text;
+        }
+    }
+    texts
+}
+
+/// 记法展开的**隐式档**（T-N14 / B3-④，2026-09-30）：目标签名带**前导隐式
+/// binder** 时，把 `symbol(op1 … opn)` 还原成**源级应用脊** `target op1 … opn`，
+/// 整条交给 `Expr::App` 臂 —— 前缀由**唯一钩子** `try_implicit_application` 解出。
+///
+/// **为什么必须借道唯一钩子**：记法路径原来那套（`notation_prefix_args`）只做
+/// 「后续 binder 的域里提到这个裸变量」的**结构化匹配**，没有唯一钩子的三条
+/// 判据（旧写法贴合 / 富余实参落到结果 / 期望类型逐位代换）⇒ 实测把
+/// `Set.univ ∩ A` 的 `α` 解成 `Type 0`（`Sort(2)` 撞 `Sort(1)` ✗，S1 地图的
+/// **模式 B**）。借道之后两条路**共用一份机械**，判据不会分叉 ✓。
+///
+/// **免费闸门仍在**：`implicit_prefix == 0` 的记法（内建的 `= ∧ ∨ ↔ ¬ ∃` 与
+/// 今天全部课程库记法）**根本走不到这里** ⇒ 逐字节不变 ✓。
+#[allow(clippy::too_many_arguments)]
+fn elab_notation_implicit<'a>(
+    builder: &mut EnvBuilder<'a>,
+    symbol: &str,
+    target: &str,
+    canonical: &str,
+    level_texts: &[String],
+    operands: &[&Expr],
+    span: Span,
+    scope: &mut ElabScope<'a>,
+    univ: &UnivMap<'a>,
+    known: &KnownTable,
+    hovers: &mut Vec<HoverNode<'a>>,
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'a, '_>,
+) -> Result<ExprPtr<'a>, CompileError> {
+    // **零操作数 + 无期望类型** ⇒ 前缀**无从解出**（`#check ∅` 就是这一档：
+    // 裸常量没有期望类型时唯一钩子**故意**不动它 —— 裸常量当函数值用是合法的）。
+    // 记法这层知道用户写的是**一个应该完整的表达式**，所以在这里报既有诊断
+    // （与 k==0 路径同一个码、同一条教学 hint ✓）。
+    if operands.is_empty() && expected_src.is_none() {
+        return Err(notation_argument_unsolved(symbol, target, span));
+    }
+    let mut app: Expr = if level_texts.is_empty() {
+        Expr::Ident {
+            name: canonical.to_string(),
+            span,
+        }
+    } else {
+        Expr::UniverseApp {
+            name: canonical.to_string(),
+            levels: level_texts.to_vec(),
+            span,
+        }
+    };
+    for operand in operands {
+        app = Expr::App {
+            fun: Box::new(app),
+            arg: Box::new((*operand).clone()),
+            explicit_spine: false,
+            span,
+        };
+    }
+    elab_expr(
+        builder,
+        &app,
+        scope,
+        univ,
+        known,
+        hovers,
+        None,
+        expected_src,
+        ctx,
+    )
+    .map_err(|e| {
+        // 唯一钩子报的是**应用路径**的码（`elab-implicit-argument-unsolved`）。
+        // 用户写的是**记法**，所以换回记法那条码与 hint —— 同一处缺口，两种
+        // 写法给同一种教学引导 ✓（`docs/protocol.md` 的码是给工具用的，
+        // 换码是**有意**的：记法的诊断要教"写出点名形式"）。
+        if e.kind == ErrorKind::ElabImplicitArgumentUnsolved {
+            notation_argument_unsolved(symbol, target, span)
+        } else {
+            e
+        }
+    })
+}
+
+/// 记法展开补不出前导参数时的**唯一**诊断（两条路共用一个码与一条 hint）。
+fn notation_argument_unsolved(symbol: &str, target: &str, span: Span) -> CompileError {
+    CompileError::elab(
+        ErrorKind::ElabNotationArgumentUnsolved,
+        format!(
+            "记法 `{symbol}` 展开成 `{target}` 时补不出前面的类型参数：请写出点名形式（例如 {target} α …）"
+        ),
+        span,
+    )
 }
 
 /// 这个实参**必须**拿到期望类型才能 elaborate 吗？
@@ -3014,11 +3154,16 @@ fn try_implicit_application<'a>(
     }
     let span = expr.span();
     let head_term = elab_expr(builder, head, scope, univ, known, hovers, None, None, ctx)?;
-    // 第一个显式实参**不给期望类型**：这一层的域提到还没解出的隐式参数。
-    let first = args[0];
-    let first_term = elab_expr(builder, first, scope, univ, known, hovers, None, None, ctx)?;
     // 每个实参的**类型**（路线 ① 的原料：`arg_tys[i]` 对应第 `k + i` 层）。
     // 局部变量**优先取书写类型**（零内核调用，且不会像 pp 那样丢隐式实参）。
+    //
+    // **B3-③（模式 B/D，2026-09-30）**：这一段必须在**解出隐式前缀之前**、且
+    // 实参**还没有**被 elaborate —— 实参的期望类型要等 `solved` 出来才能代换，
+    // 所以组装放在求解之后（见下面 `sigma` 那一段）。以前这里先把**第一个**显式
+    // 实参 `elab_expr(…, None)` 装好，于是"实参本身是**零元隐式常量**"的形状
+    // （`Set.inter Set.univ A`、`Set.union Set.empty A`）拿不到期望类型 ⇒
+    // `Set.univ` 停在 Pi 上 ⇒ 内核报
+    // `期望 (Set.[] $1)，实际是 Pi (α : Sort(1)), (Set.[] $0)` ✗（实测）。
     let mut arg_tys: Vec<Option<Expr>> = Vec::with_capacity(args.len());
     for a in &args {
         arg_tys.push(operand_type_expr(
@@ -3055,7 +3200,12 @@ fn try_implicit_application<'a>(
             span,
         ));
     };
-    // 组装：先插隐式实参，再逐个装显式实参（后续实参给「代入后」的期望类型）。
+    // 组装：先插隐式实参，再逐个装显式实参（**每个**都给「代入后」的期望类型）。
+    //
+    // **第一个实参与其余一视同仁**（B3-③，2026-09-30）：`solved` 已经出来了，
+    // `layers[k].domain` 里的隐式参数可以代换 ⇒ 第一位也能拿到期望类型 ——
+    // 这正是"实参本身是零元隐式常量"（`Set.inter Set.univ A`）能补出来的唯一
+    // 条件 ✓。以前第一位不给，是因为它被提前 elaborate 了（见上面的注释）。
     let mut out = head_term;
     let mut sigma: HashMap<String, Expr> = HashMap::new();
     for (j, s) in solved.iter().enumerate() {
@@ -3065,11 +3215,7 @@ fn try_implicit_application<'a>(
         let t = elab_expr(builder, s, scope, univ, known, hovers, None, None, ctx)?;
         out = builder.mk_app(out, t);
     }
-    out = builder.mk_app(out, first_term);
-    if !layers[k].name.is_empty() {
-        sigma.insert(layers[k].name.clone(), first.clone());
-    }
-    for (i, a) in args.iter().enumerate().skip(1) {
+    for (i, a) in args.iter().enumerate() {
         let li = k + i;
         let expected_src = crate::spine::substitute(&layers[li].domain, &sigma);
         let t = elab_expr(

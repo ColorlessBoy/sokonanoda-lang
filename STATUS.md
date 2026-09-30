@@ -1,4 +1,4 @@
-# 当前快照（2026-09-30 · 第 513 轮）
+# 当前快照（2026-09-30 · 第 514 轮）
 
 - **🚀 `v0.78.3` = Latest** ✓（CI `36655613663` **28 success / 0 failure**（1 skipped）· release
   workflow `36656518982` success · tag `v0.78.3` · 26 资产 = 8 CLI + 8 LSP + 9 VSIX + 1 源码）。
@@ -16,6 +16,28 @@
 - **文档过期日期机制**（第 513 轮）✓：**每个活文档都有过期日期**（权威 = `scripts/docs-expiry.json`，
   **37/37 已登记**）· `git commit` 前**自动检测**（已过期/未登记 ⇒ **拒绝提交**）·
   **到期审查三选一**（续期须写特定理由 / 删 / 归档）⇒ `docs/ONBOARDING.md` **§3.2**。
+- **批次 N 进度 64/66**（第 514 轮）✓：**T-N14**（记法路径走唯一钩子 + 实参期望类型）收口 ——
+  全语料对拍 **644 组逐字节相同**；剩 **T-N13**（B2，前置 = G-43）/ **T-N15**（C 收尾）。
+
+## 第 514 轮（2026-09-30）：**T-N14 收口 —— 记法路径改走唯一钩子（隐式档）+ 实参期望类型**
+
+- **工单**：批次 N 的 **T-N14 / B3**（B2 的前置）：记法路径改走隐式插入、收窄补参 hack。
+- **两处改动**（都在 `crates/front/src/compile/elab.rs`）：① **隐式档走唯一钩子**（新
+  `elab_notation_implicit`）：目标 `implicit_prefix > 0` 时把 `symbol(op₁…opₙ)` 还原成**源级应用
+  脊**交给 `elab_expr` ⇒ 前缀由 `try_implicit_application` 解出，记法路径不再有第二套补参机械
+  （**模式 B 收口**：`Set.univ ∩ A` 曾把 `α` 解成 `Type 0` ⇒ `Sort(2)` 撞 `Sort(1)`）；② **唯一
+  钩子的实参期望类型**：原来**先** elaborate 第一个显式实参、再解前缀 ⇒ 它拿不到期望类型；改成
+  **先解前缀、再逐位给「代入后」的期望类型**（**模式 D 收口**：`Set.inter Set.univ A` 一族）。
+- **补参 hack 收窄（实测数字）**：`notation_prefix_args` / `solve_prefix_args` 各 **1 个**调用点，
+  都在 `implicit_prefix == 0` 分支 —— 那是**护城河**：内建记法（探针实测 `Eq`/`And`/`Or`/`Iff`/
+  `Not`/`Exists` 全是 `k=0`）与显式签名目标必须靠"操作数反解前导**显式**参数"（`Eq α a b`），
+  应用路径**不许**补显式前导参数 ⇒ **隐式目标上执行次数 = 0** ✓（k==0 那档保留）。
+- **红线（逐项实测）**：`scripts/kernel-diff.sh` 全语料 **644 组逐字节相同** ✓ · 课程门禁 **43 目标 / 376 checked / 99 open / 0 判负** ✓ · front **794/0** · 记法契约 **50/0** ✓。
+- **新判据带反向验证**（`crates/front/src/compile/tests.rs`）：`…takes_its_prefix_from_the_shared_hook`
+  + `the_first_explicit_argument_also_takes_its_expected_type` —— 撤掉任一改动 ⇒ 两条同时判红 ✓。
+- **遗留**：**G-43**（构造子 + lambda 实参，binder 类型含导入模块的 def）仍红 ⇒ 归 **T-N13/B2**（复现件 `docs/gaps/repro/G43-*.sh` 仍 exit 0 ✓）。
+- **纪律教训（又踩一次）**：`/tmp` 工作台的**编译缓存**会让"改动前后"量到同一份产物 —— 本轮第一次
+  A/B 里基线竟把模式 B 判绿 ✗（`rm -rf <工作台>/.sokonanoda` 之后才复现 ✓）。第 511 轮移出（原文 ⇒ `git log --all -- STATUS.md`）。
 
 ## 第 513 轮（2026-09-30）：**文档过期日期机制 —— 到期审查义务落地 + hook 提醒修复**
 
@@ -48,34 +70,12 @@
   ⇒ `git log --all -- <原路径>`。
 - **判据**：`docs-lint ✓`（①–⑦；活文档 **406 → 126 个 / 6.22 → 1.78 MB**）· `plan.py check ✓` ·
   `e2e-merge.py --check ✓`；第 509 轮按「只留最近 3 轮」移出（原文 ⇒ `git log --all -- STATUS.md`）。
-## 第 511 轮（2026-09-30）：**文档全量清理 —— 逐份审计 + 改错规则 + 删/归档**
-
-- **用户工单**：docs 里有很多**过时的、错误的规则要求**，误导后续开发 ⇒ 全量清理（活文档逐份审计；
-  `docs/archive|perf|gaps|e2e` 不在范围内）。**方法**：6 个只读 subagent 逐份读 + 主线复核（每份带行号证据）。
-- **改（B 类，逐条对代码 / scripts / `ci.yml` 复核）**：约 40 份文件、**~120 处**声明改成实测事实 ——
-  典型：`perf-gate`「回归即红」实为 `continue-on-error`（**只报不拦**）· `course-gate-in-ci` 的
-  "不新建 job"实为独立 `gates-course` · `agent-query-channel`/`deepseek-harness` 表头"实现未开始"
-  实为已落地 · `implicit-arguments` "`@f` 是 no-op" · `set-theory-syllabus` "`And` 必须 axiom"
-  （G-02/03 已修）· `by-tactics` §13 "未修/零收益"（§3.C 后 **1.25×**）· 20 份"内核冻结（硬规则 1）"
-  框架残留（内核 2026-09-21 已解冻）· `REQUIREMENTS.md` §4/§9.3 的旧数字（模块行数 / 3 MB / 六条判据）。
-- **删/归档（A 类）**：`docs/design/compile-progress-ui.md` **删**（已落地、零消费者）·
-  `docs/design/v077-set-theory.md` **归档** ⇒ `docs/archive/v077-snapshots-2026-09-30/`；
-  `v077-kernel-deficiencies.md` / `v077-st1-boundary.md` **留**（前者是 G-56/58/59 的根因定位，
-  后者被 `crates/cli/tests/st1_boundary.rs` 当输入读）。
-- **死引用**：`docs/HANDOVER.md` / `E2-HANDOVER.md` 等 **30 处** ⇒ 改指 `docs/ONBOARDING.md`（`docs/README.md` 立了全局约定）。
-- **机制**：`docs-gc.py` 的 4 份误报候选写进 `KEEP_ALWAYS`（消费者是**契约测试 / 代码注释**）；
-  冻结表**补全 11 份 + 删 1 个死键 + 四层上限按实测收紧**；`docs-budget.json` 的 19 KB 流水压成摘要（→ **7.9 KB**）。
-- **读数**：活文档 **408 → 406 个 / 6,233,011 → 6,215,917 字节**；活 `.md` **113 → 111 份 /
-  29,886 → 29,617 行**；`docs-gc` 候选 **5 → 0**；`docs-lint` ①–⑦ 全绿 + `--selftest` **11/11**；
-  **没抬任何上限**（L0 1849→1521 · L1 9061→5704 · L2 22661→22379 · L3 5426→5345）；第 508 轮移入
-  `docs/archive/status-removed-round-508-2026-09-30.md.gz`。
-
 ## 未决项（**只有这两条**；顺序与入口见 `docs/ONBOARDING.md` §0.2）
 
-- ⬜ **批次 N 剩余 3 条**（`python3 scripts/plan.py` = **63/66**）：**T-N14**（B3 记法路径改走
-  隐式插入；剩 **G-42** + 模式 B/D）→ **T-N13**（B2 课程库改隐式风格，**被 T-N14 挡**）→
-  **T-N15**（C 收尾：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9 + VS Code/skills 同步）。
-  权威 = `python3 scripts/plan.py next`（规格全文）。
+- ⬜ **批次 N 剩余 2 条**（`python3 scripts/plan.py` = **64/66**）：**T-N13**（B2 课程库改隐式风格；
+  ⛔ 前置 = **G-43**：构造子（`Iff.intro`/`And.intro`）的 lambda 实参、其 binder 类型含**导入模块的
+  def** ⇒ 复现件 `docs/gaps/repro/G43-*.sh` 仍 exit 0）→ **T-N15**（C 收尾：台账 + 「看得见的变化」
+  清单 + `REQUIREMENTS.md` §9 + VS Code/skills 同步）。权威 = `python3 scripts/plan.py next`（规格全文）。
 - ⬜ **E19 甲案 = `v0.79.0`**（高风险，**单独发版**）· E20 乙案：给记法求解器加**元变量**；
   ⚠ 开工前**重新冻结基线**（`docs/design/notation-subset.md` §17 · 缺口的根因在
   `docs/design/v077-kernel-deficiencies.md` §三）。
