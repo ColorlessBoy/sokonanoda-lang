@@ -607,7 +607,7 @@ fn install_l1_command<'a>(
                     universes: universe.clone(),
                     implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                     explicit_arity: crate::compile::elab::explicit_arity(ty),
-                    signature: Some(crate::proof::render_expr(ty)),
+                    signature: Some(crate::proof::decl_signature(ty)),
                 },
             );
         }
@@ -629,7 +629,7 @@ fn install_l1_command<'a>(
                     universes: universe.clone(),
                     implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                     explicit_arity: crate::compile::elab::explicit_arity(ty),
-                    signature: Some(crate::proof::render_expr(ty)),
+                    signature: Some(crate::proof::decl_signature(ty)),
                 },
             );
             // 源级 delta 表：`by` 引擎靠它看穿 `Not`/`Iff` 这类 **def** 头
@@ -752,7 +752,7 @@ fn install_quot<'a>(builder: &mut EnvBuilder<'a>, known: &mut KnownTable, taken:
             universes: universe.clone(),
             implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
             explicit_arity: crate::compile::elab::explicit_arity(ty),
-            signature: Some(crate::proof::render_expr(ty)),
+            signature: Some(crate::proof::decl_signature(ty)),
         };
         scope_known.insert(name.clone(), entry.clone());
         known.insert(name.clone(), entry);
@@ -812,7 +812,7 @@ pub(crate) fn install_eq_prelude(
                 universes: universe.clone(),
                 implicit_prefix: 0,
                 explicit_arity: crate::compile::elab::explicit_arity(ty),
-                signature: Some(crate::proof::render_expr(ty)),
+                signature: Some(crate::proof::decl_signature(ty)),
             },
         );
     }

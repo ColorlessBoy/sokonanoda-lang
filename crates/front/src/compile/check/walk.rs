@@ -628,7 +628,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                         explicit_arity: crate::compile::elab::explicit_arity(ty),
-                        signature: Some(crate::proof::render_expr(ty)),
+                        signature: Some(crate::proof::decl_signature(ty)),
                     },
                 );
             }
@@ -755,7 +755,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                         explicit_arity: crate::compile::elab::explicit_arity(ty),
-                        signature: Some(crate::proof::render_expr(ty)),
+                        signature: Some(crate::proof::decl_signature(ty)),
                     },
                 );
                 let env_after = self.builder.declaration_count();
@@ -873,7 +873,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                         explicit_arity: crate::compile::elab::explicit_arity(ty),
-                        signature: Some(crate::proof::render_expr(ty)),
+                        signature: Some(crate::proof::decl_signature(ty)),
                     },
                 );
             }
@@ -1018,7 +1018,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                         explicit_arity: crate::compile::elab::explicit_arity(ty),
-                        signature: Some(crate::proof::render_expr(ty)),
+                        signature: Some(crate::proof::decl_signature(ty)),
                     },
                 );
                 let env_after = self.builder.declaration_count();
@@ -1092,7 +1092,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                         explicit_arity: crate::compile::elab::explicit_arity(ty),
-                        signature: Some(crate::proof::render_expr(ty)),
+                        signature: Some(crate::proof::decl_signature(ty)),
                     },
                 );
             }
@@ -1139,7 +1139,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                         explicit_arity: crate::compile::elab::explicit_arity(ty),
-                        signature: Some(crate::proof::render_expr(ty)),
+                        signature: Some(crate::proof::decl_signature(ty)),
                     },
                 );
                 let env_after = self.builder.declaration_count();

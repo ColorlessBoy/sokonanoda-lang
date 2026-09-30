@@ -764,7 +764,7 @@ pub(crate) fn install_inductive_block<'a>(
             universes: Vec::new(),
             implicit_prefix: 0,
             explicit_arity: pi_arity(&ind_ty_src),
-            signature: Some(render_expr(&ind_ty_src)),
+            signature: Some(crate::proof::decl_signature(&ind_ty_src)),
         },
     );
 
@@ -783,7 +783,7 @@ pub(crate) fn install_inductive_block<'a>(
             span: ctor.span,
         };
         let ctor_src_arity = pi_arity(&ctor_ty);
-        let ctor_src_sig = render_expr(&ctor_ty);
+        let ctor_src_sig = crate::proof::decl_signature(&ctor_ty);
         let ctor_ty = elab_expr(
             builder,
             &ctor_ty,
@@ -917,7 +917,7 @@ pub(crate) fn install_inductive_block<'a>(
                 universes: known_rec_universes.clone(),
                 implicit_prefix: 0,
                 explicit_arity: pi_arity(&rec.ty),
-                signature: Some(render_expr(&rec.ty)),
+                signature: Some(crate::proof::decl_signature(&rec.ty)),
             },
         );
 

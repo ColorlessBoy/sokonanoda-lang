@@ -132,7 +132,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [x] `T-N10` **B1 判红**：R5 最小复现（`''`/`⁻¹'` 的 λ 操作数解不出前导类型参数）
 - [x] `T-N11` **B1 修**：扩宽 `solve_prefix`（期望类型参与 + 逐层 deferral）
 - [x] `T-N12` **B1 三件套判据**：② 反向 ✓（撤兜底 ⇒ 判据红）· ③ 红线 ✓（36/328/99/0 逐项不变）· ① 正向**部分达成**：`flawed_equalities_refuted` 从整条点名（5 标记）改成除 **λ 体内的 `∅`** 外全记法（3 标记）—— 该残例连 Lean 都要 `(e : T)` 标注，属语言级缺口
-- [ ] `T-N13` **B2**：课程库改隐式风格（`Set.image`/`Set.preimage` 一族 + `Function.comp`/`Rel.comp`）+ 调用点数量级下降。**两个前置已收口** ✓（G-43 第 515 轮 · G-69 第 516 轮）；**签名隐式化本身干净** ✓（四个 lib 各 0 诊断）；**整文件批量删前导类型实参不可行** ✗（脚本一次 649 处 ⇒ 16 文件判红）⇒ 剩 **9 文件 / 19 诊断**，逐站点改
+- [ ] `T-N13` **B2**：课程库改隐式风格（`Set.image`/`Set.preimage` 一族 + `Function.comp`/`Rel.comp`）+ 调用点数量级下降。**三个前置已收口** ✓（G-43 第 515 轮 · G-69 第 516 轮 · G-70 第 517 轮）；**签名隐式化本身干净** ✓（四个 lib 各 0 诊断）；**批量改写证伪** ✗（脚本一次 649 处 ⇒ 16 文件判红）⇒ 剩 **10 文件 / 19 诊断**的调用点迁移，**逐站点核**（失败分类见 §阶段 N 的 T-N13 as-built）
 - [x] `T-N14` **B3**（**先行**：B2 的前置）：**记法路径改走唯一钩子**（隐式档，`elab_notation_implicit`）+ **唯一钩子的实参期望类型**（先解前缀、再逐位给期望类型）⇒ **模式 B**（`Set.univ ∩ A` ⇒ `α := Type 0`）与 **模式 D**（`Set.image f A y` 一族）**都已收口** ✓；补参 hack **收窄**到 `implicit_prefix == 0` 那一档（护城河：`=` 等内建记法，隐式目标上执行次数 0）✓；全语料对拍 **644 组逐字节相同** ✓ · front **794/0** · 记法契约 **50/0** · 两条新判据带反向验证 ✓。**剩 G-43**（构造子 + lambda 实参）⇒ 归 T-N13
 - [x] `T-N16` **A0 立判据收尾**：`SubGoal.ty` 那 9 处**两半分开钉** —— 显示副本（wire 克隆 + LSP hover）**必须折** + 真相字段（`DeclState.sub_goals[].ty`，`suggest.rs` 回读它算建议）**一个字节都不许折**；两条判据各带反向验证 ✓；**「59 是地板」的结论**进审计 §1.5（再降要改记账口径，不是再迁几处 ✓）
 - [ ] `T-N15` **C 收尾**：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9（2026-09-26）+ VS Code/skills 同步
@@ -512,6 +512,35 @@ kernel_phase.rs` 的 `resolution` 回填只查用户文件的 `top_level_def_spa
 "通过"是**有意**的契约变更）。
 判据：课程文件里点名应用点**数量级下降**（给前后数字）+ 显示面呈记法态 + 课程
 计数与判定不变（`python3 courses/set-theory/tools/check.py`）。
+
+### T-N13 B2 as-built（2026-09-30 取证，**未完成**）
+
+**已经做完的（可复现）**：`lib/Set`（12 def + 1 axiom + 13 定理）+ `lib/Image`（6 条）+
+`Function.comp`/`Rel.comp` 的签名从 `(α : Type)` 改成 `{α : Type}`（`def Set` 不转 —— 它的 α 在
+Lean 里也是显式的）⇒ **四个 lib 各自 0 诊断** ✓。库内调用点（`subset α B A`、`univ α`、`sep α A P`、
+`Set.ext α (sep …)`）同步改短写 ✓。
+
+**卡在调用点**（10 文件 / 19 诊断）。**三个前置缺口都已收口**（G-43 第 515 轮 · G-69 第 516 轮 ·
+G-70 第 517 轮）之后仍红的形状（每个都是**短写**解不出隐式参数，不是老写法）：
+
+| 文件 | 首条诊断 | 形状 |
+|---|---|---|
+| `units/unit04` · `units/solutions/unit05-solution` | `` `cases` 的被消去项不是归纳类型的值：`fun (x' : A) => (Set.univ x') ∨ (x x')` `` | `cases` 拿到的类型是**展开后**的 λ |
+| `units/unit08` · `units/solutions/unit08-solution` | `` `Set.inter` 的签名 … 补不出来 `` | 记法 `∩` 的操作数含 `{a}`/`''` 复合式 |
+| `units/solutions/unit03-solution` | `` `And.left` 的签名 … 补不出来 `` | 假设由 `intro` 派生 + 点形式 |
+| `units/solutions/unit11-solution` | `` `Set.powerset` 的签名 … 补不出来 `` | 记法 `𝒫` 套 `@Set.univ α` |
+| `units/solutions/unit12-solution` | `` 记法 `∩` … 补不出来 `` | 同上 |
+| `units/unit12-synthesis` | `` `have hb` 的值类型不匹配：… 实际是 `Rel.comp B C r s a c` `` | `Rel.comp` 的前缀解错位 |
+| `units/notation-cheatsheet` | `` 记法 `∅` … 补不出来 `` | 零元记法在 `exact` 里没有期望类型 |
+| `units/solutions/unit10-solution` | `` `exact` 类型不匹配：期望 `False`，实际是 `False` `` | 两边 pp 一样 ⇒ 需查**哪一侧**不是那个项 |
+
+**两条方法论（都实测过）**：① **整文件批量删前导类型实参不可行** ✗ —— 脚本一次改 649 处 ⇒
+**16 个文件判红**（含 `@@` 撞车与「非前导类型实参」误删）⇒ 只能**逐站点**核；
+② **每改一处都要 `grade` 一次**（`python3 scripts/gap.py check` 与课程门禁是最终判据）。
+
+**下一步（建议顺序）**：先修上表里**共享根因**的那几条（`cases` 的展开、记法操作数是复合式、
+零元记法在 `exact` 里），再逐文件收尾；**每修一条都补一条 front 判据 + 反向验证**（G-43/G-69/G-70
+的判据就是这个形状 ✓）。⚠ 迁移期间**不要提交**：课程门禁会红，整段做完再一次过。
 
 ### T-N14 B3：记法路径改走隐式插入，收窄补参 hack
 

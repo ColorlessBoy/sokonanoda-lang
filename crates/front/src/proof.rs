@@ -233,6 +233,164 @@ impl ProofState {
     }
 }
 
+/// 注册表 `signature` 的**唯一**渲染（**判定路径**）：先 [`expand_notations`] 去记法，
+/// 再 [`render_expr`] ⇒ 产物能被 [`parse_expr_text`]（**空记法表**）**回读**成望远镜 ✓。
+///
+/// ⚠ **不是显示路径**：显示走 `DisplayNotations::{fold, render, runs}` 那条唯一接口 ✓
+/// （本函数与 [`expand_notations`] 都只服务**判定**：`KnownName::Decl::signature`
+/// 是给 `implicit::telescope` 回读的）。放在本文件是因为 [`render_expr`] 的家在这里
+/// —— 记法转化调用点守卫（`scripts/audit-notation-paths.py`）把本文件列为白名单 ✓。
+pub fn decl_signature(ty: &Expr) -> String {
+    render_expr(&expand_notations(ty))
+}
+
+/// **判定用的去记法**：把 AST 里的**记法节点 / 集合字面量**展开成目标常量的应用
+/// （`a ∈ A` ⇒ `Set.mem a A`、`{a}` ⇒ `Set.singleton a`），其余结构原样递归。
+///
+/// **为什么需要它**（2026-09-30，B2 迁移实测）：注册表 `KnownName::Decl::signature`
+/// 存的是 [`render_expr`] 的产物，而 `implicit::telescope` 要用 `parse_expr_text`
+/// （**空记法表**，见 [`parse_expr_text`]）把那份文本**回读**成望远镜 —— 记法节点
+/// 回读不了（`∈` 是未声明符号）⇒ 解析失败 ⇒ **隐式插入整条不触发** ✗ ⇒ 实参落进
+/// 隐式位（实测：`Set.mem_univ x` 把 `x` 装进 `α`，报
+/// `期望 Set.univ α x，实际是 (a : x) -> Set.mem a Set.univ`）。
+///
+/// ⚠ **不是显示路径**：产物只喂 `signature`（回读用）。显示仍走
+/// `DisplayNotations` 那条唯一接口 ✓。
+///
+/// 只覆盖**类型里会出现**的形状；罕见形状（`by` / `match` / 洞…）原样返回
+/// —— 不比今天差 ✓。
+pub fn expand_notations(expr: &Expr) -> Expr {
+    match expr {
+        Expr::Notation {
+            target,
+            assoc,
+            lhs,
+            rhs,
+            span,
+            ..
+        } => {
+            let head = Expr::Ident {
+                name: target.clone(),
+                span: *span,
+            };
+            let mut args: Vec<Expr> = Vec::new();
+            // binder 记法（`∃ (x : α), p x`）的应用形态是 `Exists α (fun …)`：
+            // 记法只写那个 lambda，而常量的第一个参数（域 `α`）在应用里也占位
+            // （与 `head_and_args_notation` 同口径）。
+            if *assoc == crate::ast::NotationAssoc::Binder {
+                if let Some(Expr::Lambda { binders, .. }) = rhs.as_deref() {
+                    if let Some(ty) = binders.first().and_then(|b| b.ty.as_deref()) {
+                        args.push(expand_notations(ty));
+                    }
+                }
+            }
+            if let Some(l) = lhs {
+                args.push(expand_notations(l));
+            }
+            if let Some(r) = rhs {
+                args.push(expand_notations(r));
+            }
+            let mut out = head;
+            for arg in args {
+                out = Expr::App {
+                    fun: Box::new(out),
+                    arg: Box::new(arg),
+                    explicit_spine: false,
+                    span: *span,
+                };
+            }
+            out
+        }
+        Expr::SetLiteral { elements, span } => {
+            let target = if elements.len() == 1 {
+                "Set.singleton"
+            } else {
+                "Set.pair"
+            };
+            let mut out = Expr::Ident {
+                name: target.to_string(),
+                span: *span,
+            };
+            for element in elements {
+                out = Expr::App {
+                    fun: Box::new(out),
+                    arg: Box::new(expand_notations(element)),
+                    explicit_spine: false,
+                    span: *span,
+                };
+            }
+            out
+        }
+        Expr::App {
+            fun,
+            arg,
+            explicit_spine,
+            span,
+        } => Expr::App {
+            fun: Box::new(expand_notations(fun)),
+            arg: Box::new(expand_notations(arg)),
+            explicit_spine: *explicit_spine,
+            span: *span,
+        },
+        Expr::Lambda {
+            binders,
+            body,
+            span,
+        } => Expr::Lambda {
+            binders: binders.iter().map(expand_binder_notations).collect(),
+            body: Box::new(expand_notations(body)),
+            span: *span,
+        },
+        Expr::Forall {
+            binders,
+            body,
+            span,
+        } => Expr::Forall {
+            binders: binders.iter().map(expand_binder_notations).collect(),
+            body: Box::new(expand_notations(body)),
+            span: *span,
+        },
+        Expr::Arrow {
+            domain,
+            codomain,
+            span,
+        } => Expr::Arrow {
+            domain: Box::new(expand_notations(domain)),
+            codomain: Box::new(expand_notations(codomain)),
+            span: *span,
+        },
+        Expr::Plus { lhs, rhs, span } => Expr::Plus {
+            lhs: Box::new(expand_notations(lhs)),
+            rhs: Box::new(expand_notations(rhs)),
+            span: *span,
+        },
+        Expr::Let {
+            binder,
+            val,
+            body,
+            span,
+        } => Expr::Let {
+            binder: expand_binder_notations(binder),
+            val: Box::new(expand_notations(val)),
+            body: Box::new(expand_notations(body)),
+            span: *span,
+        },
+        other => other.clone(),
+    }
+}
+
+fn expand_binder_notations(binder: &Binder) -> Binder {
+    Binder {
+        name: binder.name.clone(),
+        ty: binder
+            .ty
+            .as_deref()
+            .map(|ty| Box::new(expand_notations(ty))),
+        style: binder.style.clone(),
+        span: binder.span,
+    }
+}
+
 pub fn render_expr(expr: &Expr) -> String {
     match expr {
         Expr::Sort { sort, .. } => match sort {
