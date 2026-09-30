@@ -2771,6 +2771,13 @@ fn args_fit_layers_in_order<'a>(
     true
 }
 
+/// 操作数的**类型表达式**（源级 AST），供隐式前缀求解当模板/实参用。
+///
+/// **书写类型优先**（零内核调用）：`Ident` 取作用域里的**源级**类型；lambda 取
+/// **源级 binder 注解**拼出来的箭头类型（见 [`lambda_source_type`]）。两者都
+/// **绕开内核 pp** —— pp 会丢隐式实参（实测：`Set.image α β f A` 打成
+/// `Set.image β f A`），而这份文本会被**回读成项**再 elaborate ⇒ 静默换成另一个
+/// 解（`α := β`）✗。剩下的形状才问内核（pp 文本 → `parse_expr_text`）。
 fn operand_type_expr<'a>(
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
@@ -2782,8 +2789,47 @@ fn operand_type_expr<'a>(
             return Some(src);
         }
     }
+    if let Some(src) = lambda_source_type(operand) {
+        return Some(src);
+    }
     infer_type_text(ctx, scope, operand, env)
         .and_then(|text| crate::proof::parse_expr_text(&text).ok())
+}
+
+/// `fun (h : P) => h` 的**书写类型** `P -> P`，纯源级走查（**零内核调用**）。
+///
+/// 只认**一条**形状：所有 binder 都有注解，且体是某个 binder 的**裸名引用**
+/// （`fun (h : P) => h` —— 课程证明项里压倒性的多数，`Iff.intro`/`And.intro`
+/// 的实参全是它）。体的类型就是**那个 binder 的注解**，于是整条类型 =
+/// `T₀ → T₁ → … → Tₙ₋₁ → T_idx` ✓ —— 不需要问内核，也就不会被 pp 的隐式实参
+/// 丢失污染 ✓。
+///
+/// 其余形状（`fun (x : α) => f x` 之类）返回 `None` ⇒ 调用方照旧问内核，
+/// **不比今天差** ✓。
+fn lambda_source_type(operand: &Expr) -> Option<Expr> {
+    let Expr::Lambda { binders, body, .. } = operand else {
+        return None;
+    };
+    if binders.is_empty() {
+        return None;
+    }
+    let mut tys: Vec<Expr> = Vec::with_capacity(binders.len());
+    for binder in binders {
+        tys.push(binder.ty.as_deref()?.clone());
+    }
+    let Expr::Ident { name, .. } = body.as_ref() else {
+        return None;
+    };
+    let idx = binders.iter().position(|b| &b.name == name)?;
+    let mut ty = tys[idx].clone();
+    for domain in tys.iter().rev() {
+        ty = Expr::Arrow {
+            domain: Box::new(domain.clone()),
+            codomain: Box::new(ty),
+            span: Span::default(),
+        };
+    }
+    Some(ty)
 }
 
 /// **IA-1 的唯一钩子**（设计 `docs/design/implicit-arguments.md` §3.2）：`expr`

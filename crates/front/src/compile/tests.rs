@@ -8627,6 +8627,44 @@ theorem univ_applies (\u{3b1} : Type) (x : \u{3b1}) : (x \u{2208} Set.univ) = Se
     );
 }
 
+/// **G-43 判据**（2026-09-30）：构造子的 **lambda 实参**必须按**书写类型**求解，
+/// 不能按内核 pp 的文本回读。
+///
+/// 病根是**显示与判定共用一条 pp 文本**：内核 pp 会**丢掉第一个隐式实参**
+/// （`Set.image α β f A` 打成 `Set.image β f A` —— 后续隐式实参却留着，见
+/// `pretty_printer::unfold_apps_pp` 的 `is_implicit_fun(fun)` 只认裸 `Const`），
+/// 而 `operand_type_expr` 把这份文本**回读成项**当"实参的类型"用 ⇒ 解出
+/// `α := β` ✗ ⇒ 内核报 `期望 Sort(1)，实际是 Pi ( : $4), $4`。
+///
+/// 修法：lambda 的类型由**源级 binder 注解**拼出来（[`lambda_source_type`]，
+/// 与 `Ident` 取 `scope.source_type_of` 同一条"书写类型优先"规则）⇒ 零内核调用，
+/// 也不会被 pp 的隐式实参丢失污染 ✓。
+///
+/// **反向验证**：把 `lambda_source_type` 那一行撤掉 ⇒ 本条当场判红 ✓（实测）。
+#[test]
+fn a_lambda_argument_takes_its_written_type_not_the_lossy_pp_text() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+def image {\u{3b1} \u{3b2} : Type} (f : \u{3b1} -> \u{3b2}) (A : Set \u{3b1}) : Set \u{3b2} := fun (y : \u{3b2}) => True\n\
+end Set\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+infixr:80 \" '' \" => Set.image\n\
+theorem t {\u{3b1} \u{3b2} : Type} (f : \u{3b1} \u{2192} \u{3b2}) (A : Set \u{3b1}) (y : \u{3b2}) :\n\
+    y \u{2208} f '' A \u{2194} y \u{2208} f '' A :=\n\
+    Iff.intro (fun (h : y \u{2208} f '' A) => h) (fun (h : y \u{2208} f '' A) => h)\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "`Iff.intro (fun (h : y ∈ f '' A) => h) …` 必须解得出来（修前 pp 回读把 `Set.image` 的 \
+         α 换成 β ⇒ `期望 Sort(1)，实际是 Pi ( : $4), $4`）。事件：{:?}",
+        out.events
+    );
+}
+
 /// **B3-④ / T-N14 判据**（2026-09-30）：记法目标带**前导隐式** binder 时，记法
 /// 展开走 `Expr::App` 臂的**唯一钩子**（不是记法路径自己那套补参机械）。
 ///

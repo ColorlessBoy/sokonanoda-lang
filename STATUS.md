@@ -1,4 +1,4 @@
-# 当前快照（2026-09-30 · 第 514 轮）
+# 当前快照（2026-09-30 · 第 515 轮）
 
 - **🚀 `v0.78.3` = Latest** ✓（CI `36655613663` **28 success / 0 failure**（1 skipped）· release
   workflow `36656518982` success · tag `v0.78.3` · 26 资产 = 8 CLI + 8 LSP + 9 VSIX + 1 源码）。
@@ -16,8 +16,24 @@
 - **文档过期日期机制**（第 513 轮）✓：**每个活文档都有过期日期**（权威 = `scripts/docs-expiry.json`，
   **37/37 已登记**）· `git commit` 前**自动检测**（已过期/未登记 ⇒ **拒绝提交**）·
   **到期审查三选一**（续期须写特定理由 / 删 / 归档）⇒ `docs/ONBOARDING.md` **§3.2**。
-- **批次 N 进度 64/66**（第 514 轮）✓：**T-N14**（记法路径走唯一钩子 + 实参期望类型）收口 ——
-  全语料对拍 **644 组逐字节相同**；剩 **T-N13**（B2，前置 = G-43）/ **T-N15**（C 收尾）。
+- **批次 N 进度 64/66**（第 514/515 轮）✓：**T-N14**（记法路径走唯一钩子 + 实参期望类型）与
+  **G-43**（lambda 实参按书写类型求解）收口 —— 两次全语料对拍各 **644 组逐字节相同**；
+  剩 **T-N13**（B2 迁移本体）/ **T-N15**（C 收尾）。
+
+## 第 515 轮（2026-09-30）：**G-43 收口 —— lambda 实参按「书写类型」求解（T-N13 的前置）**
+
+- **病根（探针实测，不是猜）**：**显示与判定共用一条 pp 文本** —— 内核 pp 会**丢掉第一个隐式
+  实参**（`Set.image α β f A` 打成 `Set.image β f A`；后续隐式实参却留着：`unfold_apps_pp` 的
+  `is_implicit_fun(fun)` **只认裸 `Const`**，`App(Set.image, α)` 就认不出），而
+  `operand_type_expr` 把这份文本**回读成项**当"实参的类型" ⇒ `unify_extract` 解出 `α := β` ✗
+  ⇒ `期望 Sort(1)，实际是 Pi ( : $4), $4`（**与 `import` 无关**，单文件同形复现 ✓）。
+- **修法（front 一处，内核零改动）**：新增 `lambda_source_type` —— lambda 的类型由**源级 binder
+  注解**拼出来（`fun (h : P) => h` : `P → P`），与既有「`Ident` 取 `scope.source_type_of`」同一条
+  **书写类型优先**规则 ⇒ 零内核调用、不被 pp 丢参污染 ✓。只认「所有 binder 有注解 + 体是某个
+  binder 的裸名引用」这一形状，其余照旧问内核（不比从前差 ✓）。
+- **判据**：`compile/tests.rs::a_lambda_argument_takes_its_written_type_not_the_lossy_pp_text`；**反向验证** ✓（把该函数中和成 `return None` ⇒ 当场判红，报的就是上面那条）；复现件 `docs/gaps/repro/G43-*.sh` **exit 1（已修）** ✓；`lib/Set` + `lib/Image` 迁移后都 **0 诊断** ✓。
+- **红线（逐项实测）**：内核零改动 ✓ · 全语料对拍 **644 组逐字节相同** ✓ · 课程门禁 **43/376/99/0** 逐项相同 ✓ · front **795/0** · 记法契约 **50/0** ✓ · `gap.py check` ✓。
+- **纪律教训**：本轮**两次**自造对照件被 bash 吃掉了 `''`（单引号里 `''` 会闭合引号）⇒ 量到的是 `f  A`（**另一个形状**）✗ ⇒ **对照件源码要 grep 出来核对** ✓。
 
 ## 第 514 轮（2026-09-30）：**T-N14 收口 —— 记法路径改走唯一钩子（隐式档）+ 实参期望类型**
 
@@ -35,7 +51,7 @@
 - **红线（逐项实测）**：`scripts/kernel-diff.sh` 全语料 **644 组逐字节相同** ✓ · 课程门禁 **43 目标 / 376 checked / 99 open / 0 判负** ✓ · front **794/0** · 记法契约 **50/0** ✓。
 - **新判据带反向验证**（`crates/front/src/compile/tests.rs`）：`…takes_its_prefix_from_the_shared_hook`
   + `the_first_explicit_argument_also_takes_its_expected_type` —— 撤掉任一改动 ⇒ 两条同时判红 ✓。
-- **遗留**：**G-43**（构造子 + lambda 实参，binder 类型含导入模块的 def）仍红 ⇒ 归 **T-N13/B2**（复现件 `docs/gaps/repro/G43-*.sh` 仍 exit 0 ✓）。
+- **后续**：G-43 由第 515 轮收口（见下）⇒ T-N13 的**迁移本体**已无前置。
 - **纪律教训（又踩一次）**：`/tmp` 工作台的**编译缓存**会让"改动前后"量到同一份产物 —— 本轮第一次
   A/B 里基线竟把模式 B 判绿 ✗（`rm -rf <工作台>/.sokonanoda` 之后才复现 ✓）。第 511 轮移出（原文 ⇒ `git log --all -- STATUS.md`）。
 
@@ -54,22 +70,6 @@
 - **判据**：`--check` **exit 0**（活文档 **37 / 已登记 37**）· `--selftest` **21/21** ✓ · `docs-lint` ①–⑦ ✓ ·
   `status-lint` ✓。第 510 轮移出（**不单独归档**，原文 ⇒ `git log --all -- STATUS.md`）。
 
-## 第 512 轮（2026-09-30）：**激进删档 —— docs 跟踪 624 → 124（−80.1%）**
-
-- **用户工单**：「请删除 80% docs 下的文档」「之前 agent 做得太心慈手软了」⇒ 硬指标
-  `git ls-files docs | wc -l` **≤125** + `python3 scripts/docs-lint.py` 全绿。
-- **删 501 个**（一目录一 commit，全走 `git rm`，不进回收站、不归档）：`docs/e2e/logs/**` **206** ·
-  `docs/archive/**` **220**（只留索引 + 最近 3 轮）· `docs/design/**` **64**（只留 17 篇活设计）·
-  `docs/perf/**` **5** · `docs/notes/**` **3** · `docs/gaps/**` **2**（+2 个零消费者复现件）。
-- **留的判据**（缺一即删）：① 用户白名单；② 被**代码 / 契约测试读或断言**（`crates/cli/tests/` 的
-  `dsh`/`extension`/`st1_boundary`/`skill`、`scripts/plan.py`、`gap.py` 的复现件）；③ 仍是**未收口**
-  那条线的唯一权威。⚠ 注释里的「设计依据」**不算消费者** ✗。
-- **同步**：`docs/README.md` **248 → 140 行** · `docs/ONBOARDING.md` §2 索引表 · `docs/archive/README.md`
-  重写 · `docs-budget.json` 移除 **79** 条冻结项（剩 30）+ 四层上限**收紧**（L1 5704→5603 ·
-  L2 22379→7136 · L3 5345→42）· 活台账摘掉 `log` 字段（308 条）· 立**全局规则**：指向已删路径的引用
-  ⇒ `git log --all -- <原路径>`。
-- **判据**：`docs-lint ✓`（①–⑦；活文档 **406 → 126 个 / 6.22 → 1.78 MB**）· `plan.py check ✓` ·
-  `e2e-merge.py --check ✓`；第 509 轮按「只留最近 3 轮」移出（原文 ⇒ `git log --all -- STATUS.md`）。
 ## 未决项（**只有这两条**；顺序与入口见 `docs/ONBOARDING.md` §0.2）
 
 - ⬜ **批次 N 剩余 2 条**（`python3 scripts/plan.py` = **64/66**）：**T-N13**（B2 课程库改隐式风格；
