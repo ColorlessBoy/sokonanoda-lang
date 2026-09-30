@@ -583,6 +583,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             let info = DefInfo {
                 params: params_of_ty(ty),
                 universes: universe.to_vec(),
+                implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                 body: strip_lambdas_n(val, params_of_ty(ty).len()),
             };
             self.defs.insert(name.to_string(), info.clone());

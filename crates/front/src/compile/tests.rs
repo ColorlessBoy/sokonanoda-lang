@@ -8627,6 +8627,48 @@ theorem univ_applies (\u{3b1} : Type) (x : \u{3b1}) : (x \u{2208} Set.univ) = Se
     );
 }
 
+/// **G-69 判据**（2026-09-30）：`intro` **派生**的假设（点形式）必须与**显式 binder**
+/// 同判 —— 短写 `exact And.left hx` 两种写法都要判绿。
+///
+/// 病根：`intro` 剥不动源 AST（头是 def `Set.subset`）时**换用内核 pp 的规范形态**
+/// （`by.rs::canonical_goal_with_spec`），护栏 `keep_if_lossless` 原来**只比顶层
+/// spine 实参个数** —— 而记法节点在 `spine_of` 里算 **1 个**：`Set.subset (A ∩ B) A`
+/// 与 pp 形态 `Set.subset (Set.inter A B) A` **顶层都是 2 个** ⇒ 护栏放行 ✗，可 pp
+/// 已经把内层 `Set.inter` 的前导隐式实参省掉 ⇒ 派生假设的类型成了**丢了参数的
+/// 点形式** ⇒ `unfold_one` 把 `Set.inter A B x` 对成 `α := A, A := B, B := x` ✗。
+///
+/// 修法：护栏改成**逐位递归**，源级记法节点在 pp 形态里必须把该目标的**前导隐式
+/// 实参**写出来（实参个数 ≥ 操作数 + `DefInfo::implicit_prefix`）✓。
+///
+/// **反向验证**：让 `notation_positions_keep_implicit_prefix` 直接 `return true`
+/// ⇒ 本条当场判红 ✓（实测）。
+#[test]
+fn a_derived_hypothesis_solves_implicit_arguments_like_a_written_binder() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+def inter {\u{3b1} : Type} (A B : Set \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => A x \u{2227} B x\n\
+def subset {\u{3b1} : Type} (A B : Set \u{3b1}) : Prop := \u{2200} (x : \u{3b1}), A x \u{2192} B x\n\
+end Set\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+infix:50 \" \u{2286} \" => Set.subset\n\
+infixl:70 \" \u{2229} \" => Set.inter\n\
+theorem t (\u{3b1} : Type) (A B : Set \u{3b1}) : A \u{2229} B \u{2286} A := by\n\
+  intro x\n\
+  intro hx\n\
+  exact And.left hx\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "`intro hx` 派生的假设（点形式）也要能反解隐式参数（修前护栏只看顶层实参个数 ⇒ \
+         pp 形态把内层 `Set.inter` 的隐式 α 省掉 ⇒ 展开错位）。事件：{:?}",
+        out.events
+    );
+}
+
 /// **G-43 判据**（2026-09-30）：构造子的 **lambda 实参**必须按**书写类型**求解，
 /// 不能按内核 pp 的文本回读。
 ///

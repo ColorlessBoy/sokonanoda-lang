@@ -639,6 +639,7 @@ fn install_l1_command<'a>(
                 DefInfo {
                     params: params_of_ty(ty),
                     universes: universe.clone(),
+                    implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                     body: strip_lambdas_n(val, params_of_ty(ty).len()),
                 },
             );

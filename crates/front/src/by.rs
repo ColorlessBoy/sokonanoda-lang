@@ -624,7 +624,7 @@ fn canonical_goal_type<'a>(
     if !is_rereadable(&canonical, defs) {
         return ty.clone();
     }
-    keep_if_lossless(ty, canonical)
+    keep_if_lossless(ty, canonical, defs)
 }
 
 /// 归一化**有损**时退回原 AST。
@@ -633,14 +633,90 @@ fn canonical_goal_type<'a>(
 /// 于是「把目标过一遍内核 pp」可能把它换成**少几个实参**的坏 AST——拿它当
 /// 目标会让后面的 tactic 全错（实测：命名空间文件里 `by exact` 报
 /// 「期望 `Sort(0)`，实际是 `Foo.[] $2`」）。
-/// 判据：常量头的**实参个数变少**就是有损（丢的只会是前导隐式实参）。
-fn keep_if_lossless(original: &Expr, canonical: Expr) -> Expr {
+///
+/// 判据两条：
+/// 1. 常量头的**实参个数变少**就是有损（丢的只会是前导隐式实参）——**只比顶层**；
+/// 2. **G-69（2026-09-30）**：① 漏掉了**嵌套**那一档 —— 记法节点在 `spine_of` 里
+///    算 **1 个**实参，所以 `Set.subset (A ∩ B) A`（2 个）与 pp 形态
+///    `Set.subset (Set.inter A B) A`（也是 2 个）**顶层个数相等**，护栏放行 ✗，
+///    可 pp 已经把内层 `Set.inter` 的前导隐式实参省掉了 ⇒ 派生假设的类型成了
+///    **丢了参数的点形式** ⇒ 后面 `exact And.left hx` 的 delta 展开错位
+///    （实测：`unfold_one` 把 `Set.inter A B x` 对成 `α := A, A := B, B := x`）✗。
+///    ⇒ 判据补成**逐位递归**：源级**记法节点**在 pp 形态里必须把该目标的
+///    **前导隐式实参**写出来（实参个数 ≥ 操作数 + `implicit_prefix`）✓。
+fn keep_if_lossless(original: &Expr, canonical: Expr, defs: &DefTable) -> Expr {
     let (_, oargs) = spine_of(original);
     let (_, cargs) = spine_of(&canonical);
     if cargs.len() < oargs.len() {
         return original.clone();
     }
+    if !notation_positions_keep_implicit_prefix(original, &canonical, defs) {
+        return original.clone();
+    }
     canonical
+}
+
+/// 逐位比：源 AST 是**记法节点**时，pp 形态必须把它对应的目标常量应用**写全**
+/// （含前导隐式实参）。见 [`keep_if_lossless`] 的判据 2。
+///
+/// 头名字对不上（pp 换过头）或形状不是应用链 ⇒ 不在这里判（返回 `true`，
+/// 保持今天的行为 —— 只加"能判定的那一档"，绝不因为判不了就把好文件判红 ✓）。
+fn notation_positions_keep_implicit_prefix(
+    original: &Expr,
+    canonical: &Expr,
+    defs: &DefTable,
+) -> bool {
+    if let Expr::Notation {
+        target,
+        assoc,
+        lhs,
+        rhs,
+        ..
+    } = original
+    {
+        // 记法的**应用形态**实参表：与 `head_and_args_notation` 同口径
+        // （binder 记法先补那个「域」实参）。
+        let mut operands: Vec<&Expr> = Vec::new();
+        if *assoc == crate::ast::NotationAssoc::Binder {
+            if let Some(Expr::Lambda { binders, .. }) = rhs.as_deref() {
+                if let Some(ty) = binders.first().and_then(|b| b.ty.as_deref()) {
+                    operands.push(ty);
+                }
+            }
+        }
+        operands.extend(lhs.iter().map(|e| &**e));
+        operands.extend(rhs.iter().map(|e| &**e));
+        let (chead, cargs) = spine_of(canonical);
+        let Expr::Ident { name, .. } = chead else {
+            return true;
+        };
+        if name != target {
+            return true;
+        }
+        let prefix = defs.get(target).map_or(0, |info| info.implicit_prefix);
+        if cargs.len() < operands.len() + prefix {
+            return false;
+        }
+        // 操作数逐位递归（右对齐：canonical 的**最后** `operands.len()` 个）。
+        let offset = cargs.len() - operands.len();
+        return operands
+            .iter()
+            .zip(&cargs[offset..])
+            .all(|(o, c)| notation_positions_keep_implicit_prefix(o, c, defs));
+    }
+    // 普通应用链：同头时逐位递归（右对齐），把嵌套的记法也看一遍。
+    let (ohead, oargs) = spine_of(original);
+    let (chead, cargs) = spine_of(canonical);
+    if let (Expr::Ident { name: on, .. }, Expr::Ident { name: cn, .. }) = (ohead, chead) {
+        if on == cn && cargs.len() >= oargs.len() && !oargs.is_empty() {
+            let offset = cargs.len() - oargs.len();
+            return oargs
+                .iter()
+                .zip(&cargs[offset..])
+                .all(|(o, c)| notation_positions_keep_implicit_prefix(o, c, defs));
+        }
+    }
+    true
 }
 
 /// 同 [`canonical_goal_type`]，但直接吃**已经算好的 `OpenGoalSpec`**
@@ -745,7 +821,7 @@ fn canonical_goal_with_spec<'a>(
             let canonical =
                 restore_universe_levels(&canonical, defs, &spec.binders, prefix_src, options);
             if is_rereadable(&canonical, defs) {
-                keep_if_lossless(ty, canonical)
+                keep_if_lossless(ty, canonical, defs)
             } else {
                 ty.clone()
             }

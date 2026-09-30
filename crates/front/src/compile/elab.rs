@@ -366,6 +366,15 @@ pub(crate) struct DefInfo {
     /// （render → parse → elab）就报 `unknown universe level u`（实测：
     /// `{a} ≠ ∅` 的证明卡在这儿，而且报错点离根因很远）。
     pub universes: Vec<String>,
+    /// 声明的**前导隐式 binder 个数**（与 `KnownName::Decl::implicit_prefix` 同源：
+    /// `leading_implicit_prefix(ty)`）。
+    ///
+    /// **为什么 delta 展开/归一化需要它**（G-69）：源级 AST 里的实参是**写出来的**
+    /// 那些（前导隐式实参没写），而 `params` 含隐式 ⇒ 光有 `params.len()` 分不清
+    /// 「这个应用写全了没有」✗。pp 又会**省掉**「函数位是裸常量、类型是隐式 Pi」
+    /// 的那个实参 ⇒ `Notation(∩, [A, B])` 的 pp 形态只有 2 个实参（忠实形态是
+    /// `操作数 + implicit_prefix` 个）⇒ 回读会读成 `α := A` ✗。
+    pub implicit_prefix: usize,
     pub body: Expr,
 }
 
