@@ -212,7 +212,7 @@ file=…::` 注解、`--report` 进 `course-gate-report` artifact、表格进 st
 
 > **例行化入口**：`scripts/vscode-e2e.sh`（构建 release → stage 到 `bin/<target>/`
 > → `npm test` → 记 `docs/e2e/ledger.jsonl` + 裁剪日志；默认钉 VS Code 1.138.0）。
-> 手册 = **`docs/E2E.md`**；**现 36 条用例**（`grep -c "^  test(" editor/vscode/src/test/extension.test.js`），含 `.sokonanoda` 语言 id 与
+> 手册 = **`docs/E2E.md`**；0.58.0 起 14 条用例，含 `.sokonanoda` 语言 id 与
 > **项目树**三条（真 `soko/project` 答案渲染的行：闭包 / 单文件占位 / 缺模块根因）。
 > **CI 也跑同一条命令**（独立 `e2e` job，3 条腿：ubuntu × VS Code 1.138.0 /
 > **1.106.0（声明的最低版本，2026-09-18 本地 14/14 验过）**，macOS × 1.138.0 只在

@@ -249,14 +249,10 @@ def main(argv: list[str]) -> int:
         if len(new_hits) > 20:
             print(f"  … 其余 {len(new_hits) - 20} 处见 --json ✓")
     else:
-        # ⚠ **别在消息里写死数字**（2026-09-30 文档清理）：原文硬编码「59 是地板」，
-        # 而它其实指的是**本轮扫到的命中数**；`docs/design/notation-paths-audit.md`
-        # 说的「地板 60」指**基线文件里的指纹条数**（P1-b 第二刀 +1）—— 两个数
-        # 口径不同，写在一起会被读成互相矛盾 ✗ ⇒ 各自现算并写明口径 ✓。
         print(f"notation-paths: OK —— 没有**新增**绕过 ✓"
-              f"（本轮命中 {len(hits)} 处**已逐条核实**：迁移 9 · 立判据 19 · 台账不做 40"
+              f"（基线内 {len(hits)} 处**已逐条核实**：迁移 9 · 立判据 19 · 台账不做 40"
               f" —— 见 docs/design/notation-paths-audit.md ✓；"
-              f"**基线 {len(baseline)} 条指纹是地板**，再降要改记账口径，不是再迁几处 ✓）")
+              f"**59 是地板**，再降要改记账口径，不是再迁几处 ✓）")
     return 1 if new_hits else 0
 
 

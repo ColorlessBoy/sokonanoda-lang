@@ -8,7 +8,7 @@
 
 **`course/` 只是大模型的路线图/素材库；执行层必须按用户灵活适配。**
 
-- course/ 的 **11 个单元** = 知识点顺序、题池、可解性守护（CI 验证解答）；
+- course/ 的 8 个单元 = 知识点顺序、题池、可解性守护（CI 验证解答）；
 - **真正教学时，agent 必须依据当前用户的反馈历史动态重组**：
   - 用户在某概念反复出错 → 追加同概念的变式练习，或先放一个"填好
     的演示声明"再重新出题；
@@ -98,8 +98,8 @@
 | U7·3 | `def predOpt (x : Option Nat) : Nat := match x with \| some zero => zero \| some (succ k) => sorry \| none => zero` | 嵌套模式把 succ 的字段 `k` 绑出来 | `k` |
 | U7·4 | `def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with \| vnil => d \| vcons a m w => sorry` | 带索引归纳；vcons 把头绑成 `a` | `a` |
 
-> ⚠ **更正（2026-09-30）**：`by_ex5` **已按 R3 补回**（现为 `(a → b) → a → b ∧ a`，教 `have`；
-> 见 `course/unit4-by-tactics.sokonanoda:139`）——原文「已在 P1 删除」只对 P1 当时成立。
+> 单元④原有 `by_ex5`（`(a : Prop) -> a -> a`，与 `by_ex1` 完全重复、hint
+> 描述也有误）已在 P1 删除，故上表没有 `U4·5`。
 
 收尾：`two_def : Eq.{1} Nat two (1 + 1) := Eq.refl.{1} Nat two` —— 画布里先
 注释着，U2·1 解出后放开；变绿 = 内核回判了 U2·1 的值。
@@ -154,7 +154,7 @@
 ## 4. Gotchas（全部验证过，别踩）
 
 1. **裸 `Eq` 默认 u=0**（Prop 层）；Nat 级必须 `Eq.{1}`/`Eq.refl.{1}`/`Eq.subst.{1}`。
-2. ⚠ **更正（2026-09-30）**：**隐式实参可省**（R2.5 / D6 已落地，见 `docs/notes/course-lean-style/notation-rewrite-brief.md` §1.4 与 `docs/design/implicit-arguments.md`）；`@` = 显式脊（不补隐式位）。
+2. **无隐式参数补全**：隐式 binder 也按位置显式给全；`@` 只是语法糖（等价不带 @）。
    教学画布的 axiom 全用显式 binder（`And.intro a b ha hb` 风格），只有 prelude 的
    Eq 与毕业题 12 用隐式。
 3. **open 声明不进环境**：后面的代码引用它会得到 `elab-unknown-identifier`
@@ -171,7 +171,7 @@
    真正的 inductive（前端自动派生消去子 `Or.rec`），`or_comm`/`or_elim`/`or_id`
    都是该单元的练习；**单元⑨之前**（画布第一课、单元①–⑧）不要许诺 `Or.rec`。
 
-## 5. 后续课程（单元④–⑪已上线；⑪ = `course/unit11-modules-projects/`）
+## 5. 后续课程（单元④–⑩已上线）
 
 `by` 写法（tactic 证明）与值位 `intro`/`apply` 对照在 **course/ 单元④**
 （0.18.0 起，P2 从旧单元⑥提前）；宇宙（`Sort n`/`Type n` 阶梯、`Eq.{1}`

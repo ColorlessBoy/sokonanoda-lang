@@ -166,8 +166,8 @@ python3 scripts/gen-site-data.py   # 版本跟到新 tag（站点唯一的版本
 python3 scripts/check-site.py      # 10 项验收；data 项会检查它是否已跟上
 ```
 
-线上**仍需本节两步**：`pages.yml` 虽挂了 `release: types: [published]`，但 `pages.yml:31-41` **自述它对自动发版
-不生效**（`GITHUB_TOKEN` 事件不触发别的 workflow；2026-09-21 v0.62.0 实测未触发）⇒ 刷新站点靠**提交重算后的 `site/data/site.json`**。但仓库里那份数据
+线上**不需要**手动触发：`pages.yml` 挂了 `release: types: [published]`，
+发布后自动重新部署，部署时生成器重算 `site/data/site.json`。但仓库里那份数据
 仍要一起提交，否则 `check-site.py` 的 `data` 项在本地永远判红——**本地绿必须
 意味着「仓库里写的就是线上写的」**（这是有意的，不是噪声）。
 

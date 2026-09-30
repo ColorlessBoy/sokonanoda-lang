@@ -166,14 +166,14 @@
 - **接受**：markdown 只能 scope 级近似（无名字解析），颜色永不 100% 相同；
   详见 `docs/design/highlighting.md`。
 
-## 绝不 `cargo fmt --all`（会重排整个内核、噪声巨大）（2026-09-16，0.49.0 收尾）
+## 绝不 `cargo fmt --all`（冻结内核会被重排）（2026-09-16，0.49.0 收尾）
 
 - **教训**：收尾时手滑跑了 `cargo fmt --all`，它按仓库 `rustfmt.toml` 重排了
-  `crates/kernel/**`（20+ 文件）。虽是纯格式、语义中立，但**内核的 `rustfmt.toml` 需要 nightly** ⇒
+  `crates/kernel/**`（20+ 文件）。虽是纯格式、语义中立，但**违反「本项零内核改动快照」硬规则**，
   并污染提交历史（发现于提交后、推送前，已还原重做）。
 - **规矩**：只 fmt 教学 crates（`-p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp`）
   或直接 `sokonanoda gate`（它的 fmt 步骤本就只覆盖这三个 crate）。
-- **自检**：若本批**不该**动内核却出现 `git status --short | grep kernel` ⇒ 查原因（内核已解冻，合法改动允许且要进台账 ✓）。
+- **自检**：提交前 `git status --short | grep kernel` 必须为空。
 
 ## 平台没给的颜色别硬造：先问"代价"（2026-09-16，0.50.0）
 
@@ -249,7 +249,7 @@
 - **规矩**：门禁红先逐条单跑并看**真实退出码**——
   `cargo fmt -p … --check; echo $?` / `cargo clippy --workspace --all-targets; echo $?` /
   `cargo test --workspace --locked; echo $?`（各自 `$?`），空载重跑 `sokonanoda gate` 复核；
-  只有单跑仍红且指向教学 crate 才动手。
+  只有单跑仍红且指向教学 crate 才动手（内核只读）。
 
 ## DSH 的 `edit` 被拒（`file changed since it was read`）＝自己刚改过它（2026-09-17）
 
