@@ -2764,7 +2764,7 @@ fn args_fit_layers_in_order<'a>(
 /// * 比结构 ✗ —— `Expr` 的 `PartialEq` **含 `span`**（只差 offset 就判不等 ✓）；
 /// * 比 pp ✗ —— 那是**显示**路径（唯一接口是 `DisplayNotations` ✓，记法守卫会抓 ✓），
 ///   而且 `Type` 与 `Sort 1` 同义而异形 ✓。
-/// ⇒ 比**类型表达式的头**（`Sort` 家族按层级归一 ✓、应用取函数位置的头 ✓）。
+///   ⇒ 比**类型表达式的头**（`Sort` 家族按层级归一 ✓、应用取函数位置的头 ✓）。
 fn type_head_fits_layer<'a>(
     domain: &Expr,
     a: &Expr,
