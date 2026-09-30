@@ -22,18 +22,16 @@
 
 ## 第 515 轮（2026-09-30）：**G-43 收口 —— lambda 实参按「书写类型」求解（T-N13 的前置）**
 
-- **病根（探针实测，不是猜）**：**显示与判定共用一条 pp 文本** —— 内核 pp 会**丢掉第一个隐式
-  实参**（`Set.image α β f A` 打成 `Set.image β f A`；后续隐式实参却留着：`unfold_apps_pp` 的
-  `is_implicit_fun(fun)` **只认裸 `Const`**，`App(Set.image, α)` 就认不出），而
-  `operand_type_expr` 把这份文本**回读成项**当"实参的类型" ⇒ `unify_extract` 解出 `α := β` ✗
-  ⇒ `期望 Sort(1)，实际是 Pi ( : $4), $4`（**与 `import` 无关**，单文件同形复现 ✓）。
+- **病根（探针实测）**：**显示与判定共用一条 pp 文本** —— 内核 pp 会**丢掉第一个隐式实参**
+  （`Set.image α β f A` 打成 `Set.image β f A`；后续隐式实参却留着：`unfold_apps_pp` 的
+  `is_implicit_fun(fun)` **只认裸 `Const`**），而 `operand_type_expr` 把这份文本**回读成项**当
+  "实参的类型" ⇒ 解出 `α := β` ✗ ⇒ `期望 Sort(1)，实际是 Pi ( : $4), $4`（**与 `import` 无关** ✓）。
 - **修法（front 一处，内核零改动）**：新增 `lambda_source_type` —— lambda 的类型由**源级 binder
   注解**拼出来（`fun (h : P) => h` : `P → P`），与既有「`Ident` 取 `scope.source_type_of`」同一条
-  **书写类型优先**规则 ⇒ 零内核调用、不被 pp 丢参污染 ✓。只认「所有 binder 有注解 + 体是某个
-  binder 的裸名引用」这一形状，其余照旧问内核（不比从前差 ✓）。
-- **判据**：`compile/tests.rs::a_lambda_argument_takes_its_written_type_not_the_lossy_pp_text`；**反向验证** ✓（把该函数中和成 `return None` ⇒ 当场判红，报的就是上面那条）；复现件 `docs/gaps/repro/G43-*.sh` **exit 1（已修）** ✓；`lib/Set` + `lib/Image` 迁移后都 **0 诊断** ✓。
+  **书写类型优先**规则 ⇒ 零内核调用、不被 pp 丢参污染 ✓；其余形状照旧问内核（不比从前差 ✓）。
+- **判据**：`compile/tests.rs::a_lambda_argument_takes_its_written_type_not_the_lossy_pp_text`；**反向验证** ✓（中和成 `return None` ⇒ 当场判红）；复现件 `docs/gaps/repro/G43-*.sh` **exit 1（已修）** ✓。
 - **红线（逐项实测）**：内核零改动 ✓ · 全语料对拍 **644 组逐字节相同** ✓ · 课程门禁 **43/376/99/0** 逐项相同 ✓ · front **795/0** · 记法契约 **50/0** ✓ · `gap.py check` ✓。
-- **纪律教训**：本轮**两次**自造对照件被 bash 吃掉了 `''`（单引号里 `''` 会闭合引号）⇒ 量到的是 `f  A`（**另一个形状**）✗ ⇒ **对照件源码要 grep 出来核对** ✓。
+- **纪律教训**：本轮**两次**自造对照件被 bash 吃掉了 `''`（单引号里 `''` 会闭合引号）⇒ 量到的是 `f  A`（**另一个形状**）✗ ⇒ **对照件源码要 grep 出来核对** ✓。另：整文件批量改调用点**又一次证伪** ✗（649 处 ⇒ 16 文件判红）⇒ 只许逐站点核 ✓。
 
 ## 第 514 轮（2026-09-30）：**T-N14 收口 —— 记法路径改走唯一钩子（隐式档）+ 实参期望类型**
 
@@ -51,7 +49,10 @@
 - **红线（逐项实测）**：`scripts/kernel-diff.sh` 全语料 **644 组逐字节相同** ✓ · 课程门禁 **43 目标 / 376 checked / 99 open / 0 判负** ✓ · front **794/0** · 记法契约 **50/0** ✓。
 - **新判据带反向验证**（`crates/front/src/compile/tests.rs`）：`…takes_its_prefix_from_the_shared_hook`
   + `the_first_explicit_argument_also_takes_its_expected_type` —— 撤掉任一改动 ⇒ 两条同时判红 ✓。
-- **后续**：G-43 由第 515 轮收口（见下）⇒ T-N13 的**迁移本体**已无前置。
+- **后续**：G-43 由第 515 轮收口（见下）⇒ T-N13 的**迁移本体**已无前置。**B2 取证（同轮）**：
+  `lib/Set` + `lib/Image` + `Fun`/`Rel` 的 comp **签名隐式化各 0 诊断** ✓；整文件批量删类型实参
+  **不可行** ✗（一次 649 处 ⇒ 16 文件判红）；剩 **9 文件 / 19 诊断**，根因 **G-69**（`unfold_one`
+  对齐不认隐式前缀 ⇒ `intro` 派生的假设展开错位）⇒ **已整段还原**（课程门禁回到 43/376/99/0 ✓）。
 - **纪律教训（又踩一次）**：`/tmp` 工作台的**编译缓存**会让"改动前后"量到同一份产物 —— 本轮第一次
   A/B 里基线竟把模式 B 判绿 ✗（`rm -rf <工作台>/.sokonanoda` 之后才复现 ✓）。第 511 轮移出（原文 ⇒ `git log --all -- STATUS.md`）。
 
@@ -73,9 +74,9 @@
 ## 未决项（**只有这两条**；顺序与入口见 `docs/ONBOARDING.md` §0.2）
 
 - ⬜ **批次 N 剩余 2 条**（`python3 scripts/plan.py` = **64/66**）：**T-N13**（B2 课程库改隐式风格；
-  ⛔ 前置 = **G-43**：构造子（`Iff.intro`/`And.intro`）的 lambda 实参、其 binder 类型含**导入模块的
-  def** ⇒ 复现件 `docs/gaps/repro/G43-*.sh` 仍 exit 0）→ **T-N15**（C 收尾：台账 + 「看得见的变化」
-  清单 + `REQUIREMENTS.md` §9 + VS Code/skills 同步）。权威 = `python3 scripts/plan.py next`（规格全文）。
+  ⛔ 前置 **G-43 已收口** ✓，现卡 **G-69**（`unfold_one` 实参对齐不认隐式前缀 ⇒ `intro` 派生的假设
+  展开错位；复现件 `docs/gaps/repro/G69-*.sh`）—— 剩 **9 文件 / 19 诊断**）→ **T-N15**（C 收尾：台账 +
+  「看得见的变化」清单 + `REQUIREMENTS.md` §9 + VS Code/skills 同步）。权威 = `scripts/plan.py next`。
 - ⬜ **E19 甲案 = `v0.79.0`**（高风险，**单独发版**）· E20 乙案：给记法求解器加**元变量**；
   ⚠ 开工前**重新冻结基线**（`docs/design/notation-subset.md` §17 · 缺口的根因在
   `docs/design/v077-kernel-deficiencies.md` §三）。
