@@ -3,7 +3,7 @@
 > 用户 2026-09-28 22:54：「project 的编译方案对齐业内标准」「**这不是批编**（把源文本合起来一起跑）；
 > **这是结果复用**（每个模块的结果被存下来、被别人直接拿来用）」。
 > 本文是**今晚的交付①**：产物存什么 / key 怎么算 / 失效怎么判 / **要动哪些文件**。
-> 缺口 **G-68**（`docs/gaps/ledger.jsonl`）· 复盘 `docs/perf/recompile-waste-retrospective-2026-09-28.md`。
+> 缺口 **G-68**（`docs/gaps/ledger.jsonl`）· 复盘原文 ⇒ `git log --all -- docs/perf/recompile-waste-retrospective-2026-09-28.md`。
 
 ## 1. 与"批编"的分界（**别混**）
 
@@ -55,7 +55,7 @@ key(M) = H( format, 编译器版本, build stamp, prelude 模式,
 
 1. **正确优先**：**改依赖 ⇒ 必须 miss 且重编** —— 造一个反例（改 `lib/Shared` 一行 ⇒ 入口必须重编，`--json` 不得命中旧产物）；
 2. **数字**：`python3 scripts/check-recompile-factor.py` —— 3 入口共享 1 依赖的 `by_calls` **3 → 1**；
-   真课程 **174 → ~42**、rebuild **222.1s → ?**（同一台机器、同一命令，改前数字已在 `docs/perf/rebuild-baseline-2026-09-28.md`）；
+   真课程 **174 → ~42**、rebuild **222.1s → ?**（同一台机器、同一命令，改前数字见 `git log --all -- docs/perf/rebuild-baseline-2026-09-28.md`）；
 3. **三件套**：全语料对拍 · `--json` **逐字节不变** · 课程门禁 **0 判负**；
 4. **诊断/声明语义不变**：③ 的逐字节就是它的守卫。
 

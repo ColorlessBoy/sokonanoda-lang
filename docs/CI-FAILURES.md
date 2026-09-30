@@ -590,7 +590,7 @@ run `36378945287` 的 `test (sokonanoda-front, tests)` 判红：`best 1599.6ms �
    原写法「625s vs 222.1s ⇒ 跨机不可比」**被否定** ✗✓：同机同接线同缓存下 release
    **218.8s** vs debug **260.7s**（差 **3%**）⇒「debug 慢一个量级」是 **CLI 集成测试
    二进制**的现象，不是 `build` 的；**625s** 是**接线中间版本** ✗。⇒ 规矩：同机 + 同
-   profile + 同接线版本；别拿"跨机"当解释（证据 `docs/perf/course-profile-2026-09-29.md`）。
+   profile + 同接线版本；别拿"跨机"当解释（证据原文 ⇒ `git log --all -- docs/perf/course-profile-2026-09-29.md`）。
 
 ## 2026-09-30 — `gates-fast` 的 P2 进度判据判红（① 的"默认不发"漏了机器消费者）
 

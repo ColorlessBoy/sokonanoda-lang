@@ -7,7 +7,7 @@
 #          ⇒ 编的就是**纯依赖**。
 #   B/A 就是"每个模块只编一次"能砍掉的那部分（**墙钟**口径）。
 #
-# 为什么必须有它：`docs/perf/rebuild-baseline-2026-09-28.md` 的六项数字与本文的占比
+# 为什么必须有它：冷编基线的六项数字与本文的占比（原文 ⇒ `git log --all -- docs/perf/rebuild-baseline-2026-09-28.md`）
 # 都是**实测**，而当时的量具放在 `/tmp`（会被清掉）⇒ 数字就不可复现了。
 #
 # ⚠ **口径陷阱**（实测踩到）：整轮冷编里，**后面的入口会因为进程内 `judge_infer` 缓存
@@ -15,7 +15,7 @@
 # 所以本量具一律用"**独立进程 + 冷缓存 + 同口径 A/B**"，并且每组测 2 次。
 #
 # ⚠ **profile 必须写进输出**（用户 2026-09-29 定规）：`build` 子命令在 debug/release 下
-# **实测只差 3%**（`docs/perf/course-profile-2026-09-29.md` §5），但**别处**（CLI 集成测试
+# **实测只差 3%**（`build` 上 debug/release 对拍），但**别处**（CLI 集成测试
 # 二进制）debug 慢一个量级 ⇒ 数字必须自带 profile，否则没法判断可比性 ✗。
 # 默认 **release**（用户侧看到的那个；`docs/perf/ledger.jsonl` 也是 release 口径）。
 #
@@ -80,7 +80,7 @@ case "$BIN" in
   */target/release/*) PROFILE="release" ;;
   */target/debug/*)   PROFILE="debug" ;;
 esac
-echo "**profile：\`$PROFILE\`**（口径见 \`docs/perf/course-profile-2026-09-29.md\`；debug/release 在 \`build\` 上实测只差 3%）"
+echo "**profile：\`$PROFILE\`**（debug/release 在 \`build\` 上实测只差 3%）"
 echo "二进制：\`$("$BIN" --version)\` · 靶子：\`courses/set-theory\` · 主机：$(uname -sm) · 核数：$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo '?')"
 echo
 echo "| 入口 | 闭包 | A 整条闭包（冷, s） | B 只编依赖（冷, s） | B/A |"

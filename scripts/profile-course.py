@@ -141,7 +141,7 @@ def main():
     print("=== 真课程耗时剖面 ===")
     print("课程    = " + course)
     print("二进制  = " + binary)
-    print("profile = " + prof + "   （口径见 docs/perf/course-profile-2026-09-29.md）")
+    print("profile = " + prof)
     print("主机    = " + platform.system() + " " + platform.machine() + " · " + str(os.cpu_count()) + " 核")
     if prof != "release":
         print("警告：真课程数字必须用 release（本仓 release 在 build 上只快 3%，但口径要一致）", file=sys.stderr)

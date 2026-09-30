@@ -6,6 +6,6 @@
     "date": "2026-09-28",
     "host": "Darwin/arm64",
     "by": "python3 scripts/check-recompile-factor.py",
-    "note": "3 入口共享 1 依赖 = 3 次；课程项目 courses/set-theory 的同一现象：42 文件 ⇒ Σ闭包 174 次模块编译（lib/Logic 42 次）= 4.14×，rebuild 222.1s。见 docs/perf/rebuild-baseline-2026-09-28.md"
+    "note": "3 入口共享 1 依赖 = 3 次；课程项目 courses/set-theory 的同一现象：42 文件 ⇒ Σ闭包 174 次模块编译（lib/Logic 42 次）= 4.14×，rebuild 222.1s（原文 ⇒ git log --all -- docs/perf/rebuild-baseline-2026-09-28.md）"
   }
 }

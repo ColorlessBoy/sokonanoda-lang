@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """重复功守卫（G-68）：一次 build 里**共享依赖被编了几次** —— 测**次数**，不测耗时。
 
-## 为什么需要它（复盘见 `docs/perf/recompile-waste-retrospective-2026-09-28.md`）
+## 为什么需要它（复盘原文 ⇒ `git log --all -- docs/perf/recompile-waste-retrospective-2026-09-28.md`）
 
 既有性能纪律**全是相对量**：
 * `perf-gate` 比的是"与 `docs/perf/ledger.jsonl` 上一次同名记录的 delta"（`docs/PERF.md:671-673`
   自己写着"**它不是'再快一点'，而是'以后慢下来会被发现'**"）⇒ **基线里已经包含的浪费在定义上
   不可见**：4.14× 重复功在每一条记录里都存在 ⇒ 恒定 `0%` delta；
-* E17 的判据是"跨版本 ±4% + 每声明归一"（`docs/perf/E17-kernel-conclusion.md:32-34`：
+* E17 的判据是"跨版本 ±4% + 每声明归一"（原文 ⇒ `git log --all -- docs/perf/E17-kernel-conclusion.md`：
   `16889/376` vs `9085/331` = **44.9 → 44.9 ms**）⇒ 常数倍率的功被归一化**除掉了**；
 * `scripts/check-timing-evidence.py`（E18）只看 commit message 里有没有计时数字。
 
