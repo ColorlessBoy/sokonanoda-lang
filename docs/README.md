@@ -45,7 +45,7 @@
 | `PERF.md` | 性能测试结构、阈值原则与基线 | 改动涉及热路径/验收 |
 | `E2E.md` | **真 VS Code 集成测试的例行化**（`scripts/vscode-e2e.sh`、`docs/e2e/` 台账、`SOKO_E2E_LOG` 判读） | 改 `editor/vscode/` 后；真宿主回归 |
 | `CI-FAILURES.md` | CI 失败台账（原因/修复/预防；**只留最近 15 条** ✓，更早 ⇒ `git log --all -- docs/CI-FAILURES.md`） | CI 红时；同类不二犯 |
-| `teaching-session.md` | 教学循环与解答钥匙（agent 老师用） | 讲课时 |
+| `teaching-session.md` | 教学循环与解答钥匙（agent 老师用）—— **2026-09-30 删档时保留**：被 `crates/cli/tests/skill.rs` 的锚点与 `skills/sokonanoda-teacher/SKILL.md` 的决策依据引用 | 讲课时 |
 
 ## 设计记录（`docs/design/`）
 
