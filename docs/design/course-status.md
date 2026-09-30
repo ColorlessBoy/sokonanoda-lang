@@ -62,12 +62,12 @@
 {"type":"course.unit","file":"unit8-quantifiers.sokonanoda","title":"单元⑧ 量词：forall 与 exists","unit":8,"checked":14,"open":7,"failed":0,"reduced":1}
 {"type":"course.unit","file":"unit9-relations-connectives.sokonanoda","title":"单元⑨ 关系与联结词","unit":9,"checked":13,"open":8,"failed":0,"reduced":0}
 {"type":"course.unit","file":"unit10-reading-proofs.sokonanoda","title":"单元⑩ 读证明与综合","unit":10,"checked":7,"open":6,"failed":0,"reduced":0}
-{"type":"course.summary","units":10,"checked":78,"open":59,"failed":0}
+{"type":"course.summary","units":10,"checked":78,"open":59,"failed":0}   ← **旧示例**；现行 `units:11`，权威值现算 `course_status.rs`
 ```
 
 - 人类视图（无 --json）：逐单元一行
   `unit 1 单元① 命题与证明项 —— 13 checked · 6 open · 0 failed`；末行
-  `共 11 单元 —— 85 checked · 65 open · 0 failed`；
+  `共 11 单元 —— **旧示例** 85 checked · 65 open`（**现行汇总 = checked 56 · open 66**，权威在 `crates/cli/tests/course_status.rs`）；
 - CLI 接线：`Some("course") => positionals.get(1)`（--json 旗标同样适用）。
 
 ## 2. VS Code 课程地图

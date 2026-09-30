@@ -590,7 +590,7 @@ let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
    两行）、`docs/ONBOARDING.md`（原交接书已删）、`ROADMAP.md` I15 as-built、`docs/LESSONS.md`
    （全输入对拍的工作方法）；`REQUIREMENTS.md` §9 追加。
 3. ✅ 门面同步：VS Code `README/CHANGELOG/package.json`（扩展代码零改动；CHANGELOG
-   记"内部重构 + 两处边界对齐"）+ `site/assets/agent-prompt.js` 一句；
+   记"内部重构 + 两处边界对齐"）+ `site/index.html` 的安装 prompt 一句（站点已单页化）；
    `dsh/README.md` 查询一节 + `dsh/cordis.patch.yml`。
 
 ### H6-E —— 远期（原 H5 其余项，不做承诺）⏳ backlog

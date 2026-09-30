@@ -53,7 +53,7 @@
   因此整体移除；by 块 tactic 的 judge_infer 同源，已加指纹缓存封顶 128 条）。
   任何需要内核信息的特性：要么缓存、要么只在显式请求（hover/code action）
   时计算——半截表达式的 goal-state hover 即此模式。
-- **演示资产例行化**：官网 GIF/图由 `scripts/gen-site-demos.py` 渲染；改了
+- **演示资产例行化**：官网 GIF/图由站点数据脚本渲染（`scripts/gen-site-data.py`；旧文写的 `gen-site-demos.py` 已删）；改了
   编辑器交互/文案必须重跑并提交（pages workflow 的 `--check` 步骤会在漂移
   时红掉）。演示画面与实现一一对应，不是假截图。
 - **tag 已存在 → 推送不会发布**（auto-tag 幂等跳过）。0.23.0 的 sorry

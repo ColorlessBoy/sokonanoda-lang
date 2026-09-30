@@ -21,7 +21,7 @@ T-B2 照"目标"两列改，T-B3 走四份同步。
 
 ---
 
-## 1. 现状盘点（`editor/vscode/package.json` 的 `contributes.commands`，共 15 条）
+## 1. 现状盘点（`contributes.commands`，**现为 17 条**；T-B2/T-B3 **已执行完毕** ⇒ 下表"现状"列是**改名之前**的样子）
 
 **关键事实：现状是两套机制混用** ✗ —— 9 条用 `category: "sokonanoda"`（VS Code 自动把
 面板行渲染成 `sokonanoda: <title>`），另 6 条把前缀**写进 `title`**、`category` 为空。
@@ -60,9 +60,9 @@ T-B2 照"目标"两列改，T-B3 走四份同步。
 |---|---|---|
 | 面板显示 | `Sokonanoda: <title>` ✓（VS Code 用 `category: title` 渲染） | 与 `title` 逐字相同 ✓ |
 | 分组 | 命令面板里**按类别分组**、可过滤 ✓ | 不分组 ✗ |
-| 前缀写几处 | **一处**（15 条 `category`） | 15 条 `title` 各写一遍 |
+| 前缀写几处 | **一处**（17 条 `category`） | 17 条 `title` 各写一遍 |
 | 视图标题栏按钮的 tooltip | 只显示 `title`（**不带前缀**）—— 更短 | 带前缀 |
-| 现状改动量 | 9 条已经是对的（只改大小写 `s`→`S`）+ 6 条去掉 title 里的前缀 | 9 条要去掉 `category`，15 条 title 都要改 |
+| 现状改动量（**已执行**） | 9 条只改大小写 `s`→`S` + 6 条去掉 title 里的前缀 | 9 条要去掉 `category`，15 条 title 都要改 |
 
 **推荐 (A)**：它是 VS Code 的原生机制（`category` 就是为这个存在的），前缀只有一处、
 面板还会分组；代价是"视图标题栏按钮的 tooltip 不带前缀"——那正是 tooltip 该有的样子

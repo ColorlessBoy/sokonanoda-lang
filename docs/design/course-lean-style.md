@@ -356,7 +356,7 @@ theorem union_comm (α : Type) (A B : Set α) : A ∪ B = B ∪ A := by
 | **F15** | 记法缩写表**双侧** | `front::notation_input`（Rust，唯一真相源）与 `editor/vscode/src/abbreviations.js`（JS 镜像）**逐字相等**——与 F3 的 KEYWORDS↔TM 同形制，但 F3 不覆盖它 | 新增 `crates/cli/tests/extension.rs` 守护测试（Rust 侧表 ↔ JS 侧表逐字 diff） |
 | **F16** | 协议码表 | 新错误码 `elab-implicit-argument-unsolved`（IA-1）与 hover 的新形状（NI-1 已落，**无新码**）进 `docs/protocol.md` | `cargo test -p sokonanoda-cli --test query`（计数一致性）+ 人工核对码表 |
 | **F17** | 缺口台账（**IA-0 的第一件事**） | 补 **G-19**（X14，`open` + `WO-012`）与 **G-20**（X15，`fixed_in=0.61.0` + `WO-013`）——**已落**（2026-09-19） | `python3 scripts/gap.py selftest` + `check` exit 0 |
-| **F18** | 站点与对外文案（**发布那轮**） | 站点写的是**已发布版本**的事实 ⇒ `C1-language.md:179/:1183`、`C4-status-roadmap.md:117/:433` 与 `site/` 的 non-goals 现在说「没有隐式实参自动插入」是**真话**，IA-1 发布那轮必须同轮改；`docs/design/namespace-open.md:238/:364` 的论据要补限定 | `python3 scripts/site-verify.py` exit 0（站点由另一个 agent 负责，**本计划不碰 `site/`**） |
+| **F18** | 站点与对外文案（**发布那轮**） | 站点写的是**已发布版本**的事实 ⇒ `C1-language.md:179/:1183`（已归档）、`C4-status-roadmap.md:117/:433`（已归档）与 `site/index.html` 的 non-goals 现在说「没有隐式实参自动插入」是**真话**，IA-1 发布那轮必须同轮改；`docs/design/namespace-open.md:238/:364` 的论据要补限定 | `python3 scripts/site-verify.py` exit 0（站点由另一个 agent 负责，**本计划不碰 `site/`**） |
 
 ## 10. 明确不做（有理由，不是「没时间」）
 

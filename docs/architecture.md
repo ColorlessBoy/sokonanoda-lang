@@ -638,7 +638,7 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda repl     # #check / #reduce / #p
 cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp      # LSP（editor/vscode 里使用）
 ```
 
-想给某个语法点加测试：先在 `crates/front/src/compile.rs`（或 `lib.rs`）加单元测试 → 在 `crates/cli/tests/cli.rs` 加端到端 → 需要的话新增/改 `examples/lesson-XX.sokonanoda`（examples.rs 会自动跑它）。
+想给某个语法点加测试：先在 `crates/front/src/compile/tests.rs`（或 `lib.rs`）加单元测试 → 在 `crates/cli/tests/cli.rs` 加端到端 → 需要的话新增/改 `examples/lesson-XX.sokonanoda`（examples.rs 会自动跑它）。
 
 ## 改内核的机械判据：`scripts/kernel-diff.sh`
 

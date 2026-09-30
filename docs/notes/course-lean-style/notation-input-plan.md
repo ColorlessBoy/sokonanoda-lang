@@ -77,7 +77,7 @@
 
 **新表接法（建议）**：Rust 常量 `front::notation_input::ABBREVIATIONS`（唯一真相源）
 → LSP hover/补全直接读它；
-→ VS Code 侧 `editor/vscode/src/abbreviations.json`（checked-in 镜像，只含 `{abbrev: symbol}`）
+→ VS Code 侧 `editor/vscode/src/abbreviations.js`（checked-in 镜像，只含 `{abbrev: symbol}`）
 → 新守护测试 `abbreviation_table_follows_the_single_source`（同 `:1079` 的写法：读 JSON、
 按 key 排序、与 Rust 常量逐项 `assert_eq!`）。改一个缩写必须同轮改两处，否则 CI 红。
 
@@ -343,7 +343,7 @@ import 来的符号（P2 加第三块）：
 | | `crates/lsp/src/lib.rs`（hover） | 记法分支（在 `:1100` 之前）+ 文案装配 | 60 |
 | | `crates/lsp/src/tests/hover.rs` | 内建/本文件/import 三种符号的 hover 文案 + 围栏断言 | 90 |
 | | `crates/front/src/notation_input.rs`（tests） | 表不变量（每符号 ≥1 缩写、缩写唯一、纯 ASCII、主缩写不是别名的前缀） | 60 |
-| | `editor/vscode/src/abbreviations.json`（**新**） | 镜像表 | 40 |
+| | `editor/vscode/src/abbreviations.js`（**新**） | 镜像表 | 40 |
 | | `crates/cli/tests/extension.rs` | `abbreviation_table_follows_the_single_source` | 40 |
 | **P2** | `editor/vscode/src/abbreviations.js`（**新**） | 读 JSON + 前缀/别名查询（纯函数，可单测） | 60 |
 | | `editor/vscode/src/abbreviation-rewriter.js`（**新**） | 文档变更驱动的状态机（leader、即时替换、Tab 强制、光标离开收尾） | 160–200 |
