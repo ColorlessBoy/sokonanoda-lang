@@ -164,7 +164,7 @@ sokonanoda-lang/
   **只**开记法不开名字）；**集合字面量** `{a}` / `{a, b}`（`set-literal-shape`；
   目标缺失报 `elab-set-literal-unknown-target`）；**前缀记法实参位免括号** `f 𝒫 A`
   （后缀**明确不做**：`f Aᶜ` 今天读作 `(f A)ᶜ`，改了会悄悄重分组）。**仍未做**：
-  源码级 print-back（内核冻结下销不掉）、`notation3`/依赖 binder、一般隐式实参推断、
+  源码级 print-back（**已立项为线 C，走 front 显示边界重写**，见 `docs/design/notation-aware-printing.md`）、`notation3`/依赖 binder、一般隐式实参推断、
   `open scoped` 的子命名空间传播、编辑器词表同步（设计 §13 逐条给了理由）。
 - **namespace / open**（0.60.0，设计 `docs/design/namespace-open.md`，台账 G-05）：
   `namespace A` … `end A` 之间的**声明名**自动带前缀（`def mem` ⇒ 全局名
@@ -508,7 +508,7 @@ by 引擎的判定合成声明不带宇宙参数（`by.rs::spec_of` 的 `univers
 |---|---|---|
 | ① | `cargo test --workspace --locked` | 三层回归（kernel `tests/` + front 单测 + CLI e2e） |
 | ② | `bash scripts/kernel-diff.sh --fast <前> <后>` | **全语料逐字节对拍**——改动前后两个二进制的 stdout + 退出码逐字节比（改之前先 `cp target/debug/sokonanoda /tmp/sokonanoda-before`，改完用 `KERNEL_DIFF_BASELINE=` 喂回来；没给基线时退化成 `--self-test`，证明这条通道本身能发现差异） |
-| ③ | `python3 courses/set-theory/tools/check.py` | **语料级**计数红线（`36 目标 · 328 checked · 99 open · 0 判负`）——内核一动最先在这里露头 |
+| ③ | `python3 courses/set-theory/tools/check.py` | **语料级**计数红线（2026-09-30 实测：`43 目标 · 376 checked · 99 open · 0 判负`；⚠ **计数会随课程合法增长**，别抄旧数字，跑一遍为准）——内核一动最先在这里露头 |
 | ④ | `bash scripts/perf-ledger.sh` | 性能台账（提速允许，**退化不行**） |
 | ⑤ | `cargo test -p sokonanoda --test arena` | 真 Lean 导出语料的接受/拒绝与预期一致 |
 
@@ -556,8 +556,8 @@ LEAN_KERNEL_ARENA=… LEAN_KERNEL_ARENA_MAX_BYTES=$((1024*1024*1024)) scripts/ke
 
 ## 7. 测试金字塔与回归策略
 
-- 每个语法点/错误模式先在 front 写单元测试（`compile.rs` 的 `#[cfg(test)]` 里有大量 py-fol/py-nat 移植断言），再在 CLI 端到端覆盖，最近再加了"所有 examples 必须能整文件通过"的语料测试。
-- 判定练习**靠 kernel，不靠文本比对**（唯一例外：`proof.rs::assumption` 的草案级文本比对，待替换）。
+- 每个语法点/错误模式先在 front 写单元测试（`crates/front/src/compile/tests.rs` 的 `#[cfg(test)]` 里有大量 py-fol/py-nat 移植断言），再在 CLI 端到端覆盖，最近再加了"所有 examples 必须能整文件通过"的语料测试。
+- 判定练习**靠 kernel，不靠文本比对**（`proof.rs::assumption` 的草案级文本比对**已删除**，见 §8.8；唯一入口是 `front::judge`）。
 - `tests/arena.rs` 需要环境变量；上游两个缺 fixture 的测试在 kernel 内被隔离/ignored（不是跳过内核能力，而是缺少 NDJSON fixture，重建是独立任务）。
 
 ---
@@ -579,7 +579,7 @@ LEAN_KERNEL_ARENA=… LEAN_KERNEL_ARENA_MAX_BYTES=$((1024*1024*1024)) scripts/ke
    两条都各自带判别性成对测试。
 1. **arena 生命周期**：`EnvBuilder`/`ExportFile`/`ExprPtr` 都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；front 在 `compile_fol` 内开 arena 并一次跑完所有 PendingOp。Session（`front/src/session.rs`）每次 update 都开新 arena——跨 update 只复用渲染后的快照（DeclState/hover/事件文本），不复用内核对象。
 2. **kernel 拒绝 = panic → Result**：内核仍用 `assert!` panic 报拒绝（如 `def_eq failed`），`try_check_declar` 用 `catch_unwind` 包装成 `CheckError::Rejected/Internal`。conv 失败的 def_eq 消息带 `expected/actual`，front 解析填充 `CompileError.expected/actual`（I9 已闭环）；更细粒度的 kernel 错误仍是后续任务（见 design doc）。
-3. **elab 仍受限**：binder 可由声明类型推断（I6；应用位置的未注解 `fun x => …` 也可从实参类型推断，0.45.0）、值位 `let`（Phase 1）、值位 `match`（Phase 2，源内 inductive 与 prelude `Nat`，含递归 IH `ih`/`ih2`…）与**非带索引参数化归纳**（`inductive Option (A : Type)`，含对它的 `match`；`docs/design/parameterized-inductives.md`）已落地，但未做无注解 `let`、依赖 motive、**带索引**归纳与宇宙多态参数、prelude `Eq` 的 match、`match` tactic、结构/类型类、**macro**（`notation` 已于 0.59.0 落地，见 `docs/design/notation-subset.md`；见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`）。
+3. **elab 仍受限**：binder 可由声明类型推断（I6；应用位置的未注解 `fun x => …` 也可从实参类型推断，0.45.0）、值位 `let`（含**无注解** `let`，0.34.0）、值位 `match`（含**依赖 motive** 0.39.0、**带索引**归纳 0.47.0、**非带索引参数化**归纳 `inductive Option (A : Type)` 0.38.0）、**用户自定义记法**（0.59.0）均已落地；**仍未做**：宇宙多态参数、prelude `Eq` 的 match、`match` tactic、结构/类型类、**macro**（见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`、`docs/design/notation-subset.md`）。
 4. **语法白名单是边界**：想加语法，先加课程 + 测试；`sorry` 只允许出现在声明（def/theorem/example）的值位。
    记法（0.59.0）是**唯一的例外面**：它不引入新语义，只是用户自定义的源级糖，
    所以它的"课程"是使用者自己写的声明行，边界由设计文档 N1–N7 钉住
