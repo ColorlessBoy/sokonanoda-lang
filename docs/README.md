@@ -11,9 +11,8 @@
 > **每文件 + 合计**都有上限，**超标判红** ✓）—— 设计 `docs/design/docs-diet.md` ✓，
 > 已进 `scripts/soko gate` 与 CI ✓。
 >
-> **接手先看 `docs/ONBOARDING.md`** ✓（X1，2026-09-28）：那份表是「读多少才能开工」的**唯一权威**，
-> 当前 **4 个文件 / 959 行 / 上限 1000**（2026-09-30 实测；**别抄这里的数字** ✗ ——
-> 判据是 `python3 scripts/docs-lint.py` 判据 ⑦，数字以它为准）。
+> **接手先看 `docs/ONBOARDING.md`** ✓（X1，2026-09-28）：那份表是「读多少才能开工」的**唯一权威**
+> （**别抄这里的数字** ✗ —— 判据是 `python3 scripts/docs-lint.py` 判据 ⑦，数字以它为准）。
 
 ## 仓库根（入口与权威，与 `README.md`/`AGENTS.md`/`ROADMAP.md` 并列）
 
@@ -40,12 +39,12 @@
 | `protocol.md` | `--json` 事件、`soko/*` 自定义请求的对外契约 | 改事件/输出格式前 |
 | `TESTING.md` | 测试地图（哪类改动跑哪层） | 加测试时 |
 | `RELEASE.md` | 发布手册（main 全绿自动 tag、8 平台 + 9 VSIX、Marketplace） | 发版前 |
-| `STATUS-ARCHIVE.md` | STATUS 的历史轮次（**只留最近 12 段** ✓；更早 ⇒ `docs/archive/status-archive-older-rounds.md.gz`；`STATUS.md` 移出的段落 ⇒ `docs/archive/status-removed-rounds-502-504-2026-09-30.md.gz`） | 查旧轮/缺陷修复时间线 |
+| `STATUS-ARCHIVE.md` | STATUS 的历史轮次（**只留最近 12 段** ✓；`STATUS.md` 移出的段落 ⇒ `docs/archive/`，更早的 ⇒ `git log --all -- docs/STATUS-ARCHIVE.md`） | 查旧轮/缺陷修复时间线 |
 | `vscode-dev-guide.md` | VS Code 扩展开发规范（版本纪律、测试三层、常见坑） | 改 `editor/vscode/` 前 |
 | `LESSONS.md` | 经验台账（subagent/流程教训） | 接手/复盘 |
 | `PERF.md` | 性能测试结构、阈值原则与基线 | 改动涉及热路径/验收 |
 | `E2E.md` | **真 VS Code 集成测试的例行化**（`scripts/vscode-e2e.sh`、`docs/e2e/` 台账、`SOKO_E2E_LOG` 判读） | 改 `editor/vscode/` 后；真宿主回归 |
-| `CI-FAILURES.md` | CI 失败台账（原因/修复/预防；**只留最近 15 条** ✓，更早 ⇒ `docs/archive/ci-failures-2026-09-10-to-2026-09-25.md.gz`） | CI 红时；同类不二犯 |
+| `CI-FAILURES.md` | CI 失败台账（原因/修复/预防；**只留最近 15 条** ✓，更早 ⇒ `git log --all -- docs/CI-FAILURES.md`） | CI 红时；同类不二犯 |
 | `teaching-session.md` | 教学循环与解答钥匙（agent 老师用） | 讲课时 |
 
 ## 设计记录（`docs/design/`）
@@ -213,24 +212,22 @@
 > `scripts/docs-lint.py` 判据 ⑥ 机械检查 ✗）。读法：`gunzip -c <文件> | less` ✓。
 >
 > **布局** ✓：`docs/archive/<批次>-<日期>/<原文件名>.gz`（**保留原相对路径** ⇒
-> 映射机械可算 ✓）。**全局规则** ✓：仓库里凡出现 `docs/notes/**`、
-> `docs/design/site-rebuild/**`、`docs/gaps/WO-*.md`、`docs/E2-PROMPT.md` 的路径
-> ⇒ **已归档**，到 `docs/archive/` 取**同名 + `.gz`** ✓。
+> 映射机械可算 ✓）。**全局规则** ✓（2026-09-30 激进删档后**一句话覆盖全部历史指针**）：
+> **任何指向已删/已归档路径的引用** ⇒ `git log --all -- <原路径>` /
+> `git show <旧提交>:<原路径>` 取原文 ✓ —— **历史由 git 追溯**，不再单独归档 ✗。
+> 归档目录只留**最近 3 轮**（`docs/archive/README.md` 逐个点名 ✓）。
 >
-> **已删除（不归档）** ✗：`docs/HANDOVER.md`、`docs/E2-HANDOVER.md`、`docs/NEXT.md`、
-> `docs/PLAN-0.74-0.79.md`、`docs/HANDOFF-0.7x.md`、`docs/design/PLAN-appendix-*.md`
-> —— 内容已并入 `docs/ONBOARDING.md`（**接手 / 唯一队列 / 开工单**）与
-> `docs/STATUS-ARCHIVE.md`；要看原文 ⇒ `git log -- <路径>` ✓。**见到这些路径就当
-> "看 `docs/ONBOARDING.md`"** ✓（2026-09-29 用户口径：「一堆 HANDOVER 都可以删了，没必要」）。
+> **已删除（不归档）** ✗：2026-09-29 的计划/交接类（`docs/HANDOVER.md`、`docs/E2-HANDOVER.md`、
+> `docs/NEXT.md`、`docs/PLAN-0.74-0.79.md`、`docs/HANDOFF-0.7x.md`、`docs/design/PLAN-appendix-*.md`）
+> —— 内容已并入 `docs/ONBOARDING.md`（**接手 / 唯一队列 / 开工单**）与 `docs/STATUS-ARCHIVE.md`。
 >
 > **不许动的例外** ✗（有真消费者，动了就判红）：`docs/gaps/repro/**`（复现被
 > `gap.py check` 在 gate + CI 三片矩阵里真跑 ✓）、`docs/protocol.md`
 > （**4 个测试读它正文并断言** ✗）、`docs/perf/ledger.jsonl` / `docs/gaps/ledger.jsonl` /
 > `docs/courses/ledger.jsonl`（门禁基线 ✓）。设计与判据：`docs/design/docs-diet.md` ✓。
 >
-> **已删（机器产物，不归档）** ✗：`docs/e2e/logs/**`（**206 个**测试日志，2026-09-30 激进删档）——
-> 活台账里指向它们的 `log` 字段**同轮摘掉**（`e2e-merge.py --check` 校验"记录引用的日志必须存在"
-> ⇒ 留着就是死指针 ✗）；`scripts/vscode-e2e.sh` 之后仍会为新跑写新日志 ✓。
+> **已删（机器产物，不归档）** ✗：`docs/e2e/logs/**`（**206 个**测试日志）—— 活台账里指向它们的
+> `log` 字段**同轮摘掉**（`e2e-merge.py --check` 校验"记录引用的日志必须存在" ⇒ 留着就是死指针 ✗）。
 
 ## 关联目录
 
