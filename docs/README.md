@@ -49,134 +49,35 @@
 
 ## 设计记录（`docs/design/`）
 
-已确认并落地的设计（含取舍、验收、as-built）。新功能先在这里加一篇，再动手。
+已确认并落地的设计（含取舍、验收、as-built）。**2026-09-30 激进删档后只剩 17 篇**
+—— 判据 = ① 被 `AGENTS.md` / `REQUIREMENTS.md` 硬规则点名；② 被**代码/契约测试**读或断言
+（`crates/cli/tests/{dsh,extension,st1_boundary}.rs`、`scripts/plan.py`）；③ 仍是**未收口**那条线的
+唯一权威。其余（已收口 / 已否决 / 过程记录）**已删**，原文 ⇒ `git log --all -- docs/design/<文件>` ✓。
 
-> **计划 / 提案 / 交接类文档**（`e2-plan.md` · `vscode-editor-feedback-plan.md` ·
-> `module-artifacts-slice1b-handoff.md` · `prelude-l1-proposal.md` · `p1a-measurements.md` ·
-> `incremental-environment.md`）**的索引在 `docs/ONBOARDING.md` §2** ✓ —— 讲什么 / 什么状态 /
-> 何时读，一处维护（**本表不重复列**，免得两处漂移 ✗）。
+> **计划 / 提案类文档的索引在 `docs/ONBOARDING.md` §2** ✓（讲什么 / 什么状态 / 何时读，
+> 一处维护；**本表不重复列**，免得两处漂移 ✗）。
 
-- `infrastructure.md` — LSP-first 总体设计 v2
-- `i8-i9.md` — 真增量（Session/TrustPlan）+ goal 视图第一段
-- `goal-refine.md` — 多洞/refine、hole_id、recursor 自动派生、spine meta 路线
-- `goal-func-spine.md` — 函数实参洞 + hover 开项 pp 修复（第二十四轮）
-- `hints-suggestions.md` — 提示阶梯 + 下一步建议
-- `hover-brackets.md` / `hover-refactor.md` — 括号 hover、良构表达式 + range
+- `e2-plan.md` — **E2 计划现行契约 + 收口索引**（`scripts/plan.py` 的判据输入）
+- `docs-diet.md` — **文档预算与判据**（`scripts/docs-lint.py` ①–⑦ 的口径）
+- `deepseek-harness.md` — DeepSeek Harness 适配（技能根 / 斜杠命令 / LSP 能力 / patch 形状）
+- `ci-parallelism.md` — CI 并行化与快慢分层（`perf-gate` 与 `gates-fast` 的分工）
+- `command-naming.md` — 命令命名盘点表（被 `crates/cli/tests/extension.rs` 与 `contributes.commands` 双向比对）
+- `course-stdlib.md` — 课程标准库的**三层分界**（L1 prelude / L2 课程库 / L3 单元练习）
+- `course-gate-in-ci.md` — 课程门禁接进 `scripts/soko gate` 与 CI
+- `teaching-project.md` — 第二大课总体计划 + **§6 缺口台账协议**（`docs/gaps/` 的权威）
+- `v077-st1-boundary.md` — ST1 决策记录 + **探针↔对账表一一对应**（`crates/cli/tests/st1_boundary.rs`）
+- `v077-kernel-deficiencies.md` — 未做完的四章（ST6/7/9/11）的根因定位（G-56/58/59，E19 取证）
+- `notation-subset.md` — 用户自定义记法子集（`infix:N` 族 + 零元 `notation`）的边界与第二刀
+- `module-artifacts.md` — 模块级产物三块 + per-module Merkle 键 + 产物落盘（未做）
+- `project-artifacts.md` — 项目闭包编译产物落盘（`<模块根>/.sokonanoda/compiled/`）
+- `redundant-sorry.md` — 值位里多余的 `sorry` 判据（终审 = kernel）
 - `rename-inlay.md` — rename / find-references / inlay hints / `sokonanoda lsp`
-- `by-tactics.md` — `by` tactic 块 + 编辑器 goal-state
-- `kernel-taxonomy.md` — 内核错误分类学 + 失败建议 + 基准/fuzz
-- `course-status.md` — 课程地图 + REPL 历史
-- `course-bilingual.md` — 课程英文镜像
-- `bundled-lsp.md` — 插件自带 LSP 二进制（per-target VSIX + 版本锁定下载）
-- `onboarding.md` — opencode 启动插件 + `sokonanoda` 二进制子命令的零脚本接入（`scripts/soko.sh` 已删除）
-- `reserved-decl-warning.md` — 声明名撞内核已定义名字（`Prop`/`Sort`/`Type`）的 warning 通道
-- `type-level-syntax.md` — `Type n`（= `Sort (n+1)`）记法解析糖
-- `binary-cli.md` — 环境能力进 `sokonanoda` 二进制子命令（内嵌下载器），删除 `scripts/soko.sh`
-- `term-apply.md` — 值位 `funapply` 关键字（**已废弃**：0.22.0 移除；仍被
-  `crates/front/src/spine.rs` 引用作对照）
-- ~~`term-intro.md` / `value-keywords-v2.md` / `round14.md`~~ / ~~`real-input-tests.md`~~ —
-  已废弃/历史轮次设计 ⇒ **已归档** `docs/archive/design-deprecated-2026-09-26/`（各 `.gz`）
-- `remove-funintro.md` — 移除值位关键字 `funintro`（0.27.0）
-- `goal-list.md` — 多目标显示：`by` 每步记录全部剩余目标 + 协议 `goals[]`（0.27.0）
-- `tactic-hover.md` — tactic 关键字高亮 + hover 中间 goal state（0.27.0）
-- `elaborator-let-match.md` — elaborator `let`（Phase 1）/ `match`（Phase 2）设计（I6）
-- `spine-meta-a.md` — refine 子洞的 kernel 级期望类型（方案 A，I9 余项）
-- `webview-infoview.md` — VS Code webview goal 面板（方案 B）
-- `course-syllabus.md` — 课程大纲重构：调研综合 + 3 套候选大纲 + 推荐与迁移计划（设计，2026-09-16）
-- `highlighting.md` — 高亮分类单一起源（kind→TM scope/CSS/LSP token 表 + 平台限制，0.49.0）
-- `compile-cache.md` — 编译结果落盘缓存（olean 式，LSP 打开免重编，0.48.0）
-- `goal-rendering.md` — 统一 goal 呈现（结构化 tag + 单一分类源）+ Infoview 落右侧 + fallback 修复（设计）
-- `match-patterns.md` — `match` 模式编译器（通配/嵌套/Nat 字面量/Bool 守卫，0.42.0）
-- `match-dependent-motive.md` — `match` 依赖 motive（结果类型随 scrutinee 变化，0.39.0）
-- `parameterized-inductives.md` — 非带索引参数化归纳（`Option A`/`List A`，0.38.0）
-- `indexed-inductives.md` — 带索引归纳（`Vec A n`：声明 + 派生 recursor + match，0.47.0）
-- `match.md` — 值位 `match` 总设计（Phase 1–6，含 as-built）
-- `early-cutoff.md` — I8 依赖精确化：conservative early-cutoff 签名比较（0.32.1）
-- `extension-server-policy.md` — VS Code 扩展强制内置 LSP + `sokonanoda: doctor` 自检（0.31.0）
-- `compiler-service-events.md` — 编译器服务事件流（`file.didChange` 等，L1/L3）
-- **`site-single-page.md`** — **官网（GitHub Pages）当前权威（2026-09-21）**：单页站点
-  （是什么 / 怎么安装 / 核心特点 / 未来的计划）、`site/` 的文件清单、留在里面的三条防漂移机制、
-  以及"为什么把 28 页砍成 1 页"。验收：`python3 scripts/check-site.py`（10 项，exit 0 才算过）
-- ~~`site.md`、`site-rebuild/`~~ — **历史存档**（已被 `site-single-page.md` 取代 ✗）：
-  ⇒ **已归档** `docs/archive/site-rebuild-2026-09-26/`（`STATE.md.gz` 的实测修正清单、
-  `R4-fonts.md.gz` 的字体实测依据**仍然有效** ✓）。**不要照着它们新建页面** ✗。
-- `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
-- `deepseek-harness.md` — **DeepSeek Harness 适配（设计 + 计划 H0–H4）**：差距
-  G1–G10、DSH 侧事实（技能根/斜杠命令/LSP 只有 4 项只读操作且忽略诊断/patch 形状）、
-  验收 A1–A6 与待拍板决策 D-1…D-6（2026-09-17，H0–H4 已落地）
-- `agent-query-channel.md` — **内核真相查询通道（设计 + 计划 H6-A…E）**：
-  把真相从 LSP 抽成 `front::query`，再上 CLI `query` 与 MCP 两个薄传输；
-  含两个 front 缺口（索引递归 `Prop` 的 recursor、多名字 binder 组）的改挂与修法
-  （2026-09-17；**H6-A…D 已落地**，H6-E = backlog；ROADMAP I15）
-- `imports-and-projects.md` — **多文件 `import` 与项目管理（调研 + 设计 + 计划 + as-built I16，0.57.0 已落地）**：
-  10 个语言/证明助手的"单文件 vs 项目"横向调研、`import` 置顶语法与 Lean 同款
-  模块名规则、`sokonanoda.toml` 项目根、闭包编译与闭包哈希缓存、CLI/LSP/query
-  表面与第 11 单元教学计划（2026-09-17，ROADMAP I16）
-- `redundant-sorry.md` — **多余的 `sorry`（用户实测反馈，已落地）**：值位里"学生
-  已写完、只留了一行 `sorry`"被误报成"练习尚未解决"；候选规则 = 实参超出望远镜
-  且结果展不开箭头，终审 = kernel（删掉该实参后整条声明能过）。§8 记录了那个
-  5 分钟实验：**真根因不是 `NamePtr` 身份，而是 `EnvLimit::ByName(探针名)` 取到
-  `NO_DECL` ⇒ cutoff 0 ⇒ 空环境**；修法是内核**只加不改语义**的
-  `check_declar_at`/`try_check_declar_at` + front 传 `ByIndex(env_before)`
-  （2026-09-17，第九十一轮续落地；三层验收见 §8.4）
-- `teaching-project.md` — **第二大课「从集合论到分析」总体计划 + as-built**（2026-09-18；
-  P0–P6/P-C 已收口）：靶子标定、集合论可行性实测（11 声明全绿）、**24 条课程驱动缺口**的分诊
-  （附录 A）、§6 **缺口台账协议**（`docs/gaps/` + 最小复现 + WO + 「缺口即测试」，已进门禁）、
-  分期 P0–P7（P1/P2 ✅；**P7 待 scale gate**）、验收 D-1…D-6
-- `course-stdlib.md` — **课程标准库的分层与「消除暴力」方案**（2026-09-18）：L1 prelude /
-  L2 课程标准库 / L3 单元练习的三层判据（"Mathlib 有且没有数学内容才归库"）、
-  L1 的 16 条清单与落地要求、L2 规范、与语言缺口的关系、落地顺序 P-C1…P-C5
-- `set-theory-syllabus.md` — **卷 I《集合论》十二单元大纲（锁定）**：教材取证综合
-  （Hammack/Macbeth/Avigad/Velleman/Solow/Cummings 的真实目录）、证明助手先例
-  （MIL/MoP/Logic and Proof/FM/LPA）、学习障碍、每单元"必证/必破"、记法引入顺序
-  与无记法替代、与缺口台账的联动（2026-09-18）
-- `prop-large-elim-mirror.md` — **派生 recursor 的 large-elimination 判据逐字镜像内核**
-  （G-03 / WO-006，0.59.0 落地）：`inductive Bar (A : Type) : Prop` 曾被内核断言拒绝
-  （`left:1/right:0`）⇒ `Exists` 只能立成公理；修法是推迟到构造子 elaborate 之后并镜像
-  `large_elim_test`；顺带修掉 `judge_infer` 的 oracle bug；**内核零改动**（2026-09-19）
-- `ctor-namespace.md` — 构造子进入类型的命名空间（G-02 / WO-005，0.59.0 落地）：
-  规范名 `Ind.ctor` + 裸名解析别名、`elab-ambiguous-ctor-alias`、归约形态实测；
-  §"基线口径订正"记录了课程门禁的**实测**基线 315 checked · 96 open（2026-09-19）
-- `notation-aware-printing.md` — **goal / 类型行用记法**（线 C）：§1 是**实测表**
-  （四个生产者 × unit01/08/12 + 解答，逐格给出 CLI 命令与实际文本）；
-  三条结论：光标在不在 tactic 上决定走哪一支（学习者的光标就在 tactic 上）、
-  `apply` 之后子目标走的是 pp 望远镜（`∈`/`↔` 一起消失）、同一份声明在两个
-  surface 上文本不同；§1.4 定靶（改 #1/#3，不动 `render_expr` 与内核 pp）。
-  §2 是**消费者审计**（五个字段 × 全部消费者，逐条 `file:line`；结论：`ty_text`
-  只给人看 ⇒ 可就地改，`goal`/`binders[].ty` 同时喂 judge ⇒ 只能在显示出口重写）。
-  §3 是**权威设计**（front 侧显示边界重写 = K3-a）：为什么不走内核 pp（记法打印是
-  死代码 + `pp_expr` 是 `#check` 出口）、**arity 硬规则**、落点与红线、
-  `DisplayText` 编译期护栏（2026-09-21）
-- `notation-subset.md` — **用户自定义记法子集**（G-04 / WO-011 第一刀，0.59.0 落地）：
-  `infix:N`/`infixl:N`/`infixr:N`/零元 `notation` 四条命令、数学符号独立 token 的
-  码点类、优先级梯子（`p`/`p+1`、`p+1`/`p`）、elab 内**源到源**展开 + 自动补前导
-  类型参数（裸变量匹配，不引入元变量）、文件内作用域、记法**不是声明**（零事件）、
-  兼容护城河（点名省 `α` 仍被拒）、与 Lean 的 7 条已知差异、第二刀清单；
-  §9 是 as-built（`∅ ⊆ A` 逼出的"操作数也吃期望类型"等八条）（2026-09-19）
-- `notation-display.md` — **记法转化的唯一接口**（阶段 U / T-U1）：`DisplayNotations::render(...)`
-  是「AST/文本 → 带记法的给人看的文本与分段」的**唯一**入口（守卫 `scripts/audit-notation-paths.py`）；
-  四条不变量 + 防第五套实现的守卫（2026-09-25）
-- `course-lean-style.md` — **全课程 Lean 4 化（记法符号 + tactic 证明）主计划**
-  （2026-09-19，**进行中**）：用户拍板 D1–D6、现状实测台账 **X1–X15**（每条都是真二进制跑出来的，
-  含四个前端 bug 的根因定位到行）、语言侧 L1–L4 / 课程侧 C1–C7 / 同步 F 工作项、
-  分期 **R1 语言地基 → R2 引擎扩展 + 卷 I 全量 → R2.5 记法输入 + 隐式实参 → R3 入门课 + 收尾**
-  → R4（可选）print-back、subagent 分工 S1–S10、§9 逐轮 as-built、§10 明确不做 N-1…N-12。
-  调研底稿九篇**已归档** ⇒ `docs/archive/course-lean-style-2026-09-26/` ✓
-  （施工手册 `notation-rewrite-brief.md` / `R3-rewrite-brief.md` / `notation-input-plan.md`
-  仍在 `docs/notes/course-lean-style/` ✓）；**红线段：内核零改动**
-- `notation-input.md` — **记法输入法（`\xxx` 缩写）+ hover 提示**（2026-09-19，配套 D5）：
-  19 个符号的 **Lean 逐字缩写表**（含别名与 `supported` 标记）、四条输入路线对比
-  （**推荐客户端缩写改写器 + Tab**，不做 LSP 补全——DSH/opencode 都不消费补全项，
-  而 DSH 的 `lsp` 工具有 hover）、hover 落点与「插在关键字闸门之前」的关键约束、
-  一个**阻断级 LSP 缺陷**（单文件 parse 失败吃掉项目报告）、P0–P3 分期与 R-1…R-7 风险
-- `implicit-arguments.md` — **隐式实参**（2026-09-19，配套 D6；**推翻原 D2 的「不做」**）：
-  三条路线对比（A 真元变量被内核堵死 / B 探针每次整前缀重编译 / **C 风格对齐 + 唯一确定**，
-  400–600 行、零额外内核调用）、算法与六个落点文件、**关键安全性质**（无隐式 binder 的签名
-  逐字节 no-op ⇒ 可独立发布且课程零改动全绿）、课程分批 B0–B7、会红的测试与**护城河契约变更**
-  清单、顺带发现的两个真 bug（X14/X15）、P0–P4 分期
+- `kernel-taxonomy.md` — 内核错误分类学 + 失败建议 + 基准 / fuzz 基建
+- **`site-single-page.md`** — **官网（GitHub Pages）当前权威**：单页站点 + 三条防漂移机制；
+  验收 `python3 scripts/check-site.py`（10 项，exit 0 才算过）
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以
-> `STATUS.md` 为准；确认过时且无人引用的会直接删除（保留 git 历史）。
+> `STATUS.md` 为准；确认过时且无人引用的**直接删除**（保留 git 历史）✓。
 
 ## 调研与笔记（`docs/notes/`）
 
