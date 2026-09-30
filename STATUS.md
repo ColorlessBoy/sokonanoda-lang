@@ -106,6 +106,22 @@
   26 个资产（8 CLI + 8 LSP + 9 VSIX + 1 源码）✓。
   ⚠ **CI 侧也看得到提速**：`gates-course` **12m26s → 6m38s**（同一 job、同一 runner 家族）✓。
 
+## 第 509 轮（2026-09-30）：**K1 线收尾 —— K1-a 两态终于有判据 + K1-b 的 `decl_idx` 钉子**
+- **`by-prefix-reuse.md` 落后于工作区**：K1-a（T-K11）与 K1-b 的内核那一处（`with_env`，T-K12a）
+  都早已落地、§3.C 后复用**默认就是开的** ⇒ 本轮正体是**补齐 §4 的验收**（内核 0 行改动）。
+- **勘出一处假声明**：§4 写「两态对拍 `assert_same_both_ways` 已具备」——**错的** ✗：那条比的是
+  `SOKO_NO_JUDGE_BATCH`，与 `SOKO_JUDGE_ENV_REUSE` **无关** ⇒ 这条验收**此前没有判据**。补
+  `crates/cli/tests/judge_env_reuse.rs`（两态逐字节 + **不空转**）；反向验证（去掉 §3.C 的夹紧）⇒ **判红** ✓。
+- ⚠ **新坑**：**模块根产物不受 `SOKONANODA_NO_CACHE` 管** —— 一热就跳过整份编译 ⇒ 两态「相同」
+  是**空转的相同**（164 命中/23s vs **895 命中/283s**）⇒ 判据必须带 `…NO_PROJECT_ARTIFACTS=1`。
+- **读数**：全语料两态 **128 文件 · 逐字节差异 0 · 命中 895 · 283s** · `unit12-solution` **7641ms → 6107ms（1.25×）**
+  ⇒ 进 `docs/perf/ledger.jsonl`，并**更正** 2026-09-24 那条「K1-a 零收益」（只对「担保没接到主编译 pass」的那天成立）。
+- **K1-b**：补 §4 要求却一直缺的 `decl_idx` 钉子（`memory_api.rs` 的
+  `cross_builder_name_lookup_is_silently_positional_without_with_env`；反向验证 ✓）。
+- **验收五步**（baseline = v0.77.0）：① workspace 全测 ✓ · ② 全语料逐字节 **零差异（9 组）** ✓ ·
+  ③ 课程门禁 **43 目标 · 376 checked · 99 open · 0 判负** ✓ · ④ 性能台账 ✓ · ⑤ **明确跳过**（`LEAN_KERNEL_ARENA` 未设）。
+- **文档**：`by-prefix-reuse.md` §6 as-built · `docs-budget.json` 153 → **183**。
+
 ## 第 507 轮（2026-09-30）：**CI 判红两轮收口 —— 两个真 bug 都是本批引入的**
 - **① 心跳口径**（`gates-fast` 判红）：第一版"默认一律不发"漏了工作单的**后半句**
   「机器消费者仍能拿到心跳」✗ ⇒ 改成**「非管道不发」**（`IsTerminal`：终端静默、

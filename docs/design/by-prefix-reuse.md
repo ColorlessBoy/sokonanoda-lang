@@ -151,3 +151,33 @@ T-K03 分阶段 profile（36.1s 花在哪）──────┘        └─�
 **顺序的理由**：K1-a 的收益上限**取决于 K1-a 之外的那部分占多少**
 （内核检查在 prefix pass 里占几成）——那是 T-K03 的 profile 要回答的。
 所以：**先量（T-K03）→ 先做零风险的那个（K1-a）→ 再动内核（K1-b）**。
+
+---
+
+## 6. as-built（2026-09-30）：K1 线落在哪、验收是什么
+
+> §1–§5 是**开工时**的判断，本节是**结果**；不一致处以本节为准。
+
+| 档 | 状态 | 落点 | 验收证据 |
+|---|---|---|---|
+| **K1-a**（T-K11） | ✅ 已落地，且**默认开** | `front/src/judge.rs`：`check_synthesized` + `TrustPlan` + `TRUSTED_PREFIX`；开关 `SOKO_JUDGE_ENV_REUSE`（`=0` 是逃生门） | 全语料两态 `grade --json`：**128 文件 · 逐字节差异 0 · on 态命中 895**（`ledger.jsonl` 的 `judge_env_reuse_corpus`）· `unit12-solution` **7641ms → 6107ms（1.25×）**（`judge_env_reuse_switch`） |
+| **K1-b**（T-K12） | ✅ **内核那一处**已落地（`EnvBuilder::with_env`，T-K12a，2026-09-24） | `kernel/src/builder.rs`：借出 intern 表 → 回调 → 原样装回（`ExportFile` 一字不改） | 往返回归 `memory_api.rs::with_env_lends_the_intern_tables_and_takes_them_back` · **§4 要的 `decl_idx` 钉子** `memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env`（2026-09-30 补，带反向验证） |
+| **K1-c** | ❌ 不做（§2.2/§3 的两条类型系统理由仍然成立） | — | — |
+
+**三处与开工时的判断不同，如实记**：
+
+1. **§4 说"两态对拍 `assert_same_both_ways` 已具备"——那是错的** ✗：
+   `crates/cli/tests/judge_batch.rs` 那条比的是 **`SOKO_NO_JUDGE_BATCH`**（乐观判定批处理），
+   与 `SOKO_JUDGE_ENV_REUSE` **无关** ⇒ K1-a 的验收标准**当时没有任何判据在跑**。
+   2026-09-30 补 `crates/cli/tests/judge_env_reuse.rs`（两态逐字节 **+ 判据不空转**）；
+   反向验证：去掉 `before.min(prefix_commands)` ⇒ **判红** ✓（那正是 §3.C 踩过的真 bug）。
+   ⚠ 写这条判据时踩到一个坑：**模块根产物不受 `SOKONANODA_NO_CACHE` 管**，产物一热就
+   跳过整份编译 ⇒ 两态"相同"是**空转的相同**（164 命中/23s vs **895 命中/283s**）
+   ⇒ 判据必须带 `SOKONANODA_NO_PROJECT_ARTIFACTS=1` ✓。
+2. **"K1-a 零收益"只对 2026-09-24 那天成立**：当时 `reuse_hits=0`，根因是**担保还没接到
+   主编译 pass**（守门条件**正确地**拒绝了复用），不是机制无效。§3.C（2026-09-30）接通后，
+   同一开关在 `unit12-solution` 上命中 15 次、**1.25×** ✓。
+3. **K1-b 的后半（T-K12c：影子环境接进 judge）没做，也不再需要**：它撞的墙是"独立环境
+   `add_declar` 改写共享 `decl_idx` 槽位"（§2.2）；§3.C 走的是**另一条路**（担保 +
+   `run_incremental` 复用前缀判定）——没有独立环境，也就没有那堵墙。但 §2.2 的危险
+   **仍然真实**，所以钉子测试留着：它钉的是**内存 API 的语义**（跨环境按名字查 = 按下标查）。

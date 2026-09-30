@@ -531,6 +531,113 @@ fn with_env_lends_the_intern_tables_and_takes_them_back() {
     assert_eq!(env.declars.len(), before + 1, "装回之后还能继续 add_declar");
 }
 
+/// **K1-b 的钉子（`docs/design/by-prefix-reuse.md` §2.2 / §4 的风险点）**：
+/// `Env` 查声明走的是"**名字槽位里的下标**"—— `get_old_declar`（`env.rs:300`）
+/// 取 `idx = n.decl_idx()` 然后 `self.declars[idx]`，**不校验名字**；而 `decl_idx`
+/// 是挂在**被 intern 的 NameNode** 上的全局槽位、由 `add_declar` 写入
+/// （`builder.rs:379`）。⇒ **两个 builder 的表里同一个名字落在不同下标**时，
+/// 拿 A 的名字去查 B 的环境会**静默取到 B 在那个下标上的声明**（不报"查无此名"）。
+///
+/// 这条把**危险面**与**出路**钉在一起（两侧都断言）：
+/// * **出路（K1-b）**：`EnvBuilder::with_env` 让检查器用**同一份** intern 表
+///   ⇒ 槽位与表一一对应 ⇒ 判过 ✓（这正是它存在的理由）；
+/// * **危险面**：把**同一条**合成声明送到另一个 builder 的环境 ⇒ 下标错位 ⇒
+///   判负，而失败原因**不是** `unknown const`（名字被"找到"了，只是找错了）；
+///   直接看还能看到"问 A 的 `p0`、答 B 的 `h`"。
+///
+/// ⚠ 本条**故意特性化"跨环境按名字查会取错"**（不是 bug 报告）：将来若给
+/// `get_old_declar` 补上名字校验，这条会**故意判红** —— 请连同
+/// `docs/design/by-prefix-reuse.md` §2.2 一起改，别只改测试。
+#[test]
+fn cross_builder_name_lookup_is_silently_positional_without_with_env() {
+    let arena = Arena::new();
+
+    // ===== builder A：`P`(0) · `Q`(1) · `f : P -> Q`(2) · `p0 : P`(3) =====
+    let mut a = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    let prop_a = a.mk_sort(a.zero());
+    let empty_a = a.alloc_levels_slice(&[]);
+    let name_p_a = a.name_from_str("P");
+    let name_q_a = a.name_from_str("Q");
+    a.add_declar(Declar::Axiom { info: DeclarInfo { name: name_p_a, uparams: empty_a, ty: prop_a } })
+        .expect("A: add P");
+    a.add_declar(Declar::Axiom { info: DeclarInfo { name: name_q_a, uparams: empty_a, ty: prop_a } })
+        .expect("A: add Q");
+    let name_f_a = a.name_from_str("f");
+    let const_p_a = a.mk_const(name_p_a, empty_a);
+    let const_q_a = a.mk_const(name_q_a, empty_a);
+    let f_ty_a = a.mk_pi(name_p_a, BinderStyle::Default, const_p_a, const_q_a);
+    a.add_declar(Declar::Axiom {
+        info: DeclarInfo { name: name_f_a, uparams: empty_a, ty: f_ty_a },
+    })
+    .expect("A: add f");
+    let name_p0_a = a.name_from_str("p0");
+    a.add_declar(Declar::Axiom { info: DeclarInfo { name: name_p0_a, uparams: empty_a, ty: const_p_a } })
+        .expect("A: add p0");
+    let prefix_len = a.declaration_count();
+    assert_eq!(prefix_len, 4, "A 的前缀长度就是四个下标槽位");
+
+    // 合成声明（**不** `add_declar`，与 front 的 judge 形状一致）：`probe : Q := f p0`。
+    let const_f_a = a.mk_const(name_f_a, empty_a);
+    let const_p0_a = a.mk_const(name_p0_a, empty_a);
+    let probe_val = a.mk_app(const_f_a, const_p0_a);
+    let probe = Declar::Definition {
+        info: DeclarInfo { name: a.name_from_str("probe"), uparams: empty_a, ty: const_q_a },
+        val: probe_val,
+        hint: ReducibilityHint::Regular(0),
+    };
+
+    // ===== builder B（**同一 arena、另一个 builder**）：**同名不同声明** =====
+    // B 的表：[0] `Q : Prop` · [1] `P : Prop` · [2] `f : Q`（**不是** `P -> Q`）
+    // · [3] `h : P` —— 名字 `f` 两边都有，但指的是**两条不同的声明**。
+    let mut b = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    let prop_b = b.mk_sort(b.zero());
+    let empty_b = b.alloc_levels_slice(&[]);
+    let name_q_b = b.name_from_str("Q");
+    let name_p_b = b.name_from_str("P");
+    b.add_declar(Declar::Axiom { info: DeclarInfo { name: name_q_b, uparams: empty_b, ty: prop_b } })
+        .expect("B: add Q");
+    b.add_declar(Declar::Axiom { info: DeclarInfo { name: name_p_b, uparams: empty_b, ty: prop_b } })
+        .expect("B: add P");
+    let name_f_b = b.name_from_str("f");
+    let f_ty_b = b.mk_const(name_q_b, empty_b);
+    b.add_declar(Declar::Axiom {
+        info: DeclarInfo { name: name_f_b, uparams: empty_b, ty: f_ty_b },
+    })
+    .expect("B: add f");
+    let name_h_b = b.name_from_str("h");
+    let h_ty_b = b.mk_const(name_p_b, empty_b);
+    b.add_declar(Declar::Axiom {
+        info: DeclarInfo { name: name_h_b, uparams: empty_b, ty: h_ty_b },
+    })
+    .expect("B: add h");
+    let env_b = b.finish();
+
+    // ① 出路（K1-b）：`with_env` 借出 builder **自己那张表** ⇒ 名字答名字 ⇒ 判过。
+    let accepted_in_a = a.with_env(|ef| ef.try_check_declar_at(&probe, EnvLimit::ByIndex(prefix_len)).is_ok());
+    assert!(accepted_in_a, "A 的环境：`f : P -> Q`、`p0 : P` ⇒ `probe : Q := f p0` 必须判过");
+
+    // ② 危险面：把**同一条** `probe` 送到 B 的环境 ⇒ 下标错位 ⇒ 判负。
+    match env_b.try_check_declar_at(&probe, EnvLimit::ByIndex(prefix_len)) {
+        Err(CheckError::Rejected(m)) => assert!(
+            !m.contains("unknown const"),
+            "失败原因**不许**是「查无此名」—— 名字被「找到」了，只是找到的是别人（静默取错）：{m}"
+        ),
+        other => panic!("B 的环境里 `f` 那个下标上是 `f : Q`（不是函数）⇒ 必须判负，实际：{other:?}"),
+    }
+
+    // ③「取到了谁」直接看：B 的表里**没有**叫 `p0` 的声明（那个下标上是 `h`），
+    //    可是拿 A 的 `p0` 去查**照样有结果** —— 这就是 §2.2 说的静默取错。
+    let wrong_env = env_b.new_env(EnvLimit::ByIndex(prefix_len));
+    let silent = wrong_env
+        .get_old_declar(&name_p0_a)
+        .expect("位置读不报错（这正是危险所在）");
+    assert_eq!(
+        silent.info().name,
+        name_h_b,
+        "问的是 A 的 `p0`（槽位 3），答的是 B 表里下标 3 上的 `h`"
+    );
+}
+
 /// **T-K13 的判据（快照只读、不污染主环境）**：
 /// `EnvBuilder::snapshot()` 给检查器一份**副本** —— ① 副本里能查到前缀 ✓、
 /// ② 用它检查**不会**动到 builder（声明数不变、之后照常可用 ✓）、

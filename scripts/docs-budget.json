@@ -1,5 +1,5 @@
 {
-  "_comment": "文档预算冻结表（REQUIREMENTS.md §9 / docs/design/docs-diet.md）：每个既有**非入口**活文档的行数上限 —— **只许减不许增**。**入口文件不在此表**（它们由判据 ③ ≤800 行管 ✓ —— 计划会随新批次合法长大，冻结它必然误红 ✗）。`python3 scripts/docs-lint.py --freeze` 只会收紧；要放宽必须手改本文件（评审可见）。",
+  "_comment": "文档预算冻结表（REQUIREMENTS.md §9 / docs/design/docs-diet.md）：每个既有**非入口**活文档的行数上限 —— **只许减不许增**。**入口文件不在此表**（它们由判据 ③ ≤800 行管 ✓ —— 计划会随新批次合法长大，冻结它必然误红 ✗）。`python3 scripts/docs-lint.py --freeze` 只会收紧；要放宽必须手改本文件（评审可见）。 ｜ **2026-09-30（K1 线收尾）**：`docs/design/by-prefix-reuse.md` 153 → **183**（+30，手改本文件 ⇒ 评审可见 ✓）——新增 **§6 as-built**：K1-a/K1-b 的落点与验收证据，以及**三处与开工判断不同的事实更正**（① §4 说「两态对拍 `assert_same_both_ways` 已具备」是**错的** —— 那条比的是 `SOKO_NO_JUDGE_BATCH`，⇒ K1-a 的验收标准当时**没有判据在跑**，本轮补 `crates/cli/tests/judge_env_reuse.rs`；② 「K1-a 零收益」只对 2026-09-24 成立，§3.C 接通担保后同一开关 **1.25×**；③ T-K12c 不做也不再需要）。这是**必需修订**（那份文档是 K1 线的唯一权威，留着错的验收声明比没有更坏 ✗），不是为了让旧文件长胖。",
   "frozen": {
     "NOTICE.md": 20,
     "docs/CI-FAILURES.md": 694,
@@ -15,7 +15,7 @@
     "docs/design/binary-cli.md": 69,
     "docs/design/bundled-lsp.md": 305,
     "docs/design/by-judge-reuse.md": 240,
-    "docs/design/by-prefix-reuse.md": 153,
+    "docs/design/by-prefix-reuse.md": 183,
     "docs/design/by-tactics.md": 400,
     "docs/design/ci-parallelism.md": 240,
     "docs/design/closure-incremental.md": 155,
