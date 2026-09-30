@@ -172,7 +172,7 @@ theorem subset_trans (α : Type) (A B C : Set α) (h1 : Set.subset α A B) (h2 :
 courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列，互不影响）
 ├── README.md                  # 怎么判卷 + 现状表 + 单元 DoD
 ├── AGENTS.md                  # 课程线 agent 手册（写作循环 + 判卷三纪律 + 教学纪律）
-├── sokonanoda.toml            # 模块根 = 本目录（requires = "0.59"）
+├── sokonanoda.toml            # 模块根 = 本目录（requires 跟着版本钉走，现为 0.78.3）
 ├── course.json                # 单元清单（12 单元）
 ├── lib/                       # L2 课程标准库（名字用 Loogle 取证版）
 │   ├── Logic.sokonanoda       # 逻辑与等式骨架 26 条（prelude 0.59.0 也自带 30 个名字，见 L-01/L-02）
@@ -318,7 +318,7 @@ courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列�
 - 范围：parser / elab / front / project / CLI（**是否动内核**：预期否）
 - 不做的事（明确排除，防止顺手扩大）
 - 验收（三层）：front 单测 + CLI e2e + 课程用例；**影响面**：事件计数是否变（golden 双改）
-- 文档同步清单：白名单 / docs/protocol.md / skills / VS Code / HANDOVER
+- 文档同步清单：白名单 / docs/protocol.md / skills / VS Code / `docs/ONBOARDING.md`
 - 门禁：`scripts/soko gate`
 ```
 
@@ -333,7 +333,7 @@ courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列�
 2. **`python3 scripts/gap.py check`**（✅ 本轮）：跑全部复现，逐条对照台账状态打印判定，
    任何不一致 exit 1。红了就是语言变了而台账没跟上（或修好忘了关账）。
    `close <id> --version X` 会先复跑复现，仍复现则**拒绝关账**。
-3. 后续（P0.2 余项）：把它包成 `crates/cli/tests/gap_ledger.rs` 进 `scripts/soko gate`，
+3. 后续（P0.2 余项）：把它包成 Rust 契约测试进 `scripts/soko gate`（现由 `scripts/gap.py check` 承担 ✓），
    顺带加一条「故意把台账改错会红」的自检。
 
 ### 6.5 排序规则（谁来修、先修谁）
@@ -380,7 +380,7 @@ courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列�
   独立仓库生成器 `scripts/new-course-repo.sh` 保留备用（`/tmp` 实测绿）；
 - **P0.2 ✅ 本轮已落地（python 形态）**：`scripts/gap.py`（`list|show|next|check|close`）+
   四条自断言复现脚本（G-06/G-10/G-11/G-12）+ `gap.py check` 全绿；**剩**＝包成
-  `crates/cli/tests/gap_ledger.rs` 进 `scripts/soko gate`（Rust 形态，CI 用）；
+  `scripts/gap.py check` 进 `scripts/soko gate`（Python 形态，CI 用 ✓）；
 - **P0.3**：把 §2.1 的探针扩成**一个完整单元的最小切片**（单元 1 的前 3 题），确认
   「一单元 ≈ 多少轮 agent 工作」；
 - **验收**：课程仓 `check-course.py` 绿（0 单元也算）；`gap.py next` 能打印 WO-001 的
@@ -433,7 +433,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
   `soko.course/2`**——先扁平、后升卷/章的两步走完，见 P6 的 as-built 段与
   `docs/design/course-manifest-v2.md`）、
   目录约定、单元命名、依赖表；
-- 课程测试接入（仓库内阶段：`crates/cli/tests/set_theory_course.rs`）；
+- 课程测试接入（仓库内阶段：`crates/cli/tests/course_project.rs` + `courses/set-theory/tools/check.py`）；
 - **验收**：空课程骨架能被 `sokonanoda course` 聚合（0 单元也算绿）。
 
 ### P3 共享库（不依赖 P1 的部分先做）— M
@@ -455,7 +455,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 > CI（设计/as-built `docs/design/course-gate-in-ci.md`；CI 侧是 `test` job 里的 step +
 > `course-gate-report` artifact，课程红自动挡住 `auto-tag` 发布）。内容侧同时收在
 > **12 单元 / 36 个目标（含记法对照页）/ 355 checked / 99 open / 0 判负**，
-> 站点卷 I 页面（`site/set-theory.html`）的计数就是这条门禁实测出来的。
+> 站点卷 I 页面的计数就是这条门禁实测出来的（站点已单页化 ⇒ `docs/design/site-single-page.md`）。
 > **P4 的课程仓跟随已完成（2026-09-19）**：`lib/Logic` 退化成只有注释的空壳
 > （0 条声明，34 个 `import lib.Logic` 一字未改），课程侧 **65 处项位裸名**
 > `inl`/`inr` 改成点号名 `Or.inl`/`Or.inr`（+27 行注释同步改写）；
@@ -495,7 +495,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 ### P5 阅读面（决策点 D-4）— M
 - 站点加「课程」页：从 `course.json` + 画布生成单元目录 + 进度；可选：
   把注释当散文渲染成「书页」（`literate.toml` 的极简替代，零构建 HTML）；
-- **as-built 补充（0.60.0，G-07）**：卷 I 页面（`site/set-theory.html`）按清单 v2 的
+- **as-built 补充（0.60.0，G-07）**：卷 I 页面（当时是 `site/set-theory.html`，站点已单页化）按清单 v2 的
   **卷 → 章 → 单元**分组渲染，每章标先修/标签/计划练习数；计数仍全部**实测**自
   `courses/set-theory/tools/check.py --json`（`gen-site-data.py` 不重实现判据）。
 - **验收**：`scripts/check-site.py` 绿 + 站点可见卷 I 目录与每单元计数。
@@ -555,7 +555,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 | 风险 | 取舍 |
 |---|---|
 | **G-02 修复会撞既有课程**（`Or.inl`/`inl` 命名、golden 计数） | 兼容别名（裸名保留）+ 一次改完 + 二进制对拍；先写设计再动 |
-| **G-03 可能牵动内核**（内核冻结快照） | 先按 H6-C 的经验在前端派生侧修；确需动内核时走 `docs/architecture.md` §6 清单 + 三层回归 |
+| **G-03 可能牵动内核**（当时口径 = 本项零内核改动；内核 2026-09-21 已解冻） | 先按 H6-C 的经验在前端派生侧修；确需动内核时走 `docs/architecture.md` §6 清单 + 三层回归 |
 | 缺口修完课程没跟上（或反之） | §6.4 的「缺口即测试」把这条变成红测试 |
 | 规模失控（照 analysis 全抄 = ×29） | §9 的 scale gate；卷为单位、每单元可独立交付；不追 Mathlib |
 | 无 `notation` 前可读性差，学习者流失 | 卷 I 前两个单元先写「点名形式」，notation 落地后**同轮**补一版记法对照（教学上反而更好） |
@@ -615,7 +615,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 | **勘误** | — | **G-14 降级**为 nice（`{u, v}` 逗号写法可用）；**G-15 重新定义**为「query check 的 failed[] 只给裸字节 offset」（原先的"span 漂移"是把字节当字符的量具缺陷，见 `docs/LESSONS.md`） | — |
 
 另有三条**已知 backlog**（不重复记账，指针在此）：P7 的 `[deps]`、`namespace`/`open`、
-`watch` 项目模式、decl 级产物（`docs/HANDOVER.md` §3 G / `ROADMAP.md` §10）；
+`watch` 项目模式、decl 级产物（`ROADMAP.md` §10.2 I16 P7）；
 启动器在非 Rust 仓库没有版本源（§3.3）；课程站点无书页（P5）。
 
 ## 附录 B：本轮探针证据（可复跑）

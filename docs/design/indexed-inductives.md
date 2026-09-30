@@ -1,9 +1,9 @@
 # 设计：带索引归纳（`num_indices > 0`，2026-09-15）
 
-> 触发：`docs/design/parameterized-inductives.md` §5 明确列为 v1 不做；HANDOVER
-> §3 B 余项「带索引归纳」。目标：`inductive Vec (A : Type) : Nat -> Type` 可声明
+> 触发：`docs/design/parameterized-inductives.md` §5 明确列为 v1 不做；
+> ROADMAP I6 余项「带索引归纳」。目标：`inductive Vec (A : Type) : Nat -> Type` 可声明
 > （参数 + 索引）、可派生 / 显式给出 recursor、可 `match`（常量结果类型）。
-> **kernel 冻结**：内核本就支持 `num_indices`，本设计只补前端契约。
+> **本项零内核改动**：内核本就支持 `num_indices`，本设计只补前端契约。
 
 ## 1. 索引的定义（内核契约）
 

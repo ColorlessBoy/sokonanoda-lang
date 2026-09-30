@@ -34,7 +34,7 @@
 | **语法** | `{α : Type}` 在 **6 处**全可解析：`def`/`theorem`/`axiom`/`example` 的声明 binder、`inductive` 参数、`ctor` 字段、`fun`/`forall`。风格**活着进内核**：`query goals` 对 `def id2 {α : Type} (a : α) : α := a` 返回 `forall {α : Type 0}, α -> α` |
 | **缺口形状** | **不是「不能补参」，而是「只按层数差补前导参数、从不跳过隐式 binder」**。`a ∈ A` 今天能用；把 `Set.mem` 改成 `{α : Type}` 后**仍然能用**（`notation_telescope` 根本不看 `BinderKind`）。但 `Set.mem a A`（点名省参）被内核拒；层数 == 实参数时不补；隐式 binder 在**中间**时报 `elab-notation-argument-unsolved` |
 | **tactic 路径不对称** | `by` 引擎**已经**在补前导类型参数（`apply Or.inl` 可用），term 路径没有 |
-| **`@f`** | **no-op**：parser 吃掉 `@` 就丢（`parser.rs:2393-2406`），语料 0 处使用 |
+| **`@f`** | **已生效**（0.62.0 起）：`@` 标记显式脊（`ast.rs` 的 `explicit_spine`、`elab.rs` 的 `try_implicit_application` 不再补隐式位）—— 本节其余部分写于它落地之前 |
 | **内核堵死路线 A** | 内核 `Expr` 只有 `{StringLit,NatLit,Proj,Var,Sort,Const,App,Pi,Lambda,Let}`、`Value` 只有 `{Rigid,Unfold,Lam,Pi,Sort,NatLit,StrLit,Thunk}`——**没有元变量/fvar**；`BinderStyle` 的注释自述「只被 pp 使用，不改变类型检查」。**内核冻结 ⇒ 元变量只能活在前端** |
 | **`elab_expr` 执行时没有内核环境** | `run_pass` 先走完 walk、最后才 `builder.finish()` → kernel_phase ⇒ 每次探针只能走 `judge_*` = **整前缀重编译**（贵） |
 
@@ -243,7 +243,7 @@ App 重写成核项），代价与风险都远超收益；B 每次应用都要�
 3. **`solve_prefix` 扫全部显式层**（比 §3.1 的"第一个显式实参"更宽）：
    `picks {α} (n : Nat) (b : α)` 调用 `picks 3 b` 时 `α` 只出现在**第二**个显式
    层里——只看第一层会解不出。现在按层序找"后面第一个提到它的层"，用那一层的
-   实参类型解。**路线 ②（由期望类型解）仍未做**（§7 第 1 条）。
+   实参类型解。**路线 ②（由期望类型解）已随 G-40 落地**（0.72.0，`ledger.jsonl` status=fixed；`elab.rs` 的 `try_bare_implicit_constant`）。
 4. **tactic 里的错误码被包成 `elab-tactic-failed`**（既有口径，非本刀引入）：
    专用码只在**直接 elaborate** 的位置（签名/值位）看得见；`by` 块里报的是
    `elab-tactic-failed` + 同一段人话消息。回归测试按值位写。

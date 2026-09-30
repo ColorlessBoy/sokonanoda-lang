@@ -3,7 +3,7 @@
 > 状态：**已落地（as-built）**。台账 `docs/gaps/ledger.jsonl` 的 G-05；复现件
 > `docs/gaps/repro/G05-namespace-open.sokonanoda`。硬规则依据：`REQUIREMENTS.md`
 > §2 第 3 条（语法增量 = 课程 + 测试 + 白名单三件套）、第 4 条（判定走内核）、
-> 第 1 条（内核冻结快照）。本文是白名单的**边界文档**：`docs/architecture.md`
+> 第 1 条（内核**可改**；2026-09-21 解冻，红线 = 判定正确性不变）。本文是白名单的**边界文档**：`docs/architecture.md`
 > §4.1 只列命令清单，语义规则在这里。记法（G-04）是本文的直接先例，两篇的
 > 「文件内作用域」「不是声明」两条边界同款。
 >
@@ -235,7 +235,7 @@ open <Ident>           -- 把 <Ident>. 加进可省略前缀集合
 | 1 | `open Foo in <cmd>`（局部 open） | **已落（§N7.2）**：`Command::OpenIn`，`Walk` 用 mark/rollback 撤销；被包住的命令限**叶子命令**（声明 / `#check`/`#reduce`/`#print`），`import`/`namespace`/`end`/`open`/`export`/记法命令各给专用形状错。合成前缀补一行**源码原文**的 open 头（`by` 引擎看同一个作用域）。嵌套 `open A in open B in <叶子>` 可以。`open scoped … in …` **不做**（理由见 §N7.4） |
 | 2 | `open Foo hiding …` / `open Foo renaming …` / `open Foo (a b)`（only） | **已落（§N7.1）**：三条**互斥**子句（组合的先后顺序未取证，见 §6 差异 7）；语义钉成「**先过滤、后改名**」，改名是**替换**（原短名不再是候选）。子句里的名字必须是**短名**（带点报形状错） |
 | 3 | `open scoped`、`export`、`attribute` | **`open scoped` 已落（第三刀 §14.3）**：`open scoped Foo` 只开记法、不开名字前缀（`scoped: true` 不进 `ns.open`），本文只做**接线确认**（§N7.3）。**`export` 已落（§N7.3）**：文件内与 `open` 逐字相同 + **跨 `import`**（单元切换重放导出表）。**`attribute` 不做**（本语言没有属性系统，也没有内核可挂的 reducibility/instance 元数据；`abbrev` 已经是「与 `def` 同语义的拼写」——见 `docs/design/abbrev.md`，加属性只会造一个没有观察面的语法） |
-| 4 | `section` / `variable` / `include` | **做不动（§N9，有实测）**：`variable (α : Type)` 的 auto-bound 要落在「隐式参数自动插入」上，而本语言的应用是**逐位显式**的（`#check id Nat` ⇒ `Nat -> Nat`，实测），落不出 Lean 的体验；`include` 是 Lean 3 的遗产，本语言无对应物，**不做** |
+| 4 | `section` / `variable` / `include` | **仍不做（§N9，有实测）**：`variable (α : Type)` 的 auto-bound 要落在「隐式参数自动插入」上 —— ⚠ **该论据自 0.62.0 起部分失效**（IA-1 已落隐式插入，见 `docs/design/implicit-arguments.md` §9），但 `variable` 的 auto-bound 仍缺，**结论不变**；`include` 是 Lean 3 的遗产，本语言无对应物，**不做** |
 | 5 | `namespace` 跨文件传播、把 `namespace` 当模块系统 | **已澄清：无需做**。`namespace` 本来就是**全局名字前缀**（`Command::Def{name}` 一出门就是 `A.mem`，进内核的就是它），闭包级 `known` 是扁平的 ⇒ 被导入模块声明的 `A.mem` 在入口里**本来就可见**（`open A` 只是让短名可用）。Lean 的 `namespace` 同样是**文件内**的词法作用域、与模块系统正交；「跨文件传播」在 Lean 里由 `import` + `open`/`export` 承担，本语言已经有了（`export` 是第二刀补上的那一半）。把它做成模块系统会与既有 `import` 闭包**打架**（两套模块边界），且没有任何教学收益 |
 | 6 | 别名/遮蔽的**警告** | **已落（§N8）**：`open-shadowed-name` warning（不是 error），两条判据——两个 `open` 给同一个短名 / 短名与**根上的**同名声明撞车；有 hint；走既有 warning 通道（`warning.rs` + `decl` 事件流）。**边界明说**：语法级 pass **只看本文件**，依赖模块声明的候选不参与（§N8.3） |
 | 7 | `namespace` 内的 `#print` 反向补全（编辑器补全列表按全名给出，不做前缀折叠） | **不做（维持原判）**：补全列表的**数据源**是 `known` 表的全名键（`crates/front/src/suggest.rs`），做前缀折叠等于在补全层造第二份名字真相（硬规则 4 的同款禁令）；收益（少打几个字）不值。`#print` 本身在命名空间里**已经**按 N4 解析（`#print mem` 在 `namespace Set` 里打印 `Set.mem`，第一刀就有） |
@@ -361,7 +361,7 @@ error，判定与退出码不受影响）：
 任务给的判据是「`variable (α : Type)` 之后，后续声明里出现的自由变量自动变成
 binder（Lean 的 auto-bound）」。本轮**实测**了三件事，结论是做不动：
 
-1. **本语言的应用是逐位显式的，没有隐式参数插入/元变量推断**（实测，用本仓库
+1. ⚠ **本节写于 0.62.0 之前**：当时应用是逐位显式的。**IA-1（0.62.0）已落隐式参数插入**（`docs/design/implicit-arguments.md` §9）；仍缺的是**元变量推断**与 `variable` auto-bound ⇒ §N9 的结论不变。（原实测：
    二进制跑出来的）：
    ```
    def id {α : Type} (x : α) : α := x

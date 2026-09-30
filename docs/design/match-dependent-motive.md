@@ -3,7 +3,7 @@
 > 现状：`match` 的 motive 恒为 `fun (_ : Ind) => R`（非依赖），分支期望类型都是
 > 常量 `R`。本设计支持**依赖 motive**：结果类型随 scrutinee 取值变化，例如
 > `theorem foo (n : Nat) : P n := match n with | Nat.zero => … | Nat.succ k => …`。
-> kernel 冻结；复用既有 `goals::substitute_names`（shadow-aware AST 替换）。
+> 本项零内核改动；复用既有 `goals::substitute_names`（shadow-aware AST 替换）。
 
 ## 1. 触发条件（v1）
 

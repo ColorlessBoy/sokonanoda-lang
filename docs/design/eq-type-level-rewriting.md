@@ -6,7 +6,7 @@
 > `docs/design/prop-large-elim-mirror.md`（派生 recursor 的 large-elimination 判据）、
 > `docs/design/type-level-syntax.md`（层级算术 `u+1` 的白名单/语法面）。
 > 姊妹篇：`docs/design/prop-cumulativity-boundary.md`（L-06：没有累积性）。
-> **内核零改动**（硬规则 1）：0.60.0 的改动只在 `crates/front/src/compile/prelude.rs`
+> **内核零改动**（本项范围；内核已解冻，红线 = 判定正确性不变）：0.60.0 的改动只在 `crates/front/src/compile/prelude.rs`
 > 与 `error.rs`（只加码/hint）；0.61.0 追加 **parser + elab 的层级算术**
 > （`parser.rs` 的 `parse_level_text`、`elab.rs` 的 `level_ptr`、`proof.rs` 的
 > render 括号），内核仍是一个字节没动。
@@ -176,7 +176,7 @@ B8 一起让位），文件自己声明 `Eq.rec`/`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`ca
 2. **`Eq.mp`/`Eq.mpr` 改成宇宙多态**：`{u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β)`，
    与 Lean core 的 `def Eq.mp {α β : Sort u} (h : α = β) (a : α) : β` 逐字对齐。
    **这是一次签名变更**（§4-1 的老账）：Type 0 的调用形状从 0.60.0 的
-   `Eq.mp α β h` 变成 `Eq.mp.{1} α β h`——本语言不给隐式实参、也不给宇宙推断，
+   `Eq.mp α β h` 变成 `Eq.mp.{1} α β h`——本语言**自 0.62.0 起给隐式实参插入**（IA-1），但不给宇宙推断，
    裸写 `Eq.mp` 仍按 u = 0 实例化（与 `Eq.symm`/`Eq.rec` 同一条既有规则，实测：
    `Eq.mp A A h` ⇒ `类型不匹配：期望 Sort(0)，实际是 Sort(1)`）。
 3. **`cast` 装上**：Lean core 里 `cast h a` 就是 `Eq.mp h a`（`h.rec a`），
@@ -198,11 +198,11 @@ B8 一起让位），文件自己声明 `Eq.rec`/`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`ca
    `Eq.subst`/`Eq.refl` 的形态与全部既有 golden——收益为零（B8 已经拿到消去子，
    §1.2 实测内核会为 Eq 形状派生的正是这条公理）。
 2. **不做累积性（cumulativity）**：它是**内核性质**（`Sort u : Sort (u+1)` 的
-   子类型/包含关系），prelude 与 front 都碰不到——硬规则 1 冻结内核，这条留在
+   子类型/包含关系），prelude 与 front 都碰不到——内核已解冻（2026-09-21），但这条仍留在
    L-06（`docs/design/prop-cumulativity-boundary.md`），本设计不碰。
 3. **层级加法只收数字后缀**（不做 `max u v` / `u+v`）：内核的 `Level::Max`/`IMax`
    在 `EnvBuilder` 上没有公开构造入口（只有 `zero`/`succ`/`level_param`），
-   做它必须动内核（硬规则 1）。parser 对 `u+v` 报专用诊断
+   做它必须动内核（本项不做）。parser 对 `u+v` 报专用诊断
    （"层级加法只收数字后缀"），不静默吞。
 4. **`Type u` 仍不支持**（只支持 `Type n` / `Type (层级)`）：`Type` 后跟**裸标识符**
    必须保持**应用**语义——`Eq.refl.{2} Type A` 这类"`Type` 作实参、紧跟另一个实参"

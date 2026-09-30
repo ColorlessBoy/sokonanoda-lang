@@ -3,7 +3,7 @@
 > 状态：**已落地（as-built）**。台账 `docs/gaps/ledger.jsonl` 的 G-08；复现件
 > `docs/gaps/repro/G08-abbrev.sokonanoda`。硬规则依据：`REQUIREMENTS.md` §2 第 3
 > 条（语法增量 = 课程 + 测试 + 白名单三件套）、第 4 条（判定走内核）、第 1 条
-> （内核冻结快照）。`def` 的现状见 `docs/design/decl-binders.md`；本文是白名单的
+> （当时口径 = 本项零内核改动；内核 2026-09-21 已解冻）。`def` 的现状见 `docs/design/decl-binders.md`；本文是白名单的
 > **边界文档**：`docs/architecture.md` §4.1 只列命令清单，语义规则在这里。
 
 ## 0. 一句话

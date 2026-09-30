@@ -1,6 +1,6 @@
 # 设计：课程地图（sokonanoda course）+ REPL 历史持久化 + course 提示阶梯
 
-> **状态：已实现**（`crates/cli/src/course.rs`、REPL 历史、`sokonanoda.courseMap`、
+> **状态：已实现**（`crates/cli/src/course/{mod,manifest}.rs`、REPL 历史、`sokonanoda.courseMap`、
 > 单元提示阶梯）。§4 的 golden 计数只是**示例**（非第二真源）——现为 11 单元
 > （⑪ = I16 追加），
 > 权威值在 `crates/cli/tests/course.rs`（`GOLDEN`）与
@@ -104,7 +104,7 @@
 | owner | 允许修改 |
 |---|---|
 | 主会话（预接） | `docs/design/course-status.md`、`docs/protocol.md`（course.unit/summary 事件 + REPL 历史）、`crates/cli/src/main.rs`（course 分支 + mod）、`crates/cli/src/help.rs`（course/历史两行） |
-| E（course 聚合） | `crates/cli/src/course.rs`（新）、`crates/cli/tests/course_status.rs`（新）、`crates/cli/tests/common/mod.rs`（词汇 + course.unit/course.summary）、`crates/cli/src/json_report.rs`（仅当事件序列化需要） |
+| E（course 聚合） | `crates/cli/src/course/`（新）、`crates/cli/tests/course_status.rs`（新）、`crates/cli/tests/common/mod.rs`（词汇 + course.unit/course.summary）、`crates/cli/src/json_report.rs`（仅当事件序列化需要） |
 | F（VS Code 课程地图） | `editor/vscode/{extension.js,package.json}`、`crates/cli/tests/extension.rs` |
 | G（REPL 历史） | `crates/cli/src/repl.rs`、`crates/cli/tests/cli.rs`（repl 测试追加） |
 | H（course 阶梯内容） | `course/unit*.sokonanoda`（10 个单元文件；**solutions/ 不动**） |

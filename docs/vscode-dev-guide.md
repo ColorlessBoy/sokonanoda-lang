@@ -12,7 +12,7 @@
 | `src/abbreviation-rewriter.js` | 缩写改写器状态机：Tab 命令、`sokonanoda.input.eager`、context key（Tab 的 `when` 子句）、一次 edit = 一个 undo 单元 | 命令注册（在 `extension.js`）、判定/编译 |
 | `project-tree.js` | 项目树渲染（只吃 `soko/project` 的答案：根 = 模块根 + 清单来源 + 计数，子 = 拓扑序模块 + 状态图标；单文件一条占位行）。**请求在 extension.js**，这里只有渲染与"答案指名别的文档 ⇒ 丢弃" | 发请求、判定项目状态 |
 | `server.js` | 服务器获取：平台→target 映射、bundled `bin/<target>/` 解析、exec 位修复、版本锁定下载（**无 `vscode` 依赖，可纯 Node 单测**） | UI/命令逻辑 |
-| `scripts/stage-lsp.js` | 打包前把构建产物 stage 到 `bin/<target>/`（chmod 755），支持 `--package` 出 host VSIX | 运行时逻辑 |
+| `editor/vscode/scripts/stage-lsp.js` | 打包前把构建产物 stage 到 `bin/<target>/`（chmod 755），支持 `--package` 出 host VSIX | 运行时逻辑 |
 | `test-server.js` / `test-download.js` | 纯 Node 单测（解析顺序/版本锁定 URL/重定向/解压） | — |
 | `package.json` | 清单：contributes、dependencies、engines、**description/keywords（市场门面）** | 运行时逻辑 |
 | `README.md` | **Marketplace 页面正文**——安装方式、功能清单、agent 集成卖点 | 与实际行为不符的描述 |
@@ -220,7 +220,7 @@ export DEVELOPER_DIR=/Library/Developer/CommandLineTools     # 绕过（只影�
 8. **代理**——vsce/Node 不读系统代理；需要时设 `HTTPS_PROXY=http://127.0.0.1:7890`。
 9. **exec 位只能在 Linux/macOS 打包**——Windows 上 `vsce package` 会丢 unix
    mode（zip external attributes），装到 mac/linux 后二进制不可执行。CI 在
-   ubuntu 打包；`scripts/stage-lsp.js` staging 时 `chmod 755`；冒烟用
+   ubuntu 打包；`editor/vscode/scripts/stage-lsp.js` staging 时 `chmod 755`；冒烟用
    python `zipfile` 断言 `mode & 0o111`。
 10. **`bin/` 不进仓库、也不出包外**——`editor/vscode/bin/` 是 staging 目录
     （gitignored），`.vscodeignore` 不许排除它（契约测试守护）；每次打包前

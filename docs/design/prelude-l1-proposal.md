@@ -296,7 +296,7 @@ unit2 一个都不带；unit3/6/7 同样不带，但都在它之后）——只�
   "**真归纳块 + 点号构造子**"；§4 的 G-02 行注明 L1 已绕过（源语法仍受影响）；
 - `docs/design/teaching-project.md` P-C3 状态、`docs/teaching-session.md`（U2·3/U2·4 的"配方"
   加一句"prelude 现在有现成版"）、`docs/TESTING.md`（prelude 行补 L1 的测试映射）、
-  `docs/HANDOVER.md`、`STATUS.md`（收尾义务）；
+  `docs/ONBOARDING.md`（原交接书已删）、`STATUS.md`（收尾义务）；
 - **skills 与 VS Code（AGENTS 的同步义务）**：`skills/sokonanoda-teacher/SKILL.md` 的 prelude 小节
   （现列 `Nat`/`Bool`/`Eq`）要补 L1 词汇与让位规则、`references/curriculum.md` 同步；
   `editor/vscode/CHANGELOG.md` 记一行（补全列表多了 30 个名字＝用户可见改动），

@@ -1,6 +1,6 @@
 # DeepSeek Harness 适配（设计 + 计划）
 
-> 状态：**设计已定稿，实现未开始**（本文件是 `H0–H4` 的执行依据）。
+> 状态：**H0–H4 已落地**（0.54.0 → 0.55.0，见 §9）；H5 的 B2 已被 `docs/design/agent-query-channel.md` 取代（MCP 已落 ✓），B1/B3/B4 仍 backlog（本文件是 `H0–H4` 的执行依据）。
 > 触发：用户 2026-09-17「接手这个项目，但很多地方还没适配 deepseek harness，
 > 先理解项目、分析要适配哪里、列计划文档」。
 > 权威顺序：`REQUIREMENTS.md`（要求总账）> 本文件（DSH 适配方案）> `AGENTS.md`。
@@ -32,13 +32,13 @@ opencode 的文档与契约测试。
 |---|---|---|
 | agent 入口 | `AGENTS.md` | 阅读顺序、硬规则速记、命令、收尾义务 |
 | 三个技能 | `skills/sokonanoda-{teacher,dev,ci}/SKILL.md` | Agent Skill（frontmatter `name`+`description`；teacher 另有 `references/`） |
-| 启动插件 | `.opencode/plugins/sokonanoda.ts`（301 行） | provision CLI/LSP（env → 仓库构建 → VS Code 扩展自带 → 缓存 → 版本锁定下载）、改写 `lsp.sokonanoda.command`、`shell.env` 注入 PATH |
+| 启动插件 | `.opencode/plugins/sokonanoda.ts`（当时 301 行，现 352 行） | provision CLI/LSP（env → 仓库构建 → VS Code 扩展自带 → 缓存 → 版本锁定下载）、改写 `lsp.sokonanoda.command`、`shell.env` 注入 PATH |
 | 非 opencode shim | `.opencode/lsp/sokonanoda-lsp.sh` | → `sokonanoda lsp` |
 | 斜杠命令 | `.opencode/command/sokonanoda/{setup,update,version,doctor,check,gate,round}.md` | `/sokonanoda/*`，都是薄封装（调二进制子命令） |
 | 主 agent | `.opencode/agent/teacher.md` | 「老师」角色（mode: primary，Tab 切换） |
 | 项目配置 | `opencode.json` | skills 路径、Lean 工具链 deny、watcher ignore、关 Rust 格式化 |
 | 契约测试 | `crates/cli/tests/{skill,opencode,protocol,extension}.rs` | 守护上述文件不漂移 |
-| 环境事实 | `~/.local/share/sokonanoda/bin` 缓存 + `Cargo.toml` 版本 0.54.0 | 版本锁定下载的目标 |
+| 环境事实 | `~/.local/share/sokonanoda/bin` 缓存 + `Cargo.toml` 版本（当时 0.54.0，现 **0.78.3**） | 版本锁定下载的目标 |
 
 实测状态（本次接手时）：`sokonanoda` **不在 PATH**；缓存里是 **0.16.2/0.20.0 旧版**
 （`./target/release/sokonanoda doctor --json` → `ready:false`、`version_match:false`），
@@ -144,7 +144,7 @@ opencode 的文档与契约测试。
 
 ### G7 文档与契约测试只认 opencode（P2，会持续误导下一个 agent）
 - 现状：全仓 33 个文件提到 `opencode`；`AGENTS.md` 的 Setup 章节、`skills/README.md`
-  的安装矩阵、`docs/HANDOVER.md`、`site/` 的安装 prompt、`crates/cli/tests/opencode.rs`
+  的安装矩阵、`docs/ONBOARDING.md`（原交接书已删）、`site/` 的安装 prompt、`crates/cli/tests/opencode.rs`
   都假定 opencode 是唯一 agent harness。
 - 后果：DSH 里的 agent 读到 `AGENTS.md` 会照着 opencode 路径操作（`.opencode/plugins`、
   `/sokonanoda/check`），然后失败。
@@ -179,7 +179,7 @@ opencode 的文档与契约测试。
 | 资产 | DSH 可移植性 | 处置 |
 |---|---|---|
 | kernel / front / cli / lsp（Rust） | 完全可移植（与 harness 无关） | 不改 |
-| `--json` 事件协议、`soko/*` 请求 | 协议可移植；`soko/*` 暂无 DSH 消费者（MCP 是备选，D19） | 不动协议；H5 才谈客户端 |
+| `--json` 事件协议、`soko/*` 请求 | 协议可移植；⚠ **MCP 已落地**（`dsh/mcp/server.js`，7 个 `mcp__sokonanoda__*` 工具，见 `docs/design/agent-query-channel.md` §8）—— 不再是"备选" | 不动协议；客户端插件（H6-E）仍 backlog |
 | `AGENTS.md` | 原生支持（D1，且 `CLAUDE.md` 一并读） | 改写 Setup 章节为 harness 中立 + 增加 DSH 段；不变动其结构 |
 | `skills/*/SKILL.md` | 格式兼容（`name`+`description` 即合法）；相对 `references/` 受支持（D4） | 需加薄网关到 DSH 能扫的根；路由词写进 `description` |
 | `.opencode/command/**` | 不等价（D14）；但技能名即命令（D5） | 内容并入技能 + 保留薄命令（opencode） |
@@ -199,7 +199,7 @@ opencode 的文档与契约测试。
 ```
 用户：dsh web  （workspace = sokonanoda-lang 仓库根）
   │
-  ├─ 自动：AGENTS.md 注入（D1）→ agent 知道读 REQUIREMENTS/HANDOVER/STATUS/ROADMAP
+  ├─ 自动：AGENTS.md 注入（D1）→ agent 知道读 REQUIREMENTS/ONBOARDING/STATUS/ROADMAP
   ├─ 自动：.agents/skills/ 三个技能进目录 + /sokonanoda-teacher 可用（D2/D5）
   ├─ 可选：--patch ./dsh/cordis.patch.yml → lsp 工具对 .sokonanoda 可 hover/跳定义
   ├─ 必需：agent 能执行 `scripts/soko grade playground.sokonanoda`（G5 的解）
@@ -330,13 +330,13 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
    (c) 仅 `AGENTS.md` 文档禁令 + 一轮实测记录。
    无论选哪条，都要在 `AGENTS.md` 写明"DSH 侧的 deny 现状"。
 2. **文档去 opencode 单一化**（33 个文件）：
-   - `AGENTS.md`、`skills/README.md`、`docs/HANDOVER.md`、`docs/README.md`、
+   - `AGENTS.md`、`skills/README.md`、`docs/ONBOARDING.md`（原交接书已删）、`docs/README.md`、
      `REQUIREMENTS.md`（§9 条目已加）、`README.md` 的 harness 描述；
-   - `site/agents.html` / `site/assets/agent-prompt.js`：安装 prompt 增加
+   - `site/index.html` 的安装 prompt（`site/assets/`）：增加
      "若用 DSH：打开仓库即可，技能在 `.dsh/skills`，判卷走 `scripts/soko`"；
    - `docs/design/onboarding.md` 增补 §「DSH 侧对照」并指向本文。
 3. **门面同步**（硬规则）：`editor/vscode/README.md` + `CHANGELOG.md`（若 H2 视为
-   用户可见能力）+ `STATUS.md`（新轮置顶）+ `REQUIREMENTS.md` §9 + `docs/HANDOVER.md`。
+   用户可见能力）+ `STATUS.md`（新轮置顶）+ `REQUIREMENTS.md` §9 + `docs/ONBOARDING.md`（原交接书已删）。
 4. 验收：`rg -c opencode` 剩余命中都是"历史/as-built"或"opencode 专属"语境，
    不再有"唯一 harness"式陈述；`sokonanoda gate` 全绿。
 
@@ -389,7 +389,7 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
 - **A4（回归）**：`cargo test --workspace --locked` 全绿（含新 `dsh.rs`）；
   `sokonanoda gate` PASS；opencode 侧原有断言不退化（`opencode.rs` 仍绿）。
 - **A5（文档）**：`AGENTS.md` Setup 章节不再假定 opencode 唯一；`REQUIREMENTS.md` §9
-  有本轮条目；`docs/HANDOVER.md` §3/§5 反映 DSH 现状与 gotchas。
+  有本轮条目；`docs/ONBOARDING.md` 反映 DSH 现状与 gotchas。
 - **A6（反漂移）**：`skills/` 与 `.dsh/skills/` 的网关一一对应由测试守护；
   `dsh/cordis.patch.yml` 的形状由测试守护；文档里不再出现"opencode 是唯一 harness"。
 

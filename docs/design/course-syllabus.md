@@ -133,7 +133,7 @@ TDD-with-Idris、Velleman/Hammack/Solow/Chartrand 的共同推进：
 | 归纳的认知障碍 | Dubinsky & Lewin 1986 等 | 先 quasi-induction，再用**递归函数**具身化归纳 |
 | 反证法难（资源假说） | IJRUME 2021 | 先备齐定义与引理再证；找矛盾作为搜索练习 |
 
-### 1.5 我们**不具备**的 Lean/Coq 能力（大纲必须绕开）
+### 1.5 我们**不具备**的 Lean/Coq 能力（大纲必须绕开）—— ⚠ **本节是 2026-09-16 快照**：清单里 `cases`/`have`/`constructor`/`use`/`import`/`namespace`/`⟨⟩` **今天都已落地**（`by-tactics.md` 白名单 · 0.57.0 import · 0.60.0 namespace）；**现行白名单以 `skills/sokonanoda-teacher/SKILL.md` 为准**
 
 `rw`/`rewrite`、`simp`/`ring`/`omega`/`lia`/`decide`、`cases`/`induction`/`have`/
 `constructor`/`use`/`rcases`、`structure`/records、typeclasses/instances、imports/
@@ -158,7 +158,7 @@ namespaces、经典逻辑（`em`/`by_contra`）、`Iff`/`↔`、`Or.rec`、匿�
 ## 2. 现状审计（摘要；细节见 §4 与 `crates/cli/tests/course.rs`）
 
 > 下面是 P1 审计时的**旧口径**（7 单元）；P2/P3 后的真实结构见 §0 表与
-> `course/course.json`——10 单元（+I16 的⑪ = 11）、汇总
+> `course/course.json`——10 单元（+I16 的⑪ = 11）；⚠ **GOLDEN 汇总现为 `checked 56 · open 66 · failed 0 · reduced 14`**（权威 = `crates/cli/tests/course_status.rs`，别抄旧值），汇总
 > `units=11 checked=85 open=65 failed=0`（权威值：`crates/cli/tests/course_status.rs`）。
 
 7 单元（`course/course.json`，P1 审计时）：①命题与证明项 ②等式与 rfl
@@ -199,12 +199,12 @@ namespaces、经典逻辑（`em`/`by_contra`）、`Iff`/`↔`、`Or.rec`、匿�
     （P3 编写 #9 时发现）：`Le`/`Even` 是带索引、含递归字段、消除到 `Prop` 的
     inductive，省略 `rec` 时前端派生出的 IH 形状被内核拒绝；`Or`（非索引 `Prop`）
     与 `Vec`（索引 `Type`）的自动派生正常。故 #9 对 `Le`/`Even` **手写** `rec`/`iota`。
-    —— **P3 发现**（待修的产品缺口，记入 `docs/HANDOVER.md` §3）
+    —— **P3 发现**（待修的产品缺口，记入 `docs/ONBOARDING.md`）
 12. **产品缺口：`inductive` 参数不接受多名字 binder 组 `(A B : Prop)`**（P3 编写 #9 时
     发现）：同型多名字组在 Pi/箭头位已支持（`parse_binder_group`），但 `inductive`
     参数（与 `ctor` 字段）走单名 `parse_binder`，`(A B : Prop)` 无法解析；#9/#10
     只能写成 `(A : Prop) (B : Prop)`。 —— **P3 发现**（次要解析器缺口，记入
-    `docs/HANDOVER.md` §3）
+    `docs/ONBOARDING.md`（原 `HANDOVER` §3 已随文件删除））
 
 ## 3. 三套候选大纲
 
@@ -280,7 +280,7 @@ inversion 引理 → 4 相等作为归纳类型（唯一 `refl`）→ 5 同构/�
   `docs/teaching-session.md`（修 §3/§5 漂移）、`course/README.md`、`docs/design/course-{status,bilingual}.md`、
   `ROADMAP.md` I7、`editor/vscode/*` 与 `skills/`（门面同步硬规则）。
 - **CI**：`cargo test -p sokonanoda-cli --test course` + workspace；只对三个教学 crate 跑
-  fmt（**禁 `cargo fmt --all`**，kernel 冻结）。
+  fmt（**禁 `cargo fmt --all`**：kernel 的 `rustfmt.toml` 需要 nightly）。
 
 ## 5. 推荐：大纲 A（逻辑先行 + `by` 提前 + 归纳拆分 + 关系/读证明收尾）
 

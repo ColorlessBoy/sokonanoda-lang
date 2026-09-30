@@ -1,6 +1,6 @@
 # 设计：`match` 模式编译器（字面量 / 嵌套 / 通配 / 守卫，2026-09-15）
 
-> 触发：HANDOVER §3 B / ROADMAP I6 的「嵌套/守卫/字面量模式」。现状
+> 触发：ROADMAP I6 的「嵌套/守卫/字面量模式」。现状
 > （`docs/design/match.md` §2）明确列为非目标：`match` 只接受**裸构造子名 +
 > 位置模式变量**，且**每个构造子恰好一条 arm**（`arm_by_ctor` HashMap，
 > `elab.rs:1220-1272`）。这让 `| 0 =>`、`| some (some x) =>`、

@@ -3,7 +3,7 @@
 > 状态：**已落地（as-built）**。工作单 `docs/gaps/WO-011-notation.md`；台账
 > `docs/gaps/ledger.jsonl` 的 G-04。硬规则依据：`REQUIREMENTS.md` §2 第 3 条
 > （语法增量 = 课程 + 测试 + 白名单三件套）、第 4 条（判定走内核）、第 1 条
-> （内核冻结快照）。本文是白名单的**边界文档**：`docs/architecture.md` §4.1
+> （当时口径 = 本项零内核改动；内核 2026-09-21 已解冻）。本文是白名单的**边界文档**：`docs/architecture.md` §4.1
 > 只列命令清单，语义规则在这里。
 
 ## 记法符号上的 `documentHighlight` / `references` / `rename`（T-D24 的落地决定，2026-09-24）
@@ -109,7 +109,7 @@
 
 记法（notation）是**糖**：parser 只把 `lhs ∈ rhs` 记成一个带目标名的记号节点，
 elaborator 把它**源到源**降级成既有的 `App` 形状。点名形式（`Set.mem α a A`）
-一字不改、继续可用；**没有**源码级 print-back（goal/hover 的类型文本仍由冻结
+一字不改、继续可用；**显示侧的 print-back 已另立线 C**（0.65.0 起 goal/hover 的类型文本折记法，见 §附；本节说的是**判定契约**不含打印文本）
 内核的 pp 产出点名形式）。
 
 ## 1. 为什么不能只改 parser（WO-011 附 A 的三条实测事实）
@@ -241,7 +241,7 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
 
 同一命题的两种写法——点名 `Set.mem α a A` 与记法 `a ∈ A`——**判卷结果一致**
 （`grade` 退出码一致 + 五元事件计数一致），且**点名形式继续可用**。
-契约**不含「打印文本一致」**：目标/hover 的类型文本仍由**冻结内核的 pp** 产出，
+契约**不含「打印文本一致」**：目标/hover 的类型文本由**显示边界重写**（`front::display::print_back`，0.65.0 起折记法）产出，
 会显示点名形式。
 
 ## 3. 词法设计（as-built）

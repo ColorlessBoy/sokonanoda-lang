@@ -129,7 +129,7 @@ key(M) = H( format, 编译器版本, build stamp, prelude 模式,
 3. 每个入口：`restore_declars(库层检查点)` ⇒ 只走**入口自己的命令** ⇒ 编完 `hide_declars()` 丢掉入口的声明；
 4. ⇒ **单元之间从不共处一个环境**（09-25 假"重复声明"的结构性根因消失），
    **前缀也不膨胀**（每个入口的前缀仍是它自己的闭包），而**共享库只编一次**。
-**判据（`crates/front/tests/module_reuse.rs`）**：① 复用路径 vs 今天逐入口路径的报告/事件
+**判据（`crates/cli/tests/imports.rs` 的多入口守卫 + `scripts/check-recompile-factor.py`）**：① 复用路径 vs 今天逐入口路径的报告/事件
 **逐字节相同**（错编红线，唯一验收口径）· ② `by_calls` **3 → 1**（`check-recompile-factor.py`同口径；**改前实测 = 3**）· ③ **改依赖一行 ⇒ 必 miss 重编**（反例）· ④ 入口顺序交换结果不变 ·
 ⑤ 真课程 **174 → ?** / **222.1s → ?**。
 **待实验回答的唯一未知**：walk 的前端表（`known`/`inductives`/`defs`）能否跨入口复用，还是必须逐入口重建（① 会直接给出答案）。

@@ -54,7 +54,7 @@ if fun.num_loose_bvars() > 0 { return false; }
   不撒谎的选择。闭项行为逐字节不变。
 - 纯显示层：不触碰 `infer`/`conv`/`eval` 热路径；`num_loose_bvars` 由
   `ExprPtr` tag 直接读出（O(1)，无遍历）。
-- 按内核冻结规则（REQUIREMENTS §2 第 1 条、architecture §6）带**三层回归**：
+- 按内核改动纪律（`docs/architecture.md` §6 台账 + §8 gotchas）带**三层回归**：
   kernel（`memory_api.rs`：构造依赖应用类型 → infer + pp 不 panic）；
   front（hover 文本非空且含 `p a`）；CLI（`#check (Eq.subst.{1})` 出
   `expr.typed` 而非 `kernel-rejected`）；另加 LSP hover e2e（用户原始场景）。

@@ -4,7 +4,7 @@
 > `\xxx` 替换，同时 hover 内容提示用户如何输入对应符号」。
 >
 > 调研底稿：`docs/notes/course-lean-style/notation-input-plan.md`（含 Lean 4 的逐字
-> 取证与全部实测复现命令）。本文是**设计 + 分期计划**；实施时把 as-built 追加到 §8。
+> 取证与全部实测复现命令）。本文是**设计 + 分期计划**；as-built 在 §10/§11（**不是** §8）。
 
 ---
 
@@ -24,7 +24,7 @@
 
 | 面 | 事实 |
 |---|---|
-| VS Code 扩展 | `editor/vscode/extension.js`（**1880 行**）已有 hover / 练习树 / Infoview / 命令；**没有**补全 provider、没有缩写机制 |
+| VS Code 扩展 | `editor/vscode/extension.js`（当时 **1880 行**，现 ~2700 行）已有 hover / 练习树 / Infoview / 命令；**没有**补全 provider、没有缩写机制 |
 | LSP | `crates/lsp/src/lib.rs` 提供 hover / documentSymbol / codeAction / inlayHint **以及 `textDocument/completion`**（`lib.rs:1353-1440`：本域 binder + 关键字 + 宇宙 + prelude 名，且服务端**已经**advertise `completionProvider`，`lib.rs:961`）；hover 文本一律 ` ```sokonanoda ` 围栏（`docs/design/goal-rendering.md` §7 的契约） |
 | 单一真相源纪律 | `front::semantic::KEYWORDS` 与 `editor/vscode/syntaxes/sokonanoda.tmLanguage.json` **同轮同步**，守护测试 `crates/cli/tests/extension.rs::tm_grammar_keywords_follow_the_single_source`。新表必须接进同一条纪律 |
 | hover 对**符号**的反应 | **三种行为不一致**（底稿 §1.5 实测）：内建记法（`∧`）有反应、库记法（`∈`）在**单文件 parse 失败时**没反应、`→`（词法别名）反应的是别的 |

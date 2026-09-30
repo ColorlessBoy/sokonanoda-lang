@@ -118,10 +118,10 @@
 2. **等式必须显式给宇宙**：裸 `Eq` 默认 `u = 0`，`Eq x a`（`α : Type`）会被拒
    （`期望 Sort(0)，实际是 $2`）；正确写法 `Eq.{1} α x a`，`Eq.subst.{1}` 同理。
    **单元素/配对/外延性全会撞上，建议做成"陷阱卡"放在单元 2。**
-3. **`And` 必须走 axiom 族，不能走 `inductive`**（G-02）：`inductive And` 的构造子是裸名
+3. ~~**`And` 必须走 axiom 族，不能走 `inductive`**（G-02）~~ ⇒ **G-02 已修**（0.59.0，构造子进 `Ind.ctor` 命名空间，`lib/Logic.sokonanoda` 现用 `inductive`）：原写法曾因构造子是裸名
    `intro`，`And.intro`/`And.left` 报 unknown identifier。`Or` 相反：用 `inductive` 得裸名
    `inl`/`inr` 恰好可用。（入门课 already 这么写，照抄即可。）
-4. **`Exists` 必须立公理三件套**（G-03），与入门课单元⑧一致。
+4. ~~**`Exists` 必须立公理三件套**（G-03）~~ ⇒ **G-03 已修**（0.59.0，派生 recursor 的 large-elim 判据镜像内核）：`lib/Logic.sokonanoda` 现用 `inductive`，与入门课单元⑧一致。
 5. **凡 `decl_checked` 突降为 0，一律用 `grade` 复核**（G-10）：MCP `check` 与
    `query check` 在解析失败时给 `ok:true` + 全零。**as-built（0.59.0，G-10 已修）**：
    `query check` 现在同样带 parse 诊断 + exit 1（与 `grade` 同口径），这条复核纪律

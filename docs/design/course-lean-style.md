@@ -117,7 +117,7 @@ theorem union_comm (α : Type) (A B : Set α) : A ∪ B = B ∪ A := by
 
 ## 3. 语言侧工作项（L 系列）
 
-> 纪律：`crates/kernel/**` **一个字节不许动**（硬规则 1）；新增语法走
+> 纪律：`crates/kernel/**` **本项零改动**（内核 2026-09-21 已解冻；红线 = 判定正确性不变）；新增语法走
 > **课程 + 测试 + 白名单三件套**（硬规则 3）；判定永远走 kernel（硬规则 4）；
 > 每项都要三层测试（front 单测 → CLI e2e → 课程/golden）。
 
@@ -344,9 +344,9 @@ theorem union_comm (α : Type) (A B : Set α) : A ∪ B = B ∪ A := by
 | **F3** | 编辑器词表 | `front::semantic::KEYWORDS` + `editor/vscode` TM 语法**同轮**加新 tactic 关键字与新拼写 | `cargo test -p sokonanoda-cli --test extension`（`tm_grammar_keywords_follow_the_single_source`） |
 | **F4** | 技能与入口 | `skills/` 三个技能 + `.agents/skills/` 入口 + `AGENTS.md` + `docs/vscode-dev-guide.md` | `cargo test -p sokonanoda-cli --test skill --test dsh` |
 | **F5** | 设计文档 | 本文 as-built §9；`docs/design/notation-subset.md` §13.1 **改写**（把「销不掉」改成「① ② 不做；显示边界重写见本报告」）；**同文 §86-89 与代码矛盾必须修**——它说「不同符号同级按左结合」，代码（`parser.rs:1929-1939`）**是报错**（S1 实测），文档或代码必有一处要改；`docs/design/by-tactics.md` 补新 tactic；`docs/design/set-theory-syllabus.md` §4；`docs/design/course-stdlib.md`（L2 分层调整）；`docs/architecture.md:145` 的「goal/hover 全部点名形式」 | 人工 + 文档链接检查 |
-| **F6** | 站点 | `scripts/soko doctor --json` 必须 `ready:true` ⇒ `python3 scripts/gen-site-data.py`（日志须打印**「门禁实测」**）⇒ `python3 scripts/check-site.py`；`site/set-theory.html:60`（单元①文件名）、`:80-81`；`site/course.html:35` | 三条命令 exit 0 + 日志核对 |
+| **F6** | 站点 | `scripts/soko doctor --json` 必须 `ready:true` ⇒ `python3 scripts/check-site.py`（日志须打印**「门禁实测」**）⇒ `python3 scripts/check-site.py`；`site/set-theory.html:60`（单元①文件名）、`:80-81`；`site/course.html:35` | 三条命令 exit 0 + 日志核对 |
 | **F7** | 缺口台账 | 新增条目（缺 tactic 一族；`∃` 搬家；`=` 词法；`→` 别名）+ `scripts/gap.py check` | `python3 scripts/gap.py selftest` + `check` exit 0 |
-| **F8** | 顶层文档 | `STATUS.md` 一轮（旧轮归档 `docs/STATUS-ARCHIVE.md`）；`REQUIREMENTS.md` §9 追加日期条目（`:1670`/`:1687`/`:1751`）；`docs/HANDOVER.md`（`:7`/`:440`）；`docs/TESTING.md`（`:67`/`:70`/`:100`）；`docs/design/{teaching-project,course-manifest-v2,course-gate-in-ci,site}.md` 的计数 | 人工 |
+| **F8** | 顶层文档 | `STATUS.md` 一轮（旧轮归档 `docs/STATUS-ARCHIVE.md`）；`REQUIREMENTS.md` §9 追加日期条目（`:1670`/`:1687`/`:1751`）；`docs/ONBOARDING.md`（原交接书已删）（`:7`/`:440`）；`docs/TESTING.md`（`:67`/`:70`/`:100`）；`docs/design/{teaching-project,course-manifest-v2,course-gate-in-ci,site}.md` 的计数 | 人工 |
 | **F9** | CI / 站点触发 | `ci.yml:173/186` 的「G1–G5」→「G1–G6」；`pages.yml:23-31` paths 补 `"courses/set-theory/**"`（否则改课程**不触发部署**）；`scripts/soko:912` 的 "34 targets" | 读文件 |
 | **F10** | 版本 | bump 两处（`Cargo.toml` + `editor/vscode/package.json`）+ `Cargo.lock`；⚠️ **`courses/set-theory/sokonanoda.toml` 的 `requires = "0.61"` 必须随语言 bump**——否则 `scripts/soko` 版本不符**直接 exit 3**（启动器的版本钉守卫） | `scripts/soko version --json` + `scripts/soko doctor --json` |
 | **F11** | 全量门禁 | `scripts/soko gate`（fmt + clippy + test + playground anchor + 课程门禁 + 缺口台账） | **exit 0** |

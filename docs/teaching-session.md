@@ -129,7 +129,7 @@
 
 > 单元⑨把单元①的 `Or` 从公理升级为真正的 `inductive`（前端自动派生
 > `Or.rec`），`Iff` 是 `And (A -> B) (B -> A)` 的 `def`，`Le`/`Even` 是带
-> 索引的归纳关系（各自**手写** `rec`/`iota`——见 HANDOVER §3 的 gap 1）；
+> 索引的归纳关系（各自**手写** `rec`/`iota`——见 `docs/design/agent-query-channel.md` §7 的 gap 1）；
 > 单元⑩不再新增语法，练「读」：自解释三问、formal↔informal 互译、评阅错
 > 证明、期末小项目——每道题的成品仍必须过内核。
 > 钥匙见 `course/solutions/unit{9,10}-*-solution.sokonanoda`。

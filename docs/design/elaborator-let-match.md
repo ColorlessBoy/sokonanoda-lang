@@ -1,13 +1,13 @@
 # 前端 elaborator：`let` 与 `match` 设计（2026-09-14 设计）
 
-> **状态：只落设计，不动实现。** 本设计对应 `ROADMAP.md` §10 的 **I6**
+> **状态：as-built（已落地）。** Phase 1 `let` 0.28.0（无注解 0.34.0）、Phase 2 `match` 0.33.0–0.42.0 均已发布（见本文 §12/§13 与 `docs/design/match.md`）。本设计对应 `ROADMAP.md` §10 的 **I6**
 > 「elaborator 推进：binder 类型推断 → `let` → 单构造子 `match`/递归」。
 > 结论先行：**拆两个里程碑**——**Phase 1 只交付值位 `let`（本文档的
 > 首个交付物，可立即开工）；`match` 推迟到 Phase 2**，本文只给设计与
 > 可行性预研（§4），不写成实现规格（理由见 §1.3 / §4.1）。
 >
 > 硬规则约束（`REQUIREMENTS.md` §2 / `docs/architecture.md` §3）：
-> 1. **kernel 冻结**，一行不改、不动热路径；只用既有内核能力；
+> 1. **本项零内核改动**，一行不改、不动热路径；只用既有内核能力；
 > 2. 教学语法是真实 Lean 4 的**子集**，填完的文件放进官方 Lean 仍合法；
 > 3. **新增语法 = 课程 + 测试 + 白名单三件套**（本文 §7 / §8）；
 > 4. 判定永远走 kernel，禁止文本比对。
@@ -314,7 +314,7 @@ zeta 等价由内核的 conv 负责。
 ### 5.2 `funintro` 已移除——`let` 不是值位关键字补全
 
 `funintro`/`funapply` 已在 0.27.0/0.22.0 移除
-（`docs/design/remove-funintro.md`、`value-keywords-v2.md`）。值位从此只有
+（`docs/design/remove-funintro.md`；`value-keywords-v2.md` **已归档** ⇒ `docs/archive/design-deprecated-2026-09-26/`）。值位从此只有
 **普通表达式 + `by` 块**。`let` 是**正规语法**，不是「关键字触发自动补全」
 的魔法命令，因此：
 

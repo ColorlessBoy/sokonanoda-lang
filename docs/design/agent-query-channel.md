@@ -1,6 +1,6 @@
 # 内核真相查询通道（设计 + 计划：`query` 子命令 / MCP server）
 
-> 状态：**设计定稿，实现未开始**。本文取代 `docs/design/deepseek-harness.md` §5 H5
+> 状态：**H6-A…H6-D 已落地**（0.56.0 → 0.58.0；H6-E = backlog）。本文取代 `docs/design/deepseek-harness.md` §5 H5
 > 的 B2（"诊断通道：MCP 或等 DSH 支持 publishDiagnostics"），并把它**从根上重做**：
 > 不是"再写一个 MCP server"，而是先把**内核真相查询层**从 LSP 里抽出来。
 > 触发：用户 2026-09-17「这个你来设计一下开发文档，从根上正确解决。同时看一下前人
@@ -9,7 +9,7 @@
 > 关联：`docs/protocol.md`（`--json` 事件 + `soko/*` 契约）、
 > `docs/design/deepseek-harness.md`（harness 接线，H0–H4 已落地）、
 > `docs/design/goal-rendering.md`（semantic runs 单一分类源）、
-> `docs/design/infrastructure.md`（LSP-first 总体设计）、`docs/HANDOVER.md` §3 E（两个 TODO）。
+> `docs/design/infrastructure.md`（LSP-first 总体设计）、`docs/ONBOARDING.md`（两个 TODO 见本文 §7）。
 
 ---
 
@@ -62,7 +62,7 @@
 | Q2 | `crates/lsp/src/lib.rs` **4256 行**（REQUIREMENTS §4 红线 ~500） | 每次加能力都在加深欠账，且无法单元测试纯逻辑 |
 | Q3 | agent 侧只有"全文件事件流" | 问"光标处目标是什么"必须整文件判卷 + 自己在事件里找；token 浪费、易误判 |
 | Q4 | DSH 拿不到诊断（D9） | 内核反馈只能靠 agent 主动跑 CLI，**没有一条"提问式"通道** |
-| Q5 | 两个 front 缺口（HANDOVER §3 E） | 索引递归 `Prop` 的 recursor 派生被内核拒（课程只能手写 `rec`/`iota`）；`inductive` 参数不吃多名字组 |
+| Q5 | 两个 front 缺口 | 索引递归 `Prop` 的 recursor 派生被内核拒（课程只能手写 `rec`/`iota`）；`inductive` 参数不吃多名字组 |
 | Q6 | 查询类能力**零契约测试**（协议测试只覆盖 `--json` 事件与 `soko/*` 的 LSP 形状） | 新通道若与 LSP 结论不一致，没有测试会红 |
 
 ---
@@ -208,7 +208,7 @@ pub struct QueryAnswer<T> { pub version: u64, pub data: T }
 > 合成进 `failed[]`（`check` 是唯一例外：它的**答案**就是"这份文本解析不了"，所以
 > `ok` 保持 `true`，见 §5.2 as-built）。
 
-### 4.2 六个操作（语义 = 今天的 LSP 行为，逐条对照）
+### 4.2 七个操作（语义 = 今天的 LSP 行为，逐条对照；`project` 于 0.58.0 加入）
 
 | op | 语义（唯一真相） | 结果要点 |
 |---|---|---|
@@ -245,7 +245,7 @@ sokonanoda query state  --file playground.sokonanoda --line 201 --col 9
 sokonanoda query goals  --file playground.sokonanoda --probe
 sokonanoda query holes  --file playground.sokonanoda [--offset 4103] [--direction next|prev]
 sokonanoda query hints  --file playground.sokonanoda --line 201 --col 9
-sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
+sokonanoda query reduce --file playground.sokonanoda --expr '1 + 1'
 ```
 
 - **单 JSON 对象**输出（不是 NDJSON）：agent 直接 `json.loads` 即可，不用拼行。
@@ -347,7 +347,7 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
         transport: stdio
         serverName: sokonanoda
         command: node
-        args: ['scripts/soko-mcp.js']      # 相对 cwd
+        args: ['dsh/mcp/server.js']        # 相对 cwd（经 `scripts/soko mcp` 转发）
         cwd: !!js process.env.SOKO_REPO ?? process.cwd()   # 单行（D24）
         toolCallTimeoutMs: 60000
         failOnStartupError: true          # server 起不来就报错，别静默无工具
@@ -369,7 +369,7 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 
 ---
 
-## 7. 两个 TODO（HANDOVER §3 E）—— 与本轮的关系与更新
+## 7. 两个 TODO—— 与本轮的关系与更新
 
 用户要求"看一下前人留下的两个 TODO，需要更新一下"。二者都不是独立小修：
 **它们直接决定查询通道给出的"真相"是否完整**，因此并入本计划的 H6-C 阶段，
@@ -380,7 +380,7 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 | **A. `derive_recursor` 拒绝「带索引 + 箭头写法字段」的归纳**（实测：`P : Nat -> Prop` + `ctor b (n : Nat) : P n -> P (Nat.succ n)` 被内核拒；同形状改**具名字段**即通过；索引 `Type` 一样失败；**与 `Prop` 无关**） | 课程 #9 手写 `rec`/`iota` 规避 | `goals`/`holes` 的期望类型与 `check` 的失败诊断都会经过 recursor/iota 路径；派生错误会让"真相"在课程最常见的关系类归纳上失真 | **修 front 一处**（`elab.rs:2613` 的 `src_spine` → `spine_of_codomain`）+ 顺带修 `is_k` 写死；见 H6-C |
 | **B. `inductive` 参数不吃多名字 binder 组**（`(A B : Prop)`；Pi/箭头位已支持） | 课程只能写 `(A : Prop) (B : Prop)` | 解析器能力缺口会让 agent 写出的合法 Lean 子集被拒——**agent 是主要作者**，这个缺口对查询通道的可用性影响更大 | **修 parser 两处**（`parser.rs:363`/`:402` 改调 `push_binders`；AST/elab 不用动）；见 H6-C |
 
-> 更新动作（本轮已做）：`docs/HANDOVER.md` §3 E 两条标注"并入 ROADMAP I15 /
+> 更新动作（本轮已做）：`ROADMAP.md` I15 两条标注"并入 ROADMAP I15 /
 > `docs/design/agent-query-channel.md` H6-C"，不再作为孤立 front 待办。
 
 ---
@@ -458,7 +458,7 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 
 #### TODO A —— 触发条件是「**带索引 + 至少一个字段写在结果的箭头链里**」，与 `Prop` 无关
 
-**先纠正两个曾写错的判断**（本文档早期版本与 `docs/HANDOVER.md` 都错了）：
+**先纠正两个曾写错的判断**（本文档早期版本与 `docs/ONBOARDING.md`（原交接书已删） 都错了）：
 
 - ❌ 不是"`small_elim`/`is_prop_block_ty` 判据不对"：`elab.rs:2499` 的
   `is_prop_block_ty(ty) && constructors.len() > 1` **在因果链之外**——索引 `Type`
@@ -531,7 +531,7 @@ let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
   属于 by 引擎的独立特性；④ `axiom`（`:295+`）无 binder 望远镜，无需改；
   ⑤ `match` 模式（`:592-653`）已是"每个原子一个名字"（`| C a b =>` 可用），无缺口；
   ⑥ `rec`/`iota` 的类型是表达式，✅；⑦ 宇宙参数 `{u, v}` 已是多名字（`:332-355`）。
-  **本轮只修 ①+inductive 参数**；②③单独立项（写进 `docs/HANDOVER.md` §3 E 备查）。
+  **本轮只修 ①+inductive 参数**；②③单独立项（写进 `ROADMAP.md` §10.2 I15 备查）。
 
 #### 实现与验收
 
@@ -551,7 +551,7 @@ let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
    `course_status.rs:105-118`（78/59）——`rec`/`iota` 不产事件，计数**应当不变**；
    变了就说明改错。
 4. 文档同步：`docs/architecture.md` §4.1 与参数化归纳段（`:131-135`）、
-   `docs/design/indexed-inductives.md` §2/§3、`docs/HANDOVER.md` §3 E、`STATUS.md`。
+   `docs/design/indexed-inductives.md` §2/§3、`docs/ONBOARDING.md`、`STATUS.md`。
 5. 两者都**不碰 `crates/kernel/`**（冻结）：A 依赖内核既有的 recursor 契约，
    B 根本到不了内核。若发现必须改 kernel → **停下回设计**（范围变更）。
 6. **保留**（教学用，不是 workaround）：unit6/7 手写 `Nat`/`Color` 消去子
@@ -587,7 +587,7 @@ let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
    `skills/sokonanoda-teacher` 增"**先问，别扫**"；`skills/sokonanoda-dev` 增
    "**真相层不得绕过**"（新增语义必须进 `front::query`，适配器只做映射）。
 2. ✅ `docs/protocol.md`（`query` 子命令一节）、`docs/TESTING.md`（真相层 + 一致性契约
-   两行）、`docs/HANDOVER.md`、`ROADMAP.md` I15 as-built、`docs/LESSONS.md`
+   两行）、`docs/ONBOARDING.md`（原交接书已删）、`ROADMAP.md` I15 as-built、`docs/LESSONS.md`
    （全输入对拍的工作方法）；`REQUIREMENTS.md` §9 追加。
 3. ✅ 门面同步：VS Code `README/CHANGELOG/package.json`（扩展代码零改动；CHANGELOG
    记"内部重构 + 两处边界对齐"）+ `site/assets/agent-prompt.js` 一句；

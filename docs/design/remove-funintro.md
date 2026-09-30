@@ -37,7 +37,7 @@
 - `parser.rs`：删值位关键字分支、原子位 `(funintro …)` 分支、lambda 尾
   `parse_lambda_tail_keyword`；`KEYWORDS` 不再含 `funintro`；
 - `semantic.rs`：删关键字分类与相关测试；
-- 删 `crates/front/src/compile/intro.rs`；`check.rs` 的 `lower_value` 不再返回
+- 删 `crates/front/src/compile/intro.rs`（**已删**）；`check/` 的 `lower_value` 不再返回
   骨架（`LoweredValue` 收窄为 `(Expr, Vec<ByStep>)`）；
 - `report.rs`：删 `DeclState.intro_skeleton`；
 - `error.rs`：删仅服务于 funintro 的错误分类（若已无引用）；

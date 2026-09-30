@@ -71,7 +71,7 @@ hover 看到 `Type 0` 就是 `Sort 1`，两者指同一个项。
 实现：`parser.rs::parse_level_text`（语法 → 层级**文本**；AST 的层级槽位本来就
 是文本）+ `elab.rs::level_ptr`（文本 → 内核层级，用 `EnvBuilder` 的公开
 `zero`/`succ`/`level_param`）。`proof.rs::render_expr` 给带 `+` 的层级加括号
-（`Sort (u+1)`），render→parse 往返无歧义。**内核零改动**（硬规则 1）。
+（`Sort (u+1)`），render→parse 往返无歧义。**内核零改动**（本项范围；内核已解冻，红线 = 判定正确性不变）。
 
 ### 5.2 明确不做（两条边界，都有实测）
 

@@ -100,7 +100,7 @@
 
 ## 4. 消费者逐个的 as-built
 
-### 4.1 CLI `sokonanoda course <manifest> --json`（`crates/cli/src/course.rs`）
+### 4.1 CLI `sokonanoda course <manifest> --json`（`crates/cli/src/course/manifest.rs`）
 
 新增 `crates/cli/src/course/manifest.rs`（纯解析 + 展平，可单测）：
 
@@ -165,7 +165,7 @@ pub(crate) struct Manifest { pub units: Vec<UnitEntry>, pub volumes: usize, pub 
   字段**且**保留 v1 平铺路径（`courseUnitItem` + `TreeItemCollapsibleState.None`）。
   stub 宿主 `test-extension-host.js` 加一条真跑分组渲染的用例。
 
-### 4.4 站点（`scripts/gen-site-data.py` + `site/set-theory.html`）
+### 4.4 站点（`scripts/gen-site-data.py` + `site/index.html`；⚠ **站点已单页化**，本节的多页渲染已废 ⇒ `docs/design/site-single-page.md`）
 
 * `gen-site-data.py` 的 `_parse_units` 换成 `parse_manifest()`：v1 数组与 v2 对象
   都返回 `(units, volumes)`；`volumes` 里每章带 `id`/`title`/`prereqs`/`tags`/
@@ -293,7 +293,7 @@ python3 courses/set-theory/tools/test_manifest_v2.py   # exit 0 · 12/12（含�
 > **收尾轮更新**：原第 4 条「不做多卷聚合」已**销账**——CLI 多清单聚合落在 §4.5，
 > 成本台账落在 §4.6。下面留下的都是仍然排除的。
 
-* **不动内核**（`crates/kernel/**` 一个字节不改——硬规则 1）；
+* **不动内核**（本项范围；内核 2026-09-21 已解冻，红线 = 判定正确性不变）；
 * **不改入门课** `course/course.json`（v1 继续是合法格式，它就是兼容性的活体测试）；
 * **不给 `quota` 判红**（设计原则：只判形状、不锁计数）；
 * **不做跨清单的单元合并/去重**：同一个单元文件挂在两份清单里就报两次——每份清单

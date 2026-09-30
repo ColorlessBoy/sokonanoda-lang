@@ -2,8 +2,8 @@
 
 > **改名说明（ROADMAP I13-S1，2026-09-13）**：本设计写作时值位关键字名为 `apply`，现已改名为 **`funapply`**。下文（含标题与正文）中所有指「值位关键字」的 `apply` 均对应今天的 `funapply`。AST 节点 `Expr::Apply` 与模块 `crates/front/src/compile/apply.rs` 的名称不变；by 块 tactic `apply` 不受影响。
 
-> **状态：已实现并发布（0.18.0，2026-09-13）。** 本文档含设计取舍与 as-built
-> 记录（§12）。实现：`crates/front/src/compile/apply.rs`（降低）、
+> **⚠ 状态：已废弃（0.22.0 整体移除值位关键字）。** 本文是**历史设计记录**（归档候选；仍被 `crates/front/src/spine.rs` 引用作对照）—— 下文所有"实现"字样都指 0.18.0–0.21.0 期间。原文：本文档含设计取舍与 as-built
+> 记录（§12）。实现（**0.22.0 已整体删除**）：`crates/front/src/compile/apply.rs`（降低，**已删**）、
 > `crates/front/src/spine.rs`（与 tactic apply 共用的 telescope 机械）、
 > `crates/front/src/compile/goals.rs`（局部假设覆盖层）、测试见
 > `docs/TESTING.md`。0.20.0 起 lambda 体尾部也可用（§2.4 已更新）。

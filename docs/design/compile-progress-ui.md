@@ -70,7 +70,7 @@ withProgress({ location: { viewId: "sokonanoda.infoview" }, title: "编译项目
    要断言**至少一次 `increment > 0` 的 `report`** ✓
    （**只判首尾 = 现在 LSP 路径的形态，等于没进度** ✗）。
 3. ⚠ **不许**拿「输出面板有内容」当「有进度」的证据 ✗ —— 同型假绿在
-   `editor/vscode/src/test/extension.test.ts:1083` 有过一次
+   `editor/vscode/src/test/extension.test.js` 有过一次
    （`revealRange` 把光标停在 range 末尾 ⇒ 被当成"跳转成功" ✗）。
 
 ## 4. 实施顺序（**探针优先**）

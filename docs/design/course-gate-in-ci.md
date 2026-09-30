@@ -16,7 +16,7 @@
 | 层 | 结论 | 一句话理由 |
 |---|---|---|
 | 判据的**唯一真相** | `courses/set-theory/tools/check.py`（python3，零 cargo） | 课程线的判卷路径本来就是 `scripts/soko grade`（node + 二进制）；硬规则 6 要求作者/agent 路径零 cargo，判据不能长在 Rust 里 |
-| CI | **先加在 `test` job 里当新 step**（不是新 job） | 那一步的二进制是**当轮 cargo 刚编出来的**（版本天然一致、零下载）；代价 +10～40s；`auto-tag` 的 `needs` 已经包含 `test`，发布自动被挡 |
+| CI | ⚠ **当时决定"加在 `test` job 里当新 step"；落地时改成独立 `gates-course` job**（矩阵 4 片，`.github/workflows/ci.yml` 实测）—— 独立 job 更好定位、且能复用 release 产物 | 那一步的二进制是**当轮 cargo 刚编出来的**（版本天然一致、零下载）；代价 +10～40s；`auto-tag` 的 `needs` 已经包含 `test`，发布自动被挡 |
 | 本地 | 阶段 3 挂到 `scripts/soko` 的 `gate`（**启动器层**，不动 Rust） | 「本地 = CI」纪律；不动 CLI 就不用 bump 版本/等发版；缺 python3 时 exit 3（无法判定≠绿） |
 | Rust 集成测试 | **不做**（`crates/cli/tests/course.rs` 的 golden 只继续服务旧 `course/`） | 判据双实现必然漂移；课程要能按 §3.3 抽成独立仓，判据必须跟着课程走 |
 | 升级触发器 | CI 里该 step 实测 > 90s，或课程抽出成独立仓 | 前者升级为独立 job（并行），后者整包搬走（`new-course-repo.sh` 的 CI 模板就是终点形态） |
@@ -71,7 +71,7 @@
 ### 2.4 采纳：分层（B 的落点简化版 + A 的启动器挂载 + C 的零漂移思想）
 
 1. **判据**留在 `check.py`（唯一真相，课程自己拥有，可随课程抽出）；
-2. **CI**：在 `test` job 的 "Course layer is guarded" 之后加一个 step
+2. **CI**：⚠ **落地形态 = 独立 `gates-course` job**（矩阵 4 片；`test` job 里没有课程门禁步）。原计划是在 `test` job 的 "Course layer is guarded" 之后加一个 step
    （`timeout-minutes: 5`，显式 `actions/setup-node@v5` 钉 node 22，
    `SOKONANODA_BIN="$PWD/target/debug/sokonanoda"`，`python3 "$GITHUB_WORKSPACE/courses/set-theory/tools/check.py"`）
    ——**不新建 job、不下载、不复用 artifact**，用当轮构建的二进制；
@@ -203,7 +203,7 @@ AGENTS.md 点名「缓存过期是历史上最常见的故障源」，`gate` 也
 |---|---|
 | `courses/set-theory/tools/check.py` | 判据 **G1–G5**（§3 原文，全部与规模无关；**0.60.0 起另加 G6 = 清单自洽**——见 `docs/design/course-manifest-v2.md`，G1–G5 语义未动）+ `--selftest` / `--bisect` / `--only` / `--json` / `--report` / `--summary` / `--annotations` / `--ledger [路径]` / `--bin`；退出码 0/1/2 按 §3/§4.4 |
 | `scripts/soko` | 新增 `case 'gate'`（§7 S3）：python3 探针在**最前面**（探不到 ⇒ exit 3 + 装法，绝不静默跳过）→ 原样跑 CLI 的 cargo 门禁 → 绿了再跑课程门禁，并把**解析到的**二进制经 `SOKONANODA_BIN` 透传；`refuseUntrusted()` 从 default 分支提取出来复用（行为逐字不变）；**第四步（主线收尾，0.59.0）= `python3 scripts/gap.py selftest` + `check`**（缺口台账契约，~3 s；课程被抽走时前三步跳过它仍跑） |
-| `.github/workflows/ci.yml` | `test` job 里 `Course layer is guarded` 之后新增 `actions/setup-node@v5`（node 22）+ `Course gate (set-theory, G1–G5)`（`timeout-minutes: 5`，`SOKONANODA_BIN=${{ github.workspace }}/target/debug/sokonanoda`，先 `--selftest` 再 `--annotations --report /tmp/course-gate.json --summary "$GITHUB_STEP_SUMMARY"`）+ `Upload course gate report (always)`（artifact `course-gate-report`）。**不新建 job**（§2.4），`auto-tag` 的 `needs` 不动（`test` 本来就在里面 ⇒ 课程红就挡住发布）；同 job 再下一步 `Gap ledger is consistent (docs/gaps)`（`gap.py selftest` + `check`，`timeout-minutes: 3`，`SOKONANODA_BIN` 同上）——台账是契约，红了说明语言变了而台账没跟上 |
+| `.github/workflows/ci.yml` | **独立 `gates-course` job**（矩阵 4 片，`timeout-minutes: 40`）+ `Course gate (set-theory, **G1–G6**)`（原计划是 `test` job 里 `timeout-minutes: 5`，`SOKONANODA_BIN=${{ github.workspace }}/target/debug/sokonanoda`，先 `--selftest` 再 `--annotations --report /tmp/course-gate.json --summary "$GITHUB_STEP_SUMMARY"`）+ `Upload course gate report (always)`（artifact `course-gate-report`）。**不新建 job**（§2.4），`auto-tag` 的 `needs` 不动（`test` 本来就在里面 ⇒ 课程红就挡住发布）；同 job 再下一步 `Gap ledger is consistent (docs/gaps)`（`gap.py selftest` + `check`，`timeout-minutes: 3`，`SOKONANODA_BIN` 同上）——台账是契约，红了说明语言变了而台账没跟上 |
 
 ### 9.2 与设计的偏差 / 实现细节（reviewer 看这里）
 
@@ -257,9 +257,9 @@ AGENTS.md 点名「缓存过期是历史上最常见的故障源」，`gate` 也
 ### 9.4 未做 / 交给下一轮
 
 - **S0 仍是前提（0.59.0 收尾轮复述）**：`git ls-files courses/set-theory` 到本收尾轮
-  仍是 **0**（`courses/` 整个目录还是 `??` 未入库；`site/set-theory.html` 同样）。
+  仍是 **0**（**2026-09-19 当时** `courses/` 还是 `??` 未入库）。
   在干净检出上这个 CI step 会因找不到 `check.py` 而红——**落 commit 时必须 `git add
-  courses/`（含 `tools/check.py`）与 `site/set-theory.html`、`scripts/gap.py`、
+  courses/`（含 `tools/check.py`）与 `scripts/gap.py`、
   `docs/gaps/`，否则这一版一发出去 CI 就先红在课程门禁 / 台账门禁上**。
 - **S4**（main-only 台账回提交）**仍未做**（CI 不该往仓库里写文件）；`--ledger` 已实现，
   收尾轮**人工跑了一次**：`docs/courses/ledger.jsonl` 第一条 = set-theory · 36 目标 ·

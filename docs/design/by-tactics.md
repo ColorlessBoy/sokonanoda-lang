@@ -210,7 +210,7 @@ struct ByStepState { span: Span, goal: Option<String>, binders: Vec<GoalBinder> 
   （`intro`/`exact`/`apply`/`assumption`/`rfl`/`match`/`sorry`），当前 tactic 的表达式就
   在此结束——这是为了让 `exact f` 换行 `apply g` 不被贪婪读成 `f apply g`。
   仍**不引入缩进敏感**；续行只要不以 tactic 关键字开头就照常拼接（多行项可用 `;` 或括号）。
-- kernel 冻结：引擎全在 front 层（AST + judge 合成声明），kernel 一行不动；
+- 本项零内核改动：引擎全在 front 层（AST + judge 合成声明），kernel 一行不动；
 - webview goal 面板（方案 B）不在本轮实现，协议先行。
 
 ## 10. 验收
@@ -381,8 +381,8 @@ term 风格基线 3.6 s 说明**还没回到"零判定成本"**：剩下的成�
 `SOKO_NO_JUDGE_BATCH=1` 是**排错/对拍**开关（与 `SOKONANODA_NO_CACHE` 同类），
 不是给用户调的性能旋钮。
 
-> **as-built 更新（2026-09-24，第 90 轮）** —— 这句「**根因未修，不许当成已修**」
-> **依然成立** ✗，但根因现在**查到了机制级** ✓：
+> **as-built 更新（2026-09-30）** —— ⚠ **下面"未修"的结论已被推翻**：§3.C 后同一开关 **1.25×** 且默认开
+> （权威 = `by-prefix-reuse.md` §6）；**原文只作"当时为什么这么判"的记录**：
 > * **病灶**：`by` 每走一步 tactic 都重新判定整份文档 ⇒ `judge_infer` 的缓存键
 >   **含整段前缀** ⇒ 前缀每长一条就换键、未命中就把**整段前缀重编译一趟 pass**。
 >   实测（冷开 `unit12-solution`）：`JUDGE_INFER calls=51156 total=11183ms`（占 90%），
@@ -395,6 +395,6 @@ term 风格基线 3.6 s 说明**还没回到"零判定成本"**：剩下的成�
 >   `snapshot()` ✓、interner/`Dag` 的 `Clone` ✓，判据齐全 ✓），但**接线撞墙** ✗：
 >   `decl_idx` 是"每个名字**全局唯一**"的槽位 ⇒ **两个环境无法共存** ✗
 >   ⇒ 唯一出路是**把 check-then-add 移进 walk**（内核级重构 ✗）。
-> * **⇒ 结论**：**未修** ✗（所以那句话留着 ✓），修复归入「**内核级重构**」档；
+> * **⇒ 当时的结论**：**未修** ✗，修复归入「**内核级重构**」档 —— ⚠ **2026-09-30 更正：已修**（见本节开头）；
 >   靶心（9.5s）与验收工具（`SOKO_JUDGE_STATS` / `SOKO_SHADOW_CHECK` /
 >   `scripts/kernel-check.sh` 五步）**都已记录在案** ✓，将来可直接开工 ✓。

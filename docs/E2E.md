@@ -18,7 +18,7 @@ scripts/vscode-e2e.sh --version 1.106.0   # 试声明的最低版本（engines.v
 脚本做四件事（缺一步都会得出"看起来像回归、其实是环境"的结论）：
 
 1. `cargo build --release -p sokonanoda-lsp -p sokonanoda-cli` —— 被测的就是发布形态；
-2. `node scripts/stage-lsp.js` —— 把刚构建的二进制 stage 进 `editor/vscode/bin/<target>/`。
+2. `node editor/vscode/scripts/stage-lsp.js` —— 把刚构建的二进制 stage 进 `editor/vscode/bin/<target>/`。
    **必须做**：扩展默认 bundled-first，而 `bin/` 是 gitignored 目录，很容易停在几天前的
    旧二进制上（第一次例行跑就对着 0.20.0 的服务器断言 0.58.0 的功能，10 个用例集体超时）；
 3. `npm test`（`@vscode/test-cli` → `@vscode/test-electron`）——真 VS Code + 真 LSP + 真扩展宿主；

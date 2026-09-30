@@ -74,7 +74,7 @@ push tag v* ──► job build（matrix：8 平台）
   cargo-zigbuild 版本在 workflow 里钉死（0.16.0 / 0.23.4）。musl 目标由
   Zig 静态链接（`ldd` 应为 "not a dynamic executable"）。
 - **exec 位必须在 Ubuntu 上打包**：VSIX 的 zip 记录 unix mode，Windows 打包
-  会丢（vsce 已知问题）。`scripts/stage-lsp.js` 在 stage 时 `chmod 755`，
+  会丢（vsce 已知问题）。`editor/vscode/scripts/stage-lsp.js` 在 stage 时 `chmod 755`，
   package-vsix 冒烟会断言。
 - universal 包用于没有平台构建的用户（当前：Linux armhf 等），其下载 URL
   由扩展锁定到 `releases/download/v${extensionVersion}/…`，**不会**跟随

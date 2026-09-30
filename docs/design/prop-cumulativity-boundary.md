@@ -3,7 +3,7 @@
 > 台账：`docs/gaps/ledger.jsonl` 的 **L-06**（两条边界：① 没有累积性
 > `def T : Type := <Prop 值>` 被拒；② `Exists.elim` 的 `Q` 只能是 `Prop`）。
 > 姊妹篇：`docs/design/eq-type-level-rewriting.md`（L-03：Type 层重写）。
-> **内核零改动**（硬规则 1）。本轮唯一的代码改动在
+> **内核零改动**（本项范围；内核已解冻，红线 = 判定正确性不变）。本轮唯一的代码改动在
 > `crates/front/src/compile/error.rs`：**只加**一个错误码 + hint + 分类
 > （既有码语义不变），以及 `docs/protocol.md` 的错误码清单一行。
 > 课程侧现状与绕法见 §5。

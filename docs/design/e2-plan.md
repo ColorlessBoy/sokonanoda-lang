@@ -1,6 +1,7 @@
 # E2 计划：以"每一阶段都能发一个完整可用的版本"为硬约束
 
-> **⚡ 状态（2026-09-26）：E2 = 50/50 全部收口** ✓ —— 7 个发版点全部发出
+> **⚡ 状态（2026-09-30）：E2 阶段 A–E 收口；批次 N 25/28**（`python3 scripts/plan.py` = **63/66**；
+> 权威 = `python3 scripts/plan.py next`）。**原始状态行（2026-09-26）：E2 = 50/50 全部收口** ✓ —— 7 个发版点全部发出
 > （0.66.0 → **0.72.0** ✓，`gh release list` 已核对 ✓）。
 >
 > **本文件是"现行契约 + 收口索引"** ✓（用户 2026-09-26 要求文档瘦身 ✗）：
@@ -11,7 +12,7 @@
 > `docs/archive/e2-plan-full-2026-09-26.md.gz`（**3105 行**；`gunzip -c … | less` ✓）。
 > **归档 ≠ 销毁** ✓：判据仍在 `scripts/plan.py check` 与各环节的测试里**真跑** ✓。
 >
-> **接手先读 `docs/E2-HANDOVER.md`** ✓（一页交接书：状态 / 开工方式 / 硬规则 /
+> **接手先读 `docs/ONBOARDING.md`** ✓（开工单：状态 / 唯一队列 / 判据 / 纪律）：
 > 陷阱 / 验收命令 ✓）。**下一份计划**用 `SOKO_PLAN=<新计划>` 或改 `scripts/plan.py`
 > 的默认路径 ✓。
 
@@ -115,7 +116,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 #### 批次 E：收尾与固化
 - [x] `T-E1` **性能回归进 CI**：把三个基准做成 CI 可跑的 smoke（阈值宽松 ✓，只抓**大幅退化** ✗）
 - [x] `T-E2` **文档收口**：`architecture.md` §6 台账 / `docs/PERF.md` / 技能与 `AGENTS.md` 同步 ✓
-- [x] `T-E3` **`STATUS.md` 与 `HANDOVER.md` 更新** ✓
+- [x] `T-E3` **`STATUS.md` 与 `docs/ONBOARDING.md` 更新** ✓
 - [x] `T-E4` **阶段 E 收尾**：bump **`0.72.0`** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 性能回归进 CI + 文档/技能收口
 #### 批次 N：记法 × 隐式参数 × 产品交互（2026-09-26 用户专项）
@@ -306,7 +307,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 
 已收口 ✓（E2 50/50）。**逐字规格与判据见归档** `docs/archive/e2-plan-full-2026-09-26.md.gz` §13。
 
-##### T-E3 **`STATUS.md` 与 `HANDOVER.md` 更新** ✓
+##### T-E3 **`STATUS.md` 与 `docs/ONBOARDING.md` 更新** ✓
 
 已收口 ✓（E2 50/50）。**逐字规格与判据见归档** `docs/archive/e2-plan-full-2026-09-26.md.gz` §13。
 

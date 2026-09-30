@@ -203,7 +203,7 @@ src = "."                 # 可选：模块根，默认 = 本文件所在目录
    保证事件流可 golden。
 9. **与既有两遍语义的接口**（实测细节）：今天的 check-then-add 是"pass 1 先全
    `add_declar`、有失败再用 `skip` 重跑 pass 2 并在 build/add 前短路"
-   （`crates/front/src/compile/check.rs:339-359,501-532`）。导入 replay 必须
+   （`crates/front/src/compile/check/{mod,walk}.rs`）。导入 replay 必须
    **每一遍都按同一顺序重放**（它天然在"本地命令之前"），且 `skip` 键从
    命令下标升级为 **(module, cmd index)**；导入模块自身的失败因此能被精确定位，
    也不会让本地 pass 2 误跳。
@@ -221,7 +221,7 @@ src = "."                 # 可选：模块根，默认 = 本文件所在目录
 
 ### 4.6 D5 —— prelude 与 Bare 的**闭包**语义
 
-今天 prelude 是**文件级**的（`crates/front/src/compile/check.rs:429-459`：文件自带
+今天 prelude 是**文件级**的（`crates/front/src/compile/check/`：文件自带
 顶层 `inductive Nat` 就让位）。多文件必须把它提升为**闭包级**：
 
 - **模式由根（入口）文件决定**：`-- sokonanoda:prelude none`（或 `--bare`）在入口
@@ -270,7 +270,7 @@ iface(module) = H( CACHE_FORMAT,
 
 - **报告缓存键 = `iface(入口文件)`**：无 import 时退化为今天的 `text` 键（**同一个
   哈希函数、同一份目录**，所以既有缓存条目与 warm-cache 测试行为不变）。
-- **按模块存**：`<cache_root>/compiled/<iface>.json` 存 `{format, report}`，
+- **按模块存**（⚠ **未落地**：`docs/gaps/ledger.jsonl` **G-68 仍 open** 明写"设计 §4.8 D7 的这半从未落地"）：`<cache_root>/compiled/<iface>.json` 存 `{format, report}`，
   `report` 内含该模块的 `ModuleReport`；`build` 可以预热整个项目的每个模块。
 - **失效语义**：改动 `Lesson/Logic.sokonanoda` → 它的 `iface` 变 → 所有 import 它的
   入口 `iface` 全变 → 必然 miss；只改注释也会 miss（与本仓库今天的行为一致，
@@ -304,7 +304,7 @@ iface(module) = H( CACHE_FORMAT,
 | `query <op>` | `--file` 的环境包含其闭包（`state`/`goals` 能看到 import 来的名字）；新增 `--root`；**信封与退出码不变**（`soko.query/1`，0/1/2） |
 | `watch --workspace` | **语义不动**（每文件独立、跨文件无全序）；项目感知的 watch 由 LSP 承担（v1 不扩 CLI watch，避免协议震动） |
 | LSP | ① 项目根发现（manifest 向上 / workspace 根 / 单文件三层；`initialize` 现在**丢弃参数**（`crates/lsp/src/lib.rs:563`），必须捕获 `rootUri`/`workspaceFolders`）；② `Doc` 从**单槽 `Mutex<Doc>`**（`:58-60,152-155`，19 处 `self.doc.lock()`）改为按 URI 的多文档表，`did_close`（`:637` 空实现）负责清理，publish 按 URI；③ 变更一个库文件 → **反向后继**重编（防抖 + 只 publish 已打开文档），并挂 `didChangeWatchedFiles`（客户端已 watch `**/*.sokonanoda`，`editor/vscode/extension.js:1383`，服务端无 handler）；④ 跨文件 `goToDefinition`/`findReferences`/`rename`——结论里的目标要带文件身份（`compile/report.rs:131-133` 今天明写 "same file"），四个处理器不能再把请求 URI 贴到单槽结论上（`:838,1034,1055-1060,1069`）；⑤ `code_action` 路径把文档切片喂 `judge_infer`（`lsp/src/lib.rs:480-495`、`actions.rs:39-41`）⇒ judge 的导入上下文必须一起接；⑥ `soko/goals`/`stateAt`/`hints` 在闭包环境里求值，并真正解析 `textDocument.uri`（`protocol.rs:14` 等今天是死字段）；⑦ 新增只读请求 `soko/project`（根、manifest、模块表、依赖边、每模块状态）供扩展画/导航（可选，P5）；⑧ LSP 是**多线程 tokio**（`:1093`）而内核 `catch_unwind` 会换全局 panic hook ⇒ 子 agent 报告的"抢 hook"风险必须在这层防（编译串行化在 per-document 锁内，不要并行跑多份内核检查） |
-| MCP | 六个工具**签名不变**，语义变为"在该文件的闭包环境下回答"；`dsh/README.md` 补一句 |
+| MCP | **七个**工具（0.58.0 起含 `project`）**签名不变**，语义变为"在该文件的闭包环境下回答"；`dsh/README.md` 补一句 |
 | `course` | **as-built（WO-007）**：有 `import` 的单元走项目闭包（与 `grade`/`query check`/`build` 同一份闭包、同一个模块根与 `ProjectPlan::digest` 摘要键），计数只取入口模块、`failed` 与 `grade` 退出码同判；**无 `import` 的单元仍逐字节走单文件**（golden 表因此依旧不动）。模块根 = 入口最近的 `sokonanoda.toml`，否则 `course.json` 所在目录 |
 
 ### 4.10 D9 —— 教学面：第 11 单元 + 白名单三件套
@@ -347,7 +347,7 @@ iface(module) = H( CACHE_FORMAT,
 
 **贯穿全篇的三个结构事实**（设计必须围着它们转）：
 1. **一次编译 = 一个 arena + 一个 `EnvBuilder`**：`run_pass` 顶部成对创建
-   （`crates/front/src/compile/check.rs:424-425`），`builder.finish()` 消费成
+   （`crates/front/src/compile/check/`），`builder.finish()` 消费成
    `ExportFile`（`check.rs:1192`）；每条声明的可见性由 `EnvLimit::ByName` 换算成
    **名字上记录的入表索引** 决定（`crates/kernel/src/env.rs:210-216,280-287`）。
 2. **内核的名字身份 = 指针身份**：`NamePtr` 的 `Eq/Hash` 就是地址
@@ -377,7 +377,7 @@ iface(module) = H( CACHE_FORMAT,
 | `compile/report.rs:131-133` | `ResolvedTarget::Declaration` 增文件身份 | 文档注释明写"same file"；跨文件跳转/引用/rename 全靠它 |
 | `docs/protocol.md` + `crates/cli/tests/common/mod.rs:12-23` | 新错误码 + 新事件词汇 | 事件词表有封闭断言（`protocol.rs:336`），任何新事件必须**同轮**进两处；错误码有**两处**门禁：`compile/tests.rs:1410 protocol_doc_lists_every_error_code`（35 项数组 + **无通配 match**，新 variant 会让编译失败）与 `compile/tests.rs:753` 的 23 项 `matches!` 列表（**不会自动覆盖，必须手工补**） |
 | `semantic.rs` 关键字表 + `editor/vscode/syntaxes/sokonanoda.tmLanguage.json` + LSP legend/补全 | `import` 高亮/补全三处同步 | 关键字是单一真相 + 交叉校验：`crates/cli/tests/extension.rs:1028`（TM grammar 必须跟 `semantic.rs`）、`crates/lsp/src/tests/tokens.rs:4`（legend 全量）、`crates/lsp/src/tests/navigation.rs:53`（补全列表）——**同一提交**改三处，否则 CI 红 |
-| `docs/design/{compile-cache,course-status,compiler-service-events}.md`、`docs/HANDOVER.md:184-185`、`ROADMAP.md:374`、`docs/notes/lsp-notes.md:103,128,191` | 显式推翻/更新"单文档是刻意取舍"的记录 | LSP 单文档是**被负向断言保护的架构决策**（`crates/cli/tests/extension.rs:201-204` 断言脚本**不含** `soko/courseStatus`）——P5 不是"接线"而是推翻决策，必须同轮改文档与断言 |
+| `docs/design/{compile-cache,course-status,compiler-service-events}.md`、`docs/ONBOARDING.md`、`ROADMAP.md:374`、`docs/notes/lsp-notes.md:103,128,191` | 显式推翻/更新"单文档是刻意取舍"的记录 | LSP 单文档是**被负向断言保护的架构决策**（`crates/cli/tests/extension.rs:201-204` 断言脚本**不含** `soko/courseStatus`）——P5 不是"接线"而是推翻决策，必须同轮改文档与断言 |
 
 **会**静默**出错（不报错、不失败，但结论错）的三道门**——比测试变红更危险，必须在 P2/P5 显式处理：
 
@@ -398,7 +398,7 @@ iface(module) = H( CACHE_FORMAT,
   而不是路径键"的又一个理由（§4.8）。
 - **画布/锚点的守卫只在本地**：CI 里**没有** anchor 步骤（`grep -c anchor .github/workflows/ci.yml` = 0），
   唯一执行点是 `scripts/soko gate` → `crates/cli/src/env/mod.rs:278-292`；
-  而站点构建 `scripts/gen-site-demos.py:149,462` 也会渲染画布
+  而站点构建（`scripts/gen-site-data.py`）也会渲染画布
   （`pages.yml:77-81` 只守"产物新鲜"）。⇒ 如果画布有一天加了 `import`，
   **CI 与 Pages 都不会以"画布不再自包含"报警**——A1 的逐字节对拍必须真的落地，
   不能指望既有流水线。
@@ -465,7 +465,7 @@ iface(module) = H( CACHE_FORMAT,
    仍以诊断形式带 `file`/`module` 归因；想要某模块自己的事件，把它当入口跑一遍即可
    （`query check --file <任何模块>` 同样成立）。`build --json` 另给逐文件状态。
    验收 A2 的正文已按此改写，`docs/protocol.md` 写明。
-5. **新增一笔结构债（已登记，第九十五轮已还清）**：`crates/front/src/compile/check.rs`
+5. **新增一笔结构债（第九十五轮拆分；⚠ 拆分后 `check/{mod,walk}.rs` 又长回 1549/1775 行，见 `REQUIREMENTS.md` §4）**：`crates/front/src/compile/check/`
    从 1717 行涨到 1918 行（`run_pass` 单函数 ≈1174 行）——多 unit 泛化加在这里，
    拆分留到独立一轮（事件流/增量语义不能漂）；**2026-09-18 第九十五轮拆完**：
    `check/{mod,walk,kernel_phase}.rs` + `compile/units.rs`，只动位置不动语义。
@@ -476,12 +476,12 @@ iface(module) = H( CACHE_FORMAT,
 |---|---|---|
 | 语法/解析 | `crates/front/src/parser.rs`、`token.rs`、`ast.rs`（`Command::Import`） | 3 个 parse 期错误码 |
 | 闭包编译 | `crates/front/src/project/{mod,module_name,resolve,manifest,graph,report}.rs` | 6 文件 + 18 单测 |
-| 编译驱动 | `crates/front/src/compile/check.rs`（`units: &[SourceUnit]`、`split_report`、命令下标归因） | 内核零改动 |
+| 编译驱动 | `crates/front/src/compile/check/`（`units: &[SourceUnit]`、`split_report`、命令下标归因） | 内核零改动 |
 | 缓存 | `ProjectPlan::digest` + `cache::key`（`CACHE_FORMAT` 1→2） | `docs/design/compile-cache.md` §7 |
 | CLI/协议 | `--root`/`--no-project`、`build` 项目化、`query` 闭包、`help.rs` 多文件段 | `crates/cli/tests/imports.rs` 12 e2e |
 | LSP | 多文档、按 URI publish、跨文件定义/引用/改名、改依赖自动刷新下游、内存覆盖（未落盘编辑） | `crates/lsp/src/tests/project.rs` 8 e2e + `project_refs.rs` 2 单测 |
 | 教学面 | `course/unit11-modules-projects.sokonanoda`（+EN+solution）、`course/unit11-project/` 可运行两文件项目、`course.json` | golden：画布 (7,6,0)、solution (12,0,0) |
-| 文档 | `docs/architecture.md` §4.5/§8.10、`docs/protocol.md`、`docs/TESTING.md` 三行 + §5.7、`docs/HANDOVER.md`、`ROADMAP.md` I16、三个 skills、`AGENTS.md`、`dsh/README.md`、VS Code README/CHANGELOG | 本轮同一 commit 同步 |
+| 文档 | `docs/architecture.md` §4.5/§8.10、`docs/protocol.md`、`docs/TESTING.md` 三行 + §5.7、`docs/ONBOARDING.md`（原交接书已删）、`ROADMAP.md` I16、三个 skills、`AGENTS.md`、`dsh/README.md`、VS Code README/CHANGELOG | 本轮同一 commit 同步 |
 
 **验收（全部实测通过）**：`scripts/soko gate` PASS；`cargo test --workspace --locked`
 全绿（front 449 / LSP 127 / CLI 191+）；A1 由

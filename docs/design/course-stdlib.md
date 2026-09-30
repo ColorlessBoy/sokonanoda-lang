@@ -92,7 +92,7 @@ L-01…L-13）——P4 之后该文件不再声明任何名字，签名一律以
 退出码 0）——即这份清单在课程仓里是**可运行的真库**，不是纸面提案；语言线接手时可以直接
 把它当 prelude 的草稿与验收样本。
 
-## 3. L2 规范：课程标准库 `lib/` 该有什么（**当前真实状态**）
+## 3. L2 规范：课程标准库 `lib/` 该有什么（⚠ **本节模块表是 2026-09-18 快照**：现为 16 个模块 ≈127 条声明 —— **要现算就 `ls courses/set-theory/lib/` + `tools/check.py`**）
 
 > 表里每一行的「计数」都是**实测**，不是估计。查法一律两条命令（绝对路径 + 退出码纪律
 > 见 §3.3）：
@@ -112,7 +112,7 @@ L-01…L-13）——P4 之后该文件不再声明任何名字，签名一律以
 | `lib/Fun.sokonanoda` | `Function.comp`；`Injective`/`Surjective`/`Bijective`；**数据版**的 `LeftInverse`/`RightInverse`/`Inverse`；展开引理 7 条（`comp_apply` 是 `rfl` 级，其余是双向恒等） | **14** | 全部 Mathlib 真名（`Function.comp`/`Injective`/`Surjective`/`Bijective`/`LeftInverse`/`RightInverse`）；**唯一例外** `Function.Inverse` 是**设计判断**（Mathlib 没有这个名字，它有 `invFun`/`Equiv`）——理由见 §3.2-B | `lib.Logic`、`lib.Exists` |
 | `lib/Image.sokonanoda` | 像 `Set.image`（用 `Exists` 写）、原像 `Set.preimage`（只有一个函数应用）；展开引理 `Set.mem_image`/`Set.mem_preimage`；包装引理 `Set.image_mono`/`Set.image_subset_iff` | **6**（2 def + 4 theorem） | Mathlib 真名，含参数顺序（`Set.image α β f A`、`Set.preimage α β f B`） | `lib.Logic`、`lib.Exists`、`lib.Set` |
 | `lib/Equiv.sokonanoda` | 等势的四条件（`Set.MapsTo`/`Set.LeftInvOn`/`Set.RightInvOn`，全在 `Mathlib/Data/Set/Function.lean`）+ 等势本体 `Set.Equiv`（**Prop 值**，数据 = 一对互逆映射）+ 构造子 `Set.Equiv.mk` | **5**（3 def + 1 def + 1 theorem） | 三条条件逐字照抄 Mathlib；**`Set.Equiv` 不是 Mathlib 名**（Loogle 精确查 `Set.Equiv` = `unknown identifier`，`Set.EquivalentOn` 同样不存在）⇒ 术语收在 `Set.Equiv`、构造子照 `Equiv.mk` 命名，**标"我们自定名"**。为什么必须是 Prop 见 **§3.2-C** | `lib.Logic`、`lib.Exists`、`lib.Set` |
-| `lib/Demo.sokonanoda` | **自检入口**：`import` 各模块并真的判卷（今天 3 条演示：`And` 交换、`Set.subset_def` 展开、`mem_powerset_iff` 用法） | **3** | —（入口，不是 API） | `lib.Logic`、`lib.Set`（**待补**：其余 6 个模块，见 §3.3） |
+| `lib/Demo.sokonanoda` | **自检入口**：`import` 各模块并真的判卷（3 条演示：`And` 交换、`Set.subset_def` 展开、`mem_powerset_iff` 用法） | **3** | —（入口，不是 API） | ✅ **已补全**：`Demo.sokonanoda` 逐个 import 全部模块（原欠账已收口） |
 
 **模块合计（P4 后重算；E02 再 +1）**：`lib/` **75 条声明全 checked、0 open、0 failed**
 （`--json` 的逐目标：Demo 10 · Equiv 5 · Exists 3 · Fun 14 · Image 6 · **Logic 0** ·

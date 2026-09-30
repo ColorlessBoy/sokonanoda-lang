@@ -1,7 +1,7 @@
 # CI 并行化方案（2026-09-25 ✓，用户要求："github action 是最大瓶颈" ✓）
 
 ## 量出来的事实 ✓
-`ci.yml` 现有 **12 个 job** ✓，其中 **9 个各自独立编译** ✗：
+`ci.yml` 当时有 **12 个 job** ✓（**现为 17 个**，2026-09-30 实测），其中 **9 个各自独立编译** ✗：
 
 | job | 它自己付的构建 | 能不能共享 |
 |---|---|---|
@@ -21,7 +21,7 @@
 ## 排序（按收益 / 风险 ✓）
 
 ### ① `build` 一次、其余下载 ✓（最大头 ✓）
-新增 **`build`** job ✓：`cargo build --release -p sokonanoda-cli -p sokonanoda-lsp --locked`
+新增 `build` job（⚠ **最终没建**：改用 `ledger`/`gates-course` 各自缓存 + `rust-cache`，见下文实测结论）：`cargo build --release -p sokonanoda-cli -p sokonanoda-lsp --locked`
 （+ 需要时 `npm ci && npx vsce package` ✓）⇒ `actions/upload-artifact` ✓
 ⇒ `gates-course` ✓ `ledger ×3` ✓ `editor` ✓ `e2e ×3` ✓ `e2e-macos` ✓ 改 **download** ✓
 ⇒ 这些 job 从"几分钟"掉到"几十秒" ✓（**注意** ✓：`e2e` 本来就要**真 VS Code** ✓，
@@ -183,7 +183,7 @@ cargo test -p ${{ matrix.pkg }} $flag --locked --no-fail-fast
 | CI 侧**已经**在响亮跳过 ✓ | `ledger` 在 CI **不带 `--strict`** ✓ ⇒ 环境异常**跳过且可见** ✓（注解 ✓ + step summary ✓） |
 | `e2e` 已不 flake ✓ | 判据改成"**基线 → 变化 → 稳定**" ✓ ⇒ **27/27 × 3 已稳** ✓；再标 `continue-on-error` 只会**掩盖真回归** ✗ |
 | 其余 job 都是**确定性**的 ✓ | `lint` / `gates` / `contract` / `editor` / `test` ⇒ 标了**只削弱门** ✗ |
-| 现状 | `continue-on-error` 出现 **0 次** ✓ |
+| 现状 | ⚠ **已失效**：`perf-gate` 自 2026-09-29 起带 `continue-on-error: true`（**只报不拦**，实测假红后回退；真拦在 `gates-fast` 的 `scripts/check-recompile-factor.py`）—— 见 `docs/PERF.md` 末节 |
 **⇒ 建议（按证据 ✓）**：
 * **不整体加** `continue-on-error` ✗ —— 环境容错**已经**落在**能区分两者**的那一层 ✓
   （`gap.py` ✓ + `--strict` 在快机器上判红 ✓ ⇒ **守卫不掉牙** ✓）；
@@ -201,7 +201,7 @@ cargo test -p ${{ matrix.pkg }} $flag --locked --no-fail-fast
 | f `rerun --failed` | ✅ | 已记 `docs/CI-FAILURES.md` ✓ |
 | g1 `paths-ignore` | ✅ 等价 | 本仓用 `dorny/paths-filter` ✓（**更细** ✓） |
 | g2 `fail-fast: false` | ✅ | `test`/`ledger`/`e2e` ✓ |
-| g3 `continue-on-error` | ✗ **按证据不做** ✓ | `gap.py` 能区分环境与回归 ✓，`continue-on-error` 不能 ✗ |
+| g3 `continue-on-error` | ⚠ **后来在 `perf-gate` 上不得不加**（墙钟跨机不可转移 ⇒ 假红）：`gap.py` 能区分环境与回归 ✓，墙钟门禁不能 ✗ ⇒ 分工 =「**能拦的用计数拦，拦不住的只报**」 |
 | g4 钉 `ubuntu-24.04` | ✅ | 全文已无 `ubuntu-latest` ✓ |
 | h `ci-local` 前置 | ✅ | pre-push hook ✓，**实战拦截 2 次** ✓ |
 ⇒ **#1 闭环 ✓** ⇒ 转入 **#2：阶段 D（D-2 的 ②–⑤ ✓）**。

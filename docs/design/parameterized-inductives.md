@@ -3,7 +3,7 @@
 > 触发：`match` 参数化归纳的前置——教学语言的 `inductive` **声明**目前不支持
 > 参数（`inductive Nat : Type`；前端给内核传 `num_params=0`），而内核
 > `add_inductive` 已支持 `num_params`。本设计加**非带索引**的参数化归纳，
-> 解锁 `Option A` / `List A`，进而 `match` 它们。kernel 冻结。
+> 解锁 `Option A` / `List A`，进而 `match` 它们。本项零内核改动。
 
 ## 1. 语法与 AST
 

@@ -24,7 +24,7 @@
 
 | 环节 | 位置 | 行为 |
 |---|---|---|
-| 分类 | `crates/front/src/compile/check.rs:1257` | 值里含洞 ⇒ 一律 `PendingOp::OpenExercise` → `DeclStatus::Open` → `exercise.open`；**从不过问洞是否承重** |
+| 分类 | `crates/front/src/compile/check/`（`walk.rs` 的分类点） | 值里含洞 ⇒ 一律 `PendingOp::OpenExercise` → `DeclStatus::Open` → `exercise.open`；**从不过问洞是否承重** |
 | 编辑器文案 | `crates/lsp/src/lib.rs:364` | 对每个 Open 声明统一发 `declaration '{}' uses 'sorry' (exercise not yet solved)` |
 | CLI 文案 | `crates/cli/src/check.rs:93` / `json_report.rs:66` | `exercise open (fill the sorry)` |
 
@@ -119,7 +119,7 @@ elab-tactic-failed: by 块里没有待解目标
   `local_func_templates` 不为这种 binder 建模板，候选**不触发**（实测 `spans=0`），
   仍报 `exercise.open`。比误报好，但要在下一版补。
 
-## 8. as-built（2026-09-17 第九十一轮 · 实现就绪，**只差终审的环境可见前缀**）
+## 8. as-built（2026-09-17 第九十一轮 · **已落地**；环境可见前缀见 §8.3）
 
 **已打通（有埋点实测证据）**：
 

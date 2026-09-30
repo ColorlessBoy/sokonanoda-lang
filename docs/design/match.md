@@ -1,7 +1,7 @@
 # 设计：elaborator `match`（Phase 2 定稿，2026-09-14）
 
 > 前身：`docs/design/elaborator-let-match.md` §4 只做预研，本文是**实现前定稿**。
-> 目标：在权威子集里加 `match`（对归纳类型分情况），kernel 冻结、判定走内核。
+> 目标：在权威子集里加 `match`（对归纳类型分情况），本项零内核改动、判定走内核。
 >
 > **可行性证据（本轮 spike）**：手写
 > `Color.rec.{1} (fun (_ : Color) => Color) green red c` 被完整内核接受；

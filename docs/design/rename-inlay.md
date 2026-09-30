@@ -116,5 +116,5 @@ LSP（`crates/lsp/src/render.rs` 扩展 + main.rs 预接桩）：
 | C（rename/references） | `crates/front/src/references.rs`（含测试）、`crates/lsp/src/render.rs`（references/prepare/rename 逻辑，含测试） |
 | D（inlay hints） | `crates/lsp/src/inlay.rs`（新，含测试） |
 
-冲突警戒：`crates/front/src/compile/check.rs` 的 resolution 记录点由主会话
+冲突警戒：`crates/front/src/compile/check/` 的 resolution 记录点由主会话
 一次性改完再冻结；subagent 阶段任何人不得再动它。

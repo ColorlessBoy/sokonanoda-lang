@@ -5,7 +5,7 @@
 > `unknown identifier`；两个 `ctor mk` 直接撞成 `duplicate declaration mk`。
 > 官方 Lean 4 里构造子自动进入类型自己的命名空间（`Pair.mk` / `Or.inl` /
 > `Subtype.mk` / `Exists.intro` 并存不冲突）。
-> **kernel 冻结**：本设计只动前端（elab / check / semantic / references）与文档。
+> **本项零内核改动**：本设计只动前端（elab / check / semantic / references）与文档。
 
 ## 1. 目标与非目标
 
@@ -153,7 +153,7 @@ checked 的差额来自 WO 落盘之后的课程内容，**与本刀无关**。
 - `skills/sokonanoda-teacher/SKILL.md`（构造子写法）+ `skills/sokonanoda-dev/SKILL.md`；
 - `editor/vscode/CHANGELOG.md`（打印文本变化 = 用户可见改动；版本 bump 由主线统一做）；
 - `REQUIREMENTS.md` §9 追加一条（打印名变化 + 裸名别名这条**子集扩展**）；
-- `STATUS.md` / `docs/HANDOVER.md` 按收尾义务。
+- `STATUS.md` / `docs/ONBOARDING.md`（原交接书已删） 按收尾义务。
 
 ## 8. 迁移与日落（WO-005b，本设计只登记）
 

@@ -30,7 +30,7 @@
 |---|---|---|
 | ① | **活文档总量**（根 `*.md` + `docs/**`，**不含** `docs/archive/**`） | ≤ **3.0 MB**（实测 2.96 ✓；基线 8.84 ⇒ **33.5%**） |
 | ② | **单文件行数**（任何活文档 `.md`） | ≤ **2000** |
-| ③ | **入口文件行数**（`AGENTS.md` / `README.md` / `REQUIREMENTS.md` / `ROADMAP.md` / `STATUS.md` / `docs/README.md` / `docs/HANDOVER.md` / `docs/E2-HANDOVER.md` / `docs/design/e2-plan.md`） | ≤ **800** |
+| ③ | **入口文件行数**（`AGENTS.md` / `README.md` / `REQUIREMENTS.md` / `ROADMAP.md` / `STATUS.md` / `docs/README.md` / `docs/design/e2-plan.md`（**实测口径**：`scripts/docs-lint.py` 的 `ENTRY_FILES`；`docs/ONBOARDING.md` 不在其中，由判据 ⑦ 管）） | ≤ **800** |
 | ④ | **设计文档预算**：`docs/design/**` **新增** ≤150 行；**既有非入口**按 `scripts/docs-budget.json` **冻结**（**入口不进 ④** ⇒ 由 ③ 管 ✓） | **只许减不许增** ✗（要放宽 ⇒ 手改 JSON / `--freeze` ⇒ 评审可见 ✓） |
 | ⑤ | **禁垃圾**：`docs/**` 不得有 `.tmpdir` / `.tmp` / `.tmp-<pid>` / `.DS_Store` / `*.orig` / `*.rej` / `*~`（**含未跟踪的本地残留** ✗） | 命中数 = **0** |
 | ⑥ | **归档可追溯**（红线 ✓）：`docs/archive/**` 每个文件必须在 `docs/archive/README.md` 里**被点名**；归档总量 | 未点名 = **0**；总量 ≤ **2.5 MB**（实测 2.12 ✓） |

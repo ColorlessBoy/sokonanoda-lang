@@ -284,7 +284,7 @@ per-target 流程）、`skills/sokonanoda-ci`（发布陷阱 +1）、`STATUS.md`
 ## 8. 分阶段计划
 
 - **Phase 1（核心可用）✅ 2026-09-10**：`server.js` 重构 + 解析顺序（含
-  bundled + chmod 守卫）+ `scripts/stage-lsp.js` + `.gitignore` +
+  bundled + chmod 守卫）+ `editor/vscode/scripts/stage-lsp.js` + `.gitignore` +
   node 单测（15）+ 静态契约（+3）；本机 `package:host` 出 VSIX（1.96MB，
   zip mode 755）、universal 0.47MB 无 bin。
 - **Phase 2（发布闭环）✅ 2026-09-10**：`release.yml` per-target VSIX +

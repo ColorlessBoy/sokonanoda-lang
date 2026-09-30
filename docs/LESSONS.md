@@ -75,7 +75,7 @@
 - golden 是契约：课程/协议 golden 变更必须"刻意"并在提交说明里给出新旧
   计数（course.rs 顶部注释）。
 - lint/fmt 门禁形态：教学 crates 各自 `[lints.rust] warnings = "deny"`
-  注入严格度；kernel 冻结快照保持 warning 级；fmt 门禁只覆盖教学 crates
+  注入严格度；本项零内核改动快照保持 warning 级；fmt 门禁只覆盖教学 crates
   （kernel 的 rustfmt.toml 需要 nightly）。
 - 内核冷路径改动（panic 消息、`got:` 渲染）允许，但每处都要三层回归
   （kernel 单测 + CLI e2e + 语料）并在 `docs/architecture.md` §6 记账。
@@ -169,7 +169,7 @@
 ## 绝不 `cargo fmt --all`（冻结内核会被重排）（2026-09-16，0.49.0 收尾）
 
 - **教训**：收尾时手滑跑了 `cargo fmt --all`，它按仓库 `rustfmt.toml` 重排了
-  `crates/kernel/**`（20+ 文件）。虽是纯格式、语义中立，但**违反「kernel 冻结快照」硬规则**，
+  `crates/kernel/**`（20+ 文件）。虽是纯格式、语义中立，但**违反「本项零内核改动快照」硬规则**，
   并污染提交历史（发现于提交后、推送前，已还原重做）。
 - **规矩**：只 fmt 教学 crates（`-p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp`）
   或直接 `sokonanoda gate`（它的 fmt 步骤本就只覆盖这三个 crate）。
@@ -219,7 +219,7 @@
   `editor/vscode/`（README/CHANGELOG/package.json）**与** `skills/` 三个技能 +
   `AGENTS.md` + `docs/vscode-dev-guide.md`；skills 是符号链接到仓库，改仓库即同步。
 - **code agent 适配是一等公民**：计划先问「agent 怎么用/怎么验证」——`--json` 输出、
-  能力写进 skill、命令可直接执行、`HANDOVER` 同步。
+  能力写进 skill、命令可直接执行、`docs/ONBOARDING.md` 同步。
 - **skill 写法**：**确切可执行的一条命令** > "建议/可以考虑…"式散文；少 token。
 
 ## STATUS 归档脚本：断言必须放在写文件之前（2026-09-16，第二次踩）
@@ -385,7 +385,7 @@
   后建的那棵树会**静默覆盖**前者的二进制（本次 `cargo build` 报 "Finished in 0.07s"
   却把基线二进制留在 `target/debug/`）。要么各自 target dir，要么 `touch` 源文件
   强制重建后再比。
-- **守护位置**：`docs/TESTING.md`「二进制对拍」小节、`docs/HANDOVER.md` §4 结构债、
+- **守护位置**：`docs/TESTING.md`「二进制对拍」小节、`REQUIREMENTS.md` §4 结构债、
   本条目。
 
 ## 性能数字先问采样口径：同进程并行跑会把单次成本放大 3–4×（2026-09-18，台账复盘）

@@ -132,7 +132,7 @@ scripts/soko query project --file course/unit11-project/Exercises.sokonanoda
 | 2 | CLI `query project` + MCP `project` | `crates/cli/tests/query.rs`：2 模块项目字段齐全、单文件 `project:null`+reason、MCP 工具名/参数（`dsh.rs`） |
 | 3 | LSP `soko/project` | `crates/lsp/src/tests/project.rs`：身份回显、模块表、编辑后状态更新 |
 | 4 | VS Code 树 + tooltip | `editor/vscode/test-extension-host.js`（stub host：单文件/项目/失败三态渲染）、`extension.rs` 静态契约 |
-| 5 | 文档与版本 | `docs/protocol.md`（op 表 + 自定义请求）、TESTING/HANDOVER/STATUS/REQUIREMENTS §9、skills/AGENTS（命令面）、扩展 README/CHANGELOG + 版本 0.58.0 |
+| 5 | 文档与版本 | `docs/protocol.md`（op 表 + 自定义请求）、TESTING/ONBOARDING/STATUS/REQUIREMENTS §9、skills/AGENTS（命令面）、扩展 README/CHANGELOG + 版本 0.58.0 |
 
 **总验收**：`cargo test --workspace --locked` 全绿 + `scripts/soko gate` PASS +
 （位置搬移类的既有纪律）二进制对拍不适用于本批（纯新增，不改既有输出——
