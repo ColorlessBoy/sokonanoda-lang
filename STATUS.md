@@ -78,7 +78,8 @@
   **T-N15**（C 收尾：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9 + VS Code/skills 同步）。
   权威 = `python3 scripts/plan.py next`（规格全文）。
 - ⬜ **E19 甲案 = `v0.79.0`**（高风险，**单独发版**）· E20 乙案：给记法求解器加**元变量**；
-  ⚠ 开工前**重新冻结基线**（`docs/design/notation-subset.md` §17 · `docs/design/v077-set-theory.md`）。
+  ⚠ 开工前**重新冻结基线**（`docs/design/notation-subset.md` §17 · 缺口的根因在
+  `docs/design/v077-kernel-deficiencies.md` §三）。
 
 ## 硬事实（接手先读这 6 条 ✓）
 
