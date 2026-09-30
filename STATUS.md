@@ -1,23 +1,37 @@
-# 当前快照（2026-09-30 · 第 519 轮）
+# 当前快照（2026-09-30 · 第 520 轮）
 
 - **🚀 `v0.78.3` = Latest** ✓（CI `36655613663` **28 success / 0 failure**（1 skipped）· release
   workflow `36656518982` success · tag `v0.78.3` · 26 资产 = 8 CLI + 8 LSP + 9 VSIX + 1 源码）。
+- **E19 甲案（元变量）已开工** ✓：用户拍板**不走乙案**；**刀 0（基线冻结）收口** ⇒
+  `docs/design/e19-baseline.md`（172 组 0 差异 · 43/377/99/0 · front 769/0 · notation 49/0 · 三个 sha256 指纹）·
+  **下一步 = 刀 1**（只给记法操作数位引入待定参数，开关默认关）。
 - **P 组（编译提速）全档收口** ✓：`JUDGE_PREFIX runs` **3759 → 791**（−79%）· 全课 `build` 墙钟
   **216.14s → 47.8s**（**2.65×**）· `judge_ms` **−83%** · `--json` **0 行不同** · 影子档 `diff=0`。
   读数/开关/回退 ⇒ `docs/ONBOARDING.md` §1。
 - **三条用户实测 UI 缺陷 + Q1/Q2 + K1 线（按前缀复用）已收口** ✓（第 505/506/509 轮；逐条索引 ⇒
   `docs/visible-changes.md`）。
-- **计划与队列的唯一入口 = `docs/ONBOARDING.md` §0.2** ✓（2026-09-30 第 510 轮文档收敛：
-  本文件只做**当前快照 + 最近 3 轮 + 未决项**，`ROADMAP.md` §10 只做**验收口径** ——
-  三处不再各写一份"下一步"；ONBOARDING 257 → 180 行 · ROADMAP 706 → 480 行）。
-- **本文件的判据**：`python3 scripts/status-lint.py`（≤240 行 · 禁词 0 · 每段 ≤30 · 净增 ≤60）·
-  文档预算 `python3 scripts/docs-lint.py`（判据 ①–⑦，已进 `scripts/soko gate` 与 CI）。
+- **计划与队列的唯一入口 = `docs/ONBOARDING.md` §0.2** ✓（第 510 轮收敛：本文件只做**当前快照 +
+  最近 3 轮 + 未决项**，`ROADMAP.md` §10 只做**验收口径**；ONBOARDING 257 → 180 · ROADMAP 706 → 480 行）。
+- **本文件的判据**：`scripts/status-lint.py`（≤240 行 · 禁词 0 · 每段 ≤30 · 净增 ≤60）+ 文档预算
+  `scripts/docs-lint.py`（判据 ①–⑦，已进 `scripts/soko gate` 与 CI）。
 
-- **文档过期日期机制**（第 513 轮，原文 ⇒ `git log --all -- STATUS.md`）✓：**每个活文档都有过期日期**
-  （权威 = `scripts/docs-expiry.json`）· `git commit` 前**自动检测**（已过期/未登记 ⇒ **拒绝提交**）。
 - **批次 N 进度 66/66**（第 519 轮）✓：**T-N13**（B2 课程库改隐式风格，第 518 轮）与
-  **T-N15**（C 收尾，本轮）都收口 —— 「看得见的变化」逐条索引（用户报的 6 条 + 隐式参数 +
-  断言名）⇒ **`docs/visible-changes.md`**（新活文档，已登记过期日 ✓）。
+  **T-N15**（C 收尾）都收口 —— 「看得见的变化」逐条索引 ⇒ **`docs/visible-changes.md`**（已登记过期日 ✓）。
+- **文档过期日期机制**（第 513 轮）✓：**每个活文档都有过期日期**（权威 = `scripts/docs-expiry.json`）·
+  `git commit` 前**自动检测**（已过期/未登记 ⇒ **拒绝提交**）—— 原文 ⇒ `git log --all -- STATUS.md`。
+
+## 第 520 轮（2026-09-30）：**E19 刀 0 —— 基线冻结（甲案开工）**
+
+- **用户拍板**：**不走乙案**，直接甲案（元变量）；三刀 = 刀0 基线 → 刀1 **只给记法操作数位**引入
+  待定参数（`SOKO_NOTATION_METAVAR=1`，**默认关**）→ 刀2 推广到 `solve_prefix` 一般路径
+  （`by` 块 / `apply`，那时才碰 `ElabImplicitArgumentUnsolved` 既有判据）。**接受「课程计数 +N」**（非红线）✓。
+- **冻结读数**（HEAD `2c20be09` · 二进制 `7ae7782e…`；命令/口径 ⇒ **`docs/design/e19-baseline.md`**）：
+  `--json` 摘要 sha256 非课程 `43581e06…` · 课程 `d0375577…` · 全语料 `0231dcc4…` · 非课程对拍
+  **172 组 0 差异** · 门禁 **43/377/99/0** · front **769/0** · notation **49/0** · G-48 复现件 **exit 1** ✓。
+- **量具 + 性能基线**：`kernel-diff.sh` 新增 **`--non-course`**（⚠ 画布 **不算非课程** —— 算进去是
+  174 ≠ 台账的 172 ✗）与 **`--digest`**；冷 `build` **56.67s** · `JUDGE_PREFIX runs=905` · `passes=1362` ·
+  front 1.53s · notation 6.46s · 门禁 69.70s · 172 组 19.27s（⚠ 与 §1 的 47.8s/791 不同 = 语料变过）✓。
+- **刀1（下一步）判据**：G-48 **exit 0** **且** 172 组 **0 差异**；开关关态 = 刀0 四个指纹逐字节相同 ✓。
 
 ## 第 519 轮（2026-09-30）：**T-N15 C 收尾 —— 「看得见的变化」索引 + 四处同步（批次 N 66/66）**
 
@@ -62,29 +76,16 @@
   标记的调用点，「数量级下降」只做到「不再必须写」）；G-31 的复现件缺位（详见 `docs/design/e2-plan.md`
   的 T-N13 as-built「遗留」三节）。
 
-## 第 517 轮（2026-09-30）：**G-70 收口 —— 注册表签名必须「去记法」（+ 一个守卫自己的 bug）**
-
-- **病根（B2 迁移实测）**：`KnownName::Decl::signature` 存的是 `render_expr(ty)`，而
-  `implicit::telescope` 用 `parse_expr_text`（**空记法表**）把它**回读** ⇒ 签名里只要有一个
-  记法节点（库定理常写成 `a ∈ univ`）解析就失败 ⇒ 望远镜 `None` ⇒ **隐式插入整条不触发** ✗
-  ⇒ 实参落进隐式位（`exact Set.mem_univ x` ⇒ `期望 Set.univ α x，实际是 (a : x) -> Set.mem a Set.univ`）。
-- **修法**：新增**判定路径**的去记法渲染 `proof::expand_notations` + 唯一入口
-  `elab::decl_signature`（13 处 `signature:` 调用点全部改走它）⇒ 产物能被空记法表回读 ✓。
-- **判据**：复现件 `G70-*.sh` **exit 1（已修）** ✓ · **反向验证** ✓（用未修的二进制跑同一件
-  ⇒ exit 0 + 上面那条报错）· **未迁移**语料对拍 **644 组逐字节相同** ✓ · 课程门禁 **43/376/99/0** ✓。
-- **顺带修掉一个守卫自身的 bug** ✗：`scripts/kernel-diff.sh` 的差异报告器写成 `"$file（exit …）"`
-  —— bash 把全角括号并进变量名 ⇒ **恰好在「有差异」时**崩掉 ⇒ 改成 `${file}` ✓（修好后当场报出
-  2/644 组差异，定位到本轮**语料**改动 ✓）。
-- **⇒ B2 的三个前置（G-43 / G-69 / G-70）都已收口**；剩**调用点迁移本体**（分类表与顺序写进
-  `docs/design/e2-plan.md` 的 **T-N13 as-built** ✓）。⚠ 迁移期间课程门禁会红 ⇒ **整段做完再一次过**。
-
 ## 未决项（**只有这两条**；顺序与入口见 `docs/ONBOARDING.md` §0.2）
 
 - ✅ **批次 N 全档收口（66/66）**：T-N13（第 518 轮）· T-N15（第 519 轮）✓ —— 逐条索引
   `docs/visible-changes.md`，遗留见 `docs/design/e2-plan.md` 的 T-N13 as-built「遗留」。
-- ⬜ **E19 甲案 = `v0.79.0`**（高风险，**单独发版**）· E20 乙案：给记法求解器加**元变量**。
-  **评估已写** ⇒ `docs/design/e19-evaluation.md`（收益窄、成本宽；**建议先冻结基线、先做乙案**）。
-  ⚠ 开工前**重新冻结基线**（缺口根因见 `docs/design/v077-kernel-deficiencies.md` §三）。
+- ⬜ **E19 甲案 = `v0.79.0`**（高风险，**单独发版**）：**刀 0 已冻结** ✓ ⇒ `docs/design/e19-baseline.md`
+  （172 组 0 差异 · 43/377/99/0 · front 769/0 · notation 49/0 · 三个 sha256 指纹 + 性能基线）。
+  **刀 1（下一步）**= 只给**记法操作数位**引入待定参数（`SOKO_NOTATION_METAVAR=1`，默认关），
+  判据 = G-48 复现件 **exit 0** **且** 172 组 **0 差异**；**刀 2** = 推广到 `solve_prefix` 一般路径
+  （`by` 块 / `apply`）——那时才碰 `ElabImplicitArgumentUnsolved` 既有判据，**逐条重审 + 反向验证**。
+  ⚠ **E20 乙案不做**（用户拍板）；缺口根因 ⇒ `docs/design/v077-kernel-deficiencies.md` §三。
 
 ## 硬事实（接手先读这 6 条 ✓）
 

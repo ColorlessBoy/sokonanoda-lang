@@ -144,6 +144,12 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
+    "docs/design/e19-baseline.md": {
+      "expires": "2027-03-31",
+      "renewed": "2026-09-30",
+      "tier": "spec",
+      "reason": "E19 刀0 基线冻结：与 e19-evaluation.md 同期，v0.79.0 甲案实施期间的有效对照"
+    },
     "docs/design/e19-evaluation.md": {
       "expires": "2027-03-31",
       "renewed": "2026-09-30",
