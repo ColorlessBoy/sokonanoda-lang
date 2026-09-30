@@ -8878,3 +8878,264 @@ theorem t (\u{3b1} \u{3b2} : Type) (f : \u{3b1} -> \u{3b2}) (A : Set \u{3b1}) (y
         out.events
     );
 }
+
+/// **T-N13 判据 ①**（2026-09-30）：`cases` 的被消去项类型来自**内核 pp**，而迁移后的
+/// pp 会丢掉**第一个隐式实参**（`Set.union α A B x` 打成 `Set.union A B x`）——
+/// delta 展开若仍把实参**右对齐到全部形参**，`x` 就落到第三个形参上
+/// （`α := A, A := B, B := x`）⇒ 展开出胡说八道的类型
+/// （`fun (x' : A) => Set.univ x' ∨ x x'`）⇒ `cases` 报「被消去项不是归纳类型的值」✗
+/// （实测：unit04 / unit05-solution 都卡在这一条）。
+///
+/// 修法：`spine::unfold_one` 分**两种读法**（短写 = 逐位对**显式**形参；旧写法 = 对
+/// 全部形参），`unfold_to_inductive` 先按短写展开、到不了归纳头再按旧写法重来 ✓。
+///
+/// **反向验证**：把短写那一遍撤掉（只留旧写法）⇒ 本条当场判红 ✓。
+#[test]
+fn cases_unfolds_a_short_form_application_by_its_explicit_parameters() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+def univ {\u{3b1} : Type} : Set \u{3b1} := fun (x : \u{3b1}) => True\n\
+def union {\u{3b1} : Type} (A B : Set \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => A x \u{2228} B x\n\
+end Set\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+infixr:70 \" \u{222a} \" => Set.union\n\
+theorem t (\u{3b1} : Type) (A : Set \u{3b1}) (x : \u{3b1}) (h : x \u{2208} A \u{222a} Set.univ) : True := by\n\
+  cases h with\n\
+    | inl ha => exact True.intro\n\
+    | inr hu => exact True.intro\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "`cases h`（`h : x ∈ A ∪ Set.univ`）必须把并集展开到 `Or`；修前右对齐把 `x` \
+         对成第三个形参 ⇒ 展开出 `fun (x' : A) => Set.univ x' ∨ x x'` ⇒ 报\
+         「被消去项不是归纳类型的值」✗。事件：{:?}",
+        out.events
+    );
+}
+
+/// **T-N13 判据 ②**（2026-09-30）：零元记法在**函数位**（`(∅) x`）。
+///
+/// `intro` 把 `∅ ⊆ A` 展开成 `∀ x, (∅) x → A x` 之后，`(∅) x` 就是「零元记法节点 +
+/// **富余实参**」的形状：记法节点自己**没有实参**，spine 上的 `x` 是**结果上的应用**
+/// ⇒ 必须走与 `Set.univ x` 同一条路线③（`α` 从富余实参的类型解出）✓。
+/// 不认这个头就报「记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数」✗
+/// （实测：units/notation-cheatsheet 卡在这一条）。
+///
+/// **反向验证**：把 `try_implicit_application` 里那条零元记法头的分支撤掉 ⇒ 判红 ✓。
+#[test]
+fn a_nullary_notation_in_function_position_takes_its_prefix_from_the_surplus_argument() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def empty {\u{3b1} : Type} : Set \u{3b1} := fun (x : \u{3b1}) => False\n\
+def subset {\u{3b1} : Type} (A B : Set \u{3b1}) : Prop := forall (x : \u{3b1}), A x -> B x\n\
+end Set\n\
+infixr:80 \" \u{2286} \" => Set.subset\n\
+notation \"\u{2205}\" => Set.empty\n\
+theorem t (\u{3b1} : Type) (A : Set \u{3b1}) : \u{2205} \u{2286} A := by\n\
+  intro x\n\
+  intro hx\n\
+  exact False.elim (A x) hx\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "`∅ ⊆ A` 的证明里 `intro x` 派生的目标 `(∅) x → A x` 必须解得出来\
+         （零元记法在函数位 ⇒ 富余实参 `x` 定出 `α`）。事件：{:?}",
+        out.events
+    );
+}
+
+/// **T-N13 判据 ③**（2026-09-30）：`unify_extract` 的**嵌套实参位**
+/// （模板 `Set (Set ?α)` 对实际 `Set (Set α)`）。
+///
+/// 病根：pp 丢掉第一个隐式实参后，`𝒫 (Set.univ α)` 的目标文本成了
+/// `Set.powerset Set.univ` —— `Set.univ` 是**未应用**的常量，它的类型是 Pi
+/// ⇒ 路线①（由后续显式实参的类型反解）解不出；唯一的线索是**期望类型**
+/// `Set (Set α)`，而 `α` 在**嵌套的实参位** ⇒ v1 只认「实参位恰好是裸变量」⇒
+/// 报「补不出前面的类型参数」✗（实测：unit11 的 `𝒫 (Set.univ α)` 在 `exact` 里）。
+///
+/// 修法：实参位的模板**含该变量**时递归匹配；同一个变量在多个位置命中时要求
+/// **取值一致**（不一致 ⇒ `None`，不猜、不搜索 ✓）。
+///
+/// **反向验证**：把递归那一段撤掉 ⇒ 本条当场判红 ✓。
+#[test]
+fn a_nested_parameter_position_is_matched_recursively() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+end Set\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+namespace Set\n\
+def subset {\u{3b1} : Type} (A B : Set \u{3b1}) : Prop := forall (x : \u{3b1}), A x -> B x\n\
+def univ {\u{3b1} : Type} : Set \u{3b1} := fun (x : \u{3b1}) => True\n\
+def powerset {\u{3b1} : Type} (A : Set \u{3b1}) : Set (Set \u{3b1}) := fun (B : Set \u{3b1}) => subset B A\n\
+theorem mem_powerset_iff {\u{3b1} : Type} (A B : Set \u{3b1}) : B \u{2208} powerset A \u{2194} subset B A :=\n\
+  Iff.intro (fun (h : B \u{2208} powerset A) => h) (fun (h : subset B A) => h)\n\
+end Set\n\
+prefix:100 \" \u{1d4ab} \" => Set.powerset\n\
+theorem t (\u{3b1} : Type) (A : Set \u{3b1}) : A \u{2208} \u{1d4ab} (Set.univ \u{3b1}) := by\n\
+  exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) (fun (x : \u{3b1}) => fun (hx : A x) => True.intro)\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "`A ∈ 𝒫 (Set.univ α)` 必须解得出来（`α` 只在**嵌套**的期望类型 \
+         `Set (Set α)` 里出现 ⇒ 实参位要递归匹配）。事件：{:?}",
+        out.events
+    );
+}
+
+/// **T-N13 判据 ④**（2026-09-30）：`solve_prefix` 的**模板侧展开** —— 模板是 `Set ?α`
+/// （`Set` 是 **def**），实参的类型文本却是**箭头形态**（`Set Two` 的 pp 就是
+/// `Two -> Prop`）⇒ 不展开模板就头对不上 ⇒ `=` 的操作数 `{aa} ∩ {bb}` 报
+/// 「补不出前面的类型参数」✗（实测：unit08 的 `f1 '' ({aa} ∩ {bb}) = …` 一族）。
+///
+/// **反向验证**：把模板侧展开那一段撤掉 ⇒ 本条当场判红 ✓
+#[test]
+fn a_def_typed_template_unfolds_to_match_an_arrow_shaped_argument_type() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+def empty {\u{3b1} : Type} : Set \u{3b1} := fun (x : \u{3b1}) => False\n\
+def singleton {\u{3b1} : Type} (a : \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => x = a\n\
+def inter {\u{3b1} : Type} (A B : Set \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => A x \u{2227} B x\n\
+def image {\u{3b1} \u{3b2} : Type} (f : \u{3b1} -> \u{3b2}) (A : Set \u{3b1}) : Set \u{3b2} := fun (y : \u{3b2}) => True\n\
+end Set\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+infixl:70 \" \u{2229} \" => Set.inter\n\
+infixr:80 \" '' \" => Set.image\n\
+notation \"\u{2205}\" => Set.empty\n\
+inductive Two : Type\n\
+ctor aa : Two\n\
+ctor bb : Two\n\
+end\n\
+def f1 (t : Two) : Two := match t with\n\
+| aa => aa\n\
+| bb => aa\n\
+axiom inter_singletons_empty : Eq.{1} (Set Two) (({aa}) \u{2229} ({bb})) (\u{2205})\n\
+axiom image_empty (A : Set Two) : Eq.{1} (Set Two) (f1 '' (\u{2205})) (\u{2205})\n\
+\n\
+theorem t : ({aa} \u{2229} {bb}) = ({aa} \u{2229} {bb}) := by\n\
+  sorry\n\
+";
+    let out = compile_ok(src);
+    // `sorry` 的值走 `ExerciseOpen`、完整的走 `DeclarationChecked` ⇒ 两种都算「语句被接受」✓。
+    let accepted = out.events.iter().any(|e| match e {
+        CheckEvent::DeclarationChecked { name } => name == "t",
+        CheckEvent::ExerciseOpen { name } => name.as_deref() == Some("t"),
+        _ => false,
+    });
+    assert!(
+        accepted,
+        "`({{aa}} ∩ {{bb}}) = ({{aa}} ∩ {{bb}})` 必须解得出来（模板 `Set ?α` 要能展开成 `?α -> Prop`\n\
+         才与实参类型 `Two -> Prop` 对上）。事件：{:?}",
+        out.events
+    );
+}
+
+/// **T-N13 判据 ⑤**（2026-09-30）：旧写法里某一位是**零元隐式常量**（`Eq.trans.{1}
+/// (Set Two) … (∅) …`）时，它的类型是那个常量自己的 **Pi**（要等期望类型才补隐式
+/// 实参）⇒ 逐位「贴合」判据必然否掉 ⇒ 路线③（富余实参落到结果上）抢走 ⇒ 组装错位
+/// ⇒ 内核报 `期望 (Set.[] Two.[])，实际是 Pi (α : Sort(1)), (Set.[] $0)` ✗
+/// （实测：unit08 的 `image_inter_singletons_empty`）。
+///
+/// **反向验证**：把 `starts_old_style` 那一半撤掉（路线③ 照旧抢）⇒ 本条当场判红 ✓
+#[test]
+fn an_old_style_application_with_a_nullary_constant_argument_is_not_hijacked() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+def empty {\u{3b1} : Type} : Set \u{3b1} := fun (x : \u{3b1}) => False\n\
+def singleton {\u{3b1} : Type} (a : \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => x = a\n\
+def inter {\u{3b1} : Type} (A B : Set \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => A x \u{2227} B x\n\
+def image {\u{3b1} \u{3b2} : Type} (f : \u{3b1} -> \u{3b2}) (A : Set \u{3b1}) : Set \u{3b2} := fun (y : \u{3b2}) => True\n\
+end Set\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+infixl:70 \" \u{2229} \" => Set.inter\n\
+infixr:80 \" '' \" => Set.image\n\
+notation \"\u{2205}\" => Set.empty\n\
+inductive Two : Type\n\
+ctor aa : Two\n\
+ctor bb : Two\n\
+end\n\
+def f1 (t : Two) : Two := match t with\n\
+| aa => aa\n\
+| bb => aa\n\
+axiom inter_singletons_empty : Eq.{1} (Set Two) (({aa}) \u{2229} ({bb})) (\u{2205})\n\
+axiom image_empty (A : Set Two) : Eq.{1} (Set Two) (f1 '' (\u{2205})) (\u{2205})\n\
+\n\
+theorem t :\n\
+    Eq.{1} (Set Two)\n\
+      (f1 '' (({aa}) \u{2229} ({bb})))\n\
+      (\u{2205}) :=\n\
+  Eq.trans.{1} (Set Two)\n\
+    (f1 '' (({aa}) \u{2229} ({bb})))\n\
+    (f1 '' (\u{2205}))\n\
+    (\u{2205})\n\
+    (congrArg.{1} (fun (X : Set Two) => f1 '' X) inter_singletons_empty)\n\
+    (image_empty (\u{2205}))\n\
+";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "T-N13 的形状必须判绿（判红 ⇒ 这条根因没修好）。事件：{:?}",
+        out.events
+    );
+}
+
+/// **T-N13 判据 ⑥**（2026-09-30）：解出来的隐式实参也要吃**期望类型**。
+/// 解出的值可能来自**内核 pp 文本**（`operand_type_expr` 的第三条路），而 pp 会丢掉
+/// 第一个隐式实参（`Set.empty Two` 打成 `Set.empty`）⇒ 不给期望类型，它就停在自己
+/// 的 Pi 上 ⇒ 内核报 `期望 (Set.[] Two.[])，实际是 Pi …` ✗
+/// （实测：`congrArg.{1} (fun (X : Set Two) => f1 '' X) inter_singletons_empty`）。
+///
+/// **反向验证**：把解出值的期望类型改回 `None` ⇒ 本条当场判红 ✓
+#[test]
+fn a_solved_implicit_argument_takes_its_layer_domain_as_expected_type() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+def empty {\u{3b1} : Type} : Set \u{3b1} := fun (x : \u{3b1}) => False\n\
+def singleton {\u{3b1} : Type} (a : \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => x = a\n\
+def inter {\u{3b1} : Type} (A B : Set \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => A x \u{2227} B x\n\
+def image {\u{3b1} \u{3b2} : Type} (f : \u{3b1} -> \u{3b2}) (A : Set \u{3b1}) : Set \u{3b2} := fun (y : \u{3b2}) => True\n\
+end Set\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+infixl:70 \" \u{2229} \" => Set.inter\n\
+infixr:80 \" '' \" => Set.image\n\
+notation \"\u{2205}\" => Set.empty\n\
+inductive Two : Type\n\
+ctor aa : Two\n\
+ctor bb : Two\n\
+end\n\
+def f1 (t : Two) : Two := match t with\n\
+| aa => aa\n\
+| bb => aa\n\
+axiom inter_singletons_empty : Eq.{1} (Set Two) (({aa}) \u{2229} ({bb})) (\u{2205})\n\
+axiom image_empty (A : Set Two) : Eq.{1} (Set Two) (f1 '' (\u{2205})) (\u{2205})\n\
+\n\
+theorem t : Eq.{1} (Set Two) (f1 '' (({aa}) \u{2229} ({bb}))) (f1 '' (\u{2205})) :=\n\
+  congrArg.{1} (fun (X : Set Two) => f1 '' X) inter_singletons_empty\n\
+";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "T-N13 的形状必须判绿（判红 ⇒ 这条根因没修好）。事件：{:?}",
+        out.events
+    );
+}

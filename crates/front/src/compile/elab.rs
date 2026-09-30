@@ -2743,6 +2743,35 @@ fn args_fit_layers_in_order<'a>(
     if args.is_empty() || args.len() > layers.len() {
         return false;
     }
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for (i, a) in args.iter().enumerate() {
+        // `env` 按 `&mut` 逐次借用（`Option<&mut _>` 不是 `Copy`）——**每轮只借一次**。
+        let domain = crate::spine::substitute(&layers[i].domain, &sigma);
+        if !type_head_fits_layer(&domain, a, ctx, scope, InplaceEnv::reborrow(&mut env)) {
+            return false;
+        }
+        if !layers[i].name.is_empty() {
+            sigma.insert(layers[i].name.clone(), (*a).clone());
+        }
+    }
+    true
+}
+
+/// 一位实参是否贴合该层的域（[`args_fit_layers_in_order`] 的逐位判据，抽出来给
+/// 「开头是不是旧写法」单独用 —— T-N13）。
+///
+/// ⚠ **既不比 `Expr` 结构、也不比 pp 文本**：
+/// * 比结构 ✗ —— `Expr` 的 `PartialEq` **含 `span`**（只差 offset 就判不等 ✓）；
+/// * 比 pp ✗ —— 那是**显示**路径（唯一接口是 `DisplayNotations` ✓，记法守卫会抓 ✓），
+///   而且 `Type` 与 `Sort 1` 同义而异形 ✓。
+/// ⇒ 比**类型表达式的头**（`Sort` 家族按层级归一 ✓、应用取函数位置的头 ✓）。
+fn type_head_fits_layer<'a>(
+    domain: &Expr,
+    a: &Expr,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    env: Option<&mut InplaceEnv<'_, 'a>>,
+) -> bool {
     let is_inductive = |n: &str| ctx.inductives.contains_key(n);
     let unfold = |e: &Expr| {
         let mut cur = e.clone();
@@ -2755,29 +2784,13 @@ fn args_fit_layers_in_order<'a>(
         }
         cur
     };
-    let mut sigma: HashMap<String, Expr> = HashMap::new();
-    for (i, a) in args.iter().enumerate() {
-        // `env` 按 `&mut` 逐次借用（`Option<&mut _>` 不是 `Copy`）——**每轮只借一次**。
-        let Some(actual) = operand_type_expr(ctx, scope, a, InplaceEnv::reborrow(&mut env)) else {
-            return false;
-        };
-        let domain = crate::spine::substitute(&layers[i].domain, &sigma);
-        // ⚠ **既不比 `Expr` 结构、也不比 pp 文本**：
-        // * 比结构 ✗ —— `Expr` 的 `PartialEq` **含 `span`**（只差 offset 就判不等 ✓）；
-        // * 比 pp ✗ —— 那是**显示**路径（唯一接口是 `DisplayNotations` ✓，记法守卫会抓 ✓），
-        //   而且 `Type` 与 `Sort 1` 同义而异形 ✓。
-        // ⇒ 比**类型表达式的头**（`Sort` 家族按层级归一 ✓、应用取函数位置的头 ✓）。
-        let Some(d) = type_head(&unfold(&domain)) else {
-            return false;
-        };
-        if type_head(&unfold(&actual)).as_deref() != Some(d.as_str()) {
-            return false;
-        }
-        if !layers[i].name.is_empty() {
-            sigma.insert(layers[i].name.clone(), (*a).clone());
-        }
-    }
-    true
+    let Some(actual) = operand_type_expr(ctx, scope, a, env) else {
+        return false;
+    };
+    let Some(d) = type_head(&unfold(domain)) else {
+        return false;
+    };
+    type_head(&unfold(&actual)).as_deref() == Some(d.as_str())
 }
 
 /// 操作数的**类型表达式**（源级 AST），供隐式前缀求解当模板/实参用。
@@ -2946,6 +2959,20 @@ fn try_implicit_application<'a>(
     // 前缀 ⇒ 栈溢出，实测）。
     let raw_head = match head {
         Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => name.as_str(),
+        // **零元记法在函数位**（`(∅) x` —— by 引擎把目标 `∅ ⊆ A` 展开成
+        // `∀ x, (∅) x → A x` 之后就是这个形状）：记法节点自己**没有实参**，
+        // spine 上的实参就是它的**富余实参** ⇒ 走与 `Set.univ x` 同一条路线 ③
+        // （`α` 从富余实参的类型解出）✓。
+        //
+        // ⚠ **非零元记法不在这里认** ✗：它的操作数在记法节点**内部**
+        // （`(A ∩ B) x` 的 `A`/`B` 不在 spine 里）⇒ 拿 spine 实参当实参表会错位。
+        // 那条形状由 `spine::unfold_one` 的「记法在函数位」分支管 ✓。
+        Expr::Notation {
+            target,
+            lhs: None,
+            rhs: None,
+            ..
+        } => target.as_str(),
         _ => return Ok(None),
     };
     // ⚠ **已知缺口 G-42**（2026-09-26 实测）：这里**应该**用**解析后的规范名**
@@ -2985,6 +3012,17 @@ fn try_implicit_application<'a>(
         Err(_) => raw_head.to_string(),
     };
     let head_name = head_name.as_str();
+    // **头的 elaborate 形态**：头是**零元记法节点**时（`(∅) x`），它的展开就是
+    // 目标常量本身 ⇒ 用 `Ident(target)` 代替节点去 elaborate ✓ —— 直接
+    // `elab_expr(记法节点)` 会走记法路径，而那里**没有期望类型**（它在函数位）
+    // ⇒ 报「补不出前导类型参数」✗（实测）。其余形状零开销（借用原节点 ✓）。
+    let head_src: std::borrow::Cow<'_, Expr> = match head {
+        Expr::Notation { target, span, .. } => std::borrow::Cow::Owned(Expr::Ident {
+            name: target.clone(),
+            span: *span,
+        }),
+        other => std::borrow::Cow::Borrowed(other),
+    };
 
     let declared = match known.get(head_name) {
         Some(k) if k.implicit_prefix() > 0 => k,
@@ -3042,6 +3080,29 @@ fn try_implicit_application<'a>(
                 known,
             }),
         );
+    // **第一个实参是否落在第 0 层上**（T-N13，2026-09-30）：旧写法的**开头**就是
+    // `layers[0]`（`Eq.trans.{1} (Set Two) X …` 的 `Set Two` 正好落在 `{α}` 层上 ✓）；
+    // 短写的开头落在**第一个显式层**（`Set.image f A y` 的 `f` ✗ 不是 `Type`）。
+    //
+    // 为什么要单独一条：`fits_old_style` 是**逐位**判据，**中间**有一位不贴合就整体
+    // 否掉——而旧写法里"某一位是零元隐式常量"（`Eq.trans.{1} (Set Two) X (f1 '' (∅)) (∅) h1 h2`
+    // 的第 4 位 `∅`）拿到的类型是它自己的 **Pi**（`{α} → Set α`，它要等期望类型才补
+    // 隐式实参）⇒ 必然"不贴合" ✗ ⇒ 路线③ 抢走 ⇒ 组装错位 ⇒ 内核报
+    // `期望 (Set.[] Two.[])，实际是 Pi (α : Sort(1)), (Set.[] $0)` ✗（实测：
+    // unit08 的 `image_inter_singletons_empty`）。
+    // 开头贴合 ⇒ 这就是旧写法，路线③ **必须让位** ✓（它只该管"实参从显式层开始"的形状）。
+    let starts_old_style = args.first().is_some_and(|a| {
+        type_head_fits_layer(
+            &layers[0].domain,
+            a,
+            ctx,
+            scope,
+            Some(&mut InplaceEnv {
+                builder: &mut *builder,
+                known,
+            }),
+        )
+    });
     {
         // **闸门 = 「实参比显式层多」且「旧写法不贴合」** ✓。
         //
@@ -3057,7 +3118,8 @@ fn try_implicit_application<'a>(
         // * 现在用 **G-42 的"贴合"判据**把那个歧义**真的判掉**了 ✓（`args_fit_layers_in_order`
         //   —— 逐位比对应层的**类型头** ✓）⇒ 可以安全地放宽到"实参比显式层多" ✓：
         //   贴合 ⇒ 旧写法 ✓；不贴合 ⇒ 富余实参落到**结果**上 ✓。
-        if !fits_old_style && !args.is_empty() && args.len() > explicit_layers {
+        if !fits_old_style && !starts_old_style && !args.is_empty() && args.len() > explicit_layers
+        {
             let surplus = args.len() - explicit_layers;
             let mut tail: Vec<crate::compile::implicit::Layer> = Vec::with_capacity(surplus);
             let mut cur = result.clone();
@@ -3127,11 +3189,31 @@ fn try_implicit_application<'a>(
                     ctx.defs,
                     &is_inductive,
                 ) {
-                    let mut out =
-                        elab_expr(builder, head, scope, univ, known, hovers, None, None, ctx)?;
+                    let mut out = elab_expr(
+                        builder, &head_src, scope, univ, known, hovers, None, None, ctx,
+                    )?;
                     for (i, value) in solved.iter().enumerate() {
-                        let term =
-                            elab_expr(builder, value, scope, univ, known, hovers, None, None, ctx)?;
+                        // 与主路径同款：解出来的隐式实参也要吃**该层的域**当期望类型 ✓。
+                        let expected_src = crate::spine::substitute(&extended[i].domain, &{
+                            let mut sig: HashMap<String, Expr> = HashMap::new();
+                            for (j, s) in solved.iter().take(i).enumerate() {
+                                if !extended[j].name.is_empty() {
+                                    sig.insert(extended[j].name.clone(), s.clone());
+                                }
+                            }
+                            sig
+                        });
+                        let term = elab_expr(
+                            builder,
+                            value,
+                            scope,
+                            univ,
+                            known,
+                            hovers,
+                            None,
+                            Some(&expected_src),
+                            ctx,
+                        )?;
                         out = builder.mk_app(out, term);
                         // 隐式实参算完之后，**写出来的那些实参**照旧逐位接上 ✓
                         // （它们的期望类型就是对应层的域 ✓，与旧写法同一口径）。
@@ -3182,7 +3264,9 @@ fn try_implicit_application<'a>(
         if args.len() > layers.len() {
             return Ok(None);
         }
-        let mut out = elab_expr(builder, head, scope, univ, known, hovers, None, None, ctx)?;
+        let mut out = elab_expr(
+            builder, &head_src, scope, univ, known, hovers, None, None, ctx,
+        )?;
         let mut sigma: HashMap<String, Expr> = HashMap::new();
         for (i, a) in args.iter().enumerate() {
             let expected_src = crate::spine::substitute(&layers[i].domain, &sigma);
@@ -3208,7 +3292,9 @@ fn try_implicit_application<'a>(
         return Ok(None);
     }
     let span = expr.span();
-    let head_term = elab_expr(builder, head, scope, univ, known, hovers, None, None, ctx)?;
+    let head_term = elab_expr(
+        builder, &head_src, scope, univ, known, hovers, None, None, ctx,
+    )?;
     // 每个实参的**类型**（路线 ① 的原料：`arg_tys[i]` 对应第 `k + i` 层）。
     // 局部变量**优先取书写类型**（零内核调用，且不会像 pp 那样丢隐式实参）。
     //
@@ -3264,10 +3350,28 @@ fn try_implicit_application<'a>(
     let mut out = head_term;
     let mut sigma: HashMap<String, Expr> = HashMap::new();
     for (j, s) in solved.iter().enumerate() {
+        // **解出来的隐式实参也要吃期望类型**（T-N13，2026-09-30）：解出的值可能来自
+        // **内核 pp 文本**（`operand_type_expr` 的第三条路），而 pp 会丢掉第一个隐式
+        // 实参（`Set.empty Two` 打成 `Set.empty`）⇒ 不给期望类型，`Set.empty` 就停在
+        // 自己的 Pi 上 ⇒ 内核报 `期望 (Set.[] Two.[])，实际是 Pi (α : Sort(1)), (Set.[] $0)` ✗
+        // （实测：`congrArg.{1} (fun (X : Set Two) => f1 '' X) inter_singletons_empty`
+        // —— 解出的 `b` 是 pp 回读的裸 `Set.empty`）。
+        // 期望类型就是**该层的域**（已解出的参数先代进去）✓ —— 与写出来的实参同一口径 ✓。
+        let expected_src = crate::spine::substitute(&layers[j].domain, &sigma);
         if !layers[j].name.is_empty() {
             sigma.insert(layers[j].name.clone(), s.clone());
         }
-        let t = elab_expr(builder, s, scope, univ, known, hovers, None, None, ctx)?;
+        let t = elab_expr(
+            builder,
+            s,
+            scope,
+            univ,
+            known,
+            hovers,
+            None,
+            Some(&expected_src),
+            ctx,
+        )?;
         out = builder.mk_app(out, t);
     }
     for (i, a) in args.iter().enumerate() {
@@ -3367,7 +3471,32 @@ pub(crate) fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Optio
             }
         }
     }
-    None
+    // **嵌套位置**（T-N13，2026-09-30）：模板该位是**含变量的复合式**时递归下去。
+    //
+    // 病根：迁移后的 pp 会丢掉**第一个隐式实参**（`Set.univ α` 打成 `Set.univ`），
+    // 于是 `𝒫 (Set.univ α)` 的期望类型只剩 `Set (Set α)` 这一条线索——`α` 出现在
+    // **嵌套的实参位**（`Set (Set ?α)` 的第二层），而 v1 只认「实参位恰好是裸变量」
+    // ⇒ 路线② 永远匹配不上 ⇒ `Set.powerset` 报「补不出前面的类型参数」✗（实测：
+    // unit11 的 `𝒫 (Set.univ α)`；`exact` 里对目标做一遍 pp 回读就是这个形状）。
+    //
+    // **仍然不是一般合一**：单侧结构匹配 + 只解一个变量；同一个变量在多个位置
+    // 出现时要求**取值一致**（不一致 ⇒ `None`，不猜、不搜索 ✓）。既有那条
+    // 「裸变量位取第一个命中」**原样保留**（先跑，命中即返回）⇒ 老行为逐字节不变 ✓。
+    let mut found: Option<Expr> = None;
+    for k in 0..n {
+        let template_arg = &template_args[t_off + k];
+        if !crate::spine::mentions(name, template_arg) {
+            continue;
+        }
+        if let Some(v) = unify_extract(template_arg, &actual_args[a_off + k], name) {
+            match &found {
+                None => found = Some(v),
+                Some(prev) if *prev == v => {}
+                Some(_) => return None,
+            }
+        }
+    }
+    found
 }
 
 /// 头名 + 实参 + **头的表达式**：**记法节点按「目标名 + 操作数」算**。

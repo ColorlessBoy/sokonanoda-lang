@@ -85,19 +85,16 @@ pub(crate) fn peel_pi_delta_n(
     hint_of: &dyn Fn(&Expr) -> Option<String>,
     limit: usize,
 ) -> Option<PiBody> {
-    let mut cur = expr.clone();
-    for _ in 0..limit.max(1) {
+    // 与 [`unfold_to_inductive`] 同一条：**两种实参读法都试**（短写优先，
+    // 到不了 Pi 再按旧写法重来）✓。
+    let done = |e: &Expr| peel_pi(e).is_some();
+    for mode in [UnfoldAlign::Short, UnfoldAlign::Old] {
+        let cur = unfold_loop(expr, defs, limit.max(1), hint_of, mode, &done);
         if let Some(pi) = peel_pi(&cur) {
             return Some(pi);
         }
-        // 用 `unfold_one` 而不是 `unfold_head_once`：后者在实参比形参**多**时
-        // 直接放弃（内核 pp 把结果上的应用也摊平：`(Set.powerset α B) A` 是
-        // 3 个实参、2 个形参），而前者会把多出来的贴回结果上（`beta_apply`）。
-        // `X ∈ 𝒫 B` 要展开 `Set.mem → Set.powerset → Set.subset` 三层，正是这个
-        // 形状（实测：只认 `unfold_head_once` 时第二层就断）。
-        cur = unfold_one(&cur, defs, hint_of(&cur).as_deref())?;
     }
-    peel_pi(&cur)
+    None
 }
 
 /// 调用点的**层级提示**：头上没写 `.{…}` 时用它填定义体的宇宙变量。
@@ -223,14 +220,38 @@ pub(crate) fn unfold_to_inductive(
     limit: usize,
     level_hint: Option<&str>,
 ) -> Expr {
+    let done = |e: &Expr| head_and_args(e).is_some_and(|(name, _)| is_inductive(name));
+    // **两种读法都试**（`Set.union A B x` 与 `Set.union α A B` 在 AST 上同为
+    // 3 个实参 ⇒ 静态分不开 ✗）：先按**短写**展开（迁移后的常态 ✓），到不了
+    // 归纳头再按**旧写法**重来一遍 ✓。`implicit_prefix == 0` 时两种读法逐字节
+    // 相同 ⇒ 第二次是空转（且只在第一次**没到**归纳头时才跑）✓。
+    let hint = |_e: &Expr| level_hint.map(str::to_string);
+    let short = unfold_loop(ty, defs, limit, &hint, UnfoldAlign::Short, &done);
+    if done(&short) {
+        return short;
+    }
+    let old = unfold_loop(ty, defs, limit, &hint, UnfoldAlign::Old, &done);
+    if done(&old) {
+        return old;
+    }
+    short
+}
+
+/// 按给定读法逐层展开，直到 `done` 成立（或展开不动 / 到 `limit`）。
+fn unfold_loop(
+    ty: &Expr,
+    defs: &crate::compile::elab::DefTable,
+    limit: usize,
+    hint_of: &dyn Fn(&Expr) -> Option<String>,
+    mode: UnfoldAlign,
+    done: &dyn Fn(&Expr) -> bool,
+) -> Expr {
     let mut cur = ty.clone();
     for _ in 0..limit {
-        if let Some((name, _)) = head_and_args(&cur) {
-            if is_inductive(name) {
-                return cur;
-            }
+        if done(&cur) {
+            return cur;
         }
-        match unfold_one(&cur, defs, level_hint) {
+        match unfold_one_with(&cur, defs, hint_of(&cur).as_deref(), mode) {
             Some(next) if next != cur => cur = next,
             _ => return cur,
         }
@@ -250,6 +271,26 @@ pub(crate) fn unfold_one(
     expr: &Expr,
     defs: &crate::compile::elab::DefTable,
     level_hint: Option<&str>,
+) -> Option<Expr> {
+    unfold_one_with(expr, defs, level_hint, UnfoldAlign::Short)
+}
+
+/// 实参对齐的**两种读法**（见 [`unfold_one_with`]）。
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum UnfoldAlign {
+    /// **短写**：写出来的实参逐位对**显式**形参（迁移后的常态；内核 pp 形态也是
+    /// 这一档 —— 它丢的正是第一个隐式实参）。
+    Short,
+    /// **旧写法**：把前导隐式实参也写出来（`Set.union α A B`）。
+    Old,
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn unfold_one_with(
+    expr: &Expr,
+    defs: &crate::compile::elab::DefTable,
+    level_hint: Option<&str>,
+    mode: UnfoldAlign,
 ) -> Option<Expr> {
     let (head, spine_args) = spine_of(expr);
     // 头是**记法节点**时：操作数就是那个常量的实参（记法只写操作数，前导类型
@@ -275,33 +316,52 @@ pub(crate) fn unfold_one(
     };
     let info = defs.get(name)?;
     // 记法路径：操作数**右对齐**到形参（前导类型参数缺着）。
-    // 普通路径：实参可能比形参**多**——内核 pp 把结果上的应用也摊平了
-    // （`Set.union α A B x` 四个实参、三个形参）⇒ 多出来的贴在结果上。
-    let (const_args, extra) = if matches!(head, Expr::Notation { .. }) {
-        (
-            const_args,
-            spine_args
-                .iter()
-                .map(|e| (**e).clone())
-                .collect::<Vec<Expr>>(),
-        )
-    } else if const_args.len() > info.params.len() {
-        let extra = const_args[info.params.len()..].to_vec();
-        (const_args[..info.params.len()].to_vec(), extra)
+    // 普通路径：实参可能比形参**多**——结果上的应用也摊平在 spine 里
+    // （`Set.union A B x` 三个实参、两个显式形参）⇒ 多出来的贴在结果上。
+    //
+    // ⚠ **对齐必须跳过前导隐式形参**（G-69 同族，2026-09-30）：源级 AST 的实参是
+    // **写出来的**那些（`Set.union A B` 只有 2 个），而 `params` 含隐式 ⇒ 不跳过
+    // 就会把 `Set.union A B x` 对成 `α := A, A := B, B := x` ✗（实测：`cases h`
+    // （`h : x ∈ A ∪ Set.univ`）拿到的是 `Set.union` 的**体**、而且代换错位）。
+    // **旧写法**（前导隐式实参也写出来：`Set.union α A B`）实参个数 ≥ 形参总数
+    // ⇒ 仍按**全部**形参对齐 ✓ —— 两种写法都判得出来。
+    //
+    // 今天（`implicit_prefix == 0`）`explicit == all` ⇒ 两个分支逐字节相同 ✓。
+    let all = &info.params;
+    let explicit = &all[info.implicit_prefix.min(all.len())..];
+    let mut const_args = const_args;
+    let align: &[String];
+    let extra: Vec<Expr>;
+    if matches!(head, Expr::Notation { .. }) {
+        // 记法只写操作数（= 显式实参 ✓）；spine 上的实参是**结果**上的应用 ✓
+        align = explicit;
+        extra = spine_args.iter().map(|e| (**e).clone()).collect();
+    } else if mode == UnfoldAlign::Old || info.implicit_prefix == 0 || explicit.is_empty() {
+        // 没有前导隐式（今天全部课程 def ✓）⇒ 与老行为逐字节相同；
+        // **只有隐式形参**的 def（`Set.univ`、`Set.empty`）⇒ 唯一读法就是
+        // 把写出来的那个当**隐式**实参（`Set.univ α` / `@Set.univ α`）✓
+        align = all;
+        extra = if const_args.len() > all.len() {
+            const_args.split_off(all.len())
+        } else {
+            Vec::new()
+        };
     } else {
-        (const_args, Vec::new())
-    };
-    if const_args.len() > info.params.len() {
+        // **短写**（迁移后的常态；pp 形态也是这一档 —— 它丢的正是第一个隐式
+        // 实参）⇒ 写出来的实参逐位对**显式**形参，多出来的贴在结果上 ✓
+        align = explicit;
+        extra = if const_args.len() > explicit.len() {
+            const_args.split_off(explicit.len())
+        } else {
+            Vec::new()
+        };
+    }
+    if const_args.len() > align.len() {
         return None;
     }
-    let offset = info.params.len() - const_args.len();
-    let sigma: std::collections::HashMap<String, Expr> = info
-        .params
-        .iter()
-        .skip(offset)
-        .cloned()
-        .zip(const_args)
-        .collect();
+    let offset = align.len() - const_args.len();
+    let sigma: std::collections::HashMap<String, Expr> =
+        align.iter().skip(offset).cloned().zip(const_args).collect();
     let levels = {
         let levels = actual_levels(head);
         if levels.is_empty() {

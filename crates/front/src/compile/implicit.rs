@@ -161,6 +161,39 @@ pub(crate) fn solve_prefix(
                     v = super::elab::unify_extract(&domain, &unfolded, &name);
                 }
             }
+            // **模板侧也要能展开**（T-N13，2026-09-30）：记法路径的 `solve_prefix_args`
+            // 早就有这一条（R5，2026-09-26 实测：`{∅} ∩ {…}` 一族），而**唯一钩子**
+            // 这条路线只展开了**实参侧** ⇒ 同一形状在两条路上判得不一样 ✗。
+            //
+            // 形状：模板是 `Set ?α`（`Set` 是 **def**），实参的类型文本却是**箭头形态**
+            // （`Set Two` 的 pp 就是 `Two -> Prop`）⇒ `App(Set, ?α)` 与 `Arrow{…}`
+            // 头对不上 ⇒ 解不出 ✗（实测：`f1 '' ({aa} ∩ {bb})` 落在 `=` 的操作数位时，
+            // `∩` 的 `α` 报 `elab-implicit-argument-unsolved`）。
+            // **只加解、不改既有解**：先按原样试，失败才展开 ✓。
+            //
+            // ⚠ **闸门：实际项必须是「`Set` 的展开形态」**（`X -> Prop`，陪域是 Sort）——
+            // 否则会拿**函数类型**的域去对：`Set.univ` 作为第一个实参时，它的类型是
+            // `(α : Type) → Set α`（真 Pi），展开后的模板 `?α -> Prop` 与它按 `peel_pi`
+            // 一对，域 `?α` 就吃下 `Type 0` ⇒ `α := Type 0` ⇒ 内核报
+            // `def_eq mismatch expected: Sort(1) | actual: Sort(2)` ✗（实测：
+            // `Set.univ ⊆ A` 与 `Set.subset Set.univ A` 两条都当场判红）。
+            // 判据与 R5 的意图一致：展开只在**两边同形**时才有意义 ✓。
+            let actual_is_unfolded_set = match crate::spine::peel_pi(actual) {
+                None => true,
+                Some(pi) => matches!(pi.body, Expr::Sort { .. }),
+            };
+            if v.is_none() && actual_is_unfolded_set {
+                let unfolded_domain = unfold(&domain);
+                if unfolded_domain != domain {
+                    v = super::elab::unify_extract(&unfolded_domain, actual, &name);
+                    if v.is_none() {
+                        let unfolded = unfold(actual);
+                        if &unfolded != actual {
+                            v = super::elab::unify_extract(&unfolded_domain, &unfolded, &name);
+                        }
+                    }
+                }
+            }
             if let Some(v) = v {
                 found = Some(v);
                 break;
@@ -175,6 +208,23 @@ pub(crate) fn solve_prefix(
                     let unfolded = unfold(expected);
                     if &unfolded != expected {
                         found = super::elab::unify_extract(&template, &unfolded, &name);
+                    }
+                }
+                // 模板侧展开（与路线 ① 同款，理由见上）。
+                if found.is_none() {
+                    let unfolded_template = unfold(&template);
+                    if unfolded_template != template {
+                        found = super::elab::unify_extract(&unfolded_template, expected, &name);
+                        if found.is_none() {
+                            let unfolded = unfold(expected);
+                            if &unfolded != expected {
+                                found = super::elab::unify_extract(
+                                    &unfolded_template,
+                                    &unfolded,
+                                    &name,
+                                );
+                            }
+                        }
                     }
                 }
             }
