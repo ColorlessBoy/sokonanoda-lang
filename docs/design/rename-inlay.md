@@ -1,5 +1,8 @@
 # 设计：rename + find-references + inlay hints + `sokonanoda lsp`
 
+> **as-built（已落地）**：契约在 `docs/protocol.md`（rename/inlay 小节），实现落点
+> `crates/lsp/src/{render,inlay,actions}.rs`、`crates/front/src/references.rs`（§7 的 subagent 文件分工属过程记录，已删）。
+
 > 状态：设计定稿（2026-09-07，本轮实施）。依据：`docs/notes/gap-analysis.md` #6/#7
 > 与附加小项；LSP 3.17 规范要点与 rust-analyzer/clangd/gleam 实践调研。
 
@@ -107,14 +110,3 @@ LSP（`crates/lsp/src/render.rs` 扩展 + main.rs 预接桩）：
 3. `cargo run -q -p sokonanoda-cli --bin sokonanoda -- lsp` 冒烟：stdin 非外
    层测试（不进 CI 的 e2e，只做 help 文本与编译）+ `sokonanoda --help` 含 lsp；
 4. 全仓库门禁（fmt/clippy/test）绿。
-
-## 7. 文件分工（互斥清单）
-
-| owner | 允许修改 |
-|---|---|
-| 主会话（预接，先行完成） | `docs/protocol.md`、`crates/front/src/compile/{report,check}.rs`（ResolvedTarget 扩展 + name_span 记录）、`crates/front/src/lib.rs`、`crates/lsp/src/{lib.rs,main.rs}`（lib 化 + 能力 + 桩 + Doc.version）、两个 Cargo.toml、`crates/cli/src/{main.rs,help.rs}`、`crates/lsp/src/testutil.rs`（测试公共设施种子） |
-| C（rename/references） | `crates/front/src/references.rs`（含测试）、`crates/lsp/src/render.rs`（references/prepare/rename 逻辑，含测试） |
-| D（inlay hints） | `crates/lsp/src/inlay.rs`（新，含测试） |
-
-冲突警戒：`crates/front/src/compile/check/` 的 resolution 记录点由主会话
-一次性改完再冻结；subagent 阶段任何人不得再动它。

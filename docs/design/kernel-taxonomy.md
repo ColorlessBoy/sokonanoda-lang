@@ -1,5 +1,9 @@
 # 设计：内核错误分类学余项 + 失败声明建议 + 基准/fuzz 基建
 
+> **as-built（已落地）**：§1 分类学、§2 失败建议、§3 基准/fuzz 都已在仓库里生效
+> （`crates/front/src/suggest.rs`、`crates/lsp/src/actions.rs`、`crates/front/benches/pipeline.rs`、`fuzz/`）；
+> 本文是它们的**设计依据**（§4 的 subagent 文件分工属过程记录，已删）。权威契约 = `docs/protocol.md` 的错误码清单。
+
 > 状态：设计定稿（2026-09-07，第十三轮实施）。依据：`docs/notes/gap-analysis.md`
 > 余项、`STATUS.md` 第十一/十二轮遗留、内核冷路径改动规则
 > （REQUIREMENTS §3、LESSONS「内核冷路径改动」、architecture §6 记账）。
@@ -64,17 +68,3 @@
   `semantic::semantic_tokens`（不 panic）+ `compile::prelude_mode_from_source`；
   验收 `cd fuzz && cargo check`（stable）通过；用法文档进 `fuzz/README.md`
   （`cargo +nightly fuzz run parse_never_panics`）。
-
-## 4. 文件分工（互斥清单）
-
-| owner | 允许修改 |
-|---|---|
-| 主会话（已完成预接） | 本设计文档 |
-| K（内核分类学） | `crates/kernel/src/{conv.rs, infer.rs, inductive.rs, env.rs, …}`（仅冷路径消息）、`crates/front/src/compile/error.rs`、`crates/front/src/compile/tests.rs`、`crates/kernel/tests/memory_api.rs`、`crates/cli/tests/cli.rs`、`docs/protocol.md`（仅 kernel 码清单） |
-| L1（失败声明建议） | `crates/front/src/suggest.rs`、`crates/lsp/src/actions.rs` |
-| M（criterion） | `crates/front/Cargo.toml`、`crates/front/benches/**` |
-| N（fuzz） | `fuzz/**`（新） |
-| 主会话（合并期） | `docs/architecture.md` §6 记账、`STATUS.md`、`docs/TESTING.md`、`docs/notes/gap-analysis.md` |
-
-冲突警戒：K 与 L1 都不碰 `suggest.rs`/`error.rs` 交叉面（K 只改 error.rs 的
-分类器，L1 只消费既有 SuggestionKind 扩展——suggest.rs 归 L1 独占）。

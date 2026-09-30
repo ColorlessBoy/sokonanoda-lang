@@ -28,6 +28,19 @@ KEEP_ALWAYS = {
     "docs/TESTING.md", "docs/PERF.md", "docs/RELEASE.md", "docs/E2E.md",
     "docs/LESSONS.md", "docs/CI-FAILURES.md", "docs/vscode-dev-guide.md",
     "docs/design/e2-plan.md",
+    # ── ③ 选项：加回 KEEP_ALWAYS 并写明理由（2026-09-30 文档全量清理）────────────
+    # 这几份的「消费者」不在文档里（①只 grep 活文档 ⇒ 会误报"零引用"），
+    # 而是**代码/契约测试**在读它们 ⇒ 删了就判红：
+    # `crates/cli/tests/extension.rs:1697` 读 command-naming.md 的盘点表并双向比对
+    # `contributes.commands`（Q2 新增命令必须进表 ⇒ 守卫正常咬）。
+    "docs/design/command-naming.md",
+    # 代码注释指名它们为设计依据：kernel-taxonomy.md（`front/src/suggest.rs`、
+    # `lsp/src/actions.rs`、`crates/front/benches/pipeline.rs` —— §3 还是 benches/fuzz
+    # 基建的**唯一**文档）、rename-inlay.md（`lsp/src/{lib,render,inlay}.rs`）。
+    "docs/design/kernel-taxonomy.md",
+    "docs/design/rename-inlay.md",
+    # `AGENTS.md` §性能回归门禁 指名"详见 docs/design/ci-parallelism.md"。
+    "docs/design/ci-parallelism.md",
 }
 GUARDED = ("docs/archive/", "docs/perf/", "docs/e2e/", "docs/gaps/")
 
