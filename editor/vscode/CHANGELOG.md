@@ -1,3 +1,28 @@
+## [0.78.3] — 2026-09-30
+
+> 编译提速的**最后一条腿**：判定不再重复检查它刚刚检查过的前缀。
+
+### Changed
+
+- **A cold `Build` of the whole course is now 2.65× faster than 0.78.2**
+  (same machine, cold cache, 1 job, median of 3 runs): **126.4 s → 47.8 s**. The
+  time spent judging fell **83%** (113.7 s → 19.2 s).
+- **Why it was slow**: every time a `by` block asked the kernel a question, the
+  judge re-parsed and re-checked the *entire* prefix of the file from source —
+  265 times in one course build, 115.9 s of the 117.2 s total judging time.
+  The prefix it re-checked was the very text the compiler had **just** checked in
+  the same pass, so the re-check was pure repetition.
+- **Nothing you see changes.** The compiler now vouches for that prefix instead of
+  re-checking it. `build --json` (excluding the time-based `build.tick` and the
+  new `build.progress`) is **byte-for-byte identical**: 2691 lines, **zero
+  differing lines**. A shadow mode that runs *both* ways on every judgement and
+  compares the **verdicts** reported `shadow_same = 265`, `shadow_diff = 0`.
+  A deliberately-wrong `by` block still reports exactly the same error.
+- Two escape hatches, if you ever need the old behaviour:
+  `SOKO_JUDGE_ENV_VOUCH=0` (this tier only) or `SOKO_JUDGE_ENV_REUSE=0` (the
+  underlying prefix-reuse switch). `SOKO_JUDGE_ENV_VOUCH=shadow` runs both ways
+  and reports differences without changing behaviour.
+
 ## [0.78.2] — 2026-09-30
 
 > 「编译提速」的**第二、三档**（P1-b 收口 + P1-c）与三条用户实测 UI 缺陷的收口。
