@@ -12,7 +12,8 @@
 > 已进 `scripts/soko gate` 与 CI ✓。
 >
 > **接手先看 `docs/ONBOARDING.md`** ✓（X1，2026-09-28）：那份表是「读多少才能开工」的**唯一权威**，
-> 当前 **4 个文件 / 958 行 / 上限 1220** ✓（实测值以 `python3 scripts/docs-lint.py --json` 为准 ✗ 别抄旧数字）。
+> 当前 **4 个文件 / 959 行 / 上限 1000**（2026-09-30 实测；**别抄这里的数字** ✗ ——
+> 判据是 `python3 scripts/docs-lint.py` 判据 ⑦，数字以它为准）。
 
 ## 仓库根（入口与权威，与 `README.md`/`AGENTS.md`/`ROADMAP.md` 并列）
 
@@ -74,9 +75,8 @@
 - `binary-cli.md` — 环境能力进 `sokonanoda` 二进制子命令（内嵌下载器），删除 `scripts/soko.sh`
 - `term-apply.md` — 值位 `funapply` 关键字（**已废弃**：0.22.0 移除；仍被
   `crates/front/src/spine.rs` 引用作对照）
-- ~~`term-intro.md` / `value-keywords-v2.md` / `round14.md`~~ — 已废弃/历史轮次设计
-  ⇒ **已归档** `docs/archive/design-deprecated-2026-09-26/`（`term-intro.md.gz` /
-  `value-keywords-v2.md.gz` / `round14.md.gz`）
+- ~~`term-intro.md` / `value-keywords-v2.md` / `round14.md`~~ / ~~`real-input-tests.md`~~ —
+  已废弃/历史轮次设计 ⇒ **已归档** `docs/archive/design-deprecated-2026-09-26/`（各 `.gz`）
 - `remove-funintro.md` — 移除值位关键字 `funintro`（0.27.0）
 - `goal-list.md` — 多目标显示：`by` 每步记录全部剩余目标 + 协议 `goals[]`（0.27.0）
 - `tactic-hover.md` — tactic 关键字高亮 + hover 中间 goal state（0.27.0）
@@ -95,14 +95,11 @@
 - `early-cutoff.md` — I8 依赖精确化：conservative early-cutoff 签名比较（0.32.1）
 - `extension-server-policy.md` — VS Code 扩展强制内置 LSP + `sokonanoda: doctor` 自检（0.31.0）
 - `compiler-service-events.md` — 编译器服务事件流（`file.didChange` 等，L1/L3）
-- ~~`real-input-tests.md`~~ — 真人输入测试体系（**已废弃**）⇒ **已归档**
-  `docs/archive/design-deprecated-2026-09-26/real-input-tests.md.gz`
 - **`site-single-page.md`** — **官网（GitHub Pages）当前权威（2026-09-21）**：单页站点
   （是什么 / 怎么安装 / 核心特点 / 未来的计划）、`site/` 的文件清单、留在里面的三条防漂移机制、
   以及"为什么把 28 页砍成 1 页"。验收：`python3 scripts/check-site.py`（10 项，exit 0 才算过）
 - ~~`site.md`、`site-rebuild/`~~ — **历史存档**（已被 `site-single-page.md` 取代 ✗）：
-  2026-09-20 的 28 页全面重构 ⇒ **已归档** `docs/archive/site-rebuild-2026-09-26/`
-  （`STATE.md.gz` 的实测修正清单、`D1-design-rules.md.gz` 的视觉层参考、
+  ⇒ **已归档** `docs/archive/site-rebuild-2026-09-26/`（`STATE.md.gz` 的实测修正清单、
   `R4-fonts.md.gz` 的字体实测依据**仍然有效** ✓）。**不要照着它们新建页面** ✗。
 - `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
 - `deepseek-harness.md` — **DeepSeek Harness 适配（设计 + 计划 H0–H4）**：差距
@@ -111,11 +108,11 @@
 - `agent-query-channel.md` — **内核真相查询通道（设计 + 计划 H6-A…E）**：
   把真相从 LSP 抽成 `front::query`，再上 CLI `query` 与 MCP 两个薄传输；
   含两个 front 缺口（索引递归 `Prop` 的 recursor、多名字 binder 组）的改挂与修法
-  （2026-09-17，实现未开始；ROADMAP I15）
+  （2026-09-17；**H6-A…D 已落地**，H6-E = backlog；ROADMAP I15）
 - `imports-and-projects.md` — **多文件 `import` 与项目管理（调研 + 设计 + 计划 + as-built I16，0.57.0 已落地）**：
   10 个语言/证明助手的"单文件 vs 项目"横向调研、`import` 置顶语法与 Lean 同款
   模块名规则、`sokonanoda.toml` 项目根、闭包编译与闭包哈希缓存、CLI/LSP/query
-  表面与第 11 单元教学计划（2026-09-17，实现未开始；ROADMAP I16）
+  表面与第 11 单元教学计划（2026-09-17，ROADMAP I16）
 - `redundant-sorry.md` — **多余的 `sorry`（用户实测反馈，已落地）**：值位里"学生
   已写完、只留了一行 `sorry`"被误报成"练习尚未解决"；候选规则 = 实参超出望远镜
   且结果展不开箭头，终审 = kernel（删掉该实参后整条声明能过）。§8 记录了那个
@@ -123,11 +120,10 @@
   `NO_DECL` ⇒ cutoff 0 ⇒ 空环境**；修法是内核**只加不改语义**的
   `check_declar_at`/`try_check_declar_at` + front 传 `ByIndex(env_before)`
   （2026-09-17，第九十一轮续落地；三层验收见 §8.4）
-- `teaching-project.md` — **第二大课「从集合论到分析」总体计划**（2026-09-18，
-  只出计划；**2026-09-19 / 0.59.0 已对账**）：靶子标定（analysis 的规模与可移植项）、
-  集合论可行性实测（11 声明全绿）、**24 条课程驱动缺口**的分诊（附录 A 逐条标 0.59.0
-  状态）、§6 **缺口台账协议**（`docs/gaps/` 台账 + 最小复现 + 工作单 WO + 「缺口即测试」，
-  已接进门禁）、分期 P0–P7（P1/P2 ✅）、验收与待拍板 D-1…D-6
+- `teaching-project.md` — **第二大课「从集合论到分析」总体计划 + as-built**（2026-09-18；
+  P0–P6/P-C 已收口）：靶子标定、集合论可行性实测（11 声明全绿）、**24 条课程驱动缺口**的分诊
+  （附录 A）、§6 **缺口台账协议**（`docs/gaps/` + 最小复现 + WO + 「缺口即测试」，已进门禁）、
+  分期 P0–P7（P1/P2 ✅；**P7 待 scale gate**）、验收 D-1…D-6
 - `course-stdlib.md` — **课程标准库的分层与「消除暴力」方案**（2026-09-18）：L1 prelude /
   L2 课程标准库 / L3 单元练习的三层判据（"Mathlib 有且没有数学内容才归库"）、
   L1 的 16 条清单与落地要求、L2 规范、与语言缺口的关系、落地顺序 P-C1…P-C5
@@ -136,11 +132,9 @@
   （MIL/MoP/Logic and Proof/FM/LPA）、学习障碍、每单元"必证/必破"、记法引入顺序
   与无记法替代、与缺口台账的联动（2026-09-18）
 - `prop-large-elim-mirror.md` — **派生 recursor 的 large-elimination 判据逐字镜像内核**
-  （G-03 / WO-006，0.59.0 落地）：`inductive Bar (A : Type) : Prop` + `ctor mk (a : A)`
-  曾被内核断言拒绝（`left:1/right:0`）⇒ `Exists` 只能立成公理；根因是前端
-  `small_elim` 的源码近似，修法是把它推迟到构造子 elaborate 之后并镜像
-  `large_elim_test`（"字段是不是 Prop 值"问真内核）；顺带修掉 `judge_infer`
-  取第一条 `TypeChecked` 的既有 oracle bug；**内核零改动**（2026-09-19）
+  （G-03 / WO-006，0.59.0 落地）：`inductive Bar (A : Type) : Prop` 曾被内核断言拒绝
+  （`left:1/right:0`）⇒ `Exists` 只能立成公理；修法是推迟到构造子 elaborate 之后并镜像
+  `large_elim_test`；顺带修掉 `judge_infer` 的 oracle bug；**内核零改动**（2026-09-19）
 - `ctor-namespace.md` — 构造子进入类型的命名空间（G-02 / WO-005，0.59.0 落地）：
   规范名 `Ind.ctor` + 裸名解析别名、`elab-ambiguous-ctor-alias`、归约形态实测；
   §"基线口径订正"记录了课程门禁的**实测**基线 315 checked · 96 open（2026-09-19）
@@ -155,12 +149,14 @@
   死代码 + `pp_expr` 是 `#check` 出口）、**arity 硬规则**、落点与红线、
   `DisplayText` 编译期护栏（2026-09-21）
 - `notation-subset.md` — **用户自定义记法子集**（G-04 / WO-011 第一刀，0.59.0 落地）：
-- `notation-display.md` — **用户自定义记法子集**（G-04 / WO-011 第一刀，0.59.0 落地）：
   `infix:N`/`infixl:N`/`infixr:N`/零元 `notation` 四条命令、数学符号独立 token 的
   码点类、优先级梯子（`p`/`p+1`、`p+1`/`p`）、elab 内**源到源**展开 + 自动补前导
   类型参数（裸变量匹配，不引入元变量）、文件内作用域、记法**不是声明**（零事件）、
   兼容护城河（点名省 `α` 仍被拒）、与 Lean 的 7 条已知差异、第二刀清单；
   §9 是 as-built（`∅ ⊆ A` 逼出的"操作数也吃期望类型"等八条）（2026-09-19）
+- `notation-display.md` — **记法转化的唯一接口**（阶段 U / T-U1）：`DisplayNotations::render(...)`
+  是「AST/文本 → 带记法的给人看的文本与分段」的**唯一**入口（守卫 `scripts/audit-notation-paths.py`）；
+  四条不变量 + 防第五套实现的守卫（2026-09-25）
 - `course-lean-style.md` — **全课程 Lean 4 化（记法符号 + tactic 证明）主计划**
   （2026-09-19，**进行中**）：用户拍板 D1–D6、现状实测台账 **X1–X15**（每条都是真二进制跑出来的，
   含四个前端 bug 的根因定位到行）、语言侧 L1–L4 / 课程侧 C1–C7 / 同步 F 工作项、
@@ -221,6 +217,12 @@
 > `docs/design/site-rebuild/**`、`docs/gaps/WO-*.md`、`docs/E2-PROMPT.md` 的路径
 > ⇒ **已归档**，到 `docs/archive/` 取**同名 + `.gz`** ✓。
 >
+> **已删除（不归档）** ✗：`docs/HANDOVER.md`、`docs/E2-HANDOVER.md`、`docs/NEXT.md`、
+> `docs/PLAN-0.74-0.79.md`、`docs/HANDOFF-0.7x.md`、`docs/design/PLAN-appendix-*.md`
+> —— 内容已并入 `docs/ONBOARDING.md`（**接手 / 唯一队列 / 开工单**）与
+> `docs/STATUS-ARCHIVE.md`；要看原文 ⇒ `git log -- <路径>` ✓。**见到这些路径就当
+> "看 `docs/ONBOARDING.md`"** ✓（2026-09-29 用户口径：「一堆 HANDOVER 都可以删了，没必要」）。
+>
 > **不许动的例外** ✗（有真消费者，动了就判红）：`docs/gaps/repro/**`（38 条复现被
 > `gap.py check` 在 gate + CI 三片矩阵里真跑 ✓）、活台账里**被引用**的
 > `docs/e2e/logs/*.log`（`e2e-merge.py --check` 校验存在 ✓）、`docs/protocol.md`
@@ -229,9 +231,9 @@
 
 ## 关联目录
 
-- `ROADMAP.md`（仓库根）— 里程碑与 §10 验收标准
-- `AGENTS.md`（仓库根）— agent 入口 + 硬规则速记
-- `skills/` — 角色技能（`sokonanoda-teacher` / `-dev` / `-ci`）
+- `ROADMAP.md` / `AGENTS.md`（仓库根）— 里程碑与 §10 验收 / agent 入口 + 硬规则速记
+- `skills/` — 角色技能（`sokonanoda-teacher` / `-dev` / `-ci`）；**DeepSeek Harness 通过
+  skill 名即斜杠命令直接消费**（`/sokonanoda-teacher` 等），适配见 `docs/design/deepseek-harness.md`
 - `course/` — 入门课素材库（11 单元，agent 用，非用户直接消费）
 - **`courses/set-theory/`** — **卷 I《集合论》**（第二大课，已建）：`lib/`（L2 课程标准库）+
   `units/`（画布与解答）+ `gaps/`（发现端）+ `tools/check.py`（本地门禁）；
@@ -243,6 +245,4 @@
   见 `docs/design/onboarding.md` §5）
 - `scripts/new-course-repo.sh` — **生成「独立课程仓」骨架**（教学项目 P0.0；生成器留在
   语言仓是因为它编码版本钉约定，见 `docs/design/teaching-project.md` §3.5）
-- `skills/` — 角色技能；**DeepSeek Harness 通过 skill 名即斜杠命令直接消费**
-  （`/sokonanoda-teacher` 等），适配计划见 `docs/design/deepseek-harness.md`
 - `.devcontainer/` — 仅贡献者的 Rust 容器（终端用户无需 Rust）
