@@ -69,9 +69,10 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 
 ## 4. 工程标准：模块化、单文件不许越长越大（2026-09-06，用户要求）
 
-- **当前欠账**：`crates/lsp/src/lib.rs` **3949 行**、`crates/front/src/compile/tests.rs`
-  **3564 行**（后者是测试，暂豁免）—— 两者都远超 ~500 行红线，排期见 ROADMAP
-  （intro 一族 → `lsp/src/intro.rs`）；
+- **当前欠账**（2026-09-30 实测）：`crates/lsp/src/lib.rs` **2333 行**、
+  `crates/front/src/compile/check/walk.rs` **1775 行**、`check/mod.rs` **1549 行**、
+  `crates/front/src/compile/tests.rs` **8739 行**（测试，暂豁免）—— 都远超 ~500 行红线
+  （⚠ I16 那句"结构债已还清"只对拆分当天成立，之后又长回来了）；
 - **目标结构**（公开 API 用 re-export 保持稳定，调用方不改）：`front/src/`
   `{span,token,ast,diagnostic,parser,proof}.rs` + `compile/{mod,error,event,report,elab,prelude,check}.rs`；
   `cli/src/` `main.rs` + `{check,json_report,repl,help}.rs`；
@@ -134,11 +135,11 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 
 ## 8. 路线对齐
 
-- 已完成：I6 → playground 开课 → I7 第一门课 → I8（余项：依赖精确化 /
-  early-cutoff）→ I9 goal 视图 → I10 值位 `apply` → I12 官网（上线）。
-- **当前执行：I11 余项（真人输入测试 S2–S4：front 往返矩阵 F1–F5、LSP L3–L8、
-  VS Code 手势 V2–V4）→ I8 余项 → L2/L3（编辑器打包已由 bundled-lsp 落地，
-  余下为 service 事件流、讲课 agent 深化）。**
+- 已完成：I6 → I7 第一门课 → I8（余项：依赖精确化 / early-cutoff）→ I9 goal 视图 →
+  I10 值位 `apply`（**0.22.0 随 I13 整体移除**）→ I12 官网 → I14/I15/I16 → E1（124/124）。
+  **I11 真人输入测试体系已废弃**（`char_steps` 基建已删，现状 = `by` 引擎）。
+- **当前执行 = `docs/ONBOARDING.md` §0.2 的唯一队列**（2026-09-30：`v0.78.3` 已发布，
+  P 组编译提速全档收口；剩批次 N 3 条 + E19/E20 记法求解器元变量）。
 - 发布流程已自动化（ci auto-tag，见 `docs/RELEASE.md`）。
 - 详细验收标准以 `ROADMAP.md` §10 为准。
 
@@ -183,7 +184,8 @@ package.json）**与** `skills/` 三个技能 + `AGENTS.md` + `docs/vscode-dev-g
 
 **① `STATUS.md` 瘦身**（`scripts/status-lint.py` ✓，已进 gate 与 CI ✓）：只留两类 ——
 顶部「**当前快照**」（≤40 行 ✓）+ **最近 ≤3 轮**（每轮只写"变了什么 / 现在的状态 /
-未决项"，每段 ≤30 行 ✓）；**总行数 ≤200** ✗ · **禁词命中 = 0** ✗
+未决项"，每段 ≤30 行 ✓）；**总行数 ≤240** ✗（`MAX_TOTAL`；2026-09-27 由 200 上调，
+理由在脚本注释里 —— 200 顶格后只能删旧轮 ✗）· **禁词命中 = 0** ✗
 （`在跑`/`进行中`/`未变`/`判据不变`/`待 CI`/`等 CI`/`⏳`）· **净增 ≤60 行**（与 `HEAD` 比 ✗）；
 逐轮过程与瞬时状态进 `docs/STATUS-ARCHIVE.md`（**或干脆不写** ✓ —— CI 页面自有 ✓）；
 未决项用固定措辞「**未决**」✓。
@@ -191,17 +193,20 @@ package.json）**与** `skills/` 三个技能 + `AGENTS.md` + `docs/vscode-dev-g
 **② 文档瘦身 + 判据守护**（用户原话：「**文档太重了，还没实现多少东西文档先爆炸了**」✗
 —— **落成机制，不要口号** ✗；`scripts/docs-lint.py` ✓，已进 gate 与 CI ✓）：
 三类**分治** ✓ —— **活规范**（短、准）· **过程记录**（只留**结论 + 指针**，
-更早的进 `docs/archive/` ✓）· **垃圾**（直接删 ✓）。**六条判据**：
+更早的进 `docs/archive/` ✓）· **垃圾**（直接删 ✓）。**七条判据**（**实测值以脚本为准** ✗）：
 
-① **活文档总量 ≤ 3.0 MB**（= 仓根 `*.md` + `docs/**`，**不含** `docs/archive/**` ✗）；
-② **单文件 ≤ 2000 行**；③ **入口文件 ≤ 800 行**（`AGENTS.md`/`README.md`/
-`REQUIREMENTS.md`/`ROADMAP.md`/`STATUS.md`/`docs/README.md`/`docs/ONBOARDING.md`/
-`docs/design/e2-plan.md`）；④ **设计文档**：`docs/design/**`
+① **活文档总量 ≤ 10.0 MB**（`MAX_LIVE_BYTES`；= 仓根 `*.md` + `docs/**`，
+**不含** `docs/archive/**` ✗）；② **单文件 ≤ 2000 行**；③ **入口文件 ≤ 800 行**
+（`scripts/docs-lint.py` 的 `ENTRY_FILES`：`AGENTS.md`/`README.md`/`REQUIREMENTS.md`/
+`ROADMAP.md`/`STATUS.md`/`docs/README.md`/`docs/design/e2-plan.md`；⚠ `docs/ONBOARDING.md`
+**不在其中** —— 它由 ⑦ 的 per-file 上限管 ✓）；④ **设计文档**：`docs/design/**`
 **新增** ≤150 行 ✓、**既有**按 `scripts/docs-budget.json` **冻结**（**只许减不许增** ✗
 —— 要放宽必须手改那份 JSON ⇒ 评审可见 ✓）；⑤ **禁垃圾**：`docs/**` 下不得有
 `.tmpdir` / `.tmp` / `.tmp-<pid>` / `.DS_Store` / `*.orig` / `*.rej` / `*~`
 （**含未跟踪的本地残留** ✗）；⑥ **归档可追溯**（红线 ✓）：`docs/archive/**`
-每个文件必须在 `docs/archive/README.md` 里**被点名** ✓，归档总量 ≤2 MB ✓。
+每个文件必须在 `docs/archive/README.md` 里**被点名** ✓，归档总量 ≤2.5 MB ✓
+（`MAX_ARCHIVE_BYTES`）；⑦ **接手路径**（X1，2026-09-28）：`docs/ONBOARDING.md`
+必读表**每文件 + 合计**都有上限，超标判红 ✓（`docs-budget.json` 的 `onboarding` 一节）。
 
 **红线**（不许动 ✓）：**判定正确性、红线证据与可追溯性** ✗ —— **归档 ≠ 销毁** ✓：
 任何"证据/判据/复现件"必须**仍能找到** ✓（给归档路径与索引 ✓）；

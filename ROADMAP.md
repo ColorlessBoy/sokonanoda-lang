@@ -2,7 +2,7 @@
 
 > 状态：active（v2 LSP-first；**接手与"下一步"先看 `docs/ONBOARDING.md`**，最新快照看 `STATUS.md`，
 > 本文 §10 = 待办的**验收口径 + 收口状态**）
-> 基线：v0.20.0（本文只描述计划与验收，已完成的条目就地打勾并标注版本）
+> 基线：v0.78.3（2026-09-30；本文只描述计划与验收，已完成的条目就地打勾并标注版本）
 > 配套文档：`STATUS.md`（当前状态与进度日志，agents 先读）、
 > `docs/architecture.md`（深度理解）、`docs/archive/notes-2026-09-26/research.md.gz`（外部调研，已归档）、
 > `docs/design/infrastructure.md`（基础设施方案脑暴）、`docs/protocol.md`（事件协议）。
@@ -430,13 +430,14 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 > 而 DSH 的 LSP host 丢弃诊断 ⇒ agent 只能整文件扫事件流。落地顺序与设计一致：
 > **真相层（`front::query`）→ 传输（CLI `query` + MCP）→ LSP 改为调用同一个真相层**。
 
-- **已落地**：H6-A 真相层 + CLI + LSP 委托（`crates/lsp/src/lib.rs` 4256 → **1105 行**，
-  结构债双达标）· H6-B MCP（`dsh/mcp/server.js`，六个工具，默认关闭、用户显式 opt-in）·
+- **已落地**：H6-A 真相层 + CLI + LSP 委托（`crates/lsp/src/lib.rs` 4256 → 1105 行；
+  ⚠ 2026-09-30 实测**又长回 2333 行** ⇒ "结构债清零"只对当天成立，见 `REQUIREMENTS.md` §4）·
+  H6-B MCP（`dsh/mcp/server.js`，六个工具，默认关闭、用户显式 opt-in）·
   H6-C 两个 front 缺口（索引递归 `Prop` 的 recursor / 多名字 binder 组，**内核零改动**）·
   H6-D 门面同步。
 - **验收 A1–A7 ✅**：真相唯一（LSP 侧无实现残留）· CLI 可用 · MCP 可用 ·
   **CLI≡LSP 字段级一致性契约**（`crates/cli/tests/query.rs`：计数 ≡ `--json` 事件流）·
-  A5 结构债双达标 · 两个 TODO 修复带反向测试 · 全量回归绿且既有契约测试"只增不改"。
+  A5 结构债**当天**双达标（现已回涨，见上）· 两个 TODO 修复带反向测试 · 全量回归绿且既有契约测试"只增不改"。
 - **H6-E ⬜ backlog**：同 I14。
 
 #### I16 —— 多文件 `import` 与项目管理（✅ 0.57.0 落地：P0–P6 完成；**P7 = backlog**）
@@ -453,8 +454,10 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   `[deps]` · `namespace`。
 - **验收 A1–A8**：核心是 **A1** —— 无 `import` 的 45 个语料文件 `--json` 与 HEAD 逐字节一致、
   两处 golden 表零漂移 ✓（`crates/cli/tests/imports.rs` 12 e2e + `crates/lsp/src/tests/project.rs` 4 e2e）。
-- **结构债**：`check.rs` 的 `run_pass` 巨石（1717 → 1918 行）✅ **已还清**（`check/{mod,walk,kernel_phase}.rs`
-  + `compile/units.rs`，791/951/413 行）⇒ **动 `run_pass` 前先读 `docs/architecture.md` §6/§8** ✓。
+- **结构债**：`check.rs` 的 `run_pass` 巨石当年拆成 `check/{mod,walk,kernel_phase}.rs`
+  + `compile/units.rs`（791/951/413 行）；⚠ **2026-09-30 实测已长回 1549/1775/635/159 行**
+  ⇒ "已还清"不成立，`mod.rs`/`walk.rs` 都超 ~500 行红线 ⇒ **动 `run_pass` 前先读
+  `docs/architecture.md` §6/§8** ✓。
 
 #### L2/L3 —— 编辑器与 agent（M5+，远期）
 
@@ -473,8 +476,13 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 - **六条反馈**（编译慢 / 无编译缓存 / 打开即临时编译 / 声明栏失效 / goal 不用记法 /
   记法不能跳转且 hover 无原始类型）**全部收口** ✓，结论已被 E2 继承。
-- ⚠ **不要再走一遍的四条**：T-K11 实测零收益（留作惰性开关）· T-K12c / T-K13 接线存档 ·
-  T-K30 重新定级（需新 API）· T-K31 实测无收益。
+- ⚠ **这四条 2026-09-30 已复核，两条要反过来读**（权威 = `docs/design/by-prefix-reuse.md` §6）：
+  **T-K11（K1-a）不再"零收益"** —— 那天 `reuse_hits=0` 是因为担保还没接到主编译 pass；
+  §3.C 接通后同一开关 **1.25×** 且**默认开**（全语料两态逐字节 0 差异）；
+  **T-K30 已落地**（切片 1b：`build_one(…, precomputed)` + `PassTables`，见
+  `docs/design/module-artifacts-slice1b-handoff.md`）。仍然成立的两条：T-K12c **不做也不再需要**
+  （§3.C 走担保那条路，没有独立环境 ⇒ 没有 `decl_idx` 那堵墙，钉子测试留着钉内存 API 语义）·
+  T-K31 实测无收益（已回退）。
 - ⚠ **记法渲染不走内核 pp**（调研结论，防后人再走弯路）：内核的记法打印是死代码
   （`ExportFile.notations` 无一处 insert），且 `pp_expr` 同时是 `#check`/`#reduce`/`#print`
   的出口 ⇒ 改它会动 `--json` 字节；走 front 的显示边界重写（`docs/design/notation-aware-printing.md` §3）。
