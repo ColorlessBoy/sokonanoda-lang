@@ -101,6 +101,10 @@
   **0 行不同** · 反向判据（去掉夹紧 ⇒ 判红）· 带开关跑完整 `gate` PASS · `grade` 错误路径同诊断 ✓。
   ⚠ 影子档第一版比**整份报告** ⇒ 265/265 **假分叉**（差的是报告**范围**不是**判定**）✗ ⇒ 改比**判据**。
 - **默认开**（收益成立才开）；逃生门 `SOKO_JUDGE_ENV_VOUCH=0` / `SOKO_JUDGE_ENV_REUSE=0`。
+- 🚀 **`v0.78.3` 已发布并闭环** ✓：CI `36655613663` **28 success / 0 failure**（1 skipped）·
+  tag `v0.78.3` → release workflow `36656518982` success · `gh release list` **Latest** ·
+  26 个资产（8 CLI + 8 LSP + 9 VSIX + 1 源码）✓。
+  ⚠ **CI 侧也看得到提速**：`gates-course` **12m26s → 6m38s**（同一 job、同一 runner 家族）✓。
 
 ## 第 507 轮（2026-09-30）：**CI 判红两轮收口 —— 两个真 bug 都是本批引入的**
 - **① 心跳口径**（`gates-fast` 判红）：第一版"默认一律不发"漏了工作单的**后半句**
