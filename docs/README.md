@@ -90,9 +90,6 @@
 > 三篇（记法改写 / R3 改写 / 记法输入面的施工细则）与更早归档过的顶层九篇 +
 > `settheory-survey/` 十篇 —— 原文 ⇒ `git log --all -- docs/notes/<路径>` ✓。
 
-**其它现场记录**：`docs/gaps/spike/README.md` — 卷 I 试做稿（2 单元 + 66 条标准库，
-全部真内核判卷 0 failed，逐条标 `L-xx` 欠账）。
-
 ## 归档（`docs/archive/`）—— **归档 ≠ 销毁** ✓
 
 > **索引** ✓：`docs/archive/README.md`（**每个归档文件都在那里被点名** ——

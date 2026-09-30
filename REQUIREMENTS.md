@@ -30,7 +30,7 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
    **L3 单元练习**（一切**有数学内容**的陈述）。判据只有一条：
    **「Mathlib 有 ≠ 我们不该练；Mathlib 有且没有数学内容（纯定义展开）才归库。」**
    违反的样子 = 让学习者在证明里手写 `Eq.symm`/`Or.elim`/`mem_union` 这类东西（"暴力"）；
-   证据与方案见 `docs/design/course-stdlib.md`，现场见 `docs/gaps/spike/README.md`，
+   证据与方案见 `docs/design/course-stdlib.md`（试做稿原文 ⇒ `git log --all -- docs/gaps/spike/README.md`），
    欠账见台账 `L-01…L-05`。配套的**引用纪律**：课程文档里的每句教学主张要么给出处、
    要么显式标"设计判断"；**有序对与选择公理没有任何实证研究**（实测否定结果），
    不得写成"研究表明…"（细则见 `docs/design/set-theory-syllabus.md` §1.4）。

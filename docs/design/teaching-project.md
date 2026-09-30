@@ -39,7 +39,7 @@
    回归。**前置缺口 G-11**：启动器在非 Rust 仓库没有版本源（§3.3）。
 6. 本轮已产出 P0 的第一批证据与工具：**附录 A 的缺口（语言/工具 15 条 + 标准库 5 条）+
    `docs/gaps/` 台账 + `scripts/gap.py` + `scripts/new-course-repo.sh`（一条命令生成课程仓）**。
-7. **卷 I 前两个单元已"真做一遍"**（`docs/gaps/spike/README.md`）：2 个单元 16 道题 + **66 条标准库**
+7. **卷 I 前两个单元已"真做一遍"**（试做稿原文 ⇒ `git log --all -- docs/gaps/spike/README.md`）：2 个单元 16 道题 + **66 条标准库**
    全部真内核判卷 0 failed；由此得到 **L-01…L-05** 五条标准库欠账与 **G-14/G-15** 两条新语言
    缺口，并锁定三层分界（`docs/design/course-stdlib.md`）。
 
@@ -125,7 +125,7 @@ theorem subset_trans (α : Type) (A B C : Set α) (h1 : Set.subset α A B) (h2 :
 | G-09 | 内核断言以裸文本外泄 | 同 G-03 | 消息是 `left: 1 right: 0` + 通用「类型不匹配」hint | painful（诊断质量）——0.59.0 已修，见附录 A |
 | G-13 | **~~`axiom` 不吃 binder 参数表~~（已修，WO-008）** | `axiom Foo (α : Type) : Sort 1` | 修前 parse `expected axiom type, found LParen`；0.59.0 起与 `def`/`theorem` 同序（柯里化写法照旧） | painful（一致性）→ 已修 |
 
-> **标准库欠账（L-01…L-05）**来自"真做一遍"（`docs/gaps/spike/README.md`）：卷 I 只写了两单元，
+> **标准库欠账（L-01…L-05）**来自"真做一遍"（试做稿原文 ⇒ `git log --all -- docs/gaps/spike/README.md`）：卷 I 只写了两单元，
 > 就需要 66 条库支撑，其中 24 条本该由 prelude / 课程标准库提供，学习者一行都不该写。
 > 判据与处置见 `docs/design/course-stdlib.md`。
 
@@ -300,7 +300,7 @@ courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列�
 - `kind`：`language`（语法/elaborator/kernel）/ `tooling`（CLI/LSP/VS Code）/ `infra`（清单/CI/站点）/
   **`library`（标准库欠账：Lean core / Mathlib 里现成、我们却没有）** / `doc`；
   `library` 条目另有 `owner`（`prelude` / `course-lib` / `exercise`）与 `lean_names` 两个字段——见
-  `docs/design/course-stdlib.md` 与 `docs/gaps/spike/README.md`（试做稿）；
+  `docs/design/course-stdlib.md` 与卷 I 试做稿（原文 ⇒ `git log --all -- docs/gaps/spike/README.md`）；
 - `severity`：`blocker`（不修就写不了这类内容）/ `painful`（能写但成本×N 或会教坏学生）/ `nice`；
 - `status`：`open` → `wo-filed` → `fixed`（`fixed_in` 必填版本）／`workaround`（长期绕行，须写清代价）／`wontfix`（须写理由）；
 - **复现文件必须最小且入库**（`docs/gaps/repro/<id>-*.sokonanoda`）；
@@ -466,7 +466,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 > **仍未做（留给后续）**：`lib/Set` 还有 10 条待移的 L3 引理（L-05 遗留）、记法第二刀。
 
 > 独立于 P1（语言线）：内容可以先写，写的过程就是缺口探测器。设计 =
-> `docs/design/course-stdlib.md`；现场 = `docs/gaps/spike/README.md`。
+> `docs/design/course-stdlib.md`；现场 = 卷 I 试做稿（原文 ⇒ `git log --all -- docs/gaps/spike/README.md`）。
 - **P-C1 ✅**：卷 I 单元 1–2 真做一遍 + 66 条标准库，全部判卷 0 failed；产出 G-14/G-15/L-01…L-05；
 - **P-C2 ✅ 本轮**：课程**搬进语言仓** `courses/set-theory/`；`lib/Set` 改用 **Loogle 取证名**
   （`Set.notMem_empty`/`Set.mem_powerset_iff`/`Set.mem_sdiff`/`Set.Subset.refl`…）；

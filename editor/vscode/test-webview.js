@@ -400,7 +400,7 @@ test("decls: a closed declaration renders no goal row", () => {
 // 等于整个命题（`units/unit01` 的 `eq_of_same_elements : A = B := by sorry`，
 // `soko/goals` 实测 `goal="A = B"`、`goals=["A = B"]`），那不是冗余，那正是
 // "你还欠什么没证"的如实表达；证明动过之后它显示的是**剩下的**目标。
-// ⇒ E21 结案为「不改（resolved-no-change）」，依据进 `docs/gaps/criteria-census.md`。
+// ⇒ E21 结案为「不改（resolved-no-change）」，依据原文 ⇒ `git log --all -- docs/gaps/criteria-census.md`。
 //
 // 这条测试就是那次拍板的**守卫**：谁再把"目标 == 语句"的卡片过滤掉（即把 I1 的
 // 原判当成 bug 修一遍），它当场判红 ✓ —— 反向验证实测过（见提交说明）。

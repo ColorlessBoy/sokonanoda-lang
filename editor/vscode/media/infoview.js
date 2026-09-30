@@ -505,7 +505,7 @@
       // 没证"的如实表达（证明动过之后它显示的就是**剩下的**目标，例如
       // `intro h` 之后从 `a ∈ A → a ∈ B` 变成 `a ∈ B`）。
       // 当初 I1 把它当成多余的目标行，复核结论是**前提不成立**：
-      // 该行不冗余 ⇒ E21 结案为「不改」（依据见 `docs/gaps/criteria-census.md`
+      // 该行不冗余 ⇒ E21 结案为「不改」（依据原文 ⇒ `git log --all -- docs/gaps/criteria-census.md`
       // 的「复核：I1 …不是缺口」与 `docs/PLAN-0.74-0.79.md` §v0.74.0 E21）。
       // 防漂移判据：`test-webview.js` 的
       // `decls: a step-0 open exercise still shows its goal row (E21)` ——

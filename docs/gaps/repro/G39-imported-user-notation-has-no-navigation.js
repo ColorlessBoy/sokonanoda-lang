@@ -116,7 +116,7 @@ async function responseFor(lsp, id) { for (;;) { const m = await lsp.next(); if 
   }
   console.error('结论：G-39 仍在——import 进来的用户自定义记法符号在使用它的文件里认不出来，');
   console.error(`      或**落点/内容不对**（definition ${defOk ? '✓' : '✗'} · hover ${hoverOk ? '✓' : '✗'}）。`);
-  console.error('      判据只断言"非 null"时**看不见**这类偏差（G-37 事故同形）⇒ 见 docs/gaps/criteria-census.md。');
+  console.error('      判据只断言"非 null"时**看不见**这类偏差（G-37 事故同形）⇒ 依据原文见 git log --all -- docs/gaps/criteria-census.md。');
   process.exit(0);
 })().catch((error) => {
   console.error('复现脚本自身出错（环境/形状异常）：', error);

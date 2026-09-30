@@ -5,7 +5,7 @@
 > 这个我感觉有点暴力，所以我需要你去用这个项目重新做一遍，然后才能把这些暴力给消除掉。
 > 你要记录下这些其实是需要实现的，其实是没有的。」
 >
-> 输入：`docs/gaps/spike/README.md`（**真写 + 真判卷**的试做稿：2 个单元 + 66 条库，全部 0 failed）、
+> 输入：卷 I 试做稿（**真写 + 真判卷**：2 个单元 + 66 条库，全部 0 failed；原文 ⇒ `git log --all -- docs/gaps/spike/README.md`）、
 > `docs/gaps/ledger.jsonl`（G-14/G-15、L-01…L-05）。
 > 上游：`docs/design/teaching-project.md`（总体计划）、`docs/design/set-theory-syllabus.md`（卷 I 大纲）。
 >
