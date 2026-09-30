@@ -56,7 +56,7 @@ Unfold 头（实验：去 force_all 后 quote 出 `Not $1`），quote 的每个�
 
 ### D3 括号组匹配（LSP 层）
 
-- `render::bracket_hover_at(text, hovers, line, char)`：光标字符是
+- `render::bracket_hover(text, hovers, line, char)`：光标字符是
   `(`/`)` 时按文本扫描配对（跳过 `--` 行注释；教学语法无块注释/字符串），
   取**完全落在括号组内部的最大 hover 行** = 括号包住的表达式
   （AST span 不含括号，内层应用链恰好是组内最大行）。

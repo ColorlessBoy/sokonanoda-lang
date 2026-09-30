@@ -66,14 +66,12 @@ ENTRY_FILES = {
     "ROADMAP.md",
     "STATUS.md",
     "docs/README.md",
-    "docs/HANDOVER.md",
-    "docs/E2-HANDOVER.md",
     "docs/design/e2-plan.md",
-    # 0.74–0.79 的总账 + 环节拆解（626 行）：**计划入口** ✓ —— 它是这一段开发的
-    # 唯一真相，goal 的 objective 逐条指向它 ⇒ 按本集合的定义就该在这里 ✓。
-    # ⚠ **不要**把它放进 `docs-budget.json` 的 `frozen` ✗：计划会随新批次合法长大，
-    # 冻结它必然误红 ✗（那份 JSON 的 `_comment` 已写明这条 ✓）。
-    "docs/PLAN-0.74-0.79.md",
+    # ⚠ **2026-09-30 清理**：这里原有 `docs/HANDOVER.md` / `docs/E2-HANDOVER.md` /
+    # `docs/PLAN-0.74-0.79.md` 三条 —— 三份文件**都已删除**（内容并入
+    # `docs/ONBOARDING.md`）⇒ 判据 ③ 对它们**空转** ✗（列表比现实长 = 假守卫）。
+    # **入口文件不进 `docs-budget.json` 的 `frozen`** ✓（计划会随新批次合法长大，
+    # 冻结必然误红 ✗）；`docs/ONBOARDING.md` 由判据 ⑦ 的 `onboarding.path` 管 ✓。
 }
 
 # ⑤ 垃圾模式（路径 → 是否目录）

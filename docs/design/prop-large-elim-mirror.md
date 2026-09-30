@@ -149,7 +149,7 @@ non_prop_ctor_telescope_elems.iter().all(|arg| ind_ty_params_and_indices.contain
 
 ## 6. 与内核的契约边界
 
-- 本设计**没有**改 `crates/kernel/` 的任何一个字节（冻结快照，`git diff
+- 本设计**没有**改 `crates/kernel/` 的任何一个字节（本项零内核改动，`git diff
   crates/kernel/` 为空）。判据全部落在 front：`large_elim_test_mirror` /
   `large_elim_test_aux_mirror` / `field_type_is_prop` 是内核那几行的逐字镜像，
   "字段是不是 Prop 值"这一步则由 `judge_infer` 交给**真内核**回答。

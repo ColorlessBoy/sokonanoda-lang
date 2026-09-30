@@ -1,6 +1,6 @@
 # 闭包增量：一次编译，入口之间共享（K2）
 
-> **状态**：设计 + spike（T-K20，2026-09-21）。**实现未做**（T-K21…）。
+> **状态**：设计 + spike（T-K20，2026-09-21）。**已落地**（`crates/front/src/project/session.rs` 的 `with_project_session`；`docs/ONBOARDING.md` §2 记「已收口」）。
 > **动机**：用户在同一个 VS Code 窗口里依次打开 `unit01` → `unit08` → `unit12`，
 > 今天是**三趟完整闭包编译**（实测 **14.86s**）——而它们的闭包**大量重叠**
 > （`lib/Logic` / `lib/Set` 每次都在里面重编一遍）。
@@ -150,6 +150,6 @@ downward-closed ✓。
 都会**静默改变判卷**。所以每一步都要：
 
 * `scripts/kernel-diff.sh`（判定逐字节对拍）；
-* 课程门禁计数**逐项不变**（36 目标 · 328 checked · 99 open · 0 判负）；
+* 课程门禁计数**逐项不变**（当时 36 目标 · 328 checked；**现行值现算** `python3 courses/set-theory/tools/check.py`）；
 * `crates/front/tests/prelude_shape.rs` 全绿；
 * 性能账进 `docs/perf/ledger.jsonl`。

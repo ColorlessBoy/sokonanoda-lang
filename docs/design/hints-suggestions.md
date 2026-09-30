@@ -160,7 +160,7 @@ pub fn suggest(prefix_src: &str, options: &CompileOptions, d: &DeclState) -> Vec
    rfl、is_preferred 恰一个；
 3. `cargo test -p sokonanoda-cli`：extension 契约（新命令注册）全绿；
 4. `playground.sokonanoda`：12 题挂上阶梯后 CLI `--json` 事件计数不变
-   （checked=14 / open=12 / diagnostics=0）、exit 0；
+   （**当时** checked=14 / open=12；**现行值现算** `grade --json playground.sokonanoda`）、exit 0；
 5. 全仓库门禁（fmt/clippy/test）绿。
 
 ## 6. 文件分工（互斥清单）

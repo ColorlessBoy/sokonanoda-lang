@@ -13,7 +13,7 @@
 
 ## 2. 方案（v1：AST 层实例化，kernel 终审不变）
 
-### 2.1 walk 扩展（front/compile/check.rs `goal_under_binders`）
+### 2.1 walk 扩展（`front/compile/goals.rs` 的 `goal_under_binders`）
 
 在现有 lambda 剥层之后，支持**构造子 spine 对齐**：
 

@@ -63,7 +63,7 @@ key(M) = H( format, 编译器版本, build stamp, prelude 模式,
 
 | 文件 | 改动 | 备注 |
 |---|---|---|
-| `crates/kernel/src/builder.rs` | **新增 `EnvBuilder::fork()`**（把 `dag`/`declars`/`notations`/`mutual_block_sizes` 深拷贝进**同一个 arena**，得到一个可继续 `add_declar` 的新 builder） | ⚠ **内核改动**：`EnvBuilder` 今天**没有 `Clone`**（`:26`），`snapshot()` 只给**只读**副本（`:75`）；T-K12c 死因 = "往独立环境 `add_declar` 改写共享 `decl_idx` 槽位" ⇒ fork 必须**深拷贝**（不共享槽位）。**纯能力新增、不改任何判定路径**，但按硬规矩需要授权（走 `kernel/*` 分支或 main 白名单） |
+| `crates/kernel/src/builder.rs` | **新增 `EnvBuilder::fork()`**（把 `dag`/`declars`/`notations`/`mutual_block_sizes` 深拷贝进**同一个 arena**，得到一个可继续 `add_declar` 的新 builder） | ⚠ **内核改动**（内核已解冻；改前读 `docs/architecture.md` §6/§8）：`EnvBuilder` 今天**没有 `Clone`**（`:26`），`snapshot()` 只给**只读**副本（`:75`）；T-K12c 死因 = "往独立环境 `add_declar` 改写共享 `decl_idx` 槽位" ⇒ fork 必须**深拷贝**（不共享槽位）。**纯能力新增、不改任何判定路径**，但按硬规矩需要授权（走 `kernel/*` 分支或 main 白名单） |
 | `crates/front/src/project/session.rs`（新） | `ProjectSession`：按拓扑序**每模块编一次**；每个入口**从依赖分叉**起跑、只编自己的命令 | 09-23 的 K2 设计（`docs/design/closure-incremental.md:106-107`），当时"实现未做" |
 | `crates/front/src/project/cache.rs` | 键改成**每模块一条**（Merkle）；保留入口级条目（`--json`/LSP 的现有消费者不变） | 今天 `plan.digest` = 整条闭包 |
 | `crates/front/src/compile/check/{mod,walk}.rs` | "**从分叉环境起跑**"的入口（今天 `run_pass` 总是新建 `EnvBuilder`）；`walk` 的 `known`/`inductives`/`defs` 也要能从分叉点恢复 | 分叉点 = 模块边界（命令下标） |

@@ -36,7 +36,7 @@ match <scrutinee> with
   `MatchArm { ctor: String, binders: Vec<Binder>, body: Expr, span }`（binder 复用 `Binder`）。
 - `|` 用既有 `TokenKind` 新增（竖线）或复用；`=>` 用 `FatArrow`；`with` 作为普通标识符匹配。
 
-## 4. 归纳登记表（前端索引，内核冻结）
+## 4. 归纳登记表（前端索引；本项零内核改动）
 
 在 `run_pass` 的归纳块处理处，登记源内每个 `inductive`：
 

@@ -69,7 +69,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
-      - name: 文档预算 lint（活文档 ≤3.0 MB · 入口 ≤800 行 · 设计 ≤150 行/冻结 · 归档索引齐）
+      - name: 文档预算 lint（活文档 ≤10.0 MB · 入口 ≤800 行 · 设计 ≤150 行/冻结 · 归档索引齐）
         run: python3 scripts/docs-lint.py
 
   lint-clippy:

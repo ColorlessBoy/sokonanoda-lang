@@ -16,7 +16,7 @@
   的类型时，类型体里存在开项（`p a`：Var 头应用；`Eq α a`：依赖实参
   展开需 `eval` 松散变量），空 ctx 直接 panic（`infer.rs:88`
   `loose bvar in infer` / `eval.rs:576` `eval: loose bvar`）。
-- front 的 `resolve_hovers`（`check.rs:1750-1763`）用 catch_unwind 兜底，
+- front 的 `resolve_hovers`（`compile/check/` 的 walk 段）用 catch_unwind 兜底，
   panic 后把 `text` 置空；LSP 见空 text 只渲染源码切片（`render.rs:187`），
   于是 hover = `Eq.subst.{1}`（无 `: 类型`）。
 - 同一 bug 使 CLI `#check (Eq.subst.{1})` / `#check (Eq.refl.{1})` 报假
@@ -103,7 +103,7 @@ if fun.num_loose_bvars() > 0 { return false; }
 - 部分应用自动补参（`Eq.subst.{1} Nat (sorry)` 后续全缺）——只支持
   已写实参中的洞；
 - `sorry + 1`（`Expr::Plus`）——需要 Nat.add 模板的语法糖通道，后议；
-- 子洞 kernel 级 expected type（spine meta，设计文档既定远期项，不变）。
+- 子洞 kernel 级 expected type（spine meta）—— ⚠ **已落地**（`docs/design/spine-meta-a.md`，0.32.0），不再是远期项。
 
 ## 3. 验收（全部落成测试）
 

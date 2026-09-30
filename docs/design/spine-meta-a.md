@@ -71,7 +71,7 @@
 |---|---|
 | B′（已实现） | 保留为**快路径/回退**：模板命中且无洞穿透时零探针；A 不可得不倒退 |
 | C（judge 合成 fresh axiom / metavariable） | **否决**：内核无 unknown 项概念（round14 §0.4）；metavariable 会侵入内核 |
-| 改内核为完整双向 elaborator | **否决**：违反内核冻结（REQUIREMENTS §2 第 1 条），爆炸半径过大 |
+| 改内核为完整双向 elaborator | **否决**：爆炸半径过大（内核 2026-09-21 已解冻，否决理由是成本不是禁令） |
 | 移植 Lean 求解器 / 文本比对 | **禁止**：REQUIREMENTS §2 第 2/4 条 |
 | 命令期就全量 kernel 渲染 | **否决**：需把子洞类型计算挪到 ops 期，pipe 重构大；用请求期惰性探针替代 |
 

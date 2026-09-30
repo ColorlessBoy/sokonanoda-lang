@@ -1,4 +1,4 @@
-# 当前快照（2026-09-30 · 第 510 轮）
+# 当前快照（2026-09-30 · 第 511 轮）
 
 - **🚀 `v0.78.3` = Latest** ✓（CI `36655613663` **28 success / 0 failure**（1 skipped）· release
   workflow `36656518982` success · tag `v0.78.3` · 26 资产 = 8 CLI + 8 LSP + 9 VSIX + 1 源码）。
@@ -49,27 +49,27 @@
   ③ 课程门禁 **43 目标 · 376 checked · 99 open · 0 判负** ✓ · ④ 性能台账 ✓ · ⑤ **明确跳过**（`LEAN_KERNEL_ARENA` 未设）。
 - **文档**：`by-prefix-reuse.md` §6 as-built · `docs-budget.json` 153 → **183**。
 
-## 第 508 轮（2026-09-30）：**§3.C「前缀环境」落地 —— 全课程 `build` 2.65×**
-- **先勘后动**（开工单 §3.C 明写要求）：让勘的**两条路都够不着**那 791 趟
-  （候选① per-前缀 builder 池 = §17 的 B″ 同死因：arena 生命周期；候选② judge 收调用方
-  builder = 借用可行但**前缀位置不同**）；**我据此推断的第三处（提升 arena 作用域）
-  也被逐趟明细推翻** ✗ ⇒ 真刀口是「**judge 每次都从源码重编整个前缀**」。
-- **真数字**（`SOKO_JUDGE_STATS=2`）：`by` 路径 **265 趟 = 115.9s = `judge_ms` 的 99%**，
-  而 `judge_infer` 的 71126 次只 38.5s（P1-b 已吃干净）；那 265 趟 **key 全不重复 ⇒ 加缓存没用** ✗。
-- **刀口**：把既有的 `TRUSTED_PREFIX` **接到主编译 pass**（`walk.rs` 每检查完一条命令压栈担保）。
-  ⚠ **关键一行 `before.min(prefix_commands)`** —— 两个坐标系不同（AST 序号**含 `import`**，
-  judge 前缀文本走 `importless_source`）⇒ 不夹会**多担保合成声明** ⇒ 判定声明没被检查
-  （`--json` **38 行不同**，与 P1-b 第一次失败同签名）✗。
-- **读数**：墙钟 **126.4s → 47.8s（2.65×）** · `judge_ms` 113,659 → **19,223（−83%）** ·
-  `pass_total_ms` 276,407 → **92,058** · `by_calls` 不变 ✓。
-- **证据链**：影子档（**判据级**，两条路都跑）`shadow_same=265 · diff=0` · `--json`
-  **0 行不同** · 反向判据（去掉夹紧 ⇒ 判红）· 带开关跑完整 `gate` PASS · `grade` 错误路径同诊断 ✓。
-  ⚠ 影子档第一版比**整份报告** ⇒ 265/265 **假分叉**（差的是报告**范围**不是**判定**）✗ ⇒ 改比**判据**。
-- **默认开**（收益成立才开）；逃生门 `SOKO_JUDGE_ENV_VOUCH=0` / `SOKO_JUDGE_ENV_REUSE=0`。
-- 🚀 **`v0.78.3` 已发布并闭环** ✓：CI `36655613663` **28 success / 0 failure**（1 skipped）·
-  tag `v0.78.3` → release workflow `36656518982` success · `gh release list` **Latest** ·
-  26 个资产（8 CLI + 8 LSP + 9 VSIX + 1 源码）✓。
-  ⚠ **CI 侧也看得到提速**：`gates-course` **12m26s → 6m38s**（同一 job、同一 runner 家族）✓。
+## 第 511 轮（2026-09-30）：**文档全量清理 —— 逐份审计 + 改错规则 + 删/归档**
+
+- **用户工单**：docs 里有很多**过时的、错误的规则要求**，误导后续开发 ⇒ 全量清理（活文档逐份审计；
+  `docs/archive|perf|gaps|e2e` 不在范围内）。**方法**：6 个只读 subagent 逐份读 + 主线复核（每份带行号证据）。
+- **改（B 类，逐条对代码 / scripts / `ci.yml` 复核）**：约 40 份文件、**~120 处**声明改成实测事实 ——
+  典型：`perf-gate`「回归即红」实为 `continue-on-error`（**只报不拦**）· `course-gate-in-ci` 的
+  "不新建 job"实为独立 `gates-course` · `agent-query-channel`/`deepseek-harness` 表头"实现未开始"
+  实为已落地 · `implicit-arguments` "`@f` 是 no-op" · `set-theory-syllabus` "`And` 必须 axiom"
+  （G-02/03 已修）· `by-tactics` §13 "未修/零收益"（§3.C 后 **1.25×**）· 20 份"内核冻结（硬规则 1）"
+  框架残留（内核 2026-09-21 已解冻）· `REQUIREMENTS.md` §4/§9.3 的旧数字（模块行数 / 3 MB / 六条判据）。
+- **删/归档（A 类）**：`docs/design/compile-progress-ui.md` **删**（已落地、零消费者）·
+  `docs/design/v077-set-theory.md` **归档** ⇒ `docs/archive/v077-snapshots-2026-09-30/`；
+  `v077-kernel-deficiencies.md` / `v077-st1-boundary.md` **留**（前者是 G-56/58/59 的根因定位，
+  后者被 `crates/cli/tests/st1_boundary.rs` 当输入读）。
+- **死引用**：`docs/HANDOVER.md` / `E2-HANDOVER.md` 等 **30 处** ⇒ 改指 `docs/ONBOARDING.md`（`docs/README.md` 立了全局约定）。
+- **机制**：`docs-gc.py` 的 4 份误报候选写进 `KEEP_ALWAYS`（消费者是**契约测试 / 代码注释**）；
+  冻结表**补全 11 份 + 删 1 个死键 + 四层上限按实测收紧**；`docs-budget.json` 的 19 KB 流水压成摘要（→ **7.9 KB**）。
+- **读数**：活文档 **408 → 406 个 / 6,233,011 → 6,215,917 字节**；活 `.md` **113 → 111 份 /
+  29,886 → 29,617 行**；`docs-gc` 候选 **5 → 0**；`docs-lint` ①–⑦ 全绿 + `--selftest` **11/11**；
+  **没抬任何上限**（L0 1849→1521 · L1 9061→5704 · L2 22661→22379 · L3 5426→5345）；第 508 轮移入
+  `docs/archive/status-removed-round-508-2026-09-30.md.gz`。
 
 ## 未决项（**只有这两条**；顺序与入口见 `docs/ONBOARDING.md` §0.2）
 

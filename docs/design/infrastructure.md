@@ -10,7 +10,7 @@
 > v2 变更：明确最终形态是 **VS Code + 细粒度反馈 LSP**；`.sokonanoda` 文件保持
 > **纯声明式、无 `#` 命令**；`#check/#reduce/#print/#prove` 只是 REPL/调试玩具，
 > 不属于文件格式。练习 = 一个**带洞的 `def`/`theorem`/`example` 声明**。
-> 配套：`docs/architecture.md`（现状事实）、`docs/notes/research.md`（外部参照）、
+> 配套：`docs/architecture.md`（现状事实）、`docs/archive/notes-2026-09-26/research.md.gz`（外部参照，已归档）、
 > `docs/protocol.md`（内部事件传输）。
 
 ---

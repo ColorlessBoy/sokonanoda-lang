@@ -18,7 +18,7 @@
 {"type":"diagnostic","stage":"elab","code":"…","message":"…","hint":"…","span":{…},"version":3}
 ```
 
-闭词汇在 `crates/cli/tests/common/mod.rs::WATCH_VOCABULARY`（7 个）：
+闭词汇在 `crates/cli/tests/common/mod.rs::WATCH_VOCABULARY`（**8 个**，含 `file.changed`）：
 `file.changed` / `decl.checked` / `decl.failed` / `exercise.opened` /
 `exercise.solved` / `exercise.failed` / `diagnostic`。语义：编辑命令 i 只
 内核重查 `i..n`（`recompiled_from` 事实化，`stats.kernel_checks` 可验证）。

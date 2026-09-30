@@ -65,7 +65,7 @@
 该文件已被文档预算冻结（225 行）⇒ 更正记在这里。
 
 **判据 + 反向验证**（都在 `scripts/soko gate` 里 ✓）：
-`python3 scripts/audit-notation-paths.py` ⇒ OK（基线 68 → **59** ✓）；
+`python3 scripts/audit-notation-paths.py` ⇒ OK（基线 68 → **60** ✓，见 §更正）；
 把 `by.rs` 一处改回 `render_expr(…)` ⇒ 守卫当场判红
 （`**新增** 1 处绕过 … crates/front/src/by.rs:2026`，exit 1 ✓）；还原 ⇒ 绿 ✓；
 `--self-test` 仍咬得住 walk.rs 的 8 处 ✓。

@@ -768,7 +768,7 @@ test("build streams per-file progress to the status bar and the Infoview (E23)",
   // Build 看到的是"弹一个面板 + 滚 JSON + 结束才弹通知" ✗ —— **没有状态栏、
   // 没有 Infoview 进度区、没有概览尺**。
   //
-  // 这条判据钉**三处同时、数字同一份**（设计 `compile-progress-ui.md` §3）：
+  // 这条判据钉**三处同时、数字同一份**（设计 `docs/protocol.md` 的 `$/progress` + `REQUIREMENTS.md` §9.5）：
   //   ① 状态栏**逐帧**（`__statusBarHistory`：`0/3` → `1/3` → `2/3` → `3/3`）；
   //   ② Infoview 的进度载荷（真 provider 的 `setProgress`，逐帧记下来）；
   //   ③ 原生进度条的 `report` —— **必须有 `increment > 0` 的那一次**（只断言

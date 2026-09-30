@@ -141,7 +141,7 @@ checked 的差额来自 WO 落盘之后的课程内容，**与本刀无关**。
 3. **CLI e2e**（`crates/cli/tests/cli.rs`）：新增 `cli_ctor_names_are_namespaced`
    + 直接跑复现件 `docs/gaps/repro/G02-ctor-namespace.sokonanoda` ⇒ exit 0；
    兼容 e2e：`course/unit7-*` 与 `examples/py-nat.sokonanoda` 原文不改仍 exit 0；
-4. **课程语料**：`python3 courses/set-theory/tools/check.py`（34 目标 · 315 checked ·
+4. **课程语料**：`python3 courses/set-theory/tools/check.py`（**当时** 34 目标 · 315 checked ·
    96 open · 0 判负，实测；见 §2.2 的口径订正）+ 入门课双 GOLDEN 计数不变
    —— **课程内容一字不改**。
 

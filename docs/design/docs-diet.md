@@ -4,7 +4,7 @@
 > **落成机制，不要口号** ✗。本文件是那套机制的**设计 + as-built** ✓。
 > **判据**：`python3 scripts/docs-lint.py` ✓ —— **已进** `scripts/soko gate`（含 `--fast` ✓）、
 > `scripts/ci-local.sh` 与 CI 的 **`docs-lint` job**（独立、不设 `if:` ⇒ **永远跑** ✓）。
-> **反向验证**：`python3 scripts/docs-lint.py --selftest` ⇒ **6/6** ✓（也进 gate ✓）。
+> **反向验证**：`python3 scripts/docs-lint.py --selftest` ⇒ **11/11** ✓（也进 gate ✓）。
 
 ## 1. 问题（实测，不是感觉）
 
@@ -24,11 +24,11 @@
 | **过程记录** | 一次性过程与其已收口产物：逐轮日记 / CI 失败台账 / e2e·perf 台账 / 调研笔记 / 已完成批次的计划与审计 | **只留结论 + 指针** ✓：保留最近 N 条，更早进 `docs/archive/`（可 gzip ✓） |
 | **垃圾** | 遗留 `.tmpdir` / `.tmp-<pid>` / 编辑器残留 / 生成残留 | **直接删** ✗ + `.gitignore` 防复发 ✓ + lint 判据 ⑤ |
 
-## 3. 判据（六条，全部机械可判 ✓）
+## 3. 判据（**七条**，全部机械可判 ✓；2026-09-28 加 ⑦ 接手路径）
 
 | # | 判据 | 阈值（本轮盘点后定） |
 |---|---|---|
-| ① | **活文档总量**（根 `*.md` + `docs/**`，**不含** `docs/archive/**`） | ≤ **3.0 MB**（实测 2.96 ✓；基线 8.84 ⇒ **33.5%**） |
+| ① | **活文档总量**（根 `*.md` + `docs/**`，**不含** `docs/archive/**`） | ≤ **10.0 MB**（`MAX_LIVE_BYTES`；2026-09-26 用户拍板 3 → 10 MB，理由在脚本注释里；实测 6.22） |
 | ② | **单文件行数**（任何活文档 `.md`） | ≤ **2000** |
 | ③ | **入口文件行数**（`AGENTS.md` / `README.md` / `REQUIREMENTS.md` / `ROADMAP.md` / `STATUS.md` / `docs/README.md` / `docs/design/e2-plan.md`（**实测口径**：`scripts/docs-lint.py` 的 `ENTRY_FILES`；`docs/ONBOARDING.md` 不在其中，由判据 ⑦ 管）） | ≤ **800** |
 | ④ | **设计文档预算**：`docs/design/**` **新增** ≤150 行；**既有非入口**按 `scripts/docs-budget.json` **冻结**（**入口不进 ④** ⇒ 由 ③ 管 ✓） | **只许减不许增** ✗（要放宽 ⇒ 手改 JSON / `--freeze` ⇒ 评审可见 ✓） |
@@ -75,7 +75,7 @@
   `docs/gaps/WO-*.md`、`docs/E2-PROMPT.md` 的路径 ⇒ **已归档**，到 `docs/archive/` 取
   **同名 + `.gz`**（`gunzip -c … | less` ✓）。
 * **不许动的例外** ✗（有**真消费者**，动了就判红）：
-  * `docs/gaps/repro/**`（**38 条复现被 `gap.py check` 在 gate + CI 三片矩阵里真跑** ✓，
+  * `docs/gaps/repro/**`（**66 条复现被 `gap.py check` 在 gate + CI 三片矩阵里真跑** ✓，
     其中 G02 与 G06 夹具还被 cargo 测试引用）；
   * 活台账里**被引用**的 `docs/e2e/logs/*.log`（`e2e-merge.py --check` 校验存在 ✓）；
   * `docs/protocol.md`（**4 个测试读它正文并断言**：event type / error code / watch 事件 / 技能词表 ✗）；
@@ -104,7 +104,7 @@ python3 scripts/docs-lint.py --selftest      # ⇒ 6/6 条判据咬得住 ✓（
 
 ## 8. 明确不做（有理由，不是"没时间"）
 
-* **不逐份重写 78 份设计文档** ✗ ⇒ 用**冻结棘轮 + 总量封顶**代替（见 §3 的注 ✓）；
+* **不逐份重写 81 份设计文档** ✗ ⇒ 用**冻结棘轮 + 总量封顶**代替（见 §3 的注 ✓）；
 * **不删任何证据** ✗（红线 ✓）：复现件、被引用的 e2e 日志、缺口台账**原路径原字节** ✓；
 * **不给"账本类"归档 gzip** ✗：`REQUIREMENTS-ARCHIVE.md` 保持**纯文本** ✓（要求的账本，**可检索性优先** ✓）；
 * **不动 `docs/protocol.md` / `docs/architecture.md` / `docs/TESTING.md` 的契约段** ✗（前者有 4 个测试读正文 ✗，后两者是现行地图 ✓）。

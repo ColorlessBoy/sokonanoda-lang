@@ -223,7 +223,7 @@
 > `docs/STATUS-ARCHIVE.md`；要看原文 ⇒ `git log -- <路径>` ✓。**见到这些路径就当
 > "看 `docs/ONBOARDING.md`"** ✓（2026-09-29 用户口径：「一堆 HANDOVER 都可以删了，没必要」）。
 >
-> **不许动的例外** ✗（有真消费者，动了就判红）：`docs/gaps/repro/**`（38 条复现被
+> **不许动的例外** ✗（有真消费者，动了就判红）：`docs/gaps/repro/**`（**66 条**复现被
 > `gap.py check` 在 gate + CI 三片矩阵里真跑 ✓）、活台账里**被引用**的
 > `docs/e2e/logs/*.log`（`e2e-merge.py --check` 校验存在 ✓）、`docs/protocol.md`
 > （**4 个测试读它正文并断言** ✗）、`docs/perf/ledger.jsonl` / `docs/gaps/ledger.jsonl` /

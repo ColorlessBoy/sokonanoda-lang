@@ -20,7 +20,7 @@ hover 到 binder 名字（如 `fun (a : Prop) => …` 里的 `a`、`(P : Prop) -
 192:7  "a" => "fun (a : Prop) (h : And a (Not a)) => (And.right a (Not a) h) (And.left a (Not a) h : forall (a : Prop), And a (Not a) -> False"
 ```
 
-这正是用户说的「有些是包含括号的外部表达式」。根因：`elab.rs` 的 Lambda/Forall
+这正是用户说的「有些是包含括号的外部表达式」。根因：`compile/elab.rs` 的 Lambda/Forall
 只给整段 `fun …` / `forall …` 记一条 hover 行，**binder 名字本身没有自己的行**。
 
 ### 1.2 问题 B：括号组内表达式被截断（源切片缺右括号）
@@ -56,7 +56,7 @@ infer（text 置空——binder 行渲染用源码切片，不用类型文本）
 
 ### D2 括号组 = 良构整体（LSP `render.rs`）
 
-`bracket_hover_at` 改为返回 `(range_span, content)`：
+`bracket_hover` 改为返回 `(range_span, content)`：
 
 1. 配对 `(open, close)`；
 2. **range_span = 整组 `(open .. close+1)`**（含括号）——保证含光标，满足 VS Code
@@ -91,7 +91,7 @@ infer（text 置空——binder 行渲染用源码切片，不用类型文本）
 
 ### front（compile/tests.rs）
 
-- `hover_rows_have_binder_declaration_rows`：`fun (a : Prop) (h : And a (Not a)) => …`
+- `hover_rows_have_lambda_binder_declaration_rows`：`fun (a : Prop) (h : And a (Not a)) => …`
   存在 binder 行 `(a : Prop)` / `(h : And a (Not a))`，`binder == true`；
 - `hover_rows_include_pi_binder_rows`：类型 `(P : Prop) -> False -> P` 存在 binder 行
   `(P : Prop)`（Forall binder 也覆盖）。
