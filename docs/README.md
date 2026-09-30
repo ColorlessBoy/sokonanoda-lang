@@ -81,31 +81,17 @@
 
 ## 调研与笔记（`docs/notes/`）
 
-> **大多数调研笔记已归档** ✓（结论已升格进 `docs/design/`，底稿属过程记录 ✗）：
-> 顶层九篇（`research` / `lsp-notes` / `vscode-notes` / `gap-analysis` / `inductive` /
-> `rust-cross-platform-binary` / `multifile-prior-art` / `project-roots-and-incremental-caches` /
-> `cache-key-build-stamp`）⇒ `docs/archive/notes-2026-09-26/` ✓；
-> `settheory-survey/` 十篇 ⇒ `docs/archive/settheory-survey-2026-09-26/` ✓
-> （结论在 `docs/design/set-theory-syllabus.md` 与 `docs/design/teaching-project.md` ✓）。
-
-**仍留在 `docs/notes/` 的** ✓（各有活消费者钉住 —— 不许随手归档 ✗）：
-
-- `dsh-project-assets.md` — **DeepSeek Harness 源码勘察记录**（技能根 / 斜杠命令 /
-  LSP 能力 / patch 形状 / hooks / 子 agent，逐条 `path:line`）—— 被
-  `crates/cli/tests/dsh.rs` 的**契约测试**钉住 ✓；配套设计 `docs/design/deepseek-harness.md`
-- `course-lean-style/notation-rewrite-brief.md` — 记法改写**施工细则**
-  （`AGENTS.md` 指定；可执行判据 = `python3 scripts/notation-lint.py` ✓）
-- `course-lean-style/R3-rewrite-brief.md` — 入门课改写的施工说明书
-  （`skills/sokonanoda-teacher/references/curriculum.md` 指其 §1 ✓）
-- `course-lean-style/notation-input-plan.md` — 记法输入面
-  （`crates/front/src/notation_input.rs` 指其缩写表 ✓）
+> **2026-09-30 激进删档后只剩 1 篇** ✓：`dsh-project-assets.md`
+> —— **DeepSeek Harness 源码勘察记录**（技能根 / 斜杠命令 / LSP 能力 / patch 形状 /
+> hooks / 子 agent，逐条 `path:line`），被 `crates/cli/tests/dsh.rs` 的**契约测试**钉住 ✓
+> （配套设计 `docs/design/deepseek-harness.md`）。
+>
+> 其余笔记**全删**（结论已升格进 `docs/design/`，底稿属过程记录 ✗）：`course-lean-style/`
+> 三篇（记法改写 / R3 改写 / 记法输入面的施工细则）与更早归档过的顶层九篇 +
+> `settheory-survey/` 十篇 —— 原文 ⇒ `git log --all -- docs/notes/<路径>` ✓。
 
 **其它现场记录**：`docs/gaps/spike/README.md` — 卷 I 试做稿（2 单元 + 66 条标准库，
 全部真内核判卷 0 failed，逐条标 `L-xx` 欠账）。
-
-> **项目状态视图**（`query project` / `soko/project` / VS Code 项目树）的文档在
-> **`docs/design/project-view.md`**，不在 `docs/notes/` 下 ✓（站点索引页
-> `site/docs.html` 的作者核出过这处错：`docs/notes/project-view.md` 在任何 git 历史里都不存在）。
 
 ## 归档（`docs/archive/`）—— **归档 ≠ 销毁** ✓
 
