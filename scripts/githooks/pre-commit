@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# pre-commit —— **提交前文档过期检测**（2026-09-30 用户要求 ✓）
+#
+# 用户原话 ✓：「机制必须包含一个 python 脚本，**git 提交前自动检测**所有文档是否快过期、
+# 是否需要续期」+「有已过期文档则**阻止提交**」✓。
+#
+# 设计取舍（同 `pre-push` 的先例：**纪律要能被绕过，但不能被遗忘** ✓）：
+#  * 判据只有一条：`scripts/docs-expiry-check.py --check` 的**退出码** ✓
+#    （0 = 只有提醒 / 1 = 已过期或未登记 ⇒ **拦** / 2 = 用法错）；
+#  * **不看暂存区**：过期是**仓库状态**，不是你这次改了什么 ⇒ 任何提交前都检测 ✓
+#    （否则"改别的文件"就能绕开 ✗）；
+#  * 逃生门：`git commit --no-verify` / `SOKO_SKIP_HOOK=1 git commit` ✓
+#    —— 但**必须在 `STATUS.md` 写明原因** ✓，不许成为默认动作 ✗；
+#  * `python3` 缺席 ⇒ **判不了 ≠ 绿** ✗ ⇒ 大声说出来再放行（`gh` 缺席在 `pre-push` 是同一条口径 ✓）。
+#
+# 安装：`scripts/install-hooks.sh`（设置 `core.hooksPath=scripts/githooks` ✓，一条命令 ✓）
+set -uo pipefail
+[ "${SOKO_SKIP_HOOK:-0}" = "1" ] && {
+  echo "[pre-commit] SOKO_SKIP_HOOK=1 ⇒ 跳过文档过期检测 ✗（例外要留痕：在 STATUS.md 写明原因）"
+  exit 0
+}
+
+root=$(git rev-parse --show-toplevel)
+[ -f "$root/scripts/docs-expiry-check.py" ] || {
+  echo "[pre-commit] 找不到 scripts/docs-expiry-check.py ⇒ 跳过 ✓"
+  exit 0
+}
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "[pre-commit] ⚠ 没有 python3 ⇒ 文档过期检测**判不了**（**判不了不是绿** ✗）" >&2
+  echo "            装好 python3 后这条自动生效；或 SOKO_SKIP_HOOK=1 留痕跳过 ✓" >&2
+  exit 0
+fi
+
+if ! out=$(cd "$root" && python3 scripts/docs-expiry-check.py --check 2>&1); then
+  printf '%s\n' "$out" >&2
+  cat >&2 <<'MSG'
+
+[pre-commit] ❌ **文档过期检测判红** ✗ ⇒ 拒绝提交 ✓（用户 2026-09-30 要求）。
+  处置**三选一**（都要落 commit ⇒ 评审可见 ✓）：
+    ① **续期**（仍被引用 / 仍是活规范 / 有追溯价值）：
+       python3 scripts/docs-expiry-check.py --renew <文件> --date YYYY-MM-DD \
+           --reason "为什么还留（≥8 字，**没有理由就该删** ✗）"
+    ② **删除**（没人引用、结论已并入他处）：
+       git rm <文件> && python3 scripts/docs-expiry-check.py --prune
+    ③ **归档**（有追溯价值但不该占活文档）：
+       移进 docs/archive/ + 在 docs/archive/README.md **点名**（判据 ⑥ 会查）+ `--prune`
+  新文档**没登记** ⇒ 同 ①（或一次登记全部：`--seed --reason "…"`）。
+  逃生门：`git commit --no-verify` / `SOKO_SKIP_HOOK=1 git commit`
+  —— **必须在 `STATUS.md` 写明原因** ✓（不许当默认动作 ✗）。
+MSG
+  exit 1
+fi
+echo "[pre-commit] $(printf '%s' "$out" | tail -1)（检测确实跑了，不是空转 ✓）"
