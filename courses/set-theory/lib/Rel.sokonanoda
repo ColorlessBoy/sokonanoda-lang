@@ -61,7 +61,7 @@ postfix:100 " ⁻¹ " => Rel.inv
 -- `r • s` 里 r : Rel A B 先走，s : Rel B C 后走）。中缀的 `∃ b, …`
 -- 在这里就是带标注的 `∃ (b : B), …`；定义体照课程库的统一写法用 `∃` 记法
 -- （定义是词汇，不是证明——`∃` 记法本身由 lib/Exists 声明）。
-def Rel.comp (A B C : Type) (r : Rel A B) (s : Rel B C) : Rel A C :=
+def Rel.comp {A B C : Type} (r : Rel A B) (s : Rel B C) : Rel A C :=
   fun (a : A) => fun (c : C) =>
     ∃ (b : B), (r a b) ∧ (s b c)
 
@@ -84,7 +84,7 @@ axiom Rel.ext : (A B : Type) → (r s : Rel A B) →
 theorem Rel.inv_apply (A B : Type) (r : Rel A B) (b : B) (a : A) :
     (r ⁻¹) b a ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A（↔ 记法的期望类型走不通）
 
-theorem Rel.comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
+theorem Rel.comp_apply {A B C : Type} (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
     (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl (∃ (b : B), r a b ∧ s b c)  -- soko:notation-ok: `Iff.refl` 短写解不出 A
 
 -- ── 库自检：两条展开引理合起来，把"逆的逆"退回原关系（`rfl` 级）。────────────

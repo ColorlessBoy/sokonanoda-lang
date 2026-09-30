@@ -29,24 +29,24 @@ import lib.Set
 -- ── 词汇（Mathlib: Mathlib/Data/Set/Defs.lean，逐字同款）──────────────────
 -- 像（前推）：`y` 落在 `f '' A` 里，就是**存在**一个 `x : α`，它在 `A` 里且 `f x = y`。
 --   注意 `y` 的论域是 β、等式是 `f x = y`——`=` 记法自己补宇宙层级。
-def Set.image (α β : Type) (f : α → β) (A : Set α) : Set β :=
+def Set.image {α β : Type} (f : α → β) (A : Set α) : Set β :=
   fun (y : β) => ∃ (x : α), (A x) ∧ (f x = y)
 
 -- 原像（回拉）：`x` 落在 `f ⁻¹' B` 里，就是 `f x` 落在 `B` 里。
 --   没有存在量词，只有一个函数应用——所以原像"全保"（保并交补），而像只保并。
-def Set.preimage (α β : Type) (f : α → β) (B : Set β) : Set α :=
+def Set.preimage {α β : Type} (f : α → β) (B : Set β) : Set α :=
   fun (x : α) => B (f x)
 
 -- ── 定义展开引理（L2：证明全是"恒等函数"，没有数学内容）──────────────────
 -- 与 lib/Set 的 `Set.mem_union` 同款：展开后就是 `fun h => h`，所以证明项是两边互交。
 -- 写练习时点这条名字，就等于**一次性把 `image` 的定义摊开**，不必手写 `fun h => h`。
 
-theorem Set.mem_image (α β : Type) (f : α → β) (A : Set α) (y : β) :
+theorem Set.mem_image {α β : Type} (f : α → β) (A : Set α) (y : β) :
     y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=
     Iff.intro (fun (h : y ∈ f '' A) => h)
       (fun (h : ∃ (x : α), A x ∧ f x = y) => h)
 
-theorem Set.mem_preimage (α β : Type) (f : α → β) (B : Set β) (x : α) :
+theorem Set.mem_preimage {α β : Type} (f : α → β) (B : Set β) (x : α) :
     x ∈ f ⁻¹' B ↔ f x ∈ B :=
     Iff.intro (fun (h : x ∈ f ⁻¹' B) => h) (fun (h : f x ∈ B) => h)
 
@@ -66,7 +66,7 @@ theorem Set.mem_preimage (α β : Type) (f : α → β) (B : Set β) (x : α) :
 -- `unknown identifier`）。所以这两条写成 `by` + 一条 `exact` 的**证明项**：
 -- tactic 块照旧（白名单里的 `exact`），点名残留只有构造子名
 -- （`Exists.intro` / `And.intro` / `Eq.subst`——引理名不算残留）。
-theorem Set.image_mono (α β : Type) (f : α → β) (A B : Set α)
+theorem Set.image_mono {α β : Type} (f : α → β) (A B : Set α)
     (h : ∀ (x : α), A x → B x) : f '' A ⊆ f '' B :=
   fun (y : β) => fun (hy : y ∈ f '' A) =>
     Exists.elim α (fun (x : α) => A x ∧ f x = y)
@@ -79,7 +79,7 @@ theorem Set.image_mono (α β : Type) (f : α → β) (A B : Set α)
 
 -- 像落在 B 里 ⟺ A 里的每个点都被 f 送到 B 里。（Mathlib 同名：`Set.image_subset_iff`）
 -- 证明体同上：两个方向都要构造 `∃`，所以是一整条 `exact` 的证明项。
-theorem Set.image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β) :
+theorem Set.image_subset_iff {α β : Type} (f : α → β) (A : Set α) (B : Set β) :
     f '' A ⊆ B ↔ A ⊆ f ⁻¹' B :=
     Iff.intro (f '' A ⊆ B) (A ⊆ f ⁻¹' B)
       (fun (h : f '' A ⊆ B) =>

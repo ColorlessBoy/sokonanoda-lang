@@ -61,7 +61,7 @@ import lib.Set
 -- ── 复合（Mathlib: Mathlib/Logic/Function/Defs.lean）─────────────────────────
 -- `g ∘ f` 展开就是 `fun x => g (f x)`；定义体直接是 λ，所以
 -- 复合**不引入任何数学内容**，`Function.comp_apply` 是 `rfl` 级展开引理。
-def Function.comp (α β γ : Type) (g : β → γ) (f : α → β) : α → γ :=
+def Function.comp {α β γ : Type} (g : β → γ) (f : α → β) : α → γ :=
   fun (x : α) => g (f x)
 
 -- ── 记法（E01）：函数复合 `g ∘ f` ───────────────────────────────────────────
@@ -107,7 +107,7 @@ def Function.Inverse (α β : Type) (f : α → β) (g : β → α) : Prop :=
 -- 单射假设上，就把它变成 `∀ x y, f x = f y → x = y`。
 
 -- `rfl` 级：复合算在参数上就是"先 f 后 g"（Mathlib: `Function.comp_apply`）。
-theorem Function.comp_apply (α β γ : Type) (g : β → γ) (f : α → β) (x : α) :
+theorem Function.comp_apply {α β γ : Type} (g : β → γ) (f : α → β) (x : α) :
     (g ∘ f) x = g (f x) :=  Eq.refl.{1} γ (g (f x))
 
 theorem Function.injective_def (α β : Type) (f : α → β) :

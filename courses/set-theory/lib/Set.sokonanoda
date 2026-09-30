@@ -57,17 +57,17 @@ def Set (α : Type) : Type := α → Prop
 
 namespace Set
 
-def mem (α : Type) (a : α) (A : Set α) : Prop := A a
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
 
-def subset (α : Type) (A B : Set α) : Prop := ∀ (x : α), A x → B x
+def subset {α : Type} (A B : Set α) : Prop := ∀ (x : α), A x → B x
 
-def empty (α : Type) : Set α := fun (x : α) => False
+def empty {α : Type} : Set α := fun (x : α) => False
 
-def univ (α : Type) : Set α := fun (x : α) => True
+def univ {α : Type} : Set α := fun (x : α) => True
 
-def singleton (α : Type) (a : α) : Set α := fun (x : α) => x = a
+def singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a
 
-def pair (α : Type) (a b : α) : Set α :=
+def pair {α : Type} (a b : α) : Set α :=
   fun (x : α) => x = a ∨ x = b
 
 -- **ST17（v0.77.0）：`abbrev` 的真实用法** ─────────────────────────────────
@@ -79,27 +79,27 @@ def pair (α : Type) (a b : α) : Set α :=
 --   或 `Set.pair α a b`（soko:notation-ok: 讨论三元素时要点名那个二元目标）再套 `Set.union`。
 -- ⚠ 为什么用 `abbrev` 而不是 `def`：它是**别名**（名字换名字，没有新数学内容），
 -- 正是 `abbrev` 的语义位置 ✓；`def` 会让人以为"这里定义了一个新概念"✗。
-abbrev triple (α : Type) (a b c : α) : Set α :=
+abbrev triple {α : Type} (a b c : α) : Set α :=
   fun (x : α) => x = a ∨ x = b ∨ x = c
 
-def union (α : Type) (A B : Set α) : Set α := fun (x : α) => A x ∨ B x
+def union {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∨ B x
 
-def inter (α : Type) (A B : Set α) : Set α := fun (x : α) => A x ∧ B x
+def inter {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∧ B x
 
-def sdiff (α : Type) (A B : Set α) : Set α := fun (x : α) => A x ∧ ¬ (B x)
+def sdiff {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∧ ¬ (B x)
 
-def compl (α : Type) (A : Set α) : Set α := fun (x : α) => ¬ (A x)
+def compl {α : Type} (A : Set α) : Set α := fun (x : α) => ¬ (A x)
 
-def powerset (α : Type) (A : Set α) : Set (Set α) := fun (B : Set α) => subset α B A
+def powerset {α : Type} (A : Set α) : Set (Set α) := fun (B : Set α) => subset B A
 
 -- **ST3（v0.77.0）：分离**（Mathlib `Mathlib/Data/Set/Defs.lean` 的 `Set.sep`，
 -- 逐字同款）：`{x ∈ A | P x}` 的**目标常量**。谓词式里它就是"谓词取交"——
 -- 定义展开引理（L2 层）见文件下半段。
-def sep (α : Type) (A : Set α) (P : α → Prop) : Set α :=
+def sep {α : Type} (A : Set α) (P : α → Prop) : Set α :=
   fun (x : α) => A x ∧ P x
 
 -- ── 外延性（**公理**：Mathlib 由 propext + funext 推出，我们两者都没有）──────
-axiom ext : (α : Type) → (A B : Set α) →
+axiom ext : {α : Type} → (A B : Set α) →
   (∀ (x : α), A x ↔ B x) → A = B
 
 -- ── 记法（G-04 第二刀，0.60.0）：卷 I 的**数学符号**────────────────────────
@@ -150,7 +150,7 @@ infixr:80 " ×ˢ " => Set.prod
 -- R2 课程 Lean 化：语句用**记法**（上面那段声明在本文件里已经生效），证明用
 -- `by` tactic 块。这些引理的作用就是"把定义展开写成一条等式"，所以两边都是
 -- 恒等函数——`constructor` 拆 `↔`，两个方向 `intro h; exact h`。
-theorem subset_def (α : Type) (A B : Set α) :
+theorem subset_def {α : Type} (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), A x → B x := by
   constructor
   intro h
@@ -158,7 +158,7 @@ theorem subset_def (α : Type) (A B : Set α) :
   intro h
   exact h
 
-theorem mem_empty_iff_false (α : Type) (a : α) :
+theorem mem_empty_iff_false {α : Type} (a : α) :
     a ∈ ∅ ↔ False := by
   constructor
   intro h
@@ -166,14 +166,14 @@ theorem mem_empty_iff_false (α : Type) (a : α) :
   intro h
   exact h
 
-theorem notMem_empty (α : Type) (a : α) : ¬ (a ∈ ∅) := by
+theorem notMem_empty {α : Type} (a : α) : ¬ (a ∈ ∅) := by
   intro h
   exact h
 
-theorem mem_univ (α : Type) (a : α) : a ∈ univ α := by
+theorem mem_univ {α : Type} (a : α) : a ∈ univ := by
   exact True.intro
 
-theorem mem_singleton_iff (α : Type) (a b : α) :
+theorem mem_singleton_iff {α : Type} (a b : α) :
     a ∈ {b} ↔ a = b := by
   constructor
   intro h
@@ -181,10 +181,10 @@ theorem mem_singleton_iff (α : Type) (a b : α) :
   intro h
   exact h
 
-theorem mem_singleton_self (α : Type) (a : α) : a ∈ {a} := by
+theorem mem_singleton_self {α : Type} (a : α) : a ∈ {a} := by
   exact Eq.refl.{1} α a
 
-theorem mem_union (α : Type) (a : α) (A B : Set α) :
+theorem mem_union {α : Type} (a : α) (A B : Set α) :
     a ∈ A ∪ B ↔ a ∈ A ∨ a ∈ B := by
   constructor
   intro h
@@ -192,7 +192,7 @@ theorem mem_union (α : Type) (a : α) (A B : Set α) :
   intro h
   exact h
 
-theorem mem_inter_iff (α : Type) (a : α) (A B : Set α) :
+theorem mem_inter_iff {α : Type} (a : α) (A B : Set α) :
     a ∈ A ∩ B ↔ a ∈ A ∧ a ∈ B := by
   constructor
   intro h
@@ -200,7 +200,7 @@ theorem mem_inter_iff (α : Type) (a : α) (A B : Set α) :
   intro h
   exact h
 
-theorem mem_sdiff (α : Type) (a : α) (A B : Set α) :
+theorem mem_sdiff {α : Type} (a : α) (A B : Set α) :
     a ∈ A \ B ↔ a ∈ A ∧ ¬ (a ∈ B) := by
   constructor
   intro h
@@ -208,7 +208,7 @@ theorem mem_sdiff (α : Type) (a : α) (A B : Set α) :
   intro h
   exact h
 
-theorem mem_powerset_iff (α : Type) (A B : Set α) :
+theorem mem_powerset_iff {α : Type} (A B : Set α) :
     B ∈ 𝒫 A ↔ B ⊆ A := by
   constructor
   intro h
@@ -217,23 +217,23 @@ theorem mem_powerset_iff (α : Type) (A B : Set α) :
   exact h
 
 -- ── ST3：分离的展开引理（L2 层，Mathlib 的 `Set.mem_sep_iff`）──────────────
-theorem mem_sep_iff (α : Type) (A : Set α) (P : α → Prop) (a : α) :
-    a ∈ sep α A P ↔ (a ∈ A ∧ P a) := by
+theorem mem_sep_iff {α : Type} (A : Set α) (P : α → Prop) (a : α) :
+    a ∈ sep A P ↔ (a ∈ A ∧ P a) := by
   constructor
   intro h
   exact h
   intro h
   exact h
 
-theorem sep_subset (α : Type) (A : Set α) (P : α → Prop) :
-    sep α A P ⊆ A := by
+theorem sep_subset {α : Type} (A : Set α) (P : α → Prop) :
+    sep A P ⊆ A := by
   intro x
   intro h
   exact And.left (Iff.mp (mem_sep_iff α A P x) h)
 
-theorem sep_self (α : Type) (A : Set α) :
-    sep α A (fun (x : α) => x ∈ A) = A := by
-  apply Set.ext α (sep α A (fun (x : α) => x ∈ A)) A
+theorem sep_self {α : Type} (A : Set α) :
+    sep A (fun (x : α) => x ∈ A) = A := by
+  apply Set.ext (sep A (fun (x : α) => x ∈ A)) A
   intro x
   constructor
   intro h
