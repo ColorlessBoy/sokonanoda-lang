@@ -50,4 +50,8 @@ if ! out=$(cd "$root" && python3 scripts/docs-expiry-check.py --check 2>&1); the
 MSG
   exit 1
 fi
-echo "[pre-commit] $(printf '%s' "$out" | tail -1)（检测确实跑了，不是空转 ✓）"
+# 放行分支也**原样打印全部输出** ✓ —— 判据是「快过期 ⇒ **提醒续期**」，
+# 只回显 `tail -1` 会把提醒降级成一个**光秃秃的计数**（"1 份只是提醒"），
+# **不说哪一份** ⇒ 该续期的文档在提交那一刻仍然不可见 ✗（守卫空转的另一种形态）。
+printf '%s\n' "$out"
+echo "[pre-commit] ✓ 放行（检测确实跑了，不是空转 ✓）—— 上方有 ⚠ 行 ⇒ 就是快过期的文档，请安排续期 ✓"
