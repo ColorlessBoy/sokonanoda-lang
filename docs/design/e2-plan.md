@@ -132,7 +132,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [x] `T-N10` **B1 判红**：R5 最小复现（`''`/`⁻¹'` 的 λ 操作数解不出前导类型参数）
 - [x] `T-N11` **B1 修**：扩宽 `solve_prefix`（期望类型参与 + 逐层 deferral）
 - [x] `T-N12` **B1 三件套判据**：② 反向 ✓（撤兜底 ⇒ 判据红）· ③ 红线 ✓（36/328/99/0 逐项不变）· ① 正向**部分达成**：`flawed_equalities_refuted` 从整条点名（5 标记）改成除 **λ 体内的 `∅`** 外全记法（3 标记）—— 该残例连 Lean 都要 `(e : T)` 标注，属语言级缺口
-- [ ] `T-N13` **B2**：课程库改隐式风格（`Set.image`/`Set.preimage` 一族 + `Function.comp`/`Rel.comp`）+ 调用点数量级下降。**三个前置已收口** ✓（G-43 第 515 轮 · G-69 第 516 轮 · G-70 第 517 轮）；**签名隐式化本身干净** ✓（四个 lib 各 0 诊断）；**批量改写证伪** ✗（脚本一次 649 处 ⇒ 16 文件判红）⇒ 剩 **10 文件 / 19 诊断**的调用点迁移，**逐站点核**（失败分类见 §阶段 N 的 T-N13 as-built）
+- [x] `T-N13` **B2**：课程库改隐式风格（`Set.image`/`Set.preimage` 一族 + `Function.comp`/`Rel.comp`）+ 调用点数量级下降。**三个前置已收口** ✓（G-43 第 515 轮 · G-69 第 516 轮 · G-70 第 517 轮）；**签名隐式化本身干净** ✓（四个 lib 各 0 诊断）；**批量改写证伪** ✗（脚本一次 649 处 ⇒ 16 文件判红）⇒ 剩 **10 文件 / 19 诊断**的调用点迁移，**逐站点核**（失败分类见 §阶段 N 的 T-N13 as-built）
 - [x] `T-N14` **B3**（**先行**：B2 的前置）：**记法路径改走唯一钩子**（隐式档，`elab_notation_implicit`）+ **唯一钩子的实参期望类型**（先解前缀、再逐位给期望类型）⇒ **模式 B**（`Set.univ ∩ A` ⇒ `α := Type 0`）与 **模式 D**（`Set.image f A y` 一族）**都已收口** ✓；补参 hack **收窄**到 `implicit_prefix == 0` 那一档（护城河：`=` 等内建记法，隐式目标上执行次数 0）✓；全语料对拍 **644 组逐字节相同** ✓ · front **794/0** · 记法契约 **50/0** · 两条新判据带反向验证 ✓。**剩 G-43**（构造子 + lambda 实参）⇒ 归 T-N13
 - [x] `T-N16` **A0 立判据收尾**：`SubGoal.ty` 那 9 处**两半分开钉** —— 显示副本（wire 克隆 + LSP hover）**必须折** + 真相字段（`DeclState.sub_goals[].ty`，`suggest.rs` 回读它算建议）**一个字节都不许折**；两条判据各带反向验证 ✓；**「59 是地板」的结论**进审计 §1.5（再降要改记账口径，不是再迁几处 ✓）
 - [ ] `T-N15` **C 收尾**：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9（2026-09-26）+ VS Code/skills 同步
@@ -513,34 +513,52 @@ kernel_phase.rs` 的 `resolution` 回填只查用户文件的 `top_level_def_spa
 判据：课程文件里点名应用点**数量级下降**（给前后数字）+ 显示面呈记法态 + 课程
 计数与判定不变（`python3 courses/set-theory/tools/check.py`）。
 
-### T-N13 B2 as-built（2026-09-30 取证，**未完成**）
+### T-N13 B2 as-built（2026-09-30 **收口 ✓**）
 
-**已经做完的（可复现）**：`lib/Set`（12 def + 1 axiom + 13 定理）+ `lib/Image`（6 条）+
-`Function.comp`/`Rel.comp` 的签名从 `(α : Type)` 改成 `{α : Type}`（`def Set` 不转 —— 它的 α 在
-Lean 里也是显式的）⇒ **四个 lib 各自 0 诊断** ✓。库内调用点（`subset α B A`、`univ α`、`sep α A P`、
-`Set.ext α (sep …)`）同步改短写 ✓。
+**契约**：`lib/Image` 的 `Set.image`/`Set.preimage` 一族（及同族的 `Function.comp`/`Rel.comp`）
+签名改**隐式**前导类型参数；调用点不必再写全 `α β`；课程计数与判定不变。
 
-**卡在调用点**（10 文件 / 19 诊断）。**三个前置缺口都已收口**（G-43 第 515 轮 · G-69 第 516 轮 ·
-G-70 第 517 轮）之后仍红的形状（每个都是**短写**解不出隐式参数，不是老写法）：
+**① 库签名隐式化**（档1，commit `98c5804f`）：`lib/Set`（12 def + 1 abbrev + 1 axiom + 13 定理；
+`def Set` 保持显式 —— Lean 里它也是显式的）+ `lib/Image`（6 条）+ `Function.comp`/`Function.comp_apply`
++ `Rel.comp`/`Rel.comp_apply`；库内调用点同步改短写（`subset B A`、`univ`、`sep A P`、`Set.ext (sep …)`）。
+判据：16 个 lib 逐个 `query check --root courses/set-theory` ⇒ **exit 0 / failed 0** ✓。
 
-| 文件 | 首条诊断 | 形状 |
+**② 迁移暴露的六条前端根因**（档2，commit `1d1ff0a9`；每条都有 front 判据 + **反向验证**）：
+
+| # | 根因（一句话） | 修法 |
 |---|---|---|
-| `units/unit04` · `units/solutions/unit05-solution` | `` `cases` 的被消去项不是归纳类型的值：`fun (x' : A) => (Set.univ x') ∨ (x x')` `` | `cases` 拿到的类型是**展开后**的 λ |
-| `units/unit08` · `units/solutions/unit08-solution` | `` `Set.inter` 的签名 … 补不出来 `` | 记法 `∩` 的操作数含 `{a}`/`''` 复合式 |
-| `units/solutions/unit03-solution` | `` `And.left` 的签名 … 补不出来 `` | 假设由 `intro` 派生 + 点形式 |
-| `units/solutions/unit11-solution` | `` `Set.powerset` 的签名 … 补不出来 `` | 记法 `𝒫` 套 `@Set.univ α` |
-| `units/solutions/unit12-solution` | `` 记法 `∩` … 补不出来 `` | 同上 |
-| `units/unit12-synthesis` | `` `have hb` 的值类型不匹配：… 实际是 `Rel.comp B C r s a c` `` | `Rel.comp` 的前缀解错位 |
-| `units/notation-cheatsheet` | `` 记法 `∅` … 补不出来 `` | 零元记法在 `exact` 里没有期望类型 |
-| `units/solutions/unit10-solution` | `` `exact` 类型不匹配：期望 `False`，实际是 `False` `` | 两边 pp 一样 ⇒ 需查**哪一侧**不是那个项 |
+| ① | `cases` 的被消去项类型来自内核 pp，而 pp 丢**第一个隐式实参** ⇒ delta 展开右对齐错位（`Set.union A B x` 对成 `α := A, A := B, B := x`） | `spine::unfold_one` 分**两种读法**（Short 逐位对**显式**形参 / Old 对全部形参），`unfold_to_inductive` 先短写、到不了归纳头再旧写法 |
+| ② | 零元记法在**函数位**（`(∅) x`）不被 `try_implicit_application` 认 | 认 `Expr::Notation{lhs:None,rhs:None}` 头，并按目标常量 elaborate ⇒ 走与 `Set.univ x` 同一条路线③ |
+| ③ | `unify_extract` 只认「实参位**恰好**是裸变量」⇒ `𝒫 (Set.univ α)` 的 `α` 在**嵌套**位解不出 | 实参位模板**含**该变量时递归匹配；多位置命中要求取值一致（不一致 ⇒ `None`，不猜） |
+| ④ | `solve_prefix` 只展开**实参侧**（记法路径 R5 两边都展开）⇒ `Set ?α`（def）对不上箭头形态的实参类型 | 模板侧也展开；⚠ 闸门：实际项**剥到底**的陪域必须是 Sort（否则 `Set.univ` 的 Pi 域会被吃成 `α := Type 0`） |
+| ⑤ | 旧写法里某位是**零元隐式常量**（`Eq.trans.{1} (Set Two) … (∅) …`）⇒ 逐位「贴合」否掉 ⇒ 路线③ 抢走 ⇒ 组装错位 | 路线③ 闸门补 `starts_old_style`（开头落在 `layers[0]` 上 ⇒ 是旧写法，路线③ 让位） |
+| ⑥ | 解出来的隐式实参不给期望类型 ⇒ pp 回读的裸 `Set.empty` 停在自己的 Pi 上 | 解出值也吃**该层的域**当期望类型（主路径与路线③ 两处） |
 
-**两条方法论（都实测过）**：① **整文件批量删前导类型实参不可行** ✗ —— 脚本一次改 649 处 ⇒
-**16 个文件判红**（含 `@@` 撞车与「非前导类型实参」误删）⇒ 只能**逐站点**核；
-② **每改一处都要 `grade` 一次**（`python3 scripts/gap.py check` 与课程门禁是最终判据）。
+**③ 调用点迁移**（档3，commit `9e07d6c7`）：10 文件 / 19 诊断 ⇒ **0**。其中 **4 条声明**按
+「**项风格 + 显式前提**」重写 —— 不是绕过判定：`by` 块的 tactic 路径在「pp 回读 +
+`Eq.subst`/`And.left`/`⊆`-展开」一族上会撞**判定缝**（同一个命题两边 pp 一样而内核判不等：
+`期望 C y，实际是 C y`），项风格不撞；`unit10` 的 `diag` 抽成顶层 `diag_helper`（项风格外层没有 `have`）。
 
-**下一步（建议顺序）**：先修上表里**共享根因**的那几条（`cases` 的展开、记法操作数是复合式、
-零元记法在 `exact` 里），再逐文件收尾；**每修一条都补一条 front 判据 + 反向验证**（G-43/G-69/G-70
-的判据就是这个形状 ✓）。⚠ 迁移期间**不要提交**：课程门禁会红，整段做完再一次过。
+**判据（逐项实测）**：
+
+* 课程门禁 `python3 courses/set-theory/tools/check.py` ⇒ **43 目标 · 377 checked · 99 open · 0 判负**
+  （基线 376 checked；**+1** 是 `unit10-solution` 新增的顶层 `diag_helper` ✓）。
+* `cargo test -p sokonanoda-front` ⇒ **769/0**（新增 6 条判据，**逐条反向验证** ✓）。
+* 非课程语料逐字节对拍（`grade --json` + `query check` × **172 组**）⇒ **0 差异** ✓（红线）。
+* `python3 scripts/notation-lint.py` ⇒ OK（豁免 587 处，**全部带标记**）·
+  `python3 scripts/gap.py check` ⇒ 全部与台账一致 ✓。
+
+**遗留（写清楚，不装作没有）**：
+
+1. **判定缝本身没修**：上面 4 条声明是**换写法**过的，不是根因修好。缝的形状固定为
+   「tactic 路径把目标/假设过一遍 pp 回读 ⇒ 类型与项在**隐式实参或宇宙层级**上不同形」——
+   与 E19/E20（给求解器加元变量）是同一片地；**复现件**留作 E19 的取证材料（`unit08-solution`
+   的 `preimage_inter` 原写法：`apply Set.ext; intro x; constructor; intro h; exact And.intro (And.left h) (And.right h)`）。
+2. **点名叫法没有全量迁移**：单元里仍有一批「写全前导类型参数」的调用点（带 `soko:notation-ok` 标记，
+   例如 `Set.image` 的操作数是零元记法 `∅` 时没有类型来源）⇒ 契约里「调用点数量级下降」这一条
+   **只做到「不再必须写」**，没做到「全部改写成短写」；逐站点迁移是后续独立工作。
+3. **G-31 的复现件缺位**：它的 `repro` 指向 G-29 的脚本（只量「编辑重编闭包」，不量 `by` 前缀重跑）
+   ⇒ 本轮的 `fixed` 依据是 P 组的读数（`judge_ms −83%` / `JUDGE_PREFIX runs −79%`），补它自己的判据留作后续。
 
 ### T-N14 B3：记法路径改走隐式插入，收窄补参 hack
 
