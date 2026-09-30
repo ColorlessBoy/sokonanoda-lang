@@ -546,6 +546,7 @@ pub(crate) mod stats {
         // `SOKO_JUDGE_INPLACE` 也要能打（就地路径的四个数是它自己的判据）。
         if std::env::var_os("SOKO_JUDGE_STATS").is_none()
             && std::env::var_os("SOKO_JUDGE_INPLACE").is_none()
+            && std::env::var_os("SOKO_JUDGE_ENV_PROBE").is_none()
         {
             return;
         }
@@ -588,6 +589,9 @@ pub(crate) mod stats {
                     KEY_NANOS.load(Ordering::Relaxed) / 1_000_000,
                     HIT_NANOS.load(Ordering::Relaxed) / 1_000_000,
                 );
+                if crate::judge::env_probe::on() {
+                    eprintln!("{}", crate::judge::env_probe::report_line());
+                }
                 let (used, fallback, same, diff) = inplace();
                 if std::env::var_os("SOKO_JUDGE_INPLACE").is_some() {
                     eprintln!(
@@ -675,26 +679,41 @@ pub(crate) fn with_trusted_prefix<R>(
 /// 开关（仿 `SOKO_NO_JUDGE_BATCH`）：前缀复用 —— **对拍用**：
 /// 开与关必须给出**逐字节相同**的 `--json`（已实测 ✓，两态 md5 相同 ✓）。
 ///
-/// **默认关**（2026-09-25 改 ✗⇒✓，按 E2 计划 T-D6 自己的规则 ✓）：
-/// 计划原文是"**收益成立才默认打开** ✓，**否则保持关闭并记录** ✗"。
-/// 而收益**已被证否** ✗ —— 在**重度走到该路径**的真实套件上两态对拍
-/// （`cargo test -p sokonanoda-lsp --lib` ✓，**12.8 万次判卷** ✓、
-/// **命中率 99.6%**（`hits=128215/misses=485`）✓）：
-/// ```text
-/// 复用开：JUDGE_STATS total_ms=9706   JUDGE_INFER total_ms=28247
-/// 复用关：JUDGE_STATS total_ms=9614   JUDGE_INFER total_ms=28320
-/// ```
-/// ⇒ 差 **< 0.3%** 且**方向相反** ✗ ⇒ **Δ 是噪声** ✓ ⇒ 收益不成立 ⇒ 按规则关掉 ✓。
-/// **要回退这一决定**：把下面的 `unwrap_or(false)` 改回 `unwrap_or(true)` ✓
-/// （**一行** ✓，无其他耦合 ✓）。
-/// **要复现这份数字**：`SOKO_JUDGE_STATS=1 cargo test -q -p sokonanoda-lsp --lib`
+/// **默认值变过两次，两次都按"收益成立才默认打开"那条规则** ✓：
+///
+/// * **2026-09-25 → 默认关** ✗⇒✓：那时**只有 LSP 增量会话**会压栈，而收益在
+///   那条路上**被证否** —— 在重度走到该路径的真实套件上两态对拍
+///   （`cargo test -p sokonanoda-lsp --lib`，**12.8 万次判卷**、
+///   **命中率 99.6%**（`hits=128215/misses=485`））：
+///   ```text
+///   复用开：JUDGE_STATS total_ms=9706   JUDGE_INFER total_ms=28247
+///   复用关：JUDGE_STATS total_ms=9614   JUDGE_INFER total_ms=28320
+///   ```
+///   ⇒ 差 **< 0.3%** 且**方向相反** ⇒ **Δ 是噪声** ⇒ 按规则关掉 ✓。
+///   ⚠ 那个结论**对那条路仍然成立** ✓（`docs/design/incremental-environment.md` §22）。
+/// * **2026-09-30 → 默认开** ✓：§3.C 把担保接到了**主编译 pass**
+///   （`compile/check/walk.rs` 压栈），收益变成**全课程 `build`
+///   126.4s → 47.8s（2.65×）**、`judge_ms` **−83%** ✓ ⇒ 同一条规则 ⇒ 该开 ✓。
+///
+/// **两个逃生门**：`SOKO_JUDGE_ENV_REUSE=0`（关这一层）·
+/// `SOKO_JUDGE_ENV_VOUCH=0`（只关主编译 pass 那一档的担保）✓。
+/// **要复现 09-25 那份数字**：`SOKO_JUDGE_STATS=1 cargo test -q -p sokonanoda-lsp --lib`
 /// （两态各一次，`SOKO_JUDGE_ENV_REUSE=1` / `=0` ✓）。
 fn judge_env_reuse_enabled() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ON.get_or_init(|| {
-        std::env::var("SOKO_JUDGE_ENV_REUSE")
-            .map(|v| v != "0")
-            .unwrap_or(false)
+        // 显式 `SOKO_JUDGE_ENV_REUSE=0` ⇒ 关（**逃生门**，压过下面的默认）✓。
+        if let Ok(v) = std::env::var("SOKO_JUDGE_ENV_REUSE") {
+            return v != "0";
+        }
+        // ⚠ **未设时跟 `SOKO_JUDGE_ENV_VOUCH` 走**（2026-09-30 改）：
+        // 旧默认是"关"，依据是**当时**在 LSP 会话路径上量到收益是噪声
+        //（<0.3%，见上面那段注释）—— 那个结论对**那条路**仍然成立 ✓。
+        // 但 §3.C 把担保接到了**主编译 pass**（`walk.rs` 压栈）之后，
+        // 收益变成**全课程 `build` 126.3s → 47.6s（2.65×）**、`judge_ms` −83% ✓
+        // ⇒ 按"**收益成立才默认打开**"那条规则，现在**该开** ✓。
+        // 想回到旧行为：`SOKO_JUDGE_ENV_REUSE=0`（一行，无其他耦合）✓。
+        env_probe::vouch_mode() != env_probe::VouchMode::Off
     })
 }
 
@@ -707,7 +726,14 @@ fn check_synthesized(
     file: &FolFile,
     options: &CompileOptions,
     prefix_commands: usize,
+    // 影子档要按 `_soko_judge_{k}`（k < pairs_len）逐条比对**判据** ✓。
+    pairs_len: usize,
 ) -> DocumentReport {
+    // **只读取证**（零行为变化）：量"若主编译 pass 压了栈，能不能担保住"。
+    if env_probe::on() {
+        let top = TRUSTED_PREFIX.with(|cell| cell.borrow().last().map(|(b, _)| *b));
+        env_probe::record(top, prefix_commands);
+    }
     if !judge_env_reuse_enabled() {
         return check_document_with(file, options);
     }
@@ -727,13 +753,63 @@ fn check_synthesized(
             REUSED.load(std::sync::atomic::Ordering::Relaxed)
         );
     }
+    // ⚠⚠ **必须夹到 `prefix_commands`**（2026-09-30 实测踩到）：
+    //
+    // `before` 是**调用方坐标系**里的"已核命令数"，而 `run_incremental` 要的是
+    // **这份合成文档**里的命令数 —— 两个坐标系**可以不等**。
+    // 实测（主编译 pass 压 `idx` 的那一版）：`idx` 恒比 `prefix_commands` **大 2**
+    //（探针：`exact=86 · overshoot=179`）⇒ 不夹会**多担保 2 条命令**，
+    // 而那 2 条正是追加的合成声明 `_soko_judge_k` ⇒ **判定声明根本没被检查** ✗
+    // ⇒ 症状：`--json` 里 `compiled` 变 `failed`（**38 行不同**，与 P1-b 第一次
+    // 失败的签名一模一样）✗✗。
+    //
+    // **夹是安全的、且严格更保守**：`before >= prefix_commands` 只说明"调用方已核
+    // 的**至少覆盖**了前缀"（前缀文本是调用方文本的**前段** ⇒ 它的命令必然落在
+    // `[0, before)` 里 ✓），所以担保上界就是 `prefix_commands` 本身 ✓。
+    // 夹完只会"少担保 ⇒ 多检查" ⇒ 不引入新的不健全 ✓。
+    let before = before.min(prefix_commands);
+    if env_probe::on() {
+        env_probe::record_clamped(before, prefix_commands);
+    }
     let plan = TrustPlan {
         before,
         prev_signatures: Vec::new(),
         text_unchanged: Vec::new(),
         allow_cutoff: false,
     };
-    run_incremental(file, options, &plan, &failures).1
+    let trusted_report = run_incremental(file, options, &plan, &failures).1;
+    // **影子档**：再跑一次"整份重查"，比对**报告**（行为仍返回整份那一份）。
+    // ⚠ 用 `Debug` 形态比对 —— `DocumentReport` 没有 `PartialEq`，而 `Debug`
+    // 覆盖**全部**字段（含 `cmd` 归因下标），比手写几个字段更严 ✓。
+    if env_probe::vouch_mode() == env_probe::VouchMode::Shadow {
+        let full = check_document_with(file, options);
+        // ⚠⚠ **比的是"判据"，不是"报告"** —— 第一版拿 `Debug` 比整份
+        // `DocumentReport` ⇒ **265/265 全判 diff** ✗，而那是**假分叉**：
+        // `run_incremental` 的 `decls` **只含它这一段新查的**（`_soko_judge_*`），
+        // 而 `check_document_with` 的 `decls` 含**整个前缀**的声明
+        //（实测：`trusted` 28,342 字符 vs `full` 224,204 字符，首个不同就在
+        // `_soko_judge_0` vs `Exists`）⇒ 差的是**报告的范围**，不是**判定** ✗。
+        // ⇒ 判据必须绑**消费方看得见的结果**：调用方只读 `judgement_of(report, k)`
+        //（`judge_pairs_uncached` 结尾那句）⇒ 就比它 ✓
+        //（同 `AGENTS.md` 验证设计纪律第 1 条：**断言用户可见的结果**）。
+        let mut first_bad: Option<String> = None;
+        for k in 0..pairs_len {
+            let a = judgement_of(&trusted_report, k);
+            let b = judgement_of(&full, k);
+            if format!("{a:?}") != format!("{b:?}") {
+                first_bad = Some(format!(
+                    "k={k} prefix_commands={prefix_commands} before={before}\n                       担保路={a:?}\n  整份重查={b:?}"
+                ));
+                break;
+            }
+        }
+        match &first_bad {
+            None => env_probe::note_shadow(true, ""),
+            Some(d) => env_probe::note_shadow(false, d),
+        }
+        return full;
+    }
+    trusted_report
 }
 
 /// `SOKO_JUDGE_REUSE_STATS=1` ⇒ 每次命中打一行（判断"到底有没有触发"用；
@@ -746,6 +822,176 @@ fn reuse_stats() -> bool {
 /// 命中"前缀复用"的次数（判据：`SOKO_JUDGE_ENV_REUSE=0/1` 下都该有正确的行为，
 /// 而开启时这个数应当 > 0 —— 否则说明条件从没满足、等于没生效）。
 pub static REUSED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// **只读取证（§21.6 的"先证明再动手"）**：`check_synthesized` 每次被调用时，
+/// 记一笔"**如果**主编译 pass 压了栈，能不能担保住"。
+///
+/// ⚠ **纯计数，零行为变化**：三个计数器只在 `SOKO_JUDGE_ENV_PROBE=1` 时累加，
+/// 且**不参与任何判定** ✓。它的用途是回答设计 §21.6 的第 ① 条前提：
+/// **"judge 的文本前缀"与"主编译 pass 已核的命令"是否同序同源** ——
+/// 若 `would_hit` 占比高 ⇒ 那条路成立 ✓；若普遍不等 ⇒ 作废 ✗。
+pub mod env_probe {
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    /// `check_synthesized` 被调用的总次数。
+    pub static CALLS: AtomicU64 = AtomicU64::new(0);
+    /// 其中**栈顶 `before >= prefix_commands`**（即"能担保住"）的次数。
+    pub static WOULD_HIT: AtomicU64 = AtomicU64::new(0);
+    /// 栈**空着**的次数（= 主编译 pass 没压栈 ⇒ 这条路当前完全没生效）。
+    pub static STACK_EMPTY: AtomicU64 = AtomicU64::new(0);
+    /// 栈非空但 `before < prefix_commands` 的次数（= 担保**不够长**）。
+    pub static TOO_SHORT: AtomicU64 = AtomicU64::new(0);
+
+    pub fn on() -> bool {
+        static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        *ON.get_or_init(|| std::env::var("SOKO_JUDGE_ENV_PROBE").is_ok())
+    }
+
+    /// **影子档**：`SOKO_JUDGE_ENV_VOUCH=shadow` ⇒ **两条路都跑**、比对报告，
+    /// **返回"整份重查"那一份**（行为零变化，只取证）。
+    ///
+    /// ⚠ **这一档是必需品，不是可选项** —— P1-b 的实测教训：`on` 档的
+    /// `--json` 逐字节相同**不足以**证明两条路一致（那一档第一版多剥一层，
+    /// `on` 照样全绿，是**影子档**把 `diff=37508` 抓出来的）✓。
+    pub static SHADOW_SAME: AtomicU64 = AtomicU64::new(0);
+    pub static SHADOW_DIFF: AtomicU64 = AtomicU64::new(0);
+    pub static SHADOW_FIRST_DIFF: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    pub enum VouchMode {
+        Off,
+        Shadow,
+        On,
+    }
+
+    /// **默认 `On`**（2026-09-30 起）—— 证据链（缺一不可）：
+    /// ① 全课程影子档（**判据级**比对，两条路都跑）**`shadow_same=265 · diff=0`** ✓；
+    /// ② `off` vs 默认的 `--json`（剔 `build.tick`/`build.progress`）**逐行不同 0 行** ✓；
+    /// ③ 反向判据实测（`crates/front/tests/judge_env_vouch.rs`：**去掉夹紧 ⇒ 判红**）✓；
+    /// ④ **带开关跑完整 `gate` PASS**（含 LSP 那 12.8 万次判卷与课程门禁）✓；
+    /// ⑤ 读数：全课程墙钟 **126.3s → 47.6s（2.65×）**、`judge_ms` **−83%** ✓。
+    ///
+    /// **逃生门**：`SOKO_JUDGE_ENV_VOUCH=0`（只关这一档）·
+    /// `SOKO_JUDGE_ENV_REUSE=0`（只关"复用前缀"那个更底层的开关）✓。
+    pub fn vouch_mode() -> VouchMode {
+        static M: std::sync::OnceLock<VouchMode> = std::sync::OnceLock::new();
+        *M.get_or_init(
+            || match std::env::var("SOKO_JUDGE_ENV_VOUCH").ok().as_deref() {
+                Some("shadow") => VouchMode::Shadow,
+                Some("0") | Some("off") => VouchMode::Off,
+                _ => VouchMode::On,
+            },
+        )
+    }
+
+    /// 影子档的诊断输出开关（`SOKO_JUDGE_ENV_SHADOW_VERBOSE=1`）。
+    pub fn shadow_verbose() -> bool {
+        static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        *V.get_or_init(|| std::env::var("SOKO_JUDGE_ENV_SHADOW_VERBOSE").is_ok())
+    }
+
+    /// 影子档记一笔（`same` = 两条路的报告**逐字节相同**）。
+    pub fn note_shadow(same: bool, detail: &str) {
+        if same {
+            SHADOW_SAME.fetch_add(1, Ordering::Relaxed);
+        } else {
+            SHADOW_DIFF.fetch_add(1, Ordering::Relaxed);
+            if shadow_verbose() {
+                eprintln!("JUDGE_ENV_SHADOW_DIFF: {detail}");
+            }
+            if let Ok(mut f) = SHADOW_FIRST_DIFF.lock() {
+                if f.is_none() {
+                    *f = Some(detail.to_string());
+                }
+            }
+        }
+    }
+
+    /// **生效开关**（改行为）：`SOKO_JUDGE_ENV_VOUCH=1` ⇒ 主编译 pass 压栈担保。
+    ///
+    /// ⚠ **默认关**（一档一个 commit 的纪律；收益量到之后再议默认）。
+    /// ⚠ 与 [`on`]（只读取证）**分开**：否则"量到的"与"生效的"分不清 ✗。
+    pub fn vouch_enabled() -> bool {
+        static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        *V.get_or_init(|| std::env::var("SOKO_JUDGE_ENV_VOUCH").is_ok_and(|v| v != "0"))
+    }
+
+    /// **精确相等**的次数（`before == prefix_commands`）—— 只有这一档才是**真的**
+    /// "担保的正是前缀"，`before > prefix_commands` 会把**合成命令**也一起担保掉 ✗。
+    pub static EXACT: AtomicU64 = AtomicU64::new(0);
+    /// `before > prefix_commands` 的次数（**危险档**：多担保了）。
+    pub static OVERSHOOT: AtomicU64 = AtomicU64::new(0);
+    /// 观测到的 `(before, prefix_commands)` 差值直方图（前几条，诊断用）。
+    pub static SAMPLES: std::sync::Mutex<Vec<(usize, usize)>> = std::sync::Mutex::new(Vec::new());
+    /// 夹紧之后实际用的 `before` 与 `prefix_commands` 不等的次数（**必须恒为 0**）。
+    pub static CLAMPED: AtomicU64 = AtomicU64::new(0);
+
+    /// 记录"夹紧后仍不等"（非 0 ⇒ 夹的逻辑错了）。
+    pub fn record_clamped(before: usize, prefix_commands: usize) {
+        if !on() {
+            return;
+        }
+        if before != prefix_commands {
+            CLAMPED.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    pub fn record(stack_top: Option<usize>, prefix_commands: usize) {
+        if !on() {
+            return;
+        }
+        CALLS.fetch_add(1, Ordering::Relaxed);
+        match stack_top {
+            None => {
+                STACK_EMPTY.fetch_add(1, Ordering::Relaxed);
+            }
+            Some(before) => {
+                if before == prefix_commands {
+                    EXACT.fetch_add(1, Ordering::Relaxed);
+                } else if before > prefix_commands {
+                    OVERSHOOT.fetch_add(1, Ordering::Relaxed);
+                } else {
+                    TOO_SHORT.fetch_add(1, Ordering::Relaxed);
+                }
+                if let Ok(mut s) = SAMPLES.lock() {
+                    if s.len() < 12 {
+                        s.push((before, prefix_commands));
+                    }
+                }
+            }
+        }
+    }
+
+    /// 一行报告（`SOKO_JUDGE_ENV_PROBE=1` ⇒ 进程退出前由 `install_printer` 打）。
+    pub fn report_line() -> String {
+        let c = CALLS.load(Ordering::Relaxed);
+        let h = WOULD_HIT.load(Ordering::Relaxed);
+        let e = STACK_EMPTY.load(Ordering::Relaxed);
+        let s = TOO_SHORT.load(Ordering::Relaxed);
+        let pct = if c == 0 {
+            0.0
+        } else {
+            h as f64 / c as f64 * 100.0
+        };
+        let ex = EXACT.load(Ordering::Relaxed);
+        let ov = OVERSHOOT.load(Ordering::Relaxed);
+        let samples = SAMPLES
+            .lock()
+            .map(|s| {
+                s.iter()
+                    .map(|(b, p)| format!("{b}/{p}"))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
+            .unwrap_or_default();
+        let ss = SHADOW_SAME.load(Ordering::Relaxed);
+        let sd = SHADOW_DIFF.load(Ordering::Relaxed);
+        let cl = CLAMPED.load(Ordering::Relaxed);
+        format!(
+            "JUDGE_ENV_PROBE calls={c} exact={ex} overshoot={ov} too_short={s}              stack_empty={e} would_hit={h} ({pct:.1}%) clamped_bad={cl} shadow_same={ss} shadow_diff={sd} | (before/prefix): {samples}"
+        )
+    }
+}
 
 fn judge_pairs_uncached(
     key: u64,
@@ -891,6 +1137,7 @@ fn judge_pairs_uncached(
         },
         options,
         prefix_commands,
+        pairs.len(),
     );
     for (k, judgement) in judgements.iter_mut().enumerate() {
         if pre_judged[k] {
@@ -2019,7 +2266,7 @@ fn judge_hole_fill_uncached(
     };
     let prefix_commands = file.commands.len();
     file.commands.extend(commands);
-    let report = check_synthesized(&file, options, prefix_commands);
+    let report = check_synthesized(&file, options, prefix_commands, judgements.len());
     for (k, judgement) in judgements.iter_mut().enumerate() {
         if let Some(message) = failed_parse[k].take() {
             *judgement = Judgement::Error {
@@ -2204,7 +2451,7 @@ pub fn judge_value_replace_with(
     };
     let prefix_commands = file.commands.len();
     file.commands.extend(commands);
-    let report = check_synthesized(&file, options, prefix_commands);
+    let report = check_synthesized(&file, options, prefix_commands, judgements.len());
     for (k, judgement) in judgements.iter_mut().enumerate() {
         if let Some(message) = failed_parse[k].take() {
             *judgement = Judgement::Error {

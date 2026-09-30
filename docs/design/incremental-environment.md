@@ -814,7 +814,7 @@ for M in closure (拓扑序):
 
 动手接线时撞到**一处**具体缺口。记在这里，避免下一轮重复勘。
 
-### 22.1 缺口：session 的回调**交不出** `build_one` 需要的 `ProjectReport`
+### 31.1 缺口：session 的回调**交不出** `build_one` 需要的 `ProjectReport`
 
 `build_one`（`crates/cli/src/build.rs:367`）要的是**完整** `ProjectReport`，
 它由 `assemble_report(PlanCompiled { … })`（`project/mod.rs:381`）组装，而 `PlanCompiled` 要：
@@ -832,7 +832,7 @@ for M in closure (拓扑序):
 而重建用的是**该入口自己的闭包顺序**。session 回调**没有把它交出来**
 （它只给 `lib_ranges`（并集顺序的库区间）与 `entry_range`）。
 
-### 22.2 两种收口（下一轮选一，都不大）
+### 31.2 两种收口（下一轮选一，都不大）
 
 * **收口甲（改 session 签名，最小）**：回调多交一个参数
   —— **该入口自己的闭包单元列表**（或它的 `Vec<Range<usize>>`）。
@@ -845,7 +845,7 @@ for M in closure (拓扑序):
 
 **⇒ 选甲。**
 
-### 22.3 为什么必须走 session（而不是别的路）
+### 31.3 为什么必须走 session（而不是别的路）
 
 * **不许批编**（实测慢 **6.2×**）✗；
 * **不许按前缀复用**（前缀是 per-entry 的 ⇒ 切片 1b 实测 `passes` 4126→**5404**、
@@ -1172,136 +1172,136 @@ session 的入口趟 `prefix_src` **不含库层声明** ⇒ 入口里任何"问
 
 ---
 
-## 21. §3.C 开工前的**两条路勘明**（2026-09-30，实测）
+## 30. §3.C 开工前的**勘明**（2026-09-30）—— 含**一条被实测推翻的推断**
 
-开工单 §3.C 要求「**先勘"per-前缀 builder 池 vs judge 接收调用方 builder"
-两条路的借用与生命周期，再定刀口**」。勘完的结论是：**两条路都够不着那 791 趟**
-—— 真正的刀口在**第三个地方**。
+开工单 §3.C 要求「先勘"per-前缀 builder 池 vs judge 接收调用方 builder"两条路，
+再定刀口」。结论：**两条路都够不着那 791 趟**，且**我据此推断的第三个刀口也是错的**。
 
-### 21.1 先钉住"那 791 趟到底发生在哪条路上"
+### 30.1 那 791 趟走的是**主编译 pass**，不是增量会话（实测）
 
-`JUDGE_PREFIX runs=791`（P1-b 收口后，全课程 `build --json`）**全部**来自
-**主编译 pass**，不是增量会话：
-
-| 路径 | 入口 | `TRUSTED_PREFIX` 是否被压栈 | 本课程命中 |
+| 路径 | 入口 | `TRUSTED_PREFIX` 压栈？ | 本课程命中 |
 |---|---|---|---|
-| **主 pass**（`build` 走这条） | `compile_all_units_with_progress` → `run_pass` | ❌ **不压**（只有 `run_incremental` 压） | — |
-| 增量会话（`session.rs`，LSP 改文件走这条） | `run_incremental` → `with_trusted_prefix` | ✅ 压 | **0** |
+| **主 pass**（`build` 走这条） | `compile_all_units_with_progress` → `run_pass` | ❌ 不压 | — |
+| 增量会话（LSP 改文件） | `run_incremental` → `with_trusted_prefix` | ✅ 压 | **0** |
 
-**实测**：`SOKO_JUDGE_ENV_REUSE=1` 与 `=0` 的 `JUDGE_PREFIX runs` **完全相同
-（791 / 791）**，且 `SOKO_JUDGE_REUSE_STATS=1` 下 **`JUDGE_ENV_REUSE` 命中 0 次** ✓
-⇒ **既有的 T-K11 复用机制在 `build` 这条路上一次都没触发**（它只服务 LSP 的
-增量会话，而 `build` 是**冷编译**、没有"上一次会话"可担保）。
+`SOKO_JUDGE_ENV_REUSE=1` 与 `=0` 的 `JUDGE_PREFIX runs` **完全相同（791/791）**、
+`JUDGE_ENV_REUSE` **命中 0 次** ⇒ **既有的 T-K11 在 `build` 路上从不触发** ✓
+（它只服务 LSP 增量会话，而 `build` 是冷编译、没有"上一次会话"可担保）。
 
-⇒ **结论①**：`with_env_scope` 要产生收益，**必须服务主 pass**；照抄
-`TRUSTED_PREFIX`（"上一轮已核"）那套在冷编译里**没有可担保的东西** ✗。
+### 30.2 两条候选的死因
 
-### 21.2 两条候选路各自的借用/生命周期（勘到具体类型）
+* **① per-前缀 builder 池**：**判死** —— 与 §17 的 **B″ 同一死因**：`EnvBuilder`
+  持有 `&'a ArenaRef<'a>` 而 `run_pass` **每 pass 新建 arena** ⇒ 跨 pass 复用即
+  **悬垂/跨 arena 指针** ✗；要池化就得共用一个 arena ⇒ 等于重做 §12 的"换共享模型"。
+* **② judge 收调用方 builder**：**借用可行**（§19.5 的 A-2：`with_env_scope` 给
+  `(&Env, &mut EnvBuilder)`，`declars`/`notations` 与 `dag` 是不同字段 ✓），
+  **但位置不成立**：调用方那个 builder 只覆盖到"当前命令之前"，而 judge 要的是
+  "合成文档的前缀" ⇒ 省不掉"重新建前缀环境" ✗。
 
-* **候选 ①：per-前缀 builder 池**（缓存"前缀编到第 k 条时的 builder"）。
-  **判死** ✗ —— 与 §17 的 **B″ 同一个死因**：`EnvBuilder` 持有 `&'a ArenaRef<'a>`，
-  而 `run_pass` 每个 pass **新建一个 arena**（`run_pass` 里 `Arena::new()`）
-  ⇒ builder 的生命周期**绑死在那个 arena 上**，跨 pass / 跨模块复用就是
-  **悬垂或跨 arena 指针** ✗。要池化就得**所有前缀共用一个 arena** ⇒
-  等于把 §12 的"换共享模型"重做一遍，**面最大**。
-* **候选 ②：judge 接收调用方的 builder**（`judge_*` 签名多一个 `&mut EnvBuilder`）。
-  **借用上可行**（§19.5 的 A-2 已勘：`EnvBuilder::with_env_scope` 提供
-  `(&Env, &mut EnvBuilder)`，`declars`/`notations` 与 `dag` 是**不同字段** ⇒
-  分离借用 ✓），**但生命周期不成立**：judge 的调用点（`by.rs` / `elab.rs`）
-  **在 `run_pass` 内部**，而 `run_pass` 的 builder 是**逐命令**的局部量 ——
-  judge 每次调用**处于不同的前缀位置**（第 k 条 vs 第 k+5 条），
-  调用方手上那个 builder **只覆盖到"当前命令之前"**，而 judge 要的是
-  **"合成文档的前缀"**（= 同一批声明 + 若干合成 `_soko_judge_k`）。
-  ⇒ 传进去能省掉"重新 elaborate 前缀"的**一部分**，但**省不掉"重新建前缀环境"**
-  （合成声明的类型/值还要在前缀之上 elaborate）—— 收益**远小于** 88% 那一档 ✗。
+### 30.3 ⚠ **被实测推翻的那一步**（留档，别再走）
 
-### 21.3 于是真正的刀口是**第三处**（本轮勘明的）
+§30.2 之后我**推断**"真刀口 = ③-a：把 `run_pass` 的 arena 从'一 pass 一个'提升到
+'一模块一个'"，并据此请求授权（属 §12 的"换共享模型"级别）。
+**打开 `SOKO_JUDGE_STATS=2` 逐趟明细量了一遍之后，那个推断是错的** ✗ ——
+真刀口不是 arena，而是"**judge 每次都从源码重编整个前缀**"。
+⇒ **教训：从代码结构推出的瓶颈，必须用逐趟明细证实之后再动手** ✓
+（省掉一次"换共享模型"级别的返工）。
 
-那 791 趟的**共同形状**是：**同一份 `prefix_src` 被反复重编**。
-实测 `bytes_per_run = 54778`（平均每趟 54 KB 前缀）而 `runs = 791`
-⇒ 真正该做的是**"同一份前缀源码 → 编一次的产物"的缓存**，
-键 = `(prefix_src 内容哈希, options)`，值 = **编译该前缀得到的
-`EnvBuilder` 的"可复用快照"**。
+### 30.4 真数字（全课程 · release · 冷缓存 · 1 job）
 
-⚠ **但这正是 §17 判死 B″ 的地方**（指针同一性 / arena 生命周期）——
-`EnvBuilder` **不能跨 arena 存活**。⇒ 要么：
+| 读数 | 值 |
+|---|---|
+| `passes` / `doc_passes` | **1157** / 26 |
+| `judge_ms` | **117214 ms**（= `pass_total_ms` 285348 的 **41%**） |
+| **`JUDGE_CALL`（`by` 路径）** | **265 趟 · 115935 ms** ← **真正的大头** |
+| `JUDGE_INFER calls` | 71126 次，但只 **38530 ms**（均 541 µs，命中率 99%） |
+| `JUDGE_PREFIX runs/bytes` | 791 / 43.3 MB |
 
-* **③-a**：把 `run_pass` 的 arena **提升到"一个模块一趟"**（而不是一个 pass 一趟），
-  于是"同一模块内的多次 judge"可以共用一个 arena ⇒ 前缀产物**在同一 arena 内**
-  按内容哈希缓存 ✓。**这不动指针同一性的红线**（同一 arena 内指针仍然唯一 ✓），
-  代价是 **arena 生命周期变长 ⇒ 内存峰值升高**（要量）；
-* **③-b**：内核提供"**把 builder 的状态导出成 arena 无关的形式**"（再导入），
-  即 §18 的"内核需要提供什么"那一档 —— **面最大**，且要证明导入后
-  **指针同一性仍成立**（§17 的红线）。
+⇒ ① **`by` 那 265 趟 = `judge_ms` 的 99%**（P1-b 已把 `judge_infer` 侧吃干净）；
+② **arena 不是瓶颈**（每趟重编 38 KB 前缀）；③ 那 265 趟 **key 全不重复**
+⇒ **加缓存没用** ✗ —— 要做的是"**同一份前缀别每次从源码重编**"。
 
-### 21.4 我（agent）的判断与**请求**
+### 30.5 真刀口：把 `TRUSTED_PREFIX` 接到**主编译 pass**
 
-* **③-a 是本轮唯一"可直接动手"的刀口**：它不改内核 API、不动红线，
-  只改 `run_pass` 里 arena 的**作用域**；收益要实测（同模块内命中率多高）。
-* ⚠ **但它是"改共享模型"级别**（§12 的判词）⇒ 按 §8/§12 的纪律，
-  **动之前请值守确认**（开工单 §3.C 说"先勘…再定刀口"，勘的结果就是
-  "刀口不在那两条路上，在 ③-a"，属于**重定刀口**）。
-* 若值守要更小的切口：**③-a 的降级版** = 只在**单文件（非项目）**路径上试
-  （那里一个文件一个 pass，arena 提升的收益/风险都小），拿数字再决定是否铺到项目路径。
+主编译路径有**更强**的事实可用：**judge 合成文档的前缀，就是"当前正在编的这个
+文件的前缀"，而它刚在同一次 `run_pass` 里被逐条检查过** ✓。落地见 §31。
 
-### 21.5 ⚠⚠ **勘到真数字之后：刀口不是 arena，是"judge 重编前缀"本身**（2026-09-30）
 
-§21.1–§21.4 是从**代码结构**推的。把 `SOKO_JUDGE_STATS=2`（逐趟明细）打开、
-在**全课程 `build --json`** 上量了一遍之后，结论要**改写**：
+## 31. ✅ §3.C **已落地**（2026-09-30）：担保接到主编译 pass ⇒ `build` **2.65×**
 
-| 读数 | 值 | 说明 |
-|---|---|---|
-| `STAGE_STATS passes` | **1157** | 其中 `doc_passes` 只 **26** |
-| `STAGE_STATS judge_ms` | **117214 ms** | 占 `pass_total_ms` 285348 的 **41%** |
-| `JUDGE_CALL`（**`by` 路径**，逐趟明细） | **265 趟** | **115935 ms** ← **真正的大头** |
-| 同上 `prefix_bytes` | 10,220,746（**10.2 MB**） | p50 **38 KB** / 趟，max 74 KB |
-| `JUDGE_INFER calls` | **71126** | 但 `total_ms` 只 **38530**（38.5s） |
-| `JUDGE_PREFIX runs / bytes` | **791 / 43,329,596** | 43.3 MB = **judge 重编前缀的总字节** |
+§30.5 那条路**接通了，并且验证通过**。
 
-**三条结论**（都推翻/修正了前面的推断）：
+### 31.1 形状（两处改动，都不动 arena ✓）
 
-1. ⚠ **`by` 路径那 265 趟 = 115.9s，是 `judge_ms` 的 99%** —— 而
-   `judge_infer` 的 71126 次调用**只花 38.5s**（平均 **541 µs**，因为哈希缓存
-   命中率 99%（`hits=70335/misses=791`）✓）。
-   ⇒ **P1-b 已经把 `judge_infer` 那一侧吃干净了**；剩下的钱在
-   **`judge_pairs`（`by` 路径）那 265 趟**里，每趟 **平均 437 ms** ✗。
-2. ⚠ **"arena 生命周期"不是瓶颈**：那 265 趟里，**每趟都在 `compile_fol_with`
-   里把整个前缀从源码重编一遍**（`prefix_bytes` 平均 38 KB、`pairs` 平均 1.5 个）
-   ⇒ 花的钱是 **elaborate 前缀**，不是 arena 分配。
-3. ⚠ 而且**这 265 趟的 key 各不相同**（`uniq -c` 全是 1）⇒
-   **不是"同一个查询重复问"** ⇒ **加缓存没用** ✗；要做的是
-   **"同一份前缀，别每次都从源码重编"**。
+1. **`walk.rs`**：主编译 pass 每检查完一条命令，就把"**这条命令之前**已核的
+   命令数"压进 `TRUSTED_PREFIX`（`with_trusted_prefix(idx, &Default::default(), …)`）
+   —— 与 `run_incremental` **同一个机制** ✓；
+2. **`judge.rs::check_synthesized`**：⚠⚠ **必须把 `before` 夹到 `prefix_commands`**
+   （`before.min(prefix_commands)`）。
 
-### 21.6 于是真正的刀口（**已勘明到可动手**，且**不动 arena**）
+### 31.2 ⚠⚠ 第 2 条是**踩出来的**，不是设计出来的（本档最重要的教训）
 
-**`TRUSTED_PREFIX` 那套机制本来就是为这件事写的，只是没接到主编译路径上** ✓：
+**第一版直接传 `idx` 当 `before`** ⇒ 全课程 `--json` 里 **38 行不同**
+（`compiled` 变 `failed`，**与 P1-b 第一次失败的签名一模一样** ✗）。
 
-* `run_incremental`（**LSP 增量会话**）会 `with_trusted_prefix(before, failures, …)`
-  压栈 ⇒ judge 的 miss 路径读栈顶 ⇒ 走 `run_incremental`（**前缀不重查**）；
-* **主编译 pass**（`compile_all_units_with_progress` → `run_pass`）**从不压栈**
-  ⇒ 实测 `SOKO_JUDGE_ENV_REUSE=1` vs `=0` 的 `runs` **完全相同（791/791）**、
-  `JUDGE_ENV_REUSE` 命中 **0 次** ✗。
+**根因**：两个**坐标系**不同 ——
+* 调用方的 `idx` 是 **AST 命令序号**（**含** `import` 那条命令）；
+* judge 的 `prefix_commands` 是**它自己那份前缀文本**解析出的命令数，而那份文本走
+  `importless_source`（**去掉 `import` 行**）⇒ **有 `import` 就错位**。
 
-**但主编译路径上"能不能担保前缀"与 LSP 不同**：LSP 是"**上一次会话**已核过"，
-而主编译是**冷编**、没有上一次 —— 不过它有一个**更强的**事实可用：
+**探针量到的**（`SOKO_JUDGE_ENV_PROBE=1`，只读、零行为变化）：
+`exact=86 · overshoot=179`（`before` 恒比 `prefix_commands` **大 2**）
+⇒ 不夹的话会**多担保 2 条命令**，而那 2 条正是追加的合成声明 `_soko_judge_k`
+⇒ **判定声明根本没被检查** ✗✗。
 
-> **judge 的合成文档，其前缀就是"当前正在编的这个文件的前缀"，
-> 而那个前缀在同一次 `run_pass` 里刚刚被逐条检查过。**
+**为什么夹是安全的**：`before >= prefix_commands` 只说明"调用方已核的**至少覆盖**了
+前缀"（前缀文本是调用方文本的**前段** ⇒ 它的命令必然在 `[0, before)` 里 ✓）
+⇒ 担保上界就是 `prefix_commands` 本身；夹完只会"少担保 ⇒ 多检查" ✓。
 
-⇒ 刀口 = **在主编译 pass 里，每检查完一条命令就把"已核命令数 + 失败表"
-压进 `TRUSTED_PREFIX`**（与 `run_incremental` 同一个机制 ✓），
-于是 `by` 块里的 judge 调用能走"前缀不重查"那条路 ✓。
+### 31.3 ⚠⚠ 影子档第一版也是**错的**（第二个教训）
 
-⚠ **必须先证明的语义**（否则就是拿正确性换速度）：
-* judge 合成文档的**前缀命令**与主编译 pass 的**已核命令**是否**同序同源**？
-  （`judge_pairs_uncached` 用的是 `prefix_src` 文本，而 pass 用的是
-  `SourceUnit` 的 AST ⇒ 要核对"同一段文本编出来的命令表"是否一致）；
-* judge 会**追加合成命令**（`_soko_judge_k`）⇒ 那些**必须**仍然被检查（不许被担保）✓；
-* `by` 路径的判定**决定后续 tactic 步进** ⇒ 一旦"担保"判错，症状是步进不同
-  ⇒ **必须走影子档对拍**（与 P1-b 同一条纪律 ✓）。
+影子档第一版拿 `Debug` 比**整份 `DocumentReport`** ⇒ **265/265 全判 diff** ✗，
+而那是**假分叉**：`run_incremental` 的 `decls` **只含它这一段新查的**
+（`_soko_judge_*`），`check_document_with` 的 `decls` 含**整个前缀**的声明
+（实测 `trusted` 28,342 字符 vs `full` 224,204 字符，首个不同就在
+`_soko_judge_0` vs `Exists`）⇒ 差的是**报告的范围**，不是**判定** ✗。
 
-**下一步（可立即执行）**：先做**只读核对** —— 在 `run_pass` 里把
-`(已核命令数, 失败表)` 与 judge 拿到的 `prefix_commands` 打出来，
-在**全课程**上确认"两者相等"的比例（若大多数相等 ⇒ 这条路成立 ✓；
-若普遍不等 ⇒ 说明文本前缀与 AST 命令表不同源，此路作废，回到 §21.3 的 ③-a）。
+⇒ **修法：比"判据"不比"报告"** —— 调用方只读 `judgement_of(report, k)`
+（`judge_pairs_uncached` 结尾那句）⇒ 影子就比它 ✓。
+修后 **`shadow_same=265 · shadow_diff=0`** ✓。
+（同 `AGENTS.md` 验证设计纪律第 1 条：**断言用户可见的结果**。）
+
+### 31.4 读数（release · 冷缓存 · 1 job · 全课程 `build --json`）
+
+| 读数 | 逃生门 `SOKO_JUDGE_ENV_REUSE=0` | **默认** | Δ |
+|---|---|---|---|
+| **墙钟**（各 3 轮） | 126.44 / 126.50 s | **47.74 / 47.77 / 47.79 s** | **2.65×** |
+| `judge_ms` | 113,659 | **19,223** | **−83%** |
+| `pass_total_ms` | 276,407 | **92,058** | −67% |
+| `doc_passes` | 265 | **0** | judge 全走增量路 ✓ |
+| `by_calls` | 18,973 | **18,973** | 不变 ✓ |
+| `JUDGE_PREFIX runs/bytes` | 791 / 43.3 MB | **791 / 43.3 MB** | 不变 ✓ |
+
+⚠ **`JUDGE_PREFIX runs` 不变是对的**：那两个计数器量的是"**从源码重编前缀**"的
+趟数，而本档省掉的是"**在 judge 里再查一遍前缀**"—— 计数器没覆盖这一半
+（**如实记账**，别把"计数没动"当成"没收益"）。
+
+### 31.5 证据链（缺一不算，全部实测）
+
+1. **影子档**（判据级，两条路都跑）：**`shadow_same=265 · shadow_diff=0`** ✓；
+2. **红线**：`off` vs **默认**的 `--json`（剔 `build.tick`/`build.progress`）
+   **逐行不同 0 行**（2691/2691）✓；
+3. **反向判据**：`crates/front/tests/judge_env_vouch.rs` —— **去掉夹紧 ⇒ 判红** ✓
+   （⚠ 夹具**必须是带 `import` 的多单元项目**：单文件夹具探针是
+   `exact=3 · overshoot=0`，**复现不出那个 bug**，注入后判据照样绿 ⇒
+   **反向验证失效** ✗ —— 这是实测踩出来的）；
+4. **带开关跑完整 `gate` PASS** ✓（含 LSP 那 12.8 万次判卷与课程门禁）；
+5. **错误路径**：`grade` 在必然判错的 `by` 块上给出**同一条诊断**、exit 1 相同 ✓。
+
+### 31.6 开关（默认开，两个逃生门）
+
+* `SOKO_JUDGE_ENV_VOUCH` = `0|off`（关这一档）· `shadow`（两条路都跑、返回整份）·
+  **默认 `On`** ✓；
+* `SOKO_JUDGE_ENV_REUSE` = `0`（关更底层的"复用前缀"开关，**压过上面的默认**）✓；
+* `SOKO_JUDGE_ENV_PROBE=1`（只读取证：`exact/overshoot/clamped_bad/shadow_*`）✓。
 

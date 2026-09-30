@@ -345,7 +345,35 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 canonical_goal: unit_uses_namespaces[unit_idx],
                 src: &unit.file.src,
             };
-            self.command(&c, command);
+            // **§21.6 只读取证**（`SOKO_JUDGE_ENV_PROBE=1`，零行为变化）：
+            // 主编译 pass 每检查完一条命令，就把"**这条命令之前**已核的命令数"
+            // 压进 `TRUSTED_PREFIX`，好让 judge 的 `check_synthesized` 能量到
+            // "**若这条路接通，能不能担保住**"。
+            //
+            // ⚠ **为什么量这个**：judge 拿到的 `prefix_commands` 是它**合成文档里
+            // 属于前缀的命令数**，而 pass 手上的是**自己这一趟的命令序号 `idx`**
+            // —— 两者**是不是同一个数**正是设计 §21.6 的第 ① 条前提
+            //（"judge 的文本前缀与 pass 已核的命令同序同源"）。
+            // 相等 ⇒ 路成立 ✓；普遍不等 ⇒ 此路作废 ✗（不许凭推断动手）。
+            //
+            // ⚠ **压的是 `idx`（这条命令**之前**的数）而不是 `idx + 1`**：
+            // judge 合成文档里前缀命令 = `[0, prefix_commands)`，而 `self.command`
+            // 正在检查的是第 `idx` 条 ⇒ 已核的是 `[0, idx)` ✓。
+            // **接通（§21.6 的刀口）**：`SOKO_JUDGE_ENV_VOUCH=1` ⇒ 主编译 pass
+            // 真的压栈担保（judge 的前缀因此不再重查）。
+            // ⚠ 与 `probe` 分开两个开关：**取证**（只读、零行为）与**生效**（改行为）
+            // 必须能各自单独开，否则"量到的"与"生效的"分不清 ✗。
+            // ⚠ **影子档也要压栈**（`vouch_mode() != Off`）：它要"两条路都跑"，
+            // 而"被担保那条路"必须先有栈才走得通 ✓。
+            let vouch =
+                crate::judge::env_probe::vouch_mode() != crate::judge::env_probe::VouchMode::Off;
+            if vouch || crate::judge::env_probe::on() {
+                crate::judge::with_trusted_prefix(idx, &Default::default(), || {
+                    self.command(&c, command);
+                });
+            } else {
+                self.command(&c, command);
+            }
             if let Some(start) = decl_start {
                 decl_profile::emit(
                     unit.name,
