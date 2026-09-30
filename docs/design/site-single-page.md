@@ -86,8 +86,8 @@ site/
 
 站点锚在 tag 上，所以**发版本身就会让它过期**。两步都已在流水线里：
 
-1. `pages.yml` 挂了 `release: types: [published]` ⇒ 发布后自动重新部署，
-   部署时 `gen-site-data.py` 重算 `site/data/site.json`；
+1. ⚠ `pages.yml` 虽挂了 `release: types: [published]`，但**它对自动发版不生效**（`pages.yml:31-41`
+   自述 + 2026-09-21 实测）⇒ 真正机制是**提交重算后的 `site/data/site.json`**（那一推才触发部署）；
 2. 工作树里那份 `site/data/site.json` 仍指向旧版本，直到有人跑一次
    `python3 scripts/gen-site-data.py`（收尾义务里已列为发布后一步）。
    **`check-site.py` 的 `data` 项会因此判红**——这是有意的：本地绿必须意味着

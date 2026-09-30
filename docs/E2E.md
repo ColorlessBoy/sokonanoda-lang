@@ -63,7 +63,7 @@ scripts/vscode-e2e.sh --grep "declarations panel" --profile debug --no-build
 | **真宿主（本文）** | `scripts/vscode-e2e.sh` | 扩展在**真 VS Code** 里激活 → 起**真 LSP** → 诊断/inlay/hover/codeLens/重启/Infoview/doctor/项目树**端到端**成立；`.sokonanoda` 语言 id、项目树的行来自真 `soko/project` 答案 |
 | 手工 F5 | 开发者 | 肉眼观感、主题、Marketplace 安装态 |
 
-用例清单在 `editor/vscode/src/test/extension.test.js`（0.64.1 起 **24 条**；0.60.0 起 15 条；
+用例清单在 `editor/vscode/src/test/extension.test.js`（**现 36 条** —— 现测：`grep -c "^  test(" editor/vscode/src/test/extension.test.js`；0.64.1 时 24 条、0.60.0 起 15 条；
 0.58.0 起 14 条）；新增用户可见行为时**同一轮**加一条真宿主断言，并在 `docs/TESTING.md`
 的集成测试小节登记。
 
@@ -76,8 +76,8 @@ T-A60 的冷/热对比用例要有**真冷**的基准，否则"冷开"会命中�
 `docs/e2e/logs/…`——`pass/fail` 之外还要能看趋势（计划 T-A60 的要求）。当前：
 
 ```
-PERF e2e cache: cold=436ms warm=58ms entries=1     # 冷/热开（T-A60-1）
-PERF e2e fanout: entry diagnostics publishes=1     # 改依赖只发一份（T-A60-3）
+PERF e2e cache: cold=3574ms warm=52ms                    # 冷/热开（T-A60-1）
+PERF e2e fanout: entry diagnostics signature=152 字节 · 稳定 ✓   # 改依赖只发一份（T-A60-3）
 ```
 
 ## 3. 台账字段（`docs/e2e/ledger.jsonl`）
@@ -196,7 +196,7 @@ CI 有**两个** e2e job（`.github/workflows/ci.yml`），合计 3 条腿：
 * **回提交仓库（只 main）**：收尾 job `e2e-ledger` 下载全部 artifact →
   `scripts/e2e-merge.py` 合并（幂等：重复条目跳过、日志按记录名回填、台账按日期排序）→
   一条提交推回 main，标题形如
-  `perf(e2e): 台账 <sha> —— VS Code 1.138.0 14/14 · VS Code 1.106.0 14/14`。
+  `perf(e2e): 台账 <sha> —— VS Code 1.138.0 36/36 · VS Code 1.106.0 36/36`。
   一次提交而不是每条腿各推一次（多腿并发改同一个 `ledger.jsonl` 会互相覆盖）；
   job 有 `concurrency: e2e-ledger`（同一时刻只有一个写台账的 job）与 `fetch-depth: 0`
   （浅克隆 rebase 会缺 parent 对象）；push 失败先 rebase 再重试（最多 3 次），

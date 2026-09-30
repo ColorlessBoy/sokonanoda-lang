@@ -339,7 +339,7 @@ installs a *browser* half out-of-tree (the publishing tutorial's bundle is host-
 **Recommended shape for this repo:** ship `.agents/skills/sokonanoda-teacher/SKILL.md` (plus `references/`)
 with routing cues in `description` — that alone gives the model auto-discovery *and* a
 `/sokonanoda-teacher` command in the GUI, committed to git, with no `$DSH_HOME` edit. Use
-`disable-model-invocation: true` + `user-invocable: true` for a human-only command. The three existing
+`disable-model-invocation: true` + `user-invocable: true` for a human-only command. The five existing
 `skills/*/SKILL.md` files are already DSH-valid (only `name` + `description`), but the root-level `skills/`
 dir is **not** scanned — either move/symlink it to `.agents/skills/` or document the `customSkillDirs` patch
 as an opt-in.
