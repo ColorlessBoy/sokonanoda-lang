@@ -121,7 +121,7 @@ compare() {
   if [ "$before" != "$after" ] || [ "$code_before" != "$code_after" ]; then
     DIFFS=$((DIFFS + 1))
     if [ "${#FIRST_DIFFS[@]}" -lt 5 ]; then
-      FIRST_DIFFS+=("$label $file（exit $code_before vs $code_after）")
+      FIRST_DIFFS+=("$label ${file}（exit ${code_before} vs ${code_after}）")
     fi
   fi
 }
