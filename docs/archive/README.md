@@ -166,6 +166,8 @@
 
 - `docs/archive/status-2026-09/README.md` —— STATUS 第 476 轮及更早的轮次（从 `docs/STATUS-ARCHIVE.md` 下沉 ✓，归档≠销毁 ✓）。
 - `docs/archive/status-2026-09/bulk-221-321.md` —— STATUS 第 221–321 轮的成批旧轮次（二次下沉 ✓）。
+- `docs/archive/status-removed-rounds-502-504-2026-09-30.md.gz` —— STATUS 移出的**两段被取代的快照** +
+  **第 502/503/504 轮**（2026-09-30 文档收敛；原文逐字未动，`gunzip -c … | less` ✓）。
 
 ## 销毁记录：计划/交接类收敛（2026-09-29，**删除、未归档**）
 
