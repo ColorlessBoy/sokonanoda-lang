@@ -66,23 +66,26 @@ theorem diag_mem_iff (α : Type) (f : α → Set α) (x : α) :
 --       `f (g D) (g D) = ¬ (f (g D) (g D))`——两个方向互相推出，撞出 False。
 -- （画布里的 demo_diag 就是这条对角线矛盾；解答是独立文件（不 import 画布），
 --   所以这里就地写开（练习 6 同理）。）
+-- 对角线引理（从 `cantor` 里抽出来：**项风格**的外层证明里没有 `have`，
+-- 而 `by` 块里那一步在本语言今天的判定缝上过不去 —— 见 T-N13 as-built）。
+theorem diag_helper (α : Type) (f : α → Set α) (D : Set α) (g : (Set α) → α) :
+    D = (fun (y : α) => ¬ (f y y)) → f (g D) = D → False := by
+  intro hDL hgD
+  have hL : f (g D) = (fun (y : α) => ¬ (f y y)) :=
+    Eq.trans.{1} (Set α) (f (g D)) D (fun (y : α) => ¬ (f y y)) hgD hDL
+  have e : f (g D) (g D) = ¬ (f (g D) (g D)) :=
+    congrArg.{1} (fun (X : Set α) => X (g D)) hL
+  have np : ¬ (f (g D) (g D)) := by
+    intro p
+    exact (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f (g D) (g D))
+      (¬ (f (g D) (g D))) e p) p
+  exact np (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f (g D) (g D)))
+    (f (g D) (g D)) (Eq.symm.{1} Prop (f (g D) (g D)) (¬ (f (g D) (g D))) e) np)
+
 theorem cantor (α : Type) :
-    ¬ ((Set.univ α) ≈ (Set.univ (Set α))) := by
-  have diag : ∀ (f : α → Set α) (D : Set α) (g : (Set α) → α),
-      D = (fun (y : α) => ¬ (f y y)) → f (g D) = D → False := by
-    intro f D g hDL hgD
-    have hL : f (g D) = (fun (y : α) => ¬ (f y y)) :=
-      Eq.trans.{1} (Set α) (f (g D)) D (fun (y : α) => ¬ (f y y)) hgD hDL
-    have e : f (g D) (g D) = ¬ (f (g D) (g D)) :=
-      congrArg.{1} (fun (X : Set α) => X (g D)) hL
-    have np : ¬ (f (g D) (g D)) := by
-      intro p
-      exact (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f (g D) (g D))
-        (¬ (f (g D) (g D))) e p) p
-    exact np (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f (g D) (g D)))
-      (f (g D) (g D)) (Eq.symm.{1} Prop (f (g D) (g D)) (¬ (f (g D) (g D))) e) np)
-  intro h
-  exact Exists.elim (α → Set α)
+    ¬ ((Set.univ α) ≈ (Set.univ (Set α))) :=
+  fun (h : (Set.univ α) ≈ (Set.univ (Set α))) =>
+    Exists.elim (α → Set α)
     (fun (f : α → Set α) =>
       Set.MapsTo α (Set α) f (Set.univ α) (Set.univ (Set α)) ∧
       (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (Set.univ (Set α)) (Set.univ α) ∧
@@ -109,7 +112,7 @@ theorem cantor (α : Type) :
             fun (hg : Set.MapsTo (Set α) α g (Set.univ (Set α)) (Set.univ α) ∧
                       (Set.LeftInvOn α (Set α) g f (Set.univ α) ∧
                        Set.RightInvOn α (Set α) f g (Set.univ (Set α)))) =>
-              diag f (fun (y : α) => ¬ (f y y)) g
+              diag_helper α f (fun (y : α) => ¬ (f y y)) g
                 (Eq.refl.{1} (Set α) (fun (y : α) => ¬ (f y y)))
                 (And.right (Set.LeftInvOn α (Set α) g f (Set.univ α))
                   (Set.RightInvOn α (Set α) f g (Set.univ (Set α)))

@@ -130,34 +130,30 @@ theorem demo_rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Re
   intro d
   constructor
   intro h
-  have h1 : ∃ (b : B), r a b ∧ (∃ (c : C), s b c ∧ t c d) := by
-    apply Exists.elim C (fun (c : C) => ((r • s) a c) ∧ (t c d))
+  have h1 : ∃ (b : B), r a b ∧ (∃ (c : C), s b c ∧ t c d) :=
+    Exists.elim C (fun (c : C) => ((r • s) a c) ∧ (t c d))
       (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) h
-    intro c hc
-    have hb : ∃ (b : B), r a b ∧ s b c :=
-      And.left hc
-    apply Exists.elim B (fun (b : B) => r a b ∧ s b c)
-      (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) hb
-    intro b hb2
-    exact Exists.intro b (And.intro (And.left hb2) (Exists.intro c (And.intro (And.right hb2) (And.right hc))))
+      (fun (c : C) => fun (hc : ((r • s) a c) ∧ (t c d)) =>
+        Exists.elim B (fun (b : B) => r a b ∧ s b c)
+          (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) (And.left hc)
+          (fun (b : B) => fun (hb2 : r a b ∧ s b c) =>
+            Exists.intro b (And.intro (And.left hb2) (Exists.intro c (And.intro (And.right hb2) (And.right hc))))))
   exact h1
   intro h
-  have h2 : ∃ (c : C), (∃ (b : B), r a b ∧ s b c) ∧ t c d := by
-    apply Exists.elim B (fun (b : B) => r a b ∧ (∃ (c : C), s b c ∧ t c d))
+  have h2 : ∃ (c : C), (∃ (b : B), r a b ∧ s b c) ∧ t c d :=
+    Exists.elim B (fun (b : B) => r a b ∧ (∃ (c : C), s b c ∧ t c d))
       (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) h
-    intro b hb
-    have hc : ∃ (c : C), s b c ∧ t c d :=
-      And.right hb
-    apply Exists.elim C (fun (c : C) => s b c ∧ t c d)
-      (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) hc
-    intro c hc2
-    exact Exists.intro c
-      (And.intro (∃ (b2 : B), r a b2 ∧ s b2 c) (t c d)
-        (Exists.intro b
-          (And.intro (r a b) (s b c)
-            (And.left hb)
-            (And.left hc2)))
-        (And.right hc2))
+      (fun (b : B) => fun (hb : r a b ∧ (∃ (c : C), s b c ∧ t c d)) =>
+        Exists.elim C (fun (c : C) => s b c ∧ t c d)
+          (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) (And.right hb)
+          (fun (c : C) => fun (hc2 : s b c ∧ t c d) =>
+            Exists.intro c
+              (And.intro (∃ (b2 : B), r a b2 ∧ s b2 c) (t c d)
+                (Exists.intro b
+                  (And.intro (r a b) (s b c)
+                    (And.left hb)
+                    (And.left hc2)))
+                (And.right hc2))))
   exact h2
 
 -- 演示 2（已写好）：**单射假设怎么"读"**——`Function.Injective α β f` 展开后就是

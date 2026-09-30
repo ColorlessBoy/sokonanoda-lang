@@ -45,12 +45,12 @@ theorem no_univ_strictly_larger (α : Type) :
 -- 幂集隶属用 Set.mem_powerset_iff 换成包含，再把 A ⊆ univ 交出去
 -- （A ⊆ univ 就是「每个 x ∈ A 都有 True.intro」）。
 theorem mem_powerset_univ (α : Type) (A : Set α) :
-    A ∈ 𝒫 (Set.univ α) := by
-  have hsub : A ⊆ Set.univ α := by
+    A ∈ 𝒫 (Set.univ) := by
+  have hsub : A ⊆ Set.univ := by
     intro x
     intro hx
     exact Set.mem_univ α x
-  exact (Iff.mpr (Set.mem_powerset_iff α (Set.univ α) A)) hsub
+  exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) hsub
 
 -- ── 练习 3（R 类：与 ZF 的对照 / 类型阶梯）──────────────────────────────────
 -- Set α 的全集是上一层类型 Set (Set α) 的**元素**；它自己的全集又在更上一层。
@@ -64,7 +64,7 @@ theorem univ_mem_univ_of_sets (α : Type) :
 -- 前半是逐元素的 True.intro；后半 → 方向走 Set.ext（逐元素 (A x) ↔ True），
 -- ← 方向把 x ∈ univ 沿 Eq.symm 搬到 A 上。
 theorem univ_top_iff (α : Type) (A : Set α) :
-    (A ⊆ Set.univ α) ∧ ((Set.univ α ⊆ A) ↔ (A = Set.univ α)) := by
+    (A ⊆ Set.univ) ∧ ((Set.univ ⊆ A) ↔ (A = Set.univ)) := by
   constructor
   intro x
   intro hx
@@ -82,7 +82,7 @@ theorem univ_top_iff (α : Type) (A : Set α) :
   intro x
   intro hu
   exact Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X)
-    (Set.univ α) A (Eq.symm.{1} (Set α) A (Set.univ α) h) hu
+    (Set.univ α) A (Eq.symm.{1} (Set α) A (Set.univ α) h) hu  -- soko:notation-ok: G-21 边界：`Eq.subst` 的实参位（显式实参写在隐式位上）拿不到期望类型 ⇒ 零元常量必须点名写全
 
 -- ── 练习 5（X 类：散文 → 形式）─────────────────────────────────────────────
 -- 𝒫(univ) 就是上一层类型的全集：逐元素看，左边是「A ⊆ univ」（由 A 的每个
@@ -90,11 +90,11 @@ theorem univ_top_iff (α : Type) (A : Set α) :
 -- `Set.ext` 要写全类型参数（`apply Set.ext (Set α)`）：不写时元素类型不是签名里
 -- 的裸 α，会造出坏子目标。
 theorem powerset_univ_eq_univ_of_sets (α : Type) :
-    𝒫 (Set.univ α) = Set.univ (Set α) := by
+    𝒫 (Set.univ α) = Set.univ := by  -- soko:notation-ok: `𝒫` 的操作数是零元隐式常量且无期望类型 ⇒ 解不出前导参数（E19/E20 元变量领地）
   apply Set.ext (Set α)
   intro A
   constructor
   intro h
   exact Set.mem_univ (Set α) A
   intro h
-  exact (Iff.mpr (Set.mem_powerset_iff α (Set.univ α) A)) (fun (x : α) => fun (hx : A x) => Set.mem_univ α x)
+  exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) (fun (x : α) => fun (hx : A x) => Set.mem_univ x)

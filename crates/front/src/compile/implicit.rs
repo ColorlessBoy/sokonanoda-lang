@@ -178,9 +178,18 @@ pub(crate) fn solve_prefix(
             // `def_eq mismatch expected: Sort(1) | actual: Sort(2)` ✗（实测：
             // `Set.univ ⊆ A` 与 `Set.subset Set.univ A` 两条都当场判红）。
             // 判据与 R5 的意图一致：展开只在**两边同形**时才有意义 ✓。
+            // ⚠ **剥到底**再判：`α → β → Prop`（lambda 的类型）的**第一层陪域**是
+            // `β → Prop`（还是 Pi），只看一层会把合法的形状挡掉 ✗（实测：unit12 的
+            // `(fun …) • (fun …)` —— 两个操作数都是 lambda，类型是 `α → β → Prop`）。
             let actual_is_unfolded_set = match crate::spine::peel_pi(actual) {
                 None => true,
-                Some(pi) => matches!(pi.body, Expr::Sort { .. }),
+                Some(_) => {
+                    let mut cur = actual.clone();
+                    while let Some(pi) = crate::spine::peel_pi(&cur) {
+                        cur = pi.body;
+                    }
+                    matches!(cur, Expr::Sort { .. })
+                }
             };
             if v.is_none() && actual_is_unfolded_set {
                 let unfolded_domain = unfold(&domain);

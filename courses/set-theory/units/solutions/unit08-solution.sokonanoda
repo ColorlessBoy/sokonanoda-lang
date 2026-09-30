@@ -63,11 +63,13 @@ theorem preimage_union (α β : Type) (f : α → β) (B C : Set β) :
 
 theorem preimage_compl (α β : Type) (f : α → β) (B : Set β) :
     (f ⁻¹' (Bᶜ)) = ((f ⁻¹' B)ᶜ) := by
-  exact Set.ext α (f ⁻¹' (Bᶜ)) ((f ⁻¹' B)ᶜ)
-    (fun (x : α) =>
-      Iff.intro (fun (h : x ∈ (f ⁻¹' (Bᶜ))) =>
-          fun (hb : x ∈ (f ⁻¹' B)) => h hb) (fun (h : ¬ (x ∈ (f ⁻¹' B))) =>
-          fun (hb : (f x) ∈ B) => h hb))
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 3（L 类）：原像保交
@@ -76,17 +78,13 @@ theorem preimage_compl (α β : Type) (f : α → β) (B : Set β) :
 theorem preimage_inter (α β : Type) (f : α → β) (B C : Set β) :
     Eq.{1} (Set α) (f ⁻¹' (B ∩ C))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       ((f ⁻¹' B) ∩ (f ⁻¹' C)) := by
-  exact Set.ext α (f ⁻¹' (B ∩ C))
-    ((f ⁻¹' B) ∩ (f ⁻¹' C))
-    (fun (x : α) =>
-      Iff.intro (x ∈ (f ⁻¹' (B ∩ C)))
-        ((x ∈ (f ⁻¹' B)) ∧ (x ∈ (f ⁻¹' C)))
-        (fun (h : x ∈ (f ⁻¹' (B ∩ C))) =>
-          And.intro (And.left h)
-            (And.right h))
-        (fun (h : (x ∈ (f ⁻¹' B)) ∧ (x ∈ (f ⁻¹' C))) =>
-          And.intro (And.left h)
-            (And.right h)))
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 4（T 类）：像保并
@@ -248,15 +246,15 @@ theorem image_empty (A : Set Two) :
           False.elim h0))
 
 theorem image_inter_singletons_empty :
-    Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：`Set.image` 的**操作数**是零元记法 `∅`（没有类型来源）⇒ 这一条写点名
       (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
-      (Set.empty Two) := by  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-  exact Eq.trans.{1} (Set Two)
-    (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-    (Set.image Two Two f1 (Set.empty Two))
-    (Set.empty Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-    (congrArg.{1} (fun (X : Set Two) => Set.image Two Two f1 X) inter_singletons_empty)
-    (image_empty (Set.empty Two))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (Set.empty Two) :=  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+  Eq.trans.{1} (Set Two)
+    (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+    (Set.image Two Two f1 (Set.empty Two))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+    (Set.empty Two)  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+    (congrArg.{1} (fun (X : Set Two) => f1 '' X) inter_singletons_empty)
+    (image_empty (Set.empty Two))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
 
 -- aa 落在 `f1 '' {aa} ∩ f1 '' {bb}` 里（两个单点集都被压到 {aa}）。
 theorem aa_mem_inter_image :
@@ -277,9 +275,12 @@ theorem not_image_inter_eq_image_inter :
     ¬ (Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
       (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-        (Set.image Two Two f1 (Set.singleton Two bb)))) := by
-  intro h
-  exact Set.notMem_empty Two aa
+        (Set.image Two Two f1 (Set.singleton Two bb)))) :=
+  fun (h : Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+      (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+      (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+        (Set.image Two Two f1 (Set.singleton Two bb)))) =>  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+  Set.notMem_empty Two aa
     (Eq.subst.{1} (Set Two) (fun (X : Set Two) => Set.mem Two aa X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
         (Set.image Two Two f1 (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
@@ -301,15 +302,15 @@ theorem not_image_inter_eq_image_inter :
 -- ─────────────────────────────────────────────────────────────
 
 theorem image_preimage_subset (α β : Type) (f : α → β) (C : Set β) :
-    (f '' (f ⁻¹' C)) ⊆ C := by
-  intro y h
-  exact Exists.elim α
-    (fun (x : α) => (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
-    (y ∈ C) h
-    (fun (x : α) => fun (hx : (x ∈ (f ⁻¹' C)) ∧ ((f x) = y)) =>
-      Eq.subst.{1} β (fun (z : β) => z ∈ C) (f x) y
-        (And.right hx)
-        (And.left hx))
+    (f '' (f ⁻¹' C)) ⊆ C :=
+  fun (y : β) => fun (h : y ∈ (f '' (f ⁻¹' C))) =>
+    Exists.elim α
+      (fun (x : α) => (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
+      (y ∈ C) h
+      (fun (x : α) => fun (hx : (x ∈ (f ⁻¹' C)) ∧ ((f x) = y)) =>
+        Eq.subst.{1} β (fun (z : β) => z ∈ C) (f x) y
+          (And.right hx)
+          (And.left hx))
 
 -- 练习 7（D 类，必破）：反例的零件。
 -- def image_preimage 与画布 8.4 同名同定义（被 f1 取到的点 = 值域）；
