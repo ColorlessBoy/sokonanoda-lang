@@ -39,8 +39,8 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
    **按命令下标**归属到文件（`CompileOutput.error_cmds`）——绝不能按 span，不同
    文件的偏移会互相命中；**无 `import` 的文件必须逐字节走原单文件路径**
    （A1，`crates/cli/tests/imports.rs` 守住）；内核一行未改（一个 arena 顺序
-   跑完拓扑序的 unit）。设计：`docs/design/imports-and-projects.md`；架构
-   §4.5；测试地图 `docs/TESTING.md` 的三行「多文件 …」。
+   跑完拓扑序的 unit）。契约见 `docs/protocol.md`；测试地图 `docs/TESTING.md`
+   的三行「多文件 …」。
 
 ## 2. 工作流（TDD 三层 + 文档先行）
 
@@ -123,7 +123,7 @@ python3 scripts/gap.py check                # 台账契约：缺口复现必须�
   改了 `editor/vscode/` 就跑它——被 ignore 的 `bin/` 会让测试静默测旧二进制）；
 - 协议防漂移：改事件/输出格式必须同步 `docs/protocol.md`
   （`protocol.rs` / `skill.rs` conformance 测试会抓漂移）；
-- **真相层不得绕过**（`docs/design/agent-query-channel.md`）：任何"问内核"的
+- **真相层不得绕过**（查询契约见 `docs/protocol.md`）：任何"问内核"的
   新能力都加在 `crates/front/src/query/`（`QueryDoc`），LSP / CLI `query` /
   MCP 只做**映射与传输**；禁止在适配器里重算目标/洞的位置（那会产生第二份
   真相，违反 §2.4）。门槛测试：`crates/cli/tests/query.rs` 的
@@ -159,17 +159,15 @@ provenance。不要用 `releases/latest`——下载 URL 按仓库版本锁定�
 明确要避免的故障。**发版已全自动**：bump 两处版本（`Cargo.toml` +
 `editor/vscode/package.json`）→ push main → `ci.yml` auto-tag 自动打 tag 并
 dispatch `release.yml`（手动推 tag 仅应急，见 `docs/RELEASE.md`）。
-完整入门设计见 `docs/design/onboarding.md`。
+完整入门设计见 `docs/design/deepseek-harness.md`。
 
 ## 5. VS Code 扩展开发规范
 
 `editor/vscode/` 的改动有独立开发规范：`docs/vscode-dev-guide.md`。
 版本纪律（feature→minor / fix→patch）、测试三层（静态契约→集成→手动）、
 常见坑（node_modules 打包/didOpen 通知/LSP 帧格式/代理）全在里面。
-近期呈现/缓存设计（改编辑器/Infoview 前先读）：`docs/design/goal-rendering.md`
-（goal 同源 + Infoview 落右侧辅助侧栏）、`docs/design/highlighting.md`
-（高亮单一起源 + Infoview 自研固定色板）、`docs/design/compile-cache.md`
-（共享缓存）；webview 行为测试在 `editor/vscode/test-webview.js`
+近期缓存设计（改编辑器/Infoview 前先读）：`docs/design/project-artifacts.md`
+（编译产物落盘 + 跨趟共享）；webview 行为测试在 `editor/vscode/test-webview.js`
 （`npm run test:unit`）。**加一个用户可见命令 = 同一轮改五处**：`package.json`
 （`contributes.commands` + 键位/菜单）、`extension.js`（注册 + 实现，子进程要有
 超时 kill）、`crates/cli/tests/extension.rs`（静态契约：声明↔注册一致、键位指向
@@ -194,7 +192,7 @@ cargo run -q -p sokonanoda-lsp                        # 编辑器反馈通道
   设计 `docs/design/project-artifacts.md`，判据 `crates/cli/tests/artifacts.rs`）；
   `SOKONANODA_CACHE_DIR` 改缓存根、
   `SOKONANODA_NO_CACHE=1` 关闭；测试用临时 cache dir 隔离。设计
-  `docs/design/compile-cache.md`。
+  `docs/design/project-artifacts.md`。
 
 内核/前端机制细节（arena 生命周期、prelude 与原生 Nat 技巧、conv 缓存、
 EnvBuilder 语义）见 `docs/architecture.md`——不要凭直觉猜内核行为。

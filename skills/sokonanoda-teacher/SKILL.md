@@ -36,8 +36,8 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 
 ## 1. 环境搭建（agent 接手时先确认）
 
-一条命令（幂等；**零 cargo、不需要 VS Code 扩展**；设计见
-`docs/design/onboarding.md`；harness 差异见 `docs/design/deepseek-harness.md`）。
+一条命令（幂等；**零 cargo、不需要 VS Code 扩展**；harness 差异见
+`docs/design/deepseek-harness.md`）。
 
 **在仓库根目录用 `scripts/soko`**（harness 中立启动器：解析版本匹配的仓库构建 →
 缓存 → VS Code 扩展自带 → 版本锁定下载；缓存过期会拒绝运行）：
@@ -137,7 +137,7 @@ $SOKO repl
   def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A
   ```
 
-  **语言内建、零声明可用**（0.61.0，设计 `docs/design/course-lean-style.md` L2.2/L2.3/L2.4b）：
+  **语言内建、零声明可用**（0.61.0；内建记法表见 `docs/design/notation-subset.md`）：
   `∧ ∨ ↔ ¬`（`And`/`Or`/`Iff`/`Not`）、**`=`（`Eq`）、`≠`（`Ne`）**、`→`（函数空间，
   词法别名）。`=`/`≠` 的**宇宙层级由操作数类型自动解出**：`A B : Prop` ⇒ `Eq.{0}`，
   `A B : Set α` ⇒ `Eq.{1}`——**不必再写 `Eq.{1} (Set α) A B`**（那仍是合法写法）。
@@ -150,8 +150,7 @@ $SOKO repl
   **逐项相同**；④ 展开时**自动补前导类型参数**（`Set.mem` 的 `α` 不用写），补不出来报
   `elab-notation-argument-unsolved`（例如 `#check ∅` 这种没有期望类型的裸用）；
   ⑤ **点名形式永久可用**，两种写法判卷一致——省 `α` 的点名写法（`Set.mem a A`）
-  **今天被内核拒绝**（隐式实参落地后才会变成合法，见
-  `docs/design/implicit-arguments.md`）；⑥ 未声明就用报 `notation-unknown-symbol`
+  **今天被内核拒绝**（隐式实参落地后才会变成合法）；⑥ 未声明就用报 `notation-unknown-symbol`
   （hint 给"先声明"与"点名写法"两条出路）；⑦ 第三刀（0.60.x）已落：`prefix`/`postfix`、
   `binder_notation`（`∃ (x : α), p`）、`scoped`、集合字面量 `{a}`、记法重载。
 - **`by` 块的 tactic 全集（0.61.0）**：`intro a b c`（一次剥多层；**按你写的名字
@@ -179,7 +178,7 @@ $SOKO repl
   参数表**（`axiom f (a : A) : Sort 1`，0.59.0 起；codomain 要落 `Sort n`）；
   声明名不许以 `.` 结尾（`def f.{u}` 是 parse 错误）。
 - 值位 `let`：`let x : T := v; body`；缺注解 `let x := v` 只在有期望类型或能从
-  实参推断时才可省略（设计 `docs/design/elaborator-let-match.md`）。
+  实参推断时才可省略。
 - `match`（值位）：`match e with | p => body …`；模式支持 `_` 通配、绑定名、
   **嵌套构造子**（`some (succ k)`）、**Nat 字面量**（`| 0 =>`，脱糖 `succ^k zero`）、
   **`Bool` 守卫**（`| succ k if p =>`）；arm **有序、首个匹配者胜**（同一构造子
@@ -273,7 +272,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   实参——`And.intro h1 h2`、`And.left h`、`Or.inl h`、`Iff.mp h`、`False.elim h`、
   `absurd ha hna`、`Exists.intro w hw`、`Exists.elim h f`（旧的全参数写法仍可用）。
   逐符号对照与优先级见 `course/README.md` 与 `docs/design/notation-subset.md`；
-  输入法（`\and` 之类缩写）见编辑器「notation 缩写」与 `docs/design/notation-input.md`。
+  输入法（`\and` 之类缩写）见编辑器「notation 缩写」与 `docs/design/notation-subset.md`。
   **F12 在记法符号上跳声明它的库、在 prelude 名字（`Or`/`And`/`False`…）上跳前奏源文件**——向学习者解释"这条规则从哪来"时直接让他按 F12 ✓。
   **边界**（保留点名 + 行内 `-- soko:notation-ok`）：等式族证明项
   （`Eq.symm`/`Eq.trans`/`congrArg`）的宇宙层级、`Set.univ α`、`intro` 派生的
@@ -317,7 +316,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   （`zero`/`succ`；省略 `rec` 时自动派生 recursor）与
   `axiom Eq : Nat -> Nat -> Prop`、`Eq.refl`、`Eq.subst`。函数实参洞在
   Bare 与 Full 下都生效（Bare 用文件自定义的 Eq 模板）。
-- **L1 prelude（0.59.0，设计 `docs/design/prelude-l1-proposal.md`）**：Full 模式下
+- **L1 prelude（0.59.0）**：Full 模式下
   prelude 自带 Lean core 的逻辑与等式骨架，**不要再让学习者手写**：
   * 真伪 `True`/`True.intro`/`False`/`False.rec`/`False.elim`；
   * 联结词 `And`/`And.intro`/`And.left`/`And.right`/`And.elim`、
@@ -401,7 +400,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   `Set.subset α A B`，面板显示 `A ⊆ B`，`∈`/`⊆`/`∧`/`↔` 都着成关键字色。
   ⇒ 你念目标时**照面板念**（学习者写的什么样，面板就是什么样）；
   折不了的形态（`𝒫`/`ᶜ`/`∅`/`∃` 这类一元或 binder 记法）仍是点名形式，
-  那是**已知边界**不是 bug（`docs/design/notation-aware-printing.md` §3.3e）；
+  那是**已知边界**不是 bug；
   面板
   **始终可见**（不再有 `when`），加载即骨架，并有状态行（`编译中…` /
   `已就绪 · N 个声明` / `等待 .sokonanoda 文件`）；声明列表显示每条声明的类型
@@ -409,12 +408,12 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   `目标 ⊢ <目标>`（多目标时 `目标 i/n`）——它读的是与目标面板**同一批 runs**，
   所以记法符号（`⊆`/`∈`/`∧`）同样着关键字色，你念目标时两处一模一样；
 - Infoview 用**自研固定调色板**（按 dark/light/高对比），**不跟随**编辑器主题
-  token 色——VS Code 没有稳定 API 暴露主题 token 色（平台限制，见
-  `docs/design/highlighting.md` §3b）；分类与 hover 同源（`front::semantic`），
+  token 色——VS Code 没有稳定 API 暴露主题 token 色（平台限制）；
+  分类与 hover 同源（`front::semantic`），
   颜色近似但非逐像素相同，这是设计如此；
 - `sokonanoda build [<file>|<dir>…]` 预热共享编译缓存，之后打开/判卷大文件更快
   （`SOKONANODA_CACHE_DIR` 改缓存根、`SOKONANODA_NO_CACHE=1` 关闭；内核仍是
-  唯一判定者，设计 `docs/design/compile-cache.md`）。**编辑器里等价的两个命令**
+  唯一判定者，设计 `docs/design/project-artifacts.md`）。**编辑器里等价的两个命令**
   （0.60.0 起）：`Sokonanoda: Build (编译项目，预热缓存)`（`alt+b`）与
   `Sokonanoda: Rebuild (清空编译缓存后重编译)`（`alt+shift+b`，先 `--clean` 再编；
   `--clean` **两处都清**：全局缓存 + 模块根 `.sokonanoda/`）——学习者说"面板像是

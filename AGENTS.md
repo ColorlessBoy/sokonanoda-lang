@@ -19,8 +19,8 @@ harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deeps
 
 **改站点之前先读 `docs/design/site-single-page.md`**（2026-09-21 简化：官网是
 **一个页面**，只讲 是什么 / 怎么安装 / 核心特点 / 未来的计划）。它取代了
-2026-09-20 的 28 页重构（**已归档** ⇒ `docs/archive/site-rebuild-2026-09-26/`，
-含 `site.md.gz`；**不要照着它们新建页面** ✗）。一条命令验收：
+2026-09-20 的 28 页重构（**原文已删** ⇒ `git log --all -- docs/archive/site-rebuild-2026-09-26/`；
+**不要照着它们新建页面** ✗）。一条命令验收：
 
 ```bash
 python3 scripts/check-site.py            # 10 项：结构 + 链接 + 版本 + 元数据 + 体积 + 已发布版本一致
@@ -30,8 +30,8 @@ python3 scripts/check-site.py --browser  # 额外跑真 Chrome（资源零 404 +
 **站点写的是「已发布版本」的事实。** 本仓库常有并行开发，`crates/` 与 `courses/`
 的未提交改动会让 `scripts/soko` 量到**未发布代码**（它优先解析仓库构建）。
 量内核行为前先钉发布产物，或确认 `git status --short crates/ courses/` 干净 ——
-详见 `docs/design/site-single-page.md` §4 与 `docs/archive/site-rebuild-2026-09-26/STATE.md.gz` §5
-（后者是"实测与文档不符"的原始清单，仍然有效 ✓；`gunzip -c … | less` ✓）。
+详见 `docs/design/site-single-page.md` §4 与 `docs/archive/README.md` 的**全局规则**
+（2026-09-26 那份"实测与文档不符"清单已删，原文 ⇒ `git log --all -- docs/archive/site-rebuild-2026-09-26/` ✓）。
 
 **第二大课（卷 I 集合论）已建在 `courses/set-theory/`**：入口
 `courses/set-theory/README.md`；写课程内容前先读**硬规则 10**（课程标准库三层分界，
@@ -140,7 +140,7 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
    `Set.mem α a A` → `a ∈ A`、`And X Y` → `X ∧ Y`、基础类型省前导隐式实参
    （`And.left h` / `Or.inl h` / `Exists.intro w hw`）；判据
    `python3 scripts/notation-lint.py`（已进 `scripts/soko gate` 与 CI），
-   细则 `docs/notes/course-lean-style/notation-rewrite-brief.md`；
+   细则原文 ⇒ `git log --all -- docs/notes/course-lean-style/notation-rewrite-brief.md`；
 4. 判定永远走 kernel——**禁止文本比对**（tactic 判定范例：`front::judge`）；
 5. 模块化：文件接近 ~500 行即拆分；公开 API 用 re-export 保持稳定；
 6. **用户/agent 路径零工具链依赖**：获取与运行只用 Release 二进制或平台

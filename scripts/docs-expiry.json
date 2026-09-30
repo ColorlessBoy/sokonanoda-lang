@@ -108,55 +108,7 @@
       "tier": "entry",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
     },
-    "docs/design/abbrev.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/agent-query-channel.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/binary-cli.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/bundled-lsp.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/by-judge-reuse.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/by-prefix-reuse.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/by-tactics.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
     "docs/design/ci-parallelism.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/closure-incremental.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
       "tier": "spec",
@@ -168,73 +120,13 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
-    "docs/design/compile-cache.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/compiler-service-events.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/course-bilingual.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
     "docs/design/course-gate-in-ci.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
-    "docs/design/course-lean-style.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/course-manifest-v2.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/course-status.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
     "docs/design/course-stdlib.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/course-syllabus.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/criteria-strength.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/ctor-namespace.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/decl-binders.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
       "tier": "spec",
@@ -252,125 +144,11 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
-    "docs/design/duplication-audit.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
     "docs/design/e2-plan.md": {
       "expires": "2026-12-29",
       "renewed": "2026-09-30",
       "tier": "process",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 process = 90 天）"
-    },
-    "docs/design/early-cutoff.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/elaborator-let-match.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/eq-type-level-rewriting.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/extension-server-policy.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/goal-func-spine.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/goal-list.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/goal-refine.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/goal-rendering.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/highlighting.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/hints-suggestions.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/hover-brackets.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/hover-refactor.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/i8-i9.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/implicit-arguments.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/imports-and-projects.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/incremental-environment.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/indexed-inductives.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/infrastructure.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
     "docs/design/kernel-taxonomy.md": {
       "expires": "2027-09-30",
@@ -378,73 +156,7 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
-    "docs/design/lsp-edit-concurrency.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/match-dependent-motive.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/match-patterns.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/match.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/module-artifacts-slice1b-handoff.md": {
-      "expires": "2026-12-29",
-      "renewed": "2026-09-30",
-      "tier": "process",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 process = 90 天）"
-    },
     "docs/design/module-artifacts.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/module-batch.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/namespace-open.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/notation-aware-printing.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/notation-display.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/notation-input.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/notation-paths-audit.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
       "tier": "spec",
@@ -456,49 +168,7 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
-    "docs/design/onboarding.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/p1a-measurements.md": {
-      "expires": "2026-12-29",
-      "renewed": "2026-09-30",
-      "tier": "record",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 record = 90 天）"
-    },
-    "docs/design/parameterized-inductives.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/prelude-l1-proposal.md": {
-      "expires": "2026-12-29",
-      "renewed": "2026-09-30",
-      "tier": "process",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 process = 90 天）"
-    },
     "docs/design/project-artifacts.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/project-view.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/prop-cumulativity-boundary.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/prop-large-elim-mirror.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
       "tier": "spec",
@@ -510,25 +180,7 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
-    "docs/design/remove-funintro.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
     "docs/design/rename-inlay.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/reserved-decl-warning.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/set-theory-syllabus.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
       "tier": "spec",
@@ -540,31 +192,7 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
-    "docs/design/spine-meta-a.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/tactic-hover.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
     "docs/design/teaching-project.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/term-apply.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/type-level-syntax.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
       "tier": "spec",
@@ -581,36 +209,6 @@
       "renewed": "2026-09-30",
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/design/vscode-editor-feedback-plan.md": {
-      "expires": "2026-12-29",
-      "renewed": "2026-09-30",
-      "tier": "process",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 process = 90 天）"
-    },
-    "docs/design/webview-infoview.md": {
-      "expires": "2027-09-30",
-      "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
-    },
-    "docs/notes/course-lean-style/R3-rewrite-brief.md": {
-      "expires": "2026-12-29",
-      "renewed": "2026-09-30",
-      "tier": "record",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 record = 90 天）"
-    },
-    "docs/notes/course-lean-style/notation-input-plan.md": {
-      "expires": "2026-12-29",
-      "renewed": "2026-09-30",
-      "tier": "process",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 process = 90 天）"
-    },
-    "docs/notes/course-lean-style/notation-rewrite-brief.md": {
-      "expires": "2026-12-29",
-      "renewed": "2026-09-30",
-      "tier": "record",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 record = 90 天）"
     },
     "docs/notes/dsh-project-assets.md": {
       "expires": "2026-12-29",
