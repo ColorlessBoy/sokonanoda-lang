@@ -184,6 +184,15 @@ bash courses/set-theory/tools/check-lib-closure.sh   # 把所有 lib 一次 impo
 **判据**：`courses/set-theory/units/solutions/unit48-solution.sokonanoda` 的
 `sInter_subset_of_mem` / `sInter_mono`（单元㊽ 练习 9/10 ✓）。
 
+### 第四条惯用法：**先读库签名，再写调用**（2026-10-01 第 601 轮；已第 4 次踩）
+
+写 `lib` 里的引理**之前**，先 `sed -n '/^theorem <名字>/,/^$/p' lib/<模块>.sokonanoda` 看一眼 ✓。
+**已踩的坑**（都是"我以为它在那儿/我以为参数那么排"）：
+`Set.mem_sInter_intro` **不存在**（L-10 才补上 ✓）· `Rel.inv_apply` 的**点序**传反（单元52 ✗）·
+`Set.Equiv.mk` **要 4 个证明**（单元53 前身 ✗）· **`Set.equiv_def` 根本不存在**、
+`Set.injOn_def` 的**形状与我的写法不同**（第 601 轮 ✗）。
+⇒ **30 秒读签名，省一整轮试错** ✓（这条与"撤前先试第二拼法"是一对 ✓）。
+
 ### 第三条惯用法：**`⊆` 补不出类型参数时，按内核提示改点名**（2026-10-01 第 584 轮 ✓）
 
 「`def` 套 `def` 头」的目标（如 `Set.sInter α (F ∪ G) ⊆ Set.sInter α F`）上，**`⊆` 记法
