@@ -1,0 +1,72 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+def IsEmbedding (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β) : Prop :=
+  ∀ (a b : α), r a b ↔ s (f a) (f b)
+
+theorem demo_mem_embedding (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β) :
+    IsEmbedding α β r s f ↔ ∀ (a b : α), r a b ↔ s (f a) (f b) :=
+  Iff.intro (IsEmbedding α β r s f) (∀ (a b : α), r a b ↔ s (f a) (f b))
+    (fun (h : IsEmbedding α β r s f) => h)
+    (fun (h : ∀ (a b : α), r a b ↔ s (f a) (f b)) => h)
+
+theorem demo_idRel_isEmbedding (α : Type) (r : Rel α α) :
+    IsEmbedding α α r r (fun (a : α) => a) :=
+  fun (a : α) => fun (b : α) => Iff.intro (r a b) (r a b)
+    (fun (h : r a b) => h) (fun (h : r a b) => h)
+
+theorem demo_embedding_def (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (h : IsEmbedding α β r s f) (a b : α) : r a b ↔ s (f a) (f b) :=
+  (fun (hu : ∀ (a1 b1 : α), r a1 b1 ↔ s (f a1) (f b1)) => hu a b) h
+
+theorem embedding_apply (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (h : IsEmbedding α β r s f) (a b : α) : r a b ↔ s (f a) (f b) :=
+  (fun (hu : ∀ (a1 b1 : α), r a1 b1 ↔ s (f a1) (f b1)) => hu a b) h
+
+theorem embedding_mp (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (h : IsEmbedding α β r s f) (a b : α) (hab : r a b) : s (f a) (f b) :=
+  Iff.mp (embedding_apply α β r s f h a b) hab
+
+theorem embedding_mpr (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (h : IsEmbedding α β r s f) (a b : α) (hab : s (f a) (f b)) : r a b :=
+  Iff.mpr (embedding_apply α β r s f h a b) hab
+
+theorem embedding_comp (α β γ : Type) (r : Rel α α) (s : Rel β β) (t : Rel γ γ)
+    (f : α → β) (g : β → γ)
+    (hf : IsEmbedding α β r s f) (hg : IsEmbedding β γ s t g) :
+    IsEmbedding α γ r t (fun (a : α) => g (f a)) :=
+  fun (a : α) => fun (b : α) =>
+    Iff.intro (r a b) (t (g (f a)) (g (f b)))
+      (fun (hab : r a b) => embedding_mp β γ s t g hg (f a) (f b)
+        (embedding_mp α β r s f hf a b hab))
+      (fun (hab : t (g (f a)) (g (f b))) => embedding_mpr α β r s f hf a b
+        (embedding_mpr β γ s t g hg (f a) (f b) hab))
+
+theorem embedding_irrefl (α β : Type) (r : Rel α α) (s : Rel β β)
+    (f : α → β) (hirr : ∀ (a : α), ¬ (r a a)) (h : IsEmbedding α β r s f) :
+    ∀ (a : α), ¬ (s (f a) (f a)) :=
+  fun (a : α) => fun (hss : s (f a) (f a)) =>
+    hirr a (embedding_mpr α β r s f h a a hss)
+
+theorem embedding_trans (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (htrans : ∀ (b1 b2 b3 : β), s b1 b2 → s b2 b3 → s b1 b3)
+    (h : IsEmbedding α β r s f) :
+    ∀ (a1 a2 a3 : α), r a1 a2 → r a2 a3 → r a1 a3 :=
+  fun (a1 : α) => fun (a2 : α) => fun (a3 : α) =>
+    fun (h12 : r a1 a2) => fun (h23 : r a2 a3) =>
+      embedding_mpr α β r s f h a1 a3
+        (htrans (f a1) (f a2) (f a3)
+          (embedding_mp α β r s f h a1 a2 h12)
+          (embedding_mp α β r s f h a2 a3 h23))
+
+theorem embedding_refl (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (hrefl : ∀ (b : β), s b b) (h : IsEmbedding α β r s f) : ∀ (a : α), r a a :=
+  fun (a : α) => embedding_mpr α β r s f h a a (hrefl (f a))
+
+theorem embedding_symm (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (hsymm : ∀ (b1 b2 : β), s b1 b2 → s b2 b1) (h : IsEmbedding α β r s f) :
+    ∀ (a1 a2 : α), r a1 a2 → r a2 a1 :=
+  fun (a1 : α) => fun (a2 : α) => fun (h12 : r a1 a2) =>
+    embedding_mpr α β r s f h a2 a1
+      (hsymm (f a1) (f a2) (embedding_mp α β r s f h a1 a2 h12))

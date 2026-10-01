@@ -160,10 +160,11 @@
             "linear-order",
             "strict-order",
             "well-order",
-            "well-founded"
+            "well-founded",
+            "order-embedding"
           ],
           "quota": {
-            "exercises": 21
+            "exercises": 29
           },
           "units": [
             {
@@ -177,6 +178,12 @@
               "title": "单元⑭ 良序与良基",
               "title_en": "Unit 14 — Well-Orderings and Well-Foundedness",
               "unit": 14
+            },
+            {
+              "file": "units/unit53-order-embedding.sokonanoda",
+              "title": "单元53 序嵌入",
+              "title_en": "Unit 53 — Order Embeddings",
+              "unit": 53
             }
           ]
         },

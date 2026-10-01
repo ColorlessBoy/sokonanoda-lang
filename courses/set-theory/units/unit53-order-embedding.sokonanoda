@@ -1,0 +1,136 @@
+-- ==========================================================================
+-- unit53-order-embedding.sokonanoda —— 卷 I 单元53 **序嵌入：把序结构搬过去**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§7.1**（ordering
+--   relations 之后的"保序映射"）· Halmos《Naive Set Theory》**§14**（order isomorphism 前夜）。
+-- 大纲：`set-theory-syllabus.md` §4.1（**I.5 章深化** —— 单元⑬⑭ 讲序关系与良序的**性质**，
+--   本单元讲序之间的**映射**：嵌入保什么、反射什么 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **嵌入的定义与取用子**；**恒等映射是嵌入**；
+--   · **旗舰一：嵌入的复合还是嵌入**（逐点两向合起来 ✓）；
+--   · **旗舰二：嵌入"反射"序性质** —— 自反 · 对称 · 传递 · **非自反**
+--     （由 `r a b ⟺ s (f a) (f b)` 逐条搬过去 ✓）；
+--   · 全部用**点态形态**（`∀ a b, …`），把 `def` 头留给前提 ✓（配方 ✓）。
+--
+-- ⚠ **可做/不可做的边界**（如实写）：**序同构**（双射嵌入）的完整理论需要"从满射嵌入
+--   造逆映射" ⇒ 那要用**选择**（G-58）✗ ⇒ 本单元只做**嵌入**这一侧 ✓；
+--   **Cantor–Bernstein** 同理（G-58）✗。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Order` · `lib.Rel` · `lib.Set`。
+--
+-- 依赖：单元⑬（序关系）· 单元⑭（良序）· 单元㉜㉞（函数与逐点）✓
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 53.0 画布给的新词汇：**序嵌入** `IsEmbedding r s f`
+--
+-- 读法：`f` 把 `r` 序**原样搬进** `s` 序 —— 两个方向都要 ✓（只要求一个方向叫"保序"，
+-- 那是本单元的练习 1/2 的强弱之别 ✓）
+-- ─────────────────────────────────────────────────────────────
+def IsEmbedding (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β) : Prop :=
+  ∀ (a b : α), r a b ↔ s (f a) (f b)
+
+-- ─────────────────────────────────────────────────────────────
+-- 53.1 三条库引理（展开 · 恒等 · 取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：嵌入的展开（定义就是那个 `∀ ↔`，没有数学内容）。
+theorem demo_mem_embedding (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β) :
+    IsEmbedding α β r s f ↔ ∀ (a b : α), r a b ↔ s (f a) (f b) :=
+  Iff.intro (IsEmbedding α β r s f) (∀ (a b : α), r a b ↔ s (f a) (f b))
+    (fun (h : IsEmbedding α β r s f) => h)
+    (fun (h : ∀ (a b : α), r a b ↔ s (f a) (f b)) => h)
+theorem demo_idRel_isEmbedding (α : Type) (r : Rel α α) :
+    IsEmbedding α α r r (fun (a : α) => a) :=
+  fun (a : α) => fun (b : α) => Iff.intro (r a b) (r a b)
+    (fun (h : r a b) => h) (fun (h : r a b) => h)
+theorem demo_embedding_def (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (h : IsEmbedding α β r s f) (a b : α) : r a b ↔ s (f a) (f b) :=
+  (fun (hu : ∀ (a1 b1 : α), r a1 b1 ↔ s (f a1) (f b1)) => hu a b) h
+-- ─────────────────────────────────────────────────────────────
+-- 53.2 两条取用子与**复合**
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（T 类）：**嵌入用在具体的点上**。
+
+-- soko:hint 关键件：嵌入假设**先 λ 绑定再应用**（G-73 形状 ①）✓
+
+theorem embedding_apply (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (h : IsEmbedding α β r s f) (a b : α) : r a b ↔ s (f a) (f b) := by
+  sorry
+-- 练习 2（T 类）：**正向搬运**（`r` 里有 ⇒ `s` 里也有）。
+
+-- soko:hint 关键件：练习 1 + `Iff.mp` ✓
+
+theorem embedding_mp (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (h : IsEmbedding α β r s f) (a b : α) (hab : r a b) : s (f a) (f b) := by
+  sorry
+-- 练习 3（T 类）：**反向搬运**（`s` 里有 ⇒ `r` 里也有 —— 这才是"嵌入"比"保序"
+
+--   强的地方 ✓）。
+
+-- soko:hint 关键件：练习 1 + `Iff.mpr` ✓
+
+theorem embedding_mpr (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (h : IsEmbedding α β r s f) (a b : α) (hab : s (f a) (f b)) : r a b := by
+  sorry
+-- 练习 4（L 类，**旗舰一**）：**嵌入的复合还是嵌入**。
+
+-- soko:hint 思路：两个方向都是"先拆外层、再拆内层"（或反过来）——
+
+--   用练习 2 走三段、练习 3 走三段。
+
+-- soko:hint 目标形态：`IsEmbedding r s f → IsEmbedding s t g → IsEmbedding r t (fun a => g (f a))`。
+
+-- soko:hint 关键件：练习 2 / 练习 3（**各用两次**）· `Iff.intro`（前导 Prop 实参写全）✓
+
+theorem embedding_comp (α β γ : Type) (r : Rel α α) (s : Rel β β) (t : Rel γ γ)
+    (f : α → β) (g : β → γ)
+    (hf : IsEmbedding α β r s f) (hg : IsEmbedding β γ s t g) :
+    IsEmbedding α γ r t (fun (a : α) => g (f a)) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 53.3 嵌入**反射**序性质（自反 · 对称 · 传递 · 非自反）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 5（L 类）：**非自反也被反射**（`r` 无自反环 ⇒ `s` 在像上也没有）。
+
+-- soko:hint 思路：假设 `s (f a) (f a)`，用练习 3 搬回 `r a a`，与非自反假设矛盾。
+
+-- soko:hint 关键件：练习 3 · 非自反假设（**按 点 · 前提 应用**）✓
+
+theorem embedding_irrefl (α β : Type) (r : Rel α α) (s : Rel β β)
+    (f : α → β) (hirr : ∀ (a : α), ¬ (r a a)) (h : IsEmbedding α β r s f) :
+    ∀ (a : α), ¬ (s (f a) (f a)) := by
+  sorry
+-- 练习 6（L 类）：**传递性也被反射**。
+
+-- soko:hint 思路：两条前提先用练习 2 搬到 `s` 里，用 `s` 的传递性接起来，再用练习 3 搬回。
+
+-- soko:hint 关键件：练习 2 / 练习 3 · `s` 的传递性（**三个点 + 两条前提，参数写全**）✓
+
+theorem embedding_trans (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (htrans : ∀ (b1 b2 b3 : β), s b1 b2 → s b2 b3 → s b1 b3)
+    (h : IsEmbedding α β r s f) :
+    ∀ (a1 a2 a3 : α), r a1 a2 → r a2 a3 → r a1 a3 := by
+  sorry
+-- 练习 7（T 类）：**自反也被反射**。
+
+-- soko:hint 关键件：练习 3（**见证点取 `f a`**）· 自反假设 ✓
+
+theorem embedding_refl (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (hrefl : ∀ (b : β), s b b) (h : IsEmbedding α β r s f) : ∀ (a : α), r a a := by
+  sorry
+-- 练习 8（T 类）：**对称也被反射**。
+
+-- soko:hint 关键件：练习 2 / 练习 3 · 对称假设 ✓
+
+theorem embedding_symm (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (hsymm : ∀ (b1 b2 : β), s b1 b2 → s b2 b1) (h : IsEmbedding α β r s f) :
+    ∀ (a1 a2 : α), r a1 a2 → r a2 a1 := by
+  sorry
