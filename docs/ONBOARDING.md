@@ -70,13 +70,15 @@ Q1/Q2、K1 线（按前缀复用）、**批次 N（66/66）**与 **E19 甲案（
 
 ### 0.2 下一步（**唯一队列**，按序；权威 = `python3 scripts/plan.py next`）
 
-> 批次 N **66/66 全勾完** ✓ · **E19 甲案收口（`v0.79.0`）** ✓ ⇒ 队列**只剩一条可选**；
-> **下一条线由用户定**（新计划**写进本文件**，不许开新文件 ✓）。
+> 批次 N **66/66 全勾完** ✓ · **E19 甲案收口（`v0.79.0`）** ✓ ⇒ **下一条线 = IA-4 元参数引擎**
+> （用户 2026-10-01 拍板：把 E19 的窄版待定参数升级为真正元参数）；**设计已出**（下表 #1），
+> 开工前先收 **D1**（范围：先只做 M0 能力清单 / 只做范围 A / 连范围 B 设计）（新计划**写进本文件**，不许开新文件 ✓）。
 
 | # | 线 | 是什么 | 入口（先读） | 判据 |
 |---|---|---|---|---|
-| 1 | ✅ **E19 甲案 = `v0.79.0`**（**2026-10-01 收口** ✓） | 求解器**待定参数**：**默认开**、开关**保留为逃生门** `SOKO_NOTATION_METAVAR=0`/`off`（用户 2026-10-01 拍板）⇒ 治 G-48（`∅ ≈ {b}` 一类"零元糖操作数补不出论域"）| **`docs/design/e19-baseline.md`**（§1 指纹 · §6/§7 两刀 · **§9 默认开**）· `docs/design/e19-evaluation.md` | 默认态 G-48 **exit 0** / 逃生门 **exit 1** · 172 组 **2/172**（恰好 G-48）/ 逃生门 **0/172** · 课程门禁两态 **43/377/99/0** · front **771/0** · notation **49/0** ✓ |
-| 2 | ⏭ **（可选）课程侧撤掉 G-48 的旧 workaround** | 单元⑨ 练习 5 改回记法 `∅ ≈ {b}` + 去掉行内 `soko:notation-ok`（**课程内容**改动 ⇒ 会动课程计数） | `docs/design/notation-subset.md`（G-48 那条）· `docs/design/e19-baseline.md` §9「遗留」 | 课程门禁 **43 目标 · 0 判负** + `python3 scripts/notation-lint.py` 零旧写法 ✓ |
+| 1 | ⏭ **IA-4 元参数引擎**（设计 ✓ 2026-10-01，**未实现**） | 把 `solve_prefix` 的「贪心反解 + 同形兄弟复制」换成**一次求解内闭环的元变量引擎**（结构合一 + occurs + **sort/kind 检查** + 待定约束不动点 + 出口 zonk）；**严格档逐字节不动**。切片 **M0–M4**（M0 基线+能力清单 → M1 引擎内核+记法路径 → M2 一般路径 → M3 sort/kind+报错契约 → M4 默认开+发版），**一片一档一 commit** | **`docs/design/metavar-engine.md`**（§1 现状/差距 · §2 设计 · §3 缺口面 · §4 切片 · **§5 决策点 D1–D7**）| M0：`kernel-diff.sh --digest` 复现 §1.4 三 sha256 + 门禁 **43/377/99/0** + 结构计数逐项相等（`runs=886` / `passes=1343` / `by_calls=21,268`）· M1/M2：`SOKO_METAVAR=sibling` 态 `--non-course` **0 差异** · 每片收尾 `scripts/soko gate` exit 0 |
+| 2 | ✅ **E19 甲案 = `v0.79.0`**（**2026-10-01 收口** ✓） | 求解器**待定参数**：**默认开**、开关**保留为逃生门** `SOKO_NOTATION_METAVAR=0`/`off`（用户 2026-10-01 拍板）⇒ 治 G-48（`∅ ≈ {b}` 一类"零元糖操作数补不出论域"）| **`docs/design/e19-baseline.md`**（§1 指纹 · §6/§7 两刀 · **§9 默认开**）· `docs/design/e19-evaluation.md` | 默认态 G-48 **exit 0** / 逃生门 **exit 1** · 172 组 **2/172**（恰好 G-48）/ 逃生门 **0/172** · 课程门禁两态 **43/377/99/0** · front **771/0** · notation **49/0** ✓ |
+| 3 | ⏭ **（可选）课程侧撤掉 G-48 的旧 workaround** | 单元⑨ 练习 5 改回记法 `∅ ≈ {b}` + 去掉行内 `soko:notation-ok`（**课程内容**改动 ⇒ 会动课程计数） | `docs/design/notation-subset.md`（G-48 那条）· `docs/design/e19-baseline.md` §9「遗留」 | 课程门禁 **43 目标 · 0 判负** + `python3 scripts/notation-lint.py` 零旧写法 ✓ |
 
 ## 1. 读数（同机同口径：release · 冷缓存 · `SOKONANODA_BUILD_JOBS=1` · 全课程 `build --json courses/set-theory`）
 
@@ -101,8 +103,9 @@ Q1/Q2、K1 线（按前缀复用）、**批次 N（66/66）**与 **E19 甲案（
 | 文档 | 讲什么 | 状态（2026-09-30） | 什么时候读 |
 |---|---|---|---|
 | `docs/design/e2-plan.md` | E2 计划**现行契约 + 收口索引**（§0 三条硬约束 · §1 阶段总览 · §13 一行一条清单）；逐字原文 ⇒ `git log --all -- docs/design/e2-plan.md` | **E2 阶段 A–E 全收口**；**批次 N 25/28**（`plan.py` 总进度 **63/66**，剩 T-N13/T-N14/T-N15 ⇒ `plan.py next` 权威） | 做批次 N 前（先跑 `plan.py next`） |
+| **`docs/design/metavar-engine.md`** | **IA-4 元参数引擎**：现状/差距（含「合一不解 G-48」的更正）· 引擎设计（接口/算法/集成点/sort-kind/报错契约/性能纪律）· 缺口面与边界 · **切片 M0–M4** · **决策点 D1–D7** | **设计 ✓（2026-10-01）· 实现未开始**（先收 D1） | 开 IA-4 线 / 动 `solve_prefix`、`unify_extract`、`fill_pending_by_shape` 前 |
 | `docs/design/module-artifacts.md` | 模块级产物三块（内核环境 / 前端表 / 报告）· per-module Merkle 键 · §8 产物落盘 · §9 一个 builder 贯穿全场 | **切片 1 已收口**（`build_one(…, precomputed)` + `PassTables`）；**仍未做** = 产物落盘（P3 可下载 cache） | 做**模块级产物 / 结果复用**那条线前 |
-| `docs/design/notation-subset.md` | 用户自定义记法子集（`infix:N` 族 + 零元 `notation`）的边界与第二刀清单；§17 是 E19 行 | 第一刀 0.59.0 落地；**E19（记法求解器加元变量）未做** | 动记法 / E19 前 |
+| `docs/design/notation-subset.md` | 用户自定义记法子集（`infix:N` 族 + 零元 `notation`）的边界与第二刀清单；§17 是 E19 行 | 第一刀 0.59.0 落地；**E19 已收口（`v0.79.0`）**；后继 = `metavar-engine.md`（IA-4） | 动记法 / 做 IA-4 前 |
 | `docs/design/v077-kernel-deficiencies.md` | 未做完的四章（ST6/7/9/11）的**根因定位**（G-56/58/59） | **仍是 E19 的取证材料** | 开 E19 前 |
 | `STATUS.md`（未决项 + 最近 3 轮） | 轮次流水 · **当前未决项**（**不含队列**） | 每轮收尾更新 | 每次开工 + 收尾记账 |
 | `scripts/docs-gc.py` | **文档清理机制**（报告式）：零引用 / 不在权威链 / ≥30 天没动 ⇒ 报候选，**不自删** | 机制已就位 | 每次"文档又堆了"的反馈后 |

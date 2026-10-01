@@ -168,6 +168,12 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
+    "docs/design/metavar-engine.md": {
+      "expires": "2027-10-01",
+      "renewed": "2026-10-01",
+      "tier": "spec",
+      "reason": "IA-4 元参数引擎的唯一权威设计（设计+排期+决策点）；实现开始后每片 as-built 追加进本文件"
+    },
     "docs/design/module-artifacts.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
