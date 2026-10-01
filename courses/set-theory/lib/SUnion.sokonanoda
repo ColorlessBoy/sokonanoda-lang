@@ -88,3 +88,33 @@ theorem Set.mem_sInter_elim (α : Type) (F : Set (Set α)) (x : α) (C : Prop)
     (h : x ∈ Set.sInter α F)  -- soko:notation-ok: 本节在 `end Set` 之后，`⋂₀` 的记法在此处还没声明
     (k : (∀ (A : Set α), A ∈ F → x ∈ A) → C) : C :=
   k ((fun (hs : ∀ (A : Set α), A ∈ F → x ∈ A) => hs) h)
+
+-- ── 广义积（索引族的积；Mathlib `Set.pi` / `Set.mem_pi` 同款）────────────────
+-- 读法：`A : ι → Set α` 是**索引族**，`Set.pi ι α A` 是"每个坐标都落在对应因子里"的
+-- **函数**的集合 ✓ —— 这就是"任意多个集合的笛卡尔积"在谓词式里的样子。
+-- ⚠ 它与二元积 `Set.prod`（`lib/Prod`）的关系：二元积的元素是**序对** `Prod A B`，
+--   而这里的元素是**函数** `ι → α` —— 索引取 `Bool` 一类两点类型时，两边等势 ✓（L3）。
+def Set.pi (ι α : Type) (A : ι → Set α) : Set (ι → α) :=
+  fun (f : ι → α) => ∀ (i : ι), f i ∈ A i
+
+theorem Set.mem_pi_iff (ι α : Type) (A : ι → Set α) (f : ι → α) :
+    f ∈ Set.pi ι α A ↔ ∀ (i : ι), f i ∈ A i :=
+  Iff.intro (fun (h : f ∈ Set.pi ι α A) => h) (fun (h : ∀ (i : ι), f i ∈ A i) => h)
+
+-- 取用子 / 构造子（L2：同 `lib/SUnion` 那一组）
+theorem Set.mem_pi_elim (ι α : Type) (A : ι → Set α) (f : ι → α) (i : ι)
+    (h : f ∈ Set.pi ι α A) : f i ∈ A i :=
+  (fun (hs : ∀ (i' : ι), f i' ∈ A i') => hs i) h
+
+theorem Set.mem_pi_intro (ι α : Type) (A : ι → Set α) (f : ι → α)
+    (h : ∀ (i : ι), f i ∈ A i) : f ∈ Set.pi ι α A :=
+  (fun (hs : ∀ (i : ι), f i ∈ A i) => hs) h
+
+-- 单调（L2 级的一步：逐坐标包含 ⇒ 积包含）
+theorem Set.pi_mono (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i) :
+    Set.pi ι α A ⊆ Set.pi ι α B :=
+  fun (f : ι → α) (hf : f ∈ Set.pi ι α A) =>
+    Set.mem_pi_intro ι α B f
+      (fun (i : ι) =>
+        (fun (hs : ∀ (j : ι), A j ⊆ B j) => (fun (hu : ∀ (x : α), x ∈ A i → x ∈ B i) =>
+          hu (f i) (Set.mem_pi_elim ι α A f i hf)) (hs i)) h)

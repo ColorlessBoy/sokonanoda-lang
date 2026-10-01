@@ -1,0 +1,99 @@
+import lib.Rel
+import lib.Choice
+import lib.SUnion
+import lib.Set
+import lib.Prod
+
+def curry (A B C : Type) (f : Prod A B → C) : A → B → C :=
+  fun (a : A) (b : B) => f (prod_mk A B a b)
+
+def uncurry (A B C : Type) (g : A → B → C) : Prod A B → C :=
+  fun (p : Prod A B) => g (Prod.fst A B p) (Prod.snd A B p)
+
+theorem demo_mem_pi_iff (ι α : Type) (A : ι → Set α) (f : ι → α) :
+    f ∈ (Set.pi ι α A) ↔ ∀ (i : ι), f i ∈ A i :=
+  Set.mem_pi_iff ι α A f
+
+theorem demo_mem_pi_elim (ι α : Type) (A : ι → Set α) (f : ι → α) (i : ι)
+    (h : f ∈ (Set.pi ι α A)) : f i ∈ A i :=
+  Set.mem_pi_elim ι α A f i h
+
+theorem demo_pi_mono (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i)
+    (f : ι → α) (hf : f ∈ (Set.pi ι α A)) : f ∈ (Set.pi ι α B) :=
+  Set.pi_mono ι α A B h f hf
+
+theorem pi_apply (ι α : Type) (A : ι → Set α) (f : ι → α) (i : ι)
+    (hf : f ∈ (Set.pi ι α A)) : f i ∈ A i :=
+  Set.mem_pi_elim ι α A f i hf
+
+theorem pi_intro (ι α : Type) (A : ι → Set α) (f : ι → α)
+    (h : ∀ (i : ι), f i ∈ A i) : f ∈ (Set.pi ι α A) :=
+  Set.mem_pi_intro ι α A f h
+
+theorem pi_mono_apply (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i)
+    (f : ι → α) (hf : f ∈ (Set.pi ι α A)) : f ∈ (Set.pi ι α B) :=
+  Set.pi_mono ι α A B h f hf
+
+theorem pi_const (ι α : Type) (A : ι → Set α) (a : α) (h : ∀ (i : ι), a ∈ A i) :
+    (fun (_ : ι) => a) ∈ (Set.pi ι α A) :=
+  Set.mem_pi_intro ι α A (fun (_ : ι) => a) (fun (i : ι) => h i)
+
+theorem pi_univ_subset (ι α : Type) :
+    Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) => Set.univ α)) :=
+  fun (f : ι → α) (hf : f ∈ Set.univ (ι → α)) =>
+    Set.mem_pi_intro ι α (fun (_ : ι) => Set.univ α) f
+      (fun (i : ι) => Set.mem_univ α (f i))
+
+theorem pi_empty_of_empty (ι α : Type) (A : ι → Set α)
+    (h : ∃ (i : ι), ∀ (x : α), ¬ (x ∈ A i)) :
+    ∀ (f : ι → α), ¬ (f ∈ (Set.pi ι α A)) :=
+  fun (f : ι → α) (hf : f ∈ (Set.pi ι α A)) =>
+    Exists.elim ι (fun (i : ι) => ∀ (x : α), ¬ (x ∈ A i)) False h
+      (fun (i : ι) (hi : ∀ (x : α), ¬ (x ∈ A i)) =>
+        hi (f i) (Set.mem_pi_elim ι α A f i hf))
+
+theorem pi_inter_subset (ι α : Type) (A B : ι → Set α) :
+    (Set.pi ι α (fun (i : ι) => A i ∩ B i)) ⊆ ((Set.pi ι α A) ∩ (Set.pi ι α B)) :=
+  fun (f : ι → α) (hf : f ∈ (Set.pi ι α (fun (i : ι) => A i ∩ B i))) =>
+    And.intro (f ∈ (Set.pi ι α A)) (f ∈ (Set.pi ι α B))
+      (Set.mem_pi_intro ι α A f
+        (fun (i : ι) =>
+          (fun (hi : f i ∈ (A i ∩ B i)) => And.left hi)
+            (Set.mem_pi_elim ι α (fun (i' : ι) => A i' ∩ B i') f i hf)))
+      (Set.mem_pi_intro ι α B f
+        (fun (i : ι) =>
+          (fun (hi : f i ∈ (A i ∩ B i)) => And.right hi)
+            (Set.mem_pi_elim ι α (fun (i' : ι) => A i' ∩ B i') f i hf)))
+
+theorem uncurry_curry (A B C : Type) (f : Prod A B → C) (a : A) (b : B) :
+    uncurry A B C (curry A B C f) (prod_mk A B a b) = f (prod_mk A B a b) :=
+  Eq.refl.{1} C (f (prod_mk A B a b))
+
+theorem pi_inter_subset_rev (ι α : Type) (A B : ι → Set α) :
+    ((Set.pi ι α A) ∩ (Set.pi ι α B)) ⊆ (Set.pi ι α (fun (i : ι) => A i ∩ B i)) :=
+  fun (f : ι → α) (hf : f ∈ ((Set.pi ι α A) ∩ (Set.pi ι α B))) =>
+    Set.mem_pi_intro ι α (fun (i : ι) => A i ∩ B i) f
+      (fun (i : ι) =>
+        And.intro (f i ∈ A i) (f i ∈ B i)
+          (Set.mem_pi_elim ι α A f i ((fun (hp : (Set.pi ι α A) f ∧ (Set.pi ι α B) f) => And.left hp) hf))
+          (Set.mem_pi_elim ι α B f i ((fun (hp : (Set.pi ι α A) f ∧ (Set.pi ι α B) f) => And.right hp) hf)))
+
+theorem pi_nonempty_of_choice (ι α : Type) (A : ι → Set α)
+    (h : ∀ (i : ι), ∃ (x : α), x ∈ A i) :
+    ∃ (f : ι → α), f ∈ (Set.pi ι α A) :=
+  Exists.elim (ι → α)
+    (fun (f : ι → α) => ∀ (i : ι), i ∈ Set.univ ι → f i ∈ Set.univ α ∧ f i ∈ A i)
+    (∃ (f : ι → α), f ∈ (Set.pi ι α A))
+    (choice ι α (Set.univ ι) (Set.univ α) (fun (i : ι) (x : α) => x ∈ A i)
+      (fun (i : ι) (hi : i ∈ Set.univ ι) =>
+        Exists.elim α (fun (x : α) => x ∈ A i)
+          (∃ (x : α), x ∈ Set.univ α ∧ x ∈ A i) (h i)
+          (fun (x : α) (hx : x ∈ A i) =>
+            Exists.intro α (fun (x' : α) => x' ∈ Set.univ α ∧ x' ∈ A i) x  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+              (And.intro (x ∈ Set.univ α) (x ∈ A i) (Set.mem_univ α x) hx))))
+    (fun (f : ι → α)
+      (hf : ∀ (i : ι), i ∈ Set.univ ι → f i ∈ Set.univ α ∧ f i ∈ A i) =>
+      Exists.intro (ι → α) (fun (f' : ι → α) => f' ∈ (Set.pi ι α A)) f  -- soko:notation-ok: G-73 形状 ②（同上）
+        (Set.mem_pi_intro ι α A f
+          (fun (i : ι) =>
+            (fun (hi : f i ∈ Set.univ α ∧ f i ∈ A i) => And.right hi) (hf i (Set.mem_univ ι i)))))

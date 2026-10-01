@@ -1,0 +1,175 @@
+-- ==========================================================================
+-- unit23-products.sokonanoda —— 卷 I 单元㉓ **广义积与柯里化**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§3.5 的"任意多个
+-- 集合的笛卡尔积"**；Halmos《Naive Set Theory》**§9 Families 的收尾 + §15 的积**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.9 章第三个单元 —— 补上本章标题里的"广义积"）。
+--
+-- 本单元的"该学的定理"：**积的成员刻画**（"每个坐标都落在对应因子里"）· **积对族单调** ·
+-- **某个因子空 ⇒ 积空** · **积与交可以互相拆装** · **选择公理正是"每个因子非空 ⇒ 积非空"**
+-- （写在最后一道必破题里 —— 这正是选择公理最经典的形式之一）✓
+--
+-- 读法：`A : ι → Set α` 是**索引族**，`Set.pi ι α A` 是"每个坐标 `i` 都落在 `A i` 里"的
+-- **函数**集合 —— 这就是"任意多个集合的笛卡尔积"在谓词式里的样子 ✓
+--
+-- **写法约定（本单元特有）**：积里的元素是**函数** ⇒ 一切从"把函数用在某个坐标上"出发；
+--   库里的 `Set.mem_pi_elim` / `Set.mem_pi_intro` 就是这两招，**别手写展开** ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 五样**：`lib.SUnion`（积）· `lib.Choice`（最后一题要用）· `lib.Set` ·
+--   `lib.Prod`（柯里化）· `lib.Rel`。
+--
+-- 依赖：单元㉑（集族）与单元⑤（序对与积）—— 本单元把"二元积"抬到"任意多个因子"。
+-- ==========================================================================
+import lib.Rel
+import lib.Choice
+import lib.SUnion
+import lib.Set
+import lib.Prod
+
+-- ─────────────────────────────────────────────────────────────
+-- 23.0 两个新词汇（画布给出，不是练习）：**柯里化**与**反柯里化**
+--
+-- 读法：`curry` 把"吃一个序对"的函数变成"吃两个参数"的函数，`uncurry` 反过来 ✓
+-- 这一对就是"n 元关系 ↔ 逐次一元关系"的翻译（Enderton §3.5 的 n 元关系那一节）✓
+-- ─────────────────────────────────────────────────────────────
+def curry (A B C : Type) (f : Prod A B → C) : A → B → C :=
+  fun (a : A) (b : B) => f (prod_mk A B a b)
+
+def uncurry (A B C : Type) (g : A → B → C) : Prod A B → C :=
+  fun (p : Prod A B) => g (Prod.fst A B p) (Prod.snd A B p)
+
+-- ─────────────────────────────────────────────────────────────
+-- 23.1 积与两条库引理
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：积的成员刻画（"每个坐标都落在对应因子里"）。
+theorem demo_mem_pi_iff (ι α : Type) (A : ι → Set α) (f : ι → α) :
+    f ∈ (Set.pi ι α A) ↔ ∀ (i : ι), f i ∈ A i :=
+  Set.mem_pi_iff ι α A f
+
+-- 演示：**把积里的函数用在某个坐标上**（取用子）。
+theorem demo_mem_pi_elim (ι α : Type) (A : ι → Set α) (f : ι → α) (i : ι)
+    (h : f ∈ (Set.pi ι α A)) : f i ∈ A i :=
+  Set.mem_pi_elim ι α A f i h
+
+-- 演示：**积对族单调**（逐坐标包含 ⇒ 积包含）。
+theorem demo_pi_mono (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i)
+    (f : ι → α) (hf : f ∈ (Set.pi ι α A)) : f ∈ (Set.pi ι α B) :=
+  Set.pi_mono ι α A B h f hf
+
+-- 练习 1（T 类）：把取用子写成 `∀` 的形式。
+-- soko:hint 思路：库里的取用子就是这条；参数按顺序给（族 · 函数 · 坐标 · 成员证据）。
+-- soko:hint 目标形态：`f ∈ (Set.pi ι α A) → ∀ i, f i ∈ A i`。
+-- soko:hint 关键件：`Set.mem_pi_elim`。
+theorem pi_apply (ι α : Type) (A : ι → Set α) (f : ι → α) (i : ι)
+    (hf : f ∈ (Set.pi ι α A)) : f i ∈ A i := by
+  sorry
+
+-- 练习 2（T 类）：反方向的构造子（"每个坐标都在，就整个函数在"）。
+-- soko:hint 思路：库里的构造子；把那条 `∀` 交出去即可。
+-- soko:hint 目标形态：`(∀ i, f i ∈ A i) → f ∈ (Set.pi ι α A)`。
+-- soko:hint 关键件：`Set.mem_pi_intro`。
+theorem pi_intro (ι α : Type) (A : ι → Set α) (f : ι → α)
+    (h : ∀ (i : ι), f i ∈ A i) : f ∈ (Set.pi ι α A) := by
+  sorry
+
+-- 练习 3（T 类）：把演示里的单调性写成"作用在具体函数上"的版本。
+-- soko:hint 思路：直接调库里的单调性（参数表：族 A · 族 B · 逐坐标包含 · 函数 · 成员证据）。
+-- soko:hint 目标形态：`(∀ i, A i ⊆ B i) → f ∈ pi A → f ∈ pi B`。
+-- soko:hint 关键件：`Set.pi_mono`。
+theorem pi_mono_apply (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i)
+    (f : ι → α) (hf : f ∈ (Set.pi ι α A)) : f ∈ (Set.pi ι α B) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 23.2 常函数与特殊因子
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（L 类）：**某个元素落在每个因子里，则常函数落在积里**。
+-- soko:hint 思路：用构造子，逐坐标交出的就是假设在该坐标上的实例。
+-- soko:hint 目标形态：`(∀ i, a ∈ A i) → (fun _ => a) ∈ (Set.pi ι α A)`。
+-- soko:hint 关键件：`Set.mem_pi_intro`（见证写成**忽略参数的 λ**）。
+theorem pi_const (ι α : Type) (A : ι → Set α) (a : α) (h : ∀ (i : ι), a ∈ A i) :
+    (fun (_ : ι) => a) ∈ (Set.pi ι α A) := by
+  sorry
+
+-- 练习 5（T 类）：**积总在全集里**（全集那一半）。
+-- soko:hint 思路：用构造子，逐坐标用"任何元素都属于全集"。
+-- soko:hint 目标形态：`Set.univ (ι → α) ⊆ (Set.pi ι α (fun _ => Set.univ α))`。
+-- soko:hint 关键件：`Set.mem_pi_intro` + `Set.mem_univ`。
+theorem pi_univ_subset (ι α : Type) :
+    Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) => Set.univ α)) := by
+  sorry
+
+-- 练习 6（L 类，本单元旗舰）：**某个因子空 ⇒ 积空**。
+-- soko:hint 思路：反证。若积里有一个函数 `f`，把 `f` 用在那个空因子的坐标上 ——
+--   得到"某个元素落在空因子里"，与"空因子什么都没有"冲突。
+-- soko:hint 目标形态：`(∃ i, ∀ x, ¬ (x ∈ A i)) → ∀ f, ¬ (f ∈ (Set.pi ι α A))`。
+-- soko:hint 关键件：`Exists.elim`（**前导实参写全**，G-73 形状 ②）· 练习 1 的取用子 ·
+--   把"空因子"那条 `∀` 用在 `f i` 上。
+theorem pi_empty_of_empty (ι α : Type) (A : ι → Set α)
+    (h : ∃ (i : ι), ∀ (x : α), ¬ (x ∈ A i)) :
+    ∀ (f : ι → α), ¬ (f ∈ (Set.pi ι α A)) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 23.3 积与交：**两个方向**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（L 类）：`pi (A ∩ B) ⊆ pi A ∩ pi B`（逐坐标取合取的左/右支）。
+-- soko:hint 思路：`f` 在交的积里 ⇒ 每个坐标 `f i` 同时在两个因子里（合取的左支与右支）⇒
+--   于是 `f` 同时在两个积里（合取打包）。
+-- soko:hint 目标形态：`(Set.pi ι α (fun i => A i ∩ B i)) ⊆ ((Set.pi ι α A) ∩ (Set.pi ι α B))`。
+-- soko:hint 关键件：`Set.mem_pi_elim`（取用子）· `Set.mem_pi_intro`（构造子）· `And.left`/`And.right`
+--   · `And.intro`（**前导 Prop 实参可能补不出来时要写全**，G-73 形状 ②）。
+theorem pi_inter_subset (ι α : Type) (A B : ι → Set α) :
+    (Set.pi ι α (fun (i : ι) => A i ∩ B i)) ⊆ ((Set.pi ι α A) ∩ (Set.pi ι α B)) := by
+  sorry
+
+-- 练习 8（L 类）：**反方向** —— 两个积里的函数逐坐标合并。
+-- soko:hint 思路：`f` 同时在两个积里 ⇒ 每个坐标左支来自第一个积、右支来自第二个 ⇒
+--   `f i` 落在交里 ⇒ `f` 在交的积里。
+-- soko:hint 目标形态：`((Set.pi ι α A) ∩ (Set.pi ι α B)) ⊆ (Set.pi ι α (fun i => A i ∩ B i))`。
+-- soko:hint 关键件：`And.left`/`And.right`（**先把交那条假设展开成合取**）· 两个取用子 ·
+--   `Set.mem_pi_intro`。
+theorem pi_inter_subset_rev (ι α : Type) (A B : ι → Set α) :
+    ((Set.pi ι α A) ∩ (Set.pi ι α B)) ⊆ (Set.pi ι α (fun (i : ι) => A i ∩ B i)) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 23.4 n 元关系：**柯里化**（把"二元输入"换成"两次一元输入"）
+--
+-- 这一节的两个定义是**画布给的**（它们是新词汇）：`curry` 把 `Prod A B → C` 变成
+-- `A → B → C`，`uncurry` 反过来 ✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（L 类）：**先 `curry` 再 `uncurry` 回到原地**。
+-- soko:hint 思路：两边**定义上就是同一个东西**（把两个定义各展开一次，计算就完成了）⇒
+--   自反那一条。
+-- soko:hint 目标形态：`uncurry (curry f) (prod_mk a b) = f (prod_mk a b)`。
+-- soko:hint 关键件：`Eq.refl`（**要写全宇宙层级与论域**：结果的类型是 `C`）。
+theorem uncurry_curry (A B C : Type) (f : Prod A B → C) (a : A) (b : B) :
+    uncurry A B C (curry A B C f) (prod_mk A B a b) = f (prod_mk A B a b) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 23.5 必破：**选择公理正是"非空族的积非空"**
+--
+-- 这是选择公理最经典的形式之一（Halmos §15 / Enderton §6.5）：要**同时**为所有因子挑元素，
+-- 就得有一条"把 `∃` 兑现成函数"的规则 —— 本卷里那就是 `lib.Choice` 的 `choice` ✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 10（D 类，本单元旗舰）：**每个因子非空 ⇒ 积非空**（用选择公理）。
+-- soko:hint 思路：把选择公理用在关系"`x` 落在 `A i` 里"上（两侧集合都取全集）——
+--   它直接给你一个函数 `f` 与"逐点满足关系"；把"落在全集里"那一半丢掉，
+--   剩下的正是 `f ∈ pi A`。
+-- soko:hint 目标形态：`(∀ i, ∃ x, x ∈ A i) → ∃ f, f ∈ (Set.pi ι α A)`。
+-- soko:hint 关键件：`choice`（参数表：两个论域 · 两侧集合 · 关系 · 逐点存在性）·
+--   `Exists.elim`（**前导实参写全**）· `Set.mem_pi_intro` · `And.right`。
+--   ⚠ 这就是为什么"积非空"在本卷里**不是**一条无条件定理：没有选择公理时它不成立 ✓
+theorem pi_nonempty_of_choice (ι α : Type) (A : ι → Set α)
+    (h : ∀ (i : ι), ∃ (x : α), x ∈ A i) :
+    ∃ (f : ι → α), f ∈ (Set.pi ι α A) := by
+  sorry

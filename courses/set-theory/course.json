@@ -292,10 +292,12 @@
             "monotone",
             "image",
             "preimage",
-            "indexed-family"
+            "indexed-family",
+            "product",
+            "currying"
           ],
           "quota": {
-            "exercises": 20
+            "exercises": 30
           },
           "units": [
             {
@@ -309,6 +311,12 @@
               "title": "单元㉒ 像、原像与广义并交",
               "title_en": "Unit 22 — Images, Preimages and Arbitrary Unions/Intersections",
               "unit": 22
+            },
+            {
+              "file": "units/unit23-products.sokonanoda",
+              "title": "单元㉓ 广义积与柯里化",
+              "title_en": "Unit 23 — Arbitrary Products and Currying",
+              "unit": 23
             }
           ]
         }
