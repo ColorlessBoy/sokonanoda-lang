@@ -1,0 +1,50 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②：`•`/`Rel` 是 def 头，这些位置补不出前导实参
+
+theorem demo_mem_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ) :
+    (r • s) a c ↔ ∃ (b : β), r a b ∧ s b c :=
+  Rel.comp_apply r s a c
+
+theorem demo_mem_inv (α β : Type) (r : Rel α β) (b : β) (a : α) :
+    (r ⁻¹) b a ↔ r a b :=
+  Rel.inv_apply α β r b a
+
+theorem demo_idRel_self (α : Type) (a : α) : idRel α a a :=
+  Eq.refl.{1} α a
+
+theorem comp_intro (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (b : β) (c : γ)
+    (h1 : r a b) (h2 : s b c) : (r • s) a c :=
+  (fun (hu : (r • s) a c ↔ ∃ (b1 : β), r a b1 ∧ s b1 c) =>
+    Iff.mpr hu (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
+      (And.intro (r a b) (s b c) h1 h2))) (Rel.comp_apply r s a c)  -- soko:notation-ok: G-73 形状 ②：`•`/`Rel` 是 def 头，这些位置补不出前导实参
+
+theorem comp_apply_elim (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ)
+    (h : (r • s) a c) : ∃ (b : β), r a b ∧ s b c :=
+  (fun (hu : (r • s) a c ↔ ∃ (b : β), r a b ∧ s b c) => Iff.mp hu h)
+    (Rel.comp_apply r s a c)
+
+theorem comp_idRel_right (α β : Type) (r : Rel α β) (a : α) (b : β) (h : r a b) :
+    (r • idRel β) a b :=
+  comp_intro α β β r (idRel β) a b b h (Eq.refl.{1} β b)
+
+theorem idRel_comp_left (α β : Type) (r : Rel α β) (a : α) (b : β) (h : r a b) :
+    (idRel α • r) a b :=
+  comp_intro α α β (idRel α) r a a b (Eq.refl.{1} α a) h
+
+theorem comp_mono_apply (α β γ : Type) (r r1 : Rel α β) (s s1 : Rel β γ)
+    (hr : ∀ (a : α) (b : β), r a b → r1 a b)
+    (hs : ∀ (b : β) (c : γ), s b c → s1 b c)
+    (a : α) (c : γ) (h : (r • s) a c) : (r1 • s1) a c :=
+  Exists.elim β (fun (b : β) => r a b ∧ s b c) ((r1 • s1) a c)
+    (comp_apply_elim α β γ r s a c h)
+    (fun (b : β) (hb : r a b ∧ s b c) =>
+      comp_intro α β γ r1 s1 a b c (hr a b (And.left hb)) (hs b c (And.right hb)))
+
+theorem comp_mono_left (α β γ : Type) (r r1 : Rel α β) (s : Rel β γ)
+    (hr : ∀ (a : α) (b : β), r a b → r1 a b) (a : α) (c : γ) (h : (r • s) a c) :
+    (r1 • s) a c :=
+  comp_mono_apply α β γ r r1 s s hr (fun (b : β) (c1 : γ) => fun (hsc : s b c1) => hsc) a c h

@@ -562,10 +562,12 @@
             "well-order",
             "single-valued",
             "graph",
-            "totality"
+            "totality",
+            "identity-relation",
+            "composition-mono"
           ],
           "quota": {
-            "exercises": 70
+            "exercises": 76
           },
           "units": [
             {
@@ -609,6 +611,12 @@
               "title": "单元㊺ 关系的单值性与函数的图",
               "title_en": "Unit 45 — Single-Valued Relations and Graphs of Functions",
               "unit": 45
+            },
+            {
+              "file": "units/unit52-rel-iteration.sokonanoda",
+              "title": "单元52 关系的复合：单位律与逐点形态",
+              "title_en": "Unit 52 — Composition of Relations: Identity Laws, Pointwise",
+              "unit": 52
             }
           ]
         }
