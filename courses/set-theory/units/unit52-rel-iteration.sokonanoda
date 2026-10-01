@@ -113,3 +113,11 @@ theorem comp_mono_left (α β γ : Type) (r r1 : Rel α β) (s : Rel β γ)
     (hr : ∀ (a : α) (b : β), r a b → r1 a b) (a : α) (c : γ) (h : (r • s) a c) :
     (r1 • s) a c := by
   sorry
+
+-- 练习 7（L 类，**收尾**）：**传递的关系在复合下闭合**（`r • r ⊆ r` 的逐点形态）。
+-- soko:hint 关键件：练习 2 · 传递性假设（三个点 + 两条前提，参数写全）✓
+theorem trans_comp_apply (α : Type) (r : Rel α α)
+    (htrans : ∀ (a b c : α), r a b → r b c → r a c)
+    (a c : α) (h : (r • r) a c) : r a c := by
+  sorry
+

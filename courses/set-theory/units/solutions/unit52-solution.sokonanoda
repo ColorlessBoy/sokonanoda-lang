@@ -48,3 +48,10 @@ theorem comp_mono_left (α β γ : Type) (r r1 : Rel α β) (s : Rel β γ)
     (hr : ∀ (a : α) (b : β), r a b → r1 a b) (a : α) (c : γ) (h : (r • s) a c) :
     (r1 • s) a c :=
   comp_mono_apply α β γ r r1 s s hr (fun (b : β) (c1 : γ) => fun (hsc : s b c1) => hsc) a c h
+
+theorem trans_comp_apply (α : Type) (r : Rel α α)
+    (htrans : ∀ (a b c : α), r a b → r b c → r a c)
+    (a c : α) (h : (r • r) a c) : r a c :=
+  Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c)
+    (comp_apply_elim α α α r r a c h)
+    (fun (b : α) (hb : r a b ∧ r b c) => htrans a b c (And.left hb) (And.right hb))
