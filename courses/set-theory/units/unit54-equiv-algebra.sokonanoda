@@ -93,3 +93,15 @@ theorem equiv_refl (α : Type) (A : Set α) : A ≈ A := by
 
 theorem equiv_symm (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : B ≈ A := by
   sorry
+
+-- 练习 6（L 类）：**`≈` ⇒ `≼`**（等势比单射更强 —— 把互逆的一对里的 `f` 交出去就行）。
+-- soko:hint 思路：`Set.Equiv.elim` 拆出 `f`、`g` 与四条证据；要证 `f` 在 `A` 上单射：
+--   给定 `f x = f y`，先沿这个等式把 `g (f x) = g (f x)` **搬运**成 `g (f x) = g (f y)`，
+--   再用左逆律把两头换成 `x`、`y`。
+-- soko:hint 目标形态：`A ≈ B → A ≼ B`。
+-- soko:hint 关键件：`Set.Equiv.elim` / `Set.Le.intro` · **搬运引理 `rel_subst_right`**
+--   （关系取 `fun u v => g u = g v` ✓ —— **别用 `congrArg`** ✗：那个位置的宇宙层级解不出来，
+--   本单元实测判红过一次 ✓）· 左逆律 `hgf`（两个点各用一次，一次正一次反）✓
+theorem le_of_equiv (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : A ≼ B := by
+  sorry
+

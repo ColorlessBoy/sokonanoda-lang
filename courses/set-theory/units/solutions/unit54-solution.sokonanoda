@@ -46,3 +46,19 @@ theorem equiv_symm (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : B �
       (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β α g B A)
       (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) =>
       Set.Equiv.mk β α B A g f hg hf hfg hgf)
+
+theorem le_of_equiv (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : A ≼ B :=
+  Set.Equiv.elim α β A B (A ≼ B) h
+    (fun (f : α → β) (g : β → α)
+      (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β α g B A)
+      (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) =>
+      Set.Le.intro α β A B f
+        (fun (x : α) (hx : x ∈ A) => fun (y : α) (hy : y ∈ A) =>
+          fun (hxy : Eq.{1} β (f x) (f y)) =>  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+            Eq.trans.{1} α x (g (f y)) y
+              (Eq.trans.{1} α x (g (f x)) (g (f y))
+                (Eq.symm.{1} α (g (f x)) x (hgf x hx))
+                (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+                  (f x) (f x) (f y) hxy (Eq.refl.{1} α (g (f x)))))
+              (hgf y hy))
+        hf)
