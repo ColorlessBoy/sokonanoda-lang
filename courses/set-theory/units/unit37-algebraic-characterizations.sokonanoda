@@ -1,0 +1,175 @@
+-- ==========================================================================
+-- unit37-algebraic-characterizations.sokonanoda —— 卷 I 单元㊲ **关系的代数刻画**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§10**（复合与逆）与
+-- **§7**（等价关系）；Enderton《Elements of Set Theory》**§3.3 / §3.5**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.13 章第二个单元 —— 把 I.10 的闭包/等价关系
+-- 与 I.13 的关系代数**接起来**）。
+--
+-- 本单元的"该学的定理"（把"自反/对称/传递"翻译成**代数式子**）：
+--   · **自反 ⟺ 恒等关系含于它**（`idRel ⊆ r`）；
+--   · **对称 ⟺ 逆关系含于它**（`r ⁻¹ ⊆ r`）；
+--   · **传递 ⟺ 自复合含于它**（`r • r ⊆ r`）—— **这才是"传递"的代数形状**；
+--   · **旗舰：三条合起来就是等价关系**（反方向：三个代数条件 ⇒ 等价关系）；
+--   · **等价关系的自复合是幂等的**（`r • r ⊆ r` 且 `r ⊆ r • r`）✓
+--
+-- ⚠ **本单元的"读法"**：`idRel` 是画布给的（复合的单位元，单元㊱ 已用）；三个刻画都写成
+--   **逐点**形态（`∀ a b, … → …`），因为它们要与 `Reflexive`/`Symmetric`/`Transitive`
+--   （都是 `∀`）对接 ✓ 想要"关系相等"的写法就套 `Rel.ext`（库里的公理）✓
+--
+-- ⚠ **实测的写法教训（都写进 hint）**：
+--   ① **`Iff.mp` / `Iff.mpr` 在这些位置解不出**（「期望 `Sort(1)`，实际是 `Rel α α`」）⇒
+--      取用子**直接重证一遍**更稳（本单元的 `comp_self_subset_of_trans` 等三条就是这么写的）；
+--   ② **一个巨大的 `↔`（右边还套三层 `∧`）写不出来** ⇒ 拆成"四个小定理"（三个取用子 + 一个反方向）✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Rel`（`•`/`⁻¹`）· `lib.Order`（自反/对称/传递/等价）· `lib.Set`。
+--
+-- 依赖：单元㊱（关系的代数）与单元㉕（等价关系）—— 本单元把两者接起来。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 37.0 画布给的新词汇（与单元㊱ 同名同义）：**恒等关系**
+-- ─────────────────────────────────────────────────────────────
+def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+
+-- ─────────────────────────────────────────────────────────────
+-- 37.1 三条库引理（自复合、逆、等价关系的展开）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：自复合的成员刻画（"中间有一个点接得上"）。
+theorem demo_mem_comp (α : Type) (r : Rel α α) (a c : α) :
+    (r • r) a c ↔ ∃ (b : α), r a b ∧ r b c :=
+  Rel.comp_apply r r a c
+
+-- 演示：逆关系的成员刻画。
+theorem demo_mem_inv (α : Type) (r : Rel α α) (b a : α) :
+    (r ⁻¹) b a ↔ r a b :=
+  Rel.inv_apply α α r b a
+
+-- 演示：等价关系的展开（自反 ∧ 对称 ∧ 传递）。
+theorem demo_isEquivalence_def (α : Type) (r : Rel α α) :
+    IsEquivalence α r ↔ (Reflexive α r ∧ Symmetric α r ∧ Transitive α r) :=
+  isEquivalence_def α r
+
+-- ─────────────────────────────────────────────────────────────
+-- 37.2 三个刻画：**把"自反/对称/传递"翻译成代数式子**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（L 类，旗舰之一）：**自反 ⟺ 恒等关系含于它**。
+-- soko:hint 思路：→：自反在每个点上给出 `r a a`；←：把假设用在 `a = a`（自反）上。
+-- soko:hint 目标形态：`Reflexive α r ↔ ∀ a, (idRel α) a a → r a a`。
+-- soko:hint 关键件：`Iff.intro`（**前导 Prop 实参写全**）· 自反假设**先 λ 绑定再应用**（G-73 形状 ①）·
+--   `Eq.refl`（写全宇宙层级与论域）✓
+theorem refl_iff_idRel_subset (α : Type) (r : Rel α α) :
+    Reflexive α r ↔ ∀ (a : α), (idRel α) a a → r a a := by
+  sorry
+
+-- 练习 2（L 类，旗舰之一）：**对称 ⟺ 逆关系含于它**。
+-- soko:hint 思路：→：给定 `r b a`（即 `(r ⁻¹) a b`），用对称性掉头；←：给定 `r a b`，
+--   把假设用在**掉头后的那一对**上。
+-- soko:hint 目标形态：`Symmetric α r ↔ ∀ a b, (r ⁻¹) a b → r a b`。
+-- soko:hint 关键件：`Iff.intro` · 对称假设**先 λ 绑定再应用** · 注意两个方向里
+--   **点的顺序要换**（一侧是 `(a, b)`、另一侧是 `(b, a)`）✓
+theorem symm_iff_inv_subset (α : Type) (r : Rel α α) :
+    Symmetric α r ↔ ∀ (a : α) (b : α), (r ⁻¹) a b → r a b := by
+  sorry
+
+-- 练习 3（L 类，**本单元旗舰之一**）：**传递 ⟺ 自复合含于它**。
+-- soko:hint 思路：→：把 `∃ b, r a b ∧ r b c` 拆出来，用传递性接上；←：给定 `r a b` 与 `r b c`，
+--   用 `b` 当见证造出那个 `∃`，再交给假设。
+-- soko:hint 目标形态：`Transitive α r ↔ ∀ a c, (r • r) a c → r a c`。
+-- soko:hint 关键件：`Iff.intro` · `Exists.elim`/`Exists.intro`（**前导实参写全**）·
+--   传递假设**先 λ 绑定再应用**（它有三个点参数 · 两条前提）· `And.left`/`And.right` ✓
+theorem trans_iff_comp_subset (α : Type) (r : Rel α α) :
+    Transitive α r ↔ ∀ (a : α) (c : α), (r • r) a c → r a c := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 37.3 三个方向的取用子（写成单独的定理，好用）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（T 类）：**传递 ⇒ 自复合含于它**（练习 3 的正方向）。
+-- soko:hint 思路：**不要走 `Iff.mp`** —— 实测那里解不出（「期望 `Sort(1)`，实际是 `Rel α α`」）；
+--   直接把练习 3 正方向的证明重写一遍即可（只有一行 `Exists.elim`）。
+-- soko:hint 目标形态：`Transitive α r → ∀ a c, (r • r) a c → r a c`。
+-- soko:hint 关键件：`Exists.elim`（前导实参写全）· 传递假设先 λ 绑定 ✓
+theorem comp_self_subset_of_trans (α : Type) (r : Rel α α) (h : Transitive α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c := by
+  sorry
+
+-- 练习 5（T 类）：**对称 ⇒ 逆关系含于它**（练习 2 的正方向；同样直接重证）。
+-- soko:hint 思路：给定 `(r ⁻¹) a b`（定义上就是 `r b a`），用对称性掉头。
+-- soko:hint 目标形态：`Symmetric α r → ∀ a b, (r ⁻¹) a b → r a b`。
+-- soko:hint 关键件：对称假设先 λ 绑定 ✓
+theorem inv_subset_of_symm (α : Type) (r : Rel α α) (h : Symmetric α r) :
+    ∀ (a : α) (b : α), (r ⁻¹) a b → r a b := by
+  sorry
+
+-- 练习 6（T 类）：**自反 ⇒ 恒等关系含于它**（练习 1 的正方向）。
+-- soko:hint 思路：自反在每个点上给出 `r a a`，与那个等式无关（等式位是自由位）。
+-- soko:hint 目标形态：`Reflexive α r → ∀ a, (idRel α) a a → r a a`。
+-- soko:hint 关键件：自反假设先 λ 绑定再应用 ✓
+theorem idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α), (idRel α) a a → r a a := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 37.4 反方向：**自反 ⇒ `r ⊆ r • r`**（自复合变大）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（L 类）：**自反 ⇒ `r` 含于自复合**（见证取点自己）。
+-- soko:hint 思路：给定 `r a c`，见证取 `a`：需要 `r a a`（自反）与 `r a c`（假设）。
+-- soko:hint 目标形态：`Reflexive α r → ∀ a c, r a c → (r • r) a c`。
+-- soko:hint 关键件：`Exists.intro`（**前导实参写全**）· `And.intro`（前导 Prop 实参写全）·
+--   自反假设先 λ 绑定 ✓
+theorem subset_comp_self_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α) (c : α), r a c → (r • r) a c := by
+  sorry
+
+-- 练习 8（L 类）：**自反 ⇒ `idRel • r ⊆ r`**（把单位元那一侧消化掉）—— 单元㊱ 练习 9 的同款。
+-- soko:hint 思路：拆开 `∃`，沿 `a = a1` 把 `r a1 b` 搬成 `r a b`（改的是**第一个坐标**）。
+-- soko:hint 目标形态：`Reflexive α r → ∀ a b, (idRel α • r) a b → r a b`。
+-- soko:hint 关键件：`Exists.elim`（前导实参写全）· **改第一个坐标要把关系翻过来**：用
+--   `rel_subst_right`、关系取 `fun u v => r v b`、等式取 `Eq.symm`（实测直接写会判红）✓
+theorem comp_idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α) (b : α), (idRel α • r) a b → r a b := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 37.5 旗舰：**三个代数条件 ⇔ 等价关系**（拆成两条，别写成一个巨大的 `↔`）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（D 类，**本单元旗舰**）：**三个代数条件合起来 ⇒ 等价关系**。
+-- soko:hint 思路：用智能构造子把三条打包 ——
+--   ①自反：把条件 1 用在 `a` 与 `a = a` 上；②对称：把条件 2 用在**掉头的**一对上；
+--   ③传递：先造出 `∃ b, r a b ∧ r b c`（见证取 `b`），再交给条件 3。
+-- soko:hint 目标形态：`(∀ a, idRel a a → r a a) → (∀ a b, (r ⁻¹) a b → r a b) →
+--   (∀ a c, (r • r) a c → r a c) → IsEquivalence α r`。
+-- soko:hint 关键件：`isEquivalence_intro`（参数：论域 · 关系 · 自反 · 对称 · 传递）·
+--   `Exists.intro`/`And.intro`（前导实参写全）· `Eq.refl` ✓
+--   ⚠ **不要把三条打包成一个巨大的 `↔`**（右边还套三层 `∧`）—— 实测那个形态**写不出来** ⇒
+--   解答里拆成了"三个取用子 + 本定理"四条 ✓
+theorem algebraic_is_equivalence (α : Type) (r : Rel α α)
+    (h1 : ∀ (a : α), (idRel α) a a → r a a)
+    (h2 : ∀ (a : α) (b : α), (r ⁻¹) a b → r a b)
+    (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
+    IsEquivalence α r := by
+  sorry
+
+-- 练习 10（D 类）：**等价关系的自复合是幂等的**（两个方向都成立）。
+-- soko:hint 思路：→：传递性（练习 4 那条取用子的等价物，这里可直接用 `equivalence_trans`）；
+--   ←：自反性（练习 7）。
+-- soko:hint 目标形态：`IsEquivalence α r → (∀ a c, (r • r) a c → r a c) ∧ (∀ a c, r a c → (r • r) a c)`。
+-- soko:hint 关键件：`And.intro`（前导 Prop 实参写全）· **等价关系的三条取用子**
+--   （`equivalence_refl` / `equivalence_trans`，都是定义头 ⇒ 先 λ 绑定）· 练习 4 · 练习 7 ✓
+--   ⚠ 标题里的"幂等"是**集合层面的等式**（`r • r = r`，要 `Rel.ext`）；本练习写成**两个方向
+--   的逐点形态**，因为那是下面最常用的形状 ✓
+theorem equivalence_comp_idempotent (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    (∀ (a : α) (c : α), (r • r) a c → r a c) ∧ (∀ (a : α) (c : α), r a c → (r • r) a c) := by
+  sorry

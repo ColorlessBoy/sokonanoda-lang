@@ -483,10 +483,12 @@
             "relation-algebra",
             "composition",
             "inverse-relation",
-            "identity-relation"
+            "identity-relation",
+            "algebraic-characterization",
+            "reflexive-symmetric-transitive"
           ],
           "quota": {
-            "exercises": 10
+            "exercises": 20
           },
           "units": [
             {
@@ -494,6 +496,12 @@
               "title": "单元㊱ 关系的代数",
               "title_en": "Unit 36 — Algebra of Relations",
               "unit": 36
+            },
+            {
+              "file": "units/unit37-algebraic-characterizations.sokonanoda",
+              "title": "单元㊲ 关系的代数刻画",
+              "title_en": "Unit 37 — Algebraic Characterizations of Relation Properties",
+              "unit": 37
             }
           ]
         }

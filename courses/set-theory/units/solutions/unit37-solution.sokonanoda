@@ -1,0 +1,114 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+theorem demo_mem_comp (α : Type) (r : Rel α α) (a c : α) :
+    (r • r) a c ↔ ∃ (b : α), r a b ∧ r b c :=
+  Rel.comp_apply r r a c
+
+theorem demo_mem_inv (α : Type) (r : Rel α α) (b a : α) :
+    (r ⁻¹) b a ↔ r a b :=
+  Rel.inv_apply α α r b a
+
+theorem demo_isEquivalence_def (α : Type) (r : Rel α α) :
+    IsEquivalence α r ↔ (Reflexive α r ∧ Symmetric α r ∧ Transitive α r) :=
+  isEquivalence_def α r
+
+def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem refl_iff_idRel_subset (α : Type) (r : Rel α α) :
+    Reflexive α r ↔ ∀ (a : α), (idRel α) a a → r a a :=
+  Iff.intro (Reflexive α r) (∀ (a : α), (idRel α) a a → r a a)
+    (fun (h : Reflexive α r) => fun (a : α) => fun (ha : (idRel α) a a) =>
+      (fun (hu : ∀ (x : α), r x x) => hu a) h)
+    (fun (h : ∀ (a : α), (idRel α) a a → r a a) => fun (a : α) =>
+      h a (Eq.refl.{1} α a))
+
+theorem symm_iff_inv_subset (α : Type) (r : Rel α α) :
+    Symmetric α r ↔ ∀ (a : α) (b : α), (r ⁻¹) a b → r a b :=
+  Iff.intro (Symmetric α r) (∀ (a : α) (b : α), (r ⁻¹) a b → r a b)
+    (fun (h : Symmetric α r) => fun (a : α) => fun (b : α) => fun (hab : (r ⁻¹) a b) =>
+      (fun (hu : ∀ (x : α) (y : α), r x y → r y x) => hu b a hab) h)
+    (fun (h : ∀ (a : α) (b : α), (r ⁻¹) a b → r a b) =>
+      fun (a : α) => fun (b : α) => fun (hab : r a b) => h b a hab)
+
+theorem trans_iff_comp_subset (α : Type) (r : Rel α α) :
+    Transitive α r ↔ ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  Iff.intro (Transitive α r) (∀ (a : α) (c : α), (r • r) a c → r a c)
+    (fun (h : Transitive α r) => fun (a : α) => fun (c : α) => fun (hac : (r • r) a c) =>
+      Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c) hac
+        (fun (b : α) (hb : r a b ∧ r b c) =>
+          (fun (hu : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+            hu a b c (And.left hb) (And.right hb)) h))
+    (fun (h : ∀ (a : α) (c : α), (r • r) a c → r a c) =>
+      fun (a : α) => fun (b : α) => fun (c : α) => fun (hab : r a b) => fun (hbc : r b c) =>
+        h a c (Exists.intro α (fun (b1 : α) => r a b1 ∧ r b1 c) b
+          (And.intro (r a b) (r b c) hab hbc)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem comp_self_subset_of_trans (α : Type) (r : Rel α α) (h : Transitive α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  fun (a : α) => fun (c : α) => fun (hac : (r • r) a c) =>
+    Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c) hac
+      (fun (b : α) (hb : r a b ∧ r b c) =>
+        (fun (hu : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+          hu a b c (And.left hb) (And.right hb)) h)
+
+theorem inv_subset_of_symm (α : Type) (r : Rel α α) (h : Symmetric α r) :
+    ∀ (a : α) (b : α), (r ⁻¹) a b → r a b :=
+  fun (a : α) => fun (b : α) => fun (hab : (r ⁻¹) a b) =>
+    (fun (hu : ∀ (x : α) (y : α), r x y → r y x) => hu b a hab) h
+
+theorem idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α), (idRel α) a a → r a a :=
+  fun (a : α) => fun (ha : (idRel α) a a) =>
+    (fun (hu : ∀ (x : α), r x x) => hu a) h
+
+theorem subset_comp_self_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α) (c : α), r a c → (r • r) a c :=
+  fun (a : α) => fun (c : α) => fun (hac : r a c) =>
+    Exists.intro α (fun (b : α) => r a b ∧ r b c) a
+      (And.intro (r a a) (r a c) ((fun (hu : ∀ (x : α), r x x) => hu a) h) hac)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem comp_idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α) (b : α), (idRel α • r) a b → r a b :=
+  fun (a : α) => fun (b : α) => fun (hab : (idRel α • r) a b) =>
+    Exists.elim α (fun (a1 : α) => (idRel α) a a1 ∧ r a1 b) (r a b) hab
+      (fun (a1 : α) (ha : (idRel α) a a1 ∧ r a1 b) =>
+        rel_subst_right α (fun (u : α) (v : α) => r v b) a1 a1 a
+          (Eq.symm.{1} α a a1 (And.left ha)) (And.right ha))
+
+theorem equivalence_refl_algebraic (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    ∀ (a : α), (idRel α) a a → r a a :=
+  idRel_subset_of_refl α r (equivalence_refl α r h)
+
+theorem equivalence_symm_algebraic (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    ∀ (a : α) (b : α), (r ⁻¹) a b → r a b :=
+  inv_subset_of_symm α r (equivalence_symm α r h)
+
+theorem equivalence_trans_algebraic (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  comp_self_subset_of_trans α r (equivalence_trans α r h)
+
+theorem algebraic_is_equivalence (α : Type) (r : Rel α α)
+    (h1 : ∀ (a : α), (idRel α) a a → r a a)
+    (h2 : ∀ (a : α) (b : α), (r ⁻¹) a b → r a b)
+    (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
+    IsEquivalence α r :=
+  isEquivalence_intro α r
+    (fun (a : α) => h1 a (Eq.refl.{1} α a))
+    (fun (a : α) (b : α) => fun (hab : r a b) => h2 b a hab)
+    (fun (a : α) (b : α) (c : α) => fun (hab : r a b) => fun (hbc : r b c) =>
+      h3 a c (Exists.intro α (fun (b1 : α) => r a b1 ∧ r b1 c) b
+        (And.intro (r a b) (r b c) hab hbc)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem equivalence_comp_subset (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  comp_self_subset_of_trans α r (equivalence_trans α r h)
+
+theorem equivalence_comp_idempotent (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    (∀ (a : α) (c : α), (r • r) a c → r a c) ∧ (∀ (a : α) (c : α), r a c → (r • r) a c) :=
+  And.intro (∀ (a : α) (c : α), (r • r) a c → r a c)
+    (∀ (a : α) (c : α), r a c → (r • r) a c)
+    (equivalence_comp_subset α r h)
+    (subset_comp_self_of_refl α r (equivalence_refl α r h))
