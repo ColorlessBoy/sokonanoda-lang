@@ -90,6 +90,171 @@ pub struct QueryDoc {
     /// 修之前：非 `by` 的开放练习在 Infoview 顶部显示的是**未折**的
     /// `Prop -> Prop`（`state_at` 对无 `by_steps` 的声明退回 `d.goal` ✗）。
     display: crate::display::DisplayNotations,
+    /// **S2 步 3**：入口的增量状态（跨 `set_text` 存活）。
+    ///
+    /// 为什么需要它：闭包编译今天对入口走**整份重查** ⇒ 改一个 `theorem` 要把前面
+    /// 所有声明重查一遍（实测 unit08 改一行 **2189ms**，且与改动位置无关）。
+    /// `EntryTrust` 能跳过前缀的**内核检查**，但被跳过那段**不进报告** ⇒ 必须有
+    /// 地方存着它，下一轮拼回去（见 [`EntryCache`]）。
+    entry_cache: Option<EntryCache>,
+    /// 最近一次项目编译里**被信任的前缀命令数**（= 跳过了多少次内核检查）。
+    ///
+    /// 只给判据用（`#[doc(hidden)]` 的 [`Self::trusted_prefix_len`]）：它是
+    /// "改一个声明到底少查了多少"的**直接结构读数**，与墙钟无关。
+    last_trusted_prefix: usize,
+}
+
+/// 入口的增量缓存（S2 步 3）。**只在项目模式**用。
+///
+/// 存两样：
+/// * 上一版入口命令的**文本与起点** —— 用来算 `before`（首个改动命令）。信任前缀
+///   要求这段命令**文本与位置都没变**（位置变了就不能拿旧 span 当新 span 用）；
+/// * 上一版入口**报告全文** —— 用来把被信任那段拼回新一轮的报告（信任段不重查
+///   ⇒ 不产生新报告）。
+#[derive(Debug, Clone, Default)]
+struct EntryCache {
+    keys: Vec<String>,
+    starts: Vec<usize>,
+    report: crate::compile::DocumentReport,
+}
+
+/// 入口的**命令布局**：每条命令的源文本 + 起点字节偏移。
+///
+/// ⚠ **必须用 `plan` 里已经解析好的入口**，不能自己对 `text` 调 `parse` ——
+/// 入口常常用了 **`import` 来的记法**（`a ≈ b`），**单独 parse 必失败**
+/// （`notation-unknown-symbol`，G-04 第二刀；实测撞到：这样拿到的 `layout` 恒
+/// `None` ⇒ 前缀一次都信任不了 ✗）。闭包编译本来就用"带上依赖记法"的方式解析
+/// 了入口 ⇒ 直接读那一份，零额外解析，且**与编译器看到的命令边界逐条一致** ✓。
+///
+/// `None` = 入口不在闭包里 / 没解析出命令 ⇒ 调用方**不信任任何前缀**
+/// （没有对齐依据，猜就是静默错编）。
+fn entry_command_layout(
+    plan: &crate::project::ProjectPlan,
+    entry: &std::path::Path,
+) -> Option<(Vec<String>, Vec<usize>)> {
+    let module = plan.modules().iter().find(|m| m.path == entry)?;
+    let src = &module.file.src;
+    if module.file.commands.is_empty() {
+        return None;
+    }
+    let keys = module
+        .file
+        .commands
+        .iter()
+        .map(|c| src[c.span().start.offset..c.span().end.offset].to_string())
+        .collect();
+    let starts = module
+        .file
+        .commands
+        .iter()
+        .map(|c| c.span().start.offset)
+        .collect();
+    Some((keys, starts))
+}
+
+impl EntryCache {
+    /// 新一轮文本下，**首个改动命令**的下标（= 可信任的前缀长度）。
+    ///
+    /// 只在**文本与起点都逐条相同**时才认前缀 —— 起点不同意味着前面的编辑把命令
+    /// 挪了位，旧报告里的 span 就不能当新的用。**算错不是崩，是静默错编**（设计
+    /// `docs/design/declaration-incremental.md` §4.2）⇒ 这里宁可不信任（返回 0）。
+    fn trusted_prefix(&self, keys: &[String], starts: &[usize]) -> usize {
+        let mut before = 0;
+        while before < keys.len() && before < self.keys.len() {
+            if keys[before] != self.keys[before] || starts[before] != self.starts[before] {
+                break;
+            }
+            before += 1;
+        }
+        before
+    }
+
+    /// 被信任那段里**上一轮判负**的命令 → 它的错误。
+    ///
+    /// 为什么要传下去（`prefix_failures`）：check-then-add 语义下，判负的名字必须
+    /// 保持"自由"，否则下游会看见上一轮的残留声明 ⇒ 判定分叉。
+    fn failures(&self, before: usize) -> crate::compile::KernelFailed {
+        self.report
+            .decls
+            .iter()
+            .filter(|d| d.cmd < before && d.status == crate::compile::DeclStatus::Failed)
+            .filter_map(|d| d.error.clone().map(|e| (d.cmd, e)))
+            .collect()
+    }
+
+    /// 前缀最后一个命令的结束偏移（把 `errors`/`warnings` 按 span 归属到前缀）。
+    fn prefix_end(&self, before: usize) -> usize {
+        if before == 0 {
+            return 0;
+        }
+        self.starts[before - 1] + self.keys[before - 1].len()
+    }
+}
+
+/// **把缓存的前缀拼回新报告**（S2 步 3 的核心，也是最容易错的一步）。
+///
+/// `fresh` 只含**新查的那一段**（命令号 ≥ `before`；命令号是**入口自己的**坐标系）。
+/// 拼法逐字段不同，因为**归属信息**不同：
+/// * `decls` / `checks` —— 自带 `cmd` ⇒ 按 `cmd < before` 取；
+/// * `hovers` —— `hover_cmds` 与它平行 ⇒ 按同一条件取（两份要一起搬，否则错位 ✗）；
+/// * `errors` / `warnings` —— **没有 cmd** ⇒ 按 **span 起点 < 前缀结束偏移** 取
+///   （前缀命令的文本与位置都没变 ⇒ 这个判据是精确的）。
+///
+/// 顺序：前缀在前、新查段在后；`decls` 最后再按 span 起点排一次 —— 与
+/// `run_pass_with` 里那句 `sort_by_key(span.start.offset)` 同口径。
+fn splice_entry_report(
+    cache: &EntryCache,
+    before: usize,
+    mut fresh: crate::compile::DocumentReport,
+) -> crate::compile::DocumentReport {
+    use crate::compile::DocumentReport;
+    let end = cache.prefix_end(before);
+    let mut out = DocumentReport {
+        decls: cache
+            .report
+            .decls
+            .iter()
+            .filter(|d| d.cmd < before)
+            .cloned()
+            .collect(),
+        hovers: Vec::new(),
+        hover_cmds: Vec::new(),
+        errors: cache
+            .report
+            .errors
+            .iter()
+            .filter(|e| e.span.start.offset < end)
+            .cloned()
+            .collect(),
+        checks: cache
+            .report
+            .checks
+            .iter()
+            .filter(|c| c.cmd < before)
+            .cloned()
+            .collect(),
+        warnings: cache
+            .report
+            .warnings
+            .iter()
+            .filter(|w| w.span.start.offset < end)
+            .cloned()
+            .collect(),
+    };
+    for (i, hover) in cache.report.hovers.iter().enumerate() {
+        if cache.report.hover_cmds.get(i).is_some_and(|c| *c < before) {
+            out.hovers.push(hover.clone());
+            out.hover_cmds.push(cache.report.hover_cmds[i]);
+        }
+    }
+    out.decls.append(&mut fresh.decls);
+    out.hovers.append(&mut fresh.hovers);
+    out.hover_cmds.append(&mut fresh.hover_cmds);
+    out.errors.append(&mut fresh.errors);
+    out.checks.append(&mut fresh.checks);
+    out.warnings.append(&mut fresh.warnings);
+    out.decls.sort_by_key(|d| d.span.start.offset);
+    out
 }
 
 impl Default for QueryDoc {
@@ -115,6 +280,8 @@ impl QueryDoc {
             project_reason: None,
             closure_decls: Vec::new(),
             display: crate::display::DisplayNotations::default(),
+            entry_cache: None,
+            last_trusted_prefix: 0,
         }
     }
 
@@ -147,7 +314,7 @@ impl QueryDoc {
         // **先算闭包**：它成功时下面那次单文件全量编译会被整个覆盖 ⇒ 纯浪费
         // （T-A20）。实测：项目模式一次 `set_text` 原本要**编两遍**——先编一遍
         // 入口单文件、再编整个闭包，然后把前者的报告与事件全丢掉。
-        self.project = self.project_compile(text);
+        self.project = self.project_compile_incremental(text);
         self.closure_decls = Self::compute_closure_decls(&self.project);
         self.display = Self::compute_display(&self.project, text);
         let project_entry_report = self
@@ -267,9 +434,78 @@ impl QueryDoc {
 
     /// 文本里有 `import` 且能定位入口（`--file` 或 `--root`）时，编译整个
     /// 闭包并返回项目报告；否则 `None`（单文件路径，行为与今天一致）。
-    fn project_compile(&self, text: &str) -> Option<crate::project::ProjectReport> {
+    fn project_compile_incremental(&mut self, text: &str) -> Option<crate::project::ProjectReport> {
         // `is_project_source`：parse 失败时退回 `import` 代码行扫描——入口用了
         // 依赖声明的记法时（G-04 第二刀），单独 parse 失败但闭包能编。
+        if !crate::project::is_project_source(text) {
+            return None;
+        }
+        let root = self.root.as_deref();
+        let path = self
+            .path
+            .clone()
+            .or_else(|| root.map(|root| root.join("Main.sokonanoda")))?;
+        let options = self.options();
+        let plan =
+            crate::project::plan_project_with_overlay(&path, Some(text), root, &self.overlay);
+        // 入口命令的文本与起点：拿不到对齐依据 ⇒ 不信任（`before = 0`）。
+        let layout = entry_command_layout(&plan, &path);
+        // **先把 `before` 与要拼的前缀算出来**，再借出去编译（`entry_cache` 之后要写回）。
+        let (trust, prefix) = match (&self.entry_cache, &layout) {
+            (Some(cache), Some((keys, starts))) => {
+                let before = cache.trusted_prefix(keys, starts);
+                if before == 0 {
+                    (None, None)
+                } else {
+                    (
+                        Some(crate::project::session::EntryTrust {
+                            plan: crate::compile::TrustPlan {
+                                before,
+                                prev_signatures: Vec::new(),
+                                text_unchanged: Vec::new(),
+                                // 本片**不开** early cutoff：只做"前缀不重查"
+                                // （值级复用是 S4，见设计 §6）。
+                                allow_cutoff: false,
+                            },
+                            failures: cache.failures(before),
+                        }),
+                        Some((cache.clone(), before)),
+                    )
+                }
+            }
+            _ => (None, None),
+        };
+        self.last_trusted_prefix = prefix.as_ref().map_or(0, |(_, before)| *before);
+
+        let report = match prefix {
+            Some((cache, before)) => {
+                let splice = move |fresh: crate::compile::DocumentReport| {
+                    splice_entry_report(&cache, before, fresh)
+                };
+                crate::project::compile_plan_incremental(plan, &options, trust, Some(&splice))
+            }
+            None => crate::project::compile_plan_with_progress(plan, &options, None),
+        };
+        // 缓存这一版（下一轮的信任依据）。入口报告拿不到（被阻断等）⇒ 清缓存，
+        // 下一轮老老实实整份重查。
+        self.entry_cache = match (layout, report.entry_report()) {
+            (Some((keys, starts)), Some(entry)) => Some(EntryCache {
+                keys,
+                starts,
+                report: entry.clone(),
+            }),
+            _ => None,
+        };
+        Some(report)
+    }
+
+    /// **整份重查**的闭包编译（合成文本用）。
+    ///
+    /// ⚠ 与 [`Self::project_compile_incremental`] 的分工：那条按**文档文本**的命令
+    /// 布局算信任前缀，只对"用户缓冲区那份文本"成立。`reduce` 传的是
+    /// `self.text + "#reduce …"` 这种**合成文本** ⇒ 命令布局对不上缓存
+    /// ⇒ **必须**走这条整份重查（否则信任前缀会把合成文本的段当成文档的段 ✗）。
+    fn project_compile(&self, text: &str) -> Option<crate::project::ProjectReport> {
         if !crate::project::is_project_source(text) {
             return None;
         }
@@ -285,6 +521,17 @@ impl QueryDoc {
             root,
             &self.overlay,
         ))
+    }
+
+    /// **S2 步 3 的结构读数**（判据用，`#[doc(hidden)]`）：最近一次项目编译里
+    /// **被信任的前缀命令数** —— 也就是"这一次跳过了多少条命令的内核检查"。
+    ///
+    /// 与 `judge::infer_totals` 的分工：那个数的是**判定内部**重跑前缀的趟数
+    /// （G-29 的另一个面）；这个数的是**闭包编译**跳过了多少条 —— 两条一起才
+    /// 说清"一次按键到底少干了多少活"。
+    #[doc(hidden)]
+    pub fn trusted_prefix_len(&self) -> usize {
+        self.last_trusted_prefix
     }
 
     /// **判据前缀**：`judge_*` 合成文件时要放在文档前缀之前的"闭包上下文"。

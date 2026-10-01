@@ -945,6 +945,7 @@ fn run_pass_in<'a>(
         progress,
         None,
         None,
+        None,
     )
     .0
 }
@@ -1000,6 +1001,9 @@ pub(crate) fn run_pass_with<'a, 's>(
     // 见 §29）。`None` ⇒ 按 `units` 自己算（**今天的行为，逐字节不变** ✓）。
     closure_prefixes_override: Option<&[String]>,
     display_override: Option<&crate::display::DisplayNotations>,
+    // **切片 1b 的入口趟**：跨模块 hover 回填用的 `名字 → 定义 span` 表。
+    // `None` ⇒ 按 `units` 自己算（**今天的行为，逐字节不变** ✓）。
+    defs_override: Option<&std::collections::HashMap<String, crate::Span>>,
 ) -> (PassResult, EnvBuilder<'a>, PassTables<'a>)
 where
     'a: 's,
@@ -1182,6 +1186,7 @@ where
         decl_states: walk.decl_states,
         failed_cmds,
         kernel_checks,
+        defs_override,
     });
     // **切片 1b**：把 prelude 登记表从 walk 取回 ⇒ 交回调用方（session 跨趟复用）。
     let tables = PassTables {

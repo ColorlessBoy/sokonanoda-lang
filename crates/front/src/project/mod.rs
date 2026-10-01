@@ -454,6 +454,58 @@ pub fn merge_session_reports(
         .collect()
 }
 
+/// **S2 步 3 的接线口**：闭包编译走「库层一趟 + 入口一趟（可带**信任前缀**）」，
+/// 组装成与 [`compile_plan_with_progress`] **同形**的 `ProjectReport`。
+///
+/// **为什么不复用 [`compile_plan_with_progress`]**：那一条把**所有单元**塞进**一趟**
+/// `run`（`compile_all_units_with_progress`）⇒ 入口拿不到信任前缀（库层命令排在它
+/// 前面，一旦信任整段都被跳过，而它们的报告没人补）✗。这一条用
+/// [`crate::project::session::with_project_session_trusted`]：库层一趟、入口各自一趟
+/// ⇒ `EntryTrust.plan.before` 落在**入口自己的命令空间**里（设计
+/// `docs/design/declaration-incremental.md` §4.2）。
+///
+/// ⚠ **入口那一趟的报告只覆盖「新查的那一段」** —— 被信任的前缀不进报告。
+/// `splice` 就是补它的：调用方把缓存的前缀拼回一份**完整**的入口报告。
+/// 传 `None` ⇒ 用 session 交的那份（**只有新查段**，前缀会缺声明）。
+///
+/// 入口被阻断（没有可编的入口单元）⇒ 退回 [`compile_plan_with_progress`]
+/// （那才是今天的行为，不猜）。
+pub(crate) fn compile_plan_incremental(
+    mut plan: ProjectPlan,
+    options: &CompileOptions,
+    entry_trust: Option<crate::project::session::EntryTrust>,
+    splice: Option<&dyn Fn(crate::compile::DocumentReport) -> crate::compile::DocumentReport>,
+) -> ProjectReport {
+    // ⚠ **必须在跑 session 之前**（检查可能把模块标成 blocked，那会改变"编哪些模块"）。
+    precheck_plan(&mut plan, options);
+    let entry_path = plan.entry.clone();
+    let lib_units = units_for_modules(&plan, |m| m.path != entry_path);
+    let entry_units = units_for_modules(&plan, |m| m.path == entry_path);
+    if entry_units.is_empty() {
+        return compile_plan_with_progress(plan, options, None);
+    }
+    let closure_units = units_for_modules(&plan, |_| true);
+    let entries = vec![entry_units];
+    let trust = vec![entry_trust];
+    let mut reports_out: Vec<ProjectReport> = crate::project::session::with_project_session_trusted(
+        &lib_units,
+        &entries,
+        options,
+        &trust,
+        |_i, merged, fresh_entry, lib_reports, _lib_ranges, _entry_range| {
+            let mut fresh = fresh_entry.into_iter().next().unwrap_or_default();
+            let full = match splice {
+                Some(f) => f(fresh),
+                None => std::mem::take(&mut fresh),
+            };
+            let reports =
+                merge_session_reports(&closure_units, &lib_units, lib_reports, vec![full]);
+            assemble_from_session(&plan, merged, reports)
+        },
+    );
+    reports_out.pop().expect("一个入口必须回调一次")
+}
+
 pub fn assemble_from_session(
     plan: &ProjectPlan,
     flat_out: crate::compile::CompileOutput,

@@ -25,7 +25,8 @@ pub use check::{
 };
 pub use check::{module_compiles_total, note_module_compile};
 pub(crate) use check::{
-    run_incremental, run_pass_with, top_level_def_spans, KernelFailed, PassTables, TrustPlan,
+    run_incremental, run_pass_with, top_level_def_spans, top_level_def_spans_over, KernelFailed,
+    PassTables, TrustPlan,
 };
 pub(crate) use elab::canonical_ctor_name;
 pub use error::{CompileError, CompileStage, ErrorKind};

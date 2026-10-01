@@ -80,7 +80,7 @@ pub(crate) fn with_project_session_trusted<R>(
     // 它们不在 `declars` 里，检查点救不了 ✗（2026-09-29 定位）。
     let mut tables = PassTables::new();
     let (lib_pass, mut builder, lib_tables) = run_pass_with(
-        builder, None, true, tables, lib_units, options, true, None, None, None, None, None,
+        builder, None, true, tables, lib_units, options, true, None, None, None, None, None, None,
     );
     tables = lib_tables;
     // **逐模块报告**（与 `check::run` 同构）：库层那趟的报告按单元切分 ⇒ 接线方
@@ -133,6 +133,11 @@ pub(crate) fn with_project_session_trusted<R>(
             .map(|last| vec![last.clone()])
             .unwrap_or_default();
         let entry_display = crate::compile::display_notations(&entry_closure);
+        // **跨模块 hover 回填**（切片 1b 的入口趟）：`resolution` 要指向**库层**声明
+        // 的真实 span，而入口趟的 `units` 只有入口 ⇒ 不传这张表的话，入口里
+        // `Point`（来自 `import Lib`）的 hover `resolution` 会退化成 `None`
+        // ⇒ F12/高亮在跨模块名字上失效 ✗（实测：与会话外整份编译的报告因此不同）。
+        let entry_defs = crate::compile::top_level_def_spans_over(&entry_closure);
         // **S2 步 2**：该入口这一趟的信任前缀（缺省 = 整份重查，与今天逐字节相同）。
         let trusted = entry_trust.get(index).and_then(|slot| slot.as_ref());
         let (pass, next, next_tables) = run_pass_with(
@@ -148,6 +153,7 @@ pub(crate) fn with_project_session_trusted<R>(
             None,
             Some(&entry_prefixes),
             Some(&entry_display),
+            Some(&entry_defs),
         );
         builder = next;
         tables = next_tables;

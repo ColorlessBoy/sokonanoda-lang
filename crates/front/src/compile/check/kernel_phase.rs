@@ -18,6 +18,7 @@ use crate::Span;
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, EnvLimit};
 use sokonanoda::util::{ExportFile, ExprPtr};
+use std::collections::HashMap;
 
 /// 命令走完后交给内核阶段的一切（原 `run_pass` 尾部读到的全部局部变量）。
 pub(super) struct Walked<'a, 'arena> {
@@ -37,6 +38,14 @@ pub(super) struct Walked<'a, 'arena> {
     pub(super) cmd_hovers: Vec<CmdHover<'arena>>,
     pub(super) decl_states: Vec<DeclState>,
     pub(super) failed_cmds: KernelFailed,
+    /// **跨模块 hover 回填的 `名字 → 定义 span` 表**（切片 1b 的入口趟要用）。
+    ///
+    /// 为什么不直接用 `units` 自己算：入口趟的 `units` **只有入口那一个单元**
+    /// （库层已在环境里、在**别的趟**里编过）⇒ 自己算会**看不见库层的声明** ⇒
+    /// 入口里 `Point`（来自 `import Lib`）的 hover `resolution` 退化成 `None`
+    /// ⇒ **F12/高亮在跨模块名字上失效** ✗（实测：会话路径与整份编译的报告因此
+    /// 逐字节不同）。`None` ⇒ 按 `units` 自己算（**今天的行为，逐字节不变** ✓）。
+    pub(super) defs_override: Option<&'a HashMap<String, Span>>,
     pub(super) kernel_checks: usize,
 }
 
@@ -188,6 +197,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
         mut decl_states,
         mut failed_cmds,
         mut kernel_checks,
+        defs_override,
     } = walked;
     // **切片 1b**：内核阶段只**读**环境（加声明在 walk 阶段，见 `check/walk.rs` 的
     // `self.builder.add_declar(...)`）⇒ 用 `with_env` 借出即可，**不消费 builder**
@@ -516,7 +526,14 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
         // Name use → definition: top-level targets were recorded with a
         // placeholder span during elaboration; backfill them from the file's
         // name → def-span map (prelude names resolve to nothing).
-        let defs = top_level_def_spans_over(units);
+        let owned_defs;
+        let defs: &HashMap<String, Span> = match defs_override {
+            Some(d) => d,
+            None => {
+                owned_defs = top_level_def_spans_over(units);
+                &owned_defs
+            }
+        };
         for cmd in &mut cmd_hovers {
             for node in &mut cmd.nodes {
                 if let Some(ResolvedTarget::Declaration { name, .. }) = &node.resolution {

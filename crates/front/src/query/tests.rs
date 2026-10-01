@@ -1449,3 +1449,183 @@ fn an_entry_whose_closure_also_fails_stays_not_parsable() {
     );
     assert_eq!(doc.holes().unwrap_err(), QueryError::NotParsable);
 }
+
+// ── S2 步 3：入口的信任前缀（设计 `docs/design/declaration-incremental.md` §4/§6）──
+
+/// 合成项目夹具（`Lib ← Main`，12 条 theorem）—— 不依赖课程目录。
+fn project_fixture(tag: &str) -> (std::path::PathBuf, String) {
+    let dir = std::env::temp_dir().join(format!("soko-query-s2-{tag}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("mkdir");
+    std::fs::write(dir.join("sokonanoda.toml"), "name = \"s2-fixture\"\n").expect("manifest");
+    std::fs::write(
+        dir.join("Lib.sokonanoda"),
+        "def Point : Type := Nat\n\ninfix:50 \" ≈ \" => Eq\n",
+    )
+    .expect("lib");
+    let mut main = String::from("import Lib\n\n");
+    for i in 0..12 {
+        main.push_str(&format!(
+            "theorem t{i:02} (a b : Point) (h : a ≈ b) : a ≈ b := h\n\n"
+        ));
+    }
+    let entry = dir.join("Main.sokonanoda");
+    std::fs::write(&entry, &main).expect("entry");
+    (entry, main)
+}
+
+fn open_project(entry: &std::path::Path, text: &str) -> QueryDoc {
+    let mut doc = QueryDoc::new();
+    doc.path = Some(entry.to_path_buf());
+    doc.set_text(text, 1, None);
+    doc
+}
+
+/// 改第 `index` 条 theorem 的**名字**（最干净的一次按键：只动一个标识符）。
+fn rename_decl(text: &str, index: usize) -> String {
+    text.replacen(
+        &format!("theorem t{index:02} "),
+        &format!("theorem t{index:02}x "),
+        1,
+    )
+}
+
+/// **S2 步 3 的验收（结构计数 + 内容级零回归）**：
+/// ① 改**最后一条**声明 ⇒ 前缀全被信任（只重查它自己）；
+/// ② 改**第一条** ⇒ 一个都不信任（后缀全查）；
+/// ③ 两条路产出的报告与"整份重查"**逐字节相同**（信任前缀不许改判定）。
+#[test]
+fn entry_trust_skips_the_prefix_only_when_it_is_unchanged() {
+    let (entry, text) = project_fixture("prefix");
+    let mut doc = open_project(&entry, &text);
+    assert_eq!(
+        doc.trusted_prefix_len(),
+        0,
+        "第一次编译没有上一版可比 ⇒ 一条都不许信任"
+    );
+
+    // ① 改最后一条：前缀 = 除最后一条以外的全部命令。
+    let last = rename_decl(&text, 11);
+    doc.set_text(&last, 2, None);
+    let trusted_last = doc.trusted_prefix_len();
+    assert!(
+        trusted_last >= 11,
+        "改**最后一条**时前缀应当几乎全被信任（含 `import`），实测 {trusted_last}"
+    );
+
+    // ② 改第一条**声明**：可信任的只剩命令 0 的 `import`（它没变）——第一条
+    //    theorem 自己就是改动点，所以它和它后面全部要重查。
+    doc.set_text(&text, 3, None); // 回原样（这一次是"文本没变"的短路）
+    let first = rename_decl(&text, 0);
+    doc.set_text(&first, 4, None);
+    assert_eq!(
+        doc.trusted_prefix_len(),
+        1,
+        "改第一条**声明**时只该信任命令 0 的 `import`（它没变）；实测 {}",
+        doc.trusted_prefix_len()
+    );
+
+    // ③ **内容级**：增量产出的报告必须与"整份重查"逐字节相同。
+    //    对照 = 一个全新的 QueryDoc（无缓存 ⇒ 走整份重查）。
+    let fresh = open_project(&entry, &last);
+    let incremental = doc_report_of(&entry, &text, &last);
+    let full = fresh.report.as_ref().expect("full report");
+    let inc = incremental.report.as_ref().expect("incremental report");
+    // 逐字段比（`Debug` 整串比对在失败时会把整份报告倒出来，读不了）。
+    let sig = |r: &crate::compile::DocumentReport| {
+        (
+            r.decls
+                .iter()
+                .map(|d| {
+                    (
+                        d.name.clone(),
+                        format!("{:?}", d.status),
+                        d.span.start.offset,
+                    )
+                })
+                .collect::<Vec<_>>(),
+            r.hovers.len(),
+            r.hover_cmds.clone(),
+            r.checks
+                .iter()
+                .map(|c| (c.cmd, c.text.clone()))
+                .collect::<Vec<_>>(),
+            r.errors.len(),
+            r.warnings.len(),
+        )
+    };
+    assert_eq!(
+        sig(inc),
+        sig(full),
+        "增量（信任前缀）与整份重查的报告必须一致 —— 前缀不许改判定"
+    );
+    // 逐字段的 `Debug` 比对（比上面那组"计数/名字/状态"更严）：谁不同就点名谁，
+    // 免得失败时把整份报告倒出来读不了。
+    // hovers 逐条比（内容不同 ⇒ 直接点名第几条、差在哪）。
+    assert_eq!(inc.hovers.len(), full.hovers.len(), "hovers 条数不同");
+    for (i, (a, b)) in inc.hovers.iter().zip(full.hovers.iter()).enumerate() {
+        let (da, db) = (format!("{a:?}"), format!("{b:?}"));
+        assert!(
+            da == db,
+            "hovers[{i}] 不同（cmd {}）：\n  增量 = {da}\n  整份 = {db}",
+            inc.hover_cmds.get(i).copied().unwrap_or(usize::MAX)
+        );
+    }
+    for (field, a, b) in [
+        (
+            "decls",
+            format!("{:?}", inc.decls),
+            format!("{:?}", full.decls),
+        ),
+        (
+            "hover_cmds",
+            format!("{:?}", inc.hover_cmds),
+            format!("{:?}", full.hover_cmds),
+        ),
+        (
+            "errors",
+            format!("{:?}", inc.errors),
+            format!("{:?}", full.errors),
+        ),
+        (
+            "checks",
+            format!("{:?}", inc.checks),
+            format!("{:?}", full.checks),
+        ),
+        (
+            "warnings",
+            format!("{:?}", inc.warnings),
+            format!("{:?}", full.warnings),
+        ),
+    ] {
+        assert_eq!(
+            a.len(),
+            b.len(),
+            "`{field}` 的 Debug 长度不同（{} vs {}）—— 前缀拼接漏/多了东西",
+            a.len(),
+            b.len()
+        );
+        if a != b {
+            let at = a
+                .char_indices()
+                .zip(b.char_indices())
+                .find(|((_, x), (_, y))| x != y)
+                .map(|((i, _), _)| i)
+                .unwrap_or(0);
+            let lo = at.saturating_sub(120);
+            panic!(
+                "`{field}` 的 Debug 在第 {at} 字节起不同：\n  增量 = …{}\n  整份 = …{}",
+                &a[lo..(at + 160).min(a.len())],
+                &b[lo..(at + 160).min(b.len())]
+            );
+        }
+    }
+    let _ = std::fs::remove_dir_all(entry.parent().expect("parent"));
+}
+
+/// 复现"增量那一版"的报告：先 `text` 再 `last`（走缓存），返回最后一次的文档。
+fn doc_report_of(entry: &std::path::Path, text: &str, last: &str) -> QueryDoc {
+    let mut d = open_project(entry, text);
+    d.set_text(last, 2, None);
+    d
+}
