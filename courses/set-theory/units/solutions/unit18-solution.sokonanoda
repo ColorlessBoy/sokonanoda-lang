@@ -1,10 +1,11 @@
 import lib.ZF
 import lib.Set
 
-theorem demo_regularity (α : Type) (E : α → α → Prop) (A : α)
+theorem demo_regularity (α : Type) (E : α → α → Prop) (hreg : IsRegular α E) (A : α)
     (h : ∃ (x : α), E x A) :
     ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) :=
-  regularity α E A h
+  (fun (hu : ∀ (A1 : α), (∃ (x : α), E x A1) →
+      ∃ (m : α), E m A1 ∧ ∀ (z : α), E z m → ¬ (E z A1)) => hu A h) hreg
 
 theorem demo_isEmpty_def (α : Type) (E : α → α → Prop) (x : α) :
     IsEmpty α E x ↔ ∀ (y : α), ¬ (E y x) :=
@@ -18,10 +19,11 @@ theorem demo_isUnionOf_def (α : Type) (E : α → α → Prop) (x : α) (F : α
     IsUnionOf α E x F ↔ ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A :=
   isUnionOf_def α E x F
 
-theorem regularity_apply (α : Type) (E : α → α → Prop) (A : α)
+theorem regularity_apply (α : Type) (E : α → α → Prop) (hreg : IsRegular α E) (A : α)
     (h : ∃ (x : α), E x A) :
     ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) :=
-  regularity α E A h
+  (fun (hu : ∀ (A1 : α), (∃ (x : α), E x A1) →
+      ∃ (m : α), E m A1 ∧ ∀ (z : α), E z m → ¬ (E z A1)) => hu A h) hreg
 
 theorem regularity_minimal (α : Type) (E : α → α → Prop) (A m : α)
     (h : E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) :

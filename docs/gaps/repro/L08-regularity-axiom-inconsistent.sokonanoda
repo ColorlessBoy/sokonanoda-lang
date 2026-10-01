@@ -1,0 +1,30 @@
+-- L-08 复现件：`lib/ZF` 原来的 `axiom regularity` **对任意二元关系 `E`** 断言良基性
+-- ⇒ 与 `E := fun _ _ => True` 直接矛盾 ⇒ **那条公理使库不一致** ✗
+--
+-- **数学上的反驳（三行）**：
+--   1. 取 `α := Bool`、`E := fun _ _ => True`、`A := Bool.true`；
+--   2. 公理给 `∃ m, E m A ∧ ∀ z, E z m → ¬ (E z A)`；
+--   3. 取 `z := m`：`E m m` 恒真 ⇒ `¬ True` ⇒ `False` ✓
+--
+-- ⚠ **本文件证明不了它** —— 不是因为数学有问题，而是**消去子的动机位在这个形状上
+--   补不出前导实参**（`regularity` 的 `E` 在动机里被解成互不相同的元变量 ✗）：
+--   报「类型不匹配：期望 `Pi (z : $6), Pi (_ : ($6 $0) $1), Not (($7 $1) $6)`…」✗
+--   ⇒ 这条**也是 G-73 家族的一例（第十三例）**，已一并记账 ✓
+-- ⇒ 本文件**预期判负**（`repro_expect: rejected`），它就是"这个反驳在本语言里
+--   连写都写不出来"的现场记录 ✓
+--
+-- **修法（第 569 轮已落地）**：把公理降级成**定义** `IsRegular α E`（= 谓词版良基性），
+-- 要用它的地方**当假设引进** ✓ —— ZF 的正则公理说的是**具体的 `∈`**，
+-- 不是任意二元关系 ✓
+import lib.Rel
+import lib.Set
+import lib.ZF
+
+theorem regularity_absurd (α : Type) (E : α → α → Prop) (A : α)
+    (hne : ∃ (x : α), E x A)
+    (hall : ∀ (x : α) (y : α), E x y) : False :=
+  (fun (h : ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) =>
+    Exists.elim α (fun (m : α) => E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) False h
+      (fun (m : α) (hm : E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) =>
+        (fun (hu : ∀ (z : α), E z m → ¬ (E z A)) => hu m (hall m m)) (And.right hm)))
+    (regularity α E A hne)

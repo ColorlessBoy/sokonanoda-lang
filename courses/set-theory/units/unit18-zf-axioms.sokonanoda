@@ -32,11 +32,13 @@ import lib.Set
 -- **是定义**（`IsEmpty` / `IsPair` / `IsUnionOf`）✓
 -- ─────────────────────────────────────────────────────────────
 
--- 演示：**正则性公理**（每个非空集合有 `∈`-极小元；Mathlib `ZFSet.regularity` 同款）。
-theorem demo_regularity (α : Type) (E : α → α → Prop) (A : α)
+-- 演示：**正则性**（每个非空集合有 `E`-极小元）—— **它在这里是假设 `hreg`**：
+--   对**任意**关系断言这件事会立刻矛盾（取 `E` 恒真），所以它**不是公理** ✓
+theorem demo_regularity (α : Type) (E : α → α → Prop) (hreg : IsRegular α E) (A : α)
     (h : ∃ (x : α), E x A) :
     ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) :=
-  regularity α E A h
+  (fun (hu : ∀ (A1 : α), (∃ (x : α), E x A1) →
+      ∃ (m : α), E m A1 ∧ ∀ (z : α), E z m → ¬ (E z A1)) => hu A h) hreg
 
 -- 演示：空集的刻画展开。
 theorem demo_isEmpty_def (α : Type) (E : α → α → Prop) (x : α) :
@@ -57,8 +59,9 @@ theorem demo_isUnionOf_def (α : Type) (E : α → α → Prop) (x : α) (F : α
 -- soko:hint 思路：公理本身就是一条函数（给"非空"的证据，还你一个极小元）；
 --   直接应用它。
 -- soko:hint 目标形态：`∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A)`。
--- soko:hint 关键件：`regularity`（参数表：论域 · 关系 · 集合 · **非空证据**）。
-theorem regularity_apply (α : Type) (E : α → α → Prop) (A : α)
+-- soko:hint 关键件：`IsRegular`（**定义头**：对每个非空集合给极小元）—— 它是**假设**
+--   （不是公理：对任意关系说这句话会矛盾，见 `lib/ZF` 的说明）⇒ 先 λ 绑定再应用 ✓
+theorem regularity_apply (α : Type) (E : α → α → Prop) (hreg : IsRegular α E) (A : α)
     (h : ∃ (x : α), E x A) :
     ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) := by
   sorry
