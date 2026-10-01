@@ -89,6 +89,16 @@ theorem Set.mem_sInter_elim (α : Type) (F : Set (Set α)) (x : α) (C : Prop)
     (k : (∀ (A : Set α), A ∈ F → x ∈ A) → C) : C :=
   k ((fun (hs : ∀ (A : Set α), A ∈ F → x ∈ A) => hs) h)
 
+-- ── 广义交的**引入**子（2026-10-01 补，台账 **L-10**）────────────────────────
+-- 为什么补：并侧一直是**成对**的（`Set.mem_sUnion_intro` + `Set.mem_sUnion_elim` ✓），
+--   交侧却**只有 `elim`** ✗ ⇒ 单元㊽ 想"引入交的成员"时只能自己走
+--   `Set.mem_sInter_iff` + `Iff.mpr`（而且还得**先把绑定形态落地成 λ** ✓，见课程手册）✓。
+-- 这一条与 `Set.mem_sInter_elim` **互为对偶**，形状与 `Set.mem_sUnion_intro` 对齐 ✓
+theorem Set.mem_sInter_intro (α : Type) (F : Set (Set α)) (x : α)
+    (h : ∀ (A : Set α), A ∈ F → x ∈ A) : x ∈ Set.sInter α F :=
+  (fun (hu : x ∈ Set.sInter α F ↔ ∀ (A : Set α), A ∈ F → x ∈ A) =>
+    Iff.mpr hu h) (Set.mem_sInter_iff α F x)
+
 -- ── 广义积（索引族的积；Mathlib `Set.pi` / `Set.mem_pi` 同款）────────────────
 -- 读法：`A : ι → Set α` 是**索引族**，`Set.pi ι α A` 是"每个坐标都落在对应因子里"的
 -- **函数**的集合 ✓ —— 这就是"任意多个集合的笛卡尔积"在谓词式里的样子。
