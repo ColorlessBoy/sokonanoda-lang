@@ -1,0 +1,115 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+theorem demo_transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
+    (h : Rel.transClosure α r a b)
+    (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+    (hr : ∀ (x : α) (y : α), r x y → s x y) : s a b :=
+  Rel.transClosure_elim α r s a b h hs hr
+
+theorem demo_reflClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.reflClosure α r a b ↔ (r a b ∨ Eq.{1} α a b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.reflClosure_apply α r a b
+
+theorem demo_symClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.symClosure α r a b ↔ (r a b ∨ r b a) :=
+  Rel.symClosure_apply α r a b
+
+theorem transClosure_intro (α : Type) (r : Rel α α) (a b : α)
+    (h : ∀ (s : Rel α α), (∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) →
+      (∀ (x : α) (y : α), r x y → s x y) → s a b) :
+    Rel.transClosure α r a b :=
+  fun (s : Rel α α) =>
+    fun (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) =>
+      fun (hr : ∀ (x : α) (y : α), r x y → s x y) => h s hs hr
+
+theorem subset_transClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.transClosure α r a b :=
+  fun (a : α) => fun (b : α) => fun (hab : r a b) =>
+    transClosure_intro α r a b
+      (fun (s : Rel α α) =>
+        fun (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) =>
+          fun (hr : ∀ (x : α) (y : α), r x y → s x y) => hr a b hab)
+
+theorem transClosure_transitive (α : Type) (r : Rel α α) :
+    Transitive α (Rel.transClosure α r) :=
+  fun (a : α) => fun (b : α) => fun (c : α) =>
+    fun (hab : Rel.transClosure α r a b) => fun (hbc : Rel.transClosure α r b c) =>
+      transClosure_intro α r a c
+        (fun (s : Rel α α) =>
+          fun (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) =>
+            fun (hr : ∀ (x : α) (y : α), r x y → s x y) =>
+              hs a b c (Rel.transClosure_elim α r s a b hab hs hr)
+                (Rel.transClosure_elim α r s b c hbc hs hr))
+
+theorem transClosure_least (α : Type) (r s : Rel α α)
+    (hs : Transitive α s) (hr : ∀ (x : α) (y : α), r x y → s x y) :
+    ∀ (a : α) (b : α), Rel.transClosure α r a b → s a b :=
+  fun (a : α) => fun (b : α) => fun (hab : Rel.transClosure α r a b) =>
+    (fun (hu : ∀ (t : Rel α α),
+        (∀ (x : α) (y : α) (z : α), t x y → t y z → t x z) →
+        (∀ (x : α) (y : α), r x y → t x y) → t a b) =>
+      hu s hs hr) hab
+
+theorem transClosure_mono (α : Type) (r r1 : Rel α α)
+    (h : ∀ (a : α) (b : α), r a b → r1 a b) :
+    ∀ (a : α) (b : α), Rel.transClosure α r a b → Rel.transClosure α r1 a b :=
+  fun (a : α) => fun (b : α) => fun (hab : Rel.transClosure α r a b) =>
+    Rel.transClosure_elim α r (Rel.transClosure α r1) a b hab
+      (transClosure_transitive α r1)
+      (fun (x : α) (y : α) => fun (hxy : r x y) =>
+        subset_transClosure α r1 x y (h x y hxy))
+
+theorem trans_iff_transClosure_subset (α : Type) (r : Rel α α) :
+    Transitive α r ↔ ∀ (a : α) (b : α), Rel.transClosure α r a b → r a b :=
+  Iff.intro (Transitive α r)
+    (∀ (a : α) (b : α), Rel.transClosure α r a b → r a b)
+    (fun (ht : Transitive α r) => fun (a : α) => fun (b : α) =>
+      fun (hab : Rel.transClosure α r a b) =>
+        Rel.transClosure_elim α r r a b hab ht (fun (x : α) (y : α) => fun (h : r x y) => h))
+    (fun (hsub : ∀ (a : α) (b : α), Rel.transClosure α r a b → r a b) =>
+      fun (a : α) => fun (b : α) => fun (c : α) =>
+        fun (hab : r a b) => fun (hbc : r b c) =>
+          hsub a c (transClosure_transitive α r a b c
+            (subset_transClosure α r a b hab) (subset_transClosure α r b c hbc)))
+
+theorem transClosure_idempotent (α : Type) (r : Rel α α) :
+    Rel.transClosure α (Rel.transClosure α r) = Rel.transClosure α r :=
+  Rel.ext α α (Rel.transClosure α (Rel.transClosure α r)) (Rel.transClosure α r)
+    (fun (a : α) (b : α) =>
+      Iff.intro (Rel.transClosure α (Rel.transClosure α r) a b)
+        (Rel.transClosure α r a b)
+        (fun (h : Rel.transClosure α (Rel.transClosure α r) a b) =>
+          transClosure_least α (Rel.transClosure α r) (Rel.transClosure α r)
+            (transClosure_transitive α r)
+            (fun (x : α) (y : α) => fun (hxy : Rel.transClosure α r x y) => hxy) a b h)
+        (fun (h : Rel.transClosure α r a b) =>
+          subset_transClosure α (Rel.transClosure α r) a b h))
+
+theorem comp_transClosure_subset (α : Type) (r : Rel α α) :
+    ∀ (a : α) (c : α), (r • Rel.transClosure α r) a c → Rel.transClosure α r a c :=
+  fun (a : α) => fun (c : α) =>
+    fun (hac : (r • Rel.transClosure α r) a c) =>
+      Exists.elim α (fun (b : α) => r a b ∧ Rel.transClosure α r b c)
+        (Rel.transClosure α r a c) hac
+        (fun (b : α) (hb : r a b ∧ Rel.transClosure α r b c) =>
+          transClosure_transitive α r a b c
+            (subset_transClosure α r a b (And.left hb)) (And.right hb))
+
+theorem transClosure_comp_subset (α : Type) (r : Rel α α) :
+    ∀ (a : α) (c : α),
+      (Rel.transClosure α r • Rel.transClosure α r) a c → Rel.transClosure α r a c :=
+  fun (a : α) => fun (c : α) =>
+    fun (hac : (Rel.transClosure α r • Rel.transClosure α r) a c) =>
+      Exists.elim α (fun (b : α) => Rel.transClosure α r a b ∧ Rel.transClosure α r b c)
+        (Rel.transClosure α r a c) hac
+        (fun (b : α) (hb : Rel.transClosure α r a b ∧ Rel.transClosure α r b c) =>
+          transClosure_transitive α r a b c (And.left hb) (And.right hb))
+
+theorem symClosure_symmetric (α : Type) (r : Rel α α) :
+    Symmetric α (Rel.symClosure α r) :=
+  fun (a : α) => fun (b : α) => fun (hab : Rel.symClosure α r a b) =>
+    Or.elim (r a b) (r b a) (r b a ∨ r a b)
+      (fun (h : r a b) => Or.inr (r b a) (r a b) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (h : r b a) => Or.inl (r b a) (r a b) h) hab  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来

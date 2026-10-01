@@ -123,6 +123,8 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元㊵ 落地后）：100 个目标 · 986 checked · 377 open · 0 判负**
+
 **门禁实测（2026-10-01，单元㊴ 落地后）：98 个目标 · 970 checked · 367 open · 0 判负**
 
 **门禁实测（2026-10-01，单元㊳ 落地后）：96 个目标 · 942 checked · 357 open · 0 判负**
@@ -209,7 +211,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **I.10** | **关系闭包、等价关系与商** | I.2 | relation · closure · reflexive/symmetric/transitive-closure · equivalence-relation · equivalence-class · quotient · partition · correspondence · quotient-type · well-definedness | 39 | 39 | **24–27** |
 | **I.11** | **集合代数与序的完备性** | I.1 | set-algebra · de-morgan · supremum · infimum · lattice · duality · monotone · order-isomorphism · pointwise-order · function-space | 48 | 48 | **28–32** |
 | **I.12** | **幂集与函数空间** | I.1 | powerset · characteristic-function · boolean · function-composition · injective · surjective · bijective · inverse | 30 | 30 | **33–35** |
-| **I.13** | **关系的代数** | I.2 | relation-algebra · composition · inverse-relation · identity-relation · algebraic-characterization · order-algebra · relation-image · kernel | 40 | 40 | **36–39** |
+| **I.13** | **关系的代数** | I.2 | relation-algebra · composition · inverse-relation · identity-relation · algebraic-characterization · order-algebra · relation-image · kernel · transitive-closure · idempotent | 50 | 50 | **36–40** |
 | **I.7** | **选择公理与 ZF 公理体系** | I.2 | axiom-of-choice · choice-function · surjective · right-inverse · zf-axioms · regularity · extensionality | 20 | 20 | **17–18** |
 
 | 单元 | 章 | 标题 | 练习 | 解答（checked） |
@@ -253,6 +255,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **37** | **I.13** | **关系的代数刻画** | **10** | **10** |
 | **38** | **I.13** | **序关系的关系代数视角** | **10** | **10** |
 | **39** | **I.13** | **关系的像、原像与等价核** | **10** | **10** |
+| **40** | **I.13** | **传递闭包的代数刻画** | **10** | **10** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -291,6 +294,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 单元 | 交付 | 撞到/绕开的 |
 |---|---|---|
 | ⑬ 偏序、全序与严格序 | 新库 `lib/Order`（词汇 6 性质 + 4 序类 + 两个翻译函数 + 展开引理 + **取用子** + **智能构造子**）；画布 3 演示 + 11 练习；解答 0 open | **G-72**（`lib/Order` 最初写成字面箭头返回 ⇒ 单文件绿、`import` 红）· **G-73 形状 ①②③**（证明全靠库层绕法） |
+| ㊵ 传递闭包的代数刻画 | 画布 3 演示（取用子 + 另两种闭包的展开）+ 10 练习；解答 0 open | 把单元㉔ 的**交集式闭包**与单元㊲ 的**代数刻画**合起来：**含**（`r ⊆ r⁺`）· **闭**（`r⁺` 传递）· **最小**（任何传递的 `s ⊇ r` 都含 `r⁺`）· **旗舰一：`r` 传递 ⟺ `r⁺ ⊆ r`** · **旗舰二：闭包幂等**（`(r⁺)⁺ = r⁺`）· **旗舰三：闭包对 `•` 封闭**（`r • r⁺ ⊆ r⁺`、`r⁺ • r⁺ ⊆ r⁺` —— 就是单元㊲ 那条刻画用在闭包上）· ⚠ 如实记下：**不引入"`rⁿ` 的并"**那种写法（要递推 ⇒ **G-76**） |
 | ㊴ 关系的像、原像与等价核 | 画布 4 定义（`idRel`、`relImg`、`relPre`、`kernel`）+ 3 演示 + 10 练习；解答 0 open | 把单元㉒ 的**像/原像**从函数推广到**关系**：成员刻画 · 对集合/对关系**单调** · 全集/空集两端 · **旗舰一：像穿过复合**（`img (r • s) A = img s (img r A)`，原像对偶）· **旗舰二：函数的等价核是等价关系**（= 单元㉗ 商掉的那个关系）· **旗舰三：单射 ⟺ 核退化成恒等关系**（`Injective f ↔ kernel f ⊆ idRel`）· ⚠ 如实记下"再往前一步"（商与像同构）要 **G-75/G-77** ⇒ 到此为止 |
 | ㊳ 序关系的关系代数视角 | 画布 2 定义（`idRel`、`Asymmetric`）+ 3 演示 + 10 练习；解答 0 open | 把单元⑬ 的序论用代数语言重述：**反对称 ⟺ `r ∩ r ⁻¹ ⊆ idRel`**（逐点）· **非自反 ⟺ 恒等那份被排除** · **非对称 ⟺ 两个方向不能同时成立** · **旗舰：非自反 + 传递 ⇒ 非对称**（经典的"用传递性逼出 `r a a`"）· **偏序 ⟺ 三条代数条件**（反方向也成立）· 演示里记下**严格序的造法要"传递 + 反对称"**（光有传递不够 —— 本单元起草时写错、实测发现）· 新写法教训：**`And.right h` 单独写没问题，但直接当函数用在实参位会判红** ⇒ 中间套一层 λ |
 | ㊲ 关系的代数刻画 | 画布 1 定义（`idRel`）+ 3 演示 + 10 练习；解答 0 open | 把"自反/对称/传递"翻译成**代数式子**：**自反 ⟺ `idRel ⊆ r`** · **对称 ⟺ `r ⁻¹ ⊆ r`** · **传递 ⟺ `r • r ⊆ r`**（这才是"传递"的代数形状）· **旗舰：三个代数条件 ⇒ 等价关系** · **等价关系的自复合幂等**（两个方向）· 实测两条写法教训：**`Iff.mp`/`Iff.mpr` 在这些位置解不出**（"期望 `Sort(1)`，实际是 `Rel α α`"）⇒ 取用子直接重证更稳；**一个巨大的 `↔`（右边套三层 `∧`）写不出来** ⇒ 拆成四个小定理 |

@@ -491,10 +491,13 @@
             "partial-order",
             "relation-image",
             "relation-preimage",
-            "kernel"
+            "kernel",
+            "transitive-closure",
+            "closure",
+            "idempotent"
           ],
           "quota": {
-            "exercises": 40
+            "exercises": 50
           },
           "units": [
             {
@@ -520,6 +523,12 @@
               "title": "单元㊴ 关系的像、原像与等价核",
               "title_en": "Unit 39 — Images, Preimages and Equivalence Kernels",
               "unit": 39
+            },
+            {
+              "file": "units/unit40-transitive-closure.sokonanoda",
+              "title": "单元㊵ 传递闭包的代数刻画",
+              "title_en": "Unit 40 — The Transitive Closure, Algebraically",
+              "unit": 40
             }
           ]
         }
