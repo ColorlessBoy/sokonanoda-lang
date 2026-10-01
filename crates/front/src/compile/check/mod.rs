@@ -167,6 +167,17 @@ pub(crate) struct PassResult {
     cutoff: usize,
 }
 
+impl PassResult {
+    /// 这一趟**真的**调了几次内核检查（`try_check_declar`；**受信任前缀不计入**）。
+    ///
+    /// 为什么要有访问器：`run` 会把 `pass.checks` 搬进 `out.stats.kernel_checks`，
+    /// 而 `with_project_session` 那条路**漏了这一步** ⇒ 合并输出里的
+    /// `kernel_checks` 恒为 **0**（S2 步 2 的判据正好要读它，实测撞到）。
+    pub(crate) fn kernel_checks(&self) -> usize {
+        self.checks
+    }
+}
+
 /// The command index a pending op belongs to.
 fn op_cmd(op: &PendingOp<'_>) -> usize {
     match op {
@@ -593,8 +604,18 @@ pub(crate) fn run(
 /// as a currently-processed declaration is kernel-rejected (check-then-add
 /// makes pass 1's environment provisional), in which case pass 2 reprocesses
 /// the whole suffix with cutoff disabled.
+///
+/// **`units` 是调用方给的**（S2 步 1，2026-10-01）：闭包编译要让**库层单元排在
+/// 入口之前**（它们天然全在信任前缀 `[0, before)` 里 —— 一个字节都没变），
+/// 这样入口自己的前缀不再重查。此前这里**写死** `[SourceUnit::single("", file)]`
+/// （注释原文："闭包编译不使用 TrustPlan（v1）"）⇒ 闭包那条路根本接不上 I8。
+///
+/// ⚠ **返回的 `sigs`/`cutoff` 与 `trust`/`prefix_failures` 在同一个坐标系**
+/// （= `units` 展平后的命令流）。调用方按**入口自己的**命令号建快照时，必须
+/// 整体减去库层命令数 `lib_n`（设计 `docs/design/declaration-incremental.md` §4.2）。
+/// **算错不是崩，是静默错编** ✗。
 pub(crate) fn run_incremental(
-    file: &FolFile,
+    units: &[SourceUnit<'_>],
     options: &CompileOptions,
     trust: &TrustPlan,
     prefix_failures: &KernelFailed,
@@ -605,15 +626,16 @@ pub(crate) fn run_incremental(
     Vec<Option<String>>,
     usize,
 ) {
-    // 增量路径保持**单文件**语义（I8）：闭包编译不使用 TrustPlan（v1），
-    // 所以这里始终是一个单元。
-    let units = [SourceUnit::single("", file)];
+    debug_assert!(
+        !units.is_empty(),
+        "增量路径至少要有一个单元（单文件 = `[SourceUnit::single(\"\", file)]`）"
+    );
     // **T-K11（K1-a）**：告诉 judge 的 miss 路径"前缀 `[0, before)` 已被担保"
     // ——`run_pass` 期间发生的判定（`by` 块/judge_infer/judge_type_of）因此可以
     // 走 `run_incremental` 而不重查前缀。栈式，进出成对。
     let pass1 = crate::judge::with_trusted_prefix(trust.before, prefix_failures, || {
         run_pass(
-            &units,
+            units,
             options,
             true,
             Some(prefix_failures),
@@ -624,7 +646,7 @@ pub(crate) fn run_incremental(
     if pass1.failed.is_empty() {
         let mut out = pass1.out;
         out.stats.kernel_checks = pass1.checks;
-        let report = split_report(pass1.report, &out.error_cmds, &out.warning_cmds, &units)
+        let report = split_report(pass1.report, &out.error_cmds, &out.warning_cmds, units)
             .pop()
             .unwrap_or_default();
         return (out, report, pass1.checks, pass1.sigs, pass1.cutoff);
@@ -648,18 +670,18 @@ pub(crate) fn run_incremental(
         allow_cutoff: false,
     };
     let pass2 = crate::judge::with_trusted_prefix(trust2.before, &skip2, || {
-        run_pass(&units, options, true, Some(&skip2), Some(&trust2), None)
+        run_pass(units, options, true, Some(&skip2), Some(&trust2), None)
     });
     let checks = pass1.checks + pass2.checks;
     let mut out = pass2.out;
     out.stats.kernel_checks = checks;
-    let report = split_report(pass2.report, &out.error_cmds, &out.warning_cmds, &units)
+    let report = split_report(pass2.report, &out.error_cmds, &out.warning_cmds, units)
         .pop()
         .unwrap_or_default();
     (out, report, checks, pass2.sigs, pass2.cutoff)
 }
 
-type KernelFailed = HashMap<usize, CompileError>;
+pub(crate) type KernelFailed = HashMap<usize, CompileError>;
 
 /// `SOKO_PASS_TRACE` 的取值（读一次就缓存——`run` 在热路径上）。
 fn pass_trace_spec() -> Option<&'static str> {

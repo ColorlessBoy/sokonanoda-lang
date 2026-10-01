@@ -44,12 +44,16 @@
 
 ### 1.3 结构计数（`SOKO_STAGE_STATS=1`，一次闭包编译）
 
-| 计数 | 值 | 含义 |
-|---|---|---|
-| `passes` | **113** | 整条流水线被跑了 113 趟 |
-| `JUDGE_PREFIX runs` / `bytes` | **79** / **3,126,818**（39.6KB/趟） | 判定为每个 `by` 批次**重跑整份前缀**（G-31） |
-| `by_calls` / `by_total_ms` | 1195 / 1239ms | 判定引擎调用 |
-| unit 编译计数（`run` 的 `units.len()` 累加） | 104 | 一次按键"编了几个单元" |
+| 计数 | unit08（闭包） | playground（单文件） | 含义 |
+|---|---|---|---|
+| `passes` | **113** | 24 | 流水线趟数（单文件那条有 I8 会话 ⇒ 4.7× 差距） |
+| `JUDGE_PREFIX runs` / `bytes` | **79** / 3.13MB | 6 / 0.28MB | **`judge_infer` 的前缀重跑**（见下） |
+| `by_calls` / `judge_ms` | 1195 / 226ms | 162 / 357ms | `by` 引擎（`JUDGE_STATS calls=13`，已吃担保复用） |
+
+> **⚠ 2026-10-01 更正**：`PREFIX_RUNS` **只在 `judge_infer_uncached`（`judge.rs:1941`）里加**
+> —— 它数的是**类型推断**那条 `#check` 合成路（前缀 + `#check` 从零编一遍），**不是** `by`
+> 批次；每次约 39.6KB，且**不受** `check_synthesized` 那套 vouch 覆盖（那条只有 `by` 走）
+> ⇒ 这是**第二个**靶子（记为 **S5**，与 S2 正交）。
 
 ### 1.4 成本落在哪：**入口自己**，不是库层
 
@@ -137,7 +141,28 @@ SOKO_STAGE_STATS=1 <入口> … 2>&1 | grep -E "JUDGE_PREFIX|PASSES"
 # ③ 零回归：--json 逐字节不变 · 课程门禁 43/377/99/0 · cargo test -p sokonanoda-cli
 ```
 
-### 4.4 本轮**没有**做 S2 的理由（诚实记账）
+### 4.4 as-built：**步 1 / 步 2 已落**（2026-10-01）
+
+* **步 1 ✓**（纯重构）：`run_incremental` 的第一个参数由 `&FolFile` 改成
+  `&[SourceUnit<'_>]`（`check/mod.rs:606`），内部那句 `SourceUnit::single("", file)` 删掉。
+  两个调用方各自传单元素切片：`session.rs:276`、`judge.rs:780`。**零行为变化** ——
+  判据：front **790 + 全部集成套件** 0 failed · CLI 全套 0 failed · 课程门禁 **43/377/99/0**。
+* **步 2 ✓**：`with_project_session_trusted(..., entry_trust: &[Option<EntryTrust>], ...)`
+  （`project/session.rs`）；`with_project_session` 变成它的薄包装（传 `&[]`）⇒ **既有调用方
+  逐字节不变**。入口趟把 `trusted.map(|t| &t.failures)` / `&t.plan` 喂给 `run_pass_with`
+  （原来那两个位置恒为 `None`）。
+* **顺带修一个漏**：`with_project_session` 那条路**从来没把 `pass.checks` 搬进
+  `out.stats.kernel_checks`**（`run` 会搬，它漏了）⇒ 合并输出的 `kernel_checks` 恒为 **0**。
+  现在两趟都搬（新增 `PassResult::kernel_checks()` 访问器）—— 这正是判据要读的那个数。
+* **判据**（`project/tests.rs::entry_trust_skips_the_prefix_and_keeps_the_suffix_identical`，
+  两条一起断言，缺一条就是把"丢声明"当成功 ✗）：
+  `PERF entry_trust kernel_checks full=8 trusted=5 entry_decls full=6 trusted=3`
+  —— 4/7 条命令被信任 ⇒ 内核检查 **8 → 5**；且被信任那段**不进报告**（6 → 3 条声明），
+  **后缀 t3/t4/t5 的判定与整份重查逐字节相同**。
+* **还没接给用户**（= 步 3）：`QueryDoc` 仍走 `project_compile` 全量。**下一轮从步 3 开始**，
+  §4.2 的三个下标是唯一的风险面。
+
+### 4.5 更早一轮**没有**做 S2 的理由（诚实记账）
 
 本轮交付的是**用户可见的那一条**（S1 去整文件高亮 + P7 展示延迟，见
 `docs/design/edit-latency.md`）。S2 的步 3 要动 `QueryDoc` 的**有状态快照**，而 §4.2 的下标

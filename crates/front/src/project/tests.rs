@@ -1026,3 +1026,151 @@ fn redeclaring_an_inherited_notation_is_a_dedicated_error() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// **S2 步 2 的判据**（设计 `docs/design/declaration-incremental.md` §4）：入口那一趟
+/// 带上**信任前缀**（`EntryTrust`）之后 ——
+///
+/// 1. **前缀不再重查**（内核检查数下降，结构计数、噪声免疫）；
+/// 2. **后缀的判定逐字节不变**（被信任那段不进报告，后缀必须与整份重查时一模一样）。
+///
+/// 为什么必须两条一起断言：只断言"变少了"会把**丢声明**（报告缺前缀）当成成功 ✗。
+/// 这条钉的正是 §4.2 那个"算错不是崩、是静默错编"的风险面。
+#[test]
+fn entry_trust_skips_the_prefix_and_keeps_the_suffix_identical() {
+    use crate::compile::TrustPlan;
+    use crate::project::session::{with_project_session, with_project_session_trusted, EntryTrust};
+    use std::collections::HashMap;
+
+    let dir = tmp_dir("entry-trust");
+    write(
+        &dir,
+        "lib/Lib.sokonanoda",
+        "def Set (α : Type) : Type := α -> Prop\n\n\
+         def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\n\
+         infix:50 \" ∈ \" => Set.mem\n",
+    );
+    // 入口：6 条声明，前缀 3 条 / 后缀 3 条。都用库层记法 ⇒ 前缀真被 elaborate 过。
+    let mut entry = String::from("import lib.Lib\n\n");
+    for i in 0..6 {
+        entry.push_str(&format!(
+            "theorem t{i} (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n"
+        ));
+    }
+    write(&dir, "units/entry.sokonanoda", &entry);
+
+    let options = CompileOptions::default();
+    let plan = plan_project(
+        &dir.join("units/entry.sokonanoda"),
+        None,
+        Some(dir.as_path()),
+    );
+    let modules = plan.modules();
+    let last = modules.len() - 1;
+    // 闭包表达不了这个生命周期（返回借用自参数）⇒ 老实展开。
+    let mut lib_units: Vec<SourceUnit<'_>> = Vec::new();
+    for module in &modules[..last] {
+        lib_units.push(SourceUnit {
+            name: &module.name,
+            path: Some(module.path.as_path()),
+            file: &module.file,
+        });
+    }
+    assert!(
+        !lib_units.is_empty(),
+        "夹具必须有库层（否则这条量不到东西）"
+    );
+    let entry_module = &modules[last];
+    let entry_units: Vec<SourceUnit<'_>> = vec![SourceUnit {
+        name: &entry_module.name,
+        path: Some(entry_module.path.as_path()),
+        file: &entry_module.file,
+    }];
+
+    // ① 整份重查（今天的行为）。
+    let mut untrusted_checks = 0usize;
+    let mut untrusted_entry: Vec<crate::compile::DocumentReport> = Vec::new();
+    with_project_session(
+        &lib_units,
+        std::slice::from_ref(&entry_units),
+        &options,
+        |_, out, entry_reports, _, _, _| {
+            untrusted_checks = out.stats.kernel_checks;
+            untrusted_entry = entry_reports;
+        },
+    );
+
+    // ② 带信任前缀：前 4 条命令"文本没变过、上一轮查过"。
+    // ⚠ 命令 0 是 `import lib.Lib`（它也是一条命令）⇒ `before: 4` = import + t0/t1/t2。
+    let trust = vec![Some(EntryTrust {
+        plan: TrustPlan {
+            before: 4,
+            prev_signatures: Vec::new(),
+            text_unchanged: Vec::new(),
+            allow_cutoff: false,
+        },
+        failures: HashMap::new(),
+    })];
+    let mut trusted_checks = 0usize;
+    let mut trusted_entry: Vec<crate::compile::DocumentReport> = Vec::new();
+    with_project_session_trusted(
+        &lib_units,
+        std::slice::from_ref(&entry_units),
+        &options,
+        &trust,
+        |_, out, entry_reports, _, _, _| {
+            trusted_checks = out.stats.kernel_checks;
+            trusted_entry = entry_reports;
+        },
+    );
+
+    let names = |reports: &[crate::compile::DocumentReport]| -> Vec<String> {
+        reports
+            .iter()
+            .flat_map(|r| r.decls.iter())
+            .filter_map(|d| d.name.clone())
+            .collect()
+    };
+    let untrusted_names = names(&untrusted_entry);
+    let trusted_names = names(&trusted_entry);
+    assert_eq!(
+        untrusted_names,
+        (0..6).map(|i| format!("t{i}")).collect::<Vec<_>>(),
+        "整份重查必须给出全部 6 条声明（夹具前提）"
+    );
+    assert_eq!(
+        trusted_names,
+        vec!["t3".to_string(), "t4".to_string(), "t5".to_string()],
+        "带信任前缀时**只有后缀**是新查的 —— 前缀由调用方的会话缓存补（设计 §4.2）"
+    );
+
+    // **判据 ②（内容级）**：后缀那三条的判定必须与整份重查时**逐字节相同**。
+    let by_name = |reports: &[crate::compile::DocumentReport], want: &str| -> String {
+        reports
+            .iter()
+            .flat_map(|r| r.decls.iter())
+            .find(|d| d.name.as_deref() == Some(want))
+            .map(|d| format!("{d:?}"))
+            .unwrap_or_else(|| panic!("缺少声明 {want}"))
+    };
+    for want in ["t3", "t4", "t5"] {
+        assert_eq!(
+            by_name(&trusted_entry, want),
+            by_name(&untrusted_entry, want),
+            "后缀声明 `{want}` 的判定必须与整份重查逐字节相同（信任前缀不许改判定）"
+        );
+    }
+
+    // **判据 ①（结构计数）**：前缀不再重查 ⇒ 内核检查数严格下降。
+    // `PERF` 行（仓库惯例，见 `docs/PERF.md`）：判读用，断言才是判据。
+    println!(
+        "PERF entry_trust kernel_checks full={untrusted_checks} trusted={trusted_checks} \
+entry_decls full={} trusted={}",
+        untrusted_names.len(),
+        trusted_names.len()
+    );
+    assert!(
+        trusted_checks < untrusted_checks,
+        "信任前缀必须让内核检查数下降：整份={untrusted_checks} · 带信任={trusted_checks}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}

@@ -777,7 +777,10 @@ fn check_synthesized(
         text_unchanged: Vec::new(),
         allow_cutoff: false,
     };
-    let trusted_report = run_incremental(file, options, &plan, &failures).1;
+    // **S2 步 1**：`run_incremental` 的单元由调用方给（此前它写死单文件）。
+    // 这条路是"judge 在**单文件**文本上重查前缀"，所以仍然是一个单元。
+    let units = [crate::compile::SourceUnit::single("", file)];
+    let trusted_report = run_incremental(&units, options, &plan, &failures).1;
     // **影子档**：再跑一次"整份重查"，比对**报告**（行为仍返回整份那一份）。
     // ⚠ 用 `Debug` 形态比对 —— `DocumentReport` 没有 `PartialEq`，而 `Debug`
     // 覆盖**全部**字段（含 `cmd` 归因下标），比手写几个字段更严 ✓。

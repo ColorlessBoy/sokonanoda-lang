@@ -272,8 +272,13 @@ impl Session {
             text_unchanged,
             allow_cutoff,
         };
+        // **S2 步 1**：`run_incremental` 的单元由调用方给（此前它写死单文件）。
+        // 单文件路径就是这一格；闭包路径（步 3）会在这里前置库层单元，
+        // 那时 `trust`/`prefix_failures`/返回的 `sigs`·`cutoff` 都要整体
+        // 加减库层命令数 `lib_n`（设计 `docs/design/declaration-incremental.md` §4.2）。
+        let units = [crate::compile::SourceUnit::single("", &file)];
         let (out, fresh_report, checks, sigs, cutoff) =
-            run_incremental(&file, &self.options, &trust, &prefix_failures);
+            run_incremental(&units, &self.options, &trust, &prefix_failures);
 
         // 组装快照：信任前缀来自缓存、新鲜段 `[i, cutoff)` 来自本轮运行、
         // 复用尾段 `[cutoff, n)` 来自缓存（仅坐标重映射）。

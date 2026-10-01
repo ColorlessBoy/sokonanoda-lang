@@ -14,6 +14,25 @@ use sokonanoda::util::Config;
 use crate::compile::{run_pass_with, split_report, CompileOptions, PassTables, SourceUnit};
 use crate::compile::{CompileOutput, DocumentReport};
 
+/// **S2 步 2**：某个入口那一趟的**信任前缀**（I8 的 `TrustPlan` + 已缓存失败）。
+///
+/// 为什么需要：闭包编译今天对入口走的是**整份重查**（`check/mod.rs:608` 原文
+/// "闭包编译不使用 TrustPlan（v1）"）⇒ 改一个 `theorem` 要把**前面所有**声明
+/// 重查一遍（实测 unit08 改一行 **2189ms**，且与改动位置无关 —— 见
+/// `docs/design/declaration-incremental.md` §1.2）。
+///
+/// `plan.before` 与 `failures` 的键都在**该入口自己的命令流**坐标系里
+/// （入口趟 `run_pass_with` 只看到 `entry_units`，库层命令不在它的下标空间里）✓。
+///
+/// ⚠ **本结构只声明"这段前缀的文本没变过、上一轮查过"** —— 文本没变 ⇒ 前缀
+/// 语义不变，是既有 I8 不变式（单文件路径已用了很久）。**被信任的那段不会
+/// 出现在返回的报告里**（状态由调用方的会话缓存补）⇒ 调用方必须自己拼回去，
+/// 否则报告会缺声明（设计 §4.2）。
+pub(crate) struct EntryTrust {
+    pub plan: crate::compile::TrustPlan,
+    pub failures: crate::compile::KernelFailed,
+}
+
 /// 跑一次"库层一次 + 各入口各自"的编译会话；每个入口的结果经 `on_entry` 交回。
 ///
 /// `lib_units` = 共享库层的单元（拓扑序）· `entries[i]` = 第 i 个入口**自己的**单元
@@ -22,7 +41,7 @@ pub fn with_project_session<R>(
     lib_units: &[SourceUnit<'_>],
     entries: &[Vec<SourceUnit<'_>>],
     options: &CompileOptions,
-    mut on_entry: impl FnMut(
+    on_entry: impl FnMut(
         usize,
         CompileOutput,
         Vec<DocumentReport>,
@@ -30,6 +49,27 @@ pub fn with_project_session<R>(
         // **并集顺序**下每个库模块的命令区间（修法 A：按各入口自己的闭包顺序拼接 + 重编号）。
         &[std::ops::Range<usize>],
         // 该入口在**合并输出**里的命令区间（`lib_n..lib_n + 入口那趟命令数`）。
+        std::ops::Range<usize>,
+    ) -> R,
+) -> Vec<R> {
+    with_project_session_trusted(lib_units, entries, options, &[], on_entry)
+}
+
+/// 同 [`with_project_session`]，但**每个入口可以带一份信任前缀**（S2 步 2）。
+///
+/// `entry_trust[i]` = 第 i 个入口的 [`EntryTrust`]；`None`/缺省 ⇒ 那一趟与今天
+/// **逐字节相同**（整份重查）⇒ 既有调用方（CLI `build`）行为零变化 ✓。
+pub(crate) fn with_project_session_trusted<R>(
+    lib_units: &[SourceUnit<'_>],
+    entries: &[Vec<SourceUnit<'_>>],
+    options: &CompileOptions,
+    entry_trust: &[Option<EntryTrust>],
+    mut on_entry: impl FnMut(
+        usize,
+        CompileOutput,
+        Vec<DocumentReport>,
+        &[DocumentReport],
+        &[std::ops::Range<usize>],
         std::ops::Range<usize>,
     ) -> R,
 ) -> Vec<R> {
@@ -46,6 +86,8 @@ pub fn with_project_session<R>(
     // **逐模块报告**（与 `check::run` 同构）：库层那趟的报告按单元切分 ⇒ 接线方
     // 能组装出与今天**逐字节相同**的 `ProjectReport`（缓存内容不变）。
     let lib_n = lib_pass.n_commands;
+    // 读在 `lib_pass.report` 被搬走**之前**（`split_report` 会吃掉它）。
+    let lib_checks = lib_pass.kernel_checks();
     let lib_ranges = crate::compile::unit_ranges(lib_units);
     let lib_reports = split_report(
         lib_pass.report,
@@ -54,7 +96,11 @@ pub fn with_project_session<R>(
         lib_units,
     );
     // ② 检查点 = "只有库层"的环境（`DeclarMap: Clone` 由 `snapshot()` 已在用）。
-    let lib_out = lib_pass.out;
+    let lib_out = {
+        let mut out = lib_pass.out;
+        out.stats.kernel_checks = lib_checks;
+        out
+    };
     let checkpoint = builder.hide_declars();
     let mut out = Vec::with_capacity(entries.len());
     for (index, entry_units) in entries.iter().enumerate() {
@@ -87,6 +133,8 @@ pub fn with_project_session<R>(
             .map(|last| vec![last.clone()])
             .unwrap_or_default();
         let entry_display = crate::compile::display_notations(&entry_closure);
+        // **S2 步 2**：该入口这一趟的信任前缀（缺省 = 整份重查，与今天逐字节相同）。
+        let trusted = entry_trust.get(index).and_then(|slot| slot.as_ref());
         let (pass, next, next_tables) = run_pass_with(
             builder,
             None,
@@ -95,8 +143,8 @@ pub fn with_project_session<R>(
             entry_units,
             options,
             true,
-            None,
-            None,
+            trusted.map(|t| &t.failures),
+            trusted.map(|t| &t.plan),
             None,
             Some(&entry_prefixes),
             Some(&entry_display),
@@ -104,6 +152,8 @@ pub fn with_project_session<R>(
         builder = next;
         tables = next_tables;
         let entry_range = lib_n..lib_n + pass.n_commands;
+        // 读在 `pass.report` 被搬走**之前**（`split_report` 会吃掉它）。
+        let entry_checks = pass.kernel_checks();
         let entry_reports = split_report(
             pass.report,
             &pass.out.error_cmds,
@@ -125,7 +175,10 @@ pub fn with_project_session<R>(
         merged
             .warning_cmds
             .extend(pass.out.warning_cmds.iter().map(|c| c + lib_n));
-        merged.stats.kernel_checks += pass.out.stats.kernel_checks;
+        // **S2 步 2 顺带修的一个漏**：`run` 会把 `pass.checks` 搬进
+        // `out.stats.kernel_checks`，而这条路以前**只加了没赋值的那个 0** ⇒
+        // 合并输出里的 `kernel_checks` 恒为 0（判据读不到"少查了多少"）。
+        merged.stats.kernel_checks += entry_checks;
         out.push(on_entry(
             index,
             merged,
