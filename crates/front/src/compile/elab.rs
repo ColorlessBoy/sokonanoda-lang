@@ -1532,24 +1532,24 @@ fn needs_expected_type(expr: &Expr) -> bool {
 /// 头是任意表达式（`f x ∅` 里的 `f x`）：类型文本由 `judge_infer` 给，签名用
 /// [`notation_telescope`] 剥（与记法路径**同一份**机械，两条路的判据不会分叉）。
 /// 读不出签名 ⇒ `None`（退回「无期望类型」的既有行为，绝不比今天差）。
-fn application_arg_expected(
+fn application_arg_expected<'a>(
     expr: &Expr,
-    scope: &ElabScope<'_>,
-    ctx: &ElabCtx<'_, '_>,
+    scope: &ElabScope<'a>,
+    ctx: &ElabCtx<'a, '_>,
+    // **G-31**：有活环境就**就地**推头的类型（`infer_type_text` 优先就地、失败回落）
+    // —— 头的类型以前每次都靠 `judge_infer` 合成一份 `#check` **整份重编前缀**，
+    // 而这条调用点在**每个带期望类型的应用**上都会走 ⇒ 它是 `prefix_runs` 的大头之一。
+    env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Option<Expr> {
     let (head, args) = crate::spine::spine_of(expr);
     if args.is_empty() {
         return None;
     }
     let index = args.len() - 1;
-    let head_text = render_expr(head);
-    let ty_text = judge_infer(
-        ctx.prefix_src,
-        ctx.options,
-        &scope.judge_binders(),
-        &head_text,
-    )
-    .ok()?;
+    // ⚠ 慢路文本**必须逐字不变**：`infer_type_text` 内部用的是
+    // `&render_expr(operand)`，与这里原来的 `render_expr(head)` **同一份** ✓
+    // ⇒ 回落时与今天逐字节相同（缓存键也因此同源 ✓）。
+    let ty_text = infer_type_text(ctx, scope, head, env)?;
     let (layers, _) = notation_telescope(&ty_text)?;
     let (_, domain) = layers.get(index)?;
     let mut sigma: HashMap<String, Expr> = HashMap::new();
@@ -4211,7 +4211,9 @@ pub(crate) fn elab_expr<'a>(
             // `docs/design/course-lean-style.md` §9「另一条被 park 的改动」。
             // 重开属于 IA-2（R2.5）：先修「显式实参写在隐式位上」的实参→形参对齐。
             let arg_expected = if needs_expected_type(arg) {
-                application_arg_expected(expr, scope, ctx)
+                // `InplaceEnv` 的两个字段这里都现成（`builder` / `known`）——
+                // 与 `elab_expr` 内 `Some(&mut InplaceEnv { .. })` 那处同款 ✓。
+                application_arg_expected(expr, scope, ctx, Some(&mut InplaceEnv { builder, known }))
             } else {
                 None
             };
