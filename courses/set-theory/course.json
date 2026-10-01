@@ -429,6 +429,29 @@
               "unit": 32
             }
           ]
+        },
+        {
+          "id": "I.12",
+          "title": "幂集与函数空间",
+          "prereqs": [
+            "I.1"
+          ],
+          "tags": [
+            "powerset",
+            "characteristic-function",
+            "boolean"
+          ],
+          "quota": {
+            "exercises": 10
+          },
+          "units": [
+            {
+              "file": "units/unit33-powerset.sokonanoda",
+              "title": "单元㉝ 幂集代数与特征函数",
+              "title_en": "Unit 33 — Powerset Algebra and Characteristic Functions",
+              "unit": 33
+            }
+          ]
         }
       ]
     }

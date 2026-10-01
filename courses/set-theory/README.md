@@ -123,6 +123,8 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元㉝ 落地后）：86 个目标 · 846 checked · 307 open · 0 判负**
+
 **门禁实测（2026-10-01，单元㉜ 落地后）：84 个目标 · 828 checked · 297 open · 0 判负**
 
 **门禁实测（2026-10-01，单元㉛ 落地后）：82 个目标 · 809 checked · 287 open · 0 判负**
@@ -194,6 +196,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **I.8** | **基数与基数算术** | I.3 | cardinal · injection · equinumerous · cardinal-arithmetic · product · commutativity | 20 | 20 | **19–20** |
 | **I.10** | **关系闭包、等价关系与商** | I.2 | relation · closure · reflexive/symmetric/transitive-closure · equivalence-relation · equivalence-class · quotient · partition · correspondence · quotient-type · well-definedness | 39 | 39 | **24–27** |
 | **I.11** | **集合代数与序的完备性** | I.1 | set-algebra · de-morgan · supremum · infimum · lattice · duality · monotone · order-isomorphism · pointwise-order · function-space | 48 | 48 | **28–32** |
+| **I.12** | **幂集与函数空间** | I.1 | powerset · characteristic-function · boolean | 10 | 10 | **33** |
 | **I.7** | **选择公理与 ZF 公理体系** | I.2 | axiom-of-choice · choice-function · surjective · right-inverse · zf-axioms · regularity · extensionality | 20 | 20 | **17–18** |
 
 | 单元 | 章 | 标题 | 练习 | 解答（checked） |
@@ -230,6 +233,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **30** | **I.11** | **格与对偶：确界的代数** | **10** | **10** |
 | **31** | **I.11** | **单调函数与序同构保持确界** | **10** | **10** |
 | **32** | **I.11** | **函数空间上的逐点序** | **10** | **10** |
+| **33** | **I.12** | **幂集代数与特征函数** | **10** | **10** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -268,6 +272,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 单元 | 交付 | 撞到/绕开的 |
 |---|---|---|
 | ⑬ 偏序、全序与严格序 | 新库 `lib/Order`（词汇 6 性质 + 4 序类 + 两个翻译函数 + 展开引理 + **取用子** + **智能构造子**）；画布 3 演示 + 11 练习；解答 0 open | **G-72**（`lib/Order` 最初写成字面箭头返回 ⇒ 单文件绿、`import` 红）· **G-73 形状 ①②③**（证明全靠库层绕法） |
+| ㉝ 幂集代数与特征函数 | 画布 1 定义（`charSet`，**函数 → 集合**那个不需要判定的方向）+ 3 演示 + 10 练习；解答 0 open · **新章 I.12** | **`𝒫 (A ∩ B) = 𝒫 A ∩ 𝒫 B` 完全交换** · **`𝒫 A ∪ 𝒫 B ⊆ 𝒫 (A ∪ B)` 只有一半** · **`⋃₀ (𝒫 A) = A`** · **特征函数**的成员刻画/相容性/单调性 · ⚠ **如实记下两件做不成的事**：① 举"只有一半"的反例要能**区分 `Bool` 的两个构造子**，而递归子只有 **Prop 动机**（**G-58** 同源）⇒ 连 `true ≠ false` 都证不出来；② **`𝒫 A → (A → Bool)` 要可判定性**（**G-74**）⇒ 只做反方向 |
 | ㉜ 函数空间上的逐点序 | `lib/Order` +`PointwiseLe` + 展开与取用子；画布 3 演示 + 10 练习；解答 0 open | **逐点序的三条基本律**（自反 · 传递 · 常函数）· **逐点相等给出逐点序** · **单调逐点作用于两边** · **旗舰：逐点上确界 = 逐点取上确界**（下确界同理）· ⚠ **本单元的重要读法**：**逐点序一般不是偏序** —— 反对称要**函数外延**，而本语言没有（**新缺口 G-77**）⇒ 反对称只证到"逐点相等"为止 |
 | ㉛ 单调函数与序同构保持确界 | `lib/Order` +`Monotone` / `OrderReflecting` + 展开与取用子；画布 3 演示 + 10 练习；解答 0 open | **单调的代数**（恒等 · 合成 · 常函数）· **单调把上界/下界送到像上** · **反射（"像上有序 ⇒ 原来有序"）** —— 恒等/合成/由单调左逆得到 · **旗舰：序同构保持上确界** —— 且**三条假设缺一不可**（光有单调不够：要把上界**拉回原域**才用得上最小性 ⇒ 满射；拉回来还要**反转** ⇒ 反射）· 记下搬运等式的用法：**改第一个坐标要把关系翻过来** |
 | ㉚ 格与对偶：确界的代数 | 无新库（用单元㉙ 的确界词汇）；画布 3 演示 + 10 练习；解答 0 open | **单点的确界 = 它自己** · **空集的上确界 = 最小元、下确界 = 最大元** · **对偶原理**（"上界集的下确界就是上确界"，反向亦然）· **旗舰：广义并交的泛性质**（`⋃₀ F ⊆ C ⟺ F 每个成员含于 C`、对偶）· **如实记下"格运算没做成"**：定义 `a ⊔ b` 要**从 `Prop` 的 `∃` 取数据** ⇒ 撞 **G-58**，所以本单元只谈确界本身（谓词形态）—— 这恰好是教材"先讲确界、再讲格"的顺序 ✓ |

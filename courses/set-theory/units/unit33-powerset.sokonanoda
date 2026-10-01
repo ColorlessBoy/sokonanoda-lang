@@ -1,0 +1,153 @@
+-- ==========================================================================
+-- unit33-powerset.sokonanoda —— 卷 I 单元㉝ **幂集代数与特征函数**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§5–6**（幂集的代数）
+-- 与 **§8–9**（函数、特征函数的思想）；Enderton《Elements of Set Theory》**§1.8 / §2.2**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.12 章「幂集与函数空间」开工）。
+--
+-- 本单元的"该学的定理"：**幂集与交"完全交换"**（`𝒫 (A ∩ B) = 𝒫 A ∩ 𝒫 B`）·
+--   **幂集与并只有一半**（`𝒫 A ∪ 𝒫 B ⊆ 𝒫 (A ∪ B)`）· **广义并还原**（`⋃₀ (𝒫 A) = A`）·
+--   **特征函数**：`charSet f = {x | f x = true}` 的成员刻画、与逐点相等的相容性、单调性 ✓
+--
+-- ⚠ **如实记下两件做不成的事**（都写进 hint）：
+--   ① **反方向 `𝒫 (A ∪ B) ⊆ 𝒫 A ∪ 𝒫 B` 是假的**，而**举反例要能区分 `Bool` 的两个构造子** ——
+--      本语言的**递归子只有 Prop 动机**（与 **G-58** 同源）⇒ 连 `true ≠ false` 都证不出来
+--      （`Bool.rec` 的动机必须是 `Bool → Sort 0`，造不出"在 `true` 上真、在 `false` 上假"的谓词）✗
+--   ② **`𝒫 A → (A → Bool)` 这一步做不了** —— 要给每个点判定"在不在集合里"，那要**可判定性**
+--      （`Decidable` / 排中律），本语言没有（**G-74**）⇒ 本单元只做 `(α → Bool) → 𝒫 α` 这个方向 ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.SUnion`（广义并）· `lib.Rel`。
+--
+-- 依赖：单元②③（幂集与子集）· 单元㉑（广义并）· 单元㉘（集合代数）—— 本单元把幂集做成代数。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Image
+
+-- ─────────────────────────────────────────────────────────────
+-- 33.0 画布给的新词汇：**特征函数对应的集合**
+--
+-- 读法：`charSet α f` 是"`f` 取真值的那些点" ✓ —— 这是"函数 → 集合"的方向，
+-- 它**不需要任何判定**（只是把"取值等于真"写成集合）✓
+-- 反方向（集合 → 函数）要判定每个点在不在集合里 ⇒ **本语言做不了**（G-74）✓
+-- ─────────────────────────────────────────────────────────────
+def charSet (α : Type) (f : α → Bool) : Set α :=
+  fun (x : α) => Eq.{1} Bool (f x) Bool.true  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+
+-- ─────────────────────────────────────────────────────────────
+-- 33.1 三条库引理（交、并的成员刻画 · 广义并的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：交的成员刻画。
+theorem demo_mem_inter_iff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ (a ∈ A ∧ a ∈ B) :=
+  Set.mem_inter_iff a A B
+
+-- 演示：并的成员刻画。
+theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ (a ∈ A ∨ a ∈ B) :=
+  Set.mem_union a A B
+
+-- 演示：广义并的成员刻画（"存在一个成员装得下它"）。
+theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+  Set.mem_sUnion_iff α F x
+
+-- ─────────────────────────────────────────────────────────────
+-- 33.2 幂集的代数：**与交完全交换、与并只有一半**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：幂集的成员刻画（库里现成的）。
+-- soko:hint 思路：直接交出去（**参数顺序是"先被包含的、后那个大集合"**，实测别接反）。
+-- soko:hint 目标形态：`A ∈ 𝒫 B ↔ A ⊆ B`。
+-- soko:hint 关键件：`Set.mem_powerset_iff`。
+theorem mem_powerset_apply (α : Type) (A B : Set α) :
+    A ∈ (Set.powerset B) ↔ A ⊆ B := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+  sorry
+
+-- 练习 2（L 类，旗舰之一）：**`𝒫 (A ∩ B) = 𝒫 A ∩ 𝒫 B`**（两个方向都是"逐点拆合取"）。
+-- soko:hint 思路：→：`C ⊆ A ∩ B` 给出"每个点同时在两个里" ⇒ 分别打包成两条包含关系；
+--   ←：两条包含关系各取所需，合成"同时在两个里"。
+-- soko:hint 目标形态：`𝒫 (A ∩ B) = 𝒫 A ∩ 𝒫 B`。
+-- soko:hint 关键件：`Set.ext`（**要写全论域与两个集合**）· `Iff.intro`（前导 Prop 实参写全）·
+--   `And.intro`/`And.left`/`And.right` · **包含关系是定义头 ⇒ 先 λ 绑定再应用**（G-73 形状 ①）✓
+theorem powerset_inter (α : Type) (A B : Set α) :
+    Set.powerset (A ∩ B) = Set.powerset A ∩ Set.powerset B := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+  sorry
+
+-- 练习 3（L 类，旗舰之一）：**`𝒫 A ∪ 𝒫 B ⊆ 𝒫 (A ∪ B)`**（"只有一半"）。
+-- soko:hint 思路：把左边的析取分开，两支各自"把成员的点送进并"（左支进 `A`、右支进 `B`）。
+-- soko:hint 目标形态：`(𝒫 A ∪ 𝒫 B) ⊆ 𝒫 (A ∪ B)`。
+-- soko:hint 关键件：`Or.elim`（前导 Prop 实参写全）· `Or.inl`/`Or.inr` · 包含假设**先 λ 绑定** ✓
+--   ⚠ **反方向是假的** —— 而"举反例"要能区分 `Bool` 的两个构造子，本语言证不出来（见文件头 ①）✓
+theorem powerset_union_subset (α : Type) (A B : Set α) :
+    (Set.powerset A ∪ Set.powerset B) ⊆ Set.powerset (A ∪ B) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+  sorry
+
+-- 练习 4（L 类）：**广义并把幂集还原成原来的集合**（`⋃₀ (𝒫 A) = A`）。
+-- soko:hint 思路：→：拆广义并的成员，得到某个 `B ⊆ A` 装得下这个点 ⇒ 用包含关系；
+--   ←：`A` 自己在 `𝒫 A` 里，用它当广义并的见证（包含关系取恒等）。
+-- soko:hint 目标形态：`⋃₀ (𝒫 A) = A`。
+-- soko:hint 关键件：`Set.ext` · `Set.mem_sUnion_elim`（拆）· `Set.mem_sUnion_intro`（造；
+--   **第一个实参是元素类型 `α`，不是 `Set α`** —— 实测踩过）· `Set.mem_powerset_iff` ✓
+theorem sUnion_powerset (α : Type) (A : Set α) :
+    Set.sUnion α (Set.powerset A) = A := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+  sorry
+
+-- 练习 5（L 类）：**空集的幂集里只有空集**（成员层面：里面的集合什么都不含）。
+-- soko:hint 思路：`C ∈ 𝒫 ∅` 给出 `C ⊆ ∅`，于是 `C` 的点要落在空集里 —— 与"空集没有点"冲突。
+-- soko:hint 目标形态：`C ∈ 𝒫 ∅ → ∀ x, ¬ (C x)`。
+-- soko:hint 关键件：包含假设**先 λ 绑定** · `Set.notMem_empty`（空集没有点）· `False.elim` ✓
+theorem powerset_empty_subset (α : Type) (C : Set α) (hC : C ∈ Set.powerset (Set.empty α)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    ∀ (x : α), ¬ (C x) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 33.3 特征函数：**函数 → 集合**（另一个方向做不了，见文件头 ②）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（T 类）：**特征函数对应集合的成员刻画**。
+-- soko:hint 思路：两边都是"`f x` 等于真"这同一条命题。
+-- soko:hint 目标形态：`x ∈ charSet α f ↔ f x = true`。
+-- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· 等式的证明项**点名声明星**（G-73 形状 ③）✓
+theorem mem_charSet (α : Type) (f : α → Bool) (x : α) :
+    x ∈ (charSet α f) ↔ Eq.{1} Bool (f x) Bool.true := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+  sorry
+
+-- 练习 7（T 类）：**已知 `f x` 取真值 ⇒ `x` 在对应的集合里**（练习 6 的方向单独用）。
+-- soko:hint 思路：假设就是结论（两边是同一个命题）。
+-- soko:hint 目标形态：`f x = true → x ∈ charSet α f`。
+-- soko:hint 关键件：直接把假设交出去 ✓
+theorem charSet_true (α : Type) (f : α → Bool) (x : α)
+    (h : Eq.{1} Bool (f x) Bool.true) : x ∈ (charSet α f) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+  sorry
+
+-- 练习 8（L 类）：**逐点相等的两个函数给出同样的集合**。
+-- soko:hint 思路：把 `g x = f x` **掉头**，再与"`f x` 等于真"接起来。
+-- soko:hint 目标形态：`(∀ a, f a = g a) → x ∈ charSet α f → x ∈ charSet α g`。
+-- soko:hint 关键件：`Eq.symm`/`Eq.trans`（**要写全宇宙层级与论域**）✓
+theorem charSet_eq_of_eq (α : Type) (f g : α → Bool)
+    (h : ∀ (a : α), Eq.{1} Bool (f a) (g a)) (x : α) (hx : x ∈ (charSet α f)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    x ∈ (charSet α g) := by
+  sorry
+
+-- 练习 9（L 类）：**特征函数对应的集合对"逐点蕴含"单调**。
+-- soko:hint 思路：`x` 在第一个集合里 ⇒ `f x` 真 ⇒ （由假设）`g x` 真 ⇒ 在第二个里。
+-- soko:hint 目标形态：`(∀ a, f a = true → g a = true) → charSet α f ⊆ charSet α g`。
+-- soko:hint 关键件：直接写 λ（两个包含关系都是定义头，λ 形态对得上）✓
+theorem charSet_mono (α : Type) (f g : α → Bool)
+    (h : ∀ (a : α), Eq.{1} Bool (f a) Bool.true → Eq.{1} Bool (g a) Bool.true) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    (charSet α f) ⊆ (charSet α g) := by
+  sorry
+
+-- 练习 10（T 类）：**恒真函数对应全集的每个点**。
+-- soko:hint 思路：`true = true` 由自反给出。
+-- soko:hint 目标形态：`∀ x, x ∈ charSet α (fun _ => true)`。
+-- soko:hint 关键件：`Eq.refl`（**要写全宇宙层级与论域**）✓
+theorem charSet_const_true (α : Type) (x : α) :
+    x ∈ (charSet α (fun (_ : α) => Bool.true)) := by
+  sorry
