@@ -1,0 +1,88 @@
+import lib.Rel
+import lib.Set
+import lib.Fun
+import lib.Order
+
+theorem demo_leftInverse_def (α β : Type) (g : β → α) (f : α → β) :
+    Function.LeftInverse α β g f ↔ ∀ (x : α), Eq.{1} α (g (f x)) x :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Function.leftInverse_def α β g f
+
+theorem demo_rightInverse_def (α β : Type) (g : β → α) (f : α → β) :
+    Function.RightInverse α β g f ↔ ∀ (y : β), Eq.{1} β (f (g y)) y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Function.rightInverse_def α β g f
+
+theorem demo_inverse_def (α β : Type) (f : α → β) (g : β → α) :
+    Function.Inverse α β f g ↔
+      (Function.LeftInverse α β g f ∧ Function.RightInverse α β g f) :=
+  Function.inverse_def α β f g
+
+theorem leftInverse_apply (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.LeftInverse α β g f) (x : α) : Eq.{1} α (g (f x)) x :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (x' : α), Eq.{1} α (g (f x')) x') => hu x) h  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem rightInverse_apply (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.RightInverse α β g f) (y : β) : Eq.{1} β (f (g y)) y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (y' : β), Eq.{1} β (f (g y')) y') => hu y) h  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem inverse_left (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.Inverse α β f g) : Function.LeftInverse α β g f :=
+  (fun (hp : Function.LeftInverse α β g f ∧ Function.RightInverse α β g f) => And.left hp) h
+
+theorem inverse_right (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.Inverse α β f g) : Function.RightInverse α β g f :=
+  (fun (hp : Function.LeftInverse α β g f ∧ Function.RightInverse α β g f) => And.right hp) h
+
+theorem injective_of_leftInverse (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.LeftInverse α β g f) : Function.Injective α β f :=
+  fun (a : α) => fun (b : α) => fun (hab : Eq.{1} β (f a) (f b)) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    Eq.trans.{1} α a (g (f a)) b
+      (Eq.symm.{1} α (g (f a)) a (leftInverse_apply α β g f h a))
+      (Eq.trans.{1} α (g (f a)) (g (f b)) b
+        (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (f a) (f a) (f b) hab (Eq.refl.{1} α (g (f a))))
+        (leftInverse_apply α β g f h b))
+
+theorem surjective_of_rightInverse (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.RightInverse α β g f) : Function.Surjective α β f :=
+  fun (y : β) =>
+    Exists.intro α (fun (x : α) => Eq.{1} β (f x) y) (g y)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (rightInverse_apply α β g f h y)
+
+theorem bijective_of_inverse (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.Inverse α β f g) : Function.Bijective α β f :=
+  And.intro (Function.Injective α β f) (Function.Surjective α β f)
+    (injective_of_leftInverse α β g f (inverse_left α β f g h))
+    (surjective_of_rightInverse α β g f (inverse_right α β f g h))
+
+theorem leftInverse_comp (α β γ : Type) (f : α → β) (g : β → α) (f1 : β → γ) (g1 : γ → β)
+    (hf : Function.LeftInverse α β g f) (hf1 : Function.LeftInverse β γ g1 f1) :
+    Function.LeftInverse α γ (fun (c : γ) => g (g1 c)) (fun (a : α) => f1 (f a)) :=
+  fun (a : α) =>
+    Eq.trans.{1} α (g (g1 (f1 (f a)))) (g (f a)) a
+      (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (g1 (f1 (f a))) (g1 (f1 (f a))) (f a)
+        (leftInverse_apply β γ g1 f1 hf1 (f a)) (Eq.refl.{1} α (g (g1 (f1 (f a))))))
+      (leftInverse_apply α β g f hf a)
+
+theorem rightInverse_comp (α β γ : Type) (f : α → β) (g : β → α) (f1 : β → γ) (g1 : γ → β)
+    (hf : Function.RightInverse α β g f) (hf1 : Function.RightInverse β γ g1 f1) :
+    Function.RightInverse α γ (fun (c : γ) => g (g1 c)) (fun (a : α) => f1 (f a)) :=
+  fun (c : γ) =>
+    Eq.trans.{1} γ (f1 (f (g (g1 c)))) (f1 (g1 c)) c
+      (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} γ (f1 u) (f1 v))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (f (g (g1 c))) (f (g (g1 c))) (g1 c)
+        (rightInverse_apply α β g f hf (g1 c)) (Eq.refl.{1} γ (f1 (f (g (g1 c))))))
+      (rightInverse_apply β γ g1 f1 hf1 c)
+
+theorem inverse_unique_apply (α β : Type) (f : α → β) (g : β → α) (g1 : β → α)
+    (hl : Function.LeftInverse α β g f) (hr : Function.RightInverse α β g1 f) (y : β) :
+    Eq.{1} α (g y) (g1 y) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Eq.trans.{1} α (g y) (g (f (g1 y))) (g1 y)
+    (rel_subst_left β (fun (u : β) (v : β) => Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (f (g1 y)) y y (rightInverse_apply α β g1 f hr y) (Eq.refl.{1} α (g y)))
+    (leftInverse_apply α β g f hl (g1 y))
+
+theorem inverse_swap (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.Inverse α β f g) : Function.Inverse β α g f :=
+  And.intro (Function.LeftInverse β α f g) (Function.RightInverse β α f g)
+    (inverse_right α β f g h) (inverse_left α β f g h)

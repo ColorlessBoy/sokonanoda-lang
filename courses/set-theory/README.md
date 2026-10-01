@@ -123,6 +123,8 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元㉟ 落地后）：90 个目标 · 880 checked · 327 open · 0 判负**
+
 **门禁实测（2026-10-01，单元㉞ 落地后）：88 个目标 · 863 checked · 317 open · 0 判负**
 
 **门禁实测（2026-10-01，单元㉝ 落地后）：86 个目标 · 846 checked · 307 open · 0 判负**
@@ -198,7 +200,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **I.8** | **基数与基数算术** | I.3 | cardinal · injection · equinumerous · cardinal-arithmetic · product · commutativity | 20 | 20 | **19–20** |
 | **I.10** | **关系闭包、等价关系与商** | I.2 | relation · closure · reflexive/symmetric/transitive-closure · equivalence-relation · equivalence-class · quotient · partition · correspondence · quotient-type · well-definedness | 39 | 39 | **24–27** |
 | **I.11** | **集合代数与序的完备性** | I.1 | set-algebra · de-morgan · supremum · infimum · lattice · duality · monotone · order-isomorphism · pointwise-order · function-space | 48 | 48 | **28–32** |
-| **I.12** | **幂集与函数空间** | I.1 | powerset · characteristic-function · boolean · function-composition · injective · surjective · bijective | 20 | 20 | **33–34** |
+| **I.12** | **幂集与函数空间** | I.1 | powerset · characteristic-function · boolean · function-composition · injective · surjective · bijective · inverse | 30 | 30 | **33–35** |
 | **I.7** | **选择公理与 ZF 公理体系** | I.2 | axiom-of-choice · choice-function · surjective · right-inverse · zf-axioms · regularity · extensionality | 20 | 20 | **17–18** |
 
 | 单元 | 章 | 标题 | 练习 | 解答（checked） |
@@ -237,6 +239,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **32** | **I.11** | **函数空间上的逐点序** | **10** | **10** |
 | **33** | **I.12** | **幂集代数与特征函数** | **10** | **10** |
 | **34** | **I.12** | **函数代数：合成与单满射** | **10** | **10** |
+| **35** | **I.12** | **逆函数：左逆、右逆与双边逆** | **10** | **10** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -275,6 +278,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 单元 | 交付 | 撞到/绕开的 |
 |---|---|---|
 | ⑬ 偏序、全序与严格序 | 新库 `lib/Order`（词汇 6 性质 + 4 序类 + 两个翻译函数 + 展开引理 + **取用子** + **智能构造子**）；画布 3 演示 + 11 练习；解答 0 open | **G-72**（`lib/Order` 最初写成字面箭头返回 ⇒ 单文件绿、`import` 红）· **G-73 形状 ①②③**（证明全靠库层绕法） |
+| ㉟ 逆函数：左逆、右逆与双边逆 | 无新库（用 `lib.Fun` 的三种逆）；画布 3 演示 + 10 练习；解答 0 open · **I.12 章收口** | **左逆 ⇒ 单射** · **右逆 ⇒ 满射** · **双边逆 ⇒ 双射**（旗舰）· **逆在合成下保持** · **左逆与右逆逐点相等**（同一个 `f` 的左逆与右逆其实是同一个函数 —— 逐点形态，因为"函数相等"要外延 ⇒ **G-77**）· **逆的对称性** · ⚠ 记下"**满射 ⇒ 存在右逆**"做不了（见证是函数 ⇒ `∃` 构造不出，L-06）⇒ 所以本单元走**"数据版"**：逆由调用者交进来 ✓ · 实测：**搬运引理的方向要按两条形状挑**（`rel_subst_left` 向后、`rel_subst_right` 向前） |
 | ㉞ 函数代数：合成与单满射 | 无新库（用 `lib.Fun` 的 `∘` 与单满射词汇）；画布 3 演示 + 10 练习；解答 0 open | **合成的结合律与恒等律**（⚠ **只能写逐点** —— 函数相等要外延 ⇒ **G-77**）· **单射/满射/双射的合成** · **两条消去律**（`g ∘ f` 单射 ⇒ `f` 单射；`g ∘ f` 满射 ⇒ `g` 满射）· **如实记下**：`Surjective f ⇒ ∃ RightInverse` **做不了**（见证是函数 ⇒ `∃` 构造不出，`lib/Cardinal` 的 L-06）· 写法：**"把 `g` 作用在等式两边"用 `rel_subst_right` 而不是 `congrArg`**（实测后者解不出宇宙层级） |
 | ㉝ 幂集代数与特征函数 | 画布 1 定义（`charSet`，**函数 → 集合**那个不需要判定的方向）+ 3 演示 + 10 练习；解答 0 open · **新章 I.12** | **`𝒫 (A ∩ B) = 𝒫 A ∩ 𝒫 B` 完全交换** · **`𝒫 A ∪ 𝒫 B ⊆ 𝒫 (A ∪ B)` 只有一半** · **`⋃₀ (𝒫 A) = A`** · **特征函数**的成员刻画/相容性/单调性 · ⚠ **如实记下两件做不成的事**：① 举"只有一半"的反例要能**区分 `Bool` 的两个构造子**，而递归子只有 **Prop 动机**（**G-58** 同源）⇒ 连 `true ≠ false` 都证不出来；② **`𝒫 A → (A → Bool)` 要可判定性**（**G-74**）⇒ 只做反方向 |
 | ㉜ 函数空间上的逐点序 | `lib/Order` +`PointwiseLe` + 展开与取用子；画布 3 演示 + 10 练习；解答 0 open | **逐点序的三条基本律**（自反 · 传递 · 常函数）· **逐点相等给出逐点序** · **单调逐点作用于两边** · **旗舰：逐点上确界 = 逐点取上确界**（下确界同理）· ⚠ **本单元的重要读法**：**逐点序一般不是偏序** —— 反对称要**函数外延**，而本语言没有（**新缺口 G-77**）⇒ 反对称只证到"逐点相等"为止 |

@@ -443,10 +443,13 @@
             "function-composition",
             "injective",
             "surjective",
-            "bijective"
+            "bijective",
+            "inverse",
+            "left-inverse",
+            "right-inverse"
           ],
           "quota": {
-            "exercises": 20
+            "exercises": 30
           },
           "units": [
             {
@@ -460,6 +463,12 @@
               "title": "单元㉞ 函数代数：合成与单满射",
               "title_en": "Unit 34 — Function Algebra: Composition, Injections, Surjections",
               "unit": 34
+            },
+            {
+              "file": "units/unit35-inverses.sokonanoda",
+              "title": "单元㉟ 逆函数：左逆、右逆与双边逆",
+              "title_en": "Unit 35 — Inverse Functions",
+              "unit": 35
             }
           ]
         }

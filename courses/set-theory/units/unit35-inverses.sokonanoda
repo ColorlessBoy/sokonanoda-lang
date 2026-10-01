@@ -1,0 +1,162 @@
+-- ==========================================================================
+-- unit35-inverses.sokonanoda —— 卷 I 单元㉟ **逆函数：左逆、右逆与双边逆**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§3.3 Functions**
+-- 的 inverses 一段；Halmos《Naive Set Theory》**§10 Inverses and Composites**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.12 章第三个单元，**本章收口**）。
+--
+-- 本单元的"该学的定理"（**"数据版"的逆** —— 逆函数由调用者**交进来**，而不是"存在"出来）：
+--   · **左逆 ⇒ 单射** · **右逆 ⇒ 满射** · **双边逆 ⇒ 双射**（本单元旗舰）；
+--   · **左逆/右逆在合成下保持**；
+--   · **左逆与右逆逐点相等**（同一个 `f` 的左逆与右逆其实是同一个函数 —— 逐点形态，
+--     因为"函数相等"要外延，本语言没有 ⇒ **G-77**）；
+--   · **逆的对称性**（`f` 与 `g` 互为逆 ⇔ `g` 与 `f` 互为逆）✓
+--
+-- ⚠ **为什么叫"数据版"**：`Function.Inverse α β f g` 里 `g` 是**参数**（调用者交进来的具体函数）✓
+--   而"**满射 ⇒ 存在右逆**"这条**做不了** —— 见证是**函数**，本语言的 `∃` **构造不出函数见证**
+--   （`lib/Cardinal` 文件头早已记为 L-06；单元㉞ 也撞过一次）✗ 本单元**如实不排** ✓
+--
+-- **写法约定**：「把 `g` 作用在等式两边」用**搬运引理** `rel_subst_left`/`rel_subst_right`
+--   （关系取"`g` 两边相等"）—— **别用 `congrArg`**（这些位置解不出宇宙层级，实测）✓
+--   搬运的**方向**要按引理的两条形状挑：`rel_subst_right` 把第二个坐标**向前**换，
+--   `rel_subst_left` 把它**向后**换 ✓（本单元为此改了一次）
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Fun`（逆与单满射）· `lib.Set` · `lib.Rel`。
+--
+-- 依赖：单元㉞（函数代数）—— 本单元把"逆"这一侧补完，I.12 章收口。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Fun
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 35.1 三条库引理（左逆 / 右逆 / 双边逆的展开）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：左逆的展开（"先 `f` 再 `g` 回到原地"）。
+theorem demo_leftInverse_def (α β : Type) (g : β → α) (f : α → β) :
+    Function.LeftInverse α β g f ↔ ∀ (x : α), Eq.{1} α (g (f x)) x :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Function.leftInverse_def α β g f
+
+-- 演示：右逆的展开（"先 `g` 再 `f` 回到原地"）。
+theorem demo_rightInverse_def (α β : Type) (g : β → α) (f : α → β) :
+    Function.RightInverse α β g f ↔ ∀ (y : β), Eq.{1} β (f (g y)) y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Function.rightInverse_def α β g f
+
+-- 演示：双边逆的展开（左逆 ∧ 右逆）。
+theorem demo_inverse_def (α β : Type) (f : α → β) (g : β → α) :
+    Function.Inverse α β f g ↔
+      (Function.LeftInverse α β g f ∧ Function.RightInverse α β g f) :=
+  Function.inverse_def α β f g
+
+-- ─────────────────────────────────────────────────────────────
+-- 35.2 两个取用子与一条用法
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：**左逆用在具体的点上**。
+-- soko:hint 思路：左逆展开形态就是一个 `∀`，把它用在 `x` 上。
+-- soko:hint 目标形态：`LeftInverse g f → g (f x) = x`。
+-- soko:hint 关键件：左逆假设是**定义头 ⇒ 先 λ 绑定再应用**（G-73 形状 ①）✓
+theorem leftInverse_apply (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.LeftInverse α β g f) (x : α) : Eq.{1} α (g (f x)) x := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 2（T 类）：**双边逆的左逆分量**。
+-- soko:hint 思路：双边逆展开成合取，取左边。
+-- soko:hint 目标形态：`Inverse f g → LeftInverse g f`。
+-- soko:hint 关键件：双边逆假设**先 λ 绑定**，再 `And.left` ✓
+theorem inverse_left (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.Inverse α β f g) : Function.LeftInverse α β g f := by
+  sorry
+
+-- 练习 3（T 类）：**双边逆的右逆分量**。
+-- soko:hint 思路：同练习 2，取右边。
+-- soko:hint 目标形态：`Inverse f g → RightInverse g f`。
+-- soko:hint 关键件：先 λ 绑定，再 `And.right` ✓
+theorem inverse_right (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.Inverse α β f g) : Function.RightInverse α β g f := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 35.3 **逆给出单射 / 满射**（本单元的正题）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（L 类，旗舰之一）：**有左逆 ⇒ 单射**。
+-- soko:hint 思路：设 `f a = f b`；把 `g` 作用在两边（**搬运引理**）得 `g (f a) = g (f b)`；
+--   再各自用左逆换成 `a`、`b` ⇒ `a = b`（注意 `Eq.symm` 把左边那条掉头）。
+-- soko:hint 目标形态：`LeftInverse g f → Injective f`。
+-- soko:hint 关键件：练习 1 · `rel_subst_right`（关系取"`g` 两边相等"、沿 `f a = f b` 把
+--   `g (f a) = g (f a)` 搬成 `g (f a) = g (f b)`）· `Eq.symm`/`Eq.trans`（**写全宇宙层级与论域**）✓
+theorem injective_of_leftInverse (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.LeftInverse α β g f) : Function.Injective α β f := by
+  sorry
+
+-- 练习 5（L 类，旗舰之一）：**有右逆 ⇒ 满射**（见证直接取右逆的值）。
+-- soko:hint 思路：给定 `y`，见证取 `g y`；要证的 `f (g y) = y` 正是右逆在该点的实例。
+-- soko:hint 目标形态：`RightInverse g f → Surjective f`。
+-- soko:hint 关键件：`Exists.intro`（**前导实参写全**）· 右逆假设**先 λ 绑定** ✓
+theorem surjective_of_rightInverse (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.RightInverse α β g f) : Function.Surjective α β f := by
+  sorry
+
+-- 练习 6（L 类，**本单元旗舰**）：**双边逆 ⇒ 双射**（练习 4 与练习 5 打包）。
+-- soko:hint 思路：双射展开成合取，两个方向分别交给练习 4 与练习 5（各自的假设由练习 2、3 给）。
+-- soko:hint 目标形态：`Inverse f g → Bijective f`。
+-- soko:hint 关键件：`And.intro`（**前导 Prop 实参写全**）· 练习 2 · 练习 3 · 练习 4 · 练习 5 ✓
+theorem bijective_of_inverse (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.Inverse α β f g) : Function.Bijective α β f := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 35.4 逆在**合成**下保持
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（L 类）：**左逆的合成还是左逆**（见证取"先 `g` 后 `g1`"）。
+-- soko:hint 思路：算 `g (g1 (f1 (f a)))`：先用 `g1` 的左逆把内层换成 `f a`，再用 `g` 的左逆。
+-- soko:hint 目标形态：`LeftInverse g f → LeftInverse g1 f1 → LeftInverse (fun c => g (g1 c)) (fun a => f1 (f a))`。
+-- soko:hint 关键件：两处**搬运**（内层那步用 `rel_subst_right`，关系取"`g` 两边相等"、
+--   沿 `g1 (f1 (f a)) = f a` 把 `g (g1 (f1 (f a))) = g (g1 (f1 (f a)))` 搬成 `… = g (f a)`）·
+--   两条左逆假设先 λ 绑定（或直接用练习 1）· `Eq.trans` ✓
+theorem leftInverse_comp (α β γ : Type) (f : α → β) (g : β → α) (f1 : β → γ) (g1 : γ → β)
+    (hf : Function.LeftInverse α β g f) (hf1 : Function.LeftInverse β γ g1 f1) :
+    Function.LeftInverse α γ (fun (c : γ) => g (g1 c)) (fun (a : α) => f1 (f a)) := by
+  sorry
+
+-- 练习 8（L 类）：**右逆的合成还是右逆**（与练习 7 对偶：见证同样是"先 `g` 后 `g1`"）。
+-- soko:hint 思路：算 `f1 (f (g (g1 c)))`：先用 `g` 的右逆把内层换成 `g1 c`，再用 `g1` 的右逆。
+-- soko:hint 目标形态：`RightInverse g f → RightInverse g1 f1 →
+--   RightInverse (fun c => g (g1 c)) (fun a => f1 (f a))`。
+-- soko:hint 关键件：搬运同练习 7（这次关系取"`f1` 两边相等"）· `Eq.trans` ✓
+theorem rightInverse_comp (α β γ : Type) (f : α → β) (g : β → α) (f1 : β → γ) (g1 : γ → β)
+    (hf : Function.RightInverse α β g f) (hf1 : Function.RightInverse β γ g1 f1) :
+    Function.RightInverse α γ (fun (c : γ) => g (g1 c)) (fun (a : α) => f1 (f a)) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 35.5 必破：**左逆与右逆其实是同一个函数**（逐点形态）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（D 类，**本单元最漂亮的一条**）：同一个 `f` 的左逆 `g` 与右逆 `g1` **逐点相等**。
+-- soko:hint 思路：`g y` → 沿 `f (g1 y) = y` 把 `y` 换成 `f (g1 y)`（**注意方向**）→
+--   再用左逆把 `g (f (g1 y))` 换成 `g1 y`。
+-- soko:hint 目标形态：`LeftInverse g f → RightInverse g1 f → ∀ y, g y = g1 y`。
+-- soko:hint 关键件：**搬运方向**：这一处要用 `rel_subst_left`（把第二个坐标**向后**换）——
+--   关系取"`g` 两边相等"、沿 `f (g1 y) = y` 把 `g y = g y` 换成 `g y = g (f (g1 y))`（本单元实测：
+--   用 `rel_subst_right` 会得到相反的方向而判红）· 练习 1 · `Eq.trans` ✓
+--   ⚠ 再往前一步（"函数相等 `g = g1`"）要**函数外延**，本语言没有（**G-77**）⇒ 只能到逐点 ✓
+theorem inverse_unique_apply (α β : Type) (f : α → β) (g : β → α) (g1 : β → α)
+    (hl : Function.LeftInverse α β g f) (hr : Function.RightInverse α β g1 f) (y : β) :
+    Eq.{1} α (g y) (g1 y) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 10（T 类）：**逆的对称性**（`f`、`g` 互为逆 ⇔ `g`、`f` 互为逆）。
+-- soko:hint 思路：两边的展开都是"左逆 ∧ 右逆"两条，只是**互换了角色** ⇒ 把合取的两支对调。
+-- soko:hint 目标形态：`Inverse f g → Inverse g f`。
+-- soko:hint 关键件：`And.intro`（前导 Prop 实参写全）· 练习 2 · 练习 3 ——
+--   注意这一处**不需要搬运**：两个定义展开后就是同一对命题换了位置 ✓
+theorem inverse_swap (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.Inverse α β f g) : Function.Inverse β α g f := by
+  sorry
