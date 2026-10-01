@@ -921,11 +921,10 @@ N1–N7 讲的是**语言**（怎么解析、怎么消解、怎么判卷）；�
 1. **`⁻¹` 与 `⁻¹'` 是两个符号**：词法按声明**最长匹配** ⇒ 单元⑧⑫ 里 `f ⁻¹' B` 仍读作原像
    （闭包记法表里两条并存，判据钉住 ✓）；
 2. **`r ⁻¹` 应用到参数上要加括号**：`(r ⁻¹) b a`（**不是** `r ⁻¹ b a`）；
-3. ⚠ **`≈` 的两侧不能都是零元糖**（**新缺口 G-48**）：`∅ ≈ {b}` 补不出论域
-   （`∅`/`{b}` 自己也要靠期望类型才能定论域 ⇒ 鸡生蛋），报
-   `elab-notation-argument-unsolved`；这种题按设计写点名 `Set.Equiv α β ∅ {b}`
-   + 行内 `soko:notation-ok` 标记（单元⑨ 练习 5 的画布与解答都这么写）。
-   修法方向 = E19 甲案（给求解器加元变量）—— **已落地**（`SOKO_NOTATION_METAVAR=1`，**默认关**）：as-built 与逐项判据 ⇒ `docs/design/e19-baseline.md` §6/§7 ✓。
+3. ⚠ **`≈` 的两侧不能都是零元糖**（**G-48；2026-10-01 `v0.79.0` 起已修 ✓**）：`∅ ≈ {b}` 曾经补不出论域
+   （`∅`/`{b}` 自己也要靠期望类型才能定论域 ⇒ 鸡生蛋），报 `elab-notation-argument-unsolved`；
+   E19 甲案（求解器**待定参数**）落地后它**默认判绿**（论域跟**同形的已解兄弟** ⇒ `Set.Equiv β β ∅ {b}`），
+   逃生门 `SOKO_NOTATION_METAVAR=0` 回到旧行为；单元⑨ 练习 5 的点名 + `soko:notation-ok` 是**旧 workaround**（撤掉属课程内容改动，未做）。as-built ⇒ `docs/design/e19-baseline.md` §6/§7/§9 ✓。
 
 **判据（两层 + 课程层）**：
 * **真相层** `crates/front/tests/prelude_shape.rs::the_course_libraries_declare_the_inverse_and_equinumerous_notations`

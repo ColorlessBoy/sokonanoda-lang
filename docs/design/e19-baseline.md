@@ -3,6 +3,7 @@
 > **一句话**：E19 甲案（给求解器加元变量）**开工前**把"今天判成什么样"钉成数字 —— 每条都带
 > **可复跑的命令**；三刀（§6/§7）只许在**红线**（§1）上逐字节不变，课程计数会**有意**变化。
 > 评估与三刀计划 ⇒ `docs/design/e19-evaluation.md` §4；缺口本体 ⇒ 台账 **G-48**。
+> **§9 = 默认开收口**（逃生门保留、默认开 ⇒ `v0.79.0`）✓。
 
 ## 0. 冻结对象
 
@@ -65,7 +66,7 @@
 
 ## 6. 刀1 as-built（2026-09-30 **收口 ✓**）：记法**操作数位**的待定参数
 
-**开关** `SOKO_NOTATION_METAVAR=1`（**默认关**）；回退 = `implicit::metavar_enabled()` 一处改回 `false`。
+**开关** `SOKO_NOTATION_METAVAR`（刀1 当时**默认关**；**§9 起默认开** ✓）；回退 = `implicit::metavar_enabled()` 一处（§9 起就是逃生门 `=0` ✓）。
 **实现**：记法前导参数在**最大候选**（操作数对齐到**最后** `operands.len()` 层 —— 语义上正确的
 那一读）上失败时走**待定档**（`solve_prefix_args_pending`）：解不出的位先记待定（`?α`），走完由
 `fill_pending_by_shape` 与**同形的已解兄弟**合一（`spine::same_shape`，忽略 span）。
@@ -83,7 +84,7 @@
 
 ## 7. 刀2 as-built（2026-09-30 **收口 ✓**）：推广到 `solve_prefix` 一般路径
 
-**开关**：与刀1 **共用** `SOKO_NOTATION_METAVAR=1`（**默认关**，用户拍板"沿用同一个开关" ✓）。
+**开关**：与刀1 **共用** `SOKO_NOTATION_METAVAR`（当时**默认关**；**§9 起默认开** ✓，用户拍板"沿用同一个开关" ✓）。
 **实现**：机制**上移一层**到 `implicit::solve_prefix`（应用 / 裸常量 / `by` 块的 `apply` 共用它）——
 先跑**严格档**（既有行为），失败且开关开 ⇒ 再跑**待定档**（`solve_prefix_pending`）+ 同一份
 `fill_pending_by_shape`；刀1 的 `fill_pending_by_shape`/`metavar_enabled` **移进 `implicit.rs` 共用** ✓
@@ -120,5 +121,30 @@ cargo build --release -p sokonanoda-cli --bin sokonanoda
 bash scripts/kernel-diff.sh --digest ./target/release/sokonanoda
 bash scripts/kernel-diff.sh --non-course ./target/release/sokonanoda ./target/release/sokonanoda
 SOKONANODA_BIN=./target/release/sokonanoda python3 courses/set-theory/tools/check.py --json
-SOKO_NOTATION_METAVAR=1 ./target/release/sokonanoda docs/gaps/repro/G48-notation-nullary-sugar-operands.sokonanoda
+SOKO_NOTATION_METAVAR=0 ./target/release/sokonanoda docs/gaps/repro/G48-notation-nullary-sugar-operands.sokonanoda  # 逃生门 ⇒ exit 1
+./target/release/sokonanoda docs/gaps/repro/G48-notation-nullary-sugar-operands.sokonanoda                        # 默认（§9 起）⇒ exit 0
 ```
+
+## 9. 默认开 as-built（2026-10-01 **收口 ✓**）：逃生门保留、默认开 ⇒ `v0.79.0`
+
+**用户 2026-10-01 拍板两点**：① **默认开** ✓；② 开关**保留为逃生门**（**不删**）——
+`SOKO_NOTATION_METAVAR=0`/`off` ⇒ 回到**严格档**（刀0 行为），与 `SOKO_JUDGE_INPLACE` 同一口径
+（默认 `on`、显式 `off` 回退 ✓）；它**同时是两态反向验证的那一半** ⇒ `{notation,implicit}_metavar.rs`
+的"反向"断言就是它 ✓。**代码面**只有 `implicit::metavar_enabled()` 一处（默认 `true`，只吃显式
+`0`/`off`）—— 刀1/刀2 的接线点、`solve_prefix` 的返回形状、三个调用方**一个字没动** ✓。
+
+| 判据 | **默认态**（不设开关） | **逃生门** `SOKO_NOTATION_METAVAR=0` |
+|---|---|---|
+| G-48 复现件 | **exit 0** ✓（台账 `fixed` · `fixed_in: 0.79.0`） | **exit 1** ✓（逐字节等于刀0） |
+| §1 摘要 非课程 / 课程 / 全语料 | `7646fe2e…` / **`d0375577…`（= R3 ⇒ 课程一个字不动 ✓）** / `06370a38…` | **`43581e06…` = R2** / `d0375577…` = R3 / **`0231dcc4…` = R4** ✓ |
+| 非课程 172 组 vs 刀0 基线 | **2/172** —— 恰好 `G48-…` 那一份（**有意**变绿 ✓） | **0/172** ✓ |
+| 课程门禁 | **43 目标 · 377 checked · 99 open · 0 判负**（79.91s） | **43/377/99/0**（80.14s） |
+| front / notation / 两态判据 | **771/0** · **49/0** · `notation_metavar` **1/0** · `implicit_metavar` **1/0** | 同上（反向那一趟由判据自己带 `=0` 跑 ✓） |
+
+**交叉验证（证明"只翻了默认值"）**：刀2 二进制 + `=1` 与默认开之后的二进制（不设开关）各跑一次 `--digest` ⇒ 三个 sha256 **逐字节相同** ✓。
+**既有判据逐条重审（§7 表的第 5 条）**：front 单测 `solve_prefix_reads_the_expected_type` 末条
+（"没有期望类型 ⇒ 解不出，不许猜"）在默认态**不再成立** —— `Or.inl {A B : Prop} (a : A)` 的 `B`
+被待定档按"**域同形 ⇒ 跟已解兄弟**"解成 `A` 的值 `Nat`（`Or Nat Nat`）；**用户 2026-10-01 复核
+这条后果后接受** ✓（与刀1 同一条规则）。判据改成两条：**严格档**（`allow_pending=false`，逃生门口径）
+仍 `None` ✓ + **默认态** `B := Nat` ✓。**记账**：G-48 ⇒ `fixed`/`fixed_in: 0.79.0` ✓ · `ONBOARDING.md`
+§0.2 · `STATUS.md` 第 523 轮 · `REQUIREMENTS.md` §9.5；**遗留**（不进本版）：课程单元⑨ 练习 5 仍写旧 workaround ✓。

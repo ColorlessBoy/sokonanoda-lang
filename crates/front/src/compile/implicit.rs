@@ -118,10 +118,12 @@ pub(crate) fn leading_implicit(layers: &[Layer]) -> usize {
 /// `a ∈ A ∪ B`（`Set.mem … (Set.union …)`，两层 `def`），`And.left h` 的 `h`
 /// 常写成 `a ∈ A ∩ B`——不展开到 `Or`/`And` 归纳头就匹配不上。
 ///
-/// **E19 刀2（`SOKO_NOTATION_METAVAR=1`，默认关）**：严格档解不出时，开关开 ⇒
-/// 再走一遍**待定档**（[`solve_prefix_pending`]）—— 解不出的位先记成待定，走完由
+/// **E19 刀2（`SOKO_NOTATION_METAVAR`，2026-09-30 起默认开）**：严格档解不出时
+/// ⇒ 再走一遍**待定档**（[`solve_prefix_pending`]）—— 解不出的位先记成待定，走完由
 /// [`fill_pending_by_shape`] 与**同形的已解兄弟**合一 ✓。
-/// **默认关 ⇒ 逐字节等于刀0/刀1 的行为**（严格档一次都不多跑）✓。
+/// **逃生门** `=0`/`off` ⇒ 只跑严格档（逐字节等于刀0 的行为）✓。
+/// ⚠ 严格档**永远先跑**：解得出的形状走的就是刀0 那条路，待定档一次都不进 ⇒
+/// 默认路径零开销 ✓（冷 `build` 结构计数逐项等于刀0，见 §9）。
 pub(crate) fn solve_prefix(
     layers: &[Layer],
     result: &Expr,
@@ -149,13 +151,27 @@ pub(crate) fn solve_prefix(
     None
 }
 
-/// **E19 的开关**（刀1 记法路径 + 刀2 一般路径**共用同一个开关**，用户 2026-09-30
-/// 拍板"沿用同一个开关、默认关" ✓）：给求解器引入**待定参数**（`?α`）。
+/// **E19 的开关**（刀1 记法路径 + 刀2 一般路径**共用同一个开关**）：给求解器引入
+/// **待定参数**（`?α`）。
 ///
-/// **默认关** ⇒ 关态逐字节等于刀0 的基线（四个指纹 ✓）；回退 = 这一处改回 `false`。
+/// **2026-09-30 用户拍板：默认开** ✓ —— 今天判红的形状（`∅ ≈ {b}` 一类）变绿是
+/// **有意**的判定变化（非课程语料里只有 G-48 那一份变；课程语料一个字不动 ✓），
+/// 逐项读数 ⇒ `docs/design/e19-baseline.md` §9。
+/// **逃生门** `SOKO_NOTATION_METAVAR=0`（或 `off`）⇒ 回到**严格档**（刀0 的既有
+/// 行为：任何一位解不出就报专用错误码，**不猜** ✓）—— 与 `SOKO_JUDGE_INPLACE`
+/// 同一口径（默认 `on`、显式 `off` 回退 ✓）。
+///
+/// ⚠ 开关**关**态仍是"两态反向验证"的那一半（`crates/cli/tests/{notation,implicit}_metavar.rs`
+/// 都用它咬"开关其实是假的"）⇒ **别删**。
+/// 只读一次环境（求解热路径上）。
 pub(crate) fn metavar_enabled() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *ON.get_or_init(|| std::env::var("SOKO_NOTATION_METAVAR").is_ok_and(|v| v == "1"))
+    *ON.get_or_init(|| {
+        !matches!(
+            std::env::var("SOKO_NOTATION_METAVAR").ok().as_deref(),
+            Some("0") | Some("off")
+        )
+    })
 }
 
 /// **待定位的合一**（E19 刀1/刀2 **共用一份**）：把每一个还没解出的前导参数 `?i`
@@ -515,8 +531,24 @@ mod tests {
         assert_eq!(solved.len(), 2);
         assert!(matches!(&solved[0], Expr::Ident { name, .. } if name == "Nat"));
         assert!(matches!(&solved[1], Expr::Ident { name, .. } if name == "Bool"));
-        // 没有期望类型 ⇒ 解不出（不许猜）
-        assert!(solve_prefix(
+        // 没有期望类型 ⇒ **严格档**解不出（不许猜）✓ —— 逃生门
+        // `SOKO_NOTATION_METAVAR=0` 走的就是这一档。
+        assert!(solve_prefix_impl(
+            &layers,
+            &result,
+            2,
+            &[Some(crate::proof::parse_expr_text("Nat").unwrap())],
+            None,
+            &empty_defs(),
+            &|_| false,
+            false,
+        )
+        .is_none());
+        // **默认开**（2026-09-30 用户拍板；2026-10-01 复核这条后果后接受 ✓）：同一条
+        // 输入走 [`solve_prefix`] ⇒ 待定档按"**域同形 ⇒ 跟已解兄弟**"把 `B` 解成 `A`
+        // 的值 `Nat`（`{A B : Prop}` 两层域同形）。⚠ 这是**有意**的接受面变宽（刀2 的
+        // 规则本身）；"严格档不许猜"由上面那条钉死 ✓。
+        let guessed = solve_prefix(
             &layers,
             &result,
             2,
@@ -525,7 +557,11 @@ mod tests {
             &empty_defs(),
             &|_| false,
         )
-        .is_none());
+        .expect("默认态：待定档把 `B` 与同形兄弟 `A` 合一");
+        assert!(
+            matches!(&guessed[1], Expr::Ident { name, .. } if name == "Nat"),
+            "`B` 必须跟同形兄弟 `A := Nat` 的值：{guessed:?}"
+        );
     }
 
     /// **E19 刀2 的待定档**（真值层，直接调 [`solve_prefix_pending`]，不碰环境）：
@@ -568,7 +604,21 @@ mod tests {
             &|_| false
         )
         .is_none());
-        // ③ **严格档**（既有入口）在同样的输入上仍是 `None` ✓。
+        // ③ **严格档**（`allow_pending = false` —— 逃生门 `SOKO_NOTATION_METAVAR=0`
+        //    走的就是它）在同样的输入上仍是 `None` ✓：待定档只在**追加**，不改它。
+        assert!(solve_prefix_impl(
+            &layers,
+            &result,
+            2,
+            &[None, Some(beta_ty.clone())],
+            None,
+            &empty_defs(),
+            &|_| false,
+            false,
+        )
+        .is_none());
+        // ④ **默认开**（2026-09-30 用户拍板）：同一条输入走 [`solve_prefix`]（读开关）
+        //    ⇒ 待定档接管、解出来了 ✓（③ 与 ④ 一起钉死"默认开 = 严格档 + 待定档"）。
         assert!(solve_prefix(
             &layers,
             &result,
@@ -578,6 +628,6 @@ mod tests {
             &empty_defs(),
             &|_| false
         )
-        .is_none());
+        .is_some());
     }
 }

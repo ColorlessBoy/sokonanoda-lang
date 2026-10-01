@@ -2080,7 +2080,7 @@ fn notation_prefix_args<'a>(
         ) {
             return Ok(Some(solved));
         }
-        // **E19 刀1：待定参数（`SOKO_NOTATION_METAVAR=1`，默认关）** ——
+        // **E19 刀1：待定参数（`SOKO_NOTATION_METAVAR`，2026-09-30 起默认开）** ——
         // 只放宽**最大候选**这一读（操作数对齐到**最后** `operands.len()` 层，
         // 也就是语义上正确的那一读）。更小的候选是"错位读法"（实测 `∅ ≈ {b}`
         // 会掉到 `missing=1`：把 `{b}` 对到 `A : Set α` 上，解出 `α := β`，
@@ -2144,7 +2144,8 @@ fn solve_prefix_args<'a>(
 }
 
 /// **E19 刀1 的待定参数档**（开关 [`crate::compile::implicit::metavar_enabled`]，
-/// 与刀2 的一般路径**共用同一个开关**）：某一位解不出时**不立刻失败**，先记成
+/// 与刀2 的一般路径**共用同一个开关**，**默认开**；逃生门 `SOKO_NOTATION_METAVAR=0`）：
+/// 某一位解不出时**不立刻失败**，先记成
 /// **待定**（`?α`），等所有位都走完再用
 /// [`crate::compile::implicit::fill_pending_by_shape`] 把待定位与**同形的已解兄弟**合一 ✓。
 #[allow(clippy::too_many_arguments)]
