@@ -242,3 +242,20 @@ bash courses/set-theory/tools/check-lib-closure.sh   # 把所有 lib 一次 impo
 （`i = s.index('theorem X')`，`j = s.find('\ntheorem ', i+1)`，然后 `s[:i] + s[j+1:]` ✓），
 或者删完**立刻** `node scripts/soko query check --file <解答>` 看 `decl_checked` 掉了几条 ✓
 （**它应该只掉你删的那几条** ✗）。**诊断"G4 覆盖"失败时，先数两边声明的条数** ✓。
+
+## 工具：**画布/解答对账**（`tools/audit-pairs.py`，2026-10-01 立）
+
+```bash
+python3 courses/set-theory/tools/audit-pairs.py            # 全课程对账表（默认只诊断 ✓）
+python3 courses/set-theory/tools/audit-pairs.py --unit 52  # 看一个单元（含软缺/多出的名字）
+python3 courses/set-theory/tools/audit-pairs.py --strict    # 有"硬缺"就 exit 1
+```
+
+**它防的是什么**：改完解答**立刻**看"画布有、解答没有"的名字 ✓ ——
+「**切到文件尾删候选**」那类事故（第 591/592 轮的 G4 现象）当场可见，不必等门禁 ✗。
+
+**口径（重要）** ✓：它是**诊断**、**不是判据** —— **G4 仍是权威** ✓。
+`demo_*` 与 `Set.*` 定义算**软缺**（画布已证、解答不必重复 ✓）；
+其余算**硬缺** —— 但**单元 1–12 的画布里有若干不带 `demo_` 前缀的演示**，
+它们会被标成硬缺 ✗（**工具的口径**，不是课程缺口 ✓）。
+**改完 lib/单元后跑一次 `--strict`，有输出就逐条看清"是不是工具口径"** ✓。
