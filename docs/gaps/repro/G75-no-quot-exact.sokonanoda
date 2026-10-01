@@ -1,0 +1,16 @@
+-- G-75 最小复现：内核没有 `Quot.exact`（`Quot` 的**反射**方向）
+--
+-- Lean 4 core 里这条是 `Quot.exact : Quot.mk r a = Quot.mk r b → r a b`
+-- （`Quotient.exact` 由它得到；Mathlib 的 `Quotient.exact` 一族全依赖它）。
+-- 本语言里 `Quot.sound`（正向）✓、`Quot.lift` ✓、`Quot.ind` ✓ 都在，
+-- 但 `Quot.exact` **不存在**（`unknown identifier`）⇒ 下面这条判红。
+--
+-- ⇒ 后果：**「商类型 ↔ 等价类族」的往返暂时做不了**（单元㉕㉖ 那一侧的
+--    `Rel.Classes` 与内核的 `Quot` 接不上）；「实数构造」里"两个分数表示同一个有理数
+--    ⟺ 它们在商里相等"这种话也只做得出一半 ✓
+-- 期望的 Lean 4 语义：`Quot.exact α r a b h : r a b`
+import lib.Rel
+
+theorem quot_exact_expected (α : Type) (r : α → α → Prop) (a b : α)
+    (h : Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b)) : r a b :=
+  Quot.exact α r a b h
