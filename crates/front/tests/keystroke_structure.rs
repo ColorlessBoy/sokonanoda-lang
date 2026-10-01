@@ -68,8 +68,14 @@ impl Reading {
         cmds.extend(out.event_cmds.iter().copied());
         cmds.extend(out.error_cmds.iter().copied());
         cmds.extend(out.warning_cmds.iter().copied());
+        // **重查命令数**：项目编译从 `ProjectReport` 读（`669b6f2a` 起它带上
+        // `kernel_checks`；入口那份 `CompiledOutput` 在闭包路径上是组装出来的，
+        // 它的 `stats` 不含这一项 ✗）；单文件路径退回 `CompiledOutput.stats`。
+        let entry_kernel_checks = doc
+            .project_report_ref()
+            .map_or(out.stats.kernel_checks, |p| p.kernel_checks);
         Self {
-            entry_kernel_checks: out.stats.kernel_checks,
+            entry_kernel_checks,
             modules: now.modules - base.modules,
             recomputed_commands: cmds.len(),
             by: now.by - base.by,
