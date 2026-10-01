@@ -23,17 +23,13 @@
 --   ① 参数表写成**显式** `(α : Type) (r : Rel α α)` —— 与本课程既有的
 --      `Function.Injective (α β : Type) (f : α → β)`、集合的包含谓词那一条 一致
 --      （点名调用不靠隐式反解，学习者的报错更可读）✓
---   ② `IsWellOrder` 用**非严格**版（`IsLinearOrder ∧ IsWellFounded`）—— Mathlib 的
---      严格版 `IsStrictOrder ∧ WellFounded` 与我们这一条**等价**，但非严格版
---      与 `≤` 的直觉一致，且单元⑭ 要证的「非空子集有最小元」直接就是它 ✓
---   ③ `IsWellFounded` 是**我们自定名** —— Mathlib 的 `WellFounded`/`IsWellFounded`
---      都是 `Acc` 版（`∀ a, Acc r a`），而本语言**没有 `Acc`**（台账 **G-56**）⇒
---      我们用集合论里等价的**最小元形式**（Isabelle `wf` 的对应物），
---      **不冒用 `WellFounded` 这个名字**（同名不同体比新名字更坏 ✗）✓
---
--- **依赖方向**：`import lib.Logic` + `import lib.Exists`（`∃` 的记法住在那里）+
--- `import lib.Rel`（**只为了 `Rel α α` 这个类型别名**，见下面的 ⚠）——
--- 本模块**不依赖集合**（序是类型上的二元关系，与 `Set` 无关）✓
+--   ② **两种良序都有**（2026-10-01 **L-07 修复**）：`IsWellOrder` 是**非严格**版
+--      （`IsLinearOrder ∧ HasLeast`，"每个非空子集有**最小**元" —— 与 `≤` 的直觉一致，
+--      单元⑮⑯ 的序数用它）✓；`IsStrictWellOrder` 是**严格**版（`IsStrictOrder ∧
+--      IsWellFounded`，Mathlib 的 `WellOrder` 就是这一版 —— 单元⑭ 要证的
+--      "非空子集有**极小**元"要用它）✓ **两版不能混**：非严格序含自反，配"极小"版
+--      会立刻矛盾（那就只在空论域上可满足 ✗）✓
+
 import lib.Logic
 import lib.Exists
 import lib.Rel
@@ -96,13 +92,25 @@ def IsLinearOrder (α : Type) (r : α → α → Prop) : Prop :=
 def HasMin (α : Type) (r : α → α → Prop) (P : α → Prop) : Prop :=
   ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m)
 
+-- `m` 是 `P` 的 `r`-**最小元**（比 `P` 里谁都小）—— **非严格序要用这一版** ✓
+-- ⚠ 这一条是 **L-07 的修复**（2026-10-01）：非严格良序（线性序，含自反）**必须**配
+-- "最小"版 —— 配"极小"版（`¬ r y m`）会与自反性直接冲突（取 `y := m` 即矛盾）⇒
+-- 那样定义出来的 `IsWellOrder` **只在空论域上可满足**（良序定理全部空真 ✗）✓
+def HasLeast (α : Type) (r : α → α → Prop) (P : α → Prop) : Prop :=
+  ∃ (m : α), P m ∧ ∀ (y : α), P y → r m y
+
 -- 良基：**每个非空子集都有最小元**（本语言没有 `Acc`，见文件头偏离 ③）
 def IsWellFounded (α : Type) (r : α → α → Prop) : Prop :=
   ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P
 
 -- 良序 = 全序 + 良基（**非严格版**，见文件头偏离 ②）
 def IsWellOrder (α : Type) (r : α → α → Prop) : Prop :=
-  IsLinearOrder α r ∧ IsWellFounded α r
+  IsLinearOrder α r ∧ ∀ (P : α → Prop), (∃ (x : α), P x) → HasLeast α r P
+
+-- **严格良序** = 严格序 + 良基（Mathlib 的 `WellOrder` 就是这一版）——
+-- 单元⑭ 要证的"非空子集有**极小**元"要用它 ✓（非严格序配不上"极小"版 ⇒ **L-07**）✓
+def IsStrictWellOrder (α : Type) (r : Rel α α) : Prop :=
+  IsStrictOrder α r ∧ IsWellFounded α r
 
 -- ── 严格部分 / 非严格部分（两个**翻译函数**：定义是词汇，性质是练习）──────────
 -- `strictOf r`：把非严格序的"相等那一份"切掉 ⇒ `a < b` 读作 `a ≤ b ∧ a ≠ b`。
@@ -162,10 +170,16 @@ theorem isWellFounded_def (α : Type) (r : α → α → Prop) :
   Iff.intro (fun (h : IsWellFounded α r) => h)
     (fun (h : ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P) => h)
 
-theorem isWellOrder_def (α : Type) (r : α → α → Prop) :
-    IsWellOrder α r ↔ IsLinearOrder α r ∧ IsWellFounded α r :=
+theorem isWellOrder_def (α : Type) (r : Rel α α) :
+    IsWellOrder α r ↔
+      IsLinearOrder α r ∧ ∀ (P : α → Prop), (∃ (x : α), P x) → HasLeast α r P :=
   Iff.intro (fun (h : IsWellOrder α r) => h)
-    (fun (h : IsLinearOrder α r ∧ IsWellFounded α r) => h)
+    (fun (h : IsLinearOrder α r ∧ ∀ (P : α → Prop), (∃ (x : α), P x) → HasLeast α r P) => h)
+
+theorem isStrictWellOrder_def (α : Type) (r : Rel α α) :
+    IsStrictWellOrder α r ↔ IsStrictOrder α r ∧ IsWellFounded α r :=
+  Iff.intro (fun (h : IsStrictWellOrder α r) => h)
+    (fun (h : IsStrictOrder α r ∧ IsWellFounded α r) => h)
 
 -- ── 取用子（accessor）：把四个序类拆回性质，**参数一次给全** ─────────────────
 -- ⚠ **为什么要有这一组**（实测换来的）：`And.left h` 得到的是**定义头**类型
@@ -202,8 +216,21 @@ theorem wellOrder_linear (α : Type) (r : Rel α α) (h : IsWellOrder α r) :
     IsLinearOrder α r :=
   And.left h
 
-theorem wellOrder_wellFounded (α : Type) (r : Rel α α) (h : IsWellOrder α r) :
-    IsWellFounded α r :=
+theorem wellOrder_hasLeast (α : Type) (r : Rel α α) (h : IsWellOrder α r)
+    (P : α → Prop) : (∃ (x : α), P x) → HasLeast α r P :=
+  (fun (hw : ∀ (P1 : α → Prop), (∃ (x : α), P1 x) → HasLeast α r P1) => hw P) (And.right h)
+
+-- 严格良序的三条取用子（单元⑭ 用 `strictWellOrder_wellFounded`）✓
+theorem strictWellOrder_irrefl (α : Type) (r : Rel α α) (h : IsStrictWellOrder α r) :
+    Irreflexive α r :=
+  (fun (hs : IsStrictOrder α r ∧ IsWellFounded α r) => And.left (And.left hs)) h
+
+theorem strictWellOrder_trans (α : Type) (r : Rel α α) (h : IsStrictWellOrder α r) :
+    Transitive α r :=
+  (fun (hs : IsStrictOrder α r ∧ IsWellFounded α r) => And.right (And.left hs)) h
+
+theorem strictWellOrder_wellFounded (α : Type) (r : Rel α α)
+    (h : IsStrictWellOrder α r) : IsWellFounded α r :=
   And.right h
 
 theorem wellFounded_hasMin (α : Type) (r : Rel α α) (h : IsWellFounded α r)
@@ -242,8 +269,13 @@ theorem isLinearOrder_intro (α : Type) (r : α → α → Prop)
   Iff.mpr (isLinearOrder_def α r) (And.intro hpartial htotal)
 
 theorem isWellOrder_intro (α : Type) (r : α → α → Prop)
-    (hlinear : IsLinearOrder α r) (hwf : IsWellFounded α r) : IsWellOrder α r :=
-  Iff.mpr (isWellOrder_def α r) (And.intro hlinear hwf)
+    (hlinear : IsLinearOrder α r)
+    (hleast : ∀ (P : α → Prop), (∃ (x : α), P x) → HasLeast α r P) : IsWellOrder α r :=
+  Iff.mpr (isWellOrder_def α r) (And.intro hlinear hleast)
+
+theorem isStrictWellOrder_intro (α : Type) (r : α → α → Prop)
+    (hs : IsStrictOrder α r) (hwf : IsWellFounded α r) : IsStrictWellOrder α r :=
+  Iff.mpr (isStrictWellOrder_def α r) (And.intro hs hwf)
 
 -- ── HasMin / 良基的展开与包装（L2；与上面四个序类的 `…_intro` 同一族）────────
 -- ⚠ 为什么同样要有这一组：`HasMin α r P` 是**定义头**的 `∃`，直接写
@@ -272,6 +304,28 @@ theorem hasMin_witness (α : Type) (r : α → α → Prop) (P : α → Prop)
 theorem isWellFounded_intro (α : Type) (r : α → α → Prop)
     (h : ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P) : IsWellFounded α r :=
   Iff.mpr (isWellFounded_def α r) h
+
+-- ── HasLeast 的四件套（与 `HasMin` 同款；**非严格序用它** ✓）──────────────────
+theorem hasLeast_def (α : Type) (r : α → α → Prop) (P : α → Prop) :
+    HasLeast α r P ↔ ∃ (m : α), P m ∧ ∀ (y : α), P y → r m y :=
+  Iff.intro (fun (h : HasLeast α r P) => h)
+    (fun (h : ∃ (m : α), P m ∧ ∀ (y : α), P y → r m y) => h)
+
+theorem hasLeast_intro (α : Type) (r : α → α → Prop) (P : α → Prop) (m : α)
+    (hm : P m) (hleast : ∀ (y : α), P y → r m y) : HasLeast α r P :=
+  Iff.mpr (hasLeast_def α r P)
+    (Exists.intro α (fun (m1 : α) => P m1 ∧ ∀ (y : α), P y → r m1 y) m
+      (And.intro hm hleast))
+
+theorem hasLeast_elim (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasLeast α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → r m y :=
+  Iff.mp (hasLeast_def α r P) h
+
+theorem hasLeast_witness (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasLeast α r P) : ∃ (m : α), P m :=
+  Exists.elim (hasLeast_elim α r P h)
+    (fun (m : α) (hm : P m ∧ ∀ (y : α), P y → r m y) =>
+      Exists.intro α P m (And.left hm))
 
 -- ── 空关系（Mathlib `EmptyRelation`；下面两道反例题的样板）────────────────────
 def EmptyRelation (α β : Type) : α → β → Prop :=

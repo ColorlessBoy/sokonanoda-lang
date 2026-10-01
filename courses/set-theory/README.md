@@ -123,6 +123,8 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，L-07 修复后）：102 个目标 · 1013 checked · 387 open · 0 判负**
+
 **门禁实测（2026-10-01，单元㊶ 落地后）：102 个目标 · 1002 checked · 387 open · 0 判负**
 
 **门禁实测（2026-10-01，单元㊵ 落地后）：100 个目标 · 986 checked · 377 open · 0 判负**

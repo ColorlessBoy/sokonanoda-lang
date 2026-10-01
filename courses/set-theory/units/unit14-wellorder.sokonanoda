@@ -33,9 +33,13 @@ theorem demo_hasMin_def (α : Type) (r : α → α → Prop) (P : α → Prop) :
   hasMin_def α r P
 
 -- 演示：良序蕴含良基（全序那一半见单元⑬ 练习 8）。
-theorem demo_wellOrder_wellFounded (α : Type) (r : α → α → Prop)
-    (h : IsWellOrder α r) : IsWellFounded α r :=
-  wellOrder_wellFounded α r h
+theorem demo_strictWellOrder_wellFounded (α : Type) (r : α → α → Prop)
+-- ⚠ **为什么这里用"严格"良序**（2026-10-01 **L-07 修复**）：`IsWellOrder` 是**非严格**版
+-- （线性序，含自反），它配的是"**最小**元"版 `HasLeast`；本单元要证的"非空子集有**极小**元"
+-- 是"极小"版 `HasMin` —— 非严格序配"极小"版会与自反性直接矛盾（只在空论域上可满足 ✗）
+-- ⇒ 这一半内容改用 **`IsStrictWellOrder`（严格序 + 良基）**，数学内容一字未改 ✓
+    (h : IsStrictWellOrder α r) : IsWellFounded α r :=
+  strictWellOrder_wellFounded α r h
 
 -- ─────────────────────────────────────────────────────────────
 -- 14.2 把良基拆开用
@@ -69,18 +73,18 @@ theorem wellFounded_least (α : Type) (r : α → α → Prop) (P : α → Prop)
 
 -- 练习 4（T 类）：全序的良基那一半（取用子）。
 -- soko:hint 思路：与单元⑬ 练习 8 同形，取的是合取的**右支**。
--- soko:hint 目标形态：`IsWellOrder α r → IsWellFounded α r`。
--- soko:hint 关键件：`wellOrder_wellFounded`。
-theorem wellOrder_wellFounded_apply (α : Type) (r : α → α → Prop)
-    (h : IsWellOrder α r) : IsWellFounded α r := by
+-- soko:hint 目标形态：`IsStrictWellOrder α r → IsWellFounded α r`。
+-- soko:hint 关键件：`strictWellOrder_wellFounded`。
+theorem strictWellOrder_wellFounded_apply (α : Type) (r : α → α → Prop)
+    (h : IsStrictWellOrder α r) : IsWellFounded α r := by
   sorry
 
 -- 练习 5（L 类）：**良序里每个非空子集有极小元**（练习 3 与 4 的合成）。
 -- soko:hint 思路：先把良序降成良基，再交给良基的取用子 —— 两步都是现成的。
--- soko:hint 目标形态：`IsWellOrder α r → (∃ x, P x) → HasMin α r P`。
--- soko:hint 关键件：`wellOrder_wellFounded` 的输出正好是 `wellFounded_hasMin` 的第三个参数。
-theorem wellOrder_least (α : Type) (r : α → α → Prop) (P : α → Prop)
-    (h : IsWellOrder α r) : (∃ (x : α), P x) → HasMin α r P := by
+-- soko:hint 目标形态：`IsStrictWellOrder α r → (∃ x, P x) → HasMin α r P`。
+-- soko:hint 关键件：`strictWellOrder_wellFounded` 的输出正好是 `wellFounded_hasMin` 的第三个参数。
+theorem strictWellOrder_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsStrictWellOrder α r) : (∃ (x : α), P x) → HasMin α r P := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
