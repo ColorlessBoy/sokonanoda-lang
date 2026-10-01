@@ -815,6 +815,26 @@ fn check_synthesized(
     trusted_report
 }
 
+/// **G-29 的结构读数**（判据用）：类型推断那条路的
+/// `(调用数, 命中, 未命中, 前缀重跑趟数, 前缀字节数)`。
+///
+/// **为什么要公开它**：一次按键的真实成本落在 `judge_infer` 的**未命中**上
+/// （每次未命中都把整份前缀从零编一遍）——而这条读数此前只在**进程退出**时
+/// 打（`atexit`），LSP 又**不响应 `exit`**（实测：发 `exit` 后进程不退出）
+/// ⇒ 在"按键"那条路上根本量不到 ✗。公开成函数之后，会话式路径（`QueryDoc`）
+/// 的集成测试可以**前后取差**，判据因此是**结构计数**而不是墙钟 ✓
+/// （消费者：`crates/front/tests/keystroke_structure.rs`）。
+#[doc(hidden)]
+pub fn infer_totals() -> (u64, u64, u64, u64, u64) {
+    (
+        stats::INFER_CALLS.load(std::sync::atomic::Ordering::Relaxed),
+        stats::INFER_HITS.load(std::sync::atomic::Ordering::Relaxed),
+        stats::INFER_MISSES.load(std::sync::atomic::Ordering::Relaxed),
+        stats::PREFIX_RUNS.load(std::sync::atomic::Ordering::Relaxed),
+        stats::PREFIX_BYTES.load(std::sync::atomic::Ordering::Relaxed),
+    )
+}
+
 /// `SOKO_JUDGE_REUSE_STATS=1` ⇒ 每次命中打一行（判断"到底有没有触发"用；
 /// 只看耗时区分不出"触发了但收益小"与"根本没触发"）。
 fn reuse_stats() -> bool {
