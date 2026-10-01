@@ -174,6 +174,12 @@
       "tier": "spec",
       "reason": "IA-4 元参数引擎的唯一权威设计（设计+排期+决策点）；实现开始后每片 as-built 追加进本文件"
     },
+    "docs/design/metavar-m0.md": {
+      "expires": "2027-10-01",
+      "renewed": "2026-10-01",
+      "tier": "spec",
+      "reason": "M0 的基线冻结 + 13 形状能力清单 + D7 结论；M1 起每片都要复现它的读数"
+    },
     "docs/design/module-artifacts.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",

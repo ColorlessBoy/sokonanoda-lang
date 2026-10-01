@@ -228,7 +228,7 @@ G-56/G-58/G-59/G-64/G-03/L-03/L-06（递归子宇宙、大消去、累积性、�
 
 | 片 | 内容 | 判据（可执行）| 回退 |
 |---|---|---|---|
-| **M0** | **零行为变化**：冻结基线（§1.4 全部读数）+ **能力清单**（~12 形状 × 严格档/今天/引擎推演，每个形状一个夹具入库）+ 判据清单（§2.6 十二条）| `kernel-diff.sh --digest` 复现 §1.4 三 sha256 · 门禁 43/377/99/0 · 计数逐项相等 | 无（纯文档）|
+| **M0** | **零行为变化** ✓ **已收口（2026-10-01）**：冻结基线（§1.4 全部读数，三指纹**逐字节复现**）+ **能力清单**（**13** 形状 × 2 开关态 = 26 次真进程，判据 `crates/cli/tests/metavar_inventory.rs`）+ §2.6 十二条判据清单 ⇒ **读数与结论** = `docs/design/metavar-m0.md`（**接受面增量 0/13** ⇒ 按 D7 缩范围）| `cargo test -p sokonanoda-cli --test metavar_inventory`（1 passed）· `kernel-diff.sh --digest` 三 sha256 **逐字节等于 §1.4** · `--non-course <bin> <bin>` **172 组 0 差异** · 门禁 **43/377/99/0** · 结构计数逐项相等（`runs=886` / `passes=1343` / `by_calls=21,268`）| 无（纯判据 + 取证）|
 | **M1** | `meta.rs`（§2.2–2.3 + 真值层单测）+ **记法路径**接线（待定档改调 `meta::solve`）；开关 `SOKO_METAVAR` 三态（`0` 严格 / `sibling` = E19 今天 / 默认 引擎，D5）| `cargo test -p sokonanoda-front --lib`（occurs/kind/postpone/clash/fuel/zonk 六条真值判据）· `-p sokonanoda-cli --test {notation,notation_metavar,implicit_metavar}` · 新 `cli/tests/metavar_engine.rs`（引擎开 ⇒ 清单里「引擎新能」的形状绿；`sibling` ⇒ **逐字节等于今天**；`0` ⇒ 严格档）· `kernel-diff --non-course <今天> <新>` 在 `sibling` 态 **0 差异** | 一个开关（`SOKO_METAVAR=sibling`）|
 | **M2** | 引擎接进 `implicit::solve_prefix` **一般路径**（应用/裸常量/路线③）；`fill_pending_by_shape` 降级为 defaulting 的一部分 | M1 全套 + `implicit_metavar.rs` 四条 + `pending_solver_…never_guesses` 四条 + G-48 复现件**三态**（`0`→exit 1 / `sibling`→exit 0 / 引擎→exit 0）· 门禁两态 43/377/99/0 | 同上 |
 | **M3** | **sort/kind 检查**（§2.5 三值表）+ 报错契约收口（§2.6 十二条 + D6 落地）| §2.6 十二条全绿 · kind 夹具（`def G {α : Type} (A : α)` 一族）在引擎态**不再**落内核 `def_eq mismatch expected: Sort(1) \| actual: Sort(2)` · 新增码则 `protocol.md` + `editor/vscode` + `skills/` 同轮 | 开关 |
@@ -286,4 +286,5 @@ python3 scripts/gap.py check && python3 scripts/docs-lint.py && python3 scripts/
 转集合论线）；两条线**不并行**动同一批文件（`AGENTS.md` §并行纪律第 2 条：同一模块同一时间只允许一个写者）✓。
 
 **记账**：本设计 + 排期 ⇒ `docs/ONBOARDING.md` **§0.2**（队列唯一入口）+ `STATUS.md`（第 524 轮）；
-实现开始后每片的 as-built **追加到本文**（不另开文件）。
+**M0 的读数/清单在 `docs/design/metavar-m0.md`**（取证与设计分家，照 E19 的 `e19-baseline.md` 惯例）；
+**M1–M4 的 as-built 追加到本文**（不另开文件）。
