@@ -333,10 +333,13 @@
             "equivalence-class",
             "quotient",
             "partition",
-            "correspondence"
+            "correspondence",
+            "quotient-type",
+            "well-definedness",
+            "descent"
           ],
           "quota": {
-            "exercises": 30
+            "exercises": 39
           },
           "units": [
             {
@@ -356,6 +359,12 @@
               "title": "单元㉖ 划分：等价关系的反方向",
               "title_en": "Unit 26 — Partitions: the Converse Direction",
               "unit": 26
+            },
+            {
+              "file": "units/unit27-quotients.sokonanoda",
+              "title": "单元㉗ 商类型与良定义性",
+              "title_en": "Unit 27 — Quotient Types and Well-Definedness",
+              "unit": 27
             }
           ]
         }
