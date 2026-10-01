@@ -1579,13 +1579,34 @@ fn universe_level_text_of_operands<'a>(
 ) -> Option<String> {
     for operand in operands {
         let ty_text = infer_type_text(ctx, scope, operand, InplaceEnv::reborrow(&mut env))?;
-        let Ok(sort_text) = judge_infer(
-            ctx.prefix_src,
-            ctx.options,
-            &scope.judge_binders(),
-            &ty_text,
-        ) else {
-            continue;
+        // **G-31（第二处，实测未命中大头：unit08 全程 100/226 次）**：第二问要的是
+        // **`ty_text` 的类型**（= 它的宇宙）。它以前每次都 `judge_infer` 合成一份
+        // `#check`、**整份重编前缀**；这里先试**就地** —— 把类型文本回读成 `#check`
+        // 的 AST，再走 `infer_type_text_inplace`（**只就地、失败即 `Err`**）。
+        //
+        // ⚠ 回落**必须问原来那句**（`ty_text` 本身），**不能**用 `infer_type_text`
+        // 的内置回落：那个回落到 `render_expr(operand)` —— 而这里 operand 是**回读**
+        // 出来的 AST，重渲染的文本未必与 `ty_text` 逐字相同 ⇒ 问的就不是同一个问题了
+        // ✗（缓存键也会分叉）。所以就地失败时**原样**调 `judge_infer(… &ty_text)` ✓。
+        let inplace = env.as_deref_mut().and_then(|e| {
+            let file = crate::parse_fragment(&format!("#check {ty_text}\n")).ok()?;
+            let expr = match file.commands.first()? {
+                crate::ast::Command::Check { expr, .. } => expr.clone(),
+                _ => return None,
+            };
+            infer_type_text_inplace(e, ctx, scope, &expr, scope.judge_binders().len()).ok()
+        });
+        let sort_text = match inplace {
+            Some(text) => text,
+            None => match judge_infer(
+                ctx.prefix_src,
+                ctx.options,
+                &scope.judge_binders(),
+                &ty_text,
+            ) {
+                Ok(text) => text,
+                Err(_) => continue,
+            },
         };
         if let Some(level) = level_text_of_sort(&sort_text) {
             return Some(level);
