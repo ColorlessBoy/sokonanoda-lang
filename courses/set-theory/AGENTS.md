@@ -135,6 +135,21 @@ python3 scripts/notation-lint.py --root <file>   # 单文件
   （模块根不同）⇒ 需要库的复现件写成 **`.sh`**（判据 = 跑一条真判卷 ✓，退出码约定见
   `docs/gaps/README.md`）✓。
 
+**往 `lib/` 加引理之前，先查两处重名**（2026-10-01 第 607 轮换来）：
+
+```bash
+grep -rn "^theorem <名字>\|^def <名字>" courses/set-theory/lib/ courses/set-theory/units/   # ① 库里有没有
+grep -rln "<名字>" courses/set-theory/units/ | head                                          # ② 哪个单元已自己声明过
+```
+
+—— *实证*：给 `lib/Equiv` 加 `Set.Equiv.refl` / `Set.Equiv.symm` 时，**单元⑨ 早就在本地
+声明过同名引理** ✗ ⇒ 门禁报 **`import-name-collision`**（`Set.Equiv.symm` 在 `lib.Equiv`
+与 `units.unit09-equinumerosity` 里各声明了一次 ✓，**判据工作正常** ✓）。
+**处置** ✓：库只保留**单元里没有的**那条（`Set.Equiv.comp_left_aux` ✓），
+重复的两条**撤掉** ✓ —— **"库该有" ≠ "重复一份"** ✓：
+**加库引理前先看哪个单元已经造过它** ✓（若是普遍需要，正确做法是把**单元里那份**
+搬进库并改调用点，而不是加第二份 ✗）。
+
 **每次往 `lib/` 加声明之后，跑一次闭包守卫**（L-09 换来的）：
 
 ```bash
