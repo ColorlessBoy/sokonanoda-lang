@@ -183,6 +183,23 @@ bash courses/set-theory/tools/check-lib-closure.sh   # 把所有 lib 一次 impo
 
 **判据**：`courses/set-theory/units/solutions/unit48-solution.sokonanoda` 的
 `sInter_subset_of_mem` / `sInter_mono`（单元㊽ 练习 9/10 ✓）。
+
+### 第三条惯用法：**`⊆` 补不出类型参数时，按内核提示改点名**（2026-10-01 第 584 轮 ✓）
+
+「`def` 套 `def` 头」的目标（如 `Set.sInter α (F ∪ G) ⊆ Set.sInter α F`）上，**`⊆` 记法
+补不出前导类型参数** ✗ —— 而**内核会直接把出路写在诊断里**：
+
+    记法 `⊆` 展开成 `Set.subset` 时补不出前面的类型参数：请写出点名形式
+
+⇒ **照它写 `Set.subset α A B` 立刻判绿** ✓（行内加 `-- soko:notation-ok: …` ✓）。
+**教训**：诊断说"请写出点名形式"时**就是字面意思**，别去猜第三种拼法 ✓
+（判据：`unit49-solution.sokonanoda` 的 `sInter_union_subset_left` ✓）。
+
+### 动机位规则**再收窄一格**：`∨` 套 `∧` 也不行
+
+`Or.elim P Q (A x ∨ (B x ∧ C x)) …` 判红 ✗（单元㊿ 的 `union_inter_subset_dual`）——
+动机位里的命题**不仅要是肯定的，还别在里面套 `∧`** ✗；
+需要这种结论时，**拆成两条更弱的引理**（先给 `A x ∨ B x`）再组合 ✓。
 **教训**：上一轮这两条被撤掉时记的是"`Iff.mp` 方向不可用" ✗ —— **其实是拼法问题** ✓；
 **撤掉之前先花一分钟试第二种拼法** ✓（本轮 3 行探针就试出来了 ✓）。
 

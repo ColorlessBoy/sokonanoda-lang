@@ -117,3 +117,15 @@ theorem sUnion_subset_sUnion_union_right (α : Type) (F G : Set (Set α)) :
 theorem sInter_subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α)
     (hA : A ∈ F) : Set.sInter α F ⊆ Set.sUnion α F := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
   sorry
+
+-- 练习 8（L 类，**收尾**）：**`⋂(F ∪ G) ⊆ ⋂F`**（并族的交含在左半的交里）。
+-- soko:hint 思路：先把 `⋂(F ∪ G)` 的成员取成**绑定形态**（先 λ 落地、再取用），
+--   把 `B ∈ F` 用 `Or.inl` 搬成 `B ∈ F ∪ G`，最后用 `Set.mem_sInter_intro` 收口。
+-- soko:hint 目标形态：`⋂(F ∪ G) ⊆ ⋂F`。
+-- soko:hint 关键件：`Set.mem_sInter_intro`（**库刚补的那条** ✓）· `Set.mem_sInter_iff`
+--   （**绑定形态先落地** ✓）· `Or.inl` ✓
+--   ⚠ **本条的 `⊆` 记法补不出前导类型参数** ✗（内核会直接提示"请写出点名形式"✓）
+--   ⇒ 解答里写成 `Set.subset α …` 并加行内标记 ✓（**G-73 第十七例**，见手册 ✓）  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+theorem sInter_union_subset_left (α : Type) (F G : Set (Set α)) :
+    Set.subset (Set.sInter α (F ∪ G)) (Set.sInter α F) := by  -- soko:notation-ok: 同上：`⊆` 在此补不出前导类型参数
+  sorry
