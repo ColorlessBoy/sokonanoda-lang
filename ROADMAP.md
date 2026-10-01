@@ -2,7 +2,7 @@
 
 > 状态：active（v2 LSP-first；**接手与"下一步"先看 `docs/ONBOARDING.md`**，最新快照看 `STATUS.md`，
 > 本文 §10 = 待办的**验收口径 + 收口状态**）
-> 基线：v0.78.3（2026-09-30；本文只描述计划与验收，已完成的条目就地打勾并标注版本）
+> 基线：v0.79.0（2026-10-01；本文只描述计划与验收，已完成的条目就地打勾并标注版本）
 > 配套文档：`STATUS.md`（当前状态与进度日志，agents 先读）、
 > `docs/architecture.md`（深度理解）、`docs/archive/notes-2026-09-26/research.md.gz`（外部调研，已归档）、
 > `docs/design/infrastructure.md`（基础设施方案脑暴）、`docs/protocol.md`（事件协议）。

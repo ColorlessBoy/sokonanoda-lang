@@ -172,7 +172,7 @@ theorem subset_trans (α : Type) (A B C : Set α) (h1 : Set.subset α A B) (h2 :
 courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列，互不影响）
 ├── README.md                  # 怎么判卷 + 现状表 + 单元 DoD
 ├── AGENTS.md                  # 课程线 agent 手册（写作循环 + 判卷三纪律 + 教学纪律）
-├── sokonanoda.toml            # 模块根 = 本目录（requires 跟着版本钉走，现为 0.78.3）
+├── sokonanoda.toml            # 模块根 = 本目录（requires 跟着版本钉走，现为 0.79.0）
 ├── course.json                # 单元清单（12 单元）
 ├── lib/                       # L2 课程标准库（名字用 Loogle 取证版）
 │   ├── Logic.sokonanoda       # 逻辑与等式骨架 26 条（prelude 0.59.0 也自带 30 个名字，见 L-01/L-02）

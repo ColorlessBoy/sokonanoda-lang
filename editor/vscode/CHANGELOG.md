@@ -1,7 +1,21 @@
-## [Unreleased]
+## [0.79.0] — 2026-10-01
+
+> 求解器的**待定参数**（E19 甲案）成为默认：今天判红的"两侧都是零元糖"形状变绿。
 
 ### Changed
 
+- **`∅ ≈ {b}` now elaborates.** When a leading type parameter of a notation or of
+  an application cannot be inferred from any operand or from the expected type,
+  the solver now lets it follow a **same-shaped already-solved sibling** instead
+  of failing. `Set.Equiv {α β : Type} (A : Set α) (B : Set β)` written
+  `Set.Equiv ∅ {b}` therefore reads as `Set.Equiv β β ∅ {b}` — the domain is
+  **chosen**, not derived. It still refuses to guess when there is nothing to
+  follow (`∅ ≈ ∅`) or when the parameter appears nowhere. Escape hatch:
+  `SOKO_NOTATION_METAVAR=0` (or `off`) restores the old strict solver.
+- **Only the file the fix targets changed.** The non-course corpus is
+  byte-for-byte identical except the G-48 repro (2/172 comparisons); the course
+  corpus and the course gate counts (**43 targets · 377 checked · 99 open ·
+  0 rejected**) are unchanged. Gap ledger: **G-48 → fixed (0.79.0)**.
 - **The course standard library no longer makes you spell out leading type
   parameters.** `Set.image` / `Set.preimage` / `Set.mem` / `Set.subset` and
   friends, plus `Function.comp` / `Rel.comp`, now take `{α : Type}` implicitly,

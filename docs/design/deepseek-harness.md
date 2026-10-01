@@ -38,7 +38,7 @@ opencode 的文档与契约测试。
 | 主 agent | `.opencode/agent/teacher.md` | 「老师」角色（mode: primary，Tab 切换） |
 | 项目配置 | `opencode.json` | skills 路径、Lean 工具链 deny、watcher ignore、关 Rust 格式化 |
 | 契约测试 | `crates/cli/tests/{skill,opencode,protocol,extension}.rs` | 守护上述文件不漂移 |
-| 环境事实 | `~/.local/share/sokonanoda/bin` 缓存 + `Cargo.toml` 版本（当时 0.54.0，现 **0.78.3**） | 版本锁定下载的目标 |
+| 环境事实 | `~/.local/share/sokonanoda/bin` 缓存 + `Cargo.toml` 版本（当时 0.54.0，现 **0.79.0**） | 版本锁定下载的目标 |
 
 实测状态（本次接手时）：`sokonanoda` **不在 PATH**；缓存里是 **0.16.2/0.20.0 旧版**
 （`./target/release/sokonanoda doctor --json` → `ready:false`、`version_match:false`），
