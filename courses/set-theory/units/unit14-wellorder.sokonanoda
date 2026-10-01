@@ -1,0 +1,157 @@
+-- ==========================================================================
+-- unit14-wellorder.sokonanoda —— 卷 I 单元⑭ **良序与良基**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§7.2 Well
+-- Orderings**（+ §9 Well-Founded Relations 的开头）；Halmos《Naive Set Theory》
+-- **§17 Well Ordering**。大纲：`docs/design/set-theory-syllabus.md` §4.1（I.5 章第二个单元）。
+--
+-- 本单元的"该学的定理"：**良基 = 每个非空子集有极小元**（本语言没有 `Acc`，
+-- 所以取集合论里等价的这条形式，见 `lib/Order` 文件头的偏离 ③）；
+-- **良序 = 全序 + 良基**；由良基能推出三件硬事实 —— **非自反**、**子关系仍良基**、
+-- **没有无穷下降链**；而**空关系是良基的却不自反**（两道反例题，说明这两件事不互相包含）。
+--
+-- **本单元只允许用**（tactic 白名单）：`intro` / `exact` / `apply` / `constructor` /
+--   `cases` / `have`，加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元只 `import` 两样**：`lib.Order`（良基/良序词汇 + 取用子 + 智能构造子）与 prelude。
+--
+-- 依赖：单元⑬（偏序/全序/严格序）—— 本单元把"序"里**良基**那一半做完。
+-- ==========================================================================
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 14.1 良基：**每个非空子集都有极小元**
+--
+-- 读法：`HasMin α r P` = "P 里有一个元素 m，P 里没有元素排在 m 前面"（极小，不一定最小：
+-- 偏序里"极小"与"最小"是两回事，全序里才重合）。
+-- `IsWellFounded α r` = "对**每个**非空 P，`HasMin α r P` 都成立"。
+-- ⚠ 本语言没有 `Acc`（台账 G-56）⇒ 上面这条就是我们的良基定义（Isabelle `wf` 的对应物）✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：`HasMin` 的**定义展开**（"极小元"到底在说什么）。
+theorem demo_hasMin_def (α : Type) (r : α → α → Prop) (P : α → Prop) :
+    HasMin α r P ↔ ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_def α r P
+
+-- 演示：良序蕴含良基（全序那一半见单元⑬ 练习 8）。
+theorem demo_wellOrder_wellFounded (α : Type) (r : α → α → Prop)
+    (h : IsWellOrder α r) : IsWellFounded α r :=
+  wellOrder_wellFounded α r h
+
+-- ─────────────────────────────────────────────────────────────
+-- 14.2 把良基拆开用
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：**造一个极小元** —— 给定见证 `m`、`m ∈ P`、以及"没有 P 里的元素
+-- 排在 m 前面"，交出 `HasMin α r P`。
+-- soko:hint 思路：`HasMin` 是定义头，直接写存在构造子会反解失败（台账 G-73 形状 ②）⇒
+--   库里的智能构造子 `hasMin_intro` 正好吃这四个参数。
+-- soko:hint 目标形态：`HasMin α r P`。
+-- soko:hint 关键件：参数表是「论域 · 关系 · 谓词 · 见证 · 见证在谓词里 · 极小性」。
+theorem hasMin_intro_apply (α : Type) (r : α → α → Prop) (P : α → Prop) (m : α)
+    (hm : P m) (hmin : ∀ (y : α), P y → ¬ (r y m)) : HasMin α r P := by
+  sorry
+
+-- 练习 2（T 类）：**把 `HasMin` 拆开** —— 极小元连同它的两条性质。
+-- soko:hint 思路：`HasMin` 的定义体就是一个存在式，库里的展开引理把它交出来。
+-- soko:hint 目标形态：`∃ m, P m ∧ ∀ y, P y → ¬ (r y m)`。
+-- soko:hint 关键件：`hasMin_elim`（参数表是「论域 · 关系 · 谓词 · 极小元证据」）。
+theorem hasMin_elim_apply (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) := by
+  sorry
+
+-- 练习 3（T 类）：**良基的直接用法** —— 非空谓词必有极小元。
+-- soko:hint 思路：良基的定义就是这一条，库里的取用子把参数一次收全。
+-- soko:hint 目标形态：`(∃ x, P x) → HasMin α r P`。
+-- soko:hint 关键件：`wellFounded_hasMin`（参数表是「论域 · 关系 · 良基证据 · 谓词」）。
+theorem wellFounded_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsWellFounded α r) : (∃ (x : α), P x) → HasMin α r P := by
+  sorry
+
+-- 练习 4（T 类）：全序的良基那一半（取用子）。
+-- soko:hint 思路：与单元⑬ 练习 8 同形，取的是合取的**右支**。
+-- soko:hint 目标形态：`IsWellOrder α r → IsWellFounded α r`。
+-- soko:hint 关键件：`wellOrder_wellFounded`。
+theorem wellOrder_wellFounded_apply (α : Type) (r : α → α → Prop)
+    (h : IsWellOrder α r) : IsWellFounded α r := by
+  sorry
+
+-- 练习 5（L 类）：**良序里每个非空子集有极小元**（练习 3 与 4 的合成）。
+-- soko:hint 思路：先把良序降成良基，再交给良基的取用子 —— 两步都是现成的。
+-- soko:hint 目标形态：`IsWellOrder α r → (∃ x, P x) → HasMin α r P`。
+-- soko:hint 关键件：`wellOrder_wellFounded` 的输出正好是 `wellFounded_hasMin` 的第三个参数。
+theorem wellOrder_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsWellOrder α r) : (∃ (x : α), P x) → HasMin α r P := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 14.3 良基的三条硬后果
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（L 类）：**良基 ⇒ 非自反** —— 没有一个元素排在自己前面。
+-- soko:hint 思路：反证。取谓词 `r a`（"排在 a 前面"），它非空（`a` 自己在里面，
+--   这正是假设）。良基给它一个极小元 `m`；`m` 的属性之一就是"没有 `r a` 里的元素
+--   排在 `m` 前面"。另一方面 `a` 在 `r a` 里，于是"`a` 排在 `m` 前面"与它冲突。
+-- soko:hint 目标形态：`Irreflexive α r`，展开后是 `∀ a, r a a → False`。
+-- soko:hint 关键件：谓词写成**部分应用** `r a`（少写一个 λ，也少一个 G-73 的坑）；
+--   `hasMin_elim` 拆极小元；极小性那一条要**先 `fun (hall : …) => …` 把类型写出来**再应用。
+theorem wellFounded_irrefl (α : Type) (r : α → α → Prop)
+    (h : IsWellFounded α r) : Irreflexive α r := by
+  sorry
+
+-- 练习 7（L 类）：**子关系保持良基** —— 若 `s` 蕴含在 `r` 里，而 `r` 良基，则 `s` 也良基。
+-- soko:hint 思路：用良基的**智能构造子**。给定非空 `P`，先用 `r` 的良基拿到极小元 `m`，
+--   再说明它对 `s` 也极小：若 `s y m` 则 `r y m`（子关系假设），与 `m` 的极小性冲突。
+-- soko:hint 目标形态：`IsWellFounded α s`。
+-- soko:hint 关键件：`isWellFounded_intro`（吃一个"对每个非空 P 都给出 HasMin"的函数）+
+--   `hasMin_intro`（在 `s` 这一侧重新装配极小元）。
+theorem wellFounded_of_subrelation (α : Type) (r s : α → α → Prop)
+    (hsub : ∀ (a b : α), s a b → r a b) (hr : IsWellFounded α r) :
+    IsWellFounded α s := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 14.4 必证（本单元旗舰）：**良基 ⇒ 没有无穷下降链**
+--
+-- 下面这个 `SeqImage` 只是把"序列的像"写成一个谓词 —— 极小元要作用在它上面。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示（定义）：序列 `f` 的像 —— "存在 n 使 x = f n"。
+def SeqImage (α : Type) (f : Nat → α) : α → Prop :=
+  fun (x : α) => ∃ (n : Nat), x = f n
+
+-- 练习 8（L 类）：**没有无穷下降链** —— 若每一步都更靠前，就不可能无限走下去。
+-- soko:hint 思路：把良基作用在 `SeqImage α f` 上（它非空：`f 0` 在里面）。拿到极小元 `m`
+--   与它的极小性；`m` 在像里 ⇒ 有 `n` 使 `m = f n`；而链的第 `n+1` 项也在像里，
+--   于是极小性说"它不排在 `m` 前面"——但它排在 `f n` 前面，也就是排在 `m` 前面（沿 `m = f n` 搬）。
+-- soko:hint 目标形态：`False`。
+-- soko:hint 关键件：`SeqImage`（像）· `hasMin_elim`（拆极小元）· `rel_subst_right`（把"排在 `f n` 前面"沿 `m = f n` 搬成"排在 `m` 前面"）·
+--   以及**存在消去要把前导实参写全**（`Exists.elim α P Q …`，台账 G-73 形状 ②）。
+theorem no_descending_chain (α : Type) (r : α → α → Prop)
+    (h : IsWellFounded α r) (f : Nat → α)
+    (hstep : ∀ (n : Nat), r (f (Nat.succ n)) (f n)) : False := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 14.5 必破：良基与自反**互不包含**
+--
+-- 空关系既不成立任何一步，也就无所谓"更靠前" —— 它是良基的；但它同时**不是**自反的。
+-- 这两道题说明"良基"与"自反/非自反"是两件独立的事。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（D 类）：**空关系是良基的**。
+-- soko:hint 思路：任取非空 `P`，从假设里取出一个元素 `m`；极小性那一半是"若 `y` 排在 `m`
+--   前面就……"—— 而空关系里那种证据本身就是 `False`，直接交出去。
+-- soko:hint 目标形态：`IsWellFounded α (EmptyRelation α α)`。
+-- soko:hint 关键件：`isWellFounded_intro` + `hasMin_intro` + `Exists.elim`（前导实参写全）。
+theorem emptyRelation_wellFounded (α : Type) :
+    IsWellFounded α (EmptyRelation α α) := by
+  sorry
+
+-- 练习 10（D 类）：**空关系不是自反的** —— 只要论域里有一个元素。
+-- soko:hint 思路：自反说"每个元素都与自己有关系"，把它展开成显式的 `∀` 再喂进一个元素。
+-- soko:hint 目标形态：`¬ Reflexive α (EmptyRelation α α)`。
+-- soko:hint 关键件：**别直接应用定义头类型的假设**（G-73 形状 ①）——
+--   先 `fun (hall : ∀ (x : α), …) => …` 把类型写出来。
+theorem emptyRelation_not_reflexive (α : Type) (a : α) :
+    ¬ Reflexive α (EmptyRelation α α) := by
+  sorry

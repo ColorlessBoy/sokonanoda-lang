@@ -158,10 +158,12 @@
             "order",
             "partial-order",
             "linear-order",
-            "strict-order"
+            "strict-order",
+            "well-order",
+            "well-founded"
           ],
           "quota": {
-            "exercises": 11
+            "exercises": 21
           },
           "units": [
             {
@@ -169,6 +171,12 @@
               "title": "单元⑬ 偏序、全序与严格序",
               "title_en": "Unit 13 — Partial, Linear and Strict Orders",
               "unit": 13
+            },
+            {
+              "file": "units/unit14-wellorder.sokonanoda",
+              "title": "单元⑭ 良序与良基",
+              "title_en": "Unit 14 — Well-Orderings and Well-Foundedness",
+              "unit": 14
             }
           ]
         }

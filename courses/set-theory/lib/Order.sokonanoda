@@ -258,3 +258,35 @@ theorem isLinearOrder_intro (α : Type) (r : α → α → Prop)
 theorem isWellOrder_intro (α : Type) (r : α → α → Prop)
     (hlinear : IsLinearOrder α r) (hwf : IsWellFounded α r) : IsWellOrder α r :=
   Iff.mpr (isWellOrder_def α r) (And.intro hlinear hwf)
+
+-- ── HasMin / 良基的展开与包装（L2；与上面四个序类的 `…_intro` 同一族）────────
+-- ⚠ 为什么同样要有这一组：`HasMin α r P` 是**定义头**的 `∃`，直接写
+-- `Exists.intro …` 时前导类型参数反解会判红（G-73 的形状 ②）⇒ 在库层做掉。
+theorem hasMin_def (α : Type) (r : α → α → Prop) (P : α → Prop) :
+    HasMin α r P ↔ ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  Iff.intro (fun (h : HasMin α r P) => h)
+    (fun (h : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m)) => h)
+
+theorem hasMin_intro (α : Type) (r : α → α → Prop) (P : α → Prop) (m : α)
+    (hm : P m) (hmin : ∀ (y : α), P y → ¬ (r y m)) : HasMin α r P :=
+  Iff.mpr (hasMin_def α r P)
+    (Exists.intro α (fun (m' : α) => P m' ∧ ∀ (y : α), P y → ¬ (r y m')) m
+      (And.intro hm hmin))
+
+theorem hasMin_elim (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  Iff.mp (hasMin_def α r P) h
+
+theorem hasMin_witness (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m :=
+  Exists.elim (hasMin_elim α r P h)
+    (fun (m : α) (hm : P m ∧ ∀ (y : α), P y → ¬ (r y m)) =>
+      Exists.intro α P m (And.left hm))
+
+theorem isWellFounded_intro (α : Type) (r : α → α → Prop)
+    (h : ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P) : IsWellFounded α r :=
+  Iff.mpr (isWellFounded_def α r) h
+
+-- ── 空关系（Mathlib `EmptyRelation`；下面两道反例题的样板）────────────────────
+def EmptyRelation (α β : Type) : α → β → Prop :=
+  fun (x : α) (y : β) => False

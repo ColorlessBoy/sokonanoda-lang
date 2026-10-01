@@ -1,0 +1,125 @@
+-- unit14 解答钥匙（agent 专用）。
+-- 写法：**项风格**（不用 `by`），见 courses/set-theory/AGENTS.md「解答写法」。
+-- 这份文件同时是**提示**：老师据此把骨架翻成 tactic 讲给学习者。
+--
+-- ⚠ 本单元的证明**处处绕开本语言的两条 elaborator 边界**（台账 G-72 / G-73）：
+--   ① 定义头类型的假设**不能直接当函数应用**（要 `(fun (hx : <展开形态>) => hx …) 假设`）；
+--   ② `Exists.intro`/`Exists.elim`/`And.intro` 在期望类型是**定义头**时，前导实参必须**写全**。
+--   两条都是**语言侧待修**的，不是教学难点；画布的 `soko:hint` 只讲数学那一半。
+import lib.Order
+
+-- ── 演示（画布上已写好，逐字保留）─────────────────────────────────────────
+
+theorem demo_hasMin_def (α : Type) (r : α → α → Prop) (P : α → Prop) :
+    HasMin α r P ↔ ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_def α r P
+
+theorem demo_wellOrder_wellFounded (α : Type) (r : α → α → Prop)
+    (h : IsWellOrder α r) : IsWellFounded α r :=
+  wellOrder_wellFounded α r h
+
+def SeqImage (α : Type) (f : Nat → α) : α → Prop :=
+  fun (x : α) => ∃ (n : Nat), x = f n
+
+-- ── 练习 1–2（T 类）：`HasMin` 的造与拆 ───────────────────────────────────
+
+theorem hasMin_intro_apply (α : Type) (r : α → α → Prop) (P : α → Prop) (m : α)
+    (hm : P m) (hmin : ∀ (y : α), P y → ¬ (r y m)) : HasMin α r P :=
+  hasMin_intro α r P m hm hmin
+
+theorem hasMin_elim_apply (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_elim α r P h
+
+-- ── 练习 3–5（T/L 类）：良基 / 良序的取用子，以及两者的合成 ────────────────
+
+theorem wellFounded_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsWellFounded α r) : (∃ (x : α), P x) → HasMin α r P :=
+  wellFounded_hasMin α r h P
+
+theorem wellOrder_wellFounded_apply (α : Type) (r : α → α → Prop)
+    (h : IsWellOrder α r) : IsWellFounded α r :=
+  wellOrder_wellFounded α r h
+
+theorem wellOrder_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsWellOrder α r) : (∃ (x : α), P x) → HasMin α r P :=
+  wellFounded_hasMin α r (wellOrder_wellFounded α r h) P
+
+-- ── 练习 6（L 类）：良基 ⇒ 非自反 ─────────────────────────────────────────
+-- 取谓词 `r a`（"排在 a 前面"），它非空（`a` 自己在里面）；极小元 m 的极小性
+-- 与 `a` 落在 `r a` 里直接冲突。
+theorem wellFounded_irrefl (α : Type) (r : α → α → Prop)
+    (h : IsWellFounded α r) : Irreflexive α r :=
+  fun (a : α) (haa : r a a) =>
+    (fun (hm : HasMin α r (r a)) =>
+      (fun (hel : ∃ (m : α), (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) =>
+        Exists.elim α (fun (m : α) => (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) False hel
+          (fun (m : α) (hmm : (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) =>
+            (fun (hnot : ¬ (r a m)) => (fun (ham : r a m) => hnot ham) (And.left hmm))
+              ((fun (hall : ∀ (y : α), (r a) y → ¬ (r y m)) => hall a haa) (And.right hmm))))
+        (hasMin_elim α r (r a) hm))
+      (wellFounded_hasMin α r h (r a) (Exists.intro α (r a) a haa))
+
+-- ── 练习 7（L 类）：子关系保持良基 ─────────────────────────────────────────
+theorem wellFounded_of_subrelation (α : Type) (r s : α → α → Prop)
+    (hsub : ∀ (a b : α), s a b → r a b) (hr : IsWellFounded α r) :
+    IsWellFounded α s :=
+  isWellFounded_intro α s
+    (fun (P : α → Prop) (hP : ∃ (x : α), P x) =>
+      (fun (hm : HasMin α r P) =>
+        (fun (hel : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m)) =>
+          Exists.elim α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ (r y m))
+            (HasMin α s P) hel
+            (fun (m : α) (hmm : P m ∧ ∀ (y : α), P y → ¬ (r y m)) =>
+              hasMin_intro α s P m (And.left hmm)
+                (fun (y : α) (hy : P y) (hsy : s y m) =>
+                  (fun (hnot : ¬ (r y m)) => hnot (hsub y m hsy))
+                    ((fun (hall : ∀ (y' : α), P y' → ¬ (r y' m)) => hall y hy)
+                      (And.right hmm)))))
+          (hasMin_elim α r P hm))
+        (wellFounded_hasMin α r hr P hP))
+
+-- ── 练习 8（L 类）：没有无穷下降链（本单元旗舰）───────────────────────────
+-- 极小元作用在 `SeqImage α f` 上：`m = f n` 极小 ⇒ 链的第 n+1 项不能排在它前面，
+-- 而它按定义就排在 `f n`（也就是 `m`）前面 —— 沿 `m = f n` 搬过去即矛盾。
+theorem no_descending_chain (α : Type) (r : α → α → Prop)
+    (h : IsWellFounded α r) (f : Nat → α)
+    (hstep : ∀ (n : Nat), r (f (Nat.succ n)) (f n)) : False :=
+  (fun (hm : HasMin α r (SeqImage α f)) =>
+    (fun (hel : ∃ (m : α), SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m)) =>
+      Exists.elim α (fun (m : α) => SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m))
+        False hel
+        (fun (m : α) (hmm : SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m)) =>
+          (fun (hPm : SeqImage α f m) =>
+            Exists.elim Nat (fun (k : Nat) => m = f k) False hPm  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+              (fun (n : Nat) (hn : m = f n) =>
+                (fun (hnot : ¬ (r (f (Nat.succ n)) m)) =>
+                  (fun (hrr : r (f (Nat.succ n)) m) => hnot hrr)
+                    (rel_subst_right α r (f (Nat.succ n)) (f n) m
+                      (Eq.symm.{1} α m (f n) hn) (hstep n)))
+                  ((fun (hall : ∀ (y : α), SeqImage α f y → ¬ (r y m)) =>
+                    hall (f (Nat.succ n))
+                      (Exists.intro Nat (fun (k : Nat) => f (Nat.succ n) = f k) (Nat.succ n)  -- soko:notation-ok: G-73 形状 ②（同上）
+                        (Eq.refl.{1} α (f (Nat.succ n))))) (And.right hmm))))
+            (And.left hmm)))
+        (hasMin_elim α r (SeqImage α f) hm))
+      (wellFounded_hasMin α r h (SeqImage α f)
+        (Exists.intro α (SeqImage α f) (f Nat.zero)  -- soko:notation-ok: G-73 形状 ②（同上）
+          (Exists.intro Nat (fun (k : Nat) => f Nat.zero = f k) Nat.zero
+            (Eq.refl.{1} α (f Nat.zero)))))
+
+-- ── 练习 9（D 类）：空关系是良基的 ────────────────────────────────────────
+theorem emptyRelation_wellFounded (α : Type) :
+    IsWellFounded α (EmptyRelation α α) :=
+  isWellFounded_intro α (EmptyRelation α α)
+    (fun (P : α → Prop) (hP : ∃ (x : α), P x) =>
+      Exists.elim α P (HasMin α (EmptyRelation α α) P) hP
+        (fun (m : α) (hm : P m) =>
+          hasMin_intro α (EmptyRelation α α) P m hm
+            (fun (y : α) (hy : P y) (hf : EmptyRelation α α y m) => hf)))
+
+-- ── 练习 10（D 类）：空关系不是自反的 ─────────────────────────────────────
+theorem emptyRelation_not_reflexive (α : Type) (a : α) :
+    ¬ Reflexive α (EmptyRelation α α) :=
+  fun (hr : Reflexive α (EmptyRelation α α)) =>
+    (fun (hall : ∀ (x : α), EmptyRelation α α x x) => hall a) hr
