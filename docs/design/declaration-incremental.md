@@ -83,3 +83,64 @@
   都是结构量；墙钟只做数量级兜底。
 * **S1 是唯一的用户可见改动**，其余三片对用户只表现为"变快" —— 但"变快"要用 §2 的计数证明，
   不靠体感。
+
+## 4. S2 落点（**源码级**，2026-10-01 读码核实；开工前先读本节）
+
+§2 把 S2 写成一句话（"入口接上 TrustPlan"）。逐文件读下来，**地基比预期好得多** ——
+三处关键事实（都是源码事实，不是推断）：
+
+1. **`with_project_session` 已经做了"库层一次 + 各入口各自"**（`crates/front/src/project/session.rs:21`）：
+   库层编一趟 → `hide_declars()` 拿检查点 → 每个入口 `restore_declars` 后**只跑自己的命令**。
+   而它调 `run_pass_with` 时第 9 个参数（`trust: Option<&TrustPlan>`）**恒传 `None`**（`:98`）
+   ⇒ **入口那趟接 TrustPlan 的位置已经现成**。
+2. **`run_pass_with` 已经收 `trust` + `skip` + `closure_prefixes_override` + `display_override`**
+   （`crates/front/src/compile/check/mod.rs:963`）。最后两个是切片 1 路乙加的，**正是入口趟
+   让 `judge_infer` 看见库层所必需的**（session.rs:84-102 已经这么传了）⇒ 不用重新发明。
+3. **`run_incremental` 已经做完了"信任前缀 + early cutoff"的全部工作**
+   （`check/mod.rs:596`），但它**写死了一个单元**：
+   `let units = [SourceUnit::single("", file)];`（`:608`，注释写着"闭包编译不使用 TrustPlan（v1）"）
+   ⇒ **S2 的第一刀就是把这一行参数化**，其余逻辑一行不用改。
+
+### 4.1 三步（每步可独立验，别合并）
+
+* **步 1（纯重构，零行为变化）**：`run_incremental` 收 `units: &[SourceUnit<'_>]`
+  （现调用方 `session.rs:276` 传 `&[SourceUnit::single("", file)]`）。
+  判据：既有 front 单测 + `--json` 逐字节不变（**这一步不该有任何计数变化**）。
+* **步 2**：`with_project_session` 收 `entry_trust: Option<(&TrustPlan, &KernelFailed)>`
+  并在入口趟传给 `run_pass_with`（`:98` 那个 `None`）。
+  判据：`crates/front/tests/session_reuse.rs` 既有 2 例 + 新增一例"给 trust ⇒ `passes` 下降、
+  报告逐字节相同"。
+* **步 3**：`QueryDoc`（`crates/front/src/query/mod.rs:128 set_text_with_overlay`）**持有入口的
+  逐命令快照**（今天只有单文件分支用 `self.session`；项目分支每次都 `project_compile` 全量）。
+  这是**唯一有状态的一步**，也是唯一有风险的：快照要能跨 `set_text` 存活。
+
+### 4.2 三个**必须做对**的下标（错了会静默错编，不是崩）
+
+| 下标空间 | 关系 | 谁负责 |
+|---|---|---|
+| 入口**自己的**命令（`Session.keys`/`snaps` 的坐标系） | `before_entry` = 首个改动命令 | `first_diff`（`session.rs:219` 同款） |
+| **合并**命令流（`run_pass` 看到的） | `before_merged = lib_n + before_entry`，`lib_n = lib_pass.n_commands` | 步 2 的调用方 |
+| `prefix_failures` / 返回的 `sigs`、`cutoff` | 与 `before` **同一个坐标系**（合并流）⇒ 入口那份要**整体加/减 `lib_n`** | 步 3 |
+
+⚠ **库层命令天然全在信任前缀里**（它们一个字节都没变）—— 这正是设计说的"库层命令全部在它之前"，
+但它**只在下标算对时成立**；算错 = 把库层声明当成"要重查"或把入口声明当成"已查过" ⇒ **错编**。
+所以步 3 的判据必须是**内容级**的：`--json` 逐字节 + 课程门禁 43/377/99/0，**不是**只看变快。
+
+### 4.3 判据（结构计数，机器无关）
+
+```bash
+# ① 复现件（今天：冷开 3104ms / 热开 14ms / 改一行 2189ms）
+node docs/gaps/repro/G29-edit-recompiles-whole-closure.js
+# ② 结构计数（同一入口，改**第一条** vs 改**最后一条**）
+SOKO_STAGE_STATS=1 <入口> … 2>&1 | grep -E "JUDGE_PREFIX|PASSES"
+#    S2 的判据 = 两者的 JUDGE_PREFIX runs 之比（今天两者相同 79 ⇒ 比 ≈ 1.0）
+# ③ 零回归：--json 逐字节不变 · 课程门禁 43/377/99/0 · cargo test -p sokonanoda-cli
+```
+
+### 4.4 本轮**没有**做 S2 的理由（诚实记账）
+
+本轮交付的是**用户可见的那一条**（S1 去整文件高亮 + P7 展示延迟，见
+`docs/design/edit-latency.md`）。S2 的步 3 要动 `QueryDoc` 的**有状态快照**，而 §4.2 的下标
+一旦算错就是**静默错编**（红线）—— 本轮的余量不足以把"实现 + 内容级零回归验证"一起做完，
+**宁可交一份可核实的落点，也不交半成品**。下一轮**从步 1 开始**（纯重构，可独立验），
+步 1/步 2 落地后再碰步 3。
