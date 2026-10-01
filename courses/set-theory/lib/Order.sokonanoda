@@ -390,3 +390,19 @@ theorem monotone_apply (α β : Type) (r : α → α → Prop) (s : β → β �
 theorem reflecting_apply (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β)
     (h : OrderReflecting α β r s f) (a b : α) (hab : s (f a) (f b)) : r a b :=
   (fun (hu : ∀ (x y : α), s (f x) (f y) → r x y) => hu a b hab) h
+
+-- ── 逐点序（函数空间上的序；Enderton §7.1 的练习、Mathlib `Pi.instLE` 同款）────────
+-- 读法：`f ≤ g` 逐点成立。**注意**：它一般**不是**偏序 —— 反对称要**函数外延**
+-- （`(∀ a, f a = g a) → f = g`），而本语言**没有** funext（见缺口 **G-77**）⇒ 单元㉜ 里
+-- 只证"逐点"形态的结论 ✓
+def PointwiseLe (α β : Type) (r : β → β → Prop) (f g : α → β) : Prop :=
+  ∀ (a : α), r (f a) (g a)
+
+theorem pointwiseLe_def (α β : Type) (r : β → β → Prop) (f g : α → β) :
+    PointwiseLe α β r f g ↔ ∀ (a : α), r (f a) (g a) :=
+  Iff.intro (fun (h : PointwiseLe α β r f g) => h)
+    (fun (h : ∀ (a : α), r (f a) (g a)) => h)
+
+theorem pointwiseLe_apply (α β : Type) (r : β → β → Prop) (f g : α → β)
+    (h : PointwiseLe α β r f g) (a : α) : r (f a) (g a) :=
+  (fun (hu : ∀ (a' : α), r (f a') (g a')) => hu a) h

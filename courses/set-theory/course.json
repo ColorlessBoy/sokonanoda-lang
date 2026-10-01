@@ -390,10 +390,12 @@
             "galois-connection",
             "monotone",
             "order-embedding",
-            "order-isomorphism"
+            "order-isomorphism",
+            "pointwise-order",
+            "function-space"
           ],
           "quota": {
-            "exercises": 38
+            "exercises": 48
           },
           "units": [
             {
@@ -419,6 +421,12 @@
               "title": "单元㉛ 单调函数与序同构保持确界",
               "title_en": "Unit 31 — Monotone Maps and Preservation of Suprema",
               "unit": 31
+            },
+            {
+              "file": "units/unit32-pointwise.sokonanoda",
+              "title": "单元㉜ 函数空间上的逐点序",
+              "title_en": "Unit 32 — The Pointwise Order on Function Spaces",
+              "unit": 32
             }
           ]
         }

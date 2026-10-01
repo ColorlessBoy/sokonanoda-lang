@@ -1,0 +1,19 @@
+-- G-77 最小复现：内核**没有函数外延**（`funext`）
+--
+-- Lean 4 里 `funext : (∀ x, f x = g x) → f = g` 是 core 的公理（`propext` 之外最常用的一条）；
+-- Mathlib 里"逐点序是偏序"（`Pi.instPartialOrder`）、`Setoid`/`Quotient` 的包装、
+-- 一切"逐点相等 ⇒ 相等"的推理都靠它。
+--
+-- 本语言里：
+--   · **`Set` 上的外延是有的** —— 但那是**专门给 `Set α` 的一条公理**（`lib/Set` 的 `Set.ext`：
+--     `(∀ x, A x ↔ B x) → A = B`，它把 propext 与 funext 一起打包送给了集合）✓；
+--   · **一般函数类型上没有** ⇒ 下面这条判红（`unknown identifier`）✗
+--
+-- ⇒ 后果（course 侧实测）：**逐点序一般不是偏序**（`Antisymmetric (α → β) pwLe` 做不出来），
+--   单元㉜ 只能证到"逐点相等"（`∀ a, f a = g a`）为止 ✓
+-- 期望的 Lean 4 语义：`funext α β f g h : f = g`
+import lib.Rel
+
+theorem funext_expected (α β : Type) (f g : α → β)
+    (h : ∀ (a : α), Eq.{1} β (f a) (g a)) : Eq.{1} (α → β) f g :=
+  funext h

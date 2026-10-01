@@ -123,6 +123,8 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元㉜ 落地后）：84 个目标 · 828 checked · 297 open · 0 判负**
+
 **门禁实测（2026-10-01，单元㉛ 落地后）：82 个目标 · 809 checked · 287 open · 0 判负**
 
 **门禁实测（2026-10-01，单元㉚ 落地后）：80 个目标 · 787 checked · 277 open · 0 判负**
@@ -191,7 +193,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **I.9** | **集族、广义积与 n 元关系** | I.2 · I.5 | family · arbitrary-union/intersection · monotone · image · preimage · indexed-family · product · currying | 30 | 30 | **21–23** |
 | **I.8** | **基数与基数算术** | I.3 | cardinal · injection · equinumerous · cardinal-arithmetic · product · commutativity | 20 | 20 | **19–20** |
 | **I.10** | **关系闭包、等价关系与商** | I.2 | relation · closure · reflexive/symmetric/transitive-closure · equivalence-relation · equivalence-class · quotient · partition · correspondence · quotient-type · well-definedness | 39 | 39 | **24–27** |
-| **I.11** | **集合代数与序的完备性** | I.1 | set-algebra · de-morgan · upper-bound · supremum · infimum · lattice · duality · monotone · order-isomorphism | 38 | 38 | **28–31** |
+| **I.11** | **集合代数与序的完备性** | I.1 | set-algebra · de-morgan · supremum · infimum · lattice · duality · monotone · order-isomorphism · pointwise-order · function-space | 48 | 48 | **28–32** |
 | **I.7** | **选择公理与 ZF 公理体系** | I.2 | axiom-of-choice · choice-function · surjective · right-inverse · zf-axioms · regularity · extensionality | 20 | 20 | **17–18** |
 
 | 单元 | 章 | 标题 | 练习 | 解答（checked） |
@@ -227,6 +229,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **29** | **I.11** | **上界、下界与确界** | **10** | **10** |
 | **30** | **I.11** | **格与对偶：确界的代数** | **10** | **10** |
 | **31** | **I.11** | **单调函数与序同构保持确界** | **10** | **10** |
+| **32** | **I.11** | **函数空间上的逐点序** | **10** | **10** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -265,6 +268,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 单元 | 交付 | 撞到/绕开的 |
 |---|---|---|
 | ⑬ 偏序、全序与严格序 | 新库 `lib/Order`（词汇 6 性质 + 4 序类 + 两个翻译函数 + 展开引理 + **取用子** + **智能构造子**）；画布 3 演示 + 11 练习；解答 0 open | **G-72**（`lib/Order` 最初写成字面箭头返回 ⇒ 单文件绿、`import` 红）· **G-73 形状 ①②③**（证明全靠库层绕法） |
+| ㉜ 函数空间上的逐点序 | `lib/Order` +`PointwiseLe` + 展开与取用子；画布 3 演示 + 10 练习；解答 0 open | **逐点序的三条基本律**（自反 · 传递 · 常函数）· **逐点相等给出逐点序** · **单调逐点作用于两边** · **旗舰：逐点上确界 = 逐点取上确界**（下确界同理）· ⚠ **本单元的重要读法**：**逐点序一般不是偏序** —— 反对称要**函数外延**，而本语言没有（**新缺口 G-77**）⇒ 反对称只证到"逐点相等"为止 |
 | ㉛ 单调函数与序同构保持确界 | `lib/Order` +`Monotone` / `OrderReflecting` + 展开与取用子；画布 3 演示 + 10 练习；解答 0 open | **单调的代数**（恒等 · 合成 · 常函数）· **单调把上界/下界送到像上** · **反射（"像上有序 ⇒ 原来有序"）** —— 恒等/合成/由单调左逆得到 · **旗舰：序同构保持上确界** —— 且**三条假设缺一不可**（光有单调不够：要把上界**拉回原域**才用得上最小性 ⇒ 满射；拉回来还要**反转** ⇒ 反射）· 记下搬运等式的用法：**改第一个坐标要把关系翻过来** |
 | ㉚ 格与对偶：确界的代数 | 无新库（用单元㉙ 的确界词汇）；画布 3 演示 + 10 练习；解答 0 open | **单点的确界 = 它自己** · **空集的上确界 = 最小元、下确界 = 最大元** · **对偶原理**（"上界集的下确界就是上确界"，反向亦然）· **旗舰：广义并交的泛性质**（`⋃₀ F ⊆ C ⟺ F 每个成员含于 C`、对偶）· **如实记下"格运算没做成"**：定义 `a ⊔ b` 要**从 `Prop` 的 `∃` 取数据** ⇒ 撞 **G-58**，所以本单元只谈确界本身（谓词形态）—— 这恰好是教材"先讲确界、再讲格"的顺序 ✓ |
 | ㉙ 上界、下界与确界 | `lib/Order` +`UpperBound`/`LowerBound`/`IsSup`/`IsInf` + 展开、取用子与构造子（**定义用 `α → Prop` 写 ⇒ 不必 import lib.Set**）；画布 3 演示 + 10 练习；解答 0 open | **四个定义** · **确界唯一**（偏序里用反对称）· **上确界的用法**（是上界 · 比任何上界小）· **旗舰：在 `(Set α, ⊆)` 里 `⋃₀ F` 就是上确界、`⋂₀ F` 就是下确界**（把单元㉑ 的广义并交接进序论）· 上确界对包含单调 |

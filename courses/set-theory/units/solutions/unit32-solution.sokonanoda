@@ -1,0 +1,111 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+theorem demo_pointwiseLe_def (α β : Type) (r : β → β → Prop) (f g : α → β) :
+    PointwiseLe α β r f g ↔ ∀ (a : α), r (f a) (g a) :=
+  pointwiseLe_def α β r f g
+
+theorem demo_pointwiseLe_apply (α β : Type) (r : β → β → Prop) (f g : α → β)
+    (h : PointwiseLe α β r f g) (a : α) : r (f a) (g a) :=
+  pointwiseLe_apply α β r f g h a
+
+theorem demo_monotone_apply (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β)
+    (h : Monotone α β r s f) (a b : α) (hab : r a b) : s (f a) (f b) :=
+  monotone_apply α β r s f h a b hab
+
+theorem pointwiseLe_def_apply (α β : Type) (r : β → β → Prop) (f g : α → β) :
+    PointwiseLe α β r f g ↔ ∀ (a : α), r (f a) (g a) :=
+  pointwiseLe_def α β r f g
+
+theorem pointwiseLe_refl (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
+    (f : α → β) : PointwiseLe α β r f f :=
+  fun (a : α) => (fun (hu : ∀ (y : β), r y y) => hu (f a)) hrefl
+
+theorem pointwiseLe_trans (α β : Type) (r : β → β → Prop) (htrans : Transitive β r)
+    (f g h : α → β) (hfg : PointwiseLe α β r f g) (hgh : PointwiseLe α β r g h) :
+    PointwiseLe α β r f h :=
+  fun (a : α) =>
+    (fun (hu : ∀ (x : β) (y : β) (z : β), r x y → r y z → r x z) =>
+      hu (f a) (g a) (h a) (pointwiseLe_apply α β r f g hfg a)
+        (pointwiseLe_apply α β r g h hgh a)) htrans
+
+theorem pointwiseLe_const (α β : Type) (r : β → β → Prop) (c d : β) (a : α) :
+    PointwiseLe α β r (fun (_ : α) => c) (fun (_ : α) => d) ↔ r c d :=
+  Iff.intro (PointwiseLe α β r (fun (_ : α) => c) (fun (_ : α) => d)) (r c d)
+    (fun (h : PointwiseLe α β r (fun (_ : α) => c) (fun (_ : α) => d)) =>
+      pointwiseLe_apply α β r (fun (_ : α) => c) (fun (_ : α) => d) h a)
+    (fun (h : r c d) => fun (a : α) => h)
+
+theorem pointwiseLe_antisymm_apply (α β : Type) (r : β → β → Prop) (hanti : Antisymmetric β r)
+    (f g : α → β) (hfg : PointwiseLe α β r f g) (hgf : PointwiseLe α β r g f) (a : α) :
+    Eq.{1} β (f a) (g a) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (x : β) (y : β), r x y → r y x → Eq.{1} β x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    hu (f a) (g a) (pointwiseLe_apply α β r f g hfg a)
+      (pointwiseLe_apply α β r g f hgf a)) hanti
+
+theorem pointwiseLe_of_le (α β : Type) (r : β → β → Prop) (c : β)
+    (f : α → β) (h : ∀ (a : α), r (f a) c) :
+    PointwiseLe α β r f (fun (_ : α) => c) :=
+  fun (a : α) => h a
+
+theorem pointwiseLe_comp (α β γ : Type) (r : β → β → Prop) (s : γ → γ → Prop)
+    (k : β → γ) (hk : Monotone β γ r s k) (f g : α → β)
+    (hfg : PointwiseLe α β r f g) :
+    PointwiseLe α γ s (fun (a : α) => k (f a)) (fun (a : α) => k (g a)) :=
+  fun (a : α) =>
+    monotone_apply β γ r s k hk (f a) (g a) (pointwiseLe_apply α β r f g hfg a)
+
+theorem isSup_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
+    (hh : ∀ (a : α),
+      IsSup β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    IsSup (α → β) (PointwiseLe α β r) F h :=
+  isSup_intro (α → β) (PointwiseLe α β r) F h
+    (fun (f : α → β) => fun (hf : F f) => fun (a : α) =>
+      (fun (hu : ∀ (y : β), (∃ (f1 : α → β), F f1 ∧ Eq.{1} β (f1 a) y) → r y (h a)) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        hu (f a) (Exists.intro (α → β) (fun (f1 : α → β) => F f1 ∧ Eq.{1} β (f1 a) (f a))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          f (And.intro (F f) (Eq.{1} β (f a) (f a)) hf (Eq.refl.{1} β (f a)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (isSup_upper β r (fun (y : β) => ∃ (f1 : α → β), F f1 ∧ Eq.{1} β (f1 a) y) (h a) (hh a)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (g : α → β) =>
+      fun (hg : UpperBound (α → β) (PointwiseLe α β r) F g) =>
+        fun (a : α) =>
+          isSup_least β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a) (hh a)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            (g a)
+            (fun (y : β) =>
+              fun (hy : ∃ (f1 : α → β), F f1 ∧ Eq.{1} β (f1 a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                Exists.elim (α → β) (fun (f1 : α → β) => F f1 ∧ Eq.{1} β (f1 a) y) (r y (g a)) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                  (fun (f1 : α → β) (hf1 : F f1 ∧ Eq.{1} β (f1 a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                    rel_subst_right β (fun (p : β) (q : β) => r q (g a)) y (f1 a) y
+                      (And.right hf1)
+                      ((fun (hu : ∀ (f2 : α → β), F f2 → PointwiseLe α β r f2 g) =>
+                        pointwiseLe_apply α β r f1 g (hu f1 (And.left hf1)) a) hg))))
+
+theorem isInf_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
+    (hh : ∀ (a : α),
+      IsInf β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    IsInf (α → β) (PointwiseLe α β r) F h :=
+  isInf_intro (α → β) (PointwiseLe α β r) F h
+    (fun (f : α → β) => fun (hf : F f) => fun (a : α) =>
+      (fun (hu : ∀ (y : β), (∃ (f1 : α → β), F f1 ∧ Eq.{1} β (f1 a) y) → r (h a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        hu (f a) (Exists.intro (α → β) (fun (f1 : α → β) => F f1 ∧ Eq.{1} β (f1 a) (f a))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          f (And.intro (F f) (Eq.{1} β (f a) (f a)) hf (Eq.refl.{1} β (f a)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (isInf_lower β r (fun (y : β) => ∃ (f1 : α → β), F f1 ∧ Eq.{1} β (f1 a) y) (h a) (hh a)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (g : α → β) =>
+      fun (hg : LowerBound (α → β) (PointwiseLe α β r) F g) =>
+        fun (a : α) =>
+          isInf_greatest β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a) (hh a)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            (g a)
+            (fun (y : β) =>
+              fun (hy : ∃ (f1 : α → β), F f1 ∧ Eq.{1} β (f1 a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                Exists.elim (α → β) (fun (f1 : α → β) => F f1 ∧ Eq.{1} β (f1 a) y) (r (g a) y) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                  (fun (f1 : α → β) (hf1 : F f1 ∧ Eq.{1} β (f1 a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                    rel_subst_right β (fun (p : β) (q : β) => r (g a) q) (g a) (f1 a) y
+                      (And.right hf1)
+                      ((fun (hu : ∀ (f2 : α → β), F f2 → PointwiseLe α β r g f2) =>
+                        pointwiseLe_apply α β r g f1 (hu f1 (And.left hf1)) a) hg))))
+
+theorem pointwiseLe_of_pointwise_eq (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
+    (f g : α → β) (h : ∀ (a : α), Eq.{1} β (f a) (g a)) : PointwiseLe α β r f g :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) =>
+    rel_subst_right β (fun (p : β) (q : β) => r (f a) q) (f a) (f a) (g a) (h a)
+      ((fun (hu : ∀ (y : β), r y y) => hu (f a)) hrefl)

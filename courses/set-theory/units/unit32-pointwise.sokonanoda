@@ -1,0 +1,167 @@
+-- ==========================================================================
+-- unit32-pointwise.sokonanoda —— 卷 I 单元㉜ **函数空间上的逐点序**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§7.1 Orderings**
+-- 里"函数空间上的序"那一类练习；Halmos《Naive Set Theory》**§14 Order**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.11 章第五个单元）。
+--
+-- 本单元的"该学的定理"：**逐点序的三条基本律**（自反 · 传递 · 与常函数的关系）·
+--   **逐点相等给出逐点序** · **单调函数逐点作用于两边** ·
+--   **旗舰：逐点上确界就是"逐点取上确界"** —— 若**每个坐标**的上确界都存在，
+--   那么把它们拼起来的那个函数就是函数族在逐点序下的上确界（下确界同理）✓
+--
+-- ⚠ **本单元最重要的一条"读法"（也是选型理由）**：**逐点序一般不是偏序** ——
+--   反对称要"逐点相等 ⇒ 函数相等"，而那正是**函数外延**（`funext`），
+--   本语言**没有**它（见缺口 **G-77**）⇒ 本单元一律只证**逐点形态**的结论：
+--   反对称只做到 `∀ a, f a = g a`（练习 5）✓ —— 这不是偷懒，而是这条边界的**真实形状** ✓
+--
+-- **写法约定**：`PointwiseLe` / `IsSup` / `UpperBound` / `Monotone` 都是**定义头**
+--   ⇒ 用之前先 **λ 绑定**（G-73 形状 ①）；库里有取用子（`pointwiseLe_apply` /
+--   `monotone_apply` / `isSup_upper` / `isSup_least`）优先用 ✓
+--   **标识符里不要用撇号**（`f'` 解析不了，实测 —— 用 `f1` / `f2` 之类）✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Order`（逐点序与确界）· `lib.Set` · `lib.Rel`。
+--
+-- 依赖：单元㉙㉚㉛（确界、格、单调）—— 本单元把它们搬到**函数空间**上。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 32.1 三条库引理（逐点序的展开 · 逐点用法 · 单调的用法）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：逐点序的展开（"每个坐标都成立"）。
+theorem demo_pointwiseLe_def (α β : Type) (r : β → β → Prop) (f g : α → β) :
+    PointwiseLe α β r f g ↔ ∀ (a : α), r (f a) (g a) :=
+  pointwiseLe_def α β r f g
+
+-- 演示：把逐点序用在**一个具体坐标**上。
+theorem demo_pointwiseLe_apply (α β : Type) (r : β → β → Prop) (f g : α → β)
+    (h : PointwiseLe α β r f g) (a : α) : r (f a) (g a) :=
+  pointwiseLe_apply α β r f g h a
+
+-- 演示：把单调用在具体的两个点上（上一单元的取用子，本单元要用）。
+theorem demo_monotone_apply (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β)
+    (h : Monotone α β r s f) (a b : α) (hab : r a b) : s (f a) (f b) :=
+  monotone_apply α β r s f h a b hab
+
+-- ─────────────────────────────────────────────────────────────
+-- 32.2 逐点序的三条基本律
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：逐点序的展开（库里现成的）。
+-- soko:hint 思路：直接交出去。
+-- soko:hint 目标形态：`PointwiseLe α β r f g ↔ ∀ a, r (f a) (g a)`。
+-- soko:hint 关键件：`pointwiseLe_def`。
+theorem pointwiseLe_def_apply (α β : Type) (r : β → β → Prop) (f g : α → β) :
+    PointwiseLe α β r f g ↔ ∀ (a : α), r (f a) (g a) := by
+  sorry
+
+-- 练习 2（L 类）：**陪域自反 ⇒ 逐点序自反**。
+-- soko:hint 思路：每个坐标各自用一次自反（自反是定义头 ⇒ 先 λ 绑定再应用）。
+-- soko:hint 目标形态：`Reflexive β r → PointwiseLe α β r f f`。
+-- soko:hint 关键件：自反假设先 λ 绑定 ✓
+theorem pointwiseLe_refl (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
+    (f : α → β) : PointwiseLe α β r f f := by
+  sorry
+
+-- 练习 3（L 类）：**陪域传递 ⇒ 逐点序传递**。
+-- soko:hint 思路：在**同一个坐标**上把两条逐点序接起来（取用子拿坐标上的证据，再用传递性）。
+-- soko:hint 目标形态：`Transitive β r → PointwiseLe … f g → PointwiseLe … g h → PointwiseLe … f h`。
+-- soko:hint 关键件：`pointwiseLe_apply`（取用子）· 传递假设**先 λ 绑定再应用** ✓
+theorem pointwiseLe_trans (α β : Type) (r : β → β → Prop) (htrans : Transitive β r)
+    (f g h : α → β) (hfg : PointwiseLe α β r f g) (hgh : PointwiseLe α β r g h) :
+    PointwiseLe α β r f h := by
+  sorry
+
+-- 练习 4（L 类）：**常函数之间的逐点序就是值之间的序**。
+-- soko:hint 思路：→ 把逐点序用在给定的那个点上；← 那个值上的序对**每个**坐标都成立
+--   （因为常函数在每个坐标取值相同）。
+-- soko:hint 目标形态：`PointwiseLe α β r (fun _ => c) (fun _ => d) ↔ r c d`（**需要 `α` 的一个点** ——
+--   `α` 可能是空类型，那时左边空真 ✓ 所以要把见证当参数）。
+-- soko:hint 关键件：`pointwiseLe_apply` · `Iff.intro`（前导 Prop 实参写全）✓
+theorem pointwiseLe_const (α β : Type) (r : β → β → Prop) (c d : β) (a : α) :
+    PointwiseLe α β r (fun (_ : α) => c) (fun (_ : α) => d) ↔ r c d := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 32.3 反对称：**只做到逐点**（函数外延缺失 ⇒ G-77）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 5（L 类，**本单元的"必破"**）：陪域反对称 ⇒ **逐点**相等（不是函数相等）。
+-- soko:hint 思路：在每个坐标上用陪域的反对称（两条方向各来自一条逐点序）。
+-- soko:hint 目标形态：`Antisymmetric β r → PointwiseLe … f g → PointwiseLe … g f → ∀ a, f a = g a`。
+-- soko:hint 关键件：本单元取用子 · 反对称**先 λ 绑定再应用** ·
+--   等式的证明项**点名声明星**（G-73 形状 ③）。
+--   ⚠ **再往前一步就做不了了**："逐点相等 ⇒ `f = g`" 正是**函数外延**，本语言没有（**G-77**）✓
+theorem pointwiseLe_antisymm_apply (α β : Type) (r : β → β → Prop) (hanti : Antisymmetric β r)
+    (f g : α → β) (hfg : PointwiseLe α β r f g) (hgf : PointwiseLe α β r g f) (a : α) :
+    Eq.{1} β (f a) (g a) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 6（T 类）：**逐点相等给出逐点序**（要陪域自反）。
+-- soko:hint 思路：先把 `r (f a) (f a)` 用自反拿出来，再沿 `f a = g a` 把第二个坐标换掉。
+-- soko:hint 目标形态：`Reflexive β r → (∀ a, f a = g a) → PointwiseLe α β r f g`。
+-- soko:hint 关键件：`rel_subst_right`（关系取"`r (f a) ·`"、沿 `f a = g a` 搬）· 自反先 λ 绑定 ✓
+theorem pointwiseLe_of_pointwise_eq (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
+    (f g : α → β) (h : ∀ (a : α), Eq.{1} β (f a) (g a)) : PointwiseLe α β r f g := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 32.4 逐点序与单调
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（T 类）：**"每个坐标都在 `c` 下面"就是逐点序**（把 `∀` 形态摆正）。
+-- soko:hint 思路：假设本身就是结论（逐点序的展开形态就是一个 `∀`）。
+-- soko:hint 目标形态：`(∀ a, r (f a) c) → PointwiseLe α β r f (fun _ => c)`。
+-- soko:hint 关键件：直接写 λ ✓
+theorem pointwiseLe_of_le (α β : Type) (r : β → β → Prop) (c : β)
+    (f : α → β) (h : ∀ (a : α), r (f a) c) :
+    PointwiseLe α β r f (fun (_ : α) => c) := by
+  sorry
+
+-- 练习 8（L 类）：**单调函数逐点作用于两边**（逐点序被"映射后的序"保持）。
+-- soko:hint 思路：每个坐标上用一次单调性（陪域上的序由此从 `r` 变成 `s`）。
+-- soko:hint 目标形态：`Monotone β γ r s k → PointwiseLe α β r f g →
+--   PointwiseLe α γ s (fun a => k (f a)) (fun a => k (g a))`。
+-- soko:hint 关键件：`monotone_apply` 取用子 · `pointwiseLe_apply` 取用子 ✓
+theorem pointwiseLe_comp (α β γ : Type) (r : β → β → Prop) (s : γ → γ → Prop)
+    (k : β → γ) (hk : Monotone β γ r s k) (f g : α → β)
+    (hfg : PointwiseLe α β r f g) :
+    PointwiseLe α γ s (fun (a : α) => k (f a)) (fun (a : α) => k (g a)) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 32.5 旗舰：**逐点上确界 = 逐点取上确界**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（L 类，**本单元旗舰**）：**每个坐标的上确界都存在 ⇒ 拼起来的函数是函数族的上确界**。
+-- soko:hint 思路：①**上界**：给定族里一个函数 `f` 与前坐标 `a` —— `f a` 是坐标那一族的元素
+--   （见证取 `f` 自己，等式的见证是自反）⇒ 由该坐标的上界性得 `r (f a) (h a)`；
+--   ②**最小**：给定逐点上界 `g` 与坐标 `a`，坐标那一族的上界条件取 `g a`（对族里每个 `f`，
+--   逐点上界给出 `r (f a) (g a)`）⇒ 由该坐标的最小性得 `r (h a) (g a)`。
+-- soko:hint 目标形态：`(∀ a, IsSup β r (坐标族) (h a)) → IsSup (α → β) (PointwiseLe α β r) F h`。
+-- soko:hint 关键件：`isSup_intro` · `isSup_upper` / `isSup_least` 取用子 ·
+--   `Exists.intro` / `Exists.elim`（**前导实参写全**）· `rel_subst_right`（沿 `f a = y` 搬）·
+--   逐点上界假设先 λ 绑定（G-73 形状 ①）✓
+--   ⚠ **标识符不要带撇号**（`f'` 解析不了，用 `f1`）✓
+theorem isSup_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
+    (hh : ∀ (a : α),
+      IsSup β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    IsSup (α → β) (PointwiseLe α β r) F h := by
+  sorry
+
+-- 练习 10（L 类，**旗舰的对偶**）：**下确界同理**（逐点取）。
+-- soko:hint 思路：与练习 9 逐字对偶（上界↔下界、最小↔最大）。
+-- soko:hint 目标形态：`(∀ a, IsInf β r (坐标族) (h a)) → IsInf (α → β) (PointwiseLe α β r) F h`。
+-- soko:hint 关键件：`isInf_intro` · `isInf_lower` / `isInf_greatest` · `Exists.intro`/`Exists.elim` ·
+--   `rel_subst_right`（关系取"`r (g a) ·`"）✓
+theorem isInf_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
+    (hh : ∀ (a : α),
+      IsInf β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    IsInf (α → β) (PointwiseLe α β r) F h := by
+  sorry
