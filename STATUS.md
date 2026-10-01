@@ -28,7 +28,7 @@
   词法（否则 `α` 变 `Sym("α")`，变量 hover / `F12` / rename 守卫全坏）· 不着色；**hover 也补那一行**
   （`input_hint_at`，词法判据、与记法符号那条路不重复）。
 - **判据**：`--test extension` 40 ✓（双镜像 + TM 类重生）· `--test notation` 51 ✓（分类由表驱动 + 48 个
-  希腊字母当 binder + `⟨ha, hb⟩` 真判卷）· front 11 ✓ · LSP hover 30 ✓ · stub 55/55 ✓ · **课程门禁
+  希腊字母当 binder + `⟨ha, hb⟩` 真判卷）· front 11 ✓ · LSP hover 30 ✓ · stub 55/55 ✓ · **e2e 39/39**（真 VS Code）· **课程门禁
   43/377/99/0** ✓ · 缺口台账 ✓ · docs-lint ✓。
 - **记账**：新设计 `docs/design/notation-input.md`（调研/差距/决策 D1–D7/已知限制）· README/CHANGELOG/老师
   技能三处镜像同轮 ✓ · 第 528 轮归档 ✓。**已知限制**：TM 的 `variables` 类是 ASCII 的 ⇒ `α` 仍**不着色**。
