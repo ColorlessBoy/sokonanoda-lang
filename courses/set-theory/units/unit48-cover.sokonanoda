@@ -112,3 +112,23 @@ theorem sUnion_empty_of_all_empty (α : Type) (F : Set (Set α))
     ∀ (x : α), ¬ (x ∈ Set.sUnion α F) := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion` 是 def 头，这些位置补不出前导实参
   sorry
 
+-- 练习 9（L 类）：**交含在每个族成员里**（只要族非空就有这一条）。
+-- soko:hint 思路：先把展开引理 `Set.mem_sInter_iff` 的**绑定形态**取出来（`Iff.mp`），
+--   再把那个 `∀` 用在 `A` 与 `A ∈ F` 上 —— **分两步写**，别一次到位的应用。
+-- soko:hint 目标形态：`A ∈ F → ⋂F ⊆ A`。
+-- soko:hint 关键件：`Set.mem_sInter_iff`（**先 λ 绑定、再取用、最后应用** ✓ —— 这是本单元
+--   换出来的新惯用法：绑定形态要先"落地"成 λ，再继续应用 ✓）· `Iff.mp` ✓
+theorem sInter_subset_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
+    Set.sInter α F ⊆ A := by  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+  sorry
+
+-- 练习 10（L 类）：**交的反变单调**（族变大 ⇒ 交变小）。
+-- soko:hint 思路：两个方向都用"先 λ 绑定再应用"：先把 `⋂G` 的成员取成绑定形态，
+--   再用假设 `h` 把 `B ∈ F` 搬成 `B ∈ G`，最后用 `Iff.mpr` 折回 `⋂F` 的成员。
+-- soko:hint 目标形态：`F ⊆ G → ⋂G ⊆ ⋂F`。
+-- soko:hint 关键件：`Set.mem_sInter_iff`（**两个族各用一次**）· `Iff.mp` / `Iff.mpr` ·
+--   练习 9 的手法 ✓
+theorem sInter_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
+    Set.sInter α G ⊆ Set.sInter α F := by  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+  sorry
+

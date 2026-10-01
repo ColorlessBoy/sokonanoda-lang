@@ -170,3 +170,18 @@ bash courses/set-theory/tools/check-lib-closure.sh   # 把所有 lib 一次 impo
 2. **`False.elim` 把目标写全** ✓（不给宇宙实参）。
 
 > 连红 3 次就换招或降级 —— 第 576 轮就是照这条办的：单元㊼ 候选卡住 ⇒ **不硬推、记账、降级** ✓
+
+### 配套惯用法：**绑定形态先"落地"成 λ，再继续应用**（2026-10-01 第 579 轮验证 ✓）
+
+从 `↔`（两边是 `def` 头）里取**绑定形态**（`∀ …`）时，**一次到位的应用会判红** ✗：
+
+    -- ✗ 判红：Iff.mp hu hx A hA   （绑定形态没"落地"就直接继续应用）
+    -- ✓ 判绿：分两步
+    (fun (hv : ∀ (B : Set α), B ∈ F → x ∈ B) => hv A hA)
+      ((fun (hu : x ∈ ⋂F ↔ ∀ (B : Set α), B ∈ F → x ∈ B) => Iff.mp hu hx)
+        (Set.mem_sInter_iff α F x))
+
+**判据**：`courses/set-theory/units/solutions/unit48-solution.sokonanoda` 的
+`sInter_subset_of_mem` / `sInter_mono`（单元㊽ 练习 9/10 ✓）。
+**教训**：上一轮这两条被撤掉时记的是"`Iff.mp` 方向不可用" ✗ —— **其实是拼法问题** ✓；
+**撤掉之前先花一分钟试第二种拼法** ✓（本轮 3 行探针就试出来了 ✓）。

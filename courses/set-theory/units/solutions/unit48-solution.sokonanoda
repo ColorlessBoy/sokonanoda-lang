@@ -59,3 +59,23 @@ theorem sUnion_empty_of_all_empty (α : Type) (F : Set (Set α))
   fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion` 是 def 头，这些位置补不出前导实参
     Set.mem_sUnion_elim α F x False hx
       (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) => h A hA x hxA)
+
+theorem sInter_subset_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
+    Set.sInter α F ⊆ A :=  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+  fun (x : α) => fun (hx : x ∈ Set.sInter α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+    (fun (hv : ∀ (B : Set α), B ∈ F → x ∈ B) => hv A hA)
+      ((fun (hu : x ∈ Set.sInter α F ↔ ∀ (B : Set α), B ∈ F → x ∈ B) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+        Iff.mp hu hx) (Set.mem_sInter_iff α F x))
+
+theorem sInter_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
+    Set.sInter α G ⊆ Set.sInter α F :=  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+  fun (x : α) => fun (hx : x ∈ Set.sInter α G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+    (fun (hv : ∀ (B : Set α), B ∈ F → x ∈ B) => hv)
+      ((fun (hu : x ∈ Set.sInter α F ↔ ∀ (B : Set α), B ∈ F → x ∈ B) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+        Iff.mpr hu)
+        (Set.mem_sInter_iff α F x)
+        (fun (B : Set α) (hB : B ∈ F) =>
+          (fun (hw : ∀ (C : Set α), C ∈ G → x ∈ C) => hw B (h B hB))
+            ((fun (hu : x ∈ Set.sInter α G ↔ ∀ (C : Set α), C ∈ G → x ∈ C) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+              Iff.mp hu hx) (Set.mem_sInter_iff α G x))))
+
