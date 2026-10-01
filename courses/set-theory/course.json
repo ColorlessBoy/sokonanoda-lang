@@ -211,6 +211,31 @@
               "unit": 16
             }
           ]
+        },
+        {
+          "id": "I.7",
+          "title": "选择公理与 ZF 公理体系",
+          "prereqs": [
+            "I.2"
+          ],
+          "tags": [
+            "axiom-of-choice",
+            "choice-function",
+            "surjective",
+            "right-inverse",
+            "zf-axioms"
+          ],
+          "quota": {
+            "exercises": 10
+          },
+          "units": [
+            {
+              "file": "units/unit17-choice.sokonanoda",
+              "title": "单元⑰ 选择公理",
+              "title_en": "Unit 17 — The Axiom of Choice",
+              "unit": 17
+            }
+          ]
         }
       ]
     }

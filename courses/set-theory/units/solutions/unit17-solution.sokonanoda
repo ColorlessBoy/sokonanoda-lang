@@ -1,0 +1,112 @@
+import lib.Choice
+import lib.Set
+import lib.Fun
+
+theorem demo_nonempty_def (α : Type) : Nonempty α ↔ ∃ (a : α), a = a :=
+  nonempty_def α
+
+theorem demo_choice_spec (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) :
+    ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x) :=
+  choice_spec α β A B P h
+
+theorem demo_rightInverse_def (α β : Type) (g : β → α) (f : α → β) :
+    Function.RightInverse α β g f ↔ ∀ (y : β), f (g y) = y :=
+  Function.rightInverse_def α β g f
+
+theorem nonempty_intro (α : Type) (a : α) : Nonempty α :=
+  Exists.intro α (fun (a' : α) => a' = a') a (Eq.refl.{1} α a)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+
+theorem choice_spec_apply (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y)
+    (x : α) (hx : x ∈ A) :
+    ∃ (f : α → β), f x ∈ B ∧ P x (f x) :=
+  Exists.elim (α → β)
+    (fun (f : α → β) => ∀ (x' : α), x' ∈ A → f x' ∈ B ∧ P x' (f x'))
+    (∃ (f : α → β), f x ∈ B ∧ P x (f x))
+    (choice α β A B P h)
+    (fun (f : α → β) (hf : ∀ (x' : α), x' ∈ A → f x' ∈ B ∧ P x' (f x')) =>
+      Exists.intro (α → β) (fun (f' : α → β) => f' x ∈ B ∧ P x (f' x)) f (hf x hx))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+
+theorem choice_weaken (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) :
+    ∃ (f : α → β), ∀ (x : α), x ∈ A → P x (f x) :=
+  Exists.elim (α → β)
+    (fun (f : α → β) => ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
+    (∃ (f : α → β), ∀ (x : α), x ∈ A → P x (f x))
+    (choice α β A B P h)
+    (fun (f : α → β) (hf : ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)) =>
+      Exists.intro (α → β) (fun (f' : α → β) => ∀ (x : α), x ∈ A → P x (f' x)) f  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+        (fun (x : α) (hx : x ∈ A) =>
+          (fun (hfx : f x ∈ B ∧ P x (f x)) => And.right hfx) (hf x hx)))
+
+theorem choice_on_univ (α β : Type) (P : α → β → Prop)
+    (h : ∀ (x : α), ∃ (y : β), P x y) :
+    ∃ (f : α → β), ∀ (x : α), P x (f x) :=
+  Exists.elim (α → β)
+    (fun (f : α → β) => ∀ (x : α), x ∈ Set.univ α → f x ∈ Set.univ β ∧ P x (f x))
+    (∃ (f : α → β), ∀ (x : α), P x (f x))
+    (choice α β (Set.univ α) (Set.univ β) P
+      (fun (x : α) (hx : x ∈ Set.univ α) =>
+        Exists.elim β (fun (y : β) => P x y)
+          (∃ (y : β), y ∈ Set.univ β ∧ P x y) (h x)
+          (fun (y : β) (hy : P x y) =>
+            Exists.intro β (fun (y' : β) => y' ∈ Set.univ β ∧ P x y') y  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+              (And.intro (Set.mem_univ β y) hy))))
+    (fun (f : α → β)
+      (hf : ∀ (x : α), x ∈ Set.univ α → f x ∈ Set.univ β ∧ P x (f x)) =>
+      Exists.intro (α → β) (fun (f' : α → β) => ∀ (x : α), P x (f' x)) f  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+        (fun (x : α) =>
+          (fun (hfx : f x ∈ Set.univ β ∧ P x (f x)) => And.right hfx)
+            (hf x (Set.mem_univ α x))))
+
+theorem surjective_split (α β : Type) (f : α → β) (hf : Function.Surjective α β f) :
+    ∃ (g : β → α), Function.RightInverse α β g f :=
+  Exists.elim (β → α)
+    (fun (g : β → α) => ∀ (y : β), y ∈ Set.univ β → g y ∈ Set.univ α ∧ f (g y) = y)
+    (∃ (g : β → α), Function.RightInverse α β g f)
+    (choice β α (Set.univ β) (Set.univ α) (fun (y : β) (x : α) => f x = y)
+      (fun (y : β) (hy : y ∈ Set.univ β) =>
+        Exists.elim α (fun (x : α) => f x = y)
+          (∃ (x : α), x ∈ Set.univ α ∧ f x = y) (hf y)
+          (fun (x : α) (hx : f x = y) =>
+            Exists.intro α (fun (x' : α) => x' ∈ Set.univ α ∧ f x' = y) x  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+              (And.intro (Set.mem_univ α x) hx))))
+    (fun (g : β → α)
+      (hg : ∀ (y : β), y ∈ Set.univ β → g y ∈ Set.univ α ∧ f (g y) = y) =>
+      Exists.intro (β → α) (fun (g' : β → α) => Function.RightInverse α β g' f) g  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+        (fun (y : β) =>
+          (fun (hgy : g y ∈ Set.univ α ∧ f (g y) = y) => And.right hgy)
+            (hg y (Set.mem_univ β y))))
+
+theorem split_spec (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.RightInverse α β g f) (y : β) : f (g y) = y :=
+  (fun (hh : ∀ (y' : β), f (g y') = y') => hh y) h
+
+theorem split_raw (α β : Type) (f : α → β) (hf : Function.Surjective α β f) :
+    ∃ (g : β → α), ∀ (y : β), f (g y) = y :=
+  Exists.elim (β → α) (fun (g : β → α) => Function.RightInverse α β g f)
+    (∃ (g : β → α), ∀ (y : β), f (g y) = y)
+    (surjective_split α β f hf)
+    (fun (g : β → α) (hg : Function.RightInverse α β g f) =>
+      Exists.intro (β → α) (fun (g' : β → α) => ∀ (y : β), f (g' y) = y) g  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+        ((fun (hh : ∀ (y' : β), f (g y') = y') => hh) hg))
+
+theorem empty_family_hypothesis (α β : Type) (B : Set β) (P : α → β → Prop) :
+    ∀ (x : α), x ∈ ∅ → ∃ (y : β), y ∈ B ∧ P x y :=
+  fun (x : α) (hx : x ∈ ∅) => False.elim (Set.notMem_empty α x hx)
+
+theorem singleton_choice (α β : Type) (a : α) (b : β) :
+    ∃ (f : α → β), ∀ (x : α), x ∈ {a} → f x = b :=
+  Exists.intro (α → β) (fun (f : α → β) => ∀ (x : α), x ∈ {a} → f x = b)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+    (fun (_ : α) => b)
+    (fun (x : α) (hx : x ∈ {a}) => Eq.refl.{1} β b)
+
+theorem choice_weaken_spec (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y)
+    (x : α) (hx : x ∈ A) : ∃ (f : α → β), P x (f x) :=
+  Exists.elim (α → β) (fun (f : α → β) => ∀ (x' : α), x' ∈ A → P x' (f x'))
+    (∃ (f : α → β), P x (f x))
+    (choice_weaken α β A B P h)
+    (fun (f : α → β) (hf : ∀ (x' : α), x' ∈ A → P x' (f x')) =>
+      Exists.intro (α → β) (fun (f' : α → β) => P x (f' x)) f (hf x hx))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全

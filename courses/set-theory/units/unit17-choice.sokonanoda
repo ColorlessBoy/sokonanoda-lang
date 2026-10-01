@@ -1,0 +1,167 @@
+-- ==========================================================================
+-- unit17-choice.sokonanoda —— 卷 I 单元⑰ **选择公理**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§6.5 The Axiom of
+-- Choice**（+ §6.4 的"无限公理"一节）；Halmos《Naive Set Theory》**§15 The Axiom of
+-- Choice**（+ §16 Zorn's Lemma 的开头）。大纲：`set-theory-syllabus.md` §4.1（I.7 章）。
+--
+-- 本单元的"该学的定理"：**选择公理怎么说**（`choice` —— 它是**外挂的公理**，不是定理）·
+-- **它给什么**（一个**选择函数**）· **满射因此可以"裂开"**（存在右逆）·
+-- **右逆必是单射**（这一半**不需要** AC，是纯逻辑）。
+--
+-- ⚠ **本单元不含 Zorn 引理与良序定理**：它们的证明要**从 `∃` 里把函数取出来**用
+--   （`Classical.choose` 那一档），而 `∃` 在 `Prop` 里 ⇒ 撞 **G-58**（大消去不可用）
+--   ⇒ 已登记在台账里，等内核侧给"数据版消去"再补 ✓（**不改成弱命题糊过去**）。
+--   本单元只做**不需要取出数据**的那一半 —— 即"结论仍然是 `∃`/`Prop`"的那些定理 ✓
+--   （`choice` 自己的结论就是 `∃ f, …`，可以**继续往下用**，这正是本单元的技术要点）。
+--
+-- **写法约定（本单元特有）**：AC 的用法是"**应用一次公理，再把它的 `∃` 往下顺**"——
+--   所以本单元到处是 `Exists.elim`/`Exists.intro`，**前导实参写全**（G-73 形状 ②）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Choice`（公理）· `lib.Set` · `lib.Fun`。
+--
+-- 依赖：单元⑦（函数与单满双射）—— 本单元用它的 `Function.Surjective`。
+-- ==========================================================================
+import lib.Choice
+import lib.Set
+import lib.Fun
+
+-- ─────────────────────────────────────────────────────────────
+-- 17.1 公理长什么样
+--
+-- ⚠ 读法：`choice` **不是**定理，是**外挂的公理**（与 `Set.ext`、`regularity` 同档）。
+--   为什么必须外挂：假设里是 `∃`（在 `Prop` 里），结论里是一个**函数**（在 `Type` 里）
+--   —— 从 `Prop` 里取数据这一步，本语言不给（G-58）；选择公理就是那个"开关" ✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：`Nonempty` 的定义展开（"存在元素"）。
+theorem demo_nonempty_def (α : Type) : Nonempty α ↔ ∃ (a : α), a = a :=
+  nonempty_def α
+
+-- 演示：**选择公理的形状**（集合版，Isabelle `AC_imp_2` 逐字同款）。
+theorem demo_choice_spec (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) :
+    ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x) :=
+  choice_spec α β A B P h
+
+-- 演示：右逆的定义展开。
+theorem demo_rightInverse_def (α β : Type) (g : β → α) (f : α → β) :
+    Function.RightInverse α β g f ↔ ∀ (y : β), f (g y) = y :=
+  Function.rightInverse_def α β g f
+
+-- 练习 1（T 类）：**给出一个元素就给出 `Nonempty`**。
+-- soko:hint 思路：`Nonempty α` 展开就是 `∃ a, a = a` —— 把手里那个元素交出去，
+--   等式那一条用自反。
+-- soko:hint 目标形态：`Nonempty α`。
+-- soko:hint 关键件：`Exists.intro`（**前导实参写全**：论域 · 谓词 · 见证 · 见证满足谓词，
+--   G-73 形状 ②）· `Eq.refl`。
+theorem nonempty_intro (α : Type) (a : α) : Nonempty α := by
+  sorry
+
+-- 练习 2（T 类）：**选择函数在某一点上的值** —— 把 AC 的输出用在具体的一个 `x` 上。
+-- soko:hint 思路：先把选择公理应用一次拿到 `∃ f, ∀ x ∈ A, …`，再把这个 `∃` 拆开，
+--   最后把拆出来的函数用在 `x` 上（连同 `x ∈ A`）。
+-- soko:hint 目标形态：`∃ (f : α → β), f x ∈ B ∧ P x (f x)`。
+-- soko:hint 关键件：`choice`（直接应用）· `Exists.elim`（前导实参写全）· `Exists.intro`。
+theorem choice_spec_apply (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y)
+    (x : α) (hx : x ∈ A) :
+    ∃ (f : α → β), f x ∈ B ∧ P x (f x) := by
+  sorry
+
+-- 练习 3（L 类）：**弱化版 AC** —— 只留"满足关系"那一半，丢掉"落在 `B` 里"。
+-- soko:hint 思路：把 `choice` 的输出拆开，逐点取合取的**右支**，再重新打包成新的 `∃`。
+-- soko:hint 目标形态：`∃ (f : α → β), ∀ (x : α), x ∈ A → P x (f x)`。
+-- soko:hint 关键件：`choice` + `Exists.elim` + `And.right`（作用在逐点那一条上）+
+--   `Exists.intro`。
+theorem choice_weaken (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) :
+    ∃ (f : α → β), ∀ (x : α), x ∈ A → P x (f x) := by
+  sorry
+
+-- 练习 4（L 类）：**不用集合的 AC** —— `A`、`B` 都取全集，就得到最常用的那句话。
+-- soko:hint 思路：把练习 3 的 `A`、`B` 换成 `Set.univ`；假设那一条用 `Set.mem_univ`
+--   满足，结论里的 `∈ Set.univ` 用 `And.right` 丢掉。
+-- soko:hint 目标形态：`∃ (f : α → β), ∀ (x : α), P x (f x)`。
+-- soko:hint 关键件：`choice` + `Set.mem_univ`（"任何元素都属于全集"那一条）+
+--   `Exists.elim`/`Exists.intro`（前导实参写全）。
+theorem choice_on_univ (α β : Type) (P : α → β → Prop)
+    (h : ∀ (x : α), ∃ (y : β), P x y) :
+    ∃ (f : α → β), ∀ (x : α), P x (f x) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 17.2 本单元旗舰：**满射可以裂开**（用 AC 造右逆）
+--
+-- "裂开"= 给每个 `y` **指定**一个原像。注意结论仍然是 `∃ g, …`（**在 `Prop` 里**）
+-- —— 我们**没有**真把 `g` 取出来（那要 G-58），只是证明了"它存在" ✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 5（L 类，本单元旗舰）：**满射 ⇒ 存在右逆**。
+-- soko:hint 思路：对关系 `P y x := f x = y` 用选择公理（`A := Set.univ β`、
+--   `B := Set.univ α`）。"对每个 `y` 都存在原像"正好是满射的定义；
+--   把 AC 输出的 `∃ g, ∀ y, …∧ f (g y) = y` 里的"落在全集里"丢掉、
+--   把"逐点等式"留下，就是右逆。
+-- soko:hint 目标形态：`∃ (g : β → α), Function.RightInverse α β g f`。
+-- soko:hint 关键件：`choice`（**关系取 `fun (y : β) (x : α) => f x = y`**）·
+--   `Exists.elim`（**前后两个 `∃` 的谓词形状要对齐**——AC 的输出多两个 `∈ Set.univ`）·
+--   `Set.mem_univ` · `And.right` · `Exists.intro`。
+theorem surjective_split (α β : Type) (f : α → β) (hf : Function.Surjective α β f) :
+    ∃ (g : β → α), Function.RightInverse α β g f := by
+  sorry
+
+-- 练习 6（T 类）：**从右逆读出逐点等式**。
+-- soko:hint 思路：右逆是定义头类型，**先 `fun (hh : ∀ y', f (g y') = y') => …`
+--   把类型写出来**再应用（G-73 形状 ①）。
+-- soko:hint 目标形态：`f (g y) = y`。
+-- soko:hint 关键件：`Function.RightInverse` 的展开式（就是那条 `∀`）。
+theorem split_spec (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.RightInverse α β g f) (y : β) : f (g y) = y := by
+  sorry
+
+-- 练习 7（L 类）：**把旗舰的结论写成"裸"形式**（不借 `RightInverse` 这个名字）。
+-- soko:hint 思路：拆开 `∃ g, RightInverse g f`，对拆出来的 `g` 作见证，
+--   逐点那一条直接用练习 6。
+-- soko:hint 目标形态：`∃ (g : β → α), ∀ (y : β), f (g y) = y`。
+-- soko:hint 关键件：`Exists.elim`（谓词形状与 `RightInverse` 的定义对齐）·
+--   `Exists.intro` · 练习 6。
+theorem split_raw (α β : Type) (f : α → β) (hf : Function.Surjective α β f) :
+    ∃ (g : β → α), ∀ (y : β), f (g y) = y := by
+  sorry
+
+-- 练习 8（T 类）：从"弱化版 AC"的输出里取出某一点的**裸**性质。
+-- soko:hint 思路：与练习 2 同形，只是换成练习 3 的那条公理版本。
+-- soko:hint 目标形态：`∃ (f : α → β), P x (f x)`。
+-- soko:hint 关键件：练习 3 + `Exists.elim` + `Exists.intro`。
+theorem choice_weaken_spec (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y)
+    (x : α) (hx : x ∈ A) : ∃ (f : α → β), P x (f x) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 17.3 必破：**AC 不是处处都要用**
+--
+-- 选择公理之所以是"公理"，是因为**一般情形**取不出函数；但在**具体的小情形**里，
+-- 函数可以**直接写出来** —— 这时**不需要** AC ✓。下面两题就是这个对照。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（D 类）：**空族上的假设是真空的** —— `x ∈ ∅` 本身就不可能。
+-- soko:hint 思路：拿到 `x ∈ ∅` 这条假设，它与"空集没有元素"冲突。
+-- soko:hint 目标形态：`x ∈ ∅ → ∃ (y : β), y ∈ B ∧ P x y`。
+-- soko:hint 关键件：`Set.notMem_empty`（"没有任何元素属于空集"）+ `False.elim`
+--   （从矛盾里可以推出任何东西）。
+theorem empty_family_hypothesis (α β : Type) (B : Set β) (P : α → β → Prop) :
+    ∀ (x : α), x ∈ ∅ → ∃ (y : β), y ∈ B ∧ P x y := by
+  sorry
+
+-- 练习 10（D 类）：**单点族的选择函数可以直接写出来**（**不必**用 AC）。
+-- soko:hint 思路：那个函数就是"不管输入是什么，都返回 `b`"——是一个常量函数；
+--   逐点那一条用自反。
+-- soko:hint 目标形态：`∃ (f : α → β), ∀ (x : α), x ∈ {a} → f x = b`。
+-- soko:hint 关键件：`Exists.intro`（**见证写成一个 λ**：它**忽略**参数）· `Eq.refl`
+--   （注意返回值的类型是 `β`，`Eq.refl` 的论域写成 `β`）。
+theorem singleton_choice (α β : Type) (a : α) (b : β) :
+    ∃ (f : α → β), ∀ (x : α), x ∈ {a} → f x = b := by
+  sorry
