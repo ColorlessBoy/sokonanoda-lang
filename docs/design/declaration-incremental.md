@@ -287,8 +287,23 @@ S5/S6 才把"改中间一条"也变便宜（脏集取代后缀）。S4 与 §5.1
 （`cached_entry_for`，31 条信任 30 条）但**墙钟没动** —— 真因是 **`judge_infer` 的冷缓存
 （G-31）**，第二刀快是因为它被第一刀烘热了。**剩余杠杆**：**G-31**（判定前缀重跑 —— 改靠前时 `prefix_runs=38`、开档第一刀 `79`，
 每次仍**整份重编前缀**）· **S6 的 unknown 占比**（见上表下的假设）。
-⚠ **G-31 复核（2026-10-01）**：`EnvBuilder` 至今**没有**"从命令 k 起、拿现成 env 继续走"
-的入口（只有 `snapshot`/`hide_declars`/`restore_declars`/`with_env`/`finish(self)`）⇒ 复用
-前缀**环境**要新增该能力（跨 kernel/front）。**便宜变体**（`run_incremental` +
-`TrustPlan{before: 前缀命令数}`，只跳过**内核检查**；需 `TRUSTED_PREFIX` 的 `failures`）
-**已试过并回退、收益未量** ⇒ 动它先量 `kernel_checks` 与墙钟，**别只看 `passes`**。
+⚠ **G-31 落点（2026-10-01 侦察完毕 —— 能力**已经存在**，只差接线；本文件早先写"要新增
+跨 kernel/front 的能力"是**错的**）**：
+
+* **内核侧现成**：`EnvBuilder::with_env(|ef| …)` + `ef.infer_type_text_at_peeled(limit, term, n, scope, f)`
+  —— **在当前环境里**推一个项的类型文本、**不重编前缀** ✓（`elab.rs:2719` 的 `by` 路已在用，
+  计数 `INPLACE_BY_USED`）。
+* **前端侧现成**：`InplaceEnv { builder, known }`（`elab.rs:2568`）沿 elaboration 显式传参；
+  且已有"**优先就地、失败回落**"的助手 `infer_type_text(ctx, scope, operand, env)`（`elab.rs:1581`）。
+* **判据现成**：影子档 `SOKO_JUDGE_INPLACE_BY=shadow` 逐字节比"就地路 vs 慢路"的文本 ——
+  **必须**用：就地路的错误会被下游 `is_rereadable`/`keep_if_lossless` **吃掉**，`--json` 看不出来 ✗
+  （P1-a 实测：多剥一层导致就地全答不出，而 `--json` 竟然逐字节相同）。
+
+**⇒ G-31 = 把还走 `judge_infer`（合成 `#check`、整份重编前缀）的那几处改走 `infer_type_text`**
+（`elab.rs` 的 1546 / 4593 / 5293 / 5739 / 5781 …），每处照 P1-a 三条纪律：
+① 剥 `n` 层**不是** `n+1`（与慢路对称）；② `proofs = true`（否则 binder 内 `Eq` 会 panic）；
+③ **影子档逐字节对拍**。
+
+**片序**：**一次只改一处** → 跑影子档（`shadow_same` 全等、`shadow_diff = 0`）→ 量 `prefix_runs`
+与墙钟 → 全绿再推下一处。**不要一次全改**（有的问天生不适合就地 —— 如 `elab.rs:1582` 那处
+第二问吃的是**文本**，附二 B 表已注明）。
