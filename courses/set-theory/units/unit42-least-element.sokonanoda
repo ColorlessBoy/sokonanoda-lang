@@ -1,0 +1,165 @@
+-- ==========================================================================
+-- unit42-least-element.sokonanoda —— 卷 I 单元㊷ **良序集的「最小元」**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§7.1/§7.4**
+-- （well orderings）；Halmos《Naive Set Theory》**§17–18**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.6 章补强 —— 趁 **L-07 修复**（`lib/Order` 新增
+-- `HasLeast`「最小」元版）把良序那一侧补上：单元⑭ 讲的是**严格**侧的「极小元」，
+-- 本单元讲**非严格**侧的「最小元」✓）
+--
+-- 本单元的"该学的定理"：
+--   · **四件套**：取用子 · 展开 · 构造子 · 见证；
+--   · **旗舰一：最小元唯一**（在反对称下）—— `m ≤ m'` 与 `m' ≤ m` 逼出 `m = m'`；
+--   · **旗舰二：全序里"极小"就是"最小"**（把单元⑭ 的 `HasMin` 与 `HasLeast` 接起来）；
+--   · **反方向：严格序（非自反 + 传递）里"最小"就是"极小"**；
+--   · **良序集本身、单点族、二元族都有最小元** ✓
+--
+-- ⚠ **本单元的"读法"（也是 L-07 的教材化）**：`HasLeast α r P` 是
+--   "**比 `P` 里谁都小**"（`∀ y, P y → r m y`），`HasMin α r P` 是"**没有 `P` 里的点
+--   排在它前面**"（`∀ y, P y → ¬ (r y m)`）✓ 两者在**全序**里重合（练习 6），
+--   在**严格序**里也重合（练习 7）—— 但**不能乱配**：非严格序含自反，配"极小"版
+--   会直接矛盾（这正是第 566 轮修掉的库缺陷 **L-07**）✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Order` · `lib.Rel` · `lib.Set`。
+--
+-- 依赖：单元⑭（良序与极小元）· 单元⑬（序词汇）—— 本单元是它的"非严格"对偶面。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 42.1 三条库引理（良序的三个取用子：线性 · 全 · 反对称）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：良序 ⇒ 线性序。
+theorem demo_wellOrder_linear (α : Type) (r : Rel α α) (h : IsWellOrder α r) :
+    IsLinearOrder α r :=
+  wellOrder_linear α r h
+
+-- 演示：线性序 ⇒ 任意两点可比。
+theorem demo_linearOrder_total (α : Type) (r : Rel α α) (h : IsLinearOrder α r)
+    (a b : α) : r a b ∨ r b a :=
+  linearOrder_total α r h a b
+
+-- 演示：偏序 ⇒ 反对称（练习 5 的唯一性要用它）。
+theorem demo_partialOrder_antisymm (α : Type) (r : Rel α α) (h : IsPartialOrder α r)
+    (a b : α) (hab : r a b) (hba : r b a) : Eq.{1} α a b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  partialOrder_antisymm α r h a b hab hba
+
+-- ─────────────────────────────────────────────────────────────
+-- 42.2 最小元的四件套（取用 · 展开 · 构造 · 见证）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：**良序的取用子**（把良序用在具体的族上）。
+-- soko:hint 思路：良序展开形态是"线性序 ∧ 对每个非空族给最小元"的 `∀`，直接应用。
+-- soko:hint 目标形态：`IsWellOrder r → (∃ x, P x) → HasLeast r P`。
+-- soko:hint 关键件：`wellOrder_hasLeast`（**参数：论域 · 关系 · 假设 · 族**，最后吃非空见证）✓
+theorem wellOrder_hasLeast_apply (α : Type) (r : Rel α α) (h : IsWellOrder α r)
+    (P : α → Prop) (hne : ∃ (x : α), P x) : HasLeast α r P := by
+  sorry
+
+-- 练习 2（T 类）：**最小元的展开**（"比 `P` 里谁都小"）。
+-- soko:hint 思路：两边是同一个东西 ⇒ 交给库里的展开引理。
+-- soko:hint 目标形态：`HasLeast r P ↔ ∃ m, P m ∧ ∀ y, P y → r m y`。
+-- soko:hint 关键件：`hasLeast_def` ✓
+
+theorem hasLeast_def_apply (α : Type) (r : Rel α α) (P : α → Prop) :
+    HasLeast α r P ↔ ∃ (m : α), P m ∧ ∀ (y : α), P y → r m y := by
+  sorry
+
+-- 练习 3（T 类）：**最小元的构造子**（给出见证 + "比谁都小"）。
+-- soko:hint 思路：`HasLeast` 是**定义头**的 `∃` ⇒ 直接写存在构造子会反解失败（G-73 形状 ②）⇒
+--   用库里的智能构造子。
+-- soko:hint 目标形态：`P m → (∀ y, P y → r m y) → HasLeast r P`。
+-- soko:hint 关键件：`hasLeast_intro`（**参数：论域 · 关系 · 族 · 见证 · 在族里 · 比谁都小**）✓
+
+theorem hasLeast_intro_apply (α : Type) (r : Rel α α) (P : α → Prop) (m : α)
+    (hm : P m) (hl : ∀ (y : α), P y → r m y) : HasLeast α r P := by
+  sorry
+
+-- 练习 4（T 类）：**最小元确实存在**（只要族非空）。
+-- soko:hint 思路：把库里的存在性取用子直接交出去。
+-- soko:hint 目标形态：`HasLeast r P → ∃ m, P m`。
+-- soko:hint 关键件：`hasLeast_witness` ✓
+
+theorem hasLeast_witness_apply (α : Type) (r : Rel α α) (P : α → Prop)
+    (h : HasLeast α r P) : ∃ (m : α), P m := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 42.3 旗舰：**唯一性** 与 **两种"最小"的对译**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 5（L 类，**旗舰**）：**最小元唯一**（在反对称下）。
+-- soko:hint 思路：设 `m`、`m'` 都最小：`m` 的最小性用在 `m'` 上得 `r m m'`，
+--   `m'` 的最小性用在 `m` 上得 `r m' m` ⇒ 反对称给出 `m = m'`。
+-- soko:hint 目标形态：`Antisymmetric r → P m → (∀ y, P y → r m y) → P m' →
+--   (∀ y, P y → r m' y) → m = m'`。
+-- soko:hint 关键件：**反对称假设先 λ 绑定再应用**（它有两个点参数 + 两条前提，G-73 形状 ①）·
+--   等式的证明项**点名声明星**（G-73 形状 ③）✓
+
+theorem hasLeast_unique (α : Type) (r : Rel α α) (hanti : Antisymmetric α r)
+    (P : α → Prop) (m m1 : α) (hm : P m) (hl : ∀ (y : α), P y → r m y)
+    (hm1 : P m1) (hl1 : ∀ (y : α), P y → r m1 y) : Eq.{1} α m m1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+-- 练习 6（L 类，**旗舰**）：**全序里"极小"就是"最小"**（把单元⑭ 与单元㊷ 接起来）。
+-- soko:hint 思路：给定 `y ∈ P`，用**全序**把 `r m y ∨ r y m` 拆开：左支就是目标；
+--   右支与"`m` 极小"（`¬ r y m`）直接矛盾 ⇒ 从矛盾爆炸出目标。
+-- soko:hint 目标形态：`Total r → P m → (∀ y, P y → ¬ (r y m)) → P y → r m y`。
+-- soko:hint 关键件：`Or.elim`（**前导 Prop 实参写全**；动机位是**正命题** `r m y` ✓）·
+--   **矛盾那一支要用 `False.elim`**（显式给目标：`False.elim (r m y) hf`；**宇宙实参不要写** ——  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+--   实测写了会判红）· 全序假设先 λ 绑定再应用 ✓
+
+theorem hasLeast_of_hasMin_total (α : Type) (r : Rel α α) (htotal : Total α r)
+    (P : α → Prop) (m : α) (hm : P m) (hmin : ∀ (y : α), P y → ¬ (r y m))
+    (y : α) (hy : P y) : r m y := by
+  sorry
+-- 练习 7（L 类，**旗舰的对偶**）：**严格序里"最小"就是"极小"**。
+-- soko:hint 思路：给定 `y ∈ P` 与 `r y m`；由最小性得 `r m y`，传递性把它与 `r y m`
+--   接成 `r m m`，与非自反矛盾。
+-- soko:hint 目标形态：`Irreflexive r → Transitive r → P m → (∀ y, P y → r m y) →
+--   ∀ y, P y → ¬ (r y m)`。
+-- soko:hint 关键件：两条假设都**先 λ 绑定再应用**（传递性有三个点 + 两条前提）·
+--   `fun (hym : r y m) => …` 直接写（目标是 `¬` ⇒ 一个 λ 即可）✓
+
+theorem hasMin_of_hasLeast_strict (α : Type) (r : Rel α α)
+    (hirr : Irreflexive α r) (htrans : Transitive α r)
+    (P : α → Prop) (m : α) (hm : P m) (hl : ∀ (y : α), P y → r m y) :
+    ∀ (y : α), P y → ¬ (r y m) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 42.4 三个例子：**全集 · 单点族 · 二元族**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 8（L 类）：**非空良序集自己有最小元**（族取"恒真"）。
+-- soko:hint 思路：族 `fun _ => True` 非空（任给一个点即见证）⇒ 交给练习 1。
+-- soko:hint 目标形态：`IsWellOrder r → (a : α) → HasLeast r (fun _ => True)`。
+-- soko:hint 关键件：练习 1 · `Exists.intro`（**前导实参写全**）· `True.intro` ✓
+
+theorem wellOrder_univ_hasLeast (α : Type) (r : Rel α α) (h : IsWellOrder α r) (a : α) :
+    HasLeast α r (fun (_ : α) => True) := by
+  sorry
+-- 练习 9（L 类）：**单点族的最小元就是那个点**。
+-- soko:hint 思路：见证取 `a`；"比谁都小"那一支要证 `r a y`，而 `y` 与 `a` 相等
+--   ⇒ 沿等式把 `r a a` 搬过去，而 `r a a` 由**自反性**给出（良序是线性序 ⇒ 偏序 ⇒ 自反）。
+-- soko:hint 目标形态：`IsWellOrder r → (a : α) → HasLeast r (fun x => x = a)`。
+-- soko:hint 关键件：`hasLeast_intro` · `wellOrder_linear`（良序 ⇒ 线性序）·
+--   `And.left`（线性序 ⇒ 偏序，**直接当函数用**）· `partialOrder_refl` ·
+--   `rel_subst_right`（关系取 `fun u v => r a v`、等式取 `Eq.symm`）·
+--   **`Eq.symm`/`Eq.refl` 写全宇宙层级与论域** ✓
+
+theorem wellOrder_hasLeast_singleton (α : Type) (r : Rel α α) (h : IsWellOrder α r)
+    (a : α) : HasLeast α r (fun (x : α) => Eq.{1} α x a) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+-- 练习 10（T 类）：**二元族 `{a, b}` 有最小元**。
+-- soko:hint 思路：族 `fun x => x = a ∨ x = b` 非空（`a` 是见证）⇒ 交给练习 1。
+-- soko:hint 目标形态：`IsWellOrder r → (a b : α) → HasLeast r (fun x => x = a ∨ x = b)`。
+-- soko:hint 关键件：练习 1 · `Exists.intro`（前导实参写全）· `Or.inl`（前导 Prop 实参写全）✓
+
+theorem wellOrder_hasLeast_pair (α : Type) (r : Rel α α) (h : IsWellOrder α r) (a b : α) :
+    HasLeast α r (fun (x : α) => Eq.{1} α x a ∨ Eq.{1} α x b) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry

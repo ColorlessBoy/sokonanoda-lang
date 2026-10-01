@@ -192,10 +192,12 @@
             "successor",
             "well-founded",
             "extensionality",
-            "zero"
+            "zero",
+            "least-element",
+            "well-order"
           ],
           "quota": {
-            "exercises": 20
+            "exercises": 30
           },
           "units": [
             {
@@ -209,6 +211,12 @@
               "title": "单元⑯ 序数的序：外延性、反对称与零序数",
               "title_en": "Unit 16 — Extensionality, Asymmetry and the Zero Ordinal",
               "unit": 16
+            },
+            {
+              "file": "units/unit42-least-element.sokonanoda",
+              "title": "单元㊷ 良序集的「最小元」",
+              "title_en": "Unit 42 — Least Elements in Well-Orders",
+              "unit": 42
             }
           ]
         },
