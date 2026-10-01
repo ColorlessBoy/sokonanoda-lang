@@ -73,12 +73,15 @@ Q1/Q2、K1 线（按前缀复用）、**批次 N（66/66）**与 **E19 甲案（
 > 批次 N **66/66 全勾完** ✓ · **E19 甲案收口（`v0.79.0`）** ✓ ⇒ **下一条线 = IA-4 元参数引擎**
 > （用户 2026-10-01 拍板：把 E19 的窄版待定参数升级为真正元参数）；**设计已出**（下表 #1），
 > 开工前先收 **D1**（范围：先只做 M0 能力清单 / 只做范围 A / 连范围 B 设计）（新计划**写进本文件**，不许开新文件 ✓）。
+> **用户 2026-10-01 补充**：**两个大项目最终都要做到最终形态**（元参数引擎 + **集合论教材扩展**）
+> ⇒ 集合论线排进队列（#2，**M0 之后动工**；前置障碍已解除：E19 默认开 + 全课 `build` **214s → 47.8s**）。
 
 | # | 线 | 是什么 | 入口（先读） | 判据 |
 |---|---|---|---|---|
 | 1 | ⏭ **IA-4 元参数引擎**（设计 ✓ 2026-10-01，**未实现**） | 把 `solve_prefix` 的「贪心反解 + 同形兄弟复制」换成**一次求解内闭环的元变量引擎**（结构合一 + occurs + **sort/kind 检查** + 待定约束不动点 + 出口 zonk）；**严格档逐字节不动**。切片 **M0–M4**（M0 基线+能力清单 → M1 引擎内核+记法路径 → M2 一般路径 → M3 sort/kind+报错契约 → M4 默认开+发版），**一片一档一 commit** | **`docs/design/metavar-engine.md`**（§1 现状/差距 · §2 设计 · §3 缺口面 · §4 切片 · **§5 决策点 D1–D7**）| M0：`kernel-diff.sh --digest` 复现 §1.4 三 sha256 + 门禁 **43/377/99/0** + 结构计数逐项相等（`runs=886` / `passes=1343` / `by_calls=21,268`）· M1/M2：`SOKO_METAVAR=sibling` 态 `--non-course` **0 差异** · 每片收尾 `scripts/soko gate` exit 0 |
-| 2 | ✅ **E19 甲案 = `v0.79.0`**（**2026-10-01 收口** ✓） | 求解器**待定参数**：**默认开**、开关**保留为逃生门** `SOKO_NOTATION_METAVAR=0`/`off`（用户 2026-10-01 拍板）⇒ 治 G-48（`∅ ≈ {b}` 一类"零元糖操作数补不出论域"）| **`docs/design/e19-baseline.md`**（§1 指纹 · §6/§7 两刀 · **§9 默认开**）· `docs/design/e19-evaluation.md` | 默认态 G-48 **exit 0** / 逃生门 **exit 1** · 172 组 **2/172**（恰好 G-48）/ 逃生门 **0/172** · 课程门禁两态 **43/377/99/0** · front **771/0** · notation **49/0** ✓ |
-| 3 | ⏭ **（可选）课程侧撤掉 G-48 的旧 workaround** | 单元⑨ 练习 5 改回记法 `∅ ≈ {b}` + 去掉行内 `soko:notation-ok`（**课程内容**改动 ⇒ 会动课程计数） | `docs/design/notation-subset.md`（G-48 那条）· `docs/design/e19-baseline.md` §9「遗留」 | 课程门禁 **43 目标 · 0 判负** + `python3 scripts/notation-lint.py` 零旧写法 ✓ |
+| 2 | ⏭ **集合论教材线 S-A → S-B → S-C**（**M0 之后**动工；只排期 ✓） | **S-A** 重建卷 I 大纲 `docs/design/set-theory-syllabus.md`（对齐国际一流教材）+ 修**实测 5 处**悬空引用 · **S-B** 卷 I 深化（ZFC / 序数 / 基数算术 / 选择公理，课程单元仍须全绿）· **S-C** 卷 II 分析起步（Dedekind 分割 / 柯西序列 → 分析，先出设计 + scale gate）| **`docs/design/metavar-engine.md` §7**（S-A/B/C 三行的入口与判据）· `docs/design/teaching-project.md`（§4 卷 I 大纲 · §5 DoD · §8 P7 卷 II）· **S-B 先读** `docs/design/v077-kernel-deficiencies.md`（G-56/58/59/64）| S-A：`grep -rn "set-theory-syllabus" --include=*.md .` 每处都指向**存在**的文件 + `docs-lint` ✓ + 门禁 **43/377/99/0**（不动课程）· S-B：**先探针**（内核墙要实测）+ 门禁 **12 单元 failed=0** + `check.py` G1–G6 + `notation-lint` ✓ · S-C：先出卷 II 设计 + scale gate |
+| 3 | ✅ **E19 甲案 = `v0.79.0`**（**2026-10-01 收口** ✓） | 求解器**待定参数**：**默认开**、开关**保留为逃生门** `SOKO_NOTATION_METAVAR=0`/`off`（用户 2026-10-01 拍板）⇒ 治 G-48（`∅ ≈ {b}` 一类"零元糖操作数补不出论域"）| **`docs/design/e19-baseline.md`**（§1 指纹 · §6/§7 两刀 · **§9 默认开**）· `docs/design/e19-evaluation.md` | 默认态 G-48 **exit 0** / 逃生门 **exit 1** · 172 组 **2/172**（恰好 G-48）/ 逃生门 **0/172** · 课程门禁两态 **43/377/99/0** · front **771/0** · notation **49/0** ✓ |
+| 4 | ⏭ **（可选）课程侧撤掉 G-48 的旧 workaround** | 单元⑨ 练习 5 改回记法 `∅ ≈ {b}` + 去掉行内 `soko:notation-ok`（**课程内容**改动 ⇒ 会动课程计数） | `docs/design/notation-subset.md`（G-48 那条）· `docs/design/e19-baseline.md` §9「遗留」 | 课程门禁 **43 目标 · 0 判负** + `python3 scripts/notation-lint.py` 零旧写法 ✓ |
 
 ## 1. 读数（同机同口径：release · 冷缓存 · `SOKONANODA_BUILD_JOBS=1` · 全课程 `build --json courses/set-theory`）
 

@@ -268,5 +268,22 @@ cargo test -p sokonanoda-front --lib && cargo test -p sokonanoda-cli --test nota
 python3 scripts/gap.py check && python3 scripts/docs-lint.py && python3 scripts/status-lint.py
 ```
 
+## 7. 后续计划（**IA-4 之后**：集合论教材线；队列权威 = `docs/ONBOARDING.md` §0.2）
+
+> 用户 2026-10-01 补充：**两个大项目最终都要做到最终形态**（元参数引擎 + 集合论教材扩展）。
+> 集合论线的**前置障碍已解除**（记法求解 E19 `v0.79.0` 默认开 · 性能 P1-b/§3.C 全课 `build`
+> **214s → 47.8s**）⇒ 排期 = **M0 之后**动工；**只排期、不写实现** ✓。
+
+| 片 | 是什么 | 入口（先读） | 判据 |
+|---|---|---|---|
+| **S-A** | **重建卷 I 大纲** `docs/design/set-theory-syllabus.md`（对齐国际一流教材；现行草案口径 = Tao《Analysis I》§3.1–3.6 + epilogue，见 `teaching-project.md` §4.2，可补 Halmos/Jech/Kunen 章节对应表）+ **修全部悬空引用**（**实测 5 处**，不止点名的 2 处：`REQUIREMENTS.md:36` · `teaching-project.md:209` · `course-stdlib.md:10` · `courses/set-theory/README.md:4` · `courses/set-theory/AGENTS.md:80`）+ 新文件进预算表与过期登记 | `teaching-project.md` §4（卷 I 大纲 · 决策点 D-2/D-6）· `course-stdlib.md`（三层分界硬规则 10）| `grep -rn "set-theory-syllabus" --include=*.md .` 每处都指向**存在**的文件 · `docs-lint` ✓（登记 + 层预算）· 课程门禁 **43/377/99/0**（不动课程内容）|
+| **S-B** | **卷 I 深化**：公理化集合论（ZFC）· 序数 · 基数算术 · 选择公理（含等价形式）—— 深化后课程单元**仍须全绿**（现 12 单元 `failed=0`）| **先读** `v077-kernel-deficiencies.md`（G-56/58/59/64 = 良基递归 / 大消去 / 递归子宇宙，两条 `blocker`）· `teaching-project.md` §5（每单元 DoD）· 复现件 `docs/gaps/repro/G5{6,8,9}*` `G64-*` | **先探针**（撞不撞内核墙要实测，不猜）· 课程门禁 **12 单元 failed=0** + `check.py` G1–G6 · `notation-lint` 零旧写法 · 撞墙条目**记台账**、**不改内核判定**（用户 2026-09-28 口径）|
+| **S-C** | **卷 II 分析起步**：实数构造（Dedekind 分割 / 柯西序列）→ 分析学 | `teaching-project.md` §8 **P7「卷 II 及以后（scale gate 之后）—— 另立设计」** · §1（analysis 项目「大」在哪）· 本文 §2.1 **范围 B**（卷 II 大量依赖隐式实参推断与期望类型传播）| **先出卷 II 设计**（另立文档）+ **scale gate**（规模/性能读数）⇒ 再动课程；判据沿用 `check.py` G1–G6 |
+
+**顺序理由**：S-A 是 B/C 的**判据输入**（没有大纲就说不出「深化到哪算完」）⇒ 先做；S-B 在深化卷 I 的
+同时把**内核墙**探明（G-56/58/59/64 的结论直接决定卷 II 的可行边界）⇒ 次之；S-C 要**新设计 + scale gate**，
+且很可能依赖 IA-4 的**范围 B** ⇒ 最后。**与 IA-4 的关系**：M0 收口时按能力清单复议 D1（继续 M1–M4 /
+转集合论线）；两条线**不并行**动同一批文件（`AGENTS.md` §并行纪律第 2 条：同一模块同一时间只允许一个写者）✓。
+
 **记账**：本设计 + 排期 ⇒ `docs/ONBOARDING.md` **§0.2**（队列唯一入口）+ `STATUS.md`（第 524 轮）；
 实现开始后每片的 as-built **追加到本文**（不另开文件）。
