@@ -84,3 +84,15 @@ theorem sInter_union_subset_left (α : Type) (F G : Set (Set α)) :
         ((fun (hu : x ∈ Set.sInter α (F ∪ G) ↔  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
             ∀ (C : Set α), C ∈ F ∪ G → x ∈ C) =>
           Iff.mp hu h) (Set.mem_sInter_iff α (F ∪ G) x)))
+
+theorem sInter_mono_apply (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x : α)
+    (hx : x ∈ Set.sInter α G) : ∀ (B : Set α), B ∈ F → x ∈ B :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+  fun (B : Set α) => fun (hB : B ∈ F) =>
+    (fun (hv : ∀ (C : Set α), C ∈ G → x ∈ C) => hv B (h B hB))
+      ((fun (hu : x ∈ Set.sInter α G ↔ ∀ (C : Set α), C ∈ G → x ∈ C) =>  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+        Iff.mp hu hx) (Set.mem_sInter_iff α G x))
+
+theorem sInter_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
+    Set.subset (Set.sInter α G) (Set.sInter α F) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+  fun (x : α) => fun (hx : x ∈ Set.sInter α G) =>
+    Set.mem_sInter_intro α F x (sInter_mono_apply α F G h x hx)

@@ -129,3 +129,22 @@ theorem sInter_subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α)
 theorem sInter_union_subset_left (α : Type) (F G : Set (Set α)) :
     Set.subset (Set.sInter α (F ∪ G)) (Set.sInter α F) := by  -- soko:notation-ok: 同上：`⊆` 在此补不出前导类型参数
   sorry
+
+-- 练习 9（L 类）：**把 `⋂G` 的成员取成"每个成员都含 x"**（逐点形态 —— 把难点单独拆出来）。
+-- soko:hint 思路：先把展开引理的**绑定形态落地成 λ**，再用它作用在 `B` 与 `B ∈ G` 上；
+--   而 `B ∈ G` 由假设 `F ⊆ G` 从 `B ∈ F` 得到。
+-- soko:hint 目标形态：`F ⊆ G → x ∈ ⋂G → ∀ B, B ∈ F → x ∈ B`。
+-- soko:hint 关键件：`Set.mem_sInter_iff`（**绑定形态先落地** ✓）· `Iff.mp` · 包含假设 `h` ✓
+theorem sInter_mono_apply (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x : α)
+    (hx : x ∈ Set.sInter α G) : ∀ (B : Set α), B ∈ F → x ∈ B := by  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+  sorry
+
+-- 练习 10（L 类，**收尾**）：**交的反变单调**（族变大 ⇒ 交变小）。
+-- soko:hint 思路：直接把练习 9 的结果喂给库里的引入子。
+-- soko:hint 目标形态：`F ⊆ G → ⋂G ⊆ ⋂F`。
+-- soko:hint 关键件：`Set.mem_sInter_intro`（**库刚补的那条** ✓）+ 练习 9 ✓
+--   ⚠ `⊆` 记法在此补不出前导类型参数 ✗ ⇒ 解答写 `Set.subset α …` 并加行内标记 ✓  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+theorem sInter_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
+    Set.subset (Set.sInter α G) (Set.sInter α F) := by  -- soko:notation-ok: `⊆` 在此补不出前导类型参数，按内核提示改点名
+  sorry
+
