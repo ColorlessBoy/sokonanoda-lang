@@ -190,10 +190,12 @@
             "ordinal",
             "transitive-set",
             "successor",
-            "well-founded"
+            "well-founded",
+            "extensionality",
+            "zero"
           ],
           "quota": {
-            "exercises": 10
+            "exercises": 20
           },
           "units": [
             {
@@ -201,6 +203,12 @@
               "title": "单元⑮ 传递集与序数",
               "title_en": "Unit 15 — Transitive Sets and Ordinals",
               "unit": 15
+            },
+            {
+              "file": "units/unit16-ordering.sokonanoda",
+              "title": "单元⑯ 序数的序：外延性、反对称与零序数",
+              "title_en": "Unit 16 — Extensionality, Asymmetry and the Zero Ordinal",
+              "unit": 16
             }
           ]
         }

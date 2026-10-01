@@ -1,0 +1,156 @@
+-- ==========================================================================
+-- unit16-ordering.sokonanoda —— 卷 I 单元⑯ **序数的序：外延性、反对称与零序数**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§7.4 Epsilon-Images
+-- + §7.6 后半**；Halmos《Naive Set Theory》**§20 Sets of Ordinal Numbers** 的开头。
+-- 大纲：`docs/design/set-theory-syllabus.md` §4.1（I.6 章第二个单元）。
+--
+-- 本单元的"该学的定理"：**外延性在谓词层长什么样**（`Extensional`，它的 `Set α`
+-- 实例就是单元④ 的 `Set.ext`）；**良基关系是反对称的**（没有 2-循环）；**序数不属于自己**；
+-- 以及**零序数**（"空集"在内化读法里的样子）的三条性质。
+--
+-- ⚠ **本单元有意不含"三歧性"**（"任意两个序数可比或相等"）：那是 §20 的核心，但它
+--   **不是直觉主义可证的** —— 证明要判"这个元素与那个元素可比吗"并消掉双重否定，
+--   即需要**排中律**（Lean 4 的 `Classical.em` / `Decidable`）；本语言两者都没有
+--   ⇒ 已登记为台账 **G-74**，等语言侧给出古典逻辑再补这一课 ✓（**不改成弱命题糊过去**）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 两样**：`lib.Ordinal`（序数）与 `lib.ZF`（外延性）。
+--
+-- 依赖：单元⑮（传递集与序数）—— 本单元用它的三条取用子。
+-- ==========================================================================
+import lib.Ordinal
+import lib.ZF
+
+-- ─────────────────────────────────────────────────────────────
+-- 16.1 外延性：**元素相同就是相等**（内化读法下的"外延公理"）
+--
+-- ⚠ 注意它是**假设**而不是公理：任意二元关系 `E` 当然可以不是外延的。
+--   `Set α` 那一侧的对应物是单元④ 用的**公理** `Set.ext` —— 见练习 2 的对账。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：外延性的定义展开。
+theorem demo_extensional_def (α : Type) (E : α → α → Prop) :
+    Extensional α E ↔ ∀ (x y : α), (∀ (z : α), E z x ↔ E z y) → x = y :=
+  extensional_def α E
+
+-- 演示：零序数的定义展开。
+theorem demo_isZero_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsZero α E x ↔ IsOrdinal α E x ∧ ∀ (y : α), ¬ (E y x) :=
+  isZero_def α E x
+
+-- 演示：零序数是序数（取用子）。
+theorem demo_zero_isOrdinal (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsZero α E x) : IsOrdinal α E x :=
+  zero_isOrdinal α E x h
+
+-- 练习 1（T 类）：**外延性的用法** —— 两条"元素相同"给出相等。
+-- soko:hint 思路：库里有取用子，参数一次给全。
+-- soko:hint 目标形态：`x = y`。
+-- soko:hint 关键件：`extensional_apply`（参数表：论域 · 关系 · 外延性证据 · 两个元素 ·
+--   元素相同的证明）。
+theorem extensional_eq (α : Type) (E : α → α → Prop) (he : Extensional α E)
+    (x y : α) (h : ∀ (z : α), E z x ↔ E z y) : x = y := by
+  sorry
+
+-- 练习 2（L 类，本单元旗舰）：**`⊆` 是集合层的外延关系** ——
+-- 也就是说：单元④ 的公理 `Set.ext` 正好是 `Extensional` 在 `Set α` 上的实例。
+-- soko:hint 思路：要证 `∀ A B, (∀ C, C ⊆ A ↔ C ⊆ B) → A = B`。把那条"对每个 C 都成立"
+--   分别用在 `C := A` 与 `C := B` 上，得到两条包含，再交给 `Set.ext`。
+-- soko:hint 目标形态：`Extensional (Set α) (fun (A B : Set α) => A ⊆ B)`。
+-- soko:hint 关键件：`Iff.mp (h A) : A ⊆ A → A ⊆ B`（喂给它自反那一条）·
+--   `Iff.mpr (h B) : B ⊆ B → B ⊆ A` · 最后 `Set.ext` 逐元素拼 `Iff`。
+theorem subset_extensional (α : Type) :
+    Extensional (Set α) (fun (A B : Set α) => A ⊆ B) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 16.2 良基关系是**反对称**的：没有 2-循环
+--
+-- 证明的骨架是"极小元作用在两个元素上"：取谓词 `E a · ∨ E b ·`（把 a、b 一起放进去），
+-- 它的极小元 `m` 无论是被 `a` 还是被 `b` 见证，都会立刻撞上自己的极小性 ✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 3（L 类）：**良基 ⇒ 反对称**（`E a b` 与 `E b a` 不能同时成立）。
+-- soko:hint 思路：谓词取 `fun z => E a z ∨ E b z`（非空：`b` 在里，因为 `E a b`）。
+--   极小元 `m` 的极小性是"`P` 里的元素都不排在 `m` 前面"；而 `a` 与 `b` 都在 `P` 里
+--   （`E a b` / `E b a` 各证一条），于是 `E a m`、`E b m` 都被否掉 —— 但 `P m` 本身
+--   就是这两条之一，直接冲突。
+-- soko:hint 目标形态：`E a b → E b a → False`。
+-- soko:hint 关键件：`wellFounded_hasMin` + `hasMin_elim` + `Or.elim`（**前导 Prop 实参写全**，
+--   G-73 形状 ②）+ `Exists.elim`（同样写全）· 析取的两支各用一次极小性，
+--   注意 `Or.inl`/`Or.inr` 的方向别接反。
+theorem asymmetric_of_wellFounded (α : Type) (E : α → α → Prop)
+    (hwf : IsWellFounded α E) (a b : α) : E a b → E b a → False := by
+  sorry
+
+-- 练习 4（L 类）：**序数不属于自己**。
+-- soko:hint 思路：反证。谓词取 `fun z => E x z`（"排在 x 前面"），它非空（`x` 自己在里，
+--   这正是假设）。极小元 `m` 的极小性说"`E x ·` 里的元素都不排在 `m` 前面"——
+--   把它用在 `x` 上，得到 `¬ E x m`；而极小元自己就满足 `E x m`，冲突。
+-- soko:hint 目标形态：`¬ (E x x)`。
+-- soko:hint 关键件：`ordinal_wellFounded`（序数 ⇒ 环境良基）· `wellFounded_hasMin` ·
+--   `hasMin_elim` · 极小性那一条要先 `fun (hall : …) => …` 把类型写出来再应用（G-73 形状 ①）。
+theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : ¬ (E x x) := by
+  sorry
+
+-- 练习 5（T 类）：**序数之间没有 2-循环**（练习 3 用在序数上）。
+-- soko:hint 思路：序数给出环境的良基性，剩下就是练习 3。
+-- soko:hint 目标形态：`E x y → E y x → False`。
+-- soko:hint 关键件：`ordinal_wellFounded` 的输出正好是练习 3 的第三个参数。
+theorem ordinal_asymmetric (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsOrdinal α E x) : E x y → E y x → False := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 16.3 零序数（"空集"）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（T 类）：零序数是序数。
+-- soko:hint 思路：`IsZero` 是合取，取左支。
+-- soko:hint 目标形态：`IsOrdinal α E x`。
+-- soko:hint 关键件：`zero_isOrdinal`。
+theorem zero_isOrdinal_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsZero α E x) : IsOrdinal α E x := by
+  sorry
+
+-- 练习 7（T 类）：零序数**没有元素**。
+-- soko:hint 思路：合取的右支，把要问的那个元素代进去。
+-- soko:hint 目标形态：`∀ y, ¬ (E y x)`。
+-- soko:hint 关键件：`zero_no_elem`（最后一个参数是"哪个元素"）。
+theorem zero_no_elem_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsZero α E x) (y : α) : ¬ (E y x) := by
+  sorry
+
+-- 练习 8（D 类）：**零序数唯一** —— 两个"没有元素的序数"必相等。
+-- soko:hint 思路：用**外延性**：两边都没有元素，所以"元素相同"是真空的（各自由 `False` 消去）。
+-- soko:hint 目标形态：`IsZero α E x → IsZero α E y → x = y`。
+-- soko:hint 关键件：`extensional_apply` + `zero_no_elem` + `False.elim`
+--   （`Iff.intro` 的**前导 Prop 实参要写全**，G-73 形状 ②）。
+theorem zero_unique (α : Type) (E : α → α → Prop) (he : Extensional α E)
+    (x y : α) (hx : IsZero α E x) (hy : IsZero α E y) : x = y := by
+  sorry
+
+-- 练习 9（L 类）：零序数**不属于自己**（练习 7 的直接实例）。
+-- soko:hint 思路：把练习 7 里的"哪个元素"取成 `x` 自己。
+-- soko:hint 目标形态：`¬ (E x x)`。
+-- soko:hint 关键件：`zero_no_elem` 的参数顺序（先证据、后元素）。
+theorem zero_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsZero α E x) : ¬ (E x x) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 16.4 序数里的 `∈` 可以接任意长的链
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 10（L 类）：**传递性的两次使用** —— `a ∈ x`、`b ∈ a`、`c ∈ b` 则 `c ∈ x`。
+-- soko:hint 思路：先把 `b` 送到 `x` 里（用 `a ∈ x` 与 `b ∈ a`），再把 `c` 送到 `x` 里
+--   （用刚得到的 `b ∈ x` 与 `c ∈ b`）。
+-- soko:hint 目标形态：`E a x → E b a → E c b → E c x`。
+-- soko:hint 关键件：`ordinal_isTransitive` 用两次（参数表：论域 · 关系 · 元素 · 序数证据 ·
+--   第一个元素 · 它在里面 · 第二个元素 · 它也在里面）。
+theorem ordinal_elem_chain (α : Type) (E : α → α → Prop) (x a b c : α)
+    (hx : IsOrdinal α E x) : E a x → E b a → E c b → E c x := by
+  sorry

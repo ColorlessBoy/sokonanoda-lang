@@ -91,6 +91,22 @@ theorem isUnionOf_def (α : Type) (E : α → α → Prop) (x : α) (F : α → 
   Iff.intro (fun (h : IsUnionOf α E x F) => h)
     (fun (h : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) => h)
 
+-- ── 外延性（**谓词层**：元素相同 ⟺ 相等）────────────────────────────────
+-- 读法：这就是 ZF 的**外延公理**。注意它在课程里是**假设**（不是公理）——
+-- 任意二元关系 `E` 当然可以不是外延的；`Set α` 那一侧的对应物是 `lib/Set` 的
+-- **公理** `Set.ext` ✓
+def Extensional (α : Type) (E : α → α → Prop) : Prop :=
+  ∀ (x y : α), (∀ (z : α), E z x ↔ E z y) → x = y
+
+theorem extensional_def (α : Type) (E : α → α → Prop) :
+    Extensional α E ↔ ∀ (x y : α), (∀ (z : α), E z x ↔ E z y) → x = y :=
+  Iff.intro (fun (h : Extensional α E) => h)
+    (fun (h : ∀ (x y : α), (∀ (z : α), E z x ↔ E z y) → x = y) => h)
+
+theorem extensional_apply (α : Type) (E : α → α → Prop) (h : Extensional α E)
+    (x y : α) : (∀ (z : α), E z x ↔ E z y) → x = y :=
+  (fun (he : ∀ (x' y' : α), (∀ (z : α), E z x' ↔ E z y') → x' = y') => he x y) h
+
 -- ── 本版不做（记在这里，免得后来者重复踩）──────────────────────────────────
 -- · **由正则性推「无 ∈-循环」/「无无穷下降链」**：要 `∈` 上的**良基递归**
 --   ⇒ 撞 **G-56**（`Acc` 立不起来）⇒ L3/后续；

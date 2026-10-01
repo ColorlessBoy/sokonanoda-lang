@@ -1,0 +1,113 @@
+-- unit16 解答钥匙（agent 专用）。
+-- 写法：**项风格**（不用 `by`），见 courses/set-theory/AGENTS.md「解答写法」。
+-- 这份文件同时是**提示**：老师据此把骨架翻成 tactic 讲给学习者。
+--
+-- ⚠ 本单元同样绕开本语言的两条 elaborator 边界（台账 G-72 / G-73）：
+--   ① 定义头类型的假设**不能直接当函数应用**（要 `fun (hx : <展开形态>) => hx …` 包一层）；
+--   ② `Iff.intro`/`Or.elim`/`Exists.elim` 的前导 Prop 实参在期望类型是定义头时**必须写全**。
+--   两条都是**语言侧待修**的；hint 只讲数学那一半。
+import lib.Ordinal
+import lib.ZF
+
+-- ── 演示（画布上已写好，逐字保留）─────────────────────────────────────────
+
+theorem demo_extensional_def (α : Type) (E : α → α → Prop) :
+    Extensional α E ↔ ∀ (x y : α), (∀ (z : α), E z x ↔ E z y) → x = y :=
+  extensional_def α E
+
+theorem demo_isZero_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsZero α E x ↔ IsOrdinal α E x ∧ ∀ (y : α), ¬ (E y x) :=
+  isZero_def α E x
+
+theorem demo_zero_isOrdinal (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsZero α E x) : IsOrdinal α E x :=
+  zero_isOrdinal α E x h
+
+-- ── 练习 1（T 类）：外延性的用法 ──────────────────────────────────────────
+theorem extensional_eq (α : Type) (E : α → α → Prop) (he : Extensional α E)
+    (x y : α) (h : ∀ (z : α), E z x ↔ E z y) : x = y :=
+  extensional_apply α E he x y h
+
+-- ── 练习 2（L 类，旗舰）：`Set.ext` 就是 `Extensional` 在 `Set α` 上的实例 ──
+theorem subset_extensional (α : Type) :
+    Extensional (Set α) (fun (A B : Set α) => A ⊆ B) :=
+  fun (A B : Set α) (h : ∀ (C : Set α), C ⊆ A ↔ C ⊆ B) =>
+    Set.ext α A B (fun (x : α) =>
+      Iff.intro
+        ((fun (hAB : A ⊆ B) => hAB x) (Iff.mp (h A) (fun (y : α) (hy : y ∈ A) => hy)))
+        ((fun (hBA : B ⊆ A) => hBA x) (Iff.mpr (h B) (fun (y : α) (hy : y ∈ B) => hy))))
+
+-- ── 练习 3（L 类）：良基 ⇒ 反对称 ─────────────────────────────────────────
+-- 拆成两步（极小元那一步单独成一条），免得 8 层括号读不出来 ✓
+theorem asymmetric_body (α : Type) (E : α → α → Prop) (a b : α)
+    (hab : E a b) (hba : E b a)
+    (hm : HasMin α E (fun (z : α) => E a z ∨ E b z)) : False :=
+  Exists.elim α (fun (m : α) => (fun (z : α) => E a z ∨ E b z) m ∧
+      ∀ (y : α), (fun (z : α) => E a z ∨ E b z) y → ¬ (E y m)) False
+    (hasMin_elim α E (fun (z : α) => E a z ∨ E b z) hm)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+    (fun (m : α) (hmm : (fun (z : α) => E a z ∨ E b z) m ∧
+        ∀ (y : α), (fun (z : α) => E a z ∨ E b z) y → ¬ (E y m)) =>
+      (fun (hmin : ∀ (y : α), (fun (z : α) => E a z ∨ E b z) y → ¬ (E y m)) =>
+        (fun (hPm : E a m ∨ E b m) =>
+          Or.elim (E a m) (E b m) False
+            (fun (ham : E a m) =>
+              (fun (hnot : ¬ (E a m)) => hnot ham) (hmin a (Or.inr (E a a) (E b a) hba)))  -- soko:notation-ok: G-30 同族：λ 体里构造子补不出前导 Prop 实参，必须写全
+            (fun (hbm : E b m) =>
+              (fun (hnot : ¬ (E b m)) => hnot hbm) (hmin b (Or.inl (E a b) (E b b) hab)))  -- soko:notation-ok: G-30 同族（同上）
+            hPm)
+        (And.left hmm))
+      (And.right hmm))
+
+theorem asymmetric_of_wellFounded (α : Type) (E : α → α → Prop)
+    (hwf : IsWellFounded α E) (a b : α) : E a b → E b a → False :=
+  fun (hab : E a b) (hba : E b a) =>
+    asymmetric_body α E a b hab hba
+      (wellFounded_hasMin α E hwf (fun (z : α) => E a z ∨ E b z)
+        (Exists.intro α (fun (z : α) => E a z ∨ E b z) b (Or.inl (E a b) (E b b) hab)))  -- soko:notation-ok: G-30 同族（同上）
+
+-- ── 练习 4（L 类）：序数不属于自己 ────────────────────────────────────────
+theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : ¬ (E x x) :=
+  fun (hxx : E x x) =>
+    (fun (hm : HasMin α E (fun (z : α) => E x z)) =>
+      Exists.elim α (fun (m : α) => (fun (z : α) => E x z) m ∧
+          ∀ (y : α), (fun (z : α) => E x z) y → ¬ (E y m)) False
+        (hasMin_elim α E (fun (z : α) => E x z) hm)  -- soko:notation-ok: G-73 形状 ②（同上）
+        (fun (m : α) (hmm : (fun (z : α) => E x z) m ∧
+            ∀ (y : α), (fun (z : α) => E x z) y → ¬ (E y m)) =>
+          (fun (hnot : ¬ (E x m)) => (fun (hxm : E x m) => hnot hxm) (And.left hmm))
+            ((fun (hall : ∀ (y : α), (fun (z : α) => E x z) y → ¬ (E y m)) =>
+              hall x hxx) (And.right hmm))))
+      (wellFounded_hasMin α E (ordinal_wellFounded α E x h) (fun (z : α) => E x z)
+        (Exists.intro α (fun (z : α) => E x z) x hxx))
+
+-- ── 练习 5（T 类）：序数之间没有 2-循环 ───────────────────────────────────
+theorem ordinal_asymmetric (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsOrdinal α E x) : E x y → E y x → False :=
+  asymmetric_of_wellFounded α E (ordinal_wellFounded α E x h) x y
+
+-- ── 练习 6–9（T/L 类）：零序数 ────────────────────────────────────────────
+theorem zero_isOrdinal_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsZero α E x) : IsOrdinal α E x :=
+  zero_isOrdinal α E x h
+
+theorem zero_no_elem_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsZero α E x) (y : α) : ¬ (E y x) :=
+  zero_no_elem α E x h y
+
+theorem zero_unique (α : Type) (E : α → α → Prop) (he : Extensional α E)
+    (x y : α) (hx : IsZero α E x) (hy : IsZero α E y) : x = y :=
+  extensional_apply α E he x y (fun (z : α) =>
+    Iff.intro (E z x) (E z y)
+      (fun (hzx : E z x) => False.elim (zero_no_elem α E x hx z hzx))
+      (fun (hzy : E z y) => False.elim (zero_no_elem α E y hy z hzy)))
+
+theorem zero_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsZero α E x) : ¬ (E x x) :=
+  zero_no_elem α E x h x
+
+-- ── 练习 10（L 类）：`∈` 在序数里可以接任意长的链 ─────────────────────────
+theorem ordinal_elem_chain (α : Type) (E : α → α → Prop) (x a b c : α)
+    (hx : IsOrdinal α E x) : E a x → E b a → E c b → E c x :=
+  fun (hax : E a x) (hba : E b a) (hcb : E c b) =>
+    ordinal_isTransitive α E x hx b (ordinal_isTransitive α E x hx a hax b hba) c hcb
