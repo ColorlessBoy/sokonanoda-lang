@@ -123,6 +123,8 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元㉘ 落地后）：76 个目标 · 740 checked · 257 open · 0 判负**
+
 **门禁实测（2026-10-01，单元㉗ 落地后）：74 个目标 · 726 checked · 249 open · 0 判负**
 
 **门禁实测（2026-10-01，单元㉖ 落地后）：72 个目标 · 711 checked · 240 open · 0 判负**
@@ -183,6 +185,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **I.9** | **集族、广义积与 n 元关系** | I.2 · I.5 | family · arbitrary-union/intersection · monotone · image · preimage · indexed-family · product · currying | 30 | 30 | **21–23** |
 | **I.8** | **基数与基数算术** | I.3 | cardinal · injection · equinumerous · cardinal-arithmetic · product · commutativity | 20 | 20 | **19–20** |
 | **I.10** | **关系闭包、等价关系与商** | I.2 | relation · closure · reflexive/symmetric/transitive-closure · equivalence-relation · equivalence-class · quotient · partition · correspondence · quotient-type · well-definedness | 39 | 39 | **24–27** |
+| **I.11** | **集合代数** | I.1 | set-algebra · distributive-law · de-morgan · absorption · contrapositive | 8 | 8 | **28** |
 | **I.7** | **选择公理与 ZF 公理体系** | I.2 | axiom-of-choice · choice-function · surjective · right-inverse · zf-axioms · regularity · extensionality | 20 | 20 | **17–18** |
 
 | 单元 | 章 | 标题 | 练习 | 解答（checked） |
@@ -214,6 +217,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **25** | **I.10** | **等价关系与划分** | **10** | **10** |
 | **26** | **I.10** | **划分：等价关系的反方向** | **10** | **10** |
 | **27** | **I.10** | **商类型与良定义性** | **9** | **9** |
+| **28** | **I.11** | **集合代数：分配律与 De Morgan** | **8** | **8** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -252,6 +256,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 单元 | 交付 | 撞到/绕开的 |
 |---|---|---|
 | ⑬ 偏序、全序与严格序 | 新库 `lib/Order`（词汇 6 性质 + 4 序类 + 两个翻译函数 + 展开引理 + **取用子** + **智能构造子**）；画布 3 演示 + 11 练习；解答 0 open | **G-72**（`lib/Order` 最初写成字面箭头返回 ⇒ 单文件绿、`import` 红）· **G-73 形状 ①②③**（证明全靠库层绕法） |
+| ㉘ 集合代数：分配律与 De Morgan | 无新库；画布 3 演示 + 8 练习；解答 0 open · **新章 I.11** | **分配律两个方向** · **De Morgan 在直觉主义下不对称**：`(A ∪ B)ᶜ = Aᶜ ∩ Bᶜ` **整条可证**，`(A ∩ B)ᶜ = Aᶜ ∪ Bᶜ` **只有一半**（另一半 = `¬(p∧q) → ¬p∨¬q`，要排中律 ⇒ **G-74**）· **吸收律** · **逆否**（`A ⊆ B ⇒ Bᶜ ⊆ Aᶜ`；反向也要排中律）⇒ `Aᶜᶜ = A`、`A ∪ Aᶜ = Set.univ` **如实不排** · 两条写码边界：**后缀记法不能直接应用**（`Bᶜ x` ✗ ⇒ `(Bᶜ) x` ✓）· **`∅` 在 `=`/`⊆` 右侧类型推不出来** |
 | ㉗ 商类型与良定义性 | 无新库（用内核 **ST2 的 `Quot`**）；画布 3 演示（三条原语 `sound`/`lift`/`ind`）+ 9 练习；解答 0 open | **商的三件套**（相关代表元相等 · 良定义性/下降 · 归纳）· **良定义性义务是一行**（iota 归约算得动）· **全称性质**（下降存在 + 唯一性，**逐点形态**）· **缩回技巧**：没有 `Quot.exact` 也能证 `mk` 单射（用本课搬运引理 `rel_subst_right` 代替 `congrArg`）· 恒真关系的商是单点 ✓ —— **这是"实数构造"（ℤ = ℕ×ℕ/∼）要用的基础设施** |
 | ㉖ 划分：等价关系的反方向 | `lib/Rel` +`Rel.Partition`（三块合取：非空 · 覆盖 · 有公共点⇒同块）与 `Rel.ofPartition`（"同块"关系）；画布 3 演示 + 10 练习；解答 0 open | **划分 ⇒ 等价关系**（自反/对称/传递各一道 + 智能构造子打包）· **对应定理**（等价类族**恰好**是块，两半）· **往返恒等**（从等价关系造划分再回去 = 原关系）—— 与单元㉕ 合起来就是教科书那句「**等价关系与划分是同一件事的两种说法**」 |
 | ㉕ 等价关系与划分 | `lib/Order` +`IsEquivalence` 三条取用子与智能构造子；`lib/Rel` +`Rel.EquivClass` / `Rel.Classes`（**商集写成"是某个等价类"这条性质** —— 谓词式，**不需要新类型**）；画布 3 演示 + 10 练习；解答 0 open · **I.10 章收口** | **同类点有同样的类** · **类相同 ⟺ 相关**（旗舰）· **不同的类不交** · **划分三条**（非空 · 覆盖 · 有公共点 ⇒ 同类）· 「等价关系 = 划分」这一定理的两半 |

@@ -1,0 +1,104 @@
+import lib.Rel
+import lib.Set
+
+theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ (a ∈ A ∨ a ∈ B) :=
+  Set.mem_union a A B
+
+theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ (a ∈ A ∧ ¬ (a ∈ B)) :=
+  Set.mem_sdiff a A B
+
+theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def A B
+
+theorem sdiff_eq_inter_compl (α : Type) (A B : Set α) :
+    A \ B = A ∩ Bᶜ :=
+  Set.ext α (A \ B) (A ∩ Bᶜ) (fun (x : α) =>
+    Iff.intro ((A \ B) x) ((A ∩ Bᶜ) x)
+      (fun (h : A x ∧ ¬ (B x)) => And.intro (A x) ((Bᶜ) x) (And.left h) (And.right h))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+      (fun (h : A x ∧ ¬ (B x)) => And.intro (A x) (¬ (B x)) (And.left h) (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+
+theorem union_inter_distrib_right (α : Type) (A B C : Set α) :
+    (A ∪ B) ∩ C = (A ∩ C) ∪ (B ∩ C) :=
+  Set.ext α ((A ∪ B) ∩ C) ((A ∩ C) ∪ (B ∩ C)) (fun (x : α) =>
+    Iff.intro (((A ∪ B) ∩ C) x) (((A ∩ C) ∪ (B ∩ C)) x)
+      (fun (h : (A x ∨ B x) ∧ C x) =>
+        Or.elim (A x) (B x) ((A x ∧ C x) ∨ (B x ∧ C x))
+          (fun (ha : A x) => Or.inl (A x ∧ C x) (B x ∧ C x) (And.intro (A x) (C x) ha (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hb : B x) => Or.inr (A x ∧ C x) (B x ∧ C x) (And.intro (B x) (C x) hb (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (And.left h))
+      (fun (h : (A x ∧ C x) ∨ (B x ∧ C x)) =>
+        Or.elim (A x ∧ C x) (B x ∧ C x) ((A x ∨ B x) ∧ C x)
+          (fun (ha : A x ∧ C x) =>
+            And.intro (A x ∨ B x) (C x) (Or.inl (A x) (B x) (And.left ha)) (And.right ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hb : B x ∧ C x) =>
+            And.intro (A x ∨ B x) (C x) (Or.inr (A x) (B x) (And.left hb)) (And.right hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          h))
+
+theorem inter_union_distrib_right (α : Type) (A B C : Set α) :
+    (A ∩ B) ∪ C = (A ∪ C) ∩ (B ∪ C) :=
+  Set.ext α ((A ∩ B) ∪ C) ((A ∪ C) ∩ (B ∪ C)) (fun (x : α) =>
+    Iff.intro (((A ∩ B) ∪ C) x) (((A ∪ C) ∩ (B ∪ C)) x)
+      (fun (h : (A x ∧ B x) ∨ C x) =>
+        Or.elim (A x ∧ B x) (C x) ((A x ∨ C x) ∧ (B x ∨ C x))
+          (fun (ha : A x ∧ B x) =>
+            And.intro (A x ∨ C x) (B x ∨ C x)
+              (Or.inl (A x) (C x) (And.left ha)) (Or.inl (B x) (C x) (And.right ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hc : C x) =>
+            And.intro (A x ∨ C x) (B x ∨ C x)
+              (Or.inr (A x) (C x) hc) (Or.inr (B x) (C x) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          h)
+      (fun (h : (A x ∨ C x) ∧ (B x ∨ C x)) =>
+        Or.elim (A x) (C x) ((A x ∧ B x) ∨ C x)
+          (fun (ha : A x) =>
+            Or.elim (B x) (C x) ((A x ∧ B x) ∨ C x)
+              (fun (hb : B x) => Or.inl (A x ∧ B x) (C x) (And.intro (A x) (B x) ha hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+              (fun (hc : C x) => Or.inr (A x ∧ B x) (C x) hc)  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+              (And.right h))
+          (fun (hc : C x) => Or.inr (A x ∧ B x) (C x) hc)  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (And.left h)))
+
+theorem compl_union (α : Type) (A B : Set α) :
+    (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ :=
+  Set.ext α ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =>
+    Iff.intro (¬ (A x ∨ B x)) (¬ (A x) ∧ ¬ (B x))
+      (fun (h : ¬ (A x ∨ B x)) =>
+        And.intro (¬ (A x)) (¬ (B x))
+          (fun (ha : A x) => h (Or.inl (A x) (B x) ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hb : B x) => h (Or.inr (A x) (B x) hb)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+      (fun (h : ¬ (A x) ∧ ¬ (B x)) =>
+        fun (hab : A x ∨ B x) =>
+          Or.elim (A x) (B x) False (And.left h) (And.right h) hab))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+
+theorem compl_inter_subset (α : Type) (A B : Set α) :
+    Aᶜ ∪ Bᶜ ⊆ (A ∩ B)ᶜ :=
+  fun (x : α) (h : (Aᶜ) x ∨ (Bᶜ) x) =>
+    Or.elim ((Aᶜ) x) ((Bᶜ) x) (¬ (A x ∧ B x))
+      (fun (ha : ¬ (A x)) => fun (hab : A x ∧ B x) => ha (And.left hab))
+      (fun (hb : ¬ (B x)) => fun (hab : A x ∧ B x) => hb (And.right hab))
+      h
+
+theorem union_absorb (α : Type) (A B : Set α) :
+    A ∪ (A ∩ B) = A :=
+  Set.ext α (A ∪ (A ∩ B)) A (fun (x : α) =>
+    Iff.intro (A x ∨ (A x ∧ B x)) (A x)
+      (fun (h : A x ∨ (A x ∧ B x)) =>
+        Or.elim (A x) (A x ∧ B x) (A x)
+          (fun (ha : A x) => ha)
+          (fun (hab : A x ∧ B x) => And.left hab)
+          h)
+      (fun (ha : A x) => Or.inl (A x) (A x ∧ B x) ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+
+theorem inter_absorb (α : Type) (A B : Set α) :
+    A ∩ (A ∪ B) = A :=
+  Set.ext α (A ∩ (A ∪ B)) A (fun (x : α) =>
+    Iff.intro (A x ∧ (A x ∨ B x)) (A x)
+      (fun (h : A x ∧ (A x ∨ B x)) => And.left h)
+      (fun (ha : A x) => And.intro (A x) (A x ∨ B x) ha (Or.inl (A x) (B x) ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+
+theorem compl_subset_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
+    Bᶜ ⊆ Aᶜ :=
+  fun (x : α) => fun (hb : ¬ (B x)) => fun (ha : A x) =>
+    hb ((fun (hs : ∀ (y : α), A y → B y) => hs x ha) h)

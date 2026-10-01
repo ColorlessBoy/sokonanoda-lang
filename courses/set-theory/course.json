@@ -367,6 +367,31 @@
               "unit": 27
             }
           ]
+        },
+        {
+          "id": "I.11",
+          "title": "集合代数",
+          "prereqs": [
+            "I.1"
+          ],
+          "tags": [
+            "set-algebra",
+            "distributive-law",
+            "de-morgan",
+            "absorption",
+            "contrapositive"
+          ],
+          "quota": {
+            "exercises": 8
+          },
+          "units": [
+            {
+              "file": "units/unit28-set-algebra.sokonanoda",
+              "title": "单元㉘ 集合代数：分配律与 De Morgan",
+              "title_en": "Unit 28 — Set Algebra: Distributivity and De Morgan",
+              "unit": 28
+            }
+          ]
         }
       ]
     }
