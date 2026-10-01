@@ -2086,16 +2086,35 @@ fn notation_prefix_args<'a>(
         // 会掉到 `missing=1`：把 `{b}` 对到 `A : Set α` 上，解出 `α := β`，
         // 再让 `∅` 拿到期望类型 `Type` ⇒ 报"补不出参数" ✗）⇒ **不在那里放宽** ✓。
         if crate::compile::implicit::metavar_enabled() && missing == max_missing {
-            if let Some(solved) = solve_prefix_args_pending(
-                &layers,
-                &result,
-                missing,
-                operands,
-                expected_src,
-                ctx,
-                scope,
-                InplaceEnv::reborrow(&mut env),
-            ) {
+            // **档位**（IA-4 M1）：`Sibling` = E19 的窄版（默认，逐字节等于今天）；
+            // `Engine` = 新引擎（`crate::compile::meta`：真元变量 + 三值合一 + occurs/作用域 +
+            // 有界待定 + 出口 zonk）。**两条都只放宽"最大候选"这一读** ✓。
+            let pending = if crate::compile::implicit::metavar_mode()
+                == crate::compile::implicit::MetavarMode::Engine
+            {
+                solve_prefix_args_meta(
+                    &layers,
+                    &result,
+                    missing,
+                    operands,
+                    expected_src,
+                    ctx,
+                    scope,
+                    InplaceEnv::reborrow(&mut env),
+                )
+            } else {
+                solve_prefix_args_pending(
+                    &layers,
+                    &result,
+                    missing,
+                    operands,
+                    expected_src,
+                    ctx,
+                    scope,
+                    InplaceEnv::reborrow(&mut env),
+                )
+            };
+            if let Some(solved) = pending {
                 return Ok(Some(solved));
             }
         }
@@ -2170,6 +2189,140 @@ fn solve_prefix_args_pending<'a>(
         env,
         true,
     )
+}
+
+/// **IA-4 M1 的引擎档**（开关 `SOKO_METAVAR=engine`）：把记法前导参数的求解换成
+/// [`crate::compile::meta::MetaCtx`] 上的**真元变量 + 三值合一**。
+///
+/// 与 [`solve_prefix_args_pending`] 的**约束同源**（不再一位一位贪心）：
+/// ① 每个前导位建一个元变量（作用域 = **更晚**的望远镜参数名）；② 望远镜名 → 元变量（模板代换）；
+/// ③ **每个操作数只问一次**类型（窄版是在 `(i,j)` 双重循环里反复问）；④ 每个后续层的域 ≟ 对应操作数
+/// 的类型；⑤ 结果 ≟ 期望类型；⑥ 不动点 + defaulting + zonk（出口无残留自检在 `discharge` 里）。
+///
+/// **delta 展开兜底由引擎内部做**（M0 的 S13 硬约束：不接它就会把「两条约束 defeq 一致」误判成
+/// 刚性冲突 ✗）。**元变量不进项**：`discharge` 解不出就返回 `None`，调用方照旧报既有码 ✓。
+#[allow(clippy::too_many_arguments)]
+fn solve_prefix_args_meta<'a>(
+    layers: &[(String, Expr)],
+    result: &Expr,
+    missing: usize,
+    operands: &[&Expr],
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    mut env: Option<&mut InplaceEnv<'_, 'a>>,
+) -> Option<Vec<Expr>> {
+    // 与窄版同一条闸门：前导位**必须都有名字**（`peel_pi` 对结果里的箭头给空名）。
+    if layers.iter().take(missing).any(|l| l.0.is_empty()) {
+        return None;
+    }
+    let unfold = |e: &Expr| {
+        crate::spine::unfold_to_inductive(
+            e,
+            &|n| ctx.inductives.get(n).is_some(),
+            ctx.defs,
+            8,
+            None,
+        )
+    };
+    let mut meta = crate::compile::meta::MetaCtx::new(&unfold);
+    // ⓪ **望远镜名先换成 fresh 名**（与 `implicit::telescope` 的防捕获纪律对齐）：
+    // `notation_telescope` 用的是**签名原文名**（`α`/`β`/`A`/`B`）⇒ 拿它当"作用域外"判据会与
+    // **用户变量撞名**（实测：`theorem t (α β : Type) (b : β) : ¬ (∅ ≈ {b})` 里把 `β` 误判成
+    // 越界 ⇒ 引擎档把 G-48 判红 ✗）。fresh 名（`\0soko_mp{i}`）让模板、作用域判据与用户名字**永不撞车**。
+    let mut ren: HashMap<String, Expr> = HashMap::new();
+    let mut tl: Vec<(String, Expr)> = Vec::with_capacity(layers.len());
+    for (i, (name, dom)) in layers.iter().enumerate() {
+        let dom = crate::spine::substitute(dom, &ren);
+        let fresh = format!("\u{0}soko_mp{i}");
+        let kept = if name.is_empty() {
+            String::new()
+        } else {
+            ren.insert(
+                name.clone(),
+                Expr::Ident {
+                    name: fresh.clone(),
+                    span: Span::default(),
+                },
+            );
+            fresh
+        };
+        tl.push((kept, dom));
+    }
+    let result = crate::spine::substitute(result, &ren);
+    // ① 元变量（作用域 = 更晚的望远镜参数名 ⇒ 赋值时不许提到它们）
+    let mut ids = Vec::with_capacity(missing);
+    for i in 0..missing {
+        let out_of_scope: Vec<String> = tl
+            .iter()
+            .skip(i + 1)
+            .map(|l| l.0.clone())
+            .filter(|n| !n.is_empty())
+            .collect();
+        ids.push(meta.fresh(
+            tl[i].1.clone(),
+            crate::compile::meta::MetaKind::Natural,
+            out_of_scope,
+        ));
+    }
+    // ② 望远镜名 → 元变量
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for (i, id) in ids.iter().enumerate() {
+        sigma.insert(tl[i].0.clone(), meta.meta_expr(*id));
+    }
+    // ③ 操作数类型（每个操作数只问一次）
+    let mut arg_tys: Vec<Option<Expr>> = Vec::with_capacity(operands.len());
+    for operand in operands {
+        let wide = if crate::judge::inplace_wide() {
+            InplaceEnv::reborrow(&mut env)
+        } else {
+            None
+        };
+        arg_tys.push(operand_type_expr(ctx, scope, operand, wide));
+    }
+    // ④ 约束①：后续层的域（已代换）≟ 该操作数的类型
+    for i in 0..missing {
+        let name = tl[i].0.clone();
+        for (j, layer) in tl.iter().enumerate().skip(i + 1) {
+            let Some(actual) = j
+                .checked_sub(missing)
+                .and_then(|x| arg_tys.get(x))
+                .and_then(|t| t.as_ref())
+            else {
+                continue;
+            };
+            if !crate::spine::mentions(&name, &layer.1) {
+                continue;
+            }
+            let template = crate::spine::substitute(&layer.1, &sigma);
+            if meta.unify(&template, actual) == crate::compile::meta::Tri::No {
+                return None;
+            }
+        }
+    }
+    // ⑤ 约束②：结果（已代换）≟ 期望类型
+    if let Some(expected) = expected_src {
+        let template = crate::spine::substitute(&result, &sigma);
+        if meta.unify(&template, expected) == crate::compile::meta::Tri::No {
+            return None;
+        }
+    }
+    // ⑥ 不动点 + defaulting（E19 的选择规则）+ zonk
+    let out = meta.discharge(&ids);
+    if std::env::var_os("SOKO_META_DEBUG").is_some() {
+        eprintln!(
+            "[meta] missing={missing} ids={} solved={:?} unsolved={:?}",
+            ids.len(),
+            out.as_ref().map(|v| v.len()),
+            meta.unsolved().len()
+        );
+        for (i, id) in ids.iter().enumerate() {
+            // ⚠ 这里**不许**用 `render_expr`：那是绕过唯一记法接口的路径
+            // （`scripts/audit-notation-paths.py` 会判"新增绕过" ✗）⇒ 打 `Expr` 的 Debug 即可。
+            eprintln!("[meta]   #{i} value={:?}", meta.value(*id));
+        }
+    }
+    out
 }
 
 /// 固定 `missing` 时解前导参数；解不出（或某一位**没有名字**）⇒ `None`。

@@ -1,9 +1,14 @@
 //! Persistent compile cache ("olean"-like).
 //!
 //! Re-opening an unchanged `.sokonanoda` document reuses the report the kernel
-//! already produced for the same (compiler version, build, prelude mode, source
-//! text) instead of recompiling from scratch (design
-//! `docs/design/compile-cache.md`).
+//! already produced for the same (compiler version, build, prelude mode,
+//! **metavariable mode**, source text) instead of recompiling from scratch
+//! (design `docs/design/compile-cache.md`).
+//!
+//! ⚠ **凡是会改变编译结果的环境开关都必须进键**（IA-4 M1 实测的教训）：键里少了
+//! `SOKO_METAVAR`/`SOKO_NOTATION_METAVAR` 时，同一个缓存目录里**先跑的那一档会污染后面所有档**
+//! —— 逃生门 `SOKO_NOTATION_METAVAR=0` 会被静默忽略（release `v0.79.0` 实测复现 ✗）。
+//! 新增任何这类开关时，**同轮**把它加进 [`key_parts`]。
 //!
 //! The kernel stays the single judge: an entry only holds a report the kernel
 //! produced for exactly that content, and the key embeds the compiler version +
@@ -140,11 +145,29 @@ pub fn key_with_build(src: &str, options: &CompileOptions, build: u64) -> String
         env!("CARGO_PKG_VERSION"),
         build,
         options.prelude == PreludeMode::Bare,
+        metavar_state(),
         src,
     )
 }
 
-fn key_parts(format: u32, version: &str, build: u64, prelude_bare: bool, src: &str) -> String {
+/// 元变量档位在缓存键里的**状态字节**：`Sibling`（默认档，今天的行为）**保持 0**
+/// ⇒ 老缓存继续可用 ✓；另两档各占一个字节 ⇒ 三档互不污染 ✓。
+fn metavar_state() -> u8 {
+    match super::implicit::metavar_mode() {
+        super::implicit::MetavarMode::Sibling => 0,
+        super::implicit::MetavarMode::Engine => 1,
+        super::implicit::MetavarMode::Off => 2,
+    }
+}
+
+fn key_parts(
+    format: u32,
+    version: &str,
+    build: u64,
+    prelude_bare: bool,
+    metavar_state: u8,
+    src: &str,
+) -> String {
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     let mut eat = |byte: u8| {
         hash ^= u64::from(byte);
@@ -160,6 +183,7 @@ fn key_parts(format: u32, version: &str, build: u64, prelude_bare: bool, src: &s
         eat(byte);
     }
     eat(u8::from(prelude_bare));
+    eat(metavar_state);
     for byte in src.as_bytes() {
         eat(*byte);
     }
@@ -299,13 +323,21 @@ mod tests {
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &bare, 7));
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &full, 8));
         assert_ne!(
-            key_parts(CACHE_FORMAT, "0.1.0", 7, false, "a"),
-            key_parts(CACHE_FORMAT, "0.2.0", 7, false, "a"),
+            key_parts(CACHE_FORMAT, "0.1.0", 7, false, 0, "a"),
+            key_parts(CACHE_FORMAT, "0.2.0", 7, false, 0, "a"),
             "a version bump must miss"
         );
+        // **IA-4 M1**：元变量档位必须分开（否则同一个缓存目录里先跑的那一档污染后面所有档 ✗）
+        for (x, y) in [(0u8, 1u8), (0, 2), (1, 2)] {
+            assert_ne!(
+                key_parts(CACHE_FORMAT, "0.1.0", 7, false, x, "a"),
+                key_parts(CACHE_FORMAT, "0.1.0", 7, false, y, "a"),
+                "不同元变量档位必须是不同的键（state {x} vs {y}）"
+            );
+        }
         assert_ne!(
-            key_parts(CACHE_FORMAT, "0.1.0", 7, false, "a"),
-            key_parts(CACHE_FORMAT + 1, "0.1.0", 7, false, "a"),
+            key_parts(CACHE_FORMAT, "0.1.0", 7, false, 0, "a"),
+            key_parts(CACHE_FORMAT + 1, "0.1.0", 7, false, 0, "a"),
             "a schema bump must miss"
         );
     }
@@ -322,7 +354,7 @@ mod tests {
                 .is_some_and(|out| !out.events.is_empty()),
             "the combined entry point must carry CLI events"
         );
-        let k = key_parts(CACHE_FORMAT, "0.48.0", 7, false, src);
+        let k = key_parts(CACHE_FORMAT, "0.48.0", 7, false, 0, src);
         store_in(&dir, &k, &entry);
         let loaded = load_in(&dir, &k).expect("cache hit");
         assert_eq!(loaded.report.decls.len(), entry.report.decls.len());
@@ -331,7 +363,7 @@ mod tests {
             loaded.output.map(|o| o.events),
             entry.output.map(|o| o.events)
         );
-        let other = key_parts(CACHE_FORMAT, "0.48.0", 7, false, "def x : Nat := 1\n");
+        let other = key_parts(CACHE_FORMAT, "0.48.0", 7, false, 0, "def x : Nat := 1\n");
         assert!(load_in(&dir, &other).is_none(), "different source misses");
         let _ = std::fs::remove_dir_all(&dir);
     }

@@ -295,3 +295,43 @@ python3 scripts/gap.py check && python3 scripts/docs-lint.py && python3 scripts/
 **顺序**：M1 → M2 → M3 → M4 →（D8）K1 → B1 → B2 → B3 → U1 → U2 → **S-A → S-B → S-C**；
 两条线**不并行**动同一批文件（同一模块同一时间只允许一个写者）✓。
 **记账**：M1 起每片 as-built **追加到本文**；M0 的读数在 `metavar-m0.md`。
+
+## 8. M1 as-built（2026-10-01 **收口 ✓**）：引擎内核 + 记法路径接线
+
+**开关三态** `SOKO_METAVAR=0|sibling|engine`（**默认 `sibling` = 今天**；`SOKO_NOTATION_METAVAR=0` 兼容
+⇒ 旧逃生门仍等价）· **新模块** `crates/front/src/compile/meta.rs`（元变量 = `\0soko_m{id}` **名字编码**，
+不新增 AST 变体）· **接线** `elab.rs::solve_prefix_args_meta`（记法路径的待定档按档位分流；
+**一般路径归 M2**）· **元变量不进项**（`discharge` 出口自检 + `elab_expr` 兜底）。
+
+| 判据 | 结果 |
+|---|---|
+| 真值层单测 11 条（两侧分解 / occurs / **type-occurs** / **作用域** / 链式赋值 / 待定不动点 / 刚性冲突 / **delta 兜底（S13）** / defaulting / zonk 无残留 / fuel）| **11/11** ✓ |
+| `cargo test -p sokonanoda-front --lib` | **782/782**（771 + 11）✓ |
+| M0 的 13 形状清单（`--test metavar_inventory`）| **1 passed** —— 26 个读数**一条不变** ⇒ `sibling` 回归臂成立 ✓ |
+| 新判据 `--test metavar_engine`（5 个记法形状 × 4 档 + 开关等价）| **2 passed** ✓ |
+| `notation` / `notation_metavar` / `implicit_metavar` | **49 / 1 / 1** 全绿 ✓ |
+| **三指纹**：默认档 **与引擎档** | 两态**都逐字节等于** M0 冻结值（`7646fe2e…`/`d0375577…`/`06370a38…`）⇒ **引擎在整个语料上与窄版同判（0 增 0 失）** ✓ |
+| 课程门禁（引擎档）| **43/377/99/0** ✓ |
+| 冷 build 结构计数（默认档，空 `SOKONANODA_CACHE_DIR`）| `runs=886 bytes=47,437,669` · `passes=1343` · `by_calls=21,268` · `hits/misses=20,853/302` · `compiled 42/hit 0` —— **逐项等于 M0 基线** ✓（默认路径零开销）|
+| `scripts/soko gate --fast` | **EXIT=0** ✓ |
+
+**M1 抓到的两个真 bug**（都当场修掉 + 判据钉住）：
+
+1. **作用域检查误拒**（新代码自己的）：`notation_telescope` 用的是**签名原文名**（`α`/`β`/`A`/`B`），
+   拿它当「作用域外」判据会与**用户变量撞名** ⇒ 引擎档把 G-48 判红 ✗（实测 `theorem t (α β : Type)
+   (b : β) : ¬ (∅ ≈ {b})`：值里的**用户 `β`** 被当成越界的望远镜参数）。**修法**：引擎路径**先 freshen
+   望远镜名**（`\0soko_mp{i}`，与 `implicit::telescope` 的防捕获纪律对齐）⇒ 模板/作用域判据与用户名
+   永不撞车 ✓。⚠ 这条是**三指纹判据**救回来的：只看"测试全绿"会以为引擎没问题。
+2. **编译缓存键漏了开关**（**既有 bug**，release `v0.79.0` 也复现）：键 = (format, version, build,
+   prelude, src) **不含** `SOKO_METAVAR` ⇒ 同一缓存目录里**先跑的那一档污染后面所有档** ⇒ 逃生门被
+   静默忽略 ✗（实测：先 `default` 再 `=0` ⇒ 两次都绿）。**修法**：键里加**档位字节**
+   （`cache::metavar_state`；**默认档保持 0** ⇒ 老缓存继续可用）+ 单测「不同档位必须是不同的键」✓；
+   `cache.rs` 头部写死纪律：**凡改变编译结果的开关都必须进键**。
+   ⚠ **残留面**（记账、未修）：`SOKO_JUDGE_INPLACE=shadow` 一类**诊断档**同样不在键里
+   （`on`/`off` 的 `--json` 按设计逐字节相同 ⇒ 影响面小；`shadow` 档可能被缓存掩盖）。
+
+**调试钩子** `SOKO_META_DEBUG=1`：打印每次引擎求解的（`missing` / ids / solved / unsolved / 每位取值）
+—— 只在 `engine` 档的待定路径上付一次 `var_os` ✓。
+
+**M1 不做**（后续片）：一般路径接线 = **M2** · sort/kind 与报错契约 = **M3** · 宇宙层 = U1/U2 ·
+范围 B（内核占位符 → 期望类型传播）= K1/B1–B3 ✓。
