@@ -1,5 +1,22 @@
 ## [Unreleased]
 
+### Fixed
+
+- **The whole file's colours no longer scramble as you type.** Syntax colouring
+  for sokonanoda comes from the language server's *semantic tokens*, and the
+  server was computing them from the **last compiled** text instead of the text
+  in your editor. VS Code paints those tokens onto the **current** buffer, so
+  every token after your edit landed on the wrong characters — one line off per
+  inserted line, and it got worse the more you typed. It is fixed at the source
+  (`crates/lsp/src/lib.rs`: the token handler is a pure function of the source
+  text, so it now reads the buffer, not the previous compile). Project files
+  made it obvious: one keystroke costs ~2.2 s of compilation there, so for those
+  2.2 s *every* token request answered for the old text.
+- Pinned by `crates/lsp/src/tests/tokens.rs::semantic_tokens_follow_the_buffer_not_the_last_compile`
+  (insert a line at the top → `theorem` must be reported on line 2; with the old
+  code it is reported on line 1, so the guard bites).
+
+
 ### Added
 
 - **Greek letters — and every other symbol the course uses — now have typing

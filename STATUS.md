@@ -53,21 +53,21 @@
 - **记账**：G-29/G-31 的 `today` 追加本轮读数 + 设计指针（`status` 仍 `open`，与复现件一致 ✓）·
   第 529 轮归档 ✓。
 
-## 第 530 轮（2026-10-01）：**编辑响应 —— P7 展示延迟（用户反馈「一闪一闪」）**
+## 第 533 轮（2026-10-01）：**颜色全乱 —— 语义 token 读错了文本（用户反馈「输入几行后颜色全乱」）**
 
-- **诊断先行**：**编译不是瓶颈**（`playground` 逐键往返 **0.1ms 中位**、24 键 24 次编译**每次 0ms**；
-  VS Code 自动发的 semanticTokens/codeLens/inlayHint **≤3.1ms**；扩展发的 goals/project/stateAt
-  **≤5.9ms**）；真慢的只有冷开（`unit12-solution` 首次 **7794–8407ms**，第二次 **33.7ms**）。
-- **闪烁源 = 服务端每键都编一次** ⇒ `$/progress` **2.0 条/键**，每个 `begin` 给**整份文档**加背景装饰 +
-  状态栏切「编译中…」+ Infoview 插进度块（`end` 再全撤）⇒ 真 VS Code **8 键亮 16 次**。
-- **修法（P7）**：`begin` 只挂定时器、`end` 先到就撤 ⇒ 窗口内编完的**一次界面都不碰**；闸门放在
-  `onCompileProgress`（LSP 路）而**不放 `applyProgress`**（build/rebuild 的逐文件进度必须从第一帧就报）。
-- **前后（真 VS Code，同文件/操作/机）**：闪烁 **16 → 0** · 键→诊断 **122 → 99ms** · 键→面板
-  **268 → 263ms**（~100ms 是 VS Code 诊断管线、150ms 是扩展的多文档去抖；服务端 **0.2ms/键**）。
-- **明确不做**：不缩去抖 · 不改 `$/progress` 契约 · **不动 `crates/`** · 不删概览尺。**判据**：stub
-  两条 `P7:`（计数）+ e2e `edit responsiveness`（用户看得见），修前**红**修后绿 ✓；细节见设计文档。
-- **记账**：新文档 `docs/design/edit-latency.md`（这条链的唯一权威，含"明确不做"）+ 过期登记 ·
-  `editor/vscode/{CHANGELOG,README}.md` + `package.json` 同轮 ✓ · 第 527 轮归档 ✓。
+- **根因（代码侧，最小复现钉死）**：`semantic_tokens_full` 读 `docs.text()` = **上一次编译用的**文本
+  （与 `report` 同源），编译装回前一直落后于缓冲区；而 token 的消费者是**客户端** —— VS Code 画到
+  **当前**缓冲区上 ⇒ 编辑点之后**每个 token 都错位**，插一行错一行。项目文件更狠：一次按键编译
+  **~2.2s**，那 2.2 秒里**每次** token 请求答的都是旧文本。
+- **为什么是真 bug**：`front::semantic::semantic_tokens` 是**纯源文本函数**（`lex_prefix`+`parse`+
+  `classify`），**不碰 report** ⇒ 用旧文本毫无理由；其余 10 个读 `text()` 的 handler 都 `report()` 门控（必须同源）⇒ 逐个核对过，只有这一个错。**修**：改用 `Docs::latest_text()`。
+- **证据链**（同一复现件）：改前首 token `(0,0,7)` = 旧文本第 1 行、末列 **37**（v1 首行长）；改后
+  `(1,0,7)` = v2 里 `theorem` 的真实行。判据 `semantic_tokens_follow_the_buffer_not_the_last_compile`
+  （反向验证：改回 `docs.text()` 判红 ✓）。
+- **另两类排查（都排除）**：`tmLanguage` **0 处** `begin`/`end`/`while` ⇒ 无状态 ⇒ 打字**不可能**改动上面
+  几行；六种中间态的诊断 span 全是**窄的**、无 `DiagnosticTag`。**兄弟缺陷记账不修**：`codeLens`/
+  `inlayHint` 同类（实测答旧文本行号），但它们要 report ⇒ 修法是"领先时答空或映射位置"。
+- **零回归**：LSP **170/0** · front+CLI 全绿 · 门禁 **43/377/99/0** · stub **55/55** · CHANGELOG 同轮 ✓。
 
 ## 未决项（**只有这两条**；顺序与入口见 `docs/ONBOARDING.md` §0.2）
 
