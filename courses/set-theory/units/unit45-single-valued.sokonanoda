@@ -1,0 +1,172 @@
+-- ==========================================================================
+-- unit45-single-valued.sokonanoda —— 卷 I 单元㊺ **关系的单值性与函数的图**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§8–10**
+-- （functions as relations / inverses and composites）；Enderton《Elements of Set Theory》
+-- **§3.3** 的 "functions as relations" 一段。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.13 章收尾 —— 用单元㊱㊲ 的**代数语言**
+-- 把「函数 = 单值 + 全的关系」这句话**证出来** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **单值**与**全**两条定义 + 取用子；**函数的图**单值且全；
+--   · **旗舰一：单值 ⟺ `r ⁻¹ • r ⊆ idRel`** —— "同一个点的两个像相等" ✓
+--   · **旗舰二（对偶）：`r ⁻¹` 单值 ⟺ `r • r ⁻¹ ⊆ idRel`** —— "有共同像的两点相等"
+--     = 图**单射** ✓（**注意这两条容易写反**：`⁻¹` 放左边管"单值"、放右边管"单射"✓）
+--   · **单值/全 在复合下保持**；**恒等关系单值**；**函数图的复合 = 复合函数的图** ✓
+--
+-- ⚠ **本单元的一处命名教训**（写进 hint）：**`Total` 这个名字已经被 `lib/Order` 用了**
+--   （序的全性：`∀ a b, r a b ∨ r b a`）✗ ⇒ 本单元的关系层全性叫 **`TotalRel`** ✓
+--   （判卷器当场报「`Total` 在 `lib.Order` 与 …里各声明了一次」——正是 **L-09** 那条纪律
+--   在起作用 ✓）
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Rel`（`•`/`⁻¹`）· `lib.Order` · `lib.Fun` · `lib.Set`。
+--
+-- 依赖：单元㊱㊲（关系的代数与刻画）· 单元㊾…不对，是单元⑦⑧（函数）—— 本单元把两者接上。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+import lib.Fun
+
+-- ─────────────────────────────────────────────────────────────
+-- 45.0 画布给的四个新词汇
+--
+-- `idRel`：恒等关系（单元㊱ 起就在用 ✓）
+-- `SingleValued r`：**单值** —— 同一个点的两个像相等（函数的图满足它 ✓）
+-- `TotalRel r`：**全** —— 每个点都有像 ⚠ 注意**不叫 `Total`**：那个名字 `lib/Order` 已经用了 ✗
+-- `graph f`：函数 `f` 的**图**（`fun a b => f a = b`）✓
+-- ─────────────────────────────────────────────────────────────
+def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+def SingleValued (α β : Type) (r : Rel α β) : Prop :=
+  ∀ (a : α) (b : β) (b1 : β), r a b → r a b1 → Eq.{1} β b b1  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+def TotalRel (α β : Type) (r : Rel α β) : Prop :=
+  ∀ (a : α), ∃ (b : β), r a b
+
+def graph (α β : Type) (f : α → β) : Rel α β :=
+  fun (a : α) (b : β) => Eq.{1} β (f a) b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+-- ─────────────────────────────────────────────────────────────
+-- 45.1 三条库引理（`•` 与 `⁻¹` 的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：复合的成员刻画。
+theorem demo_mem_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ) :
+    (r • s) a c ↔ ∃ (b : β), r a b ∧ s b c :=
+  Rel.comp_apply r s a c
+theorem demo_mem_inv (α β : Type) (r : Rel α β) (b : β) (a : α) :
+    (r ⁻¹) b a ↔ r a b :=
+  Rel.inv_apply α β r b a
+theorem demo_mem_inv_inv (α β : Type) (r : Rel α β) (a : α) (b : β) :
+    ((r ⁻¹) ⁻¹) a b ↔ r a b :=
+  Rel.inv_inv_apply α β r a b
+
+-- ─────────────────────────────────────────────────────────────
+-- 45.2 两条定义与**函数图的例子**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：**单值用在具体的点上**。
+-- soko:hint 思路：单值的展开形态是"两个点 + 两条证据 → 两个像相等"的 `∀`，直接应用。
+-- soko:hint 目标形态：`SingleValued r → r a b → r a b1 → b = b1`。
+-- soko:hint 关键件：单值假设**先 λ 绑定再应用**（G-73 形状 ①）✓
+theorem singleValued_apply (α β : Type) (r : Rel α β) (h : SingleValued α β r)
+    (a : α) (b b1 : β) (h1 : r a b) (h2 : r a b1) : Eq.{1} β b b1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 2（T 类）：**全性用在具体的点上**。
+-- soko:hint 思路：全的展开形态是 `∀ a, ∃ b, …`，直接应用。
+-- soko:hint 目标形态：`TotalRel r → ∃ b, r a b`。
+-- soko:hint 关键件：全性假设**先 λ 绑定再应用** ✓
+theorem totalRel_apply (α β : Type) (r : Rel α β) (h : TotalRel α β r) (a : α) :
+    ∃ (b : β), r a b := by
+  sorry
+
+-- 练习 3（T 类）：**函数的图是单值的**。
+-- soko:hint 思路：两条证据分别是 `f a = b` 与 `f a = b1` ⇒ 先把第一条**掉头**，再与第二条接起来。
+-- soko:hint 目标形态：`SingleValued (graph f)`。
+-- soko:hint 关键件：`Eq.symm`/`Eq.trans`（**写全宇宙层级与论域**）✓
+theorem graph_singleValued (α β : Type) (f : α → β) :
+    SingleValued α β (graph α β f) := by
+  sorry
+
+-- 练习 4（T 类）：**函数的图是全的**（见证取 `f a` 自己）。
+-- soko:hint 思路：见证取 `f a`，"像等于 `f a`" 由自反给出。
+-- soko:hint 目标形态：`TotalRel (graph f)`。
+-- soko:hint 关键件：`Exists.intro`（**前导实参写全**）· `Eq.refl`（写全层级与论域）✓
+theorem graph_totalRel (α β : Type) (f : α → β) : TotalRel α β (graph α β f) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 45.3 旗舰：**单值 ⟺ `r ⁻¹ • r ⊆ idRel`**（与它的对偶）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 5（L 类，**本单元旗舰**）：**单值 ⟺ `r ⁻¹ • r ⊆ idRel`**。
+-- soko:hint 思路：逐点看 `(r ⁻¹ • r) b b1` 就是 `∃ a, r a b ∧ r a b1` ——
+--   →：拆 `∃` 得同一个点的两个像 ⇒ 用单值性 ⇒ `b = b1`；
+--   ←：给定 `r a b` 与 `r a b1`，造出那个 `∃`（见证取 `a`）⇒ 假设给出 `b = b1`。
+-- soko:hint 目标形态：`SingleValued r ↔ ∀ b b1, (r ⁻¹ • r) b b1 → (idRel β) b b1`。
+-- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· `Exists.elim`/`Exists.intro`（写全）·
+--   练习 1 · `And.left`/`And.right` ✓
+--   ⚠ **`⁻¹` 放左边管"单值"**（同一个点的两个像），放右边管"**单射**"（练习 6）——
+--   这两条**极易写反** ✗
+theorem singleValued_iff_inv_comp (α β : Type) (r : Rel α β) :
+    SingleValued α β r ↔ ∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1 := by
+  sorry
+
+-- 练习 6（L 类，**旗舰的对偶**）：**`r ⁻¹` 单值 ⟺ `r • r ⁻¹ ⊆ idRel`**。
+-- soko:hint 思路：与练习 5 逐字对偶（把 `r` 换成 `r ⁻¹`、把两个点的位置对调）——
+--   逐点看 `(r • r ⁻¹) a a1` 就是 `∃ b, r a b ∧ r a1 b`（**有共同的像**）。
+-- soko:hint 目标形态：`SingleValued (r ⁻¹) ↔ ∀ a a1, (r • r ⁻¹) a a1 → (idRel α) a a1`。
+-- soko:hint 关键件：`Iff.intro` · `Exists.elim`/`Exists.intro` · 练习 1 ✓
+--   ⚠ **两处"定义头"的坑**：`(r ⁻¹) b a` 与 `r a b` 定义上相同，但**别套 λ 去"换形"**
+--   （`fun (hu : r a b) => hu` 反而判红 ✗）—— **直接把证据交出去**即可 ✓
+theorem inv_singleValued_iff_comp_inv (α β : Type) (r : Rel α β) :
+    SingleValued β α (r ⁻¹) ↔ ∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1 := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 45.4 复合 · 恒等 · 图的复合
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（L 类）：**单值的复合还是单值**。
+-- soko:hint 思路：两条 `(r • s) a ·` 的成员各拆出一个中间点 `b`、`b1`；先用 `r` 的单值性
+--   得 `b = b1`，再把 `s b c` **沿这个等式搬到** `s b1 c`，最后用 `s` 的单值性收尾。
+-- soko:hint 目标形态：`SingleValued r → SingleValued s → SingleValued (r • s)`。
+-- soko:hint 关键件：两层 `Exists.elim` · 练习 1 · **搬运引理 `rel_subst_right`**：
+--   要改的是 `s` 的**第一个坐标** ⇒ 关系取**翻过来**的 `fun u v => s v c` ✓
+--   （关系取 `fun u v => s u c` 会判红 ✗ —— 单元㊳ 的实测教训）· `And.left`/`And.right` ✓
+theorem singleValued_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
+    (hr : SingleValued α β r) (hs : SingleValued β γ s) :
+    SingleValued α γ (r • s) := by
+  sorry
+
+-- 练习 8（L 类）：**全的复合还是全**（两次取像）。
+-- soko:hint 思路：给定 `a`，先用 `r` 的全性取 `b`，再用 `s` 的全性取 `c` ⇒ 见证取 `c`，
+--   并把 `b` 作为复合的中间点造出来。
+-- soko:hint 目标形态：`TotalRel r → TotalRel s → TotalRel (r • s)`。
+-- soko:hint 关键件：两层 `Exists.elim` · 两层 `Exists.intro`（**前导实参写全**）· 练习 2 ✓
+theorem totalRel_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
+    (hr : TotalRel α β r) (hs : TotalRel β γ s) : TotalRel α γ (r • s) := by
+  sorry
+
+-- 练习 9（T 类）：**恒等关系是单值的**（两条证据都是"与 `a` 相等"）。
+-- soko:hint 思路：两条证据分别是 `a = b` 与 `a = b1` ⇒ 掉头再接力。
+-- soko:hint 目标形态：`SingleValued (idRel α)`。
+-- soko:hint 关键件：`Eq.symm`/`Eq.trans`（写全层级与论域）—— 与练习 3 同一手法 ✓
+theorem singleValued_idRel (α : Type) : SingleValued α α (idRel α) := by
+  sorry
+
+-- 练习 9（L 类）：**函数图的复合就是复合函数的图**（把"关系版"与"函数版"对上）。
+-- soko:hint 思路：→：拆 `∃ b`，把 `g` 作用在 `f a = b` 上（**搬运引理**），再与 `g b = c` 接起来；
+--   ←：见证取 `f a`，两条证据分别是自反与假设。
+-- soko:hint 目标形态：`(graph f • graph g) a c ↔ g (f a) = c`。
+-- soko:hint 关键件：`Iff.intro` · `Exists.elim`/`Exists.intro` · `rel_subst_right`
+--   （关系取 `fun u v => g u = g v`、沿 `f a = b` 把 `g (f a) = g (f a)` 搬成 `g (f a) = g b` ✓
+--   —— **别用 `congrArg`**，那个位置解不出宇宙层级 ✗）· `Eq.refl`/`Eq.trans` ✓
+theorem graph_comp (α β γ : Type) (f : α → β) (g : β → γ) (a : α) (c : γ) :
+    (graph α β f • graph β γ g) a c ↔ Eq.{1} γ (g (f a)) c := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry

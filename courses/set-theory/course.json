@@ -522,10 +522,13 @@
             "idempotent",
             "well-founded",
             "minimal-element",
-            "well-order"
+            "well-order",
+            "single-valued",
+            "graph",
+            "totality"
           ],
           "quota": {
-            "exercises": 60
+            "exercises": 70
           },
           "units": [
             {
@@ -563,6 +566,12 @@
               "title": "单元㊶ 良基关系（极小元原理）",
               "title_en": "Unit 41 — Well-Founded Relations",
               "unit": 41
+            },
+            {
+              "file": "units/unit45-single-valued.sokonanoda",
+              "title": "单元㊺ 关系的单值性与函数的图",
+              "title_en": "Unit 45 — Single-Valued Relations and Graphs of Functions",
+              "unit": 45
             }
           ]
         }
