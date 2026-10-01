@@ -2080,7 +2080,7 @@ fn notation_prefix_args<'a>(
         ) {
             return Ok(Some(solved));
         }
-        // **E19 刀1：待定参数（`SOKO_NOTATION_METAVAR`，2026-09-30 起默认开）** ——
+        // **E19 刀1：待定参数（`SOKO_NOTATION_METAVAR`，2026-10-01 起默认开）** ——
         // 只放宽**最大候选**这一读（操作数对齐到**最后** `operands.len()` 层，
         // 也就是语义上正确的那一读）。更小的候选是"错位读法"（实测 `∅ ≈ {b}`
         // 会掉到 `missing=1`：把 `{b}` 对到 `A : Set α` 上，解出 `α := β`，
