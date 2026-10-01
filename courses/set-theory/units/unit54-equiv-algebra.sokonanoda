@@ -105,3 +105,16 @@ theorem equiv_symm (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : B �
 theorem le_of_equiv (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : A ≼ B := by
   sorry
 
+-- 练习 7（L 类，**收尾**）：**`≈` 传递**（复合两个互逆对 —— I.8 的三条等价律到此齐了 ✓）。
+-- soko:hint 思路：两次 `Set.Equiv.elim` 拆出两对互逆映射 `(f1,g1)`、`(f2,g2)`；
+--   用 `Set.Equiv.mk` 交出**复合**的那一对 `(f2 ∘ f1, g1 ∘ g2)`；剩下的两条逆律
+--   **不用手写搬运** —— 库里已经备好 **`Set.Equiv.comp_left_aux`** /
+--   **`Set.Equiv.comp_right_aux`**（第 70–72 轮沉淀进去的"难写的那两步" ✓）。
+-- soko:hint 目标形态：`A ≈ B → B ≈ C → A ≈ C`。
+-- soko:hint 关键件：`Set.Equiv.elim`（两次）· `Set.Equiv.mk`（四条证据 ✓）·
+--   **`comp_left_aux` / `comp_right_aux`**（各一次，参数照库签名给 ✓）· `MapsTo` 那两条
+--   靠"外层的送进 + 内层的送进"直接喂 ✓
+theorem equiv_trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : A ≈ B) (h2 : B ≈ C) : A ≈ C := by
+  sorry
+
