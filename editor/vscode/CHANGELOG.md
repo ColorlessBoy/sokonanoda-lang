@@ -24,11 +24,16 @@
 
 - **Measured end to end, before → after** (real VS Code 1.138.0, same fixture,
   same operation): flicker **16 → 0** lights per 8 keystrokes; keystroke →
-  diagnostics **122 ms → 99 ms**; keystroke → goal panel **268 ms → 263 ms**.
+  diagnostics **122 ms → 99–113 ms**; keystroke → goal panel **268 ms → 262 ms**.
   The remaining panel latency is ~100 ms of VS Code's own diagnostics pipeline
   plus the extension's 150 ms multi-document debounce — the compiler itself is
   **0.2 ms per keystroke** on the same fixture. Full breakdown and the things
   deliberately *not* changed: `docs/design/edit-latency.md`.
+- **Project mode measured too** (`import` closures are a separate compile path):
+  a same-run A/B over 9 keystrokes — `progress.showDelayMs = 0` (the old
+  behaviour) lit the UI **18** times, exactly 2 per keystroke; the default lit it
+  **0** times. Same process, same machine, same fixture, so the difference cannot
+  be machine noise.
 
 ## [0.79.0] — 2026-10-01
 

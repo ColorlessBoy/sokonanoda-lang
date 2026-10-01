@@ -1764,6 +1764,14 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
         extensionApi.infoview.lastState(),
       ]);
 
+    // **树刷新频率**（用户反馈第 4 条点名要查「goal 树/decls 树刷新频率」）：
+    // `onDidChangeTreeData` 每 fire 一次，VS Code 就要重新解析一次这棵树。
+    // 数它 —— 这是"树被反复重绘"的直接计量。
+    let treeFires = 0;
+    const treeSub = extensionApi.goals.onDidChangeTreeData(() => {
+      treeFires += 1;
+    });
+
     // 模拟真实打字：每 80ms 一个字符（人的击键间隔），**中途不等反馈**——
     // 这正是用户抱怨的场景（连续敲、界面跟不上）。
     const typed = " intro hq";
@@ -1810,6 +1818,8 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const panelMs = Date.now() - t0;
     const panelChanged = panelSignature() !== panelBefore;
     watcher.dispose();
+    treeSub.dispose();
+    const treeFiresTotal = treeFires;
 
     // 结构判据（噪声免疫）：两个结果都必须**真的变过**。
     assert.ok(diagAfter > diagBefore, "最后一个键必须引起一次诊断发布");
@@ -1834,7 +1844,107 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       `editor_keystroke_latency file=${path.basename(uri.fsPath)} decls=24 ` +
         `diagnostics_ms=${diagMs} panel_ms=${panelMs} ` +
         `flicker_frames=${framesDuringTyping} keystrokes=${keystrokes} ` +
-        `lights_per_keystroke=${lightsPerKeystroke.toFixed(2)} typed=${JSON.stringify(typed)}`,
+        `lights_per_keystroke=${lightsPerKeystroke.toFixed(2)} ` +
+        `tree_fires=${treeFiresTotal} typed=${JSON.stringify(typed)}`,
+    );
+  });
+
+  // ── 编辑响应：**项目模式**（用户的真实工作面：课程单元带 `import`）────────
+  //
+  // 与上一条同形，但**同一个进程里跑 A/B 两臂**：
+  //   A 臂 = `sokonanoda.progress.showDelayMs = 0`（**旧行为**：begin 立刻亮）
+  //   B 臂 = 默认 300ms（修好的行为）
+  // 同一次运行、同一台机器、同一份夹具 ⇒ 闪烁那个数字**不可能**是机器差异造出来的
+  // （`AGENTS.md`：绝对毫秒不可转移 ⇒ 能自比的就不用跨机比 ✓）。
+  //
+  // 为什么必须单独一条：项目模式（`import` 闭包）与单文件走的是**两条**编译路
+  // （`docs/architecture.md` §4.5），用户在课程里编辑的就是这条。
+  test("edit responsiveness (project mode): A/B flicker with the show delay off vs on", async () => {
+    const uris = await writeProject("latency-project", {
+      "sokonanoda.toml": 'name = "latency-project"\n',
+      "lib/Lib.sokonanoda": [
+        "def Set (α : Type) : Type := α -> Prop",
+        "",
+        "def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a",
+        "",
+        'infix:50 " ∈ " => Set.mem',
+        "",
+      ].join("\n"),
+      "units/typing.sokonanoda": [
+        "import lib.Lib",
+        "",
+        "theorem prior (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h",
+        "",
+        "theorem typing_target (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := by",
+        "  sorry",
+        "",
+      ].join("\n"),
+    });
+    const uri = uris["units/typing.sokonanoda"];
+    await showDoc(uri);
+    await waitFor("the project fixture to be judged once", async () =>
+      vscode.languages.getDiagnostics(uri).some((d) => d.code === "sorry"),
+    );
+
+    const config = vscode.workspace.getConfiguration("sokonanoda");
+    const editor = vscode.window.activeTextEditor;
+    const doc = await vscode.workspace.openTextDocument(uri);
+    const lines = doc.getText().split("\n");
+    const targetLine = lines.findIndex((l) => l.includes("typing_target"));
+    const endChar = lines[targetLine].length;
+    const typed = " intro hq";
+
+    /// 打 `typed` 个字符（80ms 一个），返回**亮灯次数**。
+    /// 每次都从同一行尾接着往后打 —— 两臂打的是同一段文本，位置一致。
+    const typeBurst = async (startOffset) => {
+      const frames = [];
+      const original = extensionApi.infoview.setProgress.bind(extensionApi.infoview);
+      extensionApi.infoview.setProgress = (progress) => {
+        frames.push((progress && progress.phase) || "end");
+        return original(progress);
+      };
+      for (let i = 0; i < typed.length; i++) {
+        await editor.edit((b) =>
+          b.insert(new vscode.Position(targetLine, endChar + startOffset + i), typed[i]),
+        );
+        await sleep(80);
+      }
+      extensionApi.infoview.setProgress = original;
+      await sleep(600); // 停手，让这一臂的反馈落定
+      return frames.length;
+    };
+
+    let baselineLights;
+    let fixedLights;
+    try {
+      // A 臂：旧行为（立刻亮）。
+      await config.update("progress.showDelayMs", 0, vscode.ConfigurationTarget.Global);
+      await sleep(200); // 让配置落到扩展宿主（`getConfiguration` 是每次现读的）
+      baselineLights = await typeBurst(0);
+      // B 臂：修好的行为（延迟 300ms 展示）。
+      await config.update("progress.showDelayMs", undefined, vscode.ConfigurationTarget.Global);
+      await sleep(200);
+      fixedLights = await typeBurst(typed.length);
+    } finally {
+      await config.update("progress.showDelayMs", undefined, vscode.ConfigurationTarget.Global);
+    }
+
+    perfNote(
+      `editor_keystroke_latency_project keystrokes=${typed.length} ` +
+        `lights_showdelay_0=${baselineLights} lights_default=${fixedLights}`,
+    );
+
+    // 结构判据：旧行为**每键都亮**（`begin` 立刻生效 ⇒ 正常是 2N），修好后
+    // **不是每键都亮**。A 臂不写死 `=== 2N`：`showDelayMs=0` 的定时器与
+    // `end` 通知谁先到是竞态（谁赢都不影响"旧行为每键都亮"这个结论）。
+    assert.ok(
+      baselineLights >= typed.length,
+      `showDelayMs=0（旧行为）必须**每个键都亮** —— 这就是用户看到的"一闪一闪"：` +
+        `${typed.length} 个键亮了 ${baselineLights} 次`,
+    );
+    assert.ok(
+      fixedLights < typed.length,
+      `默认档（延迟展示）必须不再每键都亮：${typed.length} 个键亮了 ${fixedLights} 次`,
     );
   });
 });
