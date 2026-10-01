@@ -1,0 +1,103 @@
+-- ==========================================================================
+-- unit48-cover.sokonanoda —— 卷 I 单元㊽ **覆盖与广义并（⋃ / ⋂ 的包含演算）**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§9**（families）·
+-- Enderton《Elements of Set Theory》**§2.3**（arbitrary unions and intersections）。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.7 章深化 —— 单元㉑㉒ 讲 `⋃`/`⋂` 的**成员**，
+-- 本单元讲它们的**包含演算**：集合族之间的单调性，以及"何时含在某个集合里"✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **广义并的两条取用子**（成员 → 有族成员；族成员 ⊆ 广义并）；
+--   · **单调性**：族变大 ⇒ 并变大 ✓
+--   · **旗舰：`⋃F ⊆ A` 恰好等价于"每个族成员都 ⊆ A"**（两个方向各一条 ✓）；
+--   · **广义交的引入**（每个族成员都含 `x` ⇒ `x` 落在交里）· **空族的并没有元素** ✓
+--
+-- ⚠ **本单元的实测边界**（都写进 hint）：
+--   ① 两条边都是 `⊆`（`def` 头）时 `Iff.intro` **补不出前导实参** ✗（**G-73**）
+--      ⇒ 本单元一律**拆成单向引理**（这是"同一处连红 3 次就换招"换出来的 ✓）；
+--   ② 库里**没有** `Set.mem_sInter_intro` ✗ ⇒ 广义交的"引入"走**展开引理
+--      `Set.mem_sInter_iff` + `Iff.mpr`**（**先 λ 绑定再应用** ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.SUnion` · `lib.Set` · `lib.Order` · `lib.Rel`。
+--
+-- 依赖：单元㉑㉒（广义并与交）· 单元⑰（子集与包含）—— 本单元把两者接上。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+-- -------------------------------------------------------------
+-- 48.1 三条库引理（广义并 · 广义交 · 依赖函数空间）
+-- -------------------------------------------------------------
+
+-- 演示：广义并的成员刻画（"落在某个族成员里"）。
+theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ Set.sUnion α F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Set.mem_sUnion_iff α F x
+theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ Set.sInter α F ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Set.mem_sInter_iff α F x
+theorem demo_mem_pi (ι α : Type) (A : ι → Set α) (f : ι → α) :
+    f ∈ Set.pi ι α A ↔ ∀ (i : ι), f i ∈ A i :=
+  Set.mem_pi_iff ι α A f
+-- -------------------------------------------------------------
+-- 48.2 广义并：取用子 / 单调 / 含在某个集合里的判据
+-- -------------------------------------------------------------
+-- 练习 1（T 类）：**族成员含在广义并里**。
+
+-- soko:hint 关键件：`Set.mem_sUnion_intro`（参数写全）✓
+
+theorem subset_sUnion_intro (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
+    A ⊆ Set.sUnion α F := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+-- 练习 2（L 类）：**广义并的单调**（族变大 ⇒ 并变大）。
+
+-- soko:hint 关键件：`Set.mem_sUnion_elim`（消去：先给**目标命题**、再给见证处理函数）· 练习 1 ✓
+
+theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
+    Set.sUnion α F ⊆ Set.sUnion α G := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+-- 练习 3（L 类，**旗舰一向**）：每个族成员都 ⊆ A ⇒ 广义并 ⊆ A。
+
+-- soko:hint 关键件：`Set.mem_sUnion_elim` · 假设按 成员 / 成员性 两步应用 ✓
+
+theorem sUnion_subset_of_all_subset (α : Type) (F : Set (Set α)) (A : Set α)
+    (h : ∀ (B : Set α), B ∈ F → B ⊆ A) : Set.sUnion α F ⊆ A := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+-- 练习 4（L 类，**旗舰另一向**）：广义并 ⊆ A ⇒ 每个族成员都 ⊆ A。
+
+-- soko:hint 关键件：练习 1（在点与点的成员性上继续应用）· 假设 h ✓
+
+--   ⚠ 别把方向搞反：练习 1 给的「B ⊆ 广义并」**不是**「B ⊆ A」✗ —— 中间要过假设 ✓
+
+theorem all_subset_of_sUnion_subset (α : Type) (F : Set (Set α)) (A : Set α)
+    (h : Set.sUnion α F ⊆ A) : ∀ (B : Set α), B ∈ F → B ⊆ A := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+-- 练习 5（T 类）：**成员的直接传递**（族成员 + 点 ⇒ 落在广义并里）。
+
+-- soko:hint 关键件：`Set.mem_sUnion_intro` ✓
+
+theorem sUnion_mem_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ Set.sUnion α F := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+-- 练习 6（L 类）：**广义交的引入**（每个族成员都含 x ⇒ x 落在交里）。
+
+-- soko:hint 关键件：库里**没有** `Set.mem_sInter_intro` ✗ ⇒ 走展开引理
+
+--   `Set.mem_sInter_iff` + `Iff.mpr`（**先 λ 绑定再应用** ✓）✓
+
+theorem sInter_mem_of_all (α : Type) (F : Set (Set α)) (x : α)
+    (h : ∀ (B : Set α), B ∈ F → x ∈ B) : x ∈ Set.sInter α F := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+-- 练习 7（L 类）：**空族的并没有元素**。
+
+-- soko:hint 关键件：`Set.mem_sUnion_elim`（**目标写 `False` 可以** ✓ —— 那是消去的目标，
+
+--   不是 `Or.elim` 的**动机位** ✗，两者不同 ✓）✓
+
+theorem sUnion_empty_apply (α : Type) (x : α) :
+    ¬ (x ∈ Set.sUnion α (fun (_ : Set α) => False)) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry

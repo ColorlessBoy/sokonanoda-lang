@@ -233,10 +233,12 @@
             "right-inverse",
             "zf-axioms",
             "regularity",
-            "extensionality"
+            "extensionality",
+            "cover",
+            "sUnion-inclusion"
           ],
           "quota": {
-            "exercises": 20
+            "exercises": 27
           },
           "units": [
             {
@@ -250,6 +252,12 @@
               "title": "单元⑱ ZF 公理体系与正则性",
               "title_en": "Unit 18 — The ZF Axioms and Regularity",
               "unit": 18
+            },
+            {
+              "file": "units/unit48-cover.sokonanoda",
+              "title": "单元㊽ 覆盖与广义并",
+              "title_en": "Unit 48 — Covers and the Inclusion Calculus of sUnion/sInter",
+              "unit": 48
             }
           ]
         },

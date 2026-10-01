@@ -1,0 +1,54 @@
+import lib.Rel
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ Set.sUnion α F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Set.mem_sUnion_iff α F x
+
+theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ Set.sInter α F ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Set.mem_sInter_iff α F x
+
+theorem demo_mem_pi (ι α : Type) (A : ι → Set α) (f : ι → α) :
+    f ∈ Set.pi ι α A ↔ ∀ (i : ι), f i ∈ A i :=
+  Set.mem_pi_iff ι α A f
+
+theorem subset_sUnion_intro (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
+    A ⊆ Set.sUnion α F :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (x : α) => fun (hx : x ∈ A) =>
+    Set.mem_sUnion_intro α F A x hA hx
+
+theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
+    Set.sUnion α F ⊆ Set.sUnion α G :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    Set.mem_sUnion_elim α F x (x ∈ Set.sUnion α G) hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =>
+        Set.mem_sUnion_intro α G A x (h A hA) hxA)
+
+theorem sUnion_subset_of_all_subset (α : Type) (F : Set (Set α)) (A : Set α)
+    (h : ∀ (B : Set α), B ∈ F → B ⊆ A) : Set.sUnion α F ⊆ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    Set.mem_sUnion_elim α F x (x ∈ A) hx
+      (fun (B : Set α) (hB : B ∈ F) (hxB : x ∈ B) => h B hB x hxB)
+
+theorem all_subset_of_sUnion_subset (α : Type) (F : Set (Set α)) (A : Set α)
+    (h : Set.sUnion α F ⊆ A) : ∀ (B : Set α), B ∈ F → B ⊆ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (B : Set α) => fun (hB : B ∈ F) => fun (x : α) => fun (hx : x ∈ B) =>
+    h x (subset_sUnion_intro α F B hB x hx)
+
+theorem sUnion_mem_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ Set.sUnion α F :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Set.mem_sUnion_intro α F A x hA hx
+
+theorem sInter_mem_of_all (α : Type) (F : Set (Set α)) (x : α)
+    (h : ∀ (B : Set α), B ∈ F → x ∈ B) : x ∈ Set.sInter α F :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : x ∈ Set.sInter α F ↔ ∀ (B : Set α), B ∈ F → x ∈ B) => Iff.mpr hu h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (Set.mem_sInter_iff α F x)
+
+theorem sUnion_empty_apply (α : Type) (x : α) :
+    ¬ (x ∈ Set.sUnion α (fun (_ : Set α) => False)) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (hx : x ∈ Set.sUnion α (fun (_ : Set α) => False)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    Set.mem_sUnion_elim α (fun (_ : Set α) => False) x False hx
+      (fun (A : Set α) (hA : False) (hxA : x ∈ A) => hA)
