@@ -1,5 +1,26 @@
 ## [Unreleased]
 
+### Added
+
+- **Greek letters — and every other symbol the course uses — now have typing
+  abbreviations.** `\alpha` (or just `\a`) + `Tab` → `α`; `\Gamma` → `Γ`,
+  `\Omega` → `Ω`, … all **48 Greek letters** (24 lower case + 24 upper case).
+  Also added: the set-theory library's `≈ ∘ ⁻¹ • ⊕ ⋃₀ ⋂₀` and the
+  anonymous-constructor brackets **`\<` / `\>` → `⟨` `⟩`**. The table grew
+  **18 → 75 entries**; the keys are copied key-for-key from Lean 4
+  (`leanprover/vscode-lean4`), so muscle memory transfers.
+  - **Hovering tells you how to type it** — including on a Greek-letter
+    *variable* (`α : Prop` plus “输入：`\alpha`（别名 `\a`）”), which is exactly
+    where the old hover stayed silent.
+  - **`\a` is unambiguous**: it is a prefix of `\alpha` / `\approx` / `\and`, so
+    it waits while you keep typing and lands only once the word is closed
+    (space, punctuation or `Tab`) — the same rule Lean uses. Eager mode
+    (`sokonanoda.input.eager`) follows that rule too.
+  - Lean's single-letter keys that point at *logic* symbols (`\v` → ∨,
+    `\i` → ∩, `\o` → ∘, `\r` → →) are deliberately **not** taken: `\i` giving ∩
+    while `\in` gives ∈ is a trap. Design + upstream evidence:
+    `docs/design/notation-input.md`.
+
 > 编辑响应：**「敲一个字闪一下」没了**（2026-10-01 用户反馈「一闪一闪」）。
 
 ### Fixed

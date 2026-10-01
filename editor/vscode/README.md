@@ -152,45 +152,66 @@ skills.
   checker installs, materialized as a real read-only-by-convention file) and
   lands on the declaration line.
 
-## Typing notation (`\and` → `∧`)
+## Typing notation (`\and` → `∧`, `\alpha` → `α`)
 
-Write the abbreviation and press `Tab`:
+Write the abbreviation and press `Tab`. Logic and set theory first:
 
-| you type | you get | aliases |
-|---|---|---|
-| `\and` | `∧` | `\wedge` |
-| `\or` | `∨` | `\vee` |
-| `\iff` | `↔` | `\leftrightarrow` |
-| `\not` | `¬` | `\neg` |
-| `\to` | `→` | `\imp` |
-| `\forall` | `∀` | — |
-| `\exists` | `∃` | — |
-| `\ne` | `≠` | `\neq` |
-| `\in` | `∈` | `\mem` |
-| `\sub` | `⊆` | `\subseteq` |
-| `\cup` | `∪` | `\union` |
-| `\cap` | `∩` | `\inter` |
-| `\setminus` | `\` | — |
-| `\empty` | `∅` | `\emptyset` |
-| `\powerset` | `𝒫` | — |
-| `\compl` | `ᶜ` | `\complement` |
-| `\preim` | `⁻¹'` | `\preimage` |
-| `\xs` | `×ˢ` | — |
+| you type | you get | aliases | | you type | you get | aliases |
+|---|---|---|---|---|---|---|
+| `\and` | `∧` | `\wedge` | | `\in` | `∈` | `\mem` |
+| `\or` | `∨` | `\vee` | | `\sub` | `⊆` | `\subseteq` |
+| `\iff` | `↔` | `\leftrightarrow` | | `\cup` | `∪` | `\union` |
+| `\not` | `¬` | `\neg` | | `\cap` | `∩` | `\inter` |
+| `\to` | `→` | `\imp` | | `\setminus` | `\` | — |
+| `\forall` | `∀` | — | | `\empty` | `∅` | `\emptyset` |
+| `\exists` | `∃` | — | | `\powerset` | `𝒫` | — |
+| `\ne` | `≠` | `\neq` | | `\compl` | `ᶜ` | `\complement` |
+| `\approx` | `≈` | `\thickapprox` | | `\preim` | `⁻¹'` | `\preimage` |
+| `\comp` | `∘` | `\circ` | | `\xs` | `×ˢ` | — |
+| `\inv` | `⁻¹` | `\sy` | | `\oplus` | `⊕` | — |
+| `\smul` | `•` | `\bub` `\bu` | | `\sUnion` | `⋃₀` | — |
+| `\langle` | `⟨` | `\<` | | `\sInter` | `⋂₀` | — |
+| `\rangle` | `⟩` | `\>` | | | | |
 
-The abbreviations are **copied verbatim from Lean 4**, so the muscle memory
-transfers; hovering a symbol shows the same information (`∈` → "输入：`\in`
-（别名 `\mem`）"). `Tab` is only taken over **while a `\`-word is being typed**:
-ordinary indentation and suggestion acceptance in `.sokonanoda` files keep
-working, and a lone `\` (the set-difference symbol) is never rewritten.
+**Greek letters** — the spelled-out name, plus the short keys Lean 4 has
+(letter rows read *lower case · upper case*):
+
+| | lower | upper | | | lower | upper |
+|---|---|---|---|---|---|---|
+| alpha | `\alpha` `\a` | `\Alpha` | | nu | `\nu` | `\Nu` |
+| beta | `\beta` `\b` `\be` | `\Beta` | | xi | `\xi` | `\Xi` |
+| gamma | `\gamma` `\g` `\ga` | `\Gamma` `\G` | | omicron | `\omicron` | `\Omicron` |
+| delta | `\delta` `\de` | `\Delta` `\D` | | pi | `\pi` | `\Pi` `\p` `\P` |
+| epsilon | `\epsilon` `\e` `\ep` `\eps` | `\Epsilon` | | rho | `\rho` `\rh` | `\Rho` |
+| zeta | `\zeta` `\ze` | `\Zeta` | | sigma | `\sigma` `\si` | `\Sigma` `\S` |
+| eta | `\eta` `\et` | `\Eta` | | tau | `\tau` `\ta` | `\Tau` |
+| theta | `\theta` `\th` | `\Theta` | | upsilon | `\upsilon` | `\Upsilon` |
+| iota | `\iota` `\io` | `\Iota` | | phi | `\phi` `\ph` `\straightphi` | `\Phi` |
+| kappa | `\kappa` `\ka` | `\Kappa` | | chi | `\chi` `\c` `\ch` | `\Chi` |
+| lambda | `\lambda` `\la` `\lamda` `\lam` `\fun` | `\Lambda` `\L` `\Lamda` | | psi | `\psi` `\ps` | `\Psi` |
+| mu | `\mu` `\m` | `\Mu` | | omega | `\omega` `\om` | `\Omega` |
+
+The keys are **copied key-for-key from Lean 4**, so the muscle memory transfers;
+hovering a symbol shows the same information (`∈` → "输入：`\in`（别名 `\mem`）"),
+and so does hovering a Greek-letter **variable** (`α` → "输入：`\alpha`（别名 `\a`）").
+`Tab` is only taken over **while a `\`-word is being typed**: ordinary indentation
+and suggestion acceptance in `.sokonanoda` files keep working, and a lone `\`
+(the set-difference symbol) is never rewritten.
+
+A short key like `\a` is a **prefix** of `\alpha` / `\approx` / `\and`, so it
+waits while you keep typing and lands once the word is closed — that is Lean's
+own rule, and it is why the short keys are unambiguous. Lean's single-letter keys
+that point at *logic* symbols (`\v` → ∨, `\i` → ∩, `\o` → ∘, `\r` → →) are
+deliberately not taken: `\i` giving ∩ while `\in` gives ∈ would be a trap.
 
 Two more behaviours worth knowing:
 
 - **Eager mode** — set `sokonanoda.input.eager` to `true` and an abbreviation
   is replaced as soon as the word is complete, no `Tab` needed. While you keep
   typing letters a prefix waits (`\an` waits for `\and`, `\in` waits for
-  `\inter`); a separator closes the word and finishes it (`\in ` → `∈ `,
-  `\sub ` → `⊆ `). Off by default, because `Tab` is the explicit, reviewable
-  path.
+  `\inter`, `\a` waits for `\alpha`); a separator closes the word and finishes it
+  (`\in ` → `∈ `, `\sub ` → `⊆ `, `\a ` → `α `). Off by default, because `Tab` is
+  the explicit, reviewable path.
 - **Undo** — a replacement is a single edit, so **one undo takes it back in
   one step**; with several cursors, each abbreviation is rewritten in that
   same single edit.
