@@ -1,0 +1,69 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+theorem demo_mem_inter (α : Type) (x : α) (A B : Set α) :
+    (A ∩ B) x ↔ A x ∧ B x :=
+  Set.mem_inter_iff x A B
+
+theorem demo_mem_union (α : Type) (x : α) (A B : Set α) :
+    (A ∪ B) x ↔ A x ∨ B x :=
+  Set.mem_union x A B
+
+theorem demo_mem_sdiff (α : Type) (x : α) (A B : Set α) :
+    (A \ B) x ↔ A x ∧ ¬ (B x) :=
+  Set.mem_sdiff x A B
+
+theorem inter_union_subset (α : Type) (A B C : Set α) :
+    A ∩ (B ∪ C) ⊆ (A ∩ B) ∪ (A ∩ C) :=
+  fun (x : α) => fun (h : (A ∩ (B ∪ C)) x) =>
+    (fun (hu : A x ∧ (B ∪ C) x) =>
+      Or.elim (B x) (C x) ((A ∩ B) x ∨ (A ∩ C) x)
+        (fun (hb : B x) =>
+          Or.inl ((A ∩ B) x) ((A ∩ C) x) (And.intro (A x) (B x) (And.left hu) hb))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+        (fun (hc : C x) =>
+          Or.inr ((A ∩ B) x) ((A ∩ C) x) (And.intro (A x) (C x) (And.left hu) hc))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+        ((fun (hv : (B ∪ C) x ↔ B x ∨ C x) => Iff.mp hv) (Set.mem_union x B C)
+          (And.right hu))) h
+
+theorem union_inter_subset (α : Type) (A B C : Set α) :
+    (A ∩ B) ∪ (A ∩ C) ⊆ A ∩ (B ∪ C) :=
+  fun (x : α) => fun (h : ((A ∩ B) ∪ (A ∩ C)) x) =>
+    (fun (hu : (A ∩ B) x ∨ (A ∩ C) x) =>
+      And.intro (A x) ((B ∪ C) x)
+        (Or.elim ((A ∩ B) x) ((A ∩ C) x) (A x)
+          (fun (h1 : (A ∩ B) x) =>
+            (fun (hv : A x ∧ B x) => And.left hv) h1)
+          (fun (h2 : (A ∩ C) x) =>
+            (fun (hv : A x ∧ C x) => And.left hv) h2) hu)
+        (Or.elim ((A ∩ B) x) ((A ∩ C) x) ((B ∪ C) x)
+          (fun (h1 : (A ∩ B) x) =>
+            (fun (hv : B x) => Or.inl (B x) (C x) hv)  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+              ((fun (hw : A x ∧ B x) => And.right hw) h1))
+          (fun (h2 : (A ∩ C) x) =>
+            (fun (hv : C x) => Or.inr (B x) (C x) hv)  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+              ((fun (hw : A x ∧ C x) => And.right hw) h2)) hu))
+      ((fun (hv : ((A ∩ B) ∪ (A ∩ C)) x ↔ (A ∩ B) x ∨ (A ∩ C) x) => Iff.mp hv)
+        (Set.mem_union x (A ∩ B) (A ∩ C)) h)
+
+theorem inter_union_subset_apply (α : Type) (A B C : Set α) (x : α)
+    (h : (A ∩ (B ∪ C)) x) : (A ∩ B) x ∨ (A ∩ C) x :=
+  inter_union_subset α A B C x h
+
+theorem union_inter_subset_apply (α : Type) (A B C : Set α) (x : α)
+    (h : ((A ∩ B) ∪ (A ∩ C)) x) : (A ∩ (B ∪ C)) x :=
+  union_inter_subset α A B C x h
+
+theorem union_subset_union (α : Type) (A B C D : Set α)
+    (h1 : A ⊆ B) (h2 : C ⊆ D) : (A ∪ C) ⊆ (B ∪ D) :=
+  fun (x : α) => fun (h : (A ∪ C) x) =>
+    Or.elim (A x) (C x) (B x ∨ D x)
+      (fun (ha : A x) => Or.inl (B x) (D x) (h1 x ha))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+      (fun (hc : C x) => Or.inr (B x) (D x) (h2 x hc))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+      ((fun (hv : (A ∪ C) x ↔ A x ∨ C x) => Iff.mp hv) (Set.mem_union x A C) h)
+
+theorem inter_subset_inter (α : Type) (A B C D : Set α)
+    (h1 : A ⊆ B) (h2 : C ⊆ D) : (A ∩ C) ⊆ (B ∩ D) :=
+  fun (x : α) => fun (h : (A ∩ C) x) =>
+    (fun (hu : A x ∧ C x) =>
+      And.intro (B x) (D x) (h1 x (And.left hu)) (h2 x (And.right hu))) h  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参

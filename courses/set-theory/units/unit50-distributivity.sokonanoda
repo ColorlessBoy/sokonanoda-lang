@@ -1,0 +1,109 @@
+-- ==========================================================================
+-- unit50-distributivity.sokonanoda —— 卷 I 单元㊿ **分配律族（二元运算）**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§4–5**（unions and
+-- intersections / the algebra of sets）；Enderton《Elements of Set Theory》**§1.5**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.11 章深化 —— 接单元㊽/㊾ 的广义运算，
+-- 本单元回到**二元**运算，把分配律与单调性做成一组**包含**引理 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **旗舰：`A ∩ (B ∪ C) ⊆ (A ∩ B) ∪ (A ∩ C)`**（分配的那一向 ✓）；
+--   · **反向：`(A ∩ B) ∪ (A ∩ C) ⊆ A ∩ (B ∪ C)`** —— 两条合起来就是**分配律** ✓；
+--   · 两条的**逐点形态**（画布里的练习 3/4 ✓）；
+--   · **单调性**：`A ⊆ B ⇒ C ⊆ D ⇒ A ∪ C ⊆ B ∪ D` 与 `A ∩ C ⊆ B ∩ D` ✓
+--
+-- ⚠ **本单元写之前的纪律**（第 581 轮的教训）：**命题先求真** ✓ —— 每条都先取
+--   `A = ∅` / `B = C` / 单点找过反例 ✓（本轮另有一条候选
+--   `A ∪ (B ∩ C) ⊆ (A ∪ B) ∩ (A ∪ C)` 的**逐点证明**，写出来才发现自己写成恒等函数 ✗
+--   —— 真命题、假证明 ⇒ 按纪律**不收入** ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Order` · `lib.Rel`。
+--
+-- 依赖：单元⑨⑩⑪（并与交 · 差与补）· 单元㉘（De Morgan 与分配律的**成员**版）·
+--   单元㊽㊾（广义运算的包含演算）✓
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- -------------------------------------------------------------
+-- 50.1 三条库引理（交 · 并 · 差 的成员刻画）
+-- -------------------------------------------------------------
+
+-- 演示：交的成员刻画。
+theorem demo_mem_inter (α : Type) (x : α) (A B : Set α) :
+    (A ∩ B) x ↔ A x ∧ B x :=
+  Set.mem_inter_iff x A B
+theorem demo_mem_union (α : Type) (x : α) (A B : Set α) :
+    (A ∪ B) x ↔ A x ∨ B x :=
+  Set.mem_union x A B
+theorem demo_mem_sdiff (α : Type) (x : α) (A B : Set α) :
+    (A \ B) x ↔ A x ∧ ¬ (B x) :=
+  Set.mem_sdiff x A B
+-- -------------------------------------------------------------
+-- 50.2 分配律的两向（包含形态）
+-- -------------------------------------------------------------
+-- 练习 1（L 类，**旗舰一向**）：**`A ∩ (B ∪ C) ⊆ (A ∩ B) ∪ (A ∩ C)`**。
+
+-- soko:hint 思路：拆开 `∩` 得 `A x` 与 `B x ∨ C x`；对那个 `∨` 分两支，
+
+--   各造一个 `∩` 的成员，再用 `Or.inl`/`Or.inr` 送进右边的并。
+
+-- soko:hint 关键件：`Set.mem_union`（**取用子**：先 λ 绑定再应用 ✓）· `Or.elim`
+
+--   （**动机位放正命题** ✓）· `And.left`/`And.right` · `And.intro` ✓
+
+theorem inter_union_subset (α : Type) (A B C : Set α) :
+    A ∩ (B ∪ C) ⊆ (A ∩ B) ∪ (A ∩ C) := by
+  sorry
+-- 练习 2（L 类，**旗舰反向**）—— 练习 1 的方向反过来。
+
+-- soko:hint 思路：先拆"在并里"，两支分别给出 `A x` 与 `B x`（或 `C x`），
+
+--   再拼成 `A x` 与 `B x ∨ C x`。
+
+-- soko:hint 关键件：`Set.mem_union`（**两次：一次取、一次折回**）· `Or.elim` ·
+
+--   `And.intro` · `Or.inl`/`Or.inr` ✓
+
+theorem union_inter_subset (α : Type) (A B C : Set α) :
+    (A ∩ B) ∪ (A ∩ C) ⊆ A ∩ (B ∪ C) := by
+  sorry
+-- 练习 3（T 类）：**旗舰一向的逐点形态**。
+
+-- soko:hint 关键件：练习 1（**按 论域 · 三个集合 · 点 · 前提 的顺序应用**）✓
+
+theorem inter_union_subset_apply (α : Type) (A B C : Set α) (x : α)
+    (h : (A ∩ (B ∪ C)) x) : (A ∩ B) x ∨ (A ∩ C) x := by
+  sorry
+-- 练习 4（T 类）：**旗舰反向的逐点形态**。
+
+-- soko:hint 关键件：练习 2（同样按 论域 · 三个集合 · 点 · 前提 应用）✓
+
+theorem union_inter_subset_apply (α : Type) (A B C : Set α) (x : α)
+    (h : ((A ∩ B) ∪ (A ∩ C)) x) : (A ∩ (B ∪ C)) x := by
+  sorry
+
+-- -------------------------------------------------------------
+-- 50.3 单调性：并与交对子集关系的作用
+-- -------------------------------------------------------------
+-- 练习 5（L 类）：**并的单调**（两个包含 ⇒ 并的包含）。
+
+-- soko:hint 思路：`x` 在左边的并里 ⇒ 分两支 ⇒ 分别在 `B`、`D` 里 ⇒ 送进右边的并。
+
+-- soko:hint 关键件：`Set.mem_union`（先 λ 绑定再应用）· `Or.elim` · `Or.inl`/`Or.inr` ✓
+
+theorem union_subset_union (α : Type) (A B C D : Set α)
+    (h1 : A ⊆ B) (h2 : C ⊆ D) : (A ∪ C) ⊆ (B ∪ D) := by
+  sorry
+-- 练习 6（L 类）：**交的单调**（两个包含 ⇒ 交的包含）。
+
+-- soko:hint 思路：拆开 `∩` 得两个成员，各自沿包含走一步，再拼回 `∩`。
+
+-- soko:hint 关键件：`And.left`/`And.right` · `And.intro` · 两个包含假设**按 点 · 前提 应用** ✓
+
+theorem inter_subset_inter (α : Type) (A B C D : Set α)
+    (h1 : A ⊆ B) (h2 : C ⊆ D) : (A ∩ C) ⊆ (B ∩ D) := by
+  sorry

@@ -425,10 +425,11 @@
             "pointwise-order",
             "function-space",
             "symmetric-difference",
-            "boolean-ring"
+            "boolean-ring",
+            "distributivity"
           ],
           "quota": {
-            "exercises": 58
+            "exercises": 64
           },
           "units": [
             {
@@ -466,6 +467,12 @@
               "title": "单元㊻ 对称差与布尔环",
               "title_en": "Unit 46 — Symmetric Difference and the Boolean Ring",
               "unit": 46
+            },
+            {
+              "file": "units/unit50-distributivity.sokonanoda",
+              "title": "单元㊿ 分配律族",
+              "title_en": "Unit 50 — The Distributivity Family (Binary Operations)",
+              "unit": 50
             }
           ]
         },
