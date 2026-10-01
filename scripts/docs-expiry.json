@@ -132,6 +132,12 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
+    "docs/design/declaration-incremental.md": {
+      "expires": "2027-10-01",
+      "renewed": "2026-10-01",
+      "tier": "spec",
+      "reason": "按声明粒度增量检查的唯一权威：G-29/G-31 的实测读数与 S1-S4 分片判据"
+    },
     "docs/design/deepseek-harness.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
