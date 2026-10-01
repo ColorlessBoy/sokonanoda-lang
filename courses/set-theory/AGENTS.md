@@ -134,3 +134,13 @@ python3 scripts/notation-lint.py --root <file>   # 单文件
 - **复现件要能独立站住**：`.sokonanoda` 复现件在 `docs/gaps/repro/` 下**解析不到 `lib.*`** ✗
   （模块根不同）⇒ 需要库的复现件写成 **`.sh`**（判据 = 跑一条真判卷 ✓，退出码约定见
   `docs/gaps/README.md`）✓。
+
+**每次往 `lib/` 加声明之后，跑一次闭包守卫**（L-09 换来的）：
+
+```bash
+bash courses/set-theory/tools/check-lib-closure.sh   # 把所有 lib 一次 import 完再判卷，必须 exit 0
+```
+
+—— *实证* **L-09**：`lib/Fun` 与 `lib/SUnion` **都定义 `Set.pi`** ✗，各自单文件都绿 ✓，
+而**同时 import 就炸** ✗；课程门禁按**单元**判卷 ⇒ 只要没有单元同时 import 两者，
+冲突就**永远不暴露** ✗。**"每个模块单独绿" ≠ "库是可组合的"** ✓
