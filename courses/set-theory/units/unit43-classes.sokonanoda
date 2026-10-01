@@ -1,0 +1,148 @@
+-- ==========================================================================
+-- unit43-classes.sokonanoda —— 卷 I 单元㊸ **等价类与商集的代数刻画**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§7**（等价关系与商）；
+-- Enderton《Elements of Set Theory》**§3.5** 的 equivalence classes 一段。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.10 章深化 —— 用 I.13 的**代数语言**把
+-- 单元㉕㉖ 的「等价类/商集」重做一遍，两章就此接上）。
+--
+-- 本单元的「该学的定理」（**类相等的代数判据**）：
+--   · **成员刻画** · **自己是自己的成员**（自反）· **相关即属于**；
+--   · **旗舰一：`[a] ⊆ [b] ⟺ r b a`**（包含关系用**一次**相关性就够）；
+--   · **旗舰二：`[a] = [b]`（逐点）⟺ `r a b`** —— 这是「Halmos §7：两个类要么相同
+--     要么不相交」的代数内核 ✓
+--   · **商集的成员是类** · **类的非空性** · **由相关性给出的包含** ·
+--     **两个类要么相同要么不相交** ✓
+--
+-- ⚠ **「恰好相同」只能写成逐点 `↔`**：谓词的**相等**要**函数外延**（**G-77**），
+--   所以旗舰二写成 `(∀ c, [a] c ↔ [b] c) ↔ r a b` ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Rel` · `lib.Order` · `lib.Set`。
+--
+-- 依赖：单元㉕㉖（等价关系与划分）· 单元㊱㊲（关系的代数）—— 本单元把两条线合到一处。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 43.1 三条库引理（类的成员刻画 · 商集的展开 · 自反性取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：等价类的成员刻画（`[a]` 就是「与 `a` 相关的那些点」）。
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+theorem demo_mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  Rel.mem_classes α r C
+theorem demo_equivalence_refl (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a : α) :
+    r a a :=
+  equivalence_refl α r h a
+-- ─────────────────────────────────────────────────────────────
+-- 43.2 类的成员：自反 · 相关即属于 · 包含的两条
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：**类的成员刻画**（库里现成的）。
+-- soko:hint 思路：两边逐字相同 ⇒ 交给库里的展开引理。
+-- soko:hint 目标形态：`EquivClass r a c ↔ r a c`。
+-- soko:hint 关键件：`Rel.mem_equivClass` ✓
+theorem equivClass_mem (α : Type) (r : Rel α α) (a c : α) :
+    Rel.EquivClass α r a c ↔ r a c := by
+  sorry
+
+-- 练习 2（T 类）：**`a` 属于它自己的类**（自反性的直接用处）。
+-- soko:hint 思路：把自反取用子用在 `a` 上。
+-- soko:hint 目标形态：`IsEquivalence r → EquivClass r a a`。
+-- soko:hint 关键件：`equivalence_refl`（**参数：论域 · 关系 · 假设 · 点**）✓
+theorem equivClass_self (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a : α) :
+    Rel.EquivClass α r a a := by
+  sorry
+
+-- 练习 3（T 类）：**相关即属于**（类的成员就是相关性本身）。
+-- soko:hint 思路：假设就是结论 ⇒ 直接交出去。
+-- soko:hint 目标形态：`r a b → EquivClass r a b`。
+-- soko:hint 关键件：恒等函数 ✓
+theorem related_mem_equivClass (α : Type) (r : Rel α α) (a b : α) (h : r a b) :
+    Rel.EquivClass α r a b := by
+  sorry
+
+-- 练习 4（L 类，**旗舰之一**）：**`[a] ⊆ [b] ⟺ r b a`**。
+-- soko:hint 思路：→：把包含用在 `a`（它属于 `[a]`，由自反给出）⇒ 得 `r b a`；
+--   ←：给定 `r b a` 与 `r a c`，用传递性接成 `r b c`。
+-- soko:hint 目标形态：`IsEquivalence r → ((∀ c, [a] c → [b] c) ↔ r b a)`。
+-- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· 练习 2 · 传递性假设**先 λ 绑定再应用**
+--   ⚠ **注意右边是 `r b a`（反着的）**：从 `[a] ⊆ [b]` 得到的是 `r b a` ✓
+theorem equivClass_subset_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) ↔ r b a := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 43.3 旗舰二：**类相等 ⟺ 相关**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 5（L 类，**本单元旗舰**）：**两个类（逐点）相等 ⟺ 两点相关**。
+-- soko:hint 思路：→：把逐点的 `↔` 用在 `a` 上（`a ∈ [a]` 由自反给出）⇒ 得 `r b a`，
+--   再**掉头**得 `r a b`；←：给定 `r a b`，对每个 `c` 造双向（一族用「掉头 + 传递」，
+--   另一族用「传递」）。
+-- soko:hint 目标形态：`IsEquivalence r → ((∀ c, [a] c ↔ [b] c) ↔ r a b)`。
+-- soko:hint 关键件：`Iff.intro`（**两次**：外层 + 每个 `c` 内层）· `equivalence_symm`
+--   （**掉头时两个点的顺序要对调** —— 实测踩过）· 传递性假设先 λ 绑定 ✓
+--   ⚠ **不要写成谓词相等**：那要函数外延（**G-77**）⇒ 只能逐点 ✓
+theorem equivClass_eq_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) ↔ r a b := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 43.4 商集：成员 · 非空 · 由相关性给出的包含 · 两类的关系
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（T 类）：**每个等价类都是商集的成员**。
+-- soko:hint 思路：商集展开是「存在一个点，使 `C c ↔ r a c`」⇒ 见证取 `a` 自己，
+--   逐点那一支就是库里的成员刻画。
+-- soko:hint 目标形态：`Classes r [a]`。
+-- soko:hint 关键件：`Exists.intro`（**前导实参写全**）· `Rel.mem_equivClass` ✓
+theorem classes_mem (α : Type) (r : Rel α α) (a : α) :
+    Rel.Classes α r (Rel.EquivClass α r a) := by
+  sorry
+
+-- 练习 7（L 类）：**商集的成员都非空**（有见证点落在里面）。
+-- soko:hint 思路：拆开商集的成员性得到生成点 `b`；把逐点的 `↔` 用在 `b` 上，
+--   再用**自反性**给出 `r b b` ⇒ 得 `C b`。
+-- soko:hint 目标形态：`IsEquivalence r → Classes r C → (∃ a, C a)`。
+-- soko:hint 关键件：`Exists.elim`/`Exists.intro`（前导实参写全）· `Iff.mpr`（这一处方向对得上）·
+--   `equivalence_refl` ✓
+theorem classes_nonempty (α : Type) (r : Rel α α) (heq : IsEquivalence α r) (C : α → Prop)
+    (h : Rel.Classes α r C) : ∃ (a : α), C a := by
+  sorry
+
+-- 练习 8（T 类）：**类包含自己**（恒等那一支）。
+-- soko:hint 思路：假设就是结论 ⇒ 恒等函数。
+-- soko:hint 目标形态：`[a] c → [a] c`。
+-- soko:hint 关键件：直接写恒等函数 ✓
+theorem equivClass_subset_self (α : Type) (r : Rel α α) (a c : α)
+    (h : Rel.EquivClass α r a c) : Rel.EquivClass α r a c := by
+  sorry
+
+-- 练习 9（T 类）：**由相关性给出的包含**（练习 4 的「←」方向单独用）。
+-- soko:hint 思路：给定 `r b a` 与 `r a c`，用传递性接成 `r b c`。
+-- soko:hint 目标形态：`IsEquivalence r → r b a → ∀ c, [a] c → [b] c`。
+-- soko:hint 关键件：传递性假设**先 λ 绑定再应用**（三个点 + 两条前提）✓
+theorem related_equivClass_subset (α : Type) (r : Rel α α) (h : IsEquivalence α r)
+    (a b : α) (hba : r b a) : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c := by
+  sorry
+
+-- 练习 10（L 类，**本单元的"必破"改写**）：**两类只要有公共点，就逐点相同**。
+-- soko:hint 思路：设公共点 `c0`（`r a c0` 与 `r b c0`）——由它先造出 `r b a`
+--   （传递 + 掉头），再用两次传递分别给出两个方向。
+-- soko:hint 目标形态：`IsEquivalence r → (∃ c, [a] c ∧ [b] c) → ∀ c, [a] c ↔ [b] c`。
+-- soko:hint 关键件：`Exists.elim`（前导实参写全）· 传递性假设**先 λ 绑定再应用**（**三次**）·
+--   `equivalence_symm`（掉头时两个点对调）· `And.left`/`And.right` ✓
+--   ⚠ **为什么不做成"要么相同要么不相交"的析取**：那需要**排中**（判断"有没有公共点"）
+--   ⇒ **G-74** 挡住；本语言只能给出**有公共点 ⇒ 相同**这一半 ✓ 如实记在这里 ✓
+theorem equivClass_inter_nonempty_imp_eq (α : Type) (r : Rel α α) (h : IsEquivalence α r)
+    (a b : α) (hne : ∃ (c : α), Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c) :
+    ∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c := by
+  sorry

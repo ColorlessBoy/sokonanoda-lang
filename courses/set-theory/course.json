@@ -344,10 +344,12 @@
             "correspondence",
             "quotient-type",
             "well-definedness",
-            "descent"
+            "descent",
+            "equivalence-class",
+            "quotient"
           ],
           "quota": {
-            "exercises": 39
+            "exercises": 49
           },
           "units": [
             {
@@ -373,6 +375,12 @@
               "title": "单元㉗ 商类型与良定义性",
               "title_en": "Unit 27 — Quotient Types and Well-Definedness",
               "unit": 27
+            },
+            {
+              "file": "units/unit43-classes.sokonanoda",
+              "title": "单元㊸ 等价类与商集的代数刻画",
+              "title_en": "Unit 43 — Equivalence Classes, Algebraically",
+              "unit": 43
             }
           ]
         },

@@ -1,0 +1,101 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+theorem demo_mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  Rel.mem_classes α r C
+
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+
+theorem demo_equivalence_refl (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a : α) :
+    r a a :=
+  equivalence_refl α r h a
+
+theorem equivClass_mem (α : Type) (r : Rel α α) (a c : α) :
+    Rel.EquivClass α r a c ↔ r a c :=
+  Rel.mem_equivClass α r a c
+
+theorem equivClass_self (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a : α) :
+    Rel.EquivClass α r a a :=
+  equivalence_refl α r h a
+
+theorem related_mem_equivClass (α : Type) (r : Rel α α) (a b : α) (h : r a b) :
+    Rel.EquivClass α r a b :=
+  h
+
+theorem equivClass_subset_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) ↔ r b a :=
+  Iff.intro (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) (r b a)
+    (fun (hsub : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) =>
+      hsub a (equivClass_self α r h a))
+    (fun (hba : r b a) => fun (c : α) => fun (hac : Rel.EquivClass α r a c) =>
+      (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+        ht b a c hba hac) (equivalence_trans α r h))
+
+theorem equivClass_eq_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) ↔ r a b :=
+  Iff.intro (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) (r a b)
+    (fun (heq : ∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) =>
+      (fun (hu : r b a) => equivalence_symm α r h b a hu)
+        (Iff.mp (heq a) (equivClass_self α r h a)))
+    (fun (hab : r a b) => fun (c : α) =>
+      Iff.intro (Rel.EquivClass α r a c) (Rel.EquivClass α r b c)
+        (fun (hac : Rel.EquivClass α r a c) =>
+          (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+            ht b a c (equivalence_symm α r h a b hab) hac) (equivalence_trans α r h))
+        (fun (hbc : Rel.EquivClass α r b c) =>
+          (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+            ht a b c hab hbc) (equivalence_trans α r h)))
+
+theorem equivClass_eq_of_mem (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α)
+    (hab : r a b) : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c :=
+  Iff.mpr (equivClass_subset_iff α r h a b) (equivalence_symm α r h a b hab)
+
+theorem classes_mem (α : Type) (r : Rel α α) (a : α) :
+    Rel.Classes α r (Rel.EquivClass α r a) :=
+  Exists.intro α (fun (b : α) => ∀ (c : α), Rel.EquivClass α r a c ↔ r b c) a
+    (fun (c : α) => Rel.mem_equivClass α r a c)
+
+theorem classes_nonempty (α : Type) (r : Rel α α) (heq : IsEquivalence α r) (C : α → Prop)
+    (h : Rel.Classes α r C) : ∃ (a : α), C a :=
+  Exists.elim α (fun (b : α) => ∀ (c : α), C c ↔ r b c) (∃ (a : α), C a) h
+    (fun (b : α) (hb : ∀ (c : α), C c ↔ r b c) =>
+      Exists.intro α C b (Iff.mpr (hb b) (equivalence_refl α r heq b)))
+
+theorem equivClass_subset_self (α : Type) (r : Rel α α) (a c : α)
+    (h : Rel.EquivClass α r a c) : Rel.EquivClass α r a c :=
+  h
+
+theorem related_equivClass_subset (α : Type) (r : Rel α α) (h : IsEquivalence α r)
+    (a b : α) (hba : r b a) : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c :=
+  fun (c : α) => fun (hac : Rel.EquivClass α r a c) =>
+    (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+      ht b a c hba hac) (equivalence_trans α r h)
+
+theorem equivClass_inter_nonempty_imp_eq (α : Type) (r : Rel α α) (h : IsEquivalence α r)
+    (a b : α) (hne : ∃ (c : α), Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c) :
+    ∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c :=
+  Exists.elim α (fun (c : α) => Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c)
+    (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) hne
+    (fun (c0 : α) (hc : Rel.EquivClass α r a c0 ∧ Rel.EquivClass α r b c0) =>
+      fun (c : α) =>
+        Iff.intro (Rel.EquivClass α r a c) (Rel.EquivClass α r b c)
+          (fun (hac : Rel.EquivClass α r a c) =>
+            (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+              ht b a c
+                (ht b c0 a (And.right hc)
+                  ((fun (hs : ∀ (x : α) (y : α), r x y → r y x) =>
+                    hs a c0 (And.left hc)) (equivalence_symm α r h)))
+                hac) (equivalence_trans α r h))
+          (fun (hbc : Rel.EquivClass α r b c) =>
+            (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+              ht a b c
+                ((fun (hs : ∀ (x : α) (y : α), r x y → r y x) =>
+                  hs b a (ht b c0 a (And.right hc)
+                    ((fun (hs2 : ∀ (x : α) (y : α), r x y → r y x) =>
+                      hs2 a c0 (And.left hc)) (equivalence_symm α r h))))
+                  (equivalence_symm α r h))
+                hbc) (equivalence_trans α r h)))
