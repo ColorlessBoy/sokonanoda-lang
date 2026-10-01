@@ -1,0 +1,179 @@
+-- ==========================================================================
+-- unit31-monotone.sokonanoda —— 卷 I 单元㉛ **单调函数与序同构保持确界**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§7.1 Orderings**
+-- 的 order-preserving map 那一段；Halmos《Naive Set Theory》**§14 Order**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.11 章第四个单元）。
+--
+-- 本单元的"该学的定理"：**单调的合成还是单调** · **常函数单调** ·
+--   **单调把上界/下界送到像上** · **序反射（"像上有序 ⇒ 原来有序"）** ·
+--   **旗舰：序同构保持上确界** —— 单调 + 反射 + 满射 ⇒ `f (sup A)` 是像族的上确界 ✓
+--
+-- ⚠ **为什么旗舰要三条假设**（这是本单元最值得学的一课）：**光有单调不够** ——
+--   设 `c` 是像族的上界，要证 `f b ≤ c`，得**把 `c` 拉回原域**（取 `a₀` 使 `f a₀ = c`）才用得上
+--   `b` 的最小性 ⇒ 所以要**满射**；而拉回来之后还要把 `f a ≤ f a₀` **反转**成 `a ≤ a₀`
+--   ⇒ 所以要**反射** ✓ 三条假设合起来正是"序同构"（§7.1 的定义）✓
+--
+-- **写法约定**：`Monotone` / `OrderReflecting` / `IsSup` / `UpperBound` 都是**定义头**
+--   ⇒ 用之前先 **λ 绑定**（G-73 形状 ①）；库里有取用子（`monotone_apply` / `reflecting_apply`）优先用 ✓
+--   **搬运等式要挑对引理与方向**：`rel_subst_left` 改的是第二个坐标（向前），
+--   `rel_subst_right` 也是第二个坐标（向后）；**要改第一个坐标就把关系翻过来**（本单元实测）✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Order`（单调/反射/确界）· `lib.Set` · `lib.Rel`。
+--
+-- 依赖：单元㉙㉚（确界与格）—— 本单元研究"什么函数**保持**确界"。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 31.1 三条库引理（单调/反射的展开 + 单调的用法）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：单调的展开（"保序"）。
+theorem demo_monotone_def (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β) :
+    Monotone α β r s f ↔ ∀ (a b : α), r a b → s (f a) (f b) :=
+  monotone_def α β r s f
+
+-- 演示：反射的展开（"像上有序 ⇒ 原来有序"）。
+theorem demo_orderReflecting_def (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) :
+    OrderReflecting α β r s f ↔ ∀ (a b : α), s (f a) (f b) → r a b :=
+  orderReflecting_def α β r s f
+
+-- 演示：把单调用在具体的两个点上。
+theorem demo_monotone_apply (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β)
+    (h : Monotone α β r s f) (a b : α) (hab : r a b) : s (f a) (f b) :=
+  monotone_apply α β r s f h a b hab
+
+-- ─────────────────────────────────────────────────────────────
+-- 31.2 单调的**代数**：恒等 · 合成 · 常函数
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：**恒等是单调的**（假设就是结论）。
+-- soko:hint 思路：逐点交出去 —— 三个 λ 之后剩下的就是那条假设。
+-- soko:hint 目标形态：`Monotone α α r r (fun a => a)`。
+-- soko:hint 关键件：直接写 λ（`Monotone` 是定义头，λ 形态正好对得上）✓
+theorem monotone_id (α : Type) (r : α → α → Prop) : Monotone α α r r (fun (a : α) => a) := by
+  sorry
+
+-- 练习 2（L 类）：**单调的合成还是单调**（先用内层，再用外层）。
+-- soko:hint 思路：给定 `r a b`，先用 `f` 的单调性得 `s (f a) (f b)`，再用 `g` 的单调性。
+-- soko:hint 目标形态：`Monotone α β r s f → Monotone β γ s t g → Monotone α γ r t (fun a => g (f a))`。
+-- soko:hint 关键件：两处的单调假设都是**定义头** ⇒ 先 λ 绑定（或直接用库里取用子
+--   `monotone_apply`，参数表：两个论域 · 两个关系 · 函数 · 假设 · 两个点 · 序证据）✓
+theorem monotone_comp (α β γ : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (t : γ → γ → Prop) (f : α → β) (g : β → γ)
+    (hf : Monotone α β r s f) (hg : Monotone β γ s t g) :
+    Monotone α γ r t (fun (a : α) => g (f a)) := by
+  sorry
+
+-- 练习 3（T 类）：**常函数单调**（要陪域自反）。
+-- soko:hint 思路：`s c c` 由自反给出（自反是定义头 ⇒ λ 绑定后应用）。
+-- soko:hint 目标形态：`Reflexive β s → Monotone α β r s (fun _ => c)`。
+-- soko:hint 关键件：自反假设先 λ 绑定再应用 ✓
+theorem monotone_const (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (hrefl : Reflexive β s) (c : β) : Monotone α β r s (fun (_ : α) => c) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 31.3 单调把界送到**像**上
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（L 类）：**单调把上界送到像族的上界上**。
+-- soko:hint 思路：像族的元素长成 `f x`（`x` 在 `A` 里）；先用 `x ≤ u` 得 `f x ≤ f u`，
+--   再沿"`f x = y`"把左边换成 `y`。
+-- soko:hint 目标形态：`UpperBound α r A u → UpperBound β s (fun y => ∃ x, A x ∧ f x = y) (f u)`。
+-- soko:hint 关键件：`Exists.elim`（**前导实参写全**）· `monotone_apply` 取用子 ·
+--   `rel_subst_right`（关系取"`s · (f u)`"、沿 `f x = y` 把 `s (f x) (f u)` 搬成 `s y (f u)`；
+--   **方向别接反**）✓
+theorem monotone_upper_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (u : α)
+    (hu : UpperBound α r A u) :
+    UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f u) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 5（L 类）：**下界的对偶**（同形，关系方向反过来）。
+-- soko:hint 思路：与练习 4 逐字对偶。
+-- soko:hint 目标形态：`LowerBound α r A l → LowerBound β s (fun y => ∃ x, A x ∧ f x = y) (f l)`。
+-- soko:hint 关键件：`Exists.elim` · `monotone_apply` · `rel_subst_right`（关系取"`s (f l) ·`"）✓
+theorem monotone_lower_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (l : α)
+    (hl : LowerBound α r A l) :
+    LowerBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f l) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 31.4 反射：**从像上的序回到原来的序**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（T 类）：**恒等是反射的**。
+-- soko:hint 思路：假设就是结论。
+-- soko:hint 目标形态：`OrderReflecting α α r r (fun a => a)`。
+-- soko:hint 关键件：直接写 λ ✓
+theorem orderReflecting_id (α : Type) (r : α → α → Prop) :
+    OrderReflecting α α r r (fun (a : α) => a) := by
+  sorry
+
+-- 练习 7（L 类）：**反射的合成还是反射**（与练习 2 对偶：先拆外层，再拆内层）。
+-- soko:hint 思路：给定 `t (g (f a)) (g (f b))`，先用 `g` 的反射得 `s (f a) (f b)`，
+--   再用 `f` 的反射得 `r a b`。
+-- soko:hint 目标形态：`OrderReflecting α β r s f → OrderReflecting β γ s t g →
+--   OrderReflecting α γ r t (fun a => g (f a))`。
+-- soko:hint 关键件：库里取用子 `reflecting_apply`（参数表同 `monotone_apply`）✓
+theorem orderReflecting_comp (α β γ : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (t : γ → γ → Prop) (f : α → β) (g : β → γ)
+    (hf : OrderReflecting α β r s f) (hg : OrderReflecting β γ s t g) :
+    OrderReflecting α γ r t (fun (a : α) => g (f a)) := by
+  sorry
+
+-- 练习 8（L 类，旗舰之一）：**单调的左逆给出反射**（若 `g` 单调且 `g (f a) = a`，则 `f` 反射序）。
+-- soko:hint 思路：`s (f a) (f b)` 经 `g` 的单调性得 `r (g (f a)) (g (f b))`；
+--   再把**两个坐标**分别沿 `g (f a) = a`、`g (f b) = b` 换掉 ⇒ `r a b`。
+-- soko:hint 目标形态：`Monotone β α s r g → (∀ a, g (f a) = a) → OrderReflecting α β r s f`。
+-- soko:hint 关键件：`monotone_apply` · `rel_subst_right`（改**第二个**坐标）·
+--   **改第一个坐标要把关系翻过来**再走 `rel_subst_left`（本单元实测的用法）·
+--   `Eq.symm`（搬运要的是"旧 = 新"那个方向）✓
+theorem orderReflecting_of_monotone_inverse (α β : Type) (r : α → α → Prop)
+    (s : β → β → Prop) (f : α → β) (g : β → α)
+    (hg : Monotone β α s r g) (hgf : ∀ (a : α), Eq.{1} α (g (f a)) a) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    OrderReflecting α β r s f := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 31.5 旗舰：**序同构保持上确界**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（L 类，**本单元收尾的引理**）：把像族的上界**拉回原域**。
+-- soko:hint 思路：给定 `f a₀ = c`（满射给的）与"`c` 是像族的上界"，要证 `a₀` 是 `A` 的上界：
+--   对 `a ∈ A`，像族里有 `f a` 这个元素 ⇒ `s (f a) c`；沿 `f a₀ = c` 换成 `s (f a) (f a₀)`；
+--   再用**反射**得 `r a a₀`。
+-- soko:hint 目标形态：`OrderReflecting α β r s f → UpperBound β s (像族) c → f a₀ = c →
+--   UpperBound α r A a₀`。
+-- soko:hint 关键件：`reflecting_apply` · `rel_subst_left`（关系取"`s (f a) ·`"、沿 `f a₀ = c`
+--   把第二个坐标从 `c` 换回 `f a₀`）· `Exists.intro`（像族的见证取 `a` 自己，等式的见证是自反）✓
+theorem orderIso_upper_bound_pullback (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hr : OrderReflecting α β r s f)
+    (A : α → Prop) (c : β) (a0 : α) (ha0 : Eq.{1} β (f a0) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (hc : UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) c) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    UpperBound α r A a0 := by
+  sorry
+
+-- 练习 10（L 类，**本单元旗舰**）：**序同构把上确界送到上确界**。
+-- soko:hint 思路：①**是上界**：练习 4；②**最小**：设 `c` 是像族的上界，由满射取 `a₀` 使 `f a₀ = c`，
+--   用练习 9 把 `c` 拉回成 `a₀` 是 `A` 的上界 ⇒ 由 `b` 的最小性得 `b ≤ a₀` ⇒ 单调送过去
+--   ⇒ `f b ≤ f a₀`，再沿 `f a₀ = c` 换成 `f b ≤ c` ✓
+-- soko:hint 目标形态：`Monotone … → OrderReflecting … → (∀ y, ∃ x, f x = y) →
+--   IsSup α r A b → IsSup β s (像族) (f b)`。
+-- soko:hint 关键件：`isSup_intro` · 练习 4 · 练习 9 · `isSup_least`/`isSup_upper` 取用子 ·
+--   `Exists.elim`（满射）· `monotone_apply` · `rel_subst_right`（最后换第二个坐标）✓
+--   ⚠ **三条假设缺一不可**（单调不够 —— 见文件头）✓
+theorem orderIso_isSup (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hm : Monotone α β r s f) (hr : OrderReflecting α β r s f)
+    (hsurj : ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (A : α → Prop) (b : α) (hb : IsSup α r A b) :
+    IsSup β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f b) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry

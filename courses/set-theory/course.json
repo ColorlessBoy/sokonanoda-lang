@@ -387,10 +387,13 @@
             "complete-lattice",
             "lattice",
             "duality",
-            "galois-connection"
+            "galois-connection",
+            "monotone",
+            "order-embedding",
+            "order-isomorphism"
           ],
           "quota": {
-            "exercises": 28
+            "exercises": 38
           },
           "units": [
             {
@@ -410,6 +413,12 @@
               "title": "单元㉚ 格与对偶：确界的代数",
               "title_en": "Unit 30 — Lattices and Duality",
               "unit": 30
+            },
+            {
+              "file": "units/unit31-monotone.sokonanoda",
+              "title": "单元㉛ 单调函数与序同构保持确界",
+              "title_en": "Unit 31 — Monotone Maps and Preservation of Suprema",
+              "unit": 31
             }
           ]
         }

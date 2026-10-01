@@ -1,0 +1,105 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+theorem demo_monotone_def (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β) :
+    Monotone α β r s f ↔ ∀ (a b : α), r a b → s (f a) (f b) :=
+  monotone_def α β r s f
+
+theorem demo_orderReflecting_def (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) :
+    OrderReflecting α β r s f ↔ ∀ (a b : α), s (f a) (f b) → r a b :=
+  orderReflecting_def α β r s f
+
+theorem demo_monotone_apply (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β)
+    (h : Monotone α β r s f) (a b : α) (hab : r a b) : s (f a) (f b) :=
+  monotone_apply α β r s f h a b hab
+
+theorem monotone_id (α : Type) (r : α → α → Prop) : Monotone α α r r (fun (a : α) => a) :=
+  fun (a : α) => fun (b : α) => fun (hab : r a b) => hab
+
+theorem monotone_comp (α β γ : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (t : γ → γ → Prop) (f : α → β) (g : β → γ)
+    (hf : Monotone α β r s f) (hg : Monotone β γ s t g) :
+    Monotone α γ r t (fun (a : α) => g (f a)) :=
+  fun (a : α) => fun (b : α) => fun (hab : r a b) =>
+    monotone_apply β γ s t g hg (f a) (f b) (monotone_apply α β r s f hf a b hab)
+
+theorem monotone_const (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (hrefl : Reflexive β s) (c : β) : Monotone α β r s (fun (_ : α) => c) :=
+  fun (a : α) => fun (b : α) => fun (hab : r a b) =>
+    (fun (hu : ∀ (y : β), s y y) => hu c) hrefl
+
+theorem monotone_upper_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (u : α)
+    (hu : UpperBound α r A u) :
+    UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f u) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (y : β) => fun (hy : ∃ (x : α), A x ∧ Eq.{1} β (f x) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    Exists.elim α (fun (x : α) => A x ∧ Eq.{1} β (f x) y) (s y (f u)) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (x : α) (hx : A x ∧ Eq.{1} β (f x) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        rel_subst_right β (fun (p : β) (q : β) => s q (f u)) y (f x) y
+          (And.right hx)
+          (monotone_apply α β r s f hf x u
+            ((fun (hu' : ∀ (a : α), A a → r a u) => hu' x (And.left hx)) hu)))
+
+theorem orderReflecting_of_monotone_inverse (α β : Type) (r : α → α → Prop)
+    (s : β → β → Prop) (f : α → β) (g : β → α)
+    (hg : Monotone β α s r g) (hgf : ∀ (a : α), Eq.{1} α (g (f a)) a) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    OrderReflecting α β r s f :=
+  fun (a : α) => fun (b : α) => fun (hab : s (f a) (f b)) =>
+    rel_subst_left α (fun (p : α) (q : α) => r q p) a b (g (f a))
+      (Eq.symm.{1} α (g (f a)) a (hgf a))
+      (rel_subst_right α r (g (f a)) (g (f b)) b (hgf b)
+        (monotone_apply β α s r g hg (f a) (f b) hab))
+
+theorem orderIso_upper_bound_pullback (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hr : OrderReflecting α β r s f)
+    (A : α → Prop) (c : β) (a0 : α) (ha0 : Eq.{1} β (f a0) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (hc : UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) c) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    UpperBound α r A a0 :=
+  fun (a : α) => fun (ha : A a) =>
+    reflecting_apply α β r s f hr a a0
+      (rel_subst_left β (fun (p : β) (q : β) => s (f a) q) (f a0) (f a) c ha0
+        ((fun (hu : ∀ (y : β), (∃ (x : α), A x ∧ Eq.{1} β (f x) y) → s y c) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          hu (f a) (Exists.intro α (fun (x : α) => A x ∧ Eq.{1} β (f x) (f a)) a  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            (And.intro (A a) (Eq.{1} β (f a) (f a)) ha (Eq.refl.{1} β (f a))))) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem orderIso_isSup (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hm : Monotone α β r s f) (hr : OrderReflecting α β r s f)
+    (hsurj : ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (A : α → Prop) (b : α) (hb : IsSup α r A b) :
+    IsSup β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f b) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  isSup_intro β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (monotone_upper_bound α β r s f hm A b (isSup_upper α r A b hb))
+    (fun (c : β) =>
+      fun (hc : UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) c) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        Exists.elim α (fun (a0 : α) => Eq.{1} β (f a0) c) (s (f b) c) (hsurj c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (a0 : α) (ha0 : Eq.{1} β (f a0) c) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            rel_subst_right β (fun (p : β) (q : β) => s (f b) q) (f b) (f a0) c ha0
+              (monotone_apply α β r s f hm b a0
+                (isSup_least α r A b hb a0
+                  (orderIso_upper_bound_pullback α β r s f hr A c a0 ha0 hc)))))
+
+theorem monotone_lower_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (l : α)
+    (hl : LowerBound α r A l) :
+    LowerBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f l) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (y : β) => fun (hy : ∃ (x : α), A x ∧ Eq.{1} β (f x) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    Exists.elim α (fun (x : α) => A x ∧ Eq.{1} β (f x) y) (s (f l) y) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (x : α) (hx : A x ∧ Eq.{1} β (f x) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        rel_subst_right β (fun (p : β) (q : β) => s (f l) q) (f l) (f x) y
+          (And.right hx)
+          (monotone_apply α β r s f hf l x
+            ((fun (hl' : ∀ (a : α), A a → r l a) => hl' x (And.left hx)) hl)))
+
+theorem orderReflecting_id (α : Type) (r : α → α → Prop) :
+    OrderReflecting α α r r (fun (a : α) => a) :=
+  fun (a : α) => fun (b : α) => fun (hab : r a b) => hab
+
+theorem orderReflecting_comp (α β γ : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (t : γ → γ → Prop) (f : α → β) (g : β → γ)
+    (hf : OrderReflecting α β r s f) (hg : OrderReflecting β γ s t g) :
+    OrderReflecting α γ r t (fun (a : α) => g (f a)) :=
+  fun (a : α) => fun (b : α) => fun (hab : t (g (f a)) (g (f b))) =>
+    reflecting_apply α β r s f hf a b
+      (reflecting_apply β γ s t g hg (f a) (f b) hab)

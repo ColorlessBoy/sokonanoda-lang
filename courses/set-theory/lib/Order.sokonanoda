@@ -364,3 +364,29 @@ theorem isInf_intro (α : Type) (r : α → α → Prop) (A : α → Prop) (b : 
     (hlb : LowerBound α r A b) (hgreatest : ∀ (c : α), LowerBound α r A c → r c b) :
     IsInf α r A b :=
   And.intro (LowerBound α r A b) (∀ (c : α), LowerBound α r A c → r c b) hlb hgreatest  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+
+-- ── 单调 / 反射（Enderton §7.1 的 order-preserving map；L2：一行定义）──────────────
+def Monotone (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β) : Prop :=
+  ∀ (a b : α), r a b → s (f a) (f b)
+
+-- 读法：**反向保序** —— "像上 `s`，则原像上 `r`"（序同构的另一半）✓
+def OrderReflecting (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β) : Prop :=
+  ∀ (a b : α), s (f a) (f b) → r a b
+
+theorem monotone_def (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β) :
+    Monotone α β r s f ↔ ∀ (a b : α), r a b → s (f a) (f b) :=
+  Iff.intro (fun (h : Monotone α β r s f) => h)
+    (fun (h : ∀ (a b : α), r a b → s (f a) (f b)) => h)
+
+theorem orderReflecting_def (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β) :
+    OrderReflecting α β r s f ↔ ∀ (a b : α), s (f a) (f b) → r a b :=
+  Iff.intro (fun (h : OrderReflecting α β r s f) => h)
+    (fun (h : ∀ (a b : α), s (f a) (f b) → r a b) => h)
+
+theorem monotone_apply (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β)
+    (h : Monotone α β r s f) (a b : α) (hab : r a b) : s (f a) (f b) :=
+  (fun (hu : ∀ (x y : α), r x y → s (f x) (f y)) => hu a b hab) h
+
+theorem reflecting_apply (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β)
+    (h : OrderReflecting α β r s f) (a b : α) (hab : s (f a) (f b)) : r a b :=
+  (fun (hu : ∀ (x y : α), s (f x) (f y) → r x y) => hu a b hab) h
