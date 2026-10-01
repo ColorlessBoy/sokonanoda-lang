@@ -108,6 +108,10 @@ token），且**只在**该 token 不是记法符号时追加（否则与 `notat
   标识符型（希腊 48）用**一条**把它们全当 binder 的声明真判卷；`⟨⟩` 用匿名构造子那条。
 * **hover**：`crates/lsp/src/tests/hover.rs` 断言 `α` 的 hover 含「输入：`\alpha`」，
   且 `∈` 不重复出现两行输入提示。
+* **真宿主（用户看得见的那层）**：`editor/vscode/src/test/extension.test.js` 的
+  `notation input: greek letters and the anon-ctor brackets, in a real host` ——
+  真 VS Code 1.138.0 + 真 LSP：hover 绑定变量 `α` 含 `\alpha` 且**不**说"记法符号"、
+  `\a`/`\alpha` + 命令 → `α`、`\<` + 命令 → `⟨`。台账 `docs/e2e/ledger.jsonl`（39/39）。
 
 ## 5. 已知限制（记着，别当成漏了）
 
