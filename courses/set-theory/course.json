@@ -235,10 +235,11 @@
             "regularity",
             "extensionality",
             "cover",
-            "sUnion-inclusion"
+            "sUnion-inclusion",
+            "sUnion-algebra"
           ],
           "quota": {
-            "exercises": 28
+            "exercises": 35
           },
           "units": [
             {
@@ -258,6 +259,12 @@
               "title": "单元㊽ 覆盖与广义并",
               "title_en": "Unit 48 — Covers and the Inclusion Calculus of sUnion/sInter",
               "unit": 48
+            },
+            {
+              "file": "units/unit49-sUnion-algebra.sokonanoda",
+              "title": "单元㊾ 广义并的代数",
+              "title_en": "Unit 49 — Algebra of Arbitrary Unions",
+              "unit": 49
             }
           ]
         },

@@ -1,0 +1,119 @@
+-- ==========================================================================
+-- unit49-sUnion-algebra.sokonanoda —— 卷 I 单元㊾ **广义并的代数（并族 · 单调 · 与交的关系）**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§9**（families）·
+-- Enderton《Elements of Set Theory》**§2.3**（arbitrary unions）。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.7 章深化 · 接单元㊽ —— ㊽ 讲**包含演算**，
+-- 本单元讲**并族的代数**：两条对偶取用子、单调、以及与并族运算的交互 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **两条对偶**：`x ∉ ⋃F ⟺ 每个族成员都不含 x`（两个方向各一条 ✓）；
+--   · **旗舰：`⋃(F ∪ G) = ⋃F ∪ ⋃G`**（广义并对并族**分配** ✓ —— 方程形态用 `Set.ext` 收口 ✓）；
+--   · **单调**：`F ⊆ G ⇒ ⋃F ⊆ ⋃G`，以及它的两个特例（并族的两半都含在里面 ✓）；
+--   · **`⋂F ⊆ ⋃F`**（只要 `F` 非空 —— 给出一个成员即可 ✓）。
+--
+-- ⚠ **本单元写之前的纪律**（第 581 轮的教训）：**命题先求真** ✓ —— 每一句都先取
+--   `F = ∅` / 单点族 / "某成员不含 x" 找过反例 ✓（上一轮正因没做这一步，写出的
+--   `x ∉ ⋃F ⇒ x ∈ ⋂F` 与 `⋂F ∪ ⋂G ⊆ ⋂(F ∪ G)` **都是假命题** ✗）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.SUnion` · `lib.Set` · `lib.Order` · `lib.Rel`。
+--
+-- 依赖：单元㉑㉒（广义并与交）· 单元㊽（包含演算）—— 本单元把并族那一侧做成代数 ✓
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+-- -------------------------------------------------------------
+-- 49.1 三条库引理（并的成员 · 交的成员 · 交的引入）
+-- -------------------------------------------------------------
+
+-- 演示：广义并的成员刻画（"落在某个族成员里"）。
+theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ Set.sUnion α F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  Set.mem_sUnion_iff α F x
+theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ Set.sInter α F ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  Set.mem_sInter_iff α F x
+theorem demo_mem_sInter_intro (α : Type) (F : Set (Set α)) (x : α)
+    (h : ∀ (A : Set α), A ∈ F → x ∈ A) : x ∈ Set.sInter α F :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  Set.mem_sInter_intro α F x h
+-- -------------------------------------------------------------
+-- 49.2 两条对偶：x 不在并里 / 每个成员都不含 x
+-- -------------------------------------------------------------
+-- 练习 1（T 类）：**x 不在广义并里 ⇒ 每个族成员都不含 x**。
+
+-- soko:hint 关键件：`Set.mem_sUnion_intro`（把"某个成员含 x"造出来，与假设矛盾）✓
+
+theorem all_not_of_not_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
+    (h : ¬ (x ∈ Set.sUnion α F)) : ∀ (A : Set α), A ∈ F → ¬ (x ∈ A) := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  sorry
+-- 练习 2（T 类）：**每个族成员都不含 x ⇒ x 不在广义并里**（练习 1 的对偶）。
+
+-- soko:hint 关键件：`Set.mem_sUnion_elim`（**目标写 `False` 可以** ✓ —— 那是消去的目标，
+
+--   不是 `Or.elim` 的动机位 ✗）· 假设按 成员 / 成员性 两步应用 ✓
+
+theorem not_mem_sUnion_of_all_not (α : Type) (F : Set (Set α)) (x : α)
+    (h : ∀ (A : Set α), A ∈ F → ¬ (x ∈ A)) : ¬ (x ∈ Set.sUnion α F) := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  sorry
+
+-- -------------------------------------------------------------
+-- 49.3 旗舰：并族上的分配律 + 单调与两个特例
+-- -------------------------------------------------------------
+-- 练习 3（L 类，**本单元旗舰**）：**`⋃(F ∪ G) = ⋃F ∪ ⋃G`**（广义并对并族分配）。
+
+-- soko:hint 思路：两个方向都是"拆出一个族成员、看它在 `F` 还是 `G` 里"。
+
+-- soko:hint 目标形态：`⋃(F ∪ G) = ⋃F ∪ ⋃G`。
+
+-- soko:hint 关键件：`Set.ext` · 两次 `Set.mem_sUnion_elim` · 两次 `Set.mem_sUnion_intro` ·
+
+--   `Or.elim`（**动机位放正命题** ✓）· `Or.inl` / `Or.inr` ✓
+
+theorem sUnion_union (α : Type) (F G : Set (Set α)) :
+    Set.sUnion α (F ∪ G) = Set.sUnion α F ∪ Set.sUnion α G := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  sorry
+-- 练习 4（L 类）：**广义并的单调**（族变大 ⇒ 并变大）。
+
+-- soko:hint 关键件：`Set.mem_sUnion_elim` · `Set.mem_sUnion_intro` · 族包含假设 ✓
+
+theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
+    Set.sUnion α F ⊆ Set.sUnion α G := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  sorry
+-- 练习 5（T 类）：**左半族的并含在并族的并里**。
+
+-- soko:hint 思路：先把"`F ⊆ F ∪ G`"当包含假设交给练习 4。
+
+-- soko:hint 关键件：练习 4（**参数：论域 · 两个族 · 包含证明**）· `Or.inl` ✓
+
+theorem sUnion_subset_sUnion_union_left (α : Type) (F G : Set (Set α)) :
+    Set.sUnion α F ⊆ Set.sUnion α (F ∪ G) := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  sorry
+-- 练习 6（T 类）：**右半族同理**。
+
+-- soko:hint 关键件：练习 4 · `Or.inr` ✓
+
+theorem sUnion_subset_sUnion_union_right (α : Type) (F G : Set (Set α)) :
+    Set.sUnion α G ⊆ Set.sUnion α (F ∪ G) := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  sorry
+-- 练习 7（L 类）：**非空族的交含在并里**（给一个成员就够）。
+
+-- soko:hint 思路：`x` 在交里 ⇒ 它在**每个**成员里（特别地在我们给的那个 `A` 里）
+
+--   ⇒ 于是"某个成员含 x"成立 ⇒ `x` 在并里。
+
+-- soko:hint 目标形态：`A ∈ F → ⋂F ⊆ ⋃F`。
+
+-- soko:hint 关键件：`Set.mem_sUnion_intro` · `Set.mem_sInter_iff`
+
+--   （**绑定形态先落地成 λ、再继续应用** ✓ —— 课程手册的惯用法：一次到位的
+
+--   `Iff.mp hu hx A hA` 判红 ✗）✓  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+
+theorem sInter_subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α)
+    (hA : A ∈ F) : Set.sInter α F ⊆ Set.sUnion α F := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  sorry
