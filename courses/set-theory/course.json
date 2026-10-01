@@ -290,10 +290,12 @@
             "arbitrary-union",
             "arbitrary-intersection",
             "monotone",
+            "image",
+            "preimage",
             "indexed-family"
           ],
           "quota": {
-            "exercises": 10
+            "exercises": 20
           },
           "units": [
             {
@@ -301,6 +303,12 @@
               "title": "单元㉑ 集族与广义并交",
               "title_en": "Unit 21 — Families, Arbitrary Unions and Intersections",
               "unit": 21
+            },
+            {
+              "file": "units/unit22-images-families.sokonanoda",
+              "title": "单元㉒ 像、原像与广义并交",
+              "title_en": "Unit 22 — Images, Preimages and Arbitrary Unions/Intersections",
+              "unit": 22
             }
           ]
         }

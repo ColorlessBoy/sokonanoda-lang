@@ -1,0 +1,127 @@
+import lib.Rel
+import lib.SUnion
+import lib.Set
+import lib.Image
+
+theorem demo_image_mono (α β : Type) (f : α → β) (A B : Set α)
+    (h : A ⊆ B) : (f '' A) ⊆ (f '' B) :=
+  Set.image_mono f A B (fun (x : α) (hx : x ∈ A) => (fun (hs : ∀ (z : α), z ∈ A → z ∈ B) => hs x hx) h)
+
+theorem demo_image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    (f '' A) ⊆ B ↔ A ⊆ (f ⁻¹' B) :=
+  Set.image_subset_iff f A B
+
+theorem demo_sInter_subset (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    (⋂₀ F) ⊆ A :=
+  Set.sInter_subset α F A h
+
+theorem mem_image_apply (α β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ (f '' A) ↔ ∃ (x : α), x ∈ A ∧ f x = y :=
+  Set.mem_image f A y
+
+theorem mem_preimage_apply (α β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ (f ⁻¹' B) ↔ f x ∈ B :=
+  Set.mem_preimage f B x
+
+theorem image_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (f '' (⋃₀ F)) ⊆ (⋃₀ ((fun (A : Set α) => f '' A) '' F)) :=
+  fun (y : β) (hy : y ∈ (f '' (⋃₀ F))) =>
+    Set.mem_image_elim f (⋃₀ F) y (y ∈ (⋃₀ ((fun (A : Set α) => f '' A) '' F))) hy
+      (fun (x : α) (hx : x ∈ (⋃₀ F)) (hxy : f x = y) =>
+        Set.mem_sUnion_elim α F x (y ∈ (⋃₀ ((fun (A : Set α) => f '' A) '' F))) hx
+          (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =>
+            Set.mem_sUnion_intro β ((fun (A' : Set α) => f '' A') '' F) (f '' A) y
+              (Set.mem_image_intro (fun (A' : Set α) => f '' A') F (f '' A) A hA
+                (Eq.refl.{1} (Set β) (f '' A)))
+              (rel_subst_right β (fun (u : β) (v : β) => v ∈ (f '' A)) (f x) (f x) y hxy
+                (Set.mem_image_intro f A (f x) x hxA (Eq.refl.{1} β (f x))))))
+
+theorem sUnion_image_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (⋃₀ ((fun (A : Set α) => f '' A) '' F)) ⊆ (f '' (⋃₀ F)) :=
+  fun (y : β) (hy : y ∈ (⋃₀ ((fun (A : Set α) => f '' A) '' F))) =>
+    Set.mem_sUnion_elim β ((fun (A : Set α) => f '' A) '' F) y (y ∈ (f '' (⋃₀ F))) hy
+      (fun (B : Set β) (hB : B ∈ ((fun (A : Set α) => f '' A) '' F)) (hyB : y ∈ B) =>
+        Set.mem_image_elim (fun (A : Set α) => f '' A) F B (y ∈ (f '' (⋃₀ F))) hB
+          (fun (A : Set α) (hA : A ∈ F) (hAB : f '' A = B) =>
+            Set.mem_image_elim f A y (y ∈ (f '' (⋃₀ F)))
+              (rel_subst_left (Set β) (fun (u : Set β) (v : Set β) => y ∈ v) (f '' A) B B hAB hyB)
+              (fun (x : α) (hxA : x ∈ A) (hxy : f x = y) =>
+                Set.mem_image_intro f (⋃₀ F) y x (Set.mem_sUnion_intro α F A x hA hxA) hxy)))
+
+theorem preimage_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (f ⁻¹' (⋃₀ F)) ⊆ (⋃₀ ((fun (B : Set β) => f ⁻¹' B) '' F)) :=
+  fun (x : α) (hx : x ∈ (f ⁻¹' (⋃₀ F))) =>
+    Set.mem_sUnion_elim β F (f x) (x ∈ (⋃₀ ((fun (B : Set β) => f ⁻¹' B) '' F)))
+      (Set.mem_preimage_elim f (⋃₀ F) x (f x ∈ (⋃₀ F)) hx (fun (h : f x ∈ (⋃₀ F)) => h))
+      (fun (B : Set β) (hB : B ∈ F) (hxB : f x ∈ B) =>
+        Set.mem_sUnion_intro α ((fun (B' : Set β) => f ⁻¹' B') '' F) (f ⁻¹' B) x
+          (Set.mem_image_intro (fun (B' : Set β) => f ⁻¹' B') F (f ⁻¹' B) B hB
+            (Eq.refl.{1} (Set α) (f ⁻¹' B)))
+          (Set.mem_preimage_intro f B x hxB))
+
+theorem sUnion_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (⋃₀ ((fun (B : Set β) => f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋃₀ F)) :=
+  fun (x : α) (hx : x ∈ (⋃₀ ((fun (B : Set β) => f ⁻¹' B) '' F))) =>
+    Set.mem_preimage_intro f (⋃₀ F) x
+      (Set.mem_sUnion_elim α ((fun (B : Set β) => f ⁻¹' B) '' F) x (f x ∈ (⋃₀ F)) hx
+        (fun (C : Set α) (hC : C ∈ ((fun (B : Set β) => f ⁻¹' B) '' F)) (hxC : x ∈ C) =>
+          Set.mem_image_elim (fun (B : Set β) => f ⁻¹' B) F C (f x ∈ (⋃₀ F)) hC
+            (fun (B : Set β) (hB : B ∈ F) (hBC : f ⁻¹' B = C) =>
+              Set.mem_sUnion_intro β F B (f x) hB
+                (Set.mem_preimage_elim f B x (f x ∈ B)
+                  (rel_subst_left (Set α) (fun (u : Set α) (v : Set α) => x ∈ v)
+                    (f ⁻¹' B) C C hBC hxC)
+                  (fun (h : f x ∈ B) => h)))))
+
+theorem sInter_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (⋂₀ ((fun (B : Set β) => f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋂₀ F)) :=
+  fun (x : α) (hx : x ∈ (⋂₀ ((fun (B : Set β) => f ⁻¹' B) '' F))) =>
+    Set.mem_preimage_intro f (⋂₀ F) x
+      ((fun (hs : ∀ (B : Set β), B ∈ F → f x ∈ B) => hs)
+        (fun (B : Set β) (hB : B ∈ F) =>
+          Set.mem_preimage_elim f B x (f x ∈ B)
+            ((fun (hu : ∀ (C : Set α), C ∈ ((fun (B' : Set β) => f ⁻¹' B') '' F) → x ∈ C) =>
+              hu (f ⁻¹' B)
+                (Set.mem_image_intro (fun (B' : Set β) => f ⁻¹' B') F (f ⁻¹' B) B hB
+                  (Eq.refl.{1} (Set α) (f ⁻¹' B)))) hx)
+            (fun (h : f x ∈ B) => h)))
+
+theorem preimage_sInter_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (f ⁻¹' (⋂₀ F)) ⊆ (⋂₀ ((fun (B : Set β) => f ⁻¹' B) '' F)) :=
+  fun (x : α) (hx : x ∈ (f ⁻¹' (⋂₀ F))) =>
+    (fun (hs : ∀ (C : Set α), C ∈ ((fun (B : Set β) => f ⁻¹' B) '' F) → x ∈ C) => hs)
+      (fun (C : Set α) (hC : C ∈ ((fun (B : Set β) => f ⁻¹' B) '' F)) =>
+        Set.mem_image_elim (fun (B : Set β) => f ⁻¹' B) F C (x ∈ C) hC
+          (fun (B : Set β) (hB : B ∈ F) (hBC : f ⁻¹' B = C) =>
+            rel_subst_right (Set α) (fun (u : Set α) (v : Set α) => x ∈ v) C (f ⁻¹' B) C
+              hBC
+              (Set.mem_preimage_intro f B x
+                ((fun (hu : ∀ (B' : Set β), B' ∈ F → f x ∈ B') => hu B hB)
+                  (Set.mem_preimage_elim f (⋂₀ F) x (∀ (B' : Set β), B' ∈ F → f x ∈ B') hx
+                    (fun (h : f x ∈ (⋂₀ F)) => h))))))
+
+theorem image_preimage_subset (α β : Type) (f : α → β) (B : Set β) :
+    (f '' (f ⁻¹' B)) ⊆ B :=
+  fun (y : β) (hy : y ∈ (f '' (f ⁻¹' B))) =>
+    Set.mem_image_elim f (f ⁻¹' B) y (y ∈ B) hy
+      (fun (x : α) (hx : x ∈ (f ⁻¹' B)) (hxy : f x = y) =>
+        rel_subst_right β (fun (u : β) (v : β) => v ∈ B) (f x) (f x) y hxy
+          (Set.mem_preimage_elim f B x (f x ∈ B) hx (fun (h : f x ∈ B) => h)))
+
+theorem image_sInter_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (f '' (⋂₀ F)) ⊆ (⋂₀ ((fun (A : Set α) => f '' A) '' F)) :=
+  fun (y : β) (hy : y ∈ (f '' (⋂₀ F))) =>
+    (fun (hs : ∀ (C : Set β), C ∈ ((fun (A : Set α) => f '' A) '' F) → y ∈ C) => hs)
+      (fun (C : Set β) (hC : C ∈ ((fun (A : Set α) => f '' A) '' F)) =>
+        Set.mem_image_elim (fun (A : Set α) => f '' A) F C (y ∈ C) hC
+          (fun (A : Set α) (hA : A ∈ F) (hAC : f '' A = C) =>
+            rel_subst_right (Set β) (fun (u : Set β) (v : Set β) => y ∈ v) C (f '' A) C
+              hAC
+              (Set.mem_image_elim f (⋂₀ F) y (y ∈ (f '' A)) hy
+                (fun (x : α) (hx : x ∈ (⋂₀ F)) (hxy : f x = y) =>
+                  rel_subst_right β (fun (u : β) (v : β) => v ∈ (f '' A)) (f x) (f x) y hxy
+                    (Set.mem_image_intro f A (f x) x
+                      ((fun (hu : ∀ (A' : Set α), A' ∈ F → x ∈ A') => hu A hA)
+                        (Set.mem_sInter_elim α F x (∀ (A' : Set α), A' ∈ F → x ∈ A') hx
+                          (fun (h : x ∈ (⋂₀ F)) => h)))
+                      (Eq.refl.{1} β (f x)))))))

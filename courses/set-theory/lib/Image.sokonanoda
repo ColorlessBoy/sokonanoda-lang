@@ -93,3 +93,23 @@ theorem Set.image_subset_iff {α β : Type} (f : α → β) (A : Set α) (B : Se
               Eq.subst.{1} β (fun (z : β) => z ∈ B) (f x) y
                 (And.right hx)
                 (h x (And.left hx))))
+
+-- ── 消去子 / 构造子（L2：同 `lib/SUnion` 那一组，把 `∃` 的拆装收进库）──────────
+theorem Set.mem_image_intro {α β : Type} (f : α → β) (A : Set α) (y : β)
+    (x : α) (hx : x ∈ A) (hxy : f x = y) : y ∈ f '' A :=
+  (fun (h : ∃ (x' : α), x' ∈ A ∧ f x' = y) => h)
+    (Exists.intro α (fun (x' : α) => x' ∈ A ∧ f x' = y) x (And.intro hx hxy))
+
+theorem Set.mem_image_elim {α β : Type} (f : α → β) (A : Set α) (y : β) (C : Prop)
+    (h : y ∈ f '' A) (k : ∀ (x : α), x ∈ A → f x = y → C) : C :=
+  Exists.elim α (fun (x : α) => x ∈ A ∧ f x = y) C
+    ((fun (hs : ∃ (x : α), x ∈ A ∧ f x = y) => hs) h)
+    (fun (x : α) (hx : x ∈ A ∧ f x = y) => k x (And.left hx) (And.right hx))
+
+theorem Set.mem_preimage_intro {α β : Type} (f : α → β) (B : Set β) (x : α)
+    (h : f x ∈ B) : x ∈ f ⁻¹' B :=
+  (fun (h' : f x ∈ B) => h') h
+
+theorem Set.mem_preimage_elim {α β : Type} (f : α → β) (B : Set β) (x : α) (C : Prop)
+    (h : x ∈ f ⁻¹' B) (k : f x ∈ B → C) : C :=
+  k h

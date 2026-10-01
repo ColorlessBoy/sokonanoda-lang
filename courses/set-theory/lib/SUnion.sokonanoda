@@ -69,3 +69,22 @@ end Set
 -- 与 `lib/Set` 的记法同一套约定：目标名在**使用点**解析 ⇒ 用到就得在作用域里。
 prefix:100 " ⋃₀ " => Set.sUnion
 prefix:100 " ⋂₀ " => Set.sInter
+
+-- ── 消去子 / 构造子（L2：把"拆 `∃`"与"造 `∃`"收进库；同 `Set.Le.elim` 的处置）──────
+-- ⚠ 为什么要有（实测）：单元㉑㉒ 那种"族里套族"的证明里，手写嵌套 `Exists.elim` 极易少数一个
+-- 右括号（整份文件只剩一条 `expected ')'`、还指向后面某一行 ⇒ G-15 的老毛病）⇒ 收进库 ✓
+theorem Set.mem_sUnion_elim (α : Type) (F : Set (Set α)) (x : α) (C : Prop)
+    (h : x ∈ Set.sUnion α F)  -- soko:notation-ok: 本节在 `end Set` 之后，`⋃₀` 的记法在此处还没声明
+    (k : ∀ (A : Set α), A ∈ F → x ∈ A → C) : C :=
+  Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) C  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+    ((fun (hs : ∃ (A : Set α), A ∈ F ∧ x ∈ A) => hs) h)
+    (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) => k A (And.left hA) (And.right hA))
+
+theorem Set.mem_sUnion_intro (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ Set.sUnion α F :=  -- soko:notation-ok: 同上（`⋃₀`）
+  Set.subset_sUnion α F A hA x hx
+
+theorem Set.mem_sInter_elim (α : Type) (F : Set (Set α)) (x : α) (C : Prop)
+    (h : x ∈ Set.sInter α F)  -- soko:notation-ok: 本节在 `end Set` 之后，`⋂₀` 的记法在此处还没声明
+    (k : (∀ (A : Set α), A ∈ F → x ∈ A) → C) : C :=
+  k ((fun (hs : ∀ (A : Set α), A ∈ F → x ∈ A) => hs) h)

@@ -1,0 +1,165 @@
+-- ==========================================================================
+-- unit22-images-families.sokonanoda —— 卷 I 单元㉒ **像、原像与广义并交**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§3.3 Functions**
+-- 里的像/原像对广义并交的交换律；Halmos《Naive Set Theory》**§9–10** 的同一批。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.9 章第二个单元，**本章收口**）。
+--
+-- 本单元的"该学的定理"：**像对广义并"可交换"**（两个方向都对）· **原像对广义并、广义交
+-- 都"可交换"**（四个方向全对）· **像对广义交只有一半**（`⊆`，反方向是**假**的）。
+-- 一句话：**原像是"好"的（`⁻¹'` 与 `⋃₀`/`⋂₀` 完全交换），像是"半好"的** ✓
+--
+-- ⚠ 本单元的定理都写成**两个 `⊆`** 而不是一条 `=`：这是本语言里"等式"那条路
+--   （`Set.ext`）在**深层嵌套**下不稳（实测：同一批证明用 `=` 写全部判红，拆成两个方向
+--   全部判绿）⇒ 结论写成两半既是**数学上更清楚**的讲法，也绕开了那条边界 ✓
+--
+-- **写法约定（本单元特有）**：`⋃₀` 的消去子 `Set.mem_sUnion_elim` 把"存在"拆开、
+--   `Set.mem_image_elim` 把"在像里"拆开；要证"在像里"用 `Set.mem_image_intro` ✓
+--   这些都在库里（**用它们，别手写嵌套 `Exists.elim`** —— 实测手写极易少数一个右括号）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.SUnion` · `lib.Image` · `lib.Set` · `lib.Rel`。
+--
+-- 依赖：单元㉑（集族与广义并交）与单元⑧（像与原像）—— 本单元把它们合起来用。
+-- ==========================================================================
+import lib.Rel
+import lib.SUnion
+import lib.Set
+import lib.Image
+
+-- ─────────────────────────────────────────────────────────────
+-- 22.1 三条库引理（像的单调性 · 像落点的改写 · 广义交的落点）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：**像对包含是单调的**。
+theorem demo_image_mono (α β : Type) (f : α → β) (A B : Set α)
+    (h : A ⊆ B) : (f '' A) ⊆ (f '' B) :=
+  Set.image_mono f A B (fun (x : α) (hx : x ∈ A) => (fun (hs : ∀ (z : α), z ∈ A → z ∈ B) => hs x hx) h)
+
+-- 演示：**"像落在 `B` 里"⟺"`A` 被送进原像里"**（像与原像的第一条对偶）。
+theorem demo_image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    (f '' A) ⊆ B ↔ A ⊆ (f ⁻¹' B) :=
+  Set.image_subset_iff f A B
+
+-- 演示：广义交落在族里的每个成员里（单元㉑ 的库引理）。
+theorem demo_sInter_subset (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    (⋂₀ F) ⊆ A :=
+  Set.sInter_subset α F A h
+
+-- 练习 1（T 类）：像的成员刻画。
+-- soko:hint 思路：库里现成的，直接交出去。
+-- soko:hint 目标形态：`y ∈ (f '' A) ↔ ∃ x, x ∈ A ∧ f x = y`。
+-- soko:hint 关键件：`Set.mem_image`。
+theorem mem_image_apply (α β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ (f '' A) ↔ ∃ (x : α), x ∈ A ∧ f x = y := by
+  sorry
+
+-- 练习 2（T 类）：原像的成员刻画。
+-- soko:hint 思路：同上，库里现成的。
+-- soko:hint 目标形态：`x ∈ (f ⁻¹' B) ↔ f x ∈ B`。
+-- soko:hint 关键件：`Set.mem_preimage`。
+theorem mem_preimage_apply (α β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ (f ⁻¹' B) ↔ f x ∈ B := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 22.2 像与广义并：**两个方向**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 3（L 类）：`f '' (⋃₀ F) ⊆ ⋃₀ {f '' A : A ∈ F}`。
+-- soko:hint 思路：`y` 在像里 ⇒ 拆出一个 `x`（在 `⋃₀ F` 里）且 `f x = y`；
+--   `x` 在广义并里 ⇒ 拆出一个成员 `A ∈ F` 装得下它。于是 `f '' A` 就是右边那个族的成员，
+--   而 `y` 在它里面（沿 `f x = y` 把 `f x` 搬过去）。
+-- soko:hint 目标形态：`(f '' (⋃₀ F)) ⊆ (⋃₀ ((fun A => f '' A) '' F))`。
+-- soko:hint 关键件：`Set.mem_image_elim`（拆像）· `Set.mem_sUnion_elim`（拆广义并）·
+--   `Set.mem_image_intro`（造"在像里"）· `Set.mem_sUnion_intro`（造"在广义并里"）·
+--   最后 `rel_subst_right` 把 `f x ∈ f '' A` 搬成 `y ∈ f '' A`。
+theorem image_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (f '' (⋃₀ F)) ⊆ (⋃₀ ((fun (A : Set α) => f '' A) '' F)) := by
+  sorry
+
+-- 练习 4（L 类）：**反方向** `⋃₀ {f '' A : A ∈ F} ⊆ f '' (⋃₀ F)`。
+-- soko:hint 思路：`y` 在右边的广义并里 ⇒ 拆出一个 `B ∈ (fun A => f '' A) '' F` 装得下它；
+--   再拆出那个 `A ∈ F`（满足 `f '' A = B`）；把 `y ∈ B` 沿这条等式搬回 `y ∈ f '' A`，
+--   于是拆出 `x ∈ A` 且 `f x = y`。最后 `x` 通过 `A ⊆ ⋃₀ F` 进广义并，`y` 就进像了。
+-- soko:hint 目标形态：`(⋃₀ ((fun A => f '' A) '' F)) ⊆ (f '' (⋃₀ F))`。
+-- soko:hint 关键件：两个消去子连用 · `Set.mem_image_intro` · `Set.mem_sUnion_intro` ·
+--   搬运那一步用 `rel_subst_left`（**论域换成 `Set β`**、关系取"`y` 属于第二个参数" —— 别接反）。
+theorem sUnion_image_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (⋃₀ ((fun (A : Set α) => f '' A) '' F)) ⊆ (f '' (⋃₀ F)) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 22.3 原像与广义并交：**四个方向全对**（原像是"好"的）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 5（L 类）：`f ⁻¹' (⋃₀ F) ⊆ ⋃₀ {f ⁻¹' B : B ∈ F}`。
+-- soko:hint 思路：`x` 在原像里 ⇒ `f x ∈ ⋃₀ F` ⇒ 拆出一个成员 `B ∈ F` 装得下 `f x`；
+--   于是 `f ⁻¹' B` 是右边的成员，而 `x` 在它里面。
+-- soko:hint 目标形态：`(f ⁻¹' (⋃₀ F)) ⊆ (⋃₀ ((fun B => f ⁻¹' B) '' F))`。
+-- soko:hint 关键件：`Set.mem_preimage_elim`（拆原像）· `Set.mem_sUnion_elim` ·
+--   `Set.mem_image_intro` · `Set.mem_sUnion_intro` · `Set.mem_preimage_intro`。
+theorem preimage_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (f ⁻¹' (⋃₀ F)) ⊆ (⋃₀ ((fun (B : Set β) => f ⁻¹' B) '' F)) := by
+  sorry
+
+-- 练习 6（L 类）：**反方向**。
+-- soko:hint 思路：`x` 在右边的广义并里 ⇒ 拆出 `C ∈ {f ⁻¹' B}` 装得下它 ⇒ 再拆出 `B ∈ F`
+--   使 `f ⁻¹' B = C`；把 `x ∈ C` 沿这条等式搬回 `x ∈ f ⁻¹' B`，于是 `f x ∈ B ⊆ ⋃₀ F`，
+--   即 `x` 在原像里。
+-- soko:hint 目标形态：`(⋃₀ ((fun B => f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋃₀ F))`。
+-- soko:hint 关键件：两个消去子连用 · `Set.mem_sUnion_intro` · `Set.mem_preimage_elim` ·
+--   搬运那一步 `rel_subst_left`（论域是 `Set α`、关系取"`x` 属于第二个参数"）·
+--   最后 `Set.mem_preimage_intro`。
+theorem sUnion_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (⋃₀ ((fun (B : Set β) => f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋃₀ F)) := by
+  sorry
+
+-- 练习 7（L 类）：`⋂₀ {f ⁻¹' B : B ∈ F} ⊆ f ⁻¹' (⋂₀ F)`。
+-- soko:hint 思路：要证 `x ∈ f ⁻¹' (⋂₀ F)`，即"**每个** `B ∈ F` 都有 `f x ∈ B`"；
+--   对固定的 `B`，`f ⁻¹' B` 是左边那个族的成员，而 `x` 在左边的**广义交**里 ⇒ 它在每个成员里。
+-- soko:hint 目标形态：`(⋂₀ ((fun B => f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋂₀ F))`。
+-- soko:hint 关键件：`Set.mem_preimage_intro`（结论那一层）· `Set.mem_image_intro`（造族成员）·
+--   **广义交的展开形态就是一个 `∀`** ⇒ 直接交出一个 λ（先 λ 绑定左边那条全称再应用）。
+theorem sInter_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (⋂₀ ((fun (B : Set β) => f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋂₀ F)) := by
+  sorry
+
+-- 练习 8（L 类）：**反方向** —— 原像与广义交**完全交换**。
+-- soko:hint 思路：左边是要证的广义交（展开形态是"每个族成员都装得下 `x`"）；
+--   族成员长成 `f ⁻¹' B`（`B ∈ F`），把 `x` 搬进它、读出 `f x ∈ B`；
+--   而 `f x` 在 `⋂₀ F` 里 ⇒ 每个 `B ∈ F` 都装得下它。
+-- soko:hint 目标形态：`(f ⁻¹' (⋂₀ F)) ⊆ (⋂₀ ((fun B => f ⁻¹' B) '' F))`。
+-- soko:hint 关键件：左边那条全称（λ 绑定后用）· `Set.mem_image_elim` · `Set.mem_preimage_intro` ·
+--   搬运那一步 `rel_subst_right`（论域 `Set α`）。
+theorem preimage_sInter_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (f ⁻¹' (⋂₀ F)) ⊆ (⋂₀ ((fun (B : Set β) => f ⁻¹' B) '' F)) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 22.4 必破：**像是"半好"的**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（D 类）：`f '' (f ⁻¹' B) ⊆ B` —— **像不还原原像**（反方向**是假的**：
+--   取 `B` 里有、但不在 `f` 的像里的点即可）。
+-- soko:hint 思路：`y` 在像里 ⇒ 拆出 `x` 满足 `x ∈ f ⁻¹' B` 且 `f x = y`；
+--   从 `x ∈ f ⁻¹' B` 读出 `f x ∈ B`，再沿 `f x = y` 搬成 `y ∈ B`。
+-- soko:hint 目标形态：`(f '' (f ⁻¹' B)) ⊆ B`。
+-- soko:hint 关键件：`Set.mem_image_elim` · `Set.mem_preimage_elim` ·
+--   `rel_subst_right`（**元素方向**：`f x ∈ B` 沿 `f x = y` 搬到 `y ∈ B`）。
+theorem image_preimage_subset (α β : Type) (f : α → β) (B : Set β) :
+    (f '' (f ⁻¹' B)) ⊆ B := by
+  sorry
+
+-- 练习 10（D 类）：**像对广义交只有一半** —— `f '' (⋂₀ F) ⊆ ⋂₀ {f '' A : A ∈ F}`。
+-- soko:hint 思路：要证 `y` 落在右边的广义交里（展开形态："每个族成员 `C` 都装得下 `y`"）；
+--   拆出 `C = f '' A`（`A ∈ F`）；把 `y` 搬进 `f '' A`，再拆出 `x ∈ ⋂₀ F` 且 `f x = y`；
+--   而 `x` 在广义交里 ⇒ 它在**每个** `A ∈ F` 里（这里只需要 `A`）。
+-- soko:hint 目标形态：`(f '' (⋂₀ F)) ⊆ (⋂₀ ((fun A => f '' A) '' F))`。
+-- soko:hint 关键件：`Set.mem_image_elim`（用两次）· `Set.mem_image_intro` ·
+--   广义交的全称当函数用 · `rel_subst_right`（元素方向）· 搬运那一步 `rel_subst_right`（`Set β` 方向）。
+--   ⚠ **反方向是假的**（像会把不同的点"并"到一起）—— 所以这条**只有一半** ✓
+theorem image_sInter_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (f '' (⋂₀ F)) ⊆ (⋂₀ ((fun (A : Set α) => f '' A) '' F)) := by
+  sorry

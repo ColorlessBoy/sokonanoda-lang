@@ -123,6 +123,8 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元㉒ 落地后）：64 个目标 · 614 checked · 200 open · 0 判负**
+
 **门禁实测（2026-10-01，单元㉑ 落地后）：62 个目标 · 591 checked · 190 open · 0 判负**
 
 **门禁实测（2026-10-01，单元⑳ 落地后）：60 个目标 · 575 checked · 180 open · 0 判负**
@@ -168,7 +170,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | I.4 | 论域、悖论与综合 | I.1 · I.3 | universe · russell · synthesis | 14 | 14 | 11–12 |
 | **I.5** | **序关系与良序** | I.2 | order · partial-order · linear-order · strict-order · well-order · well-founded | 21 | 21 | **13–14** |
 | **I.6** | **序数** | I.5 | ordinal · transitive-set · successor · well-founded · extensionality · zero | 20 | 20 | **15–16** |
-| **I.9** | **集族、广义积与 n 元关系** | I.2 · I.5 | family · arbitrary-union · arbitrary-intersection · monotone | 10 | 10 | **21** |
+| **I.9** | **集族、广义积与 n 元关系** | I.2 · I.5 | family · arbitrary-union · arbitrary-intersection · monotone · image · preimage | 20 | 20 | **21–22** |
 | **I.8** | **基数与基数算术** | I.3 | cardinal · injection · equinumerous · cardinal-arithmetic · product · commutativity | 20 | 20 | **19–20** |
 | **I.7** | **选择公理与 ZF 公理体系** | I.2 | axiom-of-choice · choice-function · surjective · right-inverse · zf-axioms · regularity · extensionality | 20 | 20 | **17–18** |
 
@@ -195,6 +197,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **19** | **I.8** | **基数的比较** | **10** | **10** |
 | **20** | **I.8** | **基数算术：积** | **10** | **10** |
 | **21** | **I.9** | **集族与广义并交** | **10** | **10** |
+| **22** | **I.9** | **像、原像与广义并交** | **10** | **10** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -233,6 +236,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 单元 | 交付 | 撞到/绕开的 |
 |---|---|---|
 | ⑬ 偏序、全序与严格序 | 新库 `lib/Order`（词汇 6 性质 + 4 序类 + 两个翻译函数 + 展开引理 + **取用子** + **智能构造子**）；画布 3 演示 + 11 练习；解答 0 open | **G-72**（`lib/Order` 最初写成字面箭头返回 ⇒ 单文件绿、`import` 红）· **G-73 形状 ①②③**（证明全靠库层绕法） |
+| ㉒ 像、原像与广义并交 | `lib/SUnion` +`Set.mem_sUnion_elim`/`_intro`/`Set.mem_sInter_elim`；`lib/Image` +`Set.mem_image_intro`/`_elim`/`Set.mem_preimage_intro`/`_elim`（**把 `∃` 的拆装收进库** —— 手写嵌套 `Exists.elim` 实测极易少数右括号）；画布 3 演示 + 10 练习；解答 0 open · **I.9 章收口** | **原像是"好"的**（`⁻¹'` 与 `⋃₀`/`⋂₀` **四个方向全交换**）· **像是"半好"的**（与 `⋃₀` 两个方向都对，与 `⋂₀` **只有一半**）· 「像不还原原像」（`f '' (f ⁻¹' B) ⊆ B`，反向**是假的**）· **等式一律拆成两个 `⊆`**（`Set.ext` 在深层嵌套下不稳，实测） |
 | ㉑ 集族与广义并交 | 画布 3 演示 + 10 练习；解答 0 open · 新章 **I.9** | **两条刻画定理**（`⋃₀ F ⊆ B` ⟺ 族里每个成员 `⊆ B`；`B ⊆ ⋂₀ F` ⟺ 每个成员 `⊇ B`）· **单调 vs 反单调**（`F ⊆ G` 时 `⋃₀` 单调、`⋂₀` **反**单调 —— 最反直觉的一条）· 空族的并 · **`⋃₀` 里面推不出空集的类型参数**（记法边界，写成恒假谓词） |
 | ⑳ 基数算术：积 | `lib/Prod` +`Set.mem_prod_iff` / `Set.mem_prod_mk` / **`Prod.eta`**（η 律 —— 本语言**没有 η 转换**，必须显式证并显式用）；画布 3 演示 + 10 练习；解答 0 open · **I.8 章收口** | **交换律**（`(s ×ˢ t) ≈ (t ×ˢ s)`，跨类型的 `≈`）· **`⊆` 逐坐标函子性** · **交换律与 `⊆` 可交换** · **基数乘法的良定义性如实不排**（要从 `∃` 取数据 ⇒ **G-58**） |
 | ⑲ 基数的比较 | `lib/Equiv` +`Set.InjOn` / `Set.Le`（`≼`，含记法）/ `Set.Le.elim` / `Set.Equiv.elim`；画布 3 演示 + 10 练习；解答 0 open · 新章 **I.8** | **`A ≼ B` = 存在单射**（**存在命题**，不是数据 —— 与 `≈` 的关键差别）· **`≼` 是预序**（自反/传递）· 包含给出 `≼` · 空集最小 · **Schröder–Bernstein 如实不排**（结论是数据，要造第二把映射 ⇒ **G-58**） |
