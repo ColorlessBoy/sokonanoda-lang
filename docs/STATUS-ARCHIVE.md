@@ -243,10 +243,17 @@
   ⇒ **全部 as-built 在 `docs/design/e19-baseline.md` §7**（本文件不复制，避免两处漂移 ✓）。
 
 
+## 第 523 轮（2026-10-01）：**E19 默认开 —— 逃生门保留、默认开 + 发 `v0.79.0`**
+
+- **用户拍板**：**默认开** + 开关**保留为逃生门**（`SOKO_NOTATION_METAVAR=0`/`off` ⇒ 严格档）⇒
+  两态反向验证照旧可跑；代码面只有 `implicit::metavar_enabled()` 一处（三个调用方**一字未动**）✓。
+- **判据 + 交叉验证 + 逐条重审**（默认/逃生门两态摘要 · 门禁两态 **43/377/99/0** · `--digest`
+  三个 sha256 证明「只翻了默认值」· `solve_prefix_reads_the_expected_type` 末条改成两条）
+  ⇒ **全部 as-built 在 `docs/design/e19-baseline.md` §9**（本文件不复制，避免两处漂移 ✓）。
+
+
 ## 更早的段（**二次下沉进 L3** ✓）
 
-> **第 494 轮**原文逐字 ⇒ `docs/archive/status-removed-round-494-2026-10-01.md.gz`
-> （2026-10-01 二次下沉：**L1 层预算只许减不许增** ⇒ 最老的段进 L3 ✓）；
-> **第 500–501 轮**原文逐字 ⇒ `docs/archive/status-removed-rounds-500-501-2026-10-01.md.gz`
-> （2026-10-01 二次下沉：**L1 层预算只许减不许增** ⇒ 最老的段进 L3 ✓）；更早的 ⇒
-> `git log --all -- docs/STATUS-ARCHIVE.md` ✓。
+> **第 494 / 500–501 轮**原文逐字 ⇒ `docs/archive/status-removed-round-494-2026-10-01.md.gz` ·
+> `docs/archive/status-removed-rounds-500-501-2026-10-01.md.gz`（2026-10-01 二次下沉：
+> **L1 层预算只许减不许增** ⇒ 最老的段进 L3 ✓）；更早的 ⇒ `git log --all -- docs/STATUS-ARCHIVE.md` ✓。
