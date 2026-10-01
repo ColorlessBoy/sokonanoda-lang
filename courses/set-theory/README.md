@@ -123,6 +123,11 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元⑬ 落地后）：46 个目标 · 436 checked · 110 open · 0 判负**
+（上一行 2026-09-21 的 36 目标 · 328 checked 是当时的实测；**差值是合法生长** —— 新库
+`lib/Order` 42 条 + 单元⑬ 画布 14 条（3 演示 + 11 练习）与它的解答 14 条。**两个数字都别在
+别处再抄**，要现算就跑 `python3 courses/set-theory/tools/check.py`，它每次都会重数。）
+
 **门禁实测（2026-09-21，0.62.0 二进制，卷 I Lean 化收尾后）：36 个目标 · 328 checked · 99 open · 0 判负**
 （上一行 2026-09-19 的 329 是当时的实测；差 1 来自其后某轮的声明增删——**这两个数字都别在别处再抄**，
 要现算就跑 `python3 courses/set-theory/tools/check.py`，它每次都会重数。）
@@ -145,6 +150,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | I.2 | 序对、关系与函数 | I.1 | ordered-pair · product · relation · function | 24 | 24 | 5–7 |
 | I.3 | 像、原像与基数 | I.2 | image · preimage · cardinality · cantor | 23 | 23 | 8–10 |
 | I.4 | 论域、悖论与综合 | I.1 · I.3 | universe · russell · synthesis | 14 | 14 | 11–12 |
+| **I.5** | **序关系与良序** | I.2 | order · partial-order · linear-order · strict-order | 11 | 11 | **13** |
 
 | 单元 | 章 | 标题 | 练习 | 解答（checked） |
 |---|---|---|---|---|
@@ -160,6 +166,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 10 | I.3 | 可数与 Cantor 定理（基数 Ⅱ） | 7 | 9 |
 | 11 | I.4 | 论域与 Russell 悖论 | 5 | 5 |
 | 12 | I.4 | 综合与读证明 | 9 | 9 |
+| **13** | **I.5** | **偏序、全序与严格序** | **11** | **11** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -193,7 +200,9 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 `image_mono` 附近各有一条 `example` 演示（用 `example` 是为了**不动
 `decl.checked` 计数**：演示不该往单元里塞具名声明）。
 
-`lib/` 共 9 个文件：8 个模块 + 自检入口 `Demo`。门禁实测（0.59.0，P4 之后）：
+`lib/` 现共 **17 个文件**（16 个模块 + 自检入口 `Demo`；2026-10-01 新增 `Order`）。
+**⚠ 下面这一段是 0.59.0 的快照，别当现状读** —— 要现算就 `ls courses/set-theory/lib/` +
+`tools/check.py --json`。门禁实测（0.59.0，P4 之后）：
 **Logic 0（空壳）** · Set 23 · Exists 3 · Prod 6 · Rel 7 · Fun 14 · Image 6 · Equiv 5 · Demo 10。
 **口径**：这一行**不重复计** `Demo`；门禁 `--json` 的 `summary.checked` 把 `Demo` 算两次
 （`lib Demo` 与 `lib 自检` 判同一个文件），所以汇总额比逐行相加多 10。

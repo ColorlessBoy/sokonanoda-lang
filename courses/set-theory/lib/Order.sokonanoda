@@ -1,0 +1,260 @@
+-- Order.sokonanoda —— 卷 I 的**序关系词汇**（I.5 章的第一块，2026-10-01）
+--
+-- **定位**：把「序」这件事拆成**六个二元谓词性质**（自反/非自反/对称/反对称/传递/全）
+-- 与**四个序类**（偏序/严格序/全序/良序），再加**最小元**与**良基**。
+-- 一个定义都没有数学内容 —— 全是「读出来就知道」的展开 ⇒ **L2（词汇）** ✓。
+-- 有数学内容的（严格序 ↔ 非严格序的互相翻译、良序 ⇒ 无无穷下降链、反例）
+-- 属 **L3**，留作单元⑬⑭ 的练习 ✗（分层判据见 docs/design/course-stdlib.md）。
+--
+-- **基准**（名字与形状逐条对齐 Lean core / Mathlib）：
+--   Lean core（`Init/Core.lean`）：
+--       def Reflexive    (r : Rel α α) := ∀ a, r a a
+--       def Irreflexive  (r : Rel α α) := ∀ a, ¬ r a a
+--       def Symmetric    (r : Rel α α) := ∀ ⦃a b⦄, r a b → r b a
+--       def Antisymmetric (r : Rel α α) := ∀ ⦃a b⦄, r a b → r b a → a = b
+--       def Transitive   (r : Rel α α) := ∀ ⦃a b c⦄, r a b → r b c → r a c
+--       def Total        (r : Rel α α) := ∀ a b, r a b ∨ r b a
+--   Mathlib（`Mathlib/Order/Defs.lean`）：
+--       def IsPartialOrder (r : Rel α α) := Reflexive r ∧ Antisymmetric r ∧ Transitive r
+--       def IsStrictOrder  (r : Rel α α) := Irreflexive r ∧ Transitive r
+--       def IsLinearOrder  (r : Rel α α) := IsPartialOrder r ∧ Total r
+--       def IsWellOrder    (r : Rel α α) := IsStrictOrder r ∧ WellFounded r   （严格版）
+--   ⚠ **三处有意的偏离**（理由写在各自定义处）：
+--   ① 参数表写成**显式** `(α : Type) (r : Rel α α)` —— 与本课程既有的
+--      `Function.Injective (α β : Type) (f : α → β)`、集合的包含谓词那一条 一致
+--      （点名调用不靠隐式反解，学习者的报错更可读）✓
+--   ② `IsWellOrder` 用**非严格**版（`IsLinearOrder ∧ IsWellFounded`）—— Mathlib 的
+--      严格版 `IsStrictOrder ∧ WellFounded` 与我们这一条**等价**，但非严格版
+--      与 `≤` 的直觉一致，且单元⑭ 要证的「非空子集有最小元」直接就是它 ✓
+--   ③ `IsWellFounded` 是**我们自定名** —— Mathlib 的 `WellFounded`/`IsWellFounded`
+--      都是 `Acc` 版（`∀ a, Acc r a`），而本语言**没有 `Acc`**（台账 **G-56**）⇒
+--      我们用集合论里等价的**最小元形式**（Isabelle `wf` 的对应物），
+--      **不冒用 `WellFounded` 这个名字**（同名不同体比新名字更坏 ✗）✓
+--
+-- **依赖方向**：`import lib.Logic` + `import lib.Exists`（`∃` 的记法住在那里）+
+-- `import lib.Rel`（**只为了 `Rel α α` 这个类型别名**，见下面的 ⚠）——
+-- 本模块**不依赖集合**（序是类型上的二元关系，与 `Set` 无关）✓
+import lib.Logic
+import lib.Exists
+import lib.Rel
+
+-- ⚠ **为什么两个翻译函数的返回类型写 `Rel α α` 而不是字面的 `α → α → Prop`**
+-- （实测踩过，**这是本档最贵的一课**）：`def f (α) (r) : α → α → Prop := fun (a b : α) =>
+-- r a b ∧ …` 这种形状**单文件判卷是绿的、被 `import` 时判红**
+-- （`unknown identifier \`b\`` —— 函数体里的第二个绑定变量在 import 路径上丢了），
+-- 即"**库自己绿、每个使用者红**"的假绿 ✗。返回类型换成**具名别名** `Rel α α` 两态都对 ✓。
+-- **最小复现 = `docs/gaps/repro/G-72-import-lambda-body.sokonanoda`，台账编号 G-72**；
+-- 语言线修好之前**别把这两行的返回类型改回字面箭头** ✗
+
+-- ── 六个二元谓词性质（Lean core 的真名）──────────────────────────────────────
+-- 读法：`r a b` 是"a 排在 b 前面"（非严格序读作 a ≤ b，严格序读作 a < b）。
+
+-- 自反：每个元素都与自己可比（`≤` 有，`<` 没有）
+def Reflexive (α : Type) (r : α → α → Prop) : Prop :=
+  ∀ (a : α), r a a
+
+-- 非自反：没有一个元素与自己可比（`<` 有，`≤` 没有）
+def Irreflexive (α : Type) (r : α → α → Prop) : Prop :=
+  ∀ (a : α), ¬ (r a a)
+
+-- 对称：`r a b` 与 `r b a` 同进同出（等价关系有，序**没有**）
+def Symmetric (α : Type) (r : α → α → Prop) : Prop :=
+  ∀ (a b : α), r a b → r b a
+
+-- 反对称：两边都能排 ⇒ 两个元素相等（这是"序"与"等价"的分水岭）
+def Antisymmetric (α : Type) (r : α → α → Prop) : Prop :=
+  ∀ (a b : α), r a b → r b a → a = b
+
+-- 传递
+def Transitive (α : Type) (r : α → α → Prop) : Prop :=
+  ∀ (a b c : α), r a b → r b c → r a c
+
+-- 全（任意两个元素至少有一个方向可比）—— ⚠ 注意**不含**"a = b"那一支：
+-- 全序 = 偏序 + 全，反对称把"两个方向都有"的情形压成相等 ✓
+def Total (α : Type) (r : α → α → Prop) : Prop :=
+  ∀ (a b : α), r a b ∨ r b a
+
+-- ── 四个序类（Mathlib 的真名，形状见文件头）──────────────────────────────────
+
+-- 偏序 = 自反 + 反对称 + 传递（`⊆` 是样板）
+def IsPartialOrder (α : Type) (r : α → α → Prop) : Prop :=
+  Reflexive α r ∧ Antisymmetric α r ∧ Transitive α r
+
+-- 严格序 = 非自反 + 传递（`<` 是样板；**注意它不需要反对称** —— 非自反已经够了）
+def IsStrictOrder (α : Type) (r : α → α → Prop) : Prop :=
+  Irreflexive α r ∧ Transitive α r
+
+-- 全序 = 偏序 + 全（`≤` 在 `Nat` 上是样板）
+def IsLinearOrder (α : Type) (r : α → α → Prop) : Prop :=
+  IsPartialOrder α r ∧ Total α r
+
+-- ── 良基与良序（**集合论形式**，见文件头偏离 ③）──────────────────────────────
+
+-- `m` 是 `P` 的 `r`-**最小元**：`m ∈ P`，且没有 `P` 里的元素排在 `m` 前面。
+-- ⚠ 注意这是"**极小**"（没有更小的），不是"**最小**"（比谁都小）——
+-- 在全序里两者重合，在偏序里不重合（单元⑭ 的必破题之一）✓
+def HasMin (α : Type) (r : α → α → Prop) (P : α → Prop) : Prop :=
+  ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m)
+
+-- 良基：**每个非空子集都有最小元**（本语言没有 `Acc`，见文件头偏离 ③）
+def IsWellFounded (α : Type) (r : α → α → Prop) : Prop :=
+  ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P
+
+-- 良序 = 全序 + 良基（**非严格版**，见文件头偏离 ②）
+def IsWellOrder (α : Type) (r : α → α → Prop) : Prop :=
+  IsLinearOrder α r ∧ IsWellFounded α r
+
+-- ── 严格部分 / 非严格部分（两个**翻译函数**：定义是词汇，性质是练习）──────────
+-- `strictOf r`：把非严格序的"相等那一份"切掉 ⇒ `a < b` 读作 `a ≤ b ∧ a ≠ b`。
+def strictOf (α : Type) (r : Rel α α) : Rel α α :=
+  fun (a b : α) => r a b ∧ a ≠ b
+
+-- `nonstrictOf r`：把严格序的"相等那一份"补回来 ⇒ `a ≤ b` 读作 `a < b ∨ a = b`。
+def nonstrictOf (α : Type) (r : Rel α α) : Rel α α :=
+  fun (a b : α) => r a b ∨ a = b
+
+-- ── 六个性质的展开引理（L2；`rfl` 级）────────────────────────────────────
+theorem reflexive_def (α : Type) (r : α → α → Prop) :
+    Reflexive α r ↔ ∀ (a : α), r a a :=
+  Iff.intro (fun (h : Reflexive α r) => h) (fun (h : ∀ (a : α), r a a) => h)
+
+theorem irreflexive_def (α : Type) (r : α → α → Prop) :
+    Irreflexive α r ↔ ∀ (a : α), ¬ (r a a) :=
+  Iff.intro (fun (h : Irreflexive α r) => h) (fun (h : ∀ (a : α), ¬ (r a a)) => h)
+
+theorem symmetric_def (α : Type) (r : α → α → Prop) :
+    Symmetric α r ↔ ∀ (a b : α), r a b → r b a :=
+  Iff.intro (fun (h : Symmetric α r) => h) (fun (h : ∀ (a b : α), r a b → r b a) => h)
+
+theorem antisymmetric_def (α : Type) (r : α → α → Prop) :
+    Antisymmetric α r ↔ ∀ (a b : α), r a b → r b a → a = b :=
+  Iff.intro (fun (h : Antisymmetric α r) => h)
+    (fun (h : ∀ (a b : α), r a b → r b a → a = b) => h)
+
+theorem transitive_def (α : Type) (r : α → α → Prop) :
+    Transitive α r ↔ ∀ (a b c : α), r a b → r b c → r a c :=
+  Iff.intro (fun (h : Transitive α r) => h)
+    (fun (h : ∀ (a b c : α), r a b → r b c → r a c) => h)
+
+theorem total_def (α : Type) (r : α → α → Prop) :
+    Total α r ↔ ∀ (a b : α), r a b ∨ r b a :=
+  Iff.intro (fun (h : Total α r) => h) (fun (h : ∀ (a b : α), r a b ∨ r b a) => h)
+
+-- ── 定义展开引理（L2：Mathlib 里是 `Iff.rfl` 或一行，没有数学内容）────────────
+theorem isPartialOrder_def (α : Type) (r : α → α → Prop) :
+    IsPartialOrder α r ↔ Reflexive α r ∧ Antisymmetric α r ∧ Transitive α r :=
+  Iff.intro (fun (h : IsPartialOrder α r) => h)
+    (fun (h : Reflexive α r ∧ Antisymmetric α r ∧ Transitive α r) => h)
+
+theorem isStrictOrder_def (α : Type) (r : α → α → Prop) :
+    IsStrictOrder α r ↔ Irreflexive α r ∧ Transitive α r :=
+  Iff.intro (fun (h : IsStrictOrder α r) => h)
+    (fun (h : Irreflexive α r ∧ Transitive α r) => h)
+
+theorem isLinearOrder_def (α : Type) (r : α → α → Prop) :
+    IsLinearOrder α r ↔ IsPartialOrder α r ∧ Total α r :=
+  Iff.intro (fun (h : IsLinearOrder α r) => h)
+    (fun (h : IsPartialOrder α r ∧ Total α r) => h)
+
+theorem isWellFounded_def (α : Type) (r : α → α → Prop) :
+    IsWellFounded α r ↔
+      ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P :=
+  Iff.intro (fun (h : IsWellFounded α r) => h)
+    (fun (h : ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P) => h)
+
+theorem isWellOrder_def (α : Type) (r : α → α → Prop) :
+    IsWellOrder α r ↔ IsLinearOrder α r ∧ IsWellFounded α r :=
+  Iff.intro (fun (h : IsWellOrder α r) => h)
+    (fun (h : IsLinearOrder α r ∧ IsWellFounded α r) => h)
+
+-- ── 取用子（accessor）：把四个序类拆回性质，**参数一次给全** ─────────────────
+-- ⚠ **为什么要有这一组**（实测换来的）：`And.left h` 得到的是**定义头**类型
+-- （`Reflexive α r` 这种），而本语言的 elaborator **不能把一个"展开出来的函数值"
+-- 直接应用到实参上**（对一个合取取左支、再把结果喂给 `a` ⇒「期望 `Sort(0)`，实际是定义头」）
+-- ⇒ 每个使用点都得写成 `(fun (hr : Reflexive α r) => hr a) (And.left h)`。
+-- 把这一层收进库里，上层（单元⑬⑭ 与学习者）就能写 `partialOrder_refl α r h a` ✓。
+-- 它们是**纯投影**（删掉名字就是 `And.left`），所以仍是 **L2**，不是练习 ✓
+theorem partialOrder_refl (α : Type) (r : Rel α α) (h : IsPartialOrder α r) (a : α) :
+    r a a :=
+  (fun (hr : Reflexive α r) => hr a) (And.left h)
+
+theorem partialOrder_antisymm (α : Type) (r : Rel α α) (h : IsPartialOrder α r)
+    (a b : α) : r a b → r b a → a = b :=
+  (fun (ha : Antisymmetric α r) => ha a b) (And.left (And.right h))
+
+theorem partialOrder_trans (α : Type) (r : Rel α α) (h : IsPartialOrder α r)
+    (a b c : α) : r a b → r b c → r a c :=
+  (fun (ht : Transitive α r) => ht a b c) (And.right (And.right h))
+
+theorem strictOrder_irrefl (α : Type) (r : Rel α α) (h : IsStrictOrder α r) (a : α) :
+    ¬ (r a a) :=
+  (fun (hi : Irreflexive α r) => hi a) (And.left h)
+
+theorem strictOrder_trans (α : Type) (r : Rel α α) (h : IsStrictOrder α r)
+    (a b c : α) : r a b → r b c → r a c :=
+  (fun (ht : Transitive α r) => ht a b c) (And.right h)
+
+theorem linearOrder_total (α : Type) (r : Rel α α) (h : IsLinearOrder α r)
+    (a b : α) : r a b ∨ r b a :=
+  (fun (ht : Total α r) => ht a b) (And.right h)
+
+theorem wellOrder_linear (α : Type) (r : Rel α α) (h : IsWellOrder α r) :
+    IsLinearOrder α r :=
+  And.left h
+
+theorem wellOrder_wellFounded (α : Type) (r : Rel α α) (h : IsWellOrder α r) :
+    IsWellFounded α r :=
+  And.right h
+
+theorem wellFounded_hasMin (α : Type) (r : Rel α α) (h : IsWellFounded α r)
+    (P : α → Prop) : (∃ (x : α), P x) → HasMin α r P :=
+  (fun (hw : ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P) => hw P)
+    (Iff.mp (isWellFounded_def α r) h)
+
+-- 两个翻译函数的**应用**展开（`rfl` 级：定义体是字面 lambda）
+theorem strictOf_apply (α : Type) (r : Rel α α) (a b : α) :
+    strictOf α r a b ↔ r a b ∧ a ≠ b :=
+  Iff.intro (fun (h : strictOf α r a b) => h)
+    (fun (h : r a b ∧ a ≠ b) => h)
+
+theorem nonstrictOf_apply (α : Type) (r : Rel α α) (a b : α) :
+    nonstrictOf α r a b ↔ r a b ∨ a = b :=
+  Iff.intro (fun (h : nonstrictOf α r a b) => h)
+    (fun (h : r a b ∨ a = b) => h)
+
+-- ── Eq 搬运（**具名包装**；本语言里 `Eq.subst` 嵌在别的应用里会被 elaborator 判红）──
+-- 读法：`rel_subst_left r h` 把 `r b c` 沿 `a = c` 搬成 `r b a`（把等式的**左端**换掉）。
+-- 为什么包一层：`Eq.subst.{1} α (fun (x : α) => r b x) c a (Eq.symm …) hbc` 写在
+-- **顶层**判绿 ✓，一旦嵌进 `f … (Eq.subst …)` 这样的实参位就报
+-- 「期望 `Sort(0)`，实际是 `Sort(1)`」（实测；与 G-72 同一族，**登记在案等语言线修**）✓
+theorem rel_subst_left (α : Type) (r : α → α → Prop) (a b c : α) (h : a = c) :
+    r b c → r b a :=
+  Eq.subst.{1} α (fun (x : α) => r b x) c a (Eq.symm.{1} α a c h)
+
+-- 读法：把 `r a b` 沿 `b = c` 搬成 `r a c`（把等式的**右端**换掉）。
+theorem rel_subst_right (α : Type) (r : α → α → Prop) (a b c : α) (h : b = c) :
+    r a b → r a c :=
+  Eq.subst.{1} α (fun (x : α) => r a x) b c h
+
+-- ── 智能构造子（把 `And.intro` 的隐式实参反解收进库里）──────────────────────
+-- ⚠ **为什么要有这一组**（实测）：单元里直接写
+-- `And.intro <refl> (And.intro <anti> <trans>)` 去构造 `IsPartialOrder α r` 时，
+-- 期望类型是**定义头**（`IsPartialOrder α r`），本语言的 elaborator 在反解
+-- `And` 的隐式实参时会判红（「期望 `Sort(0)`，实际是 `Set α`」）。在**库层**
+-- 把这一步做掉，单元就只写 `isPartialOrder_intro α r hrefl hanti htrans` ✓
+theorem isPartialOrder_intro (α : Type) (r : α → α → Prop)
+    (hrefl : Reflexive α r) (hanti : Antisymmetric α r) (htrans : Transitive α r) :
+    IsPartialOrder α r :=
+  Iff.mpr (isPartialOrder_def α r) (And.intro hrefl (And.intro hanti htrans))
+
+theorem isStrictOrder_intro (α : Type) (r : α → α → Prop)
+    (hirrefl : Irreflexive α r) (htrans : Transitive α r) : IsStrictOrder α r :=
+  Iff.mpr (isStrictOrder_def α r) (And.intro hirrefl htrans)
+
+theorem isLinearOrder_intro (α : Type) (r : α → α → Prop)
+    (hpartial : IsPartialOrder α r) (htotal : Total α r) : IsLinearOrder α r :=
+  Iff.mpr (isLinearOrder_def α r) (And.intro hpartial htotal)
+
+theorem isWellOrder_intro (α : Type) (r : α → α → Prop)
+    (hlinear : IsLinearOrder α r) (hwf : IsWellFounded α r) : IsWellOrder α r :=
+  Iff.mpr (isWellOrder_def α r) (And.intro hlinear hwf)

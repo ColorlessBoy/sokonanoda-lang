@@ -1,0 +1,31 @@
+-- G-73 复现（自包含、零 import）：**定义头类型上的三条 elaborator 边界**
+--
+-- 期望（官方 Lean 4 语义）：下面每一条都**判绿** —— 它们全是「定义只是缩写」的直接后果，
+-- Lean 的 defeq 在 elaboration 期就把 `def` 展开了。
+-- 今天（本语言）：本文件**被判红**（复现 `today` 里写的那几条）。
+--
+-- 症状一族（三条都指向同一件事：**elaborator 的展开比内核弱**）：
+--   ① `And.left h` 拿到的是**定义头**类型（`Reflexive α r` 这种）；把**这个结果**
+--      再应用到实参上 ⇒ 「期望 `Sort(0)`，实际是 `IsPO …` ✗」
+--   ② `And.intro` / `Iff.intro` / `Or.elim` 在**期望类型不是语法上的** `And`/`Or` 时
+--      （即目标或实参位是定义头）⇒ 前导 Prop 实参反解失败 ✗
+--   ③ `≠` / `=` 的记法在**嵌套位置**（λ 的绑定类型里）⇒ 宇宙层级 `u` 反解不出来
+--      ⇒ 「期望 `Sort(0)`，实际是 `Sort(1)` ✗」
+--
+-- 影响面（卷 I 实测）：课程只能靠三种绕法写证明 —— 取用子（库层把参数收全）、
+-- 智能构造子（库层做 `And.intro`）、`(fun (hx : <展开形态>) => hx …) 假设` 的显式绑定；
+-- 每一种都让**证明文本偏离 Lean 4 的写法**，与硬规则 3（教学语法是真实 Lean 4 的子集）冲突。
+-- 记账现场：`courses/set-theory/lib/Order.sokonanoda` 文件头 + `units/unit13-orders.sokonanoda`。
+
+-- 词汇（与课标库同形，但这里自足）
+def Reflexive (α : Type) (r : α → α → Prop) : Prop :=
+  ∀ (a : α), r a a
+
+def IsPO (α : Type) (r : α → α → Prop) : Prop :=
+  Reflexive α r ∧ Reflexive α r
+
+axiom hpo : IsPO Nat (fun (x y : Nat) => x = y)
+
+-- 形状 ①：定义头类型的假设取出合取支后**直接应用**
+theorem shape1 (a : Nat) : a = a :=
+  And.left hpo a

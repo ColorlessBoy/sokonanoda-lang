@@ -1,0 +1,169 @@
+-- ==========================================================================
+-- unit13-orders.sokonanoda —— 卷 I 单元⑬ **偏序、全序与严格序**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§3.7 Ordering
+-- Relations** + **§7.1 Partial Orderings**；Halmos《Naive Set Theory》**§14 Order**。
+-- 大纲：`docs/design/set-theory-syllabus.md` §4.1（I.5 章的第一个单元）。
+--
+-- 本单元的"该学的定理"：**偏序 = 自反 + 反对称 + 传递**（三条各自是一条**取用子**）；
+-- **全序**比偏序多一条**可比性**；**严格序**把"相等那一份"切掉；
+-- 而 `⊆` 是 `Set α` 上的**标准偏序**，却**不是**全序 —— 这是本章的必破题。
+--
+-- **本单元只允许用**（tactic 白名单）：`intro` / `exact` / `apply` / `constructor` /
+--   `cases` / `have`，加 `import` 进来的库引理。**解答一律项风格**（见 course AGENTS.md）。
+--
+-- **本单元只 `import` 三样**：`lib.Order`（序的词汇与取用子）· `lib.Set`（`⊆` 与
+--   `{a}`）· 以及 prelude（`∧ ∨ ¬ → = ≠` 与 `∀`，任何文件直接可用）。
+--   **记法不用自己声明**：`⊆`/`∈`/`{a}` 由 `lib.Set` 提供。
+--
+-- 依赖：单元②（包含三律 —— 本单元第 9 题把它们装成一个**序**）。
+-- ==========================================================================
+import lib.Logic
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 13.1 序的词汇：四个序类，六个性质
+--
+-- 读法（`lib/Order` 文件头有完整出处）：
+--   · `r : α → α → Prop` 是一个**二元关系**（`r a b` 读作 "a 排在 b 前面"）；
+--   · 非严格序读 `a ≤ b`，严格序读 `a < b` —— 下面全用 `r` 写，不含任何记法糖；
+--   · 偏序 = 自反 + 反对称 + 传递；全序 = 偏序 + 可比；严格序 = 非自反 + 传递。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示（已写好）：偏序的**定义展开** —— 四个序类都有一条这样的展开引理。
+theorem demo_isPartialOrder_def (α : Type) (r : α → α → Prop) :
+    IsPartialOrder α r ↔ Reflexive α r ∧ Antisymmetric α r ∧ Transitive α r :=
+  isPartialOrder_def α r
+
+-- 演示：`strictOf` 的**应用展开** —— "a 严格排在 b 前面"就是"a 排在 b 前面且两者不等"。
+theorem demo_strictOf_apply (α : Type) (r : α → α → Prop) (a b : α) :
+    strictOf α r a b ↔ (r a b ∧ a ≠ b) :=
+  strictOf_apply α r a b
+
+-- 演示：偏序**蕴含自反**（合取左支的取用子）。
+theorem demo_partialOrder_refl (α : Type) (r : α → α → Prop)
+    (h : IsPartialOrder α r) : Reflexive α r :=
+  And.left h
+
+-- ─────────────────────────────────────────────────────────────
+-- 13.2 把偏序拆开：三条取用子（**先做这三题，后面每题都要用**）
+--
+-- ⚠ 本语言的一条边界（实测，见 course AGENTS.md 与台账 G-73）：`And.left h` 拿到的
+--   是**定义头**类型（`Reflexive α r` 这种），**不能直接当函数应用**。
+--   `lib/Order` 因此把三条「取用子」包好了 —— `partialOrder_refl` /
+--   `partialOrder_antisymm` / `partialOrder_trans`，**参数一次给全**，直接用 ✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：偏序 ⇒ 自反（取用子）。
+-- soko:hint 思路：`lib/Order` 已经把这条拆好了，找到那个名字直接交出去。
+-- soko:hint 目标形态：目标写成 `r a a`（不是 `Reflexive α r`）—— 所以取用子要把 `a` 也吃进去。
+-- soko:hint 关键件：`partialOrder_refl` 的参数表是「论域 · 关系 · 偏序证据 · 元素」。
+theorem partialOrder_refl_apply (α : Type) (r : α → α → Prop)
+    (h : IsPartialOrder α r) (a : α) : r a a := by
+  sorry
+
+-- 练习 2（T 类）：偏序 ⇒ 反对称（取用子）。
+-- soko:hint 思路：目标是一个**蕴含链**（两条关系给出一条相等），取用子已经把两条前提吃进去了。
+-- soko:hint 目标形态：`r a b → r b a → a = b`。
+-- soko:hint 关键件：`partialOrder_antisymm` 的参数表比练习 1 多两个元素位。
+theorem partialOrder_antisymm_apply (α : Type) (r : α → α → Prop)
+    (h : IsPartialOrder α r) (a b : α) : r a b → r b a → a = b := by
+  sorry
+
+-- 练习 3（T 类）：偏序 ⇒ 传递（取用子）。
+-- soko:hint 思路：与练习 2 同形，只换了关系的三条链。
+-- soko:hint 目标形态：`r a b → r b c → r a c`。
+-- soko:hint 关键件：`partialOrder_trans` 的参数表是「论域 · 关系 · 偏序证据 · 三个元素」。
+theorem partialOrder_trans_apply (α : Type) (r : α → α → Prop)
+    (h : IsPartialOrder α r) (a b c : α) : r a b → r b c → r a c := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 13.3 严格部分 / 非严格部分
+--
+-- `strictOf α r a b` = "r a b 且 a ≠ b"（切掉相等那一份）；
+-- `nonstrictOf α r a b` = "r a b 或 a = b"（把相等那一份补回来）。
+-- 两条展开引理是演示里的 `demo_strictOf_apply` 与下面会用到的 `nonstrictOf_apply`。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（L 类）：**严格部分非自反** —— 偏序的严格部分里，没有一个元素排在自己前面。
+-- soko:hint 思路：把"严格排在自前面"展开成合取，再拿它的**右支**（不相等）去撞自反性。
+-- soko:hint 目标形态：`Irreflexive α (strictOf α r)`，展开后是 `∀ a, ¬ (strictOf α r a a)`。
+-- soko:hint 关键件：`And.right` 取出 `a ≠ a`；`a ≠ a` 是一个**函数**（吃 `a = a` 吐 `False`），
+--   喂给它的是自反那一份。**注意**：`(And.right h) (…)` 这种写法在本语言里判红，
+--   要先 `fun (hne : a ≠ a) => …` 把类型写出来再应用（台账 G-73）。
+theorem strictOf_irrefl (α : Type) (r : α → α → Prop)
+    (h : IsPartialOrder α r) : Irreflexive α (strictOf α r) := by
+  sorry
+
+-- 练习 5（L 类）：**非严格部分自反** —— 相等那一份被补回来了，`a` 与自己总是可比的。
+-- soko:hint 思路：展开成析取后交**右支**（相等）。
+-- soko:hint 目标形态：`Reflexive α (nonstrictOf α r)`，展开后是 `∀ a, nonstrictOf α r a a`。
+-- soko:hint 关键件：构造右支时要把**前导 Prop 实参写全**（两个命题 + 证据），
+--   否则反解不出（台账 G-30 的同族，AGENTS.md 有实测记录）。
+theorem nonstrictOf_refl (α : Type) (r : α → α → Prop) :
+    Reflexive α (nonstrictOf α r) := by
+  sorry
+
+-- 练习 6（L 类）：**严格 ⇒ 非严格**（"< ⇒ ≤"那一半）。
+-- soko:hint 思路：目标展开成析取，前提正好是左支。
+-- soko:hint 目标形态：`r a b → nonstrictOf α r a b`。
+-- soko:hint 关键件：先 `fun (h : r a b ∨ a = b) => h` 把**展开形态**写出来，再把 `Or.inl` 交进去。
+theorem strict_imp_nonstrict (α : Type) (r : α → α → Prop) (a b : α) :
+    r a b → nonstrictOf α r a b := by
+  sorry
+
+-- 练习 7（L 类）：**相等 ⇒ 非严格**（"= ⇒ ≤"那一半）。
+-- soko:hint 思路：与练习 6 同形，换右支。
+-- soko:hint 目标形态：`a = b → nonstrictOf α r a b`。
+-- soko:hint 关键件：与练习 6 同形，前导 Prop 实参同样要写全。
+theorem eq_imp_nonstrict (α : Type) (r : α → α → Prop) (a b : α) :
+    a = b → nonstrictOf α r a b := by
+  sorry
+
+-- 练习 8（T 类）：全序 ⇒ **可比**（取用子）。
+-- soko:hint 思路：全序 = 偏序 + 可比，这一条取的是**右支**。
+-- soko:hint 目标形态：`r a b ∨ r b a`。
+-- soko:hint 关键件：`linearOrder_total`。
+theorem linearOrder_total_apply (α : Type) (r : α → α → Prop)
+    (h : IsLinearOrder α r) (a b : α) : r a b ∨ r b a := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 13.4 必破：`⊆` 是偏序，**不是**全序
+--
+-- 这两道题是本单元的落点：它们把单元② 的三条包含律与单元④ 的外延性**装成一个序**，
+-- 再当场证明这个序**缺**可比性。教材对应：Enderton §7.1 的样板偏序就是 `⊆`。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（D 类）：**`⊆` 是 `Set α` 上的偏序**（本单元旗舰）。
+-- soko:hint 思路：先展开成"自反 ∧ 反对称 ∧ 传递"，三条分别就是单元② 的包含三律；
+--   但**别在单元里现搭** `And.intro` —— 期望类型是定义头时反解会判红（台账 G-73），
+--   库里有**智能构造子** `isPartialOrder_intro`，参数正好是三条证据。
+-- soko:hint 目标形态：`IsPartialOrder (Set α) (fun (A B : Set α) => A ⊆ B)`。
+-- soko:hint 关键件：自反 = `fun (A : Set α) (x : α) (hx : x ∈ A) => hx`；
+--   反对称 = `Set.ext` 逐元素拼 `Iff`；传递 = 把 `x ∈ A` 经两条包含**穿过两层**。
+theorem subset_isPartialOrder (α : Type) :
+    IsPartialOrder (Set α) (fun (A B : Set α) => A ⊆ B) := by
+  sorry
+
+-- 练习 10（L 类）：**严格部分传递**要过的第一道坎 —— 两条严格关系给出"不相等"。
+-- soko:hint 思路：反证。假设 `a = c`，把第二条的"排在前面"沿着这个等式**搬回去**，
+--   于是 `a` 与 `b` 互相排在前面；反对称把它们压成相等，与第一条里的"不相等"冲突。
+-- soko:hint 目标形态：`strictOf α r a b → strictOf α r b c → a ≠ c`。
+-- soko:hint 关键件：搬等式用的是库里的 `rel_subst_left`（`Eq.subst` 的**具名包装** ——
+--   本语言里 `Eq.subst` 嵌在别的应用里会判红，台账 G-73）；"不相等"那一支同样要
+--   先 `fun (hne : …) => …` 把类型写出来再应用。
+theorem strictOf_neq (α : Type) (r : α → α → Prop) (h : IsPartialOrder α r)
+    (a b c : α) : strictOf α r a b → strictOf α r b c → a ≠ c := by
+  sorry
+
+-- 练习 11（L 类）：**偏序的严格部分是传递的**（用第 10 题）。
+-- soko:hint 思路：展开成"排在前面 ∧ 不相等"——前半用偏序的传递，后半用第 10 题。
+-- soko:hint 目标形态：`Transitive α (strictOf α r)`。
+-- soko:hint 关键件：两个合取项要**显式写出前导 Prop 实参**：
+--   `And.intro (r a c) (a ≠ c) … …`（AGENTS.md 的 G-30 记录）。
+theorem strictOf_trans (α : Type) (r : α → α → Prop) (h : IsPartialOrder α r) :
+    Transitive α (strictOf α r) := by
+  sorry

@@ -1,0 +1,97 @@
+-- unit13 解答钥匙（agent 专用）。
+-- 写法：**项风格**（不用 `by`），见 courses/set-theory/AGENTS.md「解答写法」。
+-- 这份文件同时是**提示**：老师据此把骨架翻成 tactic 讲给学习者。
+--
+-- ⚠ 本单元的证明**处处绕开本语言的两条 elaborator 边界**（台账 G-72 / G-73）：
+--   ① 定义头类型的假设（`Reflexive α r` / `strictOf α r a b` 这种）**不能直接当函数应用**，
+--      要 `(fun (hx : <展开形态>) => hx …) 假设` 先把类型写出来；
+--   ② `And.intro` / `Or.elim` 在期望类型不是**语法上的** `And`/`Or` 时，前导 Prop 实参
+--      必须**写全**（G-30 的同一族）。
+--   两条都是**语言侧待修**的，不是教学难点；画布的 `soko:hint` 只讲数学那一半。
+import lib.Logic
+import lib.Set
+import lib.Order
+
+-- ── 演示（画布上已写好，逐字保留）─────────────────────────────────────────
+
+theorem demo_isPartialOrder_def (α : Type) (r : α → α → Prop) :
+    IsPartialOrder α r ↔ Reflexive α r ∧ Antisymmetric α r ∧ Transitive α r :=
+  isPartialOrder_def α r
+
+theorem demo_strictOf_apply (α : Type) (r : α → α → Prop) (a b : α) :
+    strictOf α r a b ↔ (r a b ∧ a ≠ b) :=
+  strictOf_apply α r a b
+
+theorem demo_partialOrder_refl (α : Type) (r : α → α → Prop)
+    (h : IsPartialOrder α r) : Reflexive α r :=
+  And.left h
+
+-- ── 练习 1–3（T 类）：把偏序拆成三条性质（取用子）─────────────────────────
+
+theorem partialOrder_refl_apply (α : Type) (r : α → α → Prop)
+    (h : IsPartialOrder α r) (a : α) : r a a :=
+  partialOrder_refl α r h a
+
+theorem partialOrder_antisymm_apply (α : Type) (r : α → α → Prop)
+    (h : IsPartialOrder α r) (a b : α) : r a b → r b a → a = b :=
+  partialOrder_antisymm α r h a b
+
+theorem partialOrder_trans_apply (α : Type) (r : α → α → Prop)
+    (h : IsPartialOrder α r) (a b c : α) : r a b → r b c → r a c :=
+  partialOrder_trans α r h a b c
+
+-- ── 练习 4（L 类）：严格部分非自反 ─────────────────────────────────────────
+theorem strictOf_irrefl (α : Type) (r : α → α → Prop)
+    (h : IsPartialOrder α r) : Irreflexive α (strictOf α r) :=
+  fun (a : α) (ha : strictOf α r a a) =>
+    (fun (hne : a ≠ a) => hne (Eq.refl.{1} α a)) (And.right ha)  -- soko:notation-ok: 等式族证明项的宇宙层级（AGENTS.md 明说的边界）
+
+-- ── 练习 5（L 类）：非严格部分自反 ─────────────────────────────────────────
+theorem nonstrictOf_refl (α : Type) (r : α → α → Prop) :
+    Reflexive α (nonstrictOf α r) :=
+  fun (a : α) => (fun (hh : r a a ∨ a = a) => hh) (Or.inr (r a a) (a = a) (Eq.refl.{1} α a))  -- soko:notation-ok: 等式族证明项的宇宙层级（AGENTS.md 明说的边界）
+
+-- ── 练习 6（L 类）：严格 ⇒ 非严格 ──────────────────────────────────────────
+theorem strict_imp_nonstrict (α : Type) (r : α → α → Prop) (a b : α) :
+    r a b → nonstrictOf α r a b :=
+  fun (hab : r a b) => (fun (hh : r a b ∨ a = b) => hh) (Or.inl (r a b) (a = b) hab)  -- soko:notation-ok: G-30：λ 体里构造子补不出前导 Prop 实参，必须写全（AGENTS.md 明说的边界）
+
+-- ── 练习 7（L 类）：相等 ⇒ 非严格 ──────────────────────────────────────────
+theorem eq_imp_nonstrict (α : Type) (r : α → α → Prop) (a b : α) :
+    a = b → nonstrictOf α r a b :=
+  fun (hab : a = b) => (fun (hh : r a b ∨ a = b) => hh) (Or.inr (r a b) (a = b) hab)  -- soko:notation-ok: G-30：同上
+
+-- ── 练习 8（T 类）：全序 ⇒ 可比 ────────────────────────────────────────────
+theorem linearOrder_total_apply (α : Type) (r : α → α → Prop)
+    (h : IsLinearOrder α r) (a b : α) : r a b ∨ r b a :=
+  linearOrder_total α r h a b
+
+-- ── 练习 9（D 类）：`⊆` 是 `Set α` 上的偏序（本单元旗舰）────────────────────
+-- 三条证据就是单元② 的包含三律；装配交给库里的智能构造子（见台账 G-73）。
+theorem subset_isPartialOrder (α : Type) :
+    IsPartialOrder (Set α) (fun (A B : Set α) => A ⊆ B) :=
+  isPartialOrder_intro (Set α) (fun (A B : Set α) => A ⊆ B)
+    (fun (A : Set α) (x : α) (hx : x ∈ A) => hx)
+    (fun (A B : Set α) (h1 : A ⊆ B) (h2 : B ⊆ A) =>
+      Set.ext α A B (fun (x : α) => Iff.intro (h1 x) (h2 x)))
+    (fun (A B C : Set α) (h1 : A ⊆ B) (h2 : B ⊆ C) (x : α) (hx : x ∈ A) =>
+      h2 x (h1 x hx))
+
+-- ── 练习 10（L 类）：两条严格关系给出"不相等" ──────────────────────────────
+theorem strictOf_neq (α : Type) (r : α → α → Prop) (h : IsPartialOrder α r)
+    (a b c : α) : strictOf α r a b → strictOf α r b c → a ≠ c :=
+  fun (hab : strictOf α r a b) (hbc : strictOf α r b c) =>
+    fun (hac : a = c) =>
+      (fun (hne : a ≠ b) =>
+        hne (partialOrder_antisymm α r h a b (And.left hab)
+          (rel_subst_left α r a b c hac (And.left hbc))))
+        (And.right hab)
+
+-- ── 练习 11（L 类）：偏序的严格部分传递（用第 10 题）───────────────────────
+theorem strictOf_trans (α : Type) (r : α → α → Prop) (h : IsPartialOrder α r) :
+    Transitive α (strictOf α r) :=
+  fun (a b c : α) (hab : strictOf α r a b) (hbc : strictOf α r b c) =>
+    (fun (hgoal : r a c ∧ a ≠ c) => hgoal)
+      (And.intro (r a c) (a ≠ c)
+        (partialOrder_trans α r h a b c (And.left hab) (And.left hbc))
+        (strictOf_neq α r h a b c hab hbc))

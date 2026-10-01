@@ -11,8 +11,14 @@
           "id": "I.1",
           "title": "集合、子集与集合运算",
           "prereqs": [],
-          "tags": ["membership", "subset", "powerset"],
-          "quota": { "exercises": 35 },
+          "tags": [
+            "membership",
+            "subset",
+            "powerset"
+          ],
+          "quota": {
+            "exercises": 35
+          },
           "units": [
             {
               "file": "units/unit01-sets-membership.sokonanoda",
@@ -43,9 +49,18 @@
         {
           "id": "I.2",
           "title": "序对、关系与函数",
-          "prereqs": ["I.1"],
-          "tags": ["ordered-pair", "product", "relation", "function"],
-          "quota": { "exercises": 24 },
+          "prereqs": [
+            "I.1"
+          ],
+          "tags": [
+            "ordered-pair",
+            "product",
+            "relation",
+            "function"
+          ],
+          "quota": {
+            "exercises": 24
+          },
           "units": [
             {
               "file": "units/unit05-pairs-products.sokonanoda",
@@ -70,9 +85,18 @@
         {
           "id": "I.3",
           "title": "像、原像与基数",
-          "prereqs": ["I.2"],
-          "tags": ["image", "preimage", "cardinality", "cantor"],
-          "quota": { "exercises": 23 },
+          "prereqs": [
+            "I.2"
+          ],
+          "tags": [
+            "image",
+            "preimage",
+            "cardinality",
+            "cantor"
+          ],
+          "quota": {
+            "exercises": 23
+          },
           "units": [
             {
               "file": "units/unit08-images-preimages.sokonanoda",
@@ -97,9 +121,18 @@
         {
           "id": "I.4",
           "title": "论域、悖论与综合",
-          "prereqs": ["I.1", "I.3"],
-          "tags": ["universe", "russell", "synthesis"],
-          "quota": { "exercises": 14 },
+          "prereqs": [
+            "I.1",
+            "I.3"
+          ],
+          "tags": [
+            "universe",
+            "russell",
+            "synthesis"
+          ],
+          "quota": {
+            "exercises": 14
+          },
           "units": [
             {
               "file": "units/unit11-universe-russell.sokonanoda",
@@ -112,6 +145,30 @@
               "title": "单元⑫ 综合与读证明",
               "title_en": "Unit 12 — Synthesis & Reading Proofs",
               "unit": 12
+            }
+          ]
+        },
+        {
+          "id": "I.5",
+          "title": "序关系与良序",
+          "prereqs": [
+            "I.2"
+          ],
+          "tags": [
+            "order",
+            "partial-order",
+            "linear-order",
+            "strict-order"
+          ],
+          "quota": {
+            "exercises": 11
+          },
+          "units": [
+            {
+              "file": "units/unit13-orders.sokonanoda",
+              "title": "单元⑬ 偏序、全序与严格序",
+              "title_en": "Unit 13 — Partial, Linear and Strict Orders",
+              "unit": 13
             }
           ]
         }

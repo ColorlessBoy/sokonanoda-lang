@@ -58,16 +58,24 @@ prereqs = sum(1 for c in chapters if isinstance(c.get("prereqs"), list))
 tags = sum(1 for c in chapters if isinstance(c.get("tags"), list))
 quotas = sum(1 for c in chapters
              if isinstance(c.get("quota"), dict) and isinstance(c["quota"].get("exercises"), int))
+# 判据**与课程规模无关**（2026-10-01 修）：原来这里写死了 `chapters=4 units=12`，
+# 于是**合法地加一章**（I.5 序关系与良序，13 个单元）就把复现件判红 ✗ ——
+# 那与「课程门禁只判形状、不锁计数」的口径自相矛盾（course-manifest-v2.md §4.2）。
+# 现在只判**形状**：v2 schema · 卷/章/单元非空 · 每章都带 prereqs/tags/quota ·
+# 单元总数**不少于** 12（历史上的 12 单元一个都不能少，但可以继续长）。
+shape_ok = (schema == "soko.course/2" and len(volumes) >= 1 and len(chapters) >= 1
+            and len(units) >= 12 and prereqs == len(chapters) and tags == len(chapters)
+            and quotas == len(chapters))
 print(f"schema={schema} volumes={len(volumes)} chapters={len(chapters)} units={len(units)} "
-      f"prereqs={prereqs} tags={tags} quotas={quotas}")
+      f"prereqs={prereqs} tags={tags} quotas={quotas} shape_ok={1 if shape_ok else 0}")
 PY
 )"
 note "  $V2_REPORT"
 v2_ok=1
 case "$V2_REPORT" in
-  *"schema=soko.course/2 volumes=1 chapters=4 units=12 prereqs=4 tags=4 quotas=4"*) v2_ok=0 ;;
+  *"shape_ok=1"*) v2_ok=0 ;;
 esac
-echo "   → v2 形状（修后预期）：$([ "$v2_ok" = 0 ] && echo yes || echo NO)"
+echo "   → v2 形状（修后预期，与规模无关）：$([ "$v2_ok" = 0 ] && echo yes || echo NO)"
 echo
 
 # ── ② CLI 事件 additive 地带上卷/章/标签 ───────────────────────────────────
@@ -82,12 +90,20 @@ printf '%s' "$UNIT" | grep -q '"volume"' || cli_ok=1
 printf '%s' "$UNIT" | grep -q '"chapter"' || cli_ok=1
 printf '%s' "$UNIT" | grep -q '"tags"' || cli_ok=1
 printf '%s' "$SUMMARY" | grep -q '"volumes":1' || cli_ok=1
-printf '%s' "$SUMMARY" | grep -q '"chapters":4' || cli_ok=1
+# 章数**不写死**（2026-10-01）：summary 报的章数必须与清单里的章数**相等**（真判据），
+# 而不是等于某个历史快照值 —— 否则合法加一章就把复现件判红。
+CLI_CHAPTERS="$(printf '%s' "$SUMMARY" | sed -n 's/.*"chapters":\([0-9]*\).*/\1/p')"
+MANIFEST_CHAPTERS="$(python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1],encoding='utf-8'))
+print(sum(len(v.get('chapters') or []) for v in (d.get('volumes') or []) if isinstance(v,dict)))
+" "$COURSE_JSON")"
+[ "$CLI_CHAPTERS" = "$MANIFEST_CHAPTERS" ] || cli_ok=1
 if printf '%s' "$UNIT" | grep -q '"volume"' \
    && printf '%s' "$UNIT" | grep -q '"chapter"' \
    && printf '%s' "$UNIT" | grep -q '"tags"' \
    && printf '%s' "$SUMMARY" | grep -q '"volumes":1' \
-   && printf '%s' "$SUMMARY" | grep -q '"chapters":4'; then
+   && [ "$CLI_CHAPTERS" = "$MANIFEST_CHAPTERS" ]; then
   cli_ok=0
 fi
 echo "   → v2 事件字段（修后预期）：$([ "$cli_ok" = 0 ] && echo yes || echo NO)"
@@ -165,7 +181,12 @@ PY
 )"
 note "  门禁 exit=$GATE_EXIT · $GATE_COUNTS"
 gate_ok=1
-if [ "$GATE_EXIT" = 0 ] && printf '%s' "$GATE_COUNTS" | grep -q 'volumes=1 chapters=4 units=1 rejected=0'; then
+# 章数同样**不写死**（2026-10-01）：门禁报的章数要与清单一致，其余形状逐条判。
+GATE_CHAPTERS="$(printf '%s' "$GATE_COUNTS" | sed -n 's/.*chapters=\([0-9]*\).*/\1/p')"
+if [ "$GATE_EXIT" = 0 ] \
+   && printf '%s' "$GATE_COUNTS" | grep -q 'volumes=1 ' \
+   && printf '%s' "$GATE_COUNTS" | grep -q 'units=1 rejected=0' \
+   && [ "$GATE_CHAPTERS" = "$MANIFEST_CHAPTERS" ]; then
   gate_ok=0
 fi
 echo "   → G6 机器可读面（修后预期）：$([ "$gate_ok" = 0 ] && echo yes || echo NO)"
