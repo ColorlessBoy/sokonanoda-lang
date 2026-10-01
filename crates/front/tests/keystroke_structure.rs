@@ -195,11 +195,30 @@ fn open_doc(entry: &PathBuf, text: &str) -> QueryDoc {
     doc
 }
 
-/// 改第 `index` 条 theorem 的**名字**（不动别的字节）——最干净的一次按键。
-fn rename_decl(text: &str, index: usize) -> String {
+/// 一次**真实且长度不变**的按键：把第 `index` 条 theorem 的**局部 binder 改名**
+/// （`(h : …) … := by exact h` → `(k : …) … := by exact k`）。
+///
+/// ⚠ **必须长度不变**：改名只要改了字节数，后面每条命令的 `starts` 都会平移 ⇒
+/// 缓存里的 span 不能再当新的用 ⇒ 它们**必须**进脏集（否则报告里的 span 是错的 ✗）
+/// ⇒ 量出来的就不是"依赖脏集"而是"后缀 + 平移"✗。这一条是实测踩出来的。
+/// ⚠ 也**不能**改声明名（`t00` → `u00`）：那会让引用它的下游**解析不到** ⇒ 它们
+/// 真的坏了（判定翻转），量到的就不是用户模型里的"1+m" ✗。
+fn edit_decl(text: &str, index: usize) -> String {
     let needle = format!("theorem t{index:02} ");
-    let replacement = format!("theorem t{index:02}x ");
-    text.replacen(&needle, &replacement, 1)
+    let at = text
+        .find(&needle)
+        .unwrap_or_else(|| panic!("找不到 `{needle}`"));
+    let end = text[at..].find('\n').map_or(text.len(), |n| at + n);
+    let line = &text[at..end];
+    let edited = line
+        .replacen("(h :", "(k :", 1)
+        .replacen("exact h", "exact k", 1);
+    assert_eq!(
+        edited.len(),
+        line.len(),
+        "这次按键必须**长度不变**（否则下游命令的起点平移 ⇒ 它们进脏集，量到的不是依赖脏集）"
+    );
+    format!("{}{}{}", &text[..at], edited, &text[end..])
 }
 
 /// 量三次按键：**无人依赖**的一条 · **被 2 条依赖**的一条 · **最后一条**。
@@ -209,7 +228,7 @@ fn measure(tag: &str) -> (Reading, Reading, Reading) {
 
     let press = |doc: &mut QueryDoc, index: usize, version: u64| -> Reading {
         let base = Counters::now();
-        let edited = rename_decl(&text, index);
+        let edited = edit_decl(&text, index);
         doc.set_text(&edited, version, None);
         let reading = Reading::snapshot(doc, base);
         // **正确性不变量**（与"改哪一条"无关）：没被改的声明不许掉出 `checked`。
@@ -395,7 +414,7 @@ fn a_cached_open_still_leaves_a_usable_entry_cache() {
     fresh.set_cached_entry(&text, 1, report, output, project);
 
     // 第一刀：改最后一条（无人依赖）。
-    let edited = rename_decl(&text, LEAF);
+    let edited = edit_decl(&text, LEAF);
     fresh.set_text(&edited, 2, None);
     assert!(
         fresh.trusted_prefix_len() > 0,

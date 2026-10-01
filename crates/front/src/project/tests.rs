@@ -1104,6 +1104,7 @@ fn entry_trust_skips_the_prefix_and_keeps_the_suffix_identical() {
     let trust = vec![Some(EntryTrust {
         plan: TrustPlan {
             before: 4,
+            trusted_extra: Vec::new(),
             prev_signatures: Vec::new(),
             text_unchanged: Vec::new(),
             allow_cutoff: false,
@@ -1222,6 +1223,7 @@ fn project_report_carries_the_recheck_count() {
         Some(crate::project::session::EntryTrust {
             plan: crate::compile::TrustPlan {
                 before: 4,
+                trusted_extra: Vec::new(),
                 prev_signatures: Vec::new(),
                 text_unchanged: Vec::new(),
                 allow_cutoff: false,

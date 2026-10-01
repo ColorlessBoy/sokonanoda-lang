@@ -314,7 +314,11 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     self.ns.open_entry(entry);
                 }
             }
-            let trusted = trust.is_some_and(|t| idx < t.before);
+            // **信任判定**：连续前缀（`idx < before`）**或** S6 的脏集模型给出的
+            // 额外信任位（`trusted_extra[idx]`，见 `TrustPlan`）。
+            let trusted = trust.is_some_and(|t| {
+                idx < t.before || t.trusted_extra.get(idx).copied().unwrap_or(false)
+            });
             let env_before = self.builder.declaration_count();
             // `match` 的宇宙查询用前缀源码（与 `by` 同一条合成 `#check` 路线）：
             // 闭包模式 = 依赖声明文本 + 本文件到当前命令为止的前缀。

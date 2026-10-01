@@ -119,6 +119,16 @@ pub(crate) struct CmdHover<'a> {
 /// verbatim and never kernel-checked (I8 依赖精确化).
 pub(crate) struct TrustPlan {
     pub before: usize,
+    /// **额外的信任集合**（S6 脏集模型，2026-10-01）：`true` 的命令**不重查**
+    /// （只 elaborate 进环境），即使它在 `before` **之后**。
+    ///
+    /// 为什么需要它：`before` 只能表达**连续前缀**（"改动点之前都不必重查"），
+    /// 而用户拍板的 §5.1 模型是**依赖图脏传播** —— 改第 k 条时，要重查的是
+    /// **它 + 依赖它的下游**，其余后缀（与改动点无依赖关系的那部分）应当从缓存
+    /// 恢复。那是一个**不连续**的集合 ⇒ 前缀语义表达不了 ✗。
+    ///
+    /// 空 = 今天的前缀语义（`idx < before`）✓（所有既有调用方都不受影响）。
+    pub trusted_extra: Vec<bool>,
     /// Previous session's per-command signature (length = previous command
     /// count). `None` for open/failed/non-declaration commands.
     pub prev_signatures: Vec<Option<String>>,
@@ -665,6 +675,7 @@ pub(crate) fn run_incremental(
     // signature comparison it might have made.
     let trust2 = TrustPlan {
         before: trust.before,
+        trusted_extra: Vec::new(),
         prev_signatures: Vec::new(),
         text_unchanged: Vec::new(),
         allow_cutoff: false,

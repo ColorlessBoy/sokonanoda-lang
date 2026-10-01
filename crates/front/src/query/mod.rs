@@ -17,6 +17,8 @@ mod project;
 mod state;
 mod types;
 
+use std::collections::BTreeSet;
+
 pub use pos::{line_col_of, offset_of_line_col};
 pub use state::{select_state_at, StateSelection};
 pub use types::{
@@ -208,25 +210,93 @@ impl EntryCache {
         before
     }
 
-    /// 被信任那段里**上一轮判负**的命令 → 它的错误。
+    /// **S6 的信任位**：`true` = 这条命令**不必重查**（从缓存恢复）。
+    ///
+    /// = `[0, before)` 的连续前缀 **∪** `{i ≥ before : i 不在脏集里}`。
+    /// 脏集见 [`Self::dirty_commands`]。
+    fn trusted_extra(&self, keys: &[String], starts: &[usize], before: usize) -> Vec<bool> {
+        let dirty = self.dirty_commands(keys, starts, before);
+        (0..keys.len())
+            .map(|i| i >= before && !dirty.contains(&i))
+            .collect()
+    }
+
+    /// **脏集**（用户 §5.1 的模型）：改动的命令 ∪ **传递依赖它们**的命令 ∪ 保守集。
+    ///
+    /// * **改动集** = 文本或起点与缓存不同的那些命令（`≥ before`；`before` 之前按
+    ///   `trusted_prefix` 的定义逐条相同 ✓）。一次按键通常只改一条，但**多命令编辑**
+    ///   （粘贴、格式化）会改一片 ⇒ 必须逐条比，不能只认 `before` 那一条 ✗；
+    /// * **依赖者** = [`crate::depgraph::DepGraph`] 的**传递闭包**（`t00 ← d00 ← d01`
+    ///   ⇒ 改 `t00` 必须连 `d01` 一起重查；只做直接依赖会漏 ⇒ **静默错编** ✗）；
+    /// * **保守集** = 上一轮**判负**的命令（它可能现在能过：引用的名字刚被补上/
+    ///   改名 —— 那种翻转**建不出边**，图里没有这条依赖）✓。
+    ///   ⚠ **不能**拿 `depgraph::unknown_references()` 当脏：`resolution == None` 对
+    ///   **prelude 名字**是常态（`HoverType` 的文档写了）⇒ 那样几乎每条命令都脏
+    ///   ⇒ 脏集 = 全部 ⇒ S6 等于没做 ✗（实测：leaf 的脏集变成 `{1..11}`）。
+    ///
+    /// 环境仍然整份 elaborate（信任只跳过**内核检查**）⇒ 判定输入不变 ✓。
+    fn dirty_commands(&self, keys: &[String], starts: &[usize], before: usize) -> BTreeSet<usize> {
+        let graph = crate::depgraph::DepGraph::from_report(&self.report);
+        let mut dirty: BTreeSet<usize> = BTreeSet::new();
+        for i in before..keys.len().min(self.keys.len()) {
+            if keys[i] != self.keys[i] || starts[i] != self.starts[i] {
+                dirty.insert(i);
+            }
+        }
+        let seeds: Vec<usize> = dirty.iter().copied().collect();
+        for seed in seeds {
+            for dependent in graph.dirty_commands(seed) {
+                dirty.insert(dependent);
+            }
+        }
+        // **上一轮判负的命令一律重查**：它可能**现在**能过（比如它引用的名字刚被
+        // 补上/改名），而那种"从失败到成功"的翻转**建不出边**（引用解析不到 ⇒
+        // 没有 `Declaration` 目标 ⇒ 图里没有这条依赖）✗ ⇒ 不重查就是**陈旧失败** ✗。
+        for decl in &self.report.decls {
+            if decl.status == crate::compile::DeclStatus::Failed {
+                dirty.insert(decl.cmd);
+            }
+        }
+        dirty
+    }
+
+    /// **被信任（不重查）那些命令里上一轮判负的** → 它的错误。
     ///
     /// 为什么要传下去（`prefix_failures`）：check-then-add 语义下，判负的名字必须
-    /// 保持"自由"，否则下游会看见上一轮的残留声明 ⇒ 判定分叉。
-    fn failures(&self, before: usize) -> crate::compile::KernelFailed {
+    /// 保持"自由"，否则下游会看见上一轮的残留声明 ⇒ 判定分叉。S6 之后被信任的
+    /// 不只是一段前缀 ⇒ 判据换成**信任位**（`trusted[i]`）。
+    fn failures_trusted(&self, trusted: &[bool], before: usize) -> crate::compile::KernelFailed {
         self.report
             .decls
             .iter()
-            .filter(|d| d.cmd < before && d.status == crate::compile::DeclStatus::Failed)
+            .filter(|d| {
+                let is_trusted = if d.cmd < before {
+                    true
+                } else {
+                    trusted.get(d.cmd).copied().unwrap_or(false)
+                };
+                is_trusted && d.status == crate::compile::DeclStatus::Failed
+            })
             .filter_map(|d| d.error.clone().map(|e| (d.cmd, e)))
             .collect()
     }
 
-    /// 前缀最后一个命令的结束偏移（把 `errors`/`warnings` 按 span 归属到前缀）。
-    fn prefix_end(&self, before: usize) -> usize {
-        if before == 0 {
-            return 0;
+    /// **某个字节偏移落在被信任的命令里吗**（`errors`/`warnings` 没有 cmd ⇒ 按
+    /// span 起点归属；命令区间 = `starts[i] .. starts[i] + keys[i].len()`）。
+    fn offset_is_trusted(&self, trusted: &[bool], before: usize, offset: usize) -> bool {
+        let i = match self.starts.binary_search(&offset) {
+            Ok(i) => i,
+            Err(0) => return false,
+            Err(next) => next - 1,
+        };
+        if i >= self.keys.len() {
+            return false;
         }
-        self.starts[before - 1] + self.keys[before - 1].len()
+        let end = self.starts[i] + self.keys[i].len();
+        if offset > end {
+            return false;
+        }
+        i < before || trusted.get(i).copied().unwrap_or(false)
     }
 }
 
@@ -244,16 +314,19 @@ impl EntryCache {
 fn splice_entry_report(
     cache: &EntryCache,
     before: usize,
+    trusted: &[bool],
     mut fresh: crate::compile::DocumentReport,
 ) -> crate::compile::DocumentReport {
     use crate::compile::DocumentReport;
-    let end = cache.prefix_end(before);
+    // **信任判据**（S6）：`cmd < before` 是连续前缀；`trusted[cmd]` 是脏集模型下
+    // "与改动点无依赖关系 ⇒ 从缓存恢复"的那些命令。两者合起来 = 本次**没重查**的集合。
+    let is_trusted = |cmd: usize| cmd < before || trusted.get(cmd).copied().unwrap_or(false);
     let mut out = DocumentReport {
         decls: cache
             .report
             .decls
             .iter()
-            .filter(|d| d.cmd < before)
+            .filter(|d| is_trusted(d.cmd))
             .cloned()
             .collect(),
         hovers: Vec::new(),
@@ -262,26 +335,31 @@ fn splice_entry_report(
             .report
             .errors
             .iter()
-            .filter(|e| e.span.start.offset < end)
+            .filter(|e| cache.offset_is_trusted(trusted, before, e.span.start.offset))
             .cloned()
             .collect(),
         checks: cache
             .report
             .checks
             .iter()
-            .filter(|c| c.cmd < before)
+            .filter(|c| is_trusted(c.cmd))
             .cloned()
             .collect(),
         warnings: cache
             .report
             .warnings
             .iter()
-            .filter(|w| w.span.start.offset < end)
+            .filter(|w| cache.offset_is_trusted(trusted, before, w.span.start.offset))
             .cloned()
             .collect(),
     };
     for (i, hover) in cache.report.hovers.iter().enumerate() {
-        if cache.report.hover_cmds.get(i).is_some_and(|c| *c < before) {
+        if cache
+            .report
+            .hover_cmds
+            .get(i)
+            .is_some_and(|c| is_trusted(*c))
+        {
             out.hovers.push(hover.clone());
             out.hover_cmds.push(cache.report.hover_cmds[i]);
         }
@@ -499,30 +577,37 @@ impl QueryDoc {
                 if before == 0 {
                     (None, None)
                 } else {
+                    // **S6：依赖图脏传播**（用户 §5.1）。`before` 只说明"改动点之前
+                    // 逐条没变"；**改动点之后**那些与改动点**没有依赖关系**的命令同样
+                    // 不必重查（脏集 = 改动 ∪ 传递依赖者 ∪ 保守集）⇒ 用 `trusted_extra`
+                    // 表达这个**不连续**的信任集合。环境仍整份 elaborate，只跳内核检查 ✓。
+                    let trusted_extra = cache.trusted_extra(keys, starts, before);
+                    let failures = cache.failures_trusted(&trusted_extra, before);
                     (
                         Some(crate::project::session::EntryTrust {
                             plan: crate::compile::TrustPlan {
                                 before,
+                                trusted_extra: trusted_extra.clone(),
                                 prev_signatures: Vec::new(),
                                 text_unchanged: Vec::new(),
-                                // 本片**不开** early cutoff：只做"前缀不重查"
+                                // 本片**不开** early cutoff：只做"信任的不重查"
                                 // （值级复用是 S4，见设计 §6）。
                                 allow_cutoff: false,
                             },
-                            failures: cache.failures(before),
+                            failures,
                         }),
-                        Some((cache.clone(), before)),
+                        Some((cache.clone(), before, trusted_extra)),
                     )
                 }
             }
             _ => (None, None),
         };
-        self.last_trusted_prefix = prefix.as_ref().map_or(0, |(_, before)| *before);
+        self.last_trusted_prefix = prefix.as_ref().map_or(0, |(_, before, _)| *before);
 
         let report = match prefix {
-            Some((cache, before)) => {
+            Some((cache, before, trusted_extra)) => {
                 let splice = move |fresh: crate::compile::DocumentReport| {
-                    splice_entry_report(&cache, before, fresh)
+                    splice_entry_report(&cache, before, &trusted_extra, fresh)
                 };
                 crate::project::compile_plan_incremental(plan, &options, trust, Some(&splice))
             }

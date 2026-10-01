@@ -264,7 +264,8 @@ mod tests {
         assert_eq!(graph.dirty_commands(3), vec![3], "链尾无人依赖 ⇒ 只有自己");
     }
 
-    /// 自引用不算依赖；prelude/跨模块/未解析的名字要进 `unknown`（S6 的保守输入）。
+    /// 自引用不算依赖；**库层/prelude 名字不进 `unknown`**（依赖指纹兜底），
+    /// **解析不到**的才进（S6 的保守输入）。
     #[test]
     fn self_reference_and_unknown_are_handled() {
         let report = report(
@@ -272,7 +273,7 @@ mod tests {
             vec![
                 (1, Some("a")),
                 (1, Some("a")),   // 重复引用同一条 ⇒ 去重
-                (1, Some("Nat")), // 不在本文件声明表里 ⇒ unknown
+                (1, Some("Nat")), // 库层/prelude ⇒ **不算** unknown（依赖指纹兜底）
                 (1, None),        // 解析不到 ⇒ unknown
                 (0, Some("a")),   // 自引用 ⇒ 不建边
             ],
@@ -288,7 +289,7 @@ mod tests {
                 .copied()
                 .collect::<Vec<_>>(),
             vec![1],
-            "引用了 Nat / 解析不到的命令必须进 unknown（S6 不许把它当干净）"
+            "**解析不到**的命令必须进 unknown（S6 不许把它当干净）；库层名字不算 unknown"
         );
     }
 }
