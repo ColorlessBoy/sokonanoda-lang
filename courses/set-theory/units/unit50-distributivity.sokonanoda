@@ -107,3 +107,35 @@ theorem union_subset_union (α : Type) (A B C D : Set α)
 theorem inter_subset_inter (α : Type) (A B C D : Set α)
     (h1 : A ⊆ B) (h2 : C ⊆ D) : (A ∩ C) ⊆ (B ∩ D) := by
   sorry
+
+-- 练习 7（T 类）：**交的单调用在具体的点上**。
+-- soko:hint 关键件：练习 6（**按 论域 · 四个集合 · 两个包含 · 点 · 前提 的顺序应用**）✓
+theorem inter_subset_inter_apply (α : Type) (A B C D : Set α)
+    (h1 : A ⊆ B) (h2 : C ⊆ D) (x : α) (h : (A ∩ C) x) : (B ∩ D) x := by
+  sorry
+
+-- 练习 8（T 类）：**并的单调用在具体的点上**。
+-- soko:hint 关键件：练习 5（同样按 论域 · 四个集合 · 两个包含 · 点 · 前提 应用）✓
+theorem union_subset_union_apply (α : Type) (A B C D : Set α)
+    (h1 : A ⊆ B) (h2 : C ⊆ D) (x : α) (h : (A ∪ C) x) : (B ∪ D) x := by
+  sorry
+
+-- 练习 9（L 类）：**交的交换（包含形态）**。
+-- soko:hint 思路：拆开 `∩` 得两个成员，反着拼回去。
+-- soko:hint 目标形态：`A ∩ B ⊆ B ∩ A`。
+-- soko:hint 关键件：`And.left`/`And.right` · `And.intro`（**在 `∩` 头上可以直接用** ✓）
+--   ⚠ 本条的 `⊆` 记法补不出前导类型参数 ✗ ⇒ 解答里按内核提示写 **`Set.subset α …`**  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+--   并加行内标记 ✓（**G-73 第十七例**）✓
+theorem inter_comm_subset (α : Type) (A B : Set α) :
+    Set.subset (A ∩ B) (B ∩ A) := by  -- soko:notation-ok: `⊆` 在此补不出前导类型参数，按内核提示改点名
+  sorry
+
+-- 练习 10（L 类）：**并的交换（包含形态）**。
+-- soko:hint 思路：`x` 在左边的并里 ⇒ 分两支，各用 `Or.inr`/`Or.inl` **换边**。
+-- soko:hint 目标形态：`A ∪ B ⊆ B ∪ A`。
+-- soko:hint 关键件：`Set.mem_union`（先 λ 绑定再应用）· `Or.elim` · `Or.inl`/`Or.inr`
+--   ⚠ 同练习 9：`⊆` 记法补不出前导类型参数 ⇒ 写 `Set.subset α …` + 行内标记 ✓  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+theorem union_comm_subset (α : Type) (A B : Set α) :
+    Set.subset (A ∪ B) (B ∪ A) := by  -- soko:notation-ok: 同上
+  sorry
+

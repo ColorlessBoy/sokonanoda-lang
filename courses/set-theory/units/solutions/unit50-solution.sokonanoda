@@ -67,3 +67,24 @@ theorem inter_subset_inter (α : Type) (A B C D : Set α)
   fun (x : α) => fun (h : (A ∩ C) x) =>
     (fun (hu : A x ∧ C x) =>
       And.intro (B x) (D x) (h1 x (And.left hu)) (h2 x (And.right hu))) h  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+
+theorem inter_subset_inter_apply (α : Type) (A B C D : Set α)
+    (h1 : A ⊆ B) (h2 : C ⊆ D) (x : α) (h : (A ∩ C) x) : (B ∩ D) x :=
+  inter_subset_inter α A B C D h1 h2 x h
+
+theorem union_subset_union_apply (α : Type) (A B C D : Set α)
+    (h1 : A ⊆ B) (h2 : C ⊆ D) (x : α) (h : (A ∪ C) x) : (B ∪ D) x :=
+  union_subset_union α A B C D h1 h2 x h
+
+theorem inter_comm_subset (α : Type) (A B : Set α) :
+    Set.subset (A ∩ B) (B ∩ A) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+  fun (x : α) => fun (h : (A ∩ B) x) =>
+    (fun (hu : A x ∧ B x) => And.intro (B x) (A x) (And.right hu) (And.left hu)) h  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+
+theorem union_comm_subset (α : Type) (A B : Set α) :
+    Set.subset (A ∪ B) (B ∪ A) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+  fun (x : α) => fun (h : (A ∪ B) x) =>
+    Or.elim (A x) (B x) ((B ∪ A) x)
+      (fun (ha : A x) => Or.inr (B x) (A x) ha)  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+      (fun (hb : B x) => Or.inl (B x) (A x) hb)  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+      ((fun (hv : (A ∪ B) x ↔ A x ∨ B x) => Iff.mp hv) (Set.mem_union x A B) h)
