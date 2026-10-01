@@ -277,9 +277,9 @@ fn solve_prefix_meta(
 /// ⚠ 开关**关**态仍是"两态反向验证"的那一半（`crates/cli/tests/{notation,implicit}_metavar.rs`
 /// 都用它咬"开关其实是假的"）⇒ **别删**。
 /// 只读一次环境（求解热路径上）。
-/// **求解器的元变量档位**（IA-4 M1 起三态）：
-/// `Off` = 严格档（今天的逃生门口径）· `Sibling` = E19 的「同形已解兄弟」窄版
-/// （**M1 的默认 = 今天的行为**）· `Engine` = 新引擎（`crate::compile::meta`）。
+/// **求解器的元变量档位**（IA-4 M1 起三态，**M4 起默认 `Engine`**）：
+/// `Off` = 严格档（逃生门口径）· `Sibling` = E19 的「同形已解兄弟」窄版（**回归臂**）·
+/// `Engine` = 新引擎（`crate::compile::meta`：真元变量 + 三值合一 + 有界待定 + defaulting）。
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum MetavarMode {
     Off,
@@ -288,9 +288,10 @@ pub(crate) enum MetavarMode {
 }
 
 /// 开关（只读一次环境，求解热路径上）：`SOKO_METAVAR=0|off` / `=sibling` / `=engine`（或 `unify`）；
-/// **不设 ⇒ `Sibling`**（M1 默认 = 今天；M4 起才翻成 `Engine`）。**兼容旧逃生门**
-/// `SOKO_NOTATION_METAVAR=0|off` ⇒ `Off`（两个都设时以 `SOKO_METAVAR` 为准）。
-/// 未知取值按 `Sibling`（**不静默换档** ✗ —— 默认档就是今天的行为）。
+/// **不设 ⇒ `Engine`**（IA-4 **M4：默认开** —— 两态三指纹逐字节相同是前提 ✓）。
+/// **`sibling` 永久保留为回归臂**（E19 那一份实现，判据仍然钉着它）✓。
+/// **兼容旧逃生门** `SOKO_NOTATION_METAVAR=0|off` ⇒ `Off`（两个都设时以 `SOKO_METAVAR` 为准）。
+/// 未知取值按 `Engine`（**不静默换档** ✗）。
 pub(crate) fn metavar_mode() -> MetavarMode {
     static MODE: std::sync::OnceLock<MetavarMode> = std::sync::OnceLock::new();
     *MODE.get_or_init(|| match std::env::var("SOKO_METAVAR").ok().as_deref() {
@@ -299,7 +300,8 @@ pub(crate) fn metavar_mode() -> MetavarMode {
         Some("engine") | Some("unify") => MetavarMode::Engine,
         Some(_) | None => match std::env::var("SOKO_NOTATION_METAVAR").ok().as_deref() {
             Some("0") | Some("off") => MetavarMode::Off,
-            _ => MetavarMode::Sibling,
+            // **M4 默认 = 引擎**（不设开关 ⇒ 引擎；旧逃生门仍把档位关掉 ✓）
+            _ => MetavarMode::Engine,
         },
     })
 }

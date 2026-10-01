@@ -5,11 +5,13 @@
 //! 路线③）归 **M2**。
 //!
 //! **四条判据**（缺一不算成立）：
-//! 1. **默认档 = `sibling`**：不设开关 ≡ `SOKO_METAVAR=sibling`（逐条同判）；
+//! 1. **默认档 = `engine`**（M4 起）：不设开关 ≡ `SOKO_METAVAR=engine`（逐条同判）；
 //! 2. **旧逃生门仍等价**：`SOKO_METAVAR=0` ≡ `SOKO_NOTATION_METAVAR=0`（都是严格档）；
 //! 3. **引擎不许丢解**（M1 的硬红线）：`sibling` 绿的形状，`engine` **必须也绿**；
 //! 4. **引擎的判定逐条钉住**：五个记法形状 × 三档的（退出码 + 诊断码）写死在表里 ——
 //!    M0 的预测是「接受面增量 0」⇒ 引擎档与窄版档**逐条同判**；哪天不一样了，本判据当场红 ✓。
+//!
+//! ⚠ **`sibling` 是永久回归臂**（E19 的实现，M4 之后仍在判据里）✓。
 //!
 //! ⚠ **每个 (形状, 档位) 用独立缓存目录**：编译缓存的键**不含**开关时，同一个目录里先跑的那一档
 //! 会污染后面所有档（release `v0.79.0` 实测复现 ✗）—— M1 已把档位字节加进键
@@ -199,14 +201,21 @@ fn engine_reproduces_the_sibling_verdicts_and_never_loses_a_solution() {
                 shape.why
             );
         }
-        // 判据 1：默认档 ≡ sibling（开关的默认值不许漂）
+        // 判据 1（M4）：默认档 ≡ **engine**（默认值不许漂）
+        assert_eq!(
+            (got[0].1).0,
+            (got[2].1).0,
+            "{}：默认档必须与 `engine` 同判",
+            shape.name
+        );
+        assert_eq!((got[0].1).1, (got[2].1).1, "{}：默认档的诊断码", shape.name);
+        // 判据 1b：默认档与 `sibling` 回归臂同判（M4 的前提：两态在语料上等价）
         assert_eq!(
             (got[0].1).0,
             (got[1].1).0,
-            "{}：默认档必须与 `sibling` 同判",
+            "{}：默认档必须与 `sibling` 回归臂同判",
             shape.name
         );
-        assert_eq!((got[0].1).1, (got[1].1).1, "{}：默认档的诊断码", shape.name);
         // 判据 3（硬红线）：sibling 绿 ⇒ engine 必须绿（**引擎不许丢解**）
         if (got[1].1).0 == 0 {
             assert_eq!(
@@ -233,6 +242,13 @@ fn switch_states_are_equivalent_across_spellings() {
     let old_off = grade(&file, "sw-old-off", &[("SOKO_NOTATION_METAVAR", "0")]);
     assert_eq!(new_off, old_off, "`SOKO_METAVAR=0` 必须等于旧逃生门");
     assert_eq!(new_off.0, 1, "逃生门 = 严格档 ⇒ G-48 形状判红");
+    // M4：不设开关 = 引擎档
+    let engine2 = grade(&file, "sw-engine2", &[("SOKO_METAVAR", "engine")]);
+    let default_state = grade(&file, "sw-default", &[]);
+    assert_eq!(
+        default_state, engine2,
+        "默认档必须等于 `engine`（M4 默认开）"
+    );
 
     let engine = grade(&file, "sw-engine", &[("SOKO_METAVAR", "engine")]);
     let unify = grade(&file, "sw-unify", &[("SOKO_METAVAR", "unify")]);
@@ -358,8 +374,14 @@ fn general_path_engine_matches_sibling_and_never_loses() {
         }
         assert_eq!(
             ((got[0].1).0, (got[0].1).1.clone()),
+            ((got[2].1).0, (got[2].1).1.clone()),
+            "{}：默认档必须与 `engine` 同判",
+            shape.name
+        );
+        assert_eq!(
+            ((got[0].1).0, (got[0].1).1.clone()),
             ((got[1].1).0, (got[1].1).1.clone()),
-            "{}：默认档必须与 `sibling` 同判",
+            "{}：默认档必须与 `sibling` 回归臂同判",
             shape.name
         );
         if (got[1].1).0 == 0 {
