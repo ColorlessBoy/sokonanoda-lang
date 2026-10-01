@@ -116,6 +116,45 @@ struct EntryCache {
     keys: Vec<String>,
     starts: Vec<usize>,
     report: crate::compile::DocumentReport,
+    /// **依赖指纹**（非入口模块的源文本，见 [`dependency_fingerprint`]）。
+    ///
+    /// **为什么必须有它**（2026-10-01 实测的静默错编）：`EntryTrust` 的语义是
+    /// 「入口 `[0,before)` 那段命令**已经核过**、这轮不重查」，而那段命令的
+    /// **环境**来自被 `import` 的模块 ⇒ 依赖一改，缓存里的结论就不再成立。
+    /// 少了这个指纹，改依赖之后入口**不刷新**：诊断与上一版逐字相同 ⇒ LSP 的
+    /// `changed` 判据为假 ⇒ **一条都不发**（`publish=0`，编辑器留陈旧诊断）。
+    /// 实测被 `tests::project::{editing,an_external_change}_to_a_dependency_refreshes_the_open_entry`
+    /// 抓住（`timed out after 30s waiting for drained notify`）。
+    deps: u64,
+}
+
+/// **依赖指纹**：**非入口**模块的名字 + 源文本（按 `plan` 的拓扑序）。
+///
+/// 它是 `EntryCache` 的**信任边界**：`EntryTrust` 只声明"入口那段命令的**文本**
+/// 没变"，可那段命令的**环境**（被 `import` 的声明）可能变了 ⇒ 指纹不等就
+/// **不许信任**（`before = 0`，退回全查）。方向是**宁可多查，不可错编** ✓。
+///
+/// 为什么不用 `ProjectPlan::digest`：那个摘要**含入口自身** ⇒ 每次按键都变
+/// （按键改的就是入口）⇒ 信任永远不成立，等于没做 ✗。这里只要"**闭包的另一半**"。
+fn dependency_fingerprint(plan: &crate::project::ProjectPlan, entry: &std::path::Path) -> u64 {
+    let mut hash = 0xcbf2_9ce4_8422_2325u64;
+    let mut mix = |bytes: &[u8]| {
+        for byte in bytes {
+            hash ^= u64::from(*byte);
+            hash = hash.wrapping_mul(0x100_0000_01b3);
+        }
+    };
+    mix(b"soko.entry-deps/1");
+    for module in plan.modules() {
+        if module.path == entry {
+            continue;
+        }
+        mix(module.name.as_bytes());
+        mix(b"\0");
+        mix(module.file.src.as_bytes());
+        mix(b"\0");
+    }
+    hash
 }
 
 /// 入口的**命令布局**：每条命令的源文本 + 起点字节偏移。
@@ -451,8 +490,11 @@ impl QueryDoc {
         // 入口命令的文本与起点：拿不到对齐依据 ⇒ 不信任（`before = 0`）。
         let layout = entry_command_layout(&plan, &path);
         // **先把 `before` 与要拼的前缀算出来**，再借出去编译（`entry_cache` 之后要写回）。
+        // **依赖指纹**：闭包的另一半变了 ⇒ 这份缓存的前缀结论不再成立（见
+        // `EntryCache::deps` 的注释）。指纹不等就**不信任**（退回全查）。
+        let deps = dependency_fingerprint(&plan, &path);
         let (trust, prefix) = match (&self.entry_cache, &layout) {
-            (Some(cache), Some((keys, starts))) => {
+            (Some(cache), Some((keys, starts))) if cache.deps == deps => {
                 let before = cache.trusted_prefix(keys, starts);
                 if before == 0 {
                     (None, None)
@@ -493,6 +535,7 @@ impl QueryDoc {
                 keys,
                 starts,
                 report: entry.clone(),
+                deps,
             }),
             _ => None,
         };
