@@ -1,0 +1,101 @@
+-- ==========================================================================
+-- unit56-refutation2.sokonanoda —— 卷 I 单元56 **反例与不可证（二）：驳倒 ∃ 与驳倒 =**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§1.5**（refuting statements 的续）·
+--   **§1.4 外延公理**（"两个集合不等"最常用的证法：**指出一个只在一边的见证** ✓）。
+-- 大纲：`set-theory-syllabus.md` §4.1（**I.4 章继续深化** —— 接单元55 的两条总纲 ✓）。
+--
+-- 本单元的"该学的定理/手法"：
+--   · **总纲三**：驳倒 `∃` —— 要说明"没有那样的 x"，得对**每个** x 都排除 ✓
+--     （`(∀ x, ¬ P x) → ¬ (∃ x, P x)` ✓ —— 与总纲一（驳倒 `∀` 只需一个反例 ✓）**对偶** ✓）；
+--   · **等式搬运**：从 `A = B` 与 `a ∈ A` 得 `a ∈ B` ✓（外延推理的地基 ✓）；
+--   · **总纲四**：驳倒 `A = B` —— 给一个"**在 A 里、不在 B 里**"的见证即可 ✓
+--     （这是外延公理的**逆否用法**，教材里最常出现的"集合不等"证法 ✓）；
+--   · **实例**：`∄ x, x ∈ ∅` ✓ · `a ∈ A ⇒ A ≠ ∅` ✓
+--
+-- ⚠ **仍然全程 `Prop` 层** ✓ ⇒ 不需要"归纳命题消去到 `Type`"（**G-58**）✓；
+--   被 G-58 挡住的是"用 `Nat.rec`/`Bool.rec` 造**判别谓词**"（如 `0 ≠ 1` ✓）—— 那是单元57 ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.SUnion` · `lib.Order` · `lib.Rel`。
+--
+-- 依赖：单元①（集合与成员）· 单元②（子集与空集）· 单元④（外延与恒等式）· 单元55 ✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+
+-- ─────────────────────────────────────────────────────────────
+-- 56.1 三条库引理（空集的成员刻画 · 空集没有成员 · 包含的展开）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：空集的成员刻画（定义展开，没有数学内容）。
+theorem demo_mem_empty_iff_false (α : Type) (a : α) :
+    a ∈ (Set.empty α) ↔ False :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  Set.mem_empty_iff_false a
+theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  fun (h : a ∈ (Set.empty α)) => (Iff.mp (Set.mem_empty_iff_false a) h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+-- ─────────────────────────────────────────────────────────────
+-- 56.2 总纲三：驳倒 `∃`（要与每个 x 打交道）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（L 类，**总纲三**）：**驳倒 `∃` 要对每个 x 都排除**。
+
+-- soko:hint 思路：假设 `∃ x, P x`；把它拆出一个见证 `x` 与 `P x`，
+
+--   再用"每个 x 都 ¬ P x"的假设把它否掉。
+
+-- soko:hint 目标形态：`(∀ x, ¬ (P x)) → ¬ (∃ x, P x)`。
+
+-- soko:hint 关键件：`Exists.elim`（**动机位放 `False` 是可以的** ✓ ——
+
+--   铁律"动机位只放肯定形状"是 **`Or.elim` 专有** ✓，`Exists.elim` 不受限 ✓）
+
+theorem not_exists_of_all_not (α : Type) (P : α → Prop) (h : ∀ (x : α), ¬ (P x)) :
+    ¬ (∃ (x : α), P x) := by
+  sorry
+-- 练习 2（T 类，**实例**）：**「存在属于空集的元素」是假的**。
+
+-- soko:hint 关键件：练习 1（总纲三）· 演示 2（空集没有成员）✓
+
+theorem not_exists_mem_empty (α : Type) : ¬ (∃ (x : α), x ∈ (Set.empty α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 56.3 等式搬运与总纲四：驳倒 `A = B`
+-- ─────────────────────────────────────────────────────────────
+-- 练习 3（T 类，**地基**）：**等式搬运**（`A = B` 与 `a ∈ A` ⇒ `a ∈ B`）。
+
+-- soko:hint 思路：沿等式把"属于"这件事从左搬到右。
+
+-- soko:hint 目标形态：`A = B → a ∈ A → a ∈ B`。
+
+-- soko:hint 关键件：**搬运引理 `rel_subst_right`**（**第一个类型实参是 `Set α`** ✓ ——
+
+--   关系取 `fun u v => a ∈ v` ✓；四步：`(Set α) r A A B heq ha` ✓）
+
+theorem mem_of_eq_of_mem (α : Type) (A B : Set α) (a : α) (heq : Eq.{1} (Set α) A B)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    (ha : a ∈ A) : a ∈ B := by
+  sorry
+-- 练习 4（L 类，**总纲四**）：**驳倒 `A = B`：给一个只在一边的见证**。
+
+-- soko:hint 思路：假设 `A = B`，用练习 3 把 `a ∈ A` 搬成 `a ∈ B`，与 `¬ (a ∈ B)` 冲突。
+
+-- soko:hint 目标形态：`a ∈ A → ¬ (a ∈ B) → ¬ (A = B)`。
+
+-- soko:hint 关键件：练习 3 · 见证的否定假设当函数用 ✓（**这就是外延公理的逆否用法** ✓）
+
+theorem ne_of_mem_not_mem (α : Type) (A B : Set α) (a : α) (ha : a ∈ A)
+    (hna : ¬ (a ∈ B)) : ¬ (Eq.{1} (Set α) A B) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  sorry
+-- 练习 5（T 类，**实例**）：**含成员的集合不是空集**。
+
+-- soko:hint 关键件：练习 4（总纲四，把 `B` 取成 `∅`）· 演示 2 ✓
+
+theorem not_eq_empty_of_mem (α : Type) (A : Set α) (a : α) (ha : a ∈ A) :
+    ¬ (Eq.{1} (Set α) A (Set.empty α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  sorry

@@ -130,10 +130,12 @@
             "russell",
             "synthesis",
             "refutation",
-            "counterexample"
+            "counterexample",
+            "refutation-exists",
+            "extensionality-refutation"
           ],
           "quota": {
-            "exercises": 18
+            "exercises": 23
           },
           "units": [
             {
@@ -153,6 +155,12 @@
               "title": "单元55 反例与不可证（一）",
               "title_en": "Unit 55 — Refutation (I): Refuting Universal Statements",
               "unit": 55
+            },
+            {
+              "file": "units/unit56-refutation2.sokonanoda",
+              "title": "单元56 反例与不可证（二）",
+              "title_en": "Unit 56 — Refutation (II): Refuting ∃ and =",
+              "unit": 56
             }
           ]
         },
