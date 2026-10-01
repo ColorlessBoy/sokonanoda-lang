@@ -6,7 +6,7 @@
 > 本身这个项目的不足，让另外的 agent 实现。」
 >
 > 本文 = 靶子标定 + 今日能力**实测** + 项目形态 + 课程体系 + **缺口台账协议** +
-> 分期计划 P0–P7 + 验收 + 风险 + 待拍板。**只出计划**；动工按 §8 分期，每期独立过 gate。
+> 分期计划 P0–P7 + 验收 + 风险 + 待拍板。**只出计划**；动工按 §8 分期，每期独立过 gate。 **进度（2026-10-01）：P1–P3 已按 `courses/set-theory/README.md` 与 `STATUS.md` 落 41 个新单元；P4–P7 未启（见 STATUS 的"可做区现状"表 ✓）**
 >
 > 证据分三类标注：**[实测]** = 本机用发布版内核跑过（命令与输出见附录 B）、
 > **[文档]** = 仓库现有文档记载、**[推断]** = 写明依据的估计。
@@ -173,13 +173,13 @@ courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列�
 ├── README.md                  # 怎么判卷 + 现状表 + 单元 DoD
 ├── AGENTS.md                  # 课程线 agent 手册（写作循环 + 判卷三纪律 + 教学纪律）
 ├── sokonanoda.toml            # 模块根 = 本目录（requires 跟着版本钉走，现为 0.79.0）
-├── course.json                # 单元清单（12 单元）
+├── course.json                # 单元清单（**53 单元**，2026-10-01 as-built）
 ├── lib/                       # L2 课程标准库（名字用 Loogle 取证版）
 │   ├── Logic.sokonanoda       # 逻辑与等式骨架 26 条（prelude 0.59.0 也自带 30 个名字，见 L-01/L-02）
 │   ├── Set.sokonanoda         # 12 个定义 + Set.ext 公理 + 11 条定义展开引理（L-04）
 │   ├── Exists/Prod/Rel/Fun/Image/Equiv.sokonanoda   # 量词 / 序对 / 关系 / 函数 / 像 / 等势
 │   └── Demo.sokonanoda        # 库自检入口（门禁会跑）
-├── units/                     # 单元画布（演示 + 练习；12 单元 + 记法对照页）
+├── units/                     # 单元画布（演示 + 练习；**53 单元** + 记法对照页）
 │   └── solutions/             # 解答钥匙（agent 专用）
 ├── gaps/                      # 发现端（权威台账仍在 docs/gaps/）
 └── tools/check.py             # 课程门禁：判据 G1–G6（--selftest/--bisect/--json/--report；已接 gate + CI）
