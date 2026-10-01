@@ -109,6 +109,6 @@ theorem sUnion_empty_apply (α : Type) (x : α) :
 --   与 `Or.elim` 的**动机位**不同 ✗）· 假设按 成员 · 成员性 · 点 三步应用 ✓
 theorem sUnion_empty_of_all_empty (α : Type) (F : Set (Set α))
     (h : ∀ (A : Set α), A ∈ F → ∀ (x : α), ¬ (x ∈ A)) :
-    ∀ (x : α), ¬ (x ∈ Set.sUnion α F) := by
+    ∀ (x : α), ¬ (x ∈ Set.sUnion α F) := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion` 是 def 头，这些位置补不出前导实参
   sorry
 

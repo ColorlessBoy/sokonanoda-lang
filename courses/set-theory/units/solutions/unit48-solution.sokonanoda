@@ -55,7 +55,7 @@ theorem sUnion_empty_apply (α : Type) (x : α) :
 
 theorem sUnion_empty_of_all_empty (α : Type) (F : Set (Set α))
     (h : ∀ (A : Set α), A ∈ F → ∀ (x : α), ¬ (x ∈ A)) :
-    ∀ (x : α), ¬ (x ∈ Set.sUnion α F) :=
-  fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>
+    ∀ (x : α), ¬ (x ∈ Set.sUnion α F) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion` 是 def 头，这些位置补不出前导实参
+  fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion` 是 def 头，这些位置补不出前导实参
     Set.mem_sUnion_elim α F x False hx
       (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) => h A hA x hxA)
