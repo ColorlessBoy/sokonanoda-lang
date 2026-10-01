@@ -476,6 +476,16 @@ pub(crate) fn compile_plan_incremental(
     entry_trust: Option<crate::project::session::EntryTrust>,
     splice: Option<&dyn Fn(crate::compile::DocumentReport) -> crate::compile::DocumentReport>,
 ) -> ProjectReport {
+    // **只给测量用的逃生门**（`SOKO_NO_ENTRY_TRUST=1`）：把信任前缀**当成没有**
+    // ⇒ 这一次编译走的就是"优化前"那条路（入口整份重查）。用途：让设计
+    // `docs/design/declaration-incremental.md` §5.2.1 的**前/后对比**能在
+    // **同一份二进制、同一份夹具、同一操作序列**上量出来 —— 跨机墙钟不可转移，
+    // 同进程自比才是判据（`AGENTS.md` 判据纪律②）。**默认关** ⇒ 生产零改动 ✓。
+    let entry_trust = if std::env::var_os("SOKO_NO_ENTRY_TRUST").is_some() {
+        None
+    } else {
+        entry_trust
+    };
     // ⚠ **必须在跑 session 之前**（检查可能把模块标成 blocked，那会改变"编哪些模块"）。
     precheck_plan(&mut plan, options);
     let entry_path = plan.entry.clone();
