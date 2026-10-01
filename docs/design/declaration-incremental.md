@@ -270,21 +270,25 @@ S5/S6 才把"改中间一条"也变便宜（脏集取代后缀）。S4 与 §5.1
 | 改**最后一条** | 326 / 320ms · `modules=0` · `by=22` · `prefix=0` | **389 / 313ms** · 同上（**没退化** ✓） |
 | 改**第一条** | 2270ms · `modules=45` · `by=801` · `prefix=43` | **1912 / 1905ms** · `modules=40` · `by=702` · `prefix=38` |
 
-⇒ S6 把"改靠前"从 2270 降到 **1905ms（−16%）** —— **远小于**脏集的期望值。**待查的假设**
-（下一轮先验它，别先动 G-31）：S6 的保守规则是"解析不到文件内声明的引用 ⇒ **当脏**"
-（`unknown_references()`）；若真实课程文件里**大部分引用都解析不到**（prelude / 跨模块），
-脏集就 ≈ 整个后缀 ⇒ S6 的收益被这条保守规则吃掉了。**先量 unit08 的
-`unknown_references()` 占比**：高 ⇒ 下一刀是**减少 unknown**（解析 prelude / 跨模块引用），
-不是 G-31。
+⇒ S6 把"改靠前"从 2270 降到 **1905ms（−16%）** —— **远小于**期望值。**已查清（2026-10-01 探针）**：
+
+* **脏集本身是紧的**：unit08 `commands=31`，改第一条的 `dirty_commands` = **1 条（3%）**；
+  unit12-synthesis `commands=19` ⇒ 也是 1 条。⇒ **不是**脏集算大了。
+* `unknown_references` 占比确实高（unit08 **87%**、unit12 **63%**），但 S6 **已经有意不拿它
+  当脏**（`query/mod.rs:246` 写了实测理由：`resolution == None` 对 prelude 名字是常态 ⇒
+  拿它当脏会让 leaf 的脏集变成 `{1..11}` ⇒ S6 等于没做）。**这条保守规则是对的**，
+  不是收益被吃掉的原因。
+* **⇒ 改靠前那 1.9s 的真身是 G-31**：脏集只有 1 条，但环境要**整份 elaborate**，而编辑
+  **靠前**会作废**后续所有声明的判定推断缓存** ⇒ `prefix_runs=38`（改最后一条时是 **0**）。
+  两者对得上：38 趟 ≈ 1.9s。
 
 **⇒ 收口结论**：稳态 **531 → 320ms** 是步 3 的（−40%）；"改后面的 theorem 不重编其他"
 （用户原话）**成立** ✓。**开档后第一刀** ~2800ms 的 `entry_cache` **已经接上**
 （`cached_entry_for`，31 条信任 30 条）但**墙钟没动** —— 真因是 **`judge_infer` 的冷缓存
 （G-31）**，第二刀快是因为它被第一刀烘热了。**剩余杠杆**：**G-31**（判定前缀重跑 —— 改靠前时 `prefix_runs=38`、开档第一刀 `79`，
 每次仍**整份重编前缀**）· **S6 的 unknown 占比**（见上表下的假设）。
-⚠ **G-31 的"死路"复核（本片，2026-10-01）**：`EnvBuilder` 至今**没有**"从命令 k 起、拿现成
-env 继续走"的入口（只有 `snapshot`/`hide_declars`/`restore_declars`/`with_env`/`finish(self)`）
-⇒ 真正复用前缀**环境**要新增该能力（跨 kernel/front）。**便宜变体**（`run_incremental` +
-`TrustPlan{before: 前缀命令数}`，只跳过**内核检查**；需要 `TRUSTED_PREFIX` 的 `failures`，
-与 `check_synthesized` 同套）**已被试过并回退、收益未量**。动它时**先量 `kernel_checks`
-与墙钟**（`ProjectReport.kernel_checks` 现在读得出来 ✓），别只看 `passes`。
+⚠ **G-31 复核（2026-10-01）**：`EnvBuilder` 至今**没有**"从命令 k 起、拿现成 env 继续走"
+的入口（只有 `snapshot`/`hide_declars`/`restore_declars`/`with_env`/`finish(self)`）⇒ 复用
+前缀**环境**要新增该能力（跨 kernel/front）。**便宜变体**（`run_incremental` +
+`TrustPlan{before: 前缀命令数}`，只跳过**内核检查**；需 `TRUSTED_PREFIX` 的 `failures`）
+**已试过并回退、收益未量** ⇒ 动它先量 `kernel_checks` 与墙钟，**别只看 `passes`**。
