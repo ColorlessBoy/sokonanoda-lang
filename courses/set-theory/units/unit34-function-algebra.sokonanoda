@@ -1,0 +1,162 @@
+-- ==========================================================================
+-- unit34-function-algebra.sokonanoda —— 卷 I 单元㉞ **函数代数：合成与单满射**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§3.3 Functions**
+-- 的 composition/inverses 一段；Halmos《Naive Set Theory》**§10 Inverses and Composites**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.12 章第二个单元）。
+--
+-- 本单元的"该学的定理"：**合成的基本律**（结合律 · 恒等律）· **单射/满射/双射的合成** ·
+--   **两条消去律**（`g ∘ f` 单射 ⇒ `f` 单射；`g ∘ f` 满射 ⇒ `g` 满射）· 双射的两条取用子 ✓
+--
+-- ⚠ **本单元的"读法"（也是选型理由）**：**结合律与恒等律只能写成"逐点"形态** ——
+--   `(h ∘ g) ∘ f = h ∘ (g ∘ f)` 这种**函数相等**的陈述要**函数外延**，而本语言没有
+--   （**G-77**）⇒ 本单元一律写成 `∀ x, … x = … x` ✓ 这与单元㉜ 的处置同一口径 ✓
+--   **另一件做不到的事**：**满射 ⇒ 有右逆**（`Surjective f → ∃ g, RightInverse g f`）——
+--   见证是**函数**，而本语言的 `∃` **构造不出函数见证**（`lib/Cardinal` 文件头已记 L-06）✗
+--
+-- **写法约定**：`Injective` / `Surjective` / `Bijective` 都是**定义头** ⇒ 用之前先 **λ 绑定**
+--   （G-73 形状 ①）；**"把 `g` 作用在等式两边"要用搬运引理 `rel_subst_right`**
+--   （关系取"`g` 两边相等"），**别用 `congrArg`**（大/嵌套位置上解不出宇宙层级，实测）✓
+--   `Exists.elim` / `Exists.intro` 的**前导实参一律写全**（G-73 形状 ②）✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Fun`（复合与单满射）· `lib.Set` · `lib.Rel`。
+--
+-- 依赖：单元⑥⑦（函数与单满射）—— 本单元把函数的"代数"补全。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Fun
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 34.1 三条库引理（单射 / 满射 / 双射的展开）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：单射的展开（"像相等 ⇒ 原像相等"）。
+theorem demo_injective_def (α β : Type) (f : α → β) :
+    Function.Injective α β f ↔ ∀ (x : α) (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Function.injective_def α β f
+
+-- 演示：满射的展开（"每个点都有原像"）。
+theorem demo_surjective_def (α β : Type) (f : α → β) :
+    Function.Surjective α β f ↔ ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Function.surjective_def α β f
+
+-- 演示：双射的展开（单射 ∧ 满射）。
+theorem demo_bijective_def (α β : Type) (f : α → β) :
+    Function.Bijective α β f ↔
+      (Function.Injective α β f ∧ Function.Surjective α β f) :=
+  Function.bijective_def α β f
+
+-- ─────────────────────────────────────────────────────────────
+-- 34.2 合成的基本律：**只能写逐点**（函数外延缺失 ⇒ G-77）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：**合成的计算律**（`(g ∘ f) x` 算成 `g (f x)`）。
+-- soko:hint 思路：两边**计算上就是同一个东西** ⇒ 自反那一条。
+-- soko:hint 目标形态：`(fun a => g (f a)) x = g (f x)`。
+-- soko:hint 关键件：`Eq.refl`（**要写全宇宙层级与论域**）✓
+theorem comp_apply_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : α) :
+    Eq.{1} γ ((fun (a : α) => g (f a)) x) (g (f x)) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 2（L 类）：**结合律**（逐点形态 —— 函数相等要 G-77，写不出来）。
+-- soko:hint 思路：两边计算上都是 `h (g (f x))` ⇒ 自反。
+-- soko:hint 目标形态：`(fun a => h (g (f a))) x = (fun b => (fun c => h (g c)) (f b)) x`。
+-- soko:hint 关键件：`Eq.refl`（写全宇宙层级与论域）✓
+--   ⚠ 换成"函数相等"的写法就**做不了**（要函数外延，**G-77**）✓
+theorem comp_assoc_apply (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) (x : α) :
+    Eq.{1} δ ((fun (a : α) => h (g (f a))) x)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      ((fun (b : α) => (fun (c : β) => h (g c)) (f b)) x) := by
+  sorry
+
+-- 练习 3（T 类）：**左恒等律**（先恒等再 `f`，还是 `f`）。
+-- soko:hint 思路：计算上就是 `f x` ⇒ 自反。
+-- soko:hint 目标形态：`(fun a => f a) x = f x`。
+-- soko:hint 关键件：`Eq.refl` ✓
+theorem id_comp_apply (α β : Type) (f : α → β) (x : α) :
+    Eq.{1} β ((fun (a : α) => f a) x) (f x) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 34.3 单射 / 满射 / 双射的**合成**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（L 类，旗舰之一）：**两个单射的合成是单射**。
+-- soko:hint 思路：设 `g (f a) = g (f b)`；先用 `g` 的单射得 `f a = f b`，再用 `f` 的单射。
+-- soko:hint 目标形态：`Injective f → Injective g → Injective (fun a => g (f a))`。
+-- soko:hint 关键件：两个单射假设都是**定义头 ⇒ 先 λ 绑定再应用**（G-73 形状 ①）✓
+theorem injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (fun (a : α) => g (f a)) := by
+  sorry
+
+-- 练习 5（L 类，旗舰之一）：**两个满射的合成是满射**。
+-- soko:hint 思路：给定 `c`，先用 `g` 的满射取 `b` 使 `g b = c`，再用 `f` 的满射取 `a` 使
+--   `f a = b` ⇒ 见证取 `a`，要证 `g (f a) = c`：把 `g` 作用在 `f a = b` 两边，再与 `g b = c` 接起来。
+-- soko:hint 目标形态：`Surjective f → Surjective g → Surjective (fun a => g (f a))`。
+-- soko:hint 关键件：`Exists.elim`/`Exists.intro`（**前导实参写全**）· `Eq.trans` ·
+--   **"把 `g` 作用在等式两边"要用搬运引理 `rel_subst_right`**（关系取"`g` 两边相等"、
+--   沿 `f a = b` 把 `g (f a) = g (f a)` 搬成 `g (f a) = g b`）—— **别用 `congrArg`**（实测解不出）✓
+theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Surjective α β f) (hg : Function.Surjective β γ g) :
+    Function.Surjective α γ (fun (a : α) => g (f a)) := by
+  sorry
+
+-- 练习 6（L 类）：**两个双射的合成是双射**（把练习 4 与练习 5 打包）。
+-- soko:hint 思路：双射展开成合取，两个方向分别交给练习 4 与练习 5。
+-- soko:hint 目标形态：`Bijective f → Bijective g → Bijective (fun a => g (f a))`。
+-- soko:hint 关键件：`And.intro`/`And.left`/`And.right`（**前导 Prop 实参写全**；双射的展开是
+--   定义头 ⇒ 先 λ 绑定）· 练习 4 · 练习 5 ✓
+theorem bijective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Bijective α β f) (hg : Function.Bijective β γ g) :
+    Function.Bijective α γ (fun (a : α) => g (f a)) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 34.4 两条**消去律**（从复合反推分量）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（L 类，**本单元旗舰**）：**`g ∘ f` 单射 ⇒ `f` 单射**（左消去）。
+-- soko:hint 思路：设 `f a = f b`；把 `g` 作用在两边得到 `g (f a) = g (f b)`，
+--   再用复合的单射性 ⇒ `a = b`。
+-- soko:hint 目标形态：`Injective (fun a => g (f a)) → Injective f`。
+-- soko:hint 关键件：**复合的单射假设是定义头 ⇒ 先 λ 绑定** ·
+--   `rel_subst_right`（"把 `g` 作用在等式两边"，见练习 5 的写法）✓
+theorem injective_of_comp_injective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Injective α γ (fun (a : α) => g (f a))) :
+    Function.Injective α β f := by
+  sorry
+
+-- 练习 8（L 类，**旗舰的对偶**）：**`g ∘ f` 满射 ⇒ `g` 满射**（右消去）。
+-- soko:hint 思路：给定 `c`，复合的满射性给出 `a` 使 `g (f a) = c` ⇒ 见证取 `f a`。
+-- soko:hint 目标形态：`Surjective (fun a => g (f a)) → Surjective g`。
+-- soko:hint 关键件：`Exists.elim`/`Exists.intro`（前导实参写全）· 复合的满射假设先 λ 绑定 ✓
+--   ⚠ **反过来（`g ∘ f` 满射 ⇒ `f` 满射）是假的** —— 而举反例要区分构造子，本语言证不出来
+--   （**G-58**）✓
+theorem surjective_of_comp_surjective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Surjective α γ (fun (a : α) => g (f a))) :
+    Function.Surjective β γ g := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 34.5 双射的两条取用子
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（T 类）：**双射是单射**。
+-- soko:hint 思路：双射展开成合取，取左边。
+-- soko:hint 目标形态：`Bijective f → Injective f`。
+-- soko:hint 关键件：双射假设是**定义头 ⇒ 先 λ 绑定**，再 `And.left` ✓
+theorem bijective_injective (α β : Type) (f : α → β) (h : Function.Bijective α β f) :
+    Function.Injective α β f := by
+  sorry
+
+-- 练习 10（T 类）：**双射是满射**。
+-- soko:hint 思路：同练习 9，取右边。
+-- soko:hint 目标形态：`Bijective f → Surjective f`。
+-- soko:hint 关键件：先 λ 绑定，再 `And.right` ✓
+theorem bijective_surjective (α β : Type) (f : α → β) (h : Function.Bijective α β f) :
+    Function.Surjective α β f := by
+  sorry

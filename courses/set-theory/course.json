@@ -439,10 +439,14 @@
           "tags": [
             "powerset",
             "characteristic-function",
-            "boolean"
+            "boolean",
+            "function-composition",
+            "injective",
+            "surjective",
+            "bijective"
           ],
           "quota": {
-            "exercises": 10
+            "exercises": 20
           },
           "units": [
             {
@@ -450,6 +454,12 @@
               "title": "单元㉝ 幂集代数与特征函数",
               "title_en": "Unit 33 — Powerset Algebra and Characteristic Functions",
               "unit": 33
+            },
+            {
+              "file": "units/unit34-function-algebra.sokonanoda",
+              "title": "单元㉞ 函数代数：合成与单满射",
+              "title_en": "Unit 34 — Function Algebra: Composition, Injections, Surjections",
+              "unit": 34
             }
           ]
         }

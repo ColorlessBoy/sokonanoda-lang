@@ -1,0 +1,96 @@
+import lib.Rel
+import lib.Set
+import lib.Fun
+import lib.Order
+
+theorem demo_injective_def (α β : Type) (f : α → β) :
+    Function.Injective α β f ↔ ∀ (x : α) (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Function.injective_def α β f
+
+theorem demo_surjective_def (α β : Type) (f : α → β) :
+    Function.Surjective α β f ↔ ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Function.surjective_def α β f
+
+theorem demo_bijective_def (α β : Type) (f : α → β) :
+    Function.Bijective α β f ↔
+      (Function.Injective α β f ∧ Function.Surjective α β f) :=
+  Function.bijective_def α β f
+
+theorem comp_apply_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : α) :
+    Eq.{1} γ ((fun (a : α) => g (f a)) x) (g (f x)) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Eq.refl.{1} γ (g (f x))
+
+theorem comp_assoc_apply (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) (x : α) :
+    Eq.{1} δ ((fun (a : α) => h (g (f a))) x) ((fun (b : α) => (fun (c : β) => h (g c)) (f b)) x) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Eq.refl.{1} δ (h (g (f x)))
+
+theorem id_comp_apply (α β : Type) (f : α → β) (x : α) :
+    Eq.{1} β ((fun (a : α) => f a) x) (f x) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Eq.refl.{1} β (f x)
+
+theorem injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (fun (a : α) => g (f a)) :=
+  fun (a : α) => fun (b : α) => fun (h : Eq.{1} γ (g (f a)) (g (f b))) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (hu : ∀ (x : α) (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      hu a b ((fun (hv : ∀ (x : β) (y : β), Eq.{1} γ (g x) (g y) → Eq.{1} β x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        hv (f a) (f b) h) hg)) hf
+
+theorem surjective_comp_core (α β γ : Type) (f : α → β) (g : β → γ) (c : γ)
+    (a : α) (b : β) (ha : Eq.{1} β (f a) b) (hb : Eq.{1} γ (g b) c) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    ∃ (a1 : α), Eq.{1} γ (g (f a1)) c :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Exists.intro α (fun (a1 : α) => Eq.{1} γ (g (f a1)) c) a  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (Eq.trans.{1} γ (g (f a)) (g b) c
+      (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} γ (g u) (g v)) (f a) (f a) b ha  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (Eq.refl.{1} γ (g (f a)))) hb)
+
+theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Surjective α β f) (hg : Function.Surjective β γ g) :
+    Function.Surjective α γ (fun (a : α) => g (f a)) :=
+  fun (c : γ) =>
+    Exists.elim β (fun (b : β) => Eq.{1} γ (g b) c) (∃ (a : α), Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      ((fun (hu : ∀ (y : γ), ∃ (b : β), Eq.{1} γ (g b) y) => hu c) hg)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (b : β) (hb : Eq.{1} γ (g b) c) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        Exists.elim α (fun (a : α) => Eq.{1} β (f a) b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (∃ (a : α), Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          ((fun (hu : ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y) => hu b) hf)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (a : α) (ha : Eq.{1} β (f a) b) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            surjective_comp_core α β γ f g c a b ha hb))
+
+theorem injective_of_comp_injective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Injective α γ (fun (a : α) => g (f a))) :
+    Function.Injective α β f :=
+  fun (a : α) => fun (b : α) => fun (hab : Eq.{1} β (f a) (f b)) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (hu : ∀ (x : α) (y : α), Eq.{1} γ (g (f x)) (g (f y)) → Eq.{1} α x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      hu a b (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} γ (g u) (g v))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (f a) (f a) (f b) hab (Eq.refl.{1} γ (g (f a))))) h
+
+theorem surjective_of_comp_surjective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Surjective α γ (fun (a : α) => g (f a))) :
+    Function.Surjective β γ g :=
+  fun (c : γ) =>
+    Exists.elim α (fun (a : α) => Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (∃ (b : β), Eq.{1} γ (g b) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      ((fun (hu : ∀ (y : γ), ∃ (a : α), Eq.{1} γ (g (f a)) y) => hu) h c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (a : α) (ha : Eq.{1} γ (g (f a)) c) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        Exists.intro β (fun (b : β) => Eq.{1} γ (g b) c) (f a) ha)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem bijective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Bijective α β f) (hg : Function.Bijective β γ g) :
+    Function.Bijective α γ (fun (a : α) => g (f a)) :=
+  And.intro (Function.Injective α γ (fun (a : α) => g (f a)))
+    (Function.Surjective α γ (fun (a : α) => g (f a)))
+    (injective_comp α β γ f g
+      ((fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) => And.left hp) hf)
+      ((fun (hp : Function.Injective β γ g ∧ Function.Surjective β γ g) => And.left hp) hg))
+    (surjective_comp α β γ f g
+      ((fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) => And.right hp) hf)
+      ((fun (hp : Function.Injective β γ g ∧ Function.Surjective β γ g) => And.right hp) hg))
+
+theorem bijective_injective (α β : Type) (f : α → β) (h : Function.Bijective α β f) :
+    Function.Injective α β f :=
+  (fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) => And.left hp) h
+
+theorem bijective_surjective (α β : Type) (f : α → β) (h : Function.Bijective α β f) :
+    Function.Surjective α β f :=
+  (fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) => And.right hp) h
