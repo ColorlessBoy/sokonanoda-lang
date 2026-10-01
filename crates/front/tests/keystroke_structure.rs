@@ -289,7 +289,7 @@ fn keystroke_structure_is_measured() {
     );
 }
 
-/// **目标用例**（`#[ignore]`，目标模型落地后应当翻绿）—— 用户 2026-10-01 的验收标准
+/// **验收判据**（用户 2026-10-01 的 §5.1，**常驻**）
 /// （`docs/design/declaration-incremental.md` §5.1），**按声明数**：
 ///
 /// * 改**无人依赖**的一条 ⇒ 重查**声明数 = 1**；
@@ -303,12 +303,10 @@ fn keystroke_structure_is_measured() {
 /// 实测**一条声明 ≈ 2 次**（签名 + 值）⇒ "1" 那个目标在它上面根本不可达 ✗
 /// （它的用途是**同一形状下的前后对比**，见 `keystroke_structure_is_measured` 的打印）。
 ///
-/// 为什么现在 `#[ignore]`：今天还是后缀重查，跑它必红；必红的用例不能进
-/// `cargo test` 的默认集合。它的价值是把验收写成**可执行的一句话**：
-/// `cargo test -p sokonanoda-front --test keystroke_structure -- --ignored --nocapture`
+/// **S6 落地后它已经翻绿**（2026-10-01）⇒ 从"目标"升格成**常驻回归守卫**（不再 `#[ignore]`）：
+/// 谁把脏集改回"后缀"，这里当场判红 ✓。
 #[test]
-#[ignore = "G-29 目标模型：依赖图脏传播（S6）落地前必红"]
-fn dirty_propagation_target() {
+fn dirty_propagation_is_the_acceptance_criterion() {
     let (leaf, root, mid) = measure("target");
     println!(
         "PERF keystroke leaf={:?}\n               root={:?}\n               mid={:?}",
@@ -439,5 +437,41 @@ fn a_prelude_mode_change_invalidates_the_entry_trust() {
         doc.trusted_prefix_len(),
         0,
         "prelude 模式变了 ⇒ 一条都不许信任（注释不是命令，文本比对看不见这个变化）"
+    );
+}
+
+/// **改了记法声明 ⇒ 后缀一条都不许信任**（2026-10-01 自查发现的第三个信任边界口子）。
+///
+/// 记法用法的 hover 是 `ResolvedTarget::Notation { span, module }`：`span` 是**使用处**、
+/// `module` 只在跨模块声明时有值 ⇒ **建不出"用到它"这条边** ✗ ⇒ 改了 `infix:` 的目标
+/// 而使用处文本没变时，使用处会被当成"干净"⇒ 拿旧含义的结论 ⇒ **静默错编** ✗。
+/// 修法：**记法声明一变就整份重查**（保守；记法声明极少改 ✓）。
+///
+/// 判据用**重查命令数**（`recomputed_commands`），**实测标定过**：
+/// **不带**这条规则 ⇒ **0** ✗✗（`infix` 行本身不产出事件，而用到 `⊕` 的 theorem
+/// 被当成"干净" ⇒ 一条都不重查 ⇒ 拿旧含义的结论）；**带**规则 ⇒ **2** ✓。
+/// **反向验证**：把 `dirty_commands` 里那段 `notation_decl_changed` 去掉 ⇒ 这条判红
+/// （实测 `left: 0`）✓。
+#[test]
+fn a_notation_declaration_change_invalidates_the_whole_suffix() {
+    let dir = std::env::temp_dir().join(format!("soko-notation-trust-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    std::fs::write(dir.join("Lib.sokonanoda"), "axiom Point : Type\n").expect("write Lib");
+    let text = "import Lib\n\ninfix:50 \" \u{2295} \" => EqP\n\naxiom EqP : Point -> Point -> Prop\n\naxiom Other : Point -> Prop\n\ntheorem t (a b : Point) (h : a \u{2295} b) : a \u{2295} b := by exact h\n";
+    let entry = dir.join("Main.sokonanoda");
+    std::fs::write(&entry, text).expect("write Main");
+    let mut doc = QueryDoc::new();
+    doc.path = Some(entry.clone());
+    doc.set_text(text, 1, None);
+
+    let base = Counters::now();
+    let edited = text.replace("=> EqP", "=> EqQ");
+    assert_eq!(edited.len(), text.len(), "这一刀也保持长度不变");
+    doc.set_text(&edited, 2, None);
+    let after = Reading::snapshot(&doc, base);
+    assert_eq!(
+        after.recomputed_commands, 2,
+        "记法声明变了 ⇒ 用到它的命令必须重查（**不带这条规则实测是 0**：一条都不重查 ✗）"
     );
 }

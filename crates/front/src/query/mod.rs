@@ -256,6 +256,22 @@ impl EntryCache {
                 dirty.insert(i);
             }
         }
+        // **记法声明变了 ⇒ 整份重查**（2026-10-01 自查发现的第三个信任边界口子）：
+        // 记法用法的 hover 是 `ResolvedTarget::Notation { span, module }` —— `span` 是
+        // **使用处**、`module` 只在**跨模块**声明时才有值（本文件内声明是 `None`）
+        // ⇒ **建不出"用到它"这条边** ✗ ⇒ 改了记法声明（`infix:` 的目标）而使用处的
+        // 文本没变时，使用处会被当成"干净"⇒ 拿旧含义的结论 ⇒ **静默错编** ✗。
+        // 记法声明极少改 ⇒ 保守成整份重查：最省事，也最安全 ✓。
+        let notation_decl_changed = dirty.iter().any(|i| {
+            let text = keys.get(*i).map(String::as_str).unwrap_or("");
+            let head = text.trim_start();
+            ["notation", "infixl", "infixr", "infix"]
+                .iter()
+                .any(|kw| head.starts_with(kw))
+        });
+        if notation_decl_changed {
+            return (0..keys.len()).collect();
+        }
         let seeds: Vec<usize> = dirty.iter().copied().collect();
         for seed in seeds {
             for dependent in graph.dirty_commands(seed) {
