@@ -41,6 +41,13 @@ struct Reading {
     entry_kernel_checks: usize,
     /// 模块编译次数（库层每次按键被重编几次）。
     modules: u64,
+    /// **本次编译真的产出了事件/错误的命令数**（去重）——「重查命令数」的
+    /// 旁证：被复用（信任前缀/缓存）的命令**不产出事件** ⇒ 这个数会跟着脏集走。
+    ///
+    /// ⚠ **它是旁证不是判据**：不产出事件的命令（`import`、纯 `#check` 之类）
+    /// 本来就不进这个数 ⇒ 它**只会偏小**，不能拿来判"重查命令数 = 1" ✗。
+    /// 判据用 `entry_kernel_checks`（语义精确：`try_check_declar` 调用次数）。
+    recomputed_commands: usize,
     /// `by` 引擎调用次数。
     by: u64,
     /// 类型推断：调用 / 命中 / **未命中**。
@@ -56,9 +63,15 @@ impl Reading {
     /// 取一次快照（`doc` 给**本次编译**的 `kernel_checks`，其余是进程级累计）。
     fn snapshot(doc: &QueryDoc, base: Counters) -> Self {
         let now = Counters::now();
+        let out = doc.compiled_output();
+        let mut cmds: std::collections::BTreeSet<usize> = std::collections::BTreeSet::new();
+        cmds.extend(out.event_cmds.iter().copied());
+        cmds.extend(out.error_cmds.iter().copied());
+        cmds.extend(out.warning_cmds.iter().copied());
         Self {
-            entry_kernel_checks: doc.compiled_output().stats.kernel_checks,
+            entry_kernel_checks: out.stats.kernel_checks,
             modules: now.modules - base.modules,
+            recomputed_commands: cmds.len(),
             by: now.by - base.by,
             infer_calls: now.infer_calls - base.infer_calls,
             infer_hits: now.infer_hits - base.infer_hits,
@@ -70,9 +83,11 @@ impl Reading {
 
     fn json(self) -> String {
         format!(
-            "{{\"entry_kernel_checks\":{},\"modules\":{},\"by\":{},\"infer_calls\":{},\
-             \"infer_hits\":{},\"infer_miss\":{},\"infer_prefix_runs\":{},\"infer_prefix_bytes\":{}}}",
+            "{{\"entry_kernel_checks\":{},\"recomputed_commands\":{},\"modules\":{},\"by\":{},\
+             \"infer_calls\":{},\"infer_hits\":{},\"infer_miss\":{},\"infer_prefix_runs\":{},\
+             \"infer_prefix_bytes\":{}}}",
             self.entry_kernel_checks,
+            self.recomputed_commands,
             self.modules,
             self.by,
             self.infer_calls,
