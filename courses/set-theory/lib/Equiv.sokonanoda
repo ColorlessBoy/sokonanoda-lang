@@ -261,3 +261,23 @@ theorem Set.Equiv.comp_left_aux (α β γ : Type) (A : Set α) (B : Set β)
         (Eq.symm.{1} β (g2 (f2 (f1 a))) (f1 a) (l2 (f1 a) (hf1 a ha)))
         (Eq.refl.{1} α (g1 (f1 a)))))
     (l1 a ha)
+
+-- 辅助引理 ②：`f2 ∘ f1 ∘ g1 ∘ g2 = id`（逐点、在 `C` 上）
+-- ⚠ **镜像不是照抄**：这次要搬的等式是 **`β` 型**（`g2 c = f1 (g1 (g2 c))`），
+--   而关系取的是 `γ` 型的命题 ⇒ **关系的两个槽要翻过来**（`f2 v = f2 u`）✓
+theorem Set.Equiv.comp_right_aux (α β γ : Type) (B : Set β) (C : Set γ)
+    (f1 : α → β) (g1 : β → α) (f2 : β → γ) (g2 : γ → β)
+    (r1 : ∀ (b : β), b ∈ B → Eq.{1} β (f1 (g1 b)) b)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+    (r2 : ∀ (c : γ), c ∈ C → Eq.{1} γ (f2 (g2 c)) c)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+    (hg2 : ∀ (c : γ), c ∈ C → g2 c ∈ B)
+    (c : γ) (hc : c ∈ C) : Eq.{1} γ (f2 (f1 (g1 (g2 c)))) c :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+  Eq.trans.{1} γ (f2 (f1 (g1 (g2 c)))) (f2 (g2 c)) c
+    (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} γ (f2 v) (f2 u))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+      (g2 c) (g2 c) (f1 (g1 (g2 c)))
+      (Eq.symm.{1} β (f1 (g1 (g2 c))) (g2 c) (r1 (g2 c) (hg2 c hc)))
+      (Eq.refl.{1} γ (f2 (g2 c))))
+    (r2 c hc)
+
+-- ⚠ **名字归属**：`Set.Equiv.trans` 这个名字**已被单元⑨ 占用**（它在本地声明过一份 ✓）⇒
+--   库这里**只提供两条辅助引理**（`comp_left_aux` / `comp_right_aux` ✓，就是难写的那两步 ✓）；
+--   等以后做"把单元⑨ 那份搬进库并改调用点"的重构时，`trans` 自然落到库里 ✓
