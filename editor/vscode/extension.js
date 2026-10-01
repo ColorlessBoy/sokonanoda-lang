@@ -1255,21 +1255,88 @@ function progressThrottleMs() {
 let progressTimer = null;
 let pendingProgress = null;
 
+/// **P7 展示延迟（2026-10-01，用户反馈第 1 条「一闪一闪」）**。
+///
+/// **病**：服务端**每个键都编一次**（实测 `playground.sokonanoda` 24 个键 →
+/// 24 次编译、每次 **0ms**），于是 `$/progress` 的 `begin`/`end` 成对落在**每个
+/// 键**上（实测 2.0 条/键）。而每个 `begin` 会做三件用户**看得见**的事：
+/// 给**整份文档**加一层背景装饰、状态栏切成「编译中…」、Infoview 插一块进度；
+/// `end` 再全部撤掉 ⇒ 敲一个字亮灭一次，这就是「一闪一闪」。
+/// 真宿主实测：**8 个键亮了 16 次**（`editor_keystroke_latency` 的
+/// `flicker_frames`）。
+///
+/// **修法**（clangd / rust-analyzer / VS Code 自己的 `withProgress` 同款）：
+/// **延迟展示**。`begin` 只挂一个定时器，到点才真的亮；`end` 先到就把定时器
+/// 撤掉 —— **一次界面都没碰** ✓。教学规模的编译（~0ms）因此完全无痕，而真的
+/// 慢的编译（冷开 `unit12-solution` 实测 **7.8s**）照旧亮起 ⇒ P1/P3/P4 的能力
+/// **一个不少** ✓。
+///
+/// **为什么闸门放在这里（LSP 那条路）而不是 `applyProgress` 里**：`applyProgress`
+/// 还供 `Sokonanoda: Build/Rebuild` 用，而那条路**必须**从第一帧就报进度
+/// （E23/P2：「rebuild 中途必须看到非 0 百分比」是用户的硬需求）——把延迟加到
+/// 那儿会**倒掉真进度** ✗。闪烁是**击键**特有的，闸门就只该拦击键那条路。
+function progressShowDelayMs() {
+  const value = vscode.workspace
+    .getConfiguration("sokonanoda")
+    .get("progress.showDelayMs");
+  return typeof value === "number" && isFinite(value) && value >= 0 ? value : 300;
+}
+
+/// LSP 编译那条路的展示状态（与 `applyProgress` 的 `statusBarCompiling` 分开：
+/// 后者是"界面上此刻亮着没"，这里多一个"定时器还挂着没"）。
+let compileShowTimer = null;
+let compileShown = false;
+
+/// 把上面这套（连同 `progressTimer` / `pendingProgress`）清回初始态。
+/// 由 `activate()` 调用 —— 见那里的注释（残留状态会让提示永远不再出现）。
+function resetCompileProgressState() {
+  if (compileShowTimer) clearTimeout(compileShowTimer);
+  compileShowTimer = null;
+  compileShown = false;
+  if (progressTimer) clearTimeout(progressTimer);
+  progressTimer = null;
+  pendingProgress = null;
+}
+
 function onCompileProgress(value) {
   const info = translateProgress(value);
   if (!info) return;
-  if (info.phase === "report") {
-    pendingProgress = info;
-    if (progressTimer) return;
-    progressTimer = setTimeout(() => {
-      progressTimer = null;
-      const latest = pendingProgress;
-      pendingProgress = null;
-      if (latest) applyProgress(latest);
-    }, progressThrottleMs());
+  if (info.phase === "begin") {
+    // 同一份文档的连续编译：定时器重挂，但**已经亮着就别重新计时** ——
+    // 否则"慢编译接着慢编译"会亮一下、灭一下（正是要消灭的形状）。
+    if (compileShowTimer) {
+      clearTimeout(compileShowTimer);
+      compileShowTimer = null;
+    }
+    if (compileShown) return;
+    compileShowTimer = setTimeout(() => {
+      compileShowTimer = null;
+      compileShown = true;
+      applyProgress(info);
+    }, progressShowDelayMs());
     return;
   }
-  applyProgress(info);
+  if (info.phase === "end") {
+    if (compileShowTimer) {
+      clearTimeout(compileShowTimer);
+      compileShowTimer = null;
+    }
+    // **没亮过 ⇒ 一次界面都没碰**（快编译的全部收益就在这一行）。
+    if (!compileShown) return;
+    compileShown = false;
+    applyProgress(info);
+    return;
+  }
+  // `report`：还没亮就先别碰界面（到点亮的时候会带上 `begin` 那份 label）。
+  if (!compileShown) return;
+  pendingProgress = info;
+  if (progressTimer) return;
+  progressTimer = setTimeout(() => {
+    progressTimer = null;
+    const latest = pendingProgress;
+    pendingProgress = null;
+    if (latest) applyProgress(latest);
+  }, progressThrottleMs());
 }
 
 /// **P4（空间进度，2026-09-26 用户需求）**：状态栏只说"在编"，不说"**在哪编**" ✓。
@@ -2452,6 +2519,13 @@ function registerCommands(context, provider, courseProvider) {
 
 async function activate(context) {
   extensionRoot = context.extensionPath;
+
+  // **模块级进度状态必须回到初始态**：`compileShown` / `compileShowTimer` 是
+  // 跨调用活着的（`$/progress` 的处理器挂在模块作用域上）。激活再来一次时
+  // （测试宿主每例重新 activate；真宿主里是 Reload Window），残留的"已经亮着"
+  // 会让编译提示**此后再也不出现** ✗，残留的定时器 id 还会指向一个已经不存在的
+  // 定时器。**零行为变化**：正常路径下这些值本来就是初始态。
+  resetCompileProgressState();
 
   // ORDER IS LOAD-BEARING — every view/command is registered *before the
   // first `await`. VS Code registers extension view containers with

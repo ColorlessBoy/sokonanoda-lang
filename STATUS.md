@@ -16,6 +16,22 @@
 - **批次 N 进度 66/66**（第 519 轮）✓：T-N13（第 518 轮）· T-N15（第 519 轮）⇒ 逐条索引 `docs/visible-changes.md`。
 - **文档过期日期机制**（第 513 轮）✓：每个活文档都有过期日期（`scripts/docs-expiry.json`）· `git commit` 前自动检测 ⇒ 已过期/未登记**拒绝提交**。
 
+## 第 530 轮（2026-10-01）：**编辑响应 —— P7 展示延迟（用户反馈「一闪一闪」）**
+
+- **诊断先行**：**编译不是瓶颈**（`playground` 逐键往返 **0.1ms 中位**、24 键 24 次编译**每次 0ms**；
+  VS Code 自动发的 semanticTokens/codeLens/inlayHint **≤3.1ms**；扩展发的 goals/project/stateAt
+  **≤5.9ms**）；真慢的只有冷开（`unit12-solution` 首次 **7794–8407ms**，第二次 **33.7ms**）。
+- **闪烁源 = 服务端每键都编一次** ⇒ `$/progress` **2.0 条/键**，每个 `begin` 给**整份文档**加背景装饰 +
+  状态栏切「编译中…」+ Infoview 插进度块（`end` 再全撤）⇒ 真 VS Code **8 键亮 16 次**。
+- **修法（P7）**：`begin` 只挂定时器、`end` 先到就撤 ⇒ 窗口内编完的**一次界面都不碰**；闸门放在
+  `onCompileProgress`（LSP 路）而**不放 `applyProgress`**（build/rebuild 的逐文件进度必须从第一帧就报）。
+- **前后（真 VS Code，同文件/操作/机）**：闪烁 **16 → 0** · 键→诊断 **122 → 99ms** · 键→面板
+  **268 → 263ms**（~100ms 是 VS Code 诊断管线、150ms 是扩展的多文档去抖；服务端 **0.2ms/键**）。
+- **明确不做**：不缩去抖 · 不改 `$/progress` 契约 · **不动 `crates/`** · 不删概览尺。**判据**：stub
+  两条 `P7:`（计数）+ e2e `edit responsiveness`（用户看得见），修前**红**修后绿 ✓；细节见设计文档。
+- **记账**：新文档 `docs/design/edit-latency.md`（这条链的唯一权威，含"明确不做"）+ 过期登记 ·
+  `editor/vscode/{CHANGELOG,README}.md` + `package.json` 同轮 ✓ · 第 527 轮归档 ✓。
+
 ## 第 529 轮（2026-10-01）：**IA-4 M3 收口 —— sort/kind 闸门 + 三通道归因**
 
 - **引擎内的 sort/kind 闸门**（`MetaCtx::assign`，设计 §2.5）：三值语法近似（`Prop`=1 · `Type`=2 ·
@@ -51,22 +67,6 @@
   —— 实测踩到 `compiled 30 / hit 12`、`runs=616`（**热启动，不是回归**）✗。
 - **记账**：`metavar-engine.md` **§9 as-built** · `ONBOARDING.md` §0.2（M2 ✓，下一片 **M3**）·
   第 525 轮归档 · 预算 `_comment`（cap 360→400）✓。
-
-## 第 527 轮（2026-10-01）：**IA-4 M1 收口 —— 引擎内核 + 记法路径接线（默认档 = 今天）**
-
-- **新模块 `crates/front/src/compile/meta.rs`**（元变量 = `\0soko_m{id}` **名字编码**）：三值合一
-  （`Undef` = 弃权）+ 快路径 + **两侧**分解 · **occurs/type-occurs/作用域**三闸门 · 有界待定不动点
-  （计数不降就停）· 三上限 · defaulting（E19 规则显式化）· zonk 无残留 · **delta 兜底**（S13）✓。
-- **接线 + 三态开关** `SOKO_METAVAR=0|sibling|engine`（**默认 sibling = 今天**；旧逃生门仍等价）；
-  记法路径按档位分流（**一般路径 = M2**）✓。
-- **判据**：真值 **11/11** · front **782/782** · M0 清单 **1 passed**（26 读数一条不变）· 新
-  `metavar_engine` **2 passed** · notation 系 **49/1/1** · **三指纹：默认档与引擎档都逐字节等于
-  M0 冻结值**（⇒ 引擎 0 增 0 失）· 门禁 **43/377/99/0** · 结构计数**逐项等于基线** · gate **EXIT=0** ✓。
-- **抓到两个真 bug（都修 + 钉判据）**：① **作用域误拒**（`notation_telescope` 用签名原文名 ⇒ 与用户
-  变量撞名）⇒ 引擎路径**先 freshen 望远镜名**；② **缓存键漏开关**（**既有**，`v0.79.0` 也复现 ⇒ 逃生门
-  被静默忽略）⇒ 键加**档位字节**（默认档保持 0）；残留面 `SOKO_JUDGE_INPLACE=shadow` **记账未修** ✓。
-- **记账**：`metavar-engine.md` §8 as-built · `ONBOARDING.md` §0.2（M1 ✓，下一片 M2）· 第 524 轮归档 ·
-  预算 `_comment`（cap 320→360）✓。
 
 ## 未决项（**只有这两条**；顺序与入口见 `docs/ONBOARDING.md` §0.2）
 

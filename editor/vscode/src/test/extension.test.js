@@ -1703,4 +1703,138 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       `hover 必须给出 \`Set.mem\` 的原始类型，实际 = ${markdown}`,
     );
   });
+
+  // ── 编辑响应延迟（性能，2026-10-01 用户反馈）───────────────────────────
+  //
+  // 用户原话：「在 VS Code 里编辑 .sokonanoda 太卡，输入后过很久才有反应
+  // （诊断/目标面板更新），与 Lean4 不可比」。这条用例把**用户动作 → 屏幕上
+  // 看得见的结果**量成毫秒，并且**两个结果都要**：
+  //   ① 诊断更新（编辑器里的波浪线）；
+  //   ② 目标面板拿到新的声明/目标（Infoview 的 `decls`/`state`）。
+  // 只量①会漏掉面板那条链（用户看的是面板）；只量②会漏掉"诊断到了但没推"。
+  //
+  // ⚠ **绝对毫秒只做数量级兜底**（`AGENTS.md`「判据不许用绝对毫秒」）：
+  // 断言的是**结构**——最后一个键必须真的引起一次诊断发布与一次面板更新；
+  // 毫秒只写进 `perfNote` 供人判读趋势。**不许**把 500ms 之类写进 `assert`：
+  // 共享 runner 上墙钟不可转移（实测本机 37s vs CI 278s = 7.5×）。
+  test("edit responsiveness: last keystroke reaches diagnostics and the goal panel", async () => {
+    // 夹具形状照着 `playground.sokonanoda`（29 条声明、400 行、无 import）：
+    // 单文件、warm 缓存下服务端每次编译 ~0ms ⇒ 量到的就是**客户端**那一段。
+    const lines = [];
+    for (let i = 0; i < 24; i++) {
+      lines.push(`theorem prior_${String(i).padStart(2, "0")} (P : Prop) (h : P) : P := h`);
+    }
+    const targetLine = lines.length; // 0-based 行号 = 前面的行数
+    lines.push("theorem typing_target (P Q : Prop) (h : P) : Q → P := by");
+    lines.push("  sorry");
+    lines.push("");
+    const uri = await writeDoc("typing-latency.sokonanoda", lines.join("\n"));
+    await showDoc(uri);
+
+    await waitFor("the typing fixture to be judged once (a `sorry` warning is published)", async () =>
+      vscode.languages.getDiagnostics(uri).some((d) => d.code === "sorry"),
+    );
+
+    const watcher = diagnosticsWatcher();
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "必须有活动编辑器才能打字");
+    const endChar = lines[targetLine].length;
+
+    // **闪烁计数器**（用户反馈第 1 条：「一闪一闪」）。
+    //
+    // 每一次 `begin` 都会做三件**用户看得见**的事：给**整份文档**加一层
+    // 背景装饰、状态栏切成「编译中…」、Infoview 里插一块进度。`end` 再全部
+    // 撤掉 ⇒ 每个键一次「亮—灭」。数它就是在数用户眼睛看到的闪烁次数。
+    //
+    // 为什么在真宿主里也能数：`applyProgress` 是**唯一**的出口，而 Infoview 的
+    // `setProgress` 是暴露给测试的对象方法（与 stub 宿主同款做法）。
+    const frames = [];
+    const originalSetProgress = extensionApi.infoview.setProgress.bind(
+      extensionApi.infoview,
+    );
+    extensionApi.infoview.setProgress = (progress) => {
+      frames.push((progress && progress.phase) || "end");
+      return originalSetProgress(progress);
+    };
+
+    /// 面板"看得见的那一份"（Infoview 收到的 decls + 光标目标）。
+    const panelSignature = () =>
+      JSON.stringify([
+        extensionApi.infoview.lastDecls(),
+        extensionApi.infoview.lastState(),
+      ]);
+
+    // 模拟真实打字：每 80ms 一个字符（人的击键间隔），**中途不等反馈**——
+    // 这正是用户抱怨的场景（连续敲、界面跟不上）。
+    const typed = " intro hq";
+    const framesBeforeTyping = frames.length;
+    for (let i = 0; i < typed.length - 1; i++) {
+      await editor.edit((b) =>
+        b.insert(new vscode.Position(targetLine, endChar + i), typed[i]),
+      );
+      await sleep(80);
+    }
+    const keystrokes = typed.length - 1;
+    const framesDuringTyping = frames.length - framesBeforeTyping;
+    extensionApi.infoview.setProgress = originalSetProgress;
+    const lightsPerKeystroke = framesDuringTyping / Math.max(1, keystrokes);
+
+    // 打字停手、让上一键的反馈落定，再量**最后一个键**的端到端延迟。
+    await sleep(600);
+    const diagBefore = watcher.count(uri);
+    const panelBefore = panelSignature();
+
+    const t0 = Date.now();
+    await editor.edit((b) =>
+      b.insert(
+        new vscode.Position(targetLine, endChar + typed.length - 1),
+        typed[typed.length - 1],
+      ),
+    );
+
+    await waitFor(
+      "a fresh publishDiagnostics for the last keystroke",
+      () => watcher.count(uri) > diagBefore,
+      WAIT_MS,
+      5,
+    );
+    const diagMs = Date.now() - t0;
+    const diagAfter = watcher.count(uri);
+
+    await waitFor(
+      "the goal panel to pick up the last keystroke",
+      () => panelSignature() !== panelBefore,
+      WAIT_MS,
+      5,
+    );
+    const panelMs = Date.now() - t0;
+    const panelChanged = panelSignature() !== panelBefore;
+    watcher.dispose();
+
+    // 结构判据（噪声免疫）：两个结果都必须**真的变过**。
+    assert.ok(diagAfter > diagBefore, "最后一个键必须引起一次诊断发布");
+    assert.ok(
+      panelChanged,
+      "最后一个键必须让目标面板拿到新内容（否则用户看不到任何反馈）",
+    );
+
+    // **闪烁判据**（用户反馈第 1 条）。旧行为下服务端**每个键都编一次**，
+    // 于是每个键都成对发 `begin`/`end` ⇒ 亮 2×击键数次。这条判据咬的就是它：
+    // 「亮的次数必须**少于**击键数」——旧行为 2N 必红，修好后是 0。
+    //
+    // 为什么不用 `=== 0`：共享 runner 上编译可能真的超过展示延迟（那时亮起来是
+    // **对的**）。这里要的是「不再**每键**都亮」，不是「永远不亮」。
+    assert.ok(
+      framesDuringTyping < keystrokes,
+      `打字期间的"编译中"闪烁次数必须少于击键数（每个键都亮 = 用户看到的"一闪一闪"）：` +
+        `${keystrokes} 个键亮了 ${framesDuringTyping} 次`,
+    );
+
+    perfNote(
+      `editor_keystroke_latency file=${path.basename(uri.fsPath)} decls=24 ` +
+        `diagnostics_ms=${diagMs} panel_ms=${panelMs} ` +
+        `flicker_frames=${framesDuringTyping} keystrokes=${keystrokes} ` +
+        `lights_per_keystroke=${lightsPerKeystroke.toFixed(2)} typed=${JSON.stringify(typed)}`,
+    );
+  });
 });

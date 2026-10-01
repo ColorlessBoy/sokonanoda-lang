@@ -162,6 +162,12 @@
       "tier": "process",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 process = 90 天）"
     },
+    "docs/design/edit-latency.md": {
+      "expires": "2027-10-01",
+      "renewed": "2026-10-01",
+      "tier": "spec",
+      "reason": "登记新文档：2026-10-01 用户反馈的编辑响应延迟线（实测分解 + P7 展示延迟的前后对比），是这条链的唯一权威"
+    },
     "docs/design/kernel-taxonomy.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",

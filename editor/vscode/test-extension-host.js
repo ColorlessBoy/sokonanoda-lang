@@ -2103,9 +2103,12 @@ notify({
   token: "sokonanoda/compile/repo/playground.sokonanoda",
   value: { kind: "begin", title: "sokonanoda", message: "编译 /repo/playground.sokonanoda" },
 });
+// **P7 展示延迟**（2026-10-01）：`begin` 只挂定时器，到点才亮 —— 慢编译
+// （这次是真的慢，因为下面把定时器放行了）照旧看得见，只是**晚了 300ms**。
+fireTimers();
 assert.ok(
   String(statusBarStub().text).includes("编译中"),
-  `\`begin\` 必须让状态栏说"编译中"（P2），实际 = ${JSON.stringify(statusBarStub().text)}`,
+  `\`begin\` 到点必须让状态栏说"编译中"（P2），实际 = ${JSON.stringify(statusBarStub().text)}`,
 );
 
 notify({
@@ -2118,6 +2121,74 @@ assert.ok(
 );
 });
 
+// ── P7 展示延迟（2026-10-01 用户反馈「一闪一闪」）────────────────────────
+//
+// 这两条是**确定性**的那一层判据（stub 宿主能控制定时器与"编译有多久"）：
+// e2e 只能量到"共享 runner 上这次闪了几下"，这里能钉死**因果**。
+// 背景：服务端**每个键都编一次**（实测 2.0 条 `$/progress`/键），立刻亮就是
+// 「敲一个字闪一下」。真宿主实测 8 个键亮 16 次。
+test("P7: a compile that finishes inside the show delay never touches the UI", async () => {
+  await activateExtension();
+  const editor = focus(
+    fakeDocument("/repo/playground.sokonanoda", "sokonanoda", "theorem a : True := True.intro\n"),
+  );
+  await settle();
+  const notify = notificationHandlers["$/progress"];
+  const progressOf = () => vscodeStub.__infoview._lastProgress;
+  const statusBefore = String(statusBarStub().text);
+
+  // 快编译：`begin` 与 `end` 之间**不放行任何定时器**（服务端 0ms 编完就是这个形状）。
+  notify({ value: { kind: "begin", message: "编译 x" } });
+  notify({ value: { kind: "end" } });
+
+  assert.strictEqual(
+    editor.decorationCalls.length,
+    0,
+    "快编译**一次装饰都不许碰** —— 每个键碰两次正是用户看到的「一闪一闪」",
+  );
+  assert.strictEqual(
+    String(statusBarStub().text),
+    statusBefore,
+    "快编译不许动状态栏",
+  );
+  assert.strictEqual(
+    progressOf(),
+    undefined,
+    "快编译不许往 Infoview 推进度块（否则面板每键跳一下）",
+  );
+  assert.strictEqual(
+    pendingTimers().length,
+    0,
+    "`end` 必须把还挂着的展示定时器撤掉（漏一个 ⇒ 300ms 后凭空亮一下 ✗）",
+  );
+});
+
+test("P7: a compile that outlives the show delay still lights up, and lights up once", async () => {
+  await activateExtension();
+  const editor = focus(
+    fakeDocument("/repo/playground.sokonanoda", "sokonanoda", "theorem a : True := True.intro\n"),
+  );
+  await settle();
+  const notify = notificationHandlers["$/progress"];
+
+  notify({ value: { kind: "begin", message: "编译 x" } });
+  fireTimers();
+  assert.strictEqual(editor.decorationCalls.length, 1, "慢编译必须亮（P1/P3/P4 的能力不许丢）");
+
+  // 慢编译接着慢编译：**不许**亮一下灭一下（已经亮着就保持亮着）。
+  notify({ value: { kind: "begin", message: "编译 x" } });
+  notify({ value: { kind: "report", message: "编译 x", percentage: 50 } });
+  assert.strictEqual(
+    editor.decorationCalls.length,
+    1,
+    "连续慢编译之间不许重新计时（那会亮—灭—亮，正是要消灭的形状）",
+  );
+
+  notify({ value: { kind: "end" } });
+  assert.strictEqual(editor.decorationCalls.length, 2, "`end` 必须清空装饰");
+  assert.strictEqual(editor.decorationCalls[1].ranges.length, 0, "`end` 必须真的清空");
+});
+
 test("a burst of progress reports collapses into one refresh", async () => {
 await activateExtension();
 focus(fakeDocument("/repo/playground.sokonanoda"));
@@ -2126,6 +2197,7 @@ const notify = notificationHandlers["$/progress"];
 const progressOf = () => vscodeStub.__infoview._lastProgress;
 
 notify({ value: { kind: "begin", message: "编译 x" } });
+fireTimers(); // P7：先放行展示延迟，否则 `report` 一律不碰界面
 assert.strictEqual(
   progressOf().phase,
   "begin",
@@ -2164,10 +2236,11 @@ test("compile progress marks the active document in the overview ruler", async (
   const notify = notificationHandlers["$/progress"];
 
   notify({ value: { kind: "begin", message: "编译 x" } });
+  fireTimers(); // P7：展示延迟到点才真的画（快编译那一路在下面那条用例里钉住）
   assert.strictEqual(
     editor.decorationCalls.length,
     1,
-    "`begin` 必须给当前文档加一层装饰（P4：状态栏只说在编，不说在哪编 ✗）",
+    "`begin` 到点必须给当前文档加一层装饰（P4：状态栏只说在编，不说在哪编 ✗）",
   );
   assert.ok(
     editor.decorationCalls[0].ranges.length >= 1,

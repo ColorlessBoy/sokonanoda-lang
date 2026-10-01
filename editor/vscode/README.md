@@ -132,7 +132,10 @@ skills.
 - **Compile progress you can see**: the status bar switches to a *compiling…* state,
   the Infoview shows a three-line progress block, and the overview ruler marks the
   document being compiled (`sokonanoda.progress.throttleMs` throttles the in-between
-  refreshes; no fake percentage is shown)
+  refreshes; no fake percentage is shown). It only lights up for compiles that
+  actually take a while (`sokonanoda.progress.showDelayMs`, default 300 ms) — the
+  server recompiles on **every keystroke** and a teaching-sized file finishes in
+  about a millisecond, so showing it immediately meant *type a letter, flash once*
 - **Readable declarations**: the Infoview prints types, `:=` values and `⊢`
   goals at body size with generous line height (no double-dimming), and
   `sokonanoda.infoview.fontScale` scales them to taste

@@ -268,6 +268,12 @@
           "minimum": 0,
           "markdownDescription": "编译进度的刷新节流（毫秒）。`report` 可能在长文件编译时很密 —— 窗口内只刷最后一次；`begin`/`end` **不受**它影响（成对的状态边界，漏一个界面就卡住）。0 = 不节流。"
         },
+        "sokonanoda.progress.showDelayMs": {
+          "type": "number",
+          "default": 300,
+          "minimum": 0,
+          "markdownDescription": "**编译中**那套提示（状态栏 / Infoview 进度块 / 整份文档的概览尺装饰）延迟多少毫秒才亮。服务端**每个键都编一次**（教学规模每次约 0ms），立刻亮就是「敲一个字闪一下」—— 2026-10-01 用户反馈的「一闪一闪」。延迟窗口内编译就结束的，一次界面都不碰；真的慢的编译（冷开大文件实测 7.8s）照旧亮起。0 = 不延迟（旧行为）。**只影响编辑器里的编译提示，不影响 `Sokonanoda: Build` 的逐文件进度**。"
+        },
         "sokonanoda.build.timeoutMs": {
           "type": "number",
           "default": 300000,

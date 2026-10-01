@@ -1,3 +1,35 @@
+## [Unreleased]
+
+> 编辑响应：**「敲一个字闪一下」没了**（2026-10-01 用户反馈「一闪一闪」）。
+
+### Fixed
+
+- **Typing no longer makes the editor flash.** The server recompiles on *every*
+  keystroke and a teaching-sized file finishes in about a millisecond, so the
+  `$/progress` `begin`/`end` pair landed on every single key — and each `begin`
+  painted a **whole-document** background decoration, flipped the status bar to
+  *compiling…*, and inserted an Infoview progress block (then `end` took all
+  three away again). Measured in a real VS Code host: **8 keystrokes lit the UI
+  16 times**. The *compiling…* affordance is now shown only after
+  `sokonanoda.progress.showDelayMs` (default **300 ms**); a compile that finishes
+  inside that window **never touches the UI at all**. Genuinely slow compiles
+  (a cold open of the largest course file measured 7.8 s) still light up exactly
+  as before, and `Sokonanoda: Build/Rebuild`'s per-file progress is untouched.
+  `0` restores the old immediate behaviour.
+- **A stale "already compiling" flag could suppress the indicator forever** after
+  a window reload: the state is module-level and was never reset on activation.
+  `activate()` now resets it.
+
+### Changed
+
+- **Measured end to end, before → after** (real VS Code 1.138.0, same fixture,
+  same operation): flicker **16 → 0** lights per 8 keystrokes; keystroke →
+  diagnostics **122 ms → 99 ms**; keystroke → goal panel **268 ms → 263 ms**.
+  The remaining panel latency is ~100 ms of VS Code's own diagnostics pipeline
+  plus the extension's 150 ms multi-document debounce — the compiler itself is
+  **0.2 ms per keystroke** on the same fixture. Full breakdown and the things
+  deliberately *not* changed: `docs/design/edit-latency.md`.
+
 ## [0.79.0] — 2026-10-01
 
 > 求解器的**待定参数**（E19 甲案）成为默认：今天判红的"两侧都是零元糖"形状变绿。
