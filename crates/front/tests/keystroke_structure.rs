@@ -271,38 +271,45 @@ fn keystroke_structure_is_measured() {
 }
 
 /// **目标用例**（`#[ignore]`，目标模型落地后应当翻绿）—— 用户 2026-10-01 的验收标准
-/// （`docs/design/declaration-incremental.md` §5.1）：
+/// （`docs/design/declaration-incremental.md` §5.1），**按声明数**：
 ///
-/// * 改**无人依赖**的一条 ⇒ 重查命令数 = **1**；
-/// * 改**被 3 条（含 1 条间接）依赖**的一条 ⇒ 重查命令数 = **1 + 3 = 4**
-///   （**传递闭包**，恰好那几条，不是"后面全部"）。
+/// * 改**无人依赖**的一条 ⇒ 重查**声明数 = 1**；
+/// * 改**被 3 条（含 1 条间接）依赖**的一条 ⇒ **1 + 3 = 4**（**传递闭包**，恰好那几条）。
 ///
-/// 为什么现在 `#[ignore]`：今天是"整份重查"（前缀复用还没接到会话上），跑它必红；
-/// 必红的用例不能进 `cargo test` 的默认集合。它的价值是把验收标准写成**可执行的一句话**：
+/// 读数是 `recomputed_commands`（本次编译**真的产出事件**的命令数）——它就是
+/// "重查了几条声明"：被复用（信任前缀/缓存）的命令**不产出事件** ⇒ 当前实测
+/// leaf/mid/root = **4/7/8**（= **后缀**，S2 的语义）✗，目标 **1/1/4**（= **脏集**，S6）。
+///
+/// ⚠ 不用 `entry_kernel_checks` 判：那个数的是 `try_check_declar` **调用次数**，
+/// 实测**一条声明 ≈ 2 次**（签名 + 值）⇒ "1" 那个目标在它上面根本不可达 ✗
+/// （它的用途是**同一形状下的前后对比**，见 `keystroke_structure_is_measured` 的打印）。
+///
+/// 为什么现在 `#[ignore]`：今天还是后缀重查，跑它必红；必红的用例不能进
+/// `cargo test` 的默认集合。它的价值是把验收写成**可执行的一句话**：
 /// `cargo test -p sokonanoda-front --test keystroke_structure -- --ignored --nocapture`
 #[test]
-#[ignore = "G-29 目标模型：依赖图脏传播落地前必红"]
+#[ignore = "G-29 目标模型：依赖图脏传播（S6）落地前必红"]
 fn dirty_propagation_target() {
     let (leaf, root, mid) = measure("target");
     println!(
-        "PERF keystroke leaf={:?} root={:?} mid={:?}",
+        "PERF keystroke leaf={:?}\n               root={:?}\n               mid={:?}",
         leaf, root, mid
     );
     assert_eq!(
-        leaf.entry_kernel_checks, 1,
-        "改**无人依赖**的一条 ⇒ 重查命令数必须是 1（今天 {}）",
-        leaf.entry_kernel_checks
+        leaf.recomputed_commands, 1,
+        "改**无人依赖**的一条 ⇒ 重查声明数必须是 1（今天 {}）",
+        leaf.recomputed_commands
     );
     assert_eq!(
-        mid.entry_kernel_checks, 1,
-        "改**无人依赖**的中间一条 ⇒ 重查命令数必须是 1（今天 {}）",
-        mid.entry_kernel_checks
+        mid.recomputed_commands, 1,
+        "改**无人依赖**的中间一条 ⇒ 重查声明数必须是 1（今天 {}）",
+        mid.recomputed_commands
     );
     assert_eq!(
-        root.entry_kernel_checks,
+        root.recomputed_commands,
         1 + ROOT_DEPENDENTS,
-        "改**被 {ROOT_DEPENDENTS} 条依赖**的一条 ⇒ 重查命令数必须是 1+{ROOT_DEPENDENTS}（今天 {}）",
-        root.entry_kernel_checks
+        "改**被 {ROOT_DEPENDENTS} 条（含间接）依赖**的一条 ⇒ 重查声明数必须是 1+{ROOT_DEPENDENTS}（今天 {}）",
+        root.recomputed_commands
     );
 }
 
