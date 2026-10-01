@@ -488,10 +488,13 @@
             "reflexive-symmetric-transitive",
             "order-algebra",
             "asymmetric",
-            "partial-order"
+            "partial-order",
+            "relation-image",
+            "relation-preimage",
+            "kernel"
           ],
           "quota": {
-            "exercises": 30
+            "exercises": 40
           },
           "units": [
             {
@@ -511,6 +514,12 @@
               "title": "单元㊳ 序关系的关系代数视角",
               "title_en": "Unit 38 — Order Relations, Algebraically",
               "unit": 38
+            },
+            {
+              "file": "units/unit39-image-kernel.sokonanoda",
+              "title": "单元㊴ 关系的像、原像与等价核",
+              "title_en": "Unit 39 — Images, Preimages and Equivalence Kernels",
+              "unit": 39
             }
           ]
         }

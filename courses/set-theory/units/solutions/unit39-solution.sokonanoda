@@ -1,0 +1,183 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+import lib.Fun
+
+def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+def relImg (α β : Type) (r : Rel α β) (A : Set α) : Set β :=
+  fun (b : β) => ∃ (a : α), A a ∧ r a b
+
+def relPre (α β : Type) (r : Rel α β) (B : Set β) : Set α :=
+  fun (a : α) => ∃ (b : β), B b ∧ r a b
+
+def kernel (α β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} β (f a) (f b)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem demo_mem_relImg (α β : Type) (r : Rel α β) (A : Set α) (b : β) :
+    b ∈ (relImg α β r A) ↔ ∃ (a : α), A a ∧ r a b :=
+  Iff.intro (b ∈ (relImg α β r A)) (∃ (a : α), A a ∧ r a b)
+    (fun (h : b ∈ (relImg α β r A)) => h) (fun (h : ∃ (a : α), A a ∧ r a b) => h)
+
+theorem demo_mem_relPre (α β : Type) (r : Rel α β) (B : Set β) (a : α) :
+    a ∈ (relPre α β r B) ↔ ∃ (b : β), B b ∧ r a b :=
+  Iff.intro (a ∈ (relPre α β r B)) (∃ (b : β), B b ∧ r a b)
+    (fun (h : a ∈ (relPre α β r B)) => h) (fun (h : ∃ (b : β), B b ∧ r a b) => h)
+
+theorem demo_mem_kernel (α β : Type) (f : α → β) (a b : α) :
+    kernel α β f a b ↔ Eq.{1} β (f a) (f b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Iff.intro (kernel α β f a b) (Eq.{1} β (f a) (f b))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : kernel α β f a b) => h) (fun (h : Eq.{1} β (f a) (f b)) => h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem relImg_mono (α β : Type) (r : Rel α β) (A B : Set α) (h : A ⊆ B) :
+    (relImg α β r A) ⊆ (relImg α β r B) :=
+  fun (b : β) => fun (hb : b ∈ (relImg α β r A)) =>
+    Exists.elim α (fun (a : α) => A a ∧ r a b)
+      (∃ (a : α), B a ∧ r a b) hb
+      (fun (a : α) (ha : A a ∧ r a b) =>
+        Exists.intro α (fun (a1 : α) => B a1 ∧ r a1 b) a
+          (And.intro (B a) (r a b)
+            ((fun (hu : ∀ (x : α), A x → B x) => hu a (And.left ha)) h) (And.right ha)))
+
+theorem relPre_mono (α β : Type) (r : Rel α β) (A B : Set β) (h : A ⊆ B) :
+    (relPre α β r A) ⊆ (relPre α β r B) :=
+  fun (a : α) => fun (ha : a ∈ (relPre α β r A)) =>
+    Exists.elim β (fun (b : β) => A b ∧ r a b)
+      (∃ (b : β), B b ∧ r a b) ha
+      (fun (b : β) (hb : A b ∧ r a b) =>
+        Exists.intro β (fun (b1 : β) => B b1 ∧ r a b1) b
+          (And.intro (B b) (r a b)
+            ((fun (hu : ∀ (x : β), A x → B x) => hu b (And.left hb)) h) (And.right hb)))
+
+theorem relImg_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) (c : γ)
+    (h : c ∈ (relImg α γ (r • s) A)) : c ∈ (relImg β γ s (relImg α β r A)) :=
+  Exists.elim α (fun (a : α) => A a ∧ (r • s) a c)
+    (∃ (b : β), (relImg α β r A) b ∧ s b c) h
+    (fun (a : α) (ha : A a ∧ (r • s) a c) =>
+      Exists.elim β (fun (b : β) => r a b ∧ s b c)
+        (∃ (b : β), (relImg α β r A) b ∧ s b c) (And.right ha)
+        (fun (b : β) (hb : r a b ∧ s b c) =>
+          Exists.intro β (fun (b1 : β) => (relImg α β r A) b1 ∧ s b1 c) b
+            (And.intro ((relImg α β r A) b) (s b c)
+              (Exists.intro α (fun (a1 : α) => A a1 ∧ r a1 b) a
+                (And.intro (A a) (r a b) (And.left ha) (And.left hb)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (And.right hb))))
+
+theorem relImg_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) (c : γ)
+    (h : c ∈ (relImg β γ s (relImg α β r A))) : c ∈ (relImg α γ (r • s) A) :=
+  Exists.elim β (fun (b : β) => (relImg α β r A) b ∧ s b c)
+    (∃ (a : α), A a ∧ (r • s) a c) h
+    (fun (b : β) (hb : (relImg α β r A) b ∧ s b c) =>
+      Exists.elim α (fun (a : α) => A a ∧ r a b)
+        (∃ (a : α), A a ∧ (r • s) a c) (And.left hb)
+        (fun (a : α) (ha : A a ∧ r a b) =>
+          Exists.intro α (fun (a1 : α) => A a1 ∧ (r • s) a1 c) a
+            (And.intro (A a) ((r • s) a c) (And.left ha)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
+                (And.intro (r a b) (s b c) (And.right ha) (And.right hb))))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem relImg_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) :
+    relImg α γ (r • s) A = relImg β γ s (relImg α β r A) :=
+  Set.ext γ (relImg α γ (r • s) A) (relImg β γ s (relImg α β r A)) (fun (c : γ) =>
+    Iff.intro (c ∈ (relImg α γ (r • s) A)) (c ∈ (relImg β γ s (relImg α β r A)))
+      (fun (h : c ∈ (relImg α γ (r • s) A)) => relImg_comp_fwd α β γ r s A c h)
+      (fun (h : c ∈ (relImg β γ s (relImg α β r A))) => relImg_comp_bwd α β γ r s A c h))
+
+theorem relPre_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) (a : α)
+    (h : a ∈ (relPre α γ (r • s) C)) : a ∈ (relPre α β r (relPre β γ s C)) :=
+  Exists.elim γ (fun (c : γ) => C c ∧ (r • s) a c)
+    (∃ (b : β), (relPre β γ s C) b ∧ r a b) h
+    (fun (c : γ) (hc : C c ∧ (r • s) a c) =>
+      Exists.elim β (fun (b : β) => r a b ∧ s b c)
+        (∃ (b : β), (relPre β γ s C) b ∧ r a b) (And.right hc)
+        (fun (b : β) (hb : r a b ∧ s b c) =>
+          Exists.intro β (fun (b1 : β) => (relPre β γ s C) b1 ∧ r a b1) b
+            (And.intro ((relPre β γ s C) b) (r a b)
+              (Exists.intro γ (fun (c1 : γ) => C c1 ∧ s b c1) c
+                (And.intro (C c) (s b c) (And.left hc) (And.right hb)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (And.left hb))))
+
+theorem relPre_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) (a : α)
+    (h : a ∈ (relPre α β r (relPre β γ s C))) : a ∈ (relPre α γ (r • s) C) :=
+  Exists.elim β (fun (b : β) => (relPre β γ s C) b ∧ r a b)
+    (∃ (c : γ), C c ∧ (r • s) a c) h
+    (fun (b : β) (hb : (relPre β γ s C) b ∧ r a b) =>
+      Exists.elim γ (fun (c : γ) => C c ∧ s b c)
+        (∃ (c : γ), C c ∧ (r • s) a c) (And.left hb)
+        (fun (c : γ) (hc : C c ∧ s b c) =>
+          Exists.intro γ (fun (c1 : γ) => C c1 ∧ (r • s) a c1) c
+            (And.intro (C c) ((r • s) a c) (And.left hc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
+                (And.intro (r a b) (s b c) (And.right hb) (And.right hc))))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem relPre_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) :
+    relPre α γ (r • s) C = relPre α β r (relPre β γ s C) :=
+  Set.ext α (relPre α γ (r • s) C) (relPre α β r (relPre β γ s C)) (fun (a : α) =>
+    Iff.intro (a ∈ (relPre α γ (r • s) C)) (a ∈ (relPre α β r (relPre β γ s C)))
+      (fun (h : a ∈ (relPre α γ (r • s) C)) => relPre_comp_fwd α β γ r s C a h)
+      (fun (h : a ∈ (relPre α β r (relPre β γ s C))) => relPre_comp_bwd α β γ r s C a h))
+
+theorem relImg_idRel (α : Type) (A : Set α) :
+    relImg α α (idRel α) A = A :=
+  Set.ext α (relImg α α (idRel α) A) A (fun (b : α) =>
+    Iff.intro (b ∈ (relImg α α (idRel α) A)) (A b)
+      (fun (h : b ∈ (relImg α α (idRel α) A)) =>
+        Exists.elim α (fun (a : α) => A a ∧ (idRel α) a b) (A b) h
+          (fun (a : α) (ha : A a ∧ (idRel α) a b) =>
+            rel_subst_right α (fun (u : α) (v : α) => A v) b a b
+              (And.right ha) (And.left ha)))
+      (fun (h : A b) =>
+        Exists.intro α (fun (a : α) => A a ∧ (idRel α) a b) b
+          (And.intro (A b) ((idRel α) b b) h (Eq.refl.{1} α b))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem kernel_is_equivalence (α β : Type) (f : α → β) :
+    IsEquivalence α (kernel α β f) :=
+  isEquivalence_intro α (kernel α β f)
+    (fun (a : α) => Eq.refl.{1} β (f a))
+    (fun (a : α) (b : α) => fun (h : Eq.{1} β (f a) (f b)) => Eq.symm.{1} β (f a) (f b) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (a : α) (b : α) (c : α) => fun (hab : Eq.{1} β (f a) (f b)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      fun (hbc : Eq.{1} β (f b) (f c)) => Eq.trans.{1} β (f a) (f b) (f c) hab hbc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem injective_iff_kernel (α β : Type) (f : α → β) :
+    Function.Injective α β f ↔ ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b :=
+  Iff.intro (Function.Injective α β f)
+    (∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b)
+    (fun (h : Function.Injective α β f) => fun (a : α) => fun (b : α) =>
+      fun (hab : kernel α β f a b) =>
+        (fun (hu : ∀ (x : α) (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          hu a b hab) h)
+    (fun (h : ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b) =>
+      fun (a : α) => fun (b : α) => fun (hab : Eq.{1} β (f a) (f b)) => h a b hab)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
+    b ∈ (relImg α β r (Set.univ α)) ↔ ∃ (a : α), r a b :=
+  Iff.intro (b ∈ (relImg α β r (Set.univ α))) (∃ (a : α), r a b)
+    (fun (h : b ∈ (relImg α β r (Set.univ α))) =>
+      Exists.elim α (fun (a : α) => (Set.univ α) a ∧ r a b) (∃ (a1 : α), r a1 b) h
+        (fun (a : α) (ha : (Set.univ α) a ∧ r a b) =>
+          Exists.intro α (fun (a1 : α) => r a1 b) a (And.right ha)))
+    (fun (h : ∃ (a : α), r a b) =>
+      Exists.elim α (fun (a : α) => r a b)
+        (b ∈ (relImg α β r (Set.univ α))) h
+        (fun (a : α) (ha : r a b) =>
+          Exists.intro α (fun (a1 : α) => (Set.univ α) a1 ∧ r a1 b) a
+            (And.intro ((Set.univ α) a) (r a b)
+              ((fun (hu : ∀ (x : α), (Set.univ α) x) => hu a) (Set.mem_univ α)) ha)))
+
+theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)
+    (h : ∀ (a : α) (b : β), r a b → r1 a b) :
+    (relImg α β r A) ⊆ (relImg α β r1 A) :=
+  fun (b : β) => fun (hb : b ∈ (relImg α β r A)) =>
+    Exists.elim α (fun (a : α) => A a ∧ r a b)
+      (∃ (a : α), A a ∧ r1 a b) hb
+      (fun (a : α) (ha : A a ∧ r a b) =>
+        Exists.intro α (fun (a1 : α) => A a1 ∧ r1 a1 b) a
+          (And.intro (A a) (r1 a b) (And.left ha) (h a b (And.right ha))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem relImg_empty (α β : Type) (r : Rel α β) (b : β) :
+    ¬ (b ∈ (relImg α β r (Set.empty α))) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (h : b ∈ (relImg α β r (Set.empty α))) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    Exists.elim α (fun (a : α) => (Set.empty α) a ∧ r a b) False h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (a : α) (ha : (Set.empty α) a ∧ r a b) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (hu : ¬ ((Set.empty α) a)) => hu (And.left ha)) (Set.notMem_empty a))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来

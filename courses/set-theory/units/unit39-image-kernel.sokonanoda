@@ -1,0 +1,179 @@
+-- ==========================================================================
+-- unit39-image-kernel.sokonanoda —— 卷 I 单元㊴ **关系的像、原像与等价核**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§10**（像与原像的关系版）
+-- 与 **§7**（等价关系）；Enderton《Elements of Set Theory》**§3.3 / §3.6**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.13 章第四个单元 —— 把单元㉒ 的像/原像
+-- 从「函数」推广到「关系」，并用等价核接上单元㉗ 的商）。
+--
+-- 本单元的「该学的定理」：
+--   · **像与原像**：成员刻画 · 对集合单调 · **对关系单调** · 全集/空集两端；
+--   · **旗舰一：像穿过复合**（`img (r • s) A = img s (img r A)`，原像对偶）；
+--   · **旗舰二：函数的等价核是等价关系**（`kernel f a b` 读作 `f a = f b`）——
+--     这正是单元㉗「商掉核」那一步的来源 ✓
+--   · **旗舰三：单射 ⟺ 核退化成恒等关系**（`Injective f ↔ kernel f ⊆ idRel`）✓
+--
+-- ⚠ **本单元的「读法」**：像/原像是**给关系的**（`Rel α β`），与单元㉒ 给**函数**的
+--   `Set.image` / `Set.preimage` 不是一回事（后者写 `f '' A`，要求 `f` 是函数）✓
+--   两者在「单值关系」上重合 —— 这就是「函数是特殊的关系」的代数形态 ✓
+--   本单元旗舰一写成**集合等式**（`Set.ext` 在库里 ✓；关系等式另有 `Rel.ext` ✓）
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Rel` · `lib.Set` · `lib.Order` · `lib.Fun`。
+--
+-- 依赖：单元㉒（像与原像）· 单元㊱㊲㊳（关系的代数）· 单元㉗（商）—— 本单元把三线合一。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+import lib.Fun
+
+-- ─────────────────────────────────────────────────────────────
+-- 39.0 画布给的四个新词汇
+--
+-- `idRel`：恒等关系（单元㊱㊳ 已用过）✓
+-- `relImg r A`：`A` 在关系 `r` 下的**像**（`∃ a ∈ A, r a b`）✓
+-- `relPre r B`：`B` 在关系 `r` 下的**原像**（`∃ b ∈ B, r a b`）✓
+-- `kernel f`：函数 `f` 的**等价核**（`fun a b => f a = f b`）—— 单元㉗ 商掉的那个关系 ✓
+-- ─────────────────────────────────────────────────────────────
+def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+def relImg (α β : Type) (r : Rel α β) (A : Set α) : Set β :=
+  fun (b : β) => ∃ (a : α), A a ∧ r a b
+
+def relPre (α β : Type) (r : Rel α β) (B : Set β) : Set α :=
+  fun (a : α) => ∃ (b : β), B b ∧ r a b
+
+def kernel (α β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} β (f a) (f b)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+-- ─────────────────────────────────────────────────────────────
+-- 39.1 三个词汇的成员刻画（演示）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：像的成员刻画（「存在一个原像落在 `A` 里」）。
+theorem demo_mem_relImg (α β : Type) (r : Rel α β) (A : Set α) (b : β) :
+    b ∈ (relImg α β r A) ↔ ∃ (a : α), A a ∧ r a b :=
+  Iff.intro (b ∈ (relImg α β r A)) (∃ (a : α), A a ∧ r a b)
+    (fun (h : b ∈ (relImg α β r A)) => h) (fun (h : ∃ (a : α), A a ∧ r a b) => h)
+
+-- 演示：原像的成员刻画。
+theorem demo_mem_relPre (α β : Type) (r : Rel α β) (B : Set β) (a : α) :
+    a ∈ (relPre α β r B) ↔ ∃ (b : β), B b ∧ r a b :=
+  Iff.intro (a ∈ (relPre α β r B)) (∃ (b : β), B b ∧ r a b)
+    (fun (h : a ∈ (relPre α β r B)) => h) (fun (h : ∃ (b : β), B b ∧ r a b) => h)
+
+-- 演示：核的成员刻画（「两个点被 `f` 送到同一个地方」）。
+theorem demo_mem_kernel (α β : Type) (f : α → β) (a b : α) :
+    kernel α β f a b ↔ Eq.{1} β (f a) (f b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Iff.intro (kernel α β f a b) (Eq.{1} β (f a) (f b))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : kernel α β f a b) => h) (fun (h : Eq.{1} β (f a) (f b)) => h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+-- ─────────────────────────────────────────────────────────────
+-- 39.2 单调性（对集合 · 对关系）与两端
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（L 类）：**像对集合单调**。
+-- soko:hint 思路：拆开 `∃`，把「在 `A` 里」换成「在 `B` 里」（假设就是那条蕴含），其余照抄。
+-- soko:hint 目标形态：`A ⊆ B → relImg r A ⊆ relImg r B`。
+-- soko:hint 关键件：`Exists.elim`/`Exists.intro`（**前导实参写全**）· `And.intro`/`And.left`/`And.right` ·
+--   包含假设**先 λ 绑定再应用**（G-73 形状 ①）✓
+theorem relImg_mono (α β : Type) (r : Rel α β) (A B : Set α) (h : A ⊆ B) :
+    (relImg α β r A) ⊆ (relImg α β r B) := by
+  sorry
+
+-- 练习 2（L 类）：**原像对集合单调**（与练习 1 逐字对偶）。
+-- soko:hint 思路：同练习 1，只是 `∃` 里换成了 `β` 一侧的点。
+-- soko:hint 目标形态：`A ⊆ B → relPre r A ⊆ relPre r B`。
+-- soko:hint 关键件：`Exists.elim`/`Exists.intro` · `And.intro` · 包含假设先 λ 绑定 ✓
+theorem relPre_mono (α β : Type) (r : Rel α β) (A B : Set β) (h : A ⊆ B) :
+    (relPre α β r A) ⊆ (relPre α β r B) := by
+  sorry
+
+-- 练习 3（T 类）：**像对关系单调**。
+-- soko:hint 思路：拆开 `∃`，把 `r a b` 换成 `r1 a b`（假设就是那条蕴含），其余照抄。
+-- soko:hint 目标形态：`(∀ a b, r a b → r1 a b) → relImg r A ⊆ relImg r1 A`。
+-- soko:hint 关键件：`Exists.elim`/`Exists.intro` · `And.intro` · 假设当函数用（参数是 `a` 再 `b`）✓
+theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)
+    (h : ∀ (a : α) (b : β), r a b → r1 a b) :
+    (relImg α β r A) ⊆ (relImg α β r1 A) := by
+  sorry
+
+-- 练习 4（T 类）：**全集上的像就是关系的值域**。
+-- soko:hint 思路：→：拆 `∃`，把「在全集里」那一支丢掉；←：拆 `∃`，那一支用**全集的成员引理**补上。
+-- soko:hint 目标形态：`b ∈ relImg r univ ↔ ∃ a, r a b`。
+-- soko:hint 关键件：`Exists.elim`/`Exists.intro`（前导实参写全）· `Set.mem_univ`（**参数是论域**）✓
+theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
+    b ∈ (relImg α β r (Set.univ α)) ↔ ∃ (a : α), r a b := by
+  sorry
+
+-- 练习 5（T 类）：**空集上的像是空的**（画布给的是「没有点落在里面」的写法）。
+-- soko:hint 思路：拆 `∃`，得到一个点「落在空集里」，与空集没有点冲突。
+-- soko:hint 目标形态：`¬ (b ∈ relImg r ∅)`。
+-- soko:hint 关键件：`Exists.elim`（**目标直接写 `False`**，前导实参写全）·
+--   `Set.notMem_empty`（**大写 M**，参数是那个点）✓
+theorem relImg_empty (α β : Type) (r : Rel α β) (b : β) :
+    ¬ (b ∈ (relImg α β r (Set.empty α))) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 39.3 旗舰一：**像穿过复合**（原像对偶）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（L 类，**旗舰**）：**像与复合交换**（`img (r • s) A = img s (img r A)`）。
+-- soko:hint 思路：逐点看，两边都是「存在一条两步的路」，只是**先拆哪一步的顺序不同** ——
+--   →：先拆 `∃ a`，再拆 `∃ b`，然后按「先造 `b`、再造 `a`」的顺序造回去；←：反过来。
+-- soko:hint 目标形态：`relImg (r • s) A = relImg s (relImg r A)`（**集合等式** ⇒ `Set.ext`）。
+-- soko:hint 关键件：`Set.ext`（**写全论域与两个集合**）· 两个方向各拆一次嵌套 `∃` ·
+--   `Exists.elim`/`Exists.intro`（前导实参写全）· `And.intro`/`And.left`/`And.right` ·
+--   ⚠ **嵌套超过两层就拆辅助定理**（单元㊱ 的教训；解答里 `relImg_comp_fwd`/`_bwd` 就是为此）✓
+theorem relImg_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) :
+    relImg α γ (r • s) A = relImg β γ s (relImg α β r A) := by
+  sorry
+
+-- 练习 7（L 类，**旗舰的对偶**）：**原像与复合交换**（顺序与像相反）。
+-- soko:hint 思路：与练习 6 逐字对偶（把 `A` 换成 `C`、把 `∃` 里两侧的类型对调）。
+-- soko:hint 目标形态：`relPre (r • s) C = relPre r (relPre s C)`。
+-- soko:hint 关键件：`Set.ext` · 嵌套 `Exists.elim`/`Exists.intro` · `And.intro` ✓
+theorem relPre_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) :
+    relPre α γ (r • s) C = relPre α β r (relPre β γ s C) := by
+  sorry
+
+-- 练习 8（L 类）：**恒等关系的像是原来的集合**。
+-- soko:hint 思路：→：拆 `∃`，沿「`a` 与 `b` 相等」把 `A a` **搬成** `A b`（改的是**第二个**坐标）；
+--   ←：见证取 `b` 自己，等式那一条用自反。
+-- soko:hint 目标形态：`relImg (idRel α) A = A`。
+-- soko:hint 关键件：`Set.ext` · `Exists.elim`/`Exists.intro` · `rel_subst_right`
+--   （关系取 `fun u v => A v`、等式取「那个相等」、输入取 `A a` —— **第一个点是自由位**）·
+--   `Eq.refl`（写全宇宙层级与论域）✓
+theorem relImg_idRel (α : Type) (A : Set α) :
+    relImg α α (idRel α) A = A := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 39.4 旗舰二/三：**等价核**（接单元㉗ 的商）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（L 类，**旗舰**）：**函数的等价核是等价关系**（单元㉗ 商掉的就是它）。
+-- soko:hint 思路：三条各自来自等式的性质 —— 自反用自反、对称用对称、传递用传递
+--   （都在 `f a`、`f b`、`f c` 上做，与 `a`、`b`、`c` 本身无关）。
+-- soko:hint 目标形态：`IsEquivalence α (kernel f)`。
+-- soko:hint 关键件：`isEquivalence_intro`（**参数：论域 · 关系 · 自反 · 对称 · 传递**）·
+--   `Eq.refl`/`Eq.symm`/`Eq.trans`（**都要写全宇宙层级与论域**）✓
+theorem kernel_is_equivalence (α β : Type) (f : α → β) :
+    IsEquivalence α (kernel α β f) := by
+  sorry
+
+-- 练习 10（D 类，**旗舰**）：**单射 ⟺ 核退化成恒等关系**（`kernel f ⊆ idRel`）。
+-- soko:hint 思路：→：核的成员就是 `f a = f b`，交给单射；←：把假设用在 `a`、`b` 与
+--   `f a = f b` 上，得到 `a = b`。
+-- soko:hint 目标形态：`Injective f ↔ ∀ a b, kernel f a b → (idRel α) a b`。
+-- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· 单射假设**先 λ 绑定再应用** ·
+--   等式的证明项**点名声明星**（G-73 形状 ③）✓
+--   ⚠ **再往前一步**（「`f` 是单射 ⇒ 商 `α/kernel f` 与像同构」）要**函数外延/商的性质**，
+--   本语言做不了（**G-77 / G-75**）⇒ 本单元到此为止 ✓
+theorem injective_iff_kernel (α β : Type) (f : α → β) :
+    Function.Injective α β f ↔ ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b := by
+  sorry
