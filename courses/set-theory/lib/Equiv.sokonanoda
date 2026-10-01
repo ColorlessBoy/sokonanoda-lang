@@ -89,6 +89,7 @@
 -- 类型**、不是集合等势；`Mathlib/SetTheory/Cardinal/Basic.lean` 无 `≈`）⇒ **本课自定**。
 -- 课程库今天声明的记法 = lib/Set 末尾 11 条集合符号 + lib/Rel 的 `•`/`⁻¹` + lib/Fun 的 `∘`。
 -- 读法：`A ≈ B` 是**跨论域**版本（A : Set α，B : Set β）；α = β 时就是同一论域里两个集合等势。
+import lib.Rel
 import lib.Logic
 import lib.Exists
 import lib.Set
@@ -226,3 +227,21 @@ theorem Set.Equiv.elim (α β : Type) (A : Set α) (B : Set β) (C : Prop)
         (fun (g : β → α) (hg : Set.MapsTo β α g B A ∧
             ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) =>
           k f g (And.left hf) (And.left hg) (And.left (And.right hg)) (And.right (And.right hg))))
+
+-- **左逆 ⇒ 单射**（L2：把"把等式搬进函数"的那一步收进库里 ✓）
+-- 读法：`hgf` 说 `g ∘ f = id`（逐点），`hab` 说 `f a = f b` ⇒ 沿 `hab` 把
+--   `g (f a) = g (f a)` **搬**成 `g (f a) = g (f b)`，两头再用 `hgf` 换掉 ✓
+theorem Set.eq_of_leftInvOn (α β : Type) (f : α → β) (g : β → α)
+    (hgf : ∀ (u : α), Eq.{1} α (g (f u)) u) (a b : α)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+    (hab : Eq.{1} β (f a) (f b)) : Eq.{1} α a b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+  Eq.trans.{1} α a (g (f a)) b
+    (Eq.symm.{1} α (g (f a)) a (hgf a))
+    (Eq.trans.{1} α (g (f a)) (g (f b)) b
+      (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} α (g u) (g v))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+        (f a) (f a) (f b) hab (Eq.refl.{1} α (g (f a))))
+      (hgf b))
+
+-- **单射 ⇒ `≼`**（L2：等势/单射这一侧最常用的入口 ✓）
+theorem Set.Le.of_injOn (α β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hinj : Set.InjOn α β f A) (hmap : Set.MapsTo α β f A B) : A ≼ B :=
+  Set.Le.intro α β A B f hinj hmap
