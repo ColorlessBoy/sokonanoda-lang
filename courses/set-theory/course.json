@@ -256,10 +256,12 @@
             "cardinal-comparison",
             "injection",
             "equinumerous",
-            "schroder-bernstein"
+            "cardinal-arithmetic",
+            "product",
+            "commutativity"
           ],
           "quota": {
-            "exercises": 10
+            "exercises": 20
           },
           "units": [
             {
@@ -267,6 +269,12 @@
               "title": "单元⑲ 基数的比较",
               "title_en": "Unit 19 — Comparing Cardinal Numbers",
               "unit": 19
+            },
+            {
+              "file": "units/unit20-cardinal-arithmetic.sokonanoda",
+              "title": "单元⑳ 基数算术：积",
+              "title_en": "Unit 20 — Cardinal Arithmetic: Products",
+              "unit": 20
             }
           ]
         }

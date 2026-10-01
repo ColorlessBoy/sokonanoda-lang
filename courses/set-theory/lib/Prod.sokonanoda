@@ -40,6 +40,7 @@
 -- **Type 值**的消去上会咬人。
 import lib.Logic
 import lib.Set
+import lib.Rel
 
 -- ── 类型与构造子（Mathlib: Mathlib/Data/Prod.lean，逐字同款语义）─────────────
 inductive Prod (A B : Type) : Type
@@ -82,3 +83,38 @@ theorem Prod.fst_snd_mk (A B : Type) (a : A) (b : B) :
     -- soko:notation-ok: `And.intro h1 h2` 对 Eq 结果的**应用**（非局部变量）仍解不出前导 Prop
     And.intro (Prod.fst A B (prod_mk A B a b) = a) (Prod.snd A B (prod_mk A B a b) = b)
       (Prod.fst_mk A B a b) (Prod.snd_mk A B a b)
+
+-- ── 积集合的成员刻画（L2：`Set.prod` 的定义体就是"两个坐标各自满足"，两向都是恒等）──
+theorem Set.mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
+    p ∈ (s ×ˢ t) ↔ ((Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) :=
+  Iff.intro (fun (h : p ∈ (s ×ˢ t)) => h) (fun (h : (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) => h)
+
+-- 序对形态：把两个投影算掉（这条要**用** `Prod.fst_mk`/`Prod.snd_mk`，不是恒等）
+theorem Set.mem_prod_mk (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B) :
+    (prod_mk A B a b) ∈ (s ×ˢ t) ↔ (a ∈ s ∧ b ∈ t) :=
+  Iff.intro
+    (fun (h : (prod_mk A B a b) ∈ (s ×ˢ t)) =>
+      (fun (h' : (Prod.fst A B (prod_mk A B a b)) ∈ s ∧
+          (Prod.snd A B (prod_mk A B a b)) ∈ t) =>
+        And.intro (a ∈ s) (b ∈ t)
+          (rel_subst_right A (fun (u : A) (v : A) => v ∈ s) a (Prod.fst A B (prod_mk A B a b)) a
+            (Prod.fst_mk A B a b) (And.left h'))
+          (rel_subst_right B (fun (u : B) (v : B) => v ∈ t) b (Prod.snd A B (prod_mk A B a b)) b
+            (Prod.snd_mk A B a b) (And.right h')))
+        (Iff.mp (Set.mem_prod_iff A B s t (prod_mk A B a b)) h))
+    (fun (h : a ∈ s ∧ b ∈ t) =>
+      Iff.mpr (Set.mem_prod_iff A B s t (prod_mk A B a b))
+        (And.intro ((Prod.fst A B (prod_mk A B a b)) ∈ s) ((Prod.snd A B (prod_mk A B a b)) ∈ t)
+          (rel_subst_left A (fun (u : A) (v : A) => v ∈ s) (Prod.fst A B (prod_mk A B a b)) a a
+            (Prod.fst_mk A B a b) (And.left h))
+          (rel_subst_left B (fun (u : B) (v : B) => v ∈ t) (Prod.snd A B (prod_mk A B a b)) b b
+            (Prod.snd_mk A B a b) (And.right h))))
+
+-- ── η 律（L2：Mathlib 的 `Prod.mk.eta`）──────────────────────────────────────
+-- 读法：任何序对都等于"把自己的两个投影再配起来" ✓ —— 序对**只有**两个坐标。
+-- 证明走 `Prod.rec`（本语言**没有 η 转换**，见 G-61 的说明 ⇒ 这条必须显式证出来）
+theorem Prod.eta (A B : Type) (p : Prod A B) :
+    prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p :=
+  Prod.rec.{0} A B
+    (fun (q : Prod A B) => prod_mk A B (Prod.fst A B q) (Prod.snd A B q) = q)
+    (fun (a : A) (b : B) => Eq.refl.{1} (Prod A B) (prod_mk A B a b)) p

@@ -1,0 +1,118 @@
+import lib.Equiv
+import lib.Set
+import lib.Prod
+import lib.Rel
+import lib.Fun
+
+theorem demo_mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
+    p ∈ (s ×ˢ t) ↔ ((Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) :=
+  Set.mem_prod_iff A B s t p
+
+theorem demo_prod_fst_mk (A B : Type) (a : A) (b : B) :
+    Prod.fst A B (prod_mk A B a b) = a :=
+  Prod.fst_mk A B a b
+
+theorem demo_prod_snd_mk (A B : Type) (a : A) (b : B) :
+    Prod.snd A B (prod_mk A B a b) = b :=
+  Prod.snd_mk A B a b
+
+theorem prod_mem_apply (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B) :
+    (prod_mk A B a b) ∈ (s ×ˢ t) ↔ (a ∈ s ∧ b ∈ t) :=
+  Set.mem_prod_mk A B s t a b
+
+theorem prod_eta_apply (A B : Type) (p : Prod A B) :
+    prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p :=
+  Prod.eta A B p
+
+theorem prod_subset_prod (A B : Type) (s s' : Set A) (t t' : Set B)
+    (hs : s ⊆ s') (ht : t ⊆ t') : (s ×ˢ t) ⊆ (s' ×ˢ t') :=
+  fun (p : Prod A B) (hp : p ∈ (s ×ˢ t)) =>
+    (fun (h : (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) =>
+      Iff.mpr (Set.mem_prod_iff A B s' t' p)
+        (And.intro ((Prod.fst A B p) ∈ s') ((Prod.snd A B p) ∈ t')
+          ((fun (hu : ∀ (z : A), z ∈ s → z ∈ s') => hu (Prod.fst A B p) (And.left h)) hs)
+          ((fun (hu : ∀ (z : B), z ∈ t → z ∈ t') => hu (Prod.snd A B p) (And.right h)) ht)))
+      (Iff.mp (Set.mem_prod_iff A B s t p) hp)
+
+theorem prod_swap (A B : Type) (s : Set A) (t : Set B) :
+    (s ×ˢ t) ≈ (t ×ˢ s) :=
+  Set.Equiv.mk (Prod A B) (Prod B A) (s ×ˢ t) (t ×ˢ s)
+    (fun (p : Prod A B) => prod_mk B A (Prod.snd A B p) (Prod.fst A B p))
+    (fun (q : Prod B A) => prod_mk A B (Prod.snd B A q) (Prod.fst B A q))
+    (fun (p : Prod A B) (hp : p ∈ (s ×ˢ t)) =>
+      (fun (h : (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) =>
+        Iff.mpr (Set.mem_prod_mk B A t s (Prod.snd A B p) (Prod.fst A B p))
+          (And.intro ((Prod.snd A B p) ∈ t) ((Prod.fst A B p) ∈ s)
+            (And.right h) (And.left h)))
+        (Iff.mp (Set.mem_prod_iff A B s t p) hp))
+    (fun (q : Prod B A) (hq : q ∈ (t ×ˢ s)) =>
+      (fun (h : (Prod.fst B A q) ∈ t ∧ (Prod.snd B A q) ∈ s) =>
+        Iff.mpr (Set.mem_prod_mk A B s t (Prod.snd B A q) (Prod.fst B A q))
+          (And.intro ((Prod.snd B A q) ∈ s) ((Prod.fst B A q) ∈ t)
+            (And.right h) (And.left h)))
+        (Iff.mp (Set.mem_prod_iff B A t s q) hq))
+    (fun (p : Prod A B) (hp : p ∈ (s ×ˢ t)) => Prod.eta A B p)
+    (fun (q : Prod B A) (hq : q ∈ (t ×ˢ s)) => Prod.eta B A q)
+
+theorem prod_mem_fst (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
+    (hp : p ∈ (s ×ˢ t)) : (Prod.fst A B p) ∈ s :=
+  (fun (h : (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) => And.left h)
+    (Iff.mp (Set.mem_prod_iff A B s t p) hp)
+
+theorem prod_mem_snd (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
+    (hp : p ∈ (s ×ˢ t)) : (Prod.snd A B p) ∈ t :=
+  (fun (h : (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) => And.right h)
+    (Iff.mp (Set.mem_prod_iff A B s t p) hp)
+
+theorem prod_swap_mem (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
+    (hp : p ∈ (s ×ˢ t)) :
+    (prod_mk B A (Prod.snd A B p) (Prod.fst A B p)) ∈ (t ×ˢ s) :=
+  Iff.mpr (Set.mem_prod_mk B A t s (Prod.snd A B p) (Prod.fst A B p))
+    (And.intro ((Prod.snd A B p) ∈ t) ((Prod.fst A B p) ∈ s)
+      (prod_mem_snd A B s t p hp) (prod_mem_fst A B s t p hp))
+
+theorem prod_mem_pair (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B)
+    (h : (prod_mk A B a b) ∈ (s ×ˢ t)) : a ∈ s ∧ b ∈ t :=
+  Iff.mp (Set.mem_prod_mk A B s t a b) h
+
+theorem prod_subset_prod_apply (A B : Type) (s s' : Set A) (t t' : Set B)
+    (h : (s ×ˢ t) ⊆ (s' ×ˢ t')) (p : Prod A B) (hp : p ∈ (s ×ˢ t)) : p ∈ (s' ×ˢ t') :=
+  (fun (hs : ∀ (z : Prod A B), z ∈ (s ×ˢ t) → z ∈ (s' ×ˢ t')) => hs p hp) h
+
+theorem prod_swap_subset_swap (A B : Type) (s s' : Set A) (t t' : Set B)
+    (h : (s ×ˢ t) ⊆ (s' ×ˢ t')) : (t ×ˢ s) ⊆ (t' ×ˢ s') :=
+  fun (q : Prod B A) (hq : q ∈ (t ×ˢ s)) =>
+    (fun (hq' : (Prod.fst B A q) ∈ t ∧ (Prod.snd B A q) ∈ s) =>
+      (fun (hh : (prod_mk A B (Prod.snd B A q) (Prod.fst B A q)) ∈ (s' ×ˢ t')) =>
+        (fun (hh' : (Prod.fst A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q))) ∈ s' ∧
+            (Prod.snd A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q))) ∈ t') =>
+          Iff.mpr (Set.mem_prod_iff B A t' s' q)
+            (And.intro ((Prod.fst B A q) ∈ t') ((Prod.snd B A q) ∈ s')
+              (rel_subst_left B (fun (u : B) (v : B) => v ∈ t')
+                (Prod.snd A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q)))
+                (Prod.fst B A q) (Prod.fst B A q)
+                (Eq.trans.{1} B (Prod.snd A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q)))
+                  (Prod.fst B A q) (Prod.fst B A q)
+                  (Eq.symm.{1} B (Prod.fst B A q)
+                    (Prod.snd A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q)))
+                    (Prod.snd_mk A B (Prod.snd B A q) (Prod.fst B A q)))
+                  (Eq.refl.{1} B (Prod.fst B A q)))
+                (And.right hh'))
+              (rel_subst_left A (fun (u : A) (v : A) => v ∈ s')
+                (Prod.fst A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q)))
+                (Prod.snd B A q) (Prod.snd B A q)
+                (Eq.trans.{1} A (Prod.fst A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q)))
+                  (Prod.snd B A q) (Prod.snd B A q)
+                  (Eq.symm.{1} A (Prod.snd B A q)
+                    (Prod.fst A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q)))
+                    (Prod.fst_mk A B (Prod.snd B A q) (Prod.fst B A q)))
+                  (Eq.refl.{1} A (Prod.snd B A q)))
+                (And.left hh'))))
+          (Iff.mp (Set.mem_prod_iff A B s' t'
+            (prod_mk A B (Prod.snd B A q) (Prod.fst B A q))) hh))
+        ((fun (hs : ∀ (z : Prod A B), z ∈ (s ×ˢ t) → z ∈ (s' ×ˢ t')) =>
+          hs (prod_mk A B (Prod.snd B A q) (Prod.fst B A q))
+            (Iff.mpr (Set.mem_prod_mk A B s t (Prod.snd B A q) (Prod.fst B A q))
+              (And.intro ((Prod.snd B A q) ∈ s) ((Prod.fst B A q) ∈ t)
+                (And.right hq') (And.left hq')))) h))
+      (Iff.mp (Set.mem_prod_iff B A t s q) hq)

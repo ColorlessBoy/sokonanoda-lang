@@ -123,6 +123,8 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元⑳ 落地后）：60 个目标 · 575 checked · 180 open · 0 判负**
+
 **门禁实测（2026-10-01，单元⑲ 落地后）：58 个目标 · 556 checked · 170 open · 0 判负**
 
 **门禁实测（2026-10-01，单元⑱ 落地后）：56 个目标 · 533 checked · 160 open · 0 判负**
@@ -164,7 +166,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | I.4 | 论域、悖论与综合 | I.1 · I.3 | universe · russell · synthesis | 14 | 14 | 11–12 |
 | **I.5** | **序关系与良序** | I.2 | order · partial-order · linear-order · strict-order · well-order · well-founded | 21 | 21 | **13–14** |
 | **I.6** | **序数** | I.5 | ordinal · transitive-set · successor · well-founded · extensionality · zero | 20 | 20 | **15–16** |
-| **I.8** | **基数与基数算术** | I.3 | cardinal · cardinal-comparison · injection · equinumerous · schroder-bernstein | 10 | 10 | **19** |
+| **I.8** | **基数与基数算术** | I.3 | cardinal · injection · equinumerous · cardinal-arithmetic · product · commutativity | 20 | 20 | **19–20** |
 | **I.7** | **选择公理与 ZF 公理体系** | I.2 | axiom-of-choice · choice-function · surjective · right-inverse · zf-axioms · regularity · extensionality | 20 | 20 | **17–18** |
 
 | 单元 | 章 | 标题 | 练习 | 解答（checked） |
@@ -188,6 +190,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **17** | **I.7** | **选择公理** | **10** | **10** |
 | **18** | **I.7** | **ZF 公理体系与正则性** | **10** | **10** |
 | **19** | **I.8** | **基数的比较** | **10** | **10** |
+| **20** | **I.8** | **基数算术：积** | **10** | **10** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -226,6 +229,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 单元 | 交付 | 撞到/绕开的 |
 |---|---|---|
 | ⑬ 偏序、全序与严格序 | 新库 `lib/Order`（词汇 6 性质 + 4 序类 + 两个翻译函数 + 展开引理 + **取用子** + **智能构造子**）；画布 3 演示 + 11 练习；解答 0 open | **G-72**（`lib/Order` 最初写成字面箭头返回 ⇒ 单文件绿、`import` 红）· **G-73 形状 ①②③**（证明全靠库层绕法） |
+| ⑳ 基数算术：积 | `lib/Prod` +`Set.mem_prod_iff` / `Set.mem_prod_mk` / **`Prod.eta`**（η 律 —— 本语言**没有 η 转换**，必须显式证并显式用）；画布 3 演示 + 10 练习；解答 0 open · **I.8 章收口** | **交换律**（`(s ×ˢ t) ≈ (t ×ˢ s)`，跨类型的 `≈`）· **`⊆` 逐坐标函子性** · **交换律与 `⊆` 可交换** · **基数乘法的良定义性如实不排**（要从 `∃` 取数据 ⇒ **G-58**） |
 | ⑲ 基数的比较 | `lib/Equiv` +`Set.InjOn` / `Set.Le`（`≼`，含记法）/ `Set.Le.elim` / `Set.Equiv.elim`；画布 3 演示 + 10 练习；解答 0 open · 新章 **I.8** | **`A ≼ B` = 存在单射**（**存在命题**，不是数据 —— 与 `≈` 的关键差别）· **`≼` 是预序**（自反/传递）· 包含给出 `≼` · 空集最小 · **Schröder–Bernstein 如实不排**（结论是数据，要造第二把映射 ⇒ **G-58**） |
 | ⑱ ZF 公理体系 | `lib/Rel` 收编 `rel_subst_left/right`（**从 `lib/Order` 迁出** —— 它们是"关系 + 等式"的通用搬运，与"序"无关）；画布 4 演示 + 10 练习；解答 0 open · **I.7 章收口** | **正则性怎么用**（取极小元 · 扔掉它的成员）· **空集唯一**（外延性）· **外延性的反向**（相等 ⇒ 元素相同，两条合起来才是"元素相同 ⟺ 相等"）· **必破两道**：空族的并（化归 + 合成）· **G-73 实例 ⑦⑧**：无序对/并的**唯一性与对称性**如实不排 |
 | ⑰ 选择公理 | 画布 3 演示 + 10 练习；解答 0 open · 新章 **I.7** | **旗舰：满射可裂**（`Surjective f → ∃ g, RightInverse g f`，把 AC 用在关系 `f x = y` 上）· **AC 的输出是 `∃`，可以继续往下顺**（不取出数据 ⇒ 绕开 G-58）· **必破**：空族假设真空 · 单点族**不用 AC** 就能写出选择函数 |

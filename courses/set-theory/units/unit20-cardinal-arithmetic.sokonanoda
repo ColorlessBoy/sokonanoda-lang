@@ -1,0 +1,155 @@
+-- ==========================================================================
+-- unit20-cardinal-arithmetic.sokonanoda —— 卷 I 单元⑳ **基数算术：积**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§6.1–6.3 的基数算术**
+-- （乘法那一半）；Halmos《Naive Set Theory》**§24 Cardinal Arithmetic**。大纲：
+-- `set-theory-syllabus.md` §4.1（I.8 章第二个单元，**本章收口**）。
+--
+-- 本单元的"该学的定理"：**积集合怎么算** —— `p ∈ s ×ˢ t` 读出两个坐标 ·
+-- **交换律** `(s ×ˢ t) ≈ (t ×ˢ s)` · **包含关系的函子性**（`⊆` 逐坐标传）·
+-- **交换律与包含关系可交换**。这些都是"基数乘法"在**集合层**的样子：
+-- 真要说 `#(A × B) = #A · #B`，得先有"积对等势是良定义的"，而那要**从 `∃` 取数据** ⇒ **G-58**
+-- ⇒ **如实不排**（本单元只做"不需要取出映射"的那一半）✓
+--
+-- **写法约定（本单元特有）**：本单元到处是**序对**，所以三件套要背熟：
+--   · `prod_mk A B a b` 造序对（**注意构造子叫 `prod_mk` 不是 `Prod.mk`** —— G-02）；
+--   · `Prod.fst` / `Prod.snd` 取坐标；
+--   · `Prod.eta`（任何序对等于"把两个投影再配起来"）—— 本语言**没有 η 转换**，
+--     所以"两个序对相等"这一步**必须显式用它** ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 五样**：`lib.Equiv` · `lib.Set` · `lib.Prod` · `lib.Rel` · `lib.Fun`。
+--
+-- 依赖：单元⑤（序对与积）与单元⑨（等势）—— 本单元把两者接起来。
+-- ==========================================================================
+import lib.Equiv
+import lib.Set
+import lib.Prod
+import lib.Rel
+import lib.Fun
+
+-- ─────────────────────────────────────────────────────────────
+-- 20.1 积集合的成员刻画（三条库引理）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：**一般的成员刻画** —— `p` 在积里 ⟺ 它的两个投影各自落在对应的集合里。
+theorem demo_mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
+    p ∈ (s ×ˢ t) ↔ ((Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) :=
+  Set.mem_prod_iff A B s t p
+
+-- 演示：第一投影把构造子算掉。
+theorem demo_prod_fst_mk (A B : Type) (a : A) (b : B) :
+    Prod.fst A B (prod_mk A B a b) = a :=
+  Prod.fst_mk A B a b
+
+-- 演示：第二投影把构造子算掉。
+theorem demo_prod_snd_mk (A B : Type) (a : A) (b : B) :
+    Prod.snd A B (prod_mk A B a b) = b :=
+  Prod.snd_mk A B a b
+
+-- 练习 1（T 类）：**序对形态的成员刻画** —— 把两个投影算掉之后的版本。
+-- soko:hint 思路：库里有现成的；注意它的两侧论域与集合要**按顺序**给（目标集合在第二个因子那边）。
+-- soko:hint 目标形态：`(prod_mk A B a b) ∈ (s ×ˢ t) ↔ (a ∈ s ∧ b ∈ t)`。
+-- soko:hint 关键件：`Set.mem_prod_mk`（参数表：两个论域 · 两个集合 · 两个坐标）。
+theorem prod_mem_apply (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B) :
+    (prod_mk A B a b) ∈ (s ×ˢ t) ↔ (a ∈ s ∧ b ∈ t) := by
+  sorry
+
+-- 练习 2（T 类）：**η 律怎么用** —— 任何序对都等于"把两个投影再配起来"。
+-- soko:hint 思路：库里的 η 律本身就是这句话，交出去即可。
+-- soko:hint 目标形态：`prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p`。
+-- soko:hint 关键件：`Prod.eta`。
+theorem prod_eta_apply (A B : Type) (p : Prod A B) :
+    prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p := by
+  sorry
+
+-- 练习 3（T 类）：**投影之一** —— 积里的序对，第一坐标落在第一个集合里。
+-- soko:hint 思路：先把成员证据"读出来"（那条 `↔` 的正向），再取合取的左支。
+-- soko:hint 目标形态：`p ∈ (s ×ˢ t) → (Prod.fst A B p) ∈ s`。
+-- soko:hint 关键件：`Set.mem_prod_iff` + `Iff.mp` + `And.left`。
+theorem prod_mem_fst (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
+    (hp : p ∈ (s ×ˢ t)) : (Prod.fst A B p) ∈ s := by
+  sorry
+
+-- 练习 4（T 类）：**另一个投影**（同上，取右支）。
+-- soko:hint 思路：与练习 3 同形，换一个合取支。
+-- soko:hint 目标形态：`p ∈ (s ×ˢ t) → (Prod.snd A B p) ∈ t`。
+-- soko:hint 关键件：`Set.mem_prod_iff` + `Iff.mp` + `And.right`。
+theorem prod_mem_snd (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
+    (hp : p ∈ (s ×ˢ t)) : (Prod.snd A B p) ∈ t := by
+  sorry
+
+-- 练习 5（T 类）：**序对形态**的投影（把练习 3/4 用 `↔` 的**反向**装回去）。
+-- soko:hint 思路：先把成员证据读成合取，交出去。
+-- soko:hint 目标形态：`(prod_mk A B a b) ∈ (s ×ˢ t) → (a ∈ s ∧ b ∈ t)`。
+-- soko:hint 关键件：练习 1 的那条 `↔` + `Iff.mp`。
+theorem prod_mem_pair (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B)
+    (h : (prod_mk A B a b) ∈ (s ×ˢ t)) : a ∈ s ∧ b ∈ t := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 20.2 包含关系的函子性（"积对 `⊆` 单调"）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（L 类）：**`⊆` 逐坐标传进积**。
+-- soko:hint 思路：要证 `p ∈ s' ×ˢ t'`。把 `p` 的两个投影分别送过去：
+--   第一坐标用 `s ⊆ s'`、第二坐标用 `t ⊆ t'`。
+-- soko:hint 目标形态：`s ⊆ s' → t ⊆ t' → (s ×ˢ t) ⊆ (s' ×ˢ t')`。
+-- soko:hint 关键件：`Set.mem_prod_iff`（两个方向各一次）· 练习 3/4 ·
+--   两条 `⊆` 假设都是**定义头**，先 `fun (hu : ∀ z, z ∈ s → z ∈ s') => …` 把类型写出来再应用（G-73 形状 ①）。
+theorem prod_subset_prod (A B : Type) (s s' : Set A) (t t' : Set B)
+    (hs : s ⊆ s') (ht : t ⊆ t') : (s ×ˢ t) ⊆ (s' ×ˢ t') := by
+  sorry
+
+-- 练习 7（T 类）：**把"逐点包含"当函数用**。
+-- soko:hint 思路：`⊆` 是定义头（一个 `∀`）—— 先 λ 绑定再应用（G-73 形状 ①）。
+-- soko:hint 目标形态：`(s ×ˢ t) ⊆ (s' ×ˢ t') → p ∈ (s ×ˢ t) → p ∈ (s' ×ˢ t')`。
+-- soko:hint 关键件：那条 `⊆` 假设的展开形态。
+theorem prod_subset_prod_apply (A B : Type) (s s' : Set A) (t t' : Set B)
+    (h : (s ×ˢ t) ⊆ (s' ×ˢ t')) (p : Prod A B) (hp : p ∈ (s ×ˢ t)) : p ∈ (s' ×ˢ t') := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 20.3 本单元旗舰：**交换律**（基数乘法的 `ab = ba` 在集合层的样子）
+--
+-- ⚠ 注意两边的**类型不同**：`s ×ˢ t : Set (Prod A B)`、`t ×ˢ s : Set (Prod B A)` ——
+--   所以这不是"集合相等"，而是**等势**（跨类型的 `≈`）✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 8（L 类，本单元旗舰）：**交换律** `(s ×ˢ t) ≈ (t ×ˢ s)`。
+-- soko:hint 思路：正向映射取"把坐标换个个儿"`fun p => (p.2, p.1)`，反向映射**就是它自己**；
+--   两条落点条件用练习 3/4（注意换过之后哪一条对上哪个集合）；两条互逆律用 **η 律**
+--   （换两次回到原地 —— 这里只有 `p`，所以 η 直接给）。
+-- soko:hint 目标形态：`(s ×ˢ t) ≈ (t ×ˢ s)`。
+-- soko:hint 关键件：`Set.Equiv.mk`（参数表：两侧论域 · 两个集合 · 去的映射 · 回的映射 ·
+--   落点 · 落点 · 左互逆 · 右互逆）· `prod_mk` · 练习 1 的那条 `↔`（**反向**用，
+--   注意论域与集合要跟着换）· `Prod.eta`。
+theorem prod_swap (A B : Type) (s : Set A) (t : Set B) :
+    (s ×ˢ t) ≈ (t ×ˢ s) := by
+  sorry
+
+-- 练习 9（L 类）：**交换律在"某一个点"上说什么**。
+-- soko:hint 思路：把练习 8 的正向落点条件单独拿出来用（它就是这句话）。
+-- soko:hint 目标形态：`p ∈ (s ×ˢ t) → (prod_mk B A (Prod.snd A B p) (Prod.fst A B p)) ∈ (t ×ˢ s)`。
+-- soko:hint 关键件：练习 1 + 练习 3/4（**注意 `mk` 的两个实参顺序**：先第二坐标、后第一坐标）。
+theorem prod_swap_mem (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
+    (hp : p ∈ (s ×ˢ t)) :
+    (prod_mk B A (Prod.snd A B p) (Prod.fst A B p)) ∈ (t ×ˢ s) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 20.4 必破：**交换律与包含关系可以换位置**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 10（D 类）：**把包含关系也"交换"过去**。
+-- soko:hint 思路：任取 `q ∈ t ×ˢ s`，它的两个投影分别是 `t`、`s` 的元素；
+--   **把坐标换回来**得到 `s ×ˢ t` 里的一个序对，用包含假设送进 `s' ×ˢ t'`，
+--   读出两个坐标后再换回去，就是 `q ∈ t' ×ˢ s'`。
+-- soko:hint 目标形态：`(s ×ˢ t) ⊆ (s' ×ˢ t') → (t ×ˢ s) ⊆ (t' ×ˢ s')`。
+-- soko:hint 关键件：练习 1（两个方向都用）· 练习 3/4 · **`Prod.eta` 这一步别忘**
+--   （最后要说明 `q` 与"换过两次的序对"是同一个）；坐标搬运要用 `lib.Rel` 的
+--   `rel_subst_left`（沿投影等式把成员关系搬过去）。
+theorem prod_swap_subset_swap (A B : Type) (s s' : Set A) (t t' : Set B)
+    (h : (s ×ˢ t) ⊆ (s' ×ˢ t')) : (t ×ˢ s) ⊆ (t' ×ˢ s') := by
+  sorry
