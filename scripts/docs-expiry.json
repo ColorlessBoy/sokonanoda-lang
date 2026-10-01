@@ -228,6 +228,12 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
+    "docs/design/set-theory-syllabus.md": {
+      "expires": "2027-10-01",
+      "renewed": "2026-10-01",
+      "tier": "spec",
+      "reason": "S-A 重建的卷 I 大纲：教材对齐（Enderton/Halmos 逐节目录）+ 10 个新单元的必证/必破 + 内核墙排期口径，是卷 I 后续所有单元的唯一权威大纲"
+    },
     "docs/design/site-single-page.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
