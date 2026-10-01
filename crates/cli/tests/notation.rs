@@ -1926,7 +1926,11 @@ theorem iff_of_eq (A B : Prop) : A = B -> (A -> B) :=
 /// - `∈ ⊆ ∪ ∩ \ ∅ 𝒫 ᶜ '' ⁻¹' ×ˢ`：由**课程库** `lib/Set` 声明（记法是文件作用域 +
 ///   跨 `import` 传播）⇒ 判据是课程门禁 `courses/set-theory/tools/check.py` 与
 ///   `crates/cli/tests/notation.rs` 里的课程夹具；
-/// - `∃`：由 `lib/Exists` 声明（`Exists` 不在 prelude 是**教学设计**，N-9）。
+/// - `∃`：由 `lib/Exists` 声明（`Exists` 不在 prelude 是**教学设计**，N-9）；
+/// - `≈ ∘ ⁻¹ • ⊕ ⋃₀ ⋂₀`：由课程库 `lib/{Equiv,Fun,Rel,Sum,SUnion}` 声明，同上；
+/// - **希腊字母**（48 个）：它们在语言里是**标识符**不是记法（`notation_symbol: false`）
+///   ⇒ 判据是 `identifier_like_symbols_in_the_input_table_really_work`（把 48 个
+///   全当 binder 的一条真判卷），不是这里。
 #[test]
 fn every_language_level_symbol_in_the_input_table_really_works() {
     use sokonanoda_front::notation_input::TABLE;
@@ -1947,13 +1951,31 @@ fn every_language_level_symbol_in_the_input_table_really_works() {
         ("=", "theorem p_eq (A : Prop) (h : A = A) : A = A := h"),
         ("≠", "theorem p_ne (A B : Prop) (h : A ≠ B) : A ≠ B := h"),
     ];
+    // 课程库声明的（**不在 prelude** ⇒ 这条测试判不了；判据在课程门禁）。
+    let course_lib = [
+        "∈", "⊆", "∪", "∩", "\\", "∅", "𝒫", "ᶜ", "⁻¹'", "×ˢ", "∃", "≈", "∘", "⁻¹", "•", "⊕", "⋃₀",
+        "⋂₀",
+    ];
     // 表里声称支持、且目标在**语言层**的符号必须都在上面出现过。
     let language_level: Vec<&str> = probes.iter().map(|(symbol, _)| *symbol).collect();
     for entry in TABLE.iter().filter(|entry| entry.supported) {
-        let course_lib = ["∈", "⊆", "∪", "∩", "\\", "∅", "𝒫", "ᶜ", "⁻¹'", "×ˢ", "∃"];
+        // **分类由表自己驱动**（设计 D4）：`notation_symbol: false` 的是标识符型
+        // （希腊字母），判据是下面那条；`true` 的必须落进 probes 或 course_lib。
+        if !entry.notation_symbol {
+            continue;
+        }
         assert!(
             language_level.contains(&entry.symbol) || course_lib.contains(&entry.symbol),
             "`{}` 声称 supported，但没有判据：要么加进 probes，要么加进 course_lib 并说明它由谁声明",
+            entry.symbol
+        );
+    }
+    // **反向**：表里 `notation_symbol: false` 的今天只有希腊字母（`⟨⟩` 见下一片）
+    // ——这条防止有人把记法符号误标成标识符来绕过上面的检查。
+    for entry in TABLE.iter().filter(|entry| !entry.notation_symbol) {
+        assert!(
+            is_greek_letter(entry.symbol),
+            "`{}` 标了 notation_symbol: false，但它不是希腊字母 ⇒ 上面那条检查被绕过了",
             entry.symbol
         );
     }
@@ -1974,6 +1996,49 @@ fn every_language_level_symbol_in_the_input_table_really_works() {
             "`{symbol}` probe must produce a checked declaration: {events:?}"
         );
     }
+}
+
+/// 希腊字母（U+0391–U+03A9 / U+03B1–U+03C9）。
+fn is_greek_letter(symbol: &str) -> bool {
+    let mut chars = symbol.chars();
+    let (Some(c), None) = (chars.next(), chars.next()) else {
+        return false;
+    };
+    matches!(c as u32, 0x0391..=0x03A9 | 0x03B1..=0x03C9)
+}
+
+/// **表说希腊字母可用 ⇒ 语言真的把它们当标识符**（设计 D4 的判据）。
+///
+/// 一条声明把表里**全部**希腊字母当 binder 用：任何一个不是合法标识符字符，
+/// 解析/elaborate 就会红（所以这一条覆盖全部 48 个，不需要 48 次判卷）。
+#[test]
+fn identifier_like_symbols_in_the_input_table_really_work() {
+    use sokonanoda_front::notation_input::TABLE;
+    let greek: Vec<&str> = TABLE
+        .iter()
+        .filter(|entry| !entry.notation_symbol && entry.supported)
+        .map(|entry| entry.symbol)
+        .collect();
+    assert_eq!(greek.len(), 48, "24 小写 + 24 大写");
+    let binders: Vec<String> = greek.iter().map(|s| format!("({s} : Prop)")).collect();
+    let src = format!(
+        "theorem greek_identifiers {}\n    (h : α) : α := h\n",
+        binders.join(" ")
+    );
+    let path = temp_file("input-table-greek", &src);
+    let (code, events) = grade_json(&path);
+    let diags: Vec<&Value> = events
+        .iter()
+        .filter(|e| e["type"] == "diagnostic")
+        .collect();
+    assert_eq!(
+        code, 0,
+        "the input table claims all 48 Greek letters are usable identifiers: {diags:?}"
+    );
+    assert!(
+        events.iter().any(|e| e["type"] == "decl.checked"),
+        "the Greek probe must produce a checked declaration: {events:?}"
+    );
 }
 
 /// **L3.6 `have`**：在当前上下文里引入中间结论，目标不变。

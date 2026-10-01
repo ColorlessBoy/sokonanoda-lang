@@ -1,23 +1,27 @@
-//! 记法**输入法**表：符号 ↔ 缩写（`\and` → `∧`）。
+//! 记法**输入法**表：符号 ↔ 缩写（`\and` → `∧`、`\alpha` → `α`）。
 //!
-//! 设计：`docs/design/notation-input.md`（D5，2026-09-19 用户要求「像 lean4 一样
-//! `\xxx` 替换，同时 hover 内容提示用户如何输入对应符号」）。
+//! 设计：`docs/design/notation-input.md`（2026-10-01 重写版：调研 + 差距 + 补全决策
+//! D1–D7）。D5（2026-09-19 用户要求）是它的前身：「像 lean4 一样 `\xxx` 替换，
+//! 同时 hover 内容提示用户如何输入对应符号」。
 //!
 //! **这张表是唯一真相源**：LSP 的 hover 文案从它渲染；VS Code 扩展的缩写改写器
-//! 用一份 JS 镜像，`crates/cli/tests/extension.rs` 的契约测试钉住两边**逐字相等**
+//! 用一份 JS 镜像，`crates/cli/tests/extension.rs` 的契约测试钉住两边**逐条相等**
 //! （与 `semantic::KEYWORDS` ↔ TM 语法同一形制）。
 //!
-//! 三条纪律：
-//! 1. **主缩写逐字照抄 Lean 4**（`leanprover/vscode-lean4` 的
-//!    `lean4-unicode-input/src/abbreviations.json`）——硬规则 3：教学语法是真实
-//!    Lean 4 的子集，肌肉记忆要能迁移。取证（带上游行号）在
-//!    `docs/notes/course-lean-style/notation-input-plan.md` §2.1/§2.2。
-//! 2. **单字母别名不抄**（`\i` `\v` `\r` `\l` `\a`）：它们是前缀陷阱，对学习者
-//!    只有害处。多字母别名收不收见设计 §2.1（待拍板）。
+//! 四条纪律：
+//! 1. **键逐字照抄 Lean 4**（`leanprover/vscode-lean4` 的
+//!    `lean4-unicode-input/src/abbreviations.json`，取证 2026-10-01）——硬规则 3：
+//!    教学语法是真实 Lean 4 的子集，肌肉记忆要能迁移。收键口径见设计 D1。
+//! 2. **单字母别名只收「希腊字母名」**（`\a`→α `\b`→β `\c`→χ `\e`→ε `\g`→γ `\m`→μ
+//!    `\D`→Δ `\G`→Γ `\L`→Λ `\S`→Σ `\p`/`\P`→Π）：Lean 里指向逻辑/集合符号的单字母键
+//!    （`\v`→∨ `\i`→∩ `\o`→∘ `\r`→→）**故意不收**——`\i` 给 ∩ 而 `\in` 给 ∈ 是反直觉的
+//!    （设计 D3）。`\a` 与 `\and`/`\approx` 共存**不引入歧义**：改写器按「完整表词」
+//!    两态口径走（还在敲字母时前缀不落定，见 `abbreviation-rewriter.js`）。
 //! 3. **`supported` 只描述「语言今天有没有这个符号」**，不描述「这个文件里在不在
 //!    作用域」。`∈ ⊆ ∪ ∩ \ ∅ …` 由课程库声明，只有 `import` 了才可用
 //!    （记法随 `import` 传播）——hover 说「输入 `\in`」不等于「这个文件里能写
 //!    `∈`」，作用域判断走 [`declared_notation_at`]（本文件的记法表）。
+//! 4. **`notation_symbol` 把「记法符号」与「标识符」分开**（设计 D4）——见字段文档。
 
 /// 一个符号的输入法条目。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,9 +35,22 @@ pub struct NotationInput {
     /// 语言今天**有**这个符号吗。`false` ⇒ hover 不承诺可输入（改说"语言还没有
     /// 这个符号"），改写器也不该收它的缩写。
     pub supported: bool,
+    /// 这个符号在语言里是**记法符号**（`Sym` token）还是**标识符 / 语法括号**。
+    ///
+    /// **希腊字母是后者**（设计 `docs/design/notation-input.md` D4）。三处消费口径
+    /// 因此不同，混在一起会真坏：
+    /// * [`merge_known`] **只喂记法符号**给词法——把 `α` 喂进去，
+    ///   `tokenize_with_symbols` 会把它切成 `Sym("α")` ⇒ 变量 hover / `F12` /
+    ///   rename 守卫（`references::cursor_is_on_notation`）当场全坏
+    ///   （`α` 在课程里出现 1872 次，全是类型变量名）；
+    /// * [`notation_symbol_chars`] 只着色记法符号（TM 的 `variables` 规则管标识符，
+    ///   `α` 不该长成算子的颜色）；
+    /// * LSP hover：记法符号说「记法符号 + 展开成什么」，标识符只说「怎么输入」。
+    pub notation_symbol: bool,
 }
 
-/// 19 个符号的输入法表（设计 `docs/design/notation-input.md` §2）。
+/// 73 个符号的输入法表（设计 `docs/design/notation-input.md` §2/§3）：
+/// 逻辑/集合 **18** + 希腊字母 **48**（大小写各 24）+ 课程库记法 **7**。
 ///
 /// `''`（像）**不给缩写**——与 Lean 一致（直接打两个单引号），所以它不在表里；
 /// hover 对它的说法写在 LSP 侧（"Lean 也没有缩写"）。
@@ -43,42 +60,49 @@ pub const TABLE: &[NotationInput] = &[
         abbreviation: "and",
         aliases: &["wedge"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "∨",
         abbreviation: "or",
         aliases: &["vee"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "↔",
         abbreviation: "iff",
         aliases: &["leftrightarrow"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "¬",
         abbreviation: "not",
         aliases: &["neg"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "→",
         abbreviation: "to",
         aliases: &["imp"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "∀",
         abbreviation: "forall",
         aliases: &[],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "∃",
         abbreviation: "exists",
         aliases: &[],
         supported: true,
+        notation_symbol: true,
     },
     // `≠` 曾标 `supported: false`（语言当时没有 `Ne`）；**L2.3 已落地**
     // （`Ne` 进 L1 prelude 的 B9 族，`≠` 进 `BUILTIN_NOTATIONS`）⇒ 翻 true。
@@ -87,30 +111,35 @@ pub const TABLE: &[NotationInput] = &[
         abbreviation: "ne",
         aliases: &["neq"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "∈",
         abbreviation: "in",
         aliases: &["mem"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "⊆",
         abbreviation: "sub",
         aliases: &["subseteq"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "∪",
         abbreviation: "cup",
         aliases: &["union"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "∩",
         abbreviation: "cap",
         aliases: &["inter"],
         supported: true,
+        notation_symbol: true,
     },
     // `\` 与 leader **同字符**：改写器只在「`\` + 字母且整词命中」时替换
     // （`\setminus` 命中、单个 `\` 不命中）⇒ 集合差不会被误伤。
@@ -119,12 +148,14 @@ pub const TABLE: &[NotationInput] = &[
         abbreviation: "setminus",
         aliases: &[],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "∅",
         abbreviation: "empty",
         aliases: &["emptyset"],
         supported: true,
+        notation_symbol: true,
     },
     // **不能用 `\P`**：Lean 里 `\P` 是 Π，不是幂集。
     NotationInput {
@@ -132,24 +163,413 @@ pub const TABLE: &[NotationInput] = &[
         abbreviation: "powerset",
         aliases: &[],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "ᶜ",
         abbreviation: "compl",
         aliases: &["complement"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "⁻¹'",
         abbreviation: "preim",
         aliases: &["preimage"],
         supported: true,
+        notation_symbol: true,
     },
     NotationInput {
         symbol: "×ˢ",
         abbreviation: "xs",
         aliases: &[],
         supported: true,
+        notation_symbol: true,
+    },
+    NotationInput {
+        symbol: "α",
+        abbreviation: "alpha",
+        aliases: &["a"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "β",
+        abbreviation: "beta",
+        aliases: &["b", "be"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "γ",
+        abbreviation: "gamma",
+        aliases: &["g", "ga"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "δ",
+        abbreviation: "delta",
+        aliases: &["de"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "ε",
+        abbreviation: "epsilon",
+        aliases: &["e", "ep", "eps"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "ζ",
+        abbreviation: "zeta",
+        aliases: &["ze"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "η",
+        abbreviation: "eta",
+        aliases: &["et"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "θ",
+        abbreviation: "theta",
+        aliases: &["th"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "ι",
+        abbreviation: "iota",
+        aliases: &["io"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "κ",
+        abbreviation: "kappa",
+        aliases: &["ka"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "λ",
+        abbreviation: "lambda",
+        aliases: &["la", "lamda", "lam", "fun"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "μ",
+        abbreviation: "mu",
+        aliases: &["m"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "ν",
+        abbreviation: "nu",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "ξ",
+        abbreviation: "xi",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "ο",
+        abbreviation: "omicron",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "π",
+        abbreviation: "pi",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "ρ",
+        abbreviation: "rho",
+        aliases: &["rh"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "σ",
+        abbreviation: "sigma",
+        aliases: &["si"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "τ",
+        abbreviation: "tau",
+        aliases: &["ta"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "υ",
+        abbreviation: "upsilon",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "φ",
+        abbreviation: "phi",
+        aliases: &["ph", "straightphi"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "χ",
+        abbreviation: "chi",
+        aliases: &["c", "ch"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "ψ",
+        abbreviation: "psi",
+        aliases: &["ps"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "ω",
+        abbreviation: "omega",
+        aliases: &["om"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Α",
+        abbreviation: "Alpha",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Β",
+        abbreviation: "Beta",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Γ",
+        abbreviation: "Gamma",
+        aliases: &["G"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Δ",
+        abbreviation: "Delta",
+        aliases: &["D"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Ε",
+        abbreviation: "Epsilon",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Ζ",
+        abbreviation: "Zeta",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Η",
+        abbreviation: "Eta",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Θ",
+        abbreviation: "Theta",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Ι",
+        abbreviation: "Iota",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Κ",
+        abbreviation: "Kappa",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Λ",
+        abbreviation: "Lambda",
+        aliases: &["L", "Lamda"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Μ",
+        abbreviation: "Mu",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Ν",
+        abbreviation: "Nu",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Ξ",
+        abbreviation: "Xi",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Ο",
+        abbreviation: "Omicron",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Π",
+        abbreviation: "Pi",
+        aliases: &["p", "P"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Ρ",
+        abbreviation: "Rho",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Σ",
+        abbreviation: "Sigma",
+        aliases: &["S"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Τ",
+        abbreviation: "Tau",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Υ",
+        abbreviation: "Upsilon",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Φ",
+        abbreviation: "Phi",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Χ",
+        abbreviation: "Chi",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Ψ",
+        abbreviation: "Psi",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "Ω",
+        abbreviation: "Omega",
+        aliases: &[],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "≈",
+        abbreviation: "approx",
+        aliases: &["thickapprox"],
+        supported: true,
+        notation_symbol: true,
+    },
+    NotationInput {
+        symbol: "∘",
+        abbreviation: "comp",
+        aliases: &["circ"],
+        supported: true,
+        notation_symbol: true,
+    },
+    NotationInput {
+        symbol: "⁻¹",
+        abbreviation: "inv",
+        aliases: &["sy"],
+        supported: true,
+        notation_symbol: true,
+    },
+    NotationInput {
+        symbol: "•",
+        abbreviation: "smul",
+        aliases: &["bub", "bu"],
+        supported: true,
+        notation_symbol: true,
+    },
+    NotationInput {
+        symbol: "⊕",
+        abbreviation: "oplus",
+        aliases: &[],
+        supported: true,
+        notation_symbol: true,
+    },
+    NotationInput {
+        symbol: "⋃₀",
+        abbreviation: "sUnion",
+        aliases: &[],
+        supported: true,
+        notation_symbol: true,
+    },
+    NotationInput {
+        symbol: "⋂₀",
+        abbreviation: "sInter",
+        aliases: &[],
+        supported: true,
+        notation_symbol: true,
     },
 ];
 
@@ -165,12 +585,14 @@ pub const TABLE: &[NotationInput] = &[
 /// `docs/design/notation-input.md` 的 R-6）——课程里最常用的几个反而看不见。
 ///
 /// `=` **不在**这里：它是 ASCII，归 TM 的 `operators` 规则（与 `->`/`=>` 同族）。
+/// **希腊字母也不在**（D4）：它们是标识符，TM 的 `variables`/`constants` 规则管它们
+/// ——把 `α` 染成算子的颜色是错的（已知限制：那两个类今天是 ASCII 的，见设计 §5）。
 pub fn notation_symbol_chars() -> Vec<char> {
     let mut out: Vec<char> = Vec::new();
     for symbol in crate::parser::builtin_notation_symbols() {
         out.extend(symbol.chars());
     }
-    for entry in TABLE {
+    for entry in TABLE.iter().filter(|entry| entry.notation_symbol) {
         out.extend(entry.symbol.chars());
     }
     // `∀`/`∃` 是词法关键字与 binder 记法（`∃` 由课程库声明），但都是学习者
@@ -222,9 +644,11 @@ pub fn input_hint(symbol: &str) -> Option<String> {
 /// 光标处的**记法符号**（`(符号, 展开目标)`）——**不要求本文件声明过**。
 ///
 /// 符号集 = 本文件声明的（[`crate::token::scan_notation_decls`]）+ 内建记法
-/// （`∧ ∨ ↔ ¬`）+ **输入法表里的**（`∈ ⊆ ∪ ∩ \ ∅ 𝒫 ᶜ ⁻¹' ×ˢ`，它们在课程里由
-/// `lib/Set` 声明、随 `import` 传播）。所以 import 进来的符号也能被认出来，
-/// 而"这个文件里到底能不能用"是另一回事（`declared_notation_at`）。
+/// （`∧ ∨ ↔ ¬`）+ **输入法表里 `notation_symbol: true` 的**（`∈ ⊆ ∪ ∩ \ ∅ 𝒫 ᶜ ⁻¹' ×ˢ`
+/// 与课程库的 `≈ ∘ ⁻¹ • ⊕ ⋃₀ ⋂₀`，它们在课程里由 `lib/*` 声明、随 `import` 传播）。
+/// 所以 import 进来的符号也能被认出来，而"这个文件里到底能不能用"是另一回事
+/// （`declared_notation_at`）。**表里 `notation_symbol: false` 的（希腊字母）不进来**
+/// ——它们是标识符，喂给词法会把 `α` 切成 `Sym`（D4）。
 ///
 /// 展开目标只在**本文件声明**时给得出（词法扫描本文件）；import 来的符号目标
 /// 在别的文件里，这里返回 `None`。
@@ -246,7 +670,7 @@ fn merge_known(mut symbols: Vec<String>) -> Vec<String> {
             symbols.push(symbol);
         }
     }
-    for entry in TABLE {
+    for entry in TABLE.iter().filter(|entry| entry.notation_symbol) {
         let symbol = entry.symbol.to_string();
         if !symbols.contains(&symbol) {
             symbols.push(symbol);
@@ -488,14 +912,55 @@ mod tests {
         }
         assert_eq!(
             TABLE.len(),
-            18,
-            "the design's table has 18 entries (`''` has none)"
+            73,
+            "the design's table has 73 entries (`''` has none; `⟨`/`⟩` 见下一片)"
         );
+    }
+
+    /// **`notation_symbol` 的口径**（设计 D4）：它决定三件事，所以必须与符号本身
+    /// 对得上，不能随手填。
+    #[test]
+    fn only_notation_symbols_are_fed_to_the_lexer() {
+        // 希腊字母是**标识符**：喂给词法会让 `α` 变成 `Sym("α")`。
+        for (symbol, _) in [("α", ()), ("β", ()), ("Ω", ()), ("ω", ())] {
+            assert!(
+                !input_for(symbol).expect("in table").notation_symbol,
+                "`{symbol}` is an identifier, not a notation symbol"
+            );
+        }
+        // 记法符号（内建 + 课程库）必须喂。
+        for symbol in ["∧", "∈", "𝒫", "≈", "∘", "•", "⋃₀"] {
+            assert!(
+                input_for(symbol).expect("in table").notation_symbol,
+                "`{symbol}` is a notation symbol"
+            );
+        }
+        // 词法装配：`α` 认得出来是**标识符**，`∈` 是 `Sym`。
+        let src = "theorem t (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h";
+        let offset = src.find('α').expect("α 在文本里");
+        assert!(
+            symbol_at(src, offset).is_none(),
+            "`α` 是标识符 ⇒ 不该被认成记法符号（认了，变量 hover/F12/rename 全坏）"
+        );
+        let offset = src.find('∈').expect("∈ 在文本里");
+        assert_eq!(symbol_at(src, offset).map(|(s, _)| s).as_deref(), Some("∈"));
+    }
+
+    /// 希腊字母**着色表里没有**（D4）：TM 的 `variables` 规则管标识符，`α` 不该
+    /// 长成算子的颜色。
+    #[test]
+    fn greek_letters_are_not_coloured_as_math_symbols() {
+        let chars = notation_symbol_chars();
+        assert!(!chars.contains(&'α'), "`α` 是标识符，不进 mathsymbols 类");
+        assert!(!chars.contains(&'Ω'), "`Ω` 是标识符，不进 mathsymbols 类");
+        assert!(chars.contains(&'∈'));
+        assert!(chars.contains(&'≈'), "课程库记法要着色");
+        assert!(chars.contains(&'•'));
     }
 
     #[test]
     fn no_abbreviation_is_a_prefix_of_another() {
-        // 前缀陷阱（设计 §3 方案 A）：`\in` 是 `\inter` 的前缀。改写器的规则是
+        // 前缀陷阱（设计 D2）：`\in` 是 `\inter` 的前缀。改写器的规则是
         // 「缩写**完整**且**不是更长缩写的前缀**」才即时替换——这条测试钉住
         // 「哪些对是前缀关系」，改表时不会不知不觉破坏那条规则的前提。
         let mut all: Vec<&str> = Vec::new();
@@ -511,10 +976,27 @@ mod tests {
                 }
             }
         }
-        assert!(
-            prefixed.contains(&("in", "inter")),
-            "the documented prefix trap must still exist: {prefixed:?}"
-        );
+        // 用户反馈的那条（`\a`）：它**必须**是前缀（`alpha`/`approx`/`and`…），
+        // 否则「还在敲字母时不落定」这条规则就失去前提 ⇒ 改成断言它**在**。
+        for pair in [
+            ("in", "inter"),
+            ("a", "alpha"),
+            ("a", "approx"),
+            ("a", "and"),
+            ("b", "beta"),
+            ("e", "epsilon"),
+            ("g", "gamma"),
+            ("m", "mu"),
+            ("in", "inv"),
+            ("c", "chi"),
+            ("p", "pi"),
+            ("P", "Pi"),
+        ] {
+            assert!(
+                prefixed.contains(&pair),
+                "the documented prefix trap {pair:?} must still exist: {prefixed:?}"
+            );
+        }
     }
 
     #[test]

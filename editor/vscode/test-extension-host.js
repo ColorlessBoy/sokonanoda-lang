@@ -1899,6 +1899,73 @@ test("eager mode closes the word on a separator", async () => {
   assert.strictEqual(document.__undoStack.length, 1);
 });
 
+// ── 希腊字母（用户反馈：`α` 没有快捷输入，设计 D1/D2）────────────────────
+// `\a` 同时是 `\alpha`/`\approx`/`\and` 的前缀 —— 这正是"完整表词"两态口径
+// 存在的理由：Tab 与分隔符封口时它落定，还在敲字母时它等。
+
+test("Tab rewrites \\a to α even though \\a prefixes \\alpha", async () => {
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\a");
+  focus(document, [cursor(0, 2)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "α", "`\\a` + Tab must become `α`");
+});
+
+test("Tab rewrites the spelled-out greek names", async () => {
+  await activateExtension();
+  for (const [abbreviation, symbol] of [
+    ["\\alpha", "α"],
+    ["\\beta", "β"],
+    ["\\Gamma", "Γ"],
+    ["\\Delta", "Δ"],
+    ["\\Omega", "Ω"],
+  ]) {
+    const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", abbreviation);
+    focus(document, [cursor(0, abbreviation.length)]);
+    await commandHandler(REPLACE_COMMAND)();
+    assert.strictEqual(document.getText(), symbol, `\`${abbreviation}\` + Tab → ${symbol}`);
+  }
+});
+
+test("eager mode waits out the greek prefix trap", async () => {
+  await activateExtension();
+  setConfig("input.eager", true);
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\a");
+  focus(document, [cursor(0, 2)]);
+  // `\a` is a prefix of `alpha`, `approx`, `and`…: it must NOT fire while typing.
+  await drain();
+  assert.strictEqual(document.getText(), "\\a", "a lone `\\a` must wait");
+  // The separator closes the word (same rule as `\in ` → `∈ `).
+  typeText(document, cursor(0, 2), " ");
+  await drain();
+  assert.strictEqual(document.getText(), "α ", "`\\a ` closes the word → `α `");
+
+  // …and typing on towards `alpha` replaces with the same symbol, once.
+  const spelled = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\al");
+  focus(spelled, [cursor(0, 3)]);
+  for (const [position, character] of [
+    [cursor(0, 3), "p"],
+    [cursor(0, 4), "h"],
+    [cursor(0, 5), "a"],
+  ]) {
+    typeText(spelled, position, character);
+    await drain();
+  }
+  assert.strictEqual(spelled.getText(), "α", "`\\alpha` completes → `α`");
+  assert.strictEqual(spelled.__undoStack.length, 1, "only the complete word was replaced");
+});
+
+test("greek letters are identifiers, so their symbols survive as text", async () => {
+  // D4：`α` 是**标识符**，不是记法符号 —— 替换出来的 `α` 就是一个普通标识符
+  // （Rust 侧由 `notation_symbol: false` 保证它不被喂进词法；这里钉住 JS 侧
+  // 替换出来的**文本**确实是那一个字符，不是别的码点）。
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\mu");
+  focus(document, [cursor(0, 3)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText().codePointAt(0), 0x03bc, "`\\mu` must be U+03BC");
+});
+
 test("eager mode never fires on a deletion or an undo", async () => {
   await activateExtension();
   setConfig("input.eager", true);

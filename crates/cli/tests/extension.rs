@@ -1619,6 +1619,9 @@ fn abbreviation_table_mirrors_the_single_source() {
                     "abbreviation": entry.abbreviation,
                     "aliases": entry.aliases,
                     "supported": entry.supported,
+                    // D4：这一列 JS 今天不消费，但**进镜像**——投影掉一列就是给漂移
+                    // 留缝（设计 `docs/design/notation-input.md` §4「双镜像」）。
+                    "notationSymbol": entry.notation_symbol,
                 })
             })
             .collect(),
@@ -1626,7 +1629,7 @@ fn abbreviation_table_mirrors_the_single_source() {
     assert_eq!(
         actual, expected,
         "editor/vscode/src/abbreviations.js must mirror front::notation_input::TABLE exactly \
-         (same symbols, abbreviations, aliases, `supported` flags and order)"
+         (same symbols, abbreviations, aliases, `supported`/`notationSymbol` flags and order)"
     );
 }
 
