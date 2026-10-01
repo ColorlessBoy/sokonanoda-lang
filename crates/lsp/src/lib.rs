@@ -593,6 +593,32 @@ struct Compiler {
 const SLOW_REBUILD: Duration = Duration::from_millis(150);
 
 /// `SOKO_LSP_TRACE=1` 时每次编译打一行（读一次就缓存——它在每次编译的收尾）。
+/// **结构计数的快照**（G-29 的判据读数）：模块编译次数 · `by` 引擎调用 ·
+/// 类型推断（未命中/调用）· 重跑前缀的趟数。
+///
+/// 全部来自 front 的**进程级**计数器（`#[doc(hidden)]`，语义是"只给判据用"）——
+/// 它们此前只在进程退出时打，而 LSP 不响应 `exit` ⇒ 按键那条路量不到 ✗。
+#[derive(Clone, Copy)]
+struct StructuralCounters {
+    modules: u64,
+    by: u64,
+    infer_calls: u64,
+    infer_miss: u64,
+    prefix_runs: u64,
+}
+
+fn structural_counters() -> StructuralCounters {
+    let (infer_calls, _hits, infer_miss, prefix_runs, _bytes) =
+        sokonanoda_front::judge::infer_totals();
+    StructuralCounters {
+        modules: sokonanoda_front::compile::module_compiles_total(),
+        by: sokonanoda_front::compile::by_calls_total(),
+        infer_calls,
+        infer_miss,
+        prefix_runs,
+    }
+}
+
 fn trace_enabled() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ON.get_or_init(|| std::env::var_os("SOKO_LSP_TRACE").is_some())
@@ -768,6 +794,12 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
         )
         .await;
         let started = std::time::Instant::now();
+        // **结构计数**（G-29 的判据读数，2026-10-01）：编译前后各取一次差。
+        // 为什么要在这里取：**按键那条路的真实成本**只有 LSP 层量得到，而计数
+        // 此前只在**进程退出**时打（`atexit`）——LSP 又**不响应 `exit`**
+        // （实测：发 `shutdown`/`exit` 后进程不退出）⇒ 外面根本读不到 ✗。
+        // 墙钟在共享机器上会翻面（`AGENTS.md`：判据不许用绝对毫秒），计数不会 ✓。
+        let counters_before = structural_counters();
         let out = compile_one(&client, &docs, &compile, &uri, job);
         // **成对**：`Begin` 之后任何路径都要 `End`（否则客户端那把进度条永远转 ✗）。
         // 这里 `compile_one` 不返回 `Result`，所以顺序执行就够；将来它要是会早退，
@@ -784,10 +816,21 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
         // 挡住消息循环"（行与行之间能插进只读请求的应答）与"防抖有没有生效"
         // （慢文件的下一次编辑会等静默期）。
         if trace_enabled() {
+            // **结构计数**（机器无关）与墙钟一起打：`modules` = 模块编译次数
+            // （库层有没有被重编）· `by` = `by` 引擎调用 · `infer` = 类型推断
+            // （调用/未命中）· `prefix` = 重跑整份前缀的趟数。判据用计数，墙钟只
+            // 做数量级兜底（`AGENTS.md`）。
+            let now = structural_counters();
             eprintln!(
-                "LSP_TRACE compile {uri} v{version} {}ms publish={}",
+                "LSP_TRACE compile {uri} v{version} {}ms publish={} modules={} by={} \
+                 infer={}/{} prefix={}",
                 cost.as_millis(),
-                out.len()
+                out.len(),
+                now.modules - counters_before.modules,
+                now.by - counters_before.by,
+                now.infer_miss - counters_before.infer_miss,
+                now.infer_calls - counters_before.infer_calls,
+                now.prefix_runs - counters_before.prefix_runs,
             );
         }
         for (target, diagnostics, version) in out {

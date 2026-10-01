@@ -82,8 +82,7 @@ function editPairs(which) {
   ];
 }
 
-async function lspView(which, pairs) {
-  const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "g29b-"));
+async function lspView(which, pairs, cacheDir) {
   const env = {
     ...process.env,
     SOKONANODA_CACHE_DIR: cacheDir,
@@ -197,19 +196,58 @@ function cliView() {
     console.error("   → 夹具前提不成立：入口里找不到两条 theorem");
     process.exit(2);
   }
-  const a = await lspView("first", first);
-  const b = await lspView("last", last);
+  // **同一起点**：共用一个缓存目录，先跑一次"只开不改"把缓存烘热 ——
+  // 否则第一轮替第二轮付冷编译的钱（实测：冷开 3020ms vs 11ms），两次读数不可比 ✗。
+  const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "g29b-"));
+  await lspView("warmup", [], cacheDir);
+  const a = await lspView("first", first, cacheDir);
+  const b = await lspView("last", last, cacheDir);
   console.log(`== G-29 LSP 视图（${path.basename(ENTRY)}）==`);
   for (const row of [a, b]) {
     console.log(
-      `-- 改${row.which === "first" ? "**第一条**" : "**最后一条**"} theorem：冷开 ${row.openMs}ms · 两次按键 ${row.times.join("/")}ms`,
+      `-- 改${row.which === "first" ? "**第一条**" : "**最后一条**"} theorem：开档 ${row.openMs}ms · 两次按键 ${row.times.join("/")}ms`,
     );
     for (const line of row.trace) console.log(`   ${line}`);
   }
+  // **结构计数**（2026-10-01 起 LSP_TRACE 自带）：从 trace 行里抠出来对比。
+  // 判据用它（机器无关），墙钟只做数量级兜底 —— `AGENTS.md` 的硬规矩。
+  const parse = (trace) =>
+    trace.map((line) => {
+      const m =
+        /v(\d+) (\d+)ms publish=(\d+) modules=(\d+) by=(\d+) infer=(\d+)\/(\d+) prefix=(\d+)/.exec(
+          line,
+        );
+      return m
+        ? {
+            version: Number(m[1]),
+            ms: Number(m[2]),
+            publish: Number(m[3]),
+            modules: Number(m[4]),
+            by: Number(m[5]),
+            inferMiss: Number(m[6]),
+            inferCalls: Number(m[7]),
+            prefixRuns: Number(m[8]),
+          }
+        : undefined;
+    });
+  const rows = [
+    ["改**第一条**", parse(a.trace)],
+    ["改**最后一条**", parse(b.trace)],
+  ];
+  console.log("   结构计数（每次按键一行；`modules` = 模块编译次数 ⇒ 库层有没有被重编）：");
+  for (const [label, list] of rows) {
+    for (const row of list) {
+      if (!row) continue;
+      console.log(
+        `     ${label} v${row.version}: ${row.ms}ms · modules=${row.modules} · by=${row.by} · ` +
+          `infer_miss=${row.inferMiss}/${row.inferCalls} · prefix_runs=${row.prefixRuns}`,
+      );
+    }
+  }
   console.log(
-    "   读法：`LSP_TRACE compile` 每次按键一行（**一次按键 = 几次编译**看行数）·\n" +
+    "   读法：**一次按键 = 几次编译**看行数 · 结构计数是判据（机器无关）·\n" +
       "        墙钟只作数量级参考（共享机器会翻面，见 G29 复现件的两次翻面记录）；\n" +
-      "        结构计数看 `--cli`。",
+      "        更细的读数（`passes` / `JUDGE_PREFIX bytes`）看 `--cli`。",
   );
   process.exit(0);
 })().catch((error) => {
