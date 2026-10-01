@@ -1,0 +1,103 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+def Asymmetric (α : Type) (r : Rel α α) : Prop :=
+  ∀ (a : α) (b : α), r a b → ¬ (r b a)
+
+theorem antisymm_algebraic (α : Type) (r : Rel α α) :
+    Antisymmetric α r ↔ ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b :=
+  Iff.intro (Antisymmetric α r)
+    (∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b)
+    (fun (h : Antisymmetric α r) => fun (a : α) => fun (b : α) =>
+      fun (hab : r a b) => fun (hba : (r ⁻¹) a b) =>
+        (fun (hu : ∀ (x : α) (y : α), r x y → r y x → Eq.{1} α x y) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          hu a b hab hba) h)
+    (fun (h : ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b) =>
+      fun (a : α) => fun (b : α) => fun (hab : r a b) => fun (hba : r b a) =>
+        h a b hab hba)
+
+theorem irrefl_algebraic (α : Type) (r : Rel α α) :
+    Irreflexive α r ↔ ∀ (a : α), (idRel α) a a → ¬ (r a a) :=
+  Iff.intro (Irreflexive α r) (∀ (a : α), (idRel α) a a → ¬ (r a a))
+    (fun (h : Irreflexive α r) => fun (a : α) => fun (ha : (idRel α) a a) =>
+      (fun (hu : ∀ (x : α), ¬ (r x x)) => hu a) h)
+    (fun (h : ∀ (a : α), (idRel α) a a → ¬ (r a a)) => fun (a : α) =>
+      h a (Eq.refl.{1} α a))
+
+theorem asymmetric_apply (α : Type) (r : Rel α α) (h : Asymmetric α r) (a b : α)
+    (hab : r a b) : ¬ (r b a) :=
+  (fun (hu : ∀ (x : α) (y : α), r x y → ¬ (r y x)) => hu a b hab) h
+
+theorem asymmetric_imp_irreflexive (α : Type) (r : Rel α α) (h : Asymmetric α r) :
+    Irreflexive α r :=
+  fun (a : α) => fun (haa : r a a) => asymmetric_apply α r h a a haa haa
+
+theorem irrefl_trans_imp_asymmetric (α : Type) (r : Rel α α)
+    (hirr : Irreflexive α r) (htrans : Transitive α r) : Asymmetric α r :=
+  fun (a : α) => fun (b : α) => fun (hab : r a b) => fun (hba : r b a) =>
+    (fun (hu : ∀ (x : α), ¬ (r x x)) =>
+      hu a ((fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+        ht a b a hab hba) htrans)) hirr
+
+theorem asymmetric_iff (α : Type) (r : Rel α α) :
+    Asymmetric α r ↔ ∀ (a : α) (b : α), r a b → ¬ (r b a) :=
+  Iff.intro (Asymmetric α r) (∀ (a : α) (b : α), r a b → ¬ (r b a))
+    (fun (h : Asymmetric α r) => h)
+    (fun (h : ∀ (a : α) (b : α), r a b → ¬ (r b a)) => h)
+
+theorem partialOrder_refl_algebraic (α : Type) (r : Rel α α) (h : IsPartialOrder α r) :
+    ∀ (a : α), (idRel α) a a → r a a :=
+  fun (a : α) => fun (ha : (idRel α) a a) => partialOrder_refl α r h a
+
+theorem partialOrder_antisymm_algebraic (α : Type) (r : Rel α α)
+    (h : IsPartialOrder α r) :
+    ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b :=
+  fun (a : α) => fun (b : α) => fun (hab : r a b) => fun (hba : (r ⁻¹) a b) =>
+    partialOrder_antisymm α r h a b hab hba
+
+theorem partialOrder_trans_algebraic (α : Type) (r : Rel α α) (h : IsPartialOrder α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  fun (a : α) => fun (c : α) => fun (hac : (r • r) a c) =>
+    Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c) hac
+      (fun (b : α) (hb : r a b ∧ r b c) =>
+        partialOrder_trans α r h a b c (And.left hb) (And.right hb))
+
+theorem algebraic_is_partialOrder (α : Type) (r : Rel α α)
+    (h1 : ∀ (a : α), (idRel α) a a → r a a)
+    (h2 : ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b)
+    (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
+    IsPartialOrder α r :=
+  isPartialOrder_intro α r
+    (fun (a : α) => h1 a (Eq.refl.{1} α a))
+    (fun (a : α) (b : α) => fun (hab : r a b) => fun (hba : r b a) => h2 a b hab hba)
+    (fun (a : α) (b : α) (c : α) => fun (hab : r a b) => fun (hbc : r b c) =>
+      h3 a c (Exists.intro α (fun (b1 : α) => r a b1 ∧ r b1 c) b
+        (And.intro (r a b) (r b c) hab hbc)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem demo_strictOrder_iff (α : Type) (r : Rel α α) :
+    IsStrictOrder α r ↔ (Irreflexive α r ∧ Transitive α r) :=
+  isStrictOrder_def α r
+
+theorem demo_strictOf_irreflexive (α : Type) (r : Rel α α) :
+    Irreflexive α (strictOf α r) :=
+  fun (a : α) => fun (haa : strictOf α r a a) =>
+    (fun (hu : ¬ (Eq.{1} α a a)) => hu (Eq.refl.{1} α a)) (And.right haa)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem demo_strictOf_transitive (α : Type) (r : Rel α α)
+    (htrans : Transitive α r) (hanti : Antisymmetric α r) :
+    Transitive α (strictOf α r) :=
+  fun (a : α) => fun (b : α) => fun (c : α) =>
+    fun (hab : strictOf α r a b) => fun (hbc : strictOf α r b c) =>
+      And.intro (r a c) (¬ (Eq.{1} α a c))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        ((fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+          ht a b c (And.left hab) (And.left hbc)) htrans)
+        (fun (hac : Eq.{1} α a c) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (hu : ¬ (Eq.{1} α a b)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+            hu ((fun (hv : ∀ (x : α) (y : α), r x y → r y x → Eq.{1} α x y) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              hv a b (And.left hab)
+                (rel_subst_right α (fun (u : α) (v : α) => r b v) b c a
+                  (Eq.symm.{1} α a c hac) (And.left hbc))) hanti)) (And.right hab))

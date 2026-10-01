@@ -485,10 +485,13 @@
             "inverse-relation",
             "identity-relation",
             "algebraic-characterization",
-            "reflexive-symmetric-transitive"
+            "reflexive-symmetric-transitive",
+            "order-algebra",
+            "asymmetric",
+            "partial-order"
           ],
           "quota": {
-            "exercises": 20
+            "exercises": 30
           },
           "units": [
             {
@@ -502,6 +505,12 @@
               "title": "单元㊲ 关系的代数刻画",
               "title_en": "Unit 37 — Algebraic Characterizations of Relation Properties",
               "unit": 37
+            },
+            {
+              "file": "units/unit38-order-algebra.sokonanoda",
+              "title": "单元㊳ 序关系的关系代数视角",
+              "title_en": "Unit 38 — Order Relations, Algebraically",
+              "unit": 38
             }
           ]
         }

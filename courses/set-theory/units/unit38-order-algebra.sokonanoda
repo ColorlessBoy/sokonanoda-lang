@@ -1,0 +1,181 @@
+-- ==========================================================================
+-- unit38-order-algebra.sokonanoda —— 卷 I 单元㊳ **序关系的关系代数视角**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§10** 与 **§14**；
+-- Enderton《Elements of Set Theory》**§7.1 Orderings**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.13 章第三个单元 —— 把单元⑬ 的序论
+-- 用单元㊱㊲ 的代数语言**重述一遍**）。
+--
+-- 本单元的"该学的定理"（把"反对称/非自反/非对称/偏序"翻译成代数式子）：
+--   · **反对称 ⟺ "两个方向同时成立 ⇒ 相等"**（`r ∩ r ⁻¹ ⊆ idRel` 的逐点形态）；
+--   · **非自反 ⟺ 恒等关系那份被排除**；**非对称 ⟺ 两个方向不能同时成立**；
+--   · **旗舰：非自反 + 传递 ⇒ 非对称**（经典的"从 `a < b` 与 `b < a` 用传递性逼出 `a < a`"）；
+--   · **偏序 ⟺ 三条代数条件**（`idRel ⊆ r` · 反对称 · `r • r ⊆ r`），反方向也成立 ✓
+--
+-- ⚠ **实测的三条写法教训（都写进 hint）**：
+--   ① **一个巨大的 `↔`（右边还套三层 `∧`）写不出来**（单元㊲ 已记）⇒ 拆成"三个取用子 +
+--      一个反方向"四条小定理（本单元的偏序部分就是这么落地的）；
+--   ② **`Iff.mp` / `Iff.mpr` 在这些位置解不出**（「期望 `Sort(1)`，实际是 `Rel α α`」）⇒
+--      取用子直接重证更稳；
+--   ③ **新发现（本单元实测）**：`And.right h` **单独写没问题**，但**把它直接当函数用在
+--      实参位**（`And.right h (Eq.refl …)`）会判红（「期望 `Sort(0)`，实际是 `strictOf α r a a`」）  -- soko:notation-ok: 这里是**反例式说明**（讲"续应用会判红"），不是要写的代码
+--      ⇒ **中间套一层 λ**：`(fun (hu : ¬ (a = a)) => hu (Eq.refl a)) (And.right h)` ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Rel`（`•`/`⁻¹`）· `lib.Order`（序与严格序）· `lib.Set`。
+--
+-- 依赖：单元⑬（序关系）· 单元㊱㊲（关系的代数）—— 本单元把两条线合起来。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 38.0 画布给的新词汇：**恒等关系** 与 **非对称**
+-- ─────────────────────────────────────────────────────────────
+def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+-- 读法：`Asymmetric α r` = "两个方向不能同时成立" ✓ 它比"反对称"强：
+-- 反对称允许"两个方向同时成立时两边相等"，非对称则**一律不允许** ✓
+def Asymmetric (α : Type) (r : Rel α α) : Prop :=
+  ∀ (a : α) (b : α), r a b → ¬ (r b a)
+
+-- ─────────────────────────────────────────────────────────────
+-- 38.1 三条库引理（严格序的展开 · 两种造法）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：严格序 = 非自反 + 传递（库里现成的展开）。
+theorem demo_strictOrder_iff (α : Type) (r : Rel α α) :
+    IsStrictOrder α r ↔ (Irreflexive α r ∧ Transitive α r) :=
+  isStrictOrder_def α r
+
+-- 演示：**把序的"相等那一份"切掉，一定非自反**（不需要任何假设）。
+theorem demo_strictOf_irreflexive (α : Type) (r : Rel α α) :
+    Irreflexive α (strictOf α r) :=
+  fun (a : α) => fun (haa : strictOf α r a a) =>
+    (fun (hu : ¬ (Eq.{1} α a a)) => hu (Eq.refl.{1} α a)) (And.right haa)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+-- 演示：**传递 + 反对称 ⇒ 切掉相等之后仍传递**（"严格序"的造法）。
+-- ⚠ 光有传递**不够**（`r` 若允许两个方向同时成立，切掉相等后就不传递了）——
+--   所以这里要**反对称**（实测：这条假设不能省）✓
+theorem demo_strictOf_transitive (α : Type) (r : Rel α α)
+    (htrans : Transitive α r) (hanti : Antisymmetric α r) :
+    Transitive α (strictOf α r) :=
+  fun (a : α) => fun (b : α) => fun (c : α) =>
+    fun (hab : strictOf α r a b) => fun (hbc : strictOf α r b c) =>
+      And.intro (r a c) (¬ (Eq.{1} α a c))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        ((fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
+          ht a b c (And.left hab) (And.left hbc)) htrans)
+        (fun (hac : Eq.{1} α a c) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (hu : ¬ (Eq.{1} α a b)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+            hu ((fun (hv : ∀ (x : α) (y : α), r x y → r y x → Eq.{1} α x y) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              hv a b (And.left hab)
+                (rel_subst_right α (fun (u : α) (v : α) => r b v) b c a
+                  (Eq.symm.{1} α a c hac) (And.left hbc))) hanti)) (And.right hab))
+
+-- ─────────────────────────────────────────────────────────────
+-- 38.2 反对称 · 非自反：**代数形态**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（L 类，旗舰之一）：**反对称的代数形态**（"两个方向同时成立 ⇒ 相等"）。
+-- soko:hint 思路：→：把 `(r ⁻¹) a b` 看成 `r b a`，直接交给反对称；←：把假设交给
+--   两个方向的两条证据。
+-- soko:hint 目标形态：`Antisymmetric α r ↔ ∀ a b, r a b → (r ⁻¹) a b → (idRel α) a b`。
+-- soko:hint 关键件：`Iff.intro`（**前导 Prop 实参写全**）· 反对称假设**先 λ 绑定再应用**
+--   （G-73 形状 ①）✓
+theorem antisymm_algebraic (α : Type) (r : Rel α α) :
+    Antisymmetric α r ↔ ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b := by
+  sorry
+
+-- 练习 2（T 类）：**非自反的代数形态**（恒等关系那份被排除）。
+-- soko:hint 思路：→：把 `r a a` 交给非自反；←：把假设用在 `a = a` 上。
+-- soko:hint 目标形态：`Irreflexive α r ↔ ∀ a, (idRel α) a a → ¬ (r a a)`。
+-- soko:hint 关键件：`Iff.intro` · 非自反假设**先 λ 绑定再应用** · `Eq.refl`（写全层级与论域）✓
+theorem irrefl_algebraic (α : Type) (r : Rel α α) :
+    Irreflexive α r ↔ ∀ (a : α), (idRel α) a a → ¬ (r a a) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 38.3 非对称：**取用子** · **与自反/传递的关系**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 3（T 类）：**非对称用在具体的一对上**。
+-- soko:hint 思路：非对称展开形态就是一个"两个点 + 一条证据 → 否定"的 `∀`，直接应用。
+-- soko:hint 目标形态：`Asymmetric α r → r a b → ¬ (r b a)`。
+-- soko:hint 关键件：非对称假设**先 λ 绑定再应用** ✓
+theorem asymmetric_apply (α : Type) (r : Rel α α) (h : Asymmetric α r) (a b : α)
+    (hab : r a b) : ¬ (r b a) := by
+  sorry
+
+-- 练习 4（L 类）：**非对称 ⇒ 非自反**（把两个点取成同一个）。
+-- soko:hint 思路：若 `r a a`，非对称在同一对点上要求 `¬ (r a a)` ⇒ 矛盾。
+-- soko:hint 目标形态：`Asymmetric α r → Irreflexive α r`。
+-- soko:hint 关键件：练习 3（**两个点都给 `a`**）· `fun` 直接写矛盾 ✓
+theorem asymmetric_imp_irreflexive (α : Type) (r : Rel α α) (h : Asymmetric α r) :
+    Irreflexive α r := by
+  sorry
+
+-- 练习 5（L 类，**本单元旗舰**）：**非自反 + 传递 ⇒ 非对称**（经典一步）。
+-- soko:hint 思路：设 `r a b` 与 `r b a`，用**传递性**在 `a`、`b`、`a` 三点上接起来得到 `r a a`，
+--   与非自反矛盾。
+-- soko:hint 目标形态：`Irreflexive α r → Transitive α r → Asymmetric α r`。
+-- soko:hint 关键件：两条假设都**先 λ 绑定再应用**（传递有三个点参数、两条前提）✓
+theorem irrefl_trans_imp_asymmetric (α : Type) (r : Rel α α)
+    (hirr : Irreflexive α r) (htrans : Transitive α r) : Asymmetric α r := by
+  sorry
+
+-- 练习 6（T 类）：**非对称的展开**（库里没有这条，本单元自己立一条）。
+-- soko:hint 思路：两边逐字相同 ⇒ 两个方向都是恒等函数。
+-- soko:hint 目标形态：`Asymmetric α r ↔ ∀ a b, r a b → ¬ (r b a)`。
+-- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· 两个方向各一个恒等函数 ✓
+theorem asymmetric_iff (α : Type) (r : Rel α α) :
+    Asymmetric α r ↔ ∀ (a : α) (b : α), r a b → ¬ (r b a) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 38.4 偏序：**三条代数条件**（拆成四条定理，别写成一个巨大的 `↔`）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（T 类）：**偏序 ⇒ 恒等关系含于它**（自反那一份）。
+-- soko:hint 思路：把库里的自反取用子（`partialOrder_refl`）用在点上。
+-- soko:hint 目标形态：`IsPartialOrder α r → ∀ a, (idRel α) a a → r a a`。
+-- soko:hint 关键件：`partialOrder_refl`（**参数：论域 · 关系 · 假设 · 点**）✓
+theorem partialOrder_refl_algebraic (α : Type) (r : Rel α α) (h : IsPartialOrder α r) :
+    ∀ (a : α), (idRel α) a a → r a a := by
+  sorry
+
+-- 练习 8（T 类）：**偏序 ⇒ 反对称那一份**（代数形态）。
+-- soko:hint 思路：把库里的反对称取用子（`partialOrder_antisymm`）交给两个方向的两条证据。
+-- soko:hint 目标形态：`IsPartialOrder α r → ∀ a b, r a b → (r ⁻¹) a b → (idRel α) a b`。
+-- soko:hint 关键件：`partialOrder_antisymm`（参数：论域 · 关系 · 假设 · 两个点 · 两条证据）✓
+theorem partialOrder_antisymm_algebraic (α : Type) (r : Rel α α)
+    (h : IsPartialOrder α r) :
+    ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b := by
+  sorry
+
+-- 练习 9（L 类）：**偏序 ⇒ 自复合含于它**（传递那一份）。
+-- soko:hint 思路：拆开 `∃ b, r a b ∧ r b c`，用库里的传递取用子接上。
+-- soko:hint 目标形态：`IsPartialOrder α r → ∀ a c, (r • r) a c → r a c`。
+-- soko:hint 关键件：`Exists.elim`（**前导实参写全**）· `partialOrder_trans`（论域 · 关系 · 假设 ·
+--   三个点 · 两条前提）· `And.left`/`And.right` ✓
+theorem partialOrder_trans_algebraic (α : Type) (r : Rel α α) (h : IsPartialOrder α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c := by
+  sorry
+
+-- 练习 10（D 类，**本单元旗舰**）：**三条代数条件合起来 ⇒ 偏序**（反方向）。
+-- soko:hint 思路：用智能构造子打包三条 —— ①自反：条件 1 用在 `a = a` 上；
+--   ②反对称：条件 2 交出等式；③传递：先造出 `∃ b, r a b ∧ r b c`（见证取 `b`）再交给条件 3。
+-- soko:hint 目标形态：`(∀ a, idRel a a → r a a) → (∀ a b, r a b → (r ⁻¹) a b → idRel a b) →
+--   (∀ a c, (r • r) a c → r a c) → IsPartialOrder α r`。
+-- soko:hint 关键件：`isPartialOrder_intro`（**参数：论域 · 关系 · 自反 · 反对称 · 传递**）·
+--   `Exists.intro`/`And.intro`（前导实参写全）· `Eq.refl` ✓
+--   ⚠ **不要把三条打包成一个巨大的 `↔`**（右边套三层 `∧` + `∀`）—— 实测那个形态**写不出来**，
+--   本单元因此拆成"练习 7–9 + 练习 10"四条 ✓
+theorem algebraic_is_partialOrder (α : Type) (r : Rel α α)
+    (h1 : ∀ (a : α), (idRel α) a a → r a a)
+    (h2 : ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b)
+    (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
+    IsPartialOrder α r := by
+  sorry
