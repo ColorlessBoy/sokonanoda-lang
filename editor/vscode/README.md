@@ -158,20 +158,20 @@ Write the abbreviation and press `Tab`. Logic and set theory first:
 
 | you type | you get | aliases | | you type | you get | aliases |
 |---|---|---|---|---|---|---|
-| `\and` | `∧` | `\wedge` | | `\in` | `∈` | `\mem` |
-| `\or` | `∨` | `\vee` | | `\sub` | `⊆` | `\subseteq` |
-| `\iff` | `↔` | `\leftrightarrow` | | `\cup` | `∪` | `\union` |
-| `\not` | `¬` | `\neg` | | `\cap` | `∩` | `\inter` |
-| `\to` | `→` | `\imp` | | `\setminus` | `\` | — |
-| `\forall` | `∀` | — | | `\empty` | `∅` | `\emptyset` |
-| `\exists` | `∃` | — | | `\powerset` | `𝒫` | — |
-| `\ne` | `≠` | `\neq` | | `\compl` | `ᶜ` | `\complement` |
-| `\approx` | `≈` | `\thickapprox` | | `\preim` | `⁻¹'` | `\preimage` |
-| `\comp` | `∘` | `\circ` | | `\xs` | `×ˢ` | — |
-| `\inv` | `⁻¹` | `\sy` | | `\oplus` | `⊕` | — |
-| `\smul` | `•` | `\bub` `\bu` | | `\sUnion` | `⋃₀` | — |
-| `\langle` | `⟨` | `\<` | | `\sInter` | `⋂₀` | — |
-| `\rangle` | `⟩` | `\>` | | | | |
+| `\and` | `∧` | `\an` `\wedge` | | `\powerset` | `𝒫` | `\McP` |
+| `\or` | `∨` | `\vee` | | `\compl` | `ᶜ` | `\complement` |
+| `\iff` | `↔` | `\leftrightarrow` `\lr` | | `\preim` | `⁻¹'` | `\preimage` |
+| `\not` | `¬` | `\neg` `\lnot` | | `\xs` | `×ˢ` | — |
+| `\to` | `→` | `\imp` `\rightarrow` | | `\approx` | `≈` | `\thickapprox` |
+| `\forall` | `∀` | `\all` | | `\comp` | `∘` | `\circ` |
+| `\exists` | `∃` | `\ex` | | `\inv` | `⁻¹` | `\sy` |
+| `\ne` | `≠` | `\neq` `\eqn` | | `\smul` | `•` | `\bub` `\bu` |
+| `\in` | `∈` | `\member` `\mem` | | `\oplus` | `⊕` | — |
+| `\sub` | `⊆` | `\ss` `\subseteqq` `\subseteq` `\subset` | | `\sUnion` | `⋃₀` | — |
+| `\cup` | `∪` | `\union` `\un` | | `\sInter` | `⋂₀` | — |
+| `\cap` | `∩` | `\inter` `\intersection` | | `\langle` | `⟨` | `\<` |
+| `\setminus` | `\` | — | | `\rangle` | `⟩` | `\>` |
+| `\empty` | `∅` | `\emptyset` `\varnothing` | | | | |
 
 **Greek letters** — the spelled-out name, plus the short keys Lean 4 has
 (letter rows read *lower case · upper case*):

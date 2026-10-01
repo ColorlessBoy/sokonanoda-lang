@@ -65,27 +65,28 @@
 
 | 符号 | 主缩写 | 别名 | | 符号 | 主缩写 | 别名 |
 |---|---|---|---|---|---|---|
-| `∧` | `\and` | `\wedge` | | `⊆` | `\sub` | `\subseteq` |
-| `∨` | `\or` | `\vee` | | `∪` | `\cup` | `\union` |
-| `↔` | `\iff` | `\leftrightarrow` | | `∩` | `\cap` | `\inter` |
-| `¬` | `\not` | `\neg` | | `\` | `\setminus` | — |
-| `→` | `\to` | `\imp` | | `∅` | `\empty` | `\emptyset` |
-| `∀` | `\forall` | — | | `𝒫` | `\powerset` | — |
-| `∃` | `\exists` | — | | `ᶜ` | `\compl` | `\complement` |
-| `≠` | `\ne` | `\neq` | | `⁻¹'` | `\preim` | `\preimage` |
-| `∈` | `\in` | `\mem` | | `×ˢ` | `\xs` | — |
-| `≈` | `\approx` | `\thickapprox` | | `⁻¹` | `\inv` | `\sy` |
-| `∘` | `\comp` | `\circ` | | `•` | `\smul` | `\bub` `\bu` |
-| `⊕` | `\oplus` | — | | `⋃₀` | `\sUnion` | — |
-| `⋂₀` | `\sInter` | — | | `⟨` | `\langle` | `\<` |
-| `⟩` | `\rangle` | `\>` | | | | |
+| `∧` | `\and` | `\an` `\wedge` | | `𝒫` | `\powerset` | `\McP` |
+| `∨` | `\or` | `\vee` | | `ᶜ` | `\compl` | `\complement` |
+| `↔` | `\iff` | `\leftrightarrow` `\lr` | | `⁻¹'` | `\preim` | `\preimage` |
+| `¬` | `\not` | `\neg` `\lnot` | | `×ˢ` | `\xs` | — |
+| `→` | `\to` | `\imp` `\rightarrow` | | `≈` | `\approx` | `\thickapprox` |
+| `∀` | `\forall` | `\all` | | `∘` | `\comp` | `\circ` |
+| `∃` | `\exists` | `\ex` | | `⁻¹` | `\inv` | `\sy` |
+| `≠` | `\ne` | `\neq` `\eqn` | | `•` | `\smul` | `\bub` `\bu` |
+| `∈` | `\in` | `\member` `\mem` | | `⊕` | `\oplus` | — |
+| `⊆` | `\sub` | `\ss` `\subseteqq` `\subseteq` `\subset` | | `⋃₀` | `\sUnion` | — |
+| `∪` | `\cup` | `\union` `\un` | | `⋂₀` | `\sInter` | — |
+| `∩` | `\cap` | `\inter` `\intersection` | | `⟨` | `\langle` | `\<` |
+| `\` | `\setminus` | — | | `⟩` | `\rangle` | `\>` |
+| `∅` | `\empty` | `\emptyset` `\varnothing` | | | | |
 
 - **希腊字母 48 个**（大小写各 24）：打**拼写名**——`\alpha`→`α`、`\Gamma`→`Γ`、
   `\Omega`→`Ω`；Lean 有短键的照收：`\a`→α `\b`→β `\c`→**χ**（不是 γ）`\e`→ε
   `\g`→γ `\m`→μ、`\D`→Δ `\G`→Γ `\L`→Λ `\S`→Σ `\p`/`\P`→**Π**（不是 π）。
   其余以 **hover 为准**（`α` 悬停就说「输入：`\alpha`（别名 `\a`）」）；
 - 这张表是 `crates/front/src/notation_input.rs` 的**镜像**（唯一真相源在那儿；
-  hover 文案与 VS Code 改写器都从它来），别在这里加表里没有的符号；
+  hover 文案与 VS Code 改写器都从它来），别在这里加表里没有的符号；**别名收全**
+  （Lean 里映射到同一符号的纯字母键都收，`G` 族与指向逻辑符号的单字母除外）；
 - **短键不歧义**：`\a` 是 `\alpha`/`\approx`/`\and` 的前缀 ⇒ 还在敲字母时不落定，
   空格/标点/`Tab` 封口才落定（与 Lean 同规则）；
 - Lean 里指向**逻辑/集合**符号的单字母（`\v`→∨ `\i`→∩ `\o`→∘ `\r`→→）**故意不收**：

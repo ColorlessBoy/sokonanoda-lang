@@ -1779,14 +1779,21 @@ test("Tab rewrites \\in even though \\in prefixes \\inter", async () => {
   assert.strictEqual(document.getText(), "∈");
 });
 
-test("Tab leaves an incomplete or unknown word alone", async () => {
+test("Tab leaves an unknown word alone (and takes Lean's short keys)", async () => {
   await activateExtension();
-  // `\an` is a prefix of `\and`, not a table abbreviation: nothing to replace.
-  const prefix = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\an");
-  focus(prefix, [cursor(0, 3)]);
+  // `\zz` 不在表里（也不是任何键的前缀）⇒ 什么都不做：**一次编辑都不发**。
+  const unknown = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\zz");
+  focus(unknown, [cursor(0, 3)]);
   await commandHandler(REPLACE_COMMAND)();
-  assert.strictEqual(prefix.getText(), "\\an", "an incomplete abbreviation must not be rewritten");
-  assert.strictEqual(prefix.__undoStack.length, 0, "no edit may be issued at all");
+  assert.strictEqual(unknown.getText(), "\\zz", "an unknown word must not be rewritten");
+  assert.strictEqual(unknown.__undoStack.length, 0, "no edit may be issued at all");
+
+  // 对照：`\an` **是** Lean 的键（∧）⇒ Tab 换成 ∧。它同时是 `\and` 的前缀，
+  // 但 Tab 是显式命令，前缀不是理由（与 `\in` → ∈ 同一条规则）。
+  const short = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\an");
+  focus(short, [cursor(0, 3)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(short.getText(), "∧", "Lean's short key `\\an` must produce ∧");
 
   // Case-sensitive, like Lean: `\And` is not `\and`.
   const wrongCase = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\And");
@@ -1864,20 +1871,18 @@ test("eager mode waits out the prefix trap", async () => {
   setConfig("input.eager", true);
   const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\i");
   focus(document, [cursor(0, 2)]);
-  // `\i` → `\in` → `\int` → `\inte` → `\inter`: only the last one is complete.
-  const steps = [
-    [cursor(0, 2), "n", "\\in"],
-    [cursor(0, 3), "t", "\\int"],
-    [cursor(0, 4), "e", "\\inte"],
-    [cursor(0, 5), "r", "∩"],
-  ];
-  for (const [position, character, expected] of steps) {
-    typeText(document, position, character);
+  // `\in` 是 `\inter` 的前缀，`\inter` 又是 `\intersection` 的前缀 ⇒ 一路都不落定，
+  // 直到 `\intersection` **既是键、又不是更长键的前缀**（与 Lean 的
+  // `isAbbreviationUniqueAndComplete` 同口径）。
+  const steps = "ntersection".split("");
+  for (const [index, character] of steps.entries()) {
+    typeText(document, cursor(0, 2 + index), character);
     await drain();
+    const last = index === steps.length - 1;
     assert.strictEqual(
       document.getText(),
-      expected,
-      `after typing \`${character}\` the text must be \`${expected}\``,
+      last ? "∩" : `\\i${steps.slice(0, index + 1).join("")}`,
+      `after typing \`${character}\` the text must be ${last ? "∩" : "the abbreviation"}`,
     );
   }
   assert.strictEqual(document.__undoStack.length, 1, "only the complete word was replaced");
