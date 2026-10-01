@@ -123,10 +123,13 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元⑮ 落地后）：50 个目标 · 474 checked · 130 open · 0 判负**
+
 **门禁实测（2026-10-01，单元⑭ 落地后）：48 个目标 · 458 checked · 120 open · 0 判负**
 
 **门禁实测（2026-10-01，单元⑬ 落地后）：46 个目标 · 436 checked · 110 open · 0 判负**
-（**差值是合法生长**：新库 `lib/Order` 48 条 + 单元⑬ 画布/解答各 14 条 + 单元⑭ 画布/解答各 13 条。
+（**差值是合法生长**：新库 `lib/Order` 48 条（`lib/Ordinal` 同日重定形）+ 单元⑬ 画布/解答各 14 条
++ 单元⑭ 画布/解答各 13 条 + 单元⑮ 画布/解答各 13 条。
 **这些数字都别在别处再抄**，要现算就跑 `python3 courses/set-theory/tools/check.py`，它每次都会重数。）
 
 **门禁实测（2026-09-21，0.62.0 二进制，卷 I Lean 化收尾后）：36 个目标 · 328 checked · 99 open · 0 判负**
@@ -152,6 +155,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | I.3 | 像、原像与基数 | I.2 | image · preimage · cardinality · cantor | 23 | 23 | 8–10 |
 | I.4 | 论域、悖论与综合 | I.1 · I.3 | universe · russell · synthesis | 14 | 14 | 11–12 |
 | **I.5** | **序关系与良序** | I.2 | order · partial-order · linear-order · strict-order · well-order · well-founded | 21 | 21 | **13–14** |
+| **I.6** | **序数** | I.5 | ordinal · transitive-set · successor · well-founded | 10 | 10 | **15** |
 
 | 单元 | 章 | 标题 | 练习 | 解答（checked） |
 |---|---|---|---|---|
@@ -169,6 +173,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 12 | I.4 | 综合与读证明 | 9 | 9 |
 | **13** | **I.5** | **偏序、全序与严格序** | **11** | **11** |
 | **14** | **I.5** | **良序与良基** | **10** | **10** |
+| **15** | **I.6** | **传递集与序数** | **10** | **10** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -207,6 +212,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 单元 | 交付 | 撞到/绕开的 |
 |---|---|---|
 | ⑬ 偏序、全序与严格序 | 新库 `lib/Order`（词汇 6 性质 + 4 序类 + 两个翻译函数 + 展开引理 + **取用子** + **智能构造子**）；画布 3 演示 + 11 练习；解答 0 open | **G-72**（`lib/Order` 最初写成字面箭头返回 ⇒ 单文件绿、`import` 红）· **G-73 形状 ①②③**（证明全靠库层绕法） |
+| ⑮ 传递集与序数 | **`lib/Ordinal` 重定形**（见下）+ 画布 3 演示 + 10 练习；解答 0 open | **教材核心定理「序数的元素是序数」可直接证**（重定形前不可证）· **G-73 形状 ①②**（取用子 + 前导实参写全） |
 | ⑭ 良序与良基 | `lib/Order` +6 条（`hasMin_def`/`hasMin_intro`/`hasMin_elim`/`hasMin_witness`/`isWellFounded_intro`/`EmptyRelation`）；画布 3 演示 + 10 练习；解答 0 open | **G-73 形状 ②**（`Exists.intro`/`Exists.elim` 的前导实参必须写全）· 形状 ③（`≠` 不能出现在 λ 的**绑定类型**里 ⇒ 谓词改成部分应用 `r a`、像写成具名 `SeqImage`） |
 
 **被 G-73 挡住、如实不排的题**（等语言线关账再补，**不改题绕开**）：「`⊆` 不是全序」·

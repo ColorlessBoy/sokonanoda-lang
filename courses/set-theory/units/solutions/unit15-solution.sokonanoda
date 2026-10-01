@@ -1,0 +1,92 @@
+-- unit15 解答钥匙（agent 专用）。
+-- 写法：**项风格**（不用 `by`），见 courses/set-theory/AGENTS.md「解答写法」。
+-- 这份文件同时是**提示**：老师据此把骨架翻成 tactic 讲给学习者。
+--
+-- ⚠ 本单元同样绕开本语言的两条 elaborator 边界（台账 G-72 / G-73）：
+--   ① 定义头类型的假设**不能直接当函数应用**（要 `(fun (hx : <展开形态>) => hx …) 假设`）；
+--   ② `Exists.intro`/`HasMin` 一类定义头的构造，前导实参必须**写全**。
+--   两条都是**语言侧待修**的；hint 只讲数学那一半。
+import lib.Ordinal
+
+-- ── 演示（画布上已写好，逐字保留）─────────────────────────────────────────
+
+theorem demo_isTransitive_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsTransitive α E x ↔ ∀ (y : α), E y x → ∀ (z : α), E z y → E z x :=
+  isTransitive_def α E x
+
+theorem demo_isOrdinal_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsOrdinal α E x ↔
+      IsTransitive α E x ∧ (∀ (y : α), E y x → IsTransitive α E y) ∧ IsWellFounded α E :=
+  isOrdinal_def α E x
+
+theorem demo_isSuccOf_def (α : Type) (E : α → α → Prop) (x y : α) :
+    IsSuccOf α E x y ↔
+      IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y) :=
+  isSuccOf_def α E x y
+
+-- ── 练习 1–3（T 类）：三条取用子 ──────────────────────────────────────────
+
+theorem ordinal_isTransitive_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h
+
+theorem ordinal_elems_isTransitive_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) (y : α) : E y x → IsTransitive α E y :=
+  ordinal_elems_isTransitive α E x h y
+
+theorem ordinal_wellFounded_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=
+  ordinal_wellFounded α E x h
+
+-- ── 练习 4（L 类）：序数的元素是序数（本单元旗舰）─────────────────────────
+theorem ordinal_elem (α : Type) (E : α → α → Prop) (x y : α)
+    (hy : IsOrdinal α E y) (hxy : E x y) : IsOrdinal α E x :=
+  isOrdinal_intro α E x
+    (ordinal_elems_isTransitive α E y hy x hxy)
+    (fun (z : α) (hzx : E z x) =>
+      ordinal_elems_isTransitive α E y hy z
+        ((fun (ht : ∀ (a : α), E a y → ∀ (b : α), E b a → E b y) => ht x hxy z hzx)
+          (ordinal_isTransitive α E y hy)))
+    (ordinal_wellFounded α E y hy)
+
+-- ── 练习 5–6（T/L 类）：后继 ──────────────────────────────────────────────
+
+theorem succ_isOrdinal (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsSuccOf α E x y) : IsOrdinal α E x :=
+  And.left h
+
+theorem succ_mem (α : Type) (E : α → α → Prop) (x y z : α)
+    (h : IsSuccOf α E x y) : E z x ↔ (E z y ∨ z = y) :=
+  (fun (h2 : ∀ (z' : α), E z' x ↔ (E z' y ∨ z' = y)) => h2 z) (And.right h)
+
+-- ── 练习 7（L 类）：`∈` 在序数内部可以接 ──────────────────────────────────
+theorem ordinal_trans_mem (α : Type) (E : α → α → Prop) (x y z : α)
+    (hy : IsOrdinal α E y) (hxy : E x y) : E z x → E z y :=
+  fun (hzx : E z x) => ordinal_isTransitive α E y hy x hxy z hzx
+
+-- ── 练习 8（D 类）：全局传递 ⇒ 每个元素都是传递集 ─────────────────────────
+theorem global_transitive_vacuous (α : Type) (E : α → α → Prop)
+    (h : Transitive α E) (x : α) : IsTransitive α E x :=
+  fun (y : α) (hyx : E y x) (z : α) (hzy : E z y) => h z y x hzy hyx
+
+-- ── 练习 9（D 类）：全局传递 ⇒ 序数谓词只剩良基那一半 ─────────────────────
+theorem global_transitive_ordinal_trivial (α : Type) (E : α → α → Prop)
+    (h : Transitive α E) (x : α) : IsOrdinal α E x ↔ IsWellFounded α E :=
+  Iff.intro (fun (ho : IsOrdinal α E x) => ordinal_wellFounded α E x ho)
+    (fun (hwf : IsWellFounded α E) =>
+      isOrdinal_intro α E x (global_transitive_vacuous α E h x)
+        (fun (y : α) (hyx : E y x) => global_transitive_vacuous α E h y) hwf)
+
+-- ── 练习 10（D 类）：空关系下每个元素都是序数 ─────────────────────────────
+theorem emptyRelation_all_ordinals (α : Type) (x : α) :
+    IsOrdinal α (EmptyRelation α α) x :=
+  isOrdinal_intro α (EmptyRelation α α) x
+    (fun (y : α) (hy : EmptyRelation α α y x) (z : α) (hz : EmptyRelation α α z y) => hy)
+    (fun (y : α) (hy : EmptyRelation α α y x) =>
+      fun (a : α) (ha : EmptyRelation α α a y) (b : α) (hb : EmptyRelation α α b a) => ha)
+    (isWellFounded_intro α (EmptyRelation α α)
+      (fun (P : α → Prop) (hP : ∃ (m : α), P m) =>
+        Exists.elim α P (HasMin α (EmptyRelation α α) P) hP  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+          (fun (m : α) (hm : P m) =>
+            hasMin_intro α (EmptyRelation α α) P m hm
+              (fun (y : α) (hy : P y) (hf : EmptyRelation α α y m) => hf))))

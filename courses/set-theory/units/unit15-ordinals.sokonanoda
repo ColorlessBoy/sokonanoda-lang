@@ -1,0 +1,169 @@
+-- ==========================================================================
+-- unit15-ordinals.sokonanoda —— 卷 I 单元⑮ **传递集与序数**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§7.6 Ordinal
+-- Numbers**（+ §7.5 Isomorphisms 的前半）；Halmos《Naive Set Theory》**§19 Ordinal
+-- Numbers**（+ §20 Sets of Ordinal Numbers 的开头）。大纲：`set-theory-syllabus.md` §4.1（I.6 章）。
+--
+-- 本单元的"该学的定理"：**序数 = 传递集 + 它的元素都传递**（Isabelle 的 `Ord`），
+-- 再加上环境的良基性；由这三条能直接推出**教材核心定理 —— 序数的元素是序数**。
+-- 还有两道**必破题**：一旦把"传递"错误地当成**全局**性质，整个序数谓词就退化成
+-- 只剩良基那一半（这正是 `lib/Ordinal` 2026-10-01 重定形要修的那个坑，见该文件头的 ⚠）。
+--
+-- **写法约定（本单元特有）**：域是一个类型 `α`，成员关系是一个**二元谓词**
+--   `E : α → α → Prop`（`E y x` 读作 `y ∈ x`）—— 这就是"宇宙内化"的读法；
+--   序数写成**谓词** `α → Prop`，因为"全体序数"不是集合（Burali-Forti）✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元只 `import` 一样**：`lib.Ordinal`（它自己 `import lib.Order`，于是良基的
+--   取用子/智能构造子也能用）。
+--
+-- 依赖：单元⑭（良序与良基）—— 本单元的良基那一半直接用它的词汇。
+-- ==========================================================================
+import lib.Ordinal
+
+-- ─────────────────────────────────────────────────────────────
+-- 15.1 传递集与序数的定义
+--
+-- 读法（逐条对 Isabelle `ZFC_in_HOL` §1.4，出处见 `lib/Ordinal` 文件头）：
+--   · `IsTransitive α E x`："x 是传递集" —— x 的元素还是 x 的元素；
+--   · `IsOrdinal α E x` = 传递集 ∧ **元素都传递** ∧ 环境良基。
+-- ⚠ 第二条**不能省**：它是「序数的元素是序数」这条定理**直接可证**的原因 ✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：传递集的定义展开。
+theorem demo_isTransitive_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsTransitive α E x ↔ ∀ (y : α), E y x → ∀ (z : α), E z y → E z x :=
+  isTransitive_def α E x
+
+-- 演示：序数的定义展开（三条）。
+theorem demo_isOrdinal_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsOrdinal α E x ↔
+      IsTransitive α E x ∧ (∀ (y : α), E y x → IsTransitive α E y) ∧ IsWellFounded α E :=
+  isOrdinal_def α E x
+
+-- 演示：后继的定义展开（`x` 是 `y` 的后继 ⟺ x 的元素恰好是 y 的元素加上 y）。
+theorem demo_isSuccOf_def (α : Type) (E : α → α → Prop) (x y : α) :
+    IsSuccOf α E x y ↔
+      IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y) :=
+  isSuccOf_def α E x y
+
+-- ─────────────────────────────────────────────────────────────
+-- 15.2 把序数拆开用（三条取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：序数 ⇒ **传递集**。
+-- soko:hint 思路：三条里的第一条，库里的取用子直接交出来。
+-- soko:hint 目标形态：`IsTransitive α E x`。
+-- soko:hint 关键件：`ordinal_isTransitive`（参数表：论域 · 关系 · 元素 · 序数证据）。
+theorem ordinal_isTransitive_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x := by
+  sorry
+
+-- 练习 2（T 类）：序数 ⇒ **它的每个元素都传递**。
+-- soko:hint 思路：三条里的第二条 —— 注意它多带一个"哪个元素"的参数。
+-- soko:hint 目标形态：`E y x → IsTransitive α E y`。
+-- soko:hint 关键件：`ordinal_elems_isTransitive`（最后那个 `y` 由调用方给）。
+theorem ordinal_elems_isTransitive_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) (y : α) : E y x → IsTransitive α E y := by
+  sorry
+
+-- 练习 3（T 类）：序数 ⇒ **环境的良基性**。
+-- soko:hint 思路：三条里的第三条。
+-- soko:hint 目标形态：`IsWellFounded α E`。
+-- soko:hint 关键件：`ordinal_wellFounded`。
+theorem ordinal_wellFounded_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 15.3 必证（本单元旗舰）：**序数的元素是序数**
+--
+-- 这是教材里"序数"这个概念**之所以好用**的根源：序数类对 `∈` 封闭。
+-- 证明之所以短，正是因为定义的第二条把"元素传递"直接写进去了 ✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（L 类）：**序数的元素是序数**。
+-- soko:hint 思路：要证 `IsOrdinal α E x` 的三条：
+--   (a) `x` 传递 —— 由 `y` 的**元素传递**（第二条）作用在 `x ∈ y` 上直接得到；
+--   (b) `x` 的元素都传递 —— 先由 `y` 的**传递性**把 `z ∈ x ∈ y` 接成 `z ∈ y`，
+--       再用 `y` 的元素传递性；
+--   (c) 良基 —— 与 `y` 共用一个环境，直接取。
+-- soko:hint 目标形态：`IsOrdinal α E x`。
+-- soko:hint 关键件：`isOrdinal_intro`（三条证据一次给全）· 练习 1/2/3 的三条取用子 ·
+--   注意 (b) 里要用 `ordinal_isTransitive` **先 `fun (ht : …) => …` 把类型写出来**再应用（G-73）。
+theorem ordinal_elem (α : Type) (E : α → α → Prop) (x y : α)
+    (hy : IsOrdinal α E y) (hxy : E x y) : IsOrdinal α E x := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 15.4 后继序数
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 5（T 类）：后继序数是**序数**。
+-- soko:hint 思路：`IsSuccOf` 的定义是一个合取，取左支。
+-- soko:hint 目标形态：`IsOrdinal α E x`。
+-- soko:hint 关键件：`And.left`（`IsSuccOf` 的定义体**就是**一个合取，可以直接取支）。
+theorem succ_isOrdinal (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsSuccOf α E x y) : IsOrdinal α E x := by
+  sorry
+
+-- 练习 6（L 类）：**后继的元素刻画** —— `x` 的元素恰好是 `y` 的元素加上 `y` 自己。
+-- soko:hint 思路：`IsSuccOf` 那个合取的右支就是一条 `↔`，把 `z` 代进去。
+-- soko:hint 目标形态：`E z x ↔ (E z y ∨ z = y)`。
+-- soko:hint 关键件：`And.right` 拿到的是**定义头**类型（一个 `∀`），
+--   不能直接应用 —— 先 `fun (h2 : ∀ (z' : α), …) => h2 z` 把类型写出来（G-73 形状 ①）。
+theorem succ_mem (α : Type) (E : α → α → Prop) (x y z : α)
+    (h : IsSuccOf α E x y) : E z x ↔ (E z y ∨ z = y) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 15.5 序数的传递性怎么用
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（L 类）：**`∈` 在序数内部是可以接的** —— `x ∈ y` 且 `z ∈ x` 则 `z ∈ y`。
+-- soko:hint 思路：这正是"`y` 是传递集"这条的展开形式，把两条证据喂进去。
+-- soko:hint 目标形态：`E z x → E z y`。
+-- soko:hint 关键件：`ordinal_isTransitive`（参数表：论域 · 关系 · 元素 · 序数证据 ·
+--   第一个元素 · 它在里面 · 第二个元素 · 它也在里面）。
+theorem ordinal_trans_mem (α : Type) (E : α → α → Prop) (x y z : α)
+    (hy : IsOrdinal α E y) (hxy : E x y) : E z x → E z y := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 15.6 必破：**"传递"不能当成全局性质**
+--
+-- `lib/Ordinal` 2026-10-01 重定形之前的定义把「`E` 全局传递」也写进了序数谓词，
+-- 那会让整个谓词**退化**（与 `x` 无关）。下面两题把这个后果**证出来**：
+-- 一旦 `E` 全局传递，则（8）每个 `x` 都是传递集、（9）序数谓词只剩良基那一半。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 8（D 类）：**全局传递 ⇒ "传递集"这个概念就废了**（每个元素都传递）。
+-- soko:hint 思路：要证 `x` 传递，就是"两条 `E` 证据接起来"—— 全局传递正好提供这条规则，
+--   注意参数顺序：`E y x` 与 `E z y` 要给成 `E z y → E y x → E z x`。
+-- soko:hint 目标形态：`IsTransitive α E x`。
+-- soko:hint 关键件：`Transitive α E` 的展开是 `∀ a b c, E a b → E b c → E a c`
+--   （**a→b→c 的方向**，别接反）。
+theorem global_transitive_vacuous (α : Type) (E : α → α → Prop)
+    (h : Transitive α E) (x : α) : IsTransitive α E x := by
+  sorry
+
+-- 练习 9（D 类）：**全局传递 ⇒ 序数谓词只剩良基那一半**（与 `x` 无关）。
+-- soko:hint 思路：两个方向。→ 方向取序数的第三条；← 方向用练习 8 造前两条
+--   （第二条也要"每个 `y` 都传递"，同样是练习 8 的实例）。
+-- soko:hint 目标形态：`IsOrdinal α E x ↔ IsWellFounded α E`。
+-- soko:hint 关键件：`isOrdinal_intro`（三条证据）+ `ordinal_wellFounded` + 练习 8。
+theorem global_transitive_ordinal_trivial (α : Type) (E : α → α → Prop)
+    (h : Transitive α E) (x : α) : IsOrdinal α E x ↔ IsWellFounded α E := by
+  sorry
+
+-- 练习 10（D 类）：**空关系下每个元素都是序数** —— 三条里前两条在空关系下**真空成立**。
+-- soko:hint 思路：三条分别给证据：前两条都是"拿到一条 `E` 证据就交出去"（那种证据本身
+--   就是 `False`，真空地成立）；第三条是空关系良基（单元⑭ 练习 9 证过）。
+-- soko:hint 目标形态：`IsOrdinal α (EmptyRelation α α) x`。
+-- soko:hint 关键件：`isOrdinal_intro` + `isWellFounded_intro` + `hasMin_intro` +
+--   `Exists.elim`（**前导实参要写全**，G-73 形状 ②）。
+theorem emptyRelation_all_ordinals (α : Type) (x : α) :
+    IsOrdinal α (EmptyRelation α α) x := by
+  sorry

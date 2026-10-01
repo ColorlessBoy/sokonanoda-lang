@@ -1,33 +1,42 @@
--- Ordinal.sokonanoda —— 卷 I 的**序数（谓词式）**（ST8，v0.77.0）
+-- Ordinal.sokonanoda —— 卷 I 的**序数（谓词式）**（ST8 落地；2026-10-01 按教材重定形）
 --
 -- **定位**：这一档**不引入任何新类型** —— 序数写成**谓词**（`α → Prop`），
 -- 与 ST1 决策记录结论 ② 一致：「序数写成谓词；全体序数 `ON` **不是集合**
 -- （Burali-Forti）⇒ 序数本来就不该是一个类型」✓。
 --
--- **基准**（逐条实查，出处见 `docs/design/v077-st1-boundary.md` §2）：
+-- **基准**（逐条实查，出处 `docs/design/v077-st1-boundary.md` §2）：
 --   Isabelle AFP `ZFC_in_HOL`（`ZFC_in_HOL.thy` §1.4）——
 --       definition Transset where "Transset x ≡ ∀y ∈ elts x. y ≤ x"
 --       definition Ord      where "Ord x      ≡ Transset x ∧ (∀y ∈ elts x. Transset y)"
 --       abbreviation ON     where "ON ≡ Collect Ord"
 --   而 `lemma big_ON [simp]: "¬ small ON"` ⇒ **全体序数不是集合** ✓。
---   ⚠ **我们与 Isabelle 的两处不同**（有意，理由在下面）：
---   ① Isabelle 的 `Ord` **不含良基性**（良基性来自全局公理
---      `foundation: "wf {(x,y). x ∈ elts y}"`）；本语言**没有**那条公理
---      （也没有 `Acc`，见 G-56）⇒ 我们把**良基性显式写进 `IsOrdinal`** ✓。
---   ② Isabelle 的 `Transset x` 用 `y ≤ x`（子集序）；我们的 `IsTransitive`
---      用 `E z y → E z x`（∈ 的传递性）—— 在 `E` 就是 `∈` 时两者等价 ✓。
+--
+-- ⚠ **2026-10-01 重定形（这一档最贵的一课，务必读完再改）**：ST8 的原式是
+--   `IsOrdinal α E x := IsTransitive α E x ∧ ETrans α E ∧ EWellFounded α E`，
+--   其中 `ETrans α E` 是「**E 全局传递**」。那条**让整个谓词退化**：
+--   若 E 全局传递，则 `IsTransitive α E x`（"x 的元素还是 x 的元素"）
+--   对**任何** x 都成立（把两条 E 证据接起来就是）⇒ `IsOrdinal α E x` 与 x **无关** ✗。
+--   这与教材不符：ZF 里 ∈ **不是**全局传递的（`x ∈ y ∈ z` 推不出 `x ∈ z`），
+--   全局传递是**序数内部**才有的性质。测试见
+--   `courses/set-theory/lib/Ordinal.sokonanoda` 的 `ordinal_isTransitive` 一族。
+--   **改法照 Isabelle**：`Ord x ≡ Transset x ∧ (∀y ∈ x. Transset y)`（**两条都只谈 x**），
+--   良基性单独作为一条（Isabelle 靠全局公理 `foundation`，我们这里显式写出来）✓。
+--   重定形后「序数的元素是序数」这条**教材核心定理**才是可证的（见下 `ordinal_elem`）。
 --
 -- **分层判据**（docs/design/course-stdlib.md）：本文件是 **L2（词汇 + 定义展开）**：
---   · 7 个定义：`IsTransitive` / `ETotal` / `ETrans` / `HasLeast` / `EWellFounded` /
---     `IsOrdinal` / `IsSuccOf`；
---   · 3 条 L2 引理：`isOrdinal_def` / `isSuccOf_def` / `ordinal_isTransitive`。
--- 有数学内容的（序数的三歧性、`∈` 的良序性、后继唯一、极限序数的性质）属 **L3**，
--- 留作单元练习 ✗。
+--   · 3 个定义：`IsTransitive` / `IsOrdinal` / `IsSuccOf`；
+--   · 展开引理与取用子（`isOrdinal_def` / `isSuccOf_def` / `ordinal_isTransitive` /
+--     `ordinal_elems_isTransitive` / `ordinal_wellFounded` / `isOrdinal_intro`）。
+-- 有数学内容的（**元素是序数**、三歧性、后继唯一、极限序数）属 **L3**，留作单元练习 ✗
+-- —— **一条都不许放进来**（L-05 的教训：内容型引理进库 = 学习者的答案已经在库里）。
 --
+-- ⚠ **依赖**：`lib.Order`（`IsWellFounded` 与它的取用子/智能构造子都出自那里；
+--   ST8 原式自带的 `HasLeast`/`EWellFounded`/`ETrans` 与它**重复**，已删 ✓）。
 -- ⚠ **本档不碰 `rank`/超限递归**：那要良基递归（G-56）**与**大消去（G-58），
--- 两条都是本版不修的 kernel 不足 ⇒ ST7/ST9 留给 ST15 清单 ✓。
+--   两条都是本版不修的 kernel 不足 ⇒ ST7/ST9 留给内核不足清单 ✓。
 import lib.Logic
 import lib.Exists
+import lib.Order
 
 -- ── 词汇：把「论域 + 成员关系」内化成谓词 ────────────────────────────────────
 -- 读法：整个论域取成**一个类型** `α`，成员关系取成二元谓词 `E : α → α → Prop`
@@ -37,37 +46,27 @@ import lib.Exists
 def IsTransitive (α : Type) (E : α → α → Prop) (x : α) : Prop :=
   ∀ (y : α), E y x → ∀ (z : α), E z y → E z x
 
--- 三歧（全序）：任意两个元素可比或相等
-def ETotal (α : Type) (E : α → α → Prop) : Prop :=
-  ∀ (x y : α), E x y ∨ E y x ∨ x = y
-
--- 传递（关系本身的传递性）
-def ETrans (α : Type) (E : α → α → Prop) : Prop :=
-  ∀ (x y z : α), E x y → E y z → E x z
-
--- 非空子集有 `E`-最小元
-def HasLeast (α : Type) (E : α → α → Prop) (P : α → Prop) : Prop :=
-  ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (E y m)
-
--- 良基：每个非空子集都有 `E`-最小元（Isabelle 的 `wf` 在集合论里的等价形式）
-def EWellFounded (α : Type) (E : α → α → Prop) : Prop :=
-  ∀ (P : α → Prop), (∃ (x : α), P x) → HasLeast α E P
-
--- ── **序数 = 谓词** ─────────────────────────────────────────────────────────
--- 传递 + `E` 传递 + 良基。**注意良基性在这里是显式的**（见文件头 ⚠ ①）。
+-- ── **序数 = 谓词**（Isabelle `Ord` 的逐条对应，见文件头的重定形说明）──────
 def IsOrdinal (α : Type) (E : α → α → Prop) (x : α) : Prop :=
-  IsTransitive α E x ∧ ETrans α E ∧ EWellFounded α E
+  IsTransitive α E x ∧ (∀ (y : α), E y x → IsTransitive α E y) ∧ IsWellFounded α E
 
 -- `x` 是序数 `y` 的**后继**：`x` 是序数，且 `x` 的元素恰好是 `y` 的元素加上 `y` 自己
 -- （Isabelle `ZFC_in_HOL` §1.3 的 `succ`：`succ i = i ∪ {i}` ✓）
 def IsSuccOf (α : Type) (E : α → α → Prop) (x y : α) : Prop :=
   IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y)
 
--- ── 定义展开引理（L2：Mathlib/Isabelle 里都是 `iff` 或一行，没有数学内容）──────
+-- ── 定义展开引理（L2：Isabelle/Mathlib 里都是 `iff` 或一行，没有数学内容）────
+theorem isTransitive_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsTransitive α E x ↔ ∀ (y : α), E y x → ∀ (z : α), E z y → E z x :=
+  Iff.intro (fun (h : IsTransitive α E x) => h)
+    (fun (h : ∀ (y : α), E y x → ∀ (z : α), E z y → E z x) => h)
+
 theorem isOrdinal_def (α : Type) (E : α → α → Prop) (x : α) :
-    IsOrdinal α E x ↔ IsTransitive α E x ∧ ETrans α E ∧ EWellFounded α E :=
+    IsOrdinal α E x ↔
+      IsTransitive α E x ∧ (∀ (y : α), E y x → IsTransitive α E y) ∧ IsWellFounded α E :=
   Iff.intro (fun (h : IsOrdinal α E x) => h)
-    (fun (h : IsTransitive α E x ∧ ETrans α E ∧ EWellFounded α E) => h)
+    (fun (h : IsTransitive α E x ∧ (∀ (y : α), E y x → IsTransitive α E y) ∧
+        IsWellFounded α E) => h)
 
 theorem isSuccOf_def (α : Type) (E : α → α → Prop) (x y : α) :
     IsSuccOf α E x y ↔
@@ -75,7 +74,22 @@ theorem isSuccOf_def (α : Type) (E : α → α → Prop) (x y : α) :
   Iff.intro (fun (h : IsSuccOf α E x y) => h)
     (fun (h : IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y)) => h)
 
--- 序数 ⇒ 传递集（Isabelle `Ord x ⟹ Transset x` 的对应物；这里直接取合取左支）
+-- ── 取用子（**参数一次给全**；理由与 `lib/Order` 那一组相同，见 G-73）────────
 theorem ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
     (h : IsOrdinal α E x) : IsTransitive α E x :=
-  And.left (Iff.mp (isOrdinal_def α E x) h)
+  And.left h
+
+theorem ordinal_elems_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) (y : α) : E y x → IsTransitive α E y :=
+  (fun (he : ∀ (y' : α), E y' x → IsTransitive α E y') => he y) (And.left (And.right h))
+
+theorem ordinal_wellFounded (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=
+  And.right (And.right h)
+
+-- ── 智能构造子（把 `And.intro` 的隐式实参反解收进库；同 G-73 的处置）────────
+theorem isOrdinal_intro (α : Type) (E : α → α → Prop) (x : α)
+    (htrans : IsTransitive α E x)
+    (helems : ∀ (y : α), E y x → IsTransitive α E y)
+    (hwf : IsWellFounded α E) : IsOrdinal α E x :=
+  Iff.mpr (isOrdinal_def α E x) (And.intro htrans (And.intro helems hwf))

@@ -179,6 +179,30 @@
               "unit": 14
             }
           ]
+        },
+        {
+          "id": "I.6",
+          "title": "序数",
+          "prereqs": [
+            "I.5"
+          ],
+          "tags": [
+            "ordinal",
+            "transitive-set",
+            "successor",
+            "well-founded"
+          ],
+          "quota": {
+            "exercises": 10
+          },
+          "units": [
+            {
+              "file": "units/unit15-ordinals.sokonanoda",
+              "title": "单元⑮ 传递集与序数",
+              "title_en": "Unit 15 — Transitive Sets and Ordinals",
+              "unit": 15
+            }
+          ]
         }
       ]
     }
