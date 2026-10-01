@@ -103,7 +103,10 @@ impl DepGraph {
         Self {
             commands,
             uses: uses.into_iter().map(|s| s.into_iter().collect()).collect(),
-            used_by: used_by.into_iter().map(|s| s.into_iter().collect()).collect(),
+            used_by: used_by
+                .into_iter()
+                .map(|s| s.into_iter().collect())
+                .collect(),
             decl_of,
             unknown,
         }
@@ -243,11 +246,7 @@ mod tests {
                 decl("d01", 3),
                 decl("d02", 4),
             ],
-            vec![
-                (2, Some("t00")),
-                (3, Some("d00")),
-                (4, Some("t00")),
-            ],
+            vec![(2, Some("t00")), (3, Some("d00")), (4, Some("t00"))],
         );
         let graph = DepGraph::from_report(&report);
         assert_eq!(graph.uses(2), &[0], "d00 引用 t00");
@@ -257,7 +256,11 @@ mod tests {
             vec![0, 2, 3, 4],
             "改 t00 ⇒ 脏集必须含**间接**依赖它的 d01（传递闭包）"
         );
-        assert_eq!(graph.dirty_commands(1), vec![1], "无人依赖的一条 ⇒ 脏集只有自己");
+        assert_eq!(
+            graph.dirty_commands(1),
+            vec![1],
+            "无人依赖的一条 ⇒ 脏集只有自己"
+        );
         assert_eq!(graph.dirty_commands(3), vec![3], "链尾无人依赖 ⇒ 只有自己");
     }
 
@@ -268,10 +271,10 @@ mod tests {
             vec![decl("a", 0), decl("b", 1)],
             vec![
                 (1, Some("a")),
-                (1, Some("a")),          // 重复引用同一条 ⇒ 去重
-                (1, Some("Nat")),        // 不在本文件声明表里 ⇒ unknown
-                (1, None),               // 解析不到 ⇒ unknown
-                (0, Some("a")),          // 自引用 ⇒ 不建边
+                (1, Some("a")),   // 重复引用同一条 ⇒ 去重
+                (1, Some("Nat")), // 不在本文件声明表里 ⇒ unknown
+                (1, None),        // 解析不到 ⇒ unknown
+                (0, Some("a")),   // 自引用 ⇒ 不建边
             ],
         );
         let graph = DepGraph::from_report(&report);
@@ -279,7 +282,11 @@ mod tests {
         assert_eq!(graph.used_by(0), &[1]);
         assert_eq!(graph.dirty_commands(0), vec![0, 1]);
         assert_eq!(
-            graph.unknown_references().iter().copied().collect::<Vec<_>>(),
+            graph
+                .unknown_references()
+                .iter()
+                .copied()
+                .collect::<Vec<_>>(),
             vec![1],
             "引用了 Nat / 解析不到的命令必须进 unknown（S6 不许把它当干净）"
         );

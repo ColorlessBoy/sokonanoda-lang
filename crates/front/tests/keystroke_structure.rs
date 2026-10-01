@@ -254,8 +254,14 @@ fn keystroke_structure_is_measured() {
     // 搬进 `out.stats.kernel_checks`**（只有 `project/session.rs` 那条搬了）。
     // 用户 2026-10-01 的验收读数正是"重查命令数"，所以这条**必须先修**才能判
     // （已记进台账 G-29）。在那之前：主读数打出来、用能用的计数做下限断言。
-    assert!(leaf.modules > 0 && root.modules > 0 && mid.modules > 0, "改一条必须至少编一个模块");
-    assert!(leaf.by > 0 && root.by > 0 && mid.by > 0, "夹具必须真的走到 `by` 引擎");
+    assert!(
+        leaf.modules > 0 && root.modules > 0 && mid.modules > 0,
+        "改一条必须至少编一个模块"
+    );
+    assert!(
+        leaf.by > 0 && root.by > 0 && mid.by > 0,
+        "夹具必须真的走到 `by` 引擎"
+    );
 }
 
 /// **目标用例**（`#[ignore]`，目标模型落地后应当翻绿）—— 用户 2026-10-01 的验收标准
@@ -272,7 +278,10 @@ fn keystroke_structure_is_measured() {
 #[ignore = "G-29 目标模型：依赖图脏传播落地前必红"]
 fn dirty_propagation_target() {
     let (leaf, root, mid) = measure("target");
-    println!("PERF keystroke leaf={:?} root={:?} mid={:?}", leaf, root, mid);
+    println!(
+        "PERF keystroke leaf={:?} root={:?} mid={:?}",
+        leaf, root, mid
+    );
     assert_eq!(
         leaf.entry_kernel_checks, 1,
         "改**无人依赖**的一条 ⇒ 重查命令数必须是 1（今天 {}）",

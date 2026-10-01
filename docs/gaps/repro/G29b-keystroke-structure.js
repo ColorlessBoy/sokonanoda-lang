@@ -71,6 +71,9 @@ function startLsp(env) {
 }
 
 /// 位置：`first` = 文件里第一条 theorem，`last` = 最后一条。
+///
+/// ⚠ **每一刀都必须是真改动**（`a→b→c` 三刀），不许"改回去"：改回去会命中
+/// **磁盘缓存**（实测 11ms）⇒ 那一刀根本不走增量路，读数会把"没生效"看成"很快" ✗。
 function editPairs(which) {
   const base = fs.readFileSync(ENTRY, "utf8");
   const names = [...base.matchAll(/^theorem\s+([A-Za-z0-9_]+)/gm)].map((m) => m[1]);
@@ -78,7 +81,8 @@ function editPairs(which) {
   const name = which === "last" ? names[names.length - 1] : names[0];
   return [
     [name, name + "_a"],
-    [name + "_a", name],
+    [name + "_a", name + "_b"],
+    [name + "_b", name + "_c"],
   ];
 }
 
