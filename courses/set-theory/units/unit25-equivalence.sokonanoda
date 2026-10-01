@@ -1,0 +1,159 @@
+-- ==========================================================================
+-- unit25-equivalence.sokonanoda —— 卷 I 单元㉕ **等价关系与划分**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§3.5 Equivalence
+-- Relations**；Halmos《Naive Set Theory》**§10 / §18**（等价类与商集那一节）。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.10 章第二个单元，**本章收口**）。
+--
+-- 本单元的"该学的定理"（**等价关系 = 划分**这一定理的两半）：
+--   · **同类点有同样的类**（`r a b` ⇒ `∀ c, r a c ↔ r b c`）；
+--   · **类相同 ⟺ 相关**（把两半合成一条 `↔`）；
+--   · **不同的类不交**（`¬ r a b` ⇒ 没有点同时在两个类里）；
+--   · **划分的三条**：每个类**非空** · 每个点**落在某个类里** · 有公共点的两个类**逐点相同** ✓
+--
+-- 读法：`Set α` 就是 `α → Prop` ⇒ "等价类"直接写成**谓词** `Rel.EquivClass α r a`
+-- （"与 `a` 相关的那些点"），"商集"写成"是某个等价类"这条**性质** `Rel.Classes α r` ✓
+-- —— 于是整章**不需要新类型**（与 ST1 的谓词式口径一致）✓
+--
+-- **写法约定（本单元特有）**：几乎每条定理都要**三次使用 `IsEquivalence` 的一条** ——
+--   自反 / 对称 / 传递在库里都是**定义头**（`∀`）⇒ 用之前先
+--   `fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) => …` 把类型写出来（G-73 形状 ①），
+--   或者直接用库里的三条取用子 ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Rel`（关系与等价类）· `lib.Order`（等价关系三条）· `lib.Set`。
+--
+-- 依赖：单元㉔（关系闭包）与单元⑬（自反/对称/传递）—— 本单元把三条合起来用。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 25.1 三条库引理（等价类/商集的展开 + 自反那一条的取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：**等价类的成员刻画**（"与 `a` 相关"就是"属于 `[a]`"）。
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+
+-- 演示：**"是某个等价类"的刻画** —— 它是"存在一个代表元，类恰好是那个点的相关点集"。
+theorem demo_mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  Rel.mem_classes α r C
+
+-- 演示：等价关系**自反**那一条的取用子。
+theorem demo_equivalence_refl (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Reflexive α r :=
+  equivalence_refl α r he
+
+-- 练习 1（T 类）：等价类的成员刻画（库里现成的）。
+-- soko:hint 思路：直接交出去 —— 参数按顺序给（关系 · 两个点）。
+-- soko:hint 目标形态：`Rel.EquivClass α r a b ↔ r a b`。
+-- soko:hint 关键件：`Rel.mem_equivClass`。
+theorem mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b := by
+  sorry
+
+-- 练习 2（T 类）："是某个等价类"的刻画（库里现成的）。
+-- soko:hint 思路：同上，直接交出去。
+-- soko:hint 目标形态：`Rel.Classes α r C ↔ ∃ a, ∀ c, C c ↔ r a c`。
+-- soko:hint 关键件：`Rel.mem_classes`。
+theorem mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c := by
+  sorry
+
+-- 练习 3（T 类）：**每个点都在自己的类里**（自反那一条的直接实例）。
+-- soko:hint 思路：`[a] a` 展开就是 `r a a`，而它由自反给。
+-- soko:hint 目标形态：`Rel.EquivClass α r a a`。
+-- soko:hint 关键件：`equivalence_refl`（**返回值是定义头 ⇒ 先 λ 绑定再应用**，G-73 形状 ①）。
+theorem equivClass_self (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a : α) :
+    Rel.EquivClass α r a a := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 25.2 本单元的正题：**同类点有同样的类**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（L 类，旗舰之一）：**相关的两个点，它们的类逐点相同**。
+-- soko:hint 思路：两个方向各一次 —— 从 `r a c` 到 `r b c`：先把 `r a b` **掉头**成 `r b a`，
+--   再与 `r a c` **接起来**；反方向用原来的 `r a b` 接。
+-- soko:hint 目标形态：`r a b → ∀ c, r a c ↔ r b c`。
+-- soko:hint 关键件：`Iff.intro`（**前导 Prop 实参写全**）· 库里的三条取用子
+--   （自反/对称/传递都是**定义头** ⇒ 先 λ 绑定再应用）· 接的顺序别反（`r b a` 与 `r a c`）。
+theorem equivClass_of_rel (α : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (a b : α) (hab : r a b) : ∀ (c : α), r a c ↔ r b c := by
+  sorry
+
+-- 练习 5（L 类）：**反过来** —— 两个点"相关点集"逐点相同，则它们相关。
+-- soko:hint 思路：把那句 `∀ c, …` **用在 `c := a` 上**：左边 `r a a` 由自反给出，
+--   于是得到 `r b a`，再**掉头**。
+-- soko:hint 目标形态：`(∀ c, r a c ↔ r b c) → r a b`。
+-- soko:hint 关键件：那条 `∀`（当函数用）· 自反（λ 绑定后应用）· 对称（λ 绑定后应用）。
+theorem rel_of_equivClass_eq (α : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (a b : α) (h : ∀ (c : α), r a c ↔ r b c) : r a b := by
+  sorry
+
+-- 练习 6（L 类，**本单元旗舰**）：**类相同 ⟺ 相关**（练习 4 与练习 5 合成一条）。
+-- soko:hint 思路：两个方向分别就是练习 4 与练习 5；用 `Iff.intro` 打包
+--   （**这条 `↔` 的两侧都是 `Prop` 形态，前导实参要写全**）。
+-- soko:hint 目标形态：`(∀ c, r a c ↔ r b c) ↔ r a b`。
+-- soko:hint 关键件：练习 4 · 练习 5 · `Iff.intro`。
+theorem class_eq_iff_rel (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), r a c ↔ r b c) ↔ r a b := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 25.3 划分的第一条：**不同的类不交**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（L 类，旗舰之一）：**不相关的两个点，没有任何点同时在两个类里**。
+-- soko:hint 思路：反证。若 `r a c` 且 `r b c`：先把 `r b c` **掉头**成 `r c b`，
+--   再与 `r a c` **接起来**得到 `r a b` —— 与假设冲突。
+-- soko:hint 目标形态：`¬ (r a b) → ∀ c, ¬ (r a c ∧ r b c)`。
+-- soko:hint 关键件：对称与传递的取用子（**定义头 ⇒ 先 λ 绑定**）· `And.left`/`And.right` ·
+--   注意**接的次序**：`trans a c b` 要 `r a c` 配 `r c b`。
+theorem equivClass_disjoint (α : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (a b : α) (hab : ¬ (r a b)) : ∀ (c : α), ¬ (r a c ∧ r b c) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 25.4 划分的另外两条：**非空**与**覆盖**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 8（L 类）：**每个等价类都非空**（代表元自己就在里面）。
+-- soko:hint 思路：把"是某个类"拆成代表元 `a` 与那句逐点刻画；把刻画用在 `c := a` 上，
+--   右边由**自反**给出 —— 于是 `C a` 成立。
+-- soko:hint 目标形态：`Rel.Classes α r C → ∃ a, C a`。
+-- soko:hint 关键件：`Exists.elim`（**前导实参写全**，G-73 形状 ②）· `Iff.mpr` · 自反。
+theorem classes_nonempty (α : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (C : α → Prop) (hC : Rel.Classes α r C) : ∃ (a : α), C a := by
+  sorry
+
+-- 练习 9（L 类）：**每个点都落在某个类里**（取它自己的类）。
+-- soko:hint 思路：见证取 `[a]` 本身；"它是一个类"由刻画给出（代表元取 `a`，逐点那一条是自反的
+--   恒等），"`a` 在里面"由练习 3 给出。
+-- soko:hint 目标形态：`∃ C, Rel.Classes α r C ∧ C a`。
+-- soko:hint 关键件：`Exists.intro`（**前导实参写全** —— 这里见证的**类型**是 `α → Prop`）·
+--   `Rel.mem_classes` 那一侧**别走 `Iff.mpr`**（同字面判不等，实测）⇒ 直接用恒等把展开形态递过去 ·
+--   练习 3。
+theorem classes_cover (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a : α) :
+    ∃ (C : α → Prop), Rel.Classes α r C ∧ C a := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 25.5 必破：**有公共点的两个类必相同**（划分的"不交"那一半的另一面）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 10（D 类）：**两个类只要有一个公共点，它们的代表元就相关**。
+-- soko:hint 思路：把公共点 `x` 拆出来（它在两个类里 ⇒ 两个代表元都与 `x` 相关）；
+--   把第二个**掉头**，再与第一个**接起来** ✓
+-- soko:hint 目标形态：`(∃ x, r a x ∧ r b x) → r a b`。
+-- soko:hint 关键件：`Exists.elim`（前导实参写全）· 对称与传递的取用子（**先 λ 绑定**）·
+--   `And.left`/`And.right`。
+--   ⚠ 由它 + 练习 4 就得到"有公共点的两个类**逐点相同**"—— 这正是划分的第三条 ✓
+theorem rel_of_meet (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
+    (h : ∃ (x : α), r a x ∧ r b x) : r a b := by
+  sorry

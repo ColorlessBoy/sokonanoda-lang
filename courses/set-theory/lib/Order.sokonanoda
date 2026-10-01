@@ -276,3 +276,30 @@ theorem isWellFounded_intro (α : Type) (r : α → α → Prop)
 -- ── 空关系（Mathlib `EmptyRelation`；下面两道反例题的样板）────────────────────
 def EmptyRelation (α β : Type) : α → β → Prop :=
   fun (x : α) (y : β) => False
+
+-- ── 等价关系（Enderton §3.5 / Halmos §10 的词汇；L2：三条的合取）──────────────
+def IsEquivalence (α : Type) (r : α → α → Prop) : Prop :=
+  Reflexive α r ∧ Symmetric α r ∧ Transitive α r
+
+theorem isEquivalence_def (α : Type) (r : α → α → Prop) :
+    IsEquivalence α r ↔ Reflexive α r ∧ Symmetric α r ∧ Transitive α r :=
+  Iff.intro (fun (h : IsEquivalence α r) => h)
+    (fun (h : Reflexive α r ∧ Symmetric α r ∧ Transitive α r) => h)
+
+-- 三条取用子（**参数一次给全**；同 G-73 的处置）
+theorem equivalence_refl (α : Type) (r : α → α → Prop) (h : IsEquivalence α r) :
+    Reflexive α r :=
+  And.left h
+
+theorem equivalence_symm (α : Type) (r : α → α → Prop) (h : IsEquivalence α r) :
+    Symmetric α r :=
+  And.left (And.right h)
+
+theorem equivalence_trans (α : Type) (r : α → α → Prop) (h : IsEquivalence α r) :
+    Transitive α r :=
+  And.right (And.right h)
+
+theorem isEquivalence_intro (α : Type) (r : α → α → Prop)
+    (hrefl : Reflexive α r) (hsymm : Symmetric α r) (htrans : Transitive α r) :
+    IsEquivalence α r :=
+  Iff.mpr (isEquivalence_def α r) (And.intro hrefl (And.intro hsymm htrans))

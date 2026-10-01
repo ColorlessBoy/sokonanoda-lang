@@ -329,13 +329,14 @@
           "tags": [
             "relation",
             "closure",
-            "reflexive-closure",
-            "symmetric-closure",
-            "transitive-closure",
-            "equivalence-relation"
+            "reflexive/symmetric/transitive-closure",
+            "equivalence-relation",
+            "equivalence-class",
+            "quotient",
+            "partition"
           ],
           "quota": {
-            "exercises": 10
+            "exercises": 20
           },
           "units": [
             {
@@ -343,6 +344,12 @@
               "title": "单元㉔ 关系闭包",
               "title_en": "Unit 24 — Closure of Relations",
               "unit": 24
+            },
+            {
+              "file": "units/unit25-equivalence.sokonanoda",
+              "title": "单元㉕ 等价关系与划分",
+              "title_en": "Unit 25 — Equivalence Relations and Partitions",
+              "unit": 25
             }
           ]
         }

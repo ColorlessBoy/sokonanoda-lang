@@ -139,3 +139,22 @@ theorem Rel.transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
     (hr : ∀ (x : α) (y : α), r x y → s x y) : s a b :=
   (fun (hh : ∀ (s' : Rel α α), (∀ (x : α) (y : α) (z : α), s' x y → s' y z → s' x z) →
       (∀ (x : α) (y : α), r x y → s' x y) → s' a b) => hh s hs hr) h
+
+-- ── 等价类与商集（L2：`Set α` 就是 `α → Prop`，所以这里直接写谓词，不必 import lib.Set）──
+-- 读法：`Rel.EquivClass α r a` 就是"与 `a` 相关的那些点"（记作 `[a]`）✓
+def Rel.EquivClass (α : Type) (r : Rel α α) (a : α) : α → Prop :=
+  fun (c : α) => r a c
+
+-- 读法：`Rel.Classes α r` 是"**是某个等价类**"这条性质（作用在集合 `C : α → Prop` 上）✓
+-- —— 于是"商集"就是由它切出来的那一族集合，不需要新类型 ✓
+def Rel.Classes (α : Type) (r : Rel α α) : (α → Prop) → Prop :=
+  fun (C : α → Prop) => ∃ (a : α), ∀ (c : α), C c ↔ r a c
+
+theorem Rel.mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Iff.intro (fun (h : Rel.EquivClass α r a b) => h) (fun (h : r a b) => h)
+
+theorem Rel.mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  Iff.intro (fun (h : Rel.Classes α r C) => h)
+    (fun (h : ∃ (a : α), ∀ (c : α), C c ↔ r a c) => h)
