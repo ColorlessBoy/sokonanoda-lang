@@ -64,6 +64,32 @@ pub(crate) enum MetaErr {
     TypeOccurs,
     /// **作用域**：解里提到了该元变量作用域外的名字（与 occurs 分开报 —— 两者是不同 bug）
     Scope,
+    /// **sort/kind 不对**（M3）：值的 sort 与元变量声明类型的 sort **确定**不符
+    /// （只拒"确定错"的；不知道就放行 ⇒ 不可能产生假拒绝 ✓）
+    Kind,
+    /// **刚性冲突**（两侧头不同、且都没有可赋值的元变量）
+    Clash,
+}
+
+/// 一次求解的**结局**（M3 的"三通道"；**不是**新的错误码 —— 用户可见的码仍是既有两条，
+/// 通道只决定 **hint 说哪一句**，见 `docs/design/metavar-engine.md` §2.6）：
+/// `Unsolved` = 补不出（既有语义）· `Kind` = 值的 sort 确定不对 · `Clash` = 两条约束刚性冲突。
+#[derive(Debug)]
+pub(crate) enum MetaSolve {
+    Solved(Vec<Expr>),
+    Unsolved,
+    Kind,
+    Clash,
+}
+
+impl MetaSolve {
+    /// 给只关心"成没成"的调用方（`solve_prefix` 的三个调用方里有两个不报错）。
+    pub(crate) fn into_option(self) -> Option<Vec<Expr>> {
+        match self {
+            MetaSolve::Solved(v) => Some(v),
+            _ => None,
+        }
+    }
 }
 
 struct MVar {
@@ -94,6 +120,8 @@ pub(crate) struct MetaCtx<'a> {
     postponed: Vec<(Expr, Expr)>,
     fuel: u32,
     depth: u32,
+    /// 本次求解**第一个**硬错误（M3 的通道归因；`unify` 把它折成 `Tri::No`，但通道要留住）
+    first_err: Option<MetaErr>,
     /// **模板/实参两侧的 delta 展开兜底**（M0 的 S13 硬约束：不接它就会把
     /// 「两条约束 defeq 一致」的形状误判成刚性冲突 ✗）
     unfold: &'a dyn Fn(&Expr) -> Expr,
@@ -106,6 +134,7 @@ impl<'a> MetaCtx<'a> {
             postponed: Vec::new(),
             fuel: DEFAULT_FUEL,
             depth: 0,
+            first_err: None,
             unfold,
         }
     }
@@ -177,6 +206,16 @@ impl<'a> MetaCtx<'a> {
                 return Err(MetaErr::Scope);
             }
         }
+        // **sort/kind 检查**（M3，设计 §2.5）：`?m : T` 要求 `v : T` **恰好**成立
+        // （本内核**非累积**）。三值语法近似：**只拒"确定错"的**，`None` = 不知道 ⇒ 放行 ✓。
+        if let (Some(k), Some(n)) = (
+            sort_of_value(&v),
+            sort_of_type(&self.mvars[m.0 as usize].ty),
+        ) {
+            if k != n {
+                return Err(MetaErr::Kind);
+            }
+        }
         self.mvars[m.0 as usize].value = Some(v);
         Ok(())
     }
@@ -206,10 +245,10 @@ impl<'a> MetaCtx<'a> {
             return Tri::Yes;
         }
         if let Some(m) = meta_of(&l) {
-            return tri_of(self.assign(m, r));
+            return self.tri_assign(m, r);
         }
         if let Some(m) = meta_of(&r) {
-            return tri_of(self.assign(m, l));
+            return self.tri_assign(m, l);
         }
         // 结构分解（**两侧**；今天只做单侧匹配）
         match (&l, &r) {
@@ -270,6 +309,10 @@ impl<'a> MetaCtx<'a> {
         if has_unassigned_meta(&l) || has_unassigned_meta(&r) {
             self.postponed.push((l, r));
             return Tri::Undef;
+        }
+        // 刚性冲突：**归因**（M3 的三通道之一），调用方据此换一句 message（码不变）
+        if self.first_err.is_none() {
+            self.first_err = Some(MetaErr::Clash);
         }
         Tri::No
     }
@@ -337,34 +380,99 @@ impl<'a> MetaCtx<'a> {
             .collect()
     }
 
-    /// **出口**：不动点 + defaulting + 全部解出 + zonk。任一不成立 ⇒ `None`（调用方照旧报既有码）。
-    pub(crate) fn discharge(&mut self, ids: &[MetaId]) -> Option<Vec<Expr>> {
-        if self.unify_all() == Tri::No {
-            return None;
+    fn tri_assign(&mut self, m: MetaId, v: Expr) -> Tri {
+        match self.assign(m, v) {
+            Ok(()) => Tri::Yes,
+            Err(e) => {
+                if self.first_err.is_none() {
+                    self.first_err = Some(e);
+                }
+                Tri::No
+            }
         }
-        if self.default_unresolved().is_err() {
-            return None;
+    }
+
+    /// 本次求解的**通道**（M3）：`Kind` / `Clash` / `Unsolved`（都映射到**既有码**）。
+    pub(crate) fn channel(&self) -> MetaSolve {
+        match &self.first_err {
+            Some(MetaErr::Kind) => MetaSolve::Kind,
+            Some(_) => MetaSolve::Clash,
+            None => MetaSolve::Unsolved,
+        }
+    }
+
+    /// **出口**：不动点 + defaulting + 全部解出 + zonk。任一不成立 ⇒ 对应的**通道**
+    /// （调用方照旧报既有码，只是 hint 说哪一句不同 ✓）。
+    pub(crate) fn discharge(&mut self, ids: &[MetaId]) -> MetaSolve {
+        if self.unify_all() == Tri::No {
+            return self.channel();
+        }
+        // 中途有过**硬错误**（kind 不对 / 刚性冲突）⇒ 这次求解已经知道是坏的，直接归因
+        // （否则会被"还有未解元变量"盖成 `Unsolved`，通道就丢了 ✗）
+        if self.first_err.is_some() {
+            return self.channel();
+        }
+        if let Err(e) = self.default_unresolved() {
+            return match e {
+                MetaErr::Kind => MetaSolve::Kind,
+                _ => MetaSolve::Clash,
+            };
         }
         if !self.unsolved().is_empty() {
-            return None;
+            return MetaSolve::Unsolved;
         }
         let mut out = Vec::with_capacity(ids.len());
         for id in ids {
             let v = self.zonk(&self.meta_expr(*id));
             // 出口自检：**不许留元变量**（设计红线 1）
             if has_unassigned_meta(&v) {
-                return None;
+                return MetaSolve::Unsolved;
             }
             out.push(v);
         }
-        Some(out)
+        MetaSolve::Solved(out)
     }
 }
 
-fn tri_of(r: Result<(), MetaErr>) -> Tri {
-    match r {
-        Ok(()) => Tri::Yes,
-        Err(_) => Tri::No,
+/// `v : Sort n` 的那个 `n`（**三值**：`None` = 不知道 ⇒ 调用方放行）。
+///
+/// 只认**语法上是 sort** 的形状（设计 §2.5 的表）：`Prop`=1 · `Type`(`Type 0`)=2 ·
+/// `Sort(n)`=n+1 · `Sort(Level(_))`/`App`/`Lambda`/`Ident`/其余 = **不知道**。
+/// ⚠ 局部变量那一档（查书写类型）留给后续片：**放行**是保守方向（不会假拒绝）✓。
+pub(crate) fn sort_of_value(v: &Expr) -> Option<u64> {
+    match v {
+        Expr::Sort {
+            sort: crate::ast::SortKind::Prop,
+            ..
+        } => Some(1),
+        Expr::Sort {
+            sort: crate::ast::SortKind::Type,
+            ..
+        } => Some(2),
+        Expr::Sort {
+            sort: crate::ast::SortKind::Sort(n),
+            ..
+        } => Some(n + 1),
+        _ => None,
+    }
+}
+
+/// 声明类型 `t` 作为 sort 的层级：`Prop`=0 · `Type`=1 · `Sort(n)`=n · 其余 = 不知道。
+fn sort_of_type(t: &Expr) -> Option<u64> {
+    match t {
+        Expr::Sort {
+            sort: crate::ast::SortKind::Prop,
+            ..
+        } => Some(0),
+        Expr::Sort {
+            sort: crate::ast::SortKind::Type,
+            ..
+        } => Some(1),
+        Expr::Sort {
+            sort: crate::ast::SortKind::Sort(n),
+            ..
+        } => Some(*n),
+        _ => None,
     }
 }
 
@@ -497,6 +605,30 @@ mod tests {
         e.clone()
     }
 
+    /// `Type`（= `Sort 1`）这个**类型**——注意它是 `Expr::Sort`，不是 `Ident`（实测踩过）。
+    fn ty_sort() -> Expr {
+        Expr::Sort {
+            sort: crate::ast::SortKind::Type,
+            span: Span::default(),
+        }
+    }
+
+    /// 期望**解出**（M3 起 `discharge` 返回通道枚举）。
+    fn solved(m: &mut MetaCtx, ids: &[MetaId]) -> Vec<Expr> {
+        match m.discharge(ids) {
+            MetaSolve::Solved(v) => v,
+            other => panic!("期望解出，实际 {other:?}"),
+        }
+    }
+
+    /// 期望**失败**，返回通道。
+    fn failed(m: &mut MetaCtx, ids: &[MetaId]) -> MetaSolve {
+        match m.discharge(ids) {
+            MetaSolve::Solved(v) => panic!("期望失败，实际解出 {v:?}"),
+            other => other,
+        }
+    }
+
     /// 结构分解：`Set ?α ≟ Set Nat` ⇒ `α := Nat`；`?α → ?β ≟ Nat → Bool` ⇒ 两个都解出。
     #[test]
     fn decomposes_app_and_arrow_on_both_sides() {
@@ -563,10 +695,7 @@ mod tests {
         assert_eq!(m.unify(&ea, &eb), Tri::Yes);
         assert_eq!(m.value(a), Some(eb.clone()), "α 的值就是 ?β（链式）");
         m.assign(b, ident("Nat")).expect("β := Nat");
-        assert_eq!(
-            m.discharge(&[a, b]).expect("链式应追到底"),
-            vec![ident("Nat"), ident("Nat")]
-        );
+        assert_eq!(solved(&mut m, &[a, b]), vec![ident("Nat"), ident("Nat")]);
     }
 
     /// 待定约束：形状对不上 + 有**埋着的**未解元变量 ⇒ 弃权；`unify_all` **无净进展就停**
@@ -622,12 +751,15 @@ mod tests {
         let mut m = ctx_with(&no_unfold);
         let a = m.fresh(ident("Type"), MetaKind::Natural, vec![]);
         let b = m.fresh(ident("Type"), MetaKind::Natural, vec![]);
-        assert!(m.discharge(&[a, b]).is_none(), "两位都空 ⇒ 不许猜");
+        assert!(
+            matches!(failed(&mut m, &[a, b]), MetaSolve::Unsolved),
+            "两位都空 ⇒ 不许猜"
+        );
         let mut m = ctx_with(&no_unfold);
         let a = m.fresh(ident("Type"), MetaKind::Natural, vec![]);
         let b = m.fresh(ident("Type"), MetaKind::Natural, vec![]);
         m.assign(b, ident("Nat")).expect("β := Nat");
-        let out = m.discharge(&[a, b]).expect("同形兄弟 ⇒ α 借到 β 的值");
+        let out = solved(&mut m, &[a, b]);
         assert_eq!(out, vec![ident("Nat"), ident("Nat")]);
     }
 
@@ -639,7 +771,7 @@ mod tests {
         let b = m.fresh(ident("Type"), MetaKind::Natural, vec![]);
         m.assign(b, ident("Nat")).expect("β := Nat");
         m.assign(a, m.meta_expr(b)).expect("α := ?β（链式）");
-        let out = m.discharge(&[a, b]).expect("链式赋值应被 zonk 追到底");
+        let out = solved(&mut m, &[a, b]);
         assert_eq!(out, vec![ident("Nat"), ident("Nat")]);
         assert!(!has_unassigned_meta(&out[0]));
     }
@@ -650,5 +782,69 @@ mod tests {
         let mut m = ctx_with(&no_unfold);
         m.fuel = 0;
         assert_eq!(m.unify(&ident("Nat"), &ident("Nat")), Tri::No);
+    }
+
+    /// **M3 的 sort/kind 表**（三值：`None` = 不知道 ⇒ 放行）。
+    #[test]
+    fn sort_of_value_is_three_valued() {
+        let prop = Expr::Sort {
+            sort: crate::ast::SortKind::Prop,
+            span: Span::default(),
+        };
+        let ty = Expr::Sort {
+            sort: crate::ast::SortKind::Type,
+            span: Span::default(),
+        };
+        let s3 = Expr::Sort {
+            sort: crate::ast::SortKind::Sort(3),
+            span: Span::default(),
+        };
+        let lvl = Expr::Sort {
+            sort: crate::ast::SortKind::Level("u".to_string()),
+            span: Span::default(),
+        };
+        assert_eq!(sort_of_value(&prop), Some(1), "`Prop : Type 0`");
+        assert_eq!(sort_of_value(&ty), Some(2), "`Type 0 : Type 1`");
+        assert_eq!(sort_of_value(&s3), Some(4), "`Sort 3 : Sort 4`");
+        assert_eq!(sort_of_value(&lvl), None, "`Level(u)` ⇒ 不知道");
+        assert_eq!(
+            sort_of_value(&ident("Nat")),
+            None,
+            "常量 ⇒ 不知道（保守放行）"
+        );
+    }
+
+    /// **M3 的闸门**：`?α : Type`（= `Sort 1`）拿到 `Type 0`（`Sort 2`）⇒ **拒**（否则就是 kind 错）。
+    #[test]
+    fn sort_check_rejects_a_kind() {
+        let mut m = ctx_with(&no_unfold);
+        let a = m.fresh(ty_sort(), MetaKind::Natural, vec![]);
+        let kind = ty_sort();
+        assert_eq!(m.assign(a, kind.clone()), Err(MetaErr::Kind));
+        assert_eq!(m.value(a), None, "拒了就不许写进去");
+        // 走 `unify` 的路径也一样，且**通道**归因到 `Kind`
+        let ea = m.meta_expr(a);
+        assert_eq!(m.unify(&ea, &kind), Tri::No);
+        assert!(matches!(failed(&mut m, &[a]), MetaSolve::Kind));
+    }
+
+    /// 保守方向：**不知道就不拒**（`Nat` 是常量，语法上看不出 sort ⇒ 放行 ⇒ 不可能假拒绝）。
+    #[test]
+    fn sort_check_passes_when_unknown() {
+        let mut m = ctx_with(&no_unfold);
+        let a = m.fresh(ty_sort(), MetaKind::Natural, vec![]);
+        assert_eq!(m.assign(a, ident("Nat")), Ok(()));
+    }
+
+    /// **M3 的三通道**：刚性冲突归因到 `Clash`（与 `Kind`、`Unsolved` 分开）。
+    #[test]
+    fn channel_separates_clash_from_unsolved() {
+        let mut m = ctx_with(&no_unfold);
+        let a = m.fresh(ident("Type"), MetaKind::Natural, vec![]);
+        assert_eq!(m.unify(&ident("Nat"), &ident("Bool")), Tri::No);
+        assert!(matches!(failed(&mut m, &[a]), MetaSolve::Clash));
+        let mut m = ctx_with(&no_unfold);
+        let b = m.fresh(ident("Type"), MetaKind::Natural, vec![]);
+        assert!(matches!(failed(&mut m, &[b]), MetaSolve::Unsolved));
     }
 }

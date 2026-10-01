@@ -148,7 +148,9 @@ $SOKO repl
   在入口从文件头可用，课程里 `lib/Set` 的 `∈ ⊆ ∪ ∩ \ ∅ 𝒫 ᶜ '' ⁻¹' ×ˢ` 就是这样来的）；
   ③ 记法**不是声明**：不产生任何事件、不进声明表与 goal 视图，判卷计数与点名写法
   **逐项相同**；④ 展开时**自动补前导类型参数**（`Set.mem` 的 `α` 不用写），补不出来报
-  `elab-notation-argument-unsolved`（例如 `#check ∅` 这种没有期望类型的裸用）；
+  `elab-notation-argument-unsolved`（例如 `#check ∅` 这种没有期望类型的裸用）——同一个码下
+  **message 分三个通道**（IA-4 M3）：补不出 / **sort-kind 不对**（把类型写在要项的位置）/
+  两条线索冲突；按 message 那句判，别只看码；
   ⑤ **点名形式永久可用**，两种写法判卷一致——省 `α` 的点名写法（`Set.mem a A`）
   **今天被内核拒绝**（隐式实参落地后才会变成合法）；⑥ 未声明就用报 `notation-unknown-symbol`
   （hint 给"先声明"与"点名写法"两条出路）；⑦ 第三刀（0.60.x）已落：`prefix`/`postfix`、

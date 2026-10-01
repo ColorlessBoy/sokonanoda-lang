@@ -145,16 +145,47 @@ pub(crate) fn solve_prefix(
     ) {
         return Some(solved);
     }
+    solve_prefix_outcome(layers, result, k, arg_tys, expected, defs, is_inductive).into_option()
+}
+
+/// [`solve_prefix`] 的**带通道**版本（M3）：严格档**永远先跑且不变**，失败后按档位分流；
+/// 引擎档把失败归因成三条通道（`Unsolved` / `Kind` / `Clash`）——**用户可见的码仍是既有那条**，
+/// 通道只决定调用方的 hint/message 说哪一句 ✓（D6 = 不新增码）。
+pub(crate) fn solve_prefix_outcome(
+    layers: &[Layer],
+    result: &Expr,
+    k: usize,
+    arg_tys: &[Option<Expr>],
+    expected: Option<&Expr>,
+    defs: &crate::compile::elab::DefTable,
+    is_inductive: &dyn Fn(&str) -> bool,
+) -> crate::compile::meta::MetaSolve {
+    use crate::compile::meta::MetaSolve;
+    if let Some(solved) = solve_prefix_impl(
+        layers,
+        result,
+        k,
+        arg_tys,
+        expected,
+        defs,
+        is_inductive,
+        false,
+    ) {
+        return MetaSolve::Solved(solved);
+    }
     if metavar_enabled() {
         // **档位**（IA-4 M2）：`Sibling` = E19 的窄版（默认，逐字节等于今天）；
         // `Engine` = 新引擎（真元变量 + 三值合一 + occurs/作用域 + 有界待定 + 出口 zonk）。
         return if metavar_mode() == MetavarMode::Engine {
             solve_prefix_meta(layers, result, k, arg_tys, expected, defs, is_inductive)
         } else {
-            solve_prefix_pending(layers, result, k, arg_tys, expected, defs, is_inductive)
+            match solve_prefix_pending(layers, result, k, arg_tys, expected, defs, is_inductive) {
+                Some(v) => MetaSolve::Solved(v),
+                None => MetaSolve::Unsolved,
+            }
         };
     }
-    None
+    MetaSolve::Unsolved
 }
 
 /// **IA-4 M2 的引擎档**（`SOKO_METAVAR=engine`）：`solve_prefix` 的**一般路径**（应用 / 裸常量 /
@@ -176,14 +207,14 @@ fn solve_prefix_meta(
     expected: Option<&Expr>,
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
-) -> Option<Vec<Expr>> {
+) -> crate::compile::meta::MetaSolve {
     let unfold = |e: &Expr| crate::spine::unfold_to_inductive(e, is_inductive, defs, 8, None);
     let mut meta = crate::compile::meta::MetaCtx::new(&unfold);
     // ① 元变量（与窄版同一条闸门：前导位必须都有名字）
     let mut ids = Vec::with_capacity(k);
     for i in 0..k {
         if layers[i].name.is_empty() {
-            return None;
+            return crate::compile::meta::MetaSolve::Unsolved;
         }
         let out_of_scope: Vec<String> = layers
             .iter()
@@ -218,7 +249,7 @@ fn solve_prefix_meta(
             }
             let template = crate::spine::substitute(&layer.domain, &sigma);
             if meta.unify(&template, actual) == crate::compile::meta::Tri::No {
-                return None;
+                return meta.channel();
             }
         }
     }
@@ -226,7 +257,7 @@ fn solve_prefix_meta(
     if let Some(expected) = expected {
         let template = crate::spine::substitute(result, &sigma);
         if meta.unify(&template, expected) == crate::compile::meta::Tri::No {
-            return None;
+            return meta.channel();
         }
     }
     // ⑤ 不动点 + defaulting（E19 的选择规则）+ zonk

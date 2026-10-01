@@ -2307,8 +2307,8 @@ fn solve_prefix_args_meta<'a>(
             return None;
         }
     }
-    // ⑥ 不动点 + defaulting（E19 的选择规则）+ zonk
-    let out = meta.discharge(&ids);
+    // ⑥ 不动点 + defaulting（E19 的选择规则）+ zonk（M3：出口带通道，本路径暂只用"成没成"）
+    let out = meta.discharge(&ids).into_option();
     if std::env::var_os("SOKO_META_DEBUG").is_some() {
         eprintln!(
             "[meta] missing={missing} ids={} solved={:?} unsolved={:?}",
@@ -3567,7 +3567,9 @@ fn try_implicit_application<'a>(
     // 期望类型/实参类型的 delta 展开要用 `defs` + `is_inductive`（`a ∈ A ∪ B`
     // 是 `Set.mem … (Set.union …)`，展开到 `Or …` 才能反解 `Or.inl` 的另一个析取项）。
     let is_inductive = |n: &str| ctx.inductives.contains_key(n);
-    let Some(solved) = crate::compile::implicit::solve_prefix(
+    // **M3 的三通道**（**同一个码**，只有 message 说哪一句不同 ✓；D6 = 不新增码）：
+    // `Unsolved` = 补不出（既有文案，逐字不变）· `Kind` = 值的 sort 确定不对 · `Clash` = 两条约束刚性冲突。
+    let solved = match crate::compile::implicit::solve_prefix_outcome(
         &layers,
         &result,
         k,
@@ -3575,18 +3577,32 @@ fn try_implicit_application<'a>(
         expected_src,
         ctx.defs,
         &is_inductive,
-    ) else {
-        return Err(CompileError::elab(
-            ErrorKind::ElabImplicitArgumentUnsolved,
-            format!(
-                "`{}` 的签名 `{}` 里有 {} 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `{} …` 逐位写下来",
-                render_msg(ctx, head),
-                ty_text,
-                k,
-                render_expr(head)
-            ),
-            span,
-        ));
+    ) {
+        crate::compile::meta::MetaSolve::Solved(v) => v,
+        channel => {
+            let why = match channel {
+                crate::compile::meta::MetaSolve::Kind => {
+                    "**种类（sort/kind）不对**：反解出来的东西是一个**类型**，而这个位置要的是**项**（或反过来）——\
+                     常见于把 `Nat`/`Type` 这类**类型**写在了要元素的位置。"
+                }
+                crate::compile::meta::MetaSolve::Clash => {
+                    "**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要求。"
+                }
+                _ => "（本子集按「后续显式实参的类型 + 期望类型」反解）",
+            };
+            return Err(CompileError::elab(
+                ErrorKind::ElabImplicitArgumentUnsolved,
+                format!(
+                    "`{}` 的签名 `{}` 里有 {} 个**隐式**参数，但补不出来{}。把参数写全，例如 `{} …` 逐位写下来",
+                    render_msg(ctx, head),
+                    ty_text,
+                    k,
+                    why,
+                    render_expr(head)
+                ),
+                span,
+            ));
+        }
     };
     // 组装：先插隐式实参，再逐个装显式实参（**每个**都给「代入后」的期望类型）。
     //

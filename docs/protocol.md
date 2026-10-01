@@ -168,6 +168,8 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   binder（`{α : Type}` 这种），而路线 C 只按**后续显式实参的类型**反解、
   不搜索不回溯；hint 教把参数写全——点名/写全参数永远可用。IA-1
   `docs/design/implicit-arguments.md` §3),
+  ⚠ **三个内部通道**（IA-4 M3；**码与 hint 契约逐字不变** ✓）：同一个码下 `message` 分三种 ——
+  **补不出**（既有文案）· **sort/kind 不对**（反解出来的是类型、位置要项）· **两条线索冲突**。
   `elab-notation-ambiguous` / `elab-notation-no-candidate` (**记法重载**：
   同一符号多条记法按**期望类型**选候选——≥2 个候选都说得通时报前者，一个
   都对不上时报后者；消息列出候选与各自的结果类型，hint 教点名写法消歧。

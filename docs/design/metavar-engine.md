@@ -363,3 +363,36 @@ python3 scripts/gap.py check && python3 scripts/docs-lint.py && python3 scripts/
 同一条命令给出 `compiled 30 / hit 12`、`runs=616`（**是热启动，不是回归** ✗）。
 
 **M2 不做**（后续片）：sort/kind 与报错契约 = **M3** · 默认开 = **M4** · 宇宙层 = U1/U2 · 范围 B = K1/B1–B3 ✓。
+
+## 10. M3 as-built（2026-10-01 **收口 ✓**）：sort/kind 检查 + 三通道归因
+
+**引擎内的 sort/kind 闸门**（设计 §2.5，`MetaCtx::assign`）：三值语法近似 —— `sort_of_value(v)`
+（`Prop`=1 · `Type`=2 · `Sort(n)`=n+1 · `Level(_)`/`App`/`Lambda`/`Ident`= **不知道**）vs
+`sort_of_type(m.ty)`（`Prop`=0 · `Type`=1 · `Sort(n)`=n）；**只拒"确定错"的**（不知道 ⇒ 放行 ⇒
+不可能假拒绝 ✓）。**用户拍板**：检出 = **作废该候选**（`unify` ⇒ `No`）+ 报**既有码**（不新增码）✓。
+
+**三通道**（`MetaSolve { Solved, Unsolved, Kind, Clash }`）：引擎把失败**归因**（`MetaCtx::first_err`
+记录首个硬错误，`discharge` 优先返回它 ⇒ 不会被"还有未解元变量"盖成 `Unsolved`）；调用方
+（应用路径的错误点）**同一个码**下按通道换 `message` 那一句 ✓。**码与 hint 契约逐字不变**
+（`Unsolved` 那条的 message **逐字等于**今天）⇒ §2.6 十二条判据**全部不动** ✓。
+
+| 判据 | 结果 |
+|---|---|
+| 真值层单测（**15 条**：M1 的 11 + M3 的 `sort_of_value` 三值表 / kind 拒 / 不知道就放行 / 通道区分）| **15/15** ✓ |
+| `cargo test -p sokonanoda-front --lib` | **786/786** ✓ |
+| §2.6 十二条：`implicit_metavar` · `metavar_inventory` · `metavar_engine` · `notation` · `notation_metavar` | **1 / 1 / 3 / 49 / 1** 全绿 ✓ |
+| **三指纹：默认档 与 引擎档** | 两态**都逐字节等于** M0 冻结值（⇒ **本轮零用户可见变化**）✓ |
+| 冷 build 结构计数（默认档，项目缓存确认空）| 逐项等于基线 ✓ |
+| `scripts/soko gate --fast` | **EXIT=0** ✓ |
+| 契约同步 | `docs/protocol.md`（三通道说明，**码/hint 不变**）+ `skills/sokonanoda-teacher/SKILL.md`（按 message 判通道）✓；**扩展无需改**：VS Code 侧只透传 `message`/`hint`，没有码表 ✓ |
+
+**⚠ 一条诚实的设计更正（M3 实测）：设计 §4 的「kind 夹具**不再落内核**」这一条**做不到**，
+除非回退 G-21 的既有修复** ✗ —— 实测：`K Nat` / `L Nat` / `Set.powerset Nat` 这类「把类型写在
+要项的位置」的形状，**严格档先跑且成功**（`unify_extract` 的裸变量位永远取得到值）⇒ 引擎根本轮不到，
+它们照旧落内核 `kernel-expected-sort`（那条 hint 已经很好：① 漏了前导类型参数 ② 冒号后面是值，
+G-21 的验收判据正钉在它上面）。⇒ **M3 的 sort 闸门是"引擎自己的正确性守卫"**（单元层可咬 ✓），
+**不是**新的用户可见诊断；真要把它搬到 elab 期，得同时把 `kernel-expected-sort` 的 hint 内容搬过来
+并更新 G-21 台账 —— **留作后续片的决策点**（不在 M3 的拍板范围内）。
+
+**M3 不做**：默认开 = **M4** · 宇宙层 = U1/U2 · 范围 B = K1/B1–B3 · 记法路径的通道归因（记法错误点
+在另一处，M3 只接了应用路径；记法那条的 message 仍走既有文案）✓。
