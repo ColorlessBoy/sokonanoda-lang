@@ -1,0 +1,165 @@
+-- ==========================================================================
+-- unit36-relation-algebra.sokonanoda —— 卷 I 单元㊱ **关系的代数**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§10 Inverses and Composites**
+-- （关系版的复合与逆）；Enderton《Elements of Set Theory》**§3.3** 的同一批。
+-- 大纲：`set-theory-syllabus.md` §4.1（新章 **I.13「关系的代数」**开工）。
+--
+-- 本单元的"该学的定理"（关系构成一个**代数** —— 有乘法（复合）、有逆、有单位）：
+--   · **结合律**（`(r • s) • t = r • (s • t)`）· **逆的对合**（`(r ⁻¹) ⁻¹ = r`）；
+--   · **旗舰：逆反穿过复合**（`(r • s) ⁻¹ = s ⁻¹ • r ⁻¹` —— 顺序要反过来）；
+--   · **单位元**（恒等关系 `idRel`：`idRel • r = r`、`r • idRel = r`）；
+--   · **单调性**（复合与逆对"逐点蕴含"单调）✓
+--
+-- ⚠ **本单元最大的写法红利（也是选型理由）**：**关系相等可以写成 `=`** ——
+--   库里有一条**公理** `Rel.ext`（数学上由 funext + propext 推出，本语言两者都没有 ⇒ 只能当公理）✓
+--   所以本单元的定律是**真正的等式**（不像单元㉜㉞ 的"函数相等"只能写逐点 ⇒ **G-77**）✓
+--
+-- **写法约定**：`∃` 的拆装**前导实参一律写全**（G-73 形状 ②）；嵌套太深就用**辅助定理**
+--   （本单元的 `comp_assoc_fwd` / `comp_assoc_bwd` 就是为此拆的 —— 实测一次写成会少数括号）✓
+--   **搬运等式时"第一个点"可以随便给**（它在关系里是自由位），但**类型要对**（实测踩过）✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 两样**：`lib.Rel`（关系与 `•`/`⁻¹`/`Rel.ext`）· `lib.Set`。
+--
+-- 依赖：单元⑥（关系的复合与逆）—— 本单元把它们做成"代数"。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+
+-- ─────────────────────────────────────────────────────────────
+-- 36.0 画布给的新词汇：**恒等关系**（复合的单位元）
+--
+-- 读法：`idRel α` 就是"两个点相等"这条关系 ✓ 它将是复合的单位元（练习 9、10）✓
+-- ─────────────────────────────────────────────────────────────
+def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+
+-- ─────────────────────────────────────────────────────────────
+-- 36.1 三条库引理（复合、逆、双逆的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：复合的成员刻画（"中间有一个点接得上"）。
+theorem demo_mem_comp (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
+    (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=
+  Rel.comp_apply r s a c
+
+-- 演示：逆关系的成员刻画（把两个点掉头）。
+theorem demo_mem_inv (A B : Type) (r : Rel A B) (b : B) (a : A) :
+    (r ⁻¹) b a ↔ r a b :=
+  Rel.inv_apply A B r b a
+
+-- 演示：双逆的成员刻画（掉两次头回到原地）。
+theorem demo_mem_inv_inv (A B : Type) (r : Rel A B) (a : A) (b : B) :
+    ((r ⁻¹) ⁻¹) a b ↔ r a b :=
+  Rel.inv_inv_apply A B r a b
+
+-- ─────────────────────────────────────────────────────────────
+-- 36.2 逆：**对合**与**反穿过复合**（旗舰）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（L 类）：**逆的对合**（`(r ⁻¹) ⁻¹ = r`）。
+-- soko:hint 思路：用**关系外延公理**（`Rel.ext`），逐点把"掉两次头"退回原关系（演示 3 就是那一步）。
+-- soko:hint 目标形态：`(r ⁻¹) ⁻¹ = r`。
+-- soko:hint 关键件：`Rel.ext`（**参数写全**：两个类型 · 两条关系 · 逐点证明）· 演示 3 ✓
+--   ⚠ 关系相等**可以**写成 `=`（有 `Rel.ext` 公理）—— 这点与"函数相等"不同（**G-77**）✓
+theorem inv_inv (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) ((r ⁻¹) ⁻¹) r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 2（L 类，**本单元旗舰之一**）：**逆反穿过复合**：`(r • s) ⁻¹ = s ⁻¹ • r ⁻¹`（**顺序反过来**）。
+-- soko:hint 思路：逐点看，左边是 `∃ b, r a b ∧ s b c`，右边是 `∃ b, s b c ∧ r a b`
+--   —— **把合取的两个支对调**而已（见证取同一个 `b`）。
+-- soko:hint 目标形态：`(r • s) ⁻¹ = s ⁻¹ • r ⁻¹`（注意两边都在 `Rel C A` 里）。
+-- soko:hint 关键件：`Rel.ext` · `Exists.elim`/`Exists.intro`（**前导实参写全**）·
+--   `And.left`/`And.right` · `Iff.intro`（前导 Prop 实参写全）✓
+--   ⚠ 两边**定义上就等价**（`⁻¹` 只是把两个点掉头、`•` 是 `∃`），所以**不需要搬运引理** ✓
+theorem inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
+    Eq.{1} (Rel C A) ((r • s) ⁻¹) (s ⁻¹ • r ⁻¹) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 3（T 类）：把练习 2 写成**逐点**形态（做题时更常用）。
+-- soko:hint 思路：与练习 2 的逐点证明逐字相同。
+-- soko:hint 目标形态：`((r • s) ⁻¹) c a ↔ (s ⁻¹ • r ⁻¹) c a`。
+-- soko:hint 关键件：`Iff.intro` · `Exists.elim`/`Exists.intro`（前导实参写全）· `And.left`/`And.right` ✓
+theorem inv_comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (c : C) (a : A) :
+    ((r • s) ⁻¹) c a ↔ (s ⁻¹ • r ⁻¹) c a := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 36.3 复合：**结合律**（拆成两个方向的辅助定理）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（L 类，**本单元旗舰之一**）：**结合律**（`(r • s) • t = r • (s • t)`）。
+-- soko:hint 思路：逐点看，两边都是"存在两个中间点把三段接起来"，只是**归纳的顺序不同**
+--   ⇒ 两个方向各拆一次 `∃`、再各造一次 `∃`。
+-- soko:hint 目标形态：`(r • s) • t = r • (s • t)`。
+-- soko:hint 关键件：`Rel.ext` · 两个方向各一个 `Exists.elim` 嵌套 · `Exists.intro` ·
+--   `And.intro`/`And.left`/`And.right` · **嵌套超过两层就拆成辅助定理** ——
+--   本题的解答里 `comp_assoc_fwd`/`comp_assoc_bwd` 正是为此，**一次写成实测会少数括号** ✓
+theorem comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
+    Eq.{1} (Rel A D) ((r • s) • t) (r • (s • t)) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 36.4 单调性（复合与逆对"逐点蕴含"单调）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 5（L 类）：**复合对左边单调**。
+-- soko:hint 思路：拆开左边的 `∃`，把中间点原样交出去，只把"第一个支"换成更强的那条。
+-- soko:hint 目标形态：`(∀ a b, r a b → r1 a b) → (r • s) a c → (r1 • s) a c`。
+-- soko:hint 关键件：`Exists.elim`/`Exists.intro`（前导实参写全）· `And.intro` ✓
+theorem comp_mono_left (A B C : Type) (r r1 : Rel A B) (s : Rel B C)
+    (h : ∀ (a : A) (b : B), r a b → r1 a b) (a : A) (c : C)
+    (hac : (r • s) a c) : (r1 • s) a c := by
+  sorry
+
+-- 练习 6（L 类）：**复合对右边单调**（与练习 5 对偶：换"第二个支"）。
+-- soko:hint 思路：同练习 5，把"第二个支"换掉。
+-- soko:hint 目标形态：`(∀ b c, s b c → s1 b c) → (r • s) a c → (r • s1) a c`。
+-- soko:hint 关键件：`Exists.elim`/`Exists.intro`（前导实参写全）· `And.intro` ✓
+theorem comp_mono_right (A B C : Type) (r : Rel A B) (s s1 : Rel B C)
+    (h : ∀ (b : B) (c : C), s b c → s1 b c) (a : A) (c : C)
+    (hac : (r • s) a c) : (r • s1) a c := by
+  sorry
+
+-- 练习 7（T 类）：**逆对逐点蕴含单调**（`⁻¹` 只是把两个点掉头 ⇒ 什么都不用做）。
+-- soko:hint 思路：把假设用在掉头后的两个点上（`(r ⁻¹) b a` 定义上就是 `r a b`）。
+-- soko:hint 目标形态：`(∀ a b, r a b → r1 a b) → (r ⁻¹) b a → (r1 ⁻¹) b a`。
+-- soko:hint 关键件：假设（当函数用，参数顺序是 `a` 再 `b`）✓
+theorem inv_mono (A B : Type) (r r1 : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b → r1 a b) (b : B) (a : A)
+    (hba : (r ⁻¹) b a) : (r1 ⁻¹) b a := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 36.5 单位元：**恒等关系**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 8（T 类）：**恒等关系的成员刻画**。
+-- soko:hint 思路：两边都是"两个点相等"这同一条命题。
+-- soko:hint 目标形态：`(idRel α) a b ↔ a = b`。
+-- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· 等式的证明项**点名声明星**（G-73 形状 ③）✓
+theorem idRel_apply (α : Type) (a b : α) :
+    (idRel α) a b ↔ Eq.{1} α a b := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 9（L 类）：**恒等关系是左单位元**（`idRel • r = r`）。
+-- soko:hint 思路：逐点看，`∃ a1, a = a1 ∧ r a1 b` 与 `r a b` 是一回事 ——
+--   →：沿 `a = a1` **把 `r a1 b` 搬成 `r a b`**（注意要改的是**第一个坐标**）；
+--   ←：见证取 `a` 自己，等式那一条用自反。
+-- soko:hint 目标形态：`idRel • r = r`。
+-- soko:hint 关键件：`Rel.ext` · `Exists.elim`/`Exists.intro` · **改第一个坐标要把关系翻过来**：
+--   用 `rel_subst_right`、关系取 `fun u v => r v b`、等式取 `Eq.symm`（实测：直接写会判红）·
+--   `Eq.refl`（写全宇宙层级与论域）✓
+theorem idRel_comp (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) (idRel A • r) r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 10（L 类）：**恒等关系是右单位元**（`r • idRel = r`）。
+-- soko:hint 思路：与练习 9 对偶：→ 沿 `b1 = b` 把 `r a b1` 搬成 `r a b`（这次改的是**第二个**坐标，
+--   直接用 `rel_subst_right` 即可）；← 见证取 `b` 自己。
+-- soko:hint 目标形态：`r • idRel = r`。
+-- soko:hint 关键件：`Rel.ext` · `rel_subst_right`（关系取 `fun u v => r a v`；**"第一个点"那个
+--   自由位随便给，但类型必须是 `B`** —— 实测写成 `A` 会判红）· `Eq.refl` ✓
+theorem comp_idRel (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) (r • idRel B) r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry

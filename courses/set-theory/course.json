@@ -471,6 +471,31 @@
               "unit": 35
             }
           ]
+        },
+        {
+          "id": "I.13",
+          "title": "关系的代数",
+          "prereqs": [
+            "I.2"
+          ],
+          "tags": [
+            "relation",
+            "relation-algebra",
+            "composition",
+            "inverse-relation",
+            "identity-relation"
+          ],
+          "quota": {
+            "exercises": 10
+          },
+          "units": [
+            {
+              "file": "units/unit36-relation-algebra.sokonanoda",
+              "title": "单元㊱ 关系的代数",
+              "title_en": "Unit 36 — Algebra of Relations",
+              "unit": 36
+            }
+          ]
         }
       ]
     }
