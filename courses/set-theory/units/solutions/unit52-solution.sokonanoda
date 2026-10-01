@@ -55,3 +55,29 @@ theorem trans_comp_apply (α : Type) (r : Rel α α)
   Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c)
     (comp_apply_elim α α α r r a c h)
     (fun (b : α) (hb : r a b ∧ r b c) => htrans a b c (And.left hb) (And.right hb))
+
+theorem inv_intro (α β : Type) (r : Rel α β) (a : α) (b : β) (h : r a b) :
+    (r ⁻¹) b a :=
+  (fun (hu : (r ⁻¹) b a ↔ r a b) => Iff.mpr hu h) (Rel.inv_apply α β r b a)
+
+theorem comp_inv_apply (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ)
+    (h : (r • s) a c) : (s ⁻¹ • (r ⁻¹)) c a :=
+  Exists.elim β (fun (b : β) => r a b ∧ s b c) ((s ⁻¹ • (r ⁻¹)) c a)
+    (comp_apply_elim α β γ r s a c h)
+    (fun (b : β) (hb : r a b ∧ s b c) =>
+      comp_intro γ β α (s ⁻¹) (r ⁻¹) c b a
+        ((fun (hu : (s ⁻¹) c b ↔ s b c) => Iff.mpr hu (And.right hb))
+          (Rel.inv_apply β γ s c b))
+        ((fun (hu : (r ⁻¹) b a ↔ r a b) => Iff.mpr hu (And.left hb))
+          (Rel.inv_apply α β r b a)))
+
+theorem inv_comp_apply (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ)
+    (h : (s ⁻¹ • (r ⁻¹)) c a) : (r • s) a c :=
+  Exists.elim β (fun (b : β) => (s ⁻¹) c b ∧ (r ⁻¹) b a) ((r • s) a c)
+    (comp_apply_elim γ β α (s ⁻¹) (r ⁻¹) c a h)
+    (fun (b : β) (hb : (s ⁻¹) c b ∧ (r ⁻¹) b a) =>
+      comp_intro α β γ r s a b c
+        ((fun (hu : (r ⁻¹) b a ↔ r a b) => Iff.mp hu (And.right hb))
+          (Rel.inv_apply α β r b a))
+        ((fun (hu : (s ⁻¹) c b ↔ s b c) => Iff.mp hu (And.left hb))
+          (Rel.inv_apply β γ s c b)))

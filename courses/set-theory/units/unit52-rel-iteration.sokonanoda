@@ -121,3 +121,27 @@ theorem trans_comp_apply (α : Type) (r : Rel α α)
     (a c : α) (h : (r • r) a c) : r a c := by
   sorry
 
+-- 练习 8（T 类）：**逆关系的引入**（把"相关"折成"逆相关"）。
+-- soko:hint 关键件：`Rel.inv_apply`（**点序：先陪域的点、再定义域的点** ✓ —— 实测两次传反 ✗）+
+--   `Iff.mpr` ✓
+theorem inv_intro (α β : Type) (r : Rel α β) (a : α) (b : β) (h : r a b) :
+    (r ⁻¹) b a := by
+  sorry
+
+-- 练习 9（L 类，**旗舰**）：**逆穿复合**（`(r • s) ⁻¹ = s ⁻¹ • r ⁻¹` 的逐点形态）。
+-- soko:hint 思路：拆出中间点 `b`，两条前提分别用练习 8 折成"逆相关"，再把 `b` 当作
+--   新复合的中间点拼回去。
+-- soko:hint 目标形态：`(r • s) a c → (s ⁻¹ • (r ⁻¹)) c a`。
+-- soko:hint 关键件：练习 2 / 练习 1 · `Rel.inv_apply`（**注意两处的点序**：`s` 那边是
+--   `c b`、`r` 那边是 `b a` ✓）· `And.left`/`And.right` ✓
+theorem comp_inv_apply (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ)
+    (h : (r • s) a c) : (s ⁻¹ • (r ⁻¹)) c a := by
+  sorry
+
+-- 练习 10（L 类，**收尾**）：**反向**（练习 9 的对偶，合起来就是那条等式 ✓）。
+-- soko:hint 关键件：练习 2 / 练习 1 · `Rel.inv_apply` 的**两个方向**（一边 `Iff.mp`、
+--   一边 `Iff.mpr` ✓）✓
+theorem inv_comp_apply (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ)
+    (h : (s ⁻¹ • (r ⁻¹)) c a) : (r • s) a c := by
+  sorry
+
