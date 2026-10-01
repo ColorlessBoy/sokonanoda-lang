@@ -264,6 +264,7 @@ impl Session {
         }
         let trust = TrustPlan {
             before: recompiled_from,
+            trusted_extra: Vec::new(),
             prev_signatures: if allow_cutoff {
                 prev_signatures
             } else {
