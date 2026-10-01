@@ -204,6 +204,26 @@
 - **记账**：`metavar-engine.md` **§9 as-built** · `ONBOARDING.md` §0.2（M2 ✓，下一片 **M3**）·
   第 525 轮归档 · 预算 `_comment`（cap 360→400）✓。
 
+## 第 529 轮（2026-10-01）：**IA-4 M3 收口 —— sort/kind 闸门 + 三通道归因**
+
+- **引擎内的 sort/kind 闸门**（`MetaCtx::assign`，设计 §2.5）：三值语法近似（`Prop`=1 · `Type`=2 ·
+  `Sort(n)`=n+1 · 其余 = **不知道 ⇒ 放行**）——**只拒"确定错"的** ⇒ 不可能假拒绝 ✓；检出 =
+  **作废该候选** + 报**既有码**（用户拍板，不新增码）✓。
+- **三通道** `MetaSolve { Solved, Unsolved, Kind, Clash }`：`first_err` 记首个硬错误、`discharge`
+  优先归因；应用路径的错误点**同一个码**下按通道换 `message` 那一句（`Unsolved` 那条**逐字等于**
+  今天）⇒ 码与 hint 契约不变 ✓。
+- **判据**：真值层 **15/15** · front **786/786** · §2.6 十二条（`implicit_metavar`/`metavar_inventory`/
+  `metavar_engine`/`notation`/`notation_metavar` = **1/1/3/49/1**）· **三指纹两态都逐字节等于冻结值**
+  （本轮**零用户可见变化**）· 结构计数逐项等于基线 · `gate --fast` **EXIT=0** ✓。
+- **契约同步**：`docs/protocol.md`（三通道说明；码/hint 不变）+ `skills/sokonanoda-teacher/SKILL.md`
+  （按 message 判通道）；**扩展无需改**（VS Code 只透传 message/hint，没有码表）✓。
+- **⚠ 一条诚实更正**：设计 §4 的「kind 夹具不再落内核」**做不到**（除非回退 G-21 的既有修复 ✗）——
+  那些形状**严格档先跑且成功** ⇒ 引擎轮不到 ⇒ 照旧落内核 `kernel-expected-sort`（hint 已很好，
+  G-21 正钉在它上面）⇒ M3 的闸门是**引擎自己的正确性守卫**，不是新的用户可见诊断；
+  真要搬去 elab 期需同轮搬 hint 内容 + 改 G-21 台账 ⇒ **留作后续决策点** ✓。
+- **记账**：`metavar-engine.md` **§10 as-built** · `ONBOARDING.md` §0.2（M3 ✓，下一片 **M4**）·
+  第 526 轮归档 · 预算（cap 400→418、protocol 897→900）✓。
+
 ## 第 527 轮（2026-10-01）：**IA-4 M1 收口 —— 引擎内核 + 记法路径接线（默认档 = 今天）**
 
 - **新模块 `crates/front/src/compile/meta.rs`**（元变量 = `\0soko_m{id}` **名字编码**）：三值合一

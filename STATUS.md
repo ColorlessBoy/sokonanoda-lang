@@ -33,6 +33,25 @@
 - **记账**：新设计 `docs/design/notation-input.md`（调研/差距/决策 D1–D7/已知限制）· README/CHANGELOG/老师
   技能三处镜像同轮 ✓ · 第 528 轮归档 ✓。**已知限制**：TM 的 `variables` 类是 ASCII 的 ⇒ `α` 仍**不着色**。
 
+## 第 532 轮（2026-10-01）：**编辑响应 —— 去掉整文件高亮 + 增量检查诊断（用户反馈「整个文件被高亮」）**
+
+- **① 整文件高亮：确认仍在**（不是版本问题）—— `setCompileDecorations` 的范围是**整份文档** +
+  `backgroundColor`；P7 只改了"什么时候出现"（300ms 展示延迟），没改"画多大" ⇒ 一次按键 2–3s
+  ⇒ 每次都整篇亮。**已修（S1）**：只留概览尺**第一行**标记、**一处背景色都不留**
+  （判据：stub 三条断言 —— 范围恰好 1 个 / `start.line == end.line == 0` / 无 `backgroundColor`）。
+- **② 诊断（真 LSP + 真课程夹具，0.80.0）**：unit08 冷开 3093ms · 热开 11ms · **改一行 2154ms**；
+  **改动位置几乎不影响成本**（第 1 条 3157 / 第 12 条 2002 / 最后一条 2350ms）⇒ **前缀复用没生效**。
+  结构计数（`SOKO_STAGE_STATS=1`）：`passes` **113** · `JUDGE_PREFIX runs` **79** / 3.13MB ·
+  unit 编译计数 **104**。拆开：库层 4 模块 ~500ms（**14%**）· **入口自己 ~3.0s（85%）**。
+- **根因 = 两条台账缺口**：G-29（编辑 ⇒ 整闭包从零重编，缓存只对"打开"有效）+ G-31（判定每批重跑
+  整份前缀）；代码证据 `check/mod.rs:608`「闭包编译不使用 TrustPlan（v1）」——项目文档连单文件那条
+  增量路都没有。**优先级据此重排**：只修闭包复用最多省 14%，大头在入口自己的重查。
+- **设计** `docs/design/declaration-incremental.md`（85 行）：S1 ✓ · **S2** 闭包入口接 TrustPlan（v2）·
+  **S3** 库层会话跨按键复用（module-artifacts 刀 1 进程内版）· **S4** 判定前缀复用（G-31 本体）；
+  每片判据都是**结构计数/比值**（`JUDGE_PREFIX runs`、unit 编译计数、passes），不用绝对毫秒。
+- **记账**：G-29/G-31 的 `today` 追加本轮读数 + 设计指针（`status` 仍 `open`，与复现件一致 ✓）·
+  第 529 轮归档 ✓。
+
 ## 第 530 轮（2026-10-01）：**编辑响应 —— P7 展示延迟（用户反馈「一闪一闪」）**
 
 - **诊断先行**：**编译不是瓶颈**（`playground` 逐键往返 **0.1ms 中位**、24 键 24 次编译**每次 0ms**；
@@ -48,26 +67,6 @@
   两条 `P7:`（计数）+ e2e `edit responsiveness`（用户看得见），修前**红**修后绿 ✓；细节见设计文档。
 - **记账**：新文档 `docs/design/edit-latency.md`（这条链的唯一权威，含"明确不做"）+ 过期登记 ·
   `editor/vscode/{CHANGELOG,README}.md` + `package.json` 同轮 ✓ · 第 527 轮归档 ✓。
-
-## 第 529 轮（2026-10-01）：**IA-4 M3 收口 —— sort/kind 闸门 + 三通道归因**
-
-- **引擎内的 sort/kind 闸门**（`MetaCtx::assign`，设计 §2.5）：三值语法近似（`Prop`=1 · `Type`=2 ·
-  `Sort(n)`=n+1 · 其余 = **不知道 ⇒ 放行**）——**只拒"确定错"的** ⇒ 不可能假拒绝 ✓；检出 =
-  **作废该候选** + 报**既有码**（用户拍板，不新增码）✓。
-- **三通道** `MetaSolve { Solved, Unsolved, Kind, Clash }`：`first_err` 记首个硬错误、`discharge`
-  优先归因；应用路径的错误点**同一个码**下按通道换 `message` 那一句（`Unsolved` 那条**逐字等于**
-  今天）⇒ 码与 hint 契约不变 ✓。
-- **判据**：真值层 **15/15** · front **786/786** · §2.6 十二条（`implicit_metavar`/`metavar_inventory`/
-  `metavar_engine`/`notation`/`notation_metavar` = **1/1/3/49/1**）· **三指纹两态都逐字节等于冻结值**
-  （本轮**零用户可见变化**）· 结构计数逐项等于基线 · `gate --fast` **EXIT=0** ✓。
-- **契约同步**：`docs/protocol.md`（三通道说明；码/hint 不变）+ `skills/sokonanoda-teacher/SKILL.md`
-  （按 message 判通道）；**扩展无需改**（VS Code 只透传 message/hint，没有码表）✓。
-- **⚠ 一条诚实更正**：设计 §4 的「kind 夹具不再落内核」**做不到**（除非回退 G-21 的既有修复 ✗）——
-  那些形状**严格档先跑且成功** ⇒ 引擎轮不到 ⇒ 照旧落内核 `kernel-expected-sort`（hint 已很好，
-  G-21 正钉在它上面）⇒ M3 的闸门是**引擎自己的正确性守卫**，不是新的用户可见诊断；
-  真要搬去 elab 期需同轮搬 hint 内容 + 改 G-21 台账 ⇒ **留作后续决策点** ✓。
-- **记账**：`metavar-engine.md` **§10 as-built** · `ONBOARDING.md` §0.2（M3 ✓，下一片 **M4**）·
-  第 526 轮归档 · 预算（cap 400→418、protocol 897→900）✓。
 
 ## 未决项（**只有这两条**；顺序与入口见 `docs/ONBOARDING.md` §0.2）
 
