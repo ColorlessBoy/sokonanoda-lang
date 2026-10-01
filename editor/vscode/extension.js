@@ -1340,22 +1340,25 @@ function onCompileProgress(value) {
 }
 
 /// **P4（空间进度，2026-09-26 用户需求）**：状态栏只说"在编"，不说"**在哪编**" ✓。
-/// 编译期间给当前文档加一层**整行装饰** ⇒ 编辑器右侧**概览尺**（overview ruler）
-/// 与行背景同时亮起 ✓。
+/// 编译期间给当前文档加一条**概览尺**（overview ruler）标记 ⇒ 右侧看得到"这个文件在编" ✓。
 ///
 /// **刻意不用 `gutterIconPath`**：那要往扩展里打包一张 svg ✗；`overviewRulerColor`
-/// 与 `backgroundColor` 都是纯声明式的，**零资源** ✓。
-/// 范围 = **整个文档** —— 与当前的进度粒度（"这一份在编"）一致 ✓，别假装更精确 ✗。
+/// 是纯声明式的，**零资源** ✓。
+///
+/// ⚠ **2026-10-01 用户反馈后的修订**：原先范围 = **整个文档**，还带 `backgroundColor`
+/// （`editor.wordHighlightBackground`）⇒ **整篇染成高亮色**。用户原话：「我最新版本
+/// 编译完之后，每次修改代码，**整个文件就会被高亮**」。整篇染色把"在编"这个信号
+/// 放大成"整篇都在变"，而编译粒度本来就是整份文档（项目文档还是整个 import 闭包，
+/// 台账 **G-29**）⇒ 一次按键就整篇亮 **2–3 秒** ✗。现在：**只留概览尺的第一行标记，
+/// 没有一处背景色** —— 状态栏已经有文字，概览尺只回答"哪一个文件" ✓。
 let compileDecorationType = null;
 
 function ensureCompileDecoration() {
   if (compileDecorationType) return compileDecorationType;
   compileDecorationType = vscode.window.createTextEditorDecorationType({
-    isWholeLine: true,
     // `OverviewRulerLane.Right` —— 与 VS Code 自己的诊断同一侧 ✓。
     overviewRulerColor: new vscode.ThemeColor("progressBar.background"),
     overviewRulerLane: vscode.OverviewRulerLane.Right,
-    backgroundColor: new vscode.ThemeColor("editor.wordHighlightBackground"),
   });
   return compileDecorationType;
 }
@@ -1364,11 +1367,9 @@ function setCompileDecorations(on) {
   const editor = vscode.window.activeTextEditor;
   if (!editor || !editor.document) return;
   // **成对**：`end` 必须把装饰**清空**（`setDecorations(type, [])`）—— 否则那条
-  // 高亮会永远留在文件上 ✗（进度通知最常见的第二类 bug ✓）。
-  const text = editor.document.getText();
-  const ranges = on
-    ? [new vscode.Range(editor.document.positionAt(0), editor.document.positionAt(text.length))]
-    : [];
+  // 标记会永远留在文件上 ✗（进度通知最常见的第二类 bug ✓）。
+  // 范围 = **第一行**（不是整份文档）：概览尺上一个小标记就够回答"在哪编" ✓。
+  const ranges = on ? [new vscode.Range(0, 0, 0, 0)] : [];
   if (typeof editor.setDecorations === "function") {
     editor.setDecorations(ensureCompileDecoration(), ranges);
   }

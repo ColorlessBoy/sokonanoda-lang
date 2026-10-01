@@ -2359,6 +2359,16 @@ test("compile progress marks the active document in the overview ruler", async (
     editor.decorationCalls[0].ranges.length >= 1,
     "装饰必须落在**实际范围**上（空范围 = 概览尺上什么都没画 ✗）",
   );
+  // **2026-10-01 用户反馈**：「每次修改代码，整个文件就会被高亮」⇒ 装饰**不许**
+  // 染整篇：范围只能是**一行**（第一行），且**没有 backgroundColor** ✓。
+  assert.strictEqual(
+    editor.decorationCalls[0].ranges.length,
+    1,
+    "只许一个范围（第一行的小标记），不许铺满整份文档",
+  );
+  const marked = editor.decorationCalls[0].ranges[0];
+  assert.strictEqual(marked.start.line, 0, "标记落在第一行");
+  assert.strictEqual(marked.end.line, 0, "标记**只覆盖一行** —— 整篇染色就是用户报的那条 ✗");
   const options = vscodeStub.__decorationOptions;
   assert.ok(
     options && options.overviewRulerColor,
@@ -2368,6 +2378,10 @@ test("compile progress marks the active document in the overview ruler", async (
     options.overviewRulerLane,
     4,
     "概览尺要画在 **Right** 道（与 VS Code 自己的诊断同一侧 ✓）",
+  );
+  assert.ok(
+    !options.backgroundColor,
+    "**不许**有背景色：整篇背景高亮正是用户 2026-10-01 报的那条（`整个文件就会被高亮`）✗",
   );
 
   notify({ value: { kind: "end" } });
