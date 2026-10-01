@@ -42,7 +42,8 @@ python3 scripts/notation-lint.py --root <file>   # 单文件
   **`by rfl` 已能认 `=` 记法目标**（2026-09-21 修）。
   细则见 `docs/notes/course-lean-style/notation-rewrite-brief.md`。
 - **画布（`units/*.sokonanoda`）里的 tactic 块不动，term 保持 term**；纯记法改写必须
-  **计数中性**：门禁仍是 `36 目标 · 328 checked · 99 open · 0 判负`。
+  **计数中性**（判据 G1–G6 与规模无关、**不锁计数** ✗：别把某次的门禁数字写进文档 ✓
+  —— 当前数字永远现跑 `python3 courses/set-theory/tools/check.py` 取 ✓）。
 
 ## 解答写法：**项风格**（2026-09-21 用户拍板，**覆盖**早先的"tactic 先不动"）
 
@@ -110,3 +111,26 @@ python3 scripts/notation-lint.py --root <file>   # 单文件
 
 课程线与语言线都用 `scripts/soko`（版本锁定、幂等）。不要为跑课程装 Rust；
 需要改语言时才进贡献者路径（`scripts/soko gate`）。
+
+## 库审计清单（2026-10-01 立；三次实证换来的）
+
+**每一次写 `axiom` / `def`，先答三问**（答不上来就别写 ✗）：
+
+1. **退化实例**：把它实例化到**最退化的参数**上（`fun _ _ => True`、空类型、单点类型、
+   常值函数……）**还成立吗**？
+   —— *实证* **L-08**：`axiom regularity` 对**任意**二元关系断言良基性 ⇒ 取 `E := fun _ _ => True`
+   即得 `False` ⇒ 公理使库**不一致** ✗（已降级成定义 `IsRegular` ✓）。
+2. **有没有居民**：这个 `def` 的**实例存在吗**？（构造一个最小的出来试试 ✗）
+   —— *实证* **L-07**：非严格 `IsWellOrder` 配「极小」版 `HasMin` ⇒ 只在**空论域**上可满足，
+   单元⑬⑭ 的良序定理**空真** ✗（已改成「最小」版 `HasLeast` + 新增 `IsStrictWellOrder` ✓）。
+3. **两步配对**：**极小 vs 最小**、**存在 vs 唯一**、**子集 vs 元素**……两个方向的定义
+   **配得上吗**？（第 1 问查"太强"，第 3 问查"对不上" ✗）
+
+**报缺口（G 系列）之前必须做的两件事**（否则会报假缺口 ✗）：
+
+- **先把库里已有的公理与引理找一遍**：`grep -rn "^axiom \|^theorem \|^def " lib/`；
+  —— *实证* **G-77 误报**：单元㉜㉞㉟ 把"函数相等要外延"记成缺口 ✗，而 `lib.Extensionality`
+  **一直提供** `propext`/`funext` ✓，只是没人 import 它 ✗ ⇒ **"没见过"不等于"不存在"** ✓。
+- **复现件要能独立站住**：`.sokonanoda` 复现件在 `docs/gaps/repro/` 下**解析不到 `lib.*`** ✗
+  （模块根不同）⇒ 需要库的复现件写成 **`.sh`**（判据 = 跑一条真判卷 ✓，退出码约定见
+  `docs/gaps/README.md`）✓。

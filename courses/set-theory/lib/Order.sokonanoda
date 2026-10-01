@@ -447,7 +447,7 @@ theorem reflecting_apply (α β : Type) (r : α → α → Prop) (s : β → β 
 
 -- ── 逐点序（函数空间上的序；Enderton §7.1 的练习、Mathlib `Pi.instLE` 同款）────────
 -- 读法：`f ≤ g` 逐点成立。**注意**：它一般**不是**偏序 —— 反对称要**函数外延**
--- （`(∀ a, f a = g a) → f = g`），而本语言**没有** funext（见缺口 **G-77**）⇒ 单元㉜ 里
+-- （`(∀ a, f a = g a) → f = g`）—— 本语言**有**（`lib.Extensionality` 的 `funext` ✓）⇒ 单元㉜ 里
 -- 只证"逐点"形态的结论 ✓
 def PointwiseLe (α β : Type) (r : β → β → Prop) (f g : α → β) : Prop :=
   ∀ (a : α), r (f a) (g a)

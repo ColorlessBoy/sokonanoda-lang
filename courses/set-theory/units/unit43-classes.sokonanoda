@@ -14,7 +14,7 @@
 --   · **商集的成员是类** · **类的非空性** · **由相关性给出的包含** ·
 --     **两个类要么相同要么不相交** ✓
 --
--- ⚠ **「恰好相同」只能写成逐点 `↔`**：谓词的**相等**要**函数外延**（**G-77**），
+-- ⚠ **「恰好相同」本单元写成逐点 `↔`**：谓词的**相等**要**函数外延**（`lib.Extensionality` ✓），
 --   所以旗舰二写成 `(∀ c, [a] c ↔ [b] c) ↔ r a b` ✓
 --
 -- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
@@ -90,7 +90,8 @@ theorem equivClass_subset_iff (α : Type) (r : Rel α α) (h : IsEquivalence α 
 -- soko:hint 目标形态：`IsEquivalence r → ((∀ c, [a] c ↔ [b] c) ↔ r a b)`。
 -- soko:hint 关键件：`Iff.intro`（**两次**：外层 + 每个 `c` 内层）· `equivalence_symm`
 --   （**掉头时两个点的顺序要对调** —— 实测踩过）· 传递性假设先 λ 绑定 ✓
---   ⚠ **不要写成谓词相等**：那要函数外延（**G-77**）⇒ 只能逐点 ✓
+--   ⚠ **本练习写逐点**；谓词相等要**函数外延**（本语言**有**）⇒ 那条在单元㊹ 的
+--   `set_ext_of_funext` 里 ✓
 theorem equivClass_eq_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
     (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) ↔ r a b := by
   sorry

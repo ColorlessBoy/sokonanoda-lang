@@ -172,8 +172,8 @@ theorem kernel_is_equivalence (α β : Type) (f : α → β) :
 -- soko:hint 目标形态：`Injective f ↔ ∀ a b, kernel f a b → (idRel α) a b`。
 -- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· 单射假设**先 λ 绑定再应用** ·
 --   等式的证明项**点名声明星**（G-73 形状 ③）✓
---   ⚠ **再往前一步**（「`f` 是单射 ⇒ 商 `α/kernel f` 与像同构」）要**函数外延/商的性质**，
---   本语言做不了（**G-77 / G-75**）⇒ 本单元到此为止 ✓
+--   ⚠ **再往前一步**（「`f` 是单射 ⇒ 商 `α/kernel f` 与像同构」）要**商的一般性质** ——
+--   本语言在这条线上受限（**G-75**，`Quot` 缺 `exact`）⇒ 本单元到此为止 ✓
 theorem injective_iff_kernel (α β : Type) (f : α → β) :
     Function.Injective α β f ↔ ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b := by
   sorry
