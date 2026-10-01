@@ -1,0 +1,39 @@
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+
+theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=
+  Set.mem_sdiff a A B
+
+theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
+  fun (h : a ∈ (Set.empty α)) => (Iff.mp (Set.mem_empty_iff_false a) h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
+
+theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+
+theorem mem_sdiff_of_mem_not_mem (α : Type) (A B : Set α) (a : α) (ha : a ∈ A)
+    (hna : ¬ (a ∈ B)) : a ∈ (A \ B) :=
+  (fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) => Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ B)) ha hna))  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
+    (Set.mem_sdiff a A B)
+
+theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) :=
+  And.right ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) => Iff.mp hu h) (Set.mem_sdiff a A B))
+
+theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A :=
+  And.left ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) => Iff.mp hu h) (Set.mem_sdiff a A B))
+
+theorem not_subset_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (A ⊆ B) :=
+  fun (hsub : A ⊆ B) =>
+    not_mem_of_mem_sdiff α A B a h (hsub a (mem_of_mem_sdiff α A B a h))
+
+theorem not_eq_empty_of_mem_sdiff (α : Type) (A B : Set α) (a : α)
+    (h : a ∈ (A \ B)) : ¬ (Eq.{1} (Set α) (A \ B) (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
+  fun (heq : Eq.{1} (Set α) (A \ B) (Set.empty α)) =>  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
+    demo_not_mem_empty α a
+      (rel_subst_right (Set α) (fun (u : Set α) (v : Set α) => a ∈ v)
+        (A \ B) (A \ B) (Set.empty α) heq h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参

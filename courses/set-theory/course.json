@@ -132,10 +132,11 @@
             "refutation",
             "counterexample",
             "refutation-exists",
-            "extensionality-refutation"
+            "extensionality-refutation",
+            "refutation-sdiff"
           ],
           "quota": {
-            "exercises": 23
+            "exercises": 28
           },
           "units": [
             {
@@ -161,6 +162,12 @@
               "title": "单元56 反例与不可证（二）",
               "title_en": "Unit 56 — Refutation (II): Refuting ∃ and =",
               "unit": 56
+            },
+            {
+              "file": "units/unit57-refutation3.sokonanoda",
+              "title": "单元57 反例与不可证（三）",
+              "title_en": "Unit 57 — Refutation (III): Difference as Witness Set",
+              "unit": 57
             }
           ]
         },
