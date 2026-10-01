@@ -1,0 +1,85 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+import lib.Fun
+import lib.Extensionality
+
+theorem demo_funext_spec (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x)
+    (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) : Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α β f g h
+
+theorem demo_propext_spec (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  propext_spec a b h
+
+theorem demo_comp_assoc_refl (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
+    Eq.{1} (α → δ) ((fun (a : α) => h (g (f a)))) (fun (a : α) => h (g (f a))) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Eq.refl.{1} (α → δ) (fun (a : α) => h (g (f a)))
+
+theorem funext_apply (α β : Type) (f g : α → β)
+    (h : ∀ (a : α), Eq.{1} β (f a) (g a)) : Eq.{1} (α → β) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α (fun (_ : α) => β) f g h
+
+theorem propext_apply (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  propext_spec a b h
+
+theorem comp_assoc_eq (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
+    Eq.{1} (α → δ) ((h ∘ g) ∘ f) (h ∘ (g ∘ f)) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Eq.refl.{1} (α → δ) ((h ∘ g) ∘ f)
+
+theorem comp_id_eq (α β : Type) (f : α → β) :
+    Eq.{1} (α → β) ((fun (a : α) => f a)) f :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Eq.refl.{1} (α → β) f
+
+theorem id_comp_eq (α β : Type) (f : α → β) :
+    Eq.{1} (α → β) ((fun (a : α) => (fun (b : β) => b) (f a))) f :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α (fun (_ : α) => β) (fun (a : α) => (fun (b : β) => b) (f a)) f
+    (fun (a : α) => Eq.refl.{1} β (f a))
+
+theorem pointwiseLe_antisymm (α β : Type) (r : Rel β β) (h : IsPartialOrder β r) :
+    Antisymmetric (α → β) (PointwiseLe α β r) :=
+  fun (f : α → β) => fun (g : α → β) => fun (hfg : PointwiseLe α β r f g) =>
+    fun (hgf : PointwiseLe α β r g f) =>
+      funext_spec α (fun (_ : α) => β) f g (fun (a : α) =>
+        partialOrder_antisymm β r h (f a) (g a)
+          (pointwiseLe_apply α β r f g hfg a)
+          (pointwiseLe_apply α β r g f hgf a))
+
+theorem pointwiseLe_isPartialOrder (α β : Type) (r : Rel β β) (h : IsPartialOrder β r) :
+    IsPartialOrder (α → β) (PointwiseLe α β r) :=
+  isPartialOrder_intro (α → β) (PointwiseLe α β r)
+    (fun (f : α → β) => fun (a : α) => partialOrder_refl β r h (f a))
+    (pointwiseLe_antisymm α β r h)
+    (fun (f : α → β) => fun (g : α → β) => fun (k : α → β) =>
+      fun (hfg : PointwiseLe α β r f g) => fun (hgk : PointwiseLe α β r g k) =>
+        fun (a : α) =>
+          partialOrder_trans β r h (f a) (g a) (k a)
+            (pointwiseLe_apply α β r f g hfg a)
+            (pointwiseLe_apply α β r g k hgk a))
+
+theorem leftInverse_apply (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.LeftInverse α β g f) (x : α) : Eq.{1} α (g (f x)) x :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (x1 : α), Eq.{1} α (g (f x1)) x1) => hu x) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem rightInverse_apply (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.RightInverse α β g f) (y : β) : Eq.{1} β (f (g y)) y :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (y1 : β), Eq.{1} β (f (g y1)) y1) => hu y) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem inverse_unique_eq (α β : Type) (f : α → β) (g g1 : β → α)
+    (hl : Function.LeftInverse α β g f) (hr : Function.RightInverse α β g1 f) :
+    Eq.{1} (β → α) g g1 :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec β (fun (_ : β) => α) g g1 (fun (y : β) =>
+    Eq.trans.{1} α (g y) (g (f (g1 y))) (g1 y)
+      (rel_subst_left β (fun (u : β) (v : β) => Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (f (g1 y)) y y (rightInverse_apply α β g1 f hr y) (Eq.refl.{1} α (g y)))
+      (leftInverse_apply α β g f hl (g1 y)))
+
+theorem set_ext_of_funext (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
+    Eq.{1} (Set α) A B :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α (fun (_ : α) => Prop) A B (fun (x : α) => propext_spec (A x) (B x) (h x))
+
+theorem rel_ext_of_funext (A B : Type) (r s : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b ↔ s a b) : Eq.{1} (Rel A B) r s :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec A (fun (_ : A) => B → Prop) r s (fun (a : A) =>
+    funext_spec B (fun (_ : B) => Prop) (r a) (s a)
+      (fun (b : B) => propext_spec (r a b) (s a b) (h a b)))

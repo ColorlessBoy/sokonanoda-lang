@@ -462,10 +462,13 @@
             "bijective",
             "inverse",
             "left-inverse",
-            "right-inverse"
+            "right-inverse",
+            "extensionality",
+            "funext",
+            "propext"
           ],
           "quota": {
-            "exercises": 30
+            "exercises": 40
           },
           "units": [
             {
@@ -485,6 +488,12 @@
               "title": "单元㉟ 逆函数：左逆、右逆与双边逆",
               "title_en": "Unit 35 — Inverse Functions",
               "unit": 35
+            },
+            {
+              "file": "units/unit44-extensionality.sokonanoda",
+              "title": "单元㊹ 两条外延公理的应用",
+              "title_en": "Unit 44 — Applying Extensionality (funext / propext)",
+              "unit": 44
             }
           ]
         },

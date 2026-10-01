@@ -1,0 +1,155 @@
+-- ==========================================================================
+-- unit44-extensionality.sokonanoda —— 卷 I 单元㊹ **两条外延公理的应用**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§1.2/§3.3**
+-- （extensionality 与函数相等）；Halmos《Naive Set Theory》**§1/§8**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.12 章 —— 也是 `lib/Extensionality` 文件头
+-- 自己写下的路线：「有数学内容的（用它们推 `Set.ext`、函数相等的推理）属 **L3**」✓）。
+--
+-- ⚠⚠ **本单元是一份"勘误 + 升级"**：单元㉜㉞㉟ 当时**没 import `lib/Extensionality`**，
+--   于是把"函数相等要外延、本语言没有"写成了缺口 **G-77** ✗ —— 那是**误报**：
+--   `propext` 与 `funext` **一直是库里的公理**（`lib/Extensionality` ✓），只是没人 import 它 ✗
+--   ⇒ 本单元把它们用起来，并把当时只能写成"逐点"的结论**升级成真正的等式** ✓
+--   （台账 **G-77 已改正**为"误报"✓）
+--
+-- 本单元的"该学的定理"：
+--   · 两条公理的**取用子**（依赖版 `funext` · `propext`）；
+--   · **合成的结合律与恒等律**（真正的等式 —— 单元㉞ 当时只写了逐点 ✓）；
+--   · **旗舰一：逐点序是偏序**（`IsPartialOrder (α → β) (PointwiseLe α β r)`）——
+--     单元㉜ 当时把这一条判成"做不到" ✗，**现在做到了** ✓（关键就是外延 ✓）；
+--   · **旗舰二：双边逆唯一**（函数等式 —— 单元㉟ 当时只写了逐点 ✓）；
+--   · **旗舰三：从两条公理推出集合外延与关系外延**（`Set.ext` / `Rel.ext` 的**推理**）✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 五样**：`lib.Extensionality`（本次的主角）· `lib.Order` · `lib.Fun` ·
+--   `lib.Rel` · `lib.Set`。
+--
+-- 依赖：单元㉜（逐点序）· 单元㉞（函数代数）· 单元㉟（逆函数）—— 本单元把它们的
+-- "逐点形态"补成"等式形态" ✓
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+import lib.Fun
+import lib.Extensionality
+
+-- ─────────────────────────────────────────────────────────────
+-- 44.1 三条库引理（两条公理的取用子 · 字面 λ 的等式是自反的）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：**依赖版函数外延**（`funext` 的取用子；非依赖版 = 族取常值 `fun _ => β`）。
+theorem demo_funext_spec (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x)
+    (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) : Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α β f g h
+theorem demo_propext_spec (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  propext_spec a b h
+theorem demo_comp_assoc_refl (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
+    Eq.{1} (α → δ) ((fun (a : α) => h (g (f a)))) (fun (a : α) => h (g (f a))) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  Eq.refl.{1} (α → δ) (fun (a : α) => h (g (f a)))
+-- ─────────────────────────────────────────────────────────────
+-- 44.2 两条公理的取用子与**合成的等式形态**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：**函数外延**（非依赖版：族取常值）。
+-- soko:hint 思路：把 `funext` 的取用子用在"逐点相等"的假设上 —— 族参数写 `fun _ => β`。
+-- soko:hint 目标形态：`(∀ a, f a = g a) → f = g`。
+-- soko:hint 关键件：`funext_spec`（**参数：论域 · 族 · 两个函数 · 逐点证据**）✓
+--   ⚠ 库里的是**依赖版**（族 `β : α → Type`）⇒ 非依赖情形要把族写成**常值函数** ✓
+theorem funext_apply (α β : Type) (f g : α → β)
+    (h : ∀ (a : α), Eq.{1} β (f a) (g a)) : Eq.{1} (α → β) f g := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 2（T 类）：**命题外延**。
+-- soko:hint 思路：把 `propext` 的取用子直接交出去。
+-- soko:hint 目标形态：`(a ↔ b) → a = b`。
+-- soko:hint 关键件：`propext_spec` ✓
+theorem propext_apply (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 3（L 类）：**合成的结合律**（真正的**等式** —— 单元㉞ 当时只写了逐点形态）。
+-- soko:hint 思路：`(h ∘ g) ∘ f` 与 `h ∘ (g ∘ f)` 在**计算上就是同一个函数**
+--   （两边都是"把 `a` 依次喂给 `f`、`g`、`h`"）⇒ 自反那一条即可，**不必动外延** ✓
+-- soko:hint 目标形态：`(h ∘ g) ∘ f = h ∘ (g ∘ f)`。
+-- soko:hint 关键件：`Eq.refl`（**写全宇宙层级与论域**）✓
+--   ⚠ **记法 `∘` 是右结合的**（`infixr:90`）⇒ 左边一定要加括号 ✓
+theorem comp_assoc_eq (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
+    Eq.{1} (α → δ) ((h ∘ g) ∘ f) (h ∘ (g ∘ f)) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 4（T 类）：**右恒等律**（`f` 与 `fun a => f a` 是同一个函数）。
+-- soko:hint 思路：两边计算上相同 ⇒ 自反。
+-- soko:hint 目标形态：`(fun a => f a) = f`。
+-- soko:hint 关键件：`Eq.refl`（写全层级与论域）✓
+theorem comp_id_eq (α β : Type) (f : α → β) :
+    Eq.{1} (α → β) ((fun (a : α) => f a)) f := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 5（L 类）：**左恒等律**（`fun a => (fun b => b) (f a)` 与 `f` 相等）。
+-- soko:hint 思路：两边的 λ 体相邻、只差一次 β-归约 ⇒ 用外延最稳（逐点给自反）。
+-- soko:hint 目标形态：`(fun a => (fun b => b) (f a)) = f`。
+-- soko:hint 关键件：`funext_spec`（族取 `fun _ => β`）+ 逐点给 `Eq.refl` ✓
+--   ⚠ **内层恒等函数的绑定变量类型要是 `β`**（写成 `α` 会判红 —— 单元㉞ 实测过）✓
+theorem id_comp_eq (α β : Type) (f : α → β) :
+    Eq.{1} (α → β) ((fun (a : α) => (fun (b : β) => b) (f a))) f := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 44.3 旗舰：**逐点序是偏序**（单元㉜ 当时判成"做不到"的那一条）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（L 类，**旗舰**）：**逐点序的反对称**（用外延把"逐点相等"升成"函数相等"）。
+-- soko:hint 思路：给定两个方向，把**陪域的反对称**用在每个坐标上得到"逐点相等"，
+--   再用**函数外延**收成函数相等。
+-- soko:hint 目标形态：`IsPartialOrder β r → Antisymmetric (α → β) (PointwiseLe α β r)`。
+-- soko:hint 关键件：`funext_spec`（族取 `fun _ => β`）· `partialOrder_antisymm`
+--   （**参数：论域 · 关系 · 假设 · 两个点 · 两条方向**）· `pointwiseLe_apply`（取用子）✓
+--   ⚠ **单元㉜ 把这一条判成"做不到"** —— 那是**误报**：外延一直在库里（见文件头）✓
+theorem pointwiseLe_antisymm (α β : Type) (r : Rel β β) (h : IsPartialOrder β r) :
+    Antisymmetric (α → β) (PointwiseLe α β r) := by
+  sorry
+
+-- 练习 7（L 类，**旗舰的收口**）：**逐点序是偏序**（三条一起，单元㉜ 做不到的那条）。
+-- soko:hint 思路：用智能构造子打包 —— 自反：每个坐标各自自反；反对称：练习 6；
+--   传递：每个坐标各自传递。
+-- soko:hint 目标形态：`IsPartialOrder β r → IsPartialOrder (α → β) (PointwiseLe α β r)`。
+-- soko:hint 关键件：`isPartialOrder_intro`（**参数：论域 · 关系 · 自反 · 反对称 · 传递**）·
+--   练习 6 · `partialOrder_refl` / `partialOrder_trans` · `pointwiseLe_apply` ✓
+theorem pointwiseLe_isPartialOrder (α β : Type) (r : Rel β β) (h : IsPartialOrder β r) :
+    IsPartialOrder (α → β) (PointwiseLe α β r) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 44.4 旗舰：**双边逆唯一** 与 **从两条公理推出两种外延**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 8（L 类，**旗舰**）：**双边逆唯一**（函数等式 —— 单元㉟ 当时只写了逐点）。
+-- soko:hint 思路：逐点算 `g y = g (f (g1 y)) = g1 y`（第一步沿"`f` 与 `g1` 互逆"把 `y`
+--   换成 `f (g1 y)`，第二步用"`g` 与 `f` 互逆"），再用**外延**收成函数相等。
+-- soko:hint 目标形态：`LeftInverse g f → RightInverse g1 f → g = g1`。
+-- soko:hint 关键件：两个取用子（**本题解答里自带**，库里没有）· `rel_subst_left`
+--   （**搬运方向：把第二个坐标向后换** —— 单元㉟ 的实测教训）· `Eq.trans` · `funext_spec` ✓
+theorem inverse_unique_eq (α β : Type) (f : α → β) (g g1 : β → α)
+    (hl : Function.LeftInverse α β g f) (hr : Function.RightInverse α β g1 f) :
+    Eq.{1} (β → α) g g1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 9（L 类）：**从两条公理推出集合外延**（`lib/Extensionality` 文件头点名的 L3 内容）。
+-- soko:hint 思路：`Set α` 就是 `α → Prop` ⇒ 先对每个点用**命题外延**（把 `↔` 变成 `=`），
+--   再用**函数外延**（族取 `fun _ => Prop`）收成集合相等。
+-- soko:hint 目标形态：`(∀ x, A x ↔ B x) → A = B`。
+-- soko:hint 关键件：`funext_spec` · `propext_spec` ✓
+--   ⚠ 族要写成 `fun _ => Prop`（`Prop : Type` ✓）✓
+theorem set_ext_of_funext (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
+    Eq.{1} (Set α) A B := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
+
+-- 练习 10（L 类）：**从两条公理推出关系外延**（同样的两步，做两次）。
+-- soko:hint 思路：`Rel A B` 就是 `A → B → Prop` ⇒ 外层函数外延，内层再用一次
+--   函数外延 + 命题外延。
+-- soko:hint 目标形态：`(∀ a b, r a b ↔ s a b) → r = s`。
+-- soko:hint 关键件：`funext_spec`（**用两次**）· `propext_spec` ✓
+theorem rel_ext_of_funext (A B : Type) (r s : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b ↔ s a b) : Eq.{1} (Rel A B) r s := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry
