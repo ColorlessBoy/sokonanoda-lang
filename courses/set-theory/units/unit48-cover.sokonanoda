@@ -101,3 +101,14 @@ theorem sInter_mem_of_all (α : Type) (F : Set (Set α)) (x : α)
 theorem sUnion_empty_apply (α : Type) (x : α) :
     ¬ (x ∈ Set.sUnion α (fun (_ : Set α) => False)) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   sorry
+
+-- 练习 8（L 类）：**族里全是空集 ⇒ 并没有元素**。
+-- soko:hint 思路：拆开 `x ∈ ⋃F` 得族成员 `A` 与 `x ∈ A`，假设在 `A` 上给出矛盾。
+-- soko:hint 目标形态：`(∀ A, A ∈ F → ∀ x, ¬ (x ∈ A)) → ∀ x, ¬ (x ∈ ⋃F)`。
+-- soko:hint 关键件：`Set.mem_sUnion_elim`（目标命题写 `False` 是**消去的目标** ✓，
+--   与 `Or.elim` 的**动机位**不同 ✗）· 假设按 成员 · 成员性 · 点 三步应用 ✓
+theorem sUnion_empty_of_all_empty (α : Type) (F : Set (Set α))
+    (h : ∀ (A : Set α), A ∈ F → ∀ (x : α), ¬ (x ∈ A)) :
+    ∀ (x : α), ¬ (x ∈ Set.sUnion α F) := by
+  sorry
+

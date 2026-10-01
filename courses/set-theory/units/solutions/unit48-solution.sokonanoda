@@ -52,3 +52,10 @@ theorem sUnion_empty_apply (α : Type) (x : α) :
   fun (hx : x ∈ Set.sUnion α (fun (_ : Set α) => False)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
     Set.mem_sUnion_elim α (fun (_ : Set α) => False) x False hx
       (fun (A : Set α) (hA : False) (hxA : x ∈ A) => hA)
+
+theorem sUnion_empty_of_all_empty (α : Type) (F : Set (Set α))
+    (h : ∀ (A : Set α), A ∈ F → ∀ (x : α), ¬ (x ∈ A)) :
+    ∀ (x : α), ¬ (x ∈ Set.sUnion α F) :=
+  fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>
+    Set.mem_sUnion_elim α F x False hx
+      (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) => h A hA x hxA)
