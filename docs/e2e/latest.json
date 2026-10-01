@@ -2,9 +2,9 @@
   "schema": "soko.e2e/1",
   "kind": "vscode-integration",
   "version": "0.80.0",
-  "commit": "bcd34375184bab1f22bf1174647eb45b1d331dca",
+  "commit": "d1183e630064ab7fb9e3d52d5aa79174059e8390",
   "dirty": true,
-  "date": "2026-10-01T10:30:01Z",
+  "date": "2026-10-01T10:41:29Z",
   "host": {
     "system": "Darwin",
     "machine": "arm64",
@@ -12,16 +12,16 @@
   },
   "vscode": "1.138.0",
   "tests": {
-    "passed": 38,
+    "passed": 39,
     "failed": 0,
     "pending": 0,
     "failing_cases": [],
     "failing_details": ""
   },
   "exit": 0,
-  "server": "0.80.0 (pid 98778) == 扩展 v0.80.0 (source=bundled)",
+  "server": "0.80.0 (pid 16997) == 扩展 v0.80.0 (source=bundled)",
   "lsp_sha256_16": "33075bb9a8ce7d61",
-  "log": "docs/e2e/logs/2026-10-01-bcd34375-vc1.138.0.log",
+  "log": "docs/e2e/logs/2026-10-01-d1183e63-vc1.138.0.log",
   "profile": "release",
   "grep": null
 }

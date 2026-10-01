@@ -455,6 +455,55 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("notation input: greek letters and the anon-ctor brackets, in a real host", async () => {
+    // 用户反馈（2026-10-01）：「`α` 没有快捷输入（如 `\a` 或 `\alpha`）」。
+    // 希腊字母与 `⟨`/`⟩` 走的是**另一条** hover 路（标识符 / 语法括号，不是记法
+    // 符号 ⇒ `notation_symbol_hover` 够不着），所以真宿主里各验一次——stub 宿主
+    // 验的是状态机，这里验的是「用户屏幕上真的打出来了、hover 真的说了」。
+    const source = "theorem g (α : Prop) (h : α) : α := h\n";
+    const uri = await writeDoc("notation-input-greek.sokonanoda", source);
+    const doc = await vscode.workspace.openTextDocument(uri);
+    const editor = await vscode.window.showTextDocument(doc, { preview: false });
+
+    // hover：光标落在**绑定变量** `α` 上（不是符号），文案必须说怎么打。
+    let hover = "";
+    await waitFor("a hover that teaches \\alpha", async () => {
+      hover = await hoverTextAt(uri, 0, source.indexOf("α"));
+      return hover.includes("\\alpha");
+    });
+    assert.ok(hover.includes("\\alpha"), `hover must teach \\alpha, got: ${hover}`);
+    assert.ok(!hover.includes("记法符号"), `α 是标识符，不是记法符号: ${hover}`);
+
+    // 打字：`\a`（用户点名的短键）+ Tab → `α`；`\alpha` 同样。
+    await editor.edit((builder) => builder.insert(new vscode.Position(0, 0), "\\a\n"));
+    editor.selection = new vscode.Selection(0, 2, 0, 2);
+    await vscode.commands.executeCommand("sokonanoda.input.replaceAbbreviation");
+    assert.strictEqual(
+      doc.lineAt(0).text,
+      "α",
+      `\\a + Tab must produce α, got: ${doc.lineAt(0).text}`,
+    );
+
+    await editor.edit((builder) => builder.insert(new vscode.Position(0, 0), "\\alpha\n"));
+    editor.selection = new vscode.Selection(0, 6, 0, 6);
+    await vscode.commands.executeCommand("sokonanoda.input.replaceAbbreviation");
+    assert.strictEqual(
+      doc.lineAt(0).text,
+      "α",
+      `\\alpha + Tab must produce α, got: ${doc.lineAt(0).text}`,
+    );
+
+    // `\<`（全表唯一的非字母缩写）：真编辑器里也要能出 ⟨。
+    await editor.edit((builder) => builder.insert(new vscode.Position(0, 0), "\\<\n"));
+    editor.selection = new vscode.Selection(0, 2, 0, 2);
+    await vscode.commands.executeCommand("sokonanoda.input.replaceAbbreviation");
+    assert.strictEqual(
+      doc.lineAt(0).text,
+      "⟨",
+      `\\< + Tab must produce ⟨, got: ${doc.lineAt(0).text}`,
+    );
+  });
+
   test("restart server command re-syncs open documents", async () => {
     // `Sokonanoda: Restart Server (重启服务器)` 重新解析二进制并重启客户端；重启后
     // 打开中的文档要重新拿到诊断（场景：本地二进制重建/缓存刷新后，
