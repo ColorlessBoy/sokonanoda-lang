@@ -18,6 +18,7 @@
 
 pub mod by;
 pub mod compile;
+pub mod depgraph;
 pub mod display;
 pub mod judge;
 pub mod notation;

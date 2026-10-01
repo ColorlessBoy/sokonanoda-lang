@@ -30,6 +30,7 @@
 use std::path::PathBuf;
 
 use sokonanoda_front::compile::{by_calls_total, module_compiles_total};
+use sokonanoda_front::depgraph::DepGraph;
 use sokonanoda_front::judge::infer_totals;
 use sokonanoda_front::query::QueryDoc;
 
@@ -272,5 +273,63 @@ fn dirty_propagation_target() {
         1 + ROOT_DEPENDENTS,
         "改**被 {ROOT_DEPENDENTS} 条依赖**的一条 ⇒ 重查命令数必须是 1+{ROOT_DEPENDENTS}（今天 {}）",
         root.entry_kernel_checks
+    );
+}
+
+/// **依赖边必须在真实报告上成立**（S5 的材料 ①②）：`DepGraph` 靠
+/// `DocumentReport.hover_cmds` + `ResolvedTarget::Declaration` 建边 ——
+/// 这条用例在**真编译出来的报告**上验证那个假设（合成夹具的单元测试只能验算法）。
+///
+/// 夹具的依赖形状见 [`gen_project`]：`t00 ← d00 ← d01` 且 `t00 ← d02`
+/// ⇒ 改 `t00` 的**脏集**必须是 `{t00, d00, d01, d02}`（**传递**闭包）；
+/// 改最后一条 `t07`（无人依赖）⇒ 只有它自己。
+#[test]
+fn dependency_edges_come_from_the_real_report() {
+    let (entry, text) = gen_project("depgraph");
+    let doc = open_doc(&entry, &text);
+    let report = doc.report.as_ref().expect("必须有报告");
+    let graph = DepGraph::from_report(report);
+
+    let cmd_of = |name: &str| {
+        graph
+            .declaration_command(name)
+            .unwrap_or_else(|| panic!("`{name}` 必须在声明表里"))
+    };
+    let (t00, d00, d01, d02, t07) = (
+        cmd_of("t00"),
+        cmd_of("d00"),
+        cmd_of("d01"),
+        cmd_of("d02"),
+        cmd_of("t07"),
+    );
+    assert!(
+        graph.uses(d00).contains(&t00),
+        "d00 引用 t00 ⇒ 必须建出边（uses(d00)={:?}）",
+        graph.uses(d00)
+    );
+    assert!(
+        graph.uses(d01).contains(&d00),
+        "d01 引用 d00 ⇒ 必须建出边（uses(d01)={:?}）",
+        graph.uses(d01)
+    );
+    let mut dirty = graph.dirty_commands(t00);
+    dirty.sort_unstable();
+    let mut want = vec![t00, d00, d01, d02];
+    want.sort_unstable();
+    assert_eq!(
+        dirty, want,
+        "改 t00 的脏集必须是传递闭包 {{t00,d00,d01,d02}}（只做直接依赖会漏 d01）"
+    );
+    assert_eq!(
+        graph.dirty_commands(t07),
+        vec![t07],
+        "改无人依赖的最后一条 ⇒ 脏集只有它自己"
+    );
+    println!(
+        "PERF depgraph t00_dirty={} leaf_dirty={} commands={} unknown={}",
+        graph.dirty_commands(t00).len(),
+        graph.dirty_commands(t07).len(),
+        graph.commands(),
+        graph.unknown_references().len(),
     );
 }
