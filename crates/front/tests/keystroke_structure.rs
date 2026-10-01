@@ -421,3 +421,23 @@ fn a_cached_open_still_leaves_a_usable_entry_cache() {
         "缓存回放之后的第一刀必须能信任前缀（否则它恒为整闭包：实测 2977ms vs 314ms）"
     );
 }
+
+/// **prelude 模式变了 ⇒ 信任必须失效**（2026-10-01 补的静默错编口子）。
+///
+/// 模式是**文件注释指令**（`-- soko:prelude bare`）决定的，而注释**不是命令** ⇒
+/// 改指令**不改任何命令的文本** ⇒ 只看命令文本的 `trusted_prefix` 会认**整份**前缀
+/// ⇒ 拿另一个 prelude 下的结论当这一份的 ✗。判据：模式一变，`trusted_prefix_len()` 必须归 0。
+///
+/// **反向验证**：把 `dependency_fingerprint` 里那两行 `prelude` 的 `mix` 去掉 ⇒ 这条判红。
+#[test]
+fn a_prelude_mode_change_invalidates_the_entry_trust() {
+    let (entry, text) = gen_project("prelude");
+    let mut doc = open_doc(&entry, &text);
+    // 同一份文本、显式换模式（`Bare` 不装 prelude）——命令文本一个字都没变。
+    doc.set_text(&text, 2, Some(sokonanoda_front::compile::PreludeMode::Bare));
+    assert_eq!(
+        doc.trusted_prefix_len(),
+        0,
+        "prelude 模式变了 ⇒ 一条都不许信任（注释不是命令，文本比对看不见这个变化）"
+    );
+}

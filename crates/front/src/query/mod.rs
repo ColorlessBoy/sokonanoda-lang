@@ -138,7 +138,11 @@ struct EntryCache {
 ///
 /// 为什么不用 `ProjectPlan::digest`：那个摘要**含入口自身** ⇒ 每次按键都变
 /// （按键改的就是入口）⇒ 信任永远不成立，等于没做 ✗。这里只要"**闭包的另一半**"。
-fn dependency_fingerprint(plan: &crate::project::ProjectPlan, entry: &std::path::Path) -> u64 {
+fn dependency_fingerprint(
+    plan: &crate::project::ProjectPlan,
+    entry: &std::path::Path,
+    prelude: PreludeMode,
+) -> u64 {
     let mut hash = 0xcbf2_9ce4_8422_2325u64;
     let mut mix = |bytes: &[u8]| {
         for byte in bytes {
@@ -147,6 +151,15 @@ fn dependency_fingerprint(plan: &crate::project::ProjectPlan, entry: &std::path:
         }
     };
     mix(b"soko.entry-deps/1");
+    // **prelude 模式必须进指纹**（2026-10-01 补的一个静默错编口子）：它是**文件注释
+    // 指令**（`-- soko:prelude bare`）决定的，而注释**不是命令** ⇒ 改指令**不改任何
+    // 命令的文本** ⇒ `trusted_prefix` 会认**整份**前缀 ⇒ 拿**另一个 prelude** 下的
+    // 结论当这一份的 ⇒ 静默错编 ✗（与 `EntryCache::deps` 那条同一类）。
+    mix(&[match prelude {
+        PreludeMode::Full => 1,
+        PreludeMode::Bare => 2,
+    }]);
+    mix(b"\0");
     for module in plan.modules() {
         if module.path == entry {
             continue;
@@ -570,7 +583,7 @@ impl QueryDoc {
         // **先把 `before` 与要拼的前缀算出来**，再借出去编译（`entry_cache` 之后要写回）。
         // **依赖指纹**：闭包的另一半变了 ⇒ 这份缓存的前缀结论不再成立（见
         // `EntryCache::deps` 的注释）。指纹不等就**不信任**（退回全查）。
-        let deps = dependency_fingerprint(&plan, &path);
+        let deps = dependency_fingerprint(&plan, &path, self.mode);
         let (trust, prefix) = match (&self.entry_cache, &layout) {
             (Some(cache), Some((keys, starts))) if cache.deps == deps => {
                 let before = cache.trusted_prefix(keys, starts);
@@ -745,7 +758,7 @@ impl QueryDoc {
             keys,
             starts,
             report: entry,
-            deps: dependency_fingerprint(&plan, &path),
+            deps: dependency_fingerprint(&plan, &path, self.mode),
         })
     }
 
