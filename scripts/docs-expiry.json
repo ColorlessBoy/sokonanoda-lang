@@ -186,6 +186,12 @@
       "tier": "spec",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
     },
+    "docs/design/notation-input.md": {
+      "expires": "2027-10-01",
+      "renewed": "2026-10-01",
+      "tier": "spec",
+      "reason": "记法输入表的唯一活设计：Rust↔JS 双镜像与 hover/改写器的口径都在这里"
+    },
     "docs/design/notation-subset.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",

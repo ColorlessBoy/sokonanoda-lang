@@ -50,6 +50,7 @@
 ## 设计记录（`docs/design/`）
 
 已确认并落地的设计（含取舍、验收、as-built）。**2026-09-30 激进删档后只剩 17 篇**
+（2026-10-01 补回 `notation-input.md` ⇒ 18 篇）
 —— 判据 = ① 被 `AGENTS.md` / `REQUIREMENTS.md` 硬规则点名；② 被**代码/契约测试**读或断言
 （`crates/cli/tests/{dsh,extension,st1_boundary}.rs`、`scripts/plan.py`）；③ 仍是**未收口**那条线的
 唯一权威。其余（已收口 / 已否决 / 过程记录）**已删**，原文 ⇒ `git log --all -- docs/design/<文件>` ✓。
@@ -68,6 +69,7 @@
 - `v077-st1-boundary.md` — ST1 决策记录 + **探针↔对账表一一对应**（`crates/cli/tests/st1_boundary.rs`）
 - `v077-kernel-deficiencies.md` — 未做完的四章（ST6/7/9/11）的根因定位（G-56/58/59，E19 取证）
 - `notation-subset.md` — 用户自定义记法子集（`infix:N` 族 + 零元 `notation`）的边界与第二刀
+- `notation-input.md` — **记法输入表**（`\alpha`→`α`）：Lean 4 输入法体系取证 + 差距清单 + 补全决策（`front::notation_input`）
 - `module-artifacts.md` — 模块级产物三块 + per-module Merkle 键 + 产物落盘（未做）
 - `project-artifacts.md` — 项目闭包编译产物落盘（`<模块根>/.sokonanoda/compiled/`）
 - `redundant-sorry.md` — 值位里多余的 `sorry` 判据（终审 = kernel）
@@ -86,9 +88,8 @@
 > hooks / 子 agent，逐条 `path:line`），被 `crates/cli/tests/dsh.rs` 的**契约测试**钉住 ✓
 > （配套设计 `docs/design/deepseek-harness.md`）。
 >
-> 其余笔记**全删**（结论已升格进 `docs/design/`，底稿属过程记录 ✗）：`course-lean-style/`
-> 三篇（记法改写 / R3 改写 / 记法输入面的施工细则）与更早归档过的顶层九篇 +
-> `settheory-survey/` 十篇 —— 原文 ⇒ `git log --all -- docs/notes/<路径>` ✓。
+> 其余笔记**全删**（结论已升格进 `docs/design/`，底稿属过程记录 ✗）：`course-lean-style/` 三篇、
+> 顶层九篇、`settheory-survey/` 十篇 —— 原文 ⇒ `git log --all -- docs/notes/<路径>` ✓。
 
 ## 归档（`docs/archive/`）—— **归档 ≠ 销毁** ✓
 
@@ -103,8 +104,7 @@
 > 归档目录只留**最近 3 轮**（`docs/archive/README.md` 逐个点名 ✓）。
 >
 > **已删除（不归档）** ✗：2026-09-29 的计划/交接类（`docs/HANDOVER.md`、`docs/E2-HANDOVER.md`、
-> `docs/NEXT.md`、`docs/PLAN-0.74-0.79.md`、`docs/HANDOFF-0.7x.md`、`docs/design/PLAN-appendix-*.md`）
-> —— 内容已并入 `docs/ONBOARDING.md`（**接手 / 唯一队列 / 开工单**）与 `docs/STATUS-ARCHIVE.md`。
+> `docs/NEXT.md`、`docs/PLAN-0.74-0.79.md` 等）—— 内容已并入 `docs/ONBOARDING.md` 与 `docs/STATUS-ARCHIVE.md`。
 >
 > **不许动的例外** ✗（有真消费者，动了就判红）：`docs/gaps/repro/**`（复现被
 > `gap.py check` 在 gate + CI 三片矩阵里真跑 ✓）、`docs/protocol.md`
