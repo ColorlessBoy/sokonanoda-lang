@@ -1,0 +1,66 @@
+import lib.Equiv
+import lib.Set
+import lib.Image
+import lib.Fun
+
+theorem demo_injOn_def (α β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y :=
+  Set.injOn_def α β f A
+
+theorem demo_le_def (α β : Type) (A : Set α) (B : Set β) :
+    A ≼ B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Set.le_def α β A B
+
+theorem demo_le_intro (α β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hinj : Set.InjOn α β f A) (hmap : Set.MapsTo α β f A B) : A ≼ B :=
+  Set.Le.intro α β A B f hinj hmap
+
+theorem injOn_id (α : Type) (A : Set α) :
+    Set.InjOn α α (fun (x : α) => x) A :=
+  fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : x = y) => h
+
+theorem injOn_comp (α β γ : Type) (f : α → β) (g : β → γ) (A : Set α) (B : Set β)
+    (hf : Set.InjOn α β f A) (hg : Set.InjOn β γ g B)
+    (hmap : Set.MapsTo α β f A B) :
+    Set.InjOn α γ (fun (x : α) => g (f x)) A :=
+  fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : g (f x) = g (f y)) =>
+    hf x hx y hy (hg (f x) (hmap x hx) (f y) (hmap y hy) h)
+
+theorem le_refl (α : Type) (A : Set α) : A ≼ A :=
+  Set.Le.intro α α A A (fun (x : α) => x) (injOn_id α A)
+    (fun (x : α) (hx : x ∈ A) => hx)
+
+theorem le_univ (α : Type) (A : Set α) : A ≼ Set.univ α :=
+  Set.Le.intro α α A (Set.univ α) (fun (x : α) => x) (injOn_id α A)
+    (fun (x : α) (hx : x ∈ A) => Set.mem_univ α x)
+
+theorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B :=
+  Set.Le.intro α α A B (fun (x : α) => x) (injOn_id α A)
+    (fun (x : α) (hx : x ∈ A) => (fun (hs : ∀ (z : α), z ∈ A → z ∈ B) => hs x hx) h)
+
+
+theorem empty_le (α : Type) (A : Set α) : ∅ ≼ A :=
+  subset_le α ∅ A (fun (x : α) (hx : x ∈ ∅) => False.elim (x ∈ A) (Set.notMem_empty α x hx))  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 在这里补不出来，必须写全
+theorem le_trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : A ≼ B) (h2 : B ≼ C) : A ≼ C :=
+  Set.Le.elim α β A B (A ≼ C) h1
+    (fun (f : α → β) (hf : Set.InjOn α β f A) (hm : Set.MapsTo α β f A B) =>
+      Set.Le.elim β γ B C (A ≼ C) h2
+        (fun (g : β → γ) (hg : Set.InjOn β γ g B) (hn : Set.MapsTo β γ g B C) =>
+          Set.Le.intro α γ A C (fun (x : α) => g (f x))
+            (injOn_comp α β γ f g A B hf hg hm)
+            (fun (x : α) (hx : x ∈ A) => hn (f x) (hm x hx))))
+
+theorem le_of_subset_le (α β : Type) (A B : Set α) (C : Set β)
+    (h1 : A ⊆ B) (h2 : B ≼ C) : A ≼ C :=
+  le_trans α α β A B C (subset_le α A B h1) h2
+
+theorem le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : ∀ (x : α), ¬ (x ∈ A) :=
+  Set.Le.elim α α A ∅ (∀ (x : α), ¬ (x ∈ A)) h
+    (fun (f : α → α) (hf : Set.InjOn α α f A) (hm : Set.MapsTo α α f A ∅) =>
+      fun (x : α) (hx : x ∈ A) =>
+        (fun (hn : Set.MapsTo α α f A ∅) => Set.notMem_empty α (f x) (hn x hx)) hm)
+
+theorem subset_of_le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : A ⊆ ∅ :=
+  fun (x : α) (hx : x ∈ A) => False.elim (x ∈ ∅) (le_empty α A h x hx)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来

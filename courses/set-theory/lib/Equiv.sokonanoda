@@ -148,3 +148,81 @@ theorem Set.Equiv.mk (α β : Type) (A : Set α) (B : Set β)
     -- soko:notation-ok: 外层 `Exists.intro` 的期望类型是 `Set.Equiv` 这个 def，短写解不出前导实参
     (And.intro hf
       (Exists.intro g (And.intro hg (And.intro hgf hfg))))
+
+-- ── 单射（**限制在一个集合上**；Mathlib: `Set.InjOn`）────────────────────────
+-- 读法：`f` 在 `A` 上不会把两个**属于 `A` 的**不同点映到一起。
+-- ⚠ 为什么不用 `Function.Injective`（全局单射）：`A ≼ B` 只关心 `A` 上发生什么；
+--   用它会把"`A` 外面也单射"这条**多余要求**塞进每个定理里 ✗（Mathlib 同款取舍 ✓）
+def Set.InjOn (α β : Type) (f : α → β) (A : Set α) : Prop :=
+  ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y
+
+theorem Set.injOn_def (α β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y :=
+  Iff.intro (fun (h : Set.InjOn α β f A) => h)
+    (fun (h : ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y) => h)
+
+-- ── **基数的比较**（`A ≼ B`：存在从 `A` 到 `B` 的单射）──────────────────────
+-- 读法：`A ≼ B` = "`A` 不比 `B` 大"（基数 ≤）。**注意它是 `Prop`**：
+-- 我们只断言"存在这样一把映射"，**不把它取出来**（取出来要 **G-58**）✓
+-- ⚠ 与单元⑩ 的 `≈` 的关系：`≈` 是**数据**（一对互逆映射，见文件头），
+--   `≼` 是**存在命题** —— 这个差别正是 Schröder–Bernstein 在本版**写不出来**的原因
+--   （它的结论是 `A ≈ B`，要**造**两把映射出来）⇒ 见台账 **G-58** ✓
+def Set.Le (α β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+
+-- 记法（E03 同款：源级糖、零事件、不进声明表）：`A ≼ B`（与 `≈` 同档 `infix:50`）
+infix:50 " ≼ " => Set.Le
+
+theorem Set.le_def (α β : Type) (A : Set α) (B : Set β) :
+    A ≼ B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Iff.intro (fun (h : A ≼ B) => h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
+
+-- 智能构造子（把嵌套 `∃`/`And` 的隐式实参反解收进库；同 G-73 的处置）
+theorem Set.Le.intro (α β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hinj : Set.InjOn α β f A) (hmap : Set.MapsTo α β f A B) : A ≼ B :=
+  Iff.mpr (Set.le_def α β A B) (Exists.intro (α → β)
+    (fun (f' : α → β) => Set.InjOn α β f' A ∧ Set.MapsTo α β f' A B) f
+    (And.intro hinj hmap))
+
+-- 消去子（L2：把"存在一把单射"这条 `∃` 拆开用；同 G-73 的处置）
+-- 读法：`Set.Le.elim h k` 把 `h : A ≼ B` 拆成"给我一把 `f`、它在 `A` 上单射、
+--   它把 `A` 送进 `B`，我就能证 `C`" ✓ —— 这是**唯一**该拆它的方式：
+--   拆出来的 `f` 只活在 `k` 里面（结论 `C` 必须是 `Prop` ⇒ 拿不出去，**G-58**）✓
+theorem Set.Le.elim (α β : Type) (A : Set α) (B : Set β) (C : Prop)
+    (h : A ≼ B)
+    (k : ∀ (f : α → β), Set.InjOn α β f A → Set.MapsTo α β f A B → C) : C :=
+  Exists.elim (α → β)
+    (fun (f : α → β) => Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    C
+    ((fun (hs : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => hs) h)
+    (fun (f : α → β) (hf : Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =>
+      k f (And.left hf) (And.right hf))
+
+-- 消去子（L2：把 `A ≈ B` 的四条件一次拆全；同 `Set.Le.elim`）
+-- 读法：`Set.Equiv.elim h k` 交给你两把映射与四条条件，用来证 `C`（`C` 必须是 `Prop`）✓
+theorem Set.Equiv.elim (α β : Type) (A : Set α) (B : Set β) (C : Prop)
+    (h : A ≈ B)
+    (k : ∀ (f : α → β) (g : β → α), Set.MapsTo α β f A B → Set.MapsTo β α g B A →
+      Set.LeftInvOn α β g f A → Set.RightInvOn α β f g B → C) : C :=
+  Exists.elim (α → β)
+    (fun (f : α → β) => Set.MapsTo α β f A B ∧
+      (∃ (g : β → α), Set.MapsTo β α g B A ∧
+        ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))))
+    C
+    ((fun (hs : ∃ (f : α → β), Set.MapsTo α β f A B ∧
+        (∃ (g : β → α), Set.MapsTo β α g B A ∧
+          ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))) => hs) h)
+    (fun (f : α → β) (hf : Set.MapsTo α β f A B ∧
+        (∃ (g : β → α), Set.MapsTo β α g B A ∧
+          ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))) =>
+      Exists.elim (β → α)
+        (fun (g : β → α) => Set.MapsTo β α g B A ∧
+          ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
+        C
+        ((fun (hs : ∃ (g : β → α), Set.MapsTo β α g B A ∧
+            ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) => hs) (And.right hf))
+        (fun (g : β → α) (hg : Set.MapsTo β α g B A ∧
+            ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) =>
+          k f g (And.left hf) (And.left hg) (And.left (And.right hg)) (And.right (And.right hg))))

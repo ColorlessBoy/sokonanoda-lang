@@ -1,0 +1,150 @@
+-- ==========================================================================
+-- unit19-cardinal-le.sokonanoda —— 卷 I 单元⑲ **基数的比较**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§6.4 Ordering
+-- Cardinal Numbers**（+ §6.1 的基数读法）；Halmos《Naive Set Theory》**§22 The
+-- Schröder–Bernstein Theorem** 之前的"比较"一节。大纲：`set-theory-syllabus.md`
+-- §4.1（I.8 章第一个单元）。
+--
+-- 本单元的"该学的定理"：**`A ≼ B`（"`A` 不比 `B` 大"）怎么定义**（存在从 `A` 到 `B` 的
+-- **单射**）· **它是预序**（自反 · 传递）· **包含关系给出 `≼`** · **等势给出 `≼`** ·
+-- **空集是最小的**（`∅ ≼ A`，且"不比空集大"的只有空集自己）。
+--
+-- ⚠ **本单元不含 Schröder–Bernstein**（`A ≼ B → B ≼ A → A ≈ B`）：它的结论
+--   `A ≈ B` 是**数据**（要**造出**一对互逆映射），而造第二把要用"`g` 的原像"
+--   —— 从 `∃` 里**取数据**，本语言不给（**G-58**，也可走古典选择 ⇒ 又撞 **G-74**）
+--   ⇒ 已登记、**如实不排** ✓（**不改成弱命题糊过去**）✗
+--
+-- 本单元的技术要点：`≼` 是**存在命题**（不是数据），所以本单元**每一道题都只
+--   "往下顺 `∃`"**：用库里的消去子 `Set.Le.elim` 把"存在一把单射"拆开用，
+--   拆出来的映射**只活在证明里面** ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Equiv`（`≼` 与 `≈`）· `lib.Set` · `lib.Image` · `lib.Fun`。
+--
+-- 依赖：单元⑨（等势）—— 本单元的 `≼` 是它的"存在版"。
+-- ==========================================================================
+import lib.Equiv
+import lib.Set
+import lib.Image
+import lib.Fun
+
+-- ─────────────────────────────────────────────────────────────
+-- 19.1 两个新词：`Set.InjOn` 与 `A ≼ B`
+--
+-- ⚠ `≼` 只关心 `A` 上发生什么 ⇒ 单射也**只限制在 `A` 上**（`Set.InjOn`）——
+--   用全局单射会把"`A` 外面也单射"这条多余要求塞进每个定理里 ✗
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：`Set.InjOn` 的定义展开（`f` 在 `A` 上不会把两个**属于 `A` 的**点映到一起）。
+theorem demo_injOn_def (α β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y :=
+  Set.injOn_def α β f A
+
+-- 演示：**基数比较** `A ≼ B` 的定义展开。
+theorem demo_le_def (α β : Type) (A : Set α) (B : Set β) :
+    A ≼ B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Set.le_def α β A B
+
+-- 演示：`≼` 的智能构造子（把"给我一把映射 + 两条条件"装成 `A ≼ B`）。
+theorem demo_le_intro (α β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hinj : Set.InjOn α β f A) (hmap : Set.MapsTo α β f A B) : A ≼ B :=
+  Set.Le.intro α β A B f hinj hmap
+
+-- 练习 1（T 类）：**恒等映射在每个集合上都是单射**。
+-- soko:hint 思路：要证"`x = y` 时 `x = y`"，把假设直接交出去。
+-- soko:hint 目标形态：`Set.InjOn α α (fun x => x) A`。
+-- soko:hint 关键件：`Set.InjOn` 展开后有四个参数（两个元素 + 两条成员证据 + 一条等式）；
+--   把最后那条等式原样返回。
+theorem injOn_id (α : Type) (A : Set α) :
+    Set.InjOn α α (fun (x : α) => x) A := by
+  sorry
+
+-- 练习 2（T 类）：**`≼` 自反**（`A` 不比 `A` 大）。
+-- soko:hint 思路：见证取恒等映射；单射那一条用练习 1，落在集合里那一条就是"给我 `x ∈ A`，还你 `x ∈ A`"。
+-- soko:hint 目标形态：`A ≼ A`。
+-- soko:hint 关键件：`Set.Le.intro`（参数表：两侧论域 · 两个集合 · 映射 · 单射 · 落点）。
+theorem le_refl (α : Type) (A : Set α) : A ≼ A := by
+  sorry
+
+-- 练习 3（T 类）：**每个集合都不比全集大**。
+-- soko:hint 思路：还是恒等映射；落点那一条用"任何元素都属于全集"。
+-- soko:hint 目标形态：`A ≼ Set.univ α`。
+-- soko:hint 关键件：`Set.Le.intro` + 练习 1 + `Set.mem_univ`。
+theorem le_univ (α : Type) (A : Set α) : A ≼ Set.univ α := by
+  sorry
+
+-- 练习 4（T 类）：**空集是最小的**（`∅` 不比任何集合大）。
+-- soko:hint 思路：`∅ ⊆ A` 对任何 `A` 成立（"给我 `x ∈ ∅`"本身就不可能）——
+--   再用练习 6 的"包含给出 `≼`"（**声明顺序**：那一条写在前面）。
+-- soko:hint 目标形态：`∅ ≼ A`。
+-- soko:hint 关键件：`subset_le`（下文练习 6）+ `Set.notMem_empty`（"没有元素属于空集"）+
+--   `False.elim`（**隐式结论 `C` 补不出来时要写全**，G-73 形状 ②）。
+theorem empty_le (α : Type) (A : Set α) : ∅ ≼ A := by
+  sorry
+
+-- 练习 5（L 类）：**单射的复合还是单射**（在集合上）。
+-- soko:hint 思路：`g (f x) = g (f y)` ⇒（`g` 在 `B` 上单射，注意 `f x`、`f y` 都落在 `B` 里）
+--   `f x = f y` ⇒（`f` 在 `A` 上单射）`x = y`。
+-- soko:hint 目标形态：`Set.InjOn α γ (fun x => g (f x)) A`。
+-- soko:hint 关键件：`Set.InjOn` 的两条假设各用一次；中间那一步要**先**用落点条件
+--   （`Set.MapsTo`）把 `f x`、`f y` 送进 `B`，否则第二条单射用不上。
+theorem injOn_comp (α β γ : Type) (f : α → β) (g : β → γ) (A : Set α) (B : Set β)
+    (hf : Set.InjOn α β f A) (hg : Set.InjOn β γ g B)
+    (hmap : Set.MapsTo α β f A B) :
+    Set.InjOn α γ (fun (x : α) => g (f x)) A := by
+  sorry
+
+-- 练习 6（L 类）：**包含关系给出 `≼`**。
+-- soko:hint 思路：见证取恒等映射；落点那一条就是"`A` 的每个元素都在 `B` 里"。
+-- soko:hint 目标形态：`A ⊆ B → A ≼ B`。
+-- soko:hint 关键件：`Set.Le.intro` + 练习 1 + `A ⊆ B` 那条假设（它是**定义头**，
+--   先 `fun (hs : ∀ z, z ∈ A → z ∈ B) => …` 把类型写出来再应用，G-73 形状 ①）。
+theorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 19.2 本单元旗舰：**`≼` 是传递的**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（L 类，本单元旗舰）：**`≼` 传递**（`A ≼ B` 且 `B ≼ C` 则 `A ≼ C`）。
+-- soko:hint 思路：拆开第一把单射 `f` 与第二把 `g`，见证取**复合** `fun x => g (f x)`；
+--   单射那一条用练习 5，落点那一条"先 `f` 再 `g`"。
+-- soko:hint 目标形态：`A ≼ B → B ≼ C → A ≼ C`。
+-- soko:hint 关键件：库里的消去子 `Set.Le.elim`（参数表：两侧论域 · 两个集合 ·
+--   **结论 `C`（必须是 `Prop`）** · 假设 · "给我一把单射与两条条件"）—— 用两次 ·
+--   练习 5 · `Set.Le.intro`。
+theorem le_trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : A ≼ B) (h2 : B ≼ C) : A ≼ C := by
+  sorry
+
+-- 练习 8（L 类）：**先缩到子集、再比较**（`A ⊆ B` 且 `B ≼ C` 则 `A ≼ C`）。
+-- soko:hint 思路：把"包含"换成 `≼`，再让传递性接起来。
+-- soko:hint 目标形态：`A ⊆ B → B ≼ C → A ≼ C`。
+-- soko:hint 关键件：练习 6 + 练习 7（**注意把三个论域的实参按顺序给对**：
+--   这里前两个论域是同一个）。
+theorem le_of_subset_le (α β : Type) (A B : Set α) (C : Set β)
+    (h1 : A ⊆ B) (h2 : B ≼ C) : A ≼ C := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 19.3 必破：**"不比空集大"意味着什么**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（D 类）：**不比空集大的集合没有元素**。
+-- soko:hint 思路：反证。若 `x ∈ A`，单射把它送到 `B := ∅` 里 —— 但空集**没有元素**。
+-- soko:hint 目标形态：`A ≼ ∅ → ∀ (x : α), ¬ (x ∈ A)`。
+-- soko:hint 关键件：`Set.Le.elim`（结论取"`∀ x, ¬ (x ∈ A)`"）· 落点条件在 `x` 上的值 ·
+--   `Set.notMem_empty`（**先 λ 绑定落点条件再用**，G-73 形状 ①）。
+theorem le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : ∀ (x : α), ¬ (x ∈ A) := by
+  sorry
+
+-- 练习 10（D 类）：**"不比空集大"的集合就是空集的子集**（练习 9 的改写）。
+-- soko:hint 思路：`A ⊆ ∅` 展开就是"给我 `x ∈ A`，还你 `x ∈ ∅`" —— 而 `x ∈ A` 本身
+--   已经被练习 9 否掉了，于是从矛盾里推出任何东西。
+-- soko:hint 目标形态：`A ≼ ∅ → A ⊆ ∅`。
+-- soko:hint 关键件：练习 9 + `False.elim`（**隐式结论 `C` 补不出来时要写全**）。
+theorem subset_of_le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : A ⊆ ∅ := by
+  sorry

@@ -244,6 +244,31 @@
               "unit": 18
             }
           ]
+        },
+        {
+          "id": "I.8",
+          "title": "基数与基数算术",
+          "prereqs": [
+            "I.3"
+          ],
+          "tags": [
+            "cardinal",
+            "cardinal-comparison",
+            "injection",
+            "equinumerous",
+            "schroder-bernstein"
+          ],
+          "quota": {
+            "exercises": 10
+          },
+          "units": [
+            {
+              "file": "units/unit19-cardinal-le.sokonanoda",
+              "title": "单元⑲ 基数的比较",
+              "title_en": "Unit 19 — Comparing Cardinal Numbers",
+              "unit": 19
+            }
+          ]
         }
       ]
     }
