@@ -277,6 +277,32 @@
               "unit": 20
             }
           ]
+        },
+        {
+          "id": "I.9",
+          "title": "集族、广义积与 n 元关系",
+          "prereqs": [
+            "I.2",
+            "I.5"
+          ],
+          "tags": [
+            "family",
+            "arbitrary-union",
+            "arbitrary-intersection",
+            "monotone",
+            "indexed-family"
+          ],
+          "quota": {
+            "exercises": 10
+          },
+          "units": [
+            {
+              "file": "units/unit21-families.sokonanoda",
+              "title": "单元㉑ 集族与广义并交",
+              "title_en": "Unit 21 — Families, Arbitrary Unions and Intersections",
+              "unit": 21
+            }
+          ]
         }
       ]
     }

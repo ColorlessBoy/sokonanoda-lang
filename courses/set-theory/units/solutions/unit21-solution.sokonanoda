@@ -1,0 +1,83 @@
+import lib.Rel
+import lib.SUnion
+import lib.Set
+
+theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
+  Set.mem_sUnion_iff α F x
+
+theorem demo_mem_sInter_iff (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=
+  Set.mem_sInter_iff α F x
+
+theorem demo_subset_sUnion (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    ∀ (x : α), x ∈ A → ∃ (B : Set α), B ∈ F ∧ x ∈ B :=
+  Set.subset_sUnion α F A h
+
+theorem subset_sUnion_apply (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F)
+    (x : α) (hx : x ∈ A) : x ∈ (⋃₀ F) :=
+  Set.subset_sUnion α F A h x hx
+
+theorem sInter_subset_apply (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    (⋂₀ F) ⊆ A :=
+  Set.sInter_subset α F A h
+
+theorem sUnion_subset_elim (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : (⋃₀ F) ⊆ B) (A : Set α) (hA : A ∈ F) : A ⊆ B :=
+  fun (x : α) (hx : x ∈ A) =>
+    (fun (hs : ∀ (y : α), y ∈ (⋃₀ F) → y ∈ B) => hs x (Set.subset_sUnion α F A hA x hx)) h
+
+theorem sUnion_subset_intro (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : ∀ (A : Set α), A ∈ F → A ⊆ B) : (⋃₀ F) ⊆ B :=
+  fun (x : α) (hx : x ∈ (⋃₀ F)) =>
+    (fun (hx' : ∃ (A : Set α), A ∈ F ∧ x ∈ A) =>
+      Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) (x ∈ B) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+        (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =>
+          (fun (hAB : A ⊆ B) => (fun (hu : ∀ (y : α), y ∈ A → y ∈ B) => hu x (And.right hA)) hAB)
+            (h A (And.left hA)))) hx
+
+theorem subset_sInter_elim (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : B ⊆ (⋂₀ F)) (A : Set α) (hA : A ∈ F) : B ⊆ A :=
+  fun (x : α) (hx : x ∈ B) =>
+    (fun (hs : ∀ (y : α), y ∈ B → y ∈ (⋂₀ F)) =>
+      (fun (hxB : x ∈ (⋂₀ F)) =>
+        (fun (hu : ∀ (C : Set α), C ∈ F → x ∈ C) => hu A hA) hxB) (hs x hx)) h
+
+theorem subset_sInter_intro (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : ∀ (A : Set α), A ∈ F → B ⊆ A) : B ⊆ (⋂₀ F) :=
+  fun (x : α) (hx : x ∈ B) =>
+    (fun (hs : ∀ (A : Set α), A ∈ F → x ∈ A) => hs)
+      (fun (A : Set α) (hA : A ∈ F) =>
+        (fun (hBA : B ⊆ A) => (fun (hu : ∀ (y : α), y ∈ B → y ∈ A) => hu x hx) hBA) (h A hA))
+
+theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) : (⋃₀ F) ⊆ (⋃₀ G) :=
+  fun (x : α) (hx : x ∈ (⋃₀ F)) =>
+    (fun (hx' : ∃ (A : Set α), A ∈ F ∧ x ∈ A) =>
+      Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) (x ∈ (⋃₀ G)) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+        (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =>
+          Set.subset_sUnion α G A
+            ((fun (hu : ∀ (C : Set α), C ∈ F → C ∈ G) => hu A (And.left hA)) h) x (And.right hA)))
+      hx
+
+theorem sInter_anti (α : Type) (F G : Set (Set α)) (h : F ⊆ G) : (⋂₀ G) ⊆ (⋂₀ F) :=
+  fun (x : α) (hx : x ∈ (⋂₀ G)) =>
+    (fun (hs : ∀ (A : Set α), A ∈ F → x ∈ A) => hs)
+      (fun (A : Set α) (hA : A ∈ F) =>
+        (fun (hu : ∀ (C : Set α), C ∈ G → x ∈ C) => hu A
+          ((fun (hv : ∀ (C : Set α), C ∈ F → C ∈ G) => hv A hA) h)) hx)
+
+theorem sInter_subset_sUnion (α : Type) (F : Set (Set α)) (h : ∃ (A : Set α), A ∈ F) :
+    (⋂₀ F) ⊆ (⋃₀ F) :=
+  fun (x : α) (hx : x ∈ (⋂₀ F)) =>
+    Exists.elim (Set α) (fun (A : Set α) => A ∈ F) (x ∈ (⋃₀ F)) h  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+      (fun (A : Set α) (hA : A ∈ F) =>
+        Set.subset_sUnion α F A hA x
+          ((fun (hs : ∀ (C : Set α), C ∈ F → x ∈ C) => hs A hA) hx))
+
+theorem sUnion_empty (α : Type) : (⋃₀ (fun (A : Set α) => False)) ⊆ ∅ :=
+  fun (x : α) (hx : x ∈ (⋃₀ (fun (A : Set α) => False))) =>
+    (fun (hx' : ∃ (A : Set α), (fun (A' : Set α) => False) A ∧ x ∈ A) =>
+      Exists.elim (Set α) (fun (A : Set α) => (fun (A' : Set α) => False) A ∧ x ∈ A) (x ∈ ∅) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+        (fun (A : Set α) (hA : (fun (A' : Set α) => False) A ∧ x ∈ A) =>
+          False.elim (x ∈ ∅)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来，必须写全
+            (And.left hA))) hx
