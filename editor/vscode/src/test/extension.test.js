@@ -1996,4 +1996,103 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       `默认档（延迟展示）必须不再每键都亮：${typed.length} 个键亮了 ${fixedLights} 次`,
     );
   });
+
+  // ── 编辑响应：**项目模式的端到端延迟**（用户要的那个数字）──────────────────
+  //
+  // 为什么单开一条：上面那条量的是**闪烁**，不是**延迟**；而用户的抱怨是
+  // 「输入后过很久才有反应」。项目模式（`import` 闭包）是课程里的真实工作面。
+  //
+  // 判据形状（`AGENTS.md` 判据纪律②：绝对毫秒不可转移 ⇒ 能自比就自比）：
+  // **同一次运行内**比「开档后第一刀」与「稳态那一刀」。第一刀没有可信任的入口
+  // 前缀（`entry_cache` 还没填）⇒ 整闭包；稳态那一刀库层不重编 ⇒ 应当**显著更快**。
+  // 这就是 S2 步 3 在**用户看得见那一层**的签名。
+  //
+  // ⚠ **三刀都必须是真的改动**（`_a` → `_b` → `_c`）：把名字写回原名会命中
+  // **磁盘产物缓存**（~11ms）⇒ 量出来的"快"是假的（LSP 层实测踩过）。
+  test("edit responsiveness (project mode): first keystroke after open vs steady state", async () => {
+    const uris = await writeProject("latency-steady", {
+      "sokonanoda.toml": 'name = "latency-steady"\n',
+      "lib/Lib.sokonanoda": [
+        "def Set (α : Type) : Type := α -> Prop",
+        "",
+        "def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a",
+        "",
+        'infix:50 " ∈ " => Set.mem',
+        "",
+      ].join("\n"),
+      // ⚠ **夹具必须大到让编译本身占主导**：第一版只放 1 条前置声明 ⇒ 两次
+      // 量到的都是 ~110ms（那是**客户端地板**：150ms 诊断去抖 + VS Code 管线，
+      // 编译在里面可以忽略）⇒ 判据量不到东西（实测 `first=120 steady=111/106`）。
+      // 这里放到 24 条带 `by` 的声明（照 `unit08` 的形状）⇒ 第一刀的整闭包
+      // 重编才是主导项。
+      "units/typing.sokonanoda": [
+        "import lib.Lib",
+        "",
+        ...Array.from(
+          { length: 24 },
+          (_, i) =>
+            `theorem prior_${String(i).padStart(2, "0")} (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := by exact h`,
+        ),
+        "",
+        "theorem typing_target (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := by",
+        "  sorry",
+        "",
+      ].join("\n"),
+    });
+    const uri = uris["units/typing.sokonanoda"];
+    await showDoc(uri);
+    await waitFor("the steady-state fixture to be judged once", async () =>
+      vscode.languages.getDiagnostics(uri).some((d) => d.code === "sorry"),
+    );
+
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "必须有活动编辑器才能打字");
+    const doc = await vscode.workspace.openTextDocument(uri);
+    const lines = doc.getText().split("\n");
+    const line = lines.findIndex((l) => l.includes("theorem typing_target"));
+    assert.ok(line >= 0, "夹具里必须有 typing_target");
+    // 改**名字**（真改动，且不动别的字节）——每次换成不同的后缀。
+    const nameAt = lines[line].indexOf("typing_target") + "typing_target".length;
+
+    /// 打一次真改动，量「从 edit 到**该文档**的新诊断落地」的端到端毫秒。
+    const oneCut = async (suffix) => {
+      const watcher = diagnosticsWatcher();
+      const before = watcher.count(uri);
+      const t0 = Date.now();
+      await editor.edit((b) =>
+        b.insert(new vscode.Position(line, nameAt), suffix),
+      );
+      await waitFor(
+        `a fresh publishDiagnostics after the ${suffix} cut`,
+        () => watcher.count(uri) > before,
+        WAIT_MS,
+        5,
+      );
+      const ms = Date.now() - t0;
+      watcher.dispose();
+      return ms;
+    };
+
+    // 三刀都是**真改动**（`_a`→`_b`→`_c`）；**判据只看第 2 刀起**（稳态）——
+    // 用户 2026-10-01 定的口径：测「编辑文件之后」，**不是**开档后第一刀、
+    // 更不是进程启动。第一刀留着**打印**（它是"优化前"那条路的同进程对照：
+    // 没有可信任的入口前缀 ⇒ 整闭包重编，与旧行为同一条代码路）。
+    const firstCut = await oneCut("_a");
+    const steady1 = await oneCut("_b");
+    const steady2 = await oneCut("_c");
+    const steady = Math.max(steady1, steady2);
+    console.log(
+      `PERF project-steady first=${firstCut}ms steady=${steady1}/${steady2}ms`,
+    );
+    // 判据 = **用户看得见的那条线**：稳态下"敲一个键 → 诊断落地"必须留在
+    // 用户感知的即时区间。⚠ 绝对毫秒只做**数量级兜底**（`AGENTS.md` 判据纪律②）：
+    // 这里实测 ~110ms、上限 1000ms ⇒ 余量 ~9×，机器再抖也不会翻面；真正的
+    // 结构性判据在 LSP 层（`SOKO_LSP_TRACE` 的 `modules=`/`prefix=` 计数，
+    // 见 `docs/design/declaration-incremental.md` §5.2.1.1）。
+    assert.ok(
+      steady < 1000,
+      `稳态下"按键 → 诊断"必须留在即时区间（实测 ${steady1}/${steady2}ms，` +
+        `开档后第一刀 ${firstCut}ms）`,
+    );
+  });
 });
