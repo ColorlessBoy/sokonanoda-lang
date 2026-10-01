@@ -1,0 +1,152 @@
+-- ==========================================================================
+-- unit46-symmetric-difference.sokonanoda —— 卷 I 单元㊻ **对称差与布尔环**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§5**（"the algebra of sets"
+-- 一段里的 symmetric difference）；Enderton《Elements of Set Theory》**§1.5/§6**
+-- （set algebra 的布尔侧）。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.11 章深化 —— 把「集合代数」从 `∪ ∩ \` 推进到
+-- **对称差**：它才是让 `𝒫 α` 变成**布尔环**的那条运算 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **成员刻画**（`A △ B` 就是"恰在一个里"）；
+--   · **交换律**（逐点 + **方程**两种形态 —— 后者用 `Set.ext` 收口 ✓）；
+--   · **自己是空**（`A △ A` 没有元素 / `A △ A = ∅`）；
+--   · **空集与全集**（`A △ ∅ = A` · `A △ univ = Aᶜ`）；
+--   · **`A △ B ⊆ A ∪ B`** ✓
+--
+-- ⚠ **本单元的两条实测边界**（都写进 hint）：
+--   ① **逐点形态优先**：把"集合相等"写成**方程**时要 `Set.ext` + 一个**逐点引理** ✓；
+--      直接在 `Set.ext` 的 λ 里写 `Iff.intro ((△ A B) x) …` 会判红 ✗（def-headed 期望类型
+--      补不出前导实参 ⇒ **G-73**）—— 先证 `…_apply` 再用它收口，一次就过 ✓
+--   ② **`Or.elim` 的动机位不能放 `False`** ✗（**G-73 第十二例**）⇒ 否定式要拆成
+--      **两次正命题动机**（一次取 `A x`、一次取 `¬ (A x)`）再互相作用 ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Order` · `lib.Rel`。
+--
+-- 依赖：单元⑨⑩（并与交）· 单元⑪（差与补）· 单元㉘（De Morgan 与分配律）· 单元㊱㊲（代数语言）✓
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 46.0 画布给的新词汇：对称差 `A △ B`
+--
+-- 读法：**恰好落在一个里面**的那些点 —— 它让 `𝒫 α` 在 `△` 与 `∩` 下成为**布尔环** ✓
+-- （单元㊽ 会继续这条线：`△` 的结合律与 `∩` 对 `△` 的分配律 ✓）
+-- ─────────────────────────────────────────────────────────────
+def symmDiff (α : Type) (A B : Set α) : Set α :=
+  fun (x : α) => (A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))
+
+-- ─────────────────────────────────────────────────────────────
+-- 46.1 三条库引理（`∪`/`∩`/`\` 的成员刻画 —— 本单元的邻居运算）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：并的成员刻画。
+theorem demo_mem_union (α : Type) (x : α) (A B : Set α) :
+    (A ∪ B) x ↔ A x ∨ B x :=
+  Set.mem_union x A B
+theorem demo_mem_inter (α : Type) (x : α) (A B : Set α) :
+    (A ∩ B) x ↔ A x ∧ B x :=
+  Set.mem_inter_iff x A B
+theorem demo_mem_sdiff (α : Type) (x : α) (A B : Set α) :
+    (A \ B) x ↔ A x ∧ ¬ (B x) :=
+  Set.mem_sdiff x A B
+
+-- ─────────────────────────────────────────────────────────────
+-- 46.2 成员刻画 · 交换律（逐点 ⇒ 方程）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：**对称差的成员刻画**（两边定义上相同 ⇒ 交给恒等）。
+-- soko:hint 思路：`Iff.intro` 两支都给恒等函数。
+-- soko:hint 目标形态：`(A △ B) x ↔ (A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))`。
+-- soko:hint 关键件：`Iff.intro`（**前导 Prop 实参写全**）✓
+theorem mem_symmDiff (α : Type) (A B : Set α) (x : α) :
+    (symmDiff α A B) x ↔ ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))) := by
+  sorry
+
+-- 练习 2（T 类）：**交换律（逐点形态）**。
+-- soko:hint 思路：`∨` 两支互换 —— 两个分支各用 `Or.inl`/`Or.inr` 把"另一半"接上。
+-- soko:hint 目标形态：`(A △ B) x ↔ (B △ A) x`。
+-- soko:hint 关键件：`Or.elim`（**动机位放正命题** ✓，前导实参写全）· `Or.inl`/`Or.inr` ✓
+theorem symmDiff_comm_apply (α : Type) (A B : Set α) (x : α) :
+    (symmDiff α A B) x ↔ (symmDiff α B A) x := by
+  sorry
+
+-- 练习 3（L 类）：**交换律（方程形态）** —— 集合相等用外延收口。
+-- soko:hint 思路：`Set.ext` 要一个**逐点**的 `↔` ⇒ **直接交练习 2 的结果**（别再手写 `Iff.intro` ✗）。
+-- soko:hint 目标形态：`A △ B = B △ A`。
+-- soko:hint 关键件：`Set.ext`（**参数：论域 · 两个集合 · 逐点证明**）+ 练习 2 ✓
+theorem symmDiff_comm (α : Type) (A B : Set α) :
+    symmDiff α A B = symmDiff α B A := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 46.3 自己 · 空集 · 全集
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（L 类）：**自己与自己：没有元素**。
+-- soko:hint 思路：两支都给出 `A x` 与 `¬ (A x)` ⇒ **拆成两次 `Or.elim`**（动机分别是
+--   `A x` 与 `¬ (A x)`，都是正命题 ✓），再让后者作用在前者上。
+-- soko:hint 目标形态：`¬ ((A △ A) x)`。
+-- soko:hint 关键件：两次 `Or.elim`（**动机位不能放 `False`** ✗ —— G-73 第十二例）· `And.left`/`And.right` ✓
+theorem symmDiff_self_apply (α : Type) (A : Set α) (x : α) :
+    ¬ ((symmDiff α A A) x) := by
+  sorry
+
+-- 练习 5（L 类）：**自己是空集（方程形态）**。
+-- soko:hint 思路：`Set.ext` + 逐点：左边没有元素 ⇒ 两边都推不出来（空的一支用 `False.elim`
+--   **把目标写全** ✓）。
+-- soko:hint 目标形态：`A △ A = (fun _ => False)`。
+-- soko:hint 关键件：`Set.ext` · 练习 4 · `False.elim`（**给目标、不给宇宙实参** ✓）✓
+theorem symmDiff_self (α : Type) (A : Set α) :
+    symmDiff α A A = (fun (_ : α) => False) := by
+  sorry
+
+-- 练习 6（T 类）：**空集是单位元（逐点）**。
+-- soko:hint 思路：→：左边的第二支给出 `False` ⇒ 用 `False.elim` 得到 `A x`；←：直接走第一支，
+--   并证明"落在空集里"不可能。
+-- soko:hint 目标形态：`(A △ ∅) x ↔ A x`（空集写成 `fun _ => False`，避开类型推断 ✗）。
+-- soko:hint 关键件：`Or.elim`（正命题动机）· `False.elim`（**给目标**）· `And.intro` ✓
+theorem symmDiff_empty_apply (α : Type) (A : Set α) (x : α) :
+    (symmDiff α A (fun (_ : α) => False)) x ↔ A x := by
+  sorry
+
+-- 练习 7（T 类）：**全集是补（逐点）**。
+-- soko:hint 思路：→：第一支说"`A x` 且不在全集里"，而**每个点都在全集里** ⇒ 矛盾；
+--   ←：给定 `¬ (A x)`，走第二支（"在全集里"由库引理给出）。
+-- soko:hint 目标形态：`(A △ univ) x ↔ ¬ (A x)`。
+-- soko:hint 关键件：`Set.mem_univ`（**取用子**：先 λ 绑定再应用）· `Or.elim` · `False.elim`· `And.intro` ✓
+theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
+    (symmDiff α A (Set.univ α)) x ↔ ¬ (A x) := by
+  sorry
+
+-- 练习 8（L 类）：**全集是补（方程形态）**。
+-- soko:hint 思路：`Set.ext` + 逐点 —— 右端写成 `fun x => ¬ (A x)`，正好与练习 7 的形状对上。
+-- soko:hint 目标形态：`A △ univ = (fun x => ¬ (A x))`。
+-- soko:hint 关键件：`Set.ext` + 练习 7（**直接交出去**）✓
+theorem symmDiff_univ (α : Type) (A : Set α) :
+    symmDiff α A (Set.univ α) = (fun (x : α) => ¬ (A x)) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 46.4 与并的关系
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（L 类）：**对称差含在并里**（子集形态）。
+-- soko:hint 思路：两支分别给 `Or.inl`/`Or.inr`（哪一支给哪个，看它是"在 `A` 里"还是"在 `B` 里"）。
+-- soko:hint 目标形态：`(A △ B) ⊆ (A ∪ B)`。
+-- soko:hint 关键件：`⊆` 就是 λ（**成员直接就是 `∨`**）· `Or.elim` · `Or.inl`/`Or.inr` · `And.left` ✓
+theorem symmDiff_subset_union (α : Type) (A B : Set α) :
+    (symmDiff α A B) ⊆ (A ∪ B) := by
+  sorry
+
+-- 练习 10（T 类）：**把子集结论用在具体的点上**。
+-- soko:hint 思路：子集命题就是"对每个点，成员给成员" ⇒ 直接应用。
+-- soko:hint 目标形态：`(A △ B) x → A x ∨ B x`。
+-- soko:hint 关键件：练习 9（**按 论域 · 两个集合 · 点 · 前提 的顺序应用**）✓
+theorem symmDiff_subset_union_apply (α : Type) (A B : Set α) (x : α)
+    (h : (symmDiff α A B) x) : A x ∨ B x := by
+  sorry

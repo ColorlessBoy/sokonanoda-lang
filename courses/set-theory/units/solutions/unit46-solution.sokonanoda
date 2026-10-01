@@ -1,0 +1,108 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+theorem demo_mem_union (α : Type) (x : α) (A B : Set α) :
+    (A ∪ B) x ↔ A x ∨ B x :=
+  Set.mem_union x A B
+
+theorem demo_mem_inter (α : Type) (x : α) (A B : Set α) :
+    (A ∩ B) x ↔ A x ∧ B x :=
+  Set.mem_inter_iff x A B
+
+theorem demo_mem_sdiff (α : Type) (x : α) (A B : Set α) :
+    (A \ B) x ↔ A x ∧ ¬ (B x) :=
+  Set.mem_sdiff x A B
+
+def symmDiff (α : Type) (A B : Set α) : Set α :=
+  fun (x : α) => (A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))
+
+theorem mem_symmDiff (α : Type) (A B : Set α) (x : α) :
+    (symmDiff α A B) x ↔ ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))) :=
+  Iff.intro ((symmDiff α A B) x) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))
+    (fun (h : (symmDiff α A B) x) => h)
+    (fun (h : (A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))) => h)
+
+theorem symmDiff_comm_apply (α : Type) (A B : Set α) (x : α) :
+    (symmDiff α A B) x ↔ (symmDiff α B A) x :=
+  Iff.intro ((symmDiff α A B) x) ((symmDiff α B A) x)
+    (fun (h : (symmDiff α A B) x) =>
+      Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) ((B x ∧ ¬ (A x)) ∨ (A x ∧ ¬ (B x)))
+        (fun (h1 : A x ∧ ¬ (B x)) => Or.inr (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) h1)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (h2 : B x ∧ ¬ (A x)) => Or.inl (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) h2) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : (symmDiff α B A) x) =>
+      Or.elim (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))
+        (fun (h1 : B x ∧ ¬ (A x)) => Or.inr (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) h1)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (h2 : A x ∧ ¬ (B x)) => Or.inl (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) h2) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem symmDiff_comm (α : Type) (A B : Set α) :
+    symmDiff α A B = symmDiff α B A :=
+  Set.ext α (symmDiff α A B) (symmDiff α B A)
+    (fun (x : α) => symmDiff_comm_apply α A B x)
+
+theorem symmDiff_self_apply (α : Type) (A : Set α) (x : α) :
+    ¬ ((symmDiff α A A) x) :=
+  fun (h : (symmDiff α A A) x) =>
+    (Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (¬ (A x))
+      (fun (h1 : A x ∧ ¬ (A x)) => And.right h1)
+      (fun (h2 : A x ∧ ¬ (A x)) => And.right h2) h)
+      (Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (A x)
+        (fun (h1 : A x ∧ ¬ (A x)) => And.left h1)
+        (fun (h2 : A x ∧ ¬ (A x)) => And.left h2) h)
+
+theorem symmDiff_empty_apply (α : Type) (A : Set α) (x : α) :
+    (symmDiff α A (fun (_ : α) => False)) x ↔ A x :=
+  Iff.intro ((symmDiff α A (fun (_ : α) => False)) x) (A x)
+    (fun (h : (symmDiff α A (fun (_ : α) => False)) x) =>
+      Or.elim (A x ∧ ¬ ((fun (_ : α) => False) x))
+        ((fun (_ : α) => False) x ∧ ¬ (A x)) (A x)
+        (fun (h1 : A x ∧ ¬ ((fun (_ : α) => False) x)) => And.left h1)
+        (fun (h2 : (fun (_ : α) => False) x ∧ ¬ (A x)) =>
+          (fun (hf : (fun (_ : α) => False) x) =>
+            (fun (hg : False) => False.elim (A x) hg) hf) (And.left h2)) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : A x) =>
+      Or.inl (A x ∧ ¬ ((fun (_ : α) => False) x))
+        ((fun (_ : α) => False) x ∧ ¬ (A x))
+        (And.intro (A x) (¬ ((fun (_ : α) => False) x)) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (hf : (fun (_ : α) => False) x) => hf)))
+
+theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
+    (symmDiff α A (Set.univ α)) x ↔ ¬ (A x) :=
+  Iff.intro ((symmDiff α A (Set.univ α)) x) (¬ (A x))
+    (fun (h : (symmDiff α A (Set.univ α)) x) =>
+      Or.elim (A x ∧ ¬ ((Set.univ α) x)) ((Set.univ α) x ∧ ¬ (A x)) (¬ (A x))
+        (fun (h1 : A x ∧ ¬ ((Set.univ α) x)) =>
+          (fun (hnot : ¬ ((Set.univ α) x)) =>
+            (fun (hf : False) => False.elim (¬ (A x)) hf)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (hnot ((fun (hu : ∀ (y : α), (Set.univ α) y) => hu x) (Set.mem_univ α))))
+            (And.right h1))
+        (fun (h2 : (Set.univ α) x ∧ ¬ (A x)) => And.right h2) h)
+    (fun (h : ¬ (A x)) =>
+      Or.inr (A x ∧ ¬ ((Set.univ α) x)) ((Set.univ α) x ∧ ¬ (A x))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (And.intro ((Set.univ α) x) (¬ (A x))
+          ((fun (hu : ∀ (y : α), (Set.univ α) y) => hu x) (Set.mem_univ α)) h))
+
+theorem symmDiff_subset_union (α : Type) (A B : Set α) :
+    (symmDiff α A B) ⊆ (A ∪ B) :=
+  fun (x : α) => fun (h : (symmDiff α A B) x) =>
+    Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) (A x ∨ B x)
+      (fun (h1 : A x ∧ ¬ (B x)) => Or.inl (A x) (B x) (And.left h1))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (h2 : B x ∧ ¬ (A x)) => Or.inr (A x) (B x) (And.left h2)) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem symmDiff_subset_union_apply (α : Type) (A B : Set α) (x : α)
+    (h : (symmDiff α A B) x) : A x ∨ B x :=
+  symmDiff_subset_union α A B x h
+
+theorem symmDiff_self (α : Type) (A : Set α) :
+    symmDiff α A A = (fun (_ : α) => False) :=
+  Set.ext α (symmDiff α A A) (fun (_ : α) => False) (fun (x : α) =>
+    Iff.intro ((symmDiff α A A) x) ((fun (_ : α) => False) x)
+      (fun (h : (symmDiff α A A) x) =>
+        False.elim ((fun (_ : α) => False) x) (symmDiff_self_apply α A x h))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (hf : (fun (_ : α) => False) x) =>
+        False.elim ((symmDiff α A A) x) hf))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem symmDiff_univ (α : Type) (A : Set α) :
+    symmDiff α A (Set.univ α) = (fun (x : α) => ¬ (A x)) :=
+  Set.ext α (symmDiff α A (Set.univ α)) (fun (x : α) => ¬ (A x))
+    (fun (x : α) => symmDiff_univ_apply α A x)

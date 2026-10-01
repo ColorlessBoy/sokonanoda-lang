@@ -408,10 +408,12 @@
             "order-embedding",
             "order-isomorphism",
             "pointwise-order",
-            "function-space"
+            "function-space",
+            "symmetric-difference",
+            "boolean-ring"
           ],
           "quota": {
-            "exercises": 48
+            "exercises": 58
           },
           "units": [
             {
@@ -443,6 +445,12 @@
               "title": "单元㉜ 函数空间上的逐点序",
               "title_en": "Unit 32 — The Pointwise Order on Function Spaces",
               "unit": 32
+            },
+            {
+              "file": "units/unit46-symmetric-difference.sokonanoda",
+              "title": "单元㊻ 对称差与布尔环",
+              "title_en": "Unit 46 — Symmetric Difference and the Boolean Ring",
+              "unit": 46
             }
           ]
         },
