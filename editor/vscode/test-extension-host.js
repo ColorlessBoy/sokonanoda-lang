@@ -1955,6 +1955,47 @@ test("eager mode waits out the greek prefix trap", async () => {
   assert.strictEqual(spelled.__undoStack.length, 1, "only the complete word was replaced");
 });
 
+// ── 匿名构造子括号（设计 D6：Lean 的 `\<` / `\>`）────────────────────
+// 全表唯一的**非字母**缩写。`\` 仍是 leader，孤立的 `\`（集合差）照样不替换。
+
+test("Tab rewrites \\< and \\> to the anonymous-constructor brackets", async () => {
+  await activateExtension();
+  const left = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\<");
+  focus(left, [cursor(0, 2)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(left.getText(), "⟨", "`\\<` + Tab must become `⟨`");
+
+  const right = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\>");
+  focus(right, [cursor(0, 2)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(right.getText(), "⟩", "`\\>` + Tab must become `⟩`");
+});
+
+test("the spelled-out bracket names work too, and eager fires at once", async () => {
+  await activateExtension();
+  const spelled = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\langle");
+  focus(spelled, [cursor(0, 7)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(spelled.getText(), "⟨", "`\\langle` + Tab must become `⟨`");
+
+  // `\<` 不是任何更长缩写的真前缀 ⇒ eager 模式敲完 `<` 就落定（`\` 本身不落定）。
+  setConfig("input.eager", true);
+  const eager = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\");
+  focus(eager, [cursor(0, 1)]);
+  typeText(eager, cursor(0, 1), "<");
+  await drain();
+  assert.strictEqual(eager.getText(), "⟨", "eager mode replaces `\\<` as soon as it is typed");
+});
+
+test("a lone \\ next to a comparison stays put", async () => {
+  // 只认「`\` + 恰好一个 `<`/`>`」：`\` 后面跟别的东西（空格、字母）照旧不命中。
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "A \\ B");
+  focus(document, [cursor(0, 3)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "A \\ B", "the lone backslash must survive untouched");
+});
+
 test("greek letters are identifiers, so their symbols survive as text", async () => {
   // D4：`α` 是**标识符**，不是记法符号 —— 替换出来的 `α` 就是一个普通标识符
   // （Rust 侧由 `notation_symbol: false` 保证它不被喂进词法；这里钉住 JS 侧

@@ -41,13 +41,26 @@ function isAsciiLetter(code) {
   return (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
 }
 
-// 光标前那个 `\` + 字母的词：从光标往回吃 ASCII 字母，再要求前一个字符正好是
-// leader `\`。返回 `{ start, word }`（`start` = leader 的列，UTF-16 code unit）；
-// 不成立返回 `undefined`——**孤立的 `\`（集合差）永远不会命中**（设计 §9 R-2）。
+// 非字母缩写：匿名构造子括号的 `\<` / `\>`（Lean 同款，设计 D6）。**只有这两个**
+// ——`<`/`>` 后面不再吃字符（`word` 就是两字符），所以 `\<-` 之类不存在。
+function isBracketAbbreviationChar(ch) {
+  return ch === "<" || ch === ">";
+}
+
+// 光标前那个 `\` + 表词的词：从光标往回吃 ASCII 字母（或**恰好一个** `<`/`>`），
+// 再要求前一个字符正好是 leader `\`。返回 `{ start, word }`（`start` = leader 的列，
+// UTF-16 code unit）；不成立返回 `undefined`——**孤立的 `\`（集合差）永远不会命中**
+// （设计 R-2；`\<`/`\>` 只是让 `\` 后面多认两种字符，孤立 `\` 的规则不变）。
 function wordBeforeCursor(lineText, character) {
   let index = character;
   while (index > 0 && isAsciiLetter(lineText.charCodeAt(index - 1))) index -= 1;
-  if (index === character) return undefined; // 光标前不是字母
+  if (index === character) {
+    // 光标前不是字母：只剩 `\<` / `\>` 这一种可能。
+    const last = character > 0 ? lineText[character - 1] : undefined;
+    if (!isBracketAbbreviationChar(last)) return undefined;
+    if (character < 2 || lineText[character - 2] !== LEADER) return undefined;
+    return { start: character - 2, word: lineText.slice(character - 2, character) };
+  }
   if (index === 0 || lineText[index - 1] !== LEADER) return undefined;
   return { start: index - 1, word: lineText.slice(index - 1, character) };
 }

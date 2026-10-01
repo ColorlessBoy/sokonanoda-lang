@@ -49,8 +49,8 @@ pub struct NotationInput {
     pub notation_symbol: bool,
 }
 
-/// 73 个符号的输入法表（设计 `docs/design/notation-input.md` §2/§3）：
-/// 逻辑/集合 **18** + 希腊字母 **48**（大小写各 24）+ 课程库记法 **7**。
+/// 75 个符号的输入法表（设计 `docs/design/notation-input.md` §2/§3）：
+/// 逻辑/集合 **18** + 希腊字母 **48**（大小写各 24）+ 课程库记法 **7** + 匿名构造子括号 **2**。
 ///
 /// `''`（像）**不给缩写**——与 Lean 一致（直接打两个单引号），所以它不在表里；
 /// hover 对它的说法写在 LSP 侧（"Lean 也没有缩写"）。
@@ -571,6 +571,23 @@ pub const TABLE: &[NotationInput] = &[
         supported: true,
         notation_symbol: true,
     },
+    // **匿名构造子括号**（D6）：全表**唯一**的非字母缩写（Lean 的 `\<` / `\>`）。
+    // 它们是**语法**不是记法（词法原生产出 `Langle`/`Rangle`，`is_valid_notation_symbol`
+    // 也把 `⟨`/`⟩` 列为保留字符）⇒ `notation_symbol: false`，绝不喂给词法。
+    NotationInput {
+        symbol: "⟨",
+        abbreviation: "langle",
+        aliases: &["<"],
+        supported: true,
+        notation_symbol: false,
+    },
+    NotationInput {
+        symbol: "⟩",
+        abbreviation: "rangle",
+        aliases: &[">"],
+        supported: true,
+        notation_symbol: false,
+    },
 ];
 
 /// 语言**开箱可用**的记法符号字符（非 ASCII），供编辑器 TextMate 语法着色。
@@ -657,14 +674,19 @@ pub fn input_hint_at(text: &str, offset: usize) -> Option<String> {
         let end = token.span.end.offset;
         start <= offset && offset < end
     })?;
-    let crate::TokenKind::Ident(name) = &token.kind else {
-        return None;
+    let symbol = match &token.kind {
+        crate::TokenKind::Ident(name) => name.as_str(),
+        // 匿名构造子括号（D6）：**语法**不是记法（词法原生 `Langle`/`Rangle`），
+        // 但同样是"必须打得出来"的符号 ⇒ 也给「怎么输入」。
+        crate::TokenKind::Langle => "⟨",
+        crate::TokenKind::Rangle => "⟩",
+        _ => return None,
     };
-    let entry = input_for(name)?;
+    let entry = input_for(symbol)?;
     if entry.notation_symbol {
         return None; // 记法符号走 LSP 的 `notation_symbol_hover`（那里有展开目标）
     }
-    input_hint(name)
+    input_hint(symbol)
 }
 
 /// 光标处的**记法符号**（`(符号, 展开目标)`）——**不要求本文件声明过**。
@@ -926,8 +948,11 @@ mod tests {
                     entry.symbol
                 );
                 assert!(
-                    abbreviation.chars().all(|c| c.is_ascii_alphabetic()),
-                    "abbreviation `{abbreviation}` must be letters only (the rewriter keys on `\\` + letters)"
+                    abbreviation.chars().all(|c| c.is_ascii_alphabetic())
+                        || *abbreviation == "<"
+                        || *abbreviation == ">",
+                    "abbreviation `{abbreviation}` must be letters only (the rewriter keys on `\\` + letters) \
+                     —— 唯二的例外是匿名构造子括号的 `\\<` / `\\>`（设计 D6）"
                 );
                 assert!(
                     !abbreviations.contains(abbreviation),
@@ -938,8 +963,8 @@ mod tests {
         }
         assert_eq!(
             TABLE.len(),
-            73,
-            "the design's table has 73 entries (`''` has none; `⟨`/`⟩` 见下一片)"
+            75,
+            "the design's table has 75 entries (`''` has none)"
         );
     }
 
@@ -1001,6 +1026,12 @@ mod tests {
         let powerset = "theorem t (A : Set α) : A ∈ 𝒫 A := sorry\n";
         let offset = powerset.find('𝒫').expect("𝒫 在文本里");
         assert!(input_hint_at(powerset, offset).is_none(), "𝒫 是记法符号");
+        // 匿名构造子括号（D6）：**语法**不是记法，但同样要给「怎么打」。
+        let anon = "theorem t (A B : Prop) (ha : A) (hb : B) : A ∧ B := ⟨ha, hb⟩\n";
+        let offset = anon.find('⟨').expect("⟨ 在文本里");
+        let hint = input_hint_at(anon, offset).expect("`⟨` 有缩写");
+        assert!(hint.contains("\\langle") && hint.contains("\\<"), "{hint}");
+
         // 表外标识符 / 标点：沉默（别编）。
         let plain = "theorem t (x : Prop) : x := x\n";
         assert!(input_hint_at(plain, plain.find('x').expect("x")).is_none());

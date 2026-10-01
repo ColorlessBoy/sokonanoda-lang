@@ -1970,12 +1970,14 @@ fn every_language_level_symbol_in_the_input_table_really_works() {
             entry.symbol
         );
     }
-    // **反向**：表里 `notation_symbol: false` 的今天只有希腊字母（`⟨⟩` 见下一片）
-    // ——这条防止有人把记法符号误标成标识符来绕过上面的检查。
+    // **反向**：表里 `notation_symbol: false` 的只有两类——希腊字母（标识符）
+    // 与匿名构造子括号 `⟨`/`⟩`（**语法**：词法原生、`is_valid_notation_symbol`
+    // 把这两个字符列为保留）——这条防止有人把记法符号误标成标识符绕过上面的检查。
     for entry in TABLE.iter().filter(|entry| !entry.notation_symbol) {
         assert!(
-            is_greek_letter(entry.symbol),
-            "`{}` 标了 notation_symbol: false，但它不是希腊字母 ⇒ 上面那条检查被绕过了",
+            is_greek_letter(entry.symbol) || matches!(entry.symbol, "⟨" | "⟩"),
+            "`{}` 标了 notation_symbol: false，但它既不是希腊字母也不是匿名构造子括号 \
+             ⇒ 上面那条检查被绕过了",
             entry.symbol
         );
     }
@@ -2016,7 +2018,7 @@ fn identifier_like_symbols_in_the_input_table_really_work() {
     use sokonanoda_front::notation_input::TABLE;
     let greek: Vec<&str> = TABLE
         .iter()
-        .filter(|entry| !entry.notation_symbol && entry.supported)
+        .filter(|entry| !entry.notation_symbol && entry.supported && is_greek_letter(entry.symbol))
         .map(|entry| entry.symbol)
         .collect();
     assert_eq!(greek.len(), 48, "24 小写 + 24 大写");
@@ -2038,6 +2040,41 @@ fn identifier_like_symbols_in_the_input_table_really_work() {
     assert!(
         events.iter().any(|e| e["type"] == "decl.checked"),
         "the Greek probe must produce a checked declaration: {events:?}"
+    );
+}
+
+/// **表说 `⟨`/`⟩` 可用 ⇒ 语言真的有匿名构造子**（设计 D6 的判据）。
+///
+/// 它们的缩写是全表唯一的非字母（`\<` / `\>`），但"能不能打"与"语言认不认"是
+/// 两件事——这条拿真判卷证明**语言层**认得（`⟨ha, hb⟩` 就是 `And.intro`）。
+#[test]
+fn anonymous_constructor_brackets_in_the_input_table_really_work() {
+    use sokonanoda_front::notation_input::TABLE;
+    for symbol in ["⟨", "⟩"] {
+        let entry = TABLE
+            .iter()
+            .find(|entry| entry.symbol == symbol)
+            .unwrap_or_else(|| panic!("`{symbol}` must be in the input table"));
+        assert!(entry.supported, "`{symbol}` is core syntax");
+        assert!(
+            !entry.notation_symbol,
+            "`{symbol}` 是**语法**不是记法（词法原生产出 Langle/Rangle）⇒ 不许喂词法"
+        );
+    }
+    let src = "theorem anon_pair (A B : Prop) (ha : A) (hb : B) : A ∧ B := ⟨ha, hb⟩\n";
+    let path = temp_file("input-table-anon-ctor", src);
+    let (code, events) = grade_json(&path);
+    let diags: Vec<&Value> = events
+        .iter()
+        .filter(|e| e["type"] == "diagnostic")
+        .collect();
+    assert_eq!(
+        code, 0,
+        "the input table claims `⟨`/`⟩` are usable, but the language rejects them: {diags:?}"
+    );
+    assert!(
+        events.iter().any(|e| e["type"] == "decl.checked"),
+        "the anonymous-constructor probe must produce a checked declaration: {events:?}"
     );
 }
 
