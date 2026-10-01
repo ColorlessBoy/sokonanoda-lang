@@ -33,6 +33,7 @@ import lib.Logic
 import lib.Exists
 import lib.Set
 import lib.SUnion
+import lib.Rel
 
 -- ── ZF 公理表（**逐条指路**，免得读者以为缺了）──────────────────────────────
 -- 这份表是 ST13 的核心产出：**哪些是公理、哪些在谓词式里变成了定理** ✓。

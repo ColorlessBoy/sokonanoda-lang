@@ -222,20 +222,6 @@ theorem nonstrictOf_apply (α : Type) (r : Rel α α) (a b : α) :
   Iff.intro (fun (h : nonstrictOf α r a b) => h)
     (fun (h : r a b ∨ a = b) => h)
 
--- ── Eq 搬运（**具名包装**；本语言里 `Eq.subst` 嵌在别的应用里会被 elaborator 判红）──
--- 读法：`rel_subst_left r h` 把 `r b c` 沿 `a = c` 搬成 `r b a`（把等式的**左端**换掉）。
--- 为什么包一层：`Eq.subst.{1} α (fun (x : α) => r b x) c a (Eq.symm …) hbc` 写在
--- **顶层**判绿 ✓，一旦嵌进 `f … (Eq.subst …)` 这样的实参位就报
--- 「期望 `Sort(0)`，实际是 `Sort(1)`」（实测；与 G-72 同一族，**登记在案等语言线修**）✓
-theorem rel_subst_left (α : Type) (r : α → α → Prop) (a b c : α) (h : a = c) :
-    r b c → r b a :=
-  Eq.subst.{1} α (fun (x : α) => r b x) c a (Eq.symm.{1} α a c h)
-
--- 读法：把 `r a b` 沿 `b = c` 搬成 `r a c`（把等式的**右端**换掉）。
-theorem rel_subst_right (α : Type) (r : α → α → Prop) (a b c : α) (h : b = c) :
-    r a b → r a c :=
-  Eq.subst.{1} α (fun (x : α) => r a x) b c h
-
 -- ── 智能构造子（把 `And.intro` 的隐式实参反解收进库里）──────────────────────
 -- ⚠ **为什么要有这一组**（实测）：单元里直接写
 -- `And.intro <refl> (And.intro <anti> <trans>)` 去构造 `IsPartialOrder α r` 时，

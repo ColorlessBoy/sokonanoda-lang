@@ -123,6 +123,8 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元⑱ 落地后）：56 个目标 · 533 checked · 160 open · 0 判负**
+
 **门禁实测（2026-10-01，单元⑰ 落地后）：54 个目标 · 515 checked · 150 open · 0 判负**
 
 **门禁实测（2026-10-01，单元⑯ 落地后）：52 个目标 · 499 checked · 140 open · 0 判负**
@@ -160,7 +162,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | I.4 | 论域、悖论与综合 | I.1 · I.3 | universe · russell · synthesis | 14 | 14 | 11–12 |
 | **I.5** | **序关系与良序** | I.2 | order · partial-order · linear-order · strict-order · well-order · well-founded | 21 | 21 | **13–14** |
 | **I.6** | **序数** | I.5 | ordinal · transitive-set · successor · well-founded · extensionality · zero | 20 | 20 | **15–16** |
-| **I.7** | **选择公理与 ZF 公理体系** | I.2 | axiom-of-choice · choice-function · surjective · right-inverse · zf-axioms | 10 | 10 | **17** |
+| **I.7** | **选择公理与 ZF 公理体系** | I.2 | axiom-of-choice · choice-function · surjective · right-inverse · zf-axioms · regularity · extensionality | 20 | 20 | **17–18** |
 
 | 单元 | 章 | 标题 | 练习 | 解答（checked） |
 |---|---|---|---|---|
@@ -181,6 +183,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **15** | **I.6** | **传递集与序数** | **10** | **10** |
 | **16** | **I.6** | **序数的序：外延性、反对称与零序数** | **10** | **10** |
 | **17** | **I.7** | **选择公理** | **10** | **10** |
+| **18** | **I.7** | **ZF 公理体系与正则性** | **10** | **10** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -219,6 +222,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 单元 | 交付 | 撞到/绕开的 |
 |---|---|---|
 | ⑬ 偏序、全序与严格序 | 新库 `lib/Order`（词汇 6 性质 + 4 序类 + 两个翻译函数 + 展开引理 + **取用子** + **智能构造子**）；画布 3 演示 + 11 练习；解答 0 open | **G-72**（`lib/Order` 最初写成字面箭头返回 ⇒ 单文件绿、`import` 红）· **G-73 形状 ①②③**（证明全靠库层绕法） |
+| ⑱ ZF 公理体系 | `lib/Rel` 收编 `rel_subst_left/right`（**从 `lib/Order` 迁出** —— 它们是"关系 + 等式"的通用搬运，与"序"无关）；画布 4 演示 + 10 练习；解答 0 open · **I.7 章收口** | **正则性怎么用**（取极小元 · 扔掉它的成员）· **空集唯一**（外延性）· **外延性的反向**（相等 ⇒ 元素相同，两条合起来才是"元素相同 ⟺ 相等"）· **必破两道**：空族的并（化归 + 合成）· **G-73 实例 ⑦⑧**：无序对/并的**唯一性与对称性**如实不排 |
 | ⑰ 选择公理 | 画布 3 演示 + 10 练习；解答 0 open · 新章 **I.7** | **旗舰：满射可裂**（`Surjective f → ∃ g, RightInverse g f`，把 AC 用在关系 `f x = y` 上）· **AC 的输出是 `∃`，可以继续往下顺**（不取出数据 ⇒ 绕开 G-58）· **必破**：空族假设真空 · 单点族**不用 AC** 就能写出选择函数 |
 | ⑯ 序数的序 | `lib/ZF` +3 条（`Extensional`，谓词层的外延公理）· `lib/Ordinal` +6 条（`IsZero` 一族）；画布 3 演示 + 10 练习；解答 0 open | **G-74（新）：没有排中律 ⇒ 序数三歧性写不出证明** —— 探针把 Halmos 的极小反例证明写到最后一卡，卡在消双重否定（**不是难，是没有规则**）⇒ **三歧性如实不排**；另有 **G-73 形状 ①②③ 的三个新实例**（带 `=` 的 `↔` 取不出方向、`=` 的 `∀` 当合取项会毒掉投影、`Or.inr` 的类型实参写成 `y = y` 判红） |
 | ⑮ 传递集与序数 | **`lib/Ordinal` 重定形**（见下）+ 画布 3 演示 + 10 练习；解答 0 open | **教材核心定理「序数的元素是序数」可直接证**（重定形前不可证）· **G-73 形状 ①②**（取用子 + 前导实参写全） |

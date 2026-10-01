@@ -1,0 +1,73 @@
+import lib.ZF
+import lib.Set
+
+theorem demo_regularity (α : Type) (E : α → α → Prop) (A : α)
+    (h : ∃ (x : α), E x A) :
+    ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) :=
+  regularity α E A h
+
+theorem demo_isEmpty_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsEmpty α E x ↔ ∀ (y : α), ¬ (E y x) :=
+  isEmpty_def α E x
+
+theorem demo_isPair_def (α : Type) (E : α → α → Prop) (x a b : α) :
+    IsPair α E x a b ↔ ∀ (z : α), E z x ↔ (z = a ∨ z = b) :=
+  isPair_def α E x a b
+
+theorem demo_isUnionOf_def (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) :
+    IsUnionOf α E x F ↔ ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A :=
+  isUnionOf_def α E x F
+
+theorem regularity_apply (α : Type) (E : α → α → Prop) (A : α)
+    (h : ∃ (x : α), E x A) :
+    ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) :=
+  regularity α E A h
+
+theorem regularity_minimal (α : Type) (E : α → α → Prop) (A m : α)
+    (h : E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) :
+    ∀ (z : α), E z m → ¬ (E z A) :=
+  (fun (hm : ∀ (z : α), E z m → ¬ (E z A)) => hm) (And.right h)
+
+theorem isEmpty_apply (α : Type) (E : α → α → Prop) (x : α) (h : IsEmpty α E x) :
+    ∀ (y : α), ¬ (E y x) :=
+  (fun (he : ∀ (y : α), ¬ (E y x)) => he) h
+
+theorem empty_no_self_mem (α : Type) (E : α → α → Prop) (x : α) (h : IsEmpty α E x) :
+    ¬ (E x x) :=
+  (fun (he : ∀ (y : α), ¬ (E y x)) => he x) h
+
+theorem isEmpty_intro (α : Type) (E : α → α → Prop) (x : α)
+    (h : ∀ (y : α), ¬ (E y x)) : IsEmpty α E x :=
+  Iff.mpr (isEmpty_def α E x) h
+
+theorem empty_unique (α : Type) (E : α → α → Prop) (he : Extensional α E) (x y : α)
+    (hx : IsEmpty α E x) (hy : IsEmpty α E y) : x = y :=
+  extensional_apply α E he x y (fun (z : α) =>
+    Iff.intro (E z x) (E z y)
+      (fun (hzx : E z x) => False.elim ((fun (he' : ∀ (y' : α), ¬ (E y' x)) => he' z) hx hzx))
+      (fun (hzy : E z y) => False.elim ((fun (he' : ∀ (y' : α), ¬ (E y' y)) => he' z) hy hzy)))
+
+theorem extensional_sound (α : Type) (E : α → α → Prop) (x y : α) (h : x = y) :
+    ∀ (z : α), E z x ↔ E z y :=
+  fun (z : α) =>
+    Iff.intro (E z x) (E z y)
+      (fun (hzx : E z x) => rel_subst_right α E z x y h hzx)
+      (fun (hzy : E z y) => rel_subst_left α E x z y h hzy)
+
+theorem union_empty_family (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsUnionOf α E x ∅) : IsEmpty α E x :=
+  fun (z : α) (hzx : E z x) =>
+    Exists.elim α (fun (A : α) => False ∧ E z A) False
+      (Iff.mp ((fun (hs : ∀ (z' : α), E z' x ↔ ∃ (A : α), A ∈ ∅ ∧ E z' A) => hs z) h)
+        hzx)  -- soko:notation-ok: G-73 形状 ①：定义头类型的假设必须先 λ 绑定再应用
+      (fun (A : α) (hA : False ∧ E z A) => And.left hA)
+
+theorem union_empty_family_unique (α : Type) (E : α → α → Prop) (he : Extensional α E)
+    (x x' : α) (h : IsUnionOf α E x ∅)
+    (h' : IsUnionOf α E x' ∅) : x = x' :=
+  empty_unique α E he x x' (union_empty_family α E x h)
+    (union_empty_family α E x' h')
+
+theorem union_empty_family_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsUnionOf α E x ∅) : ¬ (E x x) :=
+  empty_no_self_mem α E x (union_empty_family α E x h)

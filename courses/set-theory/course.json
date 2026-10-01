@@ -223,10 +223,12 @@
             "choice-function",
             "surjective",
             "right-inverse",
-            "zf-axioms"
+            "zf-axioms",
+            "regularity",
+            "extensionality"
           ],
           "quota": {
-            "exercises": 10
+            "exercises": 20
           },
           "units": [
             {
@@ -234,6 +236,12 @@
               "title": "单元⑰ 选择公理",
               "title_en": "Unit 17 — The Axiom of Choice",
               "unit": 17
+            },
+            {
+              "file": "units/unit18-zf-axioms.sokonanoda",
+              "title": "单元⑱ ZF 公理体系与正则性",
+              "title_en": "Unit 18 — The ZF Axioms and Regularity",
+              "unit": 18
             }
           ]
         }
