@@ -319,6 +319,32 @@
               "unit": 23
             }
           ]
+        },
+        {
+          "id": "I.10",
+          "title": "关系闭包与等价关系",
+          "prereqs": [
+            "I.2"
+          ],
+          "tags": [
+            "relation",
+            "closure",
+            "reflexive-closure",
+            "symmetric-closure",
+            "transitive-closure",
+            "equivalence-relation"
+          ],
+          "quota": {
+            "exercises": 10
+          },
+          "units": [
+            {
+              "file": "units/unit24-closures.sokonanoda",
+              "title": "单元㉔ 关系闭包",
+              "title_en": "Unit 24 — Closure of Relations",
+              "unit": 24
+            }
+          ]
         }
       ]
     }

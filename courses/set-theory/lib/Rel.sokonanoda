@@ -106,3 +106,36 @@ theorem rel_subst_left (α : Type) (r : α → α → Prop) (a b c : α) (h : a 
 theorem rel_subst_right (α : Type) (r : α → α → Prop) (a b c : α) (h : b = c) :
     r a b → r a c :=
   Eq.subst.{1} α (fun (x : α) => r a x) b c h
+
+-- ── 三种闭包（Enderton §3.5 / Halmos §10 的词汇；L2：都是"一行定义"）──────────
+-- 读法（**关键是传递闭包那条**）：不断言"反复复合"（那要递归，本语言没有 ℕ 上的递归原则
+-- 之外的现成工具），而是照 Halmos 的**交集式**定义 ——
+--   `a (r⁺) b` ⟺ "在**每个**包含 `r` 的传递关系里都有 `a s b`" ✓
+-- 这个写法**不需要任何递归**，三种闭包的定律就都能直接证 ✓
+def Rel.reflClosure (α : Type) (r : Rel α α) : Rel α α :=
+  fun (a : α) (b : α) => r a b ∨ a = b
+
+def Rel.symClosure (α : Type) (r : Rel α α) : Rel α α :=
+  fun (a : α) (b : α) => r a b ∨ r b a
+
+def Rel.transClosure (α : Type) (r : Rel α α) : Rel α α :=
+  fun (a : α) (b : α) =>
+    ∀ (s : Rel α α), (∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) →
+      (∀ (x : α) (y : α), r x y → s x y) → s a b
+
+-- ── 展开引理 + 取用子 / 构造子（L2）──────────────────────────────────────────
+theorem Rel.reflClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.reflClosure α r a b ↔ (r a b ∨ a = b) :=
+  Iff.intro (fun (h : Rel.reflClosure α r a b) => h) (fun (h : r a b ∨ a = b) => h)
+
+theorem Rel.symClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.symClosure α r a b ↔ (r a b ∨ r b a) :=
+  Iff.intro (fun (h : Rel.symClosure α r a b) => h) (fun (h : r a b ∨ r b a) => h)
+
+-- 传递闭包的**两条**取用子：① 用在具体的 `s` 上；② 用在"闭包自己的传递性"上 ✓
+theorem Rel.transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
+    (h : Rel.transClosure α r a b)
+    (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+    (hr : ∀ (x : α) (y : α), r x y → s x y) : s a b :=
+  (fun (hh : ∀ (s' : Rel α α), (∀ (x : α) (y : α) (z : α), s' x y → s' y z → s' x z) →
+      (∀ (x : α) (y : α), r x y → s' x y) → s' a b) => hh s hs hr) h

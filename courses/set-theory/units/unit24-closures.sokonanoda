@@ -1,0 +1,170 @@
+-- ==========================================================================
+-- unit24-closures.sokonanoda —— 卷 I 单元㉔ **关系闭包**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§3.5 的关系运算 +
+-- §7.3 的传递集**（闭包那一节）；Halmos《Naive Set Theory》**§10 Relations** 与 §18 的开头。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.9 之后新增的关系论单元）。
+--
+-- 本单元的"该学的定理"：三种闭包的**两条定律**各一份 ——
+--   ① **包含**（原来的关系在闭包里）· ② **极小性**（闭包是"最小的"那个闭关系）；
+--   传递闭包另外加两条：**自己传递**与**幂等** ✓
+--
+-- ⚠ **传递闭包怎么定义**（本单元最值得学的一手）：**不用"反复复合"**（那要递归），
+--   而是照 Halmos 的**交集式**写法 ——
+--     `a (r⁺) b` ⟺ "在**每个**包含 `r` 的传递关系里都有 `a s b`" ✓
+--   这个写法把"最小"直接写进了定义里，于是极小性几乎是免费的 ✓
+--
+-- **写法约定（本单元特有）**：闭包的定义都是**定义头**形态（`∀ s, … → … → s a b`）⇒
+--   凡是要"用它"的地方都得 **先 `fun (hh : <展开形态>) => …` 把类型写出来再应用**（G-73 形状 ①）；
+--   库里给了取用子 `Rel.transClosure_elim`，**优先用它** ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Rel`（关系与闭包）· `lib.Order`（自反/对称/传递）· `lib.Set`。
+--
+-- 依赖：单元⑥（关系）与单元⑬（自反/对称/传递）—— 本单元把两者合起来。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 24.1 三条库引理（两种闭包的展开 + 传递闭包的取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：自反闭包的展开（"原来的关系，或者两个点相等"）。
+theorem demo_reflClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.reflClosure α r a b ↔ (r a b ∨ a = b) :=
+  Rel.reflClosure_apply α r a b
+
+-- 演示：对称闭包的展开（"两个方向有一个成立"）。
+theorem demo_symClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.symClosure α r a b ↔ (r a b ∨ r b a) :=
+  Rel.symClosure_apply α r a b
+
+-- 演示：**传递闭包的取用子** —— "既然它落在每个包含 `r` 的传递关系里，
+-- 那就把它用在**你手上这个** `s` 上"。
+theorem demo_transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
+    (h : Rel.transClosure α r a b)
+    (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+    (hr : ∀ (x : α) (y : α), r x y → s x y) : s a b :=
+  Rel.transClosure_elim α r s a b h hs hr
+
+-- ─────────────────────────────────────────────────────────────
+-- 24.2 第一条定律：**包含**（原来的关系在闭包里）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：自反闭包包含原来的关系。
+-- soko:hint 思路：`r a b` 已经是那个析取的**左支**，交出去即可。
+-- soko:hint 目标形态：`∀ a b, r a b → Rel.reflClosure α r a b`。
+-- soko:hint 关键件：`Or.inl`（**前导 Prop 实参要写全**：第二个析取支里含 `=`，
+--   记法在那个位置解不出宇宙层级 ⇒ 点名声明星，G-73 形状 ③）。
+theorem subset_reflClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.reflClosure α r a b := by
+  sorry
+
+-- 练习 2（T 类）：对称闭包包含原来的关系（同形，换一个析取类型）。
+-- soko:hint 思路：还是左支。
+-- soko:hint 目标形态：`∀ a b, r a b → Rel.symClosure α r a b`。
+-- soko:hint 关键件：`Or.inl`（这里的两个析取支都是关系应用，实参可以直接写）。
+theorem subset_symClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.symClosure α r a b := by
+  sorry
+
+-- 练习 3（L 类）：**传递闭包包含原来的关系**（"每个包含 `r` 的传递关系"里当然有 `r` 本身）。
+-- soko:hint 思路：`Rel.transClosure α r a b` 展开是"给我一个传递关系 `s` 与一条 `r ⊆ s`，
+--   我还你 `s a b`" —— 那就把手里那条 `r a b` 交给 `r ⊆ s` 那一项。
+-- soko:hint 目标形态：`∀ a b, r a b → Rel.transClosure α r a b`。
+-- soko:hint 关键件：直接写一个 λ，**形参逐位对着展开形态**（定义头形态的期望类型可以直接用 λ 交付）。
+theorem subset_transClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.transClosure α r a b := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 24.3 自反闭包：**它是自反的，而且是最小的**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（L 类）：**自反闭包是自反的**。
+-- soko:hint 思路：要证 `r⁼ a a`，取析取的**右支** `a = a`，用自反。
+-- soko:hint 目标形态：`Reflexive α (Rel.reflClosure α r)`。
+-- soko:hint 关键件：`Or.inr`（第三个实参是那条等式，**写 `Eq.refl` 时要点名宇宙层级与论域**）·
+--   `Reflexive` 是定义头 ⇒ 用 λ 交付。
+theorem reflClosure_refl (α : Type) (r : Rel α α) :
+    Reflexive α (Rel.reflClosure α r) := by
+  sorry
+
+-- 练习 5（L 类，本单元旗舰之一）：**自反闭包是最小的自反关系**。
+-- soko:hint 思路：把 `r⁼ a b` 拆成两支：左支直接交给"`r ⊆ s`"，右支（`a = b`）交给
+--   "`s` 自反"那一条 —— 注意右支要先**沿等式把 `s a a` 搬成 `s a b`**。
+-- soko:hint 目标形态：`Reflexive α s → (∀ a b, r a b → s a b) → ∀ a b, r⁼ a b → s a b`。
+-- soko:hint 关键件：`Or.elim`（**前导 Prop 实参写全**，含 `=` 的那一支要点名，G-73 形状 ⑧）·
+--   `rel_subst_right`（沿 `a = b` 把 `s a a` 搬成 `s a b`）· 自反那条假设（定义头 ⇒ λ 绑定后应用）。
+theorem reflClosure_min (α : Type) (r s : Rel α α) (hs : Reflexive α s)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) :
+    ∀ (a : α) (b : α), Rel.reflClosure α r a b → s a b := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 24.4 对称闭包：同两条定律
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（L 类）：**对称闭包是对称的**（把两个析取支换个位置）。
+-- soko:hint 思路：`rˢ a b` 是"`r a b` 或 `r b a`"；要证 `rˢ b a`（"`r b a` 或 `r a b`"）
+--   —— 两支互换即可。
+-- soko:hint 目标形态：`Symmetric α (Rel.symClosure α r)`。
+-- soko:hint 关键件：`Or.elim`（前导实参写全）· `Or.inl`/`Or.inr`（**注意方向别接反**）。
+theorem symClosure_symm (α : Type) (r : Rel α α) :
+    Symmetric α (Rel.symClosure α r) := by
+  sorry
+
+-- 练习 7（L 类，旗舰之一）：**对称闭包是最小的对称关系**。
+-- soko:hint 思路：两支分别交给"`r ⊆ s`"与"`s` 对称"（后者要把 `r b a` 先送进 `s`，
+--   再用对称性掉头）。
+-- soko:hint 目标形态：`Symmetric α s → (∀ a b, r a b → s a b) → ∀ a b, rˢ a b → s a b`。
+-- soko:hint 关键件：`Or.elim` · 对称那条假设（定义头 ⇒ λ 绑定后应用）· `r ⊆ s`。
+theorem symClosure_min (α : Type) (r s : Rel α α) (hs : Symmetric α s)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) :
+    ∀ (a : α) (b : α), Rel.symClosure α r a b → s a b := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 24.5 传递闭包：**它传递，而且是最小的**（本单元的正题）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 8（L 类，本单元旗舰）：**传递闭包是传递的**。
+-- soko:hint 思路：要证 `r⁺ a c`，展开形态说"给我传递的 `s` 与 `r ⊆ s`"；
+--   手里有 `r⁺ a b` 与 `r⁺ b c` —— **把同一组 `s`、`r ⊆ s` 分别喂给它们**，
+--   得到 `s a b` 与 `s b c`，再用 `s` 自己的传递性接起来。
+-- soko:hint 目标形态：`Transitive α (Rel.transClosure α r)`。
+-- soko:hint 关键件：**库里的取用子 `Rel.transClosure_elim`**（参数表：关系 · 目标关系 `s` ·
+--   两个点 · 闭包证据 · `s` 的传递性 · `r ⊆ s`）—— 用两次 · `Transitive` 是定义头 ⇒ λ 交付。
+theorem transClosure_trans (α : Type) (r : Rel α α) :
+    Transitive α (Rel.transClosure α r) := by
+  sorry
+
+-- 练习 9（L 类，本单元旗舰）：**传递闭包是最小的传递关系**。
+-- soko:hint 思路：这几乎是**定义本身** —— 把 `r⁺ a b` 用在手上的 `s` 上（连同它的传递性与 `r ⊆ s`）。
+-- soko:hint 目标形态：`Transitive α s → (∀ a b, r a b → s a b) → ∀ a b, r⁺ a b → s a b`。
+-- soko:hint 关键件：`Rel.transClosure_elim`（第三次用）· `Transitive` 那条假设是**定义头** ⇒
+--   先把它的展开形态用 λ 写出来再交出去（G-73 形状 ①）。
+theorem transClosure_min (α : Type) (r s : Rel α α) (hs : Transitive α s)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) :
+    ∀ (a : α) (b : α), Rel.transClosure α r a b → s a b := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 24.6 必破：**传递闭包是幂等的**
+--
+-- "再闭一次不会变大" —— 这正是练习 8 与练习 9 的直接合体 ✓
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 10（D 类）：**`r⁺⁺ ⊆ r⁺`**（传递闭包再做一次传递闭包，还是它自己）。
+-- soko:hint 思路：把练习 9 用在 `r := r⁺`、`s := r⁺` 上：传递性由练习 8 给，
+--   而"`r⁺ ⊆ r⁺`"就是恒等那一条。
+-- soko:hint 目标形态：`∀ a b, Rel.transClosure α (Rel.transClosure α r) a b → Rel.transClosure α r a b`。
+-- soko:hint 关键件：练习 9（参数按顺序：原来的关系 · 目标关系 · 传递性 · 包含 · 两个点）·
+--   练习 8 · 恒等那一条写成 λ（**注意"包含"那一项的自变量是 `r⁺` 而不是 `r`** —— 别顺手写成练习 3）。
+theorem transClosure_idem (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), Rel.transClosure α (Rel.transClosure α r) a b →
+      Rel.transClosure α r a b := by
+  sorry

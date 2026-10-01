@@ -1,0 +1,90 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+theorem demo_reflClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.reflClosure α r a b ↔ (r a b ∨ a = b) :=
+  Rel.reflClosure_apply α r a b
+
+theorem demo_symClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.symClosure α r a b ↔ (r a b ∨ r b a) :=
+  Rel.symClosure_apply α r a b
+
+theorem demo_transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
+    (h : Rel.transClosure α r a b)
+    (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+    (hr : ∀ (x : α) (y : α), r x y → s x y) : s a b :=
+  Rel.transClosure_elim α r s a b h hs hr
+
+theorem subset_reflClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.reflClosure α r a b :=
+  fun (a : α) (b : α) (hab : r a b) =>
+    Or.inl (r a b) (Eq.{1} α a b) hab  -- soko:notation-ok: G-73 形状 ③：`=` 的记法在这个位置解不出宇宙层级，必须点名声明星
+
+theorem subset_symClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.symClosure α r a b :=
+  fun (a : α) (b : α) (hab : r a b) => Or.inl (r a b) (r b a) hab  -- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来
+
+theorem subset_transClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.transClosure α r a b :=
+  fun (a : α) (b : α) (hab : r a b) =>
+    fun (s : Rel α α) (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+        (hr : ∀ (x : α) (y : α), r x y → s x y) => hr a b hab
+
+theorem reflClosure_refl (α : Type) (r : Rel α α) :
+    Reflexive α (Rel.reflClosure α r) :=
+  fun (a : α) =>
+    Or.inr (r a a) (Eq.{1} α a a) (Eq.refl.{1} α a)  -- soko:notation-ok: G-73 形状 ③：`=` 的记法在这个位置解不出宇宙层级，必须点名声明星
+
+theorem reflClosure_min (α : Type) (r s : Rel α α) (hs : Reflexive α s)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) :
+    ∀ (a : α) (b : α), Rel.reflClosure α r a b → s a b :=
+  fun (a : α) (b : α) (hab : Rel.reflClosure α r a b) =>
+    Or.elim (r a b) (Eq.{1} α a b) (s a b)  -- soko:notation-ok: G-73 形状 ⑧：带 `=` 的命题当 `Or.elim` 的前导类型实参必须点名声明星
+      (fun (hr : r a b) => hsub a b hr)
+      (fun (he : a = b) => rel_subst_right α s a a b he ((fun (hu : ∀ (x : α), s x x) => hu a) hs))
+      hab
+
+theorem symClosure_symm (α : Type) (r : Rel α α) :
+    Symmetric α (Rel.symClosure α r) :=
+  fun (a : α) (b : α) (hab : Rel.symClosure α r a b) =>
+    Or.elim (r a b) (r b a) (r b a ∨ r a b)
+      (fun (h1 : r a b) => Or.inr (r b a) (r a b) h1)  -- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来
+      (fun (h2 : r b a) => Or.inl (r b a) (r a b) h2)  -- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来
+      hab
+
+theorem symClosure_min (α : Type) (r s : Rel α α) (hs : Symmetric α s)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) :
+    ∀ (a : α) (b : α), Rel.symClosure α r a b → s a b :=
+  fun (a : α) (b : α) (hab : Rel.symClosure α r a b) =>
+    Or.elim (r a b) (r b a) (s a b)
+      (fun (h1 : r a b) => hsub a b h1)
+      (fun (h2 : r b a) =>
+        (fun (hu : ∀ (x : α) (y : α), s x y → s y x) => hu b a (hsub b a h2)) hs)
+      hab
+
+theorem transClosure_trans (α : Type) (r : Rel α α) :
+    Transitive α (Rel.transClosure α r) :=
+  fun (a : α) (b : α) (c : α)
+    (hab : Rel.transClosure α r a b) (hbc : Rel.transClosure α r b c) =>
+    fun (s : Rel α α) (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+        (hr : ∀ (x : α) (y : α), r x y → s x y) =>
+      hs a b c (Rel.transClosure_elim α r s a b hab hs hr)
+        (Rel.transClosure_elim α r s b c hbc hs hr)
+
+theorem transClosure_min (α : Type) (r s : Rel α α) (hs : Transitive α s)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) :
+    ∀ (a : α) (b : α), Rel.transClosure α r a b → s a b :=
+  fun (a : α) (b : α) (hab : Rel.transClosure α r a b) =>
+    Rel.transClosure_elim α r s a b hab
+      (fun (x : α) (y : α) (z : α) (hxy : s x y) (hyz : s y z) =>
+        (fun (hu : ∀ (x' : α) (y' : α) (z' : α), s x' y' → s y' z' → s x' z') =>
+          hu x y z hxy hyz) hs)
+      hsub
+
+theorem transClosure_idem (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), Rel.transClosure α (Rel.transClosure α r) a b →
+      Rel.transClosure α r a b :=
+  transClosure_min α (Rel.transClosure α r) (Rel.transClosure α r)
+    (transClosure_trans α r)
+    (fun (a : α) (b : α) (h : Rel.transClosure α r a b) => h)

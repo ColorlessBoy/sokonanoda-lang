@@ -123,6 +123,8 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-10-01，单元㉔ 落地后）：68 个目标 · 661 checked · 220 open · 0 判负**
+
 **门禁实测（2026-10-01，单元㉓ 落地后）：66 个目标 · 639 checked · 210 open · 0 判负**
 
 **门禁实测（2026-10-01，单元㉒ 落地后）：64 个目标 · 614 checked · 200 open · 0 判负**
@@ -174,6 +176,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **I.6** | **序数** | I.5 | ordinal · transitive-set · successor · well-founded · extensionality · zero | 20 | 20 | **15–16** |
 | **I.9** | **集族、广义积与 n 元关系** | I.2 · I.5 | family · arbitrary-union/intersection · monotone · image · preimage · indexed-family · product · currying | 30 | 30 | **21–23** |
 | **I.8** | **基数与基数算术** | I.3 | cardinal · injection · equinumerous · cardinal-arithmetic · product · commutativity | 20 | 20 | **19–20** |
+| **I.10** | **关系闭包与等价关系** | I.2 | relation · closure · reflexive/symmetric/transitive-closure · equivalence-relation | 10 | 10 | **24** |
 | **I.7** | **选择公理与 ZF 公理体系** | I.2 | axiom-of-choice · choice-function · surjective · right-inverse · zf-axioms · regularity · extensionality | 20 | 20 | **17–18** |
 
 | 单元 | 章 | 标题 | 练习 | 解答（checked） |
@@ -201,6 +204,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | **21** | **I.9** | **集族与广义并交** | **10** | **10** |
 | **22** | **I.9** | **像、原像与广义并交** | **10** | **10** |
 | **23** | **I.9** | **广义积与柯里化** | **10** | **10** |
+| **24** | **I.10** | **关系闭包** | **10** | **10** |
 
 > 「练习」= 画布上还留着 `sorry` 的声明数；「解答（checked）」= 解答文件里
 > `decl.checked` 的条数——两者**不必相等**（解答可以多证几个画布上的演示定义）。
@@ -239,6 +243,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | 单元 | 交付 | 撞到/绕开的 |
 |---|---|---|
 | ⑬ 偏序、全序与严格序 | 新库 `lib/Order`（词汇 6 性质 + 4 序类 + 两个翻译函数 + 展开引理 + **取用子** + **智能构造子**）；画布 3 演示 + 11 练习；解答 0 open | **G-72**（`lib/Order` 最初写成字面箭头返回 ⇒ 单文件绿、`import` 红）· **G-73 形状 ①②③**（证明全靠库层绕法） |
+| ㉔ 关系闭包 | `lib/Rel` +`Rel.reflClosure` / `symClosure` / `transClosure` + 展开与取用子（**传递闭包照 Halmos 的"交集式"定义** —— "在每个包含 `r` 的传递关系里都成立" ⇒ **不需要递归**）；画布 3 演示 + 10 练习；解答 0 open · 新章 **I.10** | 三种闭包的**两条定律**各一份（**包含** + **极小性**）· 传递闭包另外两条（**自己传递** · **幂等**）· **定义头形态的闭包怎么"用"**（一律先 λ 绑定，库给了取用子）|
 | ㉓ 广义积与柯里化 | `lib/SUnion` +`Set.pi` / `mem_pi_iff` / `mem_pi_elim` / `mem_pi_intro` / `pi_mono`（**索引族的积** —— 元素是函数，与二元 `Set.prod` 的序对相对）；画布 2 定义（柯里化/反柯里化）+ 3 演示 + 10 练习；解答 0 open | **某个因子空 ⇒ 积空** · **积与交互相拆装（两半）** · **柯里化往返** · **必破旗舰：选择公理正是"每个因子非空 ⇒ 积非空"**（`lib.Choice` 直接给出 —— 这就是为什么"积非空"不是无条件定理）|
 | ㉒ 像、原像与广义并交 | `lib/SUnion` +`Set.mem_sUnion_elim`/`_intro`/`Set.mem_sInter_elim`；`lib/Image` +`Set.mem_image_intro`/`_elim`/`Set.mem_preimage_intro`/`_elim`（**把 `∃` 的拆装收进库** —— 手写嵌套 `Exists.elim` 实测极易少数右括号）；画布 3 演示 + 10 练习；解答 0 open · **I.9 章收口** | **原像是"好"的**（`⁻¹'` 与 `⋃₀`/`⋂₀` **四个方向全交换**）· **像是"半好"的**（与 `⋃₀` 两个方向都对，与 `⋂₀` **只有一半**）· 「像不还原原像」（`f '' (f ⁻¹' B) ⊆ B`，反向**是假的**）· **等式一律拆成两个 `⊆`**（`Set.ext` 在深层嵌套下不稳，实测） |
 | ㉑ 集族与广义并交 | 画布 3 演示 + 10 练习；解答 0 open · 新章 **I.9** | **两条刻画定理**（`⋃₀ F ⊆ B` ⟺ 族里每个成员 `⊆ B`；`B ⊆ ⋂₀ F` ⟺ 每个成员 `⊇ B`）· **单调 vs 反单调**（`F ⊆ G` 时 `⋃₀` 单调、`⋂₀` **反**单调 —— 最反直觉的一条）· 空族的并 · **`⋃₀` 里面推不出空集的类型参数**（记法边界，写成恒假谓词） |
