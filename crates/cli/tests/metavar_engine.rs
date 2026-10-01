@@ -239,3 +239,136 @@ fn switch_states_are_equivalent_across_spellings() {
     assert_eq!(engine, unify, "`engine` 与 `unify` 是同一个档");
     assert_eq!(engine.0, 0, "引擎档要解得出来（与窄版同判）");
 }
+
+/// **M2** 的前奏（一般路径：应用 / 裸常量 / 路线③）。
+const PRELUDE_APP: &str = "\
+def Set (α : Type) : Type := α -> Prop
+def Set.empty (α : Type) : Set α := fun (_ : α) => False
+def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => x = a
+def Set.Equiv {α β : Type} (A : Set α) (B : Set β) : Prop :=
+  (forall (x : α), A x -> A x) ∧ (forall (y : β), B y -> B y)
+def Two {α : Type} (A : Set α) (B : Set α) : Prop := True
+def ignores {α : Type} (n : Nat) : Nat := n
+notation \"∅\" => Set.empty
+infix:50 \" ≈ \" => Set.Equiv
+";
+
+/// 一个**一般路径**形状（M2）：名字 / 为什么 / 四档实测。
+struct AppShape {
+    name: &'static str,
+    why: &'static str,
+    body: &'static str,
+    default_state: (i32, &'static str),
+    sibling: (i32, &'static str),
+    engine: (i32, &'static str),
+    strict: (i32, &'static str),
+}
+
+const APP_SHAPES: &[AppShape] = &[
+    AppShape {
+        name: "G1_equiv_empty_singleton",
+        why: "应用路径的 G-48 同形（E19 刀2 的夹具）：严格档红 / 窄版与引擎都靠 defaulting 判绿",
+        body: "theorem g1 (β : Type) (b : β) : ¬ (Set.Equiv ∅ {b}) := by sorry",
+        default_state: (0, "-"),
+        sibling: (0, "-"),
+        engine: (0, "-"),
+        strict: (1, "elab-implicit-argument-unsolved"),
+    },
+    AppShape {
+        name: "G2_equiv_singleton_empty",
+        why: "操作数顺序相反（已解的一侧在后）：defaulting 仍借得到 ⇒ 两档都绿",
+        body: "theorem g2 (α : Type) (a : α) : ¬ (Set.Equiv {a} ∅) := by sorry",
+        default_state: (0, "-"),
+        sibling: (0, "-"),
+        engine: (0, "-"),
+        strict: (1, "elab-implicit-argument-unsolved"),
+    },
+    AppShape {
+        name: "G3_both_hungry",
+        why: "两侧都零元糖 ⇒ 一个**已解**兄弟都没有 ⇒ 四档全红（**不猜**）",
+        body: "theorem g3 (α β : Type) : ¬ (Set.Equiv ∅ ∅) := by sorry",
+        default_state: (1, "elab-implicit-argument-unsolved"),
+        sibling: (1, "elab-implicit-argument-unsolved"),
+        engine: (1, "elab-implicit-argument-unsolved"),
+        strict: (1, "elab-implicit-argument-unsolved"),
+    },
+    AppShape {
+        name: "G4_param_never_mentioned",
+        why: "`α` 在任何实参类型与期望类型里都不出现 ⇒ 四档全红（既有判据的同一夹具）",
+        body: "def g4 : Nat := ignores 3",
+        default_state: (1, "elab-implicit-argument-unsolved"),
+        sibling: (1, "elab-implicit-argument-unsolved"),
+        engine: (1, "elab-implicit-argument-unsolved"),
+        strict: (1, "elab-implicit-argument-unsolved"),
+    },
+    AppShape {
+        name: "G5_conflicting_constraints",
+        why: "同一个 `α` 被 `Set Nat` 与 `Set Bool` 两头拉：**严格档先成功**（首个命中即返回）⇒ 引擎              没轮到 ⇒ 四档同判内核拒绝（冲突检出要等 M3 的报错契约收口）",
+        body: "def g5 (A : Set Nat) (B : Set Bool) : Prop := Two A B",
+        default_state: (1, "kernel-rejected"),
+        sibling: (1, "kernel-rejected"),
+        engine: (1, "kernel-rejected"),
+        strict: (1, "kernel-rejected"),
+    },
+];
+
+/// **M2 的判据**（5 个一般路径形状 × 4 档 = 20 次真进程）：引擎接进 `implicit::solve_prefix`
+/// 之后，`sibling` 档仍是今天，`engine` 档**不许丢解**且逐条与窄版同判。
+#[test]
+fn general_path_engine_matches_sibling_and_never_loses() {
+    for shape in APP_SHAPES {
+        let file = temp_file(shape.name, &format!("{PRELUDE_APP}{}\n", shape.body));
+        let d = grade(&file, &format!("{}-d", shape.name), &[]);
+        let s = grade(
+            &file,
+            &format!("{}-s", shape.name),
+            &[("SOKO_METAVAR", "sibling")],
+        );
+        let e = grade(
+            &file,
+            &format!("{}-e", shape.name),
+            &[("SOKO_METAVAR", "engine")],
+        );
+        let st = grade(
+            &file,
+            &format!("{}-0", shape.name),
+            &[("SOKO_METAVAR", "0")],
+        );
+        let got: [(&str, (i32, String)); 4] = [
+            ("default", d),
+            ("sibling", s),
+            ("engine", e),
+            ("strict", st),
+        ];
+        let want: [(&str, (i32, &str)); 4] = [
+            ("default", shape.default_state),
+            ("sibling", shape.sibling),
+            ("engine", shape.engine),
+            ("strict", shape.strict),
+        ];
+        for (label, actual) in got.iter() {
+            let expected = want.iter().find(|(l, _)| l == label).expect("label").1;
+            assert_eq!(
+                (actual.0, actual.1.as_str()),
+                (expected.0, expected.1),
+                "{}（{}）：**{label}** 档的（退出码, 诊断码）与钉住的值不符",
+                shape.name,
+                shape.why
+            );
+        }
+        assert_eq!(
+            ((got[0].1).0, (got[0].1).1.clone()),
+            ((got[1].1).0, (got[1].1).1.clone()),
+            "{}：默认档必须与 `sibling` 同判",
+            shape.name
+        );
+        if (got[1].1).0 == 0 {
+            assert_eq!(
+                (got[2].1).0,
+                0,
+                "{}：`sibling` 判绿而 `engine` 判红 ⇒ **引擎丢解** ✗（M2 硬红线）",
+                shape.name
+            );
+        }
+    }
+}

@@ -146,9 +146,91 @@ pub(crate) fn solve_prefix(
         return Some(solved);
     }
     if metavar_enabled() {
-        return solve_prefix_pending(layers, result, k, arg_tys, expected, defs, is_inductive);
+        // **档位**（IA-4 M2）：`Sibling` = E19 的窄版（默认，逐字节等于今天）；
+        // `Engine` = 新引擎（真元变量 + 三值合一 + occurs/作用域 + 有界待定 + 出口 zonk）。
+        return if metavar_mode() == MetavarMode::Engine {
+            solve_prefix_meta(layers, result, k, arg_tys, expected, defs, is_inductive)
+        } else {
+            solve_prefix_pending(layers, result, k, arg_tys, expected, defs, is_inductive)
+        };
     }
     None
+}
+
+/// **IA-4 M2 的引擎档**（`SOKO_METAVAR=engine`）：`solve_prefix` 的**一般路径**（应用 / 裸常量 /
+/// 路线③富余实参）走 [`crate::compile::meta::MetaCtx`]。
+///
+/// 与 [`solve_prefix_pending`] 的**约束同源**（不再一位一位贪心）：
+/// ① 每个前导位建一个元变量（`ty` = 该层的域，作用域 = **更晚**的望远镜参数名）；
+/// ② 望远镜名 → 元变量（模板代换）；③ 每个**后续**层的域 ≟ 该实参的类型；④ 结果 ≟ 期望类型；
+/// ⑤ 不动点 + defaulting + zonk（出口无残留自检在 `discharge` 里）。
+///
+/// ⚠ `implicit::telescope` 的参数名**本来就是 fresh 名**（`\0soko_p{i}`）⇒ 这里不需要再 freshen
+/// （记法路径那条要，因为 `notation_telescope` 用的是签名原文名 —— M1 实测的坑）。
+/// **元变量不进项**：解不出就返回 `None`，调用方照旧报既有码 ✓。
+fn solve_prefix_meta(
+    layers: &[Layer],
+    result: &Expr,
+    k: usize,
+    arg_tys: &[Option<Expr>],
+    expected: Option<&Expr>,
+    defs: &crate::compile::elab::DefTable,
+    is_inductive: &dyn Fn(&str) -> bool,
+) -> Option<Vec<Expr>> {
+    let unfold = |e: &Expr| crate::spine::unfold_to_inductive(e, is_inductive, defs, 8, None);
+    let mut meta = crate::compile::meta::MetaCtx::new(&unfold);
+    // ① 元变量（与窄版同一条闸门：前导位必须都有名字）
+    let mut ids = Vec::with_capacity(k);
+    for i in 0..k {
+        if layers[i].name.is_empty() {
+            return None;
+        }
+        let out_of_scope: Vec<String> = layers
+            .iter()
+            .skip(i + 1)
+            .map(|l| l.name.clone())
+            .filter(|n| !n.is_empty())
+            .collect();
+        ids.push(meta.fresh(
+            layers[i].domain.clone(),
+            crate::compile::meta::MetaKind::Natural,
+            out_of_scope,
+        ));
+    }
+    // ② 望远镜名 → 元变量
+    let mut sigma: std::collections::HashMap<String, Expr> = std::collections::HashMap::new();
+    for (i, id) in ids.iter().enumerate() {
+        sigma.insert(layers[i].name.clone(), meta.meta_expr(*id));
+    }
+    // ③ 路线①：后续层的域（已代换）≟ 该实参的类型
+    for i in 0..k {
+        let name = layers[i].name.clone();
+        for (j, layer) in layers.iter().enumerate().skip(i + 1) {
+            let Some(actual) = j
+                .checked_sub(k)
+                .and_then(|x| arg_tys.get(x))
+                .and_then(|t| t.as_ref())
+            else {
+                continue;
+            };
+            if !crate::spine::mentions(&name, &layer.domain) {
+                continue;
+            }
+            let template = crate::spine::substitute(&layer.domain, &sigma);
+            if meta.unify(&template, actual) == crate::compile::meta::Tri::No {
+                return None;
+            }
+        }
+    }
+    // ④ 路线②：结果（已代换）≟ 期望类型
+    if let Some(expected) = expected {
+        let template = crate::spine::substitute(result, &sigma);
+        if meta.unify(&template, expected) == crate::compile::meta::Tri::No {
+            return None;
+        }
+    }
+    // ⑤ 不动点 + defaulting（E19 的选择规则）+ zonk
+    meta.discharge(&ids)
 }
 
 /// **E19 的开关**（刀1 记法路径 + 刀2 一般路径**共用同一个开关**）：给求解器引入
@@ -205,6 +287,11 @@ pub(crate) fn metavar_enabled() -> bool {
 /// （`Set.Equiv ∅ {b}` 读作 `Set.Equiv β β ∅ {b}`）✓。
 /// **一个都定不出来就仍然失败**（没有兄弟可依 ⇒ 照旧报"补不出参数"，不猜、
 /// 不发明类型 ✓）。
+///
+/// **IA-4 M2 起它降级为 defaulting 的参考实现**：引擎档把同一条规则实现为
+/// [`crate::compile::meta::MetaCtx::default_unresolved`]（判据仍是"声明类型同形"，只是从
+/// "拷一个**已解**兄弟的值"一般化成"两两合一、选代表"）⇒ 本函数是 **`Sibling` 档**的那一份，
+/// 不再是"待定参数的唯一出口"（默认档逐字节不变 ✓）。
 pub(crate) fn fill_pending_by_shape(
     layers: &[(String, Expr)],
     solved: &mut [Option<Expr>],

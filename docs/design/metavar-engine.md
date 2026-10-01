@@ -335,3 +335,31 @@ python3 scripts/gap.py check && python3 scripts/docs-lint.py && python3 scripts/
 
 **M1 不做**（后续片）：一般路径接线 = **M2** · sort/kind 与报错契约 = **M3** · 宇宙层 = U1/U2 ·
 范围 B（内核占位符 → 期望类型传播）= K1/B1–B3 ✓。
+
+## 9. M2 as-built（2026-10-01 **收口 ✓**）：引擎接进**一般路径**
+
+**接线** `implicit::solve_prefix_meta`（应用 / 裸常量 / 路线③共用同一条 `solve_prefix`）——
+严格档**永远先跑且不变**，失败后按档位分流（`Engine` ⇒ 引擎；`Sibling` ⇒ E19 窄版）✓。
+**`fill_pending_by_shape` 降级**为 defaulting 的**参考实现**（`Sibling` 档那一份；引擎档的等价物是
+`MetaCtx::default_unresolved`，判据仍是"声明类型同形"，只是从"拷一个已解兄弟的值"一般化成
+"两两合一、选代表"）✓。⚠ `implicit::telescope` 的参数名**本来就是 fresh 名**（`\0soko_p{i}`）⇒
+这条路**不需要**再 freshen（记法路径那条要 —— M1 实测的坑）。
+
+| 判据 | 结果 |
+|---|---|
+| `cargo test -p sokonanoda-front --lib` | **782/782** ✓ |
+| `implicit_metavar`（四条断言：默认绿 / 反向关红 / 不猜 / 既有码仍报）| **1 passed** ✓ |
+| `metavar_inventory`（M0 的 13 形状）| **1 passed**（26 读数一条不变）✓ |
+| `metavar_engine`（**3 passed**：M1 的 5 个记法形状 × 4 档 + 开关等价 + **M2 的 5 个一般路径形状 × 4 档**）| **3 passed** ✓ |
+| `notation` / `notation_metavar` | **49 / 1** 全绿 ✓ |
+| **三指纹：默认档 与 引擎档** | 两态**都逐字节等于** M0 冻结值 ⇒ 引擎在一般路径上也是**0 增 0 失** ✓ |
+| 课程门禁（引擎档）| **43/377/99/0** ✓ |
+| 冷 build 结构计数（默认档）| `runs=886 bytes=47,437,669` · `passes=1343` · `by_calls=21,268` · `hits/misses=20,853/302` · `compiled 42/hit 0` —— **逐项等于基线** ✓ |
+| `scripts/soko gate --fast` | **EXIT=0** ✓ |
+
+**M2 的读数口径再修正一次**（M0 只说了全局缓存）：冷 build 结构计数还要**项目缓存也确认是空的**
+（`build --clean` 之后 `ls courses/set-theory/.sokonanoda/compiled | wc -l` = **0**），而且**别与别的
+编译任务并发**（并发的 gate/门禁会**把项目缓存重新填上**）—— 实测踩到一次：项目缓存还有 41 个文件时
+同一条命令给出 `compiled 30 / hit 12`、`runs=616`（**是热启动，不是回归** ✗）。
+
+**M2 不做**（后续片）：sort/kind 与报错契约 = **M3** · 默认开 = **M4** · 宇宙层 = U1/U2 · 范围 B = K1/B1–B3 ✓。
