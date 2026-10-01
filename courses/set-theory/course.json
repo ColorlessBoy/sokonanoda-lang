@@ -288,10 +288,11 @@
             "equinumerous",
             "cardinal-arithmetic",
             "product",
-            "commutativity"
+            "commutativity",
+            "equiv-algebra"
           ],
           "quota": {
-            "exercises": 20
+            "exercises": 25
           },
           "units": [
             {
@@ -305,6 +306,12 @@
               "title": "单元⑳ 基数算术：积",
               "title_en": "Unit 20 — Cardinal Arithmetic: Products",
               "unit": 20
+            },
+            {
+              "file": "units/unit54-equiv-algebra.sokonanoda",
+              "title": "单元54 等势的代数的开端",
+              "title_en": "Unit 54 — Beginning the Algebra of Equinumerosity",
+              "unit": 54
             }
           ]
         },

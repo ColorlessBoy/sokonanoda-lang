@@ -1,0 +1,95 @@
+-- ==========================================================================
+-- unit54-equiv-algebra.sokonanoda —— 卷 I 单元54 **等势的代数的开端**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§6.1**
+--   （equinumerosity 的三条基本性质）；Halmos《Naive Set Theory》**§22** 前夜。
+-- 大纲：`set-theory-syllabus.md` §4.1（**I.8 章深化** —— 单元⑲⑳ 只做了 `≼`（可数进），
+--   本单元做 `≈`（等势）这一侧的**代数**：自反 · 对称 · 与 `≼` 的关系 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **两条展开引理**（`≼` 就是"存在单射"；`≈` 就是"存在互逆的一对"）；
+--   · **恒等映射在任意子集上单射**（自造 —— 库里没有 ✓）；
+--   · **`≼` 自反** · **子集 ⇒ `≼`**（`A ⊆ B ⇒ A ≼ B` ✓ 由恒等映射给出）；
+--   · **旗舰：`≈` 自反**（单位映射自配 ✓）· **`≈` 对称**（把互逆的那一对**对调** ✓）。
+--
+-- ⚠ **本单元的写法纪律**（第 601 轮换来的 ✓）：**先读库签名，再写调用** ——
+--   `lib/Equiv` 里**只有**这些名字：`Set.MapsTo` · `Set.LeftInvOn` · `Set.RightInvOn` ·
+--   `Set.Equiv`(+`mk`/`elim`) · `Set.InjOn`(+`injOn_def`) · `Set.Le`(+`le_def`/`intro`/`elim`) ✓
+--   （**没有** `equiv_def`、**没有** `mapsTo_def`、**没有** `Set.injOn_id` ✗ —— 本轮实测踩过 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Equiv` · `lib.Set` · `lib.Order` · `lib.Rel`。
+--
+-- 依赖：单元⑲（`≼` 与基数比较）· 单元⑳（基数算术）· 单元⑨（等势与 Cantor）✓
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Equiv
+import lib.Order
+
+-- -------------------------------------------------------------
+-- 54.1 三条库引理（`≼` 的展开 · `≈` 的构造子 · 恒等映射的单射性）
+-- -------------------------------------------------------------
+
+-- 演示：`≼` 的展开（"存在一把单射"）。
+theorem demo_le_def (α β : Type) (A : Set α) (B : Set β) :
+    A ≼ B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Set.le_def α β A B
+theorem demo_injOn_def (α β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → Eq.{1} β (f x) (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+  Set.injOn_def α β f A-- 演示（**已在画布内证好**）：`≈` 的构造子（给一对互逆映射即可）。
+
+theorem demo_equiv_mk (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β α g B A)
+    (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) : A ≈ B :=
+  Set.Equiv.mk α β A B f g hf hg hgf hfg
+
+-- -------------------------------------------------------------
+-- 54.2 恒等映射 · `≼` 自反 · 子集 ⇒ `≼`
+-- -------------------------------------------------------------
+-- 练习 1（L 类，**自造引理**）：**恒等映射在任意子集上单射**。
+
+-- soko:hint 关键件：`Set.injOn_def`（**先 λ 绑定、再 `Iff.mpr`** ✓ —— 配方 ✓；
+
+--   库里的形态是 `∀ x, x ∈ A → ∀ y, y ∈ A → f x = f y → x = y` ✓ 别写错 ✗）
+
+theorem injOn_id (α : Type) (A : Set α) : Set.InjOn α α (fun (x : α) => x) A := by
+  sorry
+-- 练习 2（T 类）：**`≼` 自反**（恒等映射当见证）。
+
+-- soko:hint 关键件：`Set.Le.intro`（**参数：两个论域 · 两个集合 · 映射 · 单射 · 送进** ✓）· 练习 1 ✓
+
+theorem le_refl (α : Type) (A : Set α) : A ≼ A := by
+  sorry
+-- 练习 3（T 类）：**子集 ⇒ `≼`**（同一把恒等映射，只是"送进"那一支改用包含假设）。
+
+-- soko:hint 关键件：`Set.Le.intro` · 练习 1 · 包含假设**按 点 · 前提 应用** ✓
+
+theorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B := by
+  sorry
+
+-- -------------------------------------------------------------
+-- 54.3 `≈` 的代数：自反 · 对称
+-- -------------------------------------------------------------
+-- 练习 4（L 类，**旗舰一向**）：**`≈` 自反**（单位映射与它自己互逆）。
+
+-- soko:hint 关键件：`Set.Equiv.mk`（**要 4 条证明**：两块 `MapsTo` + 左逆 + 右逆 ✗ 少一个就判红）·
+
+--   `Eq.refl`（**写全宇宙层级与论域**）✓
+
+theorem equiv_refl (α : Type) (A : Set α) : A ≈ A := by
+  sorry
+-- 练习 5（L 类，**旗舰另一向**）：**`≈` 对称**（把互逆的那一对**对调**）。
+
+-- soko:hint 思路：用 `Set.Equiv.elim` 拆出 `f`、`g` 与四条证据；再用 `Set.Equiv.mk`
+
+--   把 `g`、`f` **换个位置**装回去（**两条"逆"也要互换** ✓）。
+
+-- soko:hint 关键件：`Set.Equiv.elim`（**参数：两个论域 · 两个集合 · 目标命题 · 假设 · 处理函数**）·
+
+--   `Set.Equiv.mk`（四条证据的顺序：`hg hf hfg hgf` ✓ —— **后两条要对调** ✓）
+
+theorem equiv_symm (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : B ≈ A := by
+  sorry
