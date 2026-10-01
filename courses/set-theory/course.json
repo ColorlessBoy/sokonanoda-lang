@@ -128,10 +128,12 @@
           "tags": [
             "universe",
             "russell",
-            "synthesis"
+            "synthesis",
+            "refutation",
+            "counterexample"
           ],
           "quota": {
-            "exercises": 14
+            "exercises": 18
           },
           "units": [
             {
@@ -145,6 +147,12 @@
               "title": "单元⑫ 综合与读证明",
               "title_en": "Unit 12 — Synthesis & Reading Proofs",
               "unit": 12
+            },
+            {
+              "file": "units/unit55-refutation.sokonanoda",
+              "title": "单元55 反例与不可证（一）",
+              "title_en": "Unit 55 — Refutation (I): Refuting Universal Statements",
+              "unit": 55
             }
           ]
         },

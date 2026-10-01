@@ -1,0 +1,91 @@
+-- ==========================================================================
+-- unit55-refutation.sokonanoda —— 卷 I 单元55 **反例与不可证（一）：怎样驳倒全称命题**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§1.5** 的
+--   "refuting statements"（教材在这里系统地讲"怎样说明一条陈述为假"）；
+--   Halmos《Naive Set Theory》全书贯穿的"给反例"手法。
+-- 大纲：`set-theory-syllabus.md` §4.1（**新主题块** —— 课程此前**整块缺**"反例"教学 ✓）。
+--
+-- 本单元的"该学的定理/手法"：
+--   · **驳倒 `∀` 只需一个反例** —— `¬ (∀ x, P x)` 由 `(a) + ¬ (P a)` 给出 ✓；
+--   · **驳倒 `A ⊆ B` 只需一个"在 `A` 里、不在 `B` 里"的见证** ✓ ——
+--     并把它做成**可复用**的引理 `not_subset_of_witness` ✓；
+--   · 三个**实例**：`∀ x, x ∈ ∅` 假 ✓ · `univ ⊆ ∅` 假 ✓ · （见练习）✓
+--
+-- ⚠ **为什么本单元现在能做（而别的"反例"单元做不了）** ✓：本单元全程在 **`Prop` 层**
+--   （`¬` 是 `P → False`）✓ ⇒ **不需要**"归纳命题消去到 `Type`" ✗ ——
+--   后者正是台账 **G-58（blocker，待批准修复）** ✓。
+--   真正被 G-58 挡住的是"用 `Bool.rec`/`Nat.rec` 造一个**判别谓词**"✗（如 `Bool.false ≠ Bool.true` ✓）——
+--   那类反例要等 G-58 修好 ✓（设计稿：`docs/design/g58-large-elimination.md` ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.SUnion` · `lib.Order`。
+--
+-- 依赖：单元①（集合与成员）· 单元②（子集与空集）· 单元④（外延与恒等式）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 55.1 三条库引理（空集的成员刻画 · 空集没有成员 · 包含的展开）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：空集的成员刻画（定义展开，没有数学内容）。
+theorem demo_mem_empty_iff_false (α : Type) (a : α) :
+    a ∈ (Set.empty α) ↔ False :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  Set.mem_empty_iff_false a
+theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  fun (h : a ∈ (Set.empty α)) => (Iff.mp (Set.mem_empty_iff_false a) h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+-- ─────────────────────────────────────────────────────────────
+-- 55.2 两条**总纲**：驳倒 `∀` · 驳倒 `⊆`
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（T 类，**总纲一**）：**驳倒 `∀` 只需一个反例**。
+
+-- soko:hint 思路：假设 `∀ x, P x` 成立，把它用在见证 `a` 上，与 `¬ (P a)` 冲突。
+
+-- soko:hint 目标形态：`(a : α) → ¬ (P a) → ¬ (∀ x, P x)`。
+
+-- soko:hint 关键件：假设按 **点** 应用（`h a`）· 见证的否定假设当函数用 ✓
+
+theorem not_all_of_counterexample (α : Type) (P : α → Prop) (a : α) (hna : ¬ (P a)) :
+    ¬ (∀ (x : α), P x) := by
+  sorry
+-- 练习 2（L 类，**总纲二**）：**驳倒 `⊆` 只需一个见证**。
+
+-- soko:hint 思路：假设 `A ⊆ B`，用在见证上得到 `a ∈ B`，与 `¬ (a ∈ B)` 冲突。
+
+-- soko:hint 目标形态：`(a : α) → a ∈ A → ¬ (a ∈ B) → ¬ (A ⊆ B)`。
+
+-- soko:hint 关键件：包含假设**按 点 · 前提 应用**（`h a ha`）✓ · 见证的否定假设当函数用 ✓
+
+theorem not_subset_of_witness (α : Type) (A B : Set α) (a : α)
+    (ha : a ∈ A) (hna : ¬ (a ∈ B)) : ¬ (A ⊆ B) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 55.3 三个反例（把总纲用在具体命题上）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 3（T 类，**反例一**）：**「一切都属于空集」是假的**。
+
+-- soko:hint 思路：把练习 1 用在任意见证上，`¬ (a ∈ ∅)` 由演示 2 给。
+
+-- soko:hint 关键件：练习 1（总纲一）· 演示 2（空集没有成员）✓
+
+theorem not_all_mem_empty (α : Type) (a : α) : ¬ (∀ (x : α), x ∈ (Set.empty α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  sorry
+-- 练习 4（L 类，**反例二**）：**「论域含于空集」是假的**。
+
+-- soko:hint 思路：见证取任意 `a`；`a ∈ univ` 由库给 ✓、`¬ (a ∈ ∅)` 由演示 2 给 ✓。
+
+-- soko:hint 目标形态：`(a : α) → ¬ (univ ⊆ ∅)`。
+
+-- soko:hint 关键件：练习 2（总纲二）· `Set.mem_univ`（**先写全论域实参**）· 演示 2 ✓
+
+theorem not_univ_subset_empty (α : Type) (a : α) :
+    ¬ (Set.univ α ⊆ (Set.empty α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  sorry

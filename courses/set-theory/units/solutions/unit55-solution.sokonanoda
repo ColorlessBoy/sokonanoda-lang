@@ -1,0 +1,31 @@
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+theorem demo_mem_empty_iff_false (α : Type) (a : α) :
+    a ∈ (Set.empty α) ↔ False :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  Set.mem_empty_iff_false a
+
+theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  fun (h : a ∈ (Set.empty α)) => (Iff.mp (Set.mem_empty_iff_false a) h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+
+theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+
+theorem not_all_of_counterexample (α : Type) (P : α → Prop) (a : α) (hna : ¬ (P a)) :
+    ¬ (∀ (x : α), P x) :=
+  fun (h : ∀ (x : α), P x) => hna (h a)
+
+theorem not_subset_of_witness (α : Type) (A B : Set α) (a : α)
+    (ha : a ∈ A) (hna : ¬ (a ∈ B)) : ¬ (A ⊆ B) :=
+  fun (h : A ⊆ B) => hna (h a ha)
+
+theorem not_all_mem_empty (α : Type) (a : α) : ¬ (∀ (x : α), x ∈ (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  not_all_of_counterexample α (fun (x : α) => x ∈ (Set.empty α)) a  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    (fun (h : a ∈ (Set.empty α)) => (Iff.mp (Set.mem_empty_iff_false a) h))  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+
+theorem not_univ_subset_empty (α : Type) (a : α) :
+    ¬ (Set.univ α ⊆ (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  fun (h : Set.univ α ⊆ (Set.empty α)) =>  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    (Iff.mp (Set.mem_empty_iff_false a)) (h a (Set.mem_univ α a))
