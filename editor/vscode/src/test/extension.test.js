@@ -2081,8 +2081,27 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const steady1 = await oneCut("_b");
     const steady2 = await oneCut("_c");
     const steady = Math.max(steady1, steady2);
+    // **面板那一半也要量**（用户原话是「诊断/目标面板更新」两个都要等）：
+    // 诊断到了不等于 Infoview 也刷新了 —— 两条路各有各的去抖。
+    const panelBefore = JSON.stringify([
+      extensionApi.infoview.lastDecls(),
+      extensionApi.infoview.lastState(),
+    ]);
+    const t1 = Date.now();
+    await editor.edit((b) => b.insert(new vscode.Position(line, nameAt), "_d"));
+    await waitFor(
+      "the goal panel to pick up the steady-state keystroke",
+      () =>
+        JSON.stringify([
+          extensionApi.infoview.lastDecls(),
+          extensionApi.infoview.lastState(),
+        ]) !== panelBefore,
+      WAIT_MS,
+      5,
+    );
+    const panelMs = Date.now() - t1;
     console.log(
-      `PERF project-steady first=${firstCut}ms steady=${steady1}/${steady2}ms`,
+      `PERF project-steady first=${firstCut}ms steady=${steady1}/${steady2}ms panel=${panelMs}ms`,
     );
     // 判据 = **用户看得见的那条线**：稳态下"敲一个键 → 诊断落地"必须留在
     // 用户感知的即时区间。⚠ 绝对毫秒只做**数量级兜底**（`AGENTS.md` 判据纪律②）：
