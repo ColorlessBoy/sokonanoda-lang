@@ -3,7 +3,7 @@
 > **这是什么** ✓：`docs/` 的**历史层** —— 已收口的过程记录、已发布批次的计划与调研、
 > 逐轮日记。**它们不进"活文档"预算** ✗（`scripts/docs-lint.py` 判据 ① 明确排除本目录 ✓），但**必须可追溯** ✓：**本目录里每个文件都在下面被点名**（判据 ⑥ 机械检查 ✗ —— **咬不住等于没有** ✓）。
 >
-> **怎么读** ✓：`.md.gz` / `.jsonl.gz` / `.log.gz` ⇒ `gunzip -c <文件> | less`（或 `zcat`）；纯文本 ⇒ 直接读、直接 `grep` ✓。**原文一字未改** ✓。**总量**：2026-09-30 激进删档后 4 个 ⇒ 2026-10-01 起 **8 个**（判据 ⑥ 上限 **2.5 MB** ✓）。
+> **怎么读** ✓：`.md.gz` / `.jsonl.gz` / `.log.gz` ⇒ `gunzip -c <文件> | less`（或 `zcat`）；纯文本 ⇒ 直接读、直接 `grep` ✓。**原文一字未改** ✓。**总量**：2026-09-30 激进删档后 4 个 ⇒ 2026-10-01 起 **9 个**（判据 ⑥ 上限 **2.5 MB** ✓）。
 
 ## 索引
 
@@ -15,6 +15,7 @@
 | `status-removed-rounds-500-501-2026-10-01.md.gz` | `docs/STATUS-ARCHIVE.md` | **第 500–501 轮**（剖面链路 + perf-gate 判红 + 入口级并行 · 分片否决/切片 1 三次失败/主线转 judge 前缀增量）—— 二次下沉（**L1 层预算只许减不许增** ⇒ 最老的段进 L3）；原文逐字未动 ✓ | 2026-10-01 |
 | `status-removed-round-497-2026-10-01.md.gz` | `docs/STATUS-ARCHIVE.md` | **第 497 轮**（P1 复盘 —— 4.14× 重复编译：G-68 + 测次数的守卫）—— 二次下沉；原文逐字未动 ✓ | 2026-10-01 |
 | `status-removed-round-496-2026-10-01.md.gz` | `docs/STATUS-ARCHIVE.md` | **第 496 轮**（P0 纪律 + G-66/G-67 + E30 回归 + 连推守卫）—— 二次下沉（**L1 层预算只许减不许增** ✓）；原文逐字未动 ✓ | 2026-10-01 |
+| `status-removed-rounds-498-499-2026-10-01.md.gz` | `docs/STATUS-ARCHIVE.md` | **第 498–499 轮**（P2 进度粒度 + P1′ 方案/收益估算）—— 二次下沉（**L1 层预算只许减不许增** ✓）；原文逐字未动 ✓ | 2026-10-01 |
 | `status-removed-round-494-2026-10-01.md.gz` | `docs/STATUS-ARCHIVE.md` | **第 494 轮**（X2 多会话/多分支：worktree 主解法 + 共享账本守卫；含两处实测对旧估计的更正）—— 二次下沉（为 **IA-4 设计轮**的 L1 预算腾位置，**只许减不许增** ✓）；原文逐字未动 ✓ | 2026-10-01 |
 | `v077-snapshots-2026-09-30/v077-set-theory.md.gz` | `docs/design/v077-set-theory.md` | **v0.77.0「完整集合论 = kernel 压力面」的批次详情**（E12–E16 + ST1–ST19 分章计划 + 外部基准表）—— 该版本**已发布闭环** ⇒ 从活文档移出。⚠ 未做完的四章（ST6/7/9/11）**不在归档里**：它们在**活文档** `docs/design/v077-kernel-deficiencies.md` §三，仍是 E19 的取证材料 ✓ | 2026-09-30 |
 
@@ -26,9 +27,8 @@
 `gaps-work-orders-2026-09-26/`（13）· `course-lean-style-2026-09-26/`（11）·
 `settheory-survey-2026-09-26/`（10）· `notes-2026-09-26/`（9）·
 `design-deprecated-2026-09-26/`（5）· `status-2026-09/`（2）·
-`REQUIREMENTS-ARCHIVE.md` · 以及散篇 `.gz`（`e2-plan-full-*` /
-`vscode-editor-feedback-plan-full-*` / `ci-failures-*` / `status-archive-older-rounds` /
-`plan-v074-v078-asbuilt-*` / `handover-process-*` 等）。
+`REQUIREMENTS-ARCHIVE.md` · 以及散篇 `.gz`（`e2-plan-full-*` / `vscode-editor-feedback-plan-full-*` /
+`ci-failures-*` / `status-archive-older-rounds` / `plan-v074-v078-asbuilt-*` / `handover-process-*` 等）。
 
 > **全局规则** ✓（一句话覆盖全部历史指针）：**任何指向已删文件的路径**
 > ⇒ 用 `git log --all -- <原路径>` / `git show <旧提交>:<原路径>` 取原文 ✓

@@ -108,44 +108,6 @@
 - **红线（逐项实测）**：内核零改动 ✓ · 全语料对拍 **644 组逐字节相同** ✓ · 课程门禁 **43/376/99/0** 逐项相同 ✓ · front **795/0** · 记法契约 **50/0** ✓ · `gap.py check` ✓。
 - **纪律教训**：本轮**两次**自造对照件被 bash 吃掉了 `''`（单引号里 `''` 会闭合引号）⇒ 量到的是 `f  A`（**另一个形状**）✗ ⇒ **对照件源码要 grep 出来核对** ✓。另：整文件批量改调用点**又一次证伪** ✗（649 处 ⇒ 16 文件判红）⇒ 只许逐站点核 ✓。
 
-## 第 498 轮（2026-09-28）：**P2 进度粒度** + **P1′ 方案与卡点**（等内核授权）
-
-- **P2 ✅（用户 22:38/22:40 的判据）**：最小粒度从「文件」细到「**声明**」+ **心跳** ——
-  CLI `build --json` 新增 `build.decl`（每命令一拍）与 `build.tick`（≤1/s，**只报已用时、不假装百分比**）。
-  **实测（冷编 `courses/set-theory`，42 文件）：最长无输出间隔 39.0s → 1.98s**（事件 42 → **1727**）；
-  扩展三处（状态栏/Infoview/概览尺）**渲染** + stub 判据 **45/45** ✓；`docs/protocol.md` 同步（+9 行，预算记账）。
-  **判据进 gate + CI**：`scripts/check-progress-gap.py`（≤2.5s；`--selftest` **造 5s 空档必须判红** ✓）。
-- **P1′ 方案文档** ✓：`docs/design/module-artifacts.md`（82 行）—— 产物三块（**内核环境** / 前端表 / 报告）·
-  per-module Merkle 键 · 失效与回滚 · **要动的文件清单** · 两刀（进程内 fork → 磁盘 `.olean` 式，后者 = P3）。
-- **P1′ 前端半已落** ✓：`ProjectPlan::module_keys()` + 性质判据 —— **无关模块变 ⇒ 别的模块键逐字节不变**
-  （复用的收益）· **依赖变 ⇒ 下游键必变**（不许错编的红线）。判据 1 passed ✓。
-- ⚠ **P1′ 卡点（已按规矩停报）**：切片的"加载产物"需要 importer **已持有依赖的内核环境**，
-  而 `EnvBuilder` 无 `Clone`（`crates/kernel/src/builder.rs:26`）、`snapshot()` 只读（`:75`）、
-  T-K12c 死因 = 独立环境 `add_declar` 改写共享 `decl_idx` 槽位 ⇒ 需**新增 `EnvBuilder::fork()`**
-  （纯能力、不改判定路径）⇒ **内核改动，等授权**（`kernel/*` 分支 vs main 白名单）。**未硬推** ✓。
-- **批编复查（同口径冷跑，已停）**：真课程切片 2 单元 **6,026ms vs 970ms（6.2× 慢）** · 4 单元 1.10× · 8 单元 1.00×
-  ⇒ **平坦批编在真实形状上从不快**（合成小单元才 1.98× 快）⇒ 结论：**共享 ≠ 合并环境**，正解是**结果复用**。
-- **门禁** ✓：`soko gate` exit 0 · `docs-lint` ✓（L2 随**新增文件**走一次）· `status-lint` ✓ · 内核零改动 ✓。
-
-## 第 499 轮（2026-09-28）：**P2 进度粒度落地** + **P1′ 收益估算实测**（切片 1 先决条件已合入）
-
-- **P2 ✅ 已落地**：`build --json` 新增 `build.decl`（每条命令一拍）+ `build.tick`（≤1/s 心跳，
-  **只报已用时**）。冷编 42 文件：**最长无输出间隔 39.0s → 1.98s**，事件 **42 → 1727**；
-  A/B 证明**无编译开销**（128.21s vs 124.34s）。判据 `scripts/check-progress-gap.py`
-  （≤2.5s + `--selftest` 反向验证）已进 gate 与 CI；扩展三处渲染 + stub **45/45** ✓。
-- **P1′ 设计**（`docs/design/module-artifacts.md`）：产物三块 · per-module Merkle 键 ·
-  **§8.6 业界对照**（Lean/Lake/mathlib/Coq/rustc/Salsa，带出处 + 我们缺的 4 条）·
-  **§9 做法改写**：跨 builder 播种**已被证否**（`EnvBuilder::new` 每次 `Dag::new_local`
-  ⇒ `decl_idx` 槽位随 `NameNode` 走，旧表指针取不到）⇒ 改**一个 session arena + 一个 builder
-  贯穿全场**（库层编一次 + 检查点 → 每入口 restore → 只走自己的命令 → `hide_declars`）。
-- **切片 1a ✅ 已合入并复核**：`run_pass_in<'a>(arena, …)`（arena 提到调用方；行为零变化：
-  fmt ✓ · clippy 无 error · front **757 passed** · CLI imports **21 passed**）。
-- **收益估算（实测，切片 1 的输入）**：依赖占比 —— `unit08` **≈10%**（54.35/48.35s vs 5.08/5.06s）·
-  `unit12` **≈25%** · `unit05` **≈50%** ⇒ **计数 174 → 42（4.14× → 1×），但墙钟只省 ≈10–25%**
-  （课程总墙钟由重解答主导）。量具 `scripts/measure-rebuild.sh` **已入库**（原先在 `/tmp`，不可复现 ✗）。
-- **未做（切片 1b/2/3/4）**：session 实现与 ① 逐字节等价判据 · 反例（改依赖必 miss）·
-  产物落盘 · 可下载。**内核零改动** ✓。
-
 ## 第 505 轮（2026-09-30）：**开工单纠错 + 三条用户实测 UI 缺陷全部收口** ✓
 
 - **结论**：开工单纠错（P1-c/P1-d 权威定义 + 6 处悬空引用 + DSH 薄入口守卫，反向验证判红 ✓）·
@@ -226,6 +188,22 @@
   更正 · §2.9 宇宙层 · §2.10 范围 B · §2.11 内核支持 · §4 切片扩到 M/K/B/U）✓；
   D8 拍板 = **内核占位符**。记账：`ONBOARDING.md` §0.2 · `REQUIREMENTS.md` §9.6 ✓。
 
+## 第 528 轮（2026-10-01）：**IA-4 M2 收口 —— 引擎接进一般路径**
+
+- **接线** `implicit::solve_prefix_meta`（应用 / 裸常量 / 路线③共用同一条 `solve_prefix`）：严格档
+  **永远先跑且不变**，失败后按档位分流（`Engine` ⇒ 引擎 / `Sibling` ⇒ E19 窄版）✓；
+  **`fill_pending_by_shape` 降级**为 defaulting 的**参考实现**（`Sibling` 档那一份，引擎档的等价物 =
+  `MetaCtx::default_unresolved`）✓。
+- **判据**：front **782/782** · `implicit_metavar` **1 passed**（四条断言）· `metavar_inventory`
+  **1 passed** · `metavar_engine` **3 passed**（M1 记法 5 形状 + M2 一般路径 5 形状，各 × 4 档）·
+  `notation`/`notation_metavar` **49/1** · **三指纹：默认档与引擎档都逐字节等于冻结值**（0 增 0 失）·
+  引擎档门禁 **43/377/99/0** · 冷 build 结构计数**逐项等于基线** · `gate --fast` **EXIT=0** ✓。
+- **读数口径再修正**（M0 只说了全局缓存）：冷 build 计数还要求**项目缓存确认是空的**
+  （`build --clean` 后 `ls courses/set-theory/.sokonanoda/compiled | wc -l` = 0）且**别与别的编译并发**
+  —— 实测踩到 `compiled 30 / hit 12`、`runs=616`（**热启动，不是回归**）✗。
+- **记账**：`metavar-engine.md` **§9 as-built** · `ONBOARDING.md` §0.2（M2 ✓，下一片 **M3**）·
+  第 525 轮归档 · 预算 `_comment`（cap 360→400）✓。
+
 ## 第 527 轮（2026-10-01）：**IA-4 M1 收口 —— 引擎内核 + 记法路径接线（默认档 = 今天）**
 
 - **新模块 `crates/front/src/compile/meta.rs`**（元变量 = `\0soko_m{id}` **名字编码**）：三值合一
@@ -246,6 +224,8 @@
 
 > **第 497 轮**原文逐字 ⇒ `docs/archive/status-removed-round-497-2026-10-01.md.gz`
 > （2026-10-01 二次下沉：**L1 层预算只许减不许增** ✓）；
+> **第 498–499 轮**原文逐字 ⇒ `docs/archive/status-removed-rounds-498-499-2026-10-01.md.gz`
+> （2026-10-01 二次下沉：**L1 层预算只许减不许增** ⇒ 最老的段进 L3 ✓）；
 > **第 496 轮**原文逐字 ⇒ `docs/archive/status-removed-round-496-2026-10-01.md.gz`
 > （2026-10-01 二次下沉：**L1 层预算只许减不许增** ✓）；
 > **第 494 / 500–501 轮**原文逐字 ⇒ `docs/archive/status-removed-round-494-2026-10-01.md.gz` ·

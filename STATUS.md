@@ -16,6 +16,23 @@
 - **批次 N 进度 66/66**（第 519 轮）✓：T-N13（第 518 轮）· T-N15（第 519 轮）⇒ 逐条索引 `docs/visible-changes.md`。
 - **文档过期日期机制**（第 513 轮）✓：每个活文档都有过期日期（`scripts/docs-expiry.json`）· `git commit` 前自动检测 ⇒ 已过期/未登记**拒绝提交**。
 
+## 第 531 轮（2026-10-01）：**记法输入表补全 —— 希腊字母 + 课程符号（用户反馈「`α` 打不出来」）**
+
+- **调研先行**（上游 `vscode-lean4@master` 逐字取证 2026-10-01）：表是扁平 `{缩写: 替换}`（1865 键），
+  落定 = 「已敲文本不再是任何键的前缀」或 Tab 强制，**最短的键赢**、无回溯；`\a` 是 α 的键之一。
+- **补全**：表 **18 → 75** —— 希腊字母 **48**（大小写各 24，主缩写 = 拼写名，别名收 Lean 的纯字母键）
+  + 课程库记法 **7**（`≈ ∘ ⁻¹ • ⊕ ⋃₀ ⋂₀`）+ 匿名构造子括号 **2**（`\<`/`\>` → `⟨`/`⟩`，唯一非字母键）。
+- **`\a` 不引入歧义**：它是 `\alpha`/`\approx`/`\and` 的前缀 ⇒ 走既有的「完整表词」两态口径（还在敲
+  字母时不落定，空格/标点/Tab 封口才落定，与 Lean 同规则）；指向逻辑符号的单字母（`\v` `\i` `\o` `\r`）**故意不收**。
+- **新字段 `notation_symbol`**（Rust/JS 双镜像）：希腊字母与 `⟨⟩` 是**标识符/语法** ⇒ `merge_known` 不喂
+  词法（否则 `α` 变 `Sym("α")`，变量 hover / `F12` / rename 守卫全坏）· 不着色；**hover 也补那一行**
+  （`input_hint_at`，词法判据、与记法符号那条路不重复）。
+- **判据**：`--test extension` 40 ✓（双镜像 + TM 类重生）· `--test notation` 51 ✓（分类由表驱动 + 48 个
+  希腊字母当 binder + `⟨ha, hb⟩` 真判卷）· front 11 ✓ · LSP hover 30 ✓ · stub 55/55 ✓ · **课程门禁
+  43/377/99/0** ✓ · 缺口台账 ✓ · docs-lint ✓。
+- **记账**：新设计 `docs/design/notation-input.md`（调研/差距/决策 D1–D7/已知限制）· README/CHANGELOG/老师
+  技能三处镜像同轮 ✓ · 第 528 轮归档 ✓。**已知限制**：TM 的 `variables` 类是 ASCII 的 ⇒ `α` 仍**不着色**。
+
 ## 第 530 轮（2026-10-01）：**编辑响应 —— P7 展示延迟（用户反馈「一闪一闪」）**
 
 - **诊断先行**：**编译不是瓶颈**（`playground` 逐键往返 **0.1ms 中位**、24 键 24 次编译**每次 0ms**；
@@ -51,22 +68,6 @@
   真要搬去 elab 期需同轮搬 hint 内容 + 改 G-21 台账 ⇒ **留作后续决策点** ✓。
 - **记账**：`metavar-engine.md` **§10 as-built** · `ONBOARDING.md` §0.2（M3 ✓，下一片 **M4**）·
   第 526 轮归档 · 预算（cap 400→418、protocol 897→900）✓。
-
-## 第 528 轮（2026-10-01）：**IA-4 M2 收口 —— 引擎接进一般路径**
-
-- **接线** `implicit::solve_prefix_meta`（应用 / 裸常量 / 路线③共用同一条 `solve_prefix`）：严格档
-  **永远先跑且不变**，失败后按档位分流（`Engine` ⇒ 引擎 / `Sibling` ⇒ E19 窄版）✓；
-  **`fill_pending_by_shape` 降级**为 defaulting 的**参考实现**（`Sibling` 档那一份，引擎档的等价物 =
-  `MetaCtx::default_unresolved`）✓。
-- **判据**：front **782/782** · `implicit_metavar` **1 passed**（四条断言）· `metavar_inventory`
-  **1 passed** · `metavar_engine` **3 passed**（M1 记法 5 形状 + M2 一般路径 5 形状，各 × 4 档）·
-  `notation`/`notation_metavar` **49/1** · **三指纹：默认档与引擎档都逐字节等于冻结值**（0 增 0 失）·
-  引擎档门禁 **43/377/99/0** · 冷 build 结构计数**逐项等于基线** · `gate --fast` **EXIT=0** ✓。
-- **读数口径再修正**（M0 只说了全局缓存）：冷 build 计数还要求**项目缓存确认是空的**
-  （`build --clean` 后 `ls courses/set-theory/.sokonanoda/compiled | wc -l` = 0）且**别与别的编译并发**
-  —— 实测踩到 `compiled 30 / hit 12`、`runs=616`（**热启动，不是回归**）✗。
-- **记账**：`metavar-engine.md` **§9 as-built** · `ONBOARDING.md` §0.2（M2 ✓，下一片 **M3**）·
-  第 525 轮归档 · 预算 `_comment`（cap 360→400）✓。
 
 ## 未决项（**只有这两条**；顺序与入口见 `docs/ONBOARDING.md` §0.2）
 
