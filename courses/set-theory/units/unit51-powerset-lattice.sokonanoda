@@ -1,0 +1,131 @@
+-- ==========================================================================
+-- unit51-powerset-lattice.sokonanoda —— 卷 I 单元51 **幂集的格性质（含交的那一族）**
+--
+-- 靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》**§5/§13**（the algebra of sets /
+--   the powerset）；Enderton《Elements of Set Theory》**§1.5/§2.1**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.12 章深化 —— 接单元㉝「幂集代数与特征函数」：
+--   本单元做**格论那一侧**：`𝒫(A ∩ B)` 与 `𝒫A ∩ 𝒫B` 的关系 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **幂集成员的两条取用子**（`C ∈ 𝒫A ⟺ C ⊆ A` 的两个方向各一条）；
+--   · **单调**：`A ⊆ B ⇒ 𝒫A ⊆ 𝒫B`（含**显式复合**的写法 ✓）；
+--   · **`A ∈ 𝒫A`** · **`A ∈ 𝒫(univ)`**；
+--   · **交的两条取用子**（`(A ∩ B) x ⇒ A x` / `⇒ B x`）与它们的**子集版**；
+--   · **`C ⊆ A ⇒ C ⊆ B ⇒ C ⊆ A ∩ B`**（合成一条 ⇒ **合起来就是 `𝒫(A ∩ B) = 𝒫A ∩ 𝒫B` 的两半** ✓）
+--
+-- ⚠ **本单元的写法纪律**（三条实测教训的正面用法 ✓）：
+--   ① **λ 绑定注解里只放简单变元**（`C`/`A`/`B`）✓ —— 注解里出现 `A ∩ B` 这种复合项会判红 ✗
+--      （**G-73 第十八例**）；
+--   ② **子集链要显式复合**（`fun x hx => h (hCA x hx)`）✗ 不能一次应用 ✓；
+--   ③ `⊆` 是 **def 头**：**目标**写成 `Set.subset α C A` 时用**λ 目标**（逐点给）最稳 ✓。  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.SUnion` · `lib.Order` · `lib.Rel`。
+--
+-- 依赖：单元③（并、交、差与幂集）· 单元㉝（幂集代数与特征函数）· 单元㊽㊾㊿（包含演算）✓
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+-- -------------------------------------------------------------
+-- 51.1 三条库引理（幂集 · 论域 · 交 的成员刻画）
+-- -------------------------------------------------------------
+
+-- 演示：幂集的成员刻画（`C ∈ 𝒫A` 就是 `C ⊆ A`）。
+theorem demo_mem_powerset (α : Type) (A B : Set α) :
+    B ∈ 𝒫 A ↔ B ⊆ A :=
+  Set.mem_powerset_iff A B
+theorem demo_mem_univ (α : Type) (x : α) : x ∈ (Set.univ α) :=
+  Set.mem_univ α x
+theorem demo_mem_inter (α : Type) (x : α) (A B : Set α) :
+    (A ∩ B) x ↔ A x ∧ B x :=
+  Set.mem_inter_iff x A B
+-- -------------------------------------------------------------
+-- 51.2 幂集：两条取用子 · 单调 · 自己 · 论域
+-- -------------------------------------------------------------
+-- 练习 1（T 类）：**从成员推出包含**（取用子的正向）。
+
+-- soko:hint 关键件：`Set.mem_powerset_iff`（**先 λ 绑定、再取用** ✓ —— 注解里只放简单变元 ✓）· `Iff.mp` ✓
+
+theorem mem_powerset_mp (α : Type) (A C : Set α) (hC : C ∈ 𝒫 A) :
+    Set.subset α C A := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+  sorry
+-- 练习 2（T 类）：**从包含折回成员**（取用子的反向）。
+
+-- soko:hint 关键件：`Set.mem_powerset_iff` + `Iff.mpr` ✓
+
+theorem mem_powerset_mpr (α : Type) (A C : Set α) (h : Set.subset α C A) : C ∈ 𝒫 A := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+  sorry
+-- 练习 3（L 类，**旗舰一向**）：**`A ⊆ B ⇒ 𝒫A ⊆ 𝒫B`**（幂集单调）。
+
+-- soko:hint 思路：给定 `C ∈ 𝒫A` 与点 `x ∈ C`，先把成员拆成 `C ⊆ A`（练习 1），
+
+--   再**显式复合** `h`（`⊆` 的传递**不是**函数应用 ✗）：`fun x hx => h x (hCA x hx)`，
+
+--   最后折回 `C ∈ 𝒫B`（练习 2）。
+
+-- soko:hint 目标形态：`A ⊆ B → C ∈ 𝒫A → C ∈ 𝒫B`。
+
+-- soko:hint 关键件：练习 1 / 练习 2 · **显式复合** ✓ · 注解里只放简单变元 ✓
+
+theorem powerset_mem_of_subset (α : Type) (A B : Set α) (h : Set.subset α A B)  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+    (C : Set α) (hC : C ∈ 𝒫 A) : C ∈ 𝒫 B := by
+  sorry
+-- 练习 4（T 类）：**每个集合都是自己幂集的成员**。
+
+-- soko:hint 关键件：`Set.mem_powerset_iff` + `Iff.mpr` · 恒等函数 ✓
+
+theorem powerset_subset_self (α : Type) (A : Set α) : A ∈ 𝒫 A := by
+  sorry
+-- 练习 5（T 类）：**每个集合都在论域的幂集里**。
+
+-- soko:hint 关键件：`Set.mem_powerset_iff` + `Iff.mpr` · `Set.mem_univ`（**先 λ 绑定再应用** ✓）✓
+
+theorem powerset_univ_mem (α : Type) (A : Set α) : A ∈ 𝒫 (Set.univ α) := by
+  sorry
+
+-- -------------------------------------------------------------
+-- 51.3 交那一侧：两条取用子 + 子集版 + 合成
+-- -------------------------------------------------------------
+-- 练习 6（T 类）：**交的左取用子**。
+
+-- soko:hint 关键件：`Set.mem_inter_iff`（先 λ 绑定再取用 ✓）· `And.left` ✓
+
+theorem inter_apply_left (α : Type) (A B : Set α) (x : α) (h : (A ∩ B) x) : A x := by
+  sorry
+-- 练习 7（T 类）：**交的右取用子**。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `And.right` ✓
+
+theorem inter_apply_right (α : Type) (A B : Set α) (x : α) (h : (A ∩ B) x) : B x := by
+  sorry
+-- 练习 8（L 类）：**含在交里 ⇒ 含在左半里**。
+
+-- soko:hint 思路：逐点走 —— 用假设得到"在交里"，再用练习 6 取左半（**显式复合** ✓）。
+
+-- soko:hint 关键件：练习 6（**在点与前提上继续应用** ✓）✓
+
+theorem subset_inter_left (α : Type) (A B C : Set α) (h : Set.subset α C (A ∩ B)) :  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+    Set.subset α C A := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+  sorry
+-- 练习 9（L 类）：**含在交里 ⇒ 含在右半里**。
+
+-- soko:hint 关键件：练习 7（同样显式复合）✓
+
+theorem subset_inter_right (α : Type) (A B C : Set α) (h : Set.subset α C (A ∩ B)) :  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+    Set.subset α C B := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+  sorry
+-- 练习 10（L 类，**收尾**）：**两条包含 ⇒ 含在交里**（与练习 8/9 合起来就是
+
+--   `𝒫(A ∩ B) = 𝒫A ∩ 𝒫B` 的两半 ✓）。
+
+-- soko:hint 思路：逐点给 —— 两个假设各走一步，再拼成 `∧`。
+
+-- soko:hint 关键件：`And.intro`（**在 `∩` 头上可以直接用** ✓）· 两个假设**按 点 · 前提 应用** ✓
+
+theorem subset_inter_intro (α : Type) (A B C : Set α)
+    (hA : Set.subset α C A) (hB : Set.subset α C B) : Set.subset α C (A ∩ B) := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+  sorry

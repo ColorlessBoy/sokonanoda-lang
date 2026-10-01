@@ -495,10 +495,11 @@
             "right-inverse",
             "extensionality",
             "funext",
-            "propext"
+            "propext",
+            "powerset-lattice"
           ],
           "quota": {
-            "exercises": 40
+            "exercises": 50
           },
           "units": [
             {
@@ -524,6 +525,12 @@
               "title": "单元㊹ 两条外延公理的应用",
               "title_en": "Unit 44 — Applying Extensionality (funext / propext)",
               "unit": 44
+            },
+            {
+              "file": "units/unit51-powerset-lattice.sokonanoda",
+              "title": "单元51 幂集的格性质",
+              "title_en": "Unit 51 — Lattice Properties of the Power Set",
+              "unit": 51
             }
           ]
         },
