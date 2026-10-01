@@ -357,3 +357,35 @@ fn dependency_edges_come_from_the_real_report() {
         graph.unknown_references().len(),
     );
 }
+
+/// **开档命中产物缓存之后，第一刀也要能信任前缀**（2026-10-01 修的那个用户可见毛刺）。
+///
+/// 场景：编辑器打开一个带 `import` 的单元，产物缓存命中（真 LSP 实测开档 11ms）——
+/// 若回放时不填 `entry_cache`，**下一刀没有可信任的前缀 ⇒ 恒为整闭包**
+/// （实测第一刀 **2977ms**，而第二刀只要 **314ms**）。这条判据咬的就是它：
+/// 用 `set_cached_entry` 模拟"缓存回放"，再改最后一条，`trusted_prefix_len()` 必须 > 0。
+///
+/// **反向验证**：去掉 `set_cached_entry` 里那次 `self.entry_cache = self.cached_entry_for(text)`
+/// ⇒ 这条当场判红（实测过）。
+#[test]
+fn a_cached_open_still_leaves_a_usable_entry_cache() {
+    let (entry, text) = gen_project("cachedopen");
+    // 先真编一次，拿到"缓存里会存的那三样"。
+    let doc = open_doc(&entry, &text);
+    let report = doc.report.clone().expect("第一次编译必须有报告");
+    let output = doc.compiled_output().clone();
+    let project = doc.project_report_ref().cloned();
+
+    // 模拟**开档命中产物缓存**：全新的 doc + `set_cached_entry` 回放。
+    let mut fresh = QueryDoc::new();
+    fresh.path = Some(entry.clone());
+    fresh.set_cached_entry(&text, 1, report, output, project);
+
+    // 第一刀：改最后一条（无人依赖）。
+    let edited = rename_decl(&text, LEAF);
+    fresh.set_text(&edited, 2, None);
+    assert!(
+        fresh.trusted_prefix_len() > 0,
+        "缓存回放之后的第一刀必须能信任前缀（否则它恒为整闭包：实测 2977ms vs 314ms）"
+    );
+}

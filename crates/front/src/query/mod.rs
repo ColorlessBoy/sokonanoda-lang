@@ -630,6 +630,38 @@ impl QueryDoc {
         self.report = Some(report);
         // 原因也要跟着重算（它由 `project` 是否存在决定）。
         self.project_reason = Some(Self::compute_project_reason(&self.project, &self.text));
+        // **开档第一刀也要快**（2026-10-01）：产物缓存回放时顺手把**入口命令布局 +
+        // 依赖指纹**算进 `entry_cache` —— 否则下一刀没有可信任的前缀，**恒为整闭包**
+        // （真 LSP · unit08 实测：开档 11ms（缓存命中）之后 **第一刀 2977ms**，
+        // 而第二刀只要 **314ms**）✗。开档是这个缺口最刺眼的位置：用户刚打开文件、
+        // 敲下第一个字符就等三秒。
+        //
+        // 代价 = 开档多一次 `plan`（解析入口 + 依赖，毫秒级）——相对省下的 2.7 秒可忽略。
+        // 拿不到布局/入口报告（stdin、被阻断）⇒ 不填（下一刀老老实实整份重查）。
+        self.entry_cache = self.cached_entry_for(text);
+    }
+
+    /// 为**缓存回放**的文档算一份 `EntryCache`（见 [`Self::set_cached_entry`]）。
+    ///
+    /// `None` = 没有入口路径 / 不是项目 / 拿不到布局或入口报告 ⇒ 不填缓存
+    /// （下一刀整份重查：宁可多查，不可错编 ✓）。
+    fn cached_entry_for(&self, text: &str) -> Option<EntryCache> {
+        let path = self.path.clone()?;
+        self.project.as_ref()?;
+        let plan = crate::project::plan_project_with_overlay(
+            &path,
+            Some(text),
+            self.root.as_deref(),
+            &self.overlay,
+        );
+        let (keys, starts) = entry_command_layout(&plan, &path)?;
+        let entry = self.project.as_ref()?.entry_report()?.clone();
+        Some(EntryCache {
+            keys,
+            starts,
+            report: entry,
+            deps: dependency_fingerprint(&plan, &path),
+        })
     }
 
     /// 最近一次编译的产物（CLI 在项目编译后据此写缓存）。
