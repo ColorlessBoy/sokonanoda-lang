@@ -1594,7 +1594,14 @@ fn universe_level_text_of_operands<'a>(
                 crate::ast::Command::Check { expr, .. } => expr.clone(),
                 _ => return None,
             };
-            infer_type_text_inplace(e, ctx, scope, &expr, scope.judge_binders().len()).ok()
+            infer_type_text_inplace(
+                e,
+                ctx,
+                &scope.judge_binder_srcs(),
+                &expr,
+                scope.judge_binders().len(),
+            )
+            .ok()
         });
         let sort_text = match inplace {
             Some(text) => text,
@@ -2751,14 +2758,17 @@ pub(crate) fn inplace_render_type<'a>(
     }
 }
 
-fn infer_type_text_inplace<'a>(
+pub(crate) fn infer_type_text_inplace<'a>(
     env: &mut InplaceEnv<'_, 'a>,
     ctx: &ElabCtx<'a, '_>,
-    scope: &ElabScope<'a>,
+    // **只要 `(名字, 源类型)` 这一对**（原来传 `&ElabScope`，但它对这个函数**只有**
+    // `judge_binder_srcs()` 一个用途）—— 换成裸数据之后，**没有 `ElabScope` 的调用链
+    // 也能就地**（`by.rs` 的 `apply_tactic` 就是那种：它有 `env`、有 `context_binders`
+    // 给的源类型，但拿不到 `ElabScope` ⇒ 以前只能整份重编前缀 ✗）。
+    binder_srcs: &[(String, Expr)],
     operand: &Expr,
     binder_count: usize,
 ) -> Result<String, InplaceFail> {
-    let binder_srcs = scope.judge_binder_srcs();
     debug_assert_eq!(
         binder_srcs.len(),
         binder_count,
@@ -2772,7 +2782,7 @@ fn infer_type_text_inplace<'a>(
     // ⚠ **内核以 panic 报拒绝**（架构 §8 gotcha 0）⇒ 每步都包 `quiet_catch`。
     let mut sc = ElabScope::new();
     let mut tys: Vec<ExprPtr<'a>> = Vec::with_capacity(binder_srcs.len());
-    for (name, src_ty) in &binder_srcs {
+    for (name, src_ty) in binder_srcs {
         let ty = quiet_catch(|| {
             elab_expr(
                 env.builder,
@@ -2867,7 +2877,13 @@ fn infer_type_text<'a>(
                 return hit.ok();
             }
             // ② 未命中 ⇒ 就地答（**不编译前缀**）；答出来了就写回同一张缓存 ✓。
-            match infer_type_text_inplace(env, ctx, scope, operand, binders.len()) {
+            match infer_type_text_inplace(
+                env,
+                ctx,
+                &scope.judge_binder_srcs(),
+                operand,
+                binders.len(),
+            ) {
                 Ok(text) => {
                     crate::judge::stats::INPLACE_USED
                         .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -2902,7 +2918,13 @@ fn infer_type_text<'a>(
                 return hit.ok();
             }
             let old = slow();
-            let new = infer_type_text_inplace(env, ctx, scope, operand, binders.len());
+            let new = infer_type_text_inplace(
+                env,
+                ctx,
+                &scope.judge_binder_srcs(),
+                operand,
+                binders.len(),
+            );
             let same = match (&old, &new) {
                 (Some(a), Ok(b)) => a == b,
                 (None, Err(_)) => true,

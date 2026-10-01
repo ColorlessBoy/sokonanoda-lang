@@ -1613,7 +1613,30 @@ fn apply_tactic<'a>(
     })?;
     let term = render_expr(expr);
     let spec = spec_of(nodes, cur, universe);
-    let f_ty = judge_infer(prefix_src, options, &spec.binders, &term).map_err(|j| match j {
+    // **G-31（第三处，实测 20/226 次未命中）**：先试**就地** —— 这条链上 `env` 是现成的
+    // （`apply_tactic` 的签名里就有，`by.rs:2444` 也确实传了），源 binder 类型也能从
+    // `context_binders` 直接拿 ⇒ 不必再合成 `#check`、**整份重编前缀**。
+    // ⚠ 答不出就**原样**回落今天那句（问的仍是 `&spec.binders` + `&term`，逐字节不变 ✓）。
+    let binder_srcs: Vec<(String, Expr)> = context_binders(nodes, cur)
+        .into_iter()
+        .filter_map(|b| b.ty.map(|ty| (b.name, *ty)))
+        .collect();
+    let inplace = env.as_deref_mut().and_then(|e| {
+        crate::compile::elab::infer_type_text_inplace(
+            e,
+            ctx,
+            &binder_srcs,
+            expr,
+            spec.binders.len(),
+        )
+        .ok()
+    });
+    let slow = || judge_infer(prefix_src, options, &spec.binders, &term);
+    let f_ty = match inplace {
+        Some(text) => Ok(text),
+        None => slow(),
+    }
+    .map_err(|j| match j {
         Judgement::Mismatch { .. } => CompileError::elab(
             ErrorKind::ElabTacticFailed,
             "无法推断被应用函数的类型",
