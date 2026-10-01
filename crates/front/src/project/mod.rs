@@ -630,6 +630,9 @@ pub fn assemble_report(c: PlanCompiled<'_>) -> ProjectReport {
         requires_warning,
         // 入口可见的记法表（T-D11）：加载期算好的那份，直接搬到报告层。
         notations: closure.notations.clone(),
+        // **§5.1 的验收读数**：组装段把逐模块事件重建了 ⇒ `flat_out.stats` 会丢
+        // ⇒ 这里**显式**搬过来（实测不搬恒 0，LSP/`QueryDoc` 那条路读不到）。
+        kernel_checks: flat_out.stats.kernel_checks,
     };
     project.attach_diagnostics();
     project

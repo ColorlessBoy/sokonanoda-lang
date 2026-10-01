@@ -135,6 +135,16 @@ pub struct ProjectReport {
     /// 就是本文件的记法（`Closure` 的同一份数据，单文件路径下为空——那条路
     /// 由 `notation_input::symbol_at` 自己扫本文件）。
     pub notations: Vec<crate::ast::NotationDecl>,
+    /// **这次闭包编译实际重查了几条命令**（`try_check_declar` 的调用次数，
+    /// **受信任前缀不计入**）。
+    ///
+    /// 为什么必须带出来：组装段（`assemble_report`）把逐模块事件**重建**了
+    /// ⇒ `flat_out.stats` 被丢掉 ⇒ LSP / `QueryDoc` 那条路读不到这个数
+    /// （实测恒 **0**）✗。而它正是用户 2026-10-01 拍板的 §5.1 验收读数
+    /// 「重查命令数 = 1（无人依赖）/ 1+m（被 m 条依赖）」**唯一**的机器无关载体
+    /// （墙钟会翻面，计数不会 —— `AGENTS.md` 判据纪律②）。
+    #[serde(default)]
+    pub kernel_checks: usize,
 }
 
 impl ProjectReport {

@@ -1174,3 +1174,70 @@ entry_decls full={} trusted={}",
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// **§5.1 的验收读数必须能从 `ProjectReport` 上读到**（用户 2026-10-01 拍板的
+/// 「重查命令数 = 1（无人依赖）/ 1+m（被 m 条依赖）」）。
+///
+/// 它的载体是 `CompileOutput.stats.kernel_checks`（定义原文：「`try_check_declar`
+/// 的实际调用次数，**受信任前缀不计入**」）—— 但组装段（`assemble_report`）把逐模块
+/// 事件**重建**了 ⇒ `flat_out.stats` 被丢掉 ⇒ LSP / `QueryDoc` 那条路**恒读 0** ✗
+/// （台账 G-29 的 `notes` 记了这条实测）。
+///
+/// 判据是**结构计数**（墙钟会翻面，计数不会）：整份重查 > 0；带信任前缀**更少**。
+#[test]
+fn project_report_carries_the_recheck_count() {
+    let dir = tmp_dir("recheck");
+    write(&dir, "sokonanoda.toml", "name = \"recheck\"\n");
+    write(&dir, "lib/Lib.sokonanoda", "def Point : Type := Nat\n");
+    let mut entry = String::from("import lib.Lib\n");
+    for i in 0..6 {
+        entry.push_str(&format!("theorem t{i} (a b : Point) : Point := a\n"));
+    }
+    write(&dir, "units/entry.sokonanoda", &entry);
+    let options = CompileOptions::default();
+
+    // ① 整份重查（今天的行为）：报告上必须**读得到**这个数（不是 0）。
+    let full = compile_plan(
+        plan_project(
+            &dir.join("units/entry.sokonanoda"),
+            None,
+            Some(dir.as_path()),
+        ),
+        &options,
+    );
+    assert!(
+        full.kernel_checks > 0,
+        "整份重查的 `kernel_checks` 必须 > 0（实测恒 0 就是组装段把它丢了）"
+    );
+
+    // ② 带信任前缀（前 4 条命令已核过）⇒ 重查数必须**严格更少**。
+    let plan = plan_project(
+        &dir.join("units/entry.sokonanoda"),
+        None,
+        Some(dir.as_path()),
+    );
+    let trusted = compile_plan_incremental(
+        plan,
+        &options,
+        Some(crate::project::session::EntryTrust {
+            plan: crate::compile::TrustPlan {
+                before: 4,
+                prev_signatures: Vec::new(),
+                text_unchanged: Vec::new(),
+                allow_cutoff: false,
+            },
+            failures: HashMap::new(),
+        }),
+        None,
+    );
+    assert!(
+        trusted.kernel_checks < full.kernel_checks,
+        "信任 4 条前缀之后重查数必须更少：整份 {} vs 信任后 {}",
+        full.kernel_checks,
+        trusted.kernel_checks
+    );
+    println!(
+        "PERF recheck full={} trusted={}",
+        full.kernel_checks, trusted.kernel_checks
+    );
+}
