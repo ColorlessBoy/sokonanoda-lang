@@ -430,6 +430,13 @@ impl Docs {
         self.active().map(Doc::text).unwrap_or("")
     }
 
+    /// **用户缓冲区那份**（活跃文档）—— `text()` 是"上一次编译用的"，
+    /// 两者分工见 `Doc::latest_text` 的注释。纯词法的 handler（语义 token）
+    /// 必须读这一份：客户端把结果画到**当前**缓冲区上。
+    fn latest_text(&self) -> &str {
+        self.active_doc().latest_text()
+    }
+
     /// 活跃文档本体；没有打开任何文档时退化为一个空的只读文档
     /// （`soko/*` 的既有语义：没文档 ⇒ 答空，而不是报错）。
     fn active_doc(&self) -> &Doc {
@@ -1631,12 +1638,25 @@ impl LanguageServer for Backend {
         &self,
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
-        // 始终对当前存储的文本重新计算：解析失败时 front 的
-        // semantic_tokens 自身退化为纯词法分类，绝不复用过期报告。
+        // **必须读用户缓冲区那份（`latest_text`），不能读 `text()`** ——
+        // 2026-10-01 用户反馈「输入几行代码后，**整份代码的颜色全乱了**」的真根因：
+        //
+        // `text()` 是**上一次编译用的**文本，编译装回之前它一直落后于缓冲区
+        // （`docs/mod.rs` 的分工注释：`text` 与 `report` 同源）。而语义 token 的
+        // 消费者是**客户端**：VS Code 把这份 token 画到**当前**缓冲区上 ⇒ 编辑点
+        // 之后**每个 token 都错位**，输入的行越多错得越远 = 满屏颜色错位。
+        //
+        // 为什么这里可以（也应该）用缓冲区那份：`front::semantic::semantic_tokens`
+        // 是**纯源文本函数**（`lex_prefix` + `parse` + `classify`），**不碰 report**
+        // ⇒ 与"新文本 + 旧报告"那个不一致无关 ✓。其余 handler（hover/definition/
+        // inlay_hint/…）读 `text()` 是**对的**：它们同时读 `report`，两者必须同源。
+        //
+        // 判据：`crates/lsp/src/tests/tokens.rs::semantic_tokens_follow_the_buffer_not_the_last_compile`
+        // （在开头插一行后 `theorem` 必须在第 2 行；答旧文本时它落在第 1 行 ⇒ 必红）。
         let text = {
             let mut docs = self.doc.lock().expect("doc lock");
             docs.focus_request(&params.text_document.uri);
-            docs.text().to_string()
+            docs.latest_text().to_string()
         };
         let spans = front_semantic_tokens(&text);
         Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {

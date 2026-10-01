@@ -5,8 +5,8 @@
 
 use super::*;
 pub(crate) use crate::testutil::{
-    call, code_of, did_open, handshake, lsp_pos, notify, offset_of, position_json, shutdown,
-    test_service, type_step, wait_diagnostics, TypedStep, URI,
+    call, code_of, did_change, did_open, handshake, lsp_pos, notify, offset_of, position_json,
+    shutdown, test_service, type_step, wait_diagnostics, TypedStep, URI,
 };
 pub(crate) use crate::tokens::{encode_semantic_tokens, semantic_token_types, token_type_index};
 pub(crate) use crate::Backend;

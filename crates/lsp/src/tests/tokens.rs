@@ -120,3 +120,39 @@ fn encoder_emits_nothing_for_untokenizable_text() {
     let empty: Vec<SemanticSpan> = Vec::new();
     assert!(encode_semantic_tokens("", &empty).is_empty());
 }
+
+/// **回归（2026-10-01，用户反馈「输入几行代码后，整份代码的颜色全乱了」）**：
+/// `didChange` 之后**立刻**问语义 token，答的必须是**当前缓冲区**的文本。
+///
+/// 病根：`semantic_tokens_full` 原来读 `docs.text()` —— 那是**上一次编译用的**
+/// 文本，在编译装回之前一直落后于用户缓冲区。而 token 的消费者是客户端：VS Code
+/// 把它画到**当前**缓冲区上 ⇒ 编辑点之后**每个 token 都错位**，输入的行越多错得
+/// 越远（真进程最小复现：在最前面插一行后，首 token 仍答 `(0,0,7)`，而 `theorem`
+/// 已经在新文本的第 2 行）。
+///
+/// 判据是**位置**，不是"有没有 token"：插一行之后 `theorem` 必须落在**第 2 行**。
+/// 答旧文本时它落在第 1 行 —— **反向验证**就是这条会红。
+#[tokio::test]
+async fn semantic_tokens_follow_the_buffer_not_the_last_compile() {
+    let v1 = "theorem a (P : Prop) (h : P) : P := h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, v1).await;
+    let _ = wait_diagnostics(&mut socket, "semantic tokens diagnostics").await;
+
+    // 在最前面插一行，**不等诊断** —— 这正是"击键那一刻"的形状（编译还在飞）。
+    let v2 = "-- a brand new comment line\ntheorem a (P : Prop) (h : P) : P := h\n";
+    did_change(&mut service, 2, v2).await;
+
+    let abs = absolutize(&request_semantic_tokens(&mut service).await);
+    assert_eq!(
+        abs.first().cloned(),
+        Some((1, 0, 7, SemanticTokenType::KEYWORD)),
+        "`theorem` 必须在**第 2 行**（v2 的第 1 行是注释）；\
+         答 (0, 0, 7) 就是拿了 v1 的 token ⇒ 客户端整体错位：{abs:?}"
+    );
+    assert!(
+        abs.iter().all(|&(line, ..)| line >= 1),
+        "v2 的第 1 行是注释，不该有任何 token 落在它上面：{abs:?}"
+    );
+}
