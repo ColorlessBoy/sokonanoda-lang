@@ -2087,10 +2087,17 @@ fn cli_build_warms_and_reuses_cache() {
 ///   （`pty` 起子进程 ⇒ `build.tick` **0 条**；管道 ⇒ 5 条）。
 #[test]
 fn cli_build_heartbeat_is_off_unless_asked_for() {
-    // ⚠ **夹具要够慢**：60 条 `by` 证明在 debug 下实测 **6.0s**（两次复跑同值）。
+    // ⚠ **夹具要够慢**（且**要留余量**）：60 条 `by` 证明在 debug 下原实测 **6.0s**；
+    // 但 2026-10-01 的一串提速（S6 依赖脏传播 + G-31 判定前缀就地）把它压到
+    // **~1.5s** ⇒ 这条判据**两头都翻面**（实测：一次红在"夹具只跑了 1.476s"的**自检**、
+    // 一次红在"0 条 tick"—— 夹具正好卡在 1500ms 阈值上 ✗）。
+    // ⇒ 加到 **150 条**（≈2.5×，目标 ~3.5s）：既离自检的 1500ms 有余量，
+    // 也稳稳超过心跳周期（`DEFAULT_TICK_MS`）⇒ 判据重新**咬得住**。
+    // **这不是放宽判据**，是恢复夹具的判别力（自检那句话说得很清楚：
+    // 「夹具不够慢 ⇒ 判据恒真 ⇒ 咬不住任何东西」）。
     // 冷缓存 ⇒ 走真编译（不是 hit），且 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`
     // 保证条目落全局、每次都能用新的缓存目录重来。
-    let body: String = (0..60)
+    let body: String = (0..150)
         .map(|i| {
             format!(
                 "theorem big_{i} (P Q : Prop) (hp : P) (hq : Q) : P ∧ Q := by\n\
