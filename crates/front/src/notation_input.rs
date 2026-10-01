@@ -431,10 +431,16 @@ pub const TABLE: &[NotationInput] = &[
         supported: true,
         notation_symbol: false,
     },
+    // **全表唯一的例外（2026-10-01 上游逐字复核）**：Lean 的 `abbreviations.json`
+    // 里**没有 `Mu` 这个键**，大写 Μ 只有 `GM`（`\GM` → Μ）——24 个大写希腊字母里
+    // 只有它缺拼写名（`Nu`/`Xi`/`Pi`… 都有）。本表两样都收：
+    // ① `Mu` 是主缩写——与本表其余 23 个大写字母同一条 D1 规则（主缩写 = 拼写名），
+    //    且 `\Mu` 是任何人第一次都会试的键（设计 §3 D7 记为**明写的偏离**）；
+    // ② `GM` 收作别名——**Lean 的真实键必须能迁移**（硬规则 3 / 模块文档纪律 1）。
     NotationInput {
         symbol: "Μ",
         abbreviation: "Mu",
-        aliases: &[],
+        aliases: &["GM"],
         supported: true,
         notation_symbol: false,
     },

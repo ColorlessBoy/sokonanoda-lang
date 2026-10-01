@@ -9,6 +9,9 @@
   anonymous-constructor brackets **`\<` / `\>` → `⟨` `⟩`**. The table grew
   **18 → 75 entries**; the keys are copied key-for-key from Lean 4
   (`leanprover/vscode-lean4`), so muscle memory transfers.
+  - **One documented exception**: Lean 4 has no `\Mu` — its capital mu is `\GM`
+    only — so the table accepts **both** `\GM` (Lean's key) and `\Mu` (the
+    spelled-out name the other 23 capitals use).
   - **Hovering tells you how to type it** — including on a Greek-letter
     *variable* (`α : Prop` plus “输入：`\alpha`（别名 `\a`）”), which is exactly
     where the old hover stayed silent.

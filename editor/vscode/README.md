@@ -189,9 +189,12 @@ Write the abbreviation and press `Tab`. Logic and set theory first:
 | iota | `\iota` `\io` | `\Iota` | | phi | `\phi` `\ph` `\straightphi` | `\Phi` |
 | kappa | `\kappa` `\ka` | `\Kappa` | | chi | `\chi` `\c` `\ch` | `\Chi` |
 | lambda | `\lambda` `\la` `\lamda` `\lam` `\fun` | `\Lambda` `\L` `\Lamda` | | psi | `\psi` `\ps` | `\Psi` |
-| mu | `\mu` `\m` | `\Mu` | | omega | `\omega` `\om` | `\Omega` |
+| mu | `\mu` `\m` | `\Mu` `\GM` | | omega | `\omega` `\om` | `\Omega` |
 
-The keys are **copied key-for-key from Lean 4**, so the muscle memory transfers;
+The keys are **copied key-for-key from Lean 4**, so the muscle memory transfers —
+with one documented exception: Lean 4 has no `\Mu` (its capital mu is `\GM` only), so
+this table accepts **both** `\GM` (Lean's key) and `\Mu` (the spelled-out name the
+other 23 capitals use);
 hovering a symbol shows the same information (`∈` → "输入：`\in`（别名 `\mem`）"),
 and so does hovering a Greek-letter **variable** (`α` → "输入：`\alpha`（别名 `\a`）").
 `Tab` is only taken over **while a `\`-word is being typed**: ordinary indentation

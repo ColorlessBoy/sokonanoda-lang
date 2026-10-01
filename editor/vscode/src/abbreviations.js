@@ -79,7 +79,7 @@ const TABLE = [
   { "symbol": "Ι", "abbreviation": "Iota", "aliases": [], "supported": true, "notationSymbol": false },
   { "symbol": "Κ", "abbreviation": "Kappa", "aliases": [], "supported": true, "notationSymbol": false },
   { "symbol": "Λ", "abbreviation": "Lambda", "aliases": ["L", "Lamda"], "supported": true, "notationSymbol": false },
-  { "symbol": "Μ", "abbreviation": "Mu", "aliases": [], "supported": true, "notationSymbol": false },
+  { "symbol": "Μ", "abbreviation": "Mu", "aliases": ["GM"], "supported": true, "notationSymbol": false },
   { "symbol": "Ν", "abbreviation": "Nu", "aliases": [], "supported": true, "notationSymbol": false },
   { "symbol": "Ξ", "abbreviation": "Xi", "aliases": [], "supported": true, "notationSymbol": false },
   { "symbol": "Ο", "abbreviation": "Omicron", "aliases": [], "supported": true, "notationSymbol": false },
