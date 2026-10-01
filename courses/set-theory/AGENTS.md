@@ -279,6 +279,12 @@ bash courses/set-theory/tools/check-lib-closure.sh   # 把所有 lib 一次 impo
 **两次实录**：单元㊽ 的 `sUnion_empty_of_all_empty` ✗、单元52 的 `trans_comp_apply` ✗ ——
 两次都先怀疑"画布签名换行/名字解析"✗，**实际都是我把解答删残了** ✓。
 
+**另一条同类事故（第 609 轮，第三次 ✓）**：`zzprobe.sokonanoda`（bisect 驱动写的探针 ✗）
+**被 `git add -A courses/set-theory` 一起提交了** ✗（82 行 ✓）。
+⇒ **纪律** ✓：`git add` 前先 `git status --short | grep -v docs/e2e/logs` **逐行看一遍** ✗；
+或者**不要用 `-A` 加整个目录** ✓（改成显式列文件 ✓）。
+**bisect 之后立刻删三处探针** ✓：`units/zzprobe` · `units/solutions/zzprobe` · **`lib/zzprobe`**（第三处最容易漏 ✗）。
+
 **正确做法** ✓：删声明要用**成对的边界**
 （`i = s.index('theorem X')`，`j = s.find('\ntheorem ', i+1)`，然后 `s[:i] + s[j+1:]` ✓），
 或者删完**立刻** `node scripts/soko query check --file <解答>` 看 `decl_checked` 掉了几条 ✓
