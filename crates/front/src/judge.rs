@@ -443,6 +443,27 @@ pub(crate) mod stats {
     }
 
     /// 记一笔 `by` 就地路径的放弃原因。
+    /// **就地失败原因 → 文件**（`SOKO_JUDGE_INPLACE_LOG=<路径>`）。
+    ///
+    /// 为什么**不能**靠 `atexit` 打印器（2026-10-01 实测，白找了三轮）：
+    /// ① LSP **不响应 `exit`**，量具靠 `child.kill()` 收尾 ⇒ `atexit` **根本不跑** ✗；
+    /// ② 打印器还有早退门（`calls == 0 && INFER_CALLS == 0 && …`），
+    ///    磁盘缓存命中的整趟跑完是**没有活可报**的 ⇒ 也一个字不打。
+    /// ⇒ 与 `note_miss_caller` 同款：**发生时就追加到文件**，最钝但一定出数 ✓。
+    pub(crate) fn note_inplace_fail(why: &str) {
+        let Ok(path) = std::env::var("SOKO_JUDGE_INPLACE_LOG") else {
+            return;
+        };
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+        {
+            let _ = writeln!(f, "{why}");
+        }
+    }
+
     pub(crate) fn note_by_reason(why: &str) {
         if let Ok(mut reasons) = INPLACE_BY_REASONS.lock() {
             reasons.push_str(why);

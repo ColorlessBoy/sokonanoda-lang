@@ -2918,6 +2918,8 @@ fn infer_type_text<'a>(
                     if let Ok(mut reasons) = crate::judge::stats::INPLACE_FAIL_REASONS.lock() {
                         reasons.push_str(&format!("{why:?} "));
                     }
+                    // 同一份原因也**落文件**（`atexit` 在 LSP 上不跑，见该函数的注释）。
+                    crate::judge::stats::note_inplace_fail(&format!("{why:?}"));
                 }
                 eprintln!(
                     "JUDGE_INPLACE_MISMATCH prefix={} binders={} term={} slow={:?} inplace={:?} \

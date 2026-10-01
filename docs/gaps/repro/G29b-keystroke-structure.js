@@ -130,10 +130,14 @@ async function lspView(which, pairs, cacheDir) {
     times.push(Date.now() - started);
   }
   lsp.child.kill();
+  // ⚠ **别再只留 `LSP_TRACE compile`**（2026-10-01 实测的坑）：判定的量具
+  // （`JUDGE_STATS` / `JUDGE_INPLACE` / `JUDGE_INPLACE_WHY` / `JUDGE_INPLACE_MISMATCH`
+  // / `JUDGE_CALLERS`）都打在 **stderr** 上，而这里原来把它们**全过滤掉了**
+  // ⇒ "开了开关一个字都看不见"，白找了三轮 ✗。现在一并留下。
   const trace = lsp
     .stderr()
     .split("\n")
-    .filter((l) => l.includes("LSP_TRACE compile"))
+    .filter((l) => /LSP_TRACE compile|^JUDGE_|INPLACE/.test(l))
     .map((l) => l.trim());
   return { which, openMs, times, trace };
 }
