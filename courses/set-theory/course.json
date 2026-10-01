@@ -384,10 +384,13 @@
             "lower-bound",
             "supremum",
             "infimum",
-            "complete-lattice"
+            "complete-lattice",
+            "lattice",
+            "duality",
+            "galois-connection"
           ],
           "quota": {
-            "exercises": 18
+            "exercises": 28
           },
           "units": [
             {
@@ -401,6 +404,12 @@
               "title": "单元㉙ 上界、下界与确界",
               "title_en": "Unit 29 — Bounds and Suprema",
               "unit": 29
+            },
+            {
+              "file": "units/unit30-lattices.sokonanoda",
+              "title": "单元㉚ 格与对偶：确界的代数",
+              "title_en": "Unit 30 — Lattices and Duality",
+              "unit": 30
             }
           ]
         }

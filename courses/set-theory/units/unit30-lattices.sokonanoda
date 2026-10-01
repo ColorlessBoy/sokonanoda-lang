@@ -1,0 +1,159 @@
+-- ==========================================================================
+-- unit30-lattices.sokonanoda —— 卷 I 单元㉚ **格与对偶：确界的代数**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§7.1 Orderings**
+-- 的完备性那一段；Halmos《Naive Set Theory》**§14 Order**。大纲：`set-theory-syllabus.md`
+-- §4.1（I.11 章第三个单元）。
+--
+-- 本单元的"该学的定理"：**单点的确界就是它自己** · **空集的上确界 = 最小元、下确界 = 最大元** ·
+--   **对偶原理**（"上界集的下确界**就是**上确界"，反向亦然）·
+--   **旗舰**：**广义并交的泛性质** —— `⋃₀ F ⊆ C ⟺ F 的每个成员都含于 C`、
+--   `C ⊆ ⋂₀ F ⟺ F 的每个成员都包含 C` ✓
+--
+-- ⚠ **为什么"格运算"没做成**（如实记下，免得反复试）：想定义 `a ⊔ b` 就得先**证明二元上确界
+--   存在**，再**从存在里取出**那个元素 —— 而本语言**不能从 `Prop` 的 `∃` 里取数据**
+--   （**G-58**：大消去不可用）。所以本单元的路线是**只谈确界本身**（谓词形态），不引入 `⊔`/`⊓`
+--   两个运算 ✓ —— 这恰好也是教材里"先讲确界、再讲格"的顺序 ✓
+--
+-- **写法约定**：四个确界谓词都是**定义头** ⇒ 用它先 **λ 绑定**（G-73 形状 ①），
+--   库里给了取用子（`isSup_upper`/`isSup_least`/`isInf_lower`/`isInf_greatest`）与构造子优先用 ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Order` · `lib.SUnion` · `lib.Set` · `lib.Rel`。
+--
+-- 依赖：单元㉙（上界与确界）与单元㉑（广义并交）—— 本单元把两者做成"代数"。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+import lib.SUnion
+
+-- ─────────────────────────────────────────────────────────────
+-- 30.1 三条库引理（上确界的最小性 · 下确界的下界 · 广义并的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：上确界的**第二条**取用子（"比任何上界都小"）。
+theorem demo_isSup_least (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (h : IsSup α r A b) : ∀ (c : α), UpperBound α r A c → r b c :=
+  isSup_least α r A b h
+
+-- 演示：下确界的下界取用子。
+theorem demo_isInf_lower (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (h : IsInf α r A b) : LowerBound α r A b :=
+  isInf_lower α r A b h
+
+-- 演示：广义并的成员刻画（"存在一个成员装得下它"）。
+theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  Set.mem_sUnion_iff α F x
+
+-- ─────────────────────────────────────────────────────────────
+-- 30.2 单点的确界：**就是它自己**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（L 类）：**单点的上确界就是那个点**。
+-- soko:hint 思路：①它是上界：`x` 与 `a` 相等时要把 `r a a` 沿等式搬到 `r x a`
+--   （用搬运引理，注意方向）；②它最小：上界条件用在 `a` 上（那条等式取自反）。
+-- soko:hint 目标形态：`IsSup α r (fun x => x = a) a`（需要自反假设）。
+-- soko:hint 关键件：`isSup_intro` · **自反是定义头 ⇒ 先 λ 绑定** · `rel_subst_right`
+--   （沿 `a = x` 把 `r a a` 搬到 `r x a`）· 等式的记法在这里要**点名**（G-73 形状 ③）。
+theorem isSup_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
+    IsSup α r (fun (x : α) => Eq.{1} α x a) a := by  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  sorry
+
+-- 练习 2（L 类）：**单点的下确界就是那个点**（与练习 1 对偶）。
+-- soko:hint 思路：①它是下界：把 `r a a` 沿 `a = x` 搬到 `r a x`；②它最大：下界条件用在 `a` 上。
+-- soko:hint 目标形态：`IsInf α r (fun x => x = a) a`（需要自反假设）。
+-- soko:hint 关键件：`isInf_intro` · `rel_subst_right`（关系取"`r a` 与第二个参数"）·
+--   自反先 λ 绑定 · `Eq.refl` 写全宇宙层级与论域。
+theorem isInf_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
+    IsInf α r (fun (x : α) => Eq.{1} α x a) a := by  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 30.3 空集的确界：**最小元与最大元**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 3（L 类）：**空集的上确界就是最小元**。
+-- soko:hint 思路：空集的"上界"条件是**空的**（没有任何点要检查）⇒ 上确界只剩"最小性"那一条，
+--   而它就是"比每个 `c` 都小"；反方向：给一个"比谁都小"的 `b`，最小性那一条直接就是它。
+-- soko:hint 目标形态：`IsSup α r (fun _ => False) b ↔ ∀ c, r b c`。
+-- soko:hint 关键件：`isSup_intro`/`isSup_least` · **空的上界条件要写成一个 λ**（用
+--   `False.elim` 消掉那个不可能的假设）· `Iff.intro`（前导 Prop 实参写全）。
+theorem sup_empty_iff_bot (α : Type) (r : α → α → Prop) (b : α) :
+    IsSup α r (fun (_ : α) => False) b ↔ ∀ (c : α), r b c := by
+  sorry
+
+-- 练习 4（L 类）：**空集的下确界就是最大元**（对偶）。
+-- soko:hint 思路：同练习 3，把"最小"换成"最大"。
+-- soko:hint 目标形态：`IsInf α r (fun _ => False) b ↔ ∀ c, r c b`。
+-- soko:hint 关键件：`isInf_intro`/`isInf_greatest` · 空的下界条件写成 λ · `Iff.intro`。
+theorem inf_empty_iff_top (α : Type) (r : α → α → Prop) (b : α) :
+    IsInf α r (fun (_ : α) => False) b ↔ ∀ (c : α), r c b := by
+  sorry
+
+-- 练习 5（T 类）：**上界对大集合更强**（集合变小，上界条件变弱）。
+-- soko:hint 思路：`A` 的点先经包含假设进 `B`，再用 `B` 的上界条件。
+-- soko:hint 目标形态：`(∀ a, A a → B a) → UpperBound α r B u → UpperBound α r A u`。
+-- soko:hint 关键件：上界是**定义头** ⇒ 先 λ 绑定（G-73 形状 ①）。
+theorem upper_bound_mono (α : Type) (r : α → α → Prop) (A B : α → Prop) (u : α)
+    (hsub : ∀ (a : α), A a → B a) (hu : UpperBound α r B u) : UpperBound α r A u := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 30.4 **对偶原理**：上界集的下确界就是上确界
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（L 类，**本单元旗舰**）：设 `b` 是"`A` 的所有上界"这一族的**下确界**，则 `b` 是 `A` 的上确界。
+-- soko:hint 思路：①**`b` 是 `A` 的上界**：任取 `a ∈ A` —— 对**每个**上界 `u` 都有 `a ≤ u`
+--   （`a` 是一个下界）⇒ 由 `b` 的最大性得 `a ≤ b`；②**`b` 最小**：`b` 是那一族的下界，
+--   直接用在具体上界 `c` 上。
+-- soko:hint 目标形态：`IsInf α r (fun u => UpperBound α r A u) b → IsSup α r A b`。
+-- soko:hint 关键件：`isSup_intro` · `isInf_greatest`（最大性）· `isInf_lower`（下界）·
+--   两处定义头都要 **λ 绑定**（G-73 形状 ①）。
+theorem sup_of_upperBounds_inf (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (hb : IsInf α r (fun (u : α) => UpperBound α r A u) b) : IsSup α r A b := by
+  sorry
+
+-- 练习 7（L 类，**旗舰的对偶**）："`A` 的所有下界"这一族的**上确界**就是 `A` 的下确界。
+-- soko:hint 思路：与练习 6 逐字对偶（把"上界/下界""最小/最大"互换）。
+-- soko:hint 目标形态：`IsSup α r (fun l => LowerBound α r A l) b → IsInf α r A b`。
+-- soko:hint 关键件：`isInf_intro` · `isSup_least` · `isSup_upper` · 定义头先 λ 绑定。
+theorem inf_of_lowerBounds_sup (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (hb : IsSup α r (fun (l : α) => LowerBound α r A l) b) : IsInf α r A b := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 30.5 旗舰：**广义并交的泛性质**（"确界"视角下的并交）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 8（L 类，**本单元旗舰**）：**`⋃₀ F` 是最小的"装得下 `F` 每个成员"的集合**。
+-- soko:hint 思路：→：把 `A ∈ F` 的成员逐点送进广义并（库里的构造子）；←：拆广义并的成员，
+--   得到某个 `B ∈ F` 装得下这个点，再用假设（那是"上界"）。
+-- soko:hint 目标形态：`(⋃₀ F) ⊆ C ↔ ∀ A, A ∈ F → A ⊆ C`。
+-- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· `Set.mem_sUnion_intro`（造）·
+--   `Set.mem_sUnion_elim`（拆）· 包含假设**是定义头 ⇒ 先 λ 绑定** ✓
+theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (C : Set α) :
+    (Set.sUnion α F) ⊆ C ↔ ∀ (A : Set α), A ∈ F → A ⊆ C := by  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  sorry
+
+-- 练习 9（L 类，**旗舰的对偶**）：**`⋂₀ F` 是最大的"被 `F` 每个成员装下"的集合**。
+-- soko:hint 思路：→：包含关系逐点送进某个成员（`A ∈ F`）；←：把点逐成员送进去 ——
+--   广义交的展开形态**就是那条 `∀`**（用恒等把形态摆正，实测）。
+-- soko:hint 目标形态：`C ⊆ (⋂₀ F) ↔ ∀ A, A ∈ F → C ⊆ A`。
+-- soko:hint 关键件：`Iff.intro` · `(fun (h : ∀ …) => h)`（把 `∀` 形态当广义交的成员证据）·
+--   包含假设先 λ 绑定 ✓
+theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (C : Set α) :
+    C ⊆ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → C ⊆ A := by  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  sorry
+
+-- 练习 10（D 类）：**族里的成员含于广义并** —— 练习 8 的"上界"那一半单独当定理用。
+-- soko:hint 思路：逐点用广义并的构造子。
+-- soko:hint 目标形态：`A ∈ F → A ⊆ (⋃₀ F)`。
+-- soko:hint 关键件：`Set.mem_sUnion_intro`（参数表：论域 · 族 · 成员 · 点 · 成员证据 · 点的证据）✓
+--   ⚠ **不要**走"从练习 8 的 `↔` 上取方向"：那条 `↔` 两侧都是定义头，实测取不出方向来
+--   （G-62 同族：「同字面却判不等」）⇒ **直接证**更短 ✓
+theorem subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
+    A ⊆ (Set.sUnion α F) := by  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  sorry
