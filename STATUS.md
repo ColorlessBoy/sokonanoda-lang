@@ -36,22 +36,20 @@
   ② 改**中间/靠前**仍是后缀全查 ⇒ 等 **S6 脏集**（材料 `crates/front/src/depgraph.rs` 已落）；
   ③ 验收读数 `entry_kernel_checks` 在项目路仍恒 0（`pass.checks` 传播缺口）。
 
-## 第 534 轮（2026-10-01）：**增量检查 —— 独立验证 S2 步 1/步 2 + 结构计数探针（G-29）**
+## 第 536 轮（2026-10-01）：**S6 落地 —— 依赖图脏传播**（用户 §5.1 的模型：改一条只重查它 + 下游）
 
-- **验证（不是自己写的代码，独立复跑）**：并行会话落的 `7c9936be`（S2 步 1 `run_incremental` 收
-  `units` / 步 2 `with_project_session_trusted`）—— `cargo test --workspace --locked` **58 套
-  0 failed** · 课程门禁 **43/377/99/0** · `gap.py check` exit 0 · fmt clean ⇒ 它声称的
-  「纯重构零行为变化」**成立** ✓。
-- **更正一处口径**（我第 532 轮写错的）：`JUDGE_PREFIX runs` 只在 `judge_infer_uncached`
-  （`judge.rs`，`#check` 合成路）加，**不是** `by` 批次；`by` 批次是 `JUDGE_STATS calls=13`，
-  且**已经**吃到担保复用。补单文件对照：`passes` **24**（playground，有 I8 会话）vs **113**（闭包）。
-- **新探针** `docs/gaps/repro/G29b-keystroke-structure.js`：`--cli` 给**机器无关**的结构计数 ——
-  实测**改第一条 vs 改最后一条 theorem 完全相同**（`passes` 113 · `JUDGE_PREFIX runs` 79 ·
-  `by_calls` 1195）⇒ 「整文件重编」有了**不靠墙钟**的签名；默认视图走真 LSP + `SOKO_LSP_TRACE=1`
-  ⇒ **一次按键 = 恰好 1 次编译**。
-- **S5（`judge_infer` 前缀复用）试做后主动回退**：位置现成（同一套 `TRUSTED_PREFIX` +
-  `run_incremental`），但 `run_incremental` **仍 elaborate 整个前缀**（只跳内核检查）⇒ 收益未证实，
-  而它在**判定正确性**那条路上 ⇒ 按「连红 3 次换招/降级」不落半成品；落点与两个坑写进 G-29 `notes` ✓。
+- **机制**：`TrustPlan` 增 `trusted_extra: Vec<bool>`（**不连续**信任集 —— `before` 只能表达连续前缀，
+  脏集表达不了）；`walk` 信任判定 = `idx < before || trusted_extra[idx]`；脏集 = **改动集**（文本或起点变）
+  ∪ **传递依赖者**（`depgraph`，只做直接依赖会漏 ⇒ 静默错编）∪ **上一轮判负的**（翻转建不出边）；
+  报告/失败表都按**信任位**拼回。环境仍整份 elaborate ⇒ 判定输入不变 ✓。
+- **验收目标用例翻绿** ✓（`--ignored` 那条）：无人依赖 ⇒ 重查 **1**（原 4）· 中间 ⇒ **1**（原 7）·
+  被 3 条（含 1 条**间接**）依赖 ⇒ **1+3 = 4**（原 8）；脏集实测 `{8}` / `{1,9,10,11}` = 恰好那几条 ✓。
+- **零回归**：front **794** · LSP **170** · CLI **32 套** · 课程门禁 **43/377/99/0** · `fmt --check` ✓。
+- **真 LSP（unit08）**：改**最后一条**仍 **314ms · modules=0 · by=22 · prefix=0**；改**第一条**
+  2105 → **1665ms**（探针那次改**长度会变**的名字 ⇒ 报的是**上界**：后面每条命令起点平移都得重查）。
+- ⚠ **两个坑**（写进注释）：① `depgraph` 的 `unknown` **不许**含库层/prelude 名字（`resolution == None`
+  对 prelude 是常态 ⇒ 脏集 = 全部 ⇒ S6 等于没做 ✗），库层那一半由 `EntryCache::deps` 指纹兜底；
+  ② 判据必须用**长度不变**的按键（改字节数 ⇒ 下游 `starts` 平移 ⇒ 它们必须进脏集 ⇒ 量到的是"后缀+平移" ✗）。
 
 ## 第 533 轮（2026-10-01）：**颜色全乱 —— 语义 token 读错了文本（用户反馈「输入几行后颜色全乱」）**
 

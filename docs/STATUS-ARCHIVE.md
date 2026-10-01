@@ -208,6 +208,12 @@
 
 - 引擎内 sort/kind 闸门（只拒「确定错」⇒ 不可能假拒绝）+ `MetaSolve{Solved,Unsolved,Kind,Clash}` 三通道：**码与 hint 契约不变**，只按通道换 message 那一句。
 - 判据：真值 15/15 · front 786/786 · 三指纹两态逐字节等于冻结值（**本轮零用户可见变化**）· `gate --fast` EXIT=0；⚠ 诚实更正：设计 §4 的「kind 夹具不再落内核」做不到（严格档先跑且成功）⇒ 闸门是引擎自己的守卫，搬去 elab 期留作决策点。细节 ⇒ `docs/design/metavar-engine.md` §10。
+## 第 534 轮（2026-10-01）：**增量检查 —— 独立验证 S2 步 1/步 2 + 结构计数探针（G-29）**
+
+- **独立复跑**并行会话的 S2 步 1/步 2（`7c9936be`）：`cargo test --workspace` **58 套 0 failed** · 课程门禁 **43/377/99/0** · `gap.py check` exit 0 · fmt ✓ ⇒ 「纯重构零行为变化」成立。
+- **更正口径**：`JUDGE_PREFIX runs` 只在 `judge_infer_uncached` 加（**不是** `by` 批次）；单文件对照 `passes` **24** vs 闭包 **113**。
+- **新探针** `docs/gaps/repro/G29b-keystroke-structure.js`：`--cli` 给机器无关的结构计数 —— 改第一条 vs 改最后一条**完全相同**（113/79/1195）⇒ 「整文件重编」的签名。
+- **S5 试做后回退**（收益未证实 + 在判定正确性路径上）⇒ 落点写进 G-29 `notes`。细节 ⇒ commit `767ca072`/`83c06abf`。
 ## 第 532 轮（2026-10-01）：**编辑响应 —— 去掉整文件高亮 + 增量检查诊断（用户反馈「整个文件被高亮」）**
 
 - **整文件高亮确认仍在**（`setCompileDecorations` 范围=整份文档 + `backgroundColor`；P7 只改了"什么时候出现"）⇒ **已修**：只留概览尺第一行、无背景色（stub 三条断言）。
