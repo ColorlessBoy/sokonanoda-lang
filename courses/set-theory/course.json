@@ -494,10 +494,13 @@
             "kernel",
             "transitive-closure",
             "closure",
-            "idempotent"
+            "idempotent",
+            "well-founded",
+            "minimal-element",
+            "well-order"
           ],
           "quota": {
-            "exercises": 50
+            "exercises": 60
           },
           "units": [
             {
@@ -529,6 +532,12 @@
               "title": "单元㊵ 传递闭包的代数刻画",
               "title_en": "Unit 40 — The Transitive Closure, Algebraically",
               "unit": 40
+            },
+            {
+              "file": "units/unit41-well-founded.sokonanoda",
+              "title": "单元㊶ 良基关系（极小元原理）",
+              "title_en": "Unit 41 — Well-Founded Relations",
+              "unit": 41
             }
           ]
         }

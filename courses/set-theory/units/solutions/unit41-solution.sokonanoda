@@ -1,0 +1,89 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+
+theorem demo_wellFounded_def (α : Type) (r : Rel α α) :
+    IsWellFounded α r ↔
+      ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P :=
+  isWellFounded_def α r
+
+theorem demo_hasMin_def (α : Type) (r : Rel α α) (P : α → Prop) :
+    HasMin α r P ↔ ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_def α r P
+
+theorem demo_wf_empty_hasMin (α : Type) (P : α → Prop) (x : α) (hx : P x) :
+    HasMin α (fun (_ : α) (_ : α) => False) P :=
+  Exists.intro α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ False) x
+    (And.intro (P x) (∀ (y : α), P y → ¬ False) hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (y : α) => fun (hy : P y) => fun (hf : False) => hf))
+
+theorem wellFounded_hasMin_apply (α : Type) (r : Rel α α) (h : IsWellFounded α r)
+    (P : α → Prop) (hne : ∃ (x : α), P x) : HasMin α r P :=
+  (fun (hw : ∀ (P1 : α → Prop), (∃ (x : α), P1 x) → HasMin α r P1) => hw P hne) h
+
+theorem wf_of_hasMin (α : Type) (r : Rel α α)
+    (h : ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P) : IsWellFounded α r :=
+  isWellFounded_intro α r h
+
+theorem wf_minimal_counterexample (α : Type) (r : Rel α α) (hwf : IsWellFounded α r)
+    (P : α → Prop) (h : ∃ (a : α), ¬ (P a)) :
+    ∃ (m : α), ¬ (P m) ∧ ∀ (y : α), ¬ (P y) → ¬ (r y m) :=
+  wellFounded_hasMin_apply α r hwf (fun (x : α) => ¬ (P x)) h
+
+theorem wf_irreflexive (α : Type) (r : Rel α α) (hwf : IsWellFounded α r) :
+    Irreflexive α r :=
+  fun (a : α) => fun (haa : r a a) =>
+    (fun (hm : HasMin α r (fun (x : α) => Eq.{1} α x a)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      Exists.elim α (fun (m : α) => Eq.{1} α m a ∧ ∀ (y : α), Eq.{1} α y a → ¬ (r y m))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        False (hasMin_elim α r (fun (x : α) => Eq.{1} α x a) hm)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (m : α) (hmm : Eq.{1} α m a ∧ ∀ (y : α), Eq.{1} α y a → ¬ (r y m)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (hnot : ¬ (r a m)) =>
+            hnot (rel_subst_right α (fun (u : α) (v : α) => r u v) a a m
+              (Eq.symm.{1} α m a (And.left hmm)) haa))
+            ((fun (hu : ∀ (y : α), Eq.{1} α y a → ¬ (r y m)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              hu a (Eq.refl.{1} α a)) (And.right hmm))))
+      (wellFounded_hasMin α r hwf (fun (x : α) => Eq.{1} α x a)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (Exists.intro α (fun (x : α) => Eq.{1} α x a) a (Eq.refl.{1} α a)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+
+theorem wf_and_refl_empty (α : Type) (r : Rel α α)
+    (hwf : IsWellFounded α r) (hrefl : Reflexive α r) (a : α) : False :=
+  (fun (hnot : ¬ (r a a)) =>
+    hnot ((fun (hu : ∀ (x : α), r x x) => hu a) hrefl))
+    (wf_irreflexive α r hwf a)
+
+theorem wf_of_subrel (α : Type) (r r1 : Rel α α) (hwf : IsWellFounded α r)
+    (hsub : ∀ (a : α) (b : α), r1 a b → r a b) : IsWellFounded α r1 :=
+  fun (P : α → Prop) => fun (hne : ∃ (x : α), P x) =>
+    (fun (hm : HasMin α r P) =>
+      Exists.elim α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ (r y m))
+        (∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r1 y m))
+        (hasMin_elim α r P hm)
+        (fun (m : α) (hmm : P m ∧ ∀ (y : α), P y → ¬ (r y m)) =>
+          Exists.intro α (fun (m1 : α) => P m1 ∧ ∀ (y : α), P y → ¬ (r1 y m1)) m
+            (And.intro (P m) (∀ (y : α), P y → ¬ (r1 y m)) (And.left hmm)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (fun (y : α) => fun (hy : P y) => fun (hy1 : r1 y m) =>
+                (fun (hnot : ¬ (r y m)) => hnot (hsub y m hy1))
+                  ((fun (hu : ∀ (y1 : α), P y1 → ¬ (r y1 m)) => hu y hy)
+                    (And.right hmm))))))
+      (wellFounded_hasMin α r hwf P hne)
+
+theorem wf_strictOf (α : Type) (r : Rel α α) (hwf : IsWellFounded α r) :
+    IsWellFounded α (strictOf α r) :=
+  wf_of_subrel α r (strictOf α r) hwf
+    (fun (a : α) (b : α) => fun (h : strictOf α r a b) => And.left h)
+
+theorem wf_empty (α : Type) : IsWellFounded α (fun (_ : α) (_ : α) => False) :=
+  fun (P : α → Prop) => fun (hne : ∃ (x : α), P x) =>
+    Exists.elim α P (∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ False) hne
+      (fun (x : α) (hx : P x) =>
+        Exists.intro α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ False) x
+          (And.intro (P x) (∀ (y : α), P y → ¬ False) hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+            (fun (y : α) => fun (hy : P y) => fun (hf : False) => hf)))
+
+theorem hasMin_apply (α : Type) (r : Rel α α) (P : α → Prop) :
+    HasMin α r P ↔ ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_def α r P
+
+theorem hasMin_witness_apply (α : Type) (r : Rel α α) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m :=
+  hasMin_witness α r P h
