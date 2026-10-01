@@ -372,6 +372,27 @@ pub(crate) mod stats {
     /// `USED` = 就地答上了（**没跑前缀**）· `FALLBACK` = 就地答不出、退回源码重跑 ·
     /// `SHADOW_SAME` / `SHADOW_DIFF` = 影子档下两条路的文本**逐字节是否相同**。
     /// `SHADOW_DIFF > 0` ⇒ 就地路径**不许开**（`on`），先查分叉。
+    /// **未命中调用点探针**（`SOKO_JUDGE_CALLERS=<路径>`，G-31 选点用）。
+    ///
+    /// 为什么**不走 `atexit` 打印器**：那条路有早退门（`calls == 0 && INFER_CALLS == 0
+    /// && …`），实测在"就地判定生效 / 只走 infer"的路上会把整份报告吞掉
+    /// （台账与 2026-10-01 各撞过一次 ✗）⇒ 探针直接**追加到文件**，最钝但一定出数 ✓。
+    /// 只在未命中时写（每次按键几十行，可忽略）。
+    pub(crate) fn note_miss_caller(loc: &'static std::panic::Location<'static>) {
+        let Ok(path) = std::env::var("SOKO_JUDGE_CALLERS") else {
+            return;
+        };
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+        {
+            let short = loc.file().rsplit('/').next().unwrap_or(loc.file());
+            let _ = writeln!(f, "{short}:{}", loc.line());
+        }
+    }
+
     pub(crate) static INPLACE_USED: AtomicU64 = AtomicU64::new(0);
     pub(crate) static INPLACE_FALLBACK: AtomicU64 = AtomicU64::new(0);
     pub(crate) static INPLACE_SHADOW_SAME: AtomicU64 = AtomicU64::new(0);
@@ -1939,6 +1960,7 @@ pub(crate) fn peel_binders(ty: String, n: usize) -> String {
     t
 }
 
+#[track_caller]
 fn judge_infer_uncached(
     extra_prefix: &str,
     prefix_src: &str,
@@ -1967,6 +1989,9 @@ fn judge_infer_uncached(
         std::sync::atomic::Ordering::Relaxed,
     );
     stats::PREFIX_RUNS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    // **按调用点计未命中**（`track_caller` 链透传 ⇒ 原始调用点 ✓）。判据必须是
+    // **未命中**而不是**调用**：调用大头是缓存命中（不重跑前缀）✗。
+    stats::note_miss_caller(std::panic::Location::caller());
     let mut src = synthesized_prefix(extra_prefix, prefix_src);
     let query_start = src.len();
     src.push_str(&text);
