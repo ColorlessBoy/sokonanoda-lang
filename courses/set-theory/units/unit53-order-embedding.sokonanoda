@@ -134,3 +134,16 @@ theorem embedding_symm (α β : Type) (r : Rel α α) (s : Rel β β) (f : α �
     (hsymm : ∀ (b1 b2 : β), s b1 b2 → s b2 b1) (h : IsEmbedding α β r s f) :
     ∀ (a1 a2 : α), r a1 a2 → r a2 a1 := by
   sorry
+
+-- 练习 9（T 类）：**全性也被反射**（线序 ⇒ 线序）。
+-- soko:hint 思路：把 `s` 的全性用在两个像上得到析取，两支分别用练习 3 搬回 `r`。
+-- soko:hint 目标形态：`(∀ b1 b2, s b1 b2 ∨ s b2 b1) → ∀ a1 a2, r a1 a2 ∨ r a2 a1`。
+-- soko:hint 关键件：练习 3（**各支用一次**）· `Or.elim`（动机位放目标准确的正命题 ✓）·
+--   `Or.inl`/`Or.inr` ✓
+--   ⚠ 对照：**反对称不能这样搬** ✗ —— `r a1 a2 → r a2 a1 → a1 = a2` 需要**单射性**，
+--   而单射性要 `s` 的反对称 + 嵌入的两向搬运（那条留到"序同构"单元，需 G-58 ✓）
+theorem embedding_total (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (htotal : ∀ (b1 b2 : β), s b1 b2 ∨ s b2 b1) (h : IsEmbedding α β r s f) :
+    ∀ (a1 a2 : α), r a1 a2 ∨ r a2 a1 := by
+  sorry
+

@@ -70,3 +70,14 @@ theorem embedding_symm (α β : Type) (r : Rel α α) (s : Rel β β) (f : α �
   fun (a1 : α) => fun (a2 : α) => fun (h12 : r a1 a2) =>
     embedding_mpr α β r s f h a2 a1
       (hsymm (f a1) (f a2) (embedding_mp α β r s f h a1 a2 h12))
+
+theorem embedding_total (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
+    (htotal : ∀ (b1 b2 : β), s b1 b2 ∨ s b2 b1) (h : IsEmbedding α β r s f) :
+    ∀ (a1 a2 : α), r a1 a2 ∨ r a2 a1 :=
+  fun (a1 : α) => fun (a2 : α) =>
+    Or.elim (s (f a1) (f a2)) (s (f a2) (f a1)) (r a1 a2 ∨ r a2 a1)
+      (fun (h12 : s (f a1) (f a2)) => Or.inl (r a1 a2) (r a2 a1)  -- soko:notation-ok: G-73 形状 ②：`Rel`/`↔` 是 def 头，这些位置补不出前导实参
+        (embedding_mpr α β r s f h a1 a2 h12))
+      (fun (h21 : s (f a2) (f a1)) => Or.inr (r a1 a2) (r a2 a1)  -- soko:notation-ok: G-73 形状 ②：`Rel`/`↔` 是 def 头，这些位置补不出前导实参
+        (embedding_mpr α β r s f h a2 a1 h21))
+      (htotal (f a1) (f a2))
