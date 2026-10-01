@@ -303,3 +303,64 @@ theorem isEquivalence_intro (α : Type) (r : α → α → Prop)
     (hrefl : Reflexive α r) (hsymm : Symmetric α r) (htrans : Transitive α r) :
     IsEquivalence α r :=
   Iff.mpr (isEquivalence_def α r) (And.intro hrefl (And.intro hsymm htrans))
+
+-- ── 上界 / 下界 / 上确界 / 下确界（Enderton §7.1 · Halmos §14 的词汇；L2）────────
+-- 读法：`A : α → Prop` 就是 `Set α`（本卷的谓词式口径），所以这四个定义**不必** import lib.Set ✓
+-- `IsSup` = "是上界，而且比**任何**上界都小"（最小上界）；`IsInf` 对偶 ✓
+def UpperBound (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) : Prop :=
+  ∀ (a : α), A a → r a b
+
+def LowerBound (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) : Prop :=
+  ∀ (a : α), A a → r b a
+
+def IsSup (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) : Prop :=
+  UpperBound α r A b ∧ ∀ (c : α), UpperBound α r A c → r b c
+
+def IsInf (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) : Prop :=
+  LowerBound α r A b ∧ ∀ (c : α), LowerBound α r A c → r c b
+
+-- 展开引理（L2：证明都是恒等函数）
+theorem upperBound_def (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) :
+    UpperBound α r A b ↔ ∀ (a : α), A a → r a b :=
+  Iff.intro (fun (h : UpperBound α r A b) => h) (fun (h : ∀ (a : α), A a → r a b) => h)
+
+theorem lowerBound_def (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) :
+    LowerBound α r A b ↔ ∀ (a : α), A a → r b a :=
+  Iff.intro (fun (h : LowerBound α r A b) => h) (fun (h : ∀ (a : α), A a → r b a) => h)
+
+theorem isSup_def (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) :
+    IsSup α r A b ↔ UpperBound α r A b ∧ ∀ (c : α), UpperBound α r A c → r b c :=
+  Iff.intro (fun (h : IsSup α r A b) => h)
+    (fun (h : UpperBound α r A b ∧ ∀ (c : α), UpperBound α r A c → r b c) => h)
+
+theorem isInf_def (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) :
+    IsInf α r A b ↔ LowerBound α r A b ∧ ∀ (c : α), LowerBound α r A c → r c b :=
+  Iff.intro (fun (h : IsInf α r A b) => h)
+    (fun (h : LowerBound α r A b ∧ ∀ (c : α), LowerBound α r A c → r c b) => h)
+
+-- 取用子 / 构造子（L2：同 G-73 的处置，参数一次给全）
+theorem isSup_upper (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (h : IsSup α r A b) : UpperBound α r A b :=
+  And.left h
+
+theorem isSup_least (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (h : IsSup α r A b) : ∀ (c : α), UpperBound α r A c → r b c :=
+  And.right h
+
+theorem isInf_lower (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (h : IsInf α r A b) : LowerBound α r A b :=
+  And.left h
+
+theorem isInf_greatest (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (h : IsInf α r A b) : ∀ (c : α), LowerBound α r A c → r c b :=
+  And.right h
+
+theorem isSup_intro (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (hub : UpperBound α r A b) (hleast : ∀ (c : α), UpperBound α r A c → r b c) :
+    IsSup α r A b :=
+  And.intro (UpperBound α r A b) (∀ (c : α), UpperBound α r A c → r b c) hub hleast  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+
+theorem isInf_intro (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (hlb : LowerBound α r A b) (hgreatest : ∀ (c : α), LowerBound α r A c → r c b) :
+    IsInf α r A b :=
+  And.intro (LowerBound α r A b) (∀ (c : α), LowerBound α r A c → r c b) hlb hgreatest  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名

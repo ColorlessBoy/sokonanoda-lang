@@ -1,0 +1,83 @@
+import lib.Rel
+import lib.Set
+import lib.Order
+import lib.SUnion
+
+theorem demo_lowerBound_def (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) :
+    LowerBound α r A b ↔ ∀ (a : α), A a → r b a :=
+  lowerBound_def α r A b
+
+theorem demo_isInf_def (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) :
+    IsInf α r A b ↔ LowerBound α r A b ∧ ∀ (c : α), LowerBound α r A c → r c b :=
+  isInf_def α r A b
+
+theorem demo_isSup_upper (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (h : IsSup α r A b) : UpperBound α r A b :=
+  isSup_upper α r A b h
+
+theorem mem_upperBound (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) :
+    UpperBound α r A b ↔ ∀ (a : α), A a → r a b :=
+  upperBound_def α r A b
+
+theorem mem_isSup (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) :
+    IsSup α r A b ↔ UpperBound α r A b ∧ ∀ (c : α), UpperBound α r A c → r b c :=
+  isSup_def α r A b
+
+theorem sup_upper_apply (α : Type) (r : α → α → Prop) (A : α → Prop) (b a : α)
+    (h : IsSup α r A b) (ha : A a) : r a b :=
+  (fun (hu : ∀ (x : α), A x → r x b) => hu a ha) (isSup_upper α r A b h)
+
+theorem sup_least_apply (α : Type) (r : α → α → Prop) (A : α → Prop) (b c : α)
+    (h : IsSup α r A b) (hc : UpperBound α r A c) : r b c :=
+  (fun (hu : ∀ (x : α), UpperBound α r A x → r b x) => hu c hc) (isSup_least α r A b h)
+
+theorem inf_lower_apply (α : Type) (r : α → α → Prop) (A : α → Prop) (b a : α)
+    (h : IsInf α r A b) (ha : A a) : r b a :=
+  (fun (hu : ∀ (x : α), A x → r b x) => hu a ha) (isInf_lower α r A b h)
+
+theorem sup_unique (α : Type) (r : α → α → Prop) (A : α → Prop) (b c : α)
+    (hb : IsSup α r A b) (hc : IsSup α r A c) : r b c :=
+  sup_least_apply α r A b c hb (isSup_upper α r A c hc)
+
+theorem sup_unique_of_antisymm (α : Type) (r : α → α → Prop) (A : α → Prop) (b c : α)
+    (hanti : Antisymmetric α r) (hb : IsSup α r A b) (hc : IsSup α r A c) :
+    Eq.{1} α b c :=  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+  (fun (hu : ∀ (x : α) (y : α), r x y → r y x → Eq.{1} α x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+    hu b c (sup_unique α r A b c hb hc) (sup_unique α r A c b hc hb)) hanti
+
+theorem inf_unique (α : Type) (r : α → α → Prop) (A : α → Prop) (b c : α)
+    (hb : IsInf α r A b) (hc : IsInf α r A c) : r b c :=
+  (fun (hu : ∀ (x : α), LowerBound α r A x → r x c) => hu b (isInf_lower α r A b hb))
+    (isInf_greatest α r A c hc)
+
+theorem sUnion_isSup (α : Type) (F : Set (Set α)) :
+    IsSup (Set α) (fun (A B : Set α) => A ⊆ B) F (Set.sUnion α F) :=  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+  isSup_intro (Set α) (fun (A B : Set α) => A ⊆ B) F (Set.sUnion α F)  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+    (fun (A : Set α) => fun (hA : F A) => fun (x : α) => fun (hx : A x) =>
+      Set.mem_sUnion_intro α F A x hA hx)
+    (fun (C : Set α) =>
+      fun (hC : ∀ (A : Set α), F A → A ⊆ C) =>
+        fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+          Set.mem_sUnion_elim α F x (x ∈ C) hx
+            (fun (B : Set α) (hB : B ∈ F) (hxB : x ∈ B) =>
+              (fun (hs : ∀ (y : α), y ∈ B → y ∈ C) => hs x hxB)
+                ((fun (hu : ∀ (A' : Set α), F A' → A' ⊆ C) => hu B hB) hC)))
+
+theorem sInter_isInf (α : Type) (F : Set (Set α)) :
+    IsInf (Set α) (fun (A B : Set α) => A ⊆ B) F (Set.sInter α F) :=  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+  isInf_intro (Set α) (fun (A B : Set α) => A ⊆ B) F (Set.sInter α F)  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+    (fun (A : Set α) => fun (hA : F A) => Set.sInter_subset α F A hA)
+    (fun (C : Set α) =>
+      fun (hC : ∀ (A : Set α), F A → C ⊆ A) =>
+        fun (x : α) => fun (hx : C x) =>
+          (fun (h : ∀ (A : Set α), A ∈ F → x ∈ A) => h)
+            (fun (A : Set α) (hA : F A) =>
+              (fun (hs : ∀ (y : α), y ∈ C → y ∈ A) => hs x hx)
+                ((fun (hu : ∀ (A' : Set α), F A' → C ⊆ A') => hu A hA) hC)))
+
+theorem sup_mono (α : Type) (r : α → α → Prop) (A B : α → Prop) (b c : α)
+    (hb : IsSup α r A b) (hc : IsSup α r B c)
+    (hsub : ∀ (a : α), A a → B a) : r b c :=
+  sup_least_apply α r A b c hb
+    ((fun (hu : ∀ (x : α), B x → r x c) =>
+      fun (x : α) => fun (hx : A x) => hu x (hsub x hx)) (isSup_upper α r B c hc))

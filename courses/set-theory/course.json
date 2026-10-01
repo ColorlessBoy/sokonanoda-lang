@@ -379,10 +379,15 @@
             "distributive-law",
             "de-morgan",
             "absorption",
-            "contrapositive"
+            "contrapositive",
+            "upper-bound",
+            "lower-bound",
+            "supremum",
+            "infimum",
+            "complete-lattice"
           ],
           "quota": {
-            "exercises": 8
+            "exercises": 18
           },
           "units": [
             {
@@ -390,6 +395,12 @@
               "title": "单元㉘ 集合代数：分配律与 De Morgan",
               "title_en": "Unit 28 — Set Algebra: Distributivity and De Morgan",
               "unit": 28
+            },
+            {
+              "file": "units/unit29-sups.sokonanoda",
+              "title": "单元㉙ 上界、下界与确界",
+              "title_en": "Unit 29 — Bounds and Suprema",
+              "unit": 29
             }
           ]
         }
