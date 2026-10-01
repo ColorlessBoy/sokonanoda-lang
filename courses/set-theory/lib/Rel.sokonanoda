@@ -158,3 +158,47 @@ theorem Rel.mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
     Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
   Iff.intro (fun (h : Rel.Classes α r C) => h)
     (fun (h : ∃ (a : α), ∀ (c : α), C c ↔ r a c) => h)
+
+-- ── 划分（Enderton §3.5 的另一半；L2：三条的合取）────────────────────────────
+-- 读法：`P` 是**一族集合**（写成 `(α → Prop) → Prop`），三条说：
+--   ① 每个块**非空**；② 每个点**落在某个块里**；③ 有公共点的两块**逐点相同** ✓
+def Rel.Partition (α : Type) (P : (α → Prop) → Prop) : Prop :=
+  (∀ (A : α → Prop), P A → ∃ (a : α), A a) ∧
+  (∀ (a : α), ∃ (A : α → Prop), P A ∧ A a) ∧
+  (∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) →
+    ∀ (c : α), A c ↔ B c)
+
+-- 读法：**由划分造出的关系** —— "两个点落在同一个块里" ✓
+-- （这正是"等价关系 = 划分"这一定理的反方向：划分 ⇒ 等价关系）
+def Rel.ofPartition (α : Type) (P : (α → Prop) → Prop) (a b : α) : Prop :=
+  ∃ (A : α → Prop), P A ∧ A a ∧ A b
+
+theorem Rel.partition_def (α : Type) (P : (α → Prop) → Prop) :
+    Rel.Partition α P ↔
+      (∀ (A : α → Prop), P A → ∃ (a : α), A a) ∧
+      (∀ (a : α), ∃ (A : α → Prop), P A ∧ A a) ∧
+      (∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) →
+        ∀ (c : α), A c ↔ B c) :=
+  Iff.intro (fun (h : Rel.Partition α P) => h)
+    (fun (h : (∀ (A : α → Prop), P A → ∃ (a : α), A a) ∧
+      (∀ (a : α), ∃ (A : α → Prop), P A ∧ A a) ∧
+      (∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) →
+        ∀ (c : α), A c ↔ B c)) => h)
+
+theorem Rel.ofPartition_apply (α : Type) (P : (α → Prop) → Prop) (a b : α) :
+    Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b :=
+  Iff.intro (fun (h : Rel.ofPartition α P a b) => h)
+    (fun (h : ∃ (A : α → Prop), P A ∧ A a ∧ A b) => h)
+
+-- 三条取用子（**参数一次给全**；同 G-73 的处置）
+theorem partition_nonempty (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P) :
+    ∀ (A : α → Prop), P A → ∃ (a : α), A a :=
+  And.left h
+
+theorem partition_cover (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P) :
+    ∀ (a : α), ∃ (A : α → Prop), P A ∧ A a :=
+  And.left (And.right h)
+
+theorem partition_disjoint (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P) :
+    ∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) → ∀ (c : α), A c ↔ B c :=
+  And.right (And.right h)

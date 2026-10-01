@@ -329,14 +329,14 @@
           "tags": [
             "relation",
             "closure",
-            "reflexive/symmetric/transitive-closure",
             "equivalence-relation",
             "equivalence-class",
             "quotient",
-            "partition"
+            "partition",
+            "correspondence"
           ],
           "quota": {
-            "exercises": 20
+            "exercises": 30
           },
           "units": [
             {
@@ -350,6 +350,12 @@
               "title": "单元㉕ 等价关系与划分",
               "title_en": "Unit 25 — Equivalence Relations and Partitions",
               "unit": 25
+            },
+            {
+              "file": "units/unit26-partitions.sokonanoda",
+              "title": "单元㉖ 划分：等价关系的反方向",
+              "title_en": "Unit 26 — Partitions: the Converse Direction",
+              "unit": 26
             }
           ]
         }

@@ -1,0 +1,164 @@
+-- ==========================================================================
+-- unit26-partitions.sokonanoda —— 卷 I 单元㉖ **划分：等价关系的反方向**
+--
+-- 靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》**§3.5 的后半**
+-- （"等价关系 = 划分"这一定理的**反方向**）；Halmos《Naive Set Theory》**§10 / §18**。
+-- 大纲：`set-theory-syllabus.md` §4.1（I.10 章第三个单元）。
+--
+-- 单元㉕ 做的是"**等价关系 ⇒ 划分**"（等价类构成划分）。本单元做**反方向**：
+--   **划分 ⇒ 等价关系**（"落在同一个块里"），并且证明**往返回到原地** ✓
+--   —— 两条合起来才是教科书里那句"**等价关系与划分是同一件事的两种说法**" ✓
+--
+-- 读法：划分 `P` 是一族集合（写成 `(α → Prop) → Prop`），三条是
+--   ① 每块**非空** · ② 每点**落在某块里** · ③ 有公共点的两块**逐点相同** ✓
+--
+-- **写法约定（本单元特有）**：一切都从 `Rel.ofPartition α P a b` 展开出来的那个 `∃ A` 出发 ⇒
+--   `Exists.elim`/`Exists.intro` 的**前导实参一律写全**（G-73 形状 ②）；
+--   要注意 **"两块相同"只能拿到逐点的 `↔`**，要让"某块属于 `P`"这条性质搬过去，
+--   必须先用 `Set.ext`（外延公理）把它变成**集合相等**，再沿等式搬运 ✓
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Rel`（划分与"同块"关系）· `lib.Order`（等价关系）· `lib.Set`。
+--
+-- 依赖：单元㉕（等价关系与划分）与单元㉔（关系闭包）—— 本单元把对应定理补全。
+-- ==========================================================================
+import lib.Rel
+import lib.Set
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 26.1 三条库引理（"同块"关系的展开 · 划分的展开 · "不交"那一条的取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：**"落在同一个块里"的展开**。
+theorem demo_ofPartition_apply (α : Type) (P : (α → Prop) → Prop) (a b : α) :
+    Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b :=
+  Rel.ofPartition_apply α P a b
+
+-- 演示：划分的三条展开。
+theorem demo_partition_def (α : Type) (P : (α → Prop) → Prop) :
+    Rel.Partition α P ↔
+      (∀ (A : α → Prop), P A → ∃ (a : α), A a) ∧
+      (∀ (a : α), ∃ (A : α → Prop), P A ∧ A a) ∧
+      (∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) →
+        ∀ (c : α), A c ↔ B c) :=
+  Rel.partition_def α P
+
+-- 演示：**"不交"那一条的取用子**（有公共点的两块逐点相同）。
+theorem demo_partition_disjoint (α : Type) (P : (α → Prop) → Prop)
+    (h : Rel.Partition α P) :
+    ∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) → ∀ (c : α), A c ↔ B c :=
+  partition_disjoint α P h
+
+-- 练习 1（T 类）：**"同块"关系的成员刻画**（库里现成的）。
+-- soko:hint 思路：直接交出去。
+-- soko:hint 目标形态：`Rel.ofPartition α P a b ↔ ∃ A, P A ∧ A a ∧ A b`。
+-- soko:hint 关键件：`Rel.ofPartition_apply`。
+theorem mem_ofPartition (α : Type) (P : (α → Prop) → Prop) (a b : α) :
+    Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 26.2 **划分 ⇒ 等价关系**（三条各一道）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 2（L 类）：**自反**（每个点都与自己同块）。
+-- soko:hint 思路：由"覆盖"拿到一个装着 `a` 的块 `A`，见证就取 `A`；
+--   两个 `A a` 都要交出去。
+-- soko:hint 目标形态：`Rel.ofPartition α P a a`。
+-- soko:hint 关键件：`partition_cover`（取用子）· `Exists.elim`/`Exists.intro`（**前导实参写全**）·
+--   `And.left`/`And.right` · `And.intro`（**前导 Prop 实参写全**）。
+theorem ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (a : α) : Rel.ofPartition α P a a := by
+  sorry
+
+-- 练习 3（L 类）：**对称**（"同块"里两个点的位置可以换）。
+-- soko:hint 思路：拆开那个 `∃ A`，把 `A a ∧ A b` 的两个合取支**换个位置**再装回去。
+-- soko:hint 目标形态：`Rel.ofPartition α P a b → Rel.ofPartition α P b a`。
+-- soko:hint 关键件：`Exists.elim`/`Exists.intro`（前导实参写全）· `And.left`/`And.right`
+--   （注意这里合取是**右嵌套**的：`P A ∧ (A a ∧ A b)`）。
+theorem ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
+    (h : Rel.ofPartition α P a b) : Rel.ofPartition α P b a := by
+  sorry
+
+-- 练习 4（L 类，旗舰之一）：**传递**（`a`、`b` 同块且 `b`、`c` 同块 ⇒ `a`、`c` 同块）。
+-- soko:hint 思路：拆出两块 `A`（含 `a,b`）与 `B`（含 `b,c`）；它们**有公共点 `b`**，
+--   于是由"不交"那一条得到逐点的 `A d ↔ B d`；见证取 `A`，把 `c ∈ B` **搬**成 `A c`。
+-- soko:hint 目标形态：`Rel.ofPartition α P a b → Rel.ofPartition α P b c → Rel.ofPartition α P a c`。
+-- soko:hint 关键件：`partition_disjoint`（**结论是 `∀ d, …` ⇒ 用在具体的 `d := c` 上**，
+--   注意它给的 `↔` 方向：`B c → A c` 要走 **`Iff.mp`** 那一侧，别接反）· 三个 `Exists.elim`
+--   （前导实参写全）· `And.left`/`And.right`。
+theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (a b c : α) (hab : Rel.ofPartition α P a b) (hbc : Rel.ofPartition α P b c) :
+    Rel.ofPartition α P a c := by
+  sorry
+
+-- 练习 5（L 类，**本单元旗舰**）：**划分给出等价关系**（把练习 2–4 用智能构造子打包）。
+-- soko:hint 思路：三条各交一次 —— 注意智能构造子的参数顺序是 **自反 · 对称 · 传递**，
+--   而它们内部都是"先 λ 绑定再应用"的形态。
+-- soko:hint 目标形态：`IsEquivalence α (Rel.ofPartition α P)`。
+-- soko:hint 关键件：`isEquivalence_intro`（参数：论域 · 关系 · 三条）· 练习 2/3/4。
+theorem equivalence_ofPartition (α : Type) (P : (α → Prop) → Prop)
+    (hP : Rel.Partition α P) : IsEquivalence α (Rel.ofPartition α P) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 26.3 等价类**恰好**是块（对应定理的核心）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 6（L 类）：**`a` 的等价类就是"装着 `a` 的那个块"**（逐点相同）。
+-- soko:hint 思路：两个方向。→：`[a] c` 就是 `a`、`c` 同块 ⇒ 拆出某块 `B`（含 `a,c`）；
+--   `B` 与手上的 `A`（也含 `a`）**有公共点 `a`** ⇒ 由"不交"把 `B c` 搬成 `A c`。
+--   ←：`A c` 直接给出见证 `A`。
+-- soko:hint 目标形态：`P A → A a → ∀ c, Rel.EquivClass α (Rel.ofPartition α P) a c ↔ A c`。
+-- soko:hint 关键件：`partition_disjoint`（**注意方向：`B c → A c` 用 `Iff.mp`**）·
+--   `Exists.elim`/`Exists.intro`（前导实参写全）· `Iff.intro`（前导 Prop 实参写全）。
+theorem equivClass_of_mem (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (A : α → Prop) (hA : P A) (a : α) (ha : A a) :
+    ∀ (c : α), Rel.EquivClass α (Rel.ofPartition α P) a c ↔ A c := by
+  sorry
+
+-- 练习 7（L 类，旗舰之一）：**每个等价类都是块**。
+-- soko:hint 思路：拆出代表性元 `a` 与那句逐点刻画；由"覆盖"拿到装着 `a` 的块 `A`；
+--   于是 `A` 与 `C` **逐点相同** —— 但要让"`C` 属于 `P`"成立，得**先把它变成集合相等**
+--   （用**外延公理** `Set.ext`），再沿等式把 `P A` 搬成 `P C`。
+-- soko:hint 目标形态：`Rel.Classes α (Rel.ofPartition α P) C → P C`。
+-- soko:hint 关键件：两个 `Exists.elim`（前导实参写全）· 练习 6 · `Set.ext`（**要写全论域**）·
+--   `rel_subst_right`（**论域是 `α → Prop`**、关系取"落在第二个参数里"，别把类型写错）。
+theorem class_is_block (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) (hC : Rel.Classes α (Rel.ofPartition α P) C) : P C := by
+  sorry
+
+-- 练习 8（L 类，旗舰之一）：**每个块都是等价类**。
+-- soko:hint 思路：块**非空** ⇒ 取一个代表元 `a`；见证取 `a`，逐点那一条用练习 6 的**反方向**。
+-- soko:hint 目标形态：`P C → Rel.Classes α (Rel.ofPartition α P) C`。
+-- soko:hint 关键件：`partition_nonempty`（取用子）· `Exists.intro`（**推断"是某个类"那句展开形态时
+--   别走 `Iff.mpr`** —— **G-62 同族**：同字面却判不等，实测）· 练习 6。
+theorem block_is_class (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) (hC : P C) : Rel.Classes α (Rel.ofPartition α P) C := by
+  sorry
+
+-- 练习 9（D 类）：**对应定理**：等价类族**恰好**是划分的块（练习 7 与练习 8 合成一条 `↔`）。
+-- soko:hint 思路：两个方向分别就是练习 7 与练习 8。
+-- soko:hint 目标形态：`Rel.Classes α (Rel.ofPartition α P) C ↔ P C`。
+-- soko:hint 关键件：练习 7 · 练习 8 · `Iff.intro`（前导 Prop 实参写全）。
+theorem classes_iff_blocks (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) : Rel.Classes α (Rel.ofPartition α P) C ↔ P C := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 26.4 往返：**从等价关系造划分、再回去，得到原关系**
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 10（D 类，本单元收尾）：**往返恒等** —— 用单元㉕ 的等价类族当划分，再造出关系，
+-- 得到的正是原来的关系。
+-- soko:hint 思路：→：`a`、`b` 同在某块 `C` 里，而 `C` 是某个点 `x` 的等价类 ⇒
+--   `r x a` 且 `r x b` ⇒ 把第一个**掉头**成 `r a x`，再与第二个**接起来**得 `r a b`。
+--   ←：`r a b` 时见证取 `[a]` 本身（它是个类、"`a` 在里面"、`b` 也在里面）。
+-- soko:hint 目标形态：`Rel.ofPartition α (Rel.Classes α r) a b ↔ r a b`。
+-- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· `Exists.elim`/`Exists.intro`（前导实参写全）·
+--   对称与传递的取用子（**先 λ 绑定**，注意 `trans a x b` 要 `r a x` 配 `r x b`）· 自反。
+theorem ofPartition_of_classes (α : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (a b : α) : Rel.ofPartition α (Rel.Classes α r) a b ↔ r a b := by
+  sorry
