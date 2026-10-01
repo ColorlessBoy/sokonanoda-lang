@@ -1209,11 +1209,20 @@ fn goal_block(decls: &[(String, SemanticKind)], binders: &[GoalBinder], goal: &s
 
 /// Build an LSP `Hover` from a resolved expression hover, carrying the
 /// expression's source range so the editor highlights exactly what is shown.
-fn hover_markup(res: render::HoverResolved) -> Hover {
+///
+/// `input_hint`（`Some` = 光标下的标识符是输入法表里的**标识符型**表项，如
+/// `α`）：**追加**一段「怎么输入」，不抢类型行（设计 D5）。`None` ⇒ 逐字节与
+/// 从前相同。
+fn hover_markup(res: render::HoverResolved, input_hint: Option<&str>) -> Hover {
+    let mut value = code_block(&res.content);
+    if let Some(hint) = input_hint {
+        value.push_str("\n\n");
+        value.push_str(hint);
+    }
     Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
-            value: code_block(&res.content),
+            value,
         }),
         range: Some(range_of(res.range)),
     }
@@ -1704,12 +1713,20 @@ impl LanguageServer for Backend {
         //（`(表达式)` 的悬停 = `表达式 : 类型`）。必须先于精确命中——
         // 外层 lambda 行的 span 覆盖整个值表达式，会遮住括号组。
         if let Some(res) = bracket_hover(doc.text(), &report.hovers, pos.line, pos.character) {
-            return Ok(Some(hover_markup(res)));
+            return Ok(Some(hover_markup(res, None)));
         }
+        // **标识符型表项的「怎么输入」**（设计 `docs/design/notation-input.md` D5，
+        // 用户反馈：「`α` 没有快捷输入」）：希腊字母是**标识符**不是记法符号
+        // （D4）⇒ 上面那条 `notation_symbol_hover` 不会触发，这一行只能补在这里。
+        // **追加**在类型行之后，不抢主线（`α : Prop` 才是学习者要看的）。
+        let input_hint = sokonanoda_front::notation_input::input_hint_at(doc.text(), offset);
         if let Some(h) = hover_type_at(&report.hovers, pos.line, pos.character) {
             // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片
             //（括号平衡成良构），并返回表达式范围供编辑器高亮。
-            return Ok(Some(hover_markup(expr_hover(doc.text(), h))));
+            return Ok(Some(hover_markup(
+                expr_hover(doc.text(), h),
+                input_hint.as_deref(),
+            )));
         }
         // 邻近回退：光标 ±2 字符内命中的最小外层表达式（运算符、空白
         // 边缘等结构符号也能看到所属类型）。数据来自 hover 表（span 嵌套）。
@@ -1736,7 +1753,10 @@ impl LanguageServer for Backend {
                     (dist, len)
                 });
             if let Some(h) = nearest {
-                return Ok(Some(hover_markup(expr_hover(doc.text(), h))));
+                return Ok(Some(hover_markup(
+                    expr_hover(doc.text(), h),
+                    input_hint.as_deref(),
+                )));
             }
         }
         if let Some(d) = decl_at(&report.decls, pos.line, pos.character) {

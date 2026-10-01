@@ -641,6 +641,32 @@ pub fn input_hint(symbol: &str) -> Option<String> {
     Some(hint)
 }
 
+/// 光标处那个**标识符型**表项（希腊字母）的「怎么输入」一行（设计 D5）。
+///
+/// 为什么单独要它：`α` 是**标识符**（D4），LSP 的 `notation_symbol_hover` 只认
+/// `Sym` token ⇒ 它根本不会触发，用户反馈的「`α` 没有快捷输入」就死在这里。
+///
+/// 判据是**词法**的：用**不喂符号**的普通词法取覆盖 `offset` 的 token，只认
+/// [`crate::TokenKind::Ident`]，且该标识符必须是表里 `notation_symbol: false`
+/// 的条目。所以 `α` 查得到；`∈`（`Sym`）、`𝒫`（表里 `notation_symbol: true`，
+/// 由 LSP 的 `notation_symbol_hover` 负责）查不到——两条路**不会重复**。
+pub fn input_hint_at(text: &str, offset: usize) -> Option<String> {
+    let tokens = crate::token::tokenize(text).ok()?;
+    let token = tokens.iter().find(|token| {
+        let start = token.span.start.offset;
+        let end = token.span.end.offset;
+        start <= offset && offset < end
+    })?;
+    let crate::TokenKind::Ident(name) = &token.kind else {
+        return None;
+    };
+    let entry = input_for(name)?;
+    if entry.notation_symbol {
+        return None; // 记法符号走 LSP 的 `notation_symbol_hover`（那里有展开目标）
+    }
+    input_hint(name)
+}
+
 /// 光标处的**记法符号**（`(符号, 展开目标)`）——**不要求本文件声明过**。
 ///
 /// 符号集 = 本文件声明的（[`crate::token::scan_notation_decls`]）+ 内建记法
@@ -956,6 +982,29 @@ mod tests {
         assert!(chars.contains(&'∈'));
         assert!(chars.contains(&'≈'), "课程库记法要着色");
         assert!(chars.contains(&'•'));
+    }
+
+    /// **标识符型表项的输入提示**（D5，用户反馈的直接判据）。
+    #[test]
+    fn an_identifier_in_the_table_teaches_how_to_type_it() {
+        let src = "theorem t (α : Prop) (h : α) : α := h\n";
+        let offset = src.find('α').expect("α 在文本里");
+        let hint = input_hint_at(src, offset).expect("`α` 有缩写 ⇒ 要给提示");
+        assert!(hint.contains("\\alpha"), "{hint}");
+        assert!(hint.contains("\\a"), "单字母别名也要列：{hint}");
+
+        // 记法符号走另一条路（`notation_symbol_hover`），这里**不许**重复给。
+        let sym = "theorem t (a b : Prop) (h : a ∧ b) : a ∧ b := h\n";
+        let offset = sym.find('∧').expect("∧ 在文本里");
+        assert!(input_hint_at(sym, offset).is_none(), "记法符号不该走这条路");
+        // `𝒫` 也是记法符号（课程库声明），哪怕它在词法里是标识符字符。
+        let powerset = "theorem t (A : Set α) : A ∈ 𝒫 A := sorry\n";
+        let offset = powerset.find('𝒫').expect("𝒫 在文本里");
+        assert!(input_hint_at(powerset, offset).is_none(), "𝒫 是记法符号");
+        // 表外标识符 / 标点：沉默（别编）。
+        let plain = "theorem t (x : Prop) : x := x\n";
+        assert!(input_hint_at(plain, plain.find('x').expect("x")).is_none());
+        assert!(input_hint_at(plain, plain.find('(').expect("(")).is_none());
     }
 
     #[test]

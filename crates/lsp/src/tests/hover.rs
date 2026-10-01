@@ -588,6 +588,65 @@ async fn hover_on_a_builtin_symbol_teaches_how_to_type_it() {
     shutdown(&mut service).await;
 }
 
+/// **用户反馈（2026-10-01）：「`α` 没有快捷输入」**（设计
+/// `docs/design/notation-input.md` D5）。
+///
+/// 希腊字母是**标识符**不是记法符号（D4）⇒ 它走的是普通表达式 hover
+/// （`α : Prop`），`notation_symbol_hover` 那条**根本不会触发**（它只认 `Sym`）。
+/// 所以「怎么输入」这一行必须单独补上去，而且**不能**说成"记法符号"。
+#[tokio::test]
+async fn hover_on_a_greek_identifier_teaches_how_to_type_it() {
+    let src = "theorem alpha_self (α : Prop) (h : α) : α := h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let diags = wait_diagnostics(&mut socket, "greek hover diagnostics").await;
+    assert!(
+        diags.diagnostics.is_empty(),
+        "fixture must compile: {diags:?}"
+    );
+
+    let pos = lsp_pos(src, offset_of(src, "α : Prop"));
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("hover on the binder `α` must resolve");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("\\alpha"),
+        "hover must teach the abbreviation: {:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("\\a"),
+        "hover must list the single-letter alias: {:?}",
+        markup.value
+    );
+    assert!(
+        !markup.value.contains("记法符号"),
+        "`α` 是标识符，不是记法符号（说成记法符号会误导）：{:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("Prop"),
+        "输入提示**追加**在类型行之后，不抢主线：{:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
 /// `=` 是内建记法但**没有缩写**（Lean 也没有）⇒ hover 要说"直接打"，
 /// 不能沉默（沉默会让学习者以为有缩写而反复试）。
 #[tokio::test]
