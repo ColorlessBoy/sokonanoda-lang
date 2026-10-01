@@ -773,6 +773,7 @@ fn check_synthesized(
     }
     let plan = TrustPlan {
         before,
+        trusted_extra: Vec::new(),
         prev_signatures: Vec::new(),
         text_unchanged: Vec::new(),
         allow_cutoff: false,
