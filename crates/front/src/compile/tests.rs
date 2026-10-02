@@ -4876,6 +4876,71 @@ fn bare_prelude_nat_names_stay_terminating() {
     );
 }
 
+/// **G-76（0.81.0）**：`Nat.add` 的**递归方程是定义等式**。
+///
+/// Lean 4 的 `Nat.add` 就是用 `Nat.rec` 定义出来的 ⇒ `Nat.add_zero` /
+/// `Nat.add_succ` 在 Lean 里都是 `rfl`。本语言的 `Nat.add` 是**内置求值原语**
+/// （体是自引用占位符），原生快路径只在两个实参都能算成闭的大整数时归约
+/// ⇒ 变量上的递归方程以前**卡住**（G-76），ℕ 上的一切算术律都证不出来。
+///
+/// 这里钉死**修好之后**的三件事（都用完整内核判定，不是文本比对）：
+///   ① 变量上的递归方程 + 由它打开的算术律判绿；
+///   ② 小整数字面量（`NatLit`，不是构造子链）也展开；
+///   ③ **反面**：判定不许退化 —— `Nat.add n m = m` 必须仍然判红。
+#[test]
+fn prelude_nat_add_equations_are_definitional() {
+    let src = "theorem add_succ_var (n m : Nat) :\n\
+               \x20   Nat.add n (Nat.succ m) = Nat.succ (Nat.add n m) :=\n\
+               \x20 Eq.refl.{1} Nat (Nat.succ (Nat.add n m))\n\
+               theorem add_zero_var (n : Nat) : Nat.add n Nat.zero = n :=\n\
+               \x20 Eq.refl.{1} Nat n\n\
+               theorem add_lit_var (n : Nat) :\n\
+               \x20   Nat.add n 2 = Nat.succ (Nat.succ n) :=\n\
+               \x20 Eq.refl.{1} Nat (Nat.succ (Nat.succ n))\n\
+               -- 闭项仍走原生大整数快路径（逐字节行为不变）\n\
+               #reduce Nat.add 300 300\n";
+    let out = compile_fol(&parse(src).expect("parse Nat.add equations"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    for name in ["add_succ_var", "add_zero_var", "add_lit_var"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "`{name}` 必须判绿（Nat.add 的递归方程是定义等式）：{:?}",
+            out.events
+        );
+    }
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "600")),
+        "闭项 `Nat.add 300 300` 必须仍走原生大整数快路径 ⇒ 600：{:?}",
+        out.events
+    );
+}
+
+/// **G-76 的反向判据**：递归方程**只在第二个实参是构造子形状（或 8 位以内的
+/// 字面量）时**动手 —— 判定不许退化成"随便两边都定义相等"。
+#[test]
+fn prelude_nat_add_equations_do_not_degenerate() {
+    let src = "theorem bad (n m : Nat) : Nat.add n m = m := Eq.refl.{1} Nat m\n";
+    let out = compile_fol(&parse(src).expect("parse"));
+    assert!(
+        out.errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::KernelRejected),
+        "`Nat.add n m = m` 必须判红（第二实参不是构造子 ⇒ 卡住）：{:?}",
+        out.errors
+    );
+    assert!(
+        !out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "bad")),
+        "`bad` 不许判绿：{:?}",
+        out.events
+    );
+}
+
 #[test]
 fn prelude_bool_is_available_without_a_source_block() {
     // `Bool`/`Bool.true`/`Bool.false`/`Bool.rec` come from the trusted prelude

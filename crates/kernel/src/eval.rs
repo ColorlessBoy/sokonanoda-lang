@@ -761,7 +761,9 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 if self.nat_extension && self.is_nat_red_name(head.name) {
                     let new_spine = self.spine_snoc_hc(spine, Elim::app(a));
                     if let Some(args) = self.spine_apps(depth, new_spine) {
-                        if let Some(r) = self.do_nat_red_shallow(depth, head.name, &args) {
+                        if let Some(r) =
+                            self.do_nat_red_shallow(depth, head.name, head.levels, &args, new_spine, head_value)
+                        {
                             return r;
                         }
                     }
@@ -1473,7 +1475,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             }
             if self.nat_extension && self.is_nat_red_name(head.name) {
                 if let Some(args) = self.spine_apps(depth, spine) {
-                    if let Some(r) = self.do_nat_red(depth, head.name, &args) {
+                    if let Some(r) = self.do_nat_red(depth, head.name, head.levels, &args, spine, head_value) {
                         let _ = forced.set(r);
                         return r;
                     }
@@ -1844,15 +1846,40 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         Some(self.apply_many(depth, result, &args[rest_idx..]))
     }
 
-    fn do_nat_red(&mut self, depth: u32, name: NamePtr<'t>, args: &[V<'t>]) -> Option<V<'t>> {
-        self.do_nat_red_at(depth, name, args, true)
+    fn do_nat_red(
+        &mut self,
+        depth: u32,
+        name: NamePtr<'t>,
+        levels: LevelsPtr<'t>,
+        args: &[V<'t>],
+        spine: S<'t>,
+        head_value: &'t OnceCell<V<'t>>,
+    ) -> Option<V<'t>> {
+        self.do_nat_red_at(depth, name, levels, args, spine, head_value, true)
     }
 
-    fn do_nat_red_shallow(&mut self, depth: u32, name: NamePtr<'t>, args: &[V<'t>]) -> Option<V<'t>> {
-        self.do_nat_red_at(depth, name, args, false)
+    fn do_nat_red_shallow(
+        &mut self,
+        depth: u32,
+        name: NamePtr<'t>,
+        levels: LevelsPtr<'t>,
+        args: &[V<'t>],
+        spine: S<'t>,
+        head_value: &'t OnceCell<V<'t>>,
+    ) -> Option<V<'t>> {
+        self.do_nat_red_at(depth, name, levels, args, spine, head_value, false)
     }
 
-    fn do_nat_red_at(&mut self, depth: u32, name: NamePtr<'t>, args: &[V<'t>], deep: bool) -> Option<V<'t>> {
+    fn do_nat_red_at(
+        &mut self,
+        depth: u32,
+        name: NamePtr<'t>,
+        levels: LevelsPtr<'t>,
+        args: &[V<'t>],
+        spine: S<'t>,
+        head_value: &'t OnceCell<V<'t>>,
+        deep: bool,
+    ) -> Option<V<'t>> {
         use crate::name::NatRed;
         let kind = name.as_ref().nat_red()?;
         if let NatRed::Succ = kind {
@@ -1874,26 +1901,183 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         if args.len() != 2 {
             return None;
         }
-        let op = match kind {
-            NatRed::Add => NatBinOp::Add,
-            NatRed::Sub => NatBinOp::Sub,
-            NatRed::Mul => NatBinOp::Mul,
-            NatRed::Pow => NatBinOp::Pow,
-            NatRed::Mod => NatBinOp::Mod,
-            NatRed::Div => NatBinOp::Div,
-            NatRed::Beq => NatBinOp::Beq,
-            NatRed::Ble => NatBinOp::Ble,
-            NatRed::LAnd => NatBinOp::LAnd,
-            NatRed::LOr => NatBinOp::LOr,
-            NatRed::XOr => NatBinOp::XOr,
-            NatRed::Gcd => NatBinOp::Gcd,
-            NatRed::Shl => NatBinOp::Shl,
-            NatRed::Shr => NatBinOp::Shr,
-            NatRed::Succ | NatRed::DivGo | NatRed::ModCoreGo => unreachable!(),
+        // **G-76**：闭项快路径（两个实参都能算成大整数）优先；算不出时退到
+        // 递归方程那一档（`Nat.add m (Nat.succ n) ≡ …`）。顺序不能反：闭项
+        // 必须仍然逐字节走原生大整数（性能 + 既有行为不变）。
+        if let (Some(xn), Some(yn)) = (
+            self.value_to_bignum_at(depth, args[0], deep),
+            self.value_to_bignum_at(depth, args[1], deep),
+        ) {
+            let op = match kind {
+                NatRed::Add => NatBinOp::Add,
+                NatRed::Sub => NatBinOp::Sub,
+                NatRed::Mul => NatBinOp::Mul,
+                NatRed::Pow => NatBinOp::Pow,
+                NatRed::Mod => NatBinOp::Mod,
+                NatRed::Div => NatBinOp::Div,
+                NatRed::Beq => NatBinOp::Beq,
+                NatRed::Ble => NatBinOp::Ble,
+                NatRed::LAnd => NatBinOp::LAnd,
+                NatRed::LOr => NatBinOp::LOr,
+                NatRed::XOr => NatBinOp::XOr,
+                NatRed::Gcd => NatBinOp::Gcd,
+                NatRed::Shl => NatBinOp::Shl,
+                NatRed::Shr => NatBinOp::Shr,
+                NatRed::Succ | NatRed::DivGo | NatRed::ModCoreGo => unreachable!(),
+            };
+            return self.do_nat_bin_val(xn, yn, op);
+        }
+        self.nat_red_recursive_equation(depth, name, levels, kind, args, spine, head_value, deep)
+    }
+
+    /// **G-76（0.81.0）**：`Nat.add` / `Nat.mul` 的**递归方程**。
+    ///
+    /// 上面那条快路径要求**两个实参都能算成闭的大整数** ⇒ `Nat.add n (Nat.succ m)`
+    /// （第二个实参已经是构造子形状、但里面有变量）**卡住不展开** ✗。而 Lean 4 的
+    /// `Nat.add`/`Nat.mul` **就是**用 `Nat.rec` 定义出来的（`Nat.add_zero` /
+    /// `Nat.add_succ` / `Nat.mul_zero` / `Nat.mul_succ` 在 Lean 里全是 `rfl`）
+    /// ⇒ 这四条是**定义等式** ⇒ 缺了它们，ℕ 上的一切算术律（`n + 0 = n`、
+    /// 结合律、交换律、`mul` 各律）都证不出来。
+    ///
+    /// 逐字对齐 Lean core 的方程（递归位置在**第二个**实参）：
+    ///
+    /// ```text
+    /// Nat.add m Nat.zero      ≡ m
+    /// Nat.add m (Nat.succ n)  ≡ Nat.succ (Nat.add m n)
+    /// Nat.mul m Nat.zero      ≡ Nat.zero
+    /// Nat.mul m (Nat.succ n)  ≡ Nat.add (Nat.mul m n) m
+    /// ```
+    ///
+    /// 三条边界：
+    ///
+    /// * **只看第二个实参的形状**（第一个实参原样留在脊上）—— 与 Lean 的递归位置一致；
+    /// * **大整数字面量不展开**（`> 8` 位 ⇒ `None`）：与 `nat_red_defer` **同一道闸**
+    ///   —— 否则 `Nat.add n 100000` 会造出一整条 `succ` 链 ✗；
+    /// * 递归出来的 `Nat.add m n` 用**原来那条脊的前缀 + 新的最后一个实参**构造
+    ///   （同一个 `head_value` 细胞）⇒ 形状与正常求值路径**逐位相同**，defeq 不靠指针也成立。
+    fn nat_red_recursive_equation(
+        &mut self,
+        depth: u32,
+        name: NamePtr<'t>,
+        levels: LevelsPtr<'t>,
+        kind: crate::name::NatRed,
+        args: &[V<'t>],
+        spine: S<'t>,
+        head_value: &'t OnceCell<V<'t>>,
+        deep: bool,
+    ) -> Option<V<'t>> {
+        use crate::name::NatRed;
+        // **只在深路径（whnf）里动手**：`apply` 的浅路径拿到的实参可能还是**没 force
+        // 过的 thunk / 没展开的 `Unfold`** ⇒ 在那里按形状归约会造出「半归约」的值
+        // （实测：`#reduce shared + 1` 从 `6` 变成 `Nat.succ 5` ✗ —— `shared` 的定义体
+        // 还没展开，`Nat.succ` 的 NatLit 折叠也就落空）。浅路径保持**逐字节不变**：
+        // 只有原来的闭项大整数快路径。
+        if !deep {
+            return None;
+        }
+        let is_add = matches!(kind, NatRed::Add);
+        let is_mul = matches!(kind, NatRed::Mul);
+        if !is_add && !is_mul {
+            return None;
+        }
+        if args.len() != 2 {
+            return None;
+        }
+        let cache = self.ctx.export_file.name_cache;
+        let zero_name = cache.nat_zero?;
+        let succ_name = cache.nat_succ?;
+        // 第二个实参的**形状**：`whnf` 用的是完整弱头归约（与递归子的 iota 同法，
+        // 否则 `Nat.add n (f m)` 里 `f m` 归约成构造子时这条方程不认），
+        // `apply` 的浅路径只剥 thunk（便宜、且深路径随后一定会再来一次）。
+        let major = if deep { self.whnf_head(depth, args[1]) } else { self.force_thunk(depth, args[1]) };
+        // `Eq` 的两种写法都要认：字面量（`1`、`2`…）与构造子链。
+        enum Major<'t> {
+            Zero,
+            Succ(V<'t>),
+            Lit(BigUint),
+        }
+        let major = match major {
+            Value::NatLit { ptr, .. } => {
+                let n = self.ctx.read_bignum(*ptr)?.clone();
+                if num_traits::Zero::is_zero(&n) {
+                    Major::Zero
+                } else if n.bits() > 8 {
+                    return None; // 与 `nat_red_defer` 同一道闸
+                } else {
+                    Major::Lit(n)
+                }
+            }
+            Value::Rigid { head: RigidHead::Ctor(cname, _), spine: s, .. } => {
+                let s = *s;
+                if Some(*cname) == Some(zero_name) && s.is_empty() {
+                    Major::Zero
+                } else if Some(*cname) == Some(succ_name) {
+                    match s {
+                        Spine::Snoc { prev: Spine::Empty, elim, .. } => match elim.view() {
+                            ElimView::App(a) => Major::Succ(a),
+                            _ => return None,
+                        },
+                        _ => return None,
+                    }
+                } else {
+                    return None
+                }
+            }
+            _ => return None,
         };
-        let xn = self.value_to_bignum_at(depth, args[0], deep)?;
-        let yn = self.value_to_bignum_at(depth, args[1], deep)?;
-        self.do_nat_bin_val(xn, yn, op)
+        // `Nat.add m` 的那条脊（原脊去掉最后一个实参）。
+        let Spine::Snoc { prev: tail, .. } = spine else { return None };
+        let tail = *tail;
+        match major {
+            Major::Zero => {
+                if is_add {
+                    Some(args[0])
+                } else {
+                    let empty = self.ctx.alloc_levels_slice(&[]);
+                    Some(self.eval_const(zero_name, empty))
+                }
+            }
+            Major::Succ(x) => {
+                let inner = self.nat_red_rec_app(name, levels, tail, x, head_value);
+                Some(self.nat_red_step(is_add, depth, inner, args[0]))
+            }
+            Major::Lit(n) => {
+                let pred = self.ctx.alloc_bignum(core::ops::Sub::sub(n, 1u8))?;
+                let pred = value::mk_natlit(self.arena, pred);
+                let inner = self.nat_red_rec_app(name, levels, tail, pred, head_value);
+                Some(self.nat_red_step(is_add, depth, inner, args[0]))
+            }
+        }
+    }
+
+    /// 递归出来的 `Nat.add m n'`（原脊前缀 + 新的最后一个实参 + 同一个
+    /// `head_value` 细胞）—— 与正常求值路径构造出的值**逐位同形**。
+    fn nat_red_rec_app(
+        &mut self,
+        name: NamePtr<'t>,
+        levels: LevelsPtr<'t>,
+        tail: S<'t>,
+        arg: V<'t>,
+        head_value: &'t OnceCell<V<'t>>,
+    ) -> V<'t> {
+        let s = self.spine_snoc_hc(tail, Elim::app(arg));
+        self.mk_unfold_hc(name, levels, s, head_value)
+    }
+
+    /// 递归方程的右半边：`Add` ⇒ `Nat.succ inner`，`Mul` ⇒ `Nat.add inner m`
+    /// （`m` = 第一个实参）。
+    fn nat_red_step(&mut self, is_add: bool, depth: u32, inner: V<'t>, first: V<'t>) -> V<'t> {
+        let cache = self.ctx.export_file.name_cache;
+        let empty = self.ctx.alloc_levels_slice(&[]);
+        if is_add {
+            let succ_name = cache.nat_succ.expect("Nat.succ missing");
+            let succ = self.eval_const(succ_name, empty);
+            self.apply_v(depth, succ, inner)
+        } else {
+            let add_name = cache.nat_add.expect("Nat.add missing");
+            let add = self.eval_const(add_name, empty);
+            self.apply_many(depth, add, &[inner, first])
+        }
     }
 
     fn do_nat_bin_val(&mut self, x: BigUint, y: BigUint, op: NatBinOp) -> Option<V<'t>> {

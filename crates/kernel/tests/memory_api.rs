@@ -4,6 +4,7 @@
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{ConstructorData, Declar, DeclarInfo, EnvLimit, RecRule, RecursorData, ReducibilityHint};
 use sokonanoda::expr::{BinderStyle, Expr};
+use sokonanoda::util::{ExprPtr, NamePtr};
 use sokonanoda::util::{CheckError, Config, ExportFile};
 use stumpalo::Arena;
 
@@ -687,4 +688,138 @@ fn snapshot_is_a_read_only_copy_that_does_not_disturb_the_builder() {
     assert_eq!(b.declaration_count(), before + 1);
     // ③ 副本**不跟着长**（是副本，不是视图）。
     assert_eq!(snap.declars.len(), before, "副本取到之后不受 builder 影响");
+}
+
+// ---- G-76（0.81.0）：`Nat.add` 的递归方程在**变量**上也要归约 ----
+
+/// `Nat` 字面量（大整数）—— 内核的原生 Nat 归约按**字面量**触发。
+fn nat_lit<'x, 't: 'x, 'p: 't>(tc: &mut sokonanoda::tc::TypeChecker<'x, 't, 'p>, n: u16) -> ExprPtr<'t> {
+    let p = tc.ctx.alloc_bignum(num_bigint::BigUint::from(n)).expect("bignum");
+    tc.ctx.mk_nat_lit(p).expect("Nat literal")
+}
+
+/// `Π (x : Nat), C <term>` —— **闭**类型；比较两个这样的类型 = 在 binder 底下
+/// 比较 `<term>`（G-76 内核层判据的观察者）。
+fn observe<'x, 't: 'x, 'p: 't>(
+    tc: &mut sokonanoda::tc::TypeChecker<'x, 't, 'p>,
+    check_c: ExprPtr<'t>,
+    nat_ty: ExprPtr<'t>,
+    anon: NamePtr<'t>,
+    term: ExprPtr<'t>,
+) -> ExprPtr<'t> {
+    let body = tc.ctx.mk_app(check_c, term);
+    tc.ctx.mk_pi(anon, BinderStyle::Default, nat_ty, body)
+}
+
+/// **G-76 的内核层判据**：`Nat.add` 是预置的**自引用占位定义**，归约完全落在
+/// `eval.rs` 的原生规则上；这里搭一个**最小**原生 Nat 环境（名字必须逐字是
+/// `Nat`/`Nat.zero`/`Nat.succ`/`Nat.add` —— `NameCache` 按**名字**打 `NatRed`
+/// 标记），然后比较两条**闭类型** `Π (x : Nat), C <项>` —— 比较它们是 Pi 类型，
+/// 转换器会在 binder 底下拿 `<项>` 去比，于是问出了内核的那几条 defeq：
+///
+/// * **正**：`Nat.add x 1 ≡ Nat.succ x`（小字面量 ⇒ 递归方程一路走到 `add m 0 ≡ m`）；
+/// * **正**：`Nat.add x 255 ≡ Nat.succ (Nat.add x 254)`（8 位以内都展开）；
+/// * **反**：`Nat.add x 1 ≢ x`（判定不许退化成"什么都相等"）；
+/// * **反**：`Nat.add x 300 ≢ Nat.succ (Nat.add x 299)`（> 8 位的字面量保持卡住 ——
+///   与 `nat_red_defer` 同一道闸，防 `#reduce` 造出整条 `succ` 链）。
+///
+/// 用 `axiom` 而不是真归纳块：本测试只问**字面量形状**那两条；
+/// **构造子形状**那条（`Nat.add n (Nat.succ m)`）由 front 单测
+/// （`prelude_nat_add_equations_are_definitional`）、CLI e2e（`nat_equations.rs`）
+/// 与缺口复现件 `docs/gaps/repro/G76-nat-add-not-unfoldable.sokonanoda` 覆盖。
+#[test]
+fn nat_add_equations_reduce_on_variables() {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    let arena = Arena::new();
+    let mut b = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    let empty = b.alloc_levels_slice(&[]);
+    let anon = b.anonymous();
+    let one_level = b.succ(b.zero());
+    let sort_1 = b.mk_sort(one_level);
+    let prop = b.mk_sort(b.zero());
+    let nat = b.name_from_str("Nat");
+    let nat_ty = b.mk_const(nat, empty);
+    b.add_declar(Declar::Axiom {
+        info: DeclarInfo { name: nat, uparams: empty, ty: sort_1 },
+    })
+    .expect("Nat");
+    let zero = b.name_from_str("Nat.zero");
+    b.add_declar(Declar::Axiom {
+        info: DeclarInfo { name: zero, uparams: empty, ty: nat_ty },
+    })
+    .expect("Nat.zero");
+    let succ = b.name_from_str("Nat.succ");
+    let succ_ty = b.mk_pi(anon, BinderStyle::Default, nat_ty, nat_ty);
+    b.add_declar(Declar::Axiom {
+        info: DeclarInfo { name: succ, uparams: empty, ty: succ_ty },
+    })
+    .expect("Nat.succ");
+    // `Nat.add : Nat -> Nat -> Nat := Nat.add`（与 prelude 逐字同形的自引用占位体）。
+    let add = b.name_from_str("Nat.add");
+    let add_inner = b.mk_pi(anon, BinderStyle::Default, nat_ty, nat_ty);
+    let add_ty = b.mk_pi(anon, BinderStyle::Default, nat_ty, add_inner);
+    let add_val = b.mk_const(add, empty);
+    b.add_declar(Declar::Definition {
+        info: DeclarInfo { name: add, uparams: empty, ty: add_ty },
+        val: add_val,
+        hint: ReducibilityHint::Regular(0),
+    })
+    .expect("Nat.add");
+    // 观察者：`C : Nat -> Prop`（比较 `C a` 与 `C b` 就是问 `a ≡ b`）。
+    let check = b.name_from_str("C");
+    let check_ty = b.mk_pi(anon, BinderStyle::Default, nat_ty, prop);
+    b.add_declar(Declar::Axiom {
+        info: DeclarInfo { name: check, uparams: empty, ty: check_ty },
+    })
+    .expect("C");
+    let env = b.finish();
+
+    // 全部声明可见（`C` 自己也要可见 —— 比较 `C a`/`C b` 要问 `C` 的类型）。
+    env.with_tc(EnvLimit::ByIndex(env.declars.len()), |tc| {
+        let x = tc.ctx.mk_var(0);
+        let one = nat_lit(tc, 1);
+        let small = nat_lit(tc, 255);
+        let small_pred = nat_lit(tc, 254);
+        let big = nat_lit(tc, 300);
+        let big_pred = nat_lit(tc, 299);
+        let succ_c = tc.ctx.mk_const(succ, empty);
+        let add_c = tc.ctx.mk_const(add, empty);
+        let check_c = tc.ctx.mk_const(check, empty);
+        let _ = tc.ctx.mk_const(zero, empty);
+        let add_x = tc.ctx.mk_app(add_c, x);
+        let succ_x = tc.ctx.mk_app(succ_c, x);
+
+        // **正**：`Nat.add x 1 ≡ Nat.succ x`（递归方程 + `add m 0 ≡ m`）。
+        let add_one = tc.ctx.mk_app(add_x, one);
+        let lhs = observe(tc, check_c, nat_ty, anon, add_one);
+        let rhs = observe(tc, check_c, nat_ty, anon, succ_x);
+        tc.assert_def_eq(lhs, rhs);
+
+        // **正**：8 位以内都展开 —— `Nat.add x 255 ≡ Nat.succ (Nat.add x 254)`。
+        let l = tc.ctx.mk_app(add_x, small);
+        let inner = tc.ctx.mk_app(add_x, small_pred);
+        let r = tc.ctx.mk_app(succ_c, inner);
+        let lhs = observe(tc, check_c, nat_ty, anon, l);
+        let rhs = observe(tc, check_c, nat_ty, anon, r);
+        tc.assert_def_eq(lhs, rhs);
+
+        // **反①**：`Nat.add x 1 ≢ x`（判定不许退化成"什么都相等"）。
+        let lhs = observe(tc, check_c, nat_ty, anon, add_one);
+        let rhs = observe(tc, check_c, nat_ty, anon, x);
+        assert!(
+            catch_unwind(AssertUnwindSafe(|| tc.assert_def_eq(lhs, rhs))).is_err(),
+            "`Nat.add x 1` 不许与 `x` 定义相等（判定退化了）"
+        );
+        // **反②**：> 8 位的字面量保持**卡住** ⇒ 它与「展开一步」的那一项**不**定义相等。
+        let huge = tc.ctx.mk_app(add_x, big);
+        let huge_inner = tc.ctx.mk_app(add_x, big_pred);
+        let huge_step = tc.ctx.mk_app(succ_c, huge_inner);
+        let lhs = observe(tc, check_c, nat_ty, anon, huge);
+        let rhs = observe(tc, check_c, nat_ty, anon, huge_step);
+        assert!(
+            catch_unwind(AssertUnwindSafe(|| tc.assert_def_eq(lhs, rhs))).is_err(),
+            "> 8 位的字面量必须保持卡住（否则 `#reduce` 会造出整条 succ 链）"
+        );
+    });
 }

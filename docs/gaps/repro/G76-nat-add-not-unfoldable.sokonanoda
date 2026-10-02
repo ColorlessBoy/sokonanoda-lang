@@ -1,35 +1,53 @@
--- G-76 最小复现：**`Nat.add` 只在闭项上求值，不在变量上展开**
+-- G-76 复现件：**`Nat.add` 在变量上要能展开**（递归方程是**定义等式**）
 --
--- 现象（三行说明一切）：
---   ① 闭项 `Nat.add 1 1 = 2` **判绿**（`Eq.refl` 就行 ⇒ 内核会做具体数字的算术）；
+-- 缺口原文（2026-10-01，单元㉘ 立项前的诊断）：
+--   ① 闭项 `Nat.add 1 1 = 2` **判绿**（内核会算具体数字的算术）；
 --   ② 变量上的**递归方程** `Nat.add n (Nat.succ m) = Nat.succ (Nat.add n m)` **判红**
 --      （两个人写的是同一个东西，但判卷说"期望 …、实际 …" ⇒ **定义上不等**）；
 --   ③ 于是 `Nat.add n Nat.zero = n` 也判红。
+--   ⇒ 归纳法的 `succ` 步**必须**靠 ② 那条递归方程把 `Nat.add (succ k) …` 改写成
+--     `Nat.succ (Nat.add k …)`；② 拿不到 ⇒ **ℕ 上的一切算术律都证不出来**。
 --
--- ⇒ **后果（严重）**：归纳法的 `succ` 步**必须**靠 ② 那条递归方程把
---   `Nat.add (succ k) …` 改写成 `Nat.succ (Nat.add k …)`；② 拿不到 ⇒
---   **ℕ 上的一切算术律（`n + 0 = n`、结合律、交换律、`mul` 各律）都证不出来**。
---   ⇒ 依赖 ℕ 算术的课程内容（**整数/有理数/实数构造**、任何"用自然数编码"的构造）
---   在本语言上**目前不可做** —— 这是「实数构造」立项的**前置硬墙**。
+-- **已修（G-76，0.81.0）**：`Nat.add` 是内置求值原语（体是自引用占位符），原生快路径
+-- 只在**两个实参都能算成闭的大整数**时才归约 ⇒ 第二个实参是「构造子形状但里面有变量」
+-- 时**卡住** ✗。内核 `eval.rs` 补上 Lean core 的两条递归方程
+-- （Lean 4 的 `Nat.add_zero`/`Nat.add_succ` 都是 `rfl`）：
+--     `Nat.add m Nat.zero     ≡ m`
+--     `Nat.add m (Nat.succ n) ≡ Nat.succ (Nat.add m n)`
+-- **只加规则、不改闭项判定面**：闭项仍然走原生大整数快路径
+-- （`#reduce Nat.add 300 300 => 600` 逐字节不变），大整数字面量（> 8 位）不展开
+-- （与 `nat_red_defer` 同一道闸）。
 --
--- 期望的 Lean 4 语义：Lean 4 的 `Nat.add` **就是**用 `Nat.rec` 定义出来的
---   （`n + 0 = n`、`n + succ m = succ (n + m)` 两条都是**定义等式** ⇒ `rfl` 可证），
---   算术律按教科书那样归纳证出 ✓
+-- ⚠ 原文件顶部那句 `import lib.Rel` 是**多余的**（本文件自足），而它让判卷在
+--    `import` 阶段就报 `import-not-found` ⇒ 缺口**从来没被真正判红过**（红的原因不对）。
+--    修 G-76 时一并删掉 ✓。
 --
--- 可能的修法（供内核线评估，**本轮不动内核**）：
---   (a) 给 `Nat.add`（以及 `Nat.mul`/`Nat.sub` 之类）配**归约规则**（defeq 层展开）；
---   (b) 或把 `Nat.add` 作为**真正的定义**（`Nat.rec` 的那种）暴露出来，而不是内置求值原语。
-import lib.Rel
+-- 本文件自足（无 `import`）⇒ 单文件判卷即可。
+-- 判据：`docs/gaps/ledger.jsonl` 的 G-76（status=fixed ⇒ 本文件必须**判绿**）。
 
--- ① 闭项：能算 ✓（这条判绿）
+-- ① 闭项：原生大整数快路径（修复前后都判绿，防「修坏了闭项」）
 theorem nat_add_closed : Nat.add 1 1 = 2 :=
   Eq.refl.{1} Nat 2
 
--- ② 变量上的递归方程：判红 ✗（这就是缺口）
+-- ② 变量上的递归方程（**这是缺口本体**）
 theorem nat_add_succ_var (n m : Nat) :
     Nat.add n (Nat.succ m) = Nat.succ (Nat.add n m) :=
   Eq.refl.{1} Nat (Nat.succ (Nat.add n m))
 
--- ③ 由 ② 直接卡死的算术律：判红 ✗
+-- ③ 由 ② 直接打开的算术律
 theorem nat_add_zero_var (n : Nat) : Nat.add n Nat.zero = n :=
   Eq.refl.{1} Nat n
+
+-- ④ 小整数字面量也要展开（`2` 是 `NatLit`、不是构造子链：
+--    「只看第二个实参的**形状**」要把这一档一起认下来）
+theorem nat_add_lit (n : Nat) : Nat.add n 2 = Nat.succ (Nat.succ n) :=
+  Eq.refl.{1} Nat (Nat.succ (Nat.succ n))
+
+-- ⑤ 归纳法的 `succ` 步真的能走完（缺口 `blocks` 里那条「没有递归方程就无法把
+--    `succ` 情形化归到归纳假设」的**反面判据**）
+theorem nat_add_zero_induction (n : Nat) : Nat.add n Nat.zero = n :=
+  Nat.rec (fun (k : Nat) => Nat.add k Nat.zero = k)
+    (Eq.refl.{1} Nat Nat.zero)
+    (fun (k : Nat) (_ih : Nat.add k Nat.zero = k) =>
+      Eq.refl.{1} Nat (Nat.succ (Nat.add k Nat.zero)))
+    n
