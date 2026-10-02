@@ -33,20 +33,26 @@
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`have hP` 的值类型不匹配：期望 `P x`，实际是 `（值的类型也读不出来，检查它里面的名字）`",
-   "reused": true
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "reused": true,
+   "alt": "green",
+   "alt_after": "have hP : P x := And.left h x -- soko:notation-ok: And.left's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
+   "via_alt": true
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`have hQ` 的值类型不匹配：期望 `Q x`，实际是 `（值的类型也读不出来，检查它里面的名字）`",
-   "reused": true
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "reused": true,
+   "alt": "green",
+   "alt_after": "have hQ : Q x := And.right h x -- soko:notation-ok: And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
+   "via_alt": true
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -56,7 +62,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `True`，实际是 `(Q : Prop) -> Exists h (fun (w : Person) (hw : P w) => True.intro) -> ((w : h) -> (fun (hw : P w) => True.intro",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact Exists.elim True h (fun (w : Person) => fun (hw : P w) => True.intro) -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)",
+   "alt_diag": "`exact` 类型不匹配：期望 `True`，实际是 `Exists True h -> ((w : True) -> h w -> fun (w : Person) (hw : P w) => True.intro) -> fun (w : Person)"
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -66,7 +75,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `(w : w) -> hw w -> Exists w hw`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact Exists.intro P w hw -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)",
+   "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `w hw -> Exists P w`"
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -76,7 +88,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `Q`，实际是 `(Q : Prop) -> Exists h f -> ((w : h) -> f w -> Q) -> Q`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact Exists.elim Q h f -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)",
+   "alt_diag": "`exact` 类型不匹配：期望 `Q`，实际是 `Exists Q h -> ((w : Q) -> h w -> f) -> f`"
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -86,7 +101,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `(w : someone) -> h someone w -> Exists someone (h someone)`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact Exists.intro P someone (h someone) -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)",
+   "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `someone (h someone) -> Exists P someone`"
   },
   {
    "file": "course/en/unit5-universes-sort.sokonanoda",
@@ -138,20 +156,26 @@
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`have hP` 的值类型不匹配：期望 `P x`，实际是 `（值的类型也读不出来，检查它里面的名字）`",
-   "reused": true
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "reused": true,
+   "alt": "green",
+   "alt_after": "have hP : P x := And.left h x -- soko:notation-ok: And.left 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
+   "via_alt": true
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`have hQ` 的值类型不匹配：期望 `Q x`，实际是 `（值的类型也读不出来，检查它里面的名字）`",
-   "reused": true
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "reused": true,
+   "alt": "green",
+   "alt_after": "have hQ : Q x := And.right h x -- soko:notation-ok: And.right 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
+   "via_alt": true
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -161,7 +185,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `True`，实际是 `(Q : Prop) -> Exists h (fun (w : Person) (hw : P w) => True.intro) -> ((w : h) -> (fun (hw : P w) => True.intro",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact Exists.elim True h (fun (w : Person) => fun (hw : P w) => True.intro) -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `True`，实际是 `Exists True h -> ((w : True) -> h w -> fun (w : Person) (hw : P w) => True.intro) -> fun (w : Person)"
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -171,7 +198,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `(w : w) -> hw w -> Exists w hw`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact Exists.intro P w hw -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `w hw -> Exists P w`"
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -181,7 +211,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `Q`，实际是 `(Q : Prop) -> Exists h f -> ((w : h) -> f w -> Q) -> Q`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact Exists.elim Q h f -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `Q`，实际是 `Exists Q h -> ((w : Q) -> h w -> f) -> f`"
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -191,7 +224,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `(w : someone) -> h someone w -> Exists someone (h someone)`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact Exists.intro P someone (h someone) -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `someone (h someone) -> Exists P someone`"
   },
   {
    "file": "course/unit5-universes-sort.sokonanoda",
@@ -270,44 +306,53 @@
    "line": 33,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "④其它",
+   "verdict": "done",
+   "bucket": "",
    "diag": "",
    "reused": true
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 40,
+   "line": 39,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "④其它",
    "diag": "",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(And.right (¬ (b ∈ f '' C2)) hb)",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $13) $2) (((Set.sdiff.[] $13) $11) ((((Set.image.[] $14) $13) $10) $7)))`"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 68,
+   "line": 67,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "④其它",
    "diag": "",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(And.right (¬ (x ∈ g '' B)) hx)",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $10) $4) (((Set.sdiff.[] $10) $8) ((((Set.image.[] $9) $10) $5) $7)))`"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 111,
+   "line": 110,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "④其它",
    "diag": "",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(And.right (¬ (b ∈ f '' (cbC0 α β A B f g))) hb)",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $13) $2) (((Set.sdiff.[] $13) $11) ((((Set.image.[] $14) $13) $10) ((((((cbC0.[] $14) $13) $"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 143,
+   "line": 142,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -316,7 +361,16 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 147,
+   "line": 146,
+   "rule": "Eq.{…}",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 154,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -334,7 +388,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 156,
+   "line": 159,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -343,7 +397,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 160,
+   "line": 162,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -353,15 +407,6 @@
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 163,
-   "rule": "Eq.{…}",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 164,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -2914,7 +2959,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $8) $1) (((Set.inter.[] $8) $5) $4))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
@@ -2996,7 +3042,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $8) $1) (((Set.inter.[] $8) $5) $4))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
@@ -4644,7 +4691,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Pi (α : Sort(1)), Pi (A : (Set.[] $0)), Pi (B : (Set.[] $1)), (((Set.subset.[] $2) $1) (((Set.union.[] $2) $1) $0))`，实际是 `Pi (α : ",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact Or.inl (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `(A ∪ B) x`，实际是 `B x -> Or (B x) hx`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
@@ -4654,7 +4704,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Pi (α : Sort(1)), Pi (A : (Set.[] $0)), Pi (B : (Set.[] $1)), (((Set.subset.[] $2) $0) (((Set.union.[] $2) $1) $0))`，实际是 `Pi (α : ",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact Or.inr (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `(A ∪ B) x`，实际是 `hx -> Or (B x) hx`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
@@ -4664,7 +4717,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `C x`，实际是 `C x`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact h x (Or.inl (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `C x`，实际是 `C x`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
@@ -4674,7 +4730,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `C x`，实际是 `C x`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "exact h x (Or.inr (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `C x`，实际是 `C x`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
@@ -4684,7 +4743,10 @@
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
    "diag": "`exact` 判定失败：`And.left` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> a` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(fun (ha : A x) => And.left x ha)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `C x`，实际是 `C x`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
@@ -4694,7 +4756,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `C x`，实际是 `C x`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(fun (hb : B x) => And.right x hb)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `C x`，实际是 `C x`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -4704,7 +4769,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `(A \\ (B ∪ C)) x`，实际是 `And (Set.mem x A) (Not (Set.mem x (Set.union B C)))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -4714,27 +4780,34 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `(A \\ (B ∪ C)) x`，实际是 `And (Set.mem x A) (Not (Set.mem x (Set.union B C)))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 134,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `(A \\ (B ∪ C)) x`，实际是 `And (Set.mem x A) (Not (Set.mem x (Set.union B C)))`",
-   "reused": true
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "reused": true,
+   "alt": "green",
+   "alt_after": "And.right h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "via_alt": true
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 141,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`exact` 判定失败：`And.right` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> b` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的",
-   "reused": true
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "reused": true,
+   "alt": "green",
+   "alt_after": "And.right h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "via_alt": true
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -4861,7 +4934,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `((Or.[] $3) $2)`，实际是 `((Or.[] $3) $3)`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(fun (hp : P) => h (Or.inl Q hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `$3`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -4871,7 +4947,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `((Or.[] $3) $2)`，实际是 `((Or.[] $2) $2)`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(fun (hq : Q) => h (Or.inr Q hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `$2`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -4881,7 +4960,10 @@
    "verdict": "red",
    "bucket": "④其它",
    "diag": "",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "Or.elim P Q False (fun (hp : P) => (And.left (¬ Q) h) hp)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (Not.[] $4)) (Not.[] $3))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -4891,7 +4973,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (hp : $3), False.[]`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
@@ -5468,7 +5551,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A' : Pi ( : $5), Sort(0)), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -5478,7 +5562,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($4 $1)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -5488,7 +5573,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A' : Pi ( : $6), Sort(0)), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -5498,7 +5584,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($5 $1)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit27-solution.sokonanoda",
@@ -5742,7 +5829,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : Pi ( : $8), Sort(0)), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit29-solution.sokonanoda",
@@ -6373,7 +6461,8 @@
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
    "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
@@ -6383,7 +6472,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($2 $1)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
@@ -6393,7 +6483,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Pi ( : ((((Set.inter.[] $6) $5) $4) $2)), ((((Set.union.[] $7) $5) $4) $3)`，实际是 `Pi (h1 : ((((Set.inter.[] $6) $5) $4) $2)), ((Or.",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(fun (hv : B x) => Or.inl (C x) hv)  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($6 $4)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
@@ -6403,7 +6496,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Pi ( : ((((Set.inter.[] $6) $5) $3) $2)), ((((Set.union.[] $7) $5) $4) $3)`，实际是 `Pi (h2 : ((((Set.inter.[] $6) $5) $3) $2)), ((Or.",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(fun (hv : C x) => Or.inr (C x) hv)  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($5 $4)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
@@ -8555,7 +8651,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $12), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -8565,7 +8662,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($9 $6) $1)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -8575,7 +8673,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (c1 : $11), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -8585,7 +8684,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (c1 : $11), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -8595,7 +8695,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $12), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -8785,7 +8886,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($6 $1)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
@@ -8795,7 +8897,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($6 $1)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
@@ -9174,7 +9277,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $5) (((Prod.fst.[] $5) $4) $1)) $3)) (((Set.mem.[] $4) (((Prod.snd.[] $5) $4) $1)) $2))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -9184,7 +9288,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $5) (((Prod.fst.[] $5) $4) $1)) $3)) (((Set.mem.[] $4) (((Prod.snd.[] $5) $4) $1)) $2))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -9194,7 +9299,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] ((Prod.[] $7) $6)) $2) ((((Set.prod.[] $7) $6) $5) $4))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -9204,7 +9310,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] ((Prod.[] $7) $6)) $2) ((((Set.prod.[] $7) $6) $5) $3))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -9214,7 +9321,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $7) (((Prod.snd.[] $8) $7) $3)) $5)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -9278,7 +9386,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `((Set β) = (f '' (A ∪ B))) ((f '' A) ∪ (f '' B))`，实际是 `Eq (Set.image β f (Set.union A B)) (Set.union (Set.image β f A) (Se",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -9288,7 +9397,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `((Set β) = (f '' (A ∪ B))) ((f '' A) ∪ (f '' B))`，实际是 `Eq (Set.image β f (Set.union A B)) (Set.union (Set.image β f A) (Se",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -9298,7 +9408,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `((Set β) = (f '' (A ∪ B))) ((f '' A) ∪ (f '' B))`，实际是 `Eq (Set.image β f (Set.union A B)) (Set.union (Set.image β f A) (Se",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -9308,7 +9419,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "`exact` 类型不匹配：期望 `((Set β) = (f '' (A ∪ B))) ((f '' A) ∪ (f '' B))`，实际是 `Eq (Set.image β f (Set.union A B)) (Set.union (Set.image β f A) (Se",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -10470,7 +10582,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit101-solution.sokonanoda",
@@ -10567,44 +10680,53 @@
    "line": 36,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "④其它",
+   "verdict": "done",
+   "bucket": "",
    "diag": "",
    "reused": true
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 43,
+   "line": 42,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "④其它",
    "diag": "",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(And.right (¬ (b ∈ f '' C2)) hb)",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $13) $2) (((Set.sdiff.[] $13) $11) ((((Set.image.[] $14) $13) $10) $7)))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 71,
+   "line": 70,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "④其它",
    "diag": "",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(And.right (¬ (x ∈ g '' B)) hx)",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $10) $4) (((Set.sdiff.[] $10) $8) ((((Set.image.[] $9) $10) $5) $7)))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 114,
+   "line": 113,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "④其它",
    "diag": "",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(And.right (¬ (b ∈ f '' (cbC0 α β A B f g))) hb)",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $13) $2) (((Set.sdiff.[] $13) $11) ((((Set.image.[] $14) $13) $10) ((((((cbC0.[] $14) $13) $"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 146,
+   "line": 145,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10613,7 +10735,16 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 150,
+   "line": 149,
+   "rule": "Eq.{…}",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 157,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10631,7 +10762,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 159,
+   "line": 162,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10640,7 +10771,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 163,
+   "line": 165,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10650,15 +10781,6 @@
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 166,
-   "rule": "Eq.{…}",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 167,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10682,7 +10804,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $9) $5) ((((Set.image.[] $10) $9) $8) $7))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
@@ -10692,7 +10815,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $9) $5) ((((Set.image.[] $10) $9) $8) $6))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
@@ -10720,7 +10844,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (D : (Set.[] $6)), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
@@ -10946,7 +11071,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (D : (Set.[] $6)), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
@@ -11028,7 +11154,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (D : (Set.[] $6)), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
@@ -11038,7 +11165,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $6)) $1) $4)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
@@ -11156,7 +11284,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
@@ -11166,7 +11295,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
@@ -11176,7 +11306,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] ((((Set.InjOn.[] $10) $9) $3) $8)) (((((Set.MapsTo.[] $10) $9) $3) $8) $6))`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(And.right (Set.MapsTo α β f A B) hf) x  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] ((((Set.InjOn.[] $10) $9) $3) $8)) (((((Set.MapsTo.[] $10) $9) $3) $8) $6))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -11186,7 +11319,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `((((Set.union.[] $5) $4) $3) $2)`，实际是 `((Or.[] ($4 $2)) ($4 $2))`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(fun (ha : A x) => h (Or.inl (B x) ha))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($4 $2)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -11196,27 +11332,36 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `((((Set.union.[] $5) $4) $3) $2)`，实际是 `((Or.[] ($3 $2)) ($3 $2))`",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(fun (hb : B x) => h (Or.inr (B x) hb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($3 $2)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 54,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`And.left` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> a` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要求。。把参数写全，例如 `",
-   "reused": true
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "reused": true,
+   "alt": "green",
+   "alt_after": "(fun (ha : A x) => And.left h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+   "via_alt": true
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 55,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `((And.[] False.[]) False.[])`，实际是 `($4 $3)`",
-   "reused": true
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "reused": true,
+   "alt": "green",
+   "alt_after": "(fun (hb : B x) => And.right h hb)",
+   "via_alt": true
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -11226,7 +11371,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b2 : $8), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -12916,8 +13062,8 @@
    "line": 37,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "④其它",
+   "verdict": "done",
+   "bucket": "",
    "diag": "",
    "reused": true
   },
@@ -12929,7 +13075,10 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (Not.[] (((Acc.[] $9) $8) $4))) Pi (y : $9), Pi ( : (Not.[] (((Acc.[] $10) $9) $0))), (Not.[] (($10 $1) $6)",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "(And.right (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (Not.[] (((Acc.[] $9) $8) $4))) Pi (y : $9), Pi ( : (Not.[] (((Acc.[] $10) $9) $0))), (Not.[] (($"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -12939,7 +13088,10 @@
    "verdict": "red",
    "bucket": "④其它",
    "diag": "",
-   "reused": true
+   "reused": true,
+   "alt": "red",
+   "alt_after": "((And.right (¬ (E w y)) hw) hwy))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (($9 $2) $8)) (Not.[] (($9 $2) $7)))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit109-solution.sokonanoda",
@@ -14317,7 +14469,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
@@ -14327,7 +14480,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
@@ -14373,7 +14527,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (D : (Set.[] $6)), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
@@ -14383,7 +14538,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $6)) $1) $4)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
@@ -14582,7 +14738,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -14592,7 +14749,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -14674,7 +14832,8 @@
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
    "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : (Set.[] $7)), Sort(0)`",
-   "reused": true
+   "reused": true,
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -14917,7 +15076,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `（值的类型也读不出来，检查它里面的名字）`",
+   "alt": "red",
+   "alt_after": "exact And.right h (And.left a (¬ a) h) -- soko:notation-ok: here And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
+   "alt_diag": "`exact` 类型不匹配：期望 `False`，实际是 `And h (And.left (Not a) h) -> And.left (Not a) h`"
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -14926,7 +15088,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists (Exists Person (fun (x : Person) => Q x)) h -> ((w : Exists Person (fun (x : Person) => Q"
+   "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists (Exists Person (fun (x : Person) => Q x)) h -> ((w : Exists Person (fun (x : Person) => Q",
+   "alt": "red",
+   "alt_after": "exact Exists.elim P (∃ (x : Person), Q x) h -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)",
+   "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `((w : P) -> Exists Person (fun (x : Person) => Q x) w -> h) -> h`"
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -14935,7 +15100,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists Person (fun (x : Person) => Q x)`"
+   "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists Person (fun (x : Person) => Q x)`",
+   "alt": "red",
+   "alt_after": "(fun (w : Person) => fun (hw : P w) => Exists.intro Q w (f w hw)) -- soko:notation-ok: same as above (engine boundary)",
+   "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists Person (fun (x : Person) => Q x)`"
   },
   {
    "file": "course/en/unit8-quantifiers.sokonanoda",
@@ -14944,7 +15112,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Person.[]`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Person.[]`",
+   "alt": "red",
+   "alt_after": "Exists.intro (fun (x : Person) => True) someone True.intro -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (x : Person.[]), Sort(0)`"
   },
   {
    "file": "course/en/unit8-quantifiers.sokonanoda",
@@ -14953,7 +15124,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `((Exists.[] Person.[]) fun (x : Person.[]) => ($2 $0))`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `((Exists.[] Person.[]) fun (x : Person.[]) => ($2 $0))`",
+   "alt": "red",
+   "alt_after": "Exists.elim True h (fun (w : Person) => fun (hw : P w) => True.intro) -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
   },
   {
    "file": "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
@@ -14971,7 +15145,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `（值的类型也读不出来，检查它里面的名字）`",
+   "alt": "red",
+   "alt_after": "exact And.right h (And.left a (¬ a) h) -- soko:notation-ok: And.right 后面还跟着对结果的继续应用（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `False`，实际是 `And h (And.left (Not a) h) -> And.left (Not a) h`"
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -14980,7 +15157,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists (Exists Person (fun (x : Person) => Q x)) h -> ((w : Exists Person (fun (x : Person) => Q"
+   "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists (Exists Person (fun (x : Person) => Q x)) h -> ((w : Exists Person (fun (x : Person) => Q",
+   "alt": "red",
+   "alt_after": "exact Exists.elim P (∃ (x : Person), Q x) h -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `((w : P) -> Exists Person (fun (x : Person) => Q x) w -> h) -> h`"
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -14989,7 +15169,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists Person (fun (x : Person) => Q x)`"
+   "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists Person (fun (x : Person) => Q x)`",
+   "alt": "red",
+   "alt_after": "(fun (w : Person) => fun (hw : P w) => Exists.intro Q w (f w hw)) -- soko:notation-ok: 同上（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists Person (fun (x : Person) => Q x)`"
   },
   {
    "file": "course/unit8-quantifiers.sokonanoda",
@@ -14998,7 +15181,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Person.[]`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Person.[]`",
+   "alt": "red",
+   "alt_after": "Exists.intro (fun (x : Person) => True) someone True.intro -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (x : Person.[]), Sort(0)`"
   },
   {
    "file": "course/unit8-quantifiers.sokonanoda",
@@ -15007,7 +15193,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `((Exists.[] Person.[]) fun (x : Person.[]) => ($2 $0))`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `((Exists.[] Person.[]) fun (x : Person.[]) => ($2 $0))`",
+   "alt": "red",
+   "alt_after": "Exists.elim True h (fun (w : Person) => fun (hw : P w) => True.intro) -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
   },
   {
    "file": "courses/set-theory/gaps/C-04-prop-to-type-control.sokonanoda",
@@ -15025,7 +15214,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Sort(1)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Sort(1)`",
+   "alt": "red",
+   "alt_after": "Or.elim Nat (fun (_ : P) => a) (fun (_ : ¬ P) => b) h  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `Sort(1)`"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-chain-wip.sokonanoda",
@@ -15034,7 +15226,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (n : Nat.[]), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (n : Nat.[]), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-chain-wip.sokonanoda",
@@ -15043,7 +15236,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $7) $2) $5)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $7) $2) $5)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-prop.sokonanoda",
@@ -15074,7 +15268,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 156,
+   "line": 155,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "green",
@@ -15083,7 +15277,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 160,
+   "line": 159,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "green",
@@ -15092,7 +15286,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 164,
+   "line": 163,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "green",
@@ -15101,39 +15295,43 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 187,
+   "line": 186,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $8) ($5 $2)) $6)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $8) ($5 $2)) $6)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 199,
+   "line": 198,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $11) $2) $9)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $11) $2) $9)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 310,
+   "line": 309,
    "rule": "And.right 写全了前导参数（2 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $10) ($5 $3)) (((((((cbK.[] $10) $9) $8) $7) $6) $5) ((((((cbC0.[] $10) $9) $8) $7) $6) $5)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $10) ($5 $3)) (((((((cbK.[] $10) $9) $8) $7) $6) $5) ((((((cbC0.[] $10) $9) $8) $7) $6) $5)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 325,
+   "line": 324,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $9) ($4 $2)) $7)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $9) ($4 $2)) $7)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/lib/Exists.sokonanoda",
@@ -15142,7 +15340,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "④其它",
-   "diag": "unknown identifier `A`"
+   "diag": "unknown identifier `A`",
+   "alt": "red",
+   "alt_after": "def Exists.elim {p : A → Prop} {Q : Prop} (h : Exists A p)  -- soko:notation-ok: `∃` 记法在本文件第 103 行才声明，声明位只能写点名",
+   "alt_diag": "unknown identifier `A`"
   },
   {
    "file": "courses/set-theory/lib/Image.sokonanoda",
@@ -15151,7 +15352,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$6`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$6`",
+   "alt": "red",
+   "alt_after": "(And.intro (f x = f x) hx (Eq.refl.{1} β (f x)))))  -- soko:notation-ok: And.intro 短写对 Eq 结果的**应用**（Eq.refl …）仍解不出前导 Prop",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($4 $1)`"
   },
   {
    "file": "courses/set-theory/lib/Order.sokonanoda",
@@ -15187,7 +15391,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : (Set.[] $5)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : (Set.[] $5)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
@@ -15203,9 +15408,12 @@
    "line": 71,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`exact` 判定失败：`And.right` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> b` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的"
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "alt": "green",
+   "alt_after": "exact And.right hx (And.left (x ∈ A) (¬ (x ∈ A)) hx)  -- soko:notation-ok: 目标经 \\ 展开后期望类型传不到 + And.right 续应用（引擎边界）",
+   "via_alt": true
   },
   {
    "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
@@ -15223,7 +15431,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($2 $1)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($2 $1)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
@@ -15268,7 +15477,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `Not False -> Eq.refl k`"
+   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `Not False -> Eq.refl k`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/I.3/unit10-cantor.sokonanoda",
@@ -15277,7 +15487,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`absurd` 的签名 `{a : Prop} -> {b : Prop} -> (ha : a) -> (hna : Not a) -> b` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要求。。"
+   "diag": "`absurd` 的签名 `{a : Prop} -> {b : Prop} -> (ha : a) -> (hna : Not a) -> b` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要求。。",
+   "alt": "red",
+   "alt_after": "exact absurd False (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x)) (f x x) e hnp) hnp  -- soko:notation-ok: R4：absurd 短写在 exact 里补不出 {a}{b}",
+   "alt_diag": "`exact` 类型不匹配：期望 `False`，实际是 `Not False -> Eq.subst (f x x) e hnp`"
   },
   {
    "file": "courses/set-theory/units/I.3/unit102-subset-antisymm.sokonanoda",
@@ -15295,7 +15508,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/I.3/unit102-subset-antisymm.sokonanoda",
@@ -15367,7 +15581,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/I.3/unit97-equiv-le.sokonanoda",
@@ -15385,7 +15600,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/I.3/unit98-le-mono.sokonanoda",
@@ -15403,7 +15619,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (h : (((Set.mem.[] (Set.[] $2)) $0) ((Pow.[] $2) $1))), (((Set.mem.[] (Set.[] $3)) $1) ((Pow.[] $3) $2))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (h : (((Set.mem.[] (Set.[] $2)) $0) ((Pow.[] $2) $1))), (((Set.mem.[] (Set.[] $3)) $1) ((Pow.[] $3) $2))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/I.4/unit95-diagonal.sokonanoda",
@@ -15430,7 +15647,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`",
+   "alt": "red",
+   "alt_after": "(Iff.mp (x = a) (Set.mem_singleton_iff α x a) hx))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Iff.[] (((Set.mem.[] $5) $1) ((Set.singleton.[] $5) $3))) (((Eq.[1] $5) $1) $3))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
@@ -15439,7 +15659,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Iff.[] (((Set.mem.[] $3) $2) ((Set.singleton.[] $3) $1))) (((Eq.[1] $3) $2) $1))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Iff.[] (((Set.mem.[] $3) $2) ((Set.singleton.[] $3) $1))) (((Eq.[1] $3) $2) $1))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
@@ -15448,7 +15669,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Iff.[] (((Set.mem.[] $5) $1) ((Set.singleton.[] $5) $3))) (((Eq.[1] $5) $1) $3))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Iff.[] (((Set.mem.[] $5) $1) ((Set.singleton.[] $5) $3))) (((Eq.[1] $5) $1) $3))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
@@ -15457,7 +15679,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`",
+   "alt": "red",
+   "alt_after": "(Iff.mp (x = a) (Set.mem_singleton_iff α x a) hx) h))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Iff.[] (((Set.mem.[] $5) $1) ((Set.singleton.[] $5) $4))) (((Eq.[1] $5) $1) $4))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
@@ -15466,7 +15691,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Iff.[] (((Set.mem.[] $5) $1) ((Set.singleton.[] $5) $4))) (((Eq.[1] $5) $1) $4))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Iff.[] (((Set.mem.[] $5) $1) ((Set.singleton.[] $5) $4))) (((Eq.[1] $5) $1) $4))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
@@ -15475,7 +15701,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`",
+   "alt": "red",
+   "alt_after": "(Iff.mp (x = b) (Set.mem_singleton_iff α x b) hx)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Iff.[] (((Set.mem.[] $5) $1) ((Set.singleton.[] $5) $3))) (((Eq.[1] $5) $1) $3))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit02-solution.sokonanoda",
@@ -15484,7 +15713,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit02-solution.sokonanoda",
@@ -15493,7 +15723,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`absurd` 的签名 `{a : Prop} -> {b : Prop} -> (ha : a) -> (hna : Not a) -> b` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要求。。"
+   "diag": "`absurd` 的签名 `{a : Prop} -> {b : Prop} -> (ha : a) -> (hna : Not a) -> b` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要求。。",
+   "alt": "red",
+   "alt_after": "(fun (x : α) (hx : x ∈ A) => absurd (x ∈ ∅) hx (h x))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $4) $1) $3)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit02-solution.sokonanoda",
@@ -15502,7 +15735,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$4`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$4`",
+   "alt": "red",
+   "alt_after": "(h a (Or.inl (a = b) (Eq.refl.{1} α a)))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Eq.[1] $4) $3) $3)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit02-solution.sokonanoda",
@@ -15511,7 +15747,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$4`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$4`",
+   "alt": "red",
+   "alt_after": "(h b (Or.inr (b = b) (Eq.refl.{1} α b))))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Eq.[1] $4) $2) $2)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
@@ -15520,7 +15759,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`exact` 判定失败：`And.left` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> a` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要"
+   "diag": "`exact` 判定失败：`And.left` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> a` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要",
+   "alt": "red",
+   "alt_after": "(And.left x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `(B ∩ C) x`，实际是 `And (And x hx -> x) (C x)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
@@ -15529,7 +15771,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `(B ∩ C) x`，实际是 `And (B x) (B x)`"
+   "diag": "`exact` 类型不匹配：期望 `(B ∩ C) x`，实际是 `And (B x) (B x)`",
+   "alt": "red",
+   "alt_after": "(And.right x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `(B ∩ C) x`，实际是 `And (B x) (And x hx -> hx)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
@@ -15538,7 +15783,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `Set.empty a`"
+   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `Set.empty a`",
+   "alt": "red",
+   "alt_after": "(hsub a (Or.inl (a ∈ ∅) (Set.mem_univ α a)))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `False`，实际是 `Set.empty a`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -15556,16 +15804,22 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `((A \\ B) \\ C) x`，实际是 `And (And (Set.mem x A) (Not (Set.mem x B))) (Not (Set.mem x C))`"
+   "diag": "`exact` 类型不匹配：期望 `((A \\ B) \\ C) x`，实际是 `And (And (Set.mem x A) (Not (Set.mem x B))) (Not (Set.mem x C))`",
+   "alt": "red",
+   "alt_after": "And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inl (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `((A \\ B) \\ C) x`，实际是 `And (And (Set.mem x A) (Not (Set.mem x B))) (Not (Set.mem x C))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 143,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`exact` 判定失败：`And.right` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> b` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的"
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "alt": "green",
+   "alt_after": "And.right h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "via_alt": true
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -15574,7 +15828,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `((A \\ B) \\ C) x`，实际是 `And (And (Set.mem x A) (Not (Set.mem x B))) (Not (Set.mem x C))`"
+   "diag": "`exact` 类型不匹配：期望 `((A \\ B) \\ C) x`，实际是 `And (And (Set.mem x A) (Not (Set.mem x B))) (Not (Set.mem x C))`",
+   "alt": "red",
+   "alt_after": "And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inr (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `((A \\ B) \\ C) x`，实际是 `And (And (Set.mem x A) (Not (Set.mem x B))) (Not (Set.mem x C))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -15619,7 +15876,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Pi ( : $2), ((Or.[] (Not.[] $3)) $2)`，实际是 `Pi (hp : $2), ((Or.[] $2) $2)`"
+   "diag": "类型不匹配：期望 `Pi ( : $2), ((Or.[] (Not.[] $3)) $2)`，实际是 `Pi (hp : $2), ((Or.[] $2) $2)`",
+   "alt": "red",
+   "alt_after": "em_cases P (¬ P ∨ Q) (fun (hp : P) => Or.inr Q (h hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `$2`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -15628,7 +15888,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Pi ( : (Not.[] $2)), ((Or.[] (Not.[] $3)) $2)`，实际是 `Pi (hnp : (Not.[] $2)), ((Or.[] (Not.[] $3)) (Not.[] $3))`"
+   "diag": "类型不匹配：期望 `Pi ( : (Not.[] $2)), ((Or.[] (Not.[] $3)) $2)`，实际是 `Pi (hnp : (Not.[] $2)), ((Or.[] (Not.[] $3)) (Not.[] $3))`",
+   "alt": "red",
+   "alt_after": "(fun (hnp : ¬ P) => Or.inl Q hnp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(Not.[] $3)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -15637,7 +15900,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (hnp : (Not.[] $3)), $3`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (hnp : (Not.[] $3)), $3`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -15664,7 +15928,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Pi ( : $2), ((Or.[] (Not.[] $3)) (Not.[] $2))`，实际是 `Pi (hp : $2), ((Or.[] Pi ( : $2), False.[]) Pi ( : $2), False.[])`"
+   "diag": "类型不匹配：期望 `Pi ( : $2), ((Or.[] (Not.[] $3)) (Not.[] $2))`，实际是 `Pi (hp : $2), ((Or.[] Pi ( : $2), False.[]) Pi ( : $2), False.[])`",
+   "alt": "red",
+   "alt_after": "em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) => Or.inr (¬ Q) (fun (hq : Q) => h (And.intro P Q hp hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (hq : $2), False.[]`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -15673,7 +15940,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Pi ( : (Not.[] $2)), ((Or.[] (Not.[] $3)) (Not.[] $2))`，实际是 `Pi (hnp : (Not.[] $2)), ((Or.[] (Not.[] $3)) (Not.[] $3))`"
+   "diag": "类型不匹配：期望 `Pi ( : (Not.[] $2)), ((Or.[] (Not.[] $3)) (Not.[] $2))`，实际是 `Pi (hnp : (Not.[] $2)), ((Or.[] (Not.[] $3)) (Not.[] $3))`",
+   "alt": "red",
+   "alt_after": "(fun (hnp : ¬ P) => Or.inl (¬ Q) hnp)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(Not.[] $3)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -15682,7 +15952,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
@@ -15709,7 +15980,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $4) $2) $3)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $4) $2) $3)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
@@ -15754,7 +16026,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
@@ -15763,7 +16036,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
@@ -15772,7 +16046,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $3) $1) $2)) (((Set.mem.[] $3) $1) ((Set.compl.[] $3) $2)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $3) $1) $2)) (((Set.mem.[] $3) $1) ((Set.compl.[] $3) $2)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
@@ -15781,7 +16056,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $3) $1) $2)) (((Set.mem.[] $3) $1) ((Set.compl.[] $3) $2)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $3) $1) $2)) (((Set.mem.[] $3) $1) ((Set.compl.[] $3) $2)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
@@ -15790,7 +16066,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $4) $2) $3)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $4) $2) $3)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
@@ -15799,7 +16076,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $3) $1) $2)) (((Set.mem.[] $3) $1) (Set.univ.[] $3)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $3) $1) $2)) (((Set.mem.[] $3) $1) (Set.univ.[] $3)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
@@ -15817,7 +16095,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit62-solution.sokonanoda",
@@ -15844,7 +16123,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
@@ -15853,7 +16133,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
@@ -15880,7 +16161,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
@@ -15889,7 +16171,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
@@ -15907,7 +16190,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
@@ -15916,7 +16200,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
@@ -15934,7 +16219,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
@@ -15943,7 +16229,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (Not.[] (((Set.mem.[] $4) $1) $2)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
@@ -15988,7 +16275,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit66-solution.sokonanoda",
@@ -15997,7 +16285,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
@@ -16024,7 +16313,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$2`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$2`",
+   "alt": "red",
+   "alt_after": "Or.inr (Eq.{1} α a a) (Eq.refl.{1} α a)  -- soko:notation-ok: G-73 形状 ③：`=` 的记法在这个位置解不出宇宙层级，必须点名声明星",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Eq.[1] $2) $0) $0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
@@ -16060,7 +16352,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A' : Pi ( : $12), Sort(0)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A' : Pi ( : $12), Sort(0)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16069,7 +16362,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($11 $4)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($11 $4)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16078,7 +16372,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($4 $9)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($4 $9)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16096,7 +16391,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (B : α → Prop) => P B ∧ B a ∧ B c) (A c) h  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : Pi ( : $8), Sort(0)), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16114,7 +16412,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : Pi ( : $8), Sort(0)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : Pi ( : $8), Sort(0)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16141,7 +16440,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : Pi ( : $10), Sort(0)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : Pi ( : $10), Sort(0)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16168,7 +16468,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : Pi ( : $6), Sort(0)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : Pi ( : $6), Sort(0)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16177,7 +16478,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : Pi ( : $8), Sort(0)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : Pi ( : $8), Sort(0)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16258,7 +16560,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : Pi ( : $3), Sort(0)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : Pi ( : $3), Sort(0)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
@@ -16609,7 +16912,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `((Or.[] ($4 $2)) ($3 $2))`，实际是 `((Or.[] ($4 $2)) ($4 $2))`"
+   "diag": "类型不匹配：期望 `((Or.[] ($4 $2)) ($3 $2))`，实际是 `((Or.[] ($4 $2)) ($4 $2))`",
+   "alt": "red",
+   "alt_after": "(fun (ha : A x) => h (Or.inl (B x) ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($4 $2)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
@@ -16618,7 +16924,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `((Or.[] ($4 $2)) ($3 $2))`，实际是 `((Or.[] ($3 $2)) ($3 $2))`"
+   "diag": "类型不匹配：期望 `((Or.[] ($4 $2)) ($3 $2))`，实际是 `((Or.[] ($3 $2)) ($3 $2))`",
+   "alt": "red",
+   "alt_after": "(fun (hb : B x) => h (Or.inr (B x) hb)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($3 $2)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
@@ -16627,7 +16936,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Pi ( : ($4 $2)), (Not.[] ($5 $3))`，实际是 `(Not.[] ($4 $2))`"
+   "diag": "类型不匹配：期望 `Pi ( : ($4 $2)), (Not.[] ($5 $3))`，实际是 `(Not.[] ($4 $2))`",
+   "alt": "red",
+   "alt_after": "Or.elim False (And.left h) (And.right h) hab))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(Not.[] ($4 $2))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
@@ -16663,7 +16975,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit30-solution.sokonanoda",
@@ -16672,7 +16985,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit30-solution.sokonanoda",
@@ -16681,7 +16995,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit30-solution.sokonanoda",
@@ -16690,7 +17005,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit31-solution.sokonanoda",
@@ -16699,7 +17015,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$12`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$12`",
+   "alt": "red",
+   "alt_after": "(And.intro (Eq.{1} β (f a) (f a)) ha (Eq.refl.{1} β (f a))))) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($7 $2)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit32-solution.sokonanoda",
@@ -16708,7 +17027,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$8`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$8`",
+   "alt": "red",
+   "alt_after": "f (And.intro (Eq.{1} β (f a) (f a)) hf (Eq.refl.{1} β (f a)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($6 $3)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit32-solution.sokonanoda",
@@ -16717,7 +17039,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (f1 : α → β) => F f1 ∧ Eq.{1} β (f1 a) y) (r y (g a)) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (f1 : Pi ( : $10), $10), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit32-solution.sokonanoda",
@@ -16726,7 +17051,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$8`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$8`",
+   "alt": "red",
+   "alt_after": "f (And.intro (Eq.{1} β (f a) (f a)) hf (Eq.refl.{1} β (f a)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($6 $3)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit32-solution.sokonanoda",
@@ -16735,7 +17063,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (f1 : α → β) => F f1 ∧ Eq.{1} β (f1 a) y) (r (g a) y) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (f1 : Pi ( : $10), $10), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
@@ -16771,7 +17102,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
@@ -16780,7 +17112,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] ((Set.univ.[] $3) $1)) (Not.[] ($2 $1)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] ((Set.univ.[] $3) $1)) (Not.[] ($2 $1)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
@@ -16906,7 +17239,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Pi ( : (((Set.mem.[] (Set.[] $4)) $1) ((Set.powerset.[] $4) $3))), (((Set.subset.[] $5) $2) (((Set.union.[] $5) $4) $3))`，实际是 `Pi "
+   "diag": "类型不匹配：期望 `Pi ( : (((Set.mem.[] (Set.[] $4)) $1) ((Set.powerset.[] $4) $3))), (((Set.subset.[] $5) $2) (((Set.union.[] $5) $4) $3))`，实际是 `Pi ",
+   "alt": "red",
+   "alt_after": "Or.inl (B x) ((fun (hu : ∀ (y : α), C y → A y) => hu x hx) hA))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($6 $1)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit33-solution.sokonanoda",
@@ -16915,7 +17251,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Pi ( : (((Set.mem.[] (Set.[] $4)) $1) ((Set.powerset.[] $4) $2))), (((Set.subset.[] $5) $2) (((Set.union.[] $5) $4) $3))`，实际是 `Pi "
+   "diag": "类型不匹配：期望 `Pi ( : (((Set.mem.[] (Set.[] $4)) $1) ((Set.powerset.[] $4) $2))), (((Set.subset.[] $5) $2) (((Set.union.[] $5) $4) $3))`，实际是 `Pi ",
+   "alt": "red",
+   "alt_after": "Or.inr (B x) ((fun (hu : ∀ (y : α), C y → B y) => hu x hx) hB))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($5 $1)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
@@ -16924,7 +17263,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : (Set.[] $3)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : (Set.[] $3)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
@@ -16969,7 +17309,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
@@ -16978,7 +17319,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $4) $1) $3)) (((Set.mem.[] $4) $1) $2))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
@@ -16987,7 +17329,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $9) $2) $8)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $9) $2) $8)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
@@ -16996,7 +17339,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $9) $2) $7)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $9) $2) $7)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17014,7 +17358,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $8), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $8), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17032,7 +17377,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $8), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $8), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17050,7 +17396,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $10), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $10), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17068,7 +17415,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $10), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $10), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17086,7 +17434,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (a1 : A) => (idRel A) a a1 ∧ r a1 b) (r a b) h  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (a1 : $5), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17095,7 +17446,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (a1 : $5), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (a1 : $5), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17104,7 +17456,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`",
+   "alt": "red",
+   "alt_after": "(And.intro (r a b) (Eq.refl.{1} A a) h)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Eq.[1] $5) $2) $2)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17113,7 +17468,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (b1 : B) => r a b1 ∧ (idRel B) b1 b) (r a b) h  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $4), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17122,7 +17480,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $4), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $4), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17131,7 +17490,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$4`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$4`",
+   "alt": "red",
+   "alt_after": "(And.intro ((idRel B) b b) h (Eq.refl.{1} B b))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($3 $2) $1)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17140,7 +17502,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $8), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $8), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17158,7 +17521,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $8), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b1 : $8), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17221,7 +17585,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$3`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$3`",
+   "alt": "red",
+   "alt_after": "(And.intro ((idRel α) b b) h (Eq.refl.{1} α b))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `($2 $1)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
@@ -17248,7 +17615,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($2 $1)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($2 $1)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit41-solution.sokonanoda",
@@ -17257,7 +17625,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($4 $1)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($4 $1)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit41-solution.sokonanoda",
@@ -17266,7 +17635,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($3 $1)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `($3 $1)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit45-solution.sokonanoda",
@@ -17293,7 +17663,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`exact` 判定失败：`Or.inl` 的签名 `(A : Prop) -> (B : Prop) -> (a : A) -> Or A B` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要求。。"
+   "diag": "`exact` 判定失败：`Or.inl` 的签名 `(A : Prop) -> (B : Prop) -> (a : A) -> Or A B` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要求。。",
+   "alt": "red",
+   "alt_after": "exact Or.inl (x = {a, b}) h1  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）",
+   "alt_diag": "`exact` 类型不匹配：期望 `({{a}, {a, b}}) x`，实际是 `Eq x (Set.pair a b) -> Or (Eq x (Set.pair a b)) h1`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda",
@@ -17302,7 +17675,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `(Reflexive Nat nearStep) ∧ ((Symmetric Nat nearStep) ∧ (¬ (Transitive Nat nearStep)))`，实际是 `And (Reflexive Nat nearStep) ("
+   "diag": "`exact` 类型不匹配：期望 `(Reflexive Nat nearStep) ∧ ((Symmetric Nat nearStep) ∧ (¬ (Transitive Nat nearStep)))`，实际是 `And (Reflexive Nat nearStep) (",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda",
@@ -17311,7 +17685,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `(Reflexive Nat nearStep) ∧ ((Symmetric Nat nearStep) ∧ (¬ (Transitive Nat nearStep)))`，实际是 `And (Reflexive Nat nearStep) ("
+   "diag": "`exact` 类型不匹配：期望 `(Reflexive Nat nearStep) ∧ ((Symmetric Nat nearStep) ∧ (¬ (Transitive Nat nearStep)))`，实际是 `And (Reflexive Nat nearStep) (",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda",
@@ -17320,7 +17695,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `(Reflexive Nat nearStep) ∧ ((Symmetric Nat nearStep) ∧ (¬ (Transitive Nat nearStep)))`，实际是 `And (Reflexive Nat nearStep) ("
+   "diag": "`exact` 类型不匹配：期望 `(Reflexive Nat nearStep) ∧ ((Symmetric Nat nearStep) ∧ (¬ (Transitive Nat nearStep)))`，实际是 `And (Reflexive Nat nearStep) (",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda",
@@ -17329,7 +17705,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `(Reflexive Nat nearStep) ∧ ((Symmetric Nat nearStep) ∧ (¬ (Transitive Nat nearStep)))`，实际是 `And (Reflexive Nat nearStep) ("
+   "diag": "`exact` 类型不匹配：期望 `(Reflexive Nat nearStep) ∧ ((Symmetric Nat nearStep) ∧ (¬ (Transitive Nat nearStep)))`，实际是 `And (Reflexive Nat nearStep) (",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
@@ -17338,7 +17715,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`exact` 判定失败：`And.left` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> a` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要"
+   "diag": "`exact` 判定失败：`And.left` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> a` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实参的类型与期望类型对同一个参数给出了**不一致**的要",
+   "alt": "red",
+   "alt_after": "exact And.left x (hg (f x))  -- soko:notation-ok: R1：hb 的合取藏在 Bijective 定义后",
+   "alt_diag": "`exact` 类型不匹配：期望 `(g (f x)) = x`，实际是 `And x (hg (f x)) -> x`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
@@ -17365,7 +17745,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`have hbad` 判定失败：`Exists.intro` 的签名 `(A : Type) -> (p : A -> Prop) -> (w : A) -> (h : p w) -> Exists A p` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后"
+   "diag": "`have hbad` 判定失败：`Exists.intro` 的签名 `(A : Type) -> (p : A -> Prop) -> (w : A) -> (h : p w) -> Exists A p` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后",
+   "alt": "red",
+   "alt_after": "Exists.intro (fun (y : Set Nat) => x = y) x (Eq.refl.{1} (Set Nat) x))  -- soko:notation-ok: R1：目标藏在 hpre 的 ∀ 后，短写补不出",
+   "alt_diag": "`have hbad` 的值类型不匹配：期望 `∃ (y : Set Nat), (x : Set Nat) → x = y`，实际是 `Exists (Set Nat) (fun (y : Set Nat) => (x : Set Nat) -> Eq x "
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
@@ -17374,7 +17757,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `Exists False hbad -> ((w : False) -> hbad w -> fun (y : Set Nat) (hy : (x : Set Nat) -> Eq x y) => Set.notMem_"
+   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `Exists False hbad -> ((w : False) -> hbad w -> fun (y : Set Nat) (hy : (x : Set Nat) -> Eq x y) => Set.notMem_",
+   "alt": "red",
+   "alt_after": "exact Exists.elim (fun (y : Set Nat) => ∀ (x : Set Nat), x = y) False hbad",
+   "alt_diag": "`exact` 类型不匹配：期望 `False`，实际是 `((w : fun (y : Set Nat) => (x : Set Nat) -> Eq x y) -> False w -> hbad) -> hbad`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -17383,7 +17769,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $7) (((Prod.snd.[] $8) $7) $3)) $4)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $7) (((Prod.snd.[] $8) $7) $3)) $4)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -17392,7 +17779,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $6) (((Prod.snd.[] $7) $6) $2)) $4)) (((Set.mem.[] $6) (((Prod.snd.[] $7) $6) $2)) $3))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $6) (((Prod.snd.[] $7) $6) $2)) $4)) (((Set.mem.[] $6) (((Prod.snd.[] $7) $6) $2)) $3))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -17401,7 +17789,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $6) (((Prod.snd.[] $7) $6) $2)) $4)) (((Set.mem.[] $6) (((Prod.snd.[] $7) $6) $2)) $3))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] $6) (((Prod.snd.[] $7) $6) $2)) $4)) (((Set.mem.[] $6) (((Prod.snd.[] $7) $6) $2)) $3))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -17410,7 +17799,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] ((Prod.[] $6) $5)) $1) ((((Set.prod.[] $6) $5) $4) $3))) (((Set.mem.[] ((Prod.[] $6) $5)) $1)"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] ((Prod.[] $6) $5)) $1) ((((Set.prod.[] $6) $5) $4) $3))) (((Set.mem.[] ((Prod.[] $6) $5)) $1)",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -17419,7 +17809,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] ((Prod.[] $7) $6)) $2) ((((Set.prod.[] $7) $6) $5) $4))) (((Set.mem.[] ((Prod.[] $7) $6)) $2)"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] ((Prod.[] $7) $6)) $2) ((((Set.prod.[] $7) $6) $5) $4))) (((Set.mem.[] ((Prod.[] $7) $6)) $2)",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
@@ -17428,7 +17819,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] ((Prod.[] $7) $6)) $2) ((((Set.prod.[] $7) $6) $5) $4))) (((Set.mem.[] ((Prod.[] $7) $6)) $2)"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Set.mem.[] ((Prod.[] $7) $6)) $2) ((((Set.prod.[] $7) $6) $5) $4))) (((Set.mem.[] ((Prod.[] $7) $6)) $2)",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17509,7 +17901,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `((f '' A) ∩ (f '' B)) y`，实际是 `And (Set.mem y (Set.image β f A)) (Set.mem y (Set.image β f B))`"
+   "diag": "`exact` 类型不匹配：期望 `((f '' A) ∩ (f '' B)) y`，实际是 `And (Set.mem y (Set.image β f A)) (Set.mem y (Set.image β f B))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17536,7 +17929,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `((f '' A) ∩ (f '' B)) y`，实际是 `And (Set.mem y (Set.image β f A)) (Set.mem y (Set.image β f B))`"
+   "diag": "`exact` 类型不匹配：期望 `((f '' A) ∩ (f '' B)) y`，实际是 `And (Set.mem y (Set.image β f A)) (Set.mem y (Set.image β f B))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17563,7 +17957,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `bb ∈ U01`，实际是 `Or (Eq Two.bb) (Eq Two.bb)`"
+   "diag": "`exact` 类型不匹配：期望 `bb ∈ U01`，实际是 `Or (Eq Two.bb) (Eq Two.bb)`",
+   "alt": "red",
+   "alt_after": "exact Or.inr (bb = bb) (Eq.refl.{1} Two bb)",
+   "alt_diag": "`exact` 类型不匹配：期望 `bb ∈ U01`，实际是 `Eq.refl Two.bb -> Or (Eq Two.bb Two.bb) (Eq.refl Two.bb)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17581,7 +17978,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `y = aa`，实际是 `Exists (Eq y Two.aa) hy -> ((w : Eq y Two.aa) -> hy w -> fun (x : Two) (hx : Eq (f1 x) y) => Eq.trans (f1 x) "
+   "diag": "`exact` 类型不匹配：期望 `y = aa`，实际是 `Exists (Eq y Two.aa) hy -> ((w : Eq y Two.aa) -> hy w -> fun (x : Two) (hx : Eq (f1 x) y) => Eq.trans (f1 x) ",
+   "alt": "red",
+   "alt_after": "exact Exists.elim (fun (x : Two) => (f1 x) = y) (y = aa) hy  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+   "alt_diag": "`exact` 类型不匹配：期望 `y = aa`，实际是 `((w : fun (x : Two) => Eq (f1 x) y) -> Eq y Two.aa w -> hy) -> hy`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17590,7 +17990,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `((Set Two) = image_preimage) (f1 '' (f1 ⁻¹' U01))`，实际是 `Eq image_preimage (Set.image f1 (Set.preimage f1 U01))`"
+   "diag": "`exact` 类型不匹配：期望 `((Set Two) = image_preimage) (f1 '' (f1 ⁻¹' U01))`，实际是 `Eq image_preimage (Set.image f1 (Set.preimage f1 U01))`",
+   "alt": "red",
+   "alt_after": "(Or.inl ((f1 x) = bb) (f1_eq_aa x))",
+   "alt_diag": "`exact` 类型不匹配：期望 `((Set Two) = image_preimage) (f1 '' (f1 ⁻¹' U01))`，实际是 `Eq image_preimage (Set.image f1 (Set.preimage f1 U01))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17599,7 +18002,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `((Set Two) = image_preimage) (f1 '' (f1 ⁻¹' U01))`，实际是 `Eq image_preimage (Set.image f1 (Set.preimage f1 U01))`"
+   "diag": "`exact` 类型不匹配：期望 `((Set Two) = image_preimage) (f1 '' (f1 ⁻¹' U01))`，实际是 `Eq image_preimage (Set.image f1 (Set.preimage f1 U01))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17617,7 +18021,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `(f1 '' (f1 ⁻¹' U01)) = image_preimage`，实际是 `Eq (Set.image f1 (Set.preimage f1 U01)) image_preimage`"
+   "diag": "`exact` 类型不匹配：期望 `(f1 '' (f1 ⁻¹' U01)) = image_preimage`，实际是 `Eq (Set.image f1 (Set.preimage f1 U01)) image_preimage`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17635,7 +18040,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `(f1 '' (f1 ⁻¹' U01)) = image_preimage`，实际是 `Eq (Set.image f1 (Set.preimage f1 U01)) image_preimage`"
+   "diag": "`exact` 类型不匹配：期望 `(f1 '' (f1 ⁻¹' U01)) = image_preimage`，实际是 `Eq (Set.image f1 (Set.preimage f1 U01)) image_preimage`",
+   "alt": "red",
+   "alt_after": "(Or.inl ((f1 x) = bb) (f1_eq_aa x))",
+   "alt_diag": "`exact` 类型不匹配：期望 `(f1 '' (f1 ⁻¹' U01)) = image_preimage`，实际是 `Eq (Set.image f1 (Set.preimage f1 U01)) image_preimage`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17662,7 +18070,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "④其它",
-   "diag": "`exact` 判定失败：`congrArg.{1}` 的签名 `{α : Sort u} -> {β : Sort u} -> {a : α} -> {b : α} -> (f : α -> β) -> (h : Eq.{u} α a b) -> Eq.{u} β (f a) "
+   "diag": "`exact` 判定失败：`congrArg.{1}` 的签名 `{α : Sort u} -> {β : Sort u} -> {a : α} -> {b : α} -> (f : α -> β) -> (h : Eq.{u} α a b) -> Eq.{u} β (f a) ",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
@@ -17671,7 +18080,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `A ≈ C`，实际是 `Set.Equiv α γ A C`"
+   "diag": "`exact` 类型不匹配：期望 `A ≈ C`，实际是 `Set.Equiv α γ A C`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
@@ -17680,7 +18090,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "④其它",
-   "diag": "`exact` 判定失败：`congrArg.{1}` 的签名 `{α : Sort u} -> {β : Sort u} -> {a : α} -> {b : α} -> (f : α -> β) -> (h : Eq.{u} α a b) -> Eq.{u} β (f a) "
+   "diag": "`exact` 判定失败：`congrArg.{1}` 的签名 `{α : Sort u} -> {β : Sort u} -> {a : α} -> {b : α} -> (f : α -> β) -> (h : Eq.{u} α a b) -> Eq.{u} β (f a) ",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
@@ -17689,7 +18100,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `A ≈ C`，实际是 `Set.Equiv α γ A C`"
+   "diag": "`exact` 类型不匹配：期望 `A ≈ C`，实际是 `Set.Equiv α γ A C`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
@@ -17797,7 +18209,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
@@ -17815,7 +18228,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
@@ -17833,7 +18247,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((((LeOn.[] $4) $4) $3) $2)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((((LeOn.[] $4) $4) $3) $2)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
@@ -17842,7 +18257,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
@@ -17873,7 +18289,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 159,
+   "line": 158,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "green",
@@ -17882,7 +18298,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 163,
+   "line": 162,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "green",
@@ -17891,7 +18307,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 167,
+   "line": 166,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "green",
@@ -17900,39 +18316,43 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 190,
+   "line": 189,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $8) ($5 $2)) $6)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $8) ($5 $2)) $6)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 202,
+   "line": 201,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $11) $2) $9)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $11) $2) $9)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 313,
+   "line": 312,
    "rule": "And.right 写全了前导参数（2 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $10) ($5 $3)) (((((((cbK.[] $10) $9) $8) $7) $6) $5) ((((((cbC0.[] $10) $9) $8) $7) $6) $5)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $10) ($5 $3)) (((((((cbK.[] $10) $9) $8) $7) $6) $5) ((((((cbC0.[] $10) $9) $8) $7) $6) $5)))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 328,
+   "line": 327,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $9) ($4 $2)) $7)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $9) ($4 $2)) $7)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
@@ -17977,7 +18397,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (D : (Set.[] $10)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (D : (Set.[] $10)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
@@ -17986,7 +18407,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $10)) $1) $7)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $10)) $1) $7)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
@@ -18049,7 +18471,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
@@ -18112,7 +18535,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
@@ -18130,7 +18554,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Pi ( : $6), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
@@ -18184,7 +18609,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (h : (((Set.mem.[] (Set.[] $2)) $0) ((Pow.[] $2) $1))), (((Set.mem.[] (Set.[] $3)) $1) ((Pow.[] $3) $2))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (h : (((Set.mem.[] (Set.[] $2)) $0) ((Pow.[] $2) $1))), (((Set.mem.[] (Set.[] $3)) $1) ((Pow.[] $3) $2))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit11-solution.sokonanoda",
@@ -18193,7 +18619,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `¬ (∃ (U : Set α), (A : Set α) → (A ⊆ U) ∧ (A ≠ U))`，实际是 `Exists (Set α) (fun (U : Set α) => (A : Set α) -> And (Set.subset"
+   "diag": "`exact` 类型不匹配：期望 `¬ (∃ (U : Set α), (A : Set α) → (A ⊆ U) ∧ (A ≠ U))`，实际是 `Exists (Set α) (fun (U : Set α) => (A : Set α) -> And (Set.subset",
+   "alt": "red",
+   "alt_after": "And.right (¬ (U = U)) (hU U)  -- soko:notation-ok: R1：合取藏在 hU 的 ∀ 后，短写补不出",
+   "alt_diag": "`exact` 类型不匹配：期望 `¬ (∃ (U : Set α), (A : Set α) → (A ⊆ U) ∧ (A ≠ U))`，实际是 `Exists (Set α) (fun (U : Set α) => (A : Set α) -> And ("
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -18211,7 +18640,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b2 : $8), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (b2 : $8), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -18418,7 +18848,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$7`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$7`",
+   "alt": "red",
+   "alt_after": "(And.intro (g (f a) = c) (Eq.refl.{1} β (f a)) h))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Eq.[1] $7) ($5 $2)) ($5 $2))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -18481,7 +18914,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((((Set.LeftInvOn.[] $10) $9) $1) $3) $8)) (((((Set.RightInvOn.[] $10) $9) $3) $1) $7))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((((Set.LeftInvOn.[] $10) $9) $1) $3) $8)) (((((Set.RightInvOn.[] $10) $9) $3) $1) $7))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -18490,7 +18924,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((((Set.LeftInvOn.[] $12) $11) $3) $5) $10)) (((((Set.RightInvOn.[] $12) $11) $5) $3) $9))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((((Set.LeftInvOn.[] $12) $11) $3) $5) $10)) (((((Set.RightInvOn.[] $12) $11) $5) $3) $9))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -18508,7 +18943,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((((Set.LeftInvOn.[] $10) (Set.[] $10)) $1) $3) $7)) (((((Set.RightInvOn.[] $10) (Set.[] $10)) $3) $1) ((S"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((((Set.LeftInvOn.[] $10) (Set.[] $10)) $1) $3) $7)) (((((Set.RightInvOn.[] $10) (Set.[] $10)) $3) $1) ((S",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
@@ -18544,7 +18980,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (P : Prop) => (P → ¬ P) ∧ (¬ P → P)) False h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (P : Sort(0)), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
@@ -18571,7 +19010,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$2`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$2`",
+   "alt": "red",
+   "alt_after": "fun (a : α) => (fun (hh : r a a ∨ a = a) => hh) (Or.inr (a = a) (Eq.refl.{1} α a))  -- soko:notation-ok: 等式族证明项的宇宙层级（AGENTS.md 明说的边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Eq.[1] $2) $0) $0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit13-solution.sokonanoda",
@@ -18580,7 +19022,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `((Or.[] (($3 $2) $1)) (((Eq.[1] $4) $2) $1))`，实际是 `((Or.[] (($3 $2) $1)) (($3 $2) $1))`"
+   "diag": "类型不匹配：期望 `((Or.[] (($3 $2) $1)) (((Eq.[1] $4) $2) $1))`，实际是 `((Or.[] (($3 $2) $1)) (($3 $2) $1))`",
+   "alt": "red",
+   "alt_after": "fun (hab : r a b) => (fun (hh : r a b ∨ a = b) => hh) (Or.inl (a = b) hab)  -- soko:notation-ok: G-30：λ 体里构造子补不出前导 Prop 实参，必须写全（AGENTS.md 明说的边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($3 $2) $1)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit13-solution.sokonanoda",
@@ -18589,7 +19034,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `((Or.[] (($3 $2) $1)) (((Eq.[1] $4) $2) $1))`，实际是 `((Or.[] (((Eq.[1] $4) $2) $1)) (((Eq.[1] $4) $2) $1))`"
+   "diag": "类型不匹配：期望 `((Or.[] (($3 $2) $1)) (((Eq.[1] $4) $2) $1))`，实际是 `((Or.[] (((Eq.[1] $4) $2) $1)) (((Eq.[1] $4) $2) $1))`",
+   "alt": "red",
+   "alt_after": "fun (hab : a = b) => (fun (hh : r a b ∨ a = b) => hh) (Or.inr (a = b) hab)  -- soko:notation-ok: G-30：同上",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Eq.[1] $4) $2) $1)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit14-solution.sokonanoda",
@@ -18598,7 +19046,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (k : Nat) => m = f k) False hPm  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Nat.[]), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit14-solution.sokonanoda",
@@ -18607,7 +19058,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Nat.[]), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Nat.[]), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit14-solution.sokonanoda",
@@ -18616,7 +19068,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Nat.[]), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (k : Nat.[]), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit53-solution.sokonanoda",
@@ -18625,7 +19078,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($7 $2) $1)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($7 $2) $1)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit53-solution.sokonanoda",
@@ -18634,7 +19088,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($7 $1) $2)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($7 $1) $2)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit67-solution.sokonanoda",
@@ -18679,7 +19134,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (Not.[] (((Acc.[] $9) $8) $4))) Pi (y : $9), Pi ( : (Not.[] (((Acc.[] $10) $9) $0))), (Not.[] (($10 $1) $6)"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (Not.[] (((Acc.[] $9) $8) $4))) Pi (y : $9), Pi ( : (Not.[] (((Acc.[] $10) $9) $0))), (Not.[] (($10 $1) $6)",
+   "alt": "red",
+   "alt_after": "(And.right (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (Not.[] (((Acc.[] $9) $8) $4))) Pi (y : $9), Pi ( : (Not.[] (((Acc.[] $10) $9) $0))), (Not.[] (($"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
@@ -18751,7 +19209,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($6 $4) $5)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($6 $4) $5)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -18760,7 +19219,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (w : $7), Pi ( : (($7 $0) $6)), (($8 $1) $6)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (w : $7), Pi ( : (($7 $0) $6)), (($8 $1) $6)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -18778,7 +19238,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Or.[] (((Eq.[1] $15) $8) $3)) (($14 $3) $8))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((Or.[] (((Eq.[1] $15) $8) $3)) (($14 $3) $8))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -18796,7 +19257,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($15 $4) $9)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($15 $4) $9)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit110-solution.sokonanoda",
@@ -18805,7 +19267,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (g : Pi ( : $6), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (g : Pi ( : $6), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit110-solution.sokonanoda",
@@ -18823,7 +19286,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `((Or.[] (($10 $9) $9)) (($10 $8) $9))`，实际是 `((Or.[] (($10 $8) $9)) (($10 $8) $9))`"
+   "diag": "类型不匹配：期望 `((Or.[] (($10 $9) $9)) (($10 $8) $9))`，实际是 `((Or.[] (($10 $8) $9)) (($10 $8) $9))`",
+   "alt": "red",
+   "alt_after": "(fun (hnot : ¬ (E a m)) => hnot ham) (hmin a (Or.inr (E b a) hba)))  -- soko:notation-ok: G-30 同族：λ 体里构造子补不出前导 Prop 实参，必须写全",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($10 $8) $9)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit16-solution.sokonanoda",
@@ -18832,7 +19298,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `((Or.[] (($10 $9) $8)) (($10 $8) $8))`，实际是 `((Or.[] (($10 $9) $8)) (($10 $9) $8))`"
+   "diag": "类型不匹配：期望 `((Or.[] (($10 $9) $8)) (($10 $8) $8))`，实际是 `((Or.[] (($10 $9) $8)) (($10 $9) $8))`",
+   "alt": "red",
+   "alt_after": "(fun (hnot : ¬ (E b m)) => hnot hbm) (hmin b (Or.inl (E b b) hab)))  -- soko:notation-ok: G-30 同族（同上）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(($10 $9) $8)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit16-solution.sokonanoda",
@@ -18850,7 +19319,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit42-solution.sokonanoda",
@@ -18859,7 +19329,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$4`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$4`",
+   "alt": "red",
+   "alt_after": "(Or.inl (Eq.{1} α a b) (Eq.refl.{1} α a)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Eq.[1] $4) $1) $1)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit81-solution.sokonanoda",
@@ -18868,7 +19341,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`",
+   "alt": "red",
+   "alt_after": "Iff.mpr hu (Or.inr (y = y) (Eq.refl.{1} α y))) (hy y)  -- soko:notation-ok: `IsSuccOf`/`IsTransitive` 是 def 头（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Eq.[1] $5) $2) $2)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit81-solution.sokonanoda",
@@ -18886,7 +19362,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `$5`",
+   "alt": "red",
+   "alt_after": "Iff.mpr hu (Or.inr (y = y) (Eq.refl.{1} α y))) (hy y)  -- soko:notation-ok: `IsOrdinal`/`IsTransitive` 是 def 头（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Eq.[1] $5) $2) $2)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit83-solution.sokonanoda",
@@ -18895,7 +19374,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Eq.[1] $6) $1) $4)) Pi (w : $6), Pi ( : (((Eq.[1] $7) $0) $5)), (Not.[] (($7 $1) $3)))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Eq.[1] $6) $1) $4)) Pi (w : $6), Pi ( : (((Eq.[1] $7) $0) $5)), (Not.[] (($7 $1) $3)))`",
+   "alt": "red",
+   "alt_after": "(And.right (∀ (w : α), w = x → ¬ (E w m)) hm) x (Eq.refl.{1} α x)  -- soko:notation-ok: `HasMin`/`IsOrdinal`/`IsTransitive` 是 def 头（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((Eq.[1] $6) $1) $4)) Pi (w : $6), Pi ( : (((Eq.[1] $7) $0) $5)), (Not.[] (($7 $1) $3)))`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit83-solution.sokonanoda",
@@ -18922,7 +19404,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (f' : Pi ( : $7), $7), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (f' : Pi ( : $7), $7), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
@@ -18931,7 +19414,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (f' : Pi ( : $5), $5), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (f' : Pi ( : $5), $5), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
@@ -18940,7 +19424,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (g' : Pi ( : $4), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (g' : Pi ( : $4), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
@@ -18949,7 +19434,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (g' : Pi ( : $4), $6), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (g' : Pi ( : $4), $6), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
@@ -18967,7 +19453,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $8) $5) ((Set.sUnion.[] $8) $7))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $8) $5) ((Set.sUnion.[] $8) $7))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
@@ -18976,7 +19463,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $8) $5) ((Set.sUnion.[] $8) $6))`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] $8) $5) ((Set.sUnion.[] $8) $6))`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
@@ -18985,7 +19473,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `(((Set.mem.[] (Set.[] $8)) $2) (((Set.union.[] (Set.[] $8)) $7) $6))`，实际是 `((Or.[] (((Set.mem.[] (Set.[] $8)) $2) $7)) (((Set.mem."
+   "diag": "类型不匹配：期望 `(((Set.mem.[] (Set.[] $8)) $2) (((Set.union.[] (Set.[] $8)) $7) $6))`，实际是 `((Or.[] (((Set.mem.[] (Set.[] $8)) $2) $7)) (((Set.mem.",
+   "alt": "red",
+   "alt_after": "Set.mem_sUnion_intro α (F ∪ G) A x (Or.inl (A ∈ G) hA) hxA))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $8)) $2) $7)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
@@ -18994,7 +19485,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `(((Set.mem.[] (Set.[] $8)) $2) (((Set.union.[] (Set.[] $8)) $7) $6))`，实际是 `((Or.[] (((Set.mem.[] (Set.[] $8)) $2) $6)) (((Set.mem."
+   "diag": "类型不匹配：期望 `(((Set.mem.[] (Set.[] $8)) $2) (((Set.union.[] (Set.[] $8)) $7) $6))`，实际是 `((Or.[] (((Set.mem.[] (Set.[] $8)) $2) $6)) (((Set.mem.",
+   "alt": "red",
+   "alt_after": "Set.mem_sUnion_intro α (F ∪ G) A x (Or.inr (A ∈ G) hA) hxA)) h))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $8)) $2) $6)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
@@ -19003,7 +19497,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `(((Set.subset.[] (Set.[] $2)) $1) (((Set.union.[] (Set.[] $2)) $1) $0))`，实际是 `Pi (A : (Set.[] $2)), Pi (hA : (((Set.mem.[] (Set.[]"
+   "diag": "类型不匹配：期望 `(((Set.subset.[] (Set.[] $2)) $1) (((Set.union.[] (Set.[] $2)) $1) $0))`，实际是 `Pi (A : (Set.[] $2)), Pi (hA : (((Set.mem.[] (Set.[]",
+   "alt": "red",
+   "alt_after": "Or.inl (A ∈ G) hA)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $4)) $1) $3)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
@@ -19012,7 +19509,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `(((Set.subset.[] (Set.[] $2)) $0) (((Set.union.[] (Set.[] $2)) $1) $0))`，实际是 `Pi (A : (Set.[] $2)), Pi (hA : (((Set.mem.[] (Set.[]"
+   "diag": "类型不匹配：期望 `(((Set.subset.[] (Set.[] $2)) $0) (((Set.union.[] (Set.[] $2)) $1) $0))`，实际是 `Pi (A : (Set.[] $2)), Pi (hA : (((Set.mem.[] (Set.[]",
+   "alt": "red",
+   "alt_after": "Or.inr (A ∈ G) hA)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $4)) $1) $2)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
@@ -19021,7 +19521,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `(((Set.mem.[] (Set.[] $7)) $2) (((Set.union.[] (Set.[] $7)) $6) $5))`，实际是 `((Or.[] (((Set.mem.[] (Set.[] $7)) $2) $6)) (((Set.mem."
+   "diag": "类型不匹配：期望 `(((Set.mem.[] (Set.[] $7)) $2) (((Set.union.[] (Set.[] $7)) $6) $5))`，实际是 `((Or.[] (((Set.mem.[] (Set.[] $7)) $2) $6)) (((Set.mem.",
+   "alt": "red",
+   "alt_after": "(fun (hv : ∀ (C : Set α), C ∈ F ∪ G → x ∈ C) => hv B (Or.inl (B ∈ G) hB))  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $7)) $2) $6)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
@@ -19030,7 +19533,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (C : (Set.[] $8)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (C : (Set.[] $8)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
@@ -19075,7 +19579,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (D : (Set.[] $7)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (D : (Set.[] $7)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
@@ -19084,7 +19589,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $7)) $2) $5)`"
+   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $7)) $2) $5)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
@@ -19120,7 +19626,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`And.right` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> b` 里有 2 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `And.right …` 逐位写下来"
+   "diag": "`And.right` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> b` 里有 2 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `And.right …` 逐位写下来",
+   "alt": "red",
+   "alt_after": "(And.right B hB)))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+   "alt_diag": "类型不匹配：期望 `Sort(0)`，实际是 `(Set.[] $7)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -19147,7 +19656,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : (Set.[] $7)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : (Set.[] $7)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -19174,7 +19684,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : (Set.[] $5)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : (Set.[] $5)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -19183,7 +19694,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : (Set.[] $8)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (B : (Set.[] $8)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -19210,7 +19722,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : (Set.[] $2)), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : (Set.[] $2)), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -19228,7 +19741,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.8/unit19-solution.sokonanoda",
@@ -19237,7 +19751,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来"
+   "diag": "`False.elim` 的签名 `{C : Prop} -> (h : False) -> C` 里有 1 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `False.elim …` 逐位写下来",
+   "alt": "no-alt"
   },
   {
    "file": "courses/set-theory/units/solutions/I.9/unit21-solution.sokonanoda",
@@ -19246,7 +19761,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (A : Set α) => A ∈ F ∧ x ∈ A) (x ∈ B) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : (Set.[] $6)), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.9/unit21-solution.sokonanoda",
@@ -19255,7 +19773,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (A : Set α) => A ∈ F ∧ x ∈ A) (x ∈ (⋃₀ G)) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : (Set.[] $6)), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.9/unit21-solution.sokonanoda",
@@ -19264,7 +19785,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (A : Set α) => A ∈ F) (x ∈ (⋃₀ F)) h  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : (Set.[] $4)), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.9/unit21-solution.sokonanoda",
@@ -19273,7 +19797,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+   "alt": "red",
+   "alt_after": "Exists.elim (fun (A : Set α) => (fun (A' : Set α) => False) A ∧ x ∈ A) (x ∈ ∅) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全",
+   "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (A : (Set.[] $3)), Sort(0)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.9/unit23-solution.sokonanoda",
@@ -19291,7 +19818,8 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (f' : Pi ( : $5), $5), Sort(0)`"
+   "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (f' : Pi ( : $5), $5), Sort(0)`",
+   "alt": "no-alt"
   },
   {
    "file": "playground.sokonanoda",
@@ -19309,25 +19837,34 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `And h (And.left (Not a) h) -> And.left (Not a) h`"
+   "diag": "`exact` 类型不匹配：期望 `False`，实际是 `And h (And.left (Not a) h) -> And.left (Not a) h`",
+   "alt": "red",
+   "alt_after": "exact (And.right (¬ a) h) (And.left a (¬ a) h)  -- soko:notation-ok: 链式应用（右半当函数）：省前导参数会被当成写全实参（实测类型不匹配）⇒ 保持写全",
+   "alt_diag": "`exact` 类型不匹配：期望 `False`，实际是 `h`"
   },
   {
    "file": "playground.sokonanoda",
    "line": 329,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`And.left` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> a` 里有 2 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `And.left …` 逐位写下来"
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "alt": "green",
+   "alt_after": "apply And.left h x  -- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
+   "via_alt": true
   },
   {
    "file": "playground.sokonanoda",
    "line": 330,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "red",
-   "bucket": "②前导类型参数/隐式实参补不出",
-   "diag": "`And.right` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> b` 里有 2 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `And.right …` 逐位写下来"
+   "verdict": "green",
+   "bucket": "",
+   "diag": "",
+   "alt": "green",
+   "alt_after": "apply And.right h x  -- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
+   "via_alt": true
   },
   {
    "file": "playground.sokonanoda",
@@ -19336,7 +19873,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), True`，实际是 `forall (w : someone), True.intro w -> Exists someone True.intro`"
+   "diag": "`exact` 类型不匹配：期望 `∃ (x : Person), True`，实际是 `forall (w : someone), True.intro w -> Exists someone True.intro`",
+   "alt": "red",
+   "alt_after": "exact Exists.intro (fun (x : Person) => True) someone True.intro  -- soko:notation-ok: 本画布的 Exists 是显式公理三件套（A/p 写在签名里）⇒ 省前导参数不适用",
+   "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), True`，实际是 `someone True.intro -> Exists (fun (x : Person) => True) someone`"
   },
   {
    "file": "playground.sokonanoda",
@@ -19345,7 +19885,10 @@
    "schema2": true,
    "verdict": "red",
    "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
-   "diag": "`exact` 类型不匹配：期望 `True`，实际是 `(Q : Prop) -> Exists h (fun (w : Person) (hw : P w) => True.intro) -> ((w : h) -> (fun (hw : P w) => True.intro"
+   "diag": "`exact` 类型不匹配：期望 `True`，实际是 `(Q : Prop) -> Exists h (fun (w : Person) (hw : P w) => True.intro) -> ((w : h) -> (fun (hw : P w) => True.intro",
+   "alt": "red",
+   "alt_after": "exact Exists.elim True h (fun (w : Person) => fun (hw : P w) => True.intro)  -- soko:notation-ok: 本画布的 Exists 是显式公理三件套（A/p 写在签名里）⇒ 省前导参数不适用",
+   "alt_diag": "`exact` 类型不匹配：期望 `True`，实际是 `Exists True h -> ((w : True) -> h w -> fun (w : Person) (hw : P w) => True.intro) -> fun (w : Person)"
   }
  ]
 }

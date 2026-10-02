@@ -34,7 +34,7 @@ theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFou
             (wellFounded_hasMin α r hwf (fun (z : α) => ¬ Acc α r z)
               (Exists.intro α (fun (z : α) => ¬ Acc α r z) x hnx)))
           (fun (m : α) (hm : ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) =>
-            (And.left (¬ Acc α r m) (∀ (y : α), ¬ Acc α r y → ¬ (r y m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            (And.left hm)
               (Acc.intro α r m (fun (y : α) (hy : r y m) =>
                 Classical.byContradiction (Acc α r y)
                   (fun (hny : ¬ Acc α r y) =>

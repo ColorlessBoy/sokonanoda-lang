@@ -5,16 +5,19 @@
  "note": "`ready` = 判绿、可直接批量改（删豁免 ✓）；`pending-u1u2` = 桶①（等内核 U1/U2 ✓）；`pending-other` = 桶②/④；`manual` = 点名→中缀（要真改写器 ✓，只给 file:line+rule ✓）",
  "groups": {
   "ready": {
-   "count": 280
+   "count": 292
   },
   "pending-u1u2": {
-   "count": 260
+   "count": 254
   },
   "pending-other": {
-   "count": 40
+   "count": 31
   },
   "manual": {
    "count": 1560
+  },
+  "done": {
+   "count": 3
   }
  },
  "entries": [
@@ -40,19 +43,19 @@
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
-   "group": "pending-u1u2",
+   "group": "ready",
    "before": "have hP : P x := And.left (∀ (y : Person), P y) (∀ (y : Person), Q y) h x -- soko:notation-ok: And.left's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
    "after": "have hP : P x := And.left x-- soko:notation-ok: And.left's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "note": "`have hP` 的值类型不匹配：期望 `P x`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+   "note": ""
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "pending-u1u2",
+   "group": "ready",
    "before": "have hQ : Q x := And.right (∀ (y : Person), P y) (∀ (y : Person), Q y) h x -- soko:notation-ok: And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
    "after": "have hQ : Q x := And.right x-- soko:notation-ok: And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "note": "`have hQ` 的值类型不匹配：期望 `Q x`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+   "note": ""
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -124,19 +127,19 @@
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
-   "group": "pending-u1u2",
+   "group": "ready",
    "before": "have hP : P x := And.left (∀ (y : Person), P y) (∀ (y : Person), Q y) h x -- soko:notation-ok: And.left 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
    "after": "have hP : P x := And.left x-- soko:notation-ok: And.left 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "note": "`have hP` 的值类型不匹配：期望 `P x`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+   "note": ""
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "pending-u1u2",
+   "group": "ready",
    "before": "have hQ : Q x := And.right (∀ (y : Person), P y) (∀ (y : Person), Q y) h x -- soko:notation-ok: And.right 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
    "after": "have hQ : Q x := And.right x-- soko:notation-ok: And.right 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "note": "`have hQ` 的值类型不匹配：期望 `Q x`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+   "note": ""
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -226,14 +229,14 @@
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "pending-other",
-   "before": "(And.right (x ∈ A) (¬ (x ∈ g '' (B \\ f '' C1))) hx)",
-   "after": "(And.right hx)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 40,
+   "line": 39,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "pending-other",
    "before": "(And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)",
@@ -242,7 +245,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 68,
+   "line": 67,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "pending-other",
    "before": "(And.right (x ∈ A) (¬ (x ∈ g '' B)) hx)",
@@ -251,7 +254,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 111,
+   "line": 110,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "pending-other",
    "before": "(And.right (b ∈ B) (¬ (b ∈ f '' (cbC0 α β A B f g))) hb)",
@@ -260,13 +263,19 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 143,
+   "line": 142,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 147,
+   "line": 146,
+   "rule": "Eq.{…}",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 154,
    "rule": "Eq.{…}",
    "group": "manual"
   },
@@ -278,25 +287,19 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 156,
+   "line": 159,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 160,
+   "line": 162,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 163,
-   "rule": "Eq.{…}",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 164,
    "rule": "Eq.{…}",
    "group": "manual"
   },
@@ -3226,19 +3229,19 @@
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 134,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "pending-u1u2",
+   "group": "ready",
    "before": "And.right (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
    "after": "And.right hcx)-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "note": "`exact` 类型不匹配：期望 `(A \\ (B ∪ C)) x`，实际是 `And (Set.mem x A) (Not (Set.mem x (Set.union B C)))`"
+   "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 141,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "pending-other",
+   "group": "ready",
    "before": "And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
    "after": "And.right (Or.inl (x ∈ B) (x ∈ C) hb)))-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "note": "`exact` 判定失败：`And.right` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> b` 里有 2 个**隐式**参数，但补不出来**"
+   "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -7198,14 +7201,14 @@
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 36,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "pending-other",
-   "before": "(And.right (x ∈ A) (¬ (x ∈ g '' (B \\ f '' C1))) hx)",
-   "after": "(And.right hx)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 43,
+   "line": 42,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "pending-other",
    "before": "(And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)",
@@ -7214,7 +7217,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 71,
+   "line": 70,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "pending-other",
    "before": "(And.right (x ∈ A) (¬ (x ∈ g '' B)) hx)",
@@ -7223,7 +7226,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 114,
+   "line": 113,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "pending-other",
    "before": "(And.right (b ∈ B) (¬ (b ∈ f '' (cbC0 α β A B f g))) hb)",
@@ -7232,13 +7235,19 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 146,
+   "line": 145,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 150,
+   "line": 149,
+   "rule": "Eq.{…}",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 157,
    "rule": "Eq.{…}",
    "group": "manual"
   },
@@ -7250,25 +7259,19 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 159,
+   "line": 162,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 163,
+   "line": 165,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 166,
-   "rule": "Eq.{…}",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 167,
    "rule": "Eq.{…}",
    "group": "manual"
   },
@@ -7657,19 +7660,19 @@
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 54,
    "rule": "And.left 写全了前导参数（4 个实参）",
-   "group": "pending-other",
+   "group": "ready",
    "before": "(fun (ha : A x) => And.left (¬ (A x)) (¬ (B x)) h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
    "after": "(fun (ha : A x) => And.left ha)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": "`And.left` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> a` 里有 2 个**隐式**参数，但补不出来**两条线索互相矛盾**：后续实"
+   "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 55,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "pending-u1u2",
+   "group": "ready",
    "before": "(fun (hb : B x) => And.right (¬ (A x)) (¬ (B x)) h hb)",
    "after": "(fun (hb : B x) => And.right hb)",
-   "note": "类型不匹配：期望 `((And.[] False.[]) False.[])`，实际是 `($4 $3)`"
+   "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -8806,10 +8809,10 @@
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 37,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "pending-other",
-   "before": "(And.left (¬ Acc α r m) (∀ (y : α), ¬ Acc α r y → ¬ (r y m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "after": "(And.left hm)-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -10325,7 +10328,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 156,
+   "line": 155,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "ready",
    "before": "And.right (x ∈ C) (Eq.{1} β (f x) y) h",
@@ -10334,7 +10337,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 160,
+   "line": 159,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "group": "ready",
    "before": "And.left (¬ (x ∈ C)) (Eq.{1} α (g y) x) h",
@@ -10343,7 +10346,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 164,
+   "line": 163,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "ready",
    "before": "And.right (¬ (x ∈ C)) (Eq.{1} α (g y) x) h",
@@ -10352,7 +10355,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 187,
+   "line": 186,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
    "before": "(And.intro (f x ∈ B) (cbRel α β (cbC0 α β A B f g) f g x (f x)) (hfB x hx)",
@@ -10361,7 +10364,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 199,
+   "line": 198,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
    "before": "(And.intro (b ∈ B) (cbRel α β (cbC0 α β A B f g) f g x b) hb",
@@ -10370,7 +10373,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 310,
+   "line": 309,
    "rule": "And.right 写全了前导参数（2 个实参）",
    "group": "pending-u1u2",
    "before": "(And.right (g y ∈ A) (¬ (g y ∈ g '' (B \\ f '' (cbC0 α β A B f g))))",
@@ -10379,7 +10382,7 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 325,
+   "line": 324,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
    "before": "(And.intro (g y ∈ A) (cbRel α β (cbC0 α β A B f g) f g (g y) y) (hgA y hy)",
@@ -10453,10 +10456,10 @@
    "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
    "line": 71,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "pending-other",
+   "group": "ready",
    "before": "exact And.right (x ∈ A) (¬ (x ∈ A)) hx (And.left (x ∈ A) (¬ (x ∈ A)) hx)  -- soko:notation-ok: 目标经 \\ 展开后期望类型传不到 + And.right 续应用（引擎边界）",
    "after": "exact And.right (And.left (x ∈ A) (¬ (x ∈ A)) hx)-- soko:notation-ok: 目标经 \\ 展开后期望类型传不到 + And.right 续应用（引擎边界）",
-   "note": "`exact` 判定失败：`And.right` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> b` 里有 2 个**隐式**参数，但补不出来**"
+   "note": ""
   },
   {
    "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
@@ -10813,10 +10816,10 @@
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 143,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "pending-other",
+   "group": "ready",
    "before": "And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
    "after": "And.right (Or.inr (x ∈ B) (x ∈ C) hc))-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "note": "`exact` 判定失败：`And.right` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> b` 里有 2 个**隐式**参数，但补不出来**"
+   "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -13124,7 +13127,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 159,
+   "line": 158,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "ready",
    "before": "And.right (x ∈ C) (Eq.{1} β (f x) y) h",
@@ -13133,7 +13136,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 163,
+   "line": 162,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "group": "ready",
    "before": "And.left (¬ (x ∈ C)) (Eq.{1} α (g y) x) h",
@@ -13142,7 +13145,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 167,
+   "line": 166,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "ready",
    "before": "And.right (¬ (x ∈ C)) (Eq.{1} α (g y) x) h",
@@ -13151,7 +13154,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 190,
+   "line": 189,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
    "before": "(And.intro (f x ∈ B) (cbRel α β (cbC0 α β A B f g) f g x (f x)) (hfB x hx)",
@@ -13160,7 +13163,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 202,
+   "line": 201,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
    "before": "(And.intro (b ∈ B) (cbRel α β (cbC0 α β A B f g) f g x b) hb",
@@ -13169,7 +13172,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 313,
+   "line": 312,
    "rule": "And.right 写全了前导参数（2 个实参）",
    "group": "pending-u1u2",
    "before": "(And.right (g y ∈ A) (¬ (g y ∈ g '' (B \\ f '' (cbC0 α β A B f g))))",
@@ -13178,7 +13181,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 328,
+   "line": 327,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
    "before": "(And.intro (g y ∈ A) (cbRel α β (cbC0 α β A B f g) f g (g y) y) (hgA y hy)",
@@ -14566,19 +14569,19 @@
    "file": "playground.sokonanoda",
    "line": 329,
    "rule": "And.left 写全了前导参数（4 个实参）",
-   "group": "pending-other",
+   "group": "ready",
    "before": "apply And.left (∀ (x : Person), P x) (∀ (x : Person), Q x) h x  -- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
    "after": "apply And.left x-- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
-   "note": "`And.left` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> a` 里有 2 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 "
+   "note": ""
   },
   {
    "file": "playground.sokonanoda",
    "line": 330,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "pending-other",
+   "group": "ready",
    "before": "apply And.right (∀ (x : Person), P x) (∀ (x : Person), Q x) h x  -- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
    "after": "apply And.right x-- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
-   "note": "`And.right` 的签名 `{a : Prop} -> {b : Prop} -> (h : And a b) -> b` 里有 2 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型"
+   "note": ""
   },
   {
    "file": "playground.sokonanoda",
@@ -14603,6 +14606,7 @@
   "ready": "可直接删（判绿 ✓，按文件批量改 + 删 soko:notation-ok ✓）",
   "pending-u1u2": "待内核 U1/U2（桶①：def 应用补不出前导命题 ✓）",
   "pending-other": "待内核（桶② 前导类型参数补不出 / 桶④ 其它 ✓）",
-  "manual": "需手工（点名→中缀：要重构表达式的真改写器 ✗；只给 file:line+rule ✓）"
+  "manual": "需手工（点名→中缀：要重构表达式的真改写器 ✗；只给 file:line+rule ✓）",
+  "done": "已落地（本会话已改写 + 删标记 ✓，不再是候选 ✓）"
  }
 }

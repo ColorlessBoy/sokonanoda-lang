@@ -56,6 +56,11 @@ def main(argv: list[str] | None = None) -> int:
             continue
         lines = f.read_text(encoding="utf-8").splitlines()
         hits = [h for h in nl.census_hits(f) if h["line"] == e["line"] and h["rule"] == e["rule"]]
+        if e["group"] == "done":
+            # `done` = 已落地 ⇒ **必须验它确实不在了** ✓（还在 = 清单没跟上 ⇒ 判红 ✓）
+            if hits:
+                stale.append({"file": e["file"], "line": e["line"], "why": "标 done 但命中仍在"})
+            continue
         if not hits:
             stale.append({"file": e["file"], "line": e["line"], "why": "命中不在（清单过期）"})
             continue
@@ -71,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
                           "stale_sample": stale[:5]}, ensure_ascii=False, indent=2))
         return 0 if ok else 1
     print(f"census-plan（dry-run · 只读 ✓）：清单 {len(plan['entries'])} 条 · 与树不符 {len(stale)} 条")
-    for g in ("ready", "pending-u1u2", "pending-other", "manual"):
+    for g in ("ready", "pending-u1u2", "pending-other", "manual", "done"):
         print(f"  {g:<14} {counts.get(g, 0):>5}  {plan.get('group_labels', {}).get(g, '')}")
     for s in stale[:5]:
         print(f"  ✗ {s['file']}:{s['line']} — {s['why']}")
