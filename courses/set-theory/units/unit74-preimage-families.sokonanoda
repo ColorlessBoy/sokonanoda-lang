@@ -1,0 +1,149 @@
+-- ==========================================================================
+-- unit74-preimage-families.sokonanoda —— 卷 I 单元74 **原像与广义并/交的分配**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.5** · Halmos **§10**。
+-- 大纲 §4.1（**接单元73** —— 那里"像与交只能单向" ✗，这里**原像两侧都成立** ✓，
+--   两片对照就是"像 vs 原像"最本质的差别 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 原像的两条取用子（`x ∈ f ⁻¹' B ⇔ f x ∈ B` ✓）；
+--   · **旗舰一：`x ∈ f ⁻¹' (⋃F) ⇔ ∃A∈F, x ∈ f ⁻¹' A`** ✓（**原像与并交换** ✓）；
+--   · **旗舰二：`x ∈ f ⁻¹' (⋂F) ⇔ ∀A∈F, x ∈ f ⁻¹' A`** ✓（**原像与交也交换** ✓ ——
+--     与单元73 的"像与交只单向"**正好对照** ✓）；
+--
+-- ⚠ **类型要点（本轮实测两处判红换来的 ✓）**：**原像的族住在陪域里** ✓ ——
+--   `f : α → β` 时，族的类型是 **`Set (Set β)`** ✓（`f ⁻¹' A` 要求 `A : Set β` ✓）；
+--   而单元73 的**像**的族住在**定义域**里（`F : Set (Set α)` ✓）。
+--   我把两者混过一次 ✗（报「期望 `Set β`，实际 `Set α`」✓）⇒ 写原像题时先问"族住在哪边" ✓。
+--
+-- ⚠ **拆链纪律** ✓：两条旗舰都拆成**链式小引理**（`…_of_mem` → `…_of_exists` → 打包 ✓），
+--   每条都在两层以内 ⇒ **一次判绿** ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.SUnion` · `lib.Image` · `lib.Order`。
+--
+-- 依赖：单元⑧（像与原像）· 单元㉑（广义并）· 单元㊽（覆盖演算）· 单元73（像的分配）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Image
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.1 三条库引理（原像 · 广义并 · 广义交）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：原像的成员刻画（`x ∈ f ⁻¹' B` 就是 `f x ∈ B`）。
+theorem demo_mem_preimage (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ (f ⁻¹' B) ↔ f x ∈ B :=
+  Set.mem_preimage f B x
+theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  Set.mem_sUnion_iff α F x
+theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  Set.mem_sInter_iff α F x-- 练习 1（T 类）：**进原像**（`f x ∈ B ⇒ x ∈ f ⁻¹' B`）。
+
+-- soko:hint 关键件：`Set.mem_preimage` · `Iff.mpr` ✓
+
+theorem mem_preimage_of_mem (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α)
+    (h : f x ∈ B) : x ∈ (f ⁻¹' B) := by
+  sorry
+-- 练习 2（T 类）：**从原像里取出像点**。
+
+-- soko:hint 关键件：`Set.mem_preimage` · `Iff.mp` ✓
+
+theorem mem_of_mem_preimage (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α)
+    (h : x ∈ (f ⁻¹' B)) : f x ∈ B := by
+  sorry
+-- 练习 3（T 类，**链条环**）：`A ∈ F ⇒ x ∈ A ⇒ x ∈ ⋃F`。
+
+-- soko:hint 关键件：`Set.mem_sUnion_iff` · `Iff.mpr` · `Exists.intro`（**写全前导实参** ✓）
+
+theorem mem_sUnion_of_mem_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ (Set.sUnion α F) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  sorry
+-- 练习 4（T 类，**链条环**）：`x ∈ ⋃F ⇒ ∃A∈F, x ∈ A`。
+
+-- soko:hint 关键件：`Set.mem_sUnion_iff` · `Iff.mp` ✓
+
+theorem exists_mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  sorry
+-- 练习 5（L 类）：`A ∈ F ⇒ x ∈ f ⁻¹' A ⇒ x ∈ f ⁻¹' (⋃F)`。
+
+-- soko:hint ⚠ **族住在陪域**：`F : Set (Set β)` ✓（见画布头 ✓）。
+
+-- soko:hint 关键件：练习 1 / 练习 2 / 练习 3 ✓
+
+theorem mem_preimage_sUnion_of_mem (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set β)) (A : Set β) (x : α) (hA : A ∈ F) (hx : x ∈ (f ⁻¹' A)) :
+    x ∈ (f ⁻¹' (Set.sUnion β F)) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  sorry
+-- 练习 6（L 类）：`(∃A∈F, x ∈ f ⁻¹' A) ⇒ x ∈ f ⁻¹' (⋃F)`。
+
+-- soko:hint 关键件：`Exists.elim` · 练习 5 · `And.left`/`And.right` ✓
+
+theorem mem_preimage_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set β)) (x : α)
+    (h : ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A)) : x ∈ (f ⁻¹' (Set.sUnion β F)) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  sorry
+-- 练习 7（L 类，**反向**）：`x ∈ f ⁻¹' (⋃F) ⇒ ∃A∈F, x ∈ f ⁻¹' A`。
+
+-- soko:hint 关键件：练习 2 · 练习 4 · `Exists.elim`/`Exists.intro` · 练习 1 ✓
+
+theorem mem_of_mem_preimage_sUnion (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set β)) (x : α) (h : x ∈ (f ⁻¹' (Set.sUnion β F))) :  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A) := by
+  sorry
+-- 练习 8（L 类，**旗舰一**）：**原像与并交换**（`↔` ✓）。
+
+-- soko:hint 思路：**一行打包** —— 两个方向就是练习 7 与练习 6 ✓（先拆链、再打包 ✓）。
+
+-- soko:hint 关键件：`Iff.intro`（**两种写法都要** ✓）· 练习 6 / 练习 7 ✓
+
+theorem mem_preimage_sUnion_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set β))
+    (x : α) :
+    x ∈ (f ⁻¹' (Set.sUnion β F)) ↔ ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  sorry
+-- 练习 9（T 类，**链条环**）：`(∀A∈F, x ∈ A) ⇒ x ∈ ⋂F`。
+
+-- soko:hint 关键件：`Set.mem_sInter_iff` · `Iff.mpr` ✓
+
+theorem mem_sInter_of_forall_mem (α : Type) (F : Set (Set α)) (x : α)
+    (h : ∀ (A : Set α), A ∈ F → x ∈ A) : x ∈ (Set.sInter α F) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  sorry
+-- 练习 10（T 类，**链条环**）：`x ∈ ⋂F ⇒ ∀A∈F, x ∈ A`。
+
+-- soko:hint 关键件：`Set.mem_sInter_iff` · `Iff.mp` ✓
+
+theorem forall_mem_of_mem_sInter (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  sorry
+-- 练习 11（L 类）：`(∀A∈F, x ∈ f ⁻¹' A) ⇒ x ∈ f ⁻¹' (⋂F)`。
+
+-- soko:hint 关键件：练习 1 / 练习 2 / 练习 9 ✓
+
+theorem mem_preimage_sInter_of_forall (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set β)) (x : α)
+    (h : ∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A)) : x ∈ (f ⁻¹' (Set.sInter β F)) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  sorry
+-- 练习 12（L 类，**反向**）：`x ∈ f ⁻¹' (⋂F) ⇒ ∀A∈F, x ∈ f ⁻¹' A`。
+
+-- soko:hint 关键件：练习 2 · 练习 10 · 练习 1 ✓
+
+theorem forall_of_mem_preimage_sInter (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set β)) (x : α) (h : x ∈ (f ⁻¹' (Set.sInter β F))) :  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    ∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A) := by
+  sorry
+-- 练习 13（L 类，**旗舰二**）：**原像与交也交换**（`↔` ✓）。
+
+-- soko:hint 教学点：与单元73「像与交**只能单向**」**正好对照** ✓ —— 原像两向都成立 ✓。
+
+-- soko:hint 关键件：`Iff.intro` · 练习 11 / 练习 12 ✓
+
+theorem mem_preimage_sInter_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set β))
+    (x : α) :
+    x ∈ (f ⁻¹' (Set.sInter β F)) ↔ ∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  sorry

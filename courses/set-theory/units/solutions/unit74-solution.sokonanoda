@@ -1,0 +1,100 @@
+import lib.Set
+import lib.SUnion
+import lib.Image
+import lib.Order
+
+theorem demo_mem_preimage (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ (f ⁻¹' B) ↔ f x ∈ B :=
+  Set.mem_preimage f B x
+
+theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  Set.mem_sUnion_iff α F x
+
+theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  Set.mem_sInter_iff α F x
+
+theorem mem_preimage_of_mem (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α)
+    (h : f x ∈ B) : x ∈ (f ⁻¹' B) :=
+  (fun (hu : x ∈ (f ⁻¹' B) ↔ f x ∈ B) => Iff.mpr hu h) (Set.mem_preimage f B x)
+
+theorem mem_of_mem_preimage (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α)
+    (h : x ∈ (f ⁻¹' B)) : f x ∈ B :=
+  (fun (hu : x ∈ (f ⁻¹' B) ↔ f x ∈ B) => Iff.mp hu h) (Set.mem_preimage f B x)
+
+theorem mem_sUnion_of_mem_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ (Set.sUnion α F) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  (fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    Iff.mpr hu (Exists.intro (Set α) (fun (D : Set α) => D ∈ F ∧ x ∈ D) A  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+      (And.intro (A ∈ F) (x ∈ A) hA hx))) (Set.mem_sUnion_iff α F x)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+
+theorem exists_mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  (fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (Set.mem_sUnion_iff α F x)
+
+theorem mem_preimage_sUnion_of_mem (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set β)) (A : Set β) (x : α) (hA : A ∈ F) (hx : x ∈ (f ⁻¹' A)) :
+    x ∈ (f ⁻¹' (Set.sUnion β F)) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  mem_preimage_of_mem α β f (Set.sUnion β F) x  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (mem_sUnion_of_mem_mem β F A (f x) hA (mem_of_mem_preimage α β f A x hx))
+
+theorem mem_preimage_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set β)) (x : α)
+    (h : ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A)) : x ∈ (f ⁻¹' (Set.sUnion β F)) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  Exists.elim (Set β) (fun (A : Set β) => A ∈ F ∧ x ∈ (f ⁻¹' A))
+    (x ∈ (f ⁻¹' (Set.sUnion β F))) h  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (fun (A : Set β) (hA : A ∈ F ∧ x ∈ (f ⁻¹' A)) =>
+      mem_preimage_sUnion_of_mem α β f F A x
+        (And.left (A ∈ F) (x ∈ (f ⁻¹' A)) hA) (And.right (A ∈ F) (x ∈ (f ⁻¹' A)) hA))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+
+theorem mem_of_mem_preimage_sUnion (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set β)) (x : α) (h : x ∈ (f ⁻¹' (Set.sUnion β F))) :  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A) :=
+  Exists.elim (Set β) (fun (A : Set β) => A ∈ F ∧ f x ∈ A)
+    (∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A))
+    (exists_mem_of_mem_sUnion β F (f x) (mem_of_mem_preimage α β f (Set.sUnion β F) x h))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (fun (A : Set β) (hA : A ∈ F ∧ f x ∈ A) =>
+      Exists.intro (Set β) (fun (D : Set β) => D ∈ F ∧ x ∈ (f ⁻¹' D)) A  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+        (And.intro (A ∈ F) (x ∈ (f ⁻¹' A)) (And.left (A ∈ F) (f x ∈ A) hA)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+          (mem_preimage_of_mem α β f A x (And.right (A ∈ F) (f x ∈ A) hA))))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+
+theorem mem_preimage_sUnion_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set β))
+    (x : α) :
+    x ∈ (f ⁻¹' (Set.sUnion β F)) ↔ ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  Iff.intro (x ∈ (f ⁻¹' (Set.sUnion β F))) (∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (mem_of_mem_preimage_sUnion α β f F x)
+    (mem_preimage_sUnion_of_exists α β f F x)
+
+theorem mem_sInter_of_forall_mem (α : Type) (F : Set (Set α)) (x : α)
+    (h : ∀ (A : Set α), A ∈ F → x ∈ A) : x ∈ (Set.sInter α F) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  (fun (hu : x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mpr hu h)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (Set.mem_sInter_iff α F x)
+
+theorem forall_mem_of_mem_sInter (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  (fun (hu : x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (Set.mem_sInter_iff α F x)
+
+theorem mem_preimage_sInter_of_forall (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set β)) (x : α)
+    (h : ∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A)) : x ∈ (f ⁻¹' (Set.sInter β F)) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  mem_preimage_of_mem α β f (Set.sInter β F) x  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (mem_sInter_of_forall_mem β F (f x)
+      (fun (A : Set β) (hA : A ∈ F) => mem_of_mem_preimage α β f A x (h A hA)))
+
+theorem forall_of_mem_preimage_sInter (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set β)) (x : α) (h : x ∈ (f ⁻¹' (Set.sInter β F))) :  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    ∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A) :=
+  fun (A : Set β) (hA : A ∈ F) =>
+    mem_preimage_of_mem α β f A x
+      (forall_mem_of_mem_sInter β F (f x) (mem_of_mem_preimage α β f (Set.sInter β F) x h)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+        A hA)
+
+theorem mem_preimage_sInter_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set β))
+    (x : α) :
+    x ∈ (f ⁻¹' (Set.sInter β F)) ↔ ∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  Iff.intro (x ∈ (f ⁻¹' (Set.sInter β F))) (∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (forall_of_mem_preimage_sInter α β f F x)
+    (mem_preimage_sInter_of_forall α β f F x)
