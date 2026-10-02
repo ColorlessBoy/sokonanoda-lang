@@ -42,23 +42,61 @@ use sokonanoda::builder::EnvBuilder;
 ///
 /// 正确口径 = **与声明卡片同源**：open 声明在调用点直接用 `open_goal` 的 `info`
 /// （顶 ≡ 底 **by construction** ✓）；其余（失败 / 已证）用这里的 λ 前缀版 ✓。
+///
+/// **题面状态**（G-82 兜底，2026-10-03）：声明**源位 λ 链的具名绑元** + 按它们
+/// 剥出的剩余目标 —— 未折记法的**真相文本**（喂 judge 的那一份 ✓）。
+///
+/// 为什么要有这一条：`open_goal` 分解不了值（记法头、超量应用、def 展开间接调用…）
+/// 时，`walk.rs` 原先退回 **空上下文 + 整句声明类型** ✗ —— 有具名绑元的题就变成
+/// 「题目参数忽然跑到目标里去了」，整句判红 ✗（用户 2026-10-02 实测报的 G-82）。
+/// 走查分解不了**不等于**题面没有上下文：题面状态**永远**是"具名绑元进上下文、
+/// 目标只剩剥掉它们之后的命题" ✓。
+///
+/// 与 [`decl_prefix_state`] **同源**（那个 = 这条 + 折一次记法）⇒ 顶 ≡ 底
+/// 在这条兜底路径上也成立 ✓。`val` 必须是**源位**（lowering 之前）的值：lowering
+/// 会给函数型语句补 λ，拿 lowering 之后的值数 λ 链会多剥 ✗。
+fn decl_root_state(ty: &Expr, src_val: &Expr) -> Option<(String, Vec<GoalBinder>)> {
+    let (binders, _) = crate::by::split_by_value(src_val)?;
+    let body = crate::proof::peel_pi_layers(ty, binders.len())?;
+    Some((
+        render_expr(&body),
+        binders
+            .iter()
+            .map(|b| GoalBinder {
+                name: b.name.clone(),
+                ty: b.ty.as_deref().map(render_expr).unwrap_or_default(),
+            })
+            .collect(),
+    ))
+}
+
+/// 题面状态的**显示副本**（折一次记法）：`by_root` / hover 直接渲染它 ✓。
+fn fold_root_state(
+    state: &(String, Vec<GoalBinder>),
+    display: &crate::display::DisplayNotations,
+) -> ByGoalState {
+    let (goal, binders) = state;
+    ByGoalState {
+        ty: display.fold(goal),
+        binders: binders
+            .iter()
+            .map(|b| GoalBinder {
+                name: b.name.clone(),
+                ty: display.fold(&b.ty),
+            })
+            .collect(),
+    }
+}
+
+/// 同 [`decl_root_state`]，但**折一次记法**（显示副本）—— 失败 / 已证声明用。
 fn decl_prefix_state(
     ty: &Expr,
     val: &Expr,
     display: &crate::display::DisplayNotations,
 ) -> Option<ByGoalState> {
-    let (binders, _) = crate::by::split_by_value(val)?;
-    let body = crate::proof::peel_pi_layers(ty, binders.len())?;
-    Some(ByGoalState {
-        ty: display.fold(&render_expr(&body)),
-        binders: binders
-            .iter()
-            .map(|b| GoalBinder {
-                name: b.name.clone(),
-                ty: display.fold(&b.ty.as_deref().map(render_expr).unwrap_or_default()),
-            })
-            .collect(),
-    })
+    decl_root_state(ty, val)
+        .as_ref()
+        .map(|state| fold_root_state(state, display))
 }
 use sokonanoda::env::Declar;
 use sokonanoda::util::ExprPtr;
@@ -913,7 +951,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 return;
             }
         };
-        let by_root = decl_prefix_state(ty, val, &self.display);
+        // **题面状态**（G-82，源位值、未折记法）：`open_goal` 分解不了值时兜底要用它
+        // —— 拿 lowering **之后**的值数 λ 链会多剥 ✗（见 `decl_root_state` 的说明）。
+        // 算**一次**：`by_root` 就是它的显示副本（折叠幂等 ✓）。
+        let src_root = decl_root_state(ty, val);
+        let by_root = src_root
+            .as_ref()
+            .map(|state| fold_root_state(state, &self.display));
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
@@ -966,10 +1010,19 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         let open_info = match open_info {
             Some(info) => Some(info),
             None if expr_has_hole(val) => {
-                // spine 走查无法分解，但值有洞 → generic open exercise
+                // spine 走查无法分解，但值有洞 → generic open exercise。
+                //
+                // ⚠ **不许**退回「空上下文 + 整句声明类型」✗（G-82，2026-10-03）：
+                // 有具名绑元的题会显示成「题目参数忽然跑到目标里去了」、整句判红 ✗
+                // —— 走查分解不了**不等于**题面没有上下文 ✓。至少答题面状态
+                // （具名绑元 + 剥掉它们之后的命题 ✓，与 `by_root` 同源 ⇒ 顶 ≡ 底 ✓）；
+                // 没有 `by` 块（`src_root == None`）时保持原样（那时空上下文本来就是对的 ✓）。
+                let (goal, binders) = src_root
+                    .clone()
+                    .unwrap_or_else(|| (render_expr(ty), Vec::new()));
                 Some(crate::compile::goals::OpenGoalInfo {
-                    goal: render_expr(ty),
-                    binders: Vec::new(),
+                    goal,
+                    binders,
                     holes: vec![val.span()],
                     sub_goals: Vec::new(),
                     refine_template: None,
@@ -1310,7 +1363,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 return;
             }
         };
-        let by_root = decl_prefix_state(ty, val, &self.display);
+        // **题面状态**（G-82，源位值、未折记法）：`open_goal` 分解不了值时兜底要用它
+        // —— 拿 lowering **之后**的值数 λ 链会多剥 ✗（见 `decl_root_state` 的说明）。
+        // 算**一次**：`by_root` 就是它的显示副本（折叠幂等 ✓）。
+        let src_root = decl_root_state(ty, val);
+        let by_root = src_root
+            .as_ref()
+            .map(|state| fold_root_state(state, &self.display));
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
@@ -1348,10 +1407,19 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         let open_info = match open_info {
             Some(info) => Some(info),
             None if expr_has_hole(val) => {
-                // spine 走查无法分解，但值有洞 → generic open exercise
+                // spine 走查无法分解，但值有洞 → generic open exercise。
+                //
+                // ⚠ **不许**退回「空上下文 + 整句声明类型」✗（G-82，2026-10-03）：
+                // 有具名绑元的题会显示成「题目参数忽然跑到目标里去了」、整句判红 ✗
+                // —— 走查分解不了**不等于**题面没有上下文 ✓。至少答题面状态
+                // （具名绑元 + 剥掉它们之后的命题 ✓，与 `by_root` 同源 ⇒ 顶 ≡ 底 ✓）；
+                // 没有 `by` 块（`src_root == None`）时保持原样（那时空上下文本来就是对的 ✓）。
+                let (goal, binders) = src_root
+                    .clone()
+                    .unwrap_or_else(|| (render_expr(ty), Vec::new()));
                 Some(crate::compile::goals::OpenGoalInfo {
-                    goal: render_expr(ty),
-                    binders: Vec::new(),
+                    goal,
+                    binders,
                     holes: vec![val.span()],
                     sub_goals: Vec::new(),
                     refine_template: None,

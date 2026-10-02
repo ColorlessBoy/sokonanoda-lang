@@ -2969,6 +2969,67 @@ fn open_exercise_carries_universe_params() {
     assert!(checked.universe.is_empty());
 }
 
+/// **G-82**：证明体里**有 tactic** 的开放声明，声明卡片必须与 `by sorry` 那条
+/// **同形同值** —— 具名绑元进上下文、目标只剩剥掉它们之后的命题 ✓。
+///
+/// 病根（2026-10-03 定位到**分支**）：`by constructor` 让值位 lowering 成
+/// `λ a b h. And.intro a a ? ?`，而目标 `a ∧ a` 的源 AST 是
+/// `Expr::Notation { target: "And", lhs, rhs }` ⇒ `ctor_spine_case` 用**只认
+/// `Ident`/`App`** 的 `spine_head_args` 拿不到族名 ⇒ 模板查不到 ⇒ `open_goal`
+/// 整条返回 `None` ⇒ `walk.rs` 退回「**空上下文 + 整句声明类型**」✗ ——
+/// 于是 `a`/`b`/`h` 在 `goal_runs` 里全成 `unknown_ident`，整句判红 ✗
+/// （用户 2026-10-02 实测报的正是这个：卡片顶部空白 + 整个句子判红）。
+///
+/// ⚠ 这条断言**必须**同时钉住 goal 与 binders：只钉 goal 会漏掉"目标对了但
+/// 上下文还是空的"那半（G-81 的教训：顶 ≡ 底 可以两边一起错 ✗）。
+#[test]
+fn open_card_peels_named_binders_when_the_body_has_tactics() {
+    let src = "theorem plain (a b : Prop) (h : a) : a ∧ a := by\n  sorry\n\n\
+               theorem with_tactic (a b : Prop) (h : a) : a ∧ a := by\n  constructor\n  sorry\n";
+    let report = check_document(&parse(src).expect("parse"));
+    let card = |name: &str| {
+        report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some(name))
+            .unwrap_or_else(|| panic!("{name}: 声明必须在报告里"))
+    };
+    // 两条声明的**卡片**（上下文 + 目标）必须逐字相同 —— 这就是 G-82 的全部要求。
+    for name in ["plain", "with_tactic"] {
+        let d = card(name);
+        assert_eq!(d.status, DeclStatus::Open, "{name}: 应是开放练习");
+        assert_eq!(
+            d.binders
+                .iter()
+                .map(|b| b.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "b", "h"],
+            "{name}: 卡片的上下文 = 声明的**具名绑元**（按序）"
+        );
+        assert_eq!(
+            d.goal.as_deref(),
+            Some("a ∧ a"),
+            "{name}: 目标只剩剥掉绑元之后的命题（不是整句声明类型）"
+        );
+    }
+    // `by sorry`：整个证明是一个洞，没有子洞表（既有行为，不许变 ✓）。
+    assert_eq!(card("plain").holes.len(), 1, "plain: 整值一个洞");
+    assert!(card("plain").sub_goals.is_empty(), "plain: 无子洞");
+    // `by constructor; sorry`：构造子 spine 的**两个**实参各一个洞，且期望类型
+    // 由目标族的参数给出 —— 这两条正是"真分解了"与"退回兜底（整值 = 一个洞、
+    // 无子洞）"的分水岭 ✓（兜底那条恒给 `vec![val.span()]` + 空 `sub_goals`）。
+    let t = card("with_tactic");
+    assert_eq!(t.holes.len(), 2, "with_tactic: 两个子洞都要在");
+    assert_eq!(
+        t.sub_goals
+            .iter()
+            .filter_map(|s| s.ty.as_deref())
+            .collect::<Vec<_>>(),
+        vec!["a", "a"],
+        "with_tactic: 每个子洞的期望类型 = 目标族的参数"
+    );
+}
+
 #[test]
 fn judge_uses_carried_universe_for_sort_u_goals() {
     // 判定链路端到端：目标引用 Sort u，判定规格必须携带 {u}，

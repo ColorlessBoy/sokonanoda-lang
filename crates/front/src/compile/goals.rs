@@ -45,6 +45,16 @@ struct CtorTemplate {
     binder_names: Vec<String>,
     binder_tys: Vec<Option<Expr>>,
     result_arg_names: Vec<Option<String>>,
+    /// 是否允许 [`refine_template_for`] 拿它生成 refine 骨架。
+    ///
+    /// 为什么单独一个开关（G-82，2026-10-03）：归纳块的构造子模板**原先**
+    /// `result_arg_names` 是空的（族的参数名没记）⇒ `refine_template_for` 的
+    /// `result_arg_names.is_empty()` 守卫把它**一律拒掉** ✗。G-82 要填上那些参数名
+    /// （子洞期望类型要按目标实参代换 ✓），但那会**顺带**把 refine 骨架打开 ——
+    /// 那是**另一条**用户可见面（Infoview 的 refine 代码动作）✗。
+    /// ⇒ 用本字段把 refine **钉回原行为**：只有原本就带 `result_arg_names` 的模板
+    /// （族结果 axiom 视图）才给骨架 ✓；G-82 只修卡片/子洞，不顺带开新面 ✓。
+    refine_skeleton: bool,
 }
 
 /// 目标 walk 的模板索引：
@@ -92,14 +102,17 @@ impl GoalTemplates {
                 for command in &parsed.commands {
                     match command {
                         Command::InductiveBlock {
-                            name, constructors, ..
+                            name,
+                            params,
+                            constructors,
+                            ..
                         } => {
                             if l1_family_of(name).is_none()
                                 || super::prelude::family_yields_by_name(name, &taken)
                             {
                                 continue;
                             }
-                            templates.insert_inductive_block(name, constructors);
+                            templates.insert_inductive_block(name, params, constructors);
                         }
                         Command::Axiom {
                             name, universe, ty, ..
@@ -133,12 +146,15 @@ impl GoalTemplates {
         for command in crate::ast::effective_commands(file) {
             match command {
                 Command::InductiveBlock {
-                    name, constructors, ..
+                    name,
+                    params,
+                    constructors,
+                    ..
                 } => {
                     // `funcs` 同时按源名（`mk`）与规范名（`Pair.mk`）登记；
                     // 裸名歧义时（两个 `ctor mk`）不登记裸名键——那时裸名
                     // 根本不可解析，模板也不该假装能解析（R2）。
-                    templates.insert_inductive_block(name, constructors);
+                    templates.insert_inductive_block(name, params, constructors);
                 }
                 Command::Def {
                     name,
@@ -174,19 +190,21 @@ impl GoalTemplates {
                         if !result_args.is_empty() {
                             let binder_names = binders.iter().map(|(n, _)| n.clone()).collect();
                             let binder_tys = binders.iter().map(|(_, t)| t.clone()).collect();
-                            let result_arg_names = result_args
+                            let result_arg_names: Vec<Option<String>> = result_args
                                 .iter()
                                 .map(|arg| match arg {
                                     Expr::Ident { name, .. } => Some(name.clone()),
                                     _ => None,
                                 })
                                 .collect();
+                            let refine_skeleton = !result_arg_names.is_empty();
                             templates.ctors.entry(head).or_insert(CtorTemplate {
                                 name: name.clone(),
                                 canonical_name: name.clone(),
                                 binder_names,
                                 binder_tys,
                                 result_arg_names,
+                                refine_skeleton,
                             });
                         }
                     }
@@ -203,7 +221,21 @@ impl GoalTemplates {
 
     /// 归纳块 → `ctors`/`funcs` 两个索引（与 `new_for` 里 `Command::InductiveBlock`
     /// 分支逐字同规则）。抽出来是因为 L1 prelude 的 `And`/`Or` 也要走它。
-    fn insert_inductive_block(&mut self, name: &str, constructors: &[crate::CtorDecl]) {
+    ///
+    /// `params` = **归纳族自己的参数**（`inductive And (a b : Prop)` 的 `a`/`b`）。
+    /// 它同时是构造子结果 `And a b` 里的实参名 ⇒ 记进 `result_arg_names` ✓，
+    /// 于是构造子字段的**书写类型**（`hb : b`）能按目标实参代换
+    /// （目标 `And P Q` ⇒ 第二个字段的期望类型是 `Q` 而不是字面 `b`）——
+    /// `field_type_text`/`template_arg` 早就按这个字段代换，只是归纳块这条
+    /// 路径一直没填它 ✗（G-82，2026-10-03：不填 ⇒ 子洞期望类型是族的形参名 ✗）。
+    fn insert_inductive_block(
+        &mut self,
+        name: &str,
+        params: &[crate::Binder],
+        constructors: &[crate::CtorDecl],
+    ) {
+        let result_arg_names: Vec<Option<String>> =
+            params.iter().map(|p| Some(p.name.clone())).collect();
         for ctor in constructors {
             let canonical = super::elab::canonical_ctor_name(name, &ctor.name);
             let binder_names = ctor.binders.iter().map(|b| b.name.clone()).collect();
@@ -217,7 +249,11 @@ impl GoalTemplates {
                 canonical_name: canonical.clone(),
                 binder_names,
                 binder_tys,
-                result_arg_names: Vec::new(),
+                result_arg_names: result_arg_names.clone(),
+                // ⚠ **不开 refine**：归纳块这条路径原先 `result_arg_names` 为空 ⇒
+                // `refine_template_for` 一律拒绝；填参数名只为**子洞期望类型代换** ✓
+                // ⇒ 行为与改动前逐字相同（`refine_skeleton: false`）✓。
+                refine_skeleton: false,
             });
             let func = FuncTemplate {
                 universe: Vec::new(),
@@ -1063,18 +1099,39 @@ fn ctor_spine_case(
     templates: &GoalTemplates,
 ) -> Option<OpenGoalInfo> {
     let (val_head, val_args) = spine_head_args(val)?;
-    let (ty_head, ty_args) = spine_head_args(ty)?;
-    let template = templates.ctors.get(&ty_head)?;
+    // **目标头认记法**（G-82，2026-10-03）：`a ∧ a` 的源 AST 是
+    // `Expr::Notation { target: "And", lhs, rhs }`，而 `spine_head_args` 只认
+    // `Ident`/`App` ⇒ 族名拿不到 ⇒ 模板查不到 ⇒ 本函数返回 `None` ⇒ `open_goal`
+    // 整条返回 `None` ⇒ `walk.rs` 退回「空上下文 + 整句声明类型」的兜底 ✗
+    // （学习者看到「题目参数忽然跑到目标里去了」，整句判红 ✗）。
+    // `crate::spine::head_and_args` 是**既有**的记法感知入口（`by` 引擎同款 ✓）——
+    // 只多认记法，非记法形状逐字走原路 ✓。
+    let (ty_head, ty_args) = crate::spine::head_and_args(ty)?;
+    let ty_args: Vec<&Expr> = ty_args.iter().collect();
+    let template = templates.ctors.get(ty_head)?;
     // 值的头必须是该族的构造子（如目标头 `And` ↔ 构造子 `And.intro`）；
     // R3：源名与规范名两种拼写都认（迁移期两种都能跑）。
-    if (template.name != val_head && template.canonical_name != val_head)
-        || val_args.len() > template.binder_names.len()
-    {
+    if template.name != val_head && template.canonical_name != val_head {
         return None;
     }
+    // **实参对齐**（G-82，2026-10-03）：归纳块的构造子模板只记**构造子自己的**
+    // 绑元（`And.intro` 的 `ha`/`hb`），而 `by` 引擎 `apply` 出来的是**内核口径的
+    // 全应用** `And.intro <参数…> <字段…>` —— 前导那几个是**归纳族的参数**，
+    // 由目标给出、不在模板的 `binder_names` 里。原先的守卫
+    // `val_args.len() > binder_names.len()` 会把这种形状**整条拒掉** ✗ ⇒
+    // `open_goal` 返回 `None` ⇒ 退回「空上下文 + 整句声明类型」的兜底 ✗。
+    // ⇒ 多出来的前导实参只在**恰好等于目标实参个数**时才当参数（形状可核对 ✓）；
+    // 对不上就照旧返回 `None`（保守：宁可退回兜底，也不猜错位置 ✗）。
+    let fields: &[&Expr] = if val_args.len() <= template.binder_names.len() {
+        &val_args
+    } else if val_args.len() - template.binder_names.len() == ty_args.len() {
+        &val_args[val_args.len() - template.binder_names.len()..]
+    } else {
+        return None;
+    };
     let mut holes = Vec::new();
     let mut sub_goals = Vec::new();
-    for (i, arg) in val_args.iter().enumerate() {
+    for (i, arg) in fields.iter().enumerate() {
         if let Expr::Hole { span } = arg {
             holes.push(*span);
             let ty_text = template_arg(template, i, &ty_args)
@@ -1302,9 +1359,7 @@ fn refine_template_for(ty: &Expr, templates: &GoalTemplates) -> Option<String> {
     let result = peel_type(ty, &mut binders);
     let (head, ty_args) = spine_head_args(&result)?;
     let template = templates.ctors.get(&head)?;
-    if template.binder_tys.len() != template.binder_names.len()
-        || template.result_arg_names.is_empty()
-    {
+    if template.binder_tys.len() != template.binder_names.len() || !template.refine_skeleton {
         return None;
     }
     let mut args = Vec::with_capacity(template.binder_names.len());
