@@ -24,50 +24,46 @@
 **反面** `Show.{0} 0 5` 开关开时**仍红** ✓（不是"什么都放行" ✗）· 对照 `Show.{1} 0 5` 两态绿 ✓。
 CLI e2e 同名一条 ✓；**红线**：开关**关**时全语料 `grade --json` 344 文件与接棒前逐字节一致（diff **0** ✓）；⚠ **G-63 仍 `open`** ✓（它走**显式** `.{n}` 路径 ✗ ⇒ 下一片 = 显式优先 + 冲突报错）。
 
-## 1.5 G-85（**本轮已修** ✓ —— 起因是课程线 #5 普查的「86 处红」，但**那 86 处不是它** ✗）
+## 1.5 G-85（**已修** ✓ —— 起因是课程线 #5 普查的「86 处红」，但**那 86 处不是它** ✗）
 
-* **缺口**：`And.right : {a b : Prop} → And a b → b`（k=2 · m=1）—— n=1(`And.right h`) ✓ ·
-  **n=2(`And.right h x`) ✗** · n=3(`And.right p (∀…) h x`) ✓ · n=4 ✓；坏的只有 **`m < n <= k`**。
-  诊断：`期望 Sort(0)，实际是 And …` ✗（`h` 被按位置装进 `a : Prop`）。
-* **病根**：`elab.rs::try_implicit_application` 路线③（富余实参落到**结果**上）靠**展开结果类型**
-  造虚拟层 —— 而 `And.right` 的结果是**变量** `b` ✗ ⇒ 展不动 ⇒ 落到「旧写法」分支 ⇒ 按位置装 ✗。
-* **修法**（front-only ✓）：`surplus_layers` 抽成纯函数 + 路线③ 加**第二趟**（第一趟失败 **且
-  `args.len() <= k`** ⇒ 旧写法**结构上够不着显式层** ⇒ 读法唯一 ✓：先解前导隐式参数、代进结果再展 ✓）。
-  ⚠ **`args.len() <= k` 不能少** ✗：少了它 `L03-eq-type-level` 从 exit 0 变 exit 1 ✗
-  （`Eq.refl.{2} Type A` 这类**宇宙显式给出**的调用被误判 ✗ —— **守卫太宽的典型面孔** ✓）。
-* **判据**：`bash docs/gaps/repro/G85-dropped-implicits-overapplied.sh` ⇒ **exit 1** ✓（反向验证：
-  修复前 `checked=3 && failed=1` ⇒ exit 0 ✓；⚠ 判据必须用 `checked/failed` **计数** ✗ —— 内核拒绝那条的
-  `failed[].name` 是 `None` ⇒ 按名字判会**静默判绿** ✗）· front 单测 ✓ · CLI e2e
-  `crates/cli/tests/implicit_application.rs` **3/3** ✓ · 红线：同一批文件 × 两二进制 ⇒
-  `grade --json` **344 文件只 1 处不同**（G73 复现件：接受/拒绝与计数不变 ✓，只有一条拒绝的**文案**变 ✓）、
-  `query goals` **133 文件 0 差异** ✓。
-* **⚠⚠ 两条对课程线 #5 普查的更正**（**下一棒别再照那 86 处开工** ✗）：
-  1. **那 86 处「红」是普查工具的产物，不是引擎缺口** ✗ —— `notation-lint.py::census_candidate` 是
-     **逐行**改写器，**跨行**应用会把实参**删错**（实测 `unit72-solution:33` ✗）。用**跨行忠实**改写器
-     重放：**绿 74 · 红 0 · 不可机械改写 12** ✓（红变绿 0 / 仍红 0 / 新红 0）⇒ **要修的是工具**
-     （跨行解析、或拒绝跨行命中标 `needs-manual` ✗）—— **课程线的文件，本轮没动** ✓。
-  2. 那 12 处里 **2 处**（`unit04-solution` 的过度应用）**正是 G-85** ⇒ 修好后短写判卷
-     **8/8 checked · 0 failed** ✓；其余 10 处是入门课 `course/` 的 `Exists`（**自建 axiom，前导参数显式**
-     ⇒ 删不得 ✗）与同类过度应用（需工具的 `allowed` 也随富余实参一起数 ✓）。
+**缺口**：`And.right : {a b : Prop} → And a b → b`（k=2 · m=1）—— n=1(`And.right h`) ✓ ·
+**n=2(`And.right h x`) ✗** · n=3(`And.right p (∀…) h x`) ✓ · n=4 ✓；坏的只有 **`m < n <= k`**。诊断
+`期望 Sort(0)，实际是 And …` ✗（`h` 被按位置装进 `a : Prop`）。**病根**：路线③（富余实参落到**结果**上）
+靠**展开结果类型**造虚拟层 —— 而 `And.right` 的结果是**变量** `b` ✗ ⇒ 展不动 ⇒ 落到「旧写法」分支 ✗。
+**修法**（front-only ✓）：`surplus_layers` 抽成纯函数 + 路线③ 加**第二趟**（第一趟失败 **且 `args.len() <= k`**
+⇒ 旧写法**结构上够不着显式层** ⇒ 读法唯一 ✓）。⚠ **`args.len() <= k` 不能少** ✗：少了它 `L03-eq-type-level`
+从 exit 0 变 exit 1 ✗（`Eq.refl.{2} Type A` 那类**宇宙显式给出**的调用被误判 ✗ = **守卫太宽的典型面孔** ✓）。
+**判据**：`docs/gaps/repro/G85-*.sh` ⇒ **exit 1** ✓（反向验证：修复前 `checked=3 && failed=1` ⇒ exit 0 ✓）·
+CLI e2e 三条 ✓ · **红线**：同批文件 × 两二进制 ⇒ `grade --json` **344 文件只 1 处不同**（G73 复现件：接受/拒绝
+与计数不变 ✓，只有一条拒绝的**文案**变 ✓）、`query goals` **133 文件 0 差异** ✓。
+**⚠⚠ 两条对课程线 #5 普查的更正**（下一棒别再照那 86 处开工 ✗）：① **那 86 处「红」是普查工具的产物** ✗ ——
+`notation-lint.py::census_candidate` 是**逐行**改写器，**跨行**应用会把实参**删错** ✗（实测 `unit72-solution:33`）⇒
+用**跨行忠实**改写器重放：**绿 74 · 红 0 · 不可机械改写 12** ✓（红变绿 0 / 仍红 0 / 新红 0 ✓）；② 那 12 处里
+**2 处**（`unit04-solution` 的过度应用）**正是 G-85** ⇒ 修好后短写判卷 **8/8 checked · 0 failed** ✓；其余 10 处是
+入门课 `Exists`（**自建 axiom，前导参数显式** ⇒ 删不得 ✗）与同类过度应用 ✓。**要修的是普查工具** ✗（**课程线文件，
+本轮没动** ✓，只把读数与判据写进台账 G-85 的 notes ✓）。
 
-## 1. G-82（**已修** ✓）
+## 1.6 G-86（**本棒定位、未修** ✗ —— 归属 = **B1**，不是 U1/U2 ✓）
 
-症状：`by constructor; sorry` 的卡片退回整句声明类型 ✗ + `goal_runs` 全 `unknown_ident` ✗。
-病根**两处**：① `ctor_spine_case` 的目标头只认 `Ident`/`App` ⇒ 记法目标 `a ∧ a` 拿不到族名 ✗；
-② `by` 引擎 `apply` 出的是**内核口径全应用**（4 实参）而归纳块构造子模板只记 2 个绑元 ⇒ 旧守卫整条拒 ✗。
-⚠ 手写最小形（`axiom` 视图 4 绑元）测不出 ② ⇒ 既有测试全绿而缺口仍在 ✗。判据：
-`docs/gaps/repro/G82-card-does-not-peel-with-tactics.sh` ⇒ exit 1 ✓ · front/CLI 各一条 ✓ ·
-全语料 `grade --json`/`query goals` 各 **0 差异** ✓。细节 ⇒ `0a2b1b69` + 台账 ✓。
+课程线 `f5ada75a` 的最小复现 ✓：`theorem t3 (h : ¬ (P ∨ Q)) (hp : P) : False := h (Or.inl hp)` 判红 ✗
+（`期望 ((Or P) Q)，实际 ((Or P) P)`）—— `?B` 无实参可问时被「兄弟同形」兜底填成 `?A` ✗。**求解器没问题** ✓
+（trace：`expected=Some(P∨Q)` ⇒ `solved=[P,Q]` ✓；`None` ⇒ `[P,P]` ✗）⇒ 差的是**期望类型送到实参位** ✗
+= `needs_expected_type` 只认零元记法/集合字面量 ✓（= **parked 的 TODO(G-21)** ✓）。**放宽这条闸当场栈溢出** ✗
+（exit 134；窄化仍溢出；加深度守卫 ⇒ 不崩也不生效 ✗）⇒ **不落地** ✓。判据 `docs/gaps/repro/G86-*.sh` ⇒ **exit 0**
+（缺口仍在 ✓，台账 G-86 = `open` ✓）。**下一棒**：① `application_arg_expected` 加**递归守卫**；② 修「显式实参
+写在隐式位上」的实参↔形参对齐（parked 回归 `Eq.subst.{1} (Set α) …` ✓）；③ 再开闸 ⇒ 本件 exit 1 + 全语料对拍 ✓。
 
-## 2. 上一棒顺手做的两件（都已落 ✓）
+## 1. G-82（**已修** ✓ —— 细节在台账 + `0a2b1b69`）
 
-* **G-84 的假绿断言换掉了** ✓：`crates/cli/tests/extension.rs` 那条「比我们自己刚 stage 的文件」
-  的断言改名 `the_staged_cli_matches_the_extension_version` 并更正文档 ✓；新增
-  `the_installed_cli_resolves_in_a_fresh_login_shell`（真跑扩展代码 + 临时 HOME + **新开登录 shell** ✓，
-  并要求驱动器报出 `✓ ③`/`✓ ④` 防守卫空转 ✓）。⚠ 它在 CI 的 `test` lane 会跳过（那条 lane 不 stage `bin/` ✗）。
-* **修掉一条既有红** ✗：`command_naming_inventory_covers_every_contributed_command` —— G-84 给
-  `package.json` 加了 `sokonanoda.uninstallCli` 却没进 `docs/design/command-naming.md` §1 盘点表 ⇒
-  补行 + 同文件压缩一行（**净增 0** ✓，不抬文档预算 ✓）。
+`by constructor; sorry` 的卡片退回整句声明类型 ✗ + `goal_runs` 全 `unknown_ident` ✗。病根**两处**：
+① `ctor_spine_case` 的目标头只认 `Ident`/`App` ⇒ 记法目标 `a ∧ a` 拿不到族名 ✗；② `by` 引擎 `apply`
+出的是**内核口径全应用**（4 实参）而归纳块构造子模板只记 2 个绑元 ⇒ 旧守卫整条拒 ✗。⚠ 手写最小形
+（`axiom` 视图 4 绑元）测不出 ② ⇒ 既有测试全绿而缺口仍在 ✗。判据 `docs/gaps/repro/G82-*.sh` ⇒ exit 1 ✓。
+
+## 2. 更早顺手做的（都已落 ✓）
+
+G-84 的假绿断言换掉 ✓（`extension.rs` 改名 + 新增「新开登录 shell 里那份」真跑 ✓）· 修掉一条既有红 ✗
+（`soko.uninstallCli` 没进命令盘点表 ⇒ 补行 + 同文件压缩，**净增 0** ✓）。细节 ⇒ `c5da3a19` ✓。
 
 ## 3. 本轮发现、**没修**的两条（下一棒或用户拍板）
 
