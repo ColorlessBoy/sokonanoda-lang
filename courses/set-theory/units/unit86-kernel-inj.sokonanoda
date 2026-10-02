@@ -1,0 +1,77 @@
+-- ==========================================================================
+-- unit86-kernel-inj.sokonanoda —— 卷 I 单元86 **核与复合、单射**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.3/§3.6** ·
+--   Halmos《Naive Set Theory》**§10**。大纲 §4.1（**接单元76/79/85** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 核的展开 ✓ · **单射 ⇔ 核就是相等** ✓（`Injective f ↔ ∀ a b, kernel f a b → a = b` ✓）；
+--   · **复合不会让核变小**：`kernel f ⊆ kernel (g ∘ f)` ✓（点态 ✓）；
+--   · **`g` 单射时核不变**：`kernel (g ∘ f) = kernel f`（**逐点形态** ✓）⇒
+--     **旗舰：复合的核 ⇔ 原来的核** ✓；
+--   · **旗舰二：复合单射 ⇒ 内层单射** ✓（不需要外层单射 ✓ —— 教材里"单射的复合"半边 ✓）。
+--
+-- ⚠ **为什么写成逐点** ✓：集合（谓词）相等要外延（`lib.Extensionality` ✓）；
+--   逐点形态**构造性可用** ✓（本课一贯做法，见单元78/85 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元76（核）· 单元79（well-defined）· 单元85（商到像单射）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => f a = f b
+
+def Injective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), f a = f b → a = b
+-- ─────────────────────────────────────────────────────────────
+-- 86.1 三条库引理（等价类的成员 · 搬运 · 对称取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：搬运引理（把关系沿等式搬一格 ✓ —— 本单元的主力工具 ✓）。
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+theorem demo_rel_subst_right (α : Type) (r : α → α → Prop) (a b c : α) (h : b = c) :
+    r a b → r a c :=
+  rel_subst_right α r a b c h
+theorem demo_equivalence_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Symmetric α r :=
+  equivalence_symm α r he-- 练习 1（T 类）：核的展开（`kernel f a b ↔ f a = f b`）。
+-- 关键件：定义展开（两个方向都是恒等）
+theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b := by
+  sorry
+-- 练习 2（T 类）：**单射 ⇔ 核就是相等**（两种说法等价）。
+-- 关键件：两个 `Injective` 的定义展开 · `Iff.intro`（两个前导命题都写出来）
+theorem inj_iff_kernel_eq (α : Type) (β : Type) (f : α → β) :
+    Injective α β f ↔ ∀ (a : α) (b : α), kernel α β f a b → a = b := by
+  sorry
+-- 练习 3（L 类）：**复合不会让核变小**（`kernel f a b ⇒ kernel (g ∘ f) a b`）。
+-- 关键件：`rel_subst_right`（把 `g` 搬到等式两边）· `Eq.refl`
+theorem kernel_comp_subset (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (a : α) (b : α) (h : kernel α β f a b) : kernel α γ (fun (x : α) => g (f x)) a b := by
+  sorry
+-- 练习 4（T 类）：**`g` 单射 ⇒ 复合的核回到 `f` 的核**。
+-- 关键件：`Injective` 的定义（**直接作用**）
+theorem kernel_comp_of_inj (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hg : Injective β γ g) (a : α) (b : α)
+    (h : kernel α γ (fun (x : α) => g (f x)) a b) : kernel α β f a b := by
+  sorry
+-- 练习 5（L 类，**旗舰一**）：**`g` 单射时两个核逐点相同**（双向）。
+-- 关键件：练习 3 / 练习 4 · `Iff.intro`
+theorem kernel_comp_iff (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hg : Injective β γ g) (a : α) (b : α) :
+    kernel α γ (fun (x : α) => g (f x)) a b ↔ kernel α β f a b := by
+  sorry
+-- 练习 6（L 类，**旗舰二**）：**复合单射 ⇒ 内层单射**。
+-- 思路：设 `f a = f b`，沿等式把 `g (f a) = g (f a)` 搬成 `g (f a) = g (f b)`，再用复合的单射性。
+-- 关键件：`rel_subst_right` · `Eq.refl` · 假设里的 `Injective`
+theorem inj_of_kernel_comp_inj (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hgf : Injective α γ (fun (x : α) => g (f x))) : Injective α β f := by
+  sorry

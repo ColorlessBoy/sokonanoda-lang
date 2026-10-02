@@ -1,0 +1,58 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => f a = f b
+
+def Injective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), f a = f b → a = b
+
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+
+theorem demo_rel_subst_right (α : Type) (r : α → α → Prop) (a b c : α) (h : b = c) :
+    r a b → r a c :=
+  rel_subst_right α r a b c h
+
+theorem demo_equivalence_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Symmetric α r :=
+  equivalence_symm α r he
+
+theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b :=
+  Iff.intro (kernel α β f a b) (f a = f b)
+    (fun (h : kernel α β f a b) => h) (fun (h : f a = f b) => h)
+
+theorem inj_iff_kernel_eq (α : Type) (β : Type) (f : α → β) :
+    Injective α β f ↔ ∀ (a : α) (b : α), kernel α β f a b → a = b :=
+  Iff.intro (Injective α β f) (∀ (a : α) (b : α), kernel α β f a b → a = b)
+    (fun (hf : Injective α β f) =>
+      fun (a : α) (b : α) (h : kernel α β f a b) => hf a b h)
+    (fun (hf : ∀ (a : α) (b : α), kernel α β f a b → a = b) =>
+      fun (a : α) (b : α) (h : f a = f b) => hf a b h)
+
+theorem kernel_comp_subset (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (a : α) (b : α) (h : kernel α β f a b) : kernel α γ (fun (x : α) => g (f x)) a b :=
+  rel_subst_right β (fun (u : β) (v : β) => g u = g v) (f a) (f a) (f b) h
+    (Eq.refl.{1} γ (g (f a)))
+
+theorem kernel_comp_of_inj (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hg : Injective β γ g) (a : α) (b : α)
+    (h : kernel α γ (fun (x : α) => g (f x)) a b) : kernel α β f a b :=
+  hg (f a) (f b) h
+
+theorem kernel_comp_iff (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hg : Injective β γ g) (a : α) (b : α) :
+    kernel α γ (fun (x : α) => g (f x)) a b ↔ kernel α β f a b :=
+  Iff.intro (kernel α γ (fun (x : α) => g (f x)) a b) (kernel α β f a b)
+    (fun (h : kernel α γ (fun (x : α) => g (f x)) a b) => kernel_comp_of_inj α β γ f g hg a b h)
+    (fun (h : kernel α β f a b) => kernel_comp_subset α β γ f g a b h)
+
+theorem inj_of_kernel_comp_inj (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hgf : Injective α γ (fun (x : α) => g (f x))) : Injective α β f :=
+  fun (a : α) (b : α) (h : f a = f b) =>
+    hgf a b
+      (rel_subst_right β (fun (u : β) (v : β) => g u = g v) (f a) (f a) (f b) h
+        (Eq.refl.{1} γ (g (f a))))

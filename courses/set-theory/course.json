@@ -546,10 +546,11 @@
             "partition-roundtrip",
             "well-defined-quotient",
             "image-quotient",
-            "kernel-injective"
+            "kernel-injective",
+            "kernel-injective-composition"
           ],
           "quota": {
-            "exercises": 104
+            "exercises": 110
           },
           "units": [
             {
@@ -617,6 +618,12 @@
               "title": "单元85 商到像的单射性",
               "title_en": "Unit 85 — The Quotient Maps Injectively onto the Image",
               "unit": 85
+            },
+            {
+              "file": "units/unit86-kernel-inj.sokonanoda",
+              "title": "单元86 核与复合、单射",
+              "title_en": "Unit 86 — Kernels, Composition, Injectivity",
+              "unit": 86
             }
           ]
         },
