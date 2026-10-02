@@ -545,10 +545,11 @@
             "equivclass-algebra",
             "partition-roundtrip",
             "well-defined-quotient",
-            "image-quotient"
+            "image-quotient",
+            "kernel-injective"
           ],
           "quota": {
-            "exercises": 98
+            "exercises": 104
           },
           "units": [
             {
@@ -610,6 +611,12 @@
               "title": "单元84 商与像的往返",
               "title_en": "Unit 84 — Image Meets Quotient",
               "unit": 84
+            },
+            {
+              "file": "units/unit85-kernel-injective.sokonanoda",
+              "title": "单元85 商到像的单射性",
+              "title_en": "Unit 85 — The Quotient Maps Injectively onto the Image",
+              "unit": 85
             }
           ]
         },

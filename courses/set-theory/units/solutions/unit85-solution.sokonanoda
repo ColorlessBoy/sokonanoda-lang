@@ -1,0 +1,98 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Image
+
+def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => f a = f b
+
+theorem demo_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=
+  Set.mem_image f A y
+
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+
+theorem demo_equivalence_refl (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Reflexive α r :=
+  equivalence_refl α r he
+
+theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b :=
+  Iff.intro (kernel α β f a b) (f a = f b)
+    (fun (h : kernel α β f a b) => h) (fun (h : f a = f b) => h)
+
+theorem mem_class_of_eq (α : Type) (β : Type) (f : α → β) (a : α) (b : α) (c : α)
+    (hab : f a = f b) (hc : c ∈ (Rel.EquivClass α (kernel α β f) a)) :
+    c ∈ (Rel.EquivClass α (kernel α β f) b) :=
+  (fun (hu : Rel.EquivClass α (kernel α β f) b c ↔ kernel α β f b c) =>
+    Iff.mpr hu (Eq.trans.{1} β (f b) (f a) (f c) (Eq.symm.{1} β (f a) (f b) hab)
+      ((fun (hv : Rel.EquivClass α (kernel α β f) a c ↔ kernel α β f a c) => Iff.mp hv hc)
+        (Rel.mem_equivClass α (kernel α β f) a c))))
+    (Rel.mem_equivClass α (kernel α β f) b c)
+
+theorem kernel_class_agree (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hab : f a = f b) : ∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b) :=
+  fun (c : α) =>
+    Iff.intro (c ∈ (Rel.EquivClass α (kernel α β f) a))
+      (c ∈ (Rel.EquivClass α (kernel α β f) b))
+      (fun (hc : c ∈ (Rel.EquivClass α (kernel α β f) a)) =>
+        mem_class_of_eq α β f a b c hab hc)
+      (fun (hc : c ∈ (Rel.EquivClass α (kernel α β f) b)) =>
+        mem_class_of_eq α β f b a c (Eq.symm.{1} β (f a) (f b) hab) hc)
+
+theorem mem_image_kernel (α : Type) (β : Type) (f : α → β) (a : α) (y : β) :
+    y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y :=
+  Iff.intro (y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) (f a = y)
+    (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) =>
+      Exists.elim α (fun (x : α) => x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) (f a = y)
+        ((fun (hu : y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔
+            ∃ (x : α), x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) => Iff.mp hu h)
+          (Set.mem_image f (Rel.EquivClass α (kernel α β f) a) y))
+        (fun (x : α) (hx : x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) =>
+          Eq.trans.{1} β (f a) (f x) y
+            ((fun (hu : Rel.EquivClass α (kernel α β f) a x ↔ kernel α β f a x) =>
+              Iff.mp hu (And.left (x ∈ (Rel.EquivClass α (kernel α β f) a)) (f x = y) hx))  -- soko:notation-ok: `kernel`/`Rel.EquivClass`/`Set.image` 是 def 头（手册边界）
+              (Rel.mem_equivClass α (kernel α β f) a x))
+            (And.right (x ∈ (Rel.EquivClass α (kernel α β f) a)) (f x = y) hx)))  -- soko:notation-ok: `kernel`/`Rel.EquivClass`/`Set.image` 是 def 头（手册边界）
+    (fun (h : f a = y) =>
+      Set.mem_image_intro f (Rel.EquivClass α (kernel α β f) a) y a
+        ((fun (hu : Rel.EquivClass α (kernel α β f) a a ↔ kernel α β f a a) =>
+          Iff.mpr hu (Eq.refl.{1} β (f a))) (Rel.mem_equivClass α (kernel α β f) a a))
+        h)
+
+theorem kernel_image_injective (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hab : f a = f b) : ∀ (y : β), y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔
+      y ∈ f '' (Rel.EquivClass α (kernel α β f) b) :=
+  fun (y : β) =>
+    Iff.intro (y ∈ f '' (Rel.EquivClass α (kernel α β f) a))
+      (y ∈ f '' (Rel.EquivClass α (kernel α β f) b))
+      (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) =>
+        (fun (hu : y ∈ f '' (Rel.EquivClass α (kernel α β f) b) ↔ f b = y) =>
+          Iff.mpr hu (Eq.trans.{1} β (f b) (f a) y (Eq.symm.{1} β (f a) (f b) hab)
+            ((fun (hv : y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y) => Iff.mp hv h)
+              (mem_image_kernel α β f a y))))
+          (mem_image_kernel α β f b y))
+      (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) b)) =>
+        (fun (hu : y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y) =>
+          Iff.mpr hu (Eq.trans.{1} β (f a) (f b) y hab
+            ((fun (hv : y ∈ f '' (Rel.EquivClass α (kernel α β f) b) ↔ f b = y) => Iff.mp hv h)
+              (mem_image_kernel α β f b y))))
+          (mem_image_kernel α β f a y))
+
+theorem kernel_class_eq_iff (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    (∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b)) ↔ f a = f b :=
+  Iff.intro (∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b)) (f a = f b)
+    (fun (h : ∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+        c ∈ (Rel.EquivClass α (kernel α β f) b)) =>
+      (fun (hu : f b = f a) => Eq.symm.{1} β (f b) (f a) hu)
+        ((fun (hv : Rel.EquivClass α (kernel α β f) b a ↔ kernel α β f b a) =>
+          Iff.mp hv ((Iff.mp (h a))
+            ((fun (hw : Rel.EquivClass α (kernel α β f) a a ↔ kernel α β f a a) =>
+              Iff.mpr hw (Eq.refl.{1} β (f a))) (Rel.mem_equivClass α (kernel α β f) a a))))
+          (Rel.mem_equivClass α (kernel α β f) b a)))
+    (fun (hab : f a = f b) => kernel_class_agree α β f a b hab)

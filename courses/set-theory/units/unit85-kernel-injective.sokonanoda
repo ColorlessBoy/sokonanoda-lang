@@ -1,0 +1,78 @@
+-- ==========================================================================
+-- unit85-kernel-injective.sokonanoda —— 卷 I 单元85 **商到像的单射性**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.3/§3.6** ·
+--   Halmos《Naive Set Theory》**§10**。大纲 §4.1（**把 76–84 这条线闭环** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 核的展开 ✓ · **同类点推出"类相互包含"** ✓ · **两个类逐点相同** ✓（单射性的逐点形态 ✓）；
+--   · 核的像仍是单点（单元84 旗舰，本单元复用 ✓）；
+--   · **旗舰一：商到像单射** ✓ —— `f a = f b ⇒ f '' [a]` 与 `f '' [b]` **逐点相同** ✓；
+--   · **旗舰二：逐点相同 ⇔ 值相同** ✓（`(∀ c, c ∈ [a] ↔ c ∈ [b]) ↔ f a = f b` ✓）——
+--     这就是"**商集到像是一一对应**" ✓，也把 76 → 77/78 → 84 这条线**闭环** ✓。
+--
+-- ⚠ **为什么写成逐点** ✓：集合（谓词）相等要外延（`lib.Extensionality` ✓）；
+--   而"逐点相同"就是 `Rel.Partition` / `Rel.Classes` 用的形态 ✓ ⇒ 构造性可用 ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Image`。
+--
+-- 依赖：单元76（核）· 单元77/78（等价类与划分）· 单元79（well-defined）· 单元84（核的像）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Image
+
+def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => f a = f b
+-- ─────────────────────────────────────────────────────────────
+-- 85.1 三条库引理（像的成员 · 等价类的成员 · 自反取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：像的成员刻画（存在式 ✓ —— 拆的时候用 `Exists.elim` ✓）。
+theorem demo_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=
+  Set.mem_image f A y
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+theorem demo_equivalence_refl (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Reflexive α r :=
+  equivalence_refl α r he-- 练习 1（T 类）：核的展开（`kernel f a b ↔ f a = f b`）。
+-- 关键件：定义展开（两个方向都是恒等）
+theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b := by
+  sorry
+-- 练习 2（T 类）：**同类点：一边的成员也在另一边**。
+-- 关键件：`Rel.mem_equivClass` · `Eq.trans` / `Eq.symm`（写全宇宙与点）· `Iff.mp` / `Iff.mpr`（λ 落地）
+theorem mem_class_of_eq (α : Type) (β : Type) (f : α → β) (a : α) (b : α) (c : α)
+    (hab : f a = f b) (hc : c ∈ (Rel.EquivClass α (kernel α β f) a)) :
+    c ∈ (Rel.EquivClass α (kernel α β f) b) := by
+  sorry
+-- 练习 3（L 类）：**两个类逐点相同**（`f a = f b` ⇒ 全 `c` 双向）。
+-- 关键件：练习 2（两个方向各用一次，其中一次要把等式 `Eq.symm`）
+theorem kernel_class_agree (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hab : f a = f b) : ∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b) := by
+  sorry
+-- 练习 4（T 类）：**核的像仍是单点**（单元84 旗舰）。
+-- 关键件：`Set.mem_image` / `Set.mem_image_intro` · `Rel.mem_equivClass` · `Exists.elim`
+theorem mem_image_kernel (α : Type) (β : Type) (f : α → β) (a : α) (y : β) :
+    y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y := by
+  sorry
+-- 练习 5（L 类，**旗舰一**）：**商到像单射** —— `f a = f b` ⇒ 两个像逐点相同。
+-- 思路：两边都化归到"等于 `f a` / `f b`"（练习 4），再用 `Eq.trans` / `Eq.symm` 接起来。
+-- 关键件：练习 4 · `Iff.intro` · `Eq.trans` / `Eq.symm`
+theorem kernel_image_injective (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hab : f a = f b) : ∀ (y : β), y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔
+      y ∈ f '' (Rel.EquivClass α (kernel α β f) b) := by
+  sorry
+-- 练习 6（L 类，**旗舰二**）：**逐点相同 ⇔ 值相同**。
+-- 思路：左到右 —— 用 `a` 自己在 `[a]` 里（`Eq.refl`）转到 `[b]`，读值得 `f b = f a` 再 `Eq.symm`；右到左 —— 练习 3 直接交出去。
+-- 关键件：`Rel.mem_equivClass` · 练习 3 · `Eq.refl` / `Eq.symm` · `Iff.mp` / `Iff.mpr`
+theorem kernel_class_eq_iff (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    (∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b)) ↔ f a = f b := by
+  sorry
