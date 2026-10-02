@@ -140,6 +140,11 @@
         "category": "Sokonanoda"
       },
       {
+        "command": "sokonanoda.uninstallCli",
+        "title": "Uninstall Command Line (卸载命令行)",
+        "category": "Sokonanoda"
+      },
+      {
         "command": "sokonanoda.project.refresh",
         "title": "Refresh Project View (刷新项目视图)",
         "icon": "$(refresh)",

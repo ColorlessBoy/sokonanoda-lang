@@ -25,6 +25,7 @@ const cp = require("child_process");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const vscode = require("vscode");
 const { LanguageClient, State, TransportKind } = require("vscode-languageclient/node");
 const server = require("./server");
@@ -2094,6 +2095,75 @@ async function warmCacheOnOpen(context) {
 /// `Cargo.toml` ↔ `package.json`），**没有任何东西会跑那个二进制问它版本** ⇒
 /// 「版本对齐」在 Q2 之前是一句**没有守卫的声明** ✗
 /// （实测抓到：本机 `bin/darwin-arm64/sokonanoda --version` = **0.74.0** 而插件 0.78.0）。
+// ── G-84：**PATH 真落地**（③）─────────────────────────────────────────────
+// 安装目录 `~/.local/share/sokonanoda/bin` **默认不在 PATH** ⇒ 旧文案
+// 「重新打开终端后 sokonanoda 即可用」是**假话** ✗（用户 2026-10-02 实测）。
+// 这里把一行**带标记**的 export 写进**登录 shell 会读**的 profile（幂等 ✓），
+// 卸载时按标记撤销 ✓。写不进去就**说真话**（把该加的那一行原样给出来 ✓）。
+const CLI_PATH_MARKER = "# sokonanoda CLI — added by the Sokonanoda VS Code extension";
+
+/// 安装目录：**优先问 `server`**，但它可能被测试桩替掉（stub 宿主里没有这个函数 ✗）
+/// ⇒ 回退到同一口径的默认路径 ✓（两处必须一致，否则会写错 PATH ✗）。
+function cliCacheDir() {
+  if (typeof server.serverCacheDir === "function") return server.serverCacheDir();
+  return path.join(os.homedir(), ".local", "share", "sokonanoda", "bin");
+}
+
+function cliPathExportLine() {
+  const dir = cliCacheDir();
+  const home = os.homedir();
+  const shown = dir.startsWith(home) ? dir.replace(home, "$HOME") : dir;
+  return `export PATH="${shown}:$PATH"`;
+}
+
+function loginProfiles() {
+  const home = os.homedir();
+  const candidates = [path.join(home, ".zprofile")];
+  const bashProfile = path.join(home, ".bash_profile");
+  candidates.push(fs.existsSync(bashProfile) ? bashProfile : path.join(home, ".profile"));
+  return candidates;
+}
+
+/// 返回**人话**（写进了哪、或该自己加哪一行）—— 提示文案直接用它，保证句句为真 ✓
+function ensureCliOnLoginPath() {
+  const line = cliPathExportLine();
+  const block = `${CLI_PATH_MARKER}\n${line}\n`;
+  const written = [];
+  for (const profile of loginProfiles()) {
+    try {
+      const current = fs.existsSync(profile) ? fs.readFileSync(profile, "utf8") : "";
+      if (current.includes(CLI_PATH_MARKER)) continue; // 幂等 ✓
+      fs.appendFileSync(profile, (current.endsWith("\n") || current === "" ? "" : "\n") + block);
+      written.push(profile);
+    } catch {
+      // 写不进去（权限/只读家目录）⇒ 下面给真话
+    }
+  }
+  if (written.length) {
+    return `已把 PATH 写进 ${written.map((p) => path.basename(p)).join(" / ")} —— 新开一个终端即可用 \`sokonanoda\``;
+  }
+  return `该目录不在 PATH：请把 ${line} 加进 ~/.zprofile（本扩展没能写入）`;
+}
+
+function removeCliFromLoginPath() {
+  const touched = [];
+  for (const profile of loginProfiles()) {
+    try {
+      if (!fs.existsSync(profile)) continue;
+      const current = fs.readFileSync(profile, "utf8");
+      if (!current.includes(CLI_PATH_MARKER)) continue;
+      const kept = current
+        .split("\n")
+        .filter((l, i, all) => l !== CLI_PATH_MARKER && !(i > 0 && all[i - 1] === CLI_PATH_MARKER));
+      fs.writeFileSync(profile, kept.join("\n"));
+      touched.push(path.basename(profile));
+    } catch {
+      // 撤不掉就说撤不掉
+    }
+  }
+  return touched.length ? `（已从 ${touched.join(" / ")} 撤掉 PATH 行）` : "";
+}
+
 async function installCli(context) {
   const extensionPath = context.extensionPath;
   const version = extensionVersion(context);
@@ -2136,14 +2206,21 @@ async function installCli(context) {
   const aligned = reportedVersion === version;
   const lines = [
     `sokonanoda: 命令行已安装到 ${installed.dest}`,
-    `  版本自述：${reported || "（空）"} · 插件：${version}`,
+    `  版本自述：${reported || "（空）"} · 插件：${version}` +
+      (installed.previousVersion && installed.previousVersion !== version
+        ? ` · 覆盖前：${installed.previousVersion}`
+        : ""),
   ];
   if (aligned) {
     lines.push("  ✓ 版本对齐（装的就是包里那个）");
+    if (installed.staleBackups?.length) {
+      lines.push(`  · 清掉旧残留：${installed.staleBackups.join(", ")}`);
+    }
+    // **③ PATH 真落地**（句子由 `ensureCliOnLoginPath()` 给 ⇒ 句句为真 ✓）
+    const pathNote = ensureCliOnLoginPath();
+    lines.push(`  · PATH：${pathNote}`);
     const text = lines.join("\n");
-    vscode.window.showInformationMessage(
-      `sokonanoda: 命令行已安装（${version}）—— 重新打开终端后 sokonanoda 即可用。`,
-    );
+    vscode.window.showInformationMessage(`sokonanoda: 命令行已安装（${version}）—— ${pathNote}`);
     return text;
   }
   // **不一致 ⇒ 判红**（开发者：本机 bin/ 陈旧 ⇒ 重新打包；用户：升级插件）
@@ -2508,6 +2585,7 @@ function registerCommands(context, provider, courseProvider) {
     ),
     // Q2：把插件自带的 CLI 装到用户目录（离线、自带即装、版本对齐有值断言）。
     vscode.commands.registerCommand("sokonanoda.installCli", () => installCli(context)),
+    vscode.commands.registerCommand("sokonanoda.uninstallCli", () => uninstallCli(context)),
     // 记法缩写改写器（NI-2）：键位 Tab，`when` 子句由 abbreviation-rewriter.js
     // 置位的 context key 把关（普通 Tab 照旧缩进）。命令注册在这里、状态机在
     // src/abbreviation-rewriter.js —— 与开发规范 §1 的文件职责一致。
@@ -2516,6 +2594,19 @@ function registerCommands(context, provider, courseProvider) {
       notationInput.replaceAbbreviation,
     ),
   );
+}
+
+/// **卸载命令行**（G-84 ②）：清安装位（二进制 + 版本标记 + `*.bak-*`）+ 撤掉 PATH 行 ✓。
+/// 与安装共用同一份目录口径（`server.serverCacheDir()`），不会碰同目录的语言服务器 ✓。
+async function uninstallCli() {
+  const { removed } =
+    typeof server.uninstallCli === "function" ? server.uninstallCli({}) : { removed: [] };
+  const pathNote = removeCliFromLoginPath();
+  const text =
+    `sokonanoda: 命令行已卸载（清掉 ${removed.length} 项${removed.length ? "：" + removed.join(", ") : ""}）` +
+    pathNote;
+  vscode.window.showInformationMessage(text);
+  return text;
 }
 
 async function activate(context) {

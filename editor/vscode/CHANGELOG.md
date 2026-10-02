@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+### Fixed
+- **`Sokonanoda: Install Command Line (安装命令行)` 装完**真的**能用**（G-84）：安装目录会写进
+  登录 shell 读的 profile（带标记、幂等），提示文案改成**真话**（写不进就给出该加的那一行）；
+  覆盖安装时报告被替换的旧版本，并清掉 `*.bak-*` 残留。
+- **新增 `Sokonanoda: Uninstall Command Line (卸载命令行)`**（G-84）：清掉安装位的二进制、
+  `.version` 版本标记与 `*.bak-*` 残留，并撤掉安装时写入的 PATH 行（同目录的语言服务器不动）。
+- 判据改成**用户动作级**：装完在**新开登录 shell** 里 `sokonanoda --version` 必须 == 插件版本
+  （不再比"刚拷贝的那份文件" —— 那是假绿 ✗）。复现件
+  `docs/gaps/repro/G84-vscode-cli-install.sh`（含反向验证 ✓）。
+
 ## [0.81.0] — 2026-10-02
 
 > **Nine language/kernel blockers cleared** — the walls the set-theory course's

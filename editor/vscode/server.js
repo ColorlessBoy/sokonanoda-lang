@@ -386,6 +386,31 @@ function installBundledCli(options) {
   fsImpl.mkdirSync(dir, { recursive: true });
   const name = platform === "win32" ? "sokonanoda.exe" : "sokonanoda";
   const dest = path.join(dir, name);
+  // **G-84**：先读**已装那一只**的自述版本（安装位上的 `.version` 标记）——
+  // 报告里要说清"覆盖前是什么"，也让"版本不匹配"这件事**可见** ✓
+  // （旧实现在这里只拷不问 ⇒ 插件升级后 CLI 悄悄停在旧版，没有任何东西会判红 ✗）。
+  let previousVersion;
+  try {
+    const stamp = fsImpl.readFileSync(dest + ".version", "utf8").trim();
+    previousVersion = (stamp.match(/\d+\.\d+\.\d+/) ?? [stamp])[0] || undefined;
+  } catch {
+    previousVersion = undefined; // 没装过
+  }
+  // **清 `*.bak-*` 残留**（G-84 ②：盘上实测留着 `sokonanoda-lsp.bak-0.55.0` ✗）
+  const staleBackups = [];
+  try {
+    for (const entry of fsImpl.readdirSync(dir)) {
+      if (!entry.includes(".bak-")) continue;
+      try {
+        fsImpl.unlinkSync(path.join(dir, entry));
+        staleBackups.push(entry);
+      } catch {
+        // 只读目录：清不掉不算失败，但要让调用方能说出来
+      }
+    }
+  } catch {
+    // 目录还不存在 ⇒ 没有残留
+  }
   fsImpl.copyFileSync(src, dest);
   if (platform !== "win32") {
     try {
@@ -396,7 +421,38 @@ function installBundledCli(options) {
   }
   // 版本标记（与 LSP 的 `serverVersionMarker` 同款机制）
   fsImpl.writeFileSync(dest + ".version", `${version}\n`);
-  return { dest, source: src, aligned: false, version };
+  return { dest, source: src, aligned: false, version, previousVersion, staleBackups };
+}
+
+/// **卸载**（G-84 ②）：把 CLI 装出来的东西**全清掉** —— 二进制、`.version` 标记、
+/// 以及 `*.bak-*` 残留（同目录还放着语言服务器，**不动**它 ✗ —— 那是缓存、不是安装物）。
+function uninstallCli(options = {}) {
+  const { fsImpl = fs } = options;
+  const dir = serverCacheDir();
+  const name = process.platform === "win32" ? "sokonanoda.exe" : "sokonanoda";
+  const removed = [];
+  for (const target of [path.join(dir, name), path.join(dir, name + ".version")]) {
+    try {
+      fsImpl.unlinkSync(target);
+      removed.push(path.basename(target));
+    } catch {
+      // 本来就不在 ⇒ 不算失败（幂等 ✓）
+    }
+  }
+  try {
+    for (const entry of fsImpl.readdirSync(dir)) {
+      if (!entry.includes(".bak-")) continue;
+      try {
+        fsImpl.unlinkSync(path.join(dir, entry));
+        removed.push(entry);
+      } catch {
+        // 只读 ⇒ 让调用方按 removed 如实报
+      }
+    }
+  } catch {
+    // 目录不存在 ⇒ 已经干净
+  }
+  return { removed };
 }
 
 module.exports = {
@@ -421,4 +477,5 @@ module.exports = {
   resolveServerCommand,
   followRedirects,
   installBundledCli,
+  uninstallCli,
 };
