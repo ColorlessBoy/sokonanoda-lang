@@ -3768,6 +3768,39 @@ fn try_implicit_application<'a>(
     // 这正是"实参本身是零元隐式常量"（`Set.inter Set.univ A`）能补出来的唯一
     // 条件 ✓。以前第一位不给，是因为它被提前 elaborate 了（见上面的注释）。
     let mut out = head_term;
+    // **U1 片（开关默认关 ✓）**：常量**没写**宇宙实参时（头不是 `UniverseApp` ✓），
+    // 按**字面约束**把未写的层级解出来再重建头常量 ✓（`Quot.lift α β f h` 一族 —— 台账 G-63 ✗）。
+    //
+    // ⚠ 两个要点：① 头**已经**照旧 `elab_expr` 过（hovers/定义跳转等副作用不能少 ✗），
+    // 解出来才**替换**；② 开关关着 / 解不出 ⇒ 原样 ✓（`solve_universes` 自己会拒 ✓，
+    // 关着时**一次都不进** ✓ ⇒ 逐字节不变 ✓）。
+    // ⚠ 开关**先判**（关着时这里连 `pairs` 都不建 ⇒ 既有形状**零额外开销** ✓）
+    if crate::compile::level::universe_metavar_enabled() && matches!(head, Expr::Ident { .. }) {
+        let mut pairs: Vec<(&Expr, &Expr)> = Vec::new();
+        for (j, ty) in arg_tys.iter().enumerate() {
+            if let Some(ty) = ty.as_ref() {
+                if let Some(layer) = layers.get(k + j) {
+                    pairs.push((&layer.domain, ty));
+                }
+            }
+        }
+        if let Some(expected) = expected_src {
+            pairs.push((&result, expected));
+        }
+        if let Some(levels) = crate::compile::level::solve_universes(declared.universes(), &pairs) {
+            let mut ptrs: Vec<LevelPtr<'a>> = Vec::with_capacity(levels.len());
+            for text in &levels {
+                let mut lv = builder.zero();
+                for _ in 0..text.parse::<u64>().unwrap_or(0) {
+                    lv = builder.succ(lv);
+                }
+                ptrs.push(lv);
+            }
+            let levels_ptr = builder.alloc_levels_slice(&ptrs);
+            let head_ptr = builder.name_from_str(head_name);
+            out = builder.mk_const(head_ptr, levels_ptr);
+        }
+    }
     let mut sigma: HashMap<String, Expr> = HashMap::new();
     for (j, s) in solved.iter().enumerate() {
         // **解出来的隐式实参也要吃期望类型**（T-N13，2026-09-30）：解出的值可能来自

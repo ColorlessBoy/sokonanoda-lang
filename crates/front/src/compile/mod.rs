@@ -8,6 +8,7 @@ mod event;
 mod goals;
 pub mod hints;
 mod implicit;
+mod level;
 mod meta;
 mod prelude;
 mod report;
