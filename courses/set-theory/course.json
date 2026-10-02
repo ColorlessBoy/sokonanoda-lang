@@ -320,10 +320,11 @@
             "well-order",
             "ordinal-elements",
             "successor-spec",
-            "succ-ordinal"
+            "succ-ordinal",
+            "ordinal-no-cycle"
           ],
           "quota": {
-            "exercises": 47
+            "exercises": 55
           },
           "units": [
             {
@@ -361,6 +362,12 @@
               "title": "单元82 后继与序数的合流",
               "title_en": "Unit 82 — Successor Meets Ordinal",
               "unit": 82
+            },
+            {
+              "file": "units/unit83-ordinal-no-cycle.sokonanoda",
+              "title": "单元83 序数的无环性",
+              "title_en": "Unit 83 — Ordinals Have No Membership Cycles",
+              "unit": 83
             }
           ]
         },

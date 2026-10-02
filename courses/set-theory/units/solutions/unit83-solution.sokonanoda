@@ -1,0 +1,63 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Ordinal
+
+theorem demo_wellFounded_hasMin (α : Type) (r : Rel α α) (h : IsWellFounded α r)
+    (P : α → Prop) (hex : ∃ (x : α), P x) : HasMin α r P :=
+  wellFounded_hasMin α r h P hex
+
+theorem demo_hasMin_elim (α : Type) (r : Rel α α) (P : α → Prop) (h : HasMin α r P) :
+    ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_elim α r P h
+
+theorem demo_ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h
+
+theorem wf_min (α : Type) (r : Rel α α) (h : IsWellFounded α r) :
+    ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P :=
+  wellFounded_hasMin α r h
+
+theorem ordinal_min (α : Type) (E : α → α → Prop) (x : α) (h : IsOrdinal α E x) :
+    ∀ (P : α → Prop), (∃ (y : α), P y) → HasMin α E P :=
+  wellFounded_hasMin α E (ordinal_wellFounded α E x h)
+
+theorem hasMin_spec (α : Type) (E : α → α → Prop) (P : α → Prop) (h : HasMin α E P) :
+    ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (E y m) :=
+  hasMin_elim α E P h
+
+theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
+    (hx : IsOrdinal α E x) : ¬ (E x x) :=
+  fun (hxx : E x x) =>
+    Exists.elim α (fun (m : α) => m = x ∧ ∀ (w : α), w = x → ¬ (E w m)) False
+      (hasMin_elim α E (fun (z : α) => z = x)
+        (ordinal_min α E x hx (fun (z : α) => z = x)
+          (Exists.intro α (fun (z : α) => z = x) x (Eq.refl.{1} α x))))
+      (fun (m : α) (hm : m = x ∧ ∀ (w : α), w = x → ¬ (E w m)) =>
+        (And.right (m = x) (∀ (w : α), w = x → ¬ (E w m)) hm) x (Eq.refl.{1} α x)  -- soko:notation-ok: `HasMin`/`IsOrdinal`/`IsTransitive` 是 def 头（手册边界）
+          (rel_subst_right α (fun (u : α) (v : α) => E u v) x x m
+            (Eq.symm.{1} α m x (And.left (m = x) (∀ (w : α), w = x → ¬ (E w m)) hm)) hxx))  -- soko:notation-ok: `HasMin`/`IsOrdinal`/`IsTransitive` 是 def 头（手册边界）
+
+theorem mem_mem_self (α : Type) (E : α → α → Prop) (x : α) (y : α) (hx : IsOrdinal α E x)
+    (hyx : E y x) (hxy : E x y) : E y y :=
+  (fun (ht : ∀ (a : α), E a y → ∀ (b : α), E b a → E b y) => ht x hxy y hyx)
+    ((fun (hu : IsTransitive α E y ↔ ∀ (a : α), E a y → ∀ (b : α), E b a → E b y) =>
+      Iff.mp hu (ordinal_elems_isTransitive α E x hx y hyx)) (isTransitive_def α E y))
+
+theorem ord_mem_trans (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : E z x :=
+  (fun (ht : ∀ (a : α), E a x → ∀ (b : α), E b a → E b x) => ht y hy z hz)
+    ((fun (hu : IsTransitive α E x ↔ ∀ (a : α), E a x → ∀ (b : α), E b a → E b x) =>
+      Iff.mp hu (ordinal_isTransitive α E x hx)) (isTransitive_def α E x))
+
+theorem elem_isOrdinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y :=
+  isOrdinal_intro α E y (ordinal_elems_isTransitive α E x hx y hy)
+    (fun (z : α) (hz : E z y) =>
+      ordinal_elems_isTransitive α E x hx z (ord_mem_trans α E x y z hx hy hz))
+    (ordinal_wellFounded α E x hx)
+
+theorem elem_mem_asymm (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hyx : E y x) (hxy : E x y) : False :=
+  ordinal_no_self_mem α E y (elem_isOrdinal α E x y hx hyx) (mem_mem_self α E x y hx hyx hxy)

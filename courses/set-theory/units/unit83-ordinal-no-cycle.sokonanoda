@@ -1,0 +1,111 @@
+-- ==========================================================================
+-- unit83-ordinal-no-cycle.sokonanoda —— 卷 I 单元83 **序数的无环性（三歧的前置）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§7.4**（ordinals are well-ordered）·
+--   Halmos《Naive Set Theory》**§11**。大纲 §4.1（**I.6 章继续深化** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **良基性 ⇒ 每个非空性质有极小元** ✓（取用子层 ✓）；
+--   · **序数的极小元原理** ✓；
+--   · **旗舰一：序数无自成员** ✓（`¬ E x x` ✓ —— 教材里"序数不能属于自己" ✓）；
+--   · **正面引理：互属 ⇒ 自属** ✓（`E y x ⇒ E x y ⇒ E y y` ✓ —— 用 `y` 的传递性 ✓）；
+--   · **旗舰二：互属不可能** ✓（`elem_mem_asymm` ✓）—— 这就是**序数上 `∈` 的反对称** ✓，
+--     也是**三歧**（`E x y ∨ x = y ∨ E y x`）的第一半 ✓。
+--
+-- ⚠ **本单元换来的一条路（第 649 轮探针的后续 ✓）**：`HasMin` **本身不可解构** ✗，
+--   但库里的 **`hasMin_elim`** ✓ 的**类型就是解构形态** ✓ ⇒ 凡要"取极小元"都用它 ✓。
+--   另：**不能把 `E x y` 当等式用** ✗（第 649 轮我就是在这一步判红的 ✓）——
+--   要搬运就先造出**等式**，再 `rel_subst_right` ✓（本轮探针确认其参数序 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Ordinal`。
+--
+-- 依赖：单元⑬（良基）· 单元⑮⑯（序数与序关系）· 单元80/81/82（序数线三片）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Ordinal
+
+-- ─────────────────────────────────────────────────────────────
+-- 83.1 三条库引理（良基 ⇒ 极小元 · 极小元的解构 · 序数传递）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：良基性直接给"每个非空性质有极小元"（**取用子形态** ✓）。
+theorem demo_wellFounded_hasMin (α : Type) (r : Rel α α) (h : IsWellFounded α r)
+    (P : α → Prop) (hex : ∃ (x : α), P x) : HasMin α r P :=
+  wellFounded_hasMin α r h P hex
+theorem demo_hasMin_elim (α : Type) (r : Rel α α) (P : α → Prop) (h : HasMin α r P) :
+    ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_elim α r P h
+theorem demo_ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h-- 练习 1（T 类）：**良基性的取用子**（写成 `∀ P, …` 形态）。
+
+-- soko:hint 关键件：`wellFounded_hasMin`（**参数一次给全** ✓）
+
+theorem wf_min (α : Type) (r : Rel α α) (h : IsWellFounded α r) :
+    ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P := by
+  sorry
+-- 练习 2（T 类）：**序数的极小元原理**（序数都是良基的 ✓）。
+
+-- soko:hint 关键件：`ordinal_wellFounded` · 练习 1 ✓
+
+theorem ordinal_min (α : Type) (E : α → α → Prop) (x : α) (h : IsOrdinal α E x) :
+    ∀ (P : α → Prop), (∃ (y : α), P y) → HasMin α E P := by
+  sorry
+-- 练习 3（T 类）：**极小元的解构**（`∃ m, P m ∧ ∀ y, P y → ¬ E y m` ✓）。
+
+-- soko:hint 关键件：**`hasMin_elim`**（它的类型**就是**解构形态 ✓ —— 见画布头 ✓）
+
+theorem hasMin_spec (α : Type) (E : α → α → Prop) (P : α → Prop) (h : HasMin α E P) :
+    ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (E y m) := by
+  sorry
+-- 练习 4（L 类，**旗舰一**）：**序数不属于自己**（`¬ E x x` ✓）。
+
+-- soko:hint 思路：取 `P z := z = x` 的极小元 `m` ✓ —— 由 `P m` 得 `m = x` ✓，
+
+--   把假设 `E x x` 沿这条等式搬成 `E x m` ✓，与"极小元下面没有 `P` 的点"冲突 ✓。
+
+-- soko:hint ⚠ **搬运**：先有**等式**（这里 `m = x` ✓）再 `rel_subst_right` ✓ —— 别拿 `E x x` 当等式 ✗。
+
+-- soko:hint 关键件：练习 2 / 练习 3 · `rel_subst_right` · `Eq.symm` / `Eq.refl` ✓
+
+theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
+    (hx : IsOrdinal α E x) : ¬ (E x x) := by
+  sorry
+-- 练习 5（T 类，**正面引理**）：**互属 ⇒ 自属**（`E y x ⇒ E x y ⇒ E y y`）。
+
+-- soko:hint 思路：`y` 也是传递的（`ordinal_elems_isTransitive` ✓）⇒ 把 `E x y` 与 `E y x` 串起来 ✓。
+
+-- soko:hint 关键件：`ordinal_elems_isTransitive` · `isTransitive_def`（**先 λ 绑定** ✓）
+
+theorem mem_mem_self (α : Type) (E : α → α → Prop) (x : α) (y : α) (hx : IsOrdinal α E x)
+    (hyx : E y x) (hxy : E x y) : E y y := by
+  sorry
+-- 练习 6（T 类）：**序数上 `∈` 的传递**（`E y x ⇒ E z y ⇒ E z x`）。
+
+-- soko:hint 关键件：`ordinal_isTransitive` · `isTransitive_def`（先 λ 绑定 ✓）
+
+theorem ord_mem_trans (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : E z x := by
+  sorry
+-- 练习 7（L 类）：**序数的元素仍是序数**（单元80 的旗舰，本单元复用 ✓）。
+
+-- soko:hint 关键件：`isOrdinal_intro` · `ordinal_elems_isTransitive` · 练习 6 · `ordinal_wellFounded` ✓
+
+theorem elem_isOrdinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y := by
+  sorry
+-- 练习 8（L 类，**旗舰二**）：**互属不可能**（序数上 `∈` 的**反对称** ✓）。
+
+-- soko:hint 思路：先由练习 5 得 `E y y` ✓；`y` 也是序数（练习 7 ✓）⇒ 与旗舰一冲突 ✓。
+
+-- soko:hint 目标形态：`False`。
+
+-- soko:hint 关键件：练习 4 / 练习 5 / 练习 7 ✓
+
+theorem elem_mem_asymm (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hyx : E y x) (hxy : E x y) : False := by
+  sorry
