@@ -1,0 +1,69 @@
+-- ==========================================================================
+-- unit97-equiv-le.sokonanoda —— 卷 I 单元97 **等势 ⇒ 双向 `≼`**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§6.1 / §6.2** ·
+--   Halmos《Naive Set Theory》**§22**。大纲 §4.1（**接单元92/93 与 96** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **取用子** 与 **打包子**（`LeOn` ✓）· **左逆 ⇒ 单射（限制在 `A` 上）** ✓ ·
+--     **右逆 ⇒ 单射**（对偶 ✓）—— 两条都要一次 `Eq.subst` 把 `g (f x)` 沿
+--     `f x = f y` 搬成 `g (f y)` ✓（格位表第二行 ✓）；
+--   · **旗舰：`A ≈ B ⇒ A ≼ B ∧ B ≼ A`** ✓ —— 等势的**数据**（一对互逆映射 ✓）
+--     直接给出**两个方向的单射** ✓（`f` 用左逆 ✓、`g` 用右逆 ✓）。
+--
+-- ⚠ **教学点** ✓：这条是「**Cantor–Bernstein 的一个方向**」的**构造性**半边 ✓ ——
+--   反方向（双向 `≼` ⇒ `≈`）**需要额外构造**（不在本单元 ✓）；而本单元这一半
+--   **完全构造性、不需要选择公理** ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Equiv`。
+--
+-- 依赖：单元⑨（等势）· 单元92/93（等势代数）· 单元96（势的比较）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (fun (h : LeOn α β A B) => h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
+theorem demo_injOn_def (α : Type) (β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y :=
+  Set.injOn_def α β f A
+theorem demo_leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)-- 练习 1（T 类）：**取用子**（把存在式交出去）。  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+-- 关键件：假设直接作用
+theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B := by
+  sorry
+-- 练习 2（T 类）：**打包子**（两条条件装成 `LeOn`）。
+-- 关键件：`Exists.intro` · `And.intro`（**写全前导命题**）
+theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B := by
+  sorry
+-- 练习 3（L 类，**旗舰的前半**）：**左逆 ⇒ 单射**（限制在 `A` 上）。
+-- 思路：设 `f x = f y`；沿这条等式把 `g (f x)` 搬成 `g (f y)`（谓词 `fun v => g (f x) = g v`）；再用左逆两次把 `g (f x)`、`g (f y)` 都拉回 `x`、`y`。
+-- 关键件：**`Eq.subst`**（谓词方向：`fun v => g (f x) = g v` ✓）· `hgf`（两次）· `Eq.trans` / `Eq.symm` · `Eq.refl`
+theorem injOn_of_leftInv (α : Type) (β : Type) (f : α → β) (g : β → α) (A : Set α)
+    (hgf : Set.LeftInvOn α β g f A) : Set.InjOn α β f A := by
+  sorry
+-- 练习 4（L 类，**后半，对偶**）：**右逆 ⇒ 单射**。
+-- 思路：与练习 3 完全对偶（把 `f`/`g`、`A`/`B` 对调）。
+-- 关键件：**`Eq.subst`**（谓词 `fun v => f (g x) = f v`）· `hfg`（两次）· `Eq.trans` / `Eq.symm` · `Eq.refl`
+theorem injOn_of_rightInv (α : Type) (β : Type) (g : β → α) (f : α → β) (B : Set β)
+    (hfg : Set.RightInvOn α β f g B) : Set.InjOn β α g B := by
+  sorry
+-- 练习 5（L 类，**旗舰**）：**等势 ⇒ 双向 `≼`**。
+-- 思路：`Set.Equiv.elim` 一次交出 `f, g` 与四条条件；用练习 2 打两次包：去的方向用练习 3（左逆），回的方向用练习 4（右逆）。
+-- 关键件：`Set.Equiv.elim` · 练习 2（两次）· 练习 3 / 练习 4 · `And.intro`（**写全** ✓）
+theorem leOn_of_equiv (α : Type) (β : Type) (A : Set α) (B : Set β) (h : A ≈ B) :
+    LeOn α β A B ∧ LeOn β α B A := by
+  sorry

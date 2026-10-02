@@ -1,0 +1,60 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+
+def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+
+theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (fun (h : LeOn α β A B) => h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
+
+theorem demo_injOn_def (α : Type) (β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y :=
+  Set.injOn_def α β f A
+
+theorem demo_leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+
+theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  h
+
+theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+
+theorem injOn_of_leftInv (α : Type) (β : Type) (f : α → β) (g : β → α) (A : Set α)
+    (hgf : Set.LeftInvOn α β g f A) : Set.InjOn α β f A :=
+  fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : f x = f y) =>
+    Eq.trans.{1} α x (g (f x)) y (Eq.symm.{1} α (g (f x)) x (hgf x hx))
+      (Eq.trans.{1} α (g (f x)) (g (f y)) y
+        (Eq.subst.{1} β (fun (v : β) => g (f x) = g v) (f x) (f y) h
+          (Eq.refl.{1} α (g (f x))))
+        (hgf y hy))
+
+theorem injOn_of_rightInv (α : Type) (β : Type) (g : β → α) (f : α → β) (B : Set β)
+    (hfg : Set.RightInvOn α β f g B) : Set.InjOn β α g B :=
+  fun (x : β) (hx : x ∈ B) (y : β) (hy : y ∈ B) (h : g x = g y) =>
+    Eq.trans.{1} β x (f (g x)) y (Eq.symm.{1} β (f (g x)) x (hfg x hx))
+      (Eq.trans.{1} β (f (g x)) (f (g y)) y
+        (Eq.subst.{1} α (fun (v : α) => f (g x) = f v) (g x) (g y) h
+          (Eq.refl.{1} β (f (g x))))
+        (hfg y hy))
+
+theorem leOn_of_equiv (α : Type) (β : Type) (A : Set α) (B : Set β) (h : A ≈ B) :
+    LeOn α β A B ∧ LeOn β α B A :=
+  Set.Equiv.elim α β A B (LeOn α β A B ∧ LeOn β α B A) h
+    (fun (f : α → β) (g : β → α) (hf : Set.MapsTo α β f A B)
+      (hg : Set.MapsTo β α g B A) (hgf : Set.LeftInvOn α β g f A)
+      (hfg : Set.RightInvOn α β f g B) =>
+      And.intro (LeOn α β A B) (LeOn β α B A)
+        (leOn_intro α β A B f (injOn_of_leftInv α β f g A hgf) hf)
+        (leOn_intro β α B A g (injOn_of_rightInv α β g f B hfg) hg))

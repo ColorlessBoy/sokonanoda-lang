@@ -169,10 +169,11 @@
             "preimage-family-distrib",
             "equiv-algebra",
             "equiv-transitive",
-            "le-on-cardinal"
+            "le-on-cardinal",
+            "equiv-implies-le"
           ],
           "quota": {
-            "exercises": 67
+            "exercises": 72
           },
           "units": [
             {
@@ -222,6 +223,12 @@
               "title": "单元96 势的比较（自反与传递）",
               "title_en": "Unit 96 — Comparing Sizes: Reflexivity and Transitivity",
               "unit": 96
+            },
+            {
+              "file": "units/unit97-equiv-le.sokonanoda",
+              "title": "单元97 等势 ⇒ 双向势比较",
+              "title_en": "Unit 97 — Equinumerosity Implies Both Comparisons",
+              "unit": 97
             }
           ]
         },
