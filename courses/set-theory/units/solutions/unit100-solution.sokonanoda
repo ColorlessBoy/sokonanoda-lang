@@ -1,0 +1,103 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+
+def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+
+theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (fun (h : LeOn α β A B) => h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
+
+theorem demo_injOn_def (α : Type) (β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y :=
+  Set.injOn_def α β f A
+
+theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
+  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+    (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
+
+theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  h
+
+theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+
+theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) => g (f x)) A C :=
+  fun (x : α) (hx : x ∈ A) => hg (f x) (hf x hx)
+
+theorem injOn_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β)
+    (hf : Set.InjOn α β f A) (hg : Set.InjOn β γ g B) (hfm : Set.MapsTo α β f A B) :
+    Set.InjOn α γ (fun (x : α) => g (f x)) A :=
+  fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : g (f x) = g (f y)) =>
+    hf x hx y hy (hg (f x) (hfm x hx) (f y) (hfm y hy) h)
+
+theorem injOn_of_leftInv (α : Type) (β : Type) (f : α → β) (g : β → α) (A : Set α)
+    (hgf : Set.LeftInvOn α β g f A) : Set.InjOn α β f A :=
+  fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : f x = f y) =>
+    Eq.trans.{1} α x (g (f x)) y (Eq.symm.{1} α (g (f x)) x (hgf x hx))
+      (Eq.trans.{1} α (g (f x)) (g (f y)) y
+        (Eq.subst.{1} β (fun (v : β) => g (f x) = g v) (f x) (f y) h
+          (Eq.refl.{1} α (g (f x))))
+        (hgf y hy))
+
+theorem leOn_comp (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (hAB : LeOn α β A B) (hBC : LeOn β γ B C) : LeOn α γ A C :=
+  Exists.elim (α → β) (fun (f : α → β) => Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (LeOn α γ A C) (leOn_apply α β A B hAB)
+    (fun (f : α → β) (hf : Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =>
+      Exists.elim (β → γ) (fun (g : β → γ) => Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C)
+        (LeOn α γ A C) (leOn_apply β γ B C hBC)
+        (fun (g : β → γ) (hg : Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C) =>
+          leOn_intro α γ A C (fun (x : α) => g (f x))
+            (injOn_comp α β γ f g A B
+              (And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (And.left (Set.InjOn β γ g B) (Set.MapsTo β γ g B C) hg)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+            (mapsTo_comp α β γ f g A B C
+              (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (And.right (Set.InjOn β γ g B) (Set.MapsTo β γ g B C) hg))))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+
+theorem leOn_of_equiv_left (α : Type) (α' : Type) (β : Type) (A : Set α) (A' : Set α')
+    (B : Set β) (h : A ≈ A') (h' : LeOn α' β A' B) : LeOn α β A B :=
+  Set.Equiv.elim α α' A A' (LeOn α β A B) h
+    (fun (f : α → α') (g : α' → α) (hf : Set.MapsTo α α' f A A')
+      (hg : Set.MapsTo α' α g A' A) (hgf : Set.LeftInvOn α α' g f A)
+      (hfg : Set.RightInvOn α α' f g A') =>
+      Exists.elim (α' → β) (fun (k : α' → β) => Set.InjOn α' β k A' ∧ Set.MapsTo α' β k A' B)
+        (LeOn α β A B) (leOn_apply α' β A' B h')
+        (fun (k : α' → β) (hk : Set.InjOn α' β k A' ∧ Set.MapsTo α' β k A' B) =>
+          leOn_intro α β A B (fun (x : α) => k (f x))
+            (injOn_comp α α' β f k A A' (injOn_of_leftInv α α' f g A hgf)
+              (And.left (Set.InjOn α' β k A') (Set.MapsTo α' β k A' B) hk) hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+            (mapsTo_comp α α' β f k A A' B hf
+              (And.right (Set.InjOn α' β k A') (Set.MapsTo α' β k A' B) hk))))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+
+theorem leOn_of_equiv_right (α : Type) (β' : Type) (β : Type) (A : Set α) (B' : Set β')
+    (B : Set β) (h : A ≼ B') (h' : B' ≈ B) : LeOn α β A B :=
+  Exists.elim (α → β') (fun (f : α → β') => Set.InjOn α β' f A ∧ Set.MapsTo α β' f A B')
+    (LeOn α β A B) (leOn_apply α β' A B' h)
+    (fun (f : α → β') (hf : Set.InjOn α β' f A ∧ Set.MapsTo α β' f A B') =>
+      Set.Equiv.elim β' β B' B (LeOn α β A B) h'
+        (fun (u : β' → β) (v : β → β') (hu : Set.MapsTo β' β u B' B)
+          (hv : Set.MapsTo β β' v B B') (hvu : Set.LeftInvOn β' β v u B')
+          (huv : Set.RightInvOn β' β u v B) =>
+          leOn_intro α β A B (fun (x : α) => u (f x))
+            (injOn_comp α β' β f u A B'
+              (And.left (Set.InjOn α β' f A) (Set.MapsTo α β' f A B') hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (injOn_of_leftInv β' β u v B' hvu)
+              (And.right (Set.InjOn α β' f A) (Set.MapsTo α β' f A B') hf))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+            (mapsTo_comp α β' β f u A B' B
+              (And.right (Set.InjOn α β' f A) (Set.MapsTo α β' f A B') hf) hu)))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）

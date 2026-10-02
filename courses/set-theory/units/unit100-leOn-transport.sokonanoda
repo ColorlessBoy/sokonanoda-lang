@@ -1,0 +1,87 @@
+-- ==========================================================================
+-- unit100-leOn-transport.sokonanoda —— 卷 I 单元100 **势比较的搬运（沿等势换两边）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§6.1 / §6.2** ·
+--   Halmos《Naive Set Theory》**§22**。大纲 §4.1（**接单元96–99** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 取用子/打包子 ✓ · **复合保 `MapsTo`** ✓ · **单射复合** ✓ · **左逆 ⇒ 单射** ✓；
+--   · **`≼` 复合** ✓（`A ≼ B ⇒ B ≼ C ⇒ A ≼ C` ✓）；
+--   · **旗舰一：沿等势换左边** ✓（`A ≈ A'`、`A' ≼ B` ⇒ `A ≼ B` ✓）；
+--   · **旗舰二：沿等势换右边** ✓（`A ≼ B'`、`B' ≈ B` ⇒ `A ≼ B` ✓）。
+--
+-- ⚠ **教学点** ✓：这两条说明 `≼` **只依赖集合的"势"**（同势的集合可以互相替换 ✓）——
+--   这正是"**势**"这个概念可作为**不变量**来用的技术依据 ✓；两条都是
+--   **把映射沿着等势"转运"** ✓（复合 ✓），不需要任何选择公理 ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Equiv`。
+--
+-- 依赖：单元92/93（等势代数）· 单元96–98（势比较与单调）· 单元97（左逆/右逆 ⇒ 单射）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (fun (h : LeOn α β A B) => h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
+theorem demo_injOn_def (α : Type) (β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y :=
+  Set.injOn_def α β f A
+theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
+  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+    (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)-- 练习 1（T 类）：**取用子**。
+-- 关键件：假设直接作用
+theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B := by
+  sorry
+-- 练习 2（T 类）：**打包子**。
+-- 关键件：`Exists.intro` · `And.intro`（**写全前导命题**）
+theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B := by
+  sorry
+-- 练习 3（T 类）：**复合保 `MapsTo`**。
+-- 关键件：两个 `MapsTo` 假设按 点 · 前提 作用
+theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) => g (f x)) A C := by
+  sorry
+-- 练习 4（L 类）：**单射复合**（中间点要先经 `MapsTo` 送进 `B`）。
+-- 关键件：`hg`（在 `f x`、`f y` 处）· `hfm`（把两点送进 `B`）· `hf`
+theorem injOn_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β)
+    (hf : Set.InjOn α β f A) (hg : Set.InjOn β γ g B) (hfm : Set.MapsTo α β f A B) :
+    Set.InjOn α γ (fun (x : α) => g (f x)) A := by
+  sorry
+-- 练习 5（L 类）：**左逆 ⇒ 单射**（限制在 `A` 上）。
+-- 思路：设 `f x = f y`；沿它把 `g (f x)` 搬成 `g (f y)`（`Eq.subst` + 谓词 `fun v => g (f x) = g v`）；再用左逆两次。
+-- 关键件：**`Eq.subst`** · `hgf`（两次）· `Eq.trans` / `Eq.symm` · `Eq.refl`
+theorem injOn_of_leftInv (α : Type) (β : Type) (f : α → β) (g : β → α) (A : Set α)
+    (hgf : Set.LeftInvOn α β g f A) : Set.InjOn α β f A := by
+  sorry
+-- 练习 6（L 类）：**`≼` 复合**。
+-- 关键件：练习 1（两次）· `Exists.elim` · 练习 2 · 练习 4 / 练习 3 · `And.left`/`And.right`（写全）
+theorem leOn_comp (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (hAB : LeOn α β A B) (hBC : LeOn β γ B C) : LeOn α γ A C := by
+  sorry
+-- 练习 7（L 类，**旗舰一**）：**沿等势换左边**（`A ≈ A'`、`A' ≼ B` ⇒ `A ≼ B`）。
+-- 思路：`Set.Equiv.elim` 交出 `f`（去的映射）与**左逆**条件 ⇒ 用练习 5 得 `f` 单射 ⇒ 与 `A' ≼ B` 的见证复合 ⇒ 用练习 2 打包（两条条件分别是练习 4 与练习 3）。
+-- 关键件：`Set.Equiv.elim` · 练习 5 · 练习 1 · 练习 2 · 练习 4 / 练习 3
+theorem leOn_of_equiv_left (α : Type) (α' : Type) (β : Type) (A : Set α) (A' : Set α')
+    (B : Set β) (h : A ≈ A') (h' : LeOn α' β A' B) : LeOn α β A B := by
+  sorry
+-- 练习 8（L 类，**旗舰二**）：**沿等势换右边**（`A ≼ B'`、`B' ≈ B` ⇒ `A ≼ B`）。
+-- 思路：先拆 `A ≼ B'` 的映射 `f`；再 `Set.Equiv.elim` 交出 `u : B' → B` 与它的**左逆** ⇒ 用练习 5 得 `u` 单射 ⇒ 复合 `u ∘ f` ⇒ 打包。
+-- 关键件：练习 1 · `Set.Equiv.elim` · 练习 5 · 练习 2 · 练习 4 / 练习 3
+theorem leOn_of_equiv_right (α : Type) (β' : Type) (β : Type) (A : Set α) (B' : Set β')
+    (B : Set β) (h : A ≼ B') (h' : B' ≈ B) : LeOn α β A B := by
+  sorry

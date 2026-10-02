@@ -172,10 +172,11 @@
             "le-on-cardinal",
             "equiv-implies-le",
             "le-monotone",
-            "powerset-monotone"
+            "powerset-monotone",
+            "leOn-transport"
           ],
           "quota": {
-            "exercises": 86
+            "exercises": 94
           },
           "units": [
             {
@@ -243,6 +244,12 @@
               "title": "单元99 幂集的单调性",
               "title_en": "Unit 99 — Monotonicity of the Power Set",
               "unit": 99
+            },
+            {
+              "file": "units/unit100-leOn-transport.sokonanoda",
+              "title": "单元100 势比较的搬运",
+              "title_en": "Unit 100 — Transporting Size Comparisons along Equinumerosity",
+              "unit": 100
             }
           ]
         },
