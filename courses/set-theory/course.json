@@ -220,10 +220,11 @@
             "refutation-exists",
             "extensionality-refutation",
             "refutation-sdiff",
-            "inj-surj-composition"
+            "inj-surj-composition",
+            "surjection-composition"
           ],
           "quota": {
-            "exercises": 34
+            "exercises": 38
           },
           "units": [
             {
@@ -261,6 +262,12 @@
               "title": "单元87 单射、满射与复合",
               "title_en": "Unit 87 — Injections, Surjections, Composition",
               "unit": 87
+            },
+            {
+              "file": "units/unit88-surj.sokonanoda",
+              "title": "单元88 满射与复合",
+              "title_en": "Unit 88 — Surjections and Composition",
+              "unit": 88
             }
           ]
         },

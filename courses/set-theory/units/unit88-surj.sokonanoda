@@ -1,0 +1,74 @@
+-- ==========================================================================
+-- unit88-surj.sokonanoda —— 卷 I 单元88 **满射与复合（补单元87 的欠账）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.3/§3.6** ·
+--   Halmos《Naive Set Theory》**§8**。大纲 §4.1（**I.4 章继续深化** —— 补齐单元87 的满射半边 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 满射的直接用法 ✓；
+--   · **换"函数参数格"的搬运** ✓（`arg_subst`：`b = a ⇒ g b = d ⇒ g a = d` ✓）；
+--   · **满射的复合还是满射** ✓（**单元87 判红两次的那条，本轮补齐** ✓）；
+--   · **复合满射 ⇒ 外层满射** ✓（教材里"满射的复合"另一半 ✓）。
+--
+-- ⚠⚠ **格位表（本单元换来、务必记住 ✓）**：
+--   * `rel_subst_left` / `rel_subst_right` 的关系是 **`α → α → Prop`（同一类型 ✗）**，
+--     且两者**都只换"第二格"** ✓ ⇒ 只能用于"关系两槽同类型"的搬运 ✓；
+--   * 要换 **"函数参数那一格"**（`g b = d` ⇒ `g a = d`，**跨类型** ✗）⇒ 必须用
+--     **`Eq.subst` + 谓词** ✓：`Eq.subst.{1} α (fun x => g x = d) b a h hd` ✓
+--     （谓词写成 **`fun x => g x = d`** 而不是 `fun x => g a = g x` ✗ —— 方向由谓词决定 ✓）。
+--   本轮就是在这两点上判红两次后钉死的 ✓（前四次踩坑见单元83 / 87 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元⑪⑫（函数）· 单元86（核与复合）· 单元87（单射半边）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def Injective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), f a = f b → a = b
+
+def Surjective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (b : β), ∃ (a : α), f a = b
+
+def Bijective (α : Type) (β : Type) (f : α → β) : Prop :=
+  Injective α β f ∧ Surjective α β f
+-- ─────────────────────────────────────────────────────────────
+-- 88.1 两条定义展开（单射 · 满射）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：满射的定义展开（`Surjective f` 就是"每个点都有原像" ✓）。
+theorem demo_inj_def (α : Type) (β : Type) (f : α → β) :
+    Injective α β f ↔ ∀ (a : α) (b : α), f a = f b → a = b :=
+  Iff.intro (Injective α β f) (∀ (a : α) (b : α), f a = f b → a = b)
+    (fun (h : Injective α β f) => h) (fun (h : ∀ (a : α) (b : α), f a = f b → a = b) => h)
+theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
+    Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=
+  Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+    (fun (h : Surjective α β f) => h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) => h)-- 练习 1（T 类，**格位表**）：**换"函数参数格"**（`b = a ⇒ g b = d ⇒ g a = d`）。
+-- 关键件：**`Eq.subst` + 谓词 `fun x => g x = d`**（⚠ 不是 `rel_subst_*` —— 那两个只换"同类型的第二格"）
+-- 写法：`Eq.subst.{1} α (fun x => g x = d) b a h hd`（宇宙层与谓词都要写出来）
+theorem arg_subst (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
+    (h : b = a) (hd : g b = d) : g a = d := by
+  sorry
+-- 练习 2（T 类）：**满射的直接用法**（给 `b` 取原像点）。
+-- 关键件：假设直接作用（`hf b`）
+theorem surj_apply (α : Type) (β : Type) (f : α → β) (b : β)
+    (hf : Surjective α β f) : ∃ (a : α), f a = b := by
+  sorry
+-- 练习 3（L 类，**补单元87 的欠账**）：**满射的复合还是满射**。
+-- 思路：给 `c`，先用 `g` 的满射取 `b` 与 `g b = c`，再用 `f` 的满射取 `a` 与 `f a = b`；最后把 `g b = c` 沿 `f a = b` 搬成 `g (f a) = c`（练习 1 的形态）。
+-- 关键件：`Exists.elim` / `Exists.intro` · **`Eq.subst`**（跨类型搬运）
+theorem surj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Surjective α β f) (hg : Surjective β γ g) :
+    Surjective α γ (fun (x : α) => g (f x)) := by
+  sorry
+-- 练习 4（L 类）：**复合满射 ⇒ 外层满射**。
+-- 思路：给 `c`，复合的满射给出 `a` 与 `g (f a) = c` ⇒ 见证取 `f a`。
+-- 关键件：`Exists.elim` / `Exists.intro`（直接把上一步的等式交出去）
+theorem surj_of_surj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hgf : Surjective α γ (fun (x : α) => g (f x))) : Surjective β γ g := by
+  sorry
