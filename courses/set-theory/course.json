@@ -174,10 +174,11 @@
             "le-monotone",
             "powerset-monotone",
             "leOn-transport",
-            "empty-subset"
+            "empty-subset",
+            "subset-antisymm"
           ],
           "quota": {
-            "exercises": 99
+            "exercises": 105
           },
           "units": [
             {
@@ -257,6 +258,12 @@
               "title": "单元101 空集与子集的点态代数",
               "title_en": "Unit 101 — The Empty Set, Pointwise",
               "unit": 101
+            },
+            {
+              "file": "units/unit102-subset-antisymm.sokonanoda",
+              "title": "单元102 相互包含与点态外延",
+              "title_en": "Unit 102 — Mutual Inclusion, Pointwise",
+              "unit": 102
             }
           ]
         },

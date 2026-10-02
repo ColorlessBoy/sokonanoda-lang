@@ -1,0 +1,65 @@
+-- ==========================================================================
+-- unit102-subset-antisymm.sokonanoda —— 卷 I 单元102 **相互包含与"点态外延"**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§1.2 / §1.3** ·
+--   Halmos《Naive Set Theory》**§1 / §3**。大纲 §4.1（**接单元101 与 96–100** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **相互包含的两个方向** ✓（都写成**两条蕴含** ✓ —— 不用 `↔` 带 `¬` 的绑定注解 ✗）；
+--   · **旗舰一：相互包含 ⇒ 点态等价** ✓（`A ⊆ B`、`B ⊆ A` ⇒ 两个方向的点态蕴含 ✓）
+--     —— 这就是**外延性**的**点态形态** ✓（**不需要 `funext`** ✓！）；
+--   · 恒等单射 ✓ · **子集 ⇒ `≼`** ✓ · **旗舰二：相互包含 ⇒ 双向 `≼`** ✓。
+--
+-- ⚠ **教学点** ✓：教材里"`A ⊆ B` 且 `B ⊆ A` ⇒ `A = B`"用的是**集合外延** ✓；
+--   在**谓词版集合**里"集合相等"要 `funext` ✓ ⇒ 本单元给出**等价的点态形态** ✓
+--   （两个方向的蕴含 ✓），**构造性可用** ✓ —— 这与单元78/85/93 的做法一致 ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Equiv`。
+--
+-- 依赖：单元④（子集）· 单元96（`≼`）· 单元101（点态代数）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
+  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+theorem demo_leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)-- 练习 1（T 类）：**相互包含的前一半**（点态）。  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+-- 关键件：`Set.subset_def`（**先 λ 绑定再 `Iff.mp`** ✓）· `hAB`（点 · 前提）
+theorem subset_antisymm_forward (α : Type) (A : Set α) (B : Set α)
+    (hAB : A ⊆ B) (hBA : B ⊆ A) : ∀ (x : α), x ∈ A → x ∈ B := by
+  sorry
+-- 练习 2（T 类）：**后一半**（对偶 ✓）。
+-- 关键件：`Set.subset_def` · `hBA`（点 · 前提）
+theorem subset_antisymm_backward (α : Type) (A : Set α) (B : Set α)
+    (hAB : A ⊆ B) (hBA : B ⊆ A) : ∀ (x : α), x ∈ B → x ∈ A := by
+  sorry
+-- 练习 3（L 类，**旗舰一**）：**相互包含 ⇒ 点态等价**（两个方向的合取）。
+-- 关键件：`And.intro`（**前导命题写全** ✓）· 练习 1 / 练习 2
+theorem subset_antisymm_pointwise (α : Type) (A : Set α) (B : Set α)
+    (hAB : A ⊆ B) (hBA : B ⊆ A) :
+    (∀ (x : α), x ∈ A → x ∈ B) ∧ (∀ (x : α), x ∈ B → x ∈ A) := by
+  sorry
+-- 练习 4（T 类）：**恒等映射在 `A` 上单射**。
+-- 关键件：假设直接交出去
+theorem injOn_id (α : Type) (A : Set α) : Set.InjOn α α (fun (x : α) => x) A := by
+  sorry
+-- 练习 5（T 类）：**子集 ⇒ `≼`**（用恒等映射打包）。
+-- 关键件：`Set.subset_def`（λ 落地 ✓）· 打包子 · 练习 4
+theorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeOn α α A B := by
+  sorry
+-- 练习 6（L 类，**旗舰二**）：**相互包含 ⇒ 双向 `≼`**。
+-- 关键件：练习 5（**两个方向各一次** ✓）· `And.intro`（写全 ✓）
+theorem leOn_of_subset_both (α : Type) (A : Set α) (B : Set α)
+    (hAB : A ⊆ B) (hBA : B ⊆ A) : LeOn α α A B ∧ LeOn α α B A := by
+  sorry
