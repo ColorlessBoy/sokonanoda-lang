@@ -60,3 +60,22 @@
 - ⚠ **废止**：第 688 轮的迭代/并集版（`Aseq`/`cbChain` ✓）**不再作为 CB 的路线** ✗ ——
   它的 `Aseq 0 = A` 使"第二分支"永不触发 ✓（见 `OPEN-ITEMS.md` C-112 的第 689–690 轮结论 ✓）。
   那 5 条绿件可留在 `gaps/C-112-cb-chain-wip.sokonanoda` 作**单调性练习** ✓，不进单元 ✓。
+
+## 7. Lean 落地实测（第 691 轮 ✓）
+
+判据文件：`courses/set-theory/gaps/C-112-cb-prop.sokonanoda`（**WIP、不登记进 `course.json`** ⇒ 门禁不判它 ✓）
+重放：`python3 /tmp/soko/bisect.py courses/set-theory/gaps/C-112-cb-prop.sokonanoda` ⇒ **ALL GREEN · checked=7** ✓
+
+| # | 声明 | 对应推导步 | 状态 |
+|---|---|---|---|
+| 1 | `cbK`（`A \ g '' (B \ f '' C)`） | 第 1' 步 | ✅ 绿 |
+| 2 | `cbFix`（`𝓕 = {C ⊆ A \| K(C) ⊆ C}`） | 第 2 步 | ✅ 绿 |
+| 3 | `cbC0`（`⋂𝓕`） | 第 2 步 | ✅ 绿 |
+| 4 | `cbK_mono`（**单调性**） | 第 1' 步 | ✅ 绿 |
+| 5 | `cbC0_least` | `⋂` 取用 | ✅ 绿 |
+| 6 | **`cbC0_in_fix`**（`K(C₀) ⊆ C₀`） | **第 3 步（上轮推不动的那一步）** | ✅ **绿** |
+| 7 | **`cbC0_sdiff`**（`A∖g''B ⊆ C₀`） | **第 4(a) 步** | ✅ **绿** |
+
+⇒ **CB 的数学核心已在 Lean 里闭合** ✓（**一次判绿** ✓ —— 收益来自"纸上先推完" ✓）。
+**剩下的只有第 5 步**：关系版图 + `choice` 取前像 ⇒ 装配 `A ≈ B` ⇒ 建单元（配额/练习）⇒
+**交付那一刻**翻 C-112 复现件语义（`closed` + 期望翻正 + 反向验证改"拿掉 ⇒ 判红"）✓。

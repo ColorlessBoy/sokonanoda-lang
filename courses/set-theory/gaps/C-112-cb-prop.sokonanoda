@@ -1,0 +1,66 @@
+-- C-112 推导件（第 1–4 步）的 Lean：**全 Prop 层** ✓（不碰 C-04 ✓）
+-- 偏离标注（原样保留）：本课 CB **经选择公理**（第 5 步用 choice 取前像）；CB 数学上不需要选择 ⇒ 偏离。
+import lib.Set
+import lib.Image
+import lib.SUnion
+import lib.Rel
+import lib.Equiv
+import lib.Choice
+
+def cbK (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C : Set α) : Set α :=
+  A \ g '' (B \ f '' C)
+
+def cbFix (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    Set (Set α) :=
+  fun (C : Set α) =>
+    (∀ (x : α), x ∈ C → x ∈ A) ∧ (∀ (x : α), x ∈ cbK α β A B f g C → x ∈ C)
+
+def cbC0 (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) : Set α :=
+  Set.sInter α (cbFix α β A B f g)
+
+theorem cbK_mono (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C1 : Set α) (C2 : Set α) (h : ∀ (x : α), x ∈ C1 → x ∈ C2) :
+    ∀ (x : α), x ∈ cbK α β A B f g C1 → x ∈ cbK α β A B f g C2 :=
+  fun (x : α) (hx : x ∈ cbK α β A B f g C1) =>
+    And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
+      (And.left (x ∈ A) (¬ (x ∈ g '' (B \ f '' C1))) hx)
+      (fun (h2 : x ∈ g '' (B \ f '' C2)) =>
+        (And.right (x ∈ A) (¬ (x ∈ g '' (B \ f '' C1))) hx)
+          (Set.image_mono g (B \ f '' C2) (B \ f '' C1)
+            (fun (b : β) (hb : b ∈ B \ f '' C2) =>
+              And.intro (b ∈ B) (¬ (b ∈ f '' C1))
+                (And.left (b ∈ B) (¬ (b ∈ f '' C2)) hb)
+                (fun (h1 : b ∈ f '' C1) =>
+                  (And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)
+                    (Set.image_mono f C1 C2 h b h1)))
+            x h2))
+
+theorem cbC0_least (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C : Set α) (hC : C ∈ cbFix α β A B f g) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ C :=
+  fun (x : α) (hx : x ∈ cbC0 α β A B f g) => hx C hC
+
+theorem cbC0_in_fix (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ cbK α β A B f g (cbC0 α β A B f g)) =>
+    fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =>
+      And.right (∀ (y : α), y ∈ C → y ∈ A)
+        (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
+        (cbK_mono α β A B f g (cbC0 α β A B f g) C
+          (cbC0_least α β A B f g C hC) x hx)
+
+theorem cbC0_sdiff (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ A \ g '' B → x ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ A \ g '' B) =>
+    fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =>
+      And.right (∀ (y : α), y ∈ C → y ∈ A)
+        (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
+        (And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
+          (And.left (x ∈ A) (¬ (x ∈ g '' B)) hx)
+          (fun (h2 : x ∈ g '' (B \ f '' C)) =>
+            (And.right (x ∈ A) (¬ (x ∈ g '' B)) hx)
+              (Set.image_mono g (B \ f '' C) B
+                (fun (b : β) (hb : b ∈ B \ f '' C) =>
+                  And.left (b ∈ B) (¬ (b ∈ f '' C)) hb)
+                x h2)))
