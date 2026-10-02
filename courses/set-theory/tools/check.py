@@ -15,6 +15,8 @@
   （`units/` 下不进 `course.json` 的画布，如记法对照页）走**同一套** G1/G3/G4：
   它们不是单元（没有单元号/配额），但同样是"有 `sorry` 的画布 + 有解答"。
 * **G5** `lib` + Demo：`exercise.open == 0`（库里有 `sorry` 会让引用它的单元判卷失真）。
+* **G7** 课程侧复现件重放：`gaps/*.sh` 每条**自带登记状态**（exit 0 = 与登记一致）
+  ⇒ 逐条重放、有一条不一致就判负（`--gaps-only` 只跑这条，秒级）；
 * **G6** 清单自洽（v2；v1 扁平清单天然满足）：volume/chapter id 唯一且非空、
   每个 unit 恰好属于一个 chapter（`file` 不重复）、`prereqs` 指向存在的 chapter id。
   **`quota.exercises` 与画布实际练习数的差额只报告、绝不判红**——课程门禁的
@@ -71,6 +73,7 @@ from pathlib import Path
 
 COURSE = Path(__file__).resolve().parent.parent
 COURSE_JSON = COURSE / "course.json"
+GAPS = COURSE / "gaps"          # G7：课程侧复现件（`gaps/*.sh`，见 gaps/README.md）
 LIB = COURSE / "lib"
 UNITS = COURSE / "units"
 SOLUTION_DIR = COURSE / "units" / "solutions"
@@ -1186,6 +1189,8 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--annotations", action="store_true",
                         help="失败逐条打 GitHub 注解（::error file=…::，不带行号）")
     parser.add_argument("--report", metavar="路径", help="把 --json 报告写到文件（CI artifact）")
+    parser.add_argument("--gaps-only", action="store_true",
+                        help="只重放 G7 的课程侧复现件（gaps/*.sh），秒级，便于反向验证")
     parser.add_argument("--summary", metavar="路径", help="把 markdown 表追加到文件（$GITHUB_STEP_SUMMARY）")
     parser.add_argument("--ledger", nargs="?", const=LEDGER_DEFAULT, metavar="路径",
                         help=f"追加一条成本台账（默认 {LEDGER_DEFAULT}）；"
@@ -1193,6 +1198,43 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--bin", metavar="路径", dest="bin_path",
                         help="判卷二进制（默认取 $SOKONANODA_BIN，再退回 scripts/soko）")
     return parser.parse_args(argv)
+
+
+def replay_gap_repros(limit: int = 600) -> list[dict]:
+    """**G7**：重放课程侧 `gaps/*.sh` 复现件（每条**自带登记状态**）。
+
+    约定（与 `docs/gaps/README.md` 的 `.sh` 复现件同形）：**exit 0 = 与登记一致**
+    （缺口仍在的条目就该继续判红 ⇒ 复现件成功"观测到"它；已结案的条目就该判绿），
+    **exit ≠ 0 = 与登记不一致** ⇒ G7 判负。所以判据就是"每条都 exit 0"。
+
+    为什么需要它：课程侧的账目（C-01/C-03/C-04/C-05）**不在语言仓台账里**
+    （那是语言缺口用的），若没有这条判据，坏了没有任何东西会拦。
+    """
+    rows: list[dict] = []
+    for repro in sorted(GAPS.glob("*.sh")):
+        rel = str(repro.relative_to(COURSE))
+        started = time.monotonic()
+        try:
+            proc = subprocess.run(["bash", str(repro)], capture_output=True, text=True,
+                                  timeout=limit)
+            code = proc.returncode
+            out = (proc.stdout + proc.stderr).strip()
+        except subprocess.TimeoutExpired:
+            code, out = 124, f"超时（>{limit}s）"
+        except OSError as error:
+            code, out = 126, str(error)
+        last = out.splitlines()[-1] if out else ""
+        rows.append({
+            "label": f"复现 {repro.stem}", "file": rel, "kind": "gap",
+            "status": "ok" if code == 0 else "rejected",
+            "reasons": [] if code == 0 else
+                       [f"G7：复现件与登记状态不一致（exit={code}）：{last}"],
+            "exit": 0, "checked": 0, "open": 0, "checked_names": [], "open_names": [],
+            "diagnostics": [], "notes": [last] if last else [],
+            "path": str(repro), "canvas": None,
+            "ms": int((time.monotonic() - started) * 1000),
+        })
+    return rows
 
 
 def run(rows: list[dict], judge, channel: Channel, args: argparse.Namespace, check_py: Path,
@@ -1327,6 +1369,15 @@ def main(argv: list[str] | None = None) -> int:
         channel = resolve_channel(root, args.bin_path)
         if args.selftest:
             return selftest(channel, check_py)
+        if args.gaps_only:
+            rows = replay_gap_repros()
+            for row in rows:
+                mark = "✓" if row["status"] == "ok" else "✗"
+                detail = row["reasons"][0] if row["reasons"] else (row["notes"][0] if row["notes"] else "")
+                print(f"{mark} {row['label']}：{detail}")
+            print(f"\nG7：{len(rows)} 条复现件 · "
+                  f"{sum(1 for row in rows if row['status'] != 'ok')} 条与登记不一致")
+            return 1 if any(row["status"] != "ok" for row in rows) else 0
         # 成本台账的时钟：只量**判卷这一段**（通道解析/版本探针不算课程成本）。
         started = time.monotonic()
         targets, problems, unit_count, info, units = discover()
@@ -1385,6 +1436,9 @@ def main(argv: list[str] | None = None) -> int:
                      "reasons": [line if re.match(r"^G\d：", line) else f"G2：{line}"
                                  for line in problems],
                      "path": None, "canvas": None})
+    if not args.only:
+        # G7：课程侧复现件重放（`--only` 走单目标快路径时不跑，全量门禁与 CI 跑）。
+        rows.extend(replay_gap_repros())
     if unit_count == 0:
         print("error: course.json 里没有可判的单元", file=sys.stderr)
         return 2

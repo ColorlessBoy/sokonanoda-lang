@@ -34,9 +34,9 @@ fi
 # ② 判卷必须是绿的：checked>0 · exercise_open==0 · 无拒绝
 node "$ROOT/scripts/soko" query check --file "$SOL" > /tmp/c01-repro.json 2>&1
 rc=$?
-python3 - "$rc" <<'PY'
+python3 - "$rc" "$NAME" <<'PY'
 import json, sys
-rc = int(sys.argv[1])
+rc = int(sys.argv[1]); name = sys.argv[2]
 try:
     d = json.load(open("/tmp/c01-repro.json"))
 except Exception as exc:                      # 判卷器拒绝运行 / 解析失败
@@ -51,6 +51,6 @@ if rc != 0 or failed:
 if checked <= 0:
     print(f"✗ C-01 回归：decl_checked={checked}（没有真判过）"); sys.exit(1)
 if open_ != 0:
-    print(f"✗ C-01 回归：exercise_open={open_}（`$NAME` 被换成了 sorry？）"); sys.exit(1)
-print(f"✓ C-01 与登记一致：`$NAME` 在，checked={checked} · exercise_open=0 · failed=0")
+    print(f"✗ C-01 回归：exercise_open={open_}（`{name}` 被换成了 sorry？）"); sys.exit(1)
+print(f"✓ C-01 与登记一致：`{name}` 在，checked={checked} · exercise_open=0 · failed=0")
 PY
