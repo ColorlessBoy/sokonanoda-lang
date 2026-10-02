@@ -823,3 +823,45 @@ fn nat_add_equations_reduce_on_variables() {
         );
     });
 }
+
+// ---- G-64（0.81.0）：`subst_expr_levels` 的**过强断言** ----
+
+/// **G-64 的内核层判据**：`subst_expr_levels(e, ks, vs)` 的语义是「把 `ks[i]` 代成
+/// `vs[i]`」⇒ **`ks` 空就没有要代入的东西**、原样返回 ✓。原来那一支还顺手断了
+/// `ks.len() == vs.len()`，对 `ks` 空是**过强**的（`vs` 多出来的层级没有消费者）。
+/// 带索引归纳（`Acc`，Lean core 的官方写法：下标在返回位）的递归子生成路径上，
+/// `ks` = 环境里那份同名递归子的 `uparams`（空）、`vs` = 新块的 `rec_uparams`
+/// （1 个消去层级）⇒ 断言把 `0 vs 1` 判红 ✗（G-09 那条裸断言的真身）。
+///
+/// 两条断言：
+///   ① `ks` 空 ⇒ **原样返回同一个指针**、不 panic（修的就是这一档）；
+///   ② **反向**：`ks` **非空**且长度不等 ⇒ 仍然判红（真正的层级个数不匹配）。
+#[test]
+fn subst_expr_levels_tolerates_a_longer_vs_when_ks_is_empty() {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    let arena = Arena::new();
+    let env = ExportFile::empty(arena.as_arena_ref(), Config::default());
+    env.with_ctx(|ctx, _cache, _bump| {
+        let empty = ctx.alloc_levels_slice(&[]);
+        let zero = ctx.zero();
+        let one = ctx.succ(zero);
+        let two_levels = ctx.alloc_levels_slice(&[zero, one]);
+        let name = ctx.str1("Foo");
+        let e = ctx.mk_const(name, empty);
+
+        // ① `ks` 空、`vs` 有 2 个 ⇒ 原样返回（同一个指针 ⇒ 零分配、零改写）。
+        let out = ctx.subst_expr_levels(e, empty, two_levels);
+        assert_eq!(out, e, "`ks` 空 ⇒ `subst_expr_levels` 必须原样返回");
+
+        // ② 反向：`ks` 非空且个数不等 ⇒ 仍然判红。
+        let one_level = ctx.alloc_levels_slice(&[zero]);
+        let r = catch_unwind(AssertUnwindSafe(|| {
+            let _ = ctx.subst_expr_levels(e, one_level, two_levels);
+        }));
+        assert!(
+            r.is_err(),
+            "`ks` 非空时的长度断言必须保留（真正的个数不匹配仍要判红）"
+        );
+    });
+}

@@ -379,8 +379,19 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
     }
 
     pub fn subst_expr_levels(&mut self, e: ExprPtr<'t>, ks: LevelsPtr<'t>, vs: LevelsPtr<'t>) -> ExprPtr<'t> {
-        if ks == vs || self.read_levels(ks).is_empty() {
-            assert_eq!(self.read_levels(ks).len(), self.read_levels(vs).len());
+        if ks == vs {
+            return e;
+        }
+        // **G-64（0.81.0）**：`ks` 空 ⇒ **没有要代入的宇宙参数** ⇒ 原样返回 ✓。
+        // 这里原来还顺手断了一句 `ks.len() == vs.len()`，那是**过强的**：`vs` 多出来的
+        // 层级**没有消费者**，多几个都不改变结果。而带索引归纳（`Acc` —— Lean core 的
+        // 官方写法，下标写在返回位）的递归子生成/校验路径上，`ks` 是**环境里那份同名
+        // 递归子的 `uparams`**（对没有可代入层级的常量就是空的）、`vs` 是**新块的
+        // `rec_uparams`**（有 1 个消去层级）⇒ 断言把 `0 vs 1` 判红 ✗（实测
+        // `assertion left == right failed / left: 0 / right: 1`；这就是 G-09 那条
+        // 裸断言的真身）。`ks` **非空**时的长度断言**保留**（真正的层级个数不匹配
+        // 仍要判红 ⇒ 反向判据）。
+        if self.read_levels(ks).is_empty() {
             return e;
         }
         if let Some(cached) = self.expr_cache.dsubst_cache.get(&(e, ks, vs)).copied() {
