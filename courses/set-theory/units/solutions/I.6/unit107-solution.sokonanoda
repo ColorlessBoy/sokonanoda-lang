@@ -1,0 +1,72 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Ordinal
+
+theorem demo_acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x) :
+    ∀ (x : α), Acc α r x → motive x :=
+  acc_ind α r motive step
+
+theorem demo_ordinal_wellFounded (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=
+  ordinal_wellFounded α E x h
+
+theorem demo_ordinal_elems_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) (y : α) : E y x → IsTransitive α E y :=
+  ordinal_elems_isTransitive α E x h y
+
+theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFounded α r) :
+    ∀ (x : α), Acc α r x :=
+  fun (x : α) =>
+    Classical.byContradiction (Acc α r x)
+      (fun (hnx : ¬ Acc α r x) =>
+        Exists.elim α (fun (m : α) => ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) False
+          (hasMin_elim α r (fun (z : α) => ¬ Acc α r z)
+            (wellFounded_hasMin α r hwf (fun (z : α) => ¬ Acc α r z)
+              (Exists.intro α (fun (z : α) => ¬ Acc α r z) x hnx)))
+          (fun (m : α) (hm : ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) =>
+            (And.left (¬ Acc α r m) (∀ (y : α), ¬ Acc α r y → ¬ (r y m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）
+              (Acc.intro α r m (fun (y : α) (hy : r y m) =>
+                Classical.byContradiction (Acc α r y)
+                  (fun (hny : ¬ Acc α r y) =>
+                    (And.right (¬ Acc α r m) (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）
+                      y hny hy)))))
+
+theorem ordinal_elems_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y :=
+  isOrdinal_intro α E y
+    (ordinal_elems_isTransitive α E x hx y hy)
+    (fun (z : α) (hz : E z y) =>
+      ordinal_elems_isTransitive α E x hx z
+        (ordinal_isTransitive α E x hx y hy z hz))
+    (ordinal_wellFounded α E x hx)
+
+theorem ordinal_ind (α : Type) (E : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), IsOrdinal α E x → (∀ (y : α), E y x → motive y) → motive x) :
+    ∀ (x : α), IsOrdinal α E x → motive x :=
+  fun (x : α) (hx : IsOrdinal α E x) =>
+    acc_ind α E (fun (z : α) => IsOrdinal α E z → motive z)
+      (fun (z : α) (ih : ∀ (y : α), E y z → (IsOrdinal α E y → motive y)) =>
+        fun (hz : IsOrdinal α E z) =>
+          step z hz (fun (y : α) (hy : E y z) =>
+            ih y hy (ordinal_elems_ordinal α E z y hz hy)))
+      x (acc_of_wellFounded α E (ordinal_wellFounded α E x hx) x) hx
+
+theorem ordinal_ind_apply (α : Type) (E : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), IsOrdinal α E x → (∀ (y : α), E y x → motive y) → motive x)
+    (x : α) (hx : IsOrdinal α E x) : motive x :=
+  ordinal_ind α E motive step x hx
+
+theorem ordinal_no_self_mem_ind (α : Type) (E : α → α → Prop) (x : α)
+    (hx : IsOrdinal α E x) : ¬ (E x x) :=
+  ordinal_ind α E (fun (z : α) => ¬ (E z z))
+    (fun (z : α) (hz : IsOrdinal α E z) (ih : ∀ (y : α), E y z → ¬ (E y y))
+      (hzz : E z z) => ih z hzz hzz) x hx
+
+theorem trichotomy_at_most_one (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y) : ¬ (E x y ∧ x = y) :=
+  fun (h : E x y ∧ x = y) =>
+    ordinal_no_self_mem_ind α E y hy
+      (Eq.subst.{1} α (fun (w : α) => E w y) x y
+        (And.right (E x y) (x = y) h) (And.left (E x y) (x = y) h))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）

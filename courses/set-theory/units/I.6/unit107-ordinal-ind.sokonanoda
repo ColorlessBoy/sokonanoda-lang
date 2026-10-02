@@ -1,0 +1,77 @@
+-- ==========================================================================
+-- unit107-ordinal-ind.sokonanoda —— 卷 I 单元107 **∈-归纳与序数三歧（上）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§4.3 / §7.4**（∈-归纳）·
+--   **§7.4 定理 7M**（序数三歧）· Halmos《Naive Set Theory》**§18 / §19**。
+--   大纲 §4.1（**卷 I 收官主线** ✓ —— 接单元⑬⑭⑯㊵㊷ 的良基线、单元106 的 `Acc` ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **桥**：良基（每个非空子集有最小元 ✓）⇒ **每个点都可达** ✓（`Acc` ✓）；
+--   · **序数的元素还是序数** ✓（教科书事实 ✓，只用传递性 + 良基的继承 ✓）；
+--   · **∈-归纳原理** ✓（`ordinal_ind` ✓ —— 用 `Acc` + 上面的桥装出来 ✓）；
+--   · **旗舰一：序数没有自环** ✓（`¬ E x x` ✓ —— 用 ∈-归纳证 ✓）；
+--   · **旗舰二：三歧的"至多一个"半边** ✓（`¬ (E x y ∧ x = y)` ✓）。
+--
+-- ⚠ **本单元的分工（如实标注 ✓）**：三歧 =「**至多一个**」+「**至少一个**」两条半边 ✓。
+--   本单元交**前者** ✓（由自环不存在直接得到 ✓）；**后者**（`E x y ∨ x = y ∨ E y x` ✓）
+--   要"序数之间 `∈` 线性"的引理，**留下一单元** ✓。
+--
+-- ⚠ **写法提醒**（本轮无判红 ✓，但两条来自前几轮）：`∀ …` 用**逗号**收尾 ✗（写 `=>` 解析失败 ✓）；
+--   沿等式搬运用 **`Eq.subst` + 谓词** ✓（格位表第二行 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理与 prelude 的 `Classical.*` ✓。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Ordinal`。
+--
+-- 依赖：单元106（`Acc`/`acc_ind` ✓）· 单元⑬⑭（良基/良序）· 单元⑮⑯（序数）· 单元⑧㊵㊷
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Ordinal
+theorem demo_acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x) :
+    ∀ (x : α), Acc α r x → motive x :=
+  acc_ind α r motive step
+theorem demo_ordinal_wellFounded (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=
+  ordinal_wellFounded α E x h
+theorem demo_ordinal_elems_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) (y : α) : E y x → IsTransitive α E y :=
+  ordinal_elems_isTransitive α E x h y-- 练习 1（L 类，**桥**）：**良基 ⇒ 每个点都可达**。
+-- 思路：反证 —— 设某点不可达；取 `P := fun z => ¬ Acc α r z`（非空 ✓），良基性给出**最小元** `m`（`hasMin_elim` 拆开 ✓）；于是 `m` 的所有前驱都**不是"不可达"** ⇒ 用排中律把"非非可达"变成"可达" ⇒ 装出 `Acc α r m` ⇒ 与 `m` 不可达冲突。
+-- 关键件：`Classical.byContradiction`（**两次** ✓）· `wellFounded_hasMin` · `hasMin_elim`（**可拆的取用子** ✓）· `Acc.intro` · `And.left` / `And.right`（写全 ✓）
+theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFounded α r) :
+    ∀ (x : α), Acc α r x := by
+  sorry
+-- 练习 2（L 类）：**序数的元素还是序数**。
+-- 思路：三件套里 —— 传递性直接用取用子；"元素的元素也传递"用 `x` 的传递性把 `E z y`、`E y x` 串起来；良基是**整条关系**的性质，直接继承。
+-- 关键件：`isOrdinal_intro`（**三点按序** ✓）· `ordinal_elems_isTransitive` · `ordinal_isTransitive`（**串两步** ✓）· `ordinal_wellFounded`
+theorem ordinal_elems_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y := by
+  sorry
+-- 练习 3（L 类，**∈-归纳原理**）：**序数上的归纳**。
+-- 思路：由 `IsOrdinal` 取良基性 ⇒ 练习 1 给 `Acc` ⇒ 用 `acc_ind`；motive 取 `fun z => IsOrdinal α E z → motive z`，前驱的序数性由练习 2 补上。
+-- 关键件：`ordinal_wellFounded` · 练习 1 · `acc_ind` · 练习 2 · `IsOrdinal` 作为**额外前提**（motive 里带着 ✓）
+theorem ordinal_ind (α : Type) (E : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), IsOrdinal α E x → (∀ (y : α), E y x → motive y) → motive x) :
+    ∀ (x : α), IsOrdinal α E x → motive x := by
+  sorry
+-- 练习 4（T 类）：**∈-归纳的直接用法**。
+-- 关键件：练习 3（**六点按序** ✓）
+theorem ordinal_ind_apply (α : Type) (E : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), IsOrdinal α E x → (∀ (y : α), E y x → motive y) → motive x)
+    (x : α) (hx : IsOrdinal α E x) : motive x := by
+  sorry
+-- 练习 5（L 类，**旗舰一**）：**序数没有自环**（`¬ E x x`）。
+-- 思路：用练习 3（motive 取 `fun z => ¬ E z z`）；归纳假设在 `z` 与 `E z z` 处给出 `¬ E z z`，把它作用在 `E z z` 上即得矛盾。
+-- 关键件：练习 3 · 归纳假设**在 `z` 自己身上用**（`ih z hzz hzz` ✓）
+theorem ordinal_no_self_mem_ind (α : Type) (E : α → α → Prop) (x : α)
+    (hx : IsOrdinal α E x) : ¬ (E x x) := by
+  sorry
+-- 练习 6（L 类，**旗舰二**）：**三歧的"至多一个"半边**（`¬ (E x y ∧ x = y)`）。
+-- 思路：设 `E x y` 且 `x = y`；沿这条等式把 `E x y` 搬成 `E y y`（**`Eq.subst` + 谓词** ✓）；与练习 5 在 `y` 处冲突。
+-- 关键件：练习 5 · **`Eq.subst`**（谓词 `fun w => E w y` ✓，**方向**：把 `x` 换成 `y` ✓）· `And.left` / `And.right`
+theorem trichotomy_at_most_one (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y) : ¬ (E x y ∧ x = y) := by
+  sorry

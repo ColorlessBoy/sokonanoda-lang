@@ -455,10 +455,11 @@
             "successor-spec",
             "succ-ordinal",
             "ordinal-no-cycle",
-            "well-founded-recursion"
+            "well-founded-recursion",
+            "ordinal-induction"
           ],
           "quota": {
-            "exercises": 60
+            "exercises": 66
           },
           "units": [
             {
@@ -508,6 +509,12 @@
               "title": "单元106 良基递归（Acc）",
               "title_en": "Unit 106 — Well-Founded Recursion (Acc)",
               "unit": 106
+            },
+            {
+              "file": "units/I.6/unit107-ordinal-ind.sokonanoda",
+              "title": "单元107 ∈-归纳与序数三歧（上）",
+              "title_en": "Unit 107 — ∈-Induction and Trichotomy (Part 1)",
+              "unit": 107
             }
           ]
         },
