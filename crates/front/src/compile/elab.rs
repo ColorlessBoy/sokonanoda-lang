@@ -6330,10 +6330,37 @@ fn field_type_is_prop(ctx: &ElabCtx, scope: &ElabScope, ind_name: &str, field: &
         // 非 Prop 保守处理，不吞掉内核本该给出的诊断。
         return false;
     };
-    if head_ident(src_ty).as_deref() == Some(ind_name) {
+    if type_is_prop_by_source(src_ty, ind_name) {
         return true;
     }
     field_sort_via_kernel(ctx, scope, src_ty)
+}
+
+/// **G-56（0.81.0）**：源码层的**充分**判据 —— 这个字段类型一定是 `Prop` 吗？
+///
+/// 为什么要单独判一档：`field_sort_via_kernel` 靠合成一份 `#check` 问内核，
+/// 而那份合成源**看不见正在声明的块自己**（块还没进环境）⇒ 字段类型里一旦提到
+/// 本块（`h : ∀ (y : α), r y x → Acc α r y`），查询**解不出来**、保守答 false ✗
+/// ⇒ 前端派生的 `Acc.rec` 宇宙参数个数与内核算出的不一致，撞
+/// `assert_nonnested_recursors_def_eq`（实测：期望 `motive … Sort(0)`、
+/// 实际 `motive … Sort(u)`）。这是带索引归纳（`Acc`）的**第三道门**。
+///
+/// 两条规则都只覆盖**内核一定会答 Prop** 的形状：
+/// * **蕴涵/全称链的尾件**：`∀ x, … → B` 的宇宙是 `imax(_, level(B))` ⇒
+///   尾件是命题就一定是命题（impredicativity，`imax(_, 0) = 0`）；
+/// * 尾件是 `Prop` 本身、或**本块自己的名字**（块是 Prop 块 —— 这是调用方
+///   `large_elim_test_mirror` 的前置条件）⇒ `Acc … : Prop` ✓。
+///
+/// 其余一切照旧交给内核（`A`、`P -> Q`、具名 `Prop` 定义 …）—— 这里**不做**
+/// 通用宇宙推断，只补「本块自己」这一档 ✗。
+fn type_is_prop_by_source(src_ty: &Expr, ind_name: &str) -> bool {
+    match src_ty {
+        Expr::Arrow { codomain, .. } => type_is_prop_by_source(codomain, ind_name),
+        Expr::Forall { body, .. } => type_is_prop_by_source(body, ind_name),
+        Expr::Ident { name, .. } => name == "Prop",
+        // 尾件是本块自己的名字（`Acc α r y`）也算 —— `head_ident` 判的是**应用头**。
+        other => head_ident(other).as_deref() == Some(ind_name),
+    }
 }
 
 /// Ask the kernel for the sort of `src_ty` and report whether it is `Prop`.

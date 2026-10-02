@@ -1999,6 +1999,79 @@ fn st2_quot_names_are_installed() {
     }
 }
 
+/// **G-56（0.81.0）**：带索引归纳（`Acc` —— Lean core 的官方写法：**下标在返回位**）
+/// 能立起来，且**真能良基消去**。
+///
+/// 三条断言（都走完整内核判定）：
+///   ① `Acc` 声明判绿、`Acc.rec` 在环境里；
+///   ② **消去到 `Type`**（大消去）判绿 —— 这一条要求**前端派生**的 `Acc.rec` 与
+///      **内核自己构造**的那个宇宙参数个数一致（`assert_nonnested_recursors_def_eq`）；
+///      修前前端镜像 `field_sort_via_kernel` 的合成 `#check` 看不见正在声明的块自己 ⇒
+///      把 `h : ∀ y, r y x → Acc α r y` 误判成非 Prop ⇒ 镜像答"不大消去"、内核答
+///      "大消去" ⇒ 判红 ✗。修法：`type_is_prop_by_source` 补「尾件是 `Prop` / 是本块
+///      自己的名字」两条**内核一定会答 Prop** 的形状 ✓；
+///   ③ **反面**：字段既不是参数也不是指标的 Prop 块**仍然**不大消去 ——
+///      修 mirror 不许把 false 那一侧带偏（`MyTypeSmall` 是内核注释里的反例）。
+#[test]
+fn g56_acc_works_and_small_props_still_do_not_large_eliminate() {
+    let acc = compile_fol(
+        &parse(
+            "inductive Acc (α : Type) (r : α → α → Prop) : α → Prop\n\
+         ctor Acc.intro (x : α) (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x\n\
+         end\n\
+         #check Acc.rec\n\
+         def accType (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) : Type :=\n\
+         \x20 Acc.rec α r (fun (w : α) (_ : Acc α r w) => Type)\n\
+         \x20   (fun (w : α) (_h : ∀ (y : α), r y w → Acc α r y)\n\
+         \x20        (_ih : ∀ (y : α), r y w → Type) => Nat) x h\n",
+        )
+        .unwrap(),
+    );
+    assert_eq!(
+        acc.errors,
+        vec![],
+        "G-56：`Acc` 必须能立起来：{:?}",
+        acc.errors
+    );
+    for name in ["Acc", "accType"] {
+        assert!(
+            acc.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "`{name}` 要真的判绿：{:?}",
+            acc.events
+        );
+    }
+    // `#check Acc.rec` 的 `TypeChecked` 文本是**类型**（不是被查的源文本）⇒ 认它的
+    // 特征（递归子的类型里一定有 `motive` 与归纳名本身）。
+    assert!(
+        acc.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::TypeChecked { text, .. }
+                if text.contains("motive") && text.contains("Acc α r i"))),
+        "`#check Acc.rec` 要答得上（派生的递归子在环境里）：{:?}",
+        acc.events
+    );
+
+    // ③ 反面：`m` 既不是参数也不是指标 ⇒ 这个 Prop 块**只能**小消去。
+    let small = compile_fol(
+        &parse(
+            "inductive MyTypeSmall (A : Type) : Nat → Prop\n\
+         ctor mk (m : Nat) (n : Nat) : MyTypeSmall A n\n\
+         end\n\
+         def smallElim (A : Type) (h : MyTypeSmall A 3) : Type :=\n\
+         \x20 MyTypeSmall.rec A (fun (i : Nat) (_ : MyTypeSmall A i) => Type)\n\
+         \x20   (fun (m : Nat) (n : Nat) => Nat) 3 h\n",
+        )
+        .unwrap(),
+    );
+    assert!(
+        small.errors.iter().any(|e| e.message.contains("Sort(0)")),
+        "G-56 反面：`MyTypeSmall`（字段既非参数又非指标）必须仍**不大消去**：{:?}",
+        small.errors
+    );
+}
+
 /// **G-74（0.81.0）**：排中律 `Classical.em` 可用 —— 语言从**直觉主义**变成**古典**。
 ///
 /// 四条断言（都走完整内核判定）：

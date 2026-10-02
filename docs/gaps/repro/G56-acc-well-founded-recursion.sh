@@ -2,25 +2,34 @@
 # G-56 自断言复现：**`Acc`（良基性）立不起来 ⇒ 语言里没有良基递归**。
 #
 # 退出码约定（全部 repro 脚本一致，见 docs/gaps/README.md）：
-#   0 = 缺口仍在（**当前期望形状**：`Acc` 那一段必须被内核拒，且诊断逐字为
-#       "inductive occurrence is not applied uniformly to the block parameters
-#        and universe levels"）
-#   1 = 行为变了（`Acc` 能立起来了 ⇒ 回来关账、把 ST7/ST9 的"卡在良基递归"划掉）
-#   2 = 环境不满足（二进制找不到）
+#   0 = 缺口仍在   1 = 行为已变（已修 / 形状变了，回来关账）   2 = 环境不满足
 #
-# 现场（v0.77.0 · ST1 探针，2026-09-28 实测；决策记录 docs/design/v077-st1-boundary.md）：
-#   `inductive Acc (α : Type) (r : α → α → Prop) (x : α) : Prop` +
-#   `ctor Acc.intro (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x` ⇒ 内核拒。
-#   递归出现 `Acc α r y` 的**下标 `y` 与块参数 `x` 不同** ⇒ 撞"uniform"检查
-#   （crates/kernel/src/inductive.rs:180）。**对照组成立**：同形状但下标不变化的
-#   `Even : Nat → Prop`（`Even.succ : Even n → Even (n+2)`）**能过** ⇒ 被拒的是
-#   "下标会变"，不是"载体是函数/Prop 值"。
+# ── 缺口原文（v0.77.0 · ST1 探针，2026-09-28）──
+#   `inductive Acc (α : Type) (r : α → α → Prop) (x : α) : Prop`
+#   + `ctor Acc.intro (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x` ⇒ 内核拒。
+#   当轮把原因记成「递归出现的下标 `y` 与块参数 `x` 不同 ⇒ 撞 uniform 检查」。
 #
-# 为什么它重要：谓词式序数（ST1 探针 ②）**写得出来**，但「秩 rank」「超限递归」
-# 「V 层级」（ST7/ST9）全要良基递归。Mathlib 的 `Ordinal.rank` 走 `Acc.recOn`
-# （`src/Init/WF.lean` 全文件 `Quot` 出现 0 次）；Isabelle `ZFC_in_HOL` 把良基性
-# 做成**公理** `foundation: "wf {(x,y). x ∈ elts y}"` 再用 `wfrec`。**两条路都要
-# "良基递归可用"**，区别只是它由归纳类型给还是由公理给。
+# ── **已修（G-56，0.81.0）· 但根因与台账原文不同** ──
+#   实测把三件事分开了：
+#   ① **下标写在块头**（`(x : α)` 是**参数**）⇒ 递归出现 `Acc α r y` 不是"按参数
+#      uniform 套用" ⇒ uniform 检查判红。**这是对的，官方 Lean 同样拒**（Lean 的
+#      `Acc` 把下标写在**返回位**：`inductive Acc (r) : α → Prop`）⇒ 这一形**不该放行** ✓；
+#   ② **下标写在返回位**（Lean core 的官方写法）过了 uniform，但死在
+#      `subst_expr_levels`（**G-64**，已单独修）⇒ 修好后换成**第三道门**：
+#      `assert_nonnested_recursors_def_eq` —— 前端派生的 `Acc.rec` 与内核自己构造的
+#      那个**宇宙参数个数不一致**（实测：期望 `motive … Sort(0)`、实际 `motive … Sort(u)`）；
+#   ③ 第三道门的根因：前端镜像 `field_sort_via_kernel` 靠合成一份 `#check` 问内核
+#      「这个字段类型是不是 Prop」，而那份合成源**看不见正在声明的块自己** ⇒
+#      `h : ∀ (y : α), r y x → Acc α r y` 里的 `Acc` 解不出来 ⇒ 保守答 false ⇒
+#      镜像说"不大消去"、内核说"大消去" ⇒ 两边不一致 ✗。
+#   **修法**：`elab.rs::type_is_prop_by_source` —— 源码层补两条**内核一定会答 Prop**
+#   的形状（蕴涵/全称链的**尾件**是 `Prop`、或**本块自己的名字**）✓。
+#
+# 本脚本断言**三件事**（修好后全部成立 ⇒ exit 1）：
+#   ① `Acc`（**返回位**下标，官方写法）判绿、且真的能消去到大消去；
+#   ② 对照组 `Even` 判绿；
+#   ③ **反面**：下标写块头那一形**仍然**被 uniform 检查拒 —— 守卫的牙不许拔
+#      （`Acc` 不是靠"放宽 uniform 检查"换来的 ✓）。
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -36,17 +45,32 @@ fi
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# ① 缺口本体：`Acc` 必须**仍然**被拒，且诊断逐字固定
+# ① 缺口本体：**官方写法**（下标在返回位）—— 必须判绿，且要能真的用起来
 cat > "$WORK/acc.sokonanoda" <<'EOF'
-inductive Acc (α : Type) (r : α → α → Prop) (x : α) : Prop
-ctor Acc.intro (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x
+inductive Acc (α : Type) (r : α → α → Prop) : α → Prop
+ctor Acc.intro (x : α) (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x
 end
+
+#check Acc.rec
+
+-- 良基归纳的**用法**：从 `Acc` 消去到 Type（大消去）
+def accType (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) : Type :=
+  Acc.rec α r (fun (w : α) (_ : Acc α r w) => Type)
+    (fun (w : α) (_h : ∀ (y : α), r y w → Acc α r y)
+         (_ih : ∀ (y : α), r y w → Type) => Nat) x h
 EOF
 acc_out="$("$BIN" --json --no-project "$WORK/acc.sokonanoda" 2>&1)"
-if ! printf '%s' "$acc_out" | grep -q 'inductive occurrence is not applied uniformly to the block parameters and universe levels'; then
-  echo "G-56 ①：`Acc` 不再被那句 uniform 检查拒了 —— 行为已变，回来关账" >&2
-  printf '%s\n' "$acc_out" | head -3 >&2
-  exit 1
+for name in Acc accType; do
+  if ! printf '%s' "$acc_out" | grep -q "\"name\":\"$name\",\"type\":\"decl.checked\""; then
+    echo "G-56 ①：\`$name\` 没有判绿 —— 缺口仍在（或形状变了）" >&2
+    printf '%s\n' "$acc_out" | head -5 >&2
+    exit 0
+  fi
+done
+if ! printf '%s' "$acc_out" | grep -q '"text":"Acc.rec","type":"expr.typed"'; then
+  echo "G-56 ①：\`#check Acc.rec\` 没有答上 —— 派生的递归子没进环境" >&2
+  printf '%s\n' "$acc_out" | head -5 >&2
+  exit 0
 fi
 
 # ② 对照组：同形状、下标**不变化**的归纳块必须能过（否则缺口描述失真）
@@ -58,10 +82,25 @@ end
 EOF
 even_out="$("$BIN" --json --no-project "$WORK/even.sokonanoda" 2>&1)"
 if ! printf '%s' "$even_out" | grep -q '"type":"decl.checked"'; then
-  echo "G-56 ②：对照组 `Even : Nat → Prop` 也不过了 —— 缺口描述失真（不只是 uniform 那条）" >&2
+  echo "G-56 ②：对照组 \`Even : Nat → Prop\` 也不过了 —— 缺口描述失真" >&2
   printf '%s\n' "$even_out" | head -3 >&2
-  exit 1
+  exit 2
 fi
 
-echo 'G-56：缺口仍在（`Acc` 被 uniform 检查拒；对照组 Even 正常）'
-exit 0
+# ③ **反面**：下标写**块头**那一形（`x` 是参数）**仍然**要被 uniform 检查拒 ——
+#    递归出现 `Acc α r y` 不是"按参数 uniform 套用"，官方 Lean 同样拒 ✓。
+#    ⚠ 这条是**守卫的牙**：谁哪天把 uniform 检查放宽了，这里立刻判红。
+cat > "$WORK/header.sokonanoda" <<'EOF'
+inductive Acc (α : Type) (r : α → α → Prop) (x : α) : Prop
+ctor Acc.intro (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x
+end
+EOF
+header_out="$("$BIN" --json --no-project "$WORK/header.sokonanoda" 2>&1)"
+if ! printf '%s' "$header_out" | grep -q 'inductive occurrence is not applied uniformly to the block parameters and universe levels'; then
+  echo "G-56 ③：下标写块头那一形**不再**被 uniform 检查拒了 —— 守卫的牙没了，回来看" >&2
+  printf '%s\n' "$header_out" | head -3 >&2
+  exit 0
+fi
+
+echo 'G-56：症状消失（`Acc`（返回位下标，官方写法）✓ 且能大消去 ✓；对照组 Even ✓；反面：下标写块头那一形仍被 uniform 检查拒 ✓）'
+exit 1
