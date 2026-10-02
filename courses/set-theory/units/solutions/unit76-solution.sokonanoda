@@ -1,0 +1,61 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => f a = f b
+
+theorem demo_equivalence_def (α : Type) (r : Rel α α) :
+    IsEquivalence α r ↔ Reflexive α r ∧ Symmetric α r ∧ Transitive α r :=
+  isEquivalence_def α r
+
+theorem demo_equivalence_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Symmetric α r :=
+  equivalence_symm α r he
+
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+
+theorem kernel_refl (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α), kernel α β f a a :=
+  fun (a : α) => Eq.refl.{1} β (f a)
+
+theorem kernel_symm (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α) (b : α), kernel α β f a b → kernel α β f b a :=
+  fun (a : α) (b : α) (h : kernel α β f a b) => Eq.symm.{1} β (f a) (f b) h
+
+theorem kernel_trans (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α) (b : α) (c : α), kernel α β f a b → kernel α β f b c → kernel α β f a c :=
+  fun (a : α) (b : α) (c : α) (h1 : kernel α β f a b) (h2 : kernel α β f b c) =>
+    Eq.trans.{1} β (f a) (f b) (f c) h1 h2
+
+theorem kernel_isEquivalence (α : Type) (β : Type) (f : α → β) :
+    IsEquivalence α (kernel α β f) :=
+  (fun (hu : IsEquivalence α (kernel α β f) ↔
+      Reflexive α (kernel α β f) ∧ Symmetric α (kernel α β f) ∧ Transitive α (kernel α β f)) =>
+    Iff.mpr hu (And.intro (Reflexive α (kernel α β f))
+      (Symmetric α (kernel α β f) ∧ Transitive α (kernel α β f))
+      (kernel_refl α β f) (And.intro (Symmetric α (kernel α β f))
+        (Transitive α (kernel α β f)) (kernel_symm α β f) (kernel_trans α β f))))
+    (isEquivalence_def α (kernel α β f))
+
+theorem mem_equivClass_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    Rel.EquivClass α (kernel α β f) a b ↔ f a = f b :=
+  Rel.mem_equivClass α (kernel α β f) a b
+
+theorem kernel_of_eq_fst_snd (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : f a = f b) : kernel α β f a b :=
+  h
+
+theorem kernel_preimage (α : Type) (β : Type) (f : α → β) (a : α) (b : α) (y : β)
+    (h1 : f a = y) (h2 : f b = y) : kernel α β f a b :=
+  Eq.trans.{1} β (f a) y (f b) h1 (Eq.symm.{1} β (f b) y h2)
+
+theorem kernel_of_eq (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : a = b) : kernel α β f a b :=
+  rel_subst_right α (fun (u : α) (v : α) => f u = f v) a a b h (Eq.refl.{1} β (f a))
+
+theorem not_kernel_of_ne (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : ¬ (f a = f b)) : ¬ (kernel α β f a b) :=
+  fun (hk : kernel α β f a b) => h hk

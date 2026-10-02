@@ -512,10 +512,11 @@
             "well-definedness",
             "descent",
             "equivalence-class",
-            "quotient"
+            "quotient",
+            "kernel-equivalence"
           ],
           "quota": {
-            "exercises": 49
+            "exercises": 58
           },
           "units": [
             {
@@ -547,6 +548,12 @@
               "title": "单元㊸ 等价类与商集的代数刻画",
               "title_en": "Unit 43 — Equivalence Classes, Algebraically",
               "unit": 43
+            },
+            {
+              "file": "units/unit76-kernel.sokonanoda",
+              "title": "单元76 像的核关系",
+              "title_en": "Unit 76 — The Kernel of a Function",
+              "unit": 76
             }
           ]
         },

@@ -1,0 +1,123 @@
+-- ==========================================================================
+-- unit76-kernel.sokonanoda —— 卷 I 单元76 **像的核关系（fiber 等价）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.3**（"the kernel of a function"）·
+--   Halmos《Naive Set Theory》**§10**。大纲 §4.1（**I.10 章补强** —— 接单元㉕ 等价关系 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 核定义：`kernel f a b := f a = f b` ✓（**同一条纤维上的点** ✓）；
+--   · **自反 / 对称 / 传递** ✓ ⇒ **旗舰：`IsEquivalence α (kernel f)`** ✓
+--     （**每个函数都给出一个等价关系** ✓ —— 这就是"纤维分解" ✓）；
+--   · 与库里的等价类接口接上：`Rel.EquivClass α (kernel f) a b ↔ f a = f b` ✓；
+--   · **有共同像点 ⇒ 同核** ✓ · **`a = b ⇒ 同核`** ✓ · **像点不等 ⇒ 不同核** ✓
+--
+-- ⚠ **为什么值得单列** ✓：核关系是"函数 → 等价关系"这座桥 ✓ ——
+--   单元㉕㉖㉗ 讲的是"等价关系 → 商集" ✓，本单元补上**另一半**（函数给出等价关系 ✓），
+--   两边合起来就是教材里 §3.3 + §5 的完整往返 ✓。
+--
+-- ⚠ **写法要点** ✓：`a = b ⇒ kernel f a b` 这件小事**不用 `congrArg`** ✗（它的宇宙层级
+--   是手册明说的边界 ✓）⇒ 改用 **`rel_subst_right`**（沿等式把关系搬过去 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元㉕（等价关系）· 单元㉖（划分）· 单元㉗（商集）· 单元⑧（像与原像）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => f a = f b
+
+-- ─────────────────────────────────────────────────────────────
+-- 76.1 三条库引理（等价的定义 · 一条取用子 · 等价类的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：`IsEquivalence` 展开成三条。
+theorem demo_equivalence_def (α : Type) (r : Rel α α) :
+    IsEquivalence α r ↔ Reflexive α r ∧ Symmetric α r ∧ Transitive α r :=
+  isEquivalence_def α r
+theorem demo_equivalence_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Symmetric α r :=
+  equivalence_symm α r he
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b-- 练习 1（T 类，**第一条**）：核关系**自反**。
+
+-- soko:hint 关键件：`Eq.refl`（**写全宇宙与类型** ✓）
+
+theorem kernel_refl (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α), kernel α β f a a := by
+  sorry
+-- 练习 2（T 类，**第二条**）：核关系**对称**。
+
+-- soko:hint 关键件：`Eq.symm`（**写全宇宙与类型** ✓）
+
+theorem kernel_symm (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α) (b : α), kernel α β f a b → kernel α β f b a := by
+  sorry
+-- 练习 3（T 类，**第三条**）：核关系**传递**。
+
+-- soko:hint 关键件：`Eq.trans`（**写全宇宙与类型与中间点** ✓）
+
+theorem kernel_trans (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α) (b : α) (c : α), kernel α β f a b → kernel α β f b c → kernel α β f a c := by
+  sorry
+-- 练习 4（L 类，**旗舰**）：**`IsEquivalence α (kernel f)`** —— 每个函数都给出等价关系。
+
+-- soko:hint 思路：把三条按 `IsEquivalence` 的**定义形状**（`Reflexive ∧ Symmetric ∧ Transitive`）
+
+--   组装 —— 用 `isEquivalence_def` 的 `Iff.mpr` ✓，两个 `And.intro` ✓。
+
+-- soko:hint 目标形态：`IsEquivalence α (kernel α β f)`。
+
+-- soko:hint 关键件：`isEquivalence_def` · 练习 1 / 练习 2 / 练习 3 · `And.intro`
+
+--   （**前导命题实参写全** ✓ —— 手册 G-30 的例外 ✓）
+
+theorem kernel_isEquivalence (α : Type) (β : Type) (f : α → β) :
+    IsEquivalence α (kernel α β f) := by
+  sorry
+-- 练习 5（T 类，**与库接口对接**）：核的**等价类**就是纤维。
+
+-- soko:hint 关键件：`Rel.mem_equivClass`（**直接交出去** ✓ —— `kernel f a b` 与 `f a = f b`
+
+--   是**同一个东西** ✓，定义展开即可 ✓）
+
+theorem mem_equivClass_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    Rel.EquivClass α (kernel α β f) a b ↔ f a = f b := by
+  sorry
+-- 练习 6（T 类）：**同一条等式就是同核**（把假设直接交出去 ✓）。
+
+-- soko:hint 关键件：定义展开（`kernel f a b` **就是** `f a = f b` ✓）
+
+theorem kernel_of_eq_fst_snd (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : f a = f b) : kernel α β f a b := by
+  sorry
+-- 练习 7（L 类）：**有共同像点 ⇒ 同核**（两条纤维相交 ⇒ 同一条纤维 ✓）。
+
+-- soko:hint 关键件：`Eq.trans` + `Eq.symm`（**写全宇宙与点** ✓）
+
+theorem kernel_preimage (α : Type) (β : Type) (f : α → β) (a : α) (b : α) (y : β)
+    (h1 : f a = y) (h2 : f b = y) : kernel α β f a b := by
+  sorry
+-- 练习 8（L 类）：**`a = b ⇒ 同核`**。
+
+-- soko:hint ⚠ **别用 `congrArg`** ✗（宇宙层级是手册明说的边界 ✓）⇒ 用 **`rel_subst_right`**
+
+--   （沿 `a = b` 把关系 `fun u v => f u = f v` 的第二槽搬过去 ✓，喂给它 `Eq.refl` ✓）。
+
+-- soko:hint 关键件：`rel_subst_right`（**六个实参按序写全** ✓）· `Eq.refl`（**写全** ✓）
+
+theorem kernel_of_eq (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : a = b) : kernel α β f a b := by
+  sorry
+-- 练习 9（T 类，**收尾**）：**像点不等 ⇒ 不同核**。
+
+-- soko:hint 关键件：定义展开 + 把否命题当函数用（`h hk` ✓）
+
+theorem not_kernel_of_ne (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : ¬ (f a = f b)) : ¬ (kernel α β f a b) := by
+  sorry
