@@ -9082,6 +9082,41 @@ theorem univ_applies (\u{3b1} : Type) (x : \u{3b1}) : (x \u{2208} Set.univ) = Se
     );
 }
 
+/// **G-85 判据**（2026-10-03）：**省掉前导隐式实参 + 结果再收一个实参**时，实参不许被
+/// 按位置装错 ✗ —— `And.right h x` 必须读成 `(And.right h) x`。
+///
+/// 形状（`And.right : {a b : Prop} → And a b → b`，前导隐式 k=2 · 显式 arity m=1）：
+/// n=1(`And.right h`) ✓ · **n=2(`And.right h x`) 修前 ✗** · n=3(`And.right p (∀…) h x`) ✓ ·
+/// n=4（旧写法 + 富余实参）✓ —— 坏的只有 `m < n < k+m` 这一段（那一段里"隐式位写全了"
+/// 根本不成立 ⇒ 读法**唯一** ✓）。
+///
+/// 病根：路线③（富余实参落到结果上）靠**展开结果类型**造虚拟层，而结果类型是**变量**
+/// `b` ✗ ⇒ 展不动 ⇒ 落到「旧写法」分支（判据 = 实参个数 > 显式层数）⇒ 按位置把 `h`
+/// 装进 `a : Prop` ⇒ `期望 Sort(0)，实际是 And …` ✗。
+///
+/// **反向验证**：撤掉路线③ 的第二趟 ⇒ `n2` 当场判红 ✓（本轮实测：修复前 n2 红、
+/// n1/n3/n4 绿）。
+#[test]
+fn dropped_implicit_arguments_still_apply_surplus_to_the_result() {
+    let src = "\
+theorem n1 (p q : Prop) (h : p \u{2227} q) : q := And.right h\n\
+theorem n2 (p : Prop) (Q : Prop \u{2192} Prop) (h : p \u{2227} (\u{2200} (x : Prop), Q x)) (x : Prop) : Q x := And.right h x\n\
+theorem n3 (p : Prop) (Q : Prop \u{2192} Prop) (h : p \u{2227} (\u{2200} (x : Prop), Q x)) (x : Prop) : Q x := And.right p (\u{2200} (y : Prop), Q y) h x\n\
+theorem n4 (p : Prop) (Q : Prop \u{2192} Prop \u{2192} Prop) (h : p \u{2227} (\u{2200} (x : Prop), \u{2200} (y : Prop), Q x y)) (x y : Prop) : Q x y := And.right p (\u{2200} (u : Prop), \u{2200} (v : Prop), Q u v) h x y\n";
+    let out = compile_ok(src);
+    for name in ["n1", "n2", "n3", "n4"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "`{name}` 必须判绿 —— `n2`（省前导隐式实参 + 结果再收一个实参）修前是\
+             「期望 Sort(0)，实际是 And …」✗；n1/n3/n4 是对照（旧写法不许被抢 ✗）。\
+             事件：{:?}",
+            out.events
+        );
+    }
+}
+
 /// **G-69 判据**（2026-09-30）：`intro` **派生**的假设（点形式）必须与**显式 binder**
 /// 同判 —— 短写 `exact And.left hx` 两种写法都要判绿。
 ///

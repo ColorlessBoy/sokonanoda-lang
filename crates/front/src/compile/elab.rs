@@ -3266,6 +3266,58 @@ fn try_bare_implicit_constant<'a>(
     Ok(out)
 }
 
+/// 把 `base` 沿 Π 展开 `surplus` 层 —— 路线③ 的「富余实参落到**结果**上」。
+///
+/// `Set α` 是 **def** ⇒ 不 δ 展开就看不到 `α -> Prop` 那一层 ✗。
+/// **展不动就少给几层**（调用方按 `len() == surplus` 判成功 ✓，绝不假装展开了 ✗）。
+fn surplus_layers(
+    base: &Expr,
+    surplus: usize,
+    defs: &DefTable,
+) -> Vec<crate::compile::implicit::Layer> {
+    let mut tail: Vec<crate::compile::implicit::Layer> = Vec::with_capacity(surplus);
+    let mut cur = base.clone();
+    for i in 0..surplus {
+        let mut pi = cur.clone();
+        for _ in 0..8 {
+            if matches!(pi, Expr::Arrow { .. } | Expr::Forall { .. }) {
+                break;
+            }
+            match crate::spine::unfold_one(&pi, defs, None) {
+                Some(next) if next != pi => pi = next,
+                _ => break,
+            }
+        }
+        let (domain, codomain) = match &pi {
+            Expr::Arrow {
+                domain, codomain, ..
+            } => (domain.as_ref().clone(), codomain.as_ref().clone()),
+            Expr::Forall { binders, body, .. } if binders.len() == 1 && binders[0].ty.is_some() => {
+                (
+                    binders[0]
+                        .ty
+                        .as_ref()
+                        .expect("checked above")
+                        .as_ref()
+                        .clone(),
+                    body.as_ref().clone(),
+                )
+            }
+            _ => {
+                tail.clear();
+                break;
+            }
+        };
+        tail.push(crate::compile::implicit::Layer {
+            name: format!("\0soko_r3_{i}"),
+            domain,
+            style: BinderKind::Explicit,
+        });
+        cur = codomain;
+    }
+    tail
+}
+
 #[allow(clippy::too_many_arguments)]
 fn try_implicit_application<'a>(
     builder: &mut EnvBuilder<'a>,
@@ -3459,48 +3511,62 @@ fn try_implicit_application<'a>(
         if !fits_old_style && !starts_old_style && !args.is_empty() && args.len() > explicit_layers
         {
             let surplus = args.len() - explicit_layers;
-            let mut tail: Vec<crate::compile::implicit::Layer> = Vec::with_capacity(surplus);
-            let mut cur = result.clone();
-            for i in 0..surplus {
-                // `Set α` 是 **def** ⇒ 不 δ 展开就看不到 `α -> Prop` 那一层 ✗。
-                let mut pi = cur.clone();
-                for _ in 0..8 {
-                    if matches!(pi, Expr::Arrow { .. } | Expr::Forall { .. }) {
-                        break;
+            let mut tail = surplus_layers(&result, surplus, ctx.defs);
+            // **第二趟（G-85，2026-10-03）**：结果类型是**变量**时（`And.right` 的
+            // `b`）第一趟展不动 ✗ —— 但把**前导隐式参数解出来**之后它就是函数了 ✓
+            // （`And.right h x`：`b := ∀ (x : Prop), Q x`）。原料与短写同一条
+            // `solve_prefix`（显式实参的类型 ↔ `layers[k..]`）✓。
+            //
+            // ⚠ 只在**第一趟失败**时才算 ⇒ 既有形状**零额外开销、逐字节不变** ✓
+            //（`operand_type_expr` 可能要问内核，绝不能无条件提前算 ✗）。
+            //
+            // ⚠⚠ **还必须 `args.len() <= k`**（本轮实测踩过 ✗）：旧写法把实参按
+            // `layers[0..]` 逐位装 ⇒ 只有实参个数 **> k** 时才够得着显式层 ✓；
+            // `args.len() <= k` ⇒ 旧写法**结构上不可能**到达显式层 ⇒ 读法唯一 ✓✓。
+            // 不设这一条会抢走 `Eq.refl.{2} Type A` / `Eq.mp.{1} A A h` 这类
+            // **宇宙显式给出**的调用（k 只数得到 `{α}` 那一层）⇒ 实测把
+            // `docs/gaps/repro/L03-eq-type-level.sokonanoda` 从 exit 0 打成 exit 1 ✗
+            // （`期望 Sort(1)，实际是 Sort(2)`）—— 那正是"守卫太宽"的典型面孔 ✓。
+            if tail.len() != surplus && args.len() <= k {
+                let arg_tys_prefix: Vec<Option<Expr>> = args
+                    .iter()
+                    .take(explicit_layers)
+                    .map(|a| {
+                        operand_type_expr(
+                            ctx,
+                            scope,
+                            a,
+                            Some(&mut InplaceEnv {
+                                builder: &mut *builder,
+                                known,
+                            }),
+                        )
+                    })
+                    .collect();
+                let is_inductive = |n: &str| ctx.inductives.contains_key(n);
+                if let Some(solved_prefix) = crate::compile::implicit::solve_prefix(
+                    &layers,
+                    &result,
+                    k,
+                    &arg_tys_prefix,
+                    expected_src,
+                    ctx.defs,
+                    &is_inductive,
+                ) {
+                    let mut sigma: HashMap<String, Expr> = HashMap::new();
+                    for (j, value) in solved_prefix.iter().enumerate() {
+                        if !layers[j].name.is_empty() {
+                            sigma.insert(layers[j].name.clone(), value.clone());
+                        }
                     }
-                    match crate::spine::unfold_one(&pi, ctx.defs, None) {
-                        Some(next) if next != pi => pi = next,
-                        _ => break,
+                    let inst = crate::spine::substitute(&result, &sigma);
+                    if inst != result {
+                        let tail2 = surplus_layers(&inst, surplus, ctx.defs);
+                        if tail2.len() == surplus {
+                            tail = tail2;
+                        }
                     }
                 }
-                let (domain, codomain) = match &pi {
-                    Expr::Arrow {
-                        domain, codomain, ..
-                    } => (domain.as_ref().clone(), codomain.as_ref().clone()),
-                    Expr::Forall { binders, body, .. }
-                        if binders.len() == 1 && binders[0].ty.is_some() =>
-                    {
-                        (
-                            binders[0]
-                                .ty
-                                .as_ref()
-                                .expect("checked above")
-                                .as_ref()
-                                .clone(),
-                            body.as_ref().clone(),
-                        )
-                    }
-                    _ => {
-                        tail.clear();
-                        break;
-                    }
-                };
-                tail.push(crate::compile::implicit::Layer {
-                    name: format!("\0soko_r3_{i}"),
-                    domain,
-                    style: BinderKind::Explicit,
-                });
-                cur = codomain;
             }
             if tail.len() == surplus {
                 let mut extended = layers.clone();
