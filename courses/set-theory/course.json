@@ -26,10 +26,11 @@
             "two-step-packing",
             "union-sdiff-distrib",
             "subset-algebra",
-            "classical-logic"
+            "classical-logic",
+            "classical-laws"
           ],
           "quota": {
-            "exercises": 112
+            "exercises": 118
           },
           "units": [
             {
@@ -115,6 +116,12 @@
               "title": "单元104 排中律与经典推论",
               "title_en": "Unit 104 — Excluded Middle and Its Classical Corollaries",
               "unit": 104
+            },
+            {
+              "file": "units/unit105-classical-laws.sokonanoda",
+              "title": "单元105 经典等价三件套",
+              "title_en": "Unit 105 — Classical Equivalences",
+              "unit": 105
             }
           ]
         },

@@ -1,0 +1,64 @@
+-- ==========================================================================
+-- unit105-classical-laws.sokonanoda —— 卷 I 单元105 **经典等价三件套**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§1.2**（逻辑预备）·
+--   Halmos《Naive Set Theory》**§1**。大纲 §4.1（**接单元104** ✓）。
+--
+-- 本单元的"该学的定理"（**命题层**，全部按 `em` 分情况 ✓）：
+--   · **按 `em` 分情况**的通用子 ✓（`em_cases` ✓）；
+--   · **德摩根**：`¬ (P ∨ Q) ↔ (¬ P ∧ ¬ Q)` ✓ —— **两个方向都构造性可证** ✓；
+--     而 **`¬ (P ∧ Q) ⇒ ¬ P ∨ ¬ Q`** ✓ **需要排中律** ✓（两者对照，正是本单元的教学点 ✓）；
+--   · **`¬ (∃x, P x) ↔ ∀x, ¬ (P x)`** ✓（**构造性** ✓）；
+--   · **`(P → Q) ↔ (¬ P ∨ Q)`** ✓（**→ 方向要排中律** ✓）；
+--   · **Peirce 律** ✓（`((P → Q) → P) → P` ✓ —— 经典逻辑的"试金石" ✓）。
+--
+-- ⚠ **教学点** ✓：**哪些定律构造性可证、哪些要排中律** —— 这是本单元的核心 ✓
+--   （`∨` 的德摩根 ✓ 构造性；`∧` 的德摩根 ✗ 要 EM；`→` 化 `∨` ✗ 要 EM ✓）。
+--
+-- ⚠ **写法纪律** ✓：`em_cases` 是关键件（**一次分情况、两处交证明** ✓）；
+--   `Or.elim` 的**动机位仍是肯定命题** ✓（铁律不变 ✓）；`False.elim` **写全目标** ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理与 prelude 的 `Classical.*` ✓。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元104（排中律与经典推论）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+theorem demo_em (P : Prop) : P ∨ ¬ P :=
+  Classical.em P
+theorem demo_byContradiction (P : Prop) (h : ¬ P → False) : P :=
+  Classical.byContradiction P h
+theorem demo_not_def (P : Prop) : ¬ P ↔ (P → False) :=
+  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)-- 练习 1（L 类，**全单元的通用子**）：**按排中律分情况**（`P → Q`、`¬P → Q` ⇒ `Q`）。  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+-- 关键件：`Classical.em`（两点 ✓）· `Or.elim`（**动机位放肯定命题 `Q`** ✓）
+theorem em_cases (P : Prop) (Q : Prop) (h1 : P → Q) (h2 : ¬ P → Q) : Q := by
+  sorry
+-- 练习 2（L 类，**构造性**）：**`¬(∃x, P x) ↔ ∀x, ¬P x`**。
+-- 思路：两个方向。→：给 `x` 与 `P x` 的证据，装出 `∃` 再与前提冲突；←：把 `∃` 拆开，用假设在见证处打。
+-- 关键件：`Exists.intro`（**写全前导** ✓）· `Exists.elim`（**动机位 `False`** —— 函数位置 ✓）
+theorem not_exists_iff_forall_not (α : Type) (P : α → Prop) :
+    ¬ (∃ (x : α), P x) ↔ ∀ (x : α), ¬ (P x) := by
+  sorry
+-- 练习 3（L 类，**构造性德摩根**）：**`¬(P ∨ Q) ↔ (¬P ∧ ¬Q)`**。
+-- 思路：→：分别用 `Or.inl`/`Or.inr` 造出析取再冲突；←：把析取拆开，两边各用一条 `∧` 支。
+-- 关键件：`And.intro` / `And.left` / `And.right`（写全 ✓）· `Or.inl` / `Or.inr`（写全 ✓）· `Or.elim`（**动机位 `False`** 是函数位置 ✓ 或写全目标 ✓）
+theorem not_or_iff (P : Prop) (Q : Prop) : ¬ (P ∨ Q) ↔ (¬ P ∧ ¬ Q) := by
+  sorry
+-- 练习 4（L 类，**旗舰一**）：**`(P → Q) ↔ (¬P ∨ Q)`**（**→ 方向要排中律** ✓）。
+-- 思路：→：练习 1 分情况 —— 有 `P` 就给右边 `Q`，没有 `P` 就给左边 `¬P`；←：拆析取，`¬P` 支与 `P` 冲突（`False.elim` **写全目标** ✓），`Q` 支直接给。
+-- 关键件：练习 1 · `Or.inl` / `Or.inr` · `Or.elim` · `False.elim`（写全 ✓）
+theorem imp_iff_not_or (P : Prop) (Q : Prop) : (P → Q) ↔ (¬ P ∨ Q) := by
+  sorry
+-- 练习 5（L 类，**旗舰二**）：**`¬(P ∧ Q) ⇒ ¬P ∨ ¬Q`**（**要排中律** ✓ —— 与练习 3 对照 ✓）。
+-- 思路：按 `P` 分情况：有 `P` 就得 `¬Q`（否则 `P ∧ Q` 与前提冲突）；没有 `P` 就直接给 `¬P`。
+-- 关键件：练习 1 · `And.intro` · `Or.inl` / `Or.inr`
+theorem not_and_imp (P : Prop) (Q : Prop) (h : ¬ (P ∧ Q)) : ¬ P ∨ ¬ Q := by
+  sorry
+-- 练习 6（L 类，**旗舰三**）：**Peirce 律**（`((P → Q) → P) → P`）。
+-- 思路：按 `P` 分情况：有 `P` 就交出去；没有 `P` 时，把 `P → Q` 喂成假的（用 `False.elim` 写全目标 ✓）再交给前提。
+-- 关键件：练习 1 · `False.elim`（**写全目标** ✓）
+theorem peirce (P : Prop) (Q : Prop) (h : (P → Q) → P) : P := by
+  sorry
