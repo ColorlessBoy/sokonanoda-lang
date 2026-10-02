@@ -14,8 +14,8 @@ use crate::compile::elab::{DefTable, InductiveTable, MatchCtor};
 use crate::compile::CompileError;
 use crate::compile::{CompileOptions, ErrorKind};
 use crate::judge::{
-    begin_batch, flush_batch, judge_infer, judge_terms, judge_terms_strict, GoalBinderSpec,
-    Judgement, OpenGoalSpec,
+    begin_batch, flush_batch, judge_infer, judge_infer_explicit, judge_terms, judge_terms_strict,
+    GoalBinderSpec, Judgement, OpenGoalSpec,
 };
 use crate::proof::{parse_expr_text, render_expr};
 use crate::spine::{
@@ -533,8 +533,26 @@ fn canonical_goal_type<'a>(
     // 折记法是**显示**接口的事，用在这里会改判定 = 内核红线。
     let ty_text = render_expr(ty);
     let term = crate::judge::render_type_query(&ty_text);
-    let slow = || crate::judge::judge_render_type(prefix_src, options, &specs, &ty_text);
-    let text = match crate::judge::inplace_by_mode() {
+    // **G-71（0.81.0）**：规范目标的文本**也要能回读**（它进 `nodes[cur].ty`，
+    // `cases` 的臂目标就是它的克隆）⇒ 目标里一旦出现**前导隐式 ≥ 2** 的 def
+    // （`Set.image {α β} f A`：pp 只丢第一个隐式 ⇒ 回读错位 ✗）就改用**全显式 pp**
+    // 并**跳过就地快路**（就地路的内核 pp 用默认选项 ⇒ 文本形态会分叉 ✗）。
+    // 其余目标（`implicit_prefix <= 1`：pp 丢的那个恰好就是"逐位对显式形参"那一档）
+    // **保持今天的行为，含就地快路** ⇒ 逐字节不变 ✓、性能不变 ✓。
+    let needs_explicit = crate::spine::mentions_multi_implicit(ty, defs);
+    let slow = || {
+        if needs_explicit {
+            crate::judge::judge_render_type_explicit(prefix_src, options, &specs, &ty_text)
+        } else {
+            crate::judge::judge_render_type(prefix_src, options, &specs, &ty_text)
+        }
+    };
+    let by_mode = if needs_explicit {
+        crate::judge::ByMode::Off
+    } else {
+        crate::judge::inplace_by_mode()
+    };
+    let text = match by_mode {
         // **影子档**：两条路**都跑**，比对文本、记 `same/diff`，**返回慢路那一份**
         // ⇒ 行为零变化、只取证 ✓（附九："影子档是这一档的必需品"）。
         crate::judge::ByMode::Shadow => {
@@ -1873,7 +1891,10 @@ fn cases_tactic<'a>(
             ty: b.ty.as_deref().map(render_expr),
         })
         .collect();
-    let scrutinee_ty = judge_infer(prefix_src, options, &binders_before, scrutinee_name)
+    // **G-71（0.81.0）**：这里要的是**能回读的规范类型** ⇒ 用**全显式 pp**
+    // （`@Set.image α β f A`：每个实参都写出来）。默认 pp **只丢第一个隐式实参**
+    // ⇒ 文本回读时嵌套实参错位（`Set.image β f A` 读成 `f := β, A := f` ✗）。
+    let scrutinee_ty = judge_infer_explicit(prefix_src, options, &binders_before, scrutinee_name)
         .ok()
         .and_then(|text| parse_expr_text(&text).ok())
         .ok_or_else(|| tactic_error(format!("`cases` 读不到 `{scrutinee_name}` 的类型"), span))?;
@@ -1914,7 +1935,8 @@ fn cases_tactic<'a>(
         defs,
         4,
         scrutinee_hint.as_deref(),
-        crate::spine::UnfoldAlign::Pp,
+        // 全显式 pp ⇒ **实参一个不少** ⇒ 按"全部形参"对齐（`Old`）✓
+        crate::spine::UnfoldAlign::Old,
     );
     // **写回节点前先把宇宙层级补回来**（R2 实测）：pp 形态丢掉隐式宇宙参数
     // （`Eq.{1} β (f a) b` → 裸 `Eq (f a) b`），而这条类型不只判定时要用——

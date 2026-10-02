@@ -7,6 +7,17 @@
 -- 真相层，见该文件的指针注释）。
 --
 -- 退出码约定（`docs/gaps/README.md`）：**本文件判红 = 缺口仍在** ✓（`repro_expect: rejected`）。
+--
+-- ── **已修（G-71，0.81.0）** ──
+-- 两半都修了：
+--   ① `cases` 的被消去项读法错位 ⇒ 新增 `UnfoldAlign::Pp`（pp 只丢**第一个**隐式
+--      实参 ⇒ 对齐到 `params[1..]`），`cases` 的展开改用它且**不回退**；
+--   ② 更根上的一条：tactic 上下文的类型是**文本**，非全显式 pp 的文本回读会错位
+--      ⇒ 新增 `judge_infer_explicit` / `judge_render_type_explicit`（pp 打
+--      `@Set.image α β f A`：**每个实参都写出来**）⇒ 文本**完整可回读** ✓。
+--      只对"目标里出现**前导隐式 ≥ 2** 的 def"这一档启用（`mentions_multi_implicit`）
+--      ⇒ 其余目标的文本与就地快路**逐字节不变** ✓。
+-- 本文件现在**判绿**（`decl.checked`）✓ —— 台账 `status: fixed`、`fixed_in: 0.81.0`。
 
 -- 自己带一个 ∃（不 import lib/Exists ⇒ 复现件自包含）
 inductive Witness (A : Type) (p : A → Prop) : Prop

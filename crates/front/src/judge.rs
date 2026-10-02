@@ -1758,6 +1758,68 @@ pub fn judge_infer(
     judge_infer_with("", prefix_src, options, binders, term)
 }
 
+thread_local! {
+    /// **G-71（0.81.0）**：本次判定查询要不要**全显式 pp**。
+    ///
+    /// 背景：tactic 上下文的 binder 类型是**文本**（`#check fun (x : T) => …` 的
+    /// 结果），而内核 pp **只丢第一个隐式实参**（`Set.image {α β} (f) (A)` ⇒
+    /// `Set.image β f A`）—— 这份文本再被回读时，嵌套的记法/应用**对不上号**
+    /// （实测：`(β ⁻¹' f) C` 回读成 `Set.preimage β f C` ⇒ `exact` 判红）。
+    /// `explicit = true` 时 pp 打出 `@Set.image α β f A`（**每个实参都写出来**）
+    /// ⇒ 文本**完整可回读** ✓。
+    ///
+    /// ⚠ 旗标**只在这两个 explicit 入口里打开**（`cases` 的被消去项、
+    /// `canonical_goal_type` 的规范目标），出口立刻还原 ⇒ 其它任何 `#check`
+    /// 的输出**逐字节不变** ✓。
+    static EXPLICIT_PP: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// 全显式 pp 是否打开（`compile/check/kernel_phase.rs` 的 `#check` 出口读它）。
+pub(crate) fn explicit_pp_active() -> bool {
+    EXPLICIT_PP.with(|c| c.get())
+}
+
+/// RAII：进时置位、出时**还原**（panic 也还原 ✓）。
+struct ExplicitPpGuard(bool);
+
+impl ExplicitPpGuard {
+    fn new(on: bool) -> Self {
+        Self(EXPLICIT_PP.with(|c| c.replace(on)))
+    }
+}
+
+impl Drop for ExplicitPpGuard {
+    fn drop(&mut self) {
+        EXPLICIT_PP.with(|c| c.set(self.0));
+    }
+}
+
+/// **全显式**版 [`judge_infer`]（G-71）：返回的文本里**每个实参都写出来**
+/// （`@Set.preimage α β f C`）⇒ **完整可回读** ✓ —— tactic 上下文要把这份文本
+/// 再回读成项，非全显式的 pp 文本会错位 ✗。
+pub fn judge_infer_explicit(
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> Result<String, Judgement> {
+    let _guard = ExplicitPpGuard::new(true);
+    judge_infer_with("", prefix_src, options, binders, term)
+}
+
+/// **全显式**版 [`judge_render_type`]（G-71）：同 [`judge_infer_explicit`]，
+/// 但收的是"把 `ty` 渲染成规范文本"那条路（`canonical_goal_type` 用）。
+/// ⚠ **不走就地快路**：就地路的内核 pp 用的是默认选项 ⇒ 文本形态会与这条分叉 ✗。
+pub fn judge_render_type_explicit(
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    ty: &str,
+) -> Option<String> {
+    let _guard = ExplicitPpGuard::new(true);
+    judge_render_type(prefix_src, options, binders, ty)
+}
+
 /// 同 [`judge_infer`]，但把 `extra_prefix`（闭包上下文）拼在文档前缀之前。
 #[track_caller]
 pub fn judge_infer_with(
@@ -1811,6 +1873,13 @@ fn judge_infer_cached(
         &options_key(options),
         &format!("{binders:?}"),
         term,
+        // **G-71**：全显式 pp 与非全显式是**两份不同的文本** ⇒ 键必须分开，
+        // 否则两条路互相命中、形态分叉 ✗。
+        if explicit_pp_active() {
+            "pp=explicit"
+        } else {
+            "pp=plain"
+        },
     ]);
     stats::KEY_NANOS.fetch_add(
         t0.elapsed().as_nanos() as u64,
@@ -2700,12 +2769,39 @@ mod tests {
             &options_key(&bare),
             &format!("{binders:?}"),
             "h",
+            "pp=plain",
         ]);
         assert!(
             judge_cache_contains(bare_key),
             "different options = different key"
         );
         assert!(judge_cache_len() >= before);
+
+        // **G-71**：**全显式 pp** 与非全显式是**两份不同的文本** ⇒ 必须是**两把键**
+        // （否则两条路互相命中、形态分叉 ✗）。这条判据与上面那条同源：
+        // 键的组成只许有一处真相（`judge_infer_cached`）。
+        let _ = crate::judge::judge_infer_explicit(prefix, &options, &binders, "h");
+        let plain_key = judge_cache_key(&[
+            "",
+            prefix,
+            &options_key(&options),
+            &format!("{binders:?}"),
+            "h",
+            "pp=plain",
+        ]);
+        let explicit_key = judge_cache_key(&[
+            "",
+            prefix,
+            &options_key(&options),
+            &format!("{binders:?}"),
+            "h",
+            "pp=explicit",
+        ]);
+        assert_ne!(plain_key, explicit_key, "全显式 pp 必须是另一把键");
+        assert!(
+            judge_cache_contains(explicit_key),
+            "全显式 pp 的答案要落进它自己那把键"
+        );
     }
 
     /// **批处理 ≡ 逐条判**（0.62.0 性能改动的判据）。

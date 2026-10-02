@@ -444,12 +444,21 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                 } => {
                     // #check/#reduce 直通内核求值路径：panic（如对非函数应用）
                     // 必须降级为诊断，绝不能崩掉编译/LSP 进程。
-                    match quiet_catch(|| {
+                    // **G-71（0.81.0）**：`judge_infer_explicit` 期间把 pp 切成
+                    // **全显式**（`@f a b`：每个实参都写出来）⇒ 这份文本能**完整
+                    // 回读** ✓（tactic 上下文要把 binder 类型再回读成项）。
+                    // 调用一结束立刻还原 ⇒ 其它任何 `#check` 的输出**逐字节不变** ✓。
+                    let explicit = crate::judge::explicit_pp_active();
+                    let saved_explicit = env.config.pp_options.explicit;
+                    env.config.pp_options.explicit = explicit;
+                    let checked = quiet_catch(|| {
                         env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
                             let ty = tc.infer_closed_type(expr);
                             tc.with_pp(|pp| pp.pp_expr(ty))
                         })
-                    }) {
+                    });
+                    env.config.pp_options.explicit = saved_explicit;
+                    match checked {
                         Ok(text) => out.push_event(cmd, CheckEvent::TypeChecked { text, span }),
                         Err(msg) => out.push_error(
                             j,

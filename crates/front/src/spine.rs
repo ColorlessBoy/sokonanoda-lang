@@ -1085,6 +1085,58 @@ fn rename_binder_group(binders: &[Binder], from: &str, to: &str) -> (Vec<Binder>
 }
 
 /// `name` 是否出现在 `expr` 的 Ident 节点里。
+/// **G-71（0.81.0）**：表达式里有没有**前导隐式 ≥ 2** 的 def 头？
+///
+/// 为什么要问：内核 pp **只丢第一个隐式实参**（`Set.image {α β} (f) (A)` ⇒
+/// `Set.image β f A`）—— `implicit_prefix == 1` 时这恰好等于"逐位对显式形参"
+/// （回读没问题 ✓），`>= 2` 时**回读会错位** ✗。所以只有这一档才需要**全显式 pp**
+/// （`@Set.image α β f A`）⇒ 其余目标保持今天的行为（含就地快路）逐字节不变 ✓。
+///
+/// 判据是**语法**的（只看头名 + 源级 `defs` 表），**不问内核** ⇒ 零成本、零判定 ✓；
+/// 漏报的后果只是"该显式的地方没显式"⇒ 回退到今天的错位行为（不会更坏 ✗）；
+/// 误报的后果只是"多走一次全显式慢路"（慢一点，但**更可回读** ✓）。
+pub(crate) fn mentions_multi_implicit(expr: &Expr, defs: &crate::compile::elab::DefTable) -> bool {
+    fn head_needs_explicit(name: &str, defs: &crate::compile::elab::DefTable) -> bool {
+        defs.get(name).is_some_and(|d| d.implicit_prefix >= 2)
+    }
+    fn go(expr: &Expr, defs: &crate::compile::elab::DefTable) -> bool {
+        match expr {
+            Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => {
+                head_needs_explicit(name, defs)
+            }
+            Expr::Notation {
+                target, lhs, rhs, ..
+            } => {
+                head_needs_explicit(target, defs)
+                    || lhs.as_deref().is_some_and(|e| go(e, defs))
+                    || rhs.as_deref().is_some_and(|e| go(e, defs))
+            }
+            Expr::Sort { .. } | Expr::Num { .. } | Expr::Hole { .. } => false,
+            Expr::App { fun, arg, .. } => go(fun, defs) || go(arg, defs),
+            Expr::SetLiteral { elements, .. } | Expr::AnonCtor { elements, .. } => {
+                elements.iter().any(|e| go(e, defs))
+            }
+            Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
+                binders
+                    .iter()
+                    .any(|b| b.ty.as_deref().is_some_and(|t| go(t, defs)))
+                    || go(body, defs)
+            }
+            Expr::Arrow {
+                domain, codomain, ..
+            } => go(domain, defs) || go(codomain, defs),
+            Expr::Plus { lhs, rhs, .. } => go(lhs, defs) || go(rhs, defs),
+            Expr::Let {
+                binder, val, body, ..
+            } => {
+                binder.ty.as_deref().is_some_and(|t| go(t, defs)) || go(val, defs) || go(body, defs)
+            }
+            _ => false,
+        }
+    }
+    go(expr, defs)
+}
+
 pub(crate) fn mentions(name: &str, expr: &Expr) -> bool {
     match expr {
         Expr::Ident { name: n, .. } => n == name,
