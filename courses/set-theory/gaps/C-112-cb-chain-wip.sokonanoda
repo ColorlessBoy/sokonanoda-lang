@@ -1,38 +1,27 @@
 -- ============================================================================
--- C-112 进展件（**WIP** · 2026-10-02 第 686 轮）—— Cantor–Bernstein 的**链构造**
+-- C-112 进展件（**WIP** · 2026-10-02 第 687 轮）—— Cantor–Bernstein 的**迭代/并集版链构造**
 --
--- ⚠ 这是**进展件、不是单元**：它不登记进 `course.json`、门禁不判它 ✓。
---    下面是本轮的实测状态（可机械重放：把本文件放回 `units/solutions/I.6/` 用 bisect 跑 ✓）。
+-- ⚠ 这是**进展件、不是单元**：不登记进 `course.json`、门禁不判它 ✓。
+--    重放：`python3 /tmp/soko/bisect.py <本文件>` ✓（bisect 目标在此目录 ⇒ 探针落在
+--    `gaps/zzprobe.sokonanoda` ✓ —— 别忘了删这一处 ✓）。
 --
--- ✅ **判绿的两条**（链构造的定义，全部在 `Prop` 层 ✓ —— 正是绕开 C-04 的写法 ✓）：
---    · `cbFamily`（"好集合"族 ✓）：`A∖g(B) ⊆ C` ✓ 且 `g(B∖f(C)) ⊆ C` ✓；
---    · `cbCore = ⋂ cbFamily` ✓（**最小好集合** ✓）。
---
--- ⏭ **待办（下一步，一条命令就能定位）**：5 条包装引理（`cb_core_intro` / `cb_core_elim` /
---    `cb_core_start` / `cb_core_step` / `cb_core_least`）现在判红 ✗，原因是**我猜错了
---    `Set.mem_sInter_iff` 的实参序** ✗（诊断：类型不匹配，`期望 ((Iff … Pi (A : Set α), …)`）。
---    ⇒ **先读签名再写**（手册那条"30 秒读签名，省一整轮试错" ✓）：
---        sed -n '/mem_sInter_iff/,+4p' courses/set-theory/lib/SUnion.sokonanoda
---    然后按真签名改这 5 条的调用 ✓，再把本文件搬回 `units/solutions/I.6/unit112-solution.sokonanoda` ✓。
---
-⏭ **第 687 轮更正（重要 ✓）**：**交集版链构造的 `cb_core_step` 是假命题** ✗ ——
---    我需要 `b ∉ f '' C`（好集合 `C` 的条件之一），但手里只有 `b ∉ f '' cbCore` 与
---    `cbCore ⊆ C`（最小性 ✓）⇒ 单调性给的是 `f '' cbCore ⊆ f '' C` —— **方向正好相反** ✗
---    ⇒ `b ∉ f '' C` **推不出来** ✓。根因：`K(C) = A∖g(B) ∪ g(B∖f(C))` 对 `C` 是
---    **反单调**的 ✗ ⇒「取交集」这条路线选错了 ✓（**内核把假命题顶回来是对的** ✓ ——
---    这正是手册「**命题先求真，再求可证**」那条 ✓：判卷器能顶回"证不出来"，
---    但**假命题根本没有证明** ✗）。
--- ✅ **正路（下一步照这个改）**：Halmos **迭代/并集版** ✓ —— `Aseq : Nat → Set α` 用
---    **`Nat.rec`** 递归定义（`Aseq 0 = A` ✓；`Aseq (n+1) = g '' (B ∖ f '' (Aseq n))` ✓ ——
---    动机落 `Set α : Type` ⇒ 大消去 ✓），再取 `C₀ = ⋃ₙ Aseq n` ✓（`Set.sUnion` + `∃ n` ✓）。
---    **工具已就位** ✓：单元111 刚落地的 `Nat.rec` 算术律 ✓
---    （`units/I.6/unit111-nat-arith.sokonanoda` ✓）。
--- ✅ **已判绿、可复用** ✓：5 条包装引理（`cb_core_intro`/`elim`/`start`/`least` ✓ ——
---    `sInter` 是 `def` ⇒ 成员关系**定义上就是那个 `∀`** ⇒ 包装引理直接用 `h` ✓，
---    不必碰 `Iff` 的实参序 ✓ —— 这是本轮"先读签名"的收获 ✓）。
+-- ✅ **交集版是错的（上一轮实测 ✓，留作反面教材）**：`K(C) = A∖g(B) ∪ g(B∖f(C))` 对 `C`
+--    **反单调** ✗ ⇒ "取交集"的 `cb_core_step` 需要 `b ∉ f '' C`，而手里只有
+--    `b ∉ f '' cbCore` + `cbCore ⊆ C` ⇒ 单调性方向相反 ⇒ **假命题** ✗（内核顶回来是对的 ✓）。
+-- ✅ **本轮实测：迭代/并集版 5 条全绿** ✓（`Aseq` · `cbChain` · `cb_chain_start` ·
+--    `cb_chain_mono` · **`cb_chain_step`** ✓）—— `cb_chain_step` 的关键正是
+--    「`Aseq 0 ⊆ cbChain` ⇒ `f '' (Aseq 0) ⊆ f '' cbChain` ⇒ 从 `b ∉ f '' cbChain`
+--    回收到 `b ∉ f '' (Aseq 0)`」✓（**交集版缺的就是这一方向** ✗）。
+-- ⚠ 两个"读签名"级的坑（本件换来 ✓）：像 `g '' D`（`D : Set β`）的**见证在 `β`** ✗
+--    （写成 `α` 会报宇宙不符 `Set.[] $9` vs `Set.[] $8` ✓）；包装引理里 `sInter` 是 `def`
+--    ⇒ 直接用 `h` ✓ 不必碰 `Iff` ✓。
+-- ✅ **本轮的迭代/并集版（Halmos ✓）**：`Aseq : Nat → Set α` 用 `Nat.rec` 递归 ✓
+--    （`Aseq 0 = A` ✓；`Aseq (n+1) = g '' (B ∖ f '' (Aseq n))` ✓），`cbChain = ⋃ₙ Aseq n` ✓
+--    —— 关键：此时 `Aseq n ⊆ cbChain` ✓ ⇒ `f '' (Aseq n) ⊆ f '' cbChain` ✓ ⇒
+--    **单调性方向正好是对的** ✓（这正是交集版缺的那一步 ✓）。
 --
 -- ⚠⚠ **偏离标注（原样保留、不许弱化）**：**本课的 CB 经选择公理**（后面用 `choice` 从
---    "全 + 单值"的**关系版图**里取出双射函数 ✓）；而 **CB 数学上不需要选择** ✗
+--    "全 + 单值"的**关系版图**里取双射函数 ✓）；而 **CB 数学上不需要选择** ✗
 --    ⇒ **这是偏离，不是"标准证法"** ✓。零公理的 CB 要 `Exists`→Type 的安全消去
 --    （**G-6** 一族，仍 open ✗）。**为什么必须绕**：CB 双射的**直接定义**要按 `x ∈ C₀` 分支
 --    ⇒ Prop→Type 情形分析 ⇒ 判红（判据 `gaps/C-112-cb-direct-def-reject.sokonanoda` ✓）。
@@ -44,43 +33,34 @@ import lib.Rel
 import lib.Equiv
 import lib.Choice
 
-def cbFamily (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
-    Set (Set α) :=
-  fun (C : Set α) =>
-    (∀ (x : α), x ∈ A → ¬ (x ∈ g '' B) → x ∈ C) ∧
-    (∀ (b : β), b ∈ B → ¬ (b ∈ f '' C) → g b ∈ C)
+def Aseq (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    Nat → Set α :=
+  Nat.rec (fun (_ : Nat) => Set α) A
+    (fun (n : Nat) (ih : Set α) => g '' (B \ f '' ih))
 
-def cbCore (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+def cbChain (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
     Set α :=
-  Set.sInter α (cbFamily α β A B f g)
+  fun (x : α) => ∃ (n : Nat), x ∈ Aseq α β A B f g n
 
-theorem cb_core_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
-    (x : α) (h : ∀ (C : Set α), C ∈ cbFamily α β A B f g → x ∈ C) :
-    x ∈ cbCore α β A B f g :=
-  h
+theorem cb_chain_start (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (x : α) (hx : x ∈ A) : x ∈ cbChain α β A B f g :=
+  Exists.intro Nat (fun (n : Nat) => x ∈ Aseq α β A B f g n) Nat.zero hx
 
-theorem cb_core_elim (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
-    (x : α) (h : x ∈ cbCore α β A B f g) :
-    ∀ (C : Set α), C ∈ cbFamily α β A B f g → x ∈ C :=
-  h
+theorem cb_chain_mono (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (n : Nat) : ∀ (x : α), x ∈ Aseq α β A B f g n → x ∈ cbChain α β A B f g :=
+  fun (x : α) (hx : x ∈ Aseq α β A B f g n) =>
+    Exists.intro Nat (fun (n' : Nat) => x ∈ Aseq α β A B f g n') n hx
 
-theorem cb_core_start (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
-    (x : α) (hx : x ∈ A) (hxg : ¬ (x ∈ g '' B)) : x ∈ cbCore α β A B f g :=
-  fun (C : Set α) (hC : C ∈ cbFamily α β A B f g) =>
-    (And.left (∀ (x' : α), x' ∈ A → ¬ (x' ∈ g '' B) → x' ∈ C)
-      (∀ (b : β), b ∈ B → ¬ (b ∈ f '' C) → g b ∈ C) hC) x hx hxg
-
-theorem cb_core_least (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
-    (C : Set α) (hC : C ∈ cbFamily α β A B f g) :
-    ∀ (x : α), x ∈ cbCore α β A B f g → x ∈ C :=
-  fun (x : α) (hx : x ∈ cbCore α β A B f g) => hx C hC
-
-theorem cb_core_step (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
-    (b : β) (hb : b ∈ B) (hbf : ¬ (b ∈ f '' (cbCore α β A B f g))) :
-    g b ∈ cbCore α β A B f g :=
-  fun (C : Set α) (hC : C ∈ cbFamily α β A B f g) =>
-    (And.right (∀ (x : α), x ∈ A → ¬ (x ∈ g '' B) → x ∈ C)
-      (∀ (b' : β), b' ∈ B → ¬ (b' ∈ f '' C) → g b' ∈ C) hC) b hb
-      (fun (hbfc : b ∈ f '' C) =>
-        hbf (Set.image_mono f (cbCore α β A B f g) C
-          (cb_core_least α β A B f g C hC) b hbfc))
+theorem cb_chain_step (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (b : β) (hb : b ∈ B) (hbf : ¬ (b ∈ f '' (cbChain α β A B f g))) :
+    g b ∈ cbChain α β A B f g :=
+  Exists.intro Nat (fun (n : Nat) => g b ∈ Aseq α β A B f g n) (Nat.succ Nat.zero)
+    (Exists.intro β
+      (fun (y : β) => y ∈ (B \ f '' (Aseq α β A B f g Nat.zero)) ∧ Eq.{1} α (g y) (g b))
+      b
+      (And.intro (b ∈ (B \ f '' (Aseq α β A B f g Nat.zero))) (Eq.{1} α (g b) (g b))
+        (And.intro (b ∈ B) (¬ (b ∈ f '' (Aseq α β A B f g Nat.zero))) hb
+          (fun (hbA : b ∈ f '' (Aseq α β A B f g Nat.zero)) =>
+            hbf (Set.image_mono f (Aseq α β A B f g Nat.zero) (cbChain α β A B f g)
+              (cb_chain_mono α β A B f g Nat.zero) b hbA)))
+        (Eq.refl.{1} α (g b))))

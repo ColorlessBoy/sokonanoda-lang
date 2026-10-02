@@ -195,6 +195,13 @@
   ⇒ `类型不匹配：期望 Sort(0)，实际是 Sort(1)` ✓（判据 = `gaps/C-112-cb-direct-def-reject.sokonanoda` ✓）。
   这是 **C-04 同一条墙** ✓，也正是本条目下面写的「零公理 CB 要 `Exists`→Type 的安全消去
   （**G-6** 一族，仍 open ✗）」**在 CB 上的具体面孔** ✓。
+- **第 688 轮进展（✓ 正路走通一半）**：**迭代/并集版链构造 5 条全绿** ✓ ——
+  `Aseq`（`Nat.rec` 递归 ✓）· `cbChain = ⋃ₙ Aseq n` ✓ · `cb_chain_start`（`A ⊆ cbChain` ✓）·
+  `cb_chain_mono` ✓ · **`cb_chain_step`**（`g '' (B∖f '' cbChain) ⊆ cbChain` ✓ —— 关键那步
+  「`Aseq 0 ⊆ cbChain` ⇒ `f '' (Aseq 0) ⊆ f '' cbChain`」正是交集版缺的方向 ✓）。
+  判据：`gaps/C-112-cb-chain-wip.sokonanoda`（**WIP、门禁不判它** ✓）⇒ 门禁三数仍 **246/2020/891/0** ✓。
+  **下一步**：`cbChain` 的最优性/最小性 ⇒ 关系版图 `cbRel` ⇒ 全/单值/单射/满射 ⇒
+  `choice` 取双射 ⇒ **交付那一刻**才翻 C-112 复现件语义 ✓。
 - **第 687 轮更正（重要 ✓）**：**交集版链构造的 `cb_core_step` 是假命题** ✗ —— 需要 `b ∉ f '' C`
   但只有 `b ∉ f '' cbCore` + `cbCore ⊆ C` ⇒ 单调性方向相反 ✗（根因：`K` 对 `C` **反单调** ✗）。
   **内核把假命题顶回来是对的** ✓ —— 这是手册「**命题先求真，再求可证**」那条 ✓。
