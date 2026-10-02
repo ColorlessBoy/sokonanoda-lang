@@ -13,6 +13,16 @@
 **G-82（声明卡片剥绑元）已修并关账** ✓ · **G-85（省前导隐式实参 + 结果再收一个实参）已修并关账** ✓；
 手上只剩**一条读数对齐待用户回答**（G-83 ✗）。
 
+## 1.4 U1 第一片（**引擎核心 + 接线，开关默认关** ✓ —— ⚠ **端到端正例没拿到** ✗）
+
+交付：`crates/front/src/compile/level.rs`（层级求解器核心：字面快路径 + 约束存储 `Eq/Le/Lub` + occurs ✓，
+**12 条单测** ✓）+ 短路径接线（`SOKO_UNIVERSE_METAVAR`，**默认关** ✓；关着时**一次都不进** ⇒ 零开销 ✓）。
+**实测**：全语料两态（开关关/开）`grade --json` **344 文件 0 差异** ✓ —— 与设计的判据一致
+（"今天所有 `.{n}` 都是显式的" ⇒ 本片只该对新代码生效 ✓）。**但**三组探针（`Box`/`Id` 一族）在**修前修后同判** ✗
+⇒ **接线未在实测中生效** ✗，G-63 的 `.{1,0}` 一族**照旧红** ✗ ⇒ **本片不修任何缺口** ✗（G-63 仍 open ✓）。
+**下一片必须先做**：拿到一条「修前红 / 修后绿」的**最小形** ✗（先证明接线真的会跑：加一条 `#[cfg(test)]` 计数或
+临时 `eprintln!` ✓），再谈解 `Quot.lift` 一族 ✓；否则整片是"没有正例的引擎" ✗。
+
 ## 1.5 G-85（**本轮已修** ✓ —— 起因是课程线 #5 普查的「86 处红」，但**那 86 处不是它** ✗）
 
 * **缺口**：`And.right : {a b : Prop} → And a b → b`（k=2 · m=1）—— n=1(`And.right h`) ✓ ·
@@ -39,25 +49,14 @@
      **8/8 checked · 0 failed** ✓；其余 10 处是入门课 `course/` 的 `Exists`（**自建 axiom，前导参数显式**
      ⇒ 删不得 ✗）与同类过度应用（需工具的 `allowed` 也随富余实参一起数 ✓）。
 
-## 1. G-82（**已修** ✓ —— 病根**两处**，上一版诊断只指对了症状 ✗）
+## 1. G-82（**已修** ✓）
 
-* **症状**：`theorem (a b : Prop) (h : a) : a ∧ a := by constructor; sorry` 的卡片是
-  `binders=[] ⊢ 整句声明类型` ✗（`by sorry` 那条对 ✓），且 `goal_runs` 把 `a`/`b`/`h` 全标
-  `unknown_ident` ⇒ **整句判红** ✗。
-* **病根两处**（缺一不可）：① `goals.rs::ctor_spine_case` 的目标头用只认 `Ident`/`App` 的
-  `spine_head_args` ⇒ 记法目标 `a ∧ a`（`Expr::Notation{target:And}`）拿不到族名 ⇒ `open_goal`
-  返回 `None` ✗；② `by` 引擎 `apply` 出来的是**内核口径全应用** `And.intro a a ? ?`，而归纳块
-  构造子模板只记构造子自己的绑元（`ha`/`hb`）⇒ 旧守卫 `4 > 2` 把它整条拒掉 ✗。
-  ⚠ **手写最小形测不出第②条**（`axiom` 视图有 4 个显式绑元 ⇒ 4 ≤ 4 过关 ✓）⇒ 既有测试全绿而
-  缺口仍在 ✗ —— **第三次「声明与守卫之间有缝」**。
-* **修法**：目标头走 `spine::head_and_args` ✓ + 前导实参只在**恰好等于目标实参个数**时才当族参数 ✓
-  + 归纳块构造子补 `result_arg_names`（族的参数名，子洞期望类型按目标实参代换 ✓；同时用
-  `refine_skeleton` 把 refine 代码动作**钉回原行为** ✗，不开新面 ✓）+ `walk.rs` 兜底改答题面状态 ✓。
-* **判据**：`bash docs/gaps/repro/G82-card-does-not-peel-with-tactics.sh` ⇒ exit 1 ✓ · front 单测
-  `compile::tests::open_card_peels_named_binders_when_the_body_has_tactics` ✓ · CLI e2e
-  `query::query_goals_card_peels_binders_with_tactics`（文本 + **着色** ✓）· 全语料
-  `grade --json` **344 文件 0 差异** ✓、`query goals` **133 文件 0 差异** ✓（语料里没有那种形状 ✓）。
-* 细节 ⇒ commit `0a2b1b69`/`c33abcf0` + 台账 **G-82** 的 notes ✓。
+症状：`by constructor; sorry` 的卡片退回整句声明类型 ✗ + `goal_runs` 全 `unknown_ident` ✗。
+病根**两处**：① `ctor_spine_case` 的目标头只认 `Ident`/`App` ⇒ 记法目标 `a ∧ a` 拿不到族名 ✗；
+② `by` 引擎 `apply` 出的是**内核口径全应用**（4 实参）而归纳块构造子模板只记 2 个绑元 ⇒ 旧守卫整条拒 ✗。
+⚠ 手写最小形（`axiom` 视图 4 绑元）测不出 ② ⇒ 既有测试全绿而缺口仍在 ✗（第三次「声明与守卫之间有缝」）。
+判据：`docs/gaps/repro/G82-card-does-not-peel-with-tactics.sh` ⇒ exit 1 ✓ · front/CLI 各一条 ✓ ·
+全语料 `grade --json` 344 文件 **0 差异** ✓、`query goals` 133 文件 **0 差异** ✓。细节 ⇒ `0a2b1b69` + 台账 ✓。
 
 ## 2. 上一棒顺手做的两件（都已落 ✓）
 
