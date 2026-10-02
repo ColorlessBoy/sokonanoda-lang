@@ -166,10 +166,11 @@
             "cardinality",
             "cantor",
             "image-family-distrib",
-            "preimage-family-distrib"
+            "preimage-family-distrib",
+            "equiv-algebra"
           ],
           "quota": {
-            "exercises": 49
+            "exercises": 55
           },
           "units": [
             {
@@ -201,6 +202,12 @@
               "title": "单元74 原像与广义并交的分配",
               "title_en": "Unit 74 — Preimages of Unions and Intersections",
               "unit": 74
+            },
+            {
+              "file": "units/unit92-equiv-algebra.sokonanoda",
+              "title": "单元92 等势的代数",
+              "title_en": "Unit 92 — Algebra of Equinumerosity",
+              "unit": 92
             }
           ]
         },

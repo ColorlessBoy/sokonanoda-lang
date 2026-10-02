@@ -1,0 +1,59 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+
+theorem demo_equiv_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    A ≈ B ↔ ∃ (f : α → β), Set.MapsTo α β f A B ∧
+      (∃ (g : β → α), Set.MapsTo β α g B A ∧
+        ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) :=
+  Iff.intro (A ≈ B) (∃ (f : α → β), Set.MapsTo α β f A B ∧
+      (∃ (g : β → α), Set.MapsTo β α g B A ∧
+        ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))))
+    (fun (h : A ≈ B) => h)
+    (fun (h : ∃ (f : α → β), Set.MapsTo α β f A B ∧
+        (∃ (g : β → α), Set.MapsTo β α g B A ∧
+          ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))) => h)
+
+theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
+  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+    (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
+
+theorem demo_leftInv_def (α : Type) (β : Type) (g : β → α) (f : α → β) (A : Set α) :
+    Set.LeftInvOn α β g f A ↔ ∀ (x : α), x ∈ A → g (f x) = x :=
+  Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
+    (fun (h : Set.LeftInvOn α β g f A) => h)
+    (fun (h : ∀ (x : α), x ∈ A → g (f x) = x) => h)
+
+theorem mapsTo_id (α : Type) (A : Set α) :
+    Set.MapsTo α α (fun (x : α) => x) A A :=
+  fun (x : α) (hx : x ∈ A) => hx
+
+theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) => g (f x)) A C :=
+  fun (x : α) (hx : x ∈ A) => hg (f x) (hf x hx)
+
+theorem leftInv_id (α : Type) (A : Set α) :
+    Set.LeftInvOn α α (fun (x : α) => x) (fun (x : α) => x) A :=
+  fun (x : α) (hx : x ∈ A) => Eq.refl.{1} α x
+
+theorem equiv_refl (α : Type) (A : Set α) : A ≈ A :=
+  Set.Equiv.mk α α A A (fun (x : α) => x) (fun (x : α) => x)
+    (mapsTo_id α A) (mapsTo_id α A) (leftInv_id α A) (leftInv_id α A)
+
+theorem equiv_symm (α : Type) (β : Type) (A : Set α) (B : Set β) (h : A ≈ B) :
+    B ≈ A :=
+  Set.Equiv.elim α β A B (B ≈ A) h
+    (fun (f : α → β) (g : β → α) (hf : Set.MapsTo α β f A B)
+      (hg : Set.MapsTo β α g B A) (hgf : Set.LeftInvOn α β g f A)
+      (hfg : Set.RightInvOn α β f g B) =>
+      Set.Equiv.mk β α B A g f hg hf hfg hgf)
+
+theorem equiv_elim_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (C : Prop)
+    (h : A ≈ B)
+    (k : ∀ (f : α → β) (g : β → α), Set.MapsTo α β f A B → Set.MapsTo β α g B A →
+      Set.LeftInvOn α β g f A → Set.RightInvOn α β f g B → C) : C :=
+  Set.Equiv.elim α β A B C h k
