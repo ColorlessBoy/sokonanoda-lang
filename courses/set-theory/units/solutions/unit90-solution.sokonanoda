@@ -1,0 +1,61 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def Injective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), f a = f b → a = b
+
+def Surjective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (b : β), ∃ (a : α), f a = b
+
+def BijPair (α : Type) (β : Type) (f : α → β) : Prop :=
+  Injective α β f ∧ Surjective α β f
+
+theorem demo_bij_def (α : Type) (β : Type) (f : α → β) :
+    BijPair α β f ↔ Injective α β f ∧ Surjective α β f :=
+  Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
+    (fun (h : BijPair α β f) => h) (fun (h : Injective α β f ∧ Surjective α β f) => h)
+
+theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
+    Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=
+  Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+    (fun (h : Surjective α β f) => h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) => h)
+
+theorem demo_arg_subst (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
+    (h : b = a) (hd : g b = d) : g a = d :=
+  Eq.subst.{1} α (fun (x : α) => g x = d) b a h hd
+
+theorem bij_iff (α : Type) (β : Type) (f : α → β) :
+    BijPair α β f ↔ Injective α β f ∧ Surjective α β f :=
+  Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
+    (fun (h : BijPair α β f) => h) (fun (h : Injective α β f ∧ Surjective α β f) => h)
+
+theorem arg_subst_id (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
+    (h : b = a) (hd : g b = d) : g a = d :=
+  Eq.subst.{1} α (fun (x : α) => g x = d) b a h hd
+
+theorem comp_eq_of_eq (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (a : α) (a' : α) (b : β) (b' : β)
+    (ha : f a = b) (ha' : f a' = b') (h : g b = g b') :
+    g (f a) = g (f a') :=
+  Eq.trans.{1} γ (g (f a)) (g b) (g (f a'))
+    (Eq.subst.{1} β (fun (x : β) => g x = g b) b (f a) (Eq.symm.{1} β (f a) b ha)
+      (Eq.refl.{1} γ (g b)))
+    (Eq.trans.{1} γ (g b) (g b') (g (f a')) h
+      (Eq.subst.{1} β (fun (x : β) => g b' = g x) b' (f a') (Eq.symm.{1} β (f a') b' ha')
+        (Eq.refl.{1} γ (g b'))))
+
+theorem inj_of_comp_surj (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Surjective α β f) (hgf : Injective α γ (fun (x : α) => g (f x))) :
+    Injective β γ g :=
+  fun (b : β) (b' : β) (h : g b = g b') =>
+    Exists.elim α (fun (a : α) => f a = b) (b = b') (hf b)
+      (fun (a : α) (ha : f a = b) =>
+        Exists.elim α (fun (a' : α) => f a' = b') (b = b') (hf b')
+          (fun (a' : α) (ha' : f a' = b') =>
+            Eq.trans.{1} β b (f a) b' (Eq.symm.{1} β (f a) b ha)
+              (Eq.trans.{1} β (f a) (f a') b'
+                (Eq.subst.{1} α (fun (x : α) => f a = f x) a a'
+                  (hgf a a' (comp_eq_of_eq α β γ f g a a' b b' ha ha' h))
+                  (Eq.refl.{1} β (f a)))
+                ha')))

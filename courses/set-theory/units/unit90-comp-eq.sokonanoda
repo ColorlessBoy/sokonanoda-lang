@@ -1,0 +1,79 @@
+-- ==========================================================================
+-- unit90-comp-eq.sokonanoda —— 卷 I 单元90 **复合层的等式与"外层单射"**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.3/§3.6** ·
+--   Halmos《Naive Set Theory》**§8**。大纲 §4.1（**I.4 章补完片** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · `BijPair` 的定义展开 ✓ · **换"函数参数格"的搬运**（`arg_subst_id` ✓）；
+--   · **旗舰一（拆链换来的）：复合层的等式** ✓ ——
+--     `f a = b ⇒ f a' = b' ⇒ g b = g b' ⇒ g (f a) = g (f a')` ✓
+--     （把三层 `Eq.trans` 独立成一条引理 ✓ —— 这就是第 657 轮换招的做法 ✓）；
+--   · **旗舰二：满射 + 复合单射 ⇒ 外层单射** ✓ ——
+--     **跨三轮判红三次的欠债，本轮还清** ✓（`inj_of_comp_surj` ✓）。
+--
+-- ⚠ **还债的关键两招** ✓（值得记住）：
+--   1. **先拆链**：把"三步 `Eq.trans`"从主证明里搬出来做**独立引理**（旗舰一 ✓），
+--      主证明只剩"两步接起来" ✓；
+--   2. **看清给的是什么**：`hgf a a' …` 的类型是 **`a = a'`**（不是 `f a = f a'` ✗！）
+--      ⇒ 还要一条 **`Eq.subst` + 谓词 `fun x => f a = f x`** 才能得到 `f a = f a'` ✓
+--      （跨三轮回踩的就是这一格 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元87（单射半边）· 单元88（满射半边 + 格位表）· 单元89（双射复合）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def Injective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), f a = f b → a = b
+
+def Surjective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (b : β), ∃ (a : α), f a = b
+
+def BijPair (α : Type) (β : Type) (f : α → β) : Prop :=
+  Injective α β f ∧ Surjective α β f
+-- ─────────────────────────────────────────────────────────────
+-- 90.1 三条定义展开与搬运（双射 · 满射 · 换"函数参数格"）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：满射的定义展开（`Surjective f` 就是"每个点都有原像" ✓）。
+theorem demo_bij_def (α : Type) (β : Type) (f : α → β) :
+    BijPair α β f ↔ Injective α β f ∧ Surjective α β f :=
+  Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
+    (fun (h : BijPair α β f) => h) (fun (h : Injective α β f ∧ Surjective α β f) => h)
+theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
+    Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=
+  Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+    (fun (h : Surjective α β f) => h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) => h)
+theorem demo_arg_subst (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
+    (h : b = a) (hd : g b = d) : g a = d :=
+  Eq.subst.{1} α (fun (x : α) => g x = d) b a h hd-- 练习 1（T 类）：`BijPair` 就是单射 ∧ 满射（定义展开）。
+-- 关键件：两个方向都是恒等（`Iff.intro` 两类实参写全）
+theorem bij_iff (α : Type) (β : Type) (f : α → β) :
+    BijPair α β f ↔ Injective α β f ∧ Surjective α β f := by
+  sorry
+-- 练习 2（T 类）：**换"函数参数格"的搬运**（格位表第二行）。
+-- 关键件：**`Eq.subst` + 谓词 `fun x => g x = d`**（⚠ 不是 `rel_subst_*`）
+theorem arg_subst_id (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
+    (h : b = a) (hd : g b = d) : g a = d := by
+  sorry
+-- 练习 3（L 类，**旗舰一**）：**复合层的等式**（`f a = b ⇒ f a' = b' ⇒ g b = g b' ⇒ g (f a) = g (f a')`）。
+-- 思路：两段各用一次 `Eq.subst` 把 `g b` / `g b'` 换成 `g (f a)` / `g (f a')`（谓词方向：`fun x => g x = g b` 与 `fun x => g b' = g x`），中间夹 `h`。
+-- 关键件：`Eq.subst`（两次）· `Eq.trans`（两次）· `Eq.refl` · `Eq.symm`
+theorem comp_eq_of_eq (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (a : α) (a' : α) (b : β) (b' : β)
+    (ha : f a = b) (ha' : f a' = b') (h : g b = g b') :
+    g (f a) = g (f a') := by
+  sorry
+-- 练习 4（L 类，**旗舰二，还三轮的债**）：**满射 + 复合单射 ⇒ 外层单射**。
+-- 思路：给 `g b = g b'`，用满射取 `a`、`a'` ⇒ 练习 3 得 `g (f a) = g (f a')` ⇒ 复合单射给 **`a = a'`** ⇒ 再用一次 `Eq.subst`（谓词 `fun x => f a = f x`）把它变成 `f a = f a'` ⇒ 最后 `Eq.trans` 串成 `b = b'`。
+-- 关键件：练习 3 · `Exists.elim` · **`Eq.subst` + 谓词 `fun x => f a = f x`**（⚠ `hgf` 给的是 `a = a'`，不是 `f a = f a'`！）· `Eq.trans` / `Eq.symm`
+theorem inj_of_comp_surj (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Surjective α β f) (hgf : Injective α γ (fun (x : α) => g (f x))) :
+    Injective β γ g := by
+  sorry

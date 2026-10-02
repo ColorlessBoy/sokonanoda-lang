@@ -222,10 +222,11 @@
             "refutation-sdiff",
             "inj-surj-composition",
             "surjection-composition",
-            "bijection-composition"
+            "bijection-composition",
+            "comp-layer-equality"
           ],
           "quota": {
-            "exercises": 42
+            "exercises": 46
           },
           "units": [
             {
@@ -275,6 +276,12 @@
               "title": "单元89 双射与复合",
               "title_en": "Unit 89 — Bijections and Composition",
               "unit": 89
+            },
+            {
+              "file": "units/unit90-comp-eq.sokonanoda",
+              "title": "单元90 复合层的等式与外层单射",
+              "title_en": "Unit 90 — Equality at the Composite Layer",
+              "unit": 90
             }
           ]
         },
