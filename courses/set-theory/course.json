@@ -157,10 +157,11 @@
             "image",
             "preimage",
             "cardinality",
-            "cantor"
+            "cantor",
+            "image-family-distrib"
           ],
           "quota": {
-            "exercises": 23
+            "exercises": 36
           },
           "units": [
             {
@@ -180,6 +181,12 @@
               "title": "单元⑩ 可数与 Cantor 定理（基数 Ⅱ）",
               "title_en": "Unit 10 — Countability & Cantor's Theorem (Cardinality II)",
               "unit": 10
+            },
+            {
+              "file": "units/unit73-image-families.sokonanoda",
+              "title": "单元73 像与广义并交的分配",
+              "title_en": "Unit 73 — Images of Unions and Intersections",
+              "unit": 73
             }
           ]
         },
