@@ -3776,18 +3776,70 @@ fn try_implicit_application<'a>(
     // 关着时**一次都不进** ✓ ⇒ 逐字节不变 ✓）。
     // ⚠ 开关**先判**（关着时这里连 `pairs` 都不建 ⇒ 既有形状**零额外开销** ✓）
     if crate::compile::level::universe_metavar_enabled() && matches!(head, Expr::Ident { .. }) {
-        let mut pairs: Vec<(&Expr, &Expr)> = Vec::new();
-        for (j, ty) in arg_tys.iter().enumerate() {
-            if let Some(ty) = ty.as_ref() {
-                if let Some(layer) = layers.get(k + j) {
-                    pairs.push((&layer.domain, ty));
+        // 模板侧必须**先用解出的项参数代换** ✓：`Box {u} : {α : Sort u} → α → Sort u` 的
+        // `result` 是 `Sort u`，与期望类型 `Nat → Sort 1` 形状不同 ✗ ⇒ 代换后才同形 ✓。
+        let mut lvl_sigma: HashMap<String, Expr> = HashMap::new();
+        for (j, value) in solved.iter().enumerate() {
+            if let Some(layer) = layers.get(j) {
+                if !layer.name.is_empty() {
+                    lvl_sigma.insert(layer.name.clone(), value.clone());
                 }
             }
         }
-        if let Some(expected) = expected_src {
-            pairs.push((&result, expected));
+        let subst = |e: &Expr| crate::spine::substitute(e, &lvl_sigma);
+        let tpl_layers: Vec<Expr> = layers.iter().map(|l| subst(&l.domain)).collect();
+        let tpl_result = subst(&result);
+        // (模板, 实际) 的**三路**原料：
+        //   ① 显式实参位：层域 ↔ 实参类型 ✓
+        //   ② 结果 ↔ 期望类型 ✓
+        //   ③ **解出来的隐式项参数自己的类型** ✓✓ —— `Show {u} : {α : Sort u} → α → Nat`
+        //      写成 `Show 0` 时 `u` 只出现在 `{α : Sort u}` 那一层（**没有实参可问** ✗），
+        //      但 `α` 已被解成 `Nat` ✓ ⇒ `Nat : Sort 1` ⇒ `u := 1` ✓✓
+        //      （本轮实测：缺这一路 ⇒ `Show 0` 两态都判红 ✗，`期望 Sort(0)，实际是 Sort(1)`）。
+        let mut tpl: Vec<Expr> = Vec::new();
+        let mut act: Vec<Expr> = Vec::new();
+        for (j, ty) in arg_tys.iter().enumerate() {
+            if let (Some(ty), Some(layer)) = (ty.as_ref(), tpl_layers.get(k + j)) {
+                tpl.push(layer.clone());
+                act.push(ty.clone());
+            }
         }
-        if let Some(levels) = crate::compile::level::solve_universes(declared.universes(), &pairs) {
+        if let Some(expected) = expected_src {
+            tpl.push(tpl_result.clone());
+            act.push(expected.clone());
+        }
+        for (j, value) in solved.iter().enumerate() {
+            if let Some(layer) = tpl_layers.get(j) {
+                if let Some(ty) = operand_type_expr(
+                    ctx,
+                    scope,
+                    value,
+                    Some(&mut InplaceEnv {
+                        builder: &mut *builder,
+                        known,
+                    }),
+                ) {
+                    tpl.push(layer.clone());
+                    act.push(ty);
+                }
+            }
+        }
+        let pairs: Vec<(&Expr, &Expr)> = tpl.iter().zip(act.iter()).collect();
+        if crate::compile::level::trace_enabled() {
+            eprintln!(
+                "[u1] head={} univs={:?} k={} pairs={} solved_terms={}",
+                head_name,
+                declared.universes(),
+                k,
+                pairs.len(),
+                solved.len()
+            );
+        }
+        let solved_levels = crate::compile::level::solve_universes(declared.universes(), &pairs);
+        if crate::compile::level::trace_enabled() {
+            eprintln!("[u1]   solved_levels={:?}", solved_levels);
+        }
+        if let Some(levels) = solved_levels {
             let mut ptrs: Vec<LevelPtr<'a>> = Vec::with_capacity(levels.len());
             for text in &levels {
                 let mut lv = builder.zero();

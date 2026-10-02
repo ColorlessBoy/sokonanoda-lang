@@ -121,6 +121,11 @@ impl LevelStore {
 
 /// 开关 `SOKO_UNIVERSE_METAVAR`（**默认关** ✓）：关着时本模块**一次都不进** ⇒ 逐字节不变 ✓
 /// （与 M1–M3「先在开关下证明两态等价、再默认开」同一条路 ✓）。
+pub(crate) fn trace_enabled() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var("SOKO_U1_TRACE").is_ok())
+}
+
 pub(crate) fn universe_metavar_enabled() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ON.get_or_init(|| {
@@ -198,6 +203,17 @@ pub(crate) fn match_levels(
                 ..
             },
         ) => match_level_text(t, a, param, store),
+        // `Sort u` ↔ **源级字面形态**：`Type`（= `Sort 1` ✓）/ `Prop`（= `Sort 0` ✓）/
+        // `Sort n`（数字 ✓）。实测（本轮）：`Show {u} : {α : Sort u} → α → Nat` 写成
+        // `Show 0` 时，`α` 的类型在源级是 **`Type`**（不是 `Sort(Level("1"))` ✗）
+        // ⇒ 只认 `Level` 对 `Level` 会**一个解都拿不到** ✗（接线在跑、就是解不出 ✗）。
+        (
+            Expr::Sort {
+                sort: SortKind::Level(t),
+                ..
+            },
+            Expr::Sort { sort: a, .. },
+        ) if t.as_str() == param => sort_literal(a, store, param),
         (Expr::Sort { sort: t, .. }, Expr::Sort { sort: a, .. }) => t == a,
         (
             Expr::UniverseApp {
@@ -236,6 +252,18 @@ pub(crate) fn match_levels(
         ) => match_levels(td, ad, param, store) && match_levels(tc, ac, param, store),
         _ => false,
     }
+}
+
+/// **源级字面 sort** 的层级数：`Prop` = 0 ✓ · `Type` = 1 ✓ · `Sort n` = n ✓；其余（含
+/// `Sort u` 这种带变量的）⇒ 放弃 ✗（**绝不猜** ✓）。
+fn sort_literal(sort: &SortKind, store: &mut LevelStore, param: &str) -> bool {
+    let n = match sort {
+        SortKind::Prop => 0,
+        SortKind::Type => 1,
+        SortKind::Sort(n) => *n,
+        SortKind::Level(_) => return false,
+    };
+    store.assign(param, &n.to_string())
 }
 
 /// 层级**文本**之间的对齐：`param` ↔ 字面 ⇒ 赋值 ✓；两边同字面 ⇒ Ok ✓；其余放弃 ✗。
@@ -377,6 +405,30 @@ mod tests {
             &mut s
         ));
         assert_eq!(s.get(mvar), Some(2));
+    }
+
+    #[test]
+    fn match_reads_levels_from_source_level_literals() {
+        // `Sort u` ↔ `Type` ⇒ `u := 1` ✓；`Sort u` ↔ `Prop` ⇒ `u := 0` ✓
+        let mvar = "\0soko_u0";
+        let mut s = LevelStore::new();
+        assert!(match_levels(&sort_level(mvar), &sort_type(), mvar, &mut s));
+        assert_eq!(s.get(mvar), Some(1));
+        let mut s = LevelStore::new();
+        let prop = Expr::Sort {
+            sort: SortKind::Prop,
+            span: Span::default(),
+        };
+        assert!(match_levels(&sort_level(mvar), &prop, mvar, &mut s));
+        assert_eq!(s.get(mvar), Some(0));
+        // `Sort u` ↔ `Sort 3`（数字形态）⇒ `u := 3` ✓
+        let mut s = LevelStore::new();
+        let three = Expr::Sort {
+            sort: SortKind::Sort(3),
+            span: Span::default(),
+        };
+        assert!(match_levels(&sort_level(mvar), &three, mvar, &mut s));
+        assert_eq!(s.get(mvar), Some(3));
     }
 
     #[test]

@@ -31,13 +31,22 @@ use std::process::{Command, Stdio};
 ///
 /// `tag` 进临时目录名：cargo 的测试是**同进程多线程**跑的，共用一份路径会互相覆盖。
 fn grade_source(tag: &str, src: &str) -> (bool, usize, Vec<String>) {
+    grade_source_env(tag, src, &[])
+}
+
+/// 同上，但给子进程注入环境变量（`SOKO_UNIVERSE_METAVAR` 是**进程级**开关 ✓）。
+fn grade_source_env(tag: &str, src: &str, envs: &[(&str, &str)]) -> (bool, usize, Vec<String>) {
     // 返回的第三条 = **诊断码**（`elab-implicit-argument-unsolved` 这类）—— 码在
     // 事件的 `code` 字段里，**不在** `message` 文案里 ✗（实测：按 message 找会找不到 ✓）。
     let dir = std::env::temp_dir().join(format!("soko-g85-{}-{tag}", std::process::id()));
     let _ = std::fs::create_dir_all(&dir);
     let path = dir.join("Probe.sokonanoda");
     std::fs::write(&path, src).expect("write probe");
-    let out = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_sokonanoda"));
+    for (k, v) in envs {
+        cmd.env(k, v);
+    }
+    let out = cmd
         .arg("--json")
         .arg("--no-project")
         .arg(&path)
@@ -128,5 +137,47 @@ def uses : Nat := ignores 3
             .iter()
             .any(|d| d.contains("elab-implicit-argument-unsolved")),
         "必须报 elab-implicit-argument-unsolved（既有专用码不许消失）：{diagnostics:#?}"
+    );
+}
+
+/// **U1 片的端到端守卫**（IA-4 §2.9 · 开关 `SOKO_UNIVERSE_METAVAR`）：
+/// **省前导隐式实参 + 结果再收一个实参 + 宇宙层级由解得出** 的那条声明必须判绿 ✓。
+///
+/// 形状：`axiom Show {u} : {α : Sort u} → α → Nat → Nat` 写成 `Show 0 5`
+/// —— `α` 由 `0 : Nat` 解出 ✓、`5` 落到结果上 ✓、而 `u` **没写** ✗（修前一律按 `0` ✗
+/// ⇒ 内核 `期望 Sort(0)，实际是 Sort(1)` ✗）。`u` 的来源 = **解出来的隐式项参数自己的类型**
+/// （`α := Nat` ⇒ `Nat : Sort 1` ⇒ `u := 1` ✓）。
+///
+/// 三条牙：① 开关**关** ⇒ 该形判红 ✓（基线行为 ✓）；② 开关**开** ⇒ 判绿 ✓；
+/// ③ **反面**：把层级写死成错的（`Show.{0} 0 5`）在开关开时**仍须**判红 ✓
+/// —— 证明不是"什么都放行" ✗（**不是"看着像过"的断言** ✓）。
+///
+/// 与 `docs/gaps/repro/U1-universe-level-solved.sh` **逐字同源** ✓。
+#[test]
+fn u1_solves_an_unwritten_universe_level_only_when_the_switch_is_on() {
+    let src = "\
+axiom Show {u} : {\u{3b1} : Sort u} \u{2192} \u{3b1} \u{2192} Nat \u{2192} Nat\n\
+def t1 : Nat := Show 0 5\n\
+def t2 : Nat := Show.{1} 0 5\n\
+def bad : Nat := Show.{0} 0 5\n";
+
+    // ① 开关关：`Show 0 5`（缺口面）与 `Show.{0} 0 5`（写死错的层级）判红 ✓，
+    //    对照 `Show.{1} 0 5` 与 axiom 判过 ⇒ checked=2 · 2 条诊断 ✓。
+    let (ok_off, checked_off, diags_off) = grade_source_env("u1-off", src, &[]);
+    assert!(
+        !ok_off && checked_off == 2 && diags_off.len() == 2,
+        "开关**关**时：两条必须判红、两条判过 ⇒ ok={ok_off} checked={checked_off} diags={diags_off:#?}"
+    );
+
+    // ②③ 开关开：`Show 0 5` 转绿（`u := 1` ✓），只有写死错的层级仍红 ✓。
+    let (ok_on, checked_on, diags_on) =
+        grade_source_env("u1-on", src, &[("SOKO_UNIVERSE_METAVAR", "1")]);
+    assert!(
+        checked_on == 3 && diags_on.len() == 1,
+        "开关**开**时：只有 `Show.{{0}} 0 5` 该判红 ⇒ checked={checked_on} diags={diags_on:#?}"
+    );
+    assert!(
+        !ok_on,
+        "反面仍在 ⇒ 整份文件仍 exit 1（**预期** ✓：说明不是'什么都放行' ✗）"
     );
 }
