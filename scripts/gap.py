@@ -18,6 +18,18 @@
 复现件的**期望**默认由 `status` 推出（`fixed` ⇒ 应当转绿 / `.sh` 应当 exit≠0），
 但有些缺口的「修好」恰恰是**判红**（例如 G-01 钉的是"签名写错必须被拒」）。这类条目
 在台账里写一个显式的 `repro_expect`（`clean` / `rejected` / `exit0` / `nonzero`）覆盖推导。
+
+**2026-10-02（用户实测报的两个洞 ⇒ 已堵）**：
+  ① `check`：「没有复现件 / 路径不存在 / 是目录 / 类型不认识」以前**一律跳过、计不进 bad** ✗
+     ⇒ 「自称 `fixed`」与「有东西真验过」在输出里**长得一模一样** ✗（实测 8 条被跳过，
+     6 条写着 `fixed`）。现在：**`status == "fixed"` 必须够得着会跑的复现件，否则判红** ✗；
+     `open`/`wo-filed`/`workaround` 允许没有（那正是「还没做」）✓。`timeout` 保持"响亮
+     跳过"，但**汇总里必须数出来**（它没被验证 ✗）。
+  ② `close`：以前只在 `kind in {"script","sokonanoda"}` 时预检 ✗ ⇒ `repro` 为空的条目
+     一条命令就能标成「已修」、**没有任何东西会拦** ✗。现在：没有复现件 / 够不着 / 超时
+     ⇒ **拒绝关账**并打印原因 ✓。
+  两条判据都长在 `entry_verdict()` 里（`check` 与 `close` **共用一份**）⇒ `selftest`
+  用「有/无复现件 × `fixed`/`open`」四形把它钉住 ✓。
 """
 
 from __future__ import annotations
@@ -231,6 +243,53 @@ def judge(entry: dict, kind: str, code: int) -> tuple[str, str, bool]:
     return "", "", False
 
 
+# **复现件够不着**的四种形态（2026-10-02 用户实测报的两个洞 ✗）：
+#   ① `check` 里 `if not e.get("repro"): …continue` **不计 bad** ✗ —— 实测 8 条被跳过，
+#      其中 **5 条写着 `status=fixed`** ⇒ 「自称修好了」与「有东西真验过」在输出里**长得
+#      一模一样** ✗；`repro` 字段写成**测试名 + 散文**（G-50/51/52）也走这条 ⇒ `missing`
+#      ⇒ 静默跳过 ✗。
+#   ② `cmd_close` 只在 `kind in {"script","sokonanoda"}` 时预检 ✗ ⇒ `repro` 为空的条目
+#      一条命令就能标成「已修」，**没有任何东西会拦** ✗（G-54/G-55/G-66 就躺在这个洞里）。
+# ⇒ 定则：**`status == "fixed"` 必须够得着会跑的复现件**；`open`/`wo-filed` 允许没有
+#   （那正是「还没做」）✓。`timeout` 保持「响亮跳过」但**计入汇总**（它没被验证 ✗）。
+# 没有复现件时调用方传 `("none", -1, "没有复现文件")` ✓（与 `run_repro` 的四种够不着同码）。
+UNREACHABLE_KINDS = {"none", "missing", "dir", "unknown"}
+
+
+def entry_verdict(entry: dict, kind: str, code: int, note: str = "") -> tuple[str, str]:
+    """一条台账条目 × 一次复现结果 ⇒ `(打印行, verdict)`，verdict ∈ {ok, bad, skip}。
+
+    **`check` 与 `close` 共用这一份判定**（契约只有一处 ✓）；两个洞的判据都长在这里，
+    所以 `--selftest` 能直接把四种形状钉住 ✓。
+    """
+    eid = entry.get("id", "?")
+    status = entry.get("status", "?")
+    fixed = status == "fixed"
+    if kind in UNREACHABLE_KINDS:
+        why = note or "没有复现文件"
+        if fixed:
+            return (
+                f"{eid:<6}{status:<12}{kind:<12}"
+                f"✗ 自称已修，却**没有可跑的复现件**（{why}）⇒ 判红"
+                f"（补一个能机械重放的复现件，见 docs/gaps/README.md）",
+                "bad",
+            )
+        return (f"{eid:<6}{status:<12}{kind:<12}跳过（{why}；{status} 允许没有复现件 ✓）", "skip")
+    if kind == "timeout":
+        return (
+            f"{eid:<6}{status:<12}{'超时':<12}"
+            f"⚠ 跳过（环境慢：>{REPRO_TIMEOUT_S}s）｜{note} —— **没被验证** ✗（计入汇总）",
+            "skip",
+        )
+    observed, expected, ok = judge(entry, kind, code)
+    line = (
+        f"{eid:<6}{status:<12}{kind:<12}{observed}"
+        f"{'' if ok else f'  ← 台账写的是「{expected}」，请更新'}"
+        f"{'' if ok or not note else f' ｜复现件：{note}'}"
+    )
+    return line, ("ok" if ok else "bad")
+
+
 def cmd_list(args: argparse.Namespace) -> int:
     entries = load()
     if args.severity:
@@ -348,35 +407,29 @@ def cmd_check(args: argparse.Namespace) -> int:
         for e in todo:
             results[id(e)] = run_repro(e)
     print(f"{'ID':<6}{'状态':<12}{'复现':<12}判定")
+    counts = {"ok": 0, "bad": 0, "skip": 0}
+    no_repro_skips: list[str] = []
     for e in entries:
-        status = e.get("status", "?")
-        if not e.get("repro"):
-            print(f"{e['id']:<6}{status:<12}{'-':<12}跳过（没有复现文件）")
-            continue
-        kind, code, note = results[id(e)]
+        if e.get("repro"):
+            kind, code, note = results[id(e)]
+        else:
+            # 没有复现件也**走同一条判定**（fixed ⇒ 判红 ✗，open/wo-filed ⇒ 允许跳过 ✓）
+            kind, code, note = "none", -1, "没有复现文件"
+        line, verdict = entry_verdict(e, kind, code, note)
+        counts[verdict] += 1
+        if verdict == "bad":
+            bad += 1
         if kind == "timeout":
-            # **响亮地跳过**（不静默 ✗）：慢机器上超时是**环境事实** ✓，不是"行为已变" ✗。
             got_env_skips.append(e["id"])
-            print(f"{e['id']:<6}{status:<12}{'超时':<12}"
-                  f"⚠ 跳过（环境慢：>{REPRO_TIMEOUT_S}s）｜{note}")
-            continue
-        if kind in {"missing", "dir", "none", "unknown"}:
-            print(f"{e['id']:<6}{status:<12}{kind:<12}跳过（{note}）")
-            continue
-        observed, expected, ok = judge(e, kind, code)
-        bad += not ok
-        line = (
-            f"{e['id']:<6}{status:<12}{kind:<12}{observed}"
-            f"{'' if ok else f'  ← 台账写的是「{expected}」，请更新'}"
-            f"{'' if ok or not note else f' ｜复现件：{note}'}"
-        )
+        elif verdict == "skip":
+            no_repro_skips.append(e["id"])
         print(line)
         # **逐条发 GitHub 注解**（2026-09-25 用户指出 ✓："ledger 是不是本身实现的时候，
         # 信息就打印得太少了" ✓ —— 完全对 ✓）。此前注解里**只有** `Process completed
         # with exit code 1.` ✗ ⇒ 细节只在 stdout ✓，而**整轮结束前 job 日志读不到** ✗
         # ⇒ 失败**已经发生却拿不到原因** ✓（本 session 为此耗过半小时 ✓）。
         # 注解**边跑边可读** ✓（`gh api …/check-runs/<id>/annotations` ✓，不必等整轮 ✓）。
-        if not ok and os.environ.get("GITHUB_ACTIONS"):
+        if verdict == "bad" and os.environ.get("GITHUB_ACTIONS"):
             # 注解里的 `%` / 换行要转义 ✓（GitHub 的命令语法 ✓）
             msg = line.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
             print(f"::error title=缺口台账 {e['id']} 与台账不一致::{msg}")
@@ -399,7 +452,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     # "run … is still in progress" ✓）⇒ 失败**已经发生却看不见** ✗
     # （用户原话："ledger 立马就失败了，但是整个 github action 还在继续，
     #   导致你不知道已经失败了" ✓）。写进 summary ⇒ 在**页面上一眼可见** ✓、不必等整轮 ✓。
-    _write_step_summary(bad, got_env_skips)
+    _write_step_summary(bad, got_env_skips, no_repro_skips)
     # **同时发 GitHub 注解**（2026-09-25 用户指出"失败了却不知道" ✓ 的最后一环 ✓）：
     # Step summary 只在**页面**上可见 ✗（**没有 API** ✓）⇒ 而 `::error::` 会变成
     # **check-run 注解** ✓ ⇒ `gh api …/check-runs/<id>/annotations` **立刻可读** ✓
@@ -411,6 +464,15 @@ def cmd_check(args: argparse.Namespace) -> int:
             f"这一片有 {bad} 条与台账不一致 ✓ ⇒ 细节见本 job 的 **Step Summary** 与日志 ✓；"
             f"本地复跑：python3 scripts/gap.py check {shard} --strict"
         )
+    # **汇总必须把"没验证过"的也数出来** ✗（用户 2026-10-02：以前结尾只说"全部一致"，
+    # 超时与跳过都藏进明细里 ⇒ 一眼看不出来有多少条其实没人验过 ✗）。
+    print(
+        f"\n合计：判定通过 {counts['ok']} 条 ✓ · **不一致 {counts['bad']} 条**"
+        f"{' ✗' if counts['bad'] else ''} · 超时跳过 {len(got_env_skips)} 条"
+        f"{' ⚠' if got_env_skips else ''}（未被验证 ✗）"
+        f" · 无复现件跳过 {len(no_repro_skips)} 条"
+        f"{'（open/wo-filed 允许 ✓）' if no_repro_skips else ''}"
+    )
     print("\n全部与台账一致。")
     return 0
 
@@ -427,7 +489,7 @@ def _shard_label() -> str:
     return ""
 
 
-def _write_step_summary(bad: int, skips: list) -> None:
+def _write_step_summary(bad: int, skips: list, no_repro: list | None = None) -> None:
     """把"这一片是否一致"写进 `$GITHUB_STEP_SUMMARY`（本地没有这个变量 ⇒ 静默跳过 ✓）。"""
     path = os.environ.get("GITHUB_STEP_SUMMARY")
     if not path:
@@ -442,7 +504,10 @@ def _write_step_summary(bad: int, skips: list) -> None:
             else:
                 f.write("## ✅ 缺口台账：这一片全部与台账一致\n")
             if skips:
-                f.write(f"\n> ⚠ 环境异常跳过 {len(skips)} 条（非产品回归 ✓）：{', '.join(skips)}\n")
+                f.write(f"\n> ⚠ 环境异常跳过 {len(skips)} 条（**未被验证** ✗）：{', '.join(skips)}\n")
+            if no_repro:
+                f.write(f"\n> ⏭ 无复现件跳过 {len(no_repro)} 条（open/wo-filed 允许 ✓）："
+                        f"{', '.join(no_repro)}\n")
     except OSError:
         pass
 
@@ -451,7 +516,23 @@ def cmd_close(args: argparse.Namespace) -> int:
     entries = load()
     for e in entries:
         if e["id"] == args.id:
-            kind, code, note = run_repro(e) if e.get("repro") else ("none", -1, "")
+            if not e.get("repro"):
+                # **洞 2**（2026-10-02 用户实测 ✗）：以前这里 kind="none" ⇒ 整段预检被跳过
+                # ⇒ 无条件写 fixed ⇒ **没有复现件也能关账** ✗。现在拒绝。
+                print(f"error: {args.id} 没有复现件 ⇒ **拒绝关账** ✗ —— 先登记一个能机械"
+                      f"重放的复现件（`repro` 字段；约定见 docs/gaps/README.md），"
+                      f"再关。", file=sys.stderr)
+                return 1
+            kind, code, note = run_repro(e)
+            if kind in UNREACHABLE_KINDS:
+                print(f"error: {args.id} 的复现件**够不着**（{kind}：{note}）⇒ **拒绝关账** ✗"
+                      f" —— 复现件是关账的前提（没有它就没有守卫）。", file=sys.stderr)
+                return 1
+            if kind == "timeout":
+                print(f"error: {args.id} 的复现件**超时**（>{REPRO_TIMEOUT_S}s）⇒ **拒绝关账** ✗"
+                      f" —— 没跑完就不算验过（换快机器复跑，或把它改成更小的复现件）。",
+                      file=sys.stderr)
+                return 1
             if kind in {"script", "sokonanoda"}:
                 # 用「如果现在写 fixed，复现该是什么样」来预检：显式 repro_expect 也算数。
                 _, expected, ok = judge(dict(e, status="fixed"), kind, code)
@@ -502,6 +583,24 @@ def cmd_selftest(args: argparse.Namespace) -> int:
         ("script exit 2 = 环境异常 ⇒ 判红（open）", {"status": "open"}, "script", 2, False, False),
         ("script exit 2 = 环境异常 ⇒ 判红（fixed 也不行）", {"status": "fixed"}, "script", 2, False, False),
     ]
+    # **两个洞的四形钉子**（2026-10-02 用户实测报出 ✗）：有/无复现件 × fixed/open。
+    # 以前 `check` 对"没有复现件 / 路径不存在 / 是目录"一律**跳过不计 bad** ⇒ 自称已修
+    # 与真验过长得一样 ✗；`close` 在 `repro` 为空时**无条件写 fixed** ✗。
+    verdict_cases = [
+        # (说明, 条目, kind, code, 期望 verdict)
+        ("有复现件 + fixed + 已修 = 通过", {"id": "X", "status": "fixed"}, "script", 1, "ok"),
+        ("有复现件 + fixed + 缺口仍在 = 判红", {"id": "X", "status": "fixed"}, "script", 0, "bad"),
+        ("有复现件 + open + 缺口仍在 = 通过", {"id": "X", "status": "open"}, "script", 0, "ok"),
+        ("**无复现件 + fixed = 判红**（洞 1）", {"id": "X", "status": "fixed"}, "none", -1, "bad"),
+        ("无复现件 + open = 允许跳过", {"id": "X", "status": "open"}, "none", -1, "skip"),
+        ("无复现件 + wo-filed = 允许跳过", {"id": "X", "status": "wo-filed"}, "none", -1, "skip"),
+        ("**路径不存在 + fixed = 判红**（洞 1）", {"id": "X", "status": "fixed"}, "missing", -1, "bad"),
+        ("路径不存在 + open = 允许跳过", {"id": "X", "status": "open"}, "missing", -1, "skip"),
+        ("目录型 + fixed = 判红", {"id": "X", "status": "fixed"}, "dir", -1, "bad"),
+        ("类型不认识 + fixed = 判红", {"id": "X", "status": "fixed"}, "unknown", -1, "bad"),
+        ("超时 + fixed = 跳过（计数，不判红）", {"id": "X", "status": "fixed"}, "timeout", -1, "skip"),
+        ("script exit 2（环境异常）+ fixed = 判红", {"id": "X", "status": "fixed"}, "script", 2, "bad"),
+    ]
     bad = 0
     saved = {k: os.environ.get(k) for k in ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN")}
     os.environ["SOKONANODA_BIN"] = "/nonexistent/sokonanoda"
@@ -526,10 +625,17 @@ def cmd_selftest(args: argparse.Namespace) -> int:
             bad += 1
             print(f"FAIL {desc}: 非法取值的报错形态不对（expected={expected}，期望非法={illegal}）",
                   file=sys.stderr)
+    for desc, entry, kind, code, want in verdict_cases:
+        _, got = entry_verdict(entry, kind, code, "self-test")
+        if got != want:
+            bad += 1
+            print(f"FAIL {desc}: entry_verdict -> {got!r}，期望 {want!r}", file=sys.stderr)
+    total = len(cases) + len(verdict_cases)
     if bad:
-        print(f"gap.py selftest: {bad}/{len(cases)} 条判据不成立。", file=sys.stderr)
+        print(f"gap.py selftest: {bad}/{total} 条判据不成立。", file=sys.stderr)
         return 1
-    print(f"gap.py selftest: {len(cases)} 条判据 + clean_env 剔除覆盖 全部成立。")
+    print(f"gap.py selftest: {len(cases)} 条 judge 判据 + {len(verdict_cases)} 条"
+          f"「够不够得着复现件」判据（四形）+ clean_env 剔除覆盖 全部成立。")
     return 0
 
 

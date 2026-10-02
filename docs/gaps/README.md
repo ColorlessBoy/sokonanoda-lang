@@ -39,10 +39,10 @@ CI `test` job 的 `Gap ledger is consistent (docs/gaps)` step。台账因此是*
 | **2** | 环境/前置缺失（跑不起来，不算结果） |
 
 于是「缺口即测试」成立：`gap.py check` 红了 = 语言变了而台账没跟上（或修好忘了关账）。
-`.sokonanoda` 复现没有脚本外壳，`gap.py check` 的判据是「是否干净判卷 + 有没有 checked
-声明」（**故意不看 `exercise_open` 计数**——G-01 就是这么假绿的）。
+`.sokonanoda` 复现的判据 = 「干净判卷 + 有 checked 声明」（**故意不看 `exercise_open`**——G-01 就这么假绿）。
 
 期望默认从 `status` 推出（`fixed` ⇒ 复现应当转绿 / `.sh` 应当 exit≠0；`open` ⇒ 相反）。
+**`fixed` 必须够得着会跑的复现件**（没有/够不着/超时 ⇒ `check` 判红、`close` 拒绝关账 ✗）；`open`/`wo-filed`/`workaround` 允许没有 ✓。
 **有些缺口的「修好」恰恰是判红**——例如 G-01 钉的是「签名写错必须被拒」。这类条目在
 台账里写显式 `repro_expect` 覆盖推导：
 
