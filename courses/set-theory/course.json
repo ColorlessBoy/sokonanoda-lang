@@ -16,10 +16,12 @@
             "subset",
             "powerset",
             "sdiff-algebra",
-            "sdiff-mixed"
+            "sdiff-mixed",
+            "complement-algebra",
+            "de-morgan-constructive"
           ],
           "quota": {
-            "exercises": 51
+            "exercises": 59
           },
           "units": [
             {
@@ -57,6 +59,12 @@
               "title": "单元59 差集的代数（二）",
               "title_en": "Unit 59 — Difference Algebra II: Mixed Laws",
               "unit": 59
+            },
+            {
+              "file": "units/unit60-compl-algebra.sokonanoda",
+              "title": "单元60 补集的代数",
+              "title_en": "Unit 60 — The Algebra of Complements",
+              "unit": 60
             }
           ]
         },

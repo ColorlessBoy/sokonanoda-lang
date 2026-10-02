@@ -1,0 +1,115 @@
+-- ==========================================================================
+-- unit60-compl-algebra.sokonanoda —— 卷 I 单元60 **补集的代数（构造性可见的那一半）**
+--
+-- 靶子（教材）：Halmos《Naive Set Theory》**§5**（complements）·
+--   Enderton《Elements of Set Theory》**§1.5**（De Morgan 的两半）。
+-- 大纲：`set-theory-syllabus.md` §4.1（**I.1 章继续深化** —— 接单元58/59 的差集线 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 补集的两条取用子（**就是定义** ✓ —— `Aᶜ` 展开即 `¬ (∈ A)` ✓）；
+--   · **旗舰：`A ⊆ B ⇒ Bᶜ ⊆ Aᶜ`**（补集**反变** ✓ —— 集合代数里最常用的一条 ✓）；
+--   · **De Morgan 的构造性两半**：`Aᶜ ⊆ (A ∩ B)ᶜ` ✓ · `(A ∪ B)ᶜ ⊆ Aᶜ` ✓；
+--   · **`A ⊆ Aᶜᶜ`**（双重补，**只有一个方向** ✓）· **`A ∩ Aᶜ` 没有成员** ✓ ·
+--     **`univᶜ ⊆ ∅`** ✓
+--
+-- ⚠ **另外两半被挡在门外** ✓（**逻辑强度检查** ✓）：`(A ∩ B)ᶜ ⊆ Aᶜ ∪ Bᶜ` 与
+--   `Aᶜᶜ ⊆ A` 都要 **De Morgan / 双重否定消去** ✗（构造性不成立 ✓）——
+--   **这正是本单元最好的教学点** ✓：De Morgan 在构造性逻辑里**只有一半** ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.SUnion` · `lib.Order` · `lib.Rel`。
+--
+-- 依赖：单元③（并交差）· 单元58/59（差集的代数）· 单元⑪（论域与悖论）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.1 三条库引理（补 · 并 · 交 的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：补集的成员刻画（**这一条就是定义展开**：`Aᶜ` 是 `fun x => ¬ (x ∈ A)` ✓）。
+theorem demo_mem_compl (α : Type) (a : α) (A : Set α) : a ∈ (Aᶜ) ↔ ¬ (a ∈ A) :=
+  Iff.intro (a ∈ (Aᶜ)) (¬ (a ∈ A)) (fun (h : a ∈ (Aᶜ)) => h) (fun (h : ¬ (a ∈ A)) => h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
+  Set.mem_union a A B
+theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=
+  Set.mem_inter_iff a A B
+-- ─────────────────────────────────────────────────────────────
+-- 60.2 两条取用子（正反两向）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（T 类）：**在补集里 ⇒ 不在原集合里**。
+
+-- soko:hint 关键件：`Aᶜ` 是**定义**（`Set.compl` ✓）⇒ 这一条**就是恒等函数** ✓
+
+--   （不需要任何引理 ✓ —— 但写成具名引理后，后面每题都能用 ✓）
+
+theorem not_mem_of_mem_compl (α : Type) (A : Set α) (a : α) (h : a ∈ (Aᶜ)) : ¬ (a ∈ A) := by
+  sorry
+-- 练习 2（T 类）：**不在原集合里 ⇒ 在补集里**（练习 1 的反向）。
+
+-- soko:hint 关键件：同练习 1（**定义展开** ✓）✓
+
+theorem mem_compl_of_not_mem (α : Type) (A : Set α) (a : α) (h : ¬ (a ∈ A)) : a ∈ (Aᶜ) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.3 反变 · De Morgan 的构造性两半 · 双重补
+-- ─────────────────────────────────────────────────────────────
+-- 练习 3（L 类，**旗舰**）：**补集反变**（`A ⊆ B ⇒ Bᶜ ⊆ Aᶜ`）。
+
+-- soko:hint 思路：要证 `a ∈ Aᶜ`，用练习 2 转成"`a ∉ A`"；若 `a ∈ A`，
+
+--   由包含假设得 `a ∈ B`，与"在 `Bᶜ` 里"（练习 1）冲突。
+
+-- soko:hint 目标形态：`A ⊆ B → Bᶜ ⊆ Aᶜ`。
+
+-- soko:hint 关键件：练习 1 / 练习 2 · 包含假设**按 点 · 前提 应用**（`h a hA`）✓
+
+theorem compl_subset_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) : Bᶜ ⊆ Aᶜ := by
+  sorry
+-- 练习 4（L 类，**De Morgan 上半**）：**`Aᶜ ⊆ (A ∩ B)ᶜ`**（"不在 `A` ⇒ 不在 `A ∩ B`" ✓）。
+
+-- soko:hint 关键件：练习 1 / 练习 2 · `Set.mem_inter_iff` · `And.left` ✓
+
+theorem union_compl_subset (α : Type) (A B : Set α) : Aᶜ ⊆ (A ∩ B)ᶜ := by
+  sorry
+-- 练习 5（L 类，**De Morgan 下半**）：**`(A ∪ B)ᶜ ⊆ Aᶜ`**（"两个都不在 ⇒ 不在 `A`" ✓）。
+
+-- soko:hint 关键件：练习 1 / 练习 2 · `Set.mem_union` · `Or.inl` ✓
+
+theorem inter_compl_subset (α : Type) (A B : Set α) : (A ∪ B)ᶜ ⊆ Aᶜ := by
+  sorry
+-- 练习 6（T 类）：**`A ⊆ Aᶜᶜ`**（双重补 —— **只有一个方向** ✓）。
+
+-- soko:hint 思路：`a ∈ Aᶜᶜ` 展开成 `¬ (a ∈ Aᶜ)`、再展开成 `¬ ¬ (a ∈ A)`；
+
+--   由 `a ∈ A` 直接给出（把"否定假设"当函数用 ✓）。
+
+-- soko:hint 关键件：练习 1 / 练习 2（**两次**，一层套一层 ✓）✓
+
+theorem compl_compl_subset (α : Type) (A : Set α) : A ⊆ Aᶜᶜ := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.4 两条"没有成员"与"论域的补"
+-- ─────────────────────────────────────────────────────────────
+-- 练习 7（T 类）：**`A ∩ Aᶜ` 没有成员**。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · 练习 1（**同一个 `h` 的两半互相冲突** ✓）✓
+
+theorem not_mem_inter_compl (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A ∩ Aᶜ)) := by
+  sorry
+-- 练习 8（T 类，**收尾**）：**`univᶜ ⊆ ∅`**。
+
+-- soko:hint 思路：由"在 `univᶜ` 里"得"不在论域里"，而库里说**每个** `a` 都在论域里 ✓ ⇒ 矛盾。
+
+-- soko:hint 关键件：`Set.mem_univ`（**写全论域实参** ✓）· 练习 1 · `False.elim`（**把目标写全** ✓）✓
+
+theorem compl_univ_subset_empty (α : Type) : (Set.univ α)ᶜ ⊆ (Set.empty α) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+  sorry

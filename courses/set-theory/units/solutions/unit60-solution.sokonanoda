@@ -1,0 +1,59 @@
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+
+theorem demo_mem_compl (α : Type) (a : α) (A : Set α) : a ∈ (Aᶜ) ↔ ¬ (a ∈ A) :=
+  Iff.intro (a ∈ (Aᶜ)) (¬ (a ∈ A)) (fun (h : a ∈ (Aᶜ)) => h) (fun (h : ¬ (a ∈ A)) => h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+
+theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
+  Set.mem_union a A B
+
+theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=
+  Set.mem_inter_iff a A B
+
+theorem not_mem_of_mem_compl (α : Type) (A : Set α) (a : α) (h : a ∈ (Aᶜ)) : ¬ (a ∈ A) :=
+  h
+
+theorem mem_compl_of_not_mem (α : Type) (A : Set α) (a : α) (h : ¬ (a ∈ A)) : a ∈ (Aᶜ) :=
+  h
+
+theorem compl_subset_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) : Bᶜ ⊆ Aᶜ :=
+  fun (a : α) (ha : a ∈ (Bᶜ)) =>
+    mem_compl_of_not_mem α A a
+      (fun (hA : a ∈ A) => not_mem_of_mem_compl α B a ha (h a hA))
+
+theorem union_compl_subset (α : Type) (A B : Set α) : Aᶜ ⊆ (A ∩ B)ᶜ :=
+  fun (a : α) (ha : a ∈ (Aᶜ)) =>
+    mem_compl_of_not_mem α (A ∩ B) a
+      (fun (hab : a ∈ (A ∩ B)) =>
+        not_mem_of_mem_compl α A a ha
+          (And.left ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) => Iff.mp hu hab)
+            (Set.mem_inter_iff a A B))))
+
+theorem inter_compl_subset (α : Type) (A B : Set α) : (A ∪ B)ᶜ ⊆ Aᶜ :=
+  fun (a : α) (h : a ∈ ((A ∪ B)ᶜ)) =>
+    mem_compl_of_not_mem α A a
+      (fun (hA : a ∈ A) =>
+        not_mem_of_mem_compl α (A ∪ B) a h
+          ((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl (a ∈ A) (a ∈ B) hA))  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+            (Set.mem_union a A B)))
+
+theorem compl_compl_subset (α : Type) (A : Set α) : A ⊆ Aᶜᶜ :=
+  fun (a : α) (ha : a ∈ A) =>
+    mem_compl_of_not_mem α (Aᶜ) a (fun (hna : a ∈ (Aᶜ)) => not_mem_of_mem_compl α A a hna ha)
+
+theorem not_mem_inter_compl (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A ∩ Aᶜ)) :=
+  fun (h : a ∈ (A ∩ Aᶜ)) =>
+    not_mem_of_mem_compl α A a
+      (And.right ((fun (hu : a ∈ (A ∩ Aᶜ) ↔ a ∈ A ∧ a ∈ (Aᶜ)) => Iff.mp hu h)
+        (Set.mem_inter_iff a A (Aᶜ))))
+      (And.left ((fun (hu : a ∈ (A ∩ Aᶜ) ↔ a ∈ A ∧ a ∈ (Aᶜ)) => Iff.mp hu h)
+        (Set.mem_inter_iff a A (Aᶜ))))
+
+theorem compl_univ_subset_empty (α : Type) : (Set.univ α)ᶜ ⊆ (Set.empty α) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+  fun (a : α) (h : a ∈ ((Set.univ α)ᶜ)) =>
+    (False.elim (a ∈ (Set.empty α)))  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+      (not_mem_of_mem_compl α (Set.univ α) a h (Set.mem_univ α a))
