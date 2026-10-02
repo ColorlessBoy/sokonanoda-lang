@@ -1,0 +1,71 @@
+-- ==========================================================================
+-- unit103-leOn-both.sokonanoda —— 卷 I 单元103 **`≼` 双向何时升级为 `≈`**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§6.1 / §6.2** ·
+--   Halmos《Naive Set Theory》**§22**。大纲 §4.1（**接单元96–102** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 取用子/打包子 ✓ · **双向 `≼` 的两条取用子** ✓（`∧` 消去 ✓）；
+--   · **旗舰：带上互逆律的双向 `≼` ⇒ `≈`** ✓ ——
+--     `A ≼ B`、`B ≼ A` **再加上**两条互逆律（`g ∘ f = id` 在 `A` 上、`f ∘ g = id` 在 `B` 上 ✓）
+--     ⇒ `A ≈ B` ✓。
+--
+-- ⚠ **教学点（也是本单元如实标注的边界 ✓）**：**Cantor–Bernstein 定理**说
+--   只要 `A ≼ B` 与 `B ≼ A`（**不带**互逆律 ✓）就有 `A ≈ B` ✓ ——
+--   那需要**从两个单射构造出一对互逆映射** ✗（经典证明沿自然数"造链" ✓）
+--   ⇒ **本框架构造性不可用** ✗（与单元99 诊断到的 **G-56 同类** ✓）。
+--   本单元给的是**不靠造链**的那一半 ✓：**把互逆律当额外前提** ✓ ⇒ 结论直接由
+--   `Set.Equiv.mk` 装出来 ✓（**零试错** ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Equiv`。
+--
+-- 依赖：单元92/93（等势代数）· 单元96–100（`≼` 及其代数）· 单元101/102（基础层收口）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (fun (h : LeOn α β A B) => h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
+theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
+  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+    (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
+theorem demo_leftInv_def (α : Type) (β : Type) (g : β → α) (f : α → β) (A : Set α) :
+    Set.LeftInvOn α β g f A ↔ ∀ (x : α), x ∈ A → g (f x) = x :=
+  Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
+    (fun (h : Set.LeftInvOn α β g f A) => h)
+    (fun (h : ∀ (x : α), x ∈ A → g (f x) = x) => h)-- 练习 1（T 类）：**取用子**。
+-- 关键件：假设直接作用
+theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B := by
+  sorry
+-- 练习 2（T 类）：**打包子**。
+-- 关键件：`Exists.intro` · `And.intro`（**写全前导命题**）
+theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B := by
+  sorry
+-- 练习 3（T 类）：**双向 `≼` 的前一半**（`∧` 消去）。
+-- 关键件：`And.left`（**写全前导命题** ✓）
+theorem leOn_both_forward (α : Type) (β : Type) (A : Set α) (B : Set β)
+    (h : LeOn α β A B ∧ LeOn β α B A) : LeOn α β A B := by
+  sorry
+-- 练习 4（T 类）：**后一半**。
+-- 关键件：`And.right`（写全 ✓）
+theorem leOn_both_backward (α : Type) (β : Type) (A : Set α) (B : Set β)
+    (h : LeOn α β A B ∧ LeOn β α B A) : LeOn β α B A := by
+  sorry
+-- 练习 5（L 类，**旗舰**）：**带互逆律的双向 `≼` ⇒ `≈`**。
+-- 思路：把两把映射、两条 `MapsTo`、两条互逆律**按 `Set.Equiv.mk` 的六实参顺序**交出去。
+-- 关键件：**`Set.Equiv.mk`**（六实参按序 ✓）·（⚠ 注意：这里**不需要**任何单射性假设 —— 互逆律已经蕴含它 ✓）
+theorem equiv_of_leOn_both_with_inv (α : Type) (β : Type) (A : Set α) (B : Set β)
+    (f : α → β) (g : β → α) (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β α g B A)
+    (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) : A ≈ B := by
+  sorry

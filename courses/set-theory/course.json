@@ -175,10 +175,11 @@
             "powerset-monotone",
             "leOn-transport",
             "empty-subset",
-            "subset-antisymm"
+            "subset-antisymm",
+            "leOn-both"
           ],
           "quota": {
-            "exercises": 105
+            "exercises": 110
           },
           "units": [
             {
@@ -264,6 +265,12 @@
               "title": "单元102 相互包含与点态外延",
               "title_en": "Unit 102 — Mutual Inclusion, Pointwise",
               "unit": 102
+            },
+            {
+              "file": "units/unit103-leOn-both.sokonanoda",
+              "title": "单元103 双向势比较何时升级为等势",
+              "title_en": "Unit 103 — When Both Comparisons Give Equinumerosity",
+              "unit": 103
             }
           ]
         },

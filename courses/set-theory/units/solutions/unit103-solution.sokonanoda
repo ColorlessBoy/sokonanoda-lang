@@ -1,0 +1,46 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+
+def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+
+theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (fun (h : LeOn α β A B) => h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
+
+theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
+  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+    (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
+
+theorem demo_leftInv_def (α : Type) (β : Type) (g : β → α) (f : α → β) (A : Set α) :
+    Set.LeftInvOn α β g f A ↔ ∀ (x : α), x ∈ A → g (f x) = x :=
+  Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
+    (fun (h : Set.LeftInvOn α β g f A) => h)
+    (fun (h : ∀ (x : α), x ∈ A → g (f x) = x) => h)
+
+theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  h
+
+theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: `LeOn`/`Set.Equiv` 是 def 头（手册边界）
+    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: `LeOn`/`Set.Equiv` 是 def 头（手册边界）
+
+theorem leOn_both_forward (α : Type) (β : Type) (A : Set α) (B : Set β)
+    (h : LeOn α β A B ∧ LeOn β α B A) : LeOn α β A B :=
+  And.left (LeOn α β A B) (LeOn β α B A) h  -- soko:notation-ok: `LeOn`/`Set.Equiv` 是 def 头（手册边界）
+
+theorem leOn_both_backward (α : Type) (β : Type) (A : Set α) (B : Set β)
+    (h : LeOn α β A B ∧ LeOn β α B A) : LeOn β α B A :=
+  And.right (LeOn α β A B) (LeOn β α B A) h  -- soko:notation-ok: `LeOn`/`Set.Equiv` 是 def 头（手册边界）
+
+theorem equiv_of_leOn_both_with_inv (α : Type) (β : Type) (A : Set α) (B : Set β)
+    (f : α → β) (g : β → α) (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β α g B A)
+    (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) : A ≈ B :=
+  Set.Equiv.mk α β A B f g hf hg hgf hfg
