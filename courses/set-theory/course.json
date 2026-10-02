@@ -167,10 +167,11 @@
             "cantor",
             "image-family-distrib",
             "preimage-family-distrib",
-            "equiv-algebra"
+            "equiv-algebra",
+            "equiv-transitive"
           ],
           "quota": {
-            "exercises": 55
+            "exercises": 59
           },
           "units": [
             {
@@ -208,6 +209,12 @@
               "title": "单元92 等势的代数",
               "title_en": "Unit 92 — Algebra of Equinumerosity",
               "unit": 92
+            },
+            {
+              "file": "units/unit93-equiv-trans.sokonanoda",
+              "title": "单元93 等势的传递",
+              "title_en": "Unit 93 — Transitivity of Equinumerosity",
+              "unit": 93
             }
           ]
         },

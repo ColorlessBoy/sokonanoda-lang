@@ -1,0 +1,75 @@
+-- ==========================================================================
+-- unit93-equiv-trans.sokonanoda —— 卷 I 单元93 **等势的传递（等势代数收口）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.6 / §6.1** ·
+--   Halmos《Naive Set Theory》**§8 / §22**。大纲 §4.1（**等势代数收口** —— 接单元92 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 复合保 `MapsTo` ✓（单元92 已证，本单元复用 ✓）；
+--   · **旗舰一（合成左逆）：复合的左逆还是左逆** ✓
+--     （`g₁ ∘ g₂` 是 `f₂ ∘ f₁` 的左逆 ✓ —— 需要一次**跨域条件**的搬运 ✓）；
+--   · **旗舰二（合成右逆）** ✓（对偶 ✓，同样要用"回程映射的域条件" ✓）；
+--   · **旗舰三：等势传递** ✓（`A ≈ B ⇒ B ≈ C ⇒ A ≈ C` ✓ —— 用两次 `Set.Equiv.elim`
+--     拆出两对映射与四条条件，再用 `Set.Equiv.mk` 把**复合对**装起来 ✓）。
+--
+-- ⚠ **本单元是全课程"复合 + 搬运"的集大成** ✓：三步都用**格位表第二行**
+--   （`Eq.subst` + 谓词 ✓），且**替换项写在两个同类型项之间** ✓；
+--   合成律被**拆成两条独立引理**（先拆链 ✓）⇒ 主定理 `equiv_trans` 只做"装" ✓
+--   ⇒ **一次判绿** ✓（对照：若把两条合成律塞进主定理，按本会话经验必判红 ✗）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Equiv`。
+--
+-- 依赖：单元⑨（等势）· 单元87–91（函数代数）· 单元92（等势自反/对称）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
+  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+    (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
+theorem demo_leftInv_def (α : Type) (β : Type) (g : β → α) (f : α → β) (A : Set α) :
+    Set.LeftInvOn α β g f A ↔ ∀ (x : α), x ∈ A → g (f x) = x :=
+  Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
+    (fun (h : Set.LeftInvOn α β g f A) => h)
+    (fun (h : ∀ (x : α), x ∈ A → g (f x) = x) => h)
+theorem demo_rightInv_def (α : Type) (β : Type) (f : α → β) (g : β → α) (B : Set β) :
+    Set.RightInvOn α β f g B ↔ ∀ (y : β), y ∈ B → f (g y) = y :=
+  Iff.intro (Set.RightInvOn α β f g B) (∀ (y : β), y ∈ B → f (g y) = y)
+    (fun (h : Set.RightInvOn α β f g B) => h)
+    (fun (h : ∀ (y : β), y ∈ B → f (g y) = y) => h)-- 练习 1（T 类）：**复合保 `MapsTo`**（单元92 已证，本单元复用）。
+-- 关键件：两个 `MapsTo` 假设按 点 · 前提 作用
+theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) => g (f x)) A C := by
+  sorry
+-- 练习 2（L 类，**旗舰一**）：**合成左逆**（`g₁ ∘ g₂` 是 `f₂ ∘ f₁` 的左逆）。
+-- 思路：给 `x ∈ A`；先用 `hf₁` 得 `f₁ x ∈ B`，于是 `h₂` 给出 `g₂ (f₂ (f₁ x)) = f₁ x`；沿它把 `g₁ (g₂ (f₂ (f₁ x)))` 搬成 `g₁ (f₁ x)`（谓词 `fun y => g₁ (g₂ (f₂ (f₁ x))) = g₁ y`，**替换项是同类型的两个点**）；最后 `h₁ x hx`。
+-- 关键件：**`Eq.subst` + 谓词** · `Eq.trans` · `Eq.refl` · `h₁` / `h₂` / `hf₁`
+theorem leftInv_comp (α : Type) (β : Type) (γ : Type)
+    (f₁ : α → β) (g₁ : β → α) (f₂ : β → γ) (g₂ : γ → β)
+    (A : Set α) (B : Set β)
+    (h₁ : Set.LeftInvOn α β g₁ f₁ A) (h₂ : Set.LeftInvOn β γ g₂ f₂ B)
+    (hf₁ : Set.MapsTo α β f₁ A B) :
+    Set.LeftInvOn α γ (fun (z : γ) => g₁ (g₂ z)) (fun (x : α) => f₂ (f₁ x)) A := by
+  sorry
+-- 练习 3（L 类，**旗舰二**）：**合成右逆**（对偶）。
+-- 思路：给 `z ∈ C`；先用 `hg₂` 得 `g₂ z ∈ B`，于是 `h₁` 给出 `f₁ (g₁ (g₂ z)) = g₂ z`；沿它把 `f₂ (f₁ (g₁ (g₂ z)))` 搬成 `f₂ (g₂ z)`（谓词 `fun y => f₂ (f₁ (g₁ (g₂ z))) = f₂ y`）；最后 `h₂ z hz`。
+-- 关键件：**`Eq.subst` + 谓词** · `Eq.trans` · `Eq.refl` · `h₁` / `h₂` / `hg₂`
+theorem rightInv_comp (α : Type) (β : Type) (γ : Type)
+    (f₁ : α → β) (g₁ : β → α) (f₂ : β → γ) (g₂ : γ → β)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (h₁ : Set.RightInvOn α β f₁ g₁ B) (h₂ : Set.RightInvOn β γ f₂ g₂ C)
+    (hg₂ : Set.MapsTo γ β g₂ C B) :
+    Set.RightInvOn α γ (fun (x : α) => f₂ (f₁ x)) (fun (z : γ) => g₁ (g₂ z)) C := by
+  sorry
+-- 练习 4（L 类，**旗舰三**）：**等势传递**（`A ≈ B ⇒ B ≈ C ⇒ A ≈ C`）。
+-- 思路：两次 `Set.Equiv.elim` 拆出两对映射与四条条件；用 `Set.Equiv.mk` 把**复合对**（去的 `f₂ ∘ f₁`、回的 `g₁ ∘ g₂`）装起来；四条条件分别是练习 1（两次）与练习 2 / 练习 3。
+-- 关键件：`Set.Equiv.elim`（两次）· `Set.Equiv.mk`（**六实参按序**）· 练习 1 / 练习 2 / 练习 3
+theorem equiv_trans (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (hAB : A ≈ B) (hBC : B ≈ C) : A ≈ C := by
+  sorry

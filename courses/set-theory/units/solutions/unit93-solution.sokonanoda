@@ -1,0 +1,69 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+
+theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
+  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+    (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
+
+theorem demo_leftInv_def (α : Type) (β : Type) (g : β → α) (f : α → β) (A : Set α) :
+    Set.LeftInvOn α β g f A ↔ ∀ (x : α), x ∈ A → g (f x) = x :=
+  Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
+    (fun (h : Set.LeftInvOn α β g f A) => h)
+    (fun (h : ∀ (x : α), x ∈ A → g (f x) = x) => h)
+
+theorem demo_rightInv_def (α : Type) (β : Type) (f : α → β) (g : β → α) (B : Set β) :
+    Set.RightInvOn α β f g B ↔ ∀ (y : β), y ∈ B → f (g y) = y :=
+  Iff.intro (Set.RightInvOn α β f g B) (∀ (y : β), y ∈ B → f (g y) = y)
+    (fun (h : Set.RightInvOn α β f g B) => h)
+    (fun (h : ∀ (y : β), y ∈ B → f (g y) = y) => h)
+
+theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) => g (f x)) A C :=
+  fun (x : α) (hx : x ∈ A) => hg (f x) (hf x hx)
+
+theorem leftInv_comp (α : Type) (β : Type) (γ : Type)
+    (f₁ : α → β) (g₁ : β → α) (f₂ : β → γ) (g₂ : γ → β)
+    (A : Set α) (B : Set β)
+    (h₁ : Set.LeftInvOn α β g₁ f₁ A) (h₂ : Set.LeftInvOn β γ g₂ f₂ B)
+    (hf₁ : Set.MapsTo α β f₁ A B) :
+    Set.LeftInvOn α γ (fun (z : γ) => g₁ (g₂ z)) (fun (x : α) => f₂ (f₁ x)) A :=
+  fun (x : α) (hx : x ∈ A) =>
+    Eq.trans.{1} α (g₁ (g₂ (f₂ (f₁ x)))) (g₁ (f₁ x)) x
+      (Eq.subst.{1} β (fun (y : β) => g₁ (g₂ (f₂ (f₁ x))) = g₁ y)
+        (g₂ (f₂ (f₁ x))) (f₁ x) (h₂ (f₁ x) (hf₁ x hx))
+        (Eq.refl.{1} α (g₁ (g₂ (f₂ (f₁ x))))))
+      (h₁ x hx)
+
+theorem rightInv_comp (α : Type) (β : Type) (γ : Type)
+    (f₁ : α → β) (g₁ : β → α) (f₂ : β → γ) (g₂ : γ → β)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (h₁ : Set.RightInvOn α β f₁ g₁ B) (h₂ : Set.RightInvOn β γ f₂ g₂ C)
+    (hg₂ : Set.MapsTo γ β g₂ C B) :
+    Set.RightInvOn α γ (fun (x : α) => f₂ (f₁ x)) (fun (z : γ) => g₁ (g₂ z)) C :=
+  fun (z : γ) (hz : z ∈ C) =>
+    Eq.trans.{1} γ (f₂ (f₁ (g₁ (g₂ z)))) (f₂ (g₂ z)) z
+      (Eq.subst.{1} β (fun (y : β) => f₂ (f₁ (g₁ (g₂ z))) = f₂ y)
+        (f₁ (g₁ (g₂ z))) (g₂ z) (h₁ (g₂ z) (hg₂ z hz))
+        (Eq.refl.{1} γ (f₂ (f₁ (g₁ (g₂ z))))))
+      (h₂ z hz)
+
+theorem equiv_trans (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (hAB : A ≈ B) (hBC : B ≈ C) : A ≈ C :=
+  Set.Equiv.elim α β A B (A ≈ C) hAB
+    (fun (f₁ : α → β) (g₁ : β → α) (hf₁ : Set.MapsTo α β f₁ A B)
+      (hg₁ : Set.MapsTo β α g₁ B A) (hgf₁ : Set.LeftInvOn α β g₁ f₁ A)
+      (hfg₁ : Set.RightInvOn α β f₁ g₁ B) =>
+      Set.Equiv.elim β γ B C (A ≈ C) hBC
+        (fun (f₂ : β → γ) (g₂ : γ → β) (hf₂ : Set.MapsTo β γ f₂ B C)
+          (hg₂ : Set.MapsTo γ β g₂ C B) (hgf₂ : Set.LeftInvOn β γ g₂ f₂ B)
+          (hfg₂ : Set.RightInvOn β γ f₂ g₂ C) =>
+          Set.Equiv.mk α γ A C (fun (x : α) => f₂ (f₁ x)) (fun (z : γ) => g₁ (g₂ z))
+            (mapsTo_comp α β γ f₁ f₂ A B C hf₁ hf₂)
+            (mapsTo_comp γ β α g₂ g₁ C B A hg₂ hg₁)
+            (leftInv_comp α β γ f₁ g₁ f₂ g₂ A B hgf₁ hgf₂ hf₁)
+            (rightInv_comp α β γ f₁ g₁ f₂ g₂ A B C hfg₁ hfg₂ hg₂)))
