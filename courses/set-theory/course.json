@@ -23,10 +23,11 @@
             "set-equality",
             "extensionality-consequences",
             "sdiff-equality-layer",
-            "two-step-packing"
+            "two-step-packing",
+            "union-sdiff-distrib"
           ],
           "quota": {
-            "exercises": 88
+            "exercises": 97
           },
           "units": [
             {
@@ -94,6 +95,12 @@
               "title": "单元64 差集的等式层（三）：两步走",
               "title_en": "Unit 64 — Two-Step Packing",
               "unit": 64
+            },
+            {
+              "file": "units/unit65-union-sdiff.sokonanoda",
+              "title": "单元65 并的差分配律与减法反变",
+              "title_en": "Unit 65 — Difference Distributes over Union",
+              "unit": 65
             }
           ]
         },

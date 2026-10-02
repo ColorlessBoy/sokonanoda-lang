@@ -1,0 +1,108 @@
+-- ==========================================================================
+-- unit65-union-sdiff.sokonanoda —— 卷 I 单元65 **并的差分配律与"减法反变"**
+--
+-- 靶子（教材）：Halmos《Naive Set Theory》**§5** · Enderton §1.5。大纲 §4.1（I.1 收口 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 顶层取用子：差两条出 + 一条进 ✓ · 并的左/右进 ✓；
+--   · **逐点 `↔`**：`a ∈ (B ∪ C) \ A ↔ a ∈ (B \ A) ∪ (C \ A)` ✓（两个方向都是 `Or.elim` ✓）；
+--   · **等式**：**`(B ∪ C) \ A = (B \ A) ∪ (C \ A)`** ✓（**差对并分配** ✓）；
+--   · **`a ∈ A \ B ⇒ a ∈ A \ (B \ C)`** 与 **`A \ B ⊆ A \ (B \ C)`** ✓（"减法反变" ✓）。
+--
+-- ⚠ **两步走**（单元64 立的通用工作法 ✓）：集合等式先写**逐点 `↔` 小引理**（顶层 ✓ 两层以内 ✓），
+--   再 `funext_spec`+`propext_spec` **打包** ✓ —— 本单元 9 题**一次判绿** ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 五样**：`lib.Set` · `lib.SUnion` · `lib.Order` · `lib.Rel` · `lib.Extensionality`。
+--
+-- 依赖：单元③ · 单元58/59 · 单元61–64（外延打包与两步走）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+import lib.Extensionality
+
+-- ─────────────────────────────────────────────────────────────
+-- 65.1 三条库引理（两条外延工具 + 差集的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：**函数外延**（逐点相等 ⇒ 函数相等）。
+theorem demo_funext (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) :  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+    Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  funext_spec α β f g h
+theorem demo_propext (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  propext_spec a b h
+theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=
+  Set.mem_sdiff a A B-- 练习 1（T 类）：进差集 ⇒ 在 `A` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mp` · `And.left`（**写全前导实参** ✓）
+
+theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A := by
+  sorry
+-- 练习 2（T 类）：进差集 ⇒ 不在 `B` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mp` · `And.right`（**写全** ✓）
+
+theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) := by
+  sorry
+-- 练习 3（T 类）：在 `A` 里 + 不在 `B` 里 ⇒ 进差集。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mpr` · `And.intro`（**写全** ✓）
+
+theorem mem_sdiff_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hna : ¬ (a ∈ B)) :
+    a ∈ (A \ B) := by
+  sorry
+-- 练习 4（T 类）：并的左进。
+
+-- soko:hint 关键件：`Set.mem_union` · `Iff.mpr` · `Or.inl` ✓
+
+theorem mem_union_left (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) : a ∈ (A ∪ B) := by
+  sorry
+-- 练习 5（T 类）：并的右进。
+
+-- soko:hint 关键件：`Set.mem_union` · `Iff.mpr` · `Or.inr` ✓
+
+theorem mem_union_right (α : Type) (A B : Set α) (a : α) (hb : a ∈ B) : a ∈ (A ∪ B) := by
+  sorry
+-- 练习 6（L 类，**两步走的第一步**）：**逐点 `↔`**。
+
+-- soko:hint 思路：两个方向都是 `Or.elim`（**动机位放目标准确的肯定命题** ✓ 铁律），
+
+--   每一支交给练习 1–5 收尾 ✓ —— **别自己再拆 `And`** ✓。
+
+-- soko:hint 目标形态：`a ∈ (B ∪ C) \ A ↔ a ∈ (B \ A) ∪ (C \ A)`。
+
+-- soko:hint 关键件：练习 1–5 · `Set.mem_union` · `Or.elim` · `Iff.intro` ✓
+
+theorem mem_union_sdiff_iff (α : Type) (A B C : Set α) (a : α) :
+    a ∈ ((B ∪ C) \ A) ↔ a ∈ ((B \ A) ∪ (C \ A)) := by
+  sorry
+-- 练习 7（L 类，**两步走的第二步**）：**差对并分配（等式）**。
+
+-- soko:hint 目标形态：`(B ∪ C) \ A = (B \ A) ∪ (C \ A)`。
+
+-- soko:hint 关键件：练习 6 · `funext_spec`（第二实参 `fun _ => Prop` ✓）· `propext_spec` ✓
+
+theorem union_sdiff_distrib_eq (α : Type) (A B C : Set α) :
+    Eq.{1} (Set α) ((B ∪ C) \ A) ((B \ A) ∪ (C \ A)) := by  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  sorry
+-- 练习 8（L 类）：**进 `A \ B` ⇒ 进 `A \ (B \ C)`**（减法反变的核心一步 ✓）。
+
+-- soko:hint 思路：要证"不在 `B \ C`" —— 假设它在，则左取用子给出"在 `B`"，与练习 2 冲突。
+
+-- soko:hint 关键件：练习 1–3（**同一个 `h` 用两次** ✓）✓
+
+theorem mem_sdiff_sdiff (α : Type) (A B C : Set α) (a : α) (h : a ∈ (A \ B)) :
+    a ∈ (A \ (B \ C)) := by
+  sorry
+-- 练习 9（T 类，**收尾**）：**`A \ B ⊆ A \ (B \ C)`**（逐点包含 ✓）。
+
+-- soko:hint 关键件：练习 8（**按 点 · 前提 应用** ✓）✓
+
+theorem sdiff_sdiff_subset (α : Type) (A B C : Set α) : A \ B ⊆ A \ (B \ C) := by
+  sorry
