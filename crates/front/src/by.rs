@@ -143,6 +143,7 @@ fn goal_unfolded_to_inductive(
         defs,
         4,
         hint.as_deref(),
+        crate::spine::UnfoldAlign::Short,
     )
 }
 
@@ -1895,42 +1896,26 @@ fn cases_tactic<'a>(
         .find(|b| b.name == *scrutinee_name)
         .and_then(|b| b.ty.as_deref().cloned());
     let scrutinee_hint = level_hint_of(&scrutinee_ty, defs, &binders_before, prefix_src, options);
-    // **G-71（0.81.0）：先拿「书写类型」展开。**
-    //
-    // 为什么不能只用 pp 形态（`judge_infer` 给的那份文本）：内核 pp **只丢第一个
-    // 隐式实参**（`implicit_prefix = 2` 的 `Set.image {α β} (f) (A)` 渲成
-    // `Set.image β f A`）。源形态的对齐（[`crate::spine::unfold_one`] 的 `Short`）
-    // 把写出来的实参逐位对**显式**形参 ⇒ 对 pp 形态会**错位**，可错位之后照样能
-    // 展开到归纳头 ⇒ 被 `done()` 误收 ✗（实测：`cases hy` 上
-    // `hy : y ∈ (f '' (f ⁻¹' C))` 报「被消去项不是归纳类型的值：
+    // **G-71（0.81.0）**：这里的类型来自 `judge_infer`（**内核 pp 文本**）⇒ 展开
+    // 必须按 **pp 读法**对齐（`UnfoldAlign::Pp`）。pp **只丢第一个隐式实参**
+    // （`implicit_prefix = 2` 的 `Set.image {α β} (f) (A)` 渲成 `Set.image β f A`：
+    // α 丢了、**β 还在**），而源读法（`Short`）把写出来的实参逐位对**显式**形参
+    // ⇒ 错位；错位之后照样能展开到归纳头 ⇒ 被 `done()` 误收 ✗（实测：`cases hy`
+    // 上 `hy : y ∈ (f '' (f ⁻¹' C))` 报「被消去项不是归纳类型的值：
     // `(∃ (x : α), (f x) ∧ ((β x) = ((β ⁻¹' f) C))) y`」——参数全错位了）。
     //
-    // **书写类型**里记法节点在（`f '' A` 是 `Notation`），记法路径把操作数逐位对
-    // **显式**形参 ✓ 一定读得回来 ⇒ 优先用它；书写类型展不到归纳头（或压根没有）
-    // 才退回 pp 形态（= 今天的行为，逐字节不变 ✓）。
-    let is_inductive = |name: &str| inductives.contains_key(name);
-    let from_source = source_ty.as_ref().map(|src| {
-        let hint = level_hint_of(src, defs, &binders_before, prefix_src, options);
-        crate::spine::unfold_to_inductive(src, &is_inductive, defs, 4, hint.as_deref())
-    });
-    let source_reaches = from_source.as_ref().is_some_and(|e| {
-        let (head, _) = crate::spine::spine_with_notation(e);
-        match head {
-            Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => is_inductive(&name),
-            _ => false,
-        }
-    });
-    let scrutinee_ty = if source_reaches {
-        from_source.expect("source form reaches an inductive head")
-    } else {
-        crate::spine::unfold_to_inductive(
-            &scrutinee_ty,
-            &is_inductive,
-            defs,
-            4,
-            scrutinee_hint.as_deref(),
-        )
-    };
+    // ⚠ **不能**改成「优先用书写类型展开」：源类型里的记法节点不带前导类型参数，
+    // 展开出来的定义体会**留着定义自己的 binder 名**，在调用点按同名上下文变量
+    // 解析（`Set.image` 的形参就叫 `α`/`β`）⇒ 臂里的假设类型变成
+    // `Eq β (f x) y`（见下面 `source_args` 那段 R2 修边刀的记录）✗。
+    let scrutinee_ty = crate::spine::unfold_to_inductive(
+        &scrutinee_ty,
+        &|name| inductives.contains_key(name),
+        defs,
+        4,
+        scrutinee_hint.as_deref(),
+        crate::spine::UnfoldAlign::Pp,
+    );
     // **写回节点前先把宇宙层级补回来**（R2 实测）：pp 形态丢掉隐式宇宙参数
     // （`Eq.{1} β (f a) b` → 裸 `Eq (f a) b`），而这条类型不只判定时要用——
     // `match` 的组装与最终声明判定**都从节点上读它**。留着裸 `Eq`，臂里那条
@@ -1991,6 +1976,7 @@ fn cases_tactic<'a>(
                 defs,
                 4,
                 hint.as_deref(),
+                crate::spine::UnfoldAlign::Short,
             );
             let (head, args) = crate::spine::spine_with_notation(&unfolded);
             let head_name = match &head {

@@ -208,7 +208,16 @@ fn solve_prefix_meta(
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
 ) -> crate::compile::meta::MetaSolve {
-    let unfold = |e: &Expr| crate::spine::unfold_to_inductive(e, is_inductive, defs, 8, None);
+    let unfold = |e: &Expr| {
+        crate::spine::unfold_to_inductive(
+            e,
+            is_inductive,
+            defs,
+            8,
+            None,
+            crate::spine::UnfoldAlign::Short,
+        )
+    };
     let mut meta = crate::compile::meta::MetaCtx::new(&unfold);
     // ① 元变量（与窄版同一条闸门：前导位必须都有名字）
     let mut ids = Vec::with_capacity(k);
@@ -402,7 +411,16 @@ fn solve_prefix_impl(
     is_inductive: &dyn Fn(&str) -> bool,
     allow_pending: bool,
 ) -> Option<Vec<Expr>> {
-    let unfold = |e: &Expr| crate::spine::unfold_to_inductive(e, is_inductive, defs, 8, None);
+    let unfold = |e: &Expr| {
+        crate::spine::unfold_to_inductive(
+            e,
+            is_inductive,
+            defs,
+            8,
+            None,
+            crate::spine::UnfoldAlign::Short,
+        )
+    };
     // **`Option` 槽**（E19 刀2）：严格档里它**永远全是 `Some`**（解不出就提前
     // `return None`）⇒ 与改动前逐字节同行为 ✓；待定档里 `None` = "这一位待定" ✓。
     let mut solved: Vec<Option<Expr>> = Vec::with_capacity(k);

@@ -219,13 +219,32 @@ pub(crate) fn unfold_to_inductive(
     defs: &crate::compile::elab::DefTable,
     limit: usize,
     level_hint: Option<&str>,
+    // **G-71**：输入是**源形态**还是**内核 pp 形态** —— 由调用方给（静态分不开 ✗）。
+    // `Short` = 源形态（绝大多数调用点）；`Pp` = `judge_infer` 给的文本（`cases`
+    // 的被消去项）。给错了不会报错、只会**错位对齐** ⇒ 一定要按来源传 ✓。
+    first: UnfoldAlign,
 ) -> Expr {
     let done = |e: &Expr| head_and_args(e).is_some_and(|(name, _)| is_inductive(name));
-    // **两种读法都试**（`Set.union A B x` 与 `Set.union α A B` 在 AST 上同为
-    // 3 个实参 ⇒ 静态分不开 ✗）：先按**短写**展开（迁移后的常态 ✓），到不了
-    // 归纳头再按**旧写法**重来一遍 ✓。`implicit_prefix == 0` 时两种读法逐字节
-    // 相同 ⇒ 第二次是空转（且只在第一次**没到**归纳头时才跑）✓。
+    // **多种读法都试**（`Set.union A B x` 与 `Set.union α A B` 在 AST 上同为
+    // 3 个实参 ⇒ 静态分不开 ✗）：先按调用方指定的读法展开，到不了归纳头再按
+    // **短写** / **旧写法**各来一遍 ✓。`implicit_prefix == 0` 时几种读法逐字节
+    // 相同 ⇒ 后续几趟是空转（且只在前面**没到**归纳头时才跑）✓。
     let hint = |_e: &Expr| level_hint.map(str::to_string);
+    let first_pass = unfold_loop(ty, defs, limit, &hint, first, &done);
+    if done(&first_pass) {
+        return first_pass;
+    }
+    // ⚠ **`Pp` 输入不回退**（G-71）。回退那套（"到不了归纳头就换读法"）在这里
+    // 是有害的：pp 形态用 `Short`/`Old` 会**错位**，而错位的结果**照样能展开到
+    // 归纳头** ⇒ 被 `done()` 误收 ✗ ⇒ 谁先试谁赢 ✗（实测：`Set.image β f A`
+    // 错位成 `A := f, f := β`，头仍然是 `Exists`，于是正确的 `Pp` 中间结果被
+    // 错位的回退结果盖掉）。pp 文本的**每一个** def 头都是 pp 形态 ⇒ 一种读法
+    // 到底就对 ✓；真展不动时交给调用方**响亮报错**（"头不在归纳表里"），
+    // 不拿错位结果冒充 ✓。
+    if first == UnfoldAlign::Pp {
+        return first_pass;
+    }
+    // 源形态：读法分不开 ⇒ 短写不行再按旧写法重来一遍（**今天的行为，逐字节不变** ✓）。
     let short = unfold_loop(ty, defs, limit, &hint, UnfoldAlign::Short, &done);
     if done(&short) {
         return short;
@@ -275,14 +294,22 @@ pub(crate) fn unfold_one(
     unfold_one_with(expr, defs, level_hint, UnfoldAlign::Short)
 }
 
-/// 实参对齐的**两种读法**（见 [`unfold_one_with`]）。
+/// 实参对齐的**三种读法**（见 [`unfold_one_with`]）。
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum UnfoldAlign {
-    /// **短写**：写出来的实参逐位对**显式**形参（迁移后的常态；内核 pp 形态也是
-    /// 这一档 —— 它丢的正是第一个隐式实参）。
+    /// **短写**：写出来的实参逐位对**显式**形参（迁移后的常态）。
     Short,
     /// **旧写法**：把前导隐式实参也写出来（`Set.union α A B`）。
     Old,
+    /// **内核 pp 形态**（**G-71**）：pp **只丢第一个隐式实参**，其余实参全在 ——
+    /// `implicit_prefix = 2` 的 `Set.image {α β} (f) (A)` 渲成 `Set.image β f A`
+    /// （α 丢了、**β 还在**）⇒ 对齐到 `params[1..]`（不是 `params[隐式前缀..]` ✗）。
+    ///
+    /// ⚠ 只有 `implicit_prefix >= 2` 时才与 [`Self::Short`] 不同：`Short` 对 pp
+    /// 形态会**错位**（`β`/`f` 被当成显式形参），而错位之后照样能展开到归纳头
+    /// ⇒ 被 `done()` 误收 ✗（实测：`cases hy`（`hy : y ∈ (f '' (f ⁻¹' C))`）报
+    /// 「被消去项不是归纳类型的值：`(∃ (x : α), (f x) ∧ ((β x) = ((β ⁻¹' f) C))) y`」）。
+    Pp,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -329,13 +356,40 @@ pub(crate) fn unfold_one_with(
     // 今天（`implicit_prefix == 0`）`explicit == all` ⇒ 两个分支逐字节相同 ✓。
     let all = &info.params;
     let explicit = &all[info.implicit_prefix.min(all.len())..];
+    // **G-71**：pp 形态只丢**第一个**隐式实参 ⇒ 对齐到 `params[1..]`
+    // （`implicit_prefix == 0` 时没有可丢的 ⇒ 与 `all` 相同）。
+    let pp = if info.implicit_prefix == 0 {
+        all
+    } else {
+        &all[1..]
+    };
     let mut const_args = const_args;
     let align: &[String];
     let extra: Vec<Expr>;
     if matches!(head, Expr::Notation { .. }) {
-        // 记法只写操作数（= 显式实参 ✓）；spine 上的实参是**结果**上的应用 ✓
-        align = explicit;
-        extra = spine_args.iter().map(|e| (**e).clone()).collect();
+        if mode == UnfoldAlign::Pp {
+            // pp 形态里**记法操作数不是显式实参**：`Set.image {α β} f A` 的 pp 是
+            // `Set.image β f A`（丢的只有 α）⇒ 操作数与 spine 实参是**一条**实参表，
+            // 合并之后按 `params[1..]` 对齐 ✓（对源形态仍走下面那条老路 ✗）。
+            const_args.extend(spine_args.iter().map(|e| (**e).clone()));
+            align = pp;
+            extra = if const_args.len() > align.len() {
+                const_args.split_off(align.len())
+            } else {
+                Vec::new()
+            };
+        } else {
+            // 记法只写操作数（= 显式实参 ✓）；spine 上的实参是**结果**上的应用 ✓
+            align = explicit;
+            extra = spine_args.iter().map(|e| (**e).clone()).collect();
+        }
+    } else if mode == UnfoldAlign::Pp && info.implicit_prefix > 0 {
+        align = pp;
+        extra = if const_args.len() > align.len() {
+            const_args.split_off(align.len())
+        } else {
+            Vec::new()
+        };
     } else if mode == UnfoldAlign::Old || info.implicit_prefix == 0 || explicit.is_empty() {
         // 没有前导隐式（今天全部课程 def ✓）⇒ 与老行为逐字节相同；
         // **只有隐式形参**的 def（`Set.univ`、`Set.empty`）⇒ 唯一读法就是
@@ -1356,10 +1410,127 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::proof::parse_expr_text;
+    use crate::proof::{parse_expr_text, render_expr};
 
     fn p(text: &str) -> Expr {
         parse_expr_text(text).expect("parse")
+    }
+
+    /// **忽略 span 的结构比较**（本测试专用）。
+    ///
+    /// ⚠ 不能用 `Expr` 的 `PartialEq`：它**含 span**，而两种读法产出的 span 天然
+    /// 不同 ⇒ 直接 `assert_eq!` 是空转 ✗。也不能用 [`same_shape`]：它是**保守**的
+    /// （没覆盖的变体一律 `false`，`Lambda` 就在其中 ✗）。这里比**渲染文本**
+    /// （`render_expr` 不折记法、不含 span ✓）。
+    fn same_render(a: &Expr, b: &Expr) -> bool {
+        render_expr(a) == render_expr(b)
+    }
+
+    /// 造一个 `def` 的 `DefInfo`（`params` 前 `implicit_prefix` 个是隐式）。
+    fn dinfo(params: &[&str], implicit_prefix: usize, body: &str) -> crate::compile::elab::DefInfo {
+        crate::compile::elab::DefInfo {
+            params: params.iter().map(|s| s.to_string()).collect(),
+            universes: Vec::new(),
+            implicit_prefix,
+            body: p(body),
+            telescope_arity: params.len(),
+        }
+    }
+
+    /// 造一个**内核 pp 形态**的记法节点：`operand '' operand`，头是 `target`。
+    ///
+    /// pp 渲出来的记法**丢的只有第一个隐式实参**（`image {α β} f A` ⇒ `β '' f`
+    /// 再应用到 `A`）⇒ 操作数是「形参表的第 2..k+1 项」，不是「显式形参」✗。
+    fn pp_notation(target: &str, lhs: &str, rhs: &str) -> Expr {
+        Expr::Notation {
+            symbol: "''".to_string(),
+            symbol_span: Span::default(),
+            target: target.to_string(),
+            assoc: crate::ast::NotationAssoc::Infixr,
+            lhs: Some(Box::new(p(lhs))),
+            rhs: Some(Box::new(p(rhs))),
+            alternatives: Vec::new(),
+            span: Span::default(),
+        }
+    }
+
+    /// **G-71（0.81.0）**：内核 pp 形态必须按 **Pp 读法**展开 —— pp 丢的只有
+    /// **第一个**隐式实参，其余实参全在（`implicit_prefix = 2` 时 `Short` 会错位）。
+    ///
+    /// 形状取实测那份：`def Image {α β : Type} (f : α → β) (A : α → Prop) : β → Prop
+    /// := fun (y : β) => ∃ (x : α), A x ∧ f x = y`。
+    /// * **源形态**（`Image f A`，2 个操作数）：两种读法**同解** ✓；
+    /// * **pp 形态**（`Image β f A` / 记法操作数 `(β, f)` + spine 实参 `A`）：
+    ///   `Short` 把 `β`/`f` 当成显式形参 ⇒ 定义体里 `A`/`f` 全错位 ✗；
+    ///   `Pp` 丢掉第一个隐式 `α` ⇒ 对得上 ✓。
+    #[test]
+    fn g71_pp_form_unfolds_only_when_aligned_by_dropping_one_implicit() {
+        let mut defs = crate::compile::elab::DefTable::new();
+        defs.insert(
+            "Image".to_string(),
+            dinfo(
+                &["α", "β", "f", "A"],
+                2,
+                "fun (y : β) => Exists (fun (x : α) => And (A x) (Eq (f x) y))",
+            ),
+        );
+        let is_ind = |name: &str| name == "Exists";
+
+        // ① 源形态：`Image f A`（操作数 = 显式形参）⇒ 两种读法同解。
+        let src = pp_notation("Image", "f", "A");
+        let short = unfold_to_inductive(&src, &is_ind, &defs, 4, None, UnfoldAlign::Short);
+        let pp = unfold_to_inductive(&src, &is_ind, &defs, 4, None, UnfoldAlign::Pp);
+        assert!(
+            same_render(&short, &pp),
+            "源形态下两种读法必须同解：\nShort={}\nPp={}",
+            render_expr(&short),
+            render_expr(&pp)
+        );
+        // 展开的是**一层**（`Image` 的体是 `fun y => …` ⇒ 结果是 lambda；
+        // 剥掉它之后的头才是 `Exists`）—— 这里只钉"两种读法同解"。
+        let peeled = beta_apply(short.clone(), &[p("b")]);
+        assert_eq!(
+            head_and_args(&peeled).map(|(n, _)| n),
+            Some("Exists"),
+            "剥掉定义体自己的 binder 之后头应当是 `Exists`：{peeled:?}"
+        );
+
+        // ② pp 形态（记法操作数 = `β`/`f`，spine 实参 = `A`）：
+        //    `Short` 错位、`Pp` 正确 —— 用定义体里 `f`/`A` 的**位置**判。
+        let ppform = Expr::App {
+            fun: Box::new(pp_notation("Image", "β", "f")),
+            arg: Box::new(p("A")),
+            explicit_spine: false,
+            span: Span::default(),
+        };
+        let short_bad = unfold_to_inductive(&ppform, &is_ind, &defs, 4, None, UnfoldAlign::Short);
+        let pp_ok = unfold_to_inductive(&ppform, &is_ind, &defs, 4, None, UnfoldAlign::Pp);
+        assert!(
+            same_render(&pp_ok, &short),
+            "pp 形态按 Pp 读法展开 ⇒ 与源形态**同一个**结果：\nPp={}\nsrc={}",
+            render_expr(&pp_ok),
+            render_expr(&short)
+        );
+        assert!(
+            !same_render(&short_bad, &pp_ok),
+            "反向：`Short` 读法在 pp 形态上**必须**错位（否则这条判据是空转）：\n{}",
+            render_expr(&short_bad)
+        );
+
+        // ③ 反向：`implicit_prefix == 0` 的 def 两种读法逐字节相同（零影响 ✓）。
+        defs.insert(
+            "NoImp".to_string(),
+            dinfo(
+                &["f", "A"],
+                0,
+                "fun (y : β) => Exists (fun (x : α) => And (A x) (Eq (f x) y))",
+            ),
+        );
+        let e = p("NoImp f A");
+        assert!(same_render(
+            &unfold_to_inductive(&e, &is_ind, &defs, 4, None, UnfoldAlign::Short),
+            &unfold_to_inductive(&e, &is_ind, &defs, 4, None, UnfoldAlign::Pp),
+        ));
     }
 
     /// **同形 = 结构相同、忽略 span**（E19 刀1 的合一判据）。

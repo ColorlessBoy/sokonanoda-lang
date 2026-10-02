@@ -2287,6 +2287,7 @@ fn solve_prefix_args_meta<'a>(
             ctx.defs,
             8,
             None,
+            crate::spine::UnfoldAlign::Short,
         )
     };
     let mut meta = crate::compile::meta::MetaCtx::new(&unfold);
@@ -2454,6 +2455,7 @@ fn solve_prefix_args_impl<'a>(
                     ctx.defs,
                     8,
                     None,
+                    crate::spine::UnfoldAlign::Short,
                 )
             };
             let unfolded_actual = unfold(&actual);
@@ -2497,6 +2499,7 @@ fn solve_prefix_args_impl<'a>(
                         ctx.defs,
                         8,
                         None,
+                        crate::spine::UnfoldAlign::Short,
                     )
                 };
                 if arg.is_none() {
@@ -3104,7 +3107,14 @@ fn type_head_fits_layer<'a>(
     let unfold = |e: &Expr| {
         let mut cur = e.clone();
         for _ in 0..4 {
-            let next = crate::spine::unfold_to_inductive(&cur, &is_inductive, ctx.defs, 4, None);
+            let next = crate::spine::unfold_to_inductive(
+                &cur,
+                &is_inductive,
+                ctx.defs,
+                4,
+                None,
+                crate::spine::UnfoldAlign::Short,
+            );
             if next == cur {
                 break;
             }
