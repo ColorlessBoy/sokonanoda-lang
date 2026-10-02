@@ -190,7 +190,15 @@
 ## C-112（open · **未开工** · 2026-10-02 第 684 轮登记）Cantor–Bernstein（§四 第 6 项）
 
 - **目标命题**（Enderton §6.4 定理 6B · Halmos §22）：`A ≼ B` 且 `B ≼ A` ⇒ `A ≈ B`。
-- **状态：未开工** ✗ —— **不是撞墙**：本轮预算用尽（110/111 已落地）。**G-63（`Quot`）与 CB 无关**
+- **状态：未交付** ✗ —— 卡点已从"预算"变成**精确的墙** ✓（第 685 轮实测）：
+  **CB 双射的"直接定义"判红** ✗ —— 按 `x ∈ C₀` 分支需要 **Prop→Type 的情形分析**
+  ⇒ `类型不匹配：期望 Sort(0)，实际是 Sort(1)` ✓（判据 = `gaps/C-112-cb-direct-def-reject.sokonanoda` ✓）。
+  这是 **C-04 同一条墙** ✓，也正是本条目下面写的「零公理 CB 要 `Exists`→Type 的安全消去
+  （**G-6** 一族，仍 open ✗）」**在 CB 上的具体面孔** ✓。
+- **出路（已定，未走完）** ✓：把 CB 的**图**写成 **Prop**（关系版 ✓，不做 Type 层分支 ✓），
+  再证"全 + 单值 + 单射 + 满射" ✓，最后用 **`choice`** 取出双射函数 ✓ ——
+  **这条路要 3–4 条零件引理 + 链构造**（`C₀` 的不动点 ✓），是多轮工作量 ✗。
+- **G-63（`Quot`）与 CB 无关** ✓（已核）
   ✓（CB 走单射/满射/子集：`lib/Equiv` 的 `Set.InjOn` ✓ + `lib/Choice` 的 `choice` ✓，
   `grep -c Quot lib/Equiv.sokonanoda` = **0** ✓）。
 - **⚠⚠ 诚实标注（写单元时必须原样带上，不许写成"标准证法"）**：本课的 CB 打算**经选择公理**
@@ -198,8 +206,13 @@
   ⇒ **这是偏离** ✗。零公理的 CB 要 `Exists`→Type 的安全消去（**G-6** 一族，仍 open ✗）。
 - **复现件（登记在册 ✓，G7 重放）**：`courses/set-theory/gaps/C-112-cantor-bernstein.sh` ——
   一条命令：`bash courses/set-theory/gaps/C-112-cantor-bernstein.sh`；登记 **open**
-  ⇒ 期望"**缺口仍在**"：零件在（`Set.InjOn` + `choice` ✓）、CB 主定理不在任何解答里 ✓ ⇒ **exit 0**；
-  一旦主定理进解答 ⇒ **exit 1**（提示改 `closed` 并翻转期望 ✓）。
+  ⇒ 期望"**缺口仍在**"，三条断言：① 零件在（`Set.InjOn` + `choice` ✓）；
+  ② CB 主定理**不在**任何解答里 ✓；③ **墙是真的**（直接定义仍被判红 ✓）。
+  交付 CB 时**三件事必须一起做** ✓：登记改 `closed` · 本脚本期望**翻转为正向**（断言主定理在位且判绿）·
+  反向验证改成"拿掉/换 `sorry` ⇒ 判红" ✓ —— 否则就是"声明与守卫之间有缝" ✗。
+- **反向验证实测（三段）**：正向 **exit 0** ✓；注入"CB 主定理已存在" ⇒ **exit 1**
+  「BAD 112: a CB main theorem IS present now: …」✓；注入"墙消失"（把 reject 探针换成判绿内容）⇒
+  **exit 1**「BAD 112: the wall is GONE …」✓；恢复 ⇒ **exit 0** ✓（`git diff` 为空 ✓）。
 - **反向验证实测**：临时把 `theorem cantor_bernstein …` 塞进解答 ⇒ 脚本 **exit 1**
   「BAD 112: a CB main theorem IS present now: …」✓；删掉 ⇒ **exit 0** ✓（`git diff` 为空 ✓）。
 - **下一步（装配计划）**：① 立 `C₀ = ⋂{C | A∖B ⊆ C ⊆ A ∧ f(C) ⊆ C}` 的存在性（用 `lib/Set` 的
