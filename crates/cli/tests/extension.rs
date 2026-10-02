@@ -413,7 +413,15 @@ fn server_acquisition_prefers_the_bundled_binary() {
     );
 }
 
-/// **Q2 的判据：`--version` 的**值**必须与插件版本一致**（不是形状断言）。
+/// **暂存产物**的判据：`bin/<target>/sokonanoda --version` 的值必须与插件版本一致。
+///
+/// ⚠ **这条不等于 Q2 的「版本对齐」**（2026-10-03 更正）：它比的是
+/// `stage-lsp.js` **刚拷进 `bin/` 的那一份** —— 打包/安装的**输入** ✓，
+/// 而不是用户装完在终端里敲到的那一只 ✗。用户报的 G-84（装的 CLI 自述
+/// **0.73.0** 而插件 0.81.0）在这条上**永远绿**（刚 stage 的当然对齐）。
+/// ⇒ 用户可见的那半由下面 [`the_installed_cli_resolves_in_a_fresh_login_shell`]
+/// 钉住 ✓；这条保留是因为它另有一个真价值：**F5 开发宿主解析的就是 `bin/` 这一份**，
+/// 它陈旧过（0.74.0 vs 0.78.0，实测抓到 ✓）。
 ///
 /// 用户 09-29 18:53 拍板「**直接装插件自带的 cli，版本还能对齐**」—— 前提是
 /// **"自带 CLI 版本 = 插件版本"结构性成立**。而 Q2 之前**没有任何东西会跑那个
@@ -431,7 +439,7 @@ fn server_acquisition_prefers_the_bundled_binary() {
 /// 找不到二进制 ⇒ **`return`（跳过）而不是判绿** —— 未 stage 的检出不该判红，
 /// 但也**绝不假装对齐** ✓（与 `docs/TESTING.md` 的"没扫到 ≠ 绿"同一条纪律）。
 #[test]
-fn the_bundled_cli_reports_the_extension_version() {
+fn the_staged_cli_matches_the_extension_version() {
     let root = repo_root();
     let vscode = root.join("editor").join("vscode");
     let manifest: serde_json::Value = serde_json::from_str(
@@ -482,6 +490,74 @@ fn the_bundled_cli_reports_the_extension_version() {
         checked += 1;
     }
     eprintln!("Q2: 核对了 {checked} 份自带 CLI 的 `--version`（都 == {version}）");
+}
+
+/// **G-84 的用户动作级判据**：装完命令行后，**新开登录 shell** 里
+/// `command -v sokonanoda` 必须解析到**安装位那一只**，且那只的 `--version`
+/// 必须 == 插件版本 ✓（`PATH` 行没落地 ⇒ 解析不到 ⇒ 判红 ✓）。
+///
+/// 为什么必须这么测（2026-10-03 换掉旧断言的**理由**）：旧断言比的是
+/// "我们自己刚拷/刚 stage 的文件" ⇒ **天然相等、永远绿** ✗（假绿）。
+/// 用户要的是"我在终端里敲 `sokonanoda` 会得到什么"，那就只能**真开一个登录
+/// shell 去问** ✓ —— 判据必须绑**用户动作 ⇒ 可见结果**（AGENTS.md 验证设计纪律 0a）。
+///
+/// 为什么委托给 `docs/gaps/repro/G84-vscode-cli-install.js` 而不是在 Rust 里
+/// 重写一遍：那条链要**真跑扩展代码**（stub 宿主 + 临时 HOME + `zsh -lc`/`bash -lc`），
+/// 在 Rust 里重写等于把扩展逻辑抄第二份 ⇒ 抄的那份绿了也不代表扩展对 ✗
+/// （那正是"假绿"的另一种形态）。驱动器是**同一份**登记在册的判据 ✓，
+/// 这里只是把它接进 `cargo test` 这条例行通道。
+///
+/// 环境不满足（没有 `node`，或扩展里没暂存自带 CLI）⇒ **响亮跳过**，不判绿：
+/// `bin/` 是构建产物（`.gitignore`），未 stage 的检出不该判红 —— 但也绝不假装
+/// 验过 ✓。⚠ **CI 上这条会跳过**（`test` lane 不 stage `bin/`）⇒ 真正在 CI 里
+/// 咬住 G-84 的是 `scripts/gap.py check` 的复现重放 ✓（`docs/gaps/ledger.jsonl`）。
+#[test]
+fn the_installed_cli_resolves_in_a_fresh_login_shell() {
+    let root = repo_root();
+    let driver = root
+        .join("docs")
+        .join("gaps")
+        .join("repro")
+        .join("G84-vscode-cli-install.js");
+    if !driver.is_file() {
+        eprintln!("G-84: 找不到判据驱动器 {} ⇒ 跳过", driver.display());
+        return;
+    }
+    let out = match std::process::Command::new("node")
+        .arg(&driver)
+        .arg(&root)
+        .env("SOKO_G84_CRITERIA", "1")
+        .output()
+    {
+        Ok(out) => out,
+        Err(e) => {
+            eprintln!("G-84: 跑不了 node（{e}）⇒ 跳过，不判绿也不判红");
+            return;
+        }
+    };
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    match out.status.code() {
+        // 0 = 四条判据全部成立（驱动器在 CRITERIA 模式下 0 = 绿）。
+        Some(0) => {
+            // **防"守卫空转"**：驱动器必须真的跑了 ③（登录 shell 解析）与
+            // ④（那只的版本）—— 它哪天把这两条删了，这里当场判红 ✓。
+            for needle in ["✓ ③", "✓ ④"] {
+                assert!(
+                    stdout.contains(needle),
+                    "G-84：判据驱动器没报 `{needle}` —— 登录 shell / 版本那两条被删了？\n{stdout}"
+                );
+            }
+            eprintln!("G-84: 登录 shell 判据成立 —— {stdout}");
+        }
+        // 2 = 环境不满足（没有 node / 没 stage `bin/`）⇒ 响亮跳过。
+        Some(2) => eprintln!("G-84: 环境不满足（{stderr}）⇒ 跳过，不判绿也不判红"),
+        // 1（或缺席）= 判据不成立 ⇒ **真判红**，把驱动器读数原样带出来。
+        code => panic!(
+            "G-84：新开登录 shell 里那只 CLI 不成立（驱动器 exit={code:?}）—— \
+             用户装完命令行后仍然用不上/版本不对。\n--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}"
+        ),
+    }
 }
 
 #[test]

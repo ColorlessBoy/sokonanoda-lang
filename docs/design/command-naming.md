@@ -21,10 +21,9 @@ T-B2 照"目标"两列改，T-B3 走四份同步。
 
 ---
 
-## 1. 现状盘点（`contributes.commands`，**现为 17 条**；T-B2/T-B3 **已执行完毕** ⇒ 下表"现状"列是**改名之前**的样子）
+## 1. 现状盘点（`contributes.commands`，**现为 18 条**；T-B2/T-B3 **已执行完毕** ⇒ 下表"现状"列是**改名之前**的样子）
 
-**关键事实：现状是两套机制混用** ✗ —— 9 条用 `category: "sokonanoda"`（VS Code 自动把
-面板行渲染成 `sokonanoda: <title>`），另 6 条把前缀**写进 `title`**、`category` 为空。
+**关键事实：现状是两套机制混用** ✗ —— 9 条用 `category: "sokonanoda"`（VS Code 自动把面板行渲染成 `sokonanoda: <title>`），另 6 条把前缀**写进 `title`**、`category` 为空。
 
 | # | command | 现状 `title` | 现状 `category` | 命令面板实际显示（`category: title`） | 目标 `category` | 目标 `title` |
 |---|---|---|---|---|---|---|
@@ -45,6 +44,7 @@ T-B2 照"目标"两列改，T-B3 走四份同步。
 | 15 | `sokonanoda.input.replaceAbbreviation` | `替换记法缩写（\and → ∧）` | `sokonanoda` | `sokonanoda: 替换记法缩写（\and → ∧）` | `Sokonanoda` | `Replace Notation Abbreviation (替换记法缩写：\and → ∧)` |
 | 16 | `sokonanoda.clean` | （E31 新增）`clean（清除编译缓存）` | `sokonanoda` | `sokonanoda: clean（清除编译缓存）` | `Sokonanoda` | `Clean Cache (清除编译缓存)` |
 | 17 | `sokonanoda.installCli` | （Q2 新增）`安装命令行` | `sokonanoda` | `sokonanoda: 安装命令行` | `Sokonanoda` | `Install Command Line (安装命令行)` |
+| 18 | `sokonanoda.uninstallCli` | （G-84 新增）`卸载命令行` | `sokonanoda` | `sokonanoda: 卸载命令行` | `Sokonanoda` | `Uninstall Command Line (卸载命令行)` |
 
 **盘点发现的三类毛病**：
 1. **前缀双写**（#10/#11）：`category` 已经提供 `sokonanoda:`，标题里又写一遍
