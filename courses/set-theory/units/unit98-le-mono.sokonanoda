@@ -1,0 +1,78 @@
+-- ==========================================================================
+-- unit98-le-mono.sokonanoda —— 卷 I 单元98 **`≼` 的单调性**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§6.1 / §6.2** ·
+--   Halmos《Naive Set Theory》**§22**。大纲 §4.1（**接单元96/97** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 取用子 / 打包子（`LeOn` ✓）· **`MapsTo` 换大目标**（`B ⊆ C` ✓）；
+--   · **单射换小定义域**（`A' ⊆ A` ✓）；
+--   · **`≼` 对右边单调** ✓（`A ≼ B ⇒ B ⊆ C ⇒ A ≼ C` ✓）；
+--   · **`≼` 对左边单调** ✓（`A' ⊆ A ⇒ A ≼ B ⇒ A' ≼ B` ✓）；
+--   · **旗舰：两边同时单调** ✓（`A' ⊆ A`、`A ≼ B`、`B ⊆ C` ⇒ `A' ≼ C` ✓）。
+--
+-- ⚠ **教学点** ✓：单调性是**后续所有"势"论证的搬砖** ✓ —— 例如「子集 ⇒ ≼」与
+--   「≼ 传递」组合起来就能把任意中间集合插进比较链 ✓；两条单调律都是
+--   **把同一个映射换个域/陪域**而已 ✓（不需要重新造映射 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Equiv`。
+--
+-- 依赖：单元96（`≼` 自反/传递）· 单元97（`≈ ⇒` 双向 `≼`）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (fun (h : LeOn α β A B) => h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
+theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+theorem demo_leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)-- 练习 1（T 类）：**取用子**（把存在式交出去）。  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+-- 关键件：假设直接作用
+theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B := by
+  sorry
+-- 练习 2（T 类）：**打包子**。
+-- 关键件：`Exists.intro` · `And.intro`（**写全前导命题**）
+theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B := by
+  sorry
+-- 练习 3（L 类）：**`MapsTo` 换大目标**（`B ⊆ C` ⇒ `A → C`）。
+-- 思路：给 `x ∈ A`，先得 `f x ∈ B`，再由包含关系得 `f x ∈ C`。
+-- 关键件：`Set.subset_def`（**先 λ 绑定再 `Iff.mp`** ✓）· `hf`（点 · 前提）
+theorem mapsTo_mono_right (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β)
+    (C : Set β) (hf : Set.MapsTo α β f A B) (h : B ⊆ C) : Set.MapsTo α β f A C := by
+  sorry
+-- 练习 4（L 类）：**单射换小定义域**（`A' ⊆ A`）。
+-- 思路：把 `A'` 里的两点先送进 `A`（包含关系 ✓），再用原来的单射性。
+-- 关键件：`Set.subset_def` · `hf`（**四点 + 等式** ✓）
+theorem injOn_mono_left (α : Type) (β : Type) (f : α → β) (A : Set α) (A' : Set α)
+    (hf : Set.InjOn α β f A) (h : A' ⊆ A) : Set.InjOn α β f A' := by
+  sorry
+-- 练习 5（L 类）：**`≼` 对左边单调**。
+-- 思路：拆出映射，用练习 4 把单射性限制到 `A'`，`MapsTo` 也顺着包含关系收窄。
+-- 关键件：练习 1 · 练习 2 · 练习 4 · `Set.subset_def` · `And.left` / `And.right`（**写全** ✓）
+theorem leOn_mono_left (α : Type) (β : Type) (A : Set α) (A' : Set α) (B : Set β)
+    (h : A' ⊆ A) (hAB : LeOn α β A B) : LeOn α β A' B := by
+  sorry
+-- 练习 6（L 类）：**`≼` 对右边单调**。
+-- 关键件：练习 1 · 练习 2 · 练习 3 · `And.left` / `And.right`
+theorem leOn_mono_right (α : Type) (β : Type) (A : Set α) (B : Set β) (C : Set β)
+    (hAB : LeOn α β A B) (h : B ⊆ C) : LeOn α β A C := by
+  sorry
+-- 练习 7（L 类，**旗舰**）：**两边同时单调**（`A' ⊆ A ⇒ A ≼ B ⇒ B ⊆ C ⇒ A' ≼ C`）。
+-- 关键件：练习 5 再练习 6（**两步串起来** ✓）
+theorem leOn_mono (α : Type) (β : Type) (A : Set α) (A' : Set α) (B : Set β) (C : Set β)
+    (h1 : A' ⊆ A) (hAB : LeOn α β A B) (h2 : B ⊆ C) : LeOn α β A' C := by
+  sorry

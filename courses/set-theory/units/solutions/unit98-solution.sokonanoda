@@ -1,0 +1,71 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+
+def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+
+theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (fun (h : LeOn α β A B) => h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
+
+theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+
+theorem demo_leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+
+theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  h
+
+theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+
+theorem mapsTo_mono_right (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β)
+    (C : Set β) (hf : Set.MapsTo α β f A B) (h : B ⊆ C) : Set.MapsTo α β f A C :=
+  fun (x : α) (hx : x ∈ A) =>
+    (fun (hs : ∀ (y : β), y ∈ B → y ∈ C) => hs (f x) (hf x hx))
+      ((fun (hu : B ⊆ C ↔ ∀ (y : β), y ∈ B → y ∈ C) => Iff.mp hu h) (Set.subset_def β B C))
+
+theorem injOn_mono_left (α : Type) (β : Type) (f : α → β) (A : Set α) (A' : Set α)
+    (hf : Set.InjOn α β f A) (h : A' ⊆ A) : Set.InjOn α β f A' :=
+  fun (x : α) (hx : x ∈ A') (y : α) (hy : y ∈ A') (heq : f x = f y) =>
+    (fun (hs : ∀ (z : α), z ∈ A' → z ∈ A) => hf x (hs x hx) y (hs y hy) heq)
+      ((fun (hu : A' ⊆ A ↔ ∀ (z : α), z ∈ A' → z ∈ A) => Iff.mp hu h) (Set.subset_def α A' A))
+
+theorem leOn_mono_left (α : Type) (β : Type) (A : Set α) (A' : Set α) (B : Set β)
+    (h : A' ⊆ A) (hAB : LeOn α β A B) : LeOn α β A' B :=
+  Exists.elim (α → β) (fun (f : α → β) => Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (LeOn α β A' B) (leOn_apply α β A B hAB)
+    (fun (f : α → β) (hf : Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =>
+      leOn_intro α β A' B f
+        (injOn_mono_left α β f A A'
+          (And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) h)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+        (fun (x : α) (hx : x ∈ A') =>
+          (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) x  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+            ((fun (hs : ∀ (z : α), z ∈ A' → z ∈ A) => hs x hx)
+              ((fun (hu : A' ⊆ A ↔ ∀ (z : α), z ∈ A' → z ∈ A) => Iff.mp hu h)
+                (Set.subset_def α A' A)))))
+
+theorem leOn_mono_right (α : Type) (β : Type) (A : Set α) (B : Set β) (C : Set β)
+    (hAB : LeOn α β A B) (h : B ⊆ C) : LeOn α β A C :=
+  Exists.elim (α → β) (fun (f : α → β) => Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (LeOn α β A C) (leOn_apply α β A B hAB)
+    (fun (f : α → β) (hf : Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =>
+      leOn_intro α β A C f
+        (And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+        (mapsTo_mono_right α β f A B C
+          (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) h))  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+
+theorem leOn_mono (α : Type) (β : Type) (A : Set α) (A' : Set α) (B : Set β) (C : Set β)
+    (h1 : A' ⊆ A) (hAB : LeOn α β A B) (h2 : B ⊆ C) : LeOn α β A' C :=
+  leOn_mono_right α β A' B C (leOn_mono_left α β A A' B h1 hAB) h2

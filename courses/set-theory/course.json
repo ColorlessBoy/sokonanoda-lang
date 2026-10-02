@@ -170,10 +170,11 @@
             "equiv-algebra",
             "equiv-transitive",
             "le-on-cardinal",
-            "equiv-implies-le"
+            "equiv-implies-le",
+            "le-monotone"
           ],
           "quota": {
-            "exercises": 72
+            "exercises": 79
           },
           "units": [
             {
@@ -229,6 +230,12 @@
               "title": "单元97 等势 ⇒ 双向势比较",
               "title_en": "Unit 97 — Equinumerosity Implies Both Comparisons",
               "unit": 97
+            },
+            {
+              "file": "units/unit98-le-mono.sokonanoda",
+              "title": "单元98 势比较的单调性",
+              "title_en": "Unit 98 — Monotonicity of Size Comparison",
+              "unit": 98
             }
           ]
         },
