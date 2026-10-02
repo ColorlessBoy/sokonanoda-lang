@@ -1,0 +1,54 @@
+import lib.Set
+import lib.Order
+import lib.Ordinal
+
+theorem demo_isOrdinal_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsOrdinal α E x ↔
+      IsTransitive α E x ∧ (∀ (y : α), E y x → IsTransitive α E y) ∧ IsWellFounded α E :=
+  isOrdinal_def α E x
+
+theorem demo_ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h
+
+theorem demo_ordinal_wellFounded (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=
+  ordinal_wellFounded α E x h
+
+theorem mem_trans_of_trans (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hx : IsTransitive α E x) (hy : E y x) (hz : E z y) : E z x :=
+  (fun (ht : ∀ (u : α), E u x → ∀ (v : α), E v u → E v x) => ht y hy z hz)
+    ((fun (hu : IsTransitive α E x ↔ ∀ (u : α), E u x → ∀ (v : α), E v u → E v x) =>
+      Iff.mp hu hx) (isTransitive_def α E x))
+
+theorem ord_mem_trans (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : E z x :=
+  mem_trans_of_trans α E x y z (ordinal_isTransitive α E x hx) hy hz
+
+theorem ord_elems_trans (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsTransitive α E y :=
+  ordinal_elems_isTransitive α E x hx y hy
+
+theorem elem_isOrdinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y :=
+  isOrdinal_intro α E y (ord_elems_trans α E x y hx hy)
+    (fun (z : α) (hz : E z y) => ord_elems_trans α E x z hx (ord_mem_trans α E x y z hx hy hz))
+    (ordinal_wellFounded α E x hx)
+
+theorem succ_self_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hy : ∀ (z : α), E z x ↔ (E z y ∨ z = y)) : E y x :=
+  (fun (hu : E y x ↔ (E y y ∨ y = y)) =>
+    Iff.mpr hu (Or.inr (E y y) (y = y) (Eq.refl.{1} α y))) (hy y)  -- soko:notation-ok: `IsOrdinal`/`IsTransitive` 是 def 头（手册边界）
+
+theorem succ_elem_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : ∀ (z : α), E z x ↔ (E z y ∨ z = y)) : IsOrdinal α E y :=
+  elem_isOrdinal α E x y hx (succ_self_mem α E x y hy)
+
+theorem succ_mem_ordinal (α : Type) (E : α → α → Prop) (x : α) (z : α)
+    (hx : IsOrdinal α E x) (hz : E z x) : IsOrdinal α E z :=
+  elem_isOrdinal α E x z hx hz
+
+theorem succ_elems_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hx : IsOrdinal α E x) (hy : ∀ (w : α), E w x ↔ (E w y ∨ w = y)) (hz : E z y) :
+    IsOrdinal α E z :=
+  elem_isOrdinal α E y z (succ_elem_ordinal α E x y hx hy) hz

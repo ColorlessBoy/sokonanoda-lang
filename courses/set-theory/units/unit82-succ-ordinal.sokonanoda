@@ -1,0 +1,98 @@
+-- ==========================================================================
+-- unit82-succ-ordinal.sokonanoda —— 卷 I 单元82 **后继与序数的合流**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§7.3/§7.4** ·
+--   Halmos《Naive Set Theory》**§11**。大纲 §4.1（**I.6 章继续深化** —— 接单元80/81 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 序数**被 ∈ 继承**（`elem_isOrdinal` ✓ —— 单元80 的旗舰，本单元复用 ✓）；
+--   · **后继的"前驱"是序数** ✓（`x` 序数、规格在 `y` ⇒ `y` 也是序数 ✓）；
+--   · **后继的元素都是序数** ✓（`E z x ⇒ IsOrdinal α E z` ✓）；
+--   · **前驱的元素都是序数** ✓（`E z y ⇒ IsOrdinal α E z` ✓）。
+--
+-- ⚠ **写法纪律**（第 647 轮的探针结论 ✓，本单元全程遵守 ✓）：`Iff.mpr` / `Or.inr` 等
+--   证明项的**前导命题实参**要先**落地成 λ**、再在体内写全 ⇒ 一次判绿 ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Order` · `lib.Ordinal`。
+--
+-- 依赖：单元⑮（序数）· 单元⑯（序关系）· 单元80（序数的元素仍是序数）· 单元81（后继）✓
+-- ==========================================================================
+import lib.Set
+import lib.Order
+import lib.Ordinal
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.1 三条库引理（序数的展开 · 传递取用子 · 良基取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：序数的展开（传递 ∧ 元素传递 ∧ 良基 ✓）。
+theorem demo_isOrdinal_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsOrdinal α E x ↔
+      IsTransitive α E x ∧ (∀ (y : α), E y x → IsTransitive α E y) ∧ IsWellFounded α E :=
+  isOrdinal_def α E x
+theorem demo_ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h
+theorem demo_ordinal_wellFounded (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=
+  ordinal_wellFounded α E x h-- 练习 1（T 类）：**传递性的点态用法**。
+
+-- soko:hint 关键件：`isTransitive_def`（**先 λ 绑定再 `Iff.mp`** ✓）
+
+theorem mem_trans_of_trans (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hx : IsTransitive α E x) (hy : E y x) (hz : E z y) : E z x := by
+  sorry
+-- 练习 2（T 类）：**序数的 ∈ 传递**（`E y x ⇒ E z y ⇒ E z x`）。
+
+-- soko:hint 关键件：`ordinal_isTransitive` · 练习 1 ✓
+
+theorem ord_mem_trans (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : E z x := by
+  sorry
+-- 练习 3（T 类）：**序数的元素是传递集**。
+
+-- soko:hint 关键件：`ordinal_elems_isTransitive`（**参数一次给全** ✓）
+
+theorem ord_elems_trans (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsTransitive α E y := by
+  sorry
+-- 练习 4（L 类）：**序数的元素仍是序数**（单元80 的旗舰 ✓）。
+
+-- soko:hint 关键件：`isOrdinal_intro` · 练习 2 / 练习 3 · `ordinal_wellFounded` ✓
+
+theorem elem_isOrdinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y := by
+  sorry
+-- 练习 5（T 类）：**自己属于后继**（`E y x`）。
+
+-- soko:hint 关键件：规格在 `z := y` 处 · `Or.inr`（**λ 落地后写全实参** ✓）· `Eq.refl` ✓
+
+theorem succ_self_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hy : ∀ (z : α), E z x ↔ (E z y ∨ z = y)) : E y x := by
+  sorry
+-- 练习 6（L 类，**旗舰**）：**后继的"前驱"是序数**。
+
+-- soko:hint 思路：先由练习 5 得 `E y x` ✓，再用练习 4（序数被 ∈ 继承 ✓）。
+
+-- soko:hint 关键件：练习 4 / 练习 5 ✓
+
+theorem succ_elem_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : ∀ (z : α), E z x ↔ (E z y ∨ z = y)) : IsOrdinal α E y := by
+  sorry
+-- 练习 7（T 类）：**后继的元素都是序数**（`E z x ⇒ IsOrdinal α E z`）。
+
+-- soko:hint 关键件：练习 4（**直接交出去** ✓）
+
+theorem succ_mem_ordinal (α : Type) (E : α → α → Prop) (x : α) (z : α)
+    (hx : IsOrdinal α E x) (hz : E z x) : IsOrdinal α E z := by
+  sorry
+-- 练习 8（L 类，**收尾**）：**前驱的元素都是序数**。
+
+-- soko:hint 关键件：练习 6（得 `y` 序数 ✓）· 练习 4 ✓
+
+theorem succ_elems_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hx : IsOrdinal α E x) (hy : ∀ (w : α), E w x ↔ (E w y ∨ w = y)) (hz : E z y) :
+    IsOrdinal α E z := by
+  sorry
