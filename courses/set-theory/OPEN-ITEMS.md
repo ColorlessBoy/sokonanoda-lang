@@ -114,7 +114,7 @@
 - **收编去向**：可并入 `docs/gaps/ledger.jsonl` 的 **G-6** 那条作**补充说明**（"`Or` 同此，且是正确行为" ✓），
   但**不作为新缺口** ✗。
 
-## C-05（open）序数加法的**结合律**（关系版）待装配
+## C-05（open）序数加法的**结合律**（关系版）待装配 —— **复现件已在册** ✓
 
 - **目标**：`AddsTo x y z ⇒ AddsTo z w v ⇒ ∃ u, AddsTo y w u ∧ AddsTo x u v` ✓（即 `(x+y)+w = x+(y+w)` ✓）。
 - **零件状态** ✓：`AddsTo` 的两条构造子（`addsTo_zero` ✓ / `addsTo_succ` ✓）**判绿** ✓；
@@ -122,4 +122,13 @@
 - **装配缺什么** ✗：先要**逆引理** `AddsTo x (σ y) v ⇒ ∃ z, v = σ z ∧ AddsTo x y z` ✓
   —— 用 `AddsTo.rec` 写时**调用形状判红一次** ✗（参数/动机位待调 ✓，属工程问题、非内核墙 ✓）；
   有了它，结合律就是**对第一条推导做归纳** ✓（零情形取 `u := w` ✓、后继情形用逆引理 ✓）。
-- **怎么验**：把逆引理与结合律写进 `unit109` 的解答（或新单元）判绿 ⇒ 本条改 `closed` ✓。
+- **复现件（登记在册 ✓，G7 会重放）**：`courses/set-theory/gaps/C-05-addsTo-assoc.sh` ——
+  一条命令：`bash courses/set-theory/gaps/C-05-addsTo-assoc.sh`；登记状态 **open**
+  ⇒ 期望是"**缺口仍在**"（零件在 ✓、装配件不在 ✓）⇒ **exit 0**；
+  一旦 `addsTo_succ_inv` / `addsTo_assoc` 进了解答 ⇒ **exit 1**（提示把本条改成 `closed`
+  并把脚本期望翻转 ✓）。
+- **反向验证（实测，第 682 轮）**：把带 `sorry` 的 `addsTo_assoc` 临时塞进解答 ⇒ 脚本
+  **exit 1**，报「BAD C-05: assembly lemma IS present now: addsTo_assoc」✓；删掉 ⇒ **exit 0** ✓
+  （`git diff` 为空 ⇒ 解答已还原 ✓）。
+- **怎么验（修的时候）**：把逆引理与结合律写进 `unit109` 的解答判绿 ⇒ 本条改 `closed` ✓、
+  同时把复现件的期望翻转 ✓（两件事必须一起做，否则 G7 会判负 —— 这正是"断言与登记一致"的守卫 ✓）。
