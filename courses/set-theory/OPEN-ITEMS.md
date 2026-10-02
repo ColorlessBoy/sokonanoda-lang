@@ -22,6 +22,11 @@
 - **还需要的数学前提**（**假设**，不是定理 ✓）：`E` 的**外延性**
   `∀z, E z x → E z y ⇒ ∀z, E z y → E z x ⇒ x = y` ✓ —— 本课里 `E` 是**抽象关系** ✓，
   所以外延性要作为**参数**引进 ✓（画布头部已如实标注 ✓）。
+- **复现件（登记在册 ✓，G7 重放）**：`courses/set-theory/gaps/C-01-trichotomy-assembly.sh` ——
+  一条命令：`bash courses/set-theory/gaps/C-01-trichotomy-assembly.sh`（断言：定理在 · `decl_checked>0` ·
+  `exercise_open==0` · 无拒绝）。**反向验证实测（第 682 轮）**：证明体换成 `sorry` ⇒ **exit 1**
+  「✗ C-01 回归：exercise_open=1」✓；恢复 ⇒ **exit 0**「✓ … checked=11 · exercise_open=0 · failed=0」✓。
+  门禁侧：`python3 courses/set-theory/tools/check.py --gaps-only` ⇒ 正向 exit 0 ✓ / 注入后 exit 1 ✓。
 - **怎么验** ✓ **已完成**：判据 = `courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda` 的
   `ordinal_trichotomy` ✓ —— `python3 /tmp/soko/bisect.py <该文件>` 输出
   **`[11] ok theorem ordinal_trichotomy … (checked=11)` · ALL GREEN** ✓；
@@ -77,6 +82,14 @@
 - **成因** ✓：版本钉（`sokonanoda-version.txt` ✓）已被**内核线**升到 `0.81.0` ✓（`Cargo.toml`/`Cargo.lock`/
   `courses/set-theory/sokonanoda.toml` 都在其**在途**改动里 ✓），而仓库构建仍是 `0.80.0` ✓、缓存 `0.73.0` ✓。
 - **影响**：**课程门禁与一切判卷暂不可跑** ✗（本轮因此**未开工新单元** ✓）。
+- **复现件（登记在册 ✓，G7 重放）**：`courses/set-theory/gaps/C-03-runner-usable.sh` ——
+  一条命令：`bash courses/set-theory/gaps/C-03-runner-usable.sh`；两态：
+  (a) 真判卷一次 ⇒ `exit 0` 且自述版本 == 版本钉 ✓；(b) 注入原始坏状态
+  （`SOKONANODA_VERSION=0.99.9` + 真判卷 ⇒ "钉到没有任何二进制匹配的版本"）⇒ **必须被拒**（实测 `exit 3`，
+  「refusing to run an unverified sokonanoda binary … STALE」= 事故原样 ✓）。
+  **反向验证实测**：把 (b) 的期望反过来 ⇒ 脚本判红 ✓；恢复 ⇒ 判绿 ✓。
+  ⚠ 两条假注入教训（都踩过）：`0.73.0` **缓存里正好有** ⇒ 合法使用、不判红 ✗；
+  `version --json` **不需要二进制** ⇒ 不经过"拒绝运行"那条路 ✗ ⇒ 注入必须配**真判卷调用** ✓。
 - **出路** ✓ **已完成**：版本 bump 落地（内核线 `59201738` ✓，`Cargo.toml` = `requires` = `0.81.0` ✓）
   ⇒ **重建** ✓：`cargo build --release -p sokonanoda-cli` ⇒ `./target/release/sokonanoda --version`
   输出 **`sokonanoda 0.81.0`** ✓（1m48s ✓，**无版本耦合问题** ⇒ 无需另立条目 ✓）；
@@ -101,6 +114,12 @@
   ```
 - **影响**：**函数版**序数加法 ✗。**绕法（已采用 ✓）**：**关系版**加法（`AddsTo` 归纳关系 ✓，
   见单元109 ✓）—— 关系版不需要 Prop→Type 的情形分析 ✓，且结合律可在其上证明 ✓。
+- **复现件（登记在册 ✓，G7 重放）**：`courses/set-theory/gaps/C-04-prop-to-type.sh`
+  （两态：`…-reject.sokonanoda` **必须被拒** ✓ · `…-control.sokonanoda` 动机位落 `Prop` **必须判绿** ✓）
+  —— 一条命令：`bash courses/set-theory/gaps/C-04-prop-to-type.sh`。
+  **反向验证实测**：**原地**对调两条断言的角色 ⇒ **exit 1**（报「BAD C-04 #1: the large-elimination
+  probe was ACCEPTED …」）✓；恢复 ⇒ **exit 0** ✓。⚠ 第一次反向验证是**空转**（脚本拷到 `/tmp` 跑 ⇒
+  `ROOT` 解析成 `/` ⇒ 因路径缺失而失败）⇒ 已在原地重做 ✓。
 - **定性（本轮，含判据）** ✓ **不是缺口** ✗ —— 是**内核的正确行为** ✓：
   * 判据一（**签名**）：`prelude/Prelude.sokonanoda:20` 是
     `def Or.elim {a b c : Prop} (f : a -> c) (g : b -> c) (h : Or a b) : c` ✓
