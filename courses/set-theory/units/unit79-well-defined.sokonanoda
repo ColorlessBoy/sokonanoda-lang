@@ -1,0 +1,117 @@
+-- ==========================================================================
+-- unit79-well-defined.sokonanoda —— 卷 I 单元79 **商集上的函数（well-defined）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.4/§3.6**（functions on quotients）·
+--   Halmos《Naive Set Theory》**§7**。大纲 §4.1（**I.10 章再深化** —— 接单元76–78 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **两个定义**：`kernel f`（同像）✓ · `respects r f`（**尊重关系** ✓ ——
+--     即"同类点给同值" ✓，这就是 well-defined 的课程形态 ✓）；
+--   · `respects` 的**两种说法等价**：逐点 `r a b` ⇔ 逐类 `b ∈ [a]` ✓；
+--   · **旗舰：`class_value_unique`** ✓ —— 若 `f` 尊重 `r`，则**同一个块里任意两个代表给同一个值** ✓
+--     （这正是"商集上的函数是良定义的" ✓）；
+--   · **常值函数尊重任何关系** ✓ · **`respects` 对关系单调** ✓ ·
+--     **交 / 并保持 `respects`** ✓
+--
+-- ⚠ **为什么这样写才构造性可用** ✓：真正的"商集上的函数"要**从类里选代表** ✗
+--   （要选择公理 ✓）；而"**同类点同值**"这条**不需要选择** ✓ ⇒ 本单元把它做成主角 ✓
+--   （与单元76 的"核"、78 的"划分往返"合起来：函数 → 核 → 商，且**降落到商上是良定义的** ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元㉕（等价关系）· 单元76（核）· 单元77/78（等价类与划分往返）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => f a = f b
+
+def respects (α : Type) (β : Type) (r : Rel α α) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), r a b → f a = f b
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.1 三条库引理（等价类 · 商集 · 对称取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：等价类的成员刻画（`b ∈ [a]` 就是 `r a b`）。
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+theorem demo_mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  Rel.mem_classes α r C
+theorem demo_equivalence_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Symmetric α r :=
+  equivalence_symm α r he-- 练习 1（T 类）：核的展开（`kernel f a b ↔ f a = f b`）。
+
+-- soko:hint 关键件：定义展开（`Iff.intro` 两个方向都是恒等 ✓）
+
+theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b := by
+  sorry
+-- 练习 2（T 类）：**任何函数都尊重自己的核**。
+
+-- soko:hint 关键件：定义展开（直接把假设交出去 ✓）
+
+theorem respects_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : kernel α β f a b) : f a = f b := by
+  sorry
+-- 练习 3（T 类）：**常值函数尊重任何关系**（具体例子 ✓）。
+
+-- soko:hint 关键件：`Eq.refl`（**写全宇宙与类型** ✓）
+
+theorem constant_respects (α : Type) (β : Type) (r : Rel α α) (y : β) :
+    respects α β r (fun (_ : α) => y) := by
+  sorry
+-- 练习 4（L 类）：**`respects` 的两种说法等价**（逐点 ⇔ 逐类）。
+
+-- soko:hint 思路：两个方向都用 `Rel.mem_equivClass` 把 `∈ [a]` 与 `r a b` 互转 ✓。
+
+-- soko:hint 关键件：`Rel.mem_equivClass` · `Iff.mp` / `Iff.mpr` · `Iff.intro`（**两类实参都要** ✓）
+
+theorem respects_iff_on_classes (α : Type) (β : Type) (r : Rel α α)
+    (he : IsEquivalence α r) (f : α → β) :
+    respects α β r f ↔ ∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b := by
+  sorry
+-- 练习 5（L 类，**旗舰**）：**同块代表同值**（well-defined 的核心 ✓）。
+
+-- soko:hint 思路：块 `C` 有代表 `x`（`C c ↔ r x c` ✓）⇒ `r x a`、`r x b` ✓
+
+--   ⇒ 用 `hf` 得 `f a = f x`（**注意方向** ✓）与 `f x = f b`，再 `Eq.trans` ✓。
+
+-- soko:hint 目标形态：`f a = f b`。
+
+-- soko:hint 关键件：`Rel.mem_classes` · `Exists.elim` · `hf` · `Eq.symm` / `Eq.trans`（**写全** ✓）
+
+theorem class_value_unique (α : Type) (β : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (f : α → β) (hf : respects α β r f) (C : α → Prop) (a : α) (b : α)
+    (hC : Rel.Classes α r C) (ha : C a) (hb : C b) : f a = f b := by
+  sorry
+-- 练习 6（L 类）：**关系变小 ⇒ 更容易尊重**（单调 ✓）。
+
+-- soko:hint 关键件：`hsub`（**按 点 · 点 · 前提 应用** ✓）· `hf` ✓
+
+theorem respects_of_subset (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) (hf : respects α β s f) :
+    respects α β r f := by
+  sorry
+-- 练习 7（T 类）：**交保持 `respects`**（取前一半 ✓）。
+
+-- soko:hint 关键件：`And.left`（**写全前导实参** ✓）· `hr` ✓
+
+theorem respects_inter (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hr : respects α β r f) (hs : respects α β s f) :
+    respects α β (fun (a : α) (b : α) => r a b ∧ s a b) f := by
+  sorry
+-- 练习 8（L 类，**收尾**）：**并保持 `respects`**（两支各用一次 ✓）。
+
+-- soko:hint 关键件：`Or.elim`（**动机位放肯定命题** ✓ 铁律）· `hr` / `hs` ✓
+
+theorem respects_union (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hr : respects α β r f) (hs : respects α β s f) :
+    respects α β (fun (a : α) (b : α) => r a b ∨ s a b) f := by
+  sorry

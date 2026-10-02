@@ -515,10 +515,11 @@
             "quotient",
             "kernel-equivalence",
             "equivclass-algebra",
-            "partition-roundtrip"
+            "partition-roundtrip",
+            "well-defined-quotient"
           ],
           "quota": {
-            "exercises": 81
+            "exercises": 89
           },
           "units": [
             {
@@ -568,6 +569,12 @@
               "title": "单元78 划分与等价关系的往返",
               "title_en": "Unit 78 — Partitions and Equivalence Relations, Round Trip",
               "unit": 78
+            },
+            {
+              "file": "units/unit79-well-defined.sokonanoda",
+              "title": "单元79 商集上的函数（well-defined）",
+              "title_en": "Unit 79 — Well-Defined Functions on Quotients",
+              "unit": 79
             }
           ]
         },

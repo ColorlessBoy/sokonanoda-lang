@@ -1,0 +1,77 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => f a = f b
+
+def respects (α : Type) (β : Type) (r : Rel α α) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), r a b → f a = f b
+
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+
+theorem demo_mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  Rel.mem_classes α r C
+
+theorem demo_equivalence_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Symmetric α r :=
+  equivalence_symm α r he
+
+theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b :=
+  Iff.intro (kernel α β f a b) (f a = f b)
+    (fun (h : kernel α β f a b) => h) (fun (h : f a = f b) => h)
+
+theorem respects_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : kernel α β f a b) : f a = f b :=
+  h
+
+theorem constant_respects (α : Type) (β : Type) (r : Rel α α) (y : β) :
+    respects α β r (fun (_ : α) => y) :=
+  fun (a : α) (b : α) (hab : r a b) => Eq.refl.{1} β y
+
+theorem respects_iff_on_classes (α : Type) (β : Type) (r : Rel α α)
+    (he : IsEquivalence α r) (f : α → β) :
+    respects α β r f ↔ ∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b :=
+  Iff.intro (respects α β r f) (∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b)
+    (fun (hf : respects α β r f) =>
+      fun (a : α) (b : α) (hb : b ∈ (Rel.EquivClass α r a)) =>
+        hf a b ((fun (hu : Rel.EquivClass α r a b ↔ r a b) => Iff.mp hu hb)
+          (Rel.mem_equivClass α r a b)))
+    (fun (hf : ∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b) =>
+      fun (a : α) (b : α) (hab : r a b) =>
+        hf a b ((fun (hu : Rel.EquivClass α r a b ↔ r a b) => Iff.mpr hu hab)
+          (Rel.mem_equivClass α r a b)))
+
+theorem class_value_unique (α : Type) (β : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (f : α → β) (hf : respects α β r f) (C : α → Prop) (a : α) (b : α)
+    (hC : Rel.Classes α r C) (ha : C a) (hb : C b) : f a = f b :=
+  Exists.elim α (fun (x : α) => ∀ (c : α), C c ↔ r x c) (f a = f b)
+    ((fun (hu : Rel.Classes α r C ↔ ∃ (x : α), ∀ (c : α), C c ↔ r x c) => Iff.mp hu hC)
+      (Rel.mem_classes α r C))
+    (fun (x : α) (hx : ∀ (c : α), C c ↔ r x c) =>
+      Eq.trans.{1} β (f a) (f x) (f b)
+        (Eq.symm.{1} β (f x) (f a) (hf x a ((Iff.mp (hx a)) ha)))
+        (hf x b ((Iff.mp (hx b)) hb)))
+
+theorem respects_of_subset (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) (hf : respects α β s f) :
+    respects α β r f :=
+  fun (a : α) (b : α) (hab : r a b) => hf a b (hsub a b hab)
+
+theorem respects_inter (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hr : respects α β r f) (hs : respects α β s f) :
+    respects α β (fun (a : α) (b : α) => r a b ∧ s a b) f :=
+  fun (a : α) (b : α) (h : r a b ∧ s a b) => hr a b (And.left (r a b) (s a b) h)  -- soko:notation-ok: `Rel.*`/`kernel`/`respects` 是 def 头，这些位置补不出前导实参（手册边界）
+
+theorem respects_union (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hr : respects α β r f) (hs : respects α β s f) :
+    respects α β (fun (a : α) (b : α) => r a b ∨ s a b) f :=
+  fun (a : α) (b : α) (h : r a b ∨ s a b) =>
+    Or.elim (r a b) (s a b) (f a = f b)
+      (fun (hr' : r a b) => hr a b hr')
+      (fun (hs' : s a b) => hs a b hs')
+      h
