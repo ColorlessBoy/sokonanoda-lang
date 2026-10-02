@@ -18,10 +18,12 @@
             "sdiff-algebra",
             "sdiff-mixed",
             "complement-algebra",
-            "de-morgan-constructive"
+            "de-morgan-constructive",
+            "extensionality-packing",
+            "set-equality"
           ],
           "quota": {
-            "exercises": 59
+            "exercises": 67
           },
           "units": [
             {
@@ -65,6 +67,12 @@
               "title": "单元60 补集的代数",
               "title_en": "Unit 60 — The Algebra of Complements",
               "unit": 60
+            },
+            {
+              "file": "units/unit61-ext-packing.sokonanoda",
+              "title": "单元61 外延打包",
+              "title_en": "Unit 61 — Packing Pointwise Facts into Set Equalities",
+              "unit": 61
             }
           ]
         },

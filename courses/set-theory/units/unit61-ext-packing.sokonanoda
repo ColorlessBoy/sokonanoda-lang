@@ -1,0 +1,121 @@
+-- ==========================================================================
+-- unit61-ext-packing.sokonanoda —— 卷 I 单元61 **外延打包：从"逐点"到"集合等式"**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§1.4 外延公理**（本课把它落到
+--   **函数外延 + 命题外延**两条 ✓）· Halmos《Naive Set Theory》**§1**（Axiom of extension）。
+-- 大纲：`set-theory-syllabus.md` §4.1（**I.1 章的收口片** —— 单元58/59/60 全写成逐点形态 ✓，
+--   本单元把它们**升级成集合等式** ✓）。
+--
+-- 本单元的"该学的定理/手法"：
+--   · **两条外延工具**：`propext_spec`（命题相等 ⇐ 互相蕴含 ✓）·
+--     `funext_spec`（函数相等 ⇐ 逐点相等 ✓）——`Set α` 就是 `α → Prop` ✓
+--     ⇒ **集合等式 = 逐点 + 两条外延** ✓（这就是 `Set.ext` 的内容 ✓）；
+--   · **两条取用子 + 两条"没有成员"**（顶层具名 ✓ —— 它们是打包的**前件** ✓）；
+--   · **四条集合等式**：`A \ ∅ = A` ✓ · `A \ A = ∅` ✓ · `A ∩ Aᶜ = ∅` ✓ · `A ∩ univ = A` ✓
+--
+-- ⚠ **写法纪律（第 622 轮的教训换来的 ✓）**：**先在顶层把 `And` 消去抽成具名小引理** ✗，
+--   再在 `propext_spec` 的实参位**只调用那条引理** ✓ —— 直接把
+--   `And.right … (And.left …)` 写在实参位里**三试三红** ✗（**G-73 第十九例** ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 五样**：`lib.Set` · `lib.SUnion` · `lib.Order` · `lib.Rel` · `lib.Extensionality`。
+--
+-- 依赖：单元④（外延与恒等式）· 单元㉜㉞（函数与逐点）· 单元58/59/60（差集与补集的代数）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+import lib.Extensionality
+
+-- ─────────────────────────────────────────────────────────────
+-- 61.1 三条库引理（**两条外延工具** + 差集的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：**函数外延**（逐点相等 ⇒ 函数相等 ✓ —— `Set α` 就是 `α → Prop` ✓）。
+theorem demo_funext (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) :  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
+    Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
+  funext_spec α β f g h
+theorem demo_propext (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
+  propext_spec a b h
+theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=
+  Set.mem_sdiff a A B
+-- ─────────────────────────────────────────────────────────────
+-- 61.2 两条取用子 + 两条"没有成员"（**打包的前件**，顶层具名 ✓）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（T 类）：进差集 ⇒ 在 `A` 里（**打包要用的前件** ✓）。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mp` · `And.left`（**前导 Prop 实参写全** ✓ ——
+
+--   手册 G-30 的例外：嵌套位置的 `And` 消去要写全 ✓）
+
+theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A := by
+  sorry
+-- 练习 2（T 类）：进差集 ⇒ 不在 `B` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mp` · `And.right`（**写全前导实参** ✓）
+
+theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) := by
+  sorry
+-- 练习 3（L 类）：**`A \ A` 没有成员**（同一个假设用两次 ✓）。
+
+-- soko:hint 关键件：练习 1 / 练习 2 ✓
+
+theorem not_mem_sdiff_self (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A \ A)) := by
+  sorry
+-- 练习 4（L 类）：**`A ∩ Aᶜ` 没有成员**。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `And.left`/`And.right`（**写全前导实参** ✓）✓
+
+theorem not_mem_inter_compl (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A ∩ (Aᶜ))) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 61.3 四条**集合等式**（逐点 + 两条外延 ⇒ 等式 ✓）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 5（L 类，**第一条集合等式**）：**`A \ ∅ = A`**。
+
+-- soko:hint 思路：先把 `A \ ∅` 与 `A` 的**逐点等价**做出来（两个方向 ✓），
+
+--   再用 `funext_spec` + `propext_spec` 打包成等式 ✓。
+
+-- soko:hint 目标形态：`A \ ∅ = A`（**集合等式** ✓ —— 注意 `Eq.{1} (Set α)` 的宇宙标注 ✓）。  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
+
+-- soko:hint 关键件：`funext_spec`（**第二实参给 `fun _ => Prop`** ✓）· `propext_spec` ·
+
+--   练习 1 · `Set.mem_empty_iff_false` ✓
+
+theorem sdiff_empty_eq (α : Type) (A : Set α) : Eq.{1} (Set α) (A \ (Set.empty α)) A := by  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
+  sorry
+-- 练习 6（L 类）：**`A \ A = ∅`**。
+
+-- soko:hint 思路：逐点两支都是"矛盾 ⇒ 什么都能证" ⇒ 用 `False.elim`（**把目标写全** ✓）。
+
+-- soko:hint 关键件：练习 3（**顶层具名 —— 这就是第 622 轮教训的绕法** ✓）·
+
+--   `Set.mem_empty_iff_false` · `funext_spec` / `propext_spec` ✓
+
+theorem sdiff_self_eq_empty (α : Type) (A : Set α) :
+    Eq.{1} (Set α) (A \ A) (Set.empty α) := by  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
+  sorry
+-- 练习 7（L 类）：**`A ∩ Aᶜ = ∅`**（把单元60 的逐点结论打包 ✓）。
+
+-- soko:hint 关键件：练习 4 · `Set.mem_empty_iff_false` · 两条外延 ✓
+
+theorem inter_compl_self_eq_empty (α : Type) (A : Set α) :
+    Eq.{1} (Set α) (A ∩ (Aᶜ)) (Set.empty α) := by  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
+  sorry
+-- 练习 8（L 类，**收尾**）：**`A ∩ univ = A`**。
+
+-- soko:hint 思路：逐点"两个都在" ⇔ "在 `A` 里"（另一支由 `Set.mem_univ` 自动成立 ✓）。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Set.mem_univ`（**写全论域实参** ✓）·
+
+--   `And.left`/`And.intro` · 两条外延 ✓
+
+theorem inter_univ_eq (α : Type) (A : Set α) : Eq.{1} (Set α) (A ∩ (Set.univ α)) A := by  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
+  sorry
