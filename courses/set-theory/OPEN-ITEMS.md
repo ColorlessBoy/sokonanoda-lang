@@ -169,3 +169,20 @@
 - **写法教训（本轮换来，已写进画布头）**：`Exists.elim` 是**隐式实参**签名
   `{A}{p}{Q} (h) (f)` ⇒ 补不出来时**逐位写全** ✓；`choice` 的谓词里**别再写 `∈ B`** ✗（结论自带 ✓）；
   嵌套位置的等式写 **`Eq.{1}`** ✓。
+
+## 111（**closed-green** · 2026-10-02 第 684 轮）ℕ 的算术律 —— 关键步靠 **G-76 已修**
+
+- **内容**（`courses/set-theory/units/I.6/unit111-nat-arith.sokonanoda`，**7 练习** + 2 已证 `def`，
+  解答 **13 条全绿** ✓）：`add` / `mul`（**自建**，对第二个参数用 `Nat.rec` 递归 ✓）·
+  `add_zero` / `add_succ` / `mul_zero` / `mul_succ`（**定义性等式**，`Eq.refl` ✓）·
+  `zero_add` / `succ_add` / `add_assoc` / `add_comm` · `add_rotate`（搬运助手 ✓）·
+  `zero_mul` · **`mul_distrib`**（分配律 ✓）。
+- **为什么必须自建** ✓：prelude **只有 `Nat` 的构造子与 `Nat.rec`**，**没有 `Nat.add`/`Nat.mul`** ✗
+  ⇒ 课程自己定义再证律 ✓；**定义动机落 `Type`**（大消去 ✓）⇒ 靠 **G-76** 已修 ✓。
+- **复现件（登记在册 ✓，G7 重放）**：`courses/set-theory/gaps/C-111-nat-induction.sh` ——
+  一条命令：`bash courses/set-theory/gaps/C-111-nat-induction.sh`；断言四件：
+  ① `add` **真的**由 `Nat.rec`（Type 动机）定义；② `mul` 同；③ 11 条律都在；
+  ④ 判卷 `checked=13` · `exercise_open==0` · 无拒绝。
+- **反向验证实测**：把 `add_comm` 的证明体换成 `sorry` ⇒ 脚本 **exit 1**
+  「BAD 111: grading rejected (exit=1, failed=2)」✓；恢复 ⇒ **exit 0**
+  「OK 111 matches the register: checked=13 exercise_open=0 failed=0」✓（`git diff` 为空 ✓）。

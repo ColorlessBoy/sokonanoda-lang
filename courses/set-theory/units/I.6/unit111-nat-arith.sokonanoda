@@ -1,0 +1,85 @@
+-- ==========================================================================
+-- unit111-nat-arith.sokonanoda —— 卷 I 单元111 **ℕ 的算术律**（自建 `add`/`mul`）
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§4.1–§4.3**（自然数与递归定理）·
+--   Halmos《Naive Set Theory》**§11/§12**。大纲 §4.1（**卷 I 收官主线** ✓ —— 接单元106–110 ✓）。
+--
+-- ⚠ **本单元为什么必须"自建"算术** ✓：本语言的 prelude **只有 `Nat` 的构造子**
+--   （`Nat.zero` / `Nat.succ` ✓）与 `Nat.rec` ✓ —— **没有 `Nat.add` / `Nat.mul`** ✗
+--   ⇒ 课程**自己用 `Nat.rec` 定义**它们 ✓，再用**归纳**证律 ✓。这正是台账 **G-76**
+--   （Nat 算术律展开）修好之后的兑现 ✓。
+--
+-- 本单元的"该学的定理"（11 条）：
+--   · 定义：`add`（对**第二个**参数递归 ✓）· `mul`（同 ✓）；
+--   · **定义性等式**（ι 归约，证明项就是 `Eq.refl` ✓）：`add_zero` · `add_succ` · `mul_zero` · `mul_succ`；
+--   · **归纳律**：`zero_add` · `succ_add` · `add_assoc` · `add_comm`；
+--   · **搬运助手**：`add_rotate`（`a+(b+c) = b+(a+c)` ✓ —— 由结合 + 交换两步接起来 ✓）；
+--   · **乘法**：`zero_mul` · **`mul_distrib`**（分配律 `a·(b+c) = a·b + a·c` ✓）。
+--
+-- ⚠ **写法要点（本单元一次判绿 ✓，值得照抄）**：① 返回 `Nat` 的声明写 **`def`** ✗（`theorem` 只收 `Prop`）；
+--   ② 等式一律写 **`Eq.{1}`** ✓、证明项写 `Eq.refl.{1}` / `Eq.subst.{1}` / `Eq.trans.{1}` / `Eq.symm.{1}` ✓  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+--   （嵌套位置的等式不给宇宙会判红 ✓）；③ **归纳 = `Nat.rec` + Prop 动机** ✓
+--   （动机写 `fun (n : Nat) => Eq.{1} Nat …` ✓）；④ 归纳步用 **`Eq.subst` + 谓词** ✓  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+--   （谓词方向决定结果方向 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理与 prelude 的 `Classical.*` ✓。
+-- **本单元 `import` 一样**：`lib.Set`。
+--
+-- 依赖：单元106–110 ✓（`Acc`/递归/选择公理线 ✓）
+-- ==========================================================================
+import lib.Set
+def add (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) => Nat) a (fun (n : Nat) (ih : Nat) => Nat.succ ih) b
+def mul (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) => Nat) Nat.zero (fun (n : Nat) (ih : Nat) => add a ih) b
+theorem add_zero (a : Nat) : Eq.{1} Nat (add a Nat.zero) a :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Eq.refl.{1} Nat a
+
+theorem add_succ (a b : Nat) : Eq.{1} Nat (add a (Nat.succ b)) (Nat.succ (add a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Eq.refl.{1} Nat (Nat.succ (add a b))
+
+-- 练习 1（L 类）：**`0 + b = b`**。
+-- 思路：对 `b` 归纳（`Nat.rec` + Prop 动机 ✓）；零情形**定义性成立**（`Eq.refl` ✓）；后继情形把归纳假设沿 `Nat.succ` 搬过去（**`Eq.subst` + 谓词** ✓）。
+-- 关键件：`Nat.rec`（**动机 · 零情形 · 后继情形 · 被归纳项** ✓）· `Eq.{1}` / `Eq.refl.{1}` / `Eq.subst.{1}` ✓  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+theorem zero_add (b : Nat) : Eq.{1} Nat (add Nat.zero b) b := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry
+
+-- 练习 2（L 类）：**`(s a) + b = s (a + b)`**。
+-- 思路：同练习 1 的归纳骨架，但零情形是 `s a = s a` ✓、后继情形把假设搬过一层 `Nat.succ` ✓。
+-- 关键件：同练习 1 ✓
+theorem succ_add (a b : Nat) : Eq.{1} Nat (add (Nat.succ a) b) (Nat.succ (add a b)) := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry
+
+-- 练习 3（L 类）：**加法结合律** `(a+b)+c = a+(b+c)`。
+-- 思路：对 `c` 归纳；后继情形两边都变成 `Nat.succ` 套同一个中间项 ⇒ 搬运归纳假设 ✓。
+-- 关键件：同练习 1 ✓
+theorem add_assoc (a b c : Nat) :
+    Eq.{1} Nat (add (add a b) c) (add a (add b c)) := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry
+
+-- 练习 4（L 类）：**加法交换律** `a+b = b+a`。
+-- 思路：对 `b` 归纳。零情形要 **`zero_add` 的对称**（`Eq.symm` ✓）；后继情形用**两步 `Eq.trans`**：先把归纳假设搬到 `Nat.succ` 下 ✓，再用 **`succ_add` 的对称**把 `s (b+a)` 换成 `(s b)+a` ✓。
+-- 关键件：练习 1 · 练习 2 · `Eq.symm.{1}` · `Eq.trans.{1}`（**三步要写清中间项** ✓）
+theorem add_comm (a b : Nat) : Eq.{1} Nat (add a b) (add b a) := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry
+
+-- 练习 5（L 类，**搬运助手**）：**`a+(b+c) = b+(a+c)`**。
+-- 思路：**先拆链** ✓ —— `a+(b+c) = (a+b)+c`（结合律的对称 ✓）⇒ `= (b+a)+c`（把内层交换 ✓，用 `Eq.subst` + 谓词 ✓）⇒ `= b+(a+c)`（结合律 ✓）。
+-- 关键件：练习 3（**两次**，一次取对称 ✓）· 练习 4 · `Eq.subst.{1}`（**谓词 `fun m => (a+b)+c = m+c`** ✓）· `Eq.trans.{1}`
+theorem add_rotate (a b c : Nat) :
+    Eq.{1} Nat (add a (add b c)) (add b (add a c)) := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry
+
+-- 练习 6（L 类）：**`0 · b = 0`**。
+-- 思路：对 `b` 归纳；后继情形 `0·(s n) = 0 + 0·n`（**ι 归约** ✓）⇒ 用归纳假设把第二项换成 `0` ✓ ⇒ 再用 **`zero_add`** 收尾。
+-- 关键件：`Eq.subst.{1}`（谓词 `fun m => 0 + 0·n = 0 + m` ✓）· 练习 1 · `Eq.trans.{1}`
+theorem zero_mul (b : Nat) : Eq.{1} Nat (mul Nat.zero b) Nat.zero := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry
+
+-- 练习 7（L 类，**分配律**）：**`a·(b+c) = a·b + a·c`**。
+-- 思路：对 `c` 归纳。零情形**定义性成立** ✓；后继情形：左边 ι 归约成 `a + a·(b+n)` ✓，用归纳假设替换内层 ✓，再用 **`add_rotate`** 把 `a + (a·b + a·n)` 旋成 `a·b + (a + a·n)` ✓ —— 右边正好 ι 归约成它 ✓。
+-- 关键件：练习 5 · `Eq.subst.{1}` · `Eq.trans.{1}` · `Eq.refl.{1}`（零情形 ✓）
+theorem mul_distrib (a b c : Nat) :
+    Eq.{1} Nat (mul a (add b c)) (add (mul a b) (mul a c)) := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry

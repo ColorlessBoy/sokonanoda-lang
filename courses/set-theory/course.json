@@ -459,10 +459,11 @@
             "ordinal-induction",
             "trichotomy-halves",
             "ordinal-recursion",
-            "choice-extraction"
+            "choice-extraction",
+            "nat-arith"
           ],
           "quota": {
-            "exercises": 81
+            "exercises": 88
           },
           "units": [
             {
@@ -536,6 +537,12 @@
               "title": "单元110 选择公理的取数据（良序定理线入口）",
               "title_en": "Unit 110 — Extracting Functions from the Axiom of Choice",
               "unit": 110
+            },
+            {
+              "file": "units/I.6/unit111-nat-arith.sokonanoda",
+              "title": "单元111 ℕ 的算术律（自建 add/mul）",
+              "title_en": "Unit 111 — Arithmetic Laws for Nat (self-built add/mul)",
+              "unit": 111
             }
           ]
         },

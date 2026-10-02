@@ -28,6 +28,13 @@
 - **前线**：课程线已在用（单元105 经典等价 · 单元106 `Acc` 良基递归 · 单元107 ∈-归纳）✓；本轮未碰 `courses/` ✓。
 - **事故两条如实记录**（2026-10-02）✗：① **写模式 fmt 碰了内核快照** —— `cargo fmt -p <三个教学 crate>` 实测把 `crates/kernel/**` **24 文件**按 stable rustfmt 重排（CI 的 fmt 门禁**故意只查教学 crate** ⇒ 无人拦）⇒ 已 `git restore crates/kernel/` 还原 ✓、`git diff HEAD -- crates/kernel` = **0** ✓、未推送 ✓；② 报「工作区干净」时用了 `git status --short | grep -v '^ M crates/kernel'` —— **过滤器删掉了要断言的行** ⇒ 判据**不可能失败** ✗（§3 #5「咬不住的守卫等于没有」同形）。**新纪律**：报状态只用**未过滤**的 `git status --short`；写模式 fmt 后必须断言 `git status --short crates/kernel` 为空 ✓。
 
+## 第 684 轮（2026-10-02）：**单元111 ℕ 的算术律（自建 add/mul）**（246/2020/891/0）
+- **交付** ✓：单元111 画布 2 已证 `def` + **7 练习** · 解答 **13 条全绿（一次判绿 ✓）** · **I.6 章**（配额 88）⇒ 门禁 **246/2020/891/0** ✓。**对账** ✓：目标 243→246 = 画布 + 解答 + **G7 行** ✓；checked 2003→2020 = 13（解答）+ 4（画布已证 `def`/定义性等式）✓；open 884→891 = 画布 7 练习 ✓。
+- **数学**（Enderton §4.1–§4.3 · Halmos §11/§12）：⚠ **prelude 只有 `Nat` 构造子与 `Nat.rec`**，**没有 `Nat.add`/`Nat.mul`** ⇒ **自建** ✓（`Nat.rec` 递归定义，**动机落 `Type`** ✓）⇒ 定义性等式（`add_zero`/`add_succ`/`mul_zero`/`mul_succ` ✓）· 归纳律（`zero_add`/`succ_add`/`add_assoc`/`add_comm` ✓）· 搬运助手 `add_rotate` ✓ · `zero_mul` · **分配律 `mul_distrib`** ✓ —— **G-76 修好后的兑现** ✓。
+- **复现件 + 反向验证** ✓：`gaps/C-111-nat-induction.sh`（G7 第 6 条 ✓）—— 正向 exit 0「checked=13 · exercise_open=0」✓；把 `add_comm` 证明体换成 `sorry` ⇒ **exit 1**「BAD 111: grading rejected (exit=1, failed=2)」✓；恢复 ⇒ exit 0 ✓（`git diff` 为空 ✓）。断言含"**定义真的走 `Nat.rec`（Type 动机）**"✓ ⇒ 不会被换掉定义骗过 ✓。
+- **写法要点（一次判绿换来 ✓，已写进画布头）**：返回 `Nat` 的声明写 **`def`** ✗；等式一律 **`Eq.{1}`** ✓（`Eq.refl.{1}`/`Eq.subst.{1}`/`Eq.trans.{1}`/`Eq.symm.{1}` ✓）；**归纳 = `Nat.rec` + Prop 动机** ✓；归纳步用 `Eq.subst` + 谓词 ✓。
+- **前线**：**100 个新单元**（⑬–111）· 门禁 **43/377/99/0 → 246/2020/891/0** ✓（**全程 0 判负** ✓）。
+
 ## 第 683 轮（2026-10-02）：**单元110 选择公理的取数据（良序定理线入口）**（243/2003/884/0）
 - **交付** ✓：单元110 画布 1 演示 + **3 练习** · 解答 **4 条全绿** ✓ · **I.6 章**（配额 81）⇒ 门禁 **243/2003/884/0** ✓（+3 = 画布 + 解答 + **G7 行** ✓ 对得上 ✓）。
 - **数学**（Enderton §6.1/§6.2 · Halmos §15）：**族版选择函数** `choice_family` ✓（`∀ i ∈ I, ∃ x, x ∈ F i ⇒ ∃ f, ∀ i ∈ I, f i ∈ F i` ✓ —— 良序定理/基数可比性的第一步 ✓）· `choice_family_apply` ✓ · **右逆形式** `choice_right_inverse` ✓。**关键步 = 从 `∀∃` 取出函数** ⇒ 靠 **G-58 已修** + `lib/Choice` 的公理 ✓。
