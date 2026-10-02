@@ -1,0 +1,80 @@
+-- ==========================================================================
+-- unit91-inverse.sokonanoda —— 卷 I 单元91 **逆映射与双射代数**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.3/§3.6** ·
+--   Halmos《Naive Set Theory》**§8**。大纲 §4.1（**I.4 章再深化** —— 接单元⑨ 与 87–90 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 恒等映射是双射 ✓；
+--   · **右逆 ⇒ 单射** ✓（`f (g b) = b` 对每个 `b` ⇒ `g` 单射 ✓）；
+--   · **左逆 ⇒ 满射** ✓（`g (f a) = a` 对每个 `a` ⇒ `g` 满射 ✓）；
+--   · **旗舰一：两侧逆 ⇒ `g` 也是双射** ✓（`inv_bij` ✓ —— 教材里"逆映射是双射" ✓）；
+--   · **旗舰二：逆唯一** ✓（`inv_unique` ✓ —— 而且**不需要满射假设** ✓：
+--     只用左逆 + 右逆就能把 `g b = g' b` 推出来 ✓）。
+--
+-- ⚠ **写法要点** ✓：本单元的搬运全部是**格位表第二行**（跨类型换"函数参数格" ✓ ⇒
+--   `Eq.subst` + 谓词 ✓），谓词方向与**替换项**都要写对 ✓
+--   （`Eq.subst.foo P (旧) (新) h (refl)` ✓ —— 第 658 轮就在"替换项"上判红一次 ✗）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元⑨（等势与逆）· 单元87–90（单射/满射/双射与复合）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def Injective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), f a = f b → a = b
+
+def Surjective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (b : β), ∃ (a : α), f a = b
+
+def BijPair (α : Type) (β : Type) (f : α → β) : Prop :=
+  Injective α β f ∧ Surjective α β f
+-- ─────────────────────────────────────────────────────────────
+-- 91.1 三条定义展开（双射 · 单射 · 满射）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：单射的定义展开。
+theorem demo_bij_def (α : Type) (β : Type) (f : α → β) :
+    BijPair α β f ↔ Injective α β f ∧ Surjective α β f :=
+  Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
+    (fun (h : BijPair α β f) => h) (fun (h : Injective α β f ∧ Surjective α β f) => h)
+theorem demo_inj_def (α : Type) (β : Type) (f : α → β) :
+    Injective α β f ↔ ∀ (a : α) (b : α), f a = f b → a = b :=
+  Iff.intro (Injective α β f) (∀ (a : α) (b : α), f a = f b → a = b)
+    (fun (h : Injective α β f) => h) (fun (h : ∀ (a : α) (b : α), f a = f b → a = b) => h)
+theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
+    Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=
+  Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+    (fun (h : Surjective α β f) => h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) => h)-- 练习 1（T 类）：**恒等映射是双射**（单射 ∧ 满射）。
+-- 关键件：`And.intro`（**前导命题写全**）· 单射那半把假设交出去 · 满射那半 `Exists.intro` + `Eq.refl`
+theorem bij_id (α : Type) : BijPair α α (fun (x : α) => x) := by
+  sorry
+-- 练习 2（L 类）：**右逆 ⇒ 单射**（`f (g b) = b` 对每个 `b` ⇒ `g` 单射）。
+-- 思路：设 `g b = g b'`；两次右逆把 `b`、`b'` 都换成 `f (g ·)`；中间用一次 `Eq.subst` + 谓词 `fun x => f (g b) = f x` 把 `g b` 换成 `g b'`。
+-- 关键件：`Eq.subst`（⚠ **替换项传 `g b` / `g b'`**，不是 `b` / `b'`！）· `hgf`（两次）· `Eq.trans` / `Eq.symm` · `Eq.refl`
+theorem right_inv_inj (α : Type) (β : Type) (f : α → β) (g : β → α)
+    (hgf : ∀ (b : β), f (g b) = b) : Injective β α g := by
+  sorry
+-- 练习 3（T 类）：**左逆 ⇒ 满射**（`g (f a) = a` 对每个 `a` ⇒ `g` 满射）。
+-- 关键件：`Exists.intro`（见证取 `f a`）· `hfg`
+theorem left_inv_surj (α : Type) (β : Type) (f : α → β) (g : β → α)
+    (hfg : ∀ (a : α), g (f a) = a) : Surjective β α g := by
+  sorry
+-- 练习 4（L 类，**旗舰一**）：**两侧逆 ⇒ `g` 也是双射**。
+-- 关键件：`And.intro` · 练习 2（用右逆）· 练习 3（用左逆）
+theorem inv_bij (α : Type) (β : Type) (f : α → β) (g : β → α)
+    (hfg : ∀ (a : α), g (f a) = a) (hgf : ∀ (b : β), f (g b) = b) :
+    BijPair β α g := by
+  sorry
+-- 练习 5（L 类，**旗舰二**）：**逆唯一**（**不需要满射** ✓）。
+-- 思路：`g b = g (f (g' b))`（沿右逆 `f (g' b) = b` 用 `Eq.subst` + 谓词 `fun x => g b = g x`）⇒ 再用左逆 `hfg (g' b)` 得 `g (f (g' b)) = g' b` ⇒ 两步 `Eq.trans`。
+-- 关键件：`Eq.subst` + 谓词 · `hfg` / `hg'` · `Eq.trans` / `Eq.symm` · `Eq.refl`
+theorem inv_unique (α : Type) (β : Type) (f : α → β) (g : β → α) (g' : β → α)
+    (hfg : ∀ (a : α), g (f a) = a) (hg : ∀ (b : β), f (g b) = b)
+    (hg' : ∀ (b : β), f (g' b) = b) : ∀ (b : β), g b = g' b := by
+  sorry

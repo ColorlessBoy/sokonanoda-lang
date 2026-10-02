@@ -223,10 +223,11 @@
             "inj-surj-composition",
             "surjection-composition",
             "bijection-composition",
-            "comp-layer-equality"
+            "comp-layer-equality",
+            "inverse-map"
           ],
           "quota": {
-            "exercises": 46
+            "exercises": 51
           },
           "units": [
             {
@@ -282,6 +283,12 @@
               "title": "单元90 复合层的等式与外层单射",
               "title_en": "Unit 90 — Equality at the Composite Layer",
               "unit": 90
+            },
+            {
+              "file": "units/unit91-inverse.sokonanoda",
+              "title": "单元91 逆映射与双射代数",
+              "title_en": "Unit 91 — Inverse Maps and Bijection Algebra",
+              "unit": 91
             }
           ]
         },
