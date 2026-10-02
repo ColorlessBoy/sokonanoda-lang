@@ -613,10 +613,11 @@
             "funext",
             "propext",
             "powerset-lattice",
-            "powerset-complete-lattice"
+            "powerset-complete-lattice",
+            "powerset-distrib-membership"
           ],
           "quota": {
-            "exercises": 58
+            "exercises": 66
           },
           "units": [
             {
@@ -654,6 +655,12 @@
               "title": "单元68 幂集是完备格",
               "title_en": "Unit 68 — The Power Set is a Complete Lattice",
               "unit": 68
+            },
+            {
+              "file": "units/unit70-powerset-membership.sokonanoda",
+              "title": "单元70 幂集对交并的分配",
+              "title_en": "Unit 70 — Power Set Distributes over Intersection",
+              "unit": 70
             }
           ]
         },

@@ -1,0 +1,105 @@
+-- ==========================================================================
+-- unit70-powerset-membership.sokonanoda —— 卷 I 单元70 **幂集对交/并的分配（成员层级）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§1.6** · Halmos **§5**。
+-- 大纲 §4.1（**I.12 章深化** ✓ —— 把单元68/69 与单元㉞ 接起来 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 取用子：`A ⊆ B` 用在点上 ✓ · 交的两条出 + 一条进 ✓；
+--   · **旗舰：`C ∈ 𝒫A ∩ 𝒫B ↔ C ∈ 𝒫(A ∩ B)`** ✓（**幂集对交分配** ✓——
+--     教材里"幂集把交变成交"那条 ✓）；
+--   · **`C ∈ 𝒫A ∪ 𝒫B ⇒ C ∈ 𝒫(A ∪ B)`** ✓（**反向为假** ✗ —— 教学点：取 `A={0}, B={1}` 时
+--     `{0,1} ∈ 𝒫(A ∪ B)` 却不在任何一边 ✓）；
+--   · **幂等**：`C ∈ 𝒫A ∩ 𝒫A ↔ C ∈ 𝒫A` ✓ · **只有空集**：`C ∈ 𝒫∅ ↔ ∀c, c ∉ C` ✓
+--
+-- ⚠ **为什么全部写成"成员层级"** ✓（第 634 轮的教训换来的 ✓）：`⊆` **记法在 `Set (Set α)`
+--   层级补不出前导类型参数** ✗（点名 `Set.subset` 也判红 ✓ —— **G-73 第二十例** ✓）⇒
+--   本单元把每条都写成 **`C ∈ … ↔ C ∈ …`** 的成员式 ✓，**一律在 `Set α` 层级做证明** ✓
+--   ⇒ **一次判绿** ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.SUnion` · `lib.Order`。
+--
+-- 依赖：单元③（幂集）· 单元㉞（幂集代数）· 单元66/68/69 ✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 70.1 三条库引理（幂集 · 交 · 并）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：幂集的成员刻画（`C ∈ 𝒫A` 就是 `C ⊆ A`）。
+theorem demo_mem_powerset (α : Type) (A C : Set α) :
+    C ∈ (Set.powerset A) ↔ C ⊆ A :=  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  Set.mem_powerset_iff A C
+theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=
+  Set.mem_inter_iff a A B
+theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
+  Set.mem_union a A B-- 练习 1（T 类，**中心工具**）：`A ⊆ B` 用在点上。
+
+-- soko:hint 关键件：`Set.subset_def`（**先 λ 绑定、再 `Iff.mp`** ✓）✓
+
+theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B := by
+  sorry
+-- 练习 2（T 类）：**交的合成**。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mpr` · `And.intro`（**写全前导实参** ✓）
+
+theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) := by
+  sorry
+-- 练习 3（T 类）：**交的左取用子**。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mp` · `And.left`（**写全** ✓）
+
+theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A := by
+  sorry
+-- 练习 4（T 类）：**交的右取用子**。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mp` · `And.right`（**写全** ✓）
+
+theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ B := by
+  sorry
+-- 练习 5（L 类，**旗舰**）：**幂集对交分配**（成员层级 ✓）。
+
+-- soko:hint 思路：两个方向都在 `Set α` 层级做 —— 把 `C ∈ 𝒫A` 拆成 `C ⊆ A`，
+
+--   对每个 `c ∈ C` 用一次取用子，最后折回 `C ∈ 𝒫(A ∩ B)` ✓。
+
+-- soko:hint 目标形态：`C ∈ 𝒫A ∩ 𝒫B ↔ C ∈ 𝒫(A ∩ B)`（**别写 `⊆`** ✗ —— 见画布头的边界 ✓）。
+
+-- soko:hint 关键件：`Set.mem_powerset_iff` · 练习 1–4 · `Iff.intro`（两种写法都要 ✓）✓
+
+theorem mem_powerset_inter_iff (α : Type) (A B C : Set α) :
+    C ∈ (Set.powerset A ∩ Set.powerset B) ↔ C ∈ Set.powerset (A ∩ B) := by  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 6（L 类）：**`C ∈ 𝒫A ∪ 𝒫B ⇒ C ∈ 𝒫(A ∪ B)`**（**反向为假** ✗）。
+
+-- soko:hint 关键件：`Set.mem_union` · `Or.elim`（**动机位放肯定命题** ✓ 铁律）·
+
+--   `Or.inl`/`Or.inr` · 练习 1 · `Set.mem_powerset_iff` ✓
+
+theorem mem_powerset_union_of_mem (α : Type) (A B C : Set α)
+    (h : C ∈ (Set.powerset A ∪ Set.powerset B)) : C ∈ Set.powerset (A ∪ B) := by  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 7（T 类，**幂等**）：**`C ∈ 𝒫A ∩ 𝒫A ↔ C ∈ 𝒫A`**。
+
+-- soko:hint 关键件：练习 2 / 练习 3（**同一个 `h` 用两次** ✓）✓
+
+theorem mem_powerset_inter_self (α : Type) (A C : Set α) :
+    C ∈ (Set.powerset A ∩ Set.powerset A) ↔ C ∈ Set.powerset A := by  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 8（L 类，**收尾**）：**`C ∈ 𝒫∅ ↔ ∀c, c ∉ C`**（幂集里只有空集 ✓）。
+
+-- soko:hint 关键件：`Set.mem_powerset_iff` · `Set.mem_empty_iff_false` ·
+
+--   **`False.elim`（把目标写全** ✓）· 练习 1 ✓
+
+theorem mem_powerset_empty_iff (α : Type) (C : Set α) :
+    C ∈ Set.powerset (Set.empty α) ↔ ∀ (c : α), ¬ (c ∈ C) := by  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
