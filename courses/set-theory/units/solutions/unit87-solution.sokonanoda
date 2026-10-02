@@ -1,0 +1,52 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def Injective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), f a = f b → a = b
+
+def Surjective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (b : β), ∃ (a : α), f a = b
+
+def Bijective (α : Type) (β : Type) (f : α → β) : Prop :=
+  Injective α β f ∧ Surjective α β f
+
+theorem demo_inj_def (α : Type) (β : Type) (f : α → β) :
+    Injective α β f ↔ ∀ (a : α) (b : α), f a = f b → a = b :=
+  Iff.intro (Injective α β f) (∀ (a : α) (b : α), f a = f b → a = b)
+    (fun (h : Injective α β f) => h) (fun (h : ∀ (a : α) (b : α), f a = f b → a = b) => h)
+
+theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
+    Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=
+  Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+    (fun (h : Surjective α β f) => h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) => h)
+
+theorem demo_rel_subst_right (α : Type) (r : α → α → Prop) (a b c : α) (h : b = c) :
+    r a b → r a c :=
+  rel_subst_right α r a b c h
+
+theorem inj_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hf : Injective α β f) (h : f a = f b) : a = b :=
+  hf a b h
+
+theorem surj_apply (α : Type) (β : Type) (f : α → β) (b : β)
+    (hf : Surjective α β f) : ∃ (a : α), f a = b :=
+  hf b
+
+theorem inj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Injective α β f) (hg : Injective β γ g) :
+    Injective α γ (fun (x : α) => g (f x)) :=
+  fun (a : α) (b : α) (h : g (f a) = g (f b)) => hf a b (hg (f a) (f b) h)
+
+theorem inj_of_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hgf : Injective α γ (fun (x : α) => g (f x))) : Injective α β f :=
+  fun (a : α) (b : α) (h : f a = f b) =>
+    hgf a b
+      (rel_subst_right β (fun (u : β) (v : β) => g u = g v) (f a) (f a) (f b) h
+        (Eq.refl.{1} γ (g (f a))))
+
+theorem inj_id (α : Type) : Injective α α (fun (x : α) => x) :=
+  fun (a : α) (b : α) (h : a = b) => h
+
+theorem surj_id (α : Type) : Surjective α α (fun (x : α) => x) :=
+  fun (b : α) => Exists.intro α (fun (a : α) => a = b) b (Eq.refl.{1} α b)

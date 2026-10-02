@@ -219,10 +219,11 @@
             "counterexample",
             "refutation-exists",
             "extensionality-refutation",
-            "refutation-sdiff"
+            "refutation-sdiff",
+            "inj-surj-composition"
           ],
           "quota": {
-            "exercises": 28
+            "exercises": 34
           },
           "units": [
             {
@@ -254,6 +255,12 @@
               "title": "单元57 反例与不可证（三）",
               "title_en": "Unit 57 — Refutation (III): Difference as Witness Set",
               "unit": 57
+            },
+            {
+              "file": "units/unit87-inj-surj.sokonanoda",
+              "title": "单元87 单射、满射与复合",
+              "title_en": "Unit 87 — Injections, Surjections, Composition",
+              "unit": 87
             }
           ]
         },
