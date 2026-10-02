@@ -240,6 +240,12 @@
       "tier": "spec",
       "reason": "S-A 重建的卷 I 大纲：教材对齐（Enderton/Halmos 逐节目录）+ 10 个新单元的必证/必破 + 内核墙排期口径，是卷 I 后续所有单元的唯一权威大纲"
     },
+    "docs/design/set-theory-unlocked.md": {
+      "expires": "2026-11-01",
+      "renewed": "2026-10-02",
+      "tier": "spec",
+      "reason": "卷 I 解锁清单：内核拆墙后哪些主题能写/仍缺哪面墙，是下一批单元的直接依据，仍需引用"
+    },
     "docs/design/site-single-page.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
