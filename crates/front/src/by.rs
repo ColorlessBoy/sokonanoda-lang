@@ -96,7 +96,11 @@ fn trusted_prelude_arity(name: &str) -> Option<(usize, usize)> {
 /// `(项参数个数, 宇宙参数个数)`：优先源级 delta 表，其次受信任的 Eq prelude。
 fn def_shape(defs: &DefTable, name: &str) -> Option<(usize, usize)> {
     if let Some(info) = defs.get(name) {
-        return Some((info.params.len(), info.universes.len()));
+        // ⚠ **完整望远镜**（前导 `Forall` + 返回类型里的 `->`），**不是**
+        // `info.params.len()`（那是**声明参数**，见 `params_of_ty` 的 G-72 说明）：
+        // 这里的判据问的是「这个常量一共吃几个实参」（pp 形态丢了前导隐式实参，
+        // 靠这个数把缺的补回来）。`DefInfo` 里存着那个总数（`telescope_arity`）。
+        return Some((info.telescope_arity, info.universes.len()));
     }
     trusted_prelude_arity(name)
 }

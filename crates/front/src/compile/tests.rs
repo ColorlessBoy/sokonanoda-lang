@@ -1999,6 +1999,86 @@ fn st2_quot_names_are_installed() {
     }
 }
 
+/// **G-72（0.81.0）**：`params_of_ty` 只数**前导 `Forall`** —— 返回类型里的 `->`
+/// **不是参数**。
+///
+/// 缺口现场：`def mkRel (α : Type) (r : α → α → Prop) : α → α → Prop :=
+/// fun (a b : α) => r a b ∧ P` ⇒ 老口径把返回类型的两个箭头也当参数
+/// （`params` = 4 条）⇒ `strip_lambdas_n(val, 4)` **多剥两层** ⇒ 登记进 `defs`
+/// 的「定义体」里 `a`/`b` 悬空 ⇒ delta 展开回读报 `unknown identifier b`。
+/// 症状是「**同一个模块：单文件判绿、被 `import` 时判红**」（模块自己判卷不展开
+/// 这层 delta，入口引用它时（`And.left h` 解隐式实参）才展开）。
+///
+/// 三条断言：
+///   ① 有返回箭头的 def：`params` 只到声明参数为止、`body` 里两个 binder 都在；
+///   ② 零参 `def f : Nat → Nat := fun x => x`：`params` 为空、`body` 就是 `fun x => x`
+///      （老口径会剥 2 层、把 binder 也吃掉）；
+///   ③ **反面**：`telescope_arity_of_ty`（`by.rs::def_shape` 要的**完整望远镜**）
+///      仍然把返回类型的箭头算进去 —— 两个口径不许混。
+#[test]
+fn g72_params_of_ty_counts_only_declaration_binders() {
+    fn def_of(src: &str) -> (Vec<String>, crate::Expr, usize) {
+        let file = parse(src).expect("parse def");
+        let crate::ast::Command::Def { ty, val, .. } = &file.commands[0] else {
+            panic!("expected a def command");
+        };
+        let params = super::elab::params_of_ty(ty);
+        let body = super::elab::strip_lambdas_n(val, params.len());
+        let arity = super::elab::telescope_arity_of_ty(ty);
+        (params, body, arity)
+    }
+
+    // ① 返回类型是**字面箭头**：参数只有 α、r 两个。
+    let (params, body, arity) = def_of(
+        "def mkRel (α : Type) (r : α → α → Prop) : α → α → Prop :=\n\
+         \x20 fun (a b : α) => r a b ∧ True\n",
+    );
+    assert_eq!(
+        params.len(),
+        2,
+        "参数只有 α/r（返回类型的箭头不算）：{params:?}"
+    );
+    assert_eq!(arity, 4, "完整望远镜 = 2 个参数 + 返回的两个箭头：{arity}");
+    match body {
+        crate::Expr::Lambda { binders, .. } => {
+            assert_eq!(
+                binders.len(),
+                2,
+                "定义体外面还留着 `fun (a b : α) =>`：{binders:?}"
+            );
+            assert_eq!(binders[0].name, "a");
+            assert_eq!(binders[1].name, "b");
+        }
+        other => panic!("定义体必须还是 `fun (a b : α) => …`，实际 {other:?}"),
+    }
+
+    // ② 零参 def：一层都不剥。
+    let (params, body, arity) = def_of("def ident : Nat → Nat := fun (x : Nat) => x\n");
+    assert!(params.is_empty(), "零参 def 的 params 必须为空：{params:?}");
+    assert_eq!(arity, 1, "`Nat → Nat` 的完整望远镜是 1：{arity}");
+    assert!(
+        matches!(body, crate::Expr::Lambda { .. }),
+        "零参 def 的定义体就是写出来的那个 lambda：{body:?}"
+    );
+
+    // ③ 具名别名返回类型：与字面箭头**同解**（台账里记的绕法 —— 它本来就两态都对，
+    //    因为 `Rel α` 不是箭头，老口径也不会多算）。
+    let (params2, body2, arity2) = def_of(
+        "def mkRel2 (α : Type) (r : α → α → Prop) : Rel α :=\n\
+         \x20 fun (a b : α) => r a b ∧ True\n",
+    );
+    assert_eq!(
+        params2.len(),
+        2,
+        "具名别名返回类型同样只有 2 个参数：{params2:?}"
+    );
+    assert_eq!(arity2, 2, "`Rel α` 不是箭头 ⇒ 完整望远镜也是 2：{arity2}");
+    assert!(
+        matches!(body2, crate::Expr::Lambda { .. }),
+        "具名别名那一形的定义体同样是 lambda：{body2:?}"
+    );
+}
+
 /// **G-56（0.81.0）**：带索引归纳（`Acc` —— Lean core 的官方写法：**下标在返回位**）
 /// 能立起来，且**真能良基消去**。
 ///
@@ -8694,7 +8774,7 @@ theorem sing_eq (\u{3b1} : Type) (a : \u{3b1}) : Set.singleton \u{3b1} a = {a} :
 /// **R5 判据**（A5，2026-09-26 用户要求）：**集合字面量 / 零元记法嵌套在记法里**
 /// 时，前导类型参数必须解得出来。
 ///
-/// 这是 `courses/set-theory/units/unit12-synthesis.sokonanoda` 里**当时那 5 个**
+/// 这是 `courses/set-theory/units/I.4/unit12-synthesis.sokonanoda` 里**当时那 5 个**
 /// `-- soko:notation-ok: R5` 标记的根因 —— 学习者被迫把整条式子写成点名形式
 /// （`Set.singleton (Set Nat) ∅` …）✗。
 /// （R5 修好后该文件的 `R5` 标记**已清零**，只剩 3 个别的理由的标记 ✓ —— 这行记的是

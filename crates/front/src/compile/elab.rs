@@ -376,10 +376,32 @@ pub(crate) struct DefInfo {
     /// `操作数 + implicit_prefix` 个）⇒ 回读会读成 `α := A` ✗。
     pub implicit_prefix: usize,
     pub body: Expr,
+    /// **完整项望远镜层数**（`params_of_ty` 的前导 `Forall` **加上**返回类型里的
+    /// `->`）。`by.rs::def_shape` 的「写出来的实参够不够」判据要它 —— 与
+    /// `params`（**声明参数**，见 G-72）是两个口径，别混。
+    pub telescope_arity: usize,
 }
 
-/// 一条 `def` 声明的参数名（按顺序）——从它的类型里剥 Pi 取 binder 名。
+/// 一条 `def` 声明的**参数名**（按顺序）——从它的类型里剥 **Pi 前导链**取 binder 名。
 /// 零参 def 返回空表。`by` 引擎的 delta 展开与 prelude 登记共用它。
+///
+/// **G-72（0.81.0）：只数前导 `Forall`，返回类型里的 `->` 不算参数。**
+/// `def mkRel (α : Type) (r : α → α → Prop) : α → α → Prop := fun (a b : α) => …`
+/// 的类型是 `(α : Type) → (r : …) → α → α → Prop` —— 后两个箭头是**返回类型**，
+/// 不是参数 ✗。老口径把 `Arrow` 也数进来 ⇒ `params` 比值位外面那层 lambda 的
+/// binder **多 2** ⇒ `strip_lambdas_n` **多剥两层**（把 `fun (a b : α) =>` 也剥掉）
+/// ⇒ 登记进 `defs` 的“定义体”里 `a`/`b` 悬空 ⇒ 展开回读报
+/// **`unknown identifier b`**（实测：**单文件判绿、被 `import` 时判红**，因为
+/// 「模块自己判卷」不展开这层 delta，而入口引用它时（`And.left h` 解隐式实参）
+/// 才展开 ⇒ 同一个模块两种结果 ✗）。
+///
+/// 边界：返回类型**以 `∀` 开头**时（`def f (α) : ∀ (β : Type), β → β := fun β => …`）
+/// 前导链会连着返回类型的那个 `Forall` —— 那不是误判：那种写法的**值位**也必须
+/// 从 `fun (β : Type) =>` 开始，两者按位置对齐 ✓（lambda 层数 = 前导 `Forall` 数）。
+/// 零参 `def f : Nat → Nat := fun x => x` ⇒ 前导链为空 ⇒ 一层都不剥 ✓
+/// （老口径剥 2 层，把 `fun x =>` 也吃掉 ✗）。
+/// 需要**完整望远镜**（含返回类型的箭头）的地方（`by.rs::def_shape` 的
+/// 「写出来的实参够不够」判据）另算，不能拿这里的结果当总数。
 pub(crate) fn params_of_ty(ty: &Expr) -> Vec<String> {
     let mut params = Vec::new();
     let mut cur = ty;
@@ -389,11 +411,25 @@ pub(crate) fn params_of_ty(ty: &Expr) -> Vec<String> {
         }
         cur = body;
     }
+    params
+}
+
+/// 一条类型的**完整项望远镜层数**（前导 `Forall` **加上**返回类型里的 `->`）——
+/// `by.rs::def_shape` 的「写出来的实参够不够」判据要它（pp 形态会丢前导隐式实参，
+/// 判据问的是「这个常量一共吃几个实参」）。**与 [`params_of_ty`] 是两个口径，
+/// 别混**（G-72）。
+pub(crate) fn telescope_arity_of_ty(ty: &Expr) -> usize {
+    let mut n = 0;
+    let mut cur = ty;
+    while let Expr::Forall { binders, body, .. } = cur {
+        n += binders.len();
+        cur = body;
+    }
     while let Expr::Arrow { codomain, .. } = cur {
-        params.push(String::new());
+        n += 1;
         cur = codomain;
     }
-    params
+    n
 }
 
 /// 剥掉 `def` 值位外面的 lambda 层，露出**定义体**。

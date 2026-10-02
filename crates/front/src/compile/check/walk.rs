@@ -16,8 +16,8 @@ use super::{
 };
 use crate::compile::elab::{
     build_axiom, build_def, build_example, build_theorem, elab_expr, install_inductive_block,
-    make_univ_map, params_of_ty, resolve_known, strip_lambdas_n, DefInfo, ElabCtx, ElabScope,
-    HoverNode, InductiveTable, KnownName, KnownTable, UnivMap,
+    make_univ_map, params_of_ty, resolve_known, strip_lambdas_n, telescope_arity_of_ty, DefInfo,
+    ElabCtx, ElabScope, HoverNode, InductiveTable, KnownName, KnownTable, UnivMap,
 };
 use crate::compile::error::{CompileError, ErrorKind};
 use crate::compile::event::CompileOutput;
@@ -584,11 +584,17 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // 源级 delta 表：**值完整**的 def 才登记（开练习的值是洞，展开没意义）。
         // `by` 引擎的 `intro`/`apply` 靠它看穿 `A ⊆ B` 这类 def 头。
         if open_goal(ty, val, templates, &mut Vec::new()).is_none() {
+            let params = params_of_ty(ty);
             let info = DefInfo {
-                params: params_of_ty(ty),
                 universes: universe.to_vec(),
                 implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
-                body: strip_lambdas_n(val, params_of_ty(ty).len()),
+                // **G-72**：剥的层数 = `params` 的长度（= 值位外面那层 lambda 的
+                // binder 数）。两者必须**同源**：`params` 只数前导 `Forall`
+                // （返回类型里的 `->` 不是参数），否则会多剥 ⇒ 定义体里出现悬空
+                // 变量 ⇒ 展开回读报 `unknown identifier …`。
+                body: strip_lambdas_n(val, params.len()),
+                telescope_arity: telescope_arity_of_ty(ty),
+                params,
             };
             self.defs.insert(name.to_string(), info.clone());
             // **短名别名**（R2 实测）：`namespace Set` 里的 def 体是用**短名**

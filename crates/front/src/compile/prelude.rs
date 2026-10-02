@@ -669,15 +669,17 @@ fn install_l1_command<'a>(
             );
             // 源级 delta 表：`by` 引擎靠它看穿 `Not`/`Iff` 这类 **def** 头
             // （`intro x` 在 `¬ A` 目标上、`apply h` 在 `h : A ⊆ B` 上都要它）。
-            defs.insert(
-                name.clone(),
+            defs.insert(name.clone(), {
+                let params = params_of_ty(ty);
                 DefInfo {
-                    params: params_of_ty(ty),
                     universes: universe.clone(),
                     implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
-                    body: strip_lambdas_n(val, params_of_ty(ty).len()),
-                },
-            );
+                    // 与 walk.rs 同一口径（G-72）：剥的层数 = 声明参数个数。
+                    body: strip_lambdas_n(val, params.len()),
+                    telescope_arity: crate::compile::elab::telescope_arity_of_ty(ty),
+                    params,
+                }
+            });
         }
         Command::InductiveBlock {
             name,

@@ -16,6 +16,21 @@
 #   绕法（课程已采用，写在 `lib/Order` 文件头）：返回类型换成**具名别名** `Rel α α`
 #   （`lib/Rel` 的 `Rel A B := A → B → Prop`），实测两态都对。
 #
+# ── **已修（G-72，0.81.0）** ──
+#   **根因**（不在 elaborate 的两条路上，在**源级 delta 表**里）：
+#   `crates/front/src/compile/elab.rs::params_of_ty` 把**返回类型里的 `->`** 也当
+#   参数数进来 —— `def mkRel (α : Type) (r : α → α → Prop) : α → α → Prop :=
+#   fun (a b : α) => …` 的类型是 `(α) → (r) → α → α → Prop` ⇒ `params` = **4** 条，
+#   而值位外面的 lambda 只有 **2** 层 ⇒ `strip_lambdas_n(val, 4)` **多剥两层**
+#   （把 `fun (a b : α) =>` 也剥掉）⇒ 登记进 `defs` 的「定义体」里 `a`/`b` 悬空。
+#   **为什么恰好是"单文件绿、import 红"**：模块自己判卷**不展开**这层 delta；
+#   入口引用它时（`And.left h` 要解隐式实参）才走 `unfold_one_with` 展开 ⇒
+#   回读悬空的 `b` ⇒ `unknown identifier b` ✗。
+#   **修法**：`params_of_ty` **只数前导 `Forall`**（返回类型的 `->` 不是参数），
+#   并把「完整望远镜」的口径单独留给要它的地方（`telescope_arity_of_ty` /
+#   `DefInfo.telescope_arity`，`by.rs::def_shape` 用）；`strip_lambdas_n` 的层数
+#   与 `params` **同源** ✓。
+#
 # 判据形状：**两态必须一致**。修好后相位 A 与相位 B 都 exit 0 ⇒ 本脚本 exit 1。
 
 set -u
