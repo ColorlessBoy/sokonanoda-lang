@@ -31,72 +31,62 @@ fn doc(text: &str) -> QueryDoc {
 /// 一个**具名绑元**的画布（`theorem t (a : Prop) : P := by`）—— 用户报的那一形。
 /// Lean `goalsAt?`：这种写法的 ∀ 绑元在证明开始时**已经在上下文里**，
 /// 初始目标只剩命题本身。
-const NAMED_BINDER_CANVAS: &str = "\
+/// **四形矩阵**（用户 2026-10-02 实测报的 bug；判据：`goal` 不得等于声明的完整
+/// 类型、也不得是 `null`；`binders` 必须是这道题的 ∀ 参数且按序）。
+///
+/// 四形 = ① 冒号前绑元 + `by` · ② 冒号后箭头 + `by`（含**匿名 `Arrow`**）·
+/// ③ 无 `by` 块（`:= sorry`）· ④ 带真 tactic 的声明（顺带覆盖"声明被判 Failed"
+/// 那一格 —— 旧行为吐 `goal: null`，面板据此显示「已无目标 ✓」✗）。
+const ROOT_SHAPES: &str = "\
 axiom And : Prop -> Prop -> Prop
 axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
 
-theorem named_root (a : Prop) (b : Prop) : And a b -> And b a := by
+theorem named (a b : Prop) (h : a) : And a a := by
+  sorry
+
+theorem no_by (a b : Prop) (h : a) : And a a := sorry
+
+theorem with_tactic (a b : Prop) (h : a) : And a a := by
+  constructor
+  sorry
+
+theorem arrow : (a b : Prop) -> a -> And a a := by
+  constructor
   sorry
 ";
 
 #[test]
-fn state_at_root_before_any_tactic() {
-    // ① **箭头式类型**（`theorem t : (a : Prop) -> P := by`）：陈述里没有具名
-    //    绑元 ⇒ 初始目标**就是整个 Pi 类型**、上下文为空（Lean 同此）——
-    //    这条行为**逐字不变**（用户判据：别把对的地方改坏）。
-    let canvas_doc = doc(CANVAS);
-    let offset = CANVAS.find("theorem and_swap").expect("decl start");
-    let state = canvas_doc.state_at(offset).expect("root state is answerable");
-    assert_eq!(
-        state.decl.as_ref().map(|d| d.name.as_str()),
-        Some("and_swap")
-    );
-    assert_eq!(state.step, -1, "before the first tactic = the root state");
-    assert_eq!(
-        state.goal.as_deref(),
-        Some("(a : Prop) → (b : Prop) → a ∧ b → b ∧ a"),
-        "arrow-style declaration: the initial goal is the whole Pi type"
-    );
-    assert!(
-        state.binders.is_empty(),
-        "arrow-style declaration: no named binders to introduce: {:?}",
-        state.binders
-    );
-    assert_eq!(
-        state.span,
-        state.decl.as_ref().map(|d| (d.start, d.end)),
-        "the root span is the declaration's range"
-    );
-
-    // ② **具名绑元**（用户实测报的 bug 现场）：∀ 绑元进 `binders`，`goal` 只剩
-    //    命题本身 —— 这才是 Lean 语义（旧行为把整句量词式当目标、绑元还掉进
-    //    `unknown_ident` ✗）。
-    let named_doc = doc(NAMED_BINDER_CANVAS);
-    let offset = NAMED_BINDER_CANVAS
-        .find("theorem named_root")
-        .expect("decl start");
-    let state = named_doc.state_at(offset).expect("root state is answerable");
-    assert_eq!(state.step, -1);
-    assert_eq!(
-        state.goal.as_deref(),
-        Some("a ∧ b → b ∧ a"),
-        "named binders: the root goal is the remaining proposition"
-    );
-    let names: Vec<&str> = state.binders.iter().map(|b| b.name.as_str()).collect();
-    assert_eq!(
-        names,
-        vec!["a", "b"],
-        "named binders must be in the context at the root state"
-    );
-    let tys: Vec<&str> = state.binders.iter().map(|b| b.ty.as_str()).collect();
-    assert_eq!(tys, vec!["Prop", "Prop"]);
+fn state_at_root_is_the_statement_state_in_every_shape() {
+    let shapes = doc(ROOT_SHAPES);
+    // (声明名, 期望 binders, 期望 goal)
+    let cases: [(&str, Vec<&str>, &str); 4] = [
+        ("named", vec!["a", "b", "h"], "a ∧ a"),
+        ("no_by", vec!["a", "b", "h"], "a ∧ a"),
+        ("with_tactic", vec!["a", "b", "h"], "a ∧ a"),
+        // 箭头式：匿名 `a ->` 是一个没名字的绑元 ⇒ 显示 `_`（Lean 里靠 `intro` 命名）。
+        ("arrow", vec!["a", "b", "_"], "a ∧ a"),
+    ];
+    for (name, want_binders, want_goal) in cases {
+        let offset = ROOT_SHAPES
+            .find(&format!("theorem {name}"))
+            .unwrap_or_else(|| panic!("{name} 的声明起点"));
+        let state = shapes
+            .state_at(offset)
+            .unwrap_or_else(|e| panic!("{name}: 根状态必须答得上：{e:?}"));
+        assert_eq!(state.step, -1, "{name}: 声明头部 = 第一条 tactic 之前");
+        assert_eq!(
+            state.goal.as_deref(),
+            Some(want_goal),
+            "{name}: 头部 `goal` 必须是**剩余命题**，不是整句声明类型、也不是 null"
+        );
+        let names: Vec<&str> = state.binders.iter().map(|b| b.name.as_str()).collect();
+        assert_eq!(
+            names, want_binders,
+            "{name}: 头部 binders = 这道题的 ∀ 参数（按序）"
+        );
+    }
 }
 
-/// **证明中途的状态逐字节不变**（用户判据：那是现在的正确基线）。
-///
-/// 这条钉的是 `step >= 0` 那条分支的**文本**：`select_state_at` 只改了"根状态"
-/// 那个闭包 ⇒ 中途状态按构造不变 ✓，但**构造不变**不等于**输出不变**（有人可能
-/// 顺手动了 goal 的折叠/绑定器渲染）⇒ 用逐字文本钉住 ✓。
 #[test]
 fn state_inside_a_tactic_is_byte_identical_to_the_baseline() {
     let doc = doc(CANVAS);

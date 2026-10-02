@@ -14,17 +14,19 @@
 
 - **批次 N 进度 66/66**（第 519 轮）✓：T-N13（第 518 轮）· T-N15（第 519 轮）⇒ 逐条索引 `docs/visible-changes.md`。 **文档过期日期机制**（第 513 轮）✓：每个活文档都有过期日期（`scripts/docs-expiry.json`）· `git commit` 前自动检测 ⇒ 已过期/未登记**拒绝提交**。
 
+## 内核线（2026-10-02 续）：**G-78 根状态 = 题面状态**（用户真机四形矩阵报的 bug）
+- **现象→修法**：`query state` 的**声明头部**（`step=-1`）答的不是「这道题」—— P1（冒号前绑元 + 真 tactic）吐整句量词式、P2（冒号后箭头）吐 `goal: null`（面板显示「已无目标 ✓」✗）。修法：`walk::statement_state()` 剥完整条 ∀ 望远镜（`Forall` + 匿名 `Arrow`）⇒ `binders` = 题的 ∀ 参数按序（匿名箭头显示 `_`）、`goal` = 剩余命题；根状态与**失败声明**的回退分支都用它（`goal: null` 从此只表示「证明已闭合」）✓。
+- ⚠ **tactic 语义一字未动** ✓：箭头那形的引擎根目标仍是整条 Pi、仍要显式 `intro`（`apply`/`constructor` 都拒绝 Pi 目标；用户画布 5 条箭头式声明全靠 `intro`）✓。
+- **判据** ✓：`docs/gaps/repro/G78-state-root-statement-state.sh`（四形 × 两位置 = 7 个位置）+ **反向验证内置**（`SOKO_STATE_ROOT=legacy` 撤掉修复 ⇒ 判据必红，`expect-red.sh` 跑）✓ + `step>=0` 逐字节不变 ✓。
+- **顺带** ✓：`docs/protocol.md` 按**冻结预算**减到 898 行（上一笔把它撑到 906 行超预算 ✗，本轮 docs-lint ④⑦ 报出）；`gap.py close` 会**重排整个台账**（88 行全变 ✗）⇒ 已手工恢复成「原文 + 一行」✓。
+
 ## 内核线批次（2026-10-02）：**9 条 blocker 全清**（G-56/58/59/64/71/72/74/75/76）
 - **交付** ✓：台账 9 条 `language`/`kernel`/`sokonanoda` 阻断项全部 `fixed` / `fixed_in: 0.81.0` ✓，一条一 commit（`977bf968` G-76 · `dad0cd9f` G-58+G-59 · `73ad7e6a` G-75 · `660b9ccd` G-74 · `d2062373` G-64 · `ff19b2a8` G-56 · `0ebace86` G-72 · `66a154dd` G-71 左半 · `405a9b68` G-71 后半）✓。
 - **新接受面（用户已批准）**：`Classical.em` + `Classical.byContradiction`（G-74，prelude 家族 B10）· `Quot.exact`（G-75，带等价关系前提的**可靠**形态）· `Acc`（G-56/G-64：带索引归纳 + 大消去）· 大消去（G-58/G-59）· `Nat.add/mul` 递归方程（G-76，只在深 whnf 路径）✓。
 - **判定正确性** ✓：每条都过**全量语料对拍**（逐字节）—— G-64/G-56/G-72/G-71 左半**零差异** ✓；G-71 后半 3/1614 差异**全部**是本复现件自己由红转绿 ✓；课程门禁 **232/1970/869/0**（0 判负）✓。
 - **根因更正两条**（台账 notes 已记 ✓）：G-56 原文把「下标写块头」当待修形状 —— 实测**那一形官方 Lean 同样拒**（递归出现不按参数 uniform），真正要修的是「下标写返回位」那条路上的**前端大消去镜像**（合成 `#check` 看不见正在声明的块自己）✓；G-72 根因不在 elaborate 两条路，而在**源级 delta 表**（`params_of_ty` 把返回类型的 `->` 当参数 ⇒ 定义体多剥两层）✓。
 - **前线**：课程线已在用（单元105 经典等价 · 单元106 `Acc` 良基递归 · 单元107 ∈-归纳）✓；本轮未碰 `courses/` ✓。
-- **事故两条如实记录**（2026-10-02）✗：① **写模式 fmt 碰了内核快照** —— `cargo fmt -p <三个教学 crate>`
-  实测把 `crates/kernel/**` **24 文件**按 stable rustfmt 重排（+1178/−1044；kernel 用 nightly-only 配置、
-  CI 的 fmt 门禁**故意只查教学 crate** ⇒ 无人拦）⇒ 已 `git restore crates/kernel/` 还原 ✓、`git diff HEAD -- crates/kernel` = **0** ✓、未提交未推送 ✓。
-  ② **判据缺陷**：报「工作区干净」时用了 `git status --short | grep -v '^ M crates/kernel'` —— 过滤器删掉了要断言的行 ⇒ **不可能失败** ✗（= §3 #5「咬不住的守卫等于没有」同形）。
-  **新纪律**：报状态只用**未过滤**的 `git status --short`；写模式 fmt 后必须断言 `git status --short crates/kernel` 为空；归属要有证据、没证据写「未确认」✗。
+- **事故两条如实记录**（2026-10-02）✗：① **写模式 fmt 碰了内核快照** —— `cargo fmt -p <三个教学 crate>` 实测把 `crates/kernel/**` **24 文件**按 stable rustfmt 重排（CI 的 fmt 门禁**故意只查教学 crate** ⇒ 无人拦）⇒ 已 `git restore crates/kernel/` 还原 ✓、`git diff HEAD -- crates/kernel` = **0** ✓、未推送 ✓；② 报「工作区干净」时用了 `git status --short | grep -v '^ M crates/kernel'` —— **过滤器删掉了要断言的行** ⇒ 判据**不可能失败** ✗（§3 #5「咬不住的守卫等于没有」同形）。**新纪律**：报状态只用**未过滤**的 `git status --short`；写模式 fmt 后必须断言 `git status --short crates/kernel` 为空 ✓。
 
 ## 第 681 轮（2026-10-02）：**清欠账 —— C-01 / C-03 / C-04 三条结案**（236/1998/881/0）
 - **C-01（主债）已还** ✓：**`ordinal_trichotomy` 真正装上了** ✓ —— 判据 `units/solutions/I.6/unit108-solution.sokonanoda` 的 `ordinal_trichotomy` ⇒ `bisect` **`[11] ok … (checked=11)` · ALL GREEN** ✓；画布同步加练习（8 个 ✓）、标题改「序数三歧（引理与装配）」✓、配额 78 ✓ ⇒ 门禁 **236/1998/881/0** ✓（`checked` +1 = 这条主定理 ✓）。

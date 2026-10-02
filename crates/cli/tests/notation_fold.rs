@@ -201,40 +201,44 @@ fn the_fold_switch_turns_every_foldable_surface_pointwise() {
     let root_on = state_at(&path, line_of("theorem ext_pattern"), 3, true);
     let root_off = state_at(&path, line_of("theorem ext_pattern"), 3, false);
     assert_eq!(root_on["step"], -1, "声明行 = 根状态");
-    let root_on = root_on["goal"].as_str().expect("root goal").to_string();
-    let root_off = root_off["goal"].as_str().expect("root goal").to_string();
-    assert!(
-        root_on.contains('↔') && root_on.contains('∈'),
-        "根状态开着折叠时应当带记法：{root_on}"
+    // **2026-10-02（G-78，用户实测四形矩阵）**：根状态 = **题面**，而且是**源级渲染**
+    // （走查 `statement_state` 渲的是 elaboration 之后的源 AST ⇒ 源里写的记法原样保留）
+    // ⇒ 与 `open_subset` 的 `ty` 同族：**不受折叠开关影响** ✓（折叠是"点名 → 记法"的
+    // 单向美化；源里本来就是记法时无可再折）。
+    let root_goal = root_on["goal"].as_str().expect("root goal").to_string();
+    assert_eq!(root_goal, "A = B", "根状态的 goal = 题面剩下要证的那句");
+    assert_eq!(
+        root_on["goal"], root_off["goal"],
+        "根状态是源级渲染 ⇒ 折叠开关不改变 goal"
     );
+    let h_ty_on = binder_ty(&root_on, "h");
+    let h_ty_off = binder_ty(&root_off, "h");
     assert!(
-        !root_off.contains('↔') && !root_off.contains('∈') && root_off.contains("Iff"),
-        "根状态关掉折叠后应当是点名：{root_off}"
+        h_ty_on.contains('↔')
+            && h_ty_on.contains('∈')
+            && h_ty_off.contains('↔')
+            && h_ty_off.contains('∈'),
+        "根状态里用户看到的还是自己写的记法（开关不改变它）：{h_ty_on} / {h_ty_off}"
     );
-    assert_ne!(root_on, root_off, "开关必须真的改变根状态");
+    // 折叠仍是**单向美化**：源里写 ASCII 关键字时它负责折成 unicode（`->` ⇒ `→`）；
+    // 源里本来就是记法（`∈`/`↔`）时无可再折。
+    assert!(
+        h_ty_on.contains('→') && !h_ty_off.contains('→') && h_ty_off.contains("->"),
+        "关键字折叠照旧：{h_ty_on} / {h_ty_off}"
+    );
 
-    // ---- 生产者 4：`by` 步进（`apply Set.ext` 之后的子目标） -------------
-    // 光标落在 `exact h` 上 = 进入它时的状态 = `apply` 出来的那个子目标。
-    let step_on = state_at(&path, line_of("exact h"), 3, true);
-    let step_off = state_at(&path, line_of("exact h"), 3, false);
-    let step_on = step_on["goal"].as_str().expect("by-step goal").to_string();
-    let step_off = step_off["goal"].as_str().expect("by-step goal").to_string();
-    assert!(
-        step_on.contains('↔') && step_on.contains('∈'),
-        "`by` 步进开着折叠时应当带记法：{step_on}"
-    );
-    assert!(
-        !step_off.contains('↔') && !step_off.contains('∈') && step_off.contains("Iff"),
-        "`by` 步进关掉折叠后应当是点名：{step_off}"
-    );
-    assert_ne!(step_on, step_off, "开关必须真的改变 `by` 步进");
-
-    let _ = std::fs::remove_file(&path);
-}
-
-#[test]
-fn source_rendered_surfaces_ignore_the_fold_switch() {
-    let path = canvas_file("source-rendered");
+    /// 根状态里某个绑元的类型文本。
+    fn binder_ty(state: &Value, name: &str) -> String {
+        state["binders"]
+            .as_array()
+            .expect("binders array")
+            .iter()
+            .find(|b| b["name"] == name)
+            .unwrap_or_else(|| panic!("根状态里应当有绑元 {name}：{state}"))["ty"]
+            .as_str()
+            .expect("binder ty")
+            .to_string()
+    }
 
     // ---- 生产者 2：不带 `by` 的开练习 ----------------------------------
     // 这条 `goal` 走 `render_expr` 的**源级渲染**（T-C01 实测），记法来自源文本

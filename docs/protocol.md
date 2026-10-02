@@ -451,17 +451,11 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   (the Infoview) must use these runs and never re-tokenize the text — that is
   what keeps hover and the Infoview from drifting apart.
 - Selects the goal state at the caret with Lean `goalsAt?` semantics: inside
-  a tactic's source span → the state **entering** that tactic; otherwise the
-  state after the last tactic that ended at or before the caret; before the
-  first tactic → the root state (`step: -1`, `span` = the declaration's
-  range, **goal = the remaining goal proposition and `binders` = the
-  declaration's ∀ binders**).
-- ⚠ **2026-10-02 更正（用户实测报的 bug）**：根状态原先规定为「goal = 声明类型
-  的**完整内核渲染文本** + 空 `binders`」✗ —— 那不是任何 Lean 意义上的证明状态：
-  定理的 ∀ 绑元在证明开始时就**已经引入上下文**，初始目标只剩命题本身（Lean
-  `goalsAt?` 同此）。旧行为让 Infoview 顶部显示整句量词式，且绑元被标成
-  `unknown_ident`（应为 `binder`）✗。真相层唯一实现
-  （`front::query::select_state_at`）与本节同步更正。
+  a tactic's span → the state **entering** it; else after the last tactic
+  ending at or before the caret; before the first tactic → the **statement
+  state** (`step: -1`, `span` = its range, `binders` = its ∀ params in order —
+  anonymous arrow shows `_` — `goal` = what is left; also for no-`by` and
+  **failed** declarations ⇒ `goal: null` means "closed", never "failed").
 - `goals` is the **full** remaining-goal list at that position (current goal
   first, `[]` = closed), each entry carrying its own `goal` text and
   `binders` — so a multi-subgoal tactic (`apply And.intro`) shows both
@@ -472,10 +466,8 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   recorded after each tactic runs); `total` is the tactic count. For a
   declaration without a `by` block both are `-1`/`0` and the response falls
   back to the declaration's remaining goal/context (`step: -1`).
-- `goal: null` = no remaining goals at that position (the proof is closed).
-  `decl: null` = the caret is not inside any declaration; all other fields
-  then default (`goal: null`, empty `binders`, `span: null`, `step: -1`,
-  `total: 0`).
+- `decl: null` = the caret is not inside any declaration; all other fields
+  then default (`goal: null`, empty `binders`, `span: null`, `step: -1`, `total: 0`).
 - The response carries the document `version` so clients drop stale answers.
   Selection is entirely server-side (clients never scan the source);
   `soko/goals` is unaffected.

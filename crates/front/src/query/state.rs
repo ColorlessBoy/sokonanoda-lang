@@ -3,7 +3,7 @@
 //! 从 `mod.rs` 拆出（模块化硬规则：单文件 ~500 行上限）。语义与协议原文见
 //! [`select_state_at`] 的文档；适配器（LSP/CLI/MCP）只做坐标转换，不得重算。
 
-use crate::compile::{ByGoalState, DeclState};
+use crate::compile::{ByGoalState, DeclState, DeclStatus};
 use crate::span::Span;
 
 /// 光标处的状态选择（Lean `goalsAt?` 语义的唯一实现）。
@@ -34,12 +34,35 @@ pub struct StateSelection {
 ///   （`goal` + `binders`；已闭合时为 `[]` ⇒ wire `goal: null`）。这与"根状态"
 ///   是两回事——根状态只属于有 tactic 的声明。
 ///
+/// **题面状态（2026-10-02 用户四形矩阵定稿）**：声明头部/第一条 tactic 之前
+/// （`step: -1`）答的是**这道题本身** —— `binders` = 声明的 ∀ 参数（按序，含
+/// 匿名箭头的 `_`）、`goal` = 剥掉它们之后的命题。**四形都要成立**：冒号前绑元 ·
+/// 冒号后箭头 · 无 `by` 块 · **失败的声明**（后者旧行为吐 `goal: null`，面板据此
+/// 显示「已无目标 ✓」——对一道没通过的题是假话 ✗）。
+///
 /// 这些条款都是协议规定、且 LSP 客户端（VS Code Infoview / 练习树）依赖的行为；
-/// 真相层必须与之逐字一致——先前这里的闭区间与"根状态带 binders/剩余目标"是
-/// 错的（`docs/design/agent-query-channel.md` 的 H6-A 一致性契约正是为此）。
+/// 真相层必须与之逐字一致。
+///
+/// 逃生门 `SOKO_STATE_ROOT=legacy`：恢复**改动前**的行为（根状态吐声明类型文本 +
+/// 空 binders、失败声明吐 null）——**只给反向验证用**（见
+/// `docs/gaps/repro/` 的这条复现件：`scripts/expect-red.sh` 断言撤掉修复后判据必须红）。
 pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
-    // 无 `by` ⇒ 没有 per-tactic 状态可选，协议规定退回声明级的目标/上下文。
+    let legacy = state_root_legacy();
+    // 无 `by` ⇒ 没有 per-tactic 状态可选。
     if d.by_steps.is_empty() {
+        // **失败的声明**：没有 per-tactic 状态，但它**仍然有一道题**（走查记下的
+        // `by_root` = 题面）。旧行为这里吐 `goal: null` ⇒ 面板显示「已无目标 ✓」✗
+        // （用户 P2 实测：`constructor` 被拒 ⇒ 声明 Failed ⇒ 面板谎报已证完）。
+        if !legacy && matches!(d.status, DeclStatus::Failed) {
+            if let Some(root) = d.by_root.clone() {
+                return StateSelection {
+                    goals: vec![root],
+                    span: Some(d.span),
+                    step: -1,
+                    total: 0,
+                };
+            }
+        }
         return StateSelection {
             goals: d
                 .goal
@@ -71,17 +94,29 @@ pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
     // ③ 洞处状态（`d.goal`/`d.binders`）**任何时候都不许**用在这里 ✗ ——
     //    它是"走查走到洞那一步"的状态，不是"第一条 tactic 之前"。
     let root = || StateSelection {
-        goals: d
-            .by_root
-            .clone()
-            .or_else(|| {
-                d.ty_text.clone().map(|ty| ByGoalState {
+        goals: if legacy {
+            // **改动前**的行为（只给反向验证用 ✗）：声明类型的内核渲染文本 +
+            // 空 binders —— 面板据此把整句量词式当目标（用户报的就是这条）。
+            d.ty_text
+                .clone()
+                .map(|ty| ByGoalState {
                     ty,
                     binders: Vec::new(),
                 })
-            })
-            .into_iter()
-            .collect(),
+                .into_iter()
+                .collect()
+        } else {
+            d.by_root
+                .clone()
+                .or_else(|| {
+                    d.ty_text.clone().map(|ty| ByGoalState {
+                        ty,
+                        binders: Vec::new(),
+                    })
+                })
+                .into_iter()
+                .collect()
+        },
         span: Some(d.span),
         step: -1,
         total: d.by_steps.len(),
@@ -112,4 +147,10 @@ pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
         step: selected,
         total: d.by_steps.len(),
     }
+}
+
+/// 逃生门（**只给反向验证用**）：`SOKO_STATE_ROOT=legacy` 恢复改动前的根状态
+/// 行为。任何生产路径都不该设它 ✓。
+fn state_root_legacy() -> bool {
+    matches!(std::env::var("SOKO_STATE_ROOT").as_deref(), Ok("legacy"))
 }

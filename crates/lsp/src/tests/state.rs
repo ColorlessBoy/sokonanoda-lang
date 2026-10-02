@@ -227,19 +227,24 @@ async fn state_at_on_the_by_keyword_returns_the_root_goal() {
     let result = ask_state_at(&mut service, BY_OPEN, offset_of(BY_OPEN, "by intro")).await;
     assert_eq!(result["step"], -1, "before the first tactic = root state");
     assert_eq!(result["total"], 2);
-    let goal = result["goal"].as_str().expect("root goal is the full type");
-    // **线 C（T-C20）之后**：根状态也要过记法折叠 ⇒ `And a a -> a` 变成
-    // `a ∧ a -> a`。这条断言因此从"含 `And`"改成"含 `∧`"——用户看的就是它
-    // （T-C01 实测：学习者的光标在 tactic 上，看到的是根状态），而"goal 里没有
-    // 记法"正是用户报的那条。
-    assert!(
-        goal.contains('∧'),
-        "root goal is the declared type, notation-folded: {goal}"
+    // **2026-10-02（G-78，用户实测四形矩阵）**：根状态 = **题面** —— ∀ 参数进
+    // `binders`（匿名箭头显示 `_`）、`goal` 只剩剥掉它们之后的命题；旧行为答的是
+    // 整句声明类型（`And a a -> a`）。记法折叠（线 C / T-C20）仍旧生效，落在
+    // **绑元的类型**上（匿名箭头 `And a a` ⇒ `a ∧ a`）。
+    let goal = result["goal"].as_str().expect("root goal is the statement");
+    assert_eq!(goal, "a", "root goal = 剥掉 ∀ 参数之后的命题：{goal}");
+    let binders = result["binders"].as_array().expect("binders array");
+    let names: Vec<&str> = binders.iter().filter_map(|b| b["name"].as_str()).collect();
+    assert_eq!(
+        names,
+        vec!["a", "_"],
+        "根状态的 binders = 声明的 ∀ 参数（按序，匿名箭头显示 `_`）"
     );
-    assert!(result["binders"]
-        .as_array()
-        .expect("binders array")
-        .is_empty());
+    let anon_ty = binders[1]["ty"].as_str().expect("anonymous binder ty");
+    assert!(
+        anon_ty.contains('∧'),
+        "绑元类型也过记法折叠（`And a a` ⇒ `a ∧ a`）：{anon_ty}"
+    );
     shutdown(&mut service).await;
 }
 

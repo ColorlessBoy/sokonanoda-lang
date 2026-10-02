@@ -1176,7 +1176,10 @@ fn state_root_introduces_named_binders_across_units() {
                     .collect()
             })
             .unwrap_or_default();
-        let runs = value["data"]["goal_runs"].as_array().cloned().unwrap_or_default();
+        let runs = value["data"]["goal_runs"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
         for r in &runs {
             if r["kind"].as_str() == Some("unknown_ident") {
                 let t = r["text"].as_str().unwrap_or("");

@@ -29,26 +29,45 @@ use crate::compile::units::SourceUnit;
 use crate::{Binder, Command, CtorDecl, Expr, IotaRule, OpenFilter, RecDecl, Span};
 use sokonanoda::builder::EnvBuilder;
 
-/// **根状态**（第一条 tactic 之前）：声明的 ∀ 绑元 + 剥掉它们之后的命题。
+/// **题面状态** —— 声明头部的根状态：声明的 ∀ 参数 + 剥掉它们之后的命题。
 ///
-/// `val` 必须是**源值位**（`fun <声明绑元> => by …`，见 `by::split_by_value`）——
-/// 不是 lowering 之后的 lambda ✗。没有 `by` 块 ⇒ `None`（那时声明级的
-/// `goal`/`binders` 才是对的）。
+/// 用户 2026-10-02 的四形矩阵要求**四形都成立**：`theorem t (a) : P`（冒号前
+/// 绑元）· `theorem t : (a) -> P`（冒号后箭头，含**匿名 `Arrow`**）· `:= sorry`
+/// （无 `by` 块）· **失败的声明**（`constructor` 被拒之类 ⇒ 以前这里吐 `goal: null`，
+/// 面板据此显示「已无目标 ✓」，对一道没通过的题是假话 ✗）。
 ///
-/// 为什么要单独记（2026-10-02 用户实测报的 bug）：`DeclState.goal`/`binders` 是
-/// **洞处**的状态（走查引入的假设已经进去），而 `soko/stateAt` 的根状态要的是
-/// "第一条 tactic 之前" —— Lean `goalsAt?` 语义下定理的 ∀ 绑元在证明开始时就在
-/// 上下文里。混同 ⇒ Infoview 顶部显示整句量词式、绑元被标 `unknown_ident` ✗。
-fn by_root_state(
-    ty: &Expr,
-    val: &Expr,
-    display: &crate::display::DisplayNotations,
-) -> Option<ByGoalState> {
-    let (binders, _) = crate::by::split_by_value(val)?;
-    let body = crate::proof::peel_pi_layers(ty, binders.len())?;
+/// ⚠ **不动 tactic 语义**：箭头式声明的**引擎**根目标仍是整条 Pi（要显式
+/// `intro`，与 Lean 一致 —— 实测 `apply And.intro`/`constructor` 都拒绝 Pi 目标，
+/// 错误文案自己写着「先 `intro` 拆开试试」；用户画布 5 条箭头式声明全靠 `intro`）。
+/// 这里回答的是"**题目**长什么样"，不是"引擎此刻的 goal 是什么"——两者对
+/// 冒号前绑元那形恒等，对箭头式那形按用户判据取题面。
+fn statement_state(ty: &Expr, display: &crate::display::DisplayNotations) -> Option<ByGoalState> {
+    let mut collected: Vec<Binder> = Vec::new();
+    let mut cur: &Expr = ty;
+    loop {
+        match cur {
+            Expr::Forall { binders, body, .. } => {
+                collected.extend(binders.iter().cloned());
+                cur = body.as_ref();
+            }
+            // 匿名箭头 `A -> B` = 一个没名字的绑元（Lean 里要靠 `intro` 命名）。
+            Expr::Arrow {
+                domain, codomain, ..
+            } => {
+                collected.push(Binder {
+                    name: "_".to_string(),
+                    ty: Some(domain.clone()),
+                    style: crate::BinderKind::Explicit,
+                    span: Span::default(),
+                });
+                cur = codomain.as_ref();
+            }
+            _ => break,
+        }
+    }
     Some(ByGoalState {
-        ty: display.fold(&render_expr(&body)),
-        binders: binders
+        ty: display.fold(&render_expr(cur)),
+        binders: collected
             .iter()
             .map(|b| GoalBinder {
                 name: b.name.clone(),
@@ -598,17 +617,16 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             Ok(v) => v,
             Err(e) => {
                 self.out.push_error(idx, e.clone());
-                self.decl_states.push(failed_state(
-                    DeclKind::Definition,
-                    Some(name.to_string()),
-                    span,
-                    e,
-                    idx,
-                ));
+                {
+                    let mut st =
+                        failed_state(DeclKind::Definition, Some(name.to_string()), span, e, idx);
+                    st.by_root = statement_state(ty, &self.display);
+                    self.decl_states.push(st);
+                }
                 return;
             }
         };
-        let by_root = by_root_state(ty, val, &self.display);
+        let by_root = statement_state(ty, &self.display);
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         // 源级 delta 表：**值完整**的 def 才登记（开练习的值是洞，展开没意义）。
@@ -694,13 +712,17 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     Ok(sig) => sig,
                     Err(e) => {
                         self.out.push_error(idx, e.clone());
-                        self.decl_states.push(failed_state(
-                            DeclKind::Definition,
-                            Some(name.to_string()),
-                            span,
-                            e,
-                            idx,
-                        ));
+                        {
+                            let mut st = failed_state(
+                                DeclKind::Definition,
+                                Some(name.to_string()),
+                                span,
+                                e,
+                                idx,
+                            );
+                            st.by_root = statement_state(ty, &self.display);
+                            self.decl_states.push(st);
+                        }
                         return;
                     }
                 };
@@ -781,13 +803,17 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 if let Err(e) = self.builder.add_declar(decl.clone()) {
                     let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
                     self.out.push_error(idx, err.clone());
-                    self.decl_states.push(failed_state(
-                        DeclKind::Definition,
-                        Some(name_owned.clone()),
-                        span,
-                        err,
-                        idx,
-                    ));
+                    {
+                        let mut st = failed_state(
+                            DeclKind::Definition,
+                            Some(name_owned.clone()),
+                            span,
+                            err,
+                            idx,
+                        );
+                        st.by_root = statement_state(ty, &self.display);
+                        self.decl_states.push(st);
+                    }
                     return;
                 }
                 self.known.insert(
@@ -817,13 +843,12 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             }
             Err(e) => {
                 self.out.push_error(idx, e.clone());
-                self.decl_states.push(failed_state(
-                    DeclKind::Definition,
-                    Some(name.to_string()),
-                    span,
-                    e,
-                    idx,
-                ));
+                {
+                    let mut st =
+                        failed_state(DeclKind::Definition, Some(name.to_string()), span, e, idx);
+                    st.by_root = statement_state(ty, &self.display);
+                    self.decl_states.push(st);
+                }
             }
         }
     }
@@ -879,17 +904,16 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             Ok(v) => v,
             Err(e) => {
                 self.out.push_error(idx, e.clone());
-                self.decl_states.push(failed_state(
-                    DeclKind::Theorem,
-                    Some(name.to_string()),
-                    span,
-                    e,
-                    idx,
-                ));
+                {
+                    let mut st =
+                        failed_state(DeclKind::Theorem, Some(name.to_string()), span, e, idx);
+                    st.by_root = statement_state(ty, &self.display);
+                    self.decl_states.push(st);
+                }
                 return;
             }
         };
-        let by_root = by_root_state(ty, val, &self.display);
+        let by_root = statement_state(ty, &self.display);
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
@@ -960,13 +984,17 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     Ok(sig) => sig,
                     Err(e) => {
                         self.out.push_error(idx, e.clone());
-                        self.decl_states.push(failed_state(
-                            DeclKind::Theorem,
-                            Some(name.to_string()),
-                            span,
-                            e,
-                            idx,
-                        ));
+                        {
+                            let mut st = failed_state(
+                                DeclKind::Theorem,
+                                Some(name.to_string()),
+                                span,
+                                e,
+                                idx,
+                            );
+                            st.by_root = statement_state(ty, &self.display);
+                            self.decl_states.push(st);
+                        }
                         return;
                     }
                 };
@@ -1047,13 +1075,17 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 if let Err(e) = self.builder.add_declar(decl.clone()) {
                     let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
                     self.out.push_error(idx, err.clone());
-                    self.decl_states.push(failed_state(
-                        DeclKind::Theorem,
-                        Some(name_owned.clone()),
-                        span,
-                        err,
-                        idx,
-                    ));
+                    {
+                        let mut st = failed_state(
+                            DeclKind::Theorem,
+                            Some(name_owned.clone()),
+                            span,
+                            err,
+                            idx,
+                        );
+                        st.by_root = statement_state(ty, &self.display);
+                        self.decl_states.push(st);
+                    }
                     return;
                 }
                 self.known.insert(
@@ -1083,13 +1115,12 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             }
             Err(e) => {
                 self.out.push_error(idx, e.clone());
-                self.decl_states.push(failed_state(
-                    DeclKind::Theorem,
-                    Some(name.to_string()),
-                    span,
-                    e,
-                    idx,
-                ));
+                {
+                    let mut st =
+                        failed_state(DeclKind::Theorem, Some(name.to_string()), span, e, idx);
+                    st.by_root = statement_state(ty, &self.display);
+                    self.decl_states.push(st);
+                }
             }
         }
     }
@@ -1257,12 +1288,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             Ok(v) => v,
             Err(e) => {
                 self.out.push_error(idx, e.clone());
-                self.decl_states
-                    .push(failed_state(DeclKind::Example, None, span, e, idx));
+                let mut st = failed_state(DeclKind::Example, None, span, e, idx);
+                st.by_root = statement_state(ty, &self.display);
+                self.decl_states.push(st);
                 return;
             }
         };
-        let by_root = by_root_state(ty, val, &self.display);
+        let by_root = statement_state(ty, &self.display);
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
@@ -1318,8 +1350,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     Ok(sig) => sig,
                     Err(e) => {
                         self.out.push_error(idx, e.clone());
-                        self.decl_states
-                            .push(failed_state(DeclKind::Example, None, span, e, idx));
+                        let mut st = failed_state(DeclKind::Example, None, span, e, idx);
+                        st.by_root = statement_state(ty, &self.display);
+                        self.decl_states.push(st);
                         return;
                     }
                 };
@@ -1400,8 +1433,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 if let Err(e) = self.builder.add_declar(decl.clone()) {
                     let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
                     self.out.push_error(idx, err.clone());
-                    self.decl_states
-                        .push(failed_state(DeclKind::Example, None, span, err, idx));
+                    let mut st = failed_state(DeclKind::Example, None, span, err, idx);
+                    st.by_root = statement_state(ty, &self.display);
+                    self.decl_states.push(st);
                     return;
                 }
                 let env_after = self.builder.declaration_count();
@@ -1422,8 +1456,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             }
             Err(e) => {
                 self.out.push_error(idx, e.clone());
-                self.decl_states
-                    .push(failed_state(DeclKind::Example, None, span, e, idx));
+                let mut st = failed_state(DeclKind::Example, None, span, e, idx);
+                st.by_root = statement_state(ty, &self.display);
+                self.decl_states.push(st);
             }
         }
     }
