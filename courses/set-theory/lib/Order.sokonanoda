@@ -99,7 +99,7 @@ def HasMin (α : Type) (r : α → α → Prop) (P : α → Prop) : Prop :=
 def HasLeast (α : Type) (r : α → α → Prop) (P : α → Prop) : Prop :=
   ∃ (m : α), P m ∧ ∀ (y : α), P y → r m y
 
--- 良基：**每个非空子集都有最小元**（本语言没有 `Acc`，见文件头偏离 ③）
+-- 良基：**每个非空子集都有最小元**（`Acc` 版本见文件末尾 —— 台账 **G-56 已修** ✓）
 def IsWellFounded (α : Type) (r : α → α → Prop) : Prop :=
   ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P
 
@@ -460,3 +460,38 @@ theorem pointwiseLe_def (α β : Type) (r : β → β → Prop) (f g : α → β
 theorem pointwiseLe_apply (α β : Type) (r : β → β → Prop) (f g : α → β)
     (h : PointwiseLe α β r f g) (a : α) : r (f a) (g a) :=
   (fun (hu : ∀ (a' : α), r (f a') (g a')) => hu a) h
+
+-- ── 良基递归（`Acc`）────────────────────────────────────────────────────────
+-- 台账 **G-56**（「`Acc` 立不起来 ⇒ 语言里没有良基递归」）**已修** ⇒ 现在可以在库里
+-- 声明它、并用它的**归纳原理**做证明。它是**带索引**的归纳（下标在返回位）：
+-- `Acc α r : α → Prop`；派生的 `Acc.rec` 的 motive 吃 `(x : α)` 与 `Acc α r x` 两个参数
+-- ⇒ 库把它包成课程惯用的 `acc_ind`（motive 只吃 `x`）。
+inductive Acc (α : Type) (r : α → α → Prop) : α → Prop
+ctor Acc.intro (x : α) (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x
+end
+
+-- **良基归纳**：`Acc` 上的归纳原理（`step` 只需在"所有前驱都成立"的前提下证 `x`）。
+theorem acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x) :
+    ∀ (x : α), Acc α r x → motive x :=
+  fun (x : α) (h : Acc α r x) =>
+    Acc.rec α r (fun (z : α) (_ : Acc α r z) => motive z)
+      (fun (z : α) (hz : ∀ (y : α), r y z → Acc α r y)
+        (ih : ∀ (y : α) (hy : r y z), motive y) => step z ih) x h
+
+-- **递归定义的唯一性**（良基关系的教科书定理）：两条满足同一递归方程的函数在 `Acc` 上
+-- 处处相等 —— 证明只用 `acc_ind` ✓（**不需要选择公理** ✓）。
+theorem acc_unique (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α r x → f x = g x :=
+  acc_ind α r (fun (x : α) => f x = g x)
+    (fun (x : α) (ih : ∀ (y : α), r y x → f y = g y) => spec x ih)
+
+-- **取用子**：`Acc α r x` 的**前驱都可达** ✓ —— 注意它**不能**由 `acc_ind` 得到
+-- （那里的 motive 只吃 `x`，归纳假设拿不到"前驱的 `Acc`"）⇒ 直接用 `Acc.rec` 的
+-- **下标感知** motive（吃 `x` 与 `Acc α r x` 两个参数）。
+theorem acc_inv (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ∀ (y : α), r y x → Acc α r y :=
+  Acc.rec α r (fun (z : α) (_ : Acc α r z) => ∀ (y : α), r y z → Acc α r y)
+    (fun (z : α) (hz : ∀ (y : α), r y z → Acc α r y)
+      (_ih : ∀ (y : α) (hy : r y z), ∀ (v : α), r v y → Acc α r v) => hz) x h

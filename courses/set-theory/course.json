@@ -454,10 +454,11 @@
             "ordinal-elements",
             "successor-spec",
             "succ-ordinal",
-            "ordinal-no-cycle"
+            "ordinal-no-cycle",
+            "well-founded-recursion"
           ],
           "quota": {
-            "exercises": 55
+            "exercises": 60
           },
           "units": [
             {
@@ -501,6 +502,12 @@
               "title": "单元83 序数的无环性",
               "title_en": "Unit 83 — Ordinals Have No Membership Cycles",
               "unit": 83
+            },
+            {
+              "file": "units/I.6/unit106-acc.sokonanoda",
+              "title": "单元106 良基递归（Acc）",
+              "title_en": "Unit 106 — Well-Founded Recursion (Acc)",
+              "unit": 106
             }
           ]
         },

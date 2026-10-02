@@ -1,0 +1,40 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+theorem demo_acc_intro (α : Type) (r : α → α → Prop) (x : α)
+    (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x :=
+  Acc.intro α r x h
+
+theorem demo_acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x) :
+    ∀ (x : α), Acc α r x → motive x :=
+  acc_ind α r motive step
+
+theorem demo_acc_unique (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α r x → f x = g x :=
+  acc_unique α β r f g spec
+
+theorem acc_intro_apply (α : Type) (r : α → α → Prop) (x : α)
+    (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x :=
+  Acc.intro α r x h
+
+theorem acc_ind_apply (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x)
+    (x : α) (h : Acc α r x) : motive x :=
+  acc_ind α r motive step x h
+
+theorem acc_unique_apply (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x)
+    (x : α) (h : Acc α r x) : f x = g x :=
+  acc_unique α β r f g spec x h
+
+theorem acc_inv_apply (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ∀ (y : α), r y x → Acc α r y :=
+  acc_inv α r x h
+
+theorem acc_no_self (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ¬ (r x x) :=
+  acc_ind α r (fun (z : α) => ¬ (r z z))
+    (fun (z : α) (ih : ∀ (y : α), r y z → ¬ (r y y)) (hzz : r z z) => ih z hzz hzz) x h

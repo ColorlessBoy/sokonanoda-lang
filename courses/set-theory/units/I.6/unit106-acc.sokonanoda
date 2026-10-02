@@ -1,0 +1,70 @@
+-- ==========================================================================
+-- unit106-acc.sokonanoda —— 卷 I 单元106 **良基递归（`Acc`）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§4.3 / §7.4**（递归定理的良基版本）·
+--   Halmos《Naive Set Theory》**§18**。大纲 §4.1（**接单元⑬⑭⑯㊵㊷ 的良基/良序线** ✓）。
+--
+-- ⚠⚠ **本单元是新解锁的能力** ✓：台账 **G-56**（「`Acc` 立不起来 ⇒ 语言里没有良基递归」）
+--   **已修**（内核线 7/9 ✓）⇒ 现在可以在库里声明 `Acc`、并用它的**递归子**做证明 ✓。
+--   库（`lib/Order` ✓）已备好三件 ✓：
+--     · `Acc`（带索引归纳：`Acc α r : α → Prop` ✓）· `acc_ind`（归纳原理 ✓）·
+--     · `acc_unique`（**递归定义的唯一性** ✓ —— 教科书定理 ✓）· `acc_inv`（取用子 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **引入**（`Acc.intro` ✓）· **归纳原理**（`acc_ind` ✓）· **唯一性**（`acc_unique` ✓）；
+--   · **旗舰一：取用子** ✓（`Acc α r x` ⇒ 前驱都可达 ✓）；
+--   · **旗舰二：没有自环** ✓（`Acc α r x ⇒ ¬ r x x` ✓ —— 只用归纳原理 ✓）。
+--
+-- ⚠ **一条关键分辨（本轮判红换来 ✓）**：`acc_ind` 的 motive **只吃 `x`** ⇒ 用它的归纳
+--   假设**拿不到"前驱的 `Acc`"** ✗ ⇒ `acc_inv` 必须用 `Acc.rec` 的**下标感知** motive
+--   （吃 `x` 与 `Acc α r x` 两个参数 ✓）⇒ 已放进**库** ✓，本单元只调用 ✓。
+--
+-- ⚠ **写法提醒**：`∀ …` 用**逗号**收尾（`∀ (x : α), …` ✓）—— 写成 `=>` 会解析失败 ✗。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元⑬⑭（良基/良序）· 单元㊵㊷（传递闭包/最小元）· 台账 **G-56 已修** ✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+theorem demo_acc_intro (α : Type) (r : α → α → Prop) (x : α)
+    (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x :=
+  Acc.intro α r x h
+theorem demo_acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x) :
+    ∀ (x : α), Acc α r x → motive x :=
+  acc_ind α r motive step
+theorem demo_acc_unique (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α r x → f x = g x :=
+  acc_unique α β r f g spec-- 练习 1（T 类）：**引入**（把"前驱都可达"装成 `Acc`）。
+-- 关键件：`Acc.intro`（**四点按序**：类型 · 关系 · 点 · 前提 ✓）
+theorem acc_intro_apply (α : Type) (r : α → α → Prop) (x : α)
+    (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x := by
+  sorry
+-- 练习 2（T 类）：**归纳原理的直接用法**。
+-- 关键件：`acc_ind`（**五点按序** ✓）
+theorem acc_ind_apply (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x)
+    (x : α) (h : Acc α r x) : motive x := by
+  sorry
+-- 练习 3（T 类）：**唯一性的直接用法**。
+-- 关键件：`acc_unique`（**六点按序** ✓）
+theorem acc_unique_apply (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x)
+    (x : α) (h : Acc α r x) : f x = g x := by
+  sorry
+-- 练习 4（T 类，**旗舰一**）：**取用子**（`Acc α r x` ⇒ 前驱都可达）。
+-- 关键件：`acc_inv`（库里的 ✓ —— 注意它**不能**由练习 2 得到 ✓）
+theorem acc_inv_apply (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ∀ (y : α), r y x → Acc α r y := by
+  sorry
+-- 练习 5（L 类，**旗舰二**）：**没有自环**（`Acc α r x ⇒ ¬ r x x`）。
+-- 思路：用练习 2（motive 取 `fun z => ¬ r z z`）；归纳假设在 `z` 与 `r z z` 处给出 `¬ r z z`，把它作用在 `r z z` 上即得矛盾。
+-- 关键件：练习 2 · 归纳假设**在 `z` 处自用**（`ih z hzz hzz` ✓）
+theorem acc_no_self (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ¬ (r x x) := by
+  sorry
