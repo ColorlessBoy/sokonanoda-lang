@@ -379,3 +379,24 @@ python3 courses/set-theory/tools/audit-pairs.py --strict    # 有"硬缺"就 exi
 剩下那条是 **L-07**（第 611 轮待办：要写一条「**非空居民**」探针 ✓ ——
 它当初的病是「`IsWellOrder` 配『极小』`HasMin` ⇒ 只在空论域可满足」✗ ⇒
 守卫应当是**造一个非空实例**并判绿 ✓，而不是只判 `lib/Order` 绿 ✗）。
+
+## 待查：**新文件里记法不生效**（2026-10-01 第 630 轮，未查完 ✗）
+
+**现象** ✓（可复现）：新建 `courses/set-theory/units/solutions/<新文件>.sokonanoda`，
+头部照抄单元48/55 的导入表（`import lib.Rel` / `lib.Set` / `lib.SUnion` / `lib.Order` ✓），
+写 `B ∈ (𝒫 A)` ⇒ 判红：**「符号 `∈`/`⋃` 在本文件里还没有声明过记法」** ✗；
+而**同样的导入表**在 `units/unit48-cover.sokonanoda` 与 `units/…/unit55-solution.sokonanoda` 里
+**一直判绿** ✓。
+
+**已排除** ✗：不是 `lib.Rel` 的干扰（去掉它仍红 ✓）；不是"文件在 `solutions/` 子目录"
+（新建探针在 `units/` 顶层也试过 ✗）。
+
+**线索** ✓：`lib/Set.sokonanoda:134` 起有 `infix:50 " ∈ " => Set.mem` 等六条 ✓，
+但它们**在 `end Set` 之后** ✓（文件里注释说"这六条原先散在
+`units/notation-cheatsheet.sokonanoda`（画布自带）"✓）——**嫌疑**：那六条处在
+**section/namespace 作用域内**（⇒ 不导出 ✓），或**只有画布路径**经过 cheatsheet ✓。
+
+**下一步**（下轮 10 分钟内可结）✓：`sed -n '100,140p' lib/Set.sokonanoda` 看那六条有没有被
+`section`/`namespace` 包住 ✓；再看 `units/sokonanoda.toml`（若有）是不是给画布注入了 prelude ✓。
+**绕法**（立刻可用 ✓）：新文件里一律写**点名写法**（`Set.mem` / `Set.powerset` / `Set.sUnion` ✓）——
+第 610 轮的 L-10 复现件就是这么过的 ✓。
