@@ -458,10 +458,11 @@
             "well-founded-recursion",
             "ordinal-induction",
             "trichotomy-halves",
-            "ordinal-recursion"
+            "ordinal-recursion",
+            "choice-extraction"
           ],
           "quota": {
-            "exercises": 78
+            "exercises": 81
           },
           "units": [
             {
@@ -529,6 +530,12 @@
               "title": "单元109 序数上的递归与加法（关系版）",
               "title_en": "Unit 109 — Recursion on Ordinals and Relational Addition",
               "unit": 109
+            },
+            {
+              "file": "units/I.6/unit110-choice.sokonanoda",
+              "title": "单元110 选择公理的取数据（良序定理线入口）",
+              "title_en": "Unit 110 — Extracting Functions from the Axiom of Choice",
+              "unit": 110
             }
           ]
         },

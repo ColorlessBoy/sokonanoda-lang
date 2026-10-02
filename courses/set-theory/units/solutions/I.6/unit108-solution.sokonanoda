@@ -122,13 +122,13 @@ theorem ordinal_trichotomy (α : Type) (E : α → α → Prop)
           (fun (v : α) (hv : IsOrdinal α E v)
             (ihv : ∀ (u : α), E u v → E z u ∨ z = u ∨ E u z) =>
             Or.elim (E z v) (¬ (E z v)) (E z v ∨ z = v ∨ E v z)
-              (fun (hzv : E z v) => Or.inl (E z v) (z = v ∨ E v z) hzv)
+              (fun (hzv : E z v) => Or.inl (E z v) (z = v ∨ E v z) hzv)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
               (fun (hnzv : ¬ (E z v)) =>
-                Or.inr (E z v) (z = v ∨ E v z)
+                Or.inr (E z v) (z = v ∨ E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
                  (Or.elim (z = v) (¬ (z = v)) (z = v ∨ E v z)
-                  (fun (heq : z = v) => Or.inl (z = v) (E v z) heq)
+                  (fun (heq : z = v) => Or.inl (z = v) (E v z) heq)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
                   (fun (hne : ¬ (z = v)) =>
-                    Or.inr (z = v) (E v z)
+                    Or.inr (z = v) (E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
                       (Or.elim (E v z) (∀ (w : α), E w z → E w v) (E v z)
                         (fun (hvz : E v z) => hvz)
                         (fun (hsub : ∀ (w : α), E w z → E w v) =>

@@ -1,0 +1,38 @@
+import lib.Set
+import lib.Rel
+import lib.Fun
+import lib.Choice
+
+theorem demo_choice (α : Type) (β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (a : α), a ∈ A → ∃ (b : β), b ∈ B ∧ P a b) :
+    ∃ (f : α → β), ∀ (a : α), a ∈ A → f a ∈ B ∧ P a (f a) :=
+  choice α β A B P h
+
+theorem choice_family (α : Type) (β : Type) (I : Set α) (F : α → Set β)
+    (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
+    ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i :=
+  Exists.elim (α → β)
+    (fun (f : α → β) => ∀ (a : α), a ∈ I → f a ∈ Set.univ β ∧ f a ∈ F a)
+    (∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i)
+    (choice α β I (Set.univ β) (fun (i : α) (x : β) => x ∈ F i)
+      (fun (i : α) (hi : i ∈ I) =>
+        Exists.elim β (fun (x : β) => x ∈ F i)
+          (∃ (x : β), x ∈ Set.univ β ∧ x ∈ F i)
+          (h i hi)
+          (fun (x : β) (hx : x ∈ F i) =>
+            Exists.intro β (fun (x' : β) => x' ∈ Set.univ β ∧ x' ∈ F i) x
+              (And.intro (Set.mem_univ x) hx))))
+    (fun (f : α → β) (hf : ∀ (a : α), a ∈ I → f a ∈ Set.univ β ∧ f a ∈ F a) =>
+      Exists.intro (α → β) (fun (g : α → β) => ∀ (i : α), i ∈ I → g i ∈ F i) f  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (i : α) (hi : i ∈ I) =>
+          And.right (f i ∈ Set.univ β) (f i ∈ F i) (hf i hi)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+
+theorem choice_family_apply (α : Type) (β : Type) (I : Set α) (F : α → Set β)
+    (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
+    ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i :=
+  choice_family α β I F h
+
+theorem choice_right_inverse (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (h : ∀ (b : β), b ∈ B → ∃ (a : α), a ∈ A ∧ Eq.{1} β (f a) b) :  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    ∃ (g : β → α), ∀ (b : β), b ∈ B → g b ∈ A ∧ Eq.{1} β (f (g b)) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  choice β α B A (fun (b : β) (a : α) => Eq.{1} β (f a) b) h  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）

@@ -151,3 +151,21 @@
   （`git diff` 为空 ⇒ 解答已还原 ✓）。
 - **怎么验（修的时候）**：把逆引理与结合律写进 `unit109` 的解答判绿 ⇒ 本条改 `closed` ✓、
   同时把复现件的期望翻转 ✓（两件事必须一起做，否则 G7 会判负 —— 这正是"断言与登记一致"的守卫 ✓）。
+
+## 110（**closed-green** · 2026-10-02 第 683 轮）选择公理的取数据 —— 关键步靠 **G-58 已修**
+
+- **内容**（`courses/set-theory/units/I.6/unit110-choice.sokonanoda`，3 练习 + 1 演示，解答 **4 条全绿** ✓）：
+  `choice_family`（**族版选择函数** `∀ i ∈ I, ∃ x, x ∈ F i ⇒ ∃ f, ∀ i ∈ I, f i ∈ F i` ✓ ——
+  良序定理/基数可比性的第一步 ✓）· `choice_family_apply` · `choice_right_inverse`（满射的右逆 ✓）。
+- **为什么以前写不了** ✓：从 `∀ a, ∃ b, …` **取出函数**要 Prop→Type 的取数据 ⇒ 台账 **G-58** 已修 +
+  `lib/Choice` 的公理到位才成立 ✓。
+- **复现件（登记在册 ✓，G7 重放）**：`courses/set-theory/gaps/C-110-choice-extraction.sh` ——
+  一条命令：`bash courses/set-theory/gaps/C-110-choice-extraction.sh`；断言三件：
+  ① 两条定理在；② **证明里真的调用了 `choice`**（两处调用点都在，不是被绕成别的东西）；
+  ③ 判卷 `checked>0` · `exercise_open==0` · 无拒绝。
+- **反向验证实测**：把 `choice_family` 的证明体换成 `sorry` ⇒ 脚本 **exit 1**
+  「BAD 110: checked=… open=1（a proof was replaced by sorry?）」✓；恢复 ⇒ **exit 0**
+  「OK 110 matches the register: checked=4 exercise_open=0 failed=0」✓（`git diff` 为空 ✓）。
+- **写法教训（本轮换来，已写进画布头）**：`Exists.elim` 是**隐式实参**签名
+  `{A}{p}{Q} (h) (f)` ⇒ 补不出来时**逐位写全** ✓；`choice` 的谓词里**别再写 `∈ B`** ✗（结论自带 ✓）；
+  嵌套位置的等式写 **`Eq.{1}`** ✓。

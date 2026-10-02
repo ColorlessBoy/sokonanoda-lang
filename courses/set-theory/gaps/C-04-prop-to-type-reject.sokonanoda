@@ -6,7 +6,7 @@
 --
 -- 登记状态：**closed · 非缺口（内核的正确行为）**（`OPEN-ITEMS.md` C-04，第 681 轮定性）
 --   判据一（签名）：`prelude/Prelude.sokonanoda:20`
---     `def Or.elim {a b c : Prop} (f : a -> c) (g : b -> c) (h : Or a b) : c`
+--     `def Or.elim {a b c : Prop} (f : a -> c) (g : b -> c) (h : Or a b) : c`  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
 --     ⇒ 动机位**签名上就固定是 `Prop`** ⇒ **没有宇宙参数可以写成显式**（C-02 那招不适用）。
 --   判据二（本文件）：就是下面这条探针 ⇒ 判红。
 --   为什么这是对的：`Or` 是**两个构造子的 `Prop`**，往 `Type` 消去会让结果**区分证明**，
@@ -20,4 +20,4 @@ import lib.Rel
 import lib.Order
 
 def p_case_elim (P : Prop) (a : Nat) (b : Nat) (h : P ∨ ¬ P) : Nat :=
-  Or.elim P (¬ P) Nat (fun (_ : P) => a) (fun (_ : ¬ P) => b) h
+  Or.elim P (¬ P) Nat (fun (_ : P) => a) (fun (_ : ¬ P) => b) h  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）

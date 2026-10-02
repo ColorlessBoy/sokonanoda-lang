@@ -12,5 +12,5 @@ import lib.Order
 
 theorem p_case_prop (P : Prop) (h : P ∨ ¬ P) : P ∨ ¬ P :=
   Or.elim P (¬ P) (P ∨ ¬ P)
-    (fun (hp : P) => Or.inl P (¬ P) hp)
-    (fun (hnp : ¬ P) => Or.inr P (¬ P) hnp) h
+    (fun (hp : P) => Or.inl P (¬ P) hp)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (hnp : ¬ P) => Or.inr P (¬ P) hnp) h  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）

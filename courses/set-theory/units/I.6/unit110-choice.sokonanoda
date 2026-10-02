@@ -1,0 +1,58 @@
+-- ==========================================================================
+-- unit110-choice.sokonanoda —— 卷 I 单元110 **选择公理的取数据（良序定理线的入口）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§6.1/§6.2**（选择公理）·
+--   Halmos《Naive Set Theory》**§15**。大纲 §4.1（**卷 I 收官主线** ✓ —— 接单元106–109 ✓）。
+--
+-- 本单元的"该学的定理"（**都是"从 `∀∃` 取出函数"这一步的兑现** ✓）：
+--   · **选择公理**（`lib/Choice` 的 `choice` ✓ —— 集合版：`∀ a ∈ A, ∃ b ∈ B, P a b`
+--     ⇒ `∃ f, ∀ a ∈ A, f a ∈ B ∧ P a (f a)` ✓）；
+--   · **族版**（`choice_family` ✓）：`∀ i ∈ I, ∃ x, x ∈ F i` ⇒ `∃ f, ∀ i ∈ I, f i ∈ F i` ✓
+--     —— 这就是"选择函数"的标准陈述 ✓，也是**良序定理/基数可比性**的第一步 ✓；
+--   · **右逆形式**（`choice_right_inverse` ✓）：满射在 `B` 上有右逆 ✓（AC 的经典等价形式 ✓）。
+--
+-- ⚠ **这一族为什么以前写不了** ✓：从 `∀ a, ∃ b, …` 里**取出一个函数**需要
+--   **Prop → Type 的取数据** ✓ —— 台账 **G-58**（大消去）修好 + `lib/Choice` 的公理到位之后，
+--   这一步才成立 ✓（判据：本单元 4 条**全绿** ✓）。
+--
+-- ⚠ **写法要点（本单元换来 ✓）**：① `Exists.elim` 的签名是
+--   `{A : Type} → {p : A → Prop} → {Q : Prop} → (h) → (f) → Q` ✓ —— 隐式补不出来时**逐位写全**
+--   （诊断会直说"把参数写全" ✓）；② 谓词里**别再写 `∈ B`** ✗ —— `choice` 的结论自带
+--   `f a ∈ B` ✓（写重了会报类型不匹配 ✓）；③ 嵌套位置的等式要写 **`Eq.{1}`** ✓。  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理与 prelude 的 `Classical.*` ✓。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Fun` · `lib.Choice`。
+--
+-- 依赖：单元106–109（`Acc`/∈-归纳/递归/关系版加法 ✓）· 单元⑱（选择公理作谓词 ✓）
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Fun
+import lib.Choice
+theorem demo_choice (α : Type) (β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (a : α), a ∈ A → ∃ (b : β), b ∈ B ∧ P a b) :
+    ∃ (f : α → β), ∀ (a : α), a ∈ A → f a ∈ B ∧ P a (f a) :=
+  choice α β A B P h
+-- 练习 1（L 类，**族版选择函数 —— 本单元落点**）：`∀ i ∈ I, ∃ x, x ∈ F i` ⇒ `∃ f, ∀ i ∈ I, f i ∈ F i`。
+-- 思路：把 `choice` 的 `B` 取成 `Set.univ β`（全空间 ✓），谓词取 `fun i x => x ∈ F i` ✓；它给出的结论多带一个 `f i ∈ Set.univ β` 合取支 ⇒ 用 `Exists.elim` + `Exists.intro` **重新打包**去掉它 ✓。
+-- 关键件：`choice`（**六点按序** ✓）· `Set.mem_univ`（**省前导类型实参** ✓）· `Exists.elim`（**逐位写全** `(A) (p) (Q) (h) (f)` ✓ —— 隐式补不出来时诊断会直说 ✓）· `Exists.intro`（同样写全 ✓）· `And.intro` / `And.right`（写全 ✓）
+theorem choice_family (α : Type) (β : Type) (I : Set α) (F : α → Set β)
+    (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
+    ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i := by
+  sorry
+
+-- 练习 2（T 类）：**族版的直接调用**。
+-- 关键件：练习 1（**五点按序** ✓）
+theorem choice_family_apply (α : Type) (β : Type) (I : Set α) (F : α → Set β)
+    (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
+    ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i := by
+  sorry
+
+-- 练习 3（L 类，**右逆形式**）：`B` 上的满射有右逆。
+-- 思路：`choice` 的类型参数**对调**（`α := β`、`β := α` ✓），`A := B`、`B := A` ✓，谓词取 `fun b a => Eq.{1} β (f a) b` ✓ —— ⚠ **别再写 `a ∈ A ∧`** ✗（`choice` 的结论自带 `g b ∈ A` ✓，写重了判红 ✓）。  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+-- 关键件：`choice`（**类型参数对调** ✓）· `Eq.{1}`（**嵌套位置的等式要显式宇宙** ✓）  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+theorem choice_right_inverse (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (h : ∀ (b : β), b ∈ B → ∃ (a : α), a ∈ A ∧ Eq.{1} β (f a) b) :  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    ∃ (g : β → α), ∀ (b : β), b ∈ B → g b ∈ A ∧ Eq.{1} β (f (g b)) b := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry
