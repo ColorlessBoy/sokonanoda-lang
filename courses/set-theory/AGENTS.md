@@ -287,6 +287,18 @@ bash courses/set-theory/tools/check-lib-closure.sh   # 把所有 lib 一次 impo
 **两次实录**：单元㊽ 的 `sUnion_empty_of_all_empty` ✗、单元52 的 `trans_comp_apply` ✗ ——
 两次都先怀疑"画布签名换行/名字解析"✗，**实际都是我把解答删残了** ✓。
 
+### 第五条惯用法：**`funext` 打包集合等式时，`And` 消去要先抽引理**（2026-10-01 第 622 轮）
+
+把"逐点恒等式"打包成**集合等式**的模板 ✓（`lib/Extensionality` 提供 `funext_spec`/`propext_spec` ✓）：
+
+    funext_spec α (fun _ => Prop) 左 右 (fun a => propext_spec (a ∈ 左) (a ∈ 右) <那个 ↔>)
+
+**判绿的部分** ✓：`A \ ∅ = A` 这样"一边是 `And` 但只需 `And.left` + `And.intro`"的能过 ✓。
+**判红的部分** ✗（**G-73 第十九例**）：需要**在 `propext_spec` 的实参位里做 `And` 消去**
+（`And.right … (And.left …)` ✗）时，三试三红 ✗（省略前导实参 / 显式写全 / 换方向都红 ✓）。
+**绕法** ✓：把那次 `And` 消去**抽成一条具名小引理**（顶层位置判绿 ✓），
+`propext_spec` 那一支**只调用它** ✓ —— 与"深嵌套一律拆辅助引理"同源 ✓。
+
 **另一条同类事故（第 609 轮，第三次 ✓）**：`zzprobe.sokonanoda`（bisect 驱动写的探针 ✗）
 **被 `git add -A courses/set-theory` 一起提交了** ✗（82 行 ✓）。
 ⇒ **纪律** ✓：`git add` 前先 `git status --short | grep -v docs/e2e/logs` **逐行看一遍** ✗；
