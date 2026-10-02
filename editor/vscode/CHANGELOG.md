@@ -1,5 +1,52 @@
 ## [Unreleased]
 
+## [0.81.0] — 2026-10-02
+
+> **Nine language/kernel blockers cleared** — the walls the set-theory course's
+> "what Volume I can now write" list was waiting on: **well-founded recursion
+> (`Acc`)** · **large elimination** · **classical logic** · **quotients**. Every
+> one of them ships with its minimal reproduction flipped from red to green, a
+> byte-for-byte corpus comparison, the course gate at **0 rejected**, and the
+> real-VS-Code e2e at **40 passed / 0 failed**.
+
+### Added
+
+- **`Acc` (well-founded recursion) works**, in the shape Lean core uses —
+  `inductive Acc (α : Type) (r : α → α → Prop) : α → Prop` with the index written
+  in the **return** position (G-56/G-64). Indexed inductive families whose
+  recursive occurrences change the index (`TC`, transitive closure) elaborate,
+  and their recursors **eliminate into `Type`**, so `rank`-style functions and
+  `∈`-induction over ordinals are expressible. The header-index form
+  (`(x : α)` as a *parameter*) stays rejected, exactly as upstream Lean rejects it.
+- **Large elimination** (G-58/G-59): a `Prop`-valued inductive block whose
+  non-`Prop` fields are all parameters or indices now eliminates into `Type`
+  (`Acc.rec … → Type`), and the recursor's universe arguments are inferred from
+  the expected type instead of defaulting to `0`.
+- **Classical logic** (G-74): the prelude now provides `Classical.em`
+  (`∀ p : Prop, p ∨ ¬p`) and `Classical.byContradiction`. Proofs by contradiction
+  and case splits on `em` type-check.
+- **`Quot.exact`** (G-75): equality of two quotient representatives reflects back
+  to the relation, in the **sound** form that carries the equivalence-relation
+  hypotheses (reflexivity/symmetry/transitivity).
+- **`Nat.add` / `Nat.mul` compute on variables** (G-76): the recursive equations
+  `Nat.add m 0 ≡ m`, `Nat.add m (succ n) ≡ succ (Nat.add m n)` (and the `mul`
+  analogues) fire on the deep reduction path, so `#reduce` and `rfl` see through
+  a variable-headed `Nat.add`.
+
+### Fixed
+
+- **`cases` on a membership in an image** (G-71): `cases hy` with
+  `hy : y ∈ (f '' (f ⁻¹' C))` used to report "the eliminated term is not an
+  inductive value" with every argument shifted, and the arm's `exact` could not
+  read its hypothesis back. The tactic context's types are now rendered with a
+  **fully explicit** pretty-printer form (`@Set.image α β f A`), so the text it
+  re-reads round-trips.
+- **A definition whose return type is a literal arrow** (G-72): `def mkRel (α)
+  (r) : α → α → Prop := fun (a b : α) => …` was green when the module was graded
+  on its own and red when imported (`unknown identifier b`) — the return type's
+  arrows were counted as parameters, so the recorded body lost two binders.
+
+
 ## [0.80.0] — 2026-10-01
 
 > **三件事一起发**：编辑响应延迟收口（`declaration-incremental.md` §7）· 卷 I 集合论
