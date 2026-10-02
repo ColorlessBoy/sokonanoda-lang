@@ -14,10 +14,11 @@
           "tags": [
             "membership",
             "subset",
-            "powerset"
+            "powerset",
+            "sdiff-algebra"
           ],
           "quota": {
-            "exercises": 38
+            "exercises": 46
           },
           "units": [
             {
@@ -43,6 +44,12 @@
               "title": "单元④ 外延性与集合等式",
               "title_en": "Unit 4 — Extensionality & Set Identities",
               "unit": 4
+            },
+            {
+              "file": "units/unit58-sdiff-algebra.sokonanoda",
+              "title": "单元58 差集的代数",
+              "title_en": "Unit 58 — The Algebra of Set Difference",
+              "unit": 58
             }
           ]
         },

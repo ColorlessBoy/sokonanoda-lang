@@ -1,0 +1,125 @@
+-- ==========================================================================
+-- unit58-sdiff-algebra.sokonanoda —— 卷 I 单元58 **差集的代数**
+--
+-- 靶子（教材）：Halmos《Naive Set Theory》**§5**（the algebra of sets 里的差与补）·
+--   Enderton《Elements of Set Theory》**§1.5 / §2.1**（difference 与 complement）。
+-- 大纲：`set-theory-syllabus.md` §4.1（**I.1 章深化** —— 接单元③④ 的并交差与恒等式 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **差集的两条取用子**（本次做成**可复用**的具名引理 ✓）+ **`A \ B ⊆ A`** ✓；
+--   · **`A \ B = A ∩ Bᶜ`**（逐点形态 ✓ —— 教材里"差就是交补"那条恒等式 ✓）；
+--   · **`A \ (B ∪ C) = (A \ B) ∩ (A \ C)`**（逐点形态 ✓ —— 差对并的分配律 ✓）；
+--   · **`A \ ∅ = A`** ✓ · **`A \ A` 没有成员** ✓ · **`(A ∪ B) \ B ⊆ A`** ✓
+--
+-- ⚠ **全部写成逐点 / `↔` 形态** ✓ —— 课程库里没有 `Set.ext`，集合相等要走 `funext`
+--   （`lib.Extensionality`）✗ ⇒ 教学上先用"逐点等价"把恒等式的**内容**讲清楚 ✓，
+--   等外延单元再用 `funext` 打包成等式 ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.SUnion` · `lib.Order` · `lib.Rel`。
+--
+-- 依赖：单元③（并交差）· 单元④（外延与恒等式）· 单元57（差集 = 见证集合）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.1 三条库引理（差 · 交 · 并 的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：差集的成员刻画。
+theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=
+  Set.mem_sdiff a A B
+theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=
+  Set.mem_inter_iff a A B
+theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
+  Set.mem_union a A B
+-- ─────────────────────────────────────────────────────────────
+-- 58.2 两条**可复用**取用子 + `A \ B ⊆ A`
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（T 类，**可复用左取用子**）：进差集 ⇒ 在 `A` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff`（**先 λ 绑定再取用** ✓）· `Iff.mp` · `And.left` ✓
+
+theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A := by
+  sorry
+-- 练习 2（T 类，**可复用右取用子**）：进差集 ⇒ 不在 `B` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mp` · `And.right` ✓
+
+theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) := by
+  sorry
+-- 练习 3（T 类）：**`A \ B ⊆ A`**。
+
+-- soko:hint 关键件：练习 1（**按 点 · 前提 应用** ✓）✓
+
+theorem sdiff_subset_self (α : Type) (A B : Set α) : A \ B ⊆ A := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.3 三条恒等式（逐点）：交补 · 对并分配 · 减空集
+-- ─────────────────────────────────────────────────────────────
+-- 练习 4（L 类，**恒等式一**）：**`A \ B = A ∩ Bᶜ`**（逐点）。
+
+-- soko:hint 思路：两个方向都是"把 `∧` 的两半换个说法" —— 注意 `∈ Bᶜ` **就是** `¬ (∈ B)`
+
+--   （`Set.compl` 是定义 ✓，不需要引理 ✓）。
+
+-- soko:hint 目标形态：`a ∈ A \ B ↔ a ∈ A ∩ Bᶜ`。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Set.mem_sdiff` · 练习 1 / 练习 2 · `Iff.intro`（两种写法都要 ✓）
+
+theorem mem_sdiff_compl (α : Type) (A B : Set α) (a : α) :
+    a ∈ (A \ B) ↔ a ∈ (A ∩ Bᶜ) := by
+  sorry
+-- 练习 5（L 类，**旗舰**）：**差对并的分配律**（逐点）。
+
+-- soko:hint 思路：左到右 —— "不在 `B ∪ C`" 拆成"不在 `B`"与"不在 `C`"两支 ✓；
+
+--   右到左 —— 假设"在 `B ∪ C`"，用 `Or.elim` 分两支，各与一边的否定冲突 ✓。
+
+-- soko:hint 目标形态：`a ∈ A \ (B ∪ C) ↔ (a ∈ A \ B) ∧ (a ∈ A \ C)`。
+
+-- soko:hint 关键件：`Set.mem_union` · `Or.elim`（**动机位放目标准确的正命题** ✓ —— 铁律 ✓）·
+
+--   `Or.inl`/`Or.inr` · 练习 1 / 练习 2 ✓
+
+theorem mem_sdiff_union (α : Type) (A B C : Set α) (a : α) :
+    a ∈ (A \ (B ∪ C)) ↔ a ∈ (A \ B) ∧ a ∈ (A \ C) := by
+  sorry
+-- 练习 6（T 类，**恒等式二**）：**`A \ ∅ = A`**（逐点）。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Set.mem_empty_iff_false`（**否定那一半自动成立** ✓）✓
+
+theorem mem_sdiff_empty (α : Type) (A : Set α) (a : α) :
+    a ∈ (A \ (Set.empty α)) ↔ a ∈ A := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.4 两条"没有成员"与"并后减"
+-- ─────────────────────────────────────────────────────────────
+-- 练习 7（T 类）：**`A \ A` 没有成员**。
+
+-- soko:hint 思路：把同一个假设当两条取用子的输入 —— 一边说"在 `A` 里"、一边说"不在 `A` 里"。
+
+-- soko:hint 关键件：练习 1 / 练习 2（**同一个 `h` 用两次** ✓）✓
+
+theorem not_mem_sdiff_self (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A \ A)) := by
+  sorry
+-- 练习 8（L 类，**收尾**）：**`(A ∪ B) \ B ⊆ A`**（逐点）。
+
+-- soko:hint 思路：由"在 `A ∪ B` 里"用 `Or.elim` 分两支；`B` 那一支与"不在 `B` 里"冲突。
+
+-- soko:hint 目标形态：`a ∈ (A ∪ B) \ B → a ∈ A`。
+
+-- soko:hint 关键件：`Set.mem_union` · `Or.elim` · `False.elim`（**把目标写全** ✓）· 练习 1 / 练习 2 ✓
+
+theorem mem_union_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ ((A ∪ B) \ B)) : a ∈ A := by
+  sorry
