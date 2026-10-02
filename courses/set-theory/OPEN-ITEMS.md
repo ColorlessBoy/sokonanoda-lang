@@ -195,6 +195,13 @@
   ⇒ `类型不匹配：期望 Sort(0)，实际是 Sort(1)` ✓（判据 = `gaps/C-112-cb-direct-def-reject.sokonanoda` ✓）。
   这是 **C-04 同一条墙** ✓，也正是本条目下面写的「零公理 CB 要 `Exists`→Type 的安全消去
   （**G-6** 一族，仍 open ✗）」**在 CB 上的具体面孔** ✓。
+- **第 687 轮更正（重要 ✓）**：**交集版链构造的 `cb_core_step` 是假命题** ✗ —— 需要 `b ∉ f '' C`
+  但只有 `b ∉ f '' cbCore` + `cbCore ⊆ C` ⇒ 单调性方向相反 ✗（根因：`K` 对 `C` **反单调** ✗）。
+  **内核把假命题顶回来是对的** ✓ —— 这是手册「**命题先求真，再求可证**」那条 ✓。
+  ✅ **正路 = Halmos 迭代/并集版** ✓：`Aseq : Nat → Set α` 用 **`Nat.rec`** 递归
+  （`Aseq 0 = A`；`Aseq (n+1) = g '' (B ∖ f '' (Aseq n))` ✓），`C₀ = ⋃ₙ Aseq n` ✓ ——
+  **工具已就位**（单元111 刚落地 `Nat.rec` ✓）。已判绿的：`cbFamily`/`cbCore`（交集版）·
+  5 条包装引理 ✓；更正记录在 `gaps/C-112-cb-chain-wip.sokonanoda` 文件头 ✓。
 - **本轮进展（第 686 轮 ✓）**：链构造的**两条定义判绿** ✓（`cbFamily` / `cbCore` —— 全部 `Prop` 层，
   正是绕开 C-04 的写法 ✓），进展件放 `courses/set-theory/gaps/C-112-cb-chain-wip.sokonanoda` ✓
   （**不进 `course.json` ⇒ 门禁不判它** ✓）。**下一步一条命令就能接上**：先读真签名

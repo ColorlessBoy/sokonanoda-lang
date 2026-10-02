@@ -41,34 +41,30 @@ def cbCore (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g 
 theorem cb_core_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
     (x : α) (h : ∀ (C : Set α), C ∈ cbFamily α β A B f g → x ∈ C) :
     x ∈ cbCore α β A B f g :=
-  Iff.mpr (Set.mem_sInter_iff α (cbFamily α β A B f g) x) h
+  h
 
 theorem cb_core_elim (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
     (x : α) (h : x ∈ cbCore α β A B f g) :
     ∀ (C : Set α), C ∈ cbFamily α β A B f g → x ∈ C :=
-  Iff.mp (Set.mem_sInter_iff α (cbFamily α β A B f g) x) h
+  h
 
 theorem cb_core_start (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
     (x : α) (hx : x ∈ A) (hxg : ¬ (x ∈ g '' B)) : x ∈ cbCore α β A B f g :=
-  cb_core_intro α β A B f g x
-    (fun (C : Set α) (hC : C ∈ cbFamily α β A B f g) =>
-      And.left (∀ (x' : α), x' ∈ A → ¬ (x' ∈ g '' B) → x' ∈ C)
-        (∀ (b : β), b ∈ B → ¬ (b ∈ f '' C) → g b ∈ C) hC x hx hxg)
-
-theorem cb_core_step (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
-    (b : β) (hb : b ∈ B) (hbf : ¬ (b ∈ f '' (cbCore α β A B f g))) :
-    g b ∈ cbCore α β A B f g :=
-  cb_core_intro α β A B f g (g b)
-    (fun (C : Set α) (hC : C ∈ cbFamily α β A B f g) =>
-      (fun (hstep : ∀ (b' : β), b' ∈ B → ¬ (b' ∈ f '' C) → g b' ∈ C) =>
-        hstep b hb
-          (fun (hbfc : b ∈ f '' C) =>
-            hbf (Set.image_mono α β f (cb_core_elim α β A B f g b hbfc) hbfc)))
-        (And.right (∀ (x : α), x ∈ A → ¬ (x ∈ g '' B) → x ∈ C)
-          (∀ (b' : β), b' ∈ B → ¬ (b' ∈ f '' C) → g b' ∈ C) hC))
+  fun (C : Set α) (hC : C ∈ cbFamily α β A B f g) =>
+    (And.left (∀ (x' : α), x' ∈ A → ¬ (x' ∈ g '' B) → x' ∈ C)
+      (∀ (b : β), b ∈ B → ¬ (b ∈ f '' C) → g b ∈ C) hC) x hx hxg
 
 theorem cb_core_least (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
     (C : Set α) (hC : C ∈ cbFamily α β A B f g) :
     ∀ (x : α), x ∈ cbCore α β A B f g → x ∈ C :=
-  fun (x : α) (hx : x ∈ cbCore α β A B f g) =>
-    cb_core_elim α β A B f g x hx C hC
+  fun (x : α) (hx : x ∈ cbCore α β A B f g) => hx C hC
+
+theorem cb_core_step (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (b : β) (hb : b ∈ B) (hbf : ¬ (b ∈ f '' (cbCore α β A B f g))) :
+    g b ∈ cbCore α β A B f g :=
+  fun (C : Set α) (hC : C ∈ cbFamily α β A B f g) =>
+    (And.right (∀ (x : α), x ∈ A → ¬ (x ∈ g '' B) → x ∈ C)
+      (∀ (b' : β), b' ∈ B → ¬ (b' ∈ f '' C) → g b' ∈ C) hC) b hb
+      (fun (hbfc : b ∈ f '' C) =>
+        hbf (Set.image_mono f (cbCore α β A B f g) C
+          (cb_core_least α β A B f g C hC) b hbfc))
