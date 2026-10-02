@@ -339,10 +339,11 @@
             "cover",
             "sUnion-inclusion",
             "sUnion-algebra",
-            "union-adjunction"
+            "union-adjunction",
+            "inter-family-distrib"
           ],
           "quota": {
-            "exercises": 45
+            "exercises": 54
           },
           "units": [
             {
@@ -374,6 +375,12 @@
               "title": "单元69 并交的伴随刻画",
               "title_en": "Unit 69 — Adjunction Laws for Union and Intersection",
               "unit": 69
+            },
+            {
+              "file": "units/unit71-inter-families.sokonanoda",
+              "title": "单元71 并交与交的分配",
+              "title_en": "Unit 71 — Intersection Distributes over Union/Intersection",
+              "unit": 71
             }
           ]
         },

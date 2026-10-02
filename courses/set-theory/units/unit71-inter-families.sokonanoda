@@ -1,0 +1,115 @@
+-- ==========================================================================
+-- unit71-inter-families.sokonanoda —— 卷 I 单元71 **`⋃`/`⋂` 与交的分配（成员层级）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§2.3** · Halmos **§9**。
+-- 大纲 §4.1（**I.7 章再深化** —— 继单元69 的伴随式之后，讲**分配律** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 取用子：`x ∈ ⋃F ⇔ ∃A∈F, x ∈ A` ✓ · `x ∈ ⋂F ⇔ ∀A∈F, x ∈ A` ✓ · 交的三条 ✓；
+--   · **旗舰一：`c ∈ A ∩ ⋃F ↔ ∃B∈F, c ∈ A ∩ B`** ✓（**交对并分配** ✓）；
+--   · **旗舰二：`c ∈ A ∩ ⋂F ↔ c ∈ A ∧ ∀B∈F, c ∈ A ∩ B`** ✓（**交对交分配** ✓ ——
+--     右边必须**留下 `c ∈ A` 这一支** ✗：`F = ∅` 时 `⋂∅` 是全论域 ✓，
+--     没有它命题就不真 ✓ —— **求真检查逮到的一处** ✓）；
+--   · **`univ ∩ A` 的成员刻画** ✓ · **`∅ ∩ A` 没有成员** ✓
+--
+-- ⚠ **全部写成成员层级** ✓（`∈ … ↔ ∈ …` ✓）：`⊆` 记法在 `Set (Set α)` 层级补不出
+--   前导类型参数 ✗（**G-73 第二十例** ✓，见单元70 画布头 ✓）⇒ 一律在 `Set α` 层级做证明 ✓。
+--   `⋃`/`⋂` **没有记法** ✗ ⇒ 写 `Set.sUnion` / `Set.sInter` ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.SUnion` · `lib.Order`。
+--
+-- 依赖：单元㉑㉒（广义并与交）· 单元㊽（覆盖演算）· 单元69（伴随式）· 单元70 ✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.1 三条库引理（广义并 · 广义交 · 交）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：广义并的成员刻画（"落在某个族成员里"）。
+theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  Set.mem_sUnion_iff α F x
+theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  Set.mem_sInter_iff α F x
+theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=
+  Set.mem_inter_iff a A B-- 练习 1（T 类）：从 `x ∈ ⋃F` 取出见证。
+
+-- soko:hint 关键件：`Set.mem_sUnion_iff`（**先 λ 绑定再 `Iff.mp`** ✓）✓
+
+theorem mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  sorry
+-- 练习 2（T 类）：从 `x ∈ ⋂F` 取出全称形式。
+
+-- soko:hint 关键件：`Set.mem_sInter_iff` · `Iff.mp` ✓
+
+theorem mem_of_mem_sInter (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  sorry
+-- 练习 3（T 类）：交的合成。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mpr` · `And.intro`（**前导实参写全** ✓）
+
+theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) := by
+  sorry
+-- 练习 4（T 类）：交的左取用子。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mp` · `And.left`（**写全** ✓）
+
+theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A := by
+  sorry
+-- 练习 5（T 类）：交的右取用子。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mp` · `And.right`（**写全** ✓）
+
+theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ B := by
+  sorry
+-- 练习 6（L 类，**旗舰一**）：**交对并分配**（`c ∈ A ∩ ⋃F ↔ ∃B∈F, c ∈ A ∩ B`）。
+
+-- soko:hint 思路：左到右 —— 由交的右取用子拿到"在 `⋃F` 里"，练习 1 取出见证 `B`，
+
+--   再用练习 3 合成 `c ∈ A ∩ B`（`c ∈ A` 由交的左取用子给 ✓）。
+
+-- soko:hint 右到左 —— `Exists.elim` 拆出 `B`，左取用子给 `c ∈ A`，右取用子给 `c ∈ B`，
+
+--   后者用 `Set.mem_sUnion_iff` 的 `Iff.mpr` + `Exists.intro` 送回 `⋃F` ✓。
+
+-- soko:hint 关键件：练习 1–5 · `Exists.intro`/`Exists.elim`（**前导实参写全** ✓）· `And.left`/`And.right` ✓
+
+theorem mem_inter_sUnion_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α) :
+    c ∈ (A ∩ (Set.sUnion α F)) ↔ ∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  sorry
+-- 练习 7（L 类，**旗舰二**）：**交对交分配**。
+
+-- soko:hint ⚠ 右边**必须**写成 `c ∈ A ∧ ∀B∈F, c ∈ A ∩ B` ✓ —— 少了 `c ∈ A` 就不真 ✗
+
+--   （`F = ∅` 时 `⋂∅` 是全论域 ✓）。
+
+-- soko:hint 关键件：练习 2 / 练习 3 / 练习 4 / 练习 5 · `Set.mem_sInter_iff`（**两个方向都用** ✓）
+
+theorem mem_inter_sInter_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α) :
+    c ∈ (A ∩ (Set.sInter α F)) ↔  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+      c ∈ A ∧ ∀ (B : Set α), B ∈ F → c ∈ (A ∩ B) := by
+  sorry
+-- 练习 8（T 类）：**`univ ∩ A` 就是 `A`**（成员层级 ✓）。
+
+-- soko:hint 关键件：练习 3 / 练习 5 · `Set.mem_univ`（**写全论域实参** ✓）✓
+
+theorem mem_univ_inter (α : Type) (A : Set α) (c : α) :
+    c ∈ ((Set.univ α) ∩ A) ↔ c ∈ A := by
+  sorry
+-- 练习 9（T 类，**收尾**）：**`∅ ∩ A` 没有成员**。
+
+-- soko:hint 关键件：练习 4（左取用子给出"在 `∅` 里" ✗）· `Set.mem_empty_iff_false` ✓
+
+theorem not_mem_empty_inter (α : Type) (A : Set α) (c : α) :
+    ¬ (c ∈ ((Set.empty α) ∩ A)) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  sorry
