@@ -186,3 +186,22 @@
 - **反向验证实测**：把 `add_comm` 的证明体换成 `sorry` ⇒ 脚本 **exit 1**
   「BAD 111: grading rejected (exit=1, failed=2)」✓；恢复 ⇒ **exit 0**
   「OK 111 matches the register: checked=13 exercise_open=0 failed=0」✓（`git diff` 为空 ✓）。
+
+## C-112（open · **未开工** · 2026-10-02 第 684 轮登记）Cantor–Bernstein（§四 第 6 项）
+
+- **目标命题**（Enderton §6.4 定理 6B · Halmos §22）：`A ≼ B` 且 `B ≼ A` ⇒ `A ≈ B`。
+- **状态：未开工** ✗ —— **不是撞墙**：本轮预算用尽（110/111 已落地）。**G-63（`Quot`）与 CB 无关**
+  ✓（CB 走单射/满射/子集：`lib/Equiv` 的 `Set.InjOn` ✓ + `lib/Choice` 的 `choice` ✓，
+  `grep -c Quot lib/Equiv.sokonanoda` = **0** ✓）。
+- **⚠⚠ 诚实标注（写单元时必须原样带上，不许写成"标准证法"）**：本课的 CB 打算**经选择公理**
+  —— 用 `choice` 从 `∀ b ∈ B, ∃ a ∈ A, …` 里**取出前像函数** ✓。而 **CB 数学上不需要选择**
+  ⇒ **这是偏离** ✗。零公理的 CB 要 `Exists`→Type 的安全消去（**G-6** 一族，仍 open ✗）。
+- **复现件（登记在册 ✓，G7 重放）**：`courses/set-theory/gaps/C-112-cantor-bernstein.sh` ——
+  一条命令：`bash courses/set-theory/gaps/C-112-cantor-bernstein.sh`；登记 **open**
+  ⇒ 期望"**缺口仍在**"：零件在（`Set.InjOn` + `choice` ✓）、CB 主定理不在任何解答里 ✓ ⇒ **exit 0**；
+  一旦主定理进解答 ⇒ **exit 1**（提示改 `closed` 并翻转期望 ✓）。
+- **反向验证实测**：临时把 `theorem cantor_bernstein …` 塞进解答 ⇒ 脚本 **exit 1**
+  「BAD 112: a CB main theorem IS present now: …」✓；删掉 ⇒ **exit 0** ✓（`git diff` 为空 ✓）。
+- **下一步（装配计划）**：① 立 `C₀ = ⋂{C | A∖B ⊆ C ⊆ A ∧ f(C) ⊆ C}` 的存在性（用 `lib/Set` 的
+  `Set.sInter` 一族 ✓）；② 由 `C₀` 的最小性得**不动点**性质 `f(C₀) = C₀ ∩ B` ✓；
+  ③ 用 `choice` 取前像造双射 ✓；④ 全程在单元头写明偏离 ✓。
