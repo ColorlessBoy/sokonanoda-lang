@@ -1,0 +1,94 @@
+-- ==========================================================================
+-- unit59-sdiff-algebra2.sokonanoda —— 卷 I 单元59 **差集的代数（二）：与并交混合**
+--
+-- 靶子（教材）：Halmos《Naive Set Theory》**§5**（差与补的代数）·
+--   Enderton《Elements of Set Theory》**§1.5**（包含关系的传递用法）。
+-- 大纲：`set-theory-syllabus.md` §4.1（**I.1 章继续深化** —— 接单元58 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 两条**可复用**取用子（与单元58 同形 ✓ —— 放这里是因为后面每题都要用 ✓）；
+--   · **`(A ∩ B) \ C ⊆ A \ C`**（交之后变小 ⇒ 差之后也变小 ✓）；
+--   · **`(A \ B) ∪ (B \ A) ⊆ A ∪ B`**（**对称差落在并里** ✓ —— 接单元㊻ 对称差 ✓）；
+--   · **`A \ B ⊆ A \ (B \ C)`**（"减得更多 ⇒ 留得更多" ✓ —— 反变 ✓）。
+--
+-- ⚠ **两条"经典才成立"的恒等式被挡在门外** ✓（**逻辑强度检查**逮到的 ✗）：
+--   ① `A \ (B ∩ C) = (A \ B) ∪ (A \ C)` 的右到左要 **De Morgan** ✗
+--      （`¬(P ∧ Q) ⇒ ¬P ∨ ¬Q` 构造性地不成立 ✓）⇒ 本单元只写**可证的那个方向** ✓；
+--   ② `A \ (A \ B) = A ∩ B` 亦同 ✗。
+--   （课程是**构造性**的 ✓ —— 手册"命题先求真"那一条的新分辨 ✓。）
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.SUnion` · `lib.Order` · `lib.Rel`。
+--
+-- 依赖：单元③（并交差）· 单元57（差集 = 见证集合）· 单元58（差集的代数）· 单元㊻（对称差）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.1 三条库引理（差 · 交 · 并 的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：差集的成员刻画。
+theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=
+  Set.mem_sdiff a A B
+theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=
+  Set.mem_inter_iff a A B
+theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
+  Set.mem_union a A B
+-- ─────────────────────────────────────────────────────────────
+-- 59.2 两条**可复用**取用子（后面每题都要用）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（T 类，**可复用左取用子**）：进差集 ⇒ 在 `A` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff`（**先 λ 绑定再取用** ✓）· `Iff.mp` · `And.left` ✓
+
+theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A := by
+  sorry
+-- 练习 2（T 类，**可复用右取用子**）：进差集 ⇒ 不在 `B` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mp` · `And.right` ✓
+
+theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.3 三条包含式（交后变小 · 对称差落在并里 · 减法反变）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 3（L 类）：**`(A ∩ B) \ C ⊆ A \ C`**。
+
+-- soko:hint 思路：见证先过"交"的左取用子拿到 `∈ A`，再过"差"的右取用子拿到 `∉ C`，
+
+--   最后合回 `A \ C`。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · 练习 1 / 练习 2 · `And.intro`/`And.left` ✓
+
+theorem inter_sdiff_subset (α : Type) (A B C : Set α) : (A ∩ B) \ C ⊆ A \ C := by
+  sorry
+-- 练习 4（L 类）：**`(A \ B) ∪ (B \ A) ⊆ A ∪ B`**（对称差落在并里 ✓）。
+
+-- soko:hint 思路：假设落在左边，用 `Or.elim` 分两支，各支给出 `A ∪ B` 的一边。
+
+-- soko:hint 目标形态：`(A \ B) ∪ (B \ A) ⊆ A ∪ B`。
+
+-- soko:hint 关键件：`Set.mem_union` · `Or.elim`（**动机位放目标准确的正命题** ✓ 铁律 ✓）·
+
+--   `Or.inl`/`Or.inr` · 练习 1 ✓
+
+theorem union_sdiff_subset (α : Type) (A B : Set α) : (A \ B) ∪ (B \ A) ⊆ A ∪ B := by
+  sorry
+-- 练习 5（T 类，**收尾**）：**`A \ B ⊆ A \ (B \ C)`**（"减得更多 ⇒ 留得更多"）。
+
+-- soko:hint 思路：假设 `a ∈ B \ C`，它的左取用子给出 `a ∈ B`，与"不在 `B`"冲突。
+
+-- soko:hint 关键件：练习 1 / 练习 2（**同一个 `h` 用两次** ✓）· `Set.mem_sdiff` ✓
+
+theorem sdiff_sdiff_subset (α : Type) (A B C : Set α) : A \ B ⊆ A \ (B \ C) := by
+  sorry

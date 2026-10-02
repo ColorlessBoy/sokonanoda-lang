@@ -15,10 +15,11 @@
             "membership",
             "subset",
             "powerset",
-            "sdiff-algebra"
+            "sdiff-algebra",
+            "sdiff-mixed"
           ],
           "quota": {
-            "exercises": 46
+            "exercises": 51
           },
           "units": [
             {
@@ -50,6 +51,12 @@
               "title": "单元58 差集的代数",
               "title_en": "Unit 58 — The Algebra of Set Difference",
               "unit": 58
+            },
+            {
+              "file": "units/unit59-sdiff-algebra2.sokonanoda",
+              "title": "单元59 差集的代数（二）",
+              "title_en": "Unit 59 — Difference Algebra II: Mixed Laws",
+              "unit": 59
             }
           ]
         },
