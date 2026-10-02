@@ -1,0 +1,80 @@
+-- ==========================================================================
+-- unit80-ordinal-elems.sokonanoda —— 卷 I 单元80 **序数的元素仍是序数**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§7.3**（ordinals：传递性）·
+--   Halmos《Naive Set Theory》**§11**。大纲 §4.1（**I.6 章深化** —— 接单元⑮⑯ ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 传递性的取用子（**点态**形态 ✓）· 序数传递 ✓；
+--   · **元素传递**：序数的元素的元素仍是元素 ✓；
+--   · **旗舰：序数的元素仍是序数** ✓（`elem_isOrdinal` ✓ —— 教材里"序数被 ∈ 继承" ✓）；
+--   · **后继**的定义（`IsSuccOf` ✓ —— 只是展示词汇 ✓）。
+--
+-- ⚠ **本单元的边界（如实记）** ✓：`IsOrdinal` 的三条是**取用子形式** ✓（库给了
+--   `ordinal_isTransitive` / `ordinal_elems_isTransitive` / `ordinal_wellFounded` ✓）；
+--   而 **`IsSuccOf` 的解构**（`isSuccOf_def` 右边是个 `∧` ✓）在本语言里**取不出两半** ✗：
+--   `And.left (IsOrdinal α E x) (∀ z, …) (Iff.mp (isSuccOf_def α E x y) h)` 与  -- soko:notation-ok: `IsTransitive`/`IsOrdinal`/`IsSuccOf` 是 def 头（手册边界）
+--   省略前导实参两种写法都判红 ✗（报 `期望 Sort(0)，实际是 …` ✓），三次同形 ⇒ 按纪律
+--   **降到只做序数元素线** ✓，后继那一组留给后续（**G-73 家族的第 21 例** ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Order` · `lib.Ordinal`。
+--
+-- 依赖：单元⑬（良基）· 单元⑮（序数）· 单元⑯（序关系）· 单元㊷（最小元）✓
+-- ==========================================================================
+import lib.Set
+import lib.Order
+import lib.Ordinal
+
+-- ─────────────────────────────────────────────────────────────
+-- 80.1 三条库引理（传递集 · 序数 · 后继的定义展开）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：传递集的展开（`x` 的元素还是 `x` 的元素 ✓）。
+theorem demo_isTransitive_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsTransitive α E x ↔ ∀ (y : α), E y x → ∀ (z : α), E z y → E z x :=
+  isTransitive_def α E x
+theorem demo_isOrdinal_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsOrdinal α E x ↔
+      IsTransitive α E x ∧ (∀ (y : α), E y x → IsTransitive α E y) ∧ IsWellFounded α E :=
+  isOrdinal_def α E x
+theorem demo_isSuccOf_def (α : Type) (E : α → α → Prop) (x : α) (y : α) :
+    IsSuccOf α E x y ↔
+      IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y) :=
+  isSuccOf_def α E x y-- 练习 1（T 类）：**传递性的点态用法**（两步走完 ✓）。
+
+-- soko:hint 关键件：`isTransitive_def`（**先 λ 绑定再 `Iff.mp`** ✓）· 按 点·前提 两次 ✓
+
+theorem mem_trans_of_trans (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hx : IsTransitive α E x) (hy : E y x) (hz : E z y) : E z x := by
+  sorry
+-- 练习 2（L 类）：**序数的元素关系传递**（`E y x ⇒ E z y ⇒ E z x`）。
+
+-- soko:hint 关键件：`ordinal_isTransitive`（取用子 ✓）· 练习 1 ✓
+
+theorem elem_trans (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : E z x := by
+  sorry
+-- 练习 3（T 类）：**序数的元素是传递集**（库里的取用子 ✓）。
+
+-- soko:hint 关键件：`ordinal_elems_isTransitive`（**参数一次给全** ✓）
+
+theorem ord_elems_trans (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsTransitive α E y := by
+  sorry
+-- 练习 4（L 类，**旗舰**）：**序数的元素仍是序数** ✓。
+
+-- soko:hint 思路：按 `IsOrdinal` 的条数组装（`isOrdinal_intro` ✓）：
+
+--   ① 元素的传递性 —— 练习 3 ✓；② 元素的元素也传递 —— 练习 3 + 练习 2 换一下点 ✓；
+
+--   ③ 良基性 —— 从原序数直接取用（`ordinal_wellFounded` ✓）。
+
+-- soko:hint 目标形态：`IsOrdinal α E y`。
+
+-- soko:hint 关键件：`isOrdinal_intro` · 练习 2 / 练习 3 · `ordinal_wellFounded` ✓
+
+theorem elem_isOrdinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y := by
+  sorry

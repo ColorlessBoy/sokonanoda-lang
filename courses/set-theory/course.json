@@ -317,10 +317,11 @@
             "extensionality",
             "zero",
             "least-element",
-            "well-order"
+            "well-order",
+            "ordinal-elements"
           ],
           "quota": {
-            "exercises": 30
+            "exercises": 34
           },
           "units": [
             {
@@ -340,6 +341,12 @@
               "title": "单元㊷ 良序集的「最小元」",
               "title_en": "Unit 42 — Least Elements in Well-Orders",
               "unit": 42
+            },
+            {
+              "file": "units/unit80-ordinal-elems.sokonanoda",
+              "title": "单元80 序数的元素仍是序数",
+              "title_en": "Unit 80 — Elements of Ordinals are Ordinals",
+              "unit": 80
             }
           ]
         },
