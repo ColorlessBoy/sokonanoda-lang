@@ -1,0 +1,62 @@
+-- ==========================================================================
+-- unit101-empty-subset.sokonanoda —— 卷 I 单元101 **空集与子集的点态代数**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§1.2 / §1.3** ·
+--   Halmos《Naive Set Theory》**§2 / §3**。大纲 §4.1（**回到基础层收口** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **空集的成员刻画**（`x ∈ ∅ ↔ False` ✓）；
+--   · **"含于空集"的两个方向** ✓（`A ⊆ ∅ ⇒ ∀x, x ∈ A → False` ✓ 与反向 ✓，
+--     都写成**两条蕴含** ✓ —— 不用 `↔` 带 `¬` 的绑定注解 ✗）；
+--   · **含于空集 ⇒ 无成员** ✓ · **空集含于任何集合** ✓ · **点态形态 ⇔ 含于空集** ✓。
+--
+-- ⚠ **一条边界（值得记住 ✓）**：**"含于空集 ⇒ `A ≼ B`"在这里证不出来** ✗ ——
+--   因为 `LeOn` 要求一个**全函数** `α → β` ✓，而 `A ⊆ ∅` 时 `A` 无成员 ✓
+--   ⇒ **没有 `β` 的元素就造不出映射** ✗（构造性框架不含"从空集到任意集合的函数" ✓，
+--   除非已知 `β` 非空 ✓）。本单元只做**点态**结论 ✓，如实标注 ✓。
+--
+-- ⚠ **`False.elim` 要写全目标** ✓：`False.elim (目标命题) h` ✓（诊断原文："把参数写全" ✓）  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+--   —— 只写 `False.elim h` 会报"隐式参数补不出来" ✗。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元②（空集）· 单元④（子集）· 单元94/95（对角线写法纪律）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+theorem demo_mem_empty_iff_false (α : Type) (x : α) :
+    x ∈ (Set.empty α) ↔ False :=  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+  Set.mem_empty_iff_false α x
+theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
+  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)-- 练习 1（L 类）：**含于空集 ⇒ 点态为假**。  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+-- 思路：给 `x ∈ A`，用包含关系得 `x ∈ ∅`，再由空集的成员刻画得 `False`。
+-- 关键件：`Set.mem_empty_iff_false`（**先 λ 绑定再 `Iff.mp`** ✓）· `h`（点 · 前提）
+theorem subset_empty_elim (α : Type) (A : Set α) (h : A ⊆ Set.empty α) :  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    ∀ (x : α), x ∈ A → False := by
+  sorry
+-- 练习 2（L 类）：**点态为假 ⇒ 含于空集**。
+-- 关键件：`Set.mem_empty_iff_false`（`Iff.mpr` ✓）· `h`（点 · 前提）
+theorem subset_empty_intro (α : Type) (A : Set α) (h : ∀ (x : α), x ∈ A → False) :
+    A ⊆ Set.empty α := by  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+  sorry
+-- 练习 3（T 类）：**含于空集 ⇒ 无成员**（把练习 1 交出去 ✓）。
+-- 关键件：练习 1
+theorem not_mem_of_subset_empty (α : Type) (A : Set α) (h : A ⊆ Set.empty α) :  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    ∀ (x : α), x ∈ A → False := by
+  sorry
+-- 练习 4（L 类）：**空集含于任何集合**。
+-- 思路：给 `x ∈ ∅`；由成员刻画得 `False`，再用 `False.elim` 消去。
+-- 关键件：`Set.mem_empty_iff_false`（`Iff.mp` ✓）· **`False.elim` 要把目标写全**（`False.elim (x ∈ A) …` ✓）
+theorem empty_subset (α : Type) (A : Set α) : Set.empty α ⊆ A := by  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+  sorry
+-- 练习 5（T 类）：**点态形态 ⇔ 含于空集**（一个方向 ✓）。
+-- 关键件：练习 1（**直接交出去** ✓）
+theorem subset_empty_iff_pointwise (α : Type) (A : Set α) :
+    (A ⊆ Set.empty α) → (∀ (x : α), x ∈ A → False) := by  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+  sorry
