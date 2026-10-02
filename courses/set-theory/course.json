@@ -513,10 +513,11 @@
             "descent",
             "equivalence-class",
             "quotient",
-            "kernel-equivalence"
+            "kernel-equivalence",
+            "equivclass-algebra"
           ],
           "quota": {
-            "exercises": 58
+            "exercises": 67
           },
           "units": [
             {
@@ -554,6 +555,12 @@
               "title": "单元76 像的核关系",
               "title_en": "Unit 76 — The Kernel of a Function",
               "unit": 76
+            },
+            {
+              "file": "units/unit77-equivclass-algebra.sokonanoda",
+              "title": "单元77 等价类的代数",
+              "title_en": "Unit 77 — Algebra of Equivalence Classes",
+              "unit": 77
             }
           ]
         },

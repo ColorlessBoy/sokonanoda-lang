@@ -1,0 +1,124 @@
+-- ==========================================================================
+-- unit77-equivclass-algebra.sokonanoda —— 卷 I 单元77 **等价类的代数**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.4 / §5**（equivalence classes）·
+--   Halmos《Naive Set Theory》**§7**。大纲 §4.1（**I.10 章继续深化** —— 接单元㉕㉖㉗ ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 等价类的两条取用子（进 · 出 ✓ —— 就是 `r a b` 的两个说法 ✓）；
+--   · **自反性给出自身在类里** ✓ · **对称/传递** ✓ · **成员的可交换性**
+--     （`b ∈ [a] ↔ a ∈ [b]` ✓）；
+--   · **旗舰一：相关的点的类互相包含**（`r a b ⇒ [a] ⊆ [b]` ✓）；
+--   · **旗舰二（构造性形态的"相等或不相交"）：不相关 ⇒ 两个类没有公共点** ✓
+--     （`¬ r a b ⇒ ¬ ∃ c, c ∈ [a] ∧ c ∈ [b]` ✓ —— 教材里"两个类要么相等要么不相交" ✓；
+--     这里写成**构造性可证**的形态 ✓，避开"类的相等"那条要外延的路 ✓）。
+--
+-- ⚠ **为什么旗舰二这样写** ✓：`[a] = [b] ∨ [a] ∩ [b] = ∅` 的两支都含**集合相等** ✗
+--   ⇒ 要外延（`lib.Extensionality` ✓）才能走 ✓；而**"有公共点 ⇒ 相关"**这条
+--   **逆否**形态完全构造性 ✓ ⇒ 本单元取它 ✓（手册「求真 + 看逻辑强度」✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元㉕（等价关系）· 单元㉖（划分）· 单元㉗（商集）· 单元76（像的核）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.1 三条库引理（等价类的成员 · 等价的定义 · 自反取用子）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：等价类的成员刻画（`b ∈ [a]` 就是 `r a b`）。
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+theorem demo_equivalence_def (α : Type) (r : Rel α α) :
+    IsEquivalence α r ↔ Reflexive α r ∧ Symmetric α r ∧ Transitive α r :=
+  isEquivalence_def α r
+theorem demo_equivalence_refl (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Reflexive α r :=
+  equivalence_refl α r he-- 练习 1（T 类）：**进等价类**（`r a b ⇒ b ∈ [a]`）。
+
+-- soko:hint 关键件：`Rel.mem_equivClass` · `Iff.mpr` ✓
+
+theorem mem_equivClass_of_rel (α : Type) (r : Rel α α) (a b : α) (h : r a b) :
+    b ∈ (Rel.EquivClass α r a) := by
+  sorry
+-- 练习 2（T 类）：**出等价类**（`b ∈ [a] ⇒ r a b`）。
+
+-- soko:hint 关键件：`Rel.mem_equivClass` · `Iff.mp` ✓
+
+theorem rel_of_mem_equivClass (α : Type) (r : Rel α α) (a b : α)
+    (h : b ∈ (Rel.EquivClass α r a)) : r a b := by
+  sorry
+-- 练习 3（T 类）：**自己总在自己的类里**（自反性）。
+
+-- soko:hint 关键件：`equivalence_refl`（**按 关系 · 假设 应用** ✓）· 练习 1 ✓
+
+theorem equivClass_self_mem (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a : α) :
+    a ∈ (Rel.EquivClass α r a) := by
+  sorry
+-- 练习 4（T 类）：**对称性**（从 `IsEquivalence` 里取出来）。
+
+-- soko:hint 关键件：`equivalence_symm`（**参数一次给全** ✓ —— 手册 G-73 的处置 ✓）
+
+theorem equivClass_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
+    (h : r a b) : r b a := by
+  sorry
+-- 练习 5（T 类）：**传递性**。
+
+-- soko:hint 关键件：`equivalence_trans`（**参数一次给全** ✓）
+
+theorem equivClass_trans (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b c : α)
+    (h1 : r a b) (h2 : r b c) : r a c := by
+  sorry
+-- 练习 6（L 类）：**成员可交换**（`b ∈ [a] ↔ a ∈ [b]`）。
+
+-- soko:hint 关键件：练习 1 / 练习 2 / 练习 4 · `Iff.intro`（**两种写法都要** ✓）
+
+theorem equivClass_mem_iff_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α) :
+    b ∈ (Rel.EquivClass α r a) ↔ a ∈ (Rel.EquivClass α r b) := by
+  sorry
+-- 练习 7（L 类，**旗舰一**）：**相关的点，类互相包含**（`r a b ⇒ [a] ⊆ [b]`）。
+
+-- soko:hint 思路：设 `c ∈ [a]`（即 `r a c`），要证 `r b c` ——
+
+--   用对称得 `r b a`，再与 `r a c` **传递** ✓。
+
+-- soko:hint ⚠ **槽位要摆正**：`equivClass_trans` 的形状是 `(a) (b) (c) (r a b) (r b c) : r a c` ✓
+
+--   ⇒ 要得 `r b c` 就取 `a := b`、`b := a`、`c := c` ✓（本轮在这里判红两次 ✗）。
+
+-- soko:hint 目标形态：`Rel.EquivClass α r a ⊆ Rel.EquivClass α r b`（**包含式** ✓）。
+
+-- soko:hint 关键件：练习 1 / 练习 2 / 练习 4 / 练习 5 ✓
+
+theorem equivClass_subset_of_rel (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
+    (hab : r a b) : (Rel.EquivClass α r a) ⊆ (Rel.EquivClass α r b) := by
+  sorry
+-- 练习 8（L 类，**旗舰二**）：**不相关 ⇒ 没有公共点**（构造性形态的"不相交" ✓）。
+
+-- soko:hint 思路：假设有公共点 `c` —— 它在 `[a]` 给 `r a c`、在 `[b]` 给 `r b c` ✓；
+
+--   由 `r b c` 对称得 `r c b`，与 `r a c` 传递得 `r a b` ✓，与 `¬ r a b` 冲突 ✓。
+
+-- soko:hint 目标形态：`¬ (∃ c, c ∈ [a] ∧ c ∈ [b])`（**动机位放 `False`** ⇒ 用 `Exists.elim` ✓，
+
+--   不用 `Or.elim` ✓ —— 见手册「动机位」那条 ✓）。
+
+-- soko:hint 关键件：练习 1 / 练习 2 / 练习 4 / 练习 5 · `Exists.elim` · `And.left`/`And.right` ✓
+
+theorem not_mem_both_of_not_rel (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
+    (h : ¬ (r a b)) : ¬ (∃ (c : α), c ∈ (Rel.EquivClass α r a) ∧ c ∈ (Rel.EquivClass α r b)) := by
+  sorry
+-- 练习 9（L 类，**收尾**）：**成员关系也是包含关系**（`b ∈ [a] ⇒ [b] ⊆ [a]`）。
+
+-- soko:hint 关键件：练习 2（得 `r a b`）· 练习 4（对称）· 练习 7（**直接交出去** ✓）
+
+theorem equivClass_self_subset_of_mem (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
+    (h : b ∈ (Rel.EquivClass α r a)) :
+    (Rel.EquivClass α r b) ⊆ (Rel.EquivClass α r a) := by
+  sorry

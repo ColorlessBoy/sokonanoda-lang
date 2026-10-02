@@ -1,0 +1,67 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+
+theorem demo_equivalence_def (α : Type) (r : Rel α α) :
+    IsEquivalence α r ↔ Reflexive α r ∧ Symmetric α r ∧ Transitive α r :=
+  isEquivalence_def α r
+
+theorem demo_equivalence_refl (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Reflexive α r :=
+  equivalence_refl α r he
+
+theorem mem_equivClass_of_rel (α : Type) (r : Rel α α) (a b : α) (h : r a b) :
+    b ∈ (Rel.EquivClass α r a) :=
+  (fun (hu : Rel.EquivClass α r a b ↔ r a b) => Iff.mpr hu h) (Rel.mem_equivClass α r a b)
+
+theorem rel_of_mem_equivClass (α : Type) (r : Rel α α) (a b : α)
+    (h : b ∈ (Rel.EquivClass α r a)) : r a b :=
+  (fun (hu : Rel.EquivClass α r a b ↔ r a b) => Iff.mp hu h) (Rel.mem_equivClass α r a b)
+
+theorem equivClass_self_mem (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a : α) :
+    a ∈ (Rel.EquivClass α r a) :=
+  mem_equivClass_of_rel α r a a ((equivalence_refl α r he) a)
+
+theorem equivClass_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
+    (h : r a b) : r b a :=
+  (equivalence_symm α r he) a b h
+
+theorem equivClass_trans (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b c : α)
+    (h1 : r a b) (h2 : r b c) : r a c :=
+  (equivalence_trans α r he) a b c h1 h2
+
+theorem equivClass_mem_iff_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α) :
+    b ∈ (Rel.EquivClass α r a) ↔ a ∈ (Rel.EquivClass α r b) :=
+  Iff.intro (b ∈ (Rel.EquivClass α r a)) (a ∈ (Rel.EquivClass α r b))
+    (fun (h : b ∈ (Rel.EquivClass α r a)) =>
+      mem_equivClass_of_rel α r b a (equivClass_symm α r he a b (rel_of_mem_equivClass α r a b h)))
+    (fun (h : a ∈ (Rel.EquivClass α r b)) =>
+      mem_equivClass_of_rel α r a b (equivClass_symm α r he b a (rel_of_mem_equivClass α r b a h)))
+
+theorem equivClass_subset_of_rel (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
+    (hab : r a b) : (Rel.EquivClass α r a) ⊆ (Rel.EquivClass α r b) :=
+  fun (c : α) (hc : c ∈ (Rel.EquivClass α r a)) =>
+    mem_equivClass_of_rel α r b c
+      (equivClass_trans α r he b a c (equivClass_symm α r he a b hab)
+        (rel_of_mem_equivClass α r a c hc))
+
+theorem not_mem_both_of_not_rel (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
+    (h : ¬ (r a b)) : ¬ (∃ (c : α), c ∈ (Rel.EquivClass α r a) ∧ c ∈ (Rel.EquivClass α r b)) :=
+  fun (hex : ∃ (c : α), c ∈ (Rel.EquivClass α r a) ∧ c ∈ (Rel.EquivClass α r b)) =>
+    Exists.elim α (fun (c : α) => c ∈ (Rel.EquivClass α r a) ∧ c ∈ (Rel.EquivClass α r b))
+      False hex
+      (fun (c : α) (hc : c ∈ (Rel.EquivClass α r a) ∧ c ∈ (Rel.EquivClass α r b)) =>
+        h (equivClass_trans α r he a c b
+          (rel_of_mem_equivClass α r a c
+            (And.left (c ∈ (Rel.EquivClass α r a)) (c ∈ (Rel.EquivClass α r b)) hc))  -- soko:notation-ok: `IsEquivalence`/`Rel.*`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+          (equivClass_symm α r he b c (rel_of_mem_equivClass α r b c
+            (And.right (c ∈ (Rel.EquivClass α r a)) (c ∈ (Rel.EquivClass α r b)) hc)))))  -- soko:notation-ok: `IsEquivalence`/`Rel.*`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+
+theorem equivClass_self_subset_of_mem (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
+    (h : b ∈ (Rel.EquivClass α r a)) :
+    (Rel.EquivClass α r b) ⊆ (Rel.EquivClass α r a) :=
+  equivClass_subset_of_rel α r he b a (equivClass_symm α r he a b (rel_of_mem_equivClass α r a b h))
