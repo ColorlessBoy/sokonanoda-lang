@@ -29,3 +29,33 @@ axiom hpo : IsPO Nat (fun (x y : Nat) => x = y)
 -- 形状 ①：定义头类型的假设取出合取支后**直接应用**
 theorem shape1 (a : Nat) : a = a :=
   And.left hpo a
+
+-- ── 形状 ③ 的**第二处落点**（原课程侧 C-02，2026-10-02 收编为 G-73）──────────
+-- 位置与上面那条不同：等式不在 λ 的绑定类型里，而在**定理的陈述**里
+-- （`Eq` 的 `{α : Sort u}` 要落在 `Nat` 上 ⇒ `u` 反解不出来）。
+-- 现场（课程侧已 `closed`，绕法是**把宇宙写显式**）：
+--   `courses/set-theory/units/solutions/I.6/unit109-solution.sokonanoda`
+--   的 `ordinal_rec_nat_eq` ✓（写 `Eq.{1}` / `Eq.refl.{1}` 判绿 ✓）。
+-- 这里把两态都钉在同一份复现里：② 判红（缺口仍在）· ③ 判绿（绕法有效）。
+
+inductive Acc (α : Type) (r : α → α → Prop) : α → Prop
+ctor Acc.intro (x : α) (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x
+end
+
+-- 良基递归**定义侧**判绿（G-56/G-58 的收益：能定义到 Type 层的函数）
+def accConst (α : Type) (E : α → α → Prop) (x : α) (h : Acc α E x) : Nat :=
+  Acc.rec α E (fun (z : α) (_ : Acc α E z) => Nat)
+    (fun (z : α) (_hz : ∀ (y : α), E y z → Acc α E y)
+      (_ih : ∀ (y : α) (hy : E y z), Nat) => Nat.succ Nat.zero) x h
+
+-- ② 等式侧判红：`Eq` 的宇宙层级反解不出来 ⇒ 「期望 Sort(0)，实际是 Sort(1)」✗
+theorem accConst_eq (α : Type) (E : α → α → Prop) (x : α)
+    (hr : ∀ (y : α), E y x → Acc α E y) :
+    Eq Nat (accConst α E x (Acc.intro α E x hr)) (Nat.succ Nat.zero) :=
+  Eq.refl Nat (Nat.succ Nat.zero)
+
+-- ③ 把宇宙写显式 ⇒ 判绿 ✓（课程侧的绕法，逐字同形）
+theorem accConst_eq_explicit (α : Type) (E : α → α → Prop) (x : α)
+    (hr : ∀ (y : α), E y x → Acc α E y) :
+    Eq.{1} Nat (accConst α E x (Acc.intro α E x hr)) (Nat.succ Nat.zero) :=
+  Eq.refl.{1} Nat (Nat.succ Nat.zero)

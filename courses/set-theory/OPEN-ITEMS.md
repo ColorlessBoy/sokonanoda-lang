@@ -52,6 +52,11 @@
 - **影响**：**单元109（序数算术·加法）** 卡在这里 ✗ —— 递归**定义**能做 ✓，但**算不出来**（证不了计算规则 ⇒ 结合律无从谈起 ✗）。
 - **收编去向**：应进 `docs/gaps/ledger.jsonl`（G 系列 ✓）—— **当时 `docs/gaps/` 正挂在内核线的在途改动里** ✓，
   故先登记在此 ✓；内核线空出手后请搬过去 ✓。
+- **✅ 已收编为 G-73**（2026-10-02 内核线 · 台账搬运）：结论与本条一致（**不是墙，是等式族证明项的宇宙层级拼法** ✓），
+  故**归并**进 `docs/gaps/ledger.jsonl` 的 **G-73**（形状 ③「`≠`/`=` 解不出宇宙层级」的**第二处落点**：等式在**定理陈述**里）✓；
+  最小复现已并入 `docs/gaps/repro/G73-def-headed-term-boundaries.sokonanoda`（**②判红 / ③写显式宇宙判绿** 两态齐 ✓，
+  自包含零 import ✓）—— 判据数字：`./target/debug/sokonanoda --json --no-project <该复现件>` ⇒ `decl.checked` **6 条**
+  （含 `accConst` ✓ 与 `accConst_eq_explicit` ✓）· `diagnostic` **2 条** ⇒ rejected ✓。G-73 保持 **open**（绕法只摊薄代价 ✓）。
 
 ## C-03（open · 环境）运行器拒绝运行：版本钉已升 `0.81.0`，而构建/缓存落后
 
