@@ -453,9 +453,9 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
 - Selects the goal state at the caret with Lean `goalsAt?` semantics: inside
   a tactic's span → the state **entering** it; else after the last tactic
   ending at or before the caret; before the first tactic → the **statement
-  state** (`step: -1`, `span` = its range, `binders` = its ∀ params in order —
-  anonymous arrow shows `_` — `goal` = what is left; also for no-`by` and
-  **failed** declarations ⇒ `goal: null` means "closed", never "failed").
+  state**: the declaration's **named ∀ binders** in `binders` and what is left
+  after peeling them in `goal` —— **与声明卡片（`soko/goals`）逐字一致**
+  （**顶 ≡ 底** 是硬契约 ✓）；Π 语句保留自己的 `→`/`∀` ✓，失败的声明也答题面（非 null）✓。
 - `goals` is the **full** remaining-goal list at that position (current goal
   first, `[]` = closed), each entry carrying its own `goal` text and
   `binders` — so a multi-subgoal tactic (`apply And.intro`) shows both

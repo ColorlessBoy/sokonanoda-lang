@@ -31,8 +31,10 @@ fn doc(text: &str) -> QueryDoc {
 /// 一个**具名绑元**的画布（`theorem t (a : Prop) : P := by`）—— 用户报的那一形。
 /// Lean `goalsAt?`：这种写法的 ∀ 绑元在证明开始时**已经在上下文里**，
 /// 初始目标只剩命题本身。
-/// **四形矩阵**（用户 2026-10-02 实测报的 bug；判据：`goal` 不得等于声明的完整
-/// 类型、也不得是 `null`；`binders` 必须是这道题的 ∀ 参数且按序）。
+/// **四形矩阵**（用户 2026-10-02 实测报的 bug）。判据 = **顶 ≡ 底**：根状态的
+/// `binders`/`goal` 必须与「声明卡片」（`query goals` 那一路的 `DeclState.goal`/
+/// `binders`，即 `open_goal` 的 `info`）**逐字一致** —— 对**所有**形状，含
+/// **语句本身是 Π**（`→` / `∀`）的形状（值守第 9 单：那时顶会多剥语句自身的 Π 层 ✗）。
 ///
 /// 四形 = ① 冒号前绑元 + `by` · ② 冒号后箭头 + `by`（含**匿名 `Arrow`**）·
 /// ③ 无 `by` 块（`:= sorry`）· ④ 带真 tactic 的声明（顺带覆盖"声明被判 Failed"
@@ -53,18 +55,36 @@ theorem with_tactic (a b : Prop) (h : a) : And a a := by
 theorem arrow : (a b : Prop) -> a -> And a a := by
   constructor
   sorry
+
+-- **语句本身是 Π**（值守第 9 单：这一类原先被多剥/退回整句 ✗）
+theorem pi_arrow (a b : Prop) : a → b → a := by
+  sorry
+
+theorem pi_forall (a : Prop) : ∀ (x : Prop), a → x := by
+  sorry
 ";
 
 #[test]
-fn state_at_root_is_the_statement_state_in_every_shape() {
+fn state_at_root_matches_the_declaration_card_in_every_shape() {
     let shapes = doc(ROOT_SHAPES);
     // (声明名, 期望 binders, 期望 goal)
-    let cases: [(&str, Vec<&str>, &str); 4] = [
+    let cases: [(&str, Vec<&str>, &str); 6] = [
         ("named", vec!["a", "b", "h"], "a ∧ a"),
         ("no_by", vec!["a", "b", "h"], "a ∧ a"),
         ("with_tactic", vec!["a", "b", "h"], "a ∧ a"),
-        // 箭头式：匿名 `a ->` 是一个没名字的绑元 ⇒ 显示 `_`（Lean 里靠 `intro` 命名）。
-        ("arrow", vec!["a", "b", "_"], "a ∧ a"),
+        // 箭头式（**语句本身是 Π**，冒号前没有具名绑元）⇒ 题面状态 = **整句 Π**、
+        // 上下文为空 —— 与「底」（`query goals` 的声明卡片）**逐字一致** ✓。
+        //
+        // ⚠ **口径更正（2026-10-02 值守第 9 单）**：这里原先断言「剥完整条 ∀ 望远镜」
+        // （`["a","b","_"] ⊢ a ∧ a`）✗ —— 那会连**语句自身的 Π 层**一起剥掉，于是
+        // `theorem (a b : Prop) : a → b → a := by` 的顶变成 `[a,b,_,_] ⊢ a` ✗（真机实测），
+        // 而底是 `[a,b] ⊢ a → b → a` ✓。现在顶与底**同源**（open 声明直接用 `open_goal`
+        // 的 `info`）⇒ 顶 ≡ 底 by construction ✓。
+        ("arrow", vec![], "(a : Prop) → (b : Prop) → a → a ∧ a"),
+        // **语句本身是 Π**：只剥**具名绑元**、把语句自己的 Π 留着 ✓（= 声明卡片 ✓）。
+        // 原行为（值守第 9 单实测）：`[a,b,_,_] ⊢ a` ✗ / `[a] ⊢ x` ✗。
+        ("pi_arrow", vec!["a", "b"], "a → b → a"),
+        ("pi_forall", vec!["a"], "(x : Prop) → a → x"),
     ];
     for (name, want_binders, want_goal) in cases {
         let offset = ROOT_SHAPES

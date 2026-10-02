@@ -231,19 +231,25 @@ async fn state_at_on_the_by_keyword_returns_the_root_goal() {
     // `binders`（匿名箭头显示 `_`）、`goal` 只剩剥掉它们之后的命题；旧行为答的是
     // 整句声明类型（`And a a -> a`）。记法折叠（线 C / T-C20）仍旧生效，落在
     // **绑元的类型**上（匿名箭头 `And a a` ⇒ `a ∧ a`）。
-    let goal = result["goal"].as_str().expect("root goal is the statement");
-    assert_eq!(goal, "a", "root goal = 剥掉 ∀ 参数之后的命题：{goal}");
+    // **顶 ≡ 底**（2026-10-02 值守第 9 单）：`open : (a : Prop) -> And a a -> a` 冒号前
+    // **没有具名绑元** ⇒ 题面状态 = **整句 Π**、上下文为空 —— 与声明卡片逐字一致 ✓。
+    // （旧口径「剥完整条 ∀ 望远镜」⇒ `["a","_"] ⊢ a` ✗ 已被取代：那会连语句自身的 Π
+    //   一起剥掉，实测把 `(a b : Prop) : a → b → a` 的顶变成 `[a,b,_,_] ⊢ a` ✗。）
+    // **顶 ≡ 底**（2026-10-02 值守第 9 单）：这里的值 = **声明卡片**（`soko/goals`）的同源
+    // 值 —— 实测两者都是 `['a','h'] ⊢ 'a'` ✓（`by intro a; intro h` 把两层 Π 都吃掉了）。
+    // ⚠ 口径更正：旧断言是「剥完整条 ∀ 望远镜」⇒ `["a","_"] ⊢ a` ✗ —— 那会连语句自身的
+    //   Π 层一起剥掉（实测把 `(a b : Prop) : a → b → a` 的顶变成 `[a,b,_,_] ⊢ a` ✗）。
+    //   语料级 顶≡底 由 `docs/gaps/repro/G81-top-equals-bottom-root-state.sh` 守 ✓。
+    let goal = result["goal"]
+        .as_str()
+        .expect("root goal is the statement (never null)");
+    assert_eq!(goal, "a", "根状态 = 声明卡片的值：{goal}");
     let binders = result["binders"].as_array().expect("binders array");
     let names: Vec<&str> = binders.iter().filter_map(|b| b["name"].as_str()).collect();
     assert_eq!(
         names,
-        vec!["a", "_"],
-        "根状态的 binders = 声明的 ∀ 参数（按序，匿名箭头显示 `_`）"
-    );
-    let anon_ty = binders[1]["ty"].as_str().expect("anonymous binder ty");
-    assert!(
-        anon_ty.contains('∧'),
-        "绑元类型也过记法折叠（`And a a` ⇒ `a ∧ a`）：{anon_ty}"
+        vec!["a", "h"],
+        "根状态的 binders = 卡片的值：{names:?}"
     );
     shutdown(&mut service).await;
 }

@@ -29,45 +29,29 @@ use crate::compile::units::SourceUnit;
 use crate::{Binder, Command, CtorDecl, Expr, IotaRule, OpenFilter, RecDecl, Span};
 use sokonanoda::builder::EnvBuilder;
 
-/// **题面状态** —— 声明头部的根状态：声明的 ∀ 参数 + 剥掉它们之后的命题。
+/// **声明头部的根状态**：**只剥源位 λ 链的绑元**（= 声明里写的**具名绑元**），
+/// **不是**整条 ∀ 望远镜 ✗。
 ///
-/// 用户 2026-10-02 的四形矩阵要求**四形都成立**：`theorem t (a) : P`（冒号前
-/// 绑元）· `theorem t : (a) -> P`（冒号后箭头，含**匿名 `Arrow`**）· `:= sorry`
-/// （无 `by` 块）· **失败的声明**（`constructor` 被拒之类 ⇒ 以前这里吐 `goal: null`，
-/// 面板据此显示「已无目标 ✓」，对一道没通过的题是假话 ✗）。
+/// 为什么（**2026-10-02 值守第 9 单**，用户实测报的 ✗）：前端 lowering 会给
+/// **函数型语句**（`a → b → a` / `∀ x, …`）补 λ ⇒ `split_by_value(val)` 的 λ 链
+/// **含语句自身的 Π 层** ⇒ 按它剥 `peel_pi_layers(ty, n)` 会**多剥**（目标的箭头全没、
+/// 上下文多出匿名 `_`）；层数不够时 `peel_pi_layers` 返 `None` ⇒ `by_root = None` ⇒
+/// 退回 `ty_text` + 空 binders ⇒ 顶显示整句 `∀` ✗。
+/// 实测：`theorem (a b : Prop) : a → b → a := by` ⇒ 顶 `[a,b,_,_] ⊢ a` ✗
+/// vs 底（声明卡片）`[a,b] ⊢ a → b → a` ✓。
 ///
-/// ⚠ **不动 tactic 语义**：箭头式声明的**引擎**根目标仍是整条 Pi（要显式
-/// `intro`，与 Lean 一致 —— 实测 `apply And.intro`/`constructor` 都拒绝 Pi 目标，
-/// 错误文案自己写着「先 `intro` 拆开试试」；用户画布 5 条箭头式声明全靠 `intro`）。
-/// 这里回答的是"**题目**长什么样"，不是"引擎此刻的 goal 是什么"——两者对
-/// 冒号前绑元那形恒等，对箭头式那形按用户判据取题面。
-fn statement_state(ty: &Expr, display: &crate::display::DisplayNotations) -> Option<ByGoalState> {
-    let mut collected: Vec<Binder> = Vec::new();
-    let mut cur: &Expr = ty;
-    loop {
-        match cur {
-            Expr::Forall { binders, body, .. } => {
-                collected.extend(binders.iter().cloned());
-                cur = body.as_ref();
-            }
-            // 匿名箭头 `A -> B` = 一个没名字的绑元（Lean 里要靠 `intro` 命名）。
-            Expr::Arrow {
-                domain, codomain, ..
-            } => {
-                collected.push(Binder {
-                    name: "_".to_string(),
-                    ty: Some(domain.clone()),
-                    style: crate::BinderKind::Explicit,
-                    span: Span::default(),
-                });
-                cur = codomain.as_ref();
-            }
-            _ => break,
-        }
-    }
+/// 正确口径 = **与声明卡片同源**：open 声明在调用点直接用 `open_goal` 的 `info`
+/// （顶 ≡ 底 **by construction** ✓）；其余（失败 / 已证）用这里的 λ 前缀版 ✓。
+fn decl_prefix_state(
+    ty: &Expr,
+    val: &Expr,
+    display: &crate::display::DisplayNotations,
+) -> Option<ByGoalState> {
+    let (binders, _) = crate::by::split_by_value(val)?;
+    let body = crate::proof::peel_pi_layers(ty, binders.len())?;
     Some(ByGoalState {
-        ty: display.fold(&render_expr(cur)),
-        binders: collected
+        ty: display.fold(&render_expr(&body)),
+        binders: binders
             .iter()
             .map(|b| GoalBinder {
                 name: b.name.clone(),
@@ -620,13 +604,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 {
                     let mut st =
                         failed_state(DeclKind::Definition, Some(name.to_string()), span, e, idx);
-                    st.by_root = statement_state(ty, &self.display);
+                    st.by_root = decl_prefix_state(ty, val, &self.display);
                     self.decl_states.push(st);
                 }
                 return;
             }
         };
-        let by_root = statement_state(ty, &self.display);
+        let by_root = decl_prefix_state(ty, val, &self.display);
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         // 源级 delta 表：**值完整**的 def 才登记（开练习的值是洞，展开没意义）。
@@ -720,7 +704,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                                 e,
                                 idx,
                             );
-                            st.by_root = statement_state(ty, &self.display);
+                            st.by_root = by_root.clone();
                             self.decl_states.push(st);
                         }
                         return;
@@ -775,13 +759,29 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 declared_ty: Some(signature.declared_ty),
                 sig_probe: signature.probe,
                 sig_span: signature.span,
-                goal: Some(info.goal),
-                binders: info.binders,
+                goal: Some(info.goal.clone()),
+                binders: info.binders.clone(),
                 holes: info.holes,
                 sub_goals: info.sub_goals,
                 refine_template: info.refine_template,
                 by_steps: by_steps.clone(),
-                by_root: by_root.clone(),
+                // **与「底」（声明卡片）同源**（2026-10-02 值守第 9 单）：
+                // open 声明的根状态就用 `open_goal` 的 `info` ⇒ 顶 ≡ 底 **by construction** ✓
+                // （`kernel_phase` 把同一份 `goal`/`binders` 填进 `DeclState` ✓）。
+                by_root: Some(ByGoalState {
+                    // **折一次**：`info.goal`/绑元类型是**源级渲染**（`And P Q`），而
+                    // 这条 `by_root` 还会被 **hover 路径直接渲染**（不经查询层的 fold ✗）
+                    // ⇒ 在这里折好 ⇒ wire 与 hover 同一份文本 ✓（折叠幂等 ✓，wire 不变 ✓）。
+                    ty: self.display.fold(&info.goal),
+                    binders: info
+                        .binders
+                        .iter()
+                        .map(|b| GoalBinder {
+                            name: b.name.clone(),
+                            ty: self.display.fold(&b.ty),
+                        })
+                        .collect(),
+                }),
                 span,
                 cmd: idx,
             });
@@ -811,7 +811,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                             err,
                             idx,
                         );
-                        st.by_root = statement_state(ty, &self.display);
+                        st.by_root = by_root.clone();
                         self.decl_states.push(st);
                     }
                     return;
@@ -846,7 +846,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 {
                     let mut st =
                         failed_state(DeclKind::Definition, Some(name.to_string()), span, e, idx);
-                    st.by_root = statement_state(ty, &self.display);
+                    st.by_root = by_root.clone();
                     self.decl_states.push(st);
                 }
             }
@@ -907,13 +907,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 {
                     let mut st =
                         failed_state(DeclKind::Theorem, Some(name.to_string()), span, e, idx);
-                    st.by_root = statement_state(ty, &self.display);
+                    st.by_root = decl_prefix_state(ty, val, &self.display);
                     self.decl_states.push(st);
                 }
                 return;
             }
         };
-        let by_root = statement_state(ty, &self.display);
+        let by_root = decl_prefix_state(ty, val, &self.display);
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
@@ -992,7 +992,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                                 e,
                                 idx,
                             );
-                            st.by_root = statement_state(ty, &self.display);
+                            st.by_root = by_root.clone();
                             self.decl_states.push(st);
                         }
                         return;
@@ -1047,13 +1047,29 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 declared_ty: Some(signature.declared_ty),
                 sig_probe: signature.probe,
                 sig_span: signature.span,
-                goal: Some(info.goal),
-                binders: info.binders,
+                goal: Some(info.goal.clone()),
+                binders: info.binders.clone(),
                 holes: info.holes,
                 sub_goals: info.sub_goals,
                 refine_template: info.refine_template,
                 by_steps: by_steps.clone(),
-                by_root: by_root.clone(),
+                // **与「底」（声明卡片）同源**（2026-10-02 值守第 9 单）：
+                // open 声明的根状态就用 `open_goal` 的 `info` ⇒ 顶 ≡ 底 **by construction** ✓
+                // （`kernel_phase` 把同一份 `goal`/`binders` 填进 `DeclState` ✓）。
+                by_root: Some(ByGoalState {
+                    // **折一次**：`info.goal`/绑元类型是**源级渲染**（`And P Q`），而
+                    // 这条 `by_root` 还会被 **hover 路径直接渲染**（不经查询层的 fold ✗）
+                    // ⇒ 在这里折好 ⇒ wire 与 hover 同一份文本 ✓（折叠幂等 ✓，wire 不变 ✓）。
+                    ty: self.display.fold(&info.goal),
+                    binders: info
+                        .binders
+                        .iter()
+                        .map(|b| GoalBinder {
+                            name: b.name.clone(),
+                            ty: self.display.fold(&b.ty),
+                        })
+                        .collect(),
+                }),
                 span,
                 cmd: idx,
             });
@@ -1083,7 +1099,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                             err,
                             idx,
                         );
-                        st.by_root = statement_state(ty, &self.display);
+                        st.by_root = by_root.clone();
                         self.decl_states.push(st);
                     }
                     return;
@@ -1118,7 +1134,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 {
                     let mut st =
                         failed_state(DeclKind::Theorem, Some(name.to_string()), span, e, idx);
-                    st.by_root = statement_state(ty, &self.display);
+                    st.by_root = by_root.clone();
                     self.decl_states.push(st);
                 }
             }
@@ -1289,12 +1305,12 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             Err(e) => {
                 self.out.push_error(idx, e.clone());
                 let mut st = failed_state(DeclKind::Example, None, span, e, idx);
-                st.by_root = statement_state(ty, &self.display);
+                st.by_root = decl_prefix_state(ty, val, &self.display);
                 self.decl_states.push(st);
                 return;
             }
         };
-        let by_root = statement_state(ty, &self.display);
+        let by_root = decl_prefix_state(ty, val, &self.display);
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
@@ -1351,7 +1367,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     Err(e) => {
                         self.out.push_error(idx, e.clone());
                         let mut st = failed_state(DeclKind::Example, None, span, e, idx);
-                        st.by_root = statement_state(ty, &self.display);
+                        st.by_root = by_root.clone();
                         self.decl_states.push(st);
                         return;
                     }
@@ -1405,13 +1421,29 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 declared_ty: Some(signature.declared_ty),
                 sig_probe: signature.probe,
                 sig_span: signature.span,
-                goal: Some(info.goal),
-                binders: info.binders,
+                goal: Some(info.goal.clone()),
+                binders: info.binders.clone(),
                 holes: info.holes,
                 sub_goals: info.sub_goals,
                 refine_template: info.refine_template,
                 by_steps: by_steps.clone(),
-                by_root: by_root.clone(),
+                // **与「底」（声明卡片）同源**（2026-10-02 值守第 9 单）：
+                // open 声明的根状态就用 `open_goal` 的 `info` ⇒ 顶 ≡ 底 **by construction** ✓
+                // （`kernel_phase` 把同一份 `goal`/`binders` 填进 `DeclState` ✓）。
+                by_root: Some(ByGoalState {
+                    // **折一次**：`info.goal`/绑元类型是**源级渲染**（`And P Q`），而
+                    // 这条 `by_root` 还会被 **hover 路径直接渲染**（不经查询层的 fold ✗）
+                    // ⇒ 在这里折好 ⇒ wire 与 hover 同一份文本 ✓（折叠幂等 ✓，wire 不变 ✓）。
+                    ty: self.display.fold(&info.goal),
+                    binders: info
+                        .binders
+                        .iter()
+                        .map(|b| GoalBinder {
+                            name: b.name.clone(),
+                            ty: self.display.fold(&b.ty),
+                        })
+                        .collect(),
+                }),
                 span,
                 cmd: idx,
             });
@@ -1434,7 +1466,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
                     self.out.push_error(idx, err.clone());
                     let mut st = failed_state(DeclKind::Example, None, span, err, idx);
-                    st.by_root = statement_state(ty, &self.display);
+                    st.by_root = by_root.clone();
                     self.decl_states.push(st);
                     return;
                 }
@@ -1457,7 +1489,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             Err(e) => {
                 self.out.push_error(idx, e.clone());
                 let mut st = failed_state(DeclKind::Example, None, span, e, idx);
-                st.by_root = statement_state(ty, &self.display);
+                st.by_root = by_root.clone();
                 self.decl_states.push(st);
             }
         }
