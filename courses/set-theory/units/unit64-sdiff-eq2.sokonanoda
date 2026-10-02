@@ -1,0 +1,112 @@
+-- ==========================================================================
+-- unit64-sdiff-eq2.sokonanoda —— 卷 I 单元64 **差集的等式层（三）：两步走**
+--
+-- 靶子（教材）：Halmos《Naive Set Theory》**§5** · Enderton §1.4/§1.5。大纲 §4.1（I.1 收口 ✓）。
+--
+-- 本单元演示**一条通用工作法**（上一片踩出来的 ✓）：
+--   **要证的集合等式里，只要有一支需要三层以上嵌套 ⇒ 别一次写完** ✗
+--   （第 604/619/625 轮**三次**括号配错 ✓）⇒ 走**两步** ✓：
+--     ① 先写**逐点 `↔` 小引理**（`mem_inter_sdiff_iff` ✓ —— 每条都在两层以内 ✓，顶层判绿 ✓）；
+--     ② 再用 `funext_spec` + `propext_spec` **打包** ✓（那一支只调用小引理 ✓，一行 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 四条顶层取用子（出 · 出 · 进 · 交的左/右/合成 ✓）；
+--   · **逐点 `↔`**：`a ∈ (A ∩ B) \ C ↔ a ∈ (A \ C) ∩ B` ✓；
+--   · **等式**：**`(A ∩ B) \ C = (A \ C) ∩ B`** ✓（第 625 轮砍掉的那条 ✓ —— 两步走后一次判绿 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 五样**：`lib.Set` · `lib.SUnion` · `lib.Order` · `lib.Rel` · `lib.Extensionality`。
+--
+-- 依赖：单元③（并交差）· 单元58/59/61/62/63（差集代数与外延打包）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+import lib.Extensionality
+
+-- ─────────────────────────────────────────────────────────────
+-- 64.1 三条库引理（两条外延工具 + 差集的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：**函数外延**（逐点相等 ⇒ 函数相等）。
+theorem demo_funext (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) :  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∩` 是 def 头（手册边界）
+    Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∩` 是 def 头（手册边界）
+  funext_spec α β f g h
+theorem demo_propext (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∩` 是 def 头（手册边界）
+  propext_spec a b h
+theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=
+  Set.mem_sdiff a A B
+-- ─────────────────────────────────────────────────────────────
+-- 64.2 顶层取用子（**两步走的第一步**：小引理都放顶层 ✓）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（T 类）：进差集 ⇒ 在 `A` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mp` · `And.left`（**写全前导实参** ✓）
+
+theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A := by
+  sorry
+-- 练习 2（T 类）：进差集 ⇒ 不在 `B` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mp` · `And.right`（**写全** ✓）
+
+theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) := by
+  sorry
+-- 练习 3（T 类）：在 `A` 里 + 不在 `B` 里 ⇒ 进差集。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mpr` · `And.intro`（**写全** ✓）
+
+theorem mem_sdiff_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hna : ¬ (a ∈ B)) :
+    a ∈ (A \ B) := by
+  sorry
+-- 练习 4（T 类）：交的左取用子。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mp` · `And.left`（**写全** ✓）
+
+theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A := by
+  sorry
+-- 练习 5（T 类）：交的右取用子。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mp` · `And.right`（**写全** ✓）
+
+theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ B := by
+  sorry
+-- 练习 6（T 类）：交的合成。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mpr` · `And.intro`（**写全** ✓）
+
+theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 64.3 逐点 `↔` + **打包成等式**（两步走的第二步 ✓）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 7（L 类，**两步走的第一步**）：**逐点 `↔`**（`(A ∩ B) \ C` 与 `(A \ C) ∩ B`）。
+
+-- soko:hint 思路：两个方向都靠"把小引理串起来" —— 只用练习 1–6，**别自己再拆 `And`** ✓
+
+--   （每条都在两层以内 ⇒ 括号好数 ✓）。
+
+-- soko:hint 目标形态：`a ∈ (A ∩ B) \ C ↔ a ∈ (A \ C) ∩ B`。
+
+-- soko:hint 关键件：练习 1–6 · `Iff.intro`（两种写法都要 ✓）
+
+theorem mem_inter_sdiff_iff (α : Type) (A B C : Set α) (a : α) :
+    a ∈ ((A ∩ B) \ C) ↔ a ∈ ((A \ C) ∩ B) := by
+  sorry
+-- 练习 8（L 类，**两步走的第二步**）：**打包成集合等式**。
+
+-- soko:hint 思路：`funext_spec` 逐点 ⇒ `propext_spec` 用练习 7 的 `↔` ⇒ **一行** ✓。
+
+-- soko:hint 目标形态：`(A ∩ B) \ C = (A \ C) ∩ B`（**集合等式** ✓）。
+
+-- soko:hint 关键件：练习 7 · `funext_spec`（第二实参 `fun _ => Prop` ✓）· `propext_spec` ✓
+
+theorem inter_sdiff_eq (α : Type) (A B C : Set α) :
+    Eq.{1} (Set α) ((A ∩ B) \ C) ((A \ C) ∩ B) := by  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∩` 是 def 头（手册边界）
+  sorry

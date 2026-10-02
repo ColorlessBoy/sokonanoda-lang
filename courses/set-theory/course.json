@@ -22,10 +22,11 @@
             "extensionality-packing",
             "set-equality",
             "extensionality-consequences",
-            "sdiff-equality-layer"
+            "sdiff-equality-layer",
+            "two-step-packing"
           ],
           "quota": {
-            "exercises": 80
+            "exercises": 88
           },
           "units": [
             {
@@ -87,6 +88,12 @@
               "title": "单元63 差集的等式层（打包续）",
               "title_en": "Unit 63 — Difference Equalities, Continued",
               "unit": 63
+            },
+            {
+              "file": "units/unit64-sdiff-eq2.sokonanoda",
+              "title": "单元64 差集的等式层（三）：两步走",
+              "title_en": "Unit 64 — Two-Step Packing",
+              "unit": 64
             }
           ]
         },
