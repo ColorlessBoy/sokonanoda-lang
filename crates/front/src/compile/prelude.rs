@@ -148,6 +148,9 @@ pub const PRELUDE_NAMES: &[&str] = &[
     "Quot.sound",
     // ---- G-75: 商的反射方向（sound 版本：`r` 是等价关系）----
     "Quot.exact",
+    // ---- G-74: 排中律（B10，v0.81.0）----
+    "Classical.em",
+    "Classical.byContradiction",
 ];
 
 /// Full 模式下**永不**让位的 prelude 名字（`Nat`/`Bool` 家族）。
@@ -225,6 +228,18 @@ def Not (A : Prop) : Prop := A -> False
 def Not.intro {A : Prop} (f : A -> False) : Not A := f
 def Not.elim {A C : Prop} (h : Not A) (a : A) : C := False.elim C (h a)
 def absurd {a b : Prop} (ha : a) (hna : Not a) : b := False.elim b (hna ha)
+-- **B10（G-74，0.81.0）：排中律 `Classical.em`** —— 用户 2026-10-02 批准按台账实施
+-- （Lean 4 的 `Classical.em` 本来就是标准库的定理，底层是一条公理：core 的三条是
+-- `propext`、`Quot.sound`、`Classical.choice`；本语言这里**直接取排中律本身**）。
+-- 它**只放宽接受面**：既有判定一条都不变（能证的照样能证、判红的只有当它本来就是
+-- 排中律的推论时才转绿）✓。
+-- 为什么必需：本语言此前是**直觉主义**的 ⇒「两个元素相等吗」这类分类、
+-- 序数**三歧性**、`lt_or_eq_of_le` 一族全都**写不出证明**（不是难，是没有规则）。
+axiom Classical.em : (p : Prop) -> Or p (Not p)
+-- Lean core 同名的推论（`Classical.byContradiction`）：反证法。
+def Classical.byContradiction : (p : Prop) -> (Not p -> False) -> p :=
+  fun (p : Prop) (h : Not p -> False) =>
+    Or.elim p (Not p) (Classical.em p) (fun (hp : p) => hp) (fun (hnp : Not p) => False.elim p (h hnp))
 -- `Ne`（L2.3）：`≠` 的**目标常量**，与 Lean core 的 `Ne` 同形（`a ≠ b` 就是
 -- `a = b -> False`）。带**一个宇宙参数** `u`（`α : Sort u`）——所以 `≠` 的记法
 -- 路径要解层级，与 `=` 同一份机械（`elab.rs` 的 `level_text_of_sort`）。
@@ -474,6 +489,13 @@ pub(crate) const L1_FAMILIES: &[PreludeFamily] = &[
         name: "B9",
         names: &["Ne", "Ne.intro"],
         deps: &["B2", "EQ"],
+    },
+    // B10（G-74，0.81.0）：排中律。用 `Or`（B4）与 `Not`（B5），而 `Not` 依赖 B2
+    // ⇒ 两条都写进 deps（依赖一旦让位本族也必须让位）。
+    PreludeFamily {
+        name: "B10",
+        names: &["Classical.em", "Classical.byContradiction"],
+        deps: &["B2", "B4", "B5"],
     },
 ];
 

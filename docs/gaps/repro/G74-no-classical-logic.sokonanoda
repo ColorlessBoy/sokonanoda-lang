@@ -1,15 +1,60 @@
--- G-74 复现（自包含）：**语言没有排中律 / `Decidable`** ⇒ "线性序"一族写不出证明
+-- **G-74 复现件：排中律 `Classical.em`**（语言此前是**直觉主义**的）
 --
--- 期望（官方 Lean 4）：`Classical.em` 是**标准库的定理**（底层是一条公理），
--- 下面这一条判绿；`by_cases h : P` 同理（它由 `Decidable` 支撑）。
--- 今天（本语言）：`elab-unknown-identifier` ⇒ **整个文件被判红**。
+-- 缺口原文（2026-10-01，写卷 I 单元⑯ 时探针出来的）：本语言没有 `Classical.em`，
+-- 也没有 `Decidable`/`by_cases`。绝大多数课程内容不受影响（单元①–⑯ 全在直觉逻辑里
+-- 证完），但**凡是要在「两个元素相等吗」上分类**的定理都断在那里：
+--   ① **序数的三歧性**（Halmos §20 / Enderton §7.6 的核心）—— 证明的最后一步是
+--      **把 `¬¬(x ∈ y ∨ x = y ∨ y ∈ x)` 变成那个析取**（正是排中律）；
+--   ② **严格序 ↔ 非严格序的互相翻译**（单元⑬ 的两个必破题）；
+--   ③ 一切 `lt_or_eq_of_le` / `lt_or_gt_of_ne` 一族（Mathlib 里都走 `by_cases`）；
+--   ④ I.8 章「基数的可比性」。
+--   ⇒ 这一族**不是"难"，是没有规则** ⇒ 台账如实登记、等语言侧给古典逻辑 ✓。
 --
--- 后果（卷 I 实测，逐条都有现场）：
---   ① **序数的三歧性**（"任意两个序数 `x ∈ y` 或 `x = y` 或 `y ∈ x`"）—— Halmos §20 /
---      Enderton §7.6 的核心定理，证明要在"可比吗"上分类并消双重否定 ⇒ 需要排中律；
---   ② **严格序 ↔ 非严格序的互相翻译**（`a ≤ b → a < b ∨ a = b`，单元⑬ 的必破题）；
---   ③ 一切 `lt_or_eq_of_le` / `lt_or_gt_of_ne` 一族（Mathlib 里都走 `by_cases`）。
---   ⇒ 本语言是**直觉主义**的：能证的照样证（单元⑬–⑯ 都在证），但这一族**不是"难"，
---     是**没有规则**。**不许**把它改写成弱命题糊过去 ✗ —— 如实登记、等语言侧给古典逻辑。
-theorem em (P : Prop) : P ∨ ¬ P :=
-  Classical.em P
+-- ─────────────────────────────────────────────────────────────────────────────
+-- **已修（G-74，0.81.0）**：按台账建议 + 用户 2026-10-02 批准，加**一条公理**：
+--     `axiom Classical.em : (p : Prop) -> Or p (Not p)`
+-- 以及 Lean core 同名的推论 `Classical.byContradiction`（**def**，由 `em` 推出）。
+-- 为什么是公理：Lean 4 的 `Classical.em` 是**标准库的定理**，但底层是 core 的
+-- 三条公理之一族（`propext` / `Quot.sound` / `Classical.choice`）—— 本语言直接取
+-- **排中律本身**（更窄、更好审）。它**只放宽接受面**：既有判定一条都不变 ✓。
+--
+-- ⚠ **没做**（如实留着，见台账 notes）：`Decidable` + `by_cases` 战术 ——
+-- 那是**类型类 + `by` 引擎分支**两件大工程，本版不做；`Classical.em` 已经把
+-- 「排中律」这条**规则**补上了，`by_cases` 只是它的语法糖。
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- ① 排中律本身
+theorem em_holds (P : Prop) : P ∨ ¬ P := Classical.em P
+
+-- ② **双重否定消去**（古典逻辑的标志性推论）—— 恰恰就是序号三歧性卡住的那一步
+theorem not_not_elim (P : Prop) (h : ¬ ¬ P) : P :=
+  Or.elim P (¬ P) P
+    (fun (hp : P) => hp)
+    (fun (hnp : ¬ P) => False.elim P (h hnp))
+    (Classical.em P)
+
+-- ③ 三歧性的**最后一步**（形状逐字照搬台账：`¬¬(P ∨ Q ∨ R) ⇒ P ∨ Q ∨ R`）
+theorem trichotomy_step (P Q R : Prop) (h : ¬ ¬ (P ∨ Q ∨ R)) : P ∨ Q ∨ R :=
+  not_not_elim (P ∨ Q ∨ R) h
+
+-- ④ 「在可比吗上分类」的最小形状：直觉主义里只有 `¬¬(P ∨ Q)`，拿不到 `P ∨ Q`
+theorem or_of_not_imp (P Q : Prop) (h : ¬ Q → P) : P ∨ Q :=
+  Or.elim Q (¬ Q) (P ∨ Q)
+    (fun (hq : Q) => Or.inr P Q hq)
+    (fun (hnq : ¬ Q) => Or.inl P Q (h hnq))
+    (Classical.em Q)
+
+-- ⑤ 德摩根（**古典**那一半）：`¬(P ∧ Q) ⇒ ¬P ∨ ¬Q`（直觉主义里只有反方向）
+theorem de_morgan_not_and (P Q : Prop) (h : ¬ (P ∧ Q)) : ¬ P ∨ ¬ Q :=
+  Or.elim P (¬ P) (¬ P ∨ ¬ Q)
+    (fun (hp : P) =>
+      Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (And.intro P Q hp hq)))
+    (fun (hnp : ¬ P) => Or.inl (¬ P) (¬ Q) hnp)
+    (Classical.em P)
+
+-- ⑥ 反证法（`Classical.byContradiction`，由 ① 推出的 def）
+theorem by_contra (P : Prop) (h : ¬ P → False) : P :=
+  Classical.byContradiction P h
+
+-- ⑦ **只放宽、不放宽过头**：`P` 本身仍然证不出来 —— 见
+--    `crates/cli/tests/classical.rs` 的反面判据（`theorem bad (P : Prop) : P` 判红）。

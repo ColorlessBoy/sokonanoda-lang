@@ -1946,10 +1946,11 @@ fn prelude_names_match_installs() {
     // + 5（B8：Eq.rec/Eq.ndrec/Eq.mp/Eq.mpr/cast，L-03）
     // + 2（B9：`Ne`/`Ne.intro`，L2.3 的 `≠` 目标）
     // + 6（ST2：`Quot`/`Quot.mk`/`Quot.lift`/`Quot.ind`/`Quot.sound` + G-75 的
-    //      `Quot.exact`，v0.77.0/0.81.0）= 55。
+    //      `Quot.exact`，v0.77.0/0.81.0）
+    // + 2（B10：`Classical.em`/`Classical.byContradiction`，G-74）= 57。
     assert_eq!(
         super::PRELUDE_NAMES.len(),
-        55,
+        57,
         "PRELUDE_NAMES drifted: {:?}",
         super::PRELUDE_NAMES
     );
@@ -1996,6 +1997,77 @@ fn st2_quot_names_are_installed() {
             out.errors
         );
     }
+}
+
+/// **G-74（0.81.0）**：排中律 `Classical.em` 可用 —— 语言从**直觉主义**变成**古典**。
+///
+/// 四条断言（都走完整内核判定）：
+///   ① `Classical.em` 直接判绿；
+///   ② 台账里卡住三歧性证明的**那一步**（`¬¬(P ∨ Q ∨ R) ⇒ P ∨ Q ∨ R`）判绿；
+///   ③ 德摩根的**古典**那一半（`¬(P ∧ Q) ⇒ ¬P ∨ ¬Q`）判绿；
+///   ④ **反面**：`theorem bad (P : Prop) : P` 与 `theorem bad : False` **必须仍判红**
+///      —— 公理只补排中律，不许把逻辑弄成平凡的 ✗。
+#[test]
+fn g74_classical_em_is_available() {
+    let ok = compile_fol(
+        &parse(
+            "theorem em_direct (P : Prop) : P ∨ ¬ P := Classical.em P\n\
+         theorem not_not_elim (P : Prop) (h : ¬ ¬ P) : P :=\n\
+         \x20 Or.elim P (¬ P) P (fun (hp : P) => hp)\n\
+         \x20   (fun (hnp : ¬ P) => False.elim P (h hnp)) (Classical.em P)\n\
+         theorem de_morgan_not_and (P Q : Prop) (h : ¬ (P ∧ Q)) : ¬ P ∨ ¬ Q :=\n\
+         \x20 Or.elim P (¬ P) (¬ P ∨ ¬ Q)\n\
+         \x20   (fun (hp : P) => Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (And.intro P Q hp hq)))\n\
+         \x20   (fun (hnp : ¬ P) => Or.inl (¬ P) (¬ Q) hnp) (Classical.em P)\n\
+         theorem by_contra (P : Prop) (h : ¬ P → False) : P :=\n\
+         \x20 Classical.byContradiction P h\n",
+        )
+        .unwrap(),
+    );
+    assert_eq!(
+        ok.errors,
+        vec![],
+        "G-74：古典逻辑用例必须判绿：{:?}",
+        ok.errors
+    );
+    for name in [
+        "em_direct",
+        "not_not_elim",
+        "de_morgan_not_and",
+        "by_contra",
+    ] {
+        assert!(
+            ok.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "`{name}` 要真的判绿：{:?}",
+            ok.events
+        );
+    }
+
+    // ④ 反面一：任意命题**不许**变得可证。
+    let bad_p = compile_fol(&parse("theorem bad (P : Prop) : P := Classical.em P\n").unwrap());
+    assert!(
+        !bad_p
+            .events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "bad")),
+        "`theorem bad (P : Prop) : P` 不许判绿（公理只补排中律）：{:?}",
+        bad_p.events
+    );
+    assert!(!bad_p.errors.is_empty(), "它必须判红：{:?}", bad_p.events);
+
+    // ④ 反面二：`False` **不许**变得可证（逻辑不许变平凡）。
+    let bad_false =
+        compile_fol(&parse("theorem bad_false : False := Classical.em False\n").unwrap());
+    assert!(
+        !bad_false
+            .events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "bad_false")),
+        "`theorem bad_false : False` 不许判绿：{:?}",
+        bad_false.events
+    );
 }
 
 /// **G-75（0.81.0）**：`Quot.exact` —— 商的**反射**方向（`Quot.lift` 的逆）。
