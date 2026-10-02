@@ -1,0 +1,41 @@
+import lib.Set
+import lib.Order
+import lib.Ordinal
+
+theorem demo_isSuccOf_def (α : Type) (E : α → α → Prop) (x : α) (y : α) :
+    IsSuccOf α E x y ↔
+      IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y) :=
+  isSuccOf_def α E x y
+
+theorem demo_ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h
+
+theorem demo_isTransitive_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsTransitive α E x ↔ ∀ (y : α), E y x → ∀ (z : α), E z y → E z x :=
+  isTransitive_def α E x
+
+theorem succ_self_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hy : ∀ (z : α), E z x ↔ (E z y ∨ z = y)) : E y x :=
+  (fun (hu : E y x ↔ (E y y ∨ y = y)) =>
+    Iff.mpr hu (Or.inr (E y y) (y = y) (Eq.refl.{1} α y))) (hy y)  -- soko:notation-ok: `IsSuccOf`/`IsTransitive` 是 def 头（手册边界）
+
+theorem succ_mem_of_mem (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hy : ∀ (w : α), E w x ↔ (E w y ∨ w = y)) (hz : E z y) : E z x :=
+  (fun (hu : E z x ↔ (E z y ∨ z = y)) => Iff.mpr hu (Or.inl (E z y) (z = y) hz)) (hy z)  -- soko:notation-ok: `IsSuccOf`/`IsTransitive` 是 def 头（手册边界）
+
+theorem succ_mem_cases (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hy : ∀ (w : α), E w x ↔ (E w y ∨ w = y)) (hz : E z x) : E z y ∨ z = y :=
+  (fun (hu : E z x ↔ (E z y ∨ z = y)) => Iff.mp hu hz) (hy z)
+
+theorem succ_trans (α : Type) (E : α → α → Prop) (x : α) (hx : IsOrdinal α E x) :
+    IsTransitive α E x :=
+  ordinal_isTransitive α E x hx
+
+theorem succ_mem_trans (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α) (w : α)
+    (hx : IsOrdinal α E x) (hy : ∀ (u : α), E u x ↔ (E u y ∨ u = y))
+    (hz : E z y) (hw : E w z) : E w x :=
+  (fun (ht : ∀ (u : α), E u x → ∀ (v : α), E v u → E v x) =>
+    ht z (succ_mem_of_mem α E x y z hy hz) w hw)
+    ((fun (hu : IsTransitive α E x ↔ ∀ (u : α), E u x → ∀ (v : α), E v u → E v x) =>
+      Iff.mp hu (succ_trans α E x hx)) (isTransitive_def α E x))

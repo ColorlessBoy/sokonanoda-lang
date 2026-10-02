@@ -1,0 +1,84 @@
+-- ==========================================================================
+-- unit81-succ.sokonanoda —— 卷 I 单元81 **后继的成员刻画（两半形态）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§7.3**（successor）·
+--   Halmos《Naive Set Theory》**§11**。大纲 §4.1（**I.6 章继续深化** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 后继的**规格**（`IsSuccOf` 展开后的两半 ✓）：`x` 是序数 ✓ 且
+--     `E z x ↔ (E z y ∨ z = y)` ✓（"`x` 的元素恰好是 `y` 的元素加上 `y` 自己" ✓）；
+--   · **`y ∈ x`** ✓（自己属于后继 ✓）· **`E z y ⇒ E z x`** ✓（旧元素保留 ✓）·
+--     **`E z x ⇒ E z y ∨ z = y`** ✓（新元素只能是自己 ✓）；
+--   · **传递** ✓ · **旧元素的元素也在后继里** ✓（`E z y ⇒ E w z ⇒ E w x` ✓）。
+--
+-- ⚠ **写法纪律（本单元换来的一条硬规矩 ✓）**：本课程里
+--   **`Iff.mpr` / `Or.inl` / `Or.inr` 这些证明项的前导命题实参，在 `import lib.*` 之后
+--   必须配「先把假设落地成 λ、再在其体内写全实参」** ✓ ——
+--   实测（探针）：**直接写 `Or.inr (E y y) (y = y) (Eq.refl …)` 判红** ✗、  -- soko:notation-ok: `IsSuccOf`/`IsTransitive` 是 def 头（手册边界）
+--   **省略成 `Or.inr (Eq.refl …)` 也判红** ✗，**只有 λ 落地版判绿** ✓
+--   （同一形状在**不带 import** 的文件里却是另一种结果 ⇒ **探针必须带 import** ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Order` · `lib.Ordinal`。
+--
+-- 依赖：单元⑮（序数）· 单元⑯（序关系）· 单元80（序数的元素仍是序数）✓
+-- ==========================================================================
+import lib.Set
+import lib.Order
+import lib.Ordinal
+
+-- ─────────────────────────────────────────────────────────────
+-- 81.1 三条库引理（后继的展开 · 序数传递 · 传递性的展开）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：后继的展开（`IsSuccOf α E x y` 就是 `x` 序数 **且** 元素恰好是 `y` 的加自己 ✓）。
+theorem demo_isSuccOf_def (α : Type) (E : α → α → Prop) (x : α) (y : α) :
+    IsSuccOf α E x y ↔
+      IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y) :=
+  isSuccOf_def α E x y
+theorem demo_ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h
+theorem demo_isTransitive_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsTransitive α E x ↔ ∀ (y : α), E y x → ∀ (z : α), E z y → E z x :=
+  isTransitive_def α E x-- 练习 1（T 类）：**自己属于后继**（`E y x`）。
+
+-- soko:hint 思路：规格在 `z := y` 处给 `E y x ↔ (E y y ∨ y = y)` ✓，右边用 `Or.inr` + `Eq.refl` ✓。
+
+-- soko:hint ⚠ **写法**：**先把规格落地成 λ、再在体内写全前导实参** ✓（见画布头 ✓）。
+
+theorem succ_self_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hy : ∀ (z : α), E z x ↔ (E z y ∨ z = y)) : E y x := by
+  sorry
+-- 练习 2（T 类）：**旧元素保留**（`E z y ⇒ E z x`）。
+
+-- soko:hint 关键件：规格 · `Or.inl` · 同练习 1 的落地写法 ✓
+
+theorem succ_mem_of_mem (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hy : ∀ (w : α), E w x ↔ (E w y ∨ w = y)) (hz : E z y) : E z x := by
+  sorry
+-- 练习 3（T 类）：**新元素只能是自己**（`E z x ⇒ E z y ∨ z = y`）。
+
+-- soko:hint 关键件：规格 · `Iff.mp`（同样先落地成 λ ✓）
+
+theorem succ_mem_cases (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
+    (hy : ∀ (w : α), E w x ↔ (E w y ∨ w = y)) (hz : E z x) : E z y ∨ z = y := by
+  sorry
+-- 练习 4（T 类）：**后继是传递集**。
+
+-- soko:hint 关键件：`ordinal_isTransitive`（取用子 ✓）
+
+theorem succ_trans (α : Type) (E : α → α → Prop) (x : α) (hx : IsOrdinal α E x) :
+    IsTransitive α E x := by
+  sorry
+-- 练习 5（L 类，**收尾**）：**旧元素的后代也在后继里**（`E z y ⇒ E w z ⇒ E w x`）。
+
+-- soko:hint 思路：练习 2 把 `z` 送进 `x` ✓，再用传递性把 `w` 送进去 ✓。
+
+-- soko:hint 关键件：`isTransitive_def`（**先 λ 绑定再 `Iff.mp`** ✓）· 练习 2 / 练习 4 ✓
+
+theorem succ_mem_trans (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α) (w : α)
+    (hx : IsOrdinal α E x) (hy : ∀ (u : α), E u x ↔ (E u y ∨ u = y))
+    (hz : E z y) (hw : E w z) : E w x := by
+  sorry

@@ -318,10 +318,11 @@
             "zero",
             "least-element",
             "well-order",
-            "ordinal-elements"
+            "ordinal-elements",
+            "successor-spec"
           ],
           "quota": {
-            "exercises": 34
+            "exercises": 39
           },
           "units": [
             {
@@ -347,6 +348,12 @@
               "title": "单元80 序数的元素仍是序数",
               "title_en": "Unit 80 — Elements of Ordinals are Ordinals",
               "unit": 80
+            },
+            {
+              "file": "units/unit81-succ.sokonanoda",
+              "title": "单元81 后继的成员刻画",
+              "title_en": "Unit 81 — The Successor, Memberwise",
+              "unit": 81
             }
           ]
         },
