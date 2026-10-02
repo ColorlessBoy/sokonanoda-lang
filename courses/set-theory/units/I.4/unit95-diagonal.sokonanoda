@@ -26,7 +26,7 @@ import lib.Order
 def SurjOnSets (α : Type) (S : α → Set α) : Prop :=
   ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x
 theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
-  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+  Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)
 theorem demo_and_left (P : Prop) (Q : Prop) (h : P ∧ Q) : P :=
   And.left P Q h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
 theorem demo_and_right (P : Prop) (Q : Prop) (h : P ∧ Q) : Q :=

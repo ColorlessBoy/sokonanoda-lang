@@ -30,7 +30,7 @@ theorem comp_assoc_fwd (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
           Exists.intro B (fun (b1 : B) => r a b1 ∧ (s • t) b1 d) b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
             (And.intro (r a b) ((s • t) b d) (And.left hb)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
               (Exists.intro C (fun (c1 : C) => s b c1 ∧ t c1 d) c  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-                (And.intro (s b c) (t c d) (And.right hb) (And.right hc))))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                (And.intro (And.right hb) (And.right hc))))))
 
 theorem comp_assoc_bwd (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D)
     (a : A) (d : D) (h : (r • (s • t)) a d) : ((r • s) • t) a d :=

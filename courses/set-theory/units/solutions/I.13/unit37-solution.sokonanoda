@@ -44,7 +44,7 @@ theorem trans_iff_comp_subset (α : Type) (r : Rel α α) :
     (fun (h : ∀ (a : α) (c : α), (r • r) a c → r a c) =>
       fun (a : α) => fun (b : α) => fun (c : α) => fun (hab : r a b) => fun (hbc : r b c) =>
         h a c (Exists.intro α (fun (b1 : α) => r a b1 ∧ r b1 c) b
-          (And.intro (r a b) (r b c) hab hbc)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (And.intro hab hbc)))
 
 theorem comp_self_subset_of_trans (α : Type) (r : Rel α α) (h : Transitive α r) :
     ∀ (a : α) (c : α), (r • r) a c → r a c :=

@@ -57,4 +57,4 @@ theorem subset_inter_right (α : Type) (A B C : Set α) (h : Set.subset α C (A 
 theorem subset_inter_intro (α : Type) (A B C : Set α)
     (hA : Set.subset α C A) (hB : Set.subset α C B) : Set.subset α C (A ∩ B) :=  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
   fun (x : α) => fun (hx : C x) =>
-    And.intro (A x) (B x) (hA x hx) (hB x hx)  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+    And.intro (hA x hx) (hB x hx)

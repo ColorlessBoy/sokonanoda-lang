@@ -27,7 +27,7 @@ theorem mem_of_mem_sInter (α : Type) (F : Set (Set α)) (x : α)
 theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
     a ∈ (A ∩ B) :=
   (fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =>
-    Iff.mpr hu (And.intro (a ∈ A) (a ∈ B) ha hb)) (Set.mem_inter_iff a A B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    Iff.mpr hu (And.intro ha hb)) (Set.mem_inter_iff a A B)
 
 theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A :=
   And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）

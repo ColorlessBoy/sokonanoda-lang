@@ -82,7 +82,7 @@ axiom Rel.ext : (A B : Type) → (r s : Rel A B) →
 -- 与 lib/Set 的 `Set.mem_union` 一族同款：右端就是把左端**定义**里的东西照抄一遍，
 -- 所以证明是**恒等**——`constructor` 拆开 `↔`，两个方向各 `intro h; exact h`。
 theorem Rel.inv_apply (A B : Type) (r : Rel A B) (b : B) (a : A) :
-    (r ⁻¹) b a ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A（↔ 记法的期望类型走不通）
+    (r ⁻¹) b a ↔ r a b :=  Iff.refl
 
 theorem Rel.comp_apply {A B C : Type} (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
     (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl (∃ (b : B), r a b ∧ s b c)  -- soko:notation-ok: `Iff.refl` 短写解不出 A

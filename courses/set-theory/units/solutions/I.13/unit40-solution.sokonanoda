@@ -111,5 +111,5 @@ theorem symClosure_symmetric (α : Type) (r : Rel α α) :
     Symmetric α (Rel.symClosure α r) :=
   fun (a : α) => fun (b : α) => fun (hab : Rel.symClosure α r a b) =>
     Or.elim (r a b) (r b a) (r b a ∨ r a b)
-      (fun (h : r a b) => Or.inr (r b a) (r a b) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (h : r a b) => Or.inr h)-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
       (fun (h : r b a) => Or.inl (r b a) (r a b) h) hab  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来

@@ -29,7 +29,7 @@ theorem mem_prod_snd (A : Type) (B : Type) (s : Set A) (t : Set B) (p : Prod A B
 theorem mem_prod_intro (A : Type) (B : Type) (s : Set A) (t : Set B) (p : Prod A B)
     (h1 : (Prod.fst A B p) ∈ s) (h2 : (Prod.snd A B p) ∈ t) : p ∈ (s ×ˢ t) :=
   (fun (hu : p ∈ (s ×ˢ t) ↔ (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) =>
-    Iff.mpr hu (And.intro ((Prod.fst A B p) ∈ s) ((Prod.snd A B p) ∈ t) h1 h2))  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    Iff.mpr hu (And.intro h1 h2))
     (Set.mem_prod_iff A B s t p)
 
 theorem mem_prod_union_iff (A : Type) (B : Type) (s : Set A) (t : Set B) (u : Set B)

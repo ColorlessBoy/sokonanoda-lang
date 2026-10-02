@@ -69,7 +69,7 @@ theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
             (fun (b : B) => fun (hb : r a b ∧ s b c) =>
               Exists.intro B (fun (b2 : B) => s b2 c ∧ r a b2) b  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (And.intro (s b c) (r a b)
-                  (And.right (r a b) (s b c) hb)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (And.right hb)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                   (And.left (r a b) (s b c) hb))))
         (fun (h : ((s ⁻¹) • (r ⁻¹)) c a) =>
           Exists.elim B (fun (b : B) => s b c ∧ r a b)

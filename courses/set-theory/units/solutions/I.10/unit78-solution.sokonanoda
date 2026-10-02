@@ -75,7 +75,7 @@ theorem classes_agree_on_meet (α : Type) (r : Rel α α) (he : IsEquivalence α
         Exists.elim α (fun (x : α) => C x ∧ D x) (D c) hmeet
           (fun (x : α) (hx : C x ∧ D x) =>
             class_meet_subset α r he C D hC hD x
-              (And.left (C x) (D x) hx) (And.right (C x) (D x) hx) c hc))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+              (And.left hx) (And.right (C x) (D x) hx) c hc))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
       (fun (hd : D c) =>
         Exists.elim α (fun (x : α) => C x ∧ D x) (C c) hmeet
           (fun (x : α) (hx : C x ∧ D x) =>

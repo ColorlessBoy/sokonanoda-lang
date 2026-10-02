@@ -54,7 +54,7 @@ theorem nat_equiv_nat : (Set.univ Nat) ≈ (Set.univ Nat) := by
 -- 所以 `Iff.refl` 作用在右边那个命题上就是全部证明。
 theorem diag_mem_iff (α : Type) (f : α → Set α) (x : α) :
     (x ∈ (fun (y : α) => ¬ (f y y))) ↔ (¬ (f x x)) := by
-  exact Iff.refl (¬ (f x x))  -- soko:notation-ok: R1：Iff.refl 短写在 by 里补不出 {A}
+  exact Iff.refl
 
 -- 练习 4（L）：Cantor 定理。
 -- 结构：先证一条**局部引理** diag（给定正向映射 f、反向映射 g 与 g 的右逆律，

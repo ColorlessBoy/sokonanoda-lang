@@ -200,7 +200,7 @@ theorem inter_singletons_empty :
                 (And.right (Set.mem Two x (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                   (Set.mem Two x (Set.singleton Two bb)) hx))))
         (fun (h0 : Set.mem Two x (Set.empty Two)) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-          False.elim (Set.mem Two x (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb))) h0))
+          False.elim h0))
 
 theorem image_empty (A : Set Two) :
     (f1 '' (∅)) = (∅) :=

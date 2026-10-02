@@ -412,7 +412,7 @@ theorem isInf_greatest (α : Type) (r : α → α → Prop) (A : α → Prop) (b
 theorem isSup_intro (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
     (hub : UpperBound α r A b) (hleast : ∀ (c : α), UpperBound α r A c → r b c) :
     IsSup α r A b :=
-  And.intro (UpperBound α r A b) (∀ (c : α), UpperBound α r A c → r b c) hub hleast  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+  And.intro hub hleast
 
 theorem isInf_intro (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
     (hlb : LowerBound α r A b) (hgreatest : ∀ (c : α), LowerBound α r A c → r c b) :

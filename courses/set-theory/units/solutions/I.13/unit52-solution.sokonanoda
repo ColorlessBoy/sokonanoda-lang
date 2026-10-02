@@ -20,7 +20,7 @@ theorem comp_intro (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (b
     (h1 : r a b) (h2 : s b c) : (r • s) a c :=
   (fun (hu : (r • s) a c ↔ ∃ (b1 : β), r a b1 ∧ s b1 c) =>
     Iff.mpr hu (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
-      (And.intro (r a b) (s b c) h1 h2))) (Rel.comp_apply r s a c)  -- soko:notation-ok: G-73 形状 ②：`•`/`Rel` 是 def 头，这些位置补不出前导实参
+      (And.intro h1 h2))) (Rel.comp_apply r s a c)
 
 theorem comp_apply_elim (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ)
     (h : (r • s) a c) : ∃ (b : β), r a b ∧ s b c :=

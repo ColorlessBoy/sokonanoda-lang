@@ -151,8 +151,8 @@ theorem demo_cbRelR_intro (α β : Type) (C : Set α) (g : β → α) (x : α) (
   And.intro hC hyx
 
 theorem demo_cbRelL_mem (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
-    (h : cbRelL α β C f x y) : x ∈ C :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
-  And.left (x ∈ C) (Eq.{1} β (f x) y) h
+    (h : cbRelL α β C f x y) : x ∈ C :=
+  And.left h
 
 theorem demo_cbRelL_eq (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
     (h : cbRelL α β C f x y) : Eq.{1} β (f x) y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）

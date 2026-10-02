@@ -59,7 +59,7 @@ theorem pred_subset_of_not_mem (α : Type) (E : α → α → Prop) (x : α) (y 
   fun (v : α) (hvy : E v y) =>
     Or.elim (E x v) (x = v ∨ E v x) (E v x)
       (fun (hxv : E x v) =>
-        False.elim (E v x) (hxy (ordinal_isTransitive α E y hy v hvy x hxv)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        False.elim (hxy (ordinal_isTransitive α E y hy v hvy x hxv)))
       (fun (h : x = v ∨ E v x) =>
         Or.elim (x = v) (E v x) (E v x)
           (fun (heq : x = v) =>

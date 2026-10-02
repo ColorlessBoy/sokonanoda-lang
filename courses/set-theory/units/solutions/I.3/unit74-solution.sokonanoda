@@ -27,7 +27,7 @@ theorem mem_sUnion_of_mem_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : �
     (hA : A ∈ F) (hx : x ∈ A) : x ∈ (Set.sUnion α F) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
   (fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
     Iff.mpr hu (Exists.intro (Set α) (fun (D : Set α) => D ∈ F ∧ x ∈ D) A  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
-      (And.intro (A ∈ F) (x ∈ A) hA hx))) (Set.mem_sUnion_iff α F x)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+      (And.intro hA hx))) (Set.mem_sUnion_iff α F x)
 
 theorem exists_mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
     (h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）

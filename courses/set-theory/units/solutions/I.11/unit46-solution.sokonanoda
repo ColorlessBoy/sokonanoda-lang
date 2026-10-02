@@ -28,7 +28,7 @@ theorem symmDiff_comm_apply (α : Type) (A B : Set α) (x : α) :
   Iff.intro ((symmDiff α A B) x) ((symmDiff α B A) x)
     (fun (h : (symmDiff α A B) x) =>
       Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) ((B x ∧ ¬ (A x)) ∨ (A x ∧ ¬ (B x)))
-        (fun (h1 : A x ∧ ¬ (B x)) => Or.inr (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) h1)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (h1 : A x ∧ ¬ (B x)) => Or.inr h1)-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
         (fun (h2 : B x ∧ ¬ (A x)) => Or.inl (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) h2) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
     (fun (h : (symmDiff α B A) x) =>
       Or.elim (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))

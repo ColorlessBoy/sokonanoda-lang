@@ -16,7 +16,7 @@ theorem not_not_elim (P : Prop) (h : ¬ ¬ P) : P :=
   Classical.byContradiction P h
 
 theorem em_cases (P : Prop) (Q : Prop) (h1 : P → Q) (h2 : ¬ P → Q) : Q :=
-  Or.elim P (¬ P) Q h1 h2 (Classical.em P)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `False.elim` 的目标位（手册边界）
+  Or.elim h1 h2 (Classical.em P)
 
 theorem mem_sdiff_of_mem_not_mem (α : Type) (x : α) (A : Set α) (B : Set α)
     (hx : x ∈ A) (hnb : ¬ (x ∈ B)) : x ∈ (A \ B) :=

@@ -108,7 +108,7 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
                   Or.inl (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                     (Exists.intro α (fun (t : α) => (A t) ∧ ((f t) = y)) x
                       (And.intro (A x) ((f x) = y) ha  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                        (And.right (x ∈ (A ∪ B)) ((f x) = y) hx))))
+                        (And.right hx))))
                 (fun (hb : B x) =>
                   Or.inr (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                     (Exists.intro α (fun (t : α) => (B t) ∧ ((f t) = y)) x

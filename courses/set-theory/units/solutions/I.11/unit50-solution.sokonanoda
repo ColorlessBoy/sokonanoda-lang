@@ -20,7 +20,7 @@ theorem inter_union_subset (α : Type) (A B C : Set α) :
     (fun (hu : A x ∧ (B ∪ C) x) =>
       Or.elim (B x) (C x) ((A ∩ B) x ∨ (A ∩ C) x)
         (fun (hb : B x) =>
-          Or.inl ((A ∩ B) x) ((A ∩ C) x) (And.intro (A x) (B x) (And.left hu) hb))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+          Or.inl (And.intro (A x) (B x) (And.left hu) hb))-- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
         (fun (hc : C x) =>
           Or.inr ((A ∩ B) x) ((A ∩ C) x) (And.intro (A x) (C x) (And.left hu) hc))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
         ((fun (hv : (B ∪ C) x ↔ B x ∨ C x) => Iff.mp hv) (Set.mem_union x B C)

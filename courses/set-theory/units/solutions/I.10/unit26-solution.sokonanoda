@@ -31,7 +31,7 @@ theorem ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Part
     (fun (A : α → Prop) (hA : P A ∧ A a) =>
       Exists.intro (α → Prop) (fun (A' : α → Prop) => P A' ∧ A' a ∧ A' a) A  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
         (And.intro (P A) (A a ∧ A a) (And.left hA)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
-          (And.intro (A a) (A a) (And.right hA) (And.right hA))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+          (And.intro (And.right hA) (And.right hA))))
 
 theorem ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
     (h : Rel.ofPartition α P a b) : Rel.ofPartition α P b a :=

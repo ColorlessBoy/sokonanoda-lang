@@ -61,7 +61,7 @@ theorem relImg_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : S
           Exists.intro β (fun (b1 : β) => (relImg α β r A) b1 ∧ s b1 c) b
             (And.intro ((relImg α β r A) b) (s b c)
               (Exists.intro α (fun (a1 : α) => A a1 ∧ r a1 b) a
-                (And.intro (A a) (r a b) (And.left ha) (And.left hb)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+                (And.intro (And.left ha) (And.left hb)))
               (And.right hb))))
 
 theorem relImg_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) (c : γ)

@@ -16,7 +16,7 @@ theorem demo_subset_def (α : Type) (A B : Set α) :
 
 theorem mem_sdiff_of_mem_not_mem (α : Type) (A B : Set α) (a : α) (ha : a ∈ A)
     (hna : ¬ (a ∈ B)) : a ∈ (A \ B) :=
-  (fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) => Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ B)) ha hna))  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
+  (fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) => Iff.mpr hu (And.intro ha hna))
     (Set.mem_sdiff a A B)
 
 theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :

@@ -32,7 +32,7 @@ theorem demo_em (P : Prop) : P ∨ ¬ P :=
 theorem demo_byContradiction (P : Prop) (h : ¬ P → False) : P :=
   Classical.byContradiction P h
 theorem demo_not_def (P : Prop) : ¬ P ↔ (P → False) :=
-  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)-- 练习 1（L 类，**全单元的通用子**）：**按排中律分情况**（`P → Q`、`¬P → Q` ⇒ `Q`）。  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+  Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)
 -- 关键件：`Classical.em`（两点 ✓）· `Or.elim`（**动机位放肯定命题 `Q`** ✓）
 theorem em_cases (P : Prop) (Q : Prop) (h1 : P → Q) (h2 : ¬ P → Q) : Q := by
   sorry

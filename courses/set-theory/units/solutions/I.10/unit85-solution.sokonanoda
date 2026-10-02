@@ -54,7 +54,7 @@ theorem mem_image_kernel (α : Type) (β : Type) (f : α → β) (a : α) (y : �
         (fun (x : α) (hx : x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) =>
           Eq.trans.{1} β (f a) (f x) y
             ((fun (hu : Rel.EquivClass α (kernel α β f) a x ↔ kernel α β f a x) =>
-              Iff.mp hu (And.left (x ∈ (Rel.EquivClass α (kernel α β f) a)) (f x = y) hx))  -- soko:notation-ok: `kernel`/`Rel.EquivClass`/`Set.image` 是 def 头（手册边界）
+              Iff.mp hu (And.left hx))
               (Rel.mem_equivClass α (kernel α β f) a x))
             (And.right (x ∈ (Rel.EquivClass α (kernel α β f) a)) (f x = y) hx)))  -- soko:notation-ok: `kernel`/`Rel.EquivClass`/`Set.image` 是 def 头（手册边界）
     (fun (h : f a = y) =>

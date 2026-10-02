@@ -58,7 +58,7 @@ theorem singleValued_iff_inv_comp (α β : Type) (r : Rel α β) :
       fun (a : α) => fun (b : β) => fun (b1 : β) =>
         fun (h1 : r a b) => fun (h2 : r a b1) =>
           h b b1 (Exists.intro α (fun (a1 : α) => r a1 b ∧ r a1 b1) a
-            (And.intro (r a b) (r a b1) h1 h2)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+            (And.intro h1 h2)))
 
 theorem inv_singleValued_iff_comp_inv (α β : Type) (r : Rel α β) :
     SingleValued β α (r ⁻¹) ↔ ∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1 :=

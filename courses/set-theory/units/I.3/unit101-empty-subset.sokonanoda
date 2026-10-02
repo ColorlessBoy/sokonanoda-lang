@@ -34,7 +34,7 @@ theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
   Set.subset_def α A B
 theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
-  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)-- 练习 1（L 类）：**含于空集 ⇒ 点态为假**。  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+  Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)
 -- 思路：给 `x ∈ A`，用包含关系得 `x ∈ ∅`，再由空集的成员刻画得 `False`。
 -- 关键件：`Set.mem_empty_iff_false`（**先 λ 绑定再 `Iff.mp`** ✓）· `h`（点 · 前提）
 theorem subset_empty_elim (α : Type) (A : Set α) (h : A ⊆ Set.empty α) :  -- soko:notation-ok: `False.elim` 的目标位（手册边界）

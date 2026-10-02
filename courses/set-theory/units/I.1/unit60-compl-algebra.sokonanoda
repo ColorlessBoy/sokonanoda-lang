@@ -33,7 +33,7 @@ import lib.Rel
 
 -- 演示：补集的成员刻画（**这一条就是定义展开**：`Aᶜ` 是 `fun x => ¬ (x ∈ A)` ✓）。
 theorem demo_mem_compl (α : Type) (a : α) (A : Set α) : a ∈ (Aᶜ) ↔ ¬ (a ∈ A) :=
-  Iff.intro (a ∈ (Aᶜ)) (¬ (a ∈ A)) (fun (h : a ∈ (Aᶜ)) => h) (fun (h : ¬ (a ∈ A)) => h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+  Iff.intro (fun (h : a ∈ (Aᶜ)) => h) (fun (h : ¬ (a ∈ A)) => h)
 theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
     a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
   Set.mem_union a A B

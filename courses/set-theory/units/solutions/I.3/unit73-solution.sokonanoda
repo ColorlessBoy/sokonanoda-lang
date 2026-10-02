@@ -44,7 +44,7 @@ theorem mem_image_union (α : Type) (β : Type) (f : α → β) (A B : Set α) (
             (fun (x : α) (hx : x ∈ A) (hxy : f x = y) =>
               Set.mem_image_intro f (A ∪ B) y x
                 ((fun (hu : x ∈ (A ∪ B) ↔ x ∈ A ∨ x ∈ B) =>
-                  Iff.mpr hu (Or.inl (x ∈ A) (x ∈ B) hx)) (Set.mem_union x A B)) hxy))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+                  Iff.mpr hu (Or.inl hx)) (Set.mem_union x A B)) hxy))
         (fun (hB : y ∈ (f '' B)) =>
           Set.mem_image_elim f B y (y ∈ (f '' (A ∪ B))) hB
             (fun (x : α) (hx : x ∈ B) (hxy : f x = y) =>

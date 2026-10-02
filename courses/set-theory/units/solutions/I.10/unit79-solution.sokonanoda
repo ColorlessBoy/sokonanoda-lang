@@ -65,7 +65,7 @@ theorem respects_of_subset (α : Type) (β : Type) (r : Rel α α) (s : Rel α �
 theorem respects_inter (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
     (hr : respects α β r f) (hs : respects α β s f) :
     respects α β (fun (a : α) (b : α) => r a b ∧ s a b) f :=
-  fun (a : α) (b : α) (h : r a b ∧ s a b) => hr a b (And.left (r a b) (s a b) h)  -- soko:notation-ok: `Rel.*`/`kernel`/`respects` 是 def 头，这些位置补不出前导实参（手册边界）
+  fun (a : α) (b : α) (h : r a b ∧ s a b) => hr a b (And.left h)
 
 theorem respects_union (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
     (hr : respects α β r f) (hs : respects α β s f) :
