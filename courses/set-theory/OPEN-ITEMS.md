@@ -187,63 +187,31 @@
   「BAD 111: grading rejected (exit=1, failed=2)」✓；恢复 ⇒ **exit 0**
   「OK 111 matches the register: checked=13 exercise_open=0 failed=0」✓（`git diff` 为空 ✓）。
 
-## C-112（open · **未开工** · 2026-10-02 第 684 轮登记）Cantor–Bernstein（§四 第 6 项）
+## C-112（**closed-green** · 2026-10-03 交付）Cantor–Bernstein（§四 第 6 项）—— **经选择公理**
 
-- **目标命题**（Enderton §6.4 定理 6B · Halmos §22）：`A ≼ B` 且 `B ≼ A` ⇒ `A ≈ B`。
-- **状态：未交付** ✗ —— 卡点已从"预算"变成**精确的墙** ✓（第 685 轮实测）：
-  **CB 双射的"直接定义"判红** ✗ —— 按 `x ∈ C₀` 分支需要 **Prop→Type 的情形分析**
-  ⇒ `类型不匹配：期望 Sort(0)，实际是 Sort(1)` ✓（判据 = `gaps/C-112-cb-direct-def-reject.sokonanoda` ✓）。
-  这是 **C-04 同一条墙** ✓，也正是本条目下面写的「零公理 CB 要 `Exists`→Type 的安全消去
-  （**G-6** 一族，仍 open ✗）」**在 CB 上的具体面孔** ✓。
-- **第 689–690 轮结论（重要更正 ✗，下一棒**别再照第 688 轮走**）**：
-  * ⚠ **迭代/并集版不足以为 CB 交付** ✗ —— `Aseq 0 = A` ⇒ `A ⊆ cbChain` ⇒ 双射的
-    "**第二分支**"（`x ∉ C` 取 `g` 的前像）**永不触发** ✗ ⇒ `h` 退化成 `f` 的限制，**不是双射** ✗。
-    那 5 条绿件（`Aseq`/`cbChain`/`cb_chain_start`/`cb_chain_mono`/`cb_chain_step` ✓）**只能算零件** ✗。
-  * ✅ **CB 真正要的是交集版** ✓（它保证 `A∖g(B) ⊆ C₀` ✓ ⇒ 第二分支有前像 ✓）；
-    但它的 `K(C₀) ⊆ C₀`（`K(C) = A∖g(B) ∪ g(B∖f(C))`，**反单调** ✓）**我推不干净** ✗ ——
-    不能用"逐成员 `K(C₀) ⊆ C`"那条（方向相反 ✗）。
-  * **⇒ 卡在哪条判据** ✓：不是门禁、不是墙 ✗，是**数学推导未完成** ✗ ——
-    下一棒**先在 paper 上把反单调 Tarski 的 `K(C₀) ⊆ C₀` 推完**（或改用 Schr clips 的
-    "以 `f`-轨道定义 `C`"那一版 ✓），推完再写 Lean ✓。**不许猜着写**（假命题写出来就是假证明 ✗）。
-- **第 688 轮进展（✓ 正路走通一半）**：**迭代/并集版链构造 5 条全绿** ✓ ——
-  `Aseq`（`Nat.rec` 递归 ✓）· `cbChain = ⋃ₙ Aseq n` ✓ · `cb_chain_start`（`A ⊆ cbChain` ✓）·
-  `cb_chain_mono` ✓ · **`cb_chain_step`**（`g '' (B∖f '' cbChain) ⊆ cbChain` ✓ —— 关键那步
-  「`Aseq 0 ⊆ cbChain` ⇒ `f '' (Aseq 0) ⊆ f '' cbChain`」正是交集版缺的方向 ✓）。
-  判据：`gaps/C-112-cb-chain-wip.sokonanoda`（**WIP、门禁不判它** ✓）⇒ 门禁三数仍 **246/2020/891/0** ✓。
-  **下一步**：`cbChain` 的最优性/最小性 ⇒ 关系版图 `cbRel` ⇒ 全/单值/单射/满射 ⇒
-  `choice` 取双射 ⇒ **交付那一刻**才翻 C-112 复现件语义 ✓。
-- **第 687 轮更正（重要 ✓）**：**交集版链构造的 `cb_core_step` 是假命题** ✗ —— 需要 `b ∉ f '' C`
-  但只有 `b ∉ f '' cbCore` + `cbCore ⊆ C` ⇒ 单调性方向相反 ✗（根因：`K` 对 `C` **反单调** ✗）。
-  **内核把假命题顶回来是对的** ✓ —— 这是手册「**命题先求真，再求可证**」那条 ✓。
-  ✅ **正路 = Halmos 迭代/并集版** ✓：`Aseq : Nat → Set α` 用 **`Nat.rec`** 递归
-  （`Aseq 0 = A`；`Aseq (n+1) = g '' (B ∖ f '' (Aseq n))` ✓），`C₀ = ⋃ₙ Aseq n` ✓ ——
-  **工具已就位**（单元111 刚落地 `Nat.rec` ✓）。已判绿的：`cbFamily`/`cbCore`（交集版）·
-  5 条包装引理 ✓；更正记录在 `gaps/C-112-cb-chain-wip.sokonanoda` 文件头 ✓。
-- **本轮进展（第 686 轮 ✓）**：链构造的**两条定义判绿** ✓（`cbFamily` / `cbCore` —— 全部 `Prop` 层，
-  正是绕开 C-04 的写法 ✓），进展件放 `courses/set-theory/gaps/C-112-cb-chain-wip.sokonanoda` ✓
-  （**不进 `course.json` ⇒ 门禁不判它** ✓）。**下一步一条命令就能接上**：先读真签名
-  `sed -n '/mem_sInter_iff/,+4p' courses/set-theory/lib/SUnion.sokonanoda` ✓，再按真签名改
-  5 条包装引理（现在判红的原因是**我猜错了实参序** ✗，**不是新墙** ✗）。
-- **出路（已定，未走完）** ✓：把 CB 的**图**写成 **Prop**（关系版 ✓，不做 Type 层分支 ✓），
-  再证"全 + 单值 + 单射 + 满射" ✓，最后用 **`choice`** 取出双射函数 ✓ ——
-  **这条路要 3–4 条零件引理 + 链构造**（`C₀` 的不动点 ✓），是多轮工作量 ✗。
-- **G-63（`Quot`）与 CB 无关** ✓（已核）
-  ✓（CB 走单射/满射/子集：`lib/Equiv` 的 `Set.InjOn` ✓ + `lib/Choice` 的 `choice` ✓，
-  `grep -c Quot lib/Equiv.sokonanoda` = **0** ✓）。
-- **⚠⚠ 诚实标注（写单元时必须原样带上，不许写成"标准证法"）**：本课的 CB 打算**经选择公理**
-  —— 用 `choice` 从 `∀ b ∈ B, ∃ a ∈ A, …` 里**取出前像函数** ✓。而 **CB 数学上不需要选择**
-  ⇒ **这是偏离** ✗。零公理的 CB 要 `Exists`→Type 的安全消去（**G-6** 一族，仍 open ✗）。
-- **复现件（登记在册 ✓，G7 重放）**：`courses/set-theory/gaps/C-112-cantor-bernstein.sh` ——
-  一条命令：`bash courses/set-theory/gaps/C-112-cantor-bernstein.sh`；登记 **open**
-  ⇒ 期望"**缺口仍在**"，三条断言：① 零件在（`Set.InjOn` + `choice` ✓）；
-  ② CB 主定理**不在**任何解答里 ✓；③ **墙是真的**（直接定义仍被判红 ✓）。
-  交付 CB 时**三件事必须一起做** ✓：登记改 `closed` · 本脚本期望**翻转为正向**（断言主定理在位且判绿）·
-  反向验证改成"拿掉/换 `sorry` ⇒ 判红" ✓ —— 否则就是"声明与守卫之间有缝" ✗。
-- **反向验证实测（三段）**：正向 **exit 0** ✓；注入"CB 主定理已存在" ⇒ **exit 1**
-  「BAD 112: a CB main theorem IS present now: …」✓；注入"墙消失"（把 reject 探针换成判绿内容）⇒
-  **exit 1**「BAD 112: the wall is GONE …」✓；恢复 ⇒ **exit 0** ✓（`git diff` 为空 ✓）。
-- **反向验证实测**：临时把 `theorem cantor_bernstein …` 塞进解答 ⇒ 脚本 **exit 1**
-  「BAD 112: a CB main theorem IS present now: …」✓；删掉 ⇒ **exit 0** ✓（`git diff` 为空 ✓）。
-- **下一步（装配计划）**：① 立 `C₀ = ⋂{C | A∖B ⊆ C ⊆ A ∧ f(C) ⊆ C}` 的存在性（用 `lib/Set` 的
-  `Set.sInter` 一族 ✓）；② 由 `C₀` 的最小性得**不动点**性质 `f(C₀) = C₀ ∩ B` ✓；
-  ③ 用 `choice` 取前像造双射 ✓；④ 全程在单元头写明偏离 ✓。
+- **目标命题**（Enderton §6.4 定理 6B · Halmos §22）：`A ≼ B` 且 `B ≼ A` ⇒ `A ≈ B` —— **已交付** ✓。
+- **落在哪**：画布 `units/I.3/unit112-cantor-bernstein.sokonanoda`（20 条给定件 + **12 条练习** ✓）·
+  解答 `units/solutions/I.3/unit112-solution.sokonanoda`（**32 条全绿 · 0 open · 0 判负** ✓，
+  **全项风格、无 `by` 块** ✓ —— 手册「解答写法：项风格」）· `course.json` 章 **I.3**（像、原像与基数 ✓）。
+- **数学骨架**（三段全绿 ✓）：① **交集版不动点** —— `C₀ = ⋂{C | C ⊆ A ∧ K(C) ⊆ C}`
+  （`K(C) = A ∖ g '' (B ∖ f '' C)`，**单调** ✓）⇒ `K(C₀) ⊆ C₀`（`cbC0_in_fix` ✓）+
+  `C₀ ⊆ K(C₀)`（`cbC0_subset_K` ✓，靠"`K(C₀) ∈ 𝓕` + 最小性"）⇒ **`K(C₀) = C₀`** ✓；
+  ② **关系版图** `R(x,y) = (x ∈ C₀ ∧ f x = y) ∨ (x ∉ C₀ ∧ g y = x)`（`cbRel`，**Prop 层** ✓）
+  ⇒ **四件**：全（`cbRel_total`）· 单值（`cbRel_single`）· 单射（`cbRel_inj`，用 `cbC0_gf`）·
+  满（`cbRel_surj`，用 `C₀ ⊆ K(C₀)`）✓；③ **`choice` 取两次**（前向 + 反向）⇒ `Set.Equiv.mk` ✓。
+- **⚠⚠ 诚实标注（原样保留，不许弱化）**：装配那一步用 **`choice`** 从"全 + 单值"的关系里取双射
+  ⇒ **本课 CB 经选择公理** ✓；而 **CB 数学上不需要选择**（`g` 单射 ⇒ 前像唯一 ⇒ 确定摹状词即可）
+  ⇒ **这是偏离，不是"标准证法"** ✗。零公理的 CB 要 `Exists` → `Type` 的安全消去（**G-6**，仍 open ✗）。
+- **复现件（登记在册 ✓，G7 重放）**：`gaps/C-112-cantor-bernstein.sh` —— 登记 **closed-green**，
+  三条断言：① 零件在（`Set.InjOn` / `choice` / `Set.sInter` ✓）；② **主定理在位且判绿**
+  （`decl_checked>=32` · `exercise_open==0` · `failed==0` ✓）；③ **墙仍在**（CB 双射的**直接定义**
+  仍判红 = **C-04 / G-6** ✓）。
+- **反向验证实测（三段 ✓）**：正向 **exit 0** ✓；把解答里 `cantor_bernstein` 的**证明体换 `sorry`**
+  ⇒ **exit 1**（「BAD 112: checked=31 (expect >= 32) open=1」✓）；注入"墙消失"（reject 探针换成
+  判绿内容）⇒ **exit 1**（「BAD 112: the wall is GONE」✓）；两次恢复后 **exit 0** ✓（工作树无残留 ✓）。
+- **推导件（留档 ✓）**：`gaps/C-112-cb-derivation.md`（§8 案情）· `gaps/C-112-cb-prop.sokonanoda`
+  （第 1–4 步 7 条）· `gaps/C-112-cb-step5.sokonanoda`（第 5 步 32 条 = 单元解答的来源 ✓）。
+- **语言侧边界（如实记 ✓，不是课程缺口）**：写这个单元实测到三条**子集边界**（已写进画布头部）：
+  ① 同一个 `cases` 的**两条臂都再嵌 `cases`** ⇒ 声明被**吞掉** ✗；② `Exists.intro` 的**字面 λ 谓词**
+  判红 ✗（改用**具名 def 谓词** ✓）；③ `Eq.{1}` 出现在 **`have` 的类型位**会解析错位 ✗。
+  ⇒ 解答因此写成**全项风格 + `Or.elim` 证明项**（**多层 `cases` 一律不用** ✓）。

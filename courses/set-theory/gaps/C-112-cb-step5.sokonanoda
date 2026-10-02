@@ -1,0 +1,393 @@
+-- C-112 第 5 步（WIP）：关系版图 + 四件 + `choice` 装配 ⇒ `A ≈ B`
+-- 交付件 = `units/I.3/unit112-cantor-bernstein.sokonanoda` + 同名解答 ✓（本文件是**来源** ✓）
+-- 偏离标注：本课 CB **经选择公理**（用 `choice` 从"全 + 单值"的关系里取出双射）；
+-- CB 数学上不需要选择 ⇒ **这是偏离，不是标准证法**。
+
+import lib.Set
+import lib.Image
+import lib.SUnion
+import lib.Rel
+import lib.Equiv
+import lib.Choice
+
+def cbK (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C : Set α) : Set α :=
+  A \ g '' (B \ f '' C)
+
+def cbFix (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    Set (Set α) :=
+  fun (C : Set α) =>
+    (∀ (x : α), x ∈ C → x ∈ A) ∧ (∀ (x : α), x ∈ cbK α β A B f g C → x ∈ C)
+
+def cbC0 (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) : Set α :=
+  ⋂₀ (cbFix α β A B f g)
+
+theorem cbK_mono (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C1 : Set α) (C2 : Set α) (h : ∀ (x : α), x ∈ C1 → x ∈ C2) :
+    ∀ (x : α), x ∈ cbK α β A B f g C1 → x ∈ cbK α β A B f g C2 :=
+  fun (x : α) (hx : x ∈ cbK α β A B f g C1) =>
+    And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
+      (And.left hx)
+      (fun (h2 : x ∈ g '' (B \ f '' C2)) =>
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+        (And.right (x ∈ A) (¬ (x ∈ g '' (B \ f '' C1))) hx)
+          (Set.image_mono g (B \ f '' C2) (B \ f '' C1)
+            (fun (b : β) (hb : b ∈ B \ f '' C2) =>
+              And.intro (b ∈ B) (¬ (b ∈ f '' C1))
+                (And.left hb)
+                (fun (h1 : b ∈ f '' C1) =>
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+                  (And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)
+                    (Set.image_mono f C1 C2 h b h1)))
+            x h2))
+
+theorem cbC0_least (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C : Set α) (hC : C ∈ cbFix α β A B f g) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ C :=
+  fun (x : α) (hx : x ∈ cbC0 α β A B f g) => hx C hC
+
+theorem cbC0_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ cbK α β A B f g (cbC0 α β A B f g)) =>
+    fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =>
+      And.right (∀ (y : α), y ∈ C → y ∈ A)
+        (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
+        (cbK_mono α β A B f g (cbC0 α β A B f g) C
+          (cbC0_least α β A B f g C hC) x hx)
+
+theorem cbC0_sdiff (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ A \ g '' B → x ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ A \ g '' B) =>
+    fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =>
+      And.right (∀ (y : α), y ∈ C → y ∈ A)
+        (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
+        (And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
+          (And.left hx)
+          (fun (h2 : x ∈ g '' (B \ f '' C)) =>
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+            (And.right (x ∈ A) (¬ (x ∈ g '' B)) hx)
+              (Set.image_mono g (B \ f '' C) B
+                (fun (b : β) (hb : b ∈ B \ f '' C) =>
+                  And.left hb)
+                x h2)))
+
+theorem cbA_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    A ∈ cbFix α β A B f g :=
+  And.intro (∀ (x : α), x ∈ A → x ∈ A)
+    (∀ (x : α), x ∈ cbK α β A B f g A → x ∈ A)
+    (fun (x : α) (hx : x ∈ A) => hx)
+    (fun (x : α) (hx : x ∈ cbK α β A B f g A) =>
+      And.left hx)
+
+theorem cbC0_subset_A (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ A :=
+  fun (x : α) (hx : x ∈ cbC0 α β A B f g) =>
+    cbC0_least α β A B f g A (cbA_in_fix α β A B f g) x hx
+
+theorem cbC0_subset_K (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ cbK α β A B f g (cbC0 α β A B f g) :=
+  cbC0_least α β A B f g (cbK α β A B f g (cbC0 α β A B f g))
+    (And.intro
+      (∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ A)
+      (∀ (x : α), x ∈ cbK α β A B f g (cbK α β A B f g (cbC0 α β A B f g)) →
+        x ∈ cbK α β A B f g (cbC0 α β A B f g))
+      (fun (x : α) (hx : x ∈ cbK α β A B f g (cbC0 α β A B f g)) =>
+        And.left hx)
+      (cbK_mono α β A B f g (cbK α β A B f g (cbC0 α β A B f g)) (cbC0 α β A B f g)
+        (cbC0_in_fix α β A B f g)))
+
+theorem cbC0_gf (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → g (f x) ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ cbC0 α β A B f g) =>
+    cbC0_in_fix α β A B f g (g (f x))
+      (And.intro (g (f x) ∈ A) (¬ (g (f x) ∈ g '' (B \ f '' (cbC0 α β A B f g))))
+        (hgA (f x) (hfB x (cbC0_subset_A α β A B f g x hx)))
+        (fun (h2 : g (f x) ∈ g '' (B \ f '' (cbC0 α β A B f g))) =>
+          Set.mem_image_elim g (B \ f '' (cbC0 α β A B f g)) (g (f x)) False h2
+            (fun (b : β) (hb : b ∈ B \ f '' (cbC0 α β A B f g)) (hgb : g b = g (f x)) =>
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+              (And.right (b ∈ B) (¬ (b ∈ f '' (cbC0 α β A B f g))) hb)
+                (Set.mem_image_intro f (cbC0 α β A B f g) b x hx
+                  (Eq.symm.{1} β b (f x)
+                    (hg_inj b (And.left hb)
+                      (f x) (hfB x (cbC0_subset_A α β A B f g x hx)) hgb))))))
+
+theorem cbC0_gfy (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hg_inj : Set.InjOn β α g B) (x : α) (y : β)
+    (hx : x ∈ cbC0 α β A B f g) (hxy : f x = y) :
+    g y ∈ cbC0 α β A B f g :=
+  Eq.subst.{1} β (fun (w : β) => g w ∈ cbC0 α β A B f g) (f x) y hxy
+    (cbC0_gf α β A B f g hfB hgA hg_inj x hx)
+
+theorem cbC0_subst (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (u v : α) (h : u = v) : u ∈ cbC0 α β A B f g → v ∈ cbC0 α β A B f g :=
+  Eq.subst.{1} α (fun (z : α) => z ∈ cbC0 α β A B f g) u v h
+
+-- ── 关系版图（第 5 步）：拆成两条「半关系」再取并 ─────────────────────────
+-- 左半：`x` 在 `C₀` 里 ⇒ 走 `f`（像就是 `y`）；
+-- 右半：`x` 不在 `C₀` 里 ⇒ 走 `g` 的前像（`g y = x`）✓
+
+def cbRelL (α : Type) (β : Type) (C : Set α) (f : α → β) : α → β → Prop :=
+  fun (x : α) (y : β) => x ∈ C ∧ f x = y
+
+def cbRelR (α : Type) (β : Type) (C : Set α) (g : β → α) : α → β → Prop :=
+  fun (x : α) (y : β) => ¬ (x ∈ C) ∧ g y = x
+
+def cbRel (α : Type) (β : Type) (C : Set α) (f : α → β) (g : β → α) : α → β → Prop :=
+  fun (x : α) (y : β) => cbRelL α β C f x y ∨ cbRelR α β C g x y
+
+theorem cbRelL_intro (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
+    (hC : x ∈ C) (hxy : Eq.{1} β (f x) y) : cbRelL α β C f x y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.intro hC hxy
+
+theorem cbRelR_intro (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
+    (hC : ¬ (x ∈ C)) (hyx : Eq.{1} α (g y) x) : cbRelR α β C g x y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.intro hC hyx
+
+theorem cbRelL_mem (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
+    (h : cbRelL α β C f x y) : x ∈ C :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.left (x ∈ C) (Eq.{1} β (f x) y) h
+
+theorem cbRelL_eq (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
+    (h : cbRelL α β C f x y) : Eq.{1} β (f x) y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.right (x ∈ C) (Eq.{1} β (f x) y) h
+
+theorem cbRelR_not (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
+    (h : cbRelR α β C g x y) : ¬ (x ∈ C) :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.left (¬ (x ∈ C)) (Eq.{1} α (g y) x) h
+
+theorem cbRelR_eq (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
+    (h : cbRelR α β C g x y) : Eq.{1} α (g y) x :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.right (¬ (x ∈ C)) (Eq.{1} α (g y) x) h
+
+-- 具名谓词（`Exists.intro` 的 λ 谓词在本子集判红 ⇒ 用 def 包一层，见台账）
+
+def cbTotal (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (x : α) : β → Prop :=
+  fun (y : β) => y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y
+
+def cbSurj (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (y : β) : α → Prop :=
+  fun (x : α) => x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y
+
+-- 四件之一 · **全** ✓
+
+theorem cbRel_total (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) :
+    ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y :=
+  fun (x : α) (hx : x ∈ A) =>
+    Or.elim (x ∈ cbC0 α β A B f g) (¬ (x ∈ cbC0 α β A B f g))
+      (∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y)
+      (fun (hxC0 : x ∈ cbC0 α β A B f g) =>
+        Exists.intro β (cbTotal α β A B f g x) (f x)
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+          (And.intro (f x ∈ B) (cbRel α β (cbC0 α β A B f g) f g x (f x)) (hfB x hx)
+            (Or.inl (cbRelL α β (cbC0 α β A B f g) f x (f x))
+              (cbRelR α β (cbC0 α β A B f g) g x (f x))
+              (cbRelL_intro α β (cbC0 α β A B f g) f x (f x) hxC0 (Eq.refl.{1} β (f x))))))
+      (fun (hxNC0 : ¬ (x ∈ cbC0 α β A B f g)) =>
+        Set.mem_image_elim g B x (∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y)
+          (Classical.byContradiction (x ∈ g '' B)
+            (fun (hnx : ¬ (x ∈ g '' B)) =>
+              hxNC0 (cbC0_sdiff α β A B f g x (And.intro hx hnx))))
+          (fun (b : β) (hb : b ∈ B) (hgb : g b = x) =>
+            Exists.intro β (cbTotal α β A B f g x) b
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+              (And.intro (b ∈ B) (cbRel α β (cbC0 α β A B f g) f g x b) hb
+                (Or.inr (cbRelL α β (cbC0 α β A B f g) f x b)
+                  (cbRelR α β (cbC0 α β A B f g) g x b)
+                  (cbRelR_intro α β (cbC0 α β A B f g) g x b hxNC0 hgb)))))
+      (Classical.em (x ∈ cbC0 α β A B f g))
+
+-- 四件之二 · **单值** ✓（跨分支直接矛盾：`x ∈ C₀` 与 `x ∉ C₀` 不能同真）
+
+theorem cbRel_single (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α) (y : β), y ∈ B → ∀ (v : β), v ∈ B →
+      cbRel α β (cbC0 α β A B f g) f g x y →
+      cbRel α β (cbC0 α β A B f g) f g x v → y = v :=
+  fun (x : α) (y : β) (hy : y ∈ B) (v : β) (hv : v ∈ B) =>
+    fun (h : cbRel α β (cbC0 α β A B f g) f g x y)
+        (h' : cbRel α β (cbC0 α β A B f g) f g x v) =>
+      Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
+        (cbRelR α β (cbC0 α β A B f g) g x y) (y = v)
+        (fun (h1 : cbRelL α β (cbC0 α β A B f g) f x y) =>
+          Or.elim (cbRelL α β (cbC0 α β A B f g) f x v)
+            (cbRelR α β (cbC0 α β A B f g) g x v) (y = v)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f x v) =>
+              Eq.trans.{1} β y (f x) v
+                (Eq.symm.{1} β (f x) y
+                  (cbRelL_eq α β (cbC0 α β A B f g) f x y h1))
+                (cbRelL_eq α β (cbC0 α β A B f g) f x v h2))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g x v) =>
+              False.elim
+                ((cbRelR_not α β (cbC0 α β A B f g) g x v h2)
+                  (cbRelL_mem α β (cbC0 α β A B f g) f x y h1)))
+            h')
+        (fun (h1 : cbRelR α β (cbC0 α β A B f g) g x y) =>
+          Or.elim (cbRelL α β (cbC0 α β A B f g) f x v)
+            (cbRelR α β (cbC0 α β A B f g) g x v) (y = v)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f x v) =>
+              False.elim
+                ((cbRelR_not α β (cbC0 α β A B f g) g x y h1)
+                  (cbRelL_mem α β (cbC0 α β A B f g) f x v h2)))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g x v) =>
+              hg_inj y hy v hv
+                (Eq.trans.{1} α (g y) x (g v)
+                  (cbRelR_eq α β (cbC0 α β A B f g) g x y h1)
+                  (Eq.symm.{1} α (g v) x
+                    (cbRelR_eq α β (cbC0 α β A B f g) g x v h2))))
+            h')
+        h
+
+-- 四件之三 · **单射** ✓（跨分支用 `cbC0_gf` 把 `g (f x)` 拉回 `C₀` ⇒ 矛盾）
+
+theorem cbRel_inj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α), x ∈ A → ∀ (z : α), z ∈ A → ∀ (y : β), y ∈ B →
+      cbRel α β (cbC0 α β A B f g) f g x y →
+      cbRel α β (cbC0 α β A B f g) f g z y → x = z :=
+  fun (x : α) (hx : x ∈ A) (z : α) (hz : z ∈ A) (y : β) (hy : y ∈ B) =>
+    fun (h : cbRel α β (cbC0 α β A B f g) f g x y)
+        (h' : cbRel α β (cbC0 α β A B f g) f g z y) =>
+      Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
+        (cbRelR α β (cbC0 α β A B f g) g x y) (x = z)
+        (fun (h1 : cbRelL α β (cbC0 α β A B f g) f x y) =>
+          Or.elim (cbRelL α β (cbC0 α β A B f g) f z y)
+            (cbRelR α β (cbC0 α β A B f g) g z y) (x = z)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f z y) =>
+              hf_inj x hx z hz
+                (Eq.trans.{1} β (f x) y (f z)
+                  (cbRelL_eq α β (cbC0 α β A B f g) f x y h1)
+                  (Eq.symm.{1} β (f z) y
+                    (cbRelL_eq α β (cbC0 α β A B f g) f z y h2))))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g z y) =>
+              False.elim
+                ((cbRelR_not α β (cbC0 α β A B f g) g z y h2)
+                  (cbC0_subst α β A B f g (g y) z
+                    (cbRelR_eq α β (cbC0 α β A B f g) g z y h2)
+                    (cbC0_gfy α β A B f g hfB hgA hg_inj x y
+                      (cbRelL_mem α β (cbC0 α β A B f g) f x y h1)
+                      (cbRelL_eq α β (cbC0 α β A B f g) f x y h1)))))
+            h')
+        (fun (h1 : cbRelR α β (cbC0 α β A B f g) g x y) =>
+          Or.elim (cbRelL α β (cbC0 α β A B f g) f z y)
+            (cbRelR α β (cbC0 α β A B f g) g z y) (x = z)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f z y) =>
+              False.elim
+                ((cbRelR_not α β (cbC0 α β A B f g) g x y h1)
+                  (cbC0_subst α β A B f g (g y) x
+                    (cbRelR_eq α β (cbC0 α β A B f g) g x y h1)
+                    (cbC0_gfy α β A B f g hfB hgA hg_inj z y
+                      (cbRelL_mem α β (cbC0 α β A B f g) f z y h2)
+                      (cbRelL_eq α β (cbC0 α β A B f g) f z y h2)))))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g z y) =>
+              Eq.trans.{1} α x (g y) z
+                (Eq.symm.{1} α (g y) x
+                  (cbRelR_eq α β (cbC0 α β A B f g) g x y h1))
+                (cbRelR_eq α β (cbC0 α β A B f g) g z y h2))
+            h')
+        h
+
+-- 四件之四 · **满** ✓（二分 `g y ∈ C₀`：在 ⇒ 用 `cbC0_subset_K` 逼出 `y ∈ f '' C₀`）
+
+theorem cbRel_surj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hgA : Set.MapsTo β α g B A) :
+    ∀ (y : β), y ∈ B → ∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y :=
+  fun (y : β) (hy : y ∈ B) =>
+    Or.elim (g y ∈ cbC0 α β A B f g) (¬ (g y ∈ cbC0 α β A B f g))
+      (∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y)
+      (fun (hgy : g y ∈ cbC0 α β A B f g) =>
+        Set.mem_image_elim f (cbC0 α β A B f g) y
+          (∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y)
+          (Classical.byContradiction (y ∈ f '' (cbC0 α β A B f g))
+            (fun (hny : ¬ (y ∈ f '' (cbC0 α β A B f g))) =>
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+              (And.right (g y ∈ A) (¬ (g y ∈ g '' (B \ f '' (cbC0 α β A B f g))))
+                (cbC0_subset_K α β A B f g (g y) hgy))
+                (Set.mem_image_intro g (B \ f '' (cbC0 α β A B f g)) (g y) y
+                  (And.intro hy hny)
+                  (Eq.refl.{1} α (g y)))))
+          (fun (x : α) (hxC0 : x ∈ cbC0 α β A B f g) (hfxy : f x = y) =>
+            Exists.intro α (cbSurj α β A B f g y) x
+              (And.intro (x ∈ A) (cbRel α β (cbC0 α β A B f g) f g x y)
+                (cbC0_subset_A α β A B f g x hxC0)
+                (Or.inl (cbRelL α β (cbC0 α β A B f g) f x y)
+                  (cbRelR α β (cbC0 α β A B f g) g x y)
+                  (cbRelL_intro α β (cbC0 α β A B f g) f x y hxC0 hfxy)))))
+      (fun (hgy : ¬ (g y ∈ cbC0 α β A B f g)) =>
+        Exists.intro α (cbSurj α β A B f g y) (g y)
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+          (And.intro (g y ∈ A) (cbRel α β (cbC0 α β A B f g) f g (g y) y) (hgA y hy)
+            (Or.inr (cbRelL α β (cbC0 α β A B f g) f (g y) y)
+              (cbRelR α β (cbC0 α β A B f g) g (g y) y)
+              (cbRelR_intro α β (cbC0 α β A B f g) g (g y) y hgy (Eq.refl.{1} α (g y))))))
+      (Classical.em (g y ∈ cbC0 α β A B f g))
+
+-- `choice` 的取用子（把「取出的函数 + 它的规范」一次拆开用；同 `Set.Le.elim`）
+
+theorem cbChoice_elim (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (Q : Prop)
+    (h : ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
+    (k : ∀ (f : α → β), (∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)) → Q) : Q :=
+  Exists.elim (α → β) (fun (f : α → β) => ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
+    Q h k
+
+-- 两条互逆律（把 `Set.Equiv.mk` 的四个实参拆成具名定理，读起来也清楚 ✓）
+
+theorem cbLeftInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B)
+    (h : α → β) (k : β → α)
+    (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x (h x))
+    (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
+    ∀ (x : α), x ∈ A → k (h x) = x :=
+  fun (x : α) (hx : x ∈ A) =>
+    Eq.symm.{1} α x (k (h x))
+      (cbRel_inj α β A B f g hfB hgA hf_inj hg_inj x hx (k (h x))
+        (And.left (hk (h x) (And.left (hh x hx))))
+        (h x) (And.left (hh x hx))
+        (And.right (hh x hx))
+        (And.right (hk (h x) (And.left (hh x hx)))))
+
+theorem cbRightInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hg_inj : Set.InjOn β α g B)
+    (h : α → β) (k : β → α)
+    (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x (h x))
+    (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
+    ∀ (y : β), y ∈ B → h (k y) = y :=
+  fun (y : β) (hy : y ∈ B) =>
+    Eq.symm.{1} β y (h (k y))
+      (cbRel_single α β A B f g hg_inj (k y) y hy (h (k y))
+        (And.left (hh (k y) (And.left (hk y hy))))
+        (And.right (hk y hy))
+        (And.right (hh (k y) (And.left (hk y hy)))))
+
+-- ── 旗舰：Cantor–Bernstein（**经选择公理** —— 见文件头偏离标注）────────────
+
+theorem cantor_bernstein (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B) : A ≈ B :=
+  cbChoice_elim α β A B (cbRel α β (cbC0 α β A B f g) f g) (A ≈ B)
+    (choice α β A B (cbRel α β (cbC0 α β A B f g) f g)
+      (cbRel_total α β A B f g hfB))
+    (fun (h : α → β)
+        (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧
+          cbRel α β (cbC0 α β A B f g) f g x (h x)) =>
+      cbChoice_elim β α B A (fun (y : β) (x : α) => cbRel α β (cbC0 α β A B f g) f g x y)
+        (A ≈ B)
+        (choice β α B A (fun (y : β) (x : α) => cbRel α β (cbC0 α β A B f g) f g x y)
+          (cbRel_surj α β A B f g hgA))
+        (fun (k : β → α)
+            (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧
+              cbRel α β (cbC0 α β A B f g) f g (k y) y) =>
+          Set.Equiv.mk α β A B h k
+            (fun (x : α) (hx : x ∈ A) => And.left (hh x hx))
+            (fun (y : β) (hy : y ∈ B) => And.left (hk y hy))
+            (cbLeftInv α β A B f g hfB hgA hf_inj hg_inj h k hh hk)
+            (cbRightInv α β A B f g hg_inj h k hh hk)))
+

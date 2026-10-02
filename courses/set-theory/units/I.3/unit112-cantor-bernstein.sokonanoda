@@ -1,0 +1,251 @@
+-- ==========================================================================
+-- unit112-cantor-bernstein.sokonanoda —— 卷 I 单元112 **Cantor–Bernstein 定理**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§6.4 定理 6B** ·
+--   Halmos《Naive Set Theory》**§22**。大纲 `docs/design/set-theory-unlocked.md` §四 第 6 项 ✓。
+--
+-- 本单元的"该学的定理"：**两条单射**（`f` 把 `A` 送进 `B`、`g` 把 `B` 送进 `A`，各自单射）
+--   ⇒ **`A ≈ B`**。造法是三段：
+--     · **链核** `C₀ = ⋂{C | C ⊆ A ∧ K(C) ⊆ C}`（`K(C) = A ∖ g '' (B ∖ f '' C)`）——
+--       它的**不动点**性质（`K(C₀) = C₀` ✓）是全部功夫所在；
+--     · **关系版图** `R(x,y) = (x ∈ C₀ ∧ f x = y) ∨ (x ∉ C₀ ∧ g y = x)` ——
+--       在 `Prop` 层说清"哪一半走 `f`、哪一半走 `g`"（**不做 Type 层分支** ✓，那会撞 C-04 ✗）；
+--     · **四件**（全 / 单值 / 单射 / 满）⇒ 用 **`choice`** 把关系**取出成函数** ⇒ 装配 ✓。
+--
+-- ⚠⚠ **偏离标注（如实写，不许弱化）**：本课的 CB **经选择公理** —— 装配那一步用 `choice`
+--   从"全 + 单值"的关系里**取出**双射函数 ✓。而 **CB 数学上不需要选择**（`g` 单射 ⇒
+--   前像唯一 ⇒ 确定摹状词即可 ✓）⇒ **这是偏离，不是"标准证法"** ✗。零公理的 CB 要
+--   `Exists` → `Type` 的安全消去（台账 **G-6** 一族，仍 open ✗）。
+--   ⚠ **本课程没有"`A → B` 的函数"类型** ⇒ 四条前提（`hfB`/`hgA`/`hf_inj`/`hg_inj`）**逐条显式写** ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答以 term 风格为主**（分支多的用 `Or.elim` 证明项 ✓）
+--   —— 本子集里「同一个 `cases` 的两条臂都再嵌一个 `cases`」会把声明吞掉（实测 ✗），
+--   所以嵌套分支一律写成 `Or.elim` 证明项 ✓。
+-- **本单元 `import` 六样**：`lib.Set` · `lib.Image` · `lib.SUnion` · `lib.Rel` · `lib.Equiv` · `lib.Choice`。
+--
+-- 依赖：单元96–100（`≼` 及其代数）· 单元103（双向 `≼` + 互逆律 ⇒ `≈`）· 单元110（选择公理）✓
+-- ==========================================================================
+
+
+
+import lib.Set
+import lib.Image
+import lib.SUnion
+import lib.Rel
+import lib.Equiv
+import lib.Choice
+
+def cbK (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C : Set α) : Set α :=
+  A \ g '' (B \ f '' C)
+
+def cbFix (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    Set (Set α) :=
+  fun (C : Set α) =>
+    (∀ (x : α), x ∈ C → x ∈ A) ∧ (∀ (x : α), x ∈ cbK α β A B f g C → x ∈ C)
+
+def cbC0 (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) : Set α :=
+  ⋂₀ (cbFix α β A B f g)
+
+theorem demo_cbK_mono (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C1 : Set α) (C2 : Set α) (h : ∀ (x : α), x ∈ C1 → x ∈ C2) :
+    ∀ (x : α), x ∈ cbK α β A B f g C1 → x ∈ cbK α β A B f g C2 :=
+  fun (x : α) (hx : x ∈ cbK α β A B f g C1) =>
+    And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
+      (And.left hx)
+      (fun (h2 : x ∈ g '' (B \ f '' C2)) =>
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+        (And.right (x ∈ A) (¬ (x ∈ g '' (B \ f '' C1))) hx)
+          (Set.image_mono g (B \ f '' C2) (B \ f '' C1)
+            (fun (b : β) (hb : b ∈ B \ f '' C2) =>
+              And.intro (b ∈ B) (¬ (b ∈ f '' C1))
+                (And.left hb)
+                (fun (h1 : b ∈ f '' C1) =>
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+                  (And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)
+                    (Set.image_mono f C1 C2 h b h1)))
+            x h2))
+
+theorem demo_cbC0_least (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C : Set α) (hC : C ∈ cbFix α β A B f g) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ C :=
+  fun (x : α) (hx : x ∈ cbC0 α β A B f g) => hx C hC
+
+-- 练习 1：（L 类）**`C₀` 是不动点**：`K(C₀) ⊆ C₀`。
+-- 关键件：`demo_cbC0_least` 把 `⋂𝓕 ∈ 𝓕` 的第 2 条取出来用 ✓、`demo_cbK_mono` 把 `C₀ ⊆ C` 推过 `K` ✓。
+theorem cbC0_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ cbC0 α β A B f g := by
+  sorry
+
+-- 练习 2：（L 类）**最小性给的下界**：`A ∖ g '' B ⊆ C₀`。
+-- 关键件：`x ∈ A ∖ g '' B` 拆两半；若 `x ∈ g '' (B ∖ f '' C)` 则 `image_mono` 把它拉回 `g '' B` ⇒ 与 `∉` 矛盾 ✓
+theorem cbC0_sdiff (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ A \ g '' B → x ∈ cbC0 α β A B f g := by
+  sorry
+
+theorem demo_cbA_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    A ∈ cbFix α β A B f g :=
+  And.intro (∀ (x : α), x ∈ A → x ∈ A)
+    (∀ (x : α), x ∈ cbK α β A B f g A → x ∈ A)
+    (fun (x : α) (hx : x ∈ A) => hx)
+    (fun (x : α) (hx : x ∈ cbK α β A B f g A) =>
+      And.left hx)
+
+theorem demo_cbC0_subset_A (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ A :=
+  fun (x : α) (hx : x ∈ cbC0 α β A B f g) =>
+    demo_cbC0_least α β A B f g A (demo_cbA_in_fix α β A B f g) x hx
+
+-- 练习 3：（L 类）**`C₀ ⊆ K(C₀)`** —— 与练习 1 合起来就是 `K(C₀) = C₀`。
+-- 关键件：`K` 单调（`demo_cbK_mono`）+ `K(C₀) ⊆ C₀`（练习 1）⇒ `K(C₀) ∈ 𝓕` ⇒ 用 `demo_cbC0_least` ✓
+theorem cbC0_subset_K (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ cbK α β A B f g (cbC0 α β A B f g) := by
+  sorry
+
+-- 练习 4：（L 类）**唯一还缺的零件**：`C₀` 对 `g ∘ f` 封闭。
+-- 关键件：只需 `g (f x) ∈ K(C₀)`（练习 1 反向用 ✓）；`∉ g '' (B ∖ f '' C₀)` 用**反证** + `hg_inj` ✓
+-- soko:hint 用到：`demo_cbC0_subset_A`（`C₀ ⊆ A`，从 `demo_cbA_in_fix` 来 ✓）· `Set.mem_image_elim` · `Set.mem_image_intro`
+theorem cbC0_gf (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → g (f x) ∈ cbC0 α β A B f g := by
+  sorry
+
+-- 练习 5：（L 类）**零件 4 的等式版**：`f x = y` 时把结论搬到 `g y` 上（`Eq.subst` 一次 ✓）。
+-- 关键件：`Eq.subst.{1} β (fun (w : β) => g w ∈ cbC0 …) (f x) y hxy` 作用在练习 4 的结论上 ✓
+theorem cbC0_gfy (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hg_inj : Set.InjOn β α g B) (x : α) (y : β)
+    (hx : x ∈ cbC0 α β A B f g) (hxy : f x = y) :
+    g y ∈ cbC0 α β A B f g := by
+  sorry
+
+theorem demo_cbC0_subst (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (u v : α) (h : u = v) : u ∈ cbC0 α β A B f g → v ∈ cbC0 α β A B f g :=
+  Eq.subst.{1} α (fun (z : α) => z ∈ cbC0 α β A B f g) u v h
+
+-- ── 关系版图（第 5 步）：拆成两条「半关系」再取并 ─────────────────────────
+-- 左半：`x` 在 `C₀` 里 ⇒ 走 `f`（像就是 `y`）；
+-- 右半：`x` 不在 `C₀` 里 ⇒ 走 `g` 的前像（`g y = x`）✓
+
+def cbRelL (α : Type) (β : Type) (C : Set α) (f : α → β) : α → β → Prop :=
+  fun (x : α) (y : β) => x ∈ C ∧ f x = y
+
+def cbRelR (α : Type) (β : Type) (C : Set α) (g : β → α) : α → β → Prop :=
+  fun (x : α) (y : β) => ¬ (x ∈ C) ∧ g y = x
+
+def cbRel (α : Type) (β : Type) (C : Set α) (f : α → β) (g : β → α) : α → β → Prop :=
+  fun (x : α) (y : β) => cbRelL α β C f x y ∨ cbRelR α β C g x y
+
+theorem demo_cbRelL_intro (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
+    (hC : x ∈ C) (hxy : Eq.{1} β (f x) y) : cbRelL α β C f x y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.intro hC hxy
+
+theorem demo_cbRelR_intro (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
+    (hC : ¬ (x ∈ C)) (hyx : Eq.{1} α (g y) x) : cbRelR α β C g x y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.intro hC hyx
+
+theorem demo_cbRelL_mem (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
+    (h : cbRelL α β C f x y) : x ∈ C :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.left (x ∈ C) (Eq.{1} β (f x) y) h
+
+theorem demo_cbRelL_eq (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
+    (h : cbRelL α β C f x y) : Eq.{1} β (f x) y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.right (x ∈ C) (Eq.{1} β (f x) y) h
+
+theorem demo_cbRelR_not (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
+    (h : cbRelR α β C g x y) : ¬ (x ∈ C) :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.left (¬ (x ∈ C)) (Eq.{1} α (g y) x) h
+
+theorem demo_cbRelR_eq (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
+    (h : cbRelR α β C g x y) : Eq.{1} α (g y) x :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+  And.right (¬ (x ∈ C)) (Eq.{1} α (g y) x) h
+
+-- 具名谓词（`Exists.intro` 的 λ 谓词在本子集判红 ⇒ 用 def 包一层，见台账）
+
+def cbTotal (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (x : α) : β → Prop :=
+  fun (y : β) => y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y
+
+def cbSurj (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (y : β) : α → Prop :=
+  fun (x : α) => x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y
+
+-- 四件之一 · **全** ✓
+
+-- 练习 6：（L 类）四件之一 · **全**：`A` 里每个点在 `B` 里都有关系像。
+-- 关键件：二分 `x ∈ C₀`（`Classical.em`）；`x ∉ C₀` 那支要从 `demo_cbC0_sdiff` 逼出 `x ∈ g '' B` ⇒ `Classical.byContradiction` ✓
+-- soko:hint 关系值用 `demo_cbRelL_intro` / `demo_cbRelR_intro` 造（`Or.inl` / `Or.inr` 写全前导命题 ✓）
+theorem cbRel_total (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) :
+    ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y := by
+  sorry
+
+-- 练习 7：（L 类）四件之二 · **单值**：同一个 `x` 不能既走 `f` 又走 `g`。
+-- 关键件：跨分支**直接矛盾**（`x ∈ C₀` 与 `x ∉ C₀` ✗）⇒ `False.elim` ✓；同分支用 `demo_cbRelL_eq` / `demo_cbRelR_eq` + `hg_inj` ✓
+-- soko:hint 本子集里「两条臂都嵌 cases」会被吞 ⇒ 写成 `Or.elim` 证明项 ✓
+theorem cbRel_single (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α) (y : β), y ∈ B → ∀ (v : β), v ∈ B →
+      cbRel α β (cbC0 α β A B f g) f g x y →
+      cbRel α β (cbC0 α β A B f g) f g x v → y = v := by
+  sorry
+
+-- 练习 8：（L 类）四件之三 · **单射**：同一个 `y` 不能有两支原像。
+-- 关键件：跨分支时 `z = g y = g (f x)` ∈ `C₀`（练习 5 ✓）⇒ 与 `z ∉ C₀` 矛盾 ✓
+-- soko:hint 等式搬运用 `demo_cbC0_subst`（沿 `g y = z` 搬 `∈ C₀` ✓）
+theorem cbRel_inj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α), x ∈ A → ∀ (z : α), z ∈ A → ∀ (y : β), y ∈ B →
+      cbRel α β (cbC0 α β A B f g) f g x y →
+      cbRel α β (cbC0 α β A B f g) f g z y → x = z := by
+  sorry
+
+-- 练习 9：（L 类）四件之四 · **满**：`B` 里每个点都有原像。
+-- 关键件：二分 `g y ∈ C₀`。在 ⇒ 要证 `y ∈ f '' C₀`（若 `y ∉ f '' C₀` 则 `g y ∈ g '' (B ∖ f '' C₀)`，而练习 3 说 `C₀ ⊆ K(C₀) = A ∖ g '' (B ∖ f '' C₀)` ✗ 矛盾 ✓）；不在 ⇒ 取 `x := g y` ✓
+theorem cbRel_surj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hgA : Set.MapsTo β α g B A) :
+    ∀ (y : β), y ∈ B → ∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y := by
+  sorry
+
+theorem demo_cbChoice_elim (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (Q : Prop)
+    (h : ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
+    (k : ∀ (f : α → β), (∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)) → Q) : Q :=
+  Exists.elim (α → β) (fun (f : α → β) => ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
+    Q h k
+
+-- 两条互逆律（把 `Set.Equiv.mk` 的四个实参拆成具名定理，读起来也清楚 ✓）
+
+-- 练习 10：（L 类）左互逆律：`k (h x) = x`（在 `A` 上）。
+-- 关键件：练习 8（单射）对两个关系值 `R x (h x)` 与 `R (k (h x)) (h x)` 用一次 ✓ 再 `Eq.symm` ✓
+-- soko:hint `hh` / `hk` 的右半正是两条关系值（`And.right` ✓）
+theorem cbLeftInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B)
+    (h : α → β) (k : β → α)
+    (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x (h x))
+    (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
+    ∀ (x : α), x ∈ A → k (h x) = x := by
+  sorry
+
+-- 练习 11：（L 类）右互逆律：`h (k y) = y`（在 `B` 上）。
+-- 关键件：练习 7（单值）对 `R (k y) y` 与 `R (k y) (h (k y))` 用一次 ⇒ `y = h (k y)` ⇒ `Eq.symm` ✓
+theorem cbRightInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hg_inj : Set.InjOn β α g B)
+    (h : α → β) (k : β → α)
+    (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x (h x))
+    (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
+    ∀ (y : β), y ∈ B → h (k y) = y := by
+  sorry
+
+-- 练习 12：（**旗舰**）**Cantor–Bernstein**：两条单射 ⇒ 等势（**经 `choice`** —— 见文件头偏离标注 ✓）。
+-- 关键件：`choice` 两次（前向用练习 6，反向用练习 9）⇒ `Set.Equiv.mk` 四件齐（两条域条件直接来自两次 `choice` 的规范 ✓）
+-- soko:hint 取用子 `demo_cbChoice_elim` 把「取出的函数 + 它的规范」一次拆开 ✓；两条互逆律就是练习 10 / 11 ✓
+theorem cantor_bernstein (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B) : A ≈ B := by
+  sorry
+

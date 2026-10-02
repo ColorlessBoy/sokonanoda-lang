@@ -285,6 +285,12 @@
               "title": "单元103 双向势比较何时升级为等势",
               "title_en": "Unit 103 — When Both Comparisons Give Equinumerosity",
               "unit": 103
+            },
+            {
+              "file": "units/I.3/unit112-cantor-bernstein.sokonanoda",
+              "title": "单元112 Cantor–Bernstein 定理（经选择公理）",
+              "title_en": "Unit 112 — Cantor–Bernstein (via Choice)",
+              "unit": 112
             }
           ]
         },
