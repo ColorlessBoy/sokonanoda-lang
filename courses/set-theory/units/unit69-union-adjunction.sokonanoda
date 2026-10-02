@@ -1,0 +1,101 @@
+-- ==========================================================================
+-- unit69-union-adjunction.sokonanoda —— 卷 I 单元69 **`⋃` / `⋂` 的伴随刻画**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§2.3** · Halmos **§9**。
+-- 大纲 §4.1（**I.7 章的收口片** —— 单元㊽ 证了"取用子"，本单元把**反向也证出来** ✓，
+-- 得到教材里最重要的一对**伴随式（完备格的全称性质）** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 取用子：`x ∈ ⋃F ↔ ∃A∈F, x ∈ A` ✓ · `x ∈ ⋂F ↔ ∀A∈F, x ∈ A` ✓（两条顶层具名 ✓）；
+--   · **旗舰一：`⋃F ⊆ A ↔ ∀B∈F, B ⊆ A`** ✓（"并是**最小上界**" ✓）；
+--   · **旗舰二：`A ⊆ ⋂F ↔ ∀B∈F, A ⊆ B`** ✓（"交是**最大下界**" ✓）；
+--   · **`A ∈ F ⇒ ⋂F ⊆ A`** ✓（下界性 ✓）
+--
+-- ⚠ **点名写法** ✓：`⋃`/`⋂` **没有记法** ✗ ⇒ 写 `Set.sUnion` / `Set.sInter` ✓；
+--   消去子 `Set.mem_sUnion_elim` 的形状是 **`(α) (F) (x) (C : Prop) (h) (k)`** ✓
+--   （第四位是**目标命题** ✓ —— 先读签名 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.SUnion` · `lib.Order`。
+--
+-- 依赖：单元㉑㉒（广义并与交）· 单元㊽（覆盖与包含演算）· 单元68（幂集完备格）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.1 三条库引理（广义并 · 广义交 · 包含）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：广义并的成员刻画（"落在某个族成员里"）。
+theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  Set.mem_sUnion_iff α F x
+theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  Set.mem_sInter_iff α F x
+theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B-- 练习 1（T 类，**中心工具**）：`A ⊆ B` 用在点上。
+
+-- soko:hint 关键件：`Set.subset_def`（**先 λ 绑定、再 `Iff.mp`** ✓）✓
+
+theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B := by
+  sorry
+-- 练习 2（T 类）：**包含自反**。
+
+-- soko:hint 关键件：`fun a ha => ha` ✓
+
+theorem subset_refl (α : Type) (A : Set α) : A ⊆ A := by
+  sorry
+-- 练习 3（T 类）：**从 `x ∈ ⋃F` 取出见证**。
+
+-- soko:hint 关键件：`Set.mem_sUnion_iff`（**先 λ 绑定再 `Iff.mp`** ✓）✓
+
+theorem mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 4（T 类）：**从 `x ∈ ⋂F` 取出全称形式**。
+
+-- soko:hint 关键件：`Set.mem_sInter_iff` · `Iff.mp` ✓（这一条是后面两条旗舰的前件 ✓）
+
+theorem mem_of_mem_sInter (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 5（T 类，**下界性**）：**`A ∈ F ⇒ ⋂F ⊆ A`**。
+
+-- soko:hint 关键件：练习 4（**按 点 · 前提 应用** ✓）✓
+
+theorem sInter_subset_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
+    (Set.sInter α F) ⊆ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 6（L 类，**旗舰一**）：**`⋃F ⊆ A ↔ ∀B∈F, B ⊆ A`**（并是**最小上界** ✓）。
+
+-- soko:hint 思路：左到右 —— 对 `B ∈ F` 的每个点，用 `Exists.intro` 造出"在 `⋃F` 里"✓；
+
+--   右到左 —— 用 **`Set.mem_sUnion_elim`** 一次拿到 `B`、`B ∈ F`、`x ∈ B` 三样 ✓。
+
+-- soko:hint 目标形态：`⋃F ⊆ A ↔ ∀ (B : Set α), B ∈ F → B ⊆ A`。
+
+-- soko:hint 关键件：`Set.mem_sUnion_iff` · **`Set.mem_sUnion_elim`**（第四位写**目标命题** ✓）·
+
+--   `Exists.intro` / `And.intro`（**前导实参写全** ✓）· 练习 1 ✓
+
+theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (A : Set α) :
+    (Set.sUnion α F) ⊆ A ↔ ∀ (B : Set α), B ∈ F → B ⊆ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 7（L 类，**旗舰二**）：**`A ⊆ ⋂F ↔ ∀B∈F, A ⊆ B`**（交是**最大下界** ✓）。
+
+-- soko:hint 思路：左到右 —— 把 `h a ha` 得到的"在 `⋂F` 里"喂给练习 4 ✓；
+
+--   右到左 —— 用 `Set.mem_sInter_iff` 的 `Iff.mpr`，逐族成员用一次 `h` ✓。
+
+-- soko:hint 目标形态：`A ⊆ ⋂F ↔ ∀ (B : Set α), B ∈ F → A ⊆ B`。
+
+-- soko:hint 关键件：练习 4 · `Set.mem_sInter_iff` · `Iff.mpr` ✓
+
+theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (A : Set α) :
+    A ⊆ (Set.sInter α F) ↔ ∀ (B : Set α), B ∈ F → A ⊆ B := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry

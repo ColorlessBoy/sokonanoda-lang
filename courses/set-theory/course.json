@@ -338,10 +338,11 @@
             "extensionality",
             "cover",
             "sUnion-inclusion",
-            "sUnion-algebra"
+            "sUnion-algebra",
+            "union-adjunction"
           ],
           "quota": {
-            "exercises": 38
+            "exercises": 45
           },
           "units": [
             {
@@ -367,6 +368,12 @@
               "title": "单元㊾ 广义并的代数",
               "title_en": "Unit 49 — Algebra of Arbitrary Unions",
               "unit": 49
+            },
+            {
+              "file": "units/unit69-union-adjunction.sokonanoda",
+              "title": "单元69 并交的伴随刻画",
+              "title_en": "Unit 69 — Adjunction Laws for Union and Intersection",
+              "unit": 69
             }
           ]
         },
