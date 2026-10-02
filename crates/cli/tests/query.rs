@@ -299,6 +299,59 @@ fn query_goals_lists_every_declaration() {
     let _ = std::fs::remove_file(path);
 }
 
+/// **G-82**（端到端 = 用户可见面）：声明卡片对「证明体里**有 tactic**」的题必须
+/// **剥具名绑元** —— 与 `by sorry` 那条**同形同值** ✓。
+///
+/// 屏幕上会多/少什么：错的时候卡片是 `[] ⊢ (a : Prop) → … → a ∧ a`，
+/// `goal_runs` 把 `a`/`b`/`h` 全标成 `unknown_ident` ⇒ **整句判红** ✗；
+/// 对的时候它们是 `binder`、目标只剩 `a ∧ a` ✓。所以这条同时钉
+/// **文本**（`goal`/`binders`）与**着色**（`goal_runs` 的 kind）——
+/// 只钉文本会漏掉"数据对了但用户仍看到红的"那一半 ✗。
+#[test]
+fn query_goals_card_peels_binders_with_tactics() {
+    let text = "theorem plain (a b : Prop) (h : a) : a ∧ a := by\n  sorry\n\n\
+                theorem with_tactic (a b : Prop) (h : a) : a ∧ a := by\n  constructor\n  sorry\n";
+    let path = temp_source("g82", text);
+    let (value, code) = query(&["goals", "--file", path.to_str().unwrap()], None);
+    assert_eq!(code, 0, "开放练习是合法状态：{value}");
+    let decls = value["data"].as_array().expect("decls");
+    for name in ["plain", "with_tactic"] {
+        let d = decls
+            .iter()
+            .find(|d| d["name"] == name)
+            .unwrap_or_else(|| panic!("{name} 必须在声明列表里：{decls:?}"));
+        assert_eq!(d["status"], "open", "{name}: 应是开放练习");
+        let binders: Vec<&str> = d["binders"]
+            .as_array()
+            .expect("binders")
+            .iter()
+            .map(|b| b["name"].as_str().expect("binder name"))
+            .collect();
+        assert_eq!(
+            binders,
+            ["a", "b", "h"],
+            "{name}: 卡片的上下文 = 声明的**具名绑元**（按序）"
+        );
+        assert_eq!(
+            d["goal"], "a ∧ a",
+            "{name}: 目标只剩剥掉绑元之后的命题（不是整句声明类型）"
+        );
+        // **着色**（用户真正看到的那一层）：目标里不该有 `unknown_ident`。
+        let unknown: Vec<&str> = d["goal_runs"]
+            .as_array()
+            .expect("goal_runs")
+            .iter()
+            .filter(|r| r["kind"] == "unknown_ident")
+            .map(|r| r["text"].as_str().unwrap_or(""))
+            .collect();
+        assert!(
+            unknown.is_empty(),
+            "{name}: 目标里不该有未定义标识符（用户会看到整句判红 ✗）：{unknown:?}"
+        );
+    }
+    let _ = std::fs::remove_file(path);
+}
+
 #[test]
 fn query_reports_kernel_rejection_with_exit_code_one() {
     let (value, code) = query(&["check", "--text", "example : Prop := 1\n"], None);
