@@ -514,10 +514,11 @@
             "equivalence-class",
             "quotient",
             "kernel-equivalence",
-            "equivclass-algebra"
+            "equivclass-algebra",
+            "partition-roundtrip"
           ],
           "quota": {
-            "exercises": 67
+            "exercises": 81
           },
           "units": [
             {
@@ -561,6 +562,12 @@
               "title": "单元77 等价类的代数",
               "title_en": "Unit 77 — Algebra of Equivalence Classes",
               "unit": 77
+            },
+            {
+              "file": "units/unit78-partition-roundtrip.sokonanoda",
+              "title": "单元78 划分与等价关系的往返",
+              "title_en": "Unit 78 — Partitions and Equivalence Relations, Round Trip",
+              "unit": 78
             }
           ]
         },

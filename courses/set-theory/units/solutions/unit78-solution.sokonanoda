@@ -1,0 +1,146 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+theorem demo_mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  Rel.mem_classes α r C
+
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+
+theorem demo_ofPartition_apply (α : Type) (P : (α → Prop) → Prop) (a b : α) :
+    Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b :=
+  Rel.ofPartition_apply α P a b
+
+theorem mem_classes_of_rel (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  Rel.mem_classes α r C
+
+theorem classes_of_equivClass (α : Type) (r : Rel α α) (a : α) :
+    Rel.Classes α r (Rel.EquivClass α r a) :=
+  (fun (hu : Rel.Classes α r (Rel.EquivClass α r a) ↔
+      ∃ (b : α), ∀ (c : α), Rel.EquivClass α r a c ↔ r b c) =>
+    Iff.mpr hu (Exists.intro α
+      (fun (b : α) => ∀ (c : α), Rel.EquivClass α r a c ↔ r b c) a
+      (fun (c : α) => Rel.mem_equivClass α r a c)))
+    (Rel.mem_classes α r (Rel.EquivClass α r a))
+
+theorem mem_of_class (α : Type) (r : Rel α α) (C : α → Prop) (a : α)
+    (hC : Rel.Classes α r C) (ha : C a) : ∃ (b : α), r b a :=
+  Exists.elim α (fun (b : α) => ∀ (c : α), C c ↔ r b c) (∃ (b : α), r b a)
+    ((fun (hu : Rel.Classes α r C ↔ ∃ (b : α), ∀ (c : α), C c ↔ r b c) => Iff.mp hu hC)
+      (Rel.mem_classes α r C))
+    (fun (b : α) (hb : ∀ (c : α), C c ↔ r b c) =>
+      Exists.intro α (fun (d : α) => r d a) b ((Iff.mp (hb a)) ha))
+
+theorem class_mem_iff (α : Type) (r : Rel α α) (he : IsEquivalence α r) (C : α → Prop)
+    (a : α) (b : α) (hC : Rel.Classes α r C) (ha : C a) (hb : C b) : r a b :=
+  Exists.elim α (fun (x : α) => ∀ (c : α), C c ↔ r x c) (r a b)
+    ((fun (hu : Rel.Classes α r C ↔ ∃ (x : α), ∀ (c : α), C c ↔ r x c) => Iff.mp hu hC)
+      (Rel.mem_classes α r C))
+    (fun (x : α) (hx : ∀ (c : α), C c ↔ r x c) =>
+      (equivalence_trans α r he) a x b
+        ((equivalence_symm α r he) x a ((Iff.mp (hx a)) ha))
+        ((Iff.mp (hx b)) hb))
+
+theorem rel_of_class (α : Type) (r : Rel α α) (he : IsEquivalence α r) (C : α → Prop)
+    (x : α) (c : α) (hC : Rel.Classes α r C) (hx : C x) (hc : C c) : r x c :=
+  Exists.elim α (fun (a : α) => ∀ (e : α), C e ↔ r a e) (r x c)
+    ((fun (hu : Rel.Classes α r C ↔ ∃ (a : α), ∀ (e : α), C e ↔ r a e) => Iff.mp hu hC)
+      (Rel.mem_classes α r C))
+    (fun (a : α) (ha : ∀ (e : α), C e ↔ r a e) =>
+      (equivalence_trans α r he) x a c ((equivalence_symm α r he) a x ((Iff.mp (ha x)) hx))
+        ((Iff.mp (ha c)) hc))
+
+theorem class_meet_subset (α : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (C : α → Prop) (D : α → Prop) (hC : Rel.Classes α r C) (hD : Rel.Classes α r D)
+    (x : α) (hx : C x) (hx' : D x) : ∀ (c : α), C c → D c :=
+  fun (c : α) (hc : C c) =>
+    Exists.elim α (fun (b : α) => ∀ (e : α), D e ↔ r b e) (D c)
+      ((fun (hu : Rel.Classes α r D ↔ ∃ (b : α), ∀ (e : α), D e ↔ r b e) => Iff.mp hu hD)
+        (Rel.mem_classes α r D))
+      (fun (b : α) (hb : ∀ (e : α), D e ↔ r b e) =>
+        (Iff.mpr (hb c))
+          ((equivalence_trans α r he) b x c ((Iff.mp (hb x)) hx')
+            (rel_of_class α r he C x c hC hx hc)))
+
+theorem classes_agree_on_meet (α : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (C : α → Prop) (D : α → Prop) (hC : Rel.Classes α r C) (hD : Rel.Classes α r D)
+    (hmeet : ∃ (x : α), C x ∧ D x) : ∀ (c : α), C c ↔ D c :=
+  fun (c : α) =>
+    Iff.intro (C c) (D c)
+      (fun (hc : C c) =>
+        Exists.elim α (fun (x : α) => C x ∧ D x) (D c) hmeet
+          (fun (x : α) (hx : C x ∧ D x) =>
+            class_meet_subset α r he C D hC hD x
+              (And.left (C x) (D x) hx) (And.right (C x) (D x) hx) c hc))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+      (fun (hd : D c) =>
+        Exists.elim α (fun (x : α) => C x ∧ D x) (C c) hmeet
+          (fun (x : α) (hx : C x ∧ D x) =>
+            class_meet_subset α r he D C hD hC x
+              (And.right (C x) (D x) hx) (And.left (C x) (D x) hx) c hd))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+theorem ofPartition_intro (α : Type) (P : (α → Prop) → Prop) (A : α → Prop) (a : α) (b : α)
+    (hA : P A) (ha : A a) (hb : A b) : Rel.ofPartition α P a b :=
+  (fun (hu : Rel.ofPartition α P a b ↔ ∃ (B : α → Prop), P B ∧ B a ∧ B b) =>
+    Iff.mpr hu (Exists.intro (α → Prop) (fun (B : α → Prop) => P B ∧ B a ∧ B b) A  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+      (And.intro (P A) (A a ∧ A b) hA (And.intro (A a) (A b) ha hb))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+    (Rel.ofPartition_apply α P a b)
+
+theorem mem_of_ofPartition (α : Type) (P : (α → Prop) → Prop) (a : α) (b : α)
+    (h : Rel.ofPartition α P a b) : ∃ (A : α → Prop), P A ∧ A a ∧ A b :=
+  (fun (hu : Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b) => Iff.mp hu h)
+    (Rel.ofPartition_apply α P a b)
+
+theorem ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P) (a : α) :
+    Rel.ofPartition α P a a :=
+  Exists.elim (α → Prop) (fun (A : α → Prop) => P A ∧ A a) (Rel.ofPartition α P a a)  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+    ((partition_cover α P h) a)
+    (fun (A : α → Prop) (hA : P A ∧ A a) =>
+      ofPartition_intro α P A a a (And.left (P A) (A a) hA)  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+        (And.right (P A) (A a) hA) (And.right (P A) (A a) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+
+theorem ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a : α) (b : α)
+    (h : Rel.ofPartition α P a b) : Rel.ofPartition α P b a :=
+  Exists.elim (α → Prop) (fun (A : α → Prop) => P A ∧ A a ∧ A b)
+    (Rel.ofPartition α P b a) (mem_of_ofPartition α P a b h)
+    (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
+      ofPartition_intro α P A b a (And.left (P A) (A a ∧ A b) hA)  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+        (And.right (A a) (A b) (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+        (And.left (A a) (A b) (And.right (P A) (A a ∧ A b) hA)))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+
+theorem partition_blocks_eq (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
+    (A : α → Prop) (B : α → Prop) (hA : P A) (hB : P B) (x : α) (hxA : A x) (hxB : B x) :
+    ∀ (c : α), A c ↔ B c :=
+  (partition_disjoint α P h) A B hA hB
+    (Exists.intro α (fun (y : α) => A y ∧ B y) x (And.intro (A x) (B x) hxA hxB))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+
+theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
+    (a : α) (b : α) (c : α) (h1 : Rel.ofPartition α P a b) (h2 : Rel.ofPartition α P b c) :
+    Rel.ofPartition α P a c :=
+  Exists.elim (α → Prop) (fun (A : α → Prop) => P A ∧ A a ∧ A b)
+    (Rel.ofPartition α P a c) (mem_of_ofPartition α P a b h1)
+    (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
+      Exists.elim (α → Prop) (fun (B : α → Prop) => P B ∧ B b ∧ B c)
+        (Rel.ofPartition α P a c) (mem_of_ofPartition α P b c h2)
+        (fun (B : α → Prop) (hB : P B ∧ B b ∧ B c) =>
+          ofPartition_intro α P A a c (And.left (P A) (A a ∧ A b) hA)  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+            (And.left (A a) (A b) (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+            ((Iff.mpr (partition_blocks_eq α P h A B (And.left (P A) (A a ∧ A b) hA)  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+                (And.left (P B) (B b ∧ B c) hB) b  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+                (And.right (A a) (A b) (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+                (And.left (B b) (B c) (And.right (P B) (B b ∧ B c) hB)) c))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+              (And.right (B b) (B c) (And.right (P B) (B b ∧ B c) hB)))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+
+theorem ofPartition_isEquivalence (α : Type) (P : (α → Prop) → Prop)
+    (h : Rel.Partition α P) : IsEquivalence α (Rel.ofPartition α P) :=
+  (fun (hu : IsEquivalence α (Rel.ofPartition α P) ↔
+      Reflexive α (Rel.ofPartition α P) ∧ Symmetric α (Rel.ofPartition α P) ∧
+      Transitive α (Rel.ofPartition α P)) =>
+    Iff.mpr hu (And.intro (Reflexive α (Rel.ofPartition α P))
+      (Symmetric α (Rel.ofPartition α P) ∧ Transitive α (Rel.ofPartition α P))
+      (ofPartition_refl α P h)
+      (And.intro (Symmetric α (Rel.ofPartition α P)) (Transitive α (Rel.ofPartition α P))
+        (ofPartition_symm α P) (ofPartition_trans α P h))))
+    (isEquivalence_def α (Rel.ofPartition α P))
