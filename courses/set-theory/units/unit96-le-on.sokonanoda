@@ -1,0 +1,86 @@
+-- ==========================================================================
+-- unit96-le-on.sokonanoda —— 卷 I 单元96 **势的比较 `≼`（自反与传递）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§6.1 / §6.2** ·
+--   Halmos《Naive Set Theory》**§22**。大纲 §4.1（**接单元⑨ 与 92–95** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **`LeOn`（势的比较，局部词汇）** ✓：`A ≼ B` 就是"存在一个把 `A` **单射进** `B`
+--     的映射" ✓（数据版 ✓ —— 与 `≈` 一样不需要选择公理 ✓）；
+--   · **取用子** ✓ · **恒等单射** ✓ · **自反** ✓ · **子集 ⇒ `≼`** ✓；
+--   · **单射的复合仍单射** ✓（限制在 `A` 上 ✓，要用一次 `MapsTo` 把中间点送进 `B` ✓）；
+--   · **复合保 `MapsTo`** ✓ · **打包子**（把两条条件装成 `LeOn` ✓）；
+--   · **旗舰：`≼` 传递** ✓（把两把映射复合起来 ✓）。
+--
+-- ⚠ **拆链纪律（本会话第 7 次兑现 ✓）**：`leOn_trans` 一次写完整（两层 `Exists.elim`
+--   + 两处打包）**直接 parse error** ✗（括号配错 ✓）⇒ 抽出 `mapsTo_comp` 与 `leOn_intro`
+--   两条小引理后，主定理只剩"两次 `Exists.elim` + 一次调用" ✓ ⇒ **一次判绿** ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Equiv`（用 `Set.InjOn`/`Set.MapsTo` ✓）。
+--
+-- 依赖：单元⑨（等势）· 单元87–93（函数与等势代数）· 单元94/95（对角线）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Equiv
+def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
+theorem demo_injOn_def (α : Type) (β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y :=
+  Set.injOn_def α β f A
+theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
+  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+    (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
+theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (fun (h : LeOn α β A B) => h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)-- 练习 1（T 类）：**取用子**（把 `LeOn` 的存在式交出去）。
+-- 关键件：把假设直接作用（`h`）
+theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B := by
+  sorry
+-- 练习 2（T 类）：**恒等映射在 `A` 上单射**。
+-- 关键件：假设直接交出去
+theorem injOn_id (α : Type) (A : Set α) :
+    Set.InjOn α α (fun (x : α) => x) A := by
+  sorry
+-- 练习 3（L 类）：**势的比较自反**（`A ≼ A`）。
+-- 关键件：`Exists.intro`（见证取恒等 ✓）· `And.intro`（**前导命题写全**）· 练习 2 · `MapsTo` 的定义展开（`fun x hx => hx` ✓）
+theorem leOn_refl (α : Type) (A : Set α) : LeOn α α A A := by
+  sorry
+-- 练习 4（L 类，**拆出来的小引理**）：**单射（限制在 `A` 上）的复合仍单射**。
+-- 思路：设 `g (f x) = g (f y)`；先用 `MapsTo` 把 `f x`、`f y` 送进 `B`（这是 `g` 的单射性前提 ✓），得 `f x = f y`，再用 `f` 的单射性。
+-- 关键件：`hg`（在 `f x`、`f y` 处）· `hfm`（把两点送进 `B`）· `hf`
+theorem injOn_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β)
+    (hf : Set.InjOn α β f A) (hg : Set.InjOn β γ g B) (hfm : Set.MapsTo α β f A B) :
+    Set.InjOn α γ (fun (x : α) => g (f x)) A := by
+  sorry
+-- 练习 5（L 类）：**子集 ⇒ `≼`**（用恒等映射）。
+-- 关键件：`Set.subset_def`（**先 λ 绑定再 `Iff.mp`** ✓）· 练习 2 · `Exists.intro` / `And.intro`
+theorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeOn α α A B := by
+  sorry
+-- 练习 6（T 类，**拆出来的小引理**）：**复合保 `MapsTo`**。
+-- 关键件：两个 `MapsTo` 假设按 点 · 前提 作用
+theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) => g (f x)) A C := by
+  sorry
+-- 练习 7（T 类，**拆出来的打包子**）：两条条件装成 `LeOn`。
+-- 关键件：`Exists.intro` · `And.intro`（**写全前导命题**）
+theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B := by
+  sorry
+-- 练习 8（L 类，**旗舰**）：**`≼` 传递**（`A ≼ B ⇒ B ≼ C ⇒ A ≼ C`）。
+-- 思路：两次 `Exists.elim` 拆出两把映射与四条条件；用练习 7 把**复合映射**打包，两条条件分别是练习 4 与练习 6。
+-- 关键件：练习 1（两次）· `Exists.elim` · 练习 7 · 练习 4 / 练习 6 · `And.left` / `And.right`（**写全** ✓）
+theorem leOn_trans (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (hAB : LeOn α β A B) (hBC : LeOn β γ B C) : LeOn α γ A C := by
+  sorry

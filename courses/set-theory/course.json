@@ -168,10 +168,11 @@
             "image-family-distrib",
             "preimage-family-distrib",
             "equiv-algebra",
-            "equiv-transitive"
+            "equiv-transitive",
+            "le-on-cardinal"
           ],
           "quota": {
-            "exercises": 59
+            "exercises": 67
           },
           "units": [
             {
@@ -215,6 +216,12 @@
               "title": "单元93 等势的传递",
               "title_en": "Unit 93 — Transitivity of Equinumerosity",
               "unit": 93
+            },
+            {
+              "file": "units/unit96-le-on.sokonanoda",
+              "title": "单元96 势的比较（自反与传递）",
+              "title_en": "Unit 96 — Comparing Sizes: Reflexivity and Transitivity",
+              "unit": 96
             }
           ]
         },
