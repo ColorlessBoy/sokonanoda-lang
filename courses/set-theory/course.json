@@ -24,10 +24,11 @@
             "extensionality-consequences",
             "sdiff-equality-layer",
             "two-step-packing",
-            "union-sdiff-distrib"
+            "union-sdiff-distrib",
+            "subset-algebra"
           ],
           "quota": {
-            "exercises": 97
+            "exercises": 106
           },
           "units": [
             {
@@ -101,6 +102,12 @@
               "title": "单元65 并的差分配律与减法反变",
               "title_en": "Unit 65 — Difference Distributes over Union",
               "unit": 65
+            },
+            {
+              "file": "units/unit66-subset-algebra.sokonanoda",
+              "title": "单元66 包含关系的代数",
+              "title_en": "Unit 66 — The Algebra of Inclusion",
+              "unit": 66
             }
           ]
         },

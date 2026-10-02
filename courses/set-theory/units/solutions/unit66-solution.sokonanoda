@@ -1,0 +1,66 @@
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+
+theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+
+theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
+  Set.mem_union a A B
+
+theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=
+  Set.mem_inter_iff a A B
+
+theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B :=
+  (fun (hu : ∀ (x : α), x ∈ A → x ∈ B) => hu a ha)
+    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hv h) (Set.subset_def α A B))
+
+theorem subset_refl (α : Type) (A : Set α) : A ⊆ A :=
+  fun (a : α) (ha : a ∈ A) => ha
+
+theorem subset_trans (α : Type) (A B C : Set α) (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C :=
+  fun (a : α) (ha : a ∈ A) => mem_of_subset α B C h2 a (mem_of_subset α A B h1 a ha)
+
+theorem subset_union_right (α : Type) (A B : Set α) : A ⊆ (A ∪ B) :=
+  fun (a : α) (ha : a ∈ A) =>
+    (fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl (a ∈ A) (a ∈ B) ha))  -- soko:notation-ok: `∈`/`⊆`/`∩`/`∪` 是 def 头，这些位置补不出前导实参（手册边界）
+      (Set.mem_union a A B)
+
+theorem inter_subset_left (α : Type) (A B : Set α) : (A ∩ B) ⊆ A :=
+  fun (a : α) (h : a ∈ (A ∩ B)) =>
+    And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: `∈`/`⊆`/`∩`/`∪` 是 def 头，这些位置补不出前导实参（手册边界）
+      ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) => Iff.mp hu h) (Set.mem_inter_iff a A B))
+
+theorem inter_subset_right (α : Type) (A B : Set α) : (A ∩ B) ⊆ B :=
+  fun (a : α) (h : a ∈ (A ∩ B)) =>
+    And.right (a ∈ A) (a ∈ B)  -- soko:notation-ok: `∈`/`⊆`/`∩`/`∪` 是 def 头，这些位置补不出前导实参（手册边界）
+      ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) => Iff.mp hu h) (Set.mem_inter_iff a A B))
+
+theorem inter_subset_inter (α : Type) (A B C D : Set α) (h1 : A ⊆ C) (h2 : B ⊆ D) :
+    (A ∩ B) ⊆ (C ∩ D) :=
+  fun (a : α) (h : a ∈ (A ∩ B)) =>
+    (fun (hu : a ∈ (C ∩ D) ↔ a ∈ C ∧ a ∈ D) =>
+      Iff.mpr hu (And.intro (a ∈ C) (a ∈ D)
+        (mem_of_subset α A C h1 a (inter_subset_left α A B a h))
+        (mem_of_subset α B D h2 a (inter_subset_right α A B a h))))
+      (Set.mem_inter_iff a C D)
+
+theorem union_subset_iff (α : Type) (A B C : Set α) (h1 : A ⊆ C) (h2 : B ⊆ C) :
+    (A ∪ B) ⊆ C :=
+  fun (a : α) (h : a ∈ (A ∪ B)) =>
+    Or.elim (a ∈ A) (a ∈ B) (a ∈ C)
+      (fun (ha : a ∈ A) => mem_of_subset α A C h1 a ha)
+      (fun (hb : a ∈ B) => mem_of_subset α B C h2 a hb)
+      ((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mp hu h) (Set.mem_union a A B))
+
+theorem subset_inter_of_both (α : Type) (A B C : Set α) (h1 : C ⊆ A) (h2 : C ⊆ B) :
+    C ⊆ (A ∩ B) :=
+  fun (a : α) (h : a ∈ C) =>
+    (fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =>
+      Iff.mpr hu (And.intro (a ∈ A) (a ∈ B)
+        (mem_of_subset α C A h1 a h) (mem_of_subset α C B h2 a h)))
+      (Set.mem_inter_iff a A B)
