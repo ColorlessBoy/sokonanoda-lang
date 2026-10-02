@@ -1,0 +1,74 @@
+-- ============================================================================
+-- C-112 进展件（**WIP** · 2026-10-02 第 686 轮）—— Cantor–Bernstein 的**链构造**
+--
+-- ⚠ 这是**进展件、不是单元**：它不登记进 `course.json`、门禁不判它 ✓。
+--    下面是本轮的实测状态（可机械重放：把本文件放回 `units/solutions/I.6/` 用 bisect 跑 ✓）。
+--
+-- ✅ **判绿的两条**（链构造的定义，全部在 `Prop` 层 ✓ —— 正是绕开 C-04 的写法 ✓）：
+--    · `cbFamily`（"好集合"族 ✓）：`A∖g(B) ⊆ C` ✓ 且 `g(B∖f(C)) ⊆ C` ✓；
+--    · `cbCore = ⋂ cbFamily` ✓（**最小好集合** ✓）。
+--
+-- ⏭ **待办（下一步，一条命令就能定位）**：5 条包装引理（`cb_core_intro` / `cb_core_elim` /
+--    `cb_core_start` / `cb_core_step` / `cb_core_least`）现在判红 ✗，原因是**我猜错了
+--    `Set.mem_sInter_iff` 的实参序** ✗（诊断：类型不匹配，`期望 ((Iff … Pi (A : Set α), …)`）。
+--    ⇒ **先读签名再写**（手册那条"30 秒读签名，省一整轮试错" ✓）：
+--        sed -n '/mem_sInter_iff/,+4p' courses/set-theory/lib/SUnion.sokonanoda
+--    然后按真签名改这 5 条的调用 ✓，再把本文件搬回 `units/solutions/I.6/unit112-solution.sokonanoda` ✓。
+--
+-- ⚠⚠ **偏离标注（原样保留、不许弱化）**：**本课的 CB 经选择公理**（后面用 `choice` 从
+--    "全 + 单值"的**关系版图**里取出双射函数 ✓）；而 **CB 数学上不需要选择** ✗
+--    ⇒ **这是偏离，不是"标准证法"** ✓。零公理的 CB 要 `Exists`→Type 的安全消去
+--    （**G-6** 一族，仍 open ✗）。**为什么必须绕**：CB 双射的**直接定义**要按 `x ∈ C₀` 分支
+--    ⇒ Prop→Type 情形分析 ⇒ 判红（判据 `gaps/C-112-cb-direct-def-reject.sokonanoda` ✓）。
+-- ============================================================================
+import lib.Set
+import lib.Image
+import lib.SUnion
+import lib.Rel
+import lib.Equiv
+import lib.Choice
+
+def cbFamily (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    Set (Set α) :=
+  fun (C : Set α) =>
+    (∀ (x : α), x ∈ A → ¬ (x ∈ g '' B) → x ∈ C) ∧
+    (∀ (b : β), b ∈ B → ¬ (b ∈ f '' C) → g b ∈ C)
+
+def cbCore (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    Set α :=
+  Set.sInter α (cbFamily α β A B f g)
+
+theorem cb_core_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (x : α) (h : ∀ (C : Set α), C ∈ cbFamily α β A B f g → x ∈ C) :
+    x ∈ cbCore α β A B f g :=
+  Iff.mpr (Set.mem_sInter_iff α (cbFamily α β A B f g) x) h
+
+theorem cb_core_elim (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (x : α) (h : x ∈ cbCore α β A B f g) :
+    ∀ (C : Set α), C ∈ cbFamily α β A B f g → x ∈ C :=
+  Iff.mp (Set.mem_sInter_iff α (cbFamily α β A B f g) x) h
+
+theorem cb_core_start (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (x : α) (hx : x ∈ A) (hxg : ¬ (x ∈ g '' B)) : x ∈ cbCore α β A B f g :=
+  cb_core_intro α β A B f g x
+    (fun (C : Set α) (hC : C ∈ cbFamily α β A B f g) =>
+      And.left (∀ (x' : α), x' ∈ A → ¬ (x' ∈ g '' B) → x' ∈ C)
+        (∀ (b : β), b ∈ B → ¬ (b ∈ f '' C) → g b ∈ C) hC x hx hxg)
+
+theorem cb_core_step (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (b : β) (hb : b ∈ B) (hbf : ¬ (b ∈ f '' (cbCore α β A B f g))) :
+    g b ∈ cbCore α β A B f g :=
+  cb_core_intro α β A B f g (g b)
+    (fun (C : Set α) (hC : C ∈ cbFamily α β A B f g) =>
+      (fun (hstep : ∀ (b' : β), b' ∈ B → ¬ (b' ∈ f '' C) → g b' ∈ C) =>
+        hstep b hb
+          (fun (hbfc : b ∈ f '' C) =>
+            hbf (Set.image_mono α β f (cb_core_elim α β A B f g b hbfc) hbfc)))
+        (And.right (∀ (x : α), x ∈ A → ¬ (x ∈ g '' B) → x ∈ C)
+          (∀ (b' : β), b' ∈ B → ¬ (b' ∈ f '' C) → g b' ∈ C) hC))
+
+theorem cb_core_least (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C : Set α) (hC : C ∈ cbFamily α β A B f g) :
+    ∀ (x : α), x ∈ cbCore α β A B f g → x ∈ C :=
+  fun (x : α) (hx : x ∈ cbCore α β A B f g) =>
+    cb_core_elim α β A B f g x hx C hC

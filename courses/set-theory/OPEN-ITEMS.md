@@ -195,6 +195,11 @@
   ⇒ `类型不匹配：期望 Sort(0)，实际是 Sort(1)` ✓（判据 = `gaps/C-112-cb-direct-def-reject.sokonanoda` ✓）。
   这是 **C-04 同一条墙** ✓，也正是本条目下面写的「零公理 CB 要 `Exists`→Type 的安全消去
   （**G-6** 一族，仍 open ✗）」**在 CB 上的具体面孔** ✓。
+- **本轮进展（第 686 轮 ✓）**：链构造的**两条定义判绿** ✓（`cbFamily` / `cbCore` —— 全部 `Prop` 层，
+  正是绕开 C-04 的写法 ✓），进展件放 `courses/set-theory/gaps/C-112-cb-chain-wip.sokonanoda` ✓
+  （**不进 `course.json` ⇒ 门禁不判它** ✓）。**下一步一条命令就能接上**：先读真签名
+  `sed -n '/mem_sInter_iff/,+4p' courses/set-theory/lib/SUnion.sokonanoda` ✓，再按真签名改
+  5 条包装引理（现在判红的原因是**我猜错了实参序** ✗，**不是新墙** ✗）。
 - **出路（已定，未走完）** ✓：把 CB 的**图**写成 **Prop**（关系版 ✓，不做 Type 层分支 ✓），
   再证"全 + 单值 + 单射 + 满射" ✓，最后用 **`choice`** 取出双射函数 ✓ ——
   **这条路要 3–4 条零件引理 + 链构造**（`C₀` 的不动点 ✓），是多轮工作量 ✗。
