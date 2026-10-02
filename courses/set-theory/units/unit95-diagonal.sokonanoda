@@ -1,0 +1,57 @@
+-- ==========================================================================
+-- unit95-diagonal.sokonanoda —— 卷 I 单元95 **对角线的一般形态（命题层 + 函数层）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§6.1** ·
+--   Halmos《Naive Set Theory》**§22 / §23**。大纲 §4.1（**接单元94** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **命题层的对角线** ✓：**没有命题是它自己的否定** ✓
+--     （`(P → ¬ P) → (¬ P → P) → False` ✓，以及"不存在这样的 `P`" ✓）；
+--   · **函数层的对角线**（单元94 的结论，本单元复用并**内联**写出 ✓）：
+--     `¬ SurjOnSets α S` ✓ = **Cantor 定理** ✓。
+--
+-- ⚠ **写法纪律（承接单元94 ✓）**：**绑定注解里出现 `↔`、右边是 `¬` 时判红** ✗
+--   ⇒ 一律**拆成两条蕴含**（`P → ¬ P` 与 `¬ P → P` ✓），**用的时候**才 `Iff.mp` / `Iff.mpr` ✓。
+--   本单元全部按这个配方写 ⇒ **一次判绿** ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元⑫/㊸（Cantor 与幂集）· 单元94（对角线，函数版）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+def SurjOnSets (α : Type) (S : α → Set α) : Prop :=
+  ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x
+theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
+  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+theorem demo_and_left (P : Prop) (Q : Prop) (h : P ∧ Q) : P :=
+  And.left P Q h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+theorem demo_and_right (P : Prop) (Q : Prop) (h : P ∧ Q) : Q :=
+  And.right P Q h-- 练习 1（T 类）：**命题层的自我否定**（`P → ¬ P` ⇒ `P → False`）。  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+-- 思路：在 `P` 的假设下，先得 `¬ P`，再把它作用在同一个假设上。
+-- 关键件：把 `h1` **用一次后再作用一次**（`(h1 hP) hP`）
+theorem prop_neg_ev (P : Prop) (h1 : P → ¬ P) : P → False := by
+  sorry
+-- 练习 2（L 类，**旗舰一**）：**没有命题满足"是自身否定"**（拆成两条蕴含的形态）。
+-- 思路：由 `h2` 与练习 1 得 `P`，再由练习 1 打自己。
+-- 关键件：练习 1（两次）· `h2`
+theorem no_prop_fixpoint (P : Prop) (h1 : P → ¬ P) (h2 : ¬ P → P) : False := by
+  sorry
+-- 练习 3（L 类）：**不存在这样的命题**（把 `∃` 拆开）。
+-- 关键件：`Exists.elim`（**动机位放 `False`** —— 这是"函数位置"不是 `Or.elim` 的动机位 ✓）· `And.left` / `And.right`（**写全前导命题**）· 练习 2
+theorem no_prop_fixpoint_exists :
+    ¬ (∃ (P : Prop), (P → ¬ P) ∧ (¬ P → P)) := by
+  sorry
+-- 练习 4（T 类）：**满射的直接用法**（给 `B` 取原像）。
+-- 关键件：把假设直接作用（`h B`）
+theorem surjOnSets_apply (α : Type) (S : α → Set α) (h : SurjOnSets α S) (B : Set α) :
+    ∃ (a : α), ∀ (x : α), S a x ↔ B x := by
+  sorry
+-- 练习 5（L 类，**旗舰二**）：**没有到幂集的满射**（Cantor 定理）—— 本单元**内联**写出。
+-- 思路：取对角线集 `fun x => ¬ (S x x)`；把满射给出的逐点 `↔` **拆成两条蕴含** `h1` / `h2`；`h1 a` 与 `h2 a` 互相打。
+-- 关键件：练习 4 · `Exists.elim` · `Iff.mp` / `Iff.mpr`（**拆开用** ✓）· `h1` / `h2`（拆出来的两条蕴含 ✓）
+theorem diag_not_surj (α : Type) (S : α → Set α) : ¬ (SurjOnSets α S) := by
+  sorry

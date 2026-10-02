@@ -1,0 +1,44 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def SurjOnSets (α : Type) (S : α → Set α) : Prop :=
+  ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x
+
+theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
+  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+
+theorem demo_and_left (P : Prop) (Q : Prop) (h : P ∧ Q) : P :=
+  And.left P Q h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+
+theorem demo_and_right (P : Prop) (Q : Prop) (h : P ∧ Q) : Q :=
+  And.right P Q h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+
+theorem prop_neg_ev (P : Prop) (h1 : P → ¬ P) : P → False :=
+  fun (hP : P) => (h1 hP) hP
+
+theorem no_prop_fixpoint (P : Prop) (h1 : P → ¬ P) (h2 : ¬ P → P) : False :=
+  prop_neg_ev P h1 (h2 (prop_neg_ev P h1))
+
+theorem no_prop_fixpoint_exists :
+    ¬ (∃ (P : Prop), (P → ¬ P) ∧ (¬ P → P)) :=
+  fun (h : ∃ (P : Prop), (P → ¬ P) ∧ (¬ P → P)) =>
+    Exists.elim Prop (fun (P : Prop) => (P → ¬ P) ∧ (¬ P → P)) False h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+      (fun (P : Prop) (hh : (P → ¬ P) ∧ (¬ P → P)) =>
+        no_prop_fixpoint P (And.left (P → ¬ P) (¬ P → P) hh)  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+          (And.right (P → ¬ P) (¬ P → P) hh))  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+
+theorem surjOnSets_apply (α : Type) (S : α → Set α) (h : SurjOnSets α S) (B : Set α) :
+    ∃ (a : α), ∀ (x : α), S a x ↔ B x :=
+  h B
+
+theorem diag_not_surj (α : Type) (S : α → Set α) : ¬ (SurjOnSets α S) :=
+  fun (h : SurjOnSets α S) =>
+    Exists.elim α (fun (a : α) => ∀ (x : α), S a x ↔ ¬ (S x x)) False
+      (surjOnSets_apply α S h (fun (x : α) => ¬ (S x x)))
+      (fun (a : α) (ha : ∀ (x : α), S a x ↔ ¬ (S x x)) =>
+        (fun (h1 : ∀ (x : α), S a x → ¬ (S x x)) =>
+          (fun (h2 : ∀ (x : α), ¬ (S x x) → S a x) =>
+            (fun (hx : S a a) => (h1 a hx) hx) (h2 a (fun (hx : S a a) => (h1 a hx) hx)))
+            (fun (x : α) (hx : ¬ (S x x)) => Iff.mpr (ha x) hx))
+          (fun (x : α) (hx : S a x) => Iff.mp (ha x) hx))

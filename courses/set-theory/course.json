@@ -239,10 +239,11 @@
             "bijection-composition",
             "comp-layer-equality",
             "inverse-map",
-            "cantor-diagonal"
+            "cantor-diagonal",
+            "diagonal-general"
           ],
           "quota": {
-            "exercises": 55
+            "exercises": 60
           },
           "units": [
             {
@@ -310,6 +311,12 @@
               "title": "单元94 Cantor 对角线（函数版）",
               "title_en": "Unit 94 — Cantor's Diagonal, Function Form",
               "unit": 94
+            },
+            {
+              "file": "units/unit95-diagonal.sokonanoda",
+              "title": "单元95 对角线的一般形态",
+              "title_en": "Unit 95 — The Diagonal Argument, General Form",
+              "unit": 95
             }
           ]
         },
