@@ -4,7 +4,7 @@
 > 且**当时正挂在内核线的在途改动里**（本仓库有并行会话）⇒ 课程侧的未结项登记在本文件 ✓
 > （它是**课程**的未完成度，不是语言的缺口 ✓）。**格式固定**：编号 · 状态 · 零件判据 · 缺什么。
 
-## C-01（open）序数三歧的**装配**：主定理 `ordinal_trichotomy` 未落地
+## C-01（**closed** · 2026-10-02 第 681 轮）序数三歧的**装配** —— `ordinal_trichotomy` **已判绿** ✓
 
 - **目标命题**（Enderton §7.4 定理 7M）：`E x y ∨ x = y ∨ E y x` ✓（对序数 `x, y` ✓）。
 - **零件状态：全绿** ✓ —— 判据 `courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda`
@@ -22,8 +22,20 @@
 - **还需要的数学前提**（**假设**，不是定理 ✓）：`E` 的**外延性**
   `∀z, E z x → E z y ⇒ ∀z, E z y → E z x ⇒ x = y` ✓ —— 本课里 `E` 是**抽象关系** ✓，
   所以外延性要作为**参数**引进 ✓（画布头部已如实标注 ✓）。
-- **怎么验**：把主定理写进 `unit108` 的解答（或新单元）判绿 ⇒ 把本条改成 `closed` 并把
-  判据路径写在这里 ✓。
+- **怎么验** ✓ **已完成**：判据 = `courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda` 的
+  `ordinal_trichotomy` ✓ —— `python3 /tmp/soko/bisect.py <该文件>` 输出
+  **`[11] ok theorem ordinal_trichotomy … (checked=11)` · ALL GREEN** ✓；
+  画布同步加了这条练习（`units/I.6/unit108-trichotomy.sokonanoda`，8 个练习 ✓），
+  单元标题改为「序数三歧（引理与装配）」✓，`course.json` 配额 78 ✓；
+  门禁 **236/1998/881/0** ✓（`checked` 比上一轮 +1 = 这条主定理 ✓）。
+- **⚠ 上一轮记的三条"坑"里，只有第 ③ 条是真因** ✓（本轮用 `sorry` 叶子做**逐层隔离**换来 ✓）：
+  * ①②（"嵌套归纳的 motive 要 λ 包住" ✗ / "`Or.elim` 的 Q 位要写 `¬P`" ✗）**其实是**：
+    motive 接线**本来就对**（隔离件 `t_outer` / `t_inner` 都 ok ✓），Q 位也**本来就没写错** ✗；
+  * **真因三条** ✓：**(a)** `hext z v` 的**两个包含关系顺序传反**（第一参数要 `∀z, E z z₀ → E z z₁`）✗；
+    **(b)** `ihz w hw v …` 的**序数性参数给了 `w` 的而不是 `v` 的** ✗；
+    **(c)** 第二分支返回的**析取太窄**（缺一层 `Or.inr` 包裹）✗。
+  ⇒ **教训** ✓：**"猜根因"不如"逐层隔离"** —— 用 `sorry` 当叶子（它**不算失败** ✓）把大证明切成
+  外层 / 内层 / 叶子三段，一轮就定位 ✓（而按猜测改了三轮都没中 ✗）。
 
 ## C-02（**closed** · 2026-10-02 第 680 轮）`Acc.rec` 的计算规则 —— **是拼法边界，已解** ✓
 
@@ -58,22 +70,25 @@
   自包含零 import ✓）—— 判据数字：`./target/debug/sokonanoda --json --no-project <该复现件>` ⇒ `decl.checked` **6 条**
   （含 `accConst` ✓ 与 `accConst_eq_explicit` ✓）· `diagnostic` **2 条** ⇒ rejected ✓。G-73 保持 **open**（绕法只摊薄代价 ✓）。
 
-## C-03（open · 环境）运行器拒绝运行：版本钉已升 `0.81.0`，而构建/缓存落后
+## C-03（**closed** · 2026-10-02 第 681 轮）运行器拒绝运行 —— **已解封** ✓
 
 - **现象**（第 679 轮 ✓）：`scripts/soko` 报
   `refusing to run an unverified sokonanoda binary — cache(STALE: expected 0.81.0 darwin-arm64, found 0.73.0 …)` ✓。
 - **成因** ✓：版本钉（`sokonanoda-version.txt` ✓）已被**内核线**升到 `0.81.0` ✓（`Cargo.toml`/`Cargo.lock`/
   `courses/set-theory/sokonanoda.toml` 都在其**在途**改动里 ✓），而仓库构建仍是 `0.80.0` ✓、缓存 `0.73.0` ✓。
 - **影响**：**课程门禁与一切判卷暂不可跑** ✗（本轮因此**未开工新单元** ✓）。
-- **出路** ✓：等内核线完成 bump（构建/发布到位 ✓）后即可恢复 ✓；或临时 `SOKONANODA_BIN=<匹配钉的二进制>` ✓
-  （**会绕过版本校验** ✓，只适合探针，不适合当门禁判据 ✗）。
+- **出路** ✓ **已完成**：版本 bump 落地（内核线 `59201738` ✓，`Cargo.toml` = `requires` = `0.81.0` ✓）
+  ⇒ **重建** ✓：`cargo build --release -p sokonanoda-cli` ⇒ `./target/release/sokonanoda --version`
+  输出 **`sokonanoda 0.81.0`** ✓（1m48s ✓，**无版本耦合问题** ⇒ 无需另立条目 ✓）；
+  判据 = `python3 courses/set-theory/tools/check.py --json` ⇒
+  **234 目标 · 1983 checked · 876 open · 0 判负** ✓ —— 与重建前**逐项一致** ✓。
 
 - **结论** ✓：**不是墙，是等式族证明项的宇宙层级拼法** ✓ —— 把等式写成**显式宇宙**
   `Eq.{1}` / `Eq.refl.{1}` 就**判绿** ✓（判据：`units/solutions/I.6/unit109-solution.sokonanoda`
   的 `ordinal_rec_nat_eq` ✓ —— 递归子对 `Acc.intro` 的归约是**定义性等式** ✓）。
   ⇒ 手册里「等式族证明项的宇宙层级」那条边界**又兑现一次** ✓。
 
-## C-04（open · 待内核线分诊）**Prop → Type 的情形分析**判红
+## C-04（**closed · 非缺口（内核的正确行为）** · 2026-10-02 第 681 轮）**Prop → Type 的情形分析**判红
 
 - **目标**：序数加法的**函数版**（按"是不是零 / 是不是后继"分支定义 ✓）。
 - **实测**（第 680 轮）✗：`Or.elim` 的**动机位要落 `Type`**（如 `Nat`）时判红 ✓ ——
@@ -86,8 +101,18 @@
   ```
 - **影响**：**函数版**序数加法 ✗。**绕法（已采用 ✓）**：**关系版**加法（`AddsTo` 归纳关系 ✓，
   见单元109 ✓）—— 关系版不需要 Prop→Type 的情形分析 ✓，且结合律可在其上证明 ✓。
-- **收编去向**：`docs/gaps/ledger.jsonl`（与 **G-6**（`Exists.elim` 的结论只能是 `Prop`）**同族** ✓，
-  可合并成一条 ✓）。
+- **定性（本轮，含判据）** ✓ **不是缺口** ✗ —— 是**内核的正确行为** ✓：
+  * 判据一（**签名**）：`prelude/Prelude.sokonanoda:20` 是
+    `def Or.elim {a b c : Prop} (f : a -> c) (g : b -> c) (h : Or a b) : c` ✓
+    ⇒ 动机位**签名上就固定是 `Prop`** ✓ ⇒ **没有宇宙参数可以写成显式** ✗
+    ⇒ C-02 那招（把等式写成 `Eq.{1}` ✓）**在此结构上不适用** ✓（C-02 能修是因为 `Eq.{u}` 有宇宙变量 ✓）；
+  * 判据二（**探针**）：`def p_case_elim (P : Prop) (a b : Nat) (h : P ∨ ¬ P) : Nat :=
+    Or.elim P (¬ P) Nat (fun _ => a) (fun _ => b) h` ⇒ `类型不匹配：期望 Sort(0)，实际是 Sort(1)` ✓；
+  * **为什么这是对的** ✓：`Or` 是**两个构造子的 `Prop`** ✓，往 `Type` 消去会让结果**区分证明**
+    ✗（与证明无关性冲突 ✓）—— 与 `lib/Exists` 头部已记的"**大消去仍然不可用，而且这是正确的行为**"✓ **同族** ✓。
+- **绕法（已采用 ✓）**：**关系版**编码（`AddsTo` 归纳关系 ✓，见单元109 ✓）—— 不需要 Prop→Type 的情形分析 ✓。
+- **收编去向**：可并入 `docs/gaps/ledger.jsonl` 的 **G-6** 那条作**补充说明**（"`Or` 同此，且是正确行为" ✓），
+  但**不作为新缺口** ✗。
 
 ## C-05（open）序数加法的**结合律**（关系版）待装配
 

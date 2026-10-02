@@ -88,3 +88,17 @@ theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α
     (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w) :
     E y x ∨ (∀ (w : α), E w x → E w y) := by
   sorry
+-- 练习 8（L 类，**装配件 —— 本单元的落点**）：**序数三歧**（`E x y ∨ x = y ∨ E y x`）。
+-- 思路：**两次归纳**（外层对 `x`、内层对 `y`）—— 外层 step 要返回 **`∀ y'` 形式的 motive** ✓
+--   （内层归纳用 **λ 包住**再交出去 ✗）；内层三分：`E z v` ✓ / `z = v` ✓ / 否则证 `E v z` ✓，
+--   最后一步用**半边一**（`pred_subset_of_not_mem` ✓）与**合流**（`mem_or_pred_subset` ✓）
+--   把两个包含关系交给**外延性假设** `hext` ✓（**注意两个包含关系的顺序** ✗ —— `hext x y A B` 里
+--   `A : ∀z, E z x → E z y` ✓、`B : ∀z, E z y → E z x` ✓），与 `¬ (z = v)` 冲突 ⇒ `False.elim` ✓。
+-- 关键件：练习 3（`ordinal_ind` ✓）· 练习 4 / 练习 7 · `Classical.em`（**Q 位写 `¬ P`** ✗）·
+--   `hext`（**外延性假设** ✓）· `Or.inl` / `Or.inr`（**写全前导命题** ✓）· `False.elim`（写全目标 ✓）
+theorem ordinal_trichotomy (α : Type) (E : α → α → Prop)
+    (hext : ∀ (x : α) (y : α), (∀ (z : α), E z x → E z y) →
+      (∀ (z : α), E z y → E z x) → x = y)
+    (x : α) (hx : IsOrdinal α E x) (y : α) (hy : IsOrdinal α E y) :
+    E x y ∨ x = y ∨ E y x  := by
+  sorry

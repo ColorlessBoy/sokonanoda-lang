@@ -108,3 +108,39 @@ theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α
       Or.inr (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (pred_subset_of_no_gap α E x y hno))
     (Classical.em (∃ (w : α), E w x ∧ ¬ (E w y)))
+
+theorem ordinal_trichotomy (α : Type) (E : α → α → Prop)
+    (hext : ∀ (x : α) (y : α), (∀ (z : α), E z x → E z y) →
+      (∀ (z : α), E z y → E z x) → x = y)
+    (x : α) (hx : IsOrdinal α E x) (y : α) (hy : IsOrdinal α E y) :
+    E x y ∨ x = y ∨ E y x :=
+  ordinal_ind α E (fun (z : α) => ∀ (y' : α), IsOrdinal α E y' → E z y' ∨ z = y' ∨ E y' z)
+    (fun (z : α) (hz : IsOrdinal α E z)
+      (ihz : ∀ (w : α), E w z → ∀ (y' : α), IsOrdinal α E y' → E w y' ∨ w = y' ∨ E y' w) =>
+      fun (y' : α) (hy' : IsOrdinal α E y') =>
+        ordinal_ind α E (fun (v : α) => E z v ∨ z = v ∨ E v z)
+          (fun (v : α) (hv : IsOrdinal α E v)
+            (ihv : ∀ (u : α), E u v → E z u ∨ z = u ∨ E u z) =>
+            Or.elim (E z v) (¬ (E z v)) (E z v ∨ z = v ∨ E v z)
+              (fun (hzv : E z v) => Or.inl (E z v) (z = v ∨ E v z) hzv)
+              (fun (hnzv : ¬ (E z v)) =>
+                Or.inr (E z v) (z = v ∨ E v z)
+                 (Or.elim (z = v) (¬ (z = v)) (z = v ∨ E v z)
+                  (fun (heq : z = v) => Or.inl (z = v) (E v z) heq)
+                  (fun (hne : ¬ (z = v)) =>
+                    Or.inr (z = v) (E v z)
+                      (Or.elim (E v z) (∀ (w : α), E w z → E w v) (E v z)
+                        (fun (hvz : E v z) => hvz)
+                        (fun (hsub : ∀ (w : α), E w z → E w v) =>
+                          False.elim (E v z)
+                            (hne (hext z v hsub
+                              (pred_subset_of_not_mem α E z v hz hv
+                                (fun (u : α) (huv : E u v) (_hu : IsOrdinal α E u) => ihv u huv)
+                                hnzv))))
+                        (mem_or_pred_subset α E z v hz hv
+                          (fun (w : α) (hw : E w z) (_hwo : IsOrdinal α E w) =>
+                            ihz w hw v hv))))
+                  (Classical.em (z = v))))
+              (Classical.em (E z v)))
+          y' hy')
+    x hx y hy
