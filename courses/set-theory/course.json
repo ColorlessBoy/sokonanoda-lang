@@ -21,10 +21,11 @@
             "de-morgan-constructive",
             "extensionality-packing",
             "set-equality",
-            "extensionality-consequences"
+            "extensionality-consequences",
+            "sdiff-equality-layer"
           ],
           "quota": {
-            "exercises": 75
+            "exercises": 80
           },
           "units": [
             {
@@ -80,6 +81,12 @@
               "title": "单元62 外延性的推论",
               "title_en": "Unit 62 — Consequences of Extensionality",
               "unit": 62
+            },
+            {
+              "file": "units/unit63-sdiff-packing.sokonanoda",
+              "title": "单元63 差集的等式层（打包续）",
+              "title_en": "Unit 63 — Difference Equalities, Continued",
+              "unit": 63
             }
           ]
         },

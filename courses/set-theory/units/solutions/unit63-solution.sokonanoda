@@ -1,0 +1,55 @@
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+import lib.Extensionality
+
+theorem demo_funext (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) :  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+    Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  funext_spec α β f g h
+
+theorem demo_propext (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  propext_spec a b h
+
+theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=
+  Set.mem_sdiff a A B
+
+theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A :=
+  And.left (a ∈ A) (¬ (a ∈ B))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+    ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) => Iff.mp hu h) (Set.mem_sdiff a A B))
+
+theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) :=
+  And.right (a ∈ A) (¬ (a ∈ B))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+    ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) => Iff.mp hu h) (Set.mem_sdiff a A B))
+
+theorem mem_sdiff_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hna : ¬ (a ∈ B)) :
+    a ∈ (A \ B) :=
+  (fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =>
+    Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ B)) ha hna)) (Set.mem_sdiff a A B)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+
+theorem mem_of_mem_union_sdiff (α : Type) (A B : Set α) (a : α)
+    (h : a ∈ ((A ∪ B) \ B)) : a ∈ A :=
+  Or.elim (a ∈ A) (a ∈ B) (a ∈ A)
+    (fun (ha : a ∈ A) => ha)
+    (fun (hb : a ∈ B) => (False.elim (a ∈ A)) (not_mem_of_mem_sdiff α (A ∪ B) B a h hb))
+    ((fun (hw : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mp hw (mem_of_mem_sdiff α (A ∪ B) B a h))
+      (Set.mem_union a A B))
+
+theorem union_sdiff_self_eq (α : Type) (A B : Set α) :
+    Eq.{1} (Set α) ((A ∪ B) \ B) (A \ B) :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  funext_spec α (fun (_ : α) => Prop) ((A ∪ B) \ B) (A \ B)
+    (fun (a : α) =>
+      propext_spec (a ∈ ((A ∪ B) \ B)) (a ∈ (A \ B))
+        (Iff.intro (a ∈ ((A ∪ B) \ B)) (a ∈ (A \ B))
+          (fun (h : a ∈ ((A ∪ B) \ B)) =>
+            mem_sdiff_intro α A B a (mem_of_mem_union_sdiff α A B a h)
+              (not_mem_of_mem_sdiff α (A ∪ B) B a h))
+          (fun (h : a ∈ (A \ B)) =>
+            mem_sdiff_intro α (A ∪ B) B a
+              ((fun (hw : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =>
+                Iff.mpr hw (Or.inl (a ∈ A) (a ∈ B) (mem_of_mem_sdiff α A B a h)))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+                (Set.mem_union a A B))
+              (not_mem_of_mem_sdiff α A B a h))))

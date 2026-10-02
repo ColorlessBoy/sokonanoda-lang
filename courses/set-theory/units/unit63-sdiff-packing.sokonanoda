@@ -1,0 +1,90 @@
+-- ==========================================================================
+-- unit63-sdiff-packing.sokonanoda —— 卷 I 单元63 **差集的等式层（打包续）**
+--
+-- 靶子（教材）：Halmos《Naive Set Theory》**§5**（差与补的代数，等式形态）·
+--   Enderton《Elements of Set Theory》**§1.4/§1.5**。大纲 §4.1（**I.1 章继续收口** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **四条顶层具名取用子**（两条出 + 一条进 + 一条"并后减"的消去 ✓ —— 打包的前件 ✓）；
+--   · **等式**：**`(A ∪ B) \ B = A \ B`**（并进来又被减掉 ✓）。
+--
+-- ⚠ **写法纪律**（两次踩过，已写进手册 ✓）：**深嵌套的等式证明一律拆辅助引理** ✗ ——
+--   本轮我先写了 `(A ∩ B) \ C = (A \ C) ∩ B` ✗，一条里塞三层 `And` 消去 ⇒ **括号配错**
+--   （parse error ✓）⇒ 按纪律**砍掉**、只留**每条都在两层以内**的 ✓。
+--   下一步该做的是：把它的两个方向各写一条**逐点 `↔` 小引理**（顶层 ✓ 判绿 ✓），再打包 ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 五样**：`lib.Set` · `lib.SUnion` · `lib.Order` · `lib.Rel` · `lib.Extensionality`。
+--
+-- 依赖：单元③（并交差）· 单元58/59（差集的代数）· 单元61/62（外延打包）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+import lib.Extensionality
+
+-- ─────────────────────────────────────────────────────────────
+-- 63.1 三条库引理（两条外延工具 + 差集的成员刻画）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：**函数外延**（逐点相等 ⇒ 函数相等）。
+theorem demo_funext (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) :  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+    Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  funext_spec α β f g h
+theorem demo_propext (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  propext_spec a b h
+theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=
+  Set.mem_sdiff a A B
+-- ─────────────────────────────────────────────────────────────
+-- 63.2 四条顶层取用子（打包的前件 ✓）
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（T 类）：进差集 ⇒ 在 `A` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mp` · `And.left`（**前导 Prop 实参写全** ✓）
+
+theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A := by
+  sorry
+-- 练习 2（T 类）：进差集 ⇒ 不在 `B` 里。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mp` · `And.right`（**写全** ✓）
+
+theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) := by
+  sorry
+-- 练习 3（T 类，**进差集**）：在 `A` 里 + 不在 `B` 里 ⇒ 进差集。
+
+-- soko:hint 关键件：`Set.mem_sdiff` · `Iff.mpr` · `And.intro`（**写全** ✓）
+
+theorem mem_sdiff_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hna : ¬ (a ∈ B)) :
+    a ∈ (A \ B) := by
+  sorry
+-- 练习 4（L 类）：**`a ∈ (A ∪ B) \ B ⇒ a ∈ A`**（并后减的消去 ✓）。
+
+-- soko:hint 关键件：`Set.mem_union` · `Or.elim`（**动机位放肯定命题** ✓ 铁律）·
+
+--   练习 1 / 练习 2 · `False.elim`（**把目标写全** ✓）
+
+theorem mem_of_mem_union_sdiff (α : Type) (A B : Set α) (a : α)
+    (h : a ∈ ((A ∪ B) \ B)) : a ∈ A := by
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 63.3 等式：并进来又被减掉
+-- ─────────────────────────────────────────────────────────────
+-- 练习 5（L 类，**收尾**）：**`(A ∪ B) \ B = A \ B`**。
+
+-- soko:hint 思路：两个方向都是"用练习 3 合成差集" —— 正向的"在 `A` 里"由练习 4 给 ✓，
+
+--   反向的"在 `A ∪ B` 里"由 `Or.inl` 给 ✓；再用两条外延打包 ✓。
+
+-- soko:hint 目标形态：`(A ∪ B) \ B = A \ B`（**集合等式** ✓）。
+
+-- soko:hint 关键件：练习 1–4 · `Set.mem_union` · `Or.inl` · `funext_spec` / `propext_spec` ✓
+
+theorem union_sdiff_self_eq (α : Type) (A B : Set α) :
+    Eq.{1} (Set α) ((A ∪ B) \ B) (A \ B) := by  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  sorry
