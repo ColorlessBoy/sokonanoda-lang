@@ -221,10 +221,11 @@
             "extensionality-refutation",
             "refutation-sdiff",
             "inj-surj-composition",
-            "surjection-composition"
+            "surjection-composition",
+            "bijection-composition"
           ],
           "quota": {
-            "exercises": 38
+            "exercises": 42
           },
           "units": [
             {
@@ -268,6 +269,12 @@
               "title": "单元88 满射与复合",
               "title_en": "Unit 88 — Surjections and Composition",
               "unit": 88
+            },
+            {
+              "file": "units/unit89-bij.sokonanoda",
+              "title": "单元89 双射与复合",
+              "title_en": "Unit 89 — Bijections and Composition",
+              "unit": 89
             }
           ]
         },
