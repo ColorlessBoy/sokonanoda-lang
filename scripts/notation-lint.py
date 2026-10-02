@@ -445,6 +445,269 @@ def _rel(path: Path) -> str:
         raise SystemExit(2) from None
 
 
+# ============================================================================
+# 普查（`--census`，2026-10-03）：豁免点 → 记法候选 → 副件 `grade` ⇒「试改 N → 绿 x / 红 y」
+#
+# **只加统计能力** ✓（值守口径）：本段**不参与判定** —— 判据仍是上面那条（有残留 ⇒ exit 1 ✓），
+# 默认跑法（不带 `--census*`）**逐字节不变** ✓；不删豁免、不改课程写法 ✓（只写**副件**、跑完即删 ✓）。
+#
+# 口径（`courses/set-theory/gaps/notation-ok-census.md` §二/§四）：逐处取片段 → 生成记法候选 →
+# 副件跑 `grade` ⇒ 绿 = 现已可适配 ✓ / 红 = 引擎仍不够 ✓。⚠ `soko:notation-ok` 只是**本 lint
+# 的豁免标记** ⇒ **删它跑 grade 是空转** ✗ ⇒ 必须把该处**改写成记法形式**再判 ✓。
+#
+# 分类（只做**有把握**的机械改写 ✓，其余一律 `needs-manual` —— 本仓有"正则守卫咬不住 ⇒ 不发布"
+# 的失败实录 ✗）：
+#   · `drop-args`     「删前导实参」：`And.left A B h` ⇒ `And.left h`（同一行、实参可切分时 ✓）
+#   · `arrow`         `->` ⇒ `→`（纯符号替换 ✓）
+#   · `needs-manual`  点名 → 中缀（`Set.mem α a A` ⇒ `a ∈ A`、`Eq.{1} T a b` ⇒ `a = b`）要**重构
+#                     表达式**（多行/嵌套/带 λ）⇒ **不当场改** ✓，只计数 ✓
+#   · `comment-skip`  命中在注释里（内核不看注释 ⇒ 判卷恒绿，测了没意义 ✓）
+#   · `multiline-skip` 调用跨行（单行切不出实参 ⇒ 不猜 ✓）
+# ============================================================================
+
+CENSUS_PROBE = REPO / "courses" / "set-theory" / "gaps" / "census-probe.sokonanoda"
+# 副件必须**留在课程树内**（才有 `lib.*` 模块根 ✓），且**不叫 `unit*`** ✗
+# （`tools/audit-pairs.py` 会扫 `units/**/unit*.sokonanoda` ✓）。
+
+CENSUS_MECH_TOKEN = {"->"}
+
+
+def census_hits(path: Path) -> list[dict]:
+    """逐处取**被 `soko:notation-ok` 豁免**的命中（带 line/col ✓）—— 主路径不返回它们 ✓。"""
+    if _rel(path) in EXEMPT_FILES:
+        return []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    out: list[dict] = []
+    for idx, raw in enumerate(lines):
+        code, comment = split_line(raw)
+        local: list[dict] = []
+        if code.strip():
+            local.extend(scan_text(code, idx + 1, False))
+        if comment.strip():
+            local.extend(scan_text(comment, idx + 1, True))
+        window = raw + (lines[idx - 1] if idx > 0 else "")
+        if MARKER not in window:
+            continue
+        for h in local:
+            h = dict(h)
+            h["file"] = _rel(path)
+            h["line_idx"] = idx
+            out.append(h)
+    return out
+
+
+def _arg_spans(text: str, start: int) -> list[tuple[int, int]]:
+    """`count_explicit_args` 的**带位置**版：每个实参在本行内的 (起, 止) ✓（同一条分词规则 ✓）。"""
+    spans: list[tuple[int, int]] = []
+    i, n = start, len(text)
+    while i < n:
+        while i < n and text[i] in " \t":
+            i += 1
+        if i >= n:
+            break
+        c = text[i]
+        if c in ")]},:;`":
+            break
+        if text.startswith("--", i) or text.startswith(":=", i):
+            break
+        if c == "@":
+            i += 1
+            continue
+        if c in "({[":
+            j = _skip_group(text, i)
+            spans.append((i, j))
+            i = j
+            continue
+        if c.isascii() and (c.isalnum() or c == "_"):
+            j = i
+            while j < n and text[j].isascii() and (text[j].isalnum() or text[j] in "_.'"):
+                j += 1
+            spans.append((i, j))
+            i = j
+            continue
+        break
+    return spans
+
+
+def census_candidate(lines: list[str], rec: dict) -> tuple[list[str] | None, str]:
+    """生成记法候选；返回 (新行列表 | None, 分类) ✓。None = 不当场改（needs-manual/skip）✓。"""
+    if rec["kind"] == "comment":
+        return None, "comment-skip"
+    raw = lines[rec["line_idx"]]
+    code, _ = split_line(raw)
+    if rec["rule"] in CENSUS_MECH_TOKEN:
+        i = rec["col"] - 1
+        if code[i:i + 2] != "->":
+            return None, "needs-manual"
+        new_lines = list(lines)
+        new_lines[rec["line_idx"]] = code[:i] + "→" + code[i + 2:] + _comment_of(raw)
+        return new_lines, "arrow"
+    head = rec["rule"].split()[0] if rec["rule"] else ""
+    if head in PRELUDE_CALLS:
+        allowed, _fix = PRELUDE_CALLS[head]
+        i = rec["col"] - 1
+        if not code.startswith(head, i):
+            return None, "needs-manual"
+        after = _universe_suffix_end(code, i + len(head))
+        spans = _arg_spans(code, after)
+        if len(spans) <= allowed:
+            return None, "no-op"            # 没东西可删 ⇒ **不冒充机械改写** ✗（咬得住的守卫 ✓）
+        keep = len(spans) - allowed          # 保留最后 `allowed` 个 ⇒ 删掉前面 `keep` 个
+        cut_from = spans[0][0]
+        # ⚠ `allowed == 0`（如 `Iff.refl`）⇒ 全删 ⇒ 收尾取**最后一个实参的结尾** ✓
+        cut_to = spans[keep][0] if keep < len(spans) else spans[-1][1]
+        new_lines = list(lines)
+        # 末尾空白顺手收掉（删到行尾时不留悬空空格 ✓；不影响语义 ✓）
+        new_lines[rec["line_idx"]] = (code[:cut_from] + code[cut_to:]).rstrip() + _comment_of(raw)
+        return new_lines, "drop-args"
+    return None, "needs-manual"
+
+
+def _comment_of(raw: str) -> str:
+    _code, comment = split_line(raw)
+    return comment
+
+
+def census_grade(path: Path) -> tuple[int, dict]:
+    """把副件交给真判卷（`query check` ⇒ 与 `grade` 同口径的计数 + 诊断 ✓）。"""
+    import subprocess
+    proc = subprocess.run(
+        ["node", str(REPO / "scripts" / "soko"), "query", "check", "--file",
+         str(path.relative_to(REPO))],
+        cwd=str(REPO), capture_output=True, text=True,
+    )
+    try:
+        data = json.loads(proc.stdout).get("data") or {}
+    except Exception:
+        return proc.returncode, {"parse_error": (proc.stdout + proc.stderr)[:200]}
+    return proc.returncode, data
+
+
+def census(limit: int, do_grade: bool, quiet: bool, roots: list[str] | None = None) -> int:
+    """豁免点 → 候选 → 副件判卷 ⇒ 报告；`exit 0` = 普查跑成（**不是**判据 ✓）。
+
+    `roots` 与主路径同口径（`--root` 可重复 ✓）⇒ 可以只普查一个**文件**（最快验证口径 ✓）。
+    """
+    linter_roots = [Path(r) if Path(r).is_absolute() else REPO / r
+                    for r in (roots or DEFAULT_ROOTS)]
+    files: list[Path] = []
+    for root in linter_roots:
+        if root.is_file():
+            files.append(root)
+        elif root.is_dir():
+            files.extend(sorted(p for p in root.rglob("*.sokonanoda") if p.is_file()))
+    records: list[dict] = []
+    for f in files:
+        records.extend(census_hits(f))
+    if not records:
+        print("notation-lint --census: 扫到 **0 处豁免** ⇒ **无法判定 ≠ 绿** ✗", file=sys.stderr)
+        return 2
+
+    classes: dict[str, int] = {}
+    rows: list[dict] = []
+    tried = green = red = 0
+    for rec in records:
+        lines = (REPO / rec["file"]).read_text(encoding="utf-8").splitlines()
+        cand, kind = census_candidate(lines, rec)
+        classes[kind] = classes.get(kind, 0) + 1
+        row = {
+            "file": rec["file"], "line": rec["line"], "rule": rec["rule"],
+            "class": kind, "verdict": "-",
+        }
+        if cand is not None:
+            assert cand != lines, f"改写器空转：{rec['file']}:{rec['line']}"   # **咬得住的守卫** ✓
+            if do_grade and (limit <= 0 or tried < limit):
+                tried += 1
+                CENSUS_PROBE.parent.mkdir(parents=True, exist_ok=True)
+                CENSUS_PROBE.write_text("\n".join(cand) + "\n", encoding="utf-8")
+                try:
+                    rc, data = census_grade(CENSUS_PROBE)
+                    failed = data.get("failed") or []
+                    ok = rc == 0 and not failed
+                    row["verdict"] = "green" if ok else "red"
+                    if ok:
+                        green += 1
+                    else:
+                        red += 1
+                        row["diag"] = (failed[0].get("message", "")[:120]
+                                       if failed else f"exit={rc}")
+                        # ⚠ 红要**先排除"本来就是红的"**（否则把基线判负算到改写头上 ✗）
+                        CENSUS_PROBE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+                        rc0, data0 = census_grade(CENSUS_PROBE)
+                        if rc0 != 0 or (data0.get("failed") or []):
+                            row["verdict"] = "baseline-red"
+                finally:
+                    if CENSUS_PROBE.exists():
+                        CENSUS_PROBE.unlink()
+        rows.append(row)
+
+    mech = classes.get("drop-args", 0) + classes.get("arrow", 0)
+    print("notation-lint --census（#5 隐变量适配 · 第 2 步普查）")
+    print(f"  豁免点总数（带标记、逐处可定位）= {len(records)}")
+    print(f"  分类：可机械换 {mech}（drop-args {classes.get('drop-args', 0)} · "
+          f"arrow {classes.get('arrow', 0)}）· 需手工 {classes.get('needs-manual', 0)} · "
+          f"注释内 {classes.get('comment-skip', 0)} · 改写器空转 {classes.get('no-op', 0)}")
+    if do_grade:
+        print(f"  试改 {tried} 处 → **绿 {green} / 红 {red}**")
+    else:
+        print("  （`--census-classes`：只分类，未跑判卷 ✓）")
+    if not quiet:
+        for row in rows:
+            if row["class"] in ("drop-args", "arrow"):
+                extra = f"  [{row.get('diag', '')}]" if row.get("diag") else ""
+                print(f"    {row['file']}:{row['line']}  {row['class']:<10} {row['verdict']}{extra}")
+    if tried and red and green == 0:
+        print("  ⚠ 绿 0 ⇒ **改写器没被验证过** ✗（先看 needs-manual 判据与基线 ✓）")
+    return 0
+
+
+def census_selftest() -> int:
+    """**改写器的反向验证** ✓：已知形状必须改对、未知形状必须**拒绝改**（不当场猜 ✗）。"""
+    cases = [
+        ("`And.left A B h` ⇒ `And.left h`", "theorem t : P := And.left A B h", 1,
+         "theorem t : P := And.left h", "drop-args"),
+        ("`And.intro A B h1 h2` ⇒ `And.intro h1 h2`",
+         "theorem t : P := And.intro A B h1 h2", 1,
+         "theorem t : P := And.intro h1 h2", "drop-args"),
+        ("`Or.inl A B h` ⇒ `Or.inl h`", "theorem t : P := Or.inl A B h", 1,
+         "theorem t : P := Or.inl h", "drop-args"),
+        ("`Exists.intro A p w hw` ⇒ `Exists.intro w hw`",
+         "theorem t : P := Exists.intro A p w hw", 1,
+         "theorem t : P := Exists.intro w hw", "drop-args"),
+        ("`->` ⇒ `→`", "theorem t : P -> Q := h", 1, "theorem t : P → Q := h", "arrow"),
+        ("`Iff.refl A` ⇒ `Iff.refl`（allowed=0 ⇒ **全删** ✓）",
+         "theorem t : P := Iff.refl A", 1, "theorem t : P := Iff.refl", "drop-args"),
+        ("点名 → 中缀：**拒绝改**（needs-manual）✗",
+         "theorem t : P := Set.mem α a A", 1, None, "needs-manual"),
+        ("`Eq.{1}`：**拒绝改**（needs-manual）✗",
+         "theorem t : P := Eq.{1} T a b", 1, None, "needs-manual"),
+    ]
+    bad = 0
+    for label, src, want_n, want_text, want_kind in cases:
+        hits = scan_text(src, 1, False)
+        okc = len(hits) == want_n
+        if okc and want_n:
+            lines = src.splitlines()
+            cand, kind = census_candidate(lines, {**hits[0], "line_idx": 0, "kind": "code",
+                                                  "file": "<selftest>"})
+            got_text = "\n".join(cand) if cand else None
+            okc = (kind == want_kind) and (got_text == want_text)
+            got = f"{kind} ⇒ {got_text!r}"
+        else:
+            got = f"{len(hits)} 条命中"
+        print(f"  {'✓' if okc else '✗'} {label:<38} → {got}"
+              f"（期望 {want_kind} ⇒ {want_text!r}）")
+        if not okc:
+            bad += 1
+    print()
+    if bad:
+        print(f"✗ census selftest 判红：{bad}/{len(cases)} 个用例不符 ✗")
+        return 1
+    print(f"✓ census selftest 全过：{len(cases)}/{len(cases)} 个用例符合 ✓"
+          "（含 2 条「拒绝改」的反例 ✓）")
+    return 0
+
+
 def selftest() -> int:
     """**故意喂已知形状** ✓：判据通道自己坏了必须在这里判红 ✓。
 
@@ -509,12 +772,25 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--json", action="store_true", help="单 JSON 对象输出")
     parser.add_argument("--list", action="store_true", help="只列文件与计数")
-    parser.add_argument("--quiet", action="store_true", help="无残留时不打印")
     parser.add_argument("--selftest", action="store_true",
                         help="离线判据通道自检（不扫仓库 ✓）")
+    parser.add_argument("--census", action="store_true",
+                        help="#5 普查：豁免点 → 记法候选 → 副件 grade（只统计，不改判据 ✓）")
+    parser.add_argument("--census-classes", action="store_true",
+                        help="只做候选分类（秒级，不跑判卷 ✓）")
+    parser.add_argument("--census-limit", type=int, default=40,
+                        help="普查最多试改多少处（默认 40 = 小批量先验口径 ✓；0 = 全部）")
+    parser.add_argument("--census-selftest", action="store_true",
+                        help="普查改写器的反向验证（离线 ✓）")
+    parser.add_argument("--quiet", action="store_true", help="无残留时不打印")
     args = parser.parse_args(argv)
     if args.selftest:
         return selftest()
+    if args.census_selftest:
+        return census_selftest()
+    if args.census or args.census_classes:
+        return census(args.census_limit, do_grade=args.census, quiet=args.quiet,
+                      roots=args.root)
 
     roots = [Path(r) for r in (args.root or DEFAULT_ROOTS)]
     missing = [str(r) for r in roots if not (REPO / r if not r.is_absolute() else r).exists()]

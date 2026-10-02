@@ -17,21 +17,23 @@ def cbFix (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
     (∀ (x : α), x ∈ C → x ∈ A) ∧ (∀ (x : α), x ∈ cbK α β A B f g C → x ∈ C)
 
 def cbC0 (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) : Set α :=
-  Set.sInter α (cbFix α β A B f g)
+  ⋂₀ (cbFix α β A B f g)
 
 theorem cbK_mono (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
     (C1 : Set α) (C2 : Set α) (h : ∀ (x : α), x ∈ C1 → x ∈ C2) :
     ∀ (x : α), x ∈ cbK α β A B f g C1 → x ∈ cbK α β A B f g C2 :=
   fun (x : α) (hx : x ∈ cbK α β A B f g C1) =>
     And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
-      (And.left (x ∈ A) (¬ (x ∈ g '' (B \ f '' C1))) hx)
+      (And.left hx)
       (fun (h2 : x ∈ g '' (B \ f '' C2)) =>
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
         (And.right (x ∈ A) (¬ (x ∈ g '' (B \ f '' C1))) hx)
           (Set.image_mono g (B \ f '' C2) (B \ f '' C1)
             (fun (b : β) (hb : b ∈ B \ f '' C2) =>
               And.intro (b ∈ B) (¬ (b ∈ f '' C1))
-                (And.left (b ∈ B) (¬ (b ∈ f '' C2)) hb)
+                (And.left hb)
                 (fun (h1 : b ∈ f '' C1) =>
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
                   (And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)
                     (Set.image_mono f C1 C2 h b h1)))
             x h2))
@@ -57,10 +59,11 @@ theorem cbC0_sdiff (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α →
       And.right (∀ (y : α), y ∈ C → y ∈ A)
         (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
         (And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
-          (And.left (x ∈ A) (¬ (x ∈ g '' B)) hx)
+          (And.left hx)
           (fun (h2 : x ∈ g '' (B \ f '' C)) =>
+-- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
             (And.right (x ∈ A) (¬ (x ∈ g '' B)) hx)
               (Set.image_mono g (B \ f '' C) B
                 (fun (b : β) (hb : b ∈ B \ f '' C) =>
-                  And.left (b ∈ B) (¬ (b ∈ f '' C)) hb)
+                  And.left hb)
                 x h2)))
