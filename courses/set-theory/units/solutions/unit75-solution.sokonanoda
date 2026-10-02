@@ -1,0 +1,116 @@
+import lib.Set
+import lib.Prod
+import lib.Order
+
+theorem demo_mem_prod_iff (A : Type) (B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
+    p ∈ (s ×ˢ t) ↔ (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t :=
+  Set.mem_prod_iff A B s t p
+
+theorem demo_mem_prod_mk (A : Type) (B : Type) (s : Set A) (t : Set B) (a : A) (b : B) :
+    (prod_mk A B a b) ∈ (s ×ˢ t) ↔ a ∈ s ∧ b ∈ t :=
+  Set.mem_prod_mk A B s t a b
+
+theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
+  Set.mem_union a A B
+
+theorem mem_prod_fst (A : Type) (B : Type) (s : Set A) (t : Set B) (p : Prod A B)
+    (h : p ∈ (s ×ˢ t)) : (Prod.fst A B p) ∈ s :=
+  And.left ((Prod.fst A B p) ∈ s) ((Prod.snd A B p) ∈ t)  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    ((fun (hu : p ∈ (s ×ˢ t) ↔ (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) => Iff.mp hu h)
+      (Set.mem_prod_iff A B s t p))
+
+theorem mem_prod_snd (A : Type) (B : Type) (s : Set A) (t : Set B) (p : Prod A B)
+    (h : p ∈ (s ×ˢ t)) : (Prod.snd A B p) ∈ t :=
+  And.right ((Prod.fst A B p) ∈ s) ((Prod.snd A B p) ∈ t)  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    ((fun (hu : p ∈ (s ×ˢ t) ↔ (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) => Iff.mp hu h)
+      (Set.mem_prod_iff A B s t p))
+
+theorem mem_prod_intro (A : Type) (B : Type) (s : Set A) (t : Set B) (p : Prod A B)
+    (h1 : (Prod.fst A B p) ∈ s) (h2 : (Prod.snd A B p) ∈ t) : p ∈ (s ×ˢ t) :=
+  (fun (hu : p ∈ (s ×ˢ t) ↔ (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) =>
+    Iff.mpr hu (And.intro ((Prod.fst A B p) ∈ s) ((Prod.snd A B p) ∈ t) h1 h2))  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (Set.mem_prod_iff A B s t p)
+
+theorem mem_prod_union_iff (A : Type) (B : Type) (s : Set A) (t : Set B) (u : Set B)
+    (p : Prod A B) :
+    p ∈ (s ×ˢ (t ∪ u)) ↔ p ∈ ((s ×ˢ t) ∪ (s ×ˢ u)) :=
+  Iff.intro (p ∈ (s ×ˢ (t ∪ u))) (p ∈ ((s ×ˢ t) ∪ (s ×ˢ u)))
+    (fun (h : p ∈ (s ×ˢ (t ∪ u))) =>
+      Or.elim ((Prod.snd A B p) ∈ t) ((Prod.snd A B p) ∈ u)
+        (p ∈ ((s ×ˢ t) ∪ (s ×ˢ u)))
+        (fun (ht : (Prod.snd A B p) ∈ t) => Or.inl (p ∈ (s ×ˢ t)) (p ∈ (s ×ˢ u))  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+          (mem_prod_intro A B s t p (mem_prod_fst A B s (t ∪ u) p h) ht))
+        (fun (hu : (Prod.snd A B p) ∈ u) => Or.inr (p ∈ (s ×ˢ t)) (p ∈ (s ×ˢ u))  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+          (mem_prod_intro A B s u p (mem_prod_fst A B s (t ∪ u) p h) hu))
+        ((fun (hw : (Prod.snd A B p) ∈ (t ∪ u) ↔ (Prod.snd A B p) ∈ t ∨ (Prod.snd A B p) ∈ u) =>
+          Iff.mp hw (mem_prod_snd A B s (t ∪ u) p h)) (Set.mem_union (Prod.snd A B p) t u)))
+    (fun (h : p ∈ ((s ×ˢ t) ∪ (s ×ˢ u))) =>
+      Or.elim (p ∈ (s ×ˢ t)) (p ∈ (s ×ˢ u)) (p ∈ (s ×ˢ (t ∪ u)))
+        (fun (ht : p ∈ (s ×ˢ t)) =>
+          mem_prod_intro A B s (t ∪ u) p (mem_prod_fst A B s t p ht)
+            ((fun (hw : (Prod.snd A B p) ∈ (t ∪ u) ↔ (Prod.snd A B p) ∈ t ∨ (Prod.snd A B p) ∈ u) =>
+              Iff.mpr hw (Or.inl ((Prod.snd A B p) ∈ t) ((Prod.snd A B p) ∈ u)  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+                (mem_prod_snd A B s t p ht))) (Set.mem_union (Prod.snd A B p) t u)))
+        (fun (hu : p ∈ (s ×ˢ u)) =>
+          mem_prod_intro A B s (t ∪ u) p (mem_prod_fst A B s u p hu)
+            ((fun (hw : (Prod.snd A B p) ∈ (t ∪ u) ↔ (Prod.snd A B p) ∈ t ∨ (Prod.snd A B p) ∈ u) =>
+              Iff.mpr hw (Or.inr ((Prod.snd A B p) ∈ t) ((Prod.snd A B p) ∈ u)  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+                (mem_prod_snd A B s u p hu))) (Set.mem_union (Prod.snd A B p) t u)))
+        ((fun (hw : p ∈ ((s ×ˢ t) ∪ (s ×ˢ u)) ↔ p ∈ (s ×ˢ t) ∨ p ∈ (s ×ˢ u)) => Iff.mp hw h)
+          (Set.mem_union p (s ×ˢ t) (s ×ˢ u))))
+
+theorem mem_prod_inter_iff (A : Type) (B : Type) (s : Set A) (t : Set B) (u : Set B)
+    (p : Prod A B) :
+    p ∈ (s ×ˢ (t ∩ u)) ↔ p ∈ ((s ×ˢ t) ∩ (s ×ˢ u)) :=
+  Iff.intro (p ∈ (s ×ˢ (t ∩ u))) (p ∈ ((s ×ˢ t) ∩ (s ×ˢ u)))
+    (fun (h : p ∈ (s ×ˢ (t ∩ u))) =>
+      (fun (hu : p ∈ ((s ×ˢ t) ∩ (s ×ˢ u)) ↔ p ∈ (s ×ˢ t) ∧ p ∈ (s ×ˢ u)) =>
+        Iff.mpr hu (And.intro (p ∈ (s ×ˢ t)) (p ∈ (s ×ˢ u))
+          (mem_prod_intro A B s t p (mem_prod_fst A B s (t ∩ u) p h)
+            (And.left ((Prod.snd A B p) ∈ t) ((Prod.snd A B p) ∈ u)  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+              ((fun (hw : (Prod.snd A B p) ∈ (t ∩ u) ↔
+                  (Prod.snd A B p) ∈ t ∧ (Prod.snd A B p) ∈ u) =>
+                Iff.mp hw (mem_prod_snd A B s (t ∩ u) p h))
+                (Set.mem_inter_iff (Prod.snd A B p) t u))))
+          (mem_prod_intro A B s u p (mem_prod_fst A B s (t ∩ u) p h)
+            (And.right ((Prod.snd A B p) ∈ t) ((Prod.snd A B p) ∈ u)  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+              ((fun (hw : (Prod.snd A B p) ∈ (t ∩ u) ↔
+                  (Prod.snd A B p) ∈ t ∧ (Prod.snd A B p) ∈ u) =>
+                Iff.mp hw (mem_prod_snd A B s (t ∩ u) p h))
+                (Set.mem_inter_iff (Prod.snd A B p) t u))))))
+        (Set.mem_inter_iff p (s ×ˢ t) (s ×ˢ u)))
+    (fun (h : p ∈ ((s ×ˢ t) ∩ (s ×ˢ u))) =>
+      mem_prod_intro A B s (t ∩ u) p
+        (mem_prod_fst A B s t p
+          (And.left (p ∈ (s ×ˢ t)) (p ∈ (s ×ˢ u))  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+            ((fun (hw : p ∈ ((s ×ˢ t) ∩ (s ×ˢ u)) ↔ p ∈ (s ×ˢ t) ∧ p ∈ (s ×ˢ u)) => Iff.mp hw h)
+              (Set.mem_inter_iff p (s ×ˢ t) (s ×ˢ u)))))
+        ((fun (hw : (Prod.snd A B p) ∈ (t ∩ u) ↔
+            (Prod.snd A B p) ∈ t ∧ (Prod.snd A B p) ∈ u) =>
+          Iff.mpr hw (And.intro ((Prod.snd A B p) ∈ t) ((Prod.snd A B p) ∈ u)
+            (mem_prod_snd A B s t p
+              (And.left (p ∈ (s ×ˢ t)) (p ∈ (s ×ˢ u))  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+                ((fun (hv : p ∈ ((s ×ˢ t) ∩ (s ×ˢ u)) ↔ p ∈ (s ×ˢ t) ∧ p ∈ (s ×ˢ u)) =>
+                  Iff.mp hv h) (Set.mem_inter_iff p (s ×ˢ t) (s ×ˢ u)))))
+            (mem_prod_snd A B s u p
+              (And.right (p ∈ (s ×ˢ t)) (p ∈ (s ×ˢ u))  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+                ((fun (hv : p ∈ ((s ×ˢ t) ∩ (s ×ˢ u)) ↔ p ∈ (s ×ˢ t) ∧ p ∈ (s ×ˢ u)) =>
+                  Iff.mp hv h) (Set.mem_inter_iff p (s ×ˢ t) (s ×ˢ u)))))))
+          (Set.mem_inter_iff (Prod.snd A B p) t u)))
+
+theorem not_mem_prod_empty (A : Type) (B : Type) (s : Set A) (p : Prod A B) :
+    ¬ (p ∈ (s ×ˢ (Set.empty B))) :=  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+  fun (h : p ∈ (s ×ˢ (Set.empty B))) =>  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (Iff.mp (Set.mem_empty_iff_false (Prod.snd A B p)))
+      (mem_prod_snd A B s (Set.empty B) p h)  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+
+theorem prod_mono (A : Type) (B : Type) (s₁ : Set A) (s₂ : Set A) (t₁ : Set B) (t₂ : Set B)
+    (h1 : s₁ ⊆ s₂) (h2 : t₁ ⊆ t₂) (p : Prod A B) (h : p ∈ (s₁ ×ˢ t₁)) : p ∈ (s₂ ×ˢ t₂) :=
+  mem_prod_intro A B s₂ t₂ p
+    ((fun (hu : ∀ (a : A), a ∈ s₁ → a ∈ s₂) => hu (Prod.fst A B p) (mem_prod_fst A B s₁ t₁ p h))
+      ((fun (hv : s₁ ⊆ s₂ ↔ ∀ (a : A), a ∈ s₁ → a ∈ s₂) => Iff.mp hv h1)
+        (Set.subset_def A s₁ s₂)))
+    ((fun (hu : ∀ (b : B), b ∈ t₁ → b ∈ t₂) => hu (Prod.snd A B p) (mem_prod_snd A B s₁ t₁ p h))
+      ((fun (hv : t₁ ⊆ t₂ ↔ ∀ (b : B), b ∈ t₁ → b ∈ t₂) => Iff.mp hv h2)
+        (Set.subset_def B t₁ t₂)))

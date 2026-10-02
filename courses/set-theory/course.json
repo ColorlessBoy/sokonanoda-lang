@@ -121,10 +121,11 @@
             "ordered-pair",
             "product",
             "relation",
-            "function"
+            "function",
+            "prod-distrib"
           ],
           "quota": {
-            "exercises": 24
+            "exercises": 31
           },
           "units": [
             {
@@ -144,6 +145,12 @@
               "title": "单元⑦ 函数",
               "title_en": "Unit 7 — Functions",
               "unit": 7
+            },
+            {
+              "file": "units/unit75-prod-distrib.sokonanoda",
+              "title": "单元75 积对并交的分配",
+              "title_en": "Unit 75 — Products Distribute over Union and Intersection",
+              "unit": 75
             }
           ]
         },
