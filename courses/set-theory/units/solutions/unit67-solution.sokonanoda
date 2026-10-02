@@ -1,0 +1,68 @@
+import lib.Set
+import lib.SUnion
+import lib.Order
+import lib.Rel
+import lib.Extensionality
+
+theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+
+theorem demo_funext (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) :  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+    Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+  funext_spec α β f g h
+
+theorem demo_propext (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+  propext_spec a b h
+
+theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B :=
+  (fun (hu : ∀ (x : α), x ∈ A → x ∈ B) => hu a ha)
+    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hv h) (Set.subset_def α A B))
+
+theorem subset_refl (α : Type) (A : Set α) : A ⊆ A :=
+  fun (a : α) (ha : a ∈ A) => ha
+
+theorem subset_trans (α : Type) (A B C : Set α) (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C :=
+  fun (a : α) (ha : a ∈ A) => mem_of_subset α B C h2 a (mem_of_subset α A B h1 a ha)
+
+theorem subset_antisymm (α : Type) (A B : Set α) (h1 : A ⊆ B) (h2 : B ⊆ A) :
+    Eq.{1} (Set α) A B :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+  funext_spec α (fun (_ : α) => Prop) A B
+    (fun (a : α) =>
+      propext_spec (a ∈ A) (a ∈ B)
+        (Iff.intro (a ∈ A) (a ∈ B)
+          (fun (ha : a ∈ A) => mem_of_subset α A B h1 a ha)
+          (fun (hb : a ∈ B) => mem_of_subset α B A h2 a hb)))
+
+theorem eq_imp_subset (α : Type) (A B : Set α) (h : Eq.{1} (Set α) A B) : A ⊆ B :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+  fun (a : α) (ha : a ∈ A) =>
+    rel_subst_right (Set α) (fun (u : Set α) (v : Set α) => a ∈ v) A A B h ha
+
+theorem eq_iff_subset_both (α : Type) (A B : Set α) :
+    Eq.{1} (Set α) A B ↔ A ⊆ B ∧ B ⊆ A :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+  Iff.intro (Eq.{1} (Set α) A B) (A ⊆ B ∧ B ⊆ A)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+    (fun (h : Eq.{1} (Set α) A B) =>  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+      And.intro (A ⊆ B) (B ⊆ A)
+        (eq_imp_subset α A B h) (eq_imp_subset α B A (Eq.symm.{1} (Set α) A B h)))
+    (fun (h : A ⊆ B ∧ B ⊆ A) =>
+      subset_antisymm α A B (And.left (A ⊆ B) (B ⊆ A) h) (And.right (A ⊆ B) (B ⊆ A) h))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+
+theorem subset_inter_self (α : Type) (A : Set α) : A ⊆ (A ∩ A) :=
+  fun (a : α) (ha : a ∈ A) =>
+    (fun (hu : a ∈ (A ∩ A) ↔ a ∈ A ∧ a ∈ A) =>
+      Iff.mpr hu (And.intro (a ∈ A) (a ∈ A) ha ha)) (Set.mem_inter_iff a A A)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+
+theorem union_self_eq (α : Type) (A : Set α) : Eq.{1} (Set α) (A ∪ A) A :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+  funext_spec α (fun (_ : α) => Prop) (A ∪ A) A
+    (fun (a : α) =>
+      propext_spec (a ∈ (A ∪ A)) (a ∈ A)
+        (Iff.intro (a ∈ (A ∪ A)) (a ∈ A)
+          (fun (h : a ∈ (A ∪ A)) =>
+            Or.elim (a ∈ A) (a ∈ A) (a ∈ A)
+              (fun (h1 : a ∈ A) => h1)
+              (fun (h2 : a ∈ A) => h2)
+              ((fun (hu : a ∈ (A ∪ A) ↔ a ∈ A ∨ a ∈ A) => Iff.mp hu h) (Set.mem_union a A A)))
+          (fun (h : a ∈ A) =>
+            (fun (hu : a ∈ (A ∪ A) ↔ a ∈ A ∨ a ∈ A) =>
+              Iff.mpr hu (Or.inl (a ∈ A) (a ∈ A) h)) (Set.mem_union a A A))))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）

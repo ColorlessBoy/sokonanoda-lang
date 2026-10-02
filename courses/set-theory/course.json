@@ -249,10 +249,11 @@
             "strict-order",
             "well-order",
             "well-founded",
-            "order-embedding"
+            "order-embedding",
+            "subset-partial-order"
           ],
           "quota": {
-            "exercises": 30
+            "exercises": 38
           },
           "units": [
             {
@@ -272,6 +273,12 @@
               "title": "单元53 序嵌入",
               "title_en": "Unit 53 — Order Embeddings",
               "unit": 53
+            },
+            {
+              "file": "units/unit67-subset-order.sokonanoda",
+              "title": "单元67 ⊆ 是一个偏序",
+              "title_en": "Unit 67 — Inclusion is a Partial Order",
+              "unit": 67
             }
           ]
         },
