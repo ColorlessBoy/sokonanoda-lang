@@ -146,6 +146,8 @@ pub const PRELUDE_NAMES: &[&str] = &[
     "Quot.lift",
     "Quot.ind",
     "Quot.sound",
+    // ---- G-75: 商的反射方向（sound 版本：`r` 是等价关系）----
+    "Quot.exact",
 ];
 
 /// Full 模式下**永不**让位的 prelude 名字（`Nat`/`Bool` 家族）。
@@ -292,6 +294,17 @@ axiom Quot.mk {u} : {A : Sort u} -> (r : A -> A -> Prop) -> A -> Quot.{u} A r
 axiom Quot.lift {u, v} : {A : Sort u} -> {r : A -> A -> Prop} -> {B : Sort v} -> (f : A -> B) -> (forall (a b : A), r a b -> Eq.{v} B (f a) (f b)) -> Quot.{u} A r -> B
 axiom Quot.ind {u} : {A : Sort u} -> {r : A -> A -> Prop} -> {B : Quot.{u} A r -> Prop} -> (forall (a : A), B (Quot.mk.{u} A r a)) -> (forall (q : Quot.{u} A r), B q)
 axiom Quot.sound {u} : {A : Sort u} -> {r : A -> A -> Prop} -> (a b : A) -> r a b -> Eq.{u} (Quot.{u} A r) (Quot.mk.{u} A r a) (Quot.mk.{u} A r b)
+-- **G-75（0.81.0）：反射方向**（`Quot.lift` 的逆）。⚠ 与**台账原文不同**，见
+-- `install_quot` 的注释：Lean core **没有** `Quot.exact`（只有对 `Setoid` 的
+-- `Quotient.exact`），而**一般形式**（任意 `r`）加上去会让内核**不一致** ✗
+-- （`Quot r` 的相等是 `r` 的等价闭包）。所以这里是 **sound 版本**：要求 `r` 是
+-- **等价关系**（三条证明显式交进来，就是 Lean `Setoid` 的字段），也就是
+-- `Quotient.exact` 的语义 ✓。
+axiom Quot.exact {u} : {A : Sort u} -> {r : A -> A -> Prop} ->
+  (hrefl : forall (a : A), r a a) ->
+  (hsymm : forall (a b : A), r a b -> r b a) ->
+  (htrans : forall (a b c : A), r a b -> r b c -> r a c) ->
+  (a b : A) -> Eq.{u} (Quot.{u} A r) (Quot.mk.{u} A r a) (Quot.mk.{u} A r b) -> r a b
 ";
 
 /// **A4（2026-09-26 用户报告第 4 条）**：prelude 的**只读源文本** —— 编辑器要
@@ -676,7 +689,31 @@ fn install_l1_command<'a>(
     }
 }
 
-/// **ST2（v0.77.0）**：装 `Quot` 族 —— 四条 `Declar::Quot` + 唯一公理 `Quot.sound`。
+/// **ST2（v0.77.0）**：装 `Quot` 族 —— 四条 `Declar::Quot` + 两条公理
+/// （`Quot.sound` 与 **G-75 的 `Quot.exact`**，后者见下）。
+///
+/// ⚠ **G-75 的取舍（0.81.0，与台账原文不同）**：台账写「Lean 4 core 有
+/// `Quot.exact : Quot.mk r a = Quot.mk r b → r a b`（`Quotient.exact` 由它得到）」
+/// ——**事实相反**。实查 Lean 工具链源码（`~/.elan/toolchains/*/src/lean/`）：
+/// * `Init/Core.lean` 的 `namespace Quot` **没有** `exact`（只有 `sound`/`liftBeta`/
+///   `indBeta`/`inductionOn`/`exists_rep`/`indep`/`indepCoherent`/`liftIndepPr1`）；
+/// * 有的是 `Quotient.exact`（`Init/Core.lean:2223`），**对 `Setoid`**，是**定理**。
+///
+/// **一般形式是假的**：`Quot r` 的相等是 `r` 的**等价闭包**（`Init/Prelude.lean`
+/// 的原话："The relation `r` is not required to be an equivalence relation; the
+/// resulting quotient type's equality extends `r` to an equivalence"）。取
+/// `r a b := (a = 0 ∧ b = 1) ∨ (a = 1 ∧ b = 2)`：`Quot.sound` 两次 + 传递 ⇒
+/// `mk 0 = mk 2` ⇒ 一般形式的 `exact` 给出可证为假的 `r 0 2` ⇒ **不一致** ✗。
+/// 所以装的是 **sound 版本**（= `Quotient.exact` 的语义）：要求 `r` 是等价关系，
+/// 三条证明显式交进来（就是 Lean `Setoid` 的字段在这门语言里的展开写法）✓。
+///
+/// **为什么不"证明它"**：Mathlib 的 `Quotient.exact` 走 `Quot.lift` 到 `Prop` +
+/// **`propext`**。本 prelude 若装 `propext`，课程 `lib/Extensionality.sokonanoda`
+/// 自己声明的那条就会被 prelude 影子化 ⇒ 课程各入口的 **prelude 形状不再一致**，
+/// 被 `crates/front/tests/prelude_shape.rs::every_course_entry_has_the_same_prelude_shape`
+/// 实测咬住（K2 环境复用会因此静默改变判卷）✗。所以这里**只把"信"限定在
+/// `Quot.exact` 这一条**（它说的是**真话**：`r` 已是等价关系时，闭包 = `r`），
+/// 不引入一条通用的 `propext` ✓。
 ///
 /// 为什么必须是 `Declar::Quot`：内核按**声明种类**认商（`Declar::Quot` ⇒
 /// `RigidHead::QuotConst` ⇒ `Quot.lift`/`Quot.ind` 的 iota 归约，见
@@ -696,7 +733,14 @@ fn install_l1_command<'a>(
 ///
 /// 让位口径与 L1 族一致：文件自己声明 `Quot` 族任一名字 ⇒ 整族不装（`taken`）。
 fn install_quot<'a>(builder: &mut EnvBuilder<'a>, known: &mut KnownTable, taken: &HashSet<String>) {
-    const QUOT_NAMES: [&str; 5] = ["Quot", "Quot.mk", "Quot.lift", "Quot.ind", "Quot.sound"];
+    const QUOT_NAMES: [&str; 6] = [
+        "Quot",
+        "Quot.mk",
+        "Quot.lift",
+        "Quot.ind",
+        "Quot.sound",
+        "Quot.exact",
+    ];
     if QUOT_NAMES.iter().any(|name| taken.contains(*name)) {
         return;
     }
@@ -737,9 +781,11 @@ fn install_quot<'a>(builder: &mut EnvBuilder<'a>, known: &mut KnownTable, taken:
         };
         let decl = build_axiom(builder, name, universe, ty, &scope_known, &mut hovers, &ctx)
             .expect("Quot type elaborates");
-        // **只改声明种类**：`Quot.sound` 保持公理，其余四条变 `Declar::Quot`。
+        // **只改声明种类**：`Quot.sound`/`Quot.exact` 保持公理，其余四条变 `Declar::Quot`。
         let decl = match decl {
-            Declar::Axiom { info } if name != "Quot.sound" => Declar::Quot { info },
+            Declar::Axiom { info } if name != "Quot.sound" && name != "Quot.exact" => {
+                Declar::Quot { info }
+            }
             other => other,
         };
         builder

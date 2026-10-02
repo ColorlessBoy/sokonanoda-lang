@@ -1,16 +1,65 @@
--- G-75 最小复现：内核没有 `Quot.exact`（`Quot` 的**反射**方向）
+-- **G-75 复现件：商的**反射**方向（`Quot.exact`）**
 --
--- Lean 4 core 里这条是 `Quot.exact : Quot.mk r a = Quot.mk r b → r a b`
--- （`Quotient.exact` 由它得到；Mathlib 的 `Quotient.exact` 一族全依赖它）。
--- 本语言里 `Quot.sound`（正向）✓、`Quot.lift` ✓、`Quot.ind` ✓ 都在，
--- 但 `Quot.exact` **不存在**（`unknown identifier`）⇒ 下面这条判红。
+-- 缺口原文（2026-10-01）：`Quot` 只有正向（`sound`）没有反射方向 ⇒
+-- 「商里相等 ⇒ 代表元相关」的推理做不出来（`Quot.lift` 的**逆**）。
 --
--- ⇒ 后果：**「商类型 ↔ 等价类族」的往返暂时做不了**（单元㉕㉖ 那一侧的
---    `Rel.Classes` 与内核的 `Quot` 接不上）；「实数构造」里"两个分数表示同一个有理数
---    ⟺ 它们在商里相等"这种话也只做得出一半 ✓
--- 期望的 Lean 4 语义：`Quot.exact α r a b h : r a b`
-import lib.Rel
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ⚠ **台账更正（重要，2026-10-02）**：原文写「Lean 4 core 有
+-- `Quot.exact : Quot.mk r a = Quot.mk r b → r a b`（`Quotient.exact` 由它得到）」
+-- ——**事实相反**。实查 Lean 工具链源码（`~/.elan/toolchains/*/src/lean/`）：
+--   · `Init/Core.lean` 的 `namespace Quot` 里**没有** `exact`（逐字清单：
+--     `sound` / `liftBeta` / `indBeta` / `inductionOn` / `exists_rep` / `indep` /
+--     `indepCoherent` / `liftIndepPr1`）；
+--   · 有的是 `Quotient.exact`（`Init/Core.lean` 第 2223 行），**对 `Setoid`**
+--     （即 `r` 是**等价关系**时），而且它是**定理**、不是公理。
+--
+-- 为什么**一般形式不能加**（否则这个内核就不一致了 ✗）：`Quot r` 的相等是 `r` 的
+-- **等价闭包**（`Init/Prelude.lean` 的原话："The relation `r` is not required to be an
+-- equivalence relation; the resulting quotient type's equality extends `r` to an
+-- equivalence"）。取 `r a b := (a = 0 ∧ b = 1) ∨ (a = 1 ∧ b = 2)`：`Quot.sound` 两次
+-- + 传递性 ⇒ `mk 0 = mk 2` ⇒ 一般形式的 `exact` 给出 `r 0 2`（可证是假）⇒ `False`。
+--
+-- **已修（G-75，0.81.0）**：给的是**sound 版本** = Lean `Quotient.exact` 的语义 ——
+-- 用户交**等价关系的三条证明**（Lean `Setoid` 的字段在这门语言里的展开写法）：
+--     `Quot.exact : (∀ a, r a a) → (∀ a b, r a b → r b a) →
+--                   (∀ a b c, r a b → r b c → r a c) →
+--                   Quot.mk r a = Quot.mk r b → r a b`
+-- 它说的是**真话**（`r` 已是等价关系 ⇒ 等价闭包 = `r`）⇒ 内核仍然一致 ✓。
+--
+-- **为什么是公理而不是定理**：Mathlib 的 `Quotient.exact` 走 `Quot.lift` 到
+-- `Prop` + **`propext`**。本 prelude 若装 `propext`，课程
+-- `lib/Extensionality.sokonanoda` **自己声明的那条**就会被 prelude 影子化 ⇒
+-- 课程各入口的 **prelude 形状不再一致**（K2 环境复用会因此静默改变判卷），
+-- 被 `crates/front/tests/prelude_shape.rs::every_course_entry_has_the_same_prelude_shape`
+-- 实测咬住 ✗。所以这里**只把"信"限定在 `Quot.exact` 这一条**上，不引入通用 `propext`。
+--
+-- ⚠ 已知边界（与 `Eq.symm`/`Eq.rec`/`Eq.mp` 同一档）：`Quot.exact` 是**宇宙多态**的
+-- （`{u}`），本语言对**非递归子**常量不做宇宙推断 ⇒ 调用要写 `.{1}`
+-- （课程里 `Eq.{1}`/`Eq.symm.{1}` 本来就是这么写的）。
+-- ⚠ 原文件顶部那句 `import lib.Rel` 是**多余的**（本文件自足：`Quot` 来自 prelude），
+--   而它让判卷在 `import` 阶段就报 `import-not-found` ⇒ 缺口**从来没被真正判红过**
+--   （红的原因不对）。修 G-75 时一并删掉 ✓。
+-- ─────────────────────────────────────────────────────────────────────────────
 
-theorem quot_exact_expected (α : Type) (r : α → α → Prop) (a b : α)
+-- 缺口本体：从「商里相等」回到「代表元相关」（要交等价关系的三条证明）
+theorem quot_exact_expected (α : Type) (r : α → α → Prop)
+    (hrefl : ∀ (a : α), r a a)
+    (hsymm : ∀ (a b : α), r a b → r b a)
+    (htrans : ∀ (a b c : α), r a b → r b c → r a c)
+    (a b : α)
     (h : Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b)) : r a b :=
-  Quot.exact α r a b h
+  Quot.exact.{1} α r hrefl hsymm htrans a b h
+
+-- 由它打开的用法：`Quot.mk` 在**等价关系**上是单射（`Quot.lift` 的逆用得上）
+theorem quot_mk_injective (α : Type) (r : α → α → Prop)
+    (hrefl : ∀ (a : α), r a a)
+    (hsymm : ∀ (a b : α), r a b → r b a)
+    (htrans : ∀ (a b c : α), r a b → r b c → r a c)
+    (a b : α)
+    (h : Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b)) : r a b :=
+  Quot.exact.{1} α r hrefl hsymm htrans a b h
+
+-- 正向仍然照常（防止"为了反射把正向弄坏"）
+theorem quot_sound_still_works (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
+    Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=
+  Quot.sound.{1} α r a b h

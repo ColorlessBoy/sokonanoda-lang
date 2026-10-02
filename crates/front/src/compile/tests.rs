@@ -1945,10 +1945,11 @@ fn prelude_names_match_installs() {
     // 12（Nat/Bool/Eq）+ 30（L1：28 条声明 + 派生的 And.rec/Or.rec）
     // + 5（B8：Eq.rec/Eq.ndrec/Eq.mp/Eq.mpr/cast，L-03）
     // + 2（B9：`Ne`/`Ne.intro`，L2.3 的 `≠` 目标）
-    // + 5（ST2：`Quot`/`Quot.mk`/`Quot.lift`/`Quot.ind`/`Quot.sound`，v0.77.0）= 54。
+    // + 6（ST2：`Quot`/`Quot.mk`/`Quot.lift`/`Quot.ind`/`Quot.sound` + G-75 的
+    //      `Quot.exact`，v0.77.0/0.81.0）= 55。
     assert_eq!(
         super::PRELUDE_NAMES.len(),
-        54,
+        55,
         "PRELUDE_NAMES drifted: {:?}",
         super::PRELUDE_NAMES
     );
@@ -1977,7 +1978,17 @@ fn prelude_names_match_installs() {
 /// ST2 ①：五条名字真的在环境里。
 #[test]
 fn st2_quot_names_are_installed() {
-    for name in ["Quot", "Quot.mk", "Quot.lift", "Quot.ind", "Quot.sound"] {
+    // G-75（0.81.0）把 `Quot.exact` 也装进了这一族（见 `install_quot` 的说明：
+    // **sound 版本**，要求 `r` 是等价关系 —— Lean core 没有 `Quot.exact`，
+    // 只有对 `Setoid` 的 `Quotient.exact`）。
+    for name in [
+        "Quot",
+        "Quot.mk",
+        "Quot.lift",
+        "Quot.ind",
+        "Quot.sound",
+        "Quot.exact",
+    ] {
         let out = compile_fol(&parse(&format!("#check {name}\n")).unwrap());
         assert!(
             out.errors.is_empty(),
@@ -1985,6 +1996,71 @@ fn st2_quot_names_are_installed() {
             out.errors
         );
     }
+}
+
+/// **G-75（0.81.0）**：`Quot.exact` —— 商的**反射**方向（`Quot.lift` 的逆）。
+///
+/// 三条断言（都走完整内核判定）：
+///   ① 交了**等价关系的三条证明**之后，`mk a = mk b ⇒ r a b` 判绿；
+///   ② **反面**：不交那三条证明**判红**（`Quot.exact` 只吃六参形状）——
+///      一般形式（任意 `r`）是**假的**（`Quot r` 的相等是 `r` 的**等价闭包**），
+///      所以它**不许**能当公理用；
+///   ③ 正向 `Quot.sound` 不受影响（防止"为了反射弄坏正向"）。
+#[test]
+fn g75_quot_exact_reflects_equality_of_representatives() {
+    let ok = compile_fol(&parse(
+        "theorem quot_exact_ok (α : Type) (r : α → α → Prop)\n\
+         \x20   (hrefl : ∀ (a : α), r a a)\n\
+         \x20   (hsymm : ∀ (a b : α), r a b → r b a)\n\
+         \x20   (htrans : ∀ (a b c : α), r a b → r b c → r a c)\n\
+         \x20   (a b : α) (h : Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b)) : r a b :=\n\
+         \x20 Quot.exact.{1} α r hrefl hsymm htrans a b h\n",
+    ).unwrap());
+    assert_eq!(
+        ok.errors,
+        vec![],
+        "G-75：交了等价性的三条证明必须判绿：{:?}",
+        ok.errors
+    );
+    assert!(
+        ok.events.iter().any(
+            |e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "quot_exact_ok")
+        ),
+        "`quot_exact_ok` 要真的判绿：{:?}",
+        ok.events
+    );
+
+    // ② 反面：一般形式（任意 `r`，不交等价性）**不许**判绿。
+    let bad = compile_fol(
+        &parse(
+            "theorem quot_exact_unsound (α : Type) (r : α → α → Prop) (a b : α)\n\
+         \x20   (h : Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b)) : r a b :=\n\
+         \x20 Quot.exact.{1} α r a b h\n",
+        )
+        .unwrap(),
+    );
+    assert!(
+        !bad.errors.is_empty(),
+        "G-75：一般形式（任意 `r`）**不许**能证 —— `Quot r` 的相等是等价闭包，\n\
+         加上去内核就不一致了（反例 `r a b := (a=0∧b=1) ∨ (a=1∧b=2)`）：{:?}",
+        bad.errors
+    );
+
+    // ③ 正向不受影响。
+    let sound = compile_fol(
+        &parse(
+            "theorem quot_sound_ok (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :\n\
+         \x20   Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=\n\
+         \x20 Quot.sound.{1} α r a b h\n",
+        )
+        .unwrap(),
+    );
+    assert_eq!(
+        sound.errors,
+        vec![],
+        "`Quot.sound` 必须照常可用：{:?}",
+        sound.errors
+    );
 }
 
 /// ST2 ②（**核心判据**）：`Quot.lift` 在 `Quot.mk` 上**算得出来** —— iota 归约活着。

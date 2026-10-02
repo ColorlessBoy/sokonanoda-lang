@@ -96,3 +96,21 @@ fn st2_file_declaring_quot_takes_over_the_family() {
         "ST2：文件自带 `Quot` ⇒ `Quot.lift` 必须是未知标识符（不许装一半）：{diags:#?}"
     );
 }
+
+/// **G-75（0.81.0）**：`docs/gaps/repro/G75-no-quot-exact.sokonanoda` 必须判绿
+/// （3 条 `decl.checked`、0 条诊断、exit 0）—— 复现件从判红翻成判绿。
+///
+/// ⚠ 顺带钉住**修前**的一处失真：那份复现件顶部原来写着 `import lib.Rel`，
+/// 而 `docs/gaps/repro/` 下**没有** `lib/`（模块根 = 入口目录）⇒ 判卷在 `import`
+/// 阶段就报 `import-not-found` ⇒ 缺口**从来没被真正判红过**（红的原因不对）。
+/// 这条判据现在要求整份文件判绿 ⇒ 再有人加回那种 import，这里立刻判红 ✓。
+#[test]
+fn g75_quot_exact_repro_is_green() {
+    let (ok, checked, diagnostics) = grade_probe("G75-no-quot-exact.sokonanoda");
+    assert!(
+        diagnostics.is_empty(),
+        "G-75 复现件不许有诊断：{diagnostics:#?}"
+    );
+    assert!(ok, "G-75 复现件必须判绿（exit 0）");
+    assert_eq!(checked, 3, "G-75 复现件的 3 条声明都要判绿");
+}
