@@ -14,11 +14,12 @@
 
 - **批次 N 进度 66/66**（第 519 轮）✓：T-N13（第 518 轮）· T-N15（第 519 轮）⇒ 逐条索引 `docs/visible-changes.md`。 **文档过期日期机制**（第 513 轮）✓：每个活文档都有过期日期（`scripts/docs-expiry.json`）· `git commit` 前自动检测 ⇒ 已过期/未登记**拒绝提交**。
 
+## 内核线（2026-10-02 续 ②）：**G-79 缓存形状版本**（值守第 8 单）+ **G-80** 新账
+- **G-79 病根→修法** ✓：键只有**源码 digest** + 编译期常量（`build_stamp` 不随提交变）⇒ 源码没变而二进制变了**必然命中**，旧 report 里新字段 `by_root` 走 `#[serde(default)]` ⇒ `None` ⇒ 静默退回旧行为 ✗（全局 250+ 条里 **0 条**含 `by_root`；删一条缓存后同一条命令立刻变对 ✓）⇒ `report::REPORT_SHAPE` **进键+进条目+进 `meta.json` schema**（`CACHE_FORMAT` 3→4 · `ARTIFACTS_FORMAT` 1→2）⇒ 形状一变整库不命中 ✓；三处 `#[serde(default)]` **全删** ⇒ 老条目解析失败 ⇒ 当 miss 重编 ✓。
+- **判据** ✓：`G79-cache-shape-version.sh`（毒化产物条目 ⇒ 再查必须仍是新答案 ✓）+ 单元判据 ✓ + **反向验证内置**（`SOKO_CACHE_SHAPE=off` ⇒ 判红 ✓）；清陈旧条目 250+162 ✓；新登记 **G-80**（goal 里 λ 绑定名被标 `unknown_ident` ✗，open，带复现件 ✓）。⚠ `AGENTS.md` 说 `build --clean`「两处都清」**不成立** ✗（不带目标 ⇒ 0；带目标 ⇒ 只清模块根）。
+
 ## 内核线（2026-10-02 续）：**G-78 根状态 = 题面状态**（用户真机四形矩阵报的 bug）
-- **现象→修法**：`query state` 的**声明头部**（`step=-1`）答的不是「这道题」—— P1（冒号前绑元 + 真 tactic）吐整句量词式、P2（冒号后箭头）吐 `goal: null`（面板显示「已无目标 ✓」✗）。修法：`walk::statement_state()` 剥完整条 ∀ 望远镜（`Forall` + 匿名 `Arrow`）⇒ `binders` = 题的 ∀ 参数按序（匿名箭头显示 `_`）、`goal` = 剩余命题；根状态与**失败声明**的回退分支都用它（`goal: null` 从此只表示「证明已闭合」）✓。
-- ⚠ **tactic 语义一字未动** ✓：箭头那形的引擎根目标仍是整条 Pi、仍要显式 `intro`（`apply`/`constructor` 都拒绝 Pi 目标；用户画布 5 条箭头式声明全靠 `intro`）✓。
-- **判据** ✓：`docs/gaps/repro/G78-state-root-statement-state.sh`（四形 × 两位置 = 7 个位置）+ **反向验证内置**（`SOKO_STATE_ROOT=legacy` 撤掉修复 ⇒ 判据必红，`expect-red.sh` 跑）✓ + `step>=0` 逐字节不变 ✓。
-- **顺带** ✓：`docs/protocol.md` 按**冻结预算**减到 898 行（上一笔把它撑到 906 行超预算 ✗，本轮 docs-lint ④⑦ 报出）；`gap.py close` 会**重排整个台账**（88 行全变 ✗）⇒ 已手工恢复成「原文 + 一行」✓。
+- **修法→判据** ✓：`walk::statement_state()` 剥完整条 ∀ 望远镜 ⇒ `binders` = 题的 ∀ 参数按序（匿名箭头 `_`）、`goal` = 剩余命题；根状态与**失败声明**都用它（`goal: null` 只表示「已闭合」）✓；⚠ **tactic 语义一字未动**（箭头那形仍要显式 `intro` ✓）。判据 `G78-state-root-statement-state.sh`（四形 × 两位置）+ **反向验证内置**（`SOKO_STATE_ROOT=legacy` ⇒ 判红 ✓）+ `step>=0` 逐字节不变 ✓；`docs/protocol.md` 按冻结预算减到 898 行 ✓。
 
 ## 内核线批次（2026-10-02）：**9 条 blocker 全清**（G-56/58/59/64/71/72/74/75/76）
 - **交付** ✓：台账 9 条 `language`/`kernel`/`sokonanoda` 阻断项全部 `fixed` / `fixed_in: 0.81.0` ✓，一条一 commit（`977bf968` G-76 · `dad0cd9f` G-58+G-59 · `73ad7e6a` G-75 · `660b9ccd` G-74 · `d2062373` G-64 · `ff19b2a8` G-56 · `0ebace86` G-72 · `66a154dd` G-71 左半 · `405a9b68` G-71 后半）✓。

@@ -157,7 +157,10 @@ fn a_project_build_writes_its_artifact_into_the_module_root() {
     let meta: Value =
         serde_json::from_slice(&std::fs::read(root.join(".sokonanoda/meta.json")).unwrap())
             .unwrap();
-    assert_eq!(meta["schema"], "soko.artifacts/1");
+    // `soko.artifacts/<条目格式>.r<报告形状版本>`（2026-10-02 值守第 8 单：形状版本进 schema
+    // ⇒ 报告形状一变，整个产物目录不认 ✓）。字面量是**故意**的：集成测试盯的是**冻结的
+    // 契约串**（front 的 `project::cache::meta_schema()` 是唯一来源 ✓，改它这里必须跟着改 ✓）。
+    assert_eq!(meta["schema"], "soko.artifacts/2.r1");
     assert!(meta["compiler"].as_str().is_some_and(|v| !v.is_empty()));
     // ⑤ 项目条目**不再**落全局缓存（分工：项目条目只认模块根）。
     assert!(

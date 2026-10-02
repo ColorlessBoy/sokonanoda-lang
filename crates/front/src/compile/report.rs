@@ -72,6 +72,25 @@ pub struct ByStepState {
     pub goals: Vec<ByGoalState>,
 }
 
+/// **报告形状版本** —— 缓存/快照里那些**会变的形状**的统一版本号。
+///
+/// **任何时候改动下面这些结构的序列化形状或语义，都必须 +1**：
+/// `DocumentReport` · `DeclState` · `ByGoalState` · `ByStepState` · `GoalBinder` ·
+/// `SubGoal` · `ProjectReport`（`crates/front/src/project/report.rs`）。
+/// 新增 / 删除 / 改名一个字段、或让某个字段的含义变化 —— **都算**。
+///
+/// 为什么必须有它（**2026-10-02 值守第 8 单**，用户实测报的 ✗）：缓存键里只有
+/// **源码 digest** + 编译期常量（`CACHE_FORMAT` / `CARGO_PKG_VERSION` /
+/// `build_stamp` = debug|OS|ARCH）。**源码没变而二进制变了**（正是"修好了但用户看不到"
+/// 的形态 ✗）⇒ 键不变 ⇒ 旧条目**命中** ⇒ 而新字段走 `#[serde(default)]` ⇒ 静默给旧答案 ✗
+/// （实测：G-78 的 `DeclState.by_root` 被整库陈旧缓存挡掉 —— 250+ 条里 **0 条**含
+/// `by_root`；用户删掉那一条缓存后同一条命令立刻变对 ✓）。
+///
+/// ⇒ 这个常量**进缓存键、进条目本身、进 `meta.json` 的 schema**：形状一变，
+/// **整库不命中** ✓。**不许再用「字段可选（`#[serde(default)]`）」来兜兼容** ✗ ——
+/// 那正是掩盖机制：老缓存不报错、不 miss，只给旧答案。
+pub const REPORT_SHAPE: u32 = 1;
+
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeclState {
@@ -92,7 +111,11 @@ pub struct DeclState {
     /// 状态 ✗ —— `soko/stateAt` 的根状态要的是后者（Lean `goalsAt?` 语义：
     /// 定理的 ∀ 绑元在证明开始时就在上下文里）。把两者混同会让 Infoview 顶部
     /// 显示整句量词式、并把绑元标成 `unknown_ident` ✗。
-    #[serde(default)]
+    ///
+    /// ⚠ **没有 `#[serde(default)]`，故意的** ✗（2026-10-02 值守第 8 单）：老缓存
+    /// （写这份报告时还没有这个字段）反序列化会**直接失败** ⇒ 当 miss 重编 ✓。
+    /// 带 `#[serde(default)]` 的话它会安静地读成 `None` ⇒ 根状态静默退回旧行为 ✗
+    /// —— 那正是"修好了但用户看不到"的通道。形状真的变了 ⇒ 走 `REPORT_SHAPE` ✓。
     pub by_root: Option<ByGoalState>,
     /// For an open exercise: the hypotheses already introduced by the lambda
     /// binders written so far (the goal view's "context"). Empty when the

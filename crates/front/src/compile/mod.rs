@@ -40,7 +40,7 @@ pub use prelude::{
 };
 pub use report::{
     ByGoalState, ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport,
-    GoalBinder, HoverType, ResolvedTarget, SubGoal,
+    GoalBinder, HoverType, ResolvedTarget, SubGoal, REPORT_SHAPE,
 };
 pub(crate) use scope::{join_ns, NamespaceScope};
 pub use units::{

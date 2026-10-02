@@ -62,9 +62,16 @@ impl ProjectView {
                 bytes += entry.metadata().map(|meta| meta.len()).unwrap_or(0);
             }
         }
+        // **schema 不符 ⇒ 不报 `compiler`** ✗（2026-10-02 值守第 8 单，同一口径）：
+        // 老产物目录里的 `compiler` 是**旧二进制**写的版本号 ⇒ 照原样显示就是
+        // "陈旧数据静默上屏" ✗（用户实测见过 `meta.json` 停在 0.78.0 的那次）。
         let compiler = std::fs::read(dir.join("meta.json"))
             .ok()
             .and_then(|raw| serde_json::from_slice::<serde_json::Value>(&raw).ok())
+            .filter(|meta| {
+                meta.get("schema").and_then(|s| s.as_str())
+                    == Some(crate::project::cache::meta_schema().as_str())
+            })
             .and_then(|meta| meta.get("compiler")?.as_str().map(str::to_string));
         Some(ProjectArtifacts {
             dir: dir.display().to_string(),
@@ -187,9 +194,10 @@ mod tests {
         std::fs::write(compiled.join("aa.json"), b"12345").expect("write aa");
         std::fs::write(compiled.join("bb.json"), b"123").expect("write bb");
         std::fs::write(compiled.join("cc.json.tmp-999"), b"ignored").expect("write tmp");
+        let current = crate::project::cache::meta_schema();
         std::fs::write(
             root.join(".sokonanoda/meta.json"),
-            br#"{"schema":"soko.artifacts/1","compiler":"1.2.3"}"#,
+            format!(r#"{{"schema":"{current}","compiler":"1.2.3"}}"#),
         )
         .expect("write meta");
         let snapshot = ProjectView::artifacts_of(&root).expect("snapshot");
@@ -197,6 +205,21 @@ mod tests {
         assert_eq!(snapshot.bytes, 8);
         assert_eq!(snapshot.compiler.as_deref(), Some("1.2.3"));
         assert!(snapshot.dir.ends_with(".sokonanoda"));
+
+        // ②′ **旧 schema ⇒ 不报 `compiler`**（2026-10-02 值守第 8 单）：老产物目录里的
+        //     版本号是**旧二进制**写的 ⇒ 照原样上屏就是"陈旧数据静默显示" ✗（用户实测
+        //     见过 `meta.json` 停在 0.78.0 那次）。条目计数仍照报（那是**文件事实** ✓）。
+        std::fs::write(
+            root.join(".sokonanoda/meta.json"),
+            br#"{"schema":"soko.artifacts/1","compiler":"0.78.0"}"#,
+        )
+        .expect("write stale meta");
+        let stale = ProjectView::artifacts_of(&root).expect("snapshot");
+        assert_eq!(stale.entries, 2);
+        assert_eq!(
+            stale.compiler, None,
+            "旧 schema 的 `compiler` 不许上屏（陈旧数据静默显示 ✗）"
+        );
 
         // ③ 目录在、`compiled/` 空 ⇒ `Some` 且 0 条（"清过了"也是有用信息）。
         std::fs::remove_file(compiled.join("aa.json")).unwrap();

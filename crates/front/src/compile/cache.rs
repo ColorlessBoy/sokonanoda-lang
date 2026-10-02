@@ -29,7 +29,10 @@ use std::path::{Path, PathBuf};
 /// 条目格式版本。**改动键的构成或条目 schema 时必须 bump**——旧条目一律作废。
 ///
 /// `3`（2026-09-21 / T-A02）：`build_stamp` 从"可执行文件 mtime"换成编译期常量。
-pub const CACHE_FORMAT: u32 = 3;
+/// `4`（2026-10-02 / 值守第 8 单）：**报告形状版本 `REPORT_SHAPE` 进键 + 进条目**
+/// —— 以前源码没变而二进制变了时会命中旧条目，新字段走 `#[serde(default)]` ⇒
+/// **静默给旧答案** ✗（实测：G-78 的修复被整库陈旧缓存挡掉）。现在形状一变整库不命中 ✓。
+pub const CACHE_FORMAT: u32 = 4;
 
 /// One cached compile: the document report (for the LSP) and, when the
 /// producer computed it, the CLI event output.
@@ -52,11 +55,15 @@ pub struct CachedCompile {
 #[derive(Serialize, Deserialize)]
 struct CacheFile {
     format: u32,
+    /// **报告形状版本**（`report::REPORT_SHAPE`）—— 与 `format` 分开：`format` 管
+    /// "条目结构"，它管"**报告结构**"。**必填**（没有 `#[serde(default)]` ✗）：
+    /// 老条目缺这个字段 ⇒ 反序列化直接失败 ⇒ 当 miss 重编 ✓（不许静默读旧答案 ✗）。
+    shape: u32,
     report: DocumentReport,
     output: Option<CompileOutput>,
     /// `CACHE_FORMAT` 3 起：项目条目带整份 `ProjectReport`。
-    /// `#[serde(default)]` 让**旧的单文件条目**仍然读得进来（那时没有这个字段）。
-    #[serde(default)]
+    /// ⚠ **必填，故意不给 `#[serde(default)]`**（2026-10-02 值守第 8 单）：老条目
+    /// 缺字段 ⇒ 反序列化失败 ⇒ miss 重编 ✓；给默认值就等于"安静地回放旧形状" ✗。
     project: Option<ProjectReport>,
 }
 
@@ -142,6 +149,7 @@ pub fn key(src: &str, options: &CompileOptions) -> String {
 pub fn key_with_build(src: &str, options: &CompileOptions, build: u64) -> String {
     key_parts(
         CACHE_FORMAT,
+        crate::compile::REPORT_SHAPE,
         env!("CARGO_PKG_VERSION"),
         build,
         options.prelude == PreludeMode::Bare,
@@ -162,6 +170,7 @@ fn metavar_state() -> u8 {
 
 fn key_parts(
     format: u32,
+    shape: u32,
     version: &str,
     build: u64,
     prelude_bare: bool,
@@ -174,6 +183,11 @@ fn key_parts(
         hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
     };
     for byte in format.to_le_bytes() {
+        eat(byte);
+    }
+    // **报告形状版本进键**（值守第 8 单）：形状一变，键就变 ⇒ 整库不命中 ✓
+    // ——不再依赖"记得 bump CACHE_FORMAT"这种自觉 ✗。
+    for byte in shape.to_le_bytes() {
         eat(byte);
     }
     for byte in version.as_bytes() {
@@ -190,6 +204,16 @@ fn key_parts(
     format!("{hash:016x}")
 }
 
+/// **逃生门（只给反向验证用）**：`SOKO_CACHE_SHAPE=off` ⇒ 关掉"报告形状版本"这一道
+/// 校验 ⇒ 旧形状的条目会被当成**命中**、把旧答案静默回放出来 ✗。
+///
+/// 为什么留它：用户立的回测铁律要求「撤掉修复 ⇒ 判据必须判红」，而这条修复的"撤掉"
+/// = 让形状校验不再拦 ⇒ 只剩这一种表达方式 ✓（见
+/// `docs/gaps/repro/G79-cache-shape-version.sh` 的 `expect-red` 段）。生产路径不该设它。
+fn shape_check_disabled() -> bool {
+    matches!(std::env::var("SOKO_CACHE_SHAPE").as_deref(), Ok("off"))
+}
+
 /// Load the entry for `(src, options)`, or `None` on miss/corruption/disabled.
 pub fn load(src: &str, options: &CompileOptions) -> Option<CachedCompile> {
     load_in(&compiled_dir()?, &key(src, options))
@@ -202,6 +226,11 @@ pub(crate) fn load_in(dir: &Path, key: &str) -> Option<CachedCompile> {
     let bytes = std::fs::read(dir.join(format!("{key}.json"))).ok()?;
     let file: CacheFile = serde_json::from_slice(&bytes).ok()?;
     if file.format != CACHE_FORMAT {
+        return None;
+    }
+    // **形状不符 ⇒ miss**（逃生门 `SOKO_CACHE_SHAPE=off` 只给反向验证用 ✗：
+    // 关掉之后旧形状条目会被当成命中 ⇒ 正是"修好了但用户看不到"的复现）。
+    if file.shape != crate::compile::REPORT_SHAPE && !shape_check_disabled() {
         return None;
     }
     Some(CachedCompile {
@@ -224,6 +253,7 @@ pub(crate) fn store_in(dir: &Path, key: &str, entry: &CachedCompile) {
     }
     let Ok(bytes) = serde_json::to_vec(&CacheFile {
         format: CACHE_FORMAT,
+        shape: crate::compile::REPORT_SHAPE,
         report: entry.report.clone(),
         output: entry.output.clone(),
         project: entry.project.clone(),
@@ -312,6 +342,8 @@ mod tests {
         }
     }
 
+    use crate::compile::REPORT_SHAPE;
+
     #[test]
     fn key_is_deterministic_and_sensitive() {
         let full = CompileOptions::default();
@@ -323,23 +355,72 @@ mod tests {
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &bare, 7));
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &full, 8));
         assert_ne!(
-            key_parts(CACHE_FORMAT, "0.1.0", 7, false, 0, "a"),
-            key_parts(CACHE_FORMAT, "0.2.0", 7, false, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.2.0", 7, false, 0, "a"),
             "a version bump must miss"
         );
         // **IA-4 M1**：元变量档位必须分开（否则同一个缓存目录里先跑的那一档污染后面所有档 ✗）
         for (x, y) in [(0u8, 1u8), (0, 2), (1, 2)] {
             assert_ne!(
-                key_parts(CACHE_FORMAT, "0.1.0", 7, false, x, "a"),
-                key_parts(CACHE_FORMAT, "0.1.0", 7, false, y, "a"),
+                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, x, "a"),
+                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, y, "a"),
                 "不同元变量档位必须是不同的键（state {x} vs {y}）"
             );
         }
         assert_ne!(
-            key_parts(CACHE_FORMAT, "0.1.0", 7, false, 0, "a"),
-            key_parts(CACHE_FORMAT + 1, "0.1.0", 7, false, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, "a"),
+            key_parts(CACHE_FORMAT + 1, REPORT_SHAPE, "0.1.0", 7, false, 0, "a"),
             "a schema bump must miss"
         );
+        // **报告形状版本也进键**（值守第 8 单）：形状一变，键必须变 ✓
+        // ——否则"源码没变 + 二进制变了"会命中旧条目、静默给旧答案 ✗。
+        assert_ne!(
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE + 1, "0.1.0", 7, false, 0, "a"),
+            "a report-shape bump must miss"
+        );
+    }
+
+    /// **值守第 8 单**：老缓存（形状不对）必须 **miss** —— 不许静默回放旧报告 ✗。
+    ///
+    /// 为什么单独立一条：这正是用户实测那条通道 ——「源码没变 ⇒ digest 没变 ⇒ 命中 ⇒
+    /// 新字段走 `#[serde(default)]` ⇒ 静默给旧答案」⇒ 用户看到的是**修好之前**的样子 ✗。
+    /// 判据 = ① 当前形状读得回来 ✓ ② 形状不对 ⇒ `None` ✓ ③ 缺字段（老条目）⇒ `None` ✓。
+    #[test]
+    fn a_stale_shape_entry_is_a_miss_not_a_silent_old_answer() {
+        let dir = tmp_dir("shape");
+        let src = "def two : Nat := 2\nexample : Prop := sorry\n";
+        let entry = entry_for(src);
+        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, src);
+        store_in(&dir, &k, &entry);
+        assert!(load_in(&dir, &k).is_some(), "当前形状必须读得回来 ✓");
+
+        let path = dir.join(format!("{k}.json"));
+        let raw = std::fs::read(&path).expect("entry file");
+        let mut v: serde_json::Value = serde_json::from_slice(&raw).expect("entry json");
+
+        // ② 形状版本不对 ⇒ miss
+        v["shape"] = serde_json::json!(0);
+        std::fs::write(&path, serde_json::to_vec(&v).unwrap()).unwrap();
+        assert!(
+            load_in(&dir, &k).is_none(),
+            "形状不对的条目必须 miss（不许静默给旧答案）✗"
+        );
+
+        // ③ **老条目的真身**：整个 `shape` 字段都没有（写它的二进制还不认识形状版本）
+        v.as_object_mut().unwrap().remove("shape");
+        std::fs::write(&path, serde_json::to_vec(&v).unwrap()).unwrap();
+        assert!(
+            load_in(&dir, &k).is_none(),
+            "缺 `shape` 字段的老条目必须 miss（`CacheFile.shape` 故意没有 serde 默认值）✗"
+        );
+
+        // ④ 键也必须随形状变（形状一变 ⇒ 整库换键 ⇒ 老条目够都够不着）
+        assert_ne!(
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, src),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE + 1, "0.48.0", 7, false, 0, src),
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -354,7 +435,7 @@ mod tests {
                 .is_some_and(|out| !out.events.is_empty()),
             "the combined entry point must carry CLI events"
         );
-        let k = key_parts(CACHE_FORMAT, "0.48.0", 7, false, 0, src);
+        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, src);
         store_in(&dir, &k, &entry);
         let loaded = load_in(&dir, &k).expect("cache hit");
         assert_eq!(loaded.report.decls.len(), entry.report.decls.len());
@@ -363,7 +444,15 @@ mod tests {
             loaded.output.map(|o| o.events),
             entry.output.map(|o| o.events)
         );
-        let other = key_parts(CACHE_FORMAT, "0.48.0", 7, false, 0, "def x : Nat := 1\n");
+        let other = key_parts(
+            CACHE_FORMAT,
+            REPORT_SHAPE,
+            "0.48.0",
+            7,
+            false,
+            0,
+            "def x : Nat := 1\n",
+        );
         assert!(load_in(&dir, &other).is_none(), "different source misses");
         let _ = std::fs::remove_dir_all(&dir);
     }

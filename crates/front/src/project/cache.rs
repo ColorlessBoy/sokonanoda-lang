@@ -97,7 +97,11 @@ use std::path::PathBuf;
 pub const ARTIFACTS_DIR: &str = ".sokonanoda";
 /// `meta.json` 的 schema。**不符 ⇒ 整个目录当不存在**（宁可重算，绝不误用）。
 /// 注意条目本身还带 `CACHE_FORMAT` 校验（第二道保险）。
-const ARTIFACTS_FORMAT: u32 = 1;
+/// 产物目录的**条目结构**版本。`2`（2026-10-02 / 值守第 8 单）：`schema` 里带上
+/// `report::REPORT_SHAPE` —— 报告形状一变，整个产物目录**不认** ✓（以前 digest 只由
+/// **源码**算 ⇒ 源码没变而二进制变了时，旧产物被命中、新字段走 `#[serde(default)]`
+/// ⇒ 静默回放旧报告 ✗）。
+const ARTIFACTS_FORMAT: u32 = 2;
 
 /// `<模块根>/.sokonanoda`。
 pub fn artifacts_dir(root: &Path) -> PathBuf {
@@ -114,6 +118,17 @@ fn enabled() -> bool {
     std::env::var_os("SOKONANODA_NO_PROJECT_ARTIFACTS").is_none()
 }
 
+/// 当前 `meta.json` 的 schema 串（**单一来源** ✓）：`soko.artifacts/<条目格式>.r<报告形状>`。
+/// 两个消费者都用它：`meta_ok`（决定产物目录认不认）与 `query::project`（决定要不要
+/// 把里面的 `compiler` 版本显示给用户 —— schema 不符 ⇒ **不显示** ✗，免得面板报一个
+/// 旧二进制写的版本号）。
+pub fn meta_schema() -> String {
+    format!(
+        "soko.artifacts/{ARTIFACTS_FORMAT}.r{}",
+        crate::compile::REPORT_SHAPE
+    )
+}
+
 /// `meta.json` 可读且 schema 相符？（缺失也算不符——半成品目录不认）
 fn meta_ok(root: &Path) -> bool {
     let Ok(bytes) = std::fs::read(artifacts_dir(root).join("meta.json")) else {
@@ -122,7 +137,13 @@ fn meta_ok(root: &Path) -> bool {
     serde_json::from_slice::<serde_json::Value>(&bytes)
         .ok()
         .and_then(|meta| meta.get("schema")?.as_str().map(str::to_string))
-        .is_some_and(|schema| schema == format!("soko.artifacts/{ARTIFACTS_FORMAT}"))
+        .is_some_and(|schema| {
+            schema
+                == format!(
+                    "soko.artifacts/{ARTIFACTS_FORMAT}.r{}",
+                    crate::compile::REPORT_SHAPE
+                )
+        })
 }
 
 fn now_unix() -> u64 {
@@ -167,7 +188,7 @@ fn ensure_layout(root: &Path) -> bool {
     if !meta.exists() {
         let (compiler, build_stamp) = current_stamp();
         let payload = serde_json::json!({
-            "schema": format!("soko.artifacts/{ARTIFACTS_FORMAT}"),
+            "schema": meta_schema(),
             "compiler": compiler,
             "build_stamp": build_stamp,
             "platform": format!("{}/{}", std::env::consts::OS, std::env::consts::ARCH),
@@ -350,7 +371,10 @@ mod tests {
         assert!(ensure_layout(&root), "产物目录要建得起来");
         // 伪造一份「**旧编译器**建的目录」—— 就是用户现场那个形状。
         let meta = artifacts_dir(&root).join("meta.json");
-        let schema = format!("soko.artifacts/{ARTIFACTS_FORMAT}");
+        let schema = format!(
+            "soko.artifacts/{ARTIFACTS_FORMAT}.r{}",
+            crate::compile::REPORT_SHAPE
+        );
         let stale = serde_json::json!({
             "schema": schema,
             "compiler": "9.9.9",
