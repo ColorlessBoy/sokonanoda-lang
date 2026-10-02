@@ -25,10 +25,11 @@
             "sdiff-equality-layer",
             "two-step-packing",
             "union-sdiff-distrib",
-            "subset-algebra"
+            "subset-algebra",
+            "classical-logic"
           ],
           "quota": {
-            "exercises": 106
+            "exercises": 112
           },
           "units": [
             {
@@ -108,6 +109,12 @@
               "title": "单元66 包含关系的代数",
               "title_en": "Unit 66 — The Algebra of Inclusion",
               "unit": 66
+            },
+            {
+              "file": "units/unit104-classical.sokonanoda",
+              "title": "单元104 排中律与经典推论",
+              "title_en": "Unit 104 — Excluded Middle and Its Classical Corollaries",
+              "unit": 104
             }
           ]
         },

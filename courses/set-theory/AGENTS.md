@@ -503,3 +503,28 @@ False.elim (x ∈ A) (Iff.mp hu hx)          -- ✓ 判绿
 而 `A` 无成员时**没有任何 `β` 的元素可用** ✓ ⇒ **没有 `β` 的居民就造不出映射** ✗。
 ⇒ 需要"空集到任意集合的函数"的定理（或"`β` 非空"的前提 ✓）都要**如实标注** ✓；
 本单元的 `unit101` 只做**点态**结论 ✓（判据 ✓）。
+
+## **经典逻辑线已开启**（2026-10-02；内核线落地 **G-74 `Classical.em`** 后 ✓）
+
+**政策变更** ✓：本手册此前有一条铁律 ——「**本课是构造性的** ⇒ 不得写 `¬¬P ⇒ P`、
+`A \ B = ∅ ⇒ A ⊆ B`、`¬∀ ⇒ ∃` 这类经典等价 ✗」（见本文「命题先求真」那节 ✓，
+当时还因为这条**删掉了**单元57 的 `A \ B = ∅ ⇒ A ⊆ B` ✓）。
+**现在 prelude 提供了** ✓（`prelude/Prelude.sokonanoda` ✓）：
+
+```text
+axiom Classical.em : (p : Prop) -> Or p (Not p)
+def Classical.byContradiction : (p : Prop) -> (Not p -> False) -> p
+```
+
+⇒ **这些定理现在可以写、可以判绿了** ✓（判据 `unit104-solution.sokonanoda` ✓：
+`not_not_elim` ✓ · `em_cases` ✓ · **`subset_of_sdiff_empty`** ✓ · `not_forall_imp_exists` ✓）。
+
+**新的写法纪律** ✓（本单元换来）：
+1. **按 `em` 分情况**写成一条小引理 `em_cases` ✓（`Or.elim` 的**动机位仍是肯定命题** ✓ —— 铁律不变 ✓）；
+2. **`False.elim` 要把目标写全** ✓（`False.elim (x ∈ B) …` ✓）；
+3. **集合层替换**用 `Eq.subst.{1} (Set α) (fun D => x ∈ D) C ∅ h hx` ✓（配 `Set.mem_empty_iff_false` ✓）——
+   这类"含于空集即矛盾"要抽成小引理 ✓（先拆链 ✓）。
+
+> **哪些旧单元的"边界标注"现在可以重做** ✓：单元57（`A \ B = ∅ ⇒ A ⊆ B` ✓）·
+> 单元101（空定义域造映射 ✗ 仍需非空前提 ✓）· 单元99/103（**Cantor–Bernstein** 的造链
+> 是否有 EM 就够 ✗ ⇒ **待重新诊断** ✓）。
