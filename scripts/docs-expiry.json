@@ -1,310 +1,316 @@
 {
   "_comment": "**文档过期日期登记表**（2026-09-30 用户要求）—— 本表是**权威** ✓：每份活文档的过期日期 + 上次续期日 + **续期理由**。口径与判据见 `scripts/docs-expiry-check.py`（`--check` / `--json` / `--renew` / `--seed` / `--prune` / `--selftest`）。⚠ **不许手改**：一律用 `--renew` / `--seed`（理由必填 ≥8 字 ⇒ 机制才有效 ✓）。⚠ 为什么不是每份文档加 frontmatter：`docs-lint.py` ④ 把既有非入口文档**冻结在当前行数**（只许减不许增）⇒ 上百份文档同时加一行 = **必然判红** ✗（详见脚本 docstring）。到期处置三选一：**续期**（`--renew` + 理由）/ **删除** / **归档**（`docs/archive/README.md` 点名）—— 处置后跑 `--prune` 清幽灵条目 ✓。",
-  "policy": {
-    "_comment": "warn_days = 快过期提醒窗口（天，只提醒不阻塞）· tiers = 分档天数（entry/spec 12 个月 · process/record 3 个月）· max_renew_days = 单次续期上限（逼出周期性复审 ✓）。改这里 = 改机制 ⇒ 必须在 commit message 写理由 ✓。",
-    "warn_days": 30,
-    "tiers": {
-      "entry": 365,
-      "spec": 365,
-      "process": 90,
-      "record": 90
-    },
-    "max_renew_days": 731
-  },
   "documents": {
     "AGENTS.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "NOTICE.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "README.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "REQUIREMENTS.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "ROADMAP.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "STATUS.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/CI-FAILURES.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/E2E.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/LESSONS.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/ONBOARDING.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/PERF.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/README.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/RELEASE.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/STATUS-ARCHIVE.md": {
       "expires": "2026-12-29",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 record = 90 天）",
       "renewed": "2026-09-30",
-      "tier": "record",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 record = 90 天）"
+      "tier": "record"
     },
     "docs/TESTING.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/architecture.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/design/ci-parallelism.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/command-naming.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/course-gate-in-ci.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/course-stdlib.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/declaration-incremental.md": {
       "expires": "2027-10-01",
+      "reason": "按声明粒度增量检查的唯一权威：G-29/G-31 的实测读数与 S1-S4 分片判据",
       "renewed": "2026-10-01",
-      "tier": "spec",
-      "reason": "按声明粒度增量检查的唯一权威：G-29/G-31 的实测读数与 S1-S4 分片判据"
+      "tier": "spec"
     },
     "docs/design/deepseek-harness.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/docs-diet.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/e19-baseline.md": {
       "expires": "2027-03-31",
+      "reason": "E19 刀0 基线冻结：与 e19-evaluation.md 同期，v0.79.0 甲案实施期间的有效对照",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "E19 刀0 基线冻结：与 e19-evaluation.md 同期，v0.79.0 甲案实施期间的有效对照"
+      "tier": "spec"
     },
     "docs/design/e19-evaluation.md": {
       "expires": "2027-03-31",
+      "reason": "E19 评估：开工前的决策依据，与 v0.79.0 计划同期",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "E19 评估：开工前的决策依据，与 v0.79.0 计划同期"
+      "tier": "spec"
     },
     "docs/design/e2-plan.md": {
       "expires": "2026-12-29",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 process = 90 天）",
       "renewed": "2026-09-30",
-      "tier": "process",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 process = 90 天）"
+      "tier": "process"
     },
     "docs/design/edit-latency.md": {
       "expires": "2027-10-01",
+      "reason": "登记新文档：2026-10-01 用户反馈的编辑响应延迟线（实测分解 + P7 展示延迟的前后对比），是这条链的唯一权威",
       "renewed": "2026-10-01",
-      "tier": "spec",
-      "reason": "登记新文档：2026-10-01 用户反馈的编辑响应延迟线（实测分解 + P7 展示延迟的前后对比），是这条链的唯一权威"
+      "tier": "spec"
     },
     "docs/design/g58-large-elimination.md": {
       "expires": "2026-12-31",
+      "reason": "G-58 设计稿：待用户批准后实施，批准前需保持可查（台账 blocker 的设计依据）",
       "renewed": "2026-10-02",
-      "tier": "spec",
-      "reason": "G-58 设计稿：待用户批准后实施，批准前需保持可查（台账 blocker 的设计依据）"
+      "tier": "spec"
     },
     "docs/design/kernel-taxonomy.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/metavar-engine.md": {
       "expires": "2027-10-01",
+      "reason": "IA-4 元参数引擎的唯一权威设计（设计+排期+决策点）；实现开始后每片 as-built 追加进本文件",
       "renewed": "2026-10-01",
-      "tier": "spec",
-      "reason": "IA-4 元参数引擎的唯一权威设计（设计+排期+决策点）；实现开始后每片 as-built 追加进本文件"
+      "tier": "spec"
     },
     "docs/design/metavar-m0.md": {
       "expires": "2027-10-01",
+      "reason": "M0 的基线冻结 + 13 形状能力清单 + D7 结论；M1 起每片都要复现它的读数",
       "renewed": "2026-10-01",
-      "tier": "spec",
-      "reason": "M0 的基线冻结 + 13 形状能力清单 + D7 结论；M1 起每片都要复现它的读数"
+      "tier": "spec"
     },
     "docs/design/module-artifacts.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/notation-input.md": {
       "expires": "2027-10-01",
+      "reason": "记法输入表的唯一活设计：Rust↔JS 双镜像与 hover/改写器的口径都在这里",
       "renewed": "2026-10-01",
-      "tier": "spec",
-      "reason": "记法输入表的唯一活设计：Rust↔JS 双镜像与 hover/改写器的口径都在这里"
+      "tier": "spec"
     },
     "docs/design/notation-subset.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/project-artifacts.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/redundant-sorry.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/rename-inlay.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/set-theory-syllabus.md": {
       "expires": "2027-10-01",
+      "reason": "S-A 重建的卷 I 大纲：教材对齐（Enderton/Halmos 逐节目录）+ 10 个新单元的必证/必破 + 内核墙排期口径，是卷 I 后续所有单元的唯一权威大纲",
       "renewed": "2026-10-01",
-      "tier": "spec",
-      "reason": "S-A 重建的卷 I 大纲：教材对齐（Enderton/Halmos 逐节目录）+ 10 个新单元的必证/必破 + 内核墙排期口径，是卷 I 后续所有单元的唯一权威大纲"
+      "tier": "spec"
     },
     "docs/design/set-theory-unlocked.md": {
       "expires": "2026-11-01",
+      "reason": "卷 I 解锁清单：内核拆墙后哪些主题能写/仍缺哪面墙，是下一批单元的直接依据，仍需引用",
       "renewed": "2026-10-02",
-      "tier": "spec",
-      "reason": "卷 I 解锁清单：内核拆墙后哪些主题能写/仍缺哪面墙，是下一批单元的直接依据，仍需引用"
+      "tier": "spec"
     },
     "docs/design/site-single-page.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/teaching-project.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/v077-kernel-deficiencies.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/design/v077-st1-boundary.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/notes/HANDOFF-course.md": {
       "expires": "2026-11-15",
+      "reason": "课程线换会话交接单（临时产物，换完即删）",
       "renewed": "2026-10-02",
-      "tier": "process",
-      "reason": "课程线换会话交接单（临时产物，换完即删）"
+      "tier": "process"
+    },
+    "docs/notes/HANDOFF-kernel.md": {
+      "expires": "2026-11-15",
+      "reason": "内核线换会话交接单（临时产物，换完即删）",
+      "renewed": "2026-10-03",
+      "tier": "process"
     },
     "docs/notes/dsh-project-assets.md": {
       "expires": "2026-12-29",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 record = 90 天）",
       "renewed": "2026-09-30",
-      "tier": "record",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 record = 90 天）"
+      "tier": "record"
     },
     "docs/protocol.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     },
     "docs/teaching-session.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）"
+      "tier": "spec"
     },
     "docs/visible-changes.md": {
       "expires": "2027-09-30",
+      "reason": "批次 N 收尾的验收索引：用户可见变化 ↔ 断言名，长期有效",
       "renewed": "2026-09-30",
-      "tier": "spec",
-      "reason": "批次 N 收尾的验收索引：用户可见变化 ↔ 断言名，长期有效"
+      "tier": "spec"
     },
     "docs/vscode-dev-guide.md": {
       "expires": "2027-09-30",
+      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
-      "tier": "entry",
-      "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
+      "tier": "entry"
     }
+  },
+  "policy": {
+    "_comment": "warn_days = 快过期提醒窗口（天，只提醒不阻塞）· tiers = 分档天数（entry/spec 12 个月 · process/record 3 个月）· max_renew_days = 单次续期上限（逼出周期性复审 ✓）。改这里 = 改机制 ⇒ 必须在 commit message 写理由 ✓。",
+    "max_renew_days": 731,
+    "tiers": {
+      "entry": 365,
+      "process": 90,
+      "record": 90,
+      "spec": 365
+    },
+    "warn_days": 30
   }
 }
