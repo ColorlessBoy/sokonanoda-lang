@@ -74,6 +74,7 @@ fn check_then_add_decl<'arena>(
         kind,
         declar,
         by_steps,
+        by_root,
         span,
         cmd,
     } = op
@@ -159,6 +160,7 @@ fn check_then_add_decl<'arena>(
                 sub_goals: Vec::new(),
                 refine_template: None,
                 by_steps,
+                by_root,
                 hints: Vec::new(),
                 ty_text,
                 val_text,
@@ -274,6 +276,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     sub_goals,
                     refine_template,
                     by_steps,
+                    by_root,
                     span,
                     cmd,
                 } => {
@@ -349,6 +352,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                                 sub_goals,
                                 refine_template,
                                 by_steps,
+                                by_root,
                                 hints: Vec::new(),
                                 ty_text,
                                 // **Open 练习没有值**（还没证/还没写）——T-D52。
@@ -416,6 +420,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                                 sub_goals: Vec::new(),
                                 refine_template: None,
                                 by_steps: Vec::new(),
+                                by_root: None,
                                 hints: Vec::new(),
                                 ty_text: None,
                                 val_text: None,

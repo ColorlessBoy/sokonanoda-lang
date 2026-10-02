@@ -200,6 +200,7 @@ mod tests {
             refine_template: None,
             hints: Vec::new(),
             by_steps: Vec::new(),
+            by_root: None,
         }
     }
 

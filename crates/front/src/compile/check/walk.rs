@@ -23,11 +23,40 @@ use crate::compile::error::{CompileError, ErrorKind};
 use crate::compile::event::CompileOutput;
 use crate::compile::goals::{expr_has_hole, open_goal, spine_without_arg, GoalTemplates};
 use crate::compile::prelude::CompileOptions;
-use crate::compile::report::{DeclKind, DeclState};
+use crate::compile::report::{ByGoalState, DeclKind, DeclState, GoalBinder};
 use crate::compile::scope::{NamespaceScope, OpenEntry};
 use crate::compile::units::SourceUnit;
 use crate::{Binder, Command, CtorDecl, Expr, IotaRule, OpenFilter, RecDecl, Span};
 use sokonanoda::builder::EnvBuilder;
+
+/// **根状态**（第一条 tactic 之前）：声明的 ∀ 绑元 + 剥掉它们之后的命题。
+///
+/// `val` 必须是**源值位**（`fun <声明绑元> => by …`，见 `by::split_by_value`）——
+/// 不是 lowering 之后的 lambda ✗。没有 `by` 块 ⇒ `None`（那时声明级的
+/// `goal`/`binders` 才是对的）。
+///
+/// 为什么要单独记（2026-10-02 用户实测报的 bug）：`DeclState.goal`/`binders` 是
+/// **洞处**的状态（走查引入的假设已经进去），而 `soko/stateAt` 的根状态要的是
+/// "第一条 tactic 之前" —— Lean `goalsAt?` 语义下定理的 ∀ 绑元在证明开始时就在
+/// 上下文里。混同 ⇒ Infoview 顶部显示整句量词式、绑元被标 `unknown_ident` ✗。
+fn by_root_state(
+    ty: &Expr,
+    val: &Expr,
+    display: &crate::display::DisplayNotations,
+) -> Option<ByGoalState> {
+    let (binders, _) = crate::by::split_by_value(val)?;
+    let body = crate::proof::peel_pi_layers(ty, binders.len())?;
+    Some(ByGoalState {
+        ty: display.fold(&render_expr(&body)),
+        binders: binders
+            .iter()
+            .map(|b| GoalBinder {
+                name: b.name.clone(),
+                ty: display.fold(&b.ty.as_deref().map(render_expr).unwrap_or_default()),
+            })
+            .collect(),
+    })
+}
 use sokonanoda::env::Declar;
 use sokonanoda::util::ExprPtr;
 use std::borrow::Cow;
@@ -579,6 +608,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 return;
             }
         };
+        let by_root = by_root_state(ty, val, &self.display);
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         // 源级 delta 表：**值完整**的 def 才登记（开练习的值是洞，展开没意义）。
@@ -729,6 +759,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 sub_goals: info.sub_goals,
                 refine_template: info.refine_template,
                 by_steps: by_steps.clone(),
+                by_root: by_root.clone(),
                 span,
                 cmd: idx,
             });
@@ -774,6 +805,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     kind: DeclKind::Definition,
                     declar: decl,
                     by_steps: by_steps.clone(),
+                    by_root: by_root.clone(),
                     span,
                     cmd: idx,
                 });
@@ -857,6 +889,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 return;
             }
         };
+        let by_root = by_root_state(ty, val, &self.display);
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
@@ -992,6 +1025,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 sub_goals: info.sub_goals,
                 refine_template: info.refine_template,
                 by_steps: by_steps.clone(),
+                by_root: by_root.clone(),
                 span,
                 cmd: idx,
             });
@@ -1037,6 +1071,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     kind: DeclKind::Theorem,
                     declar: decl,
                     by_steps: by_steps.clone(),
+                    by_root: by_root.clone(),
                     span,
                     cmd: idx,
                 });
@@ -1158,6 +1193,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     kind: DeclKind::Axiom,
                     declar: decl,
                     by_steps: Vec::new(),
+                    by_root: None,
                     span,
                     cmd: idx,
                 });
@@ -1226,6 +1262,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 return;
             }
         };
+        let by_root = by_root_state(ty, val, &self.display);
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
@@ -1341,6 +1378,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 sub_goals: info.sub_goals,
                 refine_template: info.refine_template,
                 by_steps: by_steps.clone(),
+                by_root: by_root.clone(),
                 span,
                 cmd: idx,
             });
@@ -1372,6 +1410,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     kind: DeclKind::Example,
                     declar: decl,
                     by_steps: by_steps.clone(),
+                    by_root: by_root.clone(),
                     span,
                     cmd: idx,
                 });

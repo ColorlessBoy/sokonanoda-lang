@@ -8,7 +8,7 @@
 //! mode this design exists to prevent).
 
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -1097,6 +1097,110 @@ fn query_state_agrees_with_the_lsp_state_at_request() {
     assert_state_matches_lsp(CANVAS, decl_line, 1); // 根状态（step: -1）
     assert_state_matches_lsp(CANVAS, decl_line + 4, 3); // `apply And.intro` 之内
     assert_state_matches_lsp(CANVAS, decl_line + 6, 3); // 最后一个 sorry（apply 之后）
+}
+
+/// **用户判据（2026-10-02）**：`soko/stateAt` 的**根状态**必须把声明的 ∀ 绑元
+/// 放进 `binders`、`goal` 只留剩余命题 —— 而且这条要在**别的单元上也成立**
+/// （不是只修好用户报的那一处）。
+///
+/// 抽查 ≥5 个真实单元：光标停在 `:= by` 那一行（= 第一条 tactic 之前 = 根状态），
+/// 断言
+///   ① `binders` 里出现的名字，**没有**一个在 `goal_runs` 里被标成
+///      `unknown_ident`（用户原话：这些变量应是 `binder`，不是未知标识符）；
+///   ② 至少有一个单元真的**引入了绑元**（`binders` 非空）⇒ 判据不是空转。
+///
+/// 为什么用"绑元名 vs unknown_ident"而不是"goal 必须以 ∀ 开头"：**箭头式**声明
+/// （`theorem t : (a : Prop) -> P := by`）的初始目标**就是整个 Pi 类型**（Lean
+/// 同此）⇒ 那条断言会把对的行为判红 ✗。这里断言的是**分类**对不对。
+#[test]
+fn state_root_introduces_named_binders_across_units() {
+    let units = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../courses/set-theory/units");
+    let mut checked = 0usize;
+    let mut with_binders = 0usize;
+    // 画布按章分子目录（`units/<章 id>/…`）⇒ **递归**收（只看顶层会只剩 1 个文件，
+    // 判据就空转了 ✗ —— 实测踩过）。
+    fn collect(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
+        let Ok(rd) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for e in rd.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                if p.file_name().is_some_and(|n| n == "solutions") {
+                    continue; // 解答不是画布
+                }
+                collect(&p, out);
+            } else if p.extension().is_some_and(|x| x == "sokonanoda") {
+                out.push(p);
+            }
+        }
+    }
+    let mut files: Vec<std::path::PathBuf> = Vec::new();
+    collect(&units, &mut files);
+    files.sort();
+    for path in files {
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        // 第一个 `:= by`（画布里的开练习）—— 光标停它所在行 = 根状态。
+        let Some((idx, line)) = text
+            .lines()
+            .enumerate()
+            .find(|(_, l)| l.contains(":= by"))
+            .map(|(i, l)| (i + 1, l.to_string()))
+        else {
+            continue;
+        };
+        let _ = line;
+        let name = path.file_name().unwrap().to_string_lossy().to_string();
+        let (value, code) = query(
+            &[
+                "state",
+                "--file",
+                path.to_str().unwrap(),
+                "--line",
+                &idx.to_string(),
+                "--col",
+                "3",
+            ],
+            None,
+        );
+        if code != 0 {
+            continue; // 画布可能有解析错（课程线在途）⇒ 跳过，不假红
+        }
+        let binders: Vec<String> = value["data"]["binders"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|b| b["name"].as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let runs = value["data"]["goal_runs"].as_array().cloned().unwrap_or_default();
+        for r in &runs {
+            if r["kind"].as_str() == Some("unknown_ident") {
+                let t = r["text"].as_str().unwrap_or("");
+                assert!(
+                    !binders.iter().any(|b| b == t),
+                    "{name}: 根状态的绑元 `{t}` 被标成 unknown_ident（应为 binder）—— \
+                     binders={binders:?} goal={:?}",
+                    value["data"]["goal"]
+                );
+            }
+        }
+        if !binders.is_empty() {
+            with_binders += 1;
+        }
+        checked += 1;
+        if checked >= 6 {
+            break;
+        }
+    }
+    assert!(checked >= 5, "抽查到的单元只有 {checked} 个（要 ≥5）");
+    assert!(
+        with_binders >= 1,
+        "抽查的 {checked} 个单元里没有一个引入了绑元 ⇒ 判据空转 ✗"
+    );
 }
 
 /// **没有 `by` 块**的两个分支。协议（`docs/protocol.md` §`soko/stateAt`）规定

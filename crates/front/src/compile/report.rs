@@ -83,6 +83,17 @@ pub struct DeclState {
     pub error: Option<CompileError>,
     /// For an open exercise: the remaining goal type, rendered as source text.
     pub goal: Option<String>,
+    /// **根状态**（第一条 tactic 之前）—— 声明的 ∀ 绑元 + 剥掉它们之后的命题，
+    /// 已过记法折叠。`None` = 这条声明没有 `by` 块（那时 `goal`/`binders` 就是
+    /// 声明级的剩余目标/上下文）。
+    ///
+    /// ⚠ **为什么必须单独记**（2026-10-02 用户实测报的 bug）：`goal`/`binders`
+    /// 是**洞处**的状态（走查引入的假设已进去），不是"第一条 tactic 之前"的
+    /// 状态 ✗ —— `soko/stateAt` 的根状态要的是后者（Lean `goalsAt?` 语义：
+    /// 定理的 ∀ 绑元在证明开始时就在上下文里）。把两者混同会让 Infoview 顶部
+    /// 显示整句量词式、并把绑元标成 `unknown_ident` ✗。
+    #[serde(default)]
+    pub by_root: Option<ByGoalState>,
     /// For an open exercise: the hypotheses already introduced by the lambda
     /// binders written so far (the goal view's "context"). Empty when the
     /// answer hole has no lambda prefix yet.

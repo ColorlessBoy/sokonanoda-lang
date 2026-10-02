@@ -454,7 +454,14 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   a tactic's source span → the state **entering** that tactic; otherwise the
   state after the last tactic that ended at or before the caret; before the
   first tactic → the root state (`step: -1`, `span` = the declaration's
-  range, goal = the full kernel-rendered declared type).
+  range, **goal = the remaining goal proposition and `binders` = the
+  declaration's ∀ binders**).
+- ⚠ **2026-10-02 更正（用户实测报的 bug）**：根状态原先规定为「goal = 声明类型
+  的**完整内核渲染文本** + 空 `binders`」✗ —— 那不是任何 Lean 意义上的证明状态：
+  定理的 ∀ 绑元在证明开始时就**已经引入上下文**，初始目标只剩命题本身（Lean
+  `goalsAt?` 同此）。旧行为让 Infoview 顶部显示整句量词式，且绑元被标成
+  `unknown_ident`（应为 `binder`）✗。真相层唯一实现
+  （`front::query::select_state_at`）与本节同步更正。
 - `goals` is the **full** remaining-goal list at that position (current goal
   first, `[]` = closed), each entry carrying its own `goal` text and
   `binders` — so a multi-subgoal tactic (`apply And.intro`) shows both

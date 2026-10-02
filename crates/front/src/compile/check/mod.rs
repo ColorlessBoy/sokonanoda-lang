@@ -32,6 +32,8 @@ pub(crate) enum PendingOp<'a> {
         /// Per-tactic states for a `by` value (empty otherwise), carried to
         /// the `DeclState` for `soko/stateAt`.
         by_steps: Vec<ByStepState>,
+        /// **根状态**（第一条 tactic 之前，见 `walk::by_root_state`）。
+        by_root: Option<crate::compile::report::ByGoalState>,
     },
     /// One whole `inductive ... end` block: the kernel validates each of its
     /// declarations (inductive spine, constructors, recursor rules).
@@ -71,6 +73,8 @@ pub(crate) enum PendingOp<'a> {
         cmd: usize,
         /// Per-tactic states for a `by` value (empty otherwise).
         by_steps: Vec<ByStepState>,
+        /// **根状态**（第一条 tactic 之前，见 `walk::by_root_state`）。
+        by_root: Option<crate::compile::report::ByGoalState>,
         /// 探针终审用的**环境可见前缀**：本练习若真被补完，它的名字会在
         /// `add_declar` 时占这个下标（= `builder.declaration_count()`），
         /// 所以 `EnvLimit::ByName(真名)` 与 `ByIndex(env_before)` 等价。
@@ -1487,6 +1491,7 @@ pub(crate) fn failed_state(
         sub_goals: Vec::new(),
         refine_template: None,
         by_steps: Vec::new(),
+        by_root: None,
         hints: Vec::new(),
         ty_text: None,
         val_text: None,

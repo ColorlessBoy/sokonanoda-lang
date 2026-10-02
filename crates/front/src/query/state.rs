@@ -21,8 +21,14 @@ pub struct StateSelection {
 ///   恰在 tactic 末尾算"之后"，不算"之内"）→ 该 tactic **执行前**的状态，
 ///   即第 `i-1` 条执行后的状态（`i == 0` 时为根状态）；
 /// - 否则取"最后一条在光标前（含恰好结束）结束的 tactic"之后的状态；
-/// - 根状态（`step: -1`）：**声明类型的内核渲染文本**（`ty_text`，未知时退回走查
-///   的剩余目标）+ **空 binders**，`span` = 声明范围；
+/// - 根状态（`step: -1`）：**第一条 tactic 之前的状态** = 声明的剩余目标
+///   （`goal`）+ **声明的 ∀ 绑元**（`binders`），`span` = 声明范围。
+///   ⚠ **2026-10-02 更正（用户实测报的 bug）**：这里原来渲的是**声明类型的内核
+///   文本**（`ty_text` ⇒ 整句 `∀ (a b : Prop), …`）+ **空 binders** —— 那不是
+///   任何 Lean 意义上的"证明状态" ✗：定理的 `∀` 绑元在证明开始时就**已经引入
+///   上下文**，初始目标只剩**命题本身**（Lean 的 `goalsAt?` 同此）。旧行为让
+///   Infoview 面板顶上显示整句量词式，且 `a`/`b` 被标成 `unknown_ident`
+///   （应是 `binder`）✗。协议原文同步更正（`docs/protocol.md` §`soko/stateAt`）。
 /// - **没有 `by` 块的声明**（`axiom`、lambda 前缀 + `sorry` 的半成品、已证完的
 ///   声明）：`step: -1`、`total: 0`，退回声明自己的剩余目标/上下文
 ///   （`goal` + `binders`；已闭合时为 `[]` ⇒ wire `goal: null`）。这与"根状态"
@@ -49,14 +55,30 @@ pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
             total: 0,
         };
     }
+    // 根状态 = **第一条 tactic 之前**的状态 —— 由走查在 lowering 时记下
+    // （`DeclState.by_root`：声明的 ∀ 绑元 + 剥掉它们之后的命题）。
+    //
+    // ⚠ **不能**用 `d.goal`/`d.binders` ✗：那是**洞处**的状态（走查引入的假设
+    // 已经进去了）——`by intro a; …; sorry` 的根状态会错成"洞处那一步"✗
+    // （实测：`and_swap` 的根状态被算成 `b ∧ a`，应为 `And a b → And b a`）。
+    // 也不能退回 `ty_text` + 空 binders ✗（声明类型不是证明状态，见上）。
+    // 三种声明写法要分开（Lean `goalsAt?` 同此）：
+    // ① **具名绑元**（`theorem t (a : Prop) : P := by`）⇒ 绑元在证明开始时已在
+    //    上下文里 ⇒ 用走查记下的 `by_root`（λ 前缀的绑元 + 剥掉它们之后的命题）✓；
+    // ② **箭头式类型**（`theorem t : (a : Prop) -> P := by`）⇒ 陈述里**没有**
+    //    具名绑元 ⇒ 初始目标就是整个 Pi 类型、上下文为空 ⇒ 退回 `ty_text` ✓
+    //    （`by_root` 为 `None`，因为值位没有 λ 前缀 ✓）；
+    // ③ 洞处状态（`d.goal`/`d.binders`）**任何时候都不许**用在这里 ✗ ——
+    //    它是"走查走到洞那一步"的状态，不是"第一条 tactic 之前"。
     let root = || StateSelection {
         goals: d
-            .ty_text
+            .by_root
             .clone()
-            .or_else(|| d.goal.clone())
-            .map(|ty| ByGoalState {
-                ty,
-                binders: Vec::new(),
+            .or_else(|| {
+                d.ty_text.clone().map(|ty| ByGoalState {
+                    ty,
+                    binders: Vec::new(),
+                })
             })
             .into_iter()
             .collect(),

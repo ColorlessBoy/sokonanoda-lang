@@ -28,37 +28,38 @@ fn doc(text: &str) -> QueryDoc {
     doc
 }
 
+/// 一个**具名绑元**的画布（`theorem t (a : Prop) : P := by`）—— 用户报的那一形。
+/// Lean `goalsAt?`：这种写法的 ∀ 绑元在证明开始时**已经在上下文里**，
+/// 初始目标只剩命题本身。
+const NAMED_BINDER_CANVAS: &str = "\
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+
+theorem named_root (a : Prop) (b : Prop) : And a b -> And b a := by
+  sorry
+";
+
 #[test]
 fn state_at_root_before_any_tactic() {
-    let doc = doc(CANVAS);
-    // `theorem and_swap` 那一行的第 1 列 = 根状态（第一条 tactic 之前）。
+    // ① **箭头式类型**（`theorem t : (a : Prop) -> P := by`）：陈述里没有具名
+    //    绑元 ⇒ 初始目标**就是整个 Pi 类型**、上下文为空（Lean 同此）——
+    //    这条行为**逐字不变**（用户判据：别把对的地方改坏）。
+    let canvas_doc = doc(CANVAS);
     let offset = CANVAS.find("theorem and_swap").expect("decl start");
-    let state = doc.state_at(offset).expect("root state is answerable");
+    let state = canvas_doc.state_at(offset).expect("root state is answerable");
     assert_eq!(
         state.decl.as_ref().map(|d| d.name.as_str()),
         Some("and_swap")
     );
     assert_eq!(state.step, -1, "before the first tactic = the root state");
-    // 协议 `soko/stateAt`：根状态（`step: -1`）= **完整声明类型的内核渲染文本**
-    // + **空 binders**，`span` = 声明范围（`docs/protocol.md`；VS Code 客户端
-    // 依赖这一条）。这不是"走查后的剩余目标"——那属于 tactic 之后的状态。
-    //
-    // **线 C（T-C20）之后**：这份文本还要过一遍**记法折叠**（`display::print_back`）
-    // ——`And a b` → `a ∧ b`。用户看的就是它（T-C01 实测：学习者的光标就在 tactic
-    // 上，所以他看到的是根状态），而"goal 里没有记法"正是用户报的那条。
-    // binder 的写法（`forall (a b : Prop), …`）与 `Type 0` 之类**逐字节保留**
-    // ——折叠按 span 拼接，只换记法那几段。
     assert_eq!(
         state.goal.as_deref(),
-        // T-D51：`forall` 关键字也折成 `∀`——**只换关键字那 6 个字节**，
-        // binder 分组（`(a b : Prop)`）与 `Type 0` 之类逐字节保留（上面那条
-        // 注释说的"按 span 拼接"就是这条纪律）。
-        Some("∀ (a b : Prop), a ∧ b → b ∧ a"),
-        "the root goal is the declared type, kernel-rendered + notation-folded"
+        Some("(a : Prop) → (b : Prop) → a ∧ b → b ∧ a"),
+        "arrow-style declaration: the initial goal is the whole Pi type"
     );
     assert!(
         state.binders.is_empty(),
-        "the root state has no hypotheses yet: {:?}",
+        "arrow-style declaration: no named binders to introduce: {:?}",
         state.binders
     );
     assert_eq!(
@@ -66,6 +67,53 @@ fn state_at_root_before_any_tactic() {
         state.decl.as_ref().map(|d| (d.start, d.end)),
         "the root span is the declaration's range"
     );
+
+    // ② **具名绑元**（用户实测报的 bug 现场）：∀ 绑元进 `binders`，`goal` 只剩
+    //    命题本身 —— 这才是 Lean 语义（旧行为把整句量词式当目标、绑元还掉进
+    //    `unknown_ident` ✗）。
+    let named_doc = doc(NAMED_BINDER_CANVAS);
+    let offset = NAMED_BINDER_CANVAS
+        .find("theorem named_root")
+        .expect("decl start");
+    let state = named_doc.state_at(offset).expect("root state is answerable");
+    assert_eq!(state.step, -1);
+    assert_eq!(
+        state.goal.as_deref(),
+        Some("a ∧ b → b ∧ a"),
+        "named binders: the root goal is the remaining proposition"
+    );
+    let names: Vec<&str> = state.binders.iter().map(|b| b.name.as_str()).collect();
+    assert_eq!(
+        names,
+        vec!["a", "b"],
+        "named binders must be in the context at the root state"
+    );
+    let tys: Vec<&str> = state.binders.iter().map(|b| b.ty.as_str()).collect();
+    assert_eq!(tys, vec!["Prop", "Prop"]);
+}
+
+/// **证明中途的状态逐字节不变**（用户判据：那是现在的正确基线）。
+///
+/// 这条钉的是 `step >= 0` 那条分支的**文本**：`select_state_at` 只改了"根状态"
+/// 那个闭包 ⇒ 中途状态按构造不变 ✓，但**构造不变**不等于**输出不变**（有人可能
+/// 顺手动了 goal 的折叠/绑定器渲染）⇒ 用逐字文本钉住 ✓。
+#[test]
+fn state_inside_a_tactic_is_byte_identical_to_the_baseline() {
+    let doc = doc(CANVAS);
+    // `intro h` 那一行之内 = 进入它之前的状态（`a`、`b` 已引入）。
+    let offset = CANVAS.find("  intro h").expect("tactic line");
+    let state = doc.state_at(offset).expect("state is answerable");
+    assert_eq!(state.step, 1, "entering `intro h` = after `intro b`");
+    assert_eq!(state.total, 6);
+    assert_eq!(
+        state.goal.as_deref(),
+        Some("a ∧ b → b ∧ a"),
+        "the remaining goal at that point"
+    );
+    let names: Vec<&str> = state.binders.iter().map(|b| b.name.as_str()).collect();
+    assert_eq!(names, vec!["a", "b"]);
+    let tys: Vec<&str> = state.binders.iter().map(|b| b.ty.as_str()).collect();
+    assert_eq!(tys, vec!["Prop", "Prop"]);
 }
 
 /// 没有 `by` 块的**半成品**证明（lambda 前缀 + `sorry`）：协议要求退回声明自己的
