@@ -271,6 +271,12 @@
       "renewed": "2026-10-03",
       "tier": "process"
     },
+    "docs/notes/course-implicit-census.md": {
+      "expires": "2027-01-01",
+      "renewed": "2026-10-03",
+      "tier": "record",
+      "reason": "登记 #5 普查结论件：数字表 + 抽样口径 + 86 处红的归属（待内核 U1/U2），是 #5 第 0 步的唯一结论文档（分档 record = 90 天）"
+    },
     "docs/notes/dsh-project-assets.md": {
       "expires": "2026-12-29",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 record = 90 天）",
@@ -304,13 +310,13 @@
   },
   "policy": {
     "_comment": "warn_days = 快过期提醒窗口（天，只提醒不阻塞）· tiers = 分档天数（entry/spec 12 个月 · process/record 3 个月）· max_renew_days = 单次续期上限（逼出周期性复审 ✓）。改这里 = 改机制 ⇒ 必须在 commit message 写理由 ✓。",
-    "max_renew_days": 731,
+    "warn_days": 30,
     "tiers": {
       "entry": 365,
+      "spec": 365,
       "process": 90,
-      "record": 90,
-      "spec": 365
+      "record": 90
     },
-    "warn_days": 30
+    "max_renew_days": 731
   }
 }
