@@ -238,10 +238,11 @@
             "surjection-composition",
             "bijection-composition",
             "comp-layer-equality",
-            "inverse-map"
+            "inverse-map",
+            "cantor-diagonal"
           ],
           "quota": {
-            "exercises": 51
+            "exercises": 55
           },
           "units": [
             {
@@ -303,6 +304,12 @@
               "title": "单元91 逆映射与双射代数",
               "title_en": "Unit 91 — Inverse Maps and Bijection Algebra",
               "unit": 91
+            },
+            {
+              "file": "units/unit94-cantor-diag.sokonanoda",
+              "title": "单元94 Cantor 对角线（函数版）",
+              "title_en": "Unit 94 — Cantor's Diagonal, Function Form",
+              "unit": 94
             }
           ]
         },

@@ -1,0 +1,60 @@
+-- ==========================================================================
+-- unit94-cantor-diag.sokonanoda —— 卷 I 单元94 **Cantor 对角线（函数版）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§6.1**（Cantor 定理）·
+--   Halmos《Naive Set Theory》**§22 / §23**。大纲 §4.1（**等势线的构造性收口** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 满射的定义（**到幂集**：`SurjOnSets α S` = 每个 `B : Set α` 都有原像 ✓）；
+--   · **旗舰：`¬ SurjOnSets α S`** ✓ —— **没有从 `α` 到它的幂集的满射** ✓，
+--     即 **Cantor 定理**（**构造性可证** ✓，**不需要选择公理、不需要排中** ✓）。
+--
+-- ⚠⚠ **换招换来的写法（第 661 轮判红四次后 ✓，值得记住）**：
+--   **`↔` 出现在"绑定注解"里、且右边是 `¬ …` 时解不出 `Sort(0)`** ✗
+--   （报「期望 `Sort(0)`，实际是 `Iff (S a a) (Not (S a a))`」✓）。  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+--   ⇒ **把那条假设拆成两条蕴含** ✓（`h1 : ∀ x, S a x → ¬ (S x x)` 与
+--   `h2 : ∀ x, ¬ (S x x) → S a x` ✓），**只在用的时候**用 `Iff.mp` / `Iff.mpr` ✓。
+--   —— 这条与手册里 def 展开 + 绑定注解那一族同源 ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元⑫/㊸（Cantor 与幂集）· 单元⑨（等势）· 单元87–93（函数与等势代数）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+def SurjOnSets (α : Type) (S : α → Set α) : Prop :=
+  ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x
+theorem demo_surjOnSets_def (α : Type) (S : α → Set α) :
+    SurjOnSets α S ↔ ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x :=
+  Iff.intro (SurjOnSets α S) (∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x)
+    (fun (h : SurjOnSets α S) => h)
+    (fun (h : ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x) => h)
+theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
+  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+theorem demo_iff_mp (P : Prop) (Q : Prop) (h : P ↔ Q) : P → Q :=
+  Iff.mp h-- 练习 1（T 类）：**满射的直接用法**（给 `B` 取原像）。
+-- 关键件：把假设直接作用（`h B`）
+theorem surjOnSets_apply (α : Type) (S : α → Set α) (h : SurjOnSets α S) (B : Set α) :
+    ∃ (a : α), ∀ (x : α), S a x ↔ B x := by
+  sorry
+-- 练习 2（L 类，**拆出来的证据引理**）：**对角线假设直接自我否定**（`∀x, S a x → ¬ S x x` ⇒ `S a a → False`）。
+-- 思路：在 `x := a` 处得 `S a a → ¬ S a a`，把它作用在 `S a a` 上。
+-- 关键件：`h1 a hx`（一次应用后**再作用一次**）
+theorem diag_ev (α : Type) (S : α → Set α) (a : α)
+    (h1 : ∀ (x : α), S a x → ¬ (S x x)) : S a a → False := by
+  sorry
+-- 练习 3（L 类）：**对角线集没有原像**（两条蕴含同时给出即矛盾）。
+-- 思路：由 `h2` 得 `S a a`（因为 `¬ S a a` 由练习 2 给出），再用练习 2 打自己。
+-- 关键件：练习 2（两次）· `h2 a`
+theorem diag_not_in_range (α : Type) (S : α → Set α) (a : α)
+    (h1 : ∀ (x : α), S a x → ¬ (S x x)) (h2 : ∀ (x : α), ¬ (S x x) → S a x) :
+    False := by
+  sorry
+-- 练习 4（L 类，**旗舰**）：**没有到幂集的满射**（Cantor 定理）。
+-- 思路：设 `h` 是满射；取对角线集 `fun x => ¬ (S x x)`，`h` 给出原像 `a` 与逐点 `↔`；把那条 `↔` **拆成两条蕴含**交给练习 3。
+-- 关键件：练习 1（取对角线集）· `Exists.elim` · `Iff.mp` / `Iff.mpr`（**拆开用** ✓）· 练习 3
+theorem diag_not_surj (α : Type) (S : α → Set α) : ¬ (SurjOnSets α S) := by
+  sorry

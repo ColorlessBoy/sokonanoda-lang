@@ -1,0 +1,39 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def SurjOnSets (α : Type) (S : α → Set α) : Prop :=
+  ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x
+
+theorem demo_surjOnSets_def (α : Type) (S : α → Set α) :
+    SurjOnSets α S ↔ ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x :=
+  Iff.intro (SurjOnSets α S) (∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x)
+    (fun (h : SurjOnSets α S) => h)
+    (fun (h : ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x) => h)
+
+theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
+  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+
+theorem demo_iff_mp (P : Prop) (Q : Prop) (h : P ↔ Q) : P → Q :=
+  Iff.mp h
+
+theorem surjOnSets_apply (α : Type) (S : α → Set α) (h : SurjOnSets α S) (B : Set α) :
+    ∃ (a : α), ∀ (x : α), S a x ↔ B x :=
+  h B
+
+theorem diag_ev (α : Type) (S : α → Set α) (a : α)
+    (h1 : ∀ (x : α), S a x → ¬ (S x x)) : S a a → False :=
+  fun (hx : S a a) => (h1 a hx) hx
+
+theorem diag_not_in_range (α : Type) (S : α → Set α) (a : α)
+    (h1 : ∀ (x : α), S a x → ¬ (S x x)) (h2 : ∀ (x : α), ¬ (S x x) → S a x) :
+    False :=
+  diag_ev α S a h1 (h2 a (diag_ev α S a h1))
+
+theorem diag_not_surj (α : Type) (S : α → Set α) : ¬ (SurjOnSets α S) :=
+  fun (h : SurjOnSets α S) =>
+    Exists.elim α (fun (a : α) => ∀ (x : α), S a x ↔ ¬ (S x x)) False
+      (surjOnSets_apply α S h (fun (x : α) => ¬ (S x x)))
+      (fun (a : α) (ha : ∀ (x : α), S a x ↔ ¬ (S x x)) =>
+        diag_not_in_range α S a (fun (x : α) (hx : S a x) => Iff.mp (ha x) hx)
+          (fun (x : α) (hx : ¬ (S x x)) => Iff.mpr (ha x) hx))
