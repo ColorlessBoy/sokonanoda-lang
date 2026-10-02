@@ -1,0 +1,110 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Ordinal
+
+theorem demo_ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h
+
+theorem demo_ordinal_wellFounded (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=
+  ordinal_wellFounded α E x h
+
+theorem demo_hasMin_elim (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_elim α r P h
+
+theorem ordinal_elems_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y :=
+  isOrdinal_intro α E y
+    (ordinal_elems_isTransitive α E x hx y hy)
+    (fun (z : α) (hz : E z y) =>
+      ordinal_elems_isTransitive α E x hx z
+        (ordinal_isTransitive α E x hx y hy z hz))
+    (ordinal_wellFounded α E x hx)
+
+theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFounded α r) :
+    ∀ (x : α), Acc α r x :=
+  fun (x : α) =>
+    Classical.byContradiction (Acc α r x)
+      (fun (hnx : ¬ Acc α r x) =>
+        Exists.elim α (fun (m : α) => ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) False
+          (hasMin_elim α r (fun (z : α) => ¬ Acc α r z)
+            (wellFounded_hasMin α r hwf (fun (z : α) => ¬ Acc α r z)
+              (Exists.intro α (fun (z : α) => ¬ Acc α r z) x hnx)))
+          (fun (m : α) (hm : ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) =>
+            (And.left (¬ Acc α r m) (∀ (y : α), ¬ Acc α r y → ¬ (r y m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+              (Acc.intro α r m (fun (y : α) (hy : r y m) =>
+                Classical.byContradiction (Acc α r y)
+                  (fun (hny : ¬ Acc α r y) =>
+                    (And.right (¬ Acc α r m) (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                      y hny hy)))))
+
+theorem ordinal_ind (α : Type) (E : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), IsOrdinal α E x → (∀ (y : α), E y x → motive y) → motive x) :
+    ∀ (x : α), IsOrdinal α E x → motive x :=
+  fun (x : α) (hx : IsOrdinal α E x) =>
+    acc_ind α E (fun (z : α) => IsOrdinal α E z → motive z)
+      (fun (z : α) (ih : ∀ (y : α), E y z → (IsOrdinal α E y → motive y)) =>
+        fun (hz : IsOrdinal α E z) =>
+          step z hz (fun (y : α) (hy : E y z) =>
+            ih y hy (ordinal_elems_ordinal α E z y hz hy)))
+      x (acc_of_wellFounded α E (ordinal_wellFounded α E x hx) x) hx
+
+theorem pred_subset_of_not_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihy : ∀ (v : α), E v y → IsOrdinal α E v → E x v ∨ x = v ∨ E v x)
+    (hxy : ¬ (E x y)) : ∀ (v : α), E v y → E v x :=
+  fun (v : α) (hvy : E v y) =>
+    Or.elim (E x v) (x = v ∨ E v x) (E v x)
+      (fun (hxv : E x v) =>
+        False.elim (E v x) (hxy (ordinal_isTransitive α E y hy v hvy x hxv)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (fun (h : x = v ∨ E v x) =>
+        Or.elim (x = v) (E v x) (E v x)
+          (fun (heq : x = v) =>
+            False.elim (E v x)
+              (hxy (Eq.subst.{1} α (fun (w : α) => E w y) v x (Eq.symm.{1} α x v heq) hvy)))
+          (fun (hvx : E v x) => hvx) h)
+      (ihy v hvy (ordinal_elems_ordinal α E y v hy hvy))
+
+theorem mem_of_exists_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w)
+    (hex : ∃ (w : α), E w x ∧ ¬ (E w y)) : E y x :=
+  Exists.elim α (fun (w : α) => E w x ∧ ¬ (E w y)) (E y x) hex
+    (fun (w : α) (hw : E w x ∧ ¬ (E w y)) =>
+      Or.elim (E w y) (w = y ∨ E y w) (E y x)
+        (fun (hwy : E w y) =>
+          False.elim (E y x)
+            ((And.right (E w x) (¬ (E w y)) hw) hwy))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (h : w = y ∨ E y w) =>
+          Or.elim (w = y) (E y w) (E y x)
+            (fun (heq : w = y) =>
+              Eq.subst.{1} α (fun (z : α) => E z x) w y heq (And.left (E w x) (¬ (E w y)) hw))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            (fun (hyw : E y w) =>
+              ordinal_isTransitive α E x hx w (And.left (E w x) (¬ (E w y)) hw) y hyw) h)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (ihx w (And.left (E w x) (¬ (E w y)) hw)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (ordinal_elems_ordinal α E x w hx (And.left (E w x) (¬ (E w y)) hw))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+
+theorem pred_subset_of_no_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) : ∀ (w : α), E w x → E w y :=
+  fun (w : α) (hwx : E w x) =>
+    Classical.byContradiction (E w y)
+      (fun (hnwy : ¬ (E w y)) =>
+        hno (Exists.intro α (fun (w' : α) => E w' x ∧ ¬ (E w' y)) w
+          (And.intro (E w x) (¬ (E w y)) hwx hnwy)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+
+theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w) :
+    E y x ∨ (∀ (w : α), E w x → E w y) :=
+  Or.elim (∃ (w : α), E w x ∧ ¬ (E w y)) (¬ (∃ (w : α), E w x ∧ ¬ (E w y)))
+    (E y x ∨ (∀ (w : α), E w x → E w y))
+    (fun (hex : ∃ (w : α), E w x ∧ ¬ (E w y)) =>
+      Or.inl (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (mem_of_exists_gap α E x y hx hy ihx hex))
+    (fun (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) =>
+      Or.inr (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (pred_subset_of_no_gap α E x y hno))
+    (Classical.em (∃ (w : α), E w x ∧ ¬ (E w y)))

@@ -456,10 +456,11 @@
             "succ-ordinal",
             "ordinal-no-cycle",
             "well-founded-recursion",
-            "ordinal-induction"
+            "ordinal-induction",
+            "trichotomy-halves"
           ],
           "quota": {
-            "exercises": 66
+            "exercises": 73
           },
           "units": [
             {
@@ -515,6 +516,12 @@
               "title": "单元107 ∈-归纳与序数三歧（上）",
               "title_en": "Unit 107 — ∈-Induction and Trichotomy (Part 1)",
               "unit": 107
+            },
+            {
+              "file": "units/I.6/unit108-trichotomy.sokonanoda",
+              "title": "单元108 序数三歧的「至少一个」半边（引理篇）",
+              "title_en": "Unit 108 — Trichotomy, the \"At Least One\" Half (Lemmas)",
+              "unit": 108
             }
           ]
         },

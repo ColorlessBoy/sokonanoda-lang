@@ -1,0 +1,90 @@
+-- ==========================================================================
+-- unit108-trichotomy.sokonanoda —— 卷 I 单元108 **序数三歧的「至少一个」半边（引理篇）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§7.4 定理 7M**（序数三歧）·
+--   Halmos《Naive Set Theory》**§18/§19**。大纲 §4.1（**卷 I 收官主线** ✓ —— 接单元107 ✓）。
+--
+-- 本单元的"该学的定理"（**三歧「至少一个」这一半的全部零件** ✓）：
+--   · **元素的序数性** ✓ · **桥**（良基 ⇒ 每点可达 `Acc` ✓）· **∈-归纳原理** ✓；
+--   · **半边一**（`pred_subset_of_not_mem` ✓）：若 `¬ E x y`，则 `y` 的元素都是 `x` 的元素 ✓
+--     —— 用**内层归纳假设** + `y` 的传递性 ✓；
+--   · **半边二**（`mem_of_exists_gap` ✓）：若 `x` 有元素不是 `y` 的元素（**缺口见证** ✓），
+--     则 `E y x` ✓ —— 用**外层归纳假设**三分情况 ✓；
+--   · **无缺口 ⇒ 包含**（`pred_subset_of_no_gap` ✓，用排中律逐点 ✓）；
+--   · **合起来**（`mem_or_pred_subset` ✓）：`E y x ∨ (∀ w, E w x → E w y)` ✓。
+--
+-- ⚠ **本单元的边界（如实标注 ✓）**：把上面两条半边**装配**成完整三歧
+--   （`E x y ∨ x = y ∨ E y x` ✓）还需要：**`E` 的外延性**（`∀z, E z x ↔ E z y ⇒ x = y` ✓ ——
+--   本课里 `E` 是**抽象关系** ✓，外延性是**假设**而不是定理 ✓）+ 两次归纳的 motive 接线 ✓。
+--   装配件在**下一单元** ✓；本单元交付的六条零件**全部判绿** ✓。
+--
+-- ⚠ **写法提醒**（本单元判红三次换来 ✓，值得记住）：① `Classical.em P` 给的是 **`P ∨ ¬P`** ✓
+--   ⇒ `Or.elim` 的**第二个命题位必须写 `¬ P`** ✗（写成别的命题会报类型不匹配 ✓）；
+--   ② 外层归纳的 step 要返回 **`∀ y'` 形式的 motive** ✓ ⇒ 内层归纳必须**用 λ 包住**再交出去 ✗；
+--   ③ `Eq.subst` 的**谓词**要选对槽（要 `E x y` 就写 `fun w => E w y` ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理与 prelude 的 `Classical.*` ✓。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Ordinal`。
+--
+-- 依赖：单元107（∈-归纳与「至多一个」半边 ✓）· 单元⑬⑭⑯㊵㊷ · 单元106（`Acc` ✓）
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Ordinal
+theorem demo_ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h
+theorem demo_ordinal_wellFounded (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=
+  ordinal_wellFounded α E x h
+theorem demo_hasMin_elim (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_elim α r P h-- 练习 1（L 类）：**序数的元素还是序数**。
+-- 关键件：`isOrdinal_intro`（**三点按序** ✓）· `ordinal_elems_isTransitive` · `ordinal_isTransitive`（**串两步** ✓）· `ordinal_wellFounded`
+theorem ordinal_elems_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y := by
+  sorry
+-- 练习 2（L 类，**桥**）：**良基 ⇒ 每个点都可达**。
+-- 思路：反证；取 `P := fun z => ¬ Acc α r z`（非空 ✓），良基性给**最小元** `m`（`hasMin_elim` 拆 ✓）；`m` 的前驱都不是"不可达" ⇒ 用排中律转成"可达" ⇒ 装出 `Acc α r m` ⇒ 与 `m` 冲突。
+-- 关键件：`Classical.byContradiction`（**两次** ✓）· `wellFounded_hasMin` · `hasMin_elim` · `Acc.intro` · `And.left` / `And.right`（写全 ✓）
+theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFounded α r) :
+    ∀ (x : α), Acc α r x := by
+  sorry
+-- 练习 3（L 类）：**∈-归纳原理**。
+-- 关键件：`ordinal_wellFounded` · 练习 2 · `acc_ind` · 练习 1 · motive 里带 `IsOrdinal` 前提 ✓
+theorem ordinal_ind (α : Type) (E : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), IsOrdinal α E x → (∀ (y : α), E y x → motive y) → motive x) :
+    ∀ (x : α), IsOrdinal α E x → motive x := by
+  sorry
+-- 练习 4（L 类，**半边一**）：**`¬ E x y` ⇒ `y` 的元素都是 `x` 的元素**。
+-- 思路：给 `v ∈ y`，用**内层归纳假设**三分：`E x v` ⇒ 由 `y` 的传递性得 `E x y`（与前提冲突 ✓）；`x = v` ⇒ 沿等式把 `E v y` 搬成 `E x y`（**`Eq.subst`** ✓，谓词 `fun w => E w y` ✓）冲突；`E v x` ⇒ 正是所求 ✓。
+-- 关键件：`Or.elim`（**动机位写肯定命题 `E v x`** ✓）· `ordinal_isTransitive`（**在 `y` 上、`v` 与 `x` 两处按序** ✓）· `Eq.subst` · `False.elim`（**写全目标** ✓）· `ordinal_elems_ordinal`（给 `v` 补序数性 ✓）
+theorem pred_subset_of_not_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihy : ∀ (v : α), E v y → IsOrdinal α E v → E x v ∨ x = v ∨ E v x)
+    (hxy : ¬ (E x y)) : ∀ (v : α), E v y → E v x := by
+  sorry
+-- 练习 5（L 类，**半边二**）：**缺口见证 ⇒ `E y x`**。
+-- 思路：把见证 `w`（`E w x` 且 `¬ E w y`）交给**外层归纳假设**三分：`E w y` 与 `¬ E w y` 冲突；`w = y` ⇒ 沿等式把 `E w x` 搬成 `E y x`（**`Eq.subst`** ✓）；`E y w` ⇒ 与 `E w x` 用 `x` 的传递性得 `E y x` ✓。
+-- 关键件：`Exists.elim` · `Or.elim` · `Eq.subst`（谓词 `fun z => E z x` ✓）· `ordinal_isTransitive`（**在 `x` 上** ✓）· 练习 1
+theorem mem_of_exists_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w)
+    (hex : ∃ (w : α), E w x ∧ ¬ (E w y)) : E y x := by
+  sorry
+-- 练习 6（L 类）：**没有缺口 ⇒ 包含**。
+-- 思路：给 `w ∈ x`；反证 —— 若 `¬ E w y` 则 `w` 就是缺口见证，与"没有缺口"冲突。
+-- 关键件：`Classical.byContradiction` · `Exists.intro` · `And.intro`（写全 ✓）
+theorem pred_subset_of_no_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) : ∀ (w : α), E w x → E w y := by
+  sorry
+-- 练习 7（L 类，**两条半边的合流**）：**`E y x ∨ (∀ w, E w x → E w y)`**。
+-- 思路：用排中律分「有没有缺口」；有缺口用练习 5 ✓，没有用练习 6 ✓。
+-- 关键件：`Classical.em`（**`P ∨ ¬P`** ✓ —— `Or.elim` 的**第二个命题位写 `¬ P`** ✓）· `Or.elim` · 练习 5 / 练习 6
+theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w) :
+    E y x ∨ (∀ (w : α), E w x → E w y) := by
+  sorry

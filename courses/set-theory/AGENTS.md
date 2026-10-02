@@ -529,3 +529,16 @@ def Classical.byContradiction : (p : Prop) -> (Not p -> False) -> p
 > **哪些旧单元的"边界标注"现在可以重做** ✓：单元57（`A \ B = ∅ ⇒ A ⊆ B` ✓）·
 > 单元101（空定义域造映射 ✗ 仍需非空前提 ✓）· 单元99/103（**Cantor–Bernstein** 的造链
 > 是否有 EM 就够 ✗ ⇒ **待重新诊断** ✓）。
+
+## **解答文件名必须以 `-solution.sokonanoda` 结尾**（2026-10-02 立的；**连着两轮踩** ✗）
+
+门禁发现解答的方式是「在 `units/solutions/**` 里 `rglob("*-solution.sokonanoda")`」✓，
+再**按单元号**与画布配对 ✓ ⇒ 解答文件名**只要不以 `-solution.sokonanoda` 结尾就找不到** ✗：
+
+* ✗ `unit108-trichotomy.sokonanoda`（照画布 slug 起名 ✗）⇒ 门禁报
+  **G2「目标文件不存在」** ✓（第 677、678 两轮各踩一次 ✓）；
+* ✓ `unit108-solution.sokonanoda`（**惯例** ✓）—— 也接受 `unit108-<slug>-solution.sokonanoda` ✓
+  （同样以 `-solution` 结尾、单元号可解析 ✓），但**惯例只有一条**：`unitNN-solution.sokonanoda` ✓。
+
+**一句话**：**画布**是 `unitNN-<slug>.sokonanoda` ✓，**解答**是 `unitNN-solution.sokonanoda` ✓ ——
+两边命名规则**不一样** ✗，别把画布的 slug 抄到解答上 ✓。
