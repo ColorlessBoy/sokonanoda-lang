@@ -14,7 +14,7 @@ use sokonanoda::env::{
     ConstructorData, Declar, DeclarInfo, RecRule, RecursorData, ReducibilityHint,
 };
 use sokonanoda::expr::BinderStyle;
-use sokonanoda::util::{ExprPtr, LevelPtr, NamePtr};
+use sokonanoda::util::{ExprPtr, LevelPtr, LevelsPtr, NamePtr};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -4275,6 +4275,11 @@ pub(crate) fn elab_expr<'a>(
                 ctx,
             )?;
             let out = builder.mk_app(fun, arg);
+            // **G-58/G-59（0.81.0）**：裸 `Foo.rec`（没写 `.{u}`）的消去层级默认成
+            // `0`（= Prop 动机）⇒「`Prop` 入、`Type` 出」与「`Type` 值归纳块消去到
+            // `Type`」都写不出来。这里用**期望类型的宇宙**把它补回来。
+            let out =
+                infer_recursor_universes(builder, known, ctx, scope, expr, out, expected_src)?;
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
@@ -5838,6 +5843,99 @@ fn level_from_u64<'a>(builder: &mut EnvBuilder<'a>, n: u64) -> LevelPtr<'a> {
         level = builder.succ(level);
     }
     level
+}
+
+/// **G-58/G-59（0.81.0）**：裸 `Foo.rec`（**没写 `.{u}`**）的消去层级，按
+/// **整个应用的期望类型的宇宙**补回来。
+///
+/// 为什么这是对的：递归子的结果类型就是 `motive major`，而 `motive : Ind → Sort u`
+/// ⇒ 期望类型必须与 `motive major` **定义相等** ⇒ `u` 就是期望类型所在的宇宙
+/// （`universe_level_text_of_operands` 问的正是这个）。Lean 4 里 `u` 由 elaboration
+/// 统一求出来，所以 `And.rec A B (fun _ => Type) …` 与 `MyBox.rec (fun _ => Type) …`
+/// 都是普通写法。
+///
+/// **四条闸门**（缺一条就原样返回 ⇒ 绝不比今天差）：
+/// * 头必须是**源级裸 `Ident` 且 `levels: None`** —— 用户写了 `.{u}` 就听用户的 ✗；
+/// * 头必须是某个归纳块的**递归子**，且它有消去层级（`rec_universe_arity > 0`）；
+/// * 这一层必须**有期望类型**（`#check` 之类没有 ⇒ 保持默认，逐字节不变）；
+/// * 推出来的层级必须**不是 0**（0 就是默认值 ⇒ 不用动，逐字节不变）。
+fn infer_recursor_universes<'a>(
+    builder: &mut EnvBuilder<'a>,
+    known: &KnownTable,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    src: &Expr,
+    out: ExprPtr<'a>,
+    expected_src: Option<&Expr>,
+) -> Result<ExprPtr<'a>, CompileError> {
+    let Some(expected) = expected_src else {
+        return Ok(out);
+    };
+    // prelude 安装期间**不推断**：那一段的慢路（`judge_infer` 合成 `#check`、整份重编）
+    // 看不见正在安装的 L1 名字（`And a b` 还没进环境）⇒ 就地路与慢路会**分叉**
+    // （实测被 `judge_inplace` 的 shadow 判据咬住），而且 prelude 自己的 `.rec`
+    // 用法全是 `Prop` 层级、不需要这条推断 ✓。
+    if prelude_install_active() {
+        return Ok(out);
+    }
+    let (head, _args) = crate::spine::spine_of(src);
+    // 只有**裸 `Ident`**（不带 `.{...}`）才补：`Foo.rec.{2}` 是 `UniverseApp`，
+    // 用户已经说了算 ⇒ 原样返回。
+    let Expr::Ident { name, .. } = head else {
+        return Ok(out);
+    };
+    let Some(info) = ctx.inductives.values().find(|i| i.recursor == *name) else {
+        return Ok(out);
+    };
+    let arity = info.rec_universe_arity;
+    if arity == 0 {
+        return Ok(out);
+    }
+    let level_text = {
+        let mut env = InplaceEnv {
+            builder: &mut *builder,
+            known,
+        };
+        infer_type_text(ctx, scope, expected, Some(&mut env))
+    };
+    // `u` = **期望类型所在的宇宙**（`R : Sort u`）。与 `match` 的动机层级用的是
+    // **同一个**口径（`infer_expected_level` ⇒ `sort_text_level`）。
+    let Some(u) = level_text
+        .as_deref()
+        .and_then(level_text_of_sort)
+        .and_then(|t| t.trim().parse::<u64>().ok())
+    else {
+        return Ok(out);
+    };
+    if u == 0 {
+        return Ok(out);
+    }
+    // 递归子的宇宙参数表是 `[消去层级, …归纳块自己的宇宙参数]`（内核 `mk_elim_level`），
+    // 后面的照旧默认 0（与今天一致）。
+    let mut levels: Vec<LevelPtr<'a>> = Vec::with_capacity(arity);
+    levels.push(level_from_u64(builder, u));
+    for _ in 1..arity {
+        levels.push(builder.zero());
+    }
+    let levels = builder.alloc_levels_slice(&levels);
+    Ok(relabel_app_head(builder, out, levels))
+}
+
+/// 把一条已 elaborate 的**应用脊**的头常量换成另一个宇宙层级表（G-58/G-59 用）。
+/// 头不是 `Const` ⇒ 原样返回。
+fn relabel_app_head<'a>(
+    builder: &mut EnvBuilder<'a>,
+    e: ExprPtr<'a>,
+    levels: LevelsPtr<'a>,
+) -> ExprPtr<'a> {
+    match &*e {
+        sokonanoda::expr::Expr::App { fun, arg, .. } => {
+            let fun = relabel_app_head(builder, *fun, levels);
+            builder.mk_app(fun, *arg)
+        }
+        sokonanoda::expr::Expr::Const { name, .. } => builder.mk_const(*name, levels),
+        _ => e,
+    }
 }
 
 /// Whether any sub-expression of `e` uses the identifier `name` (mirror of

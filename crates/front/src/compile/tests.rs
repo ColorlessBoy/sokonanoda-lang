@@ -2067,18 +2067,25 @@ axiom Quot {u} : {A : Sort u} -> Sort u
 /// **G-58 / G-59 的判据（v0.77.0 · ST15 的第一批条目）**：把「大消去不可用」
 /// 的**当前行为**钉住，防漂移。
 ///
-/// 为什么要有它：`docs/gaps/ledger.jsonl` 的 G-58/G-59 记的是**本版不修**的
-/// kernel 不足 ⇒ 需要一条判据说「今天就是这个形状」；哪天有人修好了，
-/// 这条判红、逼他回来更新台账与 ST7/ST9 的排期 ✓。
+/// **G-58/G-59（0.81.0）已修**：`Prop` 归纳块与 `Type` 值归纳块都能**大消去**。
 ///
-/// 三条断言：
-///   ① `Prop` 值归纳块消去**到 Prop** 可以（对照组，证明不是写错 recursor）；
-///   ② 同一块消去**到 Type** 被拒（G-58）；
-///   ③ `Type` 值归纳块的**默认** `rec` motive 是 `Prop`，**显式 `.{1}`** 才是
-///      `Type`（G-59；这也是本版可用的绕法 ✓）。
+/// ⚠ 这条判据原来是「**不可用**」的三条断言（②③ 断言判红）。修好之后它
+/// **必须整条翻面**，否则会变成**假绿** —— 实测：旧断言②只找 `"Sort(0)"` 这
+/// 五个字符，而修好后那条报错里 `实际是 Sort(0)` **照样出现**（错的是 minor
+/// premise，不再是 motive 的层级）⇒ 旧判据会继续"通过"，而它断言的行为早已不存在 ✗。
+///
+/// 现在钉的是**新行为**（三条都判绿，都用完整内核判定），外加两条**反面**：
+///   * 显式 `.{1}` 配 `Type` 的 motive **仍然**判红（`Sort(1)` vs `Sort(2)`）——
+///     用户写了 `.{n}` 就**完全听用户的**，推断不许插手；
+///   * 「correct call」以外的形状仍然判红（`And.rec A B (fun _ => Type) A B h`
+///     把参数顶在 minor premise 位上 ⇒ 仍然错）。
+///
+/// 推断本身（`elab.rs::infer_recursor_universes`）的边界：**只看期望类型的宇宙**；
+/// 没有期望类型（`#check` 那一档）就保持默认 0 ⇒ `#check MyBox.rec` 的显示
+/// 仍是 `motive : MyBox -> Prop`（渲染，不是判定；如实留着）。
 #[test]
-fn g58_g59_large_elimination_is_unavailable() {
-    // ① 对照组：消去到 Prop ✓
+fn g58_g59_large_elimination_is_available() {
+    // ① 对照组：消去到 Prop ✓（修复前后都过）
     let prop_ok = compile_fol(&parse(
         "theorem prop_elim (A B : Prop) (h : A ∧ B) : B := And.rec A B (fun (_ : A ∧ B) => B) (fun (ha : A) (hb : B) => hb) h\n",
     ).unwrap());
@@ -2089,47 +2096,68 @@ fn g58_g59_large_elimination_is_unavailable() {
         prop_ok.errors
     );
 
-    // ② G-58：消去到 Type ✗
+    // ② G-58：`And`（字段全是 Prop 的单构造子归纳命题）消去到 `Type` ✓
     let large = compile_fol(&parse(
-        "def andToType (A B : Prop) (h : A ∧ B) : Type := And.rec A B (fun (_ : A ∧ B) => Type) A B h\n",
+        "def andToType (A B : Prop) (h : A ∧ B) : Type := And.rec A B (fun (_ : A ∧ B) => Type) (fun (ha : A) (hb : B) => Nat) h\n",
     ).unwrap());
-    assert!(
-        large.errors.iter().any(|e| e.message.contains("Sort(0)")),
-        "G-58：`And` 消去到 `Type` 今天必须被拒（motive 被钉在 `Sort(0)`）：{:?}",
+    assert_eq!(
+        large.errors,
+        vec![],
+        "G-58：`And` 消去到 `Type` 必须判绿（消去层级从期望类型推出来）：{:?}",
         large.errors
     );
+    assert!(
+        large
+            .events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "andToType")),
+        "`andToType` 要真的判绿：{:?}",
+        large.events
+    );
 
-    // ③ G-59：`Type` 值块的默认 motive 是 Prop；显式 `.{1}` 才对
+    // ③ G-59：`Type` 值块的裸 `Foo.rec`（不写 `.{n}`）消去到 `Type` ✓
     let prefix = "inductive MyBox : Type\nctor MyBox.mk (n : Nat) : MyBox\nend\n";
     let default_ty =
         crate::judge::judge_infer(prefix, &CompileOptions::default(), &[], "MyBox.rec")
             .expect("MyBox.rec 可解析");
     assert!(
         default_ty.contains("-> Prop"),
-        "G-59：`MyBox.rec` 的**默认** motive 今天是 `Prop`（防漂移）：{default_ty}"
+        "G-59（**已知显示边界**）：`#check MyBox.rec` 的默认 motive 仍是 `Prop` \
+         —— 那是签名渲染（没有宇宙变量这一档），判定已由推断补上：{default_ty}"
     );
-    let explicit_ty =
-        crate::judge::judge_infer(prefix, &CompileOptions::default(), &[], "MyBox.rec.{1}")
-            .expect("MyBox.rec.{1} 可解析");
-    assert!(
-        explicit_ty.contains("-> Type 0"),
-        "G-59：显式 `.{{1}}` 的 motive 必须是 `Type 0`（本版绕法 ✓）：{explicit_ty}"
-    );
-    // ⚠ **实测更正**：显式 `.{1}` **也不够** —— `MyBox.rec.{1}` 的 motive 是
-    // `MyBox → Sort 1`，而 `Type`/`Type 0` 的 motive 是 `Sort 2` ⇒ 仍判红
-    // （`期望 Pi (x : MyBox), Sort(1)`，`实际 Pi (_ : MyBox), Sort(2)`）。
-    // ⇒ **本版没有绕法**：`Type` 值归纳块的 recursor **消去不到 `Type`**
-    // （G-59 比台账最初记的更重）。这里断言**当前行为**防漂移。
+    for body in ["MyBox.rec", "MyBox.rec.{2}"] {
+        let out = compile_fol(&parse(&format!(
+            "{prefix}def boxElim (h : MyBox) : Type := {body} (fun (_ : MyBox) => Type) (fun (n : Nat) => Nat) h\n"
+        )).unwrap());
+        assert_eq!(
+            out.errors,
+            vec![],
+            "G-59：`{body}` 消去到 `Type` 必须判绿：{:?}",
+            out.errors
+        );
+    }
+
+    // ④ **反面**：显式 `.{1}` 与 `Type` 的 motive 不匹配 —— 推断**不许**覆盖用户写的层级
     let explicit_fail = compile_fol(&parse(&format!(
-        "{prefix}def boxElim (h : MyBox) : Type := MyBox.rec.{{1}} (fun (_ : MyBox) => Type) (fun (n : Nat) => Nat) h\n"
+        "{prefix}def boxElim1 (h : MyBox) : Type := MyBox.rec.{{1}} (fun (_ : MyBox) => Type) (fun (n : Nat) => Nat) h\n"
     )).unwrap());
     assert!(
         explicit_fail
             .errors
             .iter()
-            .any(|e| e.message.contains("Sort(1)")),
-        "G-59：显式 `.{{1}}` 消去到 `Type` 今天**仍被拒**（防漂移）：{:?}",
+            .any(|e| e.message.contains("Sort(1)") && e.message.contains("Sort(2)")),
+        "显式 `.{{1}}` 配 `Type` 的 motive 必须仍判红（`Sort(1)` vs `Sort(2)`）：{:?}",
         explicit_fail.errors
+    );
+
+    // ⑤ **反面**：调用本身不成形仍然判红（参数顶在 minor premise 位上）
+    let malformed = compile_fol(&parse(
+        "def bad (A B : Prop) (h : A ∧ B) : Type := And.rec A B (fun (_ : A ∧ B) => Type) A B h\n",
+    ).unwrap());
+    assert!(
+        !malformed.errors.is_empty(),
+        "不成形的调用必须仍判红：{:?}",
+        malformed.errors
     );
 }
 

@@ -1,27 +1,38 @@
--- G-56 探针 ③：**住在 `Type` 的归纳块，`#check` 的默认 motive 也是 `Prop`**。
+-- **G-59 复现件：住在 `Type` 的归纳块，递归子的消去层级也要对**
 --
--- 期望：**1 条 `decl.checked`（`MyBox` 本身）+ 1 条诊断**，逐字为：
---     kernel-rejected /
---     「类型不匹配：期望 `Pi (x : MyBox.[]), Sort(0)`，实际是 `Pi (_ : MyBox.[]), Sort(2)`」
+-- 现象（2026-09-28 记录）：`#check MyBox.rec` 给 `motive : MyBox -> Prop`（默认 0），
+-- `#check MyBox.rec.{1}` 给 `motive : MyBox -> Type 0`（这一半对），而
+-- `MyBox.rec.{1} (fun _ => Type) …` 仍判红 —— `Type`（`Sort 1`）作 motive 的**体**时
+-- motive 的类型是 `MyBox -> Sort 2` ⇒ `.{1}` 不够、要 `.{2}`。
 --
--- 这条记录的是一个**未定位**的异常（ST15 的第一批条目之一）：
---   · `#check MyBox.rec` ⇒ `motive : MyBox -> Prop`（**默认 motive 是 Prop** ✗）
---   · `#check MyBox.rec.{1}` ⇒ `motive : MyBox -> Type 0` ✓（显式给宇宙就对）
---   · 内核**探针实测**（临时插 `eprintln`，已还原）：这个块的
---     `large_elim_test` 返回 **true**、`is_nonzero = Some(true)`、`mk_elim_level: LARGE`
---     ⇒ **内核自己认为该大消去**，但默认（不带 `.{1}`）的 motive 仍是 `Prop`。
---   · ⇒ 疑似**前端派生递归子的宇宙参数默认值**与内核期望不一致（**不是** G-56 的
---     `Acc` 那条，是独立的一条）。**根因未定位**（时间盒到了）。
+-- ─────────────────────────────────────────────────────────────────────────────
+-- **已修（G-58/G-59，0.81.0）**：根因**不在内核**（`large_elim_test` 对这个块返回
+-- **true**、`mk_elim_level: LARGE` —— 内核本来就放行），而在**前端**：
+-- 裸 `MyBox.rec`（不写 `.{u}`）的宇宙实参**默认成 0**，没有从用法推断 ⇒ motive 被
+-- 钉死在 `Sort 0` ✗。Lean 4 里 `u` 由 elaboration 统一求出来 ✓。
 --
--- ⚠ **实测更正：显式 `.{1}` 也不够** —— `MyBox.rec.{1}` 的 motive 是 `MyBox → Sort 1`，
--- 而 `Type`/`Type 0` 的 motive 是 `Sort 2` ⇒ 仍判红（`Sort(1)` vs `Sort(2)`）。
--- ⇒ **本版没有绕法**（比最初记的更重）。
+-- 修法见 `crates/front/src/compile/elab.rs::infer_recursor_universes`：裸递归子
+-- 应用的消去层级**从期望类型的宇宙推断**（本文件的期望类型是 `Type` ⇒ `u = 2`）。
+-- 显式 `.{n}` 仍然完全听用户的（`UniverseApp` 不经过这条推断）。
+--
+-- ⚠ 仍然**没做**的一件事：`#check MyBox.rec` 的**显示**还是默认 0（`motive : MyBox -> Prop`）
+-- —— 那是签名文本的渲染，不是判定；Lean 4 会显示 `MyBox.rec.{u}`（宇宙变量）。
+-- 本语言的 `known` 签名没有宇宙变量这一档 ⇒ 如实留着（不影响任何判定）。
+-- ─────────────────────────────────────────────────────────────────────────────
 --
 -- 本文件自足（无 `import`）⇒ `--no-project` 单文件判卷即可。
--- 判据：`docs/gaps/ledger.jsonl` 的 G-56（`repro_expect: rejected`）。
+-- 判据：`docs/gaps/ledger.jsonl` 的 G-59（status=fixed ⇒ 本文件必须**判绿**）。
 
 inductive MyBox : Type
 ctor MyBox.mk (n : Nat) : MyBox
 end
 
+-- 缺口本体：不再写 `.{2}`，层级由期望类型 `Type` 推出来
 def boxElim (h : MyBox) : Type := MyBox.rec (fun (_ : MyBox) => Type) (fun (n : Nat) => Nat) h
+
+-- 显式写法必须**继续可用**（两条路都要能走）
+def boxElimExplicit (h : MyBox) : Type :=
+  MyBox.rec.{2} (fun (_ : MyBox) => Type) (fun (n : Nat) => Nat) h
+
+-- 落回 `Type 0` 的那一档也必须能写（期望类型是 `Nat` ⇒ 层级 1）
+def boxElimNat (h : MyBox) : Nat := MyBox.rec (fun (_ : MyBox) => Nat) (fun (n : Nat) => n) h

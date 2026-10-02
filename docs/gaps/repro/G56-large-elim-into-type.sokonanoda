@@ -1,25 +1,44 @@
--- G-56 探针 ②：**大消去（large elimination）不可用** —— 住在 `Prop` 的归纳类型
--- 消去不到 `Type`。
---
--- 期望：**0 条 `decl.checked`，1 条诊断**，逐字为：
---     kernel-rejected /
---     「类型不匹配：期望 `Pi (x : ((And.[] $2) $1)), Sort(0)`，
---       实际是 `Pi (_ : ((And.[] $2) $1)), Sort(2)`」
+-- **G-58 复现件：`Prop` 归纳块的大消去（large elimination）** —— 消去到 `Type`。
 --
 -- 为什么它决定 ST7 的成败：`Acc` 住在 `Prop`，而 `rank` 要返回 `Ordinal`（在 `Type`）
--- ⇒ **即使 `Acc` 声明成功，rank 也返回不了序数** ✗。实测：**被拒**。
+-- ⇒ **即使 `Acc` 声明成功，rank 也返回不了序数** ✗（`Prop` 入、`Type` 出的定义）。
 --
--- 机制（`crates/kernel/src/inductive.rs`，**只读**结论）：
---   `mk_elim_level` 问 `large_elim_test`；为 false ⇒ `st.elim_level = Some(zero())`
---   ⇒ `mk_motive_dep` 把 motive 建成 `major → Sort(0)`（= Prop）⇒ 用户写 `Sort(2)`
---   的 motive 判红。对 Prop 值归纳块，`large_elim_test` 走 `large_elim_test_aux`
---   （要求「每个非 Prop 的构造子字段都是参数或指标」）—— `And`（字段全是 Prop）
---   **应当**通过，但实测没通过。**根因未定位**（时间盒到了，留给 ST15）。
+-- ─────────────────────────────────────────────────────────────────────────────
+-- **已修（G-58/G-59，0.81.0）**。台账原文把根因记成「`large_elim_test` 对 `And`
+-- 返回 false」——**不成立**。实测（`#check And.rec.{1}` / `And.rec.{2}`）：
+--   · `And.rec` **有**消去层级（motive `And a b -> Sort u`）✓ —— 内核放行了大消去；
+--   · 真正的根因在**前端**：裸 `And.rec`（不写 `.{u}`）的宇宙实参**默认成 0**
+--     （`elab.rs` 的 `levels.map(|_| builder.zero())`）⇒ motive 被钉死在 `Sort 0`
+--     ⇒ 「`Prop` 入、`Type` 出」写不出来 ✗（Lean 4 里 `u` 由 elaboration 统一求出来）。
+--   · 修法：`infer_recursor_universes` —— 裸递归子应用的消去层级**从期望类型的宇宙
+--     推断**（`R : Sort u`，而结果类型 `motive major ≡ R`）。四条闸门：头是裸
+--     `Ident` / 是归纳块的递归子且有消去层级 / 这一层有期望类型 / 推出来的不是 0。
 --
--- 对照组（同一条路、消去到 `Prop`）：**checked** ✓ ⇒ 不是"写错了 recursor"。
+-- **本文件同时更正了原来的调用形状**：原文写的是
+--     `And.rec A B (fun (_ : A ∧ B) => Type) A B h`
+-- —— 它比递归子多给一个实参，而且把**参数** `A B` 顶在**minor premise** 位上
+-- （minor 要的是 `∀ ha hb, motive (And.intro ha hb)`）。所以那条判红里**混着两个
+-- 错误**：motive 的层级默认 0、以及调用本身不成形。下面改成**正确形状**。
+-- ─────────────────────────────────────────────────────────────────────────────
 --
+-- 对照组（消去到 `Prop`）：`And.rec A B (fun _ => B) (fun ha hb => hb) h` —— 一直 checked ✓。
 -- 本文件自足（无 `import`）⇒ `--no-project` 单文件判卷即可。
--- 判据：`docs/gaps/ledger.jsonl` 的 G-56（`repro_expect: rejected`）。
+-- 判据：`docs/gaps/ledger.jsonl` 的 G-58（status=fixed ⇒ 本文件必须**判绿**）。
 
+-- ① 缺口本体：`And`（字段全是 `Prop` 的单构造子归纳命题）**消去不到 `Type`** ✗
 def andToType (A B : Prop) (h : A ∧ B) : Type :=
-  And.rec A B (fun (_ : A ∧ B) => Type) A B h
+  And.rec A B (fun (_ : A ∧ B) => Type) (fun (ha : A) (hb : B) => Nat) h
+
+-- ② 内核注释里那个「**允许**大消去」的正例（非 Prop 字段恰好是**指标**）
+inductive MyTypeLarge (A : Type) : Nat → Prop
+ctor mk (n : Nat) : MyTypeLarge A n
+end
+
+-- ③ 带**指标**的那一形也真的能大消去（内核注释里的 `MyTypeLarge` 正例；
+--    索引归纳的 motive 吃**指标 + 值**两层）
+def largeElim (A : Type) (n : Nat) (h : MyTypeLarge A n) : Type :=
+  MyTypeLarge.rec A (fun (i : Nat) (x : MyTypeLarge A i) => Type) (fun (k : Nat) => Nat) n h
+
+-- ④ 换一个 `Type 0` 的 motive（不是只有 `Nat` 才行）
+def andToTypeFn (A B : Prop) (h : A ∧ B) : Type :=
+  And.rec A B (fun (_ : A ∧ B) => Type) (fun (ha : A) (hb : B) => Nat -> Nat) h
