@@ -30,16 +30,17 @@
 1. **现在就能改**（判绿）= **280 处 / 68 文件** ✓（其中 15 个文件**全绿** ⇒ 29 处可整批 ✓）。
 2. **U1/U2 落地后可直接批量改的清单 = 540 处 / 98 文件** ✓（= 现绿 280 + 桶① 260 ✓）。
 3. **桶② 26 + 桶④ 14 = 40 处**不属 U1/U2 那一族 ⇒ 要另判（② 是隐式实参补不出、④ 报文不可读 ✓）。
-4. **桶③ = 0** ⇒ 机械类里没有"派生记法"问题 ✓（记法类的 1560 处全在"需手工"里 ✓）。
-5. 逐处清单：`gaps/census-ledger.json` 里 `verdict == "green" | "red"` 的行（含 `bucket` 与 `diag` ✓）。
+4. **桶③ = 0** ⇒ 机械类里没有"派生记法"问题 ✓；逐处清单 = `gaps/census-ledger.json`（含 `bucket`/`diag` ✓）
+   + **落地清单** `gaps/census-batch-plan.json`（file:line + 改前→改后 + 分组 ✓），校验：
+   `python3 courses/set-theory/tools/census-plan.py`（dry-run、只读、exit 0 = 与树逐条一致 ✓）。
 
 ## 四、复现（三条命令）
 
 ```bash
-python3 scripts/notation-lint.py --census-classes                    # 分类（秒级 ✓）
-python3 scripts/notation-lint.py --census --census-limit 40          # 小批量「绿 x / 红 y」（复跑 19/21 ✓）
+python3 scripts/notation-lint.py --census-classes   # 分类（秒级 ✓）· 加 --census --census-limit 40 = 小批量「绿 x / 红 y」（复跑 19/21 ✓）
 python3 scripts/notation-lint.py --census-batch --census-out /tmp/led.json   # 全量（按文件分组 ✓）
 ```
 
-> ⚠ **本棒零内容改动** ✓（只写本文件与 `gaps/census-ledger.json` 两处账目 ✓、无 commit ✓）；**判绿的 280 处先不改** ✓。
+> ⚠ **本棒零内容改动** ✓（只写账目与清单 ✓）；**判绿的 280 处先不改** ✓。
+> ⚠ **#5 剩余块是否已被内核 G-85 解锁，待确认** —— 05:30 判定：**未解锁** ✗（`soko version --json` 解析到**仓库构建** `target/debug/sokonanoda`，mtime **04:31** 早于 G-85 修复 `93ecc197` 的 **04:50** ⇒ 不含修复 ⇒ **未空测** ✓）。
 > ⚠ 全仓 `notation-lint` 仍 exit 1 **只因内核线在途探针** `gaps/zz-u12*/`（未跟踪 ✓）；课程内容 `--root` 限定后 **exit 0** ✓。
