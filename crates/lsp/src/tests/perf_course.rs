@@ -21,9 +21,9 @@ use super::*;
 /// 真实课程里量哪几个入口（相对 `courses/set-theory/`）。
 /// 括号里是 2026-09-21 的修前实测，作为判读时的对照。
 const COURSE_ENTRIES: &[(&str, &str)] = &[
-    ("units/unit01-sets-membership.sokonanoda", "1.8s"),
-    ("units/unit08-images-preimages.sokonanoda", "4.6s"),
-    ("units/unit12-synthesis.sokonanoda", "8.5s"),
+    ("units/I.1/unit01-sets-membership.sokonanoda", "1.8s"),
+    ("units/I.3/unit08-images-preimages.sokonanoda", "4.6s"),
+    ("units/I.4/unit12-synthesis.sokonanoda", "8.5s"),
 ];
 
 /// 课程目录（相对 `crates/lsp/`）。找不到就跳过——课程仓与语言仓可以分开检出。
@@ -164,7 +164,7 @@ async fn perf_course_by_block_is_recorded() {
     let (mut service, mut socket) = test_service();
     testutil::handshake_with_root(&mut service, &root).await;
 
-    let rel = "units/solutions/unit12-solution.sokonanoda";
+    let rel = "units/solutions/I.4/unit12-solution.sokonanoda";
     let (ms, diagnostics, _uri) = open_course_unit(&mut service, &mut socket, &root, rel).await;
     println!("PERF course lsp: didOpen {rel} = {ms}ms（{diagnostics} 条诊断；修前基线 36.1s）");
     perf_json(serde_json::json!({
@@ -192,7 +192,7 @@ async fn perf_course_keystroke_is_recorded() {
     let (mut service, mut socket) = test_service();
     testutil::handshake_with_root(&mut service, &root).await;
 
-    let rel = "units/unit08-images-preimages.sokonanoda";
+    let rel = "units/I.3/unit08-images-preimages.sokonanoda";
     let path = root_dir.join(rel);
     let text = std::fs::read_to_string(&path).expect("读课程单元");
     // 规范化（同 `open_course_unit`）：`root_dir` 是从 `CARGO_MANIFEST_DIR/../..`
@@ -264,7 +264,7 @@ async fn perf_course_save_same_text_is_recorded() {
     let (mut service, mut socket) = test_service();
     testutil::handshake_with_root(&mut service, &root).await;
 
-    let rel = "units/unit08-images-preimages.sokonanoda";
+    let rel = "units/I.3/unit08-images-preimages.sokonanoda";
     let path = root_dir.join(rel);
     let text = std::fs::read_to_string(&path).expect("读课程单元");
     // 规范化（同 `open_course_unit`）：`root_dir` 是从 `CARGO_MANIFEST_DIR/../..`
@@ -320,7 +320,7 @@ async fn perf_course_watched_unchanged_file_is_recorded() {
     let (mut service, mut socket) = test_service();
     testutil::handshake_with_root(&mut service, &root).await;
 
-    let rel = "units/unit08-images-preimages.sokonanoda";
+    let rel = "units/I.3/unit08-images-preimages.sokonanoda";
     let path = root_dir.join(rel);
     let text = std::fs::read_to_string(&path).expect("读课程单元");
     // 规范化（同 `open_course_unit`）：`root_dir` 是从 `CARGO_MANIFEST_DIR/../..`

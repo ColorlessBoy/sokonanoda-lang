@@ -39,9 +39,9 @@ ROOT="$PWD/courses/set-theory"
 [ -d "$ROOT" ] || { echo "找不到课程根：$ROOT" >&2; exit 2; }
 
 DEFAULT_ENTRIES=(
-  "units/solutions/unit08-solution.sokonanoda:Exists,Image,Logic,Set"
-  "units/solutions/unit12-solution.sokonanoda:Equiv,Exists,Fun,Image,Logic,Rel,Set"
-  "units/unit05-pairs-products.sokonanoda:Logic,Prod,Set"
+  "units/solutions/I.3/unit08-solution.sokonanoda:Exists,Image,Logic,Set"
+  "units/solutions/I.4/unit12-solution.sokonanoda:Equiv,Exists,Fun,Image,Logic,Rel,Set"
+  "units/I.2/unit05-pairs-products.sokonanoda:Logic,Prod,Set"
 )
 ENTRIES=("$@"); [ "${#ENTRIES[@]}" -gt 0 ] || ENTRIES=("${DEFAULT_ENTRIES[@]}")
 
@@ -87,7 +87,7 @@ echo "| 入口 | 闭包 | A 整条闭包（冷, s） | B 只编依赖（冷, s�
 echo "|---|---|---|---|---|"
 for spec in "${ENTRIES[@]}"; do
   entry="${spec%%:*}"; libs="${spec#*:}"
-  [ "$entry" = "$spec" ] && { echo "用法：<入口相对路径>:<逗号分隔的依赖>，例：units/unit05-pairs-products.sokonanoda:Logic,Prod,Set" >&2; exit 2; }
+  [ "$entry" = "$spec" ] && { echo "用法：<入口相对路径>:<逗号分隔的依赖>，例：units/I.2/unit05-pairs-products.sokonanoda:Logic,Prod,Set" >&2; exit 2; }
   a1=$(full_once "$entry"); a2=$(full_once "$entry")
   b1=$(deps_once "$libs");   b2=$(deps_once "$libs")
   python3 - "$entry" "$libs" "$a1" "$a2" "$b1" "$b2" <<'PY'

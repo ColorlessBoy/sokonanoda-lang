@@ -117,7 +117,7 @@
       "before_ms_note": "1.8s",
       "case": "did_open",
       "diagnostics": 6,
-      "entry": "units/unit01-sets-membership.sokonanoda",
+      "entry": "units/I.1/unit01-sets-membership.sokonanoda",
       "ms": 932,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
@@ -126,7 +126,7 @@
       "before_ms_note": "4.6s",
       "case": "did_open",
       "diagnostics": 9,
-      "entry": "units/unit08-images-preimages.sokonanoda",
+      "entry": "units/I.3/unit08-images-preimages.sokonanoda",
       "ms": 2528,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
@@ -135,35 +135,35 @@
       "before_ms_note": "8.5s",
       "case": "did_open",
       "diagnostics": 9,
-      "entry": "units/unit12-synthesis.sokonanoda",
+      "entry": "units/I.4/unit12-synthesis.sokonanoda",
       "ms": 5035,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "did_open_same_session",
-      "entry": "units/unit01-sets-membership.sokonanoda",
+      "entry": "units/I.1/unit01-sets-membership.sokonanoda",
       "ms": 217,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "keystroke",
-      "entry": "units/unit08-images-preimages.sokonanoda",
+      "entry": "units/I.3/unit08-images-preimages.sokonanoda",
       "ms": 648,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "save_same_text",
-      "entry": "units/unit08-images-preimages.sokonanoda",
+      "entry": "units/I.3/unit08-images-preimages.sokonanoda",
       "ms": 6,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "watched_unchanged",
-      "entry": "units/unit08-images-preimages.sokonanoda",
+      "entry": "units/I.3/unit08-images-preimages.sokonanoda",
       "ms": 5,
       "schema": "soko.perf/1",
       "scope": "lsp-course"

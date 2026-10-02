@@ -330,7 +330,7 @@ fn stdin_and_a_file_agree_on_a_notation_canvas() {
 // ─────────────────────────────────────────────────────────────────────────
 
 /// 课程单元的相对路径（卷 I 单元②：子集、空集与包含三律）。
-const COURSE_UNIT: &str = "courses/set-theory/units/unit02-subsets-empty.sokonanoda";
+const COURSE_UNIT: &str = "courses/set-theory/units/I.1/unit02-subsets-empty.sokonanoda";
 
 /// 把课程单元改写成**点名版**：把两道练习的**签名**从记法换回点名
 /// （`subset_trans` 的 `⊆`、`empty_subset` 的 `∅ ⊆ A`）。
@@ -595,7 +595,7 @@ fn the_shipped_course_uses_the_library_notation_in_a_demo() {
     // 课程侧的用法守护：单元③ 用 `𝒫`、单元⑧ 用 `''` 各写了一条**演示**
     // （不是练习——练习的题意与数量一字未动，`open` 计数由课程门禁钉住）。
     let unit3 = std::fs::read_to_string(
-        repo_root().join("courses/set-theory/units/unit03-union-inter-powerset.sokonanoda"),
+        repo_root().join("courses/set-theory/units/I.1/unit03-union-inter-powerset.sokonanoda"),
     )
     .expect("read unit 3");
     assert!(
@@ -603,7 +603,7 @@ fn the_shipped_course_uses_the_library_notation_in_a_demo() {
         "unit 3 must demo the powerset notation"
     );
     let unit8 = std::fs::read_to_string(
-        repo_root().join("courses/set-theory/units/unit08-images-preimages.sokonanoda"),
+        repo_root().join("courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda"),
     )
     .expect("read unit 8");
     assert!(unit8.contains("'' "), "unit 8 must demo the image notation");
@@ -1314,7 +1314,7 @@ fn the_shipped_course_demos_the_binder_notation() {
     // 课程侧的用法守护（第三刀）：单元⑧ 用 `∃ (x : …), …` 写了一条**演示**
     // （`example`，不是练习——练习数量与题意一字未动，`open` 计数由课程门禁钉住）。
     let unit8 = std::fs::read_to_string(
-        repo_root().join("courses/set-theory/units/unit08-images-preimages.sokonanoda"),
+        repo_root().join("courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda"),
     )
     .expect("read unit 8");
     assert!(

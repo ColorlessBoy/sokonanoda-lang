@@ -399,7 +399,7 @@ courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列�
 > 与 `selftest`，判定规则本身也有自检）、
 > `scripts/soko gate` 带课程门禁**与台账门禁**绿（CI 同款 step：`Gap ledger is consistent`）、
 > 入门课双 GOLDEN 与卷 I 门禁**同数不回归**。**G-12 补丁保留**：相对路径今天也能判绿
-> （实测 `node scripts/soko grade courses/set-theory/units/unit02-subsets-empty.sokonanoda`
+> （实测 `node scripts/soko grade courses/set-theory/units/I.1/unit02-subsets-empty.sokonanoda`
 > = exit 0），但课程门禁**有意**继续一律绝对路径（`--bisect` 的前缀文件必须落在目标同目录，
 > 理由见 `docs/design/course-gate-in-ci.md` §9.2-2）。
 

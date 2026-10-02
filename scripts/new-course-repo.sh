@@ -138,7 +138,7 @@ EOF
 cat > "$TARGET/course.json" <<'EOF'
 []
 EOF
-printf '# 单元画布放这里：unitNN-<slug>.sokonanoda；解答放 solutions/。\n' > "$TARGET/units/README.md"
+printf '# 单元画布按**章**分子目录：units/<章 id>/unitNN-<slug>.sokonanoda；\n# 解答同构放在 units/solutions/<章 id>/。\n# 不属任何单元的页面（如记法对照页）留在本目录顶层。\n' > "$TARGET/units/README.md"
 touch "$TARGET/gaps/found/.gitkeep" "$TARGET/gaps/repro/.gitkeep"
 
 # ── 项目清单 ────────────────────────────────────────────────────────────────
@@ -325,7 +325,8 @@ node scripts/soko setup            # 按版本钉下载 CLI + LSP 到缓存
 python3 scripts/check-course.py    # 判卷全部单元（判据 = grade 退出码）
 \`\`\`
 
-- 目录：\`lib/\` 共享库（唯一真相）· \`units/\` 单元画布与解答 · \`gaps/\` 撞到的语言缺口
+- 目录：\`lib/\` 共享库（唯一真相）· \`units/<章 id>/\` 单元画布（解答同构在
+  \`units/solutions/<章 id>/\`）· \`units/\` 顶层只放不属任何单元的页面 · \`gaps/\` 撞到的语言缺口
 - 写作与判卷纪律见 \`AGENTS.md\`；缺口台账协议见语言仓
   \`docs/design/teaching-project.md\` §6 与 \`docs/gaps/\`
 EOF
@@ -339,9 +340,9 @@ cat > "$TARGET/AGENTS.md" <<'EOF'
 ## 每个单元的 DoD（缺一条不算完成）
 
 1. 大纲条目：单元号 / 靶子（如 Tao §3.1）/ 先修 / 练习类型配额；
-2. 画布 `units/unitNN-*.sokonanoda`：演示 + 练习（`sorry`），能 import 共享库就 import；
+2. 画布 `units/<章 id>/unitNN-*.sokonanoda`：演示 + 练习（`sorry`），能 import 共享库就 import；
 3. `-- soko:hint` 三段（思路 / 目标形态 / 关键件），**关键件只写触发条件 + 引理名**；
-4. 解答 `units/solutions/unitNN-*-solution.sokonanoda`：洞全填、0 拒绝；
+4. 解答 `units/solutions/<章 id>/unitNN-*-solution.sokonanoda`：洞全填、0 拒绝；
 5. `course.json` 加一行（单元号、文件、标题、先修）；
 6. `python3 scripts/check-course.py` 全绿；
 7. README/大纲文档同步；

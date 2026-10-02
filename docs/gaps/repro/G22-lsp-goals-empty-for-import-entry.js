@@ -10,8 +10,8 @@
 // 而同一份文档的「目标」栏（走 `soko/stateAt`，读 `report`）是好的。
 //
 // 台账 `today`（0.63.0 实测，修前）：
-//   units/unit01 = 0 条声明 / documentSymbol 8 项；
-//   units/unit08 = 0 条 / 27 项；notation-cheatsheet = 0 条 / 23 项；
+//   units/I.1/unit01 = 0 条声明 / documentSymbol 8 项；
+//   units/I.3/unit08 = 0 条 / 27 项；notation-cheatsheet = 0 条 / 23 项；
 //   而无 `import` 的 course/unit1 = 13 条 / 13 项。
 //
 // 修后契约：项目入口的 `soko/goals` 非空，且**条数与 `documentSymbol` 一致**。

@@ -88,7 +88,7 @@ LEDGER_FIELDS = ("schema", "version", "commit", "date", "course", "targets",
 # 预算——挂死的判卷在 10 分钟内也不会返回，而一个又大又对的解答不该因为 runner 慢
 # 就被记成 `exit=124` 判负。实测（方法同 docs/CI-FAILURES.md 里 perf 预算那条：
 # 用同一轮里跑完了的同源步骤换算 runner 比值）：
-#   * 本机（M 系 mac，target/debug）单独判 `units/solutions/unit12-solution.sokonanoda`
+#   * 本机（M 系 mac，target/debug）单独判 `units/solutions/I.4/unit12-solution.sokonanoda`
 #     **2m03s**；整卷 36 个目标 4m46s（unit12 一个就占 43%）；
 #   * 同轮 CI 的 `--selftest` 16.7s vs 本机 8.5s ⇒ runner ≈ 本机 ×2.0；
 #   * ⇒ runner 上 unit12 约 **4m06s** > 180s ⇒ ci `35516857130` 判它
@@ -524,8 +524,21 @@ def solution_unit(path: Path) -> int | None:
 
 
 def page_solution(canvas: Path, course: Path = COURSE) -> Path:
-    """非单元页面（`<画布名>.sokonanoda`）的解答路径；缺失由 G2 判负（不在这里报）。"""
+    """非单元页面（`<画布名>.sokonanoda`）的解答路径；缺失由 G2 判负（不在这里报）。
+
+    **页面**（记法对照页）留在 `units/` 顶层 ⇒ 它的解答也留在 `units/solutions/` 顶层；
+    单元的画布/解答按**章**分子目录（见 `unit_solution_dir`），两套布局并存是刻意的。
+    """
     return course / "units" / "solutions" / f"{canvas.stem}-solution.sokonanoda"
+
+
+def unit_solution_dir(canvas: Path, units_dir: Path, solutions_dir: Path) -> Path:
+    """单元的解答目录 = **画布所在章**对应的解答子目录（画布与解答同构分层）。
+
+    画布在顶层（旧布局/自检夹具）时退回解答顶层，行为与搬迁前一致。
+    """
+    rel = canvas.parent.relative_to(units_dir)
+    return solutions_dir / rel if str(rel) not in (".", "") else solutions_dir
 
 
 def discover(course: Path = COURSE) -> tuple[list[Target], list[str], int, ManifestInfo, list[dict]]:
@@ -582,8 +595,10 @@ def discover(course: Path = COURSE) -> tuple[list[Target], list[str], int, Manif
 
     by_unit: dict[int, Path] = {}
     # 同上：只收文件 ✓（审计 #10 ✓）。
+    # 解答与画布**同构**按章分子目录（`units/solutions/<章>/…`）⇒ 这里必须**递归**收，
+    # 否则搬进子目录后一份解答都发现不了（G3 会整片判负）。
     for solution in sorted(
-        p for p in solutions_dir.glob("*-solution.sokonanoda") if p.is_file()
+        p for p in solutions_dir.rglob("*-solution.sokonanoda") if p.is_file()
     ):
         number = solution_unit(solution)
         if number is None:
@@ -595,7 +610,11 @@ def discover(course: Path = COURSE) -> tuple[list[Target], list[str], int, Manif
 
     for number, canvas in canvases:
         # 解答缺失由这一行自己报（status=missing），所以不进 `problems`（不重复计数）。
-        solution = by_unit.get(number) or solutions_dir / f"unit{number:02d}-solution.sokonanoda"
+        # 兜底路径也要落在**画布同章**的子目录里（否则诊断会指到一个永远不会有的位置）。
+        solution = by_unit.get(number) or (
+            unit_solution_dir(canvas, units_dir, solutions_dir)
+            / f"unit{number:02d}-solution.sokonanoda"
+        )
         targets.append(Target(f"解答 unit{number:02d}", solution, "solution", canvas=canvas, unit=number))
     for number, solution in sorted(by_unit.items()):
         if all(number != seen for seen, _ in canvases):
@@ -603,6 +622,8 @@ def discover(course: Path = COURSE) -> tuple[list[Target], list[str], int, Manif
 
     # 非单元页面：画布 + 解答成对进目标，判据与单元同一条 G1/G3/G4。
     # 同上：只收文件 ✓（审计 #10 ✓）。
+    # ⚠ 这里**故意不递归**：页面（记法对照页）按约定留在 `units/` 顶层 ⇒ 章子目录里的
+    # 单元画布不会被误当页面（它们已由 `course.json` 那条路发现）。
     for canvas in sorted(p for p in units_dir.glob("*.sokonanoda") if p.is_file()):
         if canvas in listed:
             continue

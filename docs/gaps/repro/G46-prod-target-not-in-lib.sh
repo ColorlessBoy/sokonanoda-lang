@@ -8,7 +8,7 @@
 #
 # 现场（E02 之前，实测）：`infixr:80 " ×ˢ " => Set.prod` 声明在
 # `courses/set-theory/lib/Set.sokonanoda`，而 `Set.prod` 的**定义**只在
-# `courses/set-theory/units/unit05-pairs-products.sokonanoda` 的画布里
+# `courses/set-theory/units/I.2/unit05-pairs-products.sokonanoda` 的画布里
 # ⇒ 任何"只 `import` 库"的闭包写 `s ×ˢ t` 都报：
 #     `elab-notation-unknown-target`：记法 `×ˢ` 指向的目标 `Set.prod` 不存在
 # ⇒ exit 1。这也是 E07「跨模块记法目标」那一半的根因（A10 的症状之一）。

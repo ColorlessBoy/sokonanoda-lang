@@ -12,7 +12,7 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$ROOT" || exit 2
-node scripts/soko query check --file "$ROOT/courses/set-theory/units/solutions/unit44-solution.sokonanoda" >/dev/null 2>&1
+node scripts/soko query check --file "$ROOT/courses/set-theory/units/solutions/I.12/unit44-solution.sokonanoda" >/dev/null 2>&1
 rc=$?
 if [ "$rc" -ne 0 ]; then
   echo "环境不满足：单元㊹ 解答没判绿（rc=$rc）"

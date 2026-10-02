@@ -26,9 +26,9 @@ BIN = ROOT / "target" / "release" / "sokonanoda"
 
 # 单调链：每个入口的闭包都是上一个的超集（这样"边际 = 本次 − 上次"才成立）。
 CHAIN = [
-    "courses/set-theory/units/unit01-sets-membership.sokonanoda",
-    "courses/set-theory/units/unit08-images-preimages.sokonanoda",
-    "courses/set-theory/units/unit12-synthesis.sokonanoda",
+    "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
+    "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+    "courses/set-theory/units/I.4/unit12-synthesis.sokonanoda",
 ]
 
 

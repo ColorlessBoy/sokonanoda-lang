@@ -9,7 +9,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/../../.." || exit 2
 
-canvas="courses/set-theory/units/unit01-sets-membership.sokonanoda"
+canvas="courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda"
 [ -f "$canvas" ] || { echo "env: 找不到夹具 $canvas"; exit 2; }
 
 # 用仓库启动器（harness 中立；它自己按版本钉解析 CLI）。

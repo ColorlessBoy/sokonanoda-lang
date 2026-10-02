@@ -27,7 +27,7 @@ const ROOT = path.join(__dirname, "..", "..", "..");
 const SOKO = path.join(ROOT, "scripts", "soko");
 const ENTRY =
   process.env.SOKO_G29_ENTRY ||
-  path.join(ROOT, "courses/set-theory/units/unit08-images-preimages.sokonanoda");
+  path.join(ROOT, "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda");
 const CLI = path.join(ROOT, "target", "release", "sokonanoda");
 
 function startLsp(env) {

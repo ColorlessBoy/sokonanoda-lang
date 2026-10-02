@@ -80,8 +80,9 @@ python3 scripts/notation-lint.py --root <file>   # 单文件
 
 1. 读大纲（`docs/design/set-theory-syllabus.md` §3 的单元表）与分层判据
    （`docs/design/course-stdlib.md`）：**先决定这道题是 L2（进库）还是 L3（练习）**；
-2. 写画布：演示（已证）+ 练习（`sorry`）+ `-- soko:hint` 三段；
-3. 写解答并判卷：`node scripts/soko grade "$PWD/courses/set-theory/units/solutions/<file>"`；
+2. 写画布：`units/<章 id>/unitNN-<slug>.sokonanoda`（演示 + 练习（`sorry`）+ `-- soko:hint` 三段）；
+   —— 章 id 取 `course.json` 的 `chapters[].id`（`I.1`–`I.13`），解答同构放 `units/solutions/<章 id>/`；
+3. 写解答并判卷：`node scripts/soko grade "$PWD/courses/set-theory/units/solutions/<章 id>/<file>"`；
 4. `course.json` 加行；跑 `python3 courses/set-theory/tools/check.py`；
 5. 撞到缺口 → `gaps/` 记一条（最小复现 + 期望的 Lean 4 语义 + 今天的表现），
    再收编进 `docs/gaps/ledger.jsonl`（`python3 scripts/gap.py list` 看全貌）；
@@ -196,7 +197,7 @@ bash courses/set-theory/tools/check-lib-closure.sh   # 把所有 lib 一次 impo
       ((fun (hu : x ∈ ⋂F ↔ ∀ (B : Set α), B ∈ F → x ∈ B) => Iff.mp hu hx)
         (Set.mem_sInter_iff α F x))
 
-**判据**：`courses/set-theory/units/solutions/unit48-solution.sokonanoda` 的
+**判据**：`courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda` 的
 `sInter_subset_of_mem` / `sInter_mono`（单元㊽ 练习 9/10 ✓）。
 
 ### 第四条惯用法：**先读库签名，再写调用**（2026-10-01 第 601 轮；已第 4 次踩）
@@ -386,7 +387,7 @@ python3 courses/set-theory/tools/audit-pairs.py --strict    # 有"硬缺"就 exi
 `lib/Set.sokonanoda` 的记法块**只有六条**：`∈` `⊆` `∪` `∩` `\`（+ `ᶜ` ✓）✓。
 单元48/51 里那些"看起来用了 `𝒫`/`⋃`"的地方，**全是点名写法**
 （`Set.powerset A` ✓ / `Set.sUnion α F` ✓）**加行内 `-- soko:notation-ok:` 说明** ✓
-（本轮 `sed -n '25,40p' units/unit48-cover.sokonanoda` 看到了 ✓）。
+（本轮 `sed -n '25,40p' units/I.7/unit48-cover.sokonanoda` 看到了 ✓）。
 ⇒ **纪律** ✓：**`𝒫`/`⋃`/`⋂` 一律写点名**（`Set.powerset` / `Set.sUnion` / `Set.sInter` ✓），
 **别写符号** ✗（写了会报"符号未声明" ✓，而报错信息会连带说 `∈` 未声明 ⇒ **会误导** ✗）。
 
@@ -479,7 +480,7 @@ heredoc 用**引号包住的定界符**时不解析任何东西 ✓，**根本�
 (h1 : ∀ (x : α), S a x → ¬ (S x x)) (h2 : ∀ (x : α), ¬ (S x x) → S a x)
 ```
 **只在"用"的地方**用 `Iff.mp` / `Iff.mpr` ✓ ⇒ **一次判绿** ✓。
-**判据**：`courses/set-theory/units/solutions/unit94-solution.sokonanoda` 的
+**判据**：`courses/set-theory/units/solutions/I.4/unit94-solution.sokonanoda` 的
 `diag_ev` / `diag_not_in_range` / `diag_not_surj` ✓。
 
 > 一句话：**绑定注解里出现 `↔`（尤其右边是 `¬`）时，别写 `↔` ✗ —— 拆成两条蕴含 ✓。**
@@ -494,7 +495,7 @@ heredoc 用**引号包住的定界符**时不解析任何东西 ✓，**根本�
 False.elim (x ∈ A) (Iff.mp hu hx)          -- ✓ 判绿
 ```
 
-**判据** ✓：`courses/set-theory/units/solutions/unit101-solution.sokonanoda` 的
+**判据** ✓：`courses/set-theory/units/solutions/I.3/unit101-solution.sokonanoda` 的
 `empty_subset` ✓。**教训** ✓：诊断说"把参数写全"时**就是字面意思** ✓（同「请写出点名形式」那条 ✓）。
 
 ## **一个构造性边界**：空的定义域上造不出映射（2026-10-02 记录 ✓）

@@ -397,7 +397,7 @@ test("decls: a closed declaration renders no goal row", () => {
 // 用户 I1 报的是「infoview 里的声明里的 'theorem' 有多余的 '目标 ⊢ A = B' 这条
 // 语句，没有人要求增加」⇒ 计划里写的是"去掉这一行"。**复核结论：前提不成立** ✓
 // —— 那行显示的是**还没证完的目标**：对一道 `:= by sorry` 的练习，剩余目标确实
-// 等于整个命题（`units/unit01` 的 `eq_of_same_elements : A = B := by sorry`，
+// 等于整个命题（`units/I.1/unit01` 的 `eq_of_same_elements : A = B := by sorry`，
 // `soko/goals` 实测 `goal="A = B"`、`goals=["A = B"]`），那不是冗余，那正是
 // "你还欠什么没证"的如实表达；证明动过之后它显示的是**剩下的**目标。
 // ⇒ E21 结案为「不改（resolved-no-change）」，依据原文 ⇒ `git log --all -- docs/gaps/criteria-census.md`。
@@ -406,7 +406,7 @@ test("decls: a closed declaration renders no goal row", () => {
 // 原判当成 bug 修一遍），它当场判红 ✓ —— 反向验证实测过（见提交说明）。
 test("decls: a step-0 open exercise still shows its goal row (E21)", () => {
   const { root, send } = loadInfoview();
-  // 夹具逐字取自 `courses/set-theory/units/unit01-sets-membership.sokonanoda`
+  // 夹具逐字取自 `courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda`
   // 的 `eq_of_same_elements`（`soko/goals` 的实测载荷）。
   send({
     protocol: 1,

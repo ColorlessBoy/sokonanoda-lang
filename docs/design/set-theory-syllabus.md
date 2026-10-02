@@ -216,7 +216,7 @@ python3 scripts/notation-lint.py                         # 记法 ✓
 
 # 新单元开工后的判据（S-B）
 python3 courses/set-theory/tools/check.py                # G1–G6 全绿
-node scripts/soko grade "$PWD/courses/set-theory/units/solutions/unit13-solution.sokonanoda"
+node scripts/soko grade "$PWD/courses/set-theory/units/solutions/I.5/unit13-solution.sokonanoda"
 ```
 
 **DoD 九条**（`teaching-project.md` §5，每个新单元逐条走）：大纲条目 → 画布（演示 + 练习

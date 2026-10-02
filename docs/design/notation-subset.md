@@ -369,7 +369,7 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
 2. **CLI e2e**：`crates/cli/tests/notation.rs` —— 同一命题两种写法各一个文件，
    跑 `--json`，断言五元组 `(decl.checked, exercise.open, expr.reduced,
    expr.typed, diagnostic)` **逐一相等**且 `exit 0`；断言事件种类集合没有新增。
-3. **课程用例**：靶子 `courses/set-theory/units/unit02-subsets-empty.sokonanoda`
+3. **课程用例**：靶子 `courses/set-theory/units/I.1/unit02-subsets-empty.sokonanoda`
    的练习 2 `subset_trans` 与练习 4 `empty_subset`（答案不入库）。做法：把该单元
    连同 `lib/`、`sokonanoda.toml` 复制到临时目录，在**副本**里加记法行、把两条
    声明改成记法版，用绝对路径判卷；断言 `grade` exit 0 且事件计数与原点名版

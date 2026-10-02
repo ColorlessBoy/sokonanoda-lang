@@ -561,7 +561,7 @@ fn query_check_still_reports_a_broken_dependency_in_a_project() {
 fn query_check_matches_grade_on_a_real_course_unit() {
     let unit = PathBuf::from(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../courses/set-theory/units/unit05-pairs-products.sokonanoda"
+        "/../../courses/set-theory/units/I.2/unit05-pairs-products.sokonanoda"
     ));
     let (value, code) = query(&["check", "--file", unit.to_str().unwrap()], None);
     assert_eq!(

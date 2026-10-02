@@ -96,8 +96,8 @@ fn the_reuse_switch_is_byte_identical_on_the_corpus() {
     let files = [
         "playground.sokonanoda",
         "course/unit11-project/Exercises.sokonanoda",
-        "courses/set-theory/units/unit01-sets-membership.sokonanoda",
-        "courses/set-theory/units/solutions/unit12-solution.sokonanoda",
+        "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
+        "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
     ];
     let mut hits = 0usize;
     for name in files {

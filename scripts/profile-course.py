@@ -61,10 +61,24 @@ def profile_of(binary):
 
 
 def decl_counts(course):
-    """三层各自的声明数与文件数（静态扫源）。"""
+    """三层各自的声明数与文件数（静态扫源）。
+
+    **分层口径没变**（还是 `lib` / `units` / `units/solutions` 三层），变的是**怎么收文件**：
+    单元画布与解答按**章**分子目录（`units/<章>/…`、`units/solutions/<章>/…`）⇒ 按层前缀
+    **递归**收，并保证 `units/solutions/**` 不被重复算进 `units`（细分层优先）。
+    """
     out = {}
+    solutions_root = os.path.join(course, "units", "solutions")
     for layer in ("lib", "units", "units/solutions"):
-        files = sorted(glob.glob(os.path.join(course, layer, "*.sokonanoda")))
+        base = os.path.join(course, layer)
+        files = []
+        for root, _dirs, names in os.walk(base):
+            if layer == "units" and (root == solutions_root or root.startswith(solutions_root + os.sep)):
+                continue
+            files.extend(
+                os.path.join(root, name) for name in names if name.endswith(".sokonanoda")
+            )
+        files.sort()
         decls = 0
         for path in files:
             with open(path, errors="replace") as handle:

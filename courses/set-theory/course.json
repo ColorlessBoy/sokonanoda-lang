@@ -34,91 +34,91 @@
           },
           "units": [
             {
-              "file": "units/unit01-sets-membership.sokonanoda",
+              "file": "units/I.1/unit01-sets-membership.sokonanoda",
               "title": "单元① 集合与隶属",
               "title_en": "Unit 1 — Sets & Membership",
               "unit": 1
             },
             {
-              "file": "units/unit02-subsets-empty.sokonanoda",
+              "file": "units/I.1/unit02-subsets-empty.sokonanoda",
               "title": "单元② 子集、空集与包含三律",
               "title_en": "Unit 2 — Subsets, the Empty Set, and the Three Laws of ⊆",
               "unit": 2
             },
             {
-              "file": "units/unit03-union-inter-powerset.sokonanoda",
+              "file": "units/I.1/unit03-union-inter-powerset.sokonanoda",
               "title": "单元③ 并、交、差与幂集",
               "title_en": "Unit 3 — Union, Intersection, Difference & Powerset",
               "unit": 3
             },
             {
-              "file": "units/unit04-extensionality-identities.sokonanoda",
+              "file": "units/I.1/unit04-extensionality-identities.sokonanoda",
               "title": "单元④ 外延性与集合等式",
               "title_en": "Unit 4 — Extensionality & Set Identities",
               "unit": 4
             },
             {
-              "file": "units/unit58-sdiff-algebra.sokonanoda",
+              "file": "units/I.1/unit58-sdiff-algebra.sokonanoda",
               "title": "单元58 差集的代数",
               "title_en": "Unit 58 — The Algebra of Set Difference",
               "unit": 58
             },
             {
-              "file": "units/unit59-sdiff-algebra2.sokonanoda",
+              "file": "units/I.1/unit59-sdiff-algebra2.sokonanoda",
               "title": "单元59 差集的代数（二）",
               "title_en": "Unit 59 — Difference Algebra II: Mixed Laws",
               "unit": 59
             },
             {
-              "file": "units/unit60-compl-algebra.sokonanoda",
+              "file": "units/I.1/unit60-compl-algebra.sokonanoda",
               "title": "单元60 补集的代数",
               "title_en": "Unit 60 — The Algebra of Complements",
               "unit": 60
             },
             {
-              "file": "units/unit61-ext-packing.sokonanoda",
+              "file": "units/I.1/unit61-ext-packing.sokonanoda",
               "title": "单元61 外延打包",
               "title_en": "Unit 61 — Packing Pointwise Facts into Set Equalities",
               "unit": 61
             },
             {
-              "file": "units/unit62-ext-consequences.sokonanoda",
+              "file": "units/I.1/unit62-ext-consequences.sokonanoda",
               "title": "单元62 外延性的推论",
               "title_en": "Unit 62 — Consequences of Extensionality",
               "unit": 62
             },
             {
-              "file": "units/unit63-sdiff-packing.sokonanoda",
+              "file": "units/I.1/unit63-sdiff-packing.sokonanoda",
               "title": "单元63 差集的等式层（打包续）",
               "title_en": "Unit 63 — Difference Equalities, Continued",
               "unit": 63
             },
             {
-              "file": "units/unit64-sdiff-eq2.sokonanoda",
+              "file": "units/I.1/unit64-sdiff-eq2.sokonanoda",
               "title": "单元64 差集的等式层（三）：两步走",
               "title_en": "Unit 64 — Two-Step Packing",
               "unit": 64
             },
             {
-              "file": "units/unit65-union-sdiff.sokonanoda",
+              "file": "units/I.1/unit65-union-sdiff.sokonanoda",
               "title": "单元65 并的差分配律与减法反变",
               "title_en": "Unit 65 — Difference Distributes over Union",
               "unit": 65
             },
             {
-              "file": "units/unit66-subset-algebra.sokonanoda",
+              "file": "units/I.1/unit66-subset-algebra.sokonanoda",
               "title": "单元66 包含关系的代数",
               "title_en": "Unit 66 — The Algebra of Inclusion",
               "unit": 66
             },
             {
-              "file": "units/unit104-classical.sokonanoda",
+              "file": "units/I.1/unit104-classical.sokonanoda",
               "title": "单元104 排中律与经典推论",
               "title_en": "Unit 104 — Excluded Middle and Its Classical Corollaries",
               "unit": 104
             },
             {
-              "file": "units/unit105-classical-laws.sokonanoda",
+              "file": "units/I.1/unit105-classical-laws.sokonanoda",
               "title": "单元105 经典等价三件套",
               "title_en": "Unit 105 — Classical Equivalences",
               "unit": 105
@@ -143,25 +143,25 @@
           },
           "units": [
             {
-              "file": "units/unit05-pairs-products.sokonanoda",
+              "file": "units/I.2/unit05-pairs-products.sokonanoda",
               "title": "单元⑤ 序对与笛卡尔积",
               "title_en": "Unit 5 — Ordered Pairs & Cartesian Products",
               "unit": 5
             },
             {
-              "file": "units/unit06-relations.sokonanoda",
+              "file": "units/I.2/unit06-relations.sokonanoda",
               "title": "单元⑥ 关系",
               "title_en": "Unit 6 — Relations",
               "unit": 6
             },
             {
-              "file": "units/unit07-functions.sokonanoda",
+              "file": "units/I.2/unit07-functions.sokonanoda",
               "title": "单元⑦ 函数",
               "title_en": "Unit 7 — Functions",
               "unit": 7
             },
             {
-              "file": "units/unit75-prod-distrib.sokonanoda",
+              "file": "units/I.2/unit75-prod-distrib.sokonanoda",
               "title": "单元75 积对并交的分配",
               "title_en": "Unit 75 — Products Distribute over Union and Intersection",
               "unit": 75
@@ -197,91 +197,91 @@
           },
           "units": [
             {
-              "file": "units/unit08-images-preimages.sokonanoda",
+              "file": "units/I.3/unit08-images-preimages.sokonanoda",
               "title": "单元⑧ 像与原像",
               "title_en": "Unit 8 — Images & Preimages",
               "unit": 8
             },
             {
-              "file": "units/unit09-equinumerosity.sokonanoda",
+              "file": "units/I.3/unit09-equinumerosity.sokonanoda",
               "title": "单元⑨ 等势（基数 Ⅰ）",
               "title_en": "Unit 9 — Equinumerosity (Cardinality I)",
               "unit": 9
             },
             {
-              "file": "units/unit10-cantor.sokonanoda",
+              "file": "units/I.3/unit10-cantor.sokonanoda",
               "title": "单元⑩ 可数与 Cantor 定理（基数 Ⅱ）",
               "title_en": "Unit 10 — Countability & Cantor's Theorem (Cardinality II)",
               "unit": 10
             },
             {
-              "file": "units/unit73-image-families.sokonanoda",
+              "file": "units/I.3/unit73-image-families.sokonanoda",
               "title": "单元73 像与广义并交的分配",
               "title_en": "Unit 73 — Images of Unions and Intersections",
               "unit": 73
             },
             {
-              "file": "units/unit74-preimage-families.sokonanoda",
+              "file": "units/I.3/unit74-preimage-families.sokonanoda",
               "title": "单元74 原像与广义并交的分配",
               "title_en": "Unit 74 — Preimages of Unions and Intersections",
               "unit": 74
             },
             {
-              "file": "units/unit92-equiv-algebra.sokonanoda",
+              "file": "units/I.3/unit92-equiv-algebra.sokonanoda",
               "title": "单元92 等势的代数",
               "title_en": "Unit 92 — Algebra of Equinumerosity",
               "unit": 92
             },
             {
-              "file": "units/unit93-equiv-trans.sokonanoda",
+              "file": "units/I.3/unit93-equiv-trans.sokonanoda",
               "title": "单元93 等势的传递",
               "title_en": "Unit 93 — Transitivity of Equinumerosity",
               "unit": 93
             },
             {
-              "file": "units/unit96-le-on.sokonanoda",
+              "file": "units/I.3/unit96-le-on.sokonanoda",
               "title": "单元96 势的比较（自反与传递）",
               "title_en": "Unit 96 — Comparing Sizes: Reflexivity and Transitivity",
               "unit": 96
             },
             {
-              "file": "units/unit97-equiv-le.sokonanoda",
+              "file": "units/I.3/unit97-equiv-le.sokonanoda",
               "title": "单元97 等势 ⇒ 双向势比较",
               "title_en": "Unit 97 — Equinumerosity Implies Both Comparisons",
               "unit": 97
             },
             {
-              "file": "units/unit98-le-mono.sokonanoda",
+              "file": "units/I.3/unit98-le-mono.sokonanoda",
               "title": "单元98 势比较的单调性",
               "title_en": "Unit 98 — Monotonicity of Size Comparison",
               "unit": 98
             },
             {
-              "file": "units/unit99-powerset-mono.sokonanoda",
+              "file": "units/I.3/unit99-powerset-mono.sokonanoda",
               "title": "单元99 幂集的单调性",
               "title_en": "Unit 99 — Monotonicity of the Power Set",
               "unit": 99
             },
             {
-              "file": "units/unit100-leOn-transport.sokonanoda",
+              "file": "units/I.3/unit100-leOn-transport.sokonanoda",
               "title": "单元100 势比较的搬运",
               "title_en": "Unit 100 — Transporting Size Comparisons along Equinumerosity",
               "unit": 100
             },
             {
-              "file": "units/unit101-empty-subset.sokonanoda",
+              "file": "units/I.3/unit101-empty-subset.sokonanoda",
               "title": "单元101 空集与子集的点态代数",
               "title_en": "Unit 101 — The Empty Set, Pointwise",
               "unit": 101
             },
             {
-              "file": "units/unit102-subset-antisymm.sokonanoda",
+              "file": "units/I.3/unit102-subset-antisymm.sokonanoda",
               "title": "单元102 相互包含与点态外延",
               "title_en": "Unit 102 — Mutual Inclusion, Pointwise",
               "unit": 102
             },
             {
-              "file": "units/unit103-leOn-both.sokonanoda",
+              "file": "units/I.3/unit103-leOn-both.sokonanoda",
               "title": "单元103 双向势比较何时升级为等势",
               "title_en": "Unit 103 — When Both Comparisons Give Equinumerosity",
               "unit": 103
@@ -317,73 +317,73 @@
           },
           "units": [
             {
-              "file": "units/unit11-universe-russell.sokonanoda",
+              "file": "units/I.4/unit11-universe-russell.sokonanoda",
               "title": "单元⑪ 论域与 Russell 悖论",
               "title_en": "Unit 11 — Universes & Russell's Paradox",
               "unit": 11
             },
             {
-              "file": "units/unit12-synthesis.sokonanoda",
+              "file": "units/I.4/unit12-synthesis.sokonanoda",
               "title": "单元⑫ 综合与读证明",
               "title_en": "Unit 12 — Synthesis & Reading Proofs",
               "unit": 12
             },
             {
-              "file": "units/unit55-refutation.sokonanoda",
+              "file": "units/I.4/unit55-refutation.sokonanoda",
               "title": "单元55 反例与不可证（一）",
               "title_en": "Unit 55 — Refutation (I): Refuting Universal Statements",
               "unit": 55
             },
             {
-              "file": "units/unit56-refutation2.sokonanoda",
+              "file": "units/I.4/unit56-refutation2.sokonanoda",
               "title": "单元56 反例与不可证（二）",
               "title_en": "Unit 56 — Refutation (II): Refuting ∃ and =",
               "unit": 56
             },
             {
-              "file": "units/unit57-refutation3.sokonanoda",
+              "file": "units/I.4/unit57-refutation3.sokonanoda",
               "title": "单元57 反例与不可证（三）",
               "title_en": "Unit 57 — Refutation (III): Difference as Witness Set",
               "unit": 57
             },
             {
-              "file": "units/unit87-inj-surj.sokonanoda",
+              "file": "units/I.4/unit87-inj-surj.sokonanoda",
               "title": "单元87 单射、满射与复合",
               "title_en": "Unit 87 — Injections, Surjections, Composition",
               "unit": 87
             },
             {
-              "file": "units/unit88-surj.sokonanoda",
+              "file": "units/I.4/unit88-surj.sokonanoda",
               "title": "单元88 满射与复合",
               "title_en": "Unit 88 — Surjections and Composition",
               "unit": 88
             },
             {
-              "file": "units/unit89-bij.sokonanoda",
+              "file": "units/I.4/unit89-bij.sokonanoda",
               "title": "单元89 双射与复合",
               "title_en": "Unit 89 — Bijections and Composition",
               "unit": 89
             },
             {
-              "file": "units/unit90-comp-eq.sokonanoda",
+              "file": "units/I.4/unit90-comp-eq.sokonanoda",
               "title": "单元90 复合层的等式与外层单射",
               "title_en": "Unit 90 — Equality at the Composite Layer",
               "unit": 90
             },
             {
-              "file": "units/unit91-inverse.sokonanoda",
+              "file": "units/I.4/unit91-inverse.sokonanoda",
               "title": "单元91 逆映射与双射代数",
               "title_en": "Unit 91 — Inverse Maps and Bijection Algebra",
               "unit": 91
             },
             {
-              "file": "units/unit94-cantor-diag.sokonanoda",
+              "file": "units/I.4/unit94-cantor-diag.sokonanoda",
               "title": "单元94 Cantor 对角线（函数版）",
               "title_en": "Unit 94 — Cantor's Diagonal, Function Form",
               "unit": 94
             },
             {
-              "file": "units/unit95-diagonal.sokonanoda",
+              "file": "units/I.4/unit95-diagonal.sokonanoda",
               "title": "单元95 对角线的一般形态",
               "title_en": "Unit 95 — The Diagonal Argument, General Form",
               "unit": 95
@@ -411,25 +411,25 @@
           },
           "units": [
             {
-              "file": "units/unit13-orders.sokonanoda",
+              "file": "units/I.5/unit13-orders.sokonanoda",
               "title": "单元⑬ 偏序、全序与严格序",
               "title_en": "Unit 13 — Partial, Linear and Strict Orders",
               "unit": 13
             },
             {
-              "file": "units/unit14-wellorder.sokonanoda",
+              "file": "units/I.5/unit14-wellorder.sokonanoda",
               "title": "单元⑭ 良序与良基",
               "title_en": "Unit 14 — Well-Orderings and Well-Foundedness",
               "unit": 14
             },
             {
-              "file": "units/unit53-order-embedding.sokonanoda",
+              "file": "units/I.5/unit53-order-embedding.sokonanoda",
               "title": "单元53 序嵌入",
               "title_en": "Unit 53 — Order Embeddings",
               "unit": 53
             },
             {
-              "file": "units/unit67-subset-order.sokonanoda",
+              "file": "units/I.5/unit67-subset-order.sokonanoda",
               "title": "单元67 ⊆ 是一个偏序",
               "title_en": "Unit 67 — Inclusion is a Partial Order",
               "unit": 67
@@ -461,43 +461,43 @@
           },
           "units": [
             {
-              "file": "units/unit15-ordinals.sokonanoda",
+              "file": "units/I.6/unit15-ordinals.sokonanoda",
               "title": "单元⑮ 传递集与序数",
               "title_en": "Unit 15 — Transitive Sets and Ordinals",
               "unit": 15
             },
             {
-              "file": "units/unit16-ordering.sokonanoda",
+              "file": "units/I.6/unit16-ordering.sokonanoda",
               "title": "单元⑯ 序数的序：外延性、反对称与零序数",
               "title_en": "Unit 16 — Extensionality, Asymmetry and the Zero Ordinal",
               "unit": 16
             },
             {
-              "file": "units/unit42-least-element.sokonanoda",
+              "file": "units/I.6/unit42-least-element.sokonanoda",
               "title": "单元㊷ 良序集的「最小元」",
               "title_en": "Unit 42 — Least Elements in Well-Orders",
               "unit": 42
             },
             {
-              "file": "units/unit80-ordinal-elems.sokonanoda",
+              "file": "units/I.6/unit80-ordinal-elems.sokonanoda",
               "title": "单元80 序数的元素仍是序数",
               "title_en": "Unit 80 — Elements of Ordinals are Ordinals",
               "unit": 80
             },
             {
-              "file": "units/unit81-succ.sokonanoda",
+              "file": "units/I.6/unit81-succ.sokonanoda",
               "title": "单元81 后继的成员刻画",
               "title_en": "Unit 81 — The Successor, Memberwise",
               "unit": 81
             },
             {
-              "file": "units/unit82-succ-ordinal.sokonanoda",
+              "file": "units/I.6/unit82-succ-ordinal.sokonanoda",
               "title": "单元82 后继与序数的合流",
               "title_en": "Unit 82 — Successor Meets Ordinal",
               "unit": 82
             },
             {
-              "file": "units/unit83-ordinal-no-cycle.sokonanoda",
+              "file": "units/I.6/unit83-ordinal-no-cycle.sokonanoda",
               "title": "单元83 序数的无环性",
               "title_en": "Unit 83 — Ordinals Have No Membership Cycles",
               "unit": 83
@@ -530,43 +530,43 @@
           },
           "units": [
             {
-              "file": "units/unit17-choice.sokonanoda",
+              "file": "units/I.7/unit17-choice.sokonanoda",
               "title": "单元⑰ 选择公理",
               "title_en": "Unit 17 — The Axiom of Choice",
               "unit": 17
             },
             {
-              "file": "units/unit18-zf-axioms.sokonanoda",
+              "file": "units/I.7/unit18-zf-axioms.sokonanoda",
               "title": "单元⑱ ZF 公理体系与正则性",
               "title_en": "Unit 18 — The ZF Axioms and Regularity",
               "unit": 18
             },
             {
-              "file": "units/unit48-cover.sokonanoda",
+              "file": "units/I.7/unit48-cover.sokonanoda",
               "title": "单元㊽ 覆盖与广义并",
               "title_en": "Unit 48 — Covers and the Inclusion Calculus of sUnion/sInter",
               "unit": 48
             },
             {
-              "file": "units/unit49-sUnion-algebra.sokonanoda",
+              "file": "units/I.7/unit49-sUnion-algebra.sokonanoda",
               "title": "单元㊾ 广义并的代数",
               "title_en": "Unit 49 — Algebra of Arbitrary Unions",
               "unit": 49
             },
             {
-              "file": "units/unit69-union-adjunction.sokonanoda",
+              "file": "units/I.7/unit69-union-adjunction.sokonanoda",
               "title": "单元69 并交的伴随刻画",
               "title_en": "Unit 69 — Adjunction Laws for Union and Intersection",
               "unit": 69
             },
             {
-              "file": "units/unit71-inter-families.sokonanoda",
+              "file": "units/I.7/unit71-inter-families.sokonanoda",
               "title": "单元71 并交与交的分配",
               "title_en": "Unit 71 — Intersection Distributes over Union/Intersection",
               "unit": 71
             },
             {
-              "file": "units/unit72-sUnion-inter.sokonanoda",
+              "file": "units/I.7/unit72-sUnion-inter.sokonanoda",
               "title": "单元72 广义并与交、单调与空族",
               "title_en": "Unit 72 — Union vs Intersection, Monotonicity, Empty Family",
               "unit": 72
@@ -594,19 +594,19 @@
           },
           "units": [
             {
-              "file": "units/unit19-cardinal-le.sokonanoda",
+              "file": "units/I.8/unit19-cardinal-le.sokonanoda",
               "title": "单元⑲ 基数的比较",
               "title_en": "Unit 19 — Comparing Cardinal Numbers",
               "unit": 19
             },
             {
-              "file": "units/unit20-cardinal-arithmetic.sokonanoda",
+              "file": "units/I.8/unit20-cardinal-arithmetic.sokonanoda",
               "title": "单元⑳ 基数算术：积",
               "title_en": "Unit 20 — Cardinal Arithmetic: Products",
               "unit": 20
             },
             {
-              "file": "units/unit54-equiv-algebra.sokonanoda",
+              "file": "units/I.8/unit54-equiv-algebra.sokonanoda",
               "title": "单元54 等势的代数的开端",
               "title_en": "Unit 54 — Beginning the Algebra of Equinumerosity",
               "unit": 54
@@ -636,19 +636,19 @@
           },
           "units": [
             {
-              "file": "units/unit21-families.sokonanoda",
+              "file": "units/I.9/unit21-families.sokonanoda",
               "title": "单元㉑ 集族与广义并交",
               "title_en": "Unit 21 — Families, Arbitrary Unions and Intersections",
               "unit": 21
             },
             {
-              "file": "units/unit22-images-families.sokonanoda",
+              "file": "units/I.9/unit22-images-families.sokonanoda",
               "title": "单元㉒ 像、原像与广义并交",
               "title_en": "Unit 22 — Images, Preimages and Arbitrary Unions/Intersections",
               "unit": 22
             },
             {
-              "file": "units/unit23-products.sokonanoda",
+              "file": "units/I.9/unit23-products.sokonanoda",
               "title": "单元㉓ 广义积与柯里化",
               "title_en": "Unit 23 — Arbitrary Products and Currying",
               "unit": 23
@@ -687,73 +687,73 @@
           },
           "units": [
             {
-              "file": "units/unit24-closures.sokonanoda",
+              "file": "units/I.10/unit24-closures.sokonanoda",
               "title": "单元㉔ 关系闭包",
               "title_en": "Unit 24 — Closure of Relations",
               "unit": 24
             },
             {
-              "file": "units/unit25-equivalence.sokonanoda",
+              "file": "units/I.10/unit25-equivalence.sokonanoda",
               "title": "单元㉕ 等价关系与划分",
               "title_en": "Unit 25 — Equivalence Relations and Partitions",
               "unit": 25
             },
             {
-              "file": "units/unit26-partitions.sokonanoda",
+              "file": "units/I.10/unit26-partitions.sokonanoda",
               "title": "单元㉖ 划分：等价关系的反方向",
               "title_en": "Unit 26 — Partitions: the Converse Direction",
               "unit": 26
             },
             {
-              "file": "units/unit27-quotients.sokonanoda",
+              "file": "units/I.10/unit27-quotients.sokonanoda",
               "title": "单元㉗ 商类型与良定义性",
               "title_en": "Unit 27 — Quotient Types and Well-Definedness",
               "unit": 27
             },
             {
-              "file": "units/unit43-classes.sokonanoda",
+              "file": "units/I.10/unit43-classes.sokonanoda",
               "title": "单元㊸ 等价类与商集的代数刻画",
               "title_en": "Unit 43 — Equivalence Classes, Algebraically",
               "unit": 43
             },
             {
-              "file": "units/unit76-kernel.sokonanoda",
+              "file": "units/I.10/unit76-kernel.sokonanoda",
               "title": "单元76 像的核关系",
               "title_en": "Unit 76 — The Kernel of a Function",
               "unit": 76
             },
             {
-              "file": "units/unit77-equivclass-algebra.sokonanoda",
+              "file": "units/I.10/unit77-equivclass-algebra.sokonanoda",
               "title": "单元77 等价类的代数",
               "title_en": "Unit 77 — Algebra of Equivalence Classes",
               "unit": 77
             },
             {
-              "file": "units/unit78-partition-roundtrip.sokonanoda",
+              "file": "units/I.10/unit78-partition-roundtrip.sokonanoda",
               "title": "单元78 划分与等价关系的往返",
               "title_en": "Unit 78 — Partitions and Equivalence Relations, Round Trip",
               "unit": 78
             },
             {
-              "file": "units/unit79-well-defined.sokonanoda",
+              "file": "units/I.10/unit79-well-defined.sokonanoda",
               "title": "单元79 商集上的函数（well-defined）",
               "title_en": "Unit 79 — Well-Defined Functions on Quotients",
               "unit": 79
             },
             {
-              "file": "units/unit84-image-quotient.sokonanoda",
+              "file": "units/I.10/unit84-image-quotient.sokonanoda",
               "title": "单元84 商与像的往返",
               "title_en": "Unit 84 — Image Meets Quotient",
               "unit": 84
             },
             {
-              "file": "units/unit85-kernel-injective.sokonanoda",
+              "file": "units/I.10/unit85-kernel-injective.sokonanoda",
               "title": "单元85 商到像的单射性",
               "title_en": "Unit 85 — The Quotient Maps Injectively onto the Image",
               "unit": 85
             },
             {
-              "file": "units/unit86-kernel-inj.sokonanoda",
+              "file": "units/I.10/unit86-kernel-inj.sokonanoda",
               "title": "单元86 核与复合、单射",
               "title_en": "Unit 86 — Kernels, Composition, Injectivity",
               "unit": 86
@@ -794,43 +794,43 @@
           },
           "units": [
             {
-              "file": "units/unit28-set-algebra.sokonanoda",
+              "file": "units/I.11/unit28-set-algebra.sokonanoda",
               "title": "单元㉘ 集合代数：分配律与 De Morgan",
               "title_en": "Unit 28 — Set Algebra: Distributivity and De Morgan",
               "unit": 28
             },
             {
-              "file": "units/unit29-sups.sokonanoda",
+              "file": "units/I.11/unit29-sups.sokonanoda",
               "title": "单元㉙ 上界、下界与确界",
               "title_en": "Unit 29 — Bounds and Suprema",
               "unit": 29
             },
             {
-              "file": "units/unit30-lattices.sokonanoda",
+              "file": "units/I.11/unit30-lattices.sokonanoda",
               "title": "单元㉚ 格与对偶：确界的代数",
               "title_en": "Unit 30 — Lattices and Duality",
               "unit": 30
             },
             {
-              "file": "units/unit31-monotone.sokonanoda",
+              "file": "units/I.11/unit31-monotone.sokonanoda",
               "title": "单元㉛ 单调函数与序同构保持确界",
               "title_en": "Unit 31 — Monotone Maps and Preservation of Suprema",
               "unit": 31
             },
             {
-              "file": "units/unit32-pointwise.sokonanoda",
+              "file": "units/I.11/unit32-pointwise.sokonanoda",
               "title": "单元㉜ 函数空间上的逐点序",
               "title_en": "Unit 32 — The Pointwise Order on Function Spaces",
               "unit": 32
             },
             {
-              "file": "units/unit46-symmetric-difference.sokonanoda",
+              "file": "units/I.11/unit46-symmetric-difference.sokonanoda",
               "title": "单元㊻ 对称差与布尔环",
               "title_en": "Unit 46 — Symmetric Difference and the Boolean Ring",
               "unit": 46
             },
             {
-              "file": "units/unit50-distributivity.sokonanoda",
+              "file": "units/I.11/unit50-distributivity.sokonanoda",
               "title": "单元㊿ 分配律族",
               "title_en": "Unit 50 — The Distributivity Family (Binary Operations)",
               "unit": 50
@@ -866,43 +866,43 @@
           },
           "units": [
             {
-              "file": "units/unit33-powerset.sokonanoda",
+              "file": "units/I.12/unit33-powerset.sokonanoda",
               "title": "单元㉝ 幂集代数与特征函数",
               "title_en": "Unit 33 — Powerset Algebra and Characteristic Functions",
               "unit": 33
             },
             {
-              "file": "units/unit34-function-algebra.sokonanoda",
+              "file": "units/I.12/unit34-function-algebra.sokonanoda",
               "title": "单元㉞ 函数代数：合成与单满射",
               "title_en": "Unit 34 — Function Algebra: Composition, Injections, Surjections",
               "unit": 34
             },
             {
-              "file": "units/unit35-inverses.sokonanoda",
+              "file": "units/I.12/unit35-inverses.sokonanoda",
               "title": "单元㉟ 逆函数：左逆、右逆与双边逆",
               "title_en": "Unit 35 — Inverse Functions",
               "unit": 35
             },
             {
-              "file": "units/unit44-extensionality.sokonanoda",
+              "file": "units/I.12/unit44-extensionality.sokonanoda",
               "title": "单元㊹ 两条外延公理的应用",
               "title_en": "Unit 44 — Applying Extensionality (funext / propext)",
               "unit": 44
             },
             {
-              "file": "units/unit51-powerset-lattice.sokonanoda",
+              "file": "units/I.12/unit51-powerset-lattice.sokonanoda",
               "title": "单元51 幂集的格性质",
               "title_en": "Unit 51 — Lattice Properties of the Power Set",
               "unit": 51
             },
             {
-              "file": "units/unit68-powerset-complete.sokonanoda",
+              "file": "units/I.12/unit68-powerset-complete.sokonanoda",
               "title": "单元68 幂集是完备格",
               "title_en": "Unit 68 — The Power Set is a Complete Lattice",
               "unit": 68
             },
             {
-              "file": "units/unit70-powerset-membership.sokonanoda",
+              "file": "units/I.12/unit70-powerset-membership.sokonanoda",
               "title": "单元70 幂集对交并的分配",
               "title_en": "Unit 70 — Power Set Distributes over Intersection",
               "unit": 70
@@ -946,49 +946,49 @@
           },
           "units": [
             {
-              "file": "units/unit36-relation-algebra.sokonanoda",
+              "file": "units/I.13/unit36-relation-algebra.sokonanoda",
               "title": "单元㊱ 关系的代数",
               "title_en": "Unit 36 — Algebra of Relations",
               "unit": 36
             },
             {
-              "file": "units/unit37-algebraic-characterizations.sokonanoda",
+              "file": "units/I.13/unit37-algebraic-characterizations.sokonanoda",
               "title": "单元㊲ 关系的代数刻画",
               "title_en": "Unit 37 — Algebraic Characterizations of Relation Properties",
               "unit": 37
             },
             {
-              "file": "units/unit38-order-algebra.sokonanoda",
+              "file": "units/I.13/unit38-order-algebra.sokonanoda",
               "title": "单元㊳ 序关系的关系代数视角",
               "title_en": "Unit 38 — Order Relations, Algebraically",
               "unit": 38
             },
             {
-              "file": "units/unit39-image-kernel.sokonanoda",
+              "file": "units/I.13/unit39-image-kernel.sokonanoda",
               "title": "单元㊴ 关系的像、原像与等价核",
               "title_en": "Unit 39 — Images, Preimages and Equivalence Kernels",
               "unit": 39
             },
             {
-              "file": "units/unit40-transitive-closure.sokonanoda",
+              "file": "units/I.13/unit40-transitive-closure.sokonanoda",
               "title": "单元㊵ 传递闭包的代数刻画",
               "title_en": "Unit 40 — The Transitive Closure, Algebraically",
               "unit": 40
             },
             {
-              "file": "units/unit41-well-founded.sokonanoda",
+              "file": "units/I.13/unit41-well-founded.sokonanoda",
               "title": "单元㊶ 良基关系（极小元原理）",
               "title_en": "Unit 41 — Well-Founded Relations",
               "unit": 41
             },
             {
-              "file": "units/unit45-single-valued.sokonanoda",
+              "file": "units/I.13/unit45-single-valued.sokonanoda",
               "title": "单元㊺ 关系的单值性与函数的图",
               "title_en": "Unit 45 — Single-Valued Relations and Graphs of Functions",
               "unit": 45
             },
             {
-              "file": "units/unit52-rel-iteration.sokonanoda",
+              "file": "units/I.13/unit52-rel-iteration.sokonanoda",
               "title": "单元52 关系的复合：单位律与逐点形态",
               "title_en": "Unit 52 — Composition of Relations: Identity Laws, Pointwise",
               "unit": 52

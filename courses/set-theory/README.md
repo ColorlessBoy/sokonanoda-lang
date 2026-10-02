@@ -57,7 +57,7 @@ node scripts/soko course --all "$PWD/courses" --json                            
 
 门禁内部用 `scripts/soko grade <绝对路径>`——**有意一律绝对路径**：台账 G-12 **已在 0.59.0 修掉**
 （模块根绝对化 + 空 parent 护栏；相对路径现在也判绿，实测
-`node scripts/soko grade courses/set-theory/units/unit02-subsets-empty.sokonanoda` = exit 0），
+`node scripts/soko grade courses/set-theory/units/I.1/unit02-subsets-empty.sokonanoda` = exit 0），
 门禁仍用绝对路径是因为 `--bisect` 的前缀文件必须落在目标同目录、且绝对路径让失败输出无歧义。
 **判据只看 `grade` 的退出码**
 （G-10 已修（≥0.59.0）：`query check` 现在同样带 parse 诊断并 exit 1，可作交叉复核）。
@@ -72,8 +72,8 @@ step summary，`--report` 进 artifact）。
 单个文件判卷：
 
 ```bash
-node scripts/soko grade "$PWD/courses/set-theory/units/unit01-sets-membership.sokonanoda"
-node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-membership.sokonanoda" --line 40 --col 3
+node scripts/soko grade "$PWD/courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda"
+node scripts/soko query state --file "$PWD/courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda" --line 40 --col 3
 ```
 
 ## 目录
@@ -104,7 +104,7 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
     { "id": "I.1", "title": "集合、子集与集合运算",
       "prereqs": [], "tags": ["membership", "subset", "powerset"],
       "quota": { "exercises": 35 },
-      "units": [ { "file": "units/unit01-….sokonanoda", "title": "单元① 集合与隶属",
+      "units": [ { "file": "units/I.1/unit01-….sokonanoda", "title": "单元① 集合与隶属",
                    "title_en": "Unit 1 — Sets & Membership", "unit": 1 }, … ] }, … ] } ] }
 ```
 
@@ -120,6 +120,28 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 一条纪律：**一个 unit 恰好属于一个 chapter**（同一 `file` 出现两次由 G6 判红）。
 机器读到的结构会出现在三处：CLI `course.unit` 事件的 `volume`/`chapter`/`tags`
 （`docs/protocol.md`）、VS Code 课程树的卷→章→单元分组、站点卷 I 页面的分组目录。
+
+## 目录布局（2026-10-02 起）
+
+单元**按章分子目录** —— 顶层平铺 105 个文件太吓人（用户原话），而章本来就在
+`course.json` 里（13 章，`I.1`–`I.13`）：
+
+```text
+units/
+  I.1/unit01-sets-membership.sokonanoda      ← 画布：units/<章 id>/…
+  …
+  I.13/…
+  solutions/I.1/unit01-solution.sokonanoda   ← 解答**与画布同构**：units/solutions/<章 id>/…
+  notation-cheatsheet.sokonanoda             ← 教学装置（不属任何单元）留在顶层
+```
+
+- **分组依据是既有的章**（`course.json` 的 `chapters[].id` ✓）⇒ 没有发明新分类；
+  单夹最多 15 个（`I.1` 与 `I.3`），从 105 降到 ≤15 ✓。
+- **章内编号本来就不连续**（`I.1` 含 1–4 / 58–66 / 104–105）⇒ 夹内按名排序会跳号，
+  这是既有事实（编号是**写作顺序**，不是章内序号）。
+- **解答按单元号命名**（`unitNN-solution.sokonanoda`）：门禁 `solution_unit()` 从解答名
+  解析单元号再与画布配对 ⇒ 解答与画布靠**单元号**配对，不靠路径。
+- **页面**（记法对照页）留在 `units/` 顶层；门禁的页面发现**故意不递归**（见 `check.py`）。
 
 ## 现状（2026-09-19，12 单元全部落地）
 
@@ -689,8 +711,8 @@ prelude 的签名才是唯一真相（`crates/front/src/compile/prelude.rs` 的 
 ### 一次判卷（任何单元）
 
 ```bash
-node scripts/soko query check --file "$PWD/courses/set-theory/units/unit13-orders.sokonanoda"  # 画布
-node scripts/soko query check --file "$PWD/courses/set-theory/units/solutions/unit13-solution.sokonanoda"  # 解答
+node scripts/soko query check --file "$PWD/courses/set-theory/units/I.5/unit13-orders.sokonanoda"  # 画布
+node scripts/soko query check --file "$PWD/courses/set-theory/units/solutions/I.5/unit13-solution.sokonanoda"  # 解答
 python3 courses/set-theory/tools/check.py          # 整门课（G1–G6）
 ```
 

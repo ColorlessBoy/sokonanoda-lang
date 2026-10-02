@@ -206,7 +206,7 @@ JUDGE_STATS calls=25 total_ms=81892 prefix_bytes=1064669
 
 ### 分阶段 profile：`unit12-solution` 的 120 秒花在哪（T-K03，2026-09-21）
 
-**最坏样本** `courses/set-theory/units/solutions/unit12-solution.sokonanoda`
+**最坏样本** `courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda`
 （526 行、9 道题、全 tactic 风格）。debug CLI、隔离缓存、冷跑。
 
 两个口径互相印证：
@@ -245,7 +245,7 @@ JUDGE_STATS calls=25 total_ms=81892 prefix_bytes=1064669
 **怎么重量**（常驻开关，不再是一次性探针）：
 
 ```bash
-SOKO_JUDGE_STATS=1 scripts/soko grade courses/set-theory/units/solutions/unit12-solution.sokonanoda
+SOKO_JUDGE_STATS=1 scripts/soko grade courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda
 # → JUDGE_STATS calls=25 total_ms=81925 avg_ms=3277 pairs=123 prefix_bytes=1064669
 
 # 采样（macOS 自带，不用改代码）：
@@ -444,12 +444,12 @@ python3 scripts/perf-compare.py --self-test     # 自检判定规则（7 条）
 
 | case | 入口 | 实测 | 说明 |
 |---|---|---|---|
-| `did_open` | `units/unit01-sets-membership`（2 import） | **1812ms** | 6 条诊断 |
-| `did_open` | `units/unit08-images-preimages`（4 import） | **4729ms** | 9 条诊断 |
-| `did_open` | `units/unit12-synthesis`（7 import） | **7910ms** | 9 条诊断 |
+| `did_open` | `units/I.1/unit01-sets-membership`（2 import） | **1812ms** | 6 条诊断 |
+| `did_open` | `units/I.3/unit08-images-preimages`（4 import） | **4729ms** | 9 条诊断 |
+| `did_open` | `units/I.4/unit12-synthesis`（7 import） | **7910ms** | 9 条诊断 |
 | `did_open_same_session` | 同会话重开 unit01 | **121ms** | `Session` 的"内容未变零重编译"是好的 ⇒ **贵的是第一次打开** |
 | `keystroke` | unit08 上改一条声明的名字（8 模块闭包重编译） | **371ms** | 来回改 3 次取最小 |
-| `by_block_did_open` | `units/solutions/unit12-solution`（8 模块、25 个 `by`） | **36.1s** | **默认跳过**（会让 `cargo test` 多花几十秒）；`SOKO_PERF_COURSE_SLOW=1` 打开 |
+| `by_block_did_open` | `units/solutions/I.4/unit12-solution`（8 模块、25 个 `by`） | **36.1s** | **默认跳过**（会让 `cargo test` 多花几十秒）；`SOKO_PERF_COURSE_SLOW=1` 打开 |
 
 **量级哨兵**：最慢一次 `didOpen` < 60s（抓的是"退化成分钟级"，不是 ±20% 波动）。
 

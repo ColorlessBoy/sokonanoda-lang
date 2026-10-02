@@ -41,15 +41,27 @@ def main() -> int:
     a = ap.parse_args()
 
     rows, bad, soft_any = [], [], False
-    for canvas in sorted(UNITS.glob("unit*.sokonanoda")):
+    # 画布按**章**分子目录（`units/<章 id>/…`）⇒ 递归收；`units/solutions/**` 是解答，
+    # 不能当画布收（同名同后缀，非递归/不排除都会漏或错配）。
+    canvases = [
+        p
+        for p in sorted(UNITS.rglob("unit*.sokonanoda"))
+        if p.is_file() and SOLS not in p.parents
+    ]
+    for canvas in canvases:
         m = re.match(r"unit(\d+)", canvas.name)
         if not m:
             continue
         n = int(m.group(1))
         if a.unit is not None and n != a.unit:
             continue
-        # 文件名里的数字**保留原样**（单元 1–12 是零填充 `unit01-`，13 起是 `unit13-`）
-        sol = SOLS / f"unit{m.group(1)}-solution.sokonanoda"
+        # 文件名里的数字**保留原样**（单元 1–12 是零填充 `unit01-`，13 起是 `unit13-`）；
+        # 解答与画布**同构**分层 ⇒ 解答在画布同章的 `units/solutions/<章 id>/` 下。
+        sol = (
+            SOLS / canvas.parent.relative_to(UNITS) / f"unit{m.group(1)}-solution.sokonanoda"
+            if canvas.parent != UNITS
+            else SOLS / f"unit{m.group(1)}-solution.sokonanoda"
+        )
         if not sol.exists():
             rows.append((n, canvas.name, "**没有解答文件** ✗", [], [], []))
             bad.append(n)

@@ -98,7 +98,7 @@ fn every_course_entry_has_the_same_prelude_shape() {
 /// 以前这张表在加载期算完就丢（`exports` 是局部量）⇒ "跳转"没有数据可用。
 #[test]
 fn the_entry_notation_table_points_at_the_declaring_module() {
-    let entry = course_dir().join("units/unit01-sets-membership.sokonanoda");
+    let entry = course_dir().join("units/I.1/unit01-sets-membership.sokonanoda");
     let text = std::fs::read_to_string(&entry).expect("读入口");
     let plan = project::plan_project(&entry, Some(&text), None);
     let report = project::compile_plan(plan, &Default::default());
@@ -141,7 +141,7 @@ fn the_entry_notation_table_points_at_the_declaring_module() {
 fn the_course_libraries_declare_the_composition_notations() {
     use sokonanoda_front::NotationAssoc;
 
-    let entry = course_dir().join("units/unit12-synthesis.sokonanoda");
+    let entry = course_dir().join("units/I.4/unit12-synthesis.sokonanoda");
     let text = std::fs::read_to_string(&entry).expect("读入口");
     let plan = project::plan_project(&entry, Some(&text), None);
     let report = project::compile_plan(plan, &Default::default());
@@ -192,7 +192,7 @@ fn the_course_libraries_declare_the_composition_notations() {
 fn the_set_product_notation_target_lives_in_the_library() {
     use sokonanoda_front::NotationAssoc;
 
-    let entry = course_dir().join("units/unit05-pairs-products.sokonanoda");
+    let entry = course_dir().join("units/I.2/unit05-pairs-products.sokonanoda");
     let text = std::fs::read_to_string(&entry).expect("读入口");
     let plan = project::plan_project(&entry, Some(&text), None);
     let report = project::compile_plan(plan, &Default::default());
@@ -249,7 +249,7 @@ fn the_set_product_notation_target_lives_in_the_library() {
 fn the_course_libraries_declare_the_inverse_and_equinumerous_notations() {
     use sokonanoda_front::NotationAssoc;
 
-    let entry = course_dir().join("units/unit12-synthesis.sokonanoda");
+    let entry = course_dir().join("units/I.4/unit12-synthesis.sokonanoda");
     let text = std::fs::read_to_string(&entry).expect("读入口");
     let plan = project::plan_project(&entry, Some(&text), None);
     let report = project::compile_plan(plan, &Default::default());

@@ -109,7 +109,8 @@ fn a_failing_judgement_reports_the_same_diagnostic_with_and_without_batching() {
 fn a_canvas_with_open_exercises_grades_the_same_with_and_without_batching() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../courses/set-theory/units");
     for name in [
-        "unit01-sets-membership.sokonanoda",
+        // 单元画布按章分子目录；记法对照页（教学装置）留在 `units/` 顶层。
+        "I.1/unit01-sets-membership.sokonanoda",
         "notation-cheatsheet.sokonanoda",
     ] {
         let path = root.join(name);
@@ -122,7 +123,7 @@ fn a_canvas_with_open_exercises_grades_the_same_with_and_without_batching() {
 fn a_solution_key_grades_the_same_with_and_without_batching() {
     let root =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../courses/set-theory/units/solutions");
-    for name in ["unit01-solution.sokonanoda", "unit02-solution.sokonanoda"] {
+    for name in ["I.1/unit01-solution.sokonanoda", "I.1/unit02-solution.sokonanoda"] {
         let path = root.join(name);
         assert!(path.exists(), "找不到解答钥匙 {path:?}");
         assert_same_both_ways(&path, name);

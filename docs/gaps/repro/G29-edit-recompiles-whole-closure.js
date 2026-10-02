@@ -8,7 +8,7 @@ const { spawn } = require('node:child_process')
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path')
 const ROOT = path.join(__dirname, '..', '..', '..')
 const SOKO = path.join(ROOT, 'scripts', 'soko')
-const ENTRY = path.join(ROOT, 'courses/set-theory/units/unit08-images-preimages.sokonanoda')
+const ENTRY = path.join(ROOT, 'courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda')
 
 function startLsp(env) {
   const child = spawn(process.execPath, [SOKO, 'lsp'], { stdio: ['pipe', 'pipe', 'pipe'], env })

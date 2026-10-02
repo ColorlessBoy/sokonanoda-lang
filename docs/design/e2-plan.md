@@ -40,7 +40,7 @@
 **三个基准数字（每阶段都要复量，只许变好 ✓）**：
 ```bash
 # ① 大文件冷开（judge 密集）
-SOKO_JUDGE_STATS=1 sokonanoda --json courses/set-theory/units/solutions/unit12-solution.sokonanoda
+SOKO_JUDGE_STATS=1 sokonanoda --json courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda
 # ② 目录构建（闭包重复编译）
 sokonanoda build courses/set-theory            # 基线 146.07s / 35 文件
 # ③ 编辑中热编译（生命线）
@@ -480,7 +480,7 @@ kernel_phase.rs` 的 `resolution` 回填只查用户文件的 `top_level_def_spa
 ### T-N10 B1 判红：R5 最小复现
 契约：先造出**判红**的最小复现——记法 `''` / `⁻¹'` 的操作数是 λ 或"类型标注写不出
 来"的形状时，`solve_prefix_args` 的路线 ① 拿不到实参类型 ⇒
-`elab-notation-argument-unsolved`（`courses/set-theory/units/unit12-synthesis.sokonanoda`
+`elab-notation-argument-unsolved`（`courses/set-theory/units/I.4/unit12-synthesis.sokonanoda`
 的 `soko:notation-ok: R5` 标记就是这么来的）。复现件进
 `crates/cli/tests/notation.rs`（或 `implicit.rs` 单测）。
 判据：复现件在修复前**红**。
