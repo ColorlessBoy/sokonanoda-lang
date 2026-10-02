@@ -380,13 +380,15 @@ python3 courses/set-theory/tools/audit-pairs.py --strict    # 有"硬缺"就 exi
 它当初的病是「`IsWellOrder` 配『极小』`HasMin` ⇒ 只在空论域可满足」✗ ⇒
 守卫应当是**造一个非空实例**并判绿 ✓，而不是只判 `lib/Order` 绿 ✗）。
 
-## 待查：**新文件里记法不生效**（2026-10-01 第 630 轮，未查完 ✗）
+## **已查清**：`𝒫`/`⋃`/`⋂` 本来就没有记法（2026-10-01 第 631 轮结案 ✓）
 
-**现象** ✓（可复现）：新建 `courses/set-theory/units/solutions/<新文件>.sokonanoda`，
-头部照抄单元48/55 的导入表（`import lib.Rel` / `lib.Set` / `lib.SUnion` / `lib.Order` ✓），
-写 `B ∈ (𝒫 A)` ⇒ 判红：**「符号 `∈`/`⋃` 在本文件里还没有声明过记法」** ✗；
-而**同样的导入表**在 `units/unit48-cover.sokonanoda` 与 `units/…/unit55-solution.sokonanoda` 里
-**一直判绿** ✓。
+**结案** ✓：**不是"新文件里记法不生效"** ✗，而是 **`𝒫`/`⋃`/`⋂` 这三条记法本来就不存在** ✓ ——
+`lib/Set.sokonanoda` 的记法块**只有六条**：`∈` `⊆` `∪` `∩` `\`（+ `ᶜ` ✓）✓。
+单元48/51 里那些"看起来用了 `𝒫`/`⋃`"的地方，**全是点名写法**
+（`Set.powerset A` ✓ / `Set.sUnion α F` ✓）**加行内 `-- soko:notation-ok:` 说明** ✓
+（本轮 `sed -n '25,40p' units/unit48-cover.sokonanoda` 看到了 ✓）。
+⇒ **纪律** ✓：**`𝒫`/`⋃`/`⋂` 一律写点名**（`Set.powerset` / `Set.sUnion` / `Set.sInter` ✓），
+**别写符号** ✗（写了会报"符号未声明" ✓，而报错信息会连带说 `∈` 未声明 ⇒ **会误导** ✗）。
 
 **已排除** ✗：不是 `lib.Rel` 的干扰（去掉它仍红 ✓）；不是"文件在 `solutions/` 子目录"
 （新建探针在 `units/` 顶层也试过 ✗）。
