@@ -1,0 +1,85 @@
+-- ==========================================================================
+-- unit109-ordinal-rec.sokonanoda —— 卷 I 单元109 **序数上的递归与加法（关系版）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§4.3**（递归定理）· **§8.1**（序数加法）·
+--   Halmos《Naive Set Theory》**§18/§19**。大纲 §4.1（**卷 I 收官主线** ✓ —— 接单元106/107/108 ✓）。
+--
+-- ⚠⚠ **本单元是新解锁的兑现** ✓：台账 **G-58**（Prop→Type 大消去）修好之后，
+--   递归子**能消去到 `Type`** ✓ ⇒ 序数上的递归**可以定义函数**了 ✓（单元106 只到"归纳" ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **递归子**（`ordinal_rec_nat` ✓ —— 沿良基关系定义到 `Nat` 的函数 ✓）；
+--   · **计算规则**（`ordinal_rec_nat_eq` ✓ —— 对 `Acc.intro` 定义性地归约 ✓）；
+--   · **唯一性**（`ordinal_rec_nat_unique` ✓ —— 同一递归方程的两条解相等 ✓，不需选择公理 ✓）；
+--   · **加法（关系版）**（`AddsTo` ✓）：`zero` 与 `succ` 两条构造子 ✓
+--     —— `x + 0 = x` ✓、`x + (σ y) = σ (x + y)` ✓。
+--
+-- ⚠ **写法要点（本轮换来 ✓）**：① 返回**非 Prop**（如 `Nat`）的声明必须写 **`def`** ✗
+--   （写成 `theorem` 会报「theorem type must be Prop」✓）；
+--   ② 把递归子的**计算规则**写成定理时，等式要写**显式宇宙** `Eq.{1}` / `Eq.refl.{1}` ✓  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
+--   （只写 `Eq` 会报「期望 Sort(0)，实际是 Sort(1)」✓ —— 台账 **C-02** 的拼法边界 ✓）；
+--   ③ `∀ …` 用**逗号**收尾 ✓。
+--
+-- ⚠ **本单元的分工（如实标注 ✓）**：**函数版**加法（按"是不是零 / 是不是后继"分支定义 ✗）
+--   需要 **Prop→Type 的情形分析** ✓ —— 实测**判红** ✗（台账 **C-04** ✓）⇒ 本单元交**关系版** ✓；
+--   **结合律**要先用推导子的**逆引理**（`AddsTo x (σ y) v ⇒ v 是某个 σ z` ✓）⇒ 留下一单元 ✓（**C-05** ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理与 prelude 的 `Classical.*` ✓。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · `lib.Ordinal`。
+--
+-- 依赖：单元106（`Acc`/`acc_ind`/`acc_unique` ✓）· 单元107（∈-归纳 ✓）· 单元108（三歧半边 ✓）
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Ordinal
+theorem demo_acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x) :
+    ∀ (x : α), Acc α r x → motive x :=
+  acc_ind α r motive step
+theorem demo_acc_inv (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ∀ (y : α), r y x → Acc α r y :=
+  acc_inv α r x h
+theorem demo_acc_unique (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α r x → f x = g x :=
+  acc_unique α β r f g spec
+inductive AddsTo (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α) : α → α → α → Prop
+ctor zero (x : α) : AddsTo α E σ zero x zero x
+ctor succ (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
+  AddsTo α E σ zero x (σ y) (σ z)
+end
+-- 练习 1（L 类，**递归子**）：**沿良基关系定义到 `Nat` 的函数**（返回 `Nat` ⇒ 写 `def` ✗）。
+-- 思路：直接用 `Acc.rec`，motive 取具体类型 `Nat`（**变量 `β : Type` 会撞宇宙边界** ✗），把"前驱的递归值"函数交给调用方给的 `step`。
+-- 关键件：**`Acc.rec`**（motive 写 `fun z _ => Nat` ✓）· `step` 的**两个参数**（点 · 前驱递归值函数 ✓）
+def ordinal_rec_nat (α : Type) (E : α → α → Prop) (x : α)
+    (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat) (h : Acc α E x) : Nat :=
+  Acc.rec α E (fun (z : α) (_ : Acc α E z) => Nat)
+    (fun (z : α) (hz : ∀ (w : α), E w z → Acc α E w)
+      (ih : ∀ (w : α) (hw : E w z), Nat) => step z ih) x h
+
+theorem ordinal_rec_nat_eq (α : Type) (E : α → α → Prop) (x : α)
+    (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat)
+    (hr : ∀ (w : α), E w x → Acc α E w) :
+    Eq.{1} Nat (ordinal_rec_nat α E x step (Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
+      (step x (fun (w : α) (hw : E w x) => ordinal_rec_nat α E w step (hr w hw))) := by
+  sorry
+-- 练习 3（T 类，**唯一性**）：**同一递归方程的两条解相等**。
+-- 关键件：`acc_unique`（库 ✓，**六点按序** ✓）
+theorem ordinal_rec_nat_unique (α : Type) (E : α → α → Prop)
+    (f : α → Nat) (g : α → Nat)
+    (spec : ∀ (x : α), (∀ (y : α), E y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α E x → f x = g x := by
+  sorry
+-- 练习 4（T 类）：**加法关系：`x + 0 = x`**。
+-- 关键件：`AddsTo.zero`（**五点按序**：类型 · 关系 · 后继算子 · 零 · 点 ✓）
+theorem addsTo_zero (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α) (x : α) :
+    AddsTo α E σ zero x zero x := by
+  sorry
+-- 练习 5（T 类）：**加法关系：`x + (σ y) = σ (x + y)`**。
+-- 关键件：`AddsTo.succ`（**七点按序** ✓）
+theorem addsTo_succ (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
+    AddsTo α E σ zero x (σ y) (σ z) := by
+  sorry

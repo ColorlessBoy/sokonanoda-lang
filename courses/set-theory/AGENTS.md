@@ -542,3 +542,14 @@ def Classical.byContradiction : (p : Prop) -> (Not p -> False) -> p
 
 **一句话**：**画布**是 `unitNN-<slug>.sokonanoda` ✓，**解答**是 `unitNN-solution.sokonanoda` ✓ ——
 两边命名规则**不一样** ✗，别把画布的 slug 抄到解答上 ✓。
+
+### 一条**开工前自检**（2026-10-02 立的；同一命名坑连踩三次 ✗）
+
+画布与解答生成完之后、**跑门禁之前**，先花 3 秒跑这条 ✓：
+
+```bash
+python3 courses/set-theory/tools/audit-pairs.py --unit <N>     # 应打印「共 1 个单元 · 缺名 0 个 ✓」
+```
+
+它会立刻报「**没有解答文件**」✗ —— 比等门禁（~10 分钟）报 G2 便宜得多 ✓。
+**命名两条规则别混** ✓：画布 `unitNN-<slug>.sokonanoda` ✓、解答 **`unitNN-solution.sokonanoda`** ✓。

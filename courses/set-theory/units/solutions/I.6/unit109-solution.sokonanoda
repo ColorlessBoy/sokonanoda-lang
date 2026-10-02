@@ -1,0 +1,52 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Ordinal
+
+theorem demo_acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x) :
+    ∀ (x : α), Acc α r x → motive x :=
+  acc_ind α r motive step
+
+theorem demo_acc_inv (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ∀ (y : α), r y x → Acc α r y :=
+  acc_inv α r x h
+
+theorem demo_acc_unique (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α r x → f x = g x :=
+  acc_unique α β r f g spec
+
+def ordinal_rec_nat (α : Type) (E : α → α → Prop) (x : α)
+    (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat) (h : Acc α E x) : Nat :=
+  Acc.rec α E (fun (z : α) (_ : Acc α E z) => Nat)
+    (fun (z : α) (hz : ∀ (w : α), E w z → Acc α E w)
+      (ih : ∀ (w : α) (hw : E w z), Nat) => step z ih) x h
+
+theorem ordinal_rec_nat_eq (α : Type) (E : α → α → Prop) (x : α)
+    (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat)
+    (hr : ∀ (w : α), E w x → Acc α E w) :
+    Eq.{1} Nat (ordinal_rec_nat α E x step (Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
+      (step x (fun (w : α) (hw : E w x) => ordinal_rec_nat α E w step (hr w hw))) :=
+  Eq.refl.{1} Nat (step x (fun (w : α) (hw : E w x) => ordinal_rec_nat α E w step (hr w hw)))
+
+theorem ordinal_rec_nat_unique (α : Type) (E : α → α → Prop)
+    (f : α → Nat) (g : α → Nat)
+    (spec : ∀ (x : α), (∀ (y : α), E y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α E x → f x = g x :=
+  acc_unique α Nat E f g spec
+
+inductive AddsTo (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α) : α → α → α → Prop
+ctor zero (x : α) : AddsTo α E σ zero x zero x
+ctor succ (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
+  AddsTo α E σ zero x (σ y) (σ z)
+end
+
+theorem addsTo_zero (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α) (x : α) :
+    AddsTo α E σ zero x zero x :=
+  AddsTo.zero α E σ zero x
+
+theorem addsTo_succ (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
+    AddsTo α E σ zero x (σ y) (σ z) :=
+  AddsTo.succ α E σ zero x y z h
