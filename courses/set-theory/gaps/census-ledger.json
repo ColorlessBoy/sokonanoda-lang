@@ -1,0 +1,5046 @@
+{
+ "schema": "soko.notation-census/1",
+ "ledger": [
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 50,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 51,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 54,
+   "rule": "And.left 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 55,
+   "rule": "And.right 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 70,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 72,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 73,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 78,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 80,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 81,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 95,
+   "rule": "Iff.refl 写全了前导参数（1 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 109,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 110,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 120,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 121,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 136,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 136,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 137,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 140,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 140,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 141,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 146,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 149,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 154,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 159,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 160,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 161,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 162,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 340,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 341,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 344,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 355,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 357,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 365,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 369,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 371,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 372,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 436,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 440,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 476,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 482,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 108,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 110,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 111,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 113,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 115,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 116,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 117,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 128,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 128,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 129,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 137,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 137,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 138,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 164,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 165,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 166,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 169,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 170,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 171,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 211,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 230,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 323,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 350,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 359,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 360,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 379,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 380,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 390,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 427,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 429,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 78,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 78,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 83,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 83,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 87,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 88,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 88,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 98,
+   "rule": "Exists.elim 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 101,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 102,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 102,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 109,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 110,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 110,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 111,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 111,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 117,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 128,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 129,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 129,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 130,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 131,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 132,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 132,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 133,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 133,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 134,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 134,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 30,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 31,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 32,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 33,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 43,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 45,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 46,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 64,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 65,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 70,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 71,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 79,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 80,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 88,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 89,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 100,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 105,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 106,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 112,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 117,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 118,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 132,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 133,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 138,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
+   "line": 139,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 20,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 21,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 29,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 29,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 30,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 30,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 35,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 35,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 37,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 37,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 48,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 48,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 51,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 51,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 57,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 57,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 58,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 60,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 69,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 70,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 73,
+   "rule": "Or.elim 写全了前导参数（6 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 92,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 99,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
+   "line": 99,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 32,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 33,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 34,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 41,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 42,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 43,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 55,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 56,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 57,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 61,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 77,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 81,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 84,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 85,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 85,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 94,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 95,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 95,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 103,
+   "rule": "Exists.elim 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 121,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 122,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
+   "line": 122,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 12,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 15,
+   "rule": "Or.elim 写全了前导参数（6 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 30,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 31,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 34,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 34,
+   "rule": "Or.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 35,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 40,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 41,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 44,
+   "rule": "Or.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 44,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 48,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 48,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 49,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
+   "line": 53,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 37,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 41,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 62,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 80,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 84,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 86,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 87,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 88,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 96,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 105,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 108,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 125,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 127,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 129,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
+   "line": 131,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 30,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 33,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 37,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 48,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 50,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 51,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 54,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 56,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 57,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 62,
+   "rule": "Exists.elim 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 66,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 68,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 71,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 87,
+   "rule": "Exists.elim 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+   "line": 90,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 30,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 33,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 37,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 48,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 49,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 49,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 51,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 58,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 60,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 61,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 61,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 62,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 77,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+   "line": 81,
+   "rule": "And.right 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 33,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 40,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 68,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 111,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 152,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 156,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 160,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 164,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 187,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 199,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 310,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 325,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 31,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 32,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 35,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 36,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 62,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 66,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 76,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 81,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 89,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 90,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 101,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
+   "line": 103,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 23,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 23,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 25,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 25,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 41,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 44,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 61,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 62,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 69,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 82,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 88,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
+   "line": 89,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 19,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 25,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 32,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 42,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 44,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 53,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 58,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 71,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 77,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 86,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 93,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit75-solution.sokonanoda",
+   "line": 97,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 31,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 32,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 66,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 67,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 68,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 70,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 71,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 84,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 86,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 99,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 101,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
+   "line": 103,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 36,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 43,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 71,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 114,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 155,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 159,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 163,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 167,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 190,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 202,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 313,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 328,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 34,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 36,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 47,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 53,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 60,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 61,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 83,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 83,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 95,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 96,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 96,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+   "line": 97,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
+   "line": 126,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
+   "line": 127,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
+   "line": 131,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
+   "line": 132,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
+   "line": 134,
+   "rule": "And.right 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
+   "line": 141,
+   "rule": "And.right 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
+   "line": 141,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
+   "line": 143,
+   "rule": "And.right 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
+   "line": 143,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
+   "line": 157,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
+   "line": 15,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
+   "line": 20,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
+   "line": 29,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
+   "line": 32,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
+   "line": 37,
+   "rule": "And.left 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
+   "line": 38,
+   "rule": "And.right 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
+   "line": 77,
+   "rule": "And.left 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
+   "line": 78,
+   "rule": "And.right 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit03-solution.sokonanoda",
+   "line": 103,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
+   "line": 64,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
+   "line": 76,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
+   "line": 78,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
+   "line": 98,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
+   "line": 110,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
+   "line": 112,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
+   "line": 132,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
+   "line": 176,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+   "line": 29,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+   "line": 30,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+   "line": 50,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+   "line": 50,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+   "line": 59,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+   "line": 60,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+   "line": 60,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+   "line": 61,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
+   "line": 21,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
+   "line": 22,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
+   "line": 30,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
+   "line": 31,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
+   "line": 52,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
+   "line": 54,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
+   "line": 65,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
+   "line": 67,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 32,
+   "rule": "And.left 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 33,
+   "rule": "And.right 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 47,
+   "rule": "Exists.elim 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 50,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 54,
+   "rule": "Exists.elim 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 57,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 62,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 63,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 32,
+   "rule": "And.left 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 33,
+   "rule": "And.right 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 47,
+   "rule": "Exists.elim 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 50,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 54,
+   "rule": "Exists.elim 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 57,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 62,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "line": 63,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 203,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 264,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 265,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 266,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 269,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "red",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 270,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "per-hit"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 271,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
+   "line": 20,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
+   "line": 25,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
+   "line": 33,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
+   "line": 36,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
+   "line": 48,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
+   "line": 76,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
+   "line": 81,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
+   "line": 62,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
+   "line": 63,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
+   "line": 75,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
+   "line": 76,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
+   "line": 77,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
+   "line": 79,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
+   "line": 80,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+   "line": 38,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+   "line": 41,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+   "line": 48,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+   "line": 52,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+   "line": 64,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+   "line": 69,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+   "line": 83,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "sampled-out"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+   "line": 59,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+   "line": 66,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+   "line": 151,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+   "line": 155,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+   "line": 159,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+   "line": 163,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
+   "line": 38,
+   "rule": "Iff.mp 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
+   "line": 55,
+   "rule": "Iff.mp 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
+   "line": 63,
+   "rule": "Iff.mpr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
+   "line": 65,
+   "rule": "Iff.mp 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
+   "line": 67,
+   "rule": "Iff.mpr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
+   "line": 69,
+   "rule": "Iff.mp 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
+   "line": 20,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
+   "line": 25,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
+   "line": 31,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
+   "line": 34,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
+   "line": 38,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
+   "line": 44,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
+   "line": 9,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
+   "line": 12,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
+   "line": 15,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
+   "line": 26,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
+   "line": 28,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
+   "line": 29,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
+   "line": 29,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
+   "line": 39,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
+   "line": 58,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
+   "line": 77,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
+   "line": 92,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
+   "line": 112,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "playground.sokonanoda",
+   "line": 257,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "playground.sokonanoda",
+   "line": 257,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "playground.sokonanoda",
+   "line": 329,
+   "rule": "And.left 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "playground.sokonanoda",
+   "line": 330,
+   "rule": "And.right 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "playground.sokonanoda",
+   "line": 363,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "playground.sokonanoda",
+   "line": 368,
+   "rule": "Exists.elim 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
+   "line": 20,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
+   "line": 25,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
+   "line": 31,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
+   "line": 34,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
+   "line": 38,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
+   "line": 22,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
+   "line": 26,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
+   "line": 37,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
+   "line": 52,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
+   "line": 53,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
+   "line": 24,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
+   "line": 27,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
+   "line": 31,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
+   "line": 74,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
+   "line": 84,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
+   "line": 84,
+   "rule": "And.left 写全了前导参数（6 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
+   "line": 89,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
+   "line": 91,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
+   "line": 123,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
+   "line": 124,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit02-solution.sokonanoda",
+   "line": 25,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit02-solution.sokonanoda",
+   "line": 42,
+   "rule": "absurd 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit02-solution.sokonanoda",
+   "line": 61,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit02-solution.sokonanoda",
+   "line": 62,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
+   "line": 55,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
+   "line": 63,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
+   "line": 83,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
+   "line": 93,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
+   "line": 20,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
+   "line": 25,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
+   "line": 31,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
+   "line": 53,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit84-solution.sokonanoda",
+   "line": 50,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit84-solution.sokonanoda",
+   "line": 51,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit84-solution.sokonanoda",
+   "line": 66,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit84-solution.sokonanoda",
+   "line": 68,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit30-solution.sokonanoda",
+   "line": 41,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit30-solution.sokonanoda",
+   "line": 45,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit30-solution.sokonanoda",
+   "line": 53,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit30-solution.sokonanoda",
+   "line": 57,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit32-solution.sokonanoda",
+   "line": 67,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit32-solution.sokonanoda",
+   "line": 76,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit32-solution.sokonanoda",
+   "line": 91,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit32-solution.sokonanoda",
+   "line": 100,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 35,
+   "rule": "Exists.elim 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 42,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 44,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 53,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda",
+   "line": 352,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda",
+   "line": 357,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda",
+   "line": 376,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda",
+   "line": 381,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
+   "line": 166,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
+   "line": 174,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
+   "line": 181,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
+   "line": 188,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
+   "line": 14,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
+   "line": 18,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
+   "line": 19,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
+   "line": 49,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
+   "line": 32,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
+   "line": 33,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
+   "line": 37,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
+   "line": 41,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
+   "line": 22,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
+   "line": 23,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
+   "line": 31,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
+   "line": 32,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit67-solution.sokonanoda",
+   "line": 49,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit67-solution.sokonanoda",
+   "line": 49,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit67-solution.sokonanoda",
+   "line": 54,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit67-solution.sokonanoda",
+   "line": 68,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
+   "line": 29,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
+   "line": 33,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
+   "line": 72,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
+   "line": 72,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.9/unit21-solution.sokonanoda",
+   "line": 34,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.9/unit21-solution.sokonanoda",
+   "line": 56,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.9/unit21-solution.sokonanoda",
+   "line": 72,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.9/unit21-solution.sokonanoda",
+   "line": 80,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-prop.sokonanoda",
+   "line": 30,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-prop.sokonanoda",
+   "line": 37,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-prop.sokonanoda",
+   "line": 65,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/lib/Rel.sokonanoda",
+   "line": 85,
+   "rule": "Iff.refl 写全了前导参数（1 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/lib/Rel.sokonanoda",
+   "line": 88,
+   "rule": "Iff.refl 写全了前导参数（1 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/lib/Rel.sokonanoda",
+   "line": 94,
+   "rule": "Iff.refl 写全了前导参数（1 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
+   "line": 71,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
+   "line": 71,
+   "rule": "And.right 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
+   "line": 73,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit102-subset-antisymm.sokonanoda",
+   "line": 33,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit102-subset-antisymm.sokonanoda",
+   "line": 36,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit102-subset-antisymm.sokonanoda",
+   "line": 37,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.4/unit95-diagonal.sokonanoda",
+   "line": 29,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/I.4/unit95-diagonal.sokonanoda",
+   "line": 31,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/I.4/unit95-diagonal.sokonanoda",
+   "line": 33,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit62-solution.sokonanoda",
+   "line": 29,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit62-solution.sokonanoda",
+   "line": 35,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit62-solution.sokonanoda",
+   "line": 71,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit66-solution.sokonanoda",
+   "line": 30,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit66-solution.sokonanoda",
+   "line": 35,
+   "rule": "And.left 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit66-solution.sokonanoda",
+   "line": 40,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit37-solution.sokonanoda",
+   "line": 47,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit37-solution.sokonanoda",
+   "line": 71,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit37-solution.sokonanoda",
+   "line": 103,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit41-solution.sokonanoda",
+   "line": 17,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit41-solution.sokonanoda",
+   "line": 63,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit41-solution.sokonanoda",
+   "line": 80,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit45-solution.sokonanoda",
+   "line": 61,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit45-solution.sokonanoda",
+   "line": 75,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit45-solution.sokonanoda",
+   "line": 103,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit13-solution.sokonanoda",
+   "line": 52,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit13-solution.sokonanoda",
+   "line": 57,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit13-solution.sokonanoda",
+   "line": 62,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit14-solution.sokonanoda",
+   "line": 98,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit14-solution.sokonanoda",
+   "line": 106,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit14-solution.sokonanoda",
+   "line": 112,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit16-solution.sokonanoda",
+   "line": 54,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit16-solution.sokonanoda",
+   "line": 56,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit16-solution.sokonanoda",
+   "line": 66,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-04-prop-to-type-control.sokonanoda",
+   "line": 15,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-04-prop-to-type-control.sokonanoda",
+   "line": 16,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-chain-wip.sokonanoda",
+   "line": 58,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-chain-wip.sokonanoda",
+   "line": 66,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/lib/Order.sokonanoda",
+   "line": 415,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/lib/Order.sokonanoda",
+   "line": 420,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit10-cantor.sokonanoda",
+   "line": 65,
+   "rule": "absurd 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit10-cantor.sokonanoda",
+   "line": 94,
+   "rule": "absurd 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit97-equiv-le.sokonanoda",
+   "line": 41,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit97-equiv-le.sokonanoda",
+   "line": 42,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit98-le-mono.sokonanoda",
+   "line": 40,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit98-le-mono.sokonanoda",
+   "line": 41,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit104-solution.sokonanoda",
+   "line": 19,
+   "rule": "Or.elim 写全了前导参数（6 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit104-solution.sokonanoda",
+   "line": 24,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit59-solution.sokonanoda",
+   "line": 40,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit59-solution.sokonanoda",
+   "line": 41,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit60-solution.sokonanoda",
+   "line": 7,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.1/unit60-solution.sokonanoda",
+   "line": 41,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit77-solution.sokonanoda",
+   "line": 60,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit77-solution.sokonanoda",
+   "line": 62,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit85-solution.sokonanoda",
+   "line": 57,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit85-solution.sokonanoda",
+   "line": 59,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit33-solution.sokonanoda",
+   "line": 49,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit33-solution.sokonanoda",
+   "line": 51,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit40-solution.sokonanoda",
+   "line": 114,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit40-solution.sokonanoda",
+   "line": 115,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit101-solution.sokonanoda",
+   "line": 14,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit101-solution.sokonanoda",
+   "line": 34,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit53-solution.sokonanoda",
+   "line": 79,
+   "rule": "Or.inl 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.5/unit53-solution.sokonanoda",
+   "line": 81,
+   "rule": "Or.inr 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit110-solution.sokonanoda",
+   "line": 26,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit110-solution.sokonanoda",
+   "line": 28,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit42-solution.sokonanoda",
+   "line": 45,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit42-solution.sokonanoda",
+   "line": 75,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit81-solution.sokonanoda",
+   "line": 21,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit81-solution.sokonanoda",
+   "line": 25,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit83-solution.sokonanoda",
+   "line": 38,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit83-solution.sokonanoda",
+   "line": 40,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+   "line": 45,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+   "line": 46,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.8/unit19-solution.sokonanoda",
+   "line": 44,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.8/unit19-solution.sokonanoda",
+   "line": 66,
+   "rule": "False.elim 写全了前导参数（2 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.9/unit23-solution.sokonanoda",
+   "line": 93,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.9/unit23-solution.sokonanoda",
+   "line": 96,
+   "rule": "Exists.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "course/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "line": 30,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "course/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "line": 30,
+   "rule": "And.right 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "course/en/unit8-quantifiers.sokonanoda",
+   "line": 121,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "course/en/unit8-quantifiers.sokonanoda",
+   "line": 128,
+   "rule": "Exists.elim 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "line": 30,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "line": 30,
+   "rule": "And.right 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "course/unit8-quantifiers.sokonanoda",
+   "line": 106,
+   "rule": "Exists.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "course/unit8-quantifiers.sokonanoda",
+   "line": 111,
+   "rule": "Exists.elim 写全了前导参数（5 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-04-prop-to-type-reject.sokonanoda",
+   "line": 23,
+   "rule": "Or.elim 写全了前导参数（6 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/lib/Exists.sokonanoda",
+   "line": 95,
+   "rule": "Exists.elim 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/lib/Image.sokonanoda",
+   "line": 88,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/lib/SUnion.sokonanoda",
+   "line": 79,
+   "rule": "Exists.elim 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.1/unit105-classical-laws.sokonanoda",
+   "line": 35,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/I.1/unit60-compl-algebra.sokonanoda",
+   "line": 36,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/I.13/unit41-well-founded.sokonanoda",
+   "line": 61,
+   "rule": "And.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit101-empty-subset.sokonanoda",
+   "line": 37,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit99-powerset-mono.sokonanoda",
+   "line": 31,
+   "rule": "Iff.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/I.4/unit94-cantor-diag.sokonanoda",
+   "line": 36,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit79-solution.sokonanoda",
+   "line": 68,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.11/unit31-solution.sokonanoda",
+   "line": 65,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit51-solution.sokonanoda",
+   "line": 60,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit38-solution.sokonanoda",
+   "line": 79,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.13/unit52-solution.sokonanoda",
+   "line": 23,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.2/unit05-solution.sokonanoda",
+   "line": 109,
+   "rule": "Or.inl 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit10-solution.sokonanoda",
+   "line": 57,
+   "rule": "Iff.refl 写全了前导参数（1 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit99-solution.sokonanoda",
+   "line": 10,
+   "rule": "Iff.intro 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit11-solution.sokonanoda",
+   "line": 39,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit57-solution.sokonanoda",
+   "line": 19,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit94-solution.sokonanoda",
+   "line": 15,
+   "rule": "Iff.intro 写全了前导参数（4 个实参）",
+   "class": "drop-args",
+   "verdict": "green",
+   "scope": "group"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.6/unit82-solution.sokonanoda",
+   "line": 41,
+   "rule": "Or.inr 写全了前导参数（3 个实参）",
+   "class": "drop-args",
+   "verdict": "unmeasured",
+   "scope": "group-red"
+  }
+ ],
+ "groups": {
+  "green": 24,
+  "red": 90
+ },
+ "hits": {
+  "green": 109,
+  "red": 86,
+  "unmeasured": 434
+ }
+}

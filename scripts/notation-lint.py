@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -465,16 +466,22 @@ def _rel(path: Path) -> str:
 #   · `multiline-skip` 调用跨行（单行切不出实参 ⇒ 不猜 ✓）
 # ============================================================================
 
-CENSUS_PROBE = REPO / "courses" / "set-theory" / "gaps" / "census-probe.sokonanoda"
+CENSUS_PROBE = (REPO / "courses" / "set-theory" / "gaps"
+                / f"census-probe-{os.getpid()}.sokonanoda")   # 带 PID：并发跑不撞副件 ✓
 # 副件必须**留在课程树内**（才有 `lib.*` 模块根 ✓），且**不叫 `unit*`** ✗
 # （`tools/audit-pairs.py` 会扫 `units/**/unit*.sokonanoda` ✓）。
 
 CENSUS_MECH_TOKEN = {"->"}
 
 
+def _is_probe(path: Path) -> bool:
+    """普查副件自己不算课程文件 ✓（被 `pkill` 留下的副件曾被当课程扫 ✗）。"""
+    return path.name.startswith("census-probe")
+
+
 def census_hits(path: Path) -> list[dict]:
     """逐处取**被 `soko:notation-ok` 豁免**的命中（带 line/col ✓）—— 主路径不返回它们 ✓。"""
-    if _rel(path) in EXEMPT_FILES:
+    if _rel(path) in EXEMPT_FILES or _is_probe(path):
         return []
     lines = path.read_text(encoding="utf-8").splitlines()
     out: list[dict] = []
@@ -595,13 +602,20 @@ def census(limit: int, do_grade: bool, quiet: bool, roots: list[str] | None = No
         if root.is_file():
             files.append(root)
         elif root.is_dir():
-            files.extend(sorted(p for p in root.rglob("*.sokonanoda") if p.is_file()))
+            files.extend(sorted(p for p in root.rglob("*.sokonanoda")
+                                if p.is_file() and not _is_probe(p)))
     records: list[dict] = []
     for f in files:
         records.extend(census_hits(f))
     if not records:
-        print("notation-lint --census: 扫到 **0 处豁免** ⇒ **无法判定 ≠ 绿** ✗", file=sys.stderr)
-        return 2
+        if not files:
+            print("notation-lint --census: 扫到 **0 个文件** ⇒ **无法判定 ≠ 绿** ✗", file=sys.stderr)
+            return 2
+        # ⚠ 扫到了文件、但**一处可改的都没有** ⇒ 这是**合法结论**（全记法/全需手工 ✓）
+        #   —— 「记法写法必须不被 census 报错」正是这一条 ✓（不是 exit 2 ✗）。
+        print(f"notation-lint --census：扫了 {len(files)} 个文件，**0 处可机械换**"
+              f"（豁免命中 0 处 ⇒ 无候选 ✓）")
+        return 0
 
     classes: dict[str, int] = {}
     rows: list[dict] = []
@@ -658,6 +672,133 @@ def census(limit: int, do_grade: bool, quiet: bool, roots: list[str] | None = No
                 print(f"    {row['file']}:{row['line']}  {row['class']:<10} {row['verdict']}{extra}")
     if tried and red and green == 0:
         print("  ⚠ 绿 0 ⇒ **改写器没被验证过** ✗（先看 needs-manual 判据与基线 ✓）")
+    return 0
+
+
+def census_batch(limit: int, out: str | None, quiet: bool, sample_cap: int = 6) -> int:
+    """**全量普查（按文件分组）**：整文件的机械候选**一次改完**再判卷 ⇒ 组绿 = 该文件的豁免
+    现在就能整批删 ✓；组红 ⇒ 逐处回落定位（最多 `limit` 处）✓。只写副件、跑完即删 ✓。
+
+    为什么分组：逐处一次判卷 = 629 次编译（4 小时+ ✗）；分组 = 114 次 ✓，红文件才逐处回落 ✓。
+    """
+    files: list[Path] = []
+    for r in DEFAULT_ROOTS:
+        root = REPO / r
+        if root.is_file():
+            files.append(root)
+        elif root.is_dir():
+            files.extend(sorted(p for p in root.rglob("*.sokonanoda")
+                                if p.is_file() and not _is_probe(p)))
+    per_file: dict[str, list[dict]] = {}
+    for f in files:
+        lines = f.read_text(encoding="utf-8").splitlines()
+        for rec in census_hits(f):
+            cand, kind = census_candidate(lines, rec)
+            if cand is None:
+                continue
+            per_file.setdefault(rec["file"], []).append(rec)
+    if not files:
+        print("notation-lint --census-batch: 扫到 **0 个文件** ⇒ 无法判定 ≠ 绿 ✗", file=sys.stderr)
+        return 2
+    if not per_file:
+        print(f"notation-lint --census-batch：扫了 {len(files)} 个文件，**0 处可机械换** ✓")
+        return 0
+
+    ledger: list[dict] = []
+    group_green = group_red = 0
+    hits_green = hits_red = 0
+    fallback_budget = limit
+    nfile = len(per_file)
+
+    def flush() -> None:
+        """**增量落盘**：跑到一半被打断也不至于全丢 ✓（实测丢过一次 ✗）。"""
+        if not out:
+            return
+        Path(out).write_text(
+            json.dumps({"schema": "soko.notation-census/1", "ledger": ledger,
+                        "groups": {"green": group_green, "red": group_red},
+                        "hits": {"green": hits_green, "red": hits_red,
+                                 "unmeasured": sum(1 for r in ledger
+                                                   if r["verdict"] == "unmeasured")}},
+                       ensure_ascii=False, indent=1), encoding="utf-8")
+
+    for idx, (rel, recs) in enumerate(sorted(per_file.items(), key=lambda kv: -len(kv[1])), 1):
+        path = REPO / rel
+        lines = path.read_text(encoding="utf-8").splitlines()
+        cur = lines
+        # ⚠ 同行命中必须**从右往左**改（`col` 才不会失效 ✓）⇒ 行降序 + **列也降序** ✓
+        for rec in sorted(recs, key=lambda r: (r["line"], r["col"]), reverse=True):
+            cand, _kind = census_candidate(cur, rec)
+            assert cand is not None, (rel, rec["line"])
+            assert cand != cur, f"改写器空转：{rel}:{rec['line']}"     # **咬得住的守卫** ✓
+            cur = cand
+        CENSUS_PROBE.parent.mkdir(parents=True, exist_ok=True)
+        CENSUS_PROBE.write_text("\n".join(cur) + "\n", encoding="utf-8")
+        try:
+            rc, data = census_grade(CENSUS_PROBE)
+            failed = data.get("failed") or []
+            ok = rc == 0 and not failed
+        finally:
+            CENSUS_PROBE.unlink()
+        if ok:
+            group_green += 1
+            hits_green += len(recs)
+            print(f"  [{idx}/{nfile}] {rel}: 组绿 ✓（{len(recs)} 处可删豁免）", flush=True)
+            flush()
+            for rec in recs:
+                ledger.append({"file": rel, "line": rec["line"], "rule": rec["rule"],
+                               "class": "drop-args", "verdict": "green", "scope": "group"})
+            continue
+        group_red += 1
+        print(f"  [{idx}/{nfile}] {rel}: 组红 ✗（{len(recs)} 处 ⇒ 逐处回落）", flush=True)
+        # 组红 ⇒ 逐处回落（只对**这个文件**的候选 ✓，预算用光就如实记 `unmeasured` ✗）
+        # ⚠ **每个红文件最多逐处测 `per_file` 处**（抽样 ✓）：否则预算会被最大的那个文件吃光 ✗
+        #   （实测：首文件 41 处 ⇒ 250 的预算在头 6 个文件就没了 ✗ —— 抽样才代表整体 ✓）
+        for rec in recs[:sample_cap]:
+            if fallback_budget <= 0:
+                ledger.append({"file": rel, "line": rec["line"], "rule": rec["rule"],
+                               "class": "drop-args", "verdict": "unmeasured", "scope": "group-red"})
+                continue
+            fallback_budget -= 1
+            cand, _kind = census_candidate(lines, rec)
+            assert cand is not None
+            CENSUS_PROBE.write_text("\n".join(cand) + "\n", encoding="utf-8")
+            try:
+                rc2, data2 = census_grade(CENSUS_PROBE)
+                failed2 = data2.get("failed") or []
+                ok2 = rc2 == 0 and not failed2
+            finally:
+                CENSUS_PROBE.unlink()
+            verdict = "green" if ok2 else "red"
+            if ok2:
+                hits_green += 1
+            else:
+                hits_red += 1
+            ledger.append({"file": rel, "line": rec["line"], "rule": rec["rule"],
+                           "class": "drop-args", "verdict": verdict, "scope": "per-hit"})
+        for rec in recs[sample_cap:]:
+            ledger.append({"file": rel, "line": rec["line"], "rule": rec["rule"],
+                           "class": "drop-args", "verdict": "unmeasured", "scope": "sampled-out"})
+        flush()
+
+    unmeasured = sum(1 for r in ledger if r["verdict"] == "unmeasured")
+    print("notation-lint --census-batch（全量普查 · 按文件分组）")
+    print(f"  可机械换命中 = {sum(len(v) for v in per_file.values())} 处 · 文件 = {len(per_file)} 个")
+    print(f"  组判卷：**组绿 {group_green} 个文件**（整批可删豁免 ✓）· 组红 {group_red} 个（逐处回落 ✓）")
+    print(f"  逐处裁定：**绿 {hits_green} / 红 {hits_red}**"
+          + (f" · 未测 {unmeasured}（预算用光 ✗）" if unmeasured else ""))
+    if out:
+        Path(out).write_text(
+            json.dumps({"schema": "soko.notation-census/1", "ledger": ledger,
+                        "groups": {"green": group_green, "red": group_red},
+                        "hits": {"green": hits_green, "red": hits_red,
+                                 "unmeasured": unmeasured}},
+                       ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"  台账 → {out} ✓（逐处 file/line/rule/verdict ✓）")
+    if not quiet:
+        for row in ledger:
+            if row["verdict"] != "green":
+                print(f"    {row['file']}:{row['line']}  {row['verdict']}  ({row['scope']})")
     return 0
 
 
@@ -780,6 +921,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="只做候选分类（秒级，不跑判卷 ✓）")
     parser.add_argument("--census-limit", type=int, default=40,
                         help="普查最多试改多少处（默认 40 = 小批量先验口径 ✓；0 = 全部）")
+    parser.add_argument("--census-batch", action="store_true",
+                        help="全量普查（按文件分组判卷 + 红文件逐处回落 ✓；只统计 ✓）")
+    parser.add_argument("--census-per-file", type=int, default=6,
+                        help="组红文件里最多逐处回落几处（默认 6 = 抽样 ✓）")
+    parser.add_argument("--census-out", default=None,
+                        help="把逐处台账写成 JSON（审计用 ✓）")
     parser.add_argument("--census-selftest", action="store_true",
                         help="普查改写器的反向验证（离线 ✓）")
     parser.add_argument("--quiet", action="store_true", help="无残留时不打印")
@@ -788,6 +935,9 @@ def main(argv: list[str] | None = None) -> int:
         return selftest()
     if args.census_selftest:
         return census_selftest()
+    if args.census_batch:
+        return census_batch(args.census_limit, args.census_out, args.quiet,
+                            sample_cap=args.census_per_file)
     if args.census or args.census_classes:
         return census(args.census_limit, do_grade=args.census, quiet=args.quiet,
                       roots=args.root)
