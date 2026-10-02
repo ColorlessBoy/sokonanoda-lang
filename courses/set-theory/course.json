@@ -20,10 +20,11 @@
             "complement-algebra",
             "de-morgan-constructive",
             "extensionality-packing",
-            "set-equality"
+            "set-equality",
+            "extensionality-consequences"
           ],
           "quota": {
-            "exercises": 67
+            "exercises": 75
           },
           "units": [
             {
@@ -73,6 +74,12 @@
               "title": "单元61 外延打包",
               "title_en": "Unit 61 — Packing Pointwise Facts into Set Equalities",
               "unit": 61
+            },
+            {
+              "file": "units/unit62-ext-consequences.sokonanoda",
+              "title": "单元62 外延性的推论",
+              "title_en": "Unit 62 — Consequences of Extensionality",
+              "unit": 62
             }
           ]
         },
