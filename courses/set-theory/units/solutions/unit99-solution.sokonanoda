@@ -1,0 +1,48 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+
+def Pow (α : Type) (A : Set α) : Set (Set α) :=
+  fun (C : Set α) => C ⊆ A
+
+theorem demo_pow_apply (α : Type) (A : Set α) (C : Set α) :
+    C ∈ Pow α A ↔ C ⊆ A :=
+  Iff.intro (C ∈ Pow α A) (C ⊆ A) (fun (h : C ∈ Pow α A) => h)  -- soko:notation-ok: `Pow` 是 def 头（手册边界）
+    (fun (h : C ⊆ A) => h)
+
+theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+
+theorem demo_mem_univ (α : Type) (x : α) : x ∈ (Set.univ α) :=
+  Set.mem_univ α x
+
+theorem pow_mem_subset (α : Type) (A : Set α) (C : Set α) (h : C ∈ Pow α A) : C ⊆ A :=
+  (fun (hu : C ∈ Pow α A ↔ C ⊆ A) => Iff.mp hu h) (demo_pow_apply α A C)
+
+theorem subset_pow_mem (α : Type) (A : Set α) (C : Set α) (h : C ⊆ A) : C ∈ Pow α A :=
+  (fun (hu : C ∈ Pow α A ↔ C ⊆ A) => Iff.mpr hu h) (demo_pow_apply α A C)
+
+theorem subset_trans (α : Type) (A : Set α) (B : Set α) (C : Set α)
+    (hAB : A ⊆ B) (hBC : B ⊆ C) : A ⊆ C :=
+  fun (x : α) (hx : x ∈ A) =>
+    (fun (hs : ∀ (z : α), z ∈ B → z ∈ C) => hs x
+      ((fun (ht : ∀ (z : α), z ∈ A → z ∈ B) => ht x hx)
+        ((fun (hu : A ⊆ B ↔ ∀ (z : α), z ∈ A → z ∈ B) => Iff.mp hu hAB)
+          (Set.subset_def α A B))))
+      ((fun (hu : B ⊆ C ↔ ∀ (z : α), z ∈ B → z ∈ C) => Iff.mp hu hBC)
+        (Set.subset_def α B C))
+
+theorem pow_mono (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) :
+    Pow α A ⊆ Pow α B :=
+  fun (C : Set α) (hC : C ∈ Pow α A) =>
+    subset_pow_mem α B C (subset_trans α C A B (pow_mem_subset α A C hC) h)
+
+theorem subset_univ (α : Type) (A : Set α) : A ⊆ Set.univ α :=
+  fun (x : α) (hx : x ∈ A) => Set.mem_univ α x
+
+theorem pow_mono_univ (α : Type) (A : Set α) : Pow α A ⊆ Pow α (Set.univ α) :=
+  pow_mono α A (Set.univ α) (subset_univ α A)
+
+theorem univ_pow_mem (α : Type) (A : Set α) : A ∈ Pow α (Set.univ α) :=
+  subset_pow_mem α (Set.univ α) A (subset_univ α A)

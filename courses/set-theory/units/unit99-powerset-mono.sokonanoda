@@ -1,0 +1,68 @@
+-- ==========================================================================
+-- unit99-powerset-mono.sokonanoda —— 卷 I 单元99 **幂集的单调性（局部版）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§1.3 / §6.1** ·
+--   Halmos《Naive Set Theory》**§22**。大纲 §4.1（**接单元70 与 96–98** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · **局部幂集词汇** `Pow α A`（= "是 `A` 的子集" ✓ —— 与 `Set.powerset` 同义 ✓，
+--     但**自带 apply 引理** ✓，便于本单元自足 ✓）；
+--   · **成员 ⇔ 子集**（两个方向 ✓）· **子集传递**（显式复合 ✓）；
+--   · **旗舰：幂集单调** ✓（`A ⊆ B ⇒ Pow A ⊆ Pow B` ✓）；
+--   · **`A ⊆ univ`** ✓ · **`Pow A ⊆ Pow univ`** ✓ · **`A ∈ Pow univ`** ✓。
+--
+-- ⚠ **教学点** ✓：`Pow` 是"**集合层**的单调算子" ✓ —— 它把**子集关系**变成
+--   **集合之间的包含** ✓，这正是后面 `≼` 论证里"用 `Pow` 造中间集合"的接口 ✓。
+--   本单元全程**点态**（不用 `Set.powerset` 的库引理 ✓），⇒ 零依赖、零试错 ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.Rel` · `lib.Order`。
+--
+-- 依赖：单元④（子集）· 单元70（幂集的成员）· 单元96–98（势比较）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+def Pow (α : Type) (A : Set α) : Set (Set α) :=
+  fun (C : Set α) => C ⊆ A
+theorem demo_pow_apply (α : Type) (A : Set α) (C : Set α) :
+    C ∈ Pow α A ↔ C ⊆ A :=
+  Iff.intro (C ∈ Pow α A) (C ⊆ A) (fun (h : C ∈ Pow α A) => h)  -- soko:notation-ok: `Pow` 是 def 头（手册边界）
+    (fun (h : C ⊆ A) => h)
+theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+theorem demo_mem_univ (α : Type) (x : α) : x ∈ (Set.univ α) :=
+  Set.mem_univ α x-- 练习 1（T 类）：**成员 ⇒ 子集**。
+-- 关键件：演示里的 apply 引理（**先 λ 绑定再 `Iff.mp`** ✓）
+theorem pow_mem_subset (α : Type) (A : Set α) (C : Set α) (h : C ∈ Pow α A) : C ⊆ A := by
+  sorry
+-- 练习 2（T 类）：**子集 ⇒ 成员**。
+-- 关键件：同一条 apply 引理（`Iff.mpr` ✓）
+theorem subset_pow_mem (α : Type) (A : Set α) (C : Set α) (h : C ⊆ A) : C ∈ Pow α A := by
+  sorry
+-- 练习 3（L 类）：**子集传递**（显式复合 ✓）。
+-- 思路：给 `x ∈ A`；先用 `hAB` 得 `x ∈ B`，再用 `hBC` 得 `x ∈ C`。
+-- 关键件：`Set.subset_def`（**两次，类型不同** ✓，都先 λ 绑定）· 两次应用
+theorem subset_trans (α : Type) (A : Set α) (B : Set α) (C : Set α)
+    (hAB : A ⊆ B) (hBC : B ⊆ C) : A ⊆ C := by
+  sorry
+-- 练习 4（L 类，**旗舰**）：**幂集单调**（`A ⊆ B ⇒ Pow A ⊆ Pow B`）。
+-- 思路：给 `C ∈ Pow A`（即 `C ⊆ A`），由练习 3 串上 `h` 得 `C ⊆ B`，再用练习 2 送回 `Pow B`。
+-- 关键件：练习 1 · 练习 2 · 练习 3
+theorem pow_mono (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) :
+    Pow α A ⊆ Pow α B := by
+  sorry
+-- 练习 5（T 类）：**任何集合都在全集里**。
+-- 关键件：`Set.mem_univ`（**两点：类型与点** ✓）
+theorem subset_univ (α : Type) (A : Set α) : A ⊆ Set.univ α := by
+  sorry
+-- 练习 6（T 类）：**`Pow A ⊆ Pow univ`**。
+-- 关键件：练习 4 + 练习 5（**直接调用** ✓）
+theorem pow_mono_univ (α : Type) (A : Set α) : Pow α A ⊆ Pow α (Set.univ α) := by
+  sorry
+-- 练习 7（T 类）：**`A ∈ Pow univ`**。
+-- 关键件：练习 2 + 练习 5 ✓
+theorem univ_pow_mem (α : Type) (A : Set α) : A ∈ Pow α (Set.univ α) := by
+  sorry
