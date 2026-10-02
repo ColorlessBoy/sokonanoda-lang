@@ -1,0 +1,90 @@
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  Set.mem_sUnion_iff α F x
+
+theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  Set.mem_sInter_iff α F x
+
+theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=
+  Set.mem_inter_iff a A B
+
+theorem mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  (fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    (Set.mem_sUnion_iff α F x)
+
+theorem mem_of_mem_sInter (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  (fun (hu : x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    (Set.mem_sInter_iff α F x)
+
+theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) :=
+  (fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =>
+    Iff.mpr hu (And.intro (a ∈ A) (a ∈ B) ha hb)) (Set.mem_inter_iff a A B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+
+theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A :=
+  And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) => Iff.mp hu h) (Set.mem_inter_iff a A B))
+
+theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ B :=
+  And.right (a ∈ A) (a ∈ B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) => Iff.mp hu h) (Set.mem_inter_iff a A B))
+
+theorem mem_sUnion_inter_of_mem (α : Type) (F G : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sUnion α (F ∩ G))) : x ∈ ((Set.sUnion α F) ∩ (Set.sUnion α G)) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  Exists.elim (Set α) (fun (A : Set α) => A ∈ (F ∩ G) ∧ x ∈ A)
+    (x ∈ ((Set.sUnion α F) ∩ (Set.sUnion α G)))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    (mem_of_mem_sUnion α (F ∩ G) x h)
+    (fun (A : Set α) (hA : A ∈ (F ∩ G) ∧ x ∈ A) =>
+      mem_inter_intro α (Set.sUnion α F) (Set.sUnion α G) x  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+        ((fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (B : Set α), B ∈ F ∧ x ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+          Iff.mpr hu (Exists.intro (Set α) (fun (B : Set α) => B ∈ F ∧ x ∈ B) A  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+            (And.intro (A ∈ F) (x ∈ A)
+              (mem_inter_left (Set α) F G A (And.left (A ∈ (F ∩ G)) (x ∈ A) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+              (And.right (A ∈ (F ∩ G)) (x ∈ A) hA))))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+          (Set.mem_sUnion_iff α F x))
+        ((fun (hu : x ∈ (Set.sUnion α G) ↔ ∃ (B : Set α), B ∈ G ∧ x ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+          Iff.mpr hu (Exists.intro (Set α) (fun (B : Set α) => B ∈ G ∧ x ∈ B) A  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+            (And.intro (A ∈ G) (x ∈ A)
+              (mem_inter_right (Set α) F G A (And.left (A ∈ (F ∩ G)) (x ∈ A) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+              (And.right (A ∈ (F ∩ G)) (x ∈ A) hA))))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+          (Set.mem_sUnion_iff α G x)))
+
+theorem mem_sUnion_of_subset (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x : α)
+    (hx : x ∈ (Set.sUnion α F)) : x ∈ (Set.sUnion α G) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) (x ∈ (Set.sUnion α G))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    (mem_of_mem_sUnion α F x hx)
+    (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =>
+      (fun (hu : x ∈ (Set.sUnion α G) ↔ ∃ (B : Set α), B ∈ G ∧ x ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+        Iff.mpr hu (Exists.intro (Set α) (fun (B : Set α) => B ∈ G ∧ x ∈ B) A  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+          (And.intro (A ∈ G) (x ∈ A)
+            ((fun (hv : ∀ (C : Set α), C ∈ F → C ∈ G) => hv A (And.left (A ∈ F) (x ∈ A) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+              ((fun (hw : F ⊆ G ↔ ∀ (C : Set α), C ∈ F → C ∈ G) => Iff.mp hw h)
+                (Set.subset_def (Set α) F G)))
+            (And.right (A ∈ F) (x ∈ A) hA))))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+        (Set.mem_sUnion_iff α G x))
+
+theorem mem_sInter_of_subset (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x : α)
+    (hx : x ∈ (Set.sInter α G)) : x ∈ (Set.sInter α F) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  (fun (hu : x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    Iff.mpr hu (fun (A : Set α) (hA : A ∈ F) =>
+      mem_of_mem_sInter α G x hx A
+        ((fun (hv : ∀ (C : Set α), C ∈ F → C ∈ G) => hv A hA)
+          ((fun (hw : F ⊆ G ↔ ∀ (C : Set α), C ∈ F → C ∈ G) => Iff.mp hw h)
+            (Set.subset_def (Set α) F G)))))
+    (Set.mem_sInter_iff α F x)
+
+theorem not_mem_sUnion_empty (α : Type) (x : α) :
+    ¬ (x ∈ (Set.sUnion α (Set.empty (Set α)))) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  fun (h : x ∈ (Set.sUnion α (Set.empty (Set α)))) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    Exists.elim (Set α) (fun (A : Set α) => A ∈ (Set.empty (Set α)) ∧ x ∈ A) False  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+      (mem_of_mem_sUnion α (Set.empty (Set α)) x h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+      (fun (A : Set α) (hA : A ∈ (Set.empty (Set α)) ∧ x ∈ A) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+        (Iff.mp (Set.mem_empty_iff_false A)) (And.left (A ∈ (Set.empty (Set α))) (x ∈ A) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）

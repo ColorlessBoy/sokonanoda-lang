@@ -340,10 +340,11 @@
             "sUnion-inclusion",
             "sUnion-algebra",
             "union-adjunction",
-            "inter-family-distrib"
+            "inter-family-distrib",
+            "sUnion-inter-mono"
           ],
           "quota": {
-            "exercises": 54
+            "exercises": 63
           },
           "units": [
             {
@@ -381,6 +382,12 @@
               "title": "单元71 并交与交的分配",
               "title_en": "Unit 71 — Intersection Distributes over Union/Intersection",
               "unit": 71
+            },
+            {
+              "file": "units/unit72-sUnion-inter.sokonanoda",
+              "title": "单元72 广义并与交、单调与空族",
+              "title_en": "Unit 72 — Union vs Intersection, Monotonicity, Empty Family",
+              "unit": 72
             }
           ]
         },

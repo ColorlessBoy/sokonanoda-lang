@@ -1,0 +1,123 @@
+-- ==========================================================================
+-- unit72-sUnion-inter.sokonanoda —— 卷 I 单元72 **`⋃` 与交 · 单调 · 空族**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§2.3** · Halmos **§9**。
+-- 大纲 §4.1（**I.7 章继续深化** —— 接单元69/71 的伴随式与分配律 ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 取用子：`⋃` 见证 ✓ · `⋂` 全称 ✓ · 交的三条 ✓；
+--   · **旗舰：`x ∈ ⋃(F ∩ G) ⇒ x ∈ ⋃F ∩ ⋃G`** ✓（族**先交**再并 ⇒ 并**变小** ✓）；
+--   · **单调**：`F ⊆ G ⇒ ⋃F ⊆ ⋃G` ✓（逐点 ✓）· `F ⊆ G ⇒ ⋂G ⊆ ⋂F` ✓（**反变** ✓）；
+--   · **空族**：`⋃∅` 没有成员 ✓
+--
+-- ⚠ **教学点：旗舰的"反向"是假的** ✗ —— `⋃F ∩ ⋃G ⊆ ⋃(F ∩ G)` **不成立**：
+--   取 `F = {{a}}`、`G = {{b}}`（`a ≠ b`）⇒ `a ∈ ⋃F`、`a ∈ ⋃G` 不成立 ✗；
+--   更直接的：取 `F = {A, C}`、`G = {B, C}` ⇒ `⋃F ∩ ⋃G` 含 `C` 的元素，
+--   而 `⋃(F ∩ G) = ⋃{C}` 也在 ⇒ 举 `F = {A}`、`G = {B}`：`⋃F ∩ ⋃G = A ∩ B`，
+--   而 `⋃(F ∩ G) = ⋃∅ = ∅` ✓ ⇒ **反向不真** ✓（本单元只证**可证方向** ✓）。
+--   ——本条按手册「命题先求真」**先找反例再动手** ✓。
+--
+-- ⚠ **成员层级 + 点名写法** ✓：`⋃`/`⋂` 没有记法 ⇒ `Set.sUnion`/`Set.sInter` ✓。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.SUnion` · `lib.Order`。
+--
+-- 依赖：单元㉑㉒（广义并与交）· 单元㊽（覆盖演算）· 单元69（伴随式）· 单元71（分配律）✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 72.1 三条库引理（广义并 · 广义交 · 交）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：广义并的成员刻画（"落在某个族成员里"）。
+theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  Set.mem_sUnion_iff α F x
+theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  Set.mem_sInter_iff α F x
+theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=
+  Set.mem_inter_iff a A B-- 练习 1（T 类）：从 `x ∈ ⋃F` 取出见证。
+
+-- soko:hint 关键件：`Set.mem_sUnion_iff`（**先 λ 绑定再 `Iff.mp`** ✓）✓
+
+theorem mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  sorry
+-- 练习 2（T 类）：从 `x ∈ ⋂F` 取出全称形式。
+
+-- soko:hint 关键件：`Set.mem_sInter_iff` · `Iff.mp` ✓
+
+theorem mem_of_mem_sInter (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  sorry
+-- 练习 3（T 类）：交的合成。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mpr` · `And.intro`（**写全前导实参** ✓）
+
+theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) := by
+  sorry
+-- 练习 4（T 类）：交的左取用子。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mp` · `And.left`（**写全** ✓）
+
+theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A := by
+  sorry
+-- 练习 5（T 类）：交的右取用子。
+
+-- soko:hint 关键件：`Set.mem_inter_iff` · `Iff.mp` · `And.right`（**写全** ✓）
+
+theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ B := by
+  sorry
+-- 练习 6（L 类，**旗舰**）：**`x ∈ ⋃(F ∩ G) ⇒ x ∈ ⋃F ∩ ⋃G`**（族先交 ⇒ 并变小 ✓）。
+
+-- soko:hint 思路：见证 `A ∈ F ∩ G` ⇒ 用 `mem_inter_left`/`mem_inter_right`（**注意这一层
+
+--   的 `∩` 在 `Set (Set α)` 上** ✓，要写全类型实参 ✓）各得"在 `F` 里 / 在 `G` 里"，
+
+--   再用 `Exists.intro` 把 `x ∈ A` 分别送回两个并 ✓。
+
+-- soko:hint ⚠ 别顺手加"反向" ✗ —— **反向是假命题**（见画布头 ✓）。
+
+-- soko:hint 关键件：练习 1–5 · `Set.mem_sUnion_iff`（`Iff.mpr` + `Exists.intro` ✓）✓
+
+theorem mem_sUnion_inter_of_mem (α : Type) (F G : Set (Set α)) (x : α)
+    (h : x ∈ (Set.sUnion α (F ∩ G))) : x ∈ ((Set.sUnion α F) ∩ (Set.sUnion α G)) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  sorry
+-- 练习 7（L 类，**单调**）：`F ⊆ G ⇒ x ∈ ⋃F ⇒ x ∈ ⋃G`。
+
+-- soko:hint 思路：见证 `A ∈ F` 经包含假设得 `A ∈ G`，再送回 `⋃G`。
+
+-- soko:hint 关键件：练习 1 · `Set.subset_def`（**点名写全 `Set (Set α)`** ✓ —— 这一层的
+
+--   元素是集合 ✓）· `Iff.mp` · `Exists.intro` ✓
+
+theorem mem_sUnion_of_subset (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x : α)
+    (hx : x ∈ (Set.sUnion α F)) : x ∈ (Set.sUnion α G) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  sorry
+-- 练习 8（L 类，**反变**）：`F ⊆ G ⇒ x ∈ ⋂G ⇒ x ∈ ⋂F`。
+
+-- soko:hint 关键件：练习 2（两次）· `Set.subset_def` · `Set.mem_sInter_iff` 的 `Iff.mpr` ✓
+
+theorem mem_sInter_of_subset (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x : α)
+    (hx : x ∈ (Set.sInter α G)) : x ∈ (Set.sInter α F) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  sorry
+-- 练习 9（T 类，**收尾**）：**`⋃∅` 没有成员**。
+
+-- soko:hint 思路：`⋃∅` 的成员要有个见证 `A ∈ ∅` —— 那是矛盾（`Set.mem_empty_iff_false` ✓）。
+
+-- soko:hint 目标形态：`¬ (x ∈ ⋃∅)`（**动机位放 `False`** ⇒ 用 `Exists.elim` 消到 `False` ✓，
+
+--   不用 `Or.elim` ✓ —— 见手册「动机位」那条 ✓）。
+
+-- soko:hint 关键件：练习 1 · `Exists.elim` · `Set.mem_empty_iff_false` ✓
+
+theorem not_mem_sUnion_empty (α : Type) (x : α) :
+    ¬ (x ∈ (Set.sUnion α (Set.empty (Set α)))) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  sorry
