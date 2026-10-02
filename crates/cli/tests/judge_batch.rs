@@ -123,7 +123,10 @@ fn a_canvas_with_open_exercises_grades_the_same_with_and_without_batching() {
 fn a_solution_key_grades_the_same_with_and_without_batching() {
     let root =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../courses/set-theory/units/solutions");
-    for name in ["I.1/unit01-solution.sokonanoda", "I.1/unit02-solution.sokonanoda"] {
+    for name in [
+        "I.1/unit01-solution.sokonanoda",
+        "I.1/unit02-solution.sokonanoda",
+    ] {
         let path = root.join(name);
         assert!(path.exists(), "找不到解答钥匙 {path:?}");
         assert_same_both_ways(&path, name);
