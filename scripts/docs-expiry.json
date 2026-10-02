@@ -60,6 +60,12 @@
       "tier": "entry",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）"
     },
+    "docs/HANDOFF-course.md": {
+      "expires": "2026-11-15",
+      "renewed": "2026-10-02",
+      "tier": "process",
+      "reason": "课程线交接单：112 收口与 #5 普查的下一步与判据，下一会话要读"
+    },
     "docs/LESSONS.md": {
       "expires": "2027-09-30",
       "renewed": "2026-09-30",
