@@ -1,0 +1,73 @@
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Image
+
+def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => f a = f b
+
+theorem demo_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=
+  Set.mem_image f A y
+
+theorem demo_mem_preimage (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ f ⁻¹' B ↔ f x ∈ B :=
+  Set.mem_preimage f B x
+
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b
+
+theorem mem_image_iff (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=
+  Set.mem_image f A y
+
+theorem mem_image_elim (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β)
+    (h : y ∈ f '' A) : ∃ (x : α), A x ∧ f x = y :=
+  (fun (hu : y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y) => Iff.mp hu h) (Set.mem_image f A y)
+
+theorem image_intro (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β) (x : α)
+    (hx : x ∈ A) (hxy : f x = y) : y ∈ f '' A :=
+  Set.mem_image_intro f A y x hx hxy
+
+theorem mem_preimage_iff (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ f ⁻¹' B ↔ f x ∈ B :=
+  Set.mem_preimage f B x
+
+theorem mem_preimage_intro (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α)
+    (h : f x ∈ B) : x ∈ f ⁻¹' B :=
+  (fun (hu : x ∈ f ⁻¹' B ↔ f x ∈ B) => Iff.mpr hu h) (Set.mem_preimage f B x)
+
+theorem mem_preimage_elim (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α)
+    (h : x ∈ f ⁻¹' B) : f x ∈ B :=
+  (fun (hu : x ∈ f ⁻¹' B ↔ f x ∈ B) => Iff.mp hu h) (Set.mem_preimage f B x)
+
+theorem mem_of_mem_image (α : Type) (β : Type) (f : α → β) (B : Set β) (y : β)
+    (h : y ∈ f '' (f ⁻¹' B)) : y ∈ B :=
+  Exists.elim α (fun (x : α) => x ∈ (f ⁻¹' B) ∧ f x = y) (y ∈ B) (mem_image_elim α β f (f ⁻¹' B) y h)
+    (fun (x : α) (hx : x ∈ (f ⁻¹' B) ∧ f x = y) =>
+      rel_subst_right β (fun (u : β) (v : β) => v ∈ B) (f x) (f x) y
+        (And.right (x ∈ (f ⁻¹' B)) (f x = y) hx)  -- soko:notation-ok: `Set.image`/`Rel.EquivClass`/`kernel` 是 def 头（手册边界）
+        (mem_preimage_elim α β f B x (And.left (x ∈ (f ⁻¹' B)) (f x = y) hx)))  -- soko:notation-ok: `Set.image`/`Rel.EquivClass`/`kernel` 是 def 头（手册边界）
+
+theorem mem_image_of_mem (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)
+    (h : x ∈ A) : f x ∈ f '' A :=
+  image_intro α β f A (f x) x h (Eq.refl.{1} β (f x))
+
+theorem image_of_equivClass (α : Type) (β : Type) (f : α → β) (a : α) (y : β) :
+    y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y :=
+  Iff.intro (y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) (f a = y)
+    (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) =>
+      Exists.elim α (fun (x : α) => x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) (f a = y)
+        (mem_image_elim α β f (Rel.EquivClass α (kernel α β f) a) y h)
+        (fun (x : α) (hx : x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) =>
+          Eq.trans.{1} β (f a) (f x) y
+            ((fun (hu : Rel.EquivClass α (kernel α β f) a x ↔ kernel α β f a x) =>
+              Iff.mp hu (And.left (x ∈ (Rel.EquivClass α (kernel α β f) a)) (f x = y) hx))  -- soko:notation-ok: `Set.image`/`Rel.EquivClass`/`kernel` 是 def 头（手册边界）
+              (Rel.mem_equivClass α (kernel α β f) a x))
+            (And.right (x ∈ (Rel.EquivClass α (kernel α β f) a)) (f x = y) hx)))  -- soko:notation-ok: `Set.image`/`Rel.EquivClass`/`kernel` 是 def 头（手册边界）
+    (fun (h : f a = y) =>
+      image_intro α β f (Rel.EquivClass α (kernel α β f) a) y a
+        ((fun (hu : Rel.EquivClass α (kernel α β f) a a ↔ kernel α β f a a) =>
+          Iff.mpr hu (Eq.refl.{1} β (f a))) (Rel.mem_equivClass α (kernel α β f) a a))
+        h)

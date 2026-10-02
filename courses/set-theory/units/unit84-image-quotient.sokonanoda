@@ -1,0 +1,90 @@
+-- ==========================================================================
+-- unit84-image-quotient.sokonanoda —— 卷 I 单元84 **商与像的往返（核的像）**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§3.3/§3.6** ·
+--   Halmos《Naive Set Theory》**§10**。大纲 §4.1（**接单元73/74 与 76–79** ✓）。
+--
+-- 本单元的"该学的定理"：
+--   · 像 / 原像的取用子（双向 ✓）；
+--   · 两条**包含式**（`f '' (f ⁻¹' B) ⊆ B` ✓ 与 `A ⊆ f ⁻¹' (f '' A)` ✓ ——
+--     教材里"像与原像互为伴随"的两半 ✓）；
+--   · **旗舰：核的像恰是单点** ✓（`y ∈ f '' [a] ↔ f a = y` ✓）——
+--     把**单元76 的核**、**单元77/78 的商**、**单元73/74 的像**接成一条线 ✓：
+--     **同一个等价类的像只有一个点** ✓（这正是"商到像是双射"的前置 ✓）。
+--
+-- ⚠ **写法要点** ✓：像的成员刻画是**存在式** ✓ ⇒ 用 `Exists.elim` 拆（**不是** `∧` 消去 ✓）；
+--   把 `f x ∈ B` 沿 `f x = y` 搬到 `y ∈ B` 用 **`rel_subst_right`** ✓（参数序见单元83 ✓）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 四样**：`lib.Set` · `lib.Rel` · `lib.Order` · **`lib.Image`**（`''`/`⁻¹'` 在这里 ✓）。
+--
+-- 依赖：单元⑧（像与原像）· 单元73/74（广义像）· 单元76（核）· 单元77/78（商与划分）✓
+-- ==========================================================================
+import lib.Set
+import lib.Rel
+import lib.Order
+import lib.Image
+
+def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) => f a = f b
+-- ─────────────────────────────────────────────────────────────
+-- 84.1 三条库引理（像的成员 · 原像的成员 · 等价类的成员）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：像的成员刻画（`y ∈ f '' A` 就是"有个 `x ∈ A` 映到 `y`" ✓）。
+theorem demo_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=
+  Set.mem_image f A y
+theorem demo_mem_preimage (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ f ⁻¹' B ↔ f x ∈ B :=
+  Set.mem_preimage f B x
+theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Rel.mem_equivClass α r a b-- 练习 1（T 类）：像的成员刻画（库里现成）。
+-- 关键件：`Set.mem_image`
+theorem mem_image_iff (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y := by
+  sorry
+-- 练习 2（T 类）：从像里取出原像点（拆存在式）。
+-- 关键件：`Set.mem_image` · `Iff.mp`（先落地成 λ）
+theorem mem_image_elim (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β)
+    (h : y ∈ f '' A) : ∃ (x : α), A x ∧ f x = y := by
+  sorry
+-- 练习 3（T 类）：造像点（库里的构造子）。
+-- 关键件：`Set.mem_image_intro`（实参按序给全）
+theorem image_intro (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β) (x : α)
+    (hx : x ∈ A) (hxy : f x = y) : y ∈ f '' A := by
+  sorry
+-- 练习 4（T 类）：原像的成员刻画。
+-- 关键件：`Set.mem_preimage`
+theorem mem_preimage_iff (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ f ⁻¹' B ↔ f x ∈ B := by
+  sorry
+-- 练习 5（T 类）：像点在 B 里 ⇒ 原点在原像里。
+-- 关键件：`Set.mem_preimage` · `Iff.mpr`（λ 落地）
+theorem mem_preimage_intro (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α)
+    (h : f x ∈ B) : x ∈ f ⁻¹' B := by
+  sorry
+-- 练习 6（T 类）：原点在原像里 ⇒ 像点在 B 里。
+-- 关键件：`Set.mem_preimage` · `Iff.mp`（λ 落地）
+theorem mem_preimage_elim (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α)
+    (h : x ∈ f ⁻¹' B) : f x ∈ B := by
+  sorry
+-- 练习 7（L 类，包含式之一）：像的原像含在 B 里。
+-- 思路：拆像得 x 与 f x = y；由原像得 f x ∈ B；再沿等式搬到 y ∈ B。
+-- 关键件：练习 2 / 练习 6 · `Exists.elim` · `rel_subst_right`
+theorem mem_of_mem_image (α : Type) (β : Type) (f : α → β) (B : Set β) (y : β)
+    (h : y ∈ f '' (f ⁻¹' B)) : y ∈ B := by
+  sorry
+-- 练习 8（T 类，包含式之二）：A 含在原像里。
+-- 关键件：练习 3（取 y := f x）· `Eq.refl`
+theorem mem_image_of_mem (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)
+    (h : x ∈ A) : f x ∈ f '' A := by
+  sorry
+-- 练习 9（L 类，旗舰）：核的像恰是单点（`y ∈ f '' [a] ↔ f a = y`）。
+-- 思路：左到右拆像得 x ∈ [a]（即 f a = f x）与 f x = y ⇒ `Eq.trans`；右到左取见证 x := a（`Eq.refl`）。
+-- 关键件：练习 2 / 练习 3 · `Rel.mem_equivClass` · `Eq.trans` / `Eq.refl`
+theorem image_of_equivClass (α : Type) (β : Type) (f : α → β) (a : α) (y : β) :
+    y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y := by
+  sorry

@@ -544,10 +544,11 @@
             "kernel-equivalence",
             "equivclass-algebra",
             "partition-roundtrip",
-            "well-defined-quotient"
+            "well-defined-quotient",
+            "image-quotient"
           ],
           "quota": {
-            "exercises": 89
+            "exercises": 98
           },
           "units": [
             {
@@ -603,6 +604,12 @@
               "title": "单元79 商集上的函数（well-defined）",
               "title_en": "Unit 79 — Well-Defined Functions on Quotients",
               "unit": 79
+            },
+            {
+              "file": "units/unit84-image-quotient.sokonanoda",
+              "title": "单元84 商与像的往返",
+              "title_en": "Unit 84 — Image Meets Quotient",
+              "unit": 84
             }
           ]
         },
