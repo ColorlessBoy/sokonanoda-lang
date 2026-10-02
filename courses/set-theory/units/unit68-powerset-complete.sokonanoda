@@ -1,0 +1,106 @@
+-- ==========================================================================
+-- unit68-powerset-complete.sokonanoda —— 卷 I 单元68 **`𝒫 A` 在 `⊆` 下是完备格**
+--
+-- 靶子（教材）：Enderton《Elements of Set Theory》**§1.6 / §2.3** · Halmos **§5/§9**。
+-- 大纲 §4.1（**把 I.12 与 I.1/I.5 接起来** —— 幂集是"集合的集合"，也是**完备格** ✓）。
+--
+-- 本单元的"该学的定理"（把"完备格"拆成可证的点态式 ✓）：
+--   · 取用子：`B ∈ 𝒫A ↔ B ⊆ A` ✓ · **`∅ ⊆ A`**（bottom ✓）· **`A ∈ 𝒫A`**（top ✓）；
+--   · **旗舰一：`⋃(𝒫A) ⊆ A`** ✓ · **旗舰二：`A ⊆ ⋃(𝒫A)`** ✓（合起来 `⋃(𝒫A) = A` ✓）；
+--   · **`⋂(𝒫A) ⊆ A`** ✓（交回去也不超过自己 ✓）；
+--   · **单调**：`A ⊆ B ⇒ C ∈ 𝒫A ⇒ C ∈ 𝒫B` ✓
+--
+-- ⚠ **点名写法**（第 630/631 两轮换来的纪律 ✓）：`𝒫`/`⋃`/`⋂` **没有记法** ✗
+--   ⇒ 一律写 `Set.powerset` / `Set.sUnion` / `Set.sInter` ✓（`∈`/`⊆` 有名 ✓）。
+--   `Set.mem_sInter_elim` 的形状是 **`(α) (F) (x) (C : Prop) (h) (k)`** ✓ ——
+--   **第四位是目标命题 `C`** ✓（写它时先读签名 ✓ —— 这是我第 630 轮踩的坑 ✗）。
+--
+-- **本单元只允许用**：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
+--   加 `import` 进来的库引理。**解答一律项风格**。
+-- **本单元 `import` 三样**：`lib.Set` · `lib.SUnion` · `lib.Order`。
+--
+-- 依赖：单元③（幂集）· 单元㉑（广义并）· 单元㉝（幂集代数）· 单元51（幂集的格性质）· 单元67 ✓
+-- ==========================================================================
+import lib.Set
+import lib.SUnion
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.1 三条库引理（幂集 · 包含 · 广义并）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：幂集的成员刻画（`B ∈ 𝒫A` 就是 `B ⊆ A`）。
+theorem demo_mem_powerset (α : Type) (A B : Set α) :
+    B ∈ (Set.powerset A) ↔ B ⊆ A :=  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  Set.mem_powerset_iff A B
+theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
+  Set.subset_def α A B
+theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  Set.mem_sUnion_iff α F x-- 练习 1（T 类，**中心工具**）：`A ⊆ B` 用在点上。
+
+-- soko:hint 关键件：`Set.subset_def`（**先 λ 绑定、再 `Iff.mp`** ✓）✓
+
+theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B := by
+  sorry
+-- 练习 2（T 类）：**包含自反**。
+
+-- soko:hint 关键件：`fun a ha => ha` ✓
+
+theorem subset_refl (α : Type) (A : Set α) : A ⊆ A := by
+  sorry
+-- 练习 3（T 类）：**`∅ ⊆ A`**（完备格的 **bottom** ✓）。
+
+-- soko:hint 关键件：`Set.mem_empty_iff_false` · **`False.elim`（把目标写全** ✓）
+
+theorem empty_subset (α : Type) (A : Set α) : (Set.empty α) ⊆ A := by  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 4（T 类）：**`A ∈ 𝒫A`**（完备格的 **top** ✓）。
+
+-- soko:hint 关键件：`Set.mem_powerset_iff` · `Iff.mpr` · 练习 2 ✓
+
+theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ (Set.powerset A) := by  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 5（L 类，**旗舰一**）：**`⋃(𝒫A) ⊆ A`**。
+
+-- soko:hint 思路：拆出族成员 `B`；`B ∈ 𝒫A` 给 `B ⊆ A`；练习 1 把 `x` 送进 `A`。
+
+-- soko:hint 关键件：`Set.mem_sUnion_iff`（**先 λ 绑定再 `Iff.mp`** ✓）· `Exists.elim`
+
+--   （**动机位放肯定命题** ✓）· `Set.mem_powerset_iff` · 练习 1 ✓
+
+theorem sUnion_powerset_subset (α : Type) (A : Set α) :
+    (Set.sUnion α (Set.powerset A)) ⊆ A := by  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 6（L 类，**旗舰二**）：**`A ⊆ ⋃(𝒫A)`**（见证取 `A` 自己 ✓）。
+
+-- soko:hint 关键件：`Set.mem_sUnion_iff` · `Iff.mpr` · `Exists.intro`（**前导实参写全** ✓）·
+
+--   `And.intro`（**写全** ✓）· 练习 4 ✓
+
+theorem subset_sUnion_powerset (α : Type) (A : Set α) :
+    A ⊆ (Set.sUnion α (Set.powerset A)) := by  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 7（L 类）：**`⋂(𝒫A) ⊆ A`**。
+
+-- soko:hint 思路：把"在每个族成员里"用在**成员 `A` 自己**上（练习 4 ✓）。
+
+-- soko:hint 目标形态：`⋂(𝒫A) ⊆ A`。
+
+-- soko:hint 关键件：**`Set.mem_sInter_elim`**（形状 `(α) (F) (x) (C : Prop) (h) (k)` ✓ ——
+
+--   **第四位是目标命题** ✗ 别传成集合 ✗）· 练习 4 ✓
+
+theorem sInter_powerset_subset (α : Type) (A : Set α) :
+    (Set.sInter α (Set.powerset A)) ⊆ A := by  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry
+-- 练习 8（L 类，**单调**）：**`A ⊆ B ⇒ C ∈ 𝒫A ⇒ C ∈ 𝒫B`**。
+
+-- soko:hint 思路：`C ∈ 𝒫A` ⇒ `C ⊆ A`，与 `A ⊆ B` **显式复合**得 `C ⊆ B` ⇒ 折回 `C ∈ 𝒫B`。
+
+-- soko:hint 关键件：`Set.mem_powerset_iff`（两次）· 练习 1（**显式复合** ✓ 手册铁律）✓
+
+theorem powerset_mono (α : Type) (A B C : Set α) (h : A ⊆ B) (hC : C ∈ (Set.powerset A)) :  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    C ∈ (Set.powerset B) := by  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+  sorry

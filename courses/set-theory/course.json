@@ -605,10 +605,11 @@
             "extensionality",
             "funext",
             "propext",
-            "powerset-lattice"
+            "powerset-lattice",
+            "powerset-complete-lattice"
           ],
           "quota": {
-            "exercises": 50
+            "exercises": 58
           },
           "units": [
             {
@@ -640,6 +641,12 @@
               "title": "单元51 幂集的格性质",
               "title_en": "Unit 51 — Lattice Properties of the Power Set",
               "unit": 51
+            },
+            {
+              "file": "units/unit68-powerset-complete.sokonanoda",
+              "title": "单元68 幂集是完备格",
+              "title_en": "Unit 68 — The Power Set is a Complete Lattice",
+              "unit": 68
             }
           ]
         },
