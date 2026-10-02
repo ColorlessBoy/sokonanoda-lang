@@ -2560,9 +2560,28 @@ const INTENTIONAL: &[(&str, &str)] = &[
         "Set.image_subset_iff",
     ),
     ("courses/set-theory/lib/Image.sokonanoda", "Set.mem_image"),
+    // 同一次契约变更（0.79.0：课程库前导类型参数全部隐式化）的其余四条 ——
+    // 它们是后续单元（首次用到 `Set.mem_image_*` / `Set.mem_preimage_*` 的那几片）
+    // 落地时一起变的，早先的 IA-2 清单只登记了当时存在的那几条。
+    (
+        "courses/set-theory/lib/Image.sokonanoda",
+        "Set.mem_image_intro",
+    ),
+    (
+        "courses/set-theory/lib/Image.sokonanoda",
+        "Set.mem_image_elim",
+    ),
     (
         "courses/set-theory/lib/Image.sokonanoda",
         "Set.mem_preimage",
+    ),
+    (
+        "courses/set-theory/lib/Image.sokonanoda",
+        "Set.mem_preimage_intro",
+    ),
+    (
+        "courses/set-theory/lib/Image.sokonanoda",
+        "Set.mem_preimage_elim",
     ),
     ("courses/set-theory/lib/Image.sokonanoda", "Set.preimage"),
     ("courses/set-theory/lib/Rel.sokonanoda", "Rel.comp"),

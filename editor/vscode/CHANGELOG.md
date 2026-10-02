@@ -1,5 +1,33 @@
 ## [Unreleased]
 
+## [0.80.0] — 2026-10-01
+
+> **三件事一起发**：编辑响应延迟收口（`declaration-incremental.md` §7）· 卷 I 集合论
+> **69 个单元全部落地**（课程门禁 **158 目标 · 1431 checked · 616 open · 0 判负**）·
+> 输入缩写表 **18 → 75 条**。
+
+### Changed
+
+- **Editing a declaration is no longer priced by the file's length.** The editor used
+  to re-check the whole prefix on every keystroke; a session snapshot plus the
+  dependency-graph dirty propagation now re-check **only the declarations that
+  actually depend on what you touched**. Same file, same operations, measured
+  before → after (structure counts, wall clock only as an order of magnitude):
+  editing the **last** declaration **~2154–3039 ms → 321–346 ms** (the library layer
+  recompiles **zero** times); editing an **earlier** one **~2154–3039 ms → 1159–1231 ms**
+  (**−39%**); the **first keystroke after opening** a project file **~3390 ms → 1737–1997 ms**
+  (**−46%**). In a real VS Code host the steady-state keystroke → diagnostics path
+  measures **~110 ms**. Full tables, the guard that pins them
+  (`crates/front/tests/keystroke_structure.rs`) and the one thing deliberately
+  **not** done: `docs/design/declaration-incremental.md` §7/§7.1.
+- **The course finished.** Volume I of the set-theory course is complete:
+  **69 units** (canvas + solution + the standard-library lemmas each one needs),
+  from sets/subset/union/intersection through power sets, relations, functions,
+  images, equinumerosity, Cantor, Russell and the synthesis unit, up to
+  order-theoretic inclusion, adjunction laws for `⋃`/`⋂` and the power set as a
+  complete lattice. Gate: **158 targets · 1431 checked · 616 open · 0 rejected**,
+  with the nine course guards green.
+
 ### Fixed
 
 - **The whole file's colours no longer scramble as you type.** Syntax colouring

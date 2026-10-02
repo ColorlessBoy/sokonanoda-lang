@@ -3643,7 +3643,7 @@ fn try_implicit_application<'a>(
                     ty_text,
                     k,
                     why,
-                    render_expr(head)
+                    render_msg(ctx, head)
                 ),
                 span,
             ));

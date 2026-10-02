@@ -296,6 +296,7 @@ fn set_theory_manifest_is_v2_and_fully_grouped() {
     assert!(!volumes.is_empty(), "at least one volume");
     let mut units = 0usize;
     let mut chapters = 0usize;
+    let mut files: Vec<String> = Vec::new();
     for volume in volumes {
         let chapters_of = volume
             .get("chapters")
@@ -329,15 +330,32 @@ fn set_theory_manifest_is_v2_and_fully_grouped() {
                 .unwrap_or(&Vec::new())
             {
                 units += 1;
+                let file = unit
+                    .get("file")
+                    .and_then(|v| v.as_str())
+                    .expect("v2 unit entries keep the v1 shape");
                 assert!(
-                    unit.get("file").and_then(|v| v.as_str()).is_some()
-                        && unit.get("unit").and_then(|v| v.as_u64()).is_some(),
+                    unit.get("unit").and_then(|v| v.as_u64()).is_some(),
                     "v2 unit entries keep the v1 shape: {unit}"
                 );
+                files.push(file.to_owned());
             }
         }
     }
-    assert_eq!(units, 12, "卷 I 的 12 个单元一个都不能丢");
+    // **原意是"这 12 个单元一个都不能丢"** ⇒ 断言的是**包含**，不是"恰好 12 个"。
+    // 课程会继续长（单元⑬…；2026-10-01 发版时已是 69 个），旧写法 `units == 12`
+    // 在课程长大的那一刻就会误报（实测：`left: 69, right: 12`）。
+    assert!(
+        units >= 12,
+        "卷 I 的 12 个基础单元一个都不能丢（实得 {units} 个）"
+    );
+    for n in 1..=12u32 {
+        let needle = format!("unit{n:02}-");
+        assert!(
+            files.iter().any(|f| f.contains(&needle)),
+            "卷 I 的第 {n} 个基础单元（`{needle}*`）从清单里消失了：{files:?}"
+        );
+    }
     assert!(chapters >= 4, "卷 I 至少分成 4 章，实得 {chapters}");
     let _ = REPO;
 }

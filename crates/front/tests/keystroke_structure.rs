@@ -27,7 +27,7 @@
 //! 其余计数是**进程级累计**取差 ⇒ 同一进程里后量的那次会看见更暖的判定缓存
 //! （`by`/`infer_hits` 因此偏小）—— 判据只用 `entry_kernel_checks`，其余是诊断。
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use sokonanoda_front::compile::{by_calls_total, module_compiles_total};
 use sokonanoda_front::depgraph::DepGraph;
@@ -188,9 +188,9 @@ fn gen_project(tag: &str) -> (PathBuf, String) {
     (entry, main)
 }
 
-fn open_doc(entry: &PathBuf, text: &str) -> QueryDoc {
+fn open_doc(entry: &Path, text: &str) -> QueryDoc {
     let mut doc = QueryDoc::new();
-    doc.path = Some(entry.clone());
+    doc.path = Some(entry.to_path_buf());
     doc.set_text(text, 1, None);
     doc
 }
