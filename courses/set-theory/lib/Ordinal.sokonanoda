@@ -177,3 +177,8 @@ theorem isZero_transitive (α : Type) (E : α → α → Prop) (x : α)
 theorem isZero_elems_transitive (α : Type) (E : α → α → Prop) (x z : α)
     (h : IsZero α E x) (hz : E z x) : IsTransitive α E z :=
   False.elim (IsTransitive α E z) (zero_no_elem α E x h z hz)
+
+-- 零序数的元素都是序数（**元素不存在** ✓，从假前提出发 ✓）
+theorem isZero_elems_isOrdinal (α : Type) (E : α → α → Prop) (x z : α)
+    (h : IsZero α E x) (hz : E z x) : IsOrdinal α E z :=
+  False.elim (IsOrdinal α E z) (zero_no_elem α E x h z hz)
