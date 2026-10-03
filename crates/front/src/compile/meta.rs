@@ -240,6 +240,15 @@ impl<'a> MetaCtx<'a> {
     fn unify_body(&mut self, l: &Expr, r: &Expr, allow_unfold: bool) -> Tri {
         let l = self.zonk(l);
         let r = self.zonk(r);
+        // **G-63 ④ 的修（2026-10-03 ✓）**：源码里的**记法节点**（`a = b` ⇒
+        // `Expr::Notation { target: "Eq", lhs, rhs }` ✓）与 elaborate 后的
+        // `Eq.{u} α a b` **结构不同** ✗ ⇒ 判成刚性冲突 ✗（决定性 trace 实测：本层**见到**了记法对 ✓
+        // 但旧规则判 `false` ✗ —— 因为只比**一层** ✗：模板的尾部实参是 `Quot.mk α (qr α) a` ✓
+        // 而源码操作数是 `Quot.mk (qr α) a` ✗，差在**内层的隐式 `α`** ✓）。
+        // ⇒ 规则必须是**递归 + 按尾部对齐** ✓（允许 elaborate 侧多出前导隐式 ✓）。
+        if notation_matches_app(&l, &r) || notation_matches_app(&r, &l) {
+            return Tri::Yes;
+        }
         // 快路径：结构相同（忽略 span）⇒ 立刻成立（顺序纪律：便宜检查在前）
         if crate::spine::same_shape(&l, &r) {
             return Tri::Yes;
@@ -604,6 +613,56 @@ fn collect_meta_ids(e: &Expr, out: &mut Vec<MetaId>) {
 
 fn has_unassigned_meta(e: &Expr) -> bool {
     !meta_ids_in(e).is_empty()
+}
+
+/// **G-63 ④**：记法节点（源码形态 ✓）与 `target(lhs, rhs)` 应用（elaborate 后 ✓）判同一件事 ✓。
+fn notation_matches_app(nota: &Expr, app: &Expr) -> bool {
+    let Expr::Notation {
+        target, lhs, rhs, ..
+    } = nota
+    else {
+        return false;
+    };
+    let (Some(l), Some(r)) = (lhs.as_deref(), rhs.as_deref()) else {
+        return false;
+    };
+    let span = nota.span();
+    let source = Expr::App {
+        fun: Box::new(Expr::App {
+            fun: Box::new(Expr::Ident {
+                name: target.clone(),
+                span,
+            }),
+            arg: Box::new(l.clone()),
+            explicit_spine: false,
+            span,
+        }),
+        arg: Box::new(r.clone()),
+        explicit_spine: false,
+        span,
+    };
+    tail_aligned_eq(&source, app)
+}
+
+/// 头名（`Ident` / `UniverseApp` 都按名字 ✓）。
+fn head_name_of(e: &Expr) -> Option<&str> {
+    match e {
+        Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => Some(name.as_str()),
+        _ => None,
+    }
+}
+
+/// **按尾部对齐的递归相等**（G-63 ④ ✓）：头名相同（`Ident` / `UniverseApp` 都按名字 ✓），
+/// 实参**从尾部**逐个递归比较 ✓ —— 允许一侧**多出前导隐式实参**（elaborate 加上的 ✓）。
+fn tail_aligned_eq(a: &Expr, b: &Expr) -> bool {
+    let (ha, aa) = crate::spine::spine_of(a);
+    let (hb, ab) = crate::spine::spine_of(b);
+    match (head_name_of(ha), head_name_of(hb)) {
+        (Some(x), Some(y)) if x == y => {}
+        _ => return false,
+    }
+    let n = aa.len().min(ab.len());
+    (0..n).all(|k| tail_aligned_eq(aa[aa.len() - 1 - k], ab[ab.len() - 1 - k]))
 }
 
 #[cfg(test)]
