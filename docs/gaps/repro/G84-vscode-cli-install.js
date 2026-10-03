@@ -175,6 +175,18 @@ function loginShellFinds() {
         encoding: "utf8", env: { ...process.env, HOME: home }, timeout: 20000,
       }).trim();
     } catch (e) { out = ""; }
+    // **诊断（2026-10-03 ✓）**：CI（ubuntu）在 ③④ 判红 ✗，而本地（macOS）zsh 与 bash **两条都绿** ✓
+    // ⇒ 差异不在"回退到 bash"本身 ✓。必须把**用了哪个 shell、它看到的 PATH 是什么**打出来 ✓ ——
+    // 本文件的输出会原样进 `cargo test` 的 panic 文本 ✓，下一轮 CI 就能指名机制 ✓（不再靠猜 ✗）。
+    let pathSeen = "";
+    try {
+      pathSeen = cp.execFileSync(bin, ["-lc", 'printf %s "$PATH"'], {
+        encoding: "utf8", env: { ...process.env, HOME: home }, timeout: 20000,
+      }).trim();
+    } catch (e) { pathSeen = "(跑不出 PATH)"; }
+    console.log(
+      `  · 诊断：${shell} @ ${bin} ⇒ command -v = ${out || "(空)"} · 该登录 shell 看到的 PATH = ${pathSeen}`
+    );
     if (out) return { shell, cmd: out, version: cliVersion(out) };
   }
   return undefined;
