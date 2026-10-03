@@ -70,13 +70,6 @@ theorem Set.sInter_singleton (α : Type) (A : Set α) :
     Set.sInter α (fun (C : Set α) => C = A) ⊆ A :=
   Set.sInter_subset α (fun (C : Set α) => C = A) A (Eq.refl.{1} (Set α) A)
 
-
--- 积单调的**点式**形（S-B ✓ I.9）：逐坐标包含 ⇒ 成员搬运（`Set.pi_mono` 的直接应用）
--- 结论用**点名写法** `Set.mem` ✓（`∈` 记法在此形状下推不出 ✗，见 C-124）
-theorem Set.pi_mono_left (ι α : Type) (A A' : ι → Set α) (h : ∀ (i : ι), A i ⊆ A' i)
-    (f : ι → α) : Set.mem (ι → α) f (Set.pi ι α A) → Set.mem (ι → α) f (Set.pi ι α A') :=
-  fun (hf : Set.mem (ι → α) f (Set.pi ι α A)) => Set.pi_mono ι α A A' h f hf
-
 end Set
 
 -- ── 记法（Mathlib: `⋃₀` / `⋂₀`，逐字同款）────────────────────────────────
