@@ -63,6 +63,13 @@ theorem sInter_subset (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) 
   intro hx
   exact hx A h
 
+
+-- 单元素族的交含于该元素（S-B ✓）：`⋂{A} ⊆ A`（成员证据就是 `Eq.refl` ✓）
+-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+theorem Set.sInter_singleton (α : Type) (A : Set α) :
+    Set.sInter α (fun (C : Set α) => C = A) ⊆ A :=
+  Set.sInter_subset α (fun (C : Set α) => C = A) A (Eq.refl.{1} (Set α) A)
+
 end Set
 
 -- ── 记法（Mathlib: `⋃₀` / `⋂₀`，逐字同款）────────────────────────────────
