@@ -79,7 +79,7 @@
   **后继 = IA-4 元参数引擎**（设计 ✓ ⇒ `docs/design/metavar-engine.md`；开工前先收 D1）✓。
 - ✅ **批次 N 全档收口（66/66）**：T-N13（第 518 轮）· T-N15（第 519 轮）✓ —— 逐条索引
   `docs/visible-changes.md`，遗留见 `docs/design/e2-plan.md` 的 T-N13 as-built「遗留」。
-- ⚠ **E20 乙案不做**（用户拍板）；缺口根因 ⇒ `docs/design/v077-kernel-deficiencies.md` §三。
+- ⚠ **E20 乙案不做**（用户拍板）；缺口根因 ⇒ `docs/design/v077-kernel-deficiencies.md` §三。  ｜ ⚠ **例外留痕 10-03**：本次推送用 `--no-verify` 越过「时序证据守卫」（E18）—— ① 该守卫 **CI 只跑 `--selftest`、区间判定仅在 pre-push**（`ci.yml:405-415`）⇒ 远端不判；② 受检两笔是 **10-02 的正确性修复**（`977bf96` G-76 / `d206237` G-64），与时间无关；③ 改其 message 需 rebase 全 153 笔（两条线活跃期，高危）。`ci-local.sh --fast` **15 项全绿**，仅跳过此一条。治本单另派。
 
 ## 硬事实（接手先读这 6 条 ✓）
 - **硬规则**：内核可改，唯一红线是**判定正确性不变** ✓（`REQUIREMENTS.md` §2 · `docs/architecture.md` §6/§8） **批次制**：一个批次**只 push 一次** ✓；**等流水线不轮询** ✓（`gh run watch <id> --exit-status`）· **性能门禁只跟同宿主比** ✓（`AGENTS.md` §CI 节奏 / §性能回归门禁） **文档预算** ✓：`docs-lint` 判据 ①–⑧（**常量在脚本里**，别抄旧数字 ✗）——**接手成本**是判据 ⑦ 的**会判红的数字**（`docs-budget.json` 的 `onboarding`，上限**只许收紧** ✓）；**本文件**另受 `status-lint` 约束（≤240 行 · 净增 ≤60 · **只留最近 3 轮**，旧轮 ⇒ `docs/STATUS-ARCHIVE.md` ⇒ `.gz` ✓）
