@@ -10,7 +10,9 @@ use super::{
     declar_signature, failed_state, inductive_signature, op_cmd, quiet_catch, resolve_hovers,
     top_level_def_spans_over, CmdHover, KernelFailed, PassResult, PendingOp, TrustPlan,
 };
-use crate::compile::error::{parse_def_eq_mismatch, refine_kernel_kind, CompileError, ErrorKind};
+use crate::compile::error::{
+    humanize_de_bruijn, parse_def_eq_mismatch, refine_kernel_kind, CompileError, ErrorKind,
+};
 use crate::compile::event::{CheckEvent, CompileOutput};
 use crate::compile::report::{DeclKind, DeclState, DeclStatus, DocumentReport, ResolvedTarget};
 use crate::compile::units::{unit_ranges, SourceUnit};
@@ -171,6 +173,9 @@ fn check_then_add_decl<'arena>(
             let msg = format!("{e}");
             let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
             if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
+                // **G-49**：先把内核的裸 de Bruijn 编号人话化 ✓（`$4` ⇒ 「第 4 个绑元」✓）。
+                let expected = humanize_de_bruijn(&expected);
+                let actual = humanize_de_bruijn(&actual);
                 err.message = format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
                 err.expected = Some(expected);
                 err.actual = Some(actual);
@@ -391,6 +396,9 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                             let msg = format!("{e}");
                             let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
                             if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
+                                // **G-49**：同上 ✓（两个构造点同款 ✓）。
+                                let expected = humanize_de_bruijn(&expected);
+                                let actual = humanize_de_bruijn(&actual);
                                 err.message =
                                     format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
                                 err.expected = Some(expected);

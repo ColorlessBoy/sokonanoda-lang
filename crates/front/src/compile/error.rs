@@ -448,6 +448,42 @@ const DEF_EQ_ACTUAL_SEP: &str = " | actual: ";
 
 /// Parse the kernel's def-eq mismatch message into `(expected, actual)`.
 /// Returns `None` for rejections that do not carry both sides.
+/// **G-49**：把内核 pp 文本里的**裸 de Bruijn 编号**（`$4` ✓ = 内核内部编号 ✗）换成**人话** ✓。
+///
+/// 为什么要它：内核的 pretty printer 在**名字表里查不到**该绑元时会退化成 `$N`
+///（`crates/kernel/src/pretty_printer.rs:406` 是**全仓库唯一**产出点 ✓）—— 错误发生在 Pi 体内部、
+/// 而类型文本在**绑元作用域之外**打印时就查不到 ✓（台账 G-49 实测：跨论域 Pi 体上
+/// 「期望 `$4`，实际是 `$5`」✗，学生看不懂 ✓）。
+///
+/// **为什么在前端做**（而不是内核 ✓）：名字在**前端**手里 ✓ —— 内核错误路径拿不到源级绑元名 ✗
+///（现成的 `with_pp_scoped` 那条链的 `scope` 正是由前端的 `binders` 造的 ✓，见
+/// `crates/front/src/compile/elab.rs:2823` ✓）。所以这里只做**文本层**的人话化 ✓：
+/// `$N` ⇒ 「第 N 个绑元」（de Bruijn 语义：从内往外数 ✓）。
+/// ⚠ **只动文本** ✓：判定/事件计数/分类一律不变 ✓（`classify_prop_sort_gap` 那条
+/// 明确不许顺手放宽 ✗ —— 见它自己的注释 ✓）。
+pub(crate) fn humanize_de_bruijn(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0usize;
+    while i < bytes.len() {
+        if bytes[i] == b'$' {
+            let mut j = i + 1;
+            while j < bytes.len() && bytes[j].is_ascii_digit() {
+                j += 1;
+            }
+            if j > i + 1 {
+                out.push_str(&format!("第 {} 个绑元", &text[i + 1..j]));
+                i = j;
+                continue;
+            }
+        }
+        let ch = text[i..].chars().next().unwrap_or('\0');
+        out.push(ch);
+        i += ch.len_utf8();
+    }
+    out
+}
+
 pub(crate) fn parse_def_eq_mismatch(msg: &str) -> Option<(String, String)> {
     let start = msg.find(DEF_EQ_MARKER)? + DEF_EQ_MARKER.len();
     let rest = &msg[start..];
