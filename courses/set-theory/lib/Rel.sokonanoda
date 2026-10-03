@@ -364,3 +364,15 @@ theorem Rel.ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (A : α �
     (hA : P A) (ha : A a) : Rel.ofPartition α P a a :=
   Exists.intro (α → Prop) (fun (A' : α → Prop) => P A' ∧ A' a ∧ A' a) A
     (And.intro hA (And.intro ha ha))
+
+-- `ofPartition` 的对称性（S-B ✓ I.13）：见证那一块不变，两点对调 ✓
+theorem Rel.ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
+    (h : Rel.ofPartition α P a b) : Rel.ofPartition α P b a :=
+  (fun (hE : ∃ (A : α → Prop), P A ∧ A a ∧ A b) =>
+    Exists.elim (α → Prop) (fun (A : α → Prop) => P A ∧ A a ∧ A b)
+      (Rel.ofPartition α P b a) hE
+      (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
+        Exists.intro (α → Prop) (fun (A' : α → Prop) => P A' ∧ A' b ∧ A' a) A
+          (And.intro (And.left hA)
+            (And.intro (And.right (And.right hA)) (And.left (And.right hA))))))
+    (Rel.ofPartition_mem α P a b h)
