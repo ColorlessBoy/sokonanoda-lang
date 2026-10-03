@@ -175,3 +175,8 @@ theorem Set.pi_mono_trans_apply (ι α : Type) (A B C : ι → Set α)
     (h1 : ∀ (i : ι), A i ⊆ B i) (h2 : ∀ (i : ι), B i ⊆ C i)
     (f : ι → α) (hf : f ∈ Set.pi ι α A) : f ∈ Set.pi ι α C :=
   Set.pi_mono_trans ι α A B C h1 h2 f hf
+
+-- 积单调的**左**点式形（S-B ✓ I.9）：逐坐标包含 ⇒ 成员搬运（`Set.pi_mono` 的直接应用）
+theorem Set.pi_mono_left_apply (ι α : Type) (A A' : ι → Set α) (h : ∀ (i : ι), A i ⊆ A' i)
+    (f : ι → α) (hf : f ∈ Set.pi ι α A) : f ∈ Set.pi ι α A' :=
+  Set.pi_mono ι α A A' h f hf
