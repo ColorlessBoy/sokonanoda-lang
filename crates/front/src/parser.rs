@@ -3436,6 +3436,61 @@ example : Prop -> Prop := sorry
         assert_eq!(vbinders.len(), 2);
     }
 
+    /// **G-32 的反向验证**（2026-10-03 ✓）：断言的是 **AST 形状**，不是"能不能编" ✗ ——
+    /// 因为真正的风险不是"后缀头不工作" ✗，而是"**顺手把 `f Aᶜ` 的分组改了**" ✗
+    ///（`parser.rs::parse_app` 里那条注释警告的正是它 ✓）。两条一起断言 ⇒ **能反向咬** ✓。
+    #[test]
+    fn postfix_notation_heads_an_application_without_regrouping_after_arguments() {
+        let src = "postfix:100 \" ᶜ \" => Set.compl\n\
+                   def t (A : Set α) (x : α) : Prop := Aᶜ x\n\
+                   def u (f : Set α → Set α) (A : Set α) : Set α := f Aᶜ\n";
+        let file = parse(src).unwrap();
+        // ⚠ `def` 的 binder 会**脱糖进值**（`val` 是 `Lambda` ✗）⇒ 断言前先剥到 body ✓
+        //（第一次写这条测试时就栽在这 ✗：拿到的 `val` 是 `Lambda` 而不是 `App` ✓）。
+        let val_of = |name: &str| -> &Expr {
+            for cmd in &file.commands {
+                if let Command::Def { name: n, val, .. } = cmd {
+                    if n == name {
+                        let mut e = val;
+                        while let Expr::Lambda { body, .. } = e {
+                            e = body;
+                        }
+                        return e;
+                    }
+                }
+            }
+            panic!("没找到 def {name}");
+        };
+        // ① 新行为 ✓：`Aᶜ x` ⇒ **App 的头是 postfix 节点** ✓（后缀贴在头上 ✓）。
+        let Expr::App { fun, .. } = val_of("t") else {
+            panic!("`Aᶜ x` 应当是 App：{:?}", val_of("t"));
+        };
+        assert!(
+            matches!(
+                &**fun,
+                Expr::Notation {
+                    assoc: NotationAssoc::Postfix,
+                    ..
+                }
+            ),
+            "`Aᶜ x` 的**头**必须是 postfix 记法节点：{fun:?}"
+        );
+        // ② **反向（关键 ✓）**：`f Aᶜ` ⇒ **postfix 套在 `App{f, A}` 外面** ✓
+        // —— 后缀出现在**实参之后**时分组**一字不变** ✗（这是本刀的安全边界 ✓）。
+        let Expr::Notation {
+            assoc: NotationAssoc::Postfix,
+            lhs: Some(inner),
+            ..
+        } = val_of("u")
+        else {
+            panic!("`f Aᶜ` 应当是 postfix 记法节点：{:?}", val_of("u"));
+        };
+        assert!(
+            matches!(&**inner, Expr::App { .. }),
+            "`f Aᶜ` 里 postfix 的操作数必须是**整个应用** `f A`（分组不变 ✗）：{inner:?}"
+        );
+    }
+
     #[test]
     fn untyped_decl_binder_is_a_parse_error() {
         let err = parse("theorem t (a) : Prop := Prop\n").unwrap_err();
