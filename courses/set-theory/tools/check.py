@@ -1214,9 +1214,19 @@ def replay_gap_repros(limit: int = 600) -> list[dict]:
     for repro in sorted(GAPS.glob("*.sh")):
         rel = str(repro.relative_to(COURSE))
         started = time.monotonic()
+        # **G7 复现件必须看**启动器自己的**解析** ✓ —— 不许继承 gate 塞进来的
+        # `SOKONANODA_BIN` ✗：`scripts/soko gate` 为了省掉 34 个目标各自重新解析，
+        # 把**已解析**的二进制经这个变量交给本文件（见 `scripts/soko` 的课程门禁那一步 ✓）；
+        # 而显式覆盖在启动器里是「**直用、不过版本守卫**」✓ ⇒ 一旦漏给复现件，
+        # `C-03(b)` 那种"注入一个无匹配二进制的版本钉 ⇒ 必须被拒"的判据就**永远绿** ✗
+        # （2026-10-03 实测：gate 里红 `BAD C-03(b): a pin with no matching binary was
+        # ACCEPTED -- the version guard is gone` ✗，单独跑同一件却 `exit 0` ✓）。
+        # ⇒ 复现件一律在**去掉覆盖**的环境里跑 ✓（判卷目标那条路**不受影响** ✓）。
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN")}
         try:
             proc = subprocess.run(["bash", str(repro)], capture_output=True, text=True,
-                                  timeout=limit)
+                                  timeout=limit, env=env)
             code = proc.returncode
             out = (proc.stdout + proc.stderr).strip()
         except subprocess.TimeoutExpired:
