@@ -296,3 +296,9 @@ theorem Set.Le.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
         (fun (x : α) (hx : A x) (y : α) (hy : A y) (h : (g ∘ f) x = (g ∘ f) y) =>
           hf x hx y hy (hg (f x) (hfm x hx) (f y) (hfm y hy) h))
         (fun (x : α) (hx : A x) => hgm (f x) (hfm x hx))))
+
+-- ── `≼` 的自反性（恒等映射 ✓；与 `Set.Le.trans` 配对 ✓）────────────────────────
+theorem Set.Le.refl (α : Type) (A : Set α) : A ≼ A :=
+  Set.Le.intro α α A A (fun (x : α) => x)
+    (fun (x : α) (_hx : A x) (y : α) (_hy : A y) (h : x = y) => h)
+    (fun (x : α) (hx : A x) => hx)
