@@ -93,6 +93,7 @@ import lib.Rel
 import lib.Logic
 import lib.Exists
 import lib.Set
+import lib.Fun
 
 -- ── 四条条件（Mathlib: Data/Set/Function.lean；L2：一行 ∀，没有数学内容）──
 -- ① 正向映射的域条件：A 里每个点都被 f 送进 B。
@@ -284,3 +285,14 @@ theorem Set.Equiv.comp_right_aux (α β γ : Type) (B : Set β) (C : Set γ)
 --   它们是**构造性引理**（复合两个互逆对的逆律 ✓），不是教学练习 ✓；
 --   单元里要用 `≈` 传递时，**两条 elim + 一条 mk + 这两条辅助引理**即可 ✓
 --   （判据：`unit54-solution.sokonanoda` 的 `equiv_trans` ✓）。
+
+-- ── `≼` 的传递性（**S-B 基数算术地基** ✓；组合两把单射 ✓）────────────────────────
+-- 读法：`A ≼ B` 与 `B ≼ C` 各给一把单射，复合 `g ∘ f` 仍是单射、落点也接得上 ✓。
+theorem Set.Le.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : A ≼ B) (h2 : B ≼ C) : A ≼ C :=
+  Set.Le.elim α β A B (A ≼ C) h1 (fun (f : α → β) (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) =>
+    Set.Le.elim β γ B C (A ≼ C) h2 (fun (g : β → γ) (hg : Set.InjOn β γ g B) (hgm : Set.MapsTo β γ g B C) =>
+      Set.Le.intro α γ A C (g ∘ f)
+        (fun (x : α) (hx : A x) (y : α) (hy : A y) (h : (g ∘ f) x = (g ∘ f) y) =>
+          hf x hx y hy (hg (f x) (hfm x hx) (f y) (hfm y hy) h))
+        (fun (x : α) (hx : A x) => hgm (f x) (hfm x hx))))
