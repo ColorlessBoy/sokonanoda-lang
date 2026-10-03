@@ -264,3 +264,11 @@ theorem Rel.comp_mono_right_apply {A B C : Type} (r : Rel A B) (s s' : Rel B C)
     (hs : ∀ (b : B) (c : C), s b c → s' b c) (a : A) (c : C) :
     Rel.comp r s a c → Rel.comp r s' a c :=
   fun (h : Rel.comp r s a c) => Rel.comp_mono_right r s s' hs a c h
+
+-- 复合单调的**两步**形（S-B ✓ I.13）：`Rel.comp_mono` 两次
+theorem Rel.comp_mono_trans {A B C : Type} (r r' r'' : Rel A B) (s s' s'' : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (hr' : ∀ (a : A) (b : B), r' a b → r'' a b)
+    (hs : ∀ (b : B) (c : C), s b c → s' b c) (hs' : ∀ (b : B) (c : C), s' b c → s'' b c) :
+    ∀ (a : A) (c : C), Rel.comp r s a c → Rel.comp r'' s'' a c :=
+  fun (a : A) (c : C) (h : Rel.comp r s a c) =>
+    Rel.comp_mono r' r'' s' s'' hr' hs' a c (Rel.comp_mono r r' s s' hr hs a c h)
