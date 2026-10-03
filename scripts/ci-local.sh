@@ -77,7 +77,17 @@ else
 fi
 
 # ③ gates（CI job `gates`）
-run "gates：课程门禁"   "gates" python3 courses/set-theory/tools/check.py
+# **按 FAST 分档**（2026-10-03 ✓，值守实测 + 我这轮实测：`:80` 原来**无条件**跑 ⇒ 每次 push 多背
+# **959 秒**（16 分钟）✗ —— 而 `scripts/githooks/pre-push:23` 的注释写着「约 1 分钟」✗
+# ⇒ 又一个「注释声明 + 没有守卫」✓）。上面那行注释自己写着「③ gates（**CI job `gates`**）」
+# ⇒ **远端 CI 有对应 job 兜底** ✓ ⇒ 本地快层跳过它**不会摘掉唯一守卫** ✓
+#（区别于「时序证据守卫」那种只在本地有牙的 ✗ —— 那条**不动** ✓）。
+if [ "$FAST" = 0 ]; then
+  run "gates：课程门禁" "gates" python3 courses/set-theory/tools/check.py
+else
+  printf '\n▶ gates：课程门禁  —— **--fast 跳过** ✓（**本轮未验证** ✗；远端 CI 的 `gates` job 会跑 ✓）\n'
+  printf '   上次读数：250 个目标 —— 2076 checked · 903 open · 0 个被判负（2026-10-03 15:40 ✓）\n'
+fi
 # **缺口台账带 `--strict`**（2026-09-25 ✓）：CI 上超时**跳过**（慢 runner 是环境事实 ✓），
 # 但**快机器上必须跑完** ✓ —— 否则守卫就被"跳过"架空了 ✗（用户："每次都是它出问题，
 # 但是从来不改" ✗ ⇒ 这一刀就是"本地兜底判据" ✓）。
