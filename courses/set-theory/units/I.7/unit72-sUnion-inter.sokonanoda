@@ -88,7 +88,7 @@ theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)
 -- soko:hint 关键件：练习 1–5 · `Set.mem_sUnion_iff`（`Iff.mpr` + `Exists.intro` ✓）✓
 
 theorem mem_sUnion_inter_of_mem (α : Type) (F G : Set (Set α)) (x : α)
-    (h : x ∈ (⋃₀ (F ∩ G))) : x ∈ ((⋃₀ F) ∩ (Set.sUnion α G)) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    (h : x ∈ (⋃₀ (F ∩ G))) : x ∈ ((⋃₀ F) ∩ (⋃₀ G)) := by
   sorry
 -- 练习 7（L 类，**单调**）：`F ⊆ G ⇒ x ∈ ⋃F ⇒ x ∈ ⋃G`。
 

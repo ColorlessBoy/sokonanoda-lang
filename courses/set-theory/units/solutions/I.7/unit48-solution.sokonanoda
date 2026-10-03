@@ -21,7 +21,7 @@ theorem subset_sUnion_intro (α : Type) (F : Set (Set α)) (A : Set α) (hA : A 
     Set.mem_sUnion_intro α F A x hA hx
 
 theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
-    ⋃₀ F ⊆ Set.sUnion α G :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    ⋃₀ F ⊆ ⋃₀ G :=
   fun (x : α) => fun (hx : x ∈ ⋃₀ F) =>
     Set.mem_sUnion_elim α F x (x ∈ ⋃₀ G) hx
       (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =>
