@@ -340,3 +340,9 @@ theorem Rel.equivClass_is_class (α : Type) (r : Rel α α) (a : α) :
 theorem Rel.equivClass_self (α : Type) (r : Rel α α) (a : α) (h : r a a) :
     Rel.EquivClass α r a a :=
   h
+
+-- `Classes` 的取件子（S-B ✓ I.13）：λ 落地 + `Rel.mem_classes` 的 `Iff.mp`（已判绿形态 ✓）
+theorem Rel.mem_classes_elim (α : Type) (r : Rel α α) (C : α → Prop)
+    (h : Rel.Classes α r C) : ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  (fun (hh : Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c) => Iff.mp hh h)
+    (Rel.mem_classes α r C)
