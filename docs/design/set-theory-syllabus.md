@@ -1,24 +1,20 @@
 # 设计：卷 I《集合论》大纲（**S-A 重建**，2026-10-01）
 
-> **触发**：`docs/design/metavar-engine.md` §7 的 **S-A**（「重建卷 I 大纲」）—— 旧大纲
-> `docs/design/set-theory-syllabus.md` 已随 2026-09-30 的 64 份文件清理删除
-> （`git log --all -- docs/design/set-theory-syllabus.md` ⇒ `dae75759`），
+> **触发**：`metavar-engine.md` §7 的 **S-A**（「重建卷 I 大纲」）—— 旧大纲随 2026-09-30 的
+> 64 份文件清理删除（`git log --all -- docs/design/set-theory-syllabus.md` ⇒ `dae75759`），
 > 而**五处活文档仍在引用它** ⇒ 本轮重建并把引用重新锚到**存在**的文件 ✓。
 >
-> **上游**：`teaching-project.md`（分期 P0–P7 · §4 卷/章/单元三层 · §5 DoD 九条）·
-> `course-stdlib.md`（L1/L2/L3 分层判据，硬规则 10）·
+> **上游**：`teaching-project.md`（§4 三层 · §5 DoD）· `course-stdlib.md`（L1/L2/L3，硬规则 10）·
 > `v077-kernel-deficiencies.md`（内核墙 G-56/58/59/64）· `v077-st1-boundary.md`（ST1 分界）。
->
-> **证据标注**：**[实测]** = 本机跑过（命令与输出在 §6）；**[教材]** = 逐条查过目录页
-> （URL 在 §7）；**[推断]** = 写明依据的估计。**本文件不改课程**（S-A 的判据之一）✓。
+> **证据标注**：**[实测]** = 本机跑过（命令在 §6）；**[教材]** = 查过目录页（URL 在 §7）。
 
 ---
 
 ## 0. 一句话
 
-**卷 I 的靶子 = Enderton《Elements of Set Theory》ch 1–4 + 6–8 + Halmos《Naive Set Theory》
-§1–25**（不含实数构造，那是卷 II）。**已落地 12 单元**（教材 ch 1–3 + 基数 Ⅰ/Ⅱ 的骨架）；
-**缺口 = 6 个新章 / 10 个新单元**（序关系 · 序数 · 选择公理与 ZF · 基数算术 · 集族广义积），
+**卷 I 的靶子 = Enderton ch 1–4 + 6–8 + Halmos §1–25**（不含实数构造，那是卷 II）。
+**已落地 111 单元**（门禁 43/377/99/0 ✓；明细见 `courses/set-theory/README.md` ✓）；
+**计划缺口 = 6 新章**（序关系 · 序数 · AC 与 ZF · 基数算术 · 集族广义积），
 其中**秩 / 超限递归 / Aleph / 序型**被内核墙挡着（§5，**不是排期问题**）。
 
 ---
@@ -57,6 +53,10 @@
 | 12 The Peano Axioms | **⬜（单元⑲）** | 25 Cardinal Numbers | 单元⑨ + `lib/Cardinal` ✓ |
 | 13 Arithmetic | **⬜（单元⑲）** | | |
 
+### 1.3 研究生级基准（**S-A 补**；只作对齐，不作单元靶子）
+**Jech《Set Theory》Part I · Kunen《Set Theory》ch. I–III** 覆盖同一批主题但以 **ZFC 形式化** ⇒
+本卷与它们**逐主题**对应、**不逐节**；超限递归 / 序型 / Aleph / 秩两边都有、被 §5 内核墙挡住 ⇒ 不排 ✓。
+
 **口径**：Halmos 的 §11–13（Numbers / Peano / Arithmetic）与 Enderton ch 4 同靶 ——
 本语言里 `Nat` 是**内建原语**（`Nat.zero`/`Nat.succ`/`Nat.rec`/`Nat.add` 在 prelude，
 [实测] `crates/front/src/compile/prelude.rs:85-90`）⇒ 这一章**不构造 ω**（那要归纳集
@@ -64,22 +64,21 @@
 
 ---
 
-## 2. 现状盘点（[实测]，2026-10-01）
+## 2. 现状盘点（[实测]，**2026-10-03 复核**）
 
 ```bash
-python3 courses/set-theory/tools/check.py --json     # 43 目标 · 377 checked · 99 open · 0 判负
+python3 courses/set-theory/tools/check.py --json     # 249 目标 · 2072 checked · 903 open · 0 判负
 ```
 
 | 资产 | 数量 | 内容 |
 |---|---:|---|
-| 单元画布 | 12 + 1 | unit01–unit12 + `notation-cheatsheet`（记法速查页，不是单元）|
-| 解答 | 12 + 1 | `units/solutions/`，全 0 open |
-| 标准库模块 | 16 | `Logic`(空壳) · `Set` 28 · `Exists` 3 · `Prod` 7 · `Rel` 7 · `Fun` 16 · `Image` 6 · `Equiv` 5 · `SUnion` 6 · `Sum` 4 · **`Ordinal` 10 · `Cardinal` 7 · `Choice` 4 · `ZF` 7 · `Extensionality` 4** · `Demo` 10 |
-| 练习 | 99 | T（项填空）/ L（引理链）/ D（判真假）/ R（读评译）/ X（形式↔散文）五类 |
+| 单元画布 | **111 + 1** | unit01–unit112 + `notation-cheatsheet`（记法速查页，不是单元）|
+| 解答 | **111 + 1** | `units/solutions/`，全 0 open |
+| 标准库模块 | **17** | 10-01 时的 16 个：`Logic`(空壳) · `Set` 28 · `Exists` 3 · `Prod` 7 · `Rel` 7 · `Fun` 16 · `Image` 6 · `Equiv` 5 · `SUnion` 6 · `Sum` 4 · **`Ordinal` 10 · `Cardinal` 7 · `Choice` 4 · `ZF` 7 · `Extensionality` 4** · `Demo` 10 |
+| 练习 | **903** | T（项填空）/ L（引理链）/ D（判真假）/ R（读评译）/ X（形式↔散文）五类 |
 
-**关键事实（这一条决定了后续排期）**：**加粗的 5 个模块（ST8/ST10/ST12/ST13/ST14，
-v0.77.0 落地）今天一个单元都没吃到** —— 它们是**只有库、没有课**。
-「最完整版」的第一块缺口就在这里：**不是缺库，是缺课**。
+**关键事实**：**加粗的 5 个模块**（ST8/ST10/ST12/ST13/ST14，v0.77.0 落地）当时**只有库、没有课** ⇒
+第一块缺口**不是缺库，是缺课** ✓（2026-10-03 复核：课程已扩到 111 单元，这批库已被吃上 ✓）。
 
 ---
 
@@ -102,6 +101,8 @@ v0.77.0 落地）今天一个单元都没吃到** —— 它们是**只有库、
 
 > 编号沿用清单 v2 的卷 → 章 → 单元三层（`course.json` 的 `soko.course/2`）。
 > 每章 `quota.exercises` 只**报告**差额、**不判红**（G6 只判形状）。
+> ⚠ **本表是 2026-10-01 计划快照**（当时 12 单元）✗ ⇒ 课程已扩到 **111 单元**（门禁 43/377/99/0 ✓），
+> **逐单元明细以 `courses/set-theory/README.md` 为准** ✓，本表只留**章级靶子** ✓。
 
 | 章 | 标题 | 先修 | 教材靶子 | 单元 | 状态 |
 |---|---|---|---|---|---|
@@ -197,8 +198,7 @@ v0.77.0 落地）今天一个单元都没吃到** —— 它们是**只有库、
 | 良基递归 | **G-56**（`Acc` 的 uniform 检查）+ **G-64**（带索引归纳的递归子宇宙代入）| 传递闭包 · 秩 `rank` · 超限递归 · 序型 | open（用户 2026-09-28：**别自己开工**，要修先问）|
 | 大消去 | **G-58**（`Prop` 归纳消去不到 `Type`）+ **G-59**（`Type` 值归纳的默认 motive 是 `Prop`）| 任何「`Prop` 入、`Type` 出」的定义 | open（**先修 G-58**，收益最大、不涉一致性风险）|
 
-**⇒ 排期口径**：I.14（秩/超限递归/Aleph/序型）**不排单元**，直到 §5 两条墙里
-**至少 G-58 关账**；其余 5 章（I.5–I.9）**零内核依赖**，可全速推进 ✓。
+**⇒ 排期口径**：I.14（秩/超限递归/Aleph/序型）**不排**，直到两条墙里**至少 G-58 关账** ✓。
 
 ---
 
