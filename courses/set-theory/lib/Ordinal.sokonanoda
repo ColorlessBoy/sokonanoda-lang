@@ -131,3 +131,8 @@ theorem ordinal_elem_isOrdinal (α : Type) (E : α → α → Prop) (x z : α)
     (fun (y : α) (hy : E y z) =>
       ordinal_elems_isTransitive α E x hx y (ordinal_isTransitive α E x hx z hz y hy))
     (ordinal_wellFounded α E x hx)
+
+-- 元素之元素仍是序数（`ordinal_elem_isOrdinal` 迭代一次 ✓）
+theorem ordinal_elem_elem_isOrdinal (α : Type) (E : α → α → Prop) (x y z : α)
+    (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : IsOrdinal α E z :=
+  ordinal_elem_isOrdinal α E y z (ordinal_elem_isOrdinal α E x y hx hy) hz
