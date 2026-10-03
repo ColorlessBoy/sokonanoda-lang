@@ -84,13 +84,17 @@ def line_of(raw, offset):
 
 
 def check_one(path):
-    """一个画布 ⇒ (相对路径, [顶≠底 的说明…], 断言条数, Π 条数, {名字…})。"""
+    """一个画布 ⇒ (相对路径, [顶≠底 的说明…], 断言条数, Π 条数, {名字…}, 跳过条数)。
+
+    ⚠ 第 6 项是**整数**（调用方 `skipped += sk` ✓）—— 早退分支曾写成 `[]` ✗
+    ⇒ `int += list` ⇒ **TypeError 崩掉整条复现件** ✗（2026-10-03 发版 pre-push 逮到 ✓）。
+    """
     goals = run(["query", "goals", "--file", path])
     if not goals:
-        return path, [], 0, 0, set(), []
+        return path, [], 0, 0, set(), 0
     entries = goals.get("data") or []
     if not entries:
-        return path, [], 0, 0, set(), []
+        return path, [], 0, 0, set(), 0
     raw = open(path, "rb").read()
     bad, checked, pi, names = [], 0, 0, set()
     skipped_empty = 0
