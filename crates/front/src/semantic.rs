@@ -179,6 +179,11 @@ impl SemanticKind {
 pub struct Run {
     pub text: String,
     pub kind: Option<SemanticKind>,
+    /// **源码字节区间**（G-53 ✓）：`Some((start, end))` = 这段 run 在**源文本**里的位置 ✓，
+    /// 由 [`attach_source_positions`] 回贴得到 ✓；`None` = **不知道** ✓ —— 消费者必须当作
+    /// "不可点" ✓（**宁可不可点，不可点错** ✗）。
+    pub start: Option<usize>,
+    pub end: Option<usize>,
 }
 
 /// The declaration-name table of `src` (name → use-kind, constructors as
@@ -273,6 +278,8 @@ pub fn tag_runs_with_notations(
     let plain = |s: &str| Run {
         text: s.to_string(),
         kind: None,
+        start: None,
+        end: None,
     };
     let mut names = Names::default();
     for (name, kind) in decls {
@@ -345,6 +352,10 @@ pub fn tag_runs_with_notations(
         runs.push(Run {
             text: text[tok.span.start.offset..tok.span.end.offset].to_string(),
             kind,
+            // **G-53**：这条路径的位置**本来就在手** ✓（`tok.span` ✓）⇒ 直接填真值 ✓
+            //（不需要回贴匹配 ✓ —— 只有"渲染出来的目标文本"那条路才需要 ✓）。
+            start: Some(tok.span.start.offset),
+            end: Some(tok.span.end.offset),
         });
         cursor = tok.span.end.offset;
     }
@@ -390,6 +401,34 @@ pub fn goal_text(binders: &[(String, String)], goal: &str) -> String {
 /// plain run. Invariant: `runs_to_text(&goal_runs(..)) == goal_text(..)`, so a
 /// caller renders the block either as a `sokonanoda` fence (hover) or as
 /// `tok-*` spans (Infoview) without a second content producer.
+/// **G-53**：把**渲染出来的** runs 回贴到源文本上，填 [`Run::start`]/[`Run::end`] ✓。
+///
+/// 为什么需要回贴：`goal_runs` 的输入是**目标状态的渲染文本** ✗（类型来自内核 ✓，没有源 span ✗）
+/// —— 所以位置只能"按出现顺序在源里找回来" ✓。**未命中就不填** ✓：消费者看到 `None` 就当
+/// "不可点" ✓（**宁可不可点，不可点错** ✗）。
+///
+/// `from` = 该声明在源文本里的起点 ✓（缩小搜索范围，避免贴到别的声明上 ✓）。
+pub fn attach_source_positions(runs: &mut [Run], source: &str, from: usize) {
+    let mut cursor = from.min(source.len());
+    for run in runs.iter_mut() {
+        if run.text.is_empty() {
+            continue;
+        }
+        match source[cursor..].find(&run.text) {
+            Some(off) => {
+                let start = cursor + off;
+                run.start = Some(start);
+                run.end = Some(start + run.text.len());
+                cursor = start + run.text.len();
+            }
+            None => {
+                run.start = None;
+                run.end = None;
+            }
+        }
+    }
+}
+
 pub fn goal_runs(
     binders: &[(String, String)],
     goal: &str,
@@ -403,6 +442,8 @@ pub fn goal_runs(
     let mut runs = tag_runs(&hyps, decls, &names);
     runs.push(Run {
         text: "⊢ ".to_string(),
+        start: None,
+        end: None,
         kind: None,
     });
     runs.extend(tag_runs(goal, decls, &names));
@@ -1386,6 +1427,8 @@ end
             runs,
             vec![Run {
                 text: "$".to_string(),
+                start: None,
+                end: None,
                 kind: None,
             }]
         );
@@ -1529,6 +1572,8 @@ end
             tagged.first(),
             Some(&Run {
                 text: "⊢".to_string(),
+                start: Some(0),
+                end: Some(3),
                 kind: None,
             }),
             "tag_runs must leave the turnstile plain: {tagged:?}"
