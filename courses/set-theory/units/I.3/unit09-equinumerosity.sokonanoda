@@ -191,7 +191,7 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
 -- soko:hint 关键件：① 目标是 Set.univ，True.intro 即可；② 拿 0 做见证——用 Eq.subst 与 Eq.symm 沿假设把 Set.mem_univ 搬成 0 ∈ nonzero，再喂 Eq.refl；③ 反向那条 MapsTo 用 Nat.succ_ne_zero，左互逆律要对 x 分情况：Nat.rec.{0} 配依赖 motive（zero 支被 hx 直接否掉，succ 支靠 Nat.pred 的 iota 算）。
 -- ─────────────────────────────────────────────────────────────
 theorem proper_subset_counterexample :
-    Set.subset Nat nonzero (Set.univ Nat) ∧  -- soko:notation-ok: ⊆ 记法在 nonzero（def）操作数上补不出论域
+    nonzero ⊆ (Set.univ Nat) ∧
       (nonzero ≠ Set.univ Nat ∧ nonzero ≈ (Set.univ Nat)) := by
   sorry
 

@@ -4,11 +4,11 @@ import lib.Order
 import lib.Rel
 
 theorem demo_mem_empty_iff_false (α : Type) (a : α) :
-    a ∈ (Set.empty α) ↔ False :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    a ∈ (∅ α) ↔ False :=
   Set.mem_empty_iff_false a
 
-theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
-  fun (h : a ∈ (Set.empty α)) => (Iff.mp (Set.mem_empty_iff_false a) h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (∅ α)) :=
+  fun (h : a ∈ (∅ α)) => (Iff.mp (Set.mem_empty_iff_false a) h)
 
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
@@ -19,8 +19,8 @@ theorem not_exists_of_all_not (α : Type) (P : α → Prop) (h : ∀ (x : α), �
   fun (he : ∃ (x : α), P x) =>
     Exists.elim α P False he (fun (x : α) (hx : P x) => h x hx)
 
-theorem not_exists_mem_empty (α : Type) : ¬ (∃ (x : α), x ∈ (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
-  not_exists_of_all_not α (fun (x : α) => x ∈ (Set.empty α))  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+theorem not_exists_mem_empty (α : Type) : ¬ (∃ (x : α), x ∈ (∅ α)) :=
+  not_exists_of_all_not α (fun (x : α) => x ∈ (∅ α))
     (fun (x : α) => demo_not_mem_empty α x)
 
 theorem mem_of_eq_of_mem (α : Type) (A B : Set α) (a : α) (heq : Eq.{1} (Set α) A B)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
@@ -32,5 +32,5 @@ theorem ne_of_mem_not_mem (α : Type) (A B : Set α) (a : α) (ha : a ∈ A)
   fun (heq : Eq.{1} (Set α) A B) => hna (mem_of_eq_of_mem α A B a heq ha)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
 
 theorem not_eq_empty_of_mem (α : Type) (A : Set α) (a : α) (ha : a ∈ A) :
-    ¬ (Eq.{1} (Set α) A (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
-  ne_of_mem_not_mem α A (Set.empty α) a ha (demo_not_mem_empty α a)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    ¬ (Eq.{1} (Set α) A (∅ α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  ne_of_mem_not_mem α A (∅ α) a ha (demo_not_mem_empty α a)

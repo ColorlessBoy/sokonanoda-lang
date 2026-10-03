@@ -113,10 +113,10 @@ theorem mem_image_mono (α : Type) (β : Type) (f : α → β) (A B : Set α) (h
             (Set.subset_def α A B))) hxy)
 
 theorem not_mem_image_empty (α : Type) (β : Type) (f : α → β) (y : β) :
-    ¬ (y ∈ (f '' (Set.empty α))) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
-  fun (h : y ∈ (f '' (Set.empty α))) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
-    Set.mem_image_elim f (Set.empty α) y False h  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
-      (fun (x : α) (hx : x ∈ (Set.empty α)) (hxy : f x = y) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+    ¬ (y ∈ (f '' (∅ α))) :=
+  fun (h : y ∈ (f '' (∅ α))) =>
+    Set.mem_image_elim f (∅ α) y False h
+      (fun (x : α) (hx : x ∈ (∅ α)) (hxy : f x = y) =>
         (Iff.mp (Set.mem_empty_iff_false x)) hx)
 
 theorem mem_preimage_image (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)

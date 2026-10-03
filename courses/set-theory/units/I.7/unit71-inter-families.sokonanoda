@@ -111,5 +111,5 @@ theorem mem_univ_inter (α : Type) (A : Set α) (c : α) :
 -- soko:hint 关键件：练习 4（左取用子给出"在 `∅` 里" ✗）· `Set.mem_empty_iff_false` ✓
 
 theorem not_mem_empty_inter (α : Type) (A : Set α) (c : α) :
-    ¬ (c ∈ ((Set.empty α) ∩ A)) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    ¬ (c ∈ ((∅ α) ∩ A)) := by
   sorry

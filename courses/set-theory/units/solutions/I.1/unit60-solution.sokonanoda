@@ -53,7 +53,7 @@ theorem not_mem_inter_compl (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A ∩
       (And.left ((fun (hu : a ∈ (A ∩ Aᶜ) ↔ a ∈ A ∧ a ∈ (Aᶜ)) => Iff.mp hu h)
         (Set.mem_inter_iff a A (Aᶜ))))
 
-theorem compl_univ_subset_empty (α : Type) : (Set.univ α)ᶜ ⊆ (Set.empty α) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+theorem compl_univ_subset_empty (α : Type) : (Set.univ α)ᶜ ⊆ (∅ α) :=
   fun (a : α) (h : a ∈ ((Set.univ α)ᶜ)) =>
-    (False.elim (a ∈ (Set.empty α)))  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+    (False.elim (a ∈ (∅ α)))
       (not_mem_of_mem_compl α (Set.univ α) a h (Set.mem_univ α a))

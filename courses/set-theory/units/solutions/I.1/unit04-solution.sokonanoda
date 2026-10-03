@@ -166,13 +166,13 @@ theorem union_sdiff_univ_ne_univ :
         = Set.univ Nat) := by
   intro h
   have hmem : Nat.zero ∈
-      (Set.union Nat (Set.univ Nat) (Set.univ Nat)) \ (Set.univ Nat) :=  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
+      ((Set.univ Nat) ∪ (Set.univ Nat)) \ (Set.univ Nat) :=
     Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => Nat.zero ∈ X)
       (Set.univ Nat)
-      (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
+      (((Set.univ Nat) ∪ (Set.univ Nat)) \ (Set.univ Nat))
       (Eq.symm.{1} (Set Nat)
-        (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
+        (((Set.univ Nat) ∪ (Set.univ Nat)) \ (Set.univ Nat))
         (Set.univ Nat) h)
       (Set.mem_univ Nat Nat.zero)
-  exact And.right (Nat.zero ∈ Set.union Nat (Set.univ Nat) (Set.univ Nat))  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
+  exact And.right (Nat.zero ∈ (Set.univ Nat) ∪ (Set.univ Nat))
     (¬ (Nat.zero ∈ Set.univ Nat)) hmem (Set.mem_univ Nat Nat.zero)

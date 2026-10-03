@@ -28,7 +28,7 @@ import lib.Set
 import lib.Rel
 import lib.Order
 theorem demo_mem_empty_iff_false (α : Type) (x : α) :
-    x ∈ (Set.empty α) ↔ False :=  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    x ∈ (∅ α) ↔ False :=
   Set.mem_empty_iff_false α x
 theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
@@ -37,26 +37,26 @@ theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
   Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)
 -- 思路：给 `x ∈ A`，用包含关系得 `x ∈ ∅`，再由空集的成员刻画得 `False`。
 -- 关键件：`Set.mem_empty_iff_false`（**先 λ 绑定再 `Iff.mp`** ✓）· `h`（点 · 前提）
-theorem subset_empty_elim (α : Type) (A : Set α) (h : A ⊆ Set.empty α) :  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+theorem subset_empty_elim (α : Type) (A : Set α) (h : A ⊆ ∅ α) :
     ∀ (x : α), x ∈ A → False := by
   sorry
 -- 练习 2（L 类）：**点态为假 ⇒ 含于空集**。
 -- 关键件：`Set.mem_empty_iff_false`（`Iff.mpr` ✓）· `h`（点 · 前提）
 theorem subset_empty_intro (α : Type) (A : Set α) (h : ∀ (x : α), x ∈ A → False) :
-    A ⊆ Set.empty α := by  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    A ⊆ ∅ α := by
   sorry
 -- 练习 3（T 类）：**含于空集 ⇒ 无成员**（把练习 1 交出去 ✓）。
 -- 关键件：练习 1
-theorem not_mem_of_subset_empty (α : Type) (A : Set α) (h : A ⊆ Set.empty α) :  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+theorem not_mem_of_subset_empty (α : Type) (A : Set α) (h : A ⊆ ∅ α) :
     ∀ (x : α), x ∈ A → False := by
   sorry
 -- 练习 4（L 类）：**空集含于任何集合**。
 -- 思路：给 `x ∈ ∅`；由成员刻画得 `False`，再用 `False.elim` 消去。
 -- 关键件：`Set.mem_empty_iff_false`（`Iff.mp` ✓）· **`False.elim` 要把目标写全**（`False.elim (x ∈ A) …` ✓）
-theorem empty_subset (α : Type) (A : Set α) : Set.empty α ⊆ A := by  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+theorem empty_subset (α : Type) (A : Set α) : ∅ α ⊆ A := by
   sorry
 -- 练习 5（T 类）：**点态形态 ⇔ 含于空集**（一个方向 ✓）。
 -- 关键件：练习 1（**直接交出去** ✓）
 theorem subset_empty_iff_pointwise (α : Type) (A : Set α) :
-    (A ⊆ Set.empty α) → (∀ (x : α), x ∈ A → False) := by  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (A ⊆ ∅ α) → (∀ (x : α), x ∈ A → False) := by
   sorry

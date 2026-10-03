@@ -119,5 +119,5 @@ theorem mem_sInter_of_subset (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x :
 -- soko:hint 关键件：练习 1 · `Exists.elim` · `Set.mem_empty_iff_false` ✓
 
 theorem not_mem_sUnion_empty (α : Type) (x : α) :
-    ¬ (x ∈ (Set.sUnion α (Set.empty (Set α)))) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    ¬ (x ∈ (Set.sUnion α (∅))) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
   sorry

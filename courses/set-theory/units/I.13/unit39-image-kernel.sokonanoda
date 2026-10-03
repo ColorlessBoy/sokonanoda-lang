@@ -115,7 +115,7 @@ theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
 -- soko:hint 关键件：`Exists.elim`（**目标直接写 `False`**，前导实参写全）·
 --   `Set.notMem_empty`（**大写 M**，参数是那个点）✓
 theorem relImg_empty (α β : Type) (r : Rel α β) (b : β) :
-    ¬ (b ∈ (relImg α β r (Set.empty α))) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    ¬ (b ∈ (relImg α β r (∅ α))) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────

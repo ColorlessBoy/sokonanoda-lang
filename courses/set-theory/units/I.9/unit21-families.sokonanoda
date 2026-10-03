@@ -153,5 +153,5 @@ theorem sInter_subset_sUnion (α : Type) (F : Set (Set α)) (h : ∃ (A : Set α
 --   空族那一处写成"恒假的谓词" `fun (A : Set α) => False` —— 它就是空集，但类型当场可读 ✓）。
 -- soko:hint 关键件：`Set.mem_sUnion_iff`（正向）· `Exists.elim`（前导实参写全）·
 --   `Set.notMem_empty` · `False.elim`（**隐式结论 `C` 补不出来时要写全**，G-73 形状 ②）。
-theorem sUnion_empty (α : Type) : (⋃₀ (Set.empty (Set α))) ⊆ Set.empty α :=  -- soko:notation-ok: 记法 `⋃₀`/`⊆` 内部推不出 `∅` 的类型参数，这里必须点名 by  -- soko:notation-ok: 记法 `⋃₀`/`⊆` 内部推不出 `∅` 的类型参数，这里必须点名
+theorem sUnion_empty (α : Type) : (⋃₀ (∅)) ⊆ ∅ α :=
   sorry

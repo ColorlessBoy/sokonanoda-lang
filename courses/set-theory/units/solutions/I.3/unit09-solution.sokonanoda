@@ -320,9 +320,9 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
 -- 第一段用点名形式 Set.subset Nat …：⊆ 记法在这里补不出论域（见画布同款注释）。  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
 -- ─────────────────────────────────────────────────────────────
 theorem proper_subset_counterexample :
-    Set.subset Nat nonzero (Set.univ Nat) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    nonzero ⊆ (Set.univ Nat) ∧
       (nonzero ≠ Set.univ Nat ∧ nonzero ≈ (Set.univ Nat)) := by
-  exact And.intro (Set.subset Nat nonzero (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+  exact And.intro (nonzero ⊆ (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
     (¬ (Eq.{1} (Set Nat) nonzero (Set.univ Nat)) ∧
          nonzero ≈ (Set.univ Nat))
     (fun (x : Nat) => fun (hx : x ∈ nonzero) => True.intro)

@@ -211,22 +211,22 @@ theorem bb_mem_U01 : bb ∈ U01 := by  -- soko:notation-ok: R1/R2：点名叫法
   exact Or.inr (bb = aa) (bb = bb) (Eq.refl.{1} Two bb)
 
 theorem inter_singletons_empty :
-    Eq.{1} (Set Two) (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-      (Set.empty Two) := by
-  exact Set.ext Two (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)) (Set.empty Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    Eq.{1} (Set Two) ((Set.singleton Two aa) ∩ (Set.singleton Two bb))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (∅) := by
+  exact Set.ext Two ((Set.singleton Two aa) ∩ (Set.singleton Two bb)) (∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
     (fun (x : Two) =>
-      Iff.intro (Set.mem Two x (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-        (Set.mem Two x (Set.empty Two))
-        (fun (hx : Set.mem Two x (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb))) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-          False.elim (Set.mem Two x (Set.empty Two))
+      Iff.intro (x ∈ ((Set.singleton Two aa) ∩ (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        (x ∈ (∅))
+        (fun (hx : x ∈ ((Set.singleton Two aa) ∩ (Set.singleton Two bb))) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          False.elim (x ∈ (∅))
             (two_aa_ne_bb
               (Eq.trans.{1} Two aa x bb
                 (Eq.symm.{1} Two x aa
-                  (And.left (Set.mem Two x (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                    (Set.mem Two x (Set.singleton Two bb)) hx))
-                (And.right (Set.mem Two x (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                  (Set.mem Two x (Set.singleton Two bb)) hx))))
-        (fun (h0 : Set.mem Two x (Set.empty Two)) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (And.left (x ∈ (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (x ∈ (Set.singleton Two bb)) hx))
+                (And.right (x ∈ (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (x ∈ (Set.singleton Two bb)) hx))))
+        (fun (h0 : x ∈ (∅)) =>
           False.elim h0))
 
 theorem image_empty (A : Set Two) :
@@ -247,22 +247,22 @@ theorem image_empty (A : Set Two) :
 
 theorem image_inter_singletons_empty :
     Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：`Set.image` 的**操作数**是零元记法 `∅`（没有类型来源）⇒ 这一条写点名
-      (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
-      (Set.empty Two) :=  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+      (f1 '' ((Set.singleton Two aa) ∩ (Set.singleton Two bb)))
+      (∅) :=
   Eq.trans.{1} (Set Two)
-    (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
-    (Set.image Two Two f1 (Set.empty Two))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
-    (Set.empty Two)  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+    (f1 '' ((Set.singleton Two aa) ∩ (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+    (f1 '' (∅))
+    (∅)
     (congrArg.{1} (fun (X : Set Two) => f1 '' X) inter_singletons_empty)
-    (image_empty (Set.empty Two))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+    (image_empty (∅))
 
 -- aa 落在 `f1 '' {aa} ∩ f1 '' {bb}` 里（两个单点集都被压到 {aa}）。
 theorem aa_mem_inter_image :
     Set.mem Two aa  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-      (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
-        (Set.image Two Two f1 (Set.singleton Two bb))) := by  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-  exact And.intro (Set.mem Two aa (Set.image Two Two f1 (Set.singleton Two aa)))
-    (Set.mem Two aa (Set.image Two Two f1 (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (Set.inter Two (f1 '' (Set.singleton Two aa))
+        (f1 '' (Set.singleton Two bb))) := by  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+  exact And.intro (aa ∈ (f1 '' (Set.singleton Two aa)))
+    (aa ∈ (f1 '' (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
     (Exists.intro Two (fun (t : Two) => (Eq.{1} Two t aa) ∧ (Eq.{1} Two (f1 t) aa))
       aa (And.intro (Eq.{1} Two aa aa) (Eq.{1} Two (f1 aa) aa)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         (Eq.refl.{1} Two aa) (Eq.refl.{1} Two aa)))
@@ -273,27 +273,27 @@ theorem aa_mem_inter_image :
 -- 练习 6（D 类，必破）：两侧不等——左边是 ∅，右边含 aa。
 theorem not_image_inter_eq_image_inter :
     ¬ (Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-      (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
-      (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-        (Set.image Two Two f1 (Set.singleton Two bb)))) :=
+      (f1 '' ((Set.singleton Two aa) ∩ (Set.singleton Two bb)))
+      (Set.inter Two (f1 '' (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        (f1 '' (Set.singleton Two bb)))) :=
   fun (h : Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
-      (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
-      (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
-        (Set.image Two Two f1 (Set.singleton Two bb)))) =>  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+      (f1 '' ((Set.singleton Two aa) ∩ (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+      (Set.inter Two (f1 '' (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+        (f1 '' (Set.singleton Two bb)))) =>  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
   Set.notMem_empty Two aa
-    (Eq.subst.{1} (Set Two) (fun (X : Set Two) => Set.mem Two aa X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-      (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
-        (Set.image Two Two f1 (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-      (Set.empty Two)
+    (Eq.subst.{1} (Set Two) (fun (X : Set Two) => aa ∈ X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (Set.inter Two (f1 '' (Set.singleton Two aa))
+        (f1 '' (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (∅)
       (Eq.trans.{1} (Set Two)
-        (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-          (Set.image Two Two f1 (Set.singleton Two bb)))
-        (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-        (Set.empty Two)
+        (Set.inter Two (f1 '' (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (f1 '' (Set.singleton Two bb)))
+        (f1 '' ((Set.singleton Two aa) ∩ (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        (∅)
         (Eq.symm.{1} (Set Two)
-          (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-          (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
-            (Set.image Two Two f1 (Set.singleton Two bb))) h)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (f1 '' ((Set.singleton Two aa) ∩ (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (Set.inter Two (f1 '' (Set.singleton Two aa))
+            (f1 '' (Set.singleton Two bb))) h)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         (image_inter_singletons_empty))
       aa_mem_inter_image)
 

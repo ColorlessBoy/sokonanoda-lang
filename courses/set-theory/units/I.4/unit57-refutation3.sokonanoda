@@ -33,8 +33,8 @@ import lib.Rel
 theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
     a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=
   Set.mem_sdiff a A B
-theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
-  fun (h : a ∈ (Set.empty α)) => (Iff.mp (Set.mem_empty_iff_false a) h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
+theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (∅ α)) :=
+  fun (h : a ∈ (∅ α)) => (Iff.mp (Set.mem_empty_iff_false a) h)
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
   Set.subset_def α A B
@@ -91,5 +91,5 @@ theorem not_subset_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (
 --   关系取 `fun u v => a ∈ v` ✓）· 演示 2 ✓
 
 theorem not_eq_empty_of_mem_sdiff (α : Type) (A B : Set α) (a : α)
-    (h : a ∈ (A \ B)) : ¬ (Eq.{1} (Set α) (A \ B) (Set.empty α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
+    (h : a ∈ (A \ B)) : ¬ (Eq.{1} (Set α) (A \ B) (∅ α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
   sorry

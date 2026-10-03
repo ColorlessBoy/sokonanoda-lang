@@ -44,7 +44,6 @@ theorem demo_mem_image_intro (α : Type) (β : Type) (f : α → β) (A : Set α
   Set.mem_image_intro f A y x hx hxy
 theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
     x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
-  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
   Set.mem_sUnion_iff α F x-- 练习 1（T 类）：**进像**（`x ∈ A ⇒ f x ∈ f '' A`）。
 
 -- soko:hint 关键件：`Set.mem_image_intro` · `Eq.refl`（**写全宇宙与类型** ✓）
@@ -132,7 +131,7 @@ theorem mem_image_mono (α : Type) (β : Type) (f : α → β) (A B : Set α) (h
 -- soko:hint 关键件：`Set.mem_image_elim`（**消到 `False`** ✓）· `Set.mem_empty_iff_false` ✓
 
 theorem not_mem_image_empty (α : Type) (β : Type) (f : α → β) (y : β) :
-    ¬ (y ∈ (f '' (Set.empty α))) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    ¬ (y ∈ (f '' (∅ α))) := by
   sorry
 -- 练习 12（T 类）：**`A` 含在 `f` 的原像（`f '' A`）里**（成员层级 ✓）。
 

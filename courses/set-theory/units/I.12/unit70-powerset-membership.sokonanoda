@@ -33,7 +33,7 @@ import lib.Order
 
 -- 演示：幂集的成员刻画（`C ∈ 𝒫A` 就是 `C ⊆ A`）。
 theorem demo_mem_powerset (α : Type) (A C : Set α) :
-    C ∈ (Set.powerset A) ↔ C ⊆ A :=  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    C ∈ (𝒫 A) ↔ C ⊆ A :=
   Set.mem_powerset_iff A C
 theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
     a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=
@@ -76,7 +76,7 @@ theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)
 -- soko:hint 关键件：`Set.mem_powerset_iff` · 练习 1–4 · `Iff.intro`（两种写法都要 ✓）✓
 
 theorem mem_powerset_inter_iff (α : Type) (A B C : Set α) :
-    C ∈ (Set.powerset A ∩ Set.powerset B) ↔ C ∈ Set.powerset (A ∩ B) := by  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    C ∈ (𝒫 A ∩ 𝒫 B) ↔ C ∈ 𝒫 (A ∩ B) := by
   sorry
 -- 练习 6（L 类）：**`C ∈ 𝒫A ∪ 𝒫B ⇒ C ∈ 𝒫(A ∪ B)`**（**反向为假** ✗）。
 
@@ -85,14 +85,14 @@ theorem mem_powerset_inter_iff (α : Type) (A B C : Set α) :
 --   `Or.inl`/`Or.inr` · 练习 1 · `Set.mem_powerset_iff` ✓
 
 theorem mem_powerset_union_of_mem (α : Type) (A B C : Set α)
-    (h : C ∈ (Set.powerset A ∪ Set.powerset B)) : C ∈ Set.powerset (A ∪ B) := by  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    (h : C ∈ (𝒫 A ∪ 𝒫 B)) : C ∈ 𝒫 (A ∪ B) := by
   sorry
 -- 练习 7（T 类，**幂等**）：**`C ∈ 𝒫A ∩ 𝒫A ↔ C ∈ 𝒫A`**。
 
 -- soko:hint 关键件：练习 2 / 练习 3（**同一个 `h` 用两次** ✓）✓
 
 theorem mem_powerset_inter_self (α : Type) (A C : Set α) :
-    C ∈ (Set.powerset A ∩ Set.powerset A) ↔ C ∈ Set.powerset A := by  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    C ∈ (𝒫 A ∩ 𝒫 A) ↔ C ∈ 𝒫 A := by
   sorry
 -- 练习 8（L 类，**收尾**）：**`C ∈ 𝒫∅ ↔ ∀c, c ∉ C`**（幂集里只有空集 ✓）。
 
@@ -101,5 +101,5 @@ theorem mem_powerset_inter_self (α : Type) (A C : Set α) :
 --   **`False.elim`（把目标写全** ✓）· 练习 1 ✓
 
 theorem mem_powerset_empty_iff (α : Type) (C : Set α) :
-    C ∈ Set.powerset (Set.empty α) ↔ ∀ (c : α), ¬ (c ∈ C) := by  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    C ∈ 𝒫 (∅ α) ↔ ∀ (c : α), ¬ (c ∈ C) := by
   sorry

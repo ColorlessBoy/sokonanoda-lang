@@ -3,7 +3,7 @@ import lib.Rel
 import lib.Order
 
 theorem demo_mem_empty_iff_false (α : Type) (x : α) :
-    x ∈ (Set.empty α) ↔ False :=  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    x ∈ (∅ α) ↔ False :=
   Set.mem_empty_iff_false α x
 
 theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
@@ -13,27 +13,27 @@ theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
 theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
   Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)
 
-theorem subset_empty_elim (α : Type) (A : Set α) (h : A ⊆ Set.empty α) :  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+theorem subset_empty_elim (α : Type) (A : Set α) (h : A ⊆ ∅ α) :
     ∀ (x : α), x ∈ A → False :=
   fun (x : α) (hx : x ∈ A) =>
-    (fun (hu : x ∈ Set.empty α ↔ False) => Iff.mp hu (h x hx))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (hu : x ∈ ∅ α ↔ False) => Iff.mp hu (h x hx))
       (Set.mem_empty_iff_false α x)
 
 theorem subset_empty_intro (α : Type) (A : Set α) (h : ∀ (x : α), x ∈ A → False) :
-    A ⊆ Set.empty α :=  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    A ⊆ ∅ α :=
   fun (x : α) (hx : x ∈ A) =>
-    (fun (hu : x ∈ Set.empty α ↔ False) => Iff.mpr hu (h x hx))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (hu : x ∈ ∅ α ↔ False) => Iff.mpr hu (h x hx))
       (Set.mem_empty_iff_false α x)
 
-theorem not_mem_of_subset_empty (α : Type) (A : Set α) (h : A ⊆ Set.empty α) :  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+theorem not_mem_of_subset_empty (α : Type) (A : Set α) (h : A ⊆ ∅ α) :
     ∀ (x : α), x ∈ A → False :=
   subset_empty_elim α A h
 
-theorem empty_subset (α : Type) (A : Set α) : Set.empty α ⊆ A :=  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
-  fun (x : α) (hx : x ∈ Set.empty α) =>  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
-    (fun (hu : x ∈ Set.empty α ↔ False) => False.elim (x ∈ A) (Iff.mp hu hx))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+theorem empty_subset (α : Type) (A : Set α) : ∅ α ⊆ A :=
+  fun (x : α) (hx : x ∈ ∅ α) =>  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (hu : x ∈ ∅ α ↔ False) => False.elim (x ∈ A) (Iff.mp hu hx))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
       (Set.mem_empty_iff_false α x)
 
 theorem subset_empty_iff_pointwise (α : Type) (A : Set α) :
-    (A ⊆ Set.empty α) → (∀ (x : α), x ∈ A → False) :=  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (A ⊆ ∅ α) → (∀ (x : α), x ∈ A → False) :=
   subset_empty_elim α A

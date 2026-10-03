@@ -100,10 +100,10 @@ theorem mem_prod_inter_iff (A : Type) (B : Type) (s : Set A) (t : Set B) (u : Se
           (Set.mem_inter_iff (Prod.snd A B p) t u)))
 
 theorem not_mem_prod_empty (A : Type) (B : Type) (s : Set A) (p : Prod A B) :
-    ¬ (p ∈ (s ×ˢ (Set.empty B))) :=  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
-  fun (h : p ∈ (s ×ˢ (Set.empty B))) =>  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    ¬ (p ∈ (s ×ˢ (∅))) :=
+  fun (h : p ∈ (s ×ˢ (∅))) =>
     (Iff.mp (Set.mem_empty_iff_false (Prod.snd A B p)))
-      (mem_prod_snd A B s (Set.empty B) p h)  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+      (mem_prod_snd A B s (∅) p h)
 
 theorem prod_mono (A : Type) (B : Type) (s₁ : Set A) (s₂ : Set A) (t₁ : Set B) (t₂ : Set B)
     (h1 : s₁ ⊆ s₂) (h2 : t₁ ⊆ t₂) (p : Prod A B) (h : p ∈ (s₁ ×ˢ t₁)) : p ∈ (s₂ ×ˢ t₂) :=

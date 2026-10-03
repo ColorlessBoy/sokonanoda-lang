@@ -176,8 +176,8 @@ theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)
           (And.intro (And.left ha) (h a b (And.right ha))))
 
 theorem relImg_empty (α β : Type) (r : Rel α β) (b : β) :
-    ¬ (b ∈ (relImg α β r (Set.empty α))) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-  fun (h : b ∈ (relImg α β r (Set.empty α))) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-    Exists.elim α (fun (a : α) => (Set.empty α) a ∧ r a b) False h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-      (fun (a : α) (ha : (Set.empty α) a ∧ r a b) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-        (fun (hu : ¬ ((Set.empty α) a)) => hu (And.left ha)) (Set.notMem_empty a))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    ¬ (b ∈ (relImg α β r (∅ α))) :=
+  fun (h : b ∈ (relImg α β r (∅ α))) =>
+    Exists.elim α (fun (a : α) => (∅ α) a ∧ r a b) False h
+      (fun (a : α) (ha : (∅ α) a ∧ r a b) =>
+        (fun (hu : ¬ ((∅ α) a)) => hu (And.left ha)) (Set.notMem_empty a))

@@ -76,7 +76,7 @@ theorem mem_powerset_apply (α : Type) (A B : Set α) :
 -- soko:hint 关键件：`Set.ext`（**要写全论域与两个集合**）· `Iff.intro`（前导 Prop 实参写全）·
 --   `And.intro`/`And.left`/`And.right` · **包含关系是定义头 ⇒ 先 λ 绑定再应用**（G-73 形状 ①）✓
 theorem powerset_inter (α : Type) (A B : Set α) :
-    𝒫 (A ∩ B) = Set.powerset A ∩ Set.powerset B := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    𝒫 (A ∩ B) = 𝒫 A ∩ 𝒫 B := by
   sorry
 
 -- 练习 3（L 类，旗舰之一）：**`𝒫 A ∪ 𝒫 B ⊆ 𝒫 (A ∪ B)`**（"只有一半"）。
@@ -85,7 +85,7 @@ theorem powerset_inter (α : Type) (A B : Set α) :
 -- soko:hint 关键件：`Or.elim`（前导 Prop 实参写全）· `Or.inl`/`Or.inr` · 包含假设**先 λ 绑定** ✓
 --   ⚠ **反方向是假的** —— 而"举反例"要能区分 `Bool` 的两个构造子，本语言证不出来（见文件头 ①）✓
 theorem powerset_union_subset (α : Type) (A B : Set α) :
-    (Set.powerset A ∪ Set.powerset B) ⊆ Set.powerset (A ∪ B) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    (𝒫 A ∪ 𝒫 B) ⊆ 𝒫 (A ∪ B) := by
   sorry
 
 -- 练习 4（L 类）：**广义并把幂集还原成原来的集合**（`⋃₀ (𝒫 A) = A`）。
@@ -95,14 +95,14 @@ theorem powerset_union_subset (α : Type) (A B : Set α) :
 -- soko:hint 关键件：`Set.ext` · `Set.mem_sUnion_elim`（拆）· `Set.mem_sUnion_intro`（造；
 --   **第一个实参是元素类型 `α`，不是 `Set α`** —— 实测踩过）· `Set.mem_powerset_iff` ✓
 theorem sUnion_powerset (α : Type) (A : Set α) :
-    Set.sUnion α (Set.powerset A) = A := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    Set.sUnion α (𝒫 A) = A := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
   sorry
 
 -- 练习 5（L 类）：**空集的幂集里只有空集**（成员层面：里面的集合什么都不含）。
 -- soko:hint 思路：`C ∈ 𝒫 ∅` 给出 `C ⊆ ∅`，于是 `C` 的点要落在空集里 —— 与"空集没有点"冲突。
 -- soko:hint 目标形态：`C ∈ 𝒫 ∅ → ∀ x, ¬ (C x)`。
 -- soko:hint 关键件：包含假设**先 λ 绑定** · `Set.notMem_empty`（空集没有点）· `False.elim` ✓
-theorem powerset_empty_subset (α : Type) (C : Set α) (hC : C ∈ Set.powerset (Set.empty α)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+theorem powerset_empty_subset (α : Type) (C : Set α) (hC : C ∈ 𝒫 (∅ α)) :
     ∀ (x : α), ¬ (C x) := by
   sorry
 

@@ -88,7 +88,7 @@ theorem mem_prod_inter_iff (A : Type) (B : Type) (s : Set A) (t : Set B) (u : Se
 
 -- soko:hint 关键件：练习 2（第二坐标落在 `∅` 里 ✗）· `Set.mem_empty_iff_false` ✓
 theorem not_mem_prod_empty (A : Type) (B : Type) (s : Set A) (p : Prod A B) :
-    ¬ (p ∈ (s ×ˢ (Set.empty B))) := by  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    ¬ (p ∈ (s ×ˢ (∅))) := by
   sorry
 -- 练习 7（T 类，**收尾**）：**单调**（两个坐标各单调 ⇒ 积单调 ✓）。
 

@@ -34,10 +34,10 @@ import lib.Order
 
 -- 演示：空集的成员刻画（定义展开，没有数学内容）。
 theorem demo_mem_empty_iff_false (α : Type) (a : α) :
-    a ∈ (Set.empty α) ↔ False :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    a ∈ (∅ α) ↔ False :=
   Set.mem_empty_iff_false a
-theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
-  fun (h : a ∈ (Set.empty α)) => (Iff.mp (Set.mem_empty_iff_false a) h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (∅ α)) :=
+  fun (h : a ∈ (∅ α)) => (Iff.mp (Set.mem_empty_iff_false a) h)
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
   Set.subset_def α A B
@@ -76,7 +76,7 @@ theorem not_subset_of_witness (α : Type) (A B : Set α) (a : α)
 
 -- soko:hint 关键件：练习 1（总纲一）· 演示 2（空集没有成员）✓
 
-theorem not_all_mem_empty (α : Type) (a : α) : ¬ (∀ (x : α), x ∈ (Set.empty α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+theorem not_all_mem_empty (α : Type) (a : α) : ¬ (∀ (x : α), x ∈ (∅ α)) := by
   sorry
 -- 练习 4（L 类，**反例二**）：**「论域含于空集」是假的**。
 
@@ -87,5 +87,5 @@ theorem not_all_mem_empty (α : Type) (a : α) : ¬ (∀ (x : α), x ∈ (Set.em
 -- soko:hint 关键件：练习 2（总纲二）· `Set.mem_univ`（**先写全论域实参**）· 演示 2 ✓
 
 theorem not_univ_subset_empty (α : Type) (a : α) :
-    ¬ (Set.univ α ⊆ (Set.empty α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    ¬ (Set.univ α ⊆ (∅ α)) := by
   sorry

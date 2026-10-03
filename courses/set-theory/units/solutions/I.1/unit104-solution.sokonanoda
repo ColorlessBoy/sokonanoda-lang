@@ -23,12 +23,12 @@ theorem mem_sdiff_of_mem_not_mem (α : Type) (x : α) (A : Set α) (B : Set α)
   (fun (hm : x ∈ (A \ B) ↔ (x ∈ A ∧ ¬ (x ∈ B))) =>
     Iff.mpr hm (And.intro hx hnb)) (Set.mem_sdiff x A B)
 
-theorem not_mem_of_eq_empty (α : Type) (x : α) (C : Set α) (h : C = Set.empty α)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `False.elim` 的目标位（手册边界）
+theorem not_mem_of_eq_empty (α : Type) (x : α) (C : Set α) (h : C = ∅ α)
     (hx : x ∈ C) : False :=
-  (fun (hu : x ∈ Set.empty α ↔ False) => Iff.mp hu (Eq.subst.{1} (Set α) (fun (D : Set α) => x ∈ D)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `False.elim` 的目标位（手册边界）
-    C (Set.empty α) h hx)) (Set.mem_empty_iff_false α x)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `False.elim` 的目标位（手册边界）
+  (fun (hu : x ∈ ∅ α ↔ False) => Iff.mp hu (Eq.subst.{1} (Set α) (fun (D : Set α) => x ∈ D)
+    C (∅ α) h hx)) (Set.mem_empty_iff_false α x)
 
-theorem subset_of_sdiff_empty (α : Type) (A : Set α) (B : Set α) (h : A \ B = Set.empty α) :  -- soko:notation-ok: 等式族证明项的宇宙层级 / `False.elim` 的目标位（手册边界）
+theorem subset_of_sdiff_empty (α : Type) (A : Set α) (B : Set α) (h : A \ B = ∅ α) :
     A ⊆ B :=
   fun (x : α) (hx : x ∈ A) =>
     em_cases (x ∈ B) (x ∈ B) (fun (hb : x ∈ B) => hb)
