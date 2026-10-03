@@ -17,6 +17,11 @@ theorem demo_ch_unfold (h : CH) :
       (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
   h
 
+-- 演示：Cantor 对角线集的**定义**（不需要证明 ✓）—— 下一题用它反驳「𝒫 ℕ ≼ ℕ」
+-- 读法：`diagonal f` 收集"被 `f` 映到别处"的那些单点集的名字，`f {n} = n` 时把 `n` 排除。
+def diagonal (f : Set Nat → Nat) : Set Nat :=
+  fun (n : Nat) => ¬ (f {n} = n)
+
 -- ── 练习 ────────────────────────────────────────────────────────────────
 -- 练习 1（T 项填空）：把 CH 展开成一条**顶层 ∀ 定理**（`def` 的展开是双向的）
 theorem ch_unfold_ex (h : CH) :
