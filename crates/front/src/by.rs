@@ -80,6 +80,75 @@ fn level_hint_of(
     is_concrete_level(&level).then_some(level)
 }
 
+/// **就地版的 [`level_hint_of`]**（G-29 第 5 棒 ✓）：先试**活环境**，答不出就
+/// **原样回落**老函数 ✓ ⇒ **判定中性由构造保证** ✓（就地只在它答得上时替换答案，
+/// 而就地路的文本与慢路**逐字节一致** ✓ —— shadow `diff=0` ✓，见 `260a1318` ✓）。
+///
+/// **只对"点式形态"就地**（`args.len() >= params` ✓）：那一支只问一次
+/// 「首实参的类型」✓，正是 [`crate::compile::elab::infer_type_text_inplace`] 的语义 ✓；
+/// **记法形态**的第二问要的是**文本**（`infer(infer(...))` ✗）而就地路只收**源 AST** ✗
+/// ⇒ 整支回落慢路 ✓（不硬凑 ✗）。
+///
+/// `binder_srcs.len() == binders.len()` 是**硬前提** ✓：`infer_type_text_inplace`
+/// 靠这个长度剥 binder 层数（那里有 `debug_assert_eq!` 钉着 ✓），长度对不上时
+/// **不试就地** ✓（宁可慢，不可错 ✓）。
+#[allow(clippy::too_many_arguments)]
+fn level_hint_of_inplace<'a>(
+    expr: &Expr,
+    defs: &DefTable,
+    binders: &[GoalBinderSpec],
+    prefix_src: &str,
+    options: &CompileOptions,
+    env: &mut Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
+    ctx: Option<&crate::compile::elab::ElabCtx<'a, '_>>,
+    binder_srcs: &[(String, Expr)],
+) -> Option<String> {
+    let (name, args) = head_and_args(expr)?;
+    let (params, universes) = def_shape(defs, name)?;
+    if universes == 1 && args.len() >= params && binder_srcs.len() == binders.len() && ctx.is_some()
+    {
+        if let Some(first) = args.first() {
+            if let Some(e) = crate::compile::elab::InplaceEnv::reborrow(env) {
+                if let Ok(text) = crate::compile::elab::infer_type_text_inplace(
+                    e,
+                    ctx.expect("上面刚判过 is_some ✓"),
+                    binder_srcs,
+                    first,
+                    binders.len(),
+                ) {
+                    if let Some(level) = crate::compile::elab::level_text_of_sort(&text) {
+                        if is_concrete_level(&level) {
+                            return Some(level);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // **任何一处不成立 ⇒ 原样回落** ✓（逐字节等同改动前 ✓）。
+    //
+    // **诊断**（`SOKO_INPLACE_WHY=1` ✓）：把"为什么没走成就地"分类打出来 ——
+    // 否则回落之后 `#[track_caller]` 只会指向本行 ✗，看不出是"形态不支持"还是
+    // "就地答不出" ✓（两者出路完全不同 ✗）。
+    if crate::judge::inplace_why_enabled() {
+        let why = if universes != 1 {
+            "not-one-universe"
+        } else if args.len() < params {
+            "notation-form"
+        } else if binder_srcs.len() != binders.len() {
+            "binder-len-mismatch"
+        } else if ctx.is_none() {
+            "no-ctx"
+        } else if crate::compile::elab::InplaceEnv::reborrow(env).is_none() {
+            "no-env"
+        } else {
+            "inplace-failed"
+        };
+        eprintln!("BY_LEVEL_HINT_FALLBACK why={why}");
+    }
+    level_hint_of(expr, defs, binders, prefix_src, options)
+}
+
 /// **受信任安装的 Eq prelude 常量**的 `(项参数个数, 宇宙参数个数)`。
 ///
 /// 为什么需要这张表：`Eq`/`Eq.refl`/`Eq.subst` 是 `install_eq_prelude` 直接装进
@@ -241,12 +310,18 @@ fn extend_binders(binders: &[GoalBinderSpec], bs: &[Binder]) -> Vec<GoalBinderSp
     out
 }
 
-fn restore_universe_levels(
+#[allow(clippy::too_many_arguments)]
+fn restore_universe_levels<'a>(
     expr: &Expr,
     defs: &DefTable,
     binders: &[GoalBinderSpec],
     prefix_src: &str,
     options: &CompileOptions,
+    // **就地上下文**（G-29 第 5 棒 ✓）：`env = None` / `ctx = None` /
+    // `binder_srcs` 长度对不上 ⇒ **每一步都原样回落慢路** ✓（判定中性 ✓）。
+    env: &mut Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
+    ctx: Option<&crate::compile::elab::ElabCtx<'a, '_>>,
+    binder_srcs: &[(String, Expr)],
 ) -> Expr {
     // 闸门：没有裸的带宇宙参数常量就直接返回（**零内核查询**）。
     if !mentions_bare_universe_const(expr, defs) {
@@ -257,7 +332,21 @@ fn restore_universe_levels(
             let (head, args) = crate::spine::spine_of(expr);
             if let Expr::Ident { name, span } = head {
                 if def_shape(defs, name).is_some_and(|(_, u)| u == 1) {
-                    if let Some(level) = level_hint_of(expr, defs, binders, prefix_src, options) {
+                    if let Some(level) = ctx.map_or_else(
+                        || level_hint_of(expr, defs, binders, prefix_src, options),
+                        |ctx| {
+                            level_hint_of_inplace(
+                                expr,
+                                defs,
+                                binders,
+                                prefix_src,
+                                options,
+                                env,
+                                Some(ctx),
+                                binder_srcs,
+                            )
+                        },
+                    ) {
                         let mut out = Expr::UniverseApp {
                             name: name.clone(),
                             levels: vec![level],
@@ -272,9 +361,31 @@ fn restore_universe_levels(
                         // 就是首实参的类型（与 `level_hint_of` 的「记法形态」同解）。
                         if def_shape(defs, name).is_some_and(|(params, _)| args.len() < params) {
                             if let Some(first) = args.first() {
-                                let ty_text =
-                                    judge_infer(prefix_src, options, binders, &render_expr(first))
-                                        .ok();
+                                // 同一把刀：先试就地，答不出**原样回落** ✓。
+                                let ty_text = ctx
+                                    .and_then(|ctx| {
+                                        if binder_srcs.len() != binders.len() {
+                                            return None;
+                                        }
+                                        let e = crate::compile::elab::InplaceEnv::reborrow(env)?;
+                                        crate::compile::elab::infer_type_text_inplace(
+                                            e,
+                                            ctx,
+                                            binder_srcs,
+                                            first,
+                                            binders.len(),
+                                        )
+                                        .ok()
+                                    })
+                                    .or_else(|| {
+                                        judge_infer(
+                                            prefix_src,
+                                            options,
+                                            binders,
+                                            &render_expr(first),
+                                        )
+                                        .ok()
+                                    });
                                 if let Some(ty) = ty_text.and_then(|t| parse_expr_text(&t).ok()) {
                                     out = Expr::App {
                                         fun: Box::new(out),
@@ -289,7 +400,14 @@ fn restore_universe_levels(
                             out = Expr::App {
                                 fun: Box::new(out),
                                 arg: Box::new(restore_universe_levels(
-                                    arg, defs, binders, prefix_src, options,
+                                    arg,
+                                    defs,
+                                    binders,
+                                    prefix_src,
+                                    options,
+                                    env,
+                                    ctx,
+                                    binder_srcs,
                                 )),
                                 explicit_spine: false,
                                 span: *span,
@@ -299,13 +417,29 @@ fn restore_universe_levels(
                     }
                 }
             }
-            let fun = restore_universe_levels(head, defs, binders, prefix_src, options);
+            let fun = restore_universe_levels(
+                head,
+                defs,
+                binders,
+                prefix_src,
+                options,
+                env,
+                ctx,
+                binder_srcs,
+            );
             let mut out = fun;
             for arg in &args {
                 out = Expr::App {
                     fun: Box::new(out),
                     arg: Box::new(restore_universe_levels(
-                        arg, defs, binders, prefix_src, options,
+                        arg,
+                        defs,
+                        binders,
+                        prefix_src,
+                        options,
+                        env,
+                        ctx,
+                        binder_srcs,
                     )),
                     explicit_spine: false,
                     span: expr.span(),
@@ -323,7 +457,14 @@ fn restore_universe_levels(
                 .map(|b| Binder {
                     ty: b.ty.as_deref().map(|t| {
                         Box::new(restore_universe_levels(
-                            t, defs, binders, prefix_src, options,
+                            t,
+                            defs,
+                            binders,
+                            prefix_src,
+                            options,
+                            env,
+                            ctx,
+                            binder_srcs,
                         ))
                     }),
                     ..b.clone()
@@ -335,6 +476,9 @@ fn restore_universe_levels(
                 &extend_binders(binders, bs),
                 prefix_src,
                 options,
+                env,
+                ctx,
+                binder_srcs,
             )),
             span: *span,
         },
@@ -348,7 +492,14 @@ fn restore_universe_levels(
                 .map(|b| Binder {
                     ty: b.ty.as_deref().map(|t| {
                         Box::new(restore_universe_levels(
-                            t, defs, binders, prefix_src, options,
+                            t,
+                            defs,
+                            binders,
+                            prefix_src,
+                            options,
+                            env,
+                            ctx,
+                            binder_srcs,
                         ))
                     }),
                     ..b.clone()
@@ -360,6 +511,9 @@ fn restore_universe_levels(
                 &extend_binders(binders, bs),
                 prefix_src,
                 options,
+                env,
+                ctx,
+                binder_srcs,
             )),
             span: *span,
         },
@@ -369,10 +523,24 @@ fn restore_universe_levels(
             span,
         } => Expr::Arrow {
             domain: Box::new(restore_universe_levels(
-                domain, defs, binders, prefix_src, options,
+                domain,
+                defs,
+                binders,
+                prefix_src,
+                options,
+                env,
+                ctx,
+                binder_srcs,
             )),
             codomain: Box::new(restore_universe_levels(
-                codomain, defs, binders, prefix_src, options,
+                codomain,
+                defs,
+                binders,
+                prefix_src,
+                options,
+                env,
+                ctx,
+                binder_srcs,
             )),
             span: *span,
         },
@@ -392,12 +560,26 @@ fn restore_universe_levels(
             symbol_span: *symbol_span,
             lhs: lhs.as_deref().map(|e| {
                 Box::new(restore_universe_levels(
-                    e, defs, binders, prefix_src, options,
+                    e,
+                    defs,
+                    binders,
+                    prefix_src,
+                    options,
+                    env,
+                    ctx,
+                    binder_srcs,
                 ))
             }),
             rhs: rhs.as_deref().map(|e| {
                 Box::new(restore_universe_levels(
-                    e, defs, binders, prefix_src, options,
+                    e,
+                    defs,
+                    binders,
+                    prefix_src,
+                    options,
+                    env,
+                    ctx,
+                    binder_srcs,
                 ))
             }),
             alternatives: alternatives.clone(),
@@ -649,8 +831,24 @@ fn canonical_goal_type<'a>(
         return ty.clone();
     };
     let specs_for_levels: Vec<GoalBinderSpec> = specs.clone();
-    let canonical =
-        restore_universe_levels(&canonical, defs, &specs_for_levels, prefix_src, options);
+    // **G-29 第 5 棒**：这条链上 `env` / `ctx` 都是现成的 ✓，源 binder 从
+    // `initial_binders` 直接拿 ✓ ⇒ 先试就地、答不出**原样回落** ✓。
+    // ⚠ 长度守卫在 `level_hint_of_inplace` 里 ✓（`filter_map` 会丢掉无类型 binder
+    // ⇒ 长度对不上就**不试就地** ✓，宁可慢不可错 ✓）。
+    let level_binder_srcs: Vec<(String, Expr)> = initial_binders
+        .iter()
+        .filter_map(|b| b.ty.as_deref().map(|t| (b.name.clone(), t.clone())))
+        .collect();
+    let canonical = restore_universe_levels(
+        &canonical,
+        defs,
+        &specs_for_levels,
+        prefix_src,
+        options,
+        &mut env,
+        Some(ctx),
+        &level_binder_srcs,
+    );
     // 与 [`canonical_goal_with_spec`] **同一条护栏**：pp 文本是可回读的才准用。
     // 这条不是理论上的洁癖——**课程文件的闭包前缀里有 `namespace Set`**，
     // 于是 G-05 的「用了 namespace ⇒ 根目标规范化」对整门课**全程为真**，
@@ -855,8 +1053,23 @@ fn canonical_goal_with_spec<'a>(
         // 拒掉，而 `restore_universe_levels` 正是负责把那个类型实参补回来的
         // ——`rfl` 在 `x = x` / `A = A` 这类记法目标上因此永远拿不到规范形态。
         Ok(canonical) => {
-            let canonical =
-                restore_universe_levels(&canonical, defs, &spec.binders, prefix_src, options);
+            // **G-29 第 5 棒**：源 AST binder 就在手边（`src_binders` ✓，正是
+            // 就地路要的形状 ✓ —— 上面 777 行的注释已经写着 `spec.binders` 是
+            // **渲染文本**、就地路必须收源 AST ✓）。
+            let level_binder_srcs: Vec<(String, Expr)> = src_binders
+                .iter()
+                .filter_map(|b| b.ty.as_deref().map(|t| (b.name.clone(), t.clone())))
+                .collect();
+            let canonical = restore_universe_levels(
+                &canonical,
+                defs,
+                &spec.binders,
+                prefix_src,
+                options,
+                &mut env,
+                Some(ctx),
+                &level_binder_srcs,
+            );
             if is_rereadable(&canonical, defs) {
                 keep_if_lossless(ty, canonical, defs)
             } else {
@@ -1703,7 +1916,18 @@ fn apply_tactic<'a>(
         // 层级提示**逐轮按当前 `t` 算**（第一轮 `Ne (Set α) A B` ⇒ 1，展开后
         // 是 `Eq.{1} … -> False` 的 Arrow，不再展开）：拿别轮的提示填本轮的
         // 宇宙变量会静默错层级，比不填更糟。
-        let hint = level_hint_of(&t, defs, &spec.binders, prefix_src, options);
+        // **G-29 第 5 棒**：这一处有现成的 `env` / `ctx` / `binder_srcs`
+        // （1657 行就在上面 ✓）⇒ 先试就地，答不出**原样回落** ✓（判定中性 ✓）。
+        let hint = level_hint_of_inplace(
+            &t,
+            defs,
+            &spec.binders,
+            prefix_src,
+            options,
+            &mut env,
+            Some(ctx),
+            &binder_srcs,
+        );
         let Some(pi) = peel_pi_delta(&t, defs, hint.as_deref()) else {
             break t;
         };
@@ -1957,8 +2181,22 @@ fn cases_tactic<'a>(
     // `match` 的组装与最终声明判定**都从节点上读它**。留着裸 `Eq`，臂里那条
     // 假设一被使用，内核就按默认 `.{0}` elaborate，报「期望 `Sort(0)`，
     // 实际是 β」；位置还在**整条声明**上，离根因极远。
-    let scrutinee_ty =
-        restore_universe_levels(&scrutinee_ty, defs, &binders_before, prefix_src, options);
+    // **G-29 第 5 棒**：`binders_before` 就是从 `context_binders(nodes, cur)` 来的 ✓
+    // ⇒ 同一来源再取一份源 AST 版 ✓，先试就地、答不出**原样回落** ✓。
+    let level_binder_srcs: Vec<(String, Expr)> = context_binders(nodes, cur)
+        .into_iter()
+        .filter_map(|b| b.ty.map(|ty| (b.name, *ty)))
+        .collect();
+    let scrutinee_ty = restore_universe_levels(
+        &scrutinee_ty,
+        defs,
+        &binders_before,
+        prefix_src,
+        options,
+        &mut env,
+        Some(ctx),
+        &level_binder_srcs,
+    );
     canonicalize_binder_type(nodes, Some(cur), scrutinee_name, &scrutinee_ty);
     // **头解析必须认记法**（R2.5 实测）：`unfold_to_inductive` 把 `Set.union` 的
     // 定义体代进来之后，形态取决于**定义体怎么写**——库里写 `Or (A x) (B x)`
@@ -2324,6 +2562,9 @@ fn spec_of_for_judge(
                     &base.binders,
                     prefix_src,
                     options,
+                    &mut None,
+                    None,
+                    &[],
                 ))
             }),
         })
@@ -2336,6 +2577,9 @@ fn spec_of_for_judge(
             &base.binders,
             prefix_src,
             options,
+            &mut None,
+            None,
+            &[],
         )),
         binders,
     }
