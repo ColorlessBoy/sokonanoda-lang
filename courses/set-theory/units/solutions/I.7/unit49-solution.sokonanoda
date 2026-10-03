@@ -33,9 +33,9 @@ theorem sUnion_union (α : Type) (F G : Set (Set α)) :
       (fun (h : x ∈ ⋃₀ (F ∪ G)) =>
         Set.mem_sUnion_elim α (F ∪ G) x (x ∈ ⋃₀ F ∪ ⋃₀ G) h
           (fun (A : Set α) (hA : A ∈ F ∪ G) (hxA : x ∈ A) =>
-            Or.elim (A ∈ F) (A ∈ G) (x ∈ ⋃₀ F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+            Or.elim (A ∈ F) (A ∈ G) (x ∈ ⋃₀ F ∪ ⋃₀ G)
               (fun (hF : A ∈ F) =>
-                Or.inl (x ∈ ⋃₀ F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+                Or.inl (x ∈ ⋃₀ F) (x ∈ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
                   (Set.mem_sUnion_intro α F A x hF hxA))
               (fun (hG : A ∈ G) =>
                 Or.inr (x ∈ ⋃₀ F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
