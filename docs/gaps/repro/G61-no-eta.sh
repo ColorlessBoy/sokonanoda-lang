@@ -46,7 +46,11 @@ def Box.get (α : Type) (b : Box α) : α :=
 def eta_test (α : Type) (b : Box α) : Box.get α b = b := Eq.refl.{1} (Box α) b
 EOF
 b_out="$("$BIN" --json --no-project "$WORK/b.sokonanoda" 2>&1)"
-if ! printf '%s' "$b_out" | grep -q 'Box.\[\] \$1'; then
+# **G-49 之后这条期望值要放宽**（2026-10-03 ✓）：η 判红的 message 里原来带**裸 de Bruijn**
+# （`Box.[] $1` ✗），而 G-49 把 `$N` 人话化成「第 N 个绑元」✓ ⇒ 旧的精确 grep **不再匹配** ✗
+# ⇒ 该件在 CI 上误报"行为已变" ✗（`ledger (1)` 红 ✓）。**判据本身没变** ✓：η 仍必须**判红** ✓，
+# 且 message 仍必须点到 `Box` ✓ ⇒ 改成"**两种写法都接受**" ✓（不再钉死内部编号的措辞 ✓）。
+if ! printf '%s' "$b_out" | grep -qE 'Box\.\[\] (\$1|第 1 个绑元)'; then
   echo "G-61 ②：η 那条不再被判红了 —— 行为已变，回来关账" >&2
   printf '%s\n' "$b_out" | head -3 >&2
   exit 1
