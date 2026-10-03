@@ -187,3 +187,8 @@ theorem isZero_elems_isOrdinal (α : Type) (E : α → α → Prop) (x z : α)
 theorem isZero_elems_wellFounded (α : Type) (E : α → α → Prop) (x z : α)
     (h : IsZero α E x) (hz : E z x) : IsWellFounded α E :=
   False.elim (IsWellFounded α E) (zero_no_elem α E x h z hz)
+
+-- 序数元素的元素是传递集（S-B ✓；两步合成 ✓ 安全区）
+theorem ordinal_elems_elems_transitive (α : Type) (E : α → α → Prop) (x y z : α)
+    (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : IsTransitive α E z :=
+  ordinal_elems_isTransitive α E y (ordinal_elem_isOrdinal α E x y hx hy) z hz
