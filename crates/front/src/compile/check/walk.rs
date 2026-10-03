@@ -11,7 +11,7 @@
 //! 不产生额外分配：A1（无 `import` 的文件逐字节不变）不受影响。
 
 use super::{
-    by_step_states, failed_state, lower_value, render_expr, skipped, CmdHover, KernelFailed,
+    by_step_states, failed_state, lower_value, skipped, CmdHover, KernelFailed,
     PendingOp, TrustPlan,
 };
 use crate::compile::elab::{
@@ -55,16 +55,23 @@ use sokonanoda::builder::EnvBuilder;
 /// 与 [`decl_prefix_state`] **同源**（那个 = 这条 + 折一次记法）⇒ 顶 ≡ 底
 /// 在这条兜底路径上也成立 ✓。`val` 必须是**源位**（lowering 之前）的值：lowering
 /// 会给函数型语句补 λ，拿 lowering 之后的值数 λ 链会多剥 ✗。
-fn decl_root_state(ty: &Expr, src_val: &Expr) -> Option<(String, Vec<GoalBinder>)> {
+fn decl_root_state(
+    ty: &Expr,
+    src_val: &Expr,
+    display: &crate::display::DisplayNotations,
+) -> Option<(String, Vec<GoalBinder>)> {
     let (binders, _) = crate::by::split_by_value(src_val)?;
     let body = crate::proof::peel_pi_layers(ty, binders.len())?;
+    // **走唯一显示接口** ✓（`scripts/audit-notation-paths.py` 的棘轮 ✓）：绕过它 ⇒
+    // Infoview 顶部目标退回**点形式** ✗ —— 正是 G-81/G-83 那一族的病根 ✓。
+    // `fold` 幂等 ✓ ⇒ 下面 `decl_prefix_state` 再折一次不改变结果 ✓（那两处照旧逐字节不变 ✓）。
     Some((
-        render_expr(&body),
+        display.render(&body),
         binders
             .iter()
             .map(|b| GoalBinder {
                 name: b.name.clone(),
-                ty: b.ty.as_deref().map(render_expr).unwrap_or_default(),
+                ty: b.ty.as_deref().map(|t| display.render(t)).unwrap_or_default(),
             })
             .collect(),
     ))
@@ -94,7 +101,7 @@ fn decl_prefix_state(
     val: &Expr,
     display: &crate::display::DisplayNotations,
 ) -> Option<ByGoalState> {
-    decl_root_state(ty, val)
+    decl_root_state(ty, val, display)
         .as_ref()
         .map(|state| fold_root_state(state, display))
 }
@@ -954,7 +961,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // **题面状态**（G-82，源位值、未折记法）：`open_goal` 分解不了值时兜底要用它
         // —— 拿 lowering **之后**的值数 λ 链会多剥 ✗（见 `decl_root_state` 的说明）。
         // 算**一次**：`by_root` 就是它的显示副本（折叠幂等 ✓）。
-        let src_root = decl_root_state(ty, val);
+        let src_root = decl_root_state(ty, val, &self.display);
         let by_root = src_root
             .as_ref()
             .map(|state| fold_root_state(state, &self.display));
@@ -1019,7 +1026,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // 没有 `by` 块（`src_root == None`）时保持原样（那时空上下文本来就是对的 ✓）。
                 let (goal, binders) = src_root
                     .clone()
-                    .unwrap_or_else(|| (render_expr(ty), Vec::new()));
+                    .unwrap_or_else(|| (self.display.render(ty), Vec::new()));
                 Some(crate::compile::goals::OpenGoalInfo {
                     goal,
                     binders,
@@ -1366,7 +1373,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // **题面状态**（G-82，源位值、未折记法）：`open_goal` 分解不了值时兜底要用它
         // —— 拿 lowering **之后**的值数 λ 链会多剥 ✗（见 `decl_root_state` 的说明）。
         // 算**一次**：`by_root` 就是它的显示副本（折叠幂等 ✓）。
-        let src_root = decl_root_state(ty, val);
+        let src_root = decl_root_state(ty, val, &self.display);
         let by_root = src_root
             .as_ref()
             .map(|state| fold_root_state(state, &self.display));
@@ -1416,7 +1423,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // 没有 `by` 块（`src_root == None`）时保持原样（那时空上下文本来就是对的 ✓）。
                 let (goal, binders) = src_root
                     .clone()
-                    .unwrap_or_else(|| (render_expr(ty), Vec::new()));
+                    .unwrap_or_else(|| (self.display.render(ty), Vec::new()));
                 Some(crate::compile::goals::OpenGoalInfo {
                     goal,
                     binders,
