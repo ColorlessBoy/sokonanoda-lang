@@ -204,10 +204,13 @@ body {
   font-weight: 600;
 }
 
+/* binder 的类型（2026-10-03 ✓ 与 `.decl-ty` **同一族**横向排查后一起改 ✓）：
+ * 旧值 `opacity: 0.85` 叠在**本来就比正文暗一档**的前景色上 = **双重压暗** ✗
+ * —— 与 `.decl-ty`（2026-09-26 用户反馈"灰得读不动"）同一条原则：**压一档用颜色就够了** ✓。
+ * 守卫：`python3 scripts/audit-infoview-css.py`（同族问题第三次复发 ⇒ 落可查的守卫 ✓）。 */
 .binder-ty {
   flex: 1;
   margin: 0;
-  opacity: 0.85;
   white-space: pre-wrap;
   word-break: break-word;
   font: inherit;
