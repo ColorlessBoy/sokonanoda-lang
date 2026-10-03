@@ -140,6 +140,16 @@ body {
   margin-bottom: 6px;
 }
 
+/* **G-53**：带源位置的 run（记法符号/标识符 ✓）可点 ⇒ 给**可见**的可点信号 ✓
+ *（下划线 + 手型 ✓）。判据绑**用户动作** ✓：点下去要真跳到定义 ✓（不是只验"消息发了" ✗）。 */
+.tok-clickable {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.tok-clickable:hover {
+  text-decoration: underline solid;
+}
+
 .decl-name {
   font-weight: 600;
 }

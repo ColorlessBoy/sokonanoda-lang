@@ -54,7 +54,28 @@
       const text = (run && run.text) || "";
       const kind = run && run.kind;
       if (typeof kind === "string" && /^[a-z_]+$/.test(kind)) {
-        pre.appendChild(el("span", "tok tok-" + kind, text));
+        const span = el("span", "tok tok-" + kind, text);
+        // **G-53**：run 带**源位置**（`start`/`end`，字节 offset ✓）⇒ 记法符号/标识符
+        // **可点** ✓ ⇒ 发 `definition`（**offset 变体** ✓）。为什么发 offset 而不是行/列：
+        // webview **没有源文本** ✗、也不该自己换算（与既有注释同一条原则 ✓
+        // "webview 不猜定义在哪，落点由扩展问服务器" ✓）—— 换算由扩展用
+        // `TextDocument.positionAt` 做 ✓（那正是 LSP 的 UTF-16 语义 ✓，G-36 同源 ✓）。
+        // 位置缺失（`None` ✓）⇒ **不可点** ✓（宁可不可点，不可点错 ✗）。
+        if (typeof run.start === "number" && typeof run.end === "number") {
+          span.classList.add("tok-clickable");
+          span.title = "跳到定义";
+          span.addEventListener("click", function () {
+            if (typeof lastUri === "string") {
+              vscode.postMessage({
+                protocol: PROTOCOL,
+                type: "definition",
+                uri: lastUri,
+                offset: run.start,
+              });
+            }
+          });
+        }
+        pre.appendChild(span);
       } else {
         pre.appendChild(document.createTextNode(text));
       }
