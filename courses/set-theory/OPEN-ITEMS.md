@@ -288,3 +288,20 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 ⇒ **精确表述** ✓：**`Set.InjOn` 作用在"高阶论域"（`Set α` 作为元素类型）上的声明本身过不去** ✗ —— 与 `𝒫` 无关 ✓（v2 里已无 `𝒫`、无 λ ✓ 仍红 ✓）。
 **绕行（最终）** ✓：**这类命题在本子集里不做** ✗ —— 改推**一阶/点态**条目 ✓（声明里不出现 `Set α` 作为元素类型 ✓，如已判绿的 `Set.Le.trans`/`Set.Le.refl` ✓）。
 **归属** ✓：G-73 家族（本子集的类型层限制 ✗）⇒ 内核侧 ✓。
+
+## C-116（**open · 绕行 = 换靶** · 2026-10-03 课程线第 45 轮）`Eq` 嵌套链出现在 `Set.InjOn` 证明体里判红 ✗
+
+**目标**：`lib/Equiv` 加 `Set.Le.of_equiv`（`A ≈ B → A ≼ B` ✓）。**定位过程全部实测** ✓（判据 `query check --root courses/set-theory`）：
+
+| 对照 | 读数 | 排除了什么 |
+|---|---|---|
+| `a1 : Set.InjOn α β f A → Set.InjOn α β f A` | **✓ 绿** | `Set.InjOn` **无罪** ✓ |
+| `a2 : Set.LeftInvOn α β g f A → Set.LeftInvOn α β g f A` | **✓ 绿** | `Set.LeftInvOn` **无罪** ✓ |
+| `a3 : A ≈ B → A ≈ B`（跨类型 ✓） | **✓ 绿** | `≈` 记法 **无罪** ✓ |
+| `Set.Equiv.elim … (A ≈ B) h (fun f g … => h)` | **✓ 绿** | `Set.Equiv.elim` + 6 参续延 **无罪** ✓ |
+| 辅助引理 `Set.injOn_of_leftInvOn … : Set.InjOn α β f A`（体 = `Eq.trans` 套 `Eq.trans` 套 `Eq.symm` + `Eq.subst` ✗） | ✗ `line 3`：`期望 Sort(0)，实际是 Sort(1)` | **病根 = 证明体里的 `Eq` 嵌套链** ✗ |
+
+**归属** ✓：与 C-115 同族（本子集的**类型层/elaboration 限制** ✗）⇒ 内核侧 ✓。
+**绕行（本轮采用）** ✓：**换靶** ✗ —— S-B 内容推进改走**已判绿的形态族** ✓（一阶 `≼` 链 ✓、`Set.Le.trans/refl` ✓）；
+`Set.Le.of_equiv` 与 `Set.Le.powerset` **一并搁置** ✗，待内核侧收敛后重开 ✓。
+**留档已判绿** ✓（别重做 ✓）：`Set.Le.trans` ✓ · `Set.Le.refl` ✓ · 上述 `a1/a2/a3` 与 `t3` ✓ · `Set.mem_image_intro/elim` ✓ · `mem_powerset_iff`（库内 ✓）。
