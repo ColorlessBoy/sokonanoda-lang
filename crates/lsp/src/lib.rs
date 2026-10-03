@@ -1096,7 +1096,25 @@ impl Backend {
 }
 
 /// 0-based LSP position → byte offset（与本服务器的 char 计数约定一致）。
+/// **G-36 的 trace 包装**（`SOKO_POS_TRACE=1` ✓，纯诊断）：把"输入列 → 输出 offset → 落点字符"
+/// 打出来 ✓ —— 用来区分"映射本身错" ✗ 与"映射对了、下游另有偏位" ✗。
 pub(crate) fn position_to_offset(text: &str, position: Position) -> usize {
+    let out = position_to_offset_impl(text, position);
+    if std::env::var("SOKO_POS_TRACE").is_ok() {
+        let at = text[out.min(text.len())..]
+            .chars()
+            .next()
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| "(eof)".to_string());
+        eprintln!(
+            "[pos] line={} character={} ⇒ offset={} 落点字符={at:?}",
+            position.line, position.character, out
+        );
+    }
+    out
+}
+
+fn position_to_offset_impl(text: &str, position: Position) -> usize {
     let mut offset = 0usize;
     for (i, line) in text.lines().enumerate() {
         if i == position.line as usize {
