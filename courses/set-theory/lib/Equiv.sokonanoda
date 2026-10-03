@@ -313,3 +313,15 @@ theorem Set.Le.mono (α β : Type) (A A' : Set α) (B : Set β) (hAA : A' ⊆ A)
         (fun (x : α) (hx : A' x) (y : α) (hy : A' y) (hxy : f x = f y) =>
           hf x (hAA x hx) y (hAA y hy) hxy)
         (fun (x : α) (hx : A' x) => hfm x (hAA x hx)))
+
+-- ── `⊆` 直接给 `≼`（恒等映射 ✓）与 `≼` 对**右边集合**单调 ──────────────────────────
+theorem Set.Le.of_subset (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B :=
+  Set.Le.intro α α A B (fun (x : α) => x)
+    (fun (x : α) (_hx : A x) (y : α) (_hy : A y) (hxy : x = y) => hxy)
+    (fun (x : α) (hx : A x) => h x hx)
+
+theorem Set.Le.mono_right (α β : Type) (A : Set α) (B B' : Set β) (h : A ≼ B) (hBB : B ⊆ B') :
+    A ≼ B' :=
+  Set.Le.elim α β A B (A ≼ B') h
+    (fun (f : α → β) (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) =>
+      Set.Le.intro α β A B' f hf (fun (x : α) (hx : A x) => hBB (f x) (hfm x hx)))
