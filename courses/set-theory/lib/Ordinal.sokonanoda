@@ -136,3 +136,9 @@ theorem ordinal_elem_isOrdinal (α : Type) (E : α → α → Prop) (x z : α)
 theorem ordinal_elem_elem_isOrdinal (α : Type) (E : α → α → Prop) (x y z : α)
     (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : IsOrdinal α E z :=
   ordinal_elem_isOrdinal α E y z (ordinal_elem_isOrdinal α E x y hx hy) hz
+
+-- 后继者是序数（S-B ✓；复用已判绿的 `isSuccOf_parts` ✓，结论是 `def` 头 Prop ✓ 安全区）
+theorem isSuccOf_isOrdinal (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsSuccOf α E x y) : IsOrdinal α E x :=
+  (fun (hp : IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y)) => And.left hp)
+    (isSuccOf_parts α E x y h)
