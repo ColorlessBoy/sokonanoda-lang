@@ -43,14 +43,14 @@ theorem mem_sUnion_inter_of_mem (α : Type) (F G : Set (Set α)) (x : α)
     (x ∈ ((⋃₀ F) ∩ (⋃₀ G)))
     (mem_of_mem_sUnion α (F ∩ G) x h)
     (fun (A : Set α) (hA : A ∈ (F ∩ G) ∧ x ∈ A) =>
-      mem_inter_intro α (⋃₀ F) (Set.sUnion α G) x  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
-        ((fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (B : Set α), B ∈ F ∧ x ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+      mem_inter_intro α (⋃₀ F) (⋃₀ G) x
+        ((fun (hu : x ∈ (⋃₀ F) ↔ ∃ (B : Set α), B ∈ F ∧ x ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
           Iff.mpr hu (Exists.intro (Set α) (fun (B : Set α) => B ∈ F ∧ x ∈ B) A  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
             (And.intro (A ∈ F) (x ∈ A)
               (mem_inter_left (Set α) F G A (And.left hA))
               (And.right hA))))
           (Set.mem_sUnion_iff α F x))
-        ((fun (hu : x ∈ (Set.sUnion α G) ↔ ∃ (B : Set α), B ∈ G ∧ x ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+        ((fun (hu : x ∈ (⋃₀ G) ↔ ∃ (B : Set α), B ∈ G ∧ x ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
           Iff.mpr hu (Exists.intro (Set α) (fun (B : Set α) => B ∈ G ∧ x ∈ B) A  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
             (And.intro (A ∈ G) (x ∈ A)
               (mem_inter_right (Set α) F G A (And.left hA))
