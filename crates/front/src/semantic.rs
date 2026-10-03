@@ -333,6 +333,45 @@ pub fn tag_runs_with_notations(
     };
     let mut runs = Vec::new();
     let mut cursor = 0usize;
+    // **G-80（2026-10-03 ✓）**：goal/类型文本里**λ 自己绑的**名字也要算 `binder` ✓ ——
+    // 以前只认**上下文里的**绑元（`binders` 参数 ✓）⇒ 文本里 `fun w => …` 的 `w` 掉进
+    // `UnknownIdent` ✗（Infoview 按"未知标识符"着色 ✗，台账 G-80 ✓）。
+    // **预扫描**：`fun` / `λ` 之后、`=>` 之前的 `Ident` 收进 binders ✓。
+    // ⚠ **只认 λ**，**不认 `∀`/`Forall`** ✗ —— `∀ (x : T), …` 里 `T` 也是 `Ident` ✓，
+    // 收进来就会把**类型名**误标成 binder ✗（宁可少标，不可标错 ✓；G-80 的判据只要求 λ ✓）。
+    {
+        let mut i = 0usize;
+        while i < toks.len() {
+            let head = matches!(&toks[i].kind, TokenKind::Ident(n) if n == "fun" || n == "λ");
+            if head {
+                let mut j = i + 1;
+                // ⚠ **类型位不算 binder** ✗：`fun (x : Nat) => …` 里 `Nat` 也是 `Ident` ✓
+                // ⇒ 收进来会把**类型名**误标成 binder ✗（实测：`tag_runs_classifies_like_the_editor`
+                // 当场判红 ✓ —— 这条正是"宁可少标，不可标错"的守卫 ✓）。
+                // 状态机：见到 `:` ⇒ 进入类型位 ✓；`(`/`,`/`)` ⇒ 退出类型位 ✓。
+                let mut in_type = false;
+                while j < toks.len() && !matches!(toks[j].kind, TokenKind::FatArrow) {
+                    match &toks[j].kind {
+                        TokenKind::Colon => in_type = true,
+                        // ⚠ 这三个是**独立变体** ✓（`LParen`/`RParen`/`Comma` ✓），不是 `Sym("(")` ✗
+                        // —— 第一版写成 `Sym(…)` ⇒ 该分支**永不触发** ✗ ⇒ `in_type` 一旦置位就
+                        // 再也不清 ✗（`fun (x : Nat) (y : Nat) => …` 的 `y` 会被漏标 ✗）。
+                        TokenKind::LParen | TokenKind::RParen | TokenKind::Comma => in_type = false,
+                        TokenKind::Ident(name) if !in_type => {
+                            if name != "fun" && name != "λ" {
+                                names.binders.insert(name.clone());
+                            }
+                        }
+                        _ => {}
+                    }
+                    j += 1;
+                }
+                i = j;
+            }
+            i += 1;
+        }
+    }
+
     for tok in &toks {
         if tok.span.start.offset > cursor {
             runs.push(plain(&text[cursor..tok.span.start.offset]));
