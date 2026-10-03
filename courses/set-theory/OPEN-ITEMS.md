@@ -215,3 +215,28 @@
   ① 同一个 `cases` 的**两条臂都再嵌 `cases`** ⇒ 声明被**吞掉** ✗；② `Exists.intro` 的**字面 λ 谓词**
   判红 ✗（改用**具名 def 谓词** ✓）；③ `Eq.{1}` 出现在 **`have` 的类型位**会解析错位 ✗。
   ⇒ 解答因此写成**全项风格 + `Or.elim` 证明项**（**多层 `cases` 一律不用** ✓）。
+
+## C-113（**open · 绕行已交付** · 2026-10-03 课程线第 4 轮）结论是 `Or` 且两支为 **def-应用** 的声明被判 `rejected` ✗
+
+**症状**（`node scripts/soko query check --file <解答>` ✓）：
+
+```
+rejected: expected a pi type, got: ((Or.[] ((((Set.Equiv.[] Nat.[]) (Set.[] Nat.[])) (Set.univ.[] Nat.[])) $2)) …
+```
+
+**最小对照**（差别只在「`Or` 的两支是不是 def-应用」✓）：
+
+```sokonanoda
+axiom P : Prop
+axiom Q : Prop
+axiom h : P ∨ Q
+theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
+-- 同一形状，两支换成 `Set.Equiv`-应用（`≈`）⇒ ✗ rejected（上面那条报文）
+```
+
+**影响与绕行** ✓：单元113 的 `ch_apply` / `ch_left`（结论 = `Or` + 两支 `Set.Equiv`-应用 ✗）
+**只能写成 ∀-headed 形态** ✓ —— 已按此绕行交付（单元113 判绿 ✓：`checked 4 · open 0 · failed 0` ✓）；
+**本条目记录未修的边界本身** ✗。
+
+**归属**：**G-73 家族**（def-headed 期望类型处补不出前导实参 ✗）⇒ 内核侧 ✓。
+**复现口径**：本条目**不带 `.sh`** ✓（G7 的 7 条复现件不变 ✓）—— 上面两行就是完整复现 ✓。
