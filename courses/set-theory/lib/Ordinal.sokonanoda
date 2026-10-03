@@ -115,3 +115,10 @@ theorem zero_no_elem (α : Type) (E : α → α → Prop) (x : α)
 theorem isZero_intro (α : Type) (E : α → α → Prop) (x : α)
     (ho : IsOrdinal α E x) (hne : ∀ (y : α), ¬ (E y x)) : IsZero α E x :=
   Iff.mpr (isZero_def α E x) (And.intro ho hne)
+-- ── 后继的取件引理（库里第一条后继引理 ✓）────────────────────────────────────
+-- 读法：`IsSuccOf α E x y` 拆成"`x` 是序数"+"`x` 的元素恰好是 `y` 的元素与 `y` 自己" ✓。
+-- 写法说明：`Iff.mp` 的绑定形态**先落地成 λ**再应用（手册惯用法 #2 ✓，实测必需 ✓）。
+theorem isSuccOf_parts (α : Type) (E : α → α → Prop) (x y : α) (h : IsSuccOf α E x y) :
+    IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y) :=
+  (fun (hp : IsSuccOf α E x y ↔ (IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y))) =>
+    Iff.mp hp h) (isSuccOf_def α E x y)
