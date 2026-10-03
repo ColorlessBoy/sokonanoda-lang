@@ -64,7 +64,7 @@ theorem sUnion_subset_sUnion_union_left (α : Type) (F G : Set (Set α)) :
     Or.inl (A ∈ F) (A ∈ G) hA)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
 
 theorem sUnion_subset_sUnion_union_right (α : Type) (F G : Set (Set α)) :
-    ⋃₀ G ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    ⋃₀ G ⊆ ⋃₀ (F ∪ G) :=
   sUnion_mono α G (F ∪ G) (fun (A : Set α) => fun (hA : A ∈ G) =>
     Or.inr (A ∈ F) (A ∈ G) hA)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
 

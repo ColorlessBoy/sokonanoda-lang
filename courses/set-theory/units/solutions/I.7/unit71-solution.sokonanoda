@@ -3,7 +3,7 @@ import lib.SUnion
 import lib.Order
 
 theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
   Set.mem_sUnion_iff α F x
 
 theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
