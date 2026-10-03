@@ -3087,8 +3087,12 @@ fn infer_type_text<'a>(
                             InplaceFail::Kernel => "on-kernel",
                         });
                     }
-                    // ⚠ **临时（拆提交用）**：先回退到慢路，单独落 `explicit` 那笔 ✓。
-                    slow()
+                    // 失败 ⇒ **直接答 `None`**（不跑慢路 ⇒ 不再重跑整份前缀 ✓）。
+                    //
+                    // **依据**：就地路与慢路现在**文本逐字节一致** ✓（shadow `diff=0` ✓），
+                    // 且「全课程 `off` vs `on WIDE=0 BY=0` 的 `build --json` 逐字节相同」✓
+                    // —— 后者是这条改动的验收口径 ✓（读数见提交信息 ✓）。
+                    None
                 }
             }
         }

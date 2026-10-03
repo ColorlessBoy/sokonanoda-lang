@@ -61,10 +61,12 @@ fn level_hint_of(
     // 占剩下的全部 ✓）。记**真正的调用点**（`#[track_caller]` 才透得过闭包 ✓）。
     let caller = std::panic::Location::caller();
     let infer = |text: &str| {
-        if crate::judge::inplace_why_enabled() {
-            // ⚠ **直打 stderr**，不走 `note_by_reason`：那张表在报告处**截断到 240 字** ✗
-            // ⇒ 长原因（`on-elab-operand` 的中文诊断 ✓）会把这几条挤掉 ✗（实测踩到 ✓）。
-            eprintln!("BY_LEVEL_HINT at={}:{}", caller.file(), caller.line());
+        // ⚠ **只在"没缓存"时打印** ✓（缓存命中不跑前缀 ⇒ 不是要量的那条路 ✗）。
+        if crate::judge::inplace_why_enabled()
+            && crate::judge::judge_infer_lookup("", prefix_src, options, binders, text).is_none()
+        {
+            // 直打 stderr，不走 `note_by_reason`（那张表报告处**截断到 240 字** ✗）。
+            eprintln!("BY_LEVEL_HINT_MISS at={}:{}", caller.file(), caller.line());
         }
         judge_infer(prefix_src, options, binders, text).ok()
     };
