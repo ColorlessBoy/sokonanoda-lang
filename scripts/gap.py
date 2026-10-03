@@ -191,6 +191,18 @@ def run_repro(entry: dict) -> tuple[str, int, str]:
             cwd=ROOT, capture_output=True, text=True, env=clean_env(),
         )
         text = proc.stdout + proc.stderr
+        # **保真度守卫**（2026-10-03 ✓，本会话抓到三例：G-32 / G-30 / G-33 ✗）：
+        # `.sokonanoda` 类复现件跑的时候**不带 `--root`** ✓ ⇒ 夹具若 `import lib.…`（仓库根没有 `lib/` ✗）
+        # 就会**死在 import 上** ✗ —— 那是与缺口**无关**的原因 ✗，而 `judge()` 只看"判红=与 open 自洽" ✓
+        # ⇒ **永远不报** ✗（守卫空转 ✗）。这里把它单独认出来 ✓ ⇒ 判红 + 说清"先修夹具" ✓。
+        if '"code":"import-not-found"' in text or '"code":"import-module-invalid"' in text:
+            return (
+                "sokonanoda-fidelity",
+                1,
+                "复现件自身失效 ✗：诊断里出现 import-not-found / import-module-invalid "
+                "⇒ 它失败在与缺口**无关**的原因上（先修夹具：内联缺的库件、去掉多余的 import，"
+                "或给它一个能解析的模块根）",
+            )
         checked = '"type":"decl.checked"' in text
         diagnostic = '"type":"diagnostic"' in text
         clean = proc.returncode == 0 and checked and not diagnostic
@@ -209,6 +221,15 @@ def judge(entry: dict, kind: str, code: int) -> tuple[str, str, bool]:
     """
     raw = entry.get("repro_expect")
     fixed = entry.get("status") == "fixed"
+    if kind == "sokonanoda-fidelity":
+        # **保真度守卫** ✓：复现件必须能**咬住缺口本身** ✓ —— 诊断里出现
+        # `import-not-found` / `import-module-invalid` ⇒ 它测的不是这条缺口 ✗ ⇒ 判红 ✓
+        # （**不是**"缺口仍在" ✗，而是"**夹具坏了**" ✓ ⇒ 逼着先修夹具 ✓）。
+        return (
+            "复现件自身失效",
+            "复现件必须能咬住缺口本身：诊断里不许出现 import-not-found / import-module-invalid（先修夹具）",
+            False,
+        )
     if kind == "sokonanoda":
         clean = code == 0
         observed = "已判卷通过" if clean else "仍有失败"
