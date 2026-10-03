@@ -257,6 +257,13 @@ fn solve_prefix_meta(
                 continue;
             }
             let template = crate::spine::substitute(&layer.domain, &sigma);
+            if std::env::var("SOKO_CLASH_TRACE").is_ok() {
+                eprintln!(
+                    "[g63] ③ i={i} j={j} 模板={} 实际={}",
+                    crate::proof::render_expr(&template),
+                    crate::proof::render_expr(actual)
+                );
+            }
             if meta.unify(&template, actual) == crate::compile::meta::Tri::No {
                 return meta.channel();
             }
@@ -265,6 +272,13 @@ fn solve_prefix_meta(
     // ④ 路线②：结果（已代换）≟ 期望类型
     if let Some(expected) = expected {
         let template = crate::spine::substitute(result, &sigma);
+        if std::env::var("SOKO_CLASH_TRACE").is_ok() {
+            eprintln!(
+                "[g63] ④ 模板={} 期望={}",
+                crate::proof::render_expr(&template),
+                crate::proof::render_expr(expected)
+            );
+        }
         if meta.unify(&template, expected) == crate::compile::meta::Tri::No {
             return meta.channel();
         }
