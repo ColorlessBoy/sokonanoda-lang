@@ -175,14 +175,14 @@ async fn semantic_tokens_match_a_fresh_open_after_many_mixed_edits() {
     let mut rounds: Vec<String> = Vec::new();
     for i in 0..8 {
         text = match i {
-            0 => format!("-- 注释 {i}\n{text}"),                                   // 插一行（行号 +1）
-            1 => format!("{text}theorem b (Q : Prop) : Q → Q := fun q => q\n"),     // 末尾加声明
-            2 => text.replacen("theorem a", "theorem aaa", 1),                     // 改名字（同行）
-            3 => text.replacen("-- 注释 0\n", "", 1),                              // 删一行（行号 −1）
-            4 => text.replacen("(h : P)", "(h : P) (k : P)", 1),                   // 同行加 binder
-            5 => text.replacen("fun q => q", "fun q => q -- 尾注", 1),              // 同行改
-            6 => format!("-- α β ∈ ∧ ¬\n{text}"),                                   // 非 ASCII 记法行
-            _ => text.replacen("theorem aaa", "theorem a", 1),                     // 改回
+            0 => format!("-- 注释 {i}\n{text}"), // 插一行（行号 +1）
+            1 => format!("{text}theorem b (Q : Prop) : Q → Q := fun q => q\n"), // 末尾加声明
+            2 => text.replacen("theorem a", "theorem aaa", 1), // 改名字（同行）
+            3 => text.replacen("-- 注释 0\n", "", 1), // 删一行（行号 −1）
+            4 => text.replacen("(h : P)", "(h : P) (k : P)", 1), // 同行加 binder
+            5 => text.replacen("fun q => q", "fun q => q -- 尾注", 1), // 同行改
+            6 => format!("-- α β ∈ ∧ ¬\n{text}"), // 非 ASCII 记法行
+            _ => text.replacen("theorem aaa", "theorem a", 1), // 改回
         };
         did_change(&mut service, (i + 2) as i32, &text).await;
         let abs = absolutize(&request_semantic_tokens(&mut service).await);
@@ -195,7 +195,10 @@ async fn semantic_tokens_match_a_fresh_open_after_many_mixed_edits() {
     handshake(&mut fresh_service).await;
     did_open(&mut fresh_service, &text).await;
     let _ = wait_diagnostics(&mut fresh_socket, "tokens-mixed-fresh").await;
-    let fresh = format!("{:?}", absolutize(&request_semantic_tokens(&mut fresh_service).await));
+    let fresh = format!(
+        "{:?}",
+        absolutize(&request_semantic_tokens(&mut fresh_service).await)
+    );
 
     eprintln!("MIXED-EDITS 轮数={} 最终文本=\n{text}", rounds.len());
     for (i, r) in rounds.iter().enumerate() {
