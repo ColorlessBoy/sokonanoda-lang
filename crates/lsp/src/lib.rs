@@ -1751,11 +1751,17 @@ impl LanguageServer for Backend {
         // `by` tactic hover: show the goal state entering the tactic under the
         // cursor (Lean Infoview-style, user request). Before keyword suppression
         // below, because tactic words (intro/exact/…) are keywords.
+        if std::env::var("SOKO_HOVER_TRACE").is_ok() {
+            eprintln!("[hover-chain] 尝试 tactic_goal_hover (offset={offset})");
+        }
         if let Some(hover) = tactic_goal_hover(report, doc.text(), offset, &decls) {
             return Ok(Some(hover));
         }
         // 半截表达式的 goal-state（内核拒绝 + 有可推断的部分应用）。
         // 只在 hover 请求时计算（不在按键路径），judge_infer 有缓存。
+        if std::env::var("SOKO_HOVER_TRACE").is_ok() {
+            eprintln!("[hover-chain] 尝试 half_expression_goals_hover (offset={offset})");
+        }
         if let Some(hover) = half_expression_goals_hover(report, doc.text(), offset, &decls) {
             return Ok(Some(hover));
         }
@@ -1763,6 +1769,9 @@ impl LanguageServer for Backend {
         // **怎么输入**（用户要求，D5）。必须在下面的关键字闸门**之前**——
         // 已声明的记法符号被 `front::semantic` 归进 `Keyword`，闸门会把它们
         // 一起吞掉（实测：本文件声明的符号 hover 完全静默）。
+        if std::env::var("SOKO_HOVER_TRACE").is_ok() {
+            eprintln!("[hover-chain] 尝试 notation_symbol_hover (offset={offset})");
+        }
         if let Some(hover) = notation_symbol_hover(doc.text(), offset, report, pos, doc.query()) {
             return Ok(Some(hover));
         }
@@ -1799,6 +1808,9 @@ impl LanguageServer for Backend {
         // 括号优先：光标在 ( / ) 上 → 显示括号组包住的表达式及其类型
         //（`(表达式)` 的悬停 = `表达式 : 类型`）。必须先于精确命中——
         // 外层 lambda 行的 span 覆盖整个值表达式，会遮住括号组。
+        if std::env::var("SOKO_HOVER_TRACE").is_ok() {
+            eprintln!("[hover-chain] 尝试 bracket_hover (offset={offset})");
+        }
         if let Some(res) = bracket_hover(doc.text(), &report.hovers, pos.line, pos.character) {
             return Ok(Some(hover_markup(res, None)));
         }
