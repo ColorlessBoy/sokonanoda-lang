@@ -11,8 +11,8 @@
 //! 不产生额外分配：A1（无 `import` 的文件逐字节不变）不受影响。
 
 use super::{
-    by_step_states, failed_state, lower_value, skipped, CmdHover, KernelFailed,
-    PendingOp, TrustPlan,
+    by_step_states, failed_state, lower_value, skipped, CmdHover, KernelFailed, PendingOp,
+    TrustPlan,
 };
 use crate::compile::elab::{
     build_axiom, build_def, build_example, build_theorem, elab_expr, install_inductive_block,
@@ -71,7 +71,11 @@ fn decl_root_state(
             .iter()
             .map(|b| GoalBinder {
                 name: b.name.clone(),
-                ty: b.ty.as_deref().map(|t| display.render(t)).unwrap_or_default(),
+                ty: b
+                    .ty
+                    .as_deref()
+                    .map(|t| display.render(t))
+                    .unwrap_or_default(),
             })
             .collect(),
     ))
