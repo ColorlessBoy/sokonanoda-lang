@@ -155,12 +155,29 @@ function cliView() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "g29b-cli-"));
     const file = path.join(dir, path.basename(ENTRY));
     fs.writeFileSync(file, text);
-    // 模块根 = 入口目录 ⇒ 把依赖也复制过去，闭包才装得起来。
+    // 模块根 = **最近的带 sokonanoda.toml 的祖先目录**（与 CLI 的解析规则一致），
+    // 把它的 `lib/` 与清单复制过去，闭包才装得起来。
+    // ⚠ 2026-10-03 修（本轮基线）：旧代码写死 `dirname(ENTRY)/../lib` —— 对
+    // `courses/set-theory/units/I.3/…` 就是 `units/lib`（**差一级 `..`**，真根在
+    // `courses/set-theory/`）⇒ 依赖一个都没拷进去 ⇒ 入口 import 全失败、CLI exit 1，
+    // 而脚本**照旧打印"结构计数"** ⇒ 读数塌成 `passes=3 / by_calls=0`（台账里的
+    // `passes=113 / by_calls=1195` 是布局还对的时候量的）。**这就是"咬不住的守卫"**：
+    // 它量的是空气，却长得像读数。下面那条 `lib/` 缺失即 exit 2 是防复发的硬失败。
+    let root = path.dirname(ENTRY);
+    while (!fs.existsSync(path.join(root, "sokonanoda.toml"))) {
+      const up = path.dirname(root);
+      if (up === root) break;
+      root = up;
+    }
     for (const dep of ["lib", "sokonanoda.toml"]) {
-      const src = path.join(path.dirname(ENTRY), "..", dep);
+      const src = path.join(root, dep);
       if (fs.existsSync(src)) {
         fs.cpSync(src, path.join(dir, dep), { recursive: true });
       }
+    }
+    if (!fs.existsSync(path.join(dir, "lib"))) {
+      console.error(`   → 模块根里没有 lib/（root=${root}）⇒ 量不到闭包，拒绝报数`);
+      process.exit(2);
     }
     const r = spawnSync(CLI, ["--json", file], {
       env: { ...process.env, SOKONANODA_CACHE_DIR: dir, SOKO_STAGE_STATS: "1" },
