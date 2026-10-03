@@ -241,3 +241,9 @@ theorem Rel.subset_transClosure (α : Type) (r : Rel α α) :
 theorem Rel.inv_mono {A B : Type} (r r' : Rel A B) (h : ∀ (a : A) (b : B), r a b → r' a b) :
     ∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a :=
   fun (b : B) (a : A) (hba : Rel.inv A B r b a) => h a b hba
+
+-- 复合单调的**点式**形（S-B ✓ I.13）：`Rel.comp_mono` 的 λ 包装（末两个参数留作 λ ✓）
+theorem Rel.comp_mono_apply {A B C : Type} (r r' : Rel A B) (s s' : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (hs : ∀ (b : B) (c : C), s b c → s' b c)
+    (a : A) (c : C) : Rel.comp r s a c → Rel.comp r' s' a c :=
+  fun (h : Rel.comp r s a c) => Rel.comp_mono r r' s s' hr hs a c h
