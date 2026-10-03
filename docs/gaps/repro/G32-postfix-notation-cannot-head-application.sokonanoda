@@ -1,4 +1,18 @@
-import lib.Set
+-- G-32 最小复现：**后缀记法不能当应用头**（`Aᶜ x` 不解析；Lean 4 读作 `(Aᶜ) x`）。
+--
+-- ⚠ **2026-10-03 修夹具保真度** ✓：原夹具写 `import lib.Set` ✗，而 `gap.py` 判它时**不带 `--root`** ✓
+--（`scripts/gap.py:190` ✓）⇒ 仓库根没有 `lib/` ✗ ⇒ 它失败在 **`import-not-found`** ✗ ——
+-- 与 G-32 **无关**的原因 ✗（"守卫空转"那一族 ✗）。现在把夹具要用的两件**内联** ✓
+--（`Set` 与 `compl`/`ᶜ` 的声明照抄 `courses/set-theory/lib/Set.sokonanoda:91/144` ✓）
+-- ⇒ 夹具回到台账描述的那个 **parse 错**：`expected ')' , found Ident("x")` ✓。
+--
+-- 中缀头**没事**（`(A ∪ B) x` ✓）；只有**后缀**头不行 ✗ —— 修好后本文件应 `exit 0`（判卷通过 ✓）。
+
+def Set (α : Type) : Type := α → Prop
+
+def Set.compl {α : Type} (A : Set α) : Set α := fun (x : α) => ¬ (A x)
+
+postfix:100 " ᶜ " => Set.compl
 
 theorem postfix_head (α : Type) (A : Set α) (x : α) : Aᶜ x → ¬ (A x) :=
   fun (h : Aᶜ x) => h
