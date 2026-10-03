@@ -382,12 +382,17 @@ fn line_col_to_offset(text: &str, line: u32, character: u32) -> usize {
     let mut offset = 0usize;
     for (i, l) in text.lines().enumerate() {
         if i == line as usize {
-            let within = text[offset..]
-                .char_indices()
-                .nth(character as usize)
-                .map(|(o, _)| o)
-                .unwrap_or(l.len());
-            return offset + within.min(l.len());
+            // **G-36 第二处（2026-10-03 ✓）**：与 `lib.rs::position_to_offset` **同一个 bug** ✗ ——
+            // LSP 的 `character` 是 **UTF-16 码元** ✓，旧实现按 `char` 数 ✗ ⇒ `𝒫`/emoji 之后偏位 ✓。
+            // 这条是 `bracket_hover` 用的 ✓（复现件里那个"整行表达式"的 hover 正是括号 hover ✓）。
+            let mut units = 0usize;
+            for (o, ch) in l.char_indices() {
+                if units >= character as usize {
+                    return offset + o;
+                }
+                units += ch.len_utf16();
+            }
+            return offset + l.len();
         }
         offset += l.len() + 1;
     }
