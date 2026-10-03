@@ -167,3 +167,8 @@ theorem isSuccOf_wellFounded (α : Type) (E : α → α → Prop) (x y : α)
 theorem isZero_wellFounded (α : Type) (E : α → α → Prop) (x : α)
     (h : IsZero α E x) : IsWellFounded α E :=
   ordinal_wellFounded α E x (zero_isOrdinal α E x h)
+
+-- 零序数是传递集（S-B ✓；两步合成 ✓ 安全区）
+theorem isZero_transitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsZero α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x (zero_isOrdinal α E x h)
