@@ -66,7 +66,7 @@ theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
 -- soko:hint 目标形态：`A ∈ 𝒫 B ↔ A ⊆ B`。
 -- soko:hint 关键件：`Set.mem_powerset_iff`。
 theorem mem_powerset_apply (α : Type) (A B : Set α) :
-    A ∈ (Set.powerset B) ↔ A ⊆ B := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    A ∈ (𝒫 B) ↔ A ⊆ B := by
   sorry
 
 -- 练习 2（L 类，旗舰之一）：**`𝒫 (A ∩ B) = 𝒫 A ∩ 𝒫 B`**（两个方向都是"逐点拆合取"）。
@@ -76,7 +76,7 @@ theorem mem_powerset_apply (α : Type) (A B : Set α) :
 -- soko:hint 关键件：`Set.ext`（**要写全论域与两个集合**）· `Iff.intro`（前导 Prop 实参写全）·
 --   `And.intro`/`And.left`/`And.right` · **包含关系是定义头 ⇒ 先 λ 绑定再应用**（G-73 形状 ①）✓
 theorem powerset_inter (α : Type) (A B : Set α) :
-    Set.powerset (A ∩ B) = Set.powerset A ∩ Set.powerset B := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    𝒫 (A ∩ B) = Set.powerset A ∩ Set.powerset B := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
   sorry
 
 -- 练习 3（L 类，旗舰之一）：**`𝒫 A ∪ 𝒫 B ⊆ 𝒫 (A ∪ B)`**（"只有一半"）。

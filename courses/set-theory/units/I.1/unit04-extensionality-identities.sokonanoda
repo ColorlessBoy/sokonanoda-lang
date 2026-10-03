@@ -171,5 +171,5 @@ theorem union_empty (α : Type) (A : Set α) :
 -- soko:hint 目标形态：¬ (((Set.univ Nat) ∪ (Set.univ Nat)) \ (Set.univ Nat) = Set.univ Nat)，即"假设相等 → False"。
 -- soko:hint 关键件：intro 那个等式假设；用 Eq.symm + Eq.subst 把一个具体元素（Set.mem_univ Nat Nat.zero）沿假设搬到左边；左边展开后是 And … (Not …)，用 And.right 取出矛盾再应用一次。
 theorem union_sdiff_univ_ne_univ :
-    ¬ (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat)  -- soko:notation-ok: `\` 的左操作数是记法时解不出类型参数（引擎边界）
+    ¬ (((Set.univ Nat) ∪ (Set.univ Nat)) \ (Set.univ Nat)
         = Set.univ Nat) := by

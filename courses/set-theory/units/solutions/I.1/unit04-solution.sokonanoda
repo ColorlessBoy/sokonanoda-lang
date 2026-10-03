@@ -162,11 +162,11 @@ theorem union_empty (α : Type) (A : Set α) :
 -- 语句里 `\` 与 `∪` 写点名形式：`\` 的左操作数是记法（`A ∪ B`）时记法路径解不出
 -- 类型参数——这是判卷器回读该假设类型的唯一可行写法（见文件头注释）。
 theorem union_sdiff_univ_ne_univ :
-    ¬ (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat)  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
+    ¬ (((Set.univ Nat) ∪ (Set.univ Nat)) \ (Set.univ Nat)
         = Set.univ Nat) := by
   intro h
   have hmem : Nat.zero ∈
-      Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat) :=  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
+      (Set.union Nat (Set.univ Nat) (Set.univ Nat)) \ (Set.univ Nat) :=  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
     Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => Nat.zero ∈ X)
       (Set.univ Nat)
       (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）

@@ -184,13 +184,13 @@ def image_preimage : Set Two := fun (y : Two) => ∃ (x : Two), (f1 x) = y
 -- 演示 6（已写好）：两个初等事实——`{aa} ∩ {bb} = ∅`、`f1 '' ∅ = ∅`。
 -- 这两条就是"像不保交"反例的两个零件。
 theorem inter_singletons_empty :
-    Eq.{1} (Set Two) (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    Eq.{1} (Set Two) ((Set.singleton Two aa) ∩ (Set.singleton Two bb))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (Set.empty Two) :=
-  Set.ext Two (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)) (Set.empty Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+  Set.ext Two ((Set.singleton Two aa) ∩ (Set.singleton Two bb)) (Set.empty Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
     (fun (x : Two) =>
-      Iff.intro (Set.mem Two x (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-        (Set.mem Two x (Set.empty Two))
-        (fun (hx : Set.mem Two x (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb))) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      Iff.intro (x ∈ ((Set.singleton Two aa) ∩ (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        (x ∈ (Set.empty Two))
+        (fun (hx : x ∈ (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb))) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           False.elim (Set.mem Two x (Set.empty Two))
             (two_aa_ne_bb
               (Eq.trans.{1} Two aa x bb
@@ -233,9 +233,9 @@ theorem image_inter_singletons_empty :
 -- 演示 8（已写好）：反例的右半边——`aa` 同时落在 `f1 '' {aa}` 与 `f1 '' {bb}` 里。
 -- 这就是"f1 不单射 ⇒ 像不保交"的全部内容：交集里那个点是从**两个不同的点**塌过来的。
 example : Set.mem Two aa  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标里补不出）
-    (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
-      (Set.image Two Two f1 (Set.singleton Two bb))) :=  -- soko:notation-ok: R1/R2：同上
-  And.intro (Set.mem Two aa (Set.image Two Two f1 (Set.singleton Two aa)))
+    (Set.inter Two (f1 '' (Set.singleton Two aa))
+      (f1 '' (Set.singleton Two bb))) :=  -- soko:notation-ok: R1/R2：同上
+  And.intro (Set.mem Two aa (f1 '' (Set.singleton Two aa)))
     (Set.mem Two aa (Set.image Two Two f1 (Set.singleton Two bb)))  -- soko:notation-ok: R1/R2：同上
     (Exists.intro Two (fun (t : Two) => (Eq.{1} Two t aa) ∧ (Eq.{1} Two (f1 t) aa))
       aa (And.intro (Eq.{1} Two aa aa) (Eq.{1} Two (f1 aa) aa)  -- soko:notation-ok: R1/R2：同上

@@ -127,7 +127,7 @@ theorem union_subset_union_apply (α : Type) (A B C D : Set α)
 --   ⚠ 本条的 `⊆` 记法补不出前导类型参数 ✗ ⇒ 解答里按内核提示写 **`Set.subset α …`**  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
 --   并加行内标记 ✓（**G-73 第十七例**）✓
 theorem inter_comm_subset (α : Type) (A B : Set α) :
-    Set.subset (A ∩ B) (B ∩ A) := by  -- soko:notation-ok: `⊆` 在此补不出前导类型参数，按内核提示改点名
+    (A ∩ B) ⊆ (B ∩ A) := by
   sorry
 
 -- 练习 10（L 类）：**并的交换（包含形态）**。
@@ -136,6 +136,6 @@ theorem inter_comm_subset (α : Type) (A B : Set α) :
 -- soko:hint 关键件：`Set.mem_union`（先 λ 绑定再应用）· `Or.elim` · `Or.inl`/`Or.inr`
 --   ⚠ 同练习 9：`⊆` 记法补不出前导类型参数 ⇒ 写 `Set.subset α …` + 行内标记 ✓  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
 theorem union_comm_subset (α : Type) (A B : Set α) :
-    Set.subset (A ∪ B) (B ∪ A) := by  -- soko:notation-ok: 同上
+    (A ∪ B) ⊆ (B ∪ A) := by
   sorry
 

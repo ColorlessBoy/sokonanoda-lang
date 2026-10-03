@@ -99,7 +99,7 @@ theorem mem_sdiff_union (α : Type) (A B C : Set α) (a : α) :
 -- soko:hint 关键件：`Set.mem_sdiff` · `Set.mem_empty_iff_false`（**否定那一半自动成立** ✓）✓
 
 theorem mem_sdiff_empty (α : Type) (A : Set α) (a : α) :
-    a ∈ (A \ (Set.empty α)) ↔ a ∈ A := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参
+    a ∈ (A \ (∅ α)) ↔ a ∈ A := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────

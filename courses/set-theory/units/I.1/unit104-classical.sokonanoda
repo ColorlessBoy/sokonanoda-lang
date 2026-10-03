@@ -50,13 +50,13 @@ theorem mem_sdiff_of_mem_not_mem (α : Type) (x : α) (A : Set α) (B : Set α)
 -- 练习 4（L 类，**拆出来的小引理**）：**`C = ∅` 与 `x ∈ C` 矛盾**。
 -- 思路：沿等式把 `x ∈ C` 搬到 `x ∈ ∅`（**集合层 `Eq.subst`** + 谓词 `fun D => x ∈ D`），再与空集刻画冲突。
 -- 关键件：**`Eq.subst.{1} (Set α)`**（集合层替换 ✓）· `Set.mem_empty_iff_false`（`Iff.mp` ✓）
-theorem not_mem_of_eq_empty (α : Type) (x : α) (C : Set α) (h : C = Set.empty α)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `False.elim` 的目标位（手册边界）
+theorem not_mem_of_eq_empty (α : Type) (x : α) (C : Set α) (h : C = ∅ α)
     (hx : x ∈ C) : False := by
   sorry
 -- 练习 5（L 类，**旗舰一 —— 单元57 删掉的那条**）：**`A \ B = ∅ ⇒ A ⊆ B`**。
 -- 思路：给 `x ∈ A`，按 `x ∈ B` 分情况（练习 2）；否定支里由练习 3 得 `x ∈ A \ B`，与练习 4 冲突，`False.elim` 消去。
 -- 关键件：练习 2 / 练习 3 / 练习 4 · **`False.elim` 要把目标写全**（`False.elim (x ∈ B) …` ✓）
-theorem subset_of_sdiff_empty (α : Type) (A : Set α) (B : Set α) (h : A \ B = Set.empty α) :  -- soko:notation-ok: 等式族证明项的宇宙层级 / `False.elim` 的目标位（手册边界）
+theorem subset_of_sdiff_empty (α : Type) (A : Set α) (B : Set α) (h : A \ B = ∅ α) :
     A ⊆ B := by
   sorry
 -- 练习 6（L 类，**旗舰二**）：**见证提取**（`¬ (∀x, ¬ P x) ⇒ ∃x, P x`）。
