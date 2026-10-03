@@ -305,3 +305,13 @@ theorem Rel.inv_mono_apply_trans {A B : Type} (r r' r'' : Rel A B)
     (h : ∀ (a : A) (b : B), r a b → r' a b) (h' : ∀ (a : A) (b : B), r' a b → r'' a b)
     (b : B) (a : A) : Rel.inv A B r b a → Rel.inv A B r'' b a :=
   fun (hba : Rel.inv A B r b a) => Rel.inv_mono_trans r r' r'' h h' b a hba
+
+-- 点式序在**逆**下不变（S-B ✓ I.13）：两向都靠定义展开 ✓
+theorem Rel.inv_mono_iff {A B : Type} (r r' : Rel A B) :
+    (∀ (a : A) (b : B), r a b → r' a b) ↔
+      (∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a) :=
+  Iff.intro
+    (fun (h : ∀ (a : A) (b : B), r a b → r' a b) =>
+      fun (b : B) (a : A) (hba : Rel.inv A B r b a) => h a b hba)
+    (fun (h : ∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a) =>
+      fun (a : A) (b : B) (hab : r a b) => h b a hab)
