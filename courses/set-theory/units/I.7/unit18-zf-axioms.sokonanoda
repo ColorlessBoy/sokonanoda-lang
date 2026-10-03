@@ -162,3 +162,8 @@ theorem union_empty_family_unique (α : Type) (E : α → α → Prop) (he : Ext
 theorem union_empty_family_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
     (h : IsUnionOf α E x ∅) : ¬ (E x x) := by
   sorry
+
+-- 练习（L 引理链）：**一般并的消去子** —— 元素的来源可拆出具体的族成员
+theorem union_elim (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) (z : α)
+    (h : IsUnionOf α E x F) (hz : E z x) : ∃ (A : α), F A ∧ E z A := by
+  sorry

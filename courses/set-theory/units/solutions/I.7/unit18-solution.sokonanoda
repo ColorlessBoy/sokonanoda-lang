@@ -73,3 +73,7 @@ theorem union_empty_family_unique (α : Type) (E : α → α → Prop) (he : Ext
 theorem union_empty_family_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
     (h : IsUnionOf α E x ∅) : ¬ (E x x) :=
   empty_no_self_mem α E x (union_empty_family α E x h)
+
+theorem union_elim (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) (z : α)
+    (h : IsUnionOf α E x F) (hz : E z x) : ∃ (A : α), F A ∧ E z A :=
+  isUnionOf_elim α E x F z h hz
