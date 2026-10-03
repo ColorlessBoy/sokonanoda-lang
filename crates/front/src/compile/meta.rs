@@ -335,6 +335,14 @@ impl<'a> MetaCtx<'a> {
         // 下一步（未做 ✗）：在 ③ 的两条约束里各打一次"这一对是从哪条约束来的"（加 `SOKO_CLASH_TRACE`
         // 的第二行 ✓），确认是"赋成未代换模板名"还是"没建元变量" ✓，再动 `solve_prefix_meta` ✓
         // （反向臂现成：`SOKO_METAVAR=sibling|off` ✓ + `SOKO_CLASH_TRACE=1` 看裸名是否消失 ✓）。
+        // **G-63 ④**：上一版归一插在 `unify_impl` 的 match 里**没被走到** ✗ ⇒ 这里把**调用链**打出来 ✓
+        // （只在 `SOKO_CLASH_TRACE=1` 下 ✓），钉死是**哪条路**把这一对顶到刚性冲突的 ✓。
+        if std::env::var("SOKO_CLASH_TRACE").is_ok() {
+            eprintln!(
+                "[clash-backtrace] {}",
+                std::backtrace::Backtrace::force_capture()
+            );
+        }
         if std::env::var("SOKO_CLASH_TRACE").is_ok() {
             // **渲染会折叠记法**（`Eq.{u} …` 显示成 `= …` ✓）⇒ 光看渲染分不出"真不同"还是"只差写法" ✗
             // ⇒ 同时打**结构 Debug**（G-63 ④ 的钉死就靠它 ✓）。
