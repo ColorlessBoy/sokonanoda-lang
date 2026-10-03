@@ -162,3 +162,8 @@ theorem isSuccOf_elem_isOrdinal (α : Type) (E : α → α → Prop) (x y z : α
 theorem isSuccOf_wellFounded (α : Type) (E : α → α → Prop) (x y : α)
     (h : IsSuccOf α E x y) : IsWellFounded α E :=
   ordinal_wellFounded α E x (isSuccOf_isOrdinal α E x y h)
+
+-- 零序数给出良基性（S-B ✓；两步合成 ✓ 安全区）
+theorem isZero_wellFounded (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsZero α E x) : IsWellFounded α E :=
+  ordinal_wellFounded α E x (zero_isOrdinal α E x h)
