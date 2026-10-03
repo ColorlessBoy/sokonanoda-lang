@@ -258,3 +258,9 @@ theorem Rel.comp_mono_left_apply {A B C : Type} (r r' : Rel A B) (s : Rel B C)
     (hr : ∀ (a : A) (b : B), r a b → r' a b) (a : A) (c : C) :
     Rel.comp r s a c → Rel.comp r' s a c :=
   fun (h : Rel.comp r s a c) => Rel.comp_mono_left r r' s hr a c h
+
+-- 只放右边的**点式**形（S-B ✓ I.13）：`Rel.comp_mono_right` 的 λ 包装
+theorem Rel.comp_mono_right_apply {A B C : Type} (r : Rel A B) (s s' : Rel B C)
+    (hs : ∀ (b : B) (c : C), s b c → s' b c) (a : A) (c : C) :
+    Rel.comp r s a c → Rel.comp r s' a c :=
+  fun (h : Rel.comp r s a c) => Rel.comp_mono_right r s s' hs a c h
