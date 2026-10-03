@@ -26,12 +26,12 @@
 | 章 | 节 | 我们的落点（现状） |
 |---|---|---|
 | 1 Introduction | Baby Set Theory · Sets—An Informal View · Classes · Axiomatic Method · Notation | 单元①（集合与隶属）· 单元⑪（论域与 Russell）✓ |
-| 2 Axioms and Operations | Axioms · Arbitrary Unions and Intersections · Algebra of Sets · Epilogue | 单元③④（代数）✓ · **公理表与广义并交无单元** ⬜ |
-| 3 Relations and Functions | Ordered Pairs · Relations · n-Ary Relations · Functions · Infinite Cartesian Products · Equivalence Relations · Ordering Relations | 单元⑤⑥⑦ ✓ · **n 元关系 ⬜ · 无限笛卡尔积 ⬜ · 序关系 ⬜** |
-| 4 Natural Numbers | Inductive Sets · Peano's Postulates · Recursion on ω · Arithmetic · Ordering on ω | **整章无单元** ⬜（语言内建 `Nat` + `Nat.rec` 可承接） |
+| 2 Axioms and Operations | Axioms · Arbitrary Unions and Intersections · Algebra of Sets · Epilogue | 单元③④（代数）✓ · **公理表 = 单元⑱（ZF）✓ · 广义并交 = 单元㉓ 等 14 个 ✓** |
+| 3 Relations and Functions | Ordered Pairs · Relations · n-Ary Relations · Functions · Infinite Cartesian Products · Equivalence Relations · Ordering Relations | 单元⑤⑥⑦ ✓ · **n 元关系/无限积 = 单元㉓ ✓ · 序关系 = 单元⑬⑭ 等 19 个 ✓** |
+| 4 Natural Numbers | Inductive Sets · Peano's Postulates · Recursion on ω · Arithmetic · Ordering on ω | **单元81/82/111** ✓（语言内建 `Nat` + `Nat.rec` 承接 ✓） |
 | 5 Construction of the Real Numbers | Integers · Rational Numbers · Real Numbers | **卷 II**（`teaching-project.md` §4.1）|
-| 6 Cardinal Numbers and AC | Equinumerosity · Finite Sets · Cardinal Arithmetic · Ordering Cardinal Numbers · **Axiom of Choice** · Countable Sets · Arithmetic of Infinite Cardinals · Continuum Hypothesis | 单元⑨⑩（等势/可数/Cantor）✓ · **基数算术 ⬜ · 基数序 ⬜ · 选择公理 ⬜ · CH ⬜** |
-| 7 Orderings and Ordinals | Partial Orderings · Well Orderings · Replacement Axioms · Epsilon-Images · Isomorphisms · Ordinal Numbers · Debts Paid · **Rank** | **除序数词汇外全缺** ⬜（`lib/Ordinal` 已落词汇，无单元）· **Rank 被内核墙挡** ✗ |
+| 6 Cardinal Numbers and AC | Equinumerosity · Finite Sets · Cardinal Arithmetic · Ordering Cardinal Numbers · **Axiom of Choice** · Countable Sets · Arithmetic of Infinite Cardinals · Continuum Hypothesis | 单元⑨⑩（等势/可数/Cantor）✓ · **基数算术 = 单元⑲⑳ 等 9 个 ✓ · 基数序 = 单元19 ✓ · AC = 单元⑰/110/112 ✓ · CH ⬜（仅此一项未落）** |
+| 7 Orderings and Ordinals | Partial Orderings · Well Orderings · Replacement Axioms · Epsilon-Images · Isomorphisms · Ordinal Numbers · Debts Paid · **Rank** | **序数 = 单元⑮⑯ + 单元80 等 8 个** ✓ · **Rank 仍被内核墙挡** ✗ |
 | 8 Ordinals and Order Types | Transfinite Recursion Again · Alephs · Ordinal Operations · Isomorphism Types · Arithmetic of Order Types · Ordinal Arithmetic | **整章被内核墙挡** ✗（G-56 + G-58）|
 | 9 Special Topics | Well-Founded Relations · Natural Models · Cofinality | **整章被内核墙挡** ✗ |
 
@@ -39,19 +39,19 @@
 
 | 节 | 我们的落点 | 节 | 我们的落点 |
 |---|---|---|---|
-| 1 Extension | 单元②（`Set.ext`）✓ | 14 Order | **⬜ 本轮起（单元⑬）** |
-| 2 Specification | 单元③（`Set.sep`）✓ | 15 Axiom of Choice | **⬜（单元⑰）** |
-| 3 Unordered Pairs | 单元②（`{a,b}`）✓ | 16 Zorn's Lemma | **⬜（形式可写，证明撞墙）** |
-| 4 Unions & Intersections | 单元③ ✓ · **广义 ⋃₀/⋂₀ ⬜** | 17 Well Ordering | **⬜（单元⑭）** |
+| 1 Extension | 单元②（`Set.ext`）✓ | 14 Order | 单元⑬（19 个序单元）✓ |
+| 2 Specification | 单元③（`Set.sep`）✓ | 15 Axiom of Choice | 单元⑰/110/112 ✓ |
+| 3 Unordered Pairs | 单元②（`{a,b}`）✓ | 16 Zorn's Lemma | ✗ **内核墙**（同 §5）|
+| 4 Unions & Intersections | 单元③ ✓ · 广义 ⋃₀/⋂₀ = 单元㉓ ✓ | 17 Well Ordering | 单元⑭ ✓ |
 | 5 Complements and Powers | 单元③（`ᶜ`/`𝒫`）✓ | 18 Transfinite Recursion | **✗ 内核墙** |
-| 6 Ordered Pairs | 单元⑤（含 Kuratowski）✓ | 19 Ordinal Numbers | **⬜（单元⑮）** |
-| 7 Relations | 单元⑥ ✓ | 20 Sets of Ordinal Numbers | **⬜（单元⑯）** |
+| 6 Ordered Pairs | 单元⑤（含 Kuratowski）✓ | 19 Ordinal Numbers | 单元⑮⑯ ✓ |
+| 7 Relations | 单元⑥ ✓ | 20 Sets of Ordinal Numbers | 单元80 ✓ |
 | 8 Functions | 单元⑦ ✓ | 21 Ordinal Arithmetic | **✗ 内核墙** |
-| 9 Families | **⬜（单元㉑）** | 22 Schröder–Bernstein | **⬜（单元⑳）** |
+| 9 Families | 单元㉓（族上的积/并）✓ | 22 Schröder–Bernstein | 单元112（经 AC）✓ |
 | 10 Inverses & Composites | 单元⑦⑧ ✓ | 23 Countable Sets | 单元⑩ ✓ |
-| 11 Numbers | **⬜（单元⑲ 的自然数侧）** | 24 Cardinal Arithmetic | **⬜（单元⑲）** |
-| 12 The Peano Axioms | **⬜（单元⑲）** | 25 Cardinal Numbers | 单元⑨ + `lib/Cardinal` ✓ |
-| 13 Arithmetic | **⬜（单元⑲）** | | |
+| 11 Numbers | 单元111（ℕ 算术律）✓ | 24 Cardinal Arithmetic | 单元⑲⑳ ✓ |
+| 12 The Peano Axioms | 单元81/82 ✓ | 25 Cardinal Numbers | 单元⑨ + `lib/Cardinal` ✓ |
+| 13 Arithmetic | 单元111 ✓ | | |
 
 ### 1.3 研究生级基准（**S-A 补**；只作对齐，不作单元靶子）
 **Jech《Set Theory》Part I · Kunen《Set Theory》ch. I–III** 覆盖同一批主题但以 **ZFC 形式化** ⇒
@@ -110,15 +110,15 @@ python3 courses/set-theory/tools/check.py --json     # 249 目标 · 2072 checke
 | I.2 | 序对、关系与函数 | I.1 | Enderton §3.1–3.4 · Halmos §6–10 | 5–7 | ✅ 已落地（24 题）|
 | I.3 | 像、原像与基数 | I.2 | Enderton §6.1/6.6 · Halmos §23 | 8–10 | ✅ 已落地（23 题）|
 | I.4 | 论域、悖论与综合 | I.1 · I.3 | Enderton §1.2–1.4 | 11–12 | ✅ 已落地（14 题）|
-| **I.5** | **序关系与良序** | I.2 | **Enderton §3.7 + §7.1–7.2 · Halmos §14/17** | **13–14** | ⬜ **本轮起** |
-| **I.6** | **序数** | I.5 | **Enderton §7.6 · Halmos §19–20** | **15–16** | ⬜ |
-| **I.7** | **选择公理与 ZF 公理体系** | I.3 · I.5 | **Enderton §2.1 + §6.5 + §7.3 · Halmos §2/15** | **17–18** | ⬜ |
-| **I.8** | **基数算术** | I.3 | **Enderton §6.3–6.4 · Halmos §22/24** | **19–20** | ⬜ |
-| **I.9** | **集族、广义积与 n 元关系** | I.2 · I.5 | **Enderton §2.2 + §3.3 + §3.5 · Halmos §9** | **21–22** | ⬜ |
-| **I.10** | **关系闭包、等价关系与商**（新增；2026-10-01） | I.2 | **Enderton §3.5 · Halmos §10/§18** + 内核 `Quot` | **24–27** | ⬜ |
-| **I.11** | **集合代数与序的完备性**（新增；2026-10-01） | I.1 · I.5 | **Halmos §5–6/§14 · Enderton §1.8/§2.2/§7.1** | **28–32** | ⬜ |
-| **I.12** | **幂集与函数空间**（新增；2026-10-01） | I.1 | **Halmos §5–6/§8 · Enderton §1.8/§2.2** | **33** | ⬜ |
-| **I.13** | **关系的代数**（新增；2026-10-01） | I.2 | **Halmos §7/§10/§14 · Enderton §3.3/§3.6/§7.1/§7.8** | **36–41** | ⬜ |
+| **I.5** | **序关系与良序** | I.2 | **Enderton §3.7 + §7.1–7.2 · Halmos §14/17** | **13–14** | ✅ 已落地（19 单元）|
+| **I.6** | **序数** | I.5 | **Enderton §7.6 · Halmos §19–20** | **15–16** | ✅ 已落地（8 单元）|
+| **I.7** | **选择公理与 ZF 公理体系** | I.3 · I.5 | **Enderton §2.1 + §6.5 + §7.3 · Halmos §2/15** | **17–18** | ✅ 已落地（含 110/112）|
+| **I.8** | **基数算术** | I.3 | **Enderton §6.3–6.4 · Halmos §22/24** | **19–20** | ✅ 已落地（9 单元）|
+| **I.9** | **集族、广义积与 n 元关系** | I.2 · I.5 | **Enderton §2.2 + §3.3 + §3.5 · Halmos §9** | **21–22** | ✅ 已落地（单元㉓ 等）|
+| **I.10** | **关系闭包、等价关系与商**（新增；2026-10-01） | I.2 | **Enderton §3.5 · Halmos §10/§18** + 内核 `Quot` | **24–27** | ✅ 已落地（11 单元）|
+| **I.11** | **集合代数与序的完备性**（新增；2026-10-01） | I.1 · I.5 | **Halmos §5–6/§14 · Enderton §1.8/§2.2/§7.1** | **28–32** | ✅ 已落地 |
+| **I.12** | **幂集与函数空间**（新增；2026-10-01） | I.1 | **Halmos §5–6/§8 · Enderton §1.8/§2.2** | **33** | ✅ 已落地（7 单元）|
+| **I.13** | **关系的代数**（新增；2026-10-01） | I.2 | **Halmos §7/§10/§14 · Enderton §3.3/§3.6/§7.1/§7.8** | **36–41** | ✅ 已落地 |
 | I.14 | 秩与超限递归 | I.6 | Enderton §7.8 + ch 8–9 | — | ✗ **内核墙**（§5）|
 
 ### 4.1 新单元的「必证 / 必破」（每单元 DoD 九条见 `teaching-project.md` §5）
