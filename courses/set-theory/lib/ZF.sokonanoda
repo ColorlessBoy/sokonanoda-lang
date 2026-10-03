@@ -127,3 +127,8 @@ theorem extensional_apply (α : Type) (E : α → α → Prop) (h : Extensional 
 --   ⇒ 撞 **G-56 + G-58** ⇒ 见 ST7/ST9 的登记；
 -- · **`ZFSet` 那种"集合是一个类型"的编码**（Mathlib `Mathlib/SetTheory/ZFC/Basic.lean`）：
 --   要商 + 良基递归 ⇒ 本版走**谓词式**（ST1 结论 ①②）✓，不做那套编码。
+
+-- ── 取件子：空集没有元素（S-B ✓；λ 落地写法 ✓ 手册惯用法 #2）────────────────
+theorem isEmpty_no_elem (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsEmpty α E x) (hy : E y x) : False :=
+  (fun (hp : ∀ (y : α), ¬ (E y x)) => hp y hy) (Iff.mp (isEmpty_def α E x) h)
