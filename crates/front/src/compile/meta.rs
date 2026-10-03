@@ -336,8 +336,10 @@ impl<'a> MetaCtx<'a> {
         // 的第二行 ✓），确认是"赋成未代换模板名"还是"没建元变量" ✓，再动 `solve_prefix_meta` ✓
         // （反向臂现成：`SOKO_METAVAR=sibling|off` ✓ + `SOKO_CLASH_TRACE=1` 看裸名是否消失 ✓）。
         if std::env::var("SOKO_CLASH_TRACE").is_ok() {
+            // **渲染会折叠记法**（`Eq.{u} …` 显示成 `= …` ✓）⇒ 光看渲染分不出"真不同"还是"只差写法" ✗
+            // ⇒ 同时打**结构 Debug**（G-63 ④ 的钉死就靠它 ✓）。
             eprintln!(
-                "[clash] 左={} ｜ 右={}",
+                "[clash] 左={} ｜ 右={}\n[clash-raw] 左={l:?}\n[clash-raw] 右={r:?}",
                 crate::proof::render_expr(&l),
                 crate::proof::render_expr(&r)
             );
