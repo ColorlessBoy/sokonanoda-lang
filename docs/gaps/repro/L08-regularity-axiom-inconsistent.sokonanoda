@@ -16,13 +16,30 @@
 -- **修法（第 569 轮已落地）**：把公理降级成**定义** `IsRegular α E`（= 谓词版良基性），
 -- 要用它的地方**当假设引进** ✓ —— ZF 的正则公理说的是**具体的 `∈`**，
 -- 不是任意二元关系 ✓
-import lib.Rel
-import lib.Set
-import lib.ZF
+-- ⚠ **2026-10-03 修夹具保真度** ✓（与 G-30/G-32/G-33 同族 ✗）：原夹具 `import lib.Rel` /
+-- `lib.Set` / `lib.ZF` ✗，而 `scripts/gap.py` 默认**不带 `--root`** ✗ ⇒ 模块根 = 夹具目录 ✗
+-- ⇒ 实测 `import-not-found`（3 条 ✗）⇒ 它失败在与 L-08 **无关**的原因上 ✗
+-- ⇒ **本批新加的保真度守卫第一次出手就抓到了它** ✓✓（这条"已修"**从来没被验证过** ✗）。
+-- ⇒ 现在**自足** ✓：把真正要用的两件就地声明 ✓（`Exists` + `Exists.elim` 的写法**照抄**
+-- `courses/set-theory/lib/Exists.sokonanoda` 的官方同形版 ✓）；`regularity` 从"库里的公理"
+-- 改成目标的**假设** ✓（本复现件只关心**这条公理的形状会不会让反驳写不出来** ✓）。
+-- ⇒ 预期仍是**判负**（`repro_expect: rejected` ✓）：反驳在这个语言里**写不出来** ✓。
+
+inductive Exists (α : Type) (P : α → Prop) : Prop
+ctor intro (w : α) (h : P w) : Exists α P
+end
+
+def Exists.elim {A : Type} {p : A → Prop} {Q : Prop} (h : Exists A p)
+    (f : (w : A) → p w → Q) : Q :=
+  Exists.rec A p (fun (_ : Exists A p) => Q) f h
+
+binder_notation "∃" => Exists
 
 theorem regularity_absurd (α : Type) (E : α → α → Prop) (A : α)
     (hne : ∃ (x : α), E x A)
-    (hall : ∀ (x : α) (y : α), E x y) : False :=
+    (hall : ∀ (x : α) (y : α), E x y)
+    (regularity : ∀ (β : Type) (R : β → β → Prop) (a : β),
+        (∃ (x : β), R x a) → ∃ (m : β), R m a ∧ ∀ (z : β), R z m → ¬ (R z a)) : False :=
   (fun (h : ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) =>
     Exists.elim α (fun (m : α) => E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) False h
       (fun (m : α) (hm : E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) =>
