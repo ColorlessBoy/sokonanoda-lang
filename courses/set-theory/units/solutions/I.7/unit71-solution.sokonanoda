@@ -55,8 +55,8 @@ theorem mem_inter_sUnion_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α
         h
         (fun (B : Set α) (hB : B ∈ F ∧ c ∈ (A ∩ B)) =>
           mem_inter_intro α A (⋃₀ F) c
-            (mem_inter_left α A B c (And.right hB))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
-            ((fun (hu : c ∈ (Set.sUnion α F) ↔ ∃ (D : Set α), D ∈ F ∧ c ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+            (mem_inter_left α A B c (And.right hB))
+            ((fun (hu : c ∈ (⋃₀ F) ↔ ∃ (D : Set α), D ∈ F ∧ c ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
               Iff.mpr hu (Exists.intro (Set α) (fun (D : Set α) => D ∈ F ∧ c ∈ D) B  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
                 (And.intro (B ∈ F) (c ∈ B) (And.left hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
                   (mem_inter_right α A B c (And.right hB)))))
