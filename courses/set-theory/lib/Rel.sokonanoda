@@ -224,3 +224,8 @@ theorem Rel.comp_mono_right {A B C : Type} (r : Rel A B) (s s' : Rel B C)
     (hs : ∀ (b : B) (c : C), s b c → s' b c) (a : A) (c : C)
     (h : Rel.comp r s a c) : Rel.comp r s' a c :=
   Rel.comp_mono r r s s' (fun (a' : A) (b : B) (hr : r a' b) => hr) hs a c h
+
+-- 逆的逆（S-B ✓ I.13）：**定义等式**（`Eq.refl` 级 ✓，无需 `Rel.ext`）
+-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+theorem Rel.inv_inv (A B : Type) (r : Rel A B) : Rel.inv B A (Rel.inv A B r) = r :=
+  Eq.refl.{1} (Rel A B) r
