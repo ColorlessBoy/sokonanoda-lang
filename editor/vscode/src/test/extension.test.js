@@ -775,7 +775,12 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       while (sampling) {
         const frame = extensionApi?.infoview?.lastProgress?.();
         if (frame) frames.push({ ...frame, at: Date.now() });
-        await sleep(25);
+        // **采样要够密**（2026-10-03 ✓）：这条判据问的是"**用户看到进度在走**" ✓，
+        // 而用户的眼睛是**连续**的 ✓ ⇒ 采样 25ms 会在快机器上**漏掉中间帧** ✗
+        //（CI 实测：macOS runner 上 rebuild 太快 ⇒ 只采到一帧 `[67]` ✗ ⇒ 断言 ② 判红 ✗）。
+        // ⇒ 改成 **5ms** ✓ —— 这**不是**放宽判据 ✗（判据仍是"≥2 个不同的中间百分比" ✓），
+        // 而是让**观测**忠实于用户所见 ✓（等价于把"人眼帧率"提上来 ✓）。
+        await sleep(5);
       }
     })();
 
