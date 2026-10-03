@@ -43,6 +43,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import pathlib
 import re
 import sys
 from pathlib import Path
@@ -466,8 +467,12 @@ def _rel(path: Path) -> str:
 #   · `multiline-skip` 调用跨行（单行切不出实参 ⇒ 不猜 ✓）
 # ============================================================================
 
-CENSUS_PROBE = (REPO / "courses" / "set-theory" / "gaps"
-                / f"census-probe-{os.getpid()}.sokonanoda")   # 带 PID：并发跑不撞副件 ✓
+# ⚠ **探针绝不许落在 `courses/` 或 `course/` 下** ✗ —— `crates/cli/tests/notation.rs` 的
+#   `walk_sokonanoda()` 递归收这两棵树的**所有** `*.sokonanoda`（不看跟踪状态/ignore ✗），
+#   且解析失败也记 offender ⇒ 树里放 scratch 会**把内核线的发版 gate 弄成假红** ✗（2026-10-03 实锤）。
+#   `/tmp` 下靠 `--root <课程根>` 解析 import ✓（实测 `failed 0 · checked 1` ✓）。
+CENSUS_SCRATCH = pathlib.Path(os.environ.get("SOKO_CENSUS_SCRATCH", "/tmp/course-scratch"))
+CENSUS_PROBE = CENSUS_SCRATCH / f"census-probe-{os.getpid()}.sokonanoda"   # 带 PID：并发不撞 ✓
 # 副件必须**留在课程树内**（才有 `lib.*` 模块根 ✓），且**不叫 `unit*`** ✗
 # （`tools/audit-pairs.py` 会扫 `units/**/unit*.sokonanoda` ✓）。
 
@@ -575,14 +580,48 @@ def _comment_of(raw: str) -> str:
     return comment
 
 
-def census_grade(path: Path) -> tuple[int, dict]:
-    """把副件交给真判卷（`query check` ⇒ 与 `grade` 同口径的计数 + 诊断 ✓）。"""
+def module_root_for(target) -> str:
+    """`target`（仓库相对路径或 Path）所属**模块根** ✓ —— 副件在 `/tmp` 时靠它解析 import ✓。
+
+    口径：从该文件向上找最近的 `sokonanoda.toml` ✓；找不到就按课程根前缀认 ✓；再不然 `.` ✓。
+    """
+    t = Path(target)
+    p = t if t.is_absolute() else (REPO / t)
+    if not p.exists():                      # `gaps/x.sokonanoda` 这类"相对根"路径 ✓
+        for cand in ("courses/set-theory", "course", "."):
+            alt = REPO / cand / t
+            if alt.exists():
+                p = alt
+                break
+    cur = p.parent
+    while True:
+        if (cur / "sokonanoda.toml").exists():
+            try:
+                return str(cur.relative_to(REPO)) or "."
+            except ValueError:
+                return "."
+        if cur == cur.parent or cur == REPO:
+            break
+        cur = cur.parent
+    for cand in ("courses/set-theory", "course"):
+        if str(p).startswith(str(REPO / cand)):
+            return cand
+    return "."
+
+
+def census_grade(path: Path, root: str | None = None) -> tuple[int, dict]:
+    """把副件交给真判卷（`query check` ⇒ 与 `grade` 同口径的计数 + 诊断 ✓）。
+
+    ⚠ 副件在 `/tmp/course-scratch/`（**不许进语料树** ✗）⇒ 必须显式 `--root` 才能解析 `import lib.*` ✓
+    （实测：不带 `--root` ⇒ `找不到模块 lib.Set` ✗；带上 ⇒ `failed 0 · checked 1` ✓）。
+    """
     import subprocess
-    proc = subprocess.run(
-        ["node", str(REPO / "scripts" / "soko"), "query", "check", "--file",
-         str(path.relative_to(REPO))],
-        cwd=str(REPO), capture_output=True, text=True,
-    )
+    pp = Path(path)
+    rel = str(pp.relative_to(REPO)) if str(pp).startswith(str(REPO)) else str(pp)
+    args = ["node", str(REPO / "scripts" / "soko"), "query", "check", "--file", rel]
+    if root:
+        args[4:4] = ["--root", root]
+    proc = subprocess.run(args, cwd=str(REPO), capture_output=True, text=True)
     try:
         data = json.loads(proc.stdout).get("data") or {}
     except Exception:
@@ -635,7 +674,7 @@ def census(limit: int, do_grade: bool, quiet: bool, roots: list[str] | None = No
                 CENSUS_PROBE.parent.mkdir(parents=True, exist_ok=True)
                 CENSUS_PROBE.write_text("\n".join(cand) + "\n", encoding="utf-8")
                 try:
-                    rc, data = census_grade(CENSUS_PROBE)
+                    rc, data = census_grade(CENSUS_PROBE, module_root_for(rec["file"]))
                     failed = data.get("failed") or []
                     ok = rc == 0 and not failed
                     row["verdict"] = "green" if ok else "red"
@@ -647,7 +686,7 @@ def census(limit: int, do_grade: bool, quiet: bool, roots: list[str] | None = No
                                        if failed else f"exit={rc}")
                         # ⚠ 红要**先排除"本来就是红的"**（否则把基线判负算到改写头上 ✗）
                         CENSUS_PROBE.write_text("\n".join(lines) + "\n", encoding="utf-8")
-                        rc0, data0 = census_grade(CENSUS_PROBE)
+                        rc0, data0 = census_grade(CENSUS_PROBE, module_root_for(rec["file"]))
                         if rc0 != 0 or (data0.get("failed") or []):
                             row["verdict"] = "baseline-red"
                 finally:
@@ -735,7 +774,7 @@ def census_batch(limit: int, out: str | None, quiet: bool, sample_cap: int = 6) 
         CENSUS_PROBE.parent.mkdir(parents=True, exist_ok=True)
         CENSUS_PROBE.write_text("\n".join(cur) + "\n", encoding="utf-8")
         try:
-            rc, data = census_grade(CENSUS_PROBE)
+            rc, data = census_grade(CENSUS_PROBE, module_root_for(f))
             failed = data.get("failed") or []
             ok = rc == 0 and not failed
         finally:
@@ -764,7 +803,7 @@ def census_batch(limit: int, out: str | None, quiet: bool, sample_cap: int = 6) 
             assert cand is not None
             CENSUS_PROBE.write_text("\n".join(cand) + "\n", encoding="utf-8")
             try:
-                rc2, data2 = census_grade(CENSUS_PROBE)
+                rc2, data2 = census_grade(CENSUS_PROBE, module_root_for(rel))
                 failed2 = data2.get("failed") or []
                 ok2 = rc2 == 0 and not failed2
             finally:

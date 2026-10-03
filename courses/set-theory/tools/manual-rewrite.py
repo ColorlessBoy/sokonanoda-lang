@@ -151,11 +151,12 @@ def rewrite_line(nl, lines, hit, nots):
     return new, f"{kind}:{sym}"
 
 
-def grade(nl, cand, line_idx):
+def grade(nl, cand, line_idx, rel=None):
     probe = cand[:decl_end(cand, line_idx)]
+    nl.CENSUS_SCRATCH.mkdir(parents=True, exist_ok=True)      # ⚠ 副件在 /tmp（**不进语料树** ✗）
     nl.CENSUS_PROBE.write_text("\n".join(probe) + "\n", encoding="utf-8")
     try:
-        rc, data = nl.census_grade(nl.CENSUS_PROBE)
+        rc, data = nl.census_grade(nl.CENSUS_PROBE, nl.module_root_for(rel) if rel else None)
         failed = data.get("failed") or []
         return (rc == 0 and not failed), ((failed[0].get("message", "") if failed else "")[:110])
     finally:
@@ -287,7 +288,7 @@ def main() -> int:
         new, note = rewrite_line(nl, lines, hit[0], nots)
         if new is None:
             res.append({**c, "verdict": "no-rewrite", "note": note}); continue
-        ok, msg = grade(nl, new, c["line"] - 1)
+        ok, msg = grade(nl, new, c["line"] - 1, c["file"])
         res.append({**c, "verdict": "green" if ok else "red", "diag": msg})
         print(f"  [{k}/{len(sample)}] {'绿 ✓' if ok else '红 ✗'} {c['file'].split('/')[-1]}:{c['line']} "
               f"· {note} · {c['rule'][:14]}" + ("" if ok else f"\n        {msg}"), flush=True)
