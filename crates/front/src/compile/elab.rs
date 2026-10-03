@@ -1964,8 +1964,14 @@ fn guarded_binder_type<'a>(
             if std::env::var_os("SOKO_SOLVE_STEP").is_some() {
                 eprintln!(
                     "SOLVE-STEP param={param:?} layer_domain={:?} operand_ty={:?}",
-                    format!("{:?}", layer.1).chars().take(110).collect::<String>(),
-                    format!("{:?}", actual).chars().take(110).collect::<String>()
+                    format!("{:?}", layer.1)
+                        .chars()
+                        .take(110)
+                        .collect::<String>(),
+                    format!("{:?}", actual)
+                        .chars()
+                        .take(110)
+                        .collect::<String>()
                 );
             }
             if let Some(found) = unify_extract(&layer.1, &actual, &param) {
