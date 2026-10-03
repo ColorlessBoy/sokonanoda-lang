@@ -36,3 +36,8 @@ theorem ch_independence_out_of_scope :
   sorry
 -- soko:hint 关键件：读评题 —— 证的是恒等命题。要理解的是：CH 既不能被 ZFC 证明、
 -- 也不能被否证；本课只做**陈述**与**展开**，独立性属卷 I 之外（大纲 §5 排期）。
+
+-- 练习 3（L 引理链）：把 `⊆` 与 `≼` 串起来（基数比较的常用一步）
+theorem le_of_subset_le (A B C : Set Nat) (hAB : A ⊆ B) (h : B ≼ C) : A ≼ C :=
+  sorry
+-- soko:hint 关键件：`Set.Le.of_subset`（`⊆` ⇒ `≼` ✓）与 `Set.Le.trans`（`≼` 传递 ✓）各用一次。
