@@ -51,6 +51,10 @@ function positionOf(text, needle, nth = 0) {
 }
 function startLsp() {
   const child = spawn(process.execPath, [SOKO, 'lsp'], { stdio: ['pipe', 'pipe', 'pipe'] });
+  // **LSP 的 stderr 必须转出来**（2026-10-03 ✓）：以前它被这条管道吃掉 ✗ ⇒ 服务端的
+  // 诊断输出（`SOKO_HOVER_TRACE` / `SOKO_POS_TRACE` 那些 ✓）**一条都看不见** ✗ ⇒
+  // 我为此误判过两次（"没输出"被读成"没走到" ✗）。转发后：**先能看见服务端的话，再谈结论** ✓。
+  child.stderr.on('data', (chunk) => process.stderr.write(chunk));
   let buffer = Buffer.alloc(0);
   const queue = [];
   const waiters = [];
@@ -158,15 +162,25 @@ async function responseFor(lsp, id) {
   for (const line of controlValue.split('\n')) console.log(`     | ${line}`);
   const controlHits = /A : Set/.test(controlValue);
   const covers = /A : Set/.test(value);
-  if (!controlHits) {
-    console.error('复现脚本自身出错：对照位置也说不出 `A : Set α` ⇒ 夹具/形状不对，');
-    console.error('                量到的不是位置映射。');
+  // **判据按 LSP `Position` 的 UTF-16 定义改过一次**（2026-10-03 ✓）：`character` 是 **UTF-16 码元** ✓，
+  // 不是 `char` ✗。修前服务端按 `char` 数 ⇒ `𝒫`（2 个码元）之后整行偏 1 ⇒ 那时"**列号减一**"才命中
+  // `A : Set α` ✗ —— 旧版把这个**偏位产物**当成了对照锚点 ✗，于是修好之后它反而判"缺口仍在" ✗。
+  // 正确判据：**目标列（真 UTF-16 列）必须命中** ✓ **且对照列不得命中** ✓（对照列落在 `𝒫` 的第二个
+  // 码元上 ⇒ 应当答外层表达式 ✓）。这是**纠正一个编码了 bug 的期望** ✓，不是为翻绿改期望 ✗。
+  if (covers && controlHits) {
+    console.error('复现脚本自身出错：目标列与对照列**都**命中 `A : Set α` ⇒ 量不出位置差异，');
+    console.error('                夹具/形状不对。');
     process.exit(2);
   }
   if (!covers) {
     console.error('结论：G-36 仍在——光标在 `𝒫` 之后的 `A` 上时，服务端按**字符数**算');
     console.error('      offset（`𝒫` 在 UTF-16 里是 2 个码元、在 Rust 里是 1 个 char）');
     console.error('      ⇒ 位置偏一格，hover 退化成"整行表达式"，说不出 `A : Set α`。');
+    process.exit(0);
+  }
+  if (controlHits) {
+    console.error('结论：G-36 部分仍在——目标列答对了 ✓，但**对照列**（真 UTF-16 列 −1，落在 `𝒫` 的');
+    console.error('      第二个码元上）**也**答 `A : Set α` ⇒ 映射仍偏，未按 UTF-16 计。');
     process.exit(0);
   }
   console.log('结论：G-36 已修——`𝒫` 之后的 UTF-16 位置映射正确。');
