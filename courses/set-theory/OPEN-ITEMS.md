@@ -381,3 +381,18 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 `lib Cardinal` **10 checked · 0 open · 0 判负** ✓，反向验证 **10 → 9 → 10** ✓）· `Type.Equiv.refl` ✓（`067321b5` ✓）。
 **形态规律累计** ✓（本 goal 实证 ✓）：① 绑定形态先落地成 λ ✓；② 内层 `∃` 拆具名引理 ✓；
 ③ 动机位 λ 体内**只能引用引理**、不内联嵌套 `∃` ✓；④ `Exists.elim` 动机**不写 `def` 头** ✗（且改成展开形态也无效 ✗）。
+
+## C-121（**open · 绕行 = 转单元侧** · 2026-10-03 S-B 第 49 轮）三库（Ordinal/ZF/Cardinal/Choice）**安全区已尽** ✗
+
+**本轮逐库盘点** ✓（判据 = 各库文件自述 + 签名实读 + 探针 ✓）：
+
+| 库 | 本轮新增 | 剩余项的性质 |
+|---|---|---|
+| `lib/Ordinal` ✓ | 6 条 ✓（`isSuccOf_parts` · `ordinal_elem_isOrdinal` · `ordinal_elem_elem_isOrdinal` · `isSuccOf_isOrdinal` · `isSuccOf_transitive` · `isSuccOf_elems_transitive`） | 已覆盖 ✓ 或 **C-118 族** ✗（对 `∧` 右支取件 ✓） |
+| `lib/ZF` ✓ | 2 条 ✓（`isEmpty_no_elem` · `isUnionOf_elim`） | 已覆盖 ✓（`isEmpty_intro`/`extensional_apply` 均在 ✓）或 **G-56** ✗（无 ∈-循环/无穷下降链 ✓） |
+| `lib/Cardinal` ✓ | 3 条 ✓（`of_inverses` · `Type.Equiv.refl` · `of_inverses'`） | **C-120 依赖** ✗ —— `Cardinal.mk_inj` 需 `Quot.exact` ✓，而它**要求 `Type.Equiv` 的自反/对称/传递三件** ✗（诊断原文给出签名 ✓），`symm`/`trans` 正是 C-120 ✗ |
+| `lib/Choice` ✓ | 0 条 ✗ | **G-58** ✗ —— 文件自述："从 `choice` 取函数要 `Exists.elim` 的数据版 ⇒ 撞 G-58 ⇒ 本版不做" ✓；`Zorn`/`wellOrdering`/基数可比性同理 ✗ |
+
+**绕行** ✓：**S-B 推进转单元侧** —— 给**已判绿的库引理配课内练习** ✓（与 `unit113` 练习 3–6 同一手法 ✓：探针先绿 → 整文件追加 → `audit-pairs` → `check.py --only` → 路径限定 commit → 反向验证 ✓）。
+**留档已判绿 10 项** ✓（别重做 ✓）：`lib/Ordinal` 6 ✓（反向链 16→15→16 / 17→16→17 / 18→17→18 / 19→18→19 / 20→19→20 / 21→20→21 ✓）·
+`lib/ZF` 2 ✓（12→11→12 / 13→12→13 ✓）· `lib/Cardinal` 3 ✓（9→7→9 / 10→9→10 ✓）。
