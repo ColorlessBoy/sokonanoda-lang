@@ -229,3 +229,10 @@ theorem Rel.comp_mono_right {A B C : Type} (r : Rel A B) (s s' : Rel B C)
 -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
 theorem Rel.inv_inv (A B : Type) (r : Rel A B) : Rel.inv B A (Rel.inv A B r) = r :=
   Eq.refl.{1} (Rel A B) r
+
+-- `r` 含于自己的传递闭包（S-B ✓ I.13）：`transClosure` 是 `∀ s, …` 形状 ⇒ **λ 落地**即可
+theorem Rel.subset_transClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.transClosure α r a b :=
+  fun (a : α) (b : α) (hab : r a b) =>
+    fun (s : Rel α α) (hst : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+        (hrs : ∀ (x : α) (y : α), r x y → s x y) => hrs a b hab
