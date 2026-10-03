@@ -1100,12 +1100,18 @@ pub(crate) fn position_to_offset(text: &str, position: Position) -> usize {
     let mut offset = 0usize;
     for (i, line) in text.lines().enumerate() {
         if i == position.line as usize {
-            let char_idx = text[offset..]
-                .char_indices()
-                .nth(position.character as usize)
-                .map(|(i, _)| i)
-                .unwrap_or(line.len());
-            return offset + char_idx.min(line.len());
+            // **G-36 的修（2026-10-03 ✓）**：LSP 的 `character` 是 **UTF-16 码元**偏移 ✓，
+            // 不是 `char` 计数 ✗ —— 星平面字符（`𝒫` ✓、emoji ✓）占 **2** 个码元 ✓。
+            // 旧实现用 `char_indices().nth(character)` ✗ ⇒ `𝒫` 之后整行偏 1 ✓
+            //（实测：`𝒫 A` 的 `A` 在 UTF-16 列 44 ✓，旧实现按第 44 个 `char` 取 ⇒ 落在空格上 ✗）。
+            let mut units = 0usize;
+            for (idx, ch) in line.char_indices() {
+                if units >= position.character as usize {
+                    return offset + idx;
+                }
+                units += ch.len_utf16();
+            }
+            return offset + line.len();
         }
         offset += line.len() + 1;
     }
