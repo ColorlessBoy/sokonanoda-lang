@@ -122,3 +122,12 @@ theorem isSuccOf_parts (α : Type) (E : α → α → Prop) (x y : α) (h : IsSu
     IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y) :=
   (fun (hp : IsSuccOf α E x y ↔ (IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y))) =>
     Iff.mp hp h) (isSuccOf_def α E x y)
+
+-- ── 序数的元素仍是序数（S-B 卷 I 深化 ✓；全部经已判绿的取件子 ✓，不经 `And.right` ✗）──
+theorem ordinal_elem_isOrdinal (α : Type) (E : α → α → Prop) (x z : α)
+    (hx : IsOrdinal α E x) (hz : E z x) : IsOrdinal α E z :=
+  isOrdinal_intro α E z
+    (ordinal_elems_isTransitive α E x hx z hz)
+    (fun (y : α) (hy : E y z) =>
+      ordinal_elems_isTransitive α E x hx y (ordinal_isTransitive α E x hx z hz y hy))
+    (ordinal_wellFounded α E x hx)
