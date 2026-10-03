@@ -212,6 +212,18 @@ pub(crate) fn bracket_hover(
     character: u32,
 ) -> Option<HoverResolved> {
     let offset = line_col_to_offset(text, line, character);
+    // **G-36 trace**（`SOKO_HOVER_TRACE=1` ✓，纯诊断）：看括号 hover 究竟拿到了哪个 offset ✓
+    //（上一轮"改了没效果"，就是因为不知道**是哪条分支**给出的响应 ✗）。
+    if std::env::var("SOKO_HOVER_TRACE").is_ok() {
+        let at = text[offset.min(text.len())..]
+            .chars()
+            .next()
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| "(eof)".into());
+        eprintln!(
+            "[hover] bracket_hover line={line} character={character} ⇒ offset={offset} 落点={at:?}"
+        );
+    }
     let (open, close) = matching_paren(text, offset)?;
     let group_span = Span::new(pos_at(text, open), pos_at(text, close + 1));
     // Binder 标注组：binder 行 span 恰好等于整组 span。
