@@ -160,3 +160,8 @@ theorem extensional_trans (α : Type) (E : α → α → Prop) (h : Extensional 
     (x y w : α) (hxy : ∀ (z : α), E z x ↔ E z y) (hyw : ∀ (z : α), E z y ↔ E z w) :
     x = w :=
   extensional_apply α E h x w (fun (z : α) => Iff.trans (hxy z) (hyw z))
+
+-- 空集的**整条**取件子（S-B ✓）：`∀ y, ¬ E y x`（λ 落地 + `isEmpty_def` 的 `Iff.mp` ✓ 与 `isEmpty_no_elem` 同形 ✓）
+theorem isEmpty_elim (α : Type) (E : α → α → Prop) (x : α) (h : IsEmpty α E x) :
+    ∀ (y : α), ¬ (E y x) :=
+  (fun (hp : ∀ (y : α), ¬ (E y x)) => hp) (Iff.mp (isEmpty_def α E x) h)
