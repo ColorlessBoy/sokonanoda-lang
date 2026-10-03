@@ -314,6 +314,17 @@ impl<'a> MetaCtx<'a> {
         if self.first_err.is_none() {
             self.first_err = Some(MetaErr::Clash);
         }
+        // **G-63 第一刀：纯诊断 ✓（判定路径一字未动 ✗）**。台账 G-63 的 2026-10-02 诊断点名
+        // 这是"下一步最便宜"的一步 ✓：先钉死**两条线索到底给出了哪两个落地项** ✓，
+        // 再决定修法（候选：冲突前对两侧都做 delta 归一 / 赋值时优先取折叠形态 ✓）。
+        // 只在 `SOKO_CLASH_TRACE=1` 下打 stderr ✓ —— 默认零输出、零行为变化 ✓。
+        if std::env::var("SOKO_CLASH_TRACE").is_ok() {
+            eprintln!(
+                "[clash] 左={} ｜ 右={}",
+                crate::proof::render_expr(&l),
+                crate::proof::render_expr(&r)
+            );
+        }
         Tri::No
     }
 
