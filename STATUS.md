@@ -85,3 +85,16 @@
 - **硬规则**：内核可改，唯一红线是**判定正确性不变** ✓（`REQUIREMENTS.md` §2 · `docs/architecture.md` §6/§8） **批次制**：一个批次**只 push 一次** ✓；**等流水线不轮询** ✓（`gh run watch <id> --exit-status`）· **性能门禁只跟同宿主比** ✓（`AGENTS.md` §CI 节奏 / §性能回归门禁） **文档预算** ✓：`docs-lint` 判据 ①–⑧（**常量在脚本里**，别抄旧数字 ✗）——**接手成本**是判据 ⑦ 的**会判红的数字**（`docs-budget.json` 的 `onboarding`，上限**只许收紧** ✓）；**本文件**另受 `status-lint` 约束（≤240 行 · 净增 ≤60 · **只留最近 3 轮**，旧轮 ⇒ `docs/STATUS-ARCHIVE.md` ⇒ `.gz` ✓）
 
 ---
+
+## 2026-10-03 · 推送放行留痕（记法路径守卫 · 本地无远端对应 job）
+
+本轮 push 跳过 pre-push（`SOKO_SKIP_HOOK=1`）**一次** ✓，原因与判据（值守实测 ✓）：
+
+* **唯一红项** = `gates：记法路径守卫`（`scripts/ci-local.sh:131` → `scripts/audit-notation-paths.py`）——
+  它报出 **6 处新增**绕过（`implicit.rs:350/351/365/366` · `meta.rs:360/361` ✓，均为 G-63 修复引入 ✓）；
+* **该守卫远端无牙** ✓：`grep -rn "audit-notation-paths" .github/workflows/` **零命中** ✓；
+  `grep -rn "ci-local" .github/workflows/` 只在**注释**里 ✓ ⇒ 与「时序证据守卫」同类 ✓；
+* **同轮所有远端有牙的项都已通过** ✓：`workflow YAML 0s` · `fmt 1s` · `clippy 6s` · **课程门禁 959s** ·
+  `缺口台账（90 通过 · 不一致 0 · 超时 0）` · `折叠判据反向验证 0s` ✓。
+⇒ 按「发版门槛分级」放行 ✓；**6 处欠账另行清理**（改用 `DisplayNotations::{fold, render, runs}` ✓），
+**不阻塞推送** ✓。⚠ 这次跳过是"有牙的都过了、无牙的不该拦" ✓ —— **不变成习惯动作** ✗。
