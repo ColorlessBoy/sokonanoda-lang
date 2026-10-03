@@ -38,9 +38,9 @@ theorem sUnion_union (α : Type) (F G : Set (Set α)) :
                 Or.inl (x ∈ ⋃₀ F) (x ∈ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
                   (Set.mem_sUnion_intro α F A x hF hxA))
               (fun (hG : A ∈ G) =>
-                Or.inr (x ∈ ⋃₀ F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+                Or.inr (x ∈ ⋃₀ F) (x ∈ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
                   (Set.mem_sUnion_intro α G A x hG hxA)) hA))
-      (fun (h : x ∈ ⋃₀ F ∪ Set.sUnion α G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+      (fun (h : x ∈ ⋃₀ F ∪ ⋃₀ G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
         Or.elim (x ∈ ⋃₀ F) (x ∈ Set.sUnion α G) (x ∈ Set.sUnion α (F ∪ G))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
           (fun (hF : x ∈ ⋃₀ F) =>
             Set.mem_sUnion_elim α F x (x ∈ ⋃₀ (F ∪ G)) hF
