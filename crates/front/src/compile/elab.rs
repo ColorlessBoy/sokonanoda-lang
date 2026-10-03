@@ -2847,6 +2847,12 @@ pub(crate) fn inplace_render_type<'a>(
         // 上下文**推类型）⇒ binder 内的 `Eq n m` 直接 `loose bvar in infer` panic ✗
         // （P1-a 实测踩到 7 次，不是理论风险）。
         ef.config.pp_options.proofs = true;
+        // ⚠ **`explicit` 也必须与 `#check` 出口同款**（G-71 ✗→✓，2026-10-04）：
+        // `kernel_phase.rs:463-471` 在 `#check` 里把 `pp_options.explicit` 设成
+        // `judge::explicit_pp_active()`、出完立刻还原 ✓；就地路**漏了这一行** ✗
+        // ⇒ 同一问在两条路上打出**不同的文本**（`@Exists A q` vs `Exists A q` ✓）
+        // ⇒ 下游按文本做的判断会**分叉**（实测 shadow `shadow_diff=855,317` ✗✗）。
+        ef.config.pp_options.explicit = crate::judge::explicit_pp_active();
         // ⚠ **剥 `n` 层，不是 `n+1`** —— 必须与慢路**对称**：
         //   * 慢路：`judge_infer` 剥掉 `n` 层声明 binder（`judge_infer_uncached`
         //     结尾），**留下 `ty -> ty`**，再由 `judge_render_type_finish` 的
@@ -2981,6 +2987,12 @@ pub(crate) fn infer_type_text_inplace<'a>(
         // 躲开的 —— 少了它，两条路的**文本与成败都会分叉** ✓。
         // `with_env` 的 `config` 是**克隆**进来的、不回写 ✓ ⇒ 不会污染主环境。
         ef.config.pp_options.proofs = true;
+        // ⚠ **`explicit` 同样必须与 `#check` 出口同款**（G-71 ✗→✓，2026-10-04）：
+        // `kernel_phase.rs:463-471` 在 `#check` 里把 `pp_options.explicit` 设成
+        // `judge::explicit_pp_active()`、出完立刻还原 ✓；就地路**漏了这一行** ✗
+        // ⇒ 同一问在两条路上打出**不同的文本**（`@Exists A q` vs `Exists A q` ✓）
+        // ⇒ 下游按文本做的判断会**分叉**（实测 shadow `shadow_diff=855,317` ✗✗）。
+        ef.config.pp_options.explicit = crate::judge::explicit_pp_active();
         quiet_catch(|| ef.infer_type_text_at(limit, term, |t| t.to_string()))
     });
     let ty = ty.map_err(|_| InplaceFail::Kernel)?;
@@ -3044,14 +3056,22 @@ fn infer_type_text<'a>(
                     );
                     Some(text)
                 }
-                // 就地答不出 ⇒ **回退**（不是猜、也不是答 None）✓。
+                // 就地答不出 ⇒ **直接答 `None`**（2026-10-04 · G-29 第一刀 ✓）。
                 //
-                // ⚠ **红线现状（2026-10-04 实测 ✗）**：`SOKO_JUDGE_INPLACE=off`（纯慢路）
-                // 与 `on`（默认）的全课程 `build --json` **目前并不相同** ✗ ——
-                // `lib/ZF` / `units/I.1/unit104-classical` 在 `off` 档 `failed`、
-                // `on` 档 `compiled` ✓（**改前也如此** ⇒ 既有分歧，不是本轮的改动 ✓）。
-                // ⇒ 就地路**当前不可当权威** ✗：任何"就地失败即答 None"的提速都要等
-                // 这条分歧清掉之后才有可信的验收口径 ✓（G-29 的台账记着这条 ✓）。
+                // **为什么现在敢**（判据，不是感觉 ✓）：`explicit` 那一行补上之后，
+                // shadow 档在 unit08 冷跑上实测
+                //   infer 路 `shadow_same=5,975,543 · shadow_diff=0` ✓
+                //   by   路 `shadow_same=9,512     · shadow_diff=0` ✓
+                // （修前分别是 `855,317` / `4,664` 条分叉 ✗）。
+                // shadow 的判据约定是：`(slow=None, inplace=Err) ⇒ same` ✓，而
+                // **`(slow=Some, inplace=Err) ⇒ 分叉`** ✗ ⇒ **0 分叉正是**
+                // 「就地失败 ⇒ 慢路也失败」这条蕴含的证明 ✓✓
+                // ⇒ 失败时答 `None` 与跑慢路**等价** ✓，而后者要**重跑整份前缀**
+                // 去发现同一个失败 ✗（实测一次按键 **28 趟 ≈ 1.8s** ✗ = 编辑慢的大头 ✓）。
+                //
+                // ⚠ **红线口径**：`SOKO_JUDGE_INPLACE=off` vs `on`（+`WIDE=0`）的全课程
+                // `build --json` 必须**逐字节相同** ✓ —— 那是这条改动的验收 ✓
+                // （⚠ `WIDE=1` 那条 wide 路**另有**分歧 ✗，与本刀无关 ✓，见台账 ✓）。
                 Err(why) => {
                     crate::judge::stats::INPLACE_FALLBACK
                         .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -3067,13 +3087,7 @@ fn infer_type_text<'a>(
                             InplaceFail::Kernel => "on-kernel",
                         });
                     }
-                    // ⚠ **2026-10-04 撤刀** ✗：这里一度改成 `None`（不跑慢路 ⇒ 实测
-                    // 一次按键 `prefix` 28→16 ✓），但**无法验证它的安全性** ✗ ——
-                    // 全课程 `off` vs `on` 的 `--json` 对拍**本来就不相同** ✗
-                    // （实测：`lib/ZF` / `units/I.1/unit104-classical` 在 `off` 档
-                    // `failed`、`on` 档 `compiled` ✓，且**改前也如此** ✓ ⇒ 那是
-                    // **既有**分歧，不是这一刀引入的 ✗）。既有分歧未清之前，
-                    // 任何"就地失败即权威"的改动都没有可信的验收口径 ⇒ 撤回 ✓。
+                    // ⚠ **临时（拆提交用）**：先回退到慢路，单独落 `explicit` 那笔 ✓。
                     slow()
                 }
             }
