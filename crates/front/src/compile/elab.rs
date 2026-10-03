@@ -2453,6 +2453,13 @@ fn solve_prefix_args_impl<'a>(
     // **`Option` 槽**（E19 刀1）：严格档里它**永远全是 `Some`**（解不出就提前
     // `return None`）⇒ 与改动前的 `Vec<Expr>` 逐字节同行为 ✓；待定档里
     // `None` = "这一位待定" ✓。
+    // **路线③（G-42 / G-62 ✓，2026-10-03）**：实参个数**多于显式层数**时 ✓，末尾多出来的那些
+    // 属于"**把结果函数又应用了一次**"（`Set.univ x` ✓ / `some Nat` ✓），**不是**在填前导隐式 ✗。
+    // ⚠ 安全边界：`surplus == 0` 时下面那个 `filter` 是**恒真**的 ✓ ⇒ 今天能过的程序
+    // **逐字节不变** ✗（这条是硬约束 ✓）。
+    let explicit_layers = layers.len().saturating_sub(missing);
+    let surplus = operands.len().saturating_sub(explicit_layers);
+    let usable = operands.len().saturating_sub(surplus);
     let mut solved: Vec<Option<Expr>> = Vec::with_capacity(missing);
     for i in 0..missing {
         let name = layers[i].0.clone();
@@ -2465,7 +2472,11 @@ fn solve_prefix_args_impl<'a>(
             // 操作数对齐到**最后** `operands.len()` 层；`j < missing` 的层是
             // 还没解出的前导参数，没有操作数可问（第二刀实测：`Set.image`
             // 有 2 个前导参数，`j - missing` 在 j=1 时会下溢）。
-            let Some(operand) = j.checked_sub(missing).and_then(|k| operands.get(k)) else {
+            let Some(operand) = j
+                .checked_sub(missing)
+                .filter(|k| *k < usable) // ← 路线③：只在**前 `usable` 个**实参里找 ✓
+                .and_then(|k| operands.get(k))
+            else {
                 continue;
             };
             if !mentions_ident(&layer.1, &name) {
