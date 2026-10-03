@@ -2118,10 +2118,17 @@ function cliPathExportLine() {
 
 function loginProfiles() {
   const home = os.homedir();
-  const candidates = [path.join(home, ".zprofile")];
-  const bashProfile = path.join(home, ".bash_profile");
-  candidates.push(fs.existsSync(bashProfile) ? bashProfile : path.join(home, ".profile"));
-  return candidates;
+  // **G-84（2026-10-03 ✓）**：**每个登录 shell 家族都要写** ✓ —— 旧实现只写
+  // `.zprofile` ✓ + **二者择一**的 bash 档（`.bash_profile` 存在就写它 ✓，否则 `.profile` ✓）✗。
+  // 而 **bash 登录时只读第一个存在的**：`.bash_profile` → `.bash_login` → `.profile` ✓
+  // ⇒ 若家目录里**已有一个空的 `.bash_profile`** ✗，我们写进 `.profile` 的那行**永远不会被读到** ✗
+  //（CI 上实测：`bash -lc 'command -v sokonanoda'` = 空 ✗，且它看到的 PATH 是 runner 默认值 ✗）。
+  // ⇒ 三个都写 ✓（幂等 ✓、带标记 ✓，重复跑不会重复追加 ✓）；对用户是安全的：多一个文件不改变既有行为 ✓。
+  return [
+    path.join(home, ".zprofile"),
+    path.join(home, ".bash_profile"),
+    path.join(home, ".profile"),
+  ];
 }
 
 /// 返回**人话**（写进了哪、或该自己加哪一行）—— 提示文案直接用它，保证句句为真 ✓
