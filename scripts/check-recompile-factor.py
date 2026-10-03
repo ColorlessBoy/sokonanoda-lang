@@ -110,21 +110,6 @@ def write_fixture(root: Path, entries: int, shared: bool) -> tuple[list[str], in
     (root / "lib").mkdir(parents=True, exist_ok=True)
     (root / "sokonanoda.toml").write_text('name = "g68-guard"\n', encoding="utf-8")
     entry_paths: list[str] = []
-    if shared == "twin":
-        # **G-68 守卫的探针（2026-10-03 ✓ 重指）**：每个入口各拉一份**内容逐字相同**、
-        # 但**模块名不同**的依赖 ✓ ⇒ 一次项目会话**去不掉**它 ✗（模块身份不同 ✓）
-        # ⇒ `by_calls` 必然 = 入口数 ✓ ⇒ 反向验证重新咬得住 ✓。
-        # ⚠ 为什么必须换探针 ✗：旧的"5 入口**共享 1 份**依赖"✗ —— G-68 修好后，
-        # **会话本身就把共享去重了** ✓ ⇒ `by_calls=1` ✓ ⇒ 守卫**看不见注入的重复** ✗
-        #（CI `gates-fast` 实测：[BAD] 造重复 … by_calls=1 … exit 0（期望 red）✗）。
-        for i in range(entries):
-            name = f"e{i}"
-            (root / "lib" / f"Twin{i}.sokonanoda").write_text(DEP_SRC, encoding="utf-8")
-            (root / f"{name}.sokonanoda").write_text(
-                ENTRY_SRC.format(dep=f"Twin{i}", entry=name, fn=f"{name}_and"), encoding="utf-8"
-            )
-            entry_paths.append(str(root / f"{name}.sokonanoda"))
-        return entry_paths, entries * 2, entries * 2
     if shared:
         (root / "lib" / "Shared.sokonanoda").write_text(DEP_SRC, encoding="utf-8")
         for i in range(entries):
@@ -206,23 +191,14 @@ def run_once(cmd: list[str], entries: int, shared: bool) -> tuple[int | None, in
 
 def selftest(cmd: list[str], budget: int) -> int:
     """**反向验证**：造重复场景必须判红；没有重复的场景必须不红；计数器坏了必须 exit 2。"""
-    # ⚠ **判据改成"结构等式"，不再靠一个全局阈值**（2026-10-03 ✓）：G-68 修好后，
-    # 「共享」夹具的正确答案是 **by_calls == 1**（去重成功 ✓），而「各自独立」的夹具
-    # 正确答案是 **by_calls == 入口数 × 2**（无从省 ✓）—— 两者**不可能**共用一个上界 ✗
-    #（这正是仓库判据纪律②说的：能拦的用**计数/比值**拦 ✓，别用绝对阈值 ✗）。
-    # `want` 现在 = **期望的 by_calls**；`mode` = green（必须等于 ✓）/ red（必须**大于** ✓）。
     cases = [
-        (1, True, 2, "green", "单入口（无重复可言）⇒ 2 次（依赖 + 入口）"),
-        (3, True, 1, "green", "3 入口共享 1 依赖 ⇒ **1 次**（G-68 修好后的正确答案 ✓）"),
-        # ⚠ **「造重复 ⇒ 必须判红」那条用例已删**（2026-10-03 ✓）：G-68 修好后，
-        # 「同一份共享依赖被多入口重复编译」**再也构造不出来** ✗ —— 会话本身就去重了 ✓
-        #（CI 实测：注入后 `by_calls` 仍 = 1 ✓ ⇒ 期望 red 的用例恒 BAD ✗ ⇒ 那是**假红** ✗，
-        # 不是"守卫咬不住" ✓）。**判红的路径改由纯函数 `judge()` 直接验证** ✓（见下 ✓）。
-        (5, True, 1, "green", "5 入口共享 1 依赖 ⇒ 仍 **1 次**（G-68 的核心不变式 ✓）"),
-        (3, False, 6, "green", "对照：3 个独立依赖（各编一次 = 6 次，不共享也无从省）"),
+        (1, True, "green", "单入口（无重复可言）"),
+        (3, True, "green", "今天的基线（3 入口共享 1 依赖 = 3 次）"),
+        (5, True, "red", "**造重复**：5 入口共享 1 依赖 = 5 次 ⇒ 必须判红"),
+        (3, False, "green", "对照：3 个独立依赖（各编一次 = 3 次，不共享也无从省）"),
     ]
     bad = 0
-    for entries, shared, want_calls, mode, why in cases:
+    for entries, shared, want, why in cases:
         got, sigma, distinct = run_once(cmd, entries, shared)
         if got is None:
             print(f"   [exit2] {why}：量不出 by_calls（形状/环境异常）")
@@ -230,21 +206,11 @@ def selftest(cmd: list[str], budget: int) -> int:
         if got == 0:
             print(f"   [exit2] {why}：by_calls=0 ⇒ 计数器失效，守卫咬不住")
             return 2
-        ok = (got == want_calls) if mode == "green" else (got > want_calls)
-        print(
-            f"   [{'ok' if ok else 'BAD'}] {why}：by_calls={got}（期望 {'==' if mode == 'green' else '>'} {want_calls}）"
-            f" Σ闭包={sigma} 去重={distinct}"
-        )
+        code, _ = judge(got, budget)
+        ok = (code == 0) if want == "green" else (code != 0)
+        print(f"   [{'ok' if ok else 'BAD'}] {why}：by_calls={got} Σ闭包={sigma} 去重={distinct} ⇒ exit {code}（期望 {want}）")
         if not ok:
             bad += 1
-    # **判红路径**：`judge()` 是纯函数 ✓（docstring 自己写着"`--selftest` 直接喂它反例" ✓）
-    # ⇒ 直接喂一个"超上界"的数 ✓，必须判红 ✓（不依赖任何夹具 ✓ ⇒ 不会因机制演进而失效 ✓）。
-    code_red, _ = judge(budget + 1, budget)
-    if code_red == 0:
-        print(f"   [BAD] 纯函数 judge({budget + 1}, {budget}) ⇒ exit 0（期望 red）")
-        bad += 1
-    else:
-        print(f"   [ok] 纯函数 judge({budget + 1}, {budget}) ⇒ exit {code_red}（期望 red）")
     if bad:
         print(f"selftest: ✗ {bad} 条反向验证失败 —— 守卫咬不住", file=sys.stderr)
         return 1

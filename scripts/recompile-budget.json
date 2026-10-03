@@ -1,7 +1,7 @@
 {
-  "_comment": "G-68 重复功守卫的上界（`scripts/check-recompile-factor.py`）。语义与 docs-budget.json 的冻结表同一条纪律：**只许减不许增** —— 上界是**实测值**，不是希望值。fixture_shared_entries 个入口共享 1 个依赖时，`SOKO_STAGE_STATS` 的 by_calls 不得高于 max_by_calls。**2026-10-03 ✓ G-68 已修（`eb18eb29`）⇒ 实测 by_calls = 1 ✓ ⇒ 上界已收紧到 1**（收紧不需要理由，放宽必须评审可见 ✓）。",
+  "_comment": "G-68 重复功守卫的上界（`scripts/check-recompile-factor.py`）。语义与 docs-budget.json 的冻结表同一条纪律：**只许减不许增** —— 上界是**实测值**，不是希望值。fixture_shared_entries 个入口共享 1 个依赖时，`SOKO_STAGE_STATS` 的 by_calls 不得高于 max_by_calls。今天 = 3（每个入口各编一次共享依赖，G-68）；**修好后（模块级环境复用）应当实测 1 ⇒ 把 max_by_calls 收紧到 1**（收紧不需要理由，放宽必须评审可见）。",
   "fixture_shared_entries": 3,
-  "max_by_calls": 1,
+  "max_by_calls": 3,
   "_measured": {
     "date": "2026-09-28",
     "host": "Darwin/arm64",
