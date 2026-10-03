@@ -891,3 +891,191 @@ fn build_a_directory_with_a_library_chain_compiles_them_all() {
         "L1 + L2 + 2 个入口都应编译（0 hit）：{summary}"
     );
 }
+
+/// 从一份 `build --json` 输出里取出**属于某个入口的报告事件**（`build.decl` / `build.file`），
+/// 并把路径归一成**文件名**（逐入口路径报 `E0.sokonanoda`、复用路径报 `./E0.sokonanoda`）。
+///
+/// 刻意**只取这两类**：`build.progress` 报的是"第几个模块编完了"，在复用路径里
+/// **本来就该变少**（那是 G-68 要的）⇒ 拿它比会把"修好了"判成红 ✗。
+fn entry_report_events(text: &str, entry: &str) -> Vec<String> {
+    let bare = format!("\"{entry}\"");
+    let dotted = format!("\"./{entry}\"");
+    text.lines()
+        .filter_map(|line| {
+            let event: serde_json::Value = serde_json::from_str(line).ok()?;
+            if !matches!(event["type"].as_str()?, "build.decl" | "build.file") {
+                return None;
+            }
+            let file = Path::new(event["file"].as_str()?).file_name()?.to_str()?;
+            (file == entry).then(|| line.replace(&dotted, &bare))
+        })
+        .collect()
+}
+
+/// 某个入口在这份输出里被报成了什么状态（`build.file` 的 `status`）。
+fn entry_status(text: &str, entry: &str) -> Option<String> {
+    text.lines()
+        .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+        .find(|event| {
+            event["type"] == "build.file"
+                && event["file"]
+                    .as_str()
+                    .and_then(|file| Path::new(file).file_name())
+                    .and_then(|name| name.to_str())
+                    == Some(entry)
+        })
+        .and_then(|event| event["status"].as_str().map(str::to_owned))
+}
+
+/// **§5 判据（`docs/design/module-artifacts.md` §5 第 3 条：「`--json` 逐字节不变」）**：
+/// **复用路径**（一次 `build --json <dir>`，多入口进同一条项目会话 ⇒ 共享依赖可被复用）
+/// 与**逐入口路径**（每个入口各跑一次 `build --json <entry>`）必须对**每个入口**报出
+/// **逐字节相同**的报告事件。
+///
+/// **为什么这条必须有**（2026-10-03 半天白干的根因）：会话化那一刀让重复功掉下来了
+/// （`by_calls` 3 → 1 ✓），代价却是**报告归错了入口** ✗ —— `Main.sokonanoda` 该
+/// `compiled` 却报 `failed` ✗，而当时 `imports.rs` 里只有 `failed:0` / `compiled:4`
+/// 两条**计数**断言 ⇒ **全绿** ✗，一路走到收口才发现 ⇒ 5 笔全撤。AGENTS.md：
+/// **「咬不住的守卫等于没有」** ⇒ 本用例把"归错"变成可判红的：**逐入口比对报告事件序列**。
+///
+/// **反向验证（两向）**：本用例在 `ceb2d49c`（被撤回的那一刀）上**判红** ✓、
+/// 在 `c37c0434`（撤回后）与本轮修复后**判绿** ✓ —— 读数记在 G-68 的 `today`。
+/// ⚠ 形状是**量出来的**，不是猜的：下面形状①是唯一能咬住那个 bug 的形状 ✗✓
+/// （多一个 import 同一份库的入口就把它**掩盖**掉 —— `shared` 计数被抬到 2 了）。
+///
+/// ⚠ **每个逐入口运行用各自的根目录**，不许共用：项目产物落在**模块根**
+/// `<root>/.sokonanoda/compiled/`，它**不受 `SOKONANODA_CACHE_DIR` 控制** —— 共用根的话
+/// 先跑的入口会把"按入口闭包"的条目写进共享根 ⇒ 后面的运行全报 `hit` ⇒ 判据失真
+/// （2026-10-03 实测踩过 ✗）。修成模块级产物之后，共用根还会让**逐入口路径自己也复用**
+/// ⇒ 两条路都变短，判据就比不出东西了。
+#[test]
+fn a_batched_build_reports_every_entry_exactly_like_a_single_entry_build() {
+    // 形状①：**一个"自己没有 import"的库文件被入口 import**。
+    // 这就是 `ceb2d49c` 死掉的形状：那个库文件**没有自己的 plan** ⇒ 会话接线按 plan 数
+    // 统计"共享"，把它漏了（计成 1）⇒ 它落进入口的单元里 ⇒ 入口那趟从"长度 1"变成
+    // "长度 2"，而 `session.rs:130` 只把**最后一格**前缀交给那趟 ⇒ 库文件拿到入口的
+    // 前缀 ⇒ 凭空报错 ⇒ 入口报 `failed` ✗。
+    let single_importer: &[(&str, &str)] = &[
+        ("proj/sokonanoda.toml", "name = \"proj\"\nsrc = \".\"\n"),
+        (
+            "proj/Lib/And.sokonanoda",
+            "axiom And : Prop -> Prop -> Prop\n",
+        ),
+        (
+            "proj/Main.sokonanoda",
+            "import Lib.And\n\ndef use : Prop -> Prop -> Prop := And\n",
+        ),
+        ("proj/Broken.sokonanoda", "def broken : Nat := )\n"),
+    ];
+    // 形状②：同一份库被**两个**入口 import（+ 一个自带诊断的入口）。
+    // ⚠ 它**单独咬不住**形状①那个 bug（`shared` 被抬到 2 ⇒ 掩盖 ✗）—— 留着是为了
+    // 覆盖"真共享"这一档：复用路径真的复用起来之后，报告仍然必须一样。
+    let two_importers: &[(&str, &str)] = &[
+        ("proj/sokonanoda.toml", "name = \"proj\"\nsrc = \".\"\n"),
+        (
+            "proj/Lib/And.sokonanoda",
+            "axiom And : Prop -> Prop -> Prop\n",
+        ),
+        (
+            "proj/Main.sokonanoda",
+            "import Lib.And\n\ndef use : Prop -> Prop -> Prop := And\n",
+        ),
+        (
+            "proj/Other.sokonanoda",
+            "import Lib.And\n\ndef use2 : Prop -> Prop -> Prop := And\n",
+        ),
+        ("proj/Broken.sokonanoda", "def broken : Nat := )\n"),
+    ];
+    // 形状③：库链 + 一个**自带诊断**的入口（诊断必须只落在它自己头上）。
+    let chain: &[(&str, &str)] = &[
+        ("proj/sokonanoda.toml", "name = \"proj\"\nsrc = \".\"\n"),
+        ("proj/L1.sokonanoda", "def base : Nat := 1\n"),
+        ("proj/L2.sokonanoda", "import L1\ndef mid : Nat := base\n"),
+        ("proj/E0.sokonanoda", "import L2\ndef e0 : Nat := mid\n"),
+        ("proj/E1.sokonanoda", "import L2\ndef e1 : Nat := mid\n"),
+        // `bad` 是 `Nat` 位上的一个 `Prop` ⇒ 这个入口必判红。
+        (
+            "proj/E2.sokonanoda",
+            "import L2\ndef e2 : Nat := mid\ndef bad : Nat := Prop\n",
+        ),
+    ];
+
+    for (tag, fixture) in [
+        ("single-importer", single_importer),
+        ("two-importers", two_importers),
+        ("chain", chain),
+    ] {
+        let entries: Vec<&str> = fixture
+            .iter()
+            .map(|(path, _)| *path)
+            .filter(|path| path.ends_with(".sokonanoda"))
+            .collect();
+
+        // ── 路径 A：逐入口（每个入口一个**全新的根** ⇒ 每次都是真冷编）────────
+        let mut solo: Vec<(String, String)> = Vec::new();
+        for entry in &entries {
+            let dir = tmp_dir(&format!("report-parity-{tag}-solo-{entry}"));
+            for (path, text) in fixture {
+                write(&dir, path, text);
+            }
+            let out = run(&dir, &["build", "--json", entry], None);
+            assert!(
+                out.status.success(),
+                "[{tag}] 逐入口路径 {entry} 应跑得动：{}",
+                stderr(&out)
+            );
+            solo.push(((*entry).to_owned(), stdout(&out)));
+        }
+
+        // ── 路径 B：复用（一次 `build --json proj`，所有入口同一个根、同一个缓存）──
+        let batch_dir = tmp_dir(&format!("report-parity-{tag}-batch"));
+        for (path, text) in fixture {
+            write(&batch_dir, path, text);
+        }
+        let batch = run(&batch_dir, &["build", "--json", "proj"], None);
+        assert!(
+            batch.status.success(),
+            "[{tag}] 复用路径应跑得动：{}",
+            stderr(&batch)
+        );
+        let batched = stdout(&batch);
+
+        // 夹具前提（否则这条测试是空的）：只有 `Broken`/`E2` 该判红，其余全判绿。
+        for entry in &entries {
+            let name = Path::new(entry)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .expect("entry file name");
+            let expected = if name == "Broken.sokonanoda" || name == "E2.sokonanoda" {
+                "failed"
+            } else {
+                "compiled"
+            };
+            assert_eq!(
+                entry_status(&batched, name).as_deref(),
+                Some(expected),
+                "[{tag}] 夹具前提：{name} 在复用路径里必须 {expected}：{batched}"
+            );
+        }
+
+        // ── 判据：逐入口的报告事件（`build.decl` + `build.file`）逐字节相同 ──────
+        for (entry, solo_text) in &solo {
+            let name = Path::new(entry)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .expect("entry file name");
+            let expected = entry_report_events(solo_text, name);
+            let got = entry_report_events(&batched, name);
+            assert!(
+                !expected.is_empty(),
+                "[{tag}] 夹具前提：逐入口路径里 {name} 必须有报告事件：{solo_text}"
+            );
+            assert_eq!(
+                expected, got,
+                "\n[{tag}] 复用路径与逐入口路径对 {name} 的报告必须逐字节相同\n\
+                 （左 = 逐入口路径，右 = 复用路径；差一条就是事件归错了入口）\n\
+                 —— 复用路径全文：\n{batched}"
+            );
+        }
+    }
+}
