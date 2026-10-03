@@ -172,3 +172,8 @@ theorem isZero_wellFounded (α : Type) (E : α → α → Prop) (x : α)
 theorem isZero_transitive (α : Type) (E : α → α → Prop) (x : α)
     (h : IsZero α E x) : IsTransitive α E x :=
   ordinal_isTransitive α E x (zero_isOrdinal α E x h)
+
+-- 零序数的元素（**不存在** ✓）：从假前提出发，`False.elim` 要把目标写全 ✓
+theorem isZero_elems_transitive (α : Type) (E : α → α → Prop) (x z : α)
+    (h : IsZero α E x) (hz : E z x) : IsTransitive α E z :=
+  False.elim (IsTransitive α E z) (zero_no_elem α E x h z hz)
