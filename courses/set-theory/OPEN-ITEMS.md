@@ -413,3 +413,25 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **拆两条蕴含**后 ✗（`第 7 个绑元`）⇒ 手册那条"`↔`+`¬` 拆蕴含"的绕法**对 `Or` 无效** ✗ ⇒ G-73 家族 ⇒ 内核侧 ✓。
 **绕行** ✓：**S-B 转下一章** —— I.9 集族广义积 ✓ / I.10 商 ✓ / I.11 集合代数 ✓ / I.12 幂集函数空间 ✓ / I.13 关系代数 ✓（同法：先查重 ✓ → 探针 ✓ → 落盘 ✓ → 反向验证 ✓）。
 **留档已判绿 13 项** ✓（别重做 ✓）：库引理 10 ✓（反向链见 C-121 ✓）· 单元练习 4 道 ✓（unit19 `le_mono`/`le_mono_right` ✓ · unit18 `union_elim`/`union_intro` ✓ —— **均为"撤即判红"** ✓）。
+
+## C-123（**open · 绕行 = 换靶** · 2026-10-03 S-B 第 89 轮）`lib/Rel` 两条**深水区**条目 ✗
+
+**① `Rel.inv_comp_apply`**（逆与复合交换的**点式**版 ✓ `(r • s) ⁻¹ c a ↔ (s ⁻¹ • r ⁻¹) c a`）—— **两版全红** ✗：
+
+| # | 写法 | 读数 |
+|---|---|---|
+| 1 | `Iff.intro`，`h` 注解写**展开形**（`Rel.comp r s a c`） | ✗ 诊断落在**绑定元**（`第 5 个绑元`） |
+| 2 | **多一层 λ 落地**（`h` 注解照抄目标侧 `Rel.inv …`，再落成展开形才 `Exists.elim`） | ✗ **同一条报文** ⇒ 换落地层次**无效** |
+
+**② `Rel.transClosure_trans`**（闭包自身的传递性）—— **循环** ✗（本轮分析 ✓，未试探针）：
+`transClosure α r a b` 定义上就是 `∀ s, (传递) → (r ⊆ s) → s a b` ✓（第 84 轮实测 ✓）
+⇒ `transClosure_elim` 的三件里，①"`s` 的传递性"取 `s := transClosure r` 时**正是待证命题** ✗；
+换经典技巧（`s := fun a b => transClosure r b z → transClosure r a z`）后**最后一环仍是同一命题** ✗
+⇒ 需**不动点论证** ⇒ 深水区 ✗。
+
+**归属** ✓：**G-73 家族**（与 C-118/C-119/C-120/C-122 同源）⇒ 内核侧 ✓。
+**绕行** ✓：**换靶**到浅水区 —— `lib/SUnion` 的 `sInter_univ` 一族 ✓（`def` 头 ✓ 无 `Or` ✓ 无嵌套 ∃ ✓）·
+`lib/Ordinal` 的 `IsSuccOf` 余项 ✓。
+**留档已判绿 21 项** ✓（别重做 ✓）：库引理 18 ✓（`lib/Ordinal` 6 ✓ · `lib/ZF` 2 ✓ · `lib/Cardinal` 3 ✓ ·
+`lib/SUnion` 3 ✓ · `lib/Rel` **5** ✓：`comp_mono` ✓ `comp_mono_left` ✓ `comp_mono_right` ✓ `inv_inv` ✓ `subset_transClosure` ✓）·
+单元练习 4 道 ✓（unit19 `le_mono`/`le_mono_right` ✓ · unit18 `union_elim`/`union_intro` ✓）。
