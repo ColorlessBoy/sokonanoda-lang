@@ -202,3 +202,13 @@ theorem partition_cover (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partit
 theorem partition_disjoint (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P) :
     ∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) → ∀ (c : α), A c ↔ B c :=
   And.right (And.right h)
+
+-- 复合对两个关系**都单调**（S-B ✓ I.13）：点式蕴含逐层传下去
+theorem Rel.comp_mono {A B C : Type} (r r' : Rel A B) (s s' : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (hs : ∀ (b : B) (c : C), s b c → s' b c)
+    (a : A) (c : C) (h : Rel.comp r s a c) : Rel.comp r' s' a c :=
+  (fun (hE : ∃ (b : B), r a b ∧ s b c) =>
+    Exists.elim B (fun (b : B) => r a b ∧ s b c) (Rel.comp r' s' a c) hE
+      (fun (b : B) (hb : r a b ∧ s b c) =>
+        Exists.intro B (fun (b' : B) => r' a b' ∧ s' b' c) b
+          (And.intro (hr a b (And.left hb)) (hs b c (And.right hb))))) h
