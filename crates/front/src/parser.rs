@@ -2319,6 +2319,8 @@ impl Parser {
         // 节点都带 `explicit_spine`，前端**不插**隐式实参。取走即清（`@` 只
         // 作用于紧跟的那一条脊）。
         let explicit = std::mem::take(&mut self.saw_at);
+        // **G-32**：脊上**还没有**实参（用来区分"后缀在头"✓ 与"后缀在实参之后"✗）。
+        let mut first_arg = true;
         loop {
             // **一元前缀记法在实参位免括号**（第三刀 §12.5）：`f 𝒫 A` 就是
             // `f (𝒫 A)`。今天它是**响亮的 parse 错**（"前缀记法不能夹在两个
@@ -2326,6 +2328,34 @@ impl Parser {
             //
             // **后缀**不在此列：`f Aᶜ` 今天读成 `(f A)ᶜ`（后置算子在梯子上
             // 吸收整个应用），改了会**悄悄重分组**既有程序。
+            // **G-32（2026-10-03 ✓）**：**后缀记法紧跟"脊的头"、且其后还有一个原子**时 ✓
+            // —— `Aᶜ x` 读作 `(Aᶜ) x` ✓（Lean 4 同读 ✓）。
+            // ⚠ 与上面那条注释的取舍**不冲突** ✗：`f Aᶜ`（后缀在**实参之后** ✗）不走这一支 ✓
+            // —— 它仍由算子梯子吸收整个应用 ⇒ `(f A)ᶜ` 分组不变 ✓（反向验证靠这条 ✓）。
+            // ⚠ **头已经解析过了** ✓（`fun` ✓）⇒ 这里**只消费后缀符号** ✓ —— 绝不再 `parse_atom` ✗
+            //（上一版就是那样错的 ✗：撞在 `ᶜ` 上，报"`ᶜ` 要跟自己的操作数一起写" ✗）。
+            let postfix_head =
+                first_arg && self.postfix_notation_ahead() && self.atom_after_postfix();
+            if postfix_head {
+                // ⚠ `fun` 在这里被**移动**进 postfix 节点 ✓ ⇒ 必须 `continue` ✗，
+                // 不能落到下面的 `Expr::App` 构造里（那会"借用已移动的值" ✗，实测 ✓）。
+                match self.postfix_entry() {
+                    Some(entry) => {
+                        let tok = self.bump();
+                        let span = Span::new(fun.span().start, tok.span.end);
+                        fun = self.notation_node(
+                            &entry.symbol,
+                            NotationAssoc::Postfix,
+                            Some(Box::new(fun)),
+                            None,
+                            span,
+                            tok.span,
+                        );
+                        continue;
+                    }
+                    None => break,
+                }
+            }
             let arg = if self.starts_atom() {
                 self.parse_atom()?
             } else if self.prefix_notation_ahead() {
@@ -2340,8 +2370,40 @@ impl Parser {
                 explicit_spine: explicit,
                 span,
             };
+            first_arg = false;
         }
         Ok(fun)
+    }
+
+    /// **G-32**：下一个 token 是不是**已声明的后缀记法符号** ✓。
+    fn postfix_notation_ahead(&self) -> bool {
+        self.postfix_entry().is_some()
+    }
+
+    /// **G-32**：把"下一个 token 是后缀记法"这件事取出来 ✓（`None` ⇒ 不是 ✓）。
+    fn postfix_entry(&self) -> Option<NotationEntry> {
+        match &self.peek().kind {
+            TokenKind::Sym(symbol) => self
+                .notation(symbol)
+                .filter(|entry| entry.assoc == NotationAssoc::Postfix)
+                .cloned(),
+            _ => None,
+        }
+    }
+
+    /// **G-32**：后缀符号**之后**是否还跟着一个原子 ✓（`Aᶜ x` ✓ 是；`Aᶜ` 单独出现 ✗ 不是）。
+    fn atom_after_postfix(&self) -> bool {
+        match self.tokens.get(self.cursor + 1).map(|tok| &tok.kind) {
+            Some(TokenKind::Ident(name)) => !(is_reserved_command(name) || is_expr_keyword(name)),
+            Some(TokenKind::Num(_))
+            | Some(TokenKind::Hole)
+            | Some(TokenKind::LParen)
+            | Some(TokenKind::At)
+            | Some(TokenKind::Forall)
+            | Some(TokenKind::LBrace)
+            | Some(TokenKind::Langle) => true,
+            _ => false,
+        }
     }
 
     /// 下一个 token 是不是**已声明的前缀记法符号**（实参位免括号的判据）。
