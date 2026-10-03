@@ -142,3 +142,8 @@ theorem isSuccOf_isOrdinal (α : Type) (E : α → α → Prop) (x y : α)
     (h : IsSuccOf α E x y) : IsOrdinal α E x :=
   (fun (hp : IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y)) => And.left hp)
     (isSuccOf_parts α E x y h)
+
+-- 后继者是传递集（S-B ✓；两步合成 ✓ 安全区）
+theorem isSuccOf_transitive (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsSuccOf α E x y) : IsTransitive α E x :=
+  ordinal_isTransitive α E x (isSuccOf_isOrdinal α E x y h)
