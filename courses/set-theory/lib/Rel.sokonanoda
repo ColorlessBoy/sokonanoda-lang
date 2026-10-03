@@ -321,3 +321,11 @@ theorem Rel.inv_inv_mono {A B : Type} (r r' : Rel A B)
     (h : ∀ (a : A) (b : B), r a b → r' a b) :
     ∀ (a : A) (b : B), Rel.inv B A (Rel.inv A B r) a b → Rel.inv B A (Rel.inv A B r') a b :=
   fun (a : A) (b : B) (hab : Rel.inv B A (Rel.inv A B r) a b) => h a b hab
+
+-- 从逆上的单调**反推**原关系的单调（S-B ✓ I.13）：`Rel.inv_mono_iff` 的 `mpr` 方向
+theorem Rel.inv_mono_of_inv {A B : Type} (r r' : Rel A B)
+    (h : ∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a) :
+    ∀ (a : A) (b : B), r a b → r' a b :=
+  (fun (hh : (∀ (a : A) (b : B), r a b → r' a b) ↔
+      (∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a)) => Iff.mpr hh h)
+    (Rel.inv_mono_iff r r')
