@@ -344,3 +344,23 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **绕行** ✓：序数侧改推**不经过 `And.right`** 的条目 ✓（如 `E z x → IsOrdinal α E z` ✓ 走 `ordinal_elems_isTransitive` 一族 ✓），或转 ZFC / AC / 基数算术侧 ✓。
 **留档已判绿** ✓（别重做 ✓）：`isSuccOf_parts` ✓（`63aac9ad` ✓，`lib Ordinal` **16 checked · 0 open · 0 判负** ✓，反向验证 **16→15→16** ✓）——
 手册惯用法 #2（**绑定形态先落地成 λ** ✓）在**它**上面奏效 ✓，但在 `And.right` 那一步**无效** ✗。
+
+## C-119（**open · 绕行 = 换靶** · 2026-10-03 S-B 第 19 轮）结论是 **`Or` 头** 的取件子补不出实参 ✗
+
+**目标**：`lib/ZF` 加配对取件子（`IsPair α E x a b` ⇒ `E a x` ✓ / `z = a ∨ z = b` ✓）。**三版全红** ✗
+（判据 = `query check --root courses/set-theory` ✓）：
+
+| # | 写法 | 读数 |
+|---|---|---|
+| 1 | 一层 λ 落地 + `Iff.mpr (hp a) (Or.inl (Eq.refl α a))` | ✗ `期望 Sort(0)，实际是 第 6 个绑元` |
+| 2 | **两层** λ 落地（先落 `hp`、再落 `hp a` 的 `↔`） | ✗ `第 7 个绑元` |
+| 3 | **只走 `Iff.mp` 方向**（`Iff.mp (hp z) hz`，结论 `z = a ∨ z = b`） | ✗ `第 9 个绑元` |
+
+**规律** ✓（本 goal 实证）：`Iff.mp` 方向**并非一律可用** ✗ —— 判绿的两条（`isEmpty_no_elem` ✓ · `isSuccOf_parts` ✓）
+结论都**不是 `Or` 头** ✓；而**结论是 `Or` 头**（本条目 ✗）时，即便只走 `Iff.mp` 也补不出 ✓
+⇒ 与 CH 单元时代的「`Or` 两支为 def-应用 ⇒ `rejected`」✗ **同源** ✓ ⇒ **G-73 家族** ⇒ 内核侧 ✓。
+
+**绕行** ✓：**换靶** —— `lib/ZF` 的 `Or` 头条目搁置 ✗；转 **`lib/Cardinal` / `lib/Choice`** 侧 ✓
+（候选 `Nonempty α → ∃ a, a = a` ✓ 结论是 `∃` 头 ✓ 非 `Or` ✓）。
+**留档已判绿** ✓（别重做 ✓）：`isEmpty_no_elem` ✓（`ca5dffca`，`lib ZF` 12/0/0 ✓，反向验证 12→11→12 ✓）·
+`lib/Ordinal` 三条 ✓（16→15→16 / 17→16→17 / 18→17→18 ✓）。
