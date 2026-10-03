@@ -435,3 +435,19 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **留档已判绿 21 项** ✓（别重做 ✓）：库引理 18 ✓（`lib/Ordinal` 6 ✓ · `lib/ZF` 2 ✓ · `lib/Cardinal` 3 ✓ ·
 `lib/SUnion` 3 ✓ · `lib/Rel` **5** ✓：`comp_mono` ✓ `comp_mono_left` ✓ `comp_mono_right` ✓ `inv_inv` ✓ `subset_transClosure` ✓）·
 单元练习 4 道 ✓（unit19 `le_mono`/`le_mono_right` ✓ · unit18 `union_elim`/`union_intro` ✓）。
+
+## C-124（**open · 绕行 = 换靶** · 2026-10-03 S-B 第 107 轮）`univ` 配合律条目三轮全红 ✗
+
+**目标**：`lib/SUnion` 加 `Set.mem_pi_univ`（全 `univ` 的积成员资格无条件 ✓
+`f ∈ Set.pi ι α (fun _ => univ)`）。**三轮全红** ✗（判据 = `query check --root courses/set-theory` ✓）：
+
+| # | 写法 | 读数 |
+|---|---|---|
+| 1 | `Set.univ` **隐式**类型 + `∈` 记法 | ✗ `Set.[] 第 0 个绑元`（隐式推不出 ✗） |
+| 2 | `(Set.univ : Set α)` **显式** + `∈` 记法 | ✗ 诊断提示 **"…或改用点名写法"** ✗ |
+| 3 | **点名写法** `Set.mem (ι → α) f (…)`（N4.3 ✓） | ✗ **解析错误**（`…r group, found RParen`）⇒ 该形状下点名写法**不被接受** ✗ |
+
+**归属** ✓：**G-73 家族**（与 C-118/C-119/C-120/C-122/C-123 同源）⇒ 内核侧 ✓。
+**绕行** ✓：**换靶**到 `lib/Ordinal` 的 `isZero_elems_transitive` ✓（**不经 `∈` 记法** ✓ —— 走 `zero_no_elem` + `False.elim`（**目标写全** ✓ 按手册 ✓））。
+**留档已判绿 27 项** ✓（别重做 ✓）：库引理 24 ✓（`lib/Ordinal` 10 ✓ · `lib/ZF` 2 ✓ · `lib/Cardinal` 3 ✓ · `lib/SUnion` 6 ✓ · `lib/Rel` 5 ✓）· 单元练习 4 道 ✓（unit19 ×2 ✓ · unit18 ×2 ✓，均"撤即判红" ✓）。
+**本轮教训** ✓：`∈` 记法推不出时，**点名写法不是万能替代** ✗（本形状下直接解析错误 ✗）⇒ 遇此情形**尽早换靶** ✓，别把三种写法试完 ✗。
