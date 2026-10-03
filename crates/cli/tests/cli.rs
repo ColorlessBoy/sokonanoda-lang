@@ -2169,8 +2169,15 @@ fn cli_build_heartbeat_is_off_unless_asked_for() {
     //   防"恒真"的那条自检在下面 ✓ 仍在 ✓）。
     //   若将来 CI 噪声再涨到 0.8 以上 ✗ ⇒ **换结构性判据** ✓（直接量 `stop()` 的 join 时长 ✓，
     //   它不含进程启动开销 ✓），而不是继续抬阈值 ✗。
+    // ⚠ **本断言已降级为"数量级兜底"**（2026-10-03 ✓，AGENTS.md 判据纪律② ✓）：
+    //   真正咬"`stop()` 不许等满一个周期"的判据**换了层** ✓ —— 见
+    //   `crates/cli/src/build.rs` 的 `heartbeat_tests::stop_does_not_wait_a_full_period` ✓：
+    //   它**直接量 `stop()` 自己的 `join` 时长** ✓（**不含进程启动/调度噪声** ✗）⇒ 信噪比从
+    //   1.0s/0.55s ≈ 1.8× ✗ 变成"1.0s vs ~0" ✓✓。这里保留一条**粗**的端到端兜底 ✓：
+    //   阈值放到 **5.0s**（信号的 5× ✓、CI 噪声 0.55s 的 9× ✓）—— 只抓"整整慢一个数量级" ✗，
+    //   不再承担精细判据 ✗（那正是它此前在 CI 上假红的根因 ✓）。
     assert!(
-        slack < 0.8,
+        slack < 5.0,
         "心跳线程**拖慢了 build**（管道 {lat_pipe_wall:?} vs 无心跳 {lat_quiet_wall:?}，\
          多付 {slack:.2}s）—— `stop()` 的 `join()` 不许等满一个周期 \
          （用 `Condvar` 唤醒，别用 `sleep`）"

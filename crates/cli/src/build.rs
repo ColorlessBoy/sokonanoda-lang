@@ -737,3 +737,44 @@ fn collect_files(path: &Path, out: &mut Vec<PathBuf>) {
         out.push(path.to_path_buf());
     }
 }
+
+#[cfg(test)]
+mod heartbeat_tests {
+    //! **心跳判据的"真相层"版本**（2026-10-03 ✓，AGENTS.md 判据纪律② ✓）。
+    //!
+    //! 原来的判据在 `tests/cli.rs` 里量**两个进程的墙钟差**（`slack < 0.5` ✗，后抬到 0.8 ✗）——
+    //! 那里面**混着进程启动/调度噪声** ✗（CI 实测 `slack = 0.55s` ✗，而真信号 ≈1.0s ✓
+    //! ⇒ 信噪比不到 2× ✗ ⇒ 必然假红 ✓）。**结构性判据 = 直接量 `stop()` 自己的 `join` 时长** ✓
+    //! —— 它**不含进程启动开销** ✓，且正是设计契约的原话（"`stop()` 的 `join()` 不许等满一个周期" ✓）。
+    //!
+    //! 本模块在 `build.rs` 内部 ⇒ 能看见**私有的** `Heartbeat` ✓（子模块可见父模块私有项 ✓）。
+    use super::Heartbeat;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn stop_does_not_wait_a_full_period() {
+        // 周期取 1s（= `DEFAULT_TICK_MS` ✓）：若 `stop()` 用 `sleep` 干等 ✗，
+        // 它会等到**下一个整周期**（最坏 ≈1s ✗）；用 `Condvar` 唤醒 ✓ 则是**立即** ✓。
+        let mut hb = Heartbeat::start(Some(1000));
+        std::thread::sleep(Duration::from_millis(50)); // 让它真的跑起来 ✓
+        let t = Instant::now();
+        hb.stop();
+        let waited = t.elapsed();
+        assert!(
+            waited < Duration::from_millis(300),
+            "`stop()` 等了 {waited:?} —— 不许等满一个周期（用 `Condvar` 唤醒，别用 `sleep`）"
+        );
+    }
+
+    #[test]
+    fn stop_is_immediate_even_when_nothing_was_started() {
+        // 没开心跳（`period_ms = None` ✓）⇒ `stop()` 必须**立刻**返回 ✓（幂等 ✓）。
+        let mut hb = Heartbeat::start(None);
+        let t = Instant::now();
+        hb.stop();
+        assert!(
+            t.elapsed() < Duration::from_millis(100),
+            "空心跳的 `stop()` 不该花时间"
+        );
+    }
+}
