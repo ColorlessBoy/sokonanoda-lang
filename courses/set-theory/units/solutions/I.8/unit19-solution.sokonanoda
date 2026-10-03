@@ -64,3 +64,9 @@ theorem le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : ∀ (x : α), ¬ (x 
 
 theorem subset_of_le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : A ⊆ ∅ :=
   fun (x : α) (hx : x ∈ A) => False.elim (x ∈ ∅) (le_empty α A h x hx)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来
+
+theorem le_mono (A A' B : Set Nat) (hA : A' ⊆ A) (h : A ≼ B) : A' ≼ B :=
+  Set.Le.mono Nat Nat A A' B hA h
+
+theorem le_mono_right (A B B' : Set Nat) (h : A ≼ B) (hB : B ⊆ B') : A ≼ B' :=
+  Set.Le.mono_right Nat Nat A B B' h hB

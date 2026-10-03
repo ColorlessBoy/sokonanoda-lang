@@ -148,3 +148,11 @@ theorem le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : ∀ (x : α), ¬ (x 
 -- soko:hint 关键件：练习 9 + `False.elim`（**隐式结论 `C` 补不出来时要写全**）。
 theorem subset_of_le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : A ⊆ ∅ := by
   sorry
+
+-- 练习 14（L 引理链）：`≼` 对**左边集合**单调（子集可放大）
+theorem le_mono (A A' B : Set Nat) (hA : A' ⊆ A) (h : A ≼ B) : A' ≼ B := by
+  sorry
+
+-- 练习 15（L 引理链）：`≼` 对**右边集合**单调
+theorem le_mono_right (A B B' : Set Nat) (h : A ≼ B) (hB : B ⊆ B') : A ≼ B' := by
+  sorry
