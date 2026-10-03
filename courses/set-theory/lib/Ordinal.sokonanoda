@@ -152,3 +152,8 @@ theorem isSuccOf_transitive (α : Type) (E : α → α → Prop) (x y : α)
 theorem isSuccOf_elems_transitive (α : Type) (E : α → α → Prop) (x y z : α)
     (h : IsSuccOf α E x y) (hz : E z x) : IsTransitive α E z :=
   ordinal_elems_isTransitive α E x (isSuccOf_isOrdinal α E x y h) z hz
+
+-- 后继者的元素都是序数（S-B ✓；两步合成 ✓ 安全区）
+theorem isSuccOf_elem_isOrdinal (α : Type) (E : α → α → Prop) (x y z : α)
+    (h : IsSuccOf α E x y) (hz : E z x) : IsOrdinal α E z :=
+  ordinal_elem_isOrdinal α E x z (isSuccOf_isOrdinal α E x y h) hz
