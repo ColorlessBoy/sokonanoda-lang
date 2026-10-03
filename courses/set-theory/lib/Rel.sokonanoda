@@ -352,3 +352,9 @@ theorem Rel.mem_classes_intro (α : Type) (r : Rel α α) (C : α → Prop)
     (h : ∃ (a : α), ∀ (c : α), C c ↔ r a c) : Rel.Classes α r C :=
   (fun (hh : Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c) => Iff.mpr hh h)
     (Rel.mem_classes α r C)
+
+-- `ofPartition` 的取件子（S-B ✓ I.13）：λ 落地 + `Rel.ofPartition_apply` 的 `Iff.mp`（已判绿形态 ✓）
+theorem Rel.ofPartition_mem (α : Type) (P : (α → Prop) → Prop) (a b : α)
+    (h : Rel.ofPartition α P a b) : ∃ (A : α → Prop), P A ∧ A a ∧ A b :=
+  (fun (hh : Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b) => Iff.mp hh h)
+    (Rel.ofPartition_apply α P a b)
