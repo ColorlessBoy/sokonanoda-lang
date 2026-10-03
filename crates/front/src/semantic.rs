@@ -357,10 +357,10 @@ pub fn tag_runs_with_notations(
                         // —— 第一版写成 `Sym(…)` ⇒ 该分支**永不触发** ✗ ⇒ `in_type` 一旦置位就
                         // 再也不清 ✗（`fun (x : Nat) (y : Nat) => …` 的 `y` 会被漏标 ✗）。
                         TokenKind::LParen | TokenKind::RParen | TokenKind::Comma => in_type = false,
-                        TokenKind::Ident(name) if !in_type => {
-                            if name != "fun" && name != "λ" {
-                                names.binders.insert(name.clone());
-                            }
+                        // 守卫并进 match 臂 ✓（clippy `collapsible_if` 判红 ✗ —— CI 的
+                        // `lint-clippy` job 抓到的就是这一条 ✓；本机同款复现 ✓）。
+                        TokenKind::Ident(name) if !in_type && name != "fun" && name != "λ" => {
+                            names.binders.insert(name.clone());
                         }
                         _ => {}
                     }
