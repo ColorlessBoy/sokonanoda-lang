@@ -1551,6 +1551,50 @@ fn notation_argument_unsolved(symbol: &str, target: &str, span: Span) -> Compile
 ///
 /// 其余形状（点名、应用、lambda…）不需要，于是**零开销**——这是这条推广不拖慢
 /// 编译的关键。
+/// 开关 `SOKO_ARG_EXPECTED`（**默认关** ✓）：关着时本片**一次都不进** ⇒ 逐字节不变 ✓。
+pub(crate) fn arg_expected_enabled() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| {
+        matches!(
+            std::env::var("SOKO_ARG_EXPECTED").ok().as_deref(),
+            Some("1") | Some("on")
+        )
+    })
+}
+
+/// **头是局部变量**时的实参期望类型（B1 片 · G-86）—— **零内核调用、零递归** ✓。
+///
+/// 为什么必须走这条而不是 [`application_arg_expected`] ✗：后者要 `judge_infer` **头**的类型，
+/// 而判定**再入** elaborate ⇒ 对"每个应用实参都算期望类型"的形状**栈溢出**（实测 exit 134 ✗）。
+/// 局部变量的**书写类型**就在 `scope.src_tys` 里 ✓ ⇒ 直接剥 Π 到实参位 ✓，不问内核 ✓。
+///
+/// 形状：`h : ¬ (P ∨ Q)` 写成 `h (Or.inl hp)` ⇒ 实参的期望类型 = `h` 的域 `P ∨ Q` ✓
+/// （`¬ X` 是 **def 头** ⇒ δ 展开一次 ✓）；`Or.inl` 的 `?B` 由此定下 ✓（台账 G-86 ✗）。
+fn local_arg_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Option<Expr> {
+    let Expr::Ident { name, .. } = fun else {
+        return None;
+    };
+    // 最近的同名 binder（作用域是栈 ✓）
+    let idx = scope.names.iter().rposition(|n| n == name)?;
+    let mut cur = scope.src_tys.get(idx)?.as_ref()?.clone();
+    // 剥到**第一个显式** Π 层：那正是本实参的期望类型 ✓
+    for _ in 0..4 {
+        match &cur {
+            Expr::Arrow { domain, .. } => return Some(domain.as_ref().clone()),
+            Expr::Forall { binders, .. } if binders.len() == 1 => {
+                // 前导**隐式** binder（`{α}`）⇒ 本实参不对应它 ⇒ 不猜 ✗（`?` 直接返回 None ✓）
+                let t = binders[0].ty.as_ref()?;
+                return Some(t.as_ref().clone());
+            }
+            _ => match crate::spine::unfold_one(&cur, defs, None) {
+                Some(next) if next != cur => cur = next,
+                _ => return None,
+            },
+        }
+    }
+    None
+}
+
 fn needs_expected_type(expr: &Expr) -> bool {
     match expr {
         Expr::SetLiteral { .. } => true,
@@ -4456,6 +4500,10 @@ pub(crate) fn elab_expr<'a>(
                 // `InplaceEnv` 的两个字段这里都现成（`builder` / `known`）——
                 // 与 `elab_expr` 内 `Some(&mut InplaceEnv { .. })` 那处同款 ✓。
                 application_arg_expected(expr, scope, ctx, Some(&mut InplaceEnv { builder, known }))
+            } else if arg_expected_enabled() {
+                // **B1 片（开关默认关 ✓）**：头是**局部变量** ⇒ 用书写类型剥到实参位 ✓
+                // （零内核调用 ⇒ 不会像 `application_arg_expected` 那样递归栈溢出 ✗）。
+                local_arg_expected(fun, scope, ctx.defs)
             } else {
                 None
             };

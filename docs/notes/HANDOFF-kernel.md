@@ -43,15 +43,18 @@ CLI e2e 三条 ✓ · **红线**：同批文件 × 两二进制 ⇒ `grade --jso
 入门课 `Exists`（**自建 axiom，前导参数显式** ⇒ 删不得 ✗）与同类过度应用 ✓。**要修的是普查工具** ✗（**课程线文件，
 本轮没动** ✓，只把读数与判据写进台账 G-85 的 notes ✓）。
 
-## 1.6 G-86（**本棒定位、未修** ✗ —— 归属 = **B1**，不是 U1/U2 ✓）
+## 1.6 G-86（**已修** ✓ —— 开关 `SOKO_ARG_EXPECTED`，默认关 ⇒ 台账仍 `open` ✓）
 
 课程线 `f5ada75a` 的最小复现 ✓：`theorem t3 (h : ¬ (P ∨ Q)) (hp : P) : False := h (Or.inl hp)` 判红 ✗
-（`期望 ((Or P) Q)，实际 ((Or P) P)`）—— `?B` 无实参可问时被「兄弟同形」兜底填成 `?A` ✗。**求解器没问题** ✓
-（trace：`expected=Some(P∨Q)` ⇒ `solved=[P,Q]` ✓；`None` ⇒ `[P,P]` ✗）⇒ 差的是**期望类型送到实参位** ✗
-= `needs_expected_type` 只认零元记法/集合字面量 ✓（= **parked 的 TODO(G-21)** ✓）。**放宽这条闸当场栈溢出** ✗
-（exit 134；窄化仍溢出；加深度守卫 ⇒ 不崩也不生效 ✗）⇒ **不落地** ✓。判据 `docs/gaps/repro/G86-*.sh` ⇒ **exit 0**
-（缺口仍在 ✓，台账 G-86 = `open` ✓）。**下一棒**：① `application_arg_expected` 加**递归守卫**；② 修「显式实参
-写在隐式位上」的实参↔形参对齐（parked 回归 `Eq.subst.{1} (Set α) …` ✓）；③ 再开闸 ⇒ 本件 exit 1 + 全语料对拍 ✓。
+（`?B` 无实参可问时被「兄弟同形」兜底填成 `?A := P` ✗）。**求解器没问题** ✓（trace：`expected=Some(P∨Q)`
+⇒ `solved=[P,Q]` ✓；`None` ⇒ `[P,P]` ✗）⇒ 差的是**期望类型送到实参位** ✗ = **范围 B 的 B1**（不是 U1/U2 ✓）。
+**走 `application_arg_expected` 放宽 = 栈溢出** ✗（exit 134：算期望类型要 `judge_infer` 头 ⇒ 判定再入 ⇒
+递归 ✗；窄化仍溢出；加深度守卫 ⇒ 不崩也不生效 ✗）⇒ **换机制** ✓：头是**局部变量**时它的**书写类型**
+就在 `scope.src_tys` ✓ ⇒ 直接剥 Π 到实参位（`¬ X` δ 展开一次 ✓）= `local_arg_expected` ✓，**零内核调用** ✓。
+判据 `docs/gaps/repro/B1-arg-expected-solved.sh` ⇒ **exit 0** ✓（开关关红 ✓ / 开关开绿 ✓ / 两对照两态绿 ✓ /
+**反面** `ignores 3` 开关开时**仍红** ✓）+ CLI e2e 同名一条 ✓；结构计数（`SOKO_JUDGE_STATS=1`）开关关/开
+**逐项相同** ✓（`calls=13 pairs=22 prefix_bytes=522132` · `JUDGE_INFER calls=436 fails=205` · `hits=422 misses=14` ✓）；
+红线：开关关时全语料 `grade --json` 与 `39d9507b` **逐字节一致**（diff **0** ✓）。**收口 = 开关默认打开 + 全语料对拍** ✓。
 
 ## 1. G-82（**已修** ✓ —— 细节在台账 + `0a2b1b69`）
 

@@ -178,6 +178,58 @@ def bad : Nat := Show.{0} 0 5\n";
     );
     assert!(
         !ok_on,
-        "反面仍在 ⇒ 整份文件仍 exit 1（**预期** ✓：说明不是'什么都放行' ✗）"
+        "反面仍在 ⇒ 整份文件仍 exit 1（**预期** ✓：说明不是「什么都放行」✗）"
+    );
+}
+
+/// **B1 片的端到端守卫**（范围 B · 开关 `SOKO_ARG_EXPECTED`，默认关 ✓）——
+/// **短写的隐式调用当实参时，期望类型必须送到实参位** ✓（台账 **G-86** ✗）。
+///
+/// 形状：`h (Or.inl hp)`（`h : ¬ (P ∨ Q)`）—— `Or.inl` 的 `?B` 唯一来源就是实参位的
+/// 期望类型（`h` 的域 `P ∨ Q` ✓）；修前落到「按兄弟同形兜底」⇒ `?B := ?A := P` ✗
+/// ⇒ 内核 `期望 ((Or P) Q)，实际 ((Or P) P)` ✗。
+///
+/// 修法**零内核调用、零递归** ✓：头是**局部变量**时它的书写类型就在 `scope.src_tys` ✓
+/// ⇒ 直接剥 Π 到实参位（`¬ X` 是 def 头 ⇒ δ 展开一次 ✓）—— 不走 `application_arg_expected`
+/// ✗（那条要 `judge_infer` 头 ⇒ 判定再入 ⇒ **栈溢出** exit 134 ✗，见 G-86 notes ✓）。
+///
+/// 四条牙：① 开关关 ⇒ `t3` 红 ✓（基线 ✓）；② 开关开 ⇒ `t3` 绿 ✓；③ 两个对照
+/// （期望位=显式目标 / 前导写全）两态都绿 ✓；④ **反面**：真解不出的 `ignores 3`
+/// 开关开时**仍须**红 ✓（不是"什么都放行" ✗）。
+///
+/// 与 `docs/gaps/repro/B1-arg-expected-solved.sh` **逐字同源** ✓。
+#[test]
+fn b1_argument_expected_type_reaches_a_short_implicit_call() {
+    let src = "\
+axiom P : Prop\n\
+axiom Q : Prop\n\
+\n\
+theorem t (hp : P) : P \u{2228} Q := Or.inl hp\n\
+theorem t2 (h : \u{ac} (P \u{2228} Q)) (hp : P) : False := h (Or.inl P Q hp)\n\
+theorem t3 (h : \u{ac} (P \u{2228} Q)) (hp : P) : False := h (Or.inl hp)\n\
+\n\
+def ignores {\u{3b1} : Type} (n : Nat) : Nat := n\n\
+def uses : Nat := ignores 3\n";
+
+    // ① 开关关：`t3`（缺口面）与 `uses`（真解不出）判红 ✓，其余 5 条判过 ✓。
+    let (ok_off, checked_off, diags_off) =
+        grade_source_env("b1-off", src, &[("SOKO_ARG_EXPECTED", "0")]);
+    assert!(
+        !ok_off && checked_off == 5 && diags_off.len() == 2,
+        "开关**关**时：`t3` 与 `uses` 判红、其余 5 条判过 ⇒ ok={ok_off} checked={checked_off} diags={diags_off:#?}"
+    );
+
+    // ②③④ 开关开：`t3` 转绿（`?B := Q` ✓），只有真解不出的 `uses` 仍红 ✓。
+    let (ok_on, checked_on, diags_on) =
+        grade_source_env("b1-on", src, &[("SOKO_ARG_EXPECTED", "1")]);
+    assert!(
+        !ok_on && checked_on == 6 && diags_on.len() == 1,
+        "开关**开**时：只有 `uses` 该判红（`t3` 转绿 ✓、两个对照仍绿 ✓）⇒ ok={ok_on} checked={checked_on} diags={diags_on:#?}"
+    );
+    assert!(
+        diags_on
+            .iter()
+            .any(|d| d.contains("elab-implicit-argument-unsolved")),
+        "反面必须是**既有专用码** `elab-implicit-argument-unsolved`（不是「什么都放行」✗）：{diags_on:#?}"
     );
 }
