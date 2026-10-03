@@ -81,7 +81,11 @@ run "gates：课程门禁"   "gates" python3 courses/set-theory/tools/check.py
 # **缺口台账带 `--strict`**（2026-09-25 ✓）：CI 上超时**跳过**（慢 runner 是环境事实 ✓），
 # 但**快机器上必须跑完** ✓ —— 否则守卫就被"跳过"架空了 ✗（用户："每次都是它出问题，
 # 但是从来不改" ✗ ⇒ 这一刀就是"本地兜底判据" ✓）。
-run "gates：缺口台账（--strict ✓ 本地必须跑完）" "ledger" python3 scripts/gap.py check --strict
+# **深跑路径**（2026-10-03）：`--include-slow` 连**长复现件**一起跑 —— 这是"守卫不失去牙齿"
+# 的那条固定节奏路径（G-83 全量 ≈ 1.5h ⇒ 不进 pre-push 的常规预算，但在这里**真跑**）；
+# 超时档同时放宽到 3h（默认 300s 只够常规件）。
+run "gates：缺口台账（--strict ✓ 含长复现件 ✓）" "ledger" \
+  env SOKO_GAP_REPRO_TIMEOUT=10800 python3 scripts/gap.py check --strict --include-slow
 # **计划一致性**（2026-09-25 round 148 补 ✓，来自一次真实的漏网 ✗）：
 # round 145 我给 `T-U12` 用了 `- [~]`（想表达"进行中" ✓）⇒ `plan.py check` **不认**它 ✗
 # ⇒ 报"正文里有环节但清单没有排入" ✓、进度 50 → 49 ✗ —— 而 `plan.py check` **是 gate 与 CI 的一步** ✓

@@ -275,6 +275,13 @@ def entry_verdict(entry: dict, kind: str, code: int, note: str = "") -> tuple[st
                 "bad",
             )
         return (f"{eid:<6}{status:<12}{kind:<12}跳过（{why}；{status} 允许没有复现件 ✓）", "skip")
+    if kind == "slow":
+        return (
+            f"{eid:<6}{status:<12}{'长复现':<12}"
+            f"⏭ 跳过（{note}）⇒ **本轮未验证** ✗ —— 不是红项 ✗，但也**没有**被验证 ✓；"
+            f"深跑：`python3 scripts/gap.py check --include-slow` ✓（发布前深度检查 ✓）",
+            "skip",
+        )
     if kind == "timeout":
         return (
             f"{eid:<6}{status:<12}{'超时':<12}"
@@ -397,7 +404,12 @@ def cmd_check(args: argparse.Namespace) -> int:
     # **输出仍然稳定** ✓：先并行收齐结果、再**按台账顺序**逐条判与打印 ✓
     # ⇒ 与顺序版**逐字节相同** ✓（判据就是 diff ✓）。
     jobs = getattr(args, "jobs", 0) or (os.cpu_count() or 4)
-    todo = [e for e in entries if e.get("repro")]
+    include_slow = getattr(args, "include_slow", False)
+
+    def _is_slow(e):
+        return bool(e.get("repro_slow")) and not include_slow
+
+    todo = [e for e in entries if e.get("repro") and not _is_slow(e)]
     results: dict[int, tuple[str, int, str]] = {}
     if jobs > 1 and len(todo) > 1:
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(jobs, len(todo))) as ex:
@@ -409,8 +421,17 @@ def cmd_check(args: argparse.Namespace) -> int:
     print(f"{'ID':<6}{'状态':<12}{'复现':<12}判定")
     counts = {"ok": 0, "bad": 0, "skip": 0}
     no_repro_skips: list[str] = []
+    slow_skips: list[str] = []
     for e in entries:
-        if e.get("repro"):
+        if _is_slow(e):
+            info = e.get("repro_slow") or {}
+            kind, code, note = (
+                "slow",
+                -1,
+                f"长复现 · {info.get('why', '未注明')} · 上次读数 {info.get('last', '未记录')}"
+                f" · 全量命令：{info.get('cmd', 'python3 scripts/gap.py check --include-slow')}",
+            )
+        elif e.get("repro"):
             kind, code, note = results[id(e)]
         else:
             # 没有复现件也**走同一条判定**（fixed ⇒ 判红 ✗，open/wo-filed ⇒ 允许跳过 ✓）
@@ -421,6 +442,8 @@ def cmd_check(args: argparse.Namespace) -> int:
             bad += 1
         if kind == "timeout":
             got_env_skips.append(e["id"])
+        elif kind == "slow":
+            slow_skips.append(e["id"])
         elif verdict == "skip":
             no_repro_skips.append(e["id"])
         print(line)
@@ -472,6 +495,8 @@ def cmd_check(args: argparse.Namespace) -> int:
         f"{' ⚠' if got_env_skips else ''}（未被验证 ✗）"
         f" · 无复现件跳过 {len(no_repro_skips)} 条"
         f"{'（open/wo-filed 允许 ✓）' if no_repro_skips else ''}"
+        f" · **长复现跳过 {len(slow_skips)} 条**"
+        f"{'（' + ', '.join(slow_skips) + ' ⇒ 本轮未验证 ✗，深跑 --include-slow ✓）' if slow_skips else ''}"
     )
     print("\n全部与台账一致。")
     return 0
@@ -665,6 +690,9 @@ def main() -> int:
                    help="超时**判红** ✗（快机器用 ✓：本地必须能跑完 ⇒ 守卫不失去牙齿 ✓）")
     p.add_argument("--shard", default="",
                    help="只跑第 i/N 片（i 从 1 起 ✓，例：--shard 1/3 ✓）—— CI 用它对矩阵并行拆 ✓")
+    p.add_argument("--include-slow", action="store_true",
+                   help="连长复现件一起跑（默认跳过 ✓ 并显式计数 + 打上次读数 ✓）—— "
+                        "深跑/发布前深度检查用 ✓（scripts/ci-local.sh 的 ledger 段 ✓）")
     p.set_defaults(func=cmd_check)
 
     p = sub.add_parser("close", help="关账（写 fixed_in）")
