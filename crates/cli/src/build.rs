@@ -325,6 +325,125 @@ pub(crate) fn build(
         (0..files.len()).map(|_| None).collect();
     let mut per_file_ticks: Vec<Vec<(String, usize, usize)>> =
         (0..files.len()).map(|_| Vec::new()).collect();
+    // ═══ **G-68（2026-10-03 ✓）**：先跑一次**项目会话**，把每个入口的报告算好 ═══
+    // 病灶：以前**每个文件各跑一次** `compile_plan`（`build_one` 内部 ✓）⇒ 共享库层被逐文件重编 ✗
+    //（台账 G-68：`by_calls=3` ✓）。修法：`units_for_modules` 分开"共享库层 / 各入口自己" ✓
+    // ⇒ 共享层只编一次 ✓（`with_project_session` ✓），报告用 `assemble_report` ✓ 造好
+    // ⇒ `build_one` 走它预留的 `precomputed` 分支 ✓（切片 1b ✓）。
+    // ⚠ **reports 必须按"闭包顺序"对齐** ✓：`assemble_report` 用闭包下标取 `reports[slot]` ✗
+    // ⇒ `on_entry` 给的两份（库层 `&[DocumentReport]` + 入口 `Vec<DocumentReport>` ✓）要**按模块名**
+    // 铺回闭包顺序 ✓（上一版直接丢掉库层那份 ✗ ⇒ `reports[slot]` 越界 panic ✗，已实测 ✓）。
+    // ⚠ 语义安全 ✓：`prelude` 只依赖文件自身 ✓ ⇒ 按模式**分组**跑会话 ✓。确定性红线 ✓：输出仍在
+    // 主线程按 `files` 顺序重放（下面那段**一字未改** ✓）。
+    let precomputed: Vec<Option<sokonanoda_front::project::ProjectReport>> = {
+        use sokonanoda_front::project as proj;
+        let mut plans: Vec<Option<proj::ProjectPlan>> = Vec::with_capacity(files.len());
+        let mut srcs: Vec<String> = Vec::with_capacity(files.len());
+        for file in files.iter() {
+            let src = std::fs::read_to_string(file).unwrap_or_default();
+            let root_override = if no_project {
+                file.parent().map(Path::to_path_buf)
+            } else {
+                root.map(PathBuf::from)
+            };
+            let plan = if proj::is_project_source(&src) {
+                Some(proj::plan_project(
+                    file,
+                    Some(&src),
+                    root_override.as_deref(),
+                ))
+            } else {
+                None
+            };
+            plans.push(plan);
+            srcs.push(src);
+        }
+        let mut shared: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+        for plan in plans.iter().flatten() {
+            for module in plan.modules() {
+                *shared.entry(module.name.clone()).or_insert(0) += 1;
+            }
+        }
+        let mut groups: std::collections::HashMap<String, Vec<usize>> =
+            std::collections::HashMap::new();
+        for (i, _file) in files.iter().enumerate() {
+            if plans[i].is_none() {
+                continue;
+            }
+            let mode = format!(
+                "{:?}",
+                sokonanoda_front::compile::prelude_mode_from_source(&srcs[i])
+            );
+            groups.entry(mode).or_default().push(i);
+        }
+        let mut table: Vec<Option<proj::ProjectReport>> = (0..files.len()).map(|_| None).collect();
+        for idxs in groups.into_values() {
+            let first = idxs[0];
+            let options = sokonanoda_front::compile::CompileOptions {
+                prelude: sokonanoda_front::compile::prelude_mode_from_source(&srcs[first]),
+            };
+            let plan0 = plans[first].as_ref().expect("plan for grouped entry");
+            let lib_units = proj::units_for_modules(plan0, |module| {
+                shared.get(module.name.as_str()).copied().unwrap_or(0) >= 2
+            });
+            let lib_names: Vec<String> = lib_units.iter().map(|u| u.name.to_string()).collect();
+            let entries: Vec<Vec<_>> = idxs
+                .iter()
+                .map(|&i| {
+                    let plan = plans[i].as_ref().expect("plan for grouped entry");
+                    proj::units_for_modules(plan, |module| {
+                        shared.get(module.name.as_str()).copied().unwrap_or(0) < 2
+                    })
+                })
+                .collect();
+            let produced: Vec<(usize, proj::ProjectReport)> = proj::session::with_project_session(
+                &lib_units,
+                &entries,
+                &options,
+                |k, flat_out, entry_reports, lib_reports, _lib_ranges, _entry_range| {
+                    let i = idxs[k];
+                    let plan = plans[i].as_ref().expect("plan for grouped entry");
+                    // **按模块名铺回闭包顺序** ✓（`assemble_report` 用闭包下标取 `reports[slot]` ✗）
+                    let mut by_name: std::collections::HashMap<
+                        &str,
+                        &sokonanoda_front::compile::DocumentReport,
+                    > = std::collections::HashMap::new();
+                    for (n, report) in lib_names.iter().zip(lib_reports.iter()) {
+                        by_name.insert(n.as_str(), report);
+                    }
+                    let entry_names: Vec<String> =
+                        entries[k].iter().map(|u| u.name.to_string()).collect();
+                    for (n, report) in entry_names.iter().zip(entry_reports.iter()) {
+                        by_name.insert(n.as_str(), report);
+                    }
+                    let reports: Vec<sokonanoda_front::compile::DocumentReport> = plan
+                        .modules()
+                        .iter()
+                        .filter_map(|m| by_name.get(m.name.as_str()).map(|r| (*r).clone()))
+                        .collect();
+                    let report = proj::assemble_report(proj::PlanCompiled {
+                        compilable: plan.compilable(),
+                        flat_out,
+                        reports,
+                        closure: plan.closure(),
+                        diagnostics: plan.diagnostics().to_vec(),
+                        entry_path: files[i].clone(),
+                        root: plan.root.clone(),
+                        manifest_path: plan.manifest.clone(),
+                        requires_warning: plan.requires_warning.clone(),
+                    });
+                    (i, report)
+                },
+            );
+            for (i, report) in produced {
+                table[i] = Some(report);
+            }
+        }
+        table
+    };
+    let precomputed = std::sync::Mutex::new(precomputed);
+    let precomputed = &precomputed;
+
     if jobs > 1 {
         use std::sync::atomic::{AtomicUsize, Ordering};
         // **每个 worker 自己攒结果**（`Vec` 各归各的 ⇒ 不用锁 ✓），
@@ -358,7 +477,12 @@ pub(crate) fn build(
                             let status = std::fs::read_to_string(file)
                                 .map_err(|e| format!("cannot read: {e}"))
                                 .and_then(|src| {
-                                    build_one(file, &src, root, no_project, progress, None)
+                                    let report = precomputed
+                                        .lock()
+                                        .expect("precomputed lock")
+                                        .get_mut(index)
+                                        .and_then(Option::take);
+                                    build_one(file, &src, root, no_project, progress, report)
                                 });
                             counter.note_file(file);
                             mine.push((index, status, ticks));
@@ -386,7 +510,14 @@ pub(crate) fn build(
                 if json { Some(&mut sink) } else { None };
             let status = std::fs::read_to_string(file)
                 .map_err(|e| format!("cannot read: {e}"))
-                .and_then(|src| build_one(file, &src, root, no_project, progress, None));
+                .and_then(|src| {
+                    let report = precomputed
+                        .lock()
+                        .expect("precomputed lock")
+                        .get_mut(index)
+                        .and_then(Option::take);
+                    build_one(file, &src, root, no_project, progress, report)
+                });
             progress_counter.note_file(file);
             per_file_ticks[index] = ticks;
             per_file[index] = Some(status);
