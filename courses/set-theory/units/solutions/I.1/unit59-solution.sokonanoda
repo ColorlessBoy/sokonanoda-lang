@@ -37,8 +37,8 @@ theorem union_sdiff_subset (α : Type) (A B : Set α) : (A \ B) ∪ (B \ A) ⊆ 
     (fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =>
       Iff.mpr hu
         (Or.elim (a ∈ (A \ B)) (a ∈ (B \ A)) (a ∈ A ∨ a ∈ B)
-          (fun (h1 : a ∈ (A \ B)) => Or.inl (mem_of_mem_sdiff α A B a h1))-- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
-          (fun (h2 : a ∈ (B \ A)) => Or.inr (a ∈ A) (a ∈ B) (mem_of_mem_sdiff α B A a h2))  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+          (fun (h1 : a ∈ (A \ B)) => Or.inl (mem_of_mem_sdiff α A B a h1))
+          (fun (h2 : a ∈ (B \ A)) => Or.inr (mem_of_mem_sdiff α B A a h2))
           ((fun (hw : a ∈ ((A \ B) ∪ (B \ A)) ↔ a ∈ (A \ B) ∨ a ∈ (B \ A)) => Iff.mp hw h)
             (Set.mem_union a (A \ B) (B \ A)))))
       (Set.mem_union a A B)

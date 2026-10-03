@@ -26,7 +26,7 @@ theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFou
             (wellFounded_hasMin α r hwf (fun (z : α) => ¬ Acc α r z)
               (Exists.intro α (fun (z : α) => ¬ Acc α r z) x hnx)))
           (fun (m : α) (hm : ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) =>
-            (And.left (¬ Acc α r m) (∀ (y : α), ¬ Acc α r y → ¬ (r y m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）
+            (And.left hm)
               (Acc.intro α r m (fun (y : α) (hy : r y m) =>
                 Classical.byContradiction (Acc α r y)
                   (fun (hny : ¬ Acc α r y) =>
@@ -69,4 +69,4 @@ theorem trichotomy_at_most_one (α : Type) (E : α → α → Prop) (x : α) (y 
   fun (h : E x y ∧ x = y) =>
     ordinal_no_self_mem_ind α E y hy
       (Eq.subst.{1} α (fun (w : α) => E w y) x y
-        (And.right (E x y) (x = y) h) (And.left (E x y) (x = y) h))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）
+        (And.right h) (And.left h))

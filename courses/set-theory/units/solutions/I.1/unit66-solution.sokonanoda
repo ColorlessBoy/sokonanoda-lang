@@ -27,7 +27,7 @@ theorem subset_trans (α : Type) (A B C : Set α) (h1 : A ⊆ B) (h2 : B ⊆ C) 
 
 theorem subset_union_right (α : Type) (A B : Set α) : A ⊆ (A ∪ B) :=
   fun (a : α) (ha : a ∈ A) =>
-    (fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl (a ∈ A) (a ∈ B) ha))  -- soko:notation-ok: `∈`/`⊆`/`∩`/`∪` 是 def 头，这些位置补不出前导实参（手册边界）
+    (fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl ha))
       (Set.mem_union a A B)
 
 theorem inter_subset_left (α : Type) (A B : Set α) : (A ∩ B) ⊆ A :=

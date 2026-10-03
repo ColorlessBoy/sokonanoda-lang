@@ -33,26 +33,28 @@
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "reused": true,
    "alt": "green",
    "alt_after": "have hP : P x := And.left h x -- soko:notation-ok: And.left's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "already"
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "reused": true,
    "alt": "green",
    "alt_after": "have hQ : Q x := And.right h x -- soko:notation-ok: And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "already"
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -156,26 +158,28 @@
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "reused": true,
    "alt": "green",
    "alt_after": "have hP : P x := And.left h x -- soko:notation-ok: And.left 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "already"
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "reused": true,
    "alt": "green",
    "alt_after": "have hQ : Q x := And.right h x -- soko:notation-ok: And.right 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "already"
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -379,24 +383,6 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 155,
-   "rule": "Eq.{…}",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 159,
-   "rule": "Eq.{…}",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 162,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -409,9 +395,30 @@
    "line": 163,
    "rule": "Eq.{…}",
    "schema2": true,
+   "verdict": "done",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 162,
+   "rule": "Eq.{…}",
+   "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
+  },
+  {
+   "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
+   "line": 163,
+   "rule": "Eq.{…}",
+   "schema2": true,
+   "verdict": "done",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
   },
   {
    "file": "courses/set-theory/lib/Cardinal.sokonanoda",
@@ -2964,62 +2971,27 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 265,
-   "rule": "Eq.{…}",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 265,
-   "rule": "Set.mem",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 265,
-   "rule": "Set.inter",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 266,
-   "rule": "Eq.{…}",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 266,
-   "rule": "Set.mem",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 266,
-   "rule": "Set.inter",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 267,
    "rule": "Eq.{…}",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 266,
+   "rule": "Set.mem",
+   "schema2": true,
+   "verdict": "done",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 284,
+   "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
@@ -3036,6 +3008,44 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 270,
+   "rule": "Set.mem",
+   "schema2": true,
+   "verdict": "done",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 284,
+   "rule": "Set.inter",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 287,
+   "rule": "Eq.{…}",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 270,
+   "rule": "Eq.{…}",
+   "schema2": true,
+   "verdict": "done",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 269,
    "rule": "And.right 写全了前导参数（2 个实参）",
    "schema2": true,
@@ -3047,25 +3057,27 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 270,
+   "line": 271,
    "rule": "Eq.{…}",
    "schema2": true,
-   "verdict": "needs-manual",
+   "verdict": "done",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 270,
+   "line": 271,
    "rule": "Set.mem",
    "schema2": true,
-   "verdict": "needs-manual",
+   "verdict": "done",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 270,
+   "line": 285,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
@@ -3074,25 +3086,27 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 271,
+   "line": 287,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 271,
    "rule": "Set.mem",
    "schema2": true,
-   "verdict": "needs-manual",
+   "verdict": "done",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 271,
+   "line": 289,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
@@ -3124,16 +3138,18 @@
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 284,
+   "line": 285,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
@@ -3146,12 +3162,13 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 285,
+   "line": 289,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
@@ -3160,7 +3177,8 @@
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
@@ -3169,7 +3187,8 @@
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/I.3/unit09-equinumerosity.sokonanoda",
@@ -3254,7 +3273,7 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 142,
+   "line": 140,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -3263,7 +3282,7 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 146,
+   "line": 144,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -3272,7 +3291,27 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 151,
+   "line": 150,
+   "rule": "Eq.{…}",
+   "schema2": true,
+   "verdict": "done",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "无同规则剩余命中 ⇒ 已消失 / 需人工复核 ✓",
+   "landed": "obsolete"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+   "line": 153,
+   "rule": "Eq.{…}",
+   "schema2": true,
+   "verdict": "done",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "基线原文仍在但同 (rule,文本) 命中已被认领 ⇒ 需人工复核 ✓",
+   "landed": "obsolete"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+   "line": 152,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -3281,43 +3320,27 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 154,
+   "line": 158,
    "rule": "Eq.{…}",
    "schema2": true,
-   "verdict": "needs-manual",
+   "verdict": "done",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "无同规则剩余命中 ⇒ 已消失 / 需人工复核 ✓",
+   "landed": "obsolete"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 155,
+   "line": 161,
    "rule": "Eq.{…}",
    "schema2": true,
-   "verdict": "needs-manual",
+   "verdict": "done",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "基线原文仍在但同 (rule,文本) 命中已被认领 ⇒ 需人工复核 ✓",
+   "landed": "obsolete"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 159,
-   "rule": "Eq.{…}",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 162,
-   "rule": "Eq.{…}",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 163,
+   "line": 160,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -4788,26 +4811,28 @@
    "line": 134,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "reused": true,
    "alt": "green",
    "alt_after": "And.right h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 141,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "reused": true,
    "alt": "green",
    "alt_after": "And.right h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -5518,15 +5543,6 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
-   "line": 22,
-   "rule": "Eq.{…}",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
    "line": 37,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -5542,6 +5558,16 @@
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
    "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
+   "line": 43,
+   "rule": "Eq.{…}",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -7817,24 +7843,6 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 42,
-   "rule": "Set.powerset",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 44,
-   "rule": "Set.powerset",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 47,
    "rule": "Set.powerset",
    "schema2": true,
@@ -7844,26 +7852,8 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 47,
-   "rule": "Set.sUnion",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 49,
    "rule": "Set.powerset",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 49,
-   "rule": "Set.sUnion",
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
@@ -7880,6 +7870,15 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 47,
+   "rule": "Set.sUnion",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 52,
    "rule": "Set.powerset",
    "schema2": true,
@@ -7889,8 +7888,8 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 53,
-   "rule": "Set.powerset",
+   "line": 49,
+   "rule": "Set.sUnion",
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
@@ -7916,26 +7915,8 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 57,
-   "rule": "Set.sInter",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 58,
    "rule": "Set.powerset",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 58,
-   "rule": "Set.sInter",
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
@@ -7961,8 +7942,26 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 57,
+   "rule": "Set.sInter",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 63,
    "rule": "Set.powerset",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 58,
+   "rule": "Set.sInter",
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
@@ -7994,6 +7993,36 @@
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
    "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 65,
+   "rule": "Set.powerset",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 68,
+   "rule": "Set.powerset",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 68,
+   "rule": "Set.powerset",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
@@ -9712,7 +9741,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 230,
+   "line": 261,
    "rule": "Set.mem",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9721,7 +9750,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 230,
+   "line": 250,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9730,7 +9759,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 230,
+   "line": 250,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9739,7 +9768,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 230,
+   "line": 250,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9757,7 +9786,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 250,
+   "line": 253,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9775,7 +9804,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 250,
+   "line": 253,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9784,7 +9813,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 250,
+   "line": 253,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9802,7 +9831,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 253,
+   "line": 262,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9820,7 +9849,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 253,
+   "line": 262,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9829,7 +9858,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 253,
+   "line": 263,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9874,7 +9903,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 261,
+   "line": 264,
    "rule": "Set.mem",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9883,7 +9912,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 262,
+   "line": 276,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9901,7 +9930,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 262,
+   "line": 264,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9919,34 +9948,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 263,
-   "rule": "Set.singleton",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 264,
-   "rule": "Set.mem",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 264,
-   "rule": "Set.image",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 264,
+   "line": 265,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -9964,6 +9966,33 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 264,
+   "rule": "Set.image",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 276,
+   "rule": "Set.singleton",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 284,
+   "rule": "Set.mem",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 265,
    "rule": "Set.image",
    "schema2": true,
@@ -9973,7 +10002,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 265,
+   "line": 276,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10063,42 +10092,6 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 276,
-   "rule": "Set.inter",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 276,
-   "rule": "Set.image",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 276,
-   "rule": "Set.singleton",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 276,
-   "rule": "Set.singleton",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 277,
    "rule": "Set.inter",
    "schema2": true,
@@ -10108,7 +10101,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 277,
+   "line": 276,
    "rule": "Set.image",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10127,6 +10120,24 @@
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 278,
+   "rule": "Set.singleton",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 280,
+   "rule": "Set.inter",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 277,
    "rule": "Set.image",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10135,7 +10146,25 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 280,
+   "rule": "Set.singleton",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 278,
+   "rule": "Set.image",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 280,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10153,42 +10182,6 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 280,
-   "rule": "Set.inter",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 280,
-   "rule": "Set.image",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 280,
-   "rule": "Set.singleton",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 280,
-   "rule": "Set.singleton",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 281,
    "rule": "Set.inter",
    "schema2": true,
@@ -10198,7 +10191,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 281,
+   "line": 280,
    "rule": "Set.image",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10217,6 +10210,24 @@
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 282,
+   "rule": "Set.singleton",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 285,
+   "rule": "Set.inter",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 281,
    "rule": "Set.image",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10225,7 +10236,25 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 285,
+   "rule": "Set.singleton",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 282,
+   "rule": "Set.image",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 286,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10239,11 +10268,12 @@
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 285,
+   "line": 289,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10261,7 +10291,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 285,
+   "line": 289,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10279,7 +10309,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 286,
+   "line": 290,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10297,7 +10327,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 289,
+   "line": 291,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10315,7 +10345,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 289,
+   "line": 291,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10333,7 +10363,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 290,
+   "line": 291,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10342,7 +10372,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 291,
+   "line": 294,
    "rule": "Set.inter",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10360,7 +10390,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 291,
+   "line": 294,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10369,7 +10399,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 291,
+   "line": 294,
    "rule": "Set.singleton",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10387,42 +10417,6 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 294,
-   "rule": "Set.inter",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 294,
-   "rule": "Set.image",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 294,
-   "rule": "Set.singleton",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 294,
-   "rule": "Set.singleton",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 295,
    "rule": "Set.inter",
    "schema2": true,
@@ -10432,7 +10426,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 295,
+   "line": 294,
    "rule": "Set.image",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10451,6 +10445,44 @@
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 296,
+   "rule": "Set.singleton",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 295,
+   "rule": "Set.inter",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 295,
+   "rule": "Set.image",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": ""
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 295,
+   "rule": "Set.singleton",
+   "schema2": true,
+   "verdict": "needs-manual",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 296,
    "rule": "Set.image",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10464,7 +10496,8 @@
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -10753,16 +10786,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 158,
-   "rule": "Eq.{…}",
-   "schema2": true,
-   "verdict": "needs-manual",
-   "bucket": "③需手工(点名→中缀)",
-   "diag": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 162,
+   "line": 165,
    "rule": "Eq.{…}",
    "schema2": true,
    "verdict": "needs-manual",
@@ -10776,16 +10800,28 @@
    "schema2": true,
    "verdict": "needs-manual",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "落地时改写器 no-op 或注释内命中 ⇒ 未落地 ✓",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 166,
    "rule": "Eq.{…}",
    "schema2": true,
-   "verdict": "needs-manual",
+   "verdict": "done",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 166,
+   "rule": "Eq.{…}",
+   "schema2": true,
+   "verdict": "done",
+   "bucket": "③需手工(点名→中缀)",
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
@@ -11342,26 +11378,28 @@
    "line": 54,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "reused": true,
    "alt": "green",
    "alt_after": "(fun (ha : A x) => And.left h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 55,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "reused": true,
    "alt": "green",
    "alt_after": "(fun (hb : B x) => And.right h hb)",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -14975,9 +15013,10 @@
    "line": 90,
    "rule": "Set.empty",
    "schema2": true,
-   "verdict": "needs-manual",
+   "verdict": "done",
    "bucket": "③需手工(点名→中缀)",
-   "diag": ""
+   "diag": "命中已不在（被已落地的改写连带删除 / 行漂 ✓）",
+   "landed": "obsolete"
   },
   {
    "file": "courses/set-theory/units/solutions/I.8/unit54-solution.sokonanoda",
@@ -15065,9 +15104,10 @@
    "line": 30,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "course/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
@@ -15134,9 +15174,10 @@
    "line": 30,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
@@ -15203,9 +15244,10 @@
    "line": 16,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/gaps/C-04-prop-to-type-reject.sokonanoda",
@@ -15244,54 +15286,60 @@
    "line": 30,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-prop.sokonanoda",
-   "line": 37,
+   "line": 36,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-prop.sokonanoda",
-   "line": 65,
+   "line": 64,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 155,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 159,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 163,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
@@ -15362,27 +15410,30 @@
    "line": 420,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/lib/Rel.sokonanoda",
    "line": 88,
    "rule": "Iff.refl 写全了前导参数（1 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/lib/Rel.sokonanoda",
    "line": 94,
    "rule": "Iff.refl 写全了前导参数（1 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/lib/SUnion.sokonanoda",
@@ -15399,30 +15450,33 @@
    "line": 71,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
    "line": 71,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "alt": "green",
    "alt_after": "exact And.right hx (And.left (x ∈ A) (¬ (x ∈ A)) hx)  -- soko:notation-ok: 目标经 \\ 展开后期望类型传不到 + And.right 续应用（引擎边界）",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
    "line": 73,
    "rule": "False.elim 写全了前导参数（2 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.13/unit41-well-founded.sokonanoda",
@@ -15439,36 +15493,40 @@
    "line": 265,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 266,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 270,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 271,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.3/unit10-cantor.sokonanoda",
@@ -15497,9 +15555,10 @@
    "line": 33,
    "rule": "Iff.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/I.3/unit102-subset-antisymm.sokonanoda",
@@ -15516,63 +15575,70 @@
    "line": 37,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
    "line": 59,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 66,
+   "line": 65,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 151,
+   "line": 150,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 155,
+   "line": 154,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 159,
+   "line": 158,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 163,
+   "line": 162,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/I.3/unit97-equiv-le.sokonanoda",
@@ -15589,9 +15655,10 @@
    "line": 42,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/I.3/unit98-le-mono.sokonanoda",
@@ -15608,9 +15675,10 @@
    "line": 41,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/I.3/unit99-powerset-mono.sokonanoda",
@@ -15627,18 +15695,20 @@
    "line": 31,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/I.4/unit95-diagonal.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
@@ -15793,9 +15863,10 @@
    "line": 132,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -15814,12 +15885,13 @@
    "line": 143,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "alt": "green",
    "alt_after": "And.right h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -15838,36 +15910,40 @@
    "line": 157,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit104-solution.sokonanoda",
    "line": 24,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
    "line": 15,
    "rule": "Or.elim 写全了前导参数（6 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
    "line": 35,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -15908,18 +15984,20 @@
    "line": 44,
    "rule": "False.elim 写全了前导参数（2 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
    "line": 48,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -15960,18 +16038,20 @@
    "line": 55,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
    "line": 63,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
@@ -15988,36 +16068,40 @@
    "line": 93,
    "rule": "False.elim 写全了前导参数（2 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit59-solution.sokonanoda",
    "line": 41,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit60-solution.sokonanoda",
    "line": 7,
    "rule": "Iff.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit60-solution.sokonanoda",
    "line": 41,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
@@ -16084,9 +16168,10 @@
    "line": 81,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit62-solution.sokonanoda",
@@ -16103,18 +16188,20 @@
    "line": 35,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit62-solution.sokonanoda",
    "line": 71,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
@@ -16141,18 +16228,20 @@
    "line": 31,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
    "line": 53,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
@@ -16179,9 +16268,10 @@
    "line": 31,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
@@ -16208,9 +16298,10 @@
    "line": 44,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
@@ -16237,36 +16328,40 @@
    "line": 31,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
    "line": 34,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
    "line": 38,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit66-solution.sokonanoda",
    "line": 30,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit66-solution.sokonanoda",
@@ -16293,18 +16388,20 @@
    "line": 22,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
    "line": 26,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
@@ -16323,27 +16420,30 @@
    "line": 52,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
    "line": 53,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 43,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16380,9 +16480,10 @@
    "line": 61,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16401,9 +16502,10 @@
    "line": 81,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16420,18 +16522,20 @@
    "line": 85,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 85,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16448,18 +16552,20 @@
    "line": 95,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 95,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -16486,72 +16592,80 @@
    "line": 122,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 122,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit77-solution.sokonanoda",
    "line": 62,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 78,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 83,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 83,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 88,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 88,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
@@ -16568,342 +16682,380 @@
    "line": 101,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 102,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 102,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 109,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 110,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 110,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 111,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 111,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 117,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 128,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 129,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 129,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 130,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 131,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 132,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 132,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 133,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 133,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 134,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 134,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit85-solution.sokonanoda",
    "line": 59,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 21,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 29,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 29,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 30,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 30,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 35,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 35,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 37,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 37,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 48,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 48,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 51,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 51,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 57,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 57,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 58,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "done",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "无同规则剩余命中 ⇒ 已消失 / 需人工复核 ✓",
+   "landed": "obsolete"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
-   "line": 60,
+   "line": 58,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
@@ -16946,27 +17098,30 @@
    "line": 92,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 99,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 99,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "①def应用补不出前导命题（典型报文 `期望 Sort(0)`）",
+   "diag": "落地判负 ⇒ 回滚（待内核 ✓）",
+   "landed": "reverted"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit30-solution.sokonanoda",
@@ -17073,27 +17228,30 @@
    "line": 32,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 35,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 36,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
@@ -17120,117 +17278,130 @@
    "line": 89,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 90,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 101,
    "rule": "False.elim 写全了前导参数（2 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 103,
    "rule": "False.elim 写全了前导参数（2 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 23,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 25,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 25,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 61,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 62,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 69,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 82,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 88,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 89,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit33-solution.sokonanoda",
@@ -17271,36 +17442,40 @@
    "line": 42,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 44,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 53,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
    "line": 24,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
@@ -17347,9 +17522,10 @@
    "line": 46,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17366,9 +17542,10 @@
    "line": 65,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17385,9 +17562,10 @@
    "line": 71,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17404,9 +17582,10 @@
    "line": 80,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17423,9 +17602,10 @@
    "line": 89,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17510,9 +17690,10 @@
    "line": 133,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -17529,54 +17710,60 @@
    "line": 139,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit37-solution.sokonanoda",
    "line": 71,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit37-solution.sokonanoda",
    "line": 103,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
    "line": 78,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
    "line": 98,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
    "line": 112,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
@@ -17595,18 +17782,20 @@
    "line": 176,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit40-solution.sokonanoda",
    "line": 115,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit41-solution.sokonanoda",
@@ -17643,18 +17832,20 @@
    "line": 75,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit45-solution.sokonanoda",
    "line": 103,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit05-solution.sokonanoda",
@@ -17725,18 +17916,20 @@
    "line": 89,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
    "line": 91,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
@@ -17827,72 +18020,80 @@
    "line": 116,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 117,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 128,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 128,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 129,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 137,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 137,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 138,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17909,18 +18110,20 @@
    "line": 165,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 166,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17937,18 +18140,20 @@
    "line": 170,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 171,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -17967,9 +18172,10 @@
    "line": 230,
    "rule": "False.elim 写全了前导参数（2 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -18010,9 +18216,10 @@
    "line": 360,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -18029,9 +18236,10 @@
    "line": 380,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -18050,18 +18258,20 @@
    "line": 427,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 429,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
@@ -18108,99 +18318,110 @@
    "line": 66,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 67,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 68,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 70,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 71,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 84,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 86,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 99,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 101,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 103,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit101-solution.sokonanoda",
    "line": 14,
    "rule": "Iff.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit101-solution.sokonanoda",
@@ -18217,9 +18438,10 @@
    "line": 14,
    "rule": "Iff.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
@@ -18236,9 +18458,10 @@
    "line": 19,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
@@ -18265,54 +18488,60 @@
    "line": 33,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
    "line": 37,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
    "line": 41,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 158,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 162,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 166,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
@@ -18359,36 +18588,40 @@
    "line": 53,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
    "line": 61,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
    "line": 83,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
    "line": 83,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
@@ -18415,54 +18648,60 @@
    "line": 96,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
    "line": 97,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
    "line": 50,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
    "line": 50,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
    "line": 60,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
    "line": 61,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
@@ -18479,54 +18718,60 @@
    "line": 63,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 75,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 76,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 77,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 79,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 80,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
@@ -18543,9 +18788,10 @@
    "line": 23,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
@@ -18562,45 +18808,50 @@
    "line": 32,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
    "line": 31,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
    "line": 52,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
    "line": 65,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
    "line": 67,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit99-solution.sokonanoda",
@@ -18629,9 +18880,10 @@
    "line": 73,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -18648,198 +18900,220 @@
    "line": 80,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 81,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 95,
    "rule": "Iff.refl 写全了前导参数（1 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 109,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 110,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 120,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 121,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 136,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 136,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
-   "bucket": "",
-   "diag": ""
+   "verdict": "red",
+   "bucket": "④其它（同行嵌套同名调用 ⇒ 改写器 arity 对不上）",
+   "diag": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）",
+   "landed": null
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 137,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 140,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 140,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 141,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 146,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 149,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 154,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 159,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 160,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 161,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 162,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 340,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 341,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -18858,58 +19132,64 @@
    "line": 355,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 357,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 365,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 369,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 371,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 372,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
-   "line": 436,
+   "line": 54,
    "rule": "And.left 写全了前导参数（2 个实参）",
    "schema2": true,
    "verdict": "red",
@@ -18919,7 +19199,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
-   "line": 440,
+   "line": 55,
    "rule": "And.right 写全了前导参数（2 个实参）",
    "schema2": true,
    "verdict": "red",
@@ -18932,13 +19212,14 @@
    "line": 476,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
-   "line": 482,
+   "line": 440,
    "rule": "And.right 写全了前导参数（2 个实参）",
    "schema2": true,
    "verdict": "red",
@@ -18951,27 +19232,30 @@
    "line": 9,
    "rule": "Iff.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
    "line": 12,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
    "line": 15,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
@@ -18990,18 +19274,20 @@
    "line": 28,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
    "line": 29,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit13-solution.sokonanoda",
@@ -19096,36 +19382,40 @@
    "line": 49,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit67-solution.sokonanoda",
    "line": 54,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit67-solution.sokonanoda",
    "line": 68,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
    "line": 29,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
@@ -19144,63 +19434,70 @@
    "line": 72,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
    "line": 72,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 84,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 86,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 87,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 88,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 96,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -19227,9 +19524,10 @@
    "line": 125,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -19246,9 +19544,10 @@
    "line": 129,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -19275,9 +19574,10 @@
    "line": 28,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit16-solution.sokonanoda",
@@ -19308,9 +19608,10 @@
    "line": 66,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit42-solution.sokonanoda",
@@ -19351,9 +19652,10 @@
    "line": 25,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit82-solution.sokonanoda",
@@ -19384,18 +19686,20 @@
    "line": 40,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
    "line": 29,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
@@ -19442,9 +19746,10 @@
    "line": 112,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
@@ -19541,36 +19846,40 @@
    "line": 46,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 49,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 51,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 58,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
@@ -19597,27 +19906,30 @@
    "line": 61,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 62,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 77,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
@@ -19636,18 +19948,20 @@
    "line": 50,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 51,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -19664,18 +19978,20 @@
    "line": 56,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 57,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -19702,18 +20018,20 @@
    "line": 68,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 71,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -19730,9 +20048,10 @@
    "line": 90,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "green"
   },
   {
    "file": "courses/set-theory/units/solutions/I.8/unit19-solution.sokonanoda",
@@ -19807,9 +20126,10 @@
    "line": 93,
    "rule": "And.intro 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "courses/set-theory/units/solutions/I.9/unit23-solution.sokonanoda",
@@ -19826,9 +20146,10 @@
    "line": 257,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
-   "diag": ""
+   "diag": "",
+   "landed": "already"
   },
   {
    "file": "playground.sokonanoda",
@@ -19847,24 +20168,26 @@
    "line": 329,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "alt": "green",
    "alt_after": "apply And.left h x  -- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "green"
   },
   {
    "file": "playground.sokonanoda",
    "line": 330,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
-   "verdict": "green",
+   "verdict": "done",
    "bucket": "",
    "diag": "",
    "alt": "green",
    "alt_after": "apply And.right h x  -- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
-   "via_alt": true
+   "via_alt": true,
+   "landed": "green"
   },
   {
    "file": "playground.sokonanoda",

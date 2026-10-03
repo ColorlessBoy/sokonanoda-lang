@@ -68,7 +68,7 @@ theorem subset_comp_self_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r
     ∀ (a : α) (c : α), r a c → (r • r) a c :=
   fun (a : α) => fun (c : α) => fun (hac : r a c) =>
     Exists.intro α (fun (b : α) => r a b ∧ r b c) a
-      (And.intro (r a a) (r a c) ((fun (hu : ∀ (x : α), r x x) => hu a) h) hac)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (And.intro ((fun (hu : ∀ (x : α), r x x) => hu a) h) hac)
 
 theorem comp_idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
     ∀ (a : α) (b : α), (idRel α • r) a b → r a b :=
@@ -100,7 +100,7 @@ theorem algebraic_is_equivalence (α : Type) (r : Rel α α)
     (fun (a : α) (b : α) => fun (hab : r a b) => h2 b a hab)
     (fun (a : α) (b : α) (c : α) => fun (hab : r a b) => fun (hbc : r b c) =>
       h3 a c (Exists.intro α (fun (b1 : α) => r a b1 ∧ r b1 c) b
-        (And.intro (r a b) (r b c) hab hbc)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (And.intro hab hbc)))
 
 theorem equivalence_comp_subset (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
     ∀ (a : α) (c : α), (r • r) a c → r a c :=

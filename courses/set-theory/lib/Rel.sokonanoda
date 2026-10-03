@@ -85,13 +85,13 @@ theorem Rel.inv_apply (A B : Type) (r : Rel A B) (b : B) (a : A) :
     (r ⁻¹) b a ↔ r a b :=  Iff.refl
 
 theorem Rel.comp_apply {A B C : Type} (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
-    (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl (∃ (b : B), r a b ∧ s b c)  -- soko:notation-ok: `Iff.refl` 短写解不出 A
+    (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl
 
 -- ── 库自检：两条展开引理合起来，把"逆的逆"退回原关系（`rfl` 级）。────────────
 -- 单元⑥ 的必证题 `rel_inv_inv` 在画布上由学习者自己写：它的证明项与本条同款
 -- （函数外延性在这里用不上——`(r ⁻¹) ⁻¹` 与 `r` 是定义等式）。
 theorem Rel.inv_inv_apply (A B : Type) (r : Rel A B) (a : A) (b : B) :
-    ((r ⁻¹) ⁻¹) a b ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A
+    ((r ⁻¹) ⁻¹) a b ↔ r a b :=  Iff.refl
 
 -- ── Eq 搬运（**具名包装**；本语言里 `Eq.subst` 嵌在别的应用里会被 elaborator 判红）──
 -- 读法：`rel_subst_left r h` 把 `r b c` 沿 `a = c` 搬成 `r b a`（把等式的**左端**换掉）。

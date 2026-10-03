@@ -40,7 +40,7 @@ theorem ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
     (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
       Exists.intro (α → Prop) (fun (A' : α → Prop) => P A' ∧ A' b ∧ A' a) A  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
         (And.intro (P A) (A b ∧ A a) (And.left hA)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
-          (And.intro (A b) (A a) (And.right (And.right hA)) (And.left (And.right hA)))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+          (And.intro (And.right (And.right hA)) (And.left (And.right hA)))))
 
 theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
     (a b c : α) (hab : Rel.ofPartition α P a b) (hbc : Rel.ofPartition α P b c) :
@@ -58,7 +58,7 @@ theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Par
                   (Iff.mpr (hAB c) (And.right (And.right hB))))))
             (partition_disjoint α P hP A B (And.left hA) (And.left hB)
               (Exists.intro α (fun (x : α) => A x ∧ B x) b
-                (And.intro (A b) (B b) (And.right (And.right hA)) (And.left (And.right hB)))))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+                (And.intro (And.right (And.right hA)) (And.left (And.right hB)))))))
 
 theorem equivalence_ofPartition (α : Type) (P : (α → Prop) → Prop)
     (hP : Rel.Partition α P) : IsEquivalence α (Rel.ofPartition α P) :=
@@ -78,11 +78,11 @@ theorem equivClass_of_mem (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Par
           (fun (B : α → Prop) (hB : P B ∧ B a ∧ B c) =>
             Iff.mp ((partition_disjoint α P hP B A (And.left hB) hA
               (Exists.intro α (fun (x : α) => B x ∧ A x) a
-                (And.intro (B a) (A a) (And.left (And.right hB)) ha))) c)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+                (And.intro (And.left (And.right hB)) ha))) c)
               (And.right (And.right hB))))
       (fun (hc : A c) =>
         Exists.intro (α → Prop) (fun (B : α → Prop) => P B ∧ B a ∧ B c) A  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
-          (And.intro (P A) (A a ∧ A c) hA (And.intro (A a) (A c) ha hc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+          (And.intro hA (And.intro (A a) (A c) ha hc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
 
 theorem class_eq_block_core (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
     (A C : α → Prop) (a : α) (hA : P A) (ha : A a)
@@ -92,7 +92,7 @@ theorem class_eq_block_core (α : Type) (P : (α → Prop) → Prop) (hP : Rel.P
       (fun (hAc : A c) =>
         Iff.mpr (hC c)
           (Exists.intro (α → Prop) (fun (B : α → Prop) => P B ∧ B a ∧ B c) A  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
-            (And.intro (P A) (A a ∧ A c) hA (And.intro (A a) (A c) ha hAc))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+            (And.intro hA (And.intro (A a) (A c) ha hAc))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
       (fun (hCc : C c) => Iff.mp (equivClass_of_mem α P hP A hA a ha c) (Iff.mp (hC c) hCc))
 
 theorem class_is_block (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
@@ -119,7 +119,7 @@ theorem block_is_class (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partit
             Iff.intro (C c) (Rel.ofPartition α P a c)
               (fun (hCc : C c) =>
                 Exists.intro (α → Prop) (fun (B : α → Prop) => P B ∧ B a ∧ B c) C  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
-                  (And.intro (P C) (C a ∧ C c) hC (And.intro (C a) (C c) ha hCc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+                  (And.intro hC (And.intro (C a) (C c) ha hCc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
               (fun (hac : Rel.ofPartition α P a c) =>
                 Iff.mp (equivClass_of_mem α P hP C hC a ha c) hac))))
 

@@ -5,19 +5,19 @@
  "note": "`ready` = 判绿、可直接批量改（删豁免 ✓）；`pending-u1u2` = 桶①（等内核 U1/U2 ✓）；`pending-other` = 桶②/④；`manual` = 点名→中缀（要真改写器 ✓，只给 file:line+rule ✓）",
  "groups": {
   "ready": {
-   "count": 292
+   "count": 0
   },
   "pending-u1u2": {
-   "count": 254
+   "count": 269
   },
   "pending-other": {
-   "count": 31
+   "count": 42
   },
   "manual": {
-   "count": 1560
+   "count": 1545
   },
   "done": {
-   "count": 3
+   "count": 284
   }
  },
  "entries": [
@@ -43,19 +43,19 @@
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "have hP : P x := And.left (∀ (y : Person), P y) (∀ (y : Person), Q y) h x -- soko:notation-ok: And.left's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "after": "have hP : P x := And.left x-- soko:notation-ok: And.left's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "have hQ : Q x := And.right (∀ (y : Person), P y) (∀ (y : Person), Q y) h x -- soko:notation-ok: And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "after": "have hQ : Q x := And.right x-- soko:notation-ok: And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -127,19 +127,19 @@
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "have hP : P x := And.left (∀ (y : Person), P y) (∀ (y : Person), Q y) h x -- soko:notation-ok: And.left 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "after": "have hP : P x := And.left x-- soko:notation-ok: And.left 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "have hQ : Q x := And.right (∀ (y : Person), P y) (∀ (y : Person), Q y) h x -- soko:notation-ok: And.right 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "after": "have hQ : Q x := And.right x-- soko:notation-ok: And.right 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
@@ -281,15 +281,18 @@
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 155,
+   "line": 162,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
-   "line": 159,
+   "line": 163,
    "rule": "Eq.{…}",
-   "group": "manual"
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
@@ -301,7 +304,10 @@
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 163,
    "rule": "Eq.{…}",
-   "group": "manual"
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/lib/Cardinal.sokonanoda",
@@ -2006,44 +2012,23 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 265,
-   "rule": "Eq.{…}",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 265,
-   "rule": "Set.mem",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 265,
-   "rule": "Set.inter",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 266,
-   "rule": "Eq.{…}",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 266,
-   "rule": "Set.mem",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 266,
-   "rule": "Set.inter",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 267,
    "rule": "Eq.{…}",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 266,
+   "rule": "Set.mem",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 284,
+   "rule": "Set.inter",
    "group": "manual"
   },
   {
@@ -2051,6 +2036,36 @@
    "line": 268,
    "rule": "Eq.{…}",
    "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 270,
+   "rule": "Set.mem",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 284,
+   "rule": "Set.inter",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 287,
+   "rule": "Eq.{…}",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+   "line": 270,
+   "rule": "Eq.{…}",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
@@ -2063,25 +2078,31 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 270,
+   "line": 271,
    "rule": "Eq.{…}",
-   "group": "manual"
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 270,
+   "line": 271,
    "rule": "Set.mem",
-   "group": "manual"
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 270,
+   "line": 285,
    "rule": "Set.inter",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 271,
+   "line": 287,
    "rule": "Eq.{…}",
    "group": "manual"
   },
@@ -2089,11 +2110,14 @@
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 271,
    "rule": "Set.mem",
-   "group": "manual"
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 271,
+   "line": 289,
    "rule": "Set.inter",
    "group": "manual"
   },
@@ -2117,7 +2141,7 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 284,
+   "line": 285,
    "rule": "Set.inter",
    "group": "manual"
   },
@@ -2129,7 +2153,7 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
-   "line": 285,
+   "line": 289,
    "rule": "Set.inter",
    "group": "manual"
   },
@@ -2201,49 +2225,61 @@
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 142,
+   "line": 140,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 146,
+   "line": 144,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 151,
+   "line": 150,
+   "rule": "Eq.{…}",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+   "line": 153,
+   "rule": "Eq.{…}",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+   "line": 152,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 154,
+   "line": 158,
    "rule": "Eq.{…}",
-   "group": "manual"
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 155,
+   "line": 161,
    "rule": "Eq.{…}",
-   "group": "manual"
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 159,
-   "rule": "Eq.{…}",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 162,
-   "rule": "Eq.{…}",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 163,
+   "line": 160,
    "rule": "Eq.{…}",
    "group": "manual"
   },
@@ -3229,19 +3265,19 @@
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 134,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "And.right (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "after": "And.right hcx)-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 141,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "after": "And.right (Or.inl (x ∈ B) (x ∈ C) hb)))-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
@@ -3719,13 +3755,13 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
-   "line": 22,
+   "line": 37,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
-   "line": 37,
+   "line": 43,
    "rule": "Eq.{…}",
    "group": "manual"
   },
@@ -5264,38 +5300,14 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 42,
-   "rule": "Set.powerset",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 44,
-   "rule": "Set.powerset",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 47,
    "rule": "Set.powerset",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 47,
-   "rule": "Set.sUnion",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 49,
    "rule": "Set.powerset",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 49,
-   "rule": "Set.sUnion",
    "group": "manual"
   },
   {
@@ -5306,14 +5318,20 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 47,
+   "rule": "Set.sUnion",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 52,
    "rule": "Set.powerset",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 53,
-   "rule": "Set.powerset",
+   "line": 49,
+   "rule": "Set.sUnion",
    "group": "manual"
   },
   {
@@ -5330,20 +5348,8 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 57,
-   "rule": "Set.sInter",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 58,
    "rule": "Set.powerset",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
-   "line": 58,
-   "rule": "Set.sInter",
    "group": "manual"
   },
   {
@@ -5360,8 +5366,20 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 57,
+   "rule": "Set.sInter",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 63,
    "rule": "Set.powerset",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 58,
+   "rule": "Set.sInter",
    "group": "manual"
   },
   {
@@ -5373,6 +5391,24 @@
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 65,
+   "rule": "Set.powerset",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 68,
+   "rule": "Set.powerset",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 65,
+   "rule": "Set.powerset",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+   "line": 68,
    "rule": "Set.powerset",
    "group": "manual"
   },
@@ -6554,25 +6590,25 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 230,
+   "line": 261,
    "rule": "Set.mem",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 230,
+   "line": 250,
    "rule": "Set.inter",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 230,
+   "line": 250,
    "rule": "Set.singleton",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 230,
+   "line": 250,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6584,7 +6620,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 250,
+   "line": 253,
    "rule": "Set.inter",
    "group": "manual"
   },
@@ -6596,13 +6632,13 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 250,
+   "line": 253,
    "rule": "Set.singleton",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 250,
+   "line": 253,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6614,7 +6650,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 253,
+   "line": 262,
    "rule": "Set.inter",
    "group": "manual"
   },
@@ -6626,13 +6662,13 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 253,
+   "line": 262,
    "rule": "Set.singleton",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 253,
+   "line": 263,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6662,13 +6698,13 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 261,
+   "line": 264,
    "rule": "Set.mem",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 262,
+   "line": 276,
    "rule": "Set.inter",
    "group": "manual"
   },
@@ -6680,7 +6716,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 262,
+   "line": 264,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6692,25 +6728,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 263,
-   "rule": "Set.singleton",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 264,
-   "rule": "Set.mem",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 264,
-   "rule": "Set.image",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 264,
+   "line": 265,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6722,13 +6740,31 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 264,
+   "rule": "Set.image",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 276,
+   "rule": "Set.singleton",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 284,
+   "rule": "Set.mem",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 265,
    "rule": "Set.image",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 265,
+   "line": 276,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6788,37 +6824,13 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 276,
-   "rule": "Set.inter",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 276,
-   "rule": "Set.image",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 276,
-   "rule": "Set.singleton",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 276,
-   "rule": "Set.singleton",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 277,
    "rule": "Set.inter",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 277,
+   "line": 276,
    "rule": "Set.image",
    "group": "manual"
   },
@@ -6831,12 +6843,36 @@
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 278,
+   "rule": "Set.singleton",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 280,
+   "rule": "Set.inter",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 277,
    "rule": "Set.image",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 280,
+   "rule": "Set.singleton",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 278,
+   "rule": "Set.image",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 280,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6848,37 +6884,13 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 280,
-   "rule": "Set.inter",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 280,
-   "rule": "Set.image",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 280,
-   "rule": "Set.singleton",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 280,
-   "rule": "Set.singleton",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 281,
    "rule": "Set.inter",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 281,
+   "line": 280,
    "rule": "Set.image",
    "group": "manual"
   },
@@ -6891,12 +6903,36 @@
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 282,
+   "rule": "Set.singleton",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 285,
+   "rule": "Set.inter",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 281,
    "rule": "Set.image",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 285,
+   "rule": "Set.singleton",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 282,
+   "rule": "Set.image",
+   "group": "manual"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+   "line": 286,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6908,7 +6944,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 285,
+   "line": 289,
    "rule": "Set.inter",
    "group": "manual"
   },
@@ -6920,7 +6956,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 285,
+   "line": 289,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6932,7 +6968,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 286,
+   "line": 290,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6944,7 +6980,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 289,
+   "line": 291,
    "rule": "Set.inter",
    "group": "manual"
   },
@@ -6956,7 +6992,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 289,
+   "line": 291,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -6968,13 +7004,13 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 290,
+   "line": 291,
    "rule": "Set.singleton",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 291,
+   "line": 294,
    "rule": "Set.inter",
    "group": "manual"
   },
@@ -6986,13 +7022,13 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 291,
+   "line": 294,
    "rule": "Set.singleton",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 291,
+   "line": 294,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -7004,7 +7040,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 294,
+   "line": 295,
    "rule": "Set.inter",
    "group": "manual"
   },
@@ -7016,13 +7052,13 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 294,
+   "line": 295,
    "rule": "Set.singleton",
    "group": "manual"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
-   "line": 294,
+   "line": 296,
    "rule": "Set.singleton",
    "group": "manual"
   },
@@ -7253,13 +7289,7 @@
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 158,
-   "rule": "Eq.{…}",
-   "group": "manual"
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
-   "line": 162,
+   "line": 165,
    "rule": "Eq.{…}",
    "group": "manual"
   },
@@ -7273,7 +7303,19 @@
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 166,
    "rule": "Eq.{…}",
-   "group": "manual"
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
+   "line": 166,
+   "rule": "Eq.{…}",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
@@ -7535,8 +7577,8 @@
    "line": 60,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
-   "before": "(And.intro (A ∈ F) (x ∈ (f ⁻¹' A)) (And.left (A ∈ F) (f x ∈ A) hA)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.intro (x ∈ (f ⁻¹' A)) (And.left (A ∈ F) (f x ∈ A) hA)-- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "before": "(And.intro (A ∈ F) (x ∈ (f ⁻¹' A)) (And.left hA)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.intro (x ∈ (f ⁻¹' A)) (And.left hA)-- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
    "note": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $6)) $1) $4)`"
   },
   {
@@ -7660,19 +7702,19 @@
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 54,
    "rule": "And.left 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(fun (ha : A x) => And.left (¬ (A x)) (¬ (B x)) h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(fun (ha : A x) => And.left ha)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 55,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(fun (hb : B x) => And.right (¬ (A x)) (¬ (B x)) h hb)",
-   "after": "(fun (hb : B x) => And.right hb)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -9800,8 +9842,8 @@
    "line": 49,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
-   "before": "(And.intro (B ∈ F) (c ∈ (A ∩ B)) (And.left (B ∈ F) (c ∈ B) hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(And.intro (c ∈ (A ∩ B)) (And.left (B ∈ F) (c ∈ B) hB)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+   "before": "(And.intro (B ∈ F) (c ∈ (A ∩ B)) (And.left hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+   "after": "(And.intro (c ∈ (A ∩ B)) (And.left hB)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
    "note": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $6)) $1) $4)`"
   },
   {
@@ -10099,7 +10141,10 @@
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 90,
    "rule": "Set.empty",
-   "group": "manual"
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.8/unit54-solution.sokonanoda",
@@ -10159,18 +10204,18 @@
    "file": "course/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "exact And.right a (¬ a) h (And.left a (¬ a) h) -- soko:notation-ok: here And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "after": "exact And.right a (¬ a) h (And.left h)-- soko:notation-ok: here And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "course/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
-   "before": "exact And.right a (¬ a) h (And.left a (¬ a) h) -- soko:notation-ok: here And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
-   "after": "exact And.right (And.left a (¬ a) h)-- soko:notation-ok: here And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
+   "before": "exact And.right a (¬ a) h (And.left h) -- soko:notation-ok: here And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
+   "after": "exact And.right (And.left h)-- soko:notation-ok: here And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)",
    "note": "`exact` 类型不匹配：期望 `False`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
   },
   {
@@ -10213,18 +10258,18 @@
    "file": "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "exact And.right a (¬ a) h (And.left a (¬ a) h) -- soko:notation-ok: And.right 后面还跟着对结果的继续应用（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "after": "exact And.right a (¬ a) h (And.left h)-- soko:notation-ok: And.right 后面还跟着对结果的继续应用（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
-   "before": "exact And.right a (¬ a) h (And.left a (¬ a) h) -- soko:notation-ok: And.right 后面还跟着对结果的继续应用（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
-   "after": "exact And.right (And.left a (¬ a) h)-- soko:notation-ok: And.right 后面还跟着对结果的继续应用（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
+   "before": "exact And.right a (¬ a) h (And.left h) -- soko:notation-ok: And.right 后面还跟着对结果的继续应用（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
+   "after": "exact And.right (And.left h)-- soko:notation-ok: And.right 后面还跟着对结果的继续应用（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
    "note": "`exact` 类型不匹配：期望 `False`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
   },
   {
@@ -10267,10 +10312,10 @@
    "file": "courses/set-theory/gaps/C-04-prop-to-type-control.sokonanoda",
    "line": 16,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hnp : ¬ P) => Or.inr P (¬ P) hnp) h  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "after": "(fun (hnp : ¬ P) => Or.inr hnp) h-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/gaps/C-04-prop-to-type-reject.sokonanoda",
@@ -10303,55 +10348,55 @@
    "file": "courses/set-theory/gaps/C-112-cb-prop.sokonanoda",
    "line": 30,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ A) (¬ (x ∈ g '' (B \\ f '' C1))) hx)",
-   "after": "(And.right hx)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-prop.sokonanoda",
-   "line": 37,
+   "line": 36,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)",
-   "after": "(And.right hb)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-prop.sokonanoda",
-   "line": 65,
+   "line": 64,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ A) (¬ (x ∈ g '' B)) hx)",
-   "after": "(And.right hx)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 155,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.right (x ∈ C) (Eq.{1} β (f x) y) h",
-   "after": "And.right h",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 159,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.left (¬ (x ∈ C)) (Eq.{1} α (g y) x) h",
-   "after": "And.left h",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
    "line": 163,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.right (¬ (x ∈ C)) (Eq.{1} α (g y) x) h",
-   "after": "And.right h",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda",
@@ -10411,28 +10456,28 @@
    "file": "courses/set-theory/lib/Order.sokonanoda",
    "line": 420,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "And.intro (LowerBound α r A b) (∀ (c : α), LowerBound α r A c → r c b) hlb hgreatest  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名",
-   "after": "And.intro hlb hgreatest-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/lib/Rel.sokonanoda",
    "line": 88,
    "rule": "Iff.refl 写全了前导参数（1 个实参）",
-   "group": "ready",
-   "before": "(r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl (∃ (b : B), r a b ∧ s b c)  -- soko:notation-ok: `Iff.refl` 短写解不出 A",
-   "after": "(r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl-- soko:notation-ok: `Iff.refl` 短写解不出 A",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/lib/Rel.sokonanoda",
    "line": 94,
    "rule": "Iff.refl 写全了前导参数（1 个实参）",
-   "group": "ready",
-   "before": "((r ⁻¹) ⁻¹) a b ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A",
-   "after": "((r ⁻¹) ⁻¹) a b ↔ r a b :=  Iff.refl-- soko:notation-ok: `Iff.refl` 短写解不出 A",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/lib/SUnion.sokonanoda",
@@ -10447,28 +10492,28 @@
    "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
    "line": 71,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "exact And.right (x ∈ A) (¬ (x ∈ A)) hx (And.left (x ∈ A) (¬ (x ∈ A)) hx)  -- soko:notation-ok: 目标经 \\ 展开后期望类型传不到 + And.right 续应用（引擎边界）",
-   "after": "exact And.right (x ∈ A) (¬ (x ∈ A)) hx (And.left hx)-- soko:notation-ok: 目标经 \\ 展开后期望类型传不到 + And.right 续应用（引擎边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
    "line": 71,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "exact And.right (x ∈ A) (¬ (x ∈ A)) hx (And.left (x ∈ A) (¬ (x ∈ A)) hx)  -- soko:notation-ok: 目标经 \\ 展开后期望类型传不到 + And.right 续应用（引擎边界）",
-   "after": "exact And.right (And.left (x ∈ A) (¬ (x ∈ A)) hx)-- soko:notation-ok: 目标经 \\ 展开后期望类型传不到 + And.right 续应用（引擎边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.1/unit04-extensionality-identities.sokonanoda",
    "line": 73,
    "rule": "False.elim 写全了前导参数（2 个实参）",
-   "group": "ready",
-   "before": "exact And.intro (False.elim (x ∈ A) hf) (fun (ha : x ∈ A) => hf)  -- soko:notation-ok: And.intro 首实参得不到期望类型（引擎边界）",
-   "after": "exact And.intro (False.elim hf) (fun (ha : x ∈ A) => hf)-- soko:notation-ok: And.intro 首实参得不到期望类型（引擎边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.13/unit41-well-founded.sokonanoda",
@@ -10483,37 +10528,37 @@
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 265,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))",
-   "after": "(And.left hx))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 266,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hx)))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 270,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
    "line": 271,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))))",
-   "after": "(And.right hx))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit10-cantor.sokonanoda",
@@ -10537,10 +10582,10 @@
    "file": "courses/set-theory/units/I.3/unit102-subset-antisymm.sokonanoda",
    "line": 33,
    "rule": "Iff.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit102-subset-antisymm.sokonanoda",
@@ -10555,64 +10600,64 @@
    "file": "courses/set-theory/units/I.3/unit102-subset-antisymm.sokonanoda",
    "line": 37,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)-- 练习 1（T 类）：**相互包含的前一半**（点态）。  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.intro hf hfm)-- 练习 1（T 类）：**相互包含的前一半**（点态）。  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
    "line": 59,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ A) (¬ (x ∈ g '' (B \\ f '' C1))) hx)",
-   "after": "(And.right hx)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 66,
+   "line": 65,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)",
-   "after": "(And.right hb)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 151,
+   "line": 150,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.left (x ∈ C) (Eq.{1} β (f x) y) h",
-   "after": "And.left h",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 155,
+   "line": 154,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.right (x ∈ C) (Eq.{1} β (f x) y) h",
-   "after": "And.right h",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 159,
+   "line": 158,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.left (¬ (x ∈ C)) (Eq.{1} α (g y) x) h",
-   "after": "And.left h",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
-   "line": 163,
+   "line": 162,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.right (¬ (x ∈ C)) (Eq.{1} α (g y) x) h",
-   "after": "And.right h",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit97-equiv-le.sokonanoda",
@@ -10627,10 +10672,10 @@
    "file": "courses/set-theory/units/I.3/unit97-equiv-le.sokonanoda",
    "line": 42,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)-- 练习 1（T 类）：**取用子**（把存在式交出去）。  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.intro hf hfm)-- 练习 1（T 类）：**取用子**（把存在式交出去）。  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit98-le-mono.sokonanoda",
@@ -10645,10 +10690,10 @@
    "file": "courses/set-theory/units/I.3/unit98-le-mono.sokonanoda",
    "line": 41,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)-- 练习 1（T 类）：**取用子**（把存在式交出去）。  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.intro hf hfm)-- 练习 1（T 类）：**取用子**（把存在式交出去）。  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.3/unit99-powerset-mono.sokonanoda",
@@ -10663,19 +10708,19 @@
    "file": "courses/set-theory/units/I.4/unit95-diagonal.sokonanoda",
    "line": 31,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.left P Q h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "after": "And.left h-- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/I.4/unit95-diagonal.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.right P Q h-- 练习 1（T 类）：**命题层的自我否定**（`P → ¬ P` ⇒ `P → False`）。  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "after": "And.right h-- 练习 1（T 类）：**命题层的自我否定**（`P → ¬ P` ⇒ `P → False`）。  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda",
@@ -10798,73 +10843,73 @@
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 132,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h) hb)",
-   "after": "(And.left h) hb)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 141,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
-   "before": "And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "after": "And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inl hb)))-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "before": "And.right h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "after": "And.right h (Or.inl hb)))-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
    "note": "`exact` 类型不匹配：期望 `((A \\ B) \\ C) x`，实际是 `And (And (Set.mem x A) (Not (Set.mem x B))) (Not (Set.mem x "
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 143,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "after": "And.right (Or.inr (x ∈ B) (x ∈ C) hc))-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 143,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
-   "before": "And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "after": "And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inr hc))-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "before": "And.right h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
+   "after": "And.right h (Or.inr hc))-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
    "note": "`exact` 类型不匹配：期望 `((A \\ B) \\ C) x`，实际是 `And (And (Set.mem x A) (Not (Set.mem x B))) (Not (Set.mem x "
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit04-solution.sokonanoda",
    "line": 157,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "exact Or.inl (x ∈ A) (x ∈ ∅) ha  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "after": "exact Or.inl ha-- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit104-solution.sokonanoda",
    "line": 24,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hm (And.intro (x ∈ A) (¬ (x ∈ B)) hx hnb)) (Set.mem_sdiff x A B)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `False.elim` 的目标位（手册边界）",
-   "after": "Iff.mpr hm (And.intro hx hnb)) (Set.mem_sdiff x A B)-- soko:notation-ok: 等式族证明项的宇宙层级 / `False.elim` 的目标位（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
    "line": 15,
    "rule": "Or.elim 写全了前导参数（6 个实参）",
-   "group": "ready",
-   "before": "Or.elim P (¬ P) Q h1 h2 (Classical.em P)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "after": "Or.elim h1 h2 (Classical.em P)-- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
    "line": 35,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hq : Q) => (And.right (¬ P) (¬ Q) h) hq) hor)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "after": "(fun (hq : Q) => (And.right h) hq) hor)-- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
@@ -10889,35 +10934,35 @@
    "line": 44,
    "rule": "Or.elim 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
-   "before": "Or.elim (¬ P) Q Q (fun (hnp : ¬ P) => False.elim Q (hnp hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "after": "Or.elim Q Q (fun (hnp : ¬ P) => False.elim Q (hnp hp))-- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "before": "Or.elim (¬ P) Q Q (fun (hnp : ¬ P) => False.elim (hnp hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "after": "Or.elim Q Q (fun (hnp : ¬ P) => False.elim (hnp hp))-- soko:notation-ok: `False.elim` 的目标位（手册边界）",
    "note": "类型不匹配：期望 `Sort(0)`，实际是 `Pi (hnp : (Not.[] $3)), $3`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
    "line": 44,
    "rule": "False.elim 写全了前导参数（2 个实参）",
-   "group": "ready",
-   "before": "Or.elim (¬ P) Q Q (fun (hnp : ¬ P) => False.elim Q (hnp hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "after": "Or.elim (¬ P) Q Q (fun (hnp : ¬ P) => False.elim (hnp hp))-- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
    "line": 48,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) => Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (And.intro P Q hp hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "after": "em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) => Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (And.intro hp hq)))-- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit105-solution.sokonanoda",
    "line": 48,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
-   "before": "em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) => Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (And.intro P Q hp hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "after": "em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) => Or.inr (fun (hq : Q) => h (And.intro P Q hp hq)))-- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "before": "em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) => Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (And.intro hp hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
+   "after": "em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) => Or.inr (fun (hq : Q) => h (And.intro hp hq)))-- soko:notation-ok: `False.elim` 的目标位（手册边界）",
    "note": "类型不匹配：期望 `Pi ( : $2), ((Or.[] (Not.[] $3)) (Not.[] $2))`，实际是 `Pi (hp : $2), ((Or.[] Pi ( : $2), Fals"
   },
   {
@@ -10942,19 +10987,19 @@
    "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
    "line": 55,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "((fun (hv : a ∈ (B ∪ C) ↔ a ∈ B ∨ a ∈ C) => Iff.mpr hv (Or.inl (a ∈ B) (a ∈ C) hb))  -- soko:notation-ok: G-73 形状 ②：`∈`/`\\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "after": "((fun (hv : a ∈ (B ∪ C) ↔ a ∈ B ∨ a ∈ C) => Iff.mpr hv (Or.inl hb))-- soko:notation-ok: G-73 形状 ②：`∈`/`\\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
    "line": 63,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "((fun (hv : a ∈ (B ∪ C) ↔ a ∈ B ∨ a ∈ C) => Iff.mpr hv (Or.inr (a ∈ B) (a ∈ C) hc))  -- soko:notation-ok: G-73 形状 ②：`∈`/`\\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "after": "((fun (hv : a ∈ (B ∪ C) ↔ a ∈ B ∨ a ∈ C) => Iff.mpr hv (Or.inr hc))-- soko:notation-ok: G-73 形状 ②：`∈`/`\\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
@@ -10969,37 +11014,37 @@
    "file": "courses/set-theory/units/solutions/I.1/unit58-solution.sokonanoda",
    "line": 93,
    "rule": "False.elim 写全了前导参数（2 个实参）",
-   "group": "ready",
-   "before": "(fun (hb : a ∈ B) => False.elim (a ∈ A) (not_mem_of_mem_sdiff α (A ∪ B) B a h hb))  -- soko:notation-ok: G-73 形状 ②：`∈`/`\\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "after": "(fun (hb : a ∈ B) => False.elim (not_mem_of_mem_sdiff α (A ∪ B) B a h hb))-- soko:notation-ok: G-73 形状 ②：`∈`/`\\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit59-solution.sokonanoda",
    "line": 41,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (h2 : a ∈ (B \\ A)) => Or.inr (a ∈ A) (a ∈ B) (mem_of_mem_sdiff α B A a h2))  -- soko:notation-ok: G-73 形状 ②：`∈`/`\\`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "after": "(fun (h2 : a ∈ (B \\ A)) => Or.inr (mem_of_mem_sdiff α B A a h2))-- soko:notation-ok: G-73 形状 ②：`∈`/`\\`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit60-solution.sokonanoda",
    "line": 7,
    "rule": "Iff.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.intro (a ∈ (Aᶜ)) (¬ (a ∈ A)) (fun (h : a ∈ (Aᶜ)) => h) (fun (h : ¬ (a ∈ A)) => h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "after": "Iff.intro (fun (h : a ∈ (Aᶜ)) => h) (fun (h : ¬ (a ∈ A)) => h)-- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit60-solution.sokonanoda",
    "line": 41,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl (a ∈ A) (a ∈ B) hA))  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "after": "((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl hA))-- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
@@ -11059,10 +11104,10 @@
    "file": "courses/set-theory/units/solutions/I.1/unit61-solution.sokonanoda",
    "line": 81,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hu (And.intro (a ∈ A) (a ∈ (Set.univ α)) h (Set.mem_univ α a)))  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）",
-   "after": "Iff.mpr hu (And.intro h (Set.mem_univ α a)))-- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit62-solution.sokonanoda",
@@ -11077,19 +11122,19 @@
    "file": "courses/set-theory/units/solutions/I.1/unit62-solution.sokonanoda",
    "line": 35,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hu (And.intro (a ∈ A) (a ∈ B) ha hb)) (Set.mem_inter_iff a A B)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）",
-   "after": "Iff.mpr hu (And.intro ha hb)) (Set.mem_inter_iff a A B)-- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit62-solution.sokonanoda",
    "line": 71,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hw (Or.inr (a ∈ A) (a ∈ B) hb)) (Set.mem_union a A B))))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）",
-   "after": "Iff.mpr hw (Or.inr hb)) (Set.mem_union a A B))))-- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
@@ -11113,19 +11158,19 @@
    "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
    "line": 31,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ B)) ha hna)) (Set.mem_sdiff a A B)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∪` 是 def 头（手册边界）",
-   "after": "Iff.mpr hu (And.intro ha hna)) (Set.mem_sdiff a A B)-- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∪` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit63-solution.sokonanoda",
    "line": 53,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hw (Or.inl (a ∈ A) (a ∈ B) (mem_of_mem_sdiff α A B a h)))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∪` 是 def 头（手册边界）",
-   "after": "Iff.mpr hw (Or.inl (mem_of_mem_sdiff α A B a h)))-- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∪` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
@@ -11149,10 +11194,10 @@
    "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
    "line": 31,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ B)) ha hna)) (Set.mem_sdiff a A B)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∩` 是 def 头（手册边界）",
-   "after": "Iff.mpr hu (And.intro ha hna)) (Set.mem_sdiff a A B)-- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
@@ -11176,10 +11221,10 @@
    "file": "courses/set-theory/units/solutions/I.1/unit64-solution.sokonanoda",
    "line": 44,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hu (And.intro (a ∈ A) (a ∈ B) ha hb)) (Set.mem_inter_iff a A B)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∩` 是 def 头（手册边界）",
-   "after": "Iff.mpr hu (And.intro ha hb)) (Set.mem_inter_iff a A B)-- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
@@ -11203,37 +11248,37 @@
    "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
    "line": 31,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ B)) ha hna)) (Set.mem_sdiff a A B)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∪` 是 def 头（手册边界）",
-   "after": "Iff.mpr hu (And.intro ha hna)) (Set.mem_sdiff a A B)-- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∪` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
    "line": 34,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl (a ∈ A) (a ∈ B) ha))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∪` 是 def 头（手册边界）",
-   "after": "(fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl ha))-- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∪` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit65-solution.sokonanoda",
    "line": 38,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inr (a ∈ A) (a ∈ B) hb))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∪` 是 def 头（手册边界）",
-   "after": "(fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inr hb))-- soko:notation-ok: 等式族宇宙层级 + `∈`/`\\`/`∪` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit66-solution.sokonanoda",
    "line": 30,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl (a ∈ A) (a ∈ B) ha))  -- soko:notation-ok: `∈`/`⊆`/`∩`/`∪` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl ha))-- soko:notation-ok: `∈`/`⊆`/`∩`/`∪` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.1/unit66-solution.sokonanoda",
@@ -11257,19 +11302,19 @@
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
    "line": 22,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "Or.inl (r a b) (Eq.{1} α a b) hab  -- soko:notation-ok: G-73 形状 ③：`=` 的记法在这个位置解不出宇宙层级，必须点名声明星",
-   "after": "Or.inl hab-- soko:notation-ok: G-73 形状 ③：`=` 的记法在这个位置解不出宇宙层级，必须点名声明星",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
    "line": 26,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "fun (a : α) (b : α) (hab : r a b) => Or.inl (r a b) (r b a) hab  -- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来",
-   "after": "fun (a : α) (b : α) (hab : r a b) => Or.inl hab-- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
@@ -11284,28 +11329,28 @@
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
    "line": 52,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (h1 : r a b) => Or.inr (r b a) (r a b) h1)  -- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来",
-   "after": "(fun (h1 : r a b) => Or.inr h1)-- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit24-solution.sokonanoda",
    "line": 53,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (h2 : r b a) => Or.inl (r b a) (r a b) h2)  -- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来",
-   "after": "(fun (h2 : r b a) => Or.inl h2)-- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 43,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (A b) (A a) (And.right (And.right hA)) (And.left (And.right hA)))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "(And.intro (And.right (And.right hA)) (And.left (And.right hA)))))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -11338,10 +11383,10 @@
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 61,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (A b) (B b) (And.right (And.right hA)) (And.left (And.right hB)))))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "(And.intro (And.right (And.right hA)) (And.left (And.right hB)))))))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -11356,10 +11401,10 @@
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 81,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (B a) (A a) (And.left (And.right hB)) ha))) c)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "(And.intro (And.left (And.right hB)) ha))) c)-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -11374,19 +11419,19 @@
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 85,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (P A) (A a ∧ A c) hA (And.intro (A a) (A c) ha hc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "(And.intro hA (And.intro (A a) (A c) ha hc)))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "group": "done",
+   "before": "(And.intro hA (And.intro (A a) (A c) ha hc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "after": "(And.intro hA (And.intro ha hc)))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
    "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 85,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (P A) (A a ∧ A c) hA (And.intro (A a) (A c) ha hc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "(And.intro hA (And.intro (A a) (A c) ha hc)))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "note": ""
+   "group": "pending-other",
+   "before": "(And.intro hA (And.intro (A a) (A c) ha hc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "after": "(And.intro hA (And.intro ha hc)))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -11401,19 +11446,19 @@
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 95,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (P A) (A a ∧ A c) hA (And.intro (A a) (A c) ha hAc))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "(And.intro hA (And.intro (A a) (A c) ha hAc))))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "group": "done",
+   "before": "(And.intro hA (And.intro (A a) (A c) ha hAc))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "after": "(And.intro hA (And.intro ha hAc))))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
    "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 95,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (P A) (A a ∧ A c) hA (And.intro (A a) (A c) ha hAc))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "(And.intro hA (And.intro (A a) (A c) ha hAc))))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "note": ""
+   "group": "pending-other",
+   "before": "(And.intro hA (And.intro (A a) (A c) ha hAc))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "after": "(And.intro hA (And.intro ha hAc))))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
@@ -11437,73 +11482,73 @@
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 122,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (P C) (C a ∧ C c) hC (And.intro (C a) (C c) ha hCc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "(And.intro hC (And.intro (C a) (C c) ha hCc)))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "group": "done",
+   "before": "(And.intro hC (And.intro (C a) (C c) ha hCc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "after": "(And.intro hC (And.intro ha hCc)))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
    "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit26-solution.sokonanoda",
    "line": 122,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (P C) (C a ∧ C c) hC (And.intro (C a) (C c) ha hCc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "(And.intro hC (And.intro (C a) (C c) ha hCc)))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "note": ""
+   "group": "pending-other",
+   "before": "(And.intro hC (And.intro (C a) (C c) ha hCc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "after": "(And.intro hC (And.intro ha hCc)))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit77-solution.sokonanoda",
    "line": 62,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (c ∈ (Rel.EquivClass α r a)) (c ∈ (Rel.EquivClass α r b)) hc)))))  -- soko:notation-ok: `IsEquivalence`/`Rel.*`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right hc)))))-- soko:notation-ok: `IsEquivalence`/`Rel.*`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 78,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left hx) (And.right (C x) (D x) hx) c hc))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.left hx) (And.right hx) c hc))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 83,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (C x) (D x) hx) (And.left (C x) (D x) hx) c hd))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right (C x) (D x) hx) (And.left hx) c hd))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 83,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (C x) (D x) hx) (And.left (C x) (D x) hx) c hd))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right hx) (And.left (C x) (D x) hx) c hd))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 88,
+   "rule": "And.intro 写全了前导参数（4 个实参）",
+   "group": "done",
+   "before": "(And.intro hA (And.intro (A a) (A b) ha hb))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.intro hA (And.intro ha hb))))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
    "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 88,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (P A) (A a ∧ A b) hA (And.intro (A a) (A b) ha hb))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.intro hA (And.intro (A a) (A b) ha hb))))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
-   "line": 88,
-   "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (P A) (A a ∧ A b) hA (And.intro (A a) (A b) ha hb))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.intro hA (And.intro (A a) (A b) ha hb))))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "pending-other",
+   "before": "(And.intro hA (And.intro (A a) (A b) ha hb))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.intro hA (And.intro ha hb))))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
@@ -11518,343 +11563,343 @@
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 101,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "ofPartition_intro α P A a a (And.left (P A) (A a) hA)  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "ofPartition_intro α P A a a (And.left hA)-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 102,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "group": "done",
+   "before": "(And.right hA) (And.right (P A) (A a) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.right hA) (And.right hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
    "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 102,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (P A) (A a) hA) (And.right (P A) (A a) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right hA) (And.right (P A) (A a) hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
-   "line": 102,
-   "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (P A) (A a) hA) (And.right (P A) (A a) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right hA) (And.right (P A) (A a) hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "pending-other",
+   "before": "(And.right hA) (And.right (P A) (A a) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.right hA) (And.right hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 109,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "ofPartition_intro α P A b a (And.left (P A) (A a ∧ A b) hA)  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "ofPartition_intro α P A b a (And.left hA)-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 110,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "group": "done",
+   "before": "(And.right (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.right (And.right hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
    "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 110,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A a) (A b) (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right (And.right (P A) (A a ∧ A b) hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
-   "line": 110,
-   "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A a) (A b) (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right (And.right (P A) (A a ∧ A b) hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "pending-other",
+   "before": "(And.right (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.right (And.right hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 111,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A a) (A b) (And.right (P A) (A a ∧ A b) hA)))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.left (And.right (P A) (A a ∧ A b) hA)))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 111,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A a) (A b) (And.right (P A) (A a ∧ A b) hA)))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.left (A a) (A b) (And.right hA)))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 117,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(Exists.intro α (fun (y : α) => A y ∧ B y) x (And.intro (A x) (B x) hxA hxB))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(Exists.intro α (fun (y : α) => A y ∧ B y) x (And.intro hxA hxB))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 128,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "ofPartition_intro α P A a c (And.left (P A) (A a ∧ A b) hA)  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "ofPartition_intro α P A a c (And.left hA)-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 129,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A a) (A b) (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.left (And.right (P A) (A a ∧ A b) hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 129,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A a) (A b) (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.left (A a) (A b) (And.right hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 130,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "((Iff.mpr (partition_blocks_eq α P h A B (And.left (P A) (A a ∧ A b) hA)  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "((Iff.mpr (partition_blocks_eq α P h A B (And.left hA)-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 131,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (P B) (B b ∧ B c) hB) b  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.left hB) b-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 132,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "group": "done",
+   "before": "(And.right (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.right (And.right hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
    "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 132,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A a) (A b) (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right (And.right (P A) (A a ∧ A b) hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
-   "line": 132,
-   "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A a) (A b) (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right (And.right (P A) (A a ∧ A b) hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "pending-other",
+   "before": "(And.right (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.right (And.right hA))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 133,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (B b) (B c) (And.right (P B) (B b ∧ B c) hB)) c))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.left (And.right (P B) (B b ∧ B c) hB)) c))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 133,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (B b) (B c) (And.right (P B) (B b ∧ B c) hB)) c))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.left (B b) (B c) (And.right hB)) c))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
+   "line": 134,
+   "rule": "And.right 写全了前导参数（3 个实参）",
+   "group": "done",
+   "before": "(And.right (And.right (P B) (B b ∧ B c) hB)))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.right (And.right hB)))))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
    "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
    "line": 134,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (B b) (B c) (And.right (P B) (B b ∧ B c) hB)))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right (And.right (P B) (B b ∧ B c) hB)))))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.10/unit78-solution.sokonanoda",
-   "line": 134,
-   "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (B b) (B c) (And.right (P B) (B b ∧ B c) hB)))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.right (And.right (P B) (B b ∧ B c) hB)))))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "pending-other",
+   "before": "(And.right (And.right (P B) (B b ∧ B c) hB)))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "after": "(And.right (And.right hB)))))-- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）",
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.10/unit85-solution.sokonanoda",
    "line": 59,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ (Rel.EquivClass α (kernel α β f) a)) (f x = y) hx)))  -- soko:notation-ok: `kernel`/`Rel.EquivClass`/`Set.image` 是 def 头（手册边界）",
-   "after": "(And.right hx)))-- soko:notation-ok: `kernel`/`Rel.EquivClass`/`Set.image` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 21,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(fun (h : A x ∧ ¬ (B x)) => And.intro (A x) (¬ (B x)) (And.left h) (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "after": "(fun (h : A x ∧ ¬ (B x)) => And.intro (And.left h) (And.right h)))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 29,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(fun (ha : A x) => Or.inl (A x ∧ C x) (B x ∧ C x) (And.intro (A x) (C x) ha (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(fun (ha : A x) => Or.inl (A x ∧ C x) (B x ∧ C x) (And.intro ha (And.right h)))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 29,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(fun (ha : A x) => Or.inl (A x ∧ C x) (B x ∧ C x) (And.intro (A x) (C x) ha (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(fun (ha : A x) => Or.inl (And.intro (A x) (C x) ha (And.right h)))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 30,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(fun (hb : B x) => Or.inr (A x ∧ C x) (B x ∧ C x) (And.intro (B x) (C x) hb (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(fun (hb : B x) => Or.inr (A x ∧ C x) (B x ∧ C x) (And.intro hb (And.right h)))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 30,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(fun (hb : B x) => Or.inr (A x ∧ C x) (B x ∧ C x) (And.intro (B x) (C x) hb (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(fun (hb : B x) => Or.inr (And.intro (B x) (C x) hb (And.right h)))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 35,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "And.intro (A x ∨ B x) (C x) (Or.inl (A x) (B x) (And.left ha)) (And.right ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "And.intro (Or.inl (A x) (B x) (And.left ha)) (And.right ha))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 35,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "And.intro (A x ∨ B x) (C x) (Or.inl (A x) (B x) (And.left ha)) (And.right ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "And.intro (A x ∨ B x) (C x) (Or.inl (And.left ha)) (And.right ha))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 37,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "And.intro (A x ∨ B x) (C x) (Or.inr (A x) (B x) (And.left hb)) (And.right hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "And.intro (Or.inr (A x) (B x) (And.left hb)) (And.right hb))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 37,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "And.intro (A x ∨ B x) (C x) (Or.inr (A x) (B x) (And.left hb)) (And.right hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "And.intro (A x ∨ B x) (C x) (Or.inr (And.left hb)) (And.right hb))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 48,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(Or.inl (A x) (C x) (And.left ha)) (Or.inl (B x) (C x) (And.right ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(Or.inl (And.left ha)) (Or.inl (B x) (C x) (And.right ha)))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 48,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-other",
    "before": "(Or.inl (A x) (C x) (And.left ha)) (Or.inl (B x) (C x) (And.right ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(Or.inl (And.left ha)) (Or.inl (B x) (C x) (And.right ha)))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 51,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(Or.inr (A x) (C x) hc) (Or.inr (B x) (C x) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(Or.inr hc) (Or.inr (B x) (C x) hc))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 51,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-other",
    "before": "(Or.inr (A x) (C x) hc) (Or.inr (B x) (C x) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(Or.inr hc) (Or.inr (B x) (C x) hc))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 57,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(fun (hb : B x) => Or.inl (A x ∧ B x) (C x) (And.intro (A x) (B x) ha hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(fun (hb : B x) => Or.inl (A x ∧ B x) (C x) (And.intro ha hb))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 57,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(fun (hb : B x) => Or.inl (A x ∧ B x) (C x) (And.intro (A x) (B x) ha hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(fun (hb : B x) => Or.inl (And.intro (A x) (B x) ha hb))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 58,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hc : C x) => Or.inr (A x ∧ B x) (C x) hc)  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "after": "(fun (hc : C x) => Or.inr hc)-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
-   "line": 60,
+   "line": 58,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hc : C x) => Or.inr (A x ∧ B x) (C x) hc)  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "after": "(fun (hc : C x) => Or.inr hc)-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
@@ -11887,28 +11932,28 @@
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 92,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(fun (ha : A x) => Or.inl (A x) (A x ∧ B x) ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(fun (ha : A x) => Or.inl ha))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 99,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(fun (ha : A x) => And.intro (A x) (A x ∨ B x) ha (Or.inl (A x) (B x) ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(fun (ha : A x) => And.intro ha (Or.inl (A x) (B x) ha)))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit28-solution.sokonanoda",
    "line": 99,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
+   "group": "pending-u1u2",
    "before": "(fun (ha : A x) => And.intro (A x) (A x ∨ B x) ha (Or.inl (A x) (B x) ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
    "after": "(fun (ha : A x) => And.intro (A x) (A x ∨ B x) ha (Or.inl ha)))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全",
-   "note": ""
+   "note": "落地判负 ⇒ 回滚（待内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit30-solution.sokonanoda",
@@ -11995,28 +12040,28 @@
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 32,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (h2 : B x ∧ ¬ (A x)) => Or.inl (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) h2) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(fun (h2 : B x ∧ ¬ (A x)) => Or.inl h2) h)-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 35,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (h1 : B x ∧ ¬ (A x)) => Or.inr (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) h1)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(fun (h1 : B x ∧ ¬ (A x)) => Or.inr h1)-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 36,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (h2 : A x ∧ ¬ (B x)) => Or.inl (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) h2) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(fun (h2 : A x ∧ ¬ (B x)) => Or.inl h2) h)-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
@@ -12040,118 +12085,118 @@
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 89,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (h1 : A x ∧ ¬ (B x)) => Or.inl (A x) (B x) (And.left h1))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(fun (h1 : A x ∧ ¬ (B x)) => Or.inl (And.left h1))-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 90,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (h2 : B x ∧ ¬ (A x)) => Or.inr (A x) (B x) (And.left h2)) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(fun (h2 : B x ∧ ¬ (A x)) => Or.inr (And.left h2)) h-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 101,
    "rule": "False.elim 写全了前导参数（2 个实参）",
-   "group": "ready",
-   "before": "False.elim ((fun (_ : α) => False) x) (symmDiff_self_apply α A x h))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "False.elim (symmDiff_self_apply α A x h))-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit46-solution.sokonanoda",
    "line": 103,
    "rule": "False.elim 写全了前导参数（2 个实参）",
-   "group": "ready",
-   "before": "False.elim ((symmDiff α A A) x) hf))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "False.elim hf))-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 23,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Or.inl (And.intro (A x) (B x) (And.left hu) hb))-- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "after": "Or.inl (And.intro (And.left hu) hb))-- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 25,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Or.inr ((A ∩ B) x) ((A ∩ C) x) (And.intro (A x) (C x) (And.left hu) hc))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "after": "Or.inr ((A ∩ B) x) ((A ∩ C) x) (And.intro (And.left hu) hc))-- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 25,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "Or.inr ((A ∩ B) x) ((A ∩ C) x) (And.intro (A x) (C x) (And.left hu) hc))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "after": "Or.inr (And.intro (A x) (C x) (And.left hu) hc))-- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 61,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (ha : A x) => Or.inl (B x) (D x) (h1 x ha))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "after": "(fun (ha : A x) => Or.inl (h1 x ha))-- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 62,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hc : C x) => Or.inr (B x) (D x) (h2 x hc))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "after": "(fun (hc : C x) => Or.inr (h2 x hc))-- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 69,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "And.intro (B x) (D x) (h1 x (And.left hu)) (h2 x (And.right hu))) h  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "after": "And.intro (h1 x (And.left hu)) (h2 x (And.right hu))) h-- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 82,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(fun (hu : A x ∧ B x) => And.intro (B x) (A x) (And.right hu) (And.left hu)) h  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
-   "after": "(fun (hu : A x ∧ B x) => And.intro (And.right hu) (And.left hu)) h-- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 88,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (ha : A x) => Or.inr (B x) (A x) ha)  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
-   "after": "(fun (ha : A x) => Or.inr ha)-- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.11/unit50-solution.sokonanoda",
    "line": 89,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hb : B x) => Or.inl (B x) (A x) hb)  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
-   "after": "(fun (hb : B x) => Or.inl hb)-- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit33-solution.sokonanoda",
@@ -12184,37 +12229,37 @@
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 42,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "Iff.mp hu (And.left (B ∈ (Set.powerset A)) (x ∈ B) hB))  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
-   "after": "Iff.mp hu (And.left hB))-- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 44,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "x (And.right (B ∈ (Set.powerset A)) (x ∈ B) hB))  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
-   "after": "x (And.right hB))-- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
    "line": 53,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (A ∈ (Set.powerset A)) (a ∈ A) (powerset_self_mem α A) ha)))  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
-   "after": "(And.intro (powerset_self_mem α A) ha)))-- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
    "line": 24,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hu (And.intro (a ∈ A) (a ∈ B) ha hb)) (Set.mem_inter_iff a A B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
-   "after": "Iff.mpr hu (And.intro ha hb)) (Set.mem_inter_iff a A B)-- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.12/unit70-solution.sokonanoda",
@@ -12256,10 +12301,10 @@
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
    "line": 46,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r a b) (s b c) (And.left hb) (And.left hc)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (And.left hb) (And.left hc)))-- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -12274,10 +12319,10 @@
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
    "line": 65,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro ((s ⁻¹) c b) ((r ⁻¹) b a) (And.right hb) (And.left hb))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (And.right hb) (And.left hb))))-- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -12292,10 +12337,10 @@
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
    "line": 71,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r a b) (s b c) (And.right hb) (And.left hb)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (And.right hb) (And.left hb)))))-- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -12310,10 +12355,10 @@
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
    "line": 80,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r1 a b) (s b c) (h a b (And.left hb)) (And.right hb)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (h a b (And.left hb)) (And.right hb)))-- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -12328,10 +12373,10 @@
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
    "line": 89,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r a b) (s1 b c) (And.left hb) (h b c (And.right hb))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (And.left hb) (h b c (And.right hb))))-- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -12400,10 +12445,10 @@
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
    "line": 133,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro ((s ⁻¹) c b) ((r ⁻¹) b a) (And.right hb) (And.left hb))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (And.right hb) (And.left hb))))-- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
@@ -12418,55 +12463,55 @@
    "file": "courses/set-theory/units/solutions/I.13/unit36-solution.sokonanoda",
    "line": 139,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r a b) (s b c) (And.right hb) (And.left hb))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (And.right hb) (And.left hb))))-- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit37-solution.sokonanoda",
    "line": 71,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r a a) (r a c) ((fun (hu : ∀ (x : α), r x x) => hu a) h) hac)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro ((fun (hu : ∀ (x : α), r x x) => hu a) h) hac)-- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit37-solution.sokonanoda",
    "line": 103,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r a b) (r b c) hab hbc)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro hab hbc)))-- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
    "line": 78,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r a b) (s b c) (And.right ha) (And.right hb))))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (And.right ha) (And.right hb))))))-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
    "line": 98,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (C c) (s b c) (And.left hc) (And.right hb)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (And.left hc) (And.right hb)))-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
    "line": 112,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r a b) (s b c) (And.right hb) (And.right hc))))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (And.right hb) (And.right hc))))))-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
@@ -12481,19 +12526,19 @@
    "file": "courses/set-theory/units/solutions/I.13/unit39-solution.sokonanoda",
    "line": 176,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (A a) (r1 a b) (And.left ha) (h a b (And.right ha))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro (And.left ha) (h a b (And.right ha))))-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit40-solution.sokonanoda",
    "line": 115,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (h : r b a) => Or.inl (r b a) (r a b) h) hab  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(fun (h : r b a) => Or.inl h) hab-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit41-solution.sokonanoda",
@@ -12526,19 +12571,19 @@
    "file": "courses/set-theory/units/solutions/I.13/unit45-solution.sokonanoda",
    "line": 75,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r a b) ((r ⁻¹) b a1) h1 h2)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro h1 h2)))-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.13/unit45-solution.sokonanoda",
    "line": 103,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (r a b) (s b c) hb hc))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "after": "(And.intro hb hc))))-- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit05-solution.sokonanoda",
@@ -12598,19 +12643,19 @@
    "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
    "line": 89,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Function.LeftInverse α β g f) (Function.RightInverse α β g f) hi)  -- soko:notation-ok: R1：合取藏在 Inverse 定义后",
-   "after": "(And.left hi)-- soko:notation-ok: R1：合取藏在 Inverse 定义后",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
    "line": 91,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Function.LeftInverse α β g f) (Function.RightInverse α β g f) hi)  -- soko:notation-ok: R1：合取藏在 Inverse 定义后",
-   "after": "(And.right hi)-- soko:notation-ok: R1：合取藏在 Inverse 定义后",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.2/unit07-solution.sokonanoda",
@@ -12688,73 +12733,73 @@
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 116,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ (A ∪ B)) ((f x) = y) hx))))",
-   "after": "(And.right hx))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 117,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (x ∈ (A ∪ B)) ((f x) = y) hx)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left hx)))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 128,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(Or.inl (A x) (B x) (And.left (A x) ((f x) = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(Or.inl (A x) (B x) (And.left hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 128,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(Or.inl (A x) (B x) (And.left (A x) ((f x) = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(Or.inl (And.left (A x) ((f x) = y) hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 129,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A x) ((f x) = y) hx))))",
-   "after": "(And.right hx))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 137,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(Or.inr (A x) (B x) (And.left (B x) ((f x) = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(Or.inr (A x) (B x) (And.left hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 137,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(Or.inr (A x) (B x) (And.left (B x) ((f x) = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(Or.inr (And.left (B x) ((f x) = y) hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 138,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (B x) ((f x) = y) hx))))",
-   "after": "(And.right hx))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -12769,19 +12814,19 @@
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 165,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (x ∈ (A ∩ B)) ((f x) = y) hx))",
-   "after": "(And.left hx))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 166,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ (A ∩ B)) ((f x) = y) hx)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hx)))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -12796,19 +12841,19 @@
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 170,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (x ∈ (A ∩ B)) ((f x) = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 171,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ (A ∩ B)) ((f x) = y) hx))))",
-   "after": "(And.right hx))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -12823,10 +12868,10 @@
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 230,
    "rule": "False.elim 写全了前导参数（2 个实参）",
-   "group": "ready",
-   "before": "False.elim (Set.mem Two x (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb))) h0))",
-   "after": "False.elim h0))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -12859,10 +12904,10 @@
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 360,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ (f1 ⁻¹' U01)) ((f1 x) = y) hx))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hx))))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -12877,10 +12922,10 @@
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 380,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ (f1 ⁻¹' U01)) ((f1 x) = y) hx)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hx)))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
@@ -12895,19 +12940,19 @@
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 427,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ (Set.univ α)) ((f x) = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
    "line": 429,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ (Set.univ α)) ((f x) = y) hx))))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hx))))))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
@@ -12949,100 +12994,100 @@
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 66,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.left hf)-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 67,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Set.InjOn β γ g B) (Set.MapsTo β γ g B C) hg)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.left hg)-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 68,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.right hf))-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 70,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.right hf)-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 71,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.InjOn β γ g B) (Set.MapsTo β γ g B C) hg))))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.right hg))))-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 84,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Set.InjOn α' β k A') (Set.MapsTo α' β k A' B) hk) hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.left hk) hf)-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 86,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.InjOn α' β k A') (Set.MapsTo α' β k A' B) hk))))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.right hk))))-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 99,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Set.InjOn α β' f A) (Set.MapsTo α β' f A B') hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.left hf)-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 101,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.InjOn α β' f A) (Set.MapsTo α β' f A B') hf))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.right hf))-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit100-solution.sokonanoda",
    "line": 103,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.InjOn α β' f A) (Set.MapsTo α β' f A B') hf) hu)))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.right hf) hu)))-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit101-solution.sokonanoda",
    "line": 14,
    "rule": "Iff.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "after": "Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)-- soko:notation-ok: `False.elim` 的目标位（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit101-solution.sokonanoda",
@@ -13057,10 +13102,10 @@
    "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
    "line": 14,
    "rule": "Iff.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
@@ -13075,10 +13120,10 @@
    "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
    "line": 19,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.intro hf hfm)-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit102-solution.sokonanoda",
@@ -13102,55 +13147,55 @@
    "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
    "line": 33,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: `LeOn`/`Set.Equiv` 是 def 头（手册边界）",
-   "after": "(And.intro hf hfm)-- soko:notation-ok: `LeOn`/`Set.Equiv` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
    "line": 37,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.left (LeOn α β A B) (LeOn β α B A) h  -- soko:notation-ok: `LeOn`/`Set.Equiv` 是 def 头（手册边界）",
-   "after": "And.left h-- soko:notation-ok: `LeOn`/`Set.Equiv` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit103-solution.sokonanoda",
    "line": 41,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.right (LeOn α β A B) (LeOn β α B A) h  -- soko:notation-ok: `LeOn`/`Set.Equiv` 是 def 头（手册边界）",
-   "after": "And.right h-- soko:notation-ok: `LeOn`/`Set.Equiv` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 158,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.right (x ∈ C) (Eq.{1} β (f x) y) h",
-   "after": "And.right h",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 162,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.left (¬ (x ∈ C)) (Eq.{1} α (g y) x) h",
-   "after": "And.left h",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
    "line": 166,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.right (¬ (x ∈ C)) (Eq.{1} α (g y) x) h",
-   "after": "And.right h",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit112-solution.sokonanoda",
@@ -13192,37 +13237,37 @@
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
    "line": 53,
    "rule": "Or.inr 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hu (Or.inr (x ∈ A) (x ∈ B) hx)) (Set.mem_union x A B)) hxy))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "after": "Iff.mpr hu (Or.inr hx)) (Set.mem_union x A B)) hxy))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
    "line": 61,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (A ∈ F) (x ∈ A) hA hx))) (Set.mem_sUnion_iff α F x)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "after": "(And.intro hA hx))) (Set.mem_sUnion_iff α F x)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
    "line": 83,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A ∈ F) (y ∈ (f '' A)) hA) (And.right (A ∈ F) (y ∈ (f '' A)) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "after": "(And.left hA) (And.right (A ∈ F) (y ∈ (f '' A)) hA))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
    "line": 83,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A ∈ F) (y ∈ (f '' A)) hA) (And.right (A ∈ F) (y ∈ (f '' A)) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "after": "(And.left (A ∈ F) (y ∈ (f '' A)) hA) (And.right hA))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
@@ -13238,63 +13283,63 @@
    "line": 96,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
-   "before": "(And.intro (A ∈ F) (y ∈ (f '' A)) (And.left (A ∈ F) (x ∈ A) hA)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "after": "(And.intro (y ∈ (f '' A)) (And.left (A ∈ F) (x ∈ A) hA)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+   "before": "(And.intro (A ∈ F) (y ∈ (f '' A)) (And.left hA)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+   "after": "(And.intro (y ∈ (f '' A)) (And.left hA)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
    "note": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $10)) $1) $7)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
    "line": 96,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.intro (A ∈ F) (y ∈ (f '' A)) (And.left (A ∈ F) (x ∈ A) hA)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "after": "(And.intro (A ∈ F) (y ∈ (f '' A)) (And.left hA)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
    "line": 97,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(Set.mem_image_intro f A y x (And.right (A ∈ F) (x ∈ A) hA) hxy))))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "after": "(Set.mem_image_intro f A y x (And.right hA) hxy))))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
    "line": 50,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A ∈ F) (x ∈ (f ⁻¹' A)) hA) (And.right (A ∈ F) (x ∈ (f ⁻¹' A)) hA))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.left hA) (And.right (A ∈ F) (x ∈ (f ⁻¹' A)) hA))-- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
    "line": 50,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A ∈ F) (x ∈ (f ⁻¹' A)) hA) (And.right (A ∈ F) (x ∈ (f ⁻¹' A)) hA))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.left (A ∈ F) (x ∈ (f ⁻¹' A)) hA) (And.right hA))-- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
    "line": 60,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.intro (A ∈ F) (x ∈ (f ⁻¹' A)) (And.left (A ∈ F) (f x ∈ A) hA)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(And.intro (A ∈ F) (x ∈ (f ⁻¹' A)) (And.left hA)-- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
    "line": 61,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(mem_preimage_of_mem α β f A x (And.right (A ∈ F) (f x ∈ A) hA))))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "after": "(mem_preimage_of_mem α β f A x (And.right hA))))-- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
@@ -13309,55 +13354,55 @@
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 63,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.intro hf hfm)-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 75,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.left hf)-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 76,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Set.InjOn β γ g B) (Set.MapsTo β γ g B C) hg)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.left hg)-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 77,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf))  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.right hf))-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 79,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.right hf)-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit96-solution.sokonanoda",
    "line": 80,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.InjOn β γ g B) (Set.MapsTo β γ g B C) hg))))  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.right hg))))-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
@@ -13372,10 +13417,10 @@
    "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
    "line": 23,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.intro hf hfm)-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
@@ -13390,46 +13435,46 @@
    "file": "courses/set-theory/units/solutions/I.3/unit97-solution.sokonanoda",
    "line": 32,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "after": "(And.intro hf hfm)-- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
    "line": 31,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.intro hf hfm)-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
    "line": 52,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) h)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.left hf) h)-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
    "line": 65,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.left hf)-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit98-solution.sokonanoda",
    "line": 67,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) h))  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "after": "(And.right hf) h))-- soko:notation-ok: `LeOn` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.3/unit99-solution.sokonanoda",
@@ -13453,10 +13498,10 @@
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 73,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (r a b) (s b c) hb))))",
-   "after": "(And.left hb))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -13471,199 +13516,199 @@
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 80,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (s b c) (r a b) hb)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hb)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 81,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (s b c) (r a b) hb)))))",
-   "after": "(And.left hb)))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 95,
    "rule": "Iff.refl 写全了前导参数（1 个实参）",
-   "group": "ready",
-   "before": "(fun (x : α) => Iff.refl (C (g (f x))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(fun (x : α) => Iff.refl )-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 109,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ f ⁻¹' C) (f x = y) hx)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hx)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 110,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (x ∈ f ⁻¹' C) (f x = y) hx)))",
-   "after": "(And.left hx)))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 120,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(Eq.symm.{1} β (f x) y (And.right (Set.univ α x) ((f x) = y) hx)) hy)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(Eq.symm.{1} β (f x) y (And.right hx)) hy)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 121,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (Set.univ α x) ((f x) = y) hx)))))",
-   "after": "(And.right hx)))))",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 136,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "group": "done",
+   "before": "(And.left (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+   "after": "(And.left (And.left hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
    "note": ""
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 136,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A x) (B x) (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left (And.left (x ∈ A ∩ B) (f x = y) hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
-   "line": 136,
-   "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A x) (B x) (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left (And.left (x ∈ A ∩ B) (f x = y) hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "pending-other",
+   "before": "(And.left (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+   "after": "(And.left (And.left hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+   "note": "落地时改写器 no-op ⇒ 未落地（需手工/内核 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 137,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ A ∩ B) (f x = y) hx)))",
-   "after": "(And.right hx)))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 140,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A x) (B x) (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right (A x) (B x) (And.left hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 140,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A x) (B x) (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right (And.left (x ∈ A ∩ B) (f x = y) hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 141,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ A ∩ B) (f x = y) hx)))))",
-   "after": "(And.right hx)))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 146,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (y ∈ f '' A) (y ∈ f '' B) hy)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left hy)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 149,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (y ∈ f '' A) (y ∈ f '' B) hy)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hy)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 154,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A x1) ((f x1) = y) hx1)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left hx1)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 159,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A x1) ((f x1) = y) hx1)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hx1)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 160,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(Eq.symm.{1} β (f x2) y (And.right (B x2) ((f x2) = y) hx2)))))",
-   "after": "(Eq.symm.{1} β (f x2) y (And.right hx2)))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 161,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (B x2) ((f x2) = y) hx2)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left hx2)))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 162,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A x1) ((f x1) = y) hx1))))))",
-   "after": "(And.right hx1))))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 340,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(congrArg.{1} g (And.left (f a = b) (g b = c) hb))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(congrArg.{1} g (And.left hb))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 341,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (f a = b) (g b = c) hb)))",
-   "after": "(And.right hb)))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -13678,64 +13723,82 @@
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 355,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (x ∈ A) ((g ∘ f) x = y) hx)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left hx)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 357,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (x ∈ A) ((g ∘ f) x = y) hx))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.right hx))))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 365,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left ((f '' A) b) ((g b) = y) hb)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left hb)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 369,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (A x) ((f x) = b) hx)",
-   "after": "(And.left hx)",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 371,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(congrArg.{1} g (And.right (A x) ((f x) = b) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(congrArg.{1} g (And.right hx))-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
    "line": 372,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right ((f '' A) b) ((g b) = y) hb))))))))",
-   "after": "(And.right hb))))))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
-   "line": 436,
+   "line": 54,
    "rule": "And.left 写全了前导参数（2 个实参）",
    "group": "pending-u1u2",
-   "before": "(And.left (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "after": "(And.left (Set.RightInvOn α γ f g C)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+   "before": "(fun (ha : A x) => And.left h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+   "after": "(fun (ha : A x) => And.left ha)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
    "note": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((((Set.LeftInvOn.[] $10) $9) $1) $3) $8)) (((((Set.RightInvOn.[] "
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 55,
+   "rule": "And.right 写全了前导参数（2 个实参）",
+   "group": "pending-u1u2",
+   "before": "(fun (hb : B x) => And.right h hb)",
+   "after": "(fun (hb : B x) => And.right hb)",
+   "note": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((((Set.LeftInvOn.[] $12) $11) $3) $5) $10)) (((((Set.RightInvOn.["
+  },
+  {
+   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+   "line": 476,
+   "rule": "And.left 写全了前导参数（3 个实参）",
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
@@ -13744,52 +13807,34 @@
    "group": "pending-u1u2",
    "before": "And.right (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
    "after": "And.right (Set.RightInvOn α γ f g C)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
-   "note": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((((Set.LeftInvOn.[] $12) $11) $3) $5) $10)) (((((Set.RightInvOn.["
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
-   "line": 476,
-   "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "fun (y : γ) => fun (hy : C' y ∧ ¬ (f y y)) => And.left (C' y) (¬ (f y y)) hy;",
-   "after": "fun (y : γ) => fun (hy : C' y ∧ ¬ (f y y)) => And.left hy;",
-   "note": ""
-  },
-  {
-   "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
-   "line": 482,
-   "rule": "And.right 写全了前导参数（2 个实参）",
-   "group": "pending-u1u2",
-   "before": "And.right (Set.LeftInvOn γ (Set γ) g f C') (Set.RightInvOn γ (Set γ) f g (𝒫 C'))",
-   "after": "And.right (Set.RightInvOn γ (Set γ) f g (𝒫 C'))",
    "note": "类型不匹配：期望 `Sort(0)`，实际是 `((And.[] (((((Set.LeftInvOn.[] $10) (Set.[] $10)) $1) $3) $7)) (((((Set.Righ"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
    "line": 9,
    "rule": "Iff.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "after": "Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)-- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
    "line": 12,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.left P Q h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "after": "And.left h-- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
    "line": 15,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.right P Q h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "after": "And.right h-- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
@@ -13804,19 +13849,19 @@
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
    "line": 28,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "no_prop_fixpoint P (And.left (P → ¬ P) (¬ P → P) hh)  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "after": "no_prop_fixpoint P (And.left hh)-- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.4/unit95-solution.sokonanoda",
    "line": 29,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (P → ¬ P) (¬ P → P) hh))  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "after": "(And.right hh))-- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit13-solution.sokonanoda",
@@ -13894,37 +13939,37 @@
    "file": "courses/set-theory/units/solutions/I.5/unit67-solution.sokonanoda",
    "line": 49,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "subset_antisymm α A B (And.left h) (And.right (A ⊆ B) (B ⊆ A) h))-- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
-   "after": "subset_antisymm α A B (And.left h) (And.right h))-- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit67-solution.sokonanoda",
    "line": 54,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hu (And.intro (a ∈ A) (a ∈ A) ha ha)) (Set.mem_inter_iff a A A)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
-   "after": "Iff.mpr hu (And.intro ha ha)) (Set.mem_inter_iff a A A)-- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.5/unit67-solution.sokonanoda",
    "line": 68,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "Iff.mpr hu (Or.inl (a ∈ A) (a ∈ A) h)) (Set.mem_union a A A))))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
-   "after": "Iff.mpr hu (Or.inl h)) (Set.mem_union a A A))))-- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
    "line": 29,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.left (¬ Acc α r m) (∀ (y : α), ¬ Acc α r y → ¬ (r y m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）",
-   "after": "(And.left hm)-- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
@@ -13939,64 +13984,64 @@
    "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
    "line": 72,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (E x y) (x = y) h) (And.left (E x y) (x = y) h))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）",
-   "after": "(And.right (E x y) (x = y) h) (And.left h))-- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit107-solution.sokonanoda",
    "line": 72,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (E x y) (x = y) h) (And.left (E x y) (x = y) h))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）",
-   "after": "(And.right h) (And.left (E x y) (x = y) h))-- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 84,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "Eq.subst.{1} α (fun (z : α) => E z x) w y heq (And.left (E w x) (¬ (E w y)) hw))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "after": "Eq.subst.{1} α (fun (z : α) => E z x) w y heq (And.left hw))-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 86,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "ordinal_isTransitive α E x hx w (And.left (E w x) (¬ (E w y)) hw) y hyw) h)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "after": "ordinal_isTransitive α E x hx w (And.left hw) y hyw) h)-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 87,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(ihx w (And.left (E w x) (¬ (E w y)) hw)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "after": "(ihx w (And.left hw)-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 88,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(ordinal_elems_ordinal α E x w hx (And.left (E w x) (¬ (E w y)) hw))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "after": "(ordinal_elems_ordinal α E x w hx (And.left hw))))-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 96,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (E w x) (¬ (E w y)) hwx hnwy)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "after": "(And.intro hwx hnwy)))-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -14020,10 +14065,10 @@
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 125,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hzv : E z v) => Or.inl (E z v) (z = v ∨ E v z) hzv)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "after": "(fun (hzv : E z v) => Or.inl hzv)-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -14038,10 +14083,10 @@
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
    "line": 129,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (heq : z = v) => Or.inl (z = v) (E v z) heq)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "after": "(fun (heq : z = v) => Or.inl heq)-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit108-solution.sokonanoda",
@@ -14065,10 +14110,10 @@
    "file": "courses/set-theory/units/solutions/I.6/unit110-solution.sokonanoda",
    "line": 28,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "And.right (f i ∈ Set.univ β) (f i ∈ F i) (hf i hi)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "after": "And.right (hf i hi)))-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit16-solution.sokonanoda",
@@ -14092,10 +14137,10 @@
    "file": "courses/set-theory/units/solutions/I.6/unit16-solution.sokonanoda",
    "line": 66,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(Exists.intro α (fun (z : α) => E a z ∨ E b z) b (Or.inl (E a b) (E b b) hab)))  -- soko:notation-ok: G-30 同族（同上）",
-   "after": "(Exists.intro α (fun (z : α) => E a z ∨ E b z) b (Or.inl hab)))-- soko:notation-ok: G-30 同族（同上）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit42-solution.sokonanoda",
@@ -14128,10 +14173,10 @@
    "file": "courses/set-theory/units/solutions/I.6/unit81-solution.sokonanoda",
    "line": 25,
    "rule": "Or.inl 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(fun (hu : E z x ↔ (E z y ∨ z = y)) => Iff.mpr hu (Or.inl (E z y) (z = y) hz)) (hy z)  -- soko:notation-ok: `IsSuccOf`/`IsTransitive` 是 def 头（手册边界）",
-   "after": "(fun (hu : E z x ↔ (E z y ∨ z = y)) => Iff.mpr hu (Or.inl hz)) (hy z)-- soko:notation-ok: `IsSuccOf`/`IsTransitive` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.6/unit82-solution.sokonanoda",
@@ -14155,19 +14200,19 @@
    "file": "courses/set-theory/units/solutions/I.6/unit83-solution.sokonanoda",
    "line": 40,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(Eq.symm.{1} α m x (And.left (m = x) (∀ (w : α), w = x → ¬ (E w m)) hm)) hxx))  -- soko:notation-ok: `HasMin`/`IsOrdinal`/`IsTransitive` 是 def 头（手册边界）",
-   "after": "(Eq.symm.{1} α m x (And.left hm)) hxx))-- soko:notation-ok: `HasMin`/`IsOrdinal`/`IsTransitive` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
    "line": 29,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Exists.intro (α → β) (fun (f' : α → β) => f' x ∈ B ∧ P x (f' x)) f (hf x hx))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "Exists.intro f (hf x hx))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
@@ -14209,10 +14254,10 @@
    "file": "courses/set-theory/units/solutions/I.7/unit17-solution.sokonanoda",
    "line": 112,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "Exists.intro (α → β) (fun (f' : α → β) => P x (f' x)) f (hf x hx))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "after": "Exists.intro f (hf x hx))-- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
@@ -14290,37 +14335,37 @@
    "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
    "line": 46,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (B ∈ F) (b ∈ B) hB hb))) (Set.mem_sUnion_iff α F b)))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
-   "after": "(And.intro hB hb))) (Set.mem_sUnion_iff α F b)))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 49,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.intro (B ∈ F) (c ∈ (A ∩ B)) (And.left (B ∈ F) (c ∈ B) hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(And.intro (B ∈ F) (c ∈ (A ∩ B)) (And.left hB)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 51,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (B ∈ F) (c ∈ B) hB)))))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(And.right hB)))))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 58,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(mem_inter_left α A B c (And.right (B ∈ F) (c ∈ (A ∩ B)) hB))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(mem_inter_left α A B c (And.right hB))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
@@ -14336,36 +14381,36 @@
    "line": 61,
    "rule": "And.intro 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
-   "before": "(And.intro (B ∈ F) (c ∈ B) (And.left (B ∈ F) (c ∈ (A ∩ B)) hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(And.intro (c ∈ B) (And.left (B ∈ F) (c ∈ (A ∩ B)) hB)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+   "before": "(And.intro (B ∈ F) (c ∈ B) (And.left hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+   "after": "(And.intro (c ∈ B) (And.left hB)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
    "note": "类型不匹配：期望 `Sort(0)`，实际是 `(((Set.mem.[] (Set.[] $7)) $2) $5)`"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 61,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.intro (B ∈ F) (c ∈ B) (And.left (B ∈ F) (c ∈ (A ∩ B)) hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(And.intro (B ∈ F) (c ∈ B) (And.left hB)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 62,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(mem_inter_right α A B c (And.right (B ∈ F) (c ∈ (A ∩ B)) hB)))))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(mem_inter_right α A B c (And.right hB)))))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
    "line": 77,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "mem_inter_intro α A (Set.sInter α F) c (And.left (c ∈ A) (∀ (B : Set α), B ∈ F → c ∈ (A ∩ B)) h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "mem_inter_intro α A (Set.sInter α F) c (And.left h)-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
@@ -14380,19 +14425,19 @@
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 50,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(mem_inter_left (Set α) F G A (And.left (A ∈ (F ∩ G)) (x ∈ A) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(mem_inter_left (Set α) F G A (And.left hA))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 51,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A ∈ (F ∩ G)) (x ∈ A) hA))))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(And.right hA))))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -14407,19 +14452,19 @@
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 56,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(mem_inter_right (Set α) F G A (And.left (A ∈ (F ∩ G)) (x ∈ A) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(mem_inter_right (Set α) F G A (And.left hA))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 57,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A ∈ (F ∩ G)) (x ∈ A) hA))))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(And.right hA))))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -14443,19 +14488,19 @@
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 68,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "((fun (hv : ∀ (C : Set α), C ∈ F → C ∈ G) => hv A (And.left (A ∈ F) (x ∈ A) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "((fun (hv : ∀ (C : Set α), C ∈ F → C ∈ G) => hv A (And.left hA))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 71,
    "rule": "And.right 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(And.right (A ∈ F) (x ∈ A) hA))))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(And.right hA))))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
@@ -14470,10 +14515,10 @@
    "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
    "line": 90,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "(Iff.mp (Set.mem_empty_iff_false A)) (And.left (A ∈ (Set.empty (Set α))) (x ∈ A) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "after": "(Iff.mp (Set.mem_empty_iff_false A)) (And.left hA))-- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.8/unit19-solution.sokonanoda",
@@ -14533,10 +14578,10 @@
    "file": "courses/set-theory/units/solutions/I.9/unit23-solution.sokonanoda",
    "line": 93,
    "rule": "And.intro 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "(And.intro (x ∈ Set.univ α) (x ∈ A i) (Set.mem_univ α x) hx))))",
-   "after": "(And.intro (Set.mem_univ α x) hx))))",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "courses/set-theory/units/solutions/I.9/unit23-solution.sokonanoda",
@@ -14551,37 +14596,37 @@
    "file": "playground.sokonanoda",
    "line": 257,
    "rule": "And.left 写全了前导参数（3 个实参）",
-   "group": "ready",
-   "before": "exact (And.right a (¬ a) h) (And.left a (¬ a) h)  -- soko:notation-ok: 链式应用（右半当函数）：省前导参数会被当成写全实参（实测类型不匹配）⇒ 保持写全",
-   "after": "exact (And.right a (¬ a) h) (And.left h)-- soko:notation-ok: 链式应用（右半当函数）：省前导参数会被当成写全实参（实测类型不匹配）⇒ 保持写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "playground.sokonanoda",
    "line": 257,
    "rule": "And.right 写全了前导参数（3 个实参）",
    "group": "pending-u1u2",
-   "before": "exact (And.right a (¬ a) h) (And.left a (¬ a) h)  -- soko:notation-ok: 链式应用（右半当函数）：省前导参数会被当成写全实参（实测类型不匹配）⇒ 保持写全",
-   "after": "exact (And.right h) (And.left a (¬ a) h)-- soko:notation-ok: 链式应用（右半当函数）：省前导参数会被当成写全实参（实测类型不匹配）⇒ 保持写全",
+   "before": "exact (And.right a (¬ a) h) (And.left h)  -- soko:notation-ok: 链式应用（右半当函数）：省前导参数会被当成写全实参（实测类型不匹配）⇒ 保持写全",
+   "after": "exact (And.right h) (And.left h)-- soko:notation-ok: 链式应用（右半当函数）：省前导参数会被当成写全实参（实测类型不匹配）⇒ 保持写全",
    "note": "`exact` 类型不匹配：期望 `False`，实际是 `And h (And.left (Not a) h) -> And.left (Not a) h`"
   },
   {
    "file": "playground.sokonanoda",
    "line": 329,
    "rule": "And.left 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "apply And.left (∀ (x : Person), P x) (∀ (x : Person), Q x) h x  -- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
-   "after": "apply And.left x-- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "playground.sokonanoda",
    "line": 330,
    "rule": "And.right 写全了前导参数（4 个实参）",
-   "group": "ready",
-   "before": "apply And.right (∀ (x : Person), P x) (∀ (x : Person), Q x) h x  -- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
-   "after": "apply And.right x-- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全",
-   "note": ""
+   "group": "done",
+   "before": null,
+   "after": null,
+   "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
    "file": "playground.sokonanoda",
@@ -14607,6 +14652,6 @@
   "pending-u1u2": "待内核 U1/U2（桶①：def 应用补不出前导命题 ✓）",
   "pending-other": "待内核（桶② 前导类型参数补不出 / 桶④ 其它 ✓）",
   "manual": "需手工（点名→中缀：要重构表达式的真改写器 ✗；只给 file:line+rule ✓）",
-  "done": "已落地（本会话已改写 + 删标记 ✓，不再是候选 ✓）"
+  "done": "已落地 / 已消失（不再是候选 ✓）"
  }
 }

@@ -60,7 +60,7 @@ theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β 
 theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
     (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
   Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
-    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+    (And.intro hf hfm)
 
 theorem leOn_trans (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
     (hAB : LeOn α β A B) (hBC : LeOn β γ B C) : LeOn α γ A C :=
@@ -72,9 +72,9 @@ theorem leOn_trans (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β)
         (fun (g : β → γ) (hg : Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C) =>
           leOn_intro α γ A C (fun (x : α) => g (f x))
             (injOn_comp α β γ f g A B
-              (And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
-              (And.left (Set.InjOn β γ g B) (Set.MapsTo β γ g B C) hg)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
-              (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf))  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+              (And.left hf)
+              (And.left hg)
+              (And.right hf))
             (mapsTo_comp α β γ f g A B C
-              (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
-              (And.right (Set.InjOn β γ g B) (Set.MapsTo β γ g B C) hg))))  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+              (And.right hf)
+              (And.right hg))))

@@ -25,7 +25,7 @@ theorem choice_family (α : Type) (β : Type) (I : Set α) (F : α → Set β)
     (fun (f : α → β) (hf : ∀ (a : α), a ∈ I → f a ∈ Set.univ β ∧ f a ∈ F a) =>
       Exists.intro (α → β) (fun (g : α → β) => ∀ (i : α), i ∈ I → g i ∈ F i) f  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (fun (i : α) (hi : i ∈ I) =>
-          And.right (f i ∈ Set.univ β) (f i ∈ F i) (hf i hi)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          And.right (hf i hi)))
 
 theorem choice_family_apply (α : Type) (β : Type) (I : Set α) (F : α → Set β)
     (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :

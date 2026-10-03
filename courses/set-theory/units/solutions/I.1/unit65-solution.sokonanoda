@@ -28,14 +28,14 @@ theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \
 theorem mem_sdiff_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hna : ¬ (a ∈ B)) :
     a ∈ (A \ B) :=
   (fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =>
-    Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ B)) ha hna)) (Set.mem_sdiff a A B)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+    Iff.mpr hu (And.intro ha hna)) (Set.mem_sdiff a A B)
 
 theorem mem_union_left (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) : a ∈ (A ∪ B) :=
-  (fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl (a ∈ A) (a ∈ B) ha))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  (fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl ha))
     (Set.mem_union a A B)
 
 theorem mem_union_right (α : Type) (A B : Set α) (a : α) (hb : a ∈ B) : a ∈ (A ∪ B) :=
-  (fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inr (a ∈ A) (a ∈ B) hb))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+  (fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inr hb))
     (Set.mem_union a A B)
 
 theorem mem_union_sdiff_iff (α : Type) (A B C : Set α) (a : α) :

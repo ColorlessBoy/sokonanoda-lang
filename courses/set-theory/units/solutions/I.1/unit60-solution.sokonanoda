@@ -4,7 +4,7 @@ import lib.Order
 import lib.Rel
 
 theorem demo_mem_compl (α : Type) (a : α) (A : Set α) : a ∈ (Aᶜ) ↔ ¬ (a ∈ A) :=
-  Iff.intro (a ∈ (Aᶜ)) (¬ (a ∈ A)) (fun (h : a ∈ (Aᶜ)) => h) (fun (h : ¬ (a ∈ A)) => h)  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+  Iff.intro (fun (h : a ∈ (Aᶜ)) => h) (fun (h : ¬ (a ∈ A)) => h)
 
 theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
     a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
@@ -38,7 +38,7 @@ theorem inter_compl_subset (α : Type) (A B : Set α) : (A ∪ B)ᶜ ⊆ Aᶜ :=
     mem_compl_of_not_mem α A a
       (fun (hA : a ∈ A) =>
         not_mem_of_mem_compl α (A ∪ B) a h
-          ((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl (a ∈ A) (a ∈ B) hA))  -- soko:notation-ok: G-73 形状 ②：`∈`/`ᶜ`/`∩`/`∪`/`Set.*` 是 def 头，这些位置补不出前导实参
+          ((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mpr hu (Or.inl hA))
             (Set.mem_union a A B)))
 
 theorem compl_compl_subset (α : Type) (A : Set α) : A ⊆ Aᶜᶜ :=

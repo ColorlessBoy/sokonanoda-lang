@@ -44,7 +44,7 @@ theorem asymmetric_body (α : Type) (E : α → α → Prop) (a b : α)
     (hm : HasMin α E (fun (z : α) => E a z ∨ E b z)) : False :=
   Exists.elim α (fun (m : α) => (fun (z : α) => E a z ∨ E b z) m ∧
       ∀ (y : α), (fun (z : α) => E a z ∨ E b z) y → ¬ (E y m)) False
-    (hasMin_elim α E (fun (z : α) => E a z ∨ E b z) hm)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+    (hasMin_elim α E (fun (z : α) => E a z ∨ E b z) hm)
     (fun (m : α) (hmm : (fun (z : α) => E a z ∨ E b z) m ∧
         ∀ (y : α), (fun (z : α) => E a z ∨ E b z) y → ¬ (E y m)) =>
       (fun (hmin : ∀ (y : α), (fun (z : α) => E a z ∨ E b z) y → ¬ (E y m)) =>
@@ -63,7 +63,7 @@ theorem asymmetric_of_wellFounded (α : Type) (E : α → α → Prop)
   fun (hab : E a b) (hba : E b a) =>
     asymmetric_body α E a b hab hba
       (wellFounded_hasMin α E hwf (fun (z : α) => E a z ∨ E b z)
-        (Exists.intro α (fun (z : α) => E a z ∨ E b z) b (Or.inl (E a b) (E b b) hab)))  -- soko:notation-ok: G-30 同族（同上）
+        (Exists.intro α (fun (z : α) => E a z ∨ E b z) b (Or.inl hab)))
 
 -- ── 练习 4（L 类）：序数不属于自己 ────────────────────────────────────────
 theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
@@ -72,7 +72,7 @@ theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
     (fun (hm : HasMin α E (fun (z : α) => E x z)) =>
       Exists.elim α (fun (m : α) => (fun (z : α) => E x z) m ∧
           ∀ (y : α), (fun (z : α) => E x z) y → ¬ (E y m)) False
-        (hasMin_elim α E (fun (z : α) => E x z) hm)  -- soko:notation-ok: G-73 形状 ②（同上）
+        (hasMin_elim α E (fun (z : α) => E x z) hm)
         (fun (m : α) (hmm : (fun (z : α) => E x z) m ∧
             ∀ (y : α), (fun (z : α) => E x z) y → ¬ (E y m)) =>
           (fun (hnot : ¬ (E x m)) => (fun (hxm : E x m) => hnot hxm) (And.left hmm))

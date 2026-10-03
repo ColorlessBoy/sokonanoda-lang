@@ -28,7 +28,7 @@ theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn �
 theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
     (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
   Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
-    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+    (And.intro hf hfm)
 
 theorem mapsTo_mono_right (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β)
     (C : Set β) (hf : Set.MapsTo α β f A B) (h : B ⊆ C) : Set.MapsTo α β f A C :=
@@ -49,7 +49,7 @@ theorem leOn_mono_left (α : Type) (β : Type) (A : Set α) (A' : Set α) (B : S
     (fun (f : α → β) (hf : Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =>
       leOn_intro α β A' B f
         (injOn_mono_left α β f A A'
-          (And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) h)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+          (And.left hf) h)
         (fun (x : α) (hx : x ∈ A') =>
           (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) x  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
             ((fun (hs : ∀ (z : α), z ∈ A' → z ∈ A) => hs x hx)
@@ -62,9 +62,9 @@ theorem leOn_mono_right (α : Type) (β : Type) (A : Set α) (B : Set β) (C : S
     (LeOn α β A C) (leOn_apply α β A B hAB)
     (fun (f : α → β) (hf : Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =>
       leOn_intro α β A C f
-        (And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+        (And.left hf)
         (mapsTo_mono_right α β f A B C
-          (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) h))  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+          (And.right hf) h))
 
 theorem leOn_mono (α : Type) (β : Type) (A : Set α) (A' : Set α) (B : Set β) (C : Set β)
     (h1 : A' ⊆ A) (hAB : LeOn α β A B) (h2 : B ⊆ C) : LeOn α β A' C :=

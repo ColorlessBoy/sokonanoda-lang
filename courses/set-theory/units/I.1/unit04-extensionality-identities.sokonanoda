@@ -68,9 +68,9 @@ theorem demo_sdiff_self (α : Type) (A : Set α) :
     intro x
     constructor
     intro hx
-    exact And.right (x ∈ A) (¬ (x ∈ A)) hx (And.left (x ∈ A) (¬ (x ∈ A)) hx)  -- soko:notation-ok: 目标经 \ 展开后期望类型传不到 + And.right 续应用（引擎边界）
+    exact And.right hx (And.left hx)  -- soko:notation-ok: 目标经 \ 展开后期望类型传不到 + And.right 续应用（引擎边界）
     intro hf
-    exact And.intro (False.elim (x ∈ A) hf) (fun (ha : x ∈ A) => hf)  -- soko:notation-ok: And.intro 首实参得不到期望类型（引擎边界）
+    exact And.intro (False.elim hf) (fun (ha : x ∈ A) => hf)
   exact Set.ext α (A \ A) ∅ h
 
 -- 练习 1（T 类）：并交换律。

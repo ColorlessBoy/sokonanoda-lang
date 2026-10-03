@@ -51,8 +51,8 @@ theorem xlat_compl_union (α : Type) (A B : Set α) :
           (fun (hb : B x) => h (Or.inr (A x) (B x) hb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (fun (h : (Aᶜ ∩ Bᶜ) x) => fun (hor : (A ∪ B) x) =>
         Or.elim (A x) (B x) False
-          (fun (ha : A x) => And.left (¬ (A x)) (¬ (B x)) h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-          (fun (hb : B x) => And.right (¬ (A x)) (¬ (B x)) h hb)
+          (fun (ha : A x) => And.left h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (fun (hb : B x) => And.right h hb)
           hor))
 
 -- X2：复合的逆 = 逆的反序复合。两个方向都是"拆一个 ∃、换序 ∧、再装回 ∃"。
@@ -69,16 +69,16 @@ theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
             (fun (b : B) => fun (hb : r a b ∧ s b c) =>
               Exists.intro B (fun (b2 : B) => s b2 c ∧ r a b2) b  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (And.intro (s b c) (r a b)
-                  (And.right hb)-- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                  (And.left (r a b) (s b c) hb))))
+                  (And.right hb)
+                  (And.left hb))))
         (fun (h : ((s ⁻¹) • (r ⁻¹)) c a) =>
           Exists.elim B (fun (b : B) => s b c ∧ r a b)
             (∃ (b : B), r a b ∧ s b c) h
             (fun (b : B) => fun (hb : s b c ∧ r a b) =>
               Exists.intro B (fun (b2 : B) => r a b2 ∧ s b2 c) b  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (And.intro (r a b) (s b c)
-                  (And.right (s b c) (r a b) hb)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                  (And.left (s b c) (r a b) hb)))))
+                  (And.right hb)
+                  (And.left hb)))))
 
 -- X3：单射在复合下封闭——先用外层的单射把等式降一层，再交给内层。
 theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
@@ -92,7 +92,7 @@ theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
 theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C : Set γ) :
     f ⁻¹' (g ⁻¹' C) = (g ∘ f) ⁻¹' C :=
   Set.ext α (f ⁻¹' (g ⁻¹' C)) ((g ∘ f) ⁻¹' C)
-    (fun (x : α) => Iff.refl (C (g (f x))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    (fun (x : α) => Iff.refl )
 
 -- R1：错证明 A 的改正版——"反向显然"里偷用的前提被摆到台面上（hC）。
 -- → 方向把 `f x = y` 沿 Eq.subst 搬到 y 上；← 方向由 hC 供料，
@@ -106,8 +106,8 @@ theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
         Exists.elim α (fun (x : α) => (x ∈ f ⁻¹' C) ∧ (f x = y)) (y ∈ C) hy
           (fun (x : α) => fun (hx : (x ∈ f ⁻¹' C) ∧ (f x = y)) =>
             Eq.subst.{1} β (fun (z : β) => z ∈ C) (f x) y
-              (And.right (x ∈ f ⁻¹' C) (f x = y) hx)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (And.left (x ∈ f ⁻¹' C) (f x = y) hx)))
+              (And.right hx)
+              (And.left hx)))
       (fun (hy : y ∈ C) =>
         -- `cases` 只吃**局部假设名**；`hC y hy` 是应用，所以用 `Exists.elim` 摊开。
         Exists.elim α
@@ -117,8 +117,8 @@ theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
             Exists.intro α (fun (t : α) => t ∈ f ⁻¹' C ∧ f t = y) x
               (And.intro (x ∈ f ⁻¹' C) (f x = y)
                 (Eq.subst.{1} β (fun (z : β) => z ∈ C) y (f x)
-                  (Eq.symm.{1} β (f x) y (And.right (Set.univ α x) ((f x) = y) hx)) hy)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                (And.right (Set.univ α x) ((f x) = y) hx)))))
+                  (Eq.symm.{1} β (f x) y (And.right hx)) hy)
+                (And.right hx)))))
 
 -- R2：错证明 B 的改正版——补上偷用的单射假设 hf，等号才是真的。
 -- ← 方向两次 Exists.elim 拆出两个原像，用 hf 把它们捏成同一个点。
@@ -133,33 +133,33 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
             And.intro (y ∈ f '' A) (y ∈ f '' B)
               (Exists.intro α (fun (t : α) => t ∈ A ∧ f t = y) x
                 (And.intro (x ∈ A) (f x = y)
-                  (And.left (A x) (B x) (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                  (And.right (x ∈ A ∩ B) (f x = y) hx)))
+                  (And.left (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (And.right hx)))
               (Exists.intro α (fun (t : α) => t ∈ B ∧ f t = y) x
                 (And.intro (x ∈ B) (f x = y)
-                  (And.right (A x) (B x) (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                  (And.right (x ∈ A ∩ B) (f x = y) hx)))))
+                  (And.right (And.left hx))
+                  (And.right hx)))))
       (fun (hy : y ∈ f '' A ∩ f '' B) =>
         -- `cases` 不吃 `have` 绑定的 `∈ 像` 假设（要两层 delta 才到 `Exists`），
         -- 两次消去都写成 `Exists.elim` 项。
         Exists.elim α (fun (x : α) => (A x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
-          (And.left (y ∈ f '' A) (y ∈ f '' B) hy)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (And.left hy)
           (fun (x1 : α) => fun (hx1 : (A x1) ∧ ((f x1) = y)) =>
             Exists.elim α (fun (x : α) => (B x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
-              (And.right (y ∈ f '' A) (y ∈ f '' B) hy)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (And.right hy)
               (fun (x2 : α) => fun (hx2 : (B x2) ∧ ((f x2) = y)) =>
                 Exists.intro α (fun (t : α) => t ∈ A ∩ B ∧ f t = y) x1
                   (And.intro (x1 ∈ A ∩ B) (f x1 = y)
                     (And.intro (A x1) (B x1)
-                      (And.left (A x1) ((f x1) = y) hx1)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      (And.left hx1)
                       (Eq.subst.{1} α (fun (t : α) => B t) x2 x1
                         (Eq.symm.{1} α x1 x2
                           (hf x1 x2
                             (Eq.trans.{1} β (f x1) y (f x2)
-                              (And.right (A x1) ((f x1) = y) hx1)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                              (Eq.symm.{1} β (f x2) y (And.right (B x2) ((f x2) = y) hx2)))))
-                        (And.left (B x2) ((f x2) = y) hx2)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                    (And.right (A x1) ((f x1) = y) hx1))))))
+                              (And.right hx1)
+                              (Eq.symm.{1} β (f x2) y (And.right hx2)))))
+                        (And.left hx2)))
+                    (And.right hx1))))))
 
 -- R3（必破 D 类）：两条"看起来对"的等式都是假的。反例里的 f 一律取常函数
 --     fc := fun (_ : Set Nat) => ∅   （把一切都送到 ∅）
@@ -337,8 +337,8 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
             Exists.elim β (fun (b : β) => f a = b ∧ g b = c) (g (f a) = c) h
               (fun (b : β) => fun (hb : f a = b ∧ g b = c) =>
                 Eq.trans.{1} γ (g (f a)) (g b) c
-                  (congrArg.{1} g (And.left (f a = b) (g b = c) hb))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                  (And.right (f a = b) (g b = c) hb)))
+                  (congrArg.{1} g (And.left hb))
+                  (And.right hb)))
           (fun (h : (fun (a : α) => fun (c : γ) => g (f a) = c) a c) =>
             Exists.intro β (fun (b : β) => f a = b ∧ g b = c) (f a)
               (And.intro (f a = f a) (g (f a) = c) (Eq.refl.{1} β (f a)) h))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
@@ -352,9 +352,9 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
                 (And.intro (f x ∈ f '' A) (g (f x) = y)
                   (Exists.intro α (fun (t : α) => t ∈ A ∧ f t = f x) x
                     (And.intro (x ∈ A) (f x = f x)
-                      (And.left (x ∈ A) ((g ∘ f) x = y) hx)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      (And.left hx)
                       (Eq.refl.{1} β (f x))))
-                  (And.right (x ∈ A) ((g ∘ f) x = y) hx))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (And.right hx))))
         (fun (hy : y ∈ g '' (f '' A)) =>
           Exists.elim β (fun (b : β) => ((f '' A) b) ∧ ((g b) = y))
             (y ∈ (g ∘ f) '' A) hy
@@ -362,14 +362,14 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
               -- 嵌套 `cases` 里再 `cases` 会错位，内层改成 `Exists.elim` 项。
               Exists.elim α (fun (x : α) => (A x) ∧ ((f x) = b))
                 (y ∈ (g ∘ f) '' A)
-                (And.left ((f '' A) b) ((g b) = y) hb)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                (And.left hb)
                 (fun (x : α) => fun (hx : (A x) ∧ ((f x) = b)) =>
                   Exists.intro α (fun (t : α) => (A t) ∧ ((g ∘ f) t) = y) x
-                    (And.intro (A x) (((g ∘ f) x) = y)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                      (And.left (A x) ((f x) = b) hx)
+                    (And.intro (A x) (((g ∘ f) x) = y)
+                      (And.left hx)
                       (Eq.trans.{1} γ (g (f x)) (g b) y
-                        (congrArg.{1} g (And.right (A x) ((f x) = b) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                        (And.right ((f '' A) b) ((g b) = y) hb))))))))
+                        (congrArg.{1} g (And.right hx))
+                        (And.right hb))))))))
 
 -- P2（期末小项目 · 基数环）：把单元⑨ 的等势与单元⑩ 的 Cantor 钉在一起。
 --   ① 搬运：h 给的两把映射**照用**，只有"落在哪一侧"的域条件沿 hC 搬家
@@ -472,8 +472,8 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                   Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
                     ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
                 ) =>
-                  let hD : C' \ (fun (y : γ) => f y y) ∈ 𝒫 C' :=  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                    fun (y : γ) => fun (hy : C' y ∧ ¬ (f y y)) => And.left (C' y) (¬ (f y y)) hy;
+                  let hD : C' \ (fun (y : γ) => f y y) ∈ 𝒫 C' :=
+                    fun (y : γ) => fun (hy : C' y ∧ ¬ (f y y)) => And.left hy;
                   let hC'gD : C' (g (C' \ (fun (y : γ) => f y y))) :=
                     And.left (Set.MapsTo (Set γ) γ g (𝒫 C') C')
                       ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))

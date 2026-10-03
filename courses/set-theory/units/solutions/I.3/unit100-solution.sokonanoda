@@ -63,12 +63,12 @@ theorem leOn_comp (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) 
         (fun (g : β → γ) (hg : Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C) =>
           leOn_intro α γ A C (fun (x : α) => g (f x))
             (injOn_comp α β γ f g A B
-              (And.left (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
-              (And.left (Set.InjOn β γ g B) (Set.MapsTo β γ g B C) hg)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
-              (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (And.left hf)
+              (And.left hg)
+              (And.right hf))
             (mapsTo_comp α β γ f g A B C
-              (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
-              (And.right (Set.InjOn β γ g B) (Set.MapsTo β γ g B C) hg))))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (And.right hf)
+              (And.right hg))))
 
 theorem leOn_of_equiv_left (α : Type) (α' : Type) (β : Type) (A : Set α) (A' : Set α')
     (B : Set β) (h : A ≈ A') (h' : LeOn α' β A' B) : LeOn α β A B :=
@@ -81,9 +81,9 @@ theorem leOn_of_equiv_left (α : Type) (α' : Type) (β : Type) (A : Set α) (A'
         (fun (k : α' → β) (hk : Set.InjOn α' β k A' ∧ Set.MapsTo α' β k A' B) =>
           leOn_intro α β A B (fun (x : α) => k (f x))
             (injOn_comp α α' β f k A A' (injOn_of_leftInv α α' f g A hgf)
-              (And.left (Set.InjOn α' β k A') (Set.MapsTo α' β k A' B) hk) hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (And.left hk) hf)
             (mapsTo_comp α α' β f k A A' B hf
-              (And.right (Set.InjOn α' β k A') (Set.MapsTo α' β k A' B) hk))))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (And.right hk))))
 
 theorem leOn_of_equiv_right (α : Type) (β' : Type) (β : Type) (A : Set α) (B' : Set β')
     (B : Set β) (h : A ≼ B') (h' : B' ≈ B) : LeOn α β A B :=
@@ -96,8 +96,8 @@ theorem leOn_of_equiv_right (α : Type) (β' : Type) (β : Type) (A : Set α) (B
           (huv : Set.RightInvOn β' β u v B) =>
           leOn_intro α β A B (fun (x : α) => u (f x))
             (injOn_comp α β' β f u A B'
-              (And.left (Set.InjOn α β' f A) (Set.MapsTo α β' f A B') hf)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (And.left hf)
               (injOn_of_leftInv β' β u v B' hvu)
-              (And.right (Set.InjOn α β' f A) (Set.MapsTo α β' f A B') hf))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (And.right hf))
             (mapsTo_comp α β' β f u A B' B
-              (And.right (Set.InjOn α β' f A) (Set.MapsTo α β' f A B') hf) hu)))  -- soko:notation-ok: 等式族证明项的宇宙层级 / `LeOn` 等 def 头（手册边界）
+              (And.right hf) hu)))

@@ -17,8 +17,8 @@ theorem sdiff_eq_inter_compl (α : Type) (A B : Set α) :
     A \ B = A ∩ Bᶜ :=
   Set.ext α (A \ B) (A ∩ Bᶜ) (fun (x : α) =>
     Iff.intro ((A \ B) x) ((A ∩ Bᶜ) x)
-      (fun (h : A x ∧ ¬ (B x)) => And.intro (And.left h) (And.right h))-- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
-      (fun (h : A x ∧ ¬ (B x)) => And.intro (A x) (¬ (B x)) (And.left h) (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+      (fun (h : A x ∧ ¬ (B x)) => And.intro (And.left h) (And.right h))
+      (fun (h : A x ∧ ¬ (B x)) => And.intro (And.left h) (And.right h)))
 
 theorem union_inter_distrib_right (α : Type) (A B C : Set α) :
     (A ∪ B) ∩ C = (A ∩ C) ∪ (B ∩ C) :=
@@ -55,9 +55,9 @@ theorem inter_union_distrib_right (α : Type) (A B C : Set α) :
           (fun (ha : A x) =>
             Or.elim (B x) (C x) ((A x ∧ B x) ∨ C x)
               (fun (hb : B x) => Or.inl (A x ∧ B x) (C x) (And.intro (A x) (B x) ha hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
-              (fun (hc : C x) => Or.inr (A x ∧ B x) (C x) hc)  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+              (fun (hc : C x) => Or.inr hc)
               (And.right h))
-          (fun (hc : C x) => Or.inr (A x ∧ B x) (C x) hc)  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hc : C x) => Or.inr hc)
           (And.left h)))
 
 theorem compl_union (α : Type) (A B : Set α) :

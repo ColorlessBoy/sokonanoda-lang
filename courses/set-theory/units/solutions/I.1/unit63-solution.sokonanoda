@@ -28,7 +28,7 @@ theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \
 theorem mem_sdiff_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hna : ¬ (a ∈ B)) :
     a ∈ (A \ B) :=
   (fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =>
-    Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ B)) ha hna)) (Set.mem_sdiff a A B)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+    Iff.mpr hu (And.intro ha hna)) (Set.mem_sdiff a A B)
 
 theorem mem_of_mem_union_sdiff (α : Type) (A B : Set α) (a : α)
     (h : a ∈ ((A ∪ B) \ B)) : a ∈ A :=
@@ -50,6 +50,6 @@ theorem union_sdiff_self_eq (α : Type) (A B : Set α) :
           (fun (h : a ∈ (A \ B)) =>
             mem_sdiff_intro α (A ∪ B) B a
               ((fun (hw : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =>
-                Iff.mpr hw (Or.inl (a ∈ A) (a ∈ B) (mem_of_mem_sdiff α A B a h)))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+                Iff.mpr hw (Or.inl (mem_of_mem_sdiff α A B a h)))
                 (Set.mem_union a A B))
               (not_mem_of_mem_sdiff α A B a h))))

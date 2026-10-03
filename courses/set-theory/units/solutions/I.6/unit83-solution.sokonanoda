@@ -37,7 +37,7 @@ theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
       (fun (m : α) (hm : m = x ∧ ∀ (w : α), w = x → ¬ (E w m)) =>
         (And.right (m = x) (∀ (w : α), w = x → ¬ (E w m)) hm) x (Eq.refl.{1} α x)  -- soko:notation-ok: `HasMin`/`IsOrdinal`/`IsTransitive` 是 def 头（手册边界）
           (rel_subst_right α (fun (u : α) (v : α) => E u v) x x m
-            (Eq.symm.{1} α m x (And.left (m = x) (∀ (w : α), w = x → ¬ (E w m)) hm)) hxx))  -- soko:notation-ok: `HasMin`/`IsOrdinal`/`IsTransitive` 是 def 头（手册边界）
+            (Eq.symm.{1} α m x (And.left hm)) hxx))
 
 theorem mem_mem_self (α : Type) (E : α → α → Prop) (x : α) (y : α) (hx : IsOrdinal α E x)
     (hyx : E y x) (hxy : E x y) : E y y :=

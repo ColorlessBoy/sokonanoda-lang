@@ -26,15 +26,13 @@ theorem cbK_mono (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → �
     And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
       (And.left hx)
       (fun (h2 : x ∈ g '' (B \ f '' C2)) =>
--- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
-        (And.right (x ∈ A) (¬ (x ∈ g '' (B \ f '' C1))) hx)
+        (And.right hx)
           (Set.image_mono g (B \ f '' C2) (B \ f '' C1)
             (fun (b : β) (hb : b ∈ B \ f '' C2) =>
               And.intro (b ∈ B) (¬ (b ∈ f '' C1))
                 (And.left hb)
                 (fun (h1 : b ∈ f '' C1) =>
--- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
-                  (And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)
+                  (And.right hb)
                     (Set.image_mono f C1 C2 h b h1)))
             x h2))
 
@@ -61,8 +59,7 @@ theorem cbC0_sdiff (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α →
         (And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
           (And.left hx)
           (fun (h2 : x ∈ g '' (B \ f '' C)) =>
--- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
-            (And.right (x ∈ A) (¬ (x ∈ g '' B)) hx)
+            (And.right hx)
               (Set.image_mono g (B \ f '' C) B
                 (fun (b : β) (hb : b ∈ B \ f '' C) =>
                   And.left hb)

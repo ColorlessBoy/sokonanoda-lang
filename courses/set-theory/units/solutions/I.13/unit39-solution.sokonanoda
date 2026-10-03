@@ -75,7 +75,7 @@ theorem relImg_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : S
           Exists.intro α (fun (a1 : α) => A a1 ∧ (r • s) a1 c) a
             (And.intro (A a) ((r • s) a c) (And.left ha)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
               (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
-                (And.intro (r a b) (s b c) (And.right ha) (And.right hb))))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+                (And.intro (And.right ha) (And.right hb))))))
 
 theorem relImg_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) :
     relImg α γ (r • s) A = relImg β γ s (relImg α β r A) :=
@@ -95,7 +95,7 @@ theorem relPre_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : S
           Exists.intro β (fun (b1 : β) => (relPre β γ s C) b1 ∧ r a b1) b
             (And.intro ((relPre β γ s C) b) (r a b)
               (Exists.intro γ (fun (c1 : γ) => C c1 ∧ s b c1) c
-                (And.intro (C c) (s b c) (And.left hc) (And.right hb)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+                (And.intro (And.left hc) (And.right hb)))
               (And.left hb))))
 
 theorem relPre_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) (a : α)
@@ -109,7 +109,7 @@ theorem relPre_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : S
           Exists.intro γ (fun (c1 : γ) => C c1 ∧ (r • s) a c1) c
             (And.intro (C c) ((r • s) a c) (And.left hc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
               (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
-                (And.intro (r a b) (s b c) (And.right hb) (And.right hc))))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+                (And.intro (And.right hb) (And.right hc))))))
 
 theorem relPre_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) :
     relPre α γ (r • s) C = relPre α β r (relPre β γ s C) :=
@@ -173,7 +173,7 @@ theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)
       (∃ (a : α), A a ∧ r1 a b) hb
       (fun (a : α) (ha : A a ∧ r a b) =>
         Exists.intro α (fun (a1 : α) => A a1 ∧ r1 a1 b) a
-          (And.intro (A a) (r1 a b) (And.left ha) (h a b (And.right ha))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (And.intro (And.left ha) (h a b (And.right ha))))
 
 theorem relImg_empty (α β : Type) (r : Rel α β) (b : β) :
     ¬ (b ∈ (relImg α β r (Set.empty α))) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来

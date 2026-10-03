@@ -86,9 +86,9 @@ theorem bijective_iff_inverse (α β : Type) (f : α → β) (g : β → α)
   intro hi
   constructor
   exact leftInverse_injective α β f g
-    (And.left (Function.LeftInverse α β g f) (Function.RightInverse α β g f) hi)  -- soko:notation-ok: R1：合取藏在 Inverse 定义后
+    (And.left hi)
   exact surjective_of_rightInverse α β f g
-    (And.right (Function.LeftInverse α β g f) (Function.RightInverse α β g f) hi)  -- soko:notation-ok: R1：合取藏在 Inverse 定义后
+    (And.right hi)
 
 -- 题 7：题 2 的逆命题方向；congrArg 把 f 层等式抬成复合等式。
 theorem injective_of_comp_injective (α β γ : Type) (f : α → β) (g : β → γ)

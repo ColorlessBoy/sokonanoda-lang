@@ -12,7 +12,7 @@
   · 本脚本**只读**：不写课程文件、不删豁免、不动标记 ✓（dry-run ✓）。
 """
 from __future__ import annotations
-import argparse, importlib.util, json, sys
+import argparse, importlib.util, json, subprocess, sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
@@ -25,6 +25,19 @@ def _lint():
     spec.loader.exec_module(mod)
     mod.Linter([mod.REPO / r for r in mod.DEFAULT_ROOTS])   # ⚠ 派生记法表必须先建 ✓
     return mod
+
+
+_HEAD_CACHE: dict[str, list[str]] = {}
+
+
+def _head_line(rel: str, line: int) -> str | None:
+    """该文件在 `HEAD` 里第 `line` 行的文本（stripped ✓）—— `done` 条目的落地判据 ✓。"""
+    if rel not in _HEAD_CACHE:
+        out = subprocess.run(["git", "show", f"HEAD:{rel}"], cwd=REPO,
+                             capture_output=True, text=True).stdout
+        _HEAD_CACHE[rel] = out.splitlines()
+    b = _HEAD_CACHE[rel]
+    return b[line - 1].strip() if 0 < line <= len(b) else None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -57,9 +70,12 @@ def main(argv: list[str] | None = None) -> int:
         lines = f.read_text(encoding="utf-8").splitlines()
         hits = [h for h in nl.census_hits(f) if h["line"] == e["line"] and h["rule"] == e["rule"]]
         if e["group"] == "done":
-            # `done` = 已落地 ⇒ **必须验它确实不在了** ✓（还在 = 清单没跟上 ⇒ 判红 ✓）
-            if hits:
-                stale.append({"file": e["file"], "line": e["line"], "why": "标 done 但命中仍在"})
+            # `done` = 已落地 ⇒ **按文本验**（行漂免疫 ✓）：基线（HEAD）那一行的原文必须已不在文件里 ✓
+            #   ⚠ 早先按 (line, rule) 判 ⇒ 行号漂移后会把**邻居**命中当成本条 ⇒ 假红 ✗（实测追了 3 轮 ✗）
+            base = _head_line(e["file"], e["line"])
+            if base and base in f.read_text(encoding="utf-8"):
+                stale.append({"file": e["file"], "line": e["line"],
+                              "why": "标 done 但基线原文仍在（疑未落地）"})
             continue
         if not hits:
             stale.append({"file": e["file"], "line": e["line"], "why": "命中不在（清单过期）"})

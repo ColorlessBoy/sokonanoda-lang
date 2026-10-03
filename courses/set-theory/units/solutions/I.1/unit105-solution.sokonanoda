@@ -12,7 +12,7 @@ theorem demo_not_def (P : Prop) : ¬ P ↔ (P → False) :=
   Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)
 
 theorem em_cases (P : Prop) (Q : Prop) (h1 : P → Q) (h2 : ¬ P → Q) : Q :=
-  Or.elim P (¬ P) Q h1 h2 (Classical.em P)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+  Or.elim h1 h2 (Classical.em P)
 
 theorem not_exists_iff_forall_not (α : Type) (P : α → Prop) :
     ¬ (∃ (x : α), P x) ↔ ∀ (x : α), ¬ (P x) :=
@@ -32,7 +32,7 @@ theorem not_or_iff (P : Prop) (Q : Prop) : ¬ (P ∨ Q) ↔ (¬ P ∧ ¬ Q) :=
     (fun (h : ¬ P ∧ ¬ Q) =>
       fun (hor : P ∨ Q) =>
         Or.elim P Q False (fun (hp : P) => (And.left (¬ P) (¬ Q) h) hp)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
-          (fun (hq : Q) => (And.right (¬ P) (¬ Q) h) hq) hor)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+          (fun (hq : Q) => (And.right h) hq) hor)
 
 theorem imp_iff_not_or (P : Prop) (Q : Prop) : (P → Q) ↔ (¬ P ∨ Q) :=
   Iff.intro (P → Q) (¬ P ∨ Q)
@@ -41,11 +41,11 @@ theorem imp_iff_not_or (P : Prop) (Q : Prop) : (P → Q) ↔ (¬ P ∨ Q) :=
         (fun (hnp : ¬ P) => Or.inl (¬ P) Q hnp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
     (fun (h : ¬ P ∨ Q) =>
       fun (hp : P) =>
-        Or.elim (¬ P) Q Q (fun (hnp : ¬ P) => False.elim Q (hnp hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+        Or.elim (¬ P) Q Q (fun (hnp : ¬ P) => False.elim (hnp hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
           (fun (hq : Q) => hq) h)
 
 theorem not_and_imp (P : Prop) (Q : Prop) (h : ¬ (P ∧ Q)) : ¬ P ∨ ¬ Q :=
-  em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) => Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (And.intro P Q hp hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+  em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) => Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (And.intro hp hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
     (fun (hnp : ¬ P) => Or.inl (¬ P) (¬ Q) hnp)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
 
 theorem peirce (P : Prop) (Q : Prop) (h : (P → Q) → P) : P :=

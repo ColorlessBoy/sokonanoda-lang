@@ -47,7 +47,7 @@ theorem mem_preimage_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
     (x ∈ (f ⁻¹' (Set.sUnion β F))) h  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
     (fun (A : Set β) (hA : A ∈ F ∧ x ∈ (f ⁻¹' A)) =>
       mem_preimage_sUnion_of_mem α β f F A x
-        (And.left (A ∈ F) (x ∈ (f ⁻¹' A)) hA) (And.right (A ∈ F) (x ∈ (f ⁻¹' A)) hA))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+        (And.left hA) (And.right hA))
 
 theorem mem_of_mem_preimage_sUnion (α : Type) (β : Type) (f : α → β)
     (F : Set (Set β)) (x : α) (h : x ∈ (f ⁻¹' (Set.sUnion β F))) :  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
@@ -57,8 +57,8 @@ theorem mem_of_mem_preimage_sUnion (α : Type) (β : Type) (f : α → β)
     (exists_mem_of_mem_sUnion β F (f x) (mem_of_mem_preimage α β f (Set.sUnion β F) x h))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
     (fun (A : Set β) (hA : A ∈ F ∧ f x ∈ A) =>
       Exists.intro (Set β) (fun (D : Set β) => D ∈ F ∧ x ∈ (f ⁻¹' D)) A  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
-        (And.intro (A ∈ F) (x ∈ (f ⁻¹' A)) (And.left (A ∈ F) (f x ∈ A) hA)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
-          (mem_preimage_of_mem α β f A x (And.right (A ∈ F) (f x ∈ A) hA))))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+        (And.intro (A ∈ F) (x ∈ (f ⁻¹' A)) (And.left hA)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+          (mem_preimage_of_mem α β f A x (And.right hA))))
 
 theorem mem_preimage_sUnion_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set β))
     (x : α) :

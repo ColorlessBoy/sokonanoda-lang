@@ -20,9 +20,9 @@ theorem inter_union_subset (α : Type) (A B C : Set α) :
     (fun (hu : A x ∧ (B ∪ C) x) =>
       Or.elim (B x) (C x) ((A ∩ B) x ∨ (A ∩ C) x)
         (fun (hb : B x) =>
-          Or.inl (And.intro (A x) (B x) (And.left hu) hb))-- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+          Or.inl (And.intro (And.left hu) hb))
         (fun (hc : C x) =>
-          Or.inr ((A ∩ B) x) ((A ∩ C) x) (And.intro (A x) (C x) (And.left hu) hc))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+          Or.inr (And.intro (And.left hu) hc))
         ((fun (hv : (B ∪ C) x ↔ B x ∨ C x) => Iff.mp hv) (Set.mem_union x B C)
           (And.right hu))) h
 
@@ -58,15 +58,15 @@ theorem union_subset_union (α : Type) (A B C D : Set α)
     (h1 : A ⊆ B) (h2 : C ⊆ D) : (A ∪ C) ⊆ (B ∪ D) :=
   fun (x : α) => fun (h : (A ∪ C) x) =>
     Or.elim (A x) (C x) (B x ∨ D x)
-      (fun (ha : A x) => Or.inl (B x) (D x) (h1 x ha))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
-      (fun (hc : C x) => Or.inr (B x) (D x) (h2 x hc))  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+      (fun (ha : A x) => Or.inl (h1 x ha))
+      (fun (hc : C x) => Or.inr (h2 x hc))
       ((fun (hv : (A ∪ C) x ↔ A x ∨ C x) => Iff.mp hv) (Set.mem_union x A C) h)
 
 theorem inter_subset_inter (α : Type) (A B C D : Set α)
     (h1 : A ⊆ B) (h2 : C ⊆ D) : (A ∩ C) ⊆ (B ∩ D) :=
   fun (x : α) => fun (h : (A ∩ C) x) =>
     (fun (hu : A x ∧ C x) =>
-      And.intro (B x) (D x) (h1 x (And.left hu)) (h2 x (And.right hu))) h  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+      And.intro (h1 x (And.left hu)) (h2 x (And.right hu))) h
 
 theorem inter_subset_inter_apply (α : Type) (A B C D : Set α)
     (h1 : A ⊆ B) (h2 : C ⊆ D) (x : α) (h : (A ∩ C) x) : (B ∩ D) x :=
@@ -79,12 +79,12 @@ theorem union_subset_union_apply (α : Type) (A B C D : Set α)
 theorem inter_comm_subset (α : Type) (A B : Set α) :
     Set.subset (A ∩ B) (B ∩ A) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
   fun (x : α) => fun (h : (A ∩ B) x) =>
-    (fun (hu : A x ∧ B x) => And.intro (B x) (A x) (And.right hu) (And.left hu)) h  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+    (fun (hu : A x ∧ B x) => And.intro (And.right hu) (And.left hu)) h
 
 theorem union_comm_subset (α : Type) (A B : Set α) :
     Set.subset (A ∪ B) (B ∪ A) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
   fun (x : α) => fun (h : (A ∪ B) x) =>
     Or.elim (A x) (B x) ((B ∪ A) x)
-      (fun (ha : A x) => Or.inr (B x) (A x) ha)  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
-      (fun (hb : B x) => Or.inl (B x) (A x) hb)  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+      (fun (ha : A x) => Or.inr ha)
+      (fun (hb : B x) => Or.inl hb)
       ((fun (hv : (A ∪ B) x ↔ A x ∨ B x) => Iff.mp hv) (Set.mem_union x A B) h)

@@ -113,8 +113,8 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
                   Or.inr (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                     (Exists.intro α (fun (t : α) => (B t) ∧ ((f t) = y)) x
                       (And.intro (B x) ((f x) = y) hb  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                        (And.right (x ∈ (A ∪ B)) ((f x) = y) hx))))
-                (And.left (x ∈ (A ∪ B)) ((f x) = y) hx)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        (And.right hx))))
+                (And.left hx)))
         (fun (h : (y ∈ (f '' A)) ∨ (y ∈ (f '' B))) =>
           Or.elim (y ∈ (f '' A)) (y ∈ (f '' B))
             (y ∈ (f '' (A ∪ B)))
@@ -125,8 +125,8 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
                   Exists.intro α
                     (fun (t : α) => (t ∈ (A ∪ B)) ∧ ((f t) = y)) x
                     (And.intro (x ∈ (A ∪ B)) ((f x) = y)
-                      (Or.inl (A x) (B x) (And.left (A x) ((f x) = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                      (And.right (A x) ((f x) = y) hx))))
+                      (Or.inl (And.left hx))
+                      (And.right hx))))
             (fun (hb : y ∈ (f '' B)) =>
               Exists.elim α (fun (x : α) => (B x) ∧ ((f x) = y))
                 (y ∈ (f '' (A ∪ B))) hb
@@ -134,8 +134,8 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
                   Exists.intro α
                     (fun (t : α) => (t ∈ (A ∪ B)) ∧ ((f t) = y)) x
                     (And.intro (x ∈ (A ∪ B)) ((f x) = y)
-                      (Or.inr (A x) (B x) (And.left (B x) ((f x) = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                      (And.right (B x) ((f x) = y) hx))))
+                      (Or.inr (And.left hx))
+                      (And.right hx))))
             h))
 
 -- ─────────────────────────────────────────────────────────────
@@ -162,13 +162,13 @@ theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
         (Exists.intro α (fun (t : α) => (A t) ∧ ((f t) = y)) x
           (And.intro (A x) ((f x) = y)
             (And.left (A x) (B x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (And.left (x ∈ (A ∩ B)) ((f x) = y) hx))
-            (And.right (x ∈ (A ∩ B)) ((f x) = y) hx)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (And.left hx))
+            (And.right hx)))
         (Exists.intro α (fun (t : α) => (B t) ∧ ((f t) = y)) x
           (And.intro (B x) ((f x) = y)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (And.right (A x) (B x)
-              (And.left (x ∈ (A ∩ B)) ((f x) = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-            (And.right (x ∈ (A ∩ B)) ((f x) = y) hx))))
+              (And.left hx))
+            (And.right hx))))
 
 -- 像的单调性（真的那一半的另一半）：直接吃库里的 `Set.image_mono`。
 theorem image_mono (α β : Type) (f : α → β) (A B : Set α)
@@ -227,7 +227,7 @@ theorem inter_singletons_empty :
                 (And.right (Set.mem Two x (Set.singleton Two aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                   (Set.mem Two x (Set.singleton Two bb)) hx))))
         (fun (h0 : Set.mem Two x (Set.empty Two)) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-          False.elim (Set.mem Two x (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb))) h0))
+          False.elim h0))
 
 theorem image_empty (A : Set Two) :
     (f1 '' (∅)) = (∅) := by
@@ -357,7 +357,7 @@ theorem image_preimage_eq_image :
             (fun (x : Two) => fun (hx : x ∈ (f1 ⁻¹' U01) ∧
                 (f1 x) = y) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               Exists.intro Two (fun (t : Two) => (f1 t) = y) x
-                (And.right (x ∈ (f1 ⁻¹' U01)) ((f1 x) = y) hx))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                (And.right hx))))
 
 -- 通用小引理：两条包含给相等（就是单元②的 subset_antisymm，这里按 Set.ext 写一遍）。
 theorem eq_of_subsets (α : Type) (A B : Set α)
@@ -377,7 +377,7 @@ theorem image_preimage_image_eq_preimage :
           (fun (x : Two) => fun (hx : x ∈ (f1 ⁻¹' U01) ∧
               (f1 x) = y) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             Exists.intro Two (fun (t : Two) => (f1 t) = y) x
-              (And.right (x ∈ (f1 ⁻¹' U01)) ((f1 x) = y) hx)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (And.right hx)))
     (fun (y : Two) => fun (hy : y ∈ image_preimage) =>
       Exists.elim Two (fun (x : Two) => (f1 x) = y)
         (y ∈ (f1 '' (f1 ⁻¹' U01))) hy
@@ -424,9 +424,9 @@ theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C
                   (And.intro (x ∈ (f ⁻¹' C)) ((f x) = y)
                     (Eq.subst.{1} β (fun (z : β) => z ∈ C) y (f x)
                       (Eq.symm.{1} β (f x) y
-                        (And.right (x ∈ (Set.univ α)) ((f x) = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        (And.right hx))
                       hy)
-                    (And.right (x ∈ (Set.univ α)) ((f x) = y) hx))))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (And.right hx))))))
 
 -- ─────────────────────────────────────────────────────────────
 -- §实测记录（**复核轮重测过**；每条都给出可复现的最小实验。初版有两条结论被推翻，见 ①②）

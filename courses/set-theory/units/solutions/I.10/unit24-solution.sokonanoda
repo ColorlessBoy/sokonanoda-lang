@@ -19,11 +19,11 @@ theorem demo_transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
 theorem subset_reflClosure (α : Type) (r : Rel α α) :
     ∀ (a : α) (b : α), r a b → Rel.reflClosure α r a b :=
   fun (a : α) (b : α) (hab : r a b) =>
-    Or.inl (r a b) (Eq.{1} α a b) hab  -- soko:notation-ok: G-73 形状 ③：`=` 的记法在这个位置解不出宇宙层级，必须点名声明星
+    Or.inl hab
 
 theorem subset_symClosure (α : Type) (r : Rel α α) :
     ∀ (a : α) (b : α), r a b → Rel.symClosure α r a b :=
-  fun (a : α) (b : α) (hab : r a b) => Or.inl (r a b) (r b a) hab  -- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来
+  fun (a : α) (b : α) (hab : r a b) => Or.inl hab
 
 theorem subset_transClosure (α : Type) (r : Rel α α) :
     ∀ (a : α) (b : α), r a b → Rel.transClosure α r a b :=
@@ -49,8 +49,8 @@ theorem symClosure_symm (α : Type) (r : Rel α α) :
     Symmetric α (Rel.symClosure α r) :=
   fun (a : α) (b : α) (hab : Rel.symClosure α r a b) =>
     Or.elim (r a b) (r b a) (r b a ∨ r a b)
-      (fun (h1 : r a b) => Or.inr (r b a) (r a b) h1)  -- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来
-      (fun (h2 : r b a) => Or.inl (r b a) (r a b) h2)  -- soko:notation-ok: G-30 同族：`Or.inl/r` 的前导 Prop 实参在定义头期望类型上补不出来
+      (fun (h1 : r a b) => Or.inr h1)
+      (fun (h2 : r b a) => Or.inl h2)
       hab
 
 theorem symClosure_min (α : Type) (r s : Rel α α) (hs : Symmetric α s)

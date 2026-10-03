@@ -46,12 +46,12 @@ theorem eq_iff_subset_both (α : Type) (A B : Set α) :
       And.intro (A ⊆ B) (B ⊆ A)
         (eq_imp_subset α A B h) (eq_imp_subset α B A (Eq.symm.{1} (Set α) A B h)))
     (fun (h : A ⊆ B ∧ B ⊆ A) =>
-      subset_antisymm α A B (And.left h) (And.right (A ⊆ B) (B ⊆ A) h))-- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+      subset_antisymm α A B (And.left h) (And.right h))
 
 theorem subset_inter_self (α : Type) (A : Set α) : A ⊆ (A ∩ A) :=
   fun (a : α) (ha : a ∈ A) =>
     (fun (hu : a ∈ (A ∩ A) ↔ a ∈ A ∧ a ∈ A) =>
-      Iff.mpr hu (And.intro (a ∈ A) (a ∈ A) ha ha)) (Set.mem_inter_iff a A A)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+      Iff.mpr hu (And.intro ha ha)) (Set.mem_inter_iff a A A)
 
 theorem union_self_eq (α : Type) (A : Set α) : Eq.{1} (Set α) (A ∪ A) A :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
   funext_spec α (fun (_ : α) => Prop) (A ∪ A) A
@@ -65,4 +65,4 @@ theorem union_self_eq (α : Type) (A : Set α) : Eq.{1} (Set α) (A ∪ A) A := 
               ((fun (hu : a ∈ (A ∪ A) ↔ a ∈ A ∨ a ∈ A) => Iff.mp hu h) (Set.mem_union a A A)))
           (fun (h : a ∈ A) =>
             (fun (hu : a ∈ (A ∪ A) ↔ a ∈ A ∨ a ∈ A) =>
-              Iff.mpr hu (Or.inl (a ∈ A) (a ∈ A) h)) (Set.mem_union a A A))))  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
+              Iff.mpr hu (Or.inl h)) (Set.mem_union a A A))))

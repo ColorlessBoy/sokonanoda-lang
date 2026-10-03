@@ -81,11 +81,11 @@ theorem mem_of_exists_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
         (fun (h : w = y ∨ E y w) =>
           Or.elim (w = y) (E y w) (E y x)
             (fun (heq : w = y) =>
-              Eq.subst.{1} α (fun (z : α) => E z x) w y heq (And.left (E w x) (¬ (E w y)) hw))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+              Eq.subst.{1} α (fun (z : α) => E z x) w y heq (And.left hw))
             (fun (hyw : E y w) =>
-              ordinal_isTransitive α E x hx w (And.left (E w x) (¬ (E w y)) hw) y hyw) h)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-        (ihx w (And.left (E w x) (¬ (E w y)) hw)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-          (ordinal_elems_ordinal α E x w hx (And.left (E w x) (¬ (E w y)) hw))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+              ordinal_isTransitive α E x hx w (And.left hw) y hyw) h)
+        (ihx w (And.left hw)
+          (ordinal_elems_ordinal α E x w hx (And.left hw))))
 
 theorem pred_subset_of_no_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
     (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) : ∀ (w : α), E w x → E w y :=
@@ -93,7 +93,7 @@ theorem pred_subset_of_no_gap (α : Type) (E : α → α → Prop) (x : α) (y :
     Classical.byContradiction (E w y)
       (fun (hnwy : ¬ (E w y)) =>
         hno (Exists.intro α (fun (w' : α) => E w' x ∧ ¬ (E w' y)) w
-          (And.intro (E w x) (¬ (E w y)) hwx hnwy)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (And.intro hwx hnwy)))
 
 theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α)
     (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
@@ -122,11 +122,11 @@ theorem ordinal_trichotomy (α : Type) (E : α → α → Prop)
           (fun (v : α) (hv : IsOrdinal α E v)
             (ihv : ∀ (u : α), E u v → E z u ∨ z = u ∨ E u z) =>
             Or.elim (E z v) (¬ (E z v)) (E z v ∨ z = v ∨ E v z)
-              (fun (hzv : E z v) => Or.inl (E z v) (z = v ∨ E v z) hzv)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+              (fun (hzv : E z v) => Or.inl hzv)
               (fun (hnzv : ¬ (E z v)) =>
                 Or.inr (E z v) (z = v ∨ E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
                  (Or.elim (z = v) (¬ (z = v)) (z = v ∨ E v z)
-                  (fun (heq : z = v) => Or.inl (z = v) (E v z) heq)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                  (fun (heq : z = v) => Or.inl heq)
                   (fun (hne : ¬ (z = v)) =>
                     Or.inr (z = v) (E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
                       (Or.elim (E v z) (∀ (w : α), E w z → E w v) (E v z)

@@ -262,13 +262,13 @@ theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
           (Exists.intro α (fun (t : α) => (A t) ∧ (Eq.{1} β (f t) y)) x  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (And.intro (A x) (Eq.{1} β (f x) y)
               (And.left (A x) (B x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                (And.left (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))
-              (And.right (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                (And.left hx))
+              (And.right hx)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (Exists.intro α (fun (t : α) => (B t) ∧ (Eq.{1} β (f t) y)) x
             (And.intro (B x) (Eq.{1} β (f x) y)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (And.right (A x) (B x)
-                (And.left (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (And.right (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))))
+                (And.left hx))
+              (And.right hx))))
 
 -- 练习 6（D 类）：反例——`f '' ({aa} ∩ {bb}) = f '' {aa} ∩ f '' {bb}` **假**。
 --

@@ -89,8 +89,8 @@ theorem pi_nonempty_of_choice (ι α : Type) (A : ι → Set α)
         Exists.elim α (fun (x : α) => x ∈ A i)
           (∃ (x : α), x ∈ Set.univ α ∧ x ∈ A i) (h i)
           (fun (x : α) (hx : x ∈ A i) =>
-            Exists.intro α (fun (x' : α) => x' ∈ Set.univ α ∧ x' ∈ A i) x  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
-              (And.intro (x ∈ Set.univ α) (x ∈ A i) (Set.mem_univ α x) hx))))
+            Exists.intro α (fun (x' : α) => x' ∈ Set.univ α ∧ x' ∈ A i) x
+              (And.intro (Set.mem_univ α x) hx))))
     (fun (f : ι → α)
       (hf : ∀ (i : ι), i ∈ Set.univ ι → f i ∈ Set.univ α ∧ f i ∈ A i) =>
       Exists.intro (ι → α) (fun (f' : ι → α) => f' ∈ (Set.pi ι α A)) f  -- soko:notation-ok: G-73 形状 ②（同上）

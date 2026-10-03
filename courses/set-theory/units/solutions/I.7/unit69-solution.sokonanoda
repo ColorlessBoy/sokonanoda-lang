@@ -43,7 +43,7 @@ theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (A : Set α) :
         fun (b : α) (hb : b ∈ B) =>
           h b ((fun (hu : b ∈ (Set.sUnion α F) ↔ ∃ (C : Set α), C ∈ F ∧ b ∈ C) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
             Iff.mpr hu (Exists.intro (Set α) (fun (C : Set α) => C ∈ F ∧ b ∈ C) B  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
-              (And.intro (B ∈ F) (b ∈ B) hB hb))) (Set.mem_sUnion_iff α F b)))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+              (And.intro hB hb))) (Set.mem_sUnion_iff α F b)))
     (fun (h : ∀ (B : Set α), B ∈ F → B ⊆ A) =>
       fun (x : α) (hx : x ∈ (Set.sUnion α F)) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
         Set.mem_sUnion_elim α F x (x ∈ A) hx

@@ -22,7 +22,7 @@ theorem succ_self_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
 
 theorem succ_mem_of_mem (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
     (hy : ∀ (w : α), E w x ↔ (E w y ∨ w = y)) (hz : E z y) : E z x :=
-  (fun (hu : E z x ↔ (E z y ∨ z = y)) => Iff.mpr hu (Or.inl (E z y) (z = y) hz)) (hy z)  -- soko:notation-ok: `IsSuccOf`/`IsTransitive` 是 def 头（手册边界）
+  (fun (hu : E z x ↔ (E z y ∨ z = y)) => Iff.mpr hu (Or.inl hz)) (hy z)
 
 theorem succ_mem_cases (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
     (hy : ∀ (w : α), E w x ↔ (E w y ∨ w = y)) (hz : E z x) : E z y ∨ z = y :=

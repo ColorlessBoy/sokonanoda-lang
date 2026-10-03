@@ -28,9 +28,9 @@ def SurjOnSets (α : Type) (S : α → Set α) : Prop :=
 theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
   Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)
 theorem demo_and_left (P : Prop) (Q : Prop) (h : P ∧ Q) : P :=
-  And.left P Q h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+  And.left h
 theorem demo_and_right (P : Prop) (Q : Prop) (h : P ∧ Q) : Q :=
-  And.right P Q h-- 练习 1（T 类）：**命题层的自我否定**（`P → ¬ P` ⇒ `P → False`）。  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+  And.right h
 -- 思路：在 `P` 的假设下，先得 `¬ P`，再把它作用在同一个假设上。
 -- 关键件：把 `h1` **用一次后再作用一次**（`(h1 hP) hP`）
 theorem prop_neg_ev (P : Prop) (h1 : P → ¬ P) : P → False := by

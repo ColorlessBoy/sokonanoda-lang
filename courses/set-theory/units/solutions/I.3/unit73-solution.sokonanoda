@@ -50,7 +50,7 @@ theorem mem_image_union (α : Type) (β : Type) (f : α → β) (A B : Set α) (
             (fun (x : α) (hx : x ∈ B) (hxy : f x = y) =>
               Set.mem_image_intro f (A ∪ B) y x
                 ((fun (hu : x ∈ (A ∪ B) ↔ x ∈ A ∨ x ∈ B) =>
-                  Iff.mpr hu (Or.inr (x ∈ A) (x ∈ B) hx)) (Set.mem_union x A B)) hxy))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+                  Iff.mpr hu (Or.inr hx)) (Set.mem_union x A B)) hxy))
         ((fun (hu : y ∈ ((f '' A) ∪ (f '' B)) ↔ y ∈ (f '' A) ∨ y ∈ (f '' B)) => Iff.mp hu h)
           (Set.mem_union y (f '' A) (f '' B))))
 
@@ -58,7 +58,7 @@ theorem mem_sUnion_of_mem_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : �
     (hA : A ∈ F) (hx : x ∈ A) : x ∈ (Set.sUnion α F) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
   (fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
     Iff.mpr hu (Exists.intro (Set α) (fun (D : Set α) => D ∈ F ∧ x ∈ D) A  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
-      (And.intro (A ∈ F) (x ∈ A) hA hx))) (Set.mem_sUnion_iff α F x)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+      (And.intro hA hx))) (Set.mem_sUnion_iff α F x)
 
 theorem exists_mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
     (h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
@@ -80,7 +80,7 @@ theorem mem_image_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
     (y ∈ (f '' (Set.sUnion α F))) h  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
     (fun (A : Set α) (hA : A ∈ F ∧ y ∈ (f '' A)) =>
       mem_image_sUnion_of_mem_image α β f F A y
-        (And.left (A ∈ F) (y ∈ (f '' A)) hA) (And.right (A ∈ F) (y ∈ (f '' A)) hA))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+        (And.left hA) (And.right hA))
 
 theorem mem_of_mem_image_sUnion (α : Type) (β : Type) (f : α → β)
     (F : Set (Set α)) (y : β)
@@ -93,8 +93,8 @@ theorem mem_of_mem_image_sUnion (α : Type) (β : Type) (f : α → β)
         (exists_mem_of_mem_sUnion α F x hx)
         (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =>
           Exists.intro (Set α) (fun (D : Set α) => D ∈ F ∧ y ∈ (f '' D)) A  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
-            (And.intro (A ∈ F) (y ∈ (f '' A)) (And.left (A ∈ F) (x ∈ A) hA)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
-              (Set.mem_image_intro f A y x (And.right (A ∈ F) (x ∈ A) hA) hxy))))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+            (And.intro (A ∈ F) (y ∈ (f '' A)) (And.left hA)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+              (Set.mem_image_intro f A y x (And.right hA) hxy))))
 
 theorem mem_image_sUnion_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set α))
     (y : β) :

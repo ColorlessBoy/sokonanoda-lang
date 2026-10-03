@@ -30,11 +30,11 @@ theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
   Set.subset_def α A B
 theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
-  Iff.intro (¬ P) (P → False) (fun (h : ¬ P) => h) (fun (h : P → False) => h)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+  Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)
 theorem demo_leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
     (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
   Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
-    (And.intro (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf hfm)-- 练习 1（T 类）：**相互包含的前一半**（点态）。  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+    (And.intro hf hfm)
 -- 关键件：`Set.subset_def`（**先 λ 绑定再 `Iff.mp`** ✓）· `hAB`（点 · 前提）
 theorem subset_antisymm_forward (α : Type) (A : Set α) (B : Set α)
     (hAB : A ⊆ B) (hBA : B ⊆ A) : ∀ (x : α), x ∈ A → x ∈ B := by

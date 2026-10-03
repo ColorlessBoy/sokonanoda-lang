@@ -129,18 +129,18 @@ theorem sdiff_sdiff (α : Type) (A B C : Set α) :
       Or.elim (x ∈ B) (x ∈ C) False
         (fun (hb : x ∈ B) =>
           And.right (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
-            (And.left (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h) hb)
+            (And.left h) hb)
         (fun (hcx : x ∈ C) =>
-          And.right (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+          And.right h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
         hbc)
   intro h
   exact And.intro (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C))
     (And.intro (x ∈ A) (¬ (x ∈ B))
       (And.left h)
       (fun (hb : x ∈ B) =>
-        And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+        And.right h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
     (fun (hc : x ∈ C) =>
-      And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+      And.right h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 -- X 类：∅ 是并的单位元 —— A ∪ ∅ = A。
 theorem union_empty (α : Type) (A : Set α) :
@@ -154,7 +154,7 @@ theorem union_empty (α : Type) (A : Set α) :
     (fun (hf : x ∈ ∅) => False.elim hf)
     h
   intro ha
-  exact Or.inl (x ∈ A) (x ∈ ∅) ha  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+  exact Or.inl ha
 
 -- R 类（必破 / 证伪）：(A ∪ B) \ B = A **为假**。
 -- 反例取 α = Nat、A = B = Set.univ Nat：右边含 Nat.zero，左边要求
