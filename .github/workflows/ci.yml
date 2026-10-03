@@ -683,6 +683,33 @@ jobs:
     permissions:
       actions: write          # `gh run cancel` 需要它 ✓
     steps:
+      # **掐之前先列清单**（2026-10-03 值守派单 ✓）：现在用户看到的是 `cancelled` + 一片
+      # `skipped` ✗ ⇒ **永远不知道自己这轮少验了什么** ✗ —— 这正是"看不到绿"的根源 ✓。
+      # 保留"一红就掐"本身 ✓（2026-09-25 用户明确要的 ✓），只是**把代价写清楚** ✓。
+      - name: List the jobs this cancel will drop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          gh run view "${{ github.run_id }}" --repo "${{ github.repository }}" --json jobs \
+            > /tmp/jobs.json || { echo "（拿不到 jobs 列表 ⇒ 跳过清单，不影响掐）"; exit 0; }
+          python3 - <<'PYEOF' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          jobs = json.load(open("/tmp/jobs.json")).get("jobs", [])
+          live = [j for j in jobs if (j.get("status") or "") in ("in_progress", "queued", "pending", "requested", "waiting")]
+          failed = [j for j in jobs if j.get("conclusion") == "failure"]
+          done = [j for j in jobs if j.get("completedAt")]
+          print(f"## 本轮被掐 · 未验证的 {len(live)} 个任务")
+          print()
+          print(f"- 已失败（触发掐断）：{'、'.join('`' + (j.get('name') or '?') + '`' for j in failed) or '（无）'}")
+          print(f"- 已完成：{len(done)} 个 · 总数：{len(jobs)} 个")
+          print(f"- **被掐掉、因此本轮没有验证**：{len(live)} 个")
+          for j in live:
+              print(f"  - `{j.get('name') or '?'}`（{j.get('status')}）")
+          if not live:
+              print("  - （没有在跑的任务 ⇒ 这轮其实跑完了 ✓）")
+          PYEOF
+          echo "—— 本轮被掐 · 未验证的 $(python3 -c "import json;print(len([j for j in json.load(open('/tmp/jobs.json')).get('jobs',[]) if (j.get('status') or '') in ('in_progress','queued','pending','requested','waiting')]))") 个任务（详见 Step Summary）"
       - name: Cancel this run on first failure
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
