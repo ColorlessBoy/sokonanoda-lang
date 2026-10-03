@@ -133,3 +133,10 @@ theorem Type.Equiv.of_inverses' (α β : Type) (f : α → β) (g : β → α)
   Exists.intro (α → β)
     (fun (f' : α → β) => ∃ (g' : β → α), (∀ (a : α), g' (f' a) = a) ∧ (∀ (b : β), f' (g' b) = b))
     f (Type.Equiv.of_inverses α β f g h1 h2)
+
+-- `of_inverses` 的**合取前提**包装（S-B ✓）：把两条互逆律先合成合取再喂进去
+theorem Type.Equiv.of_inverses_iff (α β : Type) (f : α → β) (g : β → α) :
+    ((∀ (a : α), g (f a) = a) ∧ (∀ (b : β), f (g b) = b)) →
+      (∃ (g' : β → α), (∀ (a : α), g' (f a) = a) ∧ (∀ (b : β), f (g' b) = b)) :=
+  fun (h : (∀ (a : α), g (f a) = a) ∧ (∀ (b : β), f (g b) = b)) =>
+    Type.Equiv.of_inverses α β f g (And.left h) (And.right h)
