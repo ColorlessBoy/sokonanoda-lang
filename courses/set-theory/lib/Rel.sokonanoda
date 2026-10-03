@@ -212,3 +212,9 @@ theorem Rel.comp_mono {A B C : Type} (r r' : Rel A B) (s s' : Rel B C)
       (fun (b : B) (hb : r a b ∧ s b c) =>
         Exists.intro B (fun (b' : B) => r' a b' ∧ s' b' c) b
           (And.intro (hr a b (And.left hb)) (hs b c (And.right hb))))) h
+
+-- 只放左边（S-B ✓ I.13）：`Rel.comp_mono` 的常用特例
+theorem Rel.comp_mono_left {A B C : Type} (r r' : Rel A B) (s : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (a : A) (c : C)
+    (h : Rel.comp r s a c) : Rel.comp r' s a c :=
+  Rel.comp_mono r r' s s hr (fun (b : B) (c' : C) (hb : s b c') => hb) a c h
