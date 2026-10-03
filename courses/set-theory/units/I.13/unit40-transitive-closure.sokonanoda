@@ -43,7 +43,7 @@ theorem demo_transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
 
 -- 演示：自反闭包的展开（`r a b ∨ a = b`）。
 theorem demo_reflClosure_apply (α : Type) (r : Rel α α) (a b : α) :
-    Rel.reflClosure α r a b ↔ (r a b ∨ Eq.{1} α a b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    Rel.reflClosure α r a b ↔ (r a b ∨ a = b) :=
   Rel.reflClosure_apply α r a b
 
 -- 演示：对称闭包的展开（`r a b ∨ r b a`）。

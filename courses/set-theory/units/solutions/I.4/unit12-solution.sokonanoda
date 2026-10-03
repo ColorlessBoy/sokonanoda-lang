@@ -219,50 +219,50 @@ theorem flawed_equalities_refuted :
               (Set.mem_univ Nat 0))))
     (fun (h :
       Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-          (Set.inter (Set Nat) (Set.singleton (Set Nat) ∅)
-            (Set.singleton (Set Nat) (Set.univ Nat)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (Set.inter (Set Nat) ({(Set Nat)} ∅)
+            ({(Set.univ Nat)}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         = Set.inter (Set Nat)
             (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (Set.singleton (Set Nat) ∅))
+              ({(Set Nat)} ∅))
             (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (Set.singleton (Set Nat) (Set.univ Nat)))
+              ({(Set.univ Nat)}))
     ) =>
       Exists.elim (Set Nat)
         (fun (x : Set Nat) =>
-          (Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (Set.singleton (Set Nat) (Set.univ Nat)) x) ∧
+          (Set.inter (Set Nat) ({(∅)})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ({(Set.univ Nat)}) x) ∧
             (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         )
         False
         (Eq.subst.{1} (Set (Set Nat)) (fun (X : Set (Set Nat)) => ∅ ∈ X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (Set.inter (Set Nat)
             (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (Set.singleton (Set Nat) (∅)))
+              ({(∅)}))
             (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (Set.singleton (Set Nat) (Set.univ Nat))))
+              ({(Set.univ Nat)})))
           (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-            (Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))
-              (Set.singleton (Set Nat) (Set.univ Nat))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (Set.inter (Set Nat) ({(∅)})
+              ({(Set.univ Nat)})))
           (Eq.symm.{1} (Set (Set Nat))
             (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))
-                (Set.singleton (Set Nat) (Set.univ Nat))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (Set.inter (Set Nat) ({(∅)})
+                ({(Set.univ Nat)})))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (Set.inter (Set Nat)
               (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                (Set.singleton (Set Nat) (∅)))
+                ({(∅)}))
               (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                (Set.singleton (Set Nat) (Set.univ Nat))))
+                ({(Set.univ Nat)})))
             h)
          (And.intro
            (Set.mem (Set Nat) (∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
              (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)
-               (Set.singleton (Set Nat) (∅))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+               ({(∅)})))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
            (Set.mem (Set Nat) (∅)
              (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-               (Set.singleton (Set Nat) (Set.univ Nat))))
+               ({(Set.univ Nat)})))
            (Exists.intro (Set Nat)
              (fun (x : Set Nat) =>
-               x ∈ (Set.singleton (Set Nat) (∅)) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+               x ∈ ({(∅)}) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                  Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))
              (∅)
              (And.intro
@@ -273,11 +273,11 @@ theorem flawed_equalities_refuted :
                (Eq.refl.{1} (Set Nat) (∅))))
            (Exists.intro (Set Nat)
              (fun (x : Set Nat) =>
-               x ∈ (Set.singleton (Set Nat) (Set.univ Nat)) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+               x ∈ ({(Set.univ Nat)}) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                  Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))
              (Set.univ Nat)
              (And.intro
-               ((Set.univ Nat) ∈ (Set.singleton (Set Nat) (Set.univ Nat)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+               ((Set.univ Nat) ∈ ({(Set.univ Nat)}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) (Set.univ Nat))
                  (∅))
                (Eq.refl.{1} (Set Nat) (Set.univ Nat))
@@ -286,8 +286,8 @@ theorem flawed_equalities_refuted :
         )
         (fun (x : Set Nat) =>
           fun (hx :
-          (Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (Set.singleton (Set Nat) (Set.univ Nat)) x) ∧
+          (Set.inter (Set Nat) ({(∅)})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ({(Set.univ Nat)}) x) ∧
             (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           ) =>
           Set.notMem_empty Nat 0
@@ -299,8 +299,8 @@ theorem flawed_equalities_refuted :
                     (Set.singleton (Set Nat) (∅) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                     (Set.singleton (Set Nat) (Set.univ Nat) x)
                     (And.left
-                      (Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                        (Set.singleton (Set Nat) (Set.univ Nat)) x)
+                      (Set.inter (Set Nat) ({(∅)})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        ({(Set.univ Nat)}) x)
                       (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                         (∅))
                       hx)))
@@ -308,8 +308,8 @@ theorem flawed_equalities_refuted :
                   (Set.singleton (Set Nat) (∅) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                   (Set.singleton (Set Nat) (Set.univ Nat) x)
                   (And.left
-                    (Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                      (Set.singleton (Set Nat) (Set.univ Nat)) x)
+                    (Set.inter (Set Nat) ({(∅)})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      ({(Set.univ Nat)}) x)
                     (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                       (∅))
                     hx)))

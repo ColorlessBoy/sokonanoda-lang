@@ -102,7 +102,7 @@ theorem pointwiseLe_const (α β : Type) (r : β → β → Prop) (c d : β) (a 
 --   ⇒ 那一步在**单元㊹**里做（本单元先讲逐点形态）✓
 theorem pointwiseLe_antisymm_apply (α β : Type) (r : β → β → Prop) (hanti : Antisymmetric β r)
     (f g : α → β) (hfg : PointwiseLe α β r f g) (hgf : PointwiseLe α β r g f) (a : α) :
-    Eq.{1} β (f a) (g a) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (f a) = (g a) := by
   sorry
 
 -- 练习 6（T 类）：**逐点相等给出逐点序**（要陪域自反）。
@@ -110,7 +110,7 @@ theorem pointwiseLe_antisymm_apply (α β : Type) (r : β → β → Prop) (hant
 -- soko:hint 目标形态：`Reflexive β r → (∀ a, f a = g a) → PointwiseLe α β r f g`。
 -- soko:hint 关键件：`rel_subst_right`（关系取"`r (f a) ·`"、沿 `f a = g a` 搬）· 自反先 λ 绑定 ✓
 theorem pointwiseLe_of_pointwise_eq (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
-    (f g : α → β) (h : ∀ (a : α), Eq.{1} β (f a) (g a)) : PointwiseLe α β r f g := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (f g : α → β) (h : ∀ (a : α), (f a) = (g a)) : PointwiseLe α β r f g := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -153,7 +153,7 @@ theorem pointwiseLe_comp (α β γ : Type) (r : β → β → Prop) (s : γ → 
 --   ⚠ **标识符不要带撇号**（`f'` 解析不了，用 `f1`）✓
 theorem isSup_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
     (hh : ∀ (a : α),
-      IsSup β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      IsSup β r (fun (y : β) => ∃ (f : α → β), F f ∧ (f a) = y) (h a)) :
     IsSup (α → β) (PointwiseLe α β r) F h := by
   sorry
 
@@ -164,6 +164,6 @@ theorem isSup_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β)
 --   `rel_subst_right`（关系取"`r (g a) ·`"）✓
 theorem isInf_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
     (hh : ∀ (a : α),
-      IsInf β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      IsInf β r (fun (y : β) => ∃ (f : α → β), F f ∧ (f a) = y) (h a)) :
     IsInf (α → β) (PointwiseLe α β r) F h := by
   sorry

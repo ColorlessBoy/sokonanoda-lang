@@ -11,7 +11,7 @@ theorem demo_subset_def (α : Type) (A B : Set α) :
   Set.subset_def α A B
 
 theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
   Set.mem_sUnion_iff α F x
 
 theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B :=
@@ -30,10 +30,10 @@ theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ (𝒫 A) :=
     (Set.mem_powerset_iff A A)
 
 theorem sUnion_powerset_subset (α : Type) (A : Set α) :
-    (Set.sUnion α (𝒫 A)) ⊆ A :=  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
-  fun (x : α) (h : x ∈ (Set.sUnion α (𝒫 A))) =>  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    (⋃₀ (𝒫 A)) ⊆ A :=
+  fun (x : α) (h : x ∈ (⋃₀ (𝒫 A))) =>  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
     Exists.elim (Set α) (fun (B : Set α) => B ∈ (𝒫 A) ∧ x ∈ B) (x ∈ A)  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
-      ((fun (hu : x ∈ (Set.sUnion α (𝒫 A)) ↔  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+      ((fun (hu : x ∈ (⋃₀ (𝒫 A)) ↔
           ∃ (B : Set α), B ∈ (𝒫 A) ∧ x ∈ B) => Iff.mp hu h)
         (Set.mem_sUnion_iff α (𝒫 A) x))
       (fun (B : Set α) (hB : B ∈ (𝒫 A) ∧ x ∈ B) =>
@@ -44,9 +44,9 @@ theorem sUnion_powerset_subset (α : Type) (A : Set α) :
           x (And.right hB))
 
 theorem subset_sUnion_powerset (α : Type) (A : Set α) :
-    A ⊆ (Set.sUnion α (𝒫 A)) :=  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    A ⊆ (⋃₀ (𝒫 A)) :=
   fun (a : α) (ha : a ∈ A) =>
-    (fun (hu : a ∈ (Set.sUnion α (𝒫 A)) ↔  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    (fun (hu : a ∈ (⋃₀ (𝒫 A)) ↔
         ∃ (B : Set α), B ∈ (𝒫 A) ∧ a ∈ B) =>
       Iff.mpr hu (Exists.intro (Set α)
         (fun (B : Set α) => B ∈ (𝒫 A) ∧ a ∈ B) A
@@ -54,8 +54,8 @@ theorem subset_sUnion_powerset (α : Type) (A : Set α) :
       (Set.mem_sUnion_iff α (𝒫 A) a)
 
 theorem sInter_powerset_subset (α : Type) (A : Set α) :
-    (Set.sInter α (𝒫 A)) ⊆ A :=  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
-  fun (x : α) (h : x ∈ (Set.sInter α (𝒫 A))) =>  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    (⋂₀ (𝒫 A)) ⊆ A :=
+  fun (x : α) (h : x ∈ (⋂₀ (𝒫 A))) =>
     Set.mem_sInter_elim α (𝒫 A) x (x ∈ A) h
       (fun (k : ∀ (B : Set α), B ∈ (𝒫 A) → x ∈ B) =>
         k A (powerset_self_mem α A))

@@ -57,11 +57,9 @@ theorem cb_chain_step (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α 
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
   Exists.intro Nat (fun (n : Nat) => g b ∈ Aseq α β A B f g n) (Nat.succ Nat.zero)
     (Exists.intro β
--- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
-      (fun (y : β) => y ∈ (B \ f '' (Aseq α β A B f g Nat.zero)) ∧ Eq.{1} α (g y) (g b))
+      (fun (y : β) => y ∈ (B \ f '' (Aseq α β A B f g Nat.zero)) ∧ (g y) = (g b))
       b
--- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
-      (And.intro (b ∈ (B \ f '' (Aseq α β A B f g Nat.zero))) (Eq.{1} α (g b) (g b))
+      (And.intro (b ∈ (B \ f '' (Aseq α β A B f g Nat.zero))) ((g b) = (g b))
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
         (And.intro (b ∈ B) (¬ (b ∈ f '' (Aseq α β A B f g Nat.zero))) hb
           (fun (hbA : b ∈ f '' (Aseq α β A B f g Nat.zero)) =>

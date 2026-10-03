@@ -93,7 +93,7 @@ theorem monotone_const (α β : Type) (r : α → α → Prop) (s : β → β �
 theorem monotone_upper_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
     (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (u : α)
     (hu : UpperBound α r A u) :
-    UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f u) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ (f x) = y) (f u) := by
   sorry
 
 -- 练习 5（L 类）：**下界的对偶**（同形，关系方向反过来）。
@@ -103,7 +103,7 @@ theorem monotone_upper_bound (α β : Type) (r : α → α → Prop) (s : β →
 theorem monotone_lower_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
     (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (l : α)
     (hl : LowerBound α r A l) :
-    LowerBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f l) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    LowerBound β s (fun (y : β) => ∃ (x : α), A x ∧ (f x) = y) (f l) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ theorem orderReflecting_comp (α β γ : Type) (r : α → α → Prop) (s : β 
 --   `Eq.symm`（搬运要的是"旧 = 新"那个方向）✓
 theorem orderReflecting_of_monotone_inverse (α β : Type) (r : α → α → Prop)
     (s : β → β → Prop) (f : α → β) (g : β → α)
-    (hg : Monotone β α s r g) (hgf : ∀ (a : α), Eq.{1} α (g (f a)) a) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (hg : Monotone β α s r g) (hgf : ∀ (a : α), (g (f a)) = a) :
     OrderReflecting α β r s f := by
   sorry
 
@@ -157,8 +157,8 @@ theorem orderReflecting_of_monotone_inverse (α β : Type) (r : α → α → Pr
 --   把第二个坐标从 `c` 换回 `f a₀`）· `Exists.intro`（像族的见证取 `a` 自己，等式的见证是自反）✓
 theorem orderIso_upper_bound_pullback (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
     (f : α → β) (hr : OrderReflecting α β r s f)
-    (A : α → Prop) (c : β) (a0 : α) (ha0 : Eq.{1} β (f a0) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-    (hc : UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) c) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (A : α → Prop) (c : β) (a0 : α) (ha0 : (f a0) = c)
+    (hc : UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ (f x) = y) c) :
     UpperBound α r A a0 := by
   sorry
 
@@ -173,7 +173,7 @@ theorem orderIso_upper_bound_pullback (α β : Type) (r : α → α → Prop) (s
 --   ⚠ **三条假设缺一不可**（单调不够 —— 见文件头）✓
 theorem orderIso_isSup (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
     (f : α → β) (hm : Monotone α β r s f) (hr : OrderReflecting α β r s f)
-    (hsurj : ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (hsurj : ∀ (y : β), ∃ (x : α), (f x) = y)
     (A : α → Prop) (b : α) (hb : IsSup α r A b) :
-    IsSup β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f b) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    IsSup β s (fun (y : β) => ∃ (x : α), A x ∧ (f x) = y) (f b) := by
   sorry

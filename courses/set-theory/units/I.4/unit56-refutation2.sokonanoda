@@ -78,7 +78,7 @@ theorem not_exists_mem_empty (α : Type) : ¬ (∃ (x : α), x ∈ (∅ α)) := 
 
 --   关系取 `fun u v => a ∈ v` ✓；四步：`(Set α) r A A B heq ha` ✓）
 
-theorem mem_of_eq_of_mem (α : Type) (A B : Set α) (a : α) (heq : Eq.{1} (Set α) A B)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+theorem mem_of_eq_of_mem (α : Type) (A B : Set α) (a : α) (heq : A = B)
     (ha : a ∈ A) : a ∈ B := by
   sorry
 -- 练习 4（L 类，**总纲四**）：**驳倒 `A = B`：给一个只在一边的见证**。
@@ -90,12 +90,12 @@ theorem mem_of_eq_of_mem (α : Type) (A B : Set α) (a : α) (heq : Eq.{1} (Set 
 -- soko:hint 关键件：练习 3 · 见证的否定假设当函数用 ✓（**这就是外延公理的逆否用法** ✓）
 
 theorem ne_of_mem_not_mem (α : Type) (A B : Set α) (a : α) (ha : a ∈ A)
-    (hna : ¬ (a ∈ B)) : ¬ (Eq.{1} (Set α) A B) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    (hna : ¬ (a ∈ B)) : ¬ (A = B) := by
   sorry
 -- 练习 5（T 类，**实例**）：**含成员的集合不是空集**。
 
 -- soko:hint 关键件：练习 4（总纲四，把 `B` 取成 `∅`）· 演示 2 ✓
 
 theorem not_eq_empty_of_mem (α : Type) (A : Set α) (a : α) (ha : a ∈ A) :
-    ¬ (Eq.{1} (Set α) A (∅ α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    ¬ (A = (∅ α)) := by
   sorry

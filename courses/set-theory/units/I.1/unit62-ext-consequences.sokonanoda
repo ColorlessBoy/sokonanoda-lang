@@ -32,10 +32,10 @@ import lib.Extensionality
 
 -- 演示：**函数外延**（逐点相等 ⇒ 函数相等）。
 theorem demo_funext (α : Type) (β : α → Type)
-    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) :  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
-    Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), (f x) = (g x)) :
+    f = g :=
   funext_spec α β f g h
-theorem demo_propext (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+theorem demo_propext (a b : Prop) (h : a ↔ b) : a = b :=
   propext_spec a b h
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
@@ -50,7 +50,7 @@ theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a 
 
 -- soko:hint 关键件：**`rel_subst_right`**（第一个类型实参 `Set α` ✓、关系 `fun u v => a ∈ v` ✓）
 
-theorem subset_of_eq (α : Type) (A B : Set α) (h : Eq.{1} (Set α) A B) : A ⊆ B := by  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+theorem subset_of_eq (α : Type) (A B : Set α) (h : A = B) : A ⊆ B := by
   sorry
 -- 练习 3（T 类）：交的左取用子。
 
@@ -81,19 +81,19 @@ theorem mem_union_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α)
 -- soko:hint 关键件：练习 1（两次）· `funext_spec`（第二实参 `fun _ => Prop` ✓）· `propext_spec` · `Iff.intro` ✓
 
 theorem subset_antisymm (α : Type) (A B : Set α) (h1 : A ⊆ B) (h2 : B ⊆ A) :
-    Eq.{1} (Set α) A B := by  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+    A = B := by
   sorry
 -- 练习 7（L 类，**推论一**）：**`A ⊆ B ⇒ A ∩ B = A`**。
 
 -- soko:hint 关键件：练习 3 / 练习 4 / 练习 1 · 两条外延 ✓
 
 theorem inter_eq_left_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
-    Eq.{1} (Set α) (A ∩ B) A := by  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+    (A ∩ B) = A := by
   sorry
 -- 练习 8（L 类，**推论二**）：**`A ⊆ B ⇒ A ∪ B = B`**。
 
 -- soko:hint 关键件：练习 5 · `Set.mem_union` · `Or.inr` · 两条外延 ✓
 
 theorem union_eq_right_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
-    Eq.{1} (Set α) (A ∪ B) B := by  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+    (A ∪ B) = B := by
   sorry

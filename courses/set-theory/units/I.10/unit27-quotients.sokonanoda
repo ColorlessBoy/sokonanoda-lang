@@ -94,7 +94,7 @@ theorem quot_lift_comp (α β : Type) (r : α → α → Prop) (f : α → β)
 -- soko:hint 思路：假设本身就是结论 ⇒ 交出去。
 -- soko:hint 目标形态：`a` 与 `b` 相等（假设也是它）—— 这是「按相等作商」的良定义义务。
 -- soko:hint 关键件：直接把假设当证明项 ✓
-theorem quot_eq_rel_id (α : Type) (a b : α) (h : Eq.{1} α a b) : Eq.{1} α a b := by  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+theorem quot_eq_rel_id (α : Type) (a b : α) (h : a = b) : a = b := by
   sorry
 
 -- 练习 5（L 类）：**恒等函数下降回恒等**（iota 的直接实例，后面练习 6 就靠它）。
@@ -103,9 +103,9 @@ theorem quot_eq_rel_id (α : Type) (a b : α) (h : Eq.{1} α a b) : Eq.{1} α a 
 -- soko:hint 关键件：`Eq.refl`（写全宇宙层级与论域）· 关系那一处写成「两个参数相等」那个函数
 --   （同样要点名声明星）。
 theorem quot_lift_id (α : Type) (a : α) :
-    Quot.lift.{1, 1} α (fun (x y : α) => Eq.{1} α x y) α (fun (x : α) => x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (fun (x y : α) (hxy : Eq.{1} α x y) => hxy)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (Quot.mk.{1} α (fun (x y : α) => Eq.{1} α x y) a) = a := by  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    Quot.lift.{1, 1} α (fun (x y : α) => x = y) α (fun (x : α) => x)
+      (fun (x y : α) (hxy : x = y) => hxy)
+      (Quot.mk.{1} α (fun (x y : α) => x = y) a) = a := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -123,8 +123,8 @@ theorem quot_lift_id (α : Type) (a : α) :
 --   `Eq.refl`（写全宇宙层级与论域）· **别用 `congrArg`**（大类型上解不出宇宙层级，实测）✓
 theorem quot_mk_injective (α : Type) (a b : α)
     (h : Eq.{1} (Quot.{1} α (fun (x y : α) => Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (Quot.mk.{1} α (fun (x y : α) => Eq.{1} α x y) a)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (Quot.mk.{1} α (fun (x y : α) => Eq.{1} α x y) b)) : Eq.{1} α a b := by  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (Quot.mk.{1} α (fun (x y : α) => x = y) a)
+      (Quot.mk.{1} α (fun (x y : α) => x = y) b)) : a = b := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────

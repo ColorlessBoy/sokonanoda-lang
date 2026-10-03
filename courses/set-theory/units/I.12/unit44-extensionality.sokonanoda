@@ -41,12 +41,12 @@ import lib.Extensionality
 -- 演示：**依赖版函数外延**（`funext` 的取用子；非依赖版 = 族取常值 `fun _ => β`）。
 theorem demo_funext_spec (α : Type) (β : α → Type)
     (f : (x : α) → β x) (g : (x : α) → β x)
-    (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) : Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (h : ∀ (x : α), (f x) = (g x)) : Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   funext_spec α β f g h
-theorem demo_propext_spec (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+theorem demo_propext_spec (a b : Prop) (h : a ↔ b) : a = b :=
   propext_spec a b h
 theorem demo_comp_assoc_refl (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
-    Eq.{1} (α → δ) ((fun (a : α) => h (g (f a)))) (fun (a : α) => h (g (f a))) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    ((fun (a : α) => h (g (f a)))) = (fun (a : α) => h (g (f a))) :=
   Eq.refl.{1} (α → δ) (fun (a : α) => h (g (f a)))
 -- ─────────────────────────────────────────────────────────────
 -- 44.2 两条公理的取用子与**合成的等式形态**
@@ -58,14 +58,14 @@ theorem demo_comp_assoc_refl (α β γ δ : Type) (f : α → β) (g : β → γ
 -- soko:hint 关键件：`funext_spec`（**参数：论域 · 族 · 两个函数 · 逐点证据**）✓
 --   ⚠ 库里的是**依赖版**（族 `β : α → Type`）⇒ 非依赖情形要把族写成**常值函数** ✓
 theorem funext_apply (α β : Type) (f g : α → β)
-    (h : ∀ (a : α), Eq.{1} β (f a) (g a)) : Eq.{1} (α → β) f g := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (h : ∀ (a : α), (f a) = (g a)) : Eq.{1} (α → β) f g := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   sorry
 
 -- 练习 2（T 类）：**命题外延**。
 -- soko:hint 思路：把 `propext` 的取用子直接交出去。
 -- soko:hint 目标形态：`(a ↔ b) → a = b`。
 -- soko:hint 关键件：`propext_spec` ✓
-theorem propext_apply (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+theorem propext_apply (a b : Prop) (h : a ↔ b) : a = b := by
   sorry
 
 -- 练习 3（L 类）：**合成的结合律**（真正的**等式** —— 单元㉞ 当时只写了逐点形态）。
@@ -75,7 +75,7 @@ theorem propext_apply (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b := by  -- sok
 -- soko:hint 关键件：`Eq.refl`（**写全宇宙层级与论域**）✓
 --   ⚠ **记法 `∘` 是右结合的**（`infixr:90`）⇒ 左边一定要加括号 ✓
 theorem comp_assoc_eq (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
-    Eq.{1} (α → δ) ((h ∘ g) ∘ f) (h ∘ (g ∘ f)) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    ((h ∘ g) ∘ f) = (h ∘ (g ∘ f)) := by
   sorry
 
 -- 练习 4（T 类）：**右恒等律**（`f` 与 `fun a => f a` 是同一个函数）。
@@ -83,7 +83,7 @@ theorem comp_assoc_eq (α β γ δ : Type) (f : α → β) (g : β → γ) (h : 
 -- soko:hint 目标形态：`(fun a => f a) = f`。
 -- soko:hint 关键件：`Eq.refl`（写全层级与论域）✓
 theorem comp_id_eq (α β : Type) (f : α → β) :
-    Eq.{1} (α → β) ((fun (a : α) => f a)) f := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    ((fun (a : α) => f a)) = f := by
   sorry
 
 -- 练习 5（L 类）：**左恒等律**（`fun a => (fun b => b) (f a)` 与 `f` 相等）。
@@ -92,7 +92,7 @@ theorem comp_id_eq (α β : Type) (f : α → β) :
 -- soko:hint 关键件：`funext_spec`（族取 `fun _ => β`）+ 逐点给 `Eq.refl` ✓
 --   ⚠ **内层恒等函数的绑定变量类型要是 `β`**（写成 `α` 会判红 —— 单元㉞ 实测过）✓
 theorem id_comp_eq (α β : Type) (f : α → β) :
-    Eq.{1} (α → β) ((fun (a : α) => (fun (b : β) => b) (f a))) f := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    ((fun (a : α) => (fun (b : β) => b) (f a))) = f := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ theorem pointwiseLe_isPartialOrder (α β : Type) (r : Rel β β) (h : IsPartial
 --   （**搬运方向：把第二个坐标向后换** —— 单元㉟ 的实测教训）· `Eq.trans` · `funext_spec` ✓
 theorem inverse_unique_eq (α β : Type) (f : α → β) (g g1 : β → α)
     (hl : Function.LeftInverse α β g f) (hr : Function.RightInverse α β g1 f) :
-    Eq.{1} (β → α) g g1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    g = g1 := by
   sorry
 
 -- 练习 9（L 类）：**从两条公理推出集合外延**（`lib/Extensionality` 文件头点名的 L3 内容）。
@@ -142,7 +142,7 @@ theorem inverse_unique_eq (α β : Type) (f : α → β) (g g1 : β → α)
 -- soko:hint 关键件：`funext_spec` · `propext_spec` ✓
 --   ⚠ 族要写成 `fun _ => Prop`（`Prop : Type` ✓）✓
 theorem set_ext_of_funext (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
-    Eq.{1} (Set α) A B := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    A = B := by
   sorry
 
 -- 练习 10（L 类）：**从两条公理推出关系外延**（同样的两步，做两次）。
@@ -151,5 +151,5 @@ theorem set_ext_of_funext (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ 
 -- soko:hint 目标形态：`(∀ a b, r a b ↔ s a b) → r = s`。
 -- soko:hint 关键件：`funext_spec`（**用两次**）· `propext_spec` ✓
 theorem rel_ext_of_funext (A B : Type) (r s : Rel A B)
-    (h : ∀ (a : A) (b : B), r a b ↔ s a b) : Eq.{1} (Rel A B) r s := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (h : ∀ (a : A) (b : B), r a b ↔ s a b) : r = s := by
   sorry

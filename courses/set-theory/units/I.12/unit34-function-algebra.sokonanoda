@@ -37,12 +37,12 @@ import lib.Order
 
 -- 演示：单射的展开（"像相等 ⇒ 原像相等"）。
 theorem demo_injective_def (α β : Type) (f : α → β) :
-    Function.Injective α β f ↔ ∀ (x : α) (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    Function.Injective α β f ↔ ∀ (x : α) (y : α), (f x) = (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
   Function.injective_def α β f
 
 -- 演示：满射的展开（"每个点都有原像"）。
 theorem demo_surjective_def (α β : Type) (f : α → β) :
-    Function.Surjective α β f ↔ ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    Function.Surjective α β f ↔ ∀ (y : β), ∃ (x : α), (f x) = y :=
   Function.surjective_def α β f
 
 -- 演示：双射的展开（单射 ∧ 满射）。
@@ -60,7 +60,7 @@ theorem demo_bijective_def (α β : Type) (f : α → β) :
 -- soko:hint 目标形态：`(fun a => g (f a)) x = g (f x)`。
 -- soko:hint 关键件：`Eq.refl`（**要写全宇宙层级与论域**）✓
 theorem comp_apply_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : α) :
-    Eq.{1} γ ((fun (a : α) => g (f a)) x) (g (f x)) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    ((fun (a : α) => g (f a)) x) = (g (f x)) := by
   sorry
 
 -- 练习 2（L 类）：**结合律**（本单元写逐点形态；等式形态见单元㊹）。
@@ -78,7 +78,7 @@ theorem comp_assoc_apply (α β γ δ : Type) (f : α → β) (g : β → γ) (h
 -- soko:hint 目标形态：`(fun a => f a) x = f x`。
 -- soko:hint 关键件：`Eq.refl` ✓
 theorem id_comp_apply (α β : Type) (f : α → β) (x : α) :
-    Eq.{1} β ((fun (a : α) => f a) x) (f x) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    ((fun (a : α) => f a) x) = (f x) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────

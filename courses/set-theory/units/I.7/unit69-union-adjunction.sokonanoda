@@ -31,10 +31,10 @@ import lib.Order
 
 -- 演示：广义并的成员刻画（"落在某个族成员里"）。
 theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
   Set.mem_sUnion_iff α F x
 theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=
   Set.mem_sInter_iff α F x
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
@@ -55,21 +55,21 @@ theorem subset_refl (α : Type) (A : Set α) : A ⊆ A := by
 -- soko:hint 关键件：`Set.mem_sUnion_iff`（**先 λ 绑定再 `Iff.mp`** ✓）✓
 
 theorem mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
-    (h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    (h : x ∈ (⋃₀ F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A := by
   sorry
 -- 练习 4（T 类）：**从 `x ∈ ⋂F` 取出全称形式**。
 
 -- soko:hint 关键件：`Set.mem_sInter_iff` · `Iff.mp` ✓（这一条是后面两条旗舰的前件 ✓）
 
 theorem mem_of_mem_sInter (α : Type) (F : Set (Set α)) (x : α)
-    (h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    (h : x ∈ (⋂₀ F)) : ∀ (A : Set α), A ∈ F → x ∈ A := by
   sorry
 -- 练习 5（T 类，**下界性**）：**`A ∈ F ⇒ ⋂F ⊆ A`**。
 
 -- soko:hint 关键件：练习 4（**按 点 · 前提 应用** ✓）✓
 
 theorem sInter_subset_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
-    (Set.sInter α F) ⊆ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    (⋂₀ F) ⊆ A := by
   sorry
 -- 练习 6（L 类，**旗舰一**）：**`⋃F ⊆ A ↔ ∀B∈F, B ⊆ A`**（并是**最小上界** ✓）。
 
@@ -84,7 +84,7 @@ theorem sInter_subset_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A
 --   `Exists.intro` / `And.intro`（**前导实参写全** ✓）· 练习 1 ✓
 
 theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (A : Set α) :
-    (Set.sUnion α F) ⊆ A ↔ ∀ (B : Set α), B ∈ F → B ⊆ A := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    (⋃₀ F) ⊆ A ↔ ∀ (B : Set α), B ∈ F → B ⊆ A := by
   sorry
 -- 练习 7（L 类，**旗舰二**）：**`A ⊆ ⋂F ↔ ∀B∈F, A ⊆ B`**（交是**最大下界** ✓）。
 
@@ -97,5 +97,5 @@ theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (A : Set α) :
 -- soko:hint 关键件：练习 4 · `Set.mem_sInter_iff` · `Iff.mpr` ✓
 
 theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (A : Set α) :
-    A ⊆ (Set.sInter α F) ↔ ∀ (B : Set α), B ∈ F → A ⊆ B := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    A ⊆ (⋂₀ F) ↔ ∀ (B : Set α), B ∈ F → A ⊆ B := by
   sorry

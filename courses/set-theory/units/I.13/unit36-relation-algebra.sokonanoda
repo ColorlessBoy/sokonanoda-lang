@@ -35,7 +35,7 @@ import lib.Set
 -- 读法：`idRel α` 就是"两个点相等"这条关系 ✓ 它将是复合的单位元（练习 9、10）✓
 -- ─────────────────────────────────────────────────────────────
 def idRel (α : Type) : Rel α α :=
-  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) (b : α) => a = b
 
 -- ─────────────────────────────────────────────────────────────
 -- 36.1 三条库引理（复合、逆、双逆的成员刻画）
@@ -65,7 +65,7 @@ theorem demo_mem_inv_inv (A B : Type) (r : Rel A B) (a : A) (b : B) :
 -- soko:hint 目标形态：`(r ⁻¹) ⁻¹ = r`。
 -- soko:hint 关键件：`Rel.ext`（**参数写全**：两个类型 · 两条关系 · 逐点证明）· 演示 3 ✓
 --   ⚠ 关系相等**可以**写成 `=`（`Rel.ext` ✓；它也可由 `propext` + `funext` 推出，见单元㊹）✓
-theorem inv_inv (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) ((r ⁻¹) ⁻¹) r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+theorem inv_inv (A B : Type) (r : Rel A B) : ((r ⁻¹) ⁻¹) = r := by
   sorry
 
 -- 练习 2（L 类，**本单元旗舰之一**）：**逆反穿过复合**：`(r • s) ⁻¹ = s ⁻¹ • r ⁻¹`（**顺序反过来**）。
@@ -76,7 +76,7 @@ theorem inv_inv (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) ((r ⁻¹) ⁻¹) 
 --   `And.left`/`And.right` · `Iff.intro`（前导 Prop 实参写全）✓
 --   ⚠ 两边**定义上就等价**（`⁻¹` 只是把两个点掉头、`•` 是 `∃`），所以**不需要搬运引理** ✓
 theorem inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
-    Eq.{1} (Rel C A) ((r • s) ⁻¹) (s ⁻¹ • r ⁻¹) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    ((r • s) ⁻¹) = (s ⁻¹ • r ⁻¹) := by
   sorry
 
 -- 练习 3（T 类）：把练习 2 写成**逐点**形态（做题时更常用）。
@@ -99,7 +99,7 @@ theorem inv_comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (c : C) (a : A
 --   `And.intro`/`And.left`/`And.right` · **嵌套超过两层就拆成辅助定理** ——
 --   本题的解答里 `comp_assoc_fwd`/`comp_assoc_bwd` 正是为此，**一次写成实测会少数括号** ✓
 theorem comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
-    Eq.{1} (Rel A D) ((r • s) • t) (r • (s • t)) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    ((r • s) • t) = (r • (s • t)) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ theorem inv_mono (A B : Type) (r r1 : Rel A B)
 -- soko:hint 目标形态：`(idRel α) a b ↔ a = b`。
 -- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· 等式的证明项**点名声明星**（G-73 形状 ③）✓
 theorem idRel_apply (α : Type) (a b : α) :
-    (idRel α) a b ↔ Eq.{1} α a b := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (idRel α) a b ↔ a = b := by
   sorry
 
 -- 练习 9（L 类）：**恒等关系是左单位元**（`idRel • r = r`）。
@@ -153,7 +153,7 @@ theorem idRel_apply (α : Type) (a b : α) :
 -- soko:hint 关键件：`Rel.ext` · `Exists.elim`/`Exists.intro` · **改第一个坐标要把关系翻过来**：
 --   用 `rel_subst_right`、关系取 `fun u v => r v b`、等式取 `Eq.symm`（实测：直接写会判红）·
 --   `Eq.refl`（写全宇宙层级与论域）✓
-theorem idRel_comp (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) (idRel A • r) r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+theorem idRel_comp (A B : Type) (r : Rel A B) : (idRel A • r) = r := by
   sorry
 
 -- 练习 10（L 类）：**恒等关系是右单位元**（`r • idRel = r`）。
@@ -162,5 +162,5 @@ theorem idRel_comp (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) (idRel A • r)
 -- soko:hint 目标形态：`r • idRel = r`。
 -- soko:hint 关键件：`Rel.ext` · `rel_subst_right`（关系取 `fun u v => r a v`；**"第一个点"那个
 --   自由位随便给，但类型必须是 `B`** —— 实测写成 `A` 会判红）· `Eq.refl` ✓
-theorem comp_idRel (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) (r • idRel B) r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+theorem comp_idRel (A B : Type) (r : Rel A B) : (r • idRel B) = r := by
   sorry

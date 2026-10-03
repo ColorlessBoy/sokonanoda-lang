@@ -43,7 +43,7 @@ theorem demo_mem_image_intro (α : Type) (β : Type) (f : α → β) (A : Set α
     (x : α) (hx : x ∈ A) (hxy : f x = y) : y ∈ (f '' A) :=
   Set.mem_image_intro f A y x hx hxy
 theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
   Set.mem_sUnion_iff α F x-- 练习 1（T 类）：**进像**（`x ∈ A ⇒ f x ∈ f '' A`）。
 
 -- soko:hint 关键件：`Set.mem_image_intro` · `Eq.refl`（**写全宇宙与类型** ✓）
@@ -72,14 +72,14 @@ theorem mem_image_union (α : Type) (β : Type) (f : α → β) (A B : Set α) (
 -- soko:hint 关键件：`Set.mem_sUnion_iff` · `Iff.mpr` · `Exists.intro`（**写全前导实参** ✓）
 
 theorem mem_sUnion_of_mem_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
-    (hA : A ∈ F) (hx : x ∈ A) : x ∈ (Set.sUnion α F) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ (⋃₀ F) := by
   sorry
 -- 练习 5（T 类，**另一方向的第一环**）：`x ∈ ⋃F ⇒ ∃A∈F, x ∈ A`。
 
 -- soko:hint 关键件：`Set.mem_sUnion_iff` · `Iff.mp` ✓
 
 theorem exists_mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
-    (h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (h : x ∈ (⋃₀ F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A := by
   sorry
 -- 练习 6（L 类，**链条第二环**）：`A ∈ F ⇒ y ∈ f '' A ⇒ y ∈ f '' (⋃F)`。
 
@@ -87,7 +87,7 @@ theorem exists_mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
 
 theorem mem_image_sUnion_of_mem_image (α : Type) (β : Type) (f : α → β)
     (F : Set (Set α)) (A : Set α) (y : β) (hA : A ∈ F) (hy : y ∈ (f '' A)) :
-    y ∈ (f '' (Set.sUnion α F)) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    y ∈ (f '' (⋃₀ F)) := by
   sorry
 -- 练习 7（L 类，**链条第三环**）：`(∃A∈F, y ∈ f '' A) ⇒ y ∈ f '' (⋃F)`。
 
@@ -95,7 +95,7 @@ theorem mem_image_sUnion_of_mem_image (α : Type) (β : Type) (f : α → β)
 
 theorem mem_image_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
     (F : Set (Set α)) (y : β)
-    (h : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) : y ∈ (f '' (Set.sUnion α F)) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (h : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) : y ∈ (f '' (⋃₀ F)) := by
   sorry
 -- 练习 8（L 类，**反向**）：`y ∈ f '' (⋃F) ⇒ ∃A∈F, y ∈ f '' A`。
 
@@ -103,7 +103,7 @@ theorem mem_image_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
 
 theorem mem_of_mem_image_sUnion (α : Type) (β : Type) (f : α → β)
     (F : Set (Set α)) (y : β)
-    (h : y ∈ (f '' (Set.sUnion α F))) : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (h : y ∈ (f '' (⋃₀ F))) : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) := by
   sorry
 -- 练习 9（L 类，**旗舰一**）：**像与并交换**（`↔` ✓）。
 
@@ -117,7 +117,7 @@ theorem mem_of_mem_image_sUnion (α : Type) (β : Type) (f : α → β)
 
 theorem mem_image_sUnion_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set α))
     (y : β) :
-    y ∈ (f '' (Set.sUnion α F)) ↔ ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    y ∈ (f '' (⋃₀ F)) ↔ ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) := by
   sorry
 -- 练习 10（T 类，**单调**）：`A ⊆ B ⇒ y ∈ f '' A ⇒ y ∈ f '' B`。
 
@@ -147,5 +147,5 @@ theorem mem_preimage_image (α : Type) (β : Type) (f : α → β) (A : Set α) 
 -- soko:hint 关键件：`Set.mem_image_elim` · `Set.mem_sInter_iff` · `Iff.mp` · 练习 1 ✓
 
 theorem mem_image_sInter_of_mem (α : Type) (β : Type) (f : α → β) (F : Set (Set α))
-    (y : β) (h : y ∈ (f '' (Set.sInter α F))) : ∀ (A : Set α), A ∈ F → y ∈ (f '' A) := by  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+    (y : β) (h : y ∈ (f '' (⋂₀ F))) : ∀ (A : Set α), A ∈ F → y ∈ (f '' A) := by
   sorry

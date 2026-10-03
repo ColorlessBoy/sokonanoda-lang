@@ -7,7 +7,7 @@ theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
   Set.mem_sUnion_iff α F x
 
 theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=
   Set.mem_sInter_iff α F x
 
 theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
@@ -20,8 +20,8 @@ theorem mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
     (Set.mem_sUnion_iff α F x)
 
 theorem mem_of_mem_sInter (α : Type) (F : Set (Set α)) (x : α)
-    (h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
-  (fun (hu : x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    (h : x ∈ (⋂₀ F)) : ∀ (A : Set α), A ∈ F → x ∈ A :=
+  (fun (hu : x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mp hu h)
     (Set.mem_sInter_iff α F x)
 
 theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
@@ -72,8 +72,8 @@ theorem mem_sUnion_of_subset (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x :
         (Set.mem_sUnion_iff α G x))
 
 theorem mem_sInter_of_subset (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x : α)
-    (hx : x ∈ (Set.sInter α G)) : x ∈ (Set.sInter α F) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
-  (fun (hu : x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    (hx : x ∈ (⋂₀ G)) : x ∈ (Set.sInter α F) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  (fun (hu : x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) =>
     Iff.mpr hu (fun (A : Set α) (hA : A ∈ F) =>
       mem_of_mem_sInter α G x hx A
         ((fun (hv : ∀ (C : Set α), C ∈ F → C ∈ G) => hv A hA)

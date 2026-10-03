@@ -51,21 +51,21 @@ theorem inf_unique (α : Type) (r : α → α → Prop) (A : α → Prop) (b c :
     (isInf_greatest α r A c hc)
 
 theorem sUnion_isSup (α : Type) (F : Set (Set α)) :
-    IsSup (Set α) (fun (A B : Set α) => A ⊆ B) F (Set.sUnion α F) :=  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
-  isSup_intro (Set α) (fun (A B : Set α) => A ⊆ B) F (Set.sUnion α F)  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+    IsSup (Set α) (fun (A B : Set α) => A ⊆ B) F (⋃₀ F) :=
+  isSup_intro (Set α) (fun (A B : Set α) => A ⊆ B) F (⋃₀ F)
     (fun (A : Set α) => fun (hA : F A) => fun (x : α) => fun (hx : A x) =>
       Set.mem_sUnion_intro α F A x hA hx)
     (fun (C : Set α) =>
       fun (hC : ∀ (A : Set α), F A → A ⊆ C) =>
-        fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+        fun (x : α) => fun (hx : x ∈ ⋃₀ F) =>
           Set.mem_sUnion_elim α F x (x ∈ C) hx
             (fun (B : Set α) (hB : B ∈ F) (hxB : x ∈ B) =>
               (fun (hs : ∀ (y : α), y ∈ B → y ∈ C) => hs x hxB)
                 ((fun (hu : ∀ (A' : Set α), F A' → A' ⊆ C) => hu B hB) hC)))
 
 theorem sInter_isInf (α : Type) (F : Set (Set α)) :
-    IsInf (Set α) (fun (A B : Set α) => A ⊆ B) F (Set.sInter α F) :=  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
-  isInf_intro (Set α) (fun (A B : Set α) => A ⊆ B) F (Set.sInter α F)  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+    IsInf (Set α) (fun (A B : Set α) => A ⊆ B) F (⋂₀ F) :=
+  isInf_intro (Set α) (fun (A B : Set α) => A ⊆ B) F (⋂₀ F)
     (fun (A : Set α) => fun (hA : F A) => Set.sInter_subset α F A hA)
     (fun (C : Set α) =>
       fun (hC : ∀ (A : Set α), F A → C ⊆ A) =>

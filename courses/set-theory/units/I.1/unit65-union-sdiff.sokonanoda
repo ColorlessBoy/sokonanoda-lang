@@ -30,10 +30,10 @@ import lib.Extensionality
 
 -- 演示：**函数外延**（逐点相等 ⇒ 函数相等）。
 theorem demo_funext (α : Type) (β : α → Type)
-    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) :  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
-    Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), (f x) = (g x)) :
+    f = g :=
   funext_spec α β f g h
-theorem demo_propext (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+theorem demo_propext (a b : Prop) (h : a ↔ b) : a = b :=
   propext_spec a b h
 theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
     a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=
@@ -89,7 +89,7 @@ theorem mem_union_sdiff_iff (α : Type) (A B C : Set α) (a : α) :
 -- soko:hint 关键件：练习 6 · `funext_spec`（第二实参 `fun _ => Prop` ✓）· `propext_spec` ✓
 
 theorem union_sdiff_distrib_eq (α : Type) (A B C : Set α) :
-    Eq.{1} (Set α) ((B ∪ C) \ A) ((B \ A) ∪ (C \ A)) := by  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`\`/`∪` 是 def 头（手册边界）
+    ((B ∪ C) \ A) = ((B \ A) ∪ (C \ A)) := by
   sorry
 -- 练习 8（L 类）：**进 `A \ B` ⇒ 进 `A \ (B \ C)`**（减法反变的核心一步 ✓）。
 

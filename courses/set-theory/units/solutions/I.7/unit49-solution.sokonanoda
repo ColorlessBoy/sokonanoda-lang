@@ -4,95 +4,95 @@ import lib.SUnion
 import lib.Order
 
 theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ Set.sUnion α F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    x ∈ ⋃₀ F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
   Set.mem_sUnion_iff α F x
 
 theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ Set.sInter α F ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    x ∈ ⋂₀ F ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=
   Set.mem_sInter_iff α F x
 
 theorem demo_mem_sInter_intro (α : Type) (F : Set (Set α)) (x : α)
-    (h : ∀ (A : Set α), A ∈ F → x ∈ A) : x ∈ Set.sInter α F :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    (h : ∀ (A : Set α), A ∈ F → x ∈ A) : x ∈ ⋂₀ F :=
   Set.mem_sInter_intro α F x h
 
 theorem all_not_of_not_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
-    (h : ¬ (x ∈ Set.sUnion α F)) : ∀ (A : Set α), A ∈ F → ¬ (x ∈ A) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    (h : ¬ (x ∈ ⋃₀ F)) : ∀ (A : Set α), A ∈ F → ¬ (x ∈ A) :=
   fun (A : Set α) => fun (hA : A ∈ F) => fun (hxA : x ∈ A) =>
     h (Set.mem_sUnion_intro α F A x hA hxA)
 
 theorem not_mem_sUnion_of_all_not (α : Type) (F : Set (Set α)) (x : α)
-    (h : ∀ (A : Set α), A ∈ F → ¬ (x ∈ A)) : ¬ (x ∈ Set.sUnion α F) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-  fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    (h : ∀ (A : Set α), A ∈ F → ¬ (x ∈ A)) : ¬ (x ∈ ⋃₀ F) :=
+  fun (hx : x ∈ ⋃₀ F) =>
     Set.mem_sUnion_elim α F x False hx
       (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) => h A hA hxA)
 
 theorem sUnion_union (α : Type) (F G : Set (Set α)) :
-    Set.sUnion α (F ∪ G) = Set.sUnion α F ∪ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-  Set.ext α (Set.sUnion α (F ∪ G)) (Set.sUnion α F ∪ Set.sUnion α G) (fun (x : α) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-    Iff.intro (x ∈ Set.sUnion α (F ∪ G)) (x ∈ Set.sUnion α F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-      (fun (h : x ∈ Set.sUnion α (F ∪ G)) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-        Set.mem_sUnion_elim α (F ∪ G) x (x ∈ Set.sUnion α F ∪ Set.sUnion α G) h  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    ⋃₀ (F ∪ G) = Set.sUnion α F ∪ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  Set.ext α (⋃₀ (F ∪ G)) (Set.sUnion α F ∪ Set.sUnion α G) (fun (x : α) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    Iff.intro (x ∈ ⋃₀ (F ∪ G)) (x ∈ Set.sUnion α F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+      (fun (h : x ∈ ⋃₀ (F ∪ G)) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+        Set.mem_sUnion_elim α (F ∪ G) x (x ∈ ⋃₀ F ∪ Set.sUnion α G) h  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
           (fun (A : Set α) (hA : A ∈ F ∪ G) (hxA : x ∈ A) =>
-            Or.elim (A ∈ F) (A ∈ G) (x ∈ Set.sUnion α F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+            Or.elim (A ∈ F) (A ∈ G) (x ∈ ⋃₀ F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
               (fun (hF : A ∈ F) =>
-                Or.inl (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+                Or.inl (x ∈ ⋃₀ F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
                   (Set.mem_sUnion_intro α F A x hF hxA))
               (fun (hG : A ∈ G) =>
-                Or.inr (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+                Or.inr (x ∈ ⋃₀ F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
                   (Set.mem_sUnion_intro α G A x hG hxA)) hA))
-      (fun (h : x ∈ Set.sUnion α F ∪ Set.sUnion α G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-        Or.elim (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G) (x ∈ Set.sUnion α (F ∪ G))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-          (fun (hF : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-            Set.mem_sUnion_elim α F x (x ∈ Set.sUnion α (F ∪ G)) hF  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+      (fun (h : x ∈ ⋃₀ F ∪ Set.sUnion α G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+        Or.elim (x ∈ ⋃₀ F) (x ∈ Set.sUnion α G) (x ∈ Set.sUnion α (F ∪ G))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+          (fun (hF : x ∈ ⋃₀ F) =>
+            Set.mem_sUnion_elim α F x (x ∈ ⋃₀ (F ∪ G)) hF
               (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =>
                 Set.mem_sUnion_intro α (F ∪ G) A x (Or.inl (A ∈ F) (A ∈ G) hA) hxA))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-          (fun (hG : x ∈ Set.sUnion α G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-            Set.mem_sUnion_elim α G x (x ∈ Set.sUnion α (F ∪ G)) hG  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+          (fun (hG : x ∈ ⋃₀ G) =>
+            Set.mem_sUnion_elim α G x (x ∈ ⋃₀ (F ∪ G)) hG
               (fun (A : Set α) (hA : A ∈ G) (hxA : x ∈ A) =>
                 Set.mem_sUnion_intro α (F ∪ G) A x (Or.inr (A ∈ F) (A ∈ G) hA) hxA)) h))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
 
 theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
-    Set.sUnion α F ⊆ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-  fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-    Set.mem_sUnion_elim α F x (x ∈ Set.sUnion α G) hx  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    ⋃₀ F ⊆ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+  fun (x : α) => fun (hx : x ∈ ⋃₀ F) =>
+    Set.mem_sUnion_elim α F x (x ∈ ⋃₀ G) hx
       (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =>
         Set.mem_sUnion_intro α G A x (h A hA) hxA)
 
 theorem sUnion_subset_sUnion_union_left (α : Type) (F G : Set (Set α)) :
-    Set.sUnion α F ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    ⋃₀ F ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
   sUnion_mono α F (F ∪ G) (fun (A : Set α) => fun (hA : A ∈ F) =>
     Or.inl (A ∈ F) (A ∈ G) hA)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
 
 theorem sUnion_subset_sUnion_union_right (α : Type) (F G : Set (Set α)) :
-    Set.sUnion α G ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    ⋃₀ G ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
   sUnion_mono α G (F ∪ G) (fun (A : Set α) => fun (hA : A ∈ G) =>
     Or.inr (A ∈ F) (A ∈ G) hA)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
 
 theorem sInter_subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α)
-    (hA : A ∈ F) : Set.sInter α F ⊆ Set.sUnion α F :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
-  fun (x : α) => fun (hx : x ∈ Set.sInter α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    (hA : A ∈ F) : ⋂₀ F ⊆ ⋃₀ F :=
+  fun (x : α) => fun (hx : x ∈ ⋂₀ F) =>
     Set.mem_sUnion_intro α F A x hA
       ((fun (hv : ∀ (B : Set α), B ∈ F → x ∈ B) => hv A hA)
-        ((fun (hu : x ∈ Set.sInter α F ↔ ∀ (B : Set α), B ∈ F → x ∈ B) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+        ((fun (hu : x ∈ ⋂₀ F ↔ ∀ (B : Set α), B ∈ F → x ∈ B) =>
           Iff.mp hu hx) (Set.mem_sInter_iff α F x)))
 
 theorem sInter_union_subset_left (α : Type) (F G : Set (Set α)) :
-    (Set.sInter α (F ∪ G)) ⊆ (Set.sInter α F) :=  -- soko:notation-ok: `⊆` 记法在此处补不出前导类型参数（内核提示改点名，G-73 第十七例）
-  fun (x : α) => fun (h : x ∈ Set.sInter α (F ∪ G)) =>
+    (⋂₀ (F ∪ G)) ⊆ (⋂₀ F) :=
+  fun (x : α) => fun (h : x ∈ ⋂₀ (F ∪ G)) =>
     Set.mem_sInter_intro α F x (fun (B : Set α) (hB : B ∈ F) =>
       (fun (hv : ∀ (C : Set α), C ∈ F ∪ G → x ∈ C) => hv B (Or.inl (B ∈ F) (B ∈ G) hB))  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
-        ((fun (hu : x ∈ Set.sInter α (F ∪ G) ↔  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+        ((fun (hu : x ∈ ⋂₀ (F ∪ G) ↔
             ∀ (C : Set α), C ∈ F ∪ G → x ∈ C) =>
           Iff.mp hu h) (Set.mem_sInter_iff α (F ∪ G) x)))
 
 theorem sInter_mono_apply (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x : α)
-    (hx : x ∈ Set.sInter α G) : ∀ (B : Set α), B ∈ F → x ∈ B :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+    (hx : x ∈ ⋂₀ G) : ∀ (B : Set α), B ∈ F → x ∈ B :=
   fun (B : Set α) => fun (hB : B ∈ F) =>
     (fun (hv : ∀ (C : Set α), C ∈ G → x ∈ C) => hv B (h B hB))
-      ((fun (hu : x ∈ Set.sInter α G ↔ ∀ (C : Set α), C ∈ G → x ∈ C) =>  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+      ((fun (hu : x ∈ ⋂₀ G ↔ ∀ (C : Set α), C ∈ G → x ∈ C) =>
         Iff.mp hu hx) (Set.mem_sInter_iff α G x))
 
 theorem sInter_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
-    (Set.sInter α G) ⊆ (Set.sInter α F) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
-  fun (x : α) => fun (hx : x ∈ Set.sInter α G) =>
+    (⋂₀ G) ⊆ (Set.sInter α F) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+  fun (x : α) => fun (hx : x ∈ ⋂₀ G) =>
     Set.mem_sInter_intro α F x (sInter_mono_apply α F G h x hx)

@@ -38,7 +38,7 @@ import lib.Fun
 -- `kernel f`：函数 `f` 的**等价核**（`fun a b => f a = f b`）—— 单元㉗ 商掉的那个关系 ✓
 -- ─────────────────────────────────────────────────────────────
 def idRel (α : Type) : Rel α α :=
-  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) (b : α) => a = b
 
 def relImg (α β : Type) (r : Rel α β) (A : Set α) : Set β :=
   fun (b : β) => ∃ (a : α), A a ∧ r a b
@@ -47,7 +47,7 @@ def relPre (α β : Type) (r : Rel α β) (B : Set β) : Set α :=
   fun (a : α) => ∃ (b : β), B b ∧ r a b
 
 def kernel (α β : Type) (f : α → β) : Rel α α :=
-  fun (a : α) (b : α) => Eq.{1} β (f a) (f b)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) (b : α) => (f a) = (f b)
 
 -- ─────────────────────────────────────────────────────────────
 -- 39.1 三个词汇的成员刻画（演示）
@@ -67,9 +67,9 @@ theorem demo_mem_relPre (α β : Type) (r : Rel α β) (B : Set β) (a : α) :
 
 -- 演示：核的成员刻画（「两个点被 `f` 送到同一个地方」）。
 theorem demo_mem_kernel (α β : Type) (f : α → β) (a b : α) :
-    kernel α β f a b ↔ Eq.{1} β (f a) (f b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-  Iff.intro (kernel α β f a b) (Eq.{1} β (f a) (f b))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-    (fun (h : kernel α β f a b) => h) (fun (h : Eq.{1} β (f a) (f b)) => h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    kernel α β f a b ↔ (f a) = (f b) :=
+  Iff.intro (kernel α β f a b) ((f a) = (f b))
+    (fun (h : kernel α β f a b) => h) (fun (h : (f a) = (f b)) => h)
 
 -- ─────────────────────────────────────────────────────────────
 -- 39.2 单调性（对集合 · 对关系）与两端

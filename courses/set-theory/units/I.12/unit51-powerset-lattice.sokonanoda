@@ -51,13 +51,13 @@ theorem demo_mem_inter (α : Type) (x : α) (A B : Set α) :
 -- soko:hint 关键件：`Set.mem_powerset_iff`（**先 λ 绑定、再取用** ✓ —— 注解里只放简单变元 ✓）· `Iff.mp` ✓
 
 theorem mem_powerset_mp (α : Type) (A C : Set α) (hC : C ∈ 𝒫 A) :
-    Set.subset α C A := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+    C ⊆ A := by
   sorry
 -- 练习 2（T 类）：**从包含折回成员**（取用子的反向）。
 
 -- soko:hint 关键件：`Set.mem_powerset_iff` + `Iff.mpr` ✓
 
-theorem mem_powerset_mpr (α : Type) (A C : Set α) (h : Set.subset α C A) : C ∈ 𝒫 A := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+theorem mem_powerset_mpr (α : Type) (A C : Set α) (h : C ⊆ A) : C ∈ 𝒫 A := by
   sorry
 -- 练习 3（L 类，**旗舰一向**）：**`A ⊆ B ⇒ 𝒫A ⊆ 𝒫B`**（幂集单调）。
 
@@ -71,7 +71,7 @@ theorem mem_powerset_mpr (α : Type) (A C : Set α) (h : Set.subset α C A) : C 
 
 -- soko:hint 关键件：练习 1 / 练习 2 · **显式复合** ✓ · 注解里只放简单变元 ✓
 
-theorem powerset_mem_of_subset (α : Type) (A B : Set α) (h : Set.subset α A B)  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+theorem powerset_mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B)
     (C : Set α) (hC : C ∈ 𝒫 A) : C ∈ 𝒫 B := by
   sorry
 -- 练习 4（T 类）：**每个集合都是自己幂集的成员**。
@@ -108,15 +108,15 @@ theorem inter_apply_right (α : Type) (A B : Set α) (x : α) (h : (A ∩ B) x) 
 
 -- soko:hint 关键件：练习 6（**在点与前提上继续应用** ✓）✓
 
-theorem subset_inter_left (α : Type) (A B C : Set α) (h : Set.subset α C (A ∩ B)) :  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
-    Set.subset α C A := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+theorem subset_inter_left (α : Type) (A B C : Set α) (h : C ⊆ (A ∩ B)) :
+    C ⊆ A := by
   sorry
 -- 练习 9（L 类）：**含在交里 ⇒ 含在右半里**。
 
 -- soko:hint 关键件：练习 7（同样显式复合）✓
 
-theorem subset_inter_right (α : Type) (A B C : Set α) (h : Set.subset α C (A ∩ B)) :  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
-    Set.subset α C B := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+theorem subset_inter_right (α : Type) (A B C : Set α) (h : C ⊆ (A ∩ B)) :
+    C ⊆ B := by
   sorry
 -- 练习 10（L 类，**收尾**）：**两条包含 ⇒ 含在交里**（与练习 8/9 合起来就是
 
@@ -127,5 +127,5 @@ theorem subset_inter_right (α : Type) (A B C : Set α) (h : Set.subset α C (A 
 -- soko:hint 关键件：`And.intro`（**在 `∩` 头上可以直接用** ✓）· 两个假设**按 点 · 前提 应用** ✓
 
 theorem subset_inter_intro (α : Type) (A B C : Set α)
-    (hA : Set.subset α C A) (hB : Set.subset α C B) : Set.subset α C (A ∩ B) := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+    (hA : C ⊆ A) (hB : C ⊆ B) : C ⊆ (A ∩ B) := by
   sorry

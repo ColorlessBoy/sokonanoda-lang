@@ -146,7 +146,6 @@ theorem Set.Equiv.mk (α β : Type) (A : Set α) (B : Set β)
       (∃ (g : β → α), Set.MapsTo β α g B A ∧
         ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))))
     f
-    -- soko:notation-ok: 外层 `Exists.intro` 的期望类型是 `Set.Equiv` 这个 def，短写解不出前导实参
     (And.intro hf
       (Exists.intro g (And.intro hg (And.intro hgf hfg))))
 
@@ -232,12 +231,12 @@ theorem Set.Equiv.elim (α β : Type) (A : Set α) (B : Set β) (C : Prop)
 -- 读法：`hgf` 说 `g ∘ f = id`（逐点），`hab` 说 `f a = f b` ⇒ 沿 `hab` 把
 --   `g (f a) = g (f a)` **搬**成 `g (f a) = g (f b)`，两头再用 `hgf` 换掉 ✓
 theorem Set.eq_of_leftInvOn (α β : Type) (f : α → β) (g : β → α)
-    (hgf : ∀ (u : α), Eq.{1} α (g (f u)) u) (a b : α)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
-    (hab : Eq.{1} β (f a) (f b)) : Eq.{1} α a b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+    (hgf : ∀ (u : α), (g (f u)) = u) (a b : α)
+    (hab : (f a) = (f b)) : a = b :=
   Eq.trans.{1} α a (g (f a)) b
     (Eq.symm.{1} α (g (f a)) a (hgf a))
     (Eq.trans.{1} α (g (f a)) (g (f b)) b
-      (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} α (g u) (g v))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+      (rel_subst_right β (fun (u : β) (v : β) => (g u) = (g v))
         (f a) (f a) (f b) hab (Eq.refl.{1} α (g (f a))))
       (hgf b))
 
@@ -250,13 +249,13 @@ theorem Set.Le.of_injOn (α β : Type) (A : Set α) (B : Set β) (f : α → β)
 -- **照抄 `Set.eq_of_leftInvOn` 里那条搬运**（同关系、同槽位顺序 ✓），只是两头换成左逆律
 theorem Set.Equiv.comp_left_aux (α β γ : Type) (A : Set α) (B : Set β)
     (f1 : α → β) (g1 : β → α) (f2 : β → γ) (g2 : γ → β)
-    (l1 : ∀ (a : α), a ∈ A → Eq.{1} α (g1 (f1 a)) a)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
-    (l2 : ∀ (b : β), b ∈ B → Eq.{1} β (g2 (f2 b)) b)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+    (l1 : ∀ (a : α), a ∈ A → (g1 (f1 a)) = a)
+    (l2 : ∀ (b : β), b ∈ B → (g2 (f2 b)) = b)
     (hf1 : ∀ (a : α), a ∈ A → f1 a ∈ B)
-    (a : α) (ha : a ∈ A) : Eq.{1} α (g1 (g2 (f2 (f1 a)))) a :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+    (a : α) (ha : a ∈ A) : (g1 (g2 (f2 (f1 a)))) = a :=
   Eq.trans.{1} α (g1 (g2 (f2 (f1 a)))) (g1 (f1 a)) a
     (Eq.symm.{1} α (g1 (f1 a)) (g1 (g2 (f2 (f1 a))))
-      (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} α (g1 u) (g1 v))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+      (rel_subst_right β (fun (u : β) (v : β) => (g1 u) = (g1 v))
         (f1 a) (f1 a) (g2 (f2 (f1 a)))
         (Eq.symm.{1} β (g2 (f2 (f1 a))) (f1 a) (l2 (f1 a) (hf1 a ha)))
         (Eq.refl.{1} α (g1 (f1 a)))))
@@ -267,12 +266,12 @@ theorem Set.Equiv.comp_left_aux (α β γ : Type) (A : Set α) (B : Set β)
 --   而关系取的是 `γ` 型的命题 ⇒ **关系的两个槽要翻过来**（`f2 v = f2 u`）✓
 theorem Set.Equiv.comp_right_aux (α β γ : Type) (B : Set β) (C : Set γ)
     (f1 : α → β) (g1 : β → α) (f2 : β → γ) (g2 : γ → β)
-    (r1 : ∀ (b : β), b ∈ B → Eq.{1} β (f1 (g1 b)) b)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
-    (r2 : ∀ (c : γ), c ∈ C → Eq.{1} γ (f2 (g2 c)) c)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+    (r1 : ∀ (b : β), b ∈ B → (f1 (g1 b)) = b)
+    (r2 : ∀ (c : γ), c ∈ C → (f2 (g2 c)) = c)
     (hg2 : ∀ (c : γ), c ∈ C → g2 c ∈ B)
-    (c : γ) (hc : c ∈ C) : Eq.{1} γ (f2 (f1 (g1 (g2 c)))) c :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+    (c : γ) (hc : c ∈ C) : (f2 (f1 (g1 (g2 c)))) = c :=
   Eq.trans.{1} γ (f2 (f1 (g1 (g2 c)))) (f2 (g2 c)) c
-    (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} γ (f2 v) (f2 u))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册明说的边界）
+    (rel_subst_right β (fun (u : β) (v : β) => (f2 v) = (f2 u))
       (g2 c) (g2 c) (f1 (g1 (g2 c)))
       (Eq.symm.{1} β (f1 (g1 (g2 c))) (g2 c) (r1 (g2 c) (hg2 c hc)))
       (Eq.refl.{1} γ (f2 (g2 c))))

@@ -9,7 +9,7 @@ theorem demo_mem_inter_iff (α : Type) (a : α) (A B : Set α) :
   Set.mem_inter_iff a A B
 
 theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
   Set.mem_sUnion_iff α F x
 
 theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
@@ -52,10 +52,10 @@ theorem powerset_union_subset (α : Type) (A B : Set α) :
       h
 
 theorem sUnion_powerset (α : Type) (A : Set α) :
-    Set.sUnion α (𝒫 A) = A :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
-  Set.ext α (Set.sUnion α (𝒫 A)) A (fun (x : α) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
-    Iff.intro (x ∈ Set.sUnion α (𝒫 A)) (A x)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
-      (fun (h : x ∈ Set.sUnion α (𝒫 A)) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    ⋃₀ (𝒫 A) = A :=
+  Set.ext α (⋃₀ (𝒫 A)) A (fun (x : α) =>
+    Iff.intro (x ∈ ⋃₀ (𝒫 A)) (A x)
+      (fun (h : x ∈ ⋃₀ (𝒫 A)) =>
         Set.mem_sUnion_elim α (𝒫 A) x (A x) h
           (fun (B : Set α) (hB : B ∈ 𝒫 A) (hxB : x ∈ B) =>
             (fun (hu : ∀ (y : α), B y → A y) => hu x hxB) hB))

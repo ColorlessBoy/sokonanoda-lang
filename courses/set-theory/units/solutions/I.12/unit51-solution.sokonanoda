@@ -15,25 +15,25 @@ theorem demo_mem_inter (α : Type) (x : α) (A B : Set α) :
   Set.mem_inter_iff x A B
 
 theorem mem_powerset_mp (α : Type) (A C : Set α) (hC : C ∈ 𝒫 A) :
-    Set.subset α C A :=  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
-  (fun (hu : C ∈ 𝒫 A ↔ Set.subset α C A) => Iff.mp hu hC) (Set.mem_powerset_iff A C)  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+    C ⊆ A :=
+  (fun (hu : C ∈ 𝒫 A ↔ C ⊆ A) => Iff.mp hu hC) (Set.mem_powerset_iff A C)
 
-theorem mem_powerset_mpr (α : Type) (A C : Set α) (h : Set.subset α C A) : C ∈ 𝒫 A :=  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
-  (fun (hu : C ∈ 𝒫 A ↔ Set.subset α C A) => Iff.mpr hu h) (Set.mem_powerset_iff A C)  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+theorem mem_powerset_mpr (α : Type) (A C : Set α) (h : C ⊆ A) : C ∈ 𝒫 A :=
+  (fun (hu : C ∈ 𝒫 A ↔ C ⊆ A) => Iff.mpr hu h) (Set.mem_powerset_iff A C)
 
-theorem powerset_mem_of_subset (α : Type) (A B : Set α) (h : Set.subset α A B)  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+theorem powerset_mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B)
     (C : Set α) (hC : C ∈ 𝒫 A) : C ∈ 𝒫 B :=
-  (fun (hv : C ∈ 𝒫 B ↔ Set.subset α C B) =>  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+  (fun (hv : C ∈ 𝒫 B ↔ C ⊆ B) =>
     Iff.mpr hv (fun (x : α) => fun (hx : C x) =>
-      h x ((fun (hu : C ∈ 𝒫 A ↔ Set.subset α C A) => Iff.mp hu hC)  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+      h x ((fun (hu : C ∈ 𝒫 A ↔ C ⊆ A) => Iff.mp hu hC)
         (Set.mem_powerset_iff A C) x hx))) (Set.mem_powerset_iff B C)
 
 theorem powerset_subset_self (α : Type) (A : Set α) : A ∈ 𝒫 A :=
-  (fun (hu : A ∈ 𝒫 A ↔ Set.subset α A A) =>  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+  (fun (hu : A ∈ 𝒫 A ↔ A ⊆ A) =>
     Iff.mpr hu (fun (x : α) => fun (hx : A x) => hx)) (Set.mem_powerset_iff A A)
 
 theorem powerset_univ_mem (α : Type) (A : Set α) : A ∈ 𝒫 (Set.univ α) :=
-  (fun (hu : A ∈ 𝒫 (Set.univ α) ↔ Set.subset α A (Set.univ α)) =>  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+  (fun (hu : A ∈ 𝒫 (Set.univ α) ↔ A ⊆ (Set.univ α)) =>
     Iff.mpr hu (fun (x : α) => fun (hx : A x) =>
       (fun (hv : ∀ (y : α), y ∈ Set.univ α) => hv x) (Set.mem_univ α)))
     (Set.mem_powerset_iff (Set.univ α) A)
@@ -46,15 +46,15 @@ theorem inter_apply_right (α : Type) (A B : Set α) (x : α) (h : (A ∩ B) x) 
   (fun (hu : (A ∩ B) x ↔ A x ∧ B x) => (fun (hw : A x ∧ B x) => And.right hw) (Iff.mp hu h))
     (Set.mem_inter_iff x A B)
 
-theorem subset_inter_left (α : Type) (A B C : Set α) (h : Set.subset α C (A ∩ B)) :  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
-    Set.subset α C A :=  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+theorem subset_inter_left (α : Type) (A B C : Set α) (h : C ⊆ (A ∩ B)) :
+    C ⊆ A :=
   fun (x : α) => fun (hx : C x) => inter_apply_left α A B x (h x hx)
 
-theorem subset_inter_right (α : Type) (A B C : Set α) (h : Set.subset α C (A ∩ B)) :  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
-    Set.subset α C B :=  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+theorem subset_inter_right (α : Type) (A B C : Set α) (h : C ⊆ (A ∩ B)) :
+    C ⊆ B :=
   fun (x : α) => fun (hx : C x) => inter_apply_right α A B x (h x hx)
 
 theorem subset_inter_intro (α : Type) (A B C : Set α)
-    (hA : Set.subset α C A) (hB : Set.subset α C B) : Set.subset α C (A ∩ B) :=  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名
+    (hA : C ⊆ A) (hB : C ⊆ B) : C ⊆ (A ∩ B) :=
   fun (x : α) => fun (hx : C x) =>
     And.intro (hA x hx) (hB x hx)

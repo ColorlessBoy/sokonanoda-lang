@@ -35,10 +35,10 @@ import lib.Order
 
 -- 演示：广义并的成员刻画（"落在某个族成员里"）。
 theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ Set.sUnion α F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    x ∈ ⋃₀ F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
   Set.mem_sUnion_iff α F x
 theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ Set.sInter α F ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    x ∈ ⋂₀ F ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=
   Set.mem_sInter_iff α F x
 theorem demo_mem_pi (ι α : Type) (A : ι → Set α) (f : ι → α) :
     f ∈ Set.pi ι α A ↔ ∀ (i : ι), f i ∈ A i :=
@@ -51,21 +51,21 @@ theorem demo_mem_pi (ι α : Type) (A : ι → Set α) (f : ι → α) :
 -- soko:hint 关键件：`Set.mem_sUnion_intro`（参数写全）✓
 
 theorem subset_sUnion_intro (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
-    A ⊆ Set.sUnion α F := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    A ⊆ ⋃₀ F := by
   sorry
 -- 练习 2（L 类）：**广义并的单调**（族变大 ⇒ 并变大）。
 
 -- soko:hint 关键件：`Set.mem_sUnion_elim`（消去：先给**目标命题**、再给见证处理函数）· 练习 1 ✓
 
 theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
-    Set.sUnion α F ⊆ Set.sUnion α G := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    ⋃₀ F ⊆ ⋃₀ G := by
   sorry
 -- 练习 3（L 类，**旗舰一向**）：每个族成员都 ⊆ A ⇒ 广义并 ⊆ A。
 
 -- soko:hint 关键件：`Set.mem_sUnion_elim` · 假设按 成员 / 成员性 两步应用 ✓
 
 theorem sUnion_subset_of_all_subset (α : Type) (F : Set (Set α)) (A : Set α)
-    (h : ∀ (B : Set α), B ∈ F → B ⊆ A) : Set.sUnion α F ⊆ A := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (h : ∀ (B : Set α), B ∈ F → B ⊆ A) : ⋃₀ F ⊆ A := by
   sorry
 -- 练习 4（L 类，**旗舰另一向**）：广义并 ⊆ A ⇒ 每个族成员都 ⊆ A。
 
@@ -74,14 +74,14 @@ theorem sUnion_subset_of_all_subset (α : Type) (F : Set (Set α)) (A : Set α)
 --   ⚠ 别把方向搞反：练习 1 给的「B ⊆ 广义并」**不是**「B ⊆ A」✗ —— 中间要过假设 ✓
 
 theorem all_subset_of_sUnion_subset (α : Type) (F : Set (Set α)) (A : Set α)
-    (h : Set.sUnion α F ⊆ A) : ∀ (B : Set α), B ∈ F → B ⊆ A := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (h : ⋃₀ F ⊆ A) : ∀ (B : Set α), B ∈ F → B ⊆ A := by
   sorry
 -- 练习 5（T 类）：**成员的直接传递**（族成员 + 点 ⇒ 落在广义并里）。
 
 -- soko:hint 关键件：`Set.mem_sUnion_intro` ✓
 
 theorem sUnion_mem_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
-    (hA : A ∈ F) (hx : x ∈ A) : x ∈ Set.sUnion α F := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ ⋃₀ F := by
   sorry
 -- 练习 6（L 类）：**广义交的引入**（每个族成员都含 x ⇒ x 落在交里）。
 
@@ -90,7 +90,7 @@ theorem sUnion_mem_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
 --   `Set.mem_sInter_iff` + `Iff.mpr`（**先 λ 绑定再应用** ✓）✓
 
 theorem sInter_mem_of_all (α : Type) (F : Set (Set α)) (x : α)
-    (h : ∀ (B : Set α), B ∈ F → x ∈ B) : x ∈ Set.sInter α F := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (h : ∀ (B : Set α), B ∈ F → x ∈ B) : x ∈ ⋂₀ F := by
   sorry
 -- 练习 7（L 类）：**空族的并没有元素**。
 
@@ -99,7 +99,7 @@ theorem sInter_mem_of_all (α : Type) (F : Set (Set α)) (x : α)
 --   不是 `Or.elim` 的**动机位** ✗，两者不同 ✓）✓
 
 theorem sUnion_empty_apply (α : Type) (x : α) :
-    ¬ (x ∈ Set.sUnion α (fun (_ : Set α) => False)) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    ¬ (x ∈ ⋃₀ (fun (_ : Set α) => False)) := by
   sorry
 
 -- 练习 8（L 类）：**族里全是空集 ⇒ 并没有元素**。
@@ -109,7 +109,7 @@ theorem sUnion_empty_apply (α : Type) (x : α) :
 --   与 `Or.elim` 的**动机位**不同 ✗）· 假设按 成员 · 成员性 · 点 三步应用 ✓
 theorem sUnion_empty_of_all_empty (α : Type) (F : Set (Set α))
     (h : ∀ (A : Set α), A ∈ F → ∀ (x : α), ¬ (x ∈ A)) :
-    ∀ (x : α), ¬ (x ∈ Set.sUnion α F) := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion` 是 def 头，这些位置补不出前导实参
+    ∀ (x : α), ¬ (x ∈ ⋃₀ F) := by
   sorry
 
 -- 练习 9（L 类）：**交含在每个族成员里**（只要族非空就有这一条）。
@@ -119,7 +119,7 @@ theorem sUnion_empty_of_all_empty (α : Type) (F : Set (Set α))
 -- soko:hint 关键件：`Set.mem_sInter_iff`（**先 λ 绑定、再取用、最后应用** ✓ —— 这是本单元
 --   换出来的新惯用法：绑定形态要先"落地"成 λ，再继续应用 ✓）· `Iff.mp` ✓
 theorem sInter_subset_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
-    Set.sInter α F ⊆ A := by  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+    ⋂₀ F ⊆ A := by
   sorry
 
 -- 练习 10（L 类）：**交的反变单调**（族变大 ⇒ 交变小）。
@@ -129,6 +129,6 @@ theorem sInter_subset_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A
 -- soko:hint 关键件：`Set.mem_sInter_iff`（**两个族各用一次**）· `Iff.mp` / `Iff.mpr` ·
 --   练习 9 的手法 ✓
 theorem sInter_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
-    Set.sInter α G ⊆ Set.sInter α F := by  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参
+    ⋂₀ G ⊆ ⋂₀ F := by
   sorry
 

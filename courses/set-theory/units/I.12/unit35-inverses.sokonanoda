@@ -38,12 +38,12 @@ import lib.Order
 
 -- 演示：左逆的展开（"先 `f` 再 `g` 回到原地"）。
 theorem demo_leftInverse_def (α β : Type) (g : β → α) (f : α → β) :
-    Function.LeftInverse α β g f ↔ ∀ (x : α), Eq.{1} α (g (f x)) x :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    Function.LeftInverse α β g f ↔ ∀ (x : α), (g (f x)) = x :=
   Function.leftInverse_def α β g f
 
 -- 演示：右逆的展开（"先 `g` 再 `f` 回到原地"）。
 theorem demo_rightInverse_def (α β : Type) (g : β → α) (f : α → β) :
-    Function.RightInverse α β g f ↔ ∀ (y : β), Eq.{1} β (f (g y)) y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    Function.RightInverse α β g f ↔ ∀ (y : β), (f (g y)) = y :=
   Function.rightInverse_def α β g f
 
 -- 演示：双边逆的展开（左逆 ∧ 右逆）。
@@ -61,7 +61,7 @@ theorem demo_inverse_def (α β : Type) (f : α → β) (g : β → α) :
 -- soko:hint 目标形态：`LeftInverse g f → g (f x) = x`。
 -- soko:hint 关键件：左逆假设是**定义头 ⇒ 先 λ 绑定再应用**（G-73 形状 ①）✓
 theorem leftInverse_apply (α β : Type) (g : β → α) (f : α → β)
-    (h : Function.LeftInverse α β g f) (x : α) : Eq.{1} α (g (f x)) x := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (h : Function.LeftInverse α β g f) (x : α) : (g (f x)) = x := by
   sorry
 
 -- 练习 2（T 类）：**双边逆的左逆分量**。
@@ -150,7 +150,7 @@ theorem rightInverse_comp (α β γ : Type) (f : α → β) (g : β → α) (f1 
 --   ⇒ 那条在**单元㊹**里证出来了（`inverse_unique_eq`）✓
 theorem inverse_unique_apply (α β : Type) (f : α → β) (g : β → α) (g1 : β → α)
     (hl : Function.LeftInverse α β g f) (hr : Function.RightInverse α β g1 f) (y : β) :
-    Eq.{1} α (g y) (g1 y) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (g y) = (g1 y) := by
   sorry
 
 -- 练习 10（T 类）：**逆的对称性**（`f`、`g` 互为逆 ⇔ `g`、`f` 互为逆）。

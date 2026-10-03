@@ -74,18 +74,18 @@ prefix:100 " ⋂₀ " => Set.sInter
 -- ⚠ 为什么要有（实测）：单元㉑㉒ 那种"族里套族"的证明里，手写嵌套 `Exists.elim` 极易少数一个
 -- 右括号（整份文件只剩一条 `expected ')'`、还指向后面某一行 ⇒ G-15 的老毛病）⇒ 收进库 ✓
 theorem Set.mem_sUnion_elim (α : Type) (F : Set (Set α)) (x : α) (C : Prop)
-    (h : x ∈ Set.sUnion α F)  -- soko:notation-ok: 本节在 `end Set` 之后，`⋃₀` 的记法在此处还没声明
+    (h : x ∈ ⋃₀ F)
     (k : ∀ (A : Set α), A ∈ F → x ∈ A → C) : C :=
   Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) C  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
     ((fun (hs : ∃ (A : Set α), A ∈ F ∧ x ∈ A) => hs) h)
     (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) => k A (And.left hA) (And.right hA))
 
 theorem Set.mem_sUnion_intro (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
-    (hA : A ∈ F) (hx : x ∈ A) : x ∈ Set.sUnion α F :=  -- soko:notation-ok: 同上（`⋃₀`）
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ ⋃₀ F :=
   Set.subset_sUnion α F A hA x hx
 
 theorem Set.mem_sInter_elim (α : Type) (F : Set (Set α)) (x : α) (C : Prop)
-    (h : x ∈ Set.sInter α F)  -- soko:notation-ok: 本节在 `end Set` 之后，`⋂₀` 的记法在此处还没声明
+    (h : x ∈ ⋂₀ F)
     (k : (∀ (A : Set α), A ∈ F → x ∈ A) → C) : C :=
   k ((fun (hs : ∀ (A : Set α), A ∈ F → x ∈ A) => hs) h)
 
@@ -95,8 +95,8 @@ theorem Set.mem_sInter_elim (α : Type) (F : Set (Set α)) (x : α) (C : Prop)
 --   `Set.mem_sInter_iff` + `Iff.mpr`（而且还得**先把绑定形态落地成 λ** ✓，见课程手册）✓。
 -- 这一条与 `Set.mem_sInter_elim` **互为对偶**，形状与 `Set.mem_sUnion_intro` 对齐 ✓
 theorem Set.mem_sInter_intro (α : Type) (F : Set (Set α)) (x : α)
-    (h : ∀ (A : Set α), A ∈ F → x ∈ A) : x ∈ Set.sInter α F :=  -- soko:notation-ok: 本节在 `end Set` 之后，`⋂₀` 的记法在此处还没声明
-  (fun (hu : x ∈ Set.sInter α F ↔ ∀ (A : Set α), A ∈ F → x ∈ A) =>  -- soko:notation-ok: 本节在 `end Set` 之后，`⋂₀` 的记法在此处还没声明
+    (h : ∀ (A : Set α), A ∈ F → x ∈ A) : x ∈ ⋂₀ F :=
+  (fun (hu : x ∈ ⋂₀ F ↔ ∀ (A : Set α), A ∈ F → x ∈ A) =>
     Iff.mpr hu h) (Set.mem_sInter_iff α F x)
 
 -- ── 广义积（索引族的积；Mathlib `Set.pi` / `Set.mem_pi` 同款）────────────────

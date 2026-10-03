@@ -102,7 +102,7 @@ theorem sup_unique (α : Type) (r : α → α → Prop) (A : α → Prop) (b c :
 --   等式的证明项要**点名声明星**（`Eq` 在那个位置解不出宇宙层级）✓
 theorem sup_unique_of_antisymm (α : Type) (r : α → α → Prop) (A : α → Prop) (b c : α)
     (hanti : Antisymmetric α r) (hb : IsSup α r A b) (hc : IsSup α r A c) :
-    Eq.{1} α b c := by  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+    b = c := by
   sorry
 
 -- 练习 7（L 类）：**两个下确界互相 `≤`**（与练习 5 对偶）。
@@ -125,7 +125,7 @@ theorem inf_unique (α : Type) (r : α → α → Prop) (A : α → Prop) (b c :
 -- soko:hint 关键件：`isSup_intro`（构造子：上界 + 最小）· `Set.mem_sUnion_intro`（造成员）·
 --   `Set.mem_sUnion_elim`（拆成员）· 上界假设是**定义头** ⇒ 先 λ 绑定（G-73 形状 ①）。
 theorem sUnion_isSup (α : Type) (F : Set (Set α)) :
-    IsSup (Set α) (fun (A B : Set α) => A ⊆ B) F (Set.sUnion α F) := by  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+    IsSup (Set α) (fun (A B : Set α) => A ⊆ B) F (⋃₀ F) := by
   sorry
 
 -- 练习 9（L 类，**本单元旗舰**）：`⋂₀ F` 是族 `F` 在 `⊆` 序下的**下确界**。
@@ -137,7 +137,7 @@ theorem sUnion_isSup (α : Type) (F : Set (Set α)) :
 --   `∀` ⇒ 直接交出一个 λ**（用 `(fun (h : ∀ …) => h)` 把形态摆正，实测）·
 --   下界假设先 λ 绑定。
 theorem sInter_isInf (α : Type) (F : Set (Set α)) :
-    IsInf (Set α) (fun (A B : Set α) => A ⊆ B) F (Set.sInter α F) := by  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+    IsInf (Set α) (fun (A B : Set α) => A ⊆ B) F (⋂₀ F) := by
   sorry
 
 -- 练习 10（D 类）：**上确界对集合的包含单调**（`A ⊆ B` ⇒ `sup A ≤ sup B`）。

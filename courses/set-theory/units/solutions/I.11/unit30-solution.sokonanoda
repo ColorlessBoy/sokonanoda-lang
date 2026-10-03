@@ -12,7 +12,7 @@ theorem demo_isInf_lower (α : Type) (r : α → α → Prop) (A : α → Prop) 
   isInf_lower α r A b h
 
 theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
   Set.mem_sUnion_iff α F x
 
 theorem isSup_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
@@ -87,27 +87,27 @@ theorem inf_of_lowerBounds_sup (α : Type) (r : α → α → Prop) (A : α → 
         (isSup_upper α r (fun (l : α) => LowerBound α r A l) b hb))
 
 theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (C : Set α) :
-    (Set.sUnion α F) ⊆ C ↔ ∀ (A : Set α), A ∈ F → A ⊆ C :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
-  Iff.intro ((Set.sUnion α F) ⊆ C) (∀ (A : Set α), A ∈ F → A ⊆ C)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
-    (fun (h : (Set.sUnion α F) ⊆ C) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    (⋃₀ F) ⊆ C ↔ ∀ (A : Set α), A ∈ F → A ⊆ C :=
+  Iff.intro ((⋃₀ F) ⊆ C) (∀ (A : Set α), A ∈ F → A ⊆ C)
+    (fun (h : (⋃₀ F) ⊆ C) =>
       fun (A : Set α) => fun (hA : A ∈ F) =>
         fun (x : α) => fun (hx : A x) =>
-          (fun (hs : ∀ (y : α), y ∈ (Set.sUnion α F) → y ∈ C) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+          (fun (hs : ∀ (y : α), y ∈ (⋃₀ F) → y ∈ C) =>
             hs x (Set.mem_sUnion_intro α F A x hA hx)) h)
     (fun (h : ∀ (A : Set α), A ∈ F → A ⊆ C) =>
-      fun (x : α) => fun (hx : x ∈ (Set.sUnion α F)) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      fun (x : α) => fun (hx : x ∈ (⋃₀ F)) =>
         Set.mem_sUnion_elim α F x (x ∈ C) hx
           (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =>
             (fun (hs : ∀ (y : α), A y → C y) => hs x hxA)
               ((fun (hu : ∀ (A' : Set α), A' ∈ F → A' ⊆ C) => hu A hA) h)))
 
 theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (C : Set α) :
-    C ⊆ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → C ⊆ A :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
-  Iff.intro (C ⊆ (Set.sInter α F)) (∀ (A : Set α), A ∈ F → C ⊆ A)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
-    (fun (h : C ⊆ (Set.sInter α F)) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    C ⊆ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → C ⊆ A :=
+  Iff.intro (C ⊆ (⋂₀ F)) (∀ (A : Set α), A ∈ F → C ⊆ A)
+    (fun (h : C ⊆ (⋂₀ F)) =>
       fun (A : Set α) => fun (hA : A ∈ F) =>
         fun (x : α) => fun (hx : C x) =>
-          (fun (hs : ∀ (y : α), y ∈ C → y ∈ (Set.sInter α F)) => hs x hx) h A hA)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+          (fun (hs : ∀ (y : α), y ∈ C → y ∈ (⋂₀ F)) => hs x hx) h A hA)
     (fun (h : ∀ (A : Set α), A ∈ F → C ⊆ A) =>
       fun (x : α) => fun (hx : C x) =>
         (fun (hu : ∀ (A : Set α), A ∈ F → x ∈ A) => hu)
@@ -116,5 +116,5 @@ theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (C : Set α) :
               ((fun (hu : ∀ (A' : Set α), A' ∈ F → C ⊆ A') => hu A hA) h)))
 
 theorem subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
-    A ⊆ (Set.sUnion α F) :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    A ⊆ (⋃₀ F) :=
   fun (x : α) => fun (hx : A x) => Set.mem_sUnion_intro α F A x hA hx

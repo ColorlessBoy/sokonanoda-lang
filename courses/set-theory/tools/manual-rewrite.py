@@ -29,6 +29,10 @@ def _lint():
     return mod
 
 
+BUILTIN_NOTATION = {"Eq": ("infix", "="), "Ne": ("infix", "≠"),
+                    "Set.singleton": ("delim", "{a}"), "Set.pair": ("delim", "{a, b}")}
+
+
 def notation_map(nl) -> dict[str, tuple[str, str]]:
     """head → (kind, symbol) ✓ —— 只认**课程树里真声明过**的记法 ✓。"""
     out: dict[str, tuple[str, str]] = {}
@@ -47,6 +51,10 @@ def notation_map(nl) -> dict[str, tuple[str, str]]:
                 m2 = nl.NOTATION_PLAIN.match(raw)
                 if m2:
                     out.setdefault(m2.group(2), ("notation", m2.group(1).strip()))
+    for k, v in BUILTIN_NOTATION.items():          # 内建/带定界符的记法 ✓
+        out.setdefault(k, v)
+    out.setdefault("Eq.{…}", BUILTIN_NOTATION["Eq"])   # ⚠ 命中的 rule 名带 `.{…}` ✓
+    out.setdefault("Ne.{…}", BUILTIN_NOTATION["Ne"])
     return out
 
 
@@ -57,6 +65,48 @@ def decl_end(lines, idx):
         if s <= idx < e:
             return e
     return len(lines)
+
+
+def _skip_group(text: str, i: int) -> int:
+    """跳过 `(…)`/`[…]`/`{…}`（含嵌套 ✓）。"""
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    depth, j, n = 0, i, len(text)
+    while j < n:
+        if text[j] in pairs:
+            depth += 1
+        elif text[j] in ")]}":
+            depth -= 1
+            if depth == 0:
+                return j + 1
+        j += 1
+    return n
+
+
+def _args(code: str, start: int) -> list[tuple[int, int]]:
+    """**Unicode 版**实参切分 ✓ —— 模块的 `_arg_spans` 要求 `c.isascii()` ✗ ⇒ `α`/`β` 一进来就 break ✗
+    （实测 `Set.sUnion α F` 拿到 [] ✗）⇒ 本工具自带一份（非 ASCII 标识符照收 ✓，`∈`/`∩` 这类符号
+    不是 alnum ⇒ 仍然正确地终止 ✓）。"""
+    spans, i, n = [], start, len(code)
+    while i < n:
+        while i < n and code[i] in " \t":
+            i += 1
+        if i >= n:
+            break
+        c = code[i]
+        if c in ")]},;:`":
+            break
+        if code.startswith("--", i) or code.startswith(":=", i) or code.startswith("->", i):
+            break
+        if c in "([{":
+            j = _skip_group(code, i)
+            spans.append((i, j)); i = j; continue
+        if c.isalnum() or c == "_":                    # ⚠ 不限 ASCII ✓（α/β/γ 是这门课的常客 ✓）
+            j = i
+            while j < n and (code[j].isalnum() or code[j] in "_.'"):
+                j += 1
+            spans.append((i, j)); i = j; continue
+        break                                          # 记法符号（∈/∩/⋃₀…）⇒ 实参到此为止 ✓
+    return spans
 
 
 def rewrite_line(nl, lines, hit, nots):
@@ -73,9 +123,11 @@ def rewrite_line(nl, lines, hit, nots):
     if key not in nots and head not in nots:
         return None, f"无记法声明({head})"
     kind, sym = nots.get(key) or nots[head]
-    after = nl._universe_suffix_end(code, i + len(head))
-    spans = nl._arg_spans(code, after)
-    if kind == "notation":
+    after = i + len(head)                    # ⚠ 不用 `_universe_suffix_end`：它会越过实参 ✗（实测 [] ✗）
+    spans = _args(code, after)
+    if kind == "delim":
+        k = 1 if sym == "{a}" else 2
+    elif kind == "notation":
         k = 0
     elif kind in ("infix", "infixl", "infixr"):
         k = 2
@@ -88,7 +140,11 @@ def rewrite_line(nl, lines, hit, nots):
         end = spans[-1][1] if spans else after
     else:
         ops = [code[a:b] for a, b in spans[-k:]]
-        rep = f"{ops[0]} {sym} {ops[1]}" if k == 2 else (f"{sym} {ops[0]}" if kind.startswith("prefix") else f"{ops[0]} {sym}")
+        if kind == "delim":
+            rep = "{" + ops[0] + "}" if k == 1 else "{" + ops[0] + ", " + ops[1] + "}"
+        else:
+            rep = (f"{ops[0]} {sym} {ops[1]}" if k == 2
+                   else (f"{sym} {ops[0]}" if kind.startswith("prefix") else f"{ops[0]} {sym}"))
         end = spans[-1][1]
     new = list(lines)
     new[hit["line"] - 1] = code[:i] + rep + code[end:] + nl._comment_of(raw)

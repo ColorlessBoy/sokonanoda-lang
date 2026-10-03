@@ -37,7 +37,7 @@ theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
   Set.subset_def α A B
 theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
   Set.mem_sUnion_iff α F x-- 练习 1（T 类，**中心工具**）：`A ⊆ B` 用在点上。
 
 -- soko:hint 关键件：`Set.subset_def`（**先 λ 绑定、再 `Iff.mp`** ✓）✓
@@ -71,7 +71,7 @@ theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ (𝒫 A) := by
 --   （**动机位放肯定命题** ✓）· `Set.mem_powerset_iff` · 练习 1 ✓
 
 theorem sUnion_powerset_subset (α : Type) (A : Set α) :
-    (Set.sUnion α (𝒫 A)) ⊆ A := by  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    (⋃₀ (𝒫 A)) ⊆ A := by
   sorry
 -- 练习 6（L 类，**旗舰二**）：**`A ⊆ ⋃(𝒫A)`**（见证取 `A` 自己 ✓）。
 
@@ -80,7 +80,7 @@ theorem sUnion_powerset_subset (α : Type) (A : Set α) :
 --   `And.intro`（**写全** ✓）· 练习 4 ✓
 
 theorem subset_sUnion_powerset (α : Type) (A : Set α) :
-    A ⊆ (Set.sUnion α (𝒫 A)) := by  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    A ⊆ (⋃₀ (𝒫 A)) := by
   sorry
 -- 练习 7（L 类）：**`⋂(𝒫A) ⊆ A`**。
 
@@ -93,7 +93,7 @@ theorem subset_sUnion_powerset (α : Type) (A : Set α) :
 --   **第四位是目标命题** ✗ 别传成集合 ✗）· 练习 4 ✓
 
 theorem sInter_powerset_subset (α : Type) (A : Set α) :
-    (Set.sInter α (𝒫 A)) ⊆ A := by  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    (⋂₀ (𝒫 A)) ⊆ A := by
   sorry
 -- 练习 8（L 类，**单调**）：**`A ⊆ B ⇒ C ∈ 𝒫A ⇒ C ∈ 𝒫B`**。
 

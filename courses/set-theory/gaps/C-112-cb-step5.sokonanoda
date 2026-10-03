@@ -139,11 +139,11 @@ def cbRel (α : Type) (β : Type) (C : Set α) (f : α → β) (g : β → α) :
   fun (x : α) (y : β) => cbRelL α β C f x y ∨ cbRelR α β C g x y
 
 theorem cbRelL_intro (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
-    (hC : x ∈ C) (hxy : Eq.{1} β (f x) y) : cbRelL α β C f x y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+    (hC : x ∈ C) (hxy : (f x) = y) : cbRelL α β C f x y :=
   And.intro hC hxy
 
 theorem cbRelR_intro (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
-    (hC : ¬ (x ∈ C)) (hyx : Eq.{1} α (g y) x) : cbRelR α β C g x y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+    (hC : ¬ (x ∈ C)) (hyx : (g y) = x) : cbRelR α β C g x y :=
   And.intro hC hyx
 
 theorem cbRelL_mem (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
@@ -151,7 +151,7 @@ theorem cbRelL_mem (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
   And.left h
 
 theorem cbRelL_eq (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
-    (h : cbRelL α β C f x y) : Eq.{1} β (f x) y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+    (h : cbRelL α β C f x y) : (f x) = y :=
   And.right h
 
 theorem cbRelR_not (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
@@ -159,7 +159,7 @@ theorem cbRelR_not (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
   And.left h
 
 theorem cbRelR_eq (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
-    (h : cbRelR α β C g x y) : Eq.{1} α (g y) x :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）
+    (h : cbRelR α β C g x y) : (g y) = x :=
   And.right h
 
 -- 具名谓词（`Exists.intro` 的 λ 谓词在本子集判红 ⇒ 用 def 包一层，见台账）

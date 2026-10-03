@@ -39,16 +39,16 @@ import lib.Fun
 -- `graph f`：函数 `f` 的**图**（`fun a b => f a = b`）✓
 -- ─────────────────────────────────────────────────────────────
 def idRel (α : Type) : Rel α α :=
-  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) (b : α) => a = b
 
 def SingleValued (α β : Type) (r : Rel α β) : Prop :=
-  ∀ (a : α) (b : β) (b1 : β), r a b → r a b1 → Eq.{1} β b b1  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  ∀ (a : α) (b : β) (b1 : β), r a b → r a b1 → b = b1
 
 def TotalRel (α β : Type) (r : Rel α β) : Prop :=
   ∀ (a : α), ∃ (b : β), r a b
 
 def graph (α β : Type) (f : α → β) : Rel α β :=
-  fun (a : α) (b : β) => Eq.{1} β (f a) b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) (b : β) => (f a) = b
 
 -- ─────────────────────────────────────────────────────────────
 -- 45.1 三条库引理（`•` 与 `⁻¹` 的成员刻画）
@@ -74,7 +74,7 @@ theorem demo_mem_inv_inv (α β : Type) (r : Rel α β) (a : α) (b : β) :
 -- soko:hint 目标形态：`SingleValued r → r a b → r a b1 → b = b1`。
 -- soko:hint 关键件：单值假设**先 λ 绑定再应用**（G-73 形状 ①）✓
 theorem singleValued_apply (α β : Type) (r : Rel α β) (h : SingleValued α β r)
-    (a : α) (b b1 : β) (h1 : r a b) (h2 : r a b1) : Eq.{1} β b b1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (a : α) (b b1 : β) (h1 : r a b) (h2 : r a b1) : b = b1 := by
   sorry
 
 -- 练习 2（T 类）：**全性用在具体的点上**。
@@ -168,5 +168,5 @@ theorem singleValued_idRel (α : Type) : SingleValued α α (idRel α) := by
 --   （关系取 `fun u v => g u = g v`、沿 `f a = b` 把 `g (f a) = g (f a)` 搬成 `g (f a) = g b` ✓
 --   —— **别用 `congrArg`**，那个位置解不出宇宙层级 ✗）· `Eq.refl`/`Eq.trans` ✓
 theorem graph_comp (α β γ : Type) (f : α → β) (g : β → γ) (a : α) (c : γ) :
-    (graph α β f • graph β γ g) a c ↔ Eq.{1} γ (g (f a)) c := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (graph α β f • graph β γ g) a c ↔ (g (f a)) = c := by
   sorry

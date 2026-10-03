@@ -35,7 +35,7 @@ import lib.Order
 -- 38.0 画布给的新词汇：**恒等关系** 与 **非对称**
 -- ─────────────────────────────────────────────────────────────
 def idRel (α : Type) : Rel α α :=
-  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) (b : α) => a = b
 
 -- 读法：`Asymmetric α r` = "两个方向不能同时成立" ✓ 它比"反对称"强：
 -- 反对称允许"两个方向同时成立时两边相等"，非对称则**一律不允许** ✓
@@ -55,7 +55,7 @@ theorem demo_strictOrder_iff (α : Type) (r : Rel α α) :
 theorem demo_strictOf_irreflexive (α : Type) (r : Rel α α) :
     Irreflexive α (strictOf α r) :=
   fun (a : α) => fun (haa : strictOf α r a a) =>
-    (fun (hu : ¬ (Eq.{1} α a a)) => hu (Eq.refl.{1} α a)) (And.right haa)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (hu : ¬ (a = a)) => hu (Eq.refl.{1} α a)) (And.right haa)
 
 -- 演示：**传递 + 反对称 ⇒ 切掉相等之后仍传递**（"严格序"的造法）。
 -- ⚠ 光有传递**不够**（`r` 若允许两个方向同时成立，切掉相等后就不传递了）——
@@ -65,12 +65,12 @@ theorem demo_strictOf_transitive (α : Type) (r : Rel α α)
     Transitive α (strictOf α r) :=
   fun (a : α) => fun (b : α) => fun (c : α) =>
     fun (hab : strictOf α r a b) => fun (hbc : strictOf α r b c) =>
-      And.intro (r a c) (¬ (Eq.{1} α a c))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      And.intro (r a c) (¬ (a = c))
         ((fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
           ht a b c (And.left hab) (And.left hbc)) htrans)
-        (fun (hac : Eq.{1} α a c) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-          (fun (hu : ¬ (Eq.{1} α a b)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-            hu ((fun (hv : ∀ (x : α) (y : α), r x y → r y x → Eq.{1} α x y) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (hac : a = c) =>
+          (fun (hu : ¬ (a = b)) =>
+            hu ((fun (hv : ∀ (x : α) (y : α), r x y → r y x → x = y) =>
               hv a b (And.left hab)
                 (rel_subst_right α (fun (u : α) (v : α) => r b v) b c a
                   (Eq.symm.{1} α a c hac) (And.left hbc))) hanti)) (And.right hab))

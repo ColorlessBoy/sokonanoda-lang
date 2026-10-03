@@ -45,7 +45,7 @@ theorem demo_isInf_lower (α : Type) (r : α → α → Prop) (A : α → Prop) 
 
 -- 演示：广义并的成员刻画（"存在一个成员装得下它"）。
 theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
-    x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
   Set.mem_sUnion_iff α F x
 
 -- ─────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
 -- soko:hint 关键件：`isSup_intro` · **自反是定义头 ⇒ 先 λ 绑定** · `rel_subst_right`
 --   （沿 `a = x` 把 `r a a` 搬到 `r x a`）· 等式的记法在这里要**点名**（G-73 形状 ③）。
 theorem isSup_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
-    IsSup α r (fun (x : α) => Eq.{1} α x a) a := by  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    IsSup α r (fun (x : α) => x = a) a := by
   sorry
 
 -- 练习 2（L 类）：**单点的下确界就是那个点**（与练习 1 对偶）。
@@ -68,7 +68,7 @@ theorem isSup_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive 
 -- soko:hint 关键件：`isInf_intro` · `rel_subst_right`（关系取"`r a` 与第二个参数"）·
 --   自反先 λ 绑定 · `Eq.refl` 写全宇宙层级与论域。
 theorem isInf_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
-    IsInf α r (fun (x : α) => Eq.{1} α x a) a := by  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    IsInf α r (fun (x : α) => x = a) a := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ theorem inf_of_lowerBounds_sup (α : Type) (r : α → α → Prop) (A : α → 
 -- soko:hint 关键件：`Iff.intro`（前导 Prop 实参写全）· `Set.mem_sUnion_intro`（造）·
 --   `Set.mem_sUnion_elim`（拆）· 包含假设**是定义头 ⇒ 先 λ 绑定** ✓
 theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (C : Set α) :
-    (Set.sUnion α F) ⊆ C ↔ ∀ (A : Set α), A ∈ F → A ⊆ C := by  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    (⋃₀ F) ⊆ C ↔ ∀ (A : Set α), A ∈ F → A ⊆ C := by
   sorry
 
 -- 练习 9（L 类，**旗舰的对偶**）：**`⋂₀ F` 是最大的"被 `F` 每个成员装下"的集合**。
@@ -145,7 +145,7 @@ theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (C : Set α) :
 -- soko:hint 关键件：`Iff.intro` · `(fun (h : ∀ …) => h)`（把 `∀` 形态当广义交的成员证据）·
 --   包含假设先 λ 绑定 ✓
 theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (C : Set α) :
-    C ⊆ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → C ⊆ A := by  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    C ⊆ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → C ⊆ A := by
   sorry
 
 -- 练习 10（D 类）：**族里的成员含于广义并** —— 练习 8 的"上界"那一半单独当定理用。
@@ -155,5 +155,5 @@ theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (C : Set α) :
 --   ⚠ **不要**走"从练习 8 的 `↔` 上取方向"：那条 `↔` 两侧都是定义头，实测取不出方向来
 --   （G-62 同族：「同字面却判不等」）⇒ **直接证**更短 ✓
 theorem subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
-    A ⊆ (Set.sUnion α F) := by  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    A ⊆ (⋃₀ F) := by
   sorry

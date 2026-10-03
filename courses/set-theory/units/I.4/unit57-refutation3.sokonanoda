@@ -91,5 +91,5 @@ theorem not_subset_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (
 --   关系取 `fun u v => a ∈ v` ✓）· 演示 2 ✓
 
 theorem not_eq_empty_of_mem_sdiff (α : Type) (A B : Set α) (a : α)
-    (h : a ∈ (A \ B)) : ¬ (Eq.{1} (Set α) (A \ B) (∅ α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
+    (h : a ∈ (A \ B)) : ¬ ((A \ B) = (∅ α)) := by
   sorry
