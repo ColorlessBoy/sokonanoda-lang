@@ -136,8 +136,8 @@ fn summary_files(stdout: &str) -> u64 {
 /// 即"多一个入口只该多编**它自己**" ✓；现在 ≈ 3.0 ✗（把那条闭包又走了一遍 ✓）。
 #[test]
 fn a_project_build_must_not_recompile_shared_deps_once_per_entry() {
-    let (one, files_one) = build_with("one", 1);
-    let (many, files_many) = build_with("many", ENTRIES);
+    let (one, files_one, failed_one) = build_with("one", 1);
+    let (many, files_many, failed_many) = build_with("many", ENTRIES);
     assert_eq!(
         files_one,
         (1 + LIBS.len()) as u64,
@@ -147,6 +147,19 @@ fn a_project_build_must_not_recompile_shared_deps_once_per_entry() {
         files_many,
         (ENTRIES + LIBS.len()) as u64,
         "夹具前提：{ENTRIES} 入口的模块数"
+    );
+    // ⚠ **前提**（第 10 棒补 ✓）：**每个模块都必须真的编过** ✗ —— 结构计数
+    // （`passes` / `files`）在**失败编译**上照样有值 ✓ ⇒ 少了这一条，
+    // "把库层编坏"的接线会**照样通过** ✗（实测：会话接线让 264 行
+    // `build.file` 由 `compiled` 变 `failed` ✗，而判据当时是**绿**的 ✗✗）。
+    assert_eq!(
+        failed_one, 0,
+        "夹具前提：1 入口那次**不许有 failed 模块** ✗（failed={failed_one}）"
+    );
+    assert_eq!(
+        failed_many, 0,
+        "夹具前提：{ENTRIES} 入口那次**不许有 failed 模块** ✗（failed={failed_many}）\
+         —— 共享库层被编坏时这里会先红 ✓"
     );
     let marginal = (many - one) as f64 / (ENTRIES - 1) as f64;
     println!(
@@ -162,7 +175,7 @@ fn a_project_build_must_not_recompile_shared_deps_once_per_entry() {
 }
 
 /// 建一个"`entries` 个入口 + 同一条库链"的工程并跑一次，返回 `(passes, files)`。
-fn build_with(tag: &str, entries: usize) -> (u64, u64) {
+fn build_with(tag: &str, entries: usize) -> (u64, u64, u64) {
     let dir = tmp_dir(tag);
     write(&dir, "sokonanoda.toml", "[project]\nname = \"g68\"\n");
     for (path, text) in LIBS {
@@ -179,5 +192,14 @@ fn build_with(tag: &str, entries: usize) -> (u64, u64) {
         );
     }
     let (stderr, stdout) = build(&dir);
-    (stage_field(&stderr, "passes"), summary_files(&stdout))
+    // `build.file` 的 `status` —— **每个模块都要 compiled** ✓（见测试里的前提 ✓）。
+    let failed = stdout
+        .lines()
+        .filter(|l| l.contains("\"type\":\"build.file\"") && l.contains("\"status\":\"failed\""))
+        .count() as u64;
+    (
+        stage_field(&stderr, "passes"),
+        summary_files(&stdout),
+        failed,
+    )
 }
