@@ -149,3 +149,8 @@ theorem isRegular_intro (α : Type) (E : α → α → Prop)
     (h : ∀ (A : α), (∃ (x : α), E x A) →
       ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) : IsRegular α E :=
   Iff.mpr (isRegular_def α E) h
+
+-- 外延性的**对调**版（S-B ✓）：把逐点 `↔` 反过来即可（`Iff.symm` ✓）
+theorem extensional_symm (α : Type) (E : α → α → Prop) (h : Extensional α E)
+    (x y : α) (hxy : ∀ (z : α), E z y ↔ E z x) : x = y :=
+  extensional_apply α E h x y (fun (z : α) => Iff.symm (hxy z))
