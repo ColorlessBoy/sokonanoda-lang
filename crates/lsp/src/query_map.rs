@@ -40,6 +40,8 @@ pub(crate) fn run_info(run: truth::RunInfo) -> RunInfo {
     RunInfo {
         text: run.text,
         kind: run.kind,
+        start: run.start,
+        end: run.end,
     }
 }
 

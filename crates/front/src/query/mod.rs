@@ -984,6 +984,10 @@ impl QueryDoc {
             .map(|run| RunInfo {
                 text: run.text,
                 kind: run.kind.map(|k| k.as_str().to_string()),
+                // **G-53**：位置来自 semantic `Run` ✓（token 路径在切片处就有真 span ✓；
+                // 渲染路径未回贴时是 `None` ✓ ⇒ 消费者当不可点 ✓）。
+                start: run.start,
+                end: run.end,
             })
             .collect()
     }

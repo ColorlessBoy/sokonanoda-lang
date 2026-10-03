@@ -25,6 +25,12 @@ pub(crate) struct RunInfo {
     /// connector (whitespace/punctuation), drawn unstyled.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) kind: Option<String>,
+    /// **源码字节区间**（G-53 ✓）：`Some` = 这段 run 对应源文本的哪一段 ✓ ⇒ webview 的
+    /// `tok-*` span 可以变成可点 ✓（发 `definition` ✓）；`None` = 不知道 ✓ ⇒ **不可点** ✓。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) start: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) end: Option<usize>,
 }
 
 #[derive(Debug, Serialize)]

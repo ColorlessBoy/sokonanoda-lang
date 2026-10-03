@@ -17,6 +17,12 @@ pub struct RunInfo {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub kind: Option<String>,
+    /// **源码字节区间**（G-53 ✓）：`Some` = 这段 run 在**源文本**里的位置 ✓；
+    /// `None` = 不知道 ✓ ⇒ 消费者必须当"**不可点**" ✓（宁可不可点，不可点错 ✗）。
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub start: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub end: Option<usize>,
 }
 
 /// 一条假设（binder）及其语义 runs。
