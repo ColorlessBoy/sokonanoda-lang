@@ -143,3 +143,9 @@ theorem isUnionOf_elim (α : Type) (E : α → α → Prop) (x : α) (F : α →
 theorem isUnionOf_intro (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop)
     (h : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) : IsUnionOf α E x F :=
   Iff.mpr (isUnionOf_def α E x F) h
+
+-- 正则性的构造子（S-B ✓）：`Iff.mpr (isRegular_def …) h`（结论是 def 头 Prop ✓ 规律 ⑤，与 `isUnionOf_intro` 同形 ✓）
+theorem isRegular_intro (α : Type) (E : α → α → Prop)
+    (h : ∀ (A : α), (∃ (x : α), E x A) →
+      ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) : IsRegular α E :=
+  Iff.mpr (isRegular_def α E) h
