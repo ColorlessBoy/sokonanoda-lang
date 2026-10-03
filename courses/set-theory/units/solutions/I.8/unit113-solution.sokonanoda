@@ -34,3 +34,7 @@ theorem le_mono_both (A A' B B' : Set Nat) (hA : A' ⊆ A) (h : A ≼ B) (hB : B
 
 theorem le_of_subset_mono (A A' B : Set Nat) (hA : A' ⊆ A) (h : A ⊆ B) : A' ≼ B :=
   Set.Le.mono Nat Nat A A' B hA (Set.Le.of_subset Nat A B h)
+
+theorem le_trans_mono_right (A B B' C : Set Nat) (h1 : A ≼ B) (hB : B ⊆ B') (h2 : B' ≼ C) :
+    A ≼ C :=
+  Set.Le.trans Nat Nat Nat A B' C (Set.Le.mono_right Nat Nat A B B' h1 hB) h2

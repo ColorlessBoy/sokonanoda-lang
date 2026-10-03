@@ -52,3 +52,9 @@ theorem le_mono_both (A A' B B' : Set Nat) (hA : A' ⊆ A) (h : A ≼ B) (hB : B
 theorem le_of_subset_mono (A A' B : Set Nat) (hA : A' ⊆ A) (h : A ⊆ B) : A' ≼ B :=
   sorry
 -- soko:hint 关键件：`Set.Le.of_subset`（`A ⊆ B` ⇒ `A ≼ B` ✓）后用 `Set.Le.mono`（`A' ⊆ A` ✓）。
+
+-- 练习 6（L 引理链）：三段接力 —— `mono_right` 放大右边，再用 `trans` 接上
+theorem le_trans_mono_right (A B B' C : Set Nat) (h1 : A ≼ B) (hB : B ⊆ B') (h2 : B' ≼ C) :
+    A ≼ C :=
+  sorry
+-- soko:hint 关键件：`Set.Le.mono_right`（`B ⊆ B'` ⇒ `A ≼ B'` ✓）后接 `Set.Le.trans`（`A ≼ B'` 与 `B' ≼ C` ✓）。
