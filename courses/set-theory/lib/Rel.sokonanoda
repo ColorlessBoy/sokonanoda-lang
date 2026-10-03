@@ -358,3 +358,9 @@ theorem Rel.ofPartition_mem (α : Type) (P : (α → Prop) → Prop) (a b : α)
     (h : Rel.ofPartition α P a b) : ∃ (A : α → Prop), P A ∧ A a ∧ A b :=
   (fun (hh : Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b) => Iff.mp hh h)
     (Rel.ofPartition_apply α P a b)
+
+-- `ofPartition` 的自反性（S-B ✓ I.13）：同块两点 ⇒ 自反，见证就是那一块 ✓
+theorem Rel.ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (A : α → Prop) (a : α)
+    (hA : P A) (ha : A a) : Rel.ofPartition α P a a :=
+  Exists.intro (α → Prop) (fun (A' : α → Prop) => P A' ∧ A' a ∧ A' a) A
+    (And.intro hA (And.intro ha ha))
