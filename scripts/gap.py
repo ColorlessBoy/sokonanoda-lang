@@ -186,9 +186,15 @@ def run_repro(entry: dict) -> tuple[str, int, str]:
                     "LSP 应答超时（Node 自身定时器）=> 环境慢，非形状不对 ｜" + detail)
         return ("script", proc.returncode, detail)
     if path.suffix == ".sokonanoda":
+        # **`repro_root`（2026-10-03 ✓，可选字段）**：`.sokonanoda` 类复现件默认**不带 `--root`** ✓
+        # ⇒ 模块根 = 夹具所在目录 ✗ ⇒ 若夹具**正当**地 `import lib.…`（例如 L-08 要引课程的
+        # `lib.Rel`/`lib.Set`/`lib.ZF` ✓）就会**死在 import 上** ✗ —— 那是与缺口**无关**的原因 ✗。
+        # ⇒ 台账可以**显式**给它一个模块根 ✓（**不是豁免** ✗：它让复现件**真的能咬住缺口** ✓）。
+        cmd = [str(ROOT / "scripts" / "soko"), "grade", str(path)]
+        if entry.get("repro_root"):
+            cmd += ["--root", str(ROOT / str(entry["repro_root"]))]
         proc = subprocess.run(
-            [str(ROOT / "scripts" / "soko"), "grade", str(path)],
-            cwd=ROOT, capture_output=True, text=True, env=clean_env(),
+            cmd, cwd=ROOT, capture_output=True, text=True, env=clean_env(),
         )
         text = proc.stdout + proc.stderr
         # **保真度守卫**（2026-10-03 ✓，本会话抓到三例：G-32 / G-30 / G-33 ✗）：
