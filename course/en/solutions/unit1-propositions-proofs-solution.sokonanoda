@@ -27,7 +27,7 @@ theorem ex_falso : (P : Prop) → False → P := by
 
 theorem and_not_absurd : (a : Prop) → a ∧ ¬ a → False := by
   intro a h
-  exact And.right a (¬ a) h (And.left a (¬ a) h) -- soko:notation-ok: here And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)
+  exact And.right a (¬ a) h (And.left h) -- soko:notation-ok: here And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)
 
 theorem demo_binders (a : Prop) (b : Prop) (h : a ∧ b) : b ∧ a := by
   exact And.intro (And.right h) (And.left h)
