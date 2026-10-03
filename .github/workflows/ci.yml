@@ -620,6 +620,16 @@ jobs:
         # ⇒ `target/release/sokonanoda-lsp` 不存在 ⇒ 落到缓存（CI 空 ✗）/下载 ⇒ **挂住** ✗
         # ⇒ 探针看门狗 120s 触发 ⇒ `exit 2` ⇒ `gap.py` 判"环境异常" ⇒ **`G-37` 判红** ✗。
         run: cargo build --release -p sokonanoda-cli -p sokonanoda-lsp --locked
+      - name: Stage bundled CLI + LSP for the extension repros
+        # **G-84 的守卫以前是空转的** ✗（2026-10-03 值守实测 ✓）：`editor/vscode/bin/**`
+        # 是 **gitignored**（`.gitignore:15` ✓）⇒ CI 里永远没有暂存产物 ⇒
+        # `G84-vscode-cli-install.sh` 直接 `exit 2`（原文：`G-84: 扩展里没有暂存好的
+        # 自带 CLI（先 npm run stage:lsp）` ✓）⇒ `gap.py` 按"环境不满足"**响亮跳过** ✗
+        # ⇒ 那条守卫**咬不住任何东西** ✗（撤掉版本守卫也照样绿 ✗）。
+        # 上面那一步已经把 release 的 CLI + LSP 建好了 ✓ ⇒ 这里照扩展打包的做法暂存一份
+        # （`stage-lsp.js` 默认就是 host **release** 构建 ✓）⇒ 复现件能真跑出红/绿 ✓。
+        # **只加这一步**：不动其它 CI 判据、不动时长 ✓。
+        run: node editor/vscode/scripts/stage-lsp.js
       - name: Gap ledger is consistent (docs/gaps)
         # 台账是**契约**：每条缺口的复现必须与它的 status 对得上（fixed ⇒ 应转绿 /
         # open ⇒ 应仍复现 / 显式 repro_expect 覆盖）。只有它能让 `fixed_in` 不随语言
