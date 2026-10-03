@@ -504,3 +504,18 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **留档已判绿 35 项** ✓（别重做 ✓）：库引理 32 ✓（`lib/Ordinal` 15 ✓ · `lib/ZF` 2 ✓ · `lib/Cardinal` 3 ✓ ·
 `lib/SUnion` 9 ✓ · `lib/Rel` 5 ✓）· 单元练习 4 道 ✓（均"撤即判红" ✓）。
 **安全区现状** ✓：库侧余项撞 **G-56 / G-58 / C-118…C-127** ✗；单元侧同题已覆盖 ✓ ⇒ 便宜条目**已系统性取尽** ✗。
+
+## C-128（**open · 绕行 = 换靶** · 2026-10-03 S-B 第 190 轮）`ofPartition` 传递性：**深表达式**撞墙 ✗ ＋ **`|>` 语法事实** ✓
+
+**目标**：`lib/Rel` 加 `Rel.ofPartition_trans`（`Partition α P → ofPartition α P a b → ofPartition α P b c → ofPartition α P a c`）。**两版全红** ✗：
+
+| # | 写法 | 读数 |
+|---|---|---|
+| 1 | 表达式里混入 **`\|>` 管道符** ✗ | ✗ 解析错误：`expected a valid .sokonanoda token, found >` |
+| 2 | 去管道 ✓ + 补上 **`h : Rel.Partition α P` 参数** ✓（传递性必须用划分性质 ✓） | ✗ `line 6` 诊断（含 **"或改用点名写法"** ✗ ⇒ 同族） |
+
+**两条有用的事实** ✓：
+1. **`|>` 不在教学语法里** ✗（这是**语法事实** ✓，不是判据问题 ✓ —— 写证明项时**禁用管道** ✗）；
+2. `ofPartition` 的传递性**必须**把 `h : Rel.Partition α P` 作参数 ✓（`ofPartition` 自身不带划分性质 ✓）—— 这条认识**正确** ✓，只是证明项的**三重 `Exists.elim` + `partition_disjoint` + `Iff.mpr`** 太深 ✗ ⇒ 撞 **G-73 家族** ✓。
+**绕行** ✓：**换靶**到**浅表达式**条目 ✓（`Rel.partition_cover_apply` ✓ 等点式版 ✓）。
+**留档已判绿 56 项** ✓（别重做 ✓）：库引理 53 ✓（`lib/Ordinal` 15 ✓ · `lib/ZF` 2 ✓ · `lib/Cardinal` 3 ✓ · `lib/SUnion` 9 ✓ · `lib/Rel` **26** ✓）· 单元练习 4 道 ✓。
