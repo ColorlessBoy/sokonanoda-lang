@@ -381,3 +381,8 @@ theorem Rel.ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
 theorem Rel.partition_cover_apply (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
     (a : α) : ∃ (A : α → Prop), P A ∧ A a :=
   partition_cover α P h a
+
+-- 非空性的**点式**版（S-B ✓ I.13）：`partition_nonempty` 的直接应用
+theorem Rel.partition_nonempty_apply (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
+    (A : α → Prop) (hA : P A) : ∃ (a : α), A a :=
+  partition_nonempty α P h A hA
