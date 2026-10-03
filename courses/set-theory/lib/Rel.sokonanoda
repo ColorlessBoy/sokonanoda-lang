@@ -346,3 +346,9 @@ theorem Rel.mem_classes_elim (α : Type) (r : Rel α α) (C : α → Prop)
     (h : Rel.Classes α r C) : ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
   (fun (hh : Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c) => Iff.mp hh h)
     (Rel.mem_classes α r C)
+
+-- `Classes` 的构造子（S-B ✓ I.13）：λ 落地 + `Rel.mem_classes` 的 `Iff.mpr`（结论是 def 头 Prop ✓ 规律 ⑤）
+theorem Rel.mem_classes_intro (α : Type) (r : Rel α α) (C : α → Prop)
+    (h : ∃ (a : α), ∀ (c : α), C c ↔ r a c) : Rel.Classes α r C :=
+  (fun (hh : Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c) => Iff.mpr hh h)
+    (Rel.mem_classes α r C)
