@@ -139,7 +139,7 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   in a clause (clauses take **short** names), and an `open … in` body that is
   not a leaf command);
 - `elab` stage — e.g. `elab-unknown-identifier`, `elab-unknown-constant`,
-  `elab-unknown-universe-level`, `elab-universe-arity`, `elab-untyped-binder`,
+  `elab-unknown-universe-level`, `elab-universe-level-conflict`, `elab-universe-arity`, `elab-untyped-binder`,
   `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,
   `elab-nat-literal-disabled`, `elab-invalid-nat-literal`,
   `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`,

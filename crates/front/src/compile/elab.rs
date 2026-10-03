@@ -3819,7 +3819,16 @@ fn try_implicit_application<'a>(
     // 解出来才**替换**；② 开关关着 / 解不出 ⇒ 原样 ✓（`solve_universes` 自己会拒 ✓，
     // 关着时**一次都不进** ✓ ⇒ 逐字节不变 ✓）。
     // ⚠ 开关**先判**（关着时这里连 `pairs` 都不建 ⇒ 既有形状**零额外开销** ✓）
-    if crate::compile::level::universe_metavar_enabled() && matches!(head, Expr::Ident { .. }) {
+    // **U2-a（开关默认关 ✓）**：头写了 `.{n}` 时也进来 —— 但只做**检查** ✓（**显式优先** ✓）：
+    // 解出来的字面与写出来的字面**冲突** ⇒ 报专用码 `ElabUniverseLevelConflict` ✗（不再一路落到内核 ✓）；
+    // 相等 / 有一边不是字面 ⇒ **保留写出来的** ✓（一个字节都不改 ✓）。
+    let written_levels: Option<&[String]> = match head {
+        Expr::UniverseApp { levels, .. } => Some(levels.as_slice()),
+        _ => None,
+    };
+    if crate::compile::level::universe_metavar_enabled()
+        && (matches!(head, Expr::Ident { .. }) || written_levels.is_some())
+    {
         // 模板侧必须**先用解出的项参数代换** ✓：`Box {u} : {α : Sort u} → α → Sort u` 的
         // `result` 是 `Sort u`，与期望类型 `Nat → Sort 1` 形状不同 ✗ ⇒ 代换后才同形 ✓。
         let mut lvl_sigma: HashMap<String, Expr> = HashMap::new();
@@ -3883,18 +3892,46 @@ fn try_implicit_application<'a>(
         if crate::compile::level::trace_enabled() {
             eprintln!("[u1]   solved_levels={:?}", solved_levels);
         }
-        if let Some(levels) = solved_levels {
-            let mut ptrs: Vec<LevelPtr<'a>> = Vec::with_capacity(levels.len());
-            for text in &levels {
-                let mut lv = builder.zero();
-                for _ in 0..text.parse::<u64>().unwrap_or(0) {
-                    lv = builder.succ(lv);
+        if let Some(written) = written_levels {
+            // **显式优先** ✓：只比**字面 vs 字面** ✓（解出的是"下界/未定"⇒ 不判冲突 ✗）。
+            if let Some(solved) = solved_levels.as_ref() {
+                for (i, (s, w)) in solved.iter().zip(written.iter()).enumerate() {
+                    if let (Ok(sn), Ok(wn)) = (s.parse::<u64>(), w.parse::<u64>()) {
+                        if sn != wn {
+                            return Err(CompileError::elab(
+                                ErrorKind::ElabUniverseLevelConflict,
+                                format!(
+                                    "`{}` 的第 {} 个宇宙实参写的是 `{}`，而实参类型要求 `{}` —— 把它改成 `.{{{}}}`（或整段省掉，让引擎自己解 ✓）",
+                                    render_msg(ctx, head),
+                                    i + 1,
+                                    w,
+                                    s,
+                                    solved.join(", ")
+                                ),
+                                span,
+                            ));
+                        }
+                    }
                 }
-                ptrs.push(lv);
             }
-            let levels_ptr = builder.alloc_levels_slice(&ptrs);
-            let head_ptr = builder.name_from_str(head_name);
-            out = builder.mk_const(head_ptr, levels_ptr);
+            // ⚠ **不早退** ✗：下面的组装（插隐式实参 + 装显式实参）还得跑 ✓ ——
+            // 早退过一次，`Show.{1} 0` 被跳过组装 ⇒ 内核 `kernel-rejected` ✗（实测）。
+        }
+        // **显式优先** ✓：头写了 `.{n}` 时**不替换** head（写出来的就是权威 ✓），只走检查 ✓。
+        if written_levels.is_none() {
+            if let Some(levels) = solved_levels {
+                let mut ptrs: Vec<LevelPtr<'a>> = Vec::with_capacity(levels.len());
+                for text in &levels {
+                    let mut lv = builder.zero();
+                    for _ in 0..text.parse::<u64>().unwrap_or(0) {
+                        lv = builder.succ(lv);
+                    }
+                    ptrs.push(lv);
+                }
+                let levels_ptr = builder.alloc_levels_slice(&ptrs);
+                let head_ptr = builder.name_from_str(head_name);
+                out = builder.mk_const(head_ptr, levels_ptr);
+            }
         }
     }
     let mut sigma: HashMap<String, Expr> = HashMap::new();

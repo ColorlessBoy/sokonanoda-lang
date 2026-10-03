@@ -29,6 +29,11 @@ pub enum ErrorKind {
     ElabUnknownIdentifier,
     ElabUnknownConstant,
     ElabUnknownUniverseLevel,
+
+    /// **U2-a**：常量**写出来的**宇宙实参与**解出来的**字面冲突（`Show.{0} …` 而实参要求 `Sort 1` ✓）。
+    /// 单独一条码（设计 §2.9 的"超限报单独通道" ✓）—— 以前这种形状会一路落到内核，
+    /// 报成 `类型不匹配：期望 Sort(1)，实际是 Sort(2)` ✗，看不出"是层级写错了"✓。
+    ElabUniverseLevelConflict,
     ElabUniverseArity,
     ElabUntypedBinder,
     ElabHoleMisplaced,
@@ -115,6 +120,7 @@ impl ErrorKind {
             ElabUnknownIdentifier
             | ElabUnknownConstant
             | ElabUnknownUniverseLevel
+            | ElabUniverseLevelConflict
             | ElabUniverseArity
             | ElabUntypedBinder
             | ElabHoleMisplaced
@@ -171,6 +177,7 @@ impl ErrorKind {
             ElabUnknownIdentifier => "elab-unknown-identifier",
             ElabUnknownConstant => "elab-unknown-constant",
             ElabUnknownUniverseLevel => "elab-unknown-universe-level",
+            ElabUniverseLevelConflict => "elab-universe-level-conflict",
             ElabUniverseArity => "elab-universe-arity",
             ElabUntypedBinder => "elab-untyped-binder",
             ElabHoleMisplaced => "elab-hole-misplaced",
@@ -231,6 +238,9 @@ impl ErrorKind {
             }
             ElabUnknownConstant => {
                 "这里引用了一个不存在的常量。如果它带宇宙参数，请先定义它。"
+            }
+            ElabUniverseLevelConflict => {
+                "这个常量的宇宙层级写错了：写出来的 `.{n}` 与实参类型要求的层级对不上。把它改成提示里的那个数，或者整段 `.{…}` 省掉让引擎自己解。"
             }
             ElabUnknownUniverseLevel => {
                 "这个宇宙层级变量没有在当前声明里声明。用 {u} 声明它，例如 def id {u} : ...。"

@@ -915,6 +915,7 @@ fn every_error_kind_has_stable_code_and_hint() {
         ErrorKind::ElabUnknownIdentifier,
         ErrorKind::ElabUnknownConstant,
         ErrorKind::ElabUnknownUniverseLevel,
+        ErrorKind::ElabUniverseLevelConflict,
         ErrorKind::ElabUniverseArity,
         ErrorKind::ElabUntypedBinder,
         ErrorKind::ElabHoleMisplaced,
@@ -1567,6 +1568,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabUnknownIdentifier,
         ErrorKind::ElabUnknownConstant,
         ErrorKind::ElabUnknownUniverseLevel,
+        ErrorKind::ElabUniverseLevelConflict,
         ErrorKind::ElabUniverseArity,
         ErrorKind::ElabUntypedBinder,
         ErrorKind::ElabHoleMisplaced,
@@ -1622,6 +1624,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabUnknownIdentifier => {}
         ErrorKind::ElabUnknownConstant => {}
         ErrorKind::ElabUnknownUniverseLevel => {}
+        ErrorKind::ElabUniverseLevelConflict => {}
         ErrorKind::ElabUniverseArity => {}
         ErrorKind::ElabUntypedBinder => {}
         ErrorKind::ElabHoleMisplaced => {}
