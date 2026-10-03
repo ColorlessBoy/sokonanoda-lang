@@ -1961,6 +1961,13 @@ fn guarded_binder_type<'a>(
             let Some(actual) = operand_type_expr(ctx, scope, operand, wide) else {
                 continue;
             };
+            if std::env::var_os("SOKO_SOLVE_STEP").is_some() {
+                eprintln!(
+                    "SOLVE-STEP param={param:?} layer_domain={:?} operand_ty={:?}",
+                    format!("{:?}", layer.1).chars().take(110).collect::<String>(),
+                    format!("{:?}", actual).chars().take(110).collect::<String>()
+                );
+            }
             if let Some(found) = unify_extract(&layer.1, &actual, &param) {
                 solved = Some(found);
                 break;
