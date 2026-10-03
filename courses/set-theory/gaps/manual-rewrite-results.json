@@ -1,0 +1,3001 @@
+[
+ {
+  "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+  "line": 16,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)",
+  "after": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → a = b → Eq.{u} α b a := by -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)",
+  "verdict": "red",
+  "diag": "`exact` 类型不匹配：期望 `(α = b) a`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit09-equinumerosity.sokonanoda",
+  "line": 168,
+  "rule": "Set.Equiv",
+  "note": "infix:≈",
+  "before": "¬ (Set.Equiv α β ∅ {b}) := by  -- soko:notation-ok: `∅`/`{b}` 两侧都是零元糖 ⇒ `≈` 补不出论域（G-48）；点名形式把 α β 写在参数位上",
+  "after": "¬ (α ≈ β ∅ {b}) := by  -- soko:notation-ok: `∅`/`{b}` 两侧都是零元糖 ⇒ `≈` 补不出论域（G-48）；点名形式把 α β 写在参数位上",
+  "verdict": "red",
+  "diag": "记法 `≈` 展开成 `Set.Equiv` 时补不出前面的类型参数：请写出点名形式（例如 Set.Equiv α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 191,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) x) (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 196,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `''` 展开成 `Set.image` 时补不出前面的类型参数：请写出点名形式（例如 Set.image α …）"
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 236,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter Two (f1 '' ({aa}))",
+  "after": "(Two ∩ (f1 '' ({aa}))",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `(Set.[] Two.[])`，实际是 `Sort(1)`"
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 235,
+  "rule": "Set.mem",
+  "note": "infix:∈",
+  "before": "example : Set.mem Two aa  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标里补不出）",
+  "after": "example : Two ∈ aa  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标里补不出）",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(2)`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 189,
+  "rule": "Set.preimage",
+  "note": "infixr:⁻¹'",
+  "before": "(Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) ⁻¹' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `⁻¹'` 展开成 `Set.preimage` 时补不出前面的类型参数：请写出点名形式（例如 Set.preimage α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 71,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "⋂₀ G ⊆ Set.sInter α F :=  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "⋂₀ G ⊆ ⋂₀ F :=  -- soko:notation-ok: G-73 形状 ②：`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.7/unit49-sUnion-algebra.sokonanoda",
+  "line": 78,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "⋃₀ (F ∪ G) = ⋃₀ F ∪ Set.sUnion α G := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "⋃₀ (F ∪ G) = ⋃₀ F ∪ ⋃₀ G := by  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 269,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "((∅) ∈ (Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((∅) ∈ ({(∅)}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∈` 展开成 `Set.mem` 时补不出前面的类型参数：请写出点名形式（例如 Set.mem α …）"
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit51-powerset-lattice.sokonanoda",
+  "line": 130,
+  "rule": "Set.subset",
+  "note": "infix:⊆",
+  "before": "(hA : C ⊆ A) (hB : C ⊆ B) : Set.subset α C (A ∩ B) := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名",
+  "after": "(hA : C ⊆ A) (hB : C ⊆ B) : C ⊆ (A ∩ B) := by  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/lib/Sum.sokonanoda",
+  "line": 34,
+  "rule": "Sum",
+  "note": "infixr:⊕",
+  "before": "def elim (α β γ : Type) (f : α → γ) (g : β → γ) (s : Sum α β) : γ :=  -- soko:notation-ok: `⊕` 记法在本文件末尾才声明，声明点之前只能点名",
+  "after": "def elim (α β γ : Type) (f : α → γ) (g : β → γ) (s : α ⊕ β) : γ :=  -- soko:notation-ok: `⊕` 记法在本文件末尾才声明，声明点之前只能点名",
+  "verdict": "red",
+  "diag": "符号 `⊕` 在本文件里还没有声明过记法；先用 infix/notation 命令声明它，或改用点名写法（gaps.census-probe-27510）"
+ },
+ {
+  "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+  "line": 16,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)",
+  "after": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → b = a := by -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)",
+  "verdict": "red",
+  "diag": "`exact` 类型不匹配：期望 `(α = b) a`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
+  "line": 228,
+  "rule": "Set.Equiv",
+  "note": "infix:≈",
+  "before": "¬ (Set.Equiv α β ∅ {b}) := by  -- soko:notation-ok: `∅`/`{b}` 两侧都是零元糖 ⇒ `≈` 补不出论域（G-48）；点名形式把 α β 写在参数位上",
+  "after": "¬ (α ≈ β ∅ {b}) := by  -- soko:notation-ok: `∅`/`{b}` 两侧都是零元糖 ⇒ `≈` 补不出论域（G-48）；点名形式把 α β 写在参数位上",
+  "verdict": "red",
+  "diag": "`exact` 判定失败：记法 `≈` 展开成 `Set.Equiv` 时补不出前面的类型参数：请写出点名形式（例如 Set.Equiv α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 209,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) x) (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 200,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 289,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Two ∩ (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∩` 展开成 `Set.inter` 时补不出前面的类型参数：请写出点名形式（例如 Set.inter α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+  "line": 261,
+  "rule": "Set.mem",
+  "note": "infix:∈",
+  "before": "Set.mem Two aa  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "Two ∈ aa  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "`exact` 类型不匹配：期望 `Two ∈ (aa ((Two ∩ (f1 '' ({aa}))) (f1 '' ({bb}))))`，实际是 `And (Set.mem Two.aa (Set.image f1 ("
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 197,
+  "rule": "Set.preimage",
+  "note": "infixr:⁻¹'",
+  "before": "(Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)",
+  "after": "((Set Nat) ⁻¹' (fun (_ : Set Nat) => ∅)",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 80,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(⋂₀ (F ∪ G)) ⊆ (Set.sInter α F) :=  -- soko:notation-ok: `⊆` 记法在此处补不出前导类型参数（内核提示改点名，G-73 第十七例）",
+  "after": "(⋂₀ (F ∪ G)) ⊆ (⋂₀ F) :=  -- soko:notation-ok: `⊆` 记法在此处补不出前导类型参数（内核提示改点名，G-73 第十七例）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.7/unit72-sUnion-inter.sokonanoda",
+  "line": 91,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : x ∈ (⋃₀ (F ∩ G))) : x ∈ ((Set.sUnion α F) ∩ (Set.sUnion α G)) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(h : x ∈ (⋃₀ (F ∩ G))) : x ∈ ((⋃₀ F) ∩ (Set.sUnion α G)) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 276,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "x ∈ (Set.singleton (Set Nat) (Set.univ Nat)) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "x ∈ ({(Set.univ Nat)}) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 254,
+  "rule": "Set.subset",
+  "note": "infix:⊆",
+  "before": "Set.subset β (f '' (A ∩ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "β ⊆ (f '' (A ∩ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `⊆` 展开成 `Set.subset` 时补不出前面的类型参数：请写出点名形式（例如 Set.subset α …）"
+ },
+ {
+  "file": "courses/set-theory/lib/Sum.sokonanoda",
+  "line": 35,
+  "rule": "Sum",
+  "note": "infixr:⊕",
+  "before": "Sum.rec.{1} α β (fun (_ : Sum α β) => γ) f g s  -- soko:notation-ok: 同上（motive 的域必须点名）",
+  "after": "Sum.rec.{1} α β (fun (_ : α ⊕ β) => γ) f g s  -- soko:notation-ok: 同上（motive 的域必须点名）",
+  "verdict": "red",
+  "diag": "符号 `⊕` 在本文件里还没有声明过记法；先用 infix/notation 命令声明它，或改用点名写法（gaps.census-probe-27510）"
+ },
+ {
+  "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+  "line": 18,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "exact Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a) -- soko:notation-ok: same as above (engine boundary)",
+  "after": "exact Eq.subst.{u} α (fun (x : α) => x = a) a b h (Eq.refl.{u} α a) -- soko:notation-ok: same as above (engine boundary)",
+  "verdict": "red",
+  "diag": "`exact` 类型不匹配：期望 `(α = b) a`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit09-solution.sokonanoda",
+  "line": 229,
+  "rule": "Set.Equiv",
+  "note": "infix:≈",
+  "before": "exact fun (h : Set.Equiv α β ∅ {b}) =>",
+  "after": "exact fun (h : α ≈ β ∅ {b}) =>",
+  "verdict": "red",
+  "diag": "`exact` 判定失败：记法 `≈` 展开成 `Set.Equiv` 时补不出前面的类型参数：请写出点名形式（例如 Set.Equiv α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 214,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.symm.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Eq.symm.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) x) (Set.univ Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 221,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+  "line": 262,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter Two (f1 '' ({aa}))",
+  "after": "(Two ∩ (f1 '' ({aa}))",
+  "verdict": "red",
+  "diag": "`exact` 类型不匹配：期望 `(Two ∈ aa) (Two ∩ ((f1 '' ({aa})) (f1 '' ({bb}))))`，实际是 `And (Set.mem Two.aa (Set.image f1 ("
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 257,
+  "rule": "Set.mem",
+  "note": "infix:∈",
+  "before": "(Set.mem (Set Nat) (∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) ∈ (∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(2)`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 201,
+  "rule": "Set.preimage",
+  "note": "infixr:⁻¹'",
+  "before": "(Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)",
+  "after": "((Set Nat) ⁻¹' (fun (_ : Set Nat) => ∅)",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 96,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(Set.sInter α G) ⊆ (Set.sInter α F) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
+  "after": "(⋂₀ G) ⊆ (Set.sInter α F) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.7/unit72-sUnion-inter.sokonanoda",
+  "line": 91,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : x ∈ (⋃₀ (F ∩ G))) : x ∈ ((Set.sUnion α F) ∩ (Set.sUnion α G)) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(h : x ∈ (⋃₀ (F ∩ G))) : x ∈ ((Set.sUnion α F) ∩ (⋃₀ G)) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 280,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "((Set.univ Nat) ∈ (Set.singleton (Set Nat) (Set.univ Nat)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set.univ Nat) ∈ ({(Set.univ Nat)}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.12/unit51-solution.sokonanoda",
+  "line": 58,
+  "rule": "Set.subset",
+  "note": "infix:⊆",
+  "before": "(hA : C ⊆ A) (hB : C ⊆ B) : Set.subset α C (A ∩ B) :=  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名",
+  "after": "(hA : C ⊆ A) (hB : C ⊆ B) : C ⊆ (A ∩ B) :=  -- soko:notation-ok: G-73 第十七/十八例：`⊆`/`𝒫` 在这些位置补不出前导实参，按内核提示改点名",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "course/en/unit5-universes-sort.sokonanoda",
+  "line": 88,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)",
+  "after": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → a = b → Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)",
+  "verdict": "red",
+  "diag": "rejected: def_eq failed: def_eq mismatch expected: Sort(0) | actual: Sort(u)"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 218,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat)) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) x) (Set.univ Nat)) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 225,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+  "line": 277,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Two ∩ (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∩` 展开成 `Set.inter` 时补不出前面的类型参数：请写出点名形式（例如 Set.inter α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 260,
+  "rule": "Set.mem",
+  "note": "infix:∈",
+  "before": "(Set.mem (Set Nat) (∅)",
+  "after": "((Set Nat) ∈ (∅)",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(2)`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 207,
+  "rule": "Set.preimage",
+  "note": "infixr:⁻¹'",
+  "before": "(Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) ⁻¹' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `⁻¹'` 展开成 `Set.preimage` 时补不出前面的类型参数：请写出点名形式（例如 Set.preimage α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 96,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(Set.sInter α G) ⊆ (Set.sInter α F) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
+  "after": "(Set.sInter α G) ⊆ (⋂₀ F) :=  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.7/unit72-sUnion-inter.sokonanoda",
+  "line": 102,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(hx : x ∈ (⋃₀ F)) : x ∈ (Set.sUnion α G) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(hx : x ∈ (⋃₀ F)) : x ∈ (⋃₀ G) := by  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 289,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "(Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Set.inter (Set Nat) ({(∅)})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+  "line": 154,
+  "rule": "Set.subset",
+  "note": "infix:⊆",
+  "before": "Set.subset β (f '' (A ∩ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "β ⊆ (f '' (A ∩ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "`exact` 判定失败：rejected: expected a pi type, got: Sort(1)"
+ },
+ {
+  "file": "course/en/unit5-universes-sort.sokonanoda",
+  "line": 88,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)",
+  "after": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → b = a := by sorry -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)",
+  "verdict": "red",
+  "diag": "rejected: def_eq failed: def_eq mismatch expected: Sort(0) | actual: Sort(u)"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 234,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) x) (Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 227,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+  "line": 281,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数",
+  "after": "(Two ∩ (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数",
+  "verdict": "red",
+  "diag": "记法 `∩` 展开成 `Set.inter` 时补不出前面的类型参数：请写出点名形式（例如 Set.inter α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 216,
+  "rule": "Set.preimage",
+  "note": "infixr:⁻¹'",
+  "before": "(Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) ⁻¹' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `⁻¹'` 展开成 `Set.preimage` 时补不出前面的类型参数：请写出点名形式（例如 Set.preimage α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 97,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "fun (x : α) => fun (hx : x ∈ Set.sInter α G) =>",
+  "after": "fun (x : α) => fun (hx : x ∈ ⋂₀ G) =>",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+  "line": 36,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "((fun (hu : x ∈ (Set.sUnion α (𝒫 A)) ↔  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "((fun (hu : x ∈ (⋃₀ (𝒫 A)) ↔  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 290,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "(Set.singleton (Set Nat) (Set.univ Nat)) x) ∧",
+  "after": "({(Set.univ Nat)}) x) ∧",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+  "line": 16,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）",
+  "after": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → a = b → Eq.{u} α b a := by -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）",
+  "verdict": "red",
+  "diag": "`exact` 类型不匹配：期望 `(α = b) a`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 234,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 239,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+  "line": 285,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter Two (f1 '' ({aa}))",
+  "after": "(Two ∩ (f1 '' ({aa}))",
+  "verdict": "red",
+  "diag": "记法 `∩` 展开成 `Set.inter` 时补不出前面的类型参数：请写出点名形式（例如 Set.inter α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 10,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+  "line": 47,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "A ⊆ (Set.sUnion α (𝒫 A)) :=  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "A ⊆ (⋃₀ (𝒫 A)) :=  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 299,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "(Set.singleton (Set Nat) (∅) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "({x})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(Set.[] (Set.[] Nat.[]))`"
+ },
+ {
+  "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+  "line": 16,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）",
+  "after": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → b = a := by -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）",
+  "verdict": "red",
+  "diag": "`exact` 类型不匹配：期望 `(α = b) a`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 266,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))",
+  "after": "Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) x) (Set.empty Nat))",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 241,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+  "line": 289,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Two ∩ (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `(Set.[] Two.[])`，实际是 `Sort(1)`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 30,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "(h : x ∈ (⋂₀ F)) : ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.12/unit68-solution.sokonanoda",
+  "line": 49,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (hu : a ∈ (Set.sUnion α (𝒫 A)) ↔  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "(fun (hu : a ∈ (⋃₀ (𝒫 A)) ↔  -- soko:notation-ok: `𝒫`/`⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 300,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "(Set.singleton (Set Nat) (Set.univ Nat) x)",
+  "after": "({x})",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(Set.[] (Set.[] Nat.[]))`"
+ },
+ {
+  "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+  "line": 18,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "exact Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a) -- soko:notation-ok: 同上（引擎边界）",
+  "after": "exact Eq.subst.{u} α (fun (x : α) => x = a) a b h (Eq.refl.{u} α a) -- soko:notation-ok: 同上（引擎边界）",
+  "verdict": "red",
+  "diag": "`exact` 类型不匹配：期望 `(α = b) a`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 266,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))",
+  "after": "Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (∅))",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 243,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `''` 展开成 `Set.image` 时补不出前面的类型参数：请写出点名形式（例如 Set.image α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit08-solution.sokonanoda",
+  "line": 295,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter Two (f1 '' ({aa}))",
+  "after": "(Two ∩ (f1 '' ({aa}))",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `(Set.[] Two.[])`，实际是 `Sort(1)`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 31,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(fun (hu : x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "(fun (hu : x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 15,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 302,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "(Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Set.inter (Set Nat) ({(∅)})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "course/unit5-universes-sort.sokonanoda",
+  "line": 80,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）",
+  "after": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → a = b → Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）",
+  "verdict": "red",
+  "diag": "rejected: def_eq failed: def_eq mismatch expected: Sort(0) | actual: Sort(u)"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 270,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) (Set.empty Nat))",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) (Set.empty Nat))",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 247,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 222,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter (Set Nat) ({(Set Nat)} ∅)",
+  "after": "((Set Nat) ∩ ({(Set Nat)} ∅)",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `(Set.[] (Set.[] Nat.[]))`，实际是 `Sort(1)`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 35,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(Set.sInter α F) ⊆ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "(⋂₀ F) ⊆ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 58,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(hA : A ∈ F) (hx : x ∈ A) : x ∈ (Set.sUnion α F) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "(hA : A ∈ F) (hx : x ∈ A) : x ∈ (⋃₀ F) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 303,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "(Set.singleton (Set Nat) (Set.univ Nat)) x)",
+  "after": "({(Set.univ Nat)}) x)",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "course/unit5-universes-sort.sokonanoda",
+  "line": 80,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）",
+  "after": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → b = a := by sorry -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）",
+  "verdict": "red",
+  "diag": "rejected: def_eq failed: def_eq mismatch expected: Sort(0) | actual: Sort(u)"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 270,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) (Set.empty Nat))",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) (∅))",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 251,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 232,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter (Set Nat) ({(∅)})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) ∩ ({(∅)})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∩` 展开成 `Set.inter` 时补不出前面的类型参数：请写出点名形式（例如 Set.inter α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 36,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "fun (x : α) (hx : x ∈ (Set.sInter α F)) => mem_of_mem_sInter α F x hx A hA  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "fun (x : α) (hx : x ∈ (⋂₀ F)) => mem_of_mem_sInter α F x hx A hA  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 59,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "(fun (hu : x ∈ (⋃₀ F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 308,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "(Set.singleton (Set Nat) (∅) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "({x})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(Set.[] (Set.[] Nat.[]))`"
+ },
+ {
+  "file": "courses/set-theory/units/I.10/unit27-quotients.sokonanoda",
+  "line": 43,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星",
+  "after": "(Quot.mk.{1} α r a) = (Quot.mk.{1} α r b) :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `Sort(0)`，实际是 `Sort(1)`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 277,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))",
+  "after": "Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) x) (Set.empty Nat))",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 253,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 244,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter (Set Nat) ({(∅)})",
+  "after": "((Set Nat) ∩ ({(∅)})",
+  "verdict": "red",
+  "diag": "记法 `{a}` 展开成 `Set.singleton` 时补不出前面的类型参数：请写出点名形式（例如 Set.singleton α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 53,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "A ⊆ (Set.sInter α F) ↔ ∀ (B : Set α), B ∈ F → A ⊆ B :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "A ⊆ (⋂₀ F) ↔ ∀ (B : Set α), B ∈ F → A ⊆ B :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 64,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "(h : x ∈ (⋃₀ F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 309,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "(Set.singleton (Set Nat) (Set.univ Nat) x)",
+  "after": "({x})",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(Set.[] (Set.[] Nat.[]))`"
+ },
+ {
+  "file": "courses/set-theory/units/I.10/unit27-quotients.sokonanoda",
+  "line": 97,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem quot_eq_rel_id (α : Type) (a b : α) (h : a = b) : Eq.{1} α a b := by  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星",
+  "after": "theorem quot_eq_rel_id (α : Type) (a b : α) (h : a = b) : a = b := by  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 277,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))",
+  "after": "Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (∅))",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 258,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 248,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter (Set Nat) ({(∅)})",
+  "after": "((Set Nat) ∩ ({(∅)})",
+  "verdict": "red",
+  "diag": "记法 `{a}` 展开成 `Set.singleton` 时补不出前面的类型参数：请写出点名形式（例如 Set.singleton α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 54,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "Iff.intro (A ⊆ (Set.sInter α F)) (∀ (B : Set α), B ∈ F → A ⊆ B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "Iff.intro (A ⊆ (⋂₀ F)) (∀ (B : Set α), B ∈ F → A ⊆ B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 65,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "(fun (hu : x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 311,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "(Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Set.inter (Set Nat) ({(∅)})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.10/unit27-quotients.sokonanoda",
+  "line": 125,
+  "rule": "Eq.{…}",
+  "note": "实参不足",
+  "before": "(h : Eq.{1} (Quot.{1} α (fun (x y : α) => Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星",
+  "after": "(h : Eq.{1} (Quot.{1} α (fun (x y : α) => x = y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星",
+  "verdict": "no-rewrite"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 281,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) (Set.univ Nat))",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) (Set.univ Nat))",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 261,
+  "rule": "Set.image",
+  "note": "infixr:''",
+  "before": "(Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) '' (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 289,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) ∩ (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∩` 展开成 `Set.inter` 时补不出前面的类型参数：请写出点名形式（例如 Set.inter α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 55,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(fun (h : A ⊆ (Set.sInter α F)) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "(fun (h : A ⊆ (⋂₀ F)) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 70,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "y ∈ (f '' (Set.sUnion α F)) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "y ∈ (f '' (⋃₀ F)) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 312,
+  "rule": "Set.singleton",
+  "note": "delim:{a}",
+  "before": "(Set.singleton (Set Nat) (Set.univ Nat)) x)",
+  "after": "({(Set.univ Nat)}) x)",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.10/unit27-quotients.sokonanoda",
+  "line": 127,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(Quot.mk.{1} α (fun (x y : α) => x = y) b)) : Eq.{1} α a b := by  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星",
+  "after": "(Quot.mk.{1} α (fun (x y : α) => x = y) b)) : a = b := by  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 291,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) x) (Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 302,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) ∩ (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∩` 展开成 `Set.inter` 时补不出前面的类型参数：请写出点名形式（例如 Set.inter α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 60,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(fun (hu : a ∈ (Set.sInter α F) ↔ ∀ (B : Set α), B ∈ F → a ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "(fun (hu : a ∈ (⋂₀ F) ↔ ∀ (B : Set α), B ∈ F → a ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 71,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.mem_image_elim f A y (y ∈ (f '' (Set.sUnion α F))) hy  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "Set.mem_image_elim f A y (y ∈ (f '' (⋃₀ F))) hy  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.11/unit32-pointwise.sokonanoda",
+  "line": 156,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "IsSup β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "IsSup β r (fun (y : β) => ∃ (f : α → β), F f ∧ (f a) = y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 291,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 311,
+  "rule": "Set.inter",
+  "note": "infixl:∩",
+  "before": "(Set.inter (Set Nat) (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "((Set Nat) ∩ (Set.singleton (Set Nat) (∅))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∩` 展开成 `Set.inter` 时补不出前面的类型参数：请写出点名形式（例如 Set.inter α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 10,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 73,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.mem_image_intro f (Set.sUnion α F) y x  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "Set.mem_image_intro f (⋃₀ F) y x  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.11/unit32-pointwise.sokonanoda",
+  "line": 167,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "IsInf β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "IsInf β r (fun (y : β) => ∃ (f : α → β), F f ∧ (f a) = y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 304,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 23,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(h : x ∈ (⋂₀ F)) : ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 78,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) : y ∈ (f '' (Set.sUnion α F)) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "(h : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) : y ∈ (f '' (⋃₀ F)) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit33-powerset.sokonanoda",
+  "line": 39,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "fun (x : α) => Eq.{1} Bool (f x) Bool.true  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "after": "fun (x : α) => (f x) = Bool.true  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
+  "line": 313,
+  "rule": "Set.empty",
+  "note": "notation:∅",
+  "before": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Eq.{1} (Set Nat) ((fun (_ : Set Nat) => ∅) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数：请写出点名形式（例如 Set.empty α …）"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 24,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(fun (hu : x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(fun (hu : x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 80,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(y ∈ (f '' (Set.sUnion α F))) h  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "(y ∈ (f '' (⋃₀ F))) h  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit33-powerset.sokonanoda",
+  "line": 118,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "x ∈ (charSet α f) ↔ Eq.{1} Bool (f x) Bool.true := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "after": "x ∈ (charSet α f) ↔ (f x) = Bool.true := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 66,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "c ∈ (A ∩ (Set.sInter α F)) ↔  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "c ∈ (A ∩ (⋂₀ F)) ↔  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 87,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : y ∈ (f '' (Set.sUnion α F))) : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "(h : y ∈ (f '' (⋃₀ F))) : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit33-powerset.sokonanoda",
+  "line": 126,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : Eq.{1} Bool (f x) Bool.true) : x ∈ (charSet α f) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "after": "(h : (f x) = Bool.true) : x ∈ (charSet α f) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 68,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "Iff.intro (c ∈ (A ∩ (Set.sInter α F)))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "Iff.intro (c ∈ (A ∩ (⋂₀ F)))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 88,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.mem_image_elim f (Set.sUnion α F) y  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "Set.mem_image_elim f (⋃₀ F) y  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit33-powerset.sokonanoda",
+  "line": 134,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : ∀ (a : α), Eq.{1} Bool (f a) (g a)) (x : α) (hx : x ∈ (charSet α f)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "after": "(h : ∀ (a : α), (f a) = (g a)) (x : α) (hx : x ∈ (charSet α f)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 70,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(fun (h : c ∈ (A ∩ (Set.sInter α F))) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(fun (h : c ∈ (A ∩ (⋂₀ F))) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 90,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (x : α) (hx : x ∈ (Set.sUnion α F)) (hxy : f x = y) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "(fun (x : α) (hx : x ∈ (⋃₀ F)) (hxy : f x = y) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit33-powerset.sokonanoda",
+  "line": 143,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : ∀ (a : α), Eq.{1} Bool (f a) Bool.true → Eq.{1} Bool (g a) Bool.true) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "after": "(h : ∀ (a : α), (f a) = Bool.true → Eq.{1} Bool (g a) Bool.true) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 72,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(mem_inter_left α A (Set.sInter α F) c h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(mem_inter_left α A (⋂₀ F) c h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 101,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "y ∈ (f '' (Set.sUnion α F)) ↔ ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "y ∈ (f '' (⋃₀ F)) ↔ ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit33-powerset.sokonanoda",
+  "line": 143,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : ∀ (a : α), Eq.{1} Bool (f a) Bool.true → Eq.{1} Bool (g a) Bool.true) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "after": "(h : ∀ (a : α), Eq.{1} Bool (f a) Bool.true → (g a) = Bool.true) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 74,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "mem_inter_intro α A B c (mem_inter_left α A (Set.sInter α F) c h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "mem_inter_intro α A B c (mem_inter_left α A (⋂₀ F) c h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit73-solution.sokonanoda",
+  "line": 102,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Iff.intro (y ∈ (f '' (Set.sUnion α F))) (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "after": "Iff.intro (y ∈ (f '' (⋃₀ F))) (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit34-function-algebra.sokonanoda",
+  "line": 40,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Function.Injective α β f ↔ ∀ (x : α) (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "Function.Injective α β f ↔ ∀ (x : α) (y : α), (f x) = (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 75,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(mem_of_mem_sInter α F c (mem_inter_right α A (Set.sInter α F) c h) B hB)))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(mem_of_mem_sInter α F c (mem_inter_right α A (⋂₀ F) c h) B hB)))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 11,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit34-function-algebra.sokonanoda",
+  "line": 40,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Function.Injective α β f ↔ ∀ (x : α) (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "Function.Injective α β f ↔ ∀ (x : α) (y : α), Eq.{1} β (f x) (f y) → x = y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 77,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "mem_inter_intro α A (Set.sInter α F) c (And.left h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "mem_inter_intro α A (⋂₀ F) c (And.left h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 27,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(hA : A ∈ F) (hx : x ∈ A) : x ∈ (Set.sUnion α F) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "(hA : A ∈ F) (hx : x ∈ A) : x ∈ (⋃₀ F) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit34-function-algebra.sokonanoda",
+  "line": 45,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Function.Surjective α β f ↔ ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "Function.Surjective α β f ↔ ∀ (y : β), ∃ (x : α), (f x) = y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit71-solution.sokonanoda",
+  "line": 78,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "((fun (hu : c ∈ (Set.sInter α F) ↔ ∀ (B : Set α), B ∈ F → c ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "((fun (hu : c ∈ (⋂₀ F) ↔ ∀ (B : Set α), B ∈ F → c ∈ B) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 28,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "(fun (hu : x ∈ (⋃₀ F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit34-function-algebra.sokonanoda",
+  "line": 63,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} γ ((fun (a : α) => g (f a)) x) (g (f x)) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "((fun (a : α) => g (f a)) x) = (g (f x)) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+  "line": 10,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 33,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "(h : x ∈ (⋃₀ F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit34-function-algebra.sokonanoda",
+  "line": 72,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} δ ((fun (a : α) => h (g (f a))) x)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "δ = ((fun (a : α) => h (g (f a))) x)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "red",
+  "diag": "rejected: expected a pi type, got: $4"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+  "line": 23,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(h : x ∈ (Set.sInter α F)) : ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(h : x ∈ (⋂₀ F)) : ∀ (A : Set α), A ∈ F → x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 34,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "(fun (hu : x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit34-function-algebra.sokonanoda",
+  "line": 81,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} β ((fun (a : α) => f a) x) (f x) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "((fun (a : α) => f a) x) = (f x) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+  "line": 24,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(fun (hu : x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(fun (hu : x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 39,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "x ∈ (f ⁻¹' (Set.sUnion β F)) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "x ∈ (f ⁻¹' (⋃₀ F)) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit35-inverses.sokonanoda",
+  "line": 41,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Function.LeftInverse α β g f ↔ ∀ (x : α), Eq.{1} α (g (f x)) x :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "Function.LeftInverse α β g f ↔ ∀ (x : α), (g (f x)) = x :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+  "line": 75,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(hx : x ∈ (Set.sInter α G)) : x ∈ (Set.sInter α F) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(hx : x ∈ (⋂₀ G)) : x ∈ (Set.sInter α F) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 40,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "mem_preimage_of_mem α β f (Set.sUnion β F) x  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "mem_preimage_of_mem α β f (⋃₀ F) x  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit35-inverses.sokonanoda",
+  "line": 46,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Function.RightInverse α β g f ↔ ∀ (y : β), Eq.{1} β (f (g y)) y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "Function.RightInverse α β g f ↔ ∀ (y : β), (f (g y)) = y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+  "line": 75,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(hx : x ∈ (Set.sInter α G)) : x ∈ (Set.sInter α F) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(hx : x ∈ (Set.sInter α G)) : x ∈ (⋂₀ F) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 45,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A)) : x ∈ (f ⁻¹' (Set.sUnion β F)) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "(h : ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A)) : x ∈ (f ⁻¹' (⋃₀ F)) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit35-inverses.sokonanoda",
+  "line": 64,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : Function.LeftInverse α β g f) (x : α) : Eq.{1} α (g (f x)) x := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(h : Function.LeftInverse α β g f) (x : α) : (g (f x)) = x := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit72-solution.sokonanoda",
+  "line": 76,
+  "rule": "Set.sInter",
+  "note": "prefix:⋂₀",
+  "before": "(fun (hu : x ∈ (Set.sInter α F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "after": "(fun (hu : x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 47,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(x ∈ (f ⁻¹' (Set.sUnion β F))) h  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "(x ∈ (f ⁻¹' (⋃₀ F))) h  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit35-inverses.sokonanoda",
+  "line": 153,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} α (g y) (g1 y) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(g y) = (g1 y) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 53,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(F : Set (Set β)) (x : α) (h : x ∈ (f ⁻¹' (Set.sUnion β F))) :  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "(F : Set (Set β)) (x : α) (h : x ∈ (f ⁻¹' (⋃₀ F))) :  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 44,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) : Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(h : ∀ (x : α), (f x) = (g x)) : Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 57,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(exists_mem_of_mem_sUnion β F (f x) (mem_of_mem_preimage α β f (Set.sUnion β F) x h))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "(exists_mem_of_mem_sUnion β F (f x) (mem_of_mem_preimage α β f (⋃₀ F) x h))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 44,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) : Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) : f = g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 65,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "x ∈ (f ⁻¹' (Set.sUnion β F)) ↔ ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "x ∈ (f ⁻¹' (⋃₀ F)) ↔ ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A) :=  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 46,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem demo_propext_spec (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "theorem demo_propext_spec (a b : Prop) (h : a ↔ b) : a = b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.3/unit74-solution.sokonanoda",
+  "line": 66,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Iff.intro (x ∈ (f ⁻¹' (Set.sUnion β F))) (∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "after": "Iff.intro (x ∈ (f ⁻¹' (⋃₀ F))) (∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A))  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 49,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} (α → δ) ((fun (a : α) => h (g (f a)))) (fun (a : α) => h (g (f a))) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "((fun (a : α) => h (g (f a)))) = (fun (a : α) => h (g (f a))) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 7,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "x ∈ Set.sUnion α F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "x ∈ ⋃₀ F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 61,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : ∀ (a : α), Eq.{1} β (f a) (g a)) : Eq.{1} (α → β) f g := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(h : ∀ (a : α), (f a) = (g a)) : Eq.{1} (α → β) f g := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 19,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "A ⊆ Set.sUnion α F :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "A ⊆ ⋃₀ F :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 61,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : ∀ (a : α), Eq.{1} β (f a) (g a)) : Eq.{1} (α → β) f g := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(h : ∀ (a : α), Eq.{1} β (f a) (g a)) : f = g := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 24,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α F ⊆ Set.sUnion α G :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "⋃₀ F ⊆ Set.sUnion α G :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 68,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem propext_apply (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "theorem propext_apply (a b : Prop) (h : a ↔ b) : a = b := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 24,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α F ⊆ Set.sUnion α G :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "Set.sUnion α F ⊆ ⋃₀ G :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 78,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} (α → δ) ((h ∘ g) ∘ f) (h ∘ (g ∘ f)) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "((h ∘ g) ∘ f) = (h ∘ (g ∘ f)) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 25,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "fun (x : α) => fun (hx : x ∈ ⋃₀ F) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 86,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} (α → β) ((fun (a : α) => f a)) f := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "((fun (a : α) => f a)) = f := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 26,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.mem_sUnion_elim α F x (x ∈ Set.sUnion α G) hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "Set.mem_sUnion_elim α F x (x ∈ ⋃₀ G) hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 95,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} (α → β) ((fun (a : α) => (fun (b : β) => b) (f a))) f := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "((fun (a : α) => (fun (b : β) => b) (f a))) = f := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 31,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : ∀ (B : Set α), B ∈ F → B ⊆ A) : Set.sUnion α F ⊆ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(h : ∀ (B : Set α), B ∈ F → B ⊆ A) : ⋃₀ F ⊆ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 135,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} (β → α) g g1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "g = g1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 32,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "fun (x : α) => fun (hx : x ∈ ⋃₀ F) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 145,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} (Set α) A B := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "A = B := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 37,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : Set.sUnion α F ⊆ A) : ∀ (B : Set α), B ∈ F → B ⊆ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(h : ⋃₀ F ⊆ A) : ∀ (B : Set α), B ∈ F → B ⊆ A :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.12/unit44-extensionality.sokonanoda",
+  "line": 154,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : ∀ (a : A) (b : B), r a b ↔ s a b) : Eq.{1} (Rel A B) r s := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(h : ∀ (a : A) (b : B), r a b ↔ s a b) : r = s := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 42,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(hA : A ∈ F) (hx : x ∈ A) : x ∈ Set.sUnion α F :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(hA : A ∈ F) (hx : x ∈ A) : x ∈ ⋃₀ F :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit36-relation-algebra.sokonanoda",
+  "line": 38,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "fun (a : α) (b : α) => a = b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 51,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "¬ (x ∈ Set.sUnion α (fun (_ : Set α) => False)) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "¬ (x ∈ ⋃₀ (fun (_ : Set α) => False)) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit36-relation-algebra.sokonanoda",
+  "line": 68,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem inv_inv (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) ((r ⁻¹) ⁻¹) r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "theorem inv_inv (A B : Type) (r : Rel A B) : ((r ⁻¹) ⁻¹) = r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 52,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "fun (hx : x ∈ Set.sUnion α (fun (_ : Set α) => False)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "fun (hx : x ∈ ⋃₀ (fun (_ : Set α) => False)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit36-relation-algebra.sokonanoda",
+  "line": 79,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} (Rel C A) ((r • s) ⁻¹) (s ⁻¹ • r ⁻¹) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "((r • s) ⁻¹) = (s ⁻¹ • r ⁻¹) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 58,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "∀ (x : α), ¬ (x ∈ Set.sUnion α F) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion` 是 def 头，这些位置补不出前导实参",
+  "after": "∀ (x : α), ¬ (x ∈ ⋃₀ F) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit36-relation-algebra.sokonanoda",
+  "line": 102,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} (Rel A D) ((r • s) • t) (r • (s • t)) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "((r • s) • t) = (r • (s • t)) := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit48-solution.sokonanoda",
+  "line": 59,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion` 是 def 头，这些位置补不出前导实参",
+  "after": "fun (x : α) => fun (hx : x ∈ ⋃₀ F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit36-relation-algebra.sokonanoda",
+  "line": 145,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(idRel α) a b ↔ Eq.{1} α a b := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(idRel α) a b ↔ a = b := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 7,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "x ∈ Set.sUnion α F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "x ∈ ⋃₀ F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit36-relation-algebra.sokonanoda",
+  "line": 156,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem idRel_comp (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) (idRel A • r) r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "theorem idRel_comp (A B : Type) (r : Rel A B) : (idRel A • r) = r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 19,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : ¬ (x ∈ Set.sUnion α F)) : ∀ (A : Set α), A ∈ F → ¬ (x ∈ A) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "(h : ¬ (x ∈ ⋃₀ F)) : ∀ (A : Set α), A ∈ F → ¬ (x ∈ A) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit36-relation-algebra.sokonanoda",
+  "line": 165,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem comp_idRel (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) (r • idRel B) r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "theorem comp_idRel (A B : Type) (r : Rel A B) : (r • idRel B) = r := by  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 24,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : ∀ (A : Set α), A ∈ F → ¬ (x ∈ A)) : ¬ (x ∈ Set.sUnion α F) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "(h : ∀ (A : Set α), A ∈ F → ¬ (x ∈ A)) : ¬ (x ∈ ⋃₀ F) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit37-algebraic-characterizations.sokonanoda",
+  "line": 39,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "fun (a : α) (b : α) => a = b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 25,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "fun (hx : x ∈ ⋃₀ F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit38-order-algebra.sokonanoda",
+  "line": 38,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "fun (a : α) (b : α) => a = b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 30,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α (F ∪ G) = Set.sUnion α F ∪ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "⋃₀ (F ∪ G) = Set.sUnion α F ∪ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit38-order-algebra.sokonanoda",
+  "line": 58,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(fun (hu : ¬ (Eq.{1} α a a)) => hu (Eq.refl.{1} α a)) (And.right haa)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(fun (hu : ¬ (a = a)) => hu (Eq.refl.{1} α a)) (And.right haa)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 30,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α (F ∪ G) = Set.sUnion α F ∪ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.sUnion α (F ∪ G) = ⋃₀ F ∪ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit38-order-algebra.sokonanoda",
+  "line": 68,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "And.intro (r a c) (¬ (Eq.{1} α a c))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "And.intro (r a c) (¬ (a = c))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 30,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α (F ∪ G) = Set.sUnion α F ∪ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.sUnion α (F ∪ G) = Set.sUnion α F ∪ ⋃₀ G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit38-order-algebra.sokonanoda",
+  "line": 71,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(fun (hac : Eq.{1} α a c) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(fun (hac : a = c) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 31,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.ext α (Set.sUnion α (F ∪ G)) (Set.sUnion α F ∪ Set.sUnion α G) (fun (x : α) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.ext α (⋃₀ (F ∪ G)) (Set.sUnion α F ∪ Set.sUnion α G) (fun (x : α) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit38-order-algebra.sokonanoda",
+  "line": 72,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(fun (hu : ¬ (Eq.{1} α a b)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(fun (hu : ¬ (a = b)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 31,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.ext α (Set.sUnion α (F ∪ G)) (Set.sUnion α F ∪ Set.sUnion α G) (fun (x : α) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.ext α (Set.sUnion α (F ∪ G)) (⋃₀ F ∪ Set.sUnion α G) (fun (x : α) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit38-order-algebra.sokonanoda",
+  "line": 73,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "hu ((fun (hv : ∀ (x : α) (y : α), r x y → r y x → Eq.{1} α x y) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "hu ((fun (hv : ∀ (x : α) (y : α), r x y → r y x → x = y) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 31,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.ext α (Set.sUnion α (F ∪ G)) (Set.sUnion α F ∪ Set.sUnion α G) (fun (x : α) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.ext α (Set.sUnion α (F ∪ G)) (Set.sUnion α F ∪ ⋃₀ G) (fun (x : α) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit39-image-kernel.sokonanoda",
+  "line": 41,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "fun (a : α) (b : α) => a = b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 32,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Iff.intro (x ∈ Set.sUnion α (F ∪ G)) (x ∈ Set.sUnion α F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Iff.intro (x ∈ ⋃₀ (F ∪ G)) (x ∈ Set.sUnion α F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit39-image-kernel.sokonanoda",
+  "line": 50,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "fun (a : α) (b : α) => Eq.{1} β (f a) (f b)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "fun (a : α) (b : α) => (f a) = (f b)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 32,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Iff.intro (x ∈ Set.sUnion α (F ∪ G)) (x ∈ Set.sUnion α F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Iff.intro (x ∈ Set.sUnion α (F ∪ G)) (x ∈ ⋃₀ F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit39-image-kernel.sokonanoda",
+  "line": 70,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "kernel α β f a b ↔ Eq.{1} β (f a) (f b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "kernel α β f a b ↔ (f a) = (f b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 32,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Iff.intro (x ∈ Set.sUnion α (F ∪ G)) (x ∈ Set.sUnion α F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Iff.intro (x ∈ Set.sUnion α (F ∪ G)) (x ∈ Set.sUnion α F ∪ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit39-image-kernel.sokonanoda",
+  "line": 71,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Iff.intro (kernel α β f a b) (Eq.{1} β (f a) (f b))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "Iff.intro (kernel α β f a b) ((f a) = (f b))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 33,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (h : x ∈ Set.sUnion α (F ∪ G)) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "(fun (h : x ∈ ⋃₀ (F ∪ G)) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit39-image-kernel.sokonanoda",
+  "line": 72,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(fun (h : kernel α β f a b) => h) (fun (h : Eq.{1} β (f a) (f b)) => h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(fun (h : kernel α β f a b) => h) (fun (h : (f a) = (f b)) => h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 34,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.mem_sUnion_elim α (F ∪ G) x (x ∈ Set.sUnion α F ∪ Set.sUnion α G) h  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.mem_sUnion_elim α (F ∪ G) x (x ∈ ⋃₀ F ∪ Set.sUnion α G) h  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit40-transitive-closure.sokonanoda",
+  "line": 46,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Rel.reflClosure α r a b ↔ (r a b ∨ Eq.{1} α a b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "Rel.reflClosure α r a b ↔ (r a b ∨ a = b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 34,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.mem_sUnion_elim α (F ∪ G) x (x ∈ Set.sUnion α F ∪ Set.sUnion α G) h  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.mem_sUnion_elim α (F ∪ G) x (x ∈ Set.sUnion α F ∪ ⋃₀ G) h  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit45-single-valued.sokonanoda",
+  "line": 42,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "fun (a : α) (b : α) => a = b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 36,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Or.elim (A ∈ F) (A ∈ G) (x ∈ Set.sUnion α F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Or.elim (A ∈ F) (A ∈ G) (x ∈ ⋃₀ F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit45-single-valued.sokonanoda",
+  "line": 45,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "∀ (a : α) (b : β) (b1 : β), r a b → r a b1 → Eq.{1} β b b1  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "∀ (a : α) (b : β) (b1 : β), r a b → r a b1 → b = b1  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 36,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Or.elim (A ∈ F) (A ∈ G) (x ∈ Set.sUnion α F ∪ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Or.elim (A ∈ F) (A ∈ G) (x ∈ Set.sUnion α F ∪ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit45-single-valued.sokonanoda",
+  "line": 51,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "fun (a : α) (b : β) => Eq.{1} β (f a) b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "fun (a : α) (b : β) => (f a) = b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 38,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Or.inl (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Or.inl (x ∈ ⋃₀ F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit45-single-valued.sokonanoda",
+  "line": 77,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(a : α) (b b1 : β) (h1 : r a b) (h2 : r a b1) : Eq.{1} β b b1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(a : α) (b b1 : β) (h1 : r a b) (h2 : r a b1) : b = b1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 38,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Or.inl (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Or.inl (x ∈ Set.sUnion α F) (x ∈ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit45-single-valued.sokonanoda",
+  "line": 171,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(graph α β f • graph β γ g) a c ↔ Eq.{1} γ (g (f a)) c := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "after": "(graph α β f • graph β γ g) a c ↔ (g (f a)) = c := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 41,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Or.inr (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Or.inr (x ∈ ⋃₀ F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.13/unit52-rel-iteration.sokonanoda",
+  "line": 33,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②：`•`/`Rel` 是 def 头，这些位置补不出前导实参",
+  "after": "fun (a : α) (b : α) => a = b  -- soko:notation-ok: G-73 形状 ②：`•`/`Rel` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 41,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Or.inr (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Or.inr (x ∈ Set.sUnion α F) (x ∈ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 187,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} (Set Two) (({aa}) ∩ ({bb}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Set Two) = (({aa}) ∩ ({bb}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "red",
+  "diag": "类型不匹配：期望 `Two.[]`，实际是 `Pi (α : Sort(1)), (Set.[] $0)`"
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 43,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (h : x ∈ Set.sUnion α F ∪ Set.sUnion α G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "(fun (h : x ∈ ⋃₀ F ∪ Set.sUnion α G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 240,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(Exists.intro Two (fun (t : Two) => (Eq.{1} Two t aa) ∧ (Eq.{1} Two (f1 t) aa))",
+  "after": "(Exists.intro Two (fun (t : Two) => (t = aa) ∧ (Eq.{1} Two (f1 t) aa))",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 43,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (h : x ∈ Set.sUnion α F ∪ Set.sUnion α G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "(fun (h : x ∈ Set.sUnion α F ∪ ⋃₀ G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 240,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(Exists.intro Two (fun (t : Two) => (Eq.{1} Two t aa) ∧ (Eq.{1} Two (f1 t) aa))",
+  "after": "(Exists.intro Two (fun (t : Two) => (Eq.{1} Two t aa) ∧ ((f1 t) = aa))",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 44,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Or.elim (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G) (x ∈ Set.sUnion α (F ∪ G))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Or.elim (x ∈ ⋃₀ F) (x ∈ Set.sUnion α G) (x ∈ Set.sUnion α (F ∪ G))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 241,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "aa (And.intro (Eq.{1} Two aa aa) (Eq.{1} Two (f1 aa) aa)  -- soko:notation-ok: R1/R2：同上",
+  "after": "aa (And.intro (aa = aa) (Eq.{1} Two (f1 aa) aa)  -- soko:notation-ok: R1/R2：同上",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 44,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Or.elim (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G) (x ∈ Set.sUnion α (F ∪ G))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Or.elim (x ∈ Set.sUnion α F) (x ∈ ⋃₀ G) (x ∈ Set.sUnion α (F ∪ G))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 241,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "aa (And.intro (Eq.{1} Two aa aa) (Eq.{1} Two (f1 aa) aa)  -- soko:notation-ok: R1/R2：同上",
+  "after": "aa (And.intro (Eq.{1} Two aa aa) ((f1 aa) = aa)  -- soko:notation-ok: R1/R2：同上",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 44,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Or.elim (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G) (x ∈ Set.sUnion α (F ∪ G))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Or.elim (x ∈ Set.sUnion α F) (x ∈ Set.sUnion α G) (x ∈ ⋃₀ (F ∪ G))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 243,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(Exists.intro Two (fun (t : Two) => (Eq.{1} Two t bb) ∧ (Eq.{1} Two (f1 t) aa))  -- soko:notation-ok: R1/R2：同上",
+  "after": "(Exists.intro Two (fun (t : Two) => (t = bb) ∧ (Eq.{1} Two (f1 t) aa))  -- soko:notation-ok: R1/R2：同上",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 45,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (hF : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "(fun (hF : x ∈ ⋃₀ F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 243,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(Exists.intro Two (fun (t : Two) => (Eq.{1} Two t bb) ∧ (Eq.{1} Two (f1 t) aa))  -- soko:notation-ok: R1/R2：同上",
+  "after": "(Exists.intro Two (fun (t : Two) => (Eq.{1} Two t bb) ∧ ((f1 t) = aa))  -- soko:notation-ok: R1/R2：同上",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 46,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.mem_sUnion_elim α F x (x ∈ Set.sUnion α (F ∪ G)) hF  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.mem_sUnion_elim α F x (x ∈ ⋃₀ (F ∪ G)) hF  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 244,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "bb (And.intro (Eq.{1} Two bb bb) (Eq.{1} Two (f1 bb) aa)",
+  "after": "bb (And.intro (bb = bb) (Eq.{1} Two (f1 bb) aa)",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 49,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (hG : x ∈ Set.sUnion α G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "(fun (hG : x ∈ ⋃₀ G) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 244,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "bb (And.intro (Eq.{1} Two bb bb) (Eq.{1} Two (f1 bb) aa)",
+  "after": "bb (And.intro (Eq.{1} Two bb bb) ((f1 bb) = aa)",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 50,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.mem_sUnion_elim α G x (x ∈ Set.sUnion α (F ∪ G)) hG  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.mem_sUnion_elim α G x (x ∈ ⋃₀ (F ∪ G)) hG  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 258,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(fun (x : α) => (x ∈ (A ∩ B)) ∧ (Eq.{1} β (f x) y))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(fun (x : α) => (x ∈ (A ∩ B)) ∧ ((f x) = y))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 55,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α F ⊆ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "⋃₀ F ⊆ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 260,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(fun (x : α) => fun (hx : (x ∈ (A ∩ B)) ∧ (Eq.{1} β (f x) y)) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(fun (x : α) => fun (hx : (x ∈ (A ∩ B)) ∧ ((f x) = y)) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 55,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α F ⊆ Set.sUnion α G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.sUnion α F ⊆ ⋃₀ G :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 262,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(Exists.intro α (fun (t : α) => (A t) ∧ (Eq.{1} β (f t) y)) x  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(Exists.intro α (fun (t : α) => (A t) ∧ ((f t) = y)) x  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 56,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "fun (x : α) => fun (hx : x ∈ Set.sUnion α F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "fun (x : α) => fun (hx : x ∈ ⋃₀ F) =>  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 263,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(And.intro (A x) (Eq.{1} β (f x) y)",
+  "after": "(And.intro (A x) ((f x) = y)",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 57,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.mem_sUnion_elim α F x (x ∈ Set.sUnion α G) hx  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.mem_sUnion_elim α F x (x ∈ ⋃₀ G) hx  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 267,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(Exists.intro α (fun (t : α) => (B t) ∧ (Eq.{1} β (f t) y)) x",
+  "after": "(Exists.intro α (fun (t : α) => (B t) ∧ ((f t) = y)) x",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 62,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α F ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "⋃₀ F ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit08-images-preimages.sokonanoda",
+  "line": 268,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(And.intro (B x) (Eq.{1} β (f x) y)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "after": "(And.intro (B x) ((f x) = y)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 62,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α F ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.sUnion α F ⊆ ⋃₀ (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+  "line": 140,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(hC : x ∈ C) (hxy : Eq.{1} β (f x) y) : cbRelL α β C f x y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）",
+  "after": "(hC : x ∈ C) (hxy : (f x) = y) : cbRelL α β C f x y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 67,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α G ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "⋃₀ G ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+  "line": 144,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(hC : ¬ (x ∈ C)) (hyx : Eq.{1} α (g y) x) : cbRelR α β C g x y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）",
+  "after": "(hC : ¬ (x ∈ C)) (hyx : (g y) = x) : cbRelR α β C g x y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 67,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Set.sUnion α G ⊆ Set.sUnion α (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "Set.sUnion α G ⊆ ⋃₀ (F ∪ G) :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+  "line": 152,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : cbRelL α β C f x y) : Eq.{1} β (f x) y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）",
+  "after": "(h : cbRelL α β C f x y) : (f x) = y :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit49-solution.sokonanoda",
+  "line": 72,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(hA : A ∈ F) : ⋂₀ F ⊆ Set.sUnion α F :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "after": "(hA : A ∈ F) : ⋂₀ F ⊆ ⋃₀ F :=  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.3/unit112-cantor-bernstein.sokonanoda",
+  "line": 160,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : cbRelR α β C g x y) : Eq.{1} α (g y) x :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）",
+  "after": "(h : cbRelR α β C g x y) : (g y) = x :=  -- soko:notation-ok: 前导隐式实参在这些位置补不出来（引擎边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 6,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.4/unit56-refutation2.sokonanoda",
+  "line": 81,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem mem_of_eq_of_mem (α : Type) (A B : Set α) (a : α) (heq : Eq.{1} (Set α) A B)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参",
+  "after": "theorem mem_of_eq_of_mem (α : Type) (A B : Set α) (a : α) (heq : A = B)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 25,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(h : x ∈ (Set.sUnion α F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "(h : x ∈ (⋃₀ F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.4/unit56-refutation2.sokonanoda",
+  "line": 93,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(hna : ¬ (a ∈ B)) : ¬ (Eq.{1} (Set α) A B) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参",
+  "after": "(hna : ¬ (a ∈ B)) : ¬ (A = B) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 26,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (hu : x ∈ (Set.sUnion α F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "(fun (hu : x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A) => Iff.mp hu h)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.4/unit56-refutation2.sokonanoda",
+  "line": 100,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "¬ (Eq.{1} (Set α) A (∅ α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参",
+  "after": "¬ (A = (∅ α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 39,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(Set.sUnion α F) ⊆ A ↔ ∀ (B : Set α), B ∈ F → B ⊆ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "(⋃₀ F) ⊆ A ↔ ∀ (B : Set α), B ∈ F → B ⊆ A :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.4/unit57-refutation3.sokonanoda",
+  "line": 94,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(h : a ∈ (A \\ B)) : ¬ (Eq.{1} (Set α) (A \\ B) (∅ α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`\\`/`Set.*` 是 def 头，这些位置补不出前导实参",
+  "after": "(h : a ∈ (A \\ B)) : ¬ ((A \\ B) = (∅ α)) := by  -- soko:notation-ok: G-73 形状 ②：`∈`/`\\`/`Set.*` 是 def 头，这些位置补不出前导实参",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 40,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "Iff.intro ((Set.sUnion α F) ⊆ A) (∀ (B : Set α), B ∈ F → B ⊆ A)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "Iff.intro ((⋃₀ F) ⊆ A) (∀ (B : Set α), B ∈ F → B ⊆ A)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.5/unit67-subset-order.sokonanoda",
+  "line": 38,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "(f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), Eq.{1} (β x) (f x) (g x)) :  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
+  "after": "(f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), (f x) = (g x)) :  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 41,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "(fun (h : (Set.sUnion α F) ⊆ A) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "(fun (h : (⋃₀ F) ⊆ A) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.5/unit67-subset-order.sokonanoda",
+  "line": 39,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
+  "after": "f = g :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/solutions/I.7/unit69-solution.sokonanoda",
+  "line": 44,
+  "rule": "Set.sUnion",
+  "note": "prefix:⋃₀",
+  "before": "h b ((fun (hu : b ∈ (Set.sUnion α F) ↔ ∃ (C : Set α), C ∈ F ∧ b ∈ C) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "after": "h b ((fun (hu : b ∈ (⋃₀ F) ↔ ∃ (C : Set α), C ∈ F ∧ b ∈ C) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ },
+ {
+  "file": "courses/set-theory/units/I.5/unit67-subset-order.sokonanoda",
+  "line": 41,
+  "rule": "Eq.{…}",
+  "note": "infix:=",
+  "before": "theorem demo_propext (a b : Prop) (h : a ↔ b) : Eq.{1} Prop a b :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
+  "after": "theorem demo_propext (a b : Prop) (h : a ↔ b) : a = b :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）",
+  "verdict": "green",
+  "diag": ""
+ }
+]
