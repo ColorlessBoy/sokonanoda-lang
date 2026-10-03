@@ -3588,11 +3588,12 @@ fn try_implicit_application<'a>(
                     })
                     .collect();
                 let is_inductive = |n: &str| ctx.inductives.contains_key(n);
-                if let Some(solved_prefix) = crate::compile::implicit::solve_prefix(
+                if let Some(solved_prefix) = crate::compile::implicit::solve_prefix_with_args(
                     &layers,
                     &result,
                     k,
                     &arg_tys_prefix,
+                    &args,
                     expected_src,
                     ctx.defs,
                     &is_inductive,
@@ -3628,11 +3629,12 @@ fn try_implicit_application<'a>(
                     ));
                 }
                 let is_inductive = |n: &str| ctx.inductives.contains_key(n);
-                if let Some(solved) = crate::compile::implicit::solve_prefix(
+                if let Some(solved) = crate::compile::implicit::solve_prefix_with_args(
                     &extended,
                     &result,
                     k,
                     &arg_tys,
+                    &args,
                     expected_src,
                     ctx.defs,
                     &is_inductive,
@@ -3770,11 +3772,12 @@ fn try_implicit_application<'a>(
     let is_inductive = |n: &str| ctx.inductives.contains_key(n);
     // **M3 的三通道**（**同一个码**，只有 message 说哪一句不同 ✓；D6 = 不新增码）：
     // `Unsolved` = 补不出（既有文案，逐字不变）· `Kind` = 值的 sort 确定不对 · `Clash` = 两条约束刚性冲突。
-    let solved = match crate::compile::implicit::solve_prefix_outcome(
+    let solved = match crate::compile::implicit::solve_prefix_outcome_with_args(
         &layers,
         &result,
         k,
         &arg_tys,
+        &args,
         expected_src,
         ctx.defs,
         &is_inductive,

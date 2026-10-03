@@ -138,6 +138,7 @@ pub(crate) fn solve_prefix(
         result,
         k,
         arg_tys,
+        &[],
         expected,
         defs,
         is_inductive,
@@ -151,11 +152,61 @@ pub(crate) fn solve_prefix(
 /// [`solve_prefix`] 的**带通道**版本（M3）：严格档**永远先跑且不变**，失败后按档位分流；
 /// 引擎档把失败归因成三条通道（`Unsolved` / `Kind` / `Clash`）——**用户可见的码仍是既有那条**，
 /// 通道只决定调用方的 hint/message 说哪一句 ✓（D6 = 不新增码）。
+/// **G-63 修复的入口**（2026-10-03 ✓）：与 [`solve_prefix`] 同义，但多带**显式实参本身** ✓ ——
+/// 求解器要用它们把**显式层的 fresh 名**映射掉 ✗（否则模板里留裸 `\0soko_p*` ⇒ 与实际实参
+/// 判成刚性冲突 ✗；根因读数见 commit `c3ab1211` ✓）。旧签名那条保留为包装 ✓ ⇒ 既有调用点零改动 ✓。
+pub(crate) fn solve_prefix_with_args(
+    layers: &[Layer],
+    result: &Expr,
+    k: usize,
+    arg_tys: &[Option<Expr>],
+    arg_vals: &[&Expr],
+    expected: Option<&Expr>,
+    defs: &crate::compile::elab::DefTable,
+    is_inductive: &dyn Fn(&str) -> bool,
+) -> Option<Vec<Expr>> {
+    solve_prefix_outcome_with_args(
+        layers,
+        result,
+        k,
+        arg_tys,
+        arg_vals,
+        expected,
+        defs,
+        is_inductive,
+    )
+    .into_option()
+}
+
 pub(crate) fn solve_prefix_outcome(
     layers: &[Layer],
     result: &Expr,
     k: usize,
     arg_tys: &[Option<Expr>],
+    expected: Option<&Expr>,
+    defs: &crate::compile::elab::DefTable,
+    is_inductive: &dyn Fn(&str) -> bool,
+) -> crate::compile::meta::MetaSolve {
+    solve_prefix_outcome_with_args(
+        layers,
+        result,
+        k,
+        arg_tys,
+        &[],
+        expected,
+        defs,
+        is_inductive,
+    )
+}
+
+/// [`solve_prefix_outcome`] 的**带实参版**（G-63 ✓）：多带**显式实参本身** ✓。
+pub(crate) fn solve_prefix_outcome_with_args(
+    layers: &[Layer],
+    result: &Expr,
+    k: usize,
+    arg_tys: &[Option<Expr>],
+    // **G-63 修复**：显式实参**本身** ✓。
+    arg_vals: &[&Expr],
     expected: Option<&Expr>,
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
@@ -166,6 +217,7 @@ pub(crate) fn solve_prefix_outcome(
         result,
         k,
         arg_tys,
+        arg_vals,
         expected,
         defs,
         is_inductive,
@@ -177,9 +229,27 @@ pub(crate) fn solve_prefix_outcome(
         // **档位**（IA-4 M2）：`Sibling` = E19 的窄版（默认，逐字节等于今天）；
         // `Engine` = 新引擎（真元变量 + 三值合一 + occurs/作用域 + 有界待定 + 出口 zonk）。
         return if metavar_mode() == MetavarMode::Engine {
-            solve_prefix_meta(layers, result, k, arg_tys, expected, defs, is_inductive)
+            solve_prefix_meta(
+                layers,
+                result,
+                k,
+                arg_tys,
+                arg_vals,
+                expected,
+                defs,
+                is_inductive,
+            )
         } else {
-            match solve_prefix_pending(layers, result, k, arg_tys, expected, defs, is_inductive) {
+            match solve_prefix_pending(
+                layers,
+                result,
+                k,
+                arg_tys,
+                arg_vals,
+                expected,
+                defs,
+                is_inductive,
+            ) {
                 Some(v) => MetaSolve::Solved(v),
                 None => MetaSolve::Unsolved,
             }
@@ -204,6 +274,8 @@ fn solve_prefix_meta(
     result: &Expr,
     k: usize,
     arg_tys: &[Option<Expr>],
+    // **G-63 修复**：显式实参**本身**（不是它们的类型 ✗）—— 把显式层的 fresh 名映射掉 ✓。
+    arg_vals: &[&Expr],
     expected: Option<&Expr>,
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
@@ -241,6 +313,15 @@ fn solve_prefix_meta(
     let mut sigma: std::collections::HashMap<String, Expr> = std::collections::HashMap::new();
     for (i, id) in ids.iter().enumerate() {
         sigma.insert(layers[i].name.clone(), meta.meta_expr(*id));
+    }
+    // ②b **G-63 修复**（2026-10-03 ✓）：显式层的 fresh 名也要映射到**实际实参本身** ✓。
+    // 不映射 ⇒ 模板里留裸 `\0soko_p*` ✗ ⇒ 与实际实参判成刚性冲突 ✗（根因读数见 commit c3ab1211 ✓：
+    // `③ i=1 j=4 模板= soko_m1 soko_p2 soko_p3 实际=qr α a b` ⇒ `[clash] 左= soko_p2 ｜ 右= a` ✗）。
+    for x in 0..arg_vals.len().min(layers.len().saturating_sub(k)) {
+        let name = layers[k + x].name.clone();
+        if !name.is_empty() {
+            sigma.insert(name, arg_vals[x].clone());
+        }
     }
     // ③ 路线①：后续层的域（已代换）≟ 该实参的类型
     for i in 0..k {
@@ -396,6 +477,8 @@ fn solve_prefix_pending(
     result: &Expr,
     k: usize,
     arg_tys: &[Option<Expr>],
+    // **G-63 修复**：显式实参**本身**（不是它们的类型 ✗）—— 把显式层的 fresh 名映射掉 ✓。
+    arg_vals: &[&Expr],
     expected: Option<&Expr>,
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
@@ -405,6 +488,7 @@ fn solve_prefix_pending(
         result,
         k,
         arg_tys,
+        arg_vals,
         expected,
         defs,
         is_inductive,
@@ -420,6 +504,8 @@ fn solve_prefix_impl(
     result: &Expr,
     k: usize,
     arg_tys: &[Option<Expr>],
+    // **G-63 修复**：显式实参**本身**（不是它们的类型 ✗）—— 把显式层的 fresh 名映射掉 ✓。
+    _arg_vals: &[&Expr],
     expected: Option<&Expr>,
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
@@ -712,6 +798,7 @@ mod tests {
             &result,
             2,
             &[Some(crate::proof::parse_expr_text("Nat").unwrap())],
+            &[],
             None,
             &empty_defs(),
             &|_| false,
@@ -756,6 +843,7 @@ mod tests {
             &result,
             2,
             &[None, Some(beta_ty.clone())],
+            &[],
             None,
             &empty_defs(),
             &|_| false,
@@ -773,6 +861,7 @@ mod tests {
             &result,
             2,
             &[None, None],
+            &[],
             None,
             &empty_defs(),
             &|_| false
@@ -785,6 +874,7 @@ mod tests {
             &result,
             2,
             &[None, Some(beta_ty.clone())],
+            &[],
             None,
             &empty_defs(),
             &|_| false,
