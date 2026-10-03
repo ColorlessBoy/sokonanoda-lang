@@ -167,3 +167,8 @@ theorem union_empty_family_no_self_mem (α : Type) (E : α → α → Prop) (x :
 theorem union_elim (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) (z : α)
     (h : IsUnionOf α E x F) (hz : E z x) : ∃ (A : α), F A ∧ E z A := by
   sorry
+
+-- 练习（L 引理链）：**并的构造子** —— 逐点刻画 ⇒ `IsUnionOf`（与 `isEmpty_intro` 同形）
+theorem union_intro (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop)
+    (h : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) : IsUnionOf α E x F := by
+  sorry
