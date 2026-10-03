@@ -182,3 +182,8 @@ theorem isZero_elems_transitive (α : Type) (E : α → α → Prop) (x z : α)
 theorem isZero_elems_isOrdinal (α : Type) (E : α → α → Prop) (x z : α)
     (h : IsZero α E x) (hz : E z x) : IsOrdinal α E z :=
   False.elim (IsOrdinal α E z) (zero_no_elem α E x h z hz)
+
+-- 零序数的元素给出良基性（**元素不存在** ✓，从假前提出发 ✓）
+theorem isZero_elems_wellFounded (α : Type) (E : α → α → Prop) (x z : α)
+    (h : IsZero α E x) (hz : E z x) : IsWellFounded α E :=
+  False.elim (IsWellFounded α E) (zero_no_elem α E x h z hz)
