@@ -386,3 +386,9 @@ theorem Rel.partition_cover_apply (α : Type) (P : (α → Prop) → Prop) (h : 
 theorem Rel.partition_nonempty_apply (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
     (A : α → Prop) (hA : P A) : ∃ (a : α), A a :=
   partition_nonempty α P h A hA
+
+-- 互斥性的**点式**版（S-B ✓ I.13）：`partition_disjoint` 的直接应用
+theorem Rel.partition_disjoint_apply (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
+    (A B : α → Prop) (hA : P A) (hB : P B) (hAB : ∃ (x : α), A x ∧ B x) :
+    ∀ (c : α), A c ↔ B c :=
+  partition_disjoint α P h A B hA hB hAB
