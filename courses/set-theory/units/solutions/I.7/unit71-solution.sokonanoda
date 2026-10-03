@@ -38,12 +38,12 @@ theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)
     ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) => Iff.mp hu h) (Set.mem_inter_iff a A B))
 
 theorem mem_inter_sUnion_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α) :
-    c ∈ (A ∩ (⋃₀ F)) ↔ ∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
-  Iff.intro (c ∈ (A ∩ (Set.sUnion α F))) (∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
-    (fun (h : c ∈ (A ∩ (Set.sUnion α F))) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    c ∈ (A ∩ (⋃₀ F)) ↔ ∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B) :=
+  Iff.intro (c ∈ (A ∩ (⋃₀ F))) (∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B))
+    (fun (h : c ∈ (A ∩ (⋃₀ F))) =>
       Exists.elim (Set α) (fun (B : Set α) => B ∈ F ∧ c ∈ B)
         (∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B))
-        (mem_of_mem_sUnion α F c (mem_inter_right α A (Set.sUnion α F) c h))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+        (mem_of_mem_sUnion α F c (mem_inter_right α A (⋃₀ F) c h))
         (fun (B : Set α) (hB : B ∈ F ∧ c ∈ B) =>
           Exists.intro (Set α) (fun (D : Set α) => D ∈ F ∧ c ∈ (A ∩ D)) B  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
             (And.intro (B ∈ F) (c ∈ (A ∩ B)) (And.left hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
