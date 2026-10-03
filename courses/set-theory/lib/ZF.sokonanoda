@@ -132,3 +132,9 @@ theorem extensional_apply (α : Type) (E : α → α → Prop) (h : Extensional 
 theorem isEmpty_no_elem (α : Type) (E : α → α → Prop) (x y : α)
     (h : IsEmpty α E x) (hy : E y x) : False :=
   (fun (hp : ∀ (y : α), ¬ (E y x)) => hp y hy) (Iff.mp (isEmpty_def α E x) h)
+
+-- 并的消去子（S-B ✓；λ 落地 + 只走 `Iff.mp` ✓）
+theorem isUnionOf_elim (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) (z : α)
+    (h : IsUnionOf α E x F) (hz : E z x) : ∃ (A : α), F A ∧ E z A :=
+  (fun (hp : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) =>
+    (fun (hz' : E z x) => Iff.mp (hp z) hz') hz) (Iff.mp (isUnionOf_def α E x F) h)
