@@ -658,6 +658,12 @@
               "title": "单元54 等势的代数的开端",
               "title_en": "Unit 54 — Beginning the Algebra of Equinumerosity",
               "unit": 54
+            },
+            {
+              "file": "units/I.8/unit113-continuum-hypothesis.sokonanoda",
+              "title": "单元113 连续统假设（CH）",
+              "title_en": "Unit 113 — The Continuum Hypothesis",
+              "unit": 113
             }
           ]
         },

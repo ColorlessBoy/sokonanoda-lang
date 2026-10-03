@@ -1,0 +1,33 @@
+-- 单元113 连续统假设（CH）—— Enderton §6.8（卷 I 最后一个非内核墙缺口）
+import lib.Set
+import lib.Equiv
+
+-- 本单元只允许用：`Set`（∈ ⊆ 𝒫）· `Set.Equiv`（≈）· `Set.Le`（≼）+ 内建逻辑。
+-- ⚠ 「ℕ 作为整体」的唯一写法是 `@Set.univ Nat` —— 不写 `@` 时隐式类型参数在期望位补不出。
+
+-- ── 演示（已给）──────────────────────────────────────────────────────────
+-- CH：没有严格介于 ℕ 与 𝒫 ℕ 之间的基数（用 ≼ + ≈ 陈述；不用 ℵ —— 序数线仍在内核墙后）
+def CH : Prop :=
+  ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+    (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat))
+
+-- 演示：CH 是 `def` ⇒ 展开即得那条 ∀ 命题（展开双向）
+theorem demo_ch_unfold (h : CH) :
+    ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+      (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
+  h
+
+-- ── 练习 ────────────────────────────────────────────────────────────────
+-- 练习 1（T 项填空）：把 CH 展开成一条**顶层 ∀ 定理**（`def` 的展开是双向的）
+theorem ch_unfold_ex (h : CH) :
+    ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+      (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
+  sorry
+-- soko:hint 关键件：这条的**类型**与 `h` 的类型逐字相同 ⇒ 直接给 `h`。
+
+-- 练习 2（X 形式↔散文）：CH 的**独立性**不在本课范围内（要模型论 + 力迫法）
+theorem ch_independence_out_of_scope :
+    ∀ (P : Prop), P → P :=
+  sorry
+-- soko:hint 关键件：读评题 —— 证的是恒等命题。要理解的是：CH 既不能被 ZFC 证明、
+-- 也不能被否证；本课只做**陈述**与**展开**，独立性属卷 I 之外（大纲 §5 排期）。

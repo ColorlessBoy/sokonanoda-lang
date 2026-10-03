@@ -1,0 +1,21 @@
+-- unit113-solution —— 单元113 解答钥匙（agent 专用；项风格，不用 by）
+import lib.Set
+import lib.Equiv
+
+def CH : Prop :=
+  ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+    (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat))
+
+theorem demo_ch_unfold (h : CH) :
+    ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+      (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
+  h
+
+theorem ch_unfold_ex (h : CH) :
+    ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+      (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
+  h
+
+theorem ch_independence_out_of_scope :
+    ∀ (P : Prop), P → P :=
+  fun (P : Prop) => fun (h : P) => h
