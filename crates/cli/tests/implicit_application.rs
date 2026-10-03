@@ -46,6 +46,25 @@ fn grade_source_env(tag: &str, src: &str, envs: &[(&str, &str)]) -> (bool, usize
     for (k, v) in envs {
         cmd.env(k, v);
     }
+    // **诊断（2026-10-03 ✓）**：CI 上"开关开"那一支的表现**逐字等于"开关关"** ✗
+    // （u1 实测 2/2 = off 期望 ✓；b1 实测 5/2 = off 期望 ✓），而本地全绿 ✓
+    // ⇒ 先确定一件事：**开关到底有没有进到子进程** ✓。本串会随断言失败**原样进 panic 文本** ✓，
+    // 所以下一轮 CI 直接给出答案 ✓，不必再猜（"OnceLock 跨测试污染"已被源码与串行实验否掉 ✗）。
+    let diag = format!(
+        "注入={envs:?} · cmd 上 SOKO_*={:?} · 父进程 SOKO_*={:?}",
+        cmd.get_envs()
+            .filter(|(k, _)| k.to_string_lossy().starts_with("SOKO_"))
+            .map(|(k, v)| (
+                k.to_string_lossy().into_owned(),
+                v.map(|x| x.to_string_lossy().into_owned())
+            ))
+            .collect::<Vec<_>>(),
+        std::env::vars()
+            .filter(|(k, _)| k.starts_with("SOKO_"))
+            .collect::<Vec<_>>(),
+    );
+    // 打进 stderr ⇒ cargo test **只在失败时**回显它 ✓ —— CI 红的那两条测试的 panic 文本里就有这一行 ✓。
+    eprintln!("· 诊断：{diag}");
     let out = cmd
         .arg("--json")
         .arg("--no-project")
