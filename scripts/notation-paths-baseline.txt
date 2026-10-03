@@ -61,3 +61,16 @@ crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_no
 crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations("z = z", &[], &[], &["=".to_string()]);
 crates/front/src/semantic.rs|tag_runs_with_notations|tag_runs_with_notations(text, decls, binders, &[])
 crates/front/src/by.rs|render_expr|let ty_text = render_expr(ty);
+#
+# **2026-10-03 逐条追加的 6 条**（值守复核 `gates：记法路径守卫` 时派单 ✓）：**全部是测试代码** ——
+# `crates/front/src/spine.rs` 的 `#[cfg(test)] mod tests`（1462 行起 ✓），断言的是**未折叠的源形状**
+# （`render_expr(a) == render_expr(b)` 这种"两个表达式渲染出来一样"的判据 ✓）；改用 `DisplayNotations`
+# 会把被测的**原文形状**折掉 ⇒ 判据失真 ✗。**只追加这 6 行** ✓（**没有**用 `--rebless` 一把梭 ✗ ——
+# 那会把当时同时存在的**生产 3 处**（`walk.rs`）一起豁免 ✗）。
+#
+crates/front/src/spine.rs|render_expr|render_expr(&pp)
+crates/front/src/spine.rs|render_expr|render_expr(&pp_ok),
+crates/front/src/spine.rs|render_expr|render_expr(&short)
+crates/front/src/spine.rs|render_expr|render_expr(&short),
+crates/front/src/spine.rs|render_expr|render_expr(&short_bad)
+crates/front/src/spine.rs|render_expr|render_expr(a) == render_expr(b)
