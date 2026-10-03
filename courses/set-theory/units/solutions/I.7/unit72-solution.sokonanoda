@@ -82,8 +82,8 @@ theorem mem_sInter_of_subset (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x :
     (Set.mem_sInter_iff α F x)
 
 theorem not_mem_sUnion_empty (α : Type) (x : α) :
-    ¬ (x ∈ (⋃₀ (∅))) :=  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
-  fun (h : x ∈ (Set.sUnion α (∅))) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+    ¬ (x ∈ (⋃₀ (∅))) :=
+  fun (h : x ∈ (⋃₀ (∅))) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
     Exists.elim (Set α) (fun (A : Set α) => A ∈ (∅) ∧ x ∈ A) False  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
       (mem_of_mem_sUnion α (∅) x h)
       (fun (A : Set α) (hA : A ∈ (∅) ∧ x ∈ A) =>
