@@ -1,0 +1,43 @@
+name: deep-ledger
+
+# **长复现件的固定节奏深跑**（2026-10-03 值守派单 ✓）。
+#
+# 为什么需要它：`scripts/gap.py` 里 `REPRO_TIMEOUT_S` 默认 300s（:54），而 `--strict` 把超时
+# **直接判红**（:446-450）。G-83 的**全量口径**（全部开放声明 ×2 查询，本机实测 ≈1.5h）远超
+# 那个预算 ⇒ pre-push 会红 ✗，而它**不是行为问题**（复现件跑得完 ✓：`开放 897｜顶≡底 844｜顶≠底 53`）。
+# ⇒ 台账里给它加了 `repro_slow`：**默认跳过**，但**显式计数** + 打印**上次读数** + 标注
+# 「**本轮未验证**」✗（`scripts/gap.py` 的 `slow` 档 ✓），pre-push（`scripts/ci-local.sh --fast` ✓）
+# 只跑 `--strict`（跳过长复现件 ✓）。
+#
+# **"守卫不失去牙齿"就落在这里** ✓：这条 workflow **真跑** `--include-slow`（连长复现件一起跑 ✓），
+# 所以"全量口径"仍有一条**固定节奏**的路径在跑 ✓ —— 不是靠人记着 ✓。
+on:
+  schedule:
+    # 每周日 18:00 UTC（= 周一 02:00 北京）✓ —— 1.5h 级的长跑，不进任何 push/PR 路径 ✓。
+    - cron: '0 18 * * 0'
+  workflow_dispatch: # 也能手动触发（发版前想先跑一轮时用 ✓）
+
+jobs:
+  deep-ledger:
+    runs-on: ubuntu-24.04
+    # 3h：长复现件本机 ≈1.5h，runner 更慢 ⇒ 留一倍余量 ✓（与 SOKO_GAP_REPRO_TIMEOUT 对齐 ✓）。
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+      # 若干复现件要用 `node`（跑扩展侧逻辑）⇒ 没有它 ⇒ 复现件 `exit 2`（"需要 node"）⇒ 门禁判红 ✗
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Build CLI + LSP for the gap repros
+        run: cargo build --release -p sokonanoda-cli -p sokonanoda-lsp --locked
+      - name: Stage bundled CLI + LSP for the extension repros
+        run: node editor/vscode/scripts/stage-lsp.js
+      - name: Deep ledger（长复现件一起跑 ✓）
+        env:
+          # 长复现件的档期（默认 300s 只够常规件 ✓）—— 与 ci-local.sh 的完整跑同口径 ✓。
+          SOKO_GAP_REPRO_TIMEOUT: '10800'
+        run: python3 scripts/gap.py check --strict --include-slow
