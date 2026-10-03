@@ -364,3 +364,20 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 （候选 `Nonempty α → ∃ a, a = a` ✓ 结论是 `∃` 头 ✓ 非 `Or` ✓）。
 **留档已判绿** ✓（别重做 ✓）：`isEmpty_no_elem` ✓（`ca5dffca`，`lib ZF` 12/0/0 ✓，反向验证 12→11→12 ✓）·
 `lib/Ordinal` 三条 ✓（16→15→16 / 17→16→17 / 18→17→18 ✓）。
+
+## C-120（**open · 绕行 = 搁置并换靶** · 2026-10-03 S-B 第 34 轮）`Exists.elim` **嵌套链**在 `def` 头目标下补不出实参 ✗
+
+**目标**：`lib/Cardinal` 加 `Type.Equiv.symm`（`Type.Equiv α β → Type.Equiv β α` ✓）。**两版全红** ✗
+（判据 = `query check --root courses/set-theory` ✓）：
+
+| # | 写法 | 读数 |
+|---|---|---|
+| 1 | 两次 `Exists.elim`，动机写 **`def` 头** `Type.Equiv β α` | ✗ `期望 Sort(0)，实际是 第 5 个绑元` |
+| 2 | 动机改**展开形态**（`∃ f', ∃ g', …` ✓），结论仍写 `Type.Equiv β α`（靠 defeq ✓） | ✗ **同一条报文** ⇒ 换动机**无效** |
+
+**归属** ✓：**G-73 家族**（与 C-118「对 `∀`-右支取件」✗、C-119「`Or` 头结论」✗ 同源）⇒ 内核侧 ✓。
+**绕行** ✓：`symm`/`trans` 一并**搁置** ✗；转**非嵌套 `∃`** 条目 ✓，或回 `lib/ZF` / `lib/Ordinal` 的**非 `Or` 头** ✓。
+**留档已判绿** ✓（别重做 ✓）：`Type.Equiv.of_inverses` ✓ · **`Type.Equiv.of_inverses'`** ✓（外层包装 ✓ `3fc0d778` ✓，
+`lib Cardinal` **10 checked · 0 open · 0 判负** ✓，反向验证 **10 → 9 → 10** ✓）· `Type.Equiv.refl` ✓（`067321b5` ✓）。
+**形态规律累计** ✓（本 goal 实证 ✓）：① 绑定形态先落地成 λ ✓；② 内层 `∃` 拆具名引理 ✓；
+③ 动机位 λ 体内**只能引用引理**、不内联嵌套 `∃` ✓；④ `Exists.elim` 动机**不写 `def` 头** ✗（且改成展开形态也无效 ✗）。
