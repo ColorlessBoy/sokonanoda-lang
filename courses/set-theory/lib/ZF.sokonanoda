@@ -165,3 +165,9 @@ theorem extensional_trans (α : Type) (E : α → α → Prop) (h : Extensional 
 theorem isEmpty_elim (α : Type) (E : α → α → Prop) (x : α) (h : IsEmpty α E x) :
     ∀ (y : α), ¬ (E y x) :=
   (fun (hp : ∀ (y : α), ¬ (E y x)) => hp) (Iff.mp (isEmpty_def α E x) h)
+
+-- 并的定义展开的**点式**版（S-B ✓）：λ 落地 + `isUnionOf_def` 的 `Iff.mp`（同族已判绿 ✓）
+theorem isUnionOf_def_apply (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop)
+    (h : IsUnionOf α E x F) (z : α) : E z x ↔ ∃ (A : α), F A ∧ E z A :=
+  (fun (hz : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) => hz z)
+    (Iff.mp (isUnionOf_def α E x F) h)
