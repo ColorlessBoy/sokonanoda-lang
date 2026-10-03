@@ -163,3 +163,9 @@ theorem sInter_subset_iff (α : Type) (F : Set (Set α)) (B : Set α)
 theorem Set.pi_mono_apply (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i)
     (f : ι → α) (hf : f ∈ Set.pi ι α A) : f ∈ Set.pi ι α B :=
   Set.pi_mono ι α A B h f hf
+
+-- 积单调的**传递**形（S-B ✓ I.9）：逐坐标两次包含 ⇒ 逐点内联即可（`⊆` 是定义头 ✓）
+theorem Set.pi_mono_trans (ι α : Type) (A B C : ι → Set α)
+    (h1 : ∀ (i : ι), A i ⊆ B i) (h2 : ∀ (i : ι), B i ⊆ C i) :
+    Set.pi ι α A ⊆ Set.pi ι α C :=
+  Set.pi_mono ι α A C (fun (i : ι) => fun (x : α) (hx : A i x) => h2 i x (h1 i x hx))
