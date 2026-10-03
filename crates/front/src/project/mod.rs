@@ -323,7 +323,19 @@ pub fn plan_project_with_overlay(
     };
 
     // 2) 闭包加载（解析 + 环 + 找不到 + 阻断传播）。
+    //
+    // **G-29 诊断**（`SOKO_PLAN_TRACE=1`）：这一步是**每次按键**都跑的（LSP 的
+    // `project_compile_incremental` 第一件事就是它 ✓）⇒ 它值多少毫秒、解析了几个模块，
+    // 直接决定"编辑延迟"的地板 ✓。判据用**结构计数**（解析的模块数），墙钟只做参考。
+    let plan_started = std::time::Instant::now();
     let closure = graph::load_closure_with_overlay(&root, &entry_path, entry_src, overlay);
+    if std::env::var_os("SOKO_PLAN_TRACE").is_some() {
+        eprintln!(
+            "PLAN_TRACE load={}ms modules={}",
+            plan_started.elapsed().as_millis(),
+            closure.modules.len()
+        );
+    }
 
     ProjectPlan {
         entry: entry_path,
