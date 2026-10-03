@@ -151,6 +151,23 @@ impl ProjectPlan {
         &self.closure.entry
     }
 
+    /// **G-68 接线用** ✓：可以编译的拓扑序模块下标（没有被阻断的 ✓）。
+    /// 与 [`crate::project::units_for_modules`] 同源 ✓ —— 后者就是按它取单元的 ✓。
+    pub fn compilable(&self) -> Vec<usize> {
+        self.closure.compilable()
+    }
+
+    /// **G-68 接线用** ✓：加载期诊断（找不到 / 环 / 语法错误 ✓）——
+    /// 与 `compile_plan` 里并进报告的那份同源 ✓。
+    pub fn diagnostics(&self) -> &[ProjectDiagnostic] {
+        &self.closure.diagnostics
+    }
+
+    /// **G-68 接线用** ✓：闭包本体（`assemble_report(PlanCompiled { closure, … })` 要它 ✓）。
+    pub fn closure(&self) -> &crate::project::graph::Closure {
+        &self.closure
+    }
+
     /// 闭包摘要：**所有模块的源文本按拓扑序** + import 边 + prelude 模式。
     /// 依赖变了 ⇒ 摘要变 ⇒ 入口的缓存键变（设计 §4.8 的 Merkle 链）。
     /// 单文件（无 import）不走这条路：它用既有的"源文本"键。
