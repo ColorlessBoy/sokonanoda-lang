@@ -151,3 +151,8 @@ theorem sInter_subset_iff (α : Type) (F : Set (Set α)) (B : Set α)
   fun (x : α) (hx : B x) =>
     (fun (hxF : ∀ (A : Set α), A ∈ F → x ∈ A) => hxF)
       (fun (A : Set α) (hA : A ∈ F) => h A hA x hx)
+
+-- 积单调的**点式**特例（S-B ✓ I.9）：逐坐标包含 ⇒ 成员搬运（`Set.pi_mono` 的直接应用）
+theorem Set.pi_mono_apply (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i)
+    (f : ι → α) (hf : f ∈ Set.pi ι α A) : f ∈ Set.pi ι α B :=
+  Set.pi_mono ι α A B h f hf
