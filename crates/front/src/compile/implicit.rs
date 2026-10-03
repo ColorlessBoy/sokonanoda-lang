@@ -155,6 +155,8 @@ pub(crate) fn solve_prefix(
 /// **G-63 修复的入口**（2026-10-03 ✓）：与 [`solve_prefix`] 同义，但多带**显式实参本身** ✓ ——
 /// 求解器要用它们把**显式层的 fresh 名**映射掉 ✗（否则模板里留裸 `\0soko_p*` ⇒ 与实际实参
 /// 判成刚性冲突 ✗；根因读数见 commit `c3ab1211` ✓）。旧签名那条保留为包装 ✓ ⇒ 既有调用点零改动 ✓。
+// G-63 ③ 的包装多带一个实参（8 个）⇒ 越过 clippy 的 7 个阈值 ✓（纯转发，不引入复杂度 ✓）。
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn solve_prefix_with_args(
     layers: &[Layer],
     result: &Expr,
@@ -200,6 +202,8 @@ pub(crate) fn solve_prefix_outcome(
 }
 
 /// [`solve_prefix_outcome`] 的**带实参版**（G-63 ✓）：多带**显式实参本身** ✓。
+// G-63 ③ 的包装多带一个实参（8 个）⇒ 越过 clippy 的 7 个阈值 ✓（纯转发，不引入复杂度 ✓）。
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn solve_prefix_outcome_with_args(
     layers: &[Layer],
     result: &Expr,
@@ -269,6 +273,8 @@ pub(crate) fn solve_prefix_outcome_with_args(
 /// ⚠ `implicit::telescope` 的参数名**本来就是 fresh 名**（`\0soko_p{i}`）⇒ 这里不需要再 freshen
 /// （记法路径那条要，因为 `notation_telescope` 用的是签名原文名 —— M1 实测的坑）。
 /// **元变量不进项**：解不出就返回 `None`，调用方照旧报既有码 ✓。
+// G-63 ③ 多带一个 `arg_vals`（8 个）⇒ 越过 clippy 的 7 个阈值 ✓（参数同族，不引入复杂度 ✓）。
+#[allow(clippy::too_many_arguments)]
 fn solve_prefix_meta(
     layers: &[Layer],
     result: &Expr,
