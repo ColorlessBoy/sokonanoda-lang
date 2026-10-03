@@ -329,3 +329,9 @@ theorem Rel.inv_mono_of_inv {A B : Type} (r r' : Rel A B)
   (fun (hh : (∀ (a : A) (b : B), r a b → r' a b) ↔
       (∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a)) => Iff.mpr hh h)
     (Rel.inv_mono_iff r r')
+
+-- 每个等价类**是**一个类（S-B ✓ I.13）：见证就是 `a` 自己 ✓ 逐点定义展开 ✓
+theorem Rel.equivClass_is_class (α : Type) (r : Rel α α) (a : α) :
+    Rel.Classes α r (Rel.EquivClass α r a) :=
+  Exists.intro α (fun (a' : α) => ∀ (c : α), Rel.EquivClass α r a c ↔ r a' c) a
+    (fun (c : α) => Iff.intro (fun (h : Rel.EquivClass α r a c) => h) (fun (h : r a c) => h))
