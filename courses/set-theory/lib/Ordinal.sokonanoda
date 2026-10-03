@@ -192,3 +192,8 @@ theorem isZero_elems_wellFounded (α : Type) (E : α → α → Prop) (x z : α)
 theorem ordinal_elems_elems_transitive (α : Type) (E : α → α → Prop) (x y z : α)
     (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : IsTransitive α E z :=
   ordinal_elems_isTransitive α E y (ordinal_elem_isOrdinal α E x y hx hy) z hz
+
+-- 序数元素的元素仍是序数（S-B ✓；两步合成 ✓ 安全区）
+theorem ordinal_elems_elems_isOrdinal (α : Type) (E : α → α → Prop) (x y z : α)
+    (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : IsOrdinal α E z :=
+  ordinal_elem_isOrdinal α E y z (ordinal_elem_isOrdinal α E x y hx hy) hz
