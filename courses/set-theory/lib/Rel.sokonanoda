@@ -335,3 +335,8 @@ theorem Rel.equivClass_is_class (α : Type) (r : Rel α α) (a : α) :
     Rel.Classes α r (Rel.EquivClass α r a) :=
   Exists.intro α (fun (a' : α) => ∀ (c : α), Rel.EquivClass α r a c ↔ r a' c) a
     (fun (c : α) => Iff.intro (fun (h : Rel.EquivClass α r a c) => h) (fun (h : r a c) => h))
+
+-- 自反点属于自己的等价类（S-B ✓ I.13）：两侧是**定义等式** ⇒ 证明就是 `h` ✓
+theorem Rel.equivClass_self (α : Type) (r : Rel α α) (a : α) (h : r a a) :
+    Rel.EquivClass α r a a :=
+  h
