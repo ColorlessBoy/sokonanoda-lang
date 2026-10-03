@@ -302,3 +302,14 @@ theorem Set.Le.refl (α : Type) (A : Set α) : A ≼ A :=
   Set.Le.intro α α A A (fun (x : α) => x)
     (fun (x : α) (_hx : A x) (y : α) (_hy : A y) (h : x = y) => h)
     (fun (x : α) (hx : A x) => hx)
+
+-- ── `≼` 对**左边集合**单调（把单射与落点限制到子集 ✓）────────────────────────────
+-- 读法：`A' ⊆ A` 且 `A ≼ B` ⇒ 同一把映射在 `A'` 上仍单射、仍落进 `B` ✓。
+theorem Set.Le.mono (α β : Type) (A A' : Set α) (B : Set β) (hAA : A' ⊆ A) (h : A ≼ B) :
+    A' ≼ B :=
+  Set.Le.elim α β A B (A' ≼ B) h
+    (fun (f : α → β) (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) =>
+      Set.Le.intro α β A' B f
+        (fun (x : α) (hx : A' x) (y : α) (hy : A' y) (hxy : f x = f y) =>
+          hf x (hAA x hx) y (hAA y hy) hxy)
+        (fun (x : α) (hx : A' x) => hfm x (hAA x hx)))
