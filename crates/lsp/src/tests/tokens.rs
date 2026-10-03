@@ -156,3 +156,54 @@ async fn semantic_tokens_follow_the_buffer_not_the_last_compile() {
         "v2 的第 1 行是注释，不该有任何 token 落在它上面：{abs:?}"
     );
 }
+
+/// **勘明（2026-10-03 · 值守插队 · 用户报障「多次编辑后颜色高亮全乱」）**：
+/// **多次编辑**（插入 / 删除 / 改动混着来 ✓）之后，语义 token 必须与
+/// 「**同一最终文本从零 `didOpen`**」**逐字节相同** ✓（值守要求的三样证据之一 ✓）。
+///
+/// 与既有单次用例（`semantic_tokens_follow_the_buffer_not_the_last_compile` ✓ 只做一次插行 ✓）的区别：
+/// 本用例走 **8 轮混合编辑** ✓（行号增删都发生 ✓ + 非 ASCII 记法行 ✓），**每一轮结束立刻请求 token** ✓，
+/// 最后整体与「从零打开」的 token 序列做**逐字节**比对 ✓。
+#[tokio::test]
+async fn semantic_tokens_match_a_fresh_open_after_many_mixed_edits() {
+    let mut text = String::from("theorem a (P : Prop) (h : P) : P := h\n");
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, &text).await;
+    let _ = wait_diagnostics(&mut socket, "tokens-mixed").await;
+
+    let mut rounds: Vec<String> = Vec::new();
+    for i in 0..8 {
+        text = match i {
+            0 => format!("-- 注释 {i}\n{text}"),                                   // 插一行（行号 +1）
+            1 => format!("{text}theorem b (Q : Prop) : Q → Q := fun q => q\n"),     // 末尾加声明
+            2 => text.replacen("theorem a", "theorem aaa", 1),                     // 改名字（同行）
+            3 => text.replacen("-- 注释 0\n", "", 1),                              // 删一行（行号 −1）
+            4 => text.replacen("(h : P)", "(h : P) (k : P)", 1),                   // 同行加 binder
+            5 => text.replacen("fun q => q", "fun q => q -- 尾注", 1),              // 同行改
+            6 => format!("-- α β ∈ ∧ ¬\n{text}"),                                   // 非 ASCII 记法行
+            _ => text.replacen("theorem aaa", "theorem a", 1),                     // 改回
+        };
+        did_change(&mut service, (i + 2) as i32, &text).await;
+        let abs = absolutize(&request_semantic_tokens(&mut service).await);
+        rounds.push(format!("{abs:?}"));
+    }
+    let last = rounds.last().expect("至少一轮").clone();
+
+    // ③ **逐字节比对**：同一份最终文本，**从零** `didOpen`（另起一个 service ✓）。
+    let (mut fresh_service, mut fresh_socket) = test_service();
+    handshake(&mut fresh_service).await;
+    did_open(&mut fresh_service, &text).await;
+    let _ = wait_diagnostics(&mut fresh_socket, "tokens-mixed-fresh").await;
+    let fresh = format!("{:?}", absolutize(&request_semantic_tokens(&mut fresh_service).await));
+
+    eprintln!("MIXED-EDITS 轮数={} 最终文本=\n{text}", rounds.len());
+    for (i, r) in rounds.iter().enumerate() {
+        eprintln!("MIXED-EDITS 第{i}轮 tokens={r}");
+    }
+    eprintln!("MIXED-EDITS fresh-open tokens={fresh}");
+    assert_eq!(
+        last, fresh,
+        "多次编辑后的 token 与「最终文本从零打开」不一致 ⇒ 复现成功 ✗（见上方原始输出）"
+    );
+}
