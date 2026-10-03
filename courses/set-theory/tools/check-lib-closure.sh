@@ -25,7 +25,14 @@ if [ -n "$DUPS" ]; then
   exit 1
 fi
 REPO="$(cd "$ROOT/../.." && pwd)"
-TMP="$ROOT/units/zzlibclosure.sokonanoda"
+# ⚠ **临时件不许写进语料树** ✗（M6 / 2026-10-03 实锤）：`crates/cli/tests/notation.rs` 的
+#   `walk_sokonanoda()` 递归收 `courses/` + `course/` 下**所有** `*.sokonanoda`（不看跟踪状态 ✗），
+#   而且**读到写了一半的文件**就判 offender ⇒ 内核线的发版 gate / `ci-local.sh` 会**假红** ✗
+#   （实测：`units/zzlibclosure.sokonanoda` 被扫到过 ✓）。改到 `/tmp/course-scratch/` ✓，
+#   靠 `--root "$ROOT"` 解析 `import lib.*` ✓（实测：不带 `--root` ⇒ `找不到模块 lib.Set` ✗）。
+SCRATCH="${SOKO_CENSUS_SCRATCH:-/tmp/course-scratch}"
+mkdir -p "$SCRATCH"
+TMP="$SCRATCH/zzlibclosure-$$.sokonanoda"
 {
   for f in "$ROOT"/lib/*.sokonanoda; do
     b="$(basename "$f" .sokonanoda)"
@@ -35,7 +42,7 @@ TMP="$ROOT/units/zzlibclosure.sokonanoda"
   echo "theorem lib_closure_ok : True := True.intro"
 } > "$TMP"
 cd "$REPO" || exit 2
-OUT="$(node scripts/soko query check --file "$TMP" 2>&1)"
+OUT="$(node scripts/soko query check --root "$ROOT" --file "$TMP" 2>&1)"
 rc=$?
 rm -f "$TMP"
 if [ "$rc" -eq 0 ]; then
