@@ -404,6 +404,12 @@ pub(crate) fn build(
                     let i = idxs[k];
                     let plan = plans[i].as_ref().expect("plan for grouped entry");
                     // **按模块名铺回闭包顺序** ✓（`assemble_report` 用闭包下标取 `reports[slot]` ✗）
+                    // ⚠ **这里有一个尚未证伪的顺序假设** ✗（2026-10-03 ✓）：`DocumentReport`
+                    // **没有名字字段** ✗（编译期实测 ✓）⇒ 下面两个 `zip` 完全依赖
+                    // "`lib_names` 的顺序 == `lib_reports` 的顺序" ✓ —— 若会话侧会**重排/去重** ✗
+                    // ⇒ 名字与报告**错配** ✗ ⇒ 症状正是 `And.sokonanoda` 拿到 `Broken` 那份报告
+                    // 而报 `failed` ✗（`project_features.rs:417` 实测 ✓）。**下一刀**：把名字与报告
+                    // 的**配对**改成由会话侧提供（或让 `DocumentReport` 带名字 ✓），别再靠位置 ✓。
                     let mut by_name: std::collections::HashMap<
                         &str,
                         &sokonanoda_front::compile::DocumentReport,
@@ -416,11 +422,28 @@ pub(crate) fn build(
                     for (n, report) in entry_names.iter().zip(entry_reports.iter()) {
                         by_name.insert(n.as_str(), report);
                     }
+                    // ⚠ **长度必须与 `plan.modules()` 一一对应** ✗✗：上一版用 `filter_map` ✗
+                    // ⇒ **取不到就静默丢** ✗ ⇒ 向量**左移** ✗ ⇒ `assemble_report` 用闭包下标取
+                    // `reports[slot]` 时**取到邻居的报告** ✗（实测症状：`And.sokonanoda` 该 `compiled`
+                    // 却报 `failed` ✗ —— 它拿到的是**故意写坏的** `Broken` 那份 ✗），丢得多时直接
+                    // **越界 panic** ✗（`project/mod.rs:604` ✓，CI 日志那一条 ✓）。
+                    // ⇒ 现在**按位取** ✓：取不到就放一份**空报告** ✓（长度不错位 ✓；状态由别处如实算 ✓），
+                    // 并**响亮**记一条 stderr ✗（守卫咬不住 = 没有守卫 ✓）。
                     let reports: Vec<sokonanoda_front::compile::DocumentReport> = plan
                         .modules()
                         .iter()
-                        .filter_map(|m| by_name.get(m.name.as_str()).map(|r| (*r).clone()))
+                        .map(|m| match by_name.get(m.name.as_str()) {
+                            Some(r) => (*r).clone(),
+                            None => {
+                                eprintln!(
+                                    "内部警告：模块 `{}` 在会话报告里没有对应项（按空报告占位，避免错位）",
+                                    m.name
+                                );
+                                sokonanoda_front::compile::DocumentReport::default()
+                            }
+                        })
                         .collect();
+                    debug_assert_eq!(reports.len(), plan.modules().len());
                     let report = proj::assemble_report(proj::PlanCompiled {
                         compilable: plan.compilable(),
                         flat_out,
