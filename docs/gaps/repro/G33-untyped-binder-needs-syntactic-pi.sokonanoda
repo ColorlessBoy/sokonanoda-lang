@@ -1,5 +1,7 @@
-import lib.Set
-
+-- ⚠ **2026-10-03 去掉多余的 import** ✓：本夹具只用**内建**的 `And.intro` ✓（不需要课程库 ✗），
+-- 而 `scripts/gap.py:190` 判它时**不带 `--root`** ✓ ⇒ `import lib.Set` 会让它死在
+-- `import-not-found` ✗ —— 与 G-33 **无关**的原因 ✗（同 G-32 / G-30 那一族 ✓，本会话第三例 ✓）。
+-- ⇒ 去掉即可自足 ✓（**不需要**像 G-30 那样内联库件 ✓）。
 -- G-33：无类型 binder（`fun h => …`）只在期望类型**语法上是 Pi** 时可用。
 -- 期望类型是 def-headed（`And.intro` 的分支位、`Exists.elim` 的 `f` 位）时
 -- 报 `elab-untyped-binder`："cannot infer the type of this binder: the declared
