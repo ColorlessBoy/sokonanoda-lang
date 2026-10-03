@@ -22,6 +22,14 @@ pub struct Client {
     /// **为什么用行数而不是墙钟**：墙钟受负载影响，而"连打 5 个键跑了几次编译"
     /// 是**结构**量——重编的次数不该随击键次数线性增长。
     compiled: Option<std::sync::Arc<std::sync::atomic::AtomicUsize>>,
+    /// **原样的** trace 行（同样的后台线程顺手攒下来）。
+    ///
+    /// 为什么要留下正文而不只是计数：那一行自带**差量结构计数**
+    /// （`modules=` / `by=` / `infer=<未命中>/<调用>` / `prefix=`），
+    /// 而"判据不许用绝对毫秒"（`AGENTS.md`）⇒ 判据要读的正是这些字段 ✓。
+    /// 进程级计数器在**单元测试**里会串味（140+ 用例并行）；这里是**集成测试**、
+    /// 服务端还是**独立进程** ⇒ 这些差量天然隔离 ✓。
+    traces: Option<std::sync::Arc<std::sync::Mutex<Vec<String>>>>,
 }
 
 impl Client {
@@ -38,6 +46,11 @@ impl Client {
     fn spawn(cache: &Path, trace: bool) -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda-lsp"))
             .env("SOKONANODA_CACHE_DIR", cache)
+            // ⚠ **必须在这里设**：服务端只有看到 `SOKO_LSP_TRACE` 才会打那一行 ✗。
+            // 以前 `start_traced` 只**管道 stderr**、没设开关 ⇒ 除非调用方碰巧在父进程
+            // 里设过，`compile_count()` **恒为 0** ⇒ 读它的判据**空转** ✗
+            // （「咬不住的守卫等于没有」——2026-10-03 实测：等 trace 行等到超时 ✓）。
+            .env("SOKO_LSP_TRACE", if trace { "1" } else { "0" })
             .env_remove("SOKONANODA_NO_CACHE")
             .env_remove("SOKONANODA_LSP_BIN")
             .stdin(Stdio::piped())
@@ -58,22 +71,32 @@ impl Client {
             let stderr = child.stderr.take().expect("stderr");
             let count = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
             let sink = std::sync::Arc::clone(&count);
+            let lines = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+            let into = std::sync::Arc::clone(&lines);
             std::thread::spawn(move || {
                 use std::io::BufRead;
                 for line in BufReader::new(stderr).lines().map_while(Result::ok) {
                     if line.starts_with("LSP_TRACE compile") {
                         sink.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        if let Ok(mut guard) = into.lock() {
+                            guard.push(line);
+                        }
                     }
                 }
             });
-            Some(count)
+            Some((count, lines))
         } else {
             None
+        };
+        let (compiled, traces) = match compiled {
+            Some((count, lines)) => (Some(count), Some(lines)),
+            None => (None, None),
         };
         Self {
             child,
             reader,
             compiled,
+            traces,
         }
     }
 
@@ -83,6 +106,59 @@ impl Client {
             .as_ref()
             .map(|count| count.load(std::sync::atomic::Ordering::Relaxed))
             .expect("compile_count 需要 start_traced")
+    }
+
+    /// 最近一次编译的 trace 行（`LSP_TRACE compile …`，需要 `start_traced`）。
+    ///
+    /// 自带差量结构计数：`modules=` / `by=` / `infer=<未命中>/<调用>` / `prefix=`。
+    pub fn last_trace(&self) -> String {
+        self.traces
+            .as_ref()
+            .and_then(|lines| lines.lock().ok())
+            .and_then(|guard| guard.last().cloned())
+            .expect("last_trace 需要 start_traced，且必须已经编译过至少一次")
+    }
+
+    /// 已经收到几行 trace。
+    pub fn trace_len(&self) -> usize {
+        self.traces
+            .as_ref()
+            .and_then(|lines| lines.lock().ok())
+            .map(|guard| guard.len())
+            .unwrap_or(0)
+    }
+
+    /// 等到 trace 行数 **> `after`**（返回新的行数）。
+    ///
+    /// **为什么必须等**：stderr 是**另一个线程**在读 ✗ —— 诊断到了不等于那一行已经
+    /// 被收进 `Vec` ✓。直接读会偶发地拿到上一行（实测：按键后立刻读 ⇒ 差量 0 ✗）。
+    pub fn wait_for_trace_after(&self, after: usize) -> usize {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+        loop {
+            let len = self.trace_len();
+            if len > after {
+                return len;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "等 trace 行超时（已有 {len} 行，在等第 {} 行）",
+                after + 1
+            );
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+    }
+
+    /// 从 trace 行里取一个 `key=<数字>` 字段（取不到就 panic —— 判据不许静默退化 ✗）。
+    pub fn trace_field(line: &str, key: &str) -> u64 {
+        let needle = format!("{key}=");
+        let at = line
+            .find(&needle)
+            .unwrap_or_else(|| panic!("trace 行里没有 `{key}=`：{line}"));
+        let rest = &line[at + needle.len()..];
+        let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+        digits
+            .parse()
+            .unwrap_or_else(|_| panic!("`{key}=` 后面不是数字：{line}"))
     }
 
     pub fn send(&mut self, message: serde_json::Value) {
@@ -167,6 +243,22 @@ impl Client {
     pub fn open(&mut self, root: &Path, uri: &str, text: &str) -> String {
         self.initialize(root);
         self.did_open(uri, text);
+        self.diagnostics_for(uri)
+    }
+
+    /// **一次按键**：`didChange`（全量文本）+ 等这份文档的诊断落地。
+    ///
+    /// 返回值就是"**用户看到 solved 之前**"那一份诊断正文 —— 与用户 2026-10-03 的
+    /// 验收口径（「输入正确答案后，VSCode 显示 solved、并且对应的 problems 消失的
+    /// 时间」）同一条链 ✓：这个调用**返回**即那一刻 ✓。
+    pub fn did_change(&mut self, uri: &str, version: i64, text: &str) -> String {
+        self.send(serde_json::json!({
+            "jsonrpc": "2.0", "method": "textDocument/didChange",
+            "params": {
+                "textDocument": {"uri": uri, "version": version},
+                "contentChanges": [{"text": text}],
+            },
+        }));
         self.diagnostics_for(uri)
     }
 
