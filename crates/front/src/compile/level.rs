@@ -277,6 +277,89 @@ fn match_level_text(template: &str, actual: &str, param: &str, store: &mut Level
     false
 }
 
+// ───────────────────────── U2-b：**惰性批量检查** ─────────────────────────
+//
+// 设计 `docs/design/metavar-engine.md` §2.9 / 表 8 第 8 行（对齐 Coq）：**约束攒着**，
+// **声明收尾才查** —— 不逐次合一都查图 ✓。这里先把"攒 + 收尾查"这件事做成一个**纯**件 ✓
+// （不带内核调用、不碰项 ✓），它的**等价性**用单测钉死 ✓：
+// 「边推边查」（eager ✓）与「推完一次查」（lazy ✓）对**同一组约束**必须给出**同一个判定** ✓
+// —— 即"**惰性只是时机，不是放水**" ✓。
+
+/// 一条**已解出**的宇宙约束（`param := literal` ✓）—— 只记不判 ✓。
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct LevelBinding {
+    pub(crate) param: String,
+    pub(crate) literal: u64,
+}
+
+/// 批量检查的判定 ✓。
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum LevelVerdict {
+    /// 全部自洽 ✓
+    Ok,
+    /// **刚性冲突**：同一个参数被要求成两个不同的字面 ✓ —— 走**宇宙专属报错通道** ✗
+    /// （**不许**并进 `elab-implicit-argument-unsolved` / `elab-notation-argument-unsolved` ✓）。
+    Conflict {
+        param: String,
+        first: u64,
+        second: u64,
+    },
+}
+
+/// **约束攒着、收尾才查** ✓（U2-b）。
+#[derive(Debug, Default)]
+pub(crate) struct LevelBatch {
+    bindings: Vec<LevelBinding>,
+}
+
+impl LevelBatch {
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    /// 记一条约束 —— **不判** ✓（惰性 ✓）。
+    pub(crate) fn push(&mut self, param: &str, literal: u64) {
+        self.bindings.push(LevelBinding {
+            param: param.to_string(),
+            literal,
+        });
+    }
+
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.bindings.len()
+    }
+
+    /// **收尾统一查** ✓（O(n²) 对 n=宇宙参数个数，最大也就是个位数 ✓）。
+    pub(crate) fn check(&self) -> LevelVerdict {
+        for (i, a) in self.bindings.iter().enumerate() {
+            for b in self.bindings.iter().skip(i + 1) {
+                if a.param == b.param && a.literal != b.literal {
+                    return LevelVerdict::Conflict {
+                        param: a.param.clone(),
+                        first: a.literal,
+                        second: b.literal,
+                    };
+                }
+            }
+        }
+        LevelVerdict::Ok
+    }
+
+    /// **边推边查**的对照实现 ✓ —— 只为单测证明"惰性 ≡ 急切"（可见输出不因时机而变 ✓）。
+    #[cfg(test)]
+    pub(crate) fn check_eagerly(&self) -> LevelVerdict {
+        let mut acc = LevelBatch::new();
+        for b in &self.bindings {
+            acc.push(&b.param, b.literal);
+            if let LevelVerdict::Conflict { .. } = acc.check() {
+                return acc.check();
+            }
+        }
+        LevelVerdict::Ok
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -383,6 +466,106 @@ mod tests {
     fn solve_universes_needs_every_param() {
         // 无宇宙参数 ⇒ 直接 None（零开销 ✓）
         assert_eq!(solve_universes(&[], &[]), None);
+    }
+
+    // ── U2-b：惰性批量检查 ────────────────────────────────────────────────
+    #[test]
+    fn batch_defers_the_verdict_until_check() {
+        let mut b = LevelBatch::new();
+        b.push("u", 1);
+        b.push("u", 2); // 冲突 ✓ —— 但 push **不判** ✓
+        assert_eq!(b.len(), 2);
+        assert_eq!(
+            b.check(),
+            LevelVerdict::Conflict {
+                param: "u".to_string(),
+                first: 1,
+                second: 2
+            }
+        );
+    }
+
+    #[test]
+    fn batch_is_ok_when_every_param_agrees() {
+        let mut b = LevelBatch::new();
+        b.push("u", 1);
+        b.push("v", 2);
+        b.push("u", 1);
+        assert_eq!(b.check(), LevelVerdict::Ok);
+    }
+
+    #[test]
+    fn batch_ignores_conflicts_across_different_params() {
+        let mut b = LevelBatch::new();
+        b.push("u", 1);
+        b.push("v", 2);
+        assert_eq!(b.check(), LevelVerdict::Ok, "不同参数各要各的 ⇒ 不是冲突 ✓");
+    }
+
+    /// **判据 2 的核心** ✓：**惰性只是时机，不是放水** —— 同一组约束，
+    /// 「推完一次查」（lazy ✓）与「边推边查」（eager ✓）必须给出**同一个判定** ✓。
+    #[test]
+    fn lazy_and_eager_verdicts_are_identical() {
+        let cases: Vec<Vec<(&str, u64)>> = vec![
+            vec![],
+            vec![("u", 1)],
+            vec![("u", 1), ("u", 1)],
+            vec![("u", 1), ("u", 2)],
+            vec![("u", 1), ("v", 1), ("u", 2)],
+            vec![("u", 3), ("v", 3), ("w", 3)],
+            vec![("u", 0), ("u", 1), ("u", 0)],
+        ];
+        for case in cases {
+            let mut b = LevelBatch::new();
+            for (p, l) in &case {
+                b.push(p, *l);
+            }
+            assert_eq!(
+                b.check(),
+                b.check_eagerly(),
+                "lazy 与 eager 判定必须一致（同一组约束 ✓）：{case:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn batch_reports_the_first_conflicting_pair_deterministically() {
+        let mut b = LevelBatch::new();
+        b.push("v", 1);
+        b.push("u", 2);
+        b.push("u", 3);
+        assert_eq!(
+            b.check(),
+            LevelVerdict::Conflict {
+                param: "u".to_string(),
+                first: 2,
+                second: 3
+            },
+            "按**推入顺序**报第一对 ✓（输出稳定 ✓，与 `--json` 对拍有关 ✓）"
+        );
+    }
+
+    #[test]
+    fn batch_len_counts_every_binding() {
+        let mut b = LevelBatch::new();
+        assert_eq!(b.len(), 0);
+        b.push("u", 1);
+        b.push("u", 1);
+        assert_eq!(b.len(), 2, "去重发生在 check ✓，不在 push ✓（惰性 ✓）");
+    }
+
+    #[test]
+    fn batch_check_is_repeatable() {
+        let mut b = LevelBatch::new();
+        b.push("u", 1);
+        b.push("u", 2);
+        let first = b.check();
+        assert_eq!(first, b.check(), "检查是纯的 ⇒ 可重复 ✓");
+    }
+
+    #[test]
+    fn batch_empty_is_ok() {
+        assert_eq!(LevelBatch::new().check(), LevelVerdict::Ok);
     }
 
     #[test]

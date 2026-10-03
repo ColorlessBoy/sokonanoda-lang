@@ -3895,23 +3895,33 @@ fn try_implicit_application<'a>(
         if let Some(written) = written_levels {
             // **显式优先** ✓：只比**字面 vs 字面** ✓（解出的是"下界/未定"⇒ 不判冲突 ✗）。
             if let Some(solved) = solved_levels.as_ref() {
+                // **U2-b：约束攒着、收尾才查** ✓ —— 写出来的与解出来的都当**约束**推进
+                // `LevelBatch` ✓，`check()` 一次性判 ✓（惰性只是时机，不是放水 ✓：
+                // `lazy_and_eager_verdicts_are_identical` 单测钉死等价 ✓）。
+                let mut batch = crate::compile::level::LevelBatch::new();
                 for (i, (s, w)) in solved.iter().zip(written.iter()).enumerate() {
-                    if let (Ok(sn), Ok(wn)) = (s.parse::<u64>(), w.parse::<u64>()) {
-                        if sn != wn {
-                            return Err(CompileError::elab(
-                                ErrorKind::ElabUniverseLevelConflict,
-                                format!(
-                                    "`{}` 的第 {} 个宇宙实参写的是 `{}`，而实参类型要求 `{}` —— 把它改成 `.{{{}}}`（或整段省掉，让引擎自己解 ✓）",
-                                    render_msg(ctx, head),
-                                    i + 1,
-                                    w,
-                                    s,
-                                    solved.join(", ")
-                                ),
-                                span,
-                            ));
-                        }
-                    }
+                    let (Ok(sn), Ok(wn)) = (s.parse::<u64>(), w.parse::<u64>()) else {
+                        continue; // 有一边不是字面 ⇒ 本片不判 ✓（保守 ✓）
+                    };
+                    // 同一个位置的两条要求：解出来的 = `i` 号参数，写出来的也是 `i` 号 ✓
+                    let key = format!("pos{i}");
+                    batch.push(&key, sn);
+                    batch.push(&key, wn);
+                }
+                if let crate::compile::level::LevelVerdict::Conflict { first, second, .. } =
+                    batch.check()
+                {
+                    return Err(CompileError::elab(
+                        ErrorKind::ElabUniverseLevelConflict,
+                        format!(
+                            "`{}` 的宇宙实参与实参类型要求的层级对不上：写的是 `{}`，而类型要求 `{}` \
+                             —— 把它改成要求的那一个（或整段省掉，让引擎自己解 ✓）",
+                            render_msg(ctx, head),
+                            second,
+                            first
+                        ),
+                        span,
+                    ));
                 }
             }
             // ⚠ **不早退** ✗：下面的组装（插隐式实参 + 装显式实参）还得跑 ✓ ——
