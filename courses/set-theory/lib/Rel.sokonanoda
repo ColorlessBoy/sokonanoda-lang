@@ -299,3 +299,9 @@ theorem Rel.inv_mono_trans {A B : Type} (r r' r'' : Rel A B)
     (h : ∀ (a : A) (b : B), r a b → r' a b) (h' : ∀ (a : A) (b : B), r' a b → r'' a b) :
     ∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r'' b a :=
   fun (b : B) (a : A) (hba : Rel.inv A B r b a) => h' a b (h a b hba)
+
+-- 两步形的**点式**版（S-B ✓ I.13）：`Rel.inv_mono_trans` 的 λ 包装
+theorem Rel.inv_mono_apply_trans {A B : Type} (r r' r'' : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b → r' a b) (h' : ∀ (a : A) (b : B), r' a b → r'' a b)
+    (b : B) (a : A) : Rel.inv A B r b a → Rel.inv A B r'' b a :=
+  fun (hba : Rel.inv A B r b a) => Rel.inv_mono_trans r r' r'' h h' b a hba
