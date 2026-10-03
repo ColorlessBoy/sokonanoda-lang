@@ -293,3 +293,9 @@ theorem Rel.comp_mono_right_apply_trans {A B C : Type} (r : Rel A B) (s s' s'' :
     (a : A) (c : C) : Rel.comp r s a c → Rel.comp r s'' a c :=
   fun (h : Rel.comp r s a c) =>
     Rel.comp_mono_right r s' s'' hs' a c (Rel.comp_mono_right r s s' hs a c h)
+
+-- 逆关系单调的**两步**形（S-B ✓ I.13）：两次点式蕴含直接串起来
+theorem Rel.inv_mono_trans {A B : Type} (r r' r'' : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b → r' a b) (h' : ∀ (a : A) (b : B), r' a b → r'' a b) :
+    ∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r'' b a :=
+  fun (b : B) (a : A) (hba : Rel.inv A B r b a) => h' a b (h a b hba)
