@@ -184,7 +184,7 @@ async fn semantic_tokens_match_a_fresh_open_after_many_mixed_edits() {
             6 => format!("-- α β ∈ ∧ ¬\n{text}"), // 非 ASCII 记法行
             _ => text.replacen("theorem aaa", "theorem a", 1), // 改回
         };
-        did_change(&mut service, (i + 2) as i32, &text).await;
+        did_change(&mut service, i + 2, &text).await;
         let abs = absolutize(&request_semantic_tokens(&mut service).await);
         rounds.push(format!("{abs:?}"));
     }
