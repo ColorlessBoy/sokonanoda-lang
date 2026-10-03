@@ -305,3 +305,14 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **绕行（本轮采用）** ✓：**换靶** ✗ —— S-B 内容推进改走**已判绿的形态族** ✓（一阶 `≼` 链 ✓、`Set.Le.trans/refl` ✓）；
 `Set.Le.of_equiv` 与 `Set.Le.powerset` **一并搁置** ✗，待内核侧收敛后重开 ✓。
 **留档已判绿** ✓（别重做 ✓）：`Set.Le.trans` ✓ · `Set.Le.refl` ✓ · 上述 `a1/a2/a3` 与 `t3` ✓ · `Set.mem_image_intro/elim` ✓ · `mem_powerset_iff`（库内 ✓）。
+
+## C-117（**open · 低优先 · 建议迁移** · 2026-10-03 课程线第 60 轮）`unit19` 局部引理与库 `Set.Le.*` **同义并存** ✗
+
+**实测**（`grep -n "^theorem" courses/set-theory/units/I.8/unit19-cardinal-le.sokonanoda` ✓）：
+`unit19` 画布**早就自建**了 `le_refl` ✓ · `subset_le` ✓ · `le_trans` ✓ · `le_of_subset_le` ✓（**裸名** ✓），
+而本轮又在 `lib/Equiv` 立了同义的 `Set.Le.refl` ✓ · `Set.Le.of_subset` ✓ · `Set.Le.trans` ✓ · `Set.Le.mono_right` ✓。
+**名字不同 ⇒ 不判红** ✓（`import-name-collision` 查的是**同名** ✓），但按手册那条
+「**库该有 ≠ 重复一份**：若是普遍需要，正确做法是把**单元里那份**搬进库并改调用点 ✓」⇒ 现状**不合手册口径** ✗。
+**处置（建议，未做）** ✓：把 `unit19` 的局部四条**删掉** ✗、调用点改用 `Set.Le.*` ✓（画布 + 解答同步 ✓；
+注意先分清哪几条是**画布练习**（删了会影响 G4 覆盖 ✗）哪几条只是**解答里的辅助** ✓）。
+**优先级** ✓：低（当前全绿 ✓ 无冲突 ✓）；**不必**在预算紧时硬做 ✗。
