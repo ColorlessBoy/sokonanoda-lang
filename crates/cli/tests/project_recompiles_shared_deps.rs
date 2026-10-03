@@ -35,17 +35,17 @@ const ENTRIES: usize = 6;
 /// 共享库的**链**（每个 `import` 上一个 ✓）：闭包更深 ⇒ "按入口各编一遍"的代价更大 ✓，
 /// 判据的余量也更清楚 ✓。
 const LIBS: &[(&str, &str)] = &[
-    ("lib/A.sokonanoda", "def A.id (α : Type) (a : α) : α := a\n"),
+    ("A.sokonanoda", "def A.id (α : Type) (a : α) : α := a\n"),
     (
-        "lib/B.sokonanoda",
+        "B.sokonanoda",
         "import A\n\ndef B.wrap (α : Type) (a : α) : α := A.id α a\n",
     ),
     (
-        "lib/C.sokonanoda",
+        "C.sokonanoda",
         "import B\n\ndef C.twice (α : Type) (a : α) : α := B.wrap α (B.wrap α a)\n",
     ),
     (
-        "lib/D.sokonanoda",
+        "D.sokonanoda",
         "import C\n\ndef D.thrice (α : Type) (a : α) : α := C.twice α (B.wrap α a)\n",
     ),
 ];
@@ -174,7 +174,7 @@ fn build_with(tag: &str, entries: usize) -> (u64, u64) {
             &format!("e{i}.sokonanoda"),
             &format!(
                 "import A\nimport B\nimport C\nimport D\n\n\
-                 theorem e{i}_t (α : Type) (a : α) : D.thrice α a = a := rfl\n"
+                 def e{i}_v (α : Type) (a : α) : α := B.wrap α (A.id α a)\n"
             ),
         );
     }
