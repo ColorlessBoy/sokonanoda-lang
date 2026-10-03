@@ -279,3 +279,10 @@ theorem Rel.comp_mono_apply_trans {A B C : Type} (r r' r'' : Rel A B) (s s' s'' 
     (hs : ∀ (b : B) (c : C), s b c → s' b c) (hs' : ∀ (b : B) (c : C), s' b c → s'' b c)
     (a : A) (c : C) : Rel.comp r s a c → Rel.comp r'' s'' a c :=
   fun (h : Rel.comp r s a c) => Rel.comp_mono_trans r r' r'' s s' s'' hr hr' hs hs' a c h
+
+-- 只放左边的两步点式形（S-B ✓ I.13）：`Rel.comp_mono_left` 两次 + λ 包装
+theorem Rel.comp_mono_left_apply_trans {A B C : Type} (r r' r'' : Rel A B) (s : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (hr' : ∀ (a : A) (b : B), r' a b → r'' a b)
+    (a : A) (c : C) : Rel.comp r s a c → Rel.comp r'' s a c :=
+  fun (h : Rel.comp r s a c) =>
+    Rel.comp_mono_left r' r'' s hr' a c (Rel.comp_mono_left r r' s hr a c h)
