@@ -136,3 +136,11 @@ theorem sInter_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
     (fun (hxG : ∀ (A : Set α), A ∈ G → x ∈ A) =>
       (fun (hxF : ∀ (A : Set α), A ∈ F → x ∈ A) => hxF)
         (fun (A : Set α) (hA : A ∈ F) => hxG A (h A hA))) hx
+
+-- 并含于 `B` 的充分条件（S-B ✓）：族里每个成员都含于 `B` 即可
+theorem sUnion_subset (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : ∀ (A : Set α), A ∈ F → A ⊆ B) : Set.sUnion α F ⊆ B :=
+  fun (x : α) (hx : x ∈ Set.sUnion α F) =>
+    (fun (hxE : ∃ (A : Set α), A ∈ F ∧ x ∈ A) =>
+      Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) (B x) hxE
+        (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) => h A (And.left hA) x (And.right hA))) hx
