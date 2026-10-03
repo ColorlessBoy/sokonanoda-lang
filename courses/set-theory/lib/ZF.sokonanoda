@@ -138,3 +138,8 @@ theorem isUnionOf_elim (α : Type) (E : α → α → Prop) (x : α) (F : α →
     (h : IsUnionOf α E x F) (hz : E z x) : ∃ (A : α), F A ∧ E z A :=
   (fun (hp : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) =>
     (fun (hz' : E z x) => Iff.mp (hp z) hz') hz) (Iff.mp (isUnionOf_def α E x F) h)
+
+-- 并的构造子（S-B ✓）：逐点刻画 ⇒ `IsUnionOf`（结论是 def 头 Prop ✓ 规律 ⑤ 安全区）
+theorem isUnionOf_intro (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop)
+    (h : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) : IsUnionOf α E x F :=
+  Iff.mpr (isUnionOf_def α E x F) h
