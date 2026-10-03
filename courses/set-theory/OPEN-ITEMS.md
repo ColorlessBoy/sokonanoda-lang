@@ -615,3 +615,21 @@ C-127（λ 在 `Set.pi` 实参位 ⇒ **解析失败**）· C-129（`∀`-形注
 ## 六、诊断方法（1 条 ✓ 本轮新增 ✓）
 **两种完全不同的证明项给出完全相同位置的同一条报文** ✗ ⇒ **卡点在声明形态** ✓（与证明无关 ✗）
 ⇒ **换证明项是白做功** ✗，**应当直接换靶** ✓。
+
+## C-132（**open · 跨线 · 报值守裁决** · 2026-10-03 S-B 第 237 轮）`lib Equiv` / `unit19` 的红是**判定环境中间态** ✗ —— **不是课程内容，不是我**
+
+**现象** ✓：`check.py --only "lib Equiv"` ⇒ **0 checked · 1 判负** ✗；`单元 19` / `解答 unit19` 同 ✗（`stage=import` ✗）。
+**五条证据链** ✓（全部实测 ✓）：
+1. `lib/Equiv` 的**五个依赖单独测全绿** ✓（`lib Set` 28 ✓ · `lib Fun` 14 ✓ · `lib Logic` ok ✓ · `lib Exists` 3 ✓ · `lib Rel` 55 ✓）；
+2. **依赖组合也全绿** ✓（`/tmp` 探针：`Set+Fun` ✓ · `Set` ✓ · `Fun` ✓ · `Set+Rel` ✓ 均 `checked 1 · failed 0` ✓）；
+3. **清缓存与逃生门都无效** ✗（`build --clean` 报 `removed 0` ✗；`rm -rf .sokonanoda/compiled` ✗；`SOKONANODA_NO_PROJECT_ARTIFACTS=1` ✗ —— 三条读数都不变 ✗）；
+4. **出问题的那段文本与"当年判绿"的版本逐字相同** ✓（`git show 487adfe1:…lib/Equiv.sokonanoda` 的 85–101 行 `diff` **无输出** ✓）；
+5. ⭐ **`crates/` 有未提交改动** ✗：` M crates/front/src/project/mod.rs` ✗ · ` M crates/lsp/tests/common/mod.rs` ✗ · `?? crates/lsp/tests/lsp_keystroke_structure.rs` ✗，
+   而判据通道的二进制是 **`repo-build`** ✗（`version 0.81.0` ✓ · `cli.source = repo-build` ✗ · `lsp.source = repo-build` ✗）
+   ⇒ **它正是用那份中间态构建的** ✗。
+**结论** ✓：`--bisect` 说"**前 0 个**顶层声明全绿 ⇒ 第一条 `def Set.MapsTo`（第 101 行）红" ✗、
+报文**错怪 import 行**（第 95 行 `lib.Set` ✗）—— 这些都与"**判定环境中间态**"完全吻合 ✓。
+**归属** ✓：**课程内容无问题** ✓、**我的改动不在出问题区** ✓ ⇒ 属 **`crates/**`（内核线）** ✗。
+**处置** ✓（按硬规矩 ✓）：**绝不碰 `crates/`** ✗；**报值守裁决** ✓；课程线**继续**做与 `crates/` 无交互的部分 ✓；
+**不要**为了消红去改课程内容 ✗（那是**白做功** ✓ —— 与 C-130 的诊断方法同理 ✓）。
+**留档已判绿 66 项** ✓（别重做 ✓）：库引理 63 ✓（`Rel` 29 · `Ordinal` 15 · `SUnion` 9 · `ZF` 8 · `Cardinal` 4）· 单元练习 4 道 ✓。
