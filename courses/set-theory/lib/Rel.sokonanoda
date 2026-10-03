@@ -236,3 +236,8 @@ theorem Rel.subset_transClosure (α : Type) (r : Rel α α) :
   fun (a : α) (b : α) (hab : r a b) =>
     fun (s : Rel α α) (hst : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
         (hrs : ∀ (x : α) (y : α), r x y → s x y) => hrs a b hab
+
+-- 逆关系对点式蕴含单调（S-B ✓ I.13）：`Rel.inv` 是定义头 ⇒ λ 直接给 ✓
+theorem Rel.inv_mono {A B : Type} (r r' : Rel A B) (h : ∀ (a : A) (b : B), r a b → r' a b) :
+    ∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a :=
+  fun (b : B) (a : A) (hba : Rel.inv A B r b a) => h a b hba
