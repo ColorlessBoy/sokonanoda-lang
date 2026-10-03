@@ -128,3 +128,11 @@ theorem Set.pi_mono (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i 
       (fun (i : ι) =>
         (fun (hs : ∀ (j : ι), A j ⊆ B j) => (fun (hu : ∀ (x : α), x ∈ A i → x ∈ B i) =>
           hu (f i) (Set.mem_pi_elim ι α A f i hf)) (hs i)) h)
+
+-- 交对族**反变**（S-B ✓；λ 落地 ✓）：`F ⊆ G ⇒ ⋂G ⊆ ⋂F`
+theorem sInter_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
+    Set.sInter α G ⊆ Set.sInter α F :=
+  fun (x : α) (hx : x ∈ Set.sInter α G) =>
+    (fun (hxG : ∀ (A : Set α), A ∈ G → x ∈ A) =>
+      (fun (hxF : ∀ (A : Set α), A ∈ F → x ∈ A) => hxF)
+        (fun (A : Set α) (hA : A ∈ F) => hxG A (h A hA))) hx
