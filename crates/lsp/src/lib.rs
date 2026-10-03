@@ -37,7 +37,7 @@ use protocol::{
 };
 use render::{
     bracket_hover, decl_at, definition_at, diagnostic_from_compile, diagnostic_from_parse,
-    expr_hover, highlight_uses, hover_type_at, range_of, scope_names_at, semantic_kind_at,
+    expr_hover, highlight_uses, hover_type_at_offset, range_of, scope_names_at, semantic_kind_at,
     status_label, symbol_kind,
 };
 use sokonanoda_front::compile::cache::{self, CachedCompile};
@@ -1819,7 +1819,7 @@ impl LanguageServer for Backend {
         // （D4）⇒ 上面那条 `notation_symbol_hover` 不会触发，这一行只能补在这里。
         // **追加**在类型行之后，不抢主线（`α : Prop` 才是学习者要看的）。
         let input_hint = sokonanoda_front::notation_input::input_hint_at(doc.text(), offset);
-        if let Some(h) = hover_type_at(&report.hovers, pos.line, pos.character) {
+        if let Some(h) = hover_type_at_offset(&report.hovers, offset) {
             // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片
             //（括号平衡成良构），并返回表达式范围供编辑器高亮。
             return Ok(Some(hover_markup(

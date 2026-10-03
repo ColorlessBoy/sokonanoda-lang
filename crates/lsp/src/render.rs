@@ -62,6 +62,15 @@ pub(crate) fn range_of(span: Span) -> Range {
     }
 }
 
+/// **G-36 第三处（2026-10-03 ✓）**：按 **offset** 判"是否落在 span 内" ✓。
+/// 旧的 [`pos_within_span`] 拿 LSP 的 **UTF-16 列** 去比 **span 的列** ✗ —— 而 span 的列是
+/// 前端 parser 按**自己的约定**算的 ✗ ⇒ `𝒫` 这类星平面字符之后**判错 span** ✓
+///（实测：光标在 `A` 上，却命中覆盖整条 `𝒫 A = 𝒫 A` 的宽 span ⇒ hover 答外层表达式 ✗）。
+/// offset 是两边**共有的**坐标系 ✓ ⇒ 比它不会错 ✓。
+pub(crate) fn offset_within_span(offset: usize, span: Span) -> bool {
+    span.start.offset <= offset && offset < span.end.offset
+}
+
 pub(crate) fn pos_within_span(line: u32, character: u32, span: Span) -> bool {
     let l = line as usize + 1;
     let c = character as usize + 1;
@@ -69,6 +78,18 @@ pub(crate) fn pos_within_span(line: u32, character: u32, span: Span) -> bool {
         || (l, c) >= (span.start.line, span.start.column);
     let before_end = (l, c) < (span.end.line, span.end.column);
     after_start && before_end
+}
+
+/// **G-36 第三处**：按 **offset** 取"包含该位置的最小 span" ✓（见 [`offset_within_span`] ✓）。
+pub(crate) fn hover_type_at_offset(hovers: &[HoverType], offset: usize) -> Option<&HoverType> {
+    hovers
+        .iter()
+        .filter(|h| offset_within_span(offset, h.span))
+        .min_by_key(|h| {
+            (h.span.end.offset - h.span.start.offset)
+                .try_into()
+                .unwrap_or(u64::MAX)
+        })
 }
 
 pub(crate) fn hover_type_at(hovers: &[HoverType], line: u32, character: u32) -> Option<&HoverType> {
