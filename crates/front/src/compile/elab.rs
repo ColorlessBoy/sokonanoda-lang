@@ -2503,6 +2503,13 @@ fn solve_prefix_args_impl<'a>(
             let Some(actual) = operand_type_expr(ctx, scope, operand, wide) else {
                 continue;
             };
+            if std::env::var_os("SOKO_OUT_DEBUG").is_some() && name.starts_with('\u{0}') {
+                eprintln!(
+                    "OUT-DEBUG name={name} layer={:?} actual={:?}",
+                    format!("{:?}", layer.1).chars().take(90).collect::<String>(),
+                    format!("{:?}", actual).chars().take(130).collect::<String>()
+                );
+            }
             if let Some(found) = unify_extract(&layer.1, &actual, &name) {
                 arg = Some(found);
                 break;
