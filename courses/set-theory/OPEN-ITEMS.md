@@ -396,3 +396,20 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **绕行** ✓：**S-B 推进转单元侧** —— 给**已判绿的库引理配课内练习** ✓（与 `unit113` 练习 3–6 同一手法 ✓：探针先绿 → 整文件追加 → `audit-pairs` → `check.py --only` → 路径限定 commit → 反向验证 ✓）。
 **留档已判绿 10 项** ✓（别重做 ✓）：`lib/Ordinal` 6 ✓（反向链 16→15→16 / 17→16→17 / 18→17→18 / 19→18→19 / 20→19→20 / 21→20→21 ✓）·
 `lib/ZF` 2 ✓（12→11→12 / 13→12→13 ✓）· `lib/Cardinal` 3 ✓（9→7→9 / 10→9→10 ✓）。
+
+## C-122（**open · 绕行 = 转下一章** · 2026-10-03 S-B 第 63 轮）单元侧**安全候选亦尽** ✗
+
+**逐单元比对结果** ✓（判据 = 列名逐条对 + 定义体实读 ✓）：
+
+| 单元 | 现有面 | 判定 |
+|---|---|---|
+| `I.8/unit19-cardinal-le` ✓ | 13 条 ✓ | 已加 2 条（`le_mono`/`le_mono_right` ✓）；余项与库版**同题** ✗ |
+| `I.7/unit18-zf-axioms` ✓ | 14 → **16 条** ✓ | 已加 2 条（`union_elim`/`union_intro` ✓）；`isEmpty`/`isUnion`/`Extensional`/`regularity` **全部已覆盖** ✗（`regularity_apply` ✓ · `regularity_minimal` ✓ · `extensional_sound` ✓ · `isEmpty_intro` ✓ …） |
+| `I.7/unit17-choice` ✓ | 13 条 ✓ | `choice_spec_apply` ✓ · `choice_weaken` ✓ · `choice_on_univ` ✓ · `surjective_split` ✓ · `split_*` ✓ ⇒ **已覆盖** ✗ |
+| `I.6/unit82-succ-ordinal` ✓ | 6+ 条（解答 11 ✓） | 与新增 6 条库引理**同题** ✗ |
+| `IsPair` 全族 ✗ | —— | 假设/结论**含 `Or`** ✗ ⇒ **边界** ✗（C-119 族 ✓） |
+
+**`Or` 绑定注解三次同族实证** ✓（第 60/61 轮 ✓ + C-119 ✓）：`h : ∀ z, E z x ↔ (z = a ∨ z = b)` ✗（`第 6 个绑元`）·
+**拆两条蕴含**后 ✗（`第 7 个绑元`）⇒ 手册那条"`↔`+`¬` 拆蕴含"的绕法**对 `Or` 无效** ✗ ⇒ G-73 家族 ⇒ 内核侧 ✓。
+**绕行** ✓：**S-B 转下一章** —— I.9 集族广义积 ✓ / I.10 商 ✓ / I.11 集合代数 ✓ / I.12 幂集函数空间 ✓ / I.13 关系代数 ✓（同法：先查重 ✓ → 探针 ✓ → 落盘 ✓ → 反向验证 ✓）。
+**留档已判绿 13 项** ✓（别重做 ✓）：库引理 10 ✓（反向链见 C-121 ✓）· 单元练习 4 道 ✓（unit19 `le_mono`/`le_mono_right` ✓ · unit18 `union_elim`/`union_intro` ✓ —— **均为"撤即判红"** ✓）。
