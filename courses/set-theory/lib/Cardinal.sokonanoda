@@ -106,3 +106,20 @@ theorem Cardinal.lift_mk (β : Type) (f : Type → β)
 -- · Mathlib 那个**跨宇宙**的 `Cardinal.lift`（用 `ULift` 处理无累积性）：
 --   本语言没有 `ULift`（要新归纳块）⇒ 本文件的 `Cardinal.lift` 是**降函数**
 --   （`Cardinal → β`），**不是** Mathlib 的宇宙提升 —— 名字**有意复用但语义不同** ✓。
+
+-- ── `Type.Equiv` 的自反（S-B ✓；**内层 `∃` 拆具名引理** ✓ 手册惯用法 #3，实测必需）────
+-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+theorem Type.Equiv.of_inverses (α β : Type) (f : α → β) (g : β → α)
+    (h1 : ∀ (a : α), g (f a) = a) (h2 : ∀ (b : β), f (g b) = b) :
+    ∃ (g' : β → α), (∀ (a : α), g' (f a) = a) ∧ (∀ (b : β), f (g' b) = b) :=
+  Exists.intro (β → α)
+    (fun (g' : β → α) => (∀ (a : α), g' (f a) = a) ∧ (∀ (b : β), f (g' b) = b))
+    g (And.intro h1 h2)
+
+-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+theorem Type.Equiv.refl (α : Type) : Type.Equiv α α :=
+  Exists.intro (α → α)
+    (fun (f : α → α) => ∃ (g : α → α), (∀ (a : α), g (f a) = a) ∧ (∀ (b : α), f (g b) = b))
+    (fun (a : α) => a)
+    (Type.Equiv.of_inverses α α (fun (a : α) => a) (fun (a : α) => a)
+      (fun (a : α) => Eq.refl.{1} α a) (fun (b : α) => Eq.refl.{1} α b))
