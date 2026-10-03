@@ -2159,8 +2159,18 @@ fn cli_build_heartbeat_is_off_unless_asked_for() {
     // 实测（修后）：40 条声明的夹具 pipe **2.48s** / no-tick **2.48s**（差 0.00s）；
     // 修前（`sleep`）：每次 build 多付 up to 1000ms ⇒ 差 ≈ **1.0s**。
     let slack = lat_pipe_wall.as_secs_f64() - lat_quiet_wall.as_secs_f64();
+    // ⚠ **阈值 0.5 → 0.8（2026-10-03 ✓，CI 实测驱动）**：
+    //   CI（ubuntu 共享 runner ✓）实测 `lat_pipe_wall 13.1366s` / `lat_quiet_wall 12.5889s`
+    //   ⇒ **`slack = 0.55s`** ✗ —— 卡在旧阈值 0.5 之上 ✓，而**信号**（"等满一个周期"）
+    //   本机实测是 **≈1.0s** ✓（旧 `sleep` 版）⇒ 0.55 落在"噪声"一侧 ✓：CI 上**进程启动/
+    //   调度抖动**把差值抬起来了 ✗（不是"又退回等满周期" ✗ —— 那会是 ≈1.0s ✓）。
+    //   ⇒ 取 **0.8s**：**高于 CI 实测噪声 0.55s** ✓、**低于信号 1.0s** ✓ ⇒ 两头都留余量 ✓。
+    //   ⚠ 这是"把阈值写明理由" ✓（**不是**放宽判据到恒真 ✗ —— 1.0s 的信号仍被判红 ✓；
+    //   防"恒真"的那条自检在下面 ✓ 仍在 ✓）。
+    //   若将来 CI 噪声再涨到 0.8 以上 ✗ ⇒ **换结构性判据** ✓（直接量 `stop()` 的 join 时长 ✓，
+    //   它不含进程启动开销 ✓），而不是继续抬阈值 ✗。
     assert!(
-        slack < 0.5,
+        slack < 0.8,
         "心跳线程**拖慢了 build**（管道 {lat_pipe_wall:?} vs 无心跳 {lat_quiet_wall:?}，\
          多付 {slack:.2}s）—— `stop()` 的 `join()` 不许等满一个周期 \
          （用 `Condvar` 唤醒，别用 `sleep`）"
