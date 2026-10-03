@@ -42,6 +42,7 @@ use crate::Span;
 /// 只在「头不带 `.{}`、定义**恰好一个**宇宙参数」时才被用（见
 /// `spine::resolve_levels`）；读不出、或算出来不是具体数字 ⇒ `None`，
 /// 展开保持既有行为（悬空变量**响亮**报错，绝不静默错层级）。
+#[track_caller]
 fn level_hint_of(
     expr: &Expr,
     defs: &DefTable,
@@ -55,7 +56,18 @@ fn level_hint_of(
         return None;
     }
     let first = args.first()?;
-    let infer = |text: &str| judge_infer(prefix_src, options, binders, text).ok();
+    // **诊断**（`SOKO_INPLACE_WHY=1`，默认零成本 ✓）：这条路的 `judge_infer`
+    // **没有就地实现** ✗ ⇒ 每次未命中都要重跑整份前缀 ✗（实测一次按键 **16 趟** ✓，
+    // 占剩下的全部 ✓）。记**真正的调用点**（`#[track_caller]` 才透得过闭包 ✓）。
+    let caller = std::panic::Location::caller();
+    let infer = |text: &str| {
+        if crate::judge::inplace_why_enabled() {
+            // ⚠ **直打 stderr**，不走 `note_by_reason`：那张表在报告处**截断到 240 字** ✗
+            // ⇒ 长原因（`on-elab-operand` 的中文诊断 ✓）会把这几条挤掉 ✗（实测踩到 ✓）。
+            eprintln!("BY_LEVEL_HINT at={}:{}", caller.file(), caller.line());
+        }
+        judge_infer(prefix_src, options, binders, text).ok()
+    };
     let sort_text = if args.len() >= params {
         infer(&render_expr(first))?
     } else {

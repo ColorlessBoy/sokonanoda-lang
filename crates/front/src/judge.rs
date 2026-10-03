@@ -1282,6 +1282,16 @@ pub(crate) fn inplace_mode() -> InplaceMode {
     )
 }
 
+/// **`On` 档的就地失败要不要记原因**（`SOKO_INPLACE_WHY=1`，诊断用，默认零成本 ✓）。
+///
+/// 为什么单开一个开关：`On` 档以前**只计数不记因** ✗（原因只在 shadow 档且两条
+/// 分叉时才记 ✗）⇒ "就地路为什么答不出"只能靠猜。而实测 `used=303 / fallback=695`
+/// （**69.6% 答不出** ✗）⇒ 先量清是哪一类，再决定改哪儿 ✓。
+pub(crate) fn inplace_why_enabled() -> bool {
+    static ON: OnceLock<bool> = OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("SOKO_INPLACE_WHY").is_some())
+}
+
 /// **P1-b 的 wide 那两个接线点**是否生效（`guarded_binder_type` /
 /// `solve_prefix_args`；`elab.rs` 的 4 个签名多一个 `InplaceEnv`）。
 ///

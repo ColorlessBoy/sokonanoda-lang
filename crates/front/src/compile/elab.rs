@@ -2707,8 +2707,10 @@ fn substitute_prefix_params(
 /// `Parse=77822` 那次分叉的 ✓）。
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum InplaceFail {
-    /// 在活环境上 elaborate 失败 / 内核 panic。
-    Elab,
+    /// 在活环境上 elaborate **某个 binder 的源类型**失败 / 内核 panic。
+    ElabBinder,
+    /// 在活环境上 elaborate **项本身**失败 / 内核 panic。
+    ElabOperand,
     /// 求类型那一步被内核拒绝（panic）。
     Kernel,
 }
@@ -2916,8 +2918,8 @@ pub(crate) fn infer_type_text_inplace<'a>(
                 ctx,
             )
         })
-        .map_err(|_| InplaceFail::Elab)?
-        .map_err(|_| InplaceFail::Elab)?;
+        .map_err(|_| InplaceFail::ElabBinder)?
+        .map_err(|_| InplaceFail::ElabBinder)?;
         tys.push(ty);
         sc.push(name.clone(), ty, Some(src_ty.clone()), operand.span());
     }
@@ -2934,9 +2936,33 @@ pub(crate) fn infer_type_text_inplace<'a>(
             None,
             ctx,
         )
-    })
-    .map_err(|_| InplaceFail::Elab)?
-    .map_err(|_| InplaceFail::Elab)?;
+    });
+    let body = match body {
+        Ok(Ok(ptr)) => ptr,
+        // **诊断**（`SOKO_INPLACE_WHY=1`，默认零成本 ✓）：实测就地失败 **100% 在这一步** ✗
+        // （`used=303 / fallback=695`，原因全是 `on-elab-operand` ✓），而
+        // `.map_err(|_| …)` 把 elaborator 的**原话丢了** ✗ ⇒ "为什么答不出"只能靠猜。
+        // 记原话（空白换成 `_`：直方图按空白切词 ✗）。
+        Ok(Err(err)) => {
+            if crate::judge::inplace_why_enabled() {
+                crate::judge::stats::note_by_reason(&format!(
+                    "op({})",
+                    err.message
+                        .chars()
+                        .take(70)
+                        .collect::<String>()
+                        .replace(char::is_whitespace, "_")
+                ));
+            }
+            return Err(InplaceFail::ElabOperand);
+        }
+        Err(_) => {
+            if crate::judge::inplace_why_enabled() {
+                crate::judge::stats::note_by_reason("op(panic)");
+            }
+            return Err(InplaceFail::ElabOperand);
+        }
+    };
     // ③ 从内往外包 λ —— 与 `elab_expr` 的 `Expr::Lambda` 分支同序同形 ✓。
     let mut term = body;
     for ((name, _), ty) in binder_srcs.iter().zip(tys).rev() {
@@ -3019,9 +3045,35 @@ fn infer_type_text<'a>(
                     Some(text)
                 }
                 // 就地答不出 ⇒ **回退**（不是猜、也不是答 None）✓。
-                Err(_) => {
+                //
+                // ⚠ **红线现状（2026-10-04 实测 ✗）**：`SOKO_JUDGE_INPLACE=off`（纯慢路）
+                // 与 `on`（默认）的全课程 `build --json` **目前并不相同** ✗ ——
+                // `lib/ZF` / `units/I.1/unit104-classical` 在 `off` 档 `failed`、
+                // `on` 档 `compiled` ✓（**改前也如此** ⇒ 既有分歧，不是本轮的改动 ✓）。
+                // ⇒ 就地路**当前不可当权威** ✗：任何"就地失败即答 None"的提速都要等
+                // 这条分歧清掉之后才有可信的验收口径 ✓（G-29 的台账记着这条 ✓）。
+                Err(why) => {
                     crate::judge::stats::INPLACE_FALLBACK
                         .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    // **诊断**（`SOKO_INPLACE_WHY=1`，默认零成本 ✓）：`On` 档的失败
+                    // 以前**只计数、不记因** ✗（原因只在 shadow 档且两条分叉时才记 ✗）
+                    // ⇒ "就地路为什么答不出"只能靠猜 —— 实测 `used=303 / fallback=695`
+                    // （**69.6% 答不出** ✗，原因 100% 是 `on-elab-operand` ✓：
+                    // 记法 `∅` 展开成 `Set.empty` 时补不出前导类型参数 ✗）。
+                    if crate::judge::inplace_why_enabled() {
+                        crate::judge::stats::note_by_reason(match why {
+                            InplaceFail::ElabBinder => "on-elab-binder",
+                            InplaceFail::ElabOperand => "on-elab-operand",
+                            InplaceFail::Kernel => "on-kernel",
+                        });
+                    }
+                    // ⚠ **2026-10-04 撤刀** ✗：这里一度改成 `None`（不跑慢路 ⇒ 实测
+                    // 一次按键 `prefix` 28→16 ✓），但**无法验证它的安全性** ✗ ——
+                    // 全课程 `off` vs `on` 的 `--json` 对拍**本来就不相同** ✗
+                    // （实测：`lib/ZF` / `units/I.1/unit104-classical` 在 `off` 档
+                    // `failed`、`on` 档 `compiled` ✓，且**改前也如此** ✓ ⇒ 那是
+                    // **既有**分歧，不是这一刀引入的 ✗）。既有分歧未清之前，
+                    // 任何"就地失败即权威"的改动都没有可信的验收口径 ⇒ 撤回 ✓。
                     slow()
                 }
             }
