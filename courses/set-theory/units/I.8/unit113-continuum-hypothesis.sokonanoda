@@ -41,3 +41,9 @@ theorem ch_independence_out_of_scope :
 theorem le_of_subset_le (A B C : Set Nat) (hAB : A ⊆ B) (h : B ≼ C) : A ≼ C :=
   sorry
 -- soko:hint 关键件：`Set.Le.of_subset`（`⊆` ⇒ `≼` ✓）与 `Set.Le.trans`（`≼` 传递 ✓）各用一次。
+
+-- 练习 4（L 引理链）：两侧同时放大 —— `mono`（左边）与 `mono_right`（右边）各一次
+theorem le_mono_both (A A' B B' : Set Nat) (hA : A' ⊆ A) (h : A ≼ B) (hB : B ⊆ B') :
+    A' ≼ B' :=
+  sorry
+-- soko:hint 关键件：先用 `Set.Le.mono`（`A' ⊆ A` ⇒ `A' ≼ B` ✓），再用 `Set.Le.mono_right`（`B ⊆ B'` ✓）。
