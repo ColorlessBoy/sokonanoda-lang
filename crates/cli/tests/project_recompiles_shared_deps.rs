@@ -84,20 +84,70 @@ fn write(dir: &Path, relative: &str, text: &str) {
 /// **必须开 `SOKO_STAGE_STATS=1`** ✓（`passes` 只在那行里 ✓）；缓存目录指到自己的
 /// 临时目录 ✓（同 `imports.rs` 的理由：互不干扰 ✓）。
 fn build(dir: &Path) -> (String, String) {
-    let output = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
-        .arg("build")
+    build_env(dir, &[])
+}
+
+/// 带额外环境变量的一次 `build` ✓（`SOKO_BUILD_BIN` 可把被测二进制换成别的 ✓
+/// —— 用来**证明守卫咬得住** ✓）。
+fn build_env(dir: &Path, extra: &[(&str, &str)]) -> (String, String) {
+    let bin = std::env::var("SOKO_BUILD_BIN")
+        .unwrap_or_else(|_| env!("CARGO_BIN_EXE_sokonanoda").to_string());
+    let mut cmd = Command::new(bin);
+    cmd.arg("build")
         .arg("--json")
         .arg(dir)
         .env("SOKO_STAGE_STATS", "1")
         .env("SOKONANODA_CACHE_DIR", dir.join(".cache"))
         .env_remove("SOKONANODA_NO_CACHE")
-        .stdin(Stdio::null())
-        .output()
-        .expect("spawn sokonanoda");
+        .stdin(Stdio::null());
+    for (k, v) in extra {
+        cmd.env(k, v);
+    }
+    let output = cmd.output().expect("spawn sokonanoda");
     (
         String::from_utf8_lossy(&output.stderr).into_owned(),
         String::from_utf8_lossy(&output.stdout).into_owned(),
     )
+}
+
+/// **红线守卫**：同一次 `build` 里，「**就地判定档**」（`SOKO_JUDGE_INPLACE`，默认 `on`）
+/// 与「**慢档**」（`off`）的**判定相关输出必须逐字节相同** ✓。
+///
+/// **为什么需要它**（2026-10-04 第 13 棒实测 ✓）：就地答案取自**活环境** ✗，而它写回
+/// 共享缓存时用的键**只有前缀文本、不含环境身份** ✗ ⇒ 一个进程里只要出现
+/// 「**同前缀 + 不同环境**」，答案就串味 ✗。把 `build` 接上「分组会话」之后，
+/// 全课程 `--json` 对拍 **264 行** `build.file` 由 `compiled` 变 `failed` ✗，
+/// 而 `off` 档**逐字节相同** ✓✓ ⇒ 病根就在就地缓存 ✓。
+///
+/// **守卫必须咬得住** ✓：把 `SOKO_BUILD_BIN` 指向那份坏接线（第 12 棒的二进制）时，
+/// 本测试**必须判红** ✓ —— 否则它就是空转守卫 ✗。
+#[test]
+fn inplace_judge_must_not_change_the_build_output() {
+    let dir_off = tmp_dir("parity-off");
+    write_fixture(&dir_off, ENTRIES);
+    let (_, off) = build_env(&dir_off, &[("SOKO_JUDGE_INPLACE", "off")]);
+    let dir_on = tmp_dir("parity-on");
+    write_fixture(&dir_on, ENTRIES);
+    let (_, on) = build_env(&dir_on, &[("SOKO_JUDGE_INPLACE", "on")]);
+    // 两个夹具在**不同的临时目录**里 ✗ ⇒ 先把目录名归一化 ✓（否则比的是路径 ✗）。
+    let core = |dir: &Path, s: &str| -> Vec<String> {
+        let d = dir.to_string_lossy().into_owned();
+        s.lines()
+            .filter(|l| !l.contains("\"type\":\"build.progress\""))
+            .map(|l| l.replace(&d, "<DIR>"))
+            .collect()
+    };
+    let (a, b) = (core(&dir_off, &off), core(&dir_on, &on));
+    if a != b {
+        let first = a.iter().zip(&b).find(|(x, y)| x != y);
+        let n = a.iter().zip(&b).filter(|(x, y)| x != y).count();
+        panic!(
+            "就地档与慢档的 build 输出不同 ✗（{n} 行 ⇒ 就地缓存串味 ✓）\n\
+             第一处：\n  off: {}\n  on : {}",
+            first.map(|(x, _)| x.as_str()).unwrap_or(""),
+            first.map(|(_, y)| y.as_str()).unwrap_or(""),
+        );
+    }
 }
 
 /// 从 `STAGE_STATS` 行取一个 `key=<数字>` 字段（取不到就 panic —— 判据不许静默退化 ✗）。
@@ -174,16 +224,15 @@ fn a_project_build_must_not_recompile_shared_deps_once_per_entry() {
     );
 }
 
-/// 建一个"`entries` 个入口 + 同一条库链"的工程并跑一次，返回 `(passes, files)`。
-fn build_with(tag: &str, entries: usize) -> (u64, u64, u64) {
-    let dir = tmp_dir(tag);
-    write(&dir, "sokonanoda.toml", "[project]\nname = \"g68\"\n");
+/// 铺夹具：`entries` 个入口 + 同一条库链 ✓（`build_with` 与红线守卫共用 ✓）。
+fn write_fixture(dir: &Path, entries: usize) {
+    write(dir, "sokonanoda.toml", "[project]\nname = \"g68\"\n");
     for (path, text) in LIBS {
-        write(&dir, path, text);
+        write(dir, path, text);
     }
     for i in 0..entries {
         write(
-            &dir,
+            dir,
             &format!("e{i}.sokonanoda"),
             &format!(
                 "import A\nimport B\nimport C\nimport D\n\n\
@@ -191,6 +240,12 @@ fn build_with(tag: &str, entries: usize) -> (u64, u64, u64) {
             ),
         );
     }
+}
+
+/// 建一个"`entries` 个入口 + 同一条库链"的工程并跑一次，返回 `(passes, files)`。
+fn build_with(tag: &str, entries: usize) -> (u64, u64, u64) {
+    let dir = tmp_dir(tag);
+    write_fixture(&dir, entries);
     let (stderr, stdout) = build(&dir);
     // `build.file` 的 `status` —— **每个模块都要 compiled** ✓（见测试里的前提 ✓）。
     let failed = stdout
