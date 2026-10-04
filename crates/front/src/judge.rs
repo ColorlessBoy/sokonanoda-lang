@@ -1555,8 +1555,12 @@ fn canonical_prefix_cached(src: &str) -> u64 {
     let mut table = canonical_prefix_table()
         .lock()
         .expect("canonical prefix table");
+    // ⚠ **同样不许整表清空** ✗→✓（2026-10-04 ✓）：walker 逐命令种 ✓ ⇒ 清空会把刚种下的
+    // 一起冲掉 ✗（实测：判据 ① 从 `prefix=0` 变 5 ✗）。正解 = **插入前淘汰一条** ✓。
     if table.len() >= CAP {
-        table.clear();
+        if let Some(victim) = table.keys().next().cloned() {
+            table.remove(&victim);
+        }
     }
     table.insert(src.to_string(), hash);
     hash
@@ -1584,8 +1588,14 @@ pub fn seed_canonical_prefix(text: &str, identity: &str) {
     let mut table = canonical_prefix_table()
         .lock()
         .expect("canonical prefix table");
+    // ⚠ **不许整表清空** ✗→✓（2026-10-04 实测定位 ✓）：walker 是**逐命令**种 ✓
+    // ⇒ 满 64 就 `clear()` 会把**刚种下的那条**一起冲掉 ✗ ⇒ 判定侧查不到 ⇒ 退回解析 ✗
+    // （实测开着预置时判据 ① 从 `prefix=0` 变 **5** ✗，而**身份本身是等价的** ✓ ——
+    // 自检一次分歧都没报 ✓）⇒ 正解 = **插入前淘汰一条** ✓，让刚种的那条一定在 ✓。
     if table.len() >= 64 {
-        table.clear();
+        if let Some(victim) = table.keys().next().cloned() {
+            table.remove(&victim);
+        }
     }
     table.insert(text.to_string(), hash);
 }
