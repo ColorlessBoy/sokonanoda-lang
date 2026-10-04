@@ -811,8 +811,11 @@ bare_miss_ms={} bare_miss_share={:.3}",
                 let passes = PASSES.load(Ordering::Relaxed);
                 let bys = BYS.load(Ordering::Relaxed);
                 let ms = |n: u64| n / 1_000_000;
+                // 判据 ③（值守 2026-10-04 ✓）：`fallbacks` = **身份退回原文的趟数** ✗ ——
+                // 整本课程必须 **0** ✓（>0 ⇒ 那个模块根本没吃到「只改证明」这个特性 ✗）。
+                let fallbacks = crate::judge::stats::prefix_fallbacks().0;
                 eprintln!(
-                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={}",
+                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={} fallbacks={fallbacks}",
                     ms(PASS_NANOS.load(Ordering::Relaxed)),
                     ms(BY_NANOS.load(Ordering::Relaxed)),
                     ms(crate::judge::stats::nanos()),
@@ -1003,6 +1006,9 @@ pub fn closure_prefixes_for(units: &[SourceUnit<'_>]) -> Vec<String> {
 /// ⚠ **解析失败 ⇒ 退回原文** ✓（保守 ✓ 安全 ✓ —— 宁可少复用 ✗，绝不多复用 ✗）。
 pub fn canonical_prefix_id(src: &str) -> String {
     let Ok(file) = crate::parser::parse(src) else {
+        // 判据 ③（值守 2026-10-04 ✓）：**退回原文要计数** ✓ —— 这是"放弃特性"的
+        // 保守退路 ✓，**整本课程必须一次都不触发** ✗（触发了就是特性对那个模块失效 ✗）。
+        crate::judge::stats::note_prefix_fallback(src, "parse-failed");
         return src.to_string();
     };
     let mut out = String::new();

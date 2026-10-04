@@ -368,6 +368,29 @@ pub(crate) mod stats {
     /// **重跑前缀的趟数**（判据的第二个读数；字节数用上面既有的 `PREFIX_BYTES`）。
     /// 噪声免疫（确定性）、不会被并发重复计时污染 ⇒ 可以作判据 ✓。
     pub(crate) static PREFIX_RUNS: AtomicU64 = AtomicU64::new(0);
+    /// **身份退回原文的趟数**（判据 ③，2026-10-04 值守派单 ✓）。
+    ///
+    /// 为什么要有它 ✗：`canonical_prefix_cached` 有一条**保守退路** —— 前缀
+    /// **解析不过**（或**超尺寸闸**）⇒ 直接用**原文**当身份 ✓（安全 ✓ 但**放弃特性** ✗：
+    /// 改证明体会让下游全失效 ✓）。先前**没有任何东西**会因为"闸被触发"而判红 ✗
+    /// ⇒ 「声明与守卫之间有缝」的又一例 ✗（值守原话 ✓）。
+    ///
+    /// **判据** ✓：整本课程跑完，这个数**必须 == 0** ✓；`> 0` 即判红 ✓，
+    /// 并把**第一份**退回的前缀头 80 字节记在 `FALLBACK_HEAD` 里（够定位到模块 ✓）。
+    pub(crate) static PREFIX_FALLBACKS: AtomicU64 = AtomicU64::new(0);
+    /// 第一份退回原文的前缀**头 80 字节**（定位用 ✓；只在退回时写一次 ✓）。
+    pub(crate) static FALLBACK_HEAD: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+    /// 记一次「身份退回原文」✓（判据 ③ 的写入端）。
+    pub(crate) fn note_prefix_fallback(src: &str, why: &str) {
+        PREFIX_FALLBACKS.fetch_add(1, Ordering::Relaxed);
+        if let Ok(mut slot) = FALLBACK_HEAD.lock() {
+            if slot.is_none() {
+                let head: String = src.chars().take(80).collect();
+                *slot = Some(format!("[{why}] len={} head={head:?}", src.len()));
+            }
+        }
+    }
     /// **P1-a 就地判定**（`SOKO_JUDGE_INPLACE`）的四个数：
     /// `USED` = 就地答上了（**没跑前缀**）· `FALLBACK` = 就地答不出、退回源码重跑 ·
     /// `SHADOW_SAME` / `SHADOW_DIFF` = 影子档下两条路的文本**逐字节是否相同**。
@@ -510,6 +533,17 @@ pub(crate) mod stats {
         (
             PREFIX_RUNS.load(Ordering::Relaxed),
             PREFIX_BYTES.load(Ordering::Relaxed),
+        )
+    }
+
+    /// **身份退回原文的趟数** ✓（判据 ③，2026-10-04 值守派单 ✓）。
+    ///
+    /// 判据：整本课程跑完**必须 == 0** ✓；`> 0` 判红，并把**第一份**退回的前缀头
+    /// 一并返回（够定位到模块 ✓）。
+    pub fn prefix_fallbacks() -> (u64, Option<String>) {
+        (
+            PREFIX_FALLBACKS.load(Ordering::Relaxed),
+            FALLBACK_HEAD.lock().ok().and_then(|slot| slot.clone()),
         )
     }
 
@@ -1509,6 +1543,9 @@ fn canonical_prefix_cached(src: &str) -> u64 {
     // **下一刀** ✓：把身份改成**增量**构造（walk 手上有解析好的命令 ✓）⇒ 去掉这道闸 ✓。
     const PARSE_LIMIT: usize = 64 * 1024;
     if src.len() > PARSE_LIMIT {
+        // 判据 ③（值守 2026-10-04 ✓）：**闸被触发也要计数** ✓ —— 先前它悄悄退回原文 ✗，
+        // 没有任何东西判红 ✗。这条计数就是那条缝的守卫 ✓（下一步会**删掉这道闸** ✓）。
+        stats::note_prefix_fallback(src, "over-size-gate");
         return judge_cache_key(&[src]);
     }
     const CAP: usize = 64;
@@ -2807,7 +2844,44 @@ mod tests {
     use crate::compile::{check_document, DeclState, DeclStatus, PreludeMode};
     use crate::parse;
 
-    /// **G-85 反向验证（值守口径 ✓）**：身份跟**接口**走 ✓，不跟**证明体**走 ✓。
+    /// **判据 ③（值守 2026-10-04 派单 ✓）：大前缀不许退回原文** ✗。
+    ///
+    /// 背景 ✗：我先前为了修一处冷开回归，在 `canonical_prefix_cached` 里加了一道
+    /// **尺寸闸**（`PARSE_LIMIT = 64 KB` ⇒ 超过就 `return judge_cache_key(&[src])`）✗
+    /// —— 那等于**大单元（unit12 等）根本没吃到「只改证明」这个特性** ✗：
+    /// 键里是**原文** ⇒ 改证明体照样全失效 ⇒ 下游照样重跑 ✓。
+    /// 用户 13:08 拍板：「**不许降级修**」✗ ⇒ 这条判据就是那条缝的守卫 ✓。
+    ///
+    /// **判据本身** ✓：走 `canonical_prefix_cached`（闸就在它里面 ✓）⇒
+    /// ① 不许有任何一次「退回原文」✓；② 身份**不许等于原文的键** ✓（等于就是退回 ✓）。
+    /// ⚠ 计数器是**进程级**的 ✗（同 crate 的其它测试并行跑会串味 ✓）⇒ 取**差量** ✓。
+    #[test]
+    fn a_large_prefix_must_not_fall_back_to_raw_text() {
+        let mut src = String::new();
+        let mut i = 0usize;
+        while src.len() < 96 * 1024 {
+            src.push_str(&format!("def f{i} (α : Type) (a : α) : α := a\n"));
+            i += 1;
+        }
+        assert!(
+            src.len() > 64 * 1024,
+            "夹具前提：这份前缀必须**超过尺寸闸** ✗"
+        );
+        let before = stats::prefix_fallbacks().0;
+        let hash = canonical_prefix_cached(&src);
+        let after = stats::prefix_fallbacks().0;
+        assert_eq!(
+            after, before,
+            "**大前缀不许退回原文** ✗（判据 ③）—— 退回 = 那个模块放弃「只改证明」特性 ✗\n  头: {:?}",
+            stats::prefix_fallbacks().1
+        );
+        assert_ne!(
+            hash,
+            judge_cache_key(&[&src]),
+            "身份**不许等于原文的键** ✗ —— 等于就是「退回原文」✗（判据 ③）"
+        );
+    }
+
     ///
     /// 五条判据（**两个方向都要有** ✓）：
     /// ① 证明体变（陈述一字不动）⇒ 身份**不变** ✓（`theorem` 的值是证明，证明不参与 `def_eq` ✓）；
