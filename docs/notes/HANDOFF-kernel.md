@@ -36,21 +36,24 @@
 
 ## 3. 下一棒做什么（按序 ✓）
 
-1. **G-92：`by` 判定的「前缀重跑」O(n²)** ✗（**本会话实测新发现** ✓，判据已在册 ✓）：
-   一个文件里 N 条**各自需要新判定**的 `by` 声明 ⇒ `by_calls` **×4 / 规模翻倍** ✗
-   （趟数线性 ✓，但**每趟重编整份前缀** ✗）。**真实课程不呈现它** ✓（逐声明耗时平线 ✓）
-   ⇒ 是**最坏形状**的缺口 ✓。复现件 `docs/gaps/repro/G92-by-prefix-rerun-is-quadratic.sh`
-   （秒级 ✓，比值 ≥3.0 ⇒ exit 0 ✓）。出路 = 判定侧拿**就地环境**（`EnvProvider` ✓，
-   P1-a 已为「裸常量」那类接上 ✓，**`by` 那类还没接** ✗）。
-2. **③ 限制可配置化 + 按 Lean 4 对齐数值**（值守 13:21/13:24 ✓）：
-   ① 可配置化（**默认值一个不动** ✓、**零行为变化** ✓）；② 放宽默认值**单独一笔** ✓。
+1. **G-92：`by`/`#check` 判定的「前缀重跑」仍 O(n²)** ✗（判据在册 ✓、秒级 ✓）。
+   **第 16 棒已走一步（部分修 ✓）**：`#check` 两条路改走**受信任前缀** ✓ ⇒
+   `unit12-synthesis` 墙钟 **10.97 → 5.75s（1.91×）** ✓；但复现件比值仍 **4.13** ✗。
+   **根因已收窄** ✓：信任档**只跳内核检查、不跳 elaborate** ✗（`walk.rs:813` 的
+   `if trusted { … return; }` 在建完环境**之后**才早退 ✓）⇒ 前缀里的 `by` 照样被
+   elaborate 一遍 ✗。**出路二选一** ✓：① 给就地路加「**文本 ⇒ AST**」入口 ✓
+   （`by.rs` 的 `infer(text)` 收文本 ✗ 而就地路只收源 AST ✗ —— 边界写在 `by.rs:88-93` ✓）；
+   ② 让合成编译**复用调用方的环境** ✓（= G-68 那条**架构件** ✗，见
+   `docs/design/module-artifacts.md` §2 ✓）。
+2. **③ 限制可配置化 + 按 Lean 4 对齐数值**（值守 13:21/13:24 ✓）：① 可配置化
+   （**默认值一个不动** ✓、零行为变化 ✓）；② 放宽默认值**单独一笔** ✓。
    **终点取 Lean 数值** ✓：`maxRecDepth 64→3200` · `maxHeartbeats 4096→20000` ·
-   `maxSize 64→128` · `maxSynthDepth 8→32` ✓；**Lean 没有的**（`PROBE_CAP` ⇒ 弃权）**去掉，
-   不许换数字留着** ✗。落点用**现成管道** ✓（`CompileOptions` + `sokonanoda.toml [limits]` +
-   CLI ✓），**不新造配置系统** ✗。⚠ 现在已经有**取证口** ✓（`SOKO_LIMIT_PROBE_CAP` /
-   `SOKO_LIMIT_MAX_TRACKED` / `SOKO_LIMIT_MAX_HEARTBEATS` / `SOKO_LIMIT_MAX_REC_DEPTH` ✓，
-   默认值**一个不动** ✓）—— ② 步就是把**默认值**换成 Lean 的数 ✓，判据现成：
-   `scripts/limits-only-slow.sh --full` ✓ + 整本课程 `--json` 逐字节 ✓。
+   `maxSize 64→128` · `maxSynthDepth 8→32` ✓；**Lean 没有的**（`PROBE_CAP` ⇒ 弃权）
+   **去掉，不许换数字留着** ✗。落点用**现成管道** ✓（`CompileOptions` +
+   `sokonanoda.toml [limits]` + CLI ✓）。⚠ **取证口已经在了** ✓
+   （`SOKO_LIMIT_PROBE_CAP` / `SOKO_LIMIT_MAX_TRACKED` / `SOKO_LIMIT_MAX_HEARTBEATS` /
+   `SOKO_LIMIT_MAX_REC_DEPTH` ✓，默认值**一个不动** ✓）—— ② 步就是换**默认值** ✓，
+   判据现成：`scripts/limits-only-slow.sh --full` ✓。
 3. **G-91 的乙类 4 处计数出口**（内核侧七个**已铺** ✓）：`judge.rs` 两张表容量 ·
    目标分解失败（`goals.rs`）· `SKELETON_MAX_LAYERS` ✓。复现件铺齐后**判 1** ⇒ 回来关账 ✓。
 4. 排队在后面（做不完继续往下传 ✓）：**IA-4 元参数引擎余片** · **集合论教材线 S-A/S-B/S-C**
@@ -67,7 +70,9 @@
 | 闸类普查 | `cargo test -p sokonanoda-front --test gate_census` ⇒ 甲类闸 == 0 | **有 ✓ 绿**（反向：`MAX_DEPTH=1` ⇒ **59** ⇒ 判红 ✓） |
 | **闸只变慢不变错** | `scripts/limits-only-slow.sh --full` ⇒ 三道闸拧到 1，输出**逐字节相同** ✓ + 闸**确实触发** ✓ | **有 ✓ 绿**（10589/51129/139358/1334 ✓） |
 | G-88 预算不当成否 | `cargo test -p sokonanoda-front --lib meta::tests::exhausted_budget_…` | **有 ✓ 绿**（反向：换回 `Tri::No` ⇒ 判红 ✓） |
-| 规模翻倍 ⇒ 耗时翻倍 | **真实课程** ✓：`SOKO_DECL_PROFILE=1` 逐声明耗时**平线** ✓（unit12 index 150+ = 135–150ms ✓）· **最坏形状** ✗：`by_calls` 比值 **4.13** ⇒ **G-92** ✓ | **有 ✓（两条分开记 ✓，别混 ✗）** |
+| 规模翻倍 ⇒ 耗时翻倍 | **真实课程** ✓：`SOKO_DECL_PROFILE=1` 逐声明耗时**平线** ✓ · **最坏形状** ✗：`by_calls` 比值 **4.13** ⇒ **G-92** ✓ | **有 ✓（两条分开记 ✓）** |
+| **判定前缀不再重查内核** | `SOKO_JUDGE_ENV_VOUCH=shadow SOKO_JUDGE_ENV_PROBE=1` ⇒ `shadow_diff == 0` 且 `shadow_same > 0` | **有 ✓ 绿**（43/59 · 0 ✓；反向：恒不等 ⇒ **17** ⇒ 判红 ✓） |
+| 真实单元的收益 | `unit12-synthesis` 冷缓存墙钟（release ✓） | **有 ✓**（**10.97 → 5.75s** ✓） |
 | 闸类复现件 | `bash docs/gaps/repro/G8{8,9}-*.sh G9{0,1,2}-*.sh` ⇒ exit 0（缺口仍在 ✓） | **有 ✓ 五条全 0** |
 | 可配置化零行为 | 整本课程 `build --json` 剔心跳逐字节相同（**改前 vs 改后都要跑** ✓） | **无 ⇒ 先建**（第 ③ 步用 ✓） |
 
