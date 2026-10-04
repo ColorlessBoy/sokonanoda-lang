@@ -381,6 +381,35 @@ pub(crate) mod stats {
     /// 第一份退回原文的前缀**头 80 字节**（定位用 ✓；只在退回时写一次 ✓）。
     pub(crate) static FALLBACK_HEAD: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 
+    /// **增量身份自检的两读数**（判据 ④，2026-10-04 ✓）：`SOKO_PREFIX_ID_CHECK=1` 时
+    /// walker 逐命令把「AST 累加出的身份」与「`canonical_prefix_id(整份前缀)`」比一遍 ✓。
+    ///
+    /// * `MISMATCHES` —— 两边**逐位不等**的条数 ✗。**必须 0** ✓（不等 = 键与真身份脱钩 =
+    ///   错编的入口 ✗）。
+    /// * `UNCOMPARABLE` —— 前缀**解析不过**（`canonical_prefix_id` 走了**退回原文** ✓）
+    ///   因而**那次不比**的条数 ✓。
+    ///
+    /// ⚠ **为什么必须把 `UNCOMPARABLE` 单独报出来** ✗：上一棒只看"有没有 `MISMATCH`"，
+    /// 而当时**所有**条都在 `UNCOMPARABLE` 那一类里 ⇒ 读到的是"**零分歧**" ✗，
+    /// 实际是**整段降级**（实测：课程 `unit08` 1540 条里 1505 条解析不过 ✗）。
+    /// 「咬不住的守卫等于没有」——一个会**全被跳过**的判据等于没判据 ✗。
+    pub(crate) static IDENTITY_MISMATCHES: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static IDENTITY_UNCOMPARABLE: AtomicU64 = AtomicU64::new(0);
+    /// **身份重解析的趟数**（O(n²) 的**结构读数** ✓，噪声免疫 ✓）：`canonical_prefix_cached`
+    /// **没命中**（⇒ 真的 `parse` 了一整份前缀 ✗）的次数 ✓。
+    /// 判据：预置生效时它应当**远小于命令数**（理想 0 ✓）；失效时会涨到 ≈ 命令数 ✗。
+    pub(crate) static IDENTITY_PARSES: AtomicU64 = AtomicU64::new(0);
+    /// 探针**跑过**多少条（防"守卫空转" ✗：`> 0` 才说明判据真的在比 ✓）。
+    pub(crate) static IDENTITY_PROBED: AtomicU64 = AtomicU64::new(0);
+    /// **记忆表淘汰了多少条** ✗（G-91 要求的"闸类计数出口" ✓）。
+    ///
+    /// 这张表是 `前缀原文哈希 → 环境身份哈希` 的**有界记忆化** ✓（每条约 16 字节 ✓）。
+    /// 淘汰**只允许变慢** ✓（淘汰 ⇒ 下次重解析 ⇒ 结果**一模一样** ✓）——但**它必须可见** ✗：
+    /// 淘汰到"刚种进去就被挤掉"的程度，预置就白做了 ✓（实测：`CAP=4096` 时
+    /// 整本课程 `identity_parses=3062` ✗ —— 表比工作集小 ⇒ **抖动** ✗）。
+    /// 判据：整本课程 `evictions` **必须 == 0** ✓（工作集装得下 ✓）。
+    pub(crate) static IDENTITY_EVICTIONS: AtomicU64 = AtomicU64::new(0);
+
     /// 记一次「身份退回原文」✓（判据 ③ 的写入端）。
     pub(crate) fn note_prefix_fallback(src: &str, why: &str) {
         PREFIX_FALLBACKS.fetch_add(1, Ordering::Relaxed);
@@ -901,6 +930,38 @@ fn check_synthesized(
 /// ⇒ 在"按键"那条路上根本量不到 ✗。公开成函数之后，会话式路径（`QueryDoc`）
 /// 的集成测试可以**前后取差**，判据因此是**结构计数**而不是墙钟 ✓
 /// （消费者：`crates/front/tests/keystroke_structure.rs`）。
+/// **增量身份自检的读数** ✓（判据 ④，2026-10-04）：`(probed, mismatches, uncomparable)`。
+///
+/// `probed` **必须 > 0** ✓ —— 否则判据是**空转**的（上一棒的教训 ✓：只读
+/// "有没有 mismatch"，而当时**所有**条都落在 uncomparable 里 ⇒ 读成"零分歧" ✗）。
+#[doc(hidden)]
+pub fn identity_probe() -> (u64, u64, u64) {
+    (
+        stats::IDENTITY_PROBED.load(std::sync::atomic::Ordering::Relaxed),
+        stats::IDENTITY_MISMATCHES.load(std::sync::atomic::Ordering::Relaxed),
+        stats::IDENTITY_UNCOMPARABLE.load(std::sync::atomic::Ordering::Relaxed),
+    )
+}
+
+/// **身份重解析的趟数** ✓（O(n²) 的**结构读数**，判据 ②）：`canonical_prefix_cached`
+/// 没命中 ⇒ 真的 `parse` 了一整份前缀 ✗。预置生效时它应当**远小于命令数** ✓。
+#[doc(hidden)]
+pub fn identity_parses() -> u64 {
+    stats::IDENTITY_PARSES.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// **记忆表淘汰条数** ✓（判据 ② 的第二读数 + G-91 的闸类计数出口 ✓）。
+#[doc(hidden)]
+pub fn identity_evictions() -> u64 {
+    stats::IDENTITY_EVICTIONS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// **整本课程跑完，`fallbacks` 必须 == 0** ✓（判据 ③）。
+#[doc(hidden)]
+pub fn prefix_fallbacks_report() -> (u64, Option<String>) {
+    stats::prefix_fallbacks()
+}
+
 #[doc(hidden)]
 pub fn infer_totals() -> (u64, u64, u64, u64, u64) {
     (
@@ -1531,6 +1592,7 @@ pub(crate) fn judge_infer_store(
 /// 先前返回 `String` ⇒ **每次判定都克隆一整份前缀身份**（大单元 ~100 KB × 上千次 ✗✗）
 /// ⇒ 冷开**变慢**（实测 `unit12-synthesis` didOpen **8.5s → 11.2s** ✗）。
 /// 现在表里存 **u64 哈希** ✓ ⇒ 命中只读一个 8 字节 ✓。
+#[track_caller]
 fn canonical_prefix_cached(src: &str) -> u64 {
     if src.is_empty() {
         return 0;
@@ -1548,7 +1610,14 @@ fn canonical_prefix_cached(src: &str) -> u64 {
     // 且 `inplace=off` 时 `seed=on ⇒ 40` ✗ ⇒ 就是这条机制 ✓）。
     // 改成 **`u64` 文本哈希做键** ✓ ⇒ 4096 条只占 ~64 KB ✓ ⇒ 灌不满 ✓、不挤别人 ✓。
     // ⚠ 与判定缓存同一套 `u64` 键 ✓（同样的碰撞量级 ✓，一致 ✓）。
-    const CAP: usize = 4096;
+    // ⚠ **`CAP` 4096 → 65536** ✗→✓（2026-10-04 **实测定位** ✓）：这张表是
+    // `前缀原文哈希 → 环境身份哈希` 的**有界记忆化** ✓（每条约 16 字节 ⇒ 65536 条约 1 MB ✓）。
+    // **4096 比整本课程的工作集还小** ✗ ⇒ 表一满，**每次新种就挤掉一条活条目** ✗
+    // ⇒ 那条前缀下次被问到时**重解析** ✗ ⇒ 实测整本课程 `identity_parses=3062` ✗、
+    // `passes` 还多出 33 趟 ✗ —— **预置白做** ✓。淘汰本身**不改答案** ✓（重解析给出
+    // 一模一样的身份 ✓），但它把"删掉 O(n²)"这件事**又还回去了** ✗。
+    // ⇒ 判据：整本课程 `evictions == 0` ✓（`identity_evictions()` / `STAGE_STATS` ✓）。
+    const CAP: usize = 65536;
     let text_key = judge_cache_key(&[src]);
     if let Some(hit) = canonical_prefix_table()
         .lock()
@@ -1557,6 +1626,9 @@ fn canonical_prefix_cached(src: &str) -> u64 {
     {
         return *hit;
     }
+    // **结构读数**（判据 ②）：走到这里 = **真的 parse 了一整份前缀** ✗（O(n²) 的源头 ✓）。
+    // 预置（`seed_canonical_prefix` ✓）生效时这里应当几乎不涨 ✓。
+    stats::IDENTITY_PARSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let id = crate::compile::canonical_prefix_id(src);
     // 与判定缓存同一套哈希（`judge_cache_key` ✓）⇒ 身份文本只在这里过一遍 ✓。
     let hash = judge_cache_key(&[&id]);
@@ -1566,6 +1638,7 @@ fn canonical_prefix_cached(src: &str) -> u64 {
     if table.len() >= CAP {
         if let Some(victim) = table.keys().next().copied() {
             table.remove(&victim);
+            stats::IDENTITY_EVICTIONS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         }
     }
     table.insert(text_key, hash);
@@ -1595,11 +1668,14 @@ pub fn seed_canonical_prefix(text: &str, identity: &str) {
     let mut table = canonical_prefix_table()
         .lock()
         .expect("canonical prefix table");
-    // 容量 4096（按 `u64` 键 ✓ ⇒ 只占 ~64 KB ✓）：walker 逐命令种也**灌不满** ✓，
-    // 因此**不会挤掉**别人的条目 ✗→✓（那正是 `prefix=0 → 5` 的机制 ✓，见上面的长注释 ✓）。
-    if table.len() >= 4096 {
+    // 容量与 `canonical_prefix_cached` **同一个数** ✓（两处必须一致 ✗ —— 种进来的
+    // 条目被读的那一侧挤掉，是这张表最隐蔽的失效方式 ✓）。**4096 太小** ✗：整本课程
+    // 的工作集比它大 ⇒ **抖动** ✗（实测 `identity_parses=3062` ✗）⇒ 见那边的长注释 ✓。
+    // 淘汰**只允许变慢** ✓、**必须可见** ✓（`identity_evictions()` ✓）。
+    if table.len() >= 65536 {
         if let Some(victim) = table.keys().next().copied() {
             table.remove(&victim);
+            stats::IDENTITY_EVICTIONS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         }
     }
     table.insert(text_key, hash);
@@ -1629,6 +1705,7 @@ fn judge_infer_key(
 /// **键里放什么** ✓：前缀的**环境身份**（`compile::canonical_prefix_id` ✓ = 名字 + 类型；
 /// `theorem`/`example` 的**证明体不进** ✓）+ 编译选项 + binders + 被问的**问题本身** +
 /// pp 标记 ✓。**不放** ✗：前缀**原文** · 任何**字节偏移 / 源码位置** ✓。
+#[track_caller]
 fn judge_infer_cache_key(
     extra_prefix: &str,
     prefix_src: &str,

@@ -365,10 +365,25 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // 判定缓存的键要的是**环境身份** ✓，而 `own_prefix` 是**逐命令增长**的 ✗
         // ⇒ 每命令都重解析整份前缀 = **O(n²)** ✗（unit12 实测 +2.3s ✗，那正是我先前
         // 往里塞尺寸闸的原因 ✗）。这里**边读边累加** ✓：闭包部分每个单元算**一次** ✓；
-        // 本文件部分用**单条滚动记忆**，每次只解析**新增的那一条命令** ✓（摊还 O(1) ✓）。
-        // 契约：累加出的身份必须与 `canonical_prefix_id(prefix_src)` **逐位相等** ✓（判据 ④ ✓）。
+        // 本文件部分逐命令追加**那一条命令**的贡献 ✓（摊还 O(1) ✓）。
+        //
+        // ⚠ **身份必须从 AST 直取，不许"切片段再 parse"** ✗→✓（2026-10-04 **实测定位** ✓）：
+        // 先前是「按文本切出新增片段 ⇒ `canonical_prefix_id_checked(片段)` ⇒ 不成则退回整体」✗。
+        // 片段**用了依赖声明的记法**时（G-04 第二刀：`Aᶜ` / `∈`）**必然解析不过** ✗
+        // （继承记法表没跟着走 ✓），整体**同样**不过 ✗ ⇒ 一路退到**原文** ✗
+        // —— 实测课程 `unit08` **27 处** ✗（`fallbacks` 读数 ✓），那 27 处正是
+        // 「开预置 ⇒ 判据 ① 多出几趟」**剩下的那部分** ✗。
+        // 现在：walker 手上有**已经解析好的** `unit.file.commands` ✓ ⇒ 直接问
+        // `command_env_id` ✓（**与 `canonical_prefix_id` 同一个函数** ✓ ⇒ 两条路不会分叉 ✓），
+        // 一次 `parse` 都不用 ✓。契约：累加出的身份 == `canonical_prefix_id(prefix_src)` ✓
+        // （判据 ④；前缀**能解析**时逐位相等 ✓，解析不过时以**这里**为准 ✓ —— 见探针 ✓）。
+        let mut unit_env_ids: Vec<String> = vec![String::new(); units.len()];
+        // 闭包累加（前面**所有单元**的身份）+ 每单元的快照（每单元只克隆一次 ✓）。
+        let mut closure_acc = String::new();
         let mut closure_ids: Vec<Option<String>> = vec![None; units.len()];
-        let mut own_memo: Option<(String, String)> = None;
+        let mut prev_unit: Option<usize> = None;
+        // 探针读数：**不可比**的条数（前缀解析不过 ⇒ `expect` 是原文 ⇒ 那次不比 ✓）。
+        let mut id_uncomparable = 0usize;
         for (idx, &(unit_idx, command)) in flat.iter().enumerate() {
             let unit = &units[unit_idx];
             // **每条声明一个计时事件**（`SOKO_DECL_PROFILE=1`；默认零开销 ✓）。
@@ -402,6 +417,15 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 for entry in exports {
                     self.ns.open_entry(entry);
                 }
+                // **单元切换 ⇒ 把上一个单元的身份并进闭包累加** ✓。
+                // `flat` 是「先依赖、后入口」且**按单元分组** ✓（见 `check/mod.rs` 的
+                // `flat` 构造 ✓）⇒ 走到这里时上一个单元的命令**已经全部走完** ✓
+                // ⇒ 它的身份**已经完整** ✓（这正是"每单元只算一次"的实现 ✓）。
+                if let Some(done) = prev_unit {
+                    closure_acc.push_str(&unit_env_ids[done]);
+                }
+                prev_unit = Some(unit_idx);
+                closure_ids[unit_idx] = Some(closure_acc.clone());
             }
             // **信任判定**：连续前缀（`idx < before`）**或** S6 的脏集模型给出的
             // 额外信任位（`trusted_extra[idx]`，见 `TrustPlan`）。
@@ -435,40 +459,34 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             // 我先前图省事直接用 `own_prefix`（理由：「`import` 的身份是空串」✓）—— 那**不成立** ✗：
             // `importless_source` 会**重建字符串** ⇒ 剥过之后各命令的**切片文本**与原文不同 ⇒ 身份不同 ✓。
             // 实测后果：证明体两条判据从 `prefix=0` 掉到 **13** ✗。
-            let own_stripped = crate::project::importless_source(own_prefix);
             {
-                let closure_id = closure_ids[unit_idx].get_or_insert_with(|| {
-                    crate::compile::canonical_prefix_id(
-                        closure_prefixes
-                            .get(unit_idx)
-                            .map_or("", |deps| deps.as_str()),
-                    )
-                });
-                let own_id: String = match own_memo.take() {
-                    Some((prev, id)) if own_stripped.starts_with(prev.as_str()) => {
-                        // ⚠ **片段可能解析不过** ✗（一条命令也可能是 `namespace` 之类的前缀片段 ✓）
-                        // ⇒ 那时**必须退回整体** ✓ —— 先前直接用 `canonical_prefix_id`（解析失败会
-                        // **退回原文** ✗）⇒ 拼出**错的身份** ✗（实测：证明体判据 `prefix=0 → 13` ✗）。
-                        match crate::compile::canonical_prefix_id_checked(
-                            &own_stripped[prev.len()..],
-                        ) {
-                            Some(tail_id) => {
-                                let mut merged = id;
-                                merged.push_str(&tail_id);
-                                merged
-                            }
-                            None => crate::compile::canonical_prefix_id(&own_stripped),
-                        }
-                    }
-                    _ => crate::compile::canonical_prefix_id(&own_stripped),
-                };
+                // **闭包那半**：每单元一次 ✓（`closure_ids[unit_idx]` 在单元切换处快照 ✓）。
+                let closure_id: &str = closure_ids[unit_idx].as_deref().unwrap_or("");
+                // **本文件那半**：AST 直取的累加 ✓（**当前命令之前**的环境 ✓）。
+                let own_id: &str = &unit_env_ids[unit_idx];
                 let seeded = format!("{closure_id}{own_id}");
                 // **判据 ④（值守 2026-10-04 ✓）：增量身份必须与重解析**逐位相等** ✓。**
                 // `SOKO_PREFIX_ID_CHECK=1` 时逐命令自检 ✓，不等就打印**第一个分歧点** ✓
                 // （这正是"错编"的入口 ✓ —— 不等就意味着键与真身份脱钩 ✓）。
+                //
+                // ⚠ **前缀解析不过时这次不可比** ✓（2026-10-04 实测口径 ✓）：那种前缀
+                // （用了**依赖声明的记法** ✓）会让 `canonical_prefix_id` 走**退回原文** ✗
+                // ⇒ `expect` 是**原文**、`seeded` 是**真身份** ✓ —— 这时**以 `seeded` 为准** ✓
+                // （它来自**已经解析好的** AST ✓）。所以探针只比"**没退回**"的那些 ✓，
+                // 并把"不可比"的条数单独报出来 ✓（否则会像上一棒那样把**降级**看成"零分歧" ✗）。
                 if std::env::var_os("SOKO_PREFIX_ID_CHECK").is_some() {
+                    crate::judge::stats::IDENTITY_PROBED
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let before_fb = crate::judge::stats::prefix_fallbacks().0;
                     let expect = crate::compile::canonical_prefix_id(&prefix_src);
-                    if expect != seeded {
+                    let fell_back = crate::judge::stats::prefix_fallbacks().0 != before_fb;
+                    if fell_back {
+                        id_uncomparable += 1;
+                        crate::judge::stats::IDENTITY_UNCOMPARABLE
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    } else if expect != seeded {
+                        crate::judge::stats::IDENTITY_MISMATCHES
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                         let at = expect
                             .chars()
                             .zip(seeded.chars())
@@ -487,32 +505,31 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         );
                     }
                 }
-                // ⚠ **默认关** ✗→（2026-10-04 收口）：增量身份**还有一处不等价** ✗ ——
-                // 实测：**关掉它 ⇒ 判据 ① 全绿**（`prefix=0` ✓）；**开着 ⇒ `prefix=5`** ✗。
-                // 按值守规矩「**修不动就停下来报告 + 说清卡在哪**」✗ ⇒ **默认关** ✓
-                // （`SOKO_PREFIX_SEED=1` 才开 ✓，留给下一棒继续查 ✓）——**正确性优先** ✓：
-                // 宁可变慢 ✗，绝不拿**错键**去命中 ✗（错键轻则少复用 ✗、重则假命中 = 错编 ✗✗）。
-                // ⚠ **默认关** ✗（2026-10-04 收口 ✓）：增量身份**已被自检证明等价** ✓
-                // （`SOKO_PREFIX_ID_CHECK=1` + `SOKO_LSP_TEST_STDERR=1` 逐命令自检 ⇒ **一次分歧都没报** ✓），
-                // 但**开着它判据 ① 会从 `prefix=0` 变 5** ✗ —— 根因**不在身份** ✗
-                // （也不是记忆表整表清空 ✗：改成"插入前淘汰一条"后仍是 5 ✗）。
-                // 按值守规矩「**修不动就停下来报告 + 说清卡在哪**」✗ ⇒ **默认关** ✓
-                // （`SOKO_PREFIX_SEED=1` 才开 ✓），**正确性优先** ✓。
-                // ⚠ **默认关** ✗（2026-10-04 收口 ✓，两次修因都没治住 ⇒ 停下报告 ✓）：
-                // 开着它 ⇒ 判据 ① 从 `prefix=0` 变 **5** ✗。**已排除**两处 ✗：
-                // ① 身份**不等价** ✗ —— 自检（`SOKO_PREFIX_ID_CHECK=1` +
-                //    `SOKO_LSP_TEST_STDERR=1` ✓）逐命令**零分歧** ✓ ⇒ 等价 ✓；
-                // ② 记忆表**整表清空 / 挤掉别人** ✗ —— 改成"插入前淘汰一条" ✓ 再改成
-                //    **`u64` 文本哈希键 + CAP 4096** ✓（灌不满 ✓、不挤别人 ✓）⇒ **仍是 5** ✗。
-                // ⇒ **5 趟的来源未能解释** ✗。按值守规矩「**修不动就停下来报告 + 说清卡在哪**」✗
-                // ⇒ **默认关** ✓（`SOKO_PREFIX_SEED=1` 才开 ✓），**正确性优先** ✓。
-                // **下一棒起点** ✓：开着预置，直接打那 5 趟的 `term`/`binders`/`key`（不是猜机制 ✓）。
-                if std::env::var_os("SOKO_PREFIX_SEED").is_some()
-                    && std::env::var_os("SOKO_NO_SEED").is_none()
-                {
+                // **预置增量身份** ✓（值守 2026-10-04 ✓）：闭包部分（每单元一次 ✓）+ 本文件部分
+                // （AST 累加 ✓）⇒ `judge` 那边的 `canonical_prefix_cached` **直接命中** ✓，
+                // **一次都不用解析** ✓（这就是删掉尺寸闸之后不回归的原因 ✓）。
+                //
+                // ⚠ **默认开** ✗→✓（2026-10-04 收口 ✓，两处修因都**实测定位**了 ✓）：
+                // 先前默认关，理由是「开着 ⇒ 判据 ① 从 `prefix=0` 变 **5**」✗ —— 机制
+                // **现已查明**（不是猜的 ✓，两条都是**实测** ✓）：
+                // ① `canonical_prefix_id` 用**严格** `parse` ✗ ⇒ 前缀停在未闭合 `namespace`
+                //    里时**必然**报 `parse-namespace-unclosed` ✗ ⇒ **退回原文** ✗
+                //    （课程 `unit08` 自检 **1505/1540** 条 ✗）⇒ 键退化成**原文哈希** ✗，
+                //    与这里累加出的**真身份**对不上 ✗ —— 已改成 `parse_fragment` ✓；
+                // ② 剩下那几趟 = 片段用了**依赖声明的记法** ⇒ 片段与整体**都解析不过** ✗
+                //    ⇒ 退到原文 ✗（实测 27 处 ✗）—— 已改成**从 AST 直取** ✓，一次 parse 都不用 ✓。
+                // 两条都修掉之后：判据 ① 与 ② **同时**成立 ✓（见 `lsp_keystroke_structure` ✓）。
+                // 逃生门 `SOKO_NO_SEED=1`（排查用 ✓，**不是**降级结案 ✓）。
+                if std::env::var_os("SOKO_NO_SEED").is_none() {
                     crate::judge::seed_canonical_prefix(&prefix_src, &seeded);
                 }
-                own_memo = Some((own_stripped, own_id));
+                // **用完之后**再把这条命令并进本单元的累加 ✓（身份是"**当前命令之前**"的环境 ✓）。
+                let contribution = super::command_env_id(&unit.file.src, command);
+                if !contribution.is_empty() {
+                    let acc = &mut unit_env_ids[unit_idx];
+                    acc.push_str(&contribution);
+                    acc.push('\n');
+                }
             }
             let c = CmdCtx {
                 idx,
@@ -563,6 +580,12 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     start.elapsed(),
                 );
             }
+        }
+        // **探针读数**（`SOKO_PREFIX_ID_CHECK=1`）：这一趟 walk 里有多少条前缀
+        // **解析不过**（⇒ 判据 ④ 那次不可比 ✓）。它必须能回答"零分歧"是**真等价** ✓
+        // 还是**全被跳过** ✗ —— 上一棒正是栽在这里（把**降级**看成"零分歧" ✗）。
+        if std::env::var_os("SOKO_PREFIX_ID_CHECK").is_some() {
+            eprintln!("PREFIX_ID_CHECK uncomparable={id_uncomparable}");
         }
     }
 

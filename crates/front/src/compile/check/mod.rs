@@ -814,8 +814,12 @@ bare_miss_ms={} bare_miss_share={:.3}",
                 // 判据 ③（值守 2026-10-04 ✓）：`fallbacks` = **身份退回原文的趟数** ✗ ——
                 // 整本课程必须 **0** ✓（>0 ⇒ 那个模块根本没吃到「只改证明」这个特性 ✗）。
                 let fallbacks = crate::judge::stats::prefix_fallbacks().0;
+                // **判据 ② 的结构读数**（O(n²) 的源头 ✓）：`identity_parses` = 判定键
+                // 那边**真的重解析了一整份前缀**的趟数 ✗（预置生效 ⇒ 应当 ≈ 0 ✓）。
+                let identity_parses = crate::judge::identity_parses();
+                let identity_evictions = crate::judge::identity_evictions();
                 eprintln!(
-                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={} fallbacks={fallbacks}",
+                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={} fallbacks={fallbacks} identity_parses={identity_parses} identity_evictions={identity_evictions}",
                     ms(PASS_NANOS.load(Ordering::Relaxed)),
                     ms(BY_NANOS.load(Ordering::Relaxed)),
                     ms(crate::judge::stats::nanos()),
@@ -1015,7 +1019,12 @@ pub fn closure_prefixes_for(units: &[SourceUnit<'_>]) -> Vec<String> {
 /// ⚠ **它不记 `note_prefix_fallback`** ✓：片段探针**不是**真实前缀的退回 ✓ ——
 /// 记进去会让判据 ③ 的课程级读数虚高 ✗。
 pub fn canonical_prefix_id_checked(src: &str) -> Option<String> {
-    let file = crate::parser::parse(src).ok()?;
+    // ⚠ **必须用 `parse_fragment`** ✗→✓（2026-10-04 **实测定位** ✓，见 [`canonical_prefix_id`]）：
+    // 前缀是**文件的一个片段** ✓ —— 它**故意**可能停在未闭合的 `namespace` 里 ✓
+    // （G-05 §4.1，`judge_infer_uncached` 早已按这条口径用 `parse_fragment` ✓）。
+    // 用严格 `parse` ⇒ 那种片段**必然**报 `parse-namespace-unclosed` ✗ ⇒ 返回 `None` ✗
+    // ⇒ 调用方退回"整体重解析" ✗（慢 ✗）且整体**同样**解析不过 ✗ ⇒ 一路退到**原文** ✗✗。
+    let file = crate::parse_fragment(src).ok()?;
     let mut out = String::new();
     for command in &file.commands {
         let id = command_env_id(src, command);
@@ -1028,8 +1037,18 @@ pub fn canonical_prefix_id_checked(src: &str) -> Option<String> {
     Some(out)
 }
 
+#[track_caller]
 pub fn canonical_prefix_id(src: &str) -> String {
-    let Ok(file) = crate::parser::parse(src) else {
+    // ⚠ **`parse` → `parse_fragment`** ✗→✓（2026-10-04 **实测定位** ✓ —— 这就是「5 趟」的根因 ✓）：
+    // 判定的前缀是**文件的一个片段** ✓ —— 声明落在 `namespace Foo` 里时，前缀**必然**
+    // 带着一个还没闭合的 `namespace` ✓（G-05 §4.1；`judge_infer_uncached` 早就为此
+    // 用 `parse_fragment` ✓，**只有这里**还在用严格 `parse` ✗）。
+    // 实测后果（课程 `unit08` · 自检 1540 条里 **1505** 条 ✗）：严格 `parse` 报
+    // `parse-namespace-unclosed` ⇒ 走下面那条**退回原文** ⇒ 键退化成**前缀原文**的哈希
+    // ⇒ ① 「只改证明体 ⇒ 后面不重编」这个特性**整段失效** ✗（证明体一改原文就变 ⇒ 全 miss ✗）；
+    // ② walker 累加出来的**真身份**与它对不上 ✗ ⇒ **开预置反而多出 5 趟** ✗（那 5 趟的真正机制 ✓）。
+    // 其余解析错误（真的坏文本）仍然退回原文 ✓ —— 保守那条**一个字不改** ✓。
+    let Ok(file) = crate::parse_fragment(src) else {
         // 判据 ③（值守 2026-10-04 ✓）：**退回原文要计数** ✓ —— 这是"放弃特性"的
         // 保守退路 ✓，**整本课程必须一次都不触发** ✗（触发了就是特性对那个模块失效 ✗）。
         crate::judge::stats::note_prefix_fallback(src, "parse-failed");
@@ -1054,6 +1073,15 @@ pub fn canonical_prefix_id(src: &str) -> String {
 /// ⚠ 这里只做**文本切片**，不做语义判断 ✓ —— "证明体从哪开始"用的是 AST 里 `val` 的
 /// **span** ✓（不是找 `:=` ✗：注释里也可能有 `:=` ✓）。
 fn command_env_id(src: &str, command: &Command) -> String {
+    // **零长 span 的命令不进身份** ✓（2026-10-04 **实测定位** ✓）：它**没有源码文本** ✓ ——
+    // 判官合成的那批 `_soko_judge_*` 声明就是这种（span 是**默认值**：`line: 0, column: 0` ✓）。
+    // 身份是**从源码文本**推出来的 ✓（[`canonical_prefix_id`] 只看得见文本里的命令 ✓）
+    // ⇒ 不跳过它，两条路就会分叉 ✗：文本路**没有**这一条、walker 的 AST 累加**有** ✗
+    // （实测：课程 `unit08` 自检 **18 处** ✗，全是 `def#` 这个空条目 ✓）。
+    // 判据 ④ 要求两条路**逐位相等** ✓ ⇒ 这一条必须两边一致 ✓。
+    if command.span().start.offset >= command.span().end.offset {
+        return String::new();
+    }
     // `import` 不是声明 ✓：库层的内容已经在**更早的单元**里进了身份 ✓。
     if matches!(command, Command::Import { .. }) {
         return String::new();
