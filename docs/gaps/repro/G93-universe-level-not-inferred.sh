@@ -16,6 +16,17 @@
 # ⇒ `Eq.refl α a`（`α : Type`）要求 **`u := 1`** ✓。实测：**没有推断，直接当 `0`** ✗
 # ⇒ 内核报「**期望 `Sort(0)`，实际是 `Sort(1)`**」✗。
 #
+# ## 两个**独立**触发（2026-10-04 第 19 棒实测 ✓ —— 这一对是决定性的 ✓）
+#
+# | 声明（值位都是 `sorry` ⇒ **值完全不参与** ✗） | 结果 |
+# |---|---|
+# | `: Eq α a a := sorry`（**指向式** ✗） | **红** ✗ ⇒ **病在类型侧** ✓ |
+# | `: a = a := sorry`（**记法** ✓） | **绿** ✓ ⇒ **记法那条路会推断层** ✓ |
+#
+# ⇒ 触发面有**两个、且互相独立** ✓：
+#   ① **类型侧**：指向式 `Eq α a a` ✗（记法 `a = a` 不触发 ✓）；
+#   ② **值侧**：`Eq.refl α a` 当项 ✗（类型写成记法也照样红 ✗ —— 相位 C ✓）。
+#
 # ## 实测矩阵（release · **改前的基线二进制与当轮二进制都复现** ✓ ⇒ **既有** ✓ · 确定性 ✓）
 #
 # | 声明 | `grade` |
@@ -41,8 +52,17 @@
 #
 # ## 出路（写给下一位 ✓）
 #
-# ① **真修** = 让显式 `{u}` 位的层从实参类型回流 ✓（宇宙/元参数推断那一块 ✓，
-#    与排队里的 **IA-4 元参数引擎**同源 ✗ —— 先查那件是否已覆盖它 ✓）；
+# ① **真修** = 让显式 `{u}` 位的层从实参类型回流 ✓。
+#    ⚠ **已经有先例可抄** ✓（第 19 棒查证 ✓）：
+#      · `infer_recursor_universes`（`elab.rs:6264` ✓）—— **就是**「拿期望类型的宇宙
+#        把裸常量默认成 0 的层补回来」✓，G-58/G-59 用它修好了递归子 ✓ ⇒ 同形 ✓；
+#      · `universe_level_text_of_operands`（`elab.rs:1652` ✓）—— **记法那条路**
+#        已经在推断层了 ✓（相位 E 绿 ✓ 就是它 ✓）⇒ 机制现成 ✓。
+#    落点：`try_implicit_application`（`elab.rs:3473` ✓ —— **头和整条实参脊都在手上** ✓）
+#    或 App 臂加一次后置补层 ✓。**保守闸门**：只在「层是**默认**出来的」时动手 ✓
+#    ⇒ 显式 `.{n}` 与今天**逐字节不变** ✓（照 `infer_recursor_universes` 的写法 ✓）；
+#    ⚠ 与排队里的 **IA-4 · U1/U2 宇宙层**同源 ✗ —— 设计 `docs/design/metavar-engine.md` §2.9 ✓，
+#    它把「**G-63 复现件**」列为判据 ✓ ⇒ **G-93 应当一并列为 U1/U2 的判据** ✓；
 # ② **逃生门**（**不是结案** ✗）= 写 `Eq.refl.{1} α a` ✓（实测绿 ✓）。
 set -u
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
@@ -86,18 +106,31 @@ printf 'axiom myax {u} : {α : Sort u} -> (a : α) -> α\ndef d (α : Type) (a :
 # **相位 C（用户症状面）**：`Eq.refl` 当项用 ⇒ 必须判绿 ✓（现在红 ✗）
 printf 'theorem t (α : Type) (a : α) : a = a := Eq.refl α a\n' \
   > "$DIR/UserVisible.sokonanoda"
+# **相位 D（本轮新增 · 决定性 ✓）**：**指向式**类型 + 值位 `sorry`（值完全不参与 ✗）
+# ⇒ 判红 ✗ ⇒ 证明**病在类型侧** ✓（不是"值 elaborate 错了"✗）。
+printf 'theorem t (α : Type) (a : α) : Eq α a a := sorry\n' \
+  > "$DIR/PointedType.sokonanoda"
+# **相位 E（相位 D 的对照 ✓）**：同一命题写**记法** ⇒ 必须判绿 ✓
+# ⇒ **记法那条路已经会推断层** ✓（`universe_level_text_of_operands` ✓）——
+# 差的只是**普通常量应用**那条路 ✗。
+printf 'theorem t (α : Type) (a : α) : a = a := sorry\n' \
+  > "$DIR/NotationType.sokonanoda"
 
 a="$(judge "$DIR/Implicit.sokonanoda")"
 b="$(judge "$DIR/Explicit.sokonanoda")"
 c="$(judge "$DIR/UserVisible.sokonanoda")"
+d="$(judge "$DIR/PointedType.sokonanoda")"
+e="$(judge "$DIR/NotationType.sokonanoda")"
 
 echo "G-93 读数："
 echo "  相位 A（显式 {u} · 实参 Type）    : $a"
 echo "  相位 B（同一件事 · 显式 .{1} 对照）: $b"
 echo "  相位 C（用户症状面 · Eq.refl 当项）: $c"
+echo "  相位 D（指向式类型 · 值位 sorry）  : $d"
+echo "  相位 E（记法类型 · 值位 sorry 对照）: $e"
 
-if [ "$b" != "绿" ]; then
-  echo "环境/夹具异常：对照相位 B 必须判绿 ✓（它红了 ⇒ 夹具或二进制不对 ✗）" >&2
+if [ "$b" != "绿" ] || [ "$e" != "绿" ]; then
+  echo "环境/夹具异常：对照相位 B / E 必须判绿 ✓（它们红了 ⇒ 夹具或二进制不对 ✗）" >&2
   exit 2
 fi
 if [ "$a" = "绿" ] && [ "$c" = "绿" ]; then
