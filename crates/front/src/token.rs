@@ -221,7 +221,25 @@ impl<'a> Lexer<'a> {
             let base_wins = ["=>", "->"]
                 .iter()
                 .any(|op| rest.starts_with(op) && op.len() > symbol.len());
-            if !base_wins {
+            // **G-86**：符号**粘连在标识符上**、且符号首字符**只能续接标识符**（如 `'`）
+            // ⇒ **标识符赢** ✓：`r''` 是一个标识符，不是 `r` + `''` ✗。
+            //
+            // **为什么必须这样**（课程线实测 ✓）：`lib/Set` 声明 `" '' " => Set.image`
+            // 而 `lib/Rel` 有双撇号标识符 `r''`/`s''` ⇒ 两者同处一份**合成前缀**时，
+            // 词法把 `r''` 切开 ⇒ **前缀解析失败** ⇒ 该单元每条 `#check` 类型查询都失败 ✗
+            // （`elab-notation-unknown-target` + 下游 `elab-tactic-failed` ✓）。
+            //
+            // ⚠ **首字符能"开启"标识符的符号不受影响** ✓：`ᶜ`/`𝒫` 是字母类 ✓ ——
+            // 语料里 `Aᶜ` 109 处、`Bᶜ` 65 处**就是粘着写的** ✓，它们必须照旧是记法 ✓。
+            let glued = symbol
+                .chars()
+                .next()
+                .is_some_and(|f| !is_ident_start(f) && is_ident_continue(f))
+                && self.src[..self.offset.min(self.src.len())]
+                    .chars()
+                    .next_back()
+                    .is_some_and(is_ident_continue);
+            if !base_wins && !glued {
                 for _ in symbol.chars() {
                     self.bump();
                 }
@@ -454,7 +472,23 @@ impl<'a> Lexer<'a> {
         while let Some(ch) = self.peek() {
             // 声明过的符号在标识符**内部**也优先断开（第二刀）：`Aᶜ` 必须是
             // `Ident("A") + Sym("ᶜ")`，否则 `ᶜ` 会被吃进 `Aᶜ` 这个标识符。
-            if self.declared_symbol_ahead().is_some() {
+            //
+            // ⚠ **G-86 收窄**（2026-10-04）：只在「符号首字符**能开启**标识符
+            // （`ᶜ`/`𝒫` 这类字母类 ✓）」或「符号**根本不属于**标识符（`∈`/`×ˢ` ✓）」
+            // 时才断开 ✓；首字符**只能续接**标识符的符号（`'` ✓ —— `''` 正是它 ✓）
+            // **不许**断开 ✗ ⇒ `r''` 是一个标识符 ✓。
+            //
+            // **为什么**（课程线实测 ✓）：`lib/Set` 声明 `" '' " => Set.image`，
+            // `lib/Rel` 有 `r''`/`s''` ⇒ 同处一份**合成前缀**时 `r''` 被切开 ⇒
+            // **前缀解析失败** ⇒ 该单元每条 `#check` 类型查询都失败 ✗
+            // （`elab-notation-unknown-target` + 下游 `elab-tactic-failed` ✓）。
+            // ⚠ 语料里 `Aᶜ` 109 处 / `Bᶜ` 65 处**是粘着写的** ✓ ⇒ 它们必须照旧断开 ✓。
+            if self.declared_symbol_ahead().is_some_and(|symbol| {
+                symbol
+                    .chars()
+                    .next()
+                    .is_some_and(|f| is_ident_start(f) || !is_ident_continue(f))
+            }) {
                 break;
             }
             if is_ident_continue(ch) {
