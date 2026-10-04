@@ -92,10 +92,17 @@ pub static UNIFY_NO_PROGRESS: Counter = Counter::new();
 /// ② 放宽到 Lean 的数值（`maxHeartbeats 4096 → 20000` · `maxRecDepth 64 → 3200` ✓）。
 pub static META_BUDGET_EXHAUSTED: Counter = Counter::new();
 
+/// **撞预算后「加大预算重试」的次数** ✓（G-88 真修的**主**读数 ✓）。
+///
+/// 它 **> 0** 只说明"变慢了" ✓（答案不变 ✓）—— 与 `META_BUDGET_EXHAUSTED`
+/// （**升级到底仍弃权** ✗）分开数 ✓，两者含义完全不同 ✗：
+/// 前者 = 走慢路 ✓；后者 = 判不了 ⇒ 弃权（**不是**判否 ✗）。
+pub static META_BUDGET_ESCALATED: Counter = Counter::new();
+
 /// **一次性读数**（`(名字, 次数)` ✓）——给 `STAGE_STATS` / 判据用 ✓。
 ///
 /// 顺序**固定** ✓（判据要能按位置读，不许靠 map 顺序 ✗）。
-pub fn report() -> [(&'static str, u64); 6] {
+pub fn report() -> [(&'static str, u64); 7] {
     [
         ("probe_exhausted", PROBE_EXHAUSTED.get()),
         ("sig_overflow", SIG_OVERFLOW.get()),
@@ -103,6 +110,7 @@ pub fn report() -> [(&'static str, u64); 6] {
         ("unify_rounds_exhausted", UNIFY_ROUNDS_EXHAUSTED.get()),
         ("unify_no_progress", UNIFY_NO_PROGRESS.get()),
         ("meta_budget_exhausted", META_BUDGET_EXHAUSTED.get()),
+        ("meta_budget_escalated", META_BUDGET_ESCALATED.get()),
     ]
 }
 
@@ -115,6 +123,7 @@ pub fn reset() {
         &UNIFY_ROUNDS_EXHAUSTED,
         &UNIFY_NO_PROGRESS,
         &META_BUDGET_EXHAUSTED,
+        &META_BUDGET_ESCALATED,
     ] {
         c.reset();
     }

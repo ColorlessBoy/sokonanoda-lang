@@ -41,7 +41,7 @@
 use sokonanoda::gates;
 
 /// 跑一遍「合成夹具 + 真课程 `unit08`」，返回六个闸的**差量**。
-fn census() -> [u64; 6] {
+fn census() -> [u64; 7] {
     gates::reset();
     let before = gates::report().map(|(_, n)| n);
 
@@ -81,8 +81,8 @@ fn census() -> [u64; 6] {
     }
 
     let after = gates::report().map(|(_, n)| n);
-    let mut out = [0u64; 6];
-    for i in 0..6 {
+    let mut out = [0u64; 7];
+    for i in 0..7 {
         out[i] = after[i] - before[i];
     }
     out
@@ -91,11 +91,13 @@ fn census() -> [u64; 6] {
 /// **甲类闸必须 0** ✓（`unify_no_progress` 是阳性对照，见文件头 ✓）。
 #[test]
 fn gate_census_reports_the_real_trigger_counts() {
-    let [probe, sig_overflow, sig_clamped, rounds, no_progress, meta_budget] = census();
+    let [probe, sig_overflow, sig_clamped, rounds, no_progress, meta_budget, meta_escalated] =
+        census();
     println!(
         "PERF gate-census: probe_exhausted={probe} sig_overflow={sig_overflow} \
          sig_arity_clamped={sig_clamped} unify_rounds_exhausted={rounds} \
-         unify_no_progress={no_progress} meta_budget_exhausted={meta_budget}"
+         unify_no_progress={no_progress} meta_budget_exhausted={meta_budget} \
+         meta_budget_escalated={meta_escalated}"
     );
 
     // ① **机制自证**：读得到的数必须真的是刚跑出来的 ✓（`reset()` 之后从 0 起算 ✓）。
@@ -107,14 +109,17 @@ fn gate_census_reports_the_real_trigger_counts() {
         "读数不像差量（`gates::reset()` 之后应当从小数起算 ✗）：{probe} {sig_overflow} \
          {sig_clamped} {rounds} {meta_budget}"
     );
-    let _ = no_progress; // 正当的弃权（`Tri::Undef` ✓），见文件头 ✓ —— 这里不判它 ✓。
+    // **升级（`meta_budget_escalated`）不是缺陷** ✓：撞预算 ⇒ **加大预算重试** ✓
+    // ⇒ 只变慢、答案不变 ✓（G-88 真修 ✓，判据 `meta::tests::exhausted_budget_…` ✓）。
+    // 这里同样不判它 ✓ —— 但**要读出来**（`> 0` 说明那条路真的在跑 ✓）。
+    let _ = (no_progress, meta_escalated);
 
     // ② **`fuel` / `MAX_DEPTH` 耗尽 ⇒ `Tri::No`** ✗（G-88 本体：判不了 ⇒ **当成否** ✗）。
     assert_eq!(
         meta_budget, 0,
-        "**G-88**：`unify_impl` 的预算耗尽触发了 {meta_budget} 次 ✗ —— 那是\
-         「**判不了 ⇒ 当成否**」✗（学习者会看到「解不出来」，而那不是真的无解 ✗）。\
-         按值守规矩：**> 0 必真修** ✓（① 可配置化 · ② 放宽到 Lean 的数值 ✓）"
+        "**G-88**：预算**升级到底仍弃权**触发了 {meta_budget} 次 ✗ —— 这已经不是\
+         「判不了 ⇒ 当成否」✗（那一半**已真修** ✓：撞预算先**加大预算重试** ✓），\
+         但它意味着**这条语料真的算不动** ✗ ⇒ 要么调大默认预算、要么查为什么算不完 ✓"
     );
     // ③ **`PROBE_CAP` 耗尽**（G-89）。
     assert_eq!(
