@@ -1,17 +1,27 @@
 #!/usr/bin/env bash
 # G-86 复现件：记法符号**粘连在标识符上**时不许抢走标识符 ✓
 #
-# **改前**（`5110ddeb` 之前）：本脚本 exit 1 ✗ —— `r''` 被切成 `r` + `''` ⇒ 含
+# **退出码约定**（`scripts/gap.py` 的仓内约定 ✓，别写反 ✗）：
+#   0 = **缺口仍在**（粘连仍抢走标识符 ⇒ 库层入口仍被判红 ✗）
+#   1 = **已修**（全部判据通过 ✓）
+#   2 = 环境或形状不对（`scripts/soko` 不在、课程仓缺失…）
+#
+# **改前**（`5110ddeb` 之前）⇒ exit **0** ✗：`r''` 被切成 `r` + `''` ⇒ 含
 # `infixr:80 " '' " => Set.image` 的文件一出现双撇号标识符就**解析失败** ✗，
 # 于是 `lib/Prod` / `lib/Equiv` / `lib/Demo` 这些**库层入口**被判红 ✓
 # （`elab-notation-unknown-target` + 下游 `elab-tactic-failed` ✓）。
-# **改后**：exit 0 ✓。
+# **改后** ⇒ exit **1** ✓。
 #
 # 用法：bash docs/gaps/repro/G86-notation-glued-to-identifier.sh
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 SOKO="$ROOT/scripts/soko"
+[ -f "$SOKO" ] || { echo "环境不对：找不到 scripts/soko" >&2; exit 2; }
+[ -f "$ROOT/courses/set-theory/lib/Prod.sokonanoda" ] || {
+  echo "环境不对：课程仓缺失（可分开检出）" >&2
+  exit 2
+}
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -27,8 +37,8 @@ EOF
 bad="$(cd "$ROOT" && timeout 600 node "$SOKO" grade --json "$TMP/glued.sokonanoda" 2>&1 \
   | grep -c '"type":"diagnostic"')"
 if [ "$bad" != "0" ]; then
-  echo "✗ G-86 仍在：粘连文件报了 $bad 条诊断（期望 0）" >&2
-  exit 1
+  echo "缺口仍在 ✗：粘连文件报了 $bad 条诊断（期望 0）" >&2
+  exit 0
 fi
 echo "✓ ① 粘连文件 0 条诊断"
 
@@ -44,16 +54,16 @@ theorem t2 : (f '' A) 0 := True.intro
 EOF
 if (cd "$ROOT" && timeout 600 node "$SOKO" grade --json "$TMP/spaced.sokonanoda" 2>&1 \
   | grep -q '"code":"unexpected-token"'); then
-  echo "✗ 有空白写的记法被误伤（不该出现 unexpected-token）" >&2
-  exit 1
+  echo "缺口仍在 ✗：有空白写的记法被误伤（出现 unexpected-token）" >&2
+  exit 0
 fi
 echo "✓ ② 有空白写的记法没被误伤"
 
 # ③ 词法级判据（先红那条 ✓）：`r''` 必须是一个标识符，`f '' A` 仍断成记法 ✓。
 if ! (cd "$ROOT" && timeout 900 cargo test -q -p sokonanoda-front --lib \
   token::tests::a_declared_symbol_glued_to_an_identifier_loses >/dev/null 2>&1); then
-  echo "✗ 词法级判据没过（a_declared_symbol_glued_to_an_identifier_loses）" >&2
-  exit 1
+  echo "缺口仍在 ✗：词法级判据没过（a_declared_symbol_glued_to_an_identifier_loses）" >&2
+  exit 0
 fi
 echo "✓ ③ 词法级判据通过"
 
@@ -62,10 +72,11 @@ for f in Prod Equiv Demo; do
   n="$(cd "$ROOT" && timeout 900 node "$SOKO" grade --json \
     "$ROOT/courses/set-theory/lib/$f.sokonanoda" 2>&1 | grep -c '"type":"diagnostic"')"
   if [ "$n" != "0" ]; then
-    echo "✗ lib/$f 仍有 $n 条诊断（期望 0）" >&2
-    exit 1
+    echo "缺口仍在 ✗：lib/$f 有 $n 条诊断（期望 0）" >&2
+    exit 0
   fi
   echo "✓ ④ lib/$f 0 条诊断"
 done
 
-echo "G-86 复现件：全部通过 ✓"
+echo "G-86 已修 ✓（全部判据通过）"
+exit 1
