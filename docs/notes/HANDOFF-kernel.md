@@ -50,23 +50,23 @@
 
 ## 3. 下一棒做什么（按序 ✓）
 
-0. ⏭ **B1（期望类型传播 · 治 G-30）—— 现场已钉死，下一手一轮可收** ✓：复现件 `docs/gaps/repro/G30-*.sokonanoda` **红** ✗
-   （`kernel-rejected`「期望 `Sort(0)`，实际是 `(Set.[] 第 5 个绑元)`」✓；de Bruijn **0-based** ⇒ `$5` = **`ext`** ✗）。
-   ⚠ **第 5 轮那条「走旧写法支路」已撤回** ✗（探针打在闸门**之前** ⇒ 只证"走到闸门" ✗）；
-   **第 6 轮实测** ✓：`args=2 explicit_arity=2 fits_old_style=false` ⇒ **没进那条支路** ✗；
-   真正查到的是：**`application_arg_expected` 对 `Iff.intro` 的实参零命中** ✗（只对 `Set.ext`/`Eq.subst` 响 ✓），
-   且加 `Expr::Lambda => true`（**不加门控** ✗）后**仍零命中、诊断一字不变** ✗
-   ⇒ **`Iff.intro` 的实参不由 App 臂 `arg_expected` 那条路 elaborate** ✗。
-   ✅ **第 7–8 轮**：`annotate_application_lambda`（顶上那条早退重写 ✗）**不触发** ✗；探针**加了 span 过滤** ✓（只打 41–53 行 ✓）⇒ 读数**首次可归属** ✓，**两处根因双双落实** ✓：**(甲)** 本文件里 `application_arg_expected` 只被调 10 次 ✓（50 行 `Set.ext` 6 次 ✓ · 52 行 `Eq.subst` 4 次 ✓）⇒ **`Iff.intro`（49 行）零命中** ✗（两个 lambda 没走常量路 ✗）；**(乙)** 加 `Lambda => true` 后调用变多但**仍无 49 行** ✗、**且返回垃圾** ✗（`AEP-OUT ⇒ C -> A` ✓，**`C` 不在作用域** ✗）⇒ 第 4 轮那条机制假说**当场证实** ✓（`sigma` 拿源级 AST 代换 ✗）。
-   ✅ **第 9 轮试了两版修 (乙)，都还原** ✓：**守输入**（只许代原子式 ✗）⇒ **(c) 判红** ✗ （`unit08-images-preimages` `compiled → failed` ✗ ⇒ **改坏了** ✓，复合实参本来靠它拿期望类型 ✓）；**守结果**（名字不在作用域 ⇒ `None` ✗）⇒ **(c) 逐字节相同** ✓ **但判据不达** ✗（`A -> C` 仍有 7 次 ✗ —— 垃圾名 `C` **恰好在外层 lambda 的 binder 里** ✗ ⇒ 守卫太宽 ✓）⇒ 两版**都没留在树上** ✓。
-   ✅ **第 10 轮（值守 23:52 方法：穷举入口 → 一次全打点 → 看谁命中 ✓，**只观测、不改判定** ✓）**：**第一条真实执行路径** ✓ = `elab_expr`(EE) → **`try_implicit_application`(TIA)** → **`args_fit_layers_in_order`(FIT)** ✓；**L49（`Iff.intro`）命中 `TIA` 114 次 ✓ · `FIT` 9 次 ✓**，`LAE`（B1 局部路）**零命中** ✓。✗ **推翻我第 6/7 轮**：「`Iff.intro` 没进 `try_implicit_application`」✗ **是错的** ✓。
-   ⇒ **下一手：在 `try_implicit_application` 内部同法穷举** ✓（explicit_spine / prelude / telescope / `k` / 路线③ / 旧写法 / 各 `return Ok(None)` ✓），看 L49 走进**哪一支** ✓；⚠ 另补 3 处没装上的探针（`try_bare_implicit_constant` / `application_arg_expected` / `set_literal_prefix_args` ✓）。⚠ **刹车**（值守 ✓）：**3 轮内拿不到「病灶行」读数 ⇒ 停下汇报卡在哪层** ✗ —— 本轮第 1 轮 ✓。 bisect（有效 ✓）：单分支全绿（V1/V2/V3/V5/V6 ✓）· **两分支都真才红** ✗（`sorry` 吃任何类型 ⇒ 看不出 ✗）。
-   ⚠ **探针纪律** ✗：必须打在**判据生效点之后** ✓（第 5 轮打反了 ✗）；**跨构建读数不可比** ✗（第 4 轮扑空之因 ✓）。
-   **下一手** ✓：探 `Iff.intro` 的 `explicit_arity()` 与 `fits_old_style` ✗ ⇒ 修 `explicit_arity` ✓ 或收紧
-   `type_head_fits_layer` ✓（⚠ 后者是 **G-42** 机制 ⇒ 改完必跑 G-42 复现件 ✓ + 6 文件逐字节 ✓）。
-   ⚠ 第 2 轮那三处（App 臂回落 ✓ · 认部分应用 ✓ · 认多名一组 ✓）**开关门控、默认关逐字节相同** ✓，**未转绿** ✗；
-   另有两条已试无效且**已还原** ✓：`needs_expected_type` 加 `Lambda` ✗ · `application_arg_expected` **跳过前导隐式** ✗
-   （⚠ 后者**本身是真缺陷** ✓，可单独收 ✓）。
+0. ⚠ **B1（期望类型传播）—— 机制已交付 · 判据未达** ✓（用户 2026-10-05 00:05 拍板：**出口改押 B2/B3** ✗）：
+   接入点 + 开关 `SOKO_ARG_EXPECTED` ✓（**默认关 ⇒ 逐字节相同** ✓）已建；**G-30 复现件十轮未转绿** ✗
+   （修法两版全还原 ✗）⇒ **不再在 B1 片内死磕** ✗。⚠ **十轮的全部读数与三次自我更正**在
+   `docs/gaps/ledger.jsonl` 的 **G-30** 条目里 ✓（本文件只留指针，避免重复 ✗）。
+   **B2 的接线点已实测** ✓：`Iff.intro` 那条应用走 **`try_implicit_application`** ✓（L49 命中 114 次 ✓，
+   而常量路 `application_arg_expected` 在 L49 **零命中** ✗）—— 见下面「Lean 4 对照」✓。
+## B2 的 **Lean 4 对照** ✓（`AGENTS.md`「卡住 ⇒ 先读 Lean 4」2026-10-05 ✓；本机 `d0493e4c1e` ✓，行号已自核 ✓）
+
+| B2 要做 | Lean 4 | 我们 | 差异与决定 |
+|---|---|---|---|
+| 实参**带期望类型** elaborate | `TermElabM.lean:1810` `elabTermEnsuringType` ⇒ `:1256` `ensureHasType`：**`isDefEq (inferType e) expectedType`**（合一 ✓，不成立才 `mkCoe` ✓）| `elab_expr(…, expected_src)` 递的是**源级文本** ✓ | **对齐**：期望类型要**当类型用**（合一 ✓），**不是**当文本代换 ✗ |
+| **嵌套实参**按位拿期望类型（G-30 现场）| `App.lean:1176` `elabAppArgs`：`fType ← inferType f` 后 **`instantiateMVars fType`** ✓ ⇒ 期望类型**从已解出的函数类型上读** ✓ | `try_implicit_application` 文本代换 `sigma`（源级 AST ✗）| **病灶** ✗：实测代出 `C -> A`（**含未绑定名** ✗）⇒ 按 Lean 改成**读已解出的类型** ✓ |
+| **待定/推迟** | `SyntheticMVars.lean:611` `synthesizeSyntheticMVars (postpone := .yes)` ✓ · `:649` `…NoPostponing` ✓ | 元变量**不活过一次求解调用** ✗ | **对齐**：B2 允许**活过一次调用** ✓ + 声明末尾 `zonk` ✓ |
+| **洞的种类** | `MetavarContext.lean:282` `MetavarKind.isSyntheticOpaque` ✓（`:107` 注释：**永不被赋值** ✓）| 无 kind ✗ | **对齐**：只作**内部种类** ✓（D9 = C ✓：**不引入** `?_` 表面语法 ✗）|
+
+**刻意偏离（1 条 ✓）**：**不引入 `?_`/`?hole` 表面语法** ✗（用户 D9 = C ✓）—— Lean 的 `syntheticOpaque`
+主要服务 `?_` ✓，我们只借它的**内部语义**（洞不被 `isDefEq` 赋值 ✓）来治 G-33 的那一半 ✓。
 1. ✅ **`G-93` 已修** ✓（第 21 棒 ✓，blocker · 正确性 ✓）：裸常量的宇宙层现在**从签名与实参类型解出来** ✓
    （`elab::infer_const_universes` ✓，**签名闸门** = 宇宙位恰好 1 个 + 层 0 的域恰好是 `Sort <自己的宇宙参数>` ✓）。
    判据 = **贪心三件全绿** ✓（复现件 **exit 0 → 1** ✓ 五相位全绿 · 反向 `SOKO_NO_CONST_LEVELS=1` ⇒ **回到 0** ✓ ·

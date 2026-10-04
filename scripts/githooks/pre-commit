@@ -20,7 +20,19 @@ set -uo pipefail
   exit 0
 }
 
+# ── **卡住 ⇒ 先读 Lean 4** 的守卫（用户 2026-10-05 ✓；规则见 `AGENTS.md`）──────────
+# 动了**判定路径**（`elab.rs`/`implicit.rs`/`meta.rs`/`crates/kernel/` ✓）的提交，
+# 提交信息或本轮 `HANDOFF-kernel.md` 增量里**必须**有 `Lean 4` / `Lean4: n/a` ✓
+# —— 否则**拒绝提交** ✗（"声明与守卫之间有条缝"是本项目最常见的病 ✓）。
 root=$(git rev-parse --show-toplevel)
+if [ -f "$root/scripts/check-lean4-alignment.py" ] && command -v python3 >/dev/null 2>&1; then
+  if ! lean4out=$(cd "$root" && python3 scripts/check-lean4-alignment.py --check 2>&1); then
+    printf '%s\n' "$lean4out" >&2
+    exit 1
+  fi
+  printf '%s\n' "$lean4out"
+fi
+
 [ -f "$root/scripts/docs-expiry-check.py" ] || {
   echo "[pre-commit] 找不到 scripts/docs-expiry-check.py ⇒ 跳过 ✓"
   exit 0
