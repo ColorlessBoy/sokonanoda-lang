@@ -52,10 +52,14 @@
 
 0. ⏭ **B1（期望类型传播 · 治 G-30）—— 现场已钉死，下一手一轮可收** ✓：复现件 `docs/gaps/repro/G30-*.sokonanoda` **红** ✗
    （`kernel-rejected`「期望 `Sort(0)`，实际是 `(Set.[] 第 5 个绑元)`」✓；de Bruijn **0-based** ⇒ `$5` = **`ext`** ✗）。
-   ✅ **第 5 轮四出口同装探针**（`FOS-IN/PREFIX/SURPLUS/OLD` ✓，跑完已还原 ✓）：**V4（红的）走「旧写法」支路** ✓
-   （`FOS-OLD` 3 次 ✓、`PREFIX`/`SURPLUS` 零次 ✗）⇒ 该支路按 **`layers[i]`** 对齐 ✗ ⇒ 两个 lambda 拿到
-   `{a b : Prop}` 的域（`Prop` ✗）⇒ **垃圾期望类型** ✓ —— 与设计 §2.10「**由构造子隐式求解反推**」✗ 对上 ✓
-   ⇒ **B1 是对的切片** ✓。bisect：单分支全绿（V1/V2/V3/V5/V6 ✓）· **两分支都真才红** ✗（`sorry` 吃任何类型 ⇒ 看不出 ✗）。
+   ⚠ **第 5 轮那条「走旧写法支路」已撤回** ✗（探针打在闸门**之前** ⇒ 只证"走到闸门" ✗）；
+   **第 6 轮实测** ✓：`args=2 explicit_arity=2 fits_old_style=false` ⇒ **没进那条支路** ✗；
+   真正查到的是：**`application_arg_expected` 对 `Iff.intro` 的实参零命中** ✗（只对 `Set.ext`/`Eq.subst` 响 ✓），
+   且加 `Expr::Lambda => true`（**不加门控** ✗）后**仍零命中、诊断一字不变** ✗
+   ⇒ **`Iff.intro` 的实参不由 App 臂 `arg_expected` 那条路 elaborate** ✗。
+   **下一手** ✓：在 **`elab_expr` 的 App 臂入口**打带 head 名的点 ✗，先定位「它到底进哪个臂」✓。
+   bisect（有效 ✓）：单分支全绿（V1/V2/V3/V5/V6 ✓）· **两分支都真才红** ✗（`sorry` 吃任何类型 ⇒ 看不出 ✗）。
+   ⚠ **探针纪律** ✗：必须打在**判据生效点之后** ✓（第 5 轮打反了 ✗）；**跨构建读数不可比** ✗（第 4 轮扑空之因 ✓）。
    **下一手** ✓：探 `Iff.intro` 的 `explicit_arity()` 与 `fits_old_style` ✗ ⇒ 修 `explicit_arity` ✓ 或收紧
    `type_head_fits_layer` ✓（⚠ 后者是 **G-42** 机制 ⇒ 改完必跑 G-42 复现件 ✓ + 6 文件逐字节 ✓）。
    ⚠ 第 2 轮那三处（App 臂回落 ✓ · 认部分应用 ✓ · 认多名一组 ✓）**开关门控、默认关逐字节相同** ✓，**未转绿** ✗；
