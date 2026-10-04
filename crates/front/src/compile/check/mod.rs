@@ -993,6 +993,95 @@ pub fn closure_prefixes_for(units: &[SourceUnit<'_>]) -> Vec<String> {
     prefixes
 }
 
+/// **G-85 的键侧入口**：把一段前缀**源码**规范化成**环境身份** ✓（规则见
+/// [`closure_prefix_ids_for`] ✓）。
+///
+/// **为什么要有它**（而不是把身份从编译侧一路传下来 ✗）：`judge` 侧只有**文本** ✓
+/// （`ctx.prefix_src` ✓），而键要的是身份 ✓ ⇒ 在这里**解析一次**、按规则取身份 ✓；
+/// 调用方（`judge`）**记忆化**它 ✓ ⇒ 每个不同的前缀只解析一次 ✓。
+///
+/// ⚠ **解析失败 ⇒ 退回原文** ✓（保守 ✓ 安全 ✓ —— 宁可少复用 ✗，绝不多复用 ✗）。
+pub fn canonical_prefix_id(src: &str) -> String {
+    let Ok(file) = crate::parser::parse(src) else {
+        return src.to_string();
+    };
+    let mut out = String::new();
+    for command in &file.commands {
+        out.push_str(&command_env_id(src, command));
+        out.push('\n');
+    }
+    out
+}
+
+/// 一条命令贡献给环境的**身份**（见 [`closure_prefix_ids_for`] 的规则 ✓）。
+///
+/// ⚠ 这里只做**文本切片**，不做语义判断 ✓ —— "证明体从哪开始"用的是 AST 里 `val` 的
+/// **span** ✓（不是找 `:=` ✗：注释里也可能有 `:=` ✓）。
+fn command_env_id(src: &str, command: &Command) -> String {
+    // `import` 不是声明 ✓：库层的内容已经在**更早的单元**里进了身份 ✓。
+    if matches!(command, Command::Import { .. }) {
+        return String::new();
+    }
+    let full = || slice_span(src, command.span());
+    let statement = match command {
+        Command::Theorem { ty, .. } | Command::Example { ty, .. } => {
+            // **名字 + 类型** = 从命令起点切到**类型表达式的终点** ✓（`:=` 与证明体都不进 ✓）。
+            // ⚠ 别用 `val.span().start` ✗ —— 实测它的起点**不在证明体之前** ✗
+            // （`theorem t (n : Nat) : f n = n := …` 切出来只有 `theorem t ` ✗ ⇒ 陈述没进身份 ✗）。
+            let head = slice_span(src, Span::new(command.span().start, ty.span().end));
+            // **保守闸**：陈述里有独立 `_` ⇒ 证明体可能反过来定类型 ⇒ 整条都算 ✓。
+            if has_bare_hole(&head) {
+                full()
+            } else {
+                head
+            }
+        }
+        // `def` 等：体是环境内容 ✓ ⇒ 整条 ✓。
+        _ => full(),
+    };
+    format!("{}#{}", command_kind_tag(command), statement)
+}
+
+/// 命令类别标签 ✓（同一段文本在 `theorem` 与 `def` 下语义不同 ✗ ⇒ 标签必须进身份 ✓）。
+fn command_kind_tag(command: &Command) -> &'static str {
+    match command {
+        Command::Def { .. } => "def",
+        Command::Theorem { .. } => "theorem",
+        Command::Example { .. } => "example",
+        Command::Axiom { .. } => "axiom",
+        Command::InductiveBlock { .. } => "inductive",
+        Command::Notation { .. } => "notation",
+        Command::Namespace { .. } => "namespace",
+        Command::End { .. } => "end",
+        Command::Open { .. } => "open",
+        Command::OpenIn { .. } => "open-in",
+        Command::Export { .. } => "export",
+        Command::Check { .. } => "check",
+        Command::Reduce { .. } => "reduce",
+        Command::Print { .. } => "print",
+        _ => "other",
+    }
+}
+
+/// 按 span 切一段源码（越界退化成空串 ✓ —— 调用方拿不准时会退回**整条原文** ✓，
+/// 所以这里越界**不会**造成"少算" ✗）。
+fn slice_span(src: &str, span: Span) -> String {
+    src.get(span.start.offset..span.end.offset)
+        .unwrap_or_default()
+        .to_string()
+}
+
+/// 有没有**独立的 `_`**（前后都不是标识符字符 ✓）—— 保守闸用 ✓（见 [`closure_prefix_ids_for`] ✓）。
+fn has_bare_hole(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    let is_word = |b: u8| b.is_ascii_alphanumeric() || b == b'_';
+    bytes.iter().enumerate().any(|(i, &b)| {
+        b == b'_'
+            && (i == 0 || !is_word(bytes[i - 1]))
+            && (i + 1 == bytes.len() || !is_word(bytes[i + 1]))
+    })
+}
+
 /// **切片 1b**：`builder`（与可选影子）**由调用方提供、编译完交回** ⇒ session 能把
 /// **同一套 DAG** 交给每个入口（库层只编一次；`restore_declars`/`hide_declars`
 /// 检查点由 session 做）。`'a: 's` 是必要的：影子要重放主 arena 产出的

@@ -12,7 +12,7 @@
 //! 服务端 `SOKO_LSP_TRACE=1` 的 `LSP_TRACE compile` 行自带**差量**结构计数
 //! （`modules=` / `by=` / `infer=<未命中>/<调用>` / `prefix=`）✓，本用例读它 ✓。
 //!
-//! ## 判据：一次按键**不许重跑整份前缀**（`prefix=0`）
+//! ## 判据（**两向** ✓）：改**证明** ⇒ `prefix=0` ✓；改**陈述** ⇒ `prefix>0` ✓
 //!
 //! `prefix` = `JUDGE_PREFIX runs` = `judge_infer` **未命中**后把**整段前缀**合成
 //! 一份文件、交 `check_document_with` **从零重跑**的趟数 ✗。它是 O(N²) 的放大源
@@ -57,13 +57,19 @@ fn first_theorem_name(text: &str) -> Option<String> {
         .filter(|name| !name.is_empty())
 }
 
-/// **一次按键不许重跑整份前缀**（`prefix=0`）。
+/// **改陈述（= 改定理标识符）⇒ 后面必须重新失效** ✓（**反向验证** ✓）。
 ///
-/// 编辑落在文件**前面**是关键 ✓：它让**后缀**进脏集，而后缀里那些 `judge_infer`
-/// 查询的前缀文本跟着变了 ⇒ 缓存必 miss ⇒ 才走到"重跑整份前缀"那条路 ✗
-/// （改**最后**一条时 `prefix=0` ✓ —— 那正是今天的快路 ✓）。
+/// ⚠ **这条期望在 2026-10-04 被翻转** ✓（值守口径更正 ✓）：
+/// * 原期望 `prefix == 0` ✗ —— 那是把「**陈述**变了 ⇒ 缓存全 miss」当成**缺陷** ✗；
+/// * 现口径 ✓：**改证明** ⇒ 后面**不许**失效（`prefix == 0` ✓，见
+///   [`proof_body_keystroke`] 的两条用例 ✓）；**改陈述** ⇒ 引用它的**必须**失效
+///   （`prefix > 0` ✓）—— 两个方向都要有判据 ✓（S6 那批的教训：信任边界的漏洞都长成
+///   「**文本没变但语义变了**」✗；这里钉的是反方向：「**文本变了但语义没变**」不许失效 ✓）。
+///
+/// 改名同时改了**接口**（名字是接口的一部分 ✓）⇒ 后面**依赖这个名字**的查询必须重跑 ✓；
+/// 本用例只断言**方向**（`> 0` ✓），**不锁具体趟数**（实现会演进 ✓）。
 #[test]
-fn a_keystroke_must_not_rerun_the_whole_prefix() {
+fn changing_a_statement_must_invalidate_the_prefixes_after_it() {
     let Some(root) = course_root() else {
         eprintln!("跳过：找不到 courses/set-theory/sokonanoda.toml（课程仓可分开检出）");
         return;
@@ -105,9 +111,10 @@ fn a_keystroke_must_not_rerun_the_whole_prefix() {
     let prefix = Client::trace_field(&line, "prefix");
     let modules = Client::trace_field(&line, "modules");
     println!("PERF keystroke-structure {rel}: modules={modules} prefix={prefix}\n  {line}");
-    assert_eq!(
-        prefix, 0,
-        "一次按键**不许重跑整份前缀**（`prefix` = judge_infer 未命中后从零重跑前缀的趟数 ✗）\n  {line}"
+    assert!(
+        prefix > 0,
+        "改**陈述**（改名 = 改接口 ✓）⇒ 后面**必须**重新失效（`prefix > 0` ✗ 现在为 0 ⇒ \
+         要么缓存键把**接口变更**漏掉了 ✗，要么这条用例根本没改到陈述 ✗）\n  {line}"
     );
 }
 

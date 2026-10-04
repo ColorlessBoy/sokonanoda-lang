@@ -19,6 +19,8 @@ mod warning;
 pub mod cache;
 
 pub use check::by_calls_total;
+/// **G-85**：把前缀**源码**规范化成**环境身份**（判定缓存的键用它 ✓，判定合成仍用原文 ✓）。
+pub use check::canonical_prefix_id;
 pub use check::{
     check_document, check_document_with, closure_prefixes_for, compile_all_with, compile_fol,
     compile_fol_with, display_notations, display_notations_from_commands, fold_for_display,

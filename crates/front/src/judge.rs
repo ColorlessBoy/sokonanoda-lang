@@ -1487,6 +1487,40 @@ pub(crate) fn judge_infer_store(
     judge_cache_put(key, JudgeCacheValue::Infer(r.clone()));
 }
 
+/// **G-85**：前缀**源码 → 环境身份**的**有界记忆化** ✓（键要用身份，见
+/// `compile::canonical_prefix_id` ✓）。
+///
+/// **为什么必须记忆化**：键是**每次判定**都要算的 ✓（实测十几万次调用 ✗）⇒
+/// 不缓存就得解析十几万次前缀 ✗✗。前缀的**种数**很少（每个单元一份 ✓）⇒
+/// 一张小表就够 ✓；**有界**（满了整表清空 ✓）⇒ 不会随会话无限长 ✗。
+fn canonical_prefix_cached(src: &str) -> String {
+    if src.is_empty() {
+        return String::new();
+    }
+    const CAP: usize = 64;
+    if let Some(hit) = canonical_prefix_table()
+        .lock()
+        .expect("canonical prefix table")
+        .get(src)
+    {
+        return hit.clone();
+    }
+    let id = crate::compile::canonical_prefix_id(src);
+    let mut table = canonical_prefix_table()
+        .lock()
+        .expect("canonical prefix table");
+    if table.len() >= CAP {
+        table.clear();
+    }
+    table.insert(src.to_string(), id.clone());
+    id
+}
+
+fn canonical_prefix_table() -> &'static Mutex<std::collections::HashMap<String, String>> {
+    static TABLE: OnceLock<Mutex<std::collections::HashMap<String, String>>> = OnceLock::new();
+    TABLE.get_or_init(|| Mutex::new(std::collections::HashMap::new()))
+}
+
 fn judge_infer_key(
     extra_prefix: &str,
     prefix_src: &str,
@@ -1494,12 +1528,43 @@ fn judge_infer_key(
     binders: &[GoalBinderSpec],
     term: &str,
 ) -> u64 {
+    judge_infer_cache_key(extra_prefix, prefix_src, options, binders, term)
+}
+
+/// **G-85**：`judge_infer` 家族的**唯一**一把键 ✓（**慢路** + **就地路的查/写**都用它 ✓）。
+///
+/// **为什么要"唯一"** ✗（2026-10-04 实测定位 ✓）：先前 `judge_infer_cached`（慢路）
+/// **自己内联**构造了一遍 ✓，`judge_infer_key`（就地路的查/写）又构造了一遍 ✓ ⇒
+/// 两把键**不是同一把** ✗✗：
+/// * 慢路的键里是**前缀原文** ✗ ⇒ 改一条**靠前**定理的**证明体**（类型一字不动）⇒
+///   后面每条判定**全部 miss** ✗ ⇒ 各自重跑整份前缀 ✓ —— 这正是「只改证明，
+///   后面不需要重编」要修的 ✓（实测 `prefix=8` ✗；规范化只加在 `judge_infer_key` 上时
+///   **判据纹丝不动** ✗，正因为它没覆盖慢路 ✓）；
+/// * 查/写的键里**没有 pp 标记** ✗ ⇒ 全显式 pp 与非全显式**互相命中** ✗（形态分叉 ✓）。
+///
+/// **键里放什么** ✓：前缀的**环境身份**（`compile::canonical_prefix_id` ✓ = 名字 + 类型；
+/// `theorem`/`example` 的**证明体不进** ✓）+ 编译选项 + binders + 被问的**问题本身** +
+/// pp 标记 ✓。**不放** ✗：前缀**原文** · 任何**字节偏移 / 源码位置** ✓。
+fn judge_infer_cache_key(
+    extra_prefix: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> u64 {
     judge_cache_key(&[
-        extra_prefix,
-        prefix_src,
+        &canonical_prefix_cached(extra_prefix),
+        &canonical_prefix_cached(prefix_src),
         &options_key(options),
         &format!("{binders:?}"),
         term,
+        // **G-71**：全显式 pp 与非全显式是**两份不同的文本** ⇒ 键必须分开，
+        // 否则两条路互相命中、形态分叉 ✗。
+        if explicit_pp_active() {
+            "pp=explicit"
+        } else {
+            "pp=plain"
+        },
     ])
 }
 
@@ -1877,20 +1942,9 @@ fn judge_infer_cached(
     term: &str,
 ) -> Result<String, Judgement> {
     let t0 = std::time::Instant::now();
-    let key = judge_cache_key(&[
-        extra_prefix,
-        prefix_src,
-        &options_key(options),
-        &format!("{binders:?}"),
-        term,
-        // **G-71**：全显式 pp 与非全显式是**两份不同的文本** ⇒ 键必须分开，
-        // 否则两条路互相命中、形态分叉 ✗。
-        if explicit_pp_active() {
-            "pp=explicit"
-        } else {
-            "pp=plain"
-        },
-    ]);
+    // **G-85**：用**唯一**那把键 ✓ —— 先前这里是**内联的第二份** ✗（原文 + pp 标记 ✓），
+    // 与 `judge_infer_key`（就地路的查/写）**不是同一把** ✗ ⇒ 改证明体会让这里全 miss ✗。
+    let key = judge_infer_cache_key(extra_prefix, prefix_src, options, binders, term);
     stats::KEY_NANOS.fetch_add(
         t0.elapsed().as_nanos() as u64,
         std::sync::atomic::Ordering::Relaxed,
@@ -2734,6 +2788,56 @@ mod tests {
     use crate::compile::{check_document, DeclState, DeclStatus, PreludeMode};
     use crate::parse;
 
+    /// **G-85 反向验证（值守口径 ✓）**：身份跟**接口**走 ✓，不跟**证明体**走 ✓。
+    ///
+    /// 五条判据（**两个方向都要有** ✓）：
+    /// ① 证明体变（陈述一字不动）⇒ 身份**不变** ✓（`theorem` 的值是证明，证明不参与 `def_eq` ✓）；
+    /// ② 陈述变（类型改掉）⇒ 身份**必变** ✓；
+    /// ③ `def` 的**定义体**变 ⇒ 身份**必变** ✓（`ReducibilityHint::Regular/Abbrev` 会被下游展开
+    ///    ⇒ 不把定义体放进身份就是**错编** ✗）；
+    /// ④ 更早的单元（库层）变 ⇒ 身份**必变** ✓（前缀是**拼接**出来的 ✓）；
+    /// ⑤ 记法声明变 ⇒ 身份**必变** ✓（它是**环境级特性** ✓）。
+    ///
+    /// ⚠ 夹具必须**解析得过** ✓ —— 解析失败时 `canonical_prefix_id` 退回**原文** ✓（保守 ✓），
+    /// 那时①会**误判为变** ✗ ⇒ 这条判据顺带守住「夹具没坏」 ✓。
+    #[test]
+    fn canonical_prefix_id_tracks_the_interface_not_the_proof_body() {
+        let id = crate::compile::canonical_prefix_id;
+        let base = "def f (x : Nat) : Nat := x\n\n\
+                    theorem t (n : Nat) : f n = n := Eq.refl.{1} Nat (f n)\n";
+        assert_ne!(
+            id(base),
+            base,
+            "夹具前提：`base` 必须**解析得过**（解析失败 ⇒ 身份退回**原文** ⇒ 判据①假红 ✗）"
+        );
+        // ① 证明体变 ⇒ 身份不变 ✓
+        let body2 = base.replace("Eq.refl.{1} Nat (f n)", "Eq.refl.{1} Nat (f n) ");
+        assert_ne!(body2, base, "夹具前提：①这一刀必须真的改到文本");
+        assert_eq!(id(base), id(&body2), "改**证明体**不许改身份 ✗");
+        // ② 陈述变 ⇒ 身份必变 ✓
+        let ty2 = base.replace(": f n = n :=", ": f n = f n :=");
+        assert_ne!(ty2, base, "夹具前提：②这一刀必须真的改到文本");
+        assert_ne!(id(base), id(&ty2), "改**陈述**必须改身份 ✗");
+        // ③ def 定义体变 ⇒ 身份必变 ✓
+        let def2 = base.replace(
+            "def f (x : Nat) : Nat := x",
+            "def f (x : Nat) : Nat := succ x",
+        );
+        assert_ne!(def2, base, "夹具前提：③这一刀必须真的改到文本");
+        assert_ne!(
+            id(base),
+            id(&def2),
+            "改 **def 定义体**必须改身份 ✗（否则是错编 ✗）"
+        );
+        // ④ 库层变 ⇒ 身份必变 ✓
+        let with_lib = format!("axiom P : Prop\n{base}");
+        assert_ne!(id(base), id(&with_lib), "改**库层**必须改身份 ✗");
+        // ⑤ 记法声明变 ⇒ 身份必变 ✓
+        let with_notation = base.replace("def f", "notation \"z\" => f\n\ndef f");
+        assert_ne!(with_notation, base, "夹具前提：⑤这一刀必须真的改到文本");
+        assert_ne!(id(base), id(&with_notation), "改**记法声明**必须改身份 ✗");
+    }
+
     fn spec(ty: &str, binders: &[(&str, Option<&str>)]) -> OpenGoalSpec {
         OpenGoalSpec {
             universe: Vec::new(),
@@ -2772,15 +2876,10 @@ mod tests {
             prelude: crate::compile::PreludeMode::Bare,
         };
         let _ = judge_infer(prefix, &bare, &binders, "h");
-        // 键的组成与 `judge_infer_with` 逐字一致（`extra_prefix` 是空串）。
-        let bare_key = judge_cache_key(&[
-            "",
-            prefix,
-            &options_key(&bare),
-            &format!("{binders:?}"),
-            "h",
-            "pp=plain",
-        ]);
+        // **键只许有一处真相** ✓（2026-10-04 收敛 ✓）：直接调**唯一**那把键函数 ✓ ——
+        // 先前这里**手工拼**了一遍 ✗（"与 `judge_infer_with` 逐字一致" ✗）⇒ 键一改
+        // 这条判据就假红 ✗，而且它**复制**的正是要消灭的那份重复 ✓。
+        let bare_key = judge_infer_cache_key("", prefix, &bare, &binders, "h");
         assert!(
             judge_cache_contains(bare_key),
             "different options = different key"
@@ -2788,25 +2887,14 @@ mod tests {
         assert!(judge_cache_len() >= before);
 
         // **G-71**：**全显式 pp** 与非全显式是**两份不同的文本** ⇒ 必须是**两把键**
-        // （否则两条路互相命中、形态分叉 ✗）。这条判据与上面那条同源：
-        // 键的组成只许有一处真相（`judge_infer_cached`）。
+        // （否则两条路互相命中、形态分叉 ✗）。⚠ 两把键**都由唯一那把键函数算** ✓ ——
+        // 它们的差别来自 `explicit_pp_active()` ✓（`judge_infer_explicit` 内部会把它置上 ✓）。
         let _ = crate::judge::judge_infer_explicit(prefix, &options, &binders, "h");
-        let plain_key = judge_cache_key(&[
-            "",
-            prefix,
-            &options_key(&options),
-            &format!("{binders:?}"),
-            "h",
-            "pp=plain",
-        ]);
-        let explicit_key = judge_cache_key(&[
-            "",
-            prefix,
-            &options_key(&options),
-            &format!("{binders:?}"),
-            "h",
-            "pp=explicit",
-        ]);
+        let plain_key = judge_infer_cache_key("", prefix, &options, &binders, "h");
+        let explicit_key = {
+            let _guard = ExplicitPpGuard::new(true);
+            judge_infer_cache_key("", prefix, &options, &binders, "h")
+        };
         assert_ne!(plain_key, explicit_key, "全显式 pp 必须是另一把键");
         assert!(
             judge_cache_contains(explicit_key),
