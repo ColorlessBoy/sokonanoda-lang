@@ -811,6 +811,30 @@ mod tests {
         );
     }
 
+    /// **G-86（先红判据）**：声明符号**粘连在标识符上**时，**标识符赢** ✓。
+    ///
+    /// 用户可见症状（课程线实测 ✓，2026-10-04）：`lib/Set` 声明了像的记法
+    /// `infixr:80 " '' " => Set.image` ✓，而 `lib/Rel` 里有**双撇号标识符**
+    /// `r''` / `s''` ✓ ⇒ 一旦两者进了**同一份合成前缀**（`lib/Prod` 的闭包 ✓），
+    /// 词法就把 `r''` 切成 `r` + `''` ✗ ⇒ **前缀解析失败** ✗ ⇒ 该单元里
+    /// **每一条** `#check` 类型查询都失败 ✗ ⇒ `elab-notation-unknown-target`
+    /// （「读不到记法 `×ˢ` 的目标 `Set.prod` 的类型：无法解析类型查询」✗）
+    /// + 下游 `elab-tactic-failed`（「`exact` 判定失败：前缀源码无法解析」✗）✓。
+    ///
+    /// **判据**：`r''` 必须是一个标识符 ✓；`f '' A`（**有空白** ✓）仍必须是记法 ✓。
+    #[test]
+    fn a_declared_symbol_glued_to_an_identifier_loses() {
+        let toks = tokenize_with_symbols("r''", &["''".to_string()]).unwrap();
+        assert!(
+            matches!(toks[0].kind, TokenKind::Ident(ref s) if s == "r''"),
+            "`r''` 必须是一个标识符（记法 `''` 不许把它切开）✗：{:?}",
+            toks.iter().map(|t| t.kind.clone()).collect::<Vec<_>>()
+        );
+        // 对照：**有空白**时记法照旧生效 ✓（课程里的 `f '' A` 就是这么写的 ✓）。
+        let spaced = tokenize_with_symbols("f '' A", &["''".to_string()]).unwrap();
+        assert_eq!(spaced[1].kind, TokenKind::Sym("''".to_string()));
+    }
+
     #[test]
     fn tokenizes_hello_sokonanoda() {
         let toks = tokenize("-- lesson\n#check Prop -> Prop").unwrap();
