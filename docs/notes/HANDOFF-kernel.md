@@ -1,78 +1,91 @@
 # 内核线交接单（换会话用）
 
-> 覆盖式重写于 2026-10-04 13:33 ✓（值守换会话单 ✓）。**只写当前状态** ✗（历史看 `git log` ✓）。
+> 覆盖式重写于 2026-10-04 16:0x ✓（值守换会话单 ✓）。**只写当前状态** ✗（历史看 `git log` ✓）。
 > 分支 **main**（本地 ✓，**未推送** —— 推送由值守独占 ✓）。（`docs-expiry.json` 登记 2026-11-15 ✓）
 
 ## 1. HEAD 与未推提交
 
-* **结束 HEAD** = **`fac807d1`** ✓（记忆表改 `u64` 文本哈希键 + CAP 4096 ✓）。
-* **未推 145 笔** ✓（本会话未 push / 未打 tag ✓）；**工作树干净** ✓。
-* 判据现状 ✓：LSP `lsp_keystroke_structure` **3 条全绿** ✓ · `gap.py check` 不一致 0 ✓ ·
-  front 全量上次收口 **830/0** ✓。
+* **结束 HEAD** = **`afb6dfbc`** ✓（G-88…91 台账 + 四条复现件 ✓）；本棒三笔：
+  `d3754d1d`（O(n²) 真除）· `ae8c944d`（闸类计数出口）· `afb6dfbc`（台账/复现件）。
+* **未推 149 笔** ✓（本会话未 push / 未打 tag ✓）；**工作树干净** ✓。
+* 判据现状 ✓：`lsp_keystroke_structure` **3/3** ✓ · `perf_course` **5/5** ✓ ·
+  `identity_probe` **2/2** ✓ · `gate_census` **1/1** ✓ · **front 全量 872/0** ✓ ·
+  `gap.py check` **92 通过 / 不一致 0** ✓ · `status-lint` ✓ · 课程 **243 compiled / 6 failed** ✓。
 
-## 2. 手上的 WIP（**没有未提交的** ✓，但有一处「在树里、默认关」）
+## 2. 手上的 WIP
 
-* **增量身份** ✓：`crates/front/src/compile/check/walk.rs`（累加器 + 预置 ✓）·
-  `crates/front/src/judge.rs`（`seed_canonical_prefix` + 哈希表 ✓）·
-  `crates/front/src/compile/check/mod.rs`（`canonical_prefix_id_checked` ✓）。
-  **默认关** ✗（`SOKO_PREFIX_SEED=1` 才开 ✓）—— 开了会让判据 ① 从 `prefix=0` 变 **5** ✗，
-  **机制未解释** ✗（两次修因都被实验否掉 ✓，见 §4）。**正确性优先** ✓：宁可变慢 ✗，不拿错键命中 ✗。
-* 自检探针也在树里 ✓：`SOKO_PREFIX_ID_CHECK=1`（逐命令比 `seeded` vs `canonical_prefix_id(prefix_src)` ✓，
-  **必须配 `SOKO_LSP_TEST_STDERR=1`** ✗ —— 它打在**服务端子进程** stderr 上 ✓）。
+**没有** ✓ —— 三笔全部提交 ✓，无「在树里、默认关」的东西 ✓（`SOKO_NO_SEED` 是**逃生门** ✓，
+默认**开** ✓；`SOKO_PREFIX_SEED` 那个旧开关**已删** ✓）。
 
-## 3. 下一棒做什么（值守 13:29 已排序 ✓）
+## 3. 下一棒做什么（按序 ✓）
 
-1. **12 单元删尺寸闸 + 身份增量构造**（用户点名、最挡路 ✓）。闸**已删** ✓；身份**已证等价** ✓；
-   **卡在「5 趟」** ✗ ⇒ 起点 = 开着预置**直接打那 5 趟的 `term` / `binders` / `key`** ✓（别再猜机制 ✗）。
-2. **闸计数普查**（甲类 3 + 乙类 4 ⇒ 已登记 **G-88 / G-89 / G-90 / G-91** ✓）。
-3. **可配置化 + Lean 对齐**（13:21 + 13:24 **合并成一件** ✓）：① 可配置化（**默认值一个不动** ✓、
-   零行为变化 ✓）② 放宽默认值**单独一笔** ✓。**终点取 Lean 数值** ✓：`maxRecDepth 64→3200` ·
-   `maxHeartbeats 4096→20000` · `maxSize 64→128` · `maxSynthDepth 8→32` ✓；
-   **Lean 没有的**（`PROBE_CAP` ⇒ 判不等 ✗ · `PARSE_LIMIT` ⇒ 退回原文 ✗）**去掉，不许换数字留着** ✗。
+1. **③ 限制可配置化 + 按 Lean 4 对齐数值**（**唯一在排的下一步** ✓，值守 13:21/13:24 已合并成一件 ✓）：
+   ① **可配置化**（**默认值一个不动** ✓、**零行为变化** ✓，判据 = 整本课程 `build --json`
+   剔心跳逐字节相同 ✓）；② **放宽默认值单独一笔** ✓。**终点取 Lean 数值** ✓：
+   `maxRecDepth 64→3200` · `maxHeartbeats 4096→20000` · `maxSize 64→128` · `maxSynthDepth 8→32` ✓；
+   **Lean 没有的**（`PROBE_CAP` ⇒ 弃权 · `PARSE_LIMIT` ⇒ 退回原文）**去掉，不许换数字留着** ✗。
    落点用**现成管道** ✓（`CompileOptions` + `sokonanoda.toml [limits]` + CLI `--max-depth=N` ✓），
-   **不新造配置系统** ✗。
-4. **提速纪律**（13:29 ✓）：中间验证**只认** `scripts/dev-verify.sh`（+ `--granularity` ✓，**0.3 秒** ✓）；
-   `cargo test -p sokonanoda-front --lib` 全量与 `target/release/sokonanoda build courses/set-theory`
-   （**单进程吃 9 核 · ~4 分钟**）**只在收口各跑一次** ✓；全量任务**一次一个** ✗。
+   **不新造配置系统** ✗。⚠ 动 `PROBE_CAP` 前先读 §5 的「探查」那条 ✓。
+2. **G-91 的乙类 4 处计数出口**（内核侧六个**已铺** ✓）：`judge.rs` 两张表容量 ·
+   目标分解失败（`goals.rs`）· `SKELETON_MAX_LAYERS` ✓。复现件 `G91-gate-counters.sh`
+   会在铺齐后**判 1** ⇒ 那时回来关账 ✓。
+3. 排队在后面（做不完继续往下传 ✓）：**IA-4 元参数引擎余片** · **集合论教材线 S-A/S-B/S-C**
+   （见 `docs/ONBOARDING.md` §0.2，那是**唯一队列** ✓）。
 
 ## 4. 每条要带的判据（判红 / 判绿 ✓，以及「现在有没有」）
 
 | 项 | 判据 | 现状 |
 |---|---|---|
 | 12 单元特性 | `cargo test -p sokonanoda-lsp --test lsp_keystroke_structure` ⇒ 改陈述 `prefix>0` / 改证明体 `prefix==0` | **有 ✓ 全绿** |
-| 大前缀不许退回原文 | `judge::tests::a_large_prefix_must_not_fall_back_to_raw_text` | **有 ✓ 绿**（闸在时红过 ✓） |
-| ② 不许拿慢换对 | `cargo test -p sokonanoda-lsp --lib perf_course` ⇒ unit12 didOpen **≤ 8.5s** | **有 ✗ 现红**（**14682ms** ✗） |
-| 增量身份等价 | `SOKO_PREFIX_SEED=1 SOKO_PREFIX_ID_CHECK=1 SOKO_LSP_TEST_STDERR=1` ⇒ **零分歧** | **有 ✓ 已证等价** |
-| 预置的副作用 | 同上 + `prefix` 必须 **0** | **有 ✗ 现红**（`seed=on ⇒ 5` ✗） |
-| 可配置化零行为 | 整本课程 `build --json` **剔心跳行逐字节相同**（**改前 vs 改后都要跑** ✓） | **无 ⇒ 先建** |
-| 预算耗尽有信号 | `[limits] max_depth=2` ⇒ **必须报错**；`=10000` ⇒ 长证明过；`--json` 见「预算耗尽」事件 | **无 ⇒ 先建** |
-| 闸类守卫 | 凡「耗尽 ⇒ 判否」的路径判红 | **无 ⇒ 先建**（甲类 #1/#2/#3 一起 ✓） |
-| 开发内环 | `scripts/dev-verify.sh [--granularity]` ⇒ 冷跑 ≤ 2s | **有 ✓**（0.10s ✓ / `marginal=2.20` ✗） |
+| 冷开不退化 | `cargo test -p sokonanoda-lsp --lib perf_course` ⇒ unit12 **≤8.5s** | **有 ✓ 绿**（**6173ms** ✓） |
+| 增量身份等价 | `cargo test -p sokonanoda-front --test identity_probe` ⇒ `probed>0` · `uncomparable==0` · `mismatches==0` · `fallbacks==0` · `evictions==0` | **有 ✓ 全绿**（2612/0/0/0/0 ✓） |
+| O(n²) 不许回来 | 同上第二个用例 ⇒ `reparse < 20`（实测 **0** ✓；`SOKO_NO_SEED=1` ⇒ **54** ⇒ 判红 ✓） | **有 ✓ 绿** |
+| 闸类普查 | `cargo test -p sokonanoda-front --test gate_census` ⇒ 四个甲类闸 == 0 | **有 ✓ 绿**（反向：`MAX_DEPTH=1` ⇒ **59** ⇒ 判红 ✓） |
+| 闸类复现件 | `bash docs/gaps/repro/G8{8,9}-*.sh docs/gaps/repro/G9{0,1}-*.sh` ⇒ exit **0**（缺口仍在 ✓） | **有 ✓ 四条全 0** |
+| 可配置化零行为 | 整本课程 `build --json` 剔心跳逐字节相同（**改前 vs 改后都要跑** ✓） | **无 ⇒ 先建**（第 ③ 步用 ✓） |
+| 预算耗尽有信号 | `[limits] max_depth=2` ⇒ 必须报错；`=10000` ⇒ 长证明过 | **无 ⇒ 先建**（第 ③ 步用 ✓） |
+| 开发内环 | `scripts/dev-verify.sh [--granularity]` ⇒ 冷跑 ≤ 2s | **有 ✓** |
 
 ## 5. 已知的坑（都带实测代价 ✓）
 
-* **`clear()` 型记忆表** ✗：walker 逐命令种 ⇒ 满则整表清空会把**刚种的那条**一起冲掉 ✓。
-  已改「插入前淘汰一条」+ **哈希键 + CAP 4096** ✓（仍没治好那 5 趟 ✗，但机制本身是对的 ✓）。
-* **子进程 stderr** ✗：服务端探针（`PREFIX_ID_MISMATCH` 等）**看不见** ✗ ⇒ 必须
-  `SOKO_LSP_TEST_STDERR=1` ✓（漏了它我误判过一轮 ✓：「没报分歧」是**假象** ✗）。
-* **进程级计数器** ✗：`judge::stats` 的计数**全进程共享** ✓ ⇒ 判据要取**差量** ✓；
-  课程级断言要放**独立进程**（CLI 侧 ✓）。
-* **release 产物会过期** ✗：改源码后只 `cargo test` 只编 debug ✓ ⇒ 量 release LSP 前必须
-  `cargo build --release -p sokonanoda-cli -p sokonanoda-lsp` ✓（踩过两次 ✓）。
+* ⚠ **判据会「全被跳过」** ✗：上一棒只读「有没有 `MISMATCH`」⇒ 读到 **0** ⇒ 判成「已证等价」✗，
+  而当时**所有**条都落在「前缀解析不过 ⇒ 退回原文 ⇒ 这次不比」里 ✗（`unit08` **1505/1540** ✗）。
+  ⇒ **凡"逐条比对"的判据，必须同时报「比过多少条」** ✓（`probed > 0` 是防空转的硬要求 ✓）。
+* ⚠ **`canonical_prefix_id` 必须用 `parse_fragment`** ✗：判定的前缀是**文件片段** ✓，
+  声明落在 `namespace` 里时**必然**停在未闭合处 ✓（G-05 §4.1）。换回严格 `parse`
+  ⇒ `uncomparable` **0→1906** ⇒ 判红 ✓。
+* ⚠ **身份必须从 AST 直取** ✗：片段用了**依赖声明的记法**时，片段与整体**都解析不过** ✓
+  ⇒ 「切片段再 parse」必退原文（实测 27 处 ✗）。
+* ⚠ **判官合成的声明 span 是零长** ✗（`line: 0, column: 0` ✓）：它在 `file.commands` 里、
+  **不在 `file.src` 里** ⇒ 文本路看不见、AST 累加看得见 ⇒ 分叉（18 处 ✗）。
+  `command_env_id` 已跳过零长 span ✓。
+* ⚠ **`canonical_prefix_table` 的 `CAP` 必须 ≥ 工作集** ✗：`4096` 比整本课程还小 ⇒
+  满则挤掉**活条目** ⇒ **抖动**（`identity_parses=3062` ✗）。现 **65536** ✓ + 淘汰计数 ✓。
+  **两处 CAP 必须同数** ✗（种的那侧与读的那侧 ✗）。
+* ⚠ **探查（`PROBE_CAP`）**：耗尽**只许**表示「这次探查不可信 ⇒ **弃权走全量**」✓
+  （`probe_pass` 读 `probe_exhausted` 后判**未决** ✓），**绝不许**表示「不相等」✗ ——
+  动它之前先把这条钉住 ✓。
+* **子进程 stderr** ✗：服务端探针看不见 ⇒ 必须 `SOKO_LSP_TEST_STDERR=1` ✓（`start_traced` 的读线程
+  **只留 `LSP_TRACE` 行** ✗ ⇒ 别的探针行会被**丢掉** ✓ —— 要在 CLI 上跑才看得见 ✓）。
+* **进程级计数器** ✗：判据要取**差量** ✓；课程级断言放**独立进程**（集成测试 ✓）。
+* **`target/debug` 跑不动整本课程** ✗：`build courses/set-theory` **stack overflow（exit 134）** ✓
+  —— **基线二进制同形** ✓（不是新引入的 ✓），release 正常 ✓ ⇒ 量课程**一律 release** ✓。
+* **release 产物会过期** ✗：改源码后只 `cargo test` 只编 debug ✓ ⇒ 量 release 前必须
+  `cargo build --release -p sokonanoda-cli -p sokonanoda-lsp` ✓。
 * **`AGENTS.md` 行数上限 435** ✓（`docs-lint` ⑦ 判红 ✓，而 `pre-commit` **不跑** docs-lint ✗）；
   **上限只许收紧** ✗ ⇒ 加内容要**折进既有行** ✓。
-* **bash 3.2**：变量后紧跟**多字节字符**必须写 `${var}` ✗（否则 `unbound variable` ✓）；
-  `sed 's/.*passes=/'` **贪婪** ⇒ 会吃到 `doc_passes=` ✓（「`0` 有两种来源」✗）。
-* **python heredoc 里别用 ASCII 引号** ✗（我因此写坏过 3 次 ✓）—— 中文串里一律用 `「」` ✓。
-* **残留进程** ✗：长跑脚本要自己 `pgrep -f <名字>` 收 ✓（值守清掉过 3 个跑了 8 天的 ✓，
-  那不是本会话起的 ✓；本会话收尾自查为空 ✓）。
+* **bash 3.2**：变量后紧跟**多字节字符**必须写 `${var}` ✗；`sed 's/.*passes=/'` **贪婪** ✗。
+* **python heredoc 里别用 ASCII 引号** ✗（中文串里一律 `「」` ✓）—— 本棒在 Rust 字符串里
+  也踩了一次同形 ✓（`"没人写"` ⇒ 编译错 ✓）。
+* **残留进程** ✗：长跑脚本要自己 `pgrep -f <名字>` 收 ✓（本棒收尾自查为空 ✓）。
 
-## 6. 本会话已兑现（可复核 ✓）
+## 6. 本棒已兑现（可复核 ✓）
 
-* **「只改证明，后面不需要重编」** ✓（用户点名的特性 ✓）：判定缓存键**收敛成唯一一把** ✓ +
-  键里放**环境身份** ✓ ⇒ 改证明体 `prefix=0` ✓✓（等长 / 不等长都对 ✓）；**全课程逐字节对拍通过** ✓。
-* **G-86 记法粘连** ✓（`lib/Prod` 2 / `lib/Equiv` 16 / `lib/Demo` 26 条诊断 ⇒ **0** ✓；
-  全课程 243/6 compiled/failed ✓，**0** 个原先绿的模块变红 ✓）。
-* **尺寸闸已删** ✓（用户 13:08 ✓）+ **闸类计数出口** ✓（判据 ③ **先红后绿** ✓）。
-* **开发验证内环** ✓：`scripts/dev-verify.sh`（**0.3 秒** ✓，含 `--granularity` ✓）。
-* **记账** ✓：老 G-86 并入 **G-30** ✓ · **G-87** ✓ · 闸类 **G-88…G-91** ✓ · Lean 对齐终点落账 ✓。
+* **① 「编辑慢」这条线的 O(n²) 真除掉了** ✓（用户点名 ✓）：`unit12` **10490 → 6173ms（1.70×）** ✓ ·
+  `fallbacks` **536 → 0** ✓ · 身份分歧 **1540 → 0** ✓ · `identity_parses` **3062 → 0** ✓；
+  根因**三条全是实测定位** ✓（不是猜的 ✓）；复现件 + **两条反向验证** ✓；
+  整本课程 `--json` **逐字节相同** ✓。
+* **② 闸类普查第一步** ✓（值守 13:12 ✓）：内核侧**六个计数出口** ✓（`crates/kernel/src/gates.rs` ✓）
+  + 接进 `STAGE_STATS` ✓ + 判据 ✓ + 四条复现件 ✓ + 台账真实读数 ✓
+  （四个甲类闸**课程上 0 次** ✓ ⇒ 留闸 + 断言 ✓）。
+* **记账** ✓：G-88/89/90/91 的 `repro` + `today` ✓（`gap.py check` 92/0 ✓）。
