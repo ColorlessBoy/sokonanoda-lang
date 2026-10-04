@@ -110,3 +110,123 @@ fn a_keystroke_must_not_rerun_the_whole_prefix() {
         "一次按键**不许重跑整份前缀**（`prefix` = judge_infer 未命中后从零重跑前缀的趟数 ✗）\n  {line}"
     );
 }
+
+/// 第一条 `theorem` 的**证明体那一行**（缩进**恰好两格**、且不以 `:=` 结尾 ✓）。
+///
+/// 为什么这么找：课程单元里 `theorem` 的陈述常跨两行（`… :` 换行后 `… :=` ✓），
+/// 证明体是**再下一行** ✓；用"恰好两格缩进 + 不是 `:=` 结尾"就能稳定点到它 ✓。
+fn first_theorem_body_line(text: &str) -> Option<&str> {
+    let mut in_theorem = false;
+    for line in text.lines() {
+        if line.starts_with("theorem ") {
+            in_theorem = true;
+            continue;
+        }
+        if in_theorem
+            && line.starts_with("  ")
+            && !line.starts_with("   ")
+            && !line.trim_end().ends_with(":=")
+        {
+            return Some(line);
+        }
+    }
+    None
+}
+
+/// **只改证明体**（陈述一字不动）⇒ 后面**一条都不该重跑前缀**（`prefix=0`）。
+///
+/// 用户 2026-10-04 点名的特性：「只改证明，后面不需要重编」✓。`theorem` 的值是证明，
+/// **证明不参与 `def_eq`** ⇒ 改它不该让后面任何判定失效 ✓。
+///
+/// **为什么要两刀**：第一刀是**冷态**（开档后第一次编辑，缓存还空着 ⇒ `prefix` 必然大 ✗），
+/// 第二刀才是**被量的那一刀** ✓ —— 判据量的是"**复用**有没有生效" ✓，不是"第一次有多贵" ✓。
+///
+/// `shift` 决定**等长**还是**不等长**：
+/// * `false` —— 等长（总字节不变 ⇒ 后面命令**不平移** ✓）；
+/// * `true` —— 不等长（后面命令**整体平移** ✗ ⇒ 同时考"脏集按字节偏移判"那条 ✓）。
+fn proof_body_keystroke(shift: bool) {
+    let Some(root) = course_root() else {
+        eprintln!("跳过：找不到 courses/set-theory/sokonanoda.toml（课程仓可分开检出）");
+        return;
+    };
+    let rel = "units/I.3/unit08-images-preimages.sokonanoda";
+    let path = root.join(rel);
+    let text = std::fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("读不到 {}：{error}", path.display()));
+    let body = first_theorem_body_line(&text)
+        .expect("夹具前提：课程单元里第一条 theorem 必须有证明体那一行")
+        .to_string();
+
+    // ⚠ `lines()` 给的是**整行**（含缩进 ✓）⇒ 这里 `body` 就是那一行的原文 ✓。
+    let trimmed = body.trim_start().to_string();
+    // 两刀都**必须真改**（改回去会命中磁盘缓存 ⇒ 读数把"没生效"看成"很快" ✗）。
+    let (warm, mid, measured) = if shift {
+        // 不等长：+2 字节（加一对括号 ✓，语义相同 ✓）。
+        (
+            body.clone(),
+            format!("  ({trimmed})"),
+            format!("  (({trimmed}))"),
+        )
+    } else {
+        // 等长：缩进与行尾空白对调 ⇒ 总字节数不变 ✓。
+        (body.clone(), format!("{trimmed}  "), format!(" {trimmed} "))
+    };
+    let after_warm = text.replacen(&warm, &mid, 1);
+    assert_ne!(after_warm, text, "夹具前提：预热那一刀必须真的改变文本");
+    let after_measured = after_warm.replacen(&mid, &measured, 1);
+    assert_ne!(
+        after_measured, after_warm,
+        "夹具前提：被量的那一刀必须真的改变文本"
+    );
+    if !shift {
+        assert_eq!(
+            after_measured.len(),
+            text.len(),
+            "夹具前提：等长那一刀必须让**总字节数不变**（后面命令不平移 ✓）"
+        );
+    } else {
+        assert_eq!(
+            after_measured.len(),
+            text.len() + 4,
+            "夹具前提：不等长那一刀必须让后面命令**整体平移** ✓"
+        );
+    }
+
+    let cache = std::env::temp_dir().join(format!(
+        "sokonanoda-lsp-proof-body-{}-{}",
+        std::process::id(),
+        if shift { "shift" } else { "same" }
+    ));
+    let _ = std::fs::remove_dir_all(&cache);
+    let mut client = Client::start_traced(&cache);
+    let uri = Client::file_uri(&path);
+    let _ = client.open(&root, &uri, &text);
+    let _ = client.did_change(&uri, 2, &after_warm); // 预热（冷态，不判它）
+    let before = client.trace_len();
+    let _ = client.did_change(&uri, 3, &after_measured);
+    let after = client.wait_for_trace_after(before);
+    assert_eq!(after, before + 1, "一次按键必须恰好编译一次");
+    let line = client.last_trace();
+    let prefix = Client::trace_field(&line, "prefix");
+    let modules = Client::trace_field(&line, "modules");
+    println!(
+        "PERF proof-body-{} {rel}: modules={modules} prefix={prefix}\n  {line}",
+        if shift { "shift" } else { "same" }
+    );
+    assert_eq!(
+        prefix, 0,
+        "**只改证明体**（陈述一字不动）⇒ 后面一条都不该重跑前缀 ✗\n  {line}"
+    );
+}
+
+/// **等长**改证明体（总字节不变 ⇒ 后面命令不平移）。
+#[test]
+fn changing_a_proof_body_without_shifting_bytes_must_not_rerun_prefixes() {
+    proof_body_keystroke(false);
+}
+
+/// **不等长**改证明体（后面命令整体平移 ⇒ 同时考"脏集按偏移判"）。
+#[test]
+fn changing_a_proof_body_with_shifting_bytes_must_not_rerun_prefixes() {
+    proof_body_keystroke(true);
+}
