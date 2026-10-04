@@ -360,9 +360,9 @@
   分阶段 commit 也全绿，bump 是**唯一**触发点。它是版本 bump 的隐藏耦合项。
 - **规矩**：① 测"版本不匹配"的用例必须**从 `env!("CARGO_PKG_VERSION")` 推出**一个
   必然不同的版本（major 或 minor ±1），不能写死字面量；② 反过来说，测"匹配"的
-  用例可以直接用 `env!("CARGO_PKG_VERSION")`——它跟着版本走；③ **bump 版本号时
-  把全量 `cargo test --workspace --locked` 当必跑项**，不要只跑改动 crate
-  （本次正是靠全量跑才在提交前抓住）。
+  用例可以直接用 `env!("CARGO_PKG_VERSION")`——它跟着版本走；③ **全量 `cargo test
+  --workspace --locked` 只在发版大节点跑**（**用户 2026-10-04 18:36 拍板** ✗→✓：先前写
+  成"bump 时**必跑项**"，现在**不许**当日常动作；本次那次正是靠它抓住 ⇒ 它属于**发版点** ✓）。
 - **守护位置**：`crates/front/src/project/manifest.rs`（注释里写明为什么从运行版本
   推导）、本条目。
 
