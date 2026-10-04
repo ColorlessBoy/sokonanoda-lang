@@ -1570,21 +1570,66 @@ pub(crate) fn arg_expected_enabled() -> bool {
 ///
 /// 形状：`h : ¬ (P ∨ Q)` 写成 `h (Or.inl hp)` ⇒ 实参的期望类型 = `h` 的域 `P ∨ Q` ✓
 /// （`¬ X` 是 **def 头** ⇒ δ 展开一次 ✓）；`Or.inl` 的 `?B` 由此定下 ✓（台账 G-86 ✗）。
-fn local_arg_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Option<Expr> {
-    let Expr::Ident { name, .. } = fun else {
+/// **B1 片的开关闸门** ✓（`SOKO_ARG_EXPECTED=1|on` ⇒ 开；默认关 ✓）。
+fn b1_local_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Option<Expr> {
+    if !arg_expected_enabled() {
         return None;
+    }
+    local_arg_expected(fun, scope, defs)
+}
+
+/// **头是局部变量**时的实参期望类型（B1 片 · G-30 第 2 轮 ✓）—— **零内核调用、零递归** ✓。
+///
+/// ## 第 2 轮补的三处（**实测出来的** ✓，见台账 G-30）
+///
+/// ① **头可以是"局部名的部分应用"** ✗：`ext {a} {b} (fun …)` 展开成
+///    `App(App(App(Ident ext, {a}), {b}), (fun …))` ✓ ⇒ 给**第二、第三个**实参算期望类型时，
+///    `fun` 是 `App(Ident ext, …)` 而**不是** `Ident` ✗ —— 原实现只认 `Ident` ✗
+///    ⇒ **只有第一个实参**拿得到期望类型 ✗。
+/// ② **多名一组** ✗：`∀ {A B : Set α}, …` 是**两个名字一组** ✓（`binders.len() == 2` ✓），
+///    而原实现只认 `len() == 1` ✗ ⇒ 直接落空 ✗。
+/// ③ **保守边界** ✓：要剥到的那个域的**前面**若引用了更早的 binder（`A`/`B` ✓），
+///    不代换就**答不对** ✗ ⇒ **宁可不答** ✗（返回 `None` ✓ = 今天的行为 ✓），
+///    绝不返回一个含**不在作用域的名字**的"期望类型" ✗（那会让下游 elaborat 到错项 ✗）。
+fn local_arg_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Option<Expr> {
+    // **① 头可以是部分应用** ✓：数一下已经吃掉几个实参 ✓。
+    let (name, applied) = match fun {
+        Expr::Ident { name, .. } => (name.as_str(), 0usize),
+        other => {
+            let (head, args) = crate::spine::spine_of(other);
+            match head {
+                Expr::Ident { name, .. } => (name.as_str(), args.len()),
+                _ => return None,
+            }
+        }
     };
     // 最近的同名 binder（作用域是栈 ✓）
     let idx = scope.names.iter().rposition(|n| n == name)?;
     let mut cur = scope.src_tys.get(idx)?.as_ref()?.clone();
-    // 剥到**第一个显式** Π 层：那正是本实参的期望类型 ✓
-    for _ in 0..4 {
+    // 跳到**第 `applied` 个 Π 层**：它的域正是本实参的期望类型 ✓。
+    let mut seen = 0usize;
+    for _ in 0..8 {
         match &cur {
-            Expr::Arrow { domain, .. } => return Some(domain.as_ref().clone()),
-            Expr::Forall { binders, .. } if binders.len() == 1 => {
-                // 前导**隐式** binder（`{α}`）⇒ 本实参不对应它 ⇒ 不猜 ✗（`?` 直接返回 None ✓）
-                let t = binders[0].ty.as_ref()?;
-                return Some(t.as_ref().clone());
+            Expr::Arrow { domain, codomain, .. } => {
+                if seen == applied {
+                    return Some(domain.as_ref().clone());
+                }
+                seen += 1;
+                cur = codomain.as_ref().clone();
+            }
+            Expr::Forall { binders, body, .. } => {
+                for b in binders {
+                    if seen == applied {
+                        // **③ 保守**：本层的域若提到**更早的** binder ⇒ 不代换就答不对 ✗ ⇒ 不答 ✓。
+                        let ty = b.ty.as_ref()?;
+                        if mentions_any(ty, scope, &binders[..]) {
+                            return None;
+                        }
+                        return Some(ty.as_ref().clone());
+                    }
+                    seen += 1;
+                }
+                cur = body.as_ref().clone();
             }
             _ => match crate::spine::unfold_one(&cur, defs, None) {
                 Some(next) if next != cur => cur = next,
@@ -1593,6 +1638,32 @@ fn local_arg_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Opt
         }
     }
     None
+}
+
+/// `e` 里有没有引用**更早的 binder**（保守判据 ✓ —— 只看**裸名** ✓，命中就放弃 ✓）。
+fn mentions_any(e: &Expr, scope: &ElabScope<'_>, earlier: &[crate::ast::Binder]) -> bool {
+    let mut names: Vec<&str> = earlier.iter().map(|b| b.name.as_str()).collect();
+    names.retain(|n| !n.is_empty());
+    if names.is_empty() {
+        return false;
+    }
+    // 作用域里**同名**的那些**不是**这一组的 ⇒ 也算"更早的" ✓（保守方向安全 ✓）。
+    let _ = scope;
+    fn walk(e: &Expr, names: &[&str]) -> bool {
+        match e {
+            Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => names.contains(&name.as_str()),
+            Expr::App { fun, arg, .. } => walk(fun, names) || walk(arg, names),
+            Expr::Forall { binders, body, .. } | Expr::Lambda { binders, body, .. } => {
+                binders.iter().any(|b| b.ty.as_deref().is_some_and(|t| walk(t, names)))
+                    || walk(body, names)
+            }
+            Expr::Arrow { domain, codomain, .. } => walk(domain, names) || walk(codomain, names),
+            Expr::Plus { lhs, rhs, .. } => walk(lhs, names) || walk(rhs, names),
+            Expr::Let { val, body, .. } => walk(val, names) || walk(body, names),
+            _ => false,
+        }
+    }
+    walk(e, &names)
 }
 
 fn needs_expected_type(expr: &Expr) -> bool {
@@ -4659,13 +4730,17 @@ pub(crate) fn elab_expr<'a>(
             let arg_expected = if needs_expected_type(arg) {
                 // `InplaceEnv` 的两个字段这里都现成（`builder` / `known`）——
                 // 与 `elab_expr` 内 `Some(&mut InplaceEnv { .. })` 那处同款 ✓。
+                // **B1 片（G-30 第 2 轮实测 ✓）**：⚠ **必须能回落到局部路** ✗ ——
+                // 原先这里是 `if … else if arg_expected_enabled() { … }` ✗ ⇒
+                // 「**需要期望类型**的实参」（正是集合字面量 `{a}` 那一类 ✓）**永远走不到**
+                // 局部那条 ✗ ⇒ 头是**局部假设**（`ext : ∀ {A B : Set α}, …` ✓）时
+                // 常量路答不出（它查 `known` ✗）⇒ 期望类型**丢了** ✗ ⇒ G-30 判红 ✓。
                 application_arg_expected(expr, scope, ctx, Some(&mut InplaceEnv { builder, known }))
-            } else if arg_expected_enabled() {
-                // **B1 片（开关默认关 ✓）**：头是**局部变量** ⇒ 用书写类型剥到实参位 ✓
-                // （零内核调用 ⇒ 不会像 `application_arg_expected` 那样递归栈溢出 ✗）。
-                local_arg_expected(fun, scope, ctx.defs)
+                    .or_else(|| b1_local_expected(fun, scope, ctx.defs))
             } else {
-                None
+                // **B1 片**：头是**局部变量** ⇒ 用书写类型剥到实参位 ✓
+                // （零内核调用 ⇒ 不会像 `application_arg_expected` 那样递归栈溢出 ✗）。
+                b1_local_expected(fun, scope, ctx.defs)
             };
             let fun = elab_expr(builder, fun, scope, univ, known, hovers, None, None, ctx)?;
             let arg = elab_expr(
