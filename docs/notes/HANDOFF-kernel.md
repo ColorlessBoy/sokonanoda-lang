@@ -59,8 +59,8 @@
    ⇒ **`Iff.intro` 的实参不由 App 臂 `arg_expected` 那条路 elaborate** ✗。
    ✅ **第 7–8 轮**：`annotate_application_lambda`（顶上那条早退重写 ✗）**不触发** ✗；探针**加了 span 过滤** ✓（只打 41–53 行 ✓）⇒ 读数**首次可归属** ✓，**两处根因双双落实** ✓：**(甲)** 本文件里 `application_arg_expected` 只被调 10 次 ✓（50 行 `Set.ext` 6 次 ✓ · 52 行 `Eq.subst` 4 次 ✓）⇒ **`Iff.intro`（49 行）零命中** ✗（两个 lambda 没走常量路 ✗）；**(乙)** 加 `Lambda => true` 后调用变多但**仍无 49 行** ✗、**且返回垃圾** ✗（`AEP-OUT ⇒ C -> A` ✓，**`C` 不在作用域** ✗）⇒ 第 4 轮那条机制假说**当场证实** ✓（`sigma` 拿源级 AST 代换 ✗）。
    ✅ **第 9 轮试了两版修 (乙)，都还原** ✓：**守输入**（只许代原子式 ✗）⇒ **(c) 判红** ✗ （`unit08-images-preimages` `compiled → failed` ✗ ⇒ **改坏了** ✓，复合实参本来靠它拿期望类型 ✓）；**守结果**（名字不在作用域 ⇒ `None` ✗）⇒ **(c) 逐字节相同** ✓ **但判据不达** ✗（`A -> C` 仍有 7 次 ✗ —— 垃圾名 `C` **恰好在外层 lambda 的 binder 里** ✗ ⇒ 守卫太宽 ✓）⇒ 两版**都没留在树上** ✓。
-   ⇒ **下一手**：判据换成**更严的白名单** ✗ —— 代换后**只允许**「该层自己的 binder 名 + 已解出的兄弟 + 已知常量」✓ （(i) ✓ 零内核调用）；(i) 不过再上 **(ii) 交内核判良构** ✓。然后再查 (甲) ✓；⚠ 建议把「**探针读数必须可归属**」补进 `AGENTS.md` ✗（与「探针身份」同族 ✓）。
-   bisect（有效 ✓）：单分支全绿（V1/V2/V3/V5/V6 ✓）· **两分支都真才红** ✗（`sorry` 吃任何类型 ⇒ 看不出 ✗）。
+   ✅ **第 10 轮（值守 23:52 方法：穷举入口 → 一次全打点 → 看谁命中 ✓，**只观测、不改判定** ✓）**：**第一条真实执行路径** ✓ = `elab_expr`(EE) → **`try_implicit_application`(TIA)** → **`args_fit_layers_in_order`(FIT)** ✓；**L49（`Iff.intro`）命中 `TIA` 114 次 ✓ · `FIT` 9 次 ✓**，`LAE`（B1 局部路）**零命中** ✓。✗ **推翻我第 6/7 轮**：「`Iff.intro` 没进 `try_implicit_application`」✗ **是错的** ✓。
+   ⇒ **下一手：在 `try_implicit_application` 内部同法穷举** ✓（explicit_spine / prelude / telescope / `k` / 路线③ / 旧写法 / 各 `return Ok(None)` ✓），看 L49 走进**哪一支** ✓；⚠ 另补 3 处没装上的探针（`try_bare_implicit_constant` / `application_arg_expected` / `set_literal_prefix_args` ✓）。⚠ **刹车**（值守 ✓）：**3 轮内拿不到「病灶行」读数 ⇒ 停下汇报卡在哪层** ✗ —— 本轮第 1 轮 ✓。 bisect（有效 ✓）：单分支全绿（V1/V2/V3/V5/V6 ✓）· **两分支都真才红** ✗（`sorry` 吃任何类型 ⇒ 看不出 ✗）。
    ⚠ **探针纪律** ✗：必须打在**判据生效点之后** ✓（第 5 轮打反了 ✗）；**跨构建读数不可比** ✗（第 4 轮扑空之因 ✓）。
    **下一手** ✓：探 `Iff.intro` 的 `explicit_arity()` 与 `fits_old_style` ✗ ⇒ 修 `explicit_arity` ✓ 或收紧
    `type_head_fits_layer` ✓（⚠ 后者是 **G-42** 机制 ⇒ 改完必跑 G-42 复现件 ✓ + 6 文件逐字节 ✓）。
