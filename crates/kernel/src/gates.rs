@@ -27,6 +27,50 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
+/// **闸的「被触发」读数 + 闸本身的取值**（2026-10-04 ✓）。
+///
+/// ## 为什么闸的取值要能注入（而不是写死 `const`）
+///
+/// 判据要能回答一句**实验性**的话 ✓：
+///
+/// > 把这道闸**逼到极限**（`=1`），**结论会不会变**？
+///
+/// 「预算耗尽**只允许变慢** ✓，绝不允许**变错** ✗」这句话如果是真的 ✓，
+/// 那么把闸拧到最小 ⇒ 结论**逐字节相同** ✓（只是慢 ✗）。
+/// 写死 `const` 就**做不了这个实验** ✗ ⇒ 只能靠读代码下结论 ✗ —— 而这次
+/// 值守抓到的三处「甲类闸」恰恰说明：**读代码得出的"应该没问题"不算证据** ✗。
+///
+/// ⚠ 这是**取证/排查口** ✓，**不是**用户配置面 ✗ —— 用户面走
+/// `CompileOptions` + `sokonanoda.toml [limits]` + CLI（下一笔 ✓，见交接单 §3）。
+/// 默认值**一个不动** ✓ ⇒ 零行为变化 ✓（整本课程 `--json` 逐字节相同 ✓）。
+/// 命名对齐 Lean 的旋钮名 ✓（`maxHeartbeats` / `maxRecDepth` / `maxSize` ✓）。
+pub mod limits {
+    use std::sync::OnceLock;
+
+    /// 读一个正整数的环境覆盖（**只读一次** ✓；非法值/缺省 ⇒ `None` ✓）。
+    fn env_u32(name: &str) -> Option<u32> {
+        std::env::var(name).ok()?.trim().parse::<u32>().ok()
+    }
+
+    /// **相等性探查的步数预算**（G-89 · `PROBE_CAP`）。
+    ///
+    /// Lean 4 **没有**这道闸 ✓ ⇒ 终点是**去掉**（不许换数字留着 ✗）。
+    /// 但先要能证明「拧到 1 结论也不变」✓ —— 这就是那个口子 ✓。
+    pub fn probe_cap() -> u32 {
+        static V: OnceLock<u32> = OnceLock::new();
+        *V.get_or_init(|| env_u32("SOKO_LIMIT_PROBE_CAP").unwrap_or(2048).max(1))
+    }
+
+    /// **签名能记多少个参数**（G-90 · `MAX_TRACKED`）。
+    ///
+    /// 位掩码是 `u64` ⇒ **硬上界 64** ✓（传再大也只到 64 ✓，不许静默截断成错 ✗）。
+    /// Lean 的对应物 = `synthInstance.maxSize = 128` ✓（那是另一套表示 ⇒ 终点见交接单 ✓）。
+    pub fn max_tracked() -> u32 {
+        static V: OnceLock<u32> = OnceLock::new();
+        *V.get_or_init(|| env_u32("SOKO_LIMIT_MAX_TRACKED").unwrap_or(64).clamp(1, 64))
+    }
+}
+
 /// 一个**只增不减**的闸类计数（`Relaxed` 足够 —— 只做统计 ✓）。
 pub struct Counter(AtomicU64);
 

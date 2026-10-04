@@ -2,7 +2,13 @@ use crate::tc::TypeChecker;
 use crate::util::{LevelPtr, LevelsPtr, NamePtr};
 use crate::value::{Spine, Value, S};
 
-pub(crate) const MAX_TRACKED: u32 = 64;
+/// **签名能记多少个参数**（G-90）：取值走 [`crate::gates::limits::max_tracked`] ✓
+/// —— 默认 64 不变 ✓（`u64` 掩码的硬上界 ✓），但**能拧到 1** 以证明
+/// 「丢精度只变慢、不变错」✓（判据见 `docs/gaps/repro/G90-*.sh` ✓）。
+#[inline]
+pub(crate) fn max_tracked() -> u32 {
+    crate::gates::limits::max_tracked()
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Sig {
@@ -26,12 +32,12 @@ impl Sig {
 
     #[inline]
     pub(crate) fn arg_is_ignorable(&self, idx: u32) -> bool {
-        idx < MAX_TRACKED && (self.ignorable() >> idx) & 1 == 1
+        idx < max_tracked() && (self.ignorable() >> idx) & 1 == 1
     }
 
     #[inline]
     pub(crate) fn result_is_not_proof(&self, k: u32) -> bool {
-        k < MAX_TRACKED && (self.result_known >> k) & 1 == 1 && (self.prop_result >> k) & 1 == 0
+        k < max_tracked() && (self.result_known >> k) & 1 == 1 && (self.prop_result >> k) & 1 == 0
     }
 }
 
@@ -74,7 +80,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         let terminal = loop {
             let cur_f = self.force_all(depth, cur);
             let Value::Pi { domain, body, .. } = cur_f else { break Some(cur_f) };
-            if dom.len() >= MAX_TRACKED as usize {
+            if dom.len() >= max_tracked() as usize {
                 // **闸类计数出口** ✓（G-90/G-91）：望远镜超过 64 位 ⇒ 签名**丢精度** ✗
                 // （`terminal = None` ⇒ 结果那一格判不了 ✓）。丢精度只该**变慢** ✓
                 // （少一条捷径 ✓），**绝不许**变错 ✗ —— 但**必须可见** ✗。
@@ -106,7 +112,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         if let Some(term) = terminal {
             if let Some(sb) = self.level_of_type(depth, term) {
                 let mut r = sb;
-                if n < MAX_TRACKED as usize {
+                if n < max_tracked() as usize {
                     result_known |= 1u64 << n;
                     if self.ctx.is_zero(r) {
                         prop_result |= 1u64 << n;
@@ -144,13 +150,13 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         let mut body = val;
         let mut arity = 0u32;
         while let crate::expr::Expr::Lambda { body: inner, .. } = self.ctx.read_expr(body) {
-            if arity == MAX_TRACKED {
+            if arity == max_tracked() {
                 break;
             }
             body = inner;
             arity += 1;
         }
-        if arity == 0 || u32::from(body.num_loose_bvars()) > MAX_TRACKED {
+        if arity == 0 || u32::from(body.num_loose_bvars()) > max_tracked() {
             return 0;
         }
         let used = body.as_ref().fv_mask();

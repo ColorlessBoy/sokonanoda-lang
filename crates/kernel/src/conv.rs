@@ -1,5 +1,5 @@
 use crate::env::{Declar, ReducibilityHint};
-use crate::relevance::{app_prefix_len, Sig, MAX_TRACKED};
+use crate::relevance::{app_prefix_len, Sig};
 use crate::tc::TypeChecker;
 use crate::util::{ExprPtr, LevelPtr, LevelsPtr, NamePtr};
 use crate::value::{self, ElimView, Env, RigidHead, Spine, UnfoldHead, Value, E, S, V};
@@ -145,7 +145,12 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
     }
 
-    const PROBE_CAP: u32 = 2048;
+    /// 探查步数预算（G-89）：取值走 [`crate::gates::limits::probe_cap`] ✓
+    /// —— 默认 2048 不变 ✓，但**能拧到 1** 以证明「拧到极限结论也不变」✓。
+    #[inline]
+    fn probe_cap() -> u32 {
+        crate::gates::limits::probe_cap()
+    }
 
     fn unify_no_cache<const RIGID: bool>(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
         if self.tc_cache.probe_depth > 0 {
@@ -441,7 +446,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     fn probe_pass(&mut self, depth: u32, pairs: &[(V<'t>, V<'t>)]) -> bool {
         let mut decided = true;
         for (va, vb) in pairs.iter().copied() {
-            self.tc_cache.probe_budget = Self::PROBE_CAP;
+            self.tc_cache.probe_budget = Self::probe_cap();
             self.tc_cache.probe_exhausted = false;
             self.tc_cache.probe_depth = 1;
             let ok = self.unify::<true>(depth, va, vb);
@@ -568,11 +573,12 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             _ => return false,
         };
         let k = spine.len();
-        if k >= MAX_TRACKED || app_prefix_len(spine) != k {
+        let max_tracked = crate::gates::limits::max_tracked();
+        if k >= max_tracked || app_prefix_len(spine) != k {
             // **闸类计数出口** ✓（G-90/G-91）：参数个数超过 `MAX_TRACKED`（64 位掩码）
             // ⇒ 相关性判定**放弃** ✓ —— 放弃只该**变慢** ✓（多走一次全量比较 ✓），
             // 但**必须可见** ✗。终点 = 对齐 Lean 的 `synthInstance.maxSize = 128` ✓。
-            if k >= MAX_TRACKED {
+            if k >= max_tracked {
                 crate::gates::SIG_ARITY_CLAMPED.bump();
             }
             return false;

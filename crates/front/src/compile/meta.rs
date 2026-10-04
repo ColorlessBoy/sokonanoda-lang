@@ -118,6 +118,24 @@ const DEFAULT_FUEL: u32 = 4096;
 /// 上界是**常数倍**（fuel ≤ `DEFAULT_FUEL × 2^(N+1)` ✓、depth ≤ `MAX_DEPTH × 2^N` ✓）
 /// ⇒ 不会挂死 ✓（`unify_all` 自己还有 `MAX_ROUNDS` 那道轮数闸 ✓）。
 const MAX_ESCALATIONS: u32 = 6;
+
+/// **预算取值的取证口**（2026-10-04 ✓）：默认 = 上面那两个常量 ✓（**一个不动** ✓），
+/// 但**能拧到 1** ✓ —— 判据要能回答「把预算逼到极限，结论会不会变」✓
+/// （「预算耗尽只允许变慢」这句话如果是真的，拧到 1 结论必须**逐字节相同** ✓）。
+/// ⚠ 这是**取证口** ✗，不是用户配置面 —— 用户面走 `CompileOptions` + `[limits]`（下一笔 ✓）。
+/// 命名对齐 Lean ✓（`maxHeartbeats` = fuel ✓ / `maxRecDepth` = depth ✓）。
+fn meta_limit(name: &str, default: u32) -> u32 {
+    static FUEL: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
+    static DEPTH: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
+    let slot = if name == "SOKO_LIMIT_MAX_HEARTBEATS" { &FUEL } else { &DEPTH };
+    *slot.get_or_init(|| {
+        std::env::var(name)
+            .ok()
+            .and_then(|v| v.trim().parse::<u32>().ok())
+            .unwrap_or(default)
+            .max(1)
+    })
+}
 /// `zonk` 的链式代换轮数上限（赋值链 `?a := ?b`、`?b := Nat` 这种）。
 const MAX_ZONK_ROUNDS: u32 = 8;
 
@@ -145,9 +163,9 @@ impl<'a> MetaCtx<'a> {
         MetaCtx {
             mvars: Vec::new(),
             postponed: Vec::new(),
-            fuel: DEFAULT_FUEL,
+            fuel: meta_limit("SOKO_LIMIT_MAX_HEARTBEATS", DEFAULT_FUEL),
             depth: 0,
-            max_depth: MAX_DEPTH,
+            max_depth: meta_limit("SOKO_LIMIT_MAX_REC_DEPTH", MAX_DEPTH),
             escalations: 0,
             first_err: None,
             unfold,
@@ -258,8 +276,17 @@ impl<'a> MetaCtx<'a> {
             // `crates/front/tests/gate_census.rs` ✓）。
             if self.escalations < MAX_ESCALATIONS {
                 self.escalations += 1;
-                self.fuel = self.fuel.max(DEFAULT_FUEL).saturating_mul(2);
-                self.max_depth = self.max_depth.saturating_mul(2);
+                // ⚠ 升级基准取**默认值**（不是"当前值"✗）：这样拧到 1 时，
+                // 升满 `MAX_ESCALATIONS` 次之后预算**一定 ≥ 默认** ✓
+                // ⇒ 默认预算能判的，拧到 1 也一定判得出来 ✓（只是慢 ✓）。
+                self.fuel = self
+                    .fuel
+                    .max(meta_limit("SOKO_LIMIT_MAX_HEARTBEATS", DEFAULT_FUEL))
+                    .saturating_mul(2);
+                self.max_depth = self
+                    .max_depth
+                    .max(meta_limit("SOKO_LIMIT_MAX_REC_DEPTH", MAX_DEPTH))
+                    .saturating_mul(2);
                 sokonanoda::gates::META_BUDGET_ESCALATED.bump();
             } else {
                 sokonanoda::gates::META_BUDGET_EXHAUSTED.bump();
