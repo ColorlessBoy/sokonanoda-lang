@@ -57,7 +57,7 @@
    真正查到的是：**`application_arg_expected` 对 `Iff.intro` 的实参零命中** ✗（只对 `Set.ext`/`Eq.subst` 响 ✓），
    且加 `Expr::Lambda => true`（**不加门控** ✗）后**仍零命中、诊断一字不变** ✗
    ⇒ **`Iff.intro` 的实参不由 App 臂 `arg_expected` 那条路 elaborate** ✗。
-   **下一手** ✓：在 **`elab_expr` 的 App 臂入口**打带 head 名的点 ✗，先定位「它到底进哪个臂」✓。
+   ✅ **第 7 轮**：`annotate_application_lambda`（`elab_expr` 顶上那条早退重写 ✗）**不触发** ✗；`elab_expr` 进门探针显示 `Iff.intro` 的 **实参个数是 2/3/4 都有** ✗（源码只写 2 个 ✗）。⚠⚠ **但计数分不清「我们的文件」与 prelude** ✗（`Iff.intro` 在 prelude 里也大量用 ✓，探针**没按 span 过滤** ✗）⇒ **第 6 轮那条「AEP 零命中」也不能直接采信** ✗（同一缺陷 ✓）。⇒ **下一手：先给探针加源位置过滤** ✗（只打 `G30-*.sokonanoda` 里的调用 ✓），再重跑 AEP/EE 两探针 ✓。⚠ 建议同时补 `AGENTS.md`：**探针要能自证「这条读数属于哪个输入」** ✗。
    bisect（有效 ✓）：单分支全绿（V1/V2/V3/V5/V6 ✓）· **两分支都真才红** ✗（`sorry` 吃任何类型 ⇒ 看不出 ✗）。
    ⚠ **探针纪律** ✗：必须打在**判据生效点之后** ✓（第 5 轮打反了 ✗）；**跨构建读数不可比** ✗（第 4 轮扑空之因 ✓）。
    **下一手** ✓：探 `Iff.intro` 的 `explicit_arity()` 与 `fits_old_style` ✗ ⇒ 修 `explicit_arity` ✓ 或收紧
