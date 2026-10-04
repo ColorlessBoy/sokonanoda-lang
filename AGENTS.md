@@ -150,7 +150,11 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
 ## 命令（贡献者：需要 Rust；用户/agent 用 `scripts/soko` / `sokonanoda` 子命令）
 
 ```bash
-scripts/soko gate --fast   # **迭代内环**（~30s）：fmt + clippy + **改动过的 crate 的单测**
+scripts/dev-verify.sh      # ⭐ **改一处的默认验证**（**0.3 秒** ✓）：合成夹具（4 库 + 6 入口）跑
+                    #   「改一行 ⇒ 重编闭包」这条判定路径，打印**结构计数**（`passes`/`files` ✓
+                    #   机器无关 ✓）与结论 ✓；**先自证真的跑了**（打印解析到的二进制 + 非空断言 ✓
+                    #   —— "0 有两种来源" ✗）。**日常只跑它** ✓；下面几条**收尾验收各跑一次** ✓
+scripts/soko gate --fast   # **环节收尾**（~30s）：fmt + clippy + **改动过的 crate 的单测**
                     #   + 锚点 + 课程门禁（走持久缓存）；跳过缺口台账门禁与集成测试
 scripts/soko gate   # = CI 门禁（**提交/推送前**跑这条）：fmt + clippy + test + playground 锚点
                     #   + 课程门禁（卷 I）+ 缺口台账门禁（python3）
@@ -233,8 +237,11 @@ CI 强制的只有 `Cargo.toml` 与 `package.json` **相等**，且版本号只�
 
 1. **同一批次内的多个环节，先在本地连续改完**（**一个环节一个 commit** ✓；
    **批次内可以有很多 commit** ✓ —— 提交粒度细、推送粒度粗 ✓）；每个环节该跑的本地判据
-   （`cargo test -p …` / 该环节的验收命令 / `scripts/soko gate --fast`）**照常跑**
-   ——**不要每改一个就 push 等 CI**。
+   （**默认 = `scripts/dev-verify.sh`（0.3 秒 ✓）**；单点验证优先 `cargo test -p <被改的 crate> --lib`
+   或 `--test <单个>` ✓ —— **别为了验一个函数把整个 CLI 集成测试二进制重链一遍** ✗；
+   环节收尾再跑 `scripts/soko gate --fast`）**照常跑** ——**不要每改一个就 push 等 CI**。
+   ⚠ **`cargo test --workspace` · 整本课程 `tools/check.py` · 语料对拍只在收尾验收各跑一次** ✓
+   —— **只换场景，不换严格度** ✗（复现件在册 + 前后翻转 + 反向验证三条一条不省 ✓）。
 2. 一批（或一批紧密相关的环节）**全部改完、本地验证通过**后，**才 push 一次**，
    统一跑一轮 CI。（三平台矩阵一轮 33–35 分钟，这是要省的成本。）
 3. **例外：诊断性 CI**——只有当**本地复现不了、怀疑是平台差异**时（例如只在
