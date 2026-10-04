@@ -994,12 +994,31 @@ mod tests {
         assert!(!has_unassigned_meta(&out[0]));
     }
 
-    /// 预算：步数耗尽 ⇒ 按「无解」处理（**不许挂死**）。
+    /// 预算：**耗尽不许改变结论** ✓（G-88 真修 ✓），**也不许挂死** ✓。
+    ///
+    /// ⚠ **这条用例原先钉的正是那个缺陷** ✗：旧断言是
+    /// `assert_eq!(m.unify(&Nat, &Nat), Tri::No)` —— 即「`fuel = 0` ⇒ 两个**一模一样**的
+    /// 常量被判**不相等**」✗✗。它是 G-88「判不了 ⇒ 当成否」**最干净的现场** ✓：
+    /// 结论与预算无关，而旧实现让它有关 ✗。
+    ///
+    /// 现在（2026-10-04 ✓）：撞预算 ⇒ **加大预算重试** ✓ ⇒ 结论回到 `Yes` ✓
+    /// （**答案对** ✓，只是多花步数 ✓ = 「只允许变慢」✓）；
+    /// 「不许挂死」这条**照旧** ✓ —— 升级次数有上界（`MAX_ESCALATIONS` ✓）。
     #[test]
     fn fuel_bounds_the_work() {
         let mut m = ctx_with(&no_unfold);
         m.fuel = 0;
-        assert_eq!(m.unify(&ident("Nat"), &ident("Nat")), Tri::No);
+        assert_eq!(
+            m.unify(&ident("Nat"), &ident("Nat")),
+            Tri::Yes,
+            "**G-88**：`Nat ≟ Nat` 在 `fuel = 0` 下被判「不相等」✗ —— \
+             预算耗尽**不许改变结论** ✓（旧实现正是这样 ✗，而本用例原先把它当**期望**钉住了 ✗）"
+        );
+        assert!(
+            m.escalations <= MAX_ESCALATIONS,
+            "升级次数必须有上界 ✓（没上界就不叫「只变慢」了 ✗）：{}",
+            m.escalations
+        );
     }
 
     /// **M3 的 sort/kind 表**（三值：`None` = 不知道 ⇒ 放行）。
