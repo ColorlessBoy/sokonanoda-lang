@@ -1541,11 +1541,19 @@ fn canonical_prefix_cached(src: &str) -> u64 {
     // 正解是**增量身份** ✓：调用方（`compile/check/walk.rs`）边读边累加身份 ✓，
     // 用 [`seed_canonical_prefix`] **预置**进这张表 ✓ ⇒ 这里照样**命中** ✓、一次都不用解析 ✓。
     // 判据 ③（`judge::tests::a_large_prefix_must_not_fall_back_to_raw_text` ✓）钉住这条缝 ✓。
-    const CAP: usize = 64;
+    // ⚠ **按文本哈希存** ✗→✓（2026-10-04 **实验定位** ✓）：表原本以**前缀原文**为键 ✗
+    // ⇒ walker 逐命令种 ✓ 会把表灌满 ⇒ **别人的条目被挤掉** ✗ ⇒ 它们重解析 ✗，
+    // 而其中**解析不过的**（如 goals 的 `extra_prefix` 片段 ✗）会**退回原文** ✗ ⇒ **键变了** ✗
+    // ⇒ 多出 5 趟 `prefix` ✗（实验：`seed=off ⇒ prefix=0` ✓ / `seed=on ⇒ 5` ✗，
+    // 且 `inplace=off` 时 `seed=on ⇒ 40` ✗ ⇒ 就是这条机制 ✓）。
+    // 改成 **`u64` 文本哈希做键** ✓ ⇒ 4096 条只占 ~64 KB ✓ ⇒ 灌不满 ✓、不挤别人 ✓。
+    // ⚠ 与判定缓存同一套 `u64` 键 ✓（同样的碰撞量级 ✓，一致 ✓）。
+    const CAP: usize = 4096;
+    let text_key = judge_cache_key(&[src]);
     if let Some(hit) = canonical_prefix_table()
         .lock()
         .expect("canonical prefix table")
-        .get(src)
+        .get(&text_key)
     {
         return *hit;
     }
@@ -1555,19 +1563,17 @@ fn canonical_prefix_cached(src: &str) -> u64 {
     let mut table = canonical_prefix_table()
         .lock()
         .expect("canonical prefix table");
-    // ⚠ **同样不许整表清空** ✗→✓（2026-10-04 ✓）：walker 逐命令种 ✓ ⇒ 清空会把刚种下的
-    // 一起冲掉 ✗（实测：判据 ① 从 `prefix=0` 变 5 ✗）。正解 = **插入前淘汰一条** ✓。
     if table.len() >= CAP {
-        if let Some(victim) = table.keys().next().cloned() {
+        if let Some(victim) = table.keys().next().copied() {
             table.remove(&victim);
         }
     }
-    table.insert(src.to_string(), hash);
+    table.insert(text_key, hash);
     hash
 }
 
-fn canonical_prefix_table() -> &'static Mutex<std::collections::HashMap<String, u64>> {
-    static TABLE: OnceLock<Mutex<std::collections::HashMap<String, u64>>> = OnceLock::new();
+fn canonical_prefix_table() -> &'static Mutex<std::collections::HashMap<u64, u64>> {
+    static TABLE: OnceLock<Mutex<std::collections::HashMap<u64, u64>>> = OnceLock::new();
     TABLE.get_or_init(|| Mutex::new(std::collections::HashMap::new()))
 }
 
@@ -1584,20 +1590,19 @@ pub fn seed_canonical_prefix(text: &str, identity: &str) {
     if text.is_empty() {
         return;
     }
+    let text_key = judge_cache_key(&[text]);
     let hash = judge_cache_key(&[identity]);
     let mut table = canonical_prefix_table()
         .lock()
         .expect("canonical prefix table");
-    // ⚠ **不许整表清空** ✗→✓（2026-10-04 实测定位 ✓）：walker 是**逐命令**种 ✓
-    // ⇒ 满 64 就 `clear()` 会把**刚种下的那条**一起冲掉 ✗ ⇒ 判定侧查不到 ⇒ 退回解析 ✗
-    // （实测开着预置时判据 ① 从 `prefix=0` 变 **5** ✗，而**身份本身是等价的** ✓ ——
-    // 自检一次分歧都没报 ✓）⇒ 正解 = **插入前淘汰一条** ✓，让刚种的那条一定在 ✓。
-    if table.len() >= 64 {
-        if let Some(victim) = table.keys().next().cloned() {
+    // 容量 4096（按 `u64` 键 ✓ ⇒ 只占 ~64 KB ✓）：walker 逐命令种也**灌不满** ✓，
+    // 因此**不会挤掉**别人的条目 ✗→✓（那正是 `prefix=0 → 5` 的机制 ✓，见上面的长注释 ✓）。
+    if table.len() >= 4096 {
+        if let Some(victim) = table.keys().next().copied() {
             table.remove(&victim);
         }
     }
-    table.insert(text.to_string(), hash);
+    table.insert(text_key, hash);
 }
 
 fn judge_infer_key(
