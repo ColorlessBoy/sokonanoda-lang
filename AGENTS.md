@@ -118,11 +118,11 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
 ## 硬规则速记（全文见 REQUIREMENTS §2/§3）
 
 1. **kernel 可以改**（2026-09-21 用户解冻：含热路径与内部表示，目的可以是**提速**）。
-   唯一红线是**判定正确性不变**：同一批输入**接受/拒绝不变、事件计数不变、
-   golden 与 `--json` 逐字节不变**。每次内核改动必须带三层回归
-   （kernel `tests/` + front 单测 + CLI e2e）与语料对拍；性能改动另记
-   `docs/perf/ledger.jsonl`。内核相对上游的改动台账在 `docs/architecture.md` §6，
-   **改内核前先读它 + §8 gotchas（arena 生命周期、panic→Result、`quiet_catch` 不可嵌套）**；
+   唯一红线是**判定正确性不变**：同一批输入**接受/拒绝不变、事件计数不变、golden 与 `--json` 逐字节不变**。
+   **每个发版批次**的内核改动必须带三层回归（kernel `tests/` + front 单测 + CLI e2e）与语料对拍
+   —— ⚠ **在发版大节点跑** ✓（用户 2026-10-04 18:36 ✓；日常走 `scripts/dev-verify.sh` + 该处复现件 ✓）。
+   性能改动另记 `docs/perf/ledger.jsonl`。内核台账在 `docs/architecture.md` §6，**改内核前先读它 + §8
+   gotchas（arena 生命周期、panic→Result、`quiet_catch` 不可嵌套）**；
 2. 不调用官方 Lean 工具链（lean/lake/lean4export/leanc/elan）——opencode 由
    `opencode.json` 权限 deny 强制；**DSH 用 `dsh/hooks/hooks.json` 的
    `PreToolUse` 拦截（需在 profile 插一行启用，见 `dsh/README.md`），未启用时
