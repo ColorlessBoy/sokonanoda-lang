@@ -1004,6 +1004,30 @@ pub fn closure_prefixes_for(units: &[SourceUnit<'_>]) -> Vec<String> {
 /// 调用方（`judge`）**记忆化**它 ✓ ⇒ 每个不同的前缀只解析一次 ✓。
 ///
 /// ⚠ **解析失败 ⇒ 退回原文** ✓（保守 ✓ 安全 ✓ —— 宁可少复用 ✗，绝不多复用 ✗）。
+/// **带「成不成」的身份** ✓（2026-10-04 值守判据 ④ 的配套 ✓）：与 [`canonical_prefix_id`]
+/// 逐位相同 ✓，但**解析失败时返回 `None`** ✗ 而不是退回原文 ✓。
+///
+/// **为什么需要它** ✗：`walk.rs` 的**增量身份**是「上一次的身份 + **新增那一段**的身份」✓，
+/// 而「新增那一段」是**片段** ✗（一条命令 ✓）—— 片段**可能解析不过** ✗ ⇒ 那时
+/// `canonical_prefix_id` 会退回**原文** ✗ ⇒ 拼出来的身份是**错的** ✗（实测：证明体判据
+/// 从 `prefix=0` 掉到 **13** ✗）。有了这个函数，调用方就能「**片段不成 ⇒ 退回整体**」✓。
+///
+/// ⚠ **它不记 `note_prefix_fallback`** ✓：片段探针**不是**真实前缀的退回 ✓ ——
+/// 记进去会让判据 ③ 的课程级读数虚高 ✗。
+pub fn canonical_prefix_id_checked(src: &str) -> Option<String> {
+    let file = crate::parser::parse(src).ok()?;
+    let mut out = String::new();
+    for command in &file.commands {
+        let id = command_env_id(src, command);
+        if id.is_empty() {
+            continue;
+        }
+        out.push_str(&id);
+        out.push('\n');
+    }
+    Some(out)
+}
+
 pub fn canonical_prefix_id(src: &str) -> String {
     let Ok(file) = crate::parser::parse(src) else {
         // 判据 ③（值守 2026-10-04 ✓）：**退回原文要计数** ✓ —— 这是"放弃特性"的

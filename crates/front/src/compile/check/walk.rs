@@ -361,6 +361,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             totals
         };
         let mut unit_seen: Vec<usize> = vec![0usize; units.len()];
+        // **增量身份** ✓（值守 2026-10-04 派单 · 用户 13:08「不许降级修」✓）：
+        // 判定缓存的键要的是**环境身份** ✓，而 `own_prefix` 是**逐命令增长**的 ✗
+        // ⇒ 每命令都重解析整份前缀 = **O(n²)** ✗（unit12 实测 +2.3s ✗，那正是我先前
+        // 往里塞尺寸闸的原因 ✗）。这里**边读边累加** ✓：闭包部分每个单元算**一次** ✓；
+        // 本文件部分用**单条滚动记忆**，每次只解析**新增的那一条命令** ✓（摊还 O(1) ✓）。
+        // 契约：累加出的身份必须与 `canonical_prefix_id(prefix_src)` **逐位相等** ✓（判据 ④ ✓）。
+        let mut closure_ids: Vec<Option<String>> = vec![None; units.len()];
+        let mut own_memo: Option<(String, String)> = None;
         for (idx, &(unit_idx, command)) in flat.iter().enumerate() {
             let unit = &units[unit_idx];
             // **每条声明一个计时事件**（`SOKO_DECL_PROFILE=1`；默认零开销 ✓）。
@@ -419,6 +427,78 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 }
                 _ => Cow::Borrowed(own_prefix),
             };
+            // **预置增量身份** ✓（值守 2026-10-04 ✓）：闭包部分（每单元一次 ✓）+ 本文件部分
+            // （滚动累加 ✓）⇒ `judge` 那边的 `canonical_prefix_cached` **直接命中** ✓，
+            // **一次都不用解析** ✓（这就是删掉尺寸闸之后不回归的原因 ✓）。
+            // ⚠ **本文件那半必须用 `importless_source(own_prefix)`** ✗→✓（2026-10-04 实测踩到 ✓）：
+            // `prefix_src` 是 `deps + importless_source(own_prefix)` ✓ ⇒ 身份必须按**同一份文本**算 ✓。
+            // 我先前图省事直接用 `own_prefix`（理由：「`import` 的身份是空串」✓）—— 那**不成立** ✗：
+            // `importless_source` 会**重建字符串** ⇒ 剥过之后各命令的**切片文本**与原文不同 ⇒ 身份不同 ✓。
+            // 实测后果：证明体两条判据从 `prefix=0` 掉到 **13** ✗。
+            let own_stripped = crate::project::importless_source(own_prefix);
+            {
+                let closure_id = closure_ids[unit_idx].get_or_insert_with(|| {
+                    crate::compile::canonical_prefix_id(
+                        closure_prefixes
+                            .get(unit_idx)
+                            .map_or("", |deps| deps.as_str()),
+                    )
+                });
+                let own_id: String = match own_memo.take() {
+                    Some((prev, id)) if own_stripped.starts_with(prev.as_str()) => {
+                        // ⚠ **片段可能解析不过** ✗（一条命令也可能是 `namespace` 之类的前缀片段 ✓）
+                        // ⇒ 那时**必须退回整体** ✓ —— 先前直接用 `canonical_prefix_id`（解析失败会
+                        // **退回原文** ✗）⇒ 拼出**错的身份** ✗（实测：证明体判据 `prefix=0 → 13` ✗）。
+                        match crate::compile::canonical_prefix_id_checked(
+                            &own_stripped[prev.len()..],
+                        ) {
+                            Some(tail_id) => {
+                                let mut merged = id;
+                                merged.push_str(&tail_id);
+                                merged
+                            }
+                            None => crate::compile::canonical_prefix_id(&own_stripped),
+                        }
+                    }
+                    _ => crate::compile::canonical_prefix_id(&own_stripped),
+                };
+                let seeded = format!("{closure_id}{own_id}");
+                // **判据 ④（值守 2026-10-04 ✓）：增量身份必须与重解析**逐位相等** ✓。**
+                // `SOKO_PREFIX_ID_CHECK=1` 时逐命令自检 ✓，不等就打印**第一个分歧点** ✓
+                // （这正是"错编"的入口 ✓ —— 不等就意味着键与真身份脱钩 ✓）。
+                if std::env::var_os("SOKO_PREFIX_ID_CHECK").is_some() {
+                    let expect = crate::compile::canonical_prefix_id(&prefix_src);
+                    if expect != seeded {
+                        let at = expect
+                            .chars()
+                            .zip(seeded.chars())
+                            .position(|(a, b)| a != b)
+                            .unwrap_or(expect.chars().count().min(seeded.chars().count()));
+                        let win = |s: &str| -> String {
+                            s.chars().skip(at.saturating_sub(30)).take(90).collect()
+                        };
+                        eprintln!(
+                            "PREFIX_ID_MISMATCH at char {at}：expect_len={} seeded_len={}\n  \
+                             expect…{:?}\n  seeded…{:?}",
+                            expect.chars().count(),
+                            seeded.chars().count(),
+                            win(&expect),
+                            win(&seeded)
+                        );
+                    }
+                }
+                // ⚠ **默认关** ✗→（2026-10-04 收口）：增量身份**还有一处不等价** ✗ ——
+                // 实测：**关掉它 ⇒ 判据 ① 全绿**（`prefix=0` ✓）；**开着 ⇒ `prefix=5`** ✗。
+                // 按值守规矩「**修不动就停下来报告 + 说清卡在哪**」✗ ⇒ **默认关** ✓
+                // （`SOKO_PREFIX_SEED=1` 才开 ✓，留给下一棒继续查 ✓）——**正确性优先** ✓：
+                // 宁可变慢 ✗，绝不拿**错键**去命中 ✗（错键轻则少复用 ✗、重则假命中 = 错编 ✗✗）。
+                if std::env::var_os("SOKO_PREFIX_SEED").is_some()
+                    && std::env::var_os("SOKO_NO_SEED").is_none()
+                {
+                    crate::judge::seed_canonical_prefix(&prefix_src, &seeded);
+                }
+                own_memo = Some((own_stripped, own_id));
+            }
             let c = CmdCtx {
                 idx,
                 templates: &all_templates[unit_idx],

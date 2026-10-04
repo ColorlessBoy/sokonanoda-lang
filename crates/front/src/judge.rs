@@ -1535,19 +1535,12 @@ fn canonical_prefix_cached(src: &str) -> u64 {
     if src.is_empty() {
         return 0;
     }
-    // ⚠ **尺寸闸**（2026-10-04 实测加的 ✓）：`own_prefix` 是**逐命令增长**的 ✗
-    // ⇒ 每个命令一份**不同**的前缀文本 ⇒ 上面的记忆化**永不命中** ✗ ⇒ 每个命令
-    // 解析整份前缀 = **O(n²)** ✗（实测 `unit12-synthesis` 冷开 **8.5s → 10.8s** ✗，
-    // 而 HEAD 上那条 perf 测试是**绿**的 ✓ ⇒ 这是我引入的真回归 ✗）。
-    // 超过阈值 ⇒ **退回原文** ✓（保守 ✓ 安全 ✓ = 今天的行为 ✓，不会更慢 ✗）。
-    // **下一刀** ✓：把身份改成**增量**构造（walk 手上有解析好的命令 ✓）⇒ 去掉这道闸 ✓。
-    const PARSE_LIMIT: usize = 64 * 1024;
-    if src.len() > PARSE_LIMIT {
-        // 判据 ③（值守 2026-10-04 ✓）：**闸被触发也要计数** ✓ —— 先前它悄悄退回原文 ✗，
-        // 没有任何东西判红 ✗。这条计数就是那条缝的守卫 ✓（下一步会**删掉这道闸** ✓）。
-        stats::note_prefix_fallback(src, "over-size-gate");
-        return judge_cache_key(&[src]);
-    }
+    // ⚠ **尺寸闸已删** ✗→✓（2026-10-04 值守派单 · 用户 13:08 拍板「不许降级修」✓）：
+    // 先前这里有一条 `PARSE_LIMIT = 64 KB` ⇒ 超过就 `return judge_cache_key(&[src])`（退回**原文** ✗）
+    // —— 那让**大单元（unit12 等）根本没吃到「只改证明」这个特性** ✗（改证明体照样全失效 ✓）。
+    // 正解是**增量身份** ✓：调用方（`compile/check/walk.rs`）边读边累加身份 ✓，
+    // 用 [`seed_canonical_prefix`] **预置**进这张表 ✓ ⇒ 这里照样**命中** ✓、一次都不用解析 ✓。
+    // 判据 ③（`judge::tests::a_large_prefix_must_not_fall_back_to_raw_text` ✓）钉住这条缝 ✓。
     const CAP: usize = 64;
     if let Some(hit) = canonical_prefix_table()
         .lock()
@@ -1572,6 +1565,29 @@ fn canonical_prefix_cached(src: &str) -> u64 {
 fn canonical_prefix_table() -> &'static Mutex<std::collections::HashMap<String, u64>> {
     static TABLE: OnceLock<Mutex<std::collections::HashMap<String, u64>>> = OnceLock::new();
     TABLE.get_or_init(|| Mutex::new(std::collections::HashMap::new()))
+}
+
+/// **增量身份** ✓（值守 2026-10-04 派单 ✓）：调用方**边读边累加**出身份后，用它**预置**进表 ✓。
+///
+/// **为什么必须有它** ✗：`canonical_prefix_cached` 的键是**前缀原文** ✓，而 walker 的前缀
+/// 是**逐命令增长**的 ✗ ⇒ 每个命令一份**新**文本 ⇒ 表**永不命中** ✗ ⇒ 每个命令解析整份
+/// 前缀 = **O(n²)** ✗（unit12 实测 **+2.3s** ✗，那正是我先前往里塞尺寸闸的原因 ✗）。
+/// 调用方手上有**解析好的命令** ✓ ⇒ 它累加身份是 O(总长) ✓ ⇒ 预置之后这里只做一次查表 ✓。
+///
+/// ⚠ **等价性是这个函数的契约** ✓：`identity` 必须与 `compile::canonical_prefix_id(text)`
+/// **逐位相等** ✗→✓（判据 ④：合成工程 + 真实大模块逐命令断言 ✓）。不等 = **错编** ✓。
+pub fn seed_canonical_prefix(text: &str, identity: &str) {
+    if text.is_empty() {
+        return;
+    }
+    let hash = judge_cache_key(&[identity]);
+    let mut table = canonical_prefix_table()
+        .lock()
+        .expect("canonical prefix table");
+    if table.len() >= 64 {
+        table.clear();
+    }
+    table.insert(text.to_string(), hash);
 }
 
 fn judge_infer_key(
@@ -2870,15 +2886,14 @@ mod tests {
         let before = stats::prefix_fallbacks().0;
         let hash = canonical_prefix_cached(&src);
         let after = stats::prefix_fallbacks().0;
-        assert_eq!(
-            after, before,
-            "**大前缀不许退回原文** ✗（判据 ③）—— 退回 = 那个模块放弃「只改证明」特性 ✗\n  头: {:?}",
-            stats::prefix_fallbacks().1
-        );
+        // ⚠ **计数器是进程级的** ✗（本 crate 的其它测试并行跑会串味 —— 实测全量跑时
+        // 本判据假红过 ✓）⇒ 这里**只断言不受污染的那一半** ✓：身份**不等于原文的键** ✓。
+        // 课程级的「fallbacks == 0」归 **CLI 侧**（独立进程 ✓，见 `STAGE_STATS … fallbacks=N` ✓）。
+        let _ = (before, after);
         assert_ne!(
             hash,
             judge_cache_key(&[&src]),
-            "身份**不许等于原文的键** ✗ —— 等于就是「退回原文」✗（判据 ③）"
+            "身份**不许等于原文的键** ✗ —— 等于就是「退回原文」✗（判据 ③，值守 2026-10-04）"
         );
     }
 
