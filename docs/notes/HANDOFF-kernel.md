@@ -25,7 +25,10 @@
 
 ## 1. HEAD 与判据现状
 
-* **HEAD** = 见 `git log -1` ✓（本会话第 14–21 棒 ✓，都在树上 ✓）；**未推** ✓。
+* **HEAD** = 见 `git log -1` ✓（本会话第 14–22 棒 ✓，都在树上 ✓）；**未推** ✓。
+* **当前大线 = IA-4** ✓（用户 2026-10-04 20:25 拍板 ✓）：**M0–M4 ✓ · K1 ✓ 已收口**
+  （K1 = 内核占位符 + `add_declar` 入口硬拒 ✓，`948e5634` ✓）⇒ **下一片 = B1**（期望类型传播，治 G-30 ✓），
+  次序 B1 → B2 → B3 → U1 → U2 ✓（`docs/design/metavar-engine.md` §4 ✓）。
 * **未推** ✓（本会话未 push / 未打 tag ✓）；**工作树干净** ✓。
 * 判据 ✓：`lsp_keystroke_structure` **3/3** ✓ · `perf_course` **5/5** ✓（unit12 **5382ms** ✓ ≤8.5s）·
   `identity_probe` **2/2** ✓ · `gate_census` **1/1** ✓ · `gap.py check` **94/0** ✓ · `docs-lint` ✓ ·
