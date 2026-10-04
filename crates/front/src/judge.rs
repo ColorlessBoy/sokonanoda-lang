@@ -1493,9 +1493,23 @@ pub(crate) fn judge_infer_store(
 /// **为什么必须记忆化**：键是**每次判定**都要算的 ✓（实测十几万次调用 ✗）⇒
 /// 不缓存就得解析十几万次前缀 ✗✗。前缀的**种数**很少（每个单元一份 ✓）⇒
 /// 一张小表就够 ✓；**有界**（满了整表清空 ✓）⇒ 不会随会话无限长 ✗。
-fn canonical_prefix_cached(src: &str) -> String {
+/// ⚠ **返回的是哈希，不是身份文本本身** ✗→✓（2026-10-04 实测修正 ✓）：
+/// 先前返回 `String` ⇒ **每次判定都克隆一整份前缀身份**（大单元 ~100 KB × 上千次 ✗✗）
+/// ⇒ 冷开**变慢**（实测 `unit12-synthesis` didOpen **8.5s → 11.2s** ✗）。
+/// 现在表里存 **u64 哈希** ✓ ⇒ 命中只读一个 8 字节 ✓。
+fn canonical_prefix_cached(src: &str) -> u64 {
     if src.is_empty() {
-        return String::new();
+        return 0;
+    }
+    // ⚠ **尺寸闸**（2026-10-04 实测加的 ✓）：`own_prefix` 是**逐命令增长**的 ✗
+    // ⇒ 每个命令一份**不同**的前缀文本 ⇒ 上面的记忆化**永不命中** ✗ ⇒ 每个命令
+    // 解析整份前缀 = **O(n²)** ✗（实测 `unit12-synthesis` 冷开 **8.5s → 10.8s** ✗，
+    // 而 HEAD 上那条 perf 测试是**绿**的 ✓ ⇒ 这是我引入的真回归 ✗）。
+    // 超过阈值 ⇒ **退回原文** ✓（保守 ✓ 安全 ✓ = 今天的行为 ✓，不会更慢 ✗）。
+    // **下一刀** ✓：把身份改成**增量**构造（walk 手上有解析好的命令 ✓）⇒ 去掉这道闸 ✓。
+    const PARSE_LIMIT: usize = 64 * 1024;
+    if src.len() > PARSE_LIMIT {
+        return judge_cache_key(&[src]);
     }
     const CAP: usize = 64;
     if let Some(hit) = canonical_prefix_table()
@@ -1503,21 +1517,23 @@ fn canonical_prefix_cached(src: &str) -> String {
         .expect("canonical prefix table")
         .get(src)
     {
-        return hit.clone();
+        return *hit;
     }
     let id = crate::compile::canonical_prefix_id(src);
+    // 与判定缓存同一套哈希（`judge_cache_key` ✓）⇒ 身份文本只在这里过一遍 ✓。
+    let hash = judge_cache_key(&[&id]);
     let mut table = canonical_prefix_table()
         .lock()
         .expect("canonical prefix table");
     if table.len() >= CAP {
         table.clear();
     }
-    table.insert(src.to_string(), id.clone());
-    id
+    table.insert(src.to_string(), hash);
+    hash
 }
 
-fn canonical_prefix_table() -> &'static Mutex<std::collections::HashMap<String, String>> {
-    static TABLE: OnceLock<Mutex<std::collections::HashMap<String, String>>> = OnceLock::new();
+fn canonical_prefix_table() -> &'static Mutex<std::collections::HashMap<String, u64>> {
+    static TABLE: OnceLock<Mutex<std::collections::HashMap<String, u64>>> = OnceLock::new();
     TABLE.get_or_init(|| Mutex::new(std::collections::HashMap::new()))
 }
 
@@ -1552,9 +1568,12 @@ fn judge_infer_cache_key(
     binders: &[GoalBinderSpec],
     term: &str,
 ) -> u64 {
+    // 两份前缀用**哈希**进键 ✓（`u64` ⇒ 每次判定只读 8 字节 ✓，不克隆身份文本 ✗）。
+    let extra_hash = format!("{:016x}", canonical_prefix_cached(extra_prefix));
+    let prefix_hash = format!("{:016x}", canonical_prefix_cached(prefix_src));
     judge_cache_key(&[
-        &canonical_prefix_cached(extra_prefix),
-        &canonical_prefix_cached(prefix_src),
+        &extra_hash,
+        &prefix_hash,
         &options_key(options),
         &format!("{binders:?}"),
         term,
