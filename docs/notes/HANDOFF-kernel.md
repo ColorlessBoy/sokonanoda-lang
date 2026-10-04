@@ -57,7 +57,8 @@
    真正查到的是：**`application_arg_expected` 对 `Iff.intro` 的实参零命中** ✗（只对 `Set.ext`/`Eq.subst` 响 ✓），
    且加 `Expr::Lambda => true`（**不加门控** ✗）后**仍零命中、诊断一字不变** ✗
    ⇒ **`Iff.intro` 的实参不由 App 臂 `arg_expected` 那条路 elaborate** ✗。
-   ✅ **第 7 轮**：`annotate_application_lambda`（`elab_expr` 顶上那条早退重写 ✗）**不触发** ✗；`elab_expr` 进门探针显示 `Iff.intro` 的 **实参个数是 2/3/4 都有** ✗（源码只写 2 个 ✗）。⚠⚠ **但计数分不清「我们的文件」与 prelude** ✗（`Iff.intro` 在 prelude 里也大量用 ✓，探针**没按 span 过滤** ✗）⇒ **第 6 轮那条「AEP 零命中」也不能直接采信** ✗（同一缺陷 ✓）。⇒ **下一手：先给探针加源位置过滤** ✗（只打 `G30-*.sokonanoda` 里的调用 ✓），再重跑 AEP/EE 两探针 ✓。⚠ 建议同时补 `AGENTS.md`：**探针要能自证「这条读数属于哪个输入」** ✗。
+   ✅ **第 7–8 轮**：`annotate_application_lambda`（顶上那条早退重写 ✗）**不触发** ✗；探针**加了 span 过滤** ✓（只打 41–53 行 ✓）⇒ 读数**首次可归属** ✓，**两处根因双双落实** ✓：**(甲)** 本文件里 `application_arg_expected` 只被调 10 次 ✓（50 行 `Set.ext` 6 次 ✓ · 52 行 `Eq.subst` 4 次 ✓）⇒ **`Iff.intro`（49 行）零命中** ✗（两个 lambda 没走常量路 ✗）；**(乙)** 加 `Lambda => true` 后调用变多但**仍无 49 行** ✗、**且返回垃圾** ✗（`AEP-OUT ⇒ C -> A` ✓，**`C` 不在作用域** ✗）⇒ 第 4 轮那条机制假说**当场证实** ✓（`sigma` 拿源级 AST 代换 ✗）。
+   ⇒ **下一手**：先修 (乙)（只在代换项是**原子式**时才代换 ✓，否则返回 `None` ✗ —— 至少不会更坏 ✓），再查 (甲) ✓；⚠ 建议把「**探针读数必须可归属**」补进 `AGENTS.md` ✗（与「探针身份」同族 ✓）。
    bisect（有效 ✓）：单分支全绿（V1/V2/V3/V5/V6 ✓）· **两分支都真才红** ✗（`sorry` 吃任何类型 ⇒ 看不出 ✗）。
    ⚠ **探针纪律** ✗：必须打在**判据生效点之后** ✓（第 5 轮打反了 ✗）；**跨构建读数不可比** ✗（第 4 轮扑空之因 ✓）。
    **下一手** ✓：探 `Iff.intro` 的 `explicit_arity()` 与 `fits_old_style` ✗ ⇒ 修 `explicit_arity` ✓ 或收紧
