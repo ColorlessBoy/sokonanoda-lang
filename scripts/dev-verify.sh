@@ -19,6 +19,10 @@
 #   scripts/dev-verify.sh              # 默认：release 仓库构建（没有就 debug）
 #   SOKO_BIN=/path/to/sokonanoda scripts/dev-verify.sh
 #   scripts/dev-verify.sh --keep       # 保留临时目录（排查用）
+#   scripts/dev-verify.sh --granularity # 追加跑 **G-29/G-68 的结构判据**（合成夹具 · **1.3 秒** ✓）
+#                                       #   `passes(1)/passes(6)` 的**边际式** ✗ —— 它才咬得住
+#                                       #   「改一行 ⇒ 重编整条闭包」（本脚本自己的 `passes` 只到
+#                                       #   入口闭包粒度 ✓，够快但不够尖 ✗）
 #
 # 退出码：0 = 判据全过 ✓ · 1 = 判据判红 ✗ · 2 = 环境不对（二进制不在等）。
 set -u
@@ -124,4 +128,16 @@ if [ "$rc" = "0" ]; then
   echo "  读法：passes = Σ 闭包模块编译次数（机器无关 ✓）· files = 去重后的模块数 ✓"
 fi
 [ "$KEEP" = 1 ] && echo "   （--keep：夹具留在 $DIR ✓）"
+
+# ── ⑤ 可选：**G-29/G-68 的结构判据**（合成夹具 ✓ 1.3 秒 ✓）──
+# 判据 = `passes(N)` 的**边际式**（`(passes(N)-passes(1))/(N-1) ≤ 1.5` ✓ 理想 1.0 ✓）——
+# 「共享依赖不许按入口各编一遍」✗。它**已红** ✗（实测 `passes(1)=13 passes(6)=24 marginal=2.20` ✗），
+# 根因写在它自己的失败信息里 ✓：「G-68：缓存键是 per-entry-closure」✓。
+# ⚠ 单点验证：只跑**那一个**测试二进制 ✓（不重链整个 CLI 集成测试 ✗ —— 值守 12:00 第 3 条 ✓）。
+if [ "${1:-}" = "--granularity" ] || [ "${SOKO_DEV_VERIFY_GRANULARITY:-}" = "1" ]; then
+  echo "== 结构判据：改一行 ⇒ 重编整条闭包？（合成夹具 · 1.3 秒 ✓）=="
+  if (cd "$ROOT" && timeout 600 cargo test -p sokonanoda-cli --test project_recompiles_shared_deps \
+      -- --nocapture 2>&1 | grep -E 'PERF g68|test result'); then :; fi
+  echo "   读法：marginal ≤ 1.5 才算过 ✓（理想 1.0 ✓）；实测 2.0–3.0 ✗ ⇒ 缺口仍在 ✓"
+fi
 exit "$rc"
