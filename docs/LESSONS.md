@@ -77,8 +77,8 @@
 - lint/fmt 门禁形态：教学 crates 各自 `[lints.rust] warnings = "deny"`
   注入严格度；本项零内核改动快照保持 warning 级；fmt 门禁只覆盖教学 crates
   （kernel 的 rustfmt.toml 需要 nightly）。
-- 内核冷路径改动（panic 消息、`got:` 渲染）允许，但每处都要三层回归
-  （kernel 单测 + CLI e2e + 语料）并在 `docs/architecture.md` §6 记账。
+- 内核冷路径改动（panic 消息、`got:` 渲染）允许；判据 = **贪心三件**（复现件 + 反向验证 +
+  受影响文件逐字节 ✓，用户 2026-10-04 19:52 ✓），三层回归只在发版大节点，记账见 `architecture.md` §6。
 - criterion 多 target 包跑基准必须带 `--bench pipeline` 选择器——`cargo
   bench -p sokonanoda-front` 会先跑 lib unittest target 并拒绝 criterion
   旗标（守护： benches/pipeline.rs 顶部注释）。
