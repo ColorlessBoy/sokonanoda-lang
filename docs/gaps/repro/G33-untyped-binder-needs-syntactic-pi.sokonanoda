@@ -9,3 +9,13 @@
 -- Lean 4 里 `And.intro (fun h => …) (fun k => …)` 照常工作。
 theorem untyped_binder_in_def_headed_position (P Q : Prop) (h : P) (k : Q) : P ∧ Q :=
   And.intro (fun _ => h) (fun _ => k)
+
+-- ⚠ **2026-10-05 第 71 棒补**：上面那条（`And.intro (fun _ => h) …`）**本身是错类型的** ✗ ——
+-- `And.intro : a → b → a ∧ b` ⇒ 第 0 个实参的期望是 `P` ✓，而 `fun _ => h` 是个**函数** ✗
+-- ⇒ 它**不该**被接受 ✓（Lean 也会拒 ✓）⇒ 拿它当判据是**错的** ✗（`AGENTS.md`：咬不住的守卫等于没有 ✓）。
+-- ⇒ 下面这条是**同缺口**、但**确实良类型**的形状 ✓：期望类型 `Impl P Q` **展开后才是 Pi** ✓，
+-- 无类型 binder `_` 的类型**必须**从展开后的域解出 ✓ —— **Lean 4 里必然接受** ✓。
+def Impl (P Q : Prop) : Prop := P → Q
+
+theorem untyped_binder_in_def_headed_position_well_typed (P Q : Prop) (h : Q) : Impl P Q :=
+  fun _ => h
