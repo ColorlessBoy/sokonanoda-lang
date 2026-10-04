@@ -152,6 +152,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="卡住⇒先读 Lean 4 的守卫（用户 2026-10-05）")
     ap.add_argument("--selftest", action="store_true", help="判据通道自检（反向验证 ✓）")
     ap.add_argument("--check", action="store_true", help="检查暂存区（pre-commit 用 ✓）")
+    ap.add_argument(
+        "--message-file",
+        help="提交信息文件（`commit-msg` 钩子传 $1 ✓ —— ⚠ `pre-commit` 阶段 git **还没写** "
+             "`COMMIT_EDITMSG` ✗ ⇒ 那条分支在 pre-commit 里**永远不生效** ✗，实测过 ✓）",
+    )
     args = ap.parse_args()
     if args.selftest:
         return selftest()
@@ -159,7 +164,13 @@ def main() -> int:
     if staged is None:
         print("[lean4-guard] ⚠ 拿不到暂存区 ⇒ **判不了**（**判不了不是绿** ✗）⇒ 放行", file=sys.stderr)
         return 0
-    msg = commit_message()
+    if args.message_file:
+        try:
+            msg = Path(args.message_file).read_text(encoding="utf-8")
+        except OSError:
+            msg = None
+    else:
+        msg = commit_message()
     if msg is None:
         print("[lean4-guard] ⚠ 拿不到提交信息 ⇒ **判不了**（同上 ✗）⇒ 放行", file=sys.stderr)
         return 0

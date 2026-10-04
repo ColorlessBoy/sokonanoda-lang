@@ -96,7 +96,33 @@ pub enum Expr<'a> {
         hash: u64,
         /// 占位符编号（前端给的 id ✓）。**不参与判定** ✓ —— 只用于报错与去重 ✓。
         id: u32,
+        /// **IA-4 B2（2026-10-05 ✓）**：元变量的**种类** ✓（设计 §4 第 2 行 ✓，对齐 Lean 的
+        /// `MetavarKind` ✓）。⚠ **`SyntheticOpaque` 永不被赋值** ✗（Lean 原话：
+        /// "don't fill this hole from a typing constraint" ✓）—— 它只表达"这是个洞 ✓，
+        /// 但**别拿类型约束去填它**" ✗。
+        /// ⚠ **D9 = C**（用户 2026-10-05 拍板 ✓）：**只作内部种类** ✓，**不引入** `?_`/`?hole`
+        /// 表面语法 ✗ ⇒ 本片**零行为变化** ✓（`mk_meta` 仍造 `Natural` ✓）。
+        kind: MetaKind,
     },
+}
+
+/// **IA-4 B2**：元变量种类 ✓（Lean `MetavarContext.lean:282` `MetavarKind` 的**内部子集** ✓）。
+///
+/// ⚠ 只取两个 ✓ —— `natural`（可被赋值 ✓）与 `syntheticOpaque`（**永不被赋值** ✗）。
+/// Lean 还有 `synthetic`（可赋值但只在特定阶段 ✓），我们**暂时不引入** ✗（没有消费者 ✓）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MetaKind {
+    /// 可被赋值 ✓（默认 ✓ —— `mk_meta` 造的就是这个 ✓）。
+    Natural,
+    /// **永不被赋值** ✗（洞的语义 ✓）。
+    SyntheticOpaque,
+}
+
+impl MetaKind {
+    /// 对齐 Lean `MetavarKind.isSyntheticOpaque`（`MetavarContext.lean:282` ✓）。
+    pub fn is_synthetic_opaque(self) -> bool {
+        matches!(self, MetaKind::SyntheticOpaque)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -25,12 +25,10 @@ set -uo pipefail
 # 提交信息或本轮 `HANDOFF-kernel.md` 增量里**必须**有 `Lean 4` / `Lean4: n/a` ✓
 # —— 否则**拒绝提交** ✗（"声明与守卫之间有条缝"是本项目最常见的病 ✓）。
 root=$(git rev-parse --show-toplevel)
+# ⚠ 判红在 **`commit-msg`** 钩子里 ✓ —— `pre-commit` 阶段 git **还没写**提交信息 ✗
+# ⇒ 在这里判会**看不见**它 ✗（2026-10-05 实测 ✓）。这里只跑一遍"暂存区"预检 ✓（不判红 ✓）。
 if [ -f "$root/scripts/check-lean4-alignment.py" ] && command -v python3 >/dev/null 2>&1; then
-  if ! lean4out=$(cd "$root" && python3 scripts/check-lean4-alignment.py --check 2>&1); then
-    printf '%s\n' "$lean4out" >&2
-    exit 1
-  fi
-  printf '%s\n' "$lean4out"
+  cd "$root" && python3 scripts/check-lean4-alignment.py --check 2>&1 | tail -1 || true
 fi
 
 [ -f "$root/scripts/docs-expiry-check.py" ] || {

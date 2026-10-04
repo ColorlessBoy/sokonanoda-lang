@@ -8,8 +8,8 @@
 use crate::env::InductiveData;
 use crate::env::{Declar, DeclarInfo, DeclarMap, NotationMap};
 use crate::expr::{
-    BinderStyle, Expr, APP_HASH, CONST_HASH, LAMBDA_HASH, LET_HASH, META_HASH, NAT_LIT_HASH, PI_HASH,
-    PROJ_HASH, SORT_HASH,
+    BinderStyle, Expr, MetaKind, APP_HASH, CONST_HASH, LAMBDA_HASH, LET_HASH, META_HASH,
+    NAT_LIT_HASH, PI_HASH, PROJ_HASH, SORT_HASH,
     STRING_LIT_HASH, VAR_HASH,
 };
 use crate::level::{Level, PARAM_HASH};
@@ -284,8 +284,20 @@ impl<'a> EnvBuilder<'a> {
     /// ⚠ **本片（K1）没有任何调用方** ✗ —— 它是给 **B2「元变量进项」** 准备的载体 ✓；
     /// 一旦有东西造出它，**含占位符的声明就必须被硬拒** ✓（见 `add_decl` 那条路 ✓）。
     pub fn mk_meta(&mut self, id: u32) -> ExprPtr<'a> {
-        let hash = crate::hash64!(META_HASH, id as u64);
-        self.alloc_expr(Expr::Meta { id, hash })
+        self.mk_meta_with_kind(id, MetaKind::Natural)
+    }
+
+    /// **IA-4 B2（2026-10-05 ✓）**：带**种类**的占位符 ✓（设计 §4 第 2 行 ✓）。
+    ///
+    /// ⚠ **`hash` 必须含 `kind`** ✗ —— 否则 `Natural` 与 `SyntheticOpaque` 的**同 id**
+    /// 占位符会**撞哈希** ✗（结构共享/去重会把两者混为一谈 ✗）。
+    pub fn mk_meta_with_kind(&mut self, id: u32, kind: MetaKind) -> ExprPtr<'a> {
+        let salt = match kind {
+            MetaKind::Natural => 0u64,
+            MetaKind::SyntheticOpaque => 1u64,
+        };
+        let hash = crate::hash64!(META_HASH, id as u64, salt);
+        self.alloc_expr(Expr::Meta { id, kind, hash })
     }
 
     pub fn mk_sort(&mut self, level: LevelPtr<'a>) -> ExprPtr<'a> {

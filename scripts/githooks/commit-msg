@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# commit-msg —— **卡住 ⇒ 先读 Lean 4** 的守卫（用户 2026-10-05 ✓）
+#
+# ⚠ **为什么必须挂在这里而不是 `pre-commit`** ✗：`pre-commit` 阶段 git **还没写**
+# `.git/COMMIT_EDITMSG` ✗ ⇒ 守卫的"提交信息"那条分支**永远不生效** ✗（2026-10-05 实测：
+# 提交信息里明明有「Lean 4 对照」✓，守卫仍判红 ✗）。`commit-msg` 钩子把**信息文件**作为 `$1`
+# 传进来 ✓ ⇒ 这是唯一能看见提交信息的地方 ✓。
+#
+# 规则与逃生门同 `scripts/check-lean4-alignment.py` 的文档 ✓。
+set -uo pipefail
+[ "${SOKO_SKIP_HOOK:-0}" = "1" ] && {
+  echo "[commit-msg] SOKO_SKIP_HOOK=1 ⇒ 跳过 Lean 4 对照检查 ✗（例外要留痕：在 STATUS.md 写明原因）"
+  exit 0
+}
+root=$(git rev-parse --show-toplevel)
+[ -f "$root/scripts/check-lean4-alignment.py" ] || { echo "[commit-msg] 找不到守卫 ⇒ 跳过 ✓"; exit 0; }
+command -v python3 >/dev/null 2>&1 || {
+  echo "[commit-msg] ⚠ 没有 python3 ⇒ **判不了**（判不了不是绿 ✗）" >&2
+  exit 0
+}
+if ! out=$(cd "$root" && python3 scripts/check-lean4-alignment.py --check --message-file "$1" 2>&1); then
+  printf '%s\n' "$out" >&2
+  exit 1
+fi
+printf '%s\n' "$out"

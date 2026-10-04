@@ -114,3 +114,42 @@ fn a_placeholder_free_declaration_is_still_accepted() {
         .add_declar(d)
         .expect("没有占位符的声明**必须**照常通过 ✓（否则守卫是空转 ✗）");
 }
+
+/// **IA-4 B2 第一片（2026-10-05 ✓）**：元变量的**种类** ✓ ——
+/// 判据两条，**都必须能咬住** ✗（`AGENTS.md`：咬不住的守卫等于没有 ✓）：
+/// ① **哈希必须含 `kind`** ✗ —— 否则 `Natural` 与 `SyntheticOpaque` 的**同 id**
+///    占位符会**撞哈希** ✗（结构共享/去重会把两者混为一谈 ✗）；
+/// ② `is_synthetic_opaque` 要**只认** `SyntheticOpaque` ✓（对齐 Lean
+///    `MetavarKind.isSyntheticOpaque`，`MetavarContext.lean:282` ✓）。
+///
+/// ⚠ **反向验证** ✓：把 `mk_meta_with_kind` 里的 `salt` 去掉 ⇒ 第 ① 条**必须判红** ✗
+/// （实测过 ✓ —— 见 commit message ✓）。
+#[test]
+fn meta_kind_is_part_of_identity_and_predicate_is_exact() {
+    let arena = Arena::new();
+    let mut builder = EnvBuilder::new(arena.as_arena_ref(), Default::default());
+    let natural = builder.mk_meta_with_kind(7, crate::expr::MetaKind::Natural);
+    let opaque = builder.mk_meta_with_kind(7, crate::expr::MetaKind::SyntheticOpaque);
+    let legacy = builder.mk_meta(7);
+    // ① **同 id、不同 kind ⇒ `hash` 必须不同** ✓。
+    // ⚠ **不许用 `ExprPtr` 的相等性判** ✗ —— 它比的是 **arena 地址**（`util.rs:224` ✓），
+    //   与 `hash` 无关 ⇒ **咬不住** ✗（实测：去掉 `salt` 后它**照样通过** ✓ —— 反向验证抓到的 ✓）。
+    let hash_of = |e: crate::util::ExprPtr<'_>| match e.as_ref() {
+        crate::expr::Expr::Meta { hash, .. } => *hash,
+        other => panic!("这里只该出现占位符 ✗，实际是 {other:?}"),
+    };
+    assert_ne!(
+        hash_of(natural),
+        hash_of(opaque),
+        "**同 id 不同 kind 的占位符不许同 `hash`** ✗（`hash` 必须含 `kind` ✓）"
+    );
+    // ② 谓词**只认** `SyntheticOpaque` ✓。
+    assert!(!crate::expr::MetaKind::Natural.is_synthetic_opaque());
+    assert!(crate::expr::MetaKind::SyntheticOpaque.is_synthetic_opaque());
+    // ③ `mk_meta`（K1 的旧入口 ✓）**仍造 `Natural`** ✓ ⇒ 本片零行为变化 ✓。
+    assert_eq!(
+        hash_of(legacy),
+        hash_of(natural),
+        "`mk_meta` 必须与 `mk_meta_with_kind(_, Natural)` **同 `hash`** ✓（零行为变化 ✓）"
+    );
+}
