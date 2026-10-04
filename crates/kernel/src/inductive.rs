@@ -184,7 +184,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         }
 
         match self.read_expr(e) {
-            Var { .. } | Sort { .. } | Const { .. } | NatLit { .. } | StringLit { .. } => {}
+            // **K1**：占位符是叶子 ✓（没有子项要查 ✓）。
+            Var { .. } | Sort { .. } | Const { .. } | NatLit { .. } | StringLit { .. } | Meta { .. } => {}
             App { fun, arg, .. } => {
                 self.check_uniform_inductive_occurrences_at(fun, ind_names, expected_levels, num_params, offset);
                 self.check_uniform_inductive_occurrences_at(arg, ind_names, expected_levels, num_params, offset);
@@ -849,7 +850,8 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
             eprime
         } else {
             match self.ctx.read_expr(e) {
-                Var { .. } | Sort { .. } | Const { .. } | NatLit { .. } | StringLit { .. } => e,
+                // **K1**：占位符是叶子 ⇒ 原样 ✓。
+                Var { .. } | Sort { .. } | Const { .. } | NatLit { .. } | StringLit { .. } | Meta { .. } => e,
                 Pi { binder_name, binder_style, binder_type, body, .. } => {
                     let binder_type = self.replace_all_nested(binder_type, st, offset);
                     let body = self.replace_all_nested(body, st, offset + 1);
@@ -1880,7 +1882,8 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         match self.replace_f(e, num_params, depth, st, specialized_rec_names_to_unspecialized_rec_names) {
             Some(out) => out,
             None => match self.ctx.read_expr(e) {
-                Var { .. } | Sort { .. } | Const { .. } | StringLit { .. } | NatLit { .. } => e,
+                // **K1**：占位符是叶子 ⇒ 原样 ✓。
+                Var { .. } | Sort { .. } | Const { .. } | StringLit { .. } | NatLit { .. } | Meta { .. } => e,
                 Lambda { binder_name, binder_style, binder_type, body, .. } => {
                     let binder_type = self.restore_replace(
                         binder_type,

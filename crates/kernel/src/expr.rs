@@ -10,6 +10,8 @@ pub(crate) const CONST_HASH: u64 = 1129;
 pub(crate) const PROJ_HASH: u64 = 17;
 pub(crate) const LAMBDA_HASH: u64 = 431;
 pub(crate) const LET_HASH: u64 = 241;
+/// **IA-4 K1**：占位符（`Expr::Meta`）的哈希盐 ✓（独立取值 ⇒ 不与其他构造子撞 ✓）。
+pub(crate) const META_HASH: u64 = 242;
 pub(crate) const PI_HASH: u64 = 719;
 pub(crate) const APP_HASH: u64 = 233;
 pub(crate) const STRING_LIT_HASH: u64 = 1493;
@@ -80,6 +82,21 @@ pub enum Expr<'a> {
         data: &'a LetData<'a>,
         fv_mask: u64,
     },
+    /// **IA-4 K1（D8 = (i)）**：**占位符**（Lean 的 `Expr.mvar` 同构）✓。
+    ///
+    /// **它是给"元变量进项"（B2）准备的内核载体** ✓ —— K1 这一片只做**载体 + 硬拒**，
+    /// **没有任何东西构造它** ✗（前端协议不变 ✓）⇒ 本片**零行为变化** ✓，
+    /// 判据就是"全语料对拍 0 差异 + `--json`/golden 里**绝不出现**占位符" ✓。
+    ///
+    /// ⚠ **硬不变式（两条都要，设计 §2.11 ✓）**：
+    /// ① **含占位符的声明一律拒绝** ✓（`EnvBuilder::add_decl` 那条路 ⇒ 固定错误码 ✓）；
+    /// ② 判定层（`conv`/`infer`/`eval`/pp ✓）**永远见不到它** ✗ ——
+    ///    真见到时**不许 panic** ✗，一律**响亮报错/弃权** ✓（`AGENTS.md`：panic→Result ✓）。
+    Meta {
+        hash: u64,
+        /// 占位符编号（前端给的 id ✓）。**不参与判定** ✓ —— 只用于报错与去重 ✓。
+        id: u32,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -101,6 +118,7 @@ impl<'a> Expr<'a> {
             | Pi { hash, .. }
             | Lambda { hash, .. }
             | Let { hash, .. }
+            | Meta { hash, .. }
             | StringLit { hash, .. }
             | NatLit { hash, .. }
             | Proj { hash, .. } => *hash,
@@ -151,6 +169,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             return e
         }
         match self.read_expr(e) {
+            // **K1**：占位符没有绑元 ⇒ 升降都原样 ✓（上面的 `num_loose_bvars` 早退也会兜住 ✓）。
+            Meta { .. } => e,
             Var { dbj_idx, .. } =>
                 if dbj_idx >= cutoff {
                     self.mk_var(dbj_idx + amount)
@@ -192,6 +212,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             return e
         }
         match self.read_expr(e) {
+            // **K1**：占位符没有绑元 ⇒ 原样 ✓。
+            Meta { .. } => e,
             Var { dbj_idx, .. } =>
                 if dbj_idx >= cutoff {
                     assert!(dbj_idx >= cutoff + amount, "lower: reference to a discarded binder");
@@ -243,7 +265,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         } else {
             let calcd = match self.read_expr(e) {
                 // These expressions should be unreachable since they return `n_loose_bvars() == 0`
-                Sort { .. } | Const { .. } | StringLit { .. } | NatLit { .. } => panic!(),
+                // **K1**：占位符同理（`num_loose_bvars() == 0` ✓）。
+                Sort { .. } | Const { .. } | StringLit { .. } | NatLit { .. } | Meta { .. } => panic!(),
                 Var { dbj_idx, .. } => {
                     debug_assert!(dbj_idx >= offset);
                     substs.iter().rev().nth((dbj_idx - offset) as usize).copied().unwrap_or(e)
@@ -296,7 +319,7 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             return *cached
         }
         let calcd = match self.read_expr(e) {
-            Sort { .. } | Const { .. } | StringLit { .. } | NatLit { .. } => panic!(),
+            Sort { .. } | Const { .. } | StringLit { .. } | NatLit { .. } | Meta { .. } => panic!(),
             Var { dbj_idx, .. } => match substs.iter().rev().nth((dbj_idx - offset) as usize).copied() {
                 Some(s) => self.lift(s, 0, offset),
                 None => e,
@@ -337,7 +360,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             *cached
         } else {
             let r = match self.read_expr(e) {
-                Var { .. } | NatLit { .. } | StringLit { .. } => e,
+                // **K1**：占位符不含层 ✓。
+                Var { .. } | NatLit { .. } | StringLit { .. } | Meta { .. } => e,
                 Sort { level, .. } => {
                     let level = self.subst_level(level, ks, vs);
                     self.mk_sort(level)
@@ -543,7 +567,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             return *cached;
         }
         let result = match self.read_expr(e) {
-            Var { .. } | Sort { .. } | NatLit { .. } | StringLit { .. } => false,
+            // **K1**：占位符既不是常量、也没有子项 ✓。
+            Var { .. } | Sort { .. } | NatLit { .. } | StringLit { .. } | Meta { .. } => false,
             Const { name, .. } => self.get_pfx(name) == nested,
             App { fun, arg, .. } =>
                 self.has_nested_name_aux(fun, nested, cache)
@@ -570,7 +595,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             *cached
         } else {
             let r = match self.read_expr(e) {
-                Var { .. } | Sort { .. } | NatLit { .. } | StringLit { .. } => false,
+                // **K1**：同上 ✓。
+                Var { .. } | Sort { .. } | NatLit { .. } | StringLit { .. } | Meta { .. } => false,
                 Const { name, .. } => pred(name),
                 App { fun, arg, .. } => self.find_const_aux(fun, pred, cache) || self.find_const_aux(arg, pred, cache),
                 Pi { binder_type, body, .. } | Lambda { binder_type, body, .. } =>
@@ -630,6 +656,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             return false
         }
         match self.read_expr(e) {
+            // **K1**：占位符没有绑元 ✓。
+            Meta { .. } => false,
             Var { dbj_idx, .. } => dbj_idx == idx,
             App { fun, arg, .. } => self.has_loose_bvar(fun, idx) || self.has_loose_bvar(arg, idx),
             Pi { binder_type, body, .. } | Lambda { binder_type, body, .. } =>
@@ -648,6 +676,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             return false
         }
         match self.read_expr(e) {
+            // **K1**：占位符没有绑元 ✓。
+            Meta { .. } => false,
             Var { dbj_idx, .. } => dbj_idx < cutoff,
             App { fun, arg, .. } => self.has_loose_bvar_below(fun, cutoff) || self.has_loose_bvar_below(arg, cutoff),
             Pi { binder_type, body, .. } | Lambda { binder_type, body, .. } =>
@@ -695,7 +725,8 @@ impl<'t> Expr<'t> {
     /// in an expression which are boudn by something above it.
     pub(crate) fn num_loose_bvars(&self) -> u16 {
         match self {
-            Sort { .. } | Const { .. } | StringLit { .. } | NatLit { .. } => 0,
+            // **K1**：占位符没有绑元 ⇒ 0 ✓。
+            Sort { .. } | Const { .. } | StringLit { .. } | NatLit { .. } | Meta { .. } => 0,
             Var { dbj_idx, .. } => dbj_idx + 1,
             App { fun, arg, .. } => fun.num_loose_bvars().max(arg.num_loose_bvars()),
             Pi { binder_type, body, .. } | Lambda { binder_type, body, .. } =>
@@ -711,6 +742,8 @@ impl<'t> Expr<'t> {
     #[inline]
     pub(crate) fn fv_mask(&self) -> u64 {
         match self {
+            // **K1**：占位符没有自由变量 ✓。
+            Meta { .. } => 0,
             Var { dbj_idx, .. } =>
                 if *dbj_idx < 64 {
                     1u64 << dbj_idx

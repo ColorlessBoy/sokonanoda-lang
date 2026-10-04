@@ -8,7 +8,8 @@
 use crate::env::InductiveData;
 use crate::env::{Declar, DeclarInfo, DeclarMap, NotationMap};
 use crate::expr::{
-    BinderStyle, Expr, APP_HASH, CONST_HASH, LAMBDA_HASH, LET_HASH, NAT_LIT_HASH, PI_HASH, PROJ_HASH, SORT_HASH,
+    BinderStyle, Expr, APP_HASH, CONST_HASH, LAMBDA_HASH, LET_HASH, META_HASH, NAT_LIT_HASH, PI_HASH,
+    PROJ_HASH, SORT_HASH,
     STRING_LIT_HASH, VAR_HASH,
 };
 use crate::level::{Level, PARAM_HASH};
@@ -278,6 +279,15 @@ impl<'a> EnvBuilder<'a> {
         self.alloc_expr(Expr::Var { dbj_idx, hash })
     }
 
+    /// **IA-4 K1（D8 = (i)）**：造一个**占位符** ✓。
+    ///
+    /// ⚠ **本片（K1）没有任何调用方** ✗ —— 它是给 **B2「元变量进项」** 准备的载体 ✓；
+    /// 一旦有东西造出它，**含占位符的声明就必须被硬拒** ✓（见 `add_decl` 那条路 ✓）。
+    pub fn mk_meta(&mut self, id: u32) -> ExprPtr<'a> {
+        let hash = crate::hash64!(META_HASH, id as u64);
+        self.alloc_expr(Expr::Meta { id, hash })
+    }
+
     pub fn mk_sort(&mut self, level: LevelPtr<'a>) -> ExprPtr<'a> {
         let hash = crate::hash64!(SORT_HASH, level);
         self.alloc_expr(Expr::Sort { level, hash })
@@ -372,6 +382,20 @@ impl<'a> EnvBuilder<'a> {
 
     pub fn add_declar(&mut self, d: Declar<'a>) -> Result<(), String> {
         let name = d.info().name;
+        // **IA-4 K1 硬不变式①（设计 §2.11 ✓）**：**含占位符的声明一律拒绝** ✗。
+        //
+        // 为什么在**入口**拒（而不是在各判定点拒）：占位符（`Expr::Meta` ✓）是给
+        // **B2「元变量进项」** 准备的 ✓ —— 它**只允许活在 elaborate 期** ✓，
+        // **绝不许**进环境 ✗。入口这一条把"判定层见不到它"变成**结构性保证** ✓，
+        // 于是 `conv`/`infer`/`eval` 里那些 `panic!` 臂**不可达** ✓。
+        //
+        // 错误消息**固定前缀** ✓（前端据此映射错误码 ✓ —— 契约见 `docs/protocol.md`）。
+        if self.declar_contains_meta(&d) {
+            return Err(format!(
+                "declaration contains a metavariable placeholder: {}",
+                self.name_to_string(name)
+            ));
+        }
         if self.declars.contains_key(&name) {
             return Err(format!("duplicate declaration {}", self.name_to_string(name)));
         }
@@ -379,6 +403,53 @@ impl<'a> EnvBuilder<'a> {
         name.as_ref().set_decl_idx(u32::try_from(idx).expect("more than u32::MAX declarations in one environment"));
         self.declars.insert(name, d);
         Ok(())
+    }
+
+    /// **IA-4 K1 硬不变式①**：这个项里有没有**占位符** ✓（`Expr::Meta`）。
+    ///
+    /// ⚠ **必须走遍所有子项** ✗ —— 漏一处就等于留一条"含元变量的声明能进环境"的缝 ✗
+    /// （设计 §2.11 的硬不变式是**一律拒绝** ✓，不是"大多数拒绝" ✗）。
+    pub(crate) fn contains_meta(&self, e: ExprPtr<'a>) -> bool {
+        // `ExprPtr` 自己就能取到 `&Expr` ✓（`util::read_expr` 也是 `*p.as_ref()` ✓）。
+        match e.as_ref() {
+            Expr::Meta { .. } => true,
+            Expr::App { fun, arg, .. } => self.contains_meta(*fun) || self.contains_meta(*arg),
+            Expr::Pi { binder_type, body, .. } | Expr::Lambda { binder_type, body, .. } => {
+                self.contains_meta(*binder_type) || self.contains_meta(*body)
+            }
+            Expr::Let { data, .. } => {
+                self.contains_meta(data.binder_type)
+                    || self.contains_meta(data.val)
+                    || self.contains_meta(data.body)
+            }
+            Expr::Proj { structure, .. } => self.contains_meta(*structure),
+            Expr::Var { .. }
+            | Expr::Sort { .. }
+            | Expr::Const { .. }
+            | Expr::StringLit { .. }
+            | Expr::NatLit { .. } => false,
+        }
+    }
+
+    /// **IA-4 K1 硬不变式①**：这一条声明里有没有占位符 ✓。
+    ///
+    /// 覆盖面（**逐类走遍** ✓）：每个变体的 `info().ty` ✓ · `Theorem`/`Definition`/`Opaque`
+    /// 的 `val` ✓ · **递归子的 `rec_rules[].val`** ✓（构造子的类型在它自己的 `info.ty` 里 ✓）。
+    fn declar_contains_meta(&self, d: &Declar<'a>) -> bool {
+        if self.contains_meta(d.info().ty) {
+            return true;
+        }
+        if let Some(val) = d.value() {
+            if self.contains_meta(val) {
+                return true;
+            }
+        }
+        if let Declar::Recursor(rec) = d {
+            if rec.rec_rules.iter().any(|r| self.contains_meta(r.val)) {
+                return true;
+            }
+        }
+        false
     }
 
     /// Add a trusted inductive type. Kernel-side validation of inductive

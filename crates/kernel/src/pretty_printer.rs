@@ -738,6 +738,10 @@ impl<'x, 't, 'p> PrettyPrinter<'x, 't, 'p> {
             DocPtr::from("_").as_unparenable()
         } else {
             match self.ctx.read_expr(e) {
+                // **K1 硬不变式②**：`--json`/golden 里**不许出现占位符** ✓ ——
+                // 真到了这里（声明入口本该已拒 ✗）⇒ 打一个**刺眼的标记** ✓，
+                // 让任何对拍**当场判红** ✗，**绝不**伪装成合法输出 ✓。
+                Meta { id, .. } => DocPtr::from(format!("⟨meta#{id}⟩")).as_unparenable(),
                 Var { dbj_idx, .. } => self.pp_bvar(dbj_idx).as_unparenable(),
                 Sort { level, .. } => self.pp_sort(level),
                 Const { name, levels, .. } => self.pp_const(name, levels),
@@ -922,6 +926,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             return false
         }
         match self.read_expr(e) {
+            // **K1**：占位符没有绑元 ✓。
+            Meta { .. } => false,
             Var { dbj_idx, .. } => dbj_idx == i,
             App { fun: a, arg: b, .. } => self.has_var(a, i) || self.has_var(b, i),
             Pi { binder_type, body, .. } | Lambda { binder_type, body, .. } =>

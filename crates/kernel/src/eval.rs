@@ -572,6 +572,12 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             return self.apply(depth, f, a);
         }
         match first {
+            // **K1 硬不变式**：占位符**不许**进判定层 ✓（含它的声明在入口就被拒 ✗）。
+            // 真到了这里 ⇒ **响亮报错** ✗（绝不静默算错 ✓）。
+            Expr::Meta { id, .. } => panic!(
+                "eval: meta placeholder ?m{id} reached the kernel (a declaration containing \
+                 a metavariable must be rejected before this point)"
+            ),
             Expr::Var { dbj_idx, .. } => {
                 let v = env.lookup(dbj_idx).expect("eval: loose bvar");
                 self.force_thunk(depth, v)

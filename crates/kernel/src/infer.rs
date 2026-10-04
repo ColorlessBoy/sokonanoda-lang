@@ -91,6 +91,11 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         e: ExprPtr<'t>,
     ) -> V<'t> {
         match self.ctx.read_expr(e) {
+            // **K1 硬不变式**：同 `eval` ✓ —— 判定层不该见到占位符 ⇒ 响亮报错 ✗。
+            Meta { id, .. } => panic!(
+                "infer: meta placeholder ?m{id} reached the kernel (a declaration containing \
+                 a metavariable must be rejected before this point)"
+            ),
             Var { dbj_idx, .. } => return ctx.lookup(dbj_idx).expect("loose bvar in infer"),
             Sort { level, .. } => {
                 if let (Check, Some(info)) = (flag, self.declar_info) {

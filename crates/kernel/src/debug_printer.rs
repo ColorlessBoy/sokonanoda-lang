@@ -121,6 +121,8 @@ impl<'x, 't, 'p> std::fmt::Debug for DebugPrinter<'x, 't, 'p, LevelPtr<'t>> {
 impl<'x, 't, 'p> std::fmt::Debug for DebugPrinter<'x, 't, 'p, ExprPtr<'t>> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.ctx.read_expr(self.elem_to_print) {
+            // **K1**：调试打印里**明确显示**它 ✓（`pp` 那条路另算 —— 见 `pretty_printer` ✓）。
+            Meta { id, .. } => write!(f, "?m{}", id),
             Var { dbj_idx, .. } => write!(f, "${}", dbj_idx),
             Sort { level, .. } => write!(f, "Sort({:?})", self.ctx.debug_print(level)),
             Const { name, levels, .. } => {
