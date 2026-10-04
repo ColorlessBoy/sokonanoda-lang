@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
-# G-86 复现：**短写的隐式调用当实参时吃不到期望类型** ⇒ 未约束的隐式参数被"兄弟同形"兜底填错 ✗
+# **G-30 的第二件复现**（`G30b` ✓）：**短写的隐式调用当实参时吃不到期望类型** ⇒
+# 未约束的隐式参数被「兄弟同形」兜底填错 ✗
+#
+# ⚠ **编号来历**（2026-10-04 值守记账复核 ✓）：本条原登记为 **G-86**（10-03 07:55 · `39d9507b` ✓，
+# open / painful ✓），但 10-04 内核线把**另一件事**（记法粘连抢走标识符）也登记成 G-86 ✗
+# ⇒ 顶掉了它 ✗。经复核：本条与 **G-30**（期望类型不传播到嵌套应用的实参 ✓）是**同一道闸**
+# —— 老 G-86 的 `where` 自己写着「只对零元记法/集合字面量算实参的期望类型 ✗，普通应用实参一律 `None` ✗」✓
+# = G-30 的 `where` ✓ ⇒ **并入 G-30** ✓（原文与定位链全挂在 G-30 名下 ✓），本文件按 G-30 命名 ✓。
 #
 # ── 缺口原文（课程线 `f5ada75a` 交来的最小复现 · 内核线逐点复核 ✓）──
 #   axiom P : Prop
@@ -43,7 +50,7 @@ BIN="${SOKONANODA_BIN:-}"
 if [ -z "$BIN" ]; then
   if [ -x target/debug/sokonanoda ]; then BIN=target/debug/sokonanoda
   elif [ -x target/release/sokonanoda ]; then BIN=target/release/sokonanoda
-  else echo "G-86: 找不到 sokonanoda 二进制（先 cargo build -p sokonanoda-cli）" >&2; exit 2; fi
+  else echo "G-30b: 找不到 sokonanoda 二进制（先 cargo build -p sokonanoda-cli）" >&2; exit 2; fi
 fi
 
 WORK="$(mktemp -d)"
