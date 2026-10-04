@@ -25,6 +25,9 @@
   **以前判红的形状会转绿** ✓（翻掉的那条 `eq_mp_is_universe_polymorphic` 就是证据 ✓）。
   ⇒ 凡这类改动：**① 进本节 ✓ · ② 进发版说明 ✓ · ③ 发版节点必须跑整本课程「逐字节 + 计数」** ✓，
   **计数变了逐条定性** ✓（修好了还是改坏了 ✓），**不许只比"受影响子集"就收** ✗。
+  ✅ **G-93 这条已跑过** ✓（2026-10-04 ✓）：整本课程 **计数两态相同** ✓（`compiled 243` · `failed 6` ✓，
+  **无形状由红转绿** ✓）+ 剔心跳**逐字节相同** ✓；⚠ 原始行数差 **92 行** ✗ —— **只在**
+  `build.tick`/`build.progress` 这两种**计时心跳** ✓ ⇒ **不是判定差异** ✓。
 * 声明已同步 ✓：`AGENTS.md`（硬规则 1 + CI 节奏 1 + 长命令节 ✓）· `skills/sokonanoda-dev/SKILL.md` ✓ ·
   `scripts/dev-verify.sh` 文件头 ✓ · `docs/architecture.md` §6 政策 ✓ · `docs/LESSONS.md` ✓ ·
   `fuzz/README.md` ✓ · 本文件 ✓。⚠ `AGENTS.md`/`architecture.md`/`LESSONS.md` **都卡在上限** ⇒ 加内容要**折进既有行** ✓。
