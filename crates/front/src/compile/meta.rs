@@ -556,6 +556,49 @@ impl<'a> MetaCtx<'a> {
         }
         MetaSolve::Solved(out)
     }
+
+    /// **IA-4 B2 第 2 步（2026-10-05 ✓）**：出口的**放宽版** ✓ —— **不要求全解出** ✗。
+    ///
+    /// 与 [`Self::discharge`] 的区别**只有一处** ✗：第 4 步那道 `unsolved()` 闸**不开** ✓ ——
+    /// 已解的照旧 `zonk` ✓，**未解的连 id 一起返回** ✓（它们的 `postponed` **留在 store 里** ✓，
+    /// 等**声明末尾**再 `unify_all` ✓）。
+    ///
+    /// ⚠ **红线 1 仍然守** ✓：本方法**只允许在 elaborate 期用** ✗ —— 返回的 `Vec<Expr>` 里
+    /// **可能含元变量名** ✓（`\0soko_m{id}` ✓），它们**绝不许进内核** ✗（K1 的
+    /// `add_declar` 入口硬拒是兜底 ✓，`builder.rs:399` ✓）。
+    ///
+    /// ⚠ **硬错误照旧失败** ✓（`kind` 不对 / 刚性冲突 ⇒ 通道归因 ✓，不会因为"允许未解"被盖掉 ✗）。
+    // ⚠ **本步还没有生产调用方** ✗（B2 第 3 步才把它接进 `Lambda` 臂 ✓）⇒
+    // 仓库对 dead code 严格 ✓ ⇒ 显式放行 + 写明理由 ✓（同 `probe_tag` 的处置 ✓）。
+    #[allow(dead_code)]
+    pub(crate) fn discharge_keep_unsolved(
+        &mut self,
+        ids: &[MetaId],
+    ) -> Result<(Vec<Expr>, Vec<MetaId>), MetaSolve> {
+        if self.unify_all() == Tri::No {
+            return Err(self.channel());
+        }
+        if self.first_err.is_some() {
+            return Err(self.channel());
+        }
+        if let Err(e) = self.default_unresolved() {
+            return Err(match e {
+                MetaErr::Kind => MetaSolve::Kind,
+                _ => MetaSolve::Clash,
+            });
+        }
+        let mut out = Vec::with_capacity(ids.len());
+        let mut still = Vec::new();
+        for id in ids {
+            let v = self.zonk(&self.meta_expr(*id));
+            if has_unassigned_meta(&v) {
+                // **未解** ✓ ⇒ **原样返回元变量名** ✓（不进内核 ✗）+ 记下 id ✓。
+                still.push(*id);
+            }
+            out.push(v);
+        }
+        Ok((out, still))
+    }
 }
 
 /// `v : Sort n` 的那个 `n`（**三值**：`None` = 不知道 ⇒ 调用方放行）。
@@ -1097,5 +1140,39 @@ mod tests {
         let mut m = ctx_with(&no_unfold);
         let b = m.fresh(ident("Type"), MetaKind::Natural, vec![]);
         assert!(matches!(failed(&mut m, &[b]), MetaSolve::Unsolved));
+    }
+
+    /// **IA-4 B2 第 2 步（2026-10-05 ✓）**：出口的**放宽版** ✓ ——
+    /// 判据两条，**都必须能咬住** ✗（`AGENTS.md`：咬不住的守卫等于没有 ✓）：
+    /// ① 未解的元变量**连 id 一起返回** ✓（严格版对同一输入**必须**报 `Unsolved` ✗ —— 对照组 ✓）；
+    /// ② **已解**的照旧 `zonk` 成值 ✓（放宽不等于不 zonk ✗）。
+    ///
+    /// ⚠ **反向验证** ✓：把 `discharge_keep_unsolved` 里的 `still.push` 去掉 ⇒ 第 ① 条**判红** ✗。
+    #[test]
+    fn discharge_keep_unsolved_returns_live_metavariables() {
+        // ① **未解** ⇒ 连 id 一起返回 ✓；同输入的**严格版**报 `Unsolved` ✗（对照 ✓）。
+        let mut m = ctx_with(&no_unfold);
+        let a = m.fresh(ident("Type"), MetaKind::Natural, vec![]);
+        let (out, still) = m
+            .discharge_keep_unsolved(&[a])
+            .expect("放宽版**不许**因为「还有未解」就失败 ✗");
+        assert_eq!(still, vec![a], "未解的元变量必须**连 id 一起返回** ✓");
+        assert!(
+            has_unassigned_meta(&out[0]),
+            "未解的那一位必须**原样**是元变量名 ✓（B2 靠它把期望类型带出这次求解 ✓）"
+        );
+        let mut m2 = ctx_with(&no_unfold);
+        let b = m2.fresh(ident("Type"), MetaKind::Natural, vec![]);
+        assert!(
+            matches!(failed(&mut m2, &[b]), MetaSolve::Unsolved),
+            "**严格版**对同一输入必须报 `Unsolved` ✗（否则这条对照是空转 ✗）"
+        );
+        // ② **已解** ⇒ zonk 成值 ✓、`still` 为空 ✓。
+        let mut m3 = ctx_with(&no_unfold);
+        let c = m3.fresh(ident("Type"), MetaKind::Natural, vec![]);
+        m3.assign(c, ident("Nat")).expect("赋一个无元变量的值 ✓");
+        let (out3, still3) = m3.discharge_keep_unsolved(&[c]).expect("已解 ⇒ 必成功 ✓");
+        assert!(still3.is_empty(), "已解的不该出现在 `still` 里 ✓");
+        assert!(!has_unassigned_meta(&out3[0]), "已解的必须被 zonk 成值 ✓");
     }
 }
