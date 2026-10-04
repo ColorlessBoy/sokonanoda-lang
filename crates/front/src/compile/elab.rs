@@ -4635,6 +4635,9 @@ pub(crate) fn elab_expr<'a>(
                 expected_src,
                 ctx,
             )? {
+                // ⚠ **这条路会 early-return** ✗ ⇒ G-93 那条补层**必须也挂在这里** ✓
+                // （实测：`myax α a` 走的就是这条 ⇒ 只挂下面那处 ⇒ 它永远补不到 ✗）。
+                let out = infer_const_universes(builder, known, ctx, scope, expr, out)?;
                 record_hover(hovers, scope, *span, out, None);
                 return Ok(out);
             }
@@ -4682,6 +4685,9 @@ pub(crate) fn elab_expr<'a>(
             // `Type`」都写不出来。这里用**期望类型的宇宙**把它补回来。
             let out =
                 infer_recursor_universes(builder, known, ctx, scope, expr, out, expected_src)?;
+            // **G-93 真修（第 21 棒 ✓）**：裸常量的宇宙层**从签名与实参类型解出来** ✓
+            // （递归子那条补的是**结果**层，这条补的是**参数**层 —— 两回事 ✓）。
+            let out = infer_const_universes(builder, known, ctx, scope, expr, out)?;
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
@@ -6325,6 +6331,119 @@ fn infer_recursor_universes<'a>(
 
 /// 把一条已 elaborate 的**应用脊**的头常量换成另一个宇宙层级表（G-58/G-59 用）。
 /// 头不是 `Const` ⇒ 原样返回。
+/// **G-93 真修**：裸常量（**没写 `.{n}`**）的宇宙层，**从签名与实参类型解出来** ✓。
+///
+/// ## 病根（第 18/19 棒实测定位 ✓）
+///
+/// `Expr::Ident` 那条路把常量的**每一个**宇宙位都写成 `0` ✗
+/// （`elab.rs:4525` 的 `params.iter().map(|_| builder.zero())` —— 全文件**唯一**一处 ✓）
+/// ⇒ `Eq.refl α a`（`α : Type`）被当成 `Eq.refl.{0}` ✗
+/// ⇒ 内核「**期望 `Sort(0)`，实际是 `Sort(1)`**」✗。
+/// 前置库的 `Eq` 一族（`Eq`/`Eq.refl`/`Eq.subst`/`Ne`/`Eq.symm`/`congrArg`/`Quot`… ✓）
+/// 全是 `{u}` 多态的 ✓ ⇒ **课程里最常见的证明项**全中招 ✗。
+///
+/// ## ⚠ 第 20 棒试过「位置式」修法，**被判据否掉** ✗ —— 这条是它的修正版 ✓
+///
+/// 位置式 = 「取**首个书写实参**的类型 ⇒ 就当那个宇宙位」✗ —— 症状面确实转绿 ✓
+/// 但 `courses/set-theory/lib/Order.sokonanoda` 第 474 行 `Acc.intro` 当场
+/// `compiled → failed` ✗（**首个实参未必对应宇宙位所在的形参** ✗）。
+/// ⇒ **本版加了签名闸门** ✓：**层 0 的域必须恰好是 `Sort <该常量自己的某个宇宙参数>`** ✓
+/// —— 签名导向 ✓，不是按位置猜 ✗。`Acc` 是**单态**的（`(α : Type)` ✓，宇宙位 0 个 ✓）
+/// ⇒ 连闸门都进不来 ✓。
+///
+/// ## 为什么从**实参**读、而不是从**期望类型**读（与递归子那条的区别 ✓）
+///
+/// `u` 是**参数**层（`{α : Sort u}` 里 `α` 的层 ✓），**不是结果层** ✗ ——
+/// 递归子那条要的消去层级才是结果层 ✓（`infer_recursor_universes` ✓）。
+/// ⚠ **记法那条路早就在这么做** ✓（`universe_level_text_of_operands` ✓，
+/// 实测 `: a = a := sorry` 判绿 ✓ 而指向式 `: Eq α a a := sorry` 判红 ✗）
+/// ⇒ 这条只是把**同一个口径**铺到普通常量应用上 ✓，不是新发明 ✓。
+///
+/// ## 安全性质（照 `infer_recursor_universes` ✓）
+///
+/// * **免费闸门**：头不是**裸 `Ident`**（写了 `.{n}` ⇒ 用户说了算 ✓）⇒ 原样返回 ✓；
+/// * **签名闸门** ✓：宇宙位**恰好 1 个** ✗（多宇宙位的对齐是另一件事，见 G-63 ✗）·
+///   签名文本拿得到 ✓ · 层 0 的域**恰好**是 `Sort <自己的宇宙参数>` ✓ ——
+///   三者缺一 ⇒ 原样返回 ✓（**这是第 20 棒那版缺的那道闸** ✗）；
+/// * **算不出 / 算成 0 ⇒ 原样返回** ✓（`Prop` 那档默认值**碰巧是对的** ✓，别去动它 ✗）；
+/// * prelude 安装期间**不推断** ✓（同 `infer_recursor_universes` 的理由：那一段的
+///   慢路看不见正在安装的名字 ⇒ 就地路与慢路会分叉 ✗）。
+///
+/// 逃生门：`SOKO_NO_CONST_LEVELS=1`（排查用 ✓，**不是**降级结案 ✗）。
+fn infer_const_universes<'a>(
+    builder: &mut EnvBuilder<'a>,
+    known: &KnownTable,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    src: &Expr,
+    out: ExprPtr<'a>,
+) -> Result<ExprPtr<'a>, CompileError> {
+    if std::env::var_os("SOKO_NO_CONST_LEVELS").is_some() {
+        return Ok(out);
+    }
+    if prelude_install_active() {
+        return Ok(out);
+    }
+    let (head, args) = crate::spine::spine_of(src);
+    // 只有**裸 `Ident`**（不带 `.{...}`）才补 ✓ —— 写了 `.{n}` 是 `UniverseApp`，
+    // 用户已经说了算 ⇒ 原样返回 ✓（这条就是"显式写法行为不变"的守卫 ✓）。
+    let Expr::Ident { name, .. } = head else {
+        return Ok(out);
+    };
+    let Some(info) = known.get(name.as_str()) else {
+        return Ok(out);
+    };
+    // **签名闸门①**：宇宙位**恰好 1 个** ✓（多位的层对齐见 G-63 ✗，不在这里猜 ✗）。
+    if info.universes().len() != 1 {
+        return Ok(out);
+    }
+    let Some(sig) = info.signature() else {
+        return Ok(out);
+    };
+    let Some((layers, _result)) = crate::compile::implicit::telescope(sig) else {
+        return Ok(out);
+    };
+    // **签名闸门②** ✓：层 0 的域必须**恰好**是 `Sort <该常量自己的宇宙参数>` ✓。
+    // 这一条就是第 20 棒缺的那道闸 ✗ —— 位置式在 `Acc.intro` 上翻车正是因为
+    // 它**不看签名** ✗。签名文本是**源级**的 ✓ ⇒ 里面的 `u` **没被默认掉** ✓
+    // （`KnownName::Decl::signature` 的文档原话：源文本写的是 `Eq.{u} α a b` ✓）。
+    let Some(layer0) = layers.first() else {
+        return Ok(out);
+    };
+    let dom0 = render_expr(&layer0.domain);
+    let Some(param) = dom0.trim().strip_prefix("Sort ").map(str::trim) else {
+        return Ok(out);
+    };
+    if !info.universes().iter().any(|u| u == param) {
+        return Ok(out);
+    }
+    let Some(first) = args.first() else {
+        return Ok(out);
+    };
+    // 首个**书写**实参 ↔ 首个形参 ✓（`Eq α a a` 的 `α` 填的正是隐式 `{α : Sort u}` ✓）。
+    let level_text = {
+        let mut env = InplaceEnv {
+            builder: &mut *builder,
+            known,
+        };
+        infer_type_text(ctx, scope, first, Some(&mut env))
+    };
+    // 类型文本 ⇒ 宇宙层级 ✓（`Prop`⇒`0` · `Type n`⇒`n+1` · `Sort n`⇒`n` ✓）。
+    let Some(level) = level_text.as_deref().and_then(level_text_of_sort) else {
+        return Ok(out);
+    };
+    let Ok(n) = level.trim().parse::<u64>() else {
+        return Ok(out);
+    };
+    // `0` 就是今天的默认值 ✓ —— 那档**碰巧是对的**（`Prop` ✓），别去动它 ✗。
+    if n == 0 {
+        return Ok(out);
+    }
+    let levels = [level_from_u64(builder, n)];
+    let levels = builder.alloc_levels_slice(&levels);
+    Ok(relabel_app_head(builder, out, levels))
+}
+
 fn relabel_app_head<'a>(
     builder: &mut EnvBuilder<'a>,
     e: ExprPtr<'a>,

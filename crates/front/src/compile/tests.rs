@@ -2523,15 +2523,21 @@ def step {u} (α : Sort u) (a : α) : Sort (u+1) := Sort u\n";
         "Eq.mp/Eq.mpr/cast must be universe polymorphic (design §2 as-built): {:?}",
         out.errors
     );
-    // 边界（as-built）：本语言不给隐式实参、也不给宇宙推断 ⇒ **裸写** `Eq.mp`
-    // 仍按 u=0 实例化（与 `Eq.symm`/`Eq.rec` 同一条既有规则）。Type 0 的调用
-    // 形状因此从 0.60.0 的 `Eq.mp α β h` 变成 `Eq.mp.{1} α β h`（签名变更）。
+    // ⚠ **旧边界（as-built，已作废 ✗）**：这里原先是「本语言不给宇宙推断 ⇒ **裸写**
+    // `Eq.mp` 仍按 u=0 实例化」✗，并断言 `out.errors` 里出现 `Sort(0)` ✗
+    // —— 那是**钉住缺陷**的断言 ✓（与 `meta::tests::fuel_bounds_the_work` 同形 ✗）。
+    //
+    // **G-93 真修（2026-10-04 第 21 棒 ✓）**：裸常量的宇宙层现在**从签名与实参类型
+    // 解出来** ✓（`elab::infer_const_universes` ✓ —— 签名闸门：层 0 的域必须是
+    // `Sort <自己的宇宙参数>` ✓）。⇒ 这一档**应当判绿** ✓，断言据此**翻过来** ✓。
+    // 复现件：`docs/gaps/repro/G93-universe-level-not-inferred.sh` ✓（五相位全绿 ✓）。
     let out = compile_fol(
         &parse("def id_mp (A : Type) : A -> A := Eq.mp A A (Eq.refl.{2} Type A)\n").unwrap(),
     );
-    assert!(
-        out.errors.iter().any(|e| e.message.contains("Sort(0)")),
-        "bare Eq.mp must instantiate u := 0 (no universe inference): {:?}",
+    assert_eq!(
+        out.errors,
+        vec![],
+        "裸 Eq.mp 现在**推断** u（G-93 已修 ✓）：{:?}",
         out.errors
     );
 }
