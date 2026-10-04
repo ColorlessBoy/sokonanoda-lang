@@ -13,6 +13,7 @@ pub mod debug_printer;
 pub mod env;
 pub mod eval;
 pub mod expr;
+pub mod gates;
 pub mod inductive;
 pub mod infer;
 pub mod level;

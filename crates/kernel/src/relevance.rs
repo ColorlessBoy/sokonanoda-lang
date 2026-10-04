@@ -75,6 +75,11 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             let cur_f = self.force_all(depth, cur);
             let Value::Pi { domain, body, .. } = cur_f else { break Some(cur_f) };
             if dom.len() >= MAX_TRACKED as usize {
+                // **闸类计数出口** ✓（G-90/G-91）：望远镜超过 64 位 ⇒ 签名**丢精度** ✗
+                // （`terminal = None` ⇒ 结果那一格判不了 ✓）。丢精度只该**变慢** ✓
+                // （少一条捷径 ✓），**绝不许**变错 ✗ —— 但**必须可见** ✗。
+                // 终点 = 对齐 Lean 的 `synthInstance.maxSize = 128` ✓。
+                crate::gates::SIG_OVERFLOW.bump();
                 break None;
             }
             let d = *domain;
@@ -106,6 +111,9 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                     if self.ctx.is_zero(r) {
                         prop_result |= 1u64 << n;
                     }
+                } else {
+                    // 结果那一格超出掩码宽度 ⇒ 同样丢精度 ✓（计数出口，见上 ✓）。
+                    crate::gates::SIG_OVERFLOW.bump();
                 }
                 for k in (0..n).rev() {
                     let Some(s) = dom[k] else { break };

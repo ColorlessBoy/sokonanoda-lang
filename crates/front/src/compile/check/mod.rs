@@ -818,8 +818,15 @@ bare_miss_ms={} bare_miss_share={:.3}",
                 // 那边**真的重解析了一整份前缀**的趟数 ✗（预置生效 ⇒ 应当 ≈ 0 ✓）。
                 let identity_parses = crate::judge::identity_parses();
                 let identity_evictions = crate::judge::identity_evictions();
+                // **闸类计数出口**（G-91 ✓）：凡「超过某个数字就换一条路」的分支，
+                // 触发了多少次**必须看得见** ✗ —— 没有出口就分不清「没触发」和
+                // 「触发了但没人知道」✓（`PARSE_LIMIT` 被抓到纯属侥幸 ✗）。
+                let gates: String = sokonanoda::gates::report()
+                    .iter()
+                    .map(|(name, n)| format!(" {name}={n}"))
+                    .collect();
                 eprintln!(
-                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={} fallbacks={fallbacks} identity_parses={identity_parses} identity_evictions={identity_evictions}",
+                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={} fallbacks={fallbacks} identity_parses={identity_parses} identity_evictions={identity_evictions}{gates}",
                     ms(PASS_NANOS.load(Ordering::Relaxed)),
                     ms(BY_NANOS.load(Ordering::Relaxed)),
                     ms(crate::judge::stats::nanos()),

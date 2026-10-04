@@ -150,6 +150,11 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     fn unify_no_cache<const RIGID: bool>(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
         if self.tc_cache.probe_depth > 0 {
             if self.tc_cache.probe_budget == 0 {
+                // **闸类计数出口** ✓（G-89/G-91）：预算耗尽**必须可见** ✗ ——
+                // 它只许表示「这次探查不可信 ⇒ 调用方**弃权**走全量」✓，
+                // **绝不许**表示「不相等」✗（`probe_pass` 读 `probe_exhausted` 后
+                // 会把它当**未决**处理 ✓ —— 这条计数就是钉住那件事的 ✓）。
+                crate::gates::PROBE_EXHAUSTED.bump();
                 self.tc_cache.probe_exhausted = true;
                 return false;
             }
@@ -564,6 +569,12 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         };
         let k = spine.len();
         if k >= MAX_TRACKED || app_prefix_len(spine) != k {
+            // **闸类计数出口** ✓（G-90/G-91）：参数个数超过 `MAX_TRACKED`（64 位掩码）
+            // ⇒ 相关性判定**放弃** ✓ —— 放弃只该**变慢** ✓（多走一次全量比较 ✓），
+            // 但**必须可见** ✗。终点 = 对齐 Lean 的 `synthInstance.maxSize = 128` ✓。
+            if k >= MAX_TRACKED {
+                crate::gates::SIG_ARITY_CLAMPED.bump();
+            }
             return false;
         }
         let sig = self.sig_of(name, levels);

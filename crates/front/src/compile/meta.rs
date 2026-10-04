@@ -228,6 +228,16 @@ impl<'a> MetaCtx<'a> {
 
     fn unify_impl(&mut self, l: &Expr, r: &Expr, allow_unfold: bool) -> Tri {
         if self.fuel == 0 || self.depth >= MAX_DEPTH {
+            // ⚠ **这是唯一一处「判不了 ⇒ 当成否」的分支** ✗（G-88 本体 ✓）。
+            // 值守 13:12 的总规矩：预算耗尽**只允许变慢** ✓，绝不允许**变错** ✗ ——
+            // 而这里返回 `Tri::No`（= 不成立 ✓）⇒ 学习者的长证明会被判成「解不出来」✗，
+            // **而那不是真的无解** ✗。
+            // 终点（值守 13:21/13:24 两步走 ✓）：① 可配置化（默认值**一个不动** ⇒
+            // 零行为变化 ✓）；② 放宽默认值到 Lean 的数值（`maxHeartbeats` 4096→20000 ✓、
+            // `maxRecDepth` 64→3200 ✓）——**单独一笔** ✓。
+            // **计数出口**（G-91 ✓）：先看清它现在**真的**触发几次 ✓ ——
+            // 0 次也留闸 + 断言 ✓；> 0 次就是**活的内核级降级** ✗ ⇒ 必须真修 ✓。
+            sokonanoda::gates::META_BUDGET_EXHAUSTED.bump();
             return Tri::No; // 预算耗尽 ⇒ 按「无解」处理（不新增失败面）
         }
         self.fuel -= 1;
@@ -383,9 +393,13 @@ impl<'a> MetaCtx<'a> {
                 return Tri::Yes;
             }
             if self.postponed.len() >= before {
+                // **弃权**（正当 ✓：判不了 ⇒ 走慢路 ✓）—— 但仍要有出口 ✗（G-91 ✓）。
+                sokonanoda::gates::UNIFY_NO_PROGRESS.bump();
                 return Tri::Undef; // 没有净进展 ⇒ 停（不是无界工作队列 ✓）
             }
         }
+        // 轮数用光 ⇒ 同样是**弃权** ✓（不是"判否"✗）—— 出口同上 ✓。
+        sokonanoda::gates::UNIFY_ROUNDS_EXHAUSTED.bump();
         Tri::Undef
     }
 
