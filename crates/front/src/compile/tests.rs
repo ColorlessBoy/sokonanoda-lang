@@ -9638,3 +9638,20 @@ theorem t : Eq.{1} (Set Two) (f1 '' (({aa}) \u{2229} ({bb}))) (f1 '' (\u{2205}))
         out.events
     );
 }
+
+/// **探针身份**（值守 2026-10-04 拍板 ✓；规则见 `AGENTS.md`「探针读数必须带构建身份」✓）。
+///
+/// 钉两条 ✓：① 身份**非空且自描述**（含 `build=` ✓ —— 两份不同构建的日志**并排就自明不可比** ✓）；
+/// ② 行模板**统一**（`[<身份>] <标签> <正文>` ✓ —— 不统一就又要靠人记 ✗）。
+/// ⚠ 反向验证 ✓：把 `probe_tag` 改成返回 `""` ⇒ 本测试**判红** ✗（守卫咬得住 ✓）。
+#[test]
+fn probe_identity_is_stable_and_self_describing() {
+    let tag = crate::compile::elab::probe_tag();
+    assert!(!tag.is_empty(), "探针身份不许为空 ✗（空身份 = 不可比却看不出来 ✗）");
+    assert!(tag.contains("build="), "身份必须自描述（含 `build=` ✓）：{tag:?}");
+    let line = crate::compile::elab::probe_line("FOS-IN", "head=Iff.intro");
+    assert!(line.starts_with('['), "行模板必须统一（`[<身份>] …` ✓）：{line:?}");
+    assert!(line.ends_with("FOS-IN head=Iff.intro"), "标签与正文要原样保留 ✓：{line:?}");
+    // 同一个进程里身份必须**稳定** ✓（`OnceLock` ✓）—— 否则同一次跑的日志会自相矛盾 ✗。
+    assert_eq!(tag, crate::compile::elab::probe_tag(), "同进程内身份必须稳定 ✓");
+}

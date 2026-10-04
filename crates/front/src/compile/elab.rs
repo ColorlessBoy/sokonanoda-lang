@@ -1552,6 +1552,50 @@ fn notation_argument_unsolved(symbol: &str, target: &str, span: Span) -> Compile
 /// 其余形状（点名、应用、lambda…）不需要，于是**零开销**——这是这条推广不拖慢
 /// 编译的关键。
 /// 开关 `SOKO_ARG_EXPECTED`（**默认关** ✓）：关着时本片**一次都不进** ⇒ 逐字节不变 ✓。
+/// **探针身份**（值守 2026-10-04 拍板 ✓ —— 见 `AGENTS.md`「探针读数必须带构建身份」✓）。
+///
+/// **为什么**：探针读数一旦跨**不同构建**比较就会得出**反向结论** ✗（第 5 轮实测：
+/// 四出口探针散在不同构建里 ⇒ 不可比却当可比 ⇒ 白烧一轮 ✓）。
+/// 所以每条读数**行首自带身份** ✓ ⇒ 两份日志**并排就自明不可比** ✓（不靠人记 ✓）。
+///
+/// **取法（同一处取 ✓）**：**运行中二进制**的 mtime 秒 + 字节数 ✓ —— 零依赖、零内核调用 ✓，
+/// 且**改了任何前端代码重编都会变** ✓（这正是"同一份构建"的判据 ✓）。
+/// ⚠ `#[allow(dead_code)]` **是故意的** ✓：它是**探针工具**（平时没有调用点 ✓，
+/// 只在"要打探针"时被临时接上 ✓）⇒ 不能因为"当前没人用"就删掉 ✗。
+/// 它由下面 `probe_identity_is_stable_and_self_describing` 那条单测**钉住** ✓
+/// （守卫咬得住 ✓：模板一变、身份一空，测试就红 ✗）。
+#[allow(dead_code)]
+pub(crate) fn probe_tag() -> &'static str {
+    static TAG: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    TAG.get_or_init(|| {
+        let meta = std::env::current_exe()
+            .ok()
+            .and_then(|p| std::fs::metadata(p).ok());
+        match meta {
+            Some(m) => {
+                let secs = m
+                    .modified()
+                    .ok()
+                    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                format!("build={secs} bytes={}", m.len())
+            }
+            None => "build=unknown".to_string(),
+        }
+    })
+    .as_str()
+}
+
+/// **探针行模板（统一 ✓）**：`[<构建身份>] <标签> <正文>` ✓。
+///
+/// ⚠ **纪律**（`AGENTS.md` ✓）：① 探针**必须打在判据生效点之后** ✗（打反了会得出**反向结论** ✗）；
+/// ② **跑完必还原** ✓（`grep` = 0 ✓）；③ 不同构建的读数**只能各自单独看** ✗。
+#[allow(dead_code)]
+pub(crate) fn probe_line(tag: &str, body: &str) -> String {
+    format!("[{}] {} {}", probe_tag(), tag, body)
+}
+
 pub(crate) fn arg_expected_enabled() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ON.get_or_init(|| {
