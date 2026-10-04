@@ -1007,7 +1007,13 @@ pub fn canonical_prefix_id(src: &str) -> String {
     };
     let mut out = String::new();
     for command in &file.commands {
-        out.push_str(&command_env_id(src, command));
+        let id = command_env_id(src, command);
+        // **空身份不进** ✓（`import` 与 `example` 都是空 ✓）：否则会多出一个换行 ✗，
+        // 让"改 `example` 不惊动任何东西"这条判据假红 ✗。
+        if id.is_empty() {
+            continue;
+        }
+        out.push_str(&id);
         out.push('\n');
     }
     out
@@ -1023,8 +1029,13 @@ fn command_env_id(src: &str, command: &Command) -> String {
         return String::new();
     }
     let full = || slice_span(src, command.span());
+    // `example` **完全不进** ✓（值守口径 ✓）：它**匿名** ⇒ 下游**引用不到**它 ✓
+    // ⇒ 改它（连类型一起改）**不该惊动任何东西** ✓。
+    if matches!(command, Command::Example { .. }) {
+        return String::new();
+    }
     let statement = match command {
-        Command::Theorem { ty, .. } | Command::Example { ty, .. } => {
+        Command::Theorem { ty, .. } => {
             // **名字 + 类型** = 从命令起点切到**类型表达式的终点** ✓（`:=` 与证明体都不进 ✓）。
             // ⚠ 别用 `val.span().start` ✗ —— 实测它的起点**不在证明体之前** ✗
             // （`theorem t (n : Nat) : f n = n := …` 切出来只有 `theorem t ` ✗ ⇒ 陈述没进身份 ✗）。

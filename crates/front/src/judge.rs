@@ -2832,6 +2832,14 @@ mod tests {
         // ④ 库层变 ⇒ 身份必变 ✓
         let with_lib = format!("axiom P : Prop\n{base}");
         assert_ne!(id(base), id(&with_lib), "改**库层**必须改身份 ✗");
+        // ⑥ `example` **匿名** ⇒ **完全不进**身份 ✓（改它连类型一起改也不惊动任何东西 ✓）
+        let with_example = base.replace("def f", "example : True := True.intro\n\ndef f");
+        assert_ne!(with_example, base, "夹具前提：⑥这一刀必须真的改到文本");
+        assert_eq!(
+            id(&with_example),
+            id(base),
+            "`example` 是**匿名**的 ⇒ 不许进身份 ✗（下游引用不到它 ✓）"
+        );
         // ⑤ 记法声明变 ⇒ 身份必变 ✓
         let with_notation = base.replace("def f", "notation \"z\" => f\n\ndef f");
         assert_ne!(with_notation, base, "夹具前提：⑤这一刀必须真的改到文本");
