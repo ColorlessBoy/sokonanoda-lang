@@ -296,7 +296,11 @@ fn solve_prefix_meta(
             crate::spine::UnfoldAlign::Short,
         )
     };
-    let mut meta = crate::compile::meta::MetaCtx::new(&unfold);
+    // **IA-4 B2 第 1 步（2026-10-05 ✓）**：store 从 `MetaCtx` 里抽出来了 ✓ ——
+    // 今天仍**一次求解一个** ✓（行为逐字节不变 ✓）；B2 的下一步会把它挂到**声明级** ✓
+    // （用户 00:05：「允许活过一次求解调用」✓）。
+    let mut store = crate::compile::meta::MetaStore::default();
+    let mut meta = crate::compile::meta::MetaCtx::new(&unfold, &mut store);
     // ① 元变量（与窄版同一条闸门：前导位必须都有名字）
     let mut ids = Vec::with_capacity(k);
     for i in 0..k {

@@ -2462,7 +2462,11 @@ fn solve_prefix_args_meta<'a>(
             crate::spine::UnfoldAlign::Short,
         )
     };
-    let mut meta = crate::compile::meta::MetaCtx::new(&unfold);
+    // **IA-4 B2 第 1 步（2026-10-05 ✓）**：store 从 `MetaCtx` 里抽出来了 ✓ ——
+    // 今天仍**一次求解一个** ✓（行为逐字节不变 ✓）；B2 的下一步会把它挂到**声明级** ✓
+    // （用户 00:05：「允许活过一次求解调用」✓）。
+    let mut store = crate::compile::meta::MetaStore::default();
+    let mut meta = crate::compile::meta::MetaCtx::new(&unfold, &mut store);
     // ⓪ **望远镜名先换成 fresh 名**（与 `implicit::telescope` 的防捕获纪律对齐）：
     // `notation_telescope` 用的是**签名原文名**（`α`/`β`/`A`/`B`）⇒ 拿它当"作用域外"判据会与
     // **用户变量撞名**（实测：`theorem t (α β : Type) (b : β) : ¬ (∅ ≈ {b})` 里把 `β` 误判成

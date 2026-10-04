@@ -140,10 +140,21 @@ fn meta_limit(name: &str, default: u32) -> u32 {
 const MAX_ZONK_ROUNDS: u32 = 8;
 
 /// 求解上下文（**一次 `solve_prefix` 一个**；严格档一次都不构造 ⇒ 默认路径零分配 ✓）。
-pub(crate) struct MetaCtx<'a> {
+/// **IA-4 B2（2026-10-05 ✓）**：元变量的**数据**（**无生命周期** ✓）——
+/// 它要**跨一次求解调用**活着 ✓（用户 00:05：「允许活过一次求解调用」✓），
+/// 所以从 `MetaCtx` 里抽出来 ✗（ctx 带 `unfold` 的生命周期 ✗，数据不带 ✓）。
+/// ⚠ 字段全是 **owned** ✓（`MVar` 存 `Expr` ✓、`postponed` 存 `(Expr, Expr)` ✓）⇒ **零生命周期** ✓。
+#[derive(Default)]
+pub(crate) struct MetaStore {
     mvars: Vec<MVar>,
     /// 待定约束（`Undef` 的叶子自己压进来；`unify_all` 重扫到不动点）
     postponed: Vec<(Expr, Expr)>,
+}
+
+pub(crate) struct MetaCtx<'a> {
+    /// **数据借自 `MetaStore`** ✓（B2：让它可以跨求解活着 ✓ —— 今天调用方一次求解一个 store ✓，
+    /// B2 会把它挂到声明级 ✓）。
+    store: &'a mut MetaStore,
     fuel: u32,
     depth: u32,
     /// **本次求解的递归深度上限** ✓（撞了就**加倍**，见 `unify_impl` ✓）。
@@ -159,10 +170,9 @@ pub(crate) struct MetaCtx<'a> {
 }
 
 impl<'a> MetaCtx<'a> {
-    pub(crate) fn new(unfold: &'a dyn Fn(&Expr) -> Expr) -> Self {
+    pub(crate) fn new(unfold: &'a dyn Fn(&Expr) -> Expr, store: &'a mut MetaStore) -> Self {
         MetaCtx {
-            mvars: Vec::new(),
-            postponed: Vec::new(),
+            store,
             fuel: meta_limit("SOKO_LIMIT_MAX_HEARTBEATS", DEFAULT_FUEL),
             depth: 0,
             max_depth: meta_limit("SOKO_LIMIT_MAX_REC_DEPTH", MAX_DEPTH),
@@ -174,8 +184,8 @@ impl<'a> MetaCtx<'a> {
 
     /// 建一个元变量。`out_of_scope` = 该位**更晚**的望远镜参数名（作用域检查用）。
     pub(crate) fn fresh(&mut self, ty: Expr, kind: MetaKind, out_of_scope: Vec<String>) -> MetaId {
-        let id = MetaId(self.mvars.len() as u32);
-        self.mvars.push(MVar {
+        let id = MetaId(self.store.mvars.len() as u32);
+        self.store.mvars.push(MVar {
             ty,
             value: None,
             kind,
@@ -194,13 +204,13 @@ impl<'a> MetaCtx<'a> {
 
     #[allow(dead_code)] // M2 的调用方（`implicit::solve_prefix` 的接线）会用
     pub(crate) fn value(&self, m: MetaId) -> Option<Expr> {
-        self.mvars[m.0 as usize].value.clone()
+        self.store.mvars[m.0 as usize].value.clone()
     }
 
     /// **出口 zonk**：把已赋值的元变量代进 `e`（链式赋值有界迭代）。
     pub(crate) fn zonk(&self, e: &Expr) -> Expr {
         let mut sigma: HashMap<String, Expr> = HashMap::new();
-        for (i, m) in self.mvars.iter().enumerate() {
+        for (i, m) in self.store.mvars.iter().enumerate() {
             if let Some(v) = &m.value {
                 sigma.insert(meta_name(i as u32), v.clone());
             }
@@ -230,11 +240,11 @@ impl<'a> MetaCtx<'a> {
             if other == m {
                 continue;
             }
-            if crate::spine::mentions(&meta_name(m.0), &self.mvars[other.0 as usize].ty) {
+            if crate::spine::mentions(&meta_name(m.0), &self.store.mvars[other.0 as usize].ty) {
                 return Err(MetaErr::TypeOccurs);
             }
         }
-        for name in &self.mvars[m.0 as usize].out_of_scope {
+        for name in &self.store.mvars[m.0 as usize].out_of_scope {
             if !name.is_empty() && crate::spine::mentions(name, &v) {
                 return Err(MetaErr::Scope);
             }
@@ -243,13 +253,13 @@ impl<'a> MetaCtx<'a> {
         // （本内核**非累积**）。三值语法近似：**只拒"确定错"的**，`None` = 不知道 ⇒ 放行 ✓。
         if let (Some(k), Some(n)) = (
             sort_of_value(&v),
-            sort_of_type(&self.mvars[m.0 as usize].ty),
+            sort_of_type(&self.store.mvars[m.0 as usize].ty),
         ) {
             if k != n {
                 return Err(MetaErr::Kind);
             }
         }
-        self.mvars[m.0 as usize].value = Some(v);
+        self.store.mvars[m.0 as usize].value = Some(v);
         Ok(())
     }
 
@@ -379,7 +389,7 @@ impl<'a> MetaCtx<'a> {
         }
         // 刚性冲突 vs 弃权：还有**未解**元变量 ⇒ 弃权（压进待定队列，等后续赋值）
         if has_unassigned_meta(&l) || has_unassigned_meta(&r) {
-            self.postponed.push((l, r));
+            self.store.postponed.push((l, r));
             return Tri::Undef;
         }
         // 刚性冲突：**归因**（M3 的三通道之一），调用方据此换一句 message（码不变）
@@ -431,21 +441,21 @@ impl<'a> MetaCtx<'a> {
     /// **停条件 = 待定计数不再严格下降**（与 Lean `processPostponed` 同款）。
     pub(crate) fn unify_all(&mut self) -> Tri {
         for _ in 0..MAX_ROUNDS {
-            if self.postponed.is_empty() {
+            if self.store.postponed.is_empty() {
                 return Tri::Yes;
             }
-            let before = self.postponed.len();
-            let batch = std::mem::take(&mut self.postponed);
+            let before = self.store.postponed.len();
+            let batch = std::mem::take(&mut self.store.postponed);
             for (l, r) in batch {
                 // 仍然卡住的叶子会**自己重新压回** `postponed`
                 if self.unify(&l, &r) == Tri::No {
                     return Tri::No;
                 }
             }
-            if self.postponed.is_empty() {
+            if self.store.postponed.is_empty() {
                 return Tri::Yes;
             }
-            if self.postponed.len() >= before {
+            if self.store.postponed.len() >= before {
                 // **弃权**（正当 ✓：判不了 ⇒ 走慢路 ✓）—— 但仍要有出口 ✗（G-91 ✓）。
                 sokonanoda::gates::UNIFY_NO_PROGRESS.bump();
                 return Tri::Undef; // 没有净进展 ⇒ 停（不是无界工作队列 ✓）
@@ -459,20 +469,20 @@ impl<'a> MetaCtx<'a> {
     /// **E19 选择规则的显式化**（设计 §2.7）：未解的位借**声明类型同形**的**已解**兄弟的值
     /// （按 index 升序取第一个）。**这不是推理、是选择** —— 与 `fill_pending_by_shape` 同一判据。
     pub(crate) fn default_unresolved(&mut self) -> Result<(), MetaErr> {
-        for i in 0..self.mvars.len() {
-            if self.mvars[i].value.is_some() {
+        for i in 0..self.store.mvars.len() {
+            if self.store.mvars[i].value.is_some() {
                 continue;
             }
-            let ti = self.zonk(&self.mvars[i].ty.clone());
+            let ti = self.zonk(&self.store.mvars[i].ty.clone());
             let mut picked: Option<Expr> = None;
-            for j in 0..self.mvars.len() {
+            for j in 0..self.store.mvars.len() {
                 if i == j {
                     continue;
                 }
-                let Some(v) = self.mvars[j].value.clone() else {
+                let Some(v) = self.store.mvars[j].value.clone() else {
                     continue;
                 };
-                let tj = self.zonk(&self.mvars[j].ty.clone());
+                let tj = self.zonk(&self.store.mvars[j].ty.clone());
                 if crate::spine::same_shape(&ti, &tj) {
                     picked = Some(v);
                     break;
@@ -486,7 +496,7 @@ impl<'a> MetaCtx<'a> {
     }
 
     pub(crate) fn unsolved(&self) -> Vec<MetaId> {
-        self.mvars
+        self.store.mvars
             .iter()
             .enumerate()
             .filter(|(_, m)| m.value.is_none())
@@ -761,8 +771,12 @@ mod tests {
     }
 
     /// 没有 delta 兜底的 ctx（单测里显式给展开函数的那条另测）。
+    /// ⚠ **B2 起 store 由调用方持有** ✓（`MetaCtx` 借用它 ✓ ⇒ 生命周期在调用方的栈上 ✓）。
     fn ctx_with<'a>(unfold: &'a dyn Fn(&Expr) -> Expr) -> MetaCtx<'a> {
-        MetaCtx::new(unfold)
+        // ⚠ **单测专用** ✓：store 借自一个 `Box::leak`（`'static` ✓ ⇒ 能coerce 到 `'a` ✓）
+        // ⇒ **18 个调用点一个字都不用改** ✓（每次调用泄漏一个空 store ✓ —— 只发生在测试里 ✓）。
+        let store: &'a mut MetaStore = Box::leak(Box::new(MetaStore::default()));
+        MetaCtx::new(unfold, store)
     }
 
     fn no_unfold(e: &Expr) -> Expr {
@@ -928,7 +942,7 @@ mod tests {
         let l = app(ident("Set"), ea);
         let r = arrow(eb, ident("Prop"));
         assert_eq!(m.unify(&l, &r), Tri::Undef);
-        assert_eq!(m.postponed.len(), 1);
+        assert_eq!(m.store.postponed.len(), 1);
         assert_eq!(m.unify_all(), Tri::Undef, "无净进展 ⇒ 停（不挂死）");
     }
 
@@ -937,7 +951,7 @@ mod tests {
     fn rigid_clash_is_no() {
         let mut m = ctx_with(&no_unfold);
         assert_eq!(m.unify(&ident("Nat"), &ident("Bool")), Tri::No);
-        assert!(m.postponed.is_empty());
+        assert!(m.store.postponed.is_empty());
     }
 
     /// **S13 硬约束**：两条约束**语法不同形但 defeq 一致** ⇒ delta 兜底必须救回来
