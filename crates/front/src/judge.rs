@@ -22,7 +22,8 @@
 //! 判定永远走 kernel，不做文本比对（REQUIREMENTS §2.8）。
 
 use crate::compile::{
-    check_document_with, compile_fol_with, run_incremental, CheckEvent, CompileError,
+    check_document_with, compile_fol_with, run_incremental, CheckEvent, CompileError, CompileOutput,
+    KernelFailed,
     CompileOptions, DeclStatus, DocumentReport, TrustPlan,
 };
 use crate::proof::{parse_expr_text, render_expr};
@@ -839,57 +840,12 @@ fn check_synthesized(
         let top = TRUSTED_PREFIX.with(|cell| cell.borrow().last().map(|(b, _)| *b));
         env_probe::record(top, prefix_commands);
     }
-    if !judge_env_reuse_enabled() {
-        return check_document_with(file, options);
-    }
-    let trusted = TRUSTED_PREFIX.with(|cell| {
-        cell.borrow()
-            .last()
-            .filter(|(before, _)| *before >= prefix_commands)
-            .map(|(before, failures)| (*before, failures.clone()))
-    });
-    let Some((before, failures)) = trusted else {
+    let Some((_out, trusted_report, before)) =
+        run_synthesized_incremental(file, options, prefix_commands)
+    else {
         return check_document_with(file, options);
     };
-    REUSED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    if reuse_stats() {
-        eprintln!(
-            "JUDGE_ENV_REUSE: 命中（before={before} prefix_commands={prefix_commands} 累计={}）",
-            REUSED.load(std::sync::atomic::Ordering::Relaxed)
-        );
-    }
-    // ⚠⚠ **必须夹到 `prefix_commands`**（2026-09-30 实测踩到）：
-    //
-    // `before` 是**调用方坐标系**里的"已核命令数"，而 `run_incremental` 要的是
-    // **这份合成文档**里的命令数 —— 两个坐标系**可以不等**。
-    // 实测（主编译 pass 压 `idx` 的那一版）：`idx` 恒比 `prefix_commands` **大 2**
-    //（探针：`exact=86 · overshoot=179`）⇒ 不夹会**多担保 2 条命令**，
-    // 而那 2 条正是追加的合成声明 `_soko_judge_k` ⇒ **判定声明根本没被检查** ✗
-    // ⇒ 症状：`--json` 里 `compiled` 变 `failed`（**38 行不同**，与 P1-b 第一次
-    // 失败的签名一模一样）✗✗。
-    //
-    // **夹是安全的、且严格更保守**：`before >= prefix_commands` 只说明"调用方已核
-    // 的**至少覆盖**了前缀"（前缀文本是调用方文本的**前段** ⇒ 它的命令必然落在
-    // `[0, before)` 里 ✓），所以担保上界就是 `prefix_commands` 本身 ✓。
-    // 夹完只会"少担保 ⇒ 多检查" ⇒ 不引入新的不健全 ✓。
-    let before = before.min(prefix_commands);
-    if env_probe::on() {
-        env_probe::record_clamped(before, prefix_commands);
-    }
-    let plan = TrustPlan {
-        before,
-        trusted_extra: Vec::new(),
-        prev_signatures: Vec::new(),
-        text_unchanged: Vec::new(),
-        allow_cutoff: false,
-    };
-    // **S2 步 1**：`run_incremental` 的单元由调用方给（此前它写死单文件）。
-    // 这条路是"judge 在**单文件**文本上重查前缀"，所以仍然是一个单元。
-    let units = [crate::compile::SourceUnit::single("", file)];
-    let trusted_report = run_incremental(&units, options, &plan, &failures).1;
-    // **影子档**：再跑一次"整份重查"，比对**报告**（行为仍返回整份那一份）。
-    // ⚠ 用 `Debug` 形态比对 —— `DocumentReport` 没有 `PartialEq`，而 `Debug`
-    // 覆盖**全部**字段（含 `cmd` 归因下标），比手写几个字段更严 ✓。
+    // **影子档**：再跑一次"整份重查"，比对**判据**（行为仍返回整份那一份）。
     if env_probe::vouch_mode() == env_probe::VouchMode::Shadow {
         let full = check_document_with(file, options);
         // ⚠⚠ **比的是"判据"，不是"报告"** —— 第一版拿 `Debug` 比整份
@@ -919,6 +875,103 @@ fn check_synthesized(
         return full;
     }
     trusted_report
+}
+
+/// **从一次编译输出里取「最后那条命令」的 `TypeChecked` 文本** ✓
+/// （`#check` 两条路的**唯一实现** ✗ —— 别各写一份 ✓）。
+///
+/// 先按**命令号**过滤（合成的前缀里可能本来就有 `#check` ✓，它们的事件排在前面 ✓），
+/// 对不上再退回「最后一条 `TypeChecked`」✓（`event_cmds` 理论上总与 `events` 平行；
+/// 若解析把查询并进了别的命令，命令号就对不上 ✓）。
+fn pick_type_checked(out: &CompileOutput, last_cmd: Option<usize>) -> Option<String> {
+    out.events
+        .iter()
+        .zip(out.event_cmds.iter())
+        .filter(|(_, cmd)| Some(**cmd) == last_cmd)
+        .find_map(|(e, _)| match e {
+            CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
+            _ => None,
+        })
+        .or_else(|| {
+            out.events.iter().rev().find_map(|e| match e {
+                CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+        })
+}
+
+/// **合成文档的「受信任前缀」担保** ✓（**唯一实现** ✗ —— 三处消费点共用它 ✓）。
+///
+/// 返回 `(before, failures)`，其中 `before` **已经夹到 `prefix_commands`** ✓；
+/// 没有可用担保 ⇒ `None`（**调用方必须逐字回退** ✓）。
+fn synthesized_trust(prefix_commands: usize) -> Option<(usize, KernelFailed)> {
+    if !judge_env_reuse_enabled() {
+        return None;
+    }
+    let trusted = TRUSTED_PREFIX.with(|cell| {
+        cell.borrow()
+            .last()
+            .filter(|(before, _)| *before >= prefix_commands)
+            .map(|(before, failures)| (*before, failures.clone()))
+    });
+    let Some((before, failures)) = trusted else {
+        return None;
+    };
+    REUSED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    if reuse_stats() {
+        eprintln!(
+            "JUDGE_ENV_REUSE: 命中（before={before} prefix_commands={prefix_commands} 累计={}）",
+            REUSED.load(std::sync::atomic::Ordering::Relaxed)
+        );
+    }
+    // ⚠⚠ **必须夹到 `prefix_commands`**（2026-09-30 实测踩到）：
+    //
+    // `before` 是**调用方坐标系**里的"已核命令数"，而 `run_incremental` 要的是
+    // **这份合成文档**里的命令数 —— 两个坐标系**可以不等**。
+    // 实测（主编译 pass 压 `idx` 的那一版）：`idx` 恒比 `prefix_commands` **大 2**
+    //（探针：`exact=86 · overshoot=179`）⇒ 不夹会**多担保 2 条命令**，
+    // 而那 2 条正是追加的合成声明 `_soko_judge_k` ⇒ **判定声明根本没被检查** ✗
+    // ⇒ 症状：`--json` 里 `compiled` 变 `failed`（**38 行不同**）✗✗。
+    //
+    // **夹是安全的、且严格更保守**：`before >= prefix_commands` 只说明"调用方已核
+    // 的**至少覆盖**了前缀"（前缀文本是调用方文本的**前段** ⇒ 它的命令必然落在
+    // `[0, before)` 里 ✓），所以担保上界就是 `prefix_commands` 本身 ✓。
+    // 夹完只会"少担保 ⇒ 多检查" ⇒ 不引入新的不健全 ✓。
+    Some((before.min(prefix_commands), failures))
+}
+
+/// **受信任前缀下的合成编译** ✓（**唯一实现** ✗ —— `by` 路径与 `#check` 路径共用 ✓）。
+///
+/// `Some((CompileOutput, DocumentReport))` = 走了**增量**路 ✓（前缀**不再重查** ✓，
+/// 只有追加的合成命令真的被检查 ✓）；`None` = 没有可用担保 ⇒ **调用方逐字回退** ✓
+/// （`by` 路径回 `check_document_with` · `#check` 路径回 `compile_fol_with` ✓）。
+///
+/// **为什么需要它（G-92 真修 ✓）**：`#check` 那两条路（`judge_infer_uncached` /
+/// `judge_type_of_uncached`）先前直接 `compile_fol_with` ⇒ **整份重编** ✗
+/// ⇒ 前缀里那些 `by` 声明**又被 elaborate 一遍** ✗ ⇒ 一个文件里 N 条各自需要
+/// 新判定的 `by` ⇒ 总成本 **N²** ✗（实测 `by_calls` 451→1996，**4.4×** ✗）。
+fn run_synthesized_incremental(
+    file: &FolFile,
+    options: &CompileOptions,
+    prefix_commands: usize,
+) -> Option<(CompileOutput, DocumentReport, usize)> {
+    let (before, failures) = synthesized_trust(prefix_commands)?;
+    if env_probe::on() {
+        env_probe::record_clamped(before, prefix_commands);
+    }
+    let plan = TrustPlan {
+        before,
+        trusted_extra: Vec::new(),
+        prev_signatures: Vec::new(),
+        text_unchanged: Vec::new(),
+        allow_cutoff: false,
+    };
+    // **S2 步 1**：`run_incremental` 的单元由调用方给（此前它写死单文件）。
+    // 这条路是"judge 在**单文件**文本上重查前缀"，所以仍然是一个单元。
+    let units = [crate::compile::SourceUnit::single("", file)];
+    let (out, report, _checks, _sigs, _cutoff) =
+        run_incremental(&units, options, &plan, &failures);
+    Some((out, report, before))
 }
 
 /// **G-29 的结构读数**（判据用）：类型推断那条路的
@@ -1955,32 +2008,23 @@ fn judge_type_of_uncached(
             message: "无法解析类型查询".to_string(),
         });
     };
-    let report = compile_fol_with(&file, options);
-    if let Some(err) = query_error(query_start, &report.errors) {
+    // **G-92 真修**：同 `judge_infer_uncached` ✓ —— 受信任前缀那条路 ✓
+    // （前缀已核过 ⇒ 不重编 ✗；没有受信任前缀 ⇒ 逐字回退到 `compile_fol_with` ✓）。
+    let prefix_commands = file.commands.len().saturating_sub(1);
+    let out = match run_synthesized_incremental(&file, options, prefix_commands) {
+        Some((out, _report, _before)) => out,
+        None => compile_fol_with(&file, options),
+    };
+    if let Some(err) = query_error(query_start, &out.errors) {
         return Err(err);
     }
     let last_cmd = file.commands.len().checked_sub(1);
-    report
-        .events
-        .iter()
-        .zip(report.event_cmds.iter())
-        .filter(|(_, cmd)| Some(**cmd) == last_cmd)
-        .find_map(|(e, _)| match e {
-            CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
-            _ => None,
+    pick_type_checked(&out, last_cmd).ok_or_else(|| {
+        prefix_error(&out.errors).unwrap_or(Judgement::Error {
+            code: "judge-infer-none".to_string(),
+            message: "内核未返回类型".to_string(),
         })
-        .or_else(|| {
-            report.events.iter().rev().find_map(|e| match e {
-                CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
-                _ => None,
-            })
-        })
-        .ok_or_else(|| {
-            prefix_error(&report.errors).unwrap_or(Judgement::Error {
-                code: "judge-infer-none".to_string(),
-                message: "内核未返回类型".to_string(),
-            })
-        })
+    })
 }
 
 /// 推断 `term` 在 `binders` 语境下的**类型文本**（kernel 判定驱动，供
@@ -2321,37 +2365,54 @@ fn judge_infer_uncached(
             message: "无法解析推断请求".to_string(),
         });
     };
-    let report = compile_fol_with(&file, options);
-    if let Some(err) = query_error(query_start, &report.errors) {
+    // **G-92 真修（2026-10-04 ✓）：合成的前缀走「受信任前缀」那条路** ✗→✓。
+    //
+    // 病根（实测 ✓）：这里先前是 `compile_fol_with(&file, options)` —— **整份重编** ✗
+    // ⇒ 前缀里那些 `by` 声明**又被 elaborate 一遍** ✗（`by_calls` 数的是 `by` 引擎调用 ✓）
+    // ⇒ 一个文件里 N 条各自需要新判定的 `by` ⇒ 总成本 **N²** ✗
+    // （实测：`by_calls` 10→20 条声明 = 451→1996，**4.4×** ✗；而趟数 `runs` 21→41 = 2.0× ✓ 线性 ✓）。
+    //
+    // 正解 = **`check_synthesized`** ✓ —— 它和 `by` 路径（`judge_pairs_uncached` ✓）
+    // 用的是**同一套机制** ✓：walk 用 `with_trusted_prefix(idx, …)` 压栈 ✓，
+    // 这里读栈、把「前缀那 `prefix_commands` 条命令**外层已经核过**」告诉
+    // `run_incremental` ⇒ 前缀**不再重查** ✓、只有追加的 `#check` 真的被检查 ✓。
+    // ⚠ **没有受信任前缀时它逐字回退到 `check_document_with`** ✓（同一条路 ✓）
+    // ⇒ 走查之外调用 `judge_infer`（单文件/测试路径 ✓）**行为一字不变** ✓。
+    // ⚠ 夹取在 `check_synthesized` 里做 ✓（`before.min(prefix_commands)` ✓ ——
+    // 不夹会**多担保**追加的合成命令 ⇒ 判定声明根本没被检查 ✗，2026-09-30 实测踩过 ✓）。
+    let prefix_commands = file.commands.len().saturating_sub(1);
+    let (out, used_incremental) = match run_synthesized_incremental(&file, options, prefix_commands) {
+        Some((out, _report, _before)) => (out, true),
+        None => (compile_fol_with(&file, options), false),
+    };
+    if let Some(err) = query_error(query_start, &out.errors) {
         return Err(err);
     }
     // 取**最后一条命令**的 `TypeChecked`：合成的前缀里可能本来就有 `#check`
     // （课程/playground 里很常见），它们的事件排在前面；而我们要的是刚追加的
     // 那条查询。按命令号过滤，不做文本比对。
     let last_cmd = file.commands.len().checked_sub(1);
-    let ty = report
-        .events
-        .iter()
-        .zip(report.event_cmds.iter())
-        .filter(|(_, cmd)| Some(**cmd) == last_cmd)
-        .find_map(|(e, _)| match e {
-            CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
-            _ => None,
+    let ty = pick_type_checked(&out, last_cmd).ok_or_else(|| {
+        prefix_error(&out.errors).unwrap_or(Judgement::Error {
+            code: "judge-infer-none".to_string(),
+            message: "内核未返回类型".to_string(),
         })
-        .or_else(|| {
-            // 兜底：`event_cmds` 理论上总是与 `events` 平行；若命令号对不上
-            // （例如解析把查询并进了别的命令），退回「最后一条 TypeChecked」。
-            report.events.iter().rev().find_map(|e| match e {
-                CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
-                _ => None,
-            })
-        })
-        .ok_or_else(|| {
-            prefix_error(&report.errors).unwrap_or(Judgement::Error {
-                code: "judge-infer-none".to_string(),
-                message: "内核未返回类型".to_string(),
-            })
-        })?;
+    })?;
+    // **影子档**（`SOKO_JUDGE_ENV_VOUCH=shadow` ✓）：走增量路时，再整份重跑一次，
+    // 比对**消费方看得见的结果**（返回的类型文本 ✓）⇒ 分叉立刻可见 ✓。
+    // ⚠ 判据必须绑"调用方读到的东西" ✗ —— 比报告范围会得到**假分叉**（2026-09-30 踩过 ✓）。
+    if used_incremental && env_probe::vouch_mode() == env_probe::VouchMode::Shadow {
+        let full = compile_fol_with(&file, options);
+        match pick_type_checked(&full, last_cmd) {
+            Some(b) if b == ty => env_probe::note_shadow(true, ""),
+            other => env_probe::note_shadow(
+                false,
+                &format!(
+                    "judge_infer prefix_commands={prefix_commands}\n  担保路={ty:?}\n  整份重查={other:?}"
+                ),
+            ),
+        }
+    }
     // 剥掉 `fun (b1:T1) => ... => <codomain>` 的 n 层 binder 箭头。
     // pp 可能把相邻 binder 折叠成 `forall (a b : Prop), ...`（一个 Forall 多
     // binder），所以逐 **单个** binder 剥；余下重渲染成可回读的单箭头链。
