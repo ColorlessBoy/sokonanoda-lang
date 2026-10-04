@@ -12,10 +12,16 @@ cd "$ROOT" || exit 2
 CONV="crates/kernel/src/conv.rs"
 [ -f "$CONV" ] || { echo "环境不对：找不到 $CONV" >&2; exit 2; }
 
-# ① `PROBE_CAP` 这个数字还在吗？（**Lean 4 根本没有此物** ✓ ⇒ 终点是**去掉** ✓，
+# ① 这道闸还在吗？（**Lean 4 根本没有此物** ✓ ⇒ 终点是**去掉** ✓，
 #    **不许换个数字继续留着** ✗）
-if ! grep -q 'const PROBE_CAP: u32 = ' "$CONV"; then
-  echo "行为变了：conv.rs 里 PROBE_CAP 不见了（去掉或已改路）⇒ 更新台账"
+#    ⚠ 2026-10-04 第 15 棒起，取值走 `gates::limits::probe_cap()`（**默认 2048 不变** ✓，
+#    但可注入 ⇒ 「拧到 1 结论会不会变」能做实验 ✓）—— 判据因此改成查**闸本身** ✓。
+if ! grep -q 'fn probe_cap() -> u32' "$CONV"; then
+  echo "行为变了：conv.rs 里探查预算那道闸不见了（去掉或已改路）⇒ 更新台账"
+  exit 1
+fi
+if ! grep -q 'unwrap_or(2048)' crates/kernel/src/gates.rs; then
+  echo "行为变了：探查预算的默认值不再是 2048（已对齐 Lean 的「没有此物」= 去掉）⇒ 更新台账"
   exit 1
 fi
 # ② 计数出口还在吗？（G-91 的要求 ✓：凡「超过某个数字就换路」必须可见 ✗）
