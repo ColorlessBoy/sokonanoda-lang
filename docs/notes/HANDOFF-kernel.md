@@ -121,6 +121,10 @@
    * ⚠ **复现件本身有 3 处类型错误** ✗（`61ef7943` 自足化改写引入 ✓；权威良类型版在
      `courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda:50-69` ✓）⇒
      **判据要转绿，必须先修第二堵墙** ✗（改夹具只够证明"第一堵墙已修" ✓）。
+   * ⭐ **第二堵墙的最小复现已落仓** ✓（自足、零 import、可直接 `grade` ✓）：
+     `docs/gaps/repro/G30-second-wall-iff-intro-implicit-alpha.sokonanoda` ——
+     现 **exit 1** ✗ 且**只有靶子一条 diagnostic** ✓、三个对照组全绿 ✓
+     ⇒ **判据 = 修好后 exit 0 且三个对照组仍绿** ✓。
    **已完成 8 片（全加法、判据零漂移 ✓）**：
    R1a `a03a6b82`（`Level::MVar` ✓）· R1b `d37cc1f6`（生成器 ✓）·
    R1c-1 `58b500f6`（`level_mvar_to_param` ✓）· R1c-2a `5418927f`（`collect_level_mvars` ✓）·

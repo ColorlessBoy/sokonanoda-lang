@@ -1,0 +1,47 @@
+-- G-30 **第二堵墙**最小复现（2026-10-05 第 122 棒 ✓）——
+-- ⚠ **与本片的「层元变量」机制无关** ✗：`Iff.intro` **零个宇宙参数** ⇒ R2b-2/R1c-2b
+-- 根本不碰它 ✓，且**旧二进制逐字同错**（`Sort(0)` 那一版 ✓）。
+--
+-- **靶子**：**`Iff.intro`（裸名 + 前导隐式）** + **期望类型含集合字面量** ⇒
+-- `Eq` 的隐式 `α` 被解成**集合字面量 `{a}`（项 ✗）**而不是它的**类型 `Set α`** ✓ ⇒
+-- `类型不匹配：期望 Sort(1)，实际是 Set α` ✗（`{a} : Sort 1` 这条 sort 检查因此失败 ✓）。
+--
+-- **判据**（本文件自足 ✓、零 import ✓ ⇒ 可直接 `grade`）：
+--   * 现在：**exit 1** ✗，且**只有靶子**那一条 diagnostic（三个对照组都绿 ✓）；
+--   * 修好后：**exit 0** ✓（**三个对照组必须仍然绿** ✓ —— 它们钉住"不是所有 λ 实参都坏"）。
+--
+-- 归口：`implicit::solve_prefix` / `try_implicit_application`（`crates/front/src/compile/elab.rs`
+-- 的隐式插入那条线 ✓，与 **G-42 / G-73 同族** ✓）；坐标见台账 `G-30` 第 122 棒 ✓
+-- 与 `docs/notes/HANDOFF-kernel.md` ✓。
+
+def Set (α : Type) : Type := α → Prop
+
+infix:50 " ∈ " => Set.mem
+
+namespace Set
+
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+
+def singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a
+
+end Set
+
+-- 靶子 ✗：两个 λ 实参 + 含集合字面量的期望类型 ⇒ `α` 解成项而不是类型。
+theorem target (α : Type) (a b : α) (h1 : {a} = {b}) (h2 : a = b) :
+    ({a} = {b}) ↔ a = b :=
+  Iff.intro (fun (_ : {a} = {b}) => h2) (fun (_ : a = b) => h1)
+
+-- 对照组 ① ✓：同形状但实参不是 λ ⇒ 绿（说明"含集合字面量的期望类型"本身没问题）。
+theorem control_and (α : Type) (a b : α) (h1 : {a} = {b}) (h2 : a = b) :
+    ({a} = {b}) ∧ (a = b) :=
+  And.intro h1 h2
+
+-- 对照组 ② ✓：同样两个 λ 当**顶层值**（不经隐式插入）⇒ 绿。
+theorem control_lambda (α : Type) (a b : α) (h1 : {a} = {b}) (h2 : a = b) :
+    ({a} = {b}) → a = b :=
+  fun (_ : {a} = {b}) => h2
+
+-- 对照组 ③ ✓：**显式写前导实参**（= 台账里那条 workaround ✓）⇒ 绿。
+theorem control_explicit (α : Type) (a b : α) (h1 : {a} = {b}) (h2 : a = b) :
+    ({a} = {b}) ↔ a = b :=
+  Iff.intro ({a} = {b}) (a = b) (fun (_ : {a} = {b}) => h2) (fun (_ : a = b) => h1)
