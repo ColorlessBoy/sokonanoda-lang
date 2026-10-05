@@ -300,6 +300,22 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         *ON.get_or_init(|| std::env::var("SOKO_WALK_REAL_ADD").is_ok_and(|v| v != "0"))
     }
 
+    /// **R1c-2b（2026-10-05）**：**声明出口** —— 层元变量收口 ✓
+    /// （`ty`/`val` 里的 mvar ⇒ `param` ✓、新名并进 `uparams` ✓）。
+    ///
+    /// **对齐 Lean** ✓：`Elab/Declaration.lean:118-127` 是「`type ← levelMVarToParam type`
+    /// ⇒ `levelParams := sortDeclLevelParams …` ⇒ **然后才** `addDecl decl`」✓。
+    ///
+    /// ⚠ **为什么必须在 walk（`add_declar` **之前**）** ✗（白纸黑字）：本仓库的声明是
+    /// walk **当场** `add_declar`（切片 1b ✓ —— 内核阶段只**读**环境 ✓）⇒ 晚一步的话
+    /// 环境里那份还带 mvar ✗ ⇒ 后面的声明引用它时 `all_uparams_defined`
+    /// （`infer.rs:103/114`）判拒 ✗。Lean 的形状也正是「先转、后 `addDecl`」✓。
+    ///
+    /// 返回值第二项 = **新加的宇宙参数名** ✓（调用方并进 `DeclState.universe` ✓）。
+    fn discharge_level_mvars(&mut self, decl: Declar<'arena>) -> (Declar<'arena>, Vec<String>) {
+        crate::compile::check::level_exit::discharge_declar(&mut self.builder, decl)
+    }
+
     /// 影子环境的一条"检查后加入"（check-then-add，与 `kernel_phase` 同序同语义）。
     /// 检查走 `ExportFile`（`try_check_declar` 是它的方法）⇒ 借 `with_env` 一次；
     /// **内核拒绝的不进环境** ✓，只记下标。
@@ -844,6 +860,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 &mut hovers,
                 &elab_ctx,
             ) {
+                // **R1c-2b（2026-10-05）**：**声明出口** ✓ —— 层元变量收口
+                // （对齐 Lean：`levelMVarToParam` 在 `addDecl` **之前** ✓）。
+                let (decl, _fresh) = self.discharge_level_mvars(decl);
                 let _ = self.builder.add_declar(decl);
                 self.known.insert(
                     name.to_string(),
@@ -902,7 +921,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             self.ops.push(PendingOp::OpenExercise {
                 name: Some(name.to_string()),
                 kind: DeclKind::Definition,
-                universe: universe.to_vec(),
+                // **R1c-2b（2026-10-05）**：签名出口新加的宇宙参数名并进来 ✓
+                // （对齐 Lean `setLevelNames (r.newParamNames …)` ✓）——
+                // judge 合成声明时要靠它才知道 `u_1`/`u_2`… ✓。
+                universe: universe
+                    .iter()
+                    .cloned()
+                    .chain(signature.fresh_params.iter().cloned())
+                    .collect(),
                 redundant_probes: {
                     {
                         // **T-D8**：开关下**看不见文件声明** ✓（探针仍在真 `builder` 的 DAG 里
@@ -981,6 +1007,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         ) {
             Ok(decl) => {
                 let name_owned = name.to_string();
+                // **R1c-2b（2026-10-05）**：**声明出口** ✓（同上：`addDecl` 之前 ✓）。
+                let (decl, _fresh) = self.discharge_level_mvars(decl);
                 if let Err(e) = self.builder.add_declar(decl.clone()) {
                     let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
                     self.out.push_error(idx, err.clone());
@@ -1120,6 +1148,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 &mut hovers,
                 &elab_ctx,
             ) {
+                // **R1c-2b（2026-10-05）**：**声明出口** ✓ —— 层元变量收口
+                // （对齐 Lean：`levelMVarToParam` 在 `addDecl` **之前** ✓）。
+                let (decl, _fresh) = self.discharge_level_mvars(decl);
                 let _ = self.builder.add_declar(decl);
                 self.known.insert(
                     name.to_string(),
@@ -1205,7 +1236,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             self.ops.push(PendingOp::OpenExercise {
                 name: Some(name.to_string()),
                 kind: DeclKind::Theorem,
-                universe: universe.to_vec(),
+                // **R1c-2b（2026-10-05）**：签名出口新加的宇宙参数名并进来 ✓
+                // （对齐 Lean `setLevelNames (r.newParamNames …)` ✓）——
+                // judge 合成声明时要靠它才知道 `u_1`/`u_2`… ✓。
+                universe: universe
+                    .iter()
+                    .cloned()
+                    .chain(signature.fresh_params.iter().cloned())
+                    .collect(),
                 redundant_probes: {
                     {
                         // **T-D8**：开关下**看不见文件声明** ✓（探针仍在真 `builder` 的 DAG 里
@@ -1284,6 +1322,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         ) {
             Ok(decl) => {
                 let name_owned = name.to_string();
+                // **R1c-2b（2026-10-05）**：**声明出口** ✓（同上：`addDecl` 之前 ✓）。
+                let (decl, _fresh) = self.discharge_level_mvars(decl);
                 if let Err(e) = self.builder.add_declar(decl.clone()) {
                     let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
                     self.out.push_error(idx, err.clone());
@@ -1373,6 +1413,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 &mut hovers,
                 &elab_ctx,
             ) {
+                // **R1c-2b（2026-10-05）**：**声明出口** ✓ —— 层元变量收口
+                // （对齐 Lean：`levelMVarToParam` 在 `addDecl` **之前** ✓）。
+                let (decl, _fresh) = self.discharge_level_mvars(decl);
                 let _ = self.builder.add_declar(decl);
                 self.known.insert(
                     name.to_string(),
@@ -1409,6 +1452,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         ) {
             Ok(decl) => {
                 let name_owned = name.to_string();
+                // **R1c-2b（2026-10-05）**：**声明出口** ✓（同上：`addDecl` 之前 ✓）。
+                let (decl, _fresh) = self.discharge_level_mvars(decl);
                 if let Err(e) = self.builder.add_declar(decl.clone()) {
                     let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
                     self.out.push_error(idx, err.clone());
@@ -1533,6 +1578,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 &mut hovers,
                 &elab_ctx,
             ) {
+                let (decl, _fresh) = self.discharge_level_mvars(decl);
                 let _ = self.builder.add_declar(decl);
             }
             return;
@@ -1594,7 +1640,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             self.ops.push(PendingOp::OpenExercise {
                 name: None,
                 kind: DeclKind::Example,
-                universe: Vec::new(),
+                // **R1c-2b（2026-10-05）**：`example` 没有源级宇宙参数，但签名出口
+                // 仍可能新加 `u_1`/`u_2`… ✓（同上面两条 ✓）。
+                universe: signature.fresh_params.clone(),
                 redundant_probes: {
                     {
                         // **T-D8**：开关下**看不见文件声明** ✓（探针仍在真 `builder` 的 DAG 里
@@ -1851,6 +1899,11 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         .map(str::to_string),
                     _ => None,
                 };
+                // **R1c-2b（2026-10-05）**：`#check` 也走出口 ✓ ——
+                // **对齐 Lean `BuiltinCommand.lean:435`**：
+                // `let e ← Term.levelMVarToParam (← instantiateMVars e)` ✓。
+                let (e, _) =
+                    crate::compile::check::level_exit::discharge_expr(&mut self.builder, e, &[]);
                 self.ops.push(PendingOp::Check {
                     expr: e,
                     env_at: env_before,
@@ -1899,6 +1952,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             },
         ) {
             Ok(e) => {
+                // **R1c-2b（2026-10-05）**：`#reduce` 同 `#check` ✓
+                // （**对齐 Lean `BuiltinCommand.lean:457`** ✓）。
+                let (e, _) =
+                    crate::compile::check::level_exit::discharge_expr(&mut self.builder, e, &[]);
                 self.ops.push(PendingOp::Reduce {
                     expr: e,
                     env_at: env_before,
@@ -1953,6 +2010,11 @@ pub(super) struct OpenSignature<'arena> {
     pub(super) probe: Box<Declar<'arena>>,
     /// 诊断 span：**签名**的 AST 范围（G-01 要求报在签名上；G-15 已修，内核 span 本身精确）。
     pub(super) span: Span,
+    /// **R1c-2b（2026-10-05）**：签名出口**新加的宇宙参数名** ✓（`u_1`/`u_2`… ✓）。
+    /// 调用方把它并进 `PendingOp::OpenExercise.universe` ⇒ `DeclState.universe`
+    /// ⇒ judge 合成声明时才知道这些参数 ✓（对齐 Lean 的
+    /// `setLevelNames (r.newParamNames …)` ✓，`TermElabM.lean:984-986` ✓）。
+    pub(super) fresh_params: Vec<String>,
     /// **签名里每一个子表达式的 hover 行**（A3 的根因，2026-09-26）。
     ///
     /// 以前这个 Vec 是 `open_signature` 的**局部变量**，elaborate 完就丢 ✗ ⇒
@@ -2000,11 +2062,18 @@ fn open_signature<'arena>(
         &mut Vec::new(),
         ctx,
     )?;
+    // **R1c-2b（2026-10-05）**：**签名出口** ✓ —— 两次 elaborate 的层元变量各自收口 ✓。
+    // ⚠ **两次必须同名同序** ✗：`used` 两次都只含源级 `universe` ⇒ 都从 `u_1` 起
+    // （`level_exit::discharge_expr` 的文档 ✓）。
+    let (declared_ty, fresh_params) =
+        crate::compile::check::level_exit::discharge_expr(builder, declared_ty, universe);
+    let (probe, _) = crate::compile::check::level_exit::discharge_declar(builder, probe);
     Ok(OpenSignature {
         declared_ty,
         probe: Box::new(probe),
         span: ty.span(),
         hovers,
+        fresh_params,
     })
 }
 
@@ -2048,6 +2117,10 @@ fn build_redundant_probes<'arena>(
             &mut hovers,
             ctx,
         ) {
+            // **R1c-2b（2026-10-05）**：探针**不入环境**，但会被内核终审
+            // （`kernel_phase` 的 `try_check_declar_at` ✓）⇒ 它的层元变量同样要收口 ✓
+            // （否则 `all_uparams_defined` 判拒 ⇒ 假「不是多余的 sorry」✗）。
+            let (declar, _) = crate::compile::check::level_exit::discharge_declar(builder, declar);
             probes.push((declar, *span));
         }
     }

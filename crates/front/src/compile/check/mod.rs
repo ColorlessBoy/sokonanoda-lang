@@ -1,6 +1,7 @@
 //! 编译入口：`compile_fol`/`check_document`、待执行操作与 hover 解析。
 
 mod kernel_phase;
+pub(crate) mod level_exit;
 mod walk;
 
 use super::elab::{canonical_ctor_name, DefTable, HoverNode, InductiveTable, KnownTable};

@@ -2425,9 +2425,15 @@ fn g58_g59_large_elimination_is_available() {
         crate::judge::judge_infer(prefix, &CompileOptions::default(), &[], "MyBox.rec")
             .expect("MyBox.rec 可解析");
     assert!(
-        default_ty.contains("-> Prop"),
-        "G-59（**已知显示边界**）：`#check MyBox.rec` 的默认 motive 仍是 `Prop` \
-         —— 那是签名渲染（没有宇宙变量这一档），判定已由推断补上：{default_ty}"
+        // ⚠ **2026-10-05 第 122 棒：断言翻过来** ✓（原断言钉的是 **G-59 的显示边界** ✗ ——
+        // 「默认 motive 仍渲成 `Prop`」✓）。R2b-2/R1c-2b 落地后，**未解的层元变量在出口
+        // 转成 `param`** ✓（**对齐 Lean `levelMVarToParam`**：`TermElabM.lean:981-987` ✓；
+        // fresh 名 `u_1`/`u_2`… = Lean 的 `mkParamName` ✓）⇒ 这里**如实渲出层参数** ✓
+        // （`Sort u_1` ✓）—— 正是台账第 121 棒写的「撤 U2 的 `#check` hack 之后，`#check`
+        // 由 R1c 自然显示 `.{u, v}`」那一档 ✓（G-63 因**正确理由**转绿 ✓）。
+        default_ty.contains("Sort u_1"),
+        "G-59 的**显示边界已消失**：`#check MyBox.rec` 现在如实渲出**层参数** \
+         （出口把未解 mvar 转成 `param` ✓，对齐 Lean `levelMVarToParam` ✓）：{default_ty}"
     );
     for body in ["MyBox.rec", "MyBox.rec.{2}"] {
         let out = compile_fol(&parse(&format!(

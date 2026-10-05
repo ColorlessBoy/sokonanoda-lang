@@ -77,30 +77,44 @@ pub(crate) fn fresh_level_mvar_id() -> u64 {
     NEXT.fetch_add(1, Ordering::Relaxed)
 }
 
-
 /// **R2b-1（2026-10-05）**：**本声明的待解层元变量表** ✓ ——
 /// **对齐 Lean 的 `MCtx`**（层 mvar 的赋值状态挂在 context 上 ✓，
 /// 出口 `levelMVarToParam` 读它 ✓）。
 ///
-/// ⚠ 用 `thread_local` 承载「当前声明」的待解表 ✓（编译是单线程 ✓）；
-/// ⚠ **加法**：本片**不接线** ✗ ⇒ **零行为变化** ✓（接线是 R2b-2 ✓）。
+/// **R2b-2（2026-10-05）**：表项从裸 `id` 扩成 **`(id, 解出的层文本)`** ✓ ——
+/// `None` = 还没解出 ✓（对齐 `MCtx` 的 `getLevelMVarAssignment? ⇒ none` ✓）、
+/// `Some(text)` = 应用处合一解出 ✓（`some v => visitLevel v` ✓）。
+///
+/// ⚠ 用 `thread_local` 承载「当前声明」的待解表 ✓（编译是单线程 ✓）。
+/// ⚠ **出口的权威来源是「声明 `ty`/`val` 里真的出现的 mvar」** ✗ —— 本表只做记账 ✓：
+/// elaborate 期间会为**丢弃的**中间项（`infer_type_text_inplace` 的 scratch 作用域 ✓）
+/// 也生成 mvar ⇒ 表里会有**不属于本声明**的 id ✓ ⇒ 出口按 `collect_level_mvars_expr`
+/// 的结果走 ✓（对齐 Lean：`levelMVarToParam` 只走**声明那个项** ✓）。
 pub(crate) mod level_mvar_table {
     use std::cell::RefCell;
 
     thread_local! {
-        /// 当前声明里生成的层 mvar id（保序 ✓）。
-        static PENDING: RefCell<Vec<u64>> = const { RefCell::new(Vec::new()) };
+        /// 当前声明里生成的层 mvar（保序 ✓）：`(id, 解出的层文本)` ✓。
+        static PENDING: RefCell<Vec<(u64, Option<String>)>> = const { RefCell::new(Vec::new()) };
     }
 
-    /// 记一个层 mvar id（生成处调 ✓）。
-    #[allow(dead_code)] // R2b-2 接线
+    /// 记一个层 mvar id（生成处调 ✓ —— 对齐 `mkFreshLevelMVars` ✓）。
     pub(crate) fn push(id: u64) {
-        PENDING.with(|p| p.borrow_mut().push(id));
+        PENDING.with(|p| p.borrow_mut().push((id, None)));
+    }
+
+    /// 记一个**解出的**层（应用处合一成功时调 ✓ —— 对齐 `assignLevelMVar` ✓）。
+    pub(crate) fn solve(id: u64, text: &str) {
+        PENDING.with(|p| {
+            let mut pending = p.borrow_mut();
+            if let Some(entry) = pending.iter_mut().rev().find(|(i, _)| *i == id) {
+                entry.1 = Some(text.to_string());
+            }
+        });
     }
 
     /// **取出并清空**（声明收口处调 ✓ —— 对齐 Lean 的「出口」✓）。
-    #[allow(dead_code)] // R2b-2 接线
-    pub(crate) fn take() -> Vec<u64> {
+    pub(crate) fn take() -> Vec<(u64, Option<String>)> {
         PENDING.with(|p| std::mem::take(&mut *p.borrow_mut()))
     }
 }

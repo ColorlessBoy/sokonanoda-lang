@@ -594,6 +594,15 @@ impl<'x, 't, 'p> PrettyPrinter<'x, 't, 'p> {
                 .concat_w_space(self.pp_level(a).parens(1))
                 .concat_line(self.pp_level(b).parens(1))
                 .as_parenable(0),
+            // **R1c-2b（2026-10-05）**：层元变量的**显示** ✓ —— 对齐 Lean 的 `?u.1` 形状 ✓
+            // （`debug_printer` 那条 R1a 已加 ✓；`pp` 这条**漏了** ✗）。
+            //
+            // ⚠ **必须有这一臂** ✗：原来落到下面那个 `_` ⇒ `level_succs(mvar) = (mvar, 0)`
+            // ⇒ 又调 `pp_level(mvar)` ⇒ **无限递归**（动手前读代码发现 ✓，不是理论风险 ✓）
+            // ⇒ 任何含层元变量的项一旦被 `pp` 就是栈溢出 ✗。出口（R1c-2b）保证**判定前**
+            // 没有 mvar ✓，但**诊断/中间态**会 pp 到它们 ✓ ⇒ 这一臂是**安全网** ✓。
+            // **加法、零行为变化** ✓（今天没有任何输入能构造出 `MVar` ✓）。
+            MVar(id, _) => DocPtr::from(format!("?u.{id}")).as_unparenable(),
             _ => {
                 let (inner, n) = self.ctx.level_succs(lvl);
                 match self.ctx.read_level(inner) {

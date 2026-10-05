@@ -273,6 +273,23 @@ impl<'a> EnvBuilder<'a> {
         self.alloc_level(Level::Param(name, hash))
     }
 
+    /// **R1c-2b（2026-10-05）**：`max` / `imax` 的构造器 ✓ ——
+    /// 与 `TcCtx::max`/`TcCtx::imax`（`util.rs:967/971` ✓）**同一形状** ✓。
+    ///
+    /// ⚠ **为什么需要** ✗：出口重写（把层 mvar 换成 `param` ✓）要**重建**含 mvar 的
+    /// 复合层 ✓ —— 而 `TcCtx` 的分配落在 `with_ctx` 的**作用域 arena** 上 ✗
+    /// （指针出不了那个作用域 ✓）⇒ 声明的 `ty`/`val` 必须在 `EnvBuilder`（**持久 DAG**）上重建 ✓。
+    /// **加法、零行为变化** ✓（今天没有调用方 ✓）。
+    pub fn level_max(&mut self, l: LevelPtr<'a>, r: LevelPtr<'a>) -> LevelPtr<'a> {
+        let hash = crate::hash64!(crate::level::MAX_HASH, l, r);
+        self.alloc_level(Level::Max(l, r, hash))
+    }
+
+    pub fn level_imax(&mut self, l: LevelPtr<'a>, r: LevelPtr<'a>) -> LevelPtr<'a> {
+        let hash = crate::hash64!(crate::level::IMAX_HASH, l, r);
+        self.alloc_level(Level::IMax(l, r, hash))
+    }
+
     pub fn alloc_levels_slice(&mut self, levels: &[LevelPtr<'a>]) -> LevelsPtr<'a> {
         LevelsPtr::global(self.dag.uparams.intern(self.arena, levels))
     }
@@ -503,7 +520,12 @@ impl<'a> EnvBuilder<'a> {
         Ok(declar)
     }
 
-    fn name_to_string(&self, name: NamePtr<'a>) -> String {
+    /// **R1c-2b（2026-10-05）**：`NamePtr` ⇒ 字符串 ✓（原来是私有 ✓）。
+    ///
+    /// ⚠ **为什么前端需要它** ✗：出口（(c)）要按声明**已有的宇宙参数名**建 `UnivMap`
+    /// 才能把「表说已解出」的层文本（`u+1` 之类 ✓）解析回内核层 ✓ ——
+    /// 判重/解析都要名字的**文本** ✓。**加法、零行为变化** ✓。
+    pub fn name_to_string(&self, name: NamePtr<'a>) -> String {
         match name.as_ref().kind {
             Name::Anon => String::new(),
             Name::Str(pfx, sfx, _) => {

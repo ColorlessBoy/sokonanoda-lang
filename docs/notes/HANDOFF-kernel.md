@@ -102,6 +102,25 @@
    ⭐⭐ **① G-30 的下一手 = 最后接线（R2b-2 + R1c-2b，一片原子落）** ✓ ——
    **用户 2026-10-05 全局拍板** ✓：**后续所有任务直接对齐 Lean 4，禁止自创机制** ✗
    （「事后猜层 / 闸门 / 文本反推」全部作废 ✗）；**卡住先读 Lean 源码** ✓（`~/Documents/lean/lean4` ✓）。
+   ## ⚠⚠ **2026-10-05 第 122 棒：本片已落地，但判据未达** ✗（下一手看这里 ✓）
+   * **已落** ✓（四步一次落完 ✓，见台账 `G-30` 第 122 棒 ✓）：(a) 裸常量每宇宙位 ⇒ fresh 层 mvar ✓ ·
+     (b) `infer_const_universes` 尾部改成「两步问内核 ⇒ `level_solve` 合一 ⇒ 解出才落层」✓ ·
+     (c) 新模块 `crates/front/src/compile/check/level_exit.rs`（出口：收集 ⇒ fresh `u_N` ⇒ `param` ✓）·
+     (d) `DeclarInfo.uparams` 落位 ✓。
+   * ⚠ **挂点改在 walk（`add_declar` 之前）** ✗（**更正第 114 棒** ✗：本仓库声明是 walk 当场
+     `add_declar`，内核阶段再转就晚了 ✗ —— 环境里那份还带 mvar ⇒ `all_uparams_defined` 判拒 ✗）。
+   * ⚠ **`infer_recursor_universes` 的 `u == 0` 早退也必须去掉** ✗（否则 `Acc.rec` 的消去层级留 mvar
+     ⇒ 变 `Sort(u_1)` ⇒ `lib/Order` 判拒 ✗，实测回归 ✓）。
+   * **判据** ✓：`G33` **0** ✓ · `G63` **1** ✓ · `dev-verify` **0** ✓ · `gap.py check` **0** ✓ ·
+     **12 文件子集判定中性** ✓（接受/拒绝 + `decl.checked` 逐条相同 ✓）· ⚠ `G30` **仍 1** ✗。
+   * ⭐ **G-30 现在卡在第二堵墙** ✗（与层无关 ✓，台账第 122 棒有最小复现 ✓）：
+     **`Iff.intro`（裸名 + 前导隐式）在「期望类型含集合字面量」时**把 `Eq` 的隐式 `α` 解成
+     **集合字面量本身**（项 ✗）而不是它的**类型** ✓ ⇒ `期望 Sort(1)，实际是 Set α` ✗。
+     对照：`And.intro h1 h2` **绿** ✓ · 同两个 λ 当顶层值 **绿** ✓ · 显式写前导实参 **绿** ✓。
+     ⇒ **下一手**：`implicit::solve_prefix` / `try_implicit_application` 那条线（G-42/G-73 同族 ✓）。
+   * ⚠ **复现件本身有 3 处类型错误** ✗（`61ef7943` 自足化改写引入 ✓；权威良类型版在
+     `courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda:50-69` ✓）⇒
+     **判据要转绿，必须先修第二堵墙** ✗（改夹具只够证明"第一堵墙已修" ✓）。
    **已完成 8 片（全加法、判据零漂移 ✓）**：
    R1a `a03a6b82`（`Level::MVar` ✓）· R1b `d37cc1f6`（生成器 ✓）·
    R1c-1 `58b500f6`（`level_mvar_to_param` ✓）· R1c-2a `5418927f`（`collect_level_mvars` ✓）·
@@ -118,6 +137,37 @@
    （报错非 panic ✓ 但那是大面积拒绝 ✗）⇒ 无拆分空间 ✓。
    **判据** ✓：`G30` **转绿** ✓ · 判定中性 ✓（乙已确认 ✓）· `G33` 不变 ✓ · `dev-verify` 0 ✓ ·
    同子集对拍（⚠ 逐字节**必变** ⇒ 按**判定中性**口径 ✓）。
+   ## ⭐ **Lean 4 对照**（2026-10-05 动手前交 ✓；本机源码 HEAD `d0493e4c1e` ✓）
+   1. **生成** ✓：`Elab/Term/TermElabM.lean:2051-2057` `mkConst` ——
+      `numMissingLevels := cinfo.levelParams.length - explicitLevels.length` ⇒
+      `mkFreshLevelMVars numMissingLevels`（`Meta/Basic.lean:881-886`）⇒
+      **每个缺的宇宙位一个 fresh 层 mvar**（显式 `.{n}` 优先 ✓）。= 我们的 **(a)**。
+   2. **合一** ✓：`Elab/App.lean:1092-1096` `elabArg` ⇒ `ensureArgType` ⇒
+      `ensureHasType expectedType arg`（`TermElabM.lean:1256-1260`）=
+      **`isDefEq (inferType e) expectedType`** —— 而 `expectedType` 就是**含层 mvar 的 binder 域** ✓
+      ⇒ 层在**项合一**里被解掉 ✓；`ensureType`（`TermElabM.lean:1853-1868`）是同一件事的显式形状：
+      `u ← mkFreshLevelMVar; isDefEq eType (mkSort u)`（**「一个类型的层」= 对它的类型问 sort** ✓）。
+      = 我们的 **(b)**：拿「实参类型的层」与常量域上的层 mvar 合一 ✓。
+   3. **求解规则** ✓：`Meta/LevelDefEq.lean:90-125` `solve` ——
+      `Level.mvar mvarId, _ => if !u.occurs v then assign u := v; true else … undef` ✓
+      ⇒ 正是 R2a 的 `level_solve`（三值 `LBool` ✓）；**解不出是 `undef`（弃权），不是失败** ✓。
+   4. **出口** ✓：`Elab/Declaration.lean:118-127`（`elabAxiom`）——
+      `type ← Term.levelMVarToParam type` ⇒ `usedParams := collectLevelParams {} type |>.params` ⇒
+      `sortDeclLevelParams scopeLevelNames allUserLevelNames usedParams` ⇒ `levelParams := levelParams` ✓。
+      `Term.levelMVarToParam`（`TermElabM.lean:981-987`）调 `MCtx.levelMVarToParam`
+      （`MetavarContext.lean:1475`），其 `visitLevel`（`:1427-1441`）：
+      **已赋值的代进去（`some v => visitLevel v` ✓）、未赋值的给 fresh 名（`mkParamName` ✓，
+      `paramNamePrefix := u` + `appendIndexAfter nextParamIdx` ⇒ `u_1`/`u_2`… ✓，
+      避开 `alreadyUsedPred` ✓）并 `assignLevelMVar mvarId p`** ✓。= 我们的 **(c)+(d)**。
+   5. **偏离 1（白纸黑字）** ✗：Lean 在**核项**上做项合一（`isDefEq` 带 whnf/delta ✓），
+      我们的 elaboration 期**没有核项 whnf** ✗ ⇒ (b) 的「实参类型的层」取**内核两步问** ✓
+      （类型文本 → **它的类型** = sort ⇒ 层文本 ✓，与既有 `universe_level_text_of_operands` **同一口径** ✓），
+      再走 `level_solve` 合一 ✓。结果等价 ✓、面更小 ✓（不新造机制 ✓）。
+   6. **偏离 2（白纸黑字）** ✗：Lean 的 `levelMVarToParam` 在核项上**原地重写** ✓；
+      我们的内核 `TcCtx` 在 `ExportFile::with_ctx` 的**作用域 arena** 里分配
+      （`util.rs:895-900` `alloc_expr` ⇒ `ExprPtr::local` ✓）⇒ 指针**出不了那个作用域** ✗
+      ⇒ 出口重写用 `EnvBuilder`（**持久 DAG** ✓）的构造器，与内核那份
+      `level_mvar_to_param_expr`（R1c-1 ✓）**逐臂同形** ✓（收集仍走 `TcCtx::collect_level_mvars_expr` ✓）。
    **⇒ 然后** ✓：**撤 U2 的 `#check` 渲染 hack** ✗（`68cd744d` ✓ —— 撤后 `#check` 由 R1c 的
    「未解 mvar ⇒ param」自然显示 `.{u, v}` ✓ ⇒ **G63 因正确理由转绿** ✓；
    ⚠ 撤的当下会先回红 ✓，属预期 ✓ —— 值守 turn 116 裁决 (b) ✓）。

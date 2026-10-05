@@ -184,6 +184,23 @@ pub(crate) fn prelude_install_active() -> bool {
     PRELUDE_INSTALL_DEPTH.with(|c| c.get() > 0)
 }
 
+/// **R2b-2（2026-10-05）**：裸常量要不要生成**层元变量** ✓（= (a) 的开关）。
+///
+/// **两个条件**（缺一不可 ✓）：
+/// * `SOKO_NO_CONST_LEVELS` **没开** ✓ —— 那是 `infer_const_universes` 的排查用逃生门 ✓，
+///   它关掉的是**推断**（⇒ 没有合一 ⇒ 生成的 mvar 全都解不出 ⇒ 全变 `param` ✗）
+///   ⇒ 生成也必须一起关掉 ✓，逃生门才仍然表示「保持今天的全 0 行为」✓（**不是**降级结案 ✓）。
+/// * **不在 prelude 安装期** ✓ —— 那一段的源文本一律写全实参、不走推断 ✓，
+///   而出口转换只挂在**用户声明**那条路上 ✓ ⇒ 生成了没人解 ✗
+///   （与 `infer_const_universes`/`try_implicit_application`/`try_bare_implicit_constant`
+///   的 prelude 闸**同一条**理由 ✓）。
+pub(crate) fn const_level_mvars_enabled() -> bool {
+    static NO_CONST_LEVELS: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    let allowed =
+        !*NO_CONST_LEVELS.get_or_init(|| std::env::var_os("SOKO_NO_CONST_LEVELS").is_some());
+    allowed && !prelude_install_active()
+}
+
 /// 签名 Pi 望远镜的**总层数**（`forall` 的每个 binder 算一层、`->` 算一层）。
 pub(crate) fn pi_arity(ty: &Expr) -> usize {
     let mut n = 0;
@@ -779,13 +796,20 @@ pub(crate) fn install_inductive_block<'a>(
     });
     let no_uparams = builder.alloc_levels_slice(&[]);
     builder.begin_inductive_block();
+    // **R1c-2b（2026-10-05）**：**归纳块出口** ✓ —— `add_inductive` **之前**收口
+    // （对齐 Lean：`levelMVarToParam` 在 `addDecl` **之前** ✓；`InductiveData` 的字段
+    // 是内核私有 ⇒ 只能收口 `info` 再交进去 ✓）。
+    let (ind_info, _) = crate::compile::check::level_exit::discharge_info(
+        builder,
+        DeclarInfo {
+            name: ind_name,
+            uparams: no_uparams,
+            ty: kernel_ind_ty,
+        },
+    );
     let ind_declar = builder
         .add_inductive(
-            DeclarInfo {
-                name: ind_name,
-                uparams: no_uparams,
-                ty: kernel_ind_ty,
-            },
+            ind_info,
             is_recursive,
             num_params,
             num_indices,
@@ -876,6 +900,9 @@ pub(crate) fn install_inductive_block<'a>(
             num_params,
             num_fields,
         });
+        // **R1c-2b（2026-10-05）**：构造子出口（同 inductive 本体 ✓）。
+        let (ctor_declar, _) =
+            crate::compile::check::level_exit::discharge_declar(builder, ctor_declar);
         builder
             .add_declar(ctor_declar.clone())
             .map_err(|e| CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, ctor.span))?;
@@ -1011,6 +1038,9 @@ pub(crate) fn install_inductive_block<'a>(
             rec_rules: Arc::from(rules),
             is_k,
         });
+        // **R1c-2b（2026-10-05）**：递归子出口（同 inductive 本体 ✓）。
+        let (rec_declar, _) =
+            crate::compile::check::level_exit::discharge_declar(builder, rec_declar);
         builder
             .add_declar(rec_declar.clone())
             .map_err(|e| CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, rec.span))?;
@@ -4726,7 +4756,31 @@ pub(crate) fn elab_expr<'a>(
                         span: Span::default(),
                     };
                     let params = known[&canonical].universes();
-                    let levels: Vec<LevelPtr<'a>> = params.iter().map(|_| builder.zero()).collect();
+                    // **R2b-2 (a)（2026-10-05）**：裸常量**没写 `.{n}`** 时，**每个宇宙位一个
+                    // fresh 层元变量** ✓ —— **对齐 Lean `mkConst`**
+                    // （`Elab/Term/TermElabM.lean:2051-2057`：缺几位就 `mkFreshLevelMVars` ✓，
+                    // 显式 `.{n}` 优先 ✓ —— 那条是 `UniverseApp` 臂，不走这里 ✓）。
+                    //
+                    // 解它的是 (b)（应用处合一 ⇒ `infer_const_universes` 尾部 ✓）；
+                    // **仍没解出**的由出口 (c) 转成 `param` ✓（对齐 `levelMVarToParam` ✓）。
+                    //
+                    // ⚠ **prelude 安装期间不生成** ✗（与 `infer_const_universes` /
+                    // `try_implicit_application` / `try_bare_implicit_constant` **同一条**
+                    // 理由：那一段的源文本一律写全实参、不走推断 ✓，且它没有出口转换 ✓
+                    // ⇒ 生成了就没人解、直达内核 ✗）。`SOKO_NO_CONST_LEVELS` 同理
+                    // （排查用逃生门 ⇒ 保持「全 0」的旧行为 ✓）。
+                    let levels: Vec<LevelPtr<'a>> = if const_level_mvars_enabled() {
+                        params
+                            .iter()
+                            .map(|_| {
+                                let id = crate::compile::meta::fresh_level_mvar_id();
+                                crate::compile::meta::level_mvar_table::push(id);
+                                builder.level_mvar(id)
+                            })
+                            .collect()
+                    } else {
+                        params.iter().map(|_| builder.zero()).collect()
+                    };
                     let levels = builder.alloc_levels_slice(&levels);
                     let name = builder.name_from_str(&canonical);
                     let bare = builder.mk_const(name, levels);
@@ -4841,7 +4895,7 @@ pub(crate) fn elab_expr<'a>(
             )? {
                 // ⚠ **这条路会 early-return** ✗ ⇒ G-93 那条补层**必须也挂在这里** ✓
                 // （实测：`myax α a` 走的就是这条 ⇒ 只挂下面那处 ⇒ 它永远补不到 ✗）。
-                let out = infer_const_universes(builder, known, ctx, scope, expr, out)?;
+                let out = infer_const_universes(builder, known, ctx, scope, univ, expr, out)?;
                 record_hover(hovers, scope, *span, out, None);
                 return Ok(out);
             }
@@ -4895,7 +4949,7 @@ pub(crate) fn elab_expr<'a>(
                 infer_recursor_universes(builder, known, ctx, scope, expr, out, expected_src)?;
             // **G-93 真修（第 21 棒 ✓）**：裸常量的宇宙层**从签名与实参类型解出来** ✓
             // （递归子那条补的是**结果**层，这条补的是**参数**层 —— 两回事 ✓）。
-            let out = infer_const_universes(builder, known, ctx, scope, expr, out)?;
+            let out = infer_const_universes(builder, known, ctx, scope, univ, expr, out)?;
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
@@ -6530,11 +6584,14 @@ fn infer_recursor_universes<'a>(
     else {
         return Ok(out);
     };
-    if u == 0 {
-        return Ok(out);
-    }
+    // **R2b-2（2026-10-05）**：`u == 0` **不再早退** ✗ —— 那档以前「不用动」是因为
+    // 头部的层**本来就是 `zero()`** ✓；现在 (a) 给裸常量的每个宇宙位挂了**层元变量** ✗
+    // ⇒ 早退会把 mvar **留在项里** ⇒ 出口 (c) 把它当"未解"转成 `param` ✗ ⇒
+    // 声明变成宇宙多态 ✗（实测：`lib/Order` 的 `acc_ind`/`acc_inv` 的 `Acc.rec`
+    // 消去层级被写成 `Sort(u_1)` ✗ ⇒ 内核判拒 ✗✗）。
+    // ⇒ **`0` 也是解** ✓（对齐 Lean：`solve` 给什么都算 ✓），照样落层 ✓。
     // 递归子的宇宙参数表是 `[消去层级, …归纳块自己的宇宙参数]`（内核 `mk_elim_level`），
-    // 后面的照旧默认 0（与今天一致）。
+    // 后面的照旧默认 0（与今天一致 —— 也顺手把那些位上的 mvar 换掉 ✓）。
     let mut levels: Vec<LevelPtr<'a>> = Vec::with_capacity(arity);
     levels.push(level_from_u64(builder, u));
     for _ in 1..arity {
@@ -6590,6 +6647,9 @@ fn infer_const_universes<'a>(
     known: &KnownTable,
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
+    // **R2b-2（2026-10-05）**：层级文本 ⇒ 内核层要走 `level_ptr` ✓，它需要**宇宙表**
+    // （`u+1` 里的 `u` 得在表里 ✓）—— 旧代码只认数字，所以一直没要这个参数 ✓。
+    univ: &UnivMap<'a>,
     src: &Expr,
     out: ExprPtr<'a>,
 ) -> Result<ExprPtr<'a>, CompileError> {
@@ -6635,28 +6695,113 @@ fn infer_const_universes<'a>(
     let Some(first) = args.first() else {
         return Ok(out);
     };
-    // 首个**书写**实参 ↔ 首个形参 ✓（`Eq α a a` 的 `α` 填的正是隐式 `{α : Sort u}` ✓）。
+    // **R2b-2 (b)（2026-10-05）**：常量域上的**层元变量** ≟ **实参类型的层** ✓
+    // —— **对齐 Lean `elabArg` 的 `ensureHasType`**（`Elab/App.lean:1092-1096` ⇒
+    // `TermElabM.lean:1256-1260`：`isDefEq (inferType e) expectedType` ✓，
+    // 而 `expectedType` 就是**含层 mvar 的 binder 域** ✓）；`ensureType`
+    // （`TermElabM.lean:1853-1868`：`u ← mkFreshLevelMVar; isDefEq eType (mkSort u)` ✓）
+    // 是同一件事的显式形状 —— **「一个类型的层」= 对它的类型问 sort** ✓。
+    //
+    // 头部的层**必须**是 (a) 造的那个 mvar ✓（不是 ⇒ 这条路不该动它 ✗）。
+    let Some(id) = app_head_level_mvar_id(builder, out) else {
+        return Ok(out);
+    };
+    // 「实参类型的层」= **`u` 使得 `typeof(实参) = Sort u`** ✓ —— **两档，顺序不能反** ✗：
+    //
+    // ① **`typeof(实参)` 语法上就是 sort**（`Prop` / `Type n` / `Sort n` ✓）⇒
+    //    **直接读它的层级** ✓（= 旧代码那一档 ✓）。⚠ 这一档**必须在前** ✗：实参填的正是
+    //    `Sort u` 那一层 ⇒ 约束是 `typeof(实参) =?= Sort u` ⇒ 直接读 ✓。
+    //    反例（实测 ✗）：`Eq.mp A A (Eq.refl.{2} Type A)`（`A : Type`）——
+    //    **两步**会去问 `Type` 的类型 = `Sort 2` ⇒ `u := 2` ✗（正确是 **1** ✓：
+    //    `A : Type = Sort 1` ⇒ `u = 1` ✓）⇒ `front` 的
+    //    `eq_mp_is_universe_polymorphic` 判红 ✗。
+    // ② **不是语法 sort**（`Set α` 这种 **def** ✓ / 变量 `α` ✓）⇒ 问**它的类型** = sort ✓
+    //    （= `universe_level_text_of_operands` 的口径 ✓，G-30 那一档 ✓）。
+    //    `Set α` ⇒ `Type 0` ⇒ 层 `1` ✓；`α : Type` ⇒ `Type` ⇒ 层 `1` ✓。
     let level_text = {
         let mut env = InplaceEnv {
             builder: &mut *builder,
             known,
         };
-        infer_type_text(ctx, scope, first, Some(&mut env), None)
+        let ty_text = infer_type_text(ctx, scope, first, Some(&mut env), None);
+        match ty_text.as_deref().and_then(level_text_of_sort) {
+            Some(level) => Some(level),
+            None => {
+                let mut env = InplaceEnv {
+                    builder: &mut *builder,
+                    known,
+                };
+                universe_level_text_of_operands(&[first], ctx, scope, Some(&mut env))
+            }
+        }
     };
-    // 类型文本 ⇒ 宇宙层级 ✓（`Prop`⇒`0` · `Type n`⇒`n+1` · `Sort n`⇒`n` ✓）。
-    let Some(level) = level_text.as_deref().and_then(level_text_of_sort) else {
+    let Some(level_text) = level_text else {
         return Ok(out);
     };
-    let Ok(n) = level.trim().parse::<u64>() else {
+    // 层级文本 ⇒ 内核层级 ✓（`level_ptr` 认 `n` / `u` / `u+1` ✓ —— **不再只认数字** ✗）。
+    let Ok(level) = level_ptr(builder, &level_text, univ, first.span()) else {
         return Ok(out);
     };
-    // `0` 就是今天的默认值 ✓ —— 那档**碰巧是对的**（`Prop` ✓），别去动它 ✗。
-    if n == 0 {
+    // **合一**（三值 ✓ —— R2a 的 `level_solve` = Lean 的 `LevelDefEq.solve` ✓）：
+    // 只有 **`True`** 才算解出 ✓；`Undef`（弃权 ✓）/ `False` ⇒ **原样留着 mvar** ✗
+    // ⇒ 出口 (c) 按 Lean 的 `levelMVarToParam` 把它转成 `param` ✓。
+    //
+    // ⚠ **指针身份** ✓：`builder.level_mvar(id)` 走 DAG 的 intern ⇒ 与头里那个**同一指针** ✓。
+    // ⚠ **`with_env` 嵌套在 elaborate 里是既有用法** ✓（`infer_type_text_inplace` 同款 ✓）。
+    let mvar = builder.level_mvar(id);
+    let limit = sokonanoda::env::EnvLimit::ByIndex(builder.declaration_count());
+    // ⚠ `assign` 的类型**不能写 `LevelPtr<'a>`** ✗ —— 闭包里的 `TcCtx<'t>` 是**内层**
+    // 寿命 ⇒ 注解会把 `'t` 逼到 `'a`（E0308 实测 ✓）⇒ 交给推断 ✓。
+    let solved = builder.with_env(|ef| {
+        ef.with_tc(limit, |tc| {
+            let mut assign = Vec::new();
+            matches!(
+                tc.ctx.level_solve(mvar, level, &mut assign),
+                sokonanoda::level::LevelEq::True
+            )
+        })
+    });
+    if !solved {
         return Ok(out);
     }
-    let levels = [level_from_u64(builder, n)];
+    // 记账（对齐 `assignLevelMVar` ✓）—— 出口的权威来源仍是「声明里真的出现的 mvar」✓。
+    crate::compile::meta::level_mvar_table::solve(id, &level_text);
+    let levels = [level];
     let levels = builder.alloc_levels_slice(&levels);
     Ok(relabel_app_head(builder, out, levels))
+}
+
+/// **R2b-2 (b)（2026-10-05）**：应用脊头部的**层元变量 id** ✓（只有一个层位时 ✓）。
+///
+/// 只在 `out` 的头部常量**恰好带一个层**且那个层是 `Level::MVar(id)` 时返回 `Some(id)` ✓
+/// —— 这正是 (a) 在裸常量处造的那个 ✓（写了 `.{n}` 的是 `UniverseApp` 臂、不走这里 ✓）。
+///
+/// ⚠ 读核项要走 `TcCtx`（`read_expr`/`read_levels`/`read_level` ✓）—— 它们是**只读** ✓，
+/// 所以借一次 `with_env` + `with_tc` 就够 ✓（**不在里面分配** ✗：`TcCtx` 的分配出不了
+/// `with_ctx` 的作用域 ✓ —— 见出口 (c) 的白纸黑字偏离 2 ✓）。
+fn app_head_level_mvar_id<'a>(builder: &mut EnvBuilder<'a>, e: ExprPtr<'a>) -> Option<u64> {
+    let limit = sokonanoda::env::EnvLimit::ByIndex(builder.declaration_count());
+    builder.with_env(|ef| {
+        ef.with_tc(limit, |tc| {
+            let mut cur = e;
+            loop {
+                match tc.ctx.read_expr(cur) {
+                    sokonanoda::expr::Expr::App { fun, .. } => cur = fun,
+                    sokonanoda::expr::Expr::Const { levels, .. } => {
+                        let ls = tc.ctx.read_levels(levels);
+                        return match ls {
+                            [only] => match tc.ctx.read_level(*only) {
+                                sokonanoda::level::Level::MVar(id, _) => Some(id),
+                                _ => None,
+                            },
+                            _ => None,
+                        };
+                    }
+                    _ => return None,
+                }
+            }
+        })
+    })
 }
 
 fn relabel_app_head<'a>(
