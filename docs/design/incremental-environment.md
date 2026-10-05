@@ -1431,7 +1431,7 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 
 ### 32.4 阶段 2 的两条形状（**勘到根，都还没做** ✗）
 **根因确认** ✓（读码）：合成编译走 `run_incremental` → `run_pass`，而 `run_pass` **新建 arena + 新建 `EnvBuilder`** ⇒ 前缀**必须**重 elaborate（= `by_calls` 的 Σ(1..N)）。⇒ 两条形状：
-**(i) pass 借 builder**（`Walk.builder` 改 `&mut` ⇒ `run_pass_with` 加**借用变体**；按值收发是 `session` 的依赖，不能删 ✗）；
+**(i) pass 借 builder**（`Walk.builder` 改 `&mut` ⇒ `run_pass_with` 加**借用变体**；按值收发是 `session` 的依赖，不能删 ✗）—— ⚠ **指针同一性上更安全** ✓：新 intern 直接进 **live 表**（不会造第二份节点），只需 `hide_declars`/`restore_declars` 把合成声明**回滚**掉（map 回滚即可，arena 里多出的节点无害 ✓）；
 **(ii) 内核加 `EnvBuilder::fork()`**（**同 arena + 克隆 intern 表** —— arena 是 interner 的**参数**、不归 DAG 所有 ⇒ 既有指针同一性保住 ✓；⚠ 但 fork 里新 intern 的字面量会在共享 arena 造出 live 表不认识的节点 ⇒ live 之后 intern 同一个值会**造第二份** ✗（`NatLit` 按指针比较 ⇒ 假失败，与 `snapshot()` 那条 ⚠ 同族）⇒ 还要 `absorb()` 合并口，**面不比 (i) 小**）。
 ⇒ **两条都是架构件** ✗：先出一轮设计 + 一条**指针同一性单测**，判据照 §32.3（**先建先红** ✓）。
 ⚠ **与判定点那条缝区分开** ✓（别混 ✗）：本节讲**合成编译**（`judge_pairs`）怎么拿到活环境；
