@@ -45,7 +45,8 @@
      身上 ✓）· `passes=23`（线性 ✓）而 **`by_calls=210` = 20 + Σ(1..19)** ✗
      —— 每个 `by_calls` 都是一次 `by` 引擎调用，**逐趟把前面所有 `by` 再跑一遍**。
    * **出路（二选一，都还没做）**：① 给就地路加「**文本 ⇒ AST**」入口
-     （边界 `by.rs:88-93`）；② **合成编译复用调用方的环境** = §18 的 **K-2**
+     （边界 = `by.rs::level_hint_of` 的**记法形态**那一支：`infer(infer(…))` 要的是**文本**，
+     而就地路只收**源 AST** ⇒ 整支回落 ✓）；② **合成编译复用调用方的环境** = §18 的 **K-2**
      = **G-68 那条架构件**（§30.2 判过"位置不成立"：调用方的 builder 只覆盖到
      当前命令之前）。
    * ⚠ **真实课程不呈现它**（逐声明耗时平线 ✓）—— 但判据**不许**因此写成"已达标" ✗。
@@ -67,8 +68,8 @@
 
 | 引用处 | 该指向 | 为什么 |
 |---|---|---|
-| `judge.rs` 的 `EnvProvider` 文档 | **§0.2 #2 + §32** | as-built 不是 `EnvView` |
-| `judge.rs` 的 `judge_env_reuse_enabled`（09-25 那条结论） | **§30.1** | "T-K11 只服务 LSP 增量会话" |
+| `judge.rs`（`EnvProvider` 文档 / `judge_env_reuse_enabled`） | **§0.2 #2 + §32** / **§30.1** | as-built 不是 `EnvView` · "T-K11 只服务 LSP 增量会话" |
+| `compile/check/walk.rs`（`shadow` 字段 · `walk_real_add_enabled`） | **§8.1 + §32.3** | 两条旧注释说的"walk 不填环境/builder 被消费"**都不成立** ✗ |
 | `judge_env_vouch.rs` 头 | **§31**（§31.4 数字 · §31.2/§31.3 两个坑） | 本文**没有** §21.5/§21.6 |
 | `compile/check/mod.rs`（`closure_prefixes_for`）· `project/session.rs`（入口趟闭包前缀） | **§29.1 / §29.2** | 三次接线失败的同一根因 · 路乙修法 |
 | `project/mod.rs`（`assemble_from_session`） | **§21.2 + §24** | 切片 1 的接线口与可见性 |
