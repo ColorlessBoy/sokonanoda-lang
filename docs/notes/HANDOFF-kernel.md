@@ -104,6 +104,16 @@
    （`peel_expected` 取域前**先 whnf** ✓，对齐 Lean `Binders.lean:408-421` `whnfForall` ✓；**反向验证 + (c) 逐字节** ✓）；
    **剩两件** ✓：① **元变量进项**（引擎已就位 ✓ `9b6b4cfc` + `92233b0c` ✓；形状见台账 `G-33` 第 59/61 棒 ✓ —— 两条表示打通 + 核项表挂 `DeclState` ✓）；② **G-30**（**另一条根因** ✗ —— 实参位**取不到头的类型** ✓，第 13–30 棒五层读数 ✓）；
    **判据基线** ✓：`G33`（**exit 0** ✅）· `G62`（exit 0 ✗）· `G30`（exit 1 ✗）· K1 四条 + B2 单测（**17 passed** ✓）。
+   ⭐ **下一片（用户 2026-10-05 指定 ✓）= `EnvProvider` 接线** —— 实现 **incremental-environment**：
+   判定侧拿到**就地环境**（**G-92 终局** ✓，= 上面 §3.2 的「出路 ②」✓）。
+   **现状（已核实 ✓，非转述）**：trait 在 `crates/front/src/judge.rs:2271` 定义 ✓
+   （`fn infer_type_text(&self, binders, term) -> Option<String>` ✓；`None` = 这条环境答不了 ⇒
+   调用方**必须**回退合成前缀 ✓ = **回退机制兼判据** ✓），但 **`grep -rn 'impl EnvProvider' crates/` = 0** ✗
+   ⇒ **零实现零接线** ✗。**实现方 = `Walk`** ✓（`compile/check/walk.rs` ✓ —— 它 walk 期间**无条件**
+   `add_declar`（9 处 ✓）⇒ 环境里**已经有到当前命令为止的声明** ✓）。
+   **按 `docs/design/incremental-environment.md` 的阶段划分落地** ✓：**每阶段独立 commit + 独立真绿 +
+   判据不达即回退** ✗（文档会话 `b3d09687` 只碰文档与引用 ✓ ⇒ **本片只动内核代码** ✓，两边不撞文件 ✓）。
+   ⚠ **前置** ✓：当前片 B2 收口后开工 ✓（用户原话「当前切片收口后，下一片 = EnvProvider 接线」✓）。
 
 ## 4. 每条要带的判据（判红 / 判绿 ✓）
 
