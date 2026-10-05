@@ -15,6 +15,8 @@
 > 恢复时对照**当前代码**做了这次对账：**§1–§31 是过程留档**（含多次更正与撤回，
 > 按当时的认识写 ⇒ **不许当现状读** ✗）；**现状以本节为准** ✓。
 > **引用本文的代码/台账请指向本节或 §32**（§0.3 有逐处对照表 ✓）。
+> ⚠ **`file:line` 一律会漂** ✗：§1–§31 里的行号是**当时**的 ⇒ **按名字 `grep -n` 定位**，别照抄 ✗
+> （2026-10-05 已按此修过 §8.1/§12.1/§16.1 ✓；`grep` 得到的**计数**比行号稳 ✓）。
 
 ### 0.1 已落地（一行一条 + 读数 + 提交）
 
@@ -1420,6 +1422,10 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 **(i) pass 借 builder**（`Walk.builder` 改 `&mut` ⇒ `run_pass_with` 加**借用变体**；按值收发是 `session` 的依赖，不能删 ✗）—— ⚠ **指针同一性上更安全** ✓：新 intern 直接进 **live 表**（不会造第二份节点），只需 `hide_declars`/`restore_declars` 把合成声明**回滚**掉（map 回滚即可，arena 里多出的节点无害 ✓）；
 **(ii) 内核加 `EnvBuilder::fork()`**（**同 arena + 克隆 intern 表** —— arena 是 interner 的**参数**、不归 DAG 所有 ⇒ 既有指针同一性保住 ✓；⚠ 但 fork 里新 intern 的字面量会在共享 arena 造出 live 表不认识的节点 ⇒ live 之后 intern 同一个值会**造第二份** ✗（`NatLit` 按指针比较 ⇒ 假失败，与 `snapshot()` 那条 ⚠ 同族）⇒ 还要 `absorb()` 合并口，**面不比 (i) 小**）。
 ⇒ **两条都是架构件** ✗：先出一轮设计 + 一条**指针同一性单测**，判据照 §32.3（**先建先红** ✓）。
+**(i) 的起手清单（**建议顺序 ✓ · 未验证 ✗**，供接手方省一轮）**：① `flush_batch` 收 `Option<&mut InplaceEnv>`
+（`by.rs::run_by` 里 `run_by_inner` 返回后 `env` 已空闲 ⇒ 借用可行 ✓）⇒ 透传给 `judge_pairs_with`/`judge_pairs_uncached`；
+② `check_synthesized` 在有 env 时改走"**只含合成命令**的 pass"（`src` 仍给**整份前缀** ✓ 供 span 查表 —— **这条未验证** ✗）；
+③ `Walk`/`run_pass_with` 加**借用变体**（按值那版**保留**给 session ✓）；④ 合成声明用 `hide_declars`/`restore_declars` **回滚** ✓。
 ⚠ **与判定点那条缝区分开** ✓（别混 ✗）：本节讲**合成编译**（`judge_pairs`）怎么拿到活环境；
 **判定点**（`infer`）那条缝 = §0.2 #2 的**重借链** ✓ —— 两条**同族**（都是把 `&mut` 透传到借出窗口 ✓），
 但落点不同（`check/mod.rs`+`walk.rs` vs `elab.rs` 的调用链）⇒ 可以**各自独立落地** ✓。
