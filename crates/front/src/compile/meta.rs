@@ -137,6 +137,66 @@ pub(crate) fn level_assign(
     Ok(())
 }
 
+/// **U1 第 4 片（2026-10-05）**：宇宙约束的**惰性批量检查**（§2.9：「**对齐 Coq**：
+/// 约束攒着，声明收尾才查 ⇒ 不逐次合一都查图」✓）。
+///
+/// **Lean 4 / Coq 对照** ✓（本机源码 HEAD `d0493e4c1e` ✓）：
+/// * **Lean** 侧：`Meta/LevelDefEq.lean:77` `postponeIsLevelDefEq` —— **刚性宇宙约束推迟**
+///   到项元变量被赋值 ✓；最终由 `LevelDefEq` 的检查收口 ✓；
+/// * **Coq** 侧：`UState` + `UnivProblem` 约束集 + **惰性批量检查**（§4 的 #8 行 ✓，
+///   `check_univ_implication` 是**那一列**的说法 ✗ —— **不是** Lean 的 ✓）；
+/// * **我们**：§2.9 明说「**对齐 Coq**」✓ ⇒ 本片落**批量检查**的形状 ✓。
+///
+/// ⚠ **本片只落「能定的判掉」** ✓（零行为变化 ✓）：约束两侧**都已有赋值**时当场判
+/// （`Eq` 相等 / `Le` 数值 ≤ ✓）；**任一侧没赋值 ⇒ 弃权**（留给后续片 ✓，对齐 `LBool.undef`
+/// 的「不知道」而不是「失败」✓ —— 报成失败会**假红** ✗）。
+///
+/// 返回：`Ok(())` 全部可判且成立 ✓ · `Err(UnivUnsolved::Clash)` **已判否** ✗ ·
+/// `Err(UnivUnsolved::Pending)` **还有没赋值的** ✓（声明出口才需要它变成错 ✗ —— 本片不接 ✓）。
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[allow(dead_code)] // U1 第 5 片（接线）会用
+pub(crate) enum UnivUnsolved {
+    /// 有约束被**判否**（真的冲突 ✗）。
+    Clash,
+    /// 还有约束**定不了**（两侧没赋值完 ✓）。
+    Pending,
+}
+
+#[allow(dead_code)] // U1 第 5 片（接线）会用
+pub(crate) fn univ_check(
+    constraints: &[UnivConstraint],
+    values: &[Option<String>],
+) -> Result<(), UnivUnsolved> {
+    let val = |id: u32| -> Option<u64> {
+        values
+            .get(id as usize)
+            .and_then(|v| v.as_ref())
+            .and_then(|t| t.trim().parse::<u64>().ok())
+    };
+    let mut pending = false;
+    for c in constraints {
+        match *c {
+            UnivConstraint::Eq { lhs, rhs } => match (val(lhs), val(rhs)) {
+                (Some(a), Some(b)) if a == b => {}
+                (Some(_), Some(_)) => return Err(UnivUnsolved::Clash),
+                _ => pending = true,
+            },
+            UnivConstraint::Le { lhs, rhs } => match (val(lhs), val(rhs)) {
+                (Some(a), Some(b)) if a <= b => {}
+                (Some(_), Some(_)) => return Err(UnivUnsolved::Clash),
+                _ => pending = true,
+            },
+            // ⚠ `Lub` 要**算 max** ✗（不是判关系 ✓）⇒ 本片**弃权** ✓（留给后续片 ✓）。
+            UnivConstraint::Lub { .. } => pending = true,
+        }
+    }
+    if pending {
+        Err(UnivUnsolved::Pending)
+    } else {
+        Ok(())
+    }
+}
+
 /// 层文本的 **zonk**：把已赋值的层元变量代进文本（有界迭代，链式赋值 ✓）。
 ///
 /// ⚠ **有界**（`LEVEL_ZONK_MAX` ✓）：与项元变量的 `zonk` 同款纪律 ✓ —— 环由 `level_assign`
@@ -1444,5 +1504,59 @@ mod tests {
         // ④ 未赋值的保持原样 ✓。
         let w = level_name(9);
         assert_eq!(level_zonk_text(&vals, &w), w, "没赋值的层名**不许**被抹掉 ✗");
+    }
+
+    /// **U1 第 4 片（2026-10-05）**：宇宙约束的**惰性批量检查**（§2.9「对齐 Coq」✓）。
+    ///
+    /// 判据五条，**都要能咬** ✗：
+    /// ① 两侧都有值且**成立** ⇒ `Ok` ✓（`Eq{0,1}` 都 = 2 ✓；`Le{0,1}` 1 ≤ 2 ✓）；
+    /// ② 两侧都有值且**不成立** ⇒ **`Clash`** ✗（`Eq` 2 vs 3 ✓；`Le` 3 vs 2 ✓）；
+    /// ③ 任一侧**没赋值** ⇒ **`Pending`** ✓ —— ⚠ **不是 Clash** ✗
+    ///    （报成失败会**假红** ✗ —— 这正是「惰性」的意义 ✓）；
+    /// ④ `Lub` ⇒ **`Pending`** ✓（它要**算 max** ✗，本片弃权 ✓）；
+    /// ⑤ 空约束表 ⇒ `Ok` ✓。
+    ///
+    /// ⚠ **反向验证**：把「没赋值 ⇒ `Pending`」改成「⇒ `Clash`」⇒ 第 ③ 条**判红** ✗。
+    #[test]
+    fn univ_check_is_lazy_and_bites() {
+        let mut vals: Vec<Option<String>> = vec![Some("2".to_string()), Some("2".to_string())];
+        // ① 成立 ⇒ Ok ✓。
+        assert!(
+            univ_check(&[UnivConstraint::Eq { lhs: 0, rhs: 1 }], &vals).is_ok(),
+            "`?0 = ?1` 且都 = 2 ⇒ 必须 Ok ✓"
+        );
+        assert!(
+            univ_check(&[UnivConstraint::Le { lhs: 0, rhs: 1 }], &vals).is_ok(),
+            "`?0 ≤ ?1` 且 2 ≤ 2 ⇒ 必须 Ok ✓"
+        );
+        // ② 不成立 ⇒ Clash ✗。
+        vals[1] = Some("3".to_string());
+        assert_eq!(
+            univ_check(&[UnivConstraint::Eq { lhs: 0, rhs: 1 }], &vals),
+            Err(UnivUnsolved::Clash),
+            "`?0 = ?1` 但 2 ≠ 3 ⇒ 必须 Clash ✗"
+        );
+        vals[0] = Some("3".to_string());
+        vals[1] = Some("2".to_string());
+        assert_eq!(
+            univ_check(&[UnivConstraint::Le { lhs: 0, rhs: 1 }], &vals),
+            Err(UnivUnsolved::Clash),
+            "`?0 ≤ ?1` 但 3 ≤ 2 ⇒ 必须 Clash ✗"
+        );
+        // ③ 没赋值 ⇒ **Pending**（**不是** Clash ✗）。
+        let half: Vec<Option<String>> = vec![Some("2".to_string()), None];
+        assert_eq!(
+            univ_check(&[UnivConstraint::Eq { lhs: 0, rhs: 1 }], &half),
+            Err(UnivUnsolved::Pending),
+            "有一侧没赋值 ⇒ 必须 Pending ✓（报成 Clash 就是**假红** ✗）"
+        );
+        // ④ Lub ⇒ Pending ✓。
+        assert_eq!(
+            univ_check(&[UnivConstraint::Lub { out: 0, a: 1, b: 2 }], &vals),
+            Err(UnivUnsolved::Pending),
+            "`Lub` 要**算 max** ⇒ 本片弃权 ⇒ Pending ✓"
+        );
+        // ⑤ 空表 ⇒ Ok ✓。
+        assert!(univ_check(&[], &vals).is_ok(), "没有约束 ⇒ 必须 Ok ✓");
     }
 }
