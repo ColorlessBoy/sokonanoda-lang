@@ -36,7 +36,7 @@
 1. **G-92：`by` 判定的前缀重跑仍是 O(n²)** ✗（**本档唯一的大头**）。
    * **判据先红**（2026-10-05 实测 ✓ · 构建 = `20fb549d` + 工作树 `elab.rs`）：
      `docs/gaps/repro/G92-by-prefix-rerun-is-quadratic.sh` ⇒ `by_calls` 55（N=10）→ 210（N=20）
-     = **3.82×**（阈值 3.0 ⇒ exit 0）；**守卫真的在跑** ✓（`gap.py check` 实测 `G-92 open script 缺口仍在`，与台账一致 ✓）。
+     = **3.82×**（阈值 3.0 ⇒ exit 0）；**守卫真的在跑** ✓（`gap.py check` 实测 `G-92 open script 缺口仍在`，与台账一致 ✓）；**夹具干净** ✓（`build --json` = `compiled:1 failed:0` ⇒ 量的**不是**失败路径 ✓ —— 台账第 17 棒正是被这个坑咬过 ✗）。
    * ⚠ **判据对这两条路都不敏感**（2026-10-05 同构建复测 ✓，`by_calls` **55 → 210** 三档一模一样）：
      `SOKO_JUDGE_INPLACE=off`（就地 infer 关）· `SOKO_JUDGE_ENV_REUSE=0`（受信任前缀关）
      ⇒ 它**只**量 `judge_pairs` 的合成编译**重 elaborate** ⇒ **光接 infer 那条 `EnvProvider` 不会让它动** ✗
