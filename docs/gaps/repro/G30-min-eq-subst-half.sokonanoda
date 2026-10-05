@@ -1,0 +1,50 @@
+-- G-30 最小复现：**期望类型不传播到嵌套应用的实参**。
+--
+-- 期望 `({a} = {b}) ↔ a = b` 是知道的，但 `Iff.intro` 的两个分支在 elaborate 时
+-- 拿不到它 ⇒ 分支里的 `Set.ext {a} {b} (…)` 中，集合字面量 `{a}`/`{b}` 推不出
+-- 类型 ⇒ 内核报 `期望 Sort(0)，实际是 (Set.[] $2)`。
+--
+-- 对照（把 `Iff.intro` 的前导 Prop 实参显式写出来就通过）：
+--   Iff.intro ({a} = {b}) (a = b) (fun …) (fun …)          -- ✓
+--   And.intro (P) (Q) h1 h2                                -- 同理
+--
+-- 影响：**项风格（lambda）证明**没法自然书写（solutions/ 从 tactic 改成项风格时撞到的第一堵墙）。
+--
+-- ⚠ **2026-10-03 修夹具保真度** ✓（与 G-32 同族 ✗）：原夹具 `import lib.Set` ✗，而
+-- `gap.py:190` 判 `.sokonanoda` 类复现件时**不带 `--root`** ✓，仓库根没有 `lib/` ✗
+-- ⇒ 它失败在 **`import-not-found`** ✗ —— 与 G-30 **无关**的原因 ✗（"守卫空转" ✓）。
+-- ⇒ 现在**自足** ✓：把要用的库件就地声明 ✓（签名照抄
+-- `courses/set-theory/lib/Set.sokonanoda:56/134/176/184` ✓；**证明用 `sorry`** ✓ ——
+-- 本复现件只关心**这些引理的类型**能否让目标 elaborate ✓，不关心它们怎么证 ✓）。
+-- ⇒ 夹具回到 G-30 的本体：`Set.ext {a} {b}` 的**集合字面量实参**要能推出类型 ✓。
+
+def Set (α : Type) : Type := α → Prop
+
+infix:50 " ∈ " => Set.mem
+
+namespace Set
+
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+
+-- 集合字面量 `{a}` / `{a, b}` 展开成这两个（缺了它们 ⇒ `elab-set-literal-unknown-target` ✗，
+-- 实测 ✓）——签名照抄 `courses/set-theory/lib/Set.sokonanoda:68/70` ✓。
+def singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a
+
+def pair {α : Type} (a b : α) : Set α := fun (x : α) => x = a ∨ x = b
+
+end Set
+
+-- ⚠ **为什么这些引理是"假设"而不是 `sorry` 定理** ✗：本子集里 `sorry` 的声明**不能被后面的
+-- 代码引用** ✓（hint 原文：「练习要在解决之后才能被后面的代码引用」✓，实测撞到 ✓）。
+-- 而本复现件只关心**这些引理的类型**能否让目标 elaborate ✓ ⇒ 写成目标的**假设**最干净 ✓。
+
+theorem only_subst
+    (α : Type) (a b : α)
+    (mem_singleton_iff : ({a} = {b}) ↔ a = b)
+    (mem_singleton_self : a ∈ {a}) :
+    ({a} = {b}) ↔ a = b :=
+  Iff.intro
+    (fun (h : {a} = {b}) =>
+      Iff.mp (a ∈ {b}) (a = b) mem_singleton_iff
+        (Eq.subst.{1} (Set α) (fun (X : Set α) => a ∈ X) {a} {b} h mem_singleton_self))
+    (fun (h : a = b) => h)
