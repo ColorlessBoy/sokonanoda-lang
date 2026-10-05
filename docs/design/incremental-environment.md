@@ -803,230 +803,56 @@ for M in closure (拓扑序):
 
 ## 22. 切片 1 的**确切 API 缺口**（2026-09-29 实测；这就是卡点，不是"待办"）
 
-> ⚠ 本节三个小标题原写作 `31.x`（**与 §31 撞号** ✗，2026-10-05 恢复时改成 `22.x`；
-> 内容一字未动 ✓ —— 这样 §31.x 的引用才不歧义）。
-
-动手接线时撞到**一处**具体缺口。记在这里，避免下一轮重复勘。
-
-### 22.1 缺口：session 的回调**交不出** `build_one` 需要的 `ProjectReport`
-
-`build_one`（`crates/cli/src/build.rs:367`）要的是**完整** `ProjectReport`，
-它由 `assemble_report(PlanCompiled { … })`（`project/mod.rs:381`）组装，而 `PlanCompiled` 要：
-
-| 字段 | 谁能给 |
-|---|---|
-| `compilable: Vec<usize>` | plan 的 `closure.compilable()` ✓ |
-| `flat_out: CompileOutput` | session 回调的 `out` ✓ |
-| `reports: Vec<DocumentReport>` | session 回调的 `entry_reports` ✓ |
-| `closure: &Closure` | **plan**（`PlanCompiled` 借它）✓ |
-| `diagnostics` / `entry_path` / `root` / `manifest_path` / `requires_warning` | plan ✓ |
-
-**⇒ 只差一样**：`assemble_report` 内部要**重建** `units`（它注释写着
-"`units` 借用 `closure` ⇒ 不能与它同处一个结构体（自引用 ✗）；这里**重建**"），
-而重建用的是**该入口自己的闭包顺序**。session 回调**没有把它交出来**
-（它只给 `lib_ranges`（并集顺序的库区间）与 `entry_range`）。
-
-### 22.2 两种收口（下一轮选一，都不大）
-
-* **收口甲（改 session 签名，最小）**：回调多交一个参数
-  —— **该入口自己的闭包单元列表**（或它的 `Vec<Range<usize>>`）。
-  session 内部本来就有 `entry_units`（`entries[i]`）与 `lib_units`，
-  按**该入口的闭包顺序**（`units_for_modules(plan, |_| true)`）拼出来即可 ✓。
-  改动面：`session.rs` 的签名 + 它的 2 个调用点（本文件测试 + CLI）。
-* **收口乙（不改 session）**：让 `build_one` 接受"**片段**"而不是完整 `ProjectReport`，
-  由调用方在 session 回调里就地组装 —— 但 `build_one` 的缓存写盘
-  （`cache::store_at`，`:411`）要完整报告 ⇒ 面更大 ✗。
-
-**⇒ 选甲。**
-
-### 22.3 为什么必须走 session（而不是别的路）
-
-* **不许批编**（实测慢 **6.2×**）✗；
-* **不许按前缀复用**（前缀是 per-entry 的 ⇒ 切片 1b 实测 `passes` 4126→**5404**、
-  `judge_ms` 148.4→**162.9** ⇒ 更慢 ✗）；
-* **不许按 module_key 逐模块编**（那是"重写编译模型"，会改事件/诊断 ⇒ 破 `--json` 红线 ✗）；
-* ⇒ **唯一保持 per-entry 前缀不变、又让共享库只编一次的路 = 一次 session 覆盖全部入口** ✓
-  （这正是 §21.2，也是"收口甲"要补的那一个参数）。
+> ⚠ 本节三个小标题原写作 `31.x`（**与 §31 撞号** ✗，2026-10-05 恢复时改成 `22.x` ✓）。
+> **§22 + §23 + §24 是一条链**：勘缺口 → **判错** → 撤回 → 找到真答案 ✓。**结论只有一句**：
+> **`session` 不改签名** —— 接线方（`build` 侧）拿 **plan + 回调的 `out`/`entry_reports`** 自己组
+> `PlanCompiled` ⇒ `assemble_report`，即今天代码里的 **`project/mod.rs::assemble_from_session`** ✓
+> （§0.3 表里那一条 ✓）。
+> ⚠ **别再走的两步** ✗：① 给 session 回调加"该入口闭包单元列表"参数（**多余** —— `assemble_report`
+> 自己从 `closure` 重建 `units` ✓；且回调只能拼出**并集**顺序 ⇒ 正是 §21.3 那堵墙 ✗）；
+> ② 让 CLI 自己组 `PlanCompiled`（**够不着** —— `ProjectPlan.closure` 私有 ✗）⇒ 把组装**收进前端** ✓。
+> **原文（字段表 · revert 记录 · 可见性核查）⇒ `git log --all -- docs/design/incremental-environment.md`** ✓。
 
 ## 23. ⚠ **撤回 §22 的"收口甲"** —— 那个参数是多余的，且有 §21.3 的风险
 
-§22.2 我判"session 回调缺一个参数（该入口自己的闭包单元列表）"，并照此加了参数
-（commit `0a83378f`）。**再核一层后：判错了** ✗✓，**已 revert**（`7ac6447f`）。
-
-### 23.1 为什么多余
-
-`assemble_report`（`project/mod.rs:381`）**自己就会重建 `units`**：
-
-```rust
-let units: Vec<SourceUnit<'_>> = compilable.iter()
-    .map(|&index| SourceUnit { name: &closure.modules[index].name, … })
-    .collect();
-```
-
-它从 **`closure`**（plan 里的 `Closure`）按 `compilable` 的下标重建 ⇒
-**根本不需要调用方再交一份单元列表** ✗。§22.1 的表里我自己抄了那段注释
-（"这里**重建**"），却没读出"**从 closure 重建**"这半句 ⇒ 判错。
-
-### 23.2 而且加了它**有风险**
-
-session 回调里能拼出来的"闭包单元列表"只能是 **`lib_units`（并集）+ 入口** ——
-而 §21.3 记着：**并集顺序的前缀**正是切片 1b 失败的根因
-（`passes` 4126→**5404**、`judge_ms` 148.4→**162.9** ⇒ 更慢 ✗）。
-把一个"看起来对、实际是并集"的东西交出去，**等于把坑递给接线方** ✗。
-
-### 23.3 那 §22 的真缺口是什么
-
-**重新判**：`build_one` 要的是**完整 `ProjectReport`**，而它由
-`assemble_report(PlanCompiled { … })` 组装，`PlanCompiled` 需要：
-
-| 字段 | session 能给？ |
-|---|---|
-| `flat_out` / `reports` | ✓（回调已有）|
-| `compilable: Vec<usize>` | ✗ **没给**（但它是 **plan** 的 `closure.compilable()` ⇒ **接线方自己就有** ✓）|
-| `closure: &Closure` | ✗ 没给（但同样是 **plan** 的 ⇒ 接线方自己就有 ✓）|
-| `diagnostics`/`entry_path`/`root`/`manifest_path`/`requires_warning` | 全是 **plan** 的 ⇒ 接线方自己就有 ✓ |
-
-⇒ **真缺口不是"缺参数"，而是"session 的回调签名把 `ProjectReport` 的组装拆散了"**：
-接线方手里**有 plan**（⇒ `closure`/`compilable`/诊断全都有），**只差**
-`flat_out` 与 `reports`（这两个正是回调给的）⇒ **接线方可以自己调
-`assemble_report`**，**不需要新参数** ✓。
-
-**⇒ 收口 = 在 `build` 侧写一个 adapter**（拿 plan + 回调的 `out`/`entry_reports`
-⇒ 组 `PlanCompiled` ⇒ `assemble_report` ⇒ 喂 `build_one` 的 `precomputed`），
-**`session.rs` 不用再改** ✓。
+> 见 §22 横幅 ✓（`0a83378f` 加了那个参数 ⇒ `7ac6447f` **revert** ✓）。**原文 ⇒ `git log`** ✓。
 
 ## 24. adapter 的**最后一道门**：`ProjectPlan.closure` 是**私有的**
 
-§23.3 判"接线方自己调 `assemble_report` 即可"——**再核一层**：还差**一样可见性** ✗。
-
-`PlanCompiled` 要 `closure: &'a Closure`（`project/mod.rs:373`），而：
-
-* `ProjectPlan` 的字段 `closure: Closure`（`project/mod.rs:142`）**没有 `pub`** ✗；
-* 它只暴露 `pub fn modules(&self) -> &[LoadedModule]`（`:146`）——**不是 `&Closure`** ✗；
-* `Closure` 类型**本身是 `pub`**（`:28` 的 re-export）✓ ⇒ 只是**拿不到 plan 里那一份**。
-
-⇒ **接线方（CLI）拿不到 `&Closure`** ⇒ 组不出 `PlanCompiled` ⇒ 调不了 `assemble_report` ✗。
-
-### 24.1 两种收口（都很小，选一）
-
-* **收口 1（最小，前端加一个访问器）**：
-  `ProjectPlan` 加 `pub fn closure(&self) -> &Closure { &self.closure }`。
-  **纯新增、零语义变化** ✓。接线方就能自己组 `PlanCompiled` ✓。
-* **收口 2（前端直接给一个"从 session 结果出报告"的函数）**：
-  在 `project/mod.rs` 加
-  `pub fn assemble_from_session(plan: &ProjectPlan, flat_out: CompileOutput, reports: Vec<DocumentReport>) -> ProjectReport`
-  —— 把"组 `PlanCompiled`"这件事**收进前端**（不让 CLI 知道 `PlanCompiled` 的细节）✓
-  **更干净**（CLI 少依赖一个内部结构），推荐这条。
-
-**⇒ 选收口 2。**
+> 见 §22 横幅 ✓ —— 所以收口 = **前端加 `assemble_from_session`**（不让 CLI 知道 `PlanCompiled` 细节 ✓）。
 
 ### 24.2 于是切片 1 的最后一步是（三处小改，都已定位）
 
-1. **前端**：`project/mod.rs` 加 `assemble_from_session(plan, flat_out, reports) -> ProjectReport`
-   （内部组 `PlanCompiled` + 调 `assemble_report`；`plan` 的私有 `closure` **在前端内部** ⇒ 够得着 ✓）；
-2. **CLI**：`build <dir>` 先跑**一次**跨全部入口的 `with_project_session`
-   （`lib_units` = 各入口库层的**并集**（去重、拓扑序），`entries` = 各入口自己的单元），
-   回调里对每个入口调 `assemble_from_session` ⇒ 存进 `Vec<Option<ProjectReport>>`；
-3. **CLI**：批量循环把 `build_one(..., None)` 的 `None` 换成 `precomputed[index]`
-   （`crates/cli/src/build.rs:228` 并行路径 / `:255` 串行路径）；
-   `build_one` 里 `:405` 的 `match precomputed { Some(p) => p, None => compile_plan_with_progress(...) }`
-   **已经写好了** ✓ —— **这个参数从切片 1b 起就留着，一直没人喂过**。
+> ① 前端 `assemble_from_session` ✓（**已在代码里** ✓）· ② CLI 跑一次跨全部入口的 `with_project_session` ·
+> ③ 把 `build_one(…, None)` 的 `None` 换成 `precomputed[index]`（**这个参数从切片 1b 起就留着、一直没人喂** ✓）。
+> **原文 ⇒ `git log`** ✓。
 
 ## 25. 切片 1 接线**第一次尝试：收益巨大但组装错了**（实测数字，非常重要）
 
-把 §24.2 的三步接上（CLI 侧，本机 release、冷缓存、1 job）后实测：
-
-| 读数 | 基线 | 接线后 | 倍率 |
-|---|---|---|---|
-| `passes` | **4126** | **271** | **15.2×** ↓ |
-| `judge_ms` | **146.4s** | **5.3s** | **27.6×** ↓ |
-| `doc_passes` | **266** | **19** | **14×** ↓ |
-| `misses` | 266 | **19** | — |
-
-⇒ **方向完全正确**（这正是 88% 那一刀该有的形状 ✓）。
-
-**但它 `exit=101` 崩了**：`crates/front/src/project/mod.rs:480`
-`index out of bounds: the len is 1 but the index is 1`。
-
-### 25.1 崩因（已定位到行）
-
-`assemble_report` 里：
-
-```rust
-let mut compiled: HashMap<usize, usize> = compilable.iter().enumerate()
-    .map(|(slot, &index)| (index, slot)).collect();     // slot = 闭包内第几个**模块**
-…
-events.errors = reports[slot].errors.clone();            // ← 这里 :480
-```
-
-它要的 `reports` 是 **整个闭包（`lib/*` + 入口）逐模块**的报告（长度 = `compilable.len()`）。
-而 session 回调交的是 **`entry_reports`（只有入口那一个模块）** ⇒ `len == 1`，
-而 `slot` 到了 `1` ⇒ **越界** ✗。
-
-**正解**：`reports` 必须是 **`lib_reports` + `entry_reports` 按该入口闭包顺序拼起来** ——
-这正是 session 回调**为什么要交 `lib_ranges`（并集顺序下每个库模块的区间）** 的原因
-（它的注释原文："修法 A：按各入口自己的闭包顺序拼接 + 重编号"）✓。
-
-⇒ **接线方必须做"拼接 + 重编号"**，而不是直接把 `entry_reports` 递进去 ✗。
-**这不是"缺参数"，是"接线方少做了一步变换"** —— §22/§23 两次都判偏了，
-**这次有越界 panic 的精确行号**（`:480`）作证。
+> **读数**：`passes` 4126 → **271**（15.2×）· `judge_ms` 146.4s → **5.3s**（27.6×）—— 方向正确 ✓；
+> **但 `exit=101` 崩** ✗：`reports[slot]` **越界**（session 只交了入口那一个模块的报告，
+> 而 `assemble_report` 要**整个闭包逐模块**的 ✓）。
 
 ### 25.2 下一步（唯一，且形状已明）
 
-在 `build` 侧（或前端加一个 helper）把 session 交的两份报告拼成"该入口闭包的逐模块报告"：
-
-1. 用 `entry_closure`（**该入口自己的**闭包单元顺序 —— 注意**不是** `lib_units` 并集顺序）
-   算出**期望的报告序列**；
-2. 用 `lib_ranges`（并集顺序的库模块区间）把 `lib_reports` 映射到该入口的库模块；
-3. 拼 `lib_reports' ++ entry_reports` ⇒ 交给 `assemble_from_session`。
-
-⚠ **§21.3 的坑仍适用**：拼接必须按**该入口自己的闭包顺序**，用并集顺序会
-`--json` 对不上 ✗。
+> **把两份报告按"该入口自己的闭包顺序"拼起来**（`lib_reports` + `entry_reports`，用 `lib_ranges` 映射 ✓）；
+> ⚠ §21.3 的坑仍适用：**并集顺序会 `--json` 对不上** ✗。**原文 ⇒ `git log`** ✓。
 
 ## 26. 切片 1 接线**第二次尝试**：不再崩，但**结果错了**（`compiled:4 failed:38`）
 
-按 §25.2 加了 `merge_session_reports`（按**该入口自己的**闭包顺序拼
-`lib_reports` + `entry_reports`）后重接 CLI 线：
-
-| 读数 | 基线 | 第一次（§25） | **第二次** |
-|---|---|---|---|
-| `exit` | 0 | **101**（越界崩） | **0** ✓ |
-| `passes` | 4126 | 271 | **590** |
-| `judge_ms` | 146.4s | 5.3s | **6.9s** |
-| `doc_passes` | 266 | 19 | **90** |
-| `compiled / failed` | **42 / 0** | —（崩） | **4 / 38** ✗ |
-| `build.decl` | **2647** | — | **0** ✗ |
-
-⇒ **不崩了，但结果错** ✗ —— `--json` 与基线**不一致**（红线），
-**已 revert 接线**（只留 `merge_session_reports` 这个纯新增 helper）。
-
-### 26.1 失败形状（实测）
-
-`build.summary` = `{compiled: 4, failed: 38, files: 42}`；
-`build.file` 的 failed 里**包括 `lib/*.sokonanoda`**（`lib/Cardinal`、`lib/Choice`…）
-—— 而**基线里 `lib/*` 根本不是 `build.file` 的目标**（基线 42 个 `build.file` 全是入口）。
-
-⇒ **根因方向**：我把**全部 42 个文件**都当成"项目入口"喂进 session 的 `entries`，
-但其中 **8 个是 `lib/*`（库模块，不是入口）** ⇒ 它们被当入口编 ⇒ 失败；
-而真正的入口因为报告槽位错配也判 failed ⇒ `build.decl` 一个都没发。
-
-**⚠ 这条修正了 §21.2 第 ① 步的表述**：`build <dir>` 的 `files` **包含库模块**，
-必须**先按"是不是入口"分类**（库模块只作库层、不当 entry），
-而不是"把所有有 `import` 的都当入口" ✗。
+> `exit=0` ✓、`passes` 590、`judge_ms` 6.9s —— **但 `compiled/failed` = 4/38** ✗、`build.decl` 2647 → **0** ✗
+> ⇒ `--json` 与基线不一致（**红线** ✗）。**根因**：把**全部 42 个文件**都当入口喂进 `entries`，而其中
+> **8 个是 `lib/*`**（库模块）⇒ 被当入口编 ⇒ 失败；真入口又因报告槽位错配判 failed ✗
+> ⇒ **修正 §21.2 第 ① 步**：`build <dir>` 的 `files` **含库模块**，必须**先按"是不是入口"分类** ✓。
 
 ### 26.2 下一步（唯一，形状已更精确）
 
-1. **分类**：`files` 里哪些是**入口**（被别的模块 `import` 的 ⇒ 库模块；其余 ⇒ 入口）。
-   现成的判据：`plan.closure` 的拓扑序里**入口恒在最后**，且
-   `units_for_modules(plan, |m| m.path == plan.entry)` 给的就是入口 ——
-   但**跨入口**判断"这个文件是不是别人的库"需要**全局**看一眼（例如
-   "它出现在别的 plan 的 `m.path != plan.entry` 集合里" ⇒ 它是库）。
-2. **库层 = 全部库模块的并集**；**entries = 只有入口**；
-3. 回调里对**每个入口**用 `merge_session_reports` 拼报告 ⇒ `assemble_from_session`。
+> **分类**（一个文件若出现在**别的** plan 的非入口模块里 ⇒ 它是库 ✓）· 库层 = 全部库模块的**并集** ·
+> entries = **只有入口** · 回调里逐入口拼报告 ⇒ `assemble_from_session` ✓。
+> **判据（一个都不许少）**：`--json` **逐字节不变**（`build.decl` **2647** · `build.file` **42** ·
+> `compiled:42 failed:0`）· `passes`/`judge_ms` 下降 · 反向判据（改依赖必须 miss）· 删 `#[ignore]` 后正向守卫转绿 ✓。
+> **原文 ⇒ `git log`** ✓。
 
-**判据（一个都不许少）**：`--json` **逐字节不变**（`build.decl` **2647**、
-`build.file` **42**、`compiled:42 failed:0`）· `passes`/`judge_ms` 下降 ·
-**反向判据**（改依赖必须 miss）· 删 `#[ignore]` 后正向守卫转绿。
 
 ## 27. 切片 1 接线**第三次尝试**：分类修好了，但撞上 **§21.3 那堵墙**（`failed:30`）
 
