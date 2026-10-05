@@ -2266,11 +2266,22 @@ fn judge_infer_cached(
 ///
 /// **`None` 的语义**：没有环境（单文件/测试路径）⇒ **逐字节回退到今天的行为**
 /// （合成前缀 + 重跑）。这是**回退机制**，也是判据之一 ✓。
+///
+/// ⚠ **签名已按 as-built 对齐**（2026-10-05 ✓，设计 `docs/design/incremental-environment.md`
+/// §0.2 #2 + §32 ✓）：as-built 的机器是 **`InplaceEnv`**（活 `&mut EnvBuilder` + `KnownTable`）
+/// + **`infer_type_text_inplace`**（`compile/elab.rs` ✓，**收 `(名字, 源类型)` 对 + `operand: &Expr`** ✓）
+/// —— 旧签名收 `term: &str` 是**文本形** ✗，与它**接不上** ✓（这正是它至今零接线的原因之一 ✓）。
+///
+/// **借用形态（本片技术 crux ✓，先定后写 ✓）**：`infer_type_text_inplace` 要
+/// **`&mut InplaceEnv`** ✗（elaborate 操作数**可能新增声明** ⇒ 真的需要可变 ✓），
+/// 而判定路径只拿得到 **`&self`** ✗ ⇒ 实现方用**内部可变性**（`RefCell` ✓）把可变性
+/// **收在自己身上** ✓，trait 保持 `&self` ✓ —— 这样 `judge_infer` 侧的
+/// `Option<&dyn EnvProvider>` **不用改成 `&mut`** ✓（否则调用链全要动 ✗）。
 pub trait EnvProvider {
-    /// 在**当前环境**上求 `term` 在 `binders` 语境下的类型文本（与今天 `#check` 同形）。
+    /// 在**当前环境**上求 `operand` 在 `binder_srcs` 语境下的类型文本（与今天 `#check` 同形）。
     ///
-    /// `None` ⇒ 这条环境答不了（调用方**必须**回退到合成前缀那条路，不许猜）。
-    fn infer_type_text(&self, binders: &[GoalBinderSpec], term: &str) -> Option<String>;
+    /// `None` ⇒ 这条环境答不了（调用方**必须**回退到合成前缀那条路，**不许猜** ✗）。
+    fn infer_type_text(&self, binder_srcs: &[(String, Expr)], operand: &Expr) -> Option<String>;
 }
 
 /// `SOKO_INFER_TRACE` 的取值（读一次就缓存——它在热路径上）。
