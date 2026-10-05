@@ -703,40 +703,17 @@ impl<'a> EnvProvider for SnapshotProvider<'a> {
 
 ## 20. G-68 **切片 1** 的实现形状（同进程内按 `module_key` 复用依赖产物）
 
-**值守 15:05 第 1 条钉死**：本轮交付物 = **切片 1**（同进程内按 `module_key` 复用依赖产物，
-per-module 产物 + 内容寻址，对齐 `.olean`/`.vo`）。`EnvView`/阶段 1 **只许当支撑**。
+> **值守 15:05 第 1 条钉死**：本轮交付物 = **切片 1**（per-module 产物 + 内容寻址，对齐 `.olean`/`.vo`）；
+> `EnvView`/阶段 1 **只许当支撑** ✓。⚠ **本片 2026-10-05 已停** ✗（原因见 §0.2 #3 + §27.2/§28 ✓）。
 
-### 20.1 键（用户 14:0x 定死，**必须含依赖内容哈希**）
+**键**（用户 14:0x 定死）：`key(M) = H(format, 编译器版本, prelude 模式, 源文本(M), [name(D), key(D) for D in 直接 import])`
+—— `ProjectPlan::module_keys()` **已经是这个形状** ✓（拓扑序 · **与入口无关** ✓；前置判据
+`module_keys_are_dependency_scoped_not_entry_scoped` 已绿 ✓）。
 
-```
-key(M) = H( format, 编译器版本, prelude 模式,
-            源文本(M), [ name(D), key(D) for D in **直接** import ] )
-```
-`ProjectPlan::module_keys()` **已经是这个形状**（`project/mod.rs:204`）✓ ——
-它按**拓扑序**算、**与入口无关** ✓（前置判据
-`module_keys_are_dependency_scoped_not_entry_scoped` 已绿：
-无关模块变 ⇒ 别人键不变；**依赖变 ⇒ 下游键必变**）。
-
-### 20.2 复用点：`compile_plan` 的**逐模块**编译（不是整闭包一趟）
-
-**今天**：`compile_plan_with_progress` 把整个闭包（`lib/*` + 入口）**一次**交给
-`compile_all_units_with_progress` ⇒ 一趟 `run` ⇒ **每个入口各编一遍共享库** ✗
-（这就是 4.14× 与"分片无效"的同一个根：**共享闭包被重复编**）。
-
-**切片 1 改法**：按**拓扑序逐模块**编，每个模块编前查 `module_key` 缓存：
-
-```
-for M in closure (拓扑序):
-    k = key(M)
-    if cache 有 k:  复用 M 的产物（CompileOutput 片段 + DocumentReport）
-    else:           编 M（前缀 = M 自己的直接依赖，与入口无关）⇒ 存 cache[k]
-入口 = 闭包里最后一个模块 ⇒ 它的产物就是整个入口的报告
-```
-
-* **前缀 = M 自己的直接依赖**（拓扑序）——**不是**"入口闭包的前缀" ⇒
-  同一个 `M` 在任何入口下**前缀相同** ⇒ 键相同 ⇒ **复用成立** ✓
-  （这正是否掉"共享库层"那套的原因：那套的前缀是 per-entry 的 ⇒ 键对不上 ✗）；
-* **不许批编**（实测慢 **6.2×**）· **不许按前缀复用** ✗。
+**复用点**：`compile_plan_with_progress` 今天把**整条闭包一次**交给 `compile_all_units_with_progress`
+⇒ **每个入口各编一遍共享库** ✗（4.14× 与"分片无效"的**同一个根**）。切片 1 改法 = **按拓扑序逐模块**编、
+编前查 `module_key` ⇒ **前缀 = M 自己的直接依赖**（**不是**入口闭包的前缀 ✓ —— 同一个 `M` 在任何入口下
+键相同 ⇒ 复用成立 ✓）。⚠ **不许批编**（实测慢 **6.2×**）· **不许按前缀复用** ✗。
 
 ### 20.3 两条判据（已在 `crates/front/tests/session_reuse.rs`）
 
@@ -745,61 +722,35 @@ for M in closure (拓扑序):
 | **正向** `slice1_shared_module_is_compiled_once_across_entries` | **`#[ignore]`（TDD 先红）** —— 实现完成 ⇒ **删掉 `#[ignore]` 那一行** ⇒ 变成真判据 ✓ |
 | **反向** `slice1_changing_a_dependency_forces_recompile` | **绿，不 ignore** —— 改依赖 ⇒ 必须重编（咬"缓存住错误结果"）|
 
-**读数**：`module_compiles_total()`（`compile/mod.rs` 已导出；`run()` 入口按 `units.len()` 累加）
-—— 它就是 **174 → 42** 那条口径的**直接读数** ✓（`by_calls` 数的是 `by` 引擎，**量错了东西** ✗）。
-
-### 20.4 报数规矩（值守第 4 条）
-
-任何性能数字**先报 `failed` 与合成 pass 计数，再看墙钟**；
-**174→42 是计数、≠ 快 4 倍**（实测墙钟只省 10–25%）；**禁止写"大幅提速"**。
+**读数口径** ✓：`module_compiles_total()`（`compile/mod.rs` 已导出）—— 它就是 **174 → 42** 那条口径的
+直接读数 ✓（`by_calls` 数的是 `by` 引擎，**量错了东西** ✗）。**报数规矩**：先报 `failed` 与合成 pass 计数、
+再看墙钟；**174→42 是计数、≠ 快 4 倍**（实测墙钟只省 10–25%）⇒ **禁止写"大幅提速"** ✗。
 
 ## 21. 切片 1 的**落地位置已定位**（2026-09-29，精确到行）
 
-### 21.1 关键发现：`build <dir>` **今天对每个入口各编一遍共享库**
-
-`crates/cli/src/build.rs` 的批量循环：
-
-* 串行路径 `:255`：`build_one(file, &src, root, no_project, progress, **None**)`；
-* 并行路径 `:228`：同样传 **`None`**；
-* `build_one`（`:367`）收到 `precomputed: None` ⇒ 走
-  `:405` `compile_plan_with_progress(plan, &options, progress)` ——
-  **每个入口独立编它自己的整条闭包**（`lib/*` + 自己）。
-
-⇒ 共享 `lib/*` 被**每个入口各编一遍** ✗ —— **这正是 4.14×（174 次模块编译 / 42 入口）
-与"分片无效"（单片 **317.71s** ≈ 全量 **313.78s**）的同一个根**。
-
-**`precomputed` 这个参数本来就是为切片 1b 留的接口**（注释写着"由 `with_project_session`
-预先算好的结果"），只是**从来没有人喂过它** —— 因为 `with_project_session` 是
-**per-entry** 形状（`lib_units` + `entries`），而 `build <dir>` 需要
-**一次 session 覆盖全部 42 个入口**。
+> **关键发现** ✓：`build <dir>` **今天对每个入口各编一遍共享库** —— 串行与并行两条路都把
+> `precomputed` 传 **`None`** ⇒ `build_one` 走 `compile_plan_with_progress` ⇒ 每入口独立编整条闭包 ✗。
+> ⚠ **`precomputed` 本来就是为切片 1b 留的接口**（注释写着"由 `with_project_session` 预先算好"）
+> —— **从来没人喂过它** ✗（因为 `with_project_session` 是 **per-entry** 形状，而 `build <dir>` 需要
+> **一次 session 覆盖全部入口**）。
 
 ### 21.2 改法（最小）
 
-**`build <dir>` 先跑一次跨全部入口的 session**，再把结果喂给 `build_one`：
+① 收集（逐个 `plan_project` ⇒ 库层**并集** + 每入口自己的单元）· ② **一次**
+`with_project_session(lib_units, entries, …)` ⇒ 库层只编一次 · ③ 每入口的 `ProjectReport` 存进
+`Vec<Option<ProjectReport>>`（按 `files` 下标）· ④ 批量循环把 `None` 换成 `precomputed[index]` ✓。
 
-1. 收集阶段：把 `files` 里**有 `import` 的**（项目源）逐个 `plan_project`，
-   取出各自的闭包单元 ⇒ **库层并集**（去重，拓扑序）+ 每入口自己的单元；
-2. **一次** `with_project_session(lib_units, entries, options, …)` ⇒
-   库层**只编一次**，每个入口只编自己的命令；
-3. 把每个入口的 `ProjectReport` 存进 `Vec<Option<ProjectReport>>`（按 `files` 下标）；
-4. 批量循环里把 `None` 换成 `precomputed[index]` ⇒ `build_one` 直接用，
-   **不再自己编闭包** ✓。
-
-**判据（值守第 3/4 条）**：
-* **先报计数**：`module_compiles_total()` 的 **174 → ?**（期望 ≈ 库模块数 + 入口数）；
-* 再看墙钟（同机同口径；**174→42 是计数 ≠ 快 4 倍**）；
-* **`--json` 逐字节不变**（红线；`build.decl`/`build.file`/`build.summary` 必须逐字节相同）；
-* **反向判据**：改 `lib/Shared` 一行 ⇒ 该 `module_key` **必须 miss 重编**
-  （守卫 `slice1_changing_a_dependency_forces_recompile` 已绿，实现写错它会红）；
-* 删掉 `slice1_shared_module_is_compiled_once_across_entries` 的 `#[ignore]` ⇒ 必须转绿 ✓。
+**判据（值守第 3/4 条）** ✓：**先报计数**（`module_compiles_total()` 174 → ?）· 再看墙钟 ·
+**`--json` 逐字节不变**（红线）· **反向判据**（改 `lib/Shared` 一行 ⇒ 该 `module_key` **必须 miss** ✓，
+守卫已绿）· 删 `#[ignore]` 后正向守卫转绿 ✓。
 
 ### 21.3 已知的两个坑（前面踩过，别再踩）
 
-1. **前缀必须 per-entry 保持原样**：切片 1b 的实测失败（42/42 通过但 **252.7s vs 218.8s**）
-   根因是"共享库层"用了**并集顺序的前缀**，与基线 per-entry 闭包前缀**对不上** ⇒
-   `passes` 4126→**5404**、`judge_ms` 148.4→**162.9** ⇒ 更慢 ✗。
-   ⇒ 切片 1 必须**保持每个入口自己的闭包前缀不变**（只把"库层只编一次"这件事做对）。
-2. **不许批编**（实测慢 **6.2×**）· **不许按前缀复用**（前缀是 per-entry 的）。
+1. **前缀必须 per-entry 保持原样**：切片 1b 的失败（42/42 通过但 **252.7s vs 218.8s**）根因是"共享库层"
+   用了**并集顺序的前缀**，与基线 per-entry 闭包前缀**对不上** ⇒ `passes` 4126→**5404**、
+   `judge_ms` 148.4→**162.9** ⇒ 更慢 ✗ ⇒ 切片 1 必须**保持每个入口自己的闭包前缀不变** ✓。
+2. **不许批编**（慢 **6.2×**）· **不许按前缀复用**（前缀是 per-entry 的）✗。
+
 
 ## 22. 切片 1 的**确切 API 缺口**（2026-09-29 实测；这就是卡点，不是"待办"）
 
