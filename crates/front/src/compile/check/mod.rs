@@ -987,7 +987,7 @@ fn run_pass_in<'a>(
 /// ⇒ 它必须**从源码重跑前缀** ⇒ 入口那趟若只拿到自己的源码，
 /// **入口里"问库层声明的类型/宇宙"的 `judge_infer` 就看不到库层** ✗
 /// （实测：这正是切片 1 三次接线失败的**同一个根因**，见
-/// `docs/design/incremental-environment.md` §29）。
+/// `docs/design/incremental-environment.md` §29.1）。
 ///
 /// **单单元**（`units.len() == 1`）⇒ 返回**空 `Vec`** ⇒ 调用方走"本文件前缀"那条路
 /// ⇒ 与今天逐字节相同（A1 纪律）✓。

@@ -109,7 +109,7 @@ pub(crate) fn with_project_session_trusted<R>(
         // **切片 1 路乙**：入口趟必须拿到"**该入口闭包**"的闭包前缀与记法表 ——
         // 否则入口里的 `judge_infer` **看不到库层声明**（它只吃源码字符串，
         // `judge.rs:949`）⇒ 实测这是三次接线失败的同一个根因
-        //（`docs/design/incremental-environment.md` §29）。
+        //（`docs/design/incremental-environment.md` §29.2）。
         // 该入口闭包 = `lib_units`（本 session 的库层）+ 该入口自己的单元。
         let entry_closure: Vec<SourceUnit<'_>> = lib_units
             .iter()

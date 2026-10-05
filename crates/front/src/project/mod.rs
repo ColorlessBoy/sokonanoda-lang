@@ -408,7 +408,7 @@ pub fn precheck_plan(plan: &mut ProjectPlan, options: &CompileOptions) {
 ///
 /// **为什么需要**：`build <dir>` 今天对**每个入口**走 `compile_plan_with_progress`
 /// ⇒ 共享 `lib/*` 被**每个入口各编一遍** ✗（这正是 4.14× 与"分片无效"的同一个根，
-/// 见 `docs/design/incremental-environment.md` §21）。切片 1 的做法是
+/// 见 `docs/design/incremental-environment.md` §21.2；可见性那道门见 §24）。切片 1 的做法是
 /// **一次 `with_project_session` 覆盖全部入口**（库层只编一次），
 /// 而 session 的回调交的是**片段**（`flat_out` + `reports`）⇒ 需要在这里组装。
 ///

@@ -582,7 +582,8 @@ fn module_keys_are_dependency_scoped_not_entry_scoped() {
     );
 }
 
-/// **阶段 1b 的目标判据**（`docs/design/incremental-environment.md` §9.1）：
+/// **阶段 1a 的目标判据**（`docs/design/incremental-environment.md` §9.1 的 1a 行：
+/// "本阶段只补『同一模块跨入口同一条 key』的守卫，已落 `f7069589`"）：
 /// **同一个模块，在不同入口的闭包里必须算出同一条 `module_key`** ——
 /// 这是"按 key 复用产物"能成立的**充要前提**：
 /// 若同一个模块在两个入口下 key 不同，产物就永远复用不上（G-68 的 4.14× 回来了 ✗）；

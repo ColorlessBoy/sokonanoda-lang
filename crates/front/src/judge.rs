@@ -796,7 +796,8 @@ pub(crate) fn with_trusted_prefix<R>(
 ///   复用关：JUDGE_STATS total_ms=9614   JUDGE_INFER total_ms=28320
 ///   ```
 ///   ⇒ 差 **< 0.3%** 且**方向相反** ⇒ **Δ 是噪声** ⇒ 按规则关掉 ✓。
-///   ⚠ 那个结论**对那条路仍然成立** ✓（`docs/design/incremental-environment.md` §22）。
+///   ⚠ 那个结论**对那条路仍然成立** ✓（`docs/design/incremental-environment.md` §30.1：
+///   T-K11 只服务 LSP 增量会话，`build` 那条路从不触发它）。
 /// * **2026-09-30 → 默认开** ✓：§3.C 把担保接到了**主编译 pass**
 ///   （`compile/check/walk.rs` 压栈），收益变成**全课程 `build`
 ///   126.4s → 47.8s（2.65×）**、`judge_ms` **−83%** ✓ ⇒ 同一条规则 ⇒ 该开 ✓。
@@ -1037,11 +1038,11 @@ fn reuse_stats() -> bool {
 /// 而开启时这个数应当 > 0 —— 否则说明条件从没满足、等于没生效）。
 pub static REUSED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
-/// **只读取证（§21.6 的"先证明再动手"）**：`check_synthesized` 每次被调用时，
+/// **只读取证（§31.2 的"先证明再动手"）**：`check_synthesized` 每次被调用时，
 /// 记一笔"**如果**主编译 pass 压了栈，能不能担保住"。
 ///
 /// ⚠ **纯计数，零行为变化**：三个计数器只在 `SOKO_JUDGE_ENV_PROBE=1` 时累加，
-/// 且**不参与任何判定** ✓。它的用途是回答设计 §21.6 的第 ① 条前提：
+/// 且**不参与任何判定** ✓。它的用途是回答 §31.2 的第 ① 条前提：
 /// **"judge 的文本前缀"与"主编译 pass 已核的命令"是否同序同源** ——
 /// 若 `would_hit` 占比高 ⇒ 那条路成立 ✓；若普遍不等 ⇒ 作废 ✗。
 pub mod env_probe {
@@ -2244,7 +2245,15 @@ fn judge_infer_cached(
     r
 }
 
-/// **当前 pass 的只读环境视图**（`docs/design/incremental-environment.md` §2）。
+/// **当前 pass 的只读环境视图**（设计 `docs/design/incremental-environment.md` §2）。
+///
+/// ⚠⚠ **本 trait 至今零实现、零接线** ✗（2026-10-05 对账 ✓）：全仓只有本处定义与
+/// 3 处注释引用，**没有任何 `impl`**。**as-built 的接口不是它** —— P1-a/P1-b 实际走
+/// `compile/elab.rs` 的 `InplaceEnv`（活 `&mut EnvBuilder` + `KnownTable`）+
+/// `infer_type_text_inplace`（**按源 AST 而不是文本**，且**在调用点**做，不进
+/// `judge_infer`）⇒ 见设计 **§0.2 #2 与 §32**（含"为什么不是这个形状"的三条实测）。
+/// **下一步二选一**：按 as-built 重写本 trait 并接线，或删掉它（台账 G-92 的
+/// `expected_lean` 引用了它 ⇒ 删之前先改台账）。
 ///
 /// **为什么需要它**：`judge_infer` 今天只拿到 `prefix_src: &str` ⇒ 只能把**整段前缀**
 /// 合成一份文件、交 `check_document_with` **从零重跑一趟 pass** ✗。实测（真课程）：

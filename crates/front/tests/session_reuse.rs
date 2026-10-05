@@ -146,7 +146,9 @@ fn session_compiles_entries_that_import_the_lib_layer() {
 /// **实现完成时删掉这一行** ⇒ 它就变成真判据 ✓。
 /// **它现在红的证据**（本机实测）：编 E1 时又编了 **2** 个模块（期望 ≤1）。
 /// 实现 = G-68 切片 1（同进程按 `module_key` 复用依赖产物），设计见
-/// `docs/design/incremental-environment.md` §19/§20。
+/// `docs/design/incremental-environment.md` §20.3（两条判据就在本文件里；
+/// ⚠ 该切片**已停** —— §27.2/§28 实测"一次 session 覆盖全部入口"与 per-entry
+/// 前缀冲突，本守卫因此**保持 `#[ignore]`，不是待办** ✗）。
 #[test]
 #[ignore = "TDD 先红守卫：切片 1（按 module_key 复用）尚未实现；实现后删掉本行"]
 fn slice1_shared_module_is_compiled_once_across_entries() {

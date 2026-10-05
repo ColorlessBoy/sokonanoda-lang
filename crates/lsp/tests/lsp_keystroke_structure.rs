@@ -16,9 +16,10 @@
 //!
 //! `prefix` = `JUDGE_PREFIX runs` = `judge_infer` **未命中**后把**整段前缀**合成
 //! 一份文件、交 `check_document_with` **从零重跑**的趟数 ✗。它是 O(N²) 的放大源
-//! （设计 `docs/design/incremental-environment.md` §2：前缀随声明序号线性变长
-//! ⇒ 总字节随 N² 涨）。修法是让 `judge_infer` **就地查当前环境**（`EnvProvider`
-//! 就是为此定义的 ✓）而不是重跑前缀 ✓。
+//! （设计 `docs/design/incremental-environment.md` §1：前缀随声明序号线性变长
+//! ⇒ 总字节随 N² 涨）。修法是让判定**就地查当前环境**而不是重跑前缀 ✓ ——
+//! **as-built 是 `InplaceEnv` + `infer_type_text_inplace`**（设计 §0.2 #2 / §32；
+//! ⚠ 那个 `EnvProvider` trait **至今零接线** ✗，别再按它的名字找实现）。
 //!
 //! ⚠ **夹具必须用真课程**：合成夹具（`crates/front/tests/keystroke_structure.rs`）
 //! 实测 `infer_miss=0 / prefix_runs=0` ⇒ 它**根本不触发**这条 ✗（那些 `def`

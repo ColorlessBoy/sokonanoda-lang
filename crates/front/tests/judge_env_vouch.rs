@@ -1,7 +1,7 @@
 //! **§3.C「前缀环境」这一档的判据**：主编译 pass 担保前缀 ⇒ judge 不再重查前缀。
 //!
-//! 设计来源 `docs/design/incremental-environment.md` §21（§21.5 的真数字 +
-//! §21.6 的刀口）。**一句话**：`by` 路径那 265 趟是 `judge_ms` 的 99%
+//! 设计来源 `docs/design/incremental-environment.md` §31（§31.4 的真数字 +
+//! §31.1/§31.2 的刀口与夹取）。**一句话**：`by` 路径那 265 趟是 `judge_ms` 的 99%
 //!（115.9s / 117.2s），而每趟都在 `compile_fol_with` 里**把整个前缀从源码重编一遍**；
 //! 而那个前缀**刚在同一次 `run_pass` 里被逐条检查过** ⇒ 可以担保。
 //!
