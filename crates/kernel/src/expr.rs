@@ -428,6 +428,37 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         }
     }
 
+    /// **R1c-2a（2026-10-05）**：收集表达式里出现的**层元变量 id** ✓ ——
+    /// **对齐 Lean `Expr.collectLevelMVars`** ✓（出口 `levelMVarToParam` 前先收集 ✓）。
+    /// ⚠ **加法**：本片**不接线** ✗ ⇒ **零行为变化** ✓。
+    pub fn collect_level_mvars_expr(&mut self, e: ExprPtr<'t>, out: &mut Vec<u64>) {
+        match self.read_expr(e) {
+            Var { .. } | NatLit { .. } | StringLit { .. } | Meta { .. } => {}
+            Sort { level, .. } => self.collect_level_mvars(level, out),
+            Const { levels, .. } => {
+                let ls = self.read_levels(levels).to_vec();
+                for l in ls {
+                    self.collect_level_mvars(l, out);
+                }
+            }
+            App { fun, arg, .. } => {
+                self.collect_level_mvars_expr(fun, out);
+                self.collect_level_mvars_expr(arg, out);
+            }
+            Pi { binder_type, body, .. } | Lambda { binder_type, body, .. } => {
+                self.collect_level_mvars_expr(binder_type, out);
+                self.collect_level_mvars_expr(body, out);
+            }
+            Let { data, .. } => {
+                let crate::expr::LetData { binder_type, val, body, .. } = *data;
+                self.collect_level_mvars_expr(binder_type, out);
+                self.collect_level_mvars_expr(val, out);
+                self.collect_level_mvars_expr(body, out);
+            }
+            Proj { structure, .. } => self.collect_level_mvars_expr(structure, out),
+        }
+    }
+
     /// **R1c-1（2026-10-05）**：把表达式里的**层元变量**换成 **`Param`** ✓ ——
     /// **对齐 Lean `MCtx.levelMVarToParam`**（出口由 `TermElabM.levelMVarToParam` 调 ✓）。
     ///

@@ -129,6 +129,25 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         self.alloc_levels(&out)
     }
 
+    /// **R1c-2a（2026-10-05）**：收集一个层里出现的**层元变量 id**（去重、保序）✓ ——
+    /// **对齐 Lean `Level.collectMVars`** ✓（出口要先知道「哪些 id 在这个声明里」✓）。
+    /// ⚠ **加法**：本片**不接线** ✗ ⇒ **零行为变化** ✓。
+    pub fn collect_level_mvars(&self, level: LevelPtr<'t>, out: &mut Vec<u64>) {
+        match self.read_level(level) {
+            Zero | Param(..) => {}
+            Succ(val, ..) => self.collect_level_mvars(val, out),
+            Max(l, r, ..) | IMax(l, r, ..) => {
+                self.collect_level_mvars(l, out);
+                self.collect_level_mvars(r, out);
+            }
+            MVar(id, _) => {
+                if !out.contains(&id) {
+                    out.push(id);
+                }
+            }
+        }
+    }
+
     /// **R1c-1（2026-10-05）**：把**层元变量**按映射换成 **`Param`** ✓ ——
     /// **对齐 Lean `MCtx.levelMVarToParam`**（`Meta/LevelDefEq.lean`；
     /// 出口由 `TermElabM.levelMVarToParam`（`:981`）调用 ✓）。
