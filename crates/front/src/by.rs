@@ -105,21 +105,22 @@ fn level_hint_of_inplace<'a>(
 ) -> Option<String> {
     let (name, args) = head_and_args(expr)?;
     let (params, universes) = def_shape(defs, name)?;
-    if universes == 1 && args.len() >= params && binder_srcs.len() == binders.len() && ctx.is_some()
-    {
-        if let Some(first) = args.first() {
-            if let Some(e) = crate::compile::elab::InplaceEnv::reborrow(env) {
-                if let Ok(text) = crate::compile::elab::infer_type_text_inplace(
-                    e,
-                    ctx.expect("上面刚判过 is_some ✓"),
-                    binder_srcs,
-                    first,
-                    binders.len(),
-                    None,
-                ) {
-                    if let Some(level) = crate::compile::elab::level_text_of_sort(&text) {
-                        if is_concrete_level(&level) {
-                            return Some(level);
+    if universes == 1 && args.len() >= params && binder_srcs.len() == binders.len() {
+        if let Some(ctx) = ctx {
+            if let Some(first) = args.first() {
+                if let Some(e) = crate::compile::elab::InplaceEnv::reborrow(env) {
+                    if let Ok(text) = crate::compile::elab::infer_type_text_inplace(
+                        e,
+                        ctx,
+                        binder_srcs,
+                        first,
+                        binders.len(),
+                        None,
+                    ) {
+                        if let Some(level) = crate::compile::elab::level_text_of_sort(&text) {
+                            if is_concrete_level(&level) {
+                                return Some(level);
+                            }
                         }
                     }
                 }

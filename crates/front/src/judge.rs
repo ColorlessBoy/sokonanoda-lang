@@ -914,9 +914,7 @@ fn synthesized_trust(prefix_commands: usize) -> Option<(usize, KernelFailed)> {
             .filter(|(before, _)| *before >= prefix_commands)
             .map(|(before, failures)| (*before, failures.clone()))
     });
-    let Some((before, failures)) = trusted else {
-        return None;
-    };
+    let (before, failures) = trusted?;
     REUSED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     if reuse_stats() {
         eprintln!(
@@ -2343,7 +2341,7 @@ fn judge_infer_cached(
 /// ⚠ **签名已按 as-built 对齐**（2026-10-05 ✓，设计 `docs/design/incremental-environment.md`
 /// §0.2 #2 + §32 ✓）：as-built 的机器是 **`InplaceEnv`**（活 `&mut EnvBuilder` + `KnownTable`）
 /// + **`infer_type_text_inplace`**（`compile/elab.rs` ✓，**收 `(名字, 源类型)` 对 + `operand: &Expr`** ✓）
-/// —— 旧签名收 `term: &str` 是**文本形** ✗，与它**接不上** ✓（这正是它至今零接线的原因之一 ✓）。
+///   —— 旧签名收 `term: &str` 是**文本形** ✗，与它**接不上** ✓（这正是它至今零接线的原因之一 ✓）。
 ///
 /// **借用形态（⚠ 2026-10-05 更正 ✓ —— 我先前写在这里的「`&self` + 实现方 `RefCell`」是错的 ✗）**：
 /// `infer_type_text_inplace`（`compile/elab.rs:3016` ✓）**真的要改 builder** ✗ ——
