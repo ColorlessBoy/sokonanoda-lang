@@ -74,3 +74,20 @@ crates/front/src/spine.rs|render_expr|render_expr(&short)
 crates/front/src/spine.rs|render_expr|render_expr(&short),
 crates/front/src/spine.rs|render_expr|render_expr(&short_bad)
 crates/front/src/spine.rs|render_expr|render_expr(a) == render_expr(b)
+
+
+# 2026-10-06 追加 8 处（覆盖 7 条指纹，人工核实为非 UI 渲染绕过 ✓）：
+#   · implicit.rs 354/355/369/370 + meta.rs 714/715 —— `eprintln!` **诊断打印**
+#     （`[g63]` / `[clash]` trace）：设计意图就是**未折叠**形式（meta.rs 注释：
+#     「渲染会折叠记法 ⇒ 光看渲染分不出"真不同" ⇒ 打结构 Debug」）⇒ **不走** DisplayNotations ✓
+#   · by.rs:388 —— `judge_infer(…, &render_expr(first),)` 渲染-回读管道：
+#     基线原单行版被 fmt 拆成多行 ⇒ 指纹漂移（同一调用点）✓
+#   · elab.rs:6753 —— `render_expr(&layer0.domain)` 后 `strip_prefix("Sort ")`
+#     是**解析判断**（看层域是否 "Sort N"），非显示渲染 ✓
+crates/front/src/by.rs|render_expr|&render_expr(first),
+crates/front/src/compile/elab.rs|render_expr|let dom0 = render_expr(&layer0.domain);
+crates/front/src/compile/implicit.rs|render_expr|crate::proof::render_expr(&template),
+crates/front/src/compile/implicit.rs|render_expr|crate::proof::render_expr(actual)
+crates/front/src/compile/implicit.rs|render_expr|crate::proof::render_expr(expected)
+crates/front/src/compile/meta.rs|render_expr|crate::proof::render_expr(&l),
+crates/front/src/compile/meta.rs|render_expr|crate::proof::render_expr(&r)

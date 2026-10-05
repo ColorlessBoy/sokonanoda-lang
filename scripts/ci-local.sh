@@ -94,16 +94,28 @@ fi
 # **按 FAST 分两档**（2026-10-03 ✓，值守复核 `01bd7ed1` 时逮到的缝 ✗）：pre-push 走的是
 # `scripts/githooks/pre-push:23` = `./scripts/ci-local.sh --fast` ✓ ⇒ 深跑**必须**从 push
 # 路径里摘出去 ✗（否则"假红"会换成"推送卡住 ~1.5h" ✗ —— 同一个"声明与实现有缝" ✗）。
+# **SOKO_SKIP_GAP=1**（2026-10-06 ✓）：逃生门专用 —— **只**跳过缺口台账这条（本地慢机器
+# 长复现件超时 301s 判红 ✗），**其它秒级检查（docs-lint / notation-lint / ci-yml-lint /
+# status-lint / plan / bump / audit …）一律照跑** ✓（用户：「现在能在推送前查出来的都可以
+# 放到推送前」✓ —— 逃生门不该连秒级检查一起跳 ✗）。
 if [ "$FAST" = 0 ]; then
   # **完整跑（深跑路径 ✓）**：连长复现件一起跑 ✓ —— 这是"守卫不失去牙齿"的那条路径 ✓；
   # 超时档同时放宽到 3h ✓（默认 300s 只够常规件 ✓）。
-  run "gates：缺口台账（--strict ✓ 含长复现件 ✓）" "ledger" \
-    env SOKO_GAP_REPRO_TIMEOUT=10800 python3 scripts/gap.py check --strict --include-slow
+  if [ "${SOKO_SKIP_GAP:-0}" != "1" ]; then
+    run "gates：缺口台账（--strict ✓ 含长复现件 ✓）" "ledger" \
+      env SOKO_GAP_REPRO_TIMEOUT=10800 python3 scripts/gap.py check --strict --include-slow
+  else
+    printf '\n▶ gates：缺口台账  —— **SOKO_SKIP_GAP=1 跳过** ✗（逃生门，CI ledger job 兜 ✓）\n'
+  fi
 else
   # **pre-push（FAST=1 ✓）**：**跳过**长复现件 ✓ —— 但**不摘条目** ✗：照样**计数** +
   # 打印**上次读数** + 标注「**本轮未验证**」✗（深跑：完整跑或定时 workflow ✓）。
-  run "gates：缺口台账（--strict ✓ 长复现件跳过 ✓ 本轮未验证 ✗）" "ledger" \
-    python3 scripts/gap.py check --strict
+  if [ "${SOKO_SKIP_GAP:-0}" != "1" ]; then
+    run "gates：缺口台账（--strict ✓ 长复现件跳过 ✓ 本轮未验证 ✗）" "ledger" \
+      python3 scripts/gap.py check --strict
+  else
+    printf '\n▶ gates：缺口台账  —— **SOKO_SKIP_GAP=1 跳过** ✗（逃生门，CI ledger job 兜 ✓）\n'
+  fi
 fi
 # **计划一致性**（2026-09-25 round 148 补 ✓，来自一次真实的漏网 ✗）：
 # round 145 我给 `T-U12` 用了 `- [~]`（想表达"进行中" ✓）⇒ `plan.py check` **不认**它 ✗

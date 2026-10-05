@@ -20,16 +20,13 @@ set -uo pipefail
 # ⇒ 现在**即使跳过**，也**仍然跑 fmt + clippy** ✓（温缓存下 8–20 秒 ✓，
 #   而这正是 CI **最快**的两个失败信号 ✓）；跳过的只是"CI 不判的那几条" ✓。
 if [ "${SOKO_SKIP_HOOK:-0}" = "1" ]; then
-  echo "[pre-push] SOKO_SKIP_HOOK=1 ⇒ 跳过**远端无牙**的项 ✓；但 **fmt + clippy 仍然跑** ✓（它们是 CI 最快的失败信号 ✓）"
+  echo "[pre-push] SOKO_SKIP_HOOK=1 ⇒ 只跳过**缺口台账 --strict**（本地慢机器长复现件超时）；fmt/clippy/docs-lint/notation-lint 等秒级检查**一律照跑** ✓"
   _root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-  _fail=0
-  ( cd "$_root" && cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check ) || _fail=1
-  ( cd "$_root" && cargo clippy --workspace --all-targets --quiet ) || _fail=1
-  if [ "$_fail" != "0" ]; then
-    echo "[pre-push] ❌ 即使 SOKO_SKIP_HOOK=1，fmt/clippy 也**不许红** ✗ ⇒ 拒绝推送 ✓" >&2
+  if ! ( cd "$_root" && SOKO_SKIP_GAP=1 ./scripts/ci-local.sh --fast ); then
+    echo "[pre-push] ❌ 即使 SOKO_SKIP_HOOK=1，秒级检查也**不许红** ✗ ⇒ 拒绝推送 ✓（逃生门只放行缺口台账 ✗）" >&2
     exit 1
   fi
-  echo "[pre-push] ✓ fmt + clippy 都过 ✓（其余项本轮未验证 ✗ —— 由远端 CI 兜 ✓）"
+  echo "[pre-push] ✓ 秒级检查全过（缺口台账由 CI ledger job 兜 ✓）"
   exit 0
 fi
 
