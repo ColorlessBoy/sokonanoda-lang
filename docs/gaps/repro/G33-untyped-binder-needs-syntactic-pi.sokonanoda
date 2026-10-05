@@ -9,6 +9,9 @@
 -- （`Meta/Basic.lean:824` ✓ —— 一路 whnf 到 `forallE` 为止）⇒ **def-headed 期望类型照常可用** ✓。
 -- 我们这边 `peel_expected` **只认 `Expr::Pi`、不做 whnf** ✗ ⇒ 报 `elab-untyped-binder` ✗ = 本缺口 ✓。
 --
+-- ⚠ **第 73 棒**：原先放在这里的第三条（`And.intro` 实参位）**已移到 `G30-*.sokonanoda`** ✗ ——
+-- 它测的是 **G-30**（期望类型不传播到嵌套实参）✓，**不是**本缺口 ✗（值守 07:45 的 A/B ✓）。
+--
 -- 判据（**两条都要**，否则夹具自己不咬 ✗）：
 --   ① `a_syntactic_pi`：期望类型**语法上就是 Pi** ⇒ **必须绿** ✓（对照组 ✓）；
 --   ② `b_def_headed`：期望类型 **def-headed** ⇒ **今天红** ✗，修好后**必须绿** ✓。
@@ -22,11 +25,3 @@ theorem a_syntactic_pi (P Q : Prop) (h : Q) : P → Q :=
 --    良类型 ✓（`fun _ => h` 的类型 `P → Q` 正是 `Impl P Q` 展开后的形状 ✓）；Lean 里**必然接受** ✓。
 theorem b_def_headed (P Q : Prop) (h : Q) : Impl P Q :=
   fun _ => h
-
--- ③ ⚠ **这条不是本缺口** ✗（保留作对照 ✓）：`And.intro` 的实参位上，期望类型
---    **根本没传进实参** ✗ ⇒ 那是 **G-30**（期望类型不传播到嵌套实参）在遮 G-33 ✓
---    （值守 2026-10-05 07:45 的 A/B：即便期望是**语法 Pi**，`And.intro (fun _ => h) r` 也照样红 ✗）。
---    ⇒ **凡经 `And.intro`/`Iff.intro`/`Exists.elim` 的实参位，测不到 G-33** ✗；
---    **必须用「声明自身类型」那个位置** ✓（如上面 ①②）。
-theorem c_and_intro_position_is_g30_not_g33 (P Q R : Prop) (h : Q) (r : R) : (P → Q) ∧ R :=
-  And.intro (fun _ => h) r

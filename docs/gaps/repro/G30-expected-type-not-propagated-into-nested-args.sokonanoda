@@ -51,3 +51,9 @@ theorem iff_intro_nested_set_literal
     (fun (h : a = b) =>
       ext {a} {b} (fun (x : α) =>
         Iff.intro (fun (hx : x ∈ {a}) => hx) (fun (hx : x ∈ {b}) => hx)))
+
+-- ⚠ **2026-10-05 第 73 棒从 G-33 夹具移来** ✓：这条测的是**本缺口**（期望类型不传播到嵌套实参 ✓），
+-- **不是** G-33 ✗ —— 即便期望类型**语法上就是 Pi**，`And.intro` 的实参位也照样拿不到它 ✓
+-- （值守 07:45 的 A/B ✓；`G-33` 的判据只认「声明自身类型」那个位置 ✓）。
+theorem and_intro_position_expected_not_propagated (P Q R : Prop) (h : Q) (r : R) : (P → Q) ∧ R :=
+  And.intro (fun _ => h) r

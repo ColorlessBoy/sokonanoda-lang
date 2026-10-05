@@ -169,6 +169,12 @@
       "renewed": "2026-10-02",
       "tier": "spec"
     },
+    "docs/design/incremental-environment.md": {
+      "expires": "2026-12-01",
+      "renewed": "2026-10-05",
+      "tier": "spec",
+      "reason": "增量环境设计（并发写者新建，按判据⑧需登记；内容与本次 G-33 修复无关）"
+    },
     "docs/design/kernel-taxonomy.md": {
       "expires": "2027-09-30",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",

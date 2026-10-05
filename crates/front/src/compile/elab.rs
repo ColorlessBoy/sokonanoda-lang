@@ -4378,6 +4378,45 @@ fn head_and_args_notation(expr: &Expr) -> Option<(String, Vec<Expr>, Expr)> {
 /// Peel one Pi layer off the expected type: returns the binder style, the
 /// binder type and the remaining body. Used to infer untyped lambda binders
 /// from the declared type of the surrounding declaration.
+/// **IA-4 B2（G-33 ✓，2026-10-05）**：期望类型**语法上不是 Pi** 时，**先展开源再剥一层** ✓。
+///
+/// **Lean 4 对照** ✓（值守 07:45 提供 ✓，本机源码 `d0493e4c1e` ✓）：
+/// `Elab/Binders.lean:408-421` `propagateExpectedType` —— 取 binder 类型前**第一步就是
+/// `whnfForall expectedType`** ✓（`Meta/Basic.lean:824` ✓）⇒ 本函数是它的**等价物** ✓。
+/// ⚠ 走**源级**展开 ✓（`spine::unfold_one` ✓ —— 前端**没有核项 whnf** ✗）⇒ 展开后**重新 elaborate** ✓；
+/// ⚠ **只在"本来就要报错"的那条路上跑** ✓ ⇒ 今天能过的输入**一个都不碰** ✓（(c) 已证 ✓）。
+fn b2_whnf_peel<'a>(
+    builder: &mut sokonanoda::builder::EnvBuilder<'a>,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &mut ElabScope<'a>,
+    univ: &UnivMap<'a>,
+    known: &KnownTable,
+    hovers: &mut Vec<HoverNode<'a>>,
+    rest_src: Option<&Expr>,
+) -> Option<(BinderStyle, ExprPtr<'a>, Expr)> {
+    let mut unfolded = rest_src.cloned();
+    for _ in 0..8 {
+        let cur = unfolded.as_ref()?;
+        let next = crate::spine::unfold_one(cur, ctx.defs, None)?;
+        if next == *cur {
+            return None;
+        }
+        unfolded = Some(next);
+        let src_now = unfolded.as_ref()?;
+        let inner = quiet_catch(|| {
+            elab_expr(builder, src_now, scope, univ, known, hovers, None, None, ctx)
+        })
+        .ok()?;
+        let kernel = inner.ok()?;
+        if let Some((style, binder_ty, _)) = peel_expected(Some(kernel)) {
+            let src_layer = peel_expected_src(Some(src_now));
+            let body_src = src_layer.map(|(_, _, b)| b)?;
+            return Some((style, binder_ty, body_src));
+        }
+    }
+    None
+}
+
 fn peel_expected<'a>(
     expected: Option<ExprPtr<'a>>,
 ) -> Option<(BinderStyle, ExprPtr<'a>, ExprPtr<'a>)> {
@@ -4849,13 +4888,20 @@ pub(crate) fn elab_expr<'a>(
                             let src_ty = src_layer.map(|(_, domain, _)| domain);
                             (binder_ty, style, src_ty)
                         }
-                        None => {
+                        None => match b2_whnf_peel(builder, ctx, scope, univ, known, hovers, rest_src.as_ref()) {
+                            Some((style, binder_ty, body_src)) => {
+                                rest = None;
+                                rest_src = Some(body_src);
+                                (binder_ty, style, None)
+                            }
+                            None => {
                             return Err(CompileError::elab(
                                 ErrorKind::ElabUntypedBinder,
                                 "cannot infer the type of this binder: the declared type does not \
                                  provide a matching position (write it explicitly, e.g. fun (x : Nat) => x)",
                                 binder.span,
                             ));
+                            }
                         }
                     },
                 };
