@@ -136,13 +136,12 @@ theorem Set.pi_mono (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i 
         (fun (hs : ∀ (j : ι), A j ⊆ B j) => (fun (hu : ∀ (x : α), x ∈ A i → x ∈ B i) =>
           hu (f i) (Set.mem_pi_elim ι α A f i hf)) (hs i)) h)
 
--- 交对族**反变**（S-B ✓；λ 落地 ✓）：`F ⊆ G ⇒ ⋂G ⊆ ⋂F`
-theorem sInter_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
-    Set.sInter α G ⊆ Set.sInter α F :=
-  fun (x : α) (hx : x ∈ Set.sInter α G) =>
-    (fun (hxG : ∀ (A : Set α), A ∈ G → x ∈ A) =>
-      (fun (hxF : ∀ (A : Set α), A ∈ F → x ∈ A) => hxF)
-        (fun (A : Set α) (hA : A ∈ F) => hxG A (h A hA))) hx
+-- ⚠ **2026-10-05 第 87 棒删掉 `sInter_mono`** ✗ —— 它与 **I.7 单元 48 的画布练习 10**
+-- **重名**（`import-name-collision` ✗，课程门禁 4 处判负 ✓）。
+-- **为什么不删单元那份** ✗：单元里那份是 `:= by sorry` + `soko:hint` 的**画布练习** ✓，
+-- 删掉就等于**删题** ✓（解答 unit48-solution 也会悬空 ✓）；而**这一份**是 `9848aabe`
+-- 新加的**库引理** ✓、**全仓库无人使用** ✓（`grep` 实测 0 处 ✓）⇒ **删它零波及** ✓。
+-- ⚠ `9848aabe` 的提交信息写「查重 ✓ 0 处」✗ —— 那次**没查单元画布** ✓（教训：查重要连 `units/` 一起 ✓）。
 
 -- 并含于 `B` 的充分条件（S-B ✓）：族里每个成员都含于 `B` 即可
 theorem sUnion_subset (α : Type) (F : Set (Set α)) (B : Set α)
