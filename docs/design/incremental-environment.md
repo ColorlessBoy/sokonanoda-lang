@@ -35,8 +35,9 @@
 
 1. **G-92：`by` 判定的前缀重跑仍是 O(n²)** ✗（**本档唯一的大头**）。
    * **判据先红**（2026-10-05 实测 ✓ · 构建 = `20fb549d` + 工作树 `elab.rs`）：
-     `docs/gaps/repro/G92-by-prefix-rerun-is-quadratic.sh` ⇒ `by_calls` 55（N=10）
-     → 210（N=20）= **3.82×**（阈值 3.0 ⇒ exit 0 = 缺口仍在）。
+     `docs/gaps/repro/G92-by-prefix-rerun-is-quadratic.sh` ⇒ `by_calls` 55（N=10）→ 210（N=20）
+     = **3.82×**（阈值 3.0 ⇒ exit 0 = 缺口仍在）；**守卫真的在跑** ✓（`gap.py check` 本轮实测
+     `G-92 open script 缺口仍在`，与台账一致 ✓）。
    * **根因（已收窄 ✓）**：`judge_pairs_uncached` 合成"整份前缀 + `_soko_judge_k`"
      再跑一趟；**受信任前缀只跳内核检查、不跳 elaborate** ✗ ⇒ 前缀里那些 `by`
      声明**又被 elaborate 一遍**。**2026-10-05 探针**（`SOKO_JUDGE_STATS=1
