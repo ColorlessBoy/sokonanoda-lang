@@ -1413,7 +1413,7 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 **同样是零调用** ✗）· `run_pass_with`（**收调用方拥有的 builder** ✓，session 在用）；
 缺的是**所有权**：`run_pass_with(builder: EnvBuilder, …) -> (…, EnvBuilder, …)` **按值**收发，
 而 judge 在 `elab_expr` 链里只有 `&mut`（§12）⇒ 要么让 pass **借** builder，要么让判定点先**放手**（§30.2；另一条出路见 §0.2 #1）。
-**归属**：内核线已登记本片为**下一片**（`aa3a6ef8` · 用户 2026-10-05 指定）。
+**归属**：内核线登记本片为**下一片**（`aa3a6ef8` · 用户 2026-10-05 指定）⇒ ⛔ **同日被值守暂停**（B2 优先 ✓，WIP 在 `stash@{0}: d68f2fe9-envprov-wip-1005-1010` ✓，见上表）。
 
 ### 32.4 阶段 2 的两条形状（**勘到根，都还没做** ✗）
 **根因确认** ✓（读码）：合成编译走 `run_incremental` → `run_pass`，而 `run_pass` **新建 arena + 新建 `EnvBuilder`** ⇒ 前缀**必须**重 elaborate（= `by_calls` 的 Σ(1..N)）。⇒ 两条形状：
