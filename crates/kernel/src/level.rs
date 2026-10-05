@@ -6,6 +6,9 @@ pub(crate) const SUCC_HASH: u64 = 541;
 pub(crate) const MAX_HASH: u64 = 1091;
 pub(crate) const IMAX_HASH: u64 = 1747;
 pub(crate) const PARAM_HASH: u64 = 947;
+/// **R1a（2026-10-05）**：层元变量 —— **对齐 Lean `Level.lean:98`**
+/// （`mkData (mixHash 2237 <| hash mvarId) 0 true false` ✓ ⇒ 用 Lean 的 **2237** ✓）。
+pub(crate) const MVAR_HASH: u64 = 2237;
 use Level::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,13 +18,19 @@ pub enum Level<'a> {
     Max(LevelPtr<'a>, LevelPtr<'a>, u64),
     IMax(LevelPtr<'a>, LevelPtr<'a>, u64),
     Param(NamePtr<'a>, u64),
+    /// **层元变量**（R1a ✓）—— **对齐 Lean `Level.lean:94` `| mvar : LMVarId → Level`** ✓。
+    ///
+    /// ⚠ **加法**：今天**没有任何地方构造它** ✗ ⇒ **零行为变化** ✓。
+    /// 构造者是 R1b（常量每宇宙位一个 fresh mvar ✓）；
+    /// 消掉它的是 R1c（出口 `levelMVarToParam` ⇒ 转 `Param` ✓）。
+    MVar(u64, u64),
 }
 
 impl<'a> Level<'a> {
     fn get_hash(&self) -> u64 {
         match self {
             Zero => ZERO_HASH,
-            Succ(.., hash) | Max(.., hash) | IMax(.., hash) | Param(.., hash) => *hash,
+            Succ(.., hash) | Max(.., hash) | IMax(.., hash) | Param(.., hash) | MVar(.., hash) => *hash,
         }
     }
 }
@@ -67,6 +76,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         }
         let result = match self.read_level(ptr) {
             Zero | Param(..) => ptr,
+            // **R1a**：mvar 已是简单形状 ✓（对齐 Lean：`normalize` 不动 mvar ✓）。
+            MVar(..) => ptr,
             Succ(val, ..) => {
                 let val = self.simplify(val);
                 self.succ(val)
@@ -145,6 +156,10 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
                 }
                 level
             }
+            // **R1a**：`subst_level` 只代 **param** ✓ ⇒ mvar **原样** ✓
+            //（对齐 Lean：`instantiateLevelParams` 只认 param ✓；mvar 由
+            // `levelMVarToParam` 在**出口**转掉 ✓ —— 那是 R1c 的事 ✓）。
+            MVar(..) => level,
         }
     }
 
@@ -157,6 +172,9 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             Max(l, r, ..) | IMax(l, r, ..) =>
                 self.all_uparams_defined(l, params) && self.all_uparams_defined(r, params),
             Param(..) => self.read_levels(params).iter().copied().any(|x| x == level),
+            // **R1a**：mvar **不是** uparam ⇒ **false** ✓ —— 这正是「出口必须消掉 mvar」的守卫 ✓
+            //（对齐 Lean：内核不接受含层元变量的声明 ✓ —— 报错而**不是** panic ✓）。
+            MVar(..) => false,
         }
     }
 

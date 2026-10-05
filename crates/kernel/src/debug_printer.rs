@@ -97,6 +97,8 @@ impl<'x, 't, 'p> std::fmt::Debug for DebugPrinter<'x, 't, 'p, LevelPtr<'t>> {
         use Level::*;
         match self.ctx.read_level(self.elem_to_print) {
             Zero => write!(f, "0"),
+            // **R1a**：层元变量的显示 ✓（对齐 Lean 的 `?u.1` 形状 ✓ —— 我们用 `?m{id}` ✓）。
+            MVar(id, _) => write!(f, "?m{id}"),
             Succ(..) => {
                 let (val, n) = self.ctx.level_succs(self.elem_to_print);
                 if self.ctx.read_level(val) == Zero {
