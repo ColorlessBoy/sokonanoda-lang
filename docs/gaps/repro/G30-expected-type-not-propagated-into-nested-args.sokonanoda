@@ -17,6 +17,16 @@
 -- `courses/set-theory/lib/Set.sokonanoda:56/134/176/184` ✓；**证明用 `sorry`** ✓ ——
 -- 本复现件只关心**这些引理的类型**能否让目标 elaborate ✓，不关心它们怎么证 ✓）。
 -- ⇒ 夹具回到 G-30 的本体：`Set.ext {a} {b}` 的**集合字面量实参**要能推出类型 ✓。
+--
+-- ⚠ **2026-10-06 修 3 处类型错误** ✓（`61ef7943`「自足化」改写引入 ✗，**与 G-30 无关** ✗）：
+-- ① `mem_singleton_iff` 声明成 `({a} = {b}) ↔ a = b` ✗ 而用法要的是 `(a ∈ {b}) ↔ a = b` ✓；
+-- ② 第二支（`a = b ⇒ {a} = {b}`）内层那个 `Iff.intro` 的两支写成**恒等** ✗
+--    （它该证的是 `x ∈ {a} ↔ x ∈ {b}` ✓ —— 两边都要走 `x ∈ {y} ↔ x = y` 再搬运 ✓）。
+-- **权威良类型版**：`courses/set-theory/units/solutions/I.1/unit01-solution.sokonanoda:49-70`
+-- （`singleton_eq_singleton_iff` 的项风格证明 ✓）—— 本件按它逐条对齐 ✓
+-- （唯一差别：库件在这里是**目标的假设**，因为本子集里 `sorry` 声明不能被后面引用 ✓）。
+--
+-- **判据**：`grade` 退出码 **0** ✓（`gap.py` 的 `.sokonanoda` 类：`status: fixed` ⇒ `clean` ✓）。
 
 def Set (α : Type) : Type := α → Prop
 
@@ -40,20 +50,31 @@ end Set
 
 theorem iff_intro_nested_set_literal
     (α : Type) (a b : α)
-    (mem_singleton_iff : ({a} = {b}) ↔ a = b)
+    (mem_singleton_iff : ∀ (x y : α), (x ∈ {y}) ↔ (x = y))
     (mem_singleton_self : a ∈ {a})
     (ext : ∀ {A B : Set α}, (∀ (x : α), x ∈ A ↔ x ∈ B) → A = B) :
     ({a} = {b}) ↔ a = b :=
   Iff.intro
+    -- (i) `{a} = {b}` ⇒ `a = b`：把 `a ∈ {a}` 沿等式搬到 `{b}` 上，再展开。
     (fun (h : {a} = {b}) =>
-      Iff.mp (a ∈ {b}) (a = b) mem_singleton_iff
+      Iff.mp (a ∈ {b}) (a = b) (mem_singleton_iff a b)
         (Eq.subst.{1} (Set α) (fun (X : Set α) => a ∈ X) {a} {b} h mem_singleton_self))
+    -- (ii) `a = b` ⇒ `{a} = {b}`：外延 + 逐元素两个方向。
     (fun (h : a = b) =>
       ext {a} {b} (fun (x : α) =>
-        Iff.intro (fun (hx : x ∈ {a}) => hx) (fun (hx : x ∈ {b}) => hx)))
+        Iff.intro (x ∈ {a}) (x ∈ {b})
+          (fun (hx : x ∈ {a}) =>
+            Iff.mpr (x ∈ {b}) (x = b) (mem_singleton_iff x b)
+              (Eq.trans.{1} α x a b (Iff.mp (x ∈ {a}) (x = a) (mem_singleton_iff x a) hx) h))
+          (fun (hx : x ∈ {b}) =>
+            Iff.mpr (x ∈ {a}) (x = a) (mem_singleton_iff x a)
+              (Eq.trans.{1} α x b a (Iff.mp (x ∈ {b}) (x = b) (mem_singleton_iff x b) hx)
+                (Eq.symm.{1} α a b h)))))
 
 -- ⚠ **2026-10-05 第 73 棒从 G-33 夹具移来** ✓：这条测的是**本缺口**（期望类型不传播到嵌套实参 ✓），
 -- **不是** G-33 ✗ —— 即便期望类型**语法上就是 Pi**，`And.intro` 的实参位也照样拿不到它 ✓
 -- （值守 07:45 的 A/B ✓；`G-33` 的判据只认「声明自身类型」那个位置 ✓）。
+-- **2026-10-06 转绿** ✓：`fun _ => h` 现在从 `And.intro` 的实参位拿到期望类型 `P → Q`
+-- （对齐 Lean `elabAppArgs` 的"实参期望类型 = 形参绑定类型" ✓）。
 theorem and_intro_position_expected_not_propagated (P Q R : Prop) (h : Q) (r : R) : (P → Q) ∧ R :=
   And.intro (fun _ => h) r

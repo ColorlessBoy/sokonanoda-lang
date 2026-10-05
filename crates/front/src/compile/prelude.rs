@@ -871,16 +871,31 @@ pub(crate) fn install_eq_prelude(
         let decl = build_axiom(builder, name, universe, ty, known, &mut hovers, &ctx)
             .expect("Eq prelude axiom elaborates");
         builder.add_declar(decl).expect("duplicate prelude axiom");
-        // **Eq 族保持 `implicit_prefix: 0`**：`Eq.{u} α a b` 是用户写全的旧式
-        // 调用，而它的**部分应用**（`Eq.{1} Nat 2`）与"隐式调用只给显式实参"
-        // 在形状上无法区分——登记成隐式会把 `Nat` 当成 `α` 的值（实测
-        // `Eq.{1} Nat 2 2` 报 `Sort(1) vs Sort(2)`）。`=`/`≠` 的记法路径自己补
-        // 前导参数，不需要应用路径插手。短写法的宇宙层级推断是独立的一刀。
+        // **G-30 第二堵墙（2026-10-06）**：Eq 族登记**真实的**前导隐式层数 ✓
+        // （原来是硬编码 `0` ✗）。
+        //
+        // **Lean 4 对照**（`Lean/Elab/App.lean:752-775` `ElabAppArgs.main` +
+        // `:712-717` `processImplicitArg`）：`Eq {α : Sort u} (a b : α)` 的
+        // `{α}` 是 implicit binder ⇒ 写法 `Eq a b`（**只给显式实参**）由
+        // `addImplicitArg` 补一个 fresh mvar，再与实参类型/期望类型合一
+        // ⇒ `?α := typeof a` ✓。旧的 `implicit_prefix: 0` 让**应用路径**整条
+        // 不触发 ✗ ⇒ `Eq a b` 被逐位当旧写法装成 `Eq.{?} a b`（`a` 顶到 `α`
+        // 位上 ✗）。这条偏差是 2026-09 为"旧写法 `Eq.{u} α a b` 与短写在形状上
+        // 分不开"打的补丁 ✓；那个歧义现在由 **G-42 的两条可判定闸门**兜住 ✓
+        // （`args.len() > explicit_arity` = 写全参数的旧写法 ✓；
+        // `fits_old_style` = 逐位贴合层域的旧写法 ✓）⇒ 补丁可以撤 ✓。
+        //
+        // 实测读数（第二堵墙复现件 `docs/gaps/repro/
+        // G30-second-wall-iff-intro-implicit-alpha.sokonanoda`）：求解器本来就
+        // 把 `Iff.intro` 的两位解成 `Eq (Set.singleton a) …` / `Eq a b` ✓，
+        // 坏的是**回读后重 elaborate** 那一步 ✗ —— pp 文本
+        // （`infer_type_text`）**省略隐式实参** ✓，回读成源级 `Eq …` 后必须靠
+        // 应用路径把 `α` 补回来 ✓。
         known.insert(
             name.clone(),
             KnownName::Decl {
                 universes: universe.clone(),
-                implicit_prefix: 0,
+                implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                 explicit_arity: crate::compile::elab::explicit_arity(ty),
                 signature: Some(crate::proof::decl_signature(ty)),
             },

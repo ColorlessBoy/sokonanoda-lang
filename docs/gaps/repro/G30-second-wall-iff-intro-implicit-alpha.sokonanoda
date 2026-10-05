@@ -7,11 +7,19 @@
 -- `类型不匹配：期望 Sort(1)，实际是 Set α` ✗（`{a} : Sort 1` 这条 sort 检查因此失败 ✓）。
 --
 -- **判据**（本文件自足 ✓、零 import ✓ ⇒ 可直接 `grade`）：
---   * 现在：**exit 1** ✗，且**只有靶子**那一条 diagnostic（三个对照组都绿 ✓）；
---   * 修好后：**exit 0** ✓（**三个对照组必须仍然绿** ✓ —— 它们钉住"不是所有 λ 实参都坏"）。
+--   * **修前**（2026-10-05 第 122 棒）：**exit 1** ✗，且**只有靶子**那一条 diagnostic（三个对照组都绿 ✓）；
+--   * **修后**（2026-10-06 第 123 棒）：**exit 0** ✓（**三个对照组仍然绿** ✓ —— 它们钉住"不是所有 λ 实参都坏"）。
+--     ⇒ `gap.py` 的 `.sokonanoda` 类：`status: fixed` ⇒ 期望 `clean` ✓（已 `close` ✓）。
+--
+-- **病灶（第 123 棒钉死 ✓）**：`Iff.intro` 的隐式前缀**解得对** ✓（探针：
+-- `solved=["Eq (Set.singleton a) (Set.singleton b)", "Eq a b"]` ✓），坏在**回读后重 elaborate** ✗ ——
+-- `operand_type_expr` 走内核 pp，而 **pp 省略隐式实参** ✓ ⇒ 文本 `Eq (Set.singleton a) (Set.singleton b)`
+-- 回读成**源级应用**后必须靠**应用路径**补 `Eq` 的 `α` ✓，而 Eq 族当时被硬编码
+-- `implicit_prefix: 0` ✗ ⇒ 钩子整条不触发 ⇒ 装成 `Eq.{1} {a} {b}`（`{a}` 顶到 `α` 位上 ✗）。
+-- **修法**：Eq 族登记真实前导隐式层数（对齐 Lean `ElabAppArgs.main` ✓）+ `type_head_fits_layer` 认 `Sort u` ✓。
 --
 -- 归口：`implicit::solve_prefix` / `try_implicit_application`（`crates/front/src/compile/elab.rs`
--- 的隐式插入那条线 ✓，与 **G-42 / G-73 同族** ✓）；坐标见台账 `G-30` 第 122 棒 ✓
+-- 的隐式插入那条线 ✓，与 **G-42 / G-73 同族** ✓）；坐标见台账 `G-30` 第 122/123 棒 ✓
 -- 与 `docs/notes/HANDOFF-kernel.md` ✓。
 
 def Set (α : Type) : Type := α → Prop

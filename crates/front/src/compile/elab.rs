@@ -3436,7 +3436,19 @@ fn type_head_fits_layer<'a>(
     let Some(actual) = operand_type_expr(ctx, scope, a, env) else {
         return false;
     };
-    let Some(d) = type_head(&unfold(domain)) else {
+    let d = unfold(domain);
+    // **G-30 第二堵墙（2026-10-06）**：域是 `Sort u`（**宇宙变量**，如
+    // `Eq {u} : {α : Sort u} -> …` 的 `α` ✓）时，`type_head` 认不出它
+    // （`SortKind::Level` ⇒ `None` ✓）⇒ 旧写法**永远判不贴合** ✗ ⇒ 只能靠
+    // 「实参个数 > 显式层数」那条闸门兜住 ✓ —— 而**部分应用**（`Eq.subst.{1} Nat` ✓、
+    // 探针合成的 `Eq.subst.{1} Nat _h1 a b h` ✓）恰好落在它够不着的地方 ✗。
+    // **对齐 Lean**：`Sort u` 由合一解出 ⇒ 它接受**任何** sort ✓（`u` 是变量 ✓）。
+    // ⚠ 这条**只加判"贴合"** ✗ ⇒ 判贴合之后走的是**旧写法** = 今天的逐位装法 ✓
+    // ⇒ 它**不可能**改掉任何既有行为（只在原本会掉进短写的地方生效 ✓）。
+    if matches!(&d, Expr::Sort { sort: SortKind::Level(_), .. }) {
+        return matches!(unfold(&actual), Expr::Sort { .. });
+    }
+    let Some(d) = type_head(&d) else {
         return false;
     };
     type_head(&unfold(&actual)).as_deref() == Some(d.as_str())
@@ -4988,7 +5000,37 @@ pub(crate) fn elab_expr<'a>(
                             let src_ty = src_layer.map(|(_, domain, _)| domain);
                             (binder_ty, style, src_ty)
                         }
-                        None => match b2_whnf_peel(builder, ctx, scope, univ, known, hovers, rest_src.as_ref()) {
+                        // **G-30（2026-10-06）**：期望类型只以**源级**形式在手
+                        // （`rest` 是 `None`，`rest_src` 已经是语法的 Pi/箭头）时，
+                        // 直接按源剥一层 ✓ —— 对齐 Lean 的 `elabAppArgs`：实参拿到的
+                        // 期望类型**就是形参的绑定类型** ✓（`And.intro (fun _ => h) r`
+                        // 的 `fun _ => h` 该拿到 `P → Q` ✓）。
+                        //
+                        // 为什么原来拿不到 ✗：这条路以前只走 `b2_whnf_peel`，而它要求
+                        // 期望类型能 **δ 展开**（`unfold_one`）——`P → Q` 本来就是
+                        // `Expr::Arrow`、没有可展开的头 ⇒ 直接掉进 `elab-untyped-binder` ✗
+                        // （实测：`And.intro (fun _ => h) r`，期望 `(P → Q) ∧ R`）。
+                        // **只加解、不改既有解** ✓：源不是语法 Pi 时照旧走 `b2_whnf_peel` ✓；
+                        // 而 `unfold_one` 对 `Arrow` 恒为 `None` ⇒ 这一档原来必然报错
+                        // ⇒ 本臂**不可能**改掉任何既有成功路径 ✓。
+                        None => match peel_expected_src(rest_src.as_ref()) {
+                            Some((style, domain, body_src)) => {
+                                let binder_ty = elab_expr(
+                                    builder,
+                                    &domain,
+                                    scope,
+                                    univ,
+                                    known,
+                                    hovers,
+                                    None,
+                                    None,
+                                    ctx,
+                                )?;
+                                rest = None;
+                                rest_src = Some(body_src);
+                                (binder_ty, style, Some(domain))
+                            }
+                            None => match b2_whnf_peel(builder, ctx, scope, univ, known, hovers, rest_src.as_ref()) {
                             Some((style, binder_ty, body_src)) => {
                                 rest = None;
                                 rest_src = Some(body_src);
@@ -5003,6 +5045,7 @@ pub(crate) fn elab_expr<'a>(
                             ));
                             }
                         }
+                        },
                     },
                 };
                 let name = builder.name_from_str(&binder.name);
