@@ -52,7 +52,8 @@
 2. **`EnvProvider` trait 是死代码** ✗：`crates/front/src/judge.rs` 的
    `pub trait EnvProvider { fn infer_type_text(…) -> Option<String> }`
    （2026-10-05 恢复时在 `:2262`，本轮给它补 as-built 说明后下移到 `:2271`），
-   **全仓零实现、零接线**（只有 3 处注释引用）。**as-built 的接口不是它** —— 见 §32：
+   **全仓零实现、零接线**（2026-10-05 `grep -rn EnvProvider crates/` = **3 处**：
+   本定义 + `elab.rs:2878` 与 `lsp_keystroke_structure.rs` 两处注释）。**as-built 的接口不是它** —— 见 §32：
    实际走 `InplaceEnv`（活 `&mut EnvBuilder` + `KnownTable`）+ `infer_type_text_inplace`，
    **按源 AST 而不是文本**。下一步二选一：**按 as-built 重写并接线**，或**删掉它**
    （台账 G-92 的 `expected_lean` 引用了它 ⇒ 删之前先改台账）。
