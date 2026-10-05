@@ -34,6 +34,74 @@ pub(crate) fn is_meta_name(name: &str) -> bool {
     name.starts_with(META_PREFIX)
 }
 
+// ───────────────────────── U1：宇宙层的元变量（§2.9）─────────────────────────
+//
+// **U1 第 1 片（2026-10-05）**：先落**编码**与 **occurs** —— 与元变量同款
+// （`\0` 前缀的保留名 ⇒ 与用户标识符**永不撞车** ✓）。
+//
+// **Lean 4 对照** ✓（本机源码 HEAD `d0493e4c1e` ✓）：
+// * Lean 的层是 **`Level.mvar LMVarId`**（`Lean/Level.lean`），由
+//   `Meta/LevelDefEq.lean` 的 `isLevelDefEqAux`/`solve` **合一**（含 `solveSelfMax`）；
+// * **刚性宇宙约束推迟**到项元变量被赋值（`postponeIsLevelDefEq`）；
+// * 赋值处有 **occurs**（`u` 出现在自己的解里 ⇒ 拒）。
+//
+// ⚠ **偏离 1 条（白纸黑字）**：Lean 用**独立的 `LMVarId` 类型**，我们用**名字编码**
+// （`\0soko_u{id}`）—— 与 `MetaId` 同款理由：源级表示**一个字都不用改**
+// （`spine::substitute`/`mentions`/`same_shape` 全按名字走），面更小。
+// ⚠ **本片零行为变化**：没有任何生产调用方；快路径「`SortKind` 字面相等 ⇒ Ok」原样保留。
+
+/// 层元变量名的保留前缀（与 `META_PREFIX` **不同** ⇒ 两类元变量不会互相误判）。
+const LEVEL_PREFIX: &str = "\u{0}soko_u";
+
+/// 层元变量的名字（`\0soko_u{id}`）。
+#[allow(dead_code)] // U1 第 2 片（约束存储 + 合一）会用
+pub(crate) fn level_name(id: u32) -> String {
+    format!("{LEVEL_PREFIX}{id}")
+}
+
+/// 这个名字是不是层元变量？
+#[allow(dead_code)] // U1 第 2 片会用
+pub(crate) fn is_level_name(name: &str) -> bool {
+    name.starts_with(LEVEL_PREFIX)
+}
+
+/// 层元变量的 id（不是层元变量名 ⇒ `None`）。
+#[allow(dead_code)] // U1 第 2 片会用
+pub(crate) fn level_id_of(name: &str) -> Option<u32> {
+    name.strip_prefix(LEVEL_PREFIX)?.parse().ok()
+}
+
+/// **occurs 检查**（对齐 Lean 赋值处的那一条）：`u` 出现在自己的解里 ⇒ **拒**。
+///
+/// ⚠ **作用域是「层文本」不是「整项」** —— 层的解永远是**层表达式**（`u` / `u+1` /
+/// `max u v`），而层只出现在 `Sort` 位 ⇒ 检查**那段文本**就够，**不必**写整棵 AST 的
+/// 遍历（源 AST 没有通用子项遍历，写了就是大改）。
+///
+/// ⚠ **为什么必须有**：没有它，`u := u + 1` 这类赋值会让 `zonk` 的链式迭代
+/// **不终止或给错值** ⇒ 这是**正确性**要求，不是优化。
+///
+/// 判据（词边界）：`u` 命中 · `u1` **不**命中 · `uu` **不**命中 · `max u v` 命中。
+#[allow(dead_code)] // U1 第 2 片（赋值）会用
+pub(crate) fn level_occurs_in_text(target: u32, text: &str) -> bool {
+    let needle = level_name(target);
+    let is_ident = |c: char| c.is_alphanumeric() || c == '_' || c == '\'';
+    let bytes = text.as_bytes();
+    let nb = needle.as_bytes();
+    let mut i = 0usize;
+    while i + nb.len() <= bytes.len() {
+        if &bytes[i..i + nb.len()] == nb {
+            let before_ok = i == 0 || !is_ident(text[..i].chars().next_back().unwrap_or(' '));
+            let after_ok = i + nb.len() == bytes.len()
+                || !is_ident(text[i + nb.len()..].chars().next().unwrap_or(' '));
+            if before_ok && after_ok {
+                return true;
+            }
+        }
+        i += 1;
+    }
+    false
+}
+
 /// 元变量 id（**只在一次求解内有效**，不跨调用、不进项）。
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) struct MetaId(pub u32);
@@ -1174,5 +1242,42 @@ mod tests {
         let (out3, still3) = m3.discharge_keep_unsolved(&[c]).expect("已解 ⇒ 必成功 ✓");
         assert!(still3.is_empty(), "已解的不该出现在 `still` 里 ✓");
         assert!(!has_unassigned_meta(&out3[0]), "已解的必须被 zonk 成值 ✓");
+    }
+
+    /// **U1 第 1 片（2026-10-05）**：层元变量的**编码**与 **occurs** ✓。
+    ///
+    /// 判据四条，**都要能咬** ✗（`AGENTS.md`：咬不住的守卫等于没有 ✓）：
+    /// ① 编码与**项**元变量**不互判** ✓（两个前缀不同 ✓ —— 混了会让 `zonk` 把层名当项名 ✗）；
+    /// ② `level_id_of` **往返**一致 ✓；
+    /// ③ occurs 的**词边界** ✓：`u` 命中 ✓、`u1`/`uu` **不**命中 ✗（没有边界 ⇒ `u` 会误伤 `u1` ✗）；
+    /// ④ occurs 在**复合层文本**里也命中 ✓（`max u v` / `u+1` ✓）。
+    ///
+    /// ⚠ **反向验证**：把 `level_occurs_in_text` 的 `before_ok`/`after_ok` 去掉（无条件命中）
+    /// ⇒ 第 ③ 条**判红** ✗。
+    #[test]
+    fn level_meta_encoding_and_occurs_bite() {
+        // ① 两类元变量**不互判** ✓。
+        assert!(is_level_name(&level_name(3)), "层名必须被认成层名 ✓");
+        assert!(!is_meta_name(&level_name(3)), "层名**不许**被认成项元变量 ✗");
+        assert!(!is_level_name(&meta_name(3)), "项名**不许**被认成层元变量 ✗");
+        // ② 往返 ✓。
+        assert_eq!(level_id_of(&level_name(7)), Some(7), "id 往返必须一致 ✓");
+        assert_eq!(level_id_of("u"), None, "普通层名不是层元变量 ✓");
+        // ③ 词边界 ✓。
+        let u = level_name(5);
+        assert!(level_occurs_in_text(5, &u), "裸名必须命中 ✓");
+        assert!(level_occurs_in_text(5, &format!("max {u} v")), "复合文本里必须命中 ✓");
+        assert!(level_occurs_in_text(5, &format!("{u}+1")), "层级算术里必须命中 ✓");
+        assert!(
+            !level_occurs_in_text(5, &format!("{u}1")),
+            "`u1` **不许**命中 ✗（没有词边界就会误伤 ✓）"
+        );
+        assert!(
+            !level_occurs_in_text(5, &format!("x{u}")),
+            "`xu` **不许**命中 ✗"
+        );
+        assert!(!level_occurs_in_text(5, "v"), "别的层名不命中 ✓");
+        // ④ 不同的 id 互不命中 ✓。
+        assert!(!level_occurs_in_text(6, &u), "id 5 的文本不许被 id 6 命中 ✗");
     }
 }
