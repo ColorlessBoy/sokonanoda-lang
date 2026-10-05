@@ -22,9 +22,8 @@
 //! 判定永远走 kernel，不做文本比对（REQUIREMENTS §2.8）。
 
 use crate::compile::{
-    check_document_with, compile_fol_with, run_incremental, CheckEvent, CompileError, CompileOutput,
-    KernelFailed,
-    CompileOptions, DeclStatus, DocumentReport, TrustPlan,
+    check_document_with, compile_fol_with, run_incremental, CheckEvent, CompileError,
+    CompileOptions, CompileOutput, DeclStatus, DocumentReport, KernelFailed, TrustPlan,
 };
 use crate::proof::{parse_expr_text, render_expr};
 use crate::span::Pos;
@@ -970,8 +969,7 @@ fn run_synthesized_incremental(
     // **S2 步 1**：`run_incremental` 的单元由调用方给（此前它写死单文件）。
     // 这条路是"judge 在**单文件**文本上重查前缀"，所以仍然是一个单元。
     let units = [crate::compile::SourceUnit::single("", file)];
-    let (out, report, _checks, _sigs, _cutoff) =
-        run_incremental(&units, options, &plan, &failures);
+    let (out, report, _checks, _sigs, _cutoff) = run_incremental(&units, options, &plan, &failures);
     Some((out, report, before))
 }
 
@@ -2332,6 +2330,24 @@ pub(crate) fn peel_binders(ty: String, n: usize) -> String {
 }
 
 #[track_caller]
+/// **构建身份** ✓（`AGENTS.md` 2026-10-04 值守拍板「探针读数必须带构建身份」✓）：
+/// 探针行首自带它 ⇒ 两次读数**并排就自明**是不是同一份构建 ✓（不可比就别比 ✗）。
+///
+/// 取**当前可执行文件的 mtime** ✓（同一处取、模板统一 ✓）；取不到（库单测等）就退版本号 + `0` ✓。
+pub(crate) fn probe_build_id() -> &'static str {
+    static ID: OnceLock<String> = OnceLock::new();
+    ID.get_or_init(|| {
+        let mtime = std::env::current_exe()
+            .ok()
+            .and_then(|path| std::fs::metadata(path).ok())
+            .and_then(|meta| meta.modified().ok())
+            .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|delta| delta.as_secs())
+            .unwrap_or(0);
+        format!("{}@{}", env!("CARGO_PKG_VERSION"), mtime)
+    })
+}
+
 fn judge_infer_uncached(
     extra_prefix: &str,
     prefix_src: &str,
@@ -2360,6 +2376,21 @@ fn judge_infer_uncached(
         std::sync::atomic::Ordering::Relaxed,
     );
     stats::PREFIX_RUNS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    // **5 趟探针**（`SOKO_PREFIX_MISS_PROBE=1` ✓，2026-10-05）：`seed=on ⇒ prefix=5` ✗ 的
+    // 机制两次假设都被实验否掉 ✓ ⇒ **直接打这 5 趟的输入** ✓，不再猜机制 ✗。
+    // ⚠ **带构建身份** ✓（`AGENTS.md` 2026-10-04 值守拍板：跨轮比较读数前先确认同一份构建 ✓；
+    // 行首自带 ⇒ 并排就自明不可比 ✓）。
+    if std::env::var_os("SOKO_PREFIX_MISS_PROBE").is_some() {
+        eprintln!(
+            "PREFIX_MISS[{}] extra={} prefix={} key={:016x} term={:?} binders={}",
+            probe_build_id(),
+            extra_prefix.len(),
+            prefix_src.len(),
+            judge_infer_cache_key(extra_prefix, prefix_src, options, binders, term),
+            term,
+            binders.len()
+        );
+    }
     // **按调用点计未命中**（`track_caller` 链透传 ⇒ 原始调用点 ✓）。判据必须是
     // **未命中**而不是**调用**：调用大头是缓存命中（不重跑前缀）✗。
     stats::note_miss_caller(std::panic::Location::caller());
@@ -2390,7 +2421,8 @@ fn judge_infer_uncached(
     // ⚠ 夹取在 `check_synthesized` 里做 ✓（`before.min(prefix_commands)` ✓ ——
     // 不夹会**多担保**追加的合成命令 ⇒ 判定声明根本没被检查 ✗，2026-09-30 实测踩过 ✓）。
     let prefix_commands = file.commands.len().saturating_sub(1);
-    let (out, used_incremental) = match run_synthesized_incremental(&file, options, prefix_commands) {
+    let (out, used_incremental) = match run_synthesized_incremental(&file, options, prefix_commands)
+    {
         Some((out, _report, _before)) => (out, true),
         None => (compile_fol_with(&file, options), false),
     };
