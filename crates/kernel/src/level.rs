@@ -26,6 +26,23 @@ pub enum Level<'a> {
     MVar(u64, u64),
 }
 
+/// **R2a**：三值合取 ✓ —— **对齐 Lean 的 `<&&>`**（`LBool` 的 `and` ✓：
+/// `false` 支配 ✓；有 `undef` 无 `false` ⇒ `undef` ✓；全 `true` ⇒ `true` ✓）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LevelEq {
+    True,
+    False,
+    Undef,
+}
+
+pub(crate) fn and3(a: LevelEq, b: LevelEq) -> LevelEq {
+    match (a, b) {
+        (LevelEq::False, _) | (_, LevelEq::False) => LevelEq::False,
+        (LevelEq::Undef, _) | (_, LevelEq::Undef) => LevelEq::Undef,
+        _ => LevelEq::True,
+    }
+}
+
 impl<'a> Level<'a> {
     fn get_hash(&self) -> u64 {
         match self {
@@ -127,6 +144,81 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         let out =
             self.read_levels(uparams).iter().copied().map(|l| self.subst_level(l, ks, vs)).collect::<Vec<_>>();
         self.alloc_levels(&out)
+    }
+
+    /// **R2a（2026-10-05）**：层合一的**三值结果** ✓ —— **对齐 Lean 的 `LBool`** ✓
+    /// （`Meta/LevelDefEq.lean:90-125` 的 `solve` 返回 `LBool` ✓：
+    /// `true` = 合一成功 ✓ · `false` = **确定不等** ✓ · `undef` = **弃权**（推迟 ✓））。
+    ///
+    /// ⚠ 与 U1 ③ 的 `level_assign`（`Result<(),()>` ✓，弃权 = `Err` ✓）**同构** ✓ ——
+    /// 那是**文本级**（源级层名 ✓），这是**内核级**（`LevelPtr` ✓）。
+    pub fn level_solve(
+        &mut self,
+        u: LevelPtr<'t>,
+        v: LevelPtr<'t>,
+        assign: &mut Vec<(u64, LevelPtr<'t>)>,
+    ) -> LevelEq {
+        let u = self.resolve_level_mvar(u, assign);
+        let v = self.resolve_level_mvar(v, assign);
+        match (self.read_level(u), self.read_level(v)) {
+            // `u` 是 mvar ⇒ occurs 闸 ✓ ⇒ 赋值 ⇒ true；occurs 命中 ⇒ **undef** ✓（弃权 ✓）。
+            (MVar(id, _), _) => {
+                let mut seen = Vec::new();
+                self.collect_level_mvars(v, &mut seen);
+                if seen.contains(&id) {
+                    LevelEq::Undef
+                } else {
+                    assign.push((id, v));
+                    LevelEq::True
+                }
+            }
+            // 右侧是 mvar ⇒ **undef** ✓（对齐 Lean：「Let `solve v u` to handle this case」✓）。
+            (_, MVar(..)) => LevelEq::Undef,
+            (Zero, Zero) => LevelEq::True,
+            (Zero, Succ(..)) => LevelEq::False,
+            (Zero, Max(a, b, _)) => {
+                let x = self.level_solve(self.zero(), a, assign);
+                let y = self.level_solve(self.zero(), b, assign);
+                and3(x, y)
+            }
+            (Zero, IMax(_, b, _)) => self.level_solve(self.zero(), b, assign),
+            (Succ(a, _), Succ(b, _)) => self.level_solve(a, b, assign),
+            (Max(a1, b1, _), Max(a2, b2, _)) | (IMax(a1, b1, _), IMax(a2, b2, _)) => {
+                let x = self.level_solve(a1, a2, assign);
+                let y = self.level_solve(b1, b2, assign);
+                and3(x, y)
+            }
+            // param：**同名**才等 ✓（对齐 Lean：param 之间按名字 ✓）。
+            (Param(n1, _), Param(n2, _)) => {
+                if n1 == n2 {
+                    LevelEq::True
+                } else {
+                    LevelEq::False
+                }
+            }
+            // 其余组合（`succ` vs `param` ✓、结构不同 ✓）⇒ **undef** ✓（弃权，不猜 ✗）。
+            _ => LevelEq::Undef,
+        }
+    }
+
+    /// 顺着已有赋值**解析**一个层 ✓（对齐 Lean 的 `instantiate` ✓）。
+    pub fn resolve_level_mvar(
+        &self,
+        level: LevelPtr<'t>,
+        assign: &[(u64, LevelPtr<'t>)],
+    ) -> LevelPtr<'t> {
+        let mut cur = level;
+        let mut fuel = 64;
+        while let MVar(id, _) = self.read_level(cur) {
+            match assign.iter().rev().find(|(i, _)| *i == id) {
+                Some((_, v)) if fuel > 0 => {
+                    cur = *v;
+                    fuel -= 1;
+                }
+                _ => break,
+            }
+        }
+        cur
     }
 
     /// **R1c-2a（2026-10-05）**：收集一个层里出现的**层元变量 id**（去重、保序）✓ ——

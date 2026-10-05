@@ -211,3 +211,82 @@ fn debug_test1() -> Result<(), Box<dyn Error>> {
         assert_eq!("max(1, 1) + 1", format!("{:?}", ctx.debug_print(sm)));
     })
 }
+
+// **R2a（2026-10-05）**：层合一的单测 ✓ —— 逐条对齐 Lean `Meta/LevelDefEq.lean:90-125` 的 `solve` ✓。
+// ⚠ 全部**内联**（`test_ctx` 的 `'t` 不可命名 ⇒ 助手函数/闭包传不出 `LevelPtr` ✓）。
+mod r2a_level_solve {
+    use crate::level::{Level, LevelEq};
+    use crate::tests::util::test_ctx;
+    use std::error::Error;
+
+    /// mvar vs 具体层 ⇒ **True** 且**记下赋值** ✓。
+    #[test]
+    fn assigns_mvar_to_concrete() -> Result<(), Box<dyn Error>> {
+        test_ctx(None, |ctx| {
+            let hash = crate::hash64!(crate::level::MVAR_HASH, 7u64);
+            let m = ctx.alloc_level(Level::MVar(7, hash));
+            let z = ctx.zero();
+            let s = ctx.succ(z);
+            let mut assign = Vec::new();
+            assert_eq!(ctx.level_solve(m, s, &mut assign), LevelEq::True);
+            assert_eq!(assign.len(), 1);
+            assert_eq!(assign[0].0, 7);
+        })
+    }
+
+    /// **`occurs` 闸** ✓：`u` 出现在自己的解里 ⇒ **Undef**（弃权）且**不赋值** ✓。
+    #[test]
+    fn occurs_check_abstains() -> Result<(), Box<dyn Error>> {
+        test_ctx(None, |ctx| {
+            let hash = crate::hash64!(crate::level::MVAR_HASH, 3u64);
+            let m = ctx.alloc_level(Level::MVar(3, hash));
+            let inside = ctx.succ(m);
+            let mut assign = Vec::new();
+            assert_eq!(ctx.level_solve(m, inside, &mut assign), LevelEq::Undef);
+            assert!(assign.is_empty(), "occurs 命中时不许赋值");
+        })
+    }
+
+    /// `zero` vs `succ` ⇒ **False**（确定不等 ✓）。
+    #[test]
+    fn zero_vs_succ_is_false() -> Result<(), Box<dyn Error>> {
+        test_ctx(None, |ctx| {
+            let z = ctx.zero();
+            let s = ctx.succ(z);
+            let mut assign = Vec::new();
+            assert_eq!(ctx.level_solve(z, s, &mut assign), LevelEq::False);
+        })
+    }
+
+    /// **右侧是 mvar ⇒ Undef** ✓（对齐 Lean：「Let `solve v u` to handle this case」✓）。
+    #[test]
+    fn right_mvar_abstains() -> Result<(), Box<dyn Error>> {
+        test_ctx(None, |ctx| {
+            let z = ctx.zero();
+            let hash = crate::hash64!(crate::level::MVAR_HASH, 11u64);
+            let m = ctx.alloc_level(Level::MVar(11, hash));
+            let mut assign = Vec::new();
+            assert_eq!(ctx.level_solve(z, m, &mut assign), LevelEq::Undef);
+            assert!(assign.is_empty());
+        })
+    }
+
+    /// param 之间：**同名 ⇒ True** ✓、**异名 ⇒ False** ✓。
+    #[test]
+    fn params_compare_by_name() -> Result<(), Box<dyn Error>> {
+        test_ctx(None, |ctx| {
+            let n1 = ctx.name_from_str("u");
+            let n2 = ctx.name_from_str("u");
+            let n3 = ctx.name_from_str("v");
+            let h1 = crate::hash64!(crate::level::PARAM_HASH, n1);
+            let h2 = crate::hash64!(crate::level::PARAM_HASH, n2);
+            let h3 = crate::hash64!(crate::level::PARAM_HASH, n3);
+            let a = ctx.alloc_level(Level::Param(n1, h1));
+            let b = ctx.alloc_level(Level::Param(n2, h2));
+            let c = ctx.alloc_level(Level::Param(n3, h3));
+            let mut assign = Vec::new();
+            assert_eq!(ctx.level_solve(a, b, &mut assign), LevelEq::True);
+            assert_eq!(ctx.level_solve(a, c, &mut assign), LevelEq::False);
+        })
+    }
+}
