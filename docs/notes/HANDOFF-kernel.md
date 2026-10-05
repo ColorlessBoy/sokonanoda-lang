@@ -125,6 +125,23 @@
    **实现方 = `Walk`** ✓（`walk.rs` ✓，它持有 `EnvBuilder` ✓），**不必改 `elab.rs`** ✓。
    **最小切片**（设计 §5 ✓）：只改 `judge_infer`（大头 ✓；`judge_pairs` 留阶段 2 ✓）。
    **判据（§9.1 的 1c ✓）**：① judge 合成 pass **253513 → 接近 2647 量级** ② 真课程墙钟
+   ⚠⚠⚠ **决策点已由设计文档定论（§0.2 #2 ✓，2026-10-05 对账 ✓）**：`EnvProvider` 是**死代码** ✗，
+   **as-built 的接口不是它** ✓ —— 实际走 **`InplaceEnv`**（活 `&mut EnvBuilder` + `KnownTable`）
+   + **`infer_type_text_inplace`**（`elab.rs:3016`，**`pub(crate)`** ✓ 可直接调 ✓），
+   **按源 AST 而不是文本** ✓。⇒ **本片第一步 = 二选一（文档原话 ✓）**：
+   **(a) 按 as-built 重写 `EnvProvider` 并接线** ✓（推荐 ✓ —— 用户意图就是"判定侧拿到就地环境" ✓）
+   或 **(b) 删掉它** ✓（⚠ 台账 G-92 的 `expected_lean` 引用了它 ⇒ **删之前先改台账** ✗）。
+   ⚠ **技术 crux（下一棒必读 ✓）**：`infer_type_text_inplace` 要 **`&mut InplaceEnv`** ✗
+   （内含 `&'e mut EnvBuilder` ✓），而 `EnvProvider::infer_type_text` 的签名是 **`&self`** ✗
+   ⇒ **借用冲突** ✓，与设计 §6 警告的「`with_env` 期间 builder 被挪走、回调里不许再碰」同族 ✓
+   ⇒ 先定借用形态（文档 §2：环境句柄是**借用**不是新类型 ✓ + 闭包式 API `with_project_session` ✓）
+   再动代码 ✓。
+   ⚠ **真实阻塞（本轮实测 ✓）**：as-built 的机器在 **`crates/front/src/compile/elab.rs`** ✓
+   —— 而它**正由另一条线在改** ✗（`git status` 5 个在飞文件 ✓）⇒ **本片开工前必须等它收口** ✗
+   （或与它约定：`elab.rs` 归它、`judge.rs`/`walk.rs` 归本片 ✓）。
+   **G-92 的读数（§0.2 #1 ✓，构建 `20fb549d` + 工作树 `elab.rs` ✓）**：`by_calls` 55(N=10) → 210(N=20)
+   = **3.82×** ✗（阈值 3.0 ✓）；根因 = **受信任前缀只跳内核检查、不跳 elaborate** ✗
+   ⇒ 前缀里的 `by` 声明**又被 elaborate 一遍** ✓（`passes=23` 线性 ✓ 而 `by_calls` 是 Σ(1..N) ✗）。
    ③ `unit12-solution` 单文件墙钟 ④ 最贵单条 4680ms → ? ⑤ **`--json` 逐字节不变** ⑥ 反向判据（§3 ✓）。
 
 ## 4. 每条要带的判据（判红 / 判绿 ✓）
