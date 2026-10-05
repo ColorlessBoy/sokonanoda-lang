@@ -2345,11 +2345,18 @@ fn judge_infer_cached(
 /// + **`infer_type_text_inplace`**（`compile/elab.rs` ✓，**收 `(名字, 源类型)` 对 + `operand: &Expr`** ✓）
 /// —— 旧签名收 `term: &str` 是**文本形** ✗，与它**接不上** ✓（这正是它至今零接线的原因之一 ✓）。
 ///
-/// **借用形态（本片技术 crux ✓，先定后写 ✓）**：`infer_type_text_inplace` 要
-/// **`&mut InplaceEnv`** ✗（elaborate 操作数**可能新增声明** ⇒ 真的需要可变 ✓），
-/// 而判定路径只拿得到 **`&self`** ✗ ⇒ 实现方用**内部可变性**（`RefCell` ✓）把可变性
-/// **收在自己身上** ✓，trait 保持 `&self` ✓ —— 这样 `judge_infer` 侧的
-/// `Option<&dyn EnvProvider>` **不用改成 `&mut`** ✓（否则调用链全要动 ✗）。
+/// **借用形态（⚠ 2026-10-05 更正 ✓ —— 我先前写在这里的「`&self` + 实现方 `RefCell`」是错的 ✗）**：
+/// `infer_type_text_inplace`（`compile/elab.rs:3016` ✓）**真的要改 builder** ✗ ——
+/// `elab_expr(env.builder, …)` ✓ · `env.builder.mk_lambda(…)` ✓ · `env.builder.with_env(|ef| …)` ✓
+/// ⇒ **`&mut` 是真需求** ✗，不是签名保守 ✓。而判定调用发生在**调用方已持有 `&mut builder`** 的深处 ✓
+/// ⇒ 那一刻**没有任何地方能塞进 `RefCell`** ✗ ⇒ `&self` + 内部可变性**结构上不可能** ✗。
+///
+/// ✅ **正解 = 重借链** ✓：`InplaceEnv::reborrow`（`elab.rs:2851` ✓，注释就是为循环重借写的 ✓）
+/// ⇒ 把 `&mut InplaceEnv` **顺着调用链透传**到判定点 ✓（= 设计 §6 的「`ElabCtx` 加 `env_view` +
+/// 各处透传」✓，**链宽但每处只加一个参数** ✓）。
+/// ⚠ ⇒ **本 trait 的形状本身还要重设计** ✗：要么改成**闭包式**接口 ✓
+/// （设计 §2 的 `with_project_session` 同款 ✓：在借出窗口内回调 ✓），要么**不用 trait** ✓、
+/// 把判定点直接放进 walk 的借出窗口 ✓。**先定这个，再写接线代码** ✓。
 pub trait EnvProvider {
     /// 在**当前环境**上求 `operand` 在 `binder_srcs` 语境下的类型文本（与今天 `#check` 同形）。
     ///
@@ -3145,8 +3152,10 @@ mod tests {
     /// ③ `p` 收到的是**解析后的 AST**（`(名字, 源类型)` 对 + 操作数 ✓），**不是文本** ✗
     ///    —— 这是 as-built（`infer_type_text_inplace`）要的形状 ✓。
     ///
-    /// ⚠ 夹具用 **`Cell` + `&self`** ✓ —— 顺带证明本片定下的**借用形态**
-    /// （trait 保持 `&self` ✓、可变性由实现方用内部可变性收着 ✓）**真的能实现** ✓。
+    /// ⚠ 夹具用 **`Cell` + `&self`** ✓ —— 它证明的只是**这个 trait 形状能编译、能被调用** ✓；
+    /// ⚠ **不**证明真 provider 能这么写 ✗ —— 真 provider 要 `&mut InplaceEnv` ✗，
+    /// 而判定点那一刻 builder 已被调用方借走 ✓ ⇒ **trait 形状还要重设计** ✓
+    /// （见 trait 上方的更正注释 ✓：正解是**重借链** / 闭包式接口 ✓）。
     #[test]
     fn env_provider_is_consulted_and_none_falls_back_byte_for_byte() {
         struct Fake(std::cell::Cell<usize>);
