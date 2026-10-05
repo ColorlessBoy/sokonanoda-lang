@@ -99,6 +99,28 @@
    **① G-30 收口** → **② 交接单小活**（EnvProvider 接线 · G-92 · G-91 · G-89/90 · **ST15/G-62**）→
    **③ 发版** → **④ 集合论教材线 S-A/S-B/S-C**（⚠ **排到最后** ✗ —— 用户 10-05 拍板「不着急」✓；
    旧版把 S-A/S-B/S-C 写在 IA-4 余片同一行 ✓ ⇒ 本行**替换**它 ✓）。
+   ⭐⭐ **① G-30 的下一手 = 最后接线（R2b-2 + R1c-2b，一片原子落）** ✓ ——
+   **用户 2026-10-05 全局拍板** ✓：**后续所有任务直接对齐 Lean 4，禁止自创机制** ✗
+   （「事后猜层 / 闸门 / 文本反推」全部作废 ✗）；**卡住先读 Lean 源码** ✓（`~/Documents/lean/lean4` ✓）。
+   **已完成 8 片（全加法、判据零漂移 ✓）**：
+   R1a `a03a6b82`（`Level::MVar` ✓）· R1b `d37cc1f6`（生成器 ✓）·
+   R1c-1 `58b500f6`（`level_mvar_to_param` ✓）· R1c-2a `5418927f`（`collect_level_mvars` ✓）·
+   R2a `ee5be427`（`level_solve` 三值 ✓）· R2b-1 `68ef495b`（待解表 ✓）·
+   另 U2 `68cd744d`（`#check` 裸常量渲签名 ✓ —— ⚠ **是自创机制** ✗，**待撤** ✗）。
+   **⇒ 四步（逐行改动点见台账 `G-30` 第 120/121 棒 ✓）**：
+   (a) `elab.rs:4729`：`zero()` ⇒ `builder.level_mvar(id)` + `level_mvar_table::push(id)` ✓；
+   (b) `infer_const_universes` 尾部（`:6628` 起 ✓）：去掉「只认 u64」✗ + 去掉 `n == 0` 早退 ✗，
+       改成**解出的层**（`level_ptr` ✓ + 记 `level_mvar_table` ✓ + `relabel_app_head` ✓）；
+   (c) 出口（`kernel_phase.rs:139` `try_check_declar` **前** ✓）：`take()` ⇒ 收集声明 `ty`/`val` 的 mvar ✓
+       ⇒ 生成 fresh `u`/`v`… 名（避开已有 ✓）⇒ `level_mvar_to_param_expr` ✓；
+   (d) 扩 `DeclarInfo.uparams`（`env.rs:39` ✓）+ 写回 `ty`/`val` ✓。
+   **⚠ 为何原子** ✗：生成后、出口转换前，未解 mvar 直达内核 ⇒ `all_uparams_defined ⇒ false` **判拒** ✗
+   （报错非 panic ✓ 但那是大面积拒绝 ✗）⇒ 无拆分空间 ✓。
+   **判据** ✓：`G30` **转绿** ✓ · 判定中性 ✓（乙已确认 ✓）· `G33` 不变 ✓ · `dev-verify` 0 ✓ ·
+   同子集对拍（⚠ 逐字节**必变** ⇒ 按**判定中性**口径 ✓）。
+   **⇒ 然后** ✓：**撤 U2 的 `#check` 渲染 hack** ✗（`68cd744d` ✓ —— 撤后 `#check` 由 R1c 的
+   「未解 mvar ⇒ param」自然显示 `.{u, v}` ✓ ⇒ **G63 因正确理由转绿** ✓；
+   ⚠ 撤的当下会先回红 ✓，属预期 ✓ —— 值守 turn 116 裁决 (b) ✓）。
    **IA-4 余片**：次序 ~~M4~~ → ~~D8~~ → ~~K1~~ → **B1** → **B2** → **B3** → **U1** → **U2** ✓
    （✅ B3 收口：课程门禁 0 判负 ✓ + 全语料对拍 1711/1714 逐字节 ✓）；
    ⚠ **G-93 不欠 U1** ✗（签名闸门就够了 ✓，`infer_const_universes` ✓；U1 有自己的判据 G-63 ✓）。
