@@ -50,13 +50,13 @@
      当前命令之前）。
    * ⚠ **真实课程不呈现它**（逐声明耗时平线 ✓）—— 但判据**不许**因此写成"已达标" ✗。
 2. **`EnvProvider` trait 是死代码** ✗：`crates/front/src/judge.rs` 的
-   `pub trait EnvProvider { fn infer_type_text(…) -> Option<String> }`
-   （2026-10-05 恢复时在 `:2262`；**行号随并发编辑漂移** ⇒ 按 `grep -n 'pub trait EnvProvider'` 定位），
-   **全仓零实现、零接线**（2026-10-05 `grep -rn EnvProvider crates/` = **3 处**：
-   本定义 + `elab.rs:2878` 与 `lsp_keystroke_structure.rs` 两处注释）。**as-built 的接口不是它** —— 见 §32：
-   实际走 `InplaceEnv`（活 `&mut EnvBuilder` + `KnownTable`）+ `infer_type_text_inplace`，
-   **按源 AST 而不是文本**。下一步二选一：**按 as-built 重写并接线**，或**删掉它**
-   （台账 G-92 的 `expected_lean` 引用了它 ⇒ 删之前先改台账）。
+   `pub trait EnvProvider { fn infer_type_text(…) -> Option<String> }`（2026-10-05 恢复时在 `:2262`；
+   **行号漂移** ⇒ 按 `grep -n 'pub trait EnvProvider'` 定位）**全仓零实现、零接线** ——
+   `grep -rn EnvProvider crates/` = **3 处**：本定义 + `elab.rs:2878` 与 `lsp_keystroke_structure.rs` 注释。
+   **as-built 不是它**（见 §32）：实际走 `InplaceEnv`（活 `&mut EnvBuilder` + `KnownTable`）+
+   `infer_type_text_inplace`（**按源 AST** 不是文本）；⚠ **连签名都对不上** ✗ —— trait 收 `&self`、
+   就地函数要 `&mut InplaceEnv` ⇒ 照原样接线必然借用冲突（内核线 2026-10-05 独立核实 ✓）。
+   下一步二选一：**按 as-built 重写并接线**，或**删掉它**（台账 G-92 的 `expected_lean` 引用了它 ⇒ 删前先改台账）。
 3. **G-68 切片 1（按 `module_key` 复用产物）**：**已停** —— §27.2/§28 实测
    "一次 session 覆盖全部入口"与 **per-entry 前缀**冲突，等价类分组只值 **2.28×**
    且**省不了趟数**。`session_reuse.rs` 的正向守卫仍 `#[ignore]`（TDD 先红），**不是待办**。
