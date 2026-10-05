@@ -217,6 +217,33 @@ pub(crate) struct MetaStore {
     mvars: Vec<MVar>,
     /// 待定约束（`Undef` 的叶子自己压进来；`unify_all` 重扫到不动点）
     postponed: Vec<(Expr, Expr)>,
+    /// **宇宙约束**（U1 第 2 片 ✓；§4 的 #6 行：「`postponed` 含宇宙约束，**U1 起分表**」✓）。
+    ///
+    /// ⚠ **为什么分表** ✗：项约束与层约束的**求解时机不同** ✓ —— 层约束要
+    /// **推迟到项元变量被赋值之后**（Lean 的 `postponeIsLevelDefEq` ✓，§2.9 ✓），
+    /// 而项约束是 `unify_all` 当场重扫 ✓ ⇒ 混在一起会让层约束被**过早**求解 ✗。
+    ///
+    /// ⚠ **本片只落存储** ✓（零行为变化 ✓ —— 没有生产调用方 ✓，合一与惰性检查是 ③/④ ✓）。
+    #[allow(dead_code)] // U1 第 3/4 片（合一 + 惰性检查）才读；本片只有单测用
+    pub(crate) univ: Vec<UnivConstraint>,
+}
+
+/// **宇宙约束**（U1 第 2 片 ✓；§2.9：「`ULe`/`UEq`/`ULub` **三种够用**」✓）。
+///
+/// **Lean 4 对照** ✓（本机源码 HEAD `d0493e4c1e` ✓）：Lean 的约束是
+/// `LevelDefEq` 里的 `ULevel` 问题（`ULe`/`UEq`/`ULub` 一族 ✓），
+/// **刚性约束推迟**到项元变量被赋值（`postponeIsLevelDefEq` ✓）。
+///
+/// ⚠ **id 都是层元变量的 id** ✓（`level_name(id)` 的那个 id ✓）⇒ 与 `Level` 表示解耦 ✓。
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[allow(dead_code)] // U1 第 3/4 片（合一 + 惰性检查）会用
+pub(crate) enum UnivConstraint {
+    /// `lhs ≤ rhs`。
+    Le { lhs: u32, rhs: u32 },
+    /// `lhs = rhs`。
+    Eq { lhs: u32, rhs: u32 },
+    /// `out = max(a, b)`。
+    Lub { out: u32, a: u32, b: u32 },
 }
 
 pub(crate) struct MetaCtx<'a> {
@@ -1279,5 +1306,40 @@ mod tests {
         assert!(!level_occurs_in_text(5, "v"), "别的层名不命中 ✓");
         // ④ 不同的 id 互不命中 ✓。
         assert!(!level_occurs_in_text(6, &u), "id 5 的文本不许被 id 6 命中 ✗");
+    }
+
+    /// **U1 第 2 片（2026-10-05）**：宇宙约束的**存储**（§2.9 的 `ULe`/`UEq`/`ULub` 三种）✓。
+    ///
+    /// 判据三条，**都要能咬** ✗：
+    /// ① 三种约束**互不相等** ✓（`Le{1,2}` ≠ `Eq{1,2}` ≠ `Lub{0,1,2}` ✗ ——
+    ///    混了会让惰性检查按错的规则判 ✗）；
+    /// ② `MetaStore` 的 `univ` **默认空** ✓（零行为变化的前提 ✓）；
+    /// ③ **与项约束分表** ✓：压一条宇宙约束**不改变** `postponed` 的长度 ✗
+    ///    （§4 的 #6 行要求分表 ✓；混在一起会让层约束被 `unify_all` **过早**求解 ✗）。
+    ///
+    /// ⚠ **反向验证**：把 `univ` 与 `postponed` 合成一个 `Vec` ⇒ 第 ③ 条**判红** ✗。
+    #[test]
+    fn univ_constraints_are_stored_separately() {
+        // ① 三种约束互不相等 ✓。
+        let le = UnivConstraint::Le { lhs: 1, rhs: 2 };
+        let eq = UnivConstraint::Eq { lhs: 1, rhs: 2 };
+        let lub = UnivConstraint::Lub { out: 0, a: 1, b: 2 };
+        assert_ne!(le, eq, "`Le` 与 `Eq` 不许相等 ✗");
+        assert_ne!(le, lub, "`Le` 与 `Lub` 不许相等 ✗");
+        assert_ne!(eq, lub, "`Eq` 与 `Lub` 不许相等 ✗");
+        // ② 默认空 ✓。
+        let store = MetaStore::default();
+        assert!(store.univ.is_empty(), "`univ` 默认必须是空 ✓");
+        assert!(store.postponed.is_empty(), "`postponed` 默认必须是空 ✓");
+        // ③ 分表 ✓：宇宙约束**不进** `postponed` ✓。
+        let mut store = MetaStore::default();
+        store.univ.push(le);
+        store.univ.push(eq);
+        store.univ.push(lub);
+        assert_eq!(store.univ.len(), 3, "三条都该在 `univ` 里 ✓");
+        assert!(
+            store.postponed.is_empty(),
+            "宇宙约束**不许**混进 `postponed` ✗（§4 #6 要求分表 ✓）"
+        );
     }
 }
