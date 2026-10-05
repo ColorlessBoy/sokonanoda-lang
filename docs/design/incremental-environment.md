@@ -50,14 +50,13 @@
      = **G-68 那条架构件**（§30.2 判过"位置不成立"：调用方的 builder 只覆盖到
      当前命令之前）。
    * ⚠ **真实课程不呈现它**（逐声明耗时平线 ✓）—— 但判据**不许**因此写成"已达标" ✗。
-2. **`EnvProvider` trait 是死代码** ✗：`crates/front/src/judge.rs` 的
-   `pub trait EnvProvider { fn infer_type_text(…) -> Option<String> }`（2026-10-05 恢复时在 `:2262`；
-   **行号漂移** ⇒ 按 `grep -n 'pub trait EnvProvider'` 定位）**全仓零实现、零接线** ——
-   `grep -rn EnvProvider crates/` = **3 处**：本定义 + `elab.rs:2878` 与 `lsp_keystroke_structure.rs` 注释。
-   **as-built 不是它**（见 §32）：实际走 `InplaceEnv`（活 `&mut EnvBuilder` + `KnownTable`）+
-   `infer_type_text_inplace`（**按源 AST** 不是文本）；⚠ **连签名都对不上** ✗ —— trait 收 `&self`、
-   就地函数要 `&mut InplaceEnv` ⇒ 照原样接线必然借用冲突（内核线 2026-10-05 独立核实 ✓）。
-   下一步二选一：**按 as-built 重写并接线**，或**删掉它**（台账 G-92 的 `expected_lean` 引用了它 ⇒ 删前先改台账）。
+2. **`EnvProvider` trait** —— **决策已定 = (a)** ✓（内核线 `edddbbae` · 2026-10-05）：
+   **形状已按 as-built 改成 AST 形** ✓ `fn infer_type_text(&self, binder_srcs: &[(String, Expr)], operand: &Expr)`
+   （旧**文本形**与 `infer_type_text_inplace` **接不上** ⇒ 那是它零接线的原因之一 ✓）；
+   **借用形态也定了** ✓：实现方用**内部可变性**（`RefCell`）把 `&mut InplaceEnv` 收在自己身上、
+   trait 保持 `&self` ⇒ `judge_infer` 侧的 `Option<&dyn EnvProvider>` **不用改 `&mut`** ✓。
+   ⚠ **仍未接线** ✗：`grep -rn "impl EnvProvider" crates/` = **0** ⇒ 它**还是死代码** ✓
+   （内核线自己写着"**不写已修**" ✓）；**as-built 的机器**见 §32，**接线判据** = §32.3 四条（先建先红 ✓）。
 3. **G-68 切片 1（按 `module_key` 复用产物）**：**已停** —— §27.2/§28 实测
    "一次 session 覆盖全部入口"与 **per-entry 前缀**冲突，等价类分组只值 **2.28×**
    且**省不了趟数**。`session_reuse.rs` 的正向守卫仍 `#[ignore]`（TDD 先红），**不是待办**。
@@ -1424,7 +1423,7 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | **1** | 判定点接**就地环境**（`InplaceEnv`）—— 即 P1-a / P1-b | ✅ **已落地**（§0.1） |
-| **2** | **`judge_pairs` 的合成编译复用调用方环境**（G-92 终局）—— 需要"同一 DAG 上既能写新项、又能读已落地声明"（§18 的 **K-2** = G-68 架构件），**或**给就地路加「文本 ⇒ AST」入口 | ❌ 未做（§0.2 #1） |
+| **2** | **`judge_pairs` 的合成编译复用调用方环境**（G-92 终局）—— 需要"同一 DAG 上既能写新项、又能读已落地声明"（§18 的 **K-2** = G-68 架构件），**或**给就地路加「文本 ⇒ AST」入口 | 🟡 **第 1 步已落**（`edddbbae`：trait 改成 AST 形 + 借用形态定 `RefCell`）· 接线未做（§0.2 #1） |
 | **3** | 并行下的环境复用（§5 原表那一行） | ❌ 未动 |
 
 **阶段 2 的判据（缺一不算）**：① G-92 repro 的 `by_calls` 比值 **< 3.0**（线性 ≈ 2.0）；
