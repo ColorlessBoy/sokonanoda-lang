@@ -41,7 +41,7 @@
    * ⚠ **判据对这两条路都不敏感**（2026-10-05 同构建复测 ✓，`by_calls` **55 → 210** 三档一模一样）：
      `SOKO_JUDGE_INPLACE=off`（就地 infer 关）· `SOKO_JUDGE_ENV_REUSE=0`（受信任前缀关）
      ⇒ 它**只**量 `judge_pairs` 的合成编译**重 elaborate** ⇒ **光接 infer 那条 `EnvProvider` 不会让它动** ✗
-     （能不能动它，取决于「合成编译拿到活环境」那一刀 = 出路 ② ✓）。**2026-10-05 复测** ✓（构建 mtime 09:54，含 `787997f0` 入口 + `b2c16980` 注释，二者零行为变化 ✓）：**仍是 55 → 210 = 3.82** ✓ ⇒ 与本节预测一致 ✓。
+     （能不能动它，取决于「合成编译拿到活环境」那一刀 = 出路 ② ✓）。**2026-10-05 复测 ×2** ✓（构建 mtime **09:54**（含 `787997f0` 入口 + `b2c16980` 注释，二者零行为变化 ✓）与 **10:21**（含 B2 在飞的 `by.rs`/`elab.rs` 改动 ✓））：**两次都是 55 → 210 = 3.82** ✓ ⇒ 与本节预测一致 ✓（**跨构建稳** ✓）。
    * **根因（已收窄 ✓）**：`judge_pairs_uncached` 合成"整份前缀 + `_soko_judge_k`"
      再跑一趟；**受信任前缀只跳内核检查、不跳 elaborate** ✗ ⇒ 前缀里那些 `by`
      声明**又被 elaborate 一遍**。**2026-10-05 探针**（N=20 夹具 · 同一构建）：`JUDGE_STATS
@@ -1137,7 +1137,7 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 **(ii) 内核加 `EnvBuilder::fork()`**（**同 arena + 克隆 intern 表** —— arena 是 interner 的**参数**、不归 DAG 所有 ⇒ 既有指针同一性保住 ✓；⚠ 但 fork 里新 intern 的字面量会在共享 arena 造出 live 表不认识的节点 ⇒ live 之后 intern 同一个值会**造第二份** ✗（`NatLit` 按指针比较 ⇒ 假失败，与 `snapshot()` 那条 ⚠ 同族）⇒ 还要 `absorb()` 合并口，**面不比 (i) 小**）。
 ⇒ **两条都是架构件** ✗：先出一轮设计 + 一条**指针同一性单测**，判据照 §32.3（**先建先红** ✓）。
 **(i) 的起手清单（**建议顺序 ✓ · 未验证 ✗**，供接手方省一轮）**：① `flush_batch` 收 `Option<&mut InplaceEnv>`
-（`by.rs::run_by` 里 `run_by_inner` 返回后 `env` 已空闲 ⇒ 借用可行 ✓）⇒ 透传给 `judge_pairs_with`/`judge_pairs_uncached`；
+（它**定义在 `judge.rs:1891`** ✓，调用点在 `by.rs::run_by` ✓ —— **2026-10-05 复核 ✓**：`run_by` 已用 `InplaceEnv::reborrow(&mut env)` 把 `env` 借进 `run_by_inner` ✓，**返回后 `env` 已空闲** ⇒ 借用可行 ✓）⇒ 透传给 `judge_pairs_with`/`judge_pairs_uncached`；
 ② `check_synthesized` 在有 env 时改走"**只含合成命令**的 pass"（`src` 仍给**整份前缀** ✓ 供 span 查表 —— **这条未验证** ✗）；
 ③ `Walk`/`run_pass_with` 加**借用变体**（按值那版**保留**给 session ✓）；④ 合成声明用 `hide_declars`/`restore_declars` **回滚** ✓。
 ⚠ **与判定点那条缝区分开** ✓（别混 ✗）：本节讲**合成编译**（`judge_pairs`）怎么拿到活环境；
