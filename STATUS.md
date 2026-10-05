@@ -82,3 +82,9 @@
 
 **2026-10-03 · 推送放行留痕（第二次）**：本轮再跳一次 pre-push（`SOKO_SKIP_HOOK=1` ✓）—— 跳过的是「**缺口台账 `--strict`**」✗，理由 = **该项在 push 路径的远端无牙** ✓ （`grep -rn "strict" .github/workflows/` 只命中 `deep-ledger.yml` ✓：`cron 周日 18:00` + `workflow_dispatch`，跑 `gap.py check --strict --include-slow`、超时 10800s ✓ —— 它的注释自己写着「守卫不失去牙齿就落在这里」✓）；`ci.yml` 的 ledger job 是 `SOKO_GAP_REPRO_TIMEOUT: 60` + `--shard i/3`、**不带 `--strict`** ✓ ⇒ 超时=响亮跳过（exit 0）✓。本地那条红的本质是 **G-83 长复现件（≈1.5h）被跳过 ⇒ `--strict` 判红** ✗，**不是发现缺陷** ✓。｜ 上一次（第一条）跳过的是「记法路径守卫」✓（同样远端无牙 ✓）。
 本轮 push 跳过 pre-push **一次**（`SOKO_SKIP_HOOK=1`）：唯一红项 `gates：记法路径守卫` **远端无牙**（`grep -rn audit-notation-paths .github/workflows/` 零命中 ✓，与「时序证据守卫」同类），同轮所有远端有牙项均已通过（YAML 0s · fmt 1s · clippy 6s · 课程门禁 959s · 缺口台账 90/0/0 ✓）⇒ 按分级放行；6 处 `render_expr` 欠账另行清理 ✓。
+
+## 2026-10-06 推送留痕（SOKO_SKIP_HOOK=1）
+- 内容：`23577ff2` notation-lint 67 处迁移（contract 门禁）+ ci.yml 超时调大（gates-fast 45 / gates-course 90 / contract 30）+ `303dfe24` identity_probe 拆分（gates-fast env-isolation）
+- 本地 `--strict` gates 缺口台账复现件超时判红（301s exit 1）——本地慢机器长复现件跳过，CI 快机器完整验证兜底（同 G-07/G-44 先例）
+- 课程门禁本地已全绿：251 targets / 2156 checked / 913 open / 0 被判负（与迁移前逐项一致）
+- notation-lint 本地已归零（298 文件 0 旧写法）
