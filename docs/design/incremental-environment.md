@@ -51,7 +51,7 @@
    * ⚠ **真实课程不呈现它**（逐声明耗时平线 ✓）—— 但判据**不许**因此写成"已达标" ✗。
 2. **`EnvProvider` trait 是死代码** ✗：`crates/front/src/judge.rs` 的
    `pub trait EnvProvider { fn infer_type_text(…) -> Option<String> }`
-   （2026-10-05 恢复时在 `:2262`，本轮给它补 as-built 说明后下移到 `:2271`），
+   （2026-10-05 恢复时在 `:2262`；**行号随并发编辑漂移** ⇒ 按 `grep -n 'pub trait EnvProvider'` 定位），
    **全仓零实现、零接线**（2026-10-05 `grep -rn EnvProvider crates/` = **3 处**：
    本定义 + `elab.rs:2878` 与 `lsp_keystroke_structure.rs` 两处注释）。**as-built 的接口不是它** —— 见 §32：
    实际走 `InplaceEnv`（活 `&mut EnvBuilder` + `KnownTable`）+ `infer_type_text_inplace`，
