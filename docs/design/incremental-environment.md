@@ -216,9 +216,9 @@ pub(crate) struct ElabCtx<'a, 'b> {
 §8 说"walk 期间 builder 是空的、声明是 `kernel_phase` 才加"。**这是错的** ✗✓ ——
 逐行核对后：
 
-**walk **无条件**地 `add_declar`**（`grep -c "self.builder.add_declar" walk.rs` = **9 处**，
-其中 **4 处是无条件**的 `PendingOp::Decl` 构造点：`:704`/`:960`/`:1081`/`:1305`，
-另 4 处是归纳块/构造子 `:588`/`:826`/`:1045`/`:1192`，第 9 处在 `walk_real_add` 分支里）。
+**walk **无条件**地 `add_declar`**（`grep -c "self.builder.add_declar" walk.rs` = **9 处** ——
+**8 处无条件**：4 个 `PendingOp::Decl` 构造点 + 4 个归纳块/构造子；第 9 处在 `walk_real_add` 分支里 ✓。
+⚠ **行号会漂** ✗（本节原来抄的 `:704`/`:960`… 是 2026-09-29 的）⇒ 按 `grep -n` 定位，别抄旧行号 ✓）。
 
 ⇒ **环境在 walk 期间就是逐条长起来的** ✓ —— **§2 的前提成立**，
 `judge_infer` 在命令内部 `builder.with_env(...)` 时**看得到本文件到该命令为止的声明** ✓。
@@ -228,7 +228,7 @@ pub(crate) struct ElabCtx<'a, 'b> {
 
 **对阶段 1 的影响（好消息）**：§11.2 的"步 1（walk 边 elaborate 边 check-then-add）"
 **不需要做** —— 环境已经在了。**阶段 1 直接做步 2**：
-把 `EnvView` 接进 `ElabCtx` / `judge_infer`，让判定**查表**而不是重跑前缀。
+把 `EnvView` 接进 `ElabCtx` / `judge_infer`，让判定**查表**而不是重跑前缀（⚠ 接口名已变 ✗→✓：as-built 走 `InplaceEnv` + **重借链**，见 §0.2 #2 / §32 ✓）。
 
 ⚠ **一个仍需核对的细节**：walk 的 `add_declar` **不做内核检查**（check 在 `kernel_phase`）
 ⇒ 环境里可能暂时包含**后来被内核拒绝**的声明。判定要在这上面查表 ⇒
