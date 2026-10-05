@@ -70,8 +70,7 @@
 | `judge.rs` 的 `EnvProvider` 文档 | **§0.2 #2 + §32** | as-built 不是 `EnvView` |
 | `judge.rs` 的 `judge_env_reuse_enabled`（09-25 那条结论） | **§30.1** | "T-K11 只服务 LSP 增量会话" |
 | `judge_env_vouch.rs` 头 | **§31**（§31.4 数字 · §31.2/§31.3 两个坑） | 本文**没有** §21.5/§21.6 |
-| `compile/check/mod.rs`（`closure_prefixes_for`） | **§29.1** | 三次接线失败的同一根因 |
-| `project/session.rs`（入口趟闭包前缀） | **§29.2** | 路乙修法 |
+| `compile/check/mod.rs`（`closure_prefixes_for`）· `project/session.rs`（入口趟闭包前缀） | **§29.1 / §29.2** | 三次接线失败的同一根因 · 路乙修法 |
 | `project/mod.rs`（`assemble_from_session`） | **§21.2 + §24** | 切片 1 的接线口与可见性 |
 | `project/tests.rs`（`module_key` 守卫） | **§9.1**（阶段 1a 那一行） | 1a 的判据 |
 | `session_reuse.rs` | **§20.3** | 两条判据就在这个文件里 |
@@ -1432,8 +1431,9 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 ② 全课程 `--json` 与基线**逐字节相同**；③ **反向判据**（改前缀里的依赖 ⇒ 必须重算）；
 ④ 影子档 `diff=0` —— 比"**调用方读到的结论**"、**不比报告形状**（§31.3 的教训 ✓）。
 
-⚠ **阶段 2 的阻塞与归属**：调用方 builder **只覆盖到"当前命令之前"**，而 judge 要的是
-"合成文档的前缀" ⇒ 直接借用**位置不成立** ✗（§30.2）；要么做 **K-2**，要么补「文本 ⇒ AST」。
-⚠ 内核线 `HANDOFF-kernel.md` 已登记本片为**下一片**（`aa3a6ef8` · 用户 2026-10-05 指定）。
-
-
+⚠ **阶段 2 的精确阻塞（2026-10-05 二次勘明 ✓）**：**内核侧使能件已经齐了** ✓ ——
+`with_env`（借出**真 DAG** 的 `ExportFile`）· `with_env_scope`（`(&Env, &mut EnvBuilder)`，
+**同样是零调用** ✗）· `run_pass_with`（**收调用方拥有的 builder** ✓，session 在用）；
+缺的是**所有权**：`run_pass_with(builder: EnvBuilder, …) -> (…, EnvBuilder, …)` **按值**收发，
+而 judge 在 `elab_expr` 链里只有 `&mut`（§12）⇒ 要么让 pass **借** builder，要么让判定点先**放手**（§30.2；另一条出路见 §0.2 #1）。
+**归属**：内核线已登记本片为**下一片**（`aa3a6ef8` · 用户 2026-10-05 指定）。
