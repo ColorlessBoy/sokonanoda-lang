@@ -158,8 +158,8 @@ fn inplace_judge_must_not_change_the_build_output() {
 fn stage_field(stderr: &str, key: &str) -> u64 {
     let line = stderr
         .lines()
-        .filter(|l| l.starts_with("STAGE_STATS "))
-        .next_back()
+        .rev()
+        .find(|l| l.starts_with("STAGE_STATS "))
         .unwrap_or_else(|| panic!("stderr 里没有 `STAGE_STATS ` 行：\n{stderr}"));
     let needle = format!("{key}=");
     let at = line
