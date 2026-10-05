@@ -37,18 +37,19 @@
    * **判据先红**（2026-10-05 实测 ✓ · 构建 = `20fb549d` + 工作树 `elab.rs`）：
      `docs/gaps/repro/G92-by-prefix-rerun-is-quadratic.sh` ⇒ `by_calls` 55（N=10）→ 210（N=20）
      = **3.82×**（阈值 3.0 ⇒ exit 0）；**守卫真的在跑** ✓（`gap.py check` 实测 `G-92 open script 缺口仍在`，与台账一致 ✓）。
+   * ⚠ **判据对这两条路都不敏感**（2026-10-05 同构建复测 ✓，`by_calls` **55 → 210** 三档一模一样）：
+     `SOKO_JUDGE_INPLACE=off`（就地 infer 关）· `SOKO_JUDGE_ENV_REUSE=0`（受信任前缀关）
+     ⇒ 它**只**量 `judge_pairs` 的合成编译**重 elaborate** ⇒ **光接 infer 那条 `EnvProvider` 不会让它动** ✗
+     （能不能动它，取决于「合成编译拿到活环境」那一刀 = 出路 ② ✓）。
    * **根因（已收窄 ✓）**：`judge_pairs_uncached` 合成"整份前缀 + `_soko_judge_k`"
      再跑一趟；**受信任前缀只跳内核检查、不跳 elaborate** ✗ ⇒ 前缀里那些 `by`
-     声明**又被 elaborate 一遍**。**2026-10-05 探针**（`SOKO_JUDGE_STATS=1
-     SOKO_INPLACE_WHY=1` · 同一构建 · N=20 夹具）：`JUDGE_STATS calls=20 pairs=20`
-     （20 趟合成判定）· `JUDGE_PREFIX runs=2`（**infer 那条路只 2 趟** ⇒ 放大不在它
-     身上 ✓）· `passes=23`（线性 ✓）而 **`by_calls=210` = 20 + Σ(1..19)** ✗
-     —— 每个 `by_calls` 都是一次 `by` 引擎调用，**逐趟把前面所有 `by` 再跑一遍**。
+     声明**又被 elaborate 一遍**。**2026-10-05 探针**（N=20 夹具 · 同一构建）：`JUDGE_STATS
+     calls=20 pairs=20`（20 趟合成判定）· `JUDGE_PREFIX runs=2`（infer 那条路只 2 趟 ⇒ 放大不在它身上 ✓）
+     · `passes=23`（线性 ✓）而 **`by_calls=210` = 20 + Σ(1..19)** ✗ —— 逐趟把前面所有 `by` 再跑一遍。
    * **出路（二选一，都还没做）**：① 给就地路加「**文本 ⇒ AST**」入口
      （边界 = `by.rs::level_hint_of` 的**记法形态**那一支：`infer(infer(…))` 要的是**文本**，
      而就地路只收**源 AST** ⇒ 整支回落 ✓）；② **合成编译复用调用方的环境** = §18 的 **K-2**
-     = **G-68 那条架构件**（§30.2 判过"位置不成立"：调用方的 builder 只覆盖到
-     当前命令之前）。
+     = **G-68 那条架构件**（§30.2 判过"位置不成立"：调用方的 builder 只覆盖到当前命令之前）。
    * ⚠ **真实课程不呈现它**（逐声明耗时平线 ✓）—— 但判据**不许**因此写成"已达标" ✗。
 2. **`EnvProvider` trait** —— **决策已定 = (a)** ✓（内核线 `edddbbae` · 2026-10-05）：
    **形状已按 as-built 改成 AST 形** ✓ `fn infer_type_text(&self, binder_srcs: &[(String, Expr)], operand: &Expr)`
