@@ -135,6 +135,19 @@
    是 **2026-09-29 的构建** ✓）⇒ **§9.1 ① 那条判据必须重基** ✓ ——
    别拿旧数当基线 ✗（`AGENTS.md`「探针读数必须带构建身份」正是防这个 ✓）。
    ⚠ 复现命令（一行 ✓）：`SOKO_STAGE_STATS=1 SOKO_NO_JUDGE=<空|1> SOKONANODA_CACHE_DIR=/tmp/k-base-<tag>
+   ⭐⭐ **同一行的后半段（2026-10-05 补读 ✓，先前被 `cut` 掉了 ✗）—— 闸计数器全 0** ✓✓：
+   ```
+   fallbacks=0  identity_parses=0  identity_evictions=0  probe_exhausted=0
+   sig_overflow=0  sig_arity_clamped=0  unify_rounds_exhausted=0  unify_no_progress=0
+   meta_budget_exhausted=0  meta_budget_escalated=0        （同一构建 Oct 5 09:26:36 ✓）
+   JUDGE_PREFIX runs=0  bytes=3938056                       （O(n²) 在真课程上**不呈现** ✓）
+   ```
+   ⇒ **这一行同时回答了 13:12 / 13:19 两单的悬问** ✓：甲类三处（求解预算 / 探查预算 / `MAX_TRACKED`）
+   + 乙类 4 处的**真实触发次数 = 0** ✓ —— 按值守口径「**0 次 ⇒ 现在没炸但闸仍在**（留着 + 计数 +
+   在课程上断言 0 ✓）」✓ ⇒ **剩下要做的只有"课程级断言 0"那条守卫** ✓
+   （⚠ 它属**闸普查那条线** ✓，文件是 `crates/front/tests/gate_census.rs` ✗ ⇒ **本片不碰** ✗）。
+   ⚠ 另：`judge.rs` 的键**不许**照设计 §6 加"前缀长度" ✗ —— 那会**破坏**「只改证明体不失效」✓
+   （身份**故意**忽略证明体 ⇒ 两条前缀身份同、长度不同 ✓）⇒ 那条只在**环境路生效之后**才谈 ✓。
    target/release/sokonanoda build --json courses/set-theory 2>&1 >/dev/null | grep ^STAGE_STATS` ✓。
    ⚠⚠⚠ **决策点已由设计文档定论（§0.2 #2 ✓，2026-10-05 对账 ✓）**：`EnvProvider` 是**死代码** ✗，
    **as-built 的接口不是它** ✓ —— 实际走 **`InplaceEnv`**（活 `&mut EnvBuilder` + `KnownTable`）
