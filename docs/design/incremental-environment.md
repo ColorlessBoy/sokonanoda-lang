@@ -180,10 +180,11 @@ pub(crate) struct ElabCtx<'a, 'b> {
 | **2** | **elaboration 主路径**：`elab.rs` 查常量类型不再重跑（`infer_type_text` 等入口） | 同 ①–⑥，外加 `passes` 接近 O(N) |
 | **3** | **并行下的环境复用**：只读共享 / 分片 | 重测并行扩展性，看 **4 jobs 封顶是否打开**；核秒不再随核数上升 |
 
-**阶段 1 的最小切片**（先证收益再铺开）：只改 `judge_infer`（它是大头 —— 只跳 `by` 判定
-实测只有 **3%**），`judge_pairs` 留到阶段 2。
+**阶段 1 的最小切片**（先证收益再铺开）：只改 `judge_infer`（它是大头 —— 只跳 `by` 判定实测只有 **3%**），`judge_pairs` 留到阶段 2。
 
 ## 6. 依赖文件清单（阶段 1）
+
+> ⚠ **本清单未按此落地** ✗（2026-10-05 对账）：`EnvView` / `ElabCtx.env_view` 全仓零出现 ⇒ as-built 见 **§0 + §32**；**下面的「已知坑」仍然有效** ✓（它们讲的是 `with_env` / 指针同一性 / `decl_idx` 的**机制**，与接口形状无关）。
 
 | 文件 | 改动 | 风险 |
 |---|---|---|
@@ -193,10 +194,8 @@ pub(crate) struct ElabCtx<'a, 'b> {
 | `crates/front/tests/` | 新增 `judge_env_*`：① 复用生效（pass 数下降）② **反向判据**（前缀变了必须重算）③ `--json` 逐字节对拍 | 低 |
 
 **已知坑（写在这里省一次 debug）**：
-* `EnvBuilder::with_env` 期间 builder 被 `mem::replace` 成占位 ⇒ **回调里不许再碰 builder**
-  （`builder.rs:112` 的注释）。若判定路径需要递归用 builder ⇒ 必须先取**检查点**再出回调。
-* `NatLit` **按指针比较**（`conv.rs:169`）⇒ 复用的环境必须与当前 arena **同一个**
-  （切片 1a 已把 arena 提到调用方 ✓，但**跨 pass 复用要重新核对**）。
+* `EnvBuilder::with_env` 期间 builder 被 `mem::replace` 成占位 ⇒ **回调里不许再碰 builder**（`builder.rs:112` 的注释）。若判定路径需要递归用 builder ⇒ 必须先取**检查点**再出回调。
+* `NatLit` **按指针比较**（`conv.rs:169`）⇒ 复用的环境必须与当前 arena **同一个**（切片 1a 已把 arena 提到调用方 ✓，但**跨 pass 复用要重新核对**）。
 * `decl_idx` 与**插入顺序**绑定（`builder.rs:338`）⇒ 复用必须是**同一张 map 实例**，
   不许"重建一张等价表"。
 
