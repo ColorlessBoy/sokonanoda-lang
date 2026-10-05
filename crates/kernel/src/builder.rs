@@ -259,6 +259,15 @@ impl<'a> EnvBuilder<'a> {
         self.alloc_level(Level::Succ(level, hash))
     }
 
+    /// **R1b（2026-10-05）**：构造一个**层元变量** ✓ —— **对齐 Lean `mkFreshLevelMVar`** 的产物形状 ✓
+    /// （`Lean/Level.lean:94` `| mvar : LMVarId → Level` ✓；hash 用 Lean 的 **2237** ✓）。
+    ///
+    /// ⚠ **加法**：本片**不接线** ✗ ⇒ **零行为变化** ✓（R1c 才在出口把它转成 `param` ✓）。
+    pub fn level_mvar(&mut self, id: u64) -> LevelPtr<'a> {
+        let hash = crate::hash64!(crate::level::MVAR_HASH, id);
+        self.alloc_level(Level::MVar(id, hash))
+    }
+
     pub fn level_param(&mut self, name: NamePtr<'a>) -> LevelPtr<'a> {
         let hash = crate::hash64!(PARAM_HASH, name);
         self.alloc_level(Level::Param(name, hash))

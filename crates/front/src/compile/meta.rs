@@ -65,6 +65,19 @@ pub(crate) fn is_level_name(name: &str) -> bool {
     name.starts_with(LEVEL_PREFIX)
 }
 
+/// **R1b（2026-10-05）**：分配一个 **fresh 层元变量 id** ✓ ——
+/// **对齐 Lean `mkFreshLevelMVar`**（`Meta/LevelDefEq.lean` 用它给每个宇宙位一个 mvar ✓）。
+///
+/// ⚠ **进程内单调递增** ✓（Lean 的 `LMVarId` 也是全局计数器 ✓）；
+/// ⚠ **本片不接线** ✗ ⇒ **零行为变化** ✓。
+#[allow(dead_code)] // R1c（出口 levelMVarToParam）接线
+pub(crate) fn fresh_level_mvar_id() -> u64 {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    NEXT.fetch_add(1, Ordering::Relaxed)
+}
+
+
 /// 层元变量的 id（不是层元变量名 ⇒ `None`）。
 #[allow(dead_code)] // U1 第 2 片会用
 pub(crate) fn level_id_of(name: &str) -> Option<u32> {
@@ -1006,6 +1019,19 @@ fn tail_aligned_eq(a: &Expr, b: &Expr) -> bool {
     }
     let n = aa.len().min(ab.len());
     (0..n).all(|k| tail_aligned_eq(aa[aa.len() - 1 - k], ab[ab.len() - 1 - k]))
+}
+
+#[cfg(test)]
+mod r1b_level_mvar_tests {
+    use super::*;
+
+    /// **R1b** ✓：id **单调递增**（对齐 Lean 的 `LMVarId` 全局计数器 ✓）。
+    #[test]
+    fn fresh_level_mvar_ids_are_monotonic() {
+        let a = fresh_level_mvar_id();
+        let b = fresh_level_mvar_id();
+        assert!(b > a, "fresh id 必须单调递增：{a} ⇒ {b}");
+    }
 }
 
 #[cfg(test)]
