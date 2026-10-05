@@ -114,6 +114,18 @@
    **按 `docs/design/incremental-environment.md` 的阶段划分落地** ✓：**每阶段独立 commit + 独立真绿 +
    判据不达即回退** ✗（文档会话 `b3d09687` 只碰文档与引用 ✓ ⇒ **本片只动内核代码** ✓，两边不撞文件 ✓）。
    ⚠ **前置** ✓：当前片 B2 收口后开工 ✓（用户原话「当前切片收口后，下一片 = EnvProvider 接线」✓）。
+   ⚠⚠ **起点更正（2026-10-05 实测 ✓，别按错前提开工 ✗）**：用户那句「全仓零实现零接线」✓
+   只对 **`EnvProvider` 这个 trait** 成立 ✓（`grep -rn 'impl EnvProvider' crates/` = 0 ✓）；
+   **就地环境本身早就实现并接线了** ✓✓ —— `InplaceEnv` 在 `crates/front/src/compile/elab.rs`
+   出现 **82 次** ✓、`infer_type_text_inplace` **15 次** ✓（走**调用点** ✓，**不进** `judge_infer` ✓，
+   与设计文档 §2 的 as-built 更正一字不差 ✓；`EnvView` 全仓零出现 ✓ 同 §2 ✓）。
+   ⇒ **本片真正要做的** = 把那条能力**接进判定侧** ✓（`judge_infer` 仍合成整段前缀 ✗）。
+   ⚠ **文件边界（并发写者！）**：`elab.rs` 现由**另一条线**在改 ✗（`git status` 见 5 个在飞文件 ✓）
+   ⇒ 本片**只动 `judge.rs` + `walk.rs`** ✓（两者都不在对方的清单里 ✓）；`EnvProvider` 的
+   **实现方 = `Walk`** ✓（`walk.rs` ✓，它持有 `EnvBuilder` ✓），**不必改 `elab.rs`** ✓。
+   **最小切片**（设计 §5 ✓）：只改 `judge_infer`（大头 ✓；`judge_pairs` 留阶段 2 ✓）。
+   **判据（§9.1 的 1c ✓）**：① judge 合成 pass **253513 → 接近 2647 量级** ② 真课程墙钟
+   ③ `unit12-solution` 单文件墙钟 ④ 最贵单条 4680ms → ? ⑤ **`--json` 逐字节不变** ⑥ 反向判据（§3 ✓）。
 
 ## 4. 每条要带的判据（判红 / 判绿 ✓）
 
