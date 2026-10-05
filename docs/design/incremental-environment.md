@@ -1288,16 +1288,10 @@ session 的入口趟 `prefix_src` **不含库层声明** ⇒ 入口里任何"问
 
 ### 30.4 真数字（全课程 · release · 冷缓存 · 1 job）
 
-| 读数 | 值 |
-|---|---|
-| `passes` / `doc_passes` | **1157** / 26 |
-| `judge_ms` | **117214 ms**（= `pass_total_ms` 285348 的 **41%**） |
-| **`JUDGE_CALL`（`by` 路径）** | **265 趟 · 115935 ms** ← **真正的大头** |
-| `JUDGE_INFER calls` | 71126 次，但只 **38530 ms**（均 541 µs，命中率 99%） |
-| `JUDGE_PREFIX runs/bytes` | 791 / 43.3 MB |
-
-⇒ ① **`by` 那 265 趟 = `judge_ms` 的 99%**（P1-b 已把 `judge_infer` 侧吃干净）；
-② **arena 不是瓶颈**（每趟重编 38 KB 前缀）；③ 那 265 趟 **key 全不重复**
+**改前**（`passes`/`doc_passes` = 1157/26 · `judge_ms` = **117214**（`pass_total_ms` 285348 的 41%）·
+`JUDGE_CALL`（`by` 路径）= **265 趟 · 115935 ms** ← 真正的大头 · `JUDGE_INFER` 71126 次但只 38530 ms
+（命中率 99%）· `JUDGE_PREFIX runs/bytes` = 791 / 43.3 MB）：⇒ ① **`by` 那 265 趟 = `judge_ms` 的 99%**
+（P1-b 已把 `judge_infer` 侧吃干净）② **arena 不是瓶颈**（每趟重编 38 KB 前缀）③ 那 265 趟 **key 全不重复**
 ⇒ **加缓存没用** ✗ —— 要做的是"**同一份前缀别每次从源码重编**"。
 
 ### 30.5 真刀口：把 `TRUSTED_PREFIX` 接到**主编译 pass**
@@ -1436,3 +1430,9 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 缺的是**所有权**：`run_pass_with(builder: EnvBuilder, …) -> (…, EnvBuilder, …)` **按值**收发，
 而 judge 在 `elab_expr` 链里只有 `&mut`（§12）⇒ 要么让 pass **借** builder，要么让判定点先**放手**（§30.2；另一条出路见 §0.2 #1）。
 **归属**：内核线已登记本片为**下一片**（`aa3a6ef8` · 用户 2026-10-05 指定）。
+
+### 32.4 阶段 2 的两条形状（**勘到根，都还没做** ✗）
+**根因确认** ✓（读码）：合成编译走 `run_incremental` → `run_pass`，而 `run_pass` **新建 arena + 新建 `EnvBuilder`** ⇒ 前缀**必须**重 elaborate（= `by_calls` 的 Σ(1..N)）。⇒ 两条形状：
+**(i) pass 借 builder**（`Walk.builder` 改 `&mut` ⇒ `run_pass_with` 加**借用变体**；按值收发是 `session` 的依赖，不能删 ✗）；
+**(ii) 内核加 `EnvBuilder::fork()`**（**同 arena + 克隆 intern 表** —— arena 是 interner 的**参数**、不归 DAG 所有 ⇒ 既有指针同一性保住 ✓；⚠ 但 fork 里新 intern 的字面量会在共享 arena 造出 live 表不认识的节点 ⇒ live 之后 intern 同一个值会**造第二份** ✗（`NatLit` 按指针比较 ⇒ 假失败，与 `snapshot()` 那条 ⚠ 同族）⇒ 还要 `absorb()` 合并口，**面不比 (i) 小**）。
+⇒ **两条都是架构件** ✗：先出一轮设计 + 一条**指针同一性单测**，判据照 §32.3（**先建先红** ✓）。
