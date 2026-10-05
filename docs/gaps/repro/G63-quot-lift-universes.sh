@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
-# G-63 自断言复现：`Quot.lift` 的**显式宇宙实参对不上内核签名**。
+# G-63 自断言复现：**`#check` 给用户的宇宙层建议是错的**（`Quot.lift` 渲成 `{A r B : Prop}`）。
 #
-# 退出码约定（docs/gaps/README.md）：
-#   0 = 缺口仍在（`#check` 建议的 `.{1, 0}` 必须被拒，且至少一个组合必须能过）
-#   1 = 行为变了（`.{1, 0}` 也能过了 ⇒ 回来关账）
+# ⚠ **2026-10-05 第 97 棒改语义（值守裁决 ✓）**：原先的 `1 = .{1, 0} 也能过了` ✗ 是**错的** ——
+# `.{1, 0}` **本来就该被拒**（`B := Type` ⇒ `Type : Sort 2` ⇒ `v` 该是 **2** ✓）
+# ⇒ 那条约定与缺口的**真实语义相反** ✗（pp 修得再对也不会 exit 1 ✗）。
+# **新约定（缺口的真实语义 = 渲染建议修好）** ✓：
+#   1 = **修好了**：① `#check Quot.lift` 输出含**层参数形式**（`Sort u` / `Sort v` ✓）
+#       ② `.{1, 0}` **仍被拒** ✓ ③ 对照组 `.{1, 2}` **仍过** ✓ —— 三条**同时**成立 ✓
+#   0 = 缺口仍在（① 不成立 ⇒ 建议仍是 `Prop` ✗）
 #   2 = 环境不满足
+#
+# 退出码约定（docs/gaps/README.md）：0 = 缺口仍在 · 1 = 行为变了（修好了）· 2 = 环境不满足 ✓
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -65,5 +71,15 @@ if ! printf '%s' "$c_out" | grep -q '"name":"liftToType","type":"decl.checked"';
   exit 1
 fi
 
-echo 'G-63：缺口仍在（`#check` 的 `.{1, 0}` 判红 ✗；`Quot.lift` 本体可用 ✓ —— 是宇宙实参难对准）'
+# ④ **新语义的核心断言**（第 97 棒 ✓）：`#check Quot.lift` 必须渲染出**层参数形式** ✓
+#    （修前是 `forall {A r B : Prop} …` ✗ —— 层全 0 ⇒ 给用户的建议错 ✓）。
+cat > "$WORK/d.sokonanoda" <<'EOF'
+#check Quot.lift
+EOF
+d_out="$("$BIN" --no-project "$WORK/d.sokonanoda" 2>&1)"
+if printf '%s' "$d_out" | grep -q 'Sort u' && printf '%s' "$d_out" | grep -q 'Sort v'; then
+  echo 'G-63：**已修** ✓（`#check Quot.lift` 渲染出层参数 `Sort u`/`Sort v` ✓；`.{1, 0}` 仍被拒 ✓；对照组 `.{1, 2}` 仍过 ✓）'
+  exit 1
+fi
+echo 'G-63：缺口仍在（`#check` 渲染成 `Prop` ✗ —— 给用户的层建议错 ✓；`.{1, 0}` 判红 ✓；对照组 `.{1, 2}` 过 ✓）'
 exit 0
