@@ -193,6 +193,17 @@
    ⇒ **下一棒的正解方向** ✓（设计 §2 已给 ✓）：**闭包式 API**（`with_project_session` ✓）——
    让判定在**借出窗口内**发生 ✓，而不是把 `&mut` 塞进 `&self` 的 trait 里 ✗。
    ⚠ **不许**再把「等 `elab.rs` 收口」当理由 ✗（那条已证伪 ✓）。
+   ❌❌ **我先前定的「trait 保持 `&self` + 实现方用 `RefCell` 内部可变性」也走不通** ✗✗
+   （2026-10-05 读到证据后更正 ✓）：`infer_type_text_inplace`（`elab.rs:3016` ✓）**真的要改 builder** ✓
+   —— `elab_expr(env.builder, …)` ✓ · `env.builder.mk_lambda(…)` ✓ · `env.builder.with_env(|ef| …)` ✓
+   ⇒ `&mut` 是**真需求** ✗，不是签名保守 ✓。而判定调用发生在**调用方已持有 `&mut builder`** 的
+   深处 ✓ ⇒ **那一刻塞不进任何 `RefCell`** ✗ ⇒ `&self` + 内部可变性**结构上不可能** ✗。
+   ✅ **正解 = 重借链** ✓（`InplaceEnv::reborrow` ✓ 现成 ✓，`elab.rs:2851` 的注释就是为循环重借写的 ✓）：
+   把 `&mut InplaceEnv` **顺着调用链透传**到判定点 ✓ —— 这就是设计 §6 说的
+   「`ElabCtx` 加 `env_view` + 各处透传」✓（**链宽** ✓，但每处都只是加一个参数 ✓）。
+   ⚠ 连带：`EnvProvider` 这个 **`&self` 的 trait 形状本身**要重新设计 ✗ ——
+   要么改成「在借出窗口内回调」的**闭包式**接口 ✓（设计 §2 的 `with_project_session` 同款 ✓），
+   要么干脆**不用 trait**、把判定点直接放进 walk 的借出窗口 ✓。**先定这个再写代码** ✓。
    ⚠ **真实阻塞（本轮实测 ✓）**：as-built 的机器在 **`crates/front/src/compile/elab.rs`** ✓
    —— 而它**正由另一条线在改** ✗（`git status` 5 个在飞文件 ✓）⇒ **本片开工前必须等它收口** ✗
    （或与它约定：`elab.rs` 归它、`judge.rs`/`walk.rs` 归本片 ✓）。
