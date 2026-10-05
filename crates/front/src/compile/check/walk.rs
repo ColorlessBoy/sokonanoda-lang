@@ -125,9 +125,17 @@ pub(super) struct Walk<'arena: 'shadow, 'shadow> {
     /// （主声明 `try_check_declar`＝`ByName` 形式、归纳块逐成员检查），
     /// 失败的不进环境、记进 [`Walk::shadow_failed`]。
     ///
-    /// 为什么不直接用 `builder`：`builder` 最终要被 `kernel_phase` 的
-    /// `finish()` **消费**，而且 walk 阶段**不往里 add** 文件声明 ✗
-    /// （它只装 prelude + intern 名字）⇒ judge 拿它查不到前缀 ✓。
+    /// 为什么不直接用 `builder`：**两者语义不同** ✗ —— `builder` 是**活环境**
+    /// （walk **无条件** `add_declar`，到当前命令为止的声明**尚未过内核检查**；
+    /// P1-a 的就地判定 `InplaceEnv` 用的正是它 ✓），而 `shadow` 只收**已通过内核检查**
+    /// 的前缀（逐条镜像 `kernel_phase` 的检查序列 ⇒ T-D3 的对照数据）⇒ 混用会改判定 ✗。
+    ///
+    /// ⚠⚠ **旧注释（2026-10-05 更正 ✗→✓）**：原文写「`builder` 最终要被 `kernel_phase`
+    /// 的 `finish()` **消费**，而且 walk 阶段**不往里 add** 文件声明 ✗（它只装 prelude +
+    /// intern 名字）」—— **两句都不成立** ✗：`kernel_phase` 收的是 `&mut EnvBuilder`
+    /// 且只用 `with_env` 借出（**不消费** ✓），walk 也确实往里 add（**9 处**，
+    /// 其中 8 处无条件 ✓）。这正是设计 `docs/design/incremental-environment.md` §8 的
+    /// 那个误读（**§8.1 已更正 ✓**）⇒ **别再照旧注释推断所有权** ✗。
     pub(super) shadow: Option<EnvBuilder<'shadow>>,
     /// 影子环境已重放到 `ops` 的哪个下标。
     pub(super) shadow_upto: usize,
@@ -251,9 +259,15 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
     /// **同时**落到真 `builder`（而不只落到 `self.shadow`）✓。
     ///
     /// 为什么可以这么做（round 259 读传递链确认 ✓）：walk 运行期间**持有** `builder`
-    /// —— `check/mod.rs:857` 把它交给 walk ✓、`:920` 取回 ✓、
-    /// `kernel_phase.rs:192` 才 `finish()` 消费 ✓ ⇒ **没有任何结构性障碍** ✓
-    /// （我 round 258 曾误判为"要动所有权设计" ✗，那是照注释推断的 ✓）。
+    /// —— `run_pass_with` 把 builder **按值**交给 walk、跑完再**交回**调用方 ✓
+    /// （`session.rs` 因此能跨入口复用**同一套 DAG** ✓）；`kernel_phase` 收的是
+    /// `&mut EnvBuilder` 且只用 `with_env` 借出 ⇒ **不消费** ✓
+    /// ⇒ **没有任何结构性障碍** ✓（round 258 曾误判为"要动所有权设计" ✗）。
+    /// ⚠ **2026-10-05 更正** ✗→✓：原文这里写「`kernel_phase` 才 `finish()` **消费**」✗
+    /// —— 编译路径上**没有** `EnvBuilder::finish()`（`crates/front/src/` 里唯一一处
+    /// `.finish()` 是 `judge.rs` 的 `Hasher::finish`；`EnvBuilder::finish` 只出现在
+    /// kernel 测试里）⇒ 别再照它推断所有权；真正的形状见设计
+    /// `docs/design/incremental-environment.md` §32.3 ✓。
     ///
     /// 为什么**同时**写两边而不是只写真 `builder` ✓：`self.shadow` 是 T-D3 的
     /// **对照实验**（影子与内核阶段的一致性 ✓，`SOKO_SHADOW_STRICT` 可复现 ✓）
