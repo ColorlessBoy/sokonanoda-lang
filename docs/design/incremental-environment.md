@@ -424,58 +424,19 @@ pub(crate) struct ElabCtx<'a, 'b> {
 
 ## 15. 下一步的**精确起手**（可复制执行，无需再勘明）
 
-> ⚠ **本节整条路线也已作废** ✗（`SnapshotProvider` 随 §14 的结论一起被否 —— §17/§19.1 ✗）；
-> **留档**是为了"别再走" ✓。**现状路线**见 §0.2 #2（重借链）与 §32（as-built + 两条形状）✓。
-
-### 15.1 `SnapshotProvider`（`EnvProvider` 的实现，放在 `judge.rs` 或 `compile/check/walk.rs`）
-
-```rust
-/// 用**拥有的一份环境快照**回答"这个项什么类型"（`EnvProvider` 的实现）。
-pub(crate) struct SnapshotProvider<'a> {
-    snapshot: sokonanoda::util::ExportFile<'a>,
-}
-
-impl<'a> EnvProvider for SnapshotProvider<'a> {
-    fn infer_type_text(&self, binders: &[GoalBinderSpec], term: &str) -> Option<String> {
-        // ① 源文本 → Expr（与今天合成 `#check` 时**同一个**回读入口，别另造一套）
-        let text = crate::proof::render_closed_lambda(binders, term); // ← 复用现有的合成形状
-        let expr = crate::proof::parse_expr_text(&text).ok()?;
-        // ② 在快照上**就地**求类型（`with_tc` 收 `&self` ⇒ 可多处同时查 ✓）
-        //    ⚠ 这里需要一个"把源 `Expr` elaborate 成 `ExprPtr`"的入口 —— 见 §15.2
-        let ptr = elaborate_against_snapshot(&self.snapshot, &expr)?;
-        self.snapshot
-            .with_tc(sokonanoda::env::EnvLimit::PpUnlimited, |tc| {
-                let ty = tc.infer_closed_type(ptr);
-                tc.with_pp(|pp| pp.pp_expr(ty))
-            })
-            .into()
-    }
-}
-```
+> ⚠ **本节原来那条 `SnapshotProvider` 已作废** ✗（随 §14 的结论一起被否 —— §17/§19.1 ✗）。
+> ⚠⚠ **但下面 §15.2 的结论活下来了、而且就是 as-built** ✓ —— 它判"**把判定入口从 `&str` 改成
+> 已经 elaborate 好的 `ExprPtr`，让调用点自己 elaborate**"，即 **§32.2 的"就地判定在调用点做、
+> 不进 `judge_infer`"** ✓（= **P1-a/P1-b 已落地** ✓）。那条 `SnapshotProvider` 代码留档**只为"别再走"** ✗。
 
 ### 15.2 唯一未勘明的一环：**"源 `Expr` → `ExprPtr`"用哪个入口**
 
-`judge_infer` 今天靠"合成 `#check` 文件 → 整条流水线"完成这一步（所以慢）。
-就地查表需要一个**独立的** elaborate 入口，候选：
+> **已解决** ✓（as-built）：走**第 2 条** —— 调用点（`elab_expr` 内部，**手里本来就有
+> `&mut builder` 与 `Expr`**）自己 elaborate，再把 `&mut InplaceEnv` + `Expr` 交给就地判定 ✓
+> ⇒ **借用冲突自然消失、内核零改动** ✓。
+> ⚠ **第 1 条（惰性快照 + 复用 walk 的 builder）别再走** ✗：`elab_expr` 此刻**正持有**
+> `&mut builder` ⇒ 跨借不成立（§12 ✓）。**原文（含 `SnapshotProvider` 代码 + 两候选表）⇒ `git log --all -- …`** ✓。
 
-| 候选 | 位置 | 状态 |
-|---|---|---|
-| `elab_expr(builder, expr, scope, univ, known, hovers, expected, expected_src, ctx)` | `elab.rs:2913` | **要 `&mut EnvBuilder`** ⇒ 与 walk 的 `&mut builder` 冲突（§12）⇒ 需**从快照新建一个 builder** |
-| 从快照建 builder | `EnvBuilder::new(arena, config)` + 把 `snapshot.declars` 灌回去 | ⚠ `restore_declars` 收的是 `DeclarMap`（`pub(crate)`）⇒ **这条路要授权** ✗ |
-
-⇒ **§15.2 是唯一还缺的一环**。两条收口方式：
-
-1. **惰性快照 + 复用 walk 的 builder**：在 `judge_infer` 未命中时**临时**把 builder 借出来
-   （用 `hide_declars`/`restore_declars` 两个**方法**而非闭包 —— `walk.rs:647` 的既有注释
-   说明过为什么），elaborate 完再还回去。**但** `elab_expr` 此刻正持有 `&mut builder` ✗
-   ⇒ 除非把 `judge_infer` 的调用点改成"先把 `&mut builder` 放回 `self` 再调"。
-2. **把 `judge_infer` 的入参从 `&str` 改成"已经 elaborate 好的 `ExprPtr`"**：
-   调用点（10 处）本来就在 `elab_expr` 内部、**手里已经有 `&mut builder` 与 `Expr`**
-   ⇒ 让它**自己** elaborate 出 `ExprPtr` 再交给判定 ⇒ **不需要跨借** ✓。
-   **这是最小、最干净的一条** —— 代价是改 10 个调用点（它们都在 `elab.rs` 内）。
-
-**⇒ 结论：走 §15.2 的第 2 条**。它把"查环境"变成"查已经 elaborate 好的指针"，
-**借用冲突自然消失**，且**不需要内核改动** ✓。
 
 ## 16. 阶段 1 的**最终卡点定位**（2026-09-29，勘到底）
 
