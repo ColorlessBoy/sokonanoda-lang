@@ -1090,8 +1090,8 @@ pub(crate) struct InplaceEnv<'e, 'a> {
 }
 pub(crate) enum InplaceFail { ElabBinder, ElabOperand, Kernel }
 /// 在**活环境**上求类型文本（三步与慢路逐字对齐：造项 → elaborate → 求类型）。
-pub(crate) fn infer_type_text_inplace(env, ctx, binder_srcs: &[(String, Expr)], operand: &Expr, n: usize)
-    -> Result<String, InplaceFail>;
+pub(crate) fn infer_type_text_inplace(env, ctx, binder_srcs: &[(String, Expr)], operand: &Expr, binder_count: usize, univ: Option<&UnivMap<'a>>)
+    -> Result<String, InplaceFail>;   // 末两个：剥层数 · **真宇宙表**（`0762e27e` 加的 ✓）
 /// `judge_render_type` 的就地兄弟（差别在**项层面剥 binder** 再 pp）。
 pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 ```
