@@ -1396,6 +1396,11 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 ② 全课程 `--json` 与基线**逐字节相同**；③ **反向判据**（改前缀里的依赖 ⇒ 必须重算）；
 ④ 影子档 `diff=0` —— 比"**调用方读到的结论**"、**不比报告形状**（§31.3 的教训 ✓）。
 
+**验收命令（照抄 ✓，2026-10-05 加）**：① `bash docs/gaps/repro/G92-by-prefix-rerun-is-quadratic.sh`
+⇒ 期望 **exit 1**（比值 < 3.0；**今天 exit 0 = 缺口仍在** ✓）· ② `scripts/kernel-diff.sh --fast <改前> <改后>`
+⇒ **0 差异** ✓（或同一二进制两态开关对拍）· ③ 反向判据（**待建** ✗：改前缀里某条依赖 ⇒ 判定必须跟着变）·
+④ 影子档（**待建** ✗：两条路都跑，比"调用方读到的结论"✓）。⚠ 落地后 **台账 G-92 要同步改 `fixed`**（别人的账 ✓）。
+
 ⚠ **阶段 2 的精确阻塞（2026-10-05 二次勘明 ✓）**：**内核侧使能件已经齐了** ✓ ——
 `with_env`（借出**真 DAG** 的 `ExportFile`）· `with_env_scope`（`(&Env, &mut EnvBuilder)`，
 **同样是零调用** ✗）· `run_pass_with`（**收调用方拥有的 builder** ✓，session 在用）；
