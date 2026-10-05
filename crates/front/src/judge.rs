@@ -2104,6 +2104,79 @@ pub fn judge_render_type_explicit(
 
 /// 同 [`judge_infer`]，但把 `extra_prefix`（闭包上下文）拼在文档前缀之前。
 #[track_caller]
+/// **带环境提供方的判定入口** ✓（本片第 2 步 ✓，设计 `incremental-environment.md` §2/§5 ✓）。
+///
+/// **契约（三条，缺一不算成立 ✓）**：
+/// 1. `provider = None` ⇒ **逐字节回退**到今天的行为 ✓（合成前缀 + 重跑 ✓）
+///    —— 这既是**回退机制**，也是**判据之一** ✓；
+/// 2. `provider = Some(p)` 且 `p` 答得上 ⇒ **直接返回它给的类型文本** ✓（**不再合成前缀** ✓）；
+/// 3. `p` 答不上（`None`）或**输入解析不出来** ⇒ 同样回退 ✓（**不许猜** ✗）。
+///
+/// ⚠ **为什么是"加法式"新函数** ✗→✓：`judge_infer_with` 的调用点很多 ✓ ⇒ 直接改签名会让
+/// 整条链都要动 ✗；新函数让**接线**与**实现 provider** 可以**各自独立落地** ✓
+/// （本步 = 只把入口建好 + 用假 provider 钉住形状 ✓，真 provider 在 `elab.rs` 那条线收口后接 ✓）。
+///
+/// ⚠ **文本 ⇒ AST 是本函数自己做的** ✓（设计 §0.2 #1 的「出路 ①」✓）：复用现成的
+/// `synthesized_check_term`（它已经把 `binders` 合成 `fun (b1 : T1) => <term>` ✓）
+/// ⇒ 解析一次、拆出 `(名字, 源类型)` 对 + 操作数 ✓。
+pub fn judge_infer_with_env(
+    provider: Option<&dyn EnvProvider>,
+    extra_prefix: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> Result<String, Judgement> {
+    if let Some(provider) = provider {
+        if let Some((binder_srcs, operand)) = provider_inputs(binders, term) {
+            if let Some(text) = provider.infer_type_text(&binder_srcs, &operand) {
+                return Ok(text);
+            }
+        }
+    }
+    judge_infer_with(extra_prefix, prefix_src, options, binders, term)
+}
+
+/// 把 `binders` + `term` 变成 provider 要的**源 AST 形** ✓（`(名字, 源类型)` 对 + 操作数 ✓）。
+///
+/// 复用 `synthesized_check_term` 的合成形状（`fun (b1 : T1) … => <term>` ✓）⇒ 解析后拆开 ✓；
+/// **任一步失败就 `None`** ✓（调用方据此回退 ✓，**不许猜** ✗）。
+fn provider_inputs(binders: &[GoalBinderSpec], term: &str) -> Option<(Vec<(String, Expr)>, Expr)> {
+    let query = synthesized_check_term(binders, term).ok()?;
+    // ⚠ 合成的是**裸项**（`fun (b1 : T1) … => <term>` ✓）⇒ 要包成 `#check` 才**解析得成文件** ✓
+    // （`crate::parse` 收的是文件 ✓；这一步失败就 `None` ⇒ 回退 ✓）。
+    let file = crate::parse(&format!("#check {query}\n")).ok()?;
+    let expr = file.commands.iter().find_map(|command| match command {
+        Command::Check { expr, .. } => Some(expr),
+        _ => None,
+    })?;
+    let mut binder_srcs = Vec::with_capacity(binders.len());
+    let operand = match expr {
+        // ⚠ **合成的是 λ 不是 ∀** ✗→✓（实测 ✓）：`synthesized_check_term` 给的是
+        // `fun (b1 : T1) => <term>` ✓ ⇒ 解析出来是 **`Expr::Lambda`** ✓；写 `Forall`
+        // 会让这个分支**永不命中** ⇒ `binder_srcs` 恒空 ✗ —— 判据
+        // `env_provider_is_consulted_and_none_falls_back_byte_for_byte` 第一次跑就抓到了 ✓
+        // （这正是"先建判据"的价值 ✓）。
+        Expr::Lambda {
+            binders: bs, body, ..
+        } => {
+            // **无类型 binder 直接跳过** ✓ —— 与 as-built 的 `judge_binder_srcs()`
+            // （`elab.rs:577` ✓ 的 `.filter_map(... src.as_ref().map(...))` ✓）**同一口径** ✓。
+            for binder in bs {
+                if let Some(ty) = &binder.ty {
+                    binder_srcs.push((binder.name.clone(), (**ty).clone()));
+                }
+            }
+            // ⚠ 必须写 **`Expr::clone(body)`** ✗→✓：`(*body).clone()` 会被**自动解引用**解析成
+            // `Box::clone` ⇒ 类型仍是 `Box<Expr>` ✗（实测卡了一轮 ✓）；显式写 `Expr::clone`
+            // 让 `&Box<Expr>` 走 **deref coercion** 变成 `&Expr` ✓。
+            Expr::clone(body)
+        }
+        other => other.clone(),
+    };
+    Some((binder_srcs, operand))
+}
+
 pub fn judge_infer_with(
     extra_prefix: &str,
     prefix_src: &str,
@@ -3065,7 +3138,60 @@ mod tests {
     use crate::compile::{check_document, DeclState, DeclStatus, PreludeMode};
     use crate::parse;
 
-    /// **判据 ③（值守 2026-10-04 派单 ✓）：大前缀不许退回原文** ✗。
+    /// **判据：`EnvProvider` 入口的三条契约** ✓（本片第 2 步 ✓，设计 §2/§5 ✓）。
+    ///
+    /// ① `None` ⇒ **逐字节回退**今天的行为 ✓（回退机制兼判据 ✓）；
+    /// ② `Some(p)` 且 `p` 答得上 ⇒ **用它的答案** ✓、**不再合成前缀** ✓；
+    /// ③ `p` 收到的是**解析后的 AST**（`(名字, 源类型)` 对 + 操作数 ✓），**不是文本** ✗
+    ///    —— 这是 as-built（`infer_type_text_inplace`）要的形状 ✓。
+    ///
+    /// ⚠ 夹具用 **`Cell` + `&self`** ✓ —— 顺带证明本片定下的**借用形态**
+    /// （trait 保持 `&self` ✓、可变性由实现方用内部可变性收着 ✓）**真的能实现** ✓。
+    #[test]
+    fn env_provider_is_consulted_and_none_falls_back_byte_for_byte() {
+        struct Fake(std::cell::Cell<usize>);
+        impl EnvProvider for Fake {
+            fn infer_type_text(
+                &self,
+                binder_srcs: &[(String, Expr)],
+                _operand: &Expr,
+            ) -> Option<String> {
+                self.0.set(self.0.get() + 1);
+                assert_eq!(
+                    binder_srcs.len(),
+                    1,
+                    "binder 的「名字 + 源类型」对必须传进来 ✓"
+                );
+                assert_eq!(binder_srcs[0].0, "h", "binder 名字要对 ✓");
+                Some("PROVIDER-ANSWER".to_string())
+            }
+        }
+        let prefix = "axiom P : Prop\n";
+        let binders = vec![GoalBinderSpec {
+            name: "h".into(),
+            ty: Some("P".into()),
+        }];
+        let options = CompileOptions::default();
+
+        let fake = Fake(std::cell::Cell::new(0));
+        let got = judge_infer_with_env(Some(&fake), "", prefix, &options, &binders, "h");
+        assert_eq!(
+            got.ok().as_deref(),
+            Some("PROVIDER-ANSWER"),
+            "provider 答得上就必须用它的答案 ✓（否则接线等于没接 ✗）"
+        );
+        assert_eq!(fake.0.get(), 1, "provider 必须被问到**恰好一次** ✓");
+
+        let with_none = judge_infer_with_env(None, "", prefix, &options, &binders, "h");
+        let direct = judge_infer_with("", prefix, &options, &binders, "h");
+        assert_eq!(
+            format!("{with_none:?}"),
+            format!("{direct:?}"),
+            "`None` ⇒ 必须**逐字节回退**今天的行为 ✓（这是回退判据 ✓）"
+        );
+    }
+
+    /// **判据：大前缀不许退回原文** ✗（判据 ③，值守 2026-10-04 派单 ✓）。
     ///
     /// 背景 ✗：我先前为了修一处冷开回归，在 `canonical_prefix_cached` 里加了一道
     /// **尺寸闸**（`PARSE_LIMIT = 64 KB` ⇒ 超过就 `return judge_cache_key(&[src])`）✗
