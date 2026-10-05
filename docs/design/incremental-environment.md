@@ -402,93 +402,30 @@ pub(crate) struct ElabCtx<'a, 'b> {
 
 ## 13. 阶段 1 步 2 的**授权请求**（精确到一行 API）
 
-§12.3 说"镜像变体最小"。**把镜像路走到底后确认：它需要内核加一个访问器** —— 精确到：
-
-### 13.1 为什么前端**造不出**那个镜像（逐条实测）
-
-| 需要 | 现状 | 结论 |
-|---|---|---|
-| 从 builder 拿 `declars` **的引用** | `EnvBuilder` 只有 `hide_declars(&mut self) -> DeclarMap`（**挪走**）与 `restore_declars` | ✗ 没有"借出"的口子 |
-| 同上（另一条路） | `snapshot(&self) -> ExportFile` ⇒ `pub declars` 可读，但 `ExportFile` 是**拥有**的 ⇒ `file.declars` 只活在闭包/局部里 | ✗ 引用出不来 |
-| 拿 `notations` 的引用 | 同上（`ExportFile.notations` 是 `pub` 字段，但 `ExportFile` 拥有它） | ✗ 同上 |
-| `Env::new(&DeclarMap, &NotationMap, EnvLimit)` | **是 `pub`** ✓ —— 但 `DeclarMap` 是 `pub(crate) type`（`env.rs:252`） | ✗ **类型不可命名** |
-| `clone()` 一份当镜像 | `DeclarMap: Clone` ✓ | ✗ **热路径**：每条声明后 clone 整张表 ⇒ 比今天更慢 |
-
-⇒ **前端造不出"活的、不 clone 的"镜像** ✗。
-
-### 13.2 请求（**最小**，一行 API）
-
-> **在 `EnvBuilder` 上加一个只读借出入口**，例如
-> `pub fn with_declars<R>(&self, f: impl FnOnce(&DeclarMap<'a>, &NotationMap<'a>) -> R) -> R`
-> （或等价的"借出 `Env`"形式），**不改任何现有语义**、**不动判定路径**。
-
-* **性质**：纯**能力**新增（read-only）· 不改判定 · 不改事件计数 · 不改 `--json`；
-* **为什么必须**：`DeclarMap` 是 `pub(crate)` ⇒ 前端**永远**造不出 `Env::new` 需要的那个引用；
-* **替代方案（若不想加）**：把 `DeclarMap` 改成 `pub`（**更大**的面，不推荐）；
-* **拿到之后**：`Walk` 用它在每条声明后建/更新一个只读 `Env` 镜像 ⇒ `ElabCtx` 持有 ⇒
-  `judge_infer` 查表 ⇒ **不再重跑前缀** ⇒ 目标是那 **88%**。
-
-⚠ 按硬规矩（`AGENTS.md`：`crates/kernel/` 在 main 上零改动，除非明确授权）——
-**本请求等用户明确授权后才动手**，**不顺手改**。
+> ⚠ **本节请求已撤回** ✗（见 §14）—— 当时要的是"内核加**只读借出入口**"（`with_declars` 一行 API：
+> `DeclarMap` 是 `pub(crate)` ⇒ 前端**永远**造不出 `Env::new` 需要的那个引用 ✗）。
+> **后来**：① 内核**无条件授权**（§18 ✓）；② 该能力**以 `with_env` / `with_env_scope` 落地** ✓
+> （§16.1 的现状指针 ✓ —— 前者 `elab.rs` 已用 **2 处** ✓、后者**零调用** ✗）。
+> **原文（含"为什么前端造不出镜像"的逐条实测表 + 请求正文）⇒ `git log --all -- docs/design/incremental-environment.md`** ✓。
 
 ## 14. ⚠⚠ **§13 的授权请求撤回** —— `snapshot()` 这条路是通的（2026-09-29 实测勘明）
 
-§13 说"前端造不出镜像 ⇒ 要内核加访问器"。**再往下核一层后：不需要** ✗✓。
-关键是我上一轮漏看的两条：
-
-| 我上轮以为 | 实测 |
-|---|---|
-| `Env::new` 要 `&DeclarMap`，而 `DeclarMap` 是 `pub(crate)` ⇒ 前端造不出 | ✓ 类型确实不可命名 —— **但不必命名它**：`ExportFile` 的 `declars`/`notations` 是 **`pub` 字段**，直接当实参传即可（**类型推断**，无需写出类型名）|
-| 得从 builder **借**一份（借用冲突） | ✗ **不必借**：`EnvBuilder::snapshot(&self) -> ExportFile<'a>`（**`pub`**）给的是**拥有**的一份 ⇒ 它自己就是"镜像" |
-
-**另外两条（决定可行性）**：
-
-* `ExportFile::with_tc(&self, EnvLimit, f)` 收 **`&self`**（`util.rs:708`）⇒
-  镜像**不需要 `&mut`** ⇒ 可以**多处同时查** ✓；
-* `ExportFile::new_env(&self, EnvLimit) -> Env`（`util.rs:694`）也是 `&self` ✓。
-
-### 14.1 于是形状是（**内核零改动** ✓）
-
-```rust
-// 每条命令**之前**（此时 elab_expr 还没借走 builder）：
-let mirror: ExportFile<'a> = self.builder.snapshot();   // 拥有的一份，pub API
-// 把它挂到 CmdCtx → ElabCtx（ElabCtx 加一个字段）
-// judge_infer 未命中时：
-mirror.with_tc(EnvLimit::PpUnlimited, |tc| {
-    let ty = tc.infer_closed_type(expr);
-    tc.with_pp(|pp| pp.pp_expr(ty))
-})
-```
-
-* **借用冲突解决**：`snapshot()` 在 `elab_expr` 借走 builder **之前**取 ⇒ 之后
-  `ElabCtx` 持的是**拥有的一份**，与 `&mut builder` **不冲突** ✓；
-* **内核零改动** ✓（`snapshot`/`with_tc`/`new_env`/`EnvLimit` **全是 `pub`**）；
-* **`EnvProvider` 接口不用改**（`crates/front/src/judge.rs` 已落 `30ae685c`）✓。
-
-### 14.2 唯一要量的成本（决定成败）
-
-`snapshot()` 会 `declars.clone()` + `notations.clone()` + `dag.clone()`。
-**每条命令取一次** ⇒ 整文件 O(N²) 次 map 复制。
-**但**它比"重跑整段前缀"（parse + elaborate + 内核检查）**大概率便宜得多** ——
-这正是 §5 账单说的"大头是**前端重新 elaborate**"。
-⚠ **必须实测**（不许拍脑袋）：`SOKO_DECL_PROFILE` 量"每条命令的 snapshot 成本" vs
-"judge 合成 pass 的成本"。
-**降级方案（若 snapshot 太贵）**：只在 `judge_infer` **真未命中时**才取快照
-（即"惰性快照"）⇒ 命中路径零成本 ✓。
+> ⚠ **本节的结论也已被否** ✗（**留档，别再走** ✗）：`snapshot()` 给的是**另一个 DAG 的拥有副本**
+> ⇒ 指针同一性不成立（**§17** 证否 ✗）；`ExportFile` 的 `mk_*` 又因 `with_ctx` 的**局部 arena**
+> 出不了作用域（**§19.1** ✗）⇒ 最终走的是 **`InplaceEnv` + 就地判定**（§32.2 ✓）。
+> ⚠ 本节那两条"实测"**本身没错** ✓（`ExportFile.declars`/`notations` 是 `pub` 字段 ⇒ 不必命名
+> `DeclarMap` ✓；`with_tc`/`new_env` 收 `&self` ✓），**错的是"够用"这个结论** ✗。
+> **原文（含形状代码 + 成本账）⇒ `git log --all -- …`** ✓。
 
 ### 14.3 下一步（可立即执行，无需授权）
 
-1. `ElabCtx` 加 `mirror: Option<&ExportFile<'a>>`（或让 `EnvProvider` 的实现者持有）；
-2. `Walk` 在每条命令**之前** `snapshot()`，挂进 `CmdCtx`；
-3. `judge_infer` 未命中时**先试镜像**（`with_tc` + `infer_closed_type` + `pp_expr`），
-   失败/无镜像 ⇒ **回退**合成前缀（逐字节等价）；
-4. 判据：judge 合成 pass **253513 → 接近 2647 量级** · 真课程 **219.3s → ?** ·
-   `--json` **逐字节不变** · 反向判据**能咬住"缓存住错误结果"的坏实现** ·
-   `None` ⇒ **逐字节回退**。
+> ⚠ **这四步没做、也作废了** ✗（实际走 §32.2 的 as-built 路 ✓）；§15 保留了它的实现细节留档 ✓。
+
 
 ## 15. 下一步的**精确起手**（可复制执行，无需再勘明）
 
-§14.3 的四步里，第 ③ 步的**实现细节**（已勘明到能直接写）：
+> ⚠ **本节整条路线也已作废** ✗（`SnapshotProvider` 随 §14 的结论一起被否 —— §17/§19.1 ✗）；
+> **留档**是为了"别再走" ✓。**现状路线**见 §0.2 #2（重借链）与 §32（as-built + 两条形状）✓。
 
 ### 15.1 `SnapshotProvider`（`EnvProvider` 的实现，放在 `judge.rs` 或 `compile/check/walk.rs`）
 
