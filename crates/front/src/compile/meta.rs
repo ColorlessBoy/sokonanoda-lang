@@ -368,7 +368,11 @@ const MAX_ESCALATIONS: u32 = 6;
 fn meta_limit(name: &str, default: u32) -> u32 {
     static FUEL: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
     static DEPTH: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
-    let slot = if name == "SOKO_LIMIT_MAX_HEARTBEATS" { &FUEL } else { &DEPTH };
+    let slot = if name == "SOKO_LIMIT_MAX_HEARTBEATS" {
+        &FUEL
+    } else {
+        &DEPTH
+    };
     *slot.get_or_init(|| {
         std::env::var(name)
             .ok()
@@ -773,7 +777,8 @@ impl<'a> MetaCtx<'a> {
     }
 
     pub(crate) fn unsolved(&self) -> Vec<MetaId> {
-        self.store.mvars
+        self.store
+            .mvars
             .iter()
             .enumerate()
             .filter(|(_, m)| m.value.is_none())
@@ -1245,7 +1250,11 @@ mod tests {
             Tri::Yes,
             "预算**故意调到 1** ⇒ 升级必须把这条该成立的约束算完 ✓（答案不变、只是变慢 ✓）"
         );
-        assert_eq!(m.value(a), Some(ident("Nat")), "升级之后 ?a 必须真的解出来 ✓");
+        assert_eq!(
+            m.value(a),
+            Some(ident("Nat")),
+            "升级之后 ?a 必须真的解出来 ✓"
+        );
         assert!(
             sokonanoda::gates::META_BUDGET_ESCALATED.get() > before_escalated,
             "升级计数没动 ⇒ 这条用例根本没撞过预算（守卫空转 ✗）"
@@ -1480,16 +1489,28 @@ mod tests {
     fn level_meta_encoding_and_occurs_bite() {
         // ① 两类元变量**不互判** ✓。
         assert!(is_level_name(&level_name(3)), "层名必须被认成层名 ✓");
-        assert!(!is_meta_name(&level_name(3)), "层名**不许**被认成项元变量 ✗");
-        assert!(!is_level_name(&meta_name(3)), "项名**不许**被认成层元变量 ✗");
+        assert!(
+            !is_meta_name(&level_name(3)),
+            "层名**不许**被认成项元变量 ✗"
+        );
+        assert!(
+            !is_level_name(&meta_name(3)),
+            "项名**不许**被认成层元变量 ✗"
+        );
         // ② 往返 ✓。
         assert_eq!(level_id_of(&level_name(7)), Some(7), "id 往返必须一致 ✓");
         assert_eq!(level_id_of("u"), None, "普通层名不是层元变量 ✓");
         // ③ 词边界 ✓。
         let u = level_name(5);
         assert!(level_occurs_in_text(5, &u), "裸名必须命中 ✓");
-        assert!(level_occurs_in_text(5, &format!("max {u} v")), "复合文本里必须命中 ✓");
-        assert!(level_occurs_in_text(5, &format!("{u}+1")), "层级算术里必须命中 ✓");
+        assert!(
+            level_occurs_in_text(5, &format!("max {u} v")),
+            "复合文本里必须命中 ✓"
+        );
+        assert!(
+            level_occurs_in_text(5, &format!("{u}+1")),
+            "层级算术里必须命中 ✓"
+        );
         assert!(
             !level_occurs_in_text(5, &format!("{u}1")),
             "`u1` **不许**命中 ✗（没有词边界就会误伤 ✓）"
@@ -1500,7 +1521,10 @@ mod tests {
         );
         assert!(!level_occurs_in_text(5, "v"), "别的层名不命中 ✓");
         // ④ 不同的 id 互不命中 ✓。
-        assert!(!level_occurs_in_text(6, &u), "id 5 的文本不许被 id 6 命中 ✗");
+        assert!(
+            !level_occurs_in_text(6, &u),
+            "id 5 的文本不许被 id 6 命中 ✗"
+        );
     }
 
     /// **U1 第 2 片（2026-10-05）**：宇宙约束的**存储**（§2.9 的 `ULe`/`UEq`/`ULub` 三种）✓。
@@ -1557,12 +1581,18 @@ mod tests {
             level_assign(&mut vals, 0, &format!("{u}+1")).is_err(),
             "`?u := ?u+1` 必须被拒 ✗（occurs 闸 ✓）"
         );
-        assert!(vals.is_empty() || vals[0].is_none(), "被拒的赋值**不许**写进表 ✗");
+        assert!(
+            vals.is_empty() || vals[0].is_none(),
+            "被拒的赋值**不许**写进表 ✗"
+        );
         // ② 正常赋值 + zonk ✓。
         assert!(level_assign(&mut vals, 0, "2").is_ok(), "普通赋值该成功 ✓");
         assert_eq!(level_zonk_text(&vals, &u), "2", "赋过的层名必须被代进去 ✓");
         // ③ 链式 ✓。
-        assert!(level_assign(&mut vals, 1, &u).is_ok(), "`?v := ?u` 该成功 ✓");
+        assert!(
+            level_assign(&mut vals, 1, &u).is_ok(),
+            "`?v := ?u` 该成功 ✓"
+        );
         assert_eq!(
             level_zonk_text(&vals, &v),
             "2",
@@ -1570,7 +1600,11 @@ mod tests {
         );
         // ④ 未赋值的保持原样 ✓。
         let w = level_name(9);
-        assert_eq!(level_zonk_text(&vals, &w), w, "没赋值的层名**不许**被抹掉 ✗");
+        assert_eq!(
+            level_zonk_text(&vals, &w),
+            w,
+            "没赋值的层名**不许**被抹掉 ✗"
+        );
     }
 
     /// **U1 第 4 片（2026-10-05）**：宇宙约束的**惰性批量检查**（§2.9「对齐 Coq」✓）。

@@ -105,7 +105,9 @@ fn gate_census_reports_the_real_trigger_counts() {
     // ⇒ `meta_budget_exhausted` 0 → **59** ⇒ 判红 ✓，2026-10-04 实测 ✓）。
     // 这条只保证「读的是差量、不是别人攒下来的数」✓。
     assert!(
-        [probe, sig_overflow, sig_clamped, rounds, meta_budget].iter().all(|n| *n < 1000),
+        [probe, sig_overflow, sig_clamped, rounds, meta_budget]
+            .iter()
+            .all(|n| *n < 1000),
         "读数不像差量（`gates::reset()` 之后应当从小数起算 ✗）：{probe} {sig_overflow} \
          {sig_clamped} {rounds} {meta_budget}"
     );

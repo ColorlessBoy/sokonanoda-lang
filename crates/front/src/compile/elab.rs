@@ -1684,7 +1684,9 @@ fn local_arg_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Opt
     let mut seen = 0usize;
     for _ in 0..8 {
         match &cur {
-            Expr::Arrow { domain, codomain, .. } => {
+            Expr::Arrow {
+                domain, codomain, ..
+            } => {
                 if seen == applied {
                     return Some(domain.as_ref().clone());
                 }
@@ -1725,13 +1727,19 @@ fn mentions_any(e: &Expr, scope: &ElabScope<'_>, earlier: &[crate::ast::Binder])
     let _ = scope;
     fn walk(e: &Expr, names: &[&str]) -> bool {
         match e {
-            Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => names.contains(&name.as_str()),
+            Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => {
+                names.contains(&name.as_str())
+            }
             Expr::App { fun, arg, .. } => walk(fun, names) || walk(arg, names),
             Expr::Forall { binders, body, .. } | Expr::Lambda { binders, body, .. } => {
-                binders.iter().any(|b| b.ty.as_deref().is_some_and(|t| walk(t, names)))
+                binders
+                    .iter()
+                    .any(|b| b.ty.as_deref().is_some_and(|t| walk(t, names)))
                     || walk(body, names)
             }
-            Expr::Arrow { domain, codomain, .. } => walk(domain, names) || walk(codomain, names),
+            Expr::Arrow {
+                domain, codomain, ..
+            } => walk(domain, names) || walk(codomain, names),
             Expr::Plus { lhs, rhs, .. } => walk(lhs, names) || walk(rhs, names),
             Expr::Let { val, body, .. } => walk(val, names) || walk(body, names),
             _ => false,
@@ -3445,7 +3453,13 @@ fn type_head_fits_layer<'a>(
     // **对齐 Lean**：`Sort u` 由合一解出 ⇒ 它接受**任何** sort ✓（`u` 是变量 ✓）。
     // ⚠ 这条**只加判"贴合"** ✗ ⇒ 判贴合之后走的是**旧写法** = 今天的逐位装法 ✓
     // ⇒ 它**不可能**改掉任何既有行为（只在原本会掉进短写的地方生效 ✓）。
-    if matches!(&d, Expr::Sort { sort: SortKind::Level(_), .. }) {
+    if matches!(
+        &d,
+        Expr::Sort {
+            sort: SortKind::Level(_),
+            ..
+        }
+    ) {
         return matches!(unfold(&actual), Expr::Sort { .. });
     }
     let Some(d) = type_head(&d) else {
@@ -4492,7 +4506,9 @@ fn b2_whnf_peel<'a>(
         unfolded = Some(next);
         let src_now = unfolded.as_ref()?;
         let inner = quiet_catch(|| {
-            elab_expr(builder, src_now, scope, univ, known, hovers, None, None, ctx)
+            elab_expr(
+                builder, src_now, scope, univ, known, hovers, None, None, ctx,
+            )
         })
         .ok()?;
         let kernel = inner.ok()?;
@@ -4934,8 +4950,14 @@ pub(crate) fn elab_expr<'a>(
                 // 「**需要期望类型**的实参」（正是集合字面量 `{a}` 那一类 ✓）**永远走不到**
                 // 局部那条 ✗ ⇒ 头是**局部假设**（`ext : ∀ {A B : Set α}, …` ✓）时
                 // 常量路答不出（它查 `known` ✗）⇒ 期望类型**丢了** ✗ ⇒ G-30 判红 ✓。
-                application_arg_expected(expr, scope, ctx, Some(&mut InplaceEnv { builder, known }), univ)
-                    .or_else(|| b1_local_expected(fun, scope, ctx.defs))
+                application_arg_expected(
+                    expr,
+                    scope,
+                    ctx,
+                    Some(&mut InplaceEnv { builder, known }),
+                    univ,
+                )
+                .or_else(|| b1_local_expected(fun, scope, ctx.defs))
             } else {
                 // **B1 片**：头是**局部变量** ⇒ 用书写类型剥到实参位 ✓
                 // （零内核调用 ⇒ 不会像 `application_arg_expected` 那样递归栈溢出 ✗）。
@@ -5016,35 +5038,35 @@ pub(crate) fn elab_expr<'a>(
                         None => match peel_expected_src(rest_src.as_ref()) {
                             Some((style, domain, body_src)) => {
                                 let binder_ty = elab_expr(
-                                    builder,
-                                    &domain,
-                                    scope,
-                                    univ,
-                                    known,
-                                    hovers,
-                                    None,
-                                    None,
-                                    ctx,
+                                    builder, &domain, scope, univ, known, hovers, None, None, ctx,
                                 )?;
                                 rest = None;
                                 rest_src = Some(body_src);
                                 (binder_ty, style, Some(domain))
                             }
-                            None => match b2_whnf_peel(builder, ctx, scope, univ, known, hovers, rest_src.as_ref()) {
-                            Some((style, binder_ty, body_src)) => {
-                                rest = None;
-                                rest_src = Some(body_src);
-                                (binder_ty, style, None)
-                            }
-                            None => {
-                            return Err(CompileError::elab(
+                            None => match b2_whnf_peel(
+                                builder,
+                                ctx,
+                                scope,
+                                univ,
+                                known,
+                                hovers,
+                                rest_src.as_ref(),
+                            ) {
+                                Some((style, binder_ty, body_src)) => {
+                                    rest = None;
+                                    rest_src = Some(body_src);
+                                    (binder_ty, style, None)
+                                }
+                                None => {
+                                    return Err(CompileError::elab(
                                 ErrorKind::ElabUntypedBinder,
                                 "cannot infer the type of this binder: the declared type does not \
                                  provide a matching position (write it explicitly, e.g. fun (x : Nat) => x)",
                                 binder.span,
                             ));
-                            }
-                        }
+                                }
+                            },
                         },
                     },
                 };
@@ -7703,10 +7725,8 @@ mod b2_meta_pair_tests {
     #[test]
     fn pair_shares_the_same_id_on_both_sides() {
         let arena = stumpalo::Arena::new();
-        let mut builder = EnvBuilder::new(
-            arena.as_arena_ref(),
-            sokonanoda::util::Config::default(),
-        );
+        let mut builder =
+            EnvBuilder::new(arena.as_arena_ref(), sokonanoda::util::Config::default());
         let (src, kernel) = b2_meta_pair(
             &mut builder,
             7,

@@ -9653,11 +9653,27 @@ theorem t : Eq.{1} (Set Two) (f1 '' (({aa}) \u{2229} ({bb}))) (f1 '' (\u{2205}))
 #[test]
 fn probe_identity_is_stable_and_self_describing() {
     let tag = crate::compile::elab::probe_tag();
-    assert!(!tag.is_empty(), "探针身份不许为空 ✗（空身份 = 不可比却看不出来 ✗）");
-    assert!(tag.contains("build="), "身份必须自描述（含 `build=` ✓）：{tag:?}");
+    assert!(
+        !tag.is_empty(),
+        "探针身份不许为空 ✗（空身份 = 不可比却看不出来 ✗）"
+    );
+    assert!(
+        tag.contains("build="),
+        "身份必须自描述（含 `build=` ✓）：{tag:?}"
+    );
     let line = crate::compile::elab::probe_line("FOS-IN", "head=Iff.intro");
-    assert!(line.starts_with('['), "行模板必须统一（`[<身份>] …` ✓）：{line:?}");
-    assert!(line.ends_with("FOS-IN head=Iff.intro"), "标签与正文要原样保留 ✓：{line:?}");
+    assert!(
+        line.starts_with('['),
+        "行模板必须统一（`[<身份>] …` ✓）：{line:?}"
+    );
+    assert!(
+        line.ends_with("FOS-IN head=Iff.intro"),
+        "标签与正文要原样保留 ✓：{line:?}"
+    );
     // 同一个进程里身份必须**稳定** ✓（`OnceLock` ✓）—— 否则同一次跑的日志会自相矛盾 ✗。
-    assert_eq!(tag, crate::compile::elab::probe_tag(), "同进程内身份必须稳定 ✓");
+    assert_eq!(
+        tag,
+        crate::compile::elab::probe_tag(),
+        "同进程内身份必须稳定 ✓"
+    );
 }
