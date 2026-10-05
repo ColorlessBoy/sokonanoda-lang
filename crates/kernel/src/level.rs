@@ -129,6 +129,43 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         self.alloc_levels(&out)
     }
 
+    /// **R1c-1（2026-10-05）**：把**层元变量**按映射换成 **`Param`** ✓ ——
+    /// **对齐 Lean `MCtx.levelMVarToParam`**（`Meta/LevelDefEq.lean`；
+    /// 出口由 `TermElabM.levelMVarToParam`（`:981`）调用 ✓）。
+    ///
+    /// ⚠ 与 [`Self::subst_level`] **不同**：那个只代 **param** ✓（`instantiateLevelParams` ✓），
+    /// 这个只认 **mvar** ✓ —— Lean 里也是**两个函数** ✓。
+    /// ⚠ **加法**：本片**不接线** ✗ ⇒ **零行为变化** ✓。
+    pub fn level_mvar_to_param(&mut self, level: LevelPtr<'t>, mapping: &[(u64, NamePtr<'t>)]) -> LevelPtr<'t> {
+        match self.read_level(level) {
+            Zero => self.zero(),
+            Succ(val, ..) => {
+                let val = self.level_mvar_to_param(val, mapping);
+                self.succ(val)
+            }
+            Max(l, r, ..) => {
+                let l = self.level_mvar_to_param(l, mapping);
+                let r = self.level_mvar_to_param(r, mapping);
+                self.max(l, r)
+            }
+            IMax(l, r, ..) => {
+                let l = self.level_mvar_to_param(l, mapping);
+                let r = self.level_mvar_to_param(r, mapping);
+                self.imax(l, r)
+            }
+            // param 不动 ✓（它不是 mvar ✓）。
+            Param(..) => level,
+            MVar(id, _) => match mapping.iter().find(|(i, _)| *i == id) {
+                Some((_, name)) => {
+                    let hash = crate::hash64!(PARAM_HASH, *name);
+                    self.alloc_level(Level::Param(*name, hash))
+                }
+                // 映射里没有 ⇒ 原样 ✓（调用方负责保证**出口不留 mvar** ✓）。
+                None => level,
+            },
+        }
+    }
+
     /// Return `uparam [ks |-> vs]`
     pub fn subst_level(&mut self, level: LevelPtr<'t>, ks: LevelsPtr<'t>, vs: LevelsPtr<'t>) -> LevelPtr<'t> {
         match self.read_level(level) {

@@ -428,6 +428,54 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         }
     }
 
+    /// **R1c-1（2026-10-05）**：把表达式里的**层元变量**换成 **`Param`** ✓ ——
+    /// **对齐 Lean `MCtx.levelMVarToParam`**（出口由 `TermElabM.levelMVarToParam` 调 ✓）。
+    ///
+    /// ⚠ **加法**：本片**不接线** ✗ ⇒ **零行为变化** ✓（前端接线是 R1c-2 ✓）。
+    pub fn level_mvar_to_param_expr(&mut self, e: ExprPtr<'t>, mapping: &[(u64, NamePtr<'t>)]) -> ExprPtr<'t> {
+        match self.read_expr(e) {
+            // **K1**：占位符不含层 ✓。
+            Var { .. } | NatLit { .. } | StringLit { .. } | Meta { .. } => e,
+            Sort { level, .. } => {
+                let level = self.level_mvar_to_param(level, mapping);
+                self.mk_sort(level)
+            }
+            Const { name, levels, .. } => {
+                let ls = self.read_levels(levels).to_vec();
+                let ls: Vec<_> =
+                    ls.into_iter().map(|l| self.level_mvar_to_param(l, mapping)).collect();
+                let levels = self.alloc_levels(&ls);
+                self.mk_const(name, levels)
+            }
+            App { fun, arg, .. } => {
+                let fun = self.level_mvar_to_param_expr(fun, mapping);
+                let arg = self.level_mvar_to_param_expr(arg, mapping);
+                self.mk_app(fun, arg)
+            }
+            Pi { binder_name, binder_style, binder_type, body, .. } => {
+                let binder_type = self.level_mvar_to_param_expr(binder_type, mapping);
+                let body = self.level_mvar_to_param_expr(body, mapping);
+                self.mk_pi(binder_name, binder_style, binder_type, body)
+            }
+            Lambda { binder_name, binder_style, binder_type, body, .. } => {
+                let binder_type = self.level_mvar_to_param_expr(binder_type, mapping);
+                let body = self.level_mvar_to_param_expr(body, mapping);
+                self.mk_lambda(binder_name, binder_style, binder_type, body)
+            }
+            Let { data, .. } => {
+                let crate::expr::LetData { binder_name, binder_type, val, body, nondep } = *data;
+                let binder_type = self.level_mvar_to_param_expr(binder_type, mapping);
+                let val = self.level_mvar_to_param_expr(val, mapping);
+                let body = self.level_mvar_to_param_expr(body, mapping);
+                self.mk_let(binder_name, binder_type, val, body, nondep)
+            }
+            Proj { ty_name, idx, structure, .. } => {
+                let structure = self.level_mvar_to_param_expr(structure, mapping);
+                self.mk_proj(ty_name, idx, structure)
+            }
+        }
+    }
+
     pub fn subst_expr_levels(&mut self, e: ExprPtr<'t>, ks: LevelsPtr<'t>, vs: LevelsPtr<'t>) -> ExprPtr<'t> {
         if ks == vs {
             return e;
