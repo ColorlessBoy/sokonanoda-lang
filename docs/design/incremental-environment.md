@@ -1121,7 +1121,7 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 
 **验收命令（照抄 ✓，2026-10-05 加）**：① `bash docs/gaps/repro/G92-by-prefix-rerun-is-quadratic.sh`
 ⇒ 期望 **exit 1**（比值 < 3.0；**今天 exit 0 = 缺口仍在** ✓）· ② `scripts/kernel-diff.sh --fast <改前> <改后>`
-⇒ **0 差异** ✓（或同一二进制两态开关对拍）· ③ **反向判据**：**同型判据已存在** ✓ —— `crates/front/tests/judge_inplace_by_reverse.rs`（`by` 路径）与 `judge_inplace_wide.rs`（wide 档），判据都是"**换依赖里一个声明的类型 ⇒ 结论必须变**" ✓ ⇒ 新那一刀**照这个形状补一条** ✓（**不是从零建** ✗）·
+⇒ **0 差异** ✓（**exit 0 = 零差异 · 1 = 有差异（不许合入 ✗）· 2 = 用法/环境错** ✓；⚠ **先跑 `--self-test <二进制>` 证明它真咬得住** ✓ —— 仓规「咬不住的守卫等于没有」；或同一二进制两态开关对拍）· ③ **反向判据**：**同型判据已存在** ✓ —— `crates/front/tests/judge_inplace_by_reverse.rs`（`by` 路径）与 `judge_inplace_wide.rs`（wide 档），判据都是"**换依赖里一个声明的类型 ⇒ 结论必须变**" ✓ ⇒ 新那一刀**照这个形状补一条** ✓（**不是从零建** ✗）·
 ④ **影子档**：**机制已存在** ✓（`InplaceMode::Shadow` + `judge_inplace*.rs` 系列，约定 `diff=0` ✓）⇒ 给新路径加同一档即可 ✓。⚠ 落地后 **台账 G-92 要同步改 `fixed`**（别人的账 ✓）。
 
 ⚠ **阶段 2 的精确阻塞（2026-10-05 二次勘明 ✓）**：**内核侧使能件已经齐了** ✓ ——
