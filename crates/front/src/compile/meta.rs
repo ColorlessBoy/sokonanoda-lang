@@ -78,6 +78,33 @@ pub(crate) fn fresh_level_mvar_id() -> u64 {
 }
 
 
+/// **R2b-1（2026-10-05）**：**本声明的待解层元变量表** ✓ ——
+/// **对齐 Lean 的 `MCtx`**（层 mvar 的赋值状态挂在 context 上 ✓，
+/// 出口 `levelMVarToParam` 读它 ✓）。
+///
+/// ⚠ 用 `thread_local` 承载「当前声明」的待解表 ✓（编译是单线程 ✓）；
+/// ⚠ **加法**：本片**不接线** ✗ ⇒ **零行为变化** ✓（接线是 R2b-2 ✓）。
+pub(crate) mod level_mvar_table {
+    use std::cell::RefCell;
+
+    thread_local! {
+        /// 当前声明里生成的层 mvar id（保序 ✓）。
+        static PENDING: RefCell<Vec<u64>> = const { RefCell::new(Vec::new()) };
+    }
+
+    /// 记一个层 mvar id（生成处调 ✓）。
+    #[allow(dead_code)] // R2b-2 接线
+    pub(crate) fn push(id: u64) {
+        PENDING.with(|p| p.borrow_mut().push(id));
+    }
+
+    /// **取出并清空**（声明收口处调 ✓ —— 对齐 Lean 的「出口」✓）。
+    #[allow(dead_code)] // R2b-2 接线
+    pub(crate) fn take() -> Vec<u64> {
+        PENDING.with(|p| std::mem::take(&mut *p.borrow_mut()))
+    }
+}
+
 /// 层元变量的 id（不是层元变量名 ⇒ `None`）。
 #[allow(dead_code)] // U1 第 2 片会用
 pub(crate) fn level_id_of(name: &str) -> Option<u32> {
