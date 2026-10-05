@@ -1716,6 +1716,7 @@ fn needs_expected_type(expr: &Expr) -> bool {
         // 零元记法：`lhs`/`rhs` 都没有才是（`prefix` 记法有 `rhs`、`postfix` 有 `lhs`，
         // 它们能从前缀/后缀操作数解出参数）。
         Expr::Notation { lhs, rhs, .. } => lhs.is_none() && rhs.is_none(),
+        Expr::Lambda { .. } => true,
         _ => false,
     }
 }
@@ -1735,6 +1736,7 @@ fn application_arg_expected<'a>(
     // —— 头的类型以前每次都靠 `judge_infer` 合成一份 `#check` **整份重编前缀**，
     // 而这条调用点在**每个带期望类型的应用**上都会走 ⇒ 它是 `prefix_runs` 的大头之一。
     env: Option<&mut InplaceEnv<'_, 'a>>,
+    univ: &UnivMap<'a>,
 ) -> Option<Expr> {
     let (head, args) = crate::spine::spine_of(expr);
     if args.is_empty() {
@@ -1744,7 +1746,7 @@ fn application_arg_expected<'a>(
     // ⚠ 慢路文本**必须逐字不变**：`infer_type_text` 内部用的是
     // `&render_expr(operand)`，与这里原来的 `render_expr(head)` **同一份** ✓
     // ⇒ 回落时与今天逐字节相同（缓存键也因此同源 ✓）。
-    let ty_text = infer_type_text(ctx, scope, head, env)?;
+    let ty_text = infer_type_text(ctx, scope, head, env, Some(univ))?;
     let (layers, _) = notation_telescope(&ty_text)?;
     let (_, domain) = layers.get(index)?;
     let mut sigma: HashMap<String, Expr> = HashMap::new();
@@ -1773,7 +1775,7 @@ fn universe_level_text_of_operands<'a>(
     mut env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Option<String> {
     for operand in operands {
-        let ty_text = infer_type_text(ctx, scope, operand, InplaceEnv::reborrow(&mut env))?;
+        let ty_text = infer_type_text(ctx, scope, operand, InplaceEnv::reborrow(&mut env), None)?;
         // **G-31（第二处，实测未命中大头：unit08 全程 100/226 次）**：第二问要的是
         // **`ty_text` 的类型**（= 它的宇宙）。它以前每次都 `judge_infer` 合成一份
         // `#check`、**整份重编前缀**；这里先试**就地** —— 把类型文本回读成 `#check`
@@ -1795,6 +1797,7 @@ fn universe_level_text_of_operands<'a>(
                 &scope.judge_binder_srcs(),
                 &expr,
                 scope.judge_binders().len(),
+                None,
             )
             .ok()
         });
@@ -3015,15 +3018,20 @@ pub(crate) fn infer_type_text_inplace<'a>(
     binder_srcs: &[(String, Expr)],
     operand: &Expr,
     binder_count: usize,
+    univ: Option<&UnivMap<'a>>,
 ) -> Result<String, InplaceFail> {
     debug_assert_eq!(
         binder_srcs.len(),
         binder_count,
         "binder 筛选必须与 `judge_binders()` 完全一致（剥层数靠它）"
     );
-    // ① 在活环境上 elaborate。空宇宙表：**与 `#check` 的处理器逐字一致**
-    //    （`#check` 没有宇宙参数可解 ⇒ 读到宇宙变量的查询在两条路上**一样失败** ✓）。
-    let no_universe: UnivMap<'_> = UnivMap::new();
+    // ① 在活环境上 elaborate。
+    // ⚠ **G-30（2026-10-05 第 83 棒 ✓）**：宇宙表**不再一律为空** ✗ ——
+    //    调用方有真表就传进来 ✓（`application_arg_expected` 那条有 ✓）。
+    //    原先一律空表 ⇒ **宇宙多态的头顶不上** ✗ ⇒ 就地路答 `None` ✗ ⇒
+    //    `infer_type_text` 又**不回落慢路**（G-29 第一刀 ✓）⇒ 期望类型**整个丢掉** ✗ = G-30 ✓。
+    let empty_universe: UnivMap<'a> = UnivMap::new();
+    let univ = univ.unwrap_or(&empty_universe);
     let mut scratch_hovers: Vec<HoverNode<'a>> = Vec::new();
     // 逐 binder：**先 elaborate 它的源类型、再推进作用域**（依赖顺序与源一致 ✓）。
     // ⚠ **内核以 panic 报拒绝**（架构 §8 gotcha 0）⇒ 每步都包 `quiet_catch`。
@@ -3035,7 +3043,7 @@ pub(crate) fn infer_type_text_inplace<'a>(
                 env.builder,
                 src_ty,
                 &mut sc,
-                &no_universe,
+                univ,
                 env.known,
                 &mut scratch_hovers,
                 None,
@@ -3054,7 +3062,7 @@ pub(crate) fn infer_type_text_inplace<'a>(
             env.builder,
             operand,
             &mut sc,
-            &no_universe,
+            univ,
             env.known,
             &mut scratch_hovers,
             None,
@@ -3129,6 +3137,7 @@ fn infer_type_text<'a>(
     scope: &ElabScope<'a>,
     operand: &Expr,
     env: Option<&mut InplaceEnv<'_, 'a>>,
+    univ: Option<&UnivMap<'a>>,
 ) -> Option<String> {
     let binders = scope.judge_binders();
     // ⚠ 这一行**保持原样**（`&render_expr(operand)` 内联）：它是记法路径守卫
@@ -3160,6 +3169,7 @@ fn infer_type_text<'a>(
                 &scope.judge_binder_srcs(),
                 operand,
                 binders.len(),
+                univ,
             ) {
                 Ok(text) => {
                     crate::judge::stats::INPLACE_USED
@@ -3233,6 +3243,7 @@ fn infer_type_text<'a>(
                 &scope.judge_binder_srcs(),
                 operand,
                 binders.len(),
+                None,
             );
             let same = match (&old, &new) {
                 (Some(a), Ok(b)) => a == b,
@@ -3422,7 +3433,7 @@ fn operand_type_expr<'a>(
     if let Some(src) = lambda_source_type(operand) {
         return Some(src);
     }
-    infer_type_text(ctx, scope, operand, env)
+    infer_type_text(ctx, scope, operand, env, None)
         .and_then(|text| crate::proof::parse_expr_text(&text).ok())
 }
 
@@ -4822,7 +4833,7 @@ pub(crate) fn elab_expr<'a>(
                 // 「**需要期望类型**的实参」（正是集合字面量 `{a}` 那一类 ✓）**永远走不到**
                 // 局部那条 ✗ ⇒ 头是**局部假设**（`ext : ∀ {A B : Set α}, …` ✓）时
                 // 常量路答不出（它查 `known` ✗）⇒ 期望类型**丢了** ✗ ⇒ G-30 判红 ✓。
-                application_arg_expected(expr, scope, ctx, Some(&mut InplaceEnv { builder, known }))
+                application_arg_expected(expr, scope, ctx, Some(&mut InplaceEnv { builder, known }), univ)
                     .or_else(|| b1_local_expected(fun, scope, ctx.defs))
             } else {
                 // **B1 片**：头是**局部变量** ⇒ 用书写类型剥到实参位 ✓
@@ -6473,7 +6484,7 @@ fn infer_recursor_universes<'a>(
             builder: &mut *builder,
             known,
         };
-        infer_type_text(ctx, scope, expected, Some(&mut env))
+        infer_type_text(ctx, scope, expected, Some(&mut env), None)
     };
     // `u` = **期望类型所在的宇宙**（`R : Sort u`）。与 `match` 的动机层级用的是
     // **同一个**口径（`infer_expected_level` ⇒ `sort_text_level`）。
@@ -6595,7 +6606,7 @@ fn infer_const_universes<'a>(
             builder: &mut *builder,
             known,
         };
-        infer_type_text(ctx, scope, first, Some(&mut env))
+        infer_type_text(ctx, scope, first, Some(&mut env), None)
     };
     // 类型文本 ⇒ 宇宙层级 ✓（`Prop`⇒`0` · `Type n`⇒`n+1` · `Sort n`⇒`n` ✓）。
     let Some(level) = level_text.as_deref().and_then(level_text_of_sort) else {

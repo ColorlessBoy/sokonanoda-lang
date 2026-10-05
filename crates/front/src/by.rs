@@ -115,6 +115,7 @@ fn level_hint_of_inplace<'a>(
                     binder_srcs,
                     first,
                     binders.len(),
+                    None,
                 ) {
                     if let Some(level) = crate::compile::elab::level_text_of_sort(&text) {
                         if is_concrete_level(&level) {
@@ -374,6 +375,7 @@ fn restore_universe_levels<'a>(
                                             binder_srcs,
                                             first,
                                             binders.len(),
+                                            None,
                                         )
                                         .ok()
                                     })
@@ -1878,6 +1880,7 @@ fn apply_tactic<'a>(
             &binder_srcs,
             expr,
             spec.binders.len(),
+            None,
         )
         .ok()
     });
