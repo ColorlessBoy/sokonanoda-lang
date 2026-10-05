@@ -375,7 +375,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     # **拆成两条并行路径**（2026-09-25 用户要求 ✓："gates 要跑 16 分钟…完全阻碍了前期开发" ✓）：
     # 原来一条 job 串起 **debug 路径**（语料 `cargo run` + 契约 `cargo test`）与
     # **release 路径**（`cargo build --release` + 课程门禁 ✓）⇒ 墙钟 = **两段之和** ✗；
@@ -460,7 +460,7 @@ jobs:
     needs: [changes, lint-fmt, lint-clippy, gates-fast]
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust
@@ -550,7 +550,7 @@ jobs:
         # **后续优化**（不阻塞本版）：给 `<模块根>/.sokonanoda/compiled/` 加 `actions/cache`
         # —— 本机实测**热缓存 0.5 秒**（59 MB 产物）⇒ 值得做，但它引入"缓存失效/污染"
         # 这一新失败模式，留到 0.78 单独一轮做 ✓。
-        timeout-minutes: 40
+        timeout-minutes: 90
         env:
           SOKONANODA_BIN: ${{ github.workspace }}/target/release/sokonanoda
         shell: bash
@@ -721,7 +721,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust

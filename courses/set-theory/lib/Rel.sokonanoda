@@ -206,28 +206,29 @@ theorem partition_disjoint (α : Type) (P : (α → Prop) → Prop) (h : Rel.Par
 -- 复合对两个关系**都单调**（S-B ✓ I.13）：点式蕴含逐层传下去
 theorem Rel.comp_mono {A B C : Type} (r r' : Rel A B) (s s' : Rel B C)
     (hr : ∀ (a : A) (b : B), r a b → r' a b) (hs : ∀ (b : B) (c : C), s b c → s' b c)
-    (a : A) (c : C) (h : Rel.comp r s a c) : Rel.comp r' s' a c :=
+    (a : A) (c : C) (h : (r • s) a c) : (r' • s') a c :=
   (fun (hE : ∃ (b : B), r a b ∧ s b c) =>
-    Exists.elim B (fun (b : B) => r a b ∧ s b c) (Rel.comp r' s' a c) hE
+    Exists.elim B (fun (b : B) => r a b ∧ s b c)
+      ((r' • s') a c) hE
       (fun (b : B) (hb : r a b ∧ s b c) =>
-        Exists.intro B (fun (b' : B) => r' a b' ∧ s' b' c) b
+        Exists.intro b
           (And.intro (hr a b (And.left hb)) (hs b c (And.right hb))))) h
 
 -- 只放左边（S-B ✓ I.13）：`Rel.comp_mono` 的常用特例
 theorem Rel.comp_mono_left {A B C : Type} (r r' : Rel A B) (s : Rel B C)
     (hr : ∀ (a : A) (b : B), r a b → r' a b) (a : A) (c : C)
-    (h : Rel.comp r s a c) : Rel.comp r' s a c :=
+    (h : (r • s) a c) : (r' • s) a c :=
   Rel.comp_mono r r' s s hr (fun (b : B) (c' : C) (hb : s b c') => hb) a c h
 
 -- 只放右边（S-B ✓ I.13）：`Rel.comp_mono` 的另一半特例
 theorem Rel.comp_mono_right {A B C : Type} (r : Rel A B) (s s' : Rel B C)
     (hs : ∀ (b : B) (c : C), s b c → s' b c) (a : A) (c : C)
-    (h : Rel.comp r s a c) : Rel.comp r s' a c :=
+    (h : (r • s) a c) : (r • s') a c :=
   Rel.comp_mono r r s s' (fun (a' : A) (b : B) (hr : r a' b) => hr) hs a c h
 
 -- 逆的逆（S-B ✓ I.13）：**定义等式**（`Eq.refl` 级 ✓，无需 `Rel.ext`）
 -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-theorem Rel.inv_inv (A B : Type) (r : Rel A B) : Rel.inv B A (Rel.inv A B r) = r :=
+theorem Rel.inv_inv (A B : Type) (r : Rel A B) : ((r ⁻¹) ⁻¹) = r :=
   Eq.refl.{1} (Rel A B) r
 
 -- `r` 含于自己的传递闭包（S-B ✓ I.13）：`transClosure` 是 `∀ s, …` 形状 ⇒ **λ 落地**即可
@@ -239,95 +240,95 @@ theorem Rel.subset_transClosure (α : Type) (r : Rel α α) :
 
 -- 逆关系对点式蕴含单调（S-B ✓ I.13）：`Rel.inv` 是定义头 ⇒ λ 直接给 ✓
 theorem Rel.inv_mono {A B : Type} (r r' : Rel A B) (h : ∀ (a : A) (b : B), r a b → r' a b) :
-    ∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a :=
-  fun (b : B) (a : A) (hba : Rel.inv A B r b a) => h a b hba
+    ∀ (b : B) (a : A), (r ⁻¹) b a → (r' ⁻¹) b a :=
+  fun (b : B) (a : A) (hba : (r ⁻¹) b a) => h a b hba
 
 -- 复合单调的**点式**形（S-B ✓ I.13）：`Rel.comp_mono` 的 λ 包装（末两个参数留作 λ ✓）
 theorem Rel.comp_mono_apply {A B C : Type} (r r' : Rel A B) (s s' : Rel B C)
     (hr : ∀ (a : A) (b : B), r a b → r' a b) (hs : ∀ (b : B) (c : C), s b c → s' b c)
-    (a : A) (c : C) : Rel.comp r s a c → Rel.comp r' s' a c :=
-  fun (h : Rel.comp r s a c) => Rel.comp_mono r r' s s' hr hs a c h
+    (a : A) (c : C) : (r • s) a c → (r' • s') a c :=
+  fun (h : (r • s) a c) => Rel.comp_mono r r' s s' hr hs a c h
 
 -- 逆关系单调的**点式**形（S-B ✓ I.13）：`Rel.inv_mono` 的 λ 包装
 theorem Rel.inv_mono_apply {A B : Type} (r r' : Rel A B) (h : ∀ (a : A) (b : B), r a b → r' a b)
-    (b : B) (a : A) : Rel.inv A B r b a → Rel.inv A B r' b a :=
-  fun (hba : Rel.inv A B r b a) => Rel.inv_mono r r' h b a hba
+    (b : B) (a : A) : (r ⁻¹) b a → (r' ⁻¹) b a :=
+  fun (hba : (r ⁻¹) b a) => Rel.inv_mono r r' h b a hba
 
 -- 只放左边的**点式**形（S-B ✓ I.13）：`Rel.comp_mono_left` 的 λ 包装
 theorem Rel.comp_mono_left_apply {A B C : Type} (r r' : Rel A B) (s : Rel B C)
     (hr : ∀ (a : A) (b : B), r a b → r' a b) (a : A) (c : C) :
-    Rel.comp r s a c → Rel.comp r' s a c :=
-  fun (h : Rel.comp r s a c) => Rel.comp_mono_left r r' s hr a c h
+    (r • s) a c → (r' • s) a c :=
+  fun (h : (r • s) a c) => Rel.comp_mono_left r r' s hr a c h
 
 -- 只放右边的**点式**形（S-B ✓ I.13）：`Rel.comp_mono_right` 的 λ 包装
 theorem Rel.comp_mono_right_apply {A B C : Type} (r : Rel A B) (s s' : Rel B C)
     (hs : ∀ (b : B) (c : C), s b c → s' b c) (a : A) (c : C) :
-    Rel.comp r s a c → Rel.comp r s' a c :=
-  fun (h : Rel.comp r s a c) => Rel.comp_mono_right r s s' hs a c h
+    (r • s) a c → (r • s') a c :=
+  fun (h : (r • s) a c) => Rel.comp_mono_right r s s' hs a c h
 
 -- 复合单调的**两步**形（S-B ✓ I.13）：`Rel.comp_mono` 两次
 theorem Rel.comp_mono_trans {A B C : Type} (r r' r'' : Rel A B) (s s' s'' : Rel B C)
     (hr : ∀ (a : A) (b : B), r a b → r' a b) (hr' : ∀ (a : A) (b : B), r' a b → r'' a b)
     (hs : ∀ (b : B) (c : C), s b c → s' b c) (hs' : ∀ (b : B) (c : C), s' b c → s'' b c) :
-    ∀ (a : A) (c : C), Rel.comp r s a c → Rel.comp r'' s'' a c :=
-  fun (a : A) (c : C) (h : Rel.comp r s a c) =>
+    ∀ (a : A) (c : C), (r • s) a c → (r'' • s'') a c :=
+  fun (a : A) (c : C) (h : (r • s) a c) =>
     Rel.comp_mono r' r'' s' s'' hr' hs' a c (Rel.comp_mono r r' s s' hr hs a c h)
 
 -- 两步形的**点式**版（S-B ✓ I.13）：`Rel.comp_mono_trans` 的 λ 包装
 theorem Rel.comp_mono_apply_trans {A B C : Type} (r r' r'' : Rel A B) (s s' s'' : Rel B C)
     (hr : ∀ (a : A) (b : B), r a b → r' a b) (hr' : ∀ (a : A) (b : B), r' a b → r'' a b)
     (hs : ∀ (b : B) (c : C), s b c → s' b c) (hs' : ∀ (b : B) (c : C), s' b c → s'' b c)
-    (a : A) (c : C) : Rel.comp r s a c → Rel.comp r'' s'' a c :=
-  fun (h : Rel.comp r s a c) => Rel.comp_mono_trans r r' r'' s s' s'' hr hr' hs hs' a c h
+    (a : A) (c : C) : (r • s) a c → (r'' • s'') a c :=
+  fun (h : (r • s) a c) => Rel.comp_mono_trans r r' r'' s s' s'' hr hr' hs hs' a c h
 
 -- 只放左边的两步点式形（S-B ✓ I.13）：`Rel.comp_mono_left` 两次 + λ 包装
 theorem Rel.comp_mono_left_apply_trans {A B C : Type} (r r' r'' : Rel A B) (s : Rel B C)
     (hr : ∀ (a : A) (b : B), r a b → r' a b) (hr' : ∀ (a : A) (b : B), r' a b → r'' a b)
-    (a : A) (c : C) : Rel.comp r s a c → Rel.comp r'' s a c :=
-  fun (h : Rel.comp r s a c) =>
+    (a : A) (c : C) : (r • s) a c → (r'' • s) a c :=
+  fun (h : (r • s) a c) =>
     Rel.comp_mono_left r' r'' s hr' a c (Rel.comp_mono_left r r' s hr a c h)
 
 -- 只放右边的两步点式形（S-B ✓ I.13）：`Rel.comp_mono_right` 两次 + λ 包装
 theorem Rel.comp_mono_right_apply_trans {A B C : Type} (r : Rel A B) (s s' s'' : Rel B C)
     (hs : ∀ (b : B) (c : C), s b c → s' b c) (hs' : ∀ (b : B) (c : C), s' b c → s'' b c)
-    (a : A) (c : C) : Rel.comp r s a c → Rel.comp r s'' a c :=
-  fun (h : Rel.comp r s a c) =>
+    (a : A) (c : C) : (r • s) a c → (r • s'') a c :=
+  fun (h : (r • s) a c) =>
     Rel.comp_mono_right r s' s'' hs' a c (Rel.comp_mono_right r s s' hs a c h)
 
 -- 逆关系单调的**两步**形（S-B ✓ I.13）：两次点式蕴含直接串起来
 theorem Rel.inv_mono_trans {A B : Type} (r r' r'' : Rel A B)
     (h : ∀ (a : A) (b : B), r a b → r' a b) (h' : ∀ (a : A) (b : B), r' a b → r'' a b) :
-    ∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r'' b a :=
-  fun (b : B) (a : A) (hba : Rel.inv A B r b a) => h' a b (h a b hba)
+    ∀ (b : B) (a : A), (r ⁻¹) b a → (r'' ⁻¹) b a :=
+  fun (b : B) (a : A) (hba : (r ⁻¹) b a) => h' a b (h a b hba)
 
 -- 两步形的**点式**版（S-B ✓ I.13）：`Rel.inv_mono_trans` 的 λ 包装
 theorem Rel.inv_mono_apply_trans {A B : Type} (r r' r'' : Rel A B)
     (h : ∀ (a : A) (b : B), r a b → r' a b) (h' : ∀ (a : A) (b : B), r' a b → r'' a b)
-    (b : B) (a : A) : Rel.inv A B r b a → Rel.inv A B r'' b a :=
-  fun (hba : Rel.inv A B r b a) => Rel.inv_mono_trans r r' r'' h h' b a hba
+    (b : B) (a : A) : (r ⁻¹) b a → (r'' ⁻¹) b a :=
+  fun (hba : (r ⁻¹) b a) => Rel.inv_mono_trans r r' r'' h h' b a hba
 
 -- 点式序在**逆**下不变（S-B ✓ I.13）：两向都靠定义展开 ✓
 theorem Rel.inv_mono_iff {A B : Type} (r r' : Rel A B) :
     (∀ (a : A) (b : B), r a b → r' a b) ↔
-      (∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a) :=
+      (∀ (b : B) (a : A), (r ⁻¹) b a → (r' ⁻¹) b a) :=
   Iff.intro
     (fun (h : ∀ (a : A) (b : B), r a b → r' a b) =>
-      fun (b : B) (a : A) (hba : Rel.inv A B r b a) => h a b hba)
-    (fun (h : ∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a) =>
+      fun (b : B) (a : A) (hba : (r ⁻¹) b a) => h a b hba)
+    (fun (h : ∀ (b : B) (a : A), (r ⁻¹) b a → (r' ⁻¹) b a) =>
       fun (a : A) (b : B) (hab : r a b) => h b a hab)
 
 -- 逆的逆保持点式序（S-B ✓ I.13）：两侧都是定义展开 ⇒ λ 直接给 ✓
 theorem Rel.inv_inv_mono {A B : Type} (r r' : Rel A B)
     (h : ∀ (a : A) (b : B), r a b → r' a b) :
-    ∀ (a : A) (b : B), Rel.inv B A (Rel.inv A B r) a b → Rel.inv B A (Rel.inv A B r') a b :=
-  fun (a : A) (b : B) (hab : Rel.inv B A (Rel.inv A B r) a b) => h a b hab
+    ∀ (a : A) (b : B), ((r ⁻¹) ⁻¹) a b → ((r' ⁻¹) ⁻¹) a b :=
+  fun (a : A) (b : B) (hab : ((r ⁻¹) ⁻¹) a b) => h a b hab
 
 -- 从逆上的单调**反推**原关系的单调（S-B ✓ I.13）：`Rel.inv_mono_iff` 的 `mpr` 方向
 theorem Rel.inv_mono_of_inv {A B : Type} (r r' : Rel A B)
-    (h : ∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a) :
+    (h : ∀ (b : B) (a : A), (r ⁻¹) b a → (r' ⁻¹) b a) :
     ∀ (a : A) (b : B), r a b → r' a b :=
   (fun (hh : (∀ (a : A) (b : B), r a b → r' a b) ↔
-      (∀ (b : B) (a : A), Rel.inv A B r b a → Rel.inv A B r' b a)) => Iff.mpr hh h)
+      (∀ (b : B) (a : A), (r ⁻¹) b a → (r' ⁻¹) b a)) => Iff.mpr hh h)
     (Rel.inv_mono_iff r r')
 
 -- 每个等价类**是**一个类（S-B ✓ I.13）：见证就是 `a` 自己 ✓ 逐点定义展开 ✓
@@ -362,7 +363,7 @@ theorem Rel.ofPartition_mem (α : Type) (P : (α → Prop) → Prop) (a b : α)
 -- `ofPartition` 的自反性（S-B ✓ I.13）：同块两点 ⇒ 自反，见证就是那一块 ✓
 theorem Rel.ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (A : α → Prop) (a : α)
     (hA : P A) (ha : A a) : Rel.ofPartition α P a a :=
-  Exists.intro (α → Prop) (fun (A' : α → Prop) => P A' ∧ A' a ∧ A' a) A
+  Exists.intro A
     (And.intro hA (And.intro ha ha))
 
 -- `ofPartition` 的对称性（S-B ✓ I.13）：见证那一块不变，两点对调 ✓
@@ -372,7 +373,7 @@ theorem Rel.ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
     Exists.elim (α → Prop) (fun (A : α → Prop) => P A ∧ A a ∧ A b)
       (Rel.ofPartition α P b a) hE
       (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
-        Exists.intro (α → Prop) (fun (A' : α → Prop) => P A' ∧ A' b ∧ A' a) A
+        Exists.intro A
           (And.intro (And.left hA)
             (And.intro (And.right (And.right hA)) (And.left (And.right hA))))))
     (Rel.ofPartition_mem α P a b h)
