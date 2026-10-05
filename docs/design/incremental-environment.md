@@ -366,7 +366,7 @@ pub(crate) struct ElabCtx<'a, 'b> {
 | `elab_expr` **已经**接收 `builder: &mut EnvBuilder<'a>` | `elab.rs:2913` |
 | `judge_infer` 是在 **`elab_expr` 的调用链内部**被调用的（10 处，全部持 `ctx: &ElabCtx`） | `elab.rs:1363`/`:1396`/`:2089`/`:3512`/`:4212`/`:4658`… |
 | `ElabCtx` **没有** builder 字段（只有 `prefix_src`/`options`/`inductives`/`ns`/`notations`/`defs`） | `elab.rs:445` |
-| `elab.rs` 里 `with_env` **用了 0 次** | `grep -c with_env elab.rs` = **0** |
+| `elab.rs` 里 `with_env` **用了 0 次**（**当时** ✓） | 现在 **2 处**（P1-a 就地路 `:2971`/`:3108` ✓）⇒ 本行按"当时"读 ✓，现状见 §32.3 |
 
 ⇒ 要让 `judge_infer` 用**当前环境**，就得让 `ElabCtx` 能拿到 builder 的环境；
 **但 `elab_expr` 已经可变借了那个 builder** ⇒ 同时再借一次是**借用冲突** ✗
@@ -552,6 +552,10 @@ impl<'a> EnvProvider for SnapshotProvider<'a> {
 而 `EnvBuilder` 的**公开 API 里没有任何"只读借出声明表"的口子**（实测：
 `pub fn` 列表里只有 `declaration_count(&self)` 与 `add_declar(&mut self)`；
 `hide_declars`/`restore_declars` 是**挪走/还回**，不是借出）。
+⚠ **这一句已过时** ✗（2026-10-05 对账 ✓）：后来**加了三个口子** —— `snapshot`（克隆一份
+`ExportFile`）· **`with_env`**（借出真 DAG 的 `ExportFile`，`elab.rs` 已用 **2 处** ✓）·
+**`with_env_scope`**（`(&Env, &mut EnvBuilder)` ✓，**零调用** ✗）；⇒ 本条按"当时没有"读 ✓，
+**现状**见 §32.3 ✓。
 
 ⇒ **要"就地 elaborate + 查快照环境"，必须同时持有"一个能写项的 builder"与"一份只读环境"**
 —— 而今天这两者**是同一个对象**（`EnvBuilder` 既持 `dag` 又持 `declars`，且 `declars` 私有）。
@@ -1229,6 +1233,9 @@ session 的入口趟 `prefix_src` **不含库层声明** ⇒ 入口里任何"问
 再定刀口」。结论：**两条路都够不着那 791 趟**，且**我据此推断的第三个刀口也是错的**。
 
 ### 30.1 那 791 趟走的是**主编译 pass**，不是增量会话（实测）
+
+> ⚠ **本节的"从不触发"是修前读数** ✓（2026-09-30）—— §30.5/§31 **把担保接到了主编译 pass** ⇒
+> 现在 `build` 路上**会**压栈 ✓（§0.1 的 **§3.C** 那一行 = 2.65× ✓）。机理与数字仍有效 ✓。
 
 | 路径 | 入口 | `TRUSTED_PREFIX` 压栈？ | 本课程命中 |
 |---|---|---|---|
