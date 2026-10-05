@@ -1840,11 +1840,23 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             },
         ) {
             Ok(e) => {
+                // **U2（2026-10-05 ✓）**：裸常量（不带 `.{n}` 的 `Ident`）⇒ 带上**签名源文本** ✓
+                // （渲染侧用它 ✓，见 `kernel_phase.rs` 的 `PendingOp::Check` 分支 ✓）。
+                // ⚠ 只在**渲染**上生效 ✓ —— 判定路径不动 ✓。
+                let sig = match expr {
+                    Expr::Ident { name, .. } => self
+                        .known
+                        .get(name.as_str())
+                        .and_then(|info| info.signature())
+                        .map(str::to_string),
+                    _ => None,
+                };
                 self.ops.push(PendingOp::Check {
                     expr: e,
                     env_at: env_before,
                     span: expr.span(),
                     cmd: idx,
+                    sig,
                 });
                 self.cmd_hovers.push(CmdHover {
                     env_at: env_before,

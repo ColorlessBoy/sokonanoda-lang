@@ -454,7 +454,21 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     env_at,
                     span,
                     cmd,
+                    sig,
                 } => {
+                    // **U2（2026-10-05 ✓）**：裸常量 ⇒ 直接渲**签名源文本** ✓
+                    // （`{A : Sort u} -> …` 层参数形式 ✓，对齐 Lean `#check` 的显示 ✓）。
+                    // ⚠ **只走渲染** ✓：不碰 `infer_closed_type`、不碰判定 ✓。
+                    if let Some(text) = sig {
+                        out.push_event(
+                            cmd,
+                            CheckEvent::TypeChecked {
+                                text: text.clone(),
+                                span,
+                            },
+                        );
+                        continue;
+                    }
                     // #check/#reduce 直通内核求值路径：panic（如对非函数应用）
                     // 必须降级为诊断，绝不能崩掉编译/LSP 进程。
                     // **G-71（0.81.0）**：`judge_infer_explicit` 期间把 pp 切成

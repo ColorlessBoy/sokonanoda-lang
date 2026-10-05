@@ -90,6 +90,12 @@ pub(crate) enum PendingOp<'a> {
         env_at: usize,
         span: Span,
         cmd: usize,
+        /// **U2（2026-10-05 ✓）**：`#check <裸常量>` 时带上**签名源文本** ✓ ——
+        /// 渲染**它**而不是实例化后的类型 ✓，因为裸写法的层被默认成 `0` ✗
+        /// ⇒ `#check Quot.lift` 会渲成 `{A r B : Prop}` ✗（**给用户的建议错** ✓ = G-63 ✓）。
+        /// **Lean 4 对照** ✓：`#check Quot.lift` 显示的是 `.{u, v}` **层参数形式** ✓。
+        /// ⚠ **只影响渲染** ✓ —— 判定路径一个字都不动 ✓（零行为变化 ✓）。
+        sig: Option<String>,
     },
     Reduce {
         expr: ExprPtr<'a>,
