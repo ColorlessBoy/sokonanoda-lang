@@ -170,10 +170,10 @@
       "tier": "spec"
     },
     "docs/design/incremental-environment.md": {
-      "expires": "2026-12-01",
+      "expires": "2027-10-05",
       "renewed": "2026-10-05",
       "tier": "spec",
-      "reason": "增量环境设计（并发写者新建，按判据⑧需登记；内容与本次 G-33 修复无关）"
+      "reason": "恢复误删文档（2026-10-05）：可增量扩展的环境（架构重改）的唯一权威 —— 阶段 0 接口设计 + §0 as-built 对账 + §31 §3.C 落地读数 + §32 as-built 接口更正"
     },
     "docs/design/kernel-taxonomy.md": {
       "expires": "2027-09-30",
