@@ -125,6 +125,17 @@
    **实现方 = `Walk`** ✓（`walk.rs` ✓，它持有 `EnvBuilder` ✓），**不必改 `elab.rs`** ✓。
    **最小切片**（设计 §5 ✓）：只改 `judge_infer`（大头 ✓；`judge_pairs` 留阶段 2 ✓）。
    **判据（§9.1 的 1c ✓）**：① judge 合成 pass **253513 → 接近 2647 量级** ② 真课程墙钟
+   ⚠⚠ **判据 ① 的基线已重基（2026-10-05 实测 ✓，**带构建身份** ✓ —— 旧数属另一份构建 ⇒ 不可比 ✗）**：
+   构建 = `target/release/sokonanoda` mtime **Oct 5 09:26:36** ✓；`SOKO_STAGE_STATS=1` 跑
+   `build --json courses/set-theory` ✓（**结构计数 ⇒ 与 load 无关** ✓）：
+   * **正常** ✓：`passes=**193**` · `by_calls=1657` · `judge_ms=9844` · `hits=1485` / `misses=112`
+     · **`fallbacks=0`** ✓✓（= 判据 ③ 的课程级读数，**在真课程上为 0** ✓）；
+   * **`SOKO_NO_JUDGE=1`** ✓：`passes=**161**` · `by_calls=1285` · `judge_ms=6734`。
+   ⇒ **judge 现在只占 `passes` 的 32/193 ≈ 17%** ✗（文档里的 **253513 / 4126→387 = 91%** ✗
+   是 **2026-09-29 的构建** ✓）⇒ **§9.1 ① 那条判据必须重基** ✓ ——
+   别拿旧数当基线 ✗（`AGENTS.md`「探针读数必须带构建身份」正是防这个 ✓）。
+   ⚠ 复现命令（一行 ✓）：`SOKO_STAGE_STATS=1 SOKO_NO_JUDGE=<空|1> SOKONANODA_CACHE_DIR=/tmp/k-base-<tag>
+   target/release/sokonanoda build --json courses/set-theory 2>&1 >/dev/null | grep ^STAGE_STATS` ✓。
    ⚠⚠⚠ **决策点已由设计文档定论（§0.2 #2 ✓，2026-10-05 对账 ✓）**：`EnvProvider` 是**死代码** ✗，
    **as-built 的接口不是它** ✓ —— 实际走 **`InplaceEnv`**（活 `&mut EnvBuilder` + `KnownTable`）
    + **`infer_type_text_inplace`**（`elab.rs:3016`，**`pub(crate)`** ✓ 可直接调 ✓），
