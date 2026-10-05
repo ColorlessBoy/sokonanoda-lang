@@ -63,16 +63,20 @@
 
 ### 0.3 引用本文的地方（改代码注释时照这张表 ✓）
 
-| 引用处 | 该指向 | 为什么 |
-|---|---|---|
-| `judge.rs`（`EnvProvider` 文档 / `judge_env_reuse_enabled`） | **§0.2 #2 + §32** / **§30.1** | as-built 不是 `EnvView` · "T-K11 只服务 LSP 增量会话" |
-| `compile/check/walk.rs`（`shadow` 字段 · `walk_real_add_enabled`） | **§8.1 + §32.3** | 两条旧注释说的"walk 不填环境/builder 被消费"**都不成立** ✗ |
-| `judge_env_vouch.rs` 头 | **§31**（§31.4 数字 · §31.2/§31.3 两个坑） | 本文**没有** §21.5/§21.6 |
-| `compile/check/mod.rs`（`closure_prefixes_for`）· `project/session.rs`（入口趟闭包前缀） | **§29.1 / §29.2** | 三次接线失败的同一根因 · 路乙修法 |
-| `project/mod.rs`（`assemble_from_session`） | **§21.2 + §24** | 切片 1 的接线口与可见性 |
-| `project/tests.rs`（`module_key` 守卫） | **§9.1**（阶段 1a 那一行） | 1a 的判据 |
-| `session_reuse.rs` | **§20.3** | 两条判据就在这个文件里 |
-| `lsp_keystroke_structure.rs` | **§1 + §0.2 #1** | O(N²) 机理在 §1、现状在 §0.2 |
+> ⚠ **末列 = 2026-10-05 的"引用内容"核对** ✓（**不只看锚点在不在** ✗，而是看"注释说的与那节说的
+> 是不是一回事" ✓）—— 9 个引用文件逐个核过：**8 处一致 ✓、1 处待改** ✗（见下第二行）。
+
+| 引用处 | 该指向 | 为什么 | 内容核对（2026-10-05 ✓） |
+|---|---|---|---|
+| `judge.rs`（`EnvProvider` 文档） | **§0.2 #2 + §32** | as-built 不是 `EnvView` | ✓（已按 as-built 改过 ✓）|
+| `judge.rs`（`judge_env_reuse_enabled`） | **§30.1** | "T-K11 只服务 LSP 增量会话" | ⚠ **待改** ✗ —— 第一段与**同一段的下一段**自相矛盾（§30.1 的 ⚠ 有详情 ✓）；**留给内核线** ✓（stash 含该文件 ✗）|
+| `compile/check/walk.rs`（`shadow` 字段 · `walk_real_add_enabled`） | **§8.1 + §32.3** | 两条旧注释说的"walk 不填环境/builder 被消费"**都不成立** ✗ | ✓（已改 ✓）|
+| `judge_env_vouch.rs` 头 | **§31**（§31.4 数字 · §31.2/§31.3 两个坑） | 本文**没有** §21.5/§21.6 | ✓ |
+| `compile/check/mod.rs`（`closure_prefixes_for`）· `project/session.rs`（入口趟闭包前缀） | **§29.1 / §29.2** | 三次接线失败的同一根因 · 路乙修法 | ✓（**且 `session.rs` 里路乙已落地** ✓ —— §29.2 的 ⚠ ✓）|
+| `project/mod.rs`（`assemble_from_session`） | **§21.2 + §24** | 切片 1 的接线口与可见性 | ✓ |
+| `project/tests.rs`（`module_key` 守卫） | **§9.1**（阶段 1a 那一行） | 1a 的判据 | ✓ |
+| `session_reuse.rs` | **§20.3** | 两条判据就在这个文件里 | ✓（它自己还写着"该切片已停" ✓）|
+| `lsp_keystroke_structure.rs` | **§1 + §0.2 #1** | O(N²) 机理在 §1、现状在 §0.2 | ✓ |
 
 ## 1. 根因（已定量，不再论证）
 
