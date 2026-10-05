@@ -51,12 +51,10 @@
      = **G-68 那条架构件**（§30.2 判过"位置不成立"：调用方的 builder 只覆盖到当前命令之前）。
    * ⚠ **真实课程不呈现它**（逐声明耗时平线 ✓）—— 但判据**不许**因此写成"已达标" ✗。
 2. **`EnvProvider` trait** —— **决策已定 = (a)** ✓（内核线 `edddbbae` + `787997f0` · 2026-10-05）：
-   **形状已按 as-built 改成 AST 形** ✓ `fn infer_type_text(&self, binder_srcs: &[(String, Expr)], operand: &Expr)`
-   （旧文本形与 `infer_type_text_inplace` 接不上 ⇒ 那是它零接线的原因之一 ✓）；**借用形态已定** ✓：
-   实现方用**内部可变性**（`RefCell`）把 `&mut InplaceEnv` 收在自己身上、trait 保持 `&self` ✓。
-   ⚠ **仍无真实现** ✗：`grep -rn "impl EnvProvider" crates/` = **1**，但那是**测试里的 `Fake`** ⇒ **死代码** ✓
-   （内核线写着"不写已修" ✓）。**第 2 步已落** ✓：加法式入口 `judge_infer_with_env(provider, …)` +
-   **文本 ⇒ AST 自己做**（= §0.2 #1 出路 ① ✓）、**无调用点 ⇒ 零行为变化** ✓；判据 = §32.3 四条。
+   **形状已按 as-built 改成 AST 形** ✓ `fn infer_type_text(&self, binder_srcs: &[(String, Expr)], operand: &Expr)`（`edddbbae`）；**入口/文本⇒AST 已落** ✓（`787997f0`：`judge_infer_with_env(provider, …)`，**无调用点 ⇒ 零行为变化** ✓）。
+   ⚠⚠ **但「`&self` + `RefCell`」那条借用形态已被内核线自己撤回** ✗（`5054ef50` · 读码实测 ✓）：`infer_type_text_inplace` **真的要改 builder**（`elab_expr`/`mk_lambda`/`with_env` ✓），而判定点**上游已持有 `&mut builder`** ⇒ **没有地方能塞 `RefCell`** ✗（**结构上不可能**）。
+   ⇒ **正解 = 重借链** ✓（`InplaceEnv::reborrow` 现成 · `elab.rs:2851`）：把 `&mut InplaceEnv` **顺调用链透传**到判定点（= §6 原计划的"**各处透传**" ✓，每处只加一个参数）；**`&self` 的 trait 形状本身要重设计** ✗（改闭包式 = §2 的 `with_project_session` 同款，或**不用 trait**、把判定点放进 walk 的借出窗口）。
+   ⚠ **仍无真实现** ✗（`grep -rn "impl EnvProvider" crates/` = **1**，但那是**测试里的 `Fake`** ⇒ 死代码 ✓）；判据 = §32.3 四条。
 3. **G-68 切片 1（按 `module_key` 复用产物）已停** —— §27.2/§28：并集 session 与 **per-entry 前缀**冲突，
    等价类分组只值 **2.28×** 且省不了趟数；`session_reuse.rs` 的正向守卫仍 `#[ignore]`（**不是待办** ✓）。
 4. **G-29 剩下的 8 趟**：全是 `on-elab-operand`（记法 `∅` → `Set.empty` 补不出前导类型参数）= **语言层限制**（G-62 家族）⇒ 到范围边界 ✓。
@@ -184,7 +182,7 @@ pub(crate) struct ElabCtx<'a, 'b> {
 
 ## 6. 依赖文件清单（阶段 1）
 
-> ⚠ **本清单未按此落地** ✗（2026-10-05 对账）：`EnvView` / `ElabCtx.env_view` 全仓零出现 ⇒ as-built 见 **§0 + §32**；**下面的「已知坑」仍然有效** ✓（它们讲的是 `with_env` / 指针同一性 / `decl_idx` 的**机制**，与接口形状无关）。
+> ⚠ **本清单未按此落地** ✗（2026-10-05 对账）：`EnvView` / `ElabCtx.env_view` 全仓零出现 ⇒ as-built 见 **§0 + §32**；⚠ **但"各处透传"这条思路正被重新采用** ✓（内核线 `5054ef50` 的**重借链** = §0.2 #2）；**下面的「已知坑」仍然有效** ✓（讲的是 `with_env` / 指针同一性 / `decl_idx` 的**机制**，与接口形状无关）。
 
 | 文件 | 改动 | 风险 |
 |---|---|---|
@@ -1417,7 +1415,7 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | **1** | 判定点接**就地环境**（`InplaceEnv`）—— 即 P1-a / P1-b | ✅ **已落地**（§0.1） |
-| **2** | **`judge_pairs` 的合成编译复用调用方环境**（G-92 终局）—— 需要"同一 DAG 上既能写新项、又能读已落地声明"（§18 的 **K-2** = G-68 架构件），**或**给就地路加「文本 ⇒ AST」入口 | 🟡 **第 1/2 步已落**（`edddbbae` 形状 + `787997f0` 入口与文本⇒AST）· **真 provider 未接**（等 `elab.rs` 收口）· 合成编译那一刀未做（§0.2 #1） |
+| **2** | **`judge_pairs` 的合成编译复用调用方环境**（G-92 终局）—— 需要"同一 DAG 上既能写新项、又能读已落地声明"（§18 的 **K-2** = G-68 架构件），**或**给就地路加「文本 ⇒ AST」入口 | 🟡 **第 1/2 步已落**（`edddbbae` 形状 + `787997f0` 入口与文本⇒AST）· ⚠ **借用形态那版决定已撤回** ✗（`5054ef50`：正解 = **重借链**，见 §0.2 #2）· ⚠ 「等 `elab.rs`」**也作废** ✗（`4414c05e`：`walk.rs` 自己构造 `ElabCtx` ⇒ 真实阻塞是**借用**不是文件锁）· 真 provider 未接 · 合成编译那一刀未做（§0.2 #1） |
 | **3** | 并行下的环境复用（§5 原表那一行） | ❌ 未动 |
 
 **阶段 2 的判据（缺一不算）**：① G-92 repro 的 `by_calls` 比值 **< 3.0**（线性 ≈ 2.0）；
@@ -1436,3 +1434,6 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 **(i) pass 借 builder**（`Walk.builder` 改 `&mut` ⇒ `run_pass_with` 加**借用变体**；按值收发是 `session` 的依赖，不能删 ✗）；
 **(ii) 内核加 `EnvBuilder::fork()`**（**同 arena + 克隆 intern 表** —— arena 是 interner 的**参数**、不归 DAG 所有 ⇒ 既有指针同一性保住 ✓；⚠ 但 fork 里新 intern 的字面量会在共享 arena 造出 live 表不认识的节点 ⇒ live 之后 intern 同一个值会**造第二份** ✗（`NatLit` 按指针比较 ⇒ 假失败，与 `snapshot()` 那条 ⚠ 同族）⇒ 还要 `absorb()` 合并口，**面不比 (i) 小**）。
 ⇒ **两条都是架构件** ✗：先出一轮设计 + 一条**指针同一性单测**，判据照 §32.3（**先建先红** ✓）。
+⚠ **与判定点那条缝区分开** ✓（别混 ✗）：本节讲**合成编译**（`judge_pairs`）怎么拿到活环境；
+**判定点**（`infer`）那条缝 = §0.2 #2 的**重借链** ✓ —— 两条**同族**（都是把 `&mut` 透传到借出窗口 ✓），
+但落点不同（`check/mod.rs`+`walk.rs` vs `elab.rs` 的调用链）⇒ 可以**各自独立落地** ✓。
