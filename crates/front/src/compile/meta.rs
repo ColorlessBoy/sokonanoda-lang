@@ -102,6 +102,65 @@ pub(crate) fn level_occurs_in_text(target: u32, text: &str) -> bool {
     false
 }
 
+/// **U1 第 3 片（2026-10-05）**：层元变量的**赋值**（对齐 Lean `LevelDefEq.solve` 的
+/// `!u.occurs v ⇒ assign u := v` 那一条 ✓）。
+///
+/// **Lean 4 对照** ✓（本机源码 HEAD `d0493e4c1e` ✓，`Meta/LevelDefEq.lean:90-125` ✓）：
+/// ```
+/// | Level.mvar mvarId, _ =>
+///     if readOnly ⇒ undef
+///     else if !u.occurs v ⇒ assign u := v; true       ← **本片落的这一条** ✓
+///     else if v.isMax && !strictOccursMax u v ⇒ solveSelfMax …   ← **推迟** ✗
+///     else ⇒ undef
+/// ```
+///
+/// ⚠ **推迟的两档（白纸黑字）** ✗：`solveSelfMax`（`?m =?= max ?m v` ⇒ fresh `?n` + `?m := max ?n v` ✓）
+/// 与 `tryApproxSelfMax` 都要**解析**层文本 ✗ —— 我们的 `Level` 是**文本**不是结构 ✓
+/// （Lean 是 `Level.mvar`/`max`/`succ` 结构 ✓）⇒ 留到 U1 后续片或 U2 ✓。
+///
+/// 返回值：`Ok(())` 赋值成功 ✓ · `Err(())` **弃权**（occurs 命中 ⇒ 不许赋值 ✗，对齐 `LBool.undef` ✓）。
+#[allow(dead_code)] // U1 第 5 片（接线到 Sort/Level 路径）会用
+pub(crate) fn level_assign(
+    values: &mut Vec<Option<String>>,
+    id: u32,
+    text: &str,
+) -> Result<(), ()> {
+    if level_occurs_in_text(id, text) {
+        // **occurs 命中 ⇒ 拒** ✗（`u := u + 1` 会让 zonk 不终止或给错值 ✓）。
+        return Err(());
+    }
+    let i = id as usize;
+    if values.len() <= i {
+        values.resize(i + 1, None);
+    }
+    values[i] = Some(text.to_string());
+    Ok(())
+}
+
+/// 层文本的 **zonk**：把已赋值的层元变量代进文本（有界迭代，链式赋值 ✓）。
+///
+/// ⚠ **有界**（`LEVEL_ZONK_MAX` ✓）：与项元变量的 `zonk` 同款纪律 ✓ —— 环由 `level_assign`
+/// 的 occurs 闸**从源头**挡住 ✓，这里的上界是**兜底** ✓（真出环也不会挂死 ✓）。
+#[allow(dead_code)] // U1 第 5 片会用
+pub(crate) fn level_zonk_text(values: &[Option<String>], text: &str) -> String {
+    const LEVEL_ZONK_MAX: usize = 32;
+    let mut cur = text.to_string();
+    for _ in 0..LEVEL_ZONK_MAX {
+        let mut changed = false;
+        for (i, v) in values.iter().enumerate() {
+            let Some(val) = v else { continue };
+            if level_occurs_in_text(i as u32, &cur) {
+                cur = cur.replace(&level_name(i as u32), val);
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    cur
+}
+
 /// 元变量 id（**只在一次求解内有效**，不跨调用、不进项）。
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) struct MetaId(pub u32);
@@ -217,6 +276,15 @@ pub(crate) struct MetaStore {
     mvars: Vec<MVar>,
     /// 待定约束（`Undef` 的叶子自己压进来；`unify_all` 重扫到不动点）
     postponed: Vec<(Expr, Expr)>,
+    /// **层元变量的赋值表**（U1 第 3 片 ✓）—— `level_values[id] = Some(层文本)` ✓。
+    ///
+    /// ⚠ **表示差异（白纸黑字）** ✗：Lean 的 `Level` 是**结构化**的（`Level.mvar`/`max`/`succ` ✓），
+    /// 我们的是**文本**（源 AST 的 `SortKind::Level(String)` ✓）⇒ 本片只落**核心档** ✓：
+    /// `?u := <文本>` ✓（`occurs` 闸用第 1 片的 `level_occurs_in_text` ✓）；
+    /// ⚠ **`max` 两档推迟** ✗（`solveSelfMax` / `tryApproxSelfMax` 要**解析**层文本 ✓，
+    /// 而层文本的解析器今天在前端的 `level_ptr` 里、是**内核层指针**那一侧 ✗）。
+    #[allow(dead_code)] // U1 第 5 片（接线）才读；本片只有单测用
+    pub(crate) level_values: Vec<Option<String>>,
     /// **宇宙约束**（U1 第 2 片 ✓；§4 的 #6 行：「`postponed` 含宇宙约束，**U1 起分表**」✓）。
     ///
     /// ⚠ **为什么分表** ✗：项约束与层约束的**求解时机不同** ✓ —— 层约束要
@@ -1341,5 +1409,40 @@ mod tests {
             store.postponed.is_empty(),
             "宇宙约束**不许**混进 `postponed` ✗（§4 #6 要求分表 ✓）"
         );
+    }
+
+    /// **U1 第 3 片（2026-10-05）**：层元变量的**赋值**与 **zonk**（对齐 Lean `solve` 的核心档）✓。
+    ///
+    /// 判据四条，**都要能咬** ✗：
+    /// ① **occurs 命中 ⇒ 拒** ✓（`?u := ?u + 1` 必须被挡 ✗ —— 没有这条 `zonk` 会不终止/给错值 ✓）；
+    /// ② 正常赋值 ⇒ `Ok` ✓，且 `level_zonk_text` **代进去** ✓；
+    /// ③ **链式**赋值 ✓（`?u := ?v` 且 `?v := 0` ⇒ zonk 到 `0` ✓）；
+    /// ④ **未赋值的保持原样** ✓（zonk 不许把没赋值的层名抹掉 ✗）。
+    ///
+    /// ⚠ **反向验证**：把 `level_assign` 的 occurs 闸去掉 ⇒ 第 ① 条**判红** ✗。
+    #[test]
+    fn level_assign_and_zonk_bite() {
+        let mut vals: Vec<Option<String>> = Vec::new();
+        let u = level_name(0);
+        let v = level_name(1);
+        // ① occurs 命中 ⇒ 拒 ✓。
+        assert!(
+            level_assign(&mut vals, 0, &format!("{u}+1")).is_err(),
+            "`?u := ?u+1` 必须被拒 ✗（occurs 闸 ✓）"
+        );
+        assert!(vals.is_empty() || vals[0].is_none(), "被拒的赋值**不许**写进表 ✗");
+        // ② 正常赋值 + zonk ✓。
+        assert!(level_assign(&mut vals, 0, "2").is_ok(), "普通赋值该成功 ✓");
+        assert_eq!(level_zonk_text(&vals, &u), "2", "赋过的层名必须被代进去 ✓");
+        // ③ 链式 ✓。
+        assert!(level_assign(&mut vals, 1, &u).is_ok(), "`?v := ?u` 该成功 ✓");
+        assert_eq!(
+            level_zonk_text(&vals, &v),
+            "2",
+            "链式赋值必须 zonk 到底 ✓（`?v := ?u` 且 `?u := 2` ⇒ `2` ✓）"
+        );
+        // ④ 未赋值的保持原样 ✓。
+        let w = level_name(9);
+        assert_eq!(level_zonk_text(&vals, &w), w, "没赋值的层名**不许**被抹掉 ✗");
     }
 }
