@@ -182,6 +182,17 @@
    ⇒ **借用冲突** ✓，与设计 §6 警告的「`with_env` 期间 builder 被挪走、回调里不许再碰」同族 ✓
    ⇒ 先定借用形态（文档 §2：环境句柄是**借用**不是新类型 ✓ + 闭包式 API `with_project_session` ✓）
    再动代码 ✓。
+   ❌ **"被 `elab.rs` 挡住"这条已作废** ✗（2026-10-05 实测更正 ✓ —— 我连报了 4 轮 ✗）：
+   `crates/front/src/compile/check/walk.rs:761` **自己就在构造 `ElabCtx`** ✓
+   （`inductives: &self.inductives` ✓ · `defs: &defs_for_ctx` ✓ · `ns`/`options`/`prefix_src` ✓）
+   ⇒ **本片不需要改 `elab.rs`** ✓（那个文件只是**顺带**要透传 ✓，不是前置 ✗）。
+   ✅ **真实阻塞是技术性的（借用）** ✓，不是文件锁 ✗：`Walk` **自己持有 `EnvBuilder`** ✓
+   （`walk.rs:117` 的 `Walk` ✓），而判定调用发生在它**自己的 elaborate 里** ✓ ⇒ 那一刻 builder
+   **已被可变借走** ✗，而 `infer_type_text_inplace` 要 **`&mut InplaceEnv`** ✗
+   ⇒ 正是设计 **§6** 那条「`with_env` 期间 builder 被挪走、回调里不许再碰」✓。
+   ⇒ **下一棒的正解方向** ✓（设计 §2 已给 ✓）：**闭包式 API**（`with_project_session` ✓）——
+   让判定在**借出窗口内**发生 ✓，而不是把 `&mut` 塞进 `&self` 的 trait 里 ✗。
+   ⚠ **不许**再把「等 `elab.rs` 收口」当理由 ✗（那条已证伪 ✓）。
    ⚠ **真实阻塞（本轮实测 ✓）**：as-built 的机器在 **`crates/front/src/compile/elab.rs`** ✓
    —— 而它**正由另一条线在改** ✗（`git status` 5 个在飞文件 ✓）⇒ **本片开工前必须等它收口** ✗
    （或与它约定：`elab.rs` 归它、`judge.rs`/`walk.rs` 归本片 ✓）。
