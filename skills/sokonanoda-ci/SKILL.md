@@ -84,6 +84,35 @@ auto-tag 自己幂等：tag 已存在就跳过）。
 **纪律**：先 `gh run view <id> --json jobs` 看**当前 step 与已完成 step**（这不消耗那轮），
 只有确认它长时间停在同一 step 且无进展才考虑取消，并在 `STATUS.md` 写明原因 ✓。
 
+## 1.9 ⭐ **推完就盯 job 级：哪条红了就立刻修**（2026-10-06 用户拍板）
+
+> 用户原话：「**github action 中间环节已经有红了就开始修，不要等了**」「这条规则应该固化到
+> 开发流程里，现在开发进度 99% 的时间都在等测试，太浪费时间了」。
+
+**规则**：push 之后**不要**等整轮跑完 ✗ —— 每 1–2 分钟看一次**已完成的 job**，哪条红了就
+**当场取证 + 动手**，没红的继续跑 ⇒ 两条线并行 ✓。
+
+```bash
+gh run list --workflow=ci.yml --limit 1 --json databaseId --jq '.[0].databaseId'   # 拿 run id
+gh run view <id> --json jobs --jq '.jobs[] | "\(.name)\t\(.status)\t\(.conclusion // "-")"'
+# 红了的 job ⇒ 立刻取证（**不必等整轮**）：
+gh run view --job <job-id> --log | grep -E "FAILED|panicked|##\[error\]"   # 进行中也拿得到 ✓
+# 拿不到日志时用失败 artifact（每个 test 腿失败都传 `cargo-test-log` ✓）：
+gh api repos/<owner>/<repo>/actions/runs/<id>/artifacts --jq '.artifacts[] | "\(.id) \(.name)"'
+gh api repos/<owner>/<repo>/actions/artifacts/<artifact-id>/zip > /tmp/a.zip && unzip -o -q /tmp/a.zip -d /tmp/a
+```
+
+⚠ **两个坑**（都实测过）：
+* `gh run view <id> --log-failed` 在 run **还没结束**时**取不到**（"logs will be available when it
+  is complete"）✗ —— 但 **`--job <job-id> --log` 对已完成的 job 可以** ✓（本会话就是这么拿到
+  clippy / test 腿的失败原文的）；
+* `fast-fail` 会把后面的重活 **cancel** 掉 ⇒ 整轮结论显示 `cancelled` ✗，**别读成"被新推顶掉"**
+  ✓ —— 看 `lint-clippy` 之类的**具体 job** 才知道真因（2026-10-06 实测：clippy 红 ⇒ test /
+  gates-course / e2e / **auto-tag 全 skip** ⇒ tag 没打、release 没触发）。
+
+**为什么**：等整轮 = 白等 **30–35 分钟**（三平台矩阵），而红项在**头几分钟**就出来了
+（lint/clippy/契约这些快 job 先完成）⇒ 早修一轮就少烧一整轮 CI ✓。
+
 ## 2. 触发与监控
 
 ```bash
