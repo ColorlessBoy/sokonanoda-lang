@@ -22,6 +22,6 @@ if [ "$rc" -eq 0 ]; then
   printf '%s\n' "$out" | tail -1
   exit 1
 fi
-echo "✗ 第一屏判据判红（rc=$rc）⇒ 缺口仍在 / 行为回退" >&2
+echo "✗ 第一屏判据判红（rc=${rc}）⇒ 缺口仍在 / 行为回退" >&2
 printf '%s\n' "$out" | tail -4 >&2
 exit 0

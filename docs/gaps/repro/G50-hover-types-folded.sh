@@ -21,6 +21,6 @@ if [ "$rc" -eq 0 ]; then
   echo "✓ $TEST 通过（hover 的类型面已过显示层折叠）⇒ G-50 已修（行为已变）"
   exit 1
 fi
-echo "✗ $TEST 判红（rc=$rc）⇒ 缺口仍在 / 行为回退：hover 的类型面又不是折叠过的形式了" >&2
+echo "✗ $TEST 判红（rc=${rc}）⇒ 缺口仍在 / 行为回退：hover 的类型面又不是折叠过的形式了" >&2
 printf '%s\n' "$out" | grep -E "^test |panicked|assertion" | tail -5 >&2
 exit 0

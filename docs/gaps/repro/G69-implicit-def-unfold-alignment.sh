@@ -63,5 +63,5 @@ if [ "$bad" = "0" ] && [ "$good" = "0" ]; then
   echo "G-69 已修：派生假设也能解出隐式参数 ✓" >&2
   exit 1
 fi
-echo "G-69：形状异常（derived=$bad explicit=$good）" >&2
+echo "G-69：形状异常（derived=$bad explicit=${good}）" >&2
 exit 2

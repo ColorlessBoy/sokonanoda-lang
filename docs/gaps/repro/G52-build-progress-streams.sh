@@ -24,6 +24,6 @@ if [ "$rc" -eq 0 ]; then
   printf '%s\n' "$out" | tail -1
   exit 1
 fi
-echo "✗ 扩展宿主 stub 套件判红（rc=$rc）⇒ 缺口仍在 / 行为回退" >&2
+echo "✗ 扩展宿主 stub 套件判红（rc=${rc}）⇒ 缺口仍在 / 行为回退" >&2
 printf '%s\n' "$out" | grep -E "^not ok|^ *[0-9]+/[0-9]+ passed" | tail -5 >&2
 exit 0

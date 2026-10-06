@@ -19,7 +19,7 @@ for TEST in refine_kernel_kind_internal_shapes_stay_kernel_internal \
   out="$(timeout 1200 cargo test -p sokonanoda-front --lib "$TEST" --locked 2>&1)"
   rc=$?
   if [ "$rc" -ne 0 ]; then
-    echo "✗ $TEST 判红（rc=$rc）⇒ 缺口仍在 / 行为回退" >&2
+    echo "✗ $TEST 判红（rc=${rc}）⇒ 缺口仍在 / 行为回退" >&2
     printf '%s\n' "$out" | grep -E "^test |panicked|assertion" | tail -4 >&2
     failed=1
   else

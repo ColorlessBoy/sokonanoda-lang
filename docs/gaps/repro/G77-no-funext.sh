@@ -15,7 +15,7 @@ cd "$ROOT" || exit 2
 node scripts/soko query check --file "$ROOT/courses/set-theory/units/solutions/I.12/unit44-solution.sokonanoda" >/dev/null 2>&1
 rc=$?
 if [ "$rc" -ne 0 ]; then
-  echo "环境不满足：单元㊹ 解答没判绿（rc=$rc）"
+  echo "环境不满足：单元㊹ 解答没判绿（rc=${rc}）"
   exit 2
 fi
 echo "外延可用（`lib.Extensionality` 的 funext/propext + 单元㊹ 的等式证明判绿）"

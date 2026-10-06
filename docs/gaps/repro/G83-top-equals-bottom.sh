@@ -44,8 +44,15 @@ line="$(printf '%s\n' "$out" | grep -E '^开放声明 ' | tail -1)"
 bad="$(printf '%s' "$line" | sed -E 's/.*顶≠底 ([0-9]+).*/\1/')"
 
 if [ "$bad" = "0" ]; then
-  echo "✓ G-83：全量开放声明 顶 ≡ 底（$line）⇒ 已修"
+  # ⚠ **`${line}` 必须带花括号**（2026-10-07 实测 ✗→✓）：原先写的是不带花括号的
+  #   `$line` **紧跟全角 `）`**，而
+  #   `）` 的 UTF-8 是 `EF BC 89` ⇒ **bash 3.2（macOS `/bin/bash`）把首字节 `EF`
+  #   吃进变量名** ⇒ 在 `set -u` 下报 `line<0xEF>: unbound variable` ✗ —— 这条
+  #   错误信息**本身不是合法 UTF-8** ⇒ `gap.py` 的 `text=True` 严格解码**当场崩**
+  #   （`UnicodeDecodeError: byte 0xef in position 116`）✗ ⇒ 缺口明明已修，
+  #   `close` 却**永远关不掉**。花括号把名字边界钉死 ⇒ 与 locale/bash 版本无关 ✓。
+  echo "✓ G-83：全量开放声明 顶 ≡ 底（${line}）⇒ 已修"
   exit 1
 fi
-echo "✗ G-83：缺口仍在 —— $line" >&2
+echo "✗ G-83：缺口仍在 —— ${line}" >&2
 exit 0

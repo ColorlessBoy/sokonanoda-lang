@@ -48,7 +48,7 @@ EOF
 out="$("$BIN" query state --file "$WORK/m.sokonanoda" --line 7 --col 1 2>&1)"
 rc=$?
 if [ "$rc" -ne 0 ]; then
-  echo "G-80: query state 失败（rc=$rc）⇒ 环境/形状变了：$(printf '%s' "$out" | head -c 120)" >&2
+  echo "G-80: query state 失败（rc=${rc}）⇒ 环境/形状变了：$(printf '%s' "$out" | head -c 120)" >&2
   exit 2
 fi
 
