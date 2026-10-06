@@ -18,6 +18,6 @@ if [ "$rc" -ne 0 ]; then
   echo "环境不满足：单元㊹ 解答没判绿（rc=${rc}）"
   exit 2
 fi
-echo "外延可用（`lib.Extensionality` 的 funext/propext + 单元㊹ 的等式证明判绿）"
+echo "外延可用（\`lib.Extensionality\` 的 funext/propext + 单元㊹ 的等式证明判绿）"
 echo "⇒ G-77 是误报，缺口不成立"
 exit 1

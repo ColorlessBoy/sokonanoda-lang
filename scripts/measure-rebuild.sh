@@ -35,7 +35,7 @@ if [ ! -x "$BIN" ] && [ -z "${SOKONANODA_BIN:-}" ]; then
   exit 3
 fi
 ROOT="$PWD/courses/set-theory"
-[ -x "$BIN" ] || { echo "找不到可执行的 CLI：$BIN（先 cargo build，或设 SOKONANODA_BIN）" >&2; exit 2; }
+[ -x "$BIN" ] || { echo "找不到可执行的 CLI：${BIN}（先 cargo build，或设 SOKONANODA_BIN）" >&2; exit 2; }
 [ -d "$ROOT" ] || { echo "找不到课程根：$ROOT" >&2; exit 2; }
 
 DEFAULT_ENTRIES=(

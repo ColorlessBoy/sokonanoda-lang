@@ -28,7 +28,7 @@ for TEST in refine_kernel_kind_internal_shapes_stay_kernel_internal \
 done
 
 if [ "$failed" -eq 0 ]; then
-  echo "✓ 两条判据都过（裸断言已归类成稳定 code `kernel-internal` + 专属 hint）⇒ G-09 已修（行为已变）"
+  echo "✓ 两条判据都过（裸断言已归类成稳定 code \`kernel-internal\` + 专属 hint）⇒ G-09 已修（行为已变）"
   exit 1
 fi
 exit 0

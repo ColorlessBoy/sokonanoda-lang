@@ -20,7 +20,7 @@ out="$(timeout 900 node editor/vscode/test-extension-host.js 2>&1)"
 rc=$?
 
 if [ "$rc" -eq 0 ]; then
-  echo "✓ 扩展宿主 stub 套件全绿（含 `build/rebuild target the project root, not the active file (E22)`）⇒ G-51 已修（行为已变）"
+  echo "✓ 扩展宿主 stub 套件全绿（含 \`build/rebuild target the project root, not the active file (E22)\`）⇒ G-51 已修（行为已变）"
   printf '%s\n' "$out" | tail -1
   exit 1
 fi

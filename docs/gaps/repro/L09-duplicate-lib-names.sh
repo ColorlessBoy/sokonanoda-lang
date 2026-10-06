@@ -14,7 +14,7 @@ cd "$ROOT" || exit 2
 bash courses/set-theory/tools/check-lib-closure.sh >/dev/null 2>&1
 rc=$?
 if [ "$rc" -eq 0 ]; then
-  echo "lib 闭包 OK ⇒ L-09 已修（重名的那份 `Set.pi` 已删；守卫：tools/check-lib-closure.sh）"
+  echo "lib 闭包 OK ⇒ L-09 已修（重名的那份 \`Set.pi\` 已删；守卫：tools/check-lib-closure.sh）"
   exit 1
 fi
 if [ "$rc" -eq 2 ]; then echo "环境不满足"; exit 2; fi

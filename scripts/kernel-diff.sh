@@ -220,7 +220,7 @@ if [ "$NON_COURSE" = 0 ]; then
     a="$(printf '%s\n' "$src" | "$AFTER" - 2>&1)"; ca=$?
     if [ "$b" != "$a" ] || [ "$cb" != "$ca" ]; then
       DIFFS=$((DIFFS + 1))
-      [ "${#FIRST_DIFFS[@]}" -lt 5 ] && FIRST_DIFFS+=("stdin「$src」")
+      [ "${#FIRST_DIFFS[@]}" -lt 5 ] && FIRST_DIFFS+=("stdin「${src}」")
     fi
   done
 fi
