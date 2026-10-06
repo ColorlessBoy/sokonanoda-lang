@@ -22,6 +22,19 @@
 #   ② 其余（失败 / 已证）：`decl_prefix_state()` **只剥源位 λ 链的绑元**（= 声明里写的
 #      **具名绑元**），不再剥整条 ∀ 望远镜 ✓。
 #
+# ── 第二条病根（2026-10-06 收口 · 上面那条修完后**还剩 2 处**顶≠底）──
+#   残留形状**同一条**：目标里含 `⋃₀`/`⋂₀`（`lib/SUnion.sokonanoda:78-79` 的
+#   `prefix:100`）**且**语句本身是 Π ⇒ 底只剩 ASCII `->`、顶是 `→` ✓。
+#   病根在**建表那条缝**（`QueryDoc::compute_display`）：它原先对闭包里每个模块
+#   **独立** `parse`（空继承表 ✗）⇒ **用了依赖记法**的模块整份 parse 失败
+#   （`lib/SUnion` 用 `lib/Exists` 的 `∃` ✗）⇒ 它声明的记法一条都进不了表
+#   ⇒ 目标文本在 `print_back` 里**整段折不动**（parse 失败 ⇒ 原样返回 ✓）。
+#   修法：`compute_display` 改成与闭包加载器（`project/graph.rs`）**同一条路**
+#   —— 拓扑序 + 每个模块**直接依赖**的导出表（`parse_with_inherited` ✓）⇒
+#   两张表（走查 `compile::display_notations(units)` vs 查询）同源 ⇒ 顶 ≡ 底 ✓。
+#   **常驻判据**：`front::query::tests::root_state_equals_the_declaration_card_when_
+#   the_goal_uses_an_inherited_prefix_notation`（自足夹具 · 撤掉修复 ⇒ 判红 ✓）。
+#
 # ── 判据（本脚本 `--criteria`）──
 #   扫 `courses/set-theory/units/**` 的**全部** open 声明（画布 + 解答），逐个断言
 #     顶（`query state`，光标在声明起始行 = 第一条 tactic 之前）的
@@ -34,6 +47,11 @@
 # ── 反向验证（用户立的回测铁律）──
 #   `SOKO_STATE_ROOT=legacy`（撤掉根状态修复的逃生门）⇒ 同一套判据必须**判红** ✓
 #   （`scripts/expect-red.sh` 表达 ✓，随台账重放一起跑 ✓）。
+#   ⚠ **这一趟跑子集**（`G81_LIMIT=24`，主判据那趟仍全量 ✓）：`legacy` 是**全局**
+#   开关（实测 470 条里 452 条当场判红 ✓）⇒ 24 个画布是忠实见证；全量两趟 ≈ 5 分钟
+#   ⇒ 撞 `gap.py` 的 300s ⇒ 关账被拒 + 门禁空转（实测连红两次 ✗）。**断言代码逐字未改** ✓。
+#   第二条反向验证（本轮新修的那条缝）：撤掉 `compute_display` 的修复 ⇒ 常驻判据
+#   `front::query::tests::root_state_equals_…prefix_notation` 判红 ✓（0.03s，无逃生门）。
 #
 # 退出码约定（`docs/gaps/README.md`）：0 = 缺口仍在   1 = 行为已变（已修）   2 = 环境不满足
 set -uo pipefail
@@ -64,8 +82,22 @@ files = [
     for f in sorted(glob.glob(os.path.join(units, "**", "*.sokonanoda"), recursive=True))
     if os.sep + "solutions" + os.sep not in f
 ]
-if len(files) < 80:
-    print(f"✗ 只扫到 {len(files)} 个画布文件（预期 >=80）⇒ 环境/形状变了", file=sys.stderr)
+# **子集闸 `G81_LIMIT=N`**（2026-10-06 收口）：只扫前 N 个画布 —— **只给反向
+# 验证那一趟用** ✓。主判据那趟**永远全量**（`G81_LIMIT` 不设 ⇒ 下面按 >=80 守卫 ✓）。
+#
+# 为什么要有它（实测连红两次 ✗）：全量**两趟**在这台机器上 ≈ 5 分钟 ⇒ 撞 `gap.py`
+# 的 `REPRO_TIMEOUT_S`（300s）⇒ ① 关账被**拒绝**（`cmd_close` 对 timeout 直接 return 1 ✗）；
+# ② 门禁每轮白等 300s 之后把这条**响亮跳过**（= 守卫空转 ✗）。而
+# `SOKO_STATE_ROOT=legacy` 是**全局**开关 —— 它对**每一条** open 声明都同样地
+# 破坏「顶 ≡ 底」（实测 470 条里 452 条当场判红 ✓）⇒ **24 个画布是忠实的见证** ✓，
+# 不必跑满 113 个。主判据（全量）与子集里的**断言代码逐字相同** ✓（只换文件表）。
+# 子集**不许空转**：`checked == 0` ⇒ 判红（见下 ✓）。
+limit = int(os.environ.get("G81_LIMIT", "0") or "0")
+if limit > 0:
+    files = files[:limit]
+min_files = limit if limit > 0 else 80
+if len(files) < min_files:
+    print(f"✗ 只扫到 {len(files)} 个画布文件（预期 >= {min_files}）⇒ 环境/形状变了", file=sys.stderr)
     sys.exit(2)
 
 
@@ -154,12 +186,17 @@ for path, b, c, pq, names, sk in results:
         seen_unit109 |= names
 
 print(f"  · 扫描 {len(files)} 个画布 · 断言 {checked} 条 open 声明（其中语句含 Π 的 {pi_checked} 条；Π 类**全部**在断言内 ✓，非 Π 每 3 条取 1 作对照 ✓）；另有 {skipped} 条底无 goal ⇒ 跳过（已闭合/占位，无可比对题面 ✓）")
-need = {"ordinal_rec_nat_eq", "ordinal_rec_nat_unique", "addsTo_zero", "addsTo_succ"}
-missing = need - seen_unit109
-if missing:
-    bad.append(f"unit109 的 4 条 open 声明没被扫到：{sorted(missing)} ⇒ 判据空转 ✗")
+if limit > 0:
+    # 子集那趟（只给反向验证用）**不许空转** —— 没断言就等于没验 ✓。
+    if checked == 0:
+        bad.append(f"G81_LIMIT={limit} 的子集里**没有**可比对的 open 声明 ⇒ 反向验证空转 ✗")
 else:
-    print("  · unit109 的 4 条 open 声明都在扫描里 ✓（防空转）")
+    need = {"ordinal_rec_nat_eq", "ordinal_rec_nat_unique", "addsTo_zero", "addsTo_succ"}
+    missing = need - seen_unit109
+    if missing:
+        bad.append(f"unit109 的 4 条 open 声明没被扫到：{sorted(missing)} ⇒ 判据空转 ✗")
+    else:
+        print("  · unit109 的 4 条 open 声明都在扫描里 ✓（防空转）")
 
 if bad:
     print(f"\n✗ 顶 ≠ 底（{len(bad)} 处）：", file=sys.stderr)
@@ -179,8 +216,11 @@ esac
 if criteria; then
   echo "✓ G-81：全部 open 声明的顶 ≡ 底（根状态与声明卡片同源）⇒ 已修"
   echo "  反向验证：撤掉根状态修复（SOKO_STATE_ROOT=legacy）后判据必须判红"
+  # **子集那趟**（`G81_LIMIT=24`）：`legacy` 是全局开关 ⇒ 24 个画布足够做见证，
+  # 而全量两趟会撞 `gap.py` 的 300s 复现超时（关账被拒 + 门禁空转 ✗，实测连红两次）。
+  # 断言代码**逐字未改** ✓ —— 只换文件表；子集空转由 `checked == 0` 判红 ✓。
   scripts/expect-red.sh "撤掉根状态修复（SOKO_STATE_ROOT=legacy）后 G-81 判据必须红" -- \
-      env SOKO_STATE_ROOT=legacy bash "$0" --criteria || exit 2
+      env SOKO_STATE_ROOT=legacy G81_LIMIT=24 bash "$0" --criteria || exit 2
   exit 1
 else
   echo "✗ G-81：缺口仍在 —— 有 open 声明的顶 ≠ 底" >&2

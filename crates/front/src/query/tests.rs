@@ -107,6 +107,81 @@ fn state_at_root_matches_the_declaration_card_in_every_shape() {
     }
 }
 
+/// **G-81 的第二形状（2026-10-06 收口）**：目标里含**前缀记法**（`⋃₀`/`⋂₀` 这类
+/// 由**库**声明的记法）**且**语句本身是 Π（匿名 binder 的 `->`）。
+///
+/// 病根在**建表那条缝**（`QueryDoc::compute_display`）：`query` 路的显示表原先对
+/// 闭包里每个模块**独立** `parse`（空继承表 ✗）⇒ **用了依赖的记法**的模块整份
+/// parse 失败 ⇒ 它声明的记法一条都进不了表 ⇒ 目标文本在 `print_back` 里**整段
+/// 折不动**（parse 失败 ⇒ 原样返回 ✓）⇒ 底留着 ASCII `->`，而顶（走查
+/// `compile::display_notations(units)` 建的表）折成 `→` ⇒ **顶 ≠ 底** ✗。
+/// 实测残留两处正是这个形状（`I.7/unit48:110` 的 `⋃₀`、`I.11/unit30:147` 的 `⋂₀`）。
+///
+/// 最小形状：`Base` 声明 `∈`（**别的模块要用它**）；`Derived` import 它、自己声明
+/// `⋃₀` ⇒ `Derived` 独立 parse 必失败（`∈` 不在空继承表里）⇒ 病根现形。
+/// **判据 = 顶 ≡ 底**（`query state` 的根状态 vs `query goals` 的声明卡片，逐字）。
+#[test]
+fn root_state_equals_the_declaration_card_when_the_goal_uses_an_inherited_prefix_notation() {
+    let dir = std::env::temp_dir().join(format!("soko-g81-prefix-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    std::fs::write(
+        dir.join("Base.sokonanoda"),
+        "axiom Point : Type\n\
+         axiom p : Point\n\
+         axiom Set : Type -> Type\n\
+         axiom Set.mem : (α : Type) -> α -> Set α -> Prop\n\
+         infix:50 \" ∈ \" => Set.mem\n",
+    )
+    .expect("write Base");
+    std::fs::write(
+        dir.join("Derived.sokonanoda"),
+        "import Base\n\
+         \n\
+         axiom Set.sUnion : (α : Type) -> Set (Set α) -> Set α\n\
+         prefix:100 \" ⋃₀ \" => Set.sUnion\n\
+         \n\
+         theorem uses_the_inherited_notation (A : Set Point) : p ∈ A := by\n\
+         \x20 sorry\n",
+    )
+    .expect("write Derived");
+    let entry_text = "import Base\n\
+                      import Derived\n\
+                      \n\
+                      theorem pi_prefix (F : Set (Set Point)) (A : Set Point) (h : A ∈ F) :\n\
+                      \x20   (x : Point) -> x ∈ (⋃₀ F) := by\n\
+                      \x20 sorry\n";
+    let entry = dir.join("Main.sokonanoda");
+    std::fs::write(&entry, entry_text).expect("write Main");
+
+    let mut doc = QueryDoc::new();
+    doc.path = Some(entry);
+    doc.set_text(entry_text, 1, None);
+
+    let goals = doc.goals(false).expect("goals 必须答得上");
+    let card = goals
+        .iter()
+        .find(|g| g.name == "pi_prefix")
+        .expect("pi_prefix 的声明卡片");
+    let offset = entry_text.find("theorem pi_prefix").expect("声明起点");
+    let state = doc.state_at(offset).expect("根状态必须答得上");
+    assert_eq!(state.step, -1, "声明头部 = 第一条 tactic 之前");
+    assert_eq!(
+        state.goal, card.goal,
+        "**顶 ≡ 底**：根状态的目标必须逐字等于声明卡片的目标（G-81）"
+    );
+    let top_names: Vec<&str> = state.binders.iter().map(|b| b.name.as_str()).collect();
+    let card_names: Vec<&str> = card.binders.iter().map(|b| b.name.as_str()).collect();
+    assert_eq!(top_names, card_names, "**顶 ≡ 底**：binders 也必须逐字一致");
+    assert_eq!(top_names, vec!["F", "A", "h"], "具名绑元在根状态里");
+    let goal = state.goal.clone().unwrap_or_default();
+    assert!(
+        goal.contains('→') && goal.contains("⋃₀"),
+        "折过的目标必须同时含 `→`（匿名 binder 的 Π）与 `⋃₀`（**继承来的**前缀记法）：{goal:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn state_inside_a_tactic_is_byte_identical_to_the_baseline() {
     let doc = doc(CANVAS);

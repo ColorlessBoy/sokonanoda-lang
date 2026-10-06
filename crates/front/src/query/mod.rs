@@ -887,20 +887,81 @@ impl QueryDoc {
     /// 为什么放在**闭包**而不是入口：`∈`/`⊆`/`''` 声明在 `lib/Set.sokonanoda`
     /// 里，入口只是 `import` 了它 ⇒ 只看入口，库记法一个都折不出来（与
     /// `notation_symbols` 同一条理由 ✓）。
+    ///
+    /// ⚠ **必须与闭包加载器同一条建表路**（G-81，2026-10-06）：走查那一路的
+    /// 表来自 `compile::display_notations(units)`，而 `units` 是加载器
+    /// （`project/graph.rs`）用 `parse_with_inherited` + **每个模块直接依赖的
+    /// 导出表**解析出来的。这里原先对每个模块**独立** `parse`（空继承表 ✗）
+    /// ⇒ 用了依赖记法的模块**整份 parse 失败** ⇒ 它声明的记法一条都进不了表
+    /// （实测：`lib/SUnion` 用 `lib/Exists` 的 `∃` ⇒ 失败 ⇒ `⋃₀`/`⋂₀` 缺席 ✗）
+    /// ⇒ 含这些记法的目标文本在 `print_back` 里**整段折不动**（parse 失败 ⇒
+    /// 原样返回 ✓）⇒ 顶（走查表）≠ 底（本表）✗ —— G-81 的残留正是这个形状。
+    /// 现在**命令序**（拓扑序、入口在最后 ✓）与**继承规则**都与加载器逐条对齐
+    /// ⇒ 两张表同源 ⇒ 顶 ≡ 底 by construction ✓。
     fn compute_display(
         project: &Option<crate::project::ProjectReport>,
         text: &str,
     ) -> crate::display::DisplayNotations {
         let mut commands: Vec<crate::ast::Command> = Vec::new();
-        if let Ok(file) = crate::parse(text) {
+        let Some(project) = project else {
+            // 零配置（单文件）模式：就是这一份文本（空继承表 ⇒ `parse` 逐字节同）。
+            if let Ok(file) = crate::parse(text) {
+                commands.extend(file.commands);
+            }
+            return crate::compile::display_notations_from_commands(&commands);
+        };
+        // 每个模块的**导出记法表**（与 `project/graph.rs` 的 `exports` 同形状：
+        // 符号 → 声明，同符号后者覆盖前者）——继承**只**来自直接依赖 ✓。
+        let mut exports: std::collections::HashMap<&str, Vec<crate::ast::NotationDecl>> =
+            std::collections::HashMap::new();
+        let mut entry_seen = false;
+        for module in &project.modules {
+            // 入口用**内存文本**（LSP 未保存态可能比闭包里那份新）；其余用编译时那份。
+            let is_entry = module.path == project.entry;
+            entry_seen |= is_entry;
+            let source = if is_entry {
+                text
+            } else {
+                module.source.as_str()
+            };
+            let mut inherited: Vec<crate::ast::NotationDecl> = Vec::new();
+            for dep in &module.imports {
+                let Some(table) = exports.get(dep.as_str()) else {
+                    continue;
+                };
+                for decl in table {
+                    match inherited.iter_mut().find(|it| it.symbol == decl.symbol) {
+                        Some(slot) => *slot = decl.clone(),
+                        None => inherited.push(decl.clone()),
+                    }
+                }
+            }
+            let src = crate::project::importless_source(source);
+            let Ok(file) = crate::parser::parse_with_inherited(&src, &inherited) else {
+                continue;
+            };
+            // 本模块**导出**的记法 = 继承来的 + 自己声明的（同符号自己覆盖 ✓）。
+            let mut table = inherited;
+            for command in &file.commands {
+                let Some(mut decl) = command.notation_decl() else {
+                    continue;
+                };
+                decl.module = Some(module.name.clone());
+                match table.iter_mut().find(|it| it.symbol == decl.symbol) {
+                    Some(slot) => *slot = decl,
+                    None => table.push(decl),
+                }
+            }
+            exports.insert(module.name.as_str(), table);
             commands.extend(file.commands);
         }
-        if let Some(project) = project {
-            for module in &project.modules {
-                let src = crate::project::importless_source(&module.source);
-                if let Ok(file) = crate::parse(&src) {
-                    commands.extend(file.commands);
-                }
+        if !entry_seen {
+            // 入口没能编译（被阻断 / 解析失败）⇒ 它不在 `modules` 里，但它的记法
+            // 命令仍可能有用（旧行为同此，只是现在带**入口可见**的继承表 ✓）。
+            let inherited = project.notations.clone();
+            let src = crate::project::importless_source(text);
+            if let Ok(file) = crate::parser::parse_with_inherited(&src, &inherited) {
+                commands.extend(file.commands);
             }
         }
         crate::compile::display_notations_from_commands(&commands)
