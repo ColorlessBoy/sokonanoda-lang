@@ -528,6 +528,233 @@ pub(crate) fn compile_plan_incremental(
     reports_out.pop().expect("一个入口必须回调一次")
 }
 
+/// **G-68 切片（2026-10-06）**：一批入口**共享库层** —— 按「库闭包签名」分组，
+/// 每组跑一次 [`crate::project::session::with_project_session`]（库层只编一次，
+/// 组内各入口从同一个检查点起跑 ⇒ **共享依赖只 elaborate 一次**）。
+///
+/// ## 为什么是「按签名分组」而不是「一个大并集」
+///
+/// 库层那一趟跑在**并集**上 ⇒ 并集必须**逐字等于**每个成员自己的库闭包
+/// （模块集合 **与顺序**），否则该模块拿到的闭包前缀就不是它自己的 ✗
+/// —— 台账 G-68 第 11 棒的实测：并集前缀 ⇒ 全课程 `--json` **264 行**
+/// `build.file` 由 `compiled` 变 `failed` ✗。同一签名的成员，并集 == 各自闭包 ✓。
+///
+/// ⚠ **签名不含"入口自己"** ⇒ 同组入口的库层**逐字相同**（同一模块根 + 同一
+/// prelude 模式 + 同一名字序列 ⇒ 同一批文件 ✓）。
+///
+/// ## 返回
+///
+/// 与 `plans` **等长**；`Some(report)` = 会话编好了（与 [`compile_plan_with_progress`]
+/// 同形的报告 ✓）；`None` = **不走会话**（调用方按老路编，例如单入口组 ——
+/// 会话对它是纯开销，且老路行为逐字节不变 ✓）。
+///
+/// ⚠ **`plans[i]` 必须尚未 precheck 过**：本函数自己跑 [`precheck_plan`]
+/// （它会把重名模块标 `failed` ⇒ 决定"编哪些模块"、也决定分组键 ✓）。
+/// 落到 `None` 的入口请用 [`compile_plan_prechecked`] 编，**别再跑一遍检查** ✗
+/// （诊断会加两遍 ✓）。
+///
+/// ⚠ **闭包前缀仍按各入口自己的闭包算**（`session.rs` 的路乙 ✓）—— 分组只保证
+/// **库层**一致；入口那一趟的前缀是"库层 + 入口自己" ✓，与逐入口路径逐字相同 ✓。
+///
+/// **`on_entry_done`**：某个入口**编完了**（报告还没组装 ✓）就回调一次，参数是它在
+/// `plans` 里的下标 ✓。存在的理由 = **用户可见的进度**：会话把库层只编一次 ⇒
+/// 进度不可能再由"每文件一趟"自然产生 ✗ ⇒ 接线方（CLI 的 `build.progress`）必须
+/// 由这里拿到逐入口的完成信号 ✓（否则进度条在整段会话期间**不动** ✗）。
+pub fn compile_entries_shared(
+    plans: &mut [ProjectPlan],
+    options: &[CompileOptions],
+    jobs: usize,
+    on_entry_done: &(dyn Fn(usize) + Sync),
+) -> Vec<Option<ProjectReport>> {
+    assert_eq!(
+        plans.len(),
+        options.len(),
+        "compile_entries_shared: plans 与 options 必须等长"
+    );
+    let n = plans.len();
+    let mut out: Vec<Option<ProjectReport>> = (0..n).map(|_| None).collect();
+    if n < 2 {
+        return out;
+    }
+    // ① **闭包级检查先跑**（顺序与 `compile_plan_incremental` 一致 ✓）：
+    //    重名/冲突会把模块标 `failed` ⇒ 改变 `compilable()` ⇒ 分组键必须建立在
+    //    **检查之后**的闭包上 ✗→✓（否则两组的名义库层相同、实际编的模块不同 ✗）。
+    for (plan, opt) in plans.iter_mut().zip(options.iter()) {
+        precheck_plan(plan, opt);
+    }
+    let plans: &[ProjectPlan] = plans;
+    // ② 分组：键 =（模块根 · prelude 模式 · **库单元名字序列**）。首次出现顺序 = 编序 ✓
+    //    （确定性：同一份输入 ⇒ 同一份输出，与 HashMap 迭代顺序无关 ✓）。
+    let mut order: Vec<(String, Vec<usize>)> = Vec::new();
+    let mut index_of: HashMap<String, usize> = HashMap::new();
+    for (i, plan) in plans.iter().enumerate() {
+        let lib: Vec<&str> = units_for_modules(plan, |m| m.path != plan.entry)
+            .iter()
+            .map(|unit| unit.name)
+            .collect();
+        // 库层为空（单文件 / 无 `import`）⇒ 没有可共享的东西。
+        if lib.is_empty() {
+            continue;
+        }
+        let key = format!(
+            "{}\u{1}{:?}\u{1}{}",
+            plan.root.display(),
+            options[i].prelude,
+            lib.join("\u{2}")
+        );
+        match index_of.get(&key) {
+            Some(&slot) => order[slot].1.push(i),
+            None => {
+                index_of.insert(key.clone(), order.len());
+                order.push((key, vec![i]));
+            }
+        }
+    }
+    // ③ 逐组跑会话。**组内入口按输入顺序**（确定性 ✓）。
+    let groups: Vec<Vec<usize>> = order
+        .into_iter()
+        .map(|(_key, members)| {
+            // 入口自己被阻断（`entry_units` 为空）⇒ 该入口退出本组（老路编它 ✓）。
+            members
+                .into_iter()
+                .filter(|&i| !units_for_modules(&plans[i], |m| m.path == plans[i].entry).is_empty())
+                .collect::<Vec<usize>>()
+        })
+        // 单入口：会话是纯开销，老路逐字节不变 ✓。
+        .filter(|members: &Vec<usize>| members.len() >= 2)
+        .collect();
+    // **组间并行**（`jobs` ≤ 1 ⇒ 串行）：组与组**完全独立**（各自的 arena / builder /
+    // 检查点 ✓），只有判定缓存是进程级共享 ✓ —— 那是设计好的（键 = 环境身份 ✓）。
+    // ⚠ **组内是串行的**：一个会话只有一个 builder，入口必须依次从检查点起跑 ✓
+    // （要并行得先有环境分叉 ✗，见台账 G-68 第 8 棒）。
+    if jobs <= 1 || groups.len() <= 1 {
+        for members in &groups {
+            for (i, report) in run_shared_group(plans, options, members, on_entry_done) {
+                out[i] = Some(report);
+            }
+        }
+    } else {
+        // **动态领取**（不是静态切片 ✗ —— 2026-10-06 实测）：组的大小差得很远
+        // （真课程：38 / 30 / 24 / … / 2 入口 ✓）⇒ 静态按序切块会让"拿到大组的那一块"
+        // 拖住整轮 ✗（实测默认 jobs 的墙钟因此**不降反升** ✗：`user` 2229→957s（**2.33×** 少做功 ✓）
+        // 而 `real` 329→341s ✗ —— 并行度 6.8× → 2.8× ✗）。原子游标 = 组级 work stealing ✓。
+        let threads = jobs.min(groups.len());
+        let next = std::sync::atomic::AtomicUsize::new(0);
+        let next = &next;
+        let groups_ref = &groups;
+        let collected: Vec<Vec<(usize, ProjectReport)>> = std::thread::scope(|scope| {
+            let handles: Vec<_> = (0..threads)
+                .map(|_| {
+                    std::thread::Builder::new()
+                        .name("soko-shared-group".to_string())
+                        // ⚠ **必须给大栈**（见 [`COMPILE_STACK_BYTES`]）—— 编译是**深度递归**
+                        // 的 `elab_expr`，默认 2MB 会在真语料上 `has overflowed its stack` ✗。
+                        .stack_size(COMPILE_STACK_BYTES)
+                        .spawn_scoped(scope, move || {
+                            let mut mine: Vec<(usize, ProjectReport)> = Vec::new();
+                            loop {
+                                let slot = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                                let Some(members) = groups_ref.get(slot) else {
+                                    break;
+                                };
+                                mine.extend(run_shared_group(
+                                    plans,
+                                    options,
+                                    members,
+                                    on_entry_done,
+                                ));
+                            }
+                            mine
+                        })
+                        .expect("spawn compile thread")
+                })
+                .collect();
+            handles
+                .into_iter()
+                .map(|handle| handle.join().unwrap_or_default())
+                .collect()
+        });
+        for (i, report) in collected.into_iter().flatten() {
+            out[i] = Some(report);
+        }
+    }
+    out
+}
+
+/// **编译线程的栈**（32MB）：`elab_expr` 是**深度递归**的 ⇒ 默认的 2MB 栈在真语料上会
+/// `thread '<unknown>' has overflowed its stack` ✗（**实测**：冷编
+/// `courses/set-theory/units/I.3` · `SOKONANODA_BUILD_JOBS=4` ⇒ `Abort trap: 6` ✗；
+/// 同一条命令 `JOBS=1`（主线程 8MB）**编得过** ✓ ⇒ 病根是**线程栈**，不是判定 ✓）。
+///
+/// **为什么是 32MB**：与 LSP 侧同一条实测结论（`crates/lsp/src/lib.rs::run` 的
+/// `thread_stack_size(32 * 1024 * 1024)` 注释：tokio worker 默认 2MB ⇒
+/// "编译（深度递归的 `elab_expr`）会 overflow"）✓ —— 两边**同一个病、同一个药** ✓。
+///
+/// 栈是**虚拟内存**：`jobs` 个线程 × 32MB 的**常驻**用量仍由实际递归深度决定 ✓。
+pub const COMPILE_STACK_BYTES: usize = 32 * 1024 * 1024;
+
+/// 跑**一组**共享库层的入口：一次会话（库层只编一次）+ 逐入口组装报告 ✓。
+///
+/// 返回 `(入口在 `plans` 里的下标, 该入口的报告)`。
+fn run_shared_group(
+    plans: &[ProjectPlan],
+    options: &[CompileOptions],
+    members: &[usize],
+    on_entry_done: &(dyn Fn(usize) + Sync),
+) -> Vec<(usize, ProjectReport)> {
+    let options0 = &options[members[0]];
+    let lib_units = units_for_modules(&plans[members[0]], |m| m.path != plans[members[0]].entry);
+    let entry_units: Vec<Vec<crate::compile::SourceUnit<'_>>> = members
+        .iter()
+        .map(|&i| units_for_modules(&plans[i], |m| m.path == plans[i].entry))
+        .collect();
+    // 回调里只**搬数据**（不碰 `plans`）⇒ 借用干净 ✓；组装在会话结束后做 ✓。
+    let collected: Vec<(
+        usize,
+        crate::compile::CompileOutput,
+        Vec<crate::compile::DocumentReport>,
+        Vec<crate::compile::DocumentReport>,
+    )> = crate::project::session::with_project_session(
+        &lib_units,
+        &entry_units,
+        options0,
+        |slot, merged, entry_reports, lib_reports, _lib_ranges, _entry_range| {
+            // **逐入口的完成信号**（用户可见进度 ✓）：这一趟的编译已经做完了 ✓
+            // （报告组装在会话之后做，但那不花时间 ✓）。
+            on_entry_done(members[slot]);
+            (slot, merged, entry_reports, lib_reports.to_vec())
+        },
+    );
+    collected
+        .into_iter()
+        .map(|(slot, merged, entry_reports, lib_reports)| {
+            let i = members[slot];
+            // 该入口**自己的**闭包单元（拓扑序、入口在最后）—— 报告必须按这个顺序拼
+            // （用并集顺序会让 `--json` 对不上 ✗，`merge_session_reports` 的注释 ✓）。
+            let closure_units = units_for_modules(&plans[i], |_| true);
+            let reports =
+                merge_session_reports(&closure_units, &lib_units, &lib_reports, entry_reports);
+            (i, assemble_from_session(&plans[i], merged, reports))
+        })
+        .collect()
+}
+
+/// **G-68 接线用**：该入口闭包的 **tick 计划** —— 逐单元（拓扑序、入口在最后）
+/// `(模块名, 该单元的命令数)`。
+///
+/// `build.decl` 的 `(module, index, total)` 就是它展开：对每个单元，`index` 从 `0`
+/// 数到 `命令数 - 1`、`total` = 命令数 ✓（`walk.rs` 的 `unit_seen`/`unit_totals` ✓，
+/// **与信任前缀无关** —— tick 打在信任早退**之前** ✓）。
+///
+/// **为什么要有它**：会话把库层**只编一次** ⇒ 库层的 tick 只发一遍 ✗，而逐入口路径
+/// 里**每个入口**都要为整条闭包发一遍 ✓ ⇒ 接线方必须按各入口自己的闭包**重放** ✓。
+pub fn closure_tick_plan(plan: &ProjectPlan) -> Vec<(String, usize)> {
+    units_for_modules(plan, |_| true)
+        .iter()
+        .map(|unit| (unit.name.to_string(), unit.file.commands.len()))
+        .collect()
+}
+
 pub fn assemble_from_session(
     plan: &ProjectPlan,
     flat_out: crate::compile::CompileOutput,
@@ -665,6 +892,22 @@ pub fn compile_plan_with_progress(
     options: &CompileOptions,
     progress: Option<&mut dyn crate::compile::ProgressSink>,
 ) -> ProjectReport {
+    precheck_plan(&mut plan, options);
+    compile_plan_prechecked(plan, options, progress)
+}
+
+/// 同 [`compile_plan_with_progress`]，但**不再跑闭包级检查**（`precheck_plan` 已跑过）。
+///
+/// **G-68 接线为什么要它**：多入口预跑（[`compile_entries_shared`]）必须**先**为每个
+/// 入口跑一次 `precheck_plan`（重名检查会把模块标 `failed` ⇒ 它决定"编哪些模块"、
+/// 也决定分组键 ✓）。落到老路的入口（单入口组 / 入口被阻断）随后还要编一次 ⇒
+/// 若再走 [`compile_plan_with_progress`] 就会**把诊断加两遍** ✗（报告进缓存 ⇒
+/// `query` 侧可见 ✗）。⇒ 这里把"检查"与"编"分开，调用方自己保证顺序 ✓。
+pub fn compile_plan_prechecked(
+    mut plan: ProjectPlan,
+    options: &CompileOptions,
+    progress: Option<&mut dyn crate::compile::ProgressSink>,
+) -> ProjectReport {
     let entry_path = plan.entry.clone();
     let root = plan.root.clone();
     let manifest_path = plan.manifest.clone();
@@ -672,10 +915,6 @@ pub fn compile_plan_with_progress(
     let mut diagnostics = std::mem::take(&mut plan.diagnostics);
     let mut closure = plan.closure;
     diagnostics.append(&mut closure.diagnostics);
-
-    // 3) 闭包级检查：重名 + prelude 冲突（都在入内核之前拦下，避免内核文案）。
-    check_name_collisions(&mut closure, &mut diagnostics);
-    check_prelude_conflicts(&closure, options, &mut diagnostics);
 
     // 4) 只编译未被阻断的模块（拓扑序，入口在最后）。
     let compilable = closure.compilable();

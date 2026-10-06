@@ -102,10 +102,24 @@ pub(crate) fn with_project_session_trusted<R>(
         out
     };
     let checkpoint = builder.hide_declars();
+    // **G-68（2026-10-06）**：`declars` 有检查点，**登记表没有** ✗ ——
+    // `PassTables` 是跨趟**累加**的（本趟的声明会被 `walk` 登记进去再交回来 ✓）⇒
+    // 一个 session 里连着编两个入口时，前一个入口的声明会**泄进**后一个 ✗。
+    // **实测形状**（`crates/front/tests/session_shared.rs::a_leaked_registry_table_…` ✓）：
+    // 入口 a 声明 `helper`、入口 b 引用它（b 的闭包看不见 a）⇒ **不还原**时 b 报的是
+    // **内核级** `KernelRejected: rejected: const_head_type: unknown const NamePtr(0x…)` ✗
+    // （连内部指针都漏出来 ✗），**还原**后 b 报的是用户可见的
+    // `ElabUnknownIdentifier: unknown identifier \`helper\`` ✓ —— 即逐入口路径的诊断 ✓。
+    // ⇒ 逐入口把表还原到"只有库层"的快照 ✓（与 `restore_declars` 同一层语义 ✓）。
+    // ⚠ **只在多入口时克隆**：单入口（LSP 的 `compile_plan_incremental`）克隆是纯开销 ✓。
+    let tables_snapshot = (entries.len() > 1).then(|| tables.clone());
     let mut out = Vec::with_capacity(entries.len());
     for (index, entry_units) in entries.iter().enumerate() {
         // ③ 回到只有库层的状态 ⇒ 入口之间不共享环境。
         builder.restore_declars(checkpoint.clone());
+        if let Some(snapshot) = &tables_snapshot {
+            tables = snapshot.clone();
+        }
         // **切片 1 路乙**：入口趟必须拿到"**该入口闭包**"的闭包前缀与记法表 ——
         // 否则入口里的 `judge_infer` **看不到库层声明**（它只吃源码字符串，
         // `judge.rs:949`）⇒ 实测这是三次接线失败的同一个根因

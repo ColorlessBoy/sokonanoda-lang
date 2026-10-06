@@ -1,7 +1,31 @@
 ## [Unreleased]
 
+### Changed
+
+- **`build` / `rebuild` no longer compiles a shared dependency once per entry**
+  (G-68). The CLI now runs a pre-pass that groups project entries by their
+  **library closure signature** and compiles each shared library layer **once per
+  group** (groups run in parallel; every entry still starts from its own
+  checkpoint, so its judgments are unchanged). On the full course (249 files, 248
+  entries with imports, 49 distinct library closures) the sum of closure module
+  compiles drops from **1614 to 517 (3.12×)**. The acceptance readings are
+  structural: the reproduction script's `by_calls` goes **3 → 1**, the
+  `check-recompile-factor.py` budget is tightened **3 → 1**, and
+  `project_recompiles_shared_deps`'s marginal pass count goes **1.80 → 1.20**
+  (its threshold is tightened back to 1.5). The full course's cold `build --json`
+  and the project artifact store (whole `ProjectReport`s) are byte-for-byte
+  identical before and after. `build.progress` keeps reporting one event per
+  finished entry, now emitted from inside the shared compile phase.
+
 ### Fixed
 
+- **A cold `build` with entry-level parallelism could abort with a stack
+  overflow** (G-94). Compile worker threads used the platform default stack
+  (2 MB on macOS), and elaborating a deeply recursive file overflows it
+  (`thread '<unknown>' has overflowed its stack`, `Abort trap: 6`) — the main
+  thread has 8 MB, which is why `SOKONANODA_BUILD_JOBS=1` worked and the default
+  (one thread per core) did not. Worker threads now get 32 MB, the same fix the
+  language server already carried for the identical reason.
 - **A short implicit call in argument position now receives its expected type**
   (G-30's second reproduction). `theorem t3 (h : ¬ (P ∨ Q)) (hp : P) : False := h (Or.inl hp)`
   used to be rejected — `Or.inl`'s `?B` had no argument to read and fell back to the

@@ -12,6 +12,155 @@ use sokonanoda_front::compile::{compile_all_with, prelude_mode_from_source, Comp
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+/// **G-68 预跑（2026-10-06）**：每个文件"该怎么编"在**进并行循环之前**就定下来。
+///
+/// **为什么要预跑**：项目入口的共享 `lib/*` 今天被**每个入口各编一遍** ✗
+/// （台账 G-68：真课程 Σ闭包 **1614** 次模块编译 vs 去重 **249** = **6.5×** ✗）。
+/// 会话（[`sokonanoda_front::project::compile_entries_shared`]）能把**同一份库闭包**的
+/// 入口合到一次编译里 ✓ —— 但它要求"先知道每个入口的闭包"，而那要 `plan_project`
+/// （解析闭包）⇒ 必须在并行循环之前跑一次 ✓。
+///
+/// ⚠ **`Legacy` 是绝大多数**（无 `import` 的单文件语料）—— 它们**不进**预跑，
+/// 行为与今天**逐字节相同** ✓。
+enum Prep {
+    /// 非项目源 / 读不出来 ⇒ 走今天的 [`build_one`]（它自己读、自己 parse）。
+    Legacy,
+    /// 项目入口且**缓存命中** ⇒ 直接 `"hit"`（**不重编** —— `hit` 语义与今天一致 ✓）。
+    Hit,
+    /// 会话已经编好（≥2 个入口共享同一份库闭包）⇒ 存缓存 + 报状态 + 重放 tick。
+    Shared {
+        report: sokonanoda_front::project::ProjectReport,
+        options: CompileOptions,
+        digest: String,
+        root: PathBuf,
+        ticks: Vec<(String, usize, usize)>,
+    },
+    /// 计划已算好、`precheck_plan` 已跑过（单入口组 / 入口被阻断）⇒ 直接编
+    /// （**不再重复检查** ✗ —— 诊断会加两遍 ⇒ 报告进缓存 ⇒ `query` 侧可见 ✗）。
+    Planned {
+        plan: sokonanoda_front::project::ProjectPlan,
+        options: CompileOptions,
+        digest: String,
+        root: PathBuf,
+    },
+}
+
+/// 把 `(模块名, 命令数)` 的 tick 计划展开成 `build.decl` 的 `(module, index, total)` 流。
+///
+/// **为什么是"重放"而不是"新造"**：逐入口路径里，每个入口都会为**整条闭包**发一遍
+/// tick（`walk.rs` 的 `unit_seen`/`unit_totals` ✓，与信任前缀无关 ✓）；会话把库层
+/// **只编一次** ⇒ 库层那一段 tick 只发一遍 ✗ ⇒ 接线方必须按各入口自己的闭包补回来 ✓。
+fn expand_ticks(plan: &[(String, usize)]) -> Vec<(String, usize, usize)> {
+    plan.iter()
+        .flat_map(|(name, total)| (0..*total).map(move |index| (name.clone(), index, *total)))
+        .collect()
+}
+
+/// **G-68 预跑**：为每个文件定下 [`Prep`]（含"分组会话"这一次共享编译）。
+///
+/// 顺序（每一步都不能换 ✗）：
+/// ① 读源 + `is_project_source` 判定（非项目源 ⇒ `Legacy`，**零额外开销** ✓）；
+/// ② `plan_project` + `digest` + **缓存命中判定**（命中 ⇒ `Hit`，**不参与会话** ✓
+///    —— 否则"命中"会被改写成"重编" ✗）；
+/// ③ [`sokonanoda_front::project::compile_entries_shared`]（按库闭包签名分组 + 组间并行）；
+/// ④ 会话没接的 ⇒ `Planned`（计划**留用**，避免 Phase C 再 plan 一次 + 再 precheck 一次 ✓）。
+fn prepare(
+    files: &[PathBuf],
+    root: Option<&str>,
+    no_project: bool,
+    jobs: usize,
+    on_entry_done: &(dyn Fn(usize) + Sync),
+) -> Vec<Prep> {
+    let mut prep: Vec<Prep> = (0..files.len()).map(|_| Prep::Legacy).collect();
+    struct Pending {
+        index: usize,
+        plan: sokonanoda_front::project::ProjectPlan,
+        options: CompileOptions,
+        digest: String,
+        root: PathBuf,
+    }
+    let mut pending: Vec<Pending> = Vec::new();
+    for (index, file) in files.iter().enumerate() {
+        let Ok(src) = std::fs::read_to_string(file) else {
+            continue; // 读不出来 ⇒ Legacy（`build_one` 会给出与今天同一条错误 ✓）
+        };
+        if !sokonanoda_front::project::is_project_source(&src) {
+            continue;
+        }
+        let options = CompileOptions {
+            prelude: prelude_mode_from_source(&src),
+        };
+        let root_override = if no_project {
+            file.parent().map(Path::to_path_buf)
+        } else {
+            root.map(PathBuf::from)
+        };
+        let plan =
+            sokonanoda_front::project::plan_project(file, Some(&src), root_override.as_deref());
+        let digest = plan.digest(&options);
+        let artifacts_root = plan.root.clone();
+        if let Some(entry) =
+            sokonanoda_front::project::cache::load_at(&artifacts_root, &digest, &options)
+        {
+            if entry.output.is_some() {
+                prep[index] = Prep::Hit;
+                continue;
+            }
+        }
+        pending.push(Pending {
+            index,
+            plan,
+            options,
+            digest,
+            root: artifacts_root,
+        });
+    }
+    if pending.is_empty() {
+        return prep;
+    }
+    // ③ 分组会话（库层只编一次）。拆成平行向量是为了把 `plans` 交给 `&mut [ProjectPlan]` ✓。
+    let mut plans: Vec<sokonanoda_front::project::ProjectPlan> = Vec::with_capacity(pending.len());
+    let mut options_all: Vec<CompileOptions> = Vec::with_capacity(pending.len());
+    let mut meta: Vec<(usize, String, PathBuf)> = Vec::with_capacity(pending.len());
+    for p in pending {
+        plans.push(p.plan);
+        options_all.push(p.options);
+        meta.push((p.index, p.digest, p.root));
+    }
+    let reports = sokonanoda_front::project::compile_entries_shared(
+        &mut plans,
+        &options_all,
+        jobs,
+        on_entry_done,
+    );
+    for (((plan, options), (index, digest, root)), report) in
+        plans.into_iter().zip(options_all).zip(meta).zip(reports)
+    {
+        match report {
+            Some(report) => {
+                // tick 计划要在 `plan` 被丢掉**之前**取 ✓（它借用 plan ✓）。
+                let ticks = expand_ticks(&sokonanoda_front::project::closure_tick_plan(&plan));
+                prep[index] = Prep::Shared {
+                    report,
+                    options,
+                    digest,
+                    root,
+                    ticks,
+                };
+            }
+            None => {
+                prep[index] = Prep::Planned {
+                    plan,
+                    options,
+                    digest,
+                    root,
+                };
+            }
+        }
+    }
+    prep
+}
+
 /// **P2 心跳周期**（**1000ms，不变**）：这么久没有任何其它输出 ⇒ 发一条 `build.tick`。
 ///
 /// ⚠ 2026-09-30 一度把它放宽到 5000ms 并"默认一律不发"，**实测证明那是错的** ✗
@@ -319,12 +468,71 @@ pub(crate) fn build(
     // **并发度**：`SOKONANODA_BUILD_JOBS` 可配；默认 = 可用核数；`1` ⇒ 走**串行原路**
     // （逐字节等价的最强保证，也方便 A/B）✓
     let jobs = build_jobs(files.len());
-    // **② 文件级进度**：并行阶段每编完一个就报一条（additive，见 [`ProgressCounter`]）。
+    // **② 文件级进度**：每编完一个就报一条（additive，见 [`ProgressCounter`]）。
+    // ⚠ **必须建在预跑之前**（G-68）：会话那条路要在**会话内部**逐入口报 ✓
+    // （否则进度条在整段会话期间**不动** ✗ —— 真课程那段是几十秒）。
     let progress_counter = ProgressCounter::new(files.len(), json);
     let mut per_file: Vec<Option<Result<&'static str, String>>> =
         (0..files.len()).map(|_| None).collect();
     let mut per_file_ticks: Vec<Vec<(String, usize, usize)>> =
         (0..files.len()).map(|_| Vec::new()).collect();
+
+    // ═══ **G-68 预跑**（2026-10-06）：项目入口的共享库层**只编一次** ═══
+    //
+    // 预跑把每个文件分成四类（见 [`Prep`]）：`Hit`（缓存命中）/ `Shared`（会话已编好）/
+    // `Planned`（计划已算好，自己编）/ `Legacy`（非项目源，走今天那条路 ✓）。
+    // **只有 `Legacy` 进并行循环** —— 它正是"每文件独立"的那一半（单文件语料 ✓），
+    // 与今天**逐字节相同** ✓；前三类都在主线程里处理（它们要么已经编完、要么只剩
+    // 存缓存 + 组装，**不占 CPU** ✓）。
+    //
+    // ⚠ 预跑**先于**心跳/并行阶段：它自己就是"编译"那一段（组间并行在
+    // `compile_entries_shared` 里 ✓）。
+    let mut prep = prepare(&files, root, no_project, jobs, &|index| {
+        progress_counter.note_file(&files[index])
+    });
+    let mut legacy: Vec<usize> = Vec::new();
+    for (index, slot) in prep.iter_mut().enumerate() {
+        let file = files[index].clone();
+        match std::mem::replace(slot, Prep::Legacy) {
+            Prep::Legacy => legacy.push(index),
+            Prep::Hit => {
+                per_file[index] = Some(Ok("hit"));
+                progress_counter.note_file(&file);
+            }
+            Prep::Shared {
+                report,
+                options,
+                digest,
+                root: artifacts_root,
+                ticks,
+            } => {
+                let status = finish_project(report, &options, &digest, &artifacts_root);
+                per_file_ticks[index] = ticks;
+                per_file[index] = Some(Ok(status));
+                // ⚠ **不在这里 note_file**：会话已经逐入口报过 ✓（重复报 = 计数翻倍 ✗）。
+            }
+            Prep::Planned {
+                plan,
+                options,
+                digest,
+                root: artifacts_root,
+            } => {
+                let mut ticks: Vec<(String, usize, usize)> = Vec::new();
+                let mut sink = |tick: sokonanoda_front::compile::ProgressTick<'_>| {
+                    ticks.push((tick.module.to_string(), tick.index, tick.total));
+                };
+                let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> =
+                    if json { Some(&mut sink) } else { None };
+                let report =
+                    sokonanoda_front::project::compile_plan_prechecked(plan, &options, progress);
+                let status = finish_project(report, &options, &digest, &artifacts_root);
+                per_file_ticks[index] = ticks;
+                per_file[index] = Some(Ok(status));
+                progress_counter.note_file(&file);
+            }
+        }
+    }
+
     if jobs > 1 {
         use std::sync::atomic::{AtomicUsize, Ordering};
         // **每个 worker 自己攒结果**（`Vec` 各归各的 ⇒ 不用锁 ✓），
@@ -337,34 +545,49 @@ pub(crate) fn build(
         let next = AtomicUsize::new(0);
         let next = &next;
         let files = &files;
+        let legacy = &legacy;
         let counter = &progress_counter;
         let collected: Vec<Vec<Slot>> = std::thread::scope(|scope| {
-            let handles: Vec<_> = (0..jobs)
+            let handles: Vec<_> = (0..jobs.min(legacy.len().max(1)))
                 .map(|_| {
-                    scope.spawn(move || {
-                        let mut mine: Vec<Slot> = Vec::new();
-                        loop {
-                            let index = next.fetch_add(1, Ordering::Relaxed);
-                            if index >= files.len() {
-                                break;
+                    // ⚠ **必须给大栈**（2026-10-06 · G-68 实测定位 ✓）：编译是**深度递归**的
+                    // `elab_expr`，`scope.spawn` 的默认栈是 **2MB** ⇒ 真语料上
+                    // `thread '<unknown>' has overflowed its stack` + `Abort trap: 6` ✗
+                    // （实测：冷编 `units/I.3` · `SOKONANODA_BUILD_JOBS=4` ⇒ exit **134** ✗；
+                    //  同一条命令 `JOBS=1`（主线程 8MB）**编得过** ✓ ⇒ 病根是**线程栈** ✓）。
+                    // 32MB = LSP 侧同一条结论的同款药（`crates/lsp/src/lib.rs::run` ✓）。
+                    std::thread::Builder::new()
+                        .name("soko-build".to_string())
+                        .stack_size(sokonanoda_front::project::COMPILE_STACK_BYTES)
+                        .spawn_scoped(scope, move || {
+                            let mut mine: Vec<Slot> = Vec::new();
+                            loop {
+                                let slot = next.fetch_add(1, Ordering::Relaxed);
+                                if slot >= legacy.len() {
+                                    break;
+                                }
+                                let index = legacy[slot];
+                                let file = &files[index];
+                                let mut ticks: Vec<(String, usize, usize)> = Vec::new();
+                                let mut sink = |tick: sokonanoda_front::compile::ProgressTick<
+                                    '_,
+                                >| {
+                                    ticks.push((tick.module.to_string(), tick.index, tick.total));
+                                };
+                                let progress: Option<
+                                    &mut dyn sokonanoda_front::compile::ProgressSink,
+                                > = if json { Some(&mut sink) } else { None };
+                                let status = std::fs::read_to_string(file)
+                                    .map_err(|e| format!("cannot read: {e}"))
+                                    .and_then(|src| {
+                                        build_one(file, &src, root, no_project, progress, None)
+                                    });
+                                counter.note_file(file);
+                                mine.push((index, status, ticks));
                             }
-                            let file = &files[index];
-                            let mut ticks: Vec<(String, usize, usize)> = Vec::new();
-                            let mut sink = |tick: sokonanoda_front::compile::ProgressTick<'_>| {
-                                ticks.push((tick.module.to_string(), tick.index, tick.total));
-                            };
-                            let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> =
-                                if json { Some(&mut sink) } else { None };
-                            let status = std::fs::read_to_string(file)
-                                .map_err(|e| format!("cannot read: {e}"))
-                                .and_then(|src| {
-                                    build_one(file, &src, root, no_project, progress, None)
-                                });
-                            counter.note_file(file);
-                            mine.push((index, status, ticks));
-                        }
-                        mine
-                    })
+                            mine
+                        })
+                        .expect("spawn build thread")
                 })
                 .collect();
             handles
@@ -377,7 +600,8 @@ pub(crate) fn build(
             per_file_ticks[slot.0] = slot.2;
         }
     } else {
-        for (index, file) in files.iter().enumerate() {
+        for &index in &legacy {
+            let file = &files[index];
             let mut ticks: Vec<(String, usize, usize)> = Vec::new();
             let mut sink = |tick: sokonanoda_front::compile::ProgressTick<'_>| {
                 ticks.push((tick.module.to_string(), tick.index, tick.total));
@@ -494,6 +718,28 @@ fn project_roots(args: &[String]) -> Vec<PathBuf> {
         }
     }
     roots
+}
+
+/// **G-68 预跑的收尾**：判定状态 + 干净即存缓存 —— 与 [`build_one`] 的项目分支**逐字同构** ✓
+/// （`ok` 的口径、`store_at` 的条件都不许分叉 ✗：分叉 = "会话编的"与"自己编的"进不同的缓存 ✓）。
+fn finish_project(
+    report: sokonanoda_front::project::ProjectReport,
+    options: &CompileOptions,
+    digest: &str,
+    artifacts_root: &Path,
+) -> &'static str {
+    let ok = report
+        .entry_module()
+        .is_none_or(|module| module.events.errors.is_empty())
+        && !report.has_errors();
+    if ok && report.is_clean() {
+        sokonanoda_front::project::cache::store_at(artifacts_root, digest, options, &report);
+    }
+    if ok {
+        "compiled"
+    } else {
+        "failed"
+    }
 }
 
 /// Compile one source through the cache, returning `"hit"`, `"compiled"` or

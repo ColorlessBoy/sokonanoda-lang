@@ -155,6 +155,12 @@ pub(crate) struct TrustPlan {
 /// **切片 1b（2026-09-29）**：prelude 的登记表（`Nat`/`Bool`/`Eq`/L1）—— 它们**不在 `declars` 里**，
 /// 所以 `hide_declars`/`restore_declars` 救不了它们 ✗。让它们**跨趟复用**（库层装一次、
 /// 各入口趟接着用）⇒ 入口才看得见 `Nat`，且不会重复登记。
+/// ⚠ **G-68（2026-10-06）**：它**可以克隆**，而且多入口会话**必须**克隆 ——
+/// 这三张表是**跨趟累加**的（`walk` 把本趟登记进去、再把表交回调用方 ✗）⇒
+/// 一个 session 里连着编两个入口时，**前一个入口的声明会泄进后一个** ✗
+/// （`declars` 有 `hide_declars`/`restore_declars` 挡着，这三张表没有 ✗）。
+/// 会话因此按"库层快照"逐入口还原 —— 见 `project/session.rs` 的 `tables_snapshot`。
+#[derive(Clone)]
 pub(crate) struct PassTables<'a> {
     pub(crate) known: KnownTable,
     pub(crate) inductives: InductiveTable<'a>,
