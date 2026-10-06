@@ -119,7 +119,9 @@ for tag, r in (("默认档", d), ("逃生门", e)):
 # ① 默认档必须**已修**：`t3` 绿 ⇒ 5 条全过 ✓
 if d["failed_lines"] == [T3] and d["checked"] == 4:
     print("✗ 缺口仍在：**默认档** `h (Or.inl hp)` 判红（`?B` 被兄弟兜底填成 `?A` ✗）"
-          "—— 闸门默认值被翻回去了？", file=sys.stderr)
+          "—— ① 闸门默认值被翻回去了，**或** ② 调用者环境里设了 `SOKO_ARG_EXPECTED=0`"
+          "（⚠ 本件用 `env -u` 摘过它 ⇒ ② 只在 `env -u` 失效/被改坏时才会命中）✓",
+          file=sys.stderr)
     sys.exit(0)   # 0 = 缺口仍在（与台账 status 一致 ✓）
 if d["failed_lines"] or d["checked"] != 5:
     print(f"✗ 默认档形状变了（期望 5 全绿）⇒ 回来看看：{d}", file=sys.stderr)
