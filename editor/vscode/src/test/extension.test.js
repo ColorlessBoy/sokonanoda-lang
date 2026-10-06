@@ -1988,17 +1988,23 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
         `lights_showdelay_0=${baselineLights} lights_default=${fixedLights}`,
     );
 
-    // 结构判据：旧行为**每键都亮**（`begin` 立刻生效 ⇒ 正常是 2N），修好后
-    // **不是每键都亮**。A 臂不写死 `=== 2N`：`showDelayMs=0` 的定时器与
-    // `end` 通知谁先到是竞态（谁赢都不影响"旧行为每键都亮"这个结论）。
+    // ── 判据（2026-10-06 重标定：**旧的两条都在共享 runner 上假红过** ✗）──────
+    // CI 实测（5 轮，`PERF editor_keystroke_latency_project`）：
+    //   `lights_showdelay_0` = 17 / 18 / 18 / **2** / **0** · `lights_default` = **0 ×5**
+    // ⇒ ① **A 臂的"每键都亮"（≈2N）不是结构量**：击键被 **debounce 合并** ⇒ 编译次数
+    //      本身随机器快慢变（慢机器合并得多 ⇒ 亮得少），再加上 `config.update` 广播到
+    //      扩展宿主是**异步**的（200ms 等待偶尔不够）⇒ 写死 `>= 2N` 就是假红 ✗
+    //      （`AGENTS.md`：绝对量/机器相关的量不可转移）；
+    //    ② **B 臂（默认档）才是"修好了"的语义**，而且 **5/5 都是 0** ✓ 稳。
+    // ⇒ 硬判据只留 B 臂 + 一条 A/B 单调性；A 臂读数照样进 `perfNote`/台账 ✓（诊断不丢）。
     assert.ok(
-      baselineLights >= typed.length,
-      `showDelayMs=0（旧行为）必须**每个键都亮** —— 这就是用户看到的"一闪一闪"：` +
-        `${typed.length} 个键亮了 ${baselineLights} 次`,
+      fixedLights <= 2,
+      `默认档（延迟展示）必须**不再闪**：${typed.length} 个键亮了 ${fixedLights} 次` +
+        `（CI 5/5 实测 0；上限 2 只兜"延迟被改小/失效"这类回归）`,
     );
     assert.ok(
-      fixedLights < typed.length,
-      `默认档（延迟展示）必须不再每键都亮：${typed.length} 个键亮了 ${fixedLights} 次`,
+      fixedLights <= baselineLights,
+      `默认档不许比旧行为亮得更多：旧 ${baselineLights} 次 vs 默认 ${fixedLights} 次`,
     );
   });
 
