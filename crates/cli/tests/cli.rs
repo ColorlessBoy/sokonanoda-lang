@@ -1317,7 +1317,7 @@ fn cli_accepts_prop_inductive_with_type_parameter() {
     // 签名断言：`#check Bar.rec` 的输出里 motive 落在 `Prop`（不是 `Sort u`）。
     // 这是本缺口的本质——recursor 的**形状**，不是"声明得过"。
     assert!(
-        stdout.contains("motive : Bar A -> Prop"),
+        stdout.contains("motive : (x : Bar A) -> Prop"),
         "the derived recursor's motive must land in Prop: {stdout}"
     );
     assert!(

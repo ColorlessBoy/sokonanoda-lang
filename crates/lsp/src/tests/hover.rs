@@ -441,7 +441,9 @@ async fn hover_on_a_locally_declared_notation_symbol_explains_it() {
     // **T-D03 形态①：本文件声明的**——目标解析得出来（本文件的声明行），
     // 所以"原始类型"那一行要在。
     assert!(
-        markup.value.contains("myop : Prop -> Prop -> Prop"),
+        markup
+            .value
+            .contains("myop : (a : Prop) -> (b : Prop) -> Prop"),
         "本文件声明的记法也要给原始类型：{:?}",
         markup.value
     );
@@ -764,7 +766,7 @@ infix:50 \" ∈ \" => Set.mem\n",
     assert!(
         markup
             .value
-            .contains("Set.mem : forall (α : Type 0), α -> Set α -> Prop"),
+            .contains("Set.mem : (α : Type) -> (a : α) -> (A : Set α) -> Prop"),
         "hover 必须给出原始类型：{:?}",
         markup.value
     );

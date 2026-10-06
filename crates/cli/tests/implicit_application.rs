@@ -159,19 +159,6 @@ def uses : Nat := ignores 3
     );
 }
 
-/// **U1 片的端到端守卫**（IA-4 §2.9 · 开关 `SOKO_UNIVERSE_METAVAR`）：
-/// **省前导隐式实参 + 结果再收一个实参 + 宇宙层级由解得出** 的那条声明必须判绿 ✓。
-///
-/// 形状：`axiom Show {u} : {α : Sort u} → α → Nat → Nat` 写成 `Show 0 5`
-/// —— `α` 由 `0 : Nat` 解出 ✓、`5` 落到结果上 ✓、而 `u` **没写** ✗（修前一律按 `0` ✗
-/// ⇒ 内核 `期望 Sort(0)，实际是 Sort(1)` ✗）。`u` 的来源 = **解出来的隐式项参数自己的类型**
-/// （`α := Nat` ⇒ `Nat : Sort 1` ⇒ `u := 1` ✓）。
-///
-/// 三条牙：① 开关**关** ⇒ 该形判红 ✓（基线行为 ✓）；② 开关**开** ⇒ 判绿 ✓；
-/// ③ **反面**：把层级写死成错的（`Show.{0} 0 5`）在开关开时**仍须**判红 ✓
-/// —— 证明不是"什么都放行" ✗（**不是"看着像过"的断言** ✓）。
-///
-/// 与 `docs/gaps/repro/U1-universe-level-solved.sh` **逐字同源** ✓。
 #[test]
 fn u1_solves_an_unwritten_universe_level_only_when_the_switch_is_on() {
     let src = "\
@@ -183,9 +170,11 @@ def bad : Nat := Show.{0} 0 5\n";
     // ① 开关关：`Show 0 5`（缺口面）与 `Show.{0} 0 5`（写死错的层级）判红 ✓，
     //    对照 `Show.{1} 0 5` 与 axiom 判过 ⇒ checked=2 · 2 条诊断 ✓。
     let (ok_off, checked_off, diags_off) = grade_source_env("u1-off", src, &[]);
+    // G-30 收口（2026-10-05）后层 mvar 恒生成并解出（对齐 Lean `mkFreshLevelMVars`）：
+    // `Show 0 5` 的 `u` 由 `α := Nat` 解出 ⇒ 开关**关**时也从红转绿 ⇒ checked=3、仅 `bad` 红。
     assert!(
-        !ok_off && checked_off == 2 && diags_off.len() == 2,
-        "开关**关**时：两条必须判红、两条判过 ⇒ ok={ok_off} checked={checked_off} diags={diags_off:#?}"
+        !ok_off && checked_off == 3 && diags_off.len() == 1,
+        "开关**关**时：`Show 0 5` 已判过（G-30 恒解层）、仅写死错的 `bad` 红 ⇒ ok={ok_off} checked={checked_off} diags={diags_off:#?}"
     );
 
     // ②③ 开关开：`Show 0 5` 转绿（`u := 1` ✓），只有写死错的层级仍红 ✓。

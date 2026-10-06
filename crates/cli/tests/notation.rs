@@ -2625,6 +2625,66 @@ const INTENTIONAL: &[(&str, &str)] = &[
     ("courses/set-theory/lib/Set.sokonanoda", "Set.triple"),
     ("courses/set-theory/lib/Set.sokonanoda", "Set.union"),
     ("courses/set-theory/lib/Set.sokonanoda", "Set.univ"),
+    // 0.79.0 批次「课程库前导类型参数全部隐式化」的 Rel 族（2026-10-06 补登）：
+    // 与上方 Rel.comp / Rel.comp_apply 同一次契约变更；守卫实测报出 18 条
+    // `{A, B}` / `{A, B, C}` 隐式 binder，课程全量编译绿（IA-1 插入正常），
+    // 是白名单滞后而非新契约破坏。
+    ("courses/set-theory/lib/Rel.sokonanoda", "Rel.comp_mono"),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.comp_mono_left",
+    ),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.comp_mono_right",
+    ),
+    ("courses/set-theory/lib/Rel.sokonanoda", "Rel.inv_mono"),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.comp_mono_apply",
+    ),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.inv_mono_apply",
+    ),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.comp_mono_left_apply",
+    ),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.comp_mono_right_apply",
+    ),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.comp_mono_trans",
+    ),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.comp_mono_apply_trans",
+    ),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.comp_mono_left_apply_trans",
+    ),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.comp_mono_right_apply_trans",
+    ),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.inv_mono_trans",
+    ),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.inv_mono_apply_trans",
+    ),
+    ("courses/set-theory/lib/Rel.sokonanoda", "Rel.inv_mono_iff"),
+    ("courses/set-theory/lib/Rel.sokonanoda", "Rel.inv_inv_mono"),
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.inv_mono_of_inv",
+    ),
 ];
 /// **IA-1：隐式实参插入**（路线 C，设计 `docs/design/implicit-arguments.md` §3）。
 ///

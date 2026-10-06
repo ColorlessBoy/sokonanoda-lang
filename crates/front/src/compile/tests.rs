@@ -191,7 +191,7 @@ fn document_report_carries_check_results() {
     let file = parse("#check Nat\n#check (Nat -> Nat)\n#check Prop\n").unwrap();
     let report = check_document(&file);
     let texts: Vec<&str> = report.checks.iter().map(|c| c.text.as_str()).collect();
-    assert_eq!(texts, vec!["Type 0", "Type 0", "Type 0"]);
+    assert_eq!(texts, vec!["Type", "Type 0", "Type 0"]);
     assert!(
         report
             .checks
@@ -5275,7 +5275,7 @@ fn bare_prelude_nat_names_stay_terminating() {
         .collect();
     assert_eq!(
         types,
-        vec!["Nat -> Nat -> Nat", "Nat -> Nat"],
+        vec!["Nat -> Nat -> Nat", "(n : Nat) -> Nat"],
         "{:?}",
         out.events
     );

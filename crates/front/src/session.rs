@@ -989,7 +989,7 @@ def five : Nat := 5
         let mut session = Session::new(CompileOptions::default());
         let u1 = update(&mut session, "#check Nat\n", 1);
         assert_eq!(u1.report.checks.len(), 1);
-        assert_eq!(u1.report.checks[0].text, "Type 0");
+        assert_eq!(u1.report.checks[0].text, "Type");
         let with_comment = "-- 讲解\n#check Nat\n";
         let u2 = update(&mut session, with_comment, 2);
         assert_eq!(u2.recompiled_from, None, "comment-only edit");

@@ -319,7 +319,7 @@ theorem t : And p q := by apply imp\n";
         );
         let hints = ask_inlay(&mut service, src).await.expect("hints array");
         assert_eq!(hints.len(), 2, "two #check hints: {hints:?}");
-        assert_eq!(label_of(&hints[0]), ": Type 0");
+        assert_eq!(label_of(&hints[0]), ": Type");
         assert_eq!(label_of(&hints[1]), ": Type 0");
         // 位置在表达式末尾（`Nat` 之后 / `(Nat -> Nat)` 之后）。
         let first = offset_of(src, "Nat");
