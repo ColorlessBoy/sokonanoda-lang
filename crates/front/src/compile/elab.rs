@@ -3280,7 +3280,9 @@ fn infer_type_text<'a>(
                     &binders,
                     &term,
                 )
-                .map_or_else(&slow, |hit| hit.ok());
+                // ⚠ `slow` **按值**传（clippy 1.99 `needless_borrows_for_generic_args`：
+                // 本分支**随即 return** ⇒ 条件移动不与其他使用冲突 ✓）。
+                .map_or_else(slow, |hit| hit.ok());
             }
             // 命中 ⇒ 两条路**都轮不到**（`On` 档同样直接返回缓存）⇒ 记一笔 same 即可。
             // 不在这里跑就地：那是 15 万次 × ~1 ms 的账 ✗（真正要比的是**未命中**那批）。
