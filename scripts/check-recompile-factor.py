@@ -33,11 +33,19 @@ a/b/c.sokonanoda        各 `import lib.Shared`；自身**项风格**（0 个 `b
 上界记在 `scripts/recompile-budget.json`（`max_by_calls`）：实测 **> 上界 ⇒ 判红**（exit 1）。
 修好之后**把上界收紧到 1**（与 `docs-budget.json` 同一条纪律：只许减不许增）。
 
+**`--selftest` 的期望按形状给（2026-10-06 修）**：上界收到 **1** 之后，「N 入口共享 1 依赖」
+恒 `by_calls=1`（那正是 G-68 修复的性质）⇒ 它**再也造不出重复**，不能再当 red 用例 ✗；
+而「N 个**独立**依赖」（`by_calls=N`）撞绝对上界 1 ⇒ 那是**假红**（各自独立、无从省 ✗）。
+⇒ 每条 case 自带期望上界（共享 ⇒ 1 / 独立 ⇒ N），**牙**改长在 `split` 那条上：
+`e0` 只 import `Shared`、`e1` import `Shared` + `Extra` ⇒ **两个库闭包签名** ⇒ 分两组
+⇒ `Shared` 编 **2** 次 ⇒ 判红 ✓（= G-68 台账如实记的「跨组仍重复编库层 517 vs 249 = 2.08×」）。
+
 ## 用法
 
     python3 scripts/check-recompile-factor.py             # 判据（gate / CI）
     python3 scripts/check-recompile-factor.py --json      # 机器可读
     python3 scripts/check-recompile-factor.py --selftest  # **反向验证**：造重复场景必须判红
+                                                         # （每条 case **自带期望上界** ⇒ 期望按形状给 ✓）
 
 退出码：0 = 未超上界 · 1 = **超上界（重复功变多）** · 2 = 环境/形状异常（**绝不静默通过**）
         · 3 = 拿不到可用的二进制（与 gate 的其它步骤同一条纪律：探不到就 exit 3）。
@@ -78,6 +86,21 @@ import lib.{dep}
 theorem {entry}_thm (P Q : Prop) (hp : P) (hq : Q) : P ∧ Q := {fn} P Q hp hq
 """
 
+# **第二个库模块**（0 个 `by`）：只被**部分**入口 import ⇒ 制造**两个不同的库闭包签名**
+# ⇒ G-68 的「按库闭包签名分组」会把它们分到**两组** ⇒ 同一个 `Shared` 仍被编 **2** 次。
+# 这就是 G-68 台账里如实记下的那条「跨组仍重复编库层（517 vs 去重 249 = 2.08×）」——
+# 自检的牙必须长在**当前机制下仍能造出的重复**上 ✓。
+EXTRA_SRC = """\
+-- G-68 夹具：第二个库模块（**0 个 `by`** —— 它不贡献读数，只改变闭包签名）。
+axiom extra_marker : Prop
+"""
+
+ENTRY_SRC_EXTRA = """\
+import lib.{dep}
+import lib.Extra
+theorem {entry}_thm (P Q : Prop) (hp : P) (hq : Q) : P ∧ Q := {fn} P Q hp hq
+"""
+
 
 def resolve_bin(explicit: str | None) -> tuple[list[str], str] | None:
     """可用的 CLI 调用前缀。优先显式覆盖 → `scripts/soko`（版本钉守卫）→ 仓库构建。
@@ -105,12 +128,23 @@ def resolve_bin(explicit: str | None) -> tuple[list[str], str] | None:
     return None
 
 
-def write_fixture(root: Path, entries: int, shared: bool) -> tuple[list[str], int, int]:
-    """写夹具；返回 (入口路径, Σ闭包, 去重模块数)。"""
+def write_fixture(root: Path, entries: int, mode: str) -> tuple[list[str], int, int]:
+    """写夹具；返回 (入口路径, Σ闭包, 去重模块数)。
+
+    `mode` 三档（**自检的三条腿各自要一个形状** ✓）：
+
+    * `all` —— 全部入口共享 1 个依赖。G-68 之后**无重复可言**（`by_calls` 恒 **1**，
+      与入口数无关）⇒ 期望 green、上界 **1**；
+    * `none` —— 各入口各有独立依赖（各编一次 = `entries` 次）⇒ 期望 green、
+      上界**按形状给 `entries`**（"各自独立、无从省"不是重复功 ✗）；
+    * `split` —— **两个不同的库闭包签名**：`e0` 只 import `Shared`，其余入口
+      import `Shared` + `Extra` ⇒ 分组后 `Shared` 被编 **2** 次 ⇒ 期望 **red**、上界 **1**。
+      这条是自检**现在唯一能造出重复**的形状 ✓（= G-68 台账的「跨组仍重复编库层」）。
+    """
     (root / "lib").mkdir(parents=True, exist_ok=True)
     (root / "sokonanoda.toml").write_text('name = "g68-guard"\n', encoding="utf-8")
     entry_paths: list[str] = []
-    if shared:
+    if mode == "all":
         (root / "lib" / "Shared.sokonanoda").write_text(DEP_SRC, encoding="utf-8")
         for i in range(entries):
             name = f"e{i}"
@@ -120,6 +154,19 @@ def write_fixture(root: Path, entries: int, shared: bool) -> tuple[list[str], in
             entry_paths.append(str(root / f"{name}.sokonanoda"))
         sigma = entries * 2          # 每个入口的闭包 = {Shared, 自己}
         distinct = entries + 1
+    elif mode == "split":
+        (root / "lib" / "Shared.sokonanoda").write_text(DEP_SRC, encoding="utf-8")
+        (root / "lib" / "Extra.sokonanoda").write_text(EXTRA_SRC, encoding="utf-8")
+        for i in range(entries):
+            name = f"e{i}"
+            # e0 的库闭包 = {Shared}；其余 = {Shared, Extra} ⇒ **两个签名、两组** ✓
+            template = ENTRY_SRC if i == 0 else ENTRY_SRC_EXTRA
+            (root / f"{name}.sokonanoda").write_text(
+                template.format(dep="Shared", entry=name, fn="shared_and"), encoding="utf-8"
+            )
+            entry_paths.append(str(root / f"{name}.sokonanoda"))
+        sigma = 2 + (entries - 1) * 3 if entries > 0 else 0
+        distinct = entries + 2
     else:
         for i in range(entries):
             name = f"e{i}"
@@ -179,10 +226,10 @@ def load_budget() -> tuple[int, int]:
     return int(data["fixture_shared_entries"]), int(data["max_by_calls"])
 
 
-def run_once(cmd: list[str], entries: int, shared: bool) -> tuple[int | None, int, int]:
+def run_once(cmd: list[str], entries: int, mode: str) -> tuple[int | None, int, int]:
     tmp = Path(tempfile.mkdtemp(prefix="g68-guard-"))
     try:
-        paths, sigma, distinct = write_fixture(tmp, entries, shared)
+        paths, sigma, distinct = write_fixture(tmp, entries, mode)
         got = measure(cmd, tmp, paths, tmp / ".cache")
         return got, sigma, distinct
     finally:
@@ -190,31 +237,42 @@ def run_once(cmd: list[str], entries: int, shared: bool) -> tuple[int | None, in
 
 
 def selftest(cmd: list[str], budget: int) -> int:
-    """**反向验证**：造重复场景必须判红；没有重复的场景必须不红；计数器坏了必须 exit 2。"""
+    """**反向验证**：造重复场景必须判红；没有重复的场景必须不红；计数器坏了必须 exit 2。
+
+    ⚠ **每个 case 自带它的期望上界**（2026-10-06 修）：上界 `max_by_calls` 在 G-68
+    收口时由 3 收到 **1**，而「N 入口共享 1 依赖」这个形状**再也造不出重复**
+    （恒 1，那正是修复本身）✗ —— 旧版自检拿它当 red 用例 ⇒ 咬不住；而「3 个独立
+    依赖」（`by_calls=3`）撞绝对上界 1 ⇒ **假红**（各自独立、无从省 ✗）。
+    ⇒ 期望必须**按形状**给（`shared ⇒ 1`、`独立 ⇒ entries`），**不是**放宽上界 ✗
+    （`recompile-budget.json` 仍是 1 ✓）。**牙**改长在 `split` 那条上 ——
+    它**现在仍能造出重复**（两个库闭包签名 ⇒ 分两组 ⇒ `Shared` 编 2 次 ✓）。
+    """
     cases = [
-        (1, True, "green", "单入口（无重复可言）"),
-        (3, True, "green", "今天的基线（3 入口共享 1 依赖 = 3 次）"),
-        (5, True, "red", "**造重复**：5 入口共享 1 依赖 = 5 次 ⇒ 必须判红"),
-        (3, False, "green", "对照：3 个独立依赖（各编一次 = 3 次，不共享也无从省）"),
+        (1, "all", "green", 1, "单入口（无重复可言）"),
+        (3, "all", "green", 1, "G-68 之后：共享 1 依赖的 3 个入口仍只编 1 次 ⇒ 无重复可言"),
+        (5, "all", "green", 1, "同上（**入口数不改变读数** —— 修复的性质）"),
+        (3, "none", "green", 3, "对照：3 个独立依赖（各编一次 = 3 次，**各自独立、无从省**）⇒ 上界按形状给 3"),
+        (2, "split", "red", 1, "**仍能造出重复**：两个**不同的库闭包签名**（e0 只 import Shared；e1 import Shared+Extra）⇒ 分两组 ⇒ Shared 被编 **2** 次 ⇒ 必须判红"),
     ]
     bad = 0
-    for entries, shared, want, why in cases:
-        got, sigma, distinct = run_once(cmd, entries, shared)
+    for entries, mode, want, bound, why in cases:
+        got, sigma, distinct = run_once(cmd, entries, mode)
         if got is None:
             print(f"   [exit2] {why}：量不出 by_calls（形状/环境异常）")
             return 2
         if got == 0:
             print(f"   [exit2] {why}：by_calls=0 ⇒ 计数器失效，守卫咬不住")
             return 2
-        code, _ = judge(got, budget)
+        code, _ = judge(got, bound)
         ok = (code == 0) if want == "green" else (code != 0)
-        print(f"   [{'ok' if ok else 'BAD'}] {why}：by_calls={got} Σ闭包={sigma} 去重={distinct} ⇒ exit {code}（期望 {want}）")
+        print(f"   [{'ok' if ok else 'BAD'}] {why}：by_calls={got} Σ闭包={sigma} 去重={distinct} ⇒ exit {code}（期望 {want}，上界 {bound}）")
         if not ok:
             bad += 1
     if bad:
         print(f"selftest: ✗ {bad} 条反向验证失败 —— 守卫咬不住", file=sys.stderr)
         return 1
-    print("selftest: ✓ 反向验证全过（重复场景判红、无重复场景不红、计数器失效判 2）")
+    print(f"selftest: ✓ 反向验证全过（重复场景判红、无重复场景不红、计数器失效判 2；"
+          f"台账上界 max_by_calls={budget} 未被放宽 ✓）")
     return 0
 
 
@@ -240,7 +298,7 @@ def main(argv: list[str]) -> int:
     if args.selftest:
         return selftest(cmd, budget)
 
-    got, sigma, distinct = run_once(cmd, entries, True)
+    got, sigma, distinct = run_once(cmd, entries, "all")
     if got is None:
         print("error: 夹具跑不起来（build 失败或 SOKO_STAGE_STATS 没生效）—— exit 2", file=sys.stderr)
         return 2
