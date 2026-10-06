@@ -109,6 +109,12 @@
       "renewed": "2026-09-30",
       "tier": "spec"
     },
+    "docs/design/course-distribution.md": {
+      "expires": "2027-10-06",
+      "renewed": "2026-10-06",
+      "tier": "spec",
+      "reason": "设计草案（2026-10-06 立项，用户拍板先落文档、后续再调研）；spec 档，到期复审定稿或归档（分档 spec = 365 天）"
+    },
     "docs/design/course-gate-in-ci.md": {
       "expires": "2027-09-30",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
