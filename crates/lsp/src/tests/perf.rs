@@ -17,10 +17,22 @@ macro_rules! best_ms {
     }};
 }
 
+/// **墙钟只兜量级**（`AGENTS.md`「perf 判据不许用绝对毫秒」——**第三次**同一种病）。
+///
+/// 2026-10-06 实测（CI run `37431004826`）：`didChange` best-of-3 = **53ms** 撞 50ms
+/// 阈值判红 ✗，而同一棵树的本地读数是**个位数毫秒** ⇒ 又一次「共享 runner 上墙钟
+/// 不可转移」（前两次：`keystroke_recompile_closure` 44↔2431ms、`perf-gate` 37s↔278s）。
+/// ⇒ 本文件的毫秒断言一律改成**量级**天花板（20×+），**回归检测交给结构计数**
+/// （`lsp_keystroke_structure` 的 `prefix_runs`）与 **PERFJSON 台账**
+/// （`scripts/perf-check.sh` 与上一次同名记录比 delta ✓）。**不许**再往回拧紧 ✗ ——
+/// 要更严就加**结构**判据，不要加毫秒。
+const SLOW_MAGNITUDE_MS: u128 = 500; // 编辑→诊断往返（原 50ms 阈值）
+const FAST_MAGNITUDE_MS: u128 = 200; // 请求 / 光标路径（原 10ms 阈值）
+
 #[tokio::test]
 async fn perf_did_change_latency() {
-    // didChange → 诊断落地的每次延迟 < 50ms（50 声明文件）。
-    // 抓的是「编辑→反馈」的用户可感延迟。
+    // didChange → 诊断落地的「编辑→反馈」往返。
+    // ⚠ 判据是**量级**（`SLOW_MAGNITUDE_MS`），不是"每次都快"——见常量上的注释。
     let src = perf_canvas(50);
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
@@ -48,17 +60,19 @@ async fn perf_did_change_latency() {
         type_step(&mut service, &mut socket, &mut cur, &mut version, step).await;
         round += 1;
     });
-    println!("PERF lsp didChange round-trip: {elapsed}ms (threshold 50ms)");
+    println!(
+        "PERF lsp didChange round-trip: {elapsed}ms (magnitude ceiling {SLOW_MAGNITUDE_MS}ms)"
+    );
     assert!(
-        elapsed < 50,
-        "didChange round-trip took {elapsed}ms (threshold 50ms)"
+        elapsed < SLOW_MAGNITUDE_MS,
+        "didChange round-trip took {elapsed}ms (magnitude ceiling {SLOW_MAGNITUDE_MS}ms)"
     );
     shutdown(&mut service).await;
 }
 
 #[tokio::test]
 async fn perf_completion_and_hover_latency() {
-    // completion + hover 请求延迟 < 10ms（50 声明文件）。
+    // completion + hover 请求延迟（50 声明文件）—— 判据是量级，见 `FAST_MAGNITUDE_MS`。
     let src = perf_canvas(50);
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
@@ -70,20 +84,26 @@ async fn perf_completion_and_hover_latency() {
     let c_ms = best_ms!(3, {
         let _ = request_completions_at(&mut service, lsp_pos(&src, at)).await;
     });
-    println!("PERF lsp completion: {c_ms}ms (threshold 10ms)");
-    assert!(c_ms < 10, "completion took {c_ms}ms (threshold 10ms)");
+    println!("PERF lsp completion: {c_ms}ms (magnitude ceiling {FAST_MAGNITUDE_MS}ms)");
+    assert!(
+        c_ms < FAST_MAGNITUDE_MS,
+        "completion took {c_ms}ms (magnitude ceiling {FAST_MAGNITUDE_MS}ms)"
+    );
     let h_ms = best_ms!(3, {
         let _ = hover_opt_at(&mut service, &src, at).await;
     });
-    println!("PERF lsp hover: {h_ms}ms (threshold 10ms)");
-    assert!(h_ms < 10, "hover took {h_ms}ms (threshold 10ms)");
+    println!("PERF lsp hover: {h_ms}ms (magnitude ceiling {FAST_MAGNITUDE_MS}ms)");
+    assert!(
+        h_ms < FAST_MAGNITUDE_MS,
+        "hover took {h_ms}ms (magnitude ceiling {FAST_MAGNITUDE_MS}ms)"
+    );
     shutdown(&mut service).await;
 }
 
 #[tokio::test]
 async fn perf_state_at_latency() {
     // 光标移动路径 `soko/stateAt`（0.40.0 起带 goal_runs/ty_runs）延迟
-    // < 10ms（50 声明文件）——防止「每次移动都全量重解析」之类的回归。
+    // 量级判据（`FAST_MAGNITUDE_MS`）——防止「每次移动都全量重解析」之类的回归；结构判据在 `lsp_keystroke_structure`。
     let src = perf_canvas(50);
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
@@ -99,17 +119,17 @@ async fn perf_state_at_latency() {
         result.get("goals").and_then(|g| g.as_array()).is_some(),
         "stateAt response shape: {result:?}"
     );
-    println!("PERF lsp stateAt: {elapsed}ms (threshold 10ms)");
+    println!("PERF lsp stateAt: {elapsed}ms (magnitude ceiling {FAST_MAGNITUDE_MS}ms)");
     assert!(
-        elapsed < 10,
-        "soko/stateAt took {elapsed}ms (threshold 10ms)"
+        elapsed < FAST_MAGNITUDE_MS,
+        "soko/stateAt took {elapsed}ms (magnitude ceiling {FAST_MAGNITUDE_MS}ms)"
     );
     shutdown(&mut service).await;
 }
 
 #[tokio::test]
 async fn perf_goals_view_latency() {
-    // goal 视图（soko/goals，教学核心特性）延迟 < 10ms（50 声明文件）。
+    // goal 视图（soko/goals，教学核心特性）—— 量级判据，见 `FAST_MAGNITUDE_MS`。
     let src = perf_canvas(50);
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
@@ -138,8 +158,11 @@ async fn perf_goals_view_latency() {
         result.get("decls").and_then(|d| d.as_array()).is_some(),
         "goals response shape: {result:?}"
     );
-    println!("PERF lsp goals view: {elapsed}ms (threshold 10ms)");
-    assert!(elapsed < 10, "soko/goals took {elapsed}ms (threshold 10ms)");
+    println!("PERF lsp goals view: {elapsed}ms (magnitude ceiling {FAST_MAGNITUDE_MS}ms)");
+    assert!(
+        elapsed < FAST_MAGNITUDE_MS,
+        "soko/goals took {elapsed}ms (magnitude ceiling {FAST_MAGNITUDE_MS}ms)"
+    );
     shutdown(&mut service).await;
 }
 
@@ -347,7 +370,7 @@ async fn perf_project_dependency_edit_refreshes_dependents() {
 #[tokio::test]
 async fn perf_project_requests_are_interactive() {
     let _serial = testutil::HEAVY_LOCK.lock().await;
-    // 项目入口上的 hover / definition / goals 都必须在"光标移动"量级（各 < 10ms）。
+    // 项目入口上的 hover / definition / goals 都必须在"光标移动"量级（见 `FAST_MAGNITUDE_MS`）。
     let (dir, entry_uri, entry_text) = gen_project("requests", 3, 12);
     let root = Url::from_directory_path(&dir).expect("dir url");
     let (mut service, mut socket) = test_service();
@@ -418,8 +441,8 @@ async fn perf_project_requests_are_interactive() {
         ("goals", goals_ms),
     ] {
         assert!(
-            value < 50,
-            "project {name} took {value}ms (interactive budget)"
+            value < FAST_MAGNITUDE_MS,
+            "project {name} took {value}ms (magnitude ceiling {FAST_MAGNITUDE_MS}ms)"
         );
     }
     let _ = std::fs::remove_dir_all(&dir);
