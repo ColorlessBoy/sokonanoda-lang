@@ -32,7 +32,11 @@ use std::path::{Path, PathBuf};
 /// `4`（2026-10-02 / 值守第 8 单）：**报告形状版本 `REPORT_SHAPE` 进键 + 进条目**
 /// —— 以前源码没变而二进制变了时会命中旧条目，新字段走 `#[serde(default)]` ⇒
 /// **静默给旧答案** ✗（实测：G-78 的修复被整库陈旧缓存挡掉）。现在形状一变整库不命中 ✓。
-pub const CACHE_FORMAT: u32 = 4;
+/// `5`（2026-10-06）：**判定开关档位 `flags_state()` 进键** —— 同一份源码在
+/// 不同 `SOKO_*` 档位下的判定互不污染 ✓（b1/u1 跨档污染的根因）。按本常量自己的
+/// 规矩「改动键的构成 ⇒ bump」：旧键**够不着**是事实，bump 让这件事**写在条目里**
+/// ✓（本地那份 0.81.0 的陈旧条目也一并作废，免得下一轮读到「假中性」✗）。
+pub const CACHE_FORMAT: u32 = 5;
 
 /// One cached compile: the document report (for the LSP) and, when the
 /// producer computed it, the CLI event output.
@@ -139,12 +143,64 @@ pub fn build_stamp() -> u64 {
     hash
 }
 
-/// Stable FNV-1a 64 hex over (CACHE_FORMAT, CARGO_PKG_VERSION, build stamp,
-/// prelude mode, source text). Pure + deterministic.
+/// 判定开关档位在缓存键里的状态：全部 `SOKO_*` 环境变量折成一份 FNV 哈希。
+///
+/// **2026-10-06 实测修复（CI test 组判红根因）**：缓存键原先只折了
+/// `metavar_state`（MetavarMode 三档），**漏掉** `SOKO_ARG_EXPECTED` /
+/// `SOKO_UNIVERSE_METAVAR` / `SOKO_JUDGE_INPLACE` / `SOKO_NO_CONST_LEVELS`
+/// 等判定开关 ⇒ 同一 src 在开关 A 下跑出的判定被缓存，切到开关 B 仍读旧判定
+/// （b1 测试：`b1-off` 的 t3 红被缓存，`b1-on` 复用时 t3 仍红 ✗）。开关换挡
+/// 后必须 miss。诊断开关（`SOKO_TRACE_*` 等）一起折：诊断场景本就不该命中
+/// 缓存（要跑真实路径）。
+///
+/// ⚠ **键必须顺序无关**（2026-10-06 复核补）：`std::env::vars()` 的**枚举顺序**
+/// 是未指定的 —— 同一组 `SOKO_*` 值、只换环境块的顺序，哈希就不同 ✗（实测：
+/// `env -i A=1 B=2` 与 `env -i B=2 A=1` 在同一缓存目录里留下**两个**条目）。
+/// 那会让 `sokonanoda build` 预热出来的条目被编辑器（**另一个进程**、另一份
+/// 环境顺序）够不着 ✗ —— 正是 G-27 修过的那类「CLI ↔ LSP 复用不了」。
+/// ⇒ **先按名字排序再折**（守卫 `flags_hash_ignores_environment_order`）。
+///
+/// 非 UTF-8 的**值**走 `to_string_lossy`：`vars()` 遇到非 Unicode 会 **panic** ✗，
+/// 而这是编译热路径 —— 不许新增崩溃路径。
+pub fn flags_state() -> u64 {
+    flags_hash(std::env::vars_os().filter_map(|(k, v)| {
+        // 名字做 ASCII 前缀判断 ⇒ 非 UTF-8 的名字不可能带 `SOKO_`，跳过即可。
+        let k = k.into_string().ok()?;
+        k.starts_with("SOKO_")
+            .then(|| (k, v.to_string_lossy().into_owned()))
+    }))
+}
+
+/// [`flags_state`] 的纯函数部分：**排序后**逐个折（分隔符 `0` 不会出现在 UTF-8 里）。
+fn flags_hash<I: IntoIterator<Item = (String, String)>>(vars: I) -> u64 {
+    let mut pairs: Vec<(String, String)> = vars.into_iter().collect();
+    pairs.sort();
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    let mut eat = |byte: u8| {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    };
+    for (k, v) in pairs {
+        for byte in k.bytes() {
+            eat(byte);
+        }
+        eat(0);
+        for byte in v.bytes() {
+            eat(byte);
+        }
+        eat(0);
+    }
+    hash
+}
+
 pub fn key(src: &str, options: &CompileOptions) -> String {
     key_with_build(src, options, build_stamp())
 }
 
+/// Stable FNV-1a 64 hex over (CACHE_FORMAT, CARGO_PKG_VERSION, build stamp,
+/// prelude mode, **metavariable mode**, **`SOKO_*` flags**, source text).
+/// Pure + deterministic.
+///
 /// [`key`] with an explicit build stamp (pure; used by tests).
 pub fn key_with_build(src: &str, options: &CompileOptions, build: u64) -> String {
     key_parts(
@@ -154,6 +210,7 @@ pub fn key_with_build(src: &str, options: &CompileOptions, build: u64) -> String
         build,
         options.prelude == PreludeMode::Bare,
         metavar_state(),
+        flags_state(),
         src,
     )
 }
@@ -168,6 +225,9 @@ fn metavar_state() -> u8 {
     }
 }
 
+// 参数多是故意的：缓存键必须显式列尽每一个影响判定的维度（格式、形状、版本、
+// build、prelude 形态、元变量开关、SOKO_* 开关、源码），漏一个就是 b1 那类缓存污染。
+#[allow(clippy::too_many_arguments)]
 fn key_parts(
     format: u32,
     shape: u32,
@@ -175,6 +235,7 @@ fn key_parts(
     build: u64,
     prelude_bare: bool,
     metavar_state: u8,
+    flags_state: u64,
     src: &str,
 ) -> String {
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
@@ -198,6 +259,9 @@ fn key_parts(
     }
     eat(u8::from(prelude_bare));
     eat(metavar_state);
+    for byte in flags_state.to_le_bytes() {
+        eat(byte);
+    }
     for byte in src.as_bytes() {
         eat(*byte);
     }
@@ -344,6 +408,44 @@ mod tests {
 
     use crate::compile::REPORT_SHAPE;
 
+    /// **2026-10-06 复核补的守卫**：开关哈希必须**顺序无关** —— 否则同一个缓存
+    /// 目录里，两个环境块顺序不同的进程（`sokonanoda build` 预热 ↔ 编辑器 LSP）
+    /// 会永远互相 miss ✗（实测：`env -i A=1 B=2` 与 `env -i B=2 A=1` 留下两条）。
+    /// 反向验证：把 `flags_hash` 里的 `pairs.sort()` 撤掉 ⇒ 本测试当场判红 ✓。
+    #[test]
+    fn flags_hash_ignores_environment_order() {
+        let ab = vec![
+            ("SOKO_A".to_string(), "1".to_string()),
+            ("SOKO_B".to_string(), "2".to_string()),
+        ];
+        let ba = vec![
+            ("SOKO_B".to_string(), "2".to_string()),
+            ("SOKO_A".to_string(), "1".to_string()),
+        ];
+        assert_eq!(flags_hash(ab.clone()), flags_hash(ba), "顺序不许改变键");
+        assert_ne!(
+            flags_hash(ab.clone()),
+            flags_hash(vec![("SOKO_A".to_string(), "1".to_string())]),
+            "少一个开关必须 miss"
+        );
+        assert_ne!(
+            flags_hash(ab.clone()),
+            flags_hash(vec![
+                ("SOKO_A".to_string(), "1".to_string()),
+                ("SOKO_B".to_string(), "3".to_string()),
+            ]),
+            "同一个开关换值必须 miss"
+        );
+        // 分隔符编码不能把 (A=1, B=2) 与 (A="1\0B", B="2") 混起来。
+        assert_ne!(
+            flags_hash(ab),
+            flags_hash(vec![
+                ("SOKO_A".to_string(), "1\u{0}SOKO_B".to_string()),
+                ("SOKO_B".to_string(), "2".to_string()),
+            ])
+        );
+    }
+
     #[test]
     fn key_is_deterministic_and_sensitive() {
         let full = CompileOptions::default();
@@ -355,29 +457,29 @@ mod tests {
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &bare, 7));
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &full, 8));
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, "a"),
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.2.0", 7, false, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.2.0", 7, false, 0, 0, "a"),
             "a version bump must miss"
         );
         // **IA-4 M1**：元变量档位必须分开（否则同一个缓存目录里先跑的那一档污染后面所有档 ✗）
         for (x, y) in [(0u8, 1u8), (0, 2), (1, 2)] {
             assert_ne!(
-                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, x, "a"),
-                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, y, "a"),
+                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, x, 0, "a"),
+                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, y, 0, "a"),
                 "不同元变量档位必须是不同的键（state {x} vs {y}）"
             );
         }
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, "a"),
-            key_parts(CACHE_FORMAT + 1, REPORT_SHAPE, "0.1.0", 7, false, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, "a"),
+            key_parts(CACHE_FORMAT + 1, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, "a"),
             "a schema bump must miss"
         );
         // **报告形状版本也进键**（值守第 8 单）：形状一变，键必须变 ✓
         // ——否则"源码没变 + 二进制变了"会命中旧条目、静默给旧答案 ✗。
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, "a"),
-            key_parts(CACHE_FORMAT, REPORT_SHAPE + 1, "0.1.0", 7, false, 0, "a"),
-            "a report-shape bump must miss"
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 1, "a"),
+            "flags 状态变化必须 miss（b1 缓存污染根因的守护）"
         );
     }
 
@@ -391,7 +493,7 @@ mod tests {
         let dir = tmp_dir("shape");
         let src = "def two : Nat := 2\nexample : Prop := sorry\n";
         let entry = entry_for(src);
-        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, src);
+        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0, src);
         store_in(&dir, &k, &entry);
         assert!(load_in(&dir, &k).is_some(), "当前形状必须读得回来 ✓");
 
@@ -417,8 +519,17 @@ mod tests {
 
         // ④ 键也必须随形状变（形状一变 ⇒ 整库换键 ⇒ 老条目够都够不着）
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, src),
-            key_parts(CACHE_FORMAT, REPORT_SHAPE + 1, "0.48.0", 7, false, 0, src),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0, src),
+            key_parts(
+                CACHE_FORMAT,
+                REPORT_SHAPE + 1,
+                "0.48.0",
+                7,
+                false,
+                0,
+                0,
+                src
+            ),
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -435,7 +546,7 @@ mod tests {
                 .is_some_and(|out| !out.events.is_empty()),
             "the combined entry point must carry CLI events"
         );
-        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, src);
+        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0, src);
         store_in(&dir, &k, &entry);
         let loaded = load_in(&dir, &k).expect("cache hit");
         assert_eq!(loaded.report.decls.len(), entry.report.decls.len());
@@ -450,6 +561,7 @@ mod tests {
             "0.48.0",
             7,
             false,
+            0,
             0,
             "def x : Nat := 1\n",
         );
