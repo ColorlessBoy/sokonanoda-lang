@@ -1,3 +1,66 @@
+## [0.82.0] — 2026-10-06
+
+> **The `Iff.intro` / `And.intro` wall comes down** (G-30 — the last blocker on the
+> course's item-style proofs) · **Infoview notation symbols become clickable**
+> (G-53) · **editing a declaration gets ~2× faster** (the `by` judgment's O(n²)
+> prefix rerun is gone) · and the compile cache stops replaying a verdict that was
+> produced under a different `SOKO_*` switch setting.
+
+### Added
+
+- **Infoview runs are clickable → go to definition** (G-53). Runs that carry a
+  source position — notation symbols such as `{a}` / `∈` / `⊆`, identifiers,
+  prelude names — now resolve to the declaration they came from. The data side
+  (`semantic` runs carry spans), the wire side (the LSP forwards them) and the UI
+  side (the webview renders them as links) each have their own assertion, and the
+  e2e asserts the **user action** (click ⇒ jump) rather than "the link exists".
+
+### Changed
+
+- **Editing a declaration is no longer priced by the file's length.** The `by`
+  judgment's O(n²) prefix rerun is gone: the incremental identity stopped
+  re-parsing fragments and the identity table no longer thrashes. Cold opens in a
+  real host: `unit12` **10490 ms → 6173 ms (1.70×)**, `unit01` 975 → **851 ms**,
+  `unit08` 2555 → **2113 ms**. `#check`'s two paths now go through the same
+  trusted prefix (`unit12-synthesis` **10.97 s → 5.75 s, 1.91×**).
+- **`SOKO_UNIVERSE_METAVAR` is retired.** Constant-level universe metavariables are
+  now always generated and solved, the way Lean's `mkFreshLevelMVars` +
+  `levelMVarToParam` do it. The switch only ever produced a second, conflicting
+  solution, so it is inert in both positions (the positive example `Show 0 5` —
+  dropped leading implicits + a surplus argument + a level solved from the
+  argument's type — checks either way).
+- **The compile cache keys on every `SOKO_*` judgment switch.** A verdict produced
+  with `SOKO_ARG_EXPECTED=0` could previously be replayed for
+  `SOKO_ARG_EXPECTED=1` (same source text, same cache directory) — which is what
+  made CI's `test` job red while the same tests passed locally. The switch state is
+  now folded into the key **order-independently** (so an entry warmed by
+  `sokonanoda build` is still reusable by the editor, which runs in a different
+  process) and `CACHE_FORMAT` is bumped to 5.
+
+### Fixed
+
+- **Expected types now reach the arguments of nested applications** (G-30, the
+  course's last blocker). `Iff.intro (fun (_ : {a} = {b}) => h2) (fun (_ : a = b) => h1)`
+  — and the same shape with `And.intro` — now check. Three parts, each aligned with
+  Lean 4: the `Eq` family registers its real leading-implicit arity (an implicit
+  binder never consumes a written argument — `Elab/App.lean:752-775`);
+  `type_head_fits_layer` accepts `Sort u`, so a partially applied
+  `Eq.subst.{1} Nat …` is not misread as the short form; and a `λ` argument
+  receives its binder's type as the expected type (`elabAppArgs`'s
+  `elabArg arg binderType`). The consequence is the important one: **`Eq`'s
+  universe level is solved (`Eq.{1}`) instead of defaulting to `0`**, which is what
+  made `{a} = {b}` unprovable. The three definition-head boundaries of G-73 and the
+  three equivalence laws of G-62 flip with it.
+- **A notation symbol glued to an identifier no longer steals the identifier**
+  (G-86): `r''` is one identifier (Lean likewise requires whitespace around `''`),
+  so `lib/Prod`, `lib/Equiv` and `lib/Demo` compile again, while `Aᶜ` / `Bᶜ`
+  (109 + 65 sites) keep splitting as before.
+- **LSP positions are UTF-16** (G-36): hovering or selecting past a non-BMP
+  character no longer lands on the wrong span (three call sites fixed).
+- **Explicitly universe-polymorphic constants take part in level inference**
+  (G-93): `myax α a` no longer silently defaults the level to `0` while
+  `myax.{1} α a` worked — the two spellings now agree.
+
 ## [0.81.0] — 2026-10-03
 
 > **Nine language/kernel blockers cleared** — the walls the set-theory course's
