@@ -160,7 +160,7 @@ pub(crate) fn level_occurs_in_text(target: u32, text: &str) -> bool {
 /// `!u.occurs v ⇒ assign u := v` 那一条 ✓）。
 ///
 /// **Lean 4 对照** ✓（本机源码 HEAD `d0493e4c1e` ✓，`Meta/LevelDefEq.lean:90-125` ✓）：
-/// ```
+/// ```lean
 /// | Level.mvar mvarId, _ =>
 ///     if readOnly ⇒ undef
 ///     else if !u.occurs v ⇒ assign u := v; true       ← **本片落的这一条** ✓

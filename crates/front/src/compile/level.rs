@@ -127,13 +127,14 @@ pub(crate) fn trace_enabled() -> bool {
 }
 
 pub(crate) fn universe_metavar_enabled() -> bool {
+    // **G-30 收口（2026-10-05）作废**：裸常量层 mvar 恒生成并解出（对齐 Lean
+    // `mkFreshLevelMVars` + `levelMVarToParam`），U1 的「未写层级按字面约束求解」
+    // 已被 `infer_const_universes` 完整覆盖 —— 开关再开会产生与恒解**冲突**
+    // 的第二套解（实测 `elab-universe-level-conflict` ✗）。自创机制作废（用户
+    // 2026-10-05 纪律：完全对齐 Lean 4，dsh 自创的东西全作废）。恒 false，
+    // `solve_universes` 永不进入，开关开/关行为一致（都走 G-30 恒解）。
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *ON.get_or_init(|| {
-        matches!(
-            std::env::var("SOKO_UNIVERSE_METAVAR").ok().as_deref(),
-            Some("1") | Some("on")
-        )
-    })
+    *ON.get_or_init(|| false)
 }
 
 /// 给一条常量签名的**未写宇宙参数**求解：`pairs` = (模板, 实际) 对（层域 ↔ 实参类型、
