@@ -97,10 +97,10 @@ def max_gap(cmd: list[str], root: Path, entry: str, cache: Path) -> tuple[float,
     env["SOKONANODA_NO_PROJECT_ARTIFACTS"] = "1"
     shutil.rmtree(cache, ignore_errors=True)
     if subprocess.run(cmd + ["build", "--json", "--clean", str(root)],
-                      capture_output=True, text=True, env=env, cwd=REPO, timeout=120).returncode != 0:
+                      capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, cwd=REPO, timeout=120).returncode != 0:
         return None
     proc = subprocess.Popen(cmd + ["build", "--json", entry], stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL, text=True, bufsize=1, env=env, cwd=REPO)
+                            stderr=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace", bufsize=1, env=env, cwd=REPO)
     t0 = time.time()
     prev = t0
     worst = 0.0

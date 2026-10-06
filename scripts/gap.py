@@ -126,7 +126,7 @@ def run_repro(entry: dict) -> tuple[str, int, str]:
         # `communicate()` 仍会等所有写端关闭 ⇒ **照样挂死**（实测：加了 timeout
         # 仍然卡住）。所以 `start_new_session=True` 建新会话，超时时 `killpg` 整组。
         proc = subprocess.Popen(["bash", str(path)], cwd=ROOT, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE, text=True, env=clean_env(),
+                                stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", env=clean_env(),
                                 start_new_session=True)
         try:
             out, err = proc.communicate(timeout=REPRO_TIMEOUT_S)
@@ -194,7 +194,7 @@ def run_repro(entry: dict) -> tuple[str, int, str]:
         if entry.get("repro_root"):
             cmd += ["--root", str(ROOT / str(entry["repro_root"]))]
         proc = subprocess.run(
-            cmd, cwd=ROOT, capture_output=True, text=True, env=clean_env(),
+            cmd, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", env=clean_env(),
         )
         text = proc.stdout + proc.stderr
         # **保真度守卫**（2026-10-03 ✓，本会话抓到三例：G-32 / G-30 / G-33 ✗）：

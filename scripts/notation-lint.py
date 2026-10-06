@@ -621,7 +621,7 @@ def census_grade(path: Path, root: str | None = None) -> tuple[int, dict]:
     args = ["node", str(REPO / "scripts" / "soko"), "query", "check", "--file", rel]
     if root:
         args[4:4] = ["--root", root]
-    proc = subprocess.run(args, cwd=str(REPO), capture_output=True, text=True)
+    proc = subprocess.run(args, cwd=str(REPO), capture_output=True, text=True, encoding="utf-8", errors="replace")
     try:
         data = json.loads(proc.stdout).get("data") or {}
     except Exception:

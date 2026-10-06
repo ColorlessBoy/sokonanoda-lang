@@ -192,13 +192,13 @@ def measure(cmd: list[str], root: Path, entries: list[str], cache: Path) -> int 
     shutil.rmtree(cache, ignore_errors=True)
     clean = subprocess.run(
         cmd + ["build", "--json", "--clean", str(root)],
-        capture_output=True, text=True, env=env, cwd=REPO, timeout=120,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, cwd=REPO, timeout=120,
     )
     if clean.returncode != 0:
         return None
     run = subprocess.run(
         cmd + ["build", "--json", *entries],
-        capture_output=True, text=True, env=env, cwd=REPO, timeout=600,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, cwd=REPO, timeout=600,
     )
     if run.returncode != 0:
         return None

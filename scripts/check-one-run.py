@@ -37,7 +37,7 @@ def gh(*args: str) -> tuple[int, str]:
     exe = shutil.which("gh")
     if not exe:
         return 127, "gh 不在 PATH 上"
-    p = subprocess.run([exe, *args], capture_output=True, text=True)
+    p = subprocess.run([exe, *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
     return p.returncode, (p.stdout if p.returncode == 0 else p.stderr).strip()
 
 

@@ -268,7 +268,7 @@ if __name__ == "__main__":
         probe = subprocess.run(
             [sys.executable, os.path.abspath(__file__)],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             env=env,
         )
         # ⚠ 断言**三个**名字都出现在 MISSING 里（原来只断言 value_runs 一个 ✗）——
