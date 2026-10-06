@@ -24,7 +24,17 @@ cd "$ROOT"
 command -v node >/dev/null 2>&1 || { echo "G-83: 需要 node" >&2; exit 2; }
 [ -x target/debug/sokonanoda ] || { echo "G-83: 找不到 target/debug/sokonanoda（先 cargo build -p sokonanoda-cli）" >&2; exit 2; }
 
-out="$(SOKO_BIN=./target/debug/sokonanoda timeout 3000 node docs/gaps/repro/G83-top-equals-bottom.js 2>&1)"
+# ⚠ **时限必须 > 真实运行时间**（2026-10-07 修 ✗→✓）：这里原先写死 `timeout 3000`（50 分钟），
+#   而本口径的实测运行时间是 **≈1.5h**（台账 `repro_slow.last`：897 条开放声明 ×2 查询；
+#   `gap.py::clean_env()` 固定 `SOKONANODA_NO_PROJECT_ARTIFACTS=1` ⇒ 一次 `query state`
+#   2.7s（带产物 0.027s，100×）⇒ 全量 >3000s ✗）⇒ **扫描每次都被外壳自己掐死**、
+#   JS 一个字都没来得及打 ⇒ 下面 grep 不到 `^开放声明 ` ⇒ **永远 exit 2**
+#   （= 「环境不满足」）⇒ **这条判据永远出不了结论**（`close` 必被拒、`check` 只能跳过）✗
+#   —— 属于「咬不住的守卫等于没有」那一类。⇒ 上限改成可调、默认 **6h** ✓。
+#   ⚠ 只动**本仓自己写的 `.sh` 外壳**；同目录 `G83-top-equals-bottom.js` 是**用户提交件**，
+#     仍然**逐字节冻结** ✗（含它的 `SOKONANODA_NO_CACHE=1`）。
+#   ⚠ 外层 `gap.py` 的 `SOKO_GAP_REPRO_TIMEOUT` 必须**大于**这个值（关账用 25200 ✓）。
+out="$(SOKO_BIN=./target/debug/sokonanoda timeout "${SOKO_G83_TIMEOUT:-21600}" node docs/gaps/repro/G83-top-equals-bottom.js 2>&1)"
 rc=$?
 printf '%s\n' "$out"
 
