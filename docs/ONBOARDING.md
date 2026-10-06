@@ -99,7 +99,8 @@ Q1/Q2、K1 线（按前缀复用）、**批次 N（66/66）**与 **E19 甲案（
 ⚠ `doc_passes` 266 → 265 是**计数口径**差 1（输出逐字节相同 ⇒ 不影响判定），**如实记账**。
 **开关**：`SOKO_JUDGE_INPLACE=off|shadow|on`（默认 `on`，三档全含）；单独回退
 `SOKO_JUDGE_INPLACE_WIDE=0` / `SOKO_JUDGE_INPLACE_BY=0|off`；§3.C 的逃生门
-`SOKO_JUDGE_ENV_VOUCH=0` / `SOKO_JUDGE_ENV_REUSE=0`。
+`SOKO_JUDGE_ENV_VOUCH=0` / `SOKO_JUDGE_ENV_REUSE=0`；§32.4 (iii)（合成文档把前缀 `theorem`
+装成不透明常量）的逃生门 `SOKO_JUDGE_PREFIX_OPAQUE=off` / 影子档 `=shadow`。
 **发版**：`v0.79.0` = Latest（CI `36803030466` **28 success / 0 failure**；26 资产 = 8 CLI + 8 LSP + 9 VSIX + 1 SHA256SUMS）。
 
 ## 2. 计划/提案类文档索引（**一个入口查全部**；新计划**不许**再开新文件 ⇒ 写进本文件）

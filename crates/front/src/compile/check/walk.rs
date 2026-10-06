@@ -170,6 +170,17 @@ pub(super) struct Walk<'arena: 'shadow, 'shadow> {
     /// **跨单元导出表**（第二刀 §N7）：`export Foo` 记在这里，单元切换时重放。
     /// 依赖按拓扑序排在入口之前，所以入口文件在文件头就能用依赖导出的短名。
     pub(super) exports: Vec<OpenEntry>,
+    /// **本趟 pass「成功进环境」的声明名**（G-31/G-92 第二刀 ✓，2026-10-07）。
+    ///
+    /// 逐命令压进 `TRUSTED_PREFIX` 栈项（`run` 里的 `with_trusted_prefix` ✓）
+    /// ⇒ judge 的**合成判定文档**读得到"调用方那趟**确实加过**哪些 `theorem`"
+    /// ⇒ 内层只 elaborate 类型、按**不透明常量**加（证明体不重跑 ✓）。
+    /// 名字 = **声明身份**（不用命令号：两套坐标系实测**不对齐** ✗，见
+    /// `judge::EnteredNames` 的注释 ✓）。
+    pub(super) entered: crate::judge::EnteredNames,
+    /// **调用方那一趟**的名表（`TrustPlan::trusted_entered` ✓）：`Some` 时才允许
+    /// 走不透明快路；`None`（**绝大多数 pass** ✓）⇒ **逐字节回到今天** ✓。
+    pub(super) trusted_entered: Option<crate::judge::EnteredNames>,
 }
 
 /// 单个命令的派生上下文：每个命令算一次，arm 里按需取用。
@@ -595,9 +606,17 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             let vouch =
                 crate::judge::env_probe::vouch_mode() != crate::judge::env_probe::VouchMode::Off;
             if vouch || crate::judge::env_probe::on() {
-                crate::judge::with_trusted_prefix(idx, &Default::default(), || {
-                    self.command(&c, command);
-                });
+                crate::judge::with_trusted_prefix(
+                    idx,
+                    &Default::default(),
+                    // **本趟 walk 自己的**「成功进环境」名表 ✓（G-31/G-92 第二刀）：
+                    // judge 的合成文档据此把「确实加过」的前缀 `theorem` 装成
+                    // 不透明常量 ⇒ 证明体不重跑 ✓。
+                    Some(self.entered.clone()),
+                    || {
+                        self.command(&c, command);
+                    },
+                );
             } else {
                 self.command(&c, command);
             }
@@ -1093,6 +1112,49 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             ns: &self.ns,
             defs: &defs_for_ctx,
         };
+        // **G-31/G-92 第二刀（2026-10-07 ✓）**：合成判定文档的**前缀定理** ——
+        // 调用方那一趟**确实把这个名字加进过环境** ⇒ 它的**证明体对下游零可观测**
+        //（`conv.rs::unfold_hint` ⇒ 定理一律 `Opaque`、**永不展开** ✓；
+        //  `self.defs` delta 表**只收 `fn def`** ✓）⇒ **只 elaborate 类型**、
+        // 按**不透明常量**（`Declar::Axiom`）加进环境 ⇒ 前缀的 `by` **不再重跑** ✓
+        //（这正是 `by_calls` 的 Σ(1..N) 那一项 ✓）。
+        //
+        // ⚠ **只在「调用方确实加过」时触发** ✗→✓：`skip`（失败命令）与 `open_goal`
+        //（开放练习）今天在受信分支里**跳过不加** ⇒ 那两类**不**在名表里 ⇒ 走**原路**
+        //（逐字保留今天的加/不加与报错行为 ✓ —— 红线 ✓）。
+        // ⚠ `known` 那条插入与 `build_theorem` 那条**逐字段相同**（都从**源 `ty`** 算 ✓）。
+        if trusted
+            && self
+                .trusted_entered
+                .as_ref()
+                .is_some_and(|e| e.borrow().contains(name))
+        {
+            let mut hovers = Vec::new();
+            if let Ok(decl) = build_axiom(
+                &mut self.builder,
+                name,
+                universe,
+                ty,
+                &self.known,
+                &mut hovers,
+                &elab_ctx,
+            ) {
+                let (decl, _fresh) = self.discharge_level_mvars(decl);
+                let _ = self.builder.add_declar(decl);
+                self.known.insert(
+                    name.to_string(),
+                    KnownName::Decl {
+                        universes: universe.to_vec(),
+                        implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+                        explicit_arity: crate::compile::elab::explicit_arity(ty),
+                        signature: Some(crate::proof::decl_signature(ty)),
+                    },
+                );
+                // 内层的**嵌套** judge 也要看得到它（它的前缀是本份合成文档的前段 ✓）。
+                self.entered.borrow_mut().insert(name.to_string());
+            }
+            return;
+        }
         // **P1-b 第二刀**：`by` 引擎的就地判定用调用方手里的活环境
         // （开关关着 ⇒ `None` ⇒ 逐字节回到今天 ✓）。先落到**具名变量**再借出去
         // （`Option<InplaceEnv>` 直接传是临时值 ⇒ temporary-dropped ✗）。
@@ -1161,6 +1223,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         signature: Some(crate::proof::decl_signature(ty)),
                     },
                 );
+                // **受信分支也记账** ✓（G-31/G-92 第二刀）：内层的**嵌套** judge
+                // 看到的前缀是本份文档的前段 ⇒ 它也要知道这个名字已经进过环境 ✓。
+                self.entered.borrow_mut().insert(name.to_string());
             }
             return;
         }
@@ -1349,6 +1414,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         signature: Some(crate::proof::decl_signature(ty)),
                     },
                 );
+                // **记账**（G-31/G-92 第二刀 ✓）：这一趟**成功进环境**的名字 ——
+                // judge 的合成文档据此把前缀 `theorem` 装成不透明常量（证明体不重跑 ✓）。
+                // ⚠ 只记**真的加进去**的（`add_declar` 失败已在上面的 `return` 里排除 ✓）。
+                self.entered.borrow_mut().insert(name_owned.clone());
                 let env_after = self.builder.declaration_count();
                 self.ops.push(PendingOp::Decl {
                     name: Some(name_owned),

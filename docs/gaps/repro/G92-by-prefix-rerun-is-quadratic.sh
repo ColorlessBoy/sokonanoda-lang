@@ -42,11 +42,21 @@ cd "$ROOT" || exit 2
 
 BIN="${SOKO_BIN:-}"
 if [ -z "$BIN" ]; then
-  for cand in "$ROOT/target/release/sokonanoda" "$ROOT/target/debug/sokonanoda"; do
-    [ -x "$cand" ] && BIN="$cand" && break
-  done
+  # ⚠ **取较新的那一份**（2026-10-07 修 ✓）：先前固定 `release` 优先 ⇒ **陈旧的
+  # release 产物会遮蔽工作树的 debug 构建** ✗ ⇒ 判据量的是**旧二进制**
+  # （实测踩到：G-92 已经修好，复现却仍报"缺口仍在" ✗ —— 典型的"守卫读错输入"）。
+  # 本判据是**结构计数**（`by_calls` 比值）⇒ 与构建模式**无关** ✓ ⇒ 取新的就对 ✓。
+  rel="$ROOT/target/release/sokonanoda"
+  dbg="$ROOT/target/debug/sokonanoda"
+  if [ -x "$rel" ] && { [ ! -x "$dbg" ] || [ "$rel" -nt "$dbg" ]; }; then
+    BIN="$rel"
+  else
+    BIN="$dbg"
+  fi
 fi
 [ -n "$BIN" ] && [ -x "$BIN" ] || { echo "环境不对：找不到 sokonanoda 二进制" >&2; exit 2; }
+# **构建身份**（仓规：跨构建不可比 ⇒ 读数必须自带身份 ✓）。
+echo "构建身份：${BIN} sha256=$(shasum -a 256 "$BIN" | cut -c1-16) mtime=$(stat -f '%Sm' "$BIN" 2>/dev/null || stat -c '%y' "$BIN")"
 
 DIR="$(mktemp -d "${TMPDIR:-/tmp}/soko-g92-XXXXXX")"
 trap 'rm -rf "$DIR"' EXIT

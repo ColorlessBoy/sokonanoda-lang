@@ -746,16 +746,42 @@ pub(crate) mod stats {
     }
 }
 
+/// **本趟 pass「成功进环境」的声明名表**（G-31/G-92 的第二刀，2026-10-07 ✓）。
+///
+/// 为什么需要它：合成判定文档要**重跑前缀**才能建出环境，而前缀里那些
+/// `theorem … := by …` 的**证明体**对下游**零可观测**（`conv.rs::unfold_hint`
+/// ⇒ 定理一律 `Opaque`、**永不展开** ✓；`walk.rs` 的 `defs` delta 表**只收 `fn def`** ✓）
+/// ⇒ 只要知道「调用方那一趟**确实加过**这个名字」，内层就可以**只 elaborate 类型**、
+/// 按**不透明常量**加进去 ⇒ 前缀的 `by` **不再重跑**（`by_calls` 的 Σ(1..N) 消失 ✓）。
+///
+/// ⚠ 用**名字**而不是**命令号** ✗→✓（2026-10-07 **实测** ✓）：两套坐标系**不对齐**
+/// —— G-92 夹具（单文件）`JUDGE_ENV_PROBE` 读数 `exact=20/overshoot=0` ✓，但真实课程
+/// （带 `import`）是 `before = prefix_commands + 1`（实测 `28/27 29/28 …`）
+/// ⇒ 位置对齐**不成立** ✗（`importless_source` 剥掉的那条 `import` 命令）。
+/// 名字是**声明身份** ⇒ 与坐标系无关 ✓。
+pub(crate) type EnteredNames = std::rc::Rc<std::cell::RefCell<std::collections::HashSet<String>>>;
+
+/// `TRUSTED_PREFIX` 的栈项。
+struct TrustEntry {
+    /// 调用方已核的命令数。
+    before: usize,
+    /// 那些命令里失败的那部分。
+    failures: HashMap<usize, CompileError>,
+    /// 调用方那一趟**成功进环境**的声明名（`None` = 不提供 ⇒ 不透明快路**关** ✓）。
+    entered: Option<EnteredNames>,
+}
+
 thread_local! {
     /// **外层 pass 能担保的"已核前缀"栈**（T-K11 / K1-a）。
     ///
-    /// 每项 = `(已核命令数, 那些命令的失败表)`。由 `run_incremental` 在跑 pass 期间
-    /// 压栈（进出成对 ✓ 见 `with_trusted_prefix`）；judge 的 **cache miss** 路径读栈顶。
+    /// 每项 = `(已核命令数, 那些命令的失败表, 成功进环境的声明名)`。由 `run_incremental`
+    /// 在跑 pass 期间压栈（进出成对 ✓ 见 `with_trusted_prefix`）；judge 的 **cache miss**
+    /// 路径读栈顶。
     ///
     /// 语义（**只在满足条件时才复用**）：只有 `before` **覆盖住本次合成文档的全部
     /// 前缀命令**，才说明这些声明的内核检查在本轮 compile 里**已经被担保过**
     /// （增量会话里它们来自上一次会话的缓存）。否则老老实实整份重查。
-    static TRUSTED_PREFIX: std::cell::RefCell<Vec<(usize, HashMap<usize, CompileError>)>> =
+    static TRUSTED_PREFIX: std::cell::RefCell<Vec<TrustEntry>> =
         const { std::cell::RefCell::new(Vec::new()) };
 }
 
@@ -763,12 +789,23 @@ thread_local! {
 ///
 /// **栈式**：judge 的合成文档在 elaborate 期间又会触发 judge（递归）⇒ 每层看到
 /// 自己那一层，不会串味；`before` 的比较在 [`check_synthesized`] 里做。
+///
+/// `entered` = 本趟 pass 的「成功进环境」名表（`walk.rs` 逐命令压栈时带上自己的那张 ✓）；
+/// **只有** `run_synthesized_incremental` 那条路会把它交给内层（其余一律 `None`
+/// ⇒ 快路**关** ⇒ 逐字节回到今天 ✓）。
 pub(crate) fn with_trusted_prefix<R>(
     before: usize,
     failures: &HashMap<usize, CompileError>,
+    entered: Option<EnteredNames>,
     f: impl FnOnce() -> R,
 ) -> R {
-    TRUSTED_PREFIX.with(|cell| cell.borrow_mut().push((before, failures.clone())));
+    TRUSTED_PREFIX.with(|cell| {
+        cell.borrow_mut().push(TrustEntry {
+            before,
+            failures: failures.clone(),
+            entered,
+        })
+    });
     struct Pop;
     impl Drop for Pop {
         fn drop(&mut self) {
@@ -823,6 +860,35 @@ fn judge_env_reuse_enabled() -> bool {
     })
 }
 
+/// **合成文档里「前缀定理装成不透明常量」那一刀的档位**（G-31/G-92 第二刀，2026-10-07）。
+///
+/// * `On`（**默认**）⇒ 快路生效：内层 walk 对「调用方那趟确实加过」的 `theorem`
+///   **只 elaborate 类型**、按 `Declar::Axiom` 加进环境（**证明体不重跑** ✓）；
+/// * `Off` ⇒ **逐字节回到今天**（**反向验证**用 ✓，也是逃生门 ✓）；
+/// * `Shadow` ⇒ 合成编译**两条都跑**、逐条比 `judgement_of`（**判据级** ✓，不比报告形状
+///   —— §31.3 的教训 ✓），**返回 `Off` 那一份** ⇒ 行为零变化、只取证 ✓。
+///
+/// ⚠ 档位**只在这里读一次**（`OnceLock`）⇒ 影子档靠**显式传参**跑两遍，
+/// **不改全局状态** ⇒ 多线程下也不会串味 ✓。
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum PrefixOpaqueMode {
+    Off,
+    Shadow,
+    On,
+}
+
+pub(crate) fn prefix_opaque_mode() -> PrefixOpaqueMode {
+    static MODE: OnceLock<PrefixOpaqueMode> = OnceLock::new();
+    *MODE.get_or_init(
+        || match std::env::var("SOKO_JUDGE_PREFIX_OPAQUE").ok().as_deref() {
+            Some("off") | Some("0") => PrefixOpaqueMode::Off,
+            Some("shadow") => PrefixOpaqueMode::Shadow,
+            // 未设 / `on` / 其它 ⇒ 快路（默认开）。
+            _ => PrefixOpaqueMode::On,
+        },
+    )
+}
+
 /// judge 合成的文档送内核（T-K11 / K1-a）：**前缀已被外层担保**时走
 /// `run_incremental`（前缀不再重查），否则回退到原来的 `check_document_with`
 /// （整份重查）——回退是**默认**，不是异常路径。
@@ -837,12 +903,46 @@ fn check_synthesized(
 ) -> DocumentReport {
     // **只读取证**（零行为变化）：量"若主编译 pass 压了栈，能不能担保住"。
     if env_probe::on() {
-        let top = TRUSTED_PREFIX.with(|cell| cell.borrow().last().map(|(b, _)| *b));
+        let top = TRUSTED_PREFIX.with(|cell| cell.borrow().last().map(|e| e.before));
         env_probe::record(top, prefix_commands);
     }
-    let Some((_out, trusted_report, before)) =
-        run_synthesized_incremental(file, options, prefix_commands)
-    else {
+    // **不透明快路的影子档**（`SOKO_JUDGE_PREFIX_OPAQUE=shadow`）：两条都跑、
+    // 逐条比 `judgement_of`（**判据级** ✓），**返回 `off` 那一份** ⇒ 行为零变化 ✓。
+    if prefix_opaque_mode() == PrefixOpaqueMode::Shadow {
+        let Some((_out, base, _before)) =
+            run_synthesized_incremental(file, options, prefix_commands, false)
+        else {
+            return check_document_with(file, options);
+        };
+        let Some((_out2, fast, _before2)) =
+            run_synthesized_incremental(file, options, prefix_commands, true)
+        else {
+            env_probe::note_opaque_shadow(false, "快路那一趟没有可用担保（不该发生）");
+            return base;
+        };
+        let mut first_bad: Option<String> = None;
+        for k in 0..pairs_len {
+            let a = judgement_of(&base, k);
+            let b = judgement_of(&fast, k);
+            if format!("{a:?}") != format!("{b:?}") {
+                first_bad = Some(format!(
+                    "OPAQUE_SHADOW k={k} prefix_commands={prefix_commands}\n  不透明=关 {a:?}\n  不透明=开 {b:?}"
+                ));
+                break;
+            }
+        }
+        match &first_bad {
+            None => env_probe::note_opaque_shadow(true, ""),
+            Some(d) => env_probe::note_opaque_shadow(false, d),
+        }
+        return base;
+    }
+    let Some((_out, trusted_report, before)) = run_synthesized_incremental(
+        file,
+        options,
+        prefix_commands,
+        prefix_opaque_mode() == PrefixOpaqueMode::On,
+    ) else {
         return check_document_with(file, options);
     };
     // **影子档**：再跑一次"整份重查"，比对**判据**（行为仍返回整份那一份）。
@@ -902,19 +1002,22 @@ fn pick_type_checked(out: &CompileOutput, last_cmd: Option<usize>) -> Option<Str
 
 /// **合成文档的「受信任前缀」担保** ✓（**唯一实现** ✗ —— 三处消费点共用它 ✓）。
 ///
-/// 返回 `(before, failures)`，其中 `before` **已经夹到 `prefix_commands`** ✓；
+/// 返回 `(before, failures, entered)`，其中 `before` **已经夹到 `prefix_commands`** ✓；
 /// 没有可用担保 ⇒ `None`（**调用方必须逐字回退** ✓）。
-fn synthesized_trust(prefix_commands: usize) -> Option<(usize, KernelFailed)> {
+/// `entered` = 调用方那趟「成功进环境」的声明名表（`None` ⇒ 不透明快路**关** ✓）。
+fn synthesized_trust(
+    prefix_commands: usize,
+) -> Option<(usize, KernelFailed, Option<EnteredNames>)> {
     if !judge_env_reuse_enabled() {
         return None;
     }
     let trusted = TRUSTED_PREFIX.with(|cell| {
         cell.borrow()
             .last()
-            .filter(|(before, _)| *before >= prefix_commands)
-            .map(|(before, failures)| (*before, failures.clone()))
+            .filter(|e| e.before >= prefix_commands)
+            .map(|e| (e.before, e.failures.clone(), e.entered.clone()))
     });
-    let (before, failures) = trusted?;
+    let (before, failures, entered) = trusted?;
     REUSED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     if reuse_stats() {
         eprintln!(
@@ -935,7 +1038,13 @@ fn synthesized_trust(prefix_commands: usize) -> Option<(usize, KernelFailed)> {
     // 的**至少覆盖**了前缀"（前缀文本是调用方文本的**前段** ⇒ 它的命令必然落在
     // `[0, before)` 里 ✓），所以担保上界就是 `prefix_commands` 本身 ✓。
     // 夹完只会"少担保 ⇒ 多检查" ⇒ 不引入新的不健全 ✓。
-    Some((before.min(prefix_commands), failures))
+    //
+    // ⚠ **2026-10-07 追加实测** ✓（G-31 那一刀的前提核对）：夹**不等于**两套坐标系
+    // 同构 ✗ —— 真实课程（带 `import`）实测 `before = prefix_commands + 1`
+    //（`JUDGE_ENV_PROBE`：`28/27 29/28 …`，差的那条是 `importless_source` 剥掉的
+    // `import` 命令）⇒ **按命令号对齐不成立** ✗。所以「哪些命令成功进环境」这份
+    // 信息**必须按声明名传**（见 `EnteredNames` ✓），不许按位置 ✗。
+    Some((before.min(prefix_commands), failures, entered))
 }
 
 /// **受信任前缀下的合成编译** ✓（**唯一实现** ✗ —— `by` 路径与 `#check` 路径共用 ✓）。
@@ -948,12 +1057,16 @@ fn synthesized_trust(prefix_commands: usize) -> Option<(usize, KernelFailed)> {
 /// `judge_type_of_uncached`）先前直接 `compile_fol_with` ⇒ **整份重编** ✗
 /// ⇒ 前缀里那些 `by` 声明**又被 elaborate 一遍** ✗ ⇒ 一个文件里 N 条各自需要
 /// 新判定的 `by` ⇒ 总成本 **N²** ✗（实测 `by_calls` 451→1996，**4.4×** ✗）。
+///
+/// `opaque` = 要不要把「调用方那趟确实加过」的前缀 `theorem` 装成**不透明常量**
+/// （G-31/G-92 第二刀 ✓，见 `EnteredNames`）：`false` ⇒ **逐字节回到今天** ✓。
 fn run_synthesized_incremental(
     file: &FolFile,
     options: &CompileOptions,
     prefix_commands: usize,
+    opaque: bool,
 ) -> Option<(CompileOutput, DocumentReport, usize)> {
-    let (before, failures) = synthesized_trust(prefix_commands)?;
+    let (before, failures, entered) = synthesized_trust(prefix_commands)?;
     if env_probe::on() {
         env_probe::record_clamped(before, prefix_commands);
     }
@@ -963,6 +1076,12 @@ fn run_synthesized_incremental(
         prev_signatures: Vec::new(),
         text_unchanged: Vec::new(),
         allow_cutoff: false,
+        // **G-31/G-92 第二刀** ✓：把「调用方那趟成功进环境的声明名」交给内层
+        // walk ⇒ 那些 `theorem` 只 elaborate 类型、按不透明常量加进去（证明体不重跑 ✓）。
+        // ⚠ **只有这里**会设它 ⇒ 快路的爆炸半径 = judge 的合成文档 ✓（其余 pass 一律
+        // `None` ⇒ 逐字节回到今天 ✓）。`opaque == false`（反向验证 / 影子档的对照趟）⇒
+        // 同样 `None` ✓。
+        trusted_entered: if opaque { entered } else { None },
     };
     // **S2 步 1**：`run_incremental` 的单元由调用方给（此前它写死单文件）。
     // 这条路是"judge 在**单文件**文本上重查前缀"，所以仍然是一个单元。
@@ -1068,6 +1187,16 @@ pub mod env_probe {
     pub static SHADOW_DIFF: AtomicU64 = AtomicU64::new(0);
     pub static SHADOW_FIRST_DIFF: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 
+    /// **「前缀定理装成不透明常量」那一刀自己的影子档**（`SOKO_JUDGE_PREFIX_OPAQUE=shadow`
+    /// ✓，2026-10-07）：合成编译**两条都跑**（关 / 开）、逐条比 `judgement_of`
+    /// （**判据级** ✓，不比报告形状 —— §31.3 的教训 ✓）。
+    ///
+    /// ⚠ **与上面那组 `SHADOW_*` 分开** ✗：那组量的是"受信任前缀 vs 整份重查"，
+    /// 这组量的是"不透明快路 开 vs 关" —— 混在一起就分不清是哪条路分叉 ✗。
+    pub static OPAQUE_SAME: AtomicU64 = AtomicU64::new(0);
+    pub static OPAQUE_DIFF: AtomicU64 = AtomicU64::new(0);
+    pub static OPAQUE_FIRST_DIFF: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
     #[derive(Clone, Copy, PartialEq, Eq, Debug)]
     pub enum VouchMode {
         Off,
@@ -1101,7 +1230,7 @@ pub mod env_probe {
         *V.get_or_init(|| std::env::var("SOKO_JUDGE_ENV_SHADOW_VERBOSE").is_ok())
     }
 
-    /// 影子档记一笔（`same` = 两条路的报告**逐字节相同**）。
+    /// **影子档记一笔**（`same` = 两条路的报告**逐字节相同**）。
     pub fn note_shadow(same: bool, detail: &str) {
         if same {
             SHADOW_SAME.fetch_add(1, Ordering::Relaxed);
@@ -1111,6 +1240,23 @@ pub mod env_probe {
                 eprintln!("JUDGE_ENV_SHADOW_DIFF: {detail}");
             }
             if let Ok(mut f) = SHADOW_FIRST_DIFF.lock() {
+                if f.is_none() {
+                    *f = Some(detail.to_string());
+                }
+            }
+        }
+    }
+
+    /// **不透明快路那一刀的影子档记一笔**（判据级 ✓）。
+    pub fn note_opaque_shadow(same: bool, detail: &str) {
+        if same {
+            OPAQUE_SAME.fetch_add(1, Ordering::Relaxed);
+        } else {
+            OPAQUE_DIFF.fetch_add(1, Ordering::Relaxed);
+            // 分叉**必须可见**（咬不住的守卫等于没有 ✓）：默认就打第一份，
+            // 不受 `SOKO_JUDGE_ENV_SHADOW_VERBOSE` 管（那条是给上面那组的 ✓）。
+            eprintln!("JUDGE_PREFIX_OPAQUE_SHADOW_DIFF: {detail}");
+            if let Ok(mut f) = OPAQUE_FIRST_DIFF.lock() {
                 if f.is_none() {
                     *f = Some(detail.to_string());
                 }
@@ -1197,9 +1343,11 @@ pub mod env_probe {
             .unwrap_or_default();
         let ss = SHADOW_SAME.load(Ordering::Relaxed);
         let sd = SHADOW_DIFF.load(Ordering::Relaxed);
+        let os = OPAQUE_SAME.load(Ordering::Relaxed);
+        let od = OPAQUE_DIFF.load(Ordering::Relaxed);
         let cl = CLAMPED.load(Ordering::Relaxed);
         format!(
-            "JUDGE_ENV_PROBE calls={c} exact={ex} overshoot={ov} too_short={s}              stack_empty={e} would_hit={h} ({pct:.1}%) clamped_bad={cl} shadow_same={ss} shadow_diff={sd} | (before/prefix): {samples}"
+            "JUDGE_ENV_PROBE calls={c} exact={ex} overshoot={ov} too_short={s}              stack_empty={e} would_hit={h} ({pct:.1}%) clamped_bad={cl} shadow_same={ss} shadow_diff={sd} opaque_same={os} opaque_diff={od} | (before/prefix): {samples}"
         )
     }
 }
@@ -2008,7 +2156,12 @@ fn judge_type_of_uncached(
     // **G-92 真修**：同 `judge_infer_uncached` ✓ —— 受信任前缀那条路 ✓
     // （前缀已核过 ⇒ 不重编 ✗；没有受信任前缀 ⇒ 逐字回退到 `compile_fol_with` ✓）。
     let prefix_commands = file.commands.len().saturating_sub(1);
-    let out = match run_synthesized_incremental(&file, options, prefix_commands) {
+    let out = match run_synthesized_incremental(
+        &file,
+        options,
+        prefix_commands,
+        prefix_opaque_mode() == PrefixOpaqueMode::On,
+    ) {
         Some((out, _report, _before)) => out,
         None => compile_fol_with(&file, options),
     };
@@ -2510,8 +2663,12 @@ fn judge_infer_uncached(
     // ⚠ 夹取在 `check_synthesized` 里做 ✓（`before.min(prefix_commands)` ✓ ——
     // 不夹会**多担保**追加的合成命令 ⇒ 判定声明根本没被检查 ✗，2026-09-30 实测踩过 ✓）。
     let prefix_commands = file.commands.len().saturating_sub(1);
-    let (out, used_incremental) = match run_synthesized_incremental(&file, options, prefix_commands)
-    {
+    let (out, used_incremental) = match run_synthesized_incremental(
+        &file,
+        options,
+        prefix_commands,
+        prefix_opaque_mode() == PrefixOpaqueMode::On,
+    ) {
         Some((out, _report, _before)) => (out, true),
         None => (compile_fol_with(&file, options), false),
     };

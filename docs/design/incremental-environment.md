@@ -498,26 +498,11 @@ pub(crate) struct ElabCtx<'a, 'b> {
 ⇒ **要"就地 elaborate + 查快照环境"，必须同时持有"一个能写项的 builder"与"一份只读环境"**
 —— 而今天这两者**是同一个对象**（`EnvBuilder` 既持 `dag` 又持 `declars`，且 `declars` 私有）。
 
-### 16.2 三条收口（**都要改结构，我无法凭现有信息判定哪条更小**）
+### 16.2 / 16.3 三条收口与请求（**已结案** ✓）
 
-| 出路 | 做什么 | 需要授权？ |
-|---|---|---|
-| **A″** | 内核加 `EnvBuilder::with_declars(&self, f)`（**只读借出**）⇒ 前端可在"写项"的同时"读环境" | **要**（`crates/kernel/`）|
-| **B″** | 前端**重建一个 builder**：从快照的 `declars`（`pub`）逐条 `add_declar` 进新 builder ⇒ 用它 elaborate | 不要（但要确认**指针同一性**：`NatLit` 按指针比较，`conv.rs:169`）|
-| **C″** | `by` 引擎两阶段化（判定移出 walk）—— **完全绕开**这个冲突 | 不要（但改动面最大）|
-
-### 16.3 我的判断与**请求**
-
-* **B″ 看起来最小**（内核零改动），但有一个**必须先验证**的点：
-  从快照 `declars` 重建的 builder，与 walk 里那个 builder，**是不是同一个 arena / 同一批指针**
-  —— 若不是，`NatLit` 的指针比较会让**判定结果变**（红线 ✗）。
-  **这一步可以用一条单测验证**（不需要跑真课程）：建 builder → 加几条声明 → `snapshot()`
-  → 用快照的 `declars` 重建 builder → 在两者上查**同一条 `Nat` 字面量**的类型 → 必须相同。
-* **若 B″ 的指针同一性验证不过** ⇒ 只能走 **A″（要授权）** 或 **C″（改动面最大）**。
-
-**⚠ 我停在"能判定"的边界上**：B″ 的指针同一性是一条**可执行的单测**，
-但我这一轮的上下文已用尽，没有余量把它跑完并据此定案。
-**下一步（明确、可执行）**：先跑那条指针同一性单测；过 ⇒ 走 B″；不过 ⇒ 回来请示 A″/C″。
+> 三条出路（**A″** 内核只读借出 · **B″** 前端重建 builder · **C″** `by` 两阶段化）**都已结案**：
+> **B″ 被证否**（§17 指针同一性 ✗）· **A″ 以 `with_env`/`with_env_scope` 落地**（§18 ✓）·
+> as-built 见 §32.2/§32.4 ✓。**过程（对照表 · 指针同一性单测的提议 · 请示原文）⇒ `git log`** ✓。
 
 ## 17. **B″ 已被证否** —— 指针同一性过不去（2026-09-29 定案）
 
@@ -535,26 +520,14 @@ pub(crate) struct ElabCtx<'a, 'b> {
 
 ### 17.1 于是只剩两条（**都超出"顺手改"的范围**）
 
-> 见 §16.2 的表 ✓：**A″**（内核加只读借出入口 —— **要授权**）· **C″**（`by` 引擎两阶段化 ——
+> 见 §16.2 ✓：**A″**（内核加只读借出入口 —— **要授权**）· **C″**（`by` 引擎两阶段化 ——
 > 不要授权，但**改动面最大**）。
 
-### 17.2 明确请求（与 §13 的差别：这次是**证否了替代方案之后**才提的）
+### 17.2 / 17.3 请求与建议（**已结案** ✓）
 
-> **§13 那次请求是"以为 `snapshot()` 够用"才撤回的** ✓；现在 `snapshot()` **已被证否**
-> （**另一个 DAG 的拥有副本** ✗）⇒ 这次是**证否了替代方案之后**再提 ✓。
-> ⚠ **当时的自我更正（留着有用 ✓）**：`with_declars(&self)` 与 `&mut self` **也不能共存** ✗
-> ⇒ 正解可能是"借出后**把 `&mut builder` 放回 `self`**"（= **轻量 C″**，前端可做 ✓）。
-> **后续**：内核**无条件授权**（§18 ✓）且该能力**以 `with_env` / `with_env_scope` 落地** ✓
-> （§16.1 / §18.1 的现状指针 ✓）—— **剩下的只是接线**（§32.3/§32.4 ✓）。
-
-### 17.3 修正后的建议
-
-> **先做"轻量 C″"（前端可做、不需授权）** ✓：把 `judge_infer` 的调用点改成"**先把
-> `&mut builder` 还回 `self`、再调判定、判定完再取回**"—— 即把"需要判定的那一刻"从
-> "持着 `&mut builder` 的中途"挪到"可以暂时放手的位置" ✓（改 `elab.rs` 的 10 个调用点，
-> **不碰内核** ✓）。⚠ **as-built 走的是更彻底的一条** ✓：**调用点自己 elaborate**
-> （§15.2 的第 2 条 ✓ = P1-a/P1-b ✓）。
-
+> 请求已获**无条件授权**（§18 ✓），能力以 **`with_env` / `with_env_scope`** 落地 ✓；
+> as-built 走的是「**调用点自己 elaborate**」（§32.2 ✓）。**过程（逐条请求原文 · 自我更正 ·
+> 「轻量 C″」的取舍）⇒ `git log --all -- docs/design/incremental-environment.md`** ✓。
 
 ## 18. **内核需要提供什么**（用户 2026-09-29 14:12 无条件授权改内核；14:18 要求落进设计）
 
@@ -681,31 +654,12 @@ pub(crate) struct ElabCtx<'a, 'b> {
 **A 存活**（内核提供"在同一个 `ExportFile` / 同一个 arena 上把源 `Expr` elaborate 成
 `ExprPtr`"）—— 即 §18 的 **K-2**，**面最大但唯一可行**。
 
-### 19.5 下一步（唯一，且**已勘明到可直接动手**）
+### 19.5 下一步（**已落地** ✓）
 
-> ⚠ **状态（2026-10-05 对账 ✓）**：**A-2 已经落地** ✓ —— 内核给了
-> **`EnvBuilder::with_env_scope(&Env, &mut EnvBuilder, f)`**（正是本节要的"**同时读环境 + 写项**" ✓），
-> **零调用** ✗（§16.1 的现状指针 ✓）⇒ **剩下的是接线**（§32.3/§32.4 ✓）；
-> ⚠ **A-1 没走** ✓（内核不认识前端 AST ⇒ 走 A-2 ✓）；**D 判死**的结论仍有效 ✓（§19.4 ✓）。
-
-走 **A / K-2**。形状（两条，选一条实现）：
-
-* **A-1（内核侧）**：内核暴露"**在 builder 自己的 arena 上**由已解析的源 `Expr` 造项"
-  的能力 —— 但内核**不认识前端的 `Expr` AST** ⇒ 需要前端**把 `elab_expr` 的造项部分
-  传进去**（回调），或内核提供一个**极简的 term builder trait**；
-* **A-2（前端侧，更小）**：**把 `elab_expr` 的 `&mut EnvBuilder` 换成"能同时读环境、
-  写项"的东西** —— 观察：`EnvBuilder` 的 `mk_*` 只依赖 `dag`（+ `arena`），
-  而 `declars`/`notations` 是**另一个字段** ⇒ **Rust 允许同时 `&mut self.dag`
-  与 `&self.declars`** ✓（不同字段）⇒ **加一个内核方法
-  `EnvBuilder::with_env_and_builder(|env: &Env, b: &mut EnvBuilder| …)`**
-  —— 或更简单：**`EnvBuilder::env(&self) -> Env<'_, 'a>`**（借用 `declars`/`notations`）
-  + 调用方**同时**持有 `&mut EnvBuilder` **是不行的**（同一个 `self`）✗。
-  ⇒ 正解是**把"读环境"与"写项"拆成两个参数**：内核提供
-  `fn with_env_scope<R>(&mut self, f: impl FnOnce(&Env<'_, 'a>, &mut EnvBuilder<'a>) -> R) -> R`
-  —— 内部 `split` 借用（`&self.declars` + `&mut self.dag` 等）⇒ **Rust 允许** ✓。
-
-**A-2 是新的最小切口**（比 A-1 小：不改前端的 AST，只加一个"同时借"的内核方法）。
-**下一步第一件事**：确认 `EnvBuilder` 的字段能否这样 split（读 `builder.rs` 的字段定义）。
+> **A-2 已落地** ✓：内核给了 **`EnvBuilder::with_env_scope(&Env, &mut EnvBuilder, f)`**
+>（= 「同时读环境 + 写项」✓）；**A-1 没走**（内核不认识前端 AST ✗）· **D 判死**仍有效（§19.4 ✓）。
+> **剩下的只是接线**（§32.3/§32.4 ✓）—— 本节的接口草案（两条形状的逐条取舍）
+> **⇒ `git log --all -- docs/design/incremental-environment.md`** ✓。
 
 ## 20. G-68 **切片 1** 的实现形状（同进程内按 `module_key` 复用依赖产物）
 
@@ -1137,7 +1091,7 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | **1** | 判定点接**就地环境**（`InplaceEnv`）—— 即 P1-a / P1-b | ✅ **已落地**（§0.1） |
-| **2** | **`judge_pairs` 的合成编译复用调用方环境**（G-92 终局）—— 需要"同一 DAG 上既能写新项、又能读已落地声明"（§18 的 **K-2** = G-68 架构件），**或**给就地路加「文本 ⇒ AST」入口 | 🟡 **第 1/2 步已落**（`edddbbae` 形状 + `787997f0` 入口与文本⇒AST）· ⛔ **本片已被值守暂停**（2026-10-05 裁决：**B2 优先**，`elab.rs`/`meta.rs` 归 B2 写者独占；EnvProvider 写者的未提交 WIP 已 `git stash` 隔离 —— 标记 **`d68f2fe9-envprov-wip-1005-1010`**，恢复时 `git stash pop` 即可）· ⚠ **借用形态那版决定已撤回** ✗（`5054ef50`：正解 = **重借链**，见 §0.2 #2）· ⚠ 「等 `elab.rs`」**也作废** ✗（`4414c05e`：`walk.rs` 自己构造 `ElabCtx` ⇒ 真实阻塞是**借用**不是文件锁）· 真 provider 未接 · 合成编译那一刀未做（§0.2 #1） |
+| **2** | **`judge_pairs` 的合成编译复用调用方环境**（G-92 终局）—— 需要"同一 DAG 上既能写新项、又能读已落地声明"（§18 的 **K-2** = G-68 架构件），**或**给就地路加「文本 ⇒ AST」入口 | 🟡 **第 1/2 步已落**（`edddbbae` 形状 + `787997f0` 入口与文本⇒AST）· ⛔ **(i)/(ii) 两条仍被值守暂停**（2026-10-05 裁决：**B2 优先**；WIP 标记 **`d68f2fe9-envprov-wip-1005-1010`**）· ✅ **(iii) 已落地（2026-10-07，本片 · G-31/G-92 已关账 `0.83.0` ✓）** —— 合成文档里把前缀 `theorem` 装成**不透明常量** ⇒ 前缀证明体**不再 elaborate** ⇒ `by_calls` **已线性化** ✓。**判据（全过 ✓，缺一不算）**：① `G92-…sh` **exit 1**（`by_calls` 55→210 **3.82 ✗** ⇒ **10→20 = 2.00 ✓**）· ② G-31 自己的复现件 `G31-judge-prefix-rerun.sh` **exit 1**（`by_calls/N` 5.50/10.50 ✗ ⇒ **1.00/1.00 ✓**）· ③ **反向验证**（`SOKO_JUDGE_PREFIX_OPAQUE=off` ⇒ **回到红** 3.82 / 10.50 ✓）· ④ **红线**：`kernel-diff.sh --fast` **零差异**（9 组，先 `--self-test` 2/2 ✓）+ 整门课 `build --json`（`SOKONANODA_BUILD_JOBS=1` 串行、剔心跳）**50065 行逐字节 0 行不同** ✓ · ⑤ **影子档**（判据级 `judgement_of`）全课程 **`opaque_same=665 · opaque_diff=0`** ✓ · ⑥ `gap.py check` / `gate` ✓。**构建身份**：改前 `9cf3aaf0906a4632`（HEAD `97da8436` 净树重建）· 改后 `bdc2e70b20c0c98f`（+ release `1b1b4a04b1f4b3bb`）✓。⚠ 它**是降级交付** ✗（**不是**终局：前缀的**类型/定义仍会重编**，`def` 体**必须**保留 ⇒ (i)/(ii) 的价值未被 (iii) 吃掉 ✓） |
 | **3** | 并行下的环境复用（§5 原表那一行） | ❌ 未动 |
 
 **阶段 2 的判据（缺一不算）**：① G-92 repro 的 `by_calls` 比值 **< 3.0**（线性 ≈ 2.0）；
@@ -1156,8 +1110,8 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 而 judge 在 `elab_expr` 链里只有 `&mut`（§12）⇒ 要么让 pass **借** builder，要么让判定点先**放手**（§30.2；另一条出路见 §0.2 #1）。
 **归属**：内核线登记本片为**下一片**（`aa3a6ef8` · 用户 2026-10-05 指定）⇒ ⛔ **同日被值守暂停**（B2 优先 ✓，WIP 在 `stash@{0}: d68f2fe9-envprov-wip-1005-1010` ✓，见上表）。
 
-### 32.4 阶段 2 的两条形状（**勘到根，都还没做** ✗）
-**根因确认** ✓（读码）：合成编译走 `run_incremental` → `run_pass`，而 `run_pass` **新建 arena + 新建 `EnvBuilder`** ⇒ 前缀**必须**重 elaborate（= `by_calls` 的 Σ(1..N)）。⇒ 两条形状：
+### 32.4 阶段 2 的三条形状（(i)/(ii) 是架构件；**(iii) = 2026-10-07 的 as-built** ✓）
+**根因确认** ✓（读码）：合成编译走 `run_incremental` → `run_pass`，而 `run_pass` **新建 arena + 新建 `EnvBuilder`** ⇒ 前缀**必须**重 elaborate（= `by_calls` 的 Σ(1..N)）。⇒ 三条形状：
 **(i) pass 借 builder**（`Walk.builder` 改 `&mut` ⇒ `run_pass_with` 加**借用变体**；按值收发是 `session` 的依赖，不能删 ✗）—— ⚠ **指针同一性上更安全** ✓：新 intern 直接进 **live 表**（不会造第二份节点），只需 `hide_declars`/`restore_declars` 把合成声明**回滚**掉（map 回滚即可，arena 里多出的节点无害 ✓）；
 **(ii) 内核加 `EnvBuilder::fork()`**（**同 arena + 克隆 intern 表** —— arena 是 interner 的**参数**、不归 DAG 所有 ⇒ 既有指针同一性保住 ✓；⚠ 但 fork 里新 intern 的字面量会在共享 arena 造出 live 表不认识的节点 ⇒ live 之后 intern 同一个值会**造第二份** ✗（`NatLit` 按指针比较 ⇒ 假失败，与 `snapshot()` 那条 ⚠ 同族）⇒ 还要 `absorb()` 合并口，**面不比 (i) 小**）。
 ⇒ **两条都是架构件** ✗：先出一轮设计 + 一条**指针同一性单测**，判据照 §32.3（**先建先红** ✓）。
@@ -1168,3 +1122,42 @@ pub(crate) fn inplace_render_type(/* 同上 */) -> Result<String, InplaceFail>;
 ⚠ **与判定点那条缝区分开** ✓（别混 ✗）：本节讲**合成编译**（`judge_pairs`）怎么拿到活环境；
 **判定点**（`infer`）那条缝 = §0.2 #2 的**重借链** ✓ —— 两条**同族**（都是把 `&mut` 透传到借出窗口 ✓），
 但落点不同（`check/mod.rs`+`walk.rs` vs `elab.rs` 的调用链）⇒ 可以**各自独立落地** ✓。
+
+**(iii) 合成文档里把前缀 `theorem` 装成不透明常量** ✅ **2026-10-07 本片落地（G-31/G-92 收口，判据全过 ✓）**
+—— 契约（**as-built**；改行为的地方只有一处：`walk.rs::theorem` 的 `trusted` 分支）：
+
+* **机制**：合成判定文档的**前缀命令**里，凡是**调用方那一趟已经成功进过环境**的 `theorem`，
+  在**内层 walk** 里**不再 elaborate 它的证明体**（跳过 `lower_value` ⇒ **不跑 `by` 引擎** ⇒
+  `by_calls` 的 Σ(1..N) 消失 ✓），只 elaborate **类型**、按**不透明常量**（`Declar::Axiom`，
+  与 `Command::Axiom` 的 walk 路径同形）加进环境。
+* **信息从哪来**：`TRUSTED_PREFIX` 栈项从 `(before, failures)` 扩成**三元**
+  （+ `entered: Option<Rc<RefCell<HashSet<String>>>>` = **本趟 walk 成功进环境的声明名**，
+  `walk.rs` 逐命令压栈时带上自己那张表）；经 `synthesized_trust` → `TrustPlan.trusted_entered`
+  → `Walk::trusted_entered` 传到内层。**只有** `run_synthesized_incremental` 会设置它
+  ⇒ 快路的**爆炸半径 = judge 的合成文档** ✓（其余所有 pass 传 `None` ⇒ 逐字节回到今天 ✓）。
+* **与现状逐条对齐**（红线 ✓）：`skip`（失败命令）与 `open_goal`（开放练习）今天在受信分支里
+  **跳过不加** ⇒ 快路**只**在「调用方那趟**确实加过**这个名字」时触发 ✓；其余一律走**原路**
+  （`lower_value` → `open_goal` → `build_theorem`）⇒ 加/不加与报错行为**逐字不变** ✓。
+* **为什么用「名字」而不是「命令号」** ✗→✓（**实测** ✓）：两套坐标系**不对齐** ——
+  G-92 夹具（单文件）`exact=20/overshoot=0` ✓，但真实课程（带 `import`）
+  `before = prefix_commands + 1`（`JUDGE_ENV_PROBE` 实测 `28/27 29/28 …`）
+  ⇒ **位置对齐不成立** ✗（`importless_source` 剥掉的那条 `import` 命令）。名字 = 声明身份 ⇒ 与坐标系无关 ✓。
+* **为什么语义中性**（内核事实，逐条读过 ✓）：① `conv.rs::unfold_hint` **只有 `Declar::Definition`
+  给 reducibility hint** ⇒ `Theorem`/`Axiom`/`Opaque` 一律 `Opaque` ⇒ 定理的体在转换里**永不展开** ✓；
+  ② `walk.rs` 的 delta 展开表 `self.defs` **只在 `fn def` 里插入** ⇒ 定理**不进**该表 ✓；
+  ③ 两个 `known` 条目**逐字段相同**（`universes`/`implicit_prefix`/`explicit_arity`/`signature` 都从**源 `ty`** 算 ✓）。
+* ⚠ **已知的两处非等价面**（**如实记** ✓，残余风险；两条都只改**转换算法的路径**、预期不改**结果**）：
+  ① `eval.rs::const_kind` 把 `Theorem` 记 `Unfoldable`、`Axiom` 记 `Axiom` ⇒ 求值出的 `Value` 形状不同
+  （但 hint `Opaque` ⇒ 惰性体**从不被 force** ✓）；② `relevance.rs::absent_args` 用**声明的体**算
+  「哪些参数缺席」⇒ `Axiom` 恒返回 **0** ⇒ 相关性掩码**只会更粗**（= **更保守**、多比较 ✓，不会少比较 ✓）。
+* **判据（§32.3 四条 · 全过 ✓）**：① `G92-…sh` ⇒ **exit 1**（**2.00** < 3.0 ✓）·
+  ② 全课程 `--json`（串行 · 剔心跳）**50065 行 0 行不同** ✓ · ③ 反向判据
+  （`SOKO_JUDGE_PREFIX_OPAQUE=off` ⇒ **判据回到红**：3.82 / `by_calls/N` 10.50 ✓）· ④ 影子档
+  （`SOKO_JUDGE_PREFIX_OPAQUE=shadow` ⇒ 两条都跑、比 `judgement_of` ⇒ 全课程
+  **`opaque_same=665 · opaque_diff=0`** ✓）。另有 `kernel-diff.sh --fast` **零差异** ✓ 与
+  **G-31 自己的复现件** `docs/gaps/repro/G31-judge-prefix-rerun.sh` ✓
+  （G-31 台账的 `repro` 先前**错指** G-29 的编辑器判据 ⇒ 已换 ✓）。
+  **构建身份**：改前 `9cf3aaf0906a4632` · 改后 `bdc2e70b20c0c98f`（+ release `1b1b4a04b1f4b3bb`）✓。
+* ⚠ **降级交付** ✗（**不许**写成"G-31 全修" ✗）：只让**前缀定理的证明体**不重跑；前缀的**类型**
+  与**所有 `def` 的体**仍会重编（`def` 体**必须**保留 —— 它要 delta 展开 ✓）⇒ 合成编译**复用调用方
+  环境**（(i)/(ii)）的价值**没被吃掉** ✓：它省"整份前缀"，本刀省"前缀里 `by` 的那一半"。

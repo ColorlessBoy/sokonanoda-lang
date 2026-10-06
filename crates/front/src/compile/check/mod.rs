@@ -149,6 +149,16 @@ pub(crate) struct TrustPlan {
     /// Early cutoff is only attempted when the caller established that all
     /// commands after `before` keep their text (single-edit alignment).
     pub allow_cutoff: bool,
+    /// **G-31/G-92 第二刀**（2026-10-07 ✓）：调用方那一趟**成功进环境**的声明名
+    /// （`judge::EnteredNames`）。`Some` ⇒ 合成编译的内层 walk 对**名单里的 `theorem`**
+    /// 只 elaborate **类型**、按**不透明常量**（`Declar::Axiom`）加进环境
+    /// ⇒ **证明体不再重跑**（`by_calls` 的 Σ(1..N) 消失 ✓）。
+    ///
+    /// ⚠ **`None` 是绝大多数调用方** ✓（`session` / `query` / 测试 / 主编译 pass）
+    /// ⇒ 快路的**爆炸半径 = judge 的合成文档** ✓，其余**逐字节回到今天** ✓。
+    /// ⚠ 用**声明名**而不是**命令号**：两套坐标系**不对齐** ✗（实测真实课程
+    /// `before = prefix_commands + 1`）—— 名字是声明身份 ⇒ 与坐标系无关 ✓。
+    pub trusted_entered: Option<crate::judge::EnteredNames>,
 }
 
 /// One `run_pass` result, including the early-cutoff bookkeeping.
@@ -660,16 +670,25 @@ pub(crate) fn run_incremental(
     // **T-K11（K1-a）**：告诉 judge 的 miss 路径"前缀 `[0, before)` 已被担保"
     // ——`run_pass` 期间发生的判定（`by` 块/judge_infer/judge_type_of）因此可以
     // 走 `run_incremental` 而不重查前缀。栈式，进出成对。
-    let pass1 = crate::judge::with_trusted_prefix(trust.before, prefix_failures, || {
-        run_pass(
-            units,
-            options,
-            true,
-            Some(prefix_failures),
-            Some(trust),
-            None,
-        )
-    });
+    let pass1 = crate::judge::with_trusted_prefix(
+        trust.before,
+        prefix_failures,
+        // **G-31/G-92 第二刀** ✓：把「成功进环境」名表透传给 judge 的合成编译。
+        // ⚠ 主编译 pass 这里恒 `None` ✓（`TrustPlan::trusted_entered` 只有
+        // `run_synthesized_incremental` 会设）⇒ 逐字节回到今天 ✓；真正让内层看到
+        // 名表的是 `walk.rs` 的**逐命令压栈**（它带的是**本趟 walk 自己的**那张 ✓）。
+        trust.trusted_entered.clone(),
+        || {
+            run_pass(
+                units,
+                options,
+                true,
+                Some(prefix_failures),
+                Some(trust),
+                None,
+            )
+        },
+    );
     if pass1.failed.is_empty() {
         let mut out = pass1.out;
         out.stats.kernel_checks = pass1.checks;
@@ -696,10 +715,15 @@ pub(crate) fn run_incremental(
         prev_signatures: Vec::new(),
         text_unchanged: Vec::new(),
         allow_cutoff: false,
+        // pass 2 与 pass 1 **同一份**名表（同一个调用方坐标系 ✓）。
+        trusted_entered: trust.trusted_entered.clone(),
     };
-    let pass2 = crate::judge::with_trusted_prefix(trust2.before, &skip2, || {
-        run_pass(units, options, true, Some(&skip2), Some(&trust2), None)
-    });
+    let pass2 = crate::judge::with_trusted_prefix(
+        trust2.before,
+        &skip2,
+        trust2.trusted_entered.clone(),
+        || run_pass(units, options, true, Some(&skip2), Some(&trust2), None),
+    );
     let checks = pass1.checks + pass2.checks;
     let mut out = pass2.out;
     out.stats.kernel_checks = checks;
@@ -1321,6 +1345,11 @@ where
         // 是唯一的跨单元例外（`export`，设计 §N7）。
         ns: crate::compile::NamespaceScope::new(),
         exports: Vec::new(),
+        // **本趟 pass 自己的**「成功进环境」名表（G-31/G-92 第二刀 ✓）。
+        entered: std::rc::Rc::new(std::cell::RefCell::new(std::collections::HashSet::new())),
+        // 调用方那一趟的名表：**只有 judge 的合成编译**会设（`TrustPlan` ✓），
+        // 其余一律 `None` ⇒ 不透明快路**关** ⇒ 逐字节回到今天 ✓。
+        trusted_entered: trust.and_then(|t| t.trusted_entered.clone()),
     };
     walk.run(
         units,

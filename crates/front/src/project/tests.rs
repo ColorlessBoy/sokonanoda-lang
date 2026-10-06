@@ -1109,6 +1109,7 @@ fn entry_trust_skips_the_prefix_and_keeps_the_suffix_identical() {
             prev_signatures: Vec::new(),
             text_unchanged: Vec::new(),
             allow_cutoff: false,
+            trusted_entered: None,
         },
         failures: HashMap::new(),
     })];
@@ -1228,6 +1229,7 @@ fn project_report_carries_the_recheck_count() {
                 prev_signatures: Vec::new(),
                 text_unchanged: Vec::new(),
                 allow_cutoff: false,
+                trusted_entered: None,
             },
             failures: HashMap::new(),
         }),

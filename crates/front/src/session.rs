@@ -272,6 +272,8 @@ impl Session {
             },
             text_unchanged,
             allow_cutoff,
+            // **不透明快路**（G-31/G-92）**只在 judge 的合成文档里**开 ⇒ 这里恒 `None` ✓。
+            trusted_entered: None,
         };
         // **S2 步 1**：`run_incremental` 的单元由调用方给（此前它写死单文件）。
         // 单文件路径就是这一格；闭包路径（步 3）会在这里前置库层单元，

@@ -622,6 +622,8 @@ impl QueryDoc {
                                 // 本片**不开** early cutoff：只做"信任的不重查"
                                 // （值级复用是 S4，见设计 §6）。
                                 allow_cutoff: false,
+                                // **不透明快路**只在 judge 的合成文档里开 ⇒ 这里恒 `None` ✓。
+                                trusted_entered: None,
                             },
                             failures,
                         }),
