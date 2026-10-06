@@ -193,6 +193,23 @@ function loginShellFinds() {
 }
 
 (async () => {
+  // ── **环境前提**（2026-10-06 补 ✓）：判据 ①③④ 要的是"扩展把**自带** CLI 装出去"
+  // ⇒ `editor/vscode/bin/<target>/` 里**必须先有**那份自带 CLI ✓。它是**构建产物**
+  // （`.gitignore`）⇒ CI 的 `test` lane **不 stage** ⇒ 不查这一条的话，安装动作
+  // 什么也拷不出来 ⇒ ①②③④ 全部"判据不成立" ⇒ **假红** ✗（实测：CI run
+  // `37431004826` 的 `test (sokonanoda-cli, tests)` 腿就是这么红的，而本机 stage 过
+  // ⇒ 全绿）。⚠ 这里**不复制**扩展的平台→target 映射（那正是"抄第二份"✗）——
+  // 只问"**有没有**暂存的 CLI" ✓。⇒ 没有就 **exit 2（环境不满足）**：Rust 侧
+  // `the_installed_cli_resolves_in_a_fresh_login_shell` 对 2 的处理是**响亮跳过**
+  // （不判绿也不判红 ✓，与它自己的文档一致 ✓）。
+  const binRoot = path.join(EXT_DIR, "bin");
+  const staged = fs.existsSync(binRoot)
+    ? fs.readdirSync(binRoot).filter((d) => fs.existsSync(path.join(binRoot, d, destName)))
+    : [];
+  if (staged.length === 0) {
+    env(`没有暂存的自带 CLI（editor/vscode/bin/*/${destName} 不存在）⇒ 判据的环境前提不成立`);
+  }
+
   let activate;
   try {
     ({ activate } = require(path.join(EXT_DIR, "extension.js")));
