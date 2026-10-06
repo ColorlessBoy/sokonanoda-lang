@@ -1581,7 +1581,8 @@ fn notation_argument_unsolved(symbol: &str, target: &str, span: Span) -> Compile
 ///
 /// 其余形状（点名、应用、lambda…）不需要，于是**零开销**——这是这条推广不拖慢
 /// 编译的关键。
-/// 开关 `SOKO_ARG_EXPECTED`（**默认关** ✓）：关着时本片**一次都不进** ⇒ 逐字节不变 ✓。
+/// 开关 `SOKO_ARG_EXPECTED`（**默认开** ✓，2026-10-06 翻档）：显式 `=0` / `=off` 时本片
+/// **一次都不进** ⇒ 回到翻档前的逐字节行为 ✓（逃生门 ✓）。
 /// **探针身份**（值守 2026-10-04 拍板 ✓ —— 见 `AGENTS.md`「探针读数必须带构建身份」✓）。
 ///
 /// **为什么**：探针读数一旦跨**不同构建**比较就会得出**反向结论** ✗（第 5 轮实测：
@@ -1626,12 +1627,20 @@ pub(crate) fn probe_line(tag: &str, body: &str) -> String {
     format!("[{}] {} {}", probe_tag(), tag, body)
 }
 
+/// **B1 片的闸门** ✓（**默认开** —— 2026-10-06 翻档；逃生门 `SOKO_ARG_EXPECTED=0|off` ⇒
+/// 本片一次都不进 ⇒ 回到翻档前的逐字节行为 ✓）。
+///
+/// **为什么敢默认开**（判据实测，不是推断 ✓）：`SOKO_ARG_EXPECTED=0` vs `=1` 的**整本课程**
+/// `build --json`（剔 `build.tick`/`build.progress`）**逐字节相同** ✓（50065 行 · diff 0 ✓）
+/// ⇒ 这一档在真实语料上**判定中性**，翻档不改变任何已能通过的程序的判定 ✓；
+/// 而它换来的是 `h (Or.inl hp)` 一类**短写隐式调用当实参**的形状转绿 ✓
+/// （`docs/gaps/repro/G30b-arg-expected-not-propagated.sh` 由 exit 0 ⇒ exit 1 ✓）。
 pub(crate) fn arg_expected_enabled() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ON.get_or_init(|| {
-        matches!(
+        !matches!(
             std::env::var("SOKO_ARG_EXPECTED").ok().as_deref(),
-            Some("1") | Some("on")
+            Some("0") | Some("off")
         )
     })
 }
@@ -1643,8 +1652,8 @@ pub(crate) fn arg_expected_enabled() -> bool {
 /// 局部变量的**书写类型**就在 `scope.src_tys` 里 ✓ ⇒ 直接剥 Π 到实参位 ✓，不问内核 ✓。
 ///
 /// 形状：`h : ¬ (P ∨ Q)` 写成 `h (Or.inl hp)` ⇒ 实参的期望类型 = `h` 的域 `P ∨ Q` ✓
-/// （`¬ X` 是 **def 头** ⇒ δ 展开一次 ✓）；`Or.inl` 的 `?B` 由此定下 ✓（台账 G-86 ✗）。
-/// **B1 片的开关闸门** ✓（`SOKO_ARG_EXPECTED=1|on` ⇒ 开；默认关 ✓）。
+/// （`¬ X` 是 **def 头** ⇒ δ 展开一次 ✓）；`Or.inl` 的 `?B` 由此定下 ✓（台账 G-30b ✗）。
+/// **闸门见 [`arg_expected_enabled`]** ✓（**默认开**；`SOKO_ARG_EXPECTED=0|off` ⇒ 本函数恒 `None` ✓）。
 fn b1_local_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Option<Expr> {
     if !arg_expected_enabled() {
         return None;

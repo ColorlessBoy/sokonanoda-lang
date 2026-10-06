@@ -1,3 +1,17 @@
+## [Unreleased]
+
+### Fixed
+
+- **A short implicit call in argument position now receives its expected type**
+  (G-30's second reproduction). `theorem t3 (h : ¬ (P ∨ Q)) (hp : P) : False := h (Or.inl hp)`
+  used to be rejected — `Or.inl`'s `?B` had no argument to read and fell back to the
+  "same shape as its sibling" default (`?B := ?A := P`) — because the expected-type
+  propagation hook (`elab::b1_local_expected`) was built but **gated off by default**.
+  The gate is now **on by default**: the whole course's `build --json` is byte-for-byte
+  identical with the gate on and off (50065 lines, diff 0), so this is judgment-neutral
+  on real corpora while the shape above turns green. Escape hatch `SOKO_ARG_EXPECTED=0`
+  restores the previous behavior exactly.
+
 ## [0.82.0] — 2026-10-06
 
 > **The `Iff.intro` / `And.intro` wall comes down** (G-30 — the last blocker on the

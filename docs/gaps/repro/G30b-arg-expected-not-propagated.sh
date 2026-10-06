@@ -40,7 +40,18 @@
 #     的实参↔形参对齐（`Eq.subst.{1} (Set α) …` 那个 parked 回归 ✓）；
 #     ③ 再开闸，判据 = 本件 exit 1 ✓ + 全语料对拍 ✓。
 #
+# ── 2026-10-06 收口（第 124 棒 ✓）────────────────────────────────────────
+#   ③ 已完成 ✓：闸门 `SOKO_ARG_EXPECTED` **翻默认开** ⇒ 本件 **exit 0 → 1** ✓。
+#   判据 = ① **默认档**：`h (Or.inl hp)` 判绿（`?B := Q` ✓）+ 两个对照仍绿 ✓；
+#          ② **逃生门** `SOKO_ARG_EXPECTED=0`：**回到缺口**（`t3` 判红 ✓）—— 反向验证 ✓，
+#             证明翻的是**默认值**、不是把判据拆掉 ✓；
+#          ③ **判定中性**（在 `crates/front` 侧的记账里）：整本课程 `build --json`
+#             （剔 `build.tick`/`build.progress`）**逐字节相同** ✓（50065 行 · diff 0 ✓）。
+#   ⇒ 两态都在本脚本内断言 ✓（不再靠"调用者记得设环境变量" ✗ —— 那样默认值被翻反也照样绿 ✗）。
+#
 # 退出码约定（`docs/gaps/README.md`）：0 = 缺口仍在   1 = 行为已变（已修）   2 = 环境不满足
+#   ⚠ 本件现在是**双态**判据 ✓：**默认档必须已修**（否则 exit 0）**且**逃生门必须仍是缺口
+#   （否则 exit 2 —— 说明判据被拆掉了 ✗）。
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -65,33 +76,62 @@ theorem t2 (h : ¬ (P ∨ Q)) (hp : P) : False := h (Or.inl P Q hp)
 theorem t3 (h : ¬ (P ∨ Q)) (hp : P) : False := h (Or.inl hp)
 EOF
 
-"$BIN" query check --file "$WORK/g86.sokonanoda" | python3 -c '
+# 两态各跑一次 ✓：`default` = **显式摘掉**环境变量（量的就是默认值 ✓，用 `env -u` ✓）；
+# `escape` = 显式 `SOKO_ARG_EXPECTED=0`（逃生门 ✓，必须回到缺口 ✓）。
+# ⚠ **`env -u` 不是装饰** ✗：调用者的 shell 若设过 `SOKO_ARG_EXPECTED`，不摘就会**继承**它
+# ⇒ 「默认档」量的是环境值而不是默认值 ✗（实测：`SOKO_ARG_EXPECTED=0 bash 本件` ⇒ 假「缺口仍在」✗）。
+run_state() {
+  local out="$1" mode="$2"
+  if [ "$mode" = default ]; then
+    env -u SOKO_ARG_EXPECTED "$BIN" query check --file "$WORK/g86.sokonanoda" > "$WORK/raw.json"
+  else
+    env SOKO_ARG_EXPECTED=0 "$BIN" query check --file "$WORK/g86.sokonanoda" > "$WORK/raw.json"
+  fi
+  python3 -c '
 import json, sys
-d = json.load(sys.stdin)["data"]
+d = json.load(open(sys.argv[1]))["data"]
 failed = sorted(f.get("start_line") or 0 for f in (d.get("failed") or []))
 checked = d["counts"]["decl_checked"]
 print(json.dumps({"checked": checked, "failed_lines": failed}))
-' > "$WORK/out.json"
+' "$WORK/raw.json" > "$out"
+}
 
-python3 - "$WORK/out.json" <<'PY'
+run_state "$WORK/default.json" default
+run_state "$WORK/escape.json" escape
+
+python3 - "$WORK/default.json" "$WORK/escape.json" <<'PY'
 import json, sys
 
-r = json.load(open(sys.argv[1]))
+d = json.load(open(sys.argv[1]))
+e = json.load(open(sys.argv[2]))
 # 行号（见 heredoc）：t=4 · t2=5 · t3=6
 T, T2, T3 = 4, 5, 6
-print(f"  decl.checked={r['checked']} · 判红行={r['failed_lines']}")
+print(f"  默认档：checked={d['checked']} 判红行={d['failed_lines']}")
+print(f"  逃生门：checked={e['checked']} 判红行={e['failed_lines']}")
 
-# 两个对照必须**始终**绿 ✓（它们绿而 t3 红，才说明病根在"期望位来自假设的域" ✓）
-if T in r["failed_lines"] or T2 in r["failed_lines"]:
-    print("✗ 对照（`Or.inl hp` 期望位=显式目标 / 前导写全）不该红 —— 形状变了，回来看看", file=sys.stderr)
+# 两个对照**两态都**必须绿 ✓（它们绿而 t3 红，才说明病根在"期望位来自假设的域" ✓）
+for tag, r in (("默认档", d), ("逃生门", e)):
+    if T in r["failed_lines"] or T2 in r["failed_lines"]:
+        print(f"✗ {tag}：对照（期望位=显式目标 / 前导写全）不该红 —— 形状变了，回来看看",
+              file=sys.stderr)
+        sys.exit(2)
+
+# ① 默认档必须**已修**：`t3` 绿 ⇒ 5 条全过 ✓
+if d["failed_lines"] == [T3] and d["checked"] == 4:
+    print("✗ 缺口仍在：**默认档** `h (Or.inl hp)` 判红（`?B` 被兄弟兜底填成 `?A` ✗）"
+          "—— 闸门默认值被翻回去了？", file=sys.stderr)
+    sys.exit(0)   # 0 = 缺口仍在（与台账 status 一致 ✓）
+if d["failed_lines"] or d["checked"] != 5:
+    print(f"✗ 默认档形状变了（期望 5 全绿）⇒ 回来看看：{d}", file=sys.stderr)
     sys.exit(2)
 
-if r["failed_lines"] == [T3] and r["checked"] == 4:
-    print("✗ 缺口仍在：`h (Or.inl hp)` 判红（`?B` 被兄弟兜底填成 `?A` ✗）", file=sys.stderr)
-    sys.exit(0)   # 0 = 缺口仍在（与台账 status=open 一致 ✓）
-if not r["failed_lines"] and r["checked"] == 5:
-    print("✓ 已修：`h (Or.inl hp)` 判绿（期望类型送到了实参位 ✓）")
-    sys.exit(1)   # 1 = 行为已变（已修）
-print(f"✗ 形状变了（期望 4+1红 或 5全绿）⇒ 回来看看", file=sys.stderr)
-sys.exit(2)
+# ② 逃生门必须**仍是缺口**：判据没被拆掉 ✓（反向验证 ✓）
+if e["failed_lines"] != [T3] or e["checked"] != 4:
+    print("✗ 逃生门 `SOKO_ARG_EXPECTED=0` 没回到缺口 ⇒ 判据被拆掉了（不是翻默认值 ✗）"
+          f"：{e}", file=sys.stderr)
+    sys.exit(2)
+
+print("✓ 已修（默认档 `h (Or.inl hp)` 判绿 · `?B := Q` ✓）· 两个对照两态绿 ✓ · "
+      "逃生门 `=0` 回到缺口 ✓（翻的是默认值，不是拆判据 ✓）")
+sys.exit(1)   # 1 = 行为已变（已修）
 PY

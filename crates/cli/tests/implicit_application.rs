@@ -43,6 +43,13 @@ fn grade_source_env(tag: &str, src: &str, envs: &[(&str, &str)]) -> (bool, usize
     let path = dir.join("Probe.sokonanoda");
     std::fs::write(&path, src).expect("write probe");
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_sokonanoda"));
+    // **测试环境隔离**（2026-10-06 ✓）：先**摘掉**父进程的 `SOKO_ARG_EXPECTED`，再注入
+    // 本用例显式要的那一档 ✓。为什么必须摘 ✗：`Command` 默认**继承**父进程环境 ⇒
+    // 开发机/CI 只要**外部设过**这个开关（实测：`SOKO_ARG_EXPECTED=0 cargo test` ⇒
+    // 整套 5 条里 `b1_argument_expected_type_reaches_a_short_implicit_call` 判红 ✗），
+    // 「**默认档**」那一条量的就不是默认值而是环境值 ✗ —— 判据随环境漂移 = 假红/假绿 ✓。
+    // 摘掉之后：不传 `envs` ⇒ 真·默认档 ✓；传了 ⇒ 只有传的那一档 ✓（两条都确定 ✓）。
+    cmd.env_remove("SOKO_ARG_EXPECTED");
     for (k, v) in envs {
         cmd.env(k, v);
     }
@@ -190,8 +197,9 @@ def bad : Nat := Show.{0} 0 5\n";
     );
 }
 
-/// **B1 片的端到端守卫**（范围 B · 开关 `SOKO_ARG_EXPECTED`，默认关 ✓）——
-/// **短写的隐式调用当实参时，期望类型必须送到实参位** ✓（台账 **G-86** ✗）。
+/// **B1 片的端到端守卫**（范围 B · 闸门 `SOKO_ARG_EXPECTED`，**默认开** ✓ —— 2026-10-06 翻档；
+/// 逃生门 `=0|off` 回到翻档前行为 ✓）——
+/// **短写的隐式调用当实参时，期望类型必须送到实参位** ✓（台账 **G-30b** ✗）。
 ///
 /// 形状：`h (Or.inl hp)`（`h : ¬ (P ∨ Q)`）—— `Or.inl` 的 `?B` 唯一来源就是实参位的
 /// 期望类型（`h` 的域 `P ∨ Q` ✓）；修前落到「按兄弟同形兜底」⇒ `?B := ?A := P` ✗
@@ -239,5 +247,22 @@ def uses : Nat := ignores 3\n";
             .iter()
             .any(|d| d.contains("elab-implicit-argument-unsolved")),
         "反面必须是**既有专用码** `elab-implicit-argument-unsolved`（不是「什么都放行」✗）：{diags_on:#?}"
+    );
+
+    // ⑤ **默认档**（2026-10-06 翻档 ✓）：**不设** `SOKO_ARG_EXPECTED` ⇒ 必须与"开"逐项相同。
+    // ⚠ 这一条是**唯一能咬住"默认值被翻反"的牙** ✗ —— 上面两条都**显式设了**环境变量，
+    // 所以 `arg_expected_enabled()` 的默认值哪怕被写成 `false`，它们也照样绿 ✓
+    // （反向验证：把默认值改回 `Some("1") | Some("on")` ⇒ **本条当场判红** ✓）。
+    let (ok_def, checked_def, diags_def) = grade_source_env("b1-default", src, &[]);
+    assert!(
+        !ok_def && checked_def == checked_on && diags_def.len() == diags_on.len(),
+        "**默认档**必须等于「开关开」（翻档后 `h (Or.inl hp)` 默认就该绿 ✓）⇒ \
+         default: ok={ok_def} checked={checked_def} diags={diags_def:#?} vs on: checked={checked_on} diags={diags_on:#?}"
+    );
+    assert!(
+        diags_def
+            .iter()
+            .any(|d| d.contains("elab-implicit-argument-unsolved")),
+        "默认档的反面仍须是既有专用码（逃生门 `=0` 只该关掉本片，不该放行解不出的隐式实参 ✗）：{diags_def:#?}"
     );
 }
