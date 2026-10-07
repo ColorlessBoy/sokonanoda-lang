@@ -37,8 +37,8 @@ use protocol::{
 };
 use render::{
     bracket_hover, decl_at, definition_at, diagnostic_from_compile, diagnostic_from_parse,
-    expr_hover, highlight_uses, hover_type_at_offset, range_of, scope_names_at, semantic_kind_at,
-    status_label, symbol_kind,
+    expr_hover, highlight_uses, hover_type_at_offset, notation_target_highlight, range_of,
+    scope_names_at, semantic_kind_at, status_label, symbol_kind,
 };
 use sokonanoda_front::compile::cache::{self, CachedCompile};
 use sokonanoda_front::compile::{
@@ -2113,6 +2113,41 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let pos = params.text_document_position_params.position;
+        // **G-55（2026-10-07 用户授权"本轮做"）**：记法声明的**目标名**在 AST 里
+        // **不是使用点**（没有 hover 行、也没有 `resolution`）⇒ 下面那条
+        // 「定义 → 引用」反查永远空手 ⇒ 以前**一律 `null`**（真课程库 11 条实测）。
+        // 这里先走**词法**认出它（`notation_target_at`，与 F12 那条分支同一份判据），
+        // 再按定案语义把"同一个定义"的位置一次答齐（见
+        // `render::notation_target_highlight` 的头注：① 名字自己 · ② 本文件里
+        // 展开到这个目标的记法符号的每一处 · ③ 定义那一处 + 点名使用处）。
+        {
+            let text = docs.text();
+            let offset = position_to_offset(text, pos);
+            if let Some((name, span)) =
+                sokonanoda_front::notation_input::notation_target_at(text, offset)
+            {
+                // 定义只在本文件里时才进结果：`documentHighlight` 的 range 属于
+                // **被请求的这份文档**（跨文件的落点是 `definition` 的事）。
+                let definition =
+                    docs.query()
+                        .project_definition(&name)
+                        .and_then(|(path, def_span)| {
+                            (docs.query().path.as_deref() == Some(path.as_path()))
+                                .then_some(def_span)
+                        });
+                let ranges =
+                    notation_target_highlight(text, &report.hovers, &name, span, definition);
+                return Ok(Some(
+                    ranges
+                        .into_iter()
+                        .map(|range| DocumentHighlight {
+                            range,
+                            kind: Some(DocumentHighlightKind::TEXT),
+                        })
+                        .collect(),
+                ));
+            }
+        }
         let Some(ranges) = highlight_uses(doc.text(), &report.hovers, pos.line, pos.character)
         else {
             return Ok(None);

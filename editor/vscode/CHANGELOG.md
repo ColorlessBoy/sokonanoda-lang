@@ -19,6 +19,23 @@
 
 ### Fixed
 
+- **`documentHighlight` on a notation declaration's target name now answers**
+  (G-55). `prefix:70 " 𝒫 " => Set.powerset` puts a *reference* to `Set.powerset`
+  in the declaration line, but it is not a use point in the AST, so the
+  definition→references reverse lookup came up empty and the server returned
+  `null` for all 11 notation targets in the real course library. The name under
+  the cursor is now recognized lexically (the same check F12 uses) and the
+  answer is the cumulative "same definition" set: the name under the cursor
+  (always — so the result is never `null` and always contains the position the
+  user clicked), every occurrence of the notation symbols this file declares
+  for that target, and — when the target resolves inside this file — its
+  definition name plus its explicit uses. Ranges on this path are recomputed
+  from byte offsets, so a line containing an astral character such as `𝒫` no
+  longer shifts the highlight by one column. Lean 4's
+  `handleDocumentHighlight` (definition range + `usages`) is the reference
+  semantics; the deviation from the minimal "only this one name" reading is
+  deliberate — a single-range answer would *replace* the editor's own
+  text-based occurrence highlighting and hide the definition occurrence.
 - **A cold `build` with entry-level parallelism could abort with a stack
   overflow** (G-94). Compile worker threads used the platform default stack
   (2 MB on macOS), and elaborating a deeply recursive file overflows it

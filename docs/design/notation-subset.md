@@ -994,21 +994,10 @@ CLI 全量 **25 target / 0 FAILED** · 完整 `scripts/soko gate` **exit 0** ✓
 | `{x ∈ A \| P x}` | `Set.sep A (fun x => P x)` | **`A`**（`Set.sep` 的 telescope 解出 `α`）|
 | `{x \| P x}` | **拒绝**（`set-builder-shape`）| 无 —— 本语言没有元变量（N4.2）|
 
-- **为什么 `{x ∈ A | P x}` 落到 `Set.sep`**：没有元变量 ⇒ Lean 的 `setOf fun x => x ∈ A ∧ P x`
-  里 binder 的类型只能从**期望类型**解（`#check` 那类位置写不出来 ✗）；落到 `Set.sep` 则
-  **α 从 `A` 来** ✓，且与点名 `Set.sep A P` **同头常量** ⇒ `mem_sep_iff` / `sep_subset` 直接
-  `rw` 得上（落成 lambda 要先展开 ✗）。**代价（明说）**：依赖 `Set.sep` 在作用域内（与
-  Lean/Mathlib 的 `{x ∈ s | p x}` 同款）；缺库报 `elab-unknown-identifier`（点名 `Set.sep`），
-  **不另造码**（`{a}` 那条在 elab 期展开才有落点）。`∈` 若指向别的目标报**类型错**（不静默）。
-- **边界**：变量名一个（Lean 的 `extBinder` 同款，`{x y ∈ A | …}` 不支持）；binder 谓词只认 `∈`
-  （`∉`/`⊆`/`≤` 那几种 Lean 支持而我们不做）—— 两者都留给依赖 binder 那一刀（§13.2）。
-- **与 `binder_notation` 的关系**：两条**各自独立**、都不引入元变量，类型都只从**标注**或
-  **关系式的其它操作数**来；差别在落点：`binder_notation` 的目标是**声明里给的名字**（用户可
-  自定义），集合建构式的目标是**内建写死**的（`Set.sep`，与 `{a}` → `Set.singleton` 同族）。
-  `{x ∈ A | P x}` 的 guard 走**与两段式 binder 同一条** `parse_operators_from` 梯子 ⇒ 读法一致 ✓。
-- **诊断口径**：`{x | P x}` 报**专用码 `set-builder-shape`**（原来掉进 `set-literal-shape`
-  「集合字面量要写成 {a} 或 {a, b}」—— **指错路** ✗）；文案指路：「请写 `{x : α | P x}`（自己给
-  类型）或 `{x ∈ A | P x}`（类型从 `A` 来）」。
+- **为什么 `{x ∈ A | P x}` 落到 `Set.sep`**：没有元变量 ⇒ Lean 的 `setOf fun x => x ∈ A ∧ P x` 里 binder 的类型只能从**期望类型**解（`#check` 那类位置写不出来 ✗）；落到 `Set.sep` 则 **α 从 `A` 来** ✓，且与点名 `Set.sep A P` **同头常量** ⇒ `mem_sep_iff` / `sep_subset` 直接 `rw` 得上（落成 lambda 要先展开 ✗）。**代价（明说）**：依赖 `Set.sep` 在作用域内（与 Lean/Mathlib 的 `{x ∈ s | p x}` 同款）；缺库报 `elab-unknown-identifier`（点名 `Set.sep`）， **不另造码**（`{a}` 那条在 elab 期展开才有落点）。`∈` 若指向别的目标报**类型错**（不静默）。
+- **边界**：变量名一个（Lean 的 `extBinder` 同款，`{x y ∈ A | …}` 不支持）；binder 谓词只认 `∈` （`∉`/`⊆`/`≤` 那几种 Lean 支持而我们不做）—— 两者都留给依赖 binder 那一刀（§13.2）。
+- **与 `binder_notation` 的关系**：两条**各自独立**、都不引入元变量，类型都只从**标注**或 **关系式的其它操作数**来；差别在落点：`binder_notation` 的目标是**声明里给的名字**（用户可 自定义），集合建构式的目标是**内建写死**的（`Set.sep`，与 `{a}` → `Set.singleton` 同族）。 `{x ∈ A | P x}` 的 guard 走**与两段式 binder 同一条** `parse_operators_from` 梯子 ⇒ 读法一致 ✓。
+- **诊断口径**：`{x | P x}` 报**专用码 `set-builder-shape`**（原来掉进 `set-literal-shape` 「集合字面量要写成 {a} 或 {a, b}」—— **指错路** ✗）；文案指路：「请写 `{x : α | P x}`（自己给 类型）或 `{x ∈ A | P x}`（类型从 `A` 来）」。
 - **登记**：`{x ∈ A | P x}` 进 prelude 的 **`builtin-sugar` 登记区**（E11 同款），目标 `Set.sep`
   逐字守卫（`prelude_mirror.rs`）；`{x : α | P x}` **如实登记**「脱糖成函数 `fun (x : α) => P x`，
   无目标常量」（与 `⟨a, b⟩` 同款，**不许**编一个目标名 ✗）。
@@ -1018,3 +1007,14 @@ CLI 全量 **25 target / 0 FAILED** · 完整 `scripts/soko gate` **exit 0** ✓
   `elab-tactic-failed` ✗（**修前实测**：`{x ∈ A | P x} ⊆ A` 的 `by exact …`；基线二进制**同错**
   ⇒ 既有缺陷）。`render_binder_notation` 早就是这么做的 ⇒ 与它对齐，**只改无类型那一档** ✓。
 - **不破坏既有形状**：`{a}` / `{a, b}` / `{}` / `{a, b, c}` 与 binder 组 `{x : T}` 逐字不变 —— lookahead 只在新形状上分派：`{x : T}` 里没有 `|` ⇒ 仍走字面量/binder 老路 ✓。
+
+## 20. G-55（0.83.0）：`documentHighlight` 在记法**目标名**上的语义（N14）
+
+> 状态：**已落地**（2026-10-07 用户授权"本轮做"）。落点 = `crates/lsp/src/{lib,render}.rs`
+> + `notation_input::declared_notations`（薄封装，交出的就是 parser 共用的那份词法扫描）；
+> **内核与判定零改动**（这是编辑器层）。复现件 `docs/gaps/repro/G55-notation-target-highlight.sh`。
+
+- **设计问题**（台账 G-55）「目标名的『同一个定义』包含哪些位置？」⇒ **①+②+③ 累积式**，因为**目标名是"引用"、不是"引入处"**（记法声明引入的是**符号**）：① 光标处那个名字 —— **地板**：永不为 `null`、必含**用户实际点的位置**，目标在闭包外时这就是全部答案 ⇒ **不依赖 G-54** ✓；② 本文件里**展开到这个目标的记法符号的每一处**（`𝒫 A` 与 `Set.powerset α A` 指同一个定义，只是写法不同）；③ 目标**在本文件内**可解析时：**定义名**那一处 + **点名使用处**（`documentHighlight` 的 range 只属于被请求的那份文档 ⇒ 跨文件的位置不进结果，那是 `definition`/`references` 的事）。
+- **用户语义**：点这个名字 ⇒ 看到"**这个词（连同它的各种写法）指向同一个定义的所有位置**"。**为什么不是只答 ①**（用户 2026-10-07 的倾向）：LS 的非 `null` 结果会**取代**编辑器自己的文本级兜底高亮（VS Code 1.138 的 `*` provider + `first non-null` 合并，本仓 `.vscode-test` bundle 实测）⇒ 只答一个词等于把今天那行上 `def powerset` 那一处**灭掉**（可见退化 ✗）；且"引用"当"引入处"说不通。**对齐 Lean 4**（`Server/FileWorker/RequestHandling.lean::handleDocumentHighlight`）：`info.definition?` 的 range + `info.usages` = 定义处 + 所有引用 ✓。
+- **同类清单**（`AGENTS.md` 验证纪律第 0 条 (b)；守卫 `crates/lsp/src/tests/navigation.rs::non_use_positions_are_pinned_as_a_class`）：① 记法**目标名** = **本条 ✓**；② 记法声明**字符串里的符号**（符号的引入处）✗ **另一条** —— 符号语义已由 T-D24 定在**使用处**，答引入处是另一个问题；③ **0 使用处的声明名**（`def unused` / `axiom ax`）✗ **另一条** —— 定义名没有 hover 行，反查要先有一个使用处；④ `inductive` / `ctor` 名 = **答得上**但 range 混入类型位/返回位 ✗ **另一条**（精度，不是"答不上"）。
+- **已知限制**：记法**重载**（同符号多候选）时词法表只留**主候选** ⇒ 符号的每一处都算到这个目标上（与 T-D24 的符号高亮**同粒度**）。**顺带修（同类坐标口径）**：本分支的 range 按 **byte offset** 重算 **UTF-16**（`render::range_of_in`）—— 全局 `range_of` 按 char 列算，含 `𝒫` 的行上会偏一格，而它与 hover/definition/诊断**共用** ⇒ **不在本条**（另一条）。

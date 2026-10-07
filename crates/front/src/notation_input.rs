@@ -927,6 +927,17 @@ pub fn declared_notation_at(text: &str, offset: usize) -> Option<(String, Option
         .then_some((symbol, target))
 }
 
+/// 本文件声明的记法：`(符号, 展开目标)`（**词法**扫描，与 parser 共用同一份
+/// [`crate::token::scan_notation_decls`]）。
+///
+/// 为什么编辑器层要它（**G-55**）：`documentHighlight` 在**记法声明的目标名**上
+/// 要把"这个目标在这个文件里的每一种写法"一次答齐 —— 「符号 → 目标」的对照表
+/// 是上面那份词法扫描的产物（`crate-private`）。这份薄封装**只把既有数据交出去**，
+/// 不新增语义、不碰判定路径（编辑器层不重扫文本、不复制一份表）。
+pub fn declared_notations(text: &str) -> Vec<(String, Option<String>)> {
+    crate::token::scan_notation_decls(text)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

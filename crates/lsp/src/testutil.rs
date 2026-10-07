@@ -46,16 +46,24 @@ pub(crate) const URI: &str = "file:///test.sokonanoda";
 
 /// 0-based LSP position for a **byte** offset in the source text.
 ///
-/// `character` 是**字符数**（= 行内 char 下标），不是字节差：LSP 的 position 是
-/// 字符单位，而 `position_to_offset`（`lib.rs`）按 `char_indices().nth(n)` 解释它。
-/// 从前这里算的是字节差，于是**任何含多字节符号的行都会偏**——`⊗`（3 字节）后面
-/// 的位置差 2，光标落到隔壁 token 上（实测：想 hover `⊗` 却 hover 到了 `b`）。
-/// ASCII 行上两种算法恒等，所以这个 bug 只在非 ASCII 夹具里显形。
+/// `character` 按 **UTF-16 码元**计 ✓ —— 这是 LSP 的口径，也是服务端口径
+/// （`lib.rs::position_to_offset_impl` 的 G-36 修：`units += ch.len_utf16()` ✓）。
+///
+/// **G-55（2026-10-07）修正**：以前这里按 **`char` 计数** ✗ ⇒ 含**星平面字符**
+/// （`𝒫` 占 2 码元、emoji 同理）的行上**每个位置都偏**（实测：`prefix:70 " 𝒫 " =>
+/// Set.powerset` 那行上目标名在码元列 20，旧算法给 19 ⇒ 光标落到名字前的空格上）。
+/// ⇒ 判据会**打在用户不会点的位置**上（`AGENTS.md` 验证纪律第 0 条 (a) 点名的
+/// 「用'能跑通的位置'代替'用户实际点的位置'」✗）——这正是 G-55 那条用例必须
+/// 打在**真位置**上的原因 ✓（改完 170 条 LSP 用例全绿，只有那条"断言旧行为"的
+/// 防漂移用例按设计判红 ✓）。
 pub(crate) fn lsp_pos(src: &str, offset: usize) -> Position {
     let before = &src[..offset];
     let line = before.matches('\n').count() as u32;
     let line_start = before.rfind('\n').map(|i| i + 1).unwrap_or(0);
-    let character = src[line_start..offset].chars().count() as u32;
+    let character = src[line_start..offset]
+        .chars()
+        .map(char::len_utf16)
+        .sum::<usize>() as u32;
     Position { line, character }
 }
 

@@ -750,21 +750,35 @@ async fn goto_definition_on_a_builtin_notation_lands_in_the_prelude() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-/// **E08 的判据（定案：本轮不做，但要钉住现状别漂）**。
+/// **G-55 的判据（2026-10-07 用户授权"本轮做"；语义定案 = ①+②+③ 累积式）**。
 ///
-/// 现场（实测，真课程库）：`textDocument/documentHighlight` 对那 11 条记法**目标名**
-/// **全部返回 `null`** ✗ —— 因为目标名在 AST 里不是使用点、也没有 `resolution`，
-/// 而 `document_highlight` 是按**定义 → 所有引用**反查的。
+/// 现场（E08 实测，真课程库 11 条）：`textDocument/documentHighlight` 对记法**目标名**
+/// **全部返回 `null`** ✗ —— 目标名在 AST 里不是使用点、也没有 `resolution`，
+/// 而反查要先"至少有一个使用处"起头（`render::highlight_uses`）。
 ///
-/// **E08 定案（2026-09-27 深夜，用户授权自决）：本轮不做，理由要写死** ✗✓ ——
-/// 要做就得先回答一个**设计问题**：「目标名的『同一个定义』包含哪些位置？」
-/// 备选至少三种（① 只高亮记法声明行上的那一个名字 ② 连**该记法符号的所有使用处**
-/// 一起高亮 ③ 连**目标名的真实定义处**一起高亮），三种的用户语义完全不同，
-/// 而且 ③ 还依赖"闭包外也能解析"（正是 G-54 定案不做的那件事 ✗）。
-/// ⇒ 这是**设计决定**，不该顺手拍；登记 **G-55**，并用本条**断言当前行为**
-/// （`null`）防漂移 —— 将来真做时，这条判据会**判红**，提醒改判据而不是悄悄改行为 ✓。
+/// **设计问题的答案**（台账 G-55 `today`：「目标名的『同一个定义』包含哪些位置？」）
+/// ⇒ **① + ② + ③ 全都要**，因为**目标名是"引用"，不是"引入处"**（记法声明引入的是
+/// **符号**，不是那个名字）：
+///   * **① 光标处这个名字** —— **地板**：永远在结果里 ⇒ 永不 `null`、且**一定包含
+///     用户实际点的那个位置** ✓（目标在闭包外时这就是全部答案 ⇒ **不依赖 G-54** ✓）；
+///   * **② 本文件里展开到这个目标的记法符号的每一处** —— `𝒫 A` 与 `Set.powerset α A`
+///     指的是**同一个定义**，符号只是写法不同（与 T-D24 在符号上的答案同一份词法）；
+///   * **③ 目标在本文件里可解析时**：**定义名**那一处 + **点名使用处**。
+/// **用户语义一句话**：点这个名字 ⇒ 看到"这个词（连同它的各种写法）指向同一个定义的
+/// 所有位置"。
+///
+/// ⚠ **与用户倾向 ① 的差异（写清理由 ✓）**：只答 ① 在 VS Code 里是**可见退化** ——
+/// 语言服务器的非 `null` 结果会**取代**编辑器自己的文本级兜底高亮（VS Code 1.138：
+/// `documentHighlightProvider` 的 `*` 兜底 provider + `first non-null` 合并；本仓
+/// `.vscode-test` 里的 bundle 实测），而今天那行上文本兜底正好点亮 `def powerset`
+/// 那一处 ⇒ 只答一个词等于把它灭掉 ✗；语义上把"引用"当"引入处"也说不通 ✗。
+/// ① 作为**地板**保留 ✓（完整理由与证据：`docs/design/notation-subset.md` §20）。
+///
+/// **判据（用户动作，三层里的 wire 层）**：在**记法声明行上那个名字**（用户实际点的
+/// 位置）请求 ⇒ **非 `null`**、**含该位置**、且含 ②③ 的**每一处**（精确集合 ⇒
+/// 不许混入别的、也不许重复）。
 #[tokio::test]
-async fn document_highlight_on_a_notation_target_is_null_today() {
+async fn document_highlight_on_a_notation_target_lists_the_same_definition() {
     let dir = std::env::temp_dir().join(format!(
         "sokonanoda-hl-notation-target-{}-{}",
         std::process::id(),
@@ -780,15 +794,25 @@ async fn document_highlight_on_a_notation_target_is_null_today() {
         "entry = \"Canvas.sokonanoda\"\n",
     )
     .expect("write manifest");
-    // 目标**在闭包内**（`Set.powerset` 就在本文件里）—— 即便这样 highlight 也是 null，
-    // 所以 null 的成因是"目标名不是使用点"，不是"解不出定义" ✓。
-    let src = "def Set (α : Type) : Type := α -> Prop\n\
+    // 目标**在闭包内**（`Set.powerset` 就在本文件里）—— ③ 那两层才有东西可答。
+    // ⚠ 必须有 `import` 行 + 清单：`project_definition()` 只在**项目模式**下工作
+    //   （E05 的夹具注释，`crates/front/src/query/mod.rs:817`）✗✓。
+    // 行号（0-based）：0 = import · 2 = `namespace Set` · 3 = `def powerset`
+    // · 4 = 记法声明（**光标在这行的目标名上**）· 5 = 用它的定理 · 6 = `end Set`。
+    let src = "import SetLib\n\
+               \n\
                namespace Set\n\
                def powerset (α : Type) (A : Set α) : Set α := fun (a : α) => A a\n\
                prefix:70 \" 𝒫 \" => Set.powerset\n\
+               theorem t (α : Type) (A : Set α) (h : 𝒫 A = Set.powerset α A) : 𝒫 A = Set.powerset α A := h\n\
                end Set\n";
     let entry = dir.join("Canvas.sokonanoda");
     std::fs::write(&entry, src).expect("write entry");
+    std::fs::write(
+        dir.join("SetLib.sokonanoda"),
+        "def Set (α : Type) : Type := α -> Prop\n",
+    )
+    .expect("write lib");
     let uri = Url::from_file_path(&entry).expect("file url");
 
     let (mut service, mut socket) = test_service();
@@ -796,33 +820,141 @@ async fn document_highlight_on_a_notation_target_is_null_today() {
     testutil::did_open_at(&mut service, &uri, src).await;
     let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "notation target highlight").await;
 
-    let decl_line = 3usize;
-    let column = src
-        .lines()
-        .nth(decl_line)
-        .expect("notation line")
-        .find("Set.powerset")
-        .expect("target name");
+    // **用户实际点的那个位置**：声明行上目标名的第一个字符（`Set.powerset` 的 `S`）。
+    let clicked = lsp_pos(src, offset_of(src, "=> Set.powerset") + 3);
     let result = call(
         &mut service,
         RpcRequest::build("textDocument/documentHighlight")
             .params(json!({
                 "textDocument": {"uri": uri},
-                "position": {"line": decl_line, "character": column},
+                "position": position_json(clicked),
             }))
             .id(6)
             .finish(),
     )
     .await
     .expect("documentHighlight must answer");
-    let highlights: Option<serde_json::Value> =
+    let highlights: Option<Vec<DocumentHighlight>> =
         serde_json::from_value(result).expect("valid highlight response");
+    let highlights = highlights.expect(
+        "记法声明的目标名必须给出高亮（G-55：不许 `null` ✗ —— E08 的防漂移用例\n\
+         就是钉住那个 `null` 的，本轮按设计改成断言新语义 ✓）",
+    );
+
+    // **(a) 用户动作判据**：结果必须**包含用户实际点的那个位置**。
     assert!(
-        highlights.as_ref().is_none_or(|v| v.is_null()),
-        "**现状是 `null`**（E08 定案：本轮不做）—— 这条判据是**防漂移**用的：\
-         真做了就必须改判据，而不是让行为悄悄变 ✗：{highlights:?}"
+        highlights.iter().any(|h| h.range.start == clicked),
+        "结果必须包含光标处那个名字（用户实际点的位置）✗：clicked={clicked:?} · {highlights:?}"
+    );
+
+    // 精确集合（按位置排序）：① 名字自己 · ③ 定义名 · ②③ 定理那行上的每一处。
+    let mut expected: Vec<Position> =
+        vec![clicked, lsp_pos(src, offset_of(src, "def powerset") + 4)];
+    let theorem_line = 5usize;
+    let line_start: usize = src
+        .split('\n')
+        .take(theorem_line)
+        .map(|l| l.len() + 1)
+        .sum();
+    let line = src.lines().nth(theorem_line).expect("theorem line");
+    for needle in ["𝒫", "Set.powerset"] {
+        for (i, _) in line.match_indices(needle) {
+            expected.push(lsp_pos(src, line_start + i));
+        }
+    }
+    expected.sort_by_key(|p| (p.line, p.character));
+    let starts: Vec<Position> = highlights.iter().map(|h| h.range.start).collect();
+    assert_eq!(
+        starts, expected,
+        "「同一个定义」的位置集合不对 ✗ —— 期望 ①名字 + ③定义名 + ②符号每一处 + ③点名使用处：{highlights:?}"
+    );
+    assert!(
+        highlights
+            .iter()
+            .all(|h| h.kind == Some(DocumentHighlightKind::TEXT)),
+        "highlights are text-level: {highlights:?}"
     );
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **G-55 的横向排查守卫**（`AGENTS.md` 验证纪律第 0 条 (b)：同类问题**不许修单点**，
+/// 「收到一条 UI 反馈 ⇒ 先问同类还有哪些，一次改齐 + 落**可查**的守卫」✓）。
+///
+/// 同一类「光标处**不是使用点**」的位置逐条钉住（清单 = `docs/design/notation-subset.md`
+/// §20 与台账 G-55 的 `notes`）：
+///
+/// | 位置 | 现状 | 本条覆盖？ |
+/// |---|---|---|
+/// | ① 记法声明的**目标名** | **非 null**，含光标处 + 符号每一处（+ 闭包内时定义名与点名使用处） | **✓ 本条**（G-55） |
+/// | ② 记法声明**字符串里的符号**（`" 𝒫 "`） | 仍 `null` | ✗ **另一条**：符号的语义由 T-D24 定在**使用处**；声明行那一处是符号的**引入处**，答它是另一个问题，且要新的词法 span API |
+/// | ③ **没有使用处的声明名**（`def unused` / `axiom ax`） | 仍 `null` | ✗ **另一条**：定义名没有 hover 行，而反查要先有一个使用处 ⇒ 0 使用处就空手（Lean 的答案是「定义处 + 使用处」⇒ 真答案在**定义名自己**身上） |
+/// | ④ `inductive` / `ctor` 名 | **非 null**，但 range 里混入类型位/返回位 | ✗ **另一条**（精度问题，不是"答不上"） |
+///
+/// 判据的作用：**谁将来动了这一类位置，这条就判红** ⇒ 必须回来同步清单与台账
+/// （E08 那条"断言当前行为"的防漂移用例正是这么用的 —— 本轮 G-55 真做时它按设计判红 ✓）。
+#[tokio::test]
+async fn non_use_positions_are_pinned_as_a_class() {
+    let src = "def Set (α : Type) : Type := α -> Prop\n\
+               namespace Set\n\
+               def powerset (α : Type) (A : Set α) : Set α := fun (a : α) => A a\n\
+               prefix:70 \" 𝒫 \" => Set.powerset\n\
+               theorem t (α : Type) (A : Set α) (h : 𝒫 A = 𝒫 A) : 𝒫 A = 𝒫 A := h\n\
+               end Set\n\
+               def unused : Nat := 1\n\
+               axiom ax : Prop\n\
+               inductive W : Type\n\
+               ctor mk : W\n\
+               end\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "class sweep diagnostics").await;
+
+    // ① 本条覆盖：记法声明的目标名 ⇒ 非 null 且**含用户实际点的那个位置**。
+    let clicked_offset = offset_of(src, "=> Set.powerset") + 3;
+    let clicked = lsp_pos(src, clicked_offset);
+    let covered = document_highlight_at(&mut service, src, clicked_offset)
+        .await
+        .expect("① 记法目标名：本条覆盖 ⇒ 不许 null（G-55）");
+    assert!(
+        covered.iter().any(|h| h.range.start == clicked),
+        "① 必须含光标处那个名字（用户实际点的位置）：{covered:?}"
+    );
+    assert!(
+        covered.len() > 1,
+        "① 还要答上这个文件里 `𝒫` 的每一处（② 那一层）：{covered:?}"
+    );
+
+    // ② 记法声明字符串里的符号：仍 null（另一条，理由见上表）。
+    assert!(
+        document_highlight_at(&mut service, src, offset_of(src, "\" 𝒫 \"") + 2)
+            .await
+            .is_none(),
+        "② 记法声明字符串里的符号**本轮不覆盖**（另一条）—— 若你把它做出来了，\
+         请回来更新本条与 docs/design/notation-subset.md §20 的清单 ✓"
+    );
+
+    // ③ 没有使用处的声明名：仍 null（另一条）。
+    for needle in ["def unused", "axiom ax"] {
+        let offset = offset_of(src, needle) + needle.find(' ').expect("space") + 1;
+        assert!(
+            document_highlight_at(&mut service, src, offset)
+                .await
+                .is_none(),
+            "③ `{needle}`（0 使用处）**本轮不覆盖**（另一条）—— 做出来了请同步清单 ✓"
+        );
+    }
+
+    // ④ `inductive`/`ctor` 名：答得上（非 null）—— 精度是另一条。
+    for needle in ["inductive W", "ctor mk"] {
+        let offset = offset_of(src, needle) + needle.find(' ').expect("space") + 1;
+        assert!(
+            document_highlight_at(&mut service, src, offset)
+                .await
+                .is_some(),
+            "④ `{needle}` 现状是**答得上**（非 null）；若它变成 null，那是回退 ✗"
+        );
+    }
 }
 
 /// **E07 的判据（落点语义定案的那一半）**：记法声明的目标名**不在闭包里**时

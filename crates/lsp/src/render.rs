@@ -62,6 +62,38 @@ pub(crate) fn range_of(span: Span) -> Range {
     }
 }
 
+/// [`range_of`] 的**文本感知**版本：按 **byte offset** 重算行/列。
+///
+/// 为什么需要它（**G-36 那条教训的反方向**）：front 的 `Pos.column` 是**按 char
+/// 数**算的（`crates/front/src/token.rs` 的 `self.column += 1`），而 LSP 的
+/// `character` 是 **UTF-16 码元** ⇒ 行里有星平面字符（`𝒫`/emoji）时 `range_of`
+/// 整条偏（G-55 实测：`prefix:70 " 𝒫 " => Set.powerset` 那行上目标名报成
+/// `19..31`（框住 `" Set.powerse"`），正确是 `20..32` ✓）。offset 是两边
+/// **共有**的坐标系 ⇒ 用它重算不会错 ✓。
+///
+/// ⚠ **只服务 G-55 那条分支**：全局 `range_of` 的口径**不动**（hover / definition /
+/// 诊断 / 符号高亮都在用它，改它是**另一条**——同族未覆盖项记在
+/// `docs/design/notation-subset.md` §15 的清单里 ✗）。
+pub(crate) fn range_of_in(doc: &str, span: Span) -> Range {
+    Range {
+        start: position_of_offset(doc, span.start.offset),
+        end: position_of_offset(doc, span.end.offset),
+    }
+}
+
+/// byte offset → LSP 位置（`character` 按 UTF-16 码元计 ✓）。
+fn position_of_offset(doc: &str, offset: usize) -> Position {
+    let offset = offset.min(doc.len());
+    let before = &doc[..offset];
+    let line = before.matches('\n').count() as u32;
+    let line_start = before.rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let character: usize = doc[line_start..offset].chars().map(char::len_utf16).sum();
+    Position {
+        line,
+        character: character as u32,
+    }
+}
+
 /// **G-36 第三处（2026-10-03 ✓）**：按 **offset** 判"是否落在 span 内" ✓。
 /// 旧的 [`pos_within_span`] 拿 LSP 的 **UTF-16 列** 去比 **span 的列** ✗ —— 而 span 的列是
 /// 前端 parser 按**自己的约定**算的 ✗ ⇒ `𝒫` 这类星平面字符之后**判错 span** ✓
@@ -395,6 +427,64 @@ pub(crate) fn highlight_uses(
         .map(|h| range_of(h.span))
         .collect();
     (!uses.is_empty()).then_some(uses)
+}
+
+/// **G-55**：光标在**记法声明的目标名**上时，"同一个定义"包含的全部位置。
+///
+/// 语义定案（用户 2026-10-07 授权；设计 `docs/design/notation-subset.md` §15）：
+/// 目标名是**引用**（它指向一个已经存在的声明），不是引入处 ⇒「同一个定义」=
+/// 这个名字本身 **+ 这个文件里所有指到同一个定义的位置**，三层：
+///
+/// * **① 光标处这个名字**（`name_span`）—— **地板**：一定在结果里 ⇒ 永不 `null`、
+///   永远包含"用户实际点的那个位置"。目标在闭包外（G-54 不做）时，这就是全部答案。
+/// * **② 本文件里展开到这个目标的每个记法符号的每一处** —— 用与 T-D24（光标在
+///   符号上）**同一份词法答案**（`symbol_occurrences`）：`𝒫 A` 与 `Set.powerset α A`
+///   指的是同一个定义，符号只是**写法**不同。声明行字符串里的那个符号不在其中
+///   （它是 `Str` token，不是使用处）。
+/// * **③ 目标在本文件里可解析时**：它的**定义名**那一处 + 所有**点名使用处**
+///   （`hovers` 里解析到同一声明的位置）。`definition` 是定义**命令**的 span，
+///   由调用方用 `project_definition` 解出并**限定在本文件内** ——
+///   `documentHighlight` 的 range 只属于被请求的那份文档，跨文件的位置不进结果
+///   （跨文件是 `definition`/`references` 的事）。
+///
+/// 结果**去重 + 按位置排序**（同一处可能同时是"符号的每一处"与"点名使用处"）。
+pub(crate) fn notation_target_highlight(
+    doc: &str,
+    hovers: &[HoverType],
+    name: &str,
+    name_span: Span,
+    definition: Option<Span>,
+) -> Vec<Range> {
+    let mut ranges = vec![range_of_in(doc, name_span)];
+    // ② 这个目标在这个文件里的**每一种写法**（符号 → 目标的对照表是词法扫描的产物）。
+    for (symbol, target) in sokonanoda_front::notation_input::declared_notations(doc) {
+        if target.as_deref() == Some(name) {
+            ranges.extend(
+                sokonanoda_front::notation_input::symbol_occurrences(doc, &symbol)
+                    .into_iter()
+                    .map(|s| range_of_in(doc, s)),
+            );
+        }
+    }
+    // ③ 定义那一处 + 点名使用处（只有定义**就在本文件里**时才有意义）。
+    if let Some(def_span) = definition {
+        if let Some(def_name) = decl_name_span(doc, def_span, name) {
+            ranges.push(range_of_in(doc, def_name));
+        }
+        ranges.extend(
+            hovers
+                .iter()
+                .filter(|h| {
+                    h.resolution
+                        .as_ref()
+                        .is_some_and(|target| target.span() == def_span)
+                })
+                .map(|h| range_of_in(doc, h.span)),
+        );
+    }
+    ranges.sort_by_key(|r| (r.start.line, r.start.character, r.end.line, r.end.character));
+    ranges.dedup();
+    ranges
 }
 
 /// The in-scope binder names (outermost first) at the cursor, from the
