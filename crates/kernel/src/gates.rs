@@ -57,13 +57,28 @@ pub mod limits {
         std::env::var(name).ok()?.trim().parse::<u32>().ok()
     }
 
-    /// **签名能记多少个参数**（G-90 · `MAX_TRACKED`）。
+    /// **签名能记多少个参数**（G-90 · `MAX_TRACKED`）—— 默认 **128** ✓（G-90 收口 ✓）。
     ///
-    /// 位掩码是 `u64` ⇒ **硬上界 64** ✓（传再大也只到 64 ✓，不许静默截断成错 ✗）。
-    /// Lean 的对应物 = `synthInstance.maxSize = 128` ✓（那是另一套表示 ⇒ 终点见交接单 ✓）。
+    /// 位掩码载体是 **`u128`** ⇒ **硬上界 128** ✓（传再大也只到 128 ✓，不许静默截断成错 ✗）。
+    ///
+    /// ## Lean 4 对照（`~/Documents/lean/lean4` · `d0493e4c1e` ✓ · G-90 收口时复核 ✓）
+    ///
+    /// * 出处：`src/Lean/Meta/SynthInstance.lean:25` 的 `register_builtin_option
+    ///   synthInstance.maxSize`，`defValue := 128` ✓（**128 这个数字独立复核过 ✓**）。
+    /// * Lean 拿它限什么：**不是**"签名里能记的参数个数" ✗ —— 它限的是
+    ///   **typeclass 求解中构造答案所用的实例项规模** ✓（`descr` 原文：
+    ///   "maximum number of instances used to construct a solution…" ✓；消费点
+    ///   `SynthInstance.lean:425` 的 `addAnswer`：`cNode.size ≥ maxResultSize` ⇒
+    ///   **不产生这个答案** ✓）。`synthInstanceCore?` 只把它当**求解器内部**的预算 ✓。
+    /// * 我们怎么做：`MAX_TRACKED` = **签名相关性掩码的位宽** ✓（`relevance.rs::Sig` ✓，
+    ///   用来判断哪些参数可忽略 / 结果是不是命题 ⇒ 相等性的**捷径** ✓）。
+    /// * 差异与决定：**只有数字对齐（128）✓，语义并不对应** ✗（两套完全不同的表示 ✓）。
+    ///   保留我们自己的闸 ✓（它是纯优化 ✓），把闸值从 64 抬到 128 ✓、载体抬到 `u128` ✓；
+    ///   **两侧的失败方向一致** ✓：Lean 撞预算 = **放弃这个答案**（更慢/更少解 ✓，不是判错 ✓），
+    ///   我们撞闸 = **放弃捷径**（多比一次 ✓，绝不"判不了 ⇒ 判否" ✗）。
     pub fn max_tracked() -> u32 {
         static V: OnceLock<u32> = OnceLock::new();
-        *V.get_or_init(|| env_u32("SOKO_LIMIT_MAX_TRACKED").unwrap_or(64).clamp(1, 64))
+        *V.get_or_init(|| env_u32("SOKO_LIMIT_MAX_TRACKED").unwrap_or(128).clamp(1, 128))
     }
 
     // ── **求解预算三旋钮**（G-88 第二笔 · 2026-10-07 ✓）──────────────────────
@@ -101,7 +116,8 @@ pub mod limits {
 
     /// 升级次数的**配置上界**：每次翻倍 ⇒ 16 次 = 65536× ✓；
     /// 再大只是把 `saturating_mul` 之后的时间无限拉长（挂死风险 ✗）⇒ 夹到 16 ✓
-    /// （与 `max_tracked` 的 `clamp(1, 64)` 同一纪律：**上界要有理由** ✓）。
+    /// （与 `max_tracked` 的 `clamp(1, 128)` 同一纪律：**上界要有理由** ✓
+    /// —— 那里的理由是**载体宽度 128** ✓）。
     const MAX_ESCALATIONS_CEILING: u32 = 16;
 
     /// 取值规则（**纯函数** ✓）：`None`（缺省 / 非法）⇒ `default` ✓，再夹到 `[min, max]` ✓。
@@ -244,15 +260,18 @@ impl Counter {
 // **代价**（去掉上限后探查可能做得更多）：见 `docs/perf/ledger.jsonl` 与
 // `STATUS.md` 第 135 棒 ✓。
 
-/// **`MAX_TRACKED` 丢精度**（G-90 · `relevance.rs`）：参数望远镜超过 64 位 ⇒
-/// 签名只能记到 64 个 ⇒ `terminal = None` / `result_known` 不再置位 ⇒
+/// **`MAX_TRACKED` 丢精度**（G-90 · `relevance.rs`）：参数望远镜超过 128 位 ⇒
+/// 签名只能记到 128 个参数 ⇒ `terminal = None` / `result_known` 不再置位 ⇒
 /// 相等性的**相关性捷径静默失效** ✗（**只该变慢** ✓）。
 ///
-/// Lean 的对应物是 `synthInstance.maxSize = 128` ✓ ⇒ 终点是**对齐到 128** ✓。
+/// Lean 的对应物是 `synthInstance.maxSize = 128` ✓（**数字**对齐 ✓，语义不同 ✓ ——
+/// 见 [`limits::max_tracked`] 的对照 ✓）⇒ G-90 已把闸值抬到 128 ✓。
+/// **≥128 个参数才该触发** ✓（<128 触发 = 又丢精度了 ✗）。
 pub static SIG_OVERFLOW: Counter = Counter::new();
 
 /// **`MAX_TRACKED` 在 `conv.rs` 的应用点被截断**（G-90 的第二个落点）：
 /// `k >= MAX_TRACKED` ⇒ 这一层的相关性判定**放弃**（同样只该变慢 ✓）。
+/// **≥128 个实参才该触发** ✓。
 pub static SIG_ARITY_CLAMPED: Counter = Counter::new();
 
 /// **`unify_all` 的 `MAX_ROUNDS` 用光**（G-88 的邻居 ✓）：跑到轮数上限仍未到不动点

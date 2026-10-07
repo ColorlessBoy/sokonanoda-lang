@@ -23,7 +23,7 @@
 #
 # | 闸 | 拧到 | 默认 | 出处 |
 # |---|---|---|---|
-# | `MAX_TRACKED`（签名位掩码宽度） | 1 | 64 | `kernel/relevance.rs`（G-90） |
+# | `MAX_TRACKED`（签名位掩码宽度） | 1 | 128 | `kernel/relevance.rs`（G-90；**2026-10-07 收口** 64 → 128 ✓） |
 # | `maxHeartbeats`（求解步数 = fuel） | 1 | 20000 | `front/compile/meta.rs`（G-88；取值登记在 `kernel/gates.rs`） |
 # | `maxRecDepth`（求解递归深度） | 1 | 512 | 同上（G-88） |
 #

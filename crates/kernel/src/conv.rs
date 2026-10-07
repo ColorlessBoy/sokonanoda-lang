@@ -554,9 +554,9 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         let k = spine.len();
         let max_tracked = crate::gates::limits::max_tracked();
         if k >= max_tracked || app_prefix_len(spine) != k {
-            // **闸类计数出口** ✓（G-90/G-91）：参数个数超过 `MAX_TRACKED`（64 位掩码）
+            // **闸类计数出口** ✓（G-90/G-91）：参数个数超过 `MAX_TRACKED`（128 位掩码）
             // ⇒ 相关性判定**放弃** ✓ —— 放弃只该**变慢** ✓（多走一次全量比较 ✓），
-            // 但**必须可见** ✗。终点 = 对齐 Lean 的 `synthInstance.maxSize = 128` ✓。
+            // 但**必须可见** ✗。闸值 = Lean 的 `synthInstance.maxSize = 128` ✓（G-90 已对齐 ✓）。
             if k >= max_tracked {
                 crate::gates::SIG_ARITY_CLAMPED.bump();
             }

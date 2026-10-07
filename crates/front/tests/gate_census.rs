@@ -197,10 +197,14 @@ fn gate_census_reports_the_real_trigger_counts() {
     //    `compile::tests::probe_*`（行为：该判相等的仍判相等 ✓ / 刚性不等仍判不等 ✓ /
     //    以前会耗尽旧预算的夹具现在仍判相等 ✓）。
     // ④ **`MAX_TRACKED` 丢精度**（G-90）：两处落点都要 0。
+    //    **2026-10-07 收口** ✓：闸值 64 → **128**（载体 `u64` → `u128` ✓）⇒ 这两条断言的
+    //    含义**没变**（课程上仍然一次都不许触发 ✓），只是「超限」的门槛抬到 128 ✓；
+    //    「64..127 个参数不再丢精度 ✓ / ≥128 仍保守 + 计数 ✓」的行为判据在
+    //    `crates/front/tests/g90_max_tracked.rs` ✓。
     assert_eq!(
         sig_overflow, 0,
-        "**G-90**：签名丢精度（望远镜超过 64 位）触发了 {sig_overflow} 次 ✗ —— \
-         相关性捷径**静默失效** ✗。终点 = 对齐 Lean 的 `synthInstance.maxSize = 128` ✓"
+        "**G-90**：签名丢精度（望远镜超过 128 位）触发了 {sig_overflow} 次 ✗ —— \
+         相关性捷径**静默失效** ✗。闸值 = Lean 的 `synthInstance.maxSize = 128` ✓（已对齐 ✓）"
     );
     assert_eq!(
         sig_clamped, 0,
