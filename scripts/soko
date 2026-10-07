@@ -1128,8 +1128,8 @@ async function main(argv) {
       // **Infoview 视觉层级守卫**（G-66，2026-09-28 用户 18:24 实测）：
       // 分区标题是 `<h2>` 却**比正文小 20%、暗 30%** ✗ —— 而且是**一个月内第二次**
       // 同形反馈（2026-09-26 修过 `.decl-ty`，当时**没横向排查**）⇒ 按 AGENTS.md
-      // 验证设计纪律**第 0 条 (b)** 落成判据 ✓：① 标题字号 ≥ 正文；
-      // ② 同一规则里不许 `<1em` 又叠 `opacity`（双重压暗）✓。
+      // 验证设计纪律**第 0 条 (b)** 落成判据 ✓：① 标题字号 ≥ 正文（em 与 px 都实测）；
+      // ② 同一规则里不许「小于正文」又叠 `opacity`（双重压暗）；③ 标题不许用 opacity 降档 ✓。
       const infoviewHierarchy = path.join(REPO, 'scripts', 'check-infoview-hierarchy.py')
       if (!existsSync(infoviewHierarchy)) {
         process.stderr.write(

@@ -13,6 +13,8 @@
      是空态占位符的通行处理 ✓）。
   ② **标题不许小于正文** ✗：`.section-title` / `h1`–`h6` 族里出现 `font-size: <1em`（或 px < 13）
      ⇒ 层级更高、视觉更弱 ✓（2026-09-28 那条 ✓）。
+  ③ **标题不许用 opacity 降档** ✗（2026-10-07 收口审计补 ✓）：标题族里出现 `opacity < 1`
+     ⇒ 用户要求的是「降一档**只用颜色**」✓（与 `check-infoview-hierarchy.py` 判据 ③ 同源 ✓）。
 
 退出码：0 = 干净 ✓ · 1 = 有命中（判红 ✓）· 2 = 用法/环境错。
 """
@@ -50,9 +52,20 @@ def main() -> int:
             why = "color(*Foreground) + opacity" if has_fg else "类型注解族的 opacity"
             hits.append(f"  {CSS.name}:{line}  {sel} —— {why}:{op.group(1)} = **双重压暗** ✗")
         if HEADINGISH.match(sel):
-            fs = re.search(r"font-size:\s*([0-9.]+)em", body)
-            if fs and float(fs.group(1)) < 1.0:
-                hits.append(f"  {CSS.name}:{line}  {sel} —— font-size:{fs.group(1)}em < 1em ⇒ 标题比正文小 ✗")
+            fs = re.search(r"font-size:\s*([0-9.]+)(em|px)", body)
+            if fs:
+                val, unit = float(fs.group(1)), fs.group(2)
+                # ⚠ **px 形态**（2026-10-07 收口审计 ✓）：原实现只认 `em` ✗，而 docstring
+                # 一直宣称"（或 px < 13）"✗ ⇒ `font-size: 12px` 两条守卫**都不咬** ✗。
+                # 现在两种单位都实测 ✓（13px = `--vscode-font-size` 的默认值 = 正文 ✓）。
+                if (val < 1.0) if unit == "em" else (val < 13.0):
+                    hits.append(
+                        f"  {CSS.name}:{line}  {sel} —— font-size:{val:g}{unit} < 正文（1em / 13px）"
+                        f" ⇒ 标题比正文小 ✗"
+                    )
+            # ③ 标题不许用 opacity 降档（与字号无关 ✓）—— 与 `check-infoview-hierarchy.py` 判据 ③ 同源。
+            if op and float(op.group(1)) < 1.0:
+                hits.append(f"  {CSS.name}:{line}  {sel} —— 标题用 opacity:{op.group(1)} 降档 ⇒ 应只用颜色 ✗")
     if hits:
         print("infoview-css：**同族问题**命中 ✗（AGENTS.md 第 0 条 (b)）")
         print("\n".join(hits))

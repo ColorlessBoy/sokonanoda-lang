@@ -769,6 +769,17 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
+      - name: Infoview 视觉层级守卫（G-66 · 同族横向排查）
+        # 分区标题是 `<h2>` 却**比正文更小更暗** ✗（2026-09-28 用户实测；一个月内
+        # **第二次**同形反馈 ⇒ AGENTS.md 验证设计纪律第 0 条 (b)）。判据：① 标题字号
+        # ≥ 正文（em/px）；② 小于正文的规则不许再叠 opacity；③ 标题不许用 opacity 降档。
+        # `--selftest` = **反向验证**（咬不住的守卫等于没有 ✓）；秒级、在装 Rust 之前跑 ✓。
+        # ⚠ 为什么在本 job：`editor/**`（含 `media/infoview.css`）的改动由它拦 ✓ ——
+        # 只改 CSS 的推送也要真的跑到守卫，别只挂在本地 `scripts/soko gate` 上 ✗。
+        run: |
+          python3 scripts/check-infoview-hierarchy.py
+          python3 scripts/check-infoview-hierarchy.py --selftest
+          python3 scripts/audit-infoview-css.py
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
