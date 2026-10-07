@@ -124,14 +124,29 @@ async fn perf_course_did_open_is_recorded() {
     // ⇒ 绝对哨兵**天生跨机器**（`AGENTS.md` 的 perf-gate 教训：调到多大都追不上机器差 ✗），
     // 所以放宽到 **300s**（仍抓得住"退化成几分钟"的真事故 ✓）；
     // **真正的守卫是下面那条与机器无关的比值** ✓。
+    // ⚠ **2026-10-08（run `37694095005`）实测：比值臂自己也会假红** ✗✓ ——
+    // 那一轮 CI 量到 unit01 **1452ms** / unit08 **2559ms** / unit12 **21496ms** ⇒ 比值 **14.8** ✗
+    // （绝对哨兵是过的 ✓）。**先排除"是我们改慢了"** ✓：同 commit 本机 release 构建量到
+    // 726 / 1373 / 3612ms ⇒ 比值 **4.98** ✓（注释里的本机基线 ~4.5），且本机完整
+    // `cargo test --workspace`（172 条并行）与 `scripts/soko gate`（exit 0）都过 ✓。
+    // ⇒ 比值臂的前提「同 run 自比 ⇒ 与机器无关」**在两种情形下不成立** ✗：
+    //   ① 4 核 runner 上的**不对称争用**（大编译 unit12 与其余 171 条用例的突发重叠，
+    //      小编译 unit01 撞在安静窗口）；② **缓存冷热不同**（同 binary 里别的用例先预热了
+    //      unit01 的库闭包 ⇒ 分母异常小：CI 的 unit01 只比本机慢 2×，unit12 却慢 5.9×）。
+    // 历史读数同向：正常 CI ~4.1 · 3× 慢 runner **10.4**（run `36347147870`）· 本轮 **14.8**
+    // ⇒ 12 的余量本来就不足 ✗。按 `AGENTS.md` 的 perf 纪律「要拦墙钟 ⇒ 同机比值 **+ 宽天花板**」
+    // ⇒ 放宽到 **25**：仍抓得住这条用例真正关心的"每次打开重编 ×N / O(n²)"（那会把比值推到
+    // 50+；pre-P 组那批真回归的比值本来也只有 ~4.7 ⇒ 12 从来不是它们的判据 ✗）。
+    // **真正逐次数的守卫是 `scripts/check-recompile-factor.py`**（`gates-fast`，判红 ✓、噪声免疫 ✓）；
+    // 序列口径的读数在 `Performance report`（`scripts/perf-report.sh`，`--test-threads=1`）✓。
     assert!(
         slowest < 300_000,
         "课程入口 didOpen 最慢 {slowest}ms（本机 8.5s / 常见 CI 62s / 慢 runner 实测 197s；量级哨兵 300s）"
     );
     let ratio = slowest as f64 / first.max(1) as f64;
     assert!(
-        ratio < 12.0,
-        "unit12/unit01 的 didOpen 比值 {ratio:.1}（本机 ~4.5、CI ~4.1；阈值 12）         ——比值与机器快慢无关，涨上去说明闭包变大时慢得离谱"
+        ratio < 25.0,
+        "unit12/unit01 的 didOpen 比值 {ratio:.1}（本机 ~5、正常 CI ~4.1、慢 runner 实测 10.4；阈值 25）         ——涨到几十说明闭包变大时慢得离谱（每次打开重编 ×N / O(n²)）"
     );
     // 会话级复用：同一个 LSP 里再开一次同一份文档，必须**明显**快于冷开。
     let (again, _, _) =
