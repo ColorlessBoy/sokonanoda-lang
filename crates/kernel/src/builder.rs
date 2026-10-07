@@ -576,4 +576,75 @@ mod tests {
         let env = builder.finish();
         assert!(env.name_cache.nat.is_some(), "Nat was not discovered by name cache");
     }
+
+    /// **G-29 的指针同一性判据（两向 ✓ · 2026-10-07）** —— 「复用来的环境与被复用的
+    /// 环境是**同一份**」。
+    ///
+    /// 为什么需要它：G-29 的真修法是**跨调用**复用库层的内核环境（设计
+    /// `docs/design/incremental-environment.md` §33）。复用的**唯一合法性依据**是
+    /// 环境**逐字段同一** —— 不是"内容相等"，是**同一份**。内核多处按**指针**比较
+    /// （`conv.rs` 的 `NatLit` 指针相等、`eval.rs` 用地址做内容哈希、`NameInterner`
+    /// 比 `StringPtr` 地址）⇒ 若复用路径交出来的是一份**重建**的环境，指针会变
+    /// ⇒ **本该判过的 `def_eq` 假失败** ✗（与 `snapshot()` 的 ⚠ 同族）。
+    ///
+    /// **两向**：① 复用路径（同 arena · `hide_declars` → `restore_declars`，即
+    /// `project/session.rs` 库层复用那条）⇒ **同一**；② 回退路径（**另一份 arena**
+    /// 里重建同一个声明）⇒ **不同** ⇒ 那时**不许**把上一份环境的结论带过去，必须走
+    /// 整份重编（= 今天的行为 ✓）。
+    ///
+    /// 判据只用**指针**（`ExprPtr` 的 `PartialEq` 比的是地址位 `util.rs:224`）⇒
+    /// 机器无关、与墙钟无关 ✓。
+    #[test]
+    fn a_reused_environment_is_pointer_identical_and_a_rebuilt_one_is_not() {
+        /// 在同一份 arena 里造一个 `witness : Sort 0` 公理。
+        fn witness<'a>(arena: &'a Arena) -> (EnvBuilder<'a>, NamePtr<'a>) {
+            let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+            let name = builder.name_from_str("witness");
+            let zero = builder.zero();
+            let ty = builder.mk_sort(zero);
+            let uparams = builder.alloc_levels_slice(&[]);
+            let declar = Declar::Axiom {
+                info: DeclarInfo { name, uparams, ty },
+            };
+            builder
+                .add_declar(declar)
+                .expect("a `Sort 0` axiom must be accepted");
+            (builder, name)
+        }
+
+        let arena = Arena::new();
+        let (mut builder, name) = witness(&arena);
+        let before = builder.declars.get(&name).cloned().expect("declared");
+
+        // ① 复用路径：检查点搬出去、再搬回来（库层检查点就是这条）。
+        let checkpoint = builder.hide_declars();
+        builder.restore_declars(checkpoint);
+        let after = builder.declars.get(&name).cloned().expect("restored");
+        assert_eq!(
+            before, after,
+            "复用路径必须交出**同一份**环境（`ExprPtr` 的 `PartialEq` 比地址位 ✓）—— \
+             不等 ⇒ 中间重建了一份 ⇒ 指针同一性已破 ✗"
+        );
+        // 只读快照走的是同一条同一性：`snapshot()` 克隆的是**指针**，不是项。
+        let snap = builder.snapshot();
+        assert_eq!(
+            snap.declars.get(&name).cloned().expect("in snapshot"),
+            before,
+            "`snapshot()` 必须与原环境**指针同一**（它只克隆表、不重建项 ✓）"
+        );
+
+        // ② 回退路径：**另一份 arena** 里重建同一个声明 ⇒ 指针**不同**。
+        let other = Arena::new();
+        let (rebuilt_builder, rebuilt_name) = witness(&other);
+        let rebuilt = rebuilt_builder
+            .declars
+            .get(&rebuilt_name)
+            .cloned()
+            .expect("declared");
+        assert_ne!(
+            before, rebuilt,
+            "另一份 arena 里重建出来的环境**不是**同一份（地址不同）⇒ 那种环境**不许**\
+             当作复用结果交出去，必须走回退（整份重编）✓"
+        );
+    }
 }

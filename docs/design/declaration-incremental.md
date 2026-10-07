@@ -302,6 +302,8 @@ elaboration**（信任跳过的是内核检查，这条夹具上本来就便宜�
 
 * **开档后第一次按键仍 ~1.8s**：`entry_cache` 已从缓存报告回填（`cached_entry_for`），但
   **判定推断缓存是冷的** ⇒ 那一刀要先付一次整闭包。真杠杆是"前缀编译一次、多次查询"。
-* **G-31 的死结**：`EnvBuilder` 至今**没有**"从命令 k 起、拿现成 env 继续走"的入口
-  （只有 `snapshot`/`hide_declars`/`restore_declars`/`with_env`/`finish(self)`）⇒
-  逐点就地只能一个个搬，搬不到的地方仍要整份重编。
+* **G-31 的死结**：`EnvBuilder` 至今**没有**"从命令 k 起、拿现成 env 继续走"的入口（只有
+  `snapshot`/`hide_declars`/`restore_declars`/`with_env`/`finish(self)`）⇒ 搬不到的地方仍要整份重编。
+* **G-29 的跨调用库层复用**（2026-10-07）：设计（不变量 / 指针同一性 / 回退 / 与产物缓存的关系）与
+  **实测天花板**（库层 **15%** · 入口趟里 7 次合成前缀编译 **58%** ⇒ **单独达不到** §5.2 的 < 300ms）
+  见 `incremental-environment.md` **§33** ✓（判据 `crates/front/tests/g29_closure_recompile.rs` ✓）。

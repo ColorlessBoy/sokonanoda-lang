@@ -28,7 +28,7 @@ pub use check::{
     compile_fol_with, display_notations, display_notations_from_commands, fold_for_display,
     prelude_shape, render_expr, PreludeShape,
 };
-pub use check::{module_compiles_total, note_module_compile};
+pub use check::{closure_module_compiles_total, module_compiles_total, note_module_compile};
 pub(crate) use check::{
     run_incremental, run_pass_with, top_level_def_spans, top_level_def_spans_over, KernelFailed,
     PassTables, TrustPlan,

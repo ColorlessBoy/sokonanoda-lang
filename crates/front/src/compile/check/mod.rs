@@ -773,6 +773,17 @@ pub fn note_module_compile() {
     stage_stats::MODULE_COMPILES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 }
 
+/// **闭包模块编译次数**（G-29 的精确读数，2026-10-07）—— 与 [`module_compiles_total`]
+/// 的分工见 `run_pass_with` 里的长注释：那个把 **judge 合成文档**也算进去（且**漏掉**
+/// 会话路），这个**只数真模块**、且**老路/会话路同口径**。
+///
+/// 「改一行 ⇒ 整条闭包重编」的正身就是它：冷开 = 闭包模块数（5）· 改一行 = 库层 + 入口
+/// （4 + 1 = 5，今天）· 修好之后应当是 **1**（只重编入口）。
+#[doc(hidden)]
+pub fn closure_module_compiles_total() -> u64 {
+    stage_stats::CLOSURE_MODULE_COMPILES.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 pub(crate) mod stage_stats {
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -780,6 +791,8 @@ pub(crate) mod stage_stats {
     pub(crate) static PASSES: AtomicU64 = AtomicU64::new(0);
     /// 模块编译次数（切片 1 / G-68 的判据读数）。
     pub(crate) static MODULE_COMPILES: AtomicU64 = AtomicU64::new(0);
+    /// **闭包模块编译次数**（G-29 的精确读数）：只数 `path: Some(..)` 的真模块。
+    pub(crate) static CLOSURE_MODULE_COMPILES: AtomicU64 = AtomicU64::new(0);
     pub(crate) static BY_NANOS: AtomicU64 = AtomicU64::new(0);
     /// 经由 `check_document_with` 进来的 pass 次数（T-K20′ 诊断：394 趟里谁占大头）。
     pub(crate) static RUNS: AtomicU64 = AtomicU64::new(0);
@@ -1227,6 +1240,25 @@ where
 {
     stage_stats::install();
     stage_stats::PASSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    // **闭包模块编译次数**（G-29 的精确判据读数，2026-10-07）：只数**真模块**
+    // （`path: Some(..)` = 来自 `plan.closure.compilable()` 的源文件），**不数**
+    // judge 合成的判定文档（`SourceUnit::single("", file)` ⇒ `path: None`）。
+    //
+    // 为什么必须分开数（实测归因，见设计 §33）：`MODULE_COMPILES` 只在 `check::run`
+    // 里按 `units.len()` 累加，而**会话那条路**（`project/session.rs` 的库层趟 + 入口趟）
+    // 走的是本函数 ⇒ 一次都不计 ✗；于是 `LSP_TRACE` 的 `modules=` 在**改一行**那一刀上
+    // 读到的是 **7 次 judge 合成编译**（`compile_fol_with` ← `judge_infer_uncached`），
+    // **不是**闭包模块编译（真实值 = 库层 4 + 入口 1 = 5，一次都没被计）✗。
+    // ⇒ 「改一行 `modules=7` = 整条闭包重编」是**误归因**；本计数才是那句话的读数。
+    //
+    // ⚠ 计数点选在本函数（**所有 pass 的唯一收口**：`run`/`run_incremental` 都经
+    // `run_pass_in` 到这里，session 直接调它 ✓）⇒ 老路与会话路**同口径** ✓。
+    // `check-then-add` 的 pass 2 会**再计一次**（那确实又编了一遍 ✓）。
+    let closure_modules = units.iter().filter(|u| u.path.is_some()).count();
+    if closure_modules > 0 {
+        stage_stats::CLOSURE_MODULE_COMPILES
+            .fetch_add(closure_modules as u64, std::sync::atomic::Ordering::Relaxed);
+    }
     let _pass_timer = StageTimer(&stage_stats::PASS_NANOS, std::time::Instant::now());
     // **切片 1b**：三张表由调用方提供（session 跨趟复用）⇒ 这里不再 `new()`。
     let mut tables = tables;

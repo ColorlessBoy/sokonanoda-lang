@@ -29,7 +29,9 @@
 
 use std::path::{Path, PathBuf};
 
-use sokonanoda_front::compile::{by_calls_total, module_compiles_total};
+use sokonanoda_front::compile::{
+    by_calls_total, closure_module_compiles_total, module_compiles_total,
+};
 use sokonanoda_front::depgraph::DepGraph;
 use sokonanoda_front::judge::infer_totals;
 use sokonanoda_front::query::QueryDoc;
@@ -41,6 +43,14 @@ struct Reading {
     entry_kernel_checks: usize,
     /// 模块编译次数（库层每次按键被重编几次）。
     modules: u64,
+    /// **闭包模块编译次数**（G-29 的精确读数，2026-10-07）：只数**真模块**
+    /// （`path: Some(..)`），**不数** judge 合成的判定文档。
+    ///
+    /// 与 `modules` 的分工（实测归因，设计 §33）：`modules` 只在 `check::run` 里累加
+    /// ⇒ 会话那条路（`run_pass_with`）**一次都不计**，而 `judge` 的合成编译
+    /// （`compile_fol_with`，`units=1 names=[""]`）**照计** ⇒ 它在"改一行"那一刀上
+    /// 读到的是**合成编译次数**，不是"闭包被编了几个模块" ✗。这个才是后者。
+    closure_modules: u64,
     /// **本次编译真的产出了事件/错误的命令数**（去重）——「重查命令数」的
     /// 旁证：被复用（信任前缀/缓存）的命令**不产出事件** ⇒ 这个数会跟着脏集走。
     ///
@@ -77,6 +87,7 @@ impl Reading {
         Self {
             entry_kernel_checks,
             modules: now.modules - base.modules,
+            closure_modules: now.closure_modules - base.closure_modules,
             recomputed_commands: cmds.len(),
             by: now.by - base.by,
             infer_calls: now.infer_calls - base.infer_calls,
@@ -89,12 +100,14 @@ impl Reading {
 
     fn json(self) -> String {
         format!(
-            "{{\"entry_kernel_checks\":{},\"recomputed_commands\":{},\"modules\":{},\"by\":{},\
+            "{{\"entry_kernel_checks\":{},\"recomputed_commands\":{},\"modules\":{},\
+             \"closure_modules\":{},\"by\":{},\
              \"infer_calls\":{},\"infer_hits\":{},\"infer_miss\":{},\"infer_prefix_runs\":{},\
              \"infer_prefix_bytes\":{}}}",
             self.entry_kernel_checks,
             self.recomputed_commands,
             self.modules,
+            self.closure_modules,
             self.by,
             self.infer_calls,
             self.infer_hits,
@@ -109,6 +122,7 @@ impl Reading {
 #[derive(Debug, Clone, Copy)]
 struct Counters {
     modules: u64,
+    closure_modules: u64,
     by: u64,
     infer_calls: u64,
     infer_hits: u64,
@@ -122,6 +136,7 @@ impl Counters {
         let (calls, hits, miss, runs, bytes) = infer_totals();
         Self {
             modules: module_compiles_total(),
+            closure_modules: closure_module_compiles_total(),
             by: by_calls_total(),
             infer_calls: calls,
             infer_hits: hits,
