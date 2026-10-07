@@ -1239,10 +1239,11 @@ pub struct TcCache<'a, 't> {
     pub(crate) const_result_level_cache: FxHashMap<(NamePtr<'t>, LevelsPtr<'t>), LevelPtr<'t>>,
     pub(crate) conv_cache_pos: FxHashSet<(usize, usize)>,
     pub(crate) conv_cache_neg: FxHashSet<(usize, usize)>,
-    pub(crate) conv_cache_neg_probe: FxHashSet<(usize, usize)>,
+    /// **探查深度**（G-89 收口后只剩它 ✓）：`0` = 探查之外 ✓、`1` = 正在跑一次
+    /// 相关性探查 ✓（终止性说明见 `conv.rs::spine_probe` ✓）。
+    /// ⚠ 原来的「步数预算 / 耗尽标志 / 截断态否定缓存」**已随闸删除** ✓
+    /// —— Lean 4 没有那个预算 ✓（说明见 `gates.rs` ✓）。
     pub(crate) probe_depth: u32,
-    pub(crate) probe_budget: u32,
-    pub(crate) probe_exhausted: bool,
     pub(crate) closed_eval_cache: FxHashMap<ExprPtr<'t>, V<'a>>,
     pub(crate) whnf_store: FxHashMap<u64, (u128, ExprPtr<'t>)>,
     pub(crate) whnf_store_filter: Box<[u64; 1024]>,
@@ -1287,10 +1288,7 @@ impl<'a, 't> TcCache<'a, 't> {
             const_result_level_cache: small_fx_hash_map(),
             conv_cache_pos: session_small_fx_hash_set(),
             conv_cache_neg: session_small_fx_hash_set(),
-            conv_cache_neg_probe: small_fx_hash_set(),
             probe_depth: 0,
-            probe_budget: 0,
-            probe_exhausted: false,
             closed_eval_cache: session_small_fx_hash_map(),
             whnf_store: new_fx_hash_map(),
             whnf_store_filter: Box::new([0u64; 1024]),
@@ -1334,7 +1332,6 @@ impl<'a, 't> TcCache<'a, 't> {
         self.const_result_level_cache.clear();
         self.conv_cache_pos.clear();
         self.conv_cache_neg.clear();
-        self.conv_cache_neg_probe.clear();
         self.frames.clear();
         self.lsub_bases.clear();
         self.level_subs.clear();
@@ -1364,8 +1361,6 @@ impl<'a, 't> TcCache<'a, 't> {
 
     pub(crate) fn clear_session(&mut self) {
         self.probe_depth = 0;
-        self.probe_budget = 0;
-        self.probe_exhausted = false;
         shrink_map(&mut self.unfold_const_cache);
         shrink_map(&mut self.rec_rule_cache);
         shrink_map(&mut self.const_head_type_cache);
@@ -1373,7 +1368,6 @@ impl<'a, 't> TcCache<'a, 't> {
         shrink_map(&mut self.const_result_level_cache);
         shrink_set(&mut self.conv_cache_pos);
         shrink_set(&mut self.conv_cache_neg);
-        shrink_set(&mut self.conv_cache_neg_probe);
         if self.frames.capacity() > KEEP_CAP {
             self.frames = hashbrown::HashTable::new();
         } else {

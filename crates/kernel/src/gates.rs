@@ -16,7 +16,8 @@
 //!
 //! 把内核里**每一个**「超限就换路」的分支记一笔 ✓（**只加计数、零行为变化** ✓）。
 //!
-//! **两笔** ✓：① 内核侧七项（2026-10-04 ✓，`probe_exhausted` … `meta_budget_escalated` ✓）；
+//! **两笔** ✓：① 内核侧**六项**（2026-10-04 铺七项 ✓，**2026-10-07 G-89 收口删掉第一项** ✓
+//! —— `PROBE_CAP` 那道闸 Lean 4 没有 ✓ ⇒ **闸与出口一起删** ✓，见下面 [`report`] 的说明 ✓）；
 //! ② **乙类 4 处**（G-91 第二笔，2026-10-07 ✓，`judge_cache_evicted` … `skeleton_layers_clamped` ✓）
 //! —— 它们**全都只变慢 / 掉显示精度** ✓，**没有一处**碰判定 ✓。
 //! 它回答的正是那句"**先加计数、跑一遍课程报真实触发次数**"：
@@ -54,15 +55,6 @@ pub mod limits {
     /// 读一个正整数的环境覆盖（**只读一次** ✓；非法值/缺省 ⇒ `None` ✓）。
     fn env_u32(name: &str) -> Option<u32> {
         std::env::var(name).ok()?.trim().parse::<u32>().ok()
-    }
-
-    /// **相等性探查的步数预算**（G-89 · `PROBE_CAP`）。
-    ///
-    /// Lean 4 **没有**这道闸 ✓ ⇒ 终点是**去掉**（不许换数字留着 ✗）。
-    /// 但先要能证明「拧到 1 结论也不变」✓ —— 这就是那个口子 ✓。
-    pub fn probe_cap() -> u32 {
-        static V: OnceLock<u32> = OnceLock::new();
-        *V.get_or_init(|| env_u32("SOKO_LIMIT_PROBE_CAP").unwrap_or(2048).max(1))
     }
 
     /// **签名能记多少个参数**（G-90 · `MAX_TRACKED`）。
@@ -238,13 +230,19 @@ impl Counter {
     }
 }
 
-/// **`PROBE_CAP` 耗尽**（G-89 · `conv.rs`）：相等性**探查**的步数预算用光 ⇒
-/// `probe_exhausted = true`。
-///
-/// ⚠ **Lean 4 没有此物** ✓ ⇒ 终点是**去掉**（**不许换个数字继续留着** ✗）。
-/// 但"去掉"之前必须先看清它现在触发多少次 ✓ —— 这个计数就是那一步 ✓。
-/// 另：耗尽**只许**表示「**这次探查不可信 ⇒ 弃权走全量**」✓，**绝不许**表示「不相等」✗。
-pub static PROBE_EXHAUSTED: Counter = Counter::new();
+// ⚠ **这里原来有一个出口：`PROBE_CAP` 耗尽**（G-89 · `conv.rs`）——
+// **2026-10-07 随闸一起删除** ✓（**不是留一个永不 bump 的空转出口** ✗）。
+//
+// **为什么删**：Lean 4 **没有**这道闸 ✓（对照见 `docs/notes/HANDOFF-kernel.md` 的
+// 「G-89」条 ✓）⇒ 按值守口径**去掉、不许换数字留着** ✗。闸一去，探查**跑到底** ✓
+// ⇒ 「耗尽」这件事**不存在了** ⇒ 出口**没有写入点** ⇒ 留着就是空转 ✗（读数永远是 0，
+// 而 0 的含义从「没触发」变成「不存在」✗ ⇒ 分不清 = 假守卫 ✗）。
+//
+// **保留了什么**：`conv.rs` 的**探查本身**一字未动 ✓（`spine_probe` / `probe_pairs` /
+// `probe_pass` ✓）—— 它仍是**纯优化** ✓：只可能给出「相等」✓，`false` 永远是
+// 「没抄近路 ⇒ 调用方走全量」✓，**没有**「判不了 ⇒ 当成否」✗。
+// **代价**（去掉上限后探查可能做得更多）：见 `docs/perf/ledger.jsonl` 与
+// `STATUS.md` 第 135 棒 ✓。
 
 /// **`MAX_TRACKED` 丢精度**（G-90 · `relevance.rs`）：参数望远镜超过 64 位 ⇒
 /// 签名只能记到 64 个 ⇒ `terminal = None` / `result_known` 不再置位 ⇒
@@ -337,10 +335,13 @@ pub static SKELETON_LAYERS_CLAMPED: Counter = Counter::new();
 /// **一次性读数**（`(名字, 次数)` ✓）——给 `STAGE_STATS` / 判据用 ✓。
 ///
 /// 顺序**固定** ✓（判据要能按位置读，不许靠 map 顺序 ✗）；
-/// **前七项的位置一个都不许动** ✗ —— 乙类四项**追加在末尾** ✓（7 → 11 ✓）。
-pub fn report() -> [(&'static str, u64); 11] {
+/// **前六项的位置一个都不许动** ✗ —— 乙类四项**追加在末尾** ✓（6 → 10 ✓）。
+///
+/// ⚠ **G-89 收口**（2026-10-07 ✓）：第一项（`PROBE_CAP` 的耗尽计数）**已删** ✓
+/// —— 闸没了、没有写入点 ⇒ 留着是**空转出口** ✗（见上面那段说明 ✓）。
+/// 七项 → **六项**，乙类仍在末尾 ⇒ 现在共 **10** 项 ✓。
+pub fn report() -> [(&'static str, u64); 10] {
     [
-        ("probe_exhausted", PROBE_EXHAUSTED.get()),
         ("sig_overflow", SIG_OVERFLOW.get()),
         ("sig_arity_clamped", SIG_ARITY_CLAMPED.get()),
         ("unify_rounds_exhausted", UNIFY_ROUNDS_EXHAUSTED.get()),
@@ -358,7 +359,6 @@ pub fn report() -> [(&'static str, u64); 11] {
 /// **所有闸都归零** ✓（判据取差量用 ✓）。
 pub fn reset() {
     for c in [
-        &PROBE_EXHAUSTED,
         &SIG_OVERFLOW,
         &SIG_ARITY_CLAMPED,
         &UNIFY_ROUNDS_EXHAUSTED,

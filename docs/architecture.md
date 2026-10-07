@@ -377,7 +377,7 @@ check-then-add → 事件/错误 → 每命令签名与 early cutoff → 报告�
 - **eval 主循环**按 Expr 分发（`eval_no_cache`）：闭项查 `(env, expr)` 记忆化缓存；`App` 先求函数 WHNF 再 `apply`；`apply_closure` = 环境扩展 + 求值（推断模式用 `ctx_extend`）。
 - **delta**：`unfold_value_go`（1437 起）——对 `Unfold` 头先试**原生 Nat 快路径**（见 5.4），不行再取 head value、把 spine 逐 elim 应用。对未满参数或可延迟情形有 `nat_red_defer`。
 - **iota**：`iota_value`（1496）带正缓存 `iota_cache` 与负缓存 `iota_stuck`；`fire_recursor`/`fire_quot`/`try_k_reduce`/`try_struct_eta_reduce`/`nat_rec_natlit` 覆盖 recursor 在构造子、K 规则（小消除）、结构 eta、nat 字面量上的归约。
-- **WHNF 记忆**：`whnf_head`/`note_whnf`/`store_lookup` + `global_value_cache`（结构身份键）；探测预算 `PROBE_CAP` 防指数爆炸（见 `conv.rs` 注释）。
+- **WHNF 记忆**：`whnf_head`/`note_whnf`/`store_lookup` + `global_value_cache`（结构身份键）；相关性**探查**（`conv.rs::spine_probe`：只看 `sig` 未屏蔽的参数 ✓）**没有步数预算**（G-89 收口 2026-10-07 ✓：Lean 4 没有此物 ⇒ 去掉，不许换数字留着 ✗；终止性靠**结构** ✓，见 `conv.rs` 注释）。
 - **教学新增** `deep_reduce`（`eval.rs` 957 行附近，lang 特有）：WHNF 后递归进入构造子/消除子参数，让 `s (Nat.rec ...)` 这类"构造子参数里的递归"也能继续算——`#reduce` 用；常规 kernel 检查只需 WHNF。
 
 ### 5.3 类型检查（`infer.rs` / `conv.rs` / `quote.rs`）

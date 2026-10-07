@@ -92,7 +92,7 @@
 2. **③ 限制可配置化 + 按 Lean 4 对齐数值** —— **2026-10-07 已收口** ✓（G-88 ✓）：三旋钮登记进 `gates.rs::limits` ✓（`SOKO_LIMIT_MAX_HEARTBEATS` / `_MAX_REC_DEPTH` / `_MAX_ESCALATIONS` ✓，非法值/缺省 ⇒ 默认值 ✓）；
    **默认值 = 本机 Lean 实测** ✓（`~/Documents/lean/lean4` master `d0493e4c1e`）：`maxHeartbeats 4096→20000` ✓（`synthInstance.maxHeartbeats`，`Meta/SynthInstance.lean:20`）· `maxRecDepth 64→`**`512`** ✓（`Util/RecDepth.lean:15` ⇒ `Init/Prelude.lean:4760`；
    ⚠ 原记的 **3200 查不到** ✗，按实测 ✓）· `maxSize 64→128` = **G-90 仍开** ✗ · `maxSynthDepth` **本机 Lean 无此选项** ✗ ⇒ `MAX_ROUNDS=8` 未动 ✗；
-   ⚠ **Lean 没有的**（`PROBE_CAP` ⇒ 弃权）**去掉，不许换数字留着** ✗（= G-89 仍开 ✗）；判据 `scripts/limits-only-slow.sh --full` ✓ + 整门课 `--json` 逐字节相同 ✓（见 `STATUS.md` 第 134 棒 ✓）。
+   ⚠ **Lean 没有的**（探查步数预算 ⇒ 弃权）**去掉，不许换数字留着** ✗ —— **2026-10-07 已收口** ✓（**G-89** ✓，第 135 棒 ✓）：闸与**耗尽出口一起删** ✓、探查**跑到底** ✓（终止性 = **结构** ✓）；Lean 4 对照与全部读数 ⇒ commit message + `STATUS.md` 第 135 棒 ✓。
 3. ~~**G-91 的乙类 4 处计数出口**~~ —— **2026-10-07 已收口** ✓（4 个出口铺齐 · `report()` **7 → 11** ·
    复现件 **exit 1** · `fixed_in 0.83.0` ✓；逐处落点与实测见台账 `today` ✓）。
 4. **保留位次** ✓（值守 2026-10-04 20:26 点名：**未收完的小活不许无痕消失** ✗ ——
@@ -352,8 +352,8 @@
   AST 累加看得见 ⇒ 分叉（18 处 ✗）。`command_env_id` 已跳过零长 span ✓。
 * ⚠ **`canonical_prefix_table` 的 `CAP` 必须 ≥ 工作集** ✗：`4096` 比整本课程还小 ⇒ 满则挤掉**活条目**
   ⇒ **抖动**（`identity_parses=3062` ✗）。现 **65536** ✓ + 淘汰计数 ✓。**两处 CAP 必须同数** ✗。
-* ⚠ **探查（`PROBE_CAP`）**：耗尽**只许**表示「这次探查不可信 ⇒ **弃权走全量**」✓，
-  **绝不许**表示「不相等」✗ —— 动它之前先把这条钉住 ✓。
+* ⚠ **探查（`conv.rs::spine_probe`）是纯优化** ✗：`false` **只许**表示「这次探查没定下来 ⇒ **调用方走全量**」✓，
+  **绝不许**表示「不相等」✗ —— **没有预算**了（G-89 收口 ✓：Lean 4 没有此物 ✓）⇒ 没有「耗尽」这回事 ✓；守卫 = `kernel/src/tests/probe.rs` + `compile::tests::probe_*` ✓。
 * ⚠ **夹具必须先证明自己编得过** ✗（第 17 棒教训 ✓：G-92 的旧夹具 20 条**全红** ✗ ⇒ 量到的是**失败路径** ✗）。
 * **子进程 stderr** ✗：服务端探针看不见 ⇒ 必须 `SOKO_LSP_TEST_STDERR=1` ✓（`start_traced` 的读线程
   **只留 `LSP_TRACE` 行** ✗ ⇒ 别的探针行会被**丢掉** ✓ —— 要在 CLI 上跑才看得见 ✓）。

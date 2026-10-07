@@ -33,26 +33,28 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         self.conv_types_at(depth, vx, vy)
     }
 
-    fn unbudgeted<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
+    /// 在**探查之外**跑一次转换判定（[`Self::conv_types_at`] / [`Self::def_eq_at`] 的入口 ✓）。
+    ///
+    /// 探查上下文（`probe_depth`）**不许漏进**这两个入口 ✓：它们是**独立的一次判定**
+    /// （推断中途问一句「这两个类型相等吗」✓），必须从**顶层**开始 —— 否则
+    /// [`Self::spine_probe`] 会走 `probe_depth > 0` 那条**全量**分支（少抄近路 ⇒ 变慢 ✗），
+    /// `eval.rs::unfold_value_demand` 也会被当成探查内（`force = false` ⇒ 推迟 Nat 归约 ✗）。
+    fn outside_probe<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
         let depth = self.tc_cache.probe_depth;
-        let budget = self.tc_cache.probe_budget;
-        let exhausted = self.tc_cache.probe_exhausted;
         self.tc_cache.probe_depth = 0;
         let r = f(self);
         self.tc_cache.probe_depth = depth;
-        self.tc_cache.probe_budget = budget;
-        self.tc_cache.probe_exhausted = exhausted;
         r
     }
 
     pub(crate) fn conv_types_at(&mut self, depth: u32, a: V<'t>, b: V<'t>) -> bool {
-        self.unbudgeted(|s| s.unify::<true>(depth, a, b))
+        self.outside_probe(|s| s.unify::<true>(depth, a, b))
     }
 
     /// 见 `infer.rs::infer_value` 上的说明：给采样器留一个真实符号。
     #[inline(never)]
     pub(crate) fn def_eq_at(&mut self, depth: u32, vx: V<'t>, vy: V<'t>) -> bool {
-        self.unbudgeted(|s| s.try_proof_irrel_at(depth, vx, vy) || s.unify::<true>(depth, vx, vy))
+        self.outside_probe(|s| s.try_proof_irrel_at(depth, vx, vy) || s.unify::<true>(depth, vx, vy))
     }
 
     #[inline]
@@ -117,27 +119,18 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             if self.tc_cache.conv_cache_pos.contains(&cache_key) {
                 return true;
             }
-            if RIGID && neg_eligible {
-                if self.tc_cache.conv_cache_neg.contains(&cache_key) {
-                    return false;
-                }
-                if self.tc_cache.probe_depth > 0 && self.tc_cache.conv_cache_neg_probe.contains(&cache_key) {
-                    self.tc_cache.probe_exhausted = true;
-                    return false;
-                }
+            if RIGID && neg_eligible && self.tc_cache.conv_cache_neg.contains(&cache_key) {
+                return false;
             }
-            let outer = std::mem::replace(&mut self.tc_cache.probe_exhausted, false);
             let result = self.unify_no_cache::<RIGID>(depth, x, y);
-            let truncated = self.tc_cache.probe_exhausted;
-            self.tc_cache.probe_exhausted = outer | truncated;
             if result {
                 self.tc_cache.conv_cache_pos.insert(cache_key);
             } else if RIGID && neg_eligible {
-                if truncated {
-                    self.tc_cache.conv_cache_neg_probe.insert(cache_key);
-                } else {
-                    self.tc_cache.conv_cache_neg.insert(cache_key);
-                }
+                // **G-89 收口**（2026-10-07 ✓）：以前「被预算截断的否定」只敢进
+                // 探查内的**临时表**（截断态否定缓存 ✓），怕把**没算完**的否定
+                // 当成结论缓存下来 ✗。现在探查**没有预算**（Lean 4 没有此物 ✓）
+                // ⇒ 走到这里的否定**都是真算完的** ✓ ⇒ 一律进正式否定缓存 ✓。
+                self.tc_cache.conv_cache_neg.insert(cache_key);
             }
             result
         } else {
@@ -145,26 +138,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
     }
 
-    /// 探查步数预算（G-89）：取值走 [`crate::gates::limits::probe_cap`] ✓
-    /// —— 默认 2048 不变 ✓，但**能拧到 1** 以证明「拧到极限结论也不变」✓。
-    #[inline]
-    fn probe_cap() -> u32 {
-        crate::gates::limits::probe_cap()
-    }
-
     fn unify_no_cache<const RIGID: bool>(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
-        if self.tc_cache.probe_depth > 0 {
-            if self.tc_cache.probe_budget == 0 {
-                // **闸类计数出口** ✓（G-89/G-91）：预算耗尽**必须可见** ✗ ——
-                // 它只许表示「这次探查不可信 ⇒ 调用方**弃权**走全量」✓，
-                // **绝不许**表示「不相等」✗（`probe_pass` 读 `probe_exhausted` 后
-                // 会把它当**未决**处理 ✓ —— 这条计数就是钉住那件事的 ✓）。
-                crate::gates::PROBE_EXHAUSTED.bump();
-                self.tc_cache.probe_exhausted = true;
-                return false;
-            }
-            self.tc_cache.probe_budget -= 1;
-        }
         let (t, t2) = (self.force_thunk(depth, x), self.force_thunk(depth, y));
         if let Some(r) = self.conv_nat::<RIGID>(depth, t, t2) {
             return r;
@@ -429,6 +403,19 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         Some(out)
     }
 
+    /// **相关性探查**（相等性的**纯优化** ✓）：只看两个 `Unfold` 头**同名**的项里
+    /// **相关**（`sig` 未屏蔽 ✓）的那些参数 ✓ —— 它们全相等 ⇒ 整项**相等** ✓（快路 ✓）；
+    /// 否则返回 `false` = **这次没抄近路** ✓，调用方**继续走全量** ✓（两个调用点
+    /// 都是 `if heads_match && self.spine_probe(…) { return true; }` ✓）。
+    ///
+    /// ⚠ **没有步数预算**（G-89 收口 · 2026-10-07 ✓）：Lean 4 的对应处
+    /// （`Meta/ExprDefEq.lean` 的 `isDefEqArgsFirstPass` ✓）**没有**「探查步数上限」
+    /// 这种东西 ⇒ 我们**去掉**（不许换个数字留着 ✗）。终止性靠**结构** ✓，不靠预算 ✓：
+    /// ① 只有 `probe_depth == 0` 才开探查（下面那个分支 ✓）⇒ 探查**不会嵌套**
+    /// （嵌套进来一律走全量 `unify_spine` ✓）；② `probe_pairs` 沿 `Spine::Snoc`
+    /// 的 `prev` 链走到 `Empty` ⇒ 参数对**有限** ✓；③ 每对参数走的是**普通**
+    /// `unify` ✓ —— 与全量路径 `unify_spine` 比的是**同一批子项** ✓，
+    /// 因此探查能到达的递归，全量路径本来就能到达 ✓ ⇒ 去掉预算**不会**引入挂死 ✗。
     fn spine_probe(&mut self, depth: u32, sx: S<'t>, sy: S<'t>, sig: Sig, limit: u32) -> bool {
         if std::ptr::eq(sx, sy) {
             return true;
@@ -437,27 +424,19 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             return self.unify_spine::<true>(depth, sx, sy, sig, limit);
         }
         let Some(pairs) = self.probe_pairs(sx, sy, sig, limit) else { return false };
-        let outer = std::mem::replace(&mut self.tc_cache.probe_exhausted, false);
-        let decided = self.probe_pass(depth, &pairs);
-        self.tc_cache.probe_exhausted = outer;
-        decided
+        self.probe_pass(depth, &pairs)
     }
 
+    /// 逐对比较探查收集到的参数（**跑到底** ✓，见 [`Self::spine_probe`] 的终止性说明 ✓）。
     fn probe_pass(&mut self, depth: u32, pairs: &[(V<'t>, V<'t>)]) -> bool {
         let mut decided = true;
         for (va, vb) in pairs.iter().copied() {
-            self.tc_cache.probe_budget = Self::probe_cap();
-            self.tc_cache.probe_exhausted = false;
             self.tc_cache.probe_depth = 1;
             let ok = self.unify::<true>(depth, va, vb);
             self.tc_cache.probe_depth = 0;
-            if self.tc_cache.probe_exhausted {
-                self.tc_cache.conv_cache_neg_probe.clear();
-                decided = false;
-                continue;
-            }
             if !ok {
-                return false;
+                decided = false;
+                break;
             }
         }
         decided

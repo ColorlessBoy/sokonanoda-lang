@@ -7,6 +7,9 @@
 #   probe_exhausted · sig_overflow · sig_arity_clamped ·
 #   unify_rounds_exhausted · unify_no_progress · meta_budget_exhausted
 # 并接进 `STAGE_STATS`（`SOKO_STAGE_STATS=1` ✓）⇒ **CI / 人都看得见** ✓。
+# ⚠ **2026-10-07 G-89 收口**：第一项（探查耗尽）**已随闸一起删除** ✓ —— 闸没了就没有
+#   写入点 ⇒ 留着是**空转出口** ✗（本复现 ① 因此**不再要求**它有落点 ✓，改由
+#   `docs/gaps/repro/G89-probe-cap-exhausted.sh` 钉「闸与出口都不许回来」✓）。
 # 第二笔（2026-10-07 ✓）铺齐**乙类 4 处** ✓（同一份 `gates.rs`，**追加在末尾** ✓）：
 #   judge_cache_evicted（`JUDGE_CACHE_CAP` FIFO 挤掉 ⇒ 下次 miss ✓）
 #   const_sig_cache_full（常量签名缓存满 ⇒ 静默停止写入 ✓）
@@ -20,9 +23,11 @@ cd "$ROOT" || exit 2
 GATES="crates/kernel/src/gates.rs"
 [ -f "$GATES" ] || { echo "环境不对：找不到 $GATES" >&2; exit 2; }
 
-# ① 六个出口都得有 `bump()` 落点 ✓（只声明不写 = 空转 ✗）。
+# ① **内核侧五个**出口都得有 `bump()` 落点 ✓（只声明不写 = 空转 ✗）。
+#    ⚠ 原本是**六个** ✓ —— `PROBE_EXHAUSTED` 已随 G-89 的闸删除 ✗（不许留空转出口 ✗，
+#    它的守卫在 `G89-probe-cap-exhausted.sh` ② ✓）。
 missing=""
-for name in PROBE_EXHAUSTED SIG_OVERFLOW SIG_ARITY_CLAMPED \
+for name in SIG_OVERFLOW SIG_ARITY_CLAMPED \
             UNIFY_ROUNDS_EXHAUSTED UNIFY_NO_PROGRESS META_BUDGET_EXHAUSTED; do
   if ! grep -rq "gates::$name.bump()" crates/kernel/src crates/front/src; then
     missing="$missing $name"

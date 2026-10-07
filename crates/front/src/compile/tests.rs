@@ -9966,3 +9966,81 @@ fn probe_identity_is_stable_and_self_describing() {
         "同进程内身份必须稳定 ✓"
     );
 }
+
+// ── **G-89**（相等性探查**没有步数预算** ✓ · 2026-10-07 收口 ✓）────────────────
+//
+// 探查（`kernel/src/conv.rs::spine_probe` ✓）是**纯优化** ✓：只可能给出「相等」✓，
+// `false` 永远是「没抄近路 ⇒ 调用方走全量」✓。闸（`PROBE_CAP`）去掉之后，
+// 这里钉**行为**那一半 ✓ —— **结构**那一半（闸与出口都不许回来 ✓）在
+// `kernel/src/tests/probe.rs` ✓（那边够不着源级夹具，这边够不着 kernel 源码 ✓，两半合起来才完整 ✓）。
+
+/// **G-89 夹具生成器**：`d0 := bmk`、`dK := E (E (E (d(K-1))))`，末条 `theorem t` 用
+/// `Eq.refl.{1} B (E dN)` 让内核去问 `E dN =?= E <rhs>` ✓。
+///
+/// ⚠ 为什么必须写成 `Eq.refl` 形式（而不是 `:= rfl` ✗）：`rfl` 那条路**进不了探查** ✗
+/// （实测同夹具 `probe_exhausted=0` ✓）—— 这里的 `Eq.refl` 让**声明类型**里的 `E …`
+/// 与**实参**里的 `E …` 是**分别 elaborate** 的两个值 ✓ ⇒ 指针不同 ✓ ⇒ 真的走
+/// 相等性比较 ✓ ⇒ 才进得了 `spine_probe` ✓。
+fn probe_chain_source(n: usize, rhs: &str) -> String {
+    let mut src = String::from("inductive B : Type\nctor bmk : B\nctor bmk2 : B\nend\n");
+    src.push_str("def E (x : B) : B := x\n");
+    src.push_str("def d0 : B := bmk\n");
+    for i in 1..=n {
+        src.push_str(&format!("def d{i} : B := E (E (E (d{})))\n", i - 1));
+    }
+    src.push_str(&format!(
+        "theorem t : E d{n} = {rhs} := Eq.refl.{{1}} B (E d{n})\n"
+    ));
+    src
+}
+
+/// **G-89 判据①（两向）**：该判相等的仍判相等 ✓；**刚性**不等仍判不等 ✓。
+#[test]
+fn probe_keeps_equality_and_rigid_inequality_apart() {
+    // 相等那一向（探查给「相等」快路 ✓）：`E d3` 与 `E d0` 都展开成 `bmk` ✓。
+    let ok = compile_ok(&probe_chain_source(3, "E d0"));
+    assert!(
+        ok.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "探查该判相等的仍要判相等 ✓（G-89 去掉的是预算，不是探查 ✗）：{:?}",
+        ok.events
+    );
+    // 不等那一向（**刚性**：两个不同构造子 ✓）：`bmk` vs `bmk2` ⇒ 必须判否 ✓。
+    let file = parse(&probe_chain_source(3, "E bmk2")).unwrap();
+    let bad = compile_fol(&file);
+    assert!(
+        !bad.errors.is_empty(),
+        "刚性不等必须判否 ✓（探查 `false` = 没抄近路 ⇒ 走全量 ⇒ 仍然不等 ✓）"
+    );
+    assert_eq!(bad.errors[0].code(), "kernel-rejected");
+    assert!(
+        bad.errors[0].message.contains("类型不匹配"),
+        "判否的理由必须是类型不匹配 ✓：{}",
+        bad.errors[0].message
+    );
+}
+
+/// **G-89 判据②**：**以前会耗尽**旧预算（`PROBE_CAP = 2048`）的夹具，现在必须**判相等** ✓
+/// —— 去掉闸**不是**「判否」✗。
+///
+/// **实测（带构建身份 ✓）**：改前二进制 **`b1fdc5dd675eb0c8`** ✓（= HEAD `8fd7d0ea` ✓）、
+/// `SOKO_STAGE_STATS=1` ✓ —— 同形状夹具 `n = 1000` ⇒ 旧闸**真的耗尽** ✓
+/// （`probe_exhausted=1` ✓）；再用 `SOKO_LIMIT_PROBE_CAP` 二分出**单次探查的步数**
+/// ∈ **(3072, 4096]** ✓（cap 3072 仍耗尽 / cap 4096 不耗尽 ✓）⇒ 它**够得着**旧上限 ✓。
+/// 旧代码靠「弃权 ⇒ 走全量」拿到相等 ✓，新代码让探查**跑到底**拿到同一个相等 ✓
+/// ⇒ 判定中性 ✓（整门课 `--json` 逐字节相同 ✓，见 `STATUS.md` 第 135 棒 ✓）。
+///
+/// ⚠ 这个夹具**故意不小**（1000 条声明 ≈ 1.4s ✓）：它是「以前会耗尽」的**证据** ✓；
+/// 换成小夹具就够不着旧预算了 ✗（实测浅链 `n = 1536` 都还不耗尽 ✓）。
+#[test]
+fn probe_that_exhausted_the_old_budget_still_judges_equal() {
+    let out = compile_ok(&probe_chain_source(1000, "E d0"));
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "以前会耗尽探查预算的夹具，现在必须判相等 ✓（去掉闸 ≠ 判否 ✗）；末尾事件：{:?}",
+        out.events.iter().rev().take(3).collect::<Vec<_>>()
+    );
+}

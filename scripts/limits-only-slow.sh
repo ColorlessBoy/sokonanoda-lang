@@ -7,18 +7,22 @@
 #
 # ## 这个脚本做什么
 #
-# 把三道**甲类闸**（「判不了 ⇒ 换路 / 判否」那类 ✗）**全部拧到最小值 1** ✓，
+# 把**甲类闸**（「判不了 ⇒ 换路 / 判否」那类 ✗）**全部拧到最小值 1** ✓，
 # 再跑同一份语料，然后要求：
 #
 # ① **闸真的被触发了** ✓（否则这个实验是**空转**的 ✗ —— 「咬不住的守卫等于没有」✓）；
 # ② 语料的 `--json` 与默认配置**逐字节相同** ✓（= 只变慢 ✓，答案一个字都没变 ✓）；
 # ③ `meta_budget_exhausted == 0` ✓（升级总是够用 ⇒ 没有一条约束落到"弃权" ✓）。
 #
-# ## 三道闸（读数出口见 `crates/kernel/src/gates.rs` ✓）
+# ## 剩下的闸（读数出口见 `crates/kernel/src/gates.rs` ✓）
+#
+# ⚠ **2026-10-07 G-89 收口**：相等性探查的步数预算（`PROBE_CAP`）**已删除** ✓
+# （Lean 4 没有此物 ✓ ⇒ 去掉，不许换数字留着 ✗）⇒ 本脚本不再拧它、也不再读它的计数 ✓。
+# 探查现在**跑到底** ✓（终止性 = 结构 ✓，见 `kernel/src/conv.rs::spine_probe` ✓）——
+# 代价读数（探查步数 / 墙钟）见 `STATUS.md` 第 135 棒与 `docs/perf/ledger.jsonl` ✓。
 #
 # | 闸 | 拧到 | 默认 | 出处 |
 # |---|---|---|---|
-# | `PROBE_CAP`（相等性探查步数） | 1 | 2048 | `kernel/conv.rs`（G-89） |
 # | `MAX_TRACKED`（签名位掩码宽度） | 1 | 64 | `kernel/relevance.rs`（G-90） |
 # | `maxHeartbeats`（求解步数 = fuel） | 1 | 20000 | `front/compile/meta.rs`（G-88；取值登记在 `kernel/gates.rs`） |
 # | `maxRecDepth`（求解递归深度） | 1 | 512 | 同上（G-88） |
@@ -116,7 +120,7 @@ rm -f /tmp/soko-limits-default.all.json /tmp/soko-limits-default.all.err
 rm -f /tmp/soko-limits-min.all.json /tmp/soko-limits-min.all.err
 collect default || { echo "✗ 默认配置那一跑没跑起来" >&2; exit 2; }
 collect min \
-  SOKO_LIMIT_PROBE_CAP=1 SOKO_LIMIT_MAX_TRACKED=1 \
+  SOKO_LIMIT_MAX_TRACKED=1 \
   SOKO_LIMIT_MAX_HEARTBEATS=1 SOKO_LIMIT_MAX_REC_DEPTH=1 \
   || { echo "✗ 拧到 1 那一跑没跑起来" >&2; exit 2; }
 
@@ -124,14 +128,13 @@ rc=0
 
 # ① **闸真的被触发**（防空转 ✗）
 read_counter() { grep -o "$2=[0-9]*" "$1" | tail -1 | cut -d= -f2; }
-probe="$(read_counter /tmp/soko-limits-min.all.err probe_exhausted)"
 sig="$(read_counter /tmp/soko-limits-min.all.err sig_overflow)"
 clamp="$(read_counter /tmp/soko-limits-min.all.err sig_arity_clamped)"
 escalated="$(read_counter /tmp/soko-limits-min.all.err meta_budget_escalated)"
 exhausted="$(read_counter /tmp/soko-limits-min.all.err meta_budget_exhausted)"
-echo "   拧到 1 时的闸读数: probe_exhausted=${probe:-?} sig_overflow=${sig:-?} sig_arity_clamped=${clamp:-?} meta_budget_escalated=${escalated:-?} meta_budget_exhausted=${exhausted:-?}"
-if [ "${probe:-0}" = "0" ] || [ "${sig:-0}" = "0" ] || [ "${escalated:-0}" = "0" ]; then
-  echo "✗ 判据空转 ✗：拧到 1 了闸却没被触发（probe=$probe sig=$sig escalated=${escalated}）" >&2
+echo "   拧到 1 时的闸读数: sig_overflow=${sig:-?} sig_arity_clamped=${clamp:-?} meta_budget_escalated=${escalated:-?} meta_budget_exhausted=${exhausted:-?}"
+if [ "${sig:-0}" = "0" ] || [ "${escalated:-0}" = "0" ]; then
+  echo "✗ 判据空转 ✗：拧到 1 了闸却没被触发（sig=$sig escalated=${escalated}）" >&2
   echo "   ⇒ 这份语料**证明不了**「只变慢不变错」✗ —— 换一份真会触发的语料 ✓" >&2
   rc=1
 fi
@@ -154,6 +157,6 @@ else
 fi
 
 if [ "$rc" = "0" ]; then
-  echo "✓ limits-only-slow 全过：三道甲类闸拧到 1 只**变慢**、判定**一字不变** ✓"
+  echo "✓ limits-only-slow 全过：剩下的甲类闸拧到 1 只**变慢**、判定**一字不变** ✓"
 fi
 exit "$rc"

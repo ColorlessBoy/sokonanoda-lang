@@ -10,10 +10,18 @@
 //!
 //! ## 这条判据钉什么
 //!
-//! ① **甲类四个闸必须是 0**（它们全是「判不了 ⇒ 换路 / 判否」那类 ✗）：
-//!    `probe_exhausted`（`PROBE_CAP`）· `sig_overflow` / `sig_arity_clamped`
-//!    （`MAX_TRACKED`）· `meta_budget_exhausted`（`fuel`/`MAX_DEPTH` ⇒ **`Tri::No`** ✗）·
+//! ① **甲类闸必须是 0**（它们全是「判不了 ⇒ 换路 / 判否」那类 ✗）：
+//!    `sig_overflow` / `sig_arity_clamped`（`MAX_TRACKED`）·
+//!    `meta_budget_exhausted`（`fuel`/`MAX_DEPTH` ⇒ **`Tri::No`** ✗）·
 //!    `unify_rounds_exhausted`（`MAX_ROUNDS` ⇒ `Tri::Undef` ✓ 正当，但仍要看得见 ✓）。
+//!    ⚠ **G-89 收口**（2026-10-07 ✓）：原来的第一项（`PROBE_CAP` 的耗尽计数 ✓）
+//!    **已随闸一起删除** ✓ —— Lean 4 没有那道闸 ✓（`Meta/ExprDefEq.lean` 只有
+//!    `withIncRecDepth` 那个**全局**递归深度 ✓）⇒ 探查**跑到底** ✓、「耗尽」不存在 ✓
+//!    ⇒ 留着就是**空转出口** ✗（永远读 0，而 0 的含义会从「没触发」变成「不存在」✗）。
+//!    它的守卫因此**换了形态**（不再是「这个计数必须 0」✗，而是「闸与出口都不许回来」✓）：
+//!    `kernel/src/tests/probe.rs`（源码级 ✓）+ `compile::tests::probe_*`（行为 ✓）
+//!    + `docs/gaps/repro/G89-probe-cap-exhausted.sh` ✓。
+//!
 //! ② **计数器机制本身不是空转** ✗ —— 证据有两条（都在下面「实测 / 反向验证」里 ✓）：
 //!    整本课程上 `unify_no_progress = 26` ✓（那条路径确实在写 ✓）；
 //!    **反向验证**：把 `MAX_DEPTH` 临时改成 `1` ⇒ `meta_budget_exhausted` **0 → 59** ⇒ 判红 ✓。
@@ -26,15 +34,17 @@
 //! unify_rounds_exhausted=0 unify_no_progress=26 meta_budget_exhausted=0
 //! ```
 //!
-//! ⇒ 四个甲类闸**一次都没触发** ✓（现在没炸 ✓，但闸还在 ⇒ **留闸 + 计数 + 断言** ✓）。
+//! ⇒ 甲类闸**一次都没触发** ✓（现在没炸 ✓，但闸还在 ⇒ **留闸 + 计数 + 断言** ✓）。
 //! ⚠ 别把这条读成「闸没问题」✗ —— 它只说明**当前语料**碰不到 ✓；
 //! 数值对齐 Lean 与可配置化是**下一笔**（G-88 的两步走 ✓）。
+//! ⚠ 上面那行 `probe_exhausted=0` 是**当时的读数** ✓（现已无此出口 ✗，见 ① 的说明 ✓）。
 //!
 //! **反向验证**（2026-10-04 实测 ✓）：`meta.rs` 的 `MAX_DEPTH` 临时改成 `1` ⇒
-//! 同一条命令量到 `meta_budget_exhausted=59` ⇒ 本用例**判红** ✓ —— 证明这四行
+//! 同一条命令量到 `meta_budget_exhausted=59` ⇒ 本用例**判红** ✓ —— 证明那几行
 //! `assert_eq!(…, 0)` **咬得住** ✓（不是「全被跳过」那种假绿 ✗）。
 //!
-//! ## 乙类 4 处（G-91 第二笔 · 2026-10-07 ✓）—— **追加在末尾**（`report()` 7 → 11 ✓）
+//! ## 乙类 4 处（G-91 第二笔 · 2026-10-07 ✓）—— **追加在末尾**（`report()` 7 → 11 ✓；
+//! G-89 收口后 **6 + 4 = 10** ✓）
 //!
 //! 整本课程 `build --json courses/set-theory`（**串行** `SOKONANODA_BUILD_JOBS=1` ✓ ·
 //! 构建身份 `d7b00cc42f245faa` ✓）实测：
@@ -69,8 +79,9 @@
 
 use sokonanoda::gates;
 
-/// 跑一遍「合成夹具 + 真课程 `unit08`」，返回**十一个**闸的**差量**。
-fn census() -> [u64; 11] {
+/// 跑一遍「合成夹具 + 真课程 `unit08`」，返回**十个**闸的**差量** ✓
+/// （G-89 收口前是 11 个 —— 探查耗尽那一项已随闸删除 ✓，见文件头 ① ✓）。
+fn census() -> [u64; 10] {
     gates::reset();
     let before = gates::report().map(|(_, n)| n);
 
@@ -110,8 +121,8 @@ fn census() -> [u64; 11] {
     }
 
     let after = gates::report().map(|(_, n)| n);
-    let mut out = [0u64; 11];
-    for i in 0..11 {
+    let mut out = [0u64; 10];
+    for i in 0..10 {
         out[i] = after[i] - before[i];
     }
     out
@@ -120,10 +131,10 @@ fn census() -> [u64; 11] {
 /// **甲类闸必须 0** ✓（`unify_no_progress` 是阳性对照，见文件头 ✓）。
 #[test]
 fn gate_census_reports_the_real_trigger_counts() {
-    let [probe, sig_overflow, sig_clamped, rounds, no_progress, meta_budget, meta_escalated, cache_evicted, const_sig_full, goal_fallback, skeleton_clamped] =
+    let [sig_overflow, sig_clamped, rounds, no_progress, meta_budget, meta_escalated, cache_evicted, const_sig_full, goal_fallback, skeleton_clamped] =
         census();
     println!(
-        "PERF gate-census: probe_exhausted={probe} sig_overflow={sig_overflow} \
+        "PERF gate-census: sig_overflow={sig_overflow} \
          sig_arity_clamped={sig_clamped} unify_rounds_exhausted={rounds} \
          unify_no_progress={no_progress} meta_budget_exhausted={meta_budget} \
          meta_budget_escalated={meta_escalated} judge_cache_evicted={cache_evicted} \
@@ -136,10 +147,10 @@ fn gate_census_reports_the_real_trigger_counts() {
     // ⇒ `meta_budget_exhausted` 0 → **59** ⇒ 判红 ✓，2026-10-04 实测 ✓）。
     // 这条只保证「读的是差量、不是别人攒下来的数」✓。
     assert!(
-        [probe, sig_overflow, sig_clamped, rounds, meta_budget]
+        [sig_overflow, sig_clamped, rounds, meta_budget]
             .iter()
             .all(|n| *n < 1000),
-        "读数不像差量（`gates::reset()` 之后应当从小数起算 ✗）：{probe} {sig_overflow} \
+        "读数不像差量（`gates::reset()` 之后应当从小数起算 ✗）：{sig_overflow} \
          {sig_clamped} {rounds} {meta_budget}"
     );
     // **升级（`meta_budget_escalated`）不是缺陷** ✓：撞预算 ⇒ **加大预算重试** ✓
@@ -179,12 +190,12 @@ fn gate_census_reports_the_real_trigger_counts() {
          「判不了 ⇒ 当成否」✗（那一半**已真修** ✓：撞预算先**加大预算重试** ✓），\
          但它意味着**这条语料真的算不动** ✗ ⇒ 要么调大默认预算、要么查为什么算不完 ✓"
     );
-    // ③ **`PROBE_CAP` 耗尽**（G-89）。
-    assert_eq!(
-        probe, 0,
-        "**G-89**：相等性探查预算耗尽 {probe} 次 ✗ —— Lean 4 **没有此物** ✓ ⇒ 终点是\
-         **去掉**（不许换数字留着 ✗）；去掉前先看清触发次数 ✓（这个数就是它 ✓）"
-    );
+    // ③ **`PROBE_CAP` 耗尽**（G-89）—— **2026-10-07 收口：闸与出口都删了** ✓
+    //    ⇒ 这里**没有**这个槽位了 ✓（不是「删断言让它变绿」✗：那个计数已无写入点，
+    //    留着就是**永远读 0 的空转出口** ✗）。守卫换了形态 ✓：
+    //    `kernel/src/tests/probe.rs`（源码级：闸与出口都不许回来 ✓）+
+    //    `compile::tests::probe_*`（行为：该判相等的仍判相等 ✓ / 刚性不等仍判不等 ✓ /
+    //    以前会耗尽旧预算的夹具现在仍判相等 ✓）。
     // ④ **`MAX_TRACKED` 丢精度**（G-90）：两处落点都要 0。
     assert_eq!(
         sig_overflow, 0,
