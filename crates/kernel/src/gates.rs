@@ -73,6 +73,143 @@ pub mod limits {
         static V: OnceLock<u32> = OnceLock::new();
         *V.get_or_init(|| env_u32("SOKO_LIMIT_MAX_TRACKED").unwrap_or(64).clamp(1, 64))
     }
+
+    // ── **求解预算三旋钮**（G-88 第二笔 · 2026-10-07 ✓）──────────────────────
+    //
+    // **登记在同一处** ✓（不是另造一套 ✗）：与上面两个闸取值共用 `env_u32` + `OnceLock`
+    // 那套纪律 ✓，名字也沿用 `SOKO_LIMIT_*` 家族 ✓。
+    // 取值规则 = [`resolve`]（**纯函数** ✓ ⇒ 单测直接打它，不碰环境、无 `OnceLock` 隔离问题 ✓）：
+    // **缺省 / 非法（非数字 / 负数 / 超 `u32`）⇒ 默认值** ✓，再夹到 `[min, max]` ✓。
+    //
+    // ⚠ 语义**一个字没动** ✓：撞预算 ⇒ **加大预算重试** ✓，升满仍撞 ⇒ **弃权** ✓，
+    // **绝不**判否 ✗（见 `crates/front/src/compile/meta.rs` 的 `unify_impl` ✓）。
+
+    /// 求解**步数**预算（fuel）的默认值 = Lean `synthInstance.maxHeartbeats` ✓
+    /// （`src/Lean/Meta/SynthInstance.lean:20-23` = **20000** ✓）。
+    ///
+    /// ⚠ **别拿命令级那个** ✗：Lean 另有一个 `maxHeartbeats`（`src/Lean/CoreM.lean:26-29`
+    /// = **200000** ✓）—— 那是**每条命令**的额度 ✓，粒度与我们「一次求解」不同 ✗。
+    pub const DEFAULT_MAX_HEARTBEATS: u32 = 20000;
+
+    /// 求解**递归深度**上限的默认值 = Lean `maxRecDepth` ✓
+    /// （`src/Lean/Util/RecDepth.lean:15-18` 的 `defValue := defaultMaxRecDepth` ⇒
+    /// `src/Init/Prelude.lean:4760` = **512** ✓；Lean 的合一 `isExprDefEqAuxImpl`
+    /// 正是被 `withIncRecDepth` 包住的那一处 ✓ —— `src/Lean/Meta/ExprDefEq.lean:2108`）。
+    ///
+    /// ⚠ 本机 Lean（`~/Documents/lean/lean4`，master `d0493e4c1e` 2026-01-14；tag
+    /// `v4.27.0-rc1` `2fcce7258e` 2025-12-14）**两个都是 512** ✓ ——
+    /// 台账原先记的 3200 **查不到** ✗（`grep -rn 3200 src/` 只有 JsonRpc 错误码 ✓）。
+    pub const DEFAULT_MAX_REC_DEPTH: u32 = 512;
+
+    /// **撞预算后「加大预算重试」几次**（G-88 真修的**上界** ✓）。
+    ///
+    /// Lean **没有对应物** ✗（Lean 耗尽即报错 ⇒ 见 `Util/RecDepth.lean` 的
+    /// `throwMaxRecDepthAt` ✓）⇒ 保持 6 ✓ 不假装对齐 ✓。
+    pub const DEFAULT_MAX_ESCALATIONS: u32 = 6;
+
+    /// 升级次数的**配置上界**：每次翻倍 ⇒ 16 次 = 65536× ✓；
+    /// 再大只是把 `saturating_mul` 之后的时间无限拉长（挂死风险 ✗）⇒ 夹到 16 ✓
+    /// （与 `max_tracked` 的 `clamp(1, 64)` 同一纪律：**上界要有理由** ✓）。
+    const MAX_ESCALATIONS_CEILING: u32 = 16;
+
+    /// 取值规则（**纯函数** ✓）：`None`（缺省 / 非法）⇒ `default` ✓，再夹到 `[min, max]` ✓。
+    fn resolve(parsed: Option<u32>, default: u32, min: u32, max: u32) -> u32 {
+        parsed.unwrap_or(default).clamp(min, max)
+    }
+
+    /// **求解步数预算**（G-88 · `meta.rs` 的 `fuel`）—— 环境变量 `SOKO_LIMIT_MAX_HEARTBEATS`。
+    ///
+    /// ⚠ Lean 的 `maxHeartbeats = 0` 表示**无限制** ✗ —— 我们**不支持**（会挂死 ✗）⇒
+    /// 下界夹到 1 ✓；"还要更宽"用有界的 `SOKO_LIMIT_MAX_ESCALATIONS` ✓。
+    pub fn max_heartbeats() -> u32 {
+        static V: OnceLock<u32> = OnceLock::new();
+        *V.get_or_init(|| {
+            resolve(
+                env_u32("SOKO_LIMIT_MAX_HEARTBEATS"),
+                DEFAULT_MAX_HEARTBEATS,
+                1,
+                u32::MAX,
+            )
+        })
+    }
+
+    /// **求解递归深度上限**（G-88 · `meta.rs` 的 `max_depth`）—— `SOKO_LIMIT_MAX_REC_DEPTH`。
+    pub fn max_rec_depth() -> u32 {
+        static V: OnceLock<u32> = OnceLock::new();
+        *V.get_or_init(|| {
+            resolve(
+                env_u32("SOKO_LIMIT_MAX_REC_DEPTH"),
+                DEFAULT_MAX_REC_DEPTH,
+                1,
+                u32::MAX,
+            )
+        })
+    }
+
+    /// **撞预算后「加大预算重试」几次**（G-88）—— `SOKO_LIMIT_MAX_ESCALATIONS`。
+    ///
+    /// `0` = **从不升级**（一撞预算就弃权 ✓ —— 合法配置 ✓，也是判据要的那一档 ✓）。
+    pub fn max_escalations() -> u32 {
+        static V: OnceLock<u32> = OnceLock::new();
+        *V.get_or_init(|| {
+            resolve(
+                env_u32("SOKO_LIMIT_MAX_ESCALATIONS"),
+                DEFAULT_MAX_ESCALATIONS,
+                0,
+                MAX_ESCALATIONS_CEILING,
+            )
+        })
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        /// **G-88 判据②**：缺省值 = **Lean 的数值** ✓（出处见各常量 ✓）。
+        ///
+        /// ⚠ 断言的是**常量**（不是"读环境得到的值" ✗）—— 后者会被外部环境变量污染 ✗
+        /// （`SOKO_LIMIT_*` 是**进程级**的，见 `scripts/check-test-env-isolation.py` ✓）。
+        #[test]
+        fn budget_defaults_are_the_lean_numbers() {
+            assert_eq!(
+                DEFAULT_MAX_HEARTBEATS, 20000,
+                "Lean `synthInstance.maxHeartbeats`（Meta/SynthInstance.lean:20）= 20000"
+            );
+            assert_eq!(
+                DEFAULT_MAX_REC_DEPTH, 512,
+                "Lean `maxRecDepth`（Util/RecDepth.lean:15 ⇒ Init/Prelude.lean:4760）= 512"
+            );
+            assert_eq!(
+                DEFAULT_MAX_ESCALATIONS, 6,
+                "Lean 没有对应物（耗尽即报错）⇒ 保持 6（不假装对齐）"
+            );
+        }
+
+        /// **G-88 判据①的解析那一半**：缺省 / 非法 ⇒ 默认 ✓；**拧到极小真的生效** ✓；上下界 ✓。
+        #[test]
+        fn resolve_falls_back_on_bad_values_and_clamps() {
+            let (d, lo, hi) = (DEFAULT_MAX_HEARTBEATS, 1, u32::MAX);
+            assert_eq!(resolve(None, d, lo, hi), 20000, "缺省 ⇒ Lean 的数值");
+            assert_eq!(resolve(Some(1), d, lo, hi), 1, "拧到 1 ⇒ 必须真的生效");
+            assert_eq!(resolve(Some(0), d, lo, hi), 1, "0（Lean 的「无限制」）⇒ 夹到 1");
+            assert_eq!(resolve(Some(999_999), d, lo, hi), 999_999, "放大 ⇒ 原样生效");
+            let (d, lo, hi) = (DEFAULT_MAX_ESCALATIONS, 0, MAX_ESCALATIONS_CEILING);
+            assert_eq!(resolve(None, d, lo, hi), 6, "缺省 ⇒ 6");
+            assert_eq!(resolve(Some(0), d, lo, hi), 0, "0 = 从不升级（合法档）");
+            assert_eq!(resolve(Some(999), d, lo, hi), 16, "上界 16（防挂死）");
+        }
+
+        /// **非法值 ⇒ 回默认** ✓ 的那一半：`env_u32` 只认十进制正整数 ✓。
+        #[test]
+        fn env_u32_reads_numbers_only() {
+            assert_eq!(
+                env_u32("SOKO_LIMIT_THIS_NAME_IS_NEVER_SET"),
+                None,
+                "缺省 ⇒ None ⇒ 走默认值"
+            );
+            assert_eq!(env_u32("PATH"), None, "非数字（PATH）⇒ None ⇒ 走默认值");
+        }
+    }
 }
 
 /// 一个**只增不减**的闸类计数（`Relaxed` 足够 —— 只做统计 ✓）。
@@ -131,13 +268,14 @@ pub static UNIFY_ROUNDS_EXHAUSTED: Counter = Counter::new();
 /// **`unify_all` 因"没有净进展"停下**（邻居 ✓，同样是 `Tri::Undef` = 弃权 ✓）。
 pub static UNIFY_NO_PROGRESS: Counter = Counter::new();
 
-/// **`unify_impl` 的 `fuel` / `MAX_DEPTH` 用光 ⇒ `Tri::No`** ✗（**G-88 本体** ·
+/// **`unify_impl` 的 `fuel` / `max_depth` 用光、且升级额度也用光 ⇒ 弃权** ✓（**G-88 本体** ·
 /// `crates/front/src/compile/meta.rs`）。
 ///
-/// ⚠ 这是**唯一一处**「判不了 ⇒ **当成否**」的内核级分支 ✗ ——
-/// 学习者的长证明会被判成「解不出来」，而**那不是真的无解** ✗。
-/// 终点（值守 13:21/13:24 两步走 ✓）：① 可配置化（默认值不动 ⇒ 零行为变化 ✓）；
-/// ② 放宽到 Lean 的数值（`maxHeartbeats 4096 → 20000` · `maxRecDepth 64 → 3200` ✓）。
+/// ⚠ 它曾经是**唯一一处**「判不了 ⇒ **当成否**」的内核级分支 ✗ —— 学习者的长证明会被判成
+/// 「解不出来」，而**那不是真的无解** ✗。**2026-10-04 已真修** ✓：撞预算 ⇒ 加大预算重试 ✓，
+/// 升满仍撞 ⇒ **弃权 `Tri::Undef`** ✓（**绝不** `Tri::No` ✗）⇒ 本计数现在只数"弃权" ✓。
+/// **2026-10-07 收口**（G-88 第二笔 ✓）：两个旋钮**可配置** ✓（`limits::{max_heartbeats,
+/// max_rec_depth,max_escalations}` ✓）且**默认值 = Lean 的数值** ✓（20000 / 512 ✓，出处见常量 ✓）。
 pub static META_BUDGET_EXHAUSTED: Counter = Counter::new();
 
 /// **撞预算后「加大预算重试」的次数** ✓（G-88 真修的**主**读数 ✓）。

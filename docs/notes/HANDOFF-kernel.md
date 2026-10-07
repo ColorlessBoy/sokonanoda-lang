@@ -89,11 +89,10 @@
    **根因已收窄** ✓：信任档**只跳内核检查、不跳 elaborate** ✗（`walk.rs:813` 在建完环境**之后**才早退 ✓）。
    **出路二选一** ✓：① 给就地路加「**文本 ⇒ AST**」入口 ✓（边界见 `by.rs:88-93` ✓）；
    ② 让合成编译**复用调用方的环境** ✓（= G-68 架构件 ✗，`docs/design/module-artifacts.md` §2 ✓）。
-2. **③ 限制可配置化 + 按 Lean 4 对齐数值**：① 可配置化（**默认值一个不动** ✓、零行为变化 ✓）；
-   ② 放宽默认值**单独一笔** ✓。**终点取 Lean 数值** ✓：`maxRecDepth 64→3200` · `maxHeartbeats 4096→20000` ·
-   `maxSize 64→128` · `maxSynthDepth 8→32` ✓；**Lean 没有的**（`PROBE_CAP` ⇒ 弃权）**去掉，不许换数字留着** ✗。
-   ⚠ **取证口已经在了** ✓（`SOKO_LIMIT_*` 四个 ✓，默认值**一个不动** ✓）⇒ ② 步就是换**默认值** ✓，
-   判据现成：`scripts/limits-only-slow.sh --full` ✓。
+2. **③ 限制可配置化 + 按 Lean 4 对齐数值** —— **2026-10-07 已收口** ✓（G-88 ✓）：三旋钮登记进 `gates.rs::limits` ✓（`SOKO_LIMIT_MAX_HEARTBEATS` / `_MAX_REC_DEPTH` / `_MAX_ESCALATIONS` ✓，非法值/缺省 ⇒ 默认值 ✓）；
+   **默认值 = 本机 Lean 实测** ✓（`~/Documents/lean/lean4` master `d0493e4c1e`）：`maxHeartbeats 4096→20000` ✓（`synthInstance.maxHeartbeats`，`Meta/SynthInstance.lean:20`）· `maxRecDepth 64→`**`512`** ✓（`Util/RecDepth.lean:15` ⇒ `Init/Prelude.lean:4760`；
+   ⚠ 原记的 **3200 查不到** ✗，按实测 ✓）· `maxSize 64→128` = **G-90 仍开** ✗ · `maxSynthDepth` **本机 Lean 无此选项** ✗ ⇒ `MAX_ROUNDS=8` 未动 ✗；
+   ⚠ **Lean 没有的**（`PROBE_CAP` ⇒ 弃权）**去掉，不许换数字留着** ✗（= G-89 仍开 ✗）；判据 `scripts/limits-only-slow.sh --full` ✓ + 整门课 `--json` 逐字节相同 ✓（见 `STATUS.md` 第 134 棒 ✓）。
 3. ~~**G-91 的乙类 4 处计数出口**~~ —— **2026-10-07 已收口** ✓（4 个出口铺齐 · `report()` **7 → 11** ·
    复现件 **exit 1** · `fixed_in 0.83.0` ✓；逐处落点与实测见台账 `today` ✓）。
 4. **保留位次** ✓（值守 2026-10-04 20:26 点名：**未收完的小活不许无痕消失** ✗ ——
@@ -330,8 +329,8 @@
 | 冷开不退化 | `cargo test -p sokonanoda-lsp --lib perf_course` ⇒ unit12 **≤8.5s** | **有 ✓ 绿**（5382ms ✓） |
 | 增量身份等价 | `cargo test -p sokonanoda-front --test identity_probe` ⇒ `probed>0` · `uncomparable==0` · `mismatches==0` · `fallbacks==0` · `evictions==0` | **有 ✓ 绿**（2612/0/0/0/0 ✓） |
 | O(n²) 不许回来 | 同上第二个用例 ⇒ `reparse < 20`（实测 **0** ✓；`SOKO_NO_SEED=1` ⇒ **54** ⇒ 判红 ✓） | **有 ✓ 绿** |
-| 闸类普查 | `cargo test -p sokonanoda-front --test gate_census` ⇒ 甲类闸 == 0 | **有 ✓ 绿**（反向：`MAX_DEPTH=1` ⇒ **59** ⇒ 判红 ✓） |
-| **闸只变慢不变错** | `scripts/limits-only-slow.sh --full` ⇒ 三道闸拧到 1，输出**逐字节相同** ✓ + 闸**确实触发** ✓ | **有 ✓ 绿**（10589/51129/139358/1334 ✓） |
+| 闸类普查 | `cargo test -p sokonanoda-front --test gate_census` ⇒ 甲类闸 == 0 | **有 ✓ 绿**（反向：深度上限改成 1 ⇒ **59** ⇒ 判红 ✓） |
+| **闸只变慢不变错** | `scripts/limits-only-slow.sh --full` ⇒ 三道闸拧到 1，输出**逐字节相同** ✓ + 闸**确实触发** ✓ | **有 ✓ 绿**（2026-10-07 新默认值下：3002/16188/60948/669 ✓） |
 | G-88 预算不当成否 | `cargo test -p sokonanoda-front --lib meta::tests::exhausted_budget_…` | **有 ✓ 绿**（反向：换回 `Tri::No` ⇒ 判红 ✓） |
 | 规模翻倍 ⇒ 耗时翻倍 | **真实课程** ✓：`SOKO_DECL_PROFILE=1` 逐声明耗时**平线** ✓ · **最坏形状** ✗：`by_calls` 比值 **3.98** ⇒ **G-92** ✓ | **有 ✓（两条分开记 ✓）** |
 | **判定前缀不再重查内核** | `SOKO_JUDGE_ENV_VOUCH=shadow SOKO_JUDGE_ENV_PROBE=1` ⇒ `shadow_diff == 0` 且 `shadow_same > 0` | **有 ✓ 绿**（43/59 · 0 ✓；反向：恒不等 ⇒ **17** ⇒ 判红 ✓） |

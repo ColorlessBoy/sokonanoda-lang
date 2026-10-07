@@ -20,8 +20,12 @@
 # |---|---|---|---|
 # | `PROBE_CAP`（相等性探查步数） | 1 | 2048 | `kernel/conv.rs`（G-89） |
 # | `MAX_TRACKED`（签名位掩码宽度） | 1 | 64 | `kernel/relevance.rs`（G-90） |
-# | `maxHeartbeats`（求解步数 = fuel） | 1 | 4096 | `front/compile/meta.rs`（G-88） |
-# | `maxRecDepth`（求解递归深度） | 1 | 64 | 同上（G-88） |
+# | `maxHeartbeats`（求解步数 = fuel） | 1 | 20000 | `front/compile/meta.rs`（G-88；取值登记在 `kernel/gates.rs`） |
+# | `maxRecDepth`（求解递归深度） | 1 | 512 | 同上（G-88） |
+#
+# ⚠ 后两个的默认值 **2026-10-07 起 = Lean 的数值** ✓（G-88 收口 ✓）：
+# `synthInstance.maxHeartbeats` = 20000（`Meta/SynthInstance.lean:20`）·
+# `maxRecDepth` = 512（`Util/RecDepth.lean:15` ⇒ `Init/Prelude.lean:4760`）✓。
 #
 # ## 用法
 #

@@ -10,7 +10,8 @@
 //!    `discharge` 出口自检 + 调用方 `elab_expr` 遇未知名自然报错 = 双保险）；
 //! 2. **三值**（`Yes`/`No`/`Undef`）：`Undef` = **弃权**（不是失败）⇒ 进待定队列，等后续赋值再试；
 //! 3. **有界**：深度 / 轮数 / 步数三上限 + `unify_all` 的**停条件 = 待定计数不再严格下降**
-//!    （与 Lean `processPostponed` 同款）；超限按「无解」处理，**不新增失败面** ✓。
+//!    （与 Lean `processPostponed` 同款）；**超限绝不改变结论** ✓ —— 撞预算 ⇒ **加大预算重试** ✓
+//!    （G-88 真修，2026-10-04 ✓），升满仍撞 ⇒ **弃权 `Tri::Undef`** ✓（**不是**「按无解处理」✗）。
 //!
 //! 元变量的**表示**：保留前缀的 fresh 名 `\0soko_m{id}`（`\0` 不可能出现在源标识符里 ⇒ 与
 //! `implicit::telescope` 的 `\0soko_p{i}` 同一纪律）⇒ `spine::substitute`/`mentions`/`same_shape`
@@ -345,42 +346,28 @@ struct MVar {
     out_of_scope: Vec<String>,
 }
 
-/// 单次 `unify` 的递归深度上限。
-const MAX_DEPTH: u32 = 64;
-/// `unify_all` 的轮数上限。
+/// `unify_all` 的轮数上限（**另一族** ✗ —— 它是「重扫待定队列到不动点」的**轮数**闸 ✓，
+/// 与 Lean 的 `maxRecDepth`（递归深度）/ `synthInstance.maxHeartbeats`（步数）都不是一回事 ✗
+/// ⇒ 本轮**只登记、不动数值** ✓；台账里把它写成 `maxSynthDepth 8 → 32`，但**本机 Lean
+/// 没有 `maxSynthDepth` 这个选项** ✗（`grep -rn maxSynthDepth src/` = 0 ✓）⇒ 留待下一笔 ✓）。
 const MAX_ROUNDS: u32 = 8;
-/// 一次求解的总步数上限（保护**失败路径**：学习者写错时的额外成本是常数）。
-const DEFAULT_FUEL: u32 = 4096;
-/// **撞预算之后允许「加大预算重试」几次** ✓（G-88 真修，2026-10-04 ✓）。
-///
-/// 为什么要有它 ✗：预算耗尽**不是**「无解」✗ —— 它只说明"**这一步没算完**"✓。
-/// 正解 = **加大预算继续算** ✓（这就是「只允许变慢」✓ 的字面实现 ✓），
-/// 而不是把「没算完」当成「不成立」✗。
-/// 上界是**常数倍**（fuel ≤ `DEFAULT_FUEL × 2^(N+1)` ✓、depth ≤ `MAX_DEPTH × 2^N` ✓）
-/// ⇒ 不会挂死 ✓（`unify_all` 自己还有 `MAX_ROUNDS` 那道轮数闸 ✓）。
-const MAX_ESCALATIONS: u32 = 6;
 
-/// **预算取值的取证口**（2026-10-04 ✓）：默认 = 上面那两个常量 ✓（**一个不动** ✓），
-/// 但**能拧到 1** ✓ —— 判据要能回答「把预算逼到极限，结论会不会变」✓
-/// （「预算耗尽只允许变慢」这句话如果是真的，拧到 1 结论必须**逐字节相同** ✓）。
-/// ⚠ 这是**取证口** ✗，不是用户配置面 —— 用户面走 `CompileOptions` + `[limits]`（下一笔 ✓）。
-/// 命名对齐 Lean ✓（`maxHeartbeats` = fuel ✓ / `maxRecDepth` = depth ✓）。
-fn meta_limit(name: &str, default: u32) -> u32 {
-    static FUEL: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
-    static DEPTH: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
-    let slot = if name == "SOKO_LIMIT_MAX_HEARTBEATS" {
-        &FUEL
-    } else {
-        &DEPTH
-    };
-    *slot.get_or_init(|| {
-        std::env::var(name)
-            .ok()
-            .and_then(|v| v.trim().parse::<u32>().ok())
-            .unwrap_or(default)
-            .max(1)
-    })
-}
+// ── **求解预算三旋钮**（G-88 第二笔 · 2026-10-07 ✓）──────────────────────────
+//
+// ⚠ 取值**不再写在这个文件里** ✗ —— 登记在**闸取值登记表** `sokonanoda::gates::limits` ✓
+// （与 `probe_cap` / `max_tracked` **同一处** ✓、同一套 `SOKO_LIMIT_*` 命名 ✓、同一份
+// `env_u32` + `OnceLock` 解析纪律 ✓ —— 非法值/缺省 ⇒ 默认值 ✓）：
+//
+// | 旋钮（本文件） | 环境变量 | 默认值 | Lean 出处 |
+// |---|---|---|---|
+// | `fuel` | `SOKO_LIMIT_MAX_HEARTBEATS` | 20000 | `synthInstance.maxHeartbeats`（`Meta/SynthInstance.lean:20`） |
+// | `max_depth` | `SOKO_LIMIT_MAX_REC_DEPTH` | 512 | `maxRecDepth`（`Util/RecDepth.lean:15` ⇒ `Init/Prelude.lean:4760`） |
+// | `escalations` 上界 | `SOKO_LIMIT_MAX_ESCALATIONS` | 6 | **无对应物** ✗（Lean 耗尽即报错） |
+//
+// ⚠ **语义一个字没动** ✓：撞预算 ⇒ **加大预算重试** ✓（= 只变慢 ✓），升满仍撞 ⇒
+// **弃权 `Tri::Undef`** ✓（= 「判不了 ⇒ 走慢路」✓），**绝不** `Tri::No` ✗
+// （= 「判不了 ⇒ 当成否」✗）。本轮只改**数值与来源** ✓。
+
 /// `zonk` 的链式代换轮数上限（赋值链 `?a := ?b`、`?b := Nat` 这种）。
 const MAX_ZONK_ROUNDS: u32 = 8;
 
@@ -439,9 +426,10 @@ pub(crate) struct MetaCtx<'a> {
     fuel: u32,
     depth: u32,
     /// **本次求解的递归深度上限** ✓（撞了就**加倍**，见 `unify_impl` ✓）。
-    /// 它是**可变**的 ✗→✓（先前直接用常量 `MAX_DEPTH` ⇒ 撞上就只能判否 ✗）。
+    /// 它是**可变**的 ✗→✓（先前直接用常量 ⇒ 撞上就只能判否 ✗）；
+    /// 初值取自登记表 `sokonanoda::gates::limits::max_rec_depth()` ✓。
     max_depth: u32,
-    /// 已经「加大预算重试」过几次 ✓（上界 `MAX_ESCALATIONS` ✓）。
+    /// 已经「加大预算重试」过几次 ✓（上界 `limits::max_escalations()` ✓）。
     escalations: u32,
     /// 本次求解**第一个**硬错误（M3 的通道归因；`unify` 把它折成 `Tri::No`，但通道要留住）
     first_err: Option<MetaErr>,
@@ -454,9 +442,9 @@ impl<'a> MetaCtx<'a> {
     pub(crate) fn new(unfold: &'a dyn Fn(&Expr) -> Expr, store: &'a mut MetaStore) -> Self {
         MetaCtx {
             store,
-            fuel: meta_limit("SOKO_LIMIT_MAX_HEARTBEATS", DEFAULT_FUEL),
+            fuel: sokonanoda::gates::limits::max_heartbeats(),
             depth: 0,
-            max_depth: meta_limit("SOKO_LIMIT_MAX_REC_DEPTH", MAX_DEPTH),
+            max_depth: sokonanoda::gates::limits::max_rec_depth(),
             escalations: 0,
             first_err: None,
             unfold,
@@ -561,22 +549,22 @@ impl<'a> MetaCtx<'a> {
             //   答案**不变** ✓ —— 预算够的那次会给出同一个结论 ✓）；
             // * 升级到底还撞 ⇒ **弃权** `Tri::Undef`（= 「判不了 ⇒ 走慢路」✓），
             //   **绝不再返回 `Tri::No`** ✗（= 「判不了 ⇒ 当成否」✗）。
-            // 上界是**常数倍**（见 `MAX_ESCALATIONS` ✓）⇒ 不挂死 ✓。
+            // 上界是**常数倍**（`SOKO_LIMIT_MAX_ESCALATIONS` ✓）⇒ 不挂死 ✓。
             // **计数出口**（G-91 ✓）：升级与最终弃权**各一个** ✓（整本课程实测
             // **两个都是 0** ✓ ⇒ 这条改动在语料上**零行为变化** ✓，判据见
             // `crates/front/tests/gate_census.rs` ✓）。
-            if self.escalations < MAX_ESCALATIONS {
+            if self.escalations < sokonanoda::gates::limits::max_escalations() {
                 self.escalations += 1;
                 // ⚠ 升级基准取**默认值**（不是"当前值"✗）：这样拧到 1 时，
-                // 升满 `MAX_ESCALATIONS` 次之后预算**一定 ≥ 默认** ✓
+                // 升满升级额度之后预算**一定 ≥ 默认** ✓
                 // ⇒ 默认预算能判的，拧到 1 也一定判得出来 ✓（只是慢 ✓）。
                 self.fuel = self
                     .fuel
-                    .max(meta_limit("SOKO_LIMIT_MAX_HEARTBEATS", DEFAULT_FUEL))
+                    .max(sokonanoda::gates::limits::max_heartbeats())
                     .saturating_mul(2);
                 self.max_depth = self
                     .max_depth
-                    .max(meta_limit("SOKO_LIMIT_MAX_REC_DEPTH", MAX_DEPTH))
+                    .max(sokonanoda::gates::limits::max_rec_depth())
                     .saturating_mul(2);
                 sokonanoda::gates::META_BUDGET_ESCALATED.bump();
             } else {
@@ -1217,7 +1205,7 @@ mod tests {
     /// **G-88 的判据（2026-10-04 ✓）：预算耗尽 ⇒ 「加大预算重试」✓，绝不「当成否」✗。**
     ///
     /// **反向验证**（把修复撤掉 ⇒ 本用例判红 ✓）：旧实现在 `unify_impl` 里
-    /// `if fuel == 0 || depth >= MAX_DEPTH { return Tri::No }` ⇒ 下面第一条断言
+    /// `if fuel == 0 || depth >= 深度上限 { return Tri::No }` ⇒ 下面第一条断言
     /// （`!= Tri::No`）当场判红 ✗ —— 那正是「学习者写长一点的证明 ⇒ 系统说解不出来」✗。
     ///
     /// 三条一起断言（缺一条就会被"碰巧"骗过去 ✓）：
@@ -1270,6 +1258,83 @@ mod tests {
             "刚性冲突在升级之后必须**仍然**判否 ✓（升级不许把真冲突洗成「不知道」✗）"
         );
         let _ = before_exhausted;
+    }
+
+    /// **G-88 判据①（2026-10-07 ✓）：旋钮真的接到求解器上** ——
+    /// `MetaCtx::new` 的两个预算**取自登记表** ✓（`gates::limits` ✓），
+    /// 不是这个文件里的本地常量 ✗（本地常量**已经删掉** ✓ ⇒ 这条断言不可能被"本地默认值"糊过去 ✓）。
+    #[test]
+    fn budget_knobs_are_wired_from_the_registry() {
+        let m = ctx_with(&no_unfold);
+        assert_eq!(
+            m.fuel,
+            sokonanoda::gates::limits::max_heartbeats(),
+            "fuel 必须取自 SOKO_LIMIT_MAX_HEARTBEATS 那一项 ✓"
+        );
+        assert_eq!(
+            m.max_depth,
+            sokonanoda::gates::limits::max_rec_depth(),
+            "max_depth 必须取自 SOKO_LIMIT_MAX_REC_DEPTH 那一项 ✓"
+        );
+        assert_eq!(m.escalations, 0, "新 ctx 的升级计数从 0 起 ✓");
+    }
+
+    /// **G-88 判据②（2026-10-07 ✓）：默认值 = Lean 的数值** ✓ ——
+    /// `synthInstance.maxHeartbeats` = **20000** ✓ · `maxRecDepth` = **512** ✓
+    /// （出处逐行写在 `crates/kernel/src/gates.rs` 的常量文档里 ✓）。
+    ///
+    /// ⚠ 断言**常量**、不读环境 ✗：`SOKO_LIMIT_*` 是**进程级**的（`OnceLock` 只读一次 ✓），
+    /// 读环境会让这条判据被外部开关污染 ✗（见 `scripts/check-test-env-isolation.py` ✓）。
+    #[test]
+    fn budget_defaults_are_the_lean_numbers() {
+        assert_eq!(
+            sokonanoda::gates::limits::DEFAULT_MAX_HEARTBEATS,
+            20000,
+            "Lean `synthInstance.maxHeartbeats`（Meta/SynthInstance.lean:20）= 20000 ✓"
+        );
+        assert_eq!(
+            sokonanoda::gates::limits::DEFAULT_MAX_REC_DEPTH,
+            512,
+            "Lean `maxRecDepth`（Util/RecDepth.lean:15 ⇒ Init/Prelude.lean:4760）= 512 ✓"
+        );
+        assert_eq!(
+            sokonanoda::gates::limits::DEFAULT_MAX_ESCALATIONS,
+            6,
+            "Lean 无对应物（耗尽即报错）⇒ 保持 6 ✓"
+        );
+    }
+
+    /// **G-88 判据①的另一半（2026-10-07 ✓）：升级额度也用光 ⇒ 弃权 ✓，绝不判否** ✗。
+    ///
+    /// 这一档正是 `SOKO_LIMIT_MAX_ESCALATIONS=0` 的语义 ✓（一撞预算就弃权 ✓）。
+    /// 与上面那条**成对**：那条钉"还有额度 ⇒ 算完 ✓"，这条钉"没额度 ⇒ 弃权 ✓"。
+    #[test]
+    fn exhausted_escalations_abstain_instead_of_judging_false() {
+        let before = sokonanoda::gates::META_BUDGET_EXHAUSTED.get();
+        let mut m = ctx_with(&no_unfold);
+        // 预算拧到极小 + 升级额度**预先用光** ✓。
+        m.fuel = 1;
+        m.max_depth = 1;
+        m.escalations = sokonanoda::gates::limits::max_escalations();
+        let a = m.fresh(ident("Type"), MetaKind::Natural, vec![]);
+        // ⚠ 同上面那条：必须真的**需要不止一步**（`Set ?a ≟ Set Nat` 要下钻一层 ✓），
+        // 否则撞不到预算 ⇒ 判据空转 ✗。
+        let ea = app(ident("Set"), m.meta_expr(a));
+        let verdict = m.unify(&ea, &app(ident("Set"), ident("Nat")));
+        assert_ne!(
+            verdict,
+            Tri::No,
+            "**G-88**：升级额度用光仍撞预算 ⇒ 必须**弃权** ✓，绝不许判否 ✗"
+        );
+        assert_eq!(
+            verdict,
+            Tri::Undef,
+            "弃权 = `Tri::Undef` ✓（= 「判不了 ⇒ 走慢路」✓）"
+        );
+        assert!(
+            sokonanoda::gates::META_BUDGET_EXHAUSTED.get() > before,
+            "弃权计数没动 ⇒ 这条用例根本没走到弃权路径（守卫空转 ✗）"
+        );
     }
 
     /// 待定约束：形状对不上 + 有**埋着的**未解元变量 ⇒ 弃权；`unify_all` **无净进展就停**
@@ -1359,7 +1424,7 @@ mod tests {
     ///
     /// 现在（2026-10-04 ✓）：撞预算 ⇒ **加大预算重试** ✓ ⇒ 结论回到 `Yes` ✓
     /// （**答案对** ✓，只是多花步数 ✓ = 「只允许变慢」✓）；
-    /// 「不许挂死」这条**照旧** ✓ —— 升级次数有上界（`MAX_ESCALATIONS` ✓）。
+    /// 「不许挂死」这条**照旧** ✓ —— 升级次数有上界（`limits::max_escalations()` ✓）。
     #[test]
     fn fuel_bounds_the_work() {
         let mut m = ctx_with(&no_unfold);
@@ -1371,7 +1436,7 @@ mod tests {
              预算耗尽**不许改变结论** ✓（旧实现正是这样 ✗，而本用例原先把它当**期望**钉住了 ✗）"
         );
         assert!(
-            m.escalations <= MAX_ESCALATIONS,
+            m.escalations <= sokonanoda::gates::limits::max_escalations(),
             "升级次数必须有上界 ✓（没上界就不叫「只变慢」了 ✗）：{}",
             m.escalations
         );
