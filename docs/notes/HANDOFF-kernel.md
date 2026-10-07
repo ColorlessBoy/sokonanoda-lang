@@ -34,13 +34,13 @@
 
 ## 1. HEAD 与判据现状
 
-* **HEAD** = 见 `git log -1` ✓（第 14–22 棒 + **第 123 棒（G-30 收口）** ✓，都在树上 ✓）；**未推** ✓。
+* **HEAD** = 见 `git log -1` ✓（第 14–22 棒 + 第 123 棒（G-30）+ **本棒 G-55** ✓，都在树上 ✓）；**未推** ✓。
 * **当前大线 = IA-4** ✓（用户 2026-10-04 20:25 拍板 ✓）：**M0–M4 ✓ · K1 ✓ · B1/B2/B3 ✓ · U1/U2 ✓ 已收口**
   （K1 = 内核占位符 + `add_declar` 入口硬拒 ✓，`948e5634` ✓）⇒ ⭐ **G-30 已于第 123 棒收口 ✓**
   （两个复现件 exit 0 ✓，整门课程判定中性 ✓）⇒ **大线的下一个目标 = 交接单小活（见 §3 的排队 ✓）**。
 * **未推** ✓（本会话未 push / 未打 tag ✓）。
 * 判据 ✓：`lsp_keystroke_structure` **3/3** ✓ · `perf_course` **5/5** ✓（unit12 **5382ms** ✓ ≤8.5s）·
-  `identity_probe` **2/2** ✓ · `gate_census` **1/1** ✓ · `gap.py check` **94/0** ✓ · `docs-lint` ✓ ·
+  `identity_probe` **2/2** ✓ · `gate_census` **1/1** ✓ · `gap.py check` **97/0** ✓ · `docs-lint` ✓ ·
   六条复现件**全 exit 0** ✓（G-88/89/90/91/92/93 ✓）。
 
 ## 2. 手上的 WIP
@@ -50,18 +50,17 @@
 
 ## 3. 下一棒做什么（按序 ✓）
 
+⭐ **2026-10-07 G-55 已收口** ✓（编辑器线 · 0.83.0）：`documentHighlight` 在记法**目标名**上从 `null` ⇒ **①+②+③**
+   （**设计问题的答案**、偏离用户倾向 ① 的理由、用户动作判据、横向排查清单与全部读数 ⇒ 台账 **G-55** + `STATUS.md` 本轮 + `docs/design/notation-subset.md` §20 ✓）。
+
 0. ✅ **B1（期望类型传播）—— 闸门已翻默认开** ✓（2026-10-06 第 124 棒 ✓）：机制早就在树里
-   （`elab::b1_local_expected` + 闸门 `arg_expected_enabled` ✓），**唯一没兑现的判据** =
-   `docs/gaps/repro/G30b-arg-expected-not-propagated.sh`（`h (Or.inl hp)` ✗）—— 它**只差一次开闸** ✓。
-   **翻档判据（实测 ✓）**：整本课程 `build --json`（剔心跳）**逐字节相同** ✓（**50065 行 · diff 0** ✓，
-   三次独立构建两两全 0 ✓）⇒ 判定中性 ✓；`G30b` **exit 0 → 1** ✓、逃生门 `=0` ⇒ **回 0** ✓。
-   **Lean 4 对照**（`Elab/App.lean`，锁 `d0493e4c1e` ✓）：`propagateExpectedType`（`:363`）在每个实参
-   elaborate 前跑，`getForallBody`（`:302`）剥 `fType`，再 **`isDefEq expectedType fTypeBody`（`:405`）**
-   —— **期望类型与"头的结果类型"合一**，元变量由此定住 ✓；我们只把域**当期望类型递下去** ✗ ⇒
-   **差异 = 缺 `isDefEq` 那步 ⇒ 更深的嵌套仍会漏** ✓（**就是下面 B2 表第 1/2 行那条** ✓，本片不碰 ✓）。
-   ⚠ 十轮读数与三次更正 ⇒ `ledger.jsonl` 的 **G-30** ✓；⚠ 附带修掉**测试环境隔离洞** ✓：
-   `grade_source_env` 原先**继承**父进程环境 ⇒ 外部设过开关时「默认档」量的是环境值 ✗（实测 `=0 cargo test`
-   ⇒ 判红 ✓）⇒ 加 `cmd.env_remove` ✓ + 「默认档 = 开关开」这条**唯一能咬住默认值被翻反**的牙 ✓。
+   （`elab::b1_local_expected` + 闸门 `arg_expected_enabled` ✓）⇒ 判据 = `docs/gaps/repro/G30b-arg-expected-not-propagated.sh`
+   **exit 0 → 1** ✓、逃生门 `=0` ⇒ 回 0 ✓、整本课程 `build --json`（剔心跳）**逐字节相同** ✓（50065 行 · diff 0 ✓）。
+   **Lean 4 对照**（`Elab/App.lean`，锁 `d0493e4c1e` ✓）：`propagateExpectedType`（`:363`）在每个实参 elaborate 前跑、
+   `getForallBody`（`:302`）剥 `fType`，再 **`isDefEq expectedType fTypeBody`（`:405`）** —— 我们只把域**当期望类型递下去** ✗
+   ⇒ **差异 = 缺 `isDefEq` 那步**（= 下面 B2 表第 1/2 行 ✓，本片不碰 ✓）。⚠ 十轮读数与三次更正 ⇒ 台账 **G-30** ✓；
+   ⚠ 附带修掉**测试环境隔离洞** ✓：`grade_source_env` 原先**继承**父进程环境 ⇒ 外部设过开关时「默认档」量的是环境值 ✗
+   （实测 `=0 cargo test` ⇒ 判红 ✓）⇒ 加 `cmd.env_remove` ✓ + 「默认档 = 开关开」这条**唯一能咬住默认值被翻反**的牙 ✓。
 ## B2 的 **Lean 4 对照** ✓（`AGENTS.md`「卡住 ⇒ 先读 Lean 4」2026-10-05 ✓；本机 `d0493e4c1e` ✓，行号已自核 ✓）
 
 | B2 要做 | Lean 4 | 我们 | 差异与决定 |
