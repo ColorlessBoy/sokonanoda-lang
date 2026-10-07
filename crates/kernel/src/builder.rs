@@ -24,6 +24,17 @@ use stumpalo::ArenaRef;
 
 /// Accumulates declarations in dependency order and turns them into a kernel
 /// [`ExportFile`] once all declarations for one compilation unit are ready.
+///
+/// **`Clone`（2026-10-08 · G-29 / 设计 §33）**：库层级检查点（"只有库层"的环境）
+/// 要**跨调用**留着，而接着编入口必须拿一份**可变的副本**（跑完入口那趟之后
+/// 检查点本身要原封不动）。克隆是**浅**的：`dag` 的 intern 表与 `declars` 的键值
+/// 都是**指针的拷贝** ⇒ 同一份 arena、同一批 `ExprPtr`/`NamePtr` 地址
+/// ⇒ 内核那些**按指针比较**的地方（`conv.rs` 的 `NatLit`、`eval.rs` 用地址做
+/// 内容哈希、`NameInterner` 比 `StringPtr` 地址）**逐字节不变** ✓
+/// —— 与 `hide_declars`/`restore_declars`（`DeclarMap: Clone`）同一个不变式，
+/// 见本文件的
+/// `a_reused_environment_is_pointer_identical_and_a_rebuilt_one_is_not` ✓。
+#[derive(Clone)]
 pub struct EnvBuilder<'a> {
     arena: &'a ArenaRef<'a>,
     dag: Dag<'a>,

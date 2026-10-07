@@ -36,6 +36,10 @@
 use std::path::PathBuf;
 
 use sokonanoda_front::compile::closure_module_compiles_total;
+use sokonanoda_front::project::session::{
+    lib_checkpoint_arenas_leaked, lib_checkpoint_is_live, lib_checkpoint_reset,
+    lib_checkpoint_reuses,
+};
 use sokonanoda_front::query::QueryDoc;
 
 /// 合成闭包夹具：`Lib.sokonanoda`（一条自定义记法 + 两条公理）← `Main.sokonanoda`。
@@ -81,10 +85,11 @@ fn edit_decl(text: &str) -> String {
     format!("{}{}{}", &text[..at], edited, &text[end..])
 }
 
-/// **判据**：改一行重编的闭包模块数 **==** 冷开重编的闭包模块数（今天），
-/// 修好之后应当是 **1**。
+/// **判据**：改一行只重编**入口**那一个模块（**1**）—— 库层检查点跨调用复用（设计 §33）。
 #[test]
 fn g29_edit_recompiles_the_whole_closure() {
+    // 判据自己起跑：线程局部（检查点）与进程级（泄漏计数）都要干净。
+    lib_checkpoint_reset();
     let (entry, text) = gen_project("drift");
     let mut doc = QueryDoc::new();
     doc.path = Some(entry.clone());
@@ -103,6 +108,17 @@ fn g29_edit_recompiles_the_whole_closure() {
         cold, 2,
         "冷开必须编**整条闭包**（`Lib` + `Main` = 2 个模块），实测 {cold} ⇒ 夹具或计数口径变了"
     );
+    // 冷开必须**留下**库层检查点 —— 否则改一行没有可复用的东西（回退路 ⇒ 又编 2 个）。
+    assert!(
+        lib_checkpoint_is_live(),
+        "冷开之后必须留下库层检查点（设计 §33 的跨调用复用就靠它）"
+    );
+    // 上界 ①：冷开只许泄漏**一份**库层 arena。
+    assert_eq!(
+        lib_checkpoint_arenas_leaked(),
+        1,
+        "库层检查点只许泄漏一份 arena（`MAX_LEAKED_LIB_ARENAS` 之内）"
+    );
     // 正确性不变量：改 `t00` 之后，没改过的 `t01` 不许掉出 `checked`。
     let report = doc.report.as_ref().expect("改完必须有报告");
     let t01 = report
@@ -117,9 +133,87 @@ fn g29_edit_recompiles_the_whole_closure() {
     );
 
     assert_eq!(
-        edit, cold,
-        "**G-29 仍在**：改一行重编了 {edit} 个闭包模块 = 冷开（{cold}）⇒ 依赖的源文本一个\
-         字节没变也照编 ✗。修好（库层检查点**跨调用**复用，设计 §33）之后这里应当是 **1**\
-         （只重编入口）—— 那是把这条断言改成 1 的时刻，不是放宽它的时刻 ✗。"
+        edit, 1,
+        "**G-29 仍在**：改一行重编了 {edit} 个闭包模块（冷开 {cold}）⇒ 依赖的源文本一个\
+         字节没变也照编 ✗。修好（库层检查点**跨调用**复用，设计 §33）之后这里是 **1**\
+         （只重编入口）—— 这条断言已经改成 1，**不许**再放宽 ✗。"
+    );
+    // 复用**不许**再泄漏 arena（上界 ①：反复改 N 次后仍只有 1 份）。
+    assert_eq!(
+        lib_checkpoint_arenas_leaked(),
+        1,
+        "复用路不许泄漏新 arena（上界 ①）"
+    );
+
+    // **上界判据**（下面那个函数）：`closure_module_compiles_total()` 与泄漏计数都是
+    // **进程级**的 ⇒ 本文件只能有**一个** `#[test]`（同进程并行会互相污染取差 ✗，
+    // 见文件头的纪律）⇒ 上界判据作为**同一个测试**的第二段跑。
+    g29_library_checkpoint_is_bounded();
+}
+
+/// **上界判据**（设计 §33 的"必须有上界"）——检查点**不会无界增长**：
+/// ① 反复改**入口** N 次 ⇒ 泄漏的 arena 恒 **1** 份、活着的检查点恒 **1** 份；
+/// ② 改**库层** ⇒ 摘要变 ⇒ 旧检查点被换掉（**语义上不可达**）+ 新的一份 arena；
+/// ③ 泄漏 arena 数**封顶** `MAX_LEAKED_LIB_ARENAS`，到顶之后走回退路
+///    （栈上 arena = 今天那条路）且**结果照旧正确** ✓。
+fn g29_library_checkpoint_is_bounded() {
+    lib_checkpoint_reset();
+    let (entry, text) = gen_project("bound");
+    let mut doc = QueryDoc::new();
+    doc.path = Some(entry.clone());
+    doc.set_text(&text, 1, None);
+    assert_eq!(lib_checkpoint_arenas_leaked(), 1, "冷开建一份检查点");
+
+    // ① 反复改入口（长度不变的按键 ⇒ 只动那一条声明）：检查点**复用**，不再泄漏。
+    let mut current = text.clone();
+    for version in 2..=20u64 {
+        current = edit_decl(&current);
+        doc.set_text(&current, version, None);
+    }
+    assert_eq!(
+        lib_checkpoint_arenas_leaked(),
+        1,
+        "改入口 N 次 ⇒ 泄漏仍只有 1 份（复用路不建新检查点）"
+    );
+    assert!(lib_checkpoint_is_live(), "检查点仍活着");
+    assert_eq!(
+        lib_checkpoint_reuses(),
+        19,
+        "20 次 `set_text` = 冷开建 + 19 次复用"
+    );
+    let report = doc.report.as_ref().expect("必须有报告");
+    assert!(
+        report
+            .decls
+            .iter()
+            .any(|d| d.name.as_deref() == Some("t01") && format!("{:?}", d.status) == "Checked"),
+        "反复改入口之后 `t01` 仍必须 `checked`（复用不许改变判定）"
+    );
+
+    // ② 改**库层**：摘要变 ⇒ 检查点被换掉（旧的语义上不可达）+ 泄漏一份新 arena。
+    let lib_path = entry.with_file_name("Lib.sokonanoda");
+    let lib_src = std::fs::read_to_string(&lib_path).expect("读 Lib");
+    for round in 0..12u64 {
+        std::fs::write(&lib_path, format!("{lib_src}axiom extra{round} : Point\n"))
+            .expect("写 Lib");
+        doc.set_text(&current, 100 + round, None);
+    }
+    // ③ 泄漏 arena 数封顶（上界 ①）；到顶之后走回退路 —— 报告仍必须正确。
+    assert_eq!(
+        lib_checkpoint_arenas_leaked(),
+        8,
+        "泄漏 arena 数必须封顶在 `MAX_LEAKED_LIB_ARENAS`（12 轮库层改动 ⇒ 8 份封顶）"
+    );
+    assert!(
+        !lib_checkpoint_is_live(),
+        "上界用尽之后不许再留检查点（回退路：栈上 arena，与今天逐字节相同）"
+    );
+    let report = doc.report.as_ref().expect("必须有报告");
+    assert!(
+        report
+            .decls
+            .iter()
+            .any(|d| d.name.as_deref() == Some("t01") && format!("{:?}", d.status) == "Checked"),
+        "上界用尽后的回退路仍必须给出正确判定（`t01` checked）"
     );
 }

@@ -564,78 +564,24 @@ pub(crate) struct ElabCtx<'a, 'b> {
 > `docs/RELEASE.md` ✓；本节写的 **v0.78.1 是当时的** ✗，别当现状 ✗）。
 
 
-## 19. 2026-09-29 实测：三条候选的**判死与存活**（B″ 之后的新一轮）
+## 19. 2026-09-29 实测：三条候选的**判死与存活**（**已收口 ✓** · 原文 ⇒ `git log --all -- …`）
 
-§18 列了 K-1/K-2。动手时把候选逐条验证，结论如下（**都有实测/代码依据，不是推理**）：
+§18 的 K-1/K-2 动手前逐条验证（都有实测/代码依据，不是推理）：
 
-### 19.1 候选 B（前端对着 `ExportFile` 造项）—— **判死** ✗
-
-`ExportFile` **确实有全套 `mk_*`**（`mk_var`/`mk_sort`/`mk_const`/`mk_app`/`mk_lambda`/
-`mk_pi`/`mk_let`/`mk_proj`/`mk_string_lit`/`mk_nat_lit`，`util.rs:932-1036`）⇒
-一开始看起来"把 `elab_expr` 的目标从 `EnvBuilder` 换成 `ExportFile` 就行"。
-
-**但它们的签名是 `&mut self, … -> ExprPtr<'t>`，而 `'t` 来自 `with_ctx` 内部的
-`Arena::new()`**（`util.rs:696-705`）——**那个 arena 是 `with_ctx` 现造的局部**，
-闭包一结束就没了 ⇒ **造出来的 `ExprPtr` 出不了那个作用域** ✗。
-`EnvBuilder` 的 `mk_*` 用的却是 builder 自己的 `'a` arena（与所有已落地声明**同一个**）
-⇒ **两者不是同一个 arena ⇒ 指针同一性不成立** ⇒ 判死（与 §17 否 B″ 同一条理由）。
-
-### 19.2 候选 A（内核提供"在同一个 `ExportFile` 上 elaborate 源 `Expr`"）—— **存活，但面最大**
-
-前端 `elab_expr` 的"造项"部分要下沉/暴露到内核，且要**与已落地声明同一个 arena**。
-这正是 §18 的 **K-2** 的精确形状。
-
-### 19.3 候选 D（**本轮新发现**）：`judge` 的查询**后移**，用主 pass 的环境
-
-**观察**：`judge_infer` 之所以要重跑前缀，是因为它**在 `walk` 中途**被调用
-（`elab_expr` 调用链内部）——那时它**没有**当前环境（`elab_expr` 正可变借走 builder）。
-
-**但**：`walk` **已经无条件把声明 `add_declar` 进 builder**（§8.1 实测 9 处）⇒
-**主 pass 结束时，环境里就有整份文件的声明** ✓。而 `judge` 问的**永远是前缀**
-（当前命令之前的部分）—— 主 pass 结束时环境是**前缀的超集**，但
-**judge 的语义要求"只看前缀"** ⇒ 直接用整份环境会**改判定** ✗（不可接受）。
-
-⇒ **D 要成立，必须有"按声明下标截断环境"的能力** —— `EnvLimit::ByIndex` **已有** ✓，
-但它绑定"**本环境内的插入顺序**"。若 `judge` 的查询**后移**到主 pass 之后，
-用 `EnvLimit::ByIndex(该命令的下标)` 就能精确重现"只看前缀" ✓。
-
-**⚠ D 的两个未验证前提**（下一步第一件事）：
-1. `judge` 的结果**是否必须在 `walk` 中途**就拿到（即：它是否**决定后续 elaborate**）？
-   若是 ⇒ 后移**不可能** ✗；若只是"记录判定结果/出诊断" ⇒ 后移**可行** ✓。
-2. `EnvLimit::ByIndex` 的"下标"与 `judge` 需要的"前缀边界"是否**同一套编号**
-   （`decl_idx` 与插入顺序绑定，`builder.rs:338` 的注释提过）。
-
-**D 的潜在收益**：把 O(N²)（每个 judge 调用重跑前缀）变成
-**O(N)（一次主 pass + N 次按下标查表）** ⇒ 直接打那 **88%**。
-**D 不需要新的内核能力**（`ByIndex` 已有）——**只需重排调用时机** ⇒ **比 A 小得多**。
-
-### 19.4 候选 D 的**前提 ① 已被否** ✗ —— `judge` 的结果**决定后续 elaborate**
-
-逐条读那 10 个调用点的返回值用途（**实测，不是推理**）：
-
-| 调用点 | 返回值用途 | 是否决定后续 elaborate |
-|---|---|---|
-| `elab.rs:1363` `notation_prefix_args` | `ty_text` ⇒ `notation_telescope` ⇒ **解出要补的前导参数** | **是** ✗ |
-| `elab.rs:1396` | `sort_text` ⇒ 判断操作数是不是 `Sort` | **是** ✗ |
-| `elab.rs:2089` `infer_type_text` | 被 `:1396`/`notation_prefix_args` 消费 | **是** ✗ |
-| `elab.rs:3512` | `let` 绑定缺类型标注时**推断出类型文本** | **是** ✗ |
-| `elab.rs:4212` | `text` ⇒ `parse_expr_text` ⇒ **给无标注 λ binder 补类型** | **是** ✗ |
-| `elab.rs:4658` | `match` 的 scrutinee 类型 | **是** ✗ |
-| `elab.rs:4700`/`:4702`/`:5136` | `sort_text_level(text)` ⇒ **宇宙层级** | **是** ✗ |
-
-⇒ **`judge` 的结果在 `walk` 中途就被消费**（补隐式参数、补 λ binder 类型、定宇宙），
-**后移不可能** ✗（后移会让这些决策没有输入）。
-
-**⇒ 三条候选的最终状态**：**B 判死**（arena 不同）· **D 判死**（结果被中途消费）·
-**A 存活**（内核提供"在同一个 `ExportFile` / 同一个 arena 上把源 `Expr` elaborate 成
-`ExprPtr`"）—— 即 §18 的 **K-2**，**面最大但唯一可行**。
-
-### 19.5 下一步（**已落地** ✓）
-
-> **A-2 已落地** ✓：内核给了 **`EnvBuilder::with_env_scope(&Env, &mut EnvBuilder, f)`**
->（= 「同时读环境 + 写项」✓）；**A-1 没走**（内核不认识前端 AST ✗）· **D 判死**仍有效（§19.4 ✓）。
-> **剩下的只是接线**（§32.3/§32.4 ✓）—— 本节的接口草案（两条形状的逐条取舍）
-> **⇒ `git log --all -- docs/design/incremental-environment.md`** ✓。
+* **候选 B（前端对着 `ExportFile` 造项）—— 判死** ✗：`ExportFile` 的 `mk_*` 签名是
+  `&mut self, … -> ExprPtr<'t>`，而 `'t` 来自 `with_ctx` 内部**现造的局部** `Arena`
+  （`util.rs:696-705`）⇒ 造出的 `ExprPtr` 出不了那个作用域；`EnvBuilder` 的 `mk_*`
+  用的是 builder 自己的 `'a` arena ⇒ **两者不是同一份 arena ⇒ 指针同一性不成立** ✗
+  （与 §17 否 B″ 同一条理由）。
+* **候选 D（`judge` 的查询**后移**到主 pass 之后）—— 判死** ✗：`EnvLimit::ByIndex`
+  已有（不需要新内核能力），但 `judge` 的结果**在 `walk` 中途就被消费**（实测 10 个
+  调用点：补隐式前导参数 · 判断操作数是不是 `Sort` · `let` 缺标注时推断类型 ·
+  给无标注 λ binder 补类型 · `match` 的 scrutinee · `sort_text_level` 定宇宙层级）
+  ⇒ 后移会让这些决策**没有输入** ✗。
+* **候选 A（内核提供"在同一个 arena 上把源 `Expr` elaborate 成 `ExprPtr`"）—— 存活**
+  ✓：即 §18 的 **K-2**，面最大但唯一可行。**已落地** ✓ =
+  `EnvBuilder::with_env_scope(&Env, &mut EnvBuilder, f)`（「同时读环境 + 写项」✓）；
+  **A-1 没走**（内核不认识前端 AST ✗）。剩下的只是接线（§32.3/§32.4 ✓）。
 
 ## 20. G-68 **切片 1** 的实现形状（同进程内按 `module_key` 复用依赖产物）
 
@@ -1154,3 +1100,60 @@ HEAD `af533005` · 同一份二进制 · 真 LSP 进程）**改一行 = 4474ms**
 摘要一变就得换一份 ⇒ 必须有上界；
 **(b) 自引用持有 + 生命周期转换** —— 不泄漏，但要 `unsafe`。
 两条都**必须先让上面那条指针同一性判据保持绿** ✓。
+
+## 33.1 落地（2026-10-08 · 第 5 棒）：持有者**不是** `QueryDoc` ✗⇒**线程局部** ✓
+
+**① 形状 (a) 落地了** ✓（`Box::leak`，零 `unsafe`）：`crates/front/src/project/session.rs` 的
+`with_project_session_reusing` —— 库层趟跑在**泄漏的** arena 上，产物（`EnvBuilder` +
+`PassTables` + 库层 `out`/`reports`/`ranges`/`n_commands`/`prefix_commands`）留在检查点里；
+下一次调用**摘要逐字相同**（`lib_key` = 名字·绝对路径·源文本·顺序 + `cache::key` 折入的
+prelude/版本/`SOKO_*` 开关）就直接**克隆**它接着编入口（`EnvBuilder: Clone` 是浅拷贝 ⇒
+同一份 arena、同一批指针 ✓）。入口趟的输入（`entry_units`/`entry_prefixes`/`entry_display`/
+`entry_defs`/`options`/`trust`）**每次现算**，不从检查点里拿 ✓。
+
+**② ⚠ 卡点不是 arena，是 `Send`** ✗（本轮实测 · 推翻了上一棒的"`QueryDoc` 是天然持有者"）：
+内核环境借 `&'a ArenaRef<'a>`，而 `ArenaRef` 是 **`!Send`**（`Cell<*mut u8>` + 裸指针）。
+LSP 把 `Doc`（含 `QueryDoc`）放进 `Arc<Mutex<…>>` 再交给 `tokio::spawn`
+（`crates/lsp/src/lib.rs:549`），还有 `static EMPTY: OnceLock<Doc>`（`:443`）⇒ **`Doc` 必须
+`Send + Sync`**。实测：给 `QueryDoc` 加一个 `PhantomData<*const ()>` ⇒ `cargo check -p
+sokonanoda-lsp` 立刻在 `:443`/`:549`/`impl LanguageServer for Backend` 三处判红 ✗。
+⇒ **持有者改成线程局部**（`session.rs` 的 `LIB_CHECKPOINT`，不需要 `Send` ✓），代价是
+检查点**只对同一条线程可见** ⇒ 用它的那条路必须把编译**钉在一条线程**上：
+`crates/lsp/src/lib.rs` 新增 `compile_runtime()`（**1 个 worker** 的专用 runtime，32MB 栈
+与主 runtime 同档），`compile_worker` 的 `compile_one` 改在它上面 `spawn` ✓
+（防抖/装回/扇出仍在主 runtime ✓）。⚠ 多文档并发编译由此**串行**（同一份文档本来就不并发）——
+这是本刀的**代价**，如实记 ✓。
+
+**③ 上界（两条，都有常驻判据 ✓）**：
+* **上界 ①**：进程内泄漏的库层 arena ≤ `MAX_LEAKED_LIB_ARENAS = 8`（`Box::leak` 不回收，
+  回收要 `unsafe` ✗）⇒ 到顶之后**不再建检查点**，走回退路（栈上 arena = 今天那条路，
+  逐字节相同）✓。
+* **上界 ②**：一份检查点最多复用 `MAX_REUSES_PER_CHECKPOINT = 64` 次 —— arena 是
+  **bump allocator**，入口趟的每次分配都留在里面（指针同一性要求入口与库层共用一份 arena
+  ⇒ 不能给入口单开一份 ✗）⇒ 到顶**轮换**（丢掉检查点、下次重建），代价 = 每 64 次按键
+  多付一次库层趟（摊 ≈ 11ms/次）✓。
+* **活着的检查点恒 ≤ 1 份**（换掉旧的 ⇒ 旧的**语义上不可达** ✓）。
+* 判据：`crates/front/tests/g29_closure_recompile.rs::g29_library_checkpoint_is_bounded`
+  —— 改入口 19 次 ⇒ 泄漏恒 1、复用 19 次；改库层 12 次 ⇒ 泄漏封顶 8、回退路判定仍正确 ✓。
+
+**④ 回退路径（默认 ✓）**：摘要不等 · 检查点为空 · 入口被阻断 · 库层为空 · 上界用尽 ⇒
+**整条重编**并清掉检查点（与今天**逐字节相同**）✓ —— **不猜** ✓。
+
+**⑤ 两臂读数（复现件 · 同一份 debug 构建 `target/debug/sokonanoda-lsp`
+sha256 `0880f587eb1df8ca1cb80a74e7f6c59d0487c51a7fcc3dd3abcb73d3dd3e0a0e` · HEAD `265e5787`）**：
+**冷开 4439/4932ms（`modules=5 by=118 prefix=16`）· 热开 87/93ms（`modules=0`）·
+改一行 2248/2596ms（`modules=1 by=91 prefix=5`）** ⇒ **结构臂翻绿** ✓（`1 < 5`；改前是
+`5 == 5` ✗）· 比值 **0.51/0.53**（改前 0.76–0.89）。**新成本分解**：改一行 ≈ 2248ms =
+入口趟自身（第 4 棒实测 ≈ 2260ms ✓ —— **库层那 695ms 整段消失** ✓，剩 `prefix=5` 的
+judge 合成编译 ≈ 0.7–1.1s + 入口自身 elaborate ≈ 550ms）。
+
+**⑥ 比值口径重推导（用户点名 ✓ · 2026-10-08）**：旧门槛 `edit < 0.35 × cold` 预设
+「**入口 ≤ 闭包的 35%**」。库层复用之后改一行的**地板** = **入口趟自身**（库层趟已被复用
+吃掉）⇒ 地板 = `entry/(lib+entry)`；代入第 4 棒的逐段实测（`lib = 695ms`）与本轮
+`edit = 2248ms` ⇒ **≈ 0.76**（warm 侧）/ 冷开侧实测 `2248/4439 = 0.51`（冷开的入口趟更贵：
+judge 缓存冷 ⇒ `prefix=16` vs 改一行 `prefix=5`）。⇒ **0.35 与模型差 1.5–2×、不可达** ✗
+（除非动"入口自身的 elaborate" = G-31/G-62 的面，本 goal 已把它砍到 `prefix=5`）。
+⇒ **比值臂降级为报告数字**（仍打印、仍与旧读数可比），**硬判据 = 结构臂**
+（`edit.modules < cold.modules` = 缺口正身、机器无关的计数 ✓）；**结构臂一个字没放松** ✓，
+且比值若反过来（`edit ≥ cold`）仍响亮报红 ✓。理由与影响同时写进台账 `G-29.today` 与
+commit message ✓。

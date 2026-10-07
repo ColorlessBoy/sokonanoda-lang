@@ -1025,6 +1025,8 @@ fn run_pass_in<'a>(
         None,
         None,
         None,
+        // 建议材料：按 `units` 自己算（老路逐字节不变 ✓）。
+        None,
         // 老路/单文件/库层：judge 的前缀与本趟 `idx` **同坐标系** ✓ ⇒ 不平移。
         0,
     )
@@ -1210,6 +1212,23 @@ fn has_bare_hole(text: &str) -> bool {
     })
 }
 
+/// **G-29 第 5 棒**：一个单元看到的**建议材料**（`GoalTemplates`）= 它闭包前缀里
+/// 所有单元的命令 + 它自己的（与 [`run_pass_with`] 多单元分支的**最后一格**同构 ✓）。
+///
+/// 会话的入口趟 `units` 只有入口 ⇒ 必须由调用方把**闭包**传进来（见
+/// `template_closure` 参数），否则被导入模块里的构造子不进 refine/intro 建议 ✗。
+fn templates_for_closure(closure: &[SourceUnit<'_>], options: &CompileOptions) -> GoalTemplates {
+    let mut commands: Vec<Command> = Vec::new();
+    for unit in closure {
+        commands.extend(unit.file.commands.iter().cloned());
+    }
+    let combined = FolFile {
+        commands,
+        src: String::new(),
+    };
+    GoalTemplates::new_for(&combined, options)
+}
+
 /// **切片 1b**：`builder`（与可选影子）**由调用方提供、编译完交回** ⇒ session 能把
 /// **同一套 DAG** 交给每个入口（库层只编一次；`restore_declars`/`hide_declars`
 /// 检查点由 session 做）。`'a: 's` 是必要的：影子要重放主 arena 产出的
@@ -1236,6 +1255,16 @@ pub(crate) fn run_pass_with<'a, 's>(
     // **切片 1b 的入口趟**：跨模块 hover 回填用的 `名字 → 定义 span` 表。
     // `None` ⇒ 按 `units` 自己算（**今天的行为，逐字节不变** ✓）。
     defs_override: Option<&std::collections::HashMap<String, crate::Span>>,
+    // **G-29 第 5 棒**：闭包级**建议材料**（`GoalTemplates`）的覆盖 —— 传"该入口
+    // **闭包**"的单元（拓扑序、入口在最后）⇒ 取**最后一格**。
+    //
+    // 为什么需要：会话的**入口趟** `units` 只有入口（长度 1）⇒ 下面那条
+    // `units.len() == 1` 分支会**只按入口文件**建模板 ⇒ 被导入模块里的构造子/函数
+    // **不进** refine/intro 建议 ✗（实测：`crates/lsp/src/tests/project.rs::
+    // code_actions_work_in_a_project_entry` 的 `refine And.intro` 当场消失 ✗ ——
+    // 这是 §29「三次接线失败」的**第四件**同类漏接线：凡"按 units 算的闭包上下文"
+    // 都要显式覆盖 ✓）。`None` ⇒ 按 `units` 自己算（**今天的行为，逐字节不变** ✓）。
+    template_closure: Option<&[SourceUnit<'_>]>,
     // **G-29 第 3 棒**：本趟 `idx` 相对 **judge 合成文档前缀坐标系**的平移量
     // （= 闭包里**排在本趟 units 之前**的命令数 ✓）。`0` ⇒ 同坐标系
     // （老路 / 单文件 / 库层趟 ⇒ **逐字节回到今天** ✓）；session 的**入口趟**
@@ -1315,20 +1344,23 @@ where
     // 否则入口看不见被导入的构造子（`And.intro`），项目入口的 refine 建议会凭空
     // 消失——而同一个文件放进单文件就有（2026-09-18 真 LSP 探针实测）。
     // 注：`GoalTemplates::new_for` 只读命令表，`src` 仅作占位。
-    let all_templates: Vec<GoalTemplates> = if units.len() == 1 {
-        vec![GoalTemplates::new_for(units[0].file, options)]
-    } else {
-        let mut commands: Vec<Command> = Vec::new();
-        let mut templates = Vec::with_capacity(units.len());
-        for unit in units {
-            commands.extend(unit.file.commands.iter().cloned());
-            let combined = FolFile {
-                commands: commands.clone(),
-                src: String::new(),
-            };
-            templates.push(GoalTemplates::new_for(&combined, options));
+    let all_templates: Vec<GoalTemplates> = match template_closure {
+        // 会话的**入口趟**：闭包前缀 + 入口（= 与多单元分支的**最后一格**同构 ✓）。
+        Some(closure) => vec![templates_for_closure(closure, options)],
+        None if units.len() == 1 => vec![GoalTemplates::new_for(units[0].file, options)],
+        None => {
+            let mut commands: Vec<Command> = Vec::new();
+            let mut templates = Vec::with_capacity(units.len());
+            for unit in units {
+                commands.extend(unit.file.commands.iter().cloned());
+                let combined = FolFile {
+                    commands: commands.clone(),
+                    src: String::new(),
+                };
+                templates.push(GoalTemplates::new_for(&combined, options));
+            }
+            templates
         }
-        templates
     };
 
     // 扁平命令序：先依赖、后入口（单文件就是一个单元）。

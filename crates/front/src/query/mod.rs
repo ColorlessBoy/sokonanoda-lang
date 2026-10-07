@@ -640,9 +640,17 @@ impl QueryDoc {
                 let splice = move |fresh: crate::compile::DocumentReport| {
                     splice_entry_report(&cache, before, &trusted_extra, fresh)
                 };
-                crate::project::compile_plan_incremental(plan, &options, trust, Some(&splice))
+                // `reuse_library = true`：库层检查点跨调用复用（G-29 / 设计 §33）。
+                crate::project::compile_plan_incremental(plan, &options, trust, Some(&splice), true)
             }
-            None => crate::project::compile_plan_with_progress(plan, &options, None),
+            // **没有信任前缀那一趟也走 session**（G-29 / 设计 §33）：它以前走
+            // `compile_plan_with_progress`（整条闭包**一趟**）—— 那样一来
+            // **开档那一趟**不会留下库层检查点 ⇒ 开档后的**第一次**编辑只能
+            // 现建检查点（库层趟照付 ✗），复用得从第二次编辑才开始。
+            // 两条路的报告**逐字同构**（`assemble_from_session` 与
+            // `compile_plan_with_progress` 的组装段是同一份；`--json` 全语料对拍
+            // 见提交信息），差别只是库层/入口分成两趟 ⇒ 开档即建检查点 ✓。
+            None => crate::project::compile_plan_incremental(plan, &options, None, None, true),
         };
         // 缓存这一版（下一轮的信任依据）。入口报告拿不到（被阻断等）⇒ 清缓存，
         // 下一轮老老实实整份重查。

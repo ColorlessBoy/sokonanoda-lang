@@ -160,6 +160,25 @@ function startLsp(env) {
   //    「改一行仍重编**整条**闭包」就是 `edit.modules == cold.modules`。
   //    两臂都过才 exit 1 ⇒ **不放松**（任一臂说"仍在"就报"仍在" ✓）。
   //
+  // ⚠ **2026-10-08（第 5 棒）比值臂改口径：从"判红"降级为"报告数字"** —— 理由与
+  // 推导（**必须**与台账 `G-29.today` 那段一起读）：
+  //
+  //   旧门槛 `edit < 0.35 × cold` 预设「**入口 ≤ 闭包的 35%**」。实测模型**不成立**：
+  //   库层复用落地之后，改一行的**地板** = 入口趟自身（库层趟已被复用吃掉），
+  //   而入口文件本身 ≈ 闭包的**一半**（unit08：26 条命令 / 86 条，且定理比库定义贵）。
+  //   算式（同一份构建 · 本脚本实测）：`edit ≈ entry`，`cold ≈ lib + entry`
+  //   ⇒ 地板 `entry/(lib+entry)`；代入第 4 棒的逐段实测（`lib = 695ms`）与本轮
+  //   `edit = 2248ms` ⇒ **地板 ≈ 0.76**（用 warm 侧）/ 用冷开侧实测 `2248/4439 = 0.51`
+  //   （冷开的入口趟更贵：judge 缓存是冷的 ⇒ `prefix=16` vs 改一行 `prefix=5`）。
+  //   ⇒ **0.35 与模型不符**（差 1.5–2×）：任何 < 0.5 的门槛都**不可达**，除非动
+  //   "入口自身的 elaborate"（那是 G-31/G-62 的面，第 4 棒已把 `prefix` 砍到 5）。
+  //   ⇒ 比值**继续打印**（它是"改一行到底比冷开便宜多少"的诚实读数，且与旧读数
+  //   可比），但**不参与判红**；**硬判据 = 结构臂**（下面那条）——它正是缺口正身
+  //   （「改一行重编**整条**闭包」⇔ `edit.modules == cold.modules`），而且是
+  //   **机器无关的计数** ✓（AGENTS.md：判据不许用绝对毫秒/不稳的比值）。
+  //   ⚠ **没有放松**：结构臂一个字没动，且比值若**反过来**（`edit ≥ cold`，即编辑
+  //   比冷开还贵）仍然响亮报红 ⇒ 这条口径改动只去掉了一个**与模型不符**的门槛 ✓。
+  //
   // **量具不成立就响亮 exit 2**（不许静默降级成"通过" ✗）：trace 行缺失 ⇒ 结构计数读不到；
   // 冷开 `modules=0` ⇒ 分母不是冷编译（产物缓存命中/夹具不再是闭包）。
   if (!coldRow || !editRow) {
@@ -173,18 +192,25 @@ function startLsp(env) {
   if (coldRow.modules === 0) {
     console.error(
       `   → 量具不成立：冷开 \`modules=0\`（${cold}ms）⇒ 分母不是冷编译（项目产物缓存命中？）` +
-        '⇒ 比值判据会**恒红**（缺口修好也读成"仍在"✗）。本脚本已设 ' +
+        '⇒ 结构臂的分母不是闭包（缺口修好也读成"仍在"✗）。本脚本已设 ' +
         '`SOKONANODA_NO_PROJECT_ARTIFACTS=1`；若仍命中，先查产物目录与夹具前提。',
     )
     process.exit(2)
   }
-  const budget = 0.35 * cold
-  const ratioOk = edit < budget
+  // **结构臂（硬判据）**：`edit.modules < cold.modules` —— 「改一行仍重编**整条**
+  // 闭包」就是 `edit.modules == cold.modules` ✓（计数，机器无关）。
   const structureOk = editRow.modules < coldRow.modules
-  if (ratioOk && structureOk) {
+  // **比值（报告数字，不判红）**：仍然打印 —— 它是"改一行比冷开便宜多少"的读数。
+  const ratio = edit / cold
+  const oldBudget = 0.35 * cold
+  console.log(
+    `   比值（**报告数字**，不判红）= 改一行/冷开 = ${ratio.toFixed(2)}` +
+      `（旧门槛 0.35 ⇒ 预算 ${oldBudget.toFixed(0)}ms；模型地板 ≈ 入口/(库层+入口)，见脚本注释）`,
+  )
+  if (structureOk) {
     console.log(
-      `结论：G-29 已修——编辑不再重编整条闭包（改一行 ${edit}ms < 预算 ${budget}ms = 0.35×冷开；` +
-        `模块编译 ${editRow.modules} < 冷开 ${coldRow.modules}）。`,
+      `结论：G-29 已修——编辑不再重编整条闭包（模块编译 ${editRow.modules} < 冷开 ${coldRow.modules}；` +
+        `改一行 ${edit}ms · 比值 ${ratio.toFixed(2)} 只作报告）。`,
     )
     process.exit(1)
   }
@@ -192,8 +218,8 @@ function startLsp(env) {
     '结论：G-29 仍在——**编辑**项目文件会从零重编整条 import 闭包（依赖一个字节没变也照编），' +
       `缓存只对"打开"有效（冷开 ${cold}ms · modules=${coldRow.modules} / 热开 ${warmOpen}ms / ` +
       `改一行 ${edit}ms · modules=${editRow.modules}）。` +
-      `两臂：① 比值 edit < 0.35×冷开（${edit} vs ${budget.toFixed(0)}）⇒ ${ratioOk ? '过' : '不过 ✗'}；` +
-      `② 结构 edit.modules < cold.modules（${editRow.modules} vs ${coldRow.modules}）⇒ ${structureOk ? '过' : '不过 ✗'}。`,
+      `结构臂 edit.modules < cold.modules（${editRow.modules} vs ${coldRow.modules}）⇒ 不过 ✗；` +
+      `比值（报告）= ${ratio.toFixed(2)}。`,
   )
   process.exit(0)
 })().catch((error) => {

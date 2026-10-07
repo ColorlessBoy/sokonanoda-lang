@@ -1234,6 +1234,8 @@ fn project_report_carries_the_recheck_count() {
             failures: HashMap::new(),
         }),
         None,
+        // 测试走**不建检查点**那条路（跨调用复用是 LSP/`QueryDoc` 的面，见设计 §33）。
+        false,
     );
     assert!(
         trusted.kernel_checks < full.kernel_checks,

@@ -482,11 +482,17 @@ pub fn merge_session_reports(
 ///
 /// 入口被阻断（没有可编的入口单元）⇒ 退回 [`compile_plan_with_progress`]
 /// （那才是今天的行为，不猜）。
+///
+/// **`reuse_library`（2026-10-08 · G-29 / 设计 §33）**：`true` ⇒ 库层检查点
+/// **跨调用**复用（[`crate::project::session::with_project_session_reusing`]）；
+/// `false` ⇒ 每次一份栈上 arena（今天的行为，CLI/测试走这条）。两条路的**语义
+/// 逐字节相同** —— 差别只是库层那趟要不要重跑 ✓。
 pub(crate) fn compile_plan_incremental(
     mut plan: ProjectPlan,
     options: &CompileOptions,
     entry_trust: Option<crate::project::session::EntryTrust>,
     splice: Option<&dyn Fn(crate::compile::DocumentReport) -> crate::compile::DocumentReport>,
+    reuse_library: bool,
 ) -> ProjectReport {
     // **只给测量用的逃生门**（`SOKO_NO_ENTRY_TRUST=1`）：把信任前缀**当成没有**
     // ⇒ 这一次编译走的就是"优化前"那条路（入口整份重查）。用途：让设计
@@ -509,22 +515,29 @@ pub(crate) fn compile_plan_incremental(
     let closure_units = units_for_modules(&plan, |_| true);
     let entries = vec![entry_units];
     let trust = vec![entry_trust];
-    let mut reports_out: Vec<ProjectReport> = crate::project::session::with_project_session_trusted(
-        &lib_units,
-        &entries,
-        options,
-        &trust,
-        |_i, merged, fresh_entry, lib_reports, _lib_ranges, _entry_range| {
-            let mut fresh = fresh_entry.into_iter().next().unwrap_or_default();
-            let full = match splice {
-                Some(f) => f(fresh),
-                None => std::mem::take(&mut fresh),
-            };
-            let reports =
-                merge_session_reports(&closure_units, &lib_units, lib_reports, vec![full]);
-            assemble_from_session(&plan, merged, reports)
-        },
-    );
+    let on_entry = |_i: usize,
+                    merged: crate::compile::CompileOutput,
+                    fresh_entry: Vec<crate::compile::DocumentReport>,
+                    lib_reports: &[crate::compile::DocumentReport],
+                    _lib_ranges: &[std::ops::Range<usize>],
+                    _entry_range: std::ops::Range<usize>| {
+        let mut fresh = fresh_entry.into_iter().next().unwrap_or_default();
+        let full = match splice {
+            Some(f) => f(fresh),
+            None => std::mem::take(&mut fresh),
+        };
+        let reports = merge_session_reports(&closure_units, &lib_units, lib_reports, vec![full]);
+        assemble_from_session(&plan, merged, reports)
+    };
+    let mut reports_out: Vec<ProjectReport> = if reuse_library {
+        crate::project::session::with_project_session_reusing(
+            &lib_units, &entries, options, &trust, on_entry,
+        )
+    } else {
+        crate::project::session::with_project_session_trusted(
+            &lib_units, &entries, options, &trust, on_entry,
+        )
+    };
     reports_out.pop().expect("一个入口必须回调一次")
 }
 

@@ -760,6 +760,26 @@ fn debounce_from_env() -> Duration {
         .unwrap_or(Duration::from_millis(120))
 }
 
+/// **编译专用 runtime**（1 个 worker 线程）：见 `compile_worker` 里调用处的注释
+/// （G-29 / 设计 §33 的库层检查点活在**线程局部**里 ⇒ 编译必须钉在一条线程上）。
+///
+/// 与 `run()` 的 runtime **分开**：主 runtime 要跑消息循环与只读请求（多线程 ⇒
+/// 编译不挡它们），而编译要**单线程**（检查点可见性 + 可预测的 32MB 栈）。
+fn compile_runtime() -> &'static tokio::runtime::Handle {
+    static COMPILE_RT: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
+    COMPILE_RT
+        .get_or_init(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(1)
+                // 与 `run()` 同档：`elab_expr` 递归很深，tokio 默认 2MB 会 overflow ✗。
+                .thread_stack_size(32 * 1024 * 1024)
+                .enable_all()
+                .build()
+                .expect("build the compile runtime")
+        })
+        .handle()
+}
+
 /// 一份文档的编译任务：防抖 → 锁外编译 → 版本校验 → 装回 → 发布 → 扇出。
 ///
 /// **它不持 `Docs` 锁做编译**（只在取快照与装回时短暂持锁），所以只读请求
@@ -810,7 +830,23 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
         // （实测：发 `shutdown`/`exit` 后进程不退出）⇒ 外面根本读不到 ✗。
         // 墙钟在共享机器上会翻面（`AGENTS.md`：判据不许用绝对毫秒），计数不会 ✓。
         let counters_before = structural_counters();
-        let out = compile_one(&client, &docs, &compile, &uri, job);
+        // **编译专用 runtime（1 个 worker 线程）**：G-29 / 设计 §33 的**库层检查点**
+        // 活在 front 的**线程局部**里（内核环境借 `&ArenaRef`，而 `ArenaRef` 是
+        // `!Send` ⇒ 带检查点的 `QueryDoc` 立刻撞 `tokio::spawn` 的 `Send` 界 ✗）。
+        // 检查点只在**同一条线程**上可见 ⇒ 编译必须钉在一条线程上，否则
+        // 「开档建的检查点、改一行时找不到」✗。`spawn`（不是 `spawn_blocking`）
+        // 是为了拿到与今天同一档的**线程栈**（32MB —— `elab_expr` 递归很深，
+        // 2MB 会 overflow，见 `run()` 的注释）。
+        let out = compile_runtime()
+            .spawn({
+                let client = client.clone();
+                let docs = std::sync::Arc::clone(&docs);
+                let compile = std::sync::Arc::clone(&compile);
+                let uri = uri.clone();
+                async move { compile_one(&client, &docs, &compile, &uri, job) }
+            })
+            .await
+            .unwrap_or_else(|err| std::panic::resume_unwind(err.into_panic()));
         // **成对**：`Begin` 之后任何路径都要 `End`（否则客户端那把进度条永远转 ✗）。
         // 这里 `compile_one` 不返回 `Result`，所以顺序执行就够；将来它要是会早退，
         // 必须换成 guard（见缺口台账的纪律：成对通知要能被"漏发"抓住）。
