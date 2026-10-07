@@ -148,6 +148,10 @@ fn type_cache_put(key: u64, value: JudgeCacheValue) {
         while cache.1.len() > JUDGE_CACHE_CAP {
             let oldest = cache.1.remove(0);
             cache.0.remove(&oldest);
+            // **闸类出口**（G-91 乙类 ✓）：`JUDGE_CACHE_CAP` 挤掉一条 ⇒ 它下次
+            // 必然 miss ⇒ 重跑整份前缀 ✓ —— **只变慢** ✓（重算结论逐字节相同 ✓），
+            // 但**必须看得见** ✗（`hits/misses` 分不出"新键"与"被挤掉" ✓）。
+            sokonanoda::gates::JUDGE_CACHE_EVICTED.bump();
         }
     }
 }
@@ -159,6 +163,8 @@ fn judge_cache_put(key: u64, value: JudgeCacheValue) {
         while cache.1.len() > JUDGE_CACHE_CAP {
             let oldest = cache.1.remove(0);
             cache.0.remove(&oldest);
+            // 同上（两张表共用 `JUDGE_CACHE_CAP` 与同一套 FIFO ⇒ 共用一个出口 ✓）。
+            sokonanoda::gates::JUDGE_CACHE_EVICTED.bump();
         }
     }
 }
@@ -2130,6 +2136,12 @@ pub fn judge_type_of_constant(
         if let Ok(mut c) = cache.lock() {
             if c.len() < CAP {
                 c.insert(key, result.clone());
+            } else {
+                // **闸类出口**（G-91 乙类 ✓）：`CAP = 4096` 满 ⇒ 这条**静默**不写
+                // ⇒ 下次同一个名字还要再走一遍全前缀重编译 ✓ —— **只变慢** ✓
+                //（结论一字不变 ✓），但表满了之后**一个字节都不再长** ⇒ 没有出口
+                // 就分不出"缓存正常"与"缓存已饱和" ✗（`hits/misses` 也分不出 ✓）。
+                sokonanoda::gates::CONST_SIG_CACHE_FULL.bump();
             }
         }
     }

@@ -242,14 +242,25 @@ fn restart_skeleton(decl_src: &str) -> Option<String> {
     let ty = parse_expr_text(ty_text).ok()?;
     let mut layers: Vec<SkeletonLayer> = Vec::new();
     let mut cur = &ty;
+    // **闸类出口**（G-91 乙类 ✓）：`SKELETON_MAX_LAYERS` 只截断**还没剥完**的
+    // 望远镜 ✓ —— 望远镜**恰好 3 层**时循环也会在同一个 `if` 上退出，但那是
+    // **正常终止** ✓ ⇒ 必须用这个标志把两者分开 ✗（不分开 = 假读数 ✗）。
+    // 触发意味着**只掉提示精度** ✓（骨架少剥几层，学习者补上剩下的 `fun … =>` ✓），
+    // **判定一字不动** ✓（建议本身 `verified: false` ✓）。
+    let mut truncated = false;
     loop {
         if layers.len() >= SKELETON_MAX_LAYERS {
+            // 还有没剥完的 Pi/Arrow ⇒ 真的截断了 ✓（否则只是望远镜到头了 ✓）。
+            truncated |= matches!(cur, Expr::Forall { .. } | Expr::Arrow { .. });
             break;
         }
         match cur {
             Expr::Forall { binders, body, .. } => {
                 for binder in binders {
                     if layers.len() >= SKELETON_MAX_LAYERS {
+                        // 同一个 `Forall` 里还有 binder 没剥 ⇒ 真的截断了 ✓
+                        //（外层那个 `if` 这时看的是 `body`，看不出来 ✗）。
+                        truncated = true;
                         break;
                     }
                     layers.push(SkeletonLayer {
@@ -272,6 +283,9 @@ fn restart_skeleton(decl_src: &str) -> Option<String> {
             }
             _ => break,
         }
+    }
+    if truncated {
+        sokonanoda::gates::SKELETON_LAYERS_CLAMPED.bump();
     }
     if layers.is_empty() {
         return None;
@@ -786,10 +800,19 @@ Quad.mk a b c d sorry sorry sorry sorry\n",
 
     #[test]
     fn failed_long_telescope_caps_the_skeleton_at_three_layers() {
+        // **闸类出口**（G-91 乙类 ✓）：这条夹具的望远镜 **4 层** > `SKELETON_MAX_LAYERS`
+        // ⇒ **真的截断**了 ⇒ 出口必须涨 ✗（只声明不写 = 空转 ✗）。
+        // ⚠ 只断言**单调方向** ✓：计数是**进程级**的、lib 测试**并行** ⇒ 能断言"这一趟
+        // 涨了" ✓，**不能**断言"别的用例没涨" ✗（同文件另有 4 层夹具 ⇒ 那是假红来源 ✓）。
+        // 反向验证（2026-10-07 实测 ✓）：删掉 `bump()` ⇒ 本断言判红 ✓；
+        // 把 `SKELETON_MAX_LAYERS` 临时改成 `100`（望远镜不再被截断）⇒ 也判红 ✓
+        // ⇒ 它咬的是"**截断**"，不是"走到了这个函数" ✓。
+        let before = sokonanoda::gates::SKELETON_LAYERS_CLAMPED.get();
         let suggestions = suggest_for_failed(
             "example : (a : Prop) -> (b : Prop) -> (c : Prop) -> (d : Prop) -> a := \
 fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => fun (d : Prop) => 1\n",
         );
+        let after = sokonanoda::gates::SKELETON_LAYERS_CLAMPED.get();
         assert_eq!(
             kinds(&suggestions),
             vec![
@@ -805,6 +828,12 @@ fun (d : Prop) => sorry"
             ],
             "the restart skeleton is capped at three layers; the reset keeps the \
               whole written prefix"
+        );
+        assert!(
+            after > before,
+            "**G-91**：4 层望远镜被 `SKELETON_MAX_LAYERS` 截断 ⇒ `SKELETON_LAYERS_CLAMPED` \
+             必须涨（{before} → {after}）✗ —— 截断**只掉提示精度** ✓（判定一字不动 ✓），\
+             但它必须**看得见** ✗"
         );
     }
 

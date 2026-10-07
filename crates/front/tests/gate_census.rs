@@ -34,14 +34,43 @@
 //! 同一条命令量到 `meta_budget_exhausted=59` ⇒ 本用例**判红** ✓ —— 证明这四行
 //! `assert_eq!(…, 0)` **咬得住** ✓（不是「全被跳过」那种假绿 ✗）。
 //!
+//! ## 乙类 4 处（G-91 第二笔 · 2026-10-07 ✓）—— **追加在末尾**（`report()` 7 → 11 ✓）
+//!
+//! 整本课程 `build --json courses/set-theory`（**串行** `SOKONANODA_BUILD_JOBS=1` ✓ ·
+//! 构建身份 `d7b00cc42f245faa` ✓）实测：
+//!
+//! ```text
+//! judge_cache_evicted=14056  const_sig_cache_full=0
+//! goal_decompose_fallback=0  skeleton_layers_clamped=0
+//! ```
+//!
+//! * **①`judge_cache_evicted=14056`**（`JUDGE_CACHE_CAP=4096` 的 FIFO 淘汰 ✓）——
+//!   **这是本笔的发现** ✓：容量**小于整门课的工作集** ⇒ 缓存**部分失效**（天天在发生，
+//!   而此前**没有任何读数** ✗）。它**只变慢** ✓：**反向验证**把 `JUDGE_CACHE_CAP`
+//!   临时改成 `1` ⇒ `judge_cache_evicted=4678`（单文件）而同一份 `--json`
+//!   **0 行不同** ✓（剔 `build.tick`/`build.progress` ✓）⇒ 淘汰**不可能**改判定 ✓。
+//!   ⇒ **故意不判 0** ✗（断言 0 会变成假守卫 ✗）；调大容量是**另一笔**（本笔不动 ✗）。
+//! * **②`const_sig_cache_full=0`** ✓（常量签名缓存没饱和 ⇒ 判 0 ✓）。
+//! * **③`goal_decompose_fallback=0`** ✓ / **④`skeleton_layers_clamped=0`** ✓
+//!   —— 这两条属「**变差**」✗（题面精度 / 提示精度）⇒ 判 0 并钉住 ✓。
+//!
+//! **反向验证（乙类 ✓，2026-10-07 实测）**：
+//! ① 删掉 `suggest.rs` 的 `SKELETON_LAYERS_CLAMPED.bump()` ⇒ 复现件 `G91-…sh`
+//!    **exit 0**（判红 ✓）+ 常驻断言判红（`（0 → 0）` ✓）；
+//! ② 临时探针（跑完即删 ✗）：**3 层**望远镜 ⇒ 差量 **0** ✓、**4 层** ⇒ **1** ✓；
+//!    再把 `SKELETON_MAX_LAYERS` 临时改成 `4` ⇒ 4 层也 **0** ✓
+//!    ⇒ 它咬的是「**截断**」，不是「走到了这个函数」✓（恰好 3 层是**正常终止** ✗）；
+//! ③ 删掉 `walk.rs` 的 `GOAL_DECOMPOSE_FALLBACK.bump()` ⇒ `compile::tests::sorry_in_
+//!    argument_position_…` 判红 ✓（见那里的注释 ✓）。
+//!
 //! ## 为什么放集成测试
 //!
 //! 计数器是**进程级**的 ✓ ⇒ 放 lib 测试会被并行用例串味 ✗（同 `identity_probe.rs` ✓）。
 
 use sokonanoda::gates;
 
-/// 跑一遍「合成夹具 + 真课程 `unit08`」，返回六个闸的**差量**。
-fn census() -> [u64; 7] {
+/// 跑一遍「合成夹具 + 真课程 `unit08`」，返回**十一个**闸的**差量**。
+fn census() -> [u64; 11] {
     gates::reset();
     let before = gates::report().map(|(_, n)| n);
 
@@ -81,8 +110,8 @@ fn census() -> [u64; 7] {
     }
 
     let after = gates::report().map(|(_, n)| n);
-    let mut out = [0u64; 7];
-    for i in 0..7 {
+    let mut out = [0u64; 11];
+    for i in 0..11 {
         out[i] = after[i] - before[i];
     }
     out
@@ -91,13 +120,15 @@ fn census() -> [u64; 7] {
 /// **甲类闸必须 0** ✓（`unify_no_progress` 是阳性对照，见文件头 ✓）。
 #[test]
 fn gate_census_reports_the_real_trigger_counts() {
-    let [probe, sig_overflow, sig_clamped, rounds, no_progress, meta_budget, meta_escalated] =
+    let [probe, sig_overflow, sig_clamped, rounds, no_progress, meta_budget, meta_escalated, cache_evicted, const_sig_full, goal_fallback, skeleton_clamped] =
         census();
     println!(
         "PERF gate-census: probe_exhausted={probe} sig_overflow={sig_overflow} \
          sig_arity_clamped={sig_clamped} unify_rounds_exhausted={rounds} \
          unify_no_progress={no_progress} meta_budget_exhausted={meta_budget} \
-         meta_budget_escalated={meta_escalated}"
+         meta_budget_escalated={meta_escalated} judge_cache_evicted={cache_evicted} \
+         const_sig_cache_full={const_sig_full} goal_decompose_fallback={goal_fallback} \
+         skeleton_layers_clamped={skeleton_clamped}"
     );
 
     // ① **机制自证**：读得到的数必须真的是刚跑出来的 ✓（`reset()` 之后从 0 起算 ✓）。
@@ -115,6 +146,31 @@ fn gate_census_reports_the_real_trigger_counts() {
     // ⇒ 只变慢、答案不变 ✓（G-88 真修 ✓，判据 `meta::tests::exhausted_budget_…` ✓）。
     // 这里同样不判它 ✓ —— 但**要读出来**（`> 0` 说明那条路真的在跑 ✓）。
     let _ = (no_progress, meta_escalated);
+    // **乙类 ①：判定缓存被挤掉**（`JUDGE_CACHE_CAP = 4096`）—— **故意不判 0** ✗：
+    // 它**只变慢** ✓（纯记忆化，重算结论逐字节相同 ✓），**整门课实测 14056 次** ✓
+    // （2026-10-07，见文件头）⇒ 断言 0 会变成**假守卫** ✗（那条路本来就允许在跑 ✓）。
+    // ⚠ 但它**要读出来** ✓ —— 14056 这个数本身就是这一笔的**发现** ✓：
+    // 容量小于整门课的工作集 ⇒ 缓存**部分失效**（下一笔可评估调大 ✓，本笔不动 ✗）。
+    let _ = cache_evicted;
+    // **乙类 ②③④**：这三条在**本夹具 + unit08** 上是 0 ✓ —— 与整门课实测一致 ✓
+    // （`const_sig_cache_full=0` · `goal_decompose_fallback=0` · `skeleton_layers_clamped=0` ✓）。
+    // ② 属"只变慢" ✓（缓存饱和）；③④ 属"变差" ✗（显示 / 提示降质）⇒ 后者必须钉住 ✓。
+    assert_eq!(
+        const_sig_full, 0,
+        "**G-91 乙类②**：常量签名缓存（`CAP = 4096`）满 ⇒ **静默停止写入** ✗ —— \
+         它只变慢 ✓（结论不变 ✓），但表满了之后**一个字节都不再长** ⇒ 必须看得见 ✗"
+    );
+    assert_eq!(
+        goal_fallback, 0,
+        "**G-91 乙类③**：目标分解失败 ⇒ generic 兜底 {goal_fallback} 次 ✗ —— \
+         判定不变 ✓，但**题面精度下降** ✗（子洞期望类型不再精确）⇒ 要么修走查、\
+         要么在台账里说明它为什么可以接受 ✓"
+    );
+    assert_eq!(
+        skeleton_clamped, 0,
+        "**G-91 乙类④**：重启骨架被 `SKELETON_MAX_LAYERS = 3` 截断 {skeleton_clamped} 次 ✗ \
+         —— 只掉提示精度 ✓（判定一字不动 ✓），但**没有出口就看不见** ✗"
+    );
 
     // ② **`fuel` / `MAX_DEPTH` 耗尽 ⇒ `Tri::No`** ✗（G-88 本体：判不了 ⇒ **当成否** ✗）。
     assert_eq!(

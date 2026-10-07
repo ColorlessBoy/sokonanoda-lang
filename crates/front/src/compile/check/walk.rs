@@ -1256,6 +1256,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // —— 走查分解不了**不等于**题面没有上下文 ✓。至少答题面状态
                 // （具名绑元 + 剥掉它们之后的命题 ✓，与 `by_root` 同源 ⇒ 顶 ≡ 底 ✓）；
                 // 没有 `by` 块（`src_root == None`）时保持原样（那时空上下文本来就是对的 ✓）。
+                //
+                // **闸类出口**（G-91 乙类 ✓）：走到这里 = **目标分解失败** ⇒ 题面
+                // 退回 generic 兜底 ✓ —— **判定不变** ✓（仍是一个可填的练习 ✓），
+                // **显示降质** ✗（子洞期望类型不再精确 ✓）⇒ 必须看得见 ✗。
+                // ⚠ 只数**整条走查失败**这一处 ✗：`goals.rs` 内部各策略的 `return None`
+                // 是正常的不匹配 ✓（那条形状不归它管，另一条会接 ✓），数进去会假读数 ✗。
+                sokonanoda::gates::GOAL_DECOMPOSE_FALLBACK.bump();
                 let (goal, binders) = src_root
                     .clone()
                     .unwrap_or_else(|| (self.display.render(ty), Vec::new()));
@@ -1672,6 +1679,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // —— 走查分解不了**不等于**题面没有上下文 ✓。至少答题面状态
                 // （具名绑元 + 剥掉它们之后的命题 ✓，与 `by_root` 同源 ⇒ 顶 ≡ 底 ✓）；
                 // 没有 `by` 块（`src_root == None`）时保持原样（那时空上下文本来就是对的 ✓）。
+                //
+                // **闸类出口**（G-91 乙类 ✓）：同 `Theorem` 那条（**目标分解失败** ⇒
+                // generic 兜底 ⇒ 显示降质 ✗、判定不变 ✓）。
+                sokonanoda::gates::GOAL_DECOMPOSE_FALLBACK.bump();
                 let (goal, binders) = src_root
                     .clone()
                     .unwrap_or_else(|| (self.display.render(ty), Vec::new()));

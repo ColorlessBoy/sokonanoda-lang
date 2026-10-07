@@ -1147,7 +1147,19 @@ fn sorry_in_argument_position_within_open_exercise_is_accepted() {
                axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n\
                theorem t : (a : Prop) -> And a (Not a) -> False :=\n\
                  fun (a : Prop) => fun (x : And a (Not a)) => (And.right a (Not a) x) sorry\n";
+    // **闸类出口**（G-91 乙类 ✓）：这一趟走的就是 **generic 兜底** ⇒ 出口必须涨 ✗
+    //（只声明不写 = 空转 ✗）。⚠ 只断言**单调方向** ✓（计数是进程级的、lib 测试
+    // 并行 ⇒ 不能断言"别的用例没涨" ✗）；反向验证（2026-10-07 实测 ✓）：删掉
+    // `walk.rs` 里那两处 `bump()` ⇒ 本断言判红 ✓。
+    let before = sokonanoda::gates::GOAL_DECOMPOSE_FALLBACK.get();
     let report = check_document(&parse(src).expect("parse"));
+    let after = sokonanoda::gates::GOAL_DECOMPOSE_FALLBACK.get();
+    assert!(
+        after > before,
+        "**G-91**：目标分解失败 ⇒ generic 兜底 ⇒ `GOAL_DECOMPOSE_FALLBACK` 必须涨\
+         （{before} → {after}）✗ —— 它**判定不变** ✓（仍是一个可填的练习 ✓），\
+         但**显示降质** ✗（子洞期望类型不再精确）⇒ 必须看得见 ✗"
+    );
     assert!(
         report.errors.is_empty(),
         "sorry in argument position within an open exercise must not error: {:?}",

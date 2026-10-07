@@ -15,6 +15,10 @@
 //! ## 这个模块做什么
 //!
 //! 把内核里**每一个**「超限就换路」的分支记一笔 ✓（**只加计数、零行为变化** ✓）。
+//!
+//! **两笔** ✓：① 内核侧七项（2026-10-04 ✓，`probe_exhausted` … `meta_budget_escalated` ✓）；
+//! ② **乙类 4 处**（G-91 第二笔，2026-10-07 ✓，`judge_cache_evicted` … `skeleton_layers_clamped` ✓）
+//! —— 它们**全都只变慢 / 掉显示精度** ✓，**没有一处**碰判定 ✓。
 //! 它回答的正是那句"**先加计数、跑一遍课程报真实触发次数**"：
 //!
 //! * 触发 **0** 次 ⇒ 现在没炸，但闸还在 ⇒ **留闸 + 计数 + 断言 0** ✓；
@@ -143,10 +147,60 @@ pub static META_BUDGET_EXHAUSTED: Counter = Counter::new();
 /// 前者 = 走慢路 ✓；后者 = 判不了 ⇒ 弃权（**不是**判否 ✗）。
 pub static META_BUDGET_ESCALATED: Counter = Counter::new();
 
+// ===========================================================================
+// **乙类 4 处**（G-91 第二笔，2026-10-07 ✓）—— 与上面七项同一个总规矩 ✓：
+// 「超过某个数字就换一条路」必须**看得见** ✗；下面四处**全都只允许变慢 / 掉
+// 显示精度** ✓，**一处都不许**改判定 ✓（`判不了 ⇒ 走慢路` ✓ / `当成否` ✗）。
+// ===========================================================================
+
+/// **判定结果缓存被 FIFO 挤掉**（`JUDGE_CACHE_CAP = 4096` · `judge.rs`
+/// `judge_cache_put` / `type_cache_put`）⇒ 被挤掉的那条**下次必然 miss** ⇒
+/// 重跑一遍整份前缀 ✓。
+///
+/// **触发意味着什么**：**只变慢** ✓（重算给出**一模一样**的结论 ✓ —— 缓存是
+/// 纯记忆化，不是判定的一部分 ✓）。但它**必须看得见** ✗：容量一旦小于工作集，
+/// 缓存就从"命中"退化成"抖动"，而 `hits/misses` 分不出"新键"和"被挤掉" ✓。
+/// **计数点**：`while cache.1.len() > JUDGE_CACHE_CAP { … }` 每淘汰一条 ✓
+/// （两张表共用这一个常数、同一套 FIFO ✓ ⇒ 共用一个出口 ✓）。
+pub static JUDGE_CACHE_EVICTED: Counter = Counter::new();
+
+/// **常量签名缓存满了 ⇒ 静默停止写入**（`judge_type_of_constant` ·
+/// `judge.rs`：`if c.len() < CAP { c.insert(…) }`，`CAP = 4096`）⇒ 新条目**不再
+/// 进表** ⇒ 下次还走全前缀重编译 ✓。
+///
+/// **触发意味着什么**：**只变慢** ✓（少缓存一条 = 多算一次，结论不变 ✓）。
+/// ⚠ 与 [`JUDGE_CACHE_EVICTED`] 不同型 ✗：那边是"旧的被挤掉"，这边是"新的进不来"
+/// —— 表满了之后**一个字节都不再增长** ✓，所以它是最容易被误读成"缓存正常"的
+/// 那种饱和 ✗（`hits/misses` 同样分不出来 ✓）。
+/// **计数点**：`if c.len() < CAP` 的 **else**（即"本该写但写不进去"那一次 ✓）。
+pub static CONST_SIG_CACHE_FULL: Counter = Counter::new();
+
+/// **目标分解失败 ⇒ 退回 generic 兜底**（`goals.rs::open_goal` 整条返回 `None`
+/// 而值里有洞 ⇒ `walk.rs` 的 `None if expr_has_hole(val)` 分支 ✓）。
+///
+/// **触发意味着什么**：**判定不变** ✓（值位仍是一个可填的练习，不是报错 ✓）、
+/// **显示降质** ✗：题面状态退回"整句声明类型 / `src_root` 兜底"，子洞期望类型
+/// 也不再精确 ✓（G-82 修过的那条路 ✓）。
+/// ⚠ **只数"整条走查失败"** ✗ —— `goals.rs` 内部各策略（ctor / func / 依赖
+/// motive…）的 `return None` 是**正常的不匹配** ✓（那条形状不归它管，另一条会接 ✓），
+/// 数进去只会把正常路径也计成降级 ⇒ 读数失去意义 ✗。
+/// **计数点**：`walk.rs` 里真正**构造 generic 兜底**的那两处（`Theorem` / `Example` ✓）。
+pub static GOAL_DECOMPOSE_FALLBACK: Counter = Counter::new();
+
+/// **重启骨架被 `SKELETON_MAX_LAYERS = 3` 截断**（`suggest.rs::restart_skeleton`）。
+///
+/// **触发意味着什么**：**只掉提示精度** ✓（骨架少剥几层 Pi，学习者补上剩下的
+/// `fun … =>` 即可 ✓），**判定一字不动** ✓（建议本身 `verified: false` ✓）。
+/// ⚠ 只有"**还有没剥完的望远镜**"才算触发 ✗ —— 望远镜**恰好 3 层**时循环也会
+/// 在同一个 `if` 上退出，但那是**正常终止** ✓（数进去 = 假读数 ✗）。
+/// **计数点**：`restart_skeleton` 收口处的 `truncated` 标志 ✓（两处 break 合并判一次 ✓）。
+pub static SKELETON_LAYERS_CLAMPED: Counter = Counter::new();
+
 /// **一次性读数**（`(名字, 次数)` ✓）——给 `STAGE_STATS` / 判据用 ✓。
 ///
-/// 顺序**固定** ✓（判据要能按位置读，不许靠 map 顺序 ✗）。
-pub fn report() -> [(&'static str, u64); 7] {
+/// 顺序**固定** ✓（判据要能按位置读，不许靠 map 顺序 ✗）；
+/// **前七项的位置一个都不许动** ✗ —— 乙类四项**追加在末尾** ✓（7 → 11 ✓）。
+pub fn report() -> [(&'static str, u64); 11] {
     [
         ("probe_exhausted", PROBE_EXHAUSTED.get()),
         ("sig_overflow", SIG_OVERFLOW.get()),
@@ -155,6 +209,11 @@ pub fn report() -> [(&'static str, u64); 7] {
         ("unify_no_progress", UNIFY_NO_PROGRESS.get()),
         ("meta_budget_exhausted", META_BUDGET_EXHAUSTED.get()),
         ("meta_budget_escalated", META_BUDGET_ESCALATED.get()),
+        // —— 乙类 4 处（G-91 第二笔 ✓，**追加** ✓）——
+        ("judge_cache_evicted", JUDGE_CACHE_EVICTED.get()),
+        ("const_sig_cache_full", CONST_SIG_CACHE_FULL.get()),
+        ("goal_decompose_fallback", GOAL_DECOMPOSE_FALLBACK.get()),
+        ("skeleton_layers_clamped", SKELETON_LAYERS_CLAMPED.get()),
     ]
 }
 
@@ -168,6 +227,10 @@ pub fn reset() {
         &UNIFY_NO_PROGRESS,
         &META_BUDGET_EXHAUSTED,
         &META_BUDGET_ESCALATED,
+        &JUDGE_CACHE_EVICTED,
+        &CONST_SIG_CACHE_FULL,
+        &GOAL_DECOMPOSE_FALLBACK,
+        &SKELETON_LAYERS_CLAMPED,
     ] {
         c.reset();
     }
