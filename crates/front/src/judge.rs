@@ -23,7 +23,7 @@
 
 use crate::compile::{
     check_document_with, compile_fol_with, run_incremental, CheckEvent, CompileError,
-    CompileOptions, CompileOutput, DeclStatus, DocumentReport, KernelFailed, TrustPlan,
+    CompileOptions, CompileOutput, DeclStatus, DocumentReport, ErrorKind, KernelFailed, TrustPlan,
 };
 use crate::proof::{parse_expr_text, render_expr};
 use crate::span::Pos;
@@ -63,7 +63,22 @@ pub enum Judgement {
     /// 术语的类型与剩余目标 definitional equal（kernel 判定通过）。
     Match,
     /// kernel 拒绝：期望类型与实际类型（两者都来自内核渲染）。
-    Mismatch { expected: String, actual: String },
+    ///
+    /// `kind` = 内核对**这次拒绝**的分类（`refine_kernel_kind` 的产物，G-21）。
+    /// 为什么要它：`expected`/`actual` 只是两段文本，而**根因**在分类里 ——
+    /// 「期望 `Sort(n)`，实际是裸绑元 `$k`」= 一个项落在了类型位上，声明位那条
+    /// 诊断（`error.rs::classify_term_in_type_position`）早就把它归到
+    /// [`ErrorKind::KernelExpectedSort`]、由 hint 点名「点名调用漏了前导类型参数」；
+    /// `by` 路径此前把分类丢掉、只把 actual 换成 `judge_infer` 的类型文本
+    /// ⇒ 学习者看到「期望 `A a`，实际是 `mymem a A`」这种**同形**对照 ✗。
+    ///
+    /// ⚠ **判定控制流不看它** ✓（`Match`/`Mismatch`/`Error` 三分法的用法一个字
+    /// 不动）：它只服务**报错文案**，谁用谁不用由消费方（`by.rs`）决定。
+    Mismatch {
+        expected: String,
+        actual: String,
+        kind: ErrorKind,
+    },
     /// 术语无法 elaborate（错误码 + 消息，教学提示同诊断管线）。
     Error { code: String, message: String },
 }
@@ -3296,6 +3311,11 @@ fn judgement_of(report: &DocumentReport, k: usize) -> Judgement {
                 (Some(expected), Some(actual)) => Judgement::Mismatch {
                     expected: expected.clone(),
                     actual: actual.clone(),
+                    // **分类照原样带出去**（G-21）：`err.kind` 是
+                    // `refine_kernel_kind` 在**人话化之前**的原始载荷上算的 ⇒
+                    // 「项落在类型位」（`KernelExpectedSort`）这种根因形状
+                    // 不会因为 `$2` → 「第 2 个绑元」的文本替换而丢失 ✓。
+                    kind: err.kind,
                 },
                 _ => Judgement::Error {
                     code: err.code().to_string(),
@@ -3640,7 +3660,9 @@ mod tests {
         );
         assert_eq!(judgements[0], Judgement::Match);
         match &judgements[1] {
-            Judgement::Mismatch { expected, actual } => {
+            Judgement::Mismatch {
+                expected, actual, ..
+            } => {
                 // debug printer 渲染：Prop → Sort(0)，宇宙参数带 .[] 后缀。
                 assert!(expected.contains("a"), "expected: {expected}");
                 assert!(actual.contains("Sort(0)"), "actual: {actual}");
@@ -3812,7 +3834,9 @@ mod tests {
         );
         assert_eq!(judgements[0], Judgement::Match);
         match &judgements[1] {
-            Judgement::Mismatch { expected, actual } => {
+            Judgement::Mismatch {
+                expected, actual, ..
+            } => {
                 // 内核渲染：`False.[]` 保留原名，Prop 显示为 Sort(0)。
                 assert!(expected.contains("False"), "expected: {expected}");
                 assert!(actual.contains("Sort(0)"), "actual: {actual}");

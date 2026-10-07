@@ -1484,18 +1484,35 @@ fn run_tactics<'a>(
                     .next()
                 {
                     Some(Judgement::Match) => {}
-                    Some(Judgement::Mismatch { .. }) => {
-                        return Err(CompileError::elab(
-                            ErrorKind::ElabTacticFailed,
-                            mismatch_message(
-                                &format!("`have {name}` 的值类型不匹配"),
-                                &display_expr(prefix_src, ty),
-                                &term,
-                                &spec,
-                                prefix_src,
-                                options,
-                            ),
-                            *span,
+                    Some(Judgement::Mismatch {
+                        expected,
+                        actual,
+                        kind,
+                    }) => {
+                        let message = mismatch_message(
+                            &format!("`have {name}` 的值类型不匹配"),
+                            &display_expr(prefix_src, ty),
+                            &term,
+                            &spec,
+                            prefix_src,
+                            options,
+                        );
+                        // **G-21**：与 `exact` 同款现场（值、`have` 的书写类型、
+                        // 上下文假设的书写类型）——`have h : mymem a A := …` 是同一个
+                        // 根因的另一种写法。
+                        let note = omitted_argument_note(
+                            defs,
+                            std::iter::once(&value_expr)
+                                .chain(std::iter::once(ty))
+                                .chain(std::iter::once(&nodes[cur].ty))
+                                .chain(
+                                    context_binders(nodes, cur)
+                                        .iter()
+                                        .filter_map(|b| b.ty.as_deref()),
+                                ),
+                        );
+                        return Err(mismatch_error(
+                            kind, message, &expected, &actual, note, *span,
                         ));
                     }
                     Some(Judgement::Error { message, .. }) => {
@@ -1690,7 +1707,9 @@ fn run_tactics<'a>(
                         nodes[cur].kind = NodeKind::Closed(closed);
                         worklist.pop();
                     }
-                    Some(Judgement::Mismatch { expected, actual }) => {
+                    Some(Judgement::Mismatch {
+                        expected, actual, ..
+                    }) => {
                         return Err(CompileError::elab(
                             ErrorKind::ElabTacticFailed,
                             format!(
@@ -2660,6 +2679,140 @@ fn mismatch_message(
     format!("{what}：期望 `{goal_text}`，实际是 `{actual}`")
 }
 
+/// **G-21**：内核这次拒绝的根因形状，是不是「一个项落在了类型位上」。
+///
+/// 形状 = 内核的 def_eq 报「期望 `Sort(n)`，实际是裸绑元 `$k`」。**声明位**那条
+/// 诊断（`error.rs::classify_term_in_type_position`）早就把同一形状归到
+/// [`ErrorKind::KernelExpectedSort`]、由 hint 点名「**点名调用漏了前导类型参数**」
+/// ✓；`by` 路径此前把这个分类丢掉（`mismatch_message` 把 actual 换成
+/// `judge_infer` 的类型文本）⇒ 学习者只看到「期望 `A a`，实际是 `mymem a A`」
+/// 这种**同形**对照，看不出缺的是 `α` ✗。
+///
+/// ⚠ 分类是**内核算的**（`refine_kernel_kind`，在 `$k` 被人话化成「第 k 个绑元」
+/// **之前**）⇒ 这里不做任何文本启发 ✗。⚠ **判定控制流不看它** ✓ ——
+/// 只有报错文案用（`Match`/`Mismatch`/`Error` 三分法的用法一个字不动）。
+fn kernel_says_term_in_type_position(kind: ErrorKind) -> bool {
+    kind == ErrorKind::KernelExpectedSort
+}
+
+/// 现场里**点名应用**少写了参数时，给出「谁、声明几个、写了几个、少的是哪个」。
+///
+/// 只在 [`kernel_says_term_in_type_position`] 成立时才算（内核已经确认「有项落在
+/// 类型位」）—— 两者合起来才是「漏了前导类型参数」的证据：**内核确认形状，
+/// 这里指名道姓**（`mymem` 声明 3 个参数、这里只写了 2 个、少的是最前面的 `α`）。
+///
+/// ⚠ **只认点名应用**（`Expr::Ident`/`UniverseApp` 头的应用脊）✗ 不认记法节点：
+/// 记法（`a ∈ A`）**本来就**省前导类型参数（elab 期自动补）⇒ 把它算成「少写参数」
+/// 就是假信号（课程里到处都是记法 ✗）。
+/// ⚠ **只数显式位置**：`implicit_prefix` 个前导隐式参数是**允许省**的（课程纪律
+/// 「基础类型省前导隐式实参」，`And.left h` ✓）⇒ 判据是
+/// `写出来的实参个数 < 望远镜层数 − 前导隐式个数`。
+/// ⚠ 一个应用脊只在**最外层**判一次：`App(App(f, a), b)` 的脊是 `(f, [a, b])`
+/// （[`crate::spine::spine_of`] 收全部实参）⇒ 递归**不下探函数位** ✗，否则会把
+/// 同一条脊的前缀（`f a`）当成另一次「少写」。
+fn omitted_argument_note<'a>(
+    defs: &DefTable,
+    exprs: impl IntoIterator<Item = &'a Expr>,
+) -> Option<String> {
+    exprs.into_iter().find_map(|e| short_application(defs, e))
+}
+
+/// 深度优先找第一个「点名应用少写了参数」的节点（只走类型/项里会出现的形状）。
+fn short_application(defs: &DefTable, expr: &Expr) -> Option<String> {
+    if let Some(note) = short_application_here(defs, expr) {
+        return Some(note);
+    }
+    match expr {
+        // 函数位不下探（见 `omitted_argument_note` 的第三条）✓。
+        Expr::App { arg, .. } => short_application(defs, arg),
+        Expr::Arrow {
+            domain, codomain, ..
+        } => short_application(defs, domain).or_else(|| short_application(defs, codomain)),
+        Expr::Forall { binders, body, .. } | Expr::Lambda { binders, body, .. } => binders
+            .iter()
+            .filter_map(|b| b.ty.as_deref())
+            .find_map(|ty| short_application(defs, ty))
+            .or_else(|| short_application(defs, body)),
+        Expr::Let {
+            binder, val, body, ..
+        } => binder
+            .ty
+            .as_deref()
+            .and_then(|ty| short_application(defs, ty))
+            .or_else(|| short_application(defs, val))
+            .or_else(|| short_application(defs, body)),
+        Expr::Notation { lhs, rhs, .. } => lhs
+            .as_deref()
+            .and_then(|e| short_application(defs, e))
+            .or_else(|| rhs.as_deref().and_then(|e| short_application(defs, e))),
+        _ => None,
+    }
+}
+
+/// 这一个节点（连同它的整条应用脊）是不是「点名调用少写了参数」。
+fn short_application_here(defs: &DefTable, expr: &Expr) -> Option<String> {
+    // ⚠ 只认**点名**头：记法节点的 target 也常是已知 def，但记法本来就省前导
+    // 类型参数 ⇒ 认它 = 假信号（见 `omitted_argument_note`）✗。
+    let (head, args) = crate::spine::spine_of(expr);
+    let name = match head {
+        Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => name.as_str(),
+        _ => return None,
+    };
+    let info = defs.get(name)?;
+    let allowed = info.telescope_arity.saturating_sub(info.implicit_prefix);
+    if args.len() >= allowed {
+        return None;
+    }
+    // 参数名取自**声明**（`DefInfo.params`）：它就是学习者该补在最前面的那个名字。
+    let first = info.params.first()?;
+    Some(format!(
+        "`{name}` 声明了 {allowed} 个参数，这里只写了 {} 个：漏了最前面的**前导类型参数** \
+         `{first}`，后面的实参整体前移（第一个实参被顶到类型位上）",
+        args.len()
+    ))
+}
+
+/// 把一次「内核判定的类型不匹配」变成诊断（**G-21**）。
+///
+/// * 根因不是「项落在类型位」⇒ **原样**（`elab-tactic-failed` + 原消息）：判定与
+///   文案都不动 ✓；
+/// * 是 ⇒ **复用声明位那条码**（[`ErrorKind::KernelExpectedSort`] —— 它的 hint 就是
+///   「① 点名调用漏了前导类型参数…」，与声明位**同一条**），并把根因接在消息后面：
+///   原消息**一字不丢**（它是现场证据：期望什么、实际是什么），后面才是内核原话与
+///   「谁少写了参数」。
+///
+/// **取舍**（为什么换码而不是只补 hint）：`hint` 是按 `ErrorKind` 静态查表的，
+/// 要写进「这个常量有 N 个参数、实参只给了 M 个」就得给 `CompileError` 加一个
+/// 逐实例 hint 字段（新字段 = 全仓构造点都要动，且 `--json` 的 `hint` 语义变模糊）；
+/// 而「同一个错、同一个码」正是声明位与 `by` 路径**本来就该一致**的口径 ⇒ 换码
+/// 让两条路给同一条 hint，逐实例的细节放 message ✓。stage 随码变成 `kernel`
+/// （拒它的是内核）✓，span 仍指向**出错的那条 tactic** ✓。
+fn mismatch_error(
+    kind: ErrorKind,
+    original: String,
+    kernel_expected: &str,
+    kernel_actual: &str,
+    note: Option<String>,
+    span: Span,
+) -> CompileError {
+    if !kernel_says_term_in_type_position(kind) {
+        return CompileError::elab(ErrorKind::ElabTacticFailed, original, span);
+    }
+    let reason = match note {
+        Some(note) => format!("根因：{note}"),
+        None => "根因：这个类型没通过内核检查——有项落在了类型位上，最常见的原因是\
+                 **点名调用漏了前导类型参数**（把 `Set.mem α a A` 写成 `Set.mem a A`）"
+            .to_string(),
+    };
+    CompileError::kernel(
+        ErrorKind::KernelExpectedSort,
+        format!(
+            "{original}。{reason}（内核的原始判定：期望 `{kernel_expected}`，实际是 `{kernel_actual}`）"
+        ),
+        span,
+    )
+}
+
 /// `exact e`：判定 `e` 的类型与**当前目标**一致 ⇒ 闭合它。
 /// `use` 复用它交证人（所以单独抽出来，不复制判定逻辑）。
 // 参数已 8 个（0.62.0 起多一个 `universe`：判定合成声明要带声明的宇宙
@@ -2696,18 +2849,36 @@ fn exact_tactic(
             worklist.pop();
             Ok(())
         }
-        Some(Judgement::Mismatch { .. }) => Err(CompileError::elab(
-            ErrorKind::ElabTacticFailed,
-            mismatch_message(
+        Some(Judgement::Mismatch {
+            expected,
+            actual,
+            kind,
+        }) => {
+            let message = mismatch_message(
                 "`exact` 类型不匹配",
                 &display_expr(prefix_src, &nodes[cur].ty),
                 &term,
                 &spec_of(nodes, cur, universe),
                 prefix_src,
                 options,
-            ),
-            span,
-        )),
+            );
+            // **G-21**：根因现场 = 交出来的项、当前目标、以及各假设的**书写类型**
+            // （`intro h` 的假设类型就是声明类型的一段 —— 夹具里 `h : mymem a A`
+            // 正是那一段）。只在错误路径上多走一遍源级 AST（零内核调用 ✓）。
+            let note = omitted_argument_note(
+                defs,
+                std::iter::once(expr)
+                    .chain(std::iter::once(&nodes[cur].ty))
+                    .chain(
+                        context_binders(nodes, cur)
+                            .iter()
+                            .filter_map(|b| b.ty.as_deref()),
+                    ),
+            );
+            Err(mismatch_error(
+                kind, message, &expected, &actual, note, span,
+            ))
+        }
         Some(Judgement::Error { message, .. }) => Err(CompileError::elab(
             ErrorKind::ElabTacticFailed,
             format!("`exact` 判定失败：{message}"),

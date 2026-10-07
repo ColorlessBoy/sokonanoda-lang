@@ -2306,7 +2306,9 @@ fn notation_result_matches(template: &Expr, expected: &Expr) -> bool {
 fn judgement_message(j: &crate::judge::Judgement) -> String {
     match j {
         crate::judge::Judgement::Error { message, .. } => message.clone(),
-        crate::judge::Judgement::Mismatch { expected, actual } => {
+        crate::judge::Judgement::Mismatch {
+            expected, actual, ..
+        } => {
             format!("期望 `{expected}`，实际是 `{actual}`")
         }
         crate::judge::Judgement::Match => "类型推断没有给出类型".to_string(),

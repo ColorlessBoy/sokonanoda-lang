@@ -200,9 +200,9 @@ impl ProofState {
             .expect("judge_terms returns one judgement per term");
         match judgement {
             Judgement::Match => self.exact(term_text),
-            Judgement::Mismatch { expected, actual } => {
-                Err(ProofError::Mismatch { expected, actual })
-            }
+            Judgement::Mismatch {
+                expected, actual, ..
+            } => Err(ProofError::Mismatch { expected, actual }),
             Judgement::Error { code, message } => Err(ProofError::Judge { code, message }),
         }
     }

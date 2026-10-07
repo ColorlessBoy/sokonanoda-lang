@@ -7343,6 +7343,101 @@ fn pointful_application_without_the_leading_type_parameter_is_still_rejected() {
     );
 }
 
+/// **G-21 第二半（`by` 路径）的常驻判据**：点名调用漏了**前导类型参数**时，
+/// `by` 里的报错必须**指到根因**，而不是只给「期望 `A a`，实际是 `mymem a A`」
+/// 这种**同形**对照（学习者看不出缺的是 `α` ✗）。
+///
+/// 形状：`mymem : (α : Type) → α → (α → Prop) → Prop`，正解是 `mymem α a A`；
+/// 少写最前面的 `α` ⇒ `a` 被顶到类型位上 ⇒ 内核拒（**项落在类型位**）。
+///
+/// **两向都要**（缺一 ⇒ 「永远加 hint」也能过 ✗）：
+/// ① 漏 `α` ⇒ 码是 `kernel-expected-sort`（**与声明位同一条**码 + hint 点名
+///    「前导类型参数」），message 里指名道姓「`mymem` 声明了 3 个参数、这里只写了
+///    2 个」，且**原同形对照一字不丢**（它是现场证据 ✓）；
+/// ② 把 `α` 写全 ⇒ **没有**该信号（而且声明真的 checked ⇒ 不是「整条链被关掉」）；
+/// ③ 对照：签名没坏、只是 tactic 判错 ⇒ 仍是 `elab-tactic-failed`（不误报 ✓）。
+#[test]
+fn by_path_names_the_omitted_leading_type_parameter() {
+    const LIB: &str = "def mymem (α : Type) (a : α) (A : α → Prop) : Prop := A a\n";
+
+    // ① 漏了前导类型参数（`mymem a A`）。
+    let bad = format!(
+        "{LIB}theorem bad_by (α : Type) (a : α) (A : α → Prop) : mymem a A -> A a := by\n\
+         \x20 intro h\n\
+         \x20 exact h\n"
+    );
+    let out = compile_fol(&parse(&bad).expect("parse"));
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["kernel-expected-sort"],
+        "`by` 路径必须复用声明位那条码（G-21）：{:?}",
+        out.errors
+    );
+    let err = &out.errors[0];
+    assert_eq!(err.stage(), crate::compile::CompileStage::Kernel);
+    assert!(
+        err.hint().contains("前导类型参数"),
+        "hint 必须点名根因（与声明位同一条）：{:?}",
+        err.hint()
+    );
+    assert!(
+        err.message.contains("前导类型参数"),
+        "message 必须点名根因：{:?}",
+        err.message
+    );
+    assert!(
+        err.message.contains("`mymem` 声明了 3 个参数") && err.message.contains("只写了 2 个"),
+        "message 必须指名道姓（谁、声明几个、写了几个）：{:?}",
+        err.message
+    );
+    assert!(
+        err.message
+            .contains("`exact` 类型不匹配：期望 `A a`，实际是 `mymem a A`"),
+        "原来的同形对照是现场证据，一个字都不许丢：{:?}",
+        err.message
+    );
+
+    // ② 对照组 A：把前导类型参数写全（`mymem α a A`）⇒ 信号不出现，声明通过。
+    let good = format!(
+        "{LIB}theorem good_by (α : Type) (a : α) (A : α → Prop) : mymem α a A -> A a := by\n\
+         \x20 intro h\n\
+         \x20 exact h\n"
+    );
+    let out = compile_fol(&parse(&good).expect("parse"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "写全 `α` 之后不许再有诊断：{:?}",
+        out.errors
+    );
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "good_by")),
+        "对照组必须真的 checked（否则 ② 不构成对照）：{:?}",
+        out.events
+    );
+
+    // ③ 对照组 B：签名没坏、只是 tactic 判错（目标 `A a`，给的 `B a`）⇒ 不许出现
+    //    根因信号（它只在「项落在类型位」时才有资格出现）。
+    let other = format!(
+        "{LIB}theorem bad_other (α : Type) (a : α) (A B : α → Prop) : A a := by\n\
+         \x20 exact B a\n"
+    );
+    let out = compile_fol(&parse(&other).expect("parse"));
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["elab-tactic-failed"],
+        "普通类型不匹配的码/文案不许被改：{:?}",
+        out.errors
+    );
+    assert!(
+        !out.errors[0].message.contains("前导类型参数"),
+        "普通类型不匹配不许冒出根因信号（假阳性 ✗）：{:?}",
+        out.errors[0].message
+    );
+}
+
 /// **T-D15 的判据**：记法 hover 行的 `resolution` 在**报告装配之后**仍是
 /// `ResolvedTarget::Notation`——没有被 `kernel_phase` 的"回填顶层声明 span"
 /// 改写成 `def Set.mem` 的 span（这是 D5 记下的坑）。
