@@ -10044,3 +10044,137 @@ fn probe_that_exhausted_the_old_budget_still_judges_equal() {
         out.events.iter().rev().take(3).collect::<Vec<_>>()
     );
 }
+
+// ── **G-61 收口（2026-10-07 ✓）**：单构造子 inductive 的 **η** 是**既有能力** ✓ ────────
+//
+// 台账原复现件把 `Box.get α b`（类型 `α`）与 `b`（类型 `Box α`）摆进**同一条等式** ⇒
+// 内核拒的是**等式自身类型不合法**（「期望 α，实际是 Box α」）✗，**不是**「没有 η」✗
+// —— 同样的写法在官方 Lean 4 里也是类型错 ✓。判据：`def bad (α : Type) (b : Box α) : α := b`
+// 报**同一条**消息 ✓。下面四条把**well-typed** 的 η 律钉死 ✓（与 Lean 的
+// `tests/lean/run/etaStruct.lean` 同形 ✓）：结构 η · 递归子 + η · 多构造子**不给** η ·
+// `Setoid`/`Quotient` 地基 ✓。机制 / 生效条件 / 终止性见 `docs/architecture.md` §5.3 ✓。
+//
+// **反向验证**（同二进制两臂 ✓，见 `STATUS.md` 第 137 棒 ✓）：把两处 η 步（`conv.rs` 的
+// `try_struct_eta` + `eval.rs` 的 `try_struct_eta_reduce`）短路 ⇒ 本文件的
+// `eta_struct` / `eta_rec` / `setoid_eta` / `stress_eta` **全判红** ✓，而
+// `Box.get_mk`（iota ✓）与 `setoid_iota`（iota ✓）**照旧 checked** ✓
+// ⇒ 判据**精确打在 η 上** ✓（不是靠别的机制蒙对 ✗）。
+
+/// G-61 夹具的公共前缀：投影 `Box.get` + 递归子身份 `Box.id`（两处都是 iota 写法 ✓）。
+const G61_BOX: &str = "\
+inductive Box (α : Type) : Type
+ctor mk (a : α) : Box α
+end
+def Box.get (α : Type) (b : Box α) : α :=
+  Box.rec.{1} α (fun (_ : Box α) => α) (fun (a : α) => a) b
+def Box.id (α : Type) (b : Box α) : Box α :=
+  Box.rec.{1} α (fun (_ : Box α) => Box α) (fun (a : α) => Box.mk α a) b
+";
+
+fn g61_checked(src: &str, name: &str) {
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+        "`{name}` 必须 checked ✓（η 回退了 ✗）；末尾事件：{:?}",
+        out.events.iter().rev().take(3).collect::<Vec<_>>()
+    );
+}
+
+/// ① **η 成立** ✓：`x = ⟨x.1, …, x.n⟩`（结构 η ✓）与「递归子 + η」
+/// （`Box.id := Box.rec … (fun a => Box.mk α a)` ✓）**两条都**必须 checked ✓
+/// —— 后者正是台账想写而写坏了的那条律的 **well-typed 形态** ✓。
+#[test]
+fn struct_eta_makes_single_constructor_wrapping_definitional() {
+    g61_checked(
+        &format!(
+            "{G61_BOX}theorem eta_struct (α : Type) (b : Box α) : Box.mk α (Box.get α b) = b := Eq.refl.{{1}} (Box α) b\n"
+        ),
+        "eta_struct",
+    );
+    g61_checked(
+        &format!(
+            "{G61_BOX}theorem eta_rec (α : Type) (b : Box α) : Box.id α b = b := Eq.refl.{{1}} (Box α) b\n"
+        ),
+        "eta_rec",
+    );
+}
+
+/// ② **多构造子绝不给 η** ✗（给了就是**判定变宽** ⇒ 本判据判红 ✓）。
+#[test]
+fn multi_constructor_inductives_do_not_get_eta() {
+    let src = "inductive Two : Type\n\
+               ctor a : Two\n\
+               ctor b : Two\n\
+               end\n\
+               def Two.id (x : Two) : Two :=\n\
+               \x20 Two.rec.{1} (fun (_ : Two) => Two) Two.a Two.b x\n\
+               theorem two_id (x : Two) : Two.id x = x := Eq.refl.{1} Two x\n";
+    let file = parse(src).unwrap();
+    let out = compile_fol(&file);
+    assert!(
+        !out.errors.is_empty(),
+        "多构造子的同形状目标必须**仍判红** ✗"
+    );
+    assert!(
+        !out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "two_id")),
+        "`two_id` 不许被接受 ✗（多构造子没有 η ✓）"
+    );
+}
+
+/// ③ **拦路石没了的证据** ✓：`Setoid.r (Setoid.mk r h) ≡ r`（iota ✓）·
+/// `Setoid.mk s.r s.iseqv ≡ s`（η ✓）· `Quotient (Setoid.mk r h) ≡ Quot r`（**定义相等** ✓，
+/// 用「λ 的注解域与期望域必须 defeq」这条来钉 ✓）。
+/// ⚠ 只做证据 ✗：**不建课程库** ✓（`Setoid`/`Quotient` 的正式定义是后续一笔 ✓）。
+#[test]
+fn setoid_and_quotient_wrapper_is_definitional() {
+    let src = "\
+inductive Setoid (α : Type) : Type
+ctor mk (r : α → α → Prop) (iseqv : ∀ (a : α), r a a) : Setoid α
+end
+def Setoid.r (α : Type) (s : Setoid α) : α → α → Prop :=
+  Setoid.rec.{1} α (fun (_ : Setoid α) => α → α → Prop)
+    (fun (r : α → α → Prop) (_ : ∀ (a : α), r a a) => r) s
+def Setoid.refl (α : Type) (s : Setoid α) : ∀ (a : α), Setoid.r α s a a :=
+  Setoid.rec.{0} α (fun (s : Setoid α) => ∀ (a : α), Setoid.r α s a a)
+    (fun (r : α → α → Prop) (h : ∀ (a : α), r a a) => h) s
+def Quotient (α : Type) (s : Setoid α) : Type := Quot (Setoid.r α s)
+def Quotient.mk (α : Type) (s : Setoid α) (a : α) : Quotient α s := Quot.mk (Setoid.r α s) a
+theorem setoid_iota (α : Type) (r : α → α → Prop) (h : ∀ (a : α), r a a) :
+    Setoid.r α (Setoid.mk α r h) = r := Eq.refl.{1} (α → α → Prop) r
+theorem setoid_eta (α : Type) (s : Setoid α) :
+    Setoid.mk α (Setoid.r α s) (Setoid.refl α s) = s := Eq.refl.{1} (Setoid α) s
+def quotient_wrap (α : Type) (r : α → α → Prop) (h : ∀ (a : α), r a a) :
+    Quotient α (Setoid.mk α r h) → Quot r := fun (q : Quot r) => q
+";
+    for name in ["setoid_iota", "setoid_eta", "quotient_wrap"] {
+        g61_checked(src, name);
+    }
+}
+
+/// ④ **不挂死** ✓：`n` 层 `Box.mkid` 链 ⇒ 每层一次 η 展开（**结构更小** ✓），必须**有界**完成 ✓。
+/// 120 层实测 **0.6s**（整份文件、含 120 条声明 ✓）；把 η 撤掉时同一夹具**判红**（**不是**超时 ✓）
+/// ⇒ 「有界」是真的在跑 η，不是夹具太浅够不着 ✗。
+#[test]
+fn struct_eta_terminates_on_a_deep_chain() {
+    let n = 120;
+    let mut src = String::from(G61_BOX);
+    src.push_str(
+        "def Box.mkid (α : Type) (b : Box α) : Box α :=\n\
+         \x20 Box.rec.{1} α (fun (_ : Box α) => Box α) (fun (a : α) => Box.mk α a) b\n",
+    );
+    src.push_str("def d0 (b : Box Nat) : Box Nat := b\n");
+    for i in 1..=n {
+        src.push_str(&format!(
+            "def d{i} (b : Box Nat) : Box Nat := Box.mkid Nat (d{} b)\n",
+            i - 1
+        ));
+    }
+    src.push_str(&format!(
+        "theorem stress_eta (b : Box Nat) : d{n} b = b := Eq.refl.{{1}} (Box Nat) b\n"
+    ));
+    g61_checked(&src, "stress_eta");
+}
