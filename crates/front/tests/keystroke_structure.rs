@@ -294,9 +294,16 @@ fn keystroke_structure_is_measured() {
     // 搬进 `out.stats.kernel_checks`**（只有 `project/session.rs` 那条搬了）。
     // 用户 2026-10-01 的验收读数正是"重查命令数"，所以这条**必须先修**才能判
     // （已记进台账 G-29）。在那之前：主读数打出来、用能用的计数做下限断言。
+    //
+    // ⚠ **2026-10-07 第 3 棒：下限改用 `closure_modules`**（`modules` 现在如实读出 **0** ✗）——
+    // `modules` = `MODULE_COMPILES`，只在 `check::run` 里累加、**会话那条路一次都不计**
+    // ⇒ 它此前 > 0 **只是因为** judge 的合成编译回退调了 `compile_fol_with`（`run(units=1)` ✗）。
+    // 第 3 棒把那些合成编译**导回增量路**（`run_incremental` ⇒ 不经 `run`）之后它**如实变成 0**
+    // —— 那是量具口径，不是"什么都没编" ✗。这条断言要说的事由 `closure_modules` 承担
+    // （**真模块**被编了几个 ✓，老路/会话路**同口径** ✓）—— 读数仍是 5/4/4 > 0 ⇒ **守卫照咬** ✓。
     assert!(
-        leaf.modules > 0 && root.modules > 0 && mid.modules > 0,
-        "改一条必须至少编一个模块"
+        leaf.closure_modules > 0 && root.closure_modules > 0 && mid.closure_modules > 0,
+        "改一条必须至少编一个模块（**闭包**模块数；`modules` 那条口径见上面的 2026-10-07 注 ✗）"
     );
     assert!(
         leaf.by > 0 && root.by > 0 && mid.by > 0,

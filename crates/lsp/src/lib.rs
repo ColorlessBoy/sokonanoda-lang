@@ -611,7 +611,17 @@ fn structural_counters() -> StructuralCounters {
     let (infer_calls, _hits, infer_miss, prefix_runs, _bytes) =
         sokonanoda_front::judge::infer_totals();
     StructuralCounters {
-        modules: sokonanoda_front::compile::module_compiles_total(),
+        // ⚠ **必须是「闭包模块编译次数」**（G-29 第 3 棒 · 2026-10-07 换）✗→✓：
+        // `module_compiles_total()` 只在 `check::run` 里按 `units.len()` 累加 ⇒
+        // **会话那条路一次都不计** ✗（`project/session.rs` 的库层趟 + 入口趟走
+        // `run_pass_with` ✓），却把 judge 的**合成文档**（`compile_fol_with` ⇒
+        // `run(units=1)`）算进去 ✗ ⇒ 判据读到的 `modules=` 与"重编了几个模块"**无关**
+        // （实测：改一行 `modules=7` 里的 7 **全是**合成编译，真闭包模块 5 一次没计 ✓）。
+        // `closure_module_compiles_total()` 的计数点在 `run_pass_with`（**所有 pass 的
+        // 唯一收口** ✓）且只数 `path: Some(..)` 的**真模块** ⇒ 老路/会话路**同口径** ✓。
+        // ⚠ 判据侧影响：`docs/gaps/repro/G29-…` 的**结构臂**因此读的是真值
+        // （会话路重编库层 ⇒ `edit == cold` ⇒ 缺口仍在 ✓，不许被"合成编译不算数"蒙混 ✗）。
+        modules: sokonanoda_front::compile::closure_module_compiles_total(),
         by: sokonanoda_front::compile::by_calls_total(),
         infer_calls,
         infer_miss,

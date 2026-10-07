@@ -1029,22 +1029,6 @@ fn pick_type_checked(out: &CompileOutput, last_cmd: Option<usize>) -> Option<Str
 fn synthesized_trust(
     prefix_commands: usize,
 ) -> Option<(usize, KernelFailed, Option<EnteredNames>)> {
-    // ⚠ TEMP PROBE（G-29 第 3 棒 · 不提交 · 跑完 grep=0）
-    if std::env::var_os("SOKO_TRUST_WHY").is_some() {
-        let stack: Vec<usize> = TRUSTED_PREFIX.with(|c| {
-            c.borrow()
-                .iter()
-                .map(|e| e.before)
-                .collect::<Vec<_>>()
-        });
-        eprintln!(
-            "TRUST_WHY[{}] prefix_commands={} stack={:?} reuse={}",
-            probe_build_id(),
-            prefix_commands,
-            stack,
-            judge_env_reuse_enabled()
-        );
-    }
     if !judge_env_reuse_enabled() {
         return None;
     }

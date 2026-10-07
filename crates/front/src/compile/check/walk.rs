@@ -181,6 +181,15 @@ pub(super) struct Walk<'arena: 'shadow, 'shadow> {
     /// **调用方那一趟**的名表（`TrustPlan::trusted_entered` ✓）：`Some` 时才允许
     /// 走不透明快路；`None`（**绝大多数 pass** ✓）⇒ **逐字节回到今天** ✓。
     pub(super) trusted_entered: Option<crate::judge::EnteredNames>,
+    /// **G-29 第 3 棒**：本趟的 `idx` 相对 **judge 合成文档前缀坐标系**的平移量。
+    ///
+    /// judge 合成文档的前缀 = `closure_prefixes[unit_idx]` + 本文件前缀 = **整条闭包**
+    /// （`session` 的入口趟显式传库层源码 ✓），而**入口趟**只走入口自己的命令 ⇒
+    /// 它的 `idx` 是**入口空间**的 ✗ ⇒ `judge::synthesized_trust` 的闸门
+    /// `before >= prefix_commands` **恒不成立** ⇒ 每次 `judge_infer` 未命中都回退
+    /// `compile_fol_with`（整份前缀从零编 ✗）。平移量 = **库层那一段的命令数** ✓
+    /// ⇒ 担保回到闭包空间 ✓。默认 `0` = 同坐标系（老路 / 单文件 / 库层趟 ✓）。
+    pub(super) judge_prefix_offset: usize,
 }
 
 /// 单个命令的派生上下文：每个命令算一次，arm 里按需取用。
@@ -605,9 +614,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             // 而"被担保那条路"必须先有栈才走得通 ✓。
             let vouch =
                 crate::judge::env_probe::vouch_mode() != crate::judge::env_probe::VouchMode::Off;
+            // **G-29 第 3 棒**：压栈的 `before` 必须落在 **judge 合成文档前缀的坐标系**里
+            // （= 整条闭包的命令序 ✓）。本趟走的是 `units`，`idx` 是**本趟自己**的序号
+            // ⇒ 加上调用方给的平移量 `judge_prefix_offset`（库层那一段的命令数 ✓）。
+            // 默认 `0` ⇒ 与今天**逐字节相同** ✓（老路/单文件那条路本来就同坐标系 ✓）。
+            let judge_before = idx + self.judge_prefix_offset;
             if vouch || crate::judge::env_probe::on() {
                 crate::judge::with_trusted_prefix(
-                    idx,
+                    judge_before,
                     &Default::default(),
                     // **本趟 walk 自己的**「成功进环境」名表 ✓（G-31/G-92 第二刀）：
                     // judge 的合成文档据此把「确实加过」的前缀 `theorem` 装成

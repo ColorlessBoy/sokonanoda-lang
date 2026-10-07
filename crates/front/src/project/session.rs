@@ -81,11 +81,33 @@ pub(crate) fn with_project_session_trusted<R>(
     let mut tables = PassTables::new();
     let (lib_pass, mut builder, lib_tables) = run_pass_with(
         builder, None, true, tables, lib_units, options, true, None, None, None, None, None, None,
+        // 库层趟：judge 的前缀（`closure_prefixes_for(lib_units)`）与本趟 `idx`
+        // **同坐标系** ✓ ⇒ 不平移。
+        0,
     );
     tables = lib_tables;
     // **逐模块报告**（与 `check::run` 同构）：库层那趟的报告按单元切分 ⇒ 接线方
     // 能组装出与今天**逐字节相同**的 `ProjectReport`（缓存内容不变）。
     let lib_n = lib_pass.n_commands;
+    // **G-29 第 3 棒**：入口趟的 `idx` 是**入口空间**的，而 judge 的合成前缀是
+    // **整条闭包**（下面 `entry_prefixes` 那一格 = 各库单元的 `importless_source`
+    // 拼接 ✓）⇒ 压栈的担保必须平移"**库层那一段的命令数**" ✓，否则
+    // `synthesized_trust` 的闸门 `before >= prefix_commands` 恒不成立 ⇒ 入口趟
+    // 每次 `judge_infer` 未命中都整份重编 ✗（实测 7 次 · 见设计 §33）。
+    //
+    // ⚠ 数的是**去掉 `import` 行之后**的命令数（`importless_source` 会剥掉它们，
+    // 见 `closure_prefixes_for` ✓）—— 多算只会被 `before.min(prefix_commands)`
+    // 夹回（更保守 ✓），**少算才会漏担保** ✗ ⇒ 必须按同一口径数 ✓。
+    let lib_prefix_commands: usize = lib_units
+        .iter()
+        .map(|unit| {
+            unit.file
+                .commands
+                .iter()
+                .filter(|command| !matches!(command, crate::ast::Command::Import { .. }))
+                .count()
+        })
+        .sum();
     // 读在 `lib_pass.report` 被搬走**之前**（`split_report` 会吃掉它）。
     let lib_checks = lib_pass.kernel_checks();
     let lib_ranges = crate::compile::unit_ranges(lib_units);
@@ -168,6 +190,8 @@ pub(crate) fn with_project_session_trusted<R>(
             Some(&entry_prefixes),
             Some(&entry_display),
             Some(&entry_defs),
+            // **G-29 第 3 棒**：把本趟 `idx` 平移到闭包坐标系（见 `lib_prefix_commands`）。
+            lib_prefix_commands,
         );
         builder = next;
         tables = next_tables;

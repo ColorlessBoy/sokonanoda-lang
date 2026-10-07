@@ -1025,6 +1025,8 @@ fn run_pass_in<'a>(
         None,
         None,
         None,
+        // 老路/单文件/库层：judge 的前缀与本趟 `idx` **同坐标系** ✓ ⇒ 不平移。
+        0,
     )
     .0
 }
@@ -1234,6 +1236,11 @@ pub(crate) fn run_pass_with<'a, 's>(
     // **切片 1b 的入口趟**：跨模块 hover 回填用的 `名字 → 定义 span` 表。
     // `None` ⇒ 按 `units` 自己算（**今天的行为，逐字节不变** ✓）。
     defs_override: Option<&std::collections::HashMap<String, crate::Span>>,
+    // **G-29 第 3 棒**：本趟 `idx` 相对 **judge 合成文档前缀坐标系**的平移量
+    // （= 闭包里**排在本趟 units 之前**的命令数 ✓）。`0` ⇒ 同坐标系
+    // （老路 / 单文件 / 库层趟 ⇒ **逐字节回到今天** ✓）；session 的**入口趟**
+    // 传"库层那一段的命令数"（见 `project/session.rs` ✓）。
+    judge_prefix_offset: usize,
 ) -> (PassResult, EnvBuilder<'a>, PassTables<'a>)
 where
     'a: 's,
@@ -1382,6 +1389,8 @@ where
         // 调用方那一趟的名表：**只有 judge 的合成编译**会设（`TrustPlan` ✓），
         // 其余一律 `None` ⇒ 不透明快路**关** ⇒ 逐字节回到今天 ✓。
         trusted_entered: trust.and_then(|t| t.trusted_entered.clone()),
+        // **G-29 第 3 棒**：judge 合成文档前缀的坐标系平移量（默认 0 ✓）。
+        judge_prefix_offset,
     };
     walk.run(
         units,
