@@ -642,6 +642,41 @@ impl<'a> ElabScope<'a> {
             })
             .collect()
     }
+    /// [`judge_binders_for`] 的**源 AST 版**（G-29 第 4 棒）：同样的筛选
+    /// （被 `expr` 传递提到的那些 binder · 有名字 · **有书写类型**）、同样的顺序，
+    /// 但给的是**源 `Expr`** 而不是渲染文本 ⇒ 就地路可以直接造项。
+    ///
+    /// ⚠ 两份筛选必须**逐个一致**（就地路拿它当"剥几层"的依据）——`infer_type_text_inplace`
+    /// 的 `debug_assert_eq!(binder_srcs.len(), binder_count)` 钉着这条 ✓。
+    fn judge_binder_srcs_for(&self, expr: &Expr) -> Vec<(String, Expr)> {
+        let n = self.len();
+        let mut needed = vec![false; n];
+        for (i, name) in self.names.iter().enumerate() {
+            if !name.is_empty() && mentions_ident(expr, name) {
+                needed[i] = true;
+            }
+        }
+        for i in (0..n).rev() {
+            if !needed[i] {
+                continue;
+            }
+            if let Some(ty) = self.src_tys[i].as_ref() {
+                for (j, name) in self.names.iter().enumerate().take(i) {
+                    if !needed[j] && !name.is_empty() && mentions_ident(ty, name) {
+                        needed[j] = true;
+                    }
+                }
+            }
+        }
+        (0..n)
+            .filter(|&i| needed[i])
+            .filter_map(|i| {
+                self.src_tys[i]
+                    .as_ref()
+                    .map(|ty| (self.names[i].clone(), ty.clone()))
+            })
+            .collect()
+    }
     /// The written source type of the innermost binder named `name`.
     fn src_ty(&self, name: &str) -> Option<&Expr> {
         let pos = self.names.iter().rposition(|candidate| candidate == name)?;
@@ -5642,7 +5677,18 @@ pub(crate) fn elab_expr<'a>(
                 _ => None,
             };
             // 3) level：judge_infer(R) 的类型文本映射宇宙（design §5 step 3）。
-            let level = infer_expected_level(ctx, scope, expected_src).ok_or_else(|| {
+            // **G-29 第 4 棒**：带上**活环境**（`builder` 就是本趟的环境）⇒ 开关 `on`
+            // 时就地答，不再为这一问合成/重跑整段前缀 ✓（答不出原样回落 ✓）。
+            let level = infer_expected_level(
+                ctx,
+                scope,
+                expected_src,
+                Some(&mut InplaceEnv {
+                    builder: &mut *builder,
+                    known,
+                }),
+            )
+            .ok_or_else(|| {
                 CompileError::elab(
                     ErrorKind::ElabMatchNoExpectedType,
                     "无法确定 `match` 结果类型所在的宇宙层级（v1 只支持内核能推断出 Sort 的结果类型）",
@@ -6594,21 +6640,114 @@ fn sort_text_level(text: &str) -> Option<u64> {
 
 /// The recursor universe level for the expected result type `R`: the sort of
 /// `R` as inferred by the kernel (`judge_infer` reuses the 128-entry cache).
-fn infer_expected_level(ctx: &ElabCtx, scope: &ElabScope, expected_src: &Expr) -> Option<u64> {
+///
+/// **G-29 第 4 棒（2026-10-08）**：多收一个 [`InplaceEnv`] —— `Some` 且开关允许时
+/// **就地答**（在活环境上 elaborate `R`，**不再合成整段前缀** ✓）。
+///
+/// 三档与 [`infer_type_text`] 同款，**只差失败语义**（这是刻意的 ✓）：
+/// * `infer_type_text` 就地失败 ⇒ 答 `None`（它那边有 shadow 全量证明「失败 ⇒
+///   慢路也失败」✓）；
+/// * **这里就地失败 ⇒ 回落 `judge_infer`** ✗→✓ —— 因为 `None` 在调用方是
+///   **一条诊断**（`ElabMatchNoExpectedType`）⇒ 失败即答 `None` 会把「能判」
+///   变成「不能判」✗（判定改变）。回落让**中性由构造保证** ✓，代价只是这一类
+///   答不上时照旧重跑前缀。
+///
+/// 🔴 **判定中性**：命中缓存那条路与 `judge_infer` 内部**同一把键、同一个查表**
+/// （G-85 ✓）⇒ 逐字节等价；就地答上时 `sort_text_level` 吃的是**同一条内核 pp 剥层**
+/// （`infer_type_text_inplace` 与 `judge_infer_uncached` 都以 `peel_binders` 收尾 ✓）
+/// ⇒ 影子档比的是**最终那个层级**（消费方唯一读的东西 ✓）。
+fn infer_expected_level<'a>(
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    expected_src: &Expr,
+    env: Option<&mut InplaceEnv<'_, 'a>>,
+) -> Option<u64> {
     let term = render_expr(expected_src);
-    let binders = scope.judge_binders_for(expected_src);
-    let text = if binders.is_empty() {
-        // `R` is closed w.r.t. the local context: add one dummy `Prop` binder so
-        // `judge_infer`'s `fun … => R` wrapper still has a layer to peel.
-        let dummy = vec![GoalBinderSpec {
-            name: "_soko_expected_level".to_string(),
-            ty: Some("Prop".to_string()),
-        }];
-        judge_infer(ctx.prefix_src, ctx.options, &dummy, &term).ok()?
-    } else {
-        judge_infer(ctx.prefix_src, ctx.options, &binders, &term).ok()?
+    let needed = scope.judge_binders_for(expected_src);
+    // `R` is closed w.r.t. the local context: add one dummy `Prop` binder so
+    // `judge_infer`'s `fun … => R` wrapper still has a layer to peel.
+    let dummy = [GoalBinderSpec {
+        name: "_soko_expected_level".to_string(),
+        ty: Some("Prop".to_string()),
+    }];
+    let binders: &[GoalBinderSpec] = if needed.is_empty() { &dummy } else { &needed };
+    let slow = || {
+        judge_infer(ctx.prefix_src, ctx.options, binders, &term)
+            .ok()
+            .and_then(|text| sort_text_level(&text))
     };
-    sort_text_level(&text)
+    match (crate::judge::inplace_mode(), env) {
+        (crate::judge::InplaceMode::On, Some(env)) => {
+            // ① 命中先走今天那条快路（与 `judge_infer` 内部**同一把键** ✓）。
+            if let Some(hit) =
+                crate::judge::judge_infer_lookup("", ctx.prefix_src, ctx.options, binders, &term)
+            {
+                return hit.ok().and_then(|text| sort_text_level(&text));
+            }
+            // ② 未命中 ⇒ 就地答（**不合成前缀**）；答不出/不是 Sort ⇒ 回落慢路 ✓。
+            let srcs = scope.judge_binder_srcs_for(expected_src);
+            match infer_type_text_inplace(env, ctx, &srcs, expected_src, needed.len(), None) {
+                Ok(text) => match sort_text_level(&text) {
+                    Some(level) => {
+                        crate::judge::stats::INPLACE_USED
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        // 写回**同一张缓存**（键与慢路同一把 ✓）⇒ 下一刀直接命中 ✓。
+                        crate::judge::judge_infer_store(
+                            "",
+                            ctx.prefix_src,
+                            ctx.options,
+                            binders,
+                            &term,
+                            &Ok(text),
+                        );
+                        Some(level)
+                    }
+                    // 文本不是 Sort（就地路答得了类型、答不了"这一问"）⇒ 回落。
+                    None => slow(),
+                },
+                Err(why) => {
+                    crate::judge::stats::INPLACE_FALLBACK
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    if crate::judge::inplace_why_enabled() {
+                        crate::judge::stats::note_by_reason(match why {
+                            InplaceFail::ElabBinder => "xlevel-on-elab-binder",
+                            InplaceFail::ElabOperand => "xlevel-on-elab-operand",
+                            InplaceFail::Kernel => "xlevel-on-kernel",
+                        });
+                    }
+                    slow()
+                }
+            }
+        }
+        // 影子档：**两条都跑**、比**最终层级**（消费方唯一读的东西 ✓），
+        // **返回慢路那份** ⇒ 判定逐字节不变 ✓。
+        (crate::judge::InplaceMode::Shadow, Some(env)) => {
+            let srcs = scope.judge_binder_srcs_for(expected_src);
+            let inplace =
+                infer_type_text_inplace(env, ctx, &srcs, expected_src, needed.len(), None)
+                    .ok()
+                    .and_then(|text| sort_text_level(&text));
+            let old = slow();
+            if old == inplace {
+                crate::judge::stats::INPLACE_SHADOW_SAME
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            } else {
+                crate::judge::stats::INPLACE_SHADOW_DIFF
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                crate::judge::stats::note_inplace_fail(&format!(
+                    "xlevel-diff term={term:?} binders={} slow={old:?} inplace={inplace:?}",
+                    binders.len()
+                ));
+                eprintln!(
+                    "JUDGE_INPLACE_XLEVEL_MISMATCH binders={} term={:?} slow={old:?} inplace={inplace:?}",
+                    binders.len(),
+                    term
+                );
+            }
+            old
+        }
+        _ => slow(),
+    }
 }
 
 fn level_from_u64<'a>(builder: &mut EnvBuilder<'a>, n: u64) -> LevelPtr<'a> {
