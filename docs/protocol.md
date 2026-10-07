@@ -137,7 +137,7 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   the second cut it also covers the `open`/`export` clauses — `open Foo ()`,
   `open Foo hiding` with no names, `renaming a b` without `=>`, a dotted name
   in a clause (clauses take **short** names), and an `open … in` body that is
-  not a leaf command);
+  not a leaf command); plus the brace family (third cut §14.4 / G-60 §19, `docs/design/notation-subset.md`): `set-literal-shape` (empty `{}`, three or more elements, a missing `}` — also the anonymous constructor `⟨⟩`) and `set-builder-shape` (`{x | P x}` has **no type source** in this subset, which has no metavariables: the hint teaches the two writable shapes `{x : α | P x}` / `{x ∈ A | P x}`; also a binder predicate other than `∈`, or a missing `|`/`}`);
 - `elab` stage — e.g. `elab-unknown-identifier`, `elab-unknown-constant`,
   `elab-unknown-universe-level`, `elab-universe-level-conflict`, `elab-universe-arity`, `elab-untyped-binder`,
   `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,

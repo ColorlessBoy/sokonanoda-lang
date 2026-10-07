@@ -978,3 +978,43 @@ front 5 条（`Prop -> Prop`→`Prop → Prop`、`Nat -> Nat`→`Nat → Nat`、
 CLI 全量 **25 target / 0 FAILED** · 完整 `scripts/soko gate` **exit 0** ✓。
 
 **台账**：**G-50**（fixed）。
+
+## 19. G-60（0.83.0）：集合建构式 `{x : α | P x}` / `{x ∈ A | P x}`（N13）
+
+> 状态：**已落地（as-built）**。落点 = `parser.rs`（+ prelude 登记区 + 测试 + 课程侧）+ 一处
+> **配套修复** `proof::render_binder`（见下）；**`crates/kernel/**` 与 `elab.rs` 一个字节未动** ——
+> 脱糖在 **parser** 里完成，产出的就是既有 AST（`Expr::Lambda` / `Expr::App`）⇒ 显示面、`by`
+> 步进、语义高亮、spine/goals 全部**零改动**。
+
+**形状**（`{` 之后的 lookahead = `set_builder_ahead`，判据是**括号深度 0 处出现 `|`**）：
+
+| 写法 | 脱糖目标 | 类型来源 |
+|---|---|---|
+| `{x : α \| P x}` | `Expr::Lambda`（`fun (x : α) => P x`）| **标注** ✓ **纯内核**，不依赖任何库 |
+| `{x ∈ A \| P x}` | `Set.sep A (fun x => P x)` | **`A`**（`Set.sep` 的 telescope 解出 `α`）|
+| `{x \| P x}` | **拒绝**（`set-builder-shape`）| 无 —— 本语言没有元变量（N4.2）|
+
+- **为什么 `{x ∈ A | P x}` 落到 `Set.sep`**：没有元变量 ⇒ Lean 的 `setOf fun x => x ∈ A ∧ P x`
+  里 binder 的类型只能从**期望类型**解（`#check` 那类位置写不出来 ✗）；落到 `Set.sep` 则
+  **α 从 `A` 来** ✓，且与点名 `Set.sep A P` **同头常量** ⇒ `mem_sep_iff` / `sep_subset` 直接
+  `rw` 得上（落成 lambda 要先展开 ✗）。**代价（明说）**：依赖 `Set.sep` 在作用域内（与
+  Lean/Mathlib 的 `{x ∈ s | p x}` 同款）；缺库报 `elab-unknown-identifier`（点名 `Set.sep`），
+  **不另造码**（`{a}` 那条在 elab 期展开才有落点）。`∈` 若指向别的目标报**类型错**（不静默）。
+- **边界**：变量名一个（Lean 的 `extBinder` 同款，`{x y ∈ A | …}` 不支持）；binder 谓词只认 `∈`
+  （`∉`/`⊆`/`≤` 那几种 Lean 支持而我们不做）—— 两者都留给依赖 binder 那一刀（§13.2）。
+- **与 `binder_notation` 的关系**：两条**各自独立**、都不引入元变量，类型都只从**标注**或
+  **关系式的其它操作数**来；差别在落点：`binder_notation` 的目标是**声明里给的名字**（用户可
+  自定义），集合建构式的目标是**内建写死**的（`Set.sep`，与 `{a}` → `Set.singleton` 同族）。
+  `{x ∈ A | P x}` 的 guard 走**与两段式 binder 同一条** `parse_operators_from` 梯子 ⇒ 读法一致 ✓。
+- **诊断口径**：`{x | P x}` 报**专用码 `set-builder-shape`**（原来掉进 `set-literal-shape`
+  「集合字面量要写成 {a} 或 {a, b}」—— **指错路** ✗）；文案指路：「请写 `{x : α | P x}`（自己给
+  类型）或 `{x ∈ A | P x}`（类型从 `A` 来）」。
+- **登记**：`{x ∈ A | P x}` 进 prelude 的 **`builtin-sugar` 登记区**（E11 同款），目标 `Set.sep`
+  逐字守卫（`prelude_mirror.rs`）；`{x : α | P x}` **如实登记**「脱糖成函数 `fun (x : α) => P x`，
+  无目标常量」（与 `⟨a, b⟩` 同款，**不许**编一个目标名 ✗）。
+- **配套修复（同轮，`proof::render_binder`）**：无类型的 binder 改打**裸名字**（`fun x => …`）而
+  不是 `(x)` —— `render_expr` 的产物是**回读通道的输入**，而 `(x)` **回读不了**（`parse_binder`
+  的 `(` 分支要求 `x : T`）⇒ 含「无类型 binder 的 λ」的目标在 `by` 通道里一律判
+  `elab-tactic-failed` ✗（**修前实测**：`{x ∈ A | P x} ⊆ A` 的 `by exact …`；基线二进制**同错**
+  ⇒ 既有缺陷）。`render_binder_notation` 早就是这么做的 ⇒ 与它对齐，**只改无类型那一档** ✓。
+- **不破坏既有形状**：`{a}` / `{a, b}` / `{}` / `{a, b, c}` 与 binder 组 `{x : T}` 逐字不变 —— lookahead 只在新形状上分派：`{x : T}` 里没有 `|` ⇒ 仍走字面量/binder 老路 ✓。

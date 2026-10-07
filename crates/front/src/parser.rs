@@ -5,7 +5,7 @@ use super::ast::{
     NotationAssoc, NotationDecl, OpenFilter, Pattern, RecDecl, SortKind, Tactic,
 };
 use super::diagnostic::{Diagnostic, DiagnosticKind, Result};
-use super::span::Span;
+use super::span::{Pos, Span};
 use super::token::{
     scan_notation_symbols, tokenize_with_symbols, Token, TokenKind, NOTATION_COMMANDS,
 };
@@ -50,6 +50,21 @@ struct BinaryOp {
     /// `true` ⇒ 产出 `Expr::Plus`（内建保留项），否则产出 `Expr::Notation`。
     /// 目标候选表在构造 `Expr::Notation` 时由 `notation_node` 现取（唯一来源）。
     builtin_plus: bool,
+}
+
+/// 集合建构式（G-60，设计 `docs/design/notation-subset.md` §19）的三种花括号
+/// 形状 —— [`Parser::set_builder_ahead`] 的返回值。
+///
+/// 三种都要求「括号深度 0 处有一个 `|`」；区别只在 `|` **之前**是什么。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SetBuilderKind {
+    /// `{x : α | P x}` ⇒ `fun (x : α) => P x`（**纯内核**：不依赖任何库）。
+    Typed,
+    /// `{x ∈ A | P x}` ⇒ `Set.sep A (fun x => P x)`（依赖 `Set.sep` 在作用域内）。
+    Sep,
+    /// `{x | P x}` —— **故意拒绝**：本语言没有元变量（第一刀 N4.2）⇒ `x` 的
+    /// 类型没有来源。诊断指路（`set-builder-shape`），不是「集合字面量」。
+    Untyped,
 }
 
 pub struct Parser {
@@ -1953,7 +1968,11 @@ impl Parser {
     }
 
     fn parse_arrow(&mut self) -> Result<Expr> {
-        if self.named_group_ahead() {
+        // **G-60**：`{x : α | P x}` 与 `{x : T}` 一样以「名字 + `:`」开头，但它
+        // **不是** binder 组（后面有分隔符 `|`）⇒ 在这里让路给 `parse_atom` 的
+        // 集合建构式分支（设计 §19）。`{x : T}`（没有 `|`）⇒ `set_builder_ahead`
+        // 返回 `None` ⇒ 本行**逐字不变** ✓。
+        if self.named_group_ahead() && self.set_builder_ahead().is_none() {
             // `(a b c : T) -> body`：同型多名字 binder 组（读内核 pp 类型文本
             // 时需要，如 `forall (a b : Prop), ...`）。展开成逐名字的 Forall 链。
             let group = self.parse_binder_group()?;
@@ -2472,11 +2491,15 @@ impl Parser {
     /// `{a}` / `{a, b}` 的 lookahead（第三刀 §12.4）：`{` 后面**不是** binder
     /// 形状（`{x : T}` / `{x y : T}`，判据与 `push_binders` 的
     /// `named_group_ahead` 同一份）就算集合字面量。
+    ///
+    /// **G-60 增量**：集合建构式（`{x : α | P x}` / `{x ∈ A | P x}` / `{x | P x}`）
+    /// 也是原子（`f {x ∈ A | P x}` 合法，与 `f {a}` 同款）；它由
+    /// [`Self::set_builder_ahead`] 单独认，认不出时这条老判据**逐字不变** ✓。
     fn set_literal_ahead(&self) -> bool {
         if self.peek().kind != TokenKind::LBrace {
             return false;
         }
-        !self.brace_binder_ahead()
+        self.set_builder_ahead().is_some() || !self.brace_binder_ahead()
     }
 
     /// `{` 里是不是 binder 形状 `{x : T}` / `{x y : T}`（G-05 的
@@ -2500,6 +2523,209 @@ impl Parser {
             i += 1;
         }
         saw_ident && matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::Colon))
+    }
+
+    /// **G-60**：`{` 里是不是集合建构式，是哪一种；返回的 `Span` 覆盖
+    /// `{` 到那个分隔 `|`（拒绝无类型版时正好高亮 `{x |`）。
+    ///
+    /// 判据 = **括号深度 0 处出现 `|`**，且 `|` 之前是：
+    /// ① 名字 + `:`（`{x : α | …}`，Typed）· ② 名字 + 已声明的二元记法符号
+    /// （`{x ∈ A | …}`，Sep）· ③ 光一个名字（`{x | …}`，Untyped）。
+    ///
+    /// ⚠ **只在新形状上返回 `Some`**：`{x : T}`（binder 组）与 `{a}` / `{a, b}`
+    /// （集合字面量）里都没有 `|` ⇒ 返回 `None` ⇒ 两条老路逐字不变 ✓。
+    /// 谓词里的 `match … with | …`、类型里的括号都在更深的层 ⇒ 不会误判。
+    fn set_builder_ahead(&self) -> Option<(SetBuilderKind, Span)> {
+        let toks = &self.tokens;
+        let open = toks.get(self.cursor)?.span;
+        if !matches!(
+            toks.get(self.cursor).map(|t| &t.kind),
+            Some(TokenKind::LBrace)
+        ) {
+            return None;
+        }
+        let mut i = self.cursor + 1;
+        if !matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::Ident(_))) {
+            return None;
+        }
+        i += 1;
+        let kind = match toks.get(i).map(|t| &t.kind) {
+            Some(TokenKind::Colon) => SetBuilderKind::Typed,
+            Some(TokenKind::Sym(symbol))
+                if self
+                    .notation(symbol)
+                    .is_some_and(|entry| entry.assoc.is_binary()) =>
+            {
+                SetBuilderKind::Sep
+            }
+            Some(TokenKind::Pipe) => {
+                let pipe = toks.get(i).expect("checked").span;
+                return Some((SetBuilderKind::Untyped, Span::new(open.start, pipe.end)));
+            }
+            _ => return None,
+        };
+        let mut depth = 0usize;
+        loop {
+            match toks.get(i).map(|t| &t.kind) {
+                None | Some(TokenKind::Eof) => return None,
+                Some(TokenKind::LParen) | Some(TokenKind::LBrace) | Some(TokenKind::Langle) => {
+                    depth += 1;
+                }
+                Some(TokenKind::RParen) | Some(TokenKind::RBrace) | Some(TokenKind::Rangle) => {
+                    if depth == 0 {
+                        return None;
+                    }
+                    depth -= 1;
+                }
+                Some(TokenKind::Pipe) if depth == 0 => {
+                    let pipe = toks.get(i).expect("checked").span;
+                    return Some((kind, Span::new(open.start, pipe.end)));
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+    }
+
+    /// 集合建构式（G-60）的**脱糖**（设计 §19）：
+    ///
+    /// - `{x : α | P x}` ⇒ `Expr::Lambda`（`fun (x : α) => P x`）—— 纯内核 ✓
+    /// - `{x ∈ A | P x}` ⇒ `Set.sep A (fun x => P x)` —— 与点名 `Set.sep A P`
+    ///   **同头常量**（`mem_sep_iff` / `sep_subset` 直接 `rw` 得上）；`α` 由
+    ///   `Set.sep` 的 telescope 从 `A` 解出（本语言没有元变量 ⇒ 不给 `x` 标注）。
+    ///
+    /// `Untyped` 不在这里处理（`parse_atom` 直接拒，专用码 `set-builder-shape`）。
+    fn parse_set_builder(&mut self, open: Span, kind: SetBuilderKind) -> Result<Expr> {
+        let name_tok = self.peek().clone();
+        let name = self.expect_ident("集合建构式的变量名")?;
+        match kind {
+            SetBuilderKind::Typed => {
+                self.expect_colon("集合建构式的类型标注")?;
+                let ty = self.parse_expr()?;
+                let binder_span = Span::new(name_tok.span.start, ty.span().end);
+                self.expect_set_builder_pipe()?;
+                let body = self.parse_expr()?;
+                let close = self.expect_set_builder_close()?;
+                Ok(Expr::Lambda {
+                    binders: vec![Binder {
+                        name,
+                        ty: Some(Box::new(ty)),
+                        style: BinderKind::Explicit,
+                        span: binder_span,
+                    }],
+                    body: Box::new(body),
+                    span: Span::new(open.start, close),
+                })
+            }
+            SetBuilderKind::Sep => {
+                // 本版只认 `∈`（Lean 的 `extBinder` 还支持 `∉`/`⊆`/`≤` 等
+                // binder 谓词 —— 那要 `binder_predicate` 那套，设计 §13.2）。
+                let sym = match &self.peek().kind {
+                    TokenKind::Sym(symbol) => symbol.clone(),
+                    other => {
+                        return Err(self.error_here(&format!(
+                            "集合建构式 `{{x ∈ A | P x}}` 里，`x` 后面要跟关系符号 `∈`，实际是 {other:?}"
+                        )));
+                    }
+                };
+                if sym != "∈" {
+                    let span = self.peek().span;
+                    return Err(Diagnostic::new(
+                        DiagnosticKind::SetBuilderShape {
+                            detail: format!("binder predicate `{sym}`"),
+                        },
+                        span,
+                        format!(
+                            "集合建构式这一版只支持 `∈`（`{{x ∈ A | P x}}`）：`{{x {sym} … | …}}` 这类 binder 谓词还没做 —— 请写 `{{x : α | P x}}`（自己给类型）或点名形式"
+                        ),
+                    ));
+                }
+                // guard 走**与两段式 binder 同一条**梯子（`∀ x ∈ s, p` 怎么读
+                // `x ∈ s`，这里就怎么读）：`lhs` 已在手，`parse_operators_from`
+                // 从**当前** token（关系符号）继续爬升 ✓。
+                let lhs = Expr::Ident {
+                    name: name.clone(),
+                    span: name_tok.span,
+                };
+                let guard = self.parse_operators_from(lhs, 0)?;
+                let Expr::Notation {
+                    rhs: Some(rhs),
+                    span: rhs_span,
+                    ..
+                } = guard
+                else {
+                    return Err(self.error_here(
+                        "集合建构式 `{x ∈ A | P x}` 里，`x` 后面要跟一个二元关系式（例如 `x ∈ A`）",
+                    ));
+                };
+                self.expect_set_builder_pipe()?;
+                let body = self.parse_expr()?;
+                let close = self.expect_set_builder_close()?;
+                let span = Span::new(open.start, close);
+                // `Set.sep A (fun x => P x)`：`x` **不给标注** —— 类型从
+                // `Set.sep` 的 telescope（`A : Set α`）解，正是「α 从 A 来」✓。
+                let lambda = Expr::Lambda {
+                    binders: vec![Binder {
+                        name,
+                        ty: None,
+                        style: BinderKind::Explicit,
+                        span: name_tok.span,
+                    }],
+                    body: Box::new(body),
+                    span,
+                };
+                let sep = Expr::App {
+                    fun: Box::new(Expr::Ident {
+                        name: "Set.sep".to_string(),
+                        span: open,
+                    }),
+                    arg: Box::new(*rhs),
+                    explicit_spine: false,
+                    span: Span::new(open.start, rhs_span.end),
+                };
+                Ok(Expr::App {
+                    fun: Box::new(sep),
+                    arg: Box::new(lambda),
+                    explicit_spine: false,
+                    span,
+                })
+            }
+            SetBuilderKind::Untyped => {
+                unreachable!("`{{x | P x}}` 在 parse_atom 里就被拒（set-builder-shape）")
+            }
+        }
+    }
+
+    /// 集合建构式的分隔符 `|`（缺了给专用码，不是 `unexpected-token`）。
+    fn expect_set_builder_pipe(&mut self) -> Result<()> {
+        if self.peek().kind == TokenKind::Pipe {
+            self.bump();
+            return Ok(());
+        }
+        let tok = self.peek().clone();
+        Err(Diagnostic::new(
+            DiagnosticKind::SetBuilderShape {
+                detail: format!("expected `|`, found {:?}", tok.kind),
+            },
+            tok.span,
+            "集合建构式要写成 `{x : α | P x}` / `{x ∈ A | P x}`：变量（及其类型或所属集合）与谓词之间用一个 `|` 隔开"
+                .to_string(),
+        ))
+    }
+
+    /// 集合建构式的收尾 `}`，返回它的结束 offset。
+    fn expect_set_builder_close(&mut self) -> Result<Pos> {
+        if self.peek().kind == TokenKind::RBrace {
+            return Ok(self.bump().span.end);
+        }
+        let tok = self.peek().clone();
+        Err(Diagnostic::new(
+            DiagnosticKind::SetBuilderShape {
+                detail: format!("expected `}}`, found {:?}", tok.kind),
+            },
+            tok.span,
+            "集合建构式要用 `}` 收尾：`{x : α | P x}` / `{x ∈ A | P x}`".to_string(),
+        ))
     }
 
     /// `{a}` / `{a, b}`（第三刀 §12.4）：1–2 个元素，展开成点名形式
@@ -2588,10 +2814,29 @@ impl Parser {
     }
 
     fn parse_atom(&mut self) -> Result<Expr> {
+        // 集合建构式（G-60，设计 §19）：lookahead 必须打在 `{` **还在** cursor
+        // 上的时候（`set_builder_ahead` 从 `self.cursor` 起算）；非 `{` 时它
+        // 立即返回 `None` ⇒ 其余原子零开销 ✓。
+        let builder = self.set_builder_ahead();
         let tok = self.bump();
         match tok.kind {
-            // 集合字面量（第三刀 §12.4）：`{a}` / `{a, b}`。
-            TokenKind::LBrace => self.parse_set_literal(tok.span),
+            // `{x | P x}` **故意拒绝** —— 没有元变量 ⇒ `x` 的类型没有来源；
+            // 诊断**指路**（写带类型的那两种），不是「集合字面量」那句 ✗。
+            TokenKind::LBrace => match builder {
+                Some((SetBuilderKind::Untyped, span)) => Err(Diagnostic::new(
+                    DiagnosticKind::SetBuilderShape {
+                        detail: "untyped set builder `{x | P x}`".to_string(),
+                    },
+                    span,
+                    "`{x | P x}` 写不出来：本语言没有元变量，`x` 的类型没有来源。\
+                     请写 `{x : α | P x}`（自己给类型）或 `{x ∈ A | P x}`（类型从 `A` 来）"
+                        .to_string(),
+                )),
+                // `{x : α | P x}` / `{x ∈ A | P x}`（G-60）。
+                Some((kind, _)) => self.parse_set_builder(tok.span, kind),
+                // 集合字面量（第三刀 §12.4）：`{a}` / `{a, b}`。
+                None => self.parse_set_literal(tok.span),
+            },
             // 匿名构造子（课程 Lean 化 L2.7）：`⟨a, b⟩`。
             TokenKind::Langle => self.parse_anon_ctor(tok.span),
             TokenKind::At => {
@@ -5336,5 +5581,185 @@ end
         let file = parse("namespace A\nabbrev Set (α : Type) : Type := α -> Prop\nend A\n")
             .expect("parse");
         assert!(matches!(&file.commands[1], Command::Def { name, .. } if name == "A.Set"));
+    }
+
+    // ── G-60（0.83.0）：集合建构式（设计 `docs/design/notation-subset.md` §19）──
+    // 判据三层里的**真相层**（parser）：形状 → AST。判卷那一层（脱糖后的行为）
+    // 在 `compile/tests.rs`；白名单登记在 `tests/prelude_mirror.rs` ✓。
+
+    /// `{x : α | P x}` ⇒ `Expr::Lambda`（**纯内核**：`Set`/`∈` 一个都不需要）。
+    #[test]
+    fn a_typed_set_builder_desugars_to_a_plain_lambda() {
+        // 声明位不带 binder（parser 不解析名字 ⇒ 自由变量在这里完全合法）：
+        // 这样 `val` **就是**脱糖出来的那个 lambda，不必先剥声明 binder 的壳。
+        let file = parse("def s : Set α := {x : α | P x}\n").expect("parse");
+        let Command::Def { val, .. } = &file.commands[0] else {
+            panic!("expected a def");
+        };
+        let Expr::Lambda { binders, body, .. } = val else {
+            panic!("`{{x : α | P x}}` 必须脱糖成 lambda，实际 {val:?}");
+        };
+        assert_eq!(binders.len(), 1);
+        assert_eq!(binders[0].name, "x");
+        assert!(
+            matches!(binders[0].ty.as_deref(), Some(Expr::Ident { name, .. }) if name == "α"),
+            "binder 的类型标注要**原样**保留（它是唯一的类型来源）：{:?}",
+            binders[0].ty
+        );
+        assert_eq!(binders[0].style, BinderKind::Explicit);
+        // 谓词是 `P x`（`x` 指回 binder）。
+        let Expr::App { arg, .. } = body.as_ref() else {
+            panic!("expected `P x`, got {body:?}");
+        };
+        assert!(matches!(arg.as_ref(), Expr::Ident { name, .. } if name == "x"));
+    }
+
+    /// `{x ∈ A | P x}` ⇒ `Set.sep A (fun x => P x)`（点名形式，**同头常量**）。
+    #[test]
+    fn a_sep_set_builder_desugars_to_the_pointful_sep() {
+        let file =
+            parse("infix:50 \" ∈ \" => Set.mem\ndef s : Set α := {x ∈ A | P x}\n").expect("parse");
+        let Command::Def { val, .. } = &file.commands[1] else {
+            panic!("expected a def");
+        };
+        let Expr::App { fun, arg, .. } = val else {
+            panic!("`{{x ∈ A | P x}}` 必须脱糖成应用，实际 {val:?}");
+        };
+        assert!(
+            matches!(arg.as_ref(), Expr::Lambda { binders, .. }
+                if binders.len() == 1 && binders[0].name == "x" && binders[0].ty.is_none()),
+            "第二个实参是 `fun x => P x`（**不给标注** —— 类型从 `Set.sep` 的 telescope 解）：{arg:?}"
+        );
+        let Expr::App {
+            fun: head,
+            arg: set,
+            ..
+        } = fun.as_ref()
+        else {
+            panic!("expected `Set.sep A`: {fun:?}");
+        };
+        assert!(
+            matches!(head.as_ref(), Expr::Ident { name, .. } if name == "Set.sep"),
+            "头常量必须是 `Set.sep`（与点名写法同头 ⇒ 库里的引理直接 `rw` 得上）：{head:?}"
+        );
+        assert!(matches!(set.as_ref(), Expr::Ident { name, .. } if name == "A"));
+    }
+
+    /// `{x | P x}` **仍被拒**，且诊断**指路**（不是「集合字面量」那句 ✗）。
+    #[test]
+    fn an_untyped_set_builder_is_rejected_with_a_guiding_diagnostic() {
+        let err = parse("def s (α : Type) (P : α → Prop) : Set α := {x | P x}\n")
+            .expect_err("`{x | P x}` 必须被拒（没有元变量 ⇒ 类型没有来源）");
+        assert_eq!(err.code(), "set-builder-shape", "{err:?}");
+        for want in ["{x : α | P x}", "{x ∈ A | P x}"] {
+            assert!(
+                err.message.contains(want),
+                "诊断必须指出可写的形状 `{want}`：{}",
+                err.message
+            );
+        }
+        assert!(
+            !err.message.contains("集合字面量"),
+            "它不是集合字面量 —— 那句「写成 {{a}} 或 {{a, b}}」指错路 ✗：{}",
+            err.message
+        );
+    }
+
+    /// `{x ∈ A | …}` 里关系符号不是 `∈` ⇒ 专用码 + 指路（不是让它静默变成 `Set.sep`）。
+    #[test]
+    fn a_set_builder_with_another_binder_predicate_is_rejected() {
+        let err = parse(
+            "infix:50 \" ≤ \" => Nat.le\n\
+             def s (a : Nat) : Set Nat := {x ≤ a | Eq.{1} Nat x x}\n",
+        )
+        .expect_err("本版只支持 `∈`");
+        assert_eq!(err.code(), "set-builder-shape", "{err:?}");
+        assert!(err.message.contains("{x : α | P x}"), "{}", err.message);
+    }
+
+    /// **既有形状逐字不变**（G-60 不许碰它们）：`{a}` / `{a, b}` 仍是字面量、
+    /// `{x : T}` 仍是 binder 组、`{}` / `{a, b, c}` 的码不变。
+    #[test]
+    fn the_existing_brace_shapes_keep_their_parse() {
+        let file = parse("def one : Set α := {a}\ndef two : Set α := {a, b}\n").expect("parse");
+        for (i, want) in [(0usize, 1usize), (1, 2)] {
+            let Command::Def { val, .. } = &file.commands[i] else {
+                panic!("expected a def");
+            };
+            assert!(
+                matches!(val, Expr::SetLiteral { elements, .. } if elements.len() == want),
+                "`{{a}}` / `{{a, b}}` 仍必须是集合字面量：{val:?}"
+            );
+        }
+        // `{x : T}` 仍是 binder 组（隐式 binder），没有被集合建构式抢走。
+        let file = parse("def f : Nat -> Nat := fun {x : Nat} => x\n").expect("parse");
+        let Command::Def { val, .. } = &file.commands[0] else {
+            panic!("expected a def");
+        };
+        assert!(
+            matches!(val, Expr::Lambda { binders, .. }
+                if binders.len() == 1 && binders[0].style == BinderKind::Implicit),
+            "`fun {{x : Nat}} => x` 的 binder 组必须逐字不变：{val:?}"
+        );
+        // 两条老码不变（空集 / 三元素）。
+        assert_eq!(
+            parse("def e (α : Type) : Set α := {}\n")
+                .unwrap_err()
+                .code(),
+            "set-literal-shape"
+        );
+        assert_eq!(
+            parse("def t (α : Type) (a b c : α) : Set α := {a, b, c}\n")
+                .unwrap_err()
+                .code(),
+            "set-literal-shape"
+        );
+    }
+
+    /// 集合建构式在**实参位**也是原子（与 `f {a}` 同款）—— `starts_atom` 的增量。
+    #[test]
+    fn a_set_builder_is_an_application_argument_without_parentheses() {
+        let file =
+            parse("infix:50 \" ∈ \" => Set.mem\ndef s : Set α := Set.union {x ∈ A | P x} B\n")
+                .expect("parse");
+        let Command::Def { val, .. } = &file.commands[1] else {
+            panic!("expected a def");
+        };
+        let Expr::App {
+            fun: union,
+            arg: second,
+            ..
+        } = val
+        else {
+            panic!("expected an application: {val:?}");
+        };
+        assert!(matches!(second.as_ref(), Expr::Ident { name, .. } if name == "B"));
+        let Expr::App {
+            fun: head,
+            arg: first,
+            ..
+        } = union.as_ref()
+        else {
+            panic!("expected `Set.union <第一个实参>`: {union:?}");
+        };
+        assert!(matches!(head.as_ref(), Expr::Ident { name, .. } if name == "Set.union"));
+        // 第一个实参 = 脱糖后的 `Set.sep A (fun x => P x)`（两段应用）。
+        let Expr::App {
+            fun: sep, arg: lam, ..
+        } = first.as_ref()
+        else {
+            panic!("第一个实参必须是脱糖后的 `Set.sep A (fun x => P x)`：{first:?}");
+        };
+        assert!(matches!(lam.as_ref(), Expr::Lambda { .. }), "{lam:?}");
+        let Expr::App {
+            fun: sep_head,
+            arg: sep_set,
+            ..
+        } = sep.as_ref()
+        else {
+            panic!("expected `Set.sep A`: {sep:?}");
+        };
+        assert!(matches!(sep_head.as_ref(), Expr::Ident { name, .. } if name == "Set.sep"));
+        assert!(matches!(sep_set.as_ref(), Expr::Ident { name, .. } if name == "A"));
     }
 }

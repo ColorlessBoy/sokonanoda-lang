@@ -8637,6 +8637,107 @@ fn a_set_literal_without_the_library_is_a_dedicated_diagnostic() {
     assert_eq!(codes, vec!["elab-set-literal-unknown-target"], "{codes:?}");
 }
 
+// ── G-60（0.83.0）：集合建构式（设计 `docs/design/notation-subset.md` §19）──────
+// 判卷层（真相层）：脱糖**之后**的行为。形状→AST 在 `parser.rs` 的单测，
+// 白名单登记在 `tests/prelude_mirror.rs` ✓。
+
+/// G-60 的课程形状夹具：与卷 I 的 `lib/Set` 同形
+/// （`Set α = α → Prop`、`Set.sep A P = fun x => A x ∧ P x`、`∈` 是 `Set.mem` 的记法）。
+const G60_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n\
+def Set.sep {α : Type} (A : Set α) (P : α -> Prop) : Set α := fun (x : α) => And (A x) (P x)\n\
+infix:50 \" ∈ \" => Set.mem\n";
+
+/// §19：`{x : α | P x}` 脱糖成点名 `fun (x : α) => P x` —— 与手写 lambda
+/// **事件序列逐一相等**。
+#[test]
+fn a_typed_set_builder_expands_to_the_pointful_lambda() {
+    let pointful =
+        format!("{G60_LIB}def s (α : Type) (P : α → Prop) : Set α := fun (x : α) => P x\n");
+    let builder = format!("{G60_LIB}def s (α : Type) (P : α → Prop) : Set α := {{x : α | P x}}\n");
+    assert_eq!(
+        event_shapes(&compile_ok(&pointful)),
+        event_shapes(&compile_ok(&builder)),
+        "`{{x : α | P x}}` 必须与 `fun (x : α) => P x` 判卷一致（§19）"
+    );
+}
+
+/// §19 的**硬要求**：带类型那条是**纯内核**的 —— 一个没有 `Set`/`Set.sep`/`∈`
+/// 的文件里也必须能写（内建语法**不许**硬依赖课程库 ✗）。
+#[test]
+fn a_typed_set_builder_needs_no_library_at_all() {
+    let out = compile_ok("def s (α : Type) (P : α → Prop) : α → Prop := {x : α | P x}\n");
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "s")),
+        "没有库也必须判绿：{:?}",
+        out.events
+    );
+}
+
+/// §19：`{x ∈ A | P x}` 脱糖成点名 `Set.sep A (fun x => P x)` —— 与手写**事件
+/// 序列逐一相等**（`α` 由 `Set.sep` 的 telescope 从 `A` 解出，不给 `x` 标注）。
+#[test]
+fn a_sep_set_builder_expands_to_the_pointful_sep() {
+    let pointful = format!(
+        "{G60_LIB}def s (α : Type) (A : Set α) (P : α → Prop) : Set α := Set.sep A (fun x => P x)\n"
+    );
+    let builder = format!(
+        "{G60_LIB}def s (α : Type) (A : Set α) (P : α → Prop) : Set α := {{x ∈ A | P x}}\n"
+    );
+    assert_eq!(
+        event_shapes(&compile_ok(&pointful)),
+        event_shapes(&compile_ok(&builder)),
+        "`{{x ∈ A | P x}}` 必须与 `Set.sep A (fun x => P x)` 判卷一致（§19）"
+    );
+}
+
+/// §19 选 `Set.sep`（而不是 `setOf fun x => x ∈ A ∧ P x`）的**理由判据**：
+/// 库里那条 `sep_subset` 是**关于 `Set.sep A P` 陈述**的 ⇒ 同一个头常量让它
+/// 对 `{x ∈ A | P x}` **直接 `exact` 得上**（若脱糖成 lambda，得先展开才认得出 ✗）。
+#[test]
+fn the_sep_set_builder_shares_the_library_lemma_head() {
+    let src = format!(
+        "{G60_LIB}\
+         theorem sep_subset (α : Type) (A : Set α) (P : α → Prop) : \
+           ∀ (x : α), Set.sep A P x → A x := fun (x : α) (h : And (A x) (P x)) => And.left h\n\
+         theorem demo (α : Type) (A : Set α) (P : α → Prop) : \
+           ∀ (x : α), {{x ∈ A | P x}} x → A x := sep_subset α A P\n"
+    );
+    let out = compile_ok(&src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "demo")),
+        "`{{x ∈ A | P x}}` 必须与 `Set.sep A P` 同头（库引理直接可用）：{:?}",
+        out.events
+    );
+}
+
+/// §19 的**边界**：`{x | P x}` **仍被拒**，诊断是专用码且**指路**（判卷通道与
+/// `grade` 同一条 parse 路径 ⇒ 这里断言的码就是学生/agent 看到的码）。
+#[test]
+fn an_untyped_set_builder_is_still_rejected_with_a_guiding_code() {
+    let err = parse("def s (α : Type) (P : α → Prop) : Set α := {x | P x}\n")
+        .expect_err("`{x | P x}` 必须被拒（没有元变量 ⇒ 类型没有来源）");
+    assert_eq!(err.code(), "set-builder-shape", "{err:?}");
+    assert!(err.message.contains("{x : α | P x}"), "{}", err.message);
+    assert!(err.message.contains("{x ∈ A | P x}"), "{}", err.message);
+}
+
+/// §19：`{x ∈ A | …}` 里不是 `∈` ⇒ 专用码 + 指路（**不许**静默当成 `Set.sep`）。
+#[test]
+fn a_set_builder_with_another_binder_predicate_is_a_dedicated_code() {
+    let err = parse(
+        "infix:50 \" ≤ \" => Nat.le\n\
+         def s (a : Nat) : Set Nat := {x ≤ a | Eq.{1} Nat x x}\n",
+    )
+    .expect_err("本版只支持 `∈`");
+    assert_eq!(err.code(), "set-builder-shape", "{err:?}");
+}
+
 /// §12.4：元素个数由**期望类型**解出（`{∅}` 这类嵌套记法走这条路）。
 #[test]
 fn a_set_literal_solves_the_element_type_from_the_expected_type() {

@@ -787,6 +787,18 @@ pub fn peel_pi_layers(ty: &Expr, n: usize) -> Option<Expr> {
 }
 
 fn render_binder(binder: &Binder) -> String {
+    // **G-60（0.83.0）配套修复：无类型的 binder 打裸名字**（`fun x => …`），
+    // 不打 `(x)` —— `render_expr` 的产物是**回读通道的输入**（`judge.rs` 把目标/
+    // 假设文本重新交给 parser），而 `(x)` **回读不了**：`parse_binder` 的 `(` 分支
+    // 要求 `x : T` ⇒ 任何含「无类型 binder 的 λ」的目标在 `by` 通道里都判
+    // `elab-tactic-failed` ✗（**修前实测**：`Set.sep A (fun x => P x) ⊆ A` 的
+    // `by exact …`；基线二进制**同错** ⇒ 既有缺陷，不是本条引入的）。
+    // `render_binder_notation`（本文件 `:610`）早就是这么做的——它的注释写着
+    // 「无类型的 binder（源码里就没写）照旧只打名字，所以读回仍可解析」✓；
+    // 这里与它对齐，**只改无类型那一档**（有类型的渲染逐字节不变 ✓）。
+    if binder.ty.is_none() {
+        return binder.name.clone();
+    }
     let ty = binder
         .ty
         .as_ref()

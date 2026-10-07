@@ -231,8 +231,13 @@ theorem sep_subset {α : Type} (A : Set α) (P : α → Prop) :
   intro h
   exact And.left (Iff.mp (mem_sep_iff α A P x) h)
 
+-- **G-60（0.83.0）：集合建构式的课程侧落点** —— `{x ∈ A | P x}` 与点名
+-- `Set.sep A P` 是**同一个头常量**（脱糖成 `Set.sep A (fun x => P x)`），
+-- 而这一条的谓词本来就写成 `fun (x : α) => x ∈ A` ⇒ 用记法写**逐字**就是原来的项
+-- （零风险：两边是同一个 kernel 项）。对照 Mathlib：`sep_subset` 那条也用记法写
+-- 陈述（`{ x ∈ s | p x } ⊆ s`，`Mathlib/Data/Set/Basic.lean:887`）✓。
 theorem sep_self {α : Type} (A : Set α) :
-    sep A (fun (x : α) => x ∈ A) = A := by
+    {x ∈ A | x ∈ A} = A := by
   apply Set.ext (sep A (fun (x : α) => x ∈ A)) A
   intro x
   constructor

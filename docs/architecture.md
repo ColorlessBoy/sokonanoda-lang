@@ -161,8 +161,8 @@ sokonanoda-lang/
   **记法重载**（同符号**同形状**多目标，按**期望类型的结果类型**选候选；选不出
   `elab-notation-ambiguous` / `elab-notation-no-candidate`；重声明 import 来的符号仍是错误）；
   **`scoped` / `open scoped`**（作用域名 = 声明点所在 namespace 的全前缀；`open scoped`
-  **只**开记法不开名字）；**集合字面量** `{a}` / `{a, b}`（`set-literal-shape`；
-  目标缺失报 `elab-set-literal-unknown-target`）；**前缀记法实参位免括号** `f 𝒫 A`
+  **只**开记法不开名字）；**集合字面量** `{a}` / `{a, b}`（`set-literal-shape`；目标缺失报
+  `elab-set-literal-unknown-target`）与**集合建构式** `{x : α | P x}` / `{x ∈ A | P x}`（G-60，0.83.0：parser 期脱糖成 `fun (x : α) => P x` / `Set.sep A (fun x => P x)`；无类型那条**仍被拒** ⇒ `set-builder-shape`）；**前缀记法实参位免括号** `f 𝒫 A`
   （后缀**明确不做**：`f Aᶜ` 今天读作 `(f A)ᶜ`，改了会悄悄重分组）。**仍未做**：
   源码级 print-back（**已立项为线 C，走 front 显示边界重写**，见 `docs/design/notation-aware-printing.md`）、`notation3`/依赖 binder、一般隐式实参推断、
   `open scoped` 的子命名空间传播、编辑器词表同步（设计 §13 逐条给了理由）。

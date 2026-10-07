@@ -55,6 +55,17 @@ pub enum DiagnosticKind {
     SetLiteralShape {
         detail: String,
     },
+    /// **集合建构式**（G-60，`docs/design/notation-subset.md` §19）形状不合法：
+    /// ① `{x | P x}` —— **故意拒绝**（没有元变量 ⇒ `x` 的类型没有来源）；
+    /// ② `{x ∈ A | …}` 里的关系符号不是 `∈`；③ 缺 `|` / 缺 `}`。
+    /// `detail` 是逐原因的正文。
+    ///
+    /// **为什么不复用 `SetLiteralShape`**：`{x | P x}` 不是字面量，那句
+    /// 「集合字面量要写成 {a} 或 {a, b}」**指错路** ✗；而且它的修法是「补一个
+    /// 类型来源」，与字面量的修法（1–2 个元素）不是同一件事。
+    SetBuilderShape {
+        detail: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -88,6 +99,7 @@ impl Diagnostic {
             DiagnosticKind::NamespaceUnclosed { .. } => "parse-namespace-unclosed",
             DiagnosticKind::NamespaceShape { .. } => "parse-namespace-shape",
             DiagnosticKind::SetLiteralShape { .. } => "set-literal-shape",
+            DiagnosticKind::SetBuilderShape { .. } => "set-builder-shape",
         }
     }
 
@@ -132,6 +144,9 @@ impl Diagnostic {
             }
             DiagnosticKind::SetLiteralShape { .. } => {
                 "集合字面量的形状是 {a}（单元素）或 {a, b}（两元素）：元素之间用 `,` 隔开，最后用 `}` 收尾；空集写 Set.empty α，三个及以上用 Set.pair 点名嵌套。"
+            }
+            DiagnosticKind::SetBuilderShape { .. } => {
+                "集合建构式的形状是 `{x : α | P x}`（类型自己给）或 `{x ∈ A | P x}`（类型从 A 来）—— 变量与谓词之间用一个 `|` 隔开；`{x | P x}` 写不出来：本语言没有元变量，`x` 的类型没有来源。"
             }
         }
     }

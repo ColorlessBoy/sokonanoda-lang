@@ -169,31 +169,59 @@ fn the_lexer_recognises_a_builtin_notation_symbol_at_the_cursor() {
 /// 的"路线 C" ✓）⇒ 本判据只要求它**如实登记**这件事 ✓，**不许**断言某个具体目标 ✗。
 ///
 /// **反向验证**：把登记行里的 `Set.singleton` 改成别的名字 ⇒ 判红 ✓。
+///
+/// **G-60（0.83.0）增量**：集合建构式两条也登记在同一区（设计 §19）。它们的展开
+/// 目标**不在 `elab.rs` 而在 `parser.rs`**（`parse_set_builder` 是 parser 期脱糖）
+/// ⇒ 本判据按**每条登记指向哪个文件**核对（逐字 ✓），不是一律查 `elab.rs`：
+/// `{x ∈ A | P x}` → `Set.sep`（`parser.rs`，**卷 I 的库常量**）；`{x : α | P x}`
+/// **没有目标常量**（脱糖成函数）⇒ 只要求**如实登记** ✓。`{x | P x}` **故意不登记**
+/// （它写不出来）⇒ 断言它**不在**登记区（防有人偷偷把它做成能写的）。
 #[test]
 fn builtin_sugar_registry_matches_the_elaborator() {
     let prelude = prelude_source();
-    let elab = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/compile/elab.rs"),
-    )
-    .expect("read elab.rs");
+    let read = |rel: &str| {
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(rel))
+            .unwrap_or_else(|err| panic!("read {rel}: {err}"))
+    };
+    let elab = read("src/compile/elab.rs");
+    let parser = read("src/parser.rs");
 
-    // 有单一目标的两条：登记的目标名必须**同时**出现在 elab.rs 里（逐字 ✓）。
-    for (sugar, target) in [("{a}", "Set.singleton"), ("{a, b}", "Set.pair")] {
+    // 有单一目标的：登记的目标名必须**同时**出现在**它真正的展开落点**那个文件里
+    // （逐字 ✓）—— `{a}`/`{a, b}` 在 elab 期展开（`elab.rs`），
+    // `{x ∈ A | P x}` 在 parser 期脱糖（`parser.rs`）。
+    for (sugar, target, src) in [
+        ("{a}", "Set.singleton", &elab),
+        ("{a, b}", "Set.pair", &elab),
+        ("{x ∈ A | P x}", "Set.sep", &parser),
+    ] {
         let want = format!("-- sokonanoda:builtin-sugar \"{sugar}\" => {target}");
         assert!(
             prelude.lines().any(|line| line == want),
             "prelude 里必须有逐字登记行：{want:?} ✗（E11：登记区）"
         );
         assert!(
-            elab.contains(target),
-            "登记的目标 `{target}` 必须在 `elab.rs` 里真的存在（逐字一致 ✗）：{sugar}"
+            src.contains(target),
+            "登记的目标 `{target}` 必须在它的展开落点里真的存在（逐字一致 ✗）：{sugar}"
         );
     }
-    // 无单一目标的那条：**如实**登记"由期望类型决定"，不许编目标 ✗。
+    // 无单一目标的两条：**如实**登记，不许编目标 ✗。
     assert!(
         prelude
             .lines()
             .any(|line| line.starts_with("-- sokonanoda:builtin-sugar \"⟨a, b⟩\" => 期望类型决定")),
         "`⟨a, b⟩` 必须**如实**登记「期望类型决定」（`elab.rs` L2836 的路线 C ✓）—— 不许编一个目标名 ✗"
+    );
+    assert!(
+        prelude.lines().any(|line| line
+            == "-- sokonanoda:builtin-sugar \"{x : α | P x}\" => 函数（fun (x : α) => P x），无目标常量"),
+        "`{{x : α | P x}}` 必须**如实**登记「脱糖成函数、无目标常量」（设计 §19）—— 不许编一个目标名 ✗"
+    );
+    // `{x | P x}` **写不出来**（没有元变量）⇒ 不许有它的登记行（有 = 有人把它做成了能写的 ✗）。
+    assert!(
+        !prelude
+            .lines()
+            .any(|line| line.starts_with("-- sokonanoda:builtin-sugar \"{x | P x}\"")),
+        "`{{x | P x}}` 故意不登记（没有元变量 ⇒ 类型没有来源，诊断 `set-builder-shape` 指路）\
+         —— 出现登记行说明边界被打破了 ✗"
     );
 }

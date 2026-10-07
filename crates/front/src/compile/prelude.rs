@@ -284,6 +284,17 @@ def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq
 -- sokonanoda:builtin-sugar \"{a}\" => Set.singleton
 -- sokonanoda:builtin-sugar \"{a, b}\" => Set.pair
 -- sokonanoda:builtin-sugar \"⟨a, b⟩\" => 期望类型决定
+-- **G-60（0.83.0）：集合建构式的登记**（设计 `docs/design/notation-subset.md` §19）——
+-- 这两条是**新语法**，但展开目标是**硬编码**的（`{x ∈ A | P x}` → `Set.sep` 写在
+-- `parser.rs` 的 `parse_set_builder` 里 ✗ 同样「无处可查」）⇒ 用同一条约定登记：
+--   · `{x ∈ A | P x}` 有**单一目标** ⇒ 如实写目标名 ✓（`Set.sep` 是**卷 I 的库常量**，
+--     不是内建的 —— 与 Lean/Mathlib 的 `{x ∈ s | p x}` 同款：缺库就没有这个形状）
+--   · `{x : α | P x}` **没有目标常量**（脱糖成函数 `fun (x : α) => P x`，纯内核 ✓）
+--     ⇒ 登记**如实说明**，**不许编一个目标名** ✗
+--   · `{x | P x}` **故意不登记**：它写不出来（没有元变量 ⇒ 类型没有来源），
+--     诊断 `set-builder-shape` 指路 ✓
+-- sokonanoda:builtin-sugar \"{x : α | P x}\" => 函数（fun (x : α) => P x），无目标常量
+-- sokonanoda:builtin-sugar \"{x ∈ A | P x}\" => Set.sep
 ";
 
 /// **ST2（v0.77.0）**：`Quot` 五条的类型**源文本** —— 由 [`install_quot`] 交给
