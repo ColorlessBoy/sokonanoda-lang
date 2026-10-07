@@ -1,7 +1,56 @@
-## [Unreleased]
+## [0.83.0] — 2026-10-08
+
+> **Editing a declaration in a project is ~25% faster** (G-29 — the shared library
+> layer is compiled once and its environment is reused across keystrokes; the
+> structural reading `edit.modules` goes **5 → 1**) · **`build` / `rebuild` stop
+> paying for a shared dependency once per entry** (G-68 — Σ closure compiles
+> **1614 → 517**) · **set-builder notation works** (G-60) · **Infoview notation
+> targets answer `documentHighlight`** (G-55) · **error messages name the binder and
+> the missing leading type parameter** (G-49 / G-21) · and a parallel `build` no
+> longer aborts with a stack overflow (G-94).
+
+### Added
+
+- **Set-builder notation** (G-60). `{x : α | P x}` desugars to `fun (x : α) => P x`
+  (pure kernel, no library needed), and `{x ∈ A | P x}` desugars to
+  `Set.sep A (fun x => P x)` — the same head constant as the explicit `Set.sep A P`,
+  so `mem_sep_iff` / `sep_subset` rewrite through it. `{x | P x}` stays rejected:
+  this language has no metavariables, so `x`'s type would have no source. Its code
+  changes from `set-literal-shape` (which pointed at the wrong thing) to the
+  dedicated `set-builder-shape`, and the hint names the two accepted forms.
+  Desugaring happens entirely in the parser, so the display side, `by` stepping,
+  semantic highlighting, spine and goals are untouched.
 
 ### Changed
 
+- **Editing a declaration in a project no longer recompiles the library layer**
+  (G-29, the "editing is slow" report). The project session compiles the shared
+  library layer once, keeps its environment as a **checkpoint**, and reuses it for
+  the next keystroke when the library summary is byte-identical (names, absolute
+  paths, source text, order — prelude, version and the `SOKO_*` switches are folded
+  into the cache key). On `unit08` the structural reading — module compiles
+  triggered by one edited line — goes **5 → 1**, and the edit wall clock goes
+  **3406 ms → 2555 ms (−25%)**; the two earlier rounds on the same entry are
+  included (the synthesized prefix compiles inside the entry pass go back through
+  the incremental path, **−20%**; `infer_expected_level` joins the in-place path,
+  **−19%**, `prefix` 10 → 5). Judgement-neutrality is pinned by `kernel-diff`
+  (1724 cases, zero differences) plus the whole course's `build --json`,
+  `course --json` and `query check --json` byte-for-byte. Two honest costs: the
+  language server compiles on a dedicated single worker thread (concurrent compiles
+  of different documents are serialized), and the reuse is bounded (≤ 8 arenas,
+  ≤ 64 reuses per checkpoint) — at the ceiling the previous full-recompile path
+  returns verbatim.
+- **A synthesized judgment document no longer loads the prefix's `theorem`s as
+  opaque constants** (G-31 / G-92). The synthesized document used to wrap each
+  prefix theorem in an opaque constant, which forced a second, structurally
+  different judgment: `by_calls` **3.82× → 2.00**, and the reproduction's wall clock
+  **44.23 s → 2.98 s (14.8×)**. A shadow arm compared 665 questions with **0
+  differences**.
+- **The solver's budgets are configurable, and their defaults now follow Lean 4**
+  (G-88): `fuel` 4096 → 20000 (`synthInstance.maxHeartbeats`) and recursion depth
+  64 → 512 (`maxRecDepth`), registered with the other limits and reachable through
+  the same `SOKO_LIMIT_*` switches. Hitting a budget still retries with a bigger
+  one and, at the ceiling, **abstains** (`Tri::Undef`) — never "no".
 - **`build` / `rebuild` no longer compiles a shared dependency once per entry**
   (G-68). The CLI now runs a pre-pass that groups project entries by their
   **library closure signature** and compiles each shared library layer **once per
@@ -52,6 +101,28 @@
   identical with the gate on and off (50065 lines, diff 0), so this is judgment-neutral
   on real corpora while the shape above turns green. Escape hatch `SOKO_ARG_EXPECTED=0`
   restores the previous behavior exactly.
+- **Infoview goal text for a module that uses an imported notation now matches the
+  declaration card** (G-81 / G-83). `QueryDoc::compute_display` parsed every module
+  in the closure independently, with an empty inheritance table, so a module that
+  used a notation declared in a dependency (`⋃₀` from `lib/SUnion`, `∃` from
+  `lib/Exists`) failed to parse as a whole and its own notations never entered the
+  table — the root state folded them, the card did not. The display copy now builds
+  its table the way the closure loader does (topological order +
+  `parse_with_inherited`), so the two agree by construction; the fields that feed
+  judgement are untouched. Full scans: **470/470** open declarations across 113
+  canvases, **901/901** at the root-state level.
+- **A type error names the binder instead of a raw de Bruijn index** (G-49): `$4`
+  now reads "the 4th binder (β)", with the name taken from the kernel's name stack
+  and aligned with the kernel depth; the `by` path, `query_error` and
+  `prefix_error` exits all use it.
+- **A `by`-path type mismatch reuses the declaration-position diagnostic** (G-21)
+  and names the leading type parameter that was left implicit.
+- **Kernel hardening that changes no verdict**: the equality probe's step cap
+  `PROBE_CAP=2048` is gone (Lean 4 has no such thing — G-89), and the signature
+  mask grows **64 → 128** with its carrier `u64` → `u128` (G-90).
+- **Hint text that said the wrong thing about cumulativity and `Exists.elim`**
+  (L-06): both halves match official Lean 4, so the wrong words are gone (kernel
+  unchanged).
 
 ## [0.82.0] — 2026-10-06
 
