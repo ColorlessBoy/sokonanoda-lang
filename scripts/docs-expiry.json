@@ -295,6 +295,12 @@
       "renewed": "2026-09-30",
       "tier": "record"
     },
+    "docs/notes/perf-lean4-interactive-incremental.md": {
+      "expires": "2026-12-01",
+      "renewed": "2026-10-08",
+      "tier": "record",
+      "reason": "perf-lean4 只读调研交付（2026-10-07 用户点名）：Lean 4 交互/增量性能机制源码级调研结论件；并入 incremental-environment.md 后可归档"
+    },
     "docs/protocol.md": {
       "expires": "2027-09-30",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
