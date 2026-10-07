@@ -187,9 +187,9 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   type is not a proposition — **也出现在开练习上**：签名不是 Prop 的
   `theorem … := sorry` 报这一条，而不是 `exercise.open`，见上文的边界),
   `kernel-prop-not-cumulative` (内核要 `Sort(n)`（`n ≥ 1`，数据/`Type`），
-  给的却是 `Sort(0)`（`Prop`）：本语言**没有累积性**（官方 Lean 4 有
-  `Prop ⊆ Type`）。L-06 的专用码 + 人话 hint；设计
-  `docs/design/prop-cumulativity-boundary.md`),
+  给的却是 `Sort(0)`（`Prop`）：本语言**没有累积性**——官方 Lean 4 **同样
+  没有**（`Sort u =?= Sort v` 要求 `u ≡ v`）。L-06 的专用码 + 人话 hint
+  （台账 L-06 + `repro/L-06-lean-consistent-no-cumulativity.sh`）),
   `kernel-inductive-non-positive` (a recursive
   occurrence in a negative position of a constructor argument),
   `kernel-ctor-result-mismatch` (a constructor does not return a full

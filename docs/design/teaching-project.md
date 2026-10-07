@@ -611,7 +611,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 | G-16 | blocker | 启动器在「版本未知」时会 exec 缓存里的陈旧二进制（绕过「过期即拒绝」守卫）——**0.59.0 已修**（WO-001 同族：解析不出期望版本 ⇒ 缓存与仓库构建都拒绝） | `repro/G11-launcher-version-source.sh`（同一夹具的第二处缺陷） |
 | G-17 | painful | `query goals`/`holes` 对解析失败也假绿（空数组 + ok:true）——**0.59.0 已修**（WO-003 同轮：`not-parsable` + `ok:false` + exit 1） | `repro/G17-query-goals-holes-parse-error.sh` |
 | G-18 | painful | `def f.{u}` 被静默解析成名字 `f.`（声明消失且不报错）——**0.59.0 已修**（WO-008） | `repro/G14-single-universe-binder.sokonanoda` |
-| L-06 | painful（边界） | 无累积性 + `Exists.elim` 的 Q 只能是 Prop ⇒ 等势只能 Prop 值、取数据的引理写不出来（课程统一改数据版）——**0.59.0 仍 open**（卷 II+ 的事） | — |
+| L-06 | painful（边界） | 无累积性 + `Exists.elim` 的 Q 只能是 Prop ⇒ 等势只能 Prop 值、取数据的引理写不出来——**2026-10-07 判定不成立**（两半都与官方 Lean 4 一致：Lean 也没有累积性、`Exists.elim` 的结果同样是 `{b : Prop}`）⇒ 0.83.0 关账；课程绕法照旧（数据版 + 成对选择公理） | `repro/L-06-lean-consistent-no-cumulativity.sh` |
 | **勘误** | — | **G-14 降级**为 nice（`{u, v}` 逗号写法可用）；**G-15 重新定义**为「query check 的 failed[] 只给裸字节 offset」（原先的"span 漂移"是把字节当字符的量具缺陷，见 `docs/LESSONS.md`） | — |
 
 另有三条**已知 backlog**（不重复记账，指针在此）：P7 的 `[deps]`、`namespace`/`open`、

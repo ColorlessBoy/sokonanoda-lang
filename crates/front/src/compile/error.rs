@@ -84,10 +84,11 @@ pub enum ErrorKind {
     KernelExpectedPi,
     KernelTheoremNotProp,
     /// **没有累积性**（L-06）：内核要 `Sort(n)`（`n ≥ 1`，数据/`Type`），
-    /// 学习者给的是 `Sort(0)`（`Prop` 命题）。官方 Lean 4 有累积性
-    /// （`Prop ⊆ Type`），本语言没有——这是设计边界，不是内核缺陷；专用码 +
-    /// hint 只是把内核的裸类型不匹配翻译成人话（设计
-    /// `docs/design/prop-cumulativity-boundary.md`）。
+    /// 学习者给的是 `Sort(0)`（`Prop` 命题）。官方 Lean 4 **同样没有**累积性
+    /// （`Sort u =?= Sort v` 要求 `u ≡ v`；Lean 要用 `PLift` 显式把命题抬进
+    /// `Type`）⇒ 这是与 Lean 一致的语言性质，不是内核缺陷；专用码 + hint 只是把
+    /// 内核的裸类型不匹配翻译成人话（2026-10-07 复核：台账 `docs/gaps/ledger.jsonl`
+    /// 的 L-06 + 复现件 `docs/gaps/repro/L-06-lean-consistent-no-cumulativity.sh`）。
     KernelPropNotCumulative,
     KernelNonPositive,
     KernelCtorResultMismatch,
@@ -342,7 +343,7 @@ impl ErrorKind {
                 "theorem 的类型必须是命题（Prop 里的东西）。想定义普通值请用 def。"
             }
             KernelPropNotCumulative => {
-                "这里需要 Type（数据），但你给的是 Prop（命题）：本语言没有累积性，Prop 不是 Type 的子集（官方 Lean 4 有累积性，同一段代码在 Lean 里能过）。把陈述改成 Prop（例如等势用 Set.Equiv … : Prop 这样的命题版），或者交一个真正的 Type 值（如 Nat）。"
+                "这里需要 Type（数据），但你给的是 Prop（命题）：本语言没有累积性，Prop 不是 Type 的子集——官方 Lean 4 同样没有（它要用 PLift 显式把命题抬进 Type），所以这不是内核缺陷。把陈述改成 Prop（例如等势用 Set.Equiv … : Prop 这样的命题版），或者交一个真正的 Type 值（如 Nat）。"
             }
             KernelNonPositive => {
                 "递归引用出现在了负位置：构造子参数里 T 出现在箭头左边（如 T → Nat）。递归引用只能写在返回类型一侧。"
@@ -571,19 +572,22 @@ fn trailing_sort_level(rendered: &str) -> Option<u32> {
 /// (L-06): the kernel wanted `Sort(n)` with `n ≥ 1` (a `Type`/data value) and
 /// the term inhabits `Sort(0)` (a `Prop`).
 ///
-/// Official Lean 4 has cumulativity (`Prop ⊆ Type`), so the same source checks
-/// there; here it is a design boundary and deserves a dedicated code plus a
-/// human hint instead of the bare "类型不匹配".
+/// Official Lean 4 has **no** universe cumulativity either (`Sort u =?= Sort v`
+/// requires `u ≡ v`; `PLift` is how Lean lifts a `Prop` into a `Type`), so the
+/// same source is rejected there too: this is a language property shared with
+/// Lean, not a deviation. It still deserves a dedicated code plus a human hint
+/// instead of the bare "类型不匹配" (2026-10-07 audit + Lean citations: ledger
+/// L-06 and `docs/gaps/repro/L-06-lean-consistent-no-cumulativity.sh`).
 ///
-/// **Scope (deliberate, documented in
-/// `docs/design/prop-cumulativity-boundary.md` §3): only the bare-sort shape**
-/// — the mismatch between two *sorts* themselves (`def T : Type := True`).
-/// The `Pi`-shaped variant (`def bad : Prop -> Type := fun (x : Prop) => x`) is
-/// the same phenomenon, but it is also the fixture that the CLI/LSP/extension
-/// contract tests use to represent a **generic** kernel rejection (they pin
-/// `code == "kernel-rejected"`, stage, span and expected/actual). Widening the
-/// rule to `Pi` shapes would change those fixtures, so it is left for a
-/// dedicated migration rather than smuggled in here.
+/// **Scope (deliberate, documented in the ledger's L-06 `notes`): only the
+/// bare-sort shape** — the mismatch between two *sorts* themselves
+/// (`def T : Type := True`). The `Pi`-shaped variant
+/// (`def bad : Prop -> Type := fun (x : Prop) => x`) is the same phenomenon,
+/// but it is also the fixture that the CLI/LSP/extension contract tests use to
+/// represent a **generic** kernel rejection (they pin `code ==
+/// "kernel-rejected"`, stage, span and expected/actual). Widening the rule to
+/// `Pi` shapes would change those fixtures, so it is left for a dedicated
+/// migration rather than smuggled in here.
 ///
 /// The mirror image (`Sort(0)` expected, `Sort(m)` actual) is deliberately
 /// **not** classified at all: it is textually identical to an ordinary

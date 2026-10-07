@@ -3335,8 +3335,11 @@ fn pipeline_classifies_expected_sort() {
 }
 
 /// **L-06 ①**：`def T : Type := <Prop 值>` 今天有**专用码 + 人话 hint**，
-/// 而不是裸 `kernel-rejected`（内核消息一字不改，只换分类与提示；设计
-/// `docs/design/prop-cumulativity-boundary.md` §3）。
+/// 而不是裸 `kernel-rejected`（内核消息一字不改，只换分类与提示）。
+/// ⚠ 2026-10-07 复核：**官方 Lean 4 同样没有累积性**（`Sort u =?= Sort v`
+/// 要求 `u ≡ v`；Lean 用 `PLift` 显式把命题抬进 `Type`）⇒ hint **不许**再说
+/// 「Lean 有累积性 / 同一段代码在 Lean 里能过」（对照：台账 L-06 +
+/// `docs/gaps/repro/L-06-lean-consistent-no-cumulativity.sh`）。
 #[test]
 fn pipeline_classifies_prop_where_type_was_required() {
     for src in ["def T : Type := True\n", "def T : Type := And True True\n"] {
@@ -3352,7 +3355,12 @@ fn pipeline_classifies_prop_where_type_was_required() {
             out.errors
         );
         assert_eq!(err.code(), "kernel-prop-not-cumulative");
-        assert!(err.hint().contains("累积性"), "hint: {}", err.hint());
+        assert!(err.hint().contains("没有累积性"), "hint: {}", err.hint());
+        assert!(
+            !err.hint().contains("Lean 4 有累积性") && !err.hint().contains("Lean 里能过"),
+            "hint 又回头声称 Lean 有累积性（与 Lean 源码不符）：{}",
+            err.hint()
+        );
         assert_eq!(err.expected.as_deref(), Some("Sort(1)"), "{err:?}");
         assert_eq!(err.actual.as_deref(), Some("Sort(0)"), "{err:?}");
         // 消息保持内核原样（只加分类，不改判据）。
