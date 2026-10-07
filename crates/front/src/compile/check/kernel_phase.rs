@@ -10,9 +10,7 @@ use super::{
     declar_signature, failed_state, inductive_signature, op_cmd, quiet_catch, resolve_hovers,
     top_level_def_spans_over, CmdHover, KernelFailed, PassResult, PendingOp, TrustPlan,
 };
-use crate::compile::error::{
-    humanize_de_bruijn, parse_def_eq_mismatch, refine_kernel_kind, CompileError, ErrorKind,
-};
+use crate::compile::error::{refine_kernel_kind, render_def_eq_mismatch, CompileError, ErrorKind};
 use crate::compile::event::{CheckEvent, CompileOutput};
 use crate::compile::report::{DeclKind, DeclState, DeclStatus, DocumentReport, ResolvedTarget};
 use crate::compile::units::{unit_ranges, SourceUnit};
@@ -171,12 +169,11 @@ fn check_then_add_decl<'arena>(
         }
         Err(e) => {
             let msg = format!("{e}");
-            let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
-            if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
-                // **G-49**：先把内核的裸 de Bruijn 编号人话化 ✓（`$4` ⇒ 「第 4 个绑元」✓）。
-                let expected = humanize_de_bruijn(&expected);
-                let actual = humanize_de_bruijn(&actual);
-                err.message = format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+            let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg.as_str(), span);
+            // **G-49**：从**原始**内核文本取两侧（`err.message` 在构造点已渲染 ✓）——
+            // `$4` ⇒ 「第 4 个绑元（β）」（名字来自内核名字栈 ✓）。
+            if let Some((message, expected, actual)) = render_def_eq_mismatch(&msg) {
+                err.message = message;
                 err.expected = Some(expected);
                 err.actual = Some(actual);
             }
@@ -394,13 +391,12 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                         kernel_checks += 1;
                         if let Err(e) = env.try_check_declar(declar) {
                             let msg = format!("{e}");
-                            let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
-                            if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
-                                // **G-49**：同上 ✓（两个构造点同款 ✓）。
-                                let expected = humanize_de_bruijn(&expected);
-                                let actual = humanize_de_bruijn(&actual);
-                                err.message =
-                                    format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+                            let mut err =
+                                CompileError::kernel(refine_kernel_kind(&msg), msg.as_str(), span);
+                            // **G-49**：同上 ✓（两个构造点同款 ✓）。
+                            if let Some((message, expected, actual)) = render_def_eq_mismatch(&msg)
+                            {
+                                err.message = message;
                                 err.expected = Some(expected);
                                 err.actual = Some(actual);
                             }

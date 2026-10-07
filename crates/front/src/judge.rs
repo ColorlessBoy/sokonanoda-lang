@@ -2794,6 +2794,8 @@ fn query_error(query_start: usize, errors: &[CompileError]) -> Option<Judgement>
         .find(|e| e.span.start.offset >= query_start)
         .map(|e| Judgement::Error {
             code: e.code().to_string(),
+            // **G-49**：内核原文的人话化在**构造点**（`CompileError::kernel` ✓）——
+            // 这里拿到的 `e.message` 已经渲染过 ✓（裸 `$2` 漏不到这里 ✗）。
             message: e.message.clone(),
         })
 }

@@ -1,6 +1,6 @@
 use crate::env::{Declar, DeclarInfo, Env, EnvLimit};
 use crate::util::{
-    ExportFile, ExprPtr, TcCache, TcCtx
+    ExportFile, ExprPtr, NamePtr, TcCache, TcCtx
 };
 use crate::value::E;
 
@@ -68,6 +68,18 @@ pub struct TypeChecker<'x, 't, 'p> {
     /// properly represented in the declaration's uparams info.
     pub(crate) declar_info: Option<DeclarInfo<'t>>,
     pub(crate) nat_extension: bool,
+    /// **G-49**：当前**外围 binder 的源级名字**（从外到内；不变量：`len() == depth`
+    /// —— 每进入一层 `Pi`/`Lambda` 体就 push、离开就 pop ✓）。
+    ///
+    /// 为什么要它：def-eq 失败消息里的松散变量原先只有 de Bruijn 编号（`$4` ✗），
+    /// 学习者看不懂。名字本来就在**内核正在遍历的 AST** 里（`Pi`/`Lambda` 的
+    /// `binder_name` ✓）—— 这是**唯一**与内核深度严格对齐的名字来源 ✓（前端的
+    /// 源级作用域做不到：`A → B` 会多出一层**匿名** Pi ✓，两边深度会错位 ✗）。
+    /// 只服务**报错渲染** ✓：判定路径一个字不动 ✓。
+    ///
+    /// 放在 `TypeChecker` 而不是 `TcCtx`：`with_tc` 每次新建一个 checker
+    /// （拒一条声明就整体丢弃 ✓），栈不会跨声明残留 ✓。
+    pub(crate) binder_names: Vec<NamePtr<'t>>,
 }
 
 impl<'p> ExportFile<'p> {
@@ -261,7 +273,7 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         tc_cache: &'x mut TcCache<'t, 't>,
     ) -> Self {
         let nat_extension = dag.export_file.config.nat_extension;
-        Self { ctx: dag, env, tc_cache, arena, declar_info, nat_extension }
+        Self { ctx: dag, env, tc_cache, arena, declar_info, nat_extension, binder_names: Vec::new() }
     }
 
     #[inline]

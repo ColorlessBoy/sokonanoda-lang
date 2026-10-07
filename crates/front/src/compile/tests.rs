@@ -7438,6 +7438,87 @@ fn by_path_names_the_omitted_leading_type_parameter() {
     );
 }
 
+/// **G-49 的常驻判据**：类型错误的报错文本**不许外泄裸 de Bruijn 编号**
+/// （`$4` ✗），且要**点名**到 binder（`$4(β)` ⇒ 「第 4 个绑元（β）」✓）。
+///
+/// 三向（**缺一不算** ✓）：
+/// ① 跨论域 Pi 体（`∀ (x : α), A x → B x` 里 `B : Set β`）⇒ **仍然被拒**
+///    （错是真的 ✓ —— 报错**文本**变好**不许**把拒绝变掉 ✗）+ 诊断文本里
+///    **没有**裸 `$N`（`$` 紧跟数字的独立形态 ✓）+ 点名 `β` / `α` ✓；
+/// ② 对照组（各用各的论域）⇒ `decl.checked` 且 **0 诊断** ✓；
+/// ③ **防空转** ✓：诊断条数 > 0 且真的扫过文本（"一条都没扫到"不算绿 ✗）。
+///
+/// 反向验证（撤掉修复必须判红 ✓）：把内核名字栈去掉 ⇒ `$4` 裸编号回来 ⇒ ① 红；
+/// 只去掉名字 ⇒ ① 的「点名」断言红 ✓。
+#[test]
+fn type_error_diagnostics_never_leak_bare_de_bruijn() {
+    const LIB: &str = "def Set (α : Type) : Type := α → Prop\n";
+
+    // ① 缺口本体：`B x` 把 `Set β` 用在 `x : α` 上（**确实是错** ✓）。
+    let bad = format!(
+        "{LIB}def Set.eq2 (α β : Type) (A : Set α) (B : Set β) : Prop := \
+         ∀ (x : α), A x → B x\n"
+    );
+    let out = compile_fol(&parse(&bad).expect("parse"));
+    assert!(
+        !out.errors.is_empty(),
+        "这一条是**真类型错误** ⇒ 必须仍被拒（报错文本变好 ≠ 判定变宽 ✗）"
+    );
+    let rejected = out.errors.iter().any(|e| e.code() == "kernel-rejected");
+    assert!(rejected, "拒它的仍是内核：{:?}", out.errors);
+
+    // ③ 防空转：真有文本可扫。
+    let scanned: Vec<&str> = out
+        .errors
+        .iter()
+        .flat_map(|e| [e.message.as_str(), e.hint()])
+        .collect();
+    assert!(
+        scanned.iter().any(|t| !t.is_empty()),
+        "防空转：必须有诊断文本可扫（空扫描不算绿 ✗）"
+    );
+
+    // ① 两半：没有裸 `$N`；点名到 binder。
+    for e in &out.errors {
+        let text = format!("{}\n{}", e.message, e.hint());
+        if let Some(idx) = bare_de_bruijn_at(&text) {
+            // 切片按**字符**取（诊断里全是中文，按字节切会落在字符中间 ✗）。
+            let snippet: String = text[idx..].chars().take(6).collect();
+            panic!("诊断里漏出裸 de Bruijn 编号（G-49）：…{snippet}…\n完整诊断：{text}");
+        }
+    }
+    let message = &out.errors[0].message;
+    assert!(
+        message.contains('β') && message.contains('α'),
+        "报错要点名到 binder（`$4` ⇒ 「第 4 个绑元（β）」）：{message:?}"
+    );
+
+    // ② 对照组：各用各的论域 ⇒ checked + 0 诊断。
+    let good = format!(
+        "{LIB}def Set.eq3 (α β : Type) (A : Set α) (B : Set β) : Prop := \
+         (∀ (x : α), A x → A x) ∧ (∀ (y : β), B y → B y)\n"
+    );
+    let out = compile_fol(&parse(&good).expect("parse"));
+    assert_eq!(out.errors, vec![], "对照组不许有诊断：{:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "Set.eq3")),
+        "对照组必须真的 checked（否则 ② 不构成对照）：{:?}",
+        out.events
+    );
+}
+
+/// 文本里**裸 de Bruijn 编号**（`$` 紧跟数字 ✓）的第一个字节下标；没有 ⇒ `None`。
+///
+/// 只认「`$` + 数字」这个**独立形态** ✓：正常文本里的 `$`（没有数字跟着）不算 ✗
+/// —— 否则会误伤（`第 4 个绑元（β）` 里没有 `$` ✓）。
+fn bare_de_bruijn_at(text: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+    (0..bytes.len())
+        .find(|&i| bytes[i] == b'$' && bytes.get(i + 1).is_some_and(|b| b.is_ascii_digit()))
+}
+
 /// **T-D15 的判据**：记法 hover 行的 `resolution` 在**报告装配之后**仍是
 /// `ResolvedTarget::Notation`——没有被 `kernel_phase` 的"回填顶层声明 span"
 /// 改写成 `def Set.mem` 的 span（这是 D5 记下的坑）。

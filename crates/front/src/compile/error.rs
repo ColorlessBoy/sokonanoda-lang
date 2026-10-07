@@ -422,7 +422,27 @@ impl CompileError {
     }
 
     pub(crate) fn kernel(kind: ErrorKind, message: impl Into<String>, span: Span) -> Self {
-        Self::new(kind, message, span)
+        // **G-49**：内核拒绝文本**一律**在这里过一层人话化 ✓。
+        //
+        // * def-eq 不匹配 ⇒ 走**唯一渲染器** [`render_def_eq_mismatch`]：
+        //   `rejected: def_eq failed: def_eq mismatch expected: Sort(1) | actual: $2` ✗
+        //   ⇒ `类型不匹配：期望 `Sort(1)`，实际是 `第 2 个绑元（α）`` ✓（`$4(β)` ⇒
+        //   「第 4 个绑元（β）」，名字来自**内核名字栈** ✓）；
+        // * 其它内核原文 ⇒ 只把裸 de Bruijn 编号换成占位 ✓（`humanize_de_bruijn`）。
+        //
+        // 为什么放在**构造点**：内核原文不止一条出口 —— `by` 路径
+        // （`judge.rs::judgement_of` 的 `_` 分支 / `query_error`）会把
+        // `rejected: def_eq failed: …` 原样抬给学习者 ✗（台账 G-49 的「同族」），
+        // 只有这里能一次盖全 ✓。
+        // ⚠ **分类必须在人话化之前**：`refine_kernel_kind` 由**调用方**在**原始**
+        // 文本上算 ✓（它认的就是 `$k` / `Sort(n)` 的形状 —— G-21 的
+        // `classify_term_in_type_position` ✓），构造点拿到的只是渲染 ✓。
+        let raw = message.into();
+        let rendered = match render_def_eq_mismatch(&raw) {
+            Some((message, _, _)) => message,
+            None => humanize_de_bruijn(&raw),
+        };
+        Self::new(kind, rendered, span)
     }
 
     pub fn stage(&self) -> CompileStage {
@@ -448,19 +468,17 @@ const DEF_EQ_ACTUAL_SEP: &str = " | actual: ";
 
 /// Parse the kernel's def-eq mismatch message into `(expected, actual)`.
 /// Returns `None` for rejections that do not carry both sides.
-/// **G-49**：把内核 pp 文本里的**裸 de Bruijn 编号**（`$4` ✓ = 内核内部编号 ✗）换成**人话** ✓。
+/// **G-49**：把内核拒绝文本里的**裸 de Bruijn 编号**（`$4` ✓ = 内核内部编号 ✗）换成**人话** ✓。
 ///
-/// 为什么要它：内核的 pretty printer 在**名字表里查不到**该绑元时会退化成 `$N`
-///（`crates/kernel/src/pretty_printer.rs:406` 是**全仓库唯一**产出点 ✓）—— 错误发生在 Pi 体内部、
-/// 而类型文本在**绑元作用域之外**打印时就查不到 ✓（台账 G-49 实测：跨论域 Pi 体上
-/// 「期望 `$4`，实际是 `$5`」✗，学生看不懂 ✓）。
+/// 两种形态（名字由**内核的名字栈**给出 ✓，见 `crates/kernel/src/debug_printer.rs`
+/// 的 `loose_binder_name` —— 名字栈与内核深度**严格对齐** ✓，前端拿不到这个对齐 ✗）：
+/// * `$4(β)` ⇒ 「第 4 个绑元（β）」 ✓ —— **点名到人**（binder 的源级名字 ✓）；
+/// * `$4` ⇒ 「第 4 个绑元」 ✓ —— 拿不到名字（匿名 binder / 名字栈与深度不齐）时的
+///   **可读占位** ✓（de Bruijn 语义：从内往外数 ✓）。
 ///
-/// **为什么在前端做**（而不是内核 ✓）：名字在**前端**手里 ✓ —— 内核错误路径拿不到源级绑元名 ✗
-///（现成的 `with_pp_scoped` 那条链的 `scope` 正是由前端的 `binders` 造的 ✓，见
-/// `crates/front/src/compile/elab.rs:2823` ✓）。所以这里只做**文本层**的人话化 ✓：
-/// `$N` ⇒ 「第 N 个绑元」（de Bruijn 语义：从内往外数 ✓）。
 /// ⚠ **只动文本** ✓：判定/事件计数/分类一律不变 ✓（`classify_prop_sort_gap` 那条
-/// 明确不许顺手放宽 ✗ —— 见它自己的注释 ✓）。
+/// 明确不许顺手放宽 ✗ —— 见它自己的注释 ✓）；分类（`refine_kernel_kind`）在
+/// **人话化之前**、用原始文本算 ✓（它认的就是 `$k` 的形状 ✓）。
 pub(crate) fn humanize_de_bruijn(text: &str) -> String {
     let bytes = text.as_bytes();
     let mut out = String::with_capacity(text.len());
@@ -472,7 +490,15 @@ pub(crate) fn humanize_de_bruijn(text: &str) -> String {
                 j += 1;
             }
             if j > i + 1 {
-                out.push_str(&format!("第 {} 个绑元", &text[i + 1..j]));
+                let idx = &text[i + 1..j];
+                // `$k(名字)`：名字取到**配对括号**为止；名字里出现括号（理论上不会，
+                // 名字是字母类记号）就**不认**这一形态 ⇒ 退化成占位 ✓（宁可少说 ✗）。
+                if let Some((name, end)) = trailing_paren_name(text, j) {
+                    out.push_str(&format!("第 {idx} 个绑元（{name}）"));
+                    i = end;
+                    continue;
+                }
+                out.push_str(&format!("第 {idx} 个绑元"));
                 i = j;
                 continue;
             }
@@ -482,6 +508,36 @@ pub(crate) fn humanize_de_bruijn(text: &str) -> String {
         i += ch.len_utf8();
     }
     out
+}
+
+/// `text[at..]` 形如 `(名字)` 时给出 `(名字, 名字之后的字节下标)`；否则 `None`。
+/// 名字不许含括号、空白或 `$`（内核名字栈里的名字都是字母类记号 ✓）——
+/// 宁可退化成占位，也不许把内核文本的别的东西误读成名字 ✗。
+fn trailing_paren_name(text: &str, at: usize) -> Option<(String, usize)> {
+    let rest = text.get(at..)?;
+    let inner = rest.strip_prefix('(')?;
+    let close = inner.find(')')?;
+    let name = &inner[..close];
+    if name.is_empty() || name.contains(['(', ')', ' ', '$', '\n']) {
+        return None;
+    }
+    Some((name.to_string(), at + close + 2))
+}
+
+/// **G-49**：把内核的 def-eq 不匹配原文渲染成**教学文案** + 两侧文本。
+///
+/// 输出 = `("类型不匹配：期望 `X`，实际是 `Y`", X, Y)`，两侧都过
+/// [`humanize_de_bruijn`] ✓。不是这个形状 ⇒ `None`（调用方原样处理 ✓）。
+///
+/// **唯一实现**：声明位（`check/kernel_phase.rs` 两个构造点 ✓）、`by` 路径
+/// （`judge.rs::query_error` ✓ —— 内核原文从前那里直接抬给学习者 ✗）与 G-21 的
+/// 同形对照共用它，口径不会分叉 ✓。
+pub(crate) fn render_def_eq_mismatch(raw: &str) -> Option<(String, String, String)> {
+    let (expected, actual) = parse_def_eq_mismatch(raw)?;
+    let expected = humanize_de_bruijn(&expected);
+    let actual = humanize_de_bruijn(&actual);
+    let message = format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+    Some((message, expected, actual))
 }
 
 pub(crate) fn parse_def_eq_mismatch(msg: &str) -> Option<(String, String)> {

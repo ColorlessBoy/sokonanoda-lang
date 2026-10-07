@@ -145,7 +145,10 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                     let fresh = self.mk_bvar_hc(depth, dom);
                     let env2 = value::env_extend(self.arena, env, fresh);
                     let ctx2 = value::ctx_extend(self.arena, ctx, dom);
+                    // **G-49**：进 binder 体 ⇒ 名字栈同步进一层（报错渲染用 ✓）。
+                    self.binder_names.push(binder_name);
                     body_ty = Some(self.infer_value(flag, depth + 1, env2, ctx2, body));
+                    self.binder_names.pop();
                 }
                 let clo = match body_ty.filter(|bt| {
                     atomic_type(bt)
@@ -159,13 +162,16 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 };
                 value::mk_pi(self.arena, binder_name, binder_style, dom, clo)
             }
-            Pi { binder_type, body, .. } => {
+            Pi { binder_name, binder_type, body, .. } => {
                 let l1 = self.infer_sort_of_v(flag, depth, env, ctx, binder_type);
                 let dom = self.arg_value(depth, env, binder_type);
                 let fresh = self.mk_bvar_hc(depth, dom);
                 let env2 = value::env_extend(self.arena, env, fresh);
                 let ctx2 = value::ctx_extend(self.arena, ctx, dom);
+                // **G-49**：同上 ✓（`Pi` 体深一层 ⇒ 名字栈进一层 ✓）。
+                self.binder_names.push(binder_name);
                 let l2 = self.infer_sort_of_v(flag, depth + 1, env2, ctx2, body);
+                self.binder_names.pop();
                 let im = self.ctx.imax(l1, l2);
                 let im = self.ctx.simplify(im);
                 value::mk_sort(self.arena, im)

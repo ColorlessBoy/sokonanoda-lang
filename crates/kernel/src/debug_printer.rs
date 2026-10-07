@@ -6,11 +6,26 @@ use crate::util::{ExprPtr, LevelPtr, NamePtr, TcCtx};
 pub struct DebugPrinter<'x, 't, 'p, A> {
     pub(crate) ctx: &'x TcCtx<'t, 'p>,
     pub(crate) elem_to_print: A,
+    /// **G-49**：被打印项**外围**的 binder 名字（从外到内，`len()` = 打印起点的
+    /// 深度 ✓）。空 = 旧行为（松散变量打印成 `$k` ✓）。名字非空时松散变量打印成
+    /// `$k(名字)` ✓ —— 前端据此渲染「第 k 个绑元（名字）」✓。
+    ///
+    /// 只服务**报错渲染**（`conv.rs` 的 def-eq 失败路径 ✓），判定路径一个字不动 ✓。
+    pub(crate) names: Vec<NamePtr<'t>>,
 }
 
 impl<'x, 't: 'x, 'p: 't> TcCtx<'t, 'p> {
     pub fn debug_print<A>(&'x self, elem_to_print: A) -> DebugPrinter<'x, 't, 'p, A> {
-        DebugPrinter { ctx: self, elem_to_print }
+        DebugPrinter { ctx: self, elem_to_print, names: Vec::new() }
+    }
+
+    /// **G-49**：带外围 binder 名字的调试打印（松散变量 `$k` ⇒ `$k(名字)` ✓）。
+    pub fn debug_print_named<A>(
+        &'x self,
+        elem_to_print: A,
+        names: &[NamePtr<'t>],
+    ) -> DebugPrinter<'x, 't, 'p, A> {
+        DebugPrinter { ctx: self, elem_to_print, names: names.to_vec() }
     }
 }
 
@@ -120,48 +135,80 @@ impl<'x, 't, 'p> std::fmt::Debug for DebugPrinter<'x, 't, 'p, LevelPtr<'t>> {
     }
 }
 
+impl<'x, 't, 'p> DebugPrinter<'x, 't, 'p, ExprPtr<'t>> {
+    /// 同一份名字栈下打印**子项**（`App` 的两边、`Proj` 的结构……同深度 ✓）。
+    fn sub<B>(&self, e: B) -> DebugPrinter<'x, 't, 'p, B> {
+        DebugPrinter { ctx: self.ctx, elem_to_print: e, names: self.names.clone() }
+    }
+
+    /// 进一层 binder（`Pi`/`Lambda` 的体 ✓）：名字栈**进一层**再打印
+    /// —— 被打印项内部的 binder 会让 de Bruijn 编号整体上移 ✓，
+    /// 名字栈必须同步，否则会错位到外层的名字上 ✗。
+    fn under_binder<B>(&self, name: NamePtr<'t>, e: B) -> DebugPrinter<'x, 't, 'p, B> {
+        let mut names = self.names.clone();
+        names.push(name);
+        DebugPrinter { ctx: self.ctx, elem_to_print: e, names }
+    }
+
+    /// **G-49**：松散变量（`$k`）对应的外围 binder 名字；拿不到/匿名 ⇒ `None`
+    /// （保持 `$k`，前端会渲染成「第 k 个绑元」✓）。
+    fn loose_binder_name(&self, dbj_idx: u16) -> Option<NamePtr<'t>> {
+        let pos = self.names.len().checked_sub(1 + dbj_idx as usize)?;
+        let name = *self.names.get(pos)?;
+        if matches!(self.ctx.read_name(name), Name::Anon) {
+            return None;
+        }
+        Some(name)
+    }
+}
+
 impl<'x, 't, 'p> std::fmt::Debug for DebugPrinter<'x, 't, 'p, ExprPtr<'t>> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.ctx.read_expr(self.elem_to_print) {
             // **K1**：调试打印里**明确显示**它 ✓（`pp` 那条路另算 —— 见 `pretty_printer` ✓）。
             Meta { id, .. } => write!(f, "?m{}", id),
-            Var { dbj_idx, .. } => write!(f, "${}", dbj_idx),
+            // **G-49**：名字拿得到就带上（`$4(β)` ✓ —— 前端渲染成「第 4 个绑元（β）」✓）；
+            // 拿不到（匿名 binder / 名字栈与深度不齐）就保持 `$4` ✓。
+            Var { dbj_idx, .. } => match self.loose_binder_name(dbj_idx) {
+                Some(name) => write!(f, "${}({:?})", dbj_idx, self.ctx.debug_print(name)),
+                None => write!(f, "${}", dbj_idx),
+            },
             Sort { level, .. } => write!(f, "Sort({:?})", self.ctx.debug_print(level)),
             Const { name, levels, .. } => {
                 let levels = self.ctx.read_levels(levels);
-                write!(f, "{:?}.{:?}", self.ctx.debug_print(name), self.ctx.debug_print(levels.as_ref()))
+                write!(f, "{:?}.{:?}", self.sub(name), self.sub(levels.as_ref()))
             }
-            App { fun, arg, .. } => write!(f, "({:?} {:?})", self.ctx.debug_print(fun), self.ctx.debug_print(arg)),
+            App { fun, arg, .. } => write!(f, "({:?} {:?})", self.sub(fun), self.sub(arg)),
             Let { data: &crate::expr::LetData { binder_name, val, binder_type: binder, body, .. }, .. } => {
                 write!(
                     f,
                     "let {:?} : {:?} := {:?} in {:?}",
-                    self.ctx.debug_print(binder_name),
-                    self.ctx.debug_print(binder),
-                    self.ctx.debug_print(val),
-                    self.ctx.debug_print(body)
+                    self.sub(binder_name),
+                    self.sub(binder),
+                    self.sub(val),
+                    self.under_binder(binder_name, body)
                 )
             }
             Pi { binder_name, binder_type, body, .. } => {
                 write!(
                     f,
                     "Pi ({:?} : {:?}), {:?}",
-                    self.ctx.debug_print(binder_name),
-                    self.ctx.debug_print(binder_type),
-                    self.ctx.debug_print(body)
+                    self.sub(binder_name),
+                    self.sub(binder_type),
+                    self.under_binder(binder_name, body)
                 )
             }
             Lambda { binder_name, binder_type, body, .. } => {
                 write!(
                     f,
                     "fun ({:?} : {:?}) => {:?}",
-                    self.ctx.debug_print(binder_name),
-                    self.ctx.debug_print(binder_type),
-                    self.ctx.debug_print(body)
+                    self.sub(binder_name),
+                    self.sub(binder_type),
+                    self.under_binder(binder_name, body)
                 )
             }
             Proj { idx, structure, .. } => {
-                write!(f, "%({:?}).{}", self.ctx.debug_print(structure), idx)
+                write!(f, "%({:?}).{}", self.sub(structure), idx)
             }
             NatLit { ptr, .. } => write!(f, "NLit({})", self.ctx.read_bignum(ptr).unwrap()),
             StringLit { ptr, .. } => write!(f, "SLit({})", self.ctx.read_string(ptr)),

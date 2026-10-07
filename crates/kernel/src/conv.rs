@@ -812,10 +812,20 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     /// Quotes the value back to an expression and debug-prints it, capped so
     /// deep terms cannot blow up the message. Never runs on the hot conv loop:
     /// it is only called from the branches that are about to panic.
+    ///
+    /// **G-49**：名字栈与 `depth` **严格对齐**时（`len() == depth` ✓，`infer_value`
+    /// 的不变量 ✓）把外围 binder 的源级名字一起交给打印机 ⇒ 松散变量渲染成
+    /// `$4(β)`（前端再渲染成「第 4 个绑元（β）」✓）；对不齐就**不猜** ✓
+    /// （`$4` 原样 ⇒ 前端退化成可读占位「第 4 个绑元」✓ —— 宁可少说，不许说错 ✗）。
     pub(crate) fn render_value_for_def_eq_error(&mut self, depth: u32, v: V<'t>) -> String {
         let e = self.quote(depth, v);
         let ctx = &*self.ctx;
-        cap_def_eq_text(format!("{:?}", ctx.debug_print(e)))
+        let names: &[NamePtr<'t>] = if self.binder_names.len() == depth as usize {
+            &self.binder_names
+        } else {
+            &[]
+        };
+        cap_def_eq_text(format!("{:?}", ctx.debug_print_named(e, names)))
     }
 
     /// Failure-path rendering of an expression for a def-eq mismatch message.
