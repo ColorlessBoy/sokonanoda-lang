@@ -963,7 +963,7 @@ fn eq_prelude_is_available_by_default() {
     assert!(String::from_utf8_lossy(&out.stdout).contains("checked declaration refl_two"));
 }
 
-// ---- L1 prelude（docs/design/prelude-l1-proposal.md P2）：CLI e2e ----
+// ---- L1 prelude（prelude/*.sokonanoda P2）：CLI e2e ----
 
 /// 只用 L1 名字、且不自己声明任何 L1 名字的文件（否则整族让位）。
 const L1_E2E_SRC: &str = "\

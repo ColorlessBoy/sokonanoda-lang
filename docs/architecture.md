@@ -432,7 +432,7 @@ ctor 一旦叫 `Nat.zero`/`Nat.succ`，name cache 的 `NatRed::Succ` 快路径�
 
 - `nat_extension` 由 `Config::default()` 默认打开；`StringLit` 类似（`string_extension`）。
 
-#### 5.4.1 L1：逻辑与等式骨架（0.59.0；设计 `docs/design/prelude-l1-proposal.md`）
+#### 5.4.1 L1：逻辑与等式骨架（0.59.0；设计 `prelude/*.sokonanoda`）
 
 `install_l1_prelude` 在 Full 模式下把 Lean core 的逻辑与等式骨架也作为受信任预置装入
 （规范源文本 `PRELUDE_L1_SRC`，与用户声明走**同一条 elaborator**：`build_axiom`/

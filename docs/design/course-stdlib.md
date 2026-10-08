@@ -47,7 +47,7 @@
 ## 2. L1 提案：prelude 应当自带的 16 条（给语言线的清单）
 
 > **状态（2026-09-19）：已实现。** 逐字签名、让位规则、分阶段与 GOLDEN 预测见
-> `docs/design/prelude-l1-proposal.md`；落地值见 `crates/front/src/compile/prelude.rs`
+> `prelude/*.sokonanoda`；落地值见 `crates/front/src/compile/prelude.rs`
 > 的 `PRELUDE_L1_SRC`/`L1_FAMILIES`/`PRELUDE_NAMES`。下面的表是**提案期口径**
 > （16 条 = 引理口径）；落到内核是 **30 个顶层名字**（差额是族头/构造子/消去子
 > 与 `And.rec`/`Or.rec`）。台账 L-01/L-02 已关账。
@@ -72,7 +72,7 @@ L-01…L-13）——P4 之后该文件不再声明任何名字，签名一律以
 |---|---|---|
 | `True` / `True.intro` | axiom | 与 `False` 对称 |
 | `False` / `False.rec` / `False.elim` | axiom + def | 已有 `False` 系公理的课程不少，prelude 给全 |
-| `And` / `And.intro` / `And.left` / `And.right` / `And.elim` | **真归纳块 + 点号构造子**（G-02 已由 WO-005 修好，L1 不再走 axiom 族） | 已落地：`PRELUDE_L1_SRC` 的 B3 族（`docs/design/prelude-l1-proposal.md` §1.1 第 6–10 行） |
+| `And` / `And.intro` / `And.left` / `And.right` / `And.elim` | **真归纳块 + 点号构造子**（G-02 已由 WO-005 修好，L1 不再走 axiom 族） | 已落地：`PRELUDE_L1_SRC` 的 B3 族（`prelude/*.sokonanoda` §1.1 第 6–10 行） |
 | `Or` / `Or.inl` / `Or.inr` / `Or.elim` | **inductive** + def | 构造子已定形为**点号名** `Or.inl`/`Or.inr`（B4 族）；裸模式 `\| inl a =>` 仍被接受 |
 | `Not` / `Not.intro` / `Not.elim` | def | `Not A := A → False`（与 Lean 同） |
 | `absurd` | def | `a → ¬a → b` |
@@ -330,7 +330,7 @@ G-04（`notation`）落地后只加记法层、不改名字——于是"同一�
 3. **P-C3 ✅**：向语言线提 **L1 prelude 提案**（§2 的清单 + 三件套），牵动入门课 golden，
    需一次改完。**当时的论据**：`lib/Logic` 26 条已是可运行、判卷全绿的真库，
    语言线直接拿它当了 prelude 草稿与验收样本（§2 末的"测点"）。**已落地**
-   （0.59.0，P1/P2/P3；设计 `docs/design/prelude-l1-proposal.md`）；
+   （0.59.0，P1/P2/P3；设计 `prelude/*.sokonanoda`）；
 4. **P-C4 ✅（大幅推进）**：单元 3–12 逐单元试做——**12 个单元 + 12 份解答已全部落地**，
    门禁 34 个目标全绿（296 checked · 93 open · 0 判负）。标准库随之长出 6 个模块
    （`Exists`/`Prod`/`Rel`/`Fun`/`Image`/`Equiv`），并逼出 §3.2 的三条变形；

@@ -38,7 +38,7 @@
 - **L1 逻辑与等式骨架（0.59.0）**：`True`/`False`/`And`/`Or`/`Not`/`absurd`/`Iff`/
   `Eq.symm`/`Eq.trans`/`congrArg` 等 30 个名字由 prelude 自带（族粒度让位：
   单元①④⑤⑧⑨⑩⑪ 自带骨架 ⇒ 整族让位、照常生效；单元②③⑥⑦ 拿到完整 L1。
-  设计 `docs/design/prelude-l1-proposal.md`）；
+  设计 `prelude/*.sokonanoda`）；
 - 参数化归纳（`Option`/`List`）与带索引归纳（`Vec`，v1 结果类型不依赖索引；
   `indexed-inductives.md`）；
 - 应用位置 binder 类型推断（`(fun x => x) 1`、`(fun x y => x) 1 2`；

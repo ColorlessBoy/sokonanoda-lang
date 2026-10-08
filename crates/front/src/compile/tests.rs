@@ -1777,7 +1777,7 @@ fn eq_prelude_symm_derivable_from_subst() {
 }
 
 // ---------------------------------------------------------------------------
-// L1 prelude（docs/design/prelude-l1-proposal.md P1）：逻辑与等式骨架
+// L1 prelude（prelude/*.sokonanoda P1）：逻辑与等式骨架
 // ---------------------------------------------------------------------------
 
 /// 一段只用 L1 名字的完整文件：B1–B7 各用一次（`And.intro`/`Or.elim`/

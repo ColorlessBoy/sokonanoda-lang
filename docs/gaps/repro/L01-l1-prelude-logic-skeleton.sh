@@ -13,7 +13,7 @@
 #   `Or` / `Iff` / `Not` / `Eq.symm` 同病。课程侧只能靠
 #   `courses/set-theory/lib/Logic.sokonanoda` 手写 26 条兜底（那是绕行，不是修）。
 #
-# 修后契约（设计 docs/design/prelude-l1-proposal.md §1.1/§2.2/§3.2）：
+# 修后契约（设计 prelude/*.sokonanoda §1.1/§2.2/§3.2）：
 #   ① Full（默认）：只用 L1 名字的文件 → exit 0 且每条都 `decl.checked`；
 #   ② Bare（`--bare`）：同一文件 → 非零退出 + `error[elab-unknown-identifier]:`
 #      （Bare 是「从零构造一切」的课程模式，L1 绝不能溜进去）；

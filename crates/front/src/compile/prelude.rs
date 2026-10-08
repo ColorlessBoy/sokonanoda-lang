@@ -74,7 +74,7 @@ pub fn explicit_prelude_mode(src: &str) -> Option<PreludeMode> {
 /// prelude declarations are trusted installs without `DeclState`s, so the
 /// goal view / completion layer needs this list to offer them.
 ///
-/// L1 (`docs/design/prelude-l1-proposal.md` §3.3) added 30 names: the 28
+/// L1 (`prelude/*.sokonanoda` §3.3) added 30 names: the 28
 /// declarations of [`PRELUDE_L1_SRC`] plus the two derived recursors
 /// (`And.rec`/`Or.rec`, which `install_inductive_block` generates).
 ///
@@ -172,13 +172,9 @@ pub const PRELUDE_NEVER_YIELDS: &[&str] = &[
     "Bool.rec",
 ];
 
-pub const PRELUDE_EQ_SRC: &str = "\
-axiom Eq {u} : {α : Sort u} -> α -> α -> Prop
-axiom Eq.refl {u} : {α : Sort u} -> (a : α) -> Eq.{u} α a a
-axiom Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α} -> Eq.{u} α a b -> p a -> p b
-";
+pub const PRELUDE_EQ_SRC: &str = include_str!("../../../../prelude/Eq.sokonanoda");
 
-/// L1 的规范源文本（设计 `docs/design/prelude-l1-proposal.md` 附录 A）：
+/// L1 的规范源文本（设计 `prelude/*.sokonanoda` 附录 A）：
 /// Lean core 的逻辑与等式骨架，用教学语法逐字写出来，作为**受信任安装**
 /// （与 `Nat`/`Bool`/`Eq` 同一条路径：走 `build_def`/`install_inductive_block`
 /// 与用户声明同一个 elaborator，但不再被内核重查）。
@@ -207,95 +203,7 @@ axiom Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α} -
 /// `{α β : Sort u} (h : @Eq.{u+1} (Sort u) α β)`。**层级算术 `u+1` 落地后**
 /// （`docs/design/type-level-syntax.md` §5）它们才是宇宙多态的；此前是
 /// Type 0 实例（0.60.0 的残留边界，设计 §4-1 已销账）。
-pub const PRELUDE_L1_SRC: &str = "\
-axiom True : Prop
-axiom True.intro : True
-axiom False : Prop
-axiom False.rec {C : Prop} : False -> C
-def False.elim {C : Prop} (h : False) : C := False.rec C h
-inductive And (a b : Prop) : Prop
-ctor And.intro (ha : a) (hb : b) : And a b
-end
-def And.left {a b : Prop} (h : And a b) : a := And.rec a b (fun (_ : And a b) => a) (fun (ha : a) (hb : b) => ha) h
-def And.right {a b : Prop} (h : And a b) : b := And.rec a b (fun (_ : And a b) => b) (fun (ha : a) (hb : b) => hb) h
-def And.elim {a b c : Prop} (f : a -> b -> c) (h : And a b) : c := f (And.left a b h) (And.right a b h)
-inductive Or (A B : Prop) : Prop
-ctor Or.inl (a : A) : Or A B
-ctor Or.inr (b : B) : Or A B
-end
-def Or.elim {a b c : Prop} (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.rec a b (fun (_ : Or a b) => c) f g h
-def Not (A : Prop) : Prop := A -> False
-def Not.intro {A : Prop} (f : A -> False) : Not A := f
-def Not.elim {A C : Prop} (h : Not A) (a : A) : C := False.elim C (h a)
-def absurd {a b : Prop} (ha : a) (hna : Not a) : b := False.elim b (hna ha)
--- **B10（G-74，0.81.0）：排中律 `Classical.em`** —— 用户 2026-10-02 批准按台账实施
--- （Lean 4 的 `Classical.em` 本来就是标准库的定理，底层是一条公理：core 的三条是
--- `propext`、`Quot.sound`、`Classical.choice`；本语言这里**直接取排中律本身**）。
--- 它**只放宽接受面**：既有判定一条都不变（能证的照样能证、判红的只有当它本来就是
--- 排中律的推论时才转绿）✓。
--- 为什么必需：本语言此前是**直觉主义**的 ⇒「两个元素相等吗」这类分类、
--- 序数**三歧性**、`lt_or_eq_of_le` 一族全都**写不出证明**（不是难，是没有规则）。
-axiom Classical.em : (p : Prop) -> Or p (Not p)
--- Lean core 同名的推论（`Classical.byContradiction`）：反证法。
-def Classical.byContradiction : (p : Prop) -> (Not p -> False) -> p :=
-  fun (p : Prop) (h : Not p -> False) =>
-    Or.elim p (Not p) (Classical.em p) (fun (hp : p) => hp) (fun (hnp : Not p) => False.elim p (h hnp))
--- `Ne`（L2.3）：`≠` 的**目标常量**，与 Lean core 的 `Ne` 同形（`a ≠ b` 就是
--- `a = b -> False`）。带**一个宇宙参数** `u`（`α : Sort u`）——所以 `≠` 的记法
--- 路径要解层级，与 `=` 同一份机械（`elab.rs` 的 `level_text_of_sort`）。
-def Ne {u} (α : Sort u) (a b : α) : Prop := Eq.{u} α a b -> False
-def Ne.intro {u} {α : Sort u} {a b : α} (h : Eq.{u} α a b -> False) : Ne.{u} α a b := h
-def Iff (A B : Prop) : Prop := And (A -> B) (B -> A)
-def Iff.intro {A B : Prop} (mp : A -> B) (mpr : B -> A) : Iff A B := And.intro (A -> B) (B -> A) mp mpr
-def Iff.mp {A B : Prop} (h : Iff A B) : A -> B := And.left (A -> B) (B -> A) h
-def Iff.mpr {A B : Prop} (h : Iff A B) : B -> A := And.right (A -> B) (B -> A) h
-def Iff.refl {A : Prop} : Iff A A := Iff.intro A A (fun (h : A) => h) (fun (h : A) => h)
-def Iff.symm {A B : Prop} (h : Iff A B) : Iff B A := Iff.intro B A (Iff.mpr A B h) (Iff.mp A B h)
-def Iff.trans {A B C : Prop} (h1 : Iff A B) (h2 : Iff B C) : Iff A C := Iff.intro A C (fun (a : A) => Iff.mp B C h2 (Iff.mp A B h1 a)) (fun (c : C) => Iff.mpr A B h1 (Iff.mpr B C h2 c))
-def Eq.symm {u} {α : Sort u} {a b : α} (h : Eq.{u} α a b) : Eq.{u} α b a := Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)
-def Eq.trans {u} {α : Sort u} {a b c : α} (h1 : Eq.{u} α a b) (h2 : Eq.{u} α b c) : Eq.{u} α a c := Eq.subst.{u} α (fun (x : α) => Eq.{u} α a x) b c h2 h1
-def congrArg {u} {α : Sort u} {β : Sort u} {a b : α} (f : α -> β) (h : Eq.{u} α a b) : Eq.{u} β (f a) (f b) := Eq.subst.{u} α (fun (x : α) => Eq.{u} β (f a) (f x)) a b h (Eq.refl.{u} β (f a))
-axiom Eq.rec {u, v} : {α : Sort u} -> (a : α) -> (motive : (anon : α) -> Sort v) -> (ha : motive a) -> (b : α) -> (h : @Eq.{u} α a b) -> motive b
-def Eq.ndrec {u, v} (α : Sort u) (a : α) (motive : α -> Sort v) (m : motive a) (b : α) (h : @Eq.{u} α a b) : motive b := @Eq.rec.{u, v} α a motive m b h
-def Eq.mp {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) : α -> β := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => α -> x) (fun (a : α) => a) β h
-def Eq.mpr {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) : β -> α := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => x -> α) (fun (a : α) => a) β h
-def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq.mp.{u} α β h a
--- **E10（v0.76.0）：内建记法的声明点** —— `∧ ∨ ↔ ¬ ≠` 是**语言内建**记法，语言
--- **故意拒绝**重新声明它们（实测 `notation-shape`：「符号 `∧` 是语言内建记法……不需要也不能重新声明」✗✓ —— 那条守卫防的是「记法概念分叉」，与 E11 第 ③ 条同一纪律 ✓）。
--- ⇒ 这里用仓库**已有**的 `-- sokonanoda:<指令>` 约定**登记声明点**（**零新增语法** ✓）：
--- 记法表据此把每条内建记法的 `span` 指到**下面这一行** ⇒ 「名字 → 记法行 → 定义 →
--- 回记法」那条双向路才有落点 ✓。判据：
--- `crates/front/src/notation.rs::every_builtin_notation_has_a_directive_line_in_the_prelude`
--- ⚠ **`=` 不登记**：词法的符号匹配是最长匹配且排在专用分支之前，`=` 进了符号表
--- 就会把 `=>` 吃成 `=` + `>`（`parser.rs` 有实测注释 ✗）。
--- sokonanoda:builtin-notation \"∧\" => And
--- sokonanoda:builtin-notation \"∨\" => Or
--- sokonanoda:builtin-notation \"↔\" => Iff
--- sokonanoda:builtin-notation \"¬\" => Not
--- sokonanoda:builtin-notation \"≠\" => Ne
--- **E11（v0.76.0）：内建糖的登记区** —— `{a}` / `{a, b}` / `⟨a, b⟩` 这三样是
--- **内建语法糖**（`elab.rs` 里硬编码展开目标 ✗），学生看源码时同样「无处可查」✗。
--- 用**同一条** `-- sokonanoda:<指令>` 约定登记（**零新增语法** ✓，与上面的记法登记同一套 ✓）：
---   · 前两条有**单一目标** ⇒ 如实写目标名 ✓
---   · `⟨a, b⟩` **没有单一目标**（目标构造子由**期望类型**的头决定，`elab.rs` 的
---     「路线 C」✓）⇒ 登记**如实说明**这件事，**不许编一个目标名** ✗
--- 守卫：`crates/front/tests/prelude_mirror.rs::builtin_sugar_registry_matches_the_elaborator`
--- （与 `elab.rs` 里的硬编码目标**逐字一致** ✓；反向验证：改一个字 ⇒ 判红 ✓）。
--- sokonanoda:builtin-sugar \"{a}\" => Set.singleton
--- sokonanoda:builtin-sugar \"{a, b}\" => Set.pair
--- sokonanoda:builtin-sugar \"⟨a, b⟩\" => 期望类型决定
--- **G-60（0.83.0）：集合建构式的登记**（设计 `docs/design/notation-subset.md` §19）——
--- 这两条是**新语法**，但展开目标是**硬编码**的（`{x ∈ A | P x}` → `Set.sep` 写在
--- `parser.rs` 的 `parse_set_builder` 里 ✗ 同样「无处可查」）⇒ 用同一条约定登记：
---   · `{x ∈ A | P x}` 有**单一目标** ⇒ 如实写目标名 ✓（`Set.sep` 是**卷 I 的库常量**，
---     不是内建的 —— 与 Lean/Mathlib 的 `{x ∈ s | p x}` 同款：缺库就没有这个形状）
---   · `{x : α | P x}` **没有目标常量**（脱糖成函数 `fun (x : α) => P x`，纯内核 ✓）
---     ⇒ 登记**如实说明**，**不许编一个目标名** ✗
---   · `{x | P x}` **故意不登记**：它写不出来（没有元变量 ⇒ 类型没有来源），
---     诊断 `set-builder-shape` 指路 ✓
--- sokonanoda:builtin-sugar \"{x : α | P x}\" => 函数（fun (x : α) => P x），无目标常量
--- sokonanoda:builtin-sugar \"{x ∈ A | P x}\" => Set.sep
-";
+pub const PRELUDE_L1_SRC: &str = include_str!("../../../../prelude/L1.sokonanoda");
 
 /// **ST2（v0.77.0）**：`Quot` 五条的类型**源文本** —— 由 [`install_quot`] 交给
 /// **前端自己的 elaborator** 建成 `Declar::Quot`（四条）+ `Declar::Axiom`（`Quot.sound`）。
@@ -314,24 +222,7 @@ def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq
 ///
 /// 判据不是"文本看起来对不对"，而是**归约**：`Quot.lift`/`Quot.ind` 在 `Quot.mk`
 /// 上必须**算得出来**（见 `crates/front/src/compile/tests.rs` 的 ST2 判据）。
-pub const QUOT_TYPES_SRC: &str = "\
-axiom Quot {u} : {A : Sort u} -> (A -> A -> Prop) -> Sort u
-axiom Quot.mk {u} : {A : Sort u} -> (r : A -> A -> Prop) -> A -> Quot.{u} A r
-axiom Quot.lift {u, v} : {A : Sort u} -> {r : A -> A -> Prop} -> {B : Sort v} -> (f : A -> B) -> (forall (a b : A), r a b -> Eq.{v} B (f a) (f b)) -> Quot.{u} A r -> B
-axiom Quot.ind {u} : {A : Sort u} -> {r : A -> A -> Prop} -> {B : Quot.{u} A r -> Prop} -> (forall (a : A), B (Quot.mk.{u} A r a)) -> (forall (q : Quot.{u} A r), B q)
-axiom Quot.sound {u} : {A : Sort u} -> {r : A -> A -> Prop} -> (a b : A) -> r a b -> Eq.{u} (Quot.{u} A r) (Quot.mk.{u} A r a) (Quot.mk.{u} A r b)
--- **G-75（0.81.0）：反射方向**（`Quot.lift` 的逆）。⚠ 与**台账原文不同**，见
--- `install_quot` 的注释：Lean core **没有** `Quot.exact`（只有对 `Setoid` 的
--- `Quotient.exact`），而**一般形式**（任意 `r`）加上去会让内核**不一致** ✗
--- （`Quot r` 的相等是 `r` 的等价闭包）。所以这里是 **sound 版本**：要求 `r` 是
--- **等价关系**（三条证明显式交进来，就是 Lean `Setoid` 的字段），也就是
--- `Quotient.exact` 的语义 ✓。
-axiom Quot.exact {u} : {A : Sort u} -> {r : A -> A -> Prop} ->
-  (hrefl : forall (a : A), r a a) ->
-  (hsymm : forall (a b : A), r a b -> r b a) ->
-  (htrans : forall (a b c : A), r a b -> r b c -> r a c) ->
-  (a b : A) -> Eq.{u} (Quot.{u} A r) (Quot.mk.{u} A r a) (Quot.mk.{u} A r b) -> r a b
-";
+pub const QUOT_TYPES_SRC: &str = include_str!("../../../../prelude/Quot.sokonanoda");
 
 /// **A4（2026-09-26 用户报告第 4 条）**：prelude 的**只读源文本** —— 编辑器要
 /// "跳进 prelude"就得有一份能打开的源 ✓。
@@ -384,6 +275,20 @@ pub fn prelude_def_span(name: &str) -> Option<Span> {
 /// ⇒ 在编辑器里打开它不会满屏红 ✓。
 pub fn prelude_source_path() -> Option<std::path::PathBuf> {
     let src = prelude_source();
+    // ⓪ **仓库里的真源**（**E1，2026-10-08**）：检出仓库时 F12 直接落到
+    //    `<仓库>/prelude/Prelude.sokonanoda` —— 那份**就是**三段真源的合并视图
+    //    （`include_str!` 的同一个字节），学生打开的是**真文件**、改它**真的会改行为** ✓
+    //    （以前落到缓存副本 ⇒ 改了没用 ✗，正是用户 2026-10-06 报的那条）。
+    //    ⚠ `CARGO_MANIFEST_DIR` 是**编译期**路径 ⇒ 发布产物（VSIX / 缓存二进制）在
+    //    用户机器上**不存在** ⇒ `is_file()` 为假 ⇒ 落到下面两条兜底 ✓（发布形态不变 ✓）。
+    let repo_view = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("prelude")
+        .join("Prelude.sokonanoda");
+    if repo_view.is_file() {
+        return Some(repo_view);
+    }
     // ① 缓存目录（**首选**：路径稳定 ⇒ 编辑器里的打开文档/书签不会漂）；
     // ② 系统临时目录（**兜底**：缓存被禁用或**不可写**时——例如受限沙箱、
     //    只读 HOME——仍然要能给一个**真实存在**的位置 ✓。临时目录是易失的，

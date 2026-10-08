@@ -1,0 +1,3 @@
+axiom Eq {u} : {α : Sort u} -> α -> α -> Prop
+axiom Eq.refl {u} : {α : Sort u} -> (a : α) -> Eq.{u} α a a
+axiom Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α} -> Eq.{u} α a b -> p a -> p b

@@ -16,7 +16,7 @@
 | Q2 没装 CLI | `sokonanoda.installCli`（**自带即装**、离线、不校 SHA256） | `test-extension-host.js`（命令注册）+ **值**判据：跑 `--version` 与插件版本比 |
 | K1 改一行等很久 | 编辑后热编译变快（**前缀复用默认开**） | e2e「rewriting an unchanged project unit does not recompile」·「editing a dependency refreshes the open unit once」（**真宿主**）+ `crates/cli/tests/judge_env_reuse.rs`（两态等价） |
 | **隐式参数**（B2/B3） | 课标库的前导类型参数**不用再手写**：`a ∈ A` · `f '' A` · `A ⊆ B` · `A ∩ B` · `(∅) x` | front 单测 **6 条**（`crates/front/src/compile/tests.rs`，逐条**反向验证** ✓）+ 课程门禁 **43 目标 · 377 checked · 99 open · 0 判负** |
-| 记法铺面（A1–A5） | `->` 折成 `→` · 集合字面量显示 `{a}` · F12 跳 `{a}` / prelude / 记法声明 · 目标行不漏折 | e2e「Infoview 的 ⊢ 用记法箭头 →」「Infoview 里集合字面量显示成 {a}」「go to definition on a `{a}` set literal lands on `Set.singleton`」「go to definition on a prelude name lands in the prelude source」「hover 的类型文本折成记法（T-U12 面 #3）」（**真宿主 36/36** ✓） |
+| 记法铺面（A1–A5）· prelude 能不能改 | `->` 折成 `→` · 集合字面量显示 `{a}` · F12 跳 `{a}` / prelude / 记法声明 · 目标行不漏折；**E1（2026-10-08）**：prelude 的真相搬到 `prelude/{Eq,L1,Quot}.sokonanoda`（Rust 里只剩 `include_str!`）⇒ **改文件真的会改行为** ✓、F12 落点是**仓库里那份**（不再是缓存副本 ✗） | e2e「Infoview 的 ⊢ 用记法箭头 →」「Infoview 里集合字面量显示成 {a}」「go to definition on a `{a}` set literal lands on `Set.singleton`」「go to definition on a prelude name lands in the prelude source」「hover 的类型文本折成记法（T-U12 面 #3）」（**真宿主 36/36** ✓）+ E1：`the_three_source_files_are_the_truth_and_rust_holds_no_prelude_text`（三段拼接 == 视图 == `prelude_source()`；Rust 里哨兵 0 命中）+ **反向验证**（把 `prelude/L1.sokonanoda` 的 `True` 改名 ⇒ `True.intro` 探针判红 ✓）+ `tests::navigation::goto_definition_on_a_builtin_notation_lands_in_the_prelude` |
 
 ## 怎么跑（每一列一条命令）
 

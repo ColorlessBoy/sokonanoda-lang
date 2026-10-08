@@ -8,7 +8,7 @@
 #   `Eq.symm.{1} Nat a b h` → `unknown constant \`Eq.symm\``（exit 1）。
 #   课程侧只能在 `courses/set-theory/lib/Logic.sokonanoda` 手写三条兜底。
 #
-# 修后契约（设计 docs/design/prelude-l1-proposal.md §1.1 第 26–28 行）：
+# 修后契约（设计 prelude/*.sokonanoda §1.1 第 26–28 行）：
 #   ① Full：`Eq.symm`/`Eq.trans`/`congrArg` 直接可用 → exit 0 且 checked；
 #      （2026-09-21：`congrArg` 参数顺序按 Lean 改成 `{α β} {a b} (f) (h)`，
 #        故探针写 `congrArg.{1} f h`，不是旧的 `congrArg.{1} α β f a b h`。）

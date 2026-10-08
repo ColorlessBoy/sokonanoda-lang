@@ -462,7 +462,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 > 验收 `python3 courses/set-theory/tools/check.py` = **exit 0 · 36 目标 ·
 > 329 checked · 99 open · 0 判负**（checked 的 −26 正是 `lib/Logic` 少掉的 26 条
 > 声明，**open 不变** ⇒ 练习与题义未动）。P4 的原始方案见提案
-> `docs/design/prelude-l1-proposal.md` §1.4/§6；课程侧口径见 `course-stdlib.md`。
+> `prelude/*.sokonanoda` §1.4/§6；课程侧口径见 `course-stdlib.md`。
 > **仍未做（留给后续）**：`lib/Set` 还有 10 条待移的 L3 引理（L-05 遗留）、记法第二刀。
 
 > 独立于 P1（语言线）：内容可以先写，写的过程就是缺口探测器。设计 =
@@ -476,14 +476,14 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 - **P-C3 ✅**：向语言线提 **L1 prelude 提案** —— 已**落地**（0.59.0，P1/P2/P3）：
   `PRELUDE_L1_SRC` + 族让位（B1–B7）+ 30 个 `PRELUDE_NAMES`；入门课 golden 一次改完
   （`unit2 = (3,5,2)`、summary `checked 85→86`，另加 `cli.rs` 的第三处）。
-  设计 `docs/design/prelude-l1-proposal.md`（含 as-built 修正）；**P4 课程仓跟随已完成**（同日）；
+  设计 `prelude/*.sokonanoda`（含 as-built 修正）；**P4 课程仓跟随已完成**（同日）；
 - **P-C4 ✅**：单元 3–12 **全部落地**（12 单元 93 题 / 解答 0 open / 门禁 34 目标 · 308 checked · 0 判负）；
   方法 = 两轮 workflow（17 + 14 个子代理：实现→独立复核闭环 + 10 张 WO + 4 份设计/调研）；
   `lib/Set` 里还剩 10 条待移的 L3 引理（属单元③④，未做，记在 L-05）；
 - **P-C5 ✅**：`gap.py list --kind library` 视图（标准库欠账单独可见）；
 - **P-C7 ✅**：Demo 自检已 import 全部 8 个 lib 模块（每模块一条冒烟定理）；
 - **P-C8 ✅（本轮 workflow 产出）**：10 张 WO 落盘（`docs/gaps/WO-001…010.md`）+ L1 prelude 提案
-  （`docs/design/prelude-l1-proposal.md`）+ 课程门禁 CI 接线设计（`docs/design/course-gate-in-ci.md`）
+  （`prelude/*.sokonanoda`）+ 课程门禁 CI 接线设计（`docs/design/course-gate-in-ci.md`）
   + 中文教材调研（`docs/notes/settheory-survey/chinese-textbooks.md`）；
 - **P-C6 ✅（0.59.0 收尾）**：把课程门禁接进 `scripts/soko gate` 或 CI
   （`courses/set-theory/tools/check.py`）——**两条都接了**；设计/as-built

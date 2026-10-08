@@ -77,6 +77,93 @@ fn the_repo_mirror_is_byte_identical_to_the_compiled_prelude() {
     }
 }
 
+/// **E1（2026-10-08）的方向翻转**：`prelude/*.sokonanoda` **三段真源**才是真相，
+/// 合并视图 `prelude/Prelude.sokonanoda` 是**由它们生成**的 ✓。
+///
+/// 判据（两条，缺一不算）：
+/// ① 三段文件按 `"\n"` 拼接 == 视图（**逐字节**）—— 上面那条镜子判据管"视图 ==
+///    `prelude_source()`"，这条管"三段 ⇒ 视图"，合起来 = 三段 ⇒ 编译期真相 ✓；
+/// ② **Rust 里不许再有 prelude 源文本**（哨兵行在 `crates/**/*.rs` 里 0 命中）——
+///    否则"改文件行为不变"的老毛病会悄悄回来 ✗（那正是用户 2026-10-06 报的：
+///    仓库里有一份"镜子"，改它**行为一个字不变** ✗）。
+///
+/// ⚠ **三段文件不许带/丢行尾换行**：`include_str!` 逐字节取文件 ⇒ 多一个 `\n`
+/// 就改 `prelude_source()` 的字节 ⇒ 全课程 `--json` 会漂 ✗（判据③）。
+#[test]
+fn the_three_source_files_are_the_truth_and_rust_holds_no_prelude_text() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..");
+    let read = |name: &str| {
+        let path = root.join("prelude").join(name);
+        std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("必须有真源文件 {}：{e}", path.display()))
+    };
+    let joined = format!(
+        "{}\n{}\n{}",
+        read("Eq.sokonanoda"),
+        read("L1.sokonanoda"),
+        read("Quot.sokonanoda")
+    );
+    assert_eq!(
+        joined,
+        prelude_source(),
+        "三段真源拼接必须与编译期真相**逐字节**相等（`include_str!` 直取它们 ⇒ \
+         不相等说明有文件多了/少了字节，例如行尾换行 ✗）"
+    );
+    assert_eq!(
+        joined,
+        std::fs::read_to_string(root.join("prelude/Prelude.sokonanoda")).expect("视图"),
+        "合并视图必须等于三段拼接（E1 之后**方向是文件 ⇒ 视图** ✓）"
+    );
+
+    // ② 哨兵行（三条各自唯一 —— 今天它们在 `crates/**/*.rs` 里各 1 命中，就是那三个常量）
+    //
+    // ⚠ 哨兵**用 `concat!` 拼**：否则这段字符串本身就在本文件里出现 ⇒ 判据自己
+    // 咬自己 ✗（实测踩到）。拼出来 = 源文本里永远不会有整条哨兵 ✓ 覆盖不缩水 ✓。
+    let sentinels = [
+        concat!("axiom Classical.em", " : (p : Prop)"),
+        concat!("def Or.elim", " {a b c : Prop}"),
+        concat!("axiom Quot.mk", " {u} : {A : Sort u}"),
+    ];
+    let mut rust_files: Vec<PathBuf> = Vec::new();
+    collect_rs(&root.join("crates"), &mut rust_files);
+    assert!(
+        rust_files.len() > 50,
+        "哨兵扫描的前提：必须扫到 `crates/**/*.rs`（扫到 {} 个 ⇒ 路径写错了 ✗）",
+        rust_files.len()
+    );
+    for sentinel in sentinels {
+        for path in &rust_files {
+            let Ok(text) = std::fs::read_to_string(path) else {
+                continue;
+            };
+            assert!(
+                !text.contains(sentinel),
+                "**Rust 里不许再有 prelude 源文本** ✗：{} 里出现了 {sentinel:?}\n\
+                 ⇒ prelude 的真相是 `prelude/*.sokonanoda`（`include_str!` 直取）；\
+                 把源文本搬回 Rust = 回到「改文件行为不变」的老毛病 ✗",
+                path.display()
+            );
+        }
+    }
+}
+
+/// 递归收集 `*.rs`（标准库够用；不引依赖 ✓）。
+fn collect_rs(dir: &Path, out: &mut Vec<PathBuf>) {
+    let Ok(read) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in read.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_rs(&path, out);
+        } else if path.extension().is_some_and(|ext| ext == "rs") {
+            out.push(path);
+        }
+    }
+}
+
 /// **E10 的判据（闭包记法表这一层）**：内建记法必须在**闭包记法表**里、
 /// 且带 **prelude 指令行**的 span ✓ —— 否则 `Query::notation_at`（只查
 /// `project.notations`）认不出 `∧`，学生文件里按 F12 **毫无反应** ✗。
