@@ -470,7 +470,7 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   then default (`goal: null`, empty `binders`, `span: null`, `step: -1`, `total: 0`).
 - The response carries the document `version` so clients drop stale answers.
   Selection is entirely server-side (clients never scan the source);
-  `soko/goals` is unaffected.
+  `soko/goals` is unaffected. `messages` (**C3**, 2026-10-08) = the command outputs on the caret's line: `[{"kind": "check"|"print", "text": "…", "range": {…}}]` (`[]` = none); `check` → `expression : type` (Lean's `logInfoAt tk m!"{e} : {type}"`), `print` → the printed declaration; selection is **by line** (Lean's `getInteractiveDiagnostics{lineRange?}`) and lives in the truth layer (`front::query`) — clients only render it, and `#check` keeps its **inlay hint** ✓.
 
 
 ### `soko/project`

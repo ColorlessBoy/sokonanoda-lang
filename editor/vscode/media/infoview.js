@@ -389,6 +389,11 @@
         ? [{ goal: msg.goal, goal_runs: msg.goal_runs, binders: msg.binders || [] }]
         : []);
 
+    // **C3（2026-10-08）**：光标所在**行**的命令输出（`#check` / `#print`）——
+    // 选择语义在服务端（`soko/stateAt.messages`，按行取 = Lean 的
+    // `getInteractiveDiagnostics{lineRange?}` 口径 ✓），这里**只渲染**。
+    const messages = Array.isArray(msg.messages) ? msg.messages : [];
+
     if (goals.length === 0) {
       if (decl) {
         // **B2（2026-10-08）**：证明**在末条 tactic 闭合** ⇒ 道贺（Q.E.D.）。
@@ -402,7 +407,9 @@
         goalsBody.appendChild(el("p", "solved", proved
           ? "🎉 恭喜，证完了（Q.E.D.）"
           : "已无目标 ✓"));
-      } else {
+      } else if (messages.length === 0) {
+        // 光标在 `#check`/`#print` 那一行时**本来就不在任何声明里** ——
+        // 那时下面那块「命令输出」才是要显示的东西，别用这句话盖过它 ✓。
         goalsBody.appendChild(el("p", "empty", "光标不在任何声明内。"));
       }
     } else {
@@ -457,6 +464,21 @@
       goalsBody.appendChild(
         el("div", "progress", "by 进度 " + (step + 1) + "/" + msg.total),
       );
+    }
+
+    // **C3**：命令输出块（`#check` ⇒ `表达式 : 类型` · `#print` ⇒ 定义文本）。
+    // 没有输出时**一块都不画**（面板不出现空壳 ✓）。
+    if (messages.length > 0) {
+      const box = el("div", "messages");
+      box.appendChild(el("div", "messages-head", "命令输出"));
+      messages.forEach(function (m) {
+        const row = el("div", "message");
+        row.appendChild(el("span", "message-kind",
+          m.kind === "print" ? "#print" : "#check"));
+        row.appendChild(el("pre", "message-text", m.text || ""));
+        box.appendChild(row);
+      });
+      goalsBody.appendChild(box);
     }
   }
 

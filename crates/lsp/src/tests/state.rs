@@ -340,6 +340,56 @@ async fn state_at_outside_any_declaration_is_empty() {
     shutdown(&mut service).await;
 }
 
+/// **C3（2026-10-08）的 wire 判据**：`#check` / `#print` 的输出要**到得了 Infoview**。
+///
+/// 改前：`#check` 只有 **inlay hint**（内联灰字，不是面板），`#print` 的 `Printed`
+/// 事件**根本没进报告** ⇒ 面板结构上看不见它们 ✗（用户 P5 报的"没有内容"）。
+/// 现在 `soko/stateAt` 在**光标所在行**带上 `messages`（口径贴 Lean 的
+/// `getInteractiveDiagnostics{lineRange?}`）。
+///
+/// ⚠ 光标停在 `#check`/`#print` 行上时**不在任何声明里** ⇒ 走的正是"空响应"那条路
+/// （`decl: null`）—— 判据必须覆盖它，否则修好了用户还是看不到 ✓。
+#[tokio::test]
+async fn state_at_carries_the_command_outputs_on_the_caret_line() {
+    let src = "def myid (x : Nat) : Nat := x\n#check myid\n#print myid\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+    // ① `#check`：`表达式 : 类型` + range（Lean 的 `logInfoAt tk m!"{e} : {type}"` 同形）。
+    let check = ask_state_at(&mut service, src, offset_of(src, "#check")).await;
+    let messages = check["messages"].as_array().expect("messages array");
+    assert_eq!(messages.len(), 1, "one #check output: {messages:?}");
+    assert_eq!(messages[0]["kind"], "check");
+    let text = messages[0]["text"].as_str().expect("text");
+    assert!(
+        text.starts_with("myid : ") && text.contains("Nat"),
+        "`#check` 要答 `表达式 : 类型`，实际 = {text:?}"
+    );
+    assert!(messages[0]["range"].is_object(), "range must be present");
+
+    // ② `#print`：打印出来的定义文本。
+    let print = ask_state_at(&mut service, src, offset_of(src, "#print")).await;
+    let messages = print["messages"].as_array().expect("messages array");
+    assert_eq!(messages.len(), 1, "one #print output: {messages:?}");
+    assert_eq!(messages[0]["kind"], "print");
+    let text = messages[0]["text"].as_str().expect("text");
+    assert!(
+        text.contains("myid") && text.contains(":="),
+        "`#print` 要答定义文本，实际 = {text:?}"
+    );
+
+    // ③ 声明那一行没有命令输出（`messages` 空 ⇒ 面板不画那一块）。
+    let decl = ask_state_at(&mut service, src, offset_of(src, "def myid")).await;
+    assert_eq!(
+        decl["messages"].as_array().map(Vec::len),
+        Some(0),
+        "a declaration line has no command output"
+    );
+    shutdown(&mut service).await;
+}
+
 /// **B1（2026-10-08）的 wire 判据**：**失败**的 `by` 块也要答得出逐 tactic 状态。
 ///
 /// 用户报的现象（P3）：「最后一条 tactic 报错 ⇒ **前面所有 goal 全坏**」✗ ——

@@ -177,6 +177,20 @@ pub(crate) struct StateGoalInfo {
     pub(crate) binders: Vec<GoalBinderInfo>,
 }
 
+/// 光标所在**行**的一条命令输出（`#check` / `#print`）—— **C3/2026-10-08**。
+///
+/// 与 Lean 的 `getInteractiveDiagnostics{lineRange?}` 同口径（**按行取**）：
+/// 选择语义在**真相层**（`front::query` 的 `messages_at`），这里只是 wire 形状 ✓。
+#[derive(Debug, Serialize)]
+pub(crate) struct StateMessageInfo {
+    /// `"check"` | `"print"`。
+    pub(crate) kind: String,
+    /// `#check` ⇒ `表达式 : 类型`；`#print` ⇒ 打印出来的定义文本。
+    pub(crate) text: String,
+    /// 那条输出的范围（`#check` = 被检查的表达式；`#print` = 那条命令）。
+    pub(crate) range: Range,
+}
+
 /// `soko/stateAt` response (docs/protocol.md): the goal state at the cursor,
 /// plus enough declaration info for the client to label and reveal it.
 #[derive(Debug, Serialize)]
@@ -200,6 +214,8 @@ pub(crate) struct StateAtResponse {
     /// Index of the selected per-tactic state; `-1` = root.
     pub(crate) step: i64,
     pub(crate) total: usize,
+    /// **光标所在行的命令输出**（`#check`/`#print`；`[]` = 这一行没有）—— C3。
+    pub(crate) messages: Vec<StateMessageInfo>,
 }
 
 impl StateAtResponse {
@@ -215,6 +231,7 @@ impl StateAtResponse {
             span: None,
             step: -1,
             total: 0,
+            messages: Vec::new(),
         }
     }
 }

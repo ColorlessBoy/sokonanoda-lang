@@ -24,7 +24,8 @@ pub use state::{select_state_at, StateSelection};
 pub use types::{
     Answer, BinderInfo, CheckCounts, CheckSummary, CodeActionInfo, DeclHeader, DeclInfo,
     FailedDecl, GoalInfo, HoleInfo, LocatedHole, ProjectCounts, ProjectDiagnosticInfo,
-    ProjectModule, ProjectView, QueryError, ReduceAnswer, RunInfo, StateAnswer, SubGoalInfo,
+    ProjectModule, ProjectView, QueryError, ReduceAnswer, RunInfo, StateAnswer, StateMessage,
+    SubGoalInfo,
     WarningInfo,
 };
 
@@ -1314,7 +1315,52 @@ impl QueryDoc {
             span: selection.span.map(|s| (s.start.offset, s.end.offset)),
             step: selection.step,
             total: selection.total,
+            // **C3**：光标所在**行**的命令输出（`#check`/`#print`）—— 选择语义
+            // 与目标状态同一条纪律：**只有这一处实现** ✓（适配器只换算坐标）。
+            messages: self.messages_at(cursor),
         })
+    }
+
+    /// 光标所在**行**的命令输出（`#check`/`#print`）—— **C3/2026-10-08**。
+    ///
+    /// **口径**（贴 Lean 的 `Lean.Widget.getInteractiveDiagnostics{lineRange?}`）：
+    /// **按行取** —— 光标所在行落在该输出的行范围内就命中（`#check` 的范围是**被检查的
+    /// 表达式**，`#print` 的是**那条命令**）。**为什么在这里而不是 LSP 层**：与目标
+    /// 状态同一条纪律 —— **选择语义只有一处实现** ✓（适配器只换算坐标）。
+    pub fn messages_at(&self, cursor: usize) -> Vec<StateMessage> {
+        let Some(report) = self.report.as_ref() else {
+            return Vec::new();
+        };
+        // 1-based，与 `Span.start.line` 同口径。
+        let (line, _) = line_col_of(&self.text, cursor);
+        let mut out = Vec::new();
+        for check in &report.checks {
+            if (check.span.start.line..=check.span.end.line).contains(&line) {
+                let expr = self
+                    .text
+                    .get(check.span.start.offset..check.span.end.offset)
+                    .unwrap_or("")
+                    .trim();
+                out.push(StateMessage {
+                    kind: "check".to_string(),
+                    // 与 Lean 的 `logInfoAt tk m!"{e} : {type}"` 同形 ✓
+                    text: format!("{expr} : {}", check.text),
+                    start: check.span.start.offset,
+                    end: check.span.end.offset,
+                });
+            }
+        }
+        for print in &report.prints {
+            if (print.span.start.line..=print.span.end.line).contains(&line) {
+                out.push(StateMessage {
+                    kind: "print".to_string(),
+                    text: print.text.clone(),
+                    start: print.span.start.offset,
+                    end: print.span.end.offset,
+                });
+            }
+        }
+        out
     }
 
     // ── goals（声明级）────────────────────────────────────────────────────

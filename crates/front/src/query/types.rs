@@ -123,6 +123,24 @@ pub struct DeclHeader {
     pub end: usize,
 }
 
+/// 光标所在**命令**的输出（`#check` / `#print`）—— C3/2026-10-08。
+///
+/// **为什么在真相层选**：与目标状态同一条纪律 —— **选择语义只有一处实现**
+/// （LSP/CLI/MCP 只换算坐标 ✓）。口径贴 Lean 的
+/// `Lean.Widget.getInteractiveDiagnostics{lineRange?}`：**按行取**
+/// （光标所在行落在该输出的行范围内 ⇒ 命中）✓。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StateMessage {
+    /// `"check"` | `"print"`。
+    pub kind: String,
+    /// 要显示的文本：`#check` ⇒ `表达式 : 类型`（与 Lean 的 `logInfoAt tk m!"{e} : {type}"`
+    /// 同形 ✓）；`#print` ⇒ 打印出来的定义文本。
+    pub text: String,
+    /// 那条输出的范围（`#check` = 被检查的表达式；`#print` = 那条命令）。
+    pub start: usize,
+    pub end: usize,
+}
+
 /// `state` 的答案：光标处（Lean `goalsAt?` 语义）的目标状态。
 ///
 /// 单值字段（`goal`/`goal_runs`/`binders`）恒等于 `goals[0]` 的对应项，为老客户端
@@ -140,6 +158,8 @@ pub struct StateAnswer {
     /// 选中的 per-tactic 状态序号；`-1` = 根状态。
     pub step: i64,
     pub total: usize,
+    /// **光标所在行的命令输出**（`#check`/`#print`；`[]` = 这一行没有）—— C3。
+    pub messages: Vec<StateMessage>,
 }
 
 /// 一个可寻址的洞（`query holes`；`id` 是**唯一稳定引用**）。

@@ -1240,7 +1240,16 @@ impl Backend {
         match doc.query().state_at(cursor) {
             // 报告缺失 / parse 失败 / 位置不在任何声明内 / 越界：LSP 的 wire 没有
             // 错误通道，既有行为就是空响应（`decl: null` + 默认字段）。
-            Err(_) => Ok(StateAtResponse::empty(request_uri.as_str(), version)),
+            //
+            // **C3（2026-10-08）**：光标停在 `#check`/`#print` 那一行时**正是**"不在
+            // 任何声明内" ⇒ 这里仍要把**那一行的命令输出**带上 ✓（否则用户把光标放到
+            // `#print myid` 上什么也看不到 ✗ —— 那正是 P5 报的现象）。
+            Err(_) => {
+                let mut empty = StateAtResponse::empty(request_uri.as_str(), version);
+                empty.messages =
+                    query_map::state_messages(doc.text(), doc.query().messages_at(cursor));
+                Ok(empty)
+            }
             Ok(answer) => Ok(query_map::state_answer(
                 request_uri.as_str(),
                 doc.text(),

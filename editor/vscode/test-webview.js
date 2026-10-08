@@ -1047,5 +1047,58 @@ test("state: no-goal states that are NOT closed keep the neutral line", () => {
   assert.strictEqual(textOf(byClass(root, "solved")[0]), "已无目标 ✓");
 });
 
+// **C3（2026-10-08）**：`#check` / `#print` 的输出要**看得见**（用户 P5：「在 infoview
+// 没有内容」✗）。选择语义在服务端（`soko/stateAt.messages`，**按行取** = Lean 的
+// `getInteractiveDiagnostics{lineRange?}` 口径 ✓），这里只钉**渲染结果** ✓。
+// ⚠ 光标停在 `#check` 那一行时**不在任何声明里** ⇒ 面板**不许**用"光标不在任何声明内"
+// 盖过命令输出（那正是修好前用户看到的东西 ✗）。
+test("state: command outputs (#check / #print) render as a messages block", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    decl: null,
+    goal: null,
+    goals: [],
+    step: -1,
+    total: 0,
+    messages: [
+      { kind: "check", text: "myid : Nat", range: {} },
+      { kind: "print", text: "def myid (x : Nat) : Nat := x", range: {} },
+    ],
+  });
+  const box = byClass(root, "messages")[0];
+  assert.ok(box, "a messages block must be rendered");
+  assert.strictEqual(textOf(byClass(root, "messages-head")[0]), "命令输出");
+  assert.deepStrictEqual(
+    byClass(root, "message-kind").map(textOf),
+    ["#check", "#print"],
+    "each output must be labelled by its command",
+  );
+  const texts = byClass(root, "message-text").map(textOf);
+  assert.strictEqual(texts.length, 2, "two output rows");
+  assert.ok(texts[0].includes("Nat"), `#check shows the type, got ${JSON.stringify(texts[0])}`);
+  assert.ok(texts[1].includes(":="), `#print shows the body, got ${JSON.stringify(texts[1])}`);
+  assert.ok(
+    !textOf(root).includes("光标不在任何声明内"),
+    "command output must not be hidden behind the not-in-a-declaration placeholder",
+  );
+});
+
+test("state: no command output ⇒ no messages block, placeholder stays", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    decl: null,
+    goal: null,
+    goals: [],
+    step: -1,
+    total: 0,
+  });
+  assert.strictEqual(byClass(root, "messages").length, 0, "no empty shell");
+  assert.ok(textOf(root).includes("光标不在任何声明内"), "the placeholder is still there");
+});
+
 console.log(`\n${passed + failed} tests, ${passed} passed, ${failed} failed\n`);
 process.exit(failed > 0 ? 1 : 0);

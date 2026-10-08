@@ -13,7 +13,7 @@ use tower_lsp::lsp_types::{Position, Range};
 
 use super::protocol::{
     GoalBinderInfo, GoalDeclInfo, HoleInfo, RunInfo, StateAtResponse, StateDeclInfo, StateGoalInfo,
-    SubGoalInfo,
+    StateMessageInfo, SubGoalInfo,
 };
 
 /// 字节 offset → 0-based LSP `Position`。
@@ -122,6 +122,21 @@ pub(crate) fn goal_info(goal: truth::GoalInfo) -> StateGoalInfo {
 }
 
 /// `soko/stateAt` 响应（`Backend::state_at` 的唯一出口）。
+/// 真相层的命令输出 → wire（只换算 offset → `Range` ✓；选择语义在真相层）。
+pub(crate) fn state_messages(
+    text: &str,
+    messages: Vec<truth::StateMessage>,
+) -> Vec<StateMessageInfo> {
+    messages
+        .into_iter()
+        .map(|m| StateMessageInfo {
+            kind: m.kind,
+            text: m.text,
+            range: range_of_offsets(text, m.start, m.end),
+        })
+        .collect()
+}
+
 pub(crate) fn state_answer(uri: &str, text: &str, answer: truth::StateAnswer) -> StateAtResponse {
     StateAtResponse {
         uri: uri.to_string(),
@@ -142,5 +157,7 @@ pub(crate) fn state_answer(uri: &str, text: &str, answer: truth::StateAnswer) ->
             .map(|(start, end)| range_of_offsets(text, start, end)),
         step: answer.step,
         total: answer.total,
+        // **C3**：命令输出（选择语义在真相层 ✓，这里只把 offset 换算成 Range）。
+        messages: state_messages(text, answer.messages),
     }
 }

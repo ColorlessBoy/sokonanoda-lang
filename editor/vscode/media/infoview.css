@@ -550,3 +550,37 @@ body {
   font-family: var(--vscode-editor-font-family, monospace);
   color: var(--vscode-descriptionForeground);
 }
+
+/* **C3（2026-10-08）**：命令输出块（`#check` / `#print`）。
+   选择语义在服务端（`soko/stateAt.messages`，按行取 ✓），这里只排版。
+   纪律（`scripts/audit-infoview-css.py`）：**降一档只用颜色**，不叠 opacity ✓。 */
+.messages {
+  margin-top: 6px;
+  border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  padding-top: 4px;
+}
+
+.messages-head {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+  margin-bottom: 2px;
+}
+
+.message {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+
+.message-kind {
+  color: var(--soko-keyword);
+  flex: 0 0 auto;
+}
+
+.message-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--vscode-editor-font-family, monospace);
+}
