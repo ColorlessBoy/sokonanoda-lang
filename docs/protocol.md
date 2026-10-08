@@ -541,25 +541,13 @@ new process is the new version" into a verifiable fact.
 
 ## Rename, references & inlay hints (LSP 3.17)
 
-- `textDocument/documentLink` — one link per `import <module>` line whose module
-  **resolves in the closure**: the range covers the **module name** only
-  (`lib.Set` in `import lib.Set`), the target is the module file's URI
-  (absolute; the module table owns the path, never re-derived here), the
-  tooltip says `打开模块 <module>`. Empty array (not an error) for a
-  single-file document; an `import-not-found` module gets **no** link
-  (a dead link is worse than a link-less line — the diagnostic already
-  explains). Scans `latest_text()`, so it is correct while typing.
-  Design: `docs/design/import-links.md`; judged by
-  `crates/lsp/src/tests/project.rs::import_lines_are_document_links_to_the_module_file`.
-- `textDocument/prepareRename` — resolves the target at the cursor
-  (binder or declaration); returns `{range, placeholder}` covering the
-  **name token** only; unresolved (prelude names, anonymous `example`)
-  → `null`.
-- `textDocument/rename` — semantic rewrite only: every use point that
-  resolves to the same target plus the definition's name token
-  (`WorkspaceEdit.documentChanges` with the document's version). Illegal
-  identifiers and unresolvable positions are **ResponseErrors**, never
-  empty edits or text scans.
+- `textDocument/documentLink` — `import lib.Set` 的**模块名**是可点链接（点开 = 被导入的模块文件；
+  单文件答**空数组**、`import-not-found` **不给死链**、读 `latest_text()` ⇒ 打字中也对）。契约与判据 ⇒ `docs/design/import-links.md`
+- `textDocument/prepareRename` — resolves the target at the cursor (binder or declaration);
+  returns `{range, placeholder}` covering the **name token** only; unresolved (prelude names, anonymous `example`) → `null`.
+- `textDocument/rename` — semantic rewrite only: every use point that resolves to the same target plus the definition's name token
+  (`WorkspaceEdit.documentChanges` with the document's version). Illegal identifiers and unresolvable positions are
+  **ResponseErrors**, never empty edits or text scans.
 - `textDocument/references` — all use points of the target; with
   `include_declaration` the definition's name location is prepended;
   results are sorted by offset and deduplicated.
