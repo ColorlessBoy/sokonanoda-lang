@@ -1174,44 +1174,32 @@ test("Infoview receives the project view the server answered (E30)", async () =>
   }
 });
 
-test("Infoview 记法符号可点：offset 变体换算后走同一条 F12 链 (G-53)", async () => {
-  // **G-53**：wire 现在给 semantic run 带**源位置**（字节 offset ✓，`67bf0895` ✓）⇒ Infoview 里
-  // 点记法符号（`∈` / `{a}` ✓）发的是 **offset 变体** ✓。webview **没有源文本** ⇒ 换算由扩展做 ✓：
-  // `TextDocument.positionAt(offset)`（**UTF-16 码元**语义 ✓ = LSP `Position` ✓，与 G-36 同源 ✓）
-  // ⇒ 换算后**汇合**到**同一条** `gotoDefinition` ✓（**不复制第二条跳转路径** ✗）。
+test("Infoview 的 definition 只认 `position`（G-53 的 offset 变体已删）", async () => {
+  // **2026-10-08 用户拍板**：「infoview 里的符号 notation 啥的**不需要跳转链接**，
+  // 声明列表里**开头的 theorem 名字**能跳转就行」⇒ webview 侧的 run 不再注册 click
+  //（`media/infoview.js` 的 `codeBlock`），扩展侧那条**只为符号存在**的 `offset` 变体
+  // 也随之删除 ✗（留着就是一条没人走的第二条跳转路径 ✗）。
   //
-  // ⚠ 判据绑**用户动作的后果** ✓（AGENTS.md 第 0 条 (a) ✓）：不是"消息发出去了" ✗，而是
-  // **问 F12 那条命令、且位置是按源文本换算出来的** ✓。
+  // 判据（**反向**）：只带 `offset` 的消息**不许**驱动任何 definition 查询 ✓ ——
+  // 谁把那条分支加回来，这条当场判红 ✗（这就是"删掉的能力不再悄悄回来"的守卫 ✓）。
+  // ⚠ wire 里的 `start`/`end` **照旧发**（`docs/protocol.md`）——删的是消费端 ✗；
+  // G-53 的复现件钉的是"wire 带位置"，它必须仍然判绿 ✓。
   await activateExtension();
   const provider = vscodeStub.__infoview;
   assert.ok(provider, "activate() 必须建 Infoview provider");
-  const clicked = "file:///repo/units/u01.sokonanoda";
-  const source = "def p : Prop := Prop\n";
-  vscodeStub.__docText = source;
-  const definition = {
-    uri: vscodeStub.Uri.file("/repo/lib/Set.sokonanoda"),
-    range: new vscodeStub.Range(11, 4, 11, 20),
-  };
-  vscodeStub.__definitions = [definition];
   vscodeStub.__commandsCalled = [];
-  const editor = editorFor(fakeDocument("/repo/lib/Set.sokonanoda"));
-  vscodeStub.window.activeTextEditor = editor;
-  // 用户点的是 `Prop`（第二个，offset 17 ✓ —— `def p : Prop := ` 之后 ✓）。
-  const offset = source.lastIndexOf("Prop");
-  await provider._onMessage({ protocol: 1, type: "definition", uri: clicked, offset });
-
-  const calls = vscodeStub.__commandsCalled;
-  const query = calls.find((call) => call.id === "vscode.executeDefinitionProvider");
-  assert.ok(
-    query,
-    `offset 变体必须走 F12 同一条命令：${JSON.stringify(calls.map((c) => c.id))}`,
-  );
-  assert.strictEqual(query.args[0].toString(), clicked, "问的是点击处那份文档");
-  assert.strictEqual(query.args[1].line, 0, "offset 换算成行（0-based）");
-  assert.strictEqual(
-    query.args[1].character,
-    offset,
-    "offset 换算成列 —— 单行 ASCII 源里列 == offset（换算走 positionAt ✓）",
+  await provider._onMessage({
+    protocol: 1,
+    type: "definition",
+    uri: "file:///repo/units/u01.sokonanoda",
+    offset: 17,
+  });
+  assert.deepStrictEqual(
+    vscodeStub.__commandsCalled.filter((call) => call.id === "vscode.executeDefinitionProvider"),
+    [],
+    `offset 变体必须已经删掉（不许再有一条符号跳转路径）：${JSON.stringify(
+      vscodeStub.__commandsCalled.map((c) => c.id),
+    )}`,
   );
 });
 

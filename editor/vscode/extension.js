@@ -823,19 +823,12 @@ class InfoviewProvider {
       // 判据（PLAN §E27）：发出端不许发 reveal（webview 判据）；落点端必须等于
       // 编辑器 F12 的落点（stub 宿主判据）。
       case "definition":
+        // **2026-10-08 用户拍板**：Infoview 的**记法符号/标识符**不再可点（「符号 notation
+        // 啥的不需要跳转链接，声明列表里开头的 theorem 名字能跳转就行」）⇒ webview 只发
+        // **`position` 变体**（声明名，E27 ✓）。**G-53 的 `offset` 变体已删** ✗
+        // （它只为"点记法符号"存在；留着就是一条没人走的跳转路径 ✗）。
         if (typeof message.uri === "string" && message.position) {
           await gotoDefinition(message.uri, message.position);
-        } else if (typeof message.uri === "string" && typeof message.offset === "number") {
-          // **G-53**：Infoview 里点**记法符号/标识符**（`∈`、`{a}` ✓）发的是**字节 offset**
-          // （webview 没有源文本 ⇒ 不自己换算 ✓）。这里用 VS Code 的 `positionAt` 换算 ✓
-          // —— 它按 **UTF-16 码元**算列 ✓，正是 LSP `Position` 的语义 ✓（与 G-36 同源 ✓）；
-          // 换算后**汇合**到同一条 `gotoDefinition` ✓（**不复制第二条跳转路径** ✗）。
-          try {
-            const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(message.uri));
-            await gotoDefinition(message.uri, doc.positionAt(message.offset));
-          } catch (error) {
-            console.warn("sokonanoda: definition(offset) 失败", error);
-          }
         }
         break;
     }
