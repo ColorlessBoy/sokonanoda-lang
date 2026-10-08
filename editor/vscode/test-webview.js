@@ -980,5 +980,72 @@ test("progress: begin renders three lines, report updates in place, end removes 
   );
 });
 
+// **B2（2026-10-08）**：证明**在末条 tactic 闭合** ⇒ 道贺（Q.E.D.）。判据全在既有的
+// `soko/stateAt` 字段里（`total > 0 && goals 为空 && step == total-1` 且
+// `decl.status == "checked"`）——**不加新 wire 字段** ✓。
+// ⚠ 反向的一半在下面那条：**没证完**的"无目标"不许道贺（对一道没做完的题说
+// 「证完了」是假话 ✗）。
+test("state: a proof closed at its last tactic congratulates (Q.E.D.)", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    decl: { name: "done", kind: "theorem", status: "checked" },
+    goals: [],
+    goal: null,
+    step: 1,
+    total: 2,
+  });
+  const solved = byClass(root, "solved")[0];
+  assert.ok(solved, "the solved line must be rendered");
+  const text = textOf(solved);
+  assert.ok(
+    text.includes("Q.E.D.") && text.includes("🎉"),
+    `a closed proof must congratulate, got ${JSON.stringify(text)}`,
+  );
+});
+
+test("state: no-goal states that are NOT closed keep the neutral line", () => {
+  // ① `def`/`axiom`：`total: 0`（没有 tactic ⇒ 不是"在末条闭合"）。
+  let { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    decl: { name: "id", kind: "def", status: "checked" },
+    goals: [],
+    goal: null,
+    step: -1,
+    total: 0,
+  });
+  assert.strictEqual(textOf(byClass(root, "solved")[0]), "已无目标 ✓");
+
+  // ② 开放练习：即便服务端给空 `goals`（例如光标停在声明头部、状态是题面）
+  //    也不许道贺 —— 这条钉的是 `status` 那一半。
+  ({ root, send } = loadInfoview());
+  send({
+    protocol: 1,
+    type: "state",
+    decl: { name: "open", kind: "theorem", status: "open" },
+    goals: [],
+    goal: null,
+    step: 1,
+    total: 2,
+  });
+  assert.strictEqual(textOf(byClass(root, "solved")[0]), "已无目标 ✓");
+
+  // ③ 失败的声明：同样不许道贺。
+  ({ root, send } = loadInfoview());
+  send({
+    protocol: 1,
+    type: "state",
+    decl: { name: "bad", kind: "theorem", status: "failed" },
+    goals: [],
+    goal: null,
+    step: 1,
+    total: 2,
+  });
+  assert.strictEqual(textOf(byClass(root, "solved")[0]), "已无目标 ✓");
+});
+
 console.log(`\n${passed + failed} tests, ${passed} passed, ${failed} failed\n`);
 process.exit(failed > 0 ? 1 : 0);

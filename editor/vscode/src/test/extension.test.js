@@ -1564,6 +1564,51 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("B2：光标在末条 tactic 之内 ⇒ 目标是它**作用后**的状态（闭合 ⇒ 无目标）", async () => {
+    // **B2 的真宿主判据**（2026-10-08 · P4）：Infoview 的光标目标语义要与 Lean 4
+    // 一致 —— 光标**严格在**某条 tactic 之内时显示 `goalsAfter`（Lean 的
+    // `useAfter := hoverPos > pos`）。夹具末尾的 `b2_closed`（两步：`intro h` /
+    // `exact h`）在**末条 tactic** 闭合 ⇒ 这里必须答 `total 2` · `step 1` ·
+    // `goals []`（**改前**答的是"进入态"：`step 0` · 目标非空 ⇒ **先红后绿** ✓）。
+    // 坐标**从声明推导**（别假设"末尾第几行"——夹具一加题就会静默指到别处 ✗）。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "必须有一个活动编辑器");
+    const doc = editor.document;
+    const declLine = [...Array(doc.lineCount).keys()].find((i) =>
+      doc.lineAt(i).text.includes("theorem b2_closed"),
+    );
+    assert.notStrictEqual(declLine, undefined, "夹具里必须有 `theorem b2_closed`");
+    const lineIndex = [...Array(doc.lineCount).keys()].find(
+      (i) => i > declLine && doc.lineAt(i).text.trim() === "exact h",
+    );
+    assert.notStrictEqual(lineIndex, undefined, "`b2_closed` 里必须有一行 `exact h`");
+    // 光标落在**tactic 内部**（`exact` 的第 4 个字符）——不是起点（起点仍是进入态 ✓）。
+    const column = doc.lineAt(lineIndex).text.indexOf("exact") + 3;
+    const pos = new vscode.Position(lineIndex, column);
+    editor.selection = new vscode.Selection(pos, pos);
+
+    await waitFor("B2：末条 tactic 的**作用后**状态到达（total=2 · step=1 · goals 空）", async () => {
+      const state = extensionApi.infoview.lastState();
+      return (
+        state &&
+        state.decl &&
+        state.decl.name === "b2_closed" &&
+        state.total === 2 &&
+        state.step === 1 &&
+        Array.isArray(state.goals) &&
+        state.goals.length === 0
+      );
+    });
+    const state = extensionApi.infoview.lastState();
+    assert.strictEqual(
+      state.decl.status,
+      "checked",
+      "证明在末条 tactic 闭合 ⇒ 必须是 checked（Infoview 据此显示 🎉/Q.E.D.）",
+    );
+  });
+
   test("Infoview 的 `⊢` 用记法箭头 `→`，且 runs 与 text 同源", async () => {
     // **A1 的真宿主判据**（2026-09-26 用户报告第 1 条）：根状态的文本必须是
     // **唯一接口折过**的那一份 —— 修复前是混合形态（`∀` 折了、`->` 没折）。

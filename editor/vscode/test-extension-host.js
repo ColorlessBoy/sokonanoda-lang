@@ -2505,6 +2505,47 @@ test("compile progress marks the active document in the overview ruler", async (
   );
 });
 
+// **B2（2026-10-08）**：`extension.js` 的**树项**与 `media/infoview.js` 是**同一判据的
+// 两个渲染点**（"同类问题横向排查" ✓）—— 证明在**末条 tactic** 闭合时，两边都要报
+// 「证完了」，而不是中性的「已无目标 ✓」。这条钉**树**那一半（Infoview 那一半在
+// `test-webview.js`；wire 那一半在 `crates/lsp/src/tests/state.rs`）。
+test("B2: the cursor tree congratulates a proof closed at its last tactic", async () => {
+  stubbedResponses["soko/goals"] = () => ({
+    decls: [{ name: "done", kind: "theorem", status: "checked", holes: [] }],
+  });
+  stubbedResponses["soko/stateAt"] = () => ({
+    decl: { name: "done", kind: "theorem", status: "checked" },
+    goals: [],
+    goal: null,
+    step: 1,
+    total: 2,
+  });
+  try {
+    await activateExtension();
+    focus(fakeDocument("/repo/playground.sokonanoda"));
+    await settle();
+    const tree = vscodeStub.__trees?.["sokonanoda.goals"];
+    assert.ok(tree, "the exercise tree must be registered");
+    const roots = await tree.getChildren();
+    const group = roots.find((item) => String(item.label) === "当前光标处");
+    assert.ok(group, `the cursor group must be present, got ${roots.map((i) => i.label)}`);
+    const rows = await tree.getChildren(group);
+    const descriptions = rows.map((item) => String(item.description ?? ""));
+    assert.strictEqual(
+      descriptions.filter((d) => d.includes("Q.E.D.")).length,
+      1,
+      `exactly one congratulation row (got ${JSON.stringify(descriptions)})`,
+    );
+    assert.ok(
+      !descriptions.includes("已无目标 ✓"),
+      `a closed proof must NOT fall back to the neutral line (got ${JSON.stringify(descriptions)})`,
+    );
+  } finally {
+    stubbedResponses["soko/goals"] = () => ({ decls: [] });
+    stubbedResponses["soko/stateAt"] = () => ({ decls: [], goals: [] });
+  }
+});
+
 // ── runner ───────────────────────────────────────────────────────────────
 (async () => {
   let failed = 0;

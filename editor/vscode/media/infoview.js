@@ -391,7 +391,17 @@
 
     if (goals.length === 0) {
       if (decl) {
-        goalsBody.appendChild(el("p", "solved", "已无目标 ✓"));
+        // **B2（2026-10-08）**：证明**在末条 tactic 闭合** ⇒ 道贺（Q.E.D.）。
+        // 判据全在既有的 `soko/stateAt` 字段里（不加新 wire 字段 ✓）：
+        // `total > 0 && goals 为空 && step == total-1` 且 `decl.status == "checked"`。
+        // 其余"无目标"（`def`/`axiom` 的 `total:0`、`open`/`failed` 的声明）
+        // **保持中性文案**「已无目标 ✓」—— 对一道没证完的题道贺是假话 ✗。
+        const proved = decl.status === "checked"
+          && typeof msg.total === "number" && msg.total > 0
+          && typeof msg.step === "number" && msg.step === msg.total - 1;
+        goalsBody.appendChild(el("p", "solved", proved
+          ? "🎉 恭喜，证完了（Q.E.D.）"
+          : "已无目标 ✓"));
       } else {
         goalsBody.appendChild(el("p", "empty", "光标不在任何声明内。"));
       }

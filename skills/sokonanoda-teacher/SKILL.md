@@ -399,7 +399,13 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   写成 lambda；I13-S1 由 `intro` 改名）；
 - 练习树每个 open 声明有「提示」节点：逐条揭示画布里的 `-- soko:hint` 阶梯；
 - 练习树顶部「当前光标处」跟随光标显示该位置的 tactic 目标与假设
-  （`by` 写法下逐 tactic；服务端选取，客户端只渲染）；
+  （`by` 写法下逐 tactic；服务端选取，客户端只渲染）。
+  **光标语义（B2/2026-10-08，与 Lean 4 对齐）**：光标**严格在某条 tactic 之内**
+  （不是它第一个字符）⇒ 显示该 tactic **作用后**的状态；**恰在起点** ⇒ 显示
+  **进入**它的状态（改前一律是"进入态" ✗）。⇒ 说"光标停在这一行"时，指的是
+  **这一行做完之后**的目标 —— 与 Lean Infoview 一致。证明**在末条 tactic 闭合**
+  时，面板与树项报 **🎉 恭喜，证完了（Q.E.D.）**（`open`/`failed`/无 tactic 的
+  声明仍是中性的「已无目标 ✓」）；
 - CodeLens 显示每个声明的练习状态（open / solved / failed）；
 - rename（F2）与 find-references 走语义解析（注释里的同名文本不受影响）；
 - **Infoview 目标面板**在**右侧辅助侧栏**，`Sokonanoda: Infoview (目标面板)`

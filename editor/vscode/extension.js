@@ -571,8 +571,14 @@ function buildCursorChildren(cursor, uriString) {
     : (cursor.goal ? [{ goal: cursor.goal, binders: cursor.binders ?? [] }] : []);
   if (goals.length === 0) {
     const goal = new vscode.TreeItem("目标", vscode.TreeItemCollapsibleState.None);
-    goal.description = "已无目标 ✓";
-    goal.iconPath = new vscode.ThemeIcon("check");
+    // **B2（2026-10-08）**：与 Infoview 同一判据（`soko/stateAt` 的既有字段，
+    // 不加新 wire 字段）：**在末条 tactic 闭合** ⇒ 道贺；其余"无目标"保持中性。
+    const decl = cursor.decl;
+    const proved = !!decl && decl.status === "checked"
+      && typeof cursor.total === "number" && cursor.total > 0
+      && typeof cursor.step === "number" && cursor.step === cursor.total - 1;
+    goal.description = proved ? "🎉 证完了（Q.E.D.）" : "已无目标 ✓";
+    goal.iconPath = new vscode.ThemeIcon(proved ? "pass-filled" : "check");
     children.push(goal);
   } else if (goals.length === 1) {
     const goal = new vscode.TreeItem("目标", vscode.TreeItemCollapsibleState.None);
