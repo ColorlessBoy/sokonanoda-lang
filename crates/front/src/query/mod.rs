@@ -374,6 +374,14 @@ fn splice_entry_report(
             .filter(|c| is_trusted(c.cmd))
             .cloned()
             .collect(),
+        // **C3**：`#print` 与 `#check` 同一条信任规则 ✓。
+        prints: cache
+            .report
+            .prints
+            .iter()
+            .filter(|p| is_trusted(p.cmd))
+            .cloned()
+            .collect(),
         warnings: cache
             .report
             .warnings

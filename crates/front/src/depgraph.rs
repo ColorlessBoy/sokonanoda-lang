@@ -231,6 +231,7 @@ mod tests {
             hover_cmds,
             errors: Vec::new(),
             checks: Vec::new(),
+            prints: Vec::new(),
             warnings: Vec::new(),
         }
     }

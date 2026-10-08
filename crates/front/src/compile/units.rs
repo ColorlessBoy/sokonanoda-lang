@@ -65,6 +65,7 @@ pub fn split_report(
         hover_cmds,
         errors,
         checks,
+        prints,
         warnings,
     } = flat;
     for mut decl in decls {
@@ -90,6 +91,11 @@ pub fn split_report(
     for check in checks {
         let unit = unit_of_cmd(check.cmd).unwrap_or(fallback);
         reports[unit].checks.push(check);
+    }
+    // **C3**：`#print` 同法按命令归因（与 `checks` 一条规则 ✓）。
+    for print in prints {
+        let unit = unit_of_cmd(print.cmd).unwrap_or(fallback);
+        reports[unit].prints.push(print);
     }
     // 警告同法按命令归因：语法级的被 `kernel_phase` 钉在所属单元的首条命令上，
     // 内核终审过的（`redundant-sorry`）带真实命令下标——两者都只依赖命令区间，

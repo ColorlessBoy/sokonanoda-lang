@@ -195,7 +195,7 @@ impl Session {
             remap_snapshots(&mut self.snaps, &old_spans, &new_spans, src);
             self.keys = new_keys;
             self.src = src.to_string();
-            let mut report = assemble_report(&self.snaps);
+            let mut report = assemble_report(&self.snaps, &new_spans);
             // 提示阶梯是注释级数据：零重编译路径也要按当前文本刷新
             // （hint 指令的增删只移动 span，不触发重编译）。
             crate::compile::hints::attach_hints_to_report(src, &mut report);
@@ -310,7 +310,7 @@ impl Session {
             new_snaps.extend(tail);
         }
 
-        let mut report = assemble_report(&new_snaps);
+        let mut report = assemble_report(&new_snaps, &new_spans);
         crate::compile::hints::attach_hints_to_report(src, &mut report);
         let mut warnings = crate::compile::collect_warnings(&file);
         warnings.append(&mut report.warnings);
@@ -566,14 +566,18 @@ fn containing_command(commands: &[crate::Command], offset: usize) -> Option<usiz
     best
 }
 
-/// 从快照组装整份报告（声明、hover、错误、#check 结果；来源顺序即命令顺序）。
-fn assemble_report(snaps: &[CmdSnapshot]) -> DocumentReport {
+/// 从快照组装整份报告（声明、hover、错误、`#check`/`#print` 结果；来源顺序即命令顺序）。
+///
+/// `spans[j]` = 第 j 条命令的 span（**当前坐标**）—— `#print` 的事件不带 span
+/// （见 [`PrintInfo`]），按命令下标回填 ✓。
+fn assemble_report(snaps: &[CmdSnapshot], spans: &[Span]) -> DocumentReport {
     let mut decls = Vec::new();
     let mut hovers = Vec::new();
     let mut hover_cmds = Vec::new();
     let mut errors = Vec::new();
     let mut warnings = Vec::new();
     let mut checks = Vec::new();
+    let mut prints = Vec::new();
     for (j, snap) in snaps.iter().enumerate() {
         if let Some(state) = &snap.state {
             decls.push(state.clone());
@@ -585,13 +589,25 @@ fn assemble_report(snaps: &[CmdSnapshot]) -> DocumentReport {
         errors.extend(snap.errors.iter().cloned());
         warnings.extend(snap.warnings.iter().cloned());
         for event in &snap.events {
-            if let CheckEvent::TypeChecked { text, span } = event {
-                checks.push(crate::compile::CheckInfo {
-                    span: *span,
-                    text: text.clone(),
-                    // 会话快照按命令归属重建；`cmd` 在这里没有意义（单文档）。
-                    cmd: 0,
-                });
+            match event {
+                CheckEvent::TypeChecked { text, span } => {
+                    checks.push(crate::compile::CheckInfo {
+                        span: *span,
+                        text: text.clone(),
+                        // 会话快照按命令归属重建；`cmd` 在这里没有意义（单文档）。
+                        cmd: 0,
+                    });
+                }
+                // **C3**：`#print` 的结果也进报告（以前被丢 ✗）⇒ Infoview 看得见。
+                CheckEvent::Printed { name, text } => {
+                    prints.push(crate::compile::PrintInfo {
+                        span: spans.get(j).copied().unwrap_or_default(),
+                        name: name.clone(),
+                        text: text.clone(),
+                        cmd: 0,
+                    });
+                }
+                _ => {}
             }
         }
     }
@@ -601,6 +617,7 @@ fn assemble_report(snaps: &[CmdSnapshot]) -> DocumentReport {
         hover_cmds,
         errors,
         checks,
+        prints,
         // 内核终审过的 warning 来自快照（跨版本复用）；语法级的由调用方
         // 用 `collect_warnings` 在整文件上重算后拼在前面。
         warnings,
@@ -1000,6 +1017,36 @@ def five : Nat := 5
         assert_eq!(
             u2.report.checks[0].span.start.offset,
             u1.report.checks[0].span.start.offset + "-- 讲解\n".len()
+        );
+    }
+
+    #[test]
+    fn session_keeps_print_results_on_zero_recompile() {
+        // **C3（2026-10-08）**：`#print` 的结果必须进报告（以前 `assemble_report`
+        // 只匹配 `TypeChecked` ⇒ `Printed` **被丢** ✗ ⇒ Infoview 结构上看不见它），
+        // 且随快照缓存、注释级编辑（零重编译）时 span 平移。
+        let src = "def myid (x : Nat) : Nat := x\n#print myid\n";
+        let mut session = Session::new(CompileOptions::default());
+        let u1 = update(&mut session, src, 1);
+        assert_eq!(u1.report.prints.len(), 1, "one #print result");
+        assert_eq!(u1.report.prints[0].name, "myid");
+        assert!(
+            u1.report.prints[0].text.contains(":="),
+            "the printed text must be the declaration body: {:?}",
+            u1.report.prints[0].text
+        );
+        // span = **那条命令**的 span（`Printed` 事件自己不带 span ⇒ 按命令回填 ✓）。
+        let cmd_start = src.find("#print").expect("#print command");
+        assert_eq!(u1.report.prints[0].span.start.offset, cmd_start);
+
+        let with_comment = format!("-- 讲解\n{src}");
+        let u2 = update(&mut session, &with_comment, 2);
+        assert_eq!(u2.recompiled_from, None, "comment-only edit");
+        assert_eq!(u2.stats.kernel_checks, 0);
+        assert_eq!(u2.report.prints.len(), 1);
+        assert_eq!(
+            u2.report.prints[0].span.start.offset,
+            cmd_start + "-- 讲解\n".len()
         );
     }
 

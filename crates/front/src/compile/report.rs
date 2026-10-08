@@ -94,7 +94,10 @@ pub struct ByStepState {
 /// （以前恒为空 ⇒ `query state` 退回题面 `step:-1/total:0` ✗）。
 /// 语义变化**同样算形状变化**（下面那段话的最后一句）⇒ 必须 bump，
 /// 否则旧缓存条目会静默给出"没有步进"的旧答案 ✗（G-78 踩过一次）。
-pub const REPORT_SHAPE: u32 = 2;
+/// **C3（2026-10-08）把它 2 → 3**：`DocumentReport` 多了 `prints`
+/// （`#print` 的结果 —— 以前那些事件**根本没进报告**）⇒ 形状变了，
+/// 旧条目必须整库不命中，否则 Infoview 会拿到"没有 prints"的旧答案 ✗。
+pub const REPORT_SHAPE: u32 = 3;
 
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -233,6 +236,24 @@ pub struct CheckInfo {
     pub cmd: usize,
 }
 
+/// A `#print` command's result: the **printed declaration text** + the
+/// **command's** span (C3/2026-10-08).
+///
+/// **为什么 span 挂"命令"而不是"名字"**：`#print` 的 `Printed` 事件
+/// （`compile/check/kernel_phase.rs`）**不带 span**（它只有 `name`/`text`）⇒
+/// 真相层按**命令下标**回填命令自己的 span ✓（`assemble_report` 的 `spans[j]`）。
+/// 与 Lean 的 `withRef tk` 取的是同一个东西（`#print` 那条命令的位置），
+/// 而 Infoview 的用法正是"**光标落在这条命令上**就显示它的输出" ✓。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PrintInfo {
+    pub span: Span,
+    pub name: String,
+    pub text: String,
+    /// 产生它的命令下标（与 [`CheckInfo::cmd`] 同纪律：不进序列化）。
+    #[serde(skip)]
+    pub cmd: usize,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DocumentReport {
     pub decls: Vec<DeclState>,
@@ -245,6 +266,9 @@ pub struct DocumentReport {
     pub errors: Vec<CompileError>,
     /// `#check` results, in source order.
     pub checks: Vec<CheckInfo>,
+    /// **`#print` 结果**（C3/2026-10-08），按来源顺序 —— 以前这些事件**根本没进
+    /// 报告**（`assemble_report` 只匹配 `TypeChecked`）⇒ Infoview 结构上看不见它 ✗。
+    pub prints: Vec<PrintInfo>,
     /// Syntax-level warnings (e.g. a declaration colliding with a
     /// kernel-defined name).
     /// Independent of declaration status; the LSP renders these as
