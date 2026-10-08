@@ -587,6 +587,31 @@ pub(crate) fn compile_plan_incremental(
     reports_out.pop().expect("一个入口必须回调一次")
 }
 
+/// **T4-B 的入口**（T1-B 批 2 之后新增，2026-10-09）：让 **CLI** 那条"每次一个入口"的路
+/// 也吃上**磁盘产物**。
+///
+/// ## 为什么需要它（本轮实测 · `/tmp/t1b-big`：60 条 `by` 的 `Lib` + 一个入口）
+///
+/// | 路 | 改一行入口后再编 |
+/// |---|---|
+/// | `build <file>`（今天 = [`compile_plan_prechecked`]，**整条闭包一趟**） | **0.40s**（库层每次重 elaborate ✗） |
+/// | `query check`（走 session + 产物） | **0.043s** ✓（≈ **9×**） |
+///
+/// ⇒ 差的那 9× 就是**库层 elaborate**。本函数把 CLI 那条路接到
+/// [`compile_plan_incremental`] 的 `reuse_library = false` 支（= **不碰线程局部检查点** ✓
+/// + 磁盘产物 ✓ ⇒ 与 T4-A 的契约一致：**跨进程增量归产物** ✓）。
+///
+/// ⚠ **采用之前要先解决三件**（如实记，别硬接 ✗）：
+/// ① `compile_plan_incremental` **不收 `progress` sink** ⇒ 直接换会**丢掉 CLI 的进度事件**
+///    （用户可见 ✗）—— 要么给它加一条 sink 通道、要么在 CLI 侧把进度从回调里重放 ✓；
+/// ② 两条路的 `ProjectReport` 必须**逐字节相同**（`query` 那条已经在用 ✓，但 CLI 的
+///    `--json` 还有 `build.*` 事件流 ⇒ 要**整门课**对拍 ✓）；
+/// ③ `compile_entries_shared` 的**单入口组**是被**过滤掉**的（"会话是纯开销"）⇒
+///    这条口子是给"**单文件 `build`/`check`/`course`**"用的，不是给多入口组用的 ✓。
+pub fn compile_plan_with_artifacts(plan: ProjectPlan, options: &CompileOptions) -> ProjectReport {
+    compile_plan_incremental(plan, options, None, None, false)
+}
+
 /// **G-68 切片（2026-10-06）**：一批入口**共享库层** —— 按「库闭包签名」分组，
 /// 每组跑一次 [`crate::project::session::with_project_session`]（库层只编一次，
 /// 组内各入口从同一个检查点起跑 ⇒ **共享依赖只 elaborate 一次**）。
