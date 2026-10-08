@@ -2692,6 +2692,14 @@ const INTENTIONAL: &[(&str, &str)] = &[
         "courses/set-theory/lib/Rel.sokonanoda",
         "Rel.inv_mono_of_inv",
     ),
+    // 0.85.2 批次（课程线 C-113…C-132 收口 · 2026-10-08）：
+    // `Rel.inv_comp_apply` 是上方 `•`/`⁻¹` 族的**新成员**，签名与同族
+    // `Rel.comp_apply` **逐字同形**（`{A B C : Type}`）—— 同一次契约变更
+    // 的延续，不是新契约破坏；课程全量编译绿（IA-1 插入正常 ✓）。
+    (
+        "courses/set-theory/lib/Rel.sokonanoda",
+        "Rel.inv_comp_apply",
+    ),
 ];
 /// **IA-1：隐式实参插入**（路线 C，设计 `docs/design/implicit-arguments.md` §3）。
 ///
