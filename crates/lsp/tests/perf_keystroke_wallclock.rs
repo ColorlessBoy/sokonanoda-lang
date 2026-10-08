@@ -270,8 +270,27 @@ fn perf_course_keystroke_wallclock_is_recorded() {
         5,
     );
 
+    // 场景 5：**只追加尾部注释**（§16 的确认实验）—— **脏集为空**：追加在文件末尾不移动
+    // 任何命令的起点 ⇒ 全部命令都可信任 ⇒ 这一刀量到的是"**一刀的固定底**"（
+    // 服务端排空 + 报告装配 + 那一趟 pass 的固定成本）。它决定 T2-B 的天花板：
+    // 若这个底已经 ≈70ms（= typing 的量级）⇒ T2-B **直接划掉** ✗。
+    let trailing = run_scenario(
+        &mut client,
+        &uri,
+        "trailing_comment",
+        &text,
+        &|current, even| {
+            if even {
+                format!("{current}-- \u{1F4CC}\n")
+            } else {
+                format!("{current}-- \u{1F4CD}\n")
+            }
+        },
+        5,
+    );
+
     let identity = binary_identity();
-    for arm in [&proof, &statement, &typing, &equal_length] {
+    for arm in [&proof, &statement, &typing, &equal_length, &trailing] {
         println!(
             "PERF keystroke-wallclock {} {}: best {:.1}ms · median {:.1}ms · worst {:.1}ms \
              (n={}, {}) · compile={}ms modules={} prefix={} by={} · artifacts={}",
