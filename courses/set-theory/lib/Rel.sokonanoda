@@ -393,3 +393,48 @@ theorem Rel.partition_disjoint_apply (α : Type) (P : (α → Prop) → Prop) (h
     (A B : α → Prop) (hA : P A) (hB : P B) (hAB : ∃ (x : α), A x ∧ B x) :
     ∀ (c : α), A c ↔ B c :=
   partition_disjoint α P h A B hA hB hAB
+
+-- 划分关系的**传递性**（C-128 收口 ✓ 2026-10-08）：两块有公共点 ⇒ 两块逐点相同 ⇒ 接力 ✓
+-- 题注：必须把 `h : Rel.Partition α P` 作参数（`ofPartition` 自身不带划分性质 ✓）。
+theorem Rel.ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
+    (a b c : α) (hab : Rel.ofPartition α P a b) (hbc : Rel.ofPartition α P b c) :
+    Rel.ofPartition α P a c :=
+  Exists.elim (Rel.ofPartition_mem α P a b hab)
+    (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
+      Exists.elim (Rel.ofPartition_mem α P b c hbc)
+        (fun (B : α → Prop) (hB : P B ∧ B b ∧ B c) =>
+          Iff.mpr (Rel.ofPartition_apply α P a c)
+            (Exists.intro A
+              (And.intro (And.left hA)
+                (And.intro (And.left (And.right hA))
+                  (Iff.mpr
+                    (partition_disjoint α P h A B (And.left hA) (And.left hB)
+                      (Exists.intro α (fun (x : α) => A x ∧ B x) b  -- soko:notation-ok: 见证位补不出前导类型（手册 G-30 同族）
+                        (And.intro (And.right (And.right hA)) (And.left (And.right hB))))
+                      c)
+                    (And.right (And.right hB))))))))
+
+-- 逆与复合的**交换律**（点式；C-123 ① 收口 ✓ 2026-10-08）：`(r • s) ⁻¹` 与 `s ⁻¹ • r ⁻¹` 逐点同 ✓
+-- 写法：`Iff.intro` 的**前导两个命题实参写全**（分支里含记法/`def`-应用时补不出来 ⇒ 手册 G-30 ✓）。
+theorem Rel.inv_comp_apply {A B C : Type} (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
+    (r • s) ⁻¹ c a ↔ (s ⁻¹ • r ⁻¹) c a :=
+  Iff.intro ((r • s) ⁻¹ c a) ((s ⁻¹ • r ⁻¹) c a)  -- soko:notation-ok: 前导命题实参补不出来（手册 G-30）
+    (fun (h : (r • s) ⁻¹ c a) =>
+      Exists.elim h
+        (fun (b : B) (hb : r a b ∧ s b c) =>
+          Exists.intro b (And.intro (And.right hb) (And.left hb))))
+    (fun (h : (s ⁻¹ • r ⁻¹) c a) =>
+      Exists.elim h
+        (fun (b : B) (hb : s b c ∧ r a b) =>
+          Exists.intro b (And.intro (And.right hb) (And.left hb))))
+
+-- 传递闭包**自身**的传递性（C-123 ② 收口 ✓ 2026-10-08）：
+-- **不需要不动点论证** ✗ —— `transClosure` 的定义对**任意**传递的 `s ⊇ r` 都给出结论
+-- ⇒ 把 `hab`/`hbc` 用在**同一条 `s`** 上、再用 `s` 的传递性接起来即可 ✓。
+theorem Rel.transClosure_trans (α : Type) (r : Rel α α) (a b c : α)
+    (hab : Rel.transClosure α r a b) (hbc : Rel.transClosure α r b c) :
+    Rel.transClosure α r a c :=
+  fun (s : Rel α α) (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+    (hr : ∀ (x : α) (y : α), r x y → s x y) =>
+    hs a b c (Rel.transClosure_elim α r s a b hab hs hr)
+      (Rel.transClosure_elim α r s b c hbc hs hr)
