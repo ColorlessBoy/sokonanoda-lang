@@ -112,10 +112,33 @@ fn changing_a_statement_must_invalidate_the_prefixes_after_it() {
     let prefix = Client::trace_field(&line, "prefix");
     let modules = Client::trace_field(&line, "modules");
     println!("PERF keystroke-structure {rel}: modules={modules} prefix={prefix}\n  {line}");
+    // **2026-10-08 翻转（A2a 落地之后）**：改陈述**不必**再重跑前缀（`prefix == 0` ✓）
+    // —— 就地判定直接答：它的查表键**含前缀文本** ⇒ 陈述一变必然 miss ⇒ 走就地路重算 ✓。
+    // ⇒ "不许给旧答案"这条**不变量没丢**，但守卫**换到了答案层**（下面直接问
+    // `soko/goals` ✓）。**两条一起**才完整：成本读数（`prefix`）+ 答案读数（新名字）✓
+    // —— 只钉 `prefix > 0` 是**钉实现** ✗（A2a 之后恒红，实测这条守卫从 A2a 起一直红 ✗）；
+    // 只钉 `prefix == 0` 又漏掉"答案陈旧" ✗。
+    assert_eq!(
+        prefix, 0,
+        "**A2a 之后**：改陈述（改名 = 改接口 ✓）由**就地判定**答，**不再重跑前缀** ✓ \
+         （`prefix == 0`）。若这里 > 0 ⇒ 就地路没生效（退回「整份前缀重跑」✗ = 成本回归）。\n  {line}"
+    );
+    // **答案层判据**（这条守卫的**目的**所在 ✓）：改名之后 `soko/goals` 必须答**新名字** ✓
+    // —— 答旧名字（或答不出）= 缓存给了**陈旧答案** ✗，那才是它真正要防的东西 ✓。
+    let request_id = 4242;
+    client.send(serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "soko/goals",
+        "id": request_id,
+        "params": {"textDocument": {"uri": uri}, "position": null},
+    }));
+    let answered = client.wait_for(|message| {
+        message.get("id") == Some(&serde_json::json!(request_id))
+    });
     assert!(
-        prefix > 0,
-        "改**陈述**（改名 = 改接口 ✓）⇒ 后面**必须**重新失效（`prefix > 0` ✗ 现在为 0 ⇒ \
-         要么缓存键把**接口变更**漏掉了 ✗，要么这条用例根本没改到陈述 ✗）\n  {line}"
+        answered.to_string().contains(&format!("{name}_a")),
+        "**答案层**：改名之后 `soko/goals` 必须答**新名字** `{name}_a` ✓ —— \
+         答不出/还答旧名字 = 陈旧答案 ✗：{answered:?}"
     );
 }
 
