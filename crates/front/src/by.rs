@@ -2349,7 +2349,85 @@ fn cases_tactic<'a>(
     // **G-71（0.81.0）**：这里要的是**能回读的规范类型** ⇒ 用**全显式 pp**
     // （`@Set.image α β f A`：每个实参都写出来）。默认 pp **只丢第一个隐式实参**
     // ⇒ 文本回读时嵌套实参错位（`Set.image β f A` 读成 `f := β, A := f` ✗）。
-    let scrutinee_ty = judge_infer_explicit(prefix_src, options, &binders_before, scrutinee_name)
+    //
+    // **T3-B1 ①（2026-10-08）**：先试**就地** —— 被消去项是一个**局部假设名**，
+    // 它的类型就在活环境里（`infer_type_text_inplace` 正是这条语义）⇒ 不必合成
+    // `#check`、把整份前缀从零重跑 ✗（那是 `judge_infer_explicit` 今天做的事）。
+    // 答不出 / 形态不满足 ⇒ **原样**回落今天那句（问的仍是 `&binders_before` +
+    // `scrutinee_name` ⇒ 逐字节不变 ✓）。
+    let binder_srcs: Vec<(String, Expr)> = context_binders(nodes, cur)
+        .into_iter()
+        .filter_map(|b| b.ty.map(|ty| (b.name, *ty)))
+        .collect();
+    let operand = Expr::Ident {
+        name: scrutinee_name.clone(),
+        span,
+    };
+    let slow = || judge_infer_explicit(prefix_src, options, &binders_before, scrutinee_name);
+    let inplace_infer = |env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>| {
+        env.and_then(|e| {
+            // `infer_type_text_inplace` 靠 binder 层数剥层 ⇒ 长度对不上**不试**
+            // （宁可慢，不可错 ✓；同 [`level_hint_of_inplace`] 的硬前提）。
+            (binder_srcs.len() == binders_before.len()).then(|| {
+                crate::judge::judge_infer_inplace_with_explicit(true, e, ctx, &binder_srcs, &operand)
+            })?
+        })
+    };
+    let scrutinee_text = match crate::judge::inplace_by_mode() {
+        // **影子档**：两条路都跑、比对文本、记 `same/diff`，**返回慢路那一份**
+        // ⇒ 行为零变化、只取证 ✓（同 A2a 在 `render_goal_type_for` 的档位纪律）。
+        crate::judge::ByMode::Shadow => {
+            let inplace = inplace_infer(env.as_deref_mut());
+            let slow_text = slow();
+            match inplace {
+                Some(fast) => {
+                    if matches!(slow_text, Ok(ref t) if *t == fast) {
+                        crate::judge::stats::INPLACE_CASES_SHADOW_SAME
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    } else {
+                        crate::judge::stats::INPLACE_CASES_SHADOW_DIFF
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        if let Ok(mut first) = crate::judge::stats::INPLACE_CASES_FIRST_DIFF.lock() {
+                            if first.is_none() {
+                                *first = Some(format!(
+                                    "cases scrutinee={scrutinee_name:?} | fast={fast:?} | \
+                                     slow={slow_text:?}"
+                                ));
+                            }
+                        }
+                    }
+                }
+                None => {
+                    // 就地答不出也是一条分叉（慢路答得出）—— 记下来，别混进 `fallback`。
+                    crate::judge::stats::INPLACE_CASES_SHADOW_DIFF
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    if let Ok(mut first) = crate::judge::stats::INPLACE_CASES_FIRST_DIFF.lock() {
+                        if first.is_none() {
+                            *first = Some(format!(
+                                "cases scrutinee={scrutinee_name:?} | inplace=None | \
+                                 slow={slow_text:?}"
+                            ));
+                        }
+                    }
+                }
+            }
+            slow_text
+        }
+        crate::judge::ByMode::Off => slow(),
+        crate::judge::ByMode::On => match inplace_infer(env.as_deref_mut()) {
+            Some(text) => {
+                crate::judge::stats::INPLACE_CASES_USED
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                Ok(text)
+            }
+            None => {
+                crate::judge::stats::INPLACE_CASES_FALLBACK
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                slow()
+            }
+        },
+    };
+    let scrutinee_ty = scrutinee_text
         .ok()
         .and_then(|text| parse_expr_text(&text).ok())
         .ok_or_else(|| tactic_error(format!("`cases` 读不到 `{scrutinee_name}` 的类型"), span))?;

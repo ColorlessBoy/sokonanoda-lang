@@ -492,6 +492,34 @@ pub(crate) mod stats {
     pub(crate) static INPLACE_BY_FIRST_DIFF: std::sync::Mutex<Option<String>> =
         std::sync::Mutex::new(None);
 
+    /// **T3-B1 ①（2026-10-08）**：`cases` 被消去项的**就地**读数 —— **单独一组**，
+    /// 否则会混进 `judge_render_type` 那一档 ⇒ **看不出这条接线到底有没有生效** ✗
+    /// （"判据不许空转"）。`(used, fallback)` = On 档答上 / 答不出；
+    /// 影子档另记 `(same, diff)`。
+    pub(crate) static INPLACE_CASES_USED: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_CASES_FALLBACK: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_CASES_SHADOW_SAME: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_CASES_SHADOW_DIFF: AtomicU64 = AtomicU64::new(0);
+    /// `cases` 影子档**第一个分叉**的原样记录（只记第一条 ✓）。
+    pub(crate) static INPLACE_CASES_FIRST_DIFF: std::sync::Mutex<Option<String>> =
+        std::sync::Mutex::new(None);
+
+    /// `cases` 就地读数 `(used, fallback)`。
+    pub fn inplace_cases() -> (u64, u64) {
+        (
+            INPLACE_CASES_USED.load(Ordering::Relaxed),
+            INPLACE_CASES_FALLBACK.load(Ordering::Relaxed),
+        )
+    }
+
+    /// `cases` 影子档读数 `(same, diff)`。
+    pub fn inplace_cases_shadow() -> (u64, u64) {
+        (
+            INPLACE_CASES_SHADOW_SAME.load(Ordering::Relaxed),
+            INPLACE_CASES_SHADOW_DIFF.load(Ordering::Relaxed),
+        )
+    }
+
     /// 影子档报告 `(same, diff)`。
     pub fn inplace_by_shadow() -> (u64, u64) {
         (
@@ -2047,6 +2075,17 @@ pub fn inplace_by_shadow() -> (u64, u64) {
     stats::inplace_by_shadow()
 }
 
+/// **T3-B1 ① 的读数**（`cases` 被消去项的就地路）：`(used, fallback)`。
+/// 判据用法：`used > 0` 证明这条接线**真的被走到**（否则判据空转 ✗）。
+pub fn inplace_cases_report() -> (u64, u64) {
+    stats::inplace_cases()
+}
+
+/// **T3-B1 ① 的影子档读数**：`(same, diff)`；`diff == 0` 是本档能开的前提 ✓。
+pub fn inplace_cases_shadow() -> (u64, u64) {
+    stats::inplace_cases_shadow()
+}
+
 /// **P1-a 就地判定的读数**（集成测试 / 诊断用；进程级，见 [`stats::inplace`]）：
 /// `(used, fallback, shadow_same, shadow_diff)`。
 ///
@@ -2362,6 +2401,35 @@ pub fn judge_infer_explicit(
 ) -> Result<String, Judgement> {
     let _guard = ExplicitPpGuard::new(true);
     judge_infer_with("", prefix_src, options, binders, term)
+}
+
+/// **T3-B1 ①（2026-10-08）**：[`judge_infer_explicit`] 的**就地兄弟** —— 与慢路读
+/// **同一个** `EXPLICIT_PP` 线程局部（[`explicit_pp_active`]，`elab.rs` 的
+/// `infer_type_text_inplace` 第 ④ 步也读它）⇒ 两条路的 pp 形态同源 ✓。
+///
+/// 存在的理由与 [`judge_render_type_inplace_with_explicit`] 完全同款：`cases` 的
+/// **被消去项**是一个局部假设名，它的类型**就在活环境里** —— 不必合成 `#check`
+/// 文档、从零重跑整份前缀 ✗（那是 `judge_infer_explicit` 今天做的事）。
+///
+/// `ExplicitPpGuard` 是私有的 ⇒ 这里开**受控入口**（RAII 在函数内收口，
+/// 调用方不可能忘记还原 ✓）。答不出 ⇒ `None`，调用方**原样**回落慢路 ✓。
+pub(crate) fn judge_infer_inplace_with_explicit<'a>(
+    explicit: bool,
+    env: &mut crate::compile::elab::InplaceEnv<'_, 'a>,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    binder_srcs: &[(String, Expr)],
+    operand: &Expr,
+) -> Option<String> {
+    let _guard = ExplicitPpGuard::new(explicit);
+    crate::compile::elab::infer_type_text_inplace(
+        env,
+        ctx,
+        binder_srcs,
+        operand,
+        binder_srcs.len(),
+        None,
+    )
+    .ok()
 }
 
 /// **全显式**版 [`judge_render_type`]（G-71）：同 [`judge_infer_explicit`]，
