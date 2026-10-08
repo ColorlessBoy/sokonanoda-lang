@@ -152,6 +152,12 @@ impl Control {
 /// 单文档 watch（`watch <file>` 或 `watch --doc <file>`）。
 pub(crate) fn watch_doc(path: &str) -> std::process::ExitCode {
     print_handshake();
+    // 2026-10-08（用户「cli 很多命令有问题」）：文件还不存在时**说一句** ——
+    // 以前 `watch missing.sokonanoda` 只发握手就静默等下去 ✗，看起来就是"挂住了" ✓。
+    // （语义不变：watch **就是**等它出现 ✓，只是不再默不作声 ✓。）
+    if !std::path::Path::new(path).exists() {
+        eprintln!("waiting for {path} to appear…（watch 会一直等；Ctrl-C 退出）");
+    }
     let mut control = Control::spawn();
     let mut files = vec![FileWatch::new(path.to_string())];
     loop {
@@ -164,6 +170,12 @@ pub(crate) fn watch_doc(path: &str) -> std::process::ExitCode {
 /// 工作区 watch（`watch --workspace <root>`）：递归监控根下每个
 /// `*.sokonanoda`。新出现的文件会在后续轮询中被纳入；跨文件无全序。
 pub(crate) fn watch_workspace(root: &str) -> std::process::ExitCode {
+    // 2026-10-08（同 `watch_doc`）：根**不存在**时以前会静默转圈 ✗ —— 那是打错了路径，
+    // 不是"等它出现"（工作区根不会自己长出来 ✓）⇒ 报用法错误（exit 2）✓。
+    if !Path::new(root).is_dir() {
+        eprintln!("error: 读不到目录 {root}（--workspace 要给一个存在的根）");
+        return std::process::ExitCode::from(2);
+    }
     print_handshake();
     let mut control = Control::spawn();
     let root = Path::new(root);

@@ -15,7 +15,14 @@ pub(crate) fn print_help() {
     println!("  sokonanoda course <course.json> ... [--all]");
     println!("                                  aggregate unit progress (JSON with --json;");
     println!("                                  several manifests / --all = one aggregate map)");
-    println!("  sokonanoda build [path ...]     warm the compile cache (--clean clears it)");
+    println!("  sokonanoda build [path ...]     warm the compile cache");
+    println!("                                  (no path = the current directory; skips .git /");
+    println!("                                   node_modules / target / .sokonanoda / …)");
+    println!(
+        "  sokonanoda clean [path ...]     clear BOTH stores, compile nothing (≡ build --clean)"
+    );
+    println!("  sokonanoda rebuild [path ...]   clear both stores, then warm (≡ clean + build;");
+    println!("                                  same semantics as the editor's Rebuild)");
     println!("  sokonanoda query <op> [opts]    kernel truth as ONE JSON object (agent view):");
     println!("      check                     counts + failures + warnings for the file");
     println!("      state  --line L --col C   goal state at the caret (Lean goalsAt? semantics)");

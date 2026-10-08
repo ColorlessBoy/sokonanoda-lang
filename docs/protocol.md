@@ -736,15 +736,16 @@ unreadable manifest fails.
 
 ## Build cache: `sokonanoda build`
 
-`sokonanoda build [--json] [--clean] [<file> | <dir> ...]` warms (or clears)
-the shared persistent compile cache that `check`/`course`/LSP reads
-(`docs/design/compile-cache.md`). Each positional is a `.sokonanoda` file or a
-directory walked recursively (sorted) for `*.sokonanoda`; no positional means
-the current directory. A build is a hit when the same `(compiler version,
-build stamp, prelude mode, source text)` already produced a kernel report.
-Warming is best-effort and never changes the kernel's verdict; a read or parse
-failure counts as `failed` but does not abort the batch. Exit is 0 whenever at
-least one file resolved (nothing resolved is usage, exit non-zero).
+`sokonanoda build|clean|rebuild [--json] [--clean] [<file> | <dir> ...]` warms (or clears) the shared persistent
+compile cache that `check`/`course`/LSP reads (`docs/design/compile-cache.md`); **`clean` ≡ `build --clean`** (clear only,
+compile nothing) and **`rebuild`** ≡ clear **both** stores then warm (the editor's `Rebuild` semantics: one process, and the
+same `build.clean` → `build.begin`/`file`/`summary` event order). Each positional is a `.sokonanoda` file or a directory
+walked recursively (sorted) for `*.sokonanoda`; no positional means the current directory, **skipping** `.git`/`.hg`/`.svn`/
+`node_modules`/`target`/`.sokonanoda`/`.vscode-test`/`__pycache__`/`.venv` (an **explicit** root is never skipped, and a
+default scan narrates `scanning …` / `found N …` on **stderr** — the machine contract stays on stdout). A build is a hit
+when the same `(compiler version, build stamp, prelude mode, source text)` already produced a kernel report. Warming is
+best-effort and never changes the kernel's verdict; a read or parse failure counts as `failed` but does not abort the batch.
+Exit is 0 whenever at least one file resolved; nothing resolved prints `error: … 没有 .sokonanoda 文件` **then** the usage line (exit 1), and an **unknown subcommand** is a usage error (exit `2`, naming the token and pointing at `--help`).
 
 **Artifacts live next to the project** (R-3 / 0.67.0): **project** closure entries
 go to `<module root>/.sokonanoda/compiled/<key>.json` (same format and key as the

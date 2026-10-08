@@ -260,30 +260,41 @@ struct ProgressCounter {
     done: std::sync::atomic::AtomicUsize,
     total: usize,
     enabled: bool,
+    /// **人看的那一半**（用户 2026-10-08：「build 没有反应」✗）：非 `--json` 时每 ~10%
+    /// 往 **stderr** 打一行 —— 861 个文件的预热以前是**几分钟零输出**（事件只在 `--json`
+    /// 下发）✗ ⇒ 现在至少每 10% 动一次 ✓。stderr 是给人看的，机器契约（stdout 的
+    /// `build.progress`）一个字没动 ✓。
+    human: bool,
+    step: usize,
 }
 
 impl ProgressCounter {
-    fn new(total: usize, enabled: bool) -> Self {
+    fn new(total: usize, json: bool) -> Self {
         Self {
             done: std::sync::atomic::AtomicUsize::new(0),
             total,
-            enabled,
+            enabled: json,
+            human: !json,
+            step: (total / 10).max(1),
         }
     }
 
     /// 一个文件编完了 ⇒ 报一条。**只报"已完成几个"**（不报是谁：结果按顺序重放）。
     fn note_file(&self, file: &Path) {
         use std::sync::atomic::Ordering;
-        if !self.enabled {
+        let done = self.done.fetch_add(1, Ordering::Relaxed) + 1;
+        if self.enabled {
+            emit_json(serde_json::json!({
+                "type": "build.progress",
+                "done": done,
+                "total": self.total,
+                "file": file.display().to_string(),
+            }));
             return;
         }
-        let done = self.done.fetch_add(1, Ordering::Relaxed) + 1;
-        emit_json(serde_json::json!({
-            "type": "build.progress",
-            "done": done,
-            "total": self.total,
-            "file": file.display().to_string(),
-        }));
+        if self.human && (done.is_multiple_of(self.step) || done == self.total) {
+            eprintln!("… {done}/{} file(s)", self.total);
+        }
     }
 }
 
@@ -390,45 +401,114 @@ pub(crate) fn build(
     no_project: bool,
 ) -> ExitCode {
     if clean {
-        // R-3（T-B5）：项目条目现在落在**模块根**的 `.sokonanoda/compiled/`，所以
-        // `--clean` 必须**两处都清** —— 只清全局的话 `rebuild`（= `build --clean`）
-        // 会命中项目条目 ⇒ 表面"清空了"，实际什么都没重编（用户可见的假动作 ✗）。
-        let global = cache::clean();
-        let mut project = 0usize;
-        for root in project_roots(args) {
-            project += sokonanoda_front::project::cache::clean_at(&root);
-        }
-        let removed = global + project;
-        if json {
-            println!(
-                "{}",
-                serde_json::json!({
-                    "type": "build.clean",
-                    "removed": removed,
-                    // additive：老消费者读 `removed`（= 两处之和）语义不变 ✓
-                    "global": global,
-                    "project": project,
-                })
-            );
-        } else {
-            println!("removed {removed} cached file(s) ({global} global, {project} project)");
-        }
-        return ExitCode::SUCCESS;
+        return clean_stores(args, json);
     }
+    warm(args, json, root, no_project)
+}
 
+/// `sokonanoda clean …` ≡ `build --clean …`（用户 2026-10-08：「clean 没有实现」）。
+///
+/// 与扩展的 `Sokonanoda: Clean Cache`（E31）**同一条语义**：**只清不编** ✓。
+pub(crate) fn clean(args: &[String], json: bool) -> ExitCode {
+    clean_stores(args, json)
+}
+
+/// `sokonanoda rebuild …` = **先清（两处）再预热**（用户 2026-10-08：「rebuild 没有实现」）。
+///
+/// 与扩展的 `Sokonanoda: Rebuild (清空编译缓存后重编译)`（`alt+shift+b`）**同一条语义** ✓；
+/// 扩展此前只能**两次调用**（`build --clean` + `build`）把它拼出来 ⇒ 现在 CLI 一条命令、
+/// **一个进程** ✓（`--json` 的事件流仍是 `build.clean` 之后接 `build.begin`/`file`/`summary` ✓
+/// —— additive，老消费者照旧 ✓）。
+pub(crate) fn rebuild(
+    args: &[String],
+    json: bool,
+    root: Option<&str>,
+    no_project: bool,
+) -> ExitCode {
+    let cleaned = clean_stores(args, json);
+    if cleaned != ExitCode::SUCCESS {
+        return cleaned;
+    }
+    warm(args, json, root, no_project)
+}
+
+/// 清**两处**存储（全局 + 位置参数能解出的模块根）。
+fn clean_stores(args: &[String], json: bool) -> ExitCode {
+    // **不给路径时把"只清了全局"说出来**（2026-10-08，用户「rebuild 没有实现」顺带修的面 ✗）：
+    // 无路径 ⇒ **解不出模块根** ⇒ 项目产物（`<模块根>/.sokonanoda/compiled/`）**一个都没清**
+    // ⇒ 紧接着的预热会全是 `hit`（"rebuild 什么都没重编" ✗ —— R-3/T-B5 那个假动作 ✓）。
+    // 语义**一字不变**（设计 §3.7：解不出就不清、也**不假装**清了 ✓），只是**不再默不作声** ✓。
+    if args.is_empty() {
+        eprintln!(
+            "note: 没有给路径 ⇒ 只清**全局**缓存；模块根下的项目产物没动（要一起清就带上路径，例如 `clean courses/set-theory`）"
+        );
+    }
+    // R-3（T-B5）：项目条目现在落在**模块根**的 `.sokonanoda/compiled/`，所以
+    // `--clean` 必须**两处都清** —— 只清全局的话 `rebuild`（= `build --clean`）
+    // 会命中项目条目 ⇒ 表面"清空了"，实际什么都没重编（用户可见的假动作 ✗）。
+    let global = cache::clean();
+    let mut project = 0usize;
+    for root in project_roots(args) {
+        project += sokonanoda_front::project::cache::clean_at(&root);
+    }
+    let removed = global + project;
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "type": "build.clean",
+                "removed": removed,
+                // additive：老消费者读 `removed`（= 两处之和）语义不变 ✓
+                "global": global,
+                "project": project,
+            })
+        );
+    } else {
+        println!("removed {removed} cached file(s) ({global} global, {project} project)");
+    }
+    ExitCode::SUCCESS
+}
+
+/// 预热：位置参数（**默认当前目录**）→ 递归收集 `*.sokonanoda` → 逐文件编译 → 写缓存。
+fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> ExitCode {
     let roots: Vec<PathBuf> = if args.is_empty() {
         vec![PathBuf::from(".")]
     } else {
         args.iter().map(PathBuf::from).collect()
     };
+    // **默认扫描要说话**（用户 2026-10-08：「build 没有反应」✗）：不给路径时根是**当前
+    // 目录**，扫描期间除了 1s 一次的心跳**没有任何输出** ⇒ 大目录（语言仓根 269k 文件）
+    // 看起来就是"卡住了" ✓。⇒ 起止各一行 **stderr**（人看的；`--json` 的机器契约在
+    // stdout 上、由 `build.begin` 报总数 ✓，一个字都没动 ✓）。
+    let default_scan = args.is_empty();
+    if default_scan {
+        eprintln!(
+            "scanning the current directory for *.sokonanoda …（跳过 {}）",
+            SKIPPED_DIRS.join(" / ")
+        );
+    }
     let mut files = Vec::new();
     for root in &roots {
         collect_files(root, &mut files);
     }
     files.sort();
     files.dedup();
+    if default_scan {
+        eprintln!("found {} .sokonanoda file(s)", files.len());
+    }
     if files.is_empty() {
-        eprintln!("usage: sokonanoda build [--json] [--clean] [<file.sokonanoda> | <dir> ...]");
+        // 2026-10-08：这里以前只打一行 `usage:` ✗ —— 用户给了**存在的**目录却"什么都没发生"
+        // 时，看到 usage 会以为自己写错了命令 ✓⇒ 现在**先说清"没找到文件"**、再给用法 ✓。
+        let where_ = if default_scan {
+            "当前目录".to_string()
+        } else {
+            args.join("、")
+        };
+        eprintln!("error: {where_} 下没有 .sokonanoda 文件");
+        eprintln!(
+            "用法：sokonanoda build [--json] [--clean] [<file.sokonanoda> | <dir> ...]（不给路径 = 当前目录；跳过 {} 等目录）",
+            SKIPPED_DIRS.join(" / ")
+        );
         return ExitCode::FAILURE;
     }
 
@@ -831,6 +911,24 @@ fn build_one(
 }
 
 /// Recursively collect `*.sokonanoda` files under `path` (sorted per level).
+/// `build` 递归时**跳过的目录名**（2026-10-08 用户报「build 没有反应」✗）。
+///
+/// **为什么**：不给路径时根是**当前目录**，而语言仓根下有 **269,027 个文件 / 9,710 个目录**
+/// （`target/` 24 万 + `editor/vscode/node_modules/` 1.5 万）⇒ 全递归要几分钟、期间只有
+/// 1s 一次的心跳 ⇒ 用户看到的就是"没反应" ✓。跳过的全是**构建产物 / 依赖 / VCS 元数据**
+/// ——里面不会有课程源 ✓（产物用别的扩展名，见 `docs/design/project-artifacts.md` §3.3 红线 ✓）。
+const SKIPPED_DIRS: &[&str] = &[
+    ".git",
+    ".hg",
+    ".svn",
+    "node_modules",
+    "target",
+    ".sokonanoda",
+    ".vscode-test",
+    "__pycache__",
+    ".venv",
+];
+
 fn collect_files(path: &Path, out: &mut Vec<PathBuf>) {
     if path.is_dir() {
         let mut entries: Vec<PathBuf> = match std::fs::read_dir(path) {
@@ -842,6 +940,15 @@ fn collect_files(path: &Path, out: &mut Vec<PathBuf>) {
         };
         entries.sort();
         for entry in entries {
+            // ⚠ **只跳"孩子"、不跳"根"** ✓：显式写 `sokonanoda build target/` 时照走
+            // （用户点名了就算数 ✓）；只有**递归下去**遇到这些名字才跳过 ✓。
+            if entry.is_dir()
+                && entry
+                    .file_name()
+                    .is_some_and(|name| SKIPPED_DIRS.contains(&name.to_string_lossy().as_ref()))
+            {
+                continue;
+            }
             collect_files(&entry, out);
         }
     } else if path

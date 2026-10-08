@@ -199,7 +199,9 @@ pub fn grade(paths: &[String]) -> ExitCode {
                 }
             }
             Err(e) => {
-                eprintln!("error: {e}");
+                // 2026-10-08（用户「cli 很多命令有问题」）：以前是裸 `error: {e}` ✗ ——
+                // 不说是**哪个**文件（批量判卷 / 课程门禁里无法定位 ✓）。
+                eprintln!("error: 读不到 {path}：{e}");
                 ok = false;
             }
         }
