@@ -1,3 +1,26 @@
+## [0.85.1] — 2026-10-08
+
+> **“失败 2” now says *which* files and *why*** — a failing build/rebuild names the failing
+> files in the notification and prints the kernel's reason in the output panel (and in a
+> `失败明细` block on the CLI's stderr).
+
+### Fixed
+
+- **A failing build names the file and the reason** (user report, 2026-10-08: "我运行
+  `sokonanoda:rebuild` 会报 **失败 2**，但是我又不知道哪里失败的"). Two gaps, both closed:
+  - **the CLI only reported counts**: a project-mode failure returned `Ok("failed")` and the
+    report's diagnostics were **dropped**, so the `build.file` event carried
+    `status: "failed"` with **no reason** — a consumer could not name the file even if it
+    wanted to. Now the failure carries `Err(<module>: <line>:<col>: <code>: <message>)`, the
+    event gains an **additive `error` field**, and human mode prints a
+    `失败明细（N 个文件）` block (relative path + one reason per file) plus a hint that
+    **deliberately-rejected probes** (`gaps/*-reject.sokonanoda`, e.g. the course's C-04 /
+    C-112 wall probes) are expected to show up there;
+  - **the editor's notification only showed the count** — it now appends
+    `— 失败：<file>、<file>` (up to three, then `等 N 个`) and writes a `失败明细` block with
+    every reason to the **sokonanoda build** output channel, which the notification's
+    显示输出 button opens.
+
 ## [0.85.0] — 2026-10-08
 
 > **The CLI gets `clean` and `rebuild`** (the same three verbs the editor has) · **`build`

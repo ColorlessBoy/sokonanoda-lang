@@ -2294,6 +2294,8 @@ async function runBuild(context, { clean = false, courseProvider } = {}) {
   // （`done` 是绝对值），否则退回"自己数 `build.file`"（老 CLI 兼容）。
   // ⚠ 不这样分就会**双重计数**：progress 报 42、随后重放再 `+= 1` 四十二次 ✗。
   let sawProgress = false;
+  // 失败明细（`{file, error?}`）：用户 2026-10-08 报的正是"只报数字、不知哪里失败" ✗。
+  const failures = [];
   // VS Code **原生**进度条那一路（`withProgress` 的 `progress.report`）——
   // 它只在 `run` 里拿得到，所以留个模块内的转发口给 `onLine`。
   let nativeReport = null;
@@ -2335,6 +2337,13 @@ async function runBuild(context, { clean = false, courseProvider } = {}) {
     } else if (event.type === "build.file") {
       // 老 CLI（不发 `build.progress`）才自己数；新 CLI 的 `done` 由上面那条驱动。
       if (!sawProgress) done += 1;
+      // **失败要留名 + 留原因**（用户 2026-10-08：「`sokonanoda:rebuild` 会报失败 2，
+      // 但是我又不知道哪里失败的」✗）：`build.file.error` 是 0.85.1 起 CLI 新增的
+      // additive 字段 ✓（老 CLI 没有 ⇒ 只有名字，也要照报 ✓ —— 「有就渲染」在这里是**对的**
+      // 方向：宁可少给原因，也不能因为字段缺失就退回"只报数字" ✗）。
+      if (event.status === "failed") {
+        failures.push({ file: event.file, error: event.error });
+      }
       const name = shortName(event.file);
       const mark = event.status === "failed" ? "✗" : "✓";
       // ⚠ **每一帧都要 report**（不是只在首尾 ✗）：`increment > 0` 的那次
@@ -2417,10 +2426,26 @@ async function runBuild(context, { clean = false, courseProvider } = {}) {
   const counts = summary
     ? `${summary.files} 个文件 · 编译 ${summary.compiled} · 命中 ${summary.hit} · 失败 ${summary.failed}`
     : "完成";
+  // **失败明细**（用户 2026-10-08：「`sokonanoda:rebuild` 会报失败 2，但是我又不知道哪里
+  // 失败的」✗）：通知里给**文件名**（最多 3 个，多了给"等 N 个"），输出面板里给**每个文件的
+  // 完整原因**（CLI 的 `build.file.error`，0.85.1 起 ✓）—— 以前这里只有数字 ⇒ 用户只能自己猜 ✗。
+  const failureNames = failures.map((entry) => shortName(entry.file));
+  const named =
+    failureNames.length <= 3
+      ? failureNames.join("、")
+      : `${failureNames.slice(0, 3).join("、")} 等 ${failureNames.length} 个`;
   const text =
     `sokonanoda ${clean ? "rebuild" : "build"}：${counts}` +
-    `${clean && removed !== undefined ? ` · 清掉 ${removed} 条缓存` : ""}（${elapsed}ms）`;
+    `${clean && removed !== undefined ? ` · 清掉 ${removed} 条缓存` : ""}` +
+    `${failures.length > 0 ? ` — 失败：${named}` : ""}（${elapsed}ms）`;
   channel.appendLine(text);
+  if (failures.length > 0) {
+    channel.appendLine(`失败明细（${failures.length} 个文件）：`);
+    for (const entry of failures) {
+      channel.appendLine(`  ✗ ${entry.file}`);
+      if (entry.error) channel.appendLine(`      ${entry.error}`);
+    }
+  }
   const notify = summary && summary.failed > 0
     ? vscode.window.showWarningMessage
     : vscode.window.showInformationMessage;

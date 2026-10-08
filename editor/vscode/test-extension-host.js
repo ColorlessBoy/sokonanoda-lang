@@ -262,7 +262,18 @@ const vscodeStub = {
       vscodeStub.__statusBar = item;
       return item;
     },
-    createOutputChannel: () => ({ appendLine() {}, append() {}, show() {}, dispose() {} }),
+    // **2026-10-08**：把输出面板的行**记下来** —— 用户在"失败 2"之后要看的正是
+    // 面板里的 `失败明细` 块（`__channelLines` ✓）。
+    createOutputChannel: () => ({
+      appendLine(line) {
+        (vscodeStub.__channelLines ??= []).push(String(line));
+      },
+      append(text) {
+        (vscodeStub.__channelLines ??= []).push(String(text));
+      },
+      show() {},
+      dispose() {},
+    }),
     registerWebviewViewProvider: (_id, provider) => {
       vscodeStub.__infoview = provider;
       return makeDisposable();
@@ -343,7 +354,16 @@ const stateEmitters = [];
 const notificationHandlers = {};
 class LanguageClient {
   constructor() {
-    this.outputChannel = { appendLine() {}, append() {}, show() {}, dispose() {} };
+    this.outputChannel = {
+      appendLine(line) {
+        (vscodeStub.__channelLines ??= []).push(String(line));
+      },
+      append(text) {
+        (vscodeStub.__channelLines ??= []).push(String(text));
+      },
+      show() {},
+      dispose() {},
+    };
     stateEmitters.push(this);
   }
   onDidChangeState(listener) {
@@ -876,6 +896,54 @@ test("build streams per-file progress to the status bar and the Infoview (E23)",
   assert.ok(
     String(summary).includes("3 个文件"),
     `结束通知仍是 build.summary 的真实计数：${summary}`,
+  );
+});
+
+test("build 失败时通知**指名文件**、输出面板给**原因**（用户 2026-10-08）", async () => {
+  // **用户原话**：「我运行 `sokonanoda:rebuild` 会报 **失败 2**，但是我又不知道哪里失败的」✗。
+  //
+  // 判据绑**用户看得见的东西** ✓（AGENTS.md 验证设计纪律第 0 条 (a)）：
+  //   ① **通知**（= 命令返回的那行文本）必须带**失败文件名** —— 以前只有数字 ✗；
+  //   ② **输出面板**必须有 `失败明细` 块 + 每个文件的原因（逐字来自 CLI 的
+  //      `build.file.error`，0.85.1 起 ✓）—— 用户点「显示输出」就看得到 ✓。
+  await activateExtension();
+  const failed = "/repo/courses/set-theory/gaps/C-04-prop-to-type-reject.sokonanoda";
+  setBuildEvents([
+    { type: "build.begin", files: 2 },
+    {
+      type: "build.progress",
+      done: 1,
+      total: 2,
+      file: "/repo/courses/set-theory/units/u01.sokonanoda",
+    },
+    { type: "build.progress", done: 2, total: 2, file: failed },
+    {
+      type: "build.file",
+      file: "/repo/courses/set-theory/units/u01.sokonanoda",
+      status: "compiled",
+    },
+    {
+      type: "build.file",
+      file: failed,
+      status: "failed",
+      error:
+        "gaps.C-04-prop-to-type-reject: 22:1: kernel-rejected: 类型不匹配：期望 `Sort(0)`，实际是 `Sort(1)`",
+    },
+    { type: "build.summary", files: 2, hit: 0, compiled: 1, failed: 1 },
+  ]);
+  vscodeStub.__channelLines = [];
+  const text = await vscodeStub.__commands["sokonanoda.rebuild"]();
+
+  assert.ok(
+    String(text).includes("C-04-prop-to-type-reject.sokonanoda"),
+    `通知必须**指名**失败文件（用户报的就是「只有数字」✗）：${text}`,
+  );
+  assert.ok(String(text).includes("失败 1"), `数字也要保留：${text}`);
+  const channel = vscodeStub.__channelLines.join("\n");
+  assert.ok(channel.includes("失败明细"), `输出面板要有「失败明细」块：${channel}`);
+  assert.ok(
+    channel.includes("kernel-rejected") && channel.includes("Sort(0)"),
+    `明细必须给**原因**（逐字来自 CLI 的 build.file.error ✓）：${channel}`,
   );
 });
 
