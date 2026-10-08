@@ -1129,3 +1129,35 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   "不断言、先打印再断言"）⇒ 拿到 `used/fallback` 与 `INPLACE_WHY` 的原因串;
   ② 有了原因再决定是"就地这一支失败"还是"缓存写回污染了 `judge_type_of_constant`" ✗；
   ③ 判据不变 = 原用例转绿 **且** `typing` 臂 `by=9` / 墙钟 ~80ms 不动。
+### 11.17 第 11 轮（2026-10-09）—— **那条 hover 回归的根因找到**：hover 靠"编译的缓存副作用"
+
+* **证据（front 层复现 · `crates/front/tests/inplace_notation_hover_probe.rs` · 与 LSP 用例同一夹具）**：
+
+  | 调用 | `On`（默认） | `off` |
+  |---|---|---|
+  | `judge_type_of_constant(整份源, opts, "myop")` | `Ok("(a : Prop) -> (b : Prop) -> Prop")` · `used=3` | 同 ✓ · `used=0` |
+  | 同函数、**LSP 真正传的那个 prefix**（`QueryDoc::judge_prefix`） | `prefix.len()=**0**` | 同 |
+
+* **根因链（三档现象全解释 ✓）**：
+  1. LSP 的"原始类型"那行读的是 `query.judge_prefix(offset)` —— 它**只拼闭包里的其他模块**
+     （`modules.take(len-1)`），**入口自己的文本不在里面**；单文件（无 import）⇒
+     `project_modules()` 为 `None` ⇒ **空串** ✗（`query/mod.rs:720`）。
+  2. 于是 hover 那一刻的查询是 `judge_type_of_constant("", …)` —— 单看它**必然失败**
+     （合成文档里没有 `myop` 的声明）。
+  3. 它今天还能出那行，**纯粹靠缓存副作用**：编译期 `elab_notation` 已经用
+     **单元自己的文本**问过一次同名常量 ⇒ `judge_type_of_constant` 的函数级 `CACHE`
+     （键 = `options_key|name`，**不含前缀** ✓）里有货 ⇒ hover 那次"空前缀"调用**命中缓存** ✓。
+  4. **就地档把这条副作用掐了** ✗：`type_of_constant_prefer_inplace` 的
+     `InplaceMode::On` 命中分支**只读** `known.signature()` 计数返回
+     （`judge.rs:2452-2456`），**不写** `judge_type_of_constant` 的 `CACHE`；
+     `Shadow`/`Off` 会走慢路 ⇒ 顺手写缓存 ✓ ⇒ 这就是"`off` 一跑就绿、`On` 红"的全部原因。
+* **修法（两条，选一；都不许拿"把显示改回去"当解法 ✗）**：
+  * **(a) 正确解 · 在 LSP 侧**（`crates/lsp/src/lib.rs::notation_symbol_hover`）：目标若
+    **本文件声明**（`locally_declared` ✓ 已有这个布尔）⇒ 传给 `judge_type_of_constant` 的
+    prefix 要**含入口自己的文本**（不要依赖任何缓存副作用 ✓）。代价 = 这一次 hover 会
+    重跑一份合成文档（用户点一次才付一次 ✓，可接受）。
+  * **(b) 让就地路顺手写缓存**（`judge.rs`）：把 On 命中分支也 `store` 进
+    `judge_type_of_constant` 的 `CACHE` —— 但那要先把函数里的 `static CACHE` 提出来成
+    可写回的形状（改动更大，且是"继续依赖副作用" ✗）。
+  ⇒ **判据（两条都要）**：① `crates/lsp` 的那条 hover 用例在**默认（On）**档转绿 ✓；
+  ② `typing` 臂 `by=9` / 墙钟 ~80ms **不动** ✓（不许用它换性能）。
