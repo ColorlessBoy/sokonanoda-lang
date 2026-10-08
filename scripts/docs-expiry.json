@@ -293,7 +293,7 @@
       "expires": "2026-11-07",
       "renewed": "2026-10-08",
       "tier": "process",
-      "reason": "对齐 Lean 4 的规划文档（2026-10-08 新建，规划线在建；到期由后续 agent 审查）"
+      "reason": "新规划文档（对齐 Lean 4 交互性能机制）—— 由本线代为登记，避免未登记文档阻塞所有提交"
     },
     "docs/notes/PLAN-cli-editor-perf.md": {
       "expires": "2027-01-06",
