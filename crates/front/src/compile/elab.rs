@@ -3321,6 +3321,10 @@ fn infer_type_text<'a>(
             // 判定**不进入比对**：就地结果最终仍由内核把关，且 prelude 是内嵌
             // 常量（有独立形状测试）⇒ 不比不放松用户文件期的严格性 ✓。
             if prelude_install_active() {
+                // **E4 的读数**（2026-10-08）：这条排除**命中了几次** —— 撤掉它之后
+                // 这个数必须是 **0** ✓（判据见 `crates/front/tests/judge_inplace_shadow_prelude.rs`）。
+                crate::judge::stats::INPLACE_SHADOW_PRELUDE_EXCLUDED
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 return crate::judge::judge_infer_lookup(
                     "",
                     ctx.prefix_src,

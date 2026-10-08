@@ -470,6 +470,14 @@ pub(crate) mod stats {
     pub(crate) static INPLACE_FALLBACK: AtomicU64 = AtomicU64::new(0);
     pub(crate) static INPLACE_SHADOW_SAME: AtomicU64 = AtomicU64::new(0);
     pub(crate) static INPLACE_SHADOW_DIFF: AtomicU64 = AtomicU64::new(0);
+    /// **E4 的判据读数（2026-10-08）**：影子档里因「prelude 安装期」**不比**而
+    /// 提前返回的次数（`elab.rs` 那条排除分支 ✓）。
+    ///
+    /// **为什么要有它**：那条排除分支是 `course-stdlib.md` §7 要撤掉的东西 ——
+    /// 撤掉之后这个数**必须是 0** ✓（"排除不再命中"= 判据本身 ✓）。今天它是
+    /// **> 0** 的（prelude 安装期的判定全走排除 ✓）⇒ 撤之前先把这个数记下来 ✓
+    /// （同 A4b 的"先建读数"纪律 ✓）。
+    pub(crate) static INPLACE_SHADOW_PRELUDE_EXCLUDED: AtomicU64 = AtomicU64::new(0);
     /// **P1-b 第二刀（`by` 路径）**的两个数：`INPLACE_BY_USED` = `judge_render_type`
     /// 那一趟就地答上了（**没跑前缀**）· `INPLACE_BY_FALLBACK` = 就地答不出/开关关着。
     /// ⚠ 单独一组：`INPLACE_USED` 只记 `elab` 那条路，混在一起就**看不出
@@ -605,6 +613,11 @@ pub(crate) mod stats {
             INPLACE_SHADOW_SAME.load(Ordering::Relaxed),
             INPLACE_SHADOW_DIFF.load(Ordering::Relaxed),
         )
+    }
+
+    /// 见 [`INPLACE_SHADOW_PRELUDE_EXCLUDED`]：**E4 撤掉排除分支之后必须是 0** ✓。
+    pub fn inplace_shadow_prelude_excluded() -> u64 {
+        INPLACE_SHADOW_PRELUDE_EXCLUDED.load(Ordering::Relaxed)
     }
 
     pub fn classify() -> (u64, u64, u64, u64, u64, u64, u64) {
@@ -2024,6 +2037,12 @@ pub fn inplace_by_report() -> (u64, u64) {
 }
 
 /// **`by` 影子档的读数**：`(same, diff)`。`diff == 0` 是这一档能开的前提 ✓。
+/// **E4 的判据读数**（2026-10-08）：影子档里因「prelude 安装期」**不比**而提前返回的
+/// 次数 —— 撤掉那条排除分支（`course-stdlib.md` §7 的目标）之后**必须是 0** ✓。
+pub fn inplace_shadow_prelude_excluded() -> u64 {
+    stats::inplace_shadow_prelude_excluded()
+}
+
 pub fn inplace_by_shadow() -> (u64, u64) {
     stats::inplace_by_shadow()
 }
