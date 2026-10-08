@@ -93,6 +93,11 @@ fn trace_field_u64(line: &str, key: &str) -> u64 {
     Client::trace_field(line, key)
 }
 
+/// **T1-B 批 2 的交互（2026-10-09 · 平行线）**：本文件量的是 **A5 预热**这条机制 ⇒
+/// 必须把**磁盘产物**那条也关掉 —— 否则产物会把**库层**一并省掉 ⇒ "预热开/关"两臂都变成
+/// **1 个模块** ⇒ 反向验证**变成空转** ✗（全量 `scripts/soko gate` 实测逮到 ✓）。
+const NO_ARTIFACTS: (&str, &str) = ("SOKONANODA_NO_MODULE_ARTIFACTS", "1");
+
 /// **判据主体**：产物命中的开档预热了库层检查点 ⇒ 第一次编辑只编入口。
 #[test]
 fn artifact_hit_open_warms_the_library_checkpoint() {
@@ -102,7 +107,7 @@ fn artifact_hit_open_warms_the_library_checkpoint() {
     // ① 冷编一次：把**产物**写进模块根（`.sokonanoda/compiled/`）。
     //    ⚠ 这一步不是被测对象 —— 它只是把"开档就命中产物"这个前提造出来 ✓。
     {
-        let mut warmup = Client::start_traced(&cache_dir("seed"));
+        let mut warmup = Client::start_traced_with_env(&cache_dir("seed"), &[NO_ARTIFACTS]);
         let _ = warmup.open(&root, &uri, &text);
         let _ = warmup.wait_for_trace_after(0);
         let line = warmup.last_trace();
@@ -113,7 +118,7 @@ fn artifact_hit_open_warms_the_library_checkpoint() {
     }
 
     // ② 产物命中那一臂：开档 **modules=0** ⇒ 预热 ⇒ 改一刀只编入口。
-    let mut hit = Client::start_traced(&cache_dir("hit"));
+    let mut hit = Client::start_traced_with_env(&cache_dir("hit"), &[NO_ARTIFACTS]);
     let _ = hit.open(&root, &uri, &text);
     let _ = hit.wait_for_trace_after(0);
     let opened = hit.last_trace();
@@ -148,12 +153,17 @@ fn artifact_hit_open_warms_the_library_checkpoint() {
     // （这是设计，不是本用例的漏洞）。要量"关掉预热后那一刀"就必须先让**这一档**
     // 有产物可命中 —— 否则量的其实是"冷开" ✗。
     {
-        let mut seed_off =
-            Client::start_traced_with_env(&cache_dir("seed-off"), &[("SOKO_NO_LIB_WARMUP", "1")]);
+        let mut seed_off = Client::start_traced_with_env(
+            &cache_dir("seed-off"),
+            &[("SOKO_NO_LIB_WARMUP", "1"), NO_ARTIFACTS],
+        );
         let _ = seed_off.open(&root, &uri, &text);
         let _ = seed_off.wait_for_trace_after(0);
     }
-    let mut off = Client::start_traced_with_env(&cache_dir("off"), &[("SOKO_NO_LIB_WARMUP", "1")]);
+    let mut off = Client::start_traced_with_env(
+        &cache_dir("off"),
+        &[("SOKO_NO_LIB_WARMUP", "1"), NO_ARTIFACTS],
+    );
     let _ = off.open(&root, &uri, &text);
     let _ = off.wait_for_trace_after(0);
     assert_eq!(
