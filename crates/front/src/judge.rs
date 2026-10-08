@@ -2384,28 +2384,62 @@ pub fn judge_type_of_constant(
     options: &CompileOptions,
     name: &str,
 ) -> Result<String, Judgement> {
-    static CACHE: OnceLock<Mutex<HashMap<String, Result<String, Judgement>>>> = OnceLock::new();
-    const CAP: usize = 4096;
-    let key = format!("{}|{name}", options_key(options));
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    if let Some(hit) = cache.lock().ok().and_then(|c| c.get(&key).cloned()) {
+    if let Some(hit) = type_of_constant_cache_get(options, name) {
         return hit;
     }
     let result = judge_type_of(prefix_src, options, name);
-    if result.is_ok() {
-        if let Ok(mut c) = cache.lock() {
-            if c.len() < CAP {
-                c.insert(key, result.clone());
-            } else {
-                // **闸类出口**（G-91 乙类 ✓）：`CAP = 4096` 满 ⇒ 这条**静默**不写
-                // ⇒ 下次同一个名字还要再走一遍全前缀重编译 ✓ —— **只变慢** ✓
-                //（结论一字不变 ✓），但表满了之后**一个字节都不再长** ⇒ 没有出口
-                // 就分不出"缓存正常"与"缓存已饱和" ✗（`hits/misses` 也分不出 ✓）。
-                sokonanoda::gates::CONST_SIG_CACHE_FULL.bump();
-            }
+    type_of_constant_cache_put(options, name, &result);
+    result
+}
+
+/// **记法目标签名缓存的唯一持有者**（`judge_type_of_constant` 与就地路**共用** ✓）。
+///
+/// ⚠ **就地路必须写穿它**（2026-10-09 实测教训 · `b734114d` 抓到的回归）：
+/// 这条缓存的前提是"常量签名与**谁在用它**无关"⇒ 键只有（选项, 规范名）✓。
+/// 就地路**绕过** `judge_type_of_constant` 之后就**不再写它** ✗ ⇒ 下游
+/// （LSP hover 的 `judge_type_of_constant`）从"命中编译期缓存"退化成
+/// "拿**局部前缀**冷查一次" —— 而那种前缀可能**停在记法中间、解析不过** ✗
+/// ⇒ hover 少一行**原始类型**（`crates/lsp/src/tests/hover.rs:443` 实测转红 ✗）。
+/// ⇒ **就地路答上时按同一把键写回** ✓（文本与慢路逐字节相同 · 影子档 78246/0 ✓）。
+fn type_of_constant_cache() -> &'static Mutex<HashMap<String, Result<String, Judgement>>> {
+    static CACHE: OnceLock<Mutex<HashMap<String, Result<String, Judgement>>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// 缓存**只读**（`None` = miss）。
+fn type_of_constant_cache_get(
+    options: &CompileOptions,
+    name: &str,
+) -> Option<Result<String, Judgement>> {
+    let key = format!("{}|{name}", options_key(options));
+    type_of_constant_cache()
+        .lock()
+        .ok()
+        .and_then(|c| c.get(&key).cloned())
+}
+
+/// 缓存**写入**（**只缓存成功** ✓，沿用原语义）。
+fn type_of_constant_cache_put(
+    options: &CompileOptions,
+    name: &str,
+    result: &Result<String, Judgement>,
+) {
+    if result.is_err() {
+        return;
+    }
+    const CAP: usize = 4096;
+    let key = format!("{}|{name}", options_key(options));
+    if let Ok(mut c) = type_of_constant_cache().lock() {
+        if c.len() < CAP {
+            c.insert(key, result.clone());
+        } else {
+            // **闸类出口**（G-91 乙类 ✓）：`CAP = 4096` 满 ⇒ 这条**静默**不写
+            // ⇒ 下次同一个名字还要再走一遍全前缀重编译 ✓ —— **只变慢** ✓
+            //（结论一字不变 ✓），但表满了之后**一个字节都不再长** ⇒ 没有出口
+            // 就分不出"缓存正常"与"缓存已饱和" ✗（`hits/misses` 也分不出 ✓）。
+            sokonanoda::gates::CONST_SIG_CACHE_FULL.bump();
         }
     }
-    result
 }
 
 /// **T3-B1 · §4.2 第 5 条（2026-10-09）**：记法目标签名的**就地**版。
@@ -2452,6 +2486,9 @@ pub(crate) fn type_of_constant_prefer_inplace(
         InplaceMode::On => match judge_type_of_constant_inplace(known, name) {
             Some(text) => {
                 stats::INPLACE_TOC_USED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                // **写穿同一张缓存**（否则下游 hover 会拿局部前缀冷查 ⇒ 回归 ✗，
+                // 见 [`type_of_constant_cache`] 的注释）✓。
+                type_of_constant_cache_put(options, name, &Ok(text.clone()));
                 Ok(text)
             }
             None => {
