@@ -1542,3 +1542,18 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   上量 ⇒ 得到"底里有多少是 `TcCache` 构造" ✓。**门槛**：能省 ≥10ms/刀 ⇒ 值得动 ✓。
 * **为什么这轮不开工**：它落在**内核 `util.rs` + 内核相位**的分配生命周期上（`AGENTS.md`
   §8 gotchas：arena 生命周期 · `quiet_catch` 不可嵌套 ✗）⇒ 要有"调用点标签读数"才敢动 ✓。
+
+### 19. 第 27 轮：**LSP 侧读不到 `STAGE_STATS`**（我的探针缺口 ✗）＋读数复现 ✓
+
+* **复现（同构建 `lsp-cargo-mtime=1791482786`）**：`typing` median **75.7ms** · **`trailing_comment`
+  median 36.4ms**（best 36.1 / worst 36.6 —— **极稳** ✓，说明它是真的固定底而不是噪声 ✓）
+  ⇒ §17 的两个锚在**另一轮运行里重现** ✓。
+* **本轮想做的事没做成（如实记）**：想在**探针里**读服务端那一侧的 `SOKO_STAGE_STATS`
+  （好把 `tc_cache_builds` 按"一刀"归属 ✗）—— 实测 `grep -c STAGE_STATS` = **0** ✗：
+  那是**子进程退出时**打的（`atexit`），而 `Client` 抓的是它的 **stderr 读线程**，探针**没有把它
+  回显到测试 stdout** ✗ ⇒ 读不到。
+* **下一轮（写死 · 二选一）**：① **补探针**：关服前把客户端捕获的 stderr 尾部（含
+  `STAGE_STATS`/`JUDGE_INPLACE …` 那两行）**回显出来**（`crates/lsp/tests/common/mod.rs`，本线 ✓，
+  小改动 ✓）；② 或者走 front 路：用一个"只做一刀"的 front 用例 + `SOKO_STAGE_STATS`（§18 那条路
+  已经在 front 上量到 45768 ✓）—— 但 front 路**量不到 LSP 的排空开销** ✗ ⇒ **① 优先** ✓。
+* **没量到就不当量到** ✓：`TcCache` 的"每刀几次、每次多少 µs"**本轮一无所获** ✗ ✓。
