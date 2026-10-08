@@ -19,6 +19,8 @@ mod warning;
 pub mod cache;
 
 pub use check::by_calls_total;
+// **T1-B 批 2**：`PassTables` 要给 `project/{artifacts,session}.rs` 用 ⇒ 从这里 re-export
+// （`check` 模块本身是私有的 ✓）。
 /// **G-85**：把前缀**源码**规范化成**环境身份**（判定缓存的键用它 ✓，判定合成仍用原文 ✓）。
 pub use check::canonical_prefix_id;
 /// 同上，但**解析失败返回 `None`** ✓（增量身份的"片段探针"用 ✓，见 `check/walk.rs` ✓）。

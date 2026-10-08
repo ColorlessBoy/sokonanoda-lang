@@ -188,6 +188,137 @@ pub fn read(root: &Path, key: &str, options: &CompileOptions) -> Option<String> 
     String::from_utf8(bytes).ok()
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// **载荷的合体形**（A = 内核环境文本 + B = 前端表文本）—— T1-B 批 2 的接线前件
+// ───────────────────────────────────────────────────────────────────────────
+
+/// 载荷头部（`<magic> <A 的字节数>\n` 然后接 A、再接 B）。
+///
+/// **为什么用一行定长头而不是 JSON 包一层**：A 是几十万字节的文本，
+/// 包进 JSON 要整体转义（体积 ×1.2、还要多一次分配 ✗）；一行头 + 两段拼接
+/// 既确定又可流式校验 ✓。**格式号在头里** ⇒ 不认的号直接当"没有产物" ✓。
+pub const PAYLOAD_MAGIC: &str = "soko.module-artifact/1";
+
+/// `A（[`ExportFile`]） + B（[`PassTables`]）` ⇒ 一份载荷文本。
+///
+/// 任一段写不出来（A 有本版 writer 不支持的节点 / B 是空的且 …）都返回 `Err`
+/// ⇒ 调用方**不写产物**（"失败当不存在"，同设计 §8.1 ✓）。
+#[allow(dead_code)]
+pub(crate) fn encode_payload(
+    env: &sokonanoda::util::ExportFile<'_>,
+    tables: &crate::compile::PassTables<'_>,
+) -> Result<String, String> {
+    let a = env.to_ndjson()?;
+    let b = crate::project::tables::encode(&tables.known, &tables.defs, &tables.inductives)?;
+    Ok(format!("{PAYLOAD_MAGIC} {}\n{a}{b}", a.len()))
+}
+
+/// 载荷文本 ⇒ `(A, B)`，**装进调用方给的 arena**（T1-B 的硬约束：
+/// "装载必须发生在本趟 pass 自己的 arena 里" ⇒ 这条口子必须收 arena，不能自建 ✓）。
+///
+/// ⚠ **信任模型（设计 §8.3）**：这里按"**自己人写出来的产物**"解析 ⇒ 传的
+/// [`Config`] **放行一切公理**（产物里的 `axiom` 是本地声明的回放，不是外来的）。
+/// 真要去信任**下载来**的产物，是 §8.3 的开关 + 清单签名那件事，**不是**本函数的事。
+#[allow(dead_code)]
+pub(crate) fn decode_payload<'a>(
+    arena: &'a stumpalo::ArenaRef<'a>,
+    text: &str,
+) -> Result<
+    (
+        sokonanoda::util::ExportFile<'a>,
+        crate::compile::PassTables<'a>,
+    ),
+    String,
+> {
+    let (a_text, b_text) = split_payload(text)?;
+    let config = sokonanoda::util::Config {
+        unsafe_permit_all_axioms: true,
+        unpermitted_axiom_hard_error: false,
+        ..sokonanoda::util::Config::default()
+    };
+    let (env, _skipped) = sokonanoda::parser::parse_export_mapped(arena, a_text.as_bytes(), config)
+        .map_err(|e| format!("产物里的内核环境解析失败：{e}"))?;
+    let decoded = crate::project::tables::decode(b_text)?;
+    let by_name = declaration_index(&env);
+    let inductives = crate::project::tables::rehydrate_inductives(&decoded.inductives, |n| {
+        by_name.get(n).cloned()
+    })?;
+    Ok((
+        env,
+        crate::compile::PassTables {
+            known: decoded.known,
+            inductives,
+            defs: decoded.defs,
+        },
+    ))
+}
+
+/// 拆头 + 按长度切两段。**任何不自洽都 `Err`**（截断、长度超界、格式号不认识 ✓）。
+fn split_payload(text: &str) -> Result<(&str, &str), String> {
+    let nl = text
+        .find('\n')
+        .ok_or_else(|| "产物载荷没有头部".to_string())?;
+    let header = &text[..nl];
+    let rest = &text[nl + 1..];
+    let mut parts = header.split(' ');
+    let magic = parts.next().unwrap_or("");
+    if magic != PAYLOAD_MAGIC {
+        return Err(format!("产物载荷格式号不认识（{magic:?}）"));
+    }
+    let a_len: usize = parts
+        .next()
+        .ok_or_else(|| "产物头部缺 A 的长度".to_string())?
+        .parse()
+        .map_err(|_| "产物头部里 A 的长度不是数字".to_string())?;
+    if a_len > rest.len() {
+        return Err(format!(
+            "产物头部声称 A 有 {a_len} 字节，实际只剩 {}（截断 ✗）",
+            rest.len()
+        ));
+    }
+    Ok((&rest[..a_len], &rest[a_len..]))
+}
+
+/// `规范名 → 声明` 表（`rehydrate_inductives` 的口子）。
+///
+/// **为什么要在 `with_ctx` 里自己渲染名字**：内核没有公开的"`NamePtr` ⇒ 字符串"
+/// 自由函数（`pretty_printer` 的那个是私有的、且要 `&mut self`）⇒ 这里用
+/// [`sokonanoda::util::TcCtx::read_name`]/`read_string` 递归拼（10 行、与
+/// `pretty_printer::name_to_string` **同一套语义**：点分隔、`Anon` 为空 ✓）。
+fn declaration_index<'a>(
+    env: &sokonanoda::util::ExportFile<'a>,
+) -> std::collections::HashMap<String, sokonanoda::env::Declar<'a>> {
+    env.with_ctx(|ctx, _cache, _bump| {
+        let mut out = std::collections::HashMap::new();
+        for (name, declar) in env.declars.iter() {
+            out.insert(render_name(ctx, *name), declar.clone());
+        }
+        out
+    })
+}
+
+fn render_name(ctx: &sokonanoda::util::TcCtx<'_, '_>, n: sokonanoda::util::NamePtr<'_>) -> String {
+    match ctx.read_name(n) {
+        sokonanoda::name::Name::Anon => String::new(),
+        sokonanoda::name::Name::Str(pfx, sfx, _) => {
+            let mut out = render_name(ctx, pfx);
+            if !out.is_empty() {
+                out.push('.');
+            }
+            out.push_str(ctx.read_string(sfx).as_ref());
+            out
+        }
+        sokonanoda::name::Name::Num(pfx, sfx, _) => {
+            let mut out = render_name(ctx, pfx);
+            if !out.is_empty() {
+                out.push('.');
+            }
+            out.push_str(&sfx.to_string());
+            out
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -354,6 +485,103 @@ mod tests {
             !dir(&root).exists() || std::fs::read_dir(dir(&root)).unwrap().next().is_none(),
             "非法键不许在磁盘上留下任何东西 ✓"
         );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+    /// ⭐ **批 2 的合体判据**：`A（内核环境）+ B（前端表）` 写成一份载荷、过磁盘、
+    /// **在另一份 arena**（= 另一个进程的等价物）装回来 ⇒ ① 环境**过完整内核检查** ✓、
+    /// ② 前端表**逐项相同** ✓。**反向验证**：把载荷截断 ⇒ `Err` ✓。
+    ///
+    /// 为什么这条是批 2 的核心：跨进程复用的全部难点就是"**指针不许跨进程**"——
+    /// A 走结构文本、B 走 wire（只留名字式引用）⇒ 两边都必须在**新 arena** 里重建 ✓。
+    #[test]
+    fn payload_round_trips_across_arenas() {
+        use crate::compile::elab::KnownName;
+        use crate::compile::PassTables;
+        use sokonanoda::builder::EnvBuilder;
+        use sokonanoda::env::Declar;
+        use sokonanoda::util::Config;
+        use stumpalo::Arena;
+
+        let root = temp_root("payload");
+
+        // ① A：一份**真的**内核环境（两条公理）。
+        let arena = Arena::new();
+        let mut b = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+        let p = b.name_from_str("P");
+        let zero = b.zero();
+        let prop = b.mk_sort(zero);
+        let empty = b.alloc_levels_slice(&[]);
+        b.add_declar(Declar::Axiom {
+            info: sokonanoda::env::DeclarInfo {
+                name: p,
+                uparams: empty,
+                ty: prop,
+            },
+        })
+        .expect("axiom P");
+        let a = b.name_from_str("a");
+        let p_const = b.mk_const(p, empty);
+        b.add_declar(Declar::Axiom {
+            info: sokonanoda::env::DeclarInfo {
+                name: a,
+                uparams: empty,
+                ty: p_const,
+            },
+        })
+        .expect("axiom a");
+        let env = b.finish();
+
+        // ② B：一小张前端表（`known` 里放一条真声明；`defs`/`inductives` 空）。
+        let mut tables = PassTables {
+            known: Default::default(),
+            inductives: Default::default(),
+            defs: Default::default(),
+        };
+        tables.known.insert(
+            "P".to_string(),
+            KnownName::Decl {
+                universes: vec![],
+                implicit_prefix: 0,
+                explicit_arity: 0,
+                signature: Some("Prop".to_string()),
+            },
+        );
+
+        // ③ 写 → 磁盘（过完整性三道）→ 读
+        let payload = encode_payload(&env, &tables).expect("encode payload");
+        write(&root, KEY, &payload, &options()).expect("write");
+        let text = read(&root, KEY, &options()).expect("read（完整性三道全过 ⇒ 才给 Some）");
+
+        // ④ 换一份 arena 装回来
+        let arena2 = Arena::new();
+        let (env2, tables2) = decode_payload(arena2.as_arena_ref(), &text).expect("decode payload");
+        assert_eq!(
+            env2.declars.len(),
+            env.declars.len(),
+            "环境必须一条声明都不少"
+        );
+        env2.check_all_declars();
+        assert_eq!(tables2.known, tables.known, "前端表必须逐项相同");
+
+        // ⑤ **反向验证**：截断载荷 ⇒ `Err`（不许「猜着用」✗）。
+        let arena3 = Arena::new();
+        assert!(
+            decode_payload(arena3.as_arena_ref(), &text[..text.len() - 5]).is_err(),
+            "截断的载荷必须被拒 ✓"
+        );
+        // 另一条：把头部的长度改大 ⇒ 也要被拒（长度自洽性检查）✓。
+        let bumped = text.replacen(
+            &format!("{PAYLOAD_MAGIC} "),
+            &format!("{PAYLOAD_MAGIC} 999999999 "),
+            1,
+        );
+        assert_ne!(bumped, text, "补丁没生效 ⇒ 判据会空转 ✗");
+        let arena4 = Arena::new();
+        assert!(
+            decode_payload(arena4.as_arena_ref(), &bumped).is_err(),
+            "头部声称的长度超过实际 ⇒ 必须被拒 ✓"
+        );
+
         let _ = std::fs::remove_dir_all(&root);
     }
 }
