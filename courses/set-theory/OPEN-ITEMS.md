@@ -133,24 +133,30 @@
 - **收编去向**：可并入 `docs/gaps/ledger.jsonl` 的 **G-6** 那条作**补充说明**（"`Or` 同此，且是正确行为" ✓），
   但**不作为新缺口** ✗。
 
-## C-05（open）序数加法的**结合律**（关系版）待装配 —— **复现件已在册** ✓
+## C-05（**closed** · 2026-10-08 收口）序数加法的**结合律**（关系版）**已装配** ✓
 
 - **目标**：`AddsTo x y z ⇒ AddsTo z w v ⇒ ∃ u, AddsTo y w u ∧ AddsTo x u v` ✓（即 `(x+y)+w = x+(y+w)` ✓）。
-- **零件状态** ✓：`AddsTo` 的两条构造子（`addsTo_zero` ✓ / `addsTo_succ` ✓）**判绿** ✓；
-  递归子与计算规则（`ordinal_rec_nat` ✓ / `ordinal_rec_nat_eq` ✓ / 唯一性 ✓）**判绿** ✓。
-- **装配缺什么** ✗：先要**逆引理** `AddsTo x (σ y) v ⇒ ∃ z, v = σ z ∧ AddsTo x y z` ✓
-  —— 用 `AddsTo.rec` 写时**调用形状判红一次** ✗（参数/动机位待调 ✓，属工程问题、非内核墙 ✓）；
-  有了它，结合律就是**对第一条推导做归纳** ✓（零情形取 `u := w` ✓、后继情形用逆引理 ✓）。
-- **复现件（登记在册 ✓，G7 会重放）**：`courses/set-theory/gaps/C-05-addsTo-assoc.sh` ——
-  一条命令：`bash courses/set-theory/gaps/C-05-addsTo-assoc.sh`；登记状态 **open**
-  ⇒ 期望是"**缺口仍在**"（零件在 ✓、装配件不在 ✓）⇒ **exit 0**；
-  一旦 `addsTo_succ_inv` / `addsTo_assoc` 进了解答 ⇒ **exit 1**（提示把本条改成 `closed`
-  并把脚本期望翻转 ✓）。
-- **反向验证（实测，第 682 轮）**：把带 `sorry` 的 `addsTo_assoc` 临时塞进解答 ⇒ 脚本
-  **exit 1**，报「BAD C-05: assembly lemma IS present now: addsTo_assoc」✓；删掉 ⇒ **exit 0** ✓
-  （`git diff` 为空 ⇒ 解答已还原 ✓）。
-- **怎么验（修的时候）**：把逆引理与结合律写进 `unit109` 的解答判绿 ⇒ 本条改 `closed` ✓、
-  同时把复现件的期望翻转 ✓（两件事必须一起做，否则 G7 会判负 —— 这正是"断言与登记一致"的守卫 ✓）。
+- **收口依据** ✓：当年卡在 `AddsTo.rec` 的**调用形状/动机接线** ✗（第 681 轮判红一次 ✓）—— 属 **G-73 家族**
+  （`docs/gaps/ledger.jsonl` 的 G-73 现为 `fixed` ✓，2026-10-08）。修好后**一次就位** ✓，两条装配件都进了解答：
+  * **逆引理** `addsTo_succ_inv` ✓ —— `AddsTo x (σ y) v ⇒ ∃ z, v = σ z ∧ AddsTo x y z` ✓，
+    带两条**命题本身需要**的假设：`hne : ∀ w, σ w ≠ zero`（「`zero` 不是后继」✓）与
+    `hinj : ∀ a b, σ a = σ b → a = b`（「后继单射」✓）——**不是排版** ✗：`AddsTo` 对**任意** `σ`/`zero` 定义，
+    `σ` 恒取 `zero` 时结论假 ✓、非单射时索引对不齐 ✓；序数上这两条分别是「`∅` 不是后继」与「后继单射」✓；
+  * **结合律** `addsTo_assoc` ✓ —— **不需要**逆引理：**对第二条推导归纳**（把 `h1` 的实例一般化 ✓），
+    零情形取 `u := y` ✓、后继情形把归纳得到的 `u` 再套一层 `σ`（两次 `AddsTo.succ` ✓）。
+- **三条关键写法** ✓（本轮换来，已写进画布头 ✓）：① recursor 的 **motive 是参数化的**（索引不吃统一 ✓）
+  ⇒ 命题要写成 `∀ (y : α), b = σ y → …` 这种「把索引当参数」的形状 ✓；
+  ② 结论是**函数型**时最后**必须继续应用** ✓（少了就报「期望 `Pi …`，实际是 …」✗）；
+  ③ `∃` 一段式**要写类型标注** `∃ (z : α), …` ✓（否则 `elab-binder-notation-unsolved` ✗）。
+- **落点** ✓：画布 `units/I.6/unit109-ordinal-rec.sokonanoda`（练习 6/7；**learner 的 `sorry` 保持 open ✓**）·
+  解答 `units/solutions/I.6/unit109-solution.sokonanoda`（**11 条 checked · 0 open · 0 判负** ✓）。
+- **复现件（登记在册 ✓，G7 重放）**：`courses/set-theory/gaps/C-05-addsTo-assoc.sh` ——
+  一条命令：`bash courses/set-theory/gaps/C-05-addsTo-assoc.sh`；登记状态 **closed** ⇒ 期望与登记一致
+  （两条装配件在解答与画布上都具名 ✓ · `checked≥11` · `exercise_open==0` · 无判负）⇒ **exit 0**；
+  一旦装配件被删或被换成 `sorry` ⇒ **exit 1** ✓。
+  **反向验证实测（2026-10-08）**：把 `addsTo_assoc` 的证明体换成 `sorry` ⇒ **exit 1**
+  （「BAD C-05: grading rejected (exit=1, failed=2)」✓）；恢复 ⇒ **exit 0**
+  （「OK C-05 matches the register: checked=11 exercise_open=0 failed=0」✓）。
 
 ## 110（**closed-green** · 2026-10-02 第 683 轮）选择公理的取数据 —— 关键步靠 **G-58 已修**
 

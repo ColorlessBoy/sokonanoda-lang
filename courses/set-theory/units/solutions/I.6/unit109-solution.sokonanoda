@@ -50,3 +50,54 @@ theorem addsTo_succ (α : Type) (E : α → α → Prop) (σ : α → α) (zero 
     (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
     AddsTo α E σ zero x (σ y) (σ z) :=
   AddsTo.succ α E σ zero x y z h
+
+-- ── C-05 装配（2026-10-08）：逆引理与结合律（G-73 家族修好后可写 ✓）─────────
+-- 逆引理：`AddsTo x (σ y) v ⇒ v` 是后继、且前驱那一半成立。
+-- `hne`/`hinj` 是**命题本身需要**的（`AddsTo` 对任意 `σ`/`zero` 定义）。
+theorem addsTo_succ_inv (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (hne : ∀ (w : α), σ w ≠ zero) (hinj : ∀ (a : α) (b : α), σ a = σ b → a = b)
+    (x : α) (y : α) (v : α) (h : AddsTo α E σ zero x (σ y) v) :
+    ∃ (z : α), v = σ z ∧ AddsTo α E σ zero x y z :=
+  AddsTo.rec α E σ zero
+    (fun (a : α) (b : α) (c : α) (_ : AddsTo α E σ zero a b c) =>
+      ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z)
+    (fun (a : α) => fun (y : α) (he : zero = σ y) =>
+      False.elim (∃ (z : α), a = σ z ∧ AddsTo α E σ zero a y z)
+        (hne y (Eq.symm.{1} α zero (σ y) he)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (a : α) (b : α) (c : α) (hh : AddsTo α E σ zero a b c)
+        (ih : ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z) =>
+      fun (y : α) (he : σ b = σ y) =>
+        Exists.intro α (fun (z : α) => σ c = σ z ∧ AddsTo α E σ zero a y z) c
+          (And.intro (σ c = σ c) (AddsTo α E σ zero a y c) (Eq.refl.{1} α (σ c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            (Eq.subst.{1} α (fun (t : α) => AddsTo α E σ zero a t c) b y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+              (Eq.symm.{1} α y b (hinj y b (Eq.symm.{1} α (σ b) (σ y) he))) hh)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    x (σ y) v h y (Eq.refl.{1} α (σ y))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+
+-- 结合律：对**第二条推导** `h2` 归纳（`h1` 的实例作为一般化参数）；零情形取 `u := y`，后继情形再套一层 `σ`。
+theorem addsTo_assoc (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (x : α) (y : α) (z : α) (v : α) (w : α)
+    (h1 : AddsTo α E σ zero x y z) (h2 : AddsTo α E σ zero z w v) :
+    ∃ (u : α), AddsTo α E σ zero y w u ∧ AddsTo α E σ zero x u v :=
+  AddsTo.rec α E σ zero
+    (fun (a : α) (b : α) (c : α) (_ : AddsTo α E σ zero a b c) =>
+      ∀ (x : α) (y : α), AddsTo α E σ zero x y a →
+        ∃ (u : α), AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c)
+    (fun (a : α) => fun (x : α) (y : α) (h : AddsTo α E σ zero x y a) =>
+      Exists.intro α (fun (u : α) => AddsTo α E σ zero y zero u ∧ AddsTo α E σ zero x u a)
+        y (And.intro (AddsTo α E σ zero y zero y) (AddsTo α E σ zero x y a)
+          (AddsTo.zero α E σ zero y) h))
+    (fun (a : α) (b : α) (c : α) (hh : AddsTo α E σ zero a b c)
+        (ih : ∀ (x : α) (y : α), AddsTo α E σ zero x y a →
+          ∃ (u : α), AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c) =>
+      fun (x : α) (y : α) (hxy : AddsTo α E σ zero x y a) =>
+        Exists.elim (ih x y hxy)
+          (fun (u : α) (hu : AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c) =>
+            Exists.intro α
+              (fun (u' : α) => AddsTo α E σ zero y (σ b) u' ∧ AddsTo α E σ zero x u' (σ c))
+              (σ u)
+              (And.intro (AddsTo α E σ zero y (σ b) (σ u)) (AddsTo α E σ zero x (σ u) (σ c))
+                (AddsTo.succ α E σ zero y b u
+                  (And.left hu))
+                (AddsTo.succ α E σ zero x u c
+                  (And.right hu)))))
+    z w v h2 x y h1

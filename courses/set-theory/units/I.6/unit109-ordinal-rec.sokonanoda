@@ -83,3 +83,22 @@ theorem addsTo_succ (α : Type) (E : α → α → Prop) (σ : α → α) (zero 
     (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
     AddsTo α E σ zero x (σ y) (σ z) := by
   sorry
+-- 练习 6（T 类，**逆引理**）：把 `x + (σ y) = v` 的 `v` 取成**后继**，并交出前驱那一半。
+-- 思路：对**推导** `h` 做归纳（`AddsTo.rec`）—— `zero` 构造子与"`σ y = zero`"矛盾，`succ` 构造子要用单射性对齐索引。
+-- 关键件：`AddsTo.rec`（motive 取 `∀ (y : α), b = σ y → …`，**索引参数化**）· `hne`/`hinj` 两条假设 · `False.elim`（目标写全）· 一次搬运把 `x + b = c` 换成 `x + y = c`。
+-- ⚠ 两条假设是**命题本身需要**的（不是排版）：`AddsTo` 对任意 `σ`/`zero` 定义 —— `σ` 恒取 `zero` 时 `v` 可以不是后继；
+--   非单射的 `σ` 会让索引对不齐。序数上它们分别是「`∅` 不是后继」与「后继单射」。
+theorem addsTo_succ_inv (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (hne : ∀ (w : α), σ w ≠ zero) (hinj : ∀ (a : α) (b : α), σ a = σ b → a = b)
+    (x : α) (y : α) (v : α) (h : AddsTo α E σ zero x (σ y) v) :
+    ∃ (z : α), v = σ z ∧ AddsTo α E σ zero x y z :=
+  sorry
+-- 练习 7（T 类，**装配**）：关系版加法的**结合律** —— `(x + y) + w = x + (y + w)`（Enderton §8.1）。
+-- 思路：对**第二条推导**做归纳（第一条推导的实例作为一般化参数）—— 零情形取 `u := y`；后继情形把归纳得到的 `u` 再套一层 `σ`。
+-- 关键件：`AddsTo.rec`（motive 里把 `x y` 与 `h1` 一并 `∀` 出来）· `Exists.elim` · `And.left`/`And.right` · 两次 `AddsTo.succ`。
+-- ⚠ 对**第二条**推导归纳时不需要练习 6 的逆引理（逆引理是独立有用的一条）。
+theorem addsTo_assoc (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (x : α) (y : α) (z : α) (v : α) (w : α)
+    (h1 : AddsTo α E σ zero x y z) (h2 : AddsTo α E σ zero z w v) :
+    ∃ (u : α), AddsTo α E σ zero y w u ∧ AddsTo α E σ zero x u v :=
+  sorry

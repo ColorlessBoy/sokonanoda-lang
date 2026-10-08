@@ -469,7 +469,7 @@
             "nat-arith"
           ],
           "quota": {
-            "exercises": 88
+            "exercises": 90
           },
           "units": [
             {
@@ -534,7 +534,7 @@
             },
             {
               "file": "units/I.6/unit109-ordinal-rec.sokonanoda",
-              "title": "单元109 序数上的递归与加法（关系版）",
+              "title": "单元109 序数上的递归与加法（关系版 · 逆引理与结合律）",
               "title_en": "Unit 109 — Recursion on Ordinals and Relational Addition",
               "unit": 109
             },
