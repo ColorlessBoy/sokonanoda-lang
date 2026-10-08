@@ -186,7 +186,9 @@ fn a_project_build_writes_its_artifact_into_the_module_root() {
     // `soko.artifacts/<条目格式>.r<报告形状版本>`（2026-10-02 值守第 8 单：形状版本进 schema
     // ⇒ 报告形状一变，整个产物目录不认 ✓）。字面量是**故意**的：集成测试盯的是**冻结的
     // 契约串**（front 的 `project::cache::meta_schema()` 是唯一来源 ✓，改它这里必须跟着改 ✓）。
-    assert_eq!(meta["schema"], "soko.artifacts/2.r2");
+    // ⚠ **r2 → r3**：C3（`#print` 进报告，`DocumentReport.prints`）把 `REPORT_SHAPE`
+    // 2 → 3 ⇒ 这里必须同步（B1 的 1 → 2 也是同一条规矩 ✓）—— 漏改就是本套件判红 ✗。
+    assert_eq!(meta["schema"], "soko.artifacts/2.r3");
     assert!(meta["compiler"].as_str().is_some_and(|v| !v.is_empty()));
     // ⑤ 项目条目**不再**落全局缓存（分工：项目条目只认模块根）。
     assert!(
@@ -509,4 +511,116 @@ fn every_entry_keeps_its_own_artifact_round_after_round() {
 
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&cache);
+}
+
+/// **C4（2026-10-08）· 冷开 / 提交链路的结构判据**（规划 §`C4`，P6）。
+///
+/// 规划给的三条判据里，**①（warm 命中）与 ②（跨进程自足）在本条里量成数字** ✓；
+/// ③（版本 bump 的影响）**如实登记为"单测量不了"**（见末尾 ✓）。
+///
+/// ## 量到的两条（都是实测，不是推测）
+///
+/// * **① warm 命中**：`build.summary` 的 `hit == files`、`compiled == 0` ✓。
+/// * **② 模块根产物**跨**全局缓存**自足：**换一个全新的全局缓存目录**、
+///   而模块根产物还在 ⇒ 仍然 `hit == files` ✓（这正是"跨进程/跨机器"那条价值的
+///   结构读数 —— 以前只有全局缓存时，换个缓存目录就得整条闭包重编 ✗）。
+///
+/// ## 顺手钉住的一条 as-built 机制（**负向守卫**）
+///
+/// `meta.json` 里的 `compiler` / `build_stamp` **只管显示**（Infoview 画「编译器 X」），
+/// **不参与命中判定** —— 实测：把两者篡改成 `0.0.0` / 全零之后，下一次 `build`
+/// **照样 `hit == 1`** ✓。⇒ 这条守卫防的是"有人以为它是命中键、顺手把它删了/改了语义"
+/// ✗（真删了 ⇒ 版本戳不再跟着写产物的编译器走 ⇒ 用户升级后 Infoview 又画旧版本号 ✗，
+/// 那条判据在 `crates/front/src/project/cache.rs::the_artifact_stamp_follows_the_writing_compiler` ✓）。
+///
+/// ## ③ 为什么不在单测里判（**如实登记**）
+///
+/// 规划③要"记录 **bump 后**首轮打开重编的模块数"。bump = 改 `CARGO_PKG_VERSION`
+/// ⇒ 那是**换一份二进制**，单测里做不到（不能在一个进程里伪造 `env!("CARGO_PKG_VERSION")`
+/// ✗）。篡改 `meta.json` 的版本戳**模拟不了**它（上面那条负向守卫已经证明：
+/// 那个字段不进命中判定 ✓）⇒ 真正的读数是**发版节点**上的：bump 之后第一次
+/// `sokonanoda build <课程入口>` 的 `compiled`/`files`。⇒ **留给发版节点量**，
+/// 且 **A3（模块级产物）落地后**它应当从"整条闭包"降到"入口模块" ✓ —— 那时这条
+/// 注释旁边补上实测数字 ✓。
+#[test]
+fn module_root_artifacts_are_self_sufficient_across_global_caches() {
+    let root = scratch("c4-root");
+    project(&root);
+    let entry = root.join("Main.sokonanoda");
+    let entry_arg = entry.to_str().unwrap();
+
+    // ① 冷开（空缓存 + 空模块根）⇒ 编，不命中。
+    let cache_a = scratch("c4-cache-a");
+    let (code, cold) = run(&cache_a, &["build", "--json", entry_arg]);
+    assert_eq!(code, 0, "{cold:?}");
+    assert_eq!(
+        summary(&cold)["hit"],
+        0,
+        "冷开不该命中（夹具前提）：{cold:?}"
+    );
+    assert_eq!(
+        summary(&cold)["files"],
+        1,
+        "一个入口 ⇒ files = 1（结构读数按**入口**数）：{cold:?}"
+    );
+
+    // ② 换一个**全新的全局缓存目录**，模块根产物还在 ⇒ 必须仍然命中 ✓。
+    let cache_b = scratch("c4-cache-b");
+    let (code, across) = run(&cache_b, &["build", "--json", entry_arg]);
+    assert_eq!(code, 0, "{across:?}");
+    assert_eq!(
+        summary(&across)["hit"],
+        summary(&across)["files"],
+        "**② 的正身**：模块根产物必须**跨全局缓存自足**（`hit == files`）—— \
+         以前只有全局缓存 ⇒ 换个缓存目录就整条闭包重编 ✗：{across:?}"
+    );
+    assert_eq!(
+        summary(&across)["compiled"],
+        0,
+        "命中就不许再编（`compiled == 0`）：{across:?}"
+    );
+
+    // ③ 负向守卫：`meta.json` 的版本戳**不进命中判定**（篡改之后照样命中 ✓）。
+    let meta_path = root.join(".sokonanoda/meta.json");
+    let raw = std::fs::read_to_string(&meta_path).expect("meta.json readable");
+    let mut meta: Value = serde_json::from_str(&raw).expect("meta.json is json");
+    assert!(
+        meta.get("compiler").and_then(Value::as_str).is_some(),
+        "meta.json 必须带 compiler（Infoview 的「编译器 X」就画它）：{raw}"
+    );
+    meta["compiler"] = Value::String("0.0.0".into());
+    meta["build_stamp"] = Value::String("0000000000000000".into());
+    std::fs::write(&meta_path, format!("{meta}\n")).expect("write tampered meta");
+
+    let (code, tampered) = run(&cache_b, &["build", "--json", entry_arg]);
+    assert_eq!(code, 0, "{tampered:?}");
+    assert_eq!(
+        summary(&tampered)["hit"],
+        summary(&tampered)["files"],
+        "**as-built 机制**：版本戳只管显示、**不参与命中** ⇒ 篡改后照样命中 ✓。\
+         若这里判红 ⇒ 有人把版本戳接进了命中判定 —— 那会让**每次升级都整库重编**，\
+         与 A3 的方向相反 ✗；真要改，先读本测试的文档注释与规划 §`C4`③。{tampered:?}"
+    );
+
+    // ④ **夹具自检**（这条断言真的咬得住吗？）：关掉模块根产物这条通道
+    // （逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`）+ 全新全局缓存 ⇒ **必须不命中**
+    // ✓ —— 它证明 ② 的 `hit == files` **不是恒真**（实测：`hit: 0, compiled: 1` ✓）。
+    // 没有这一臂，"② 命中"可能只是"根本没看产物"或"恒真断言" ✗。
+    let cache_c = scratch("c4-cache-c");
+    let (code, blind) = run_with_env(
+        &cache_c,
+        &["build", "--json", entry_arg],
+        &[("SOKONANODA_NO_PROJECT_ARTIFACTS", "1")],
+    );
+    assert_eq!(code, 0, "{blind:?}");
+    assert_ne!(
+        summary(&blind)["hit"],
+        summary(&blind)["files"],
+        "**自检**：关掉模块根产物 ⇒ 全新全局缓存下**不该命中** ⇒ ② 那条断言才有判别力 ✓：{blind:?}"
+    );
+
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&cache_a);
+    let _ = std::fs::remove_dir_all(&cache_b);
+    let _ = std::fs::remove_dir_all(&cache_c);
 }
