@@ -1465,3 +1465,36 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   （文件感知的 span 模型 §11.10 + 命令级环境快照 = 新机制 ✗）⇒ **缓做** ✓：**先做便宜的**，
   等下一棒有余量再评估。**要确认这个上界**的最简实验（写死）：造"**只追加尾部注释**"的一刀
   （不改任何声明 ⇒ 脏集空）量它的墙钟 = **真固定底** ✓；若它已经 ≈70ms ⇒ T2-B **直接划掉** ✗。
+
+---
+
+## 13. 第 21 轮（2026-10-09 · 平行线）—— 全量 gate ✓ + **T1-B 批 1 第 2 件落地**（装载口）
+
+* **① 全量 `scripts/soko gate` 收回结果 = PASS** ✓（§12 的"下一棒先做①"完成）：
+  第 19 轮起跑的那次，本轮**原样落盘**（`/tmp/gate-full-r3.log`）后确认收尾行
+  `sokonanoda: gate PASS` ✓（⚠ 按 §12 的教训：别用 `EXIT=` 判 —— 那是管道最后一个命令的状态）。
+* **② T1-B 批 1 第 2 件**（`8390799e`）：内核装载口
+  **`EnvBuilder::from_export_file(arena, file)`** —— 从一份已建好的 `ExportFile`
+  **继续编**（之后照常 `add_declar`/`finish`）。原七个方法都不够
+  （`new` 从空、`snapshot`/`with_env` 只借只读副本、`finish` 反方向 ✗）。
+  **纯能力新增、零行为变化**（当前**无调用者** ⇒ 输出逐字节不变 ✓）。
+  * 判据（`builder.rs` 的 `from_export_file_carries_the_intern_tables_not_a_rebuilt_dag` ·
+    **两向**）：① 装载后与产物**指针同一**；② **intern 表也搬过来了**（再 intern 同名
+    ⇒ **同一个 `NamePtr`**）；③ 装载后 `add_declar` 照常 + **内核真判过**；
+    ④ 反向：空环境判不过；⑤ 反向（指针侧）：重建 `Dag` ⇒ 同名得**第二个**节点。
+  * 记账：`docs/architecture.md` §6 追加一行（内核改动纪律）；
+    `docs-budget.json` 的 `architecture.md` 753→754 与 `L1` 5674→5675（只加那一行台账，
+    按 docs-lint 自己给的例外手改 ✓）。
+* **③ T1-B 批 1 的下半件 = writer（ndjson 序列化）** —— 本轮**只调研、未写码**：
+  格式已核清楚（`parser.rs` 的 `ExportJsonVal`：`meta` / `str`·`num`（名）/
+  `succ`·`max`·`imax`·`param`（层）/ `sort`·`bvar`·`const`·`app`·`forallE`·`lam`·`proj`·
+  `letE`·`mdata`·`natVal`·`strVal`（项）/ `axiom`·`thm`·`def`·`opaque`·`inductive`·`ctor`·
+  `recursor`·`quot`（声明）；每个对象带可选 `in`/`il`/`ie` 回引）。
+  **形状**：post-order 给子项分配下标（子先父后）、每个唯一节点发一次（hash-cons 的
+  `Dag` 天然去重 ✓）、声明引用相应下标。**判据**：单进程往返 ——
+  `ExportFile → 文本 → Parser → ExportFile'` 之后，**对着 `ExportFile'` 编同一条下游
+  声明**与对着原 `ExportFile` 编 ⇒ **逐字节同**（`--json`）。
+  仓库里**没有** ndjson 样例（fixture 在外部 `LEAN_KERNEL_ARENA`）⇒ 格式只能从
+  `parser.rs` 反推 ✓（已入账）。
+* **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 已完成一半**（装载口 ✓ · writer 未做）·
+  ② T2-A ✓ / T2-B 未做 · ③ ✓（T3-B1 ①②③ + §4.2 第 5 条族 + T3-B2 出口）· ④ T4-A ✓。
