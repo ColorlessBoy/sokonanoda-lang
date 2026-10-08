@@ -176,9 +176,9 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 **编译缓存**：**项目**闭包产物落**模块根** `<模块根>/.sokonanoda/compiled/`
 （同格式同键、自忽略；`--clean` **两处都清**；逃生门
 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`；设计 `docs/design/project-artifacts.md`）。
-`sokonanoda build [--clean] [<file>|<dir>]`（CLI）与编辑器里的
-`Sokonanoda: Build (编译项目，预热缓存)`（`alt+b`）/ `Sokonanoda: Rebuild (清空编译缓存后重编译)`（`alt+shift+b`，先清缓存）
-是同一条路——第一次按键慢、或在编辑器外改了依赖后面板像"没反应"，先 rebuild。
+`sokonanoda build|clean|rebuild [<file>|<dir>]`（CLI：`clean` = **只清不编**、`rebuild` = **先清两处再预热**，与下面编辑器那两条**一一对应** ✓）；
+⚠ 不给路径 = **当前目录**，并**跳过** `.git`/`node_modules`/`target`/`.sokonanoda` 等（2026-10-08：以前全递归 ⇒ 语言仓根 269k 文件、几分钟零输出 = "没反应" ✗）。
+编辑器里的 `Sokonanoda: Build (编译项目，预热缓存)`（`alt+b`）/ `Rebuild`（`alt+shift+b`，先清缓存）是同一条路——第一次按键慢、或在编辑器外改了依赖后面板像"没反应"，先 rebuild。
 ⚠ 扩展里的这两个命令**都编「项目」**（E22）：目标是 `soko/project` 的**模块根**，
 不是当前打开的文件 ✗（要只编一个文件用 CLI）。
 另有 `Sokonanoda: Clean Cache (清除编译缓存)`（E31）= **只清不编**（清全局 + 模块根两处，

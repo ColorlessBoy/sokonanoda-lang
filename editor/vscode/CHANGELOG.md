@@ -1,3 +1,45 @@
+## [0.85.0] — 2026-10-08
+
+> **The CLI gets `clean` and `rebuild`** (the same three verbs the editor has) · **`build`
+> no longer looks dead** (skips `target`/`node_modules`/…, narrates the scan, prints progress
+> every ~10% in a terminal) · **an unknown subcommand is a usage error** (exit 2, named, with
+> a pointer to `--help`) · and **error messages name the file**.
+
+### Added
+
+- **`sokonanoda clean` / `sokonanoda rebuild`** (user report, 2026-10-08: "rebuild 和 clean
+  没有实现"). `clean` ≡ `build --clean` (clear **both** stores, compile nothing) and
+  `rebuild` clears both stores **then** warms — the editor's `Rebuild` semantics in a **single
+  process**, with the same `build.clean` → `build.begin`/`file`/`summary` event order, so
+  `--json` consumers keep working. `build --clean` still works unchanged. The editor's
+  **Rebuild** and **Clean Cache** commands now call these subcommands instead of hand-rolling
+  a two-process `build --clean` + `build` dance ⇒ one implementation, not two.
+
+### Changed
+
+- **`sokonanoda build` without a path is no longer silent** (user report, 2026-10-08: "build
+  没有反应"). Its default root is the current directory, and it used to walk *everything* —
+  in this repository that is **269k files** (`target/` 240k + `node_modules/` 15k), with
+  nothing on screen but a 1-second heartbeat for minutes. It now **skips**
+  `.git`/`.hg`/`.svn`/`node_modules`/`target`/`.sokonanoda`/`.vscode-test`/`__pycache__`/
+  `.venv` (an **explicit** root is never skipped — `sokonanoda build target/` still walks it),
+  narrates the scan (`scanning …` / `found N …` on stderr), and prints progress every ~10%
+  when it is compiling a batch.
+
+### Fixed
+
+- **An unknown subcommand is a usage error, not a missing file** (user report, 2026-10-08:
+  "cli 很多命令有问题"). `sokonanoda rebuild` used to fall through to "check this file" and
+  answer `error: No such file or directory (os error 2)` with exit **1**. Now the message
+  names the token (`未知子命令 \`rebuildd\``), points at `--help`, and exits **2** — the
+  documented usage code.
+- **Error messages name the file**: `check` and `grade` on a missing path say
+  `读不到 <path>：…` (it used to be a bare OS error with no filename); a **directory**
+  argument adds "use `sokonanoda build <dir>`"; `build` on a source-less directory says
+  `… 没有 .sokonanoda 文件` **before** the usage line (it used to print usage only, which read
+  as "you typed the command wrong"); `watch` on a not-yet-existing file says it is waiting
+  (instead of looking hung), while `watch --workspace` on a missing root is now a usage error.
+
 ## [0.84.0] — 2026-10-08
 
 > **The Infoview keeps exactly one jump** — notation symbols are no longer links
