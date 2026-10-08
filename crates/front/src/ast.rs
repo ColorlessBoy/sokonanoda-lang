@@ -3,7 +3,7 @@
 use crate::span::Span;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SortKind {
     Prop,
     Type,
@@ -11,7 +11,7 @@ pub enum SortKind {
     Level(String),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Expr {
     Sort {
         sort: SortKind,
@@ -205,7 +205,7 @@ pub struct NotationDecl {
 /// 语义（`compile/scope.rs` 是唯一实现）：短名 = 声明名最后一段。
 /// **先过滤、后改名**——`only`/`hiding` 决定哪些声明短名能进来，`renaming`
 /// 再把进来的那些换个可见名（原短名随之失效）。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OpenFilter {
     /// `open Foo (a b)`：只让这些短名进来；`None` = 全部。
     pub only: Option<Vec<String>>,
@@ -264,7 +264,7 @@ impl OpenFilter {
 
 /// `match` 的一条分支：`| <pattern> [if <guard>] => <body>`
 /// （模式编译器设计 `docs/design/match-patterns.md`）。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MatchArm {
     pub pattern: Pattern,
     /// `if <cond>`：`cond : Bool`，为假时落到后续 arm（v1，见设计 §4）。
@@ -279,7 +279,7 @@ pub struct MatchArm {
 /// `Ident` 是**构造子还是绑定变量由 elaborator 按该位置的归纳类型判定**
 /// （parser 无类型信息）。编译器生成的 canonical 模式也是 `Ident`，只是
 /// 名字一定是当前类型的构造子名（幂等，见设计 §4）。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Pattern {
     /// `_`：通配，不绑定。
     Wild { span: Span },
@@ -327,7 +327,7 @@ impl Expr {
 }
 
 /// 教学白名单里的一个 tactic（`by` 块内）。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Tactic {
     /// `intro a b c`：一次剥掉多层 Pi/Arrow。**多名字**是 Lean 的常态写法
     /// （课程 Lean 化，设计 `docs/design/course-lean-style.md` L1.3）；
@@ -411,7 +411,7 @@ pub enum Tactic {
 }
 
 /// `have` 的值位：项（`:= t`）或嵌套 tactic 块（`:= by …`）。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum HaveValue {
     Term(Expr),
     /// 嵌套 tactic 序列。**用缩进界定**（与 `cases` 臂体同一条规则）：
@@ -420,7 +420,7 @@ pub enum HaveValue {
 }
 
 /// `cases` 的一个分支：`| <ctor> <binder>… => <tactics>`。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CasesArm {
     /// 构造子名，**按用户写的拼写**（裸名 `inl` 或点号名 `Or.inl` 都行）；
     /// 引擎按归纳表的源名归一。
@@ -452,13 +452,13 @@ impl Tactic {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum BinderKind {
     Explicit,
     Implicit,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Binder {
     pub name: String,
     /// `None` means the binder has no explicit type (elaboration infers it).
@@ -467,7 +467,7 @@ pub struct Binder {
     pub span: Span,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Command {
     /// `import Foo.Bar`（文件级命令，必须出现在所有声明之前）。
     /// `module` 存**原始**点分名字；合法性由 `project::ModuleName` 判定。
@@ -597,7 +597,7 @@ pub enum Command {
     },
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CtorDecl {
     pub name: String,
     pub binders: Vec<Binder>,
@@ -605,7 +605,7 @@ pub struct CtorDecl {
     pub span: Span,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RecDecl {
     pub name: String,
     pub universe: Vec<String>,
@@ -613,7 +613,7 @@ pub struct RecDecl {
     pub span: Span,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct IotaRule {
     pub ctor_name: String,
     pub val: Expr,
@@ -693,7 +693,7 @@ impl Command {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FolFile {
     pub commands: Vec<Command>,
     /// 源文件原文（`parse` 时填入）。`by` 引擎按命令 span 切片取前缀源码

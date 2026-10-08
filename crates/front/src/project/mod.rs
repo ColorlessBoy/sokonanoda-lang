@@ -17,6 +17,7 @@ pub mod module_plan;
 pub mod report;
 pub mod resolve;
 pub mod session;
+pub mod tables;
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};

@@ -51,7 +51,7 @@ pub(crate) struct MatchCtor<'a> {
 /// name that is unique in the closure resolves to its canonical name — it must
 /// never become a second kernel constant. `Ambiguous` is a bare name two
 /// constructors claim (G-02's `mk`): it does not resolve at all.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) enum KnownName {
     Decl {
         universes: Vec<String>,
@@ -371,7 +371,7 @@ pub(crate) struct InductiveInfo<'a> {
 ///
 /// **只展开一层**：展开后仍要看穿就再来一次（课程里没有更深的嵌套）。
 /// 源级展开足够——`Set.subset`/`Not`/`Iff` 都是一层 def。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct DefInfo {
     /// 声明的参数名（按顺序）——展开时与实参位置对齐做代换。
     pub params: Vec<String>,
