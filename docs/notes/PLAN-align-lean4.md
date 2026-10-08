@@ -1670,3 +1670,39 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   开工前先看 `git status --short` 与 §11.5/§11.6 的归属约定 ✓。
 * **四方向账（本轮后）**：① T1-A ✓ / **T1-B 批 1 ✓✓（批 2/3 未做）** · ② T2-A ✓ / T2-B 缓做 ·
   ③ ✓ · ④ T4-A ✓。
+
+### 24. 第 32 轮（平行线）：批 2 前半落地（产物落盘 + 完整性三道）＋ **批 2 的形状定死：A + B + C，不是 A 单独** ✓
+
+* **落地**（`25e4542a`）：新模块 `crates/front/src/project/artifacts.rs`（**不接线**）——
+  `<模块根>/.sokonanoda/artifacts/<key>.bin` + `<key>.meta.json`，`key` 复用**已存在**的
+  `ProjectPlan::module_keys`（每模块 Merkle 键 ✓）。**完整性三道**（§8.2）全在 `read` 里：
+  ① 凭据逐项（format/版本/build stamp/target/prelude）· ② 载荷字节数 + 摘要 ·
+  ③ 键即文件名。**两个"顺序"也是判据的一部分**：**先载荷后凭据**（崩在中间 ⇒ 只有
+  没有凭据的载荷 ⇒ miss ✓）；写产物顺手让 `.sokonanoda/` **自忽略**（否则冒出
+  `?? .sokonanoda/` ✗）。另加 §8.3 的边界：`key` 只许 `[A-Za-z0-9_-]{1,128}`
+  （将来可能来自下载清单 ⇒ 含 `/`/`..` 就是**目录穿越** ✗）。
+* **判据**：6 条文件内单测（往返 · 改一个字节/截断 ⇒ miss · **五个身份字段逐项**
+  不符 ⇒ miss（每条补丁先断言"补丁生效"，防判据空转 ✓）· 换键/无凭据 ⇒ miss ·
+  非法键拒写拒读且不留痕 ✓ · 自忽略内容 == `*\n` ✓）。front `--lib` **880/880** ·
+  fmt 干净 · clippy **本文件 0 条**（顺手修掉自己引进的 `doc_lazy_continuation` ✗）。
+* ⭐ **批 2 的形状定死了（本轮最重要的结论）**：产物**不能只存 A（内核环境）** ——
+  消费侧要 `PassTables`（`known`/`inductives`/`defs`），而它们**不是内核环境的纯函数**：
+  * `KnownName::Decl.signature` 是**源级类型文本**（`render_expr(ty)`）—— 文档自己写明
+    "**不能用 pp/judge 文本**"（① 递归、② pp 省略嵌套常量的隐式实参 ⇒ 反解不出来）⇒
+    从内核环境反推**没有**这条文本 ✗；
+  * `implicit_prefix` / `explicit_arity` 是**源级 AST 走查**（`leading_implicit_prefix`
+    / `explicit_arity`，文档原话"**零内核调用**"）⇒ 从内核 Pi binder 反推是**另一套实现**
+    ⇒ 一旦与源级走查在边界情形上分叉，隐式实参插入就变 ⇒ **判定/`--json` 分叉** ✗
+    （这正是"第五套实现"的守卫要抓的东西）。
+  ⇒ **批 2 = A + B（序列化）+ C**。B 的可行形状（本轮读码）：`DefInfo` **全是字符串**
+  （好办 ✓）；`InductiveInfo` 带 `MatchCtor`/`index_types: Vec<Expr>`（**源级 AST**）
+  ⇒ 要么给前端 AST 加一条序列化，要么存文本形式；`known` 的表项本身只有
+  `String`/`usize`/`Option<String>` ✓。⚠ **指针重映射**：`InductiveTable<'a>` 的表项含
+  arena 指针 ⇒ 装载时**按名字**在已装载的内核环境里重解析（不能按地址 ✗）。
+* **下一件**：① B 的序列化（先给 `DefInfo`/`InductiveInfo`/`KnownName` 定型）；② 写入口
+  （session 在每个**模块边界**用 `builder.snapshot().to_ndjson()` 写一份 —— 那时的环境
+  正好是"依赖闭包 + 本模块" ✓）；③ 消费入口（装载 A + 读回 B ⇒ 接着编）。
+  ⚠ **顺序上先别只写入口**：消费侧没接之前写产物是**纯开销**（每次 build 多写 N 份、
+  可能几十 MB），会直接踩性能纪律 ⇒ **先定型 B、把消费侧接上，再开写** ✓。
+* **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 ✓ · 批 2 前半 ✓（B 定型是下一个关口）** ·
+  ② T2-A ✓ / T2-B 缓做 · ③ ✓ · ④ T4-A ✓。
