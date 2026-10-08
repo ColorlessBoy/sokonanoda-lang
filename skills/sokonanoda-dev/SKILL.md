@@ -198,10 +198,16 @@ cargo run -q -p sokonanoda-lsp                        # 编辑器反馈通道
 
 - 编译缓存（dev aid）：`sokonanoda build|clean|rebuild [--json] [--clean] [<file>|<dir>…]`
   （`clean` = **只清不编** · `rebuild` = **先清两处再预热**，与编辑器三条命令一一对应 ✓；
-  不给路径 = **当前目录**并**跳过** `.git`/`node_modules`/`target`/`.sokonanoda` 等 ✓）
+  不给路径 = **当前目录**并**跳过** `.git`/`node_modules`/`target`/`.sokonanoda` 等 ✓
+  —— `clean`/`rebuild` 无参也按这个默认解模块根、**两处都清**（C2，2026-10-08）✓）
+  人看的进度走 **stderr**：**逐文件**一行（C1，2026-10-08；旧的是每 10% ⇒ 240 文件
+  每 24 个才一条 ✗）+ 人话心跳（`… still building (12s)`，≥1s，真事件顶掉它）；
+  `--json` 的 stdout 契约**一字不变** ✓
   预热/清理共享落盘缓存（key = 编译器版本 + 二进制构建指纹 + prelude 模式 +
   源文本；内核仍是唯一判定者）；**项目**闭包产物落**模块根**
-  `<模块根>/.sokonanoda/compiled/`（同格式同键、自忽略、上限 32 条按 mtime 淘汰、
+  `<模块根>/.sokonanoda/compiled/`（同格式同键、自忽略、**一条目一入口** —— 索引
+  `meta.json` 是"入口路径 → 条目键"、后写替换前写；早先的"上限 32 条按 mtime 淘汰"
+  已废 ✗（实测让课程门禁反复互相淘汰刚写的条目）、
   `--clean` 两处都清、逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`；
   设计 `docs/design/project-artifacts.md`，判据 `crates/cli/tests/artifacts.rs`）；
   `SOKONANODA_CACHE_DIR` 改缓存根、

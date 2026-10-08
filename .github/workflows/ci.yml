@@ -445,6 +445,14 @@ jobs:
         run: |
           python3 scripts/check-progress-gap.py
           python3 scripts/check-progress-gap.py --selftest
+      - name: Human-facing build progress is per-file and never goes quiet (C1)
+        # **量人看的那条**（stderr）：`check-progress-gap.py` 只看 `--json` 的事件流
+        # （机器通道）⇒ 看不见它 ✗。判据：N=120 个文件 ⇒ 人看的进度行 **≥ N**
+        # （旧的是每 10% ⇒ 10 行 = 用户报的"约 24 个文件才一条" ✗）+ 人话心跳 ≥2 条。
+        # `--selftest` = 反向验证：合成"每 24 个一行"的流**必须判红**。
+        run: |
+          python3 scripts/check-progress-cadence.py
+          python3 scripts/check-progress-cadence.py --selftest
       - name: Course layer is guarded (canvases, solutions, course.json)
         run: cargo test -p sokonanoda-cli --test course --locked
   gates-course:

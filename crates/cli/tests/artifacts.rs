@@ -102,6 +102,32 @@ fn run_raw(cache: &Path, args: &[&str], env: &[(&str, &str)]) -> (i32, String) {
     )
 }
 
+/// **C2（2026-10-08）**：与 [`run`] 同，但把**子进程的 cwd** 设成 `cwd` ——
+/// 无参 `build`/`rebuild` 的默认根是**当前目录**，判据必须能钉住这一点 ✓。
+fn run_in_dir(cache: &Path, args: &[&str], cwd: &Path) -> (i32, Vec<Value>) {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_sokonanoda"));
+    command
+        .args(args)
+        .current_dir(cwd)
+        .env("SOKONANODA_CACHE_DIR", cache)
+        .env_remove("SOKONANODA_NO_PROJECT_ARTIFACTS")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let out = command
+        .spawn()
+        .expect("spawn sokonanoda")
+        .wait_with_output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    let events = stdout
+        .lines()
+        .filter(|line| line.starts_with('{'))
+        .map(|line| serde_json::from_str(line).unwrap_or_else(|e| panic!("bad JSON ({e}): {line}")))
+        .collect();
+    (out.status.code().unwrap_or(-1), events)
+}
+
 fn summary(events: &[Value]) -> &Value {
     events
         .iter()
@@ -263,6 +289,60 @@ fn clean_empties_both_stores_and_keeps_the_artifacts_metadata() {
     // 元数据不是条目 ⇒ 不被 `--clean` 删（否则每次都重建，还丢 created 时间）。
     assert!(root.join(".sokonanoda/.gitignore").exists());
     assert!(root.join(".sokonanoda/meta.json").exists());
+
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&cache);
+}
+
+/// **C2（2026-10-08）**：**无参** `rebuild`（cwd = 模块根）也必须清到模块根产物 ——
+/// 否则紧接着的预热**全是 `hit`**，用户看到的是"rebuild 什么都没重编"这个**假动作** ✗
+/// （实测复现：`build .` 后无参 `rebuild` 报 `1 hit, 1 compiled` ✗）。
+///
+/// 根因：`project_roots(&[])` 返回**空集**（只有给了路径才去解模块根），而 `warm`
+/// 的默认一直是**当前目录** ⇒ 两条路的默认不一致。修法 = 让 `project_roots` 用
+/// **同一个默认**（`PLAN-cli-editor-perf.md` §1 P2 的"残留"）。
+///
+/// **反向验证**：把 `project_roots` 的默认改回空集 ⇒ 本用例**必须红**
+/// （`clean.project == 0` 且 `summary.hit ≥ 1`）—— 已实跑取证 ✓。
+#[test]
+fn a_no_argument_rebuild_also_clears_the_module_root_artifacts() {
+    let root = scratch("rebuild-noargs");
+    let cache = scratch("cache-rebuild-noargs");
+    project(&root);
+    let entry = root.join("Main.sokonanoda");
+
+    // 冷 `build`：写项目产物（判据的前提 —— 有东西可清 ✓）。
+    let (code, events) = run(&cache, &["build", "--json", entry.to_str().unwrap()]);
+    assert_eq!(code, 0, "冷 build 要成功：{events:?}");
+    assert_eq!(
+        project_entries(&root).len(),
+        1,
+        "前提：模块根下必须有 1 条项目产物"
+    );
+    assert_eq!(summary(&events)["hit"], 0, "前提：第一次是冷编");
+
+    // **无参 `rebuild`**（cwd = 模块根）。
+    let (code, events) = run_in_dir(&cache, &["rebuild", "--json"], &root);
+    assert_eq!(code, 0, "无参 rebuild 要成功：{events:?}");
+    let clean = events
+        .iter()
+        .find(|event| event["type"] == "build.clean")
+        .expect("build.clean");
+    assert!(
+        clean["project"].as_u64().unwrap_or(0) >= 1,
+        "**C2 的正身**：无参 `rebuild` 必须清到模块根产物（`project >= 1`）；\
+         现在是 {} ⇒ 只清了全局 ⇒ 紧接着的预热会全是 hit ✗：{clean:?}",
+        clean["project"]
+    );
+    let sum = summary(&events);
+    assert_eq!(
+        sum["hit"], 0,
+        "清干净了 ⇒ 必须**真的重编**（`hit == 0`）；今天这里是 1 ⇒ 假重编 ✗：{sum:?}"
+    );
+    assert!(
+        sum["compiled"].as_u64().unwrap_or(0) >= 1,
+        "至少要重编一个文件：{sum:?}"
+    );
 
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&cache);

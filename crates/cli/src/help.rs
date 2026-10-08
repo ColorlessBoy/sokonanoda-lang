@@ -19,9 +19,11 @@ pub(crate) fn print_help() {
     println!("                                  (no path = the current directory; skips .git /");
     println!("                                   node_modules / target / .sokonanoda / …)");
     println!(
-        "  sokonanoda clean [path ...]     clear BOTH stores, compile nothing (≡ build --clean)"
+        "  sokonanoda clean [path ...]     clear BOTH stores, compile nothing (≡ build --clean;"
     );
+    println!("                                  no path = the current directory, same as `build`)");
     println!("  sokonanoda rebuild [path ...]   clear both stores, then warm (≡ clean + build;");
+    println!("                                  no path = the current directory;");
     println!("                                  same semantics as the editor's Rebuild)");
     println!("  sokonanoda query <op> [opts]    kernel truth as ONE JSON object (agent view):");
     println!("      check                     counts + failures + warnings for the file");

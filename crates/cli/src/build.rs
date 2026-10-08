@@ -179,33 +179,38 @@ fn prepare(
 /// 但它**仍是"可见面在动"的兜底**，对**管道消费者**保留 ✓。
 const DEFAULT_TICK_MS: u64 = 1000;
 
-/// **心跳要不要发、按什么周期**（`None` = 不发；**默认不发** ✓）。
+/// **心跳要不要发、按什么周期**（`None` = 不发）。
 ///
 /// 用户 2026-09-29 实测原话：终端每秒刷 `{"elapsed_ms":1001,"file":"","type":"build.tick"}`。
 /// 根因不是周期，是**发错了地方**：心跳写的是 stdout，而**人看的终端与管道消费者
 /// 共用同一个 stdout** ✗（工作单给的三个修法里，「周期 5s」只让它慢一点、
 /// 「`file` 空不发」实测会把心跳**整个删掉**（159/159 空））。
 ///
-/// ⇒ 口径：**默认不发**，谁要谁显式要 ✓。仓库内的消费者（VS Code 扩展）
-/// **自己 spawn 子进程**（`runBuildProcess`）⇒ 它默认拿不到 tick 是**有意的**：
-/// 它把每一行原样 `appendLine` 进「sokonanoda build」输出面板 ⇒ 159 行 JSON 刷屏
-/// 对用户是噪声，而它渲染的百分比本来就是文件级（`build.file`）✓。
+/// ⇒ 口径（**C1，2026-10-08 起按通道分开**）：
 ///
-/// 开关（**三档，默认那档就是工作单的「非管道不发」**）：
+/// * **机器通道**（`--json` 的 stdout 心跳，契约**一字不变**）：`stdout` **是管道**
+///   （扩展 spawn 的子进程、`| jq`、CI 的重定向）⇒ **发**，周期 [`DEFAULT_TICK_MS`]；
+///   **是终端** ⇒ **不发** ✓ —— 这正是"人看的终端不再刷 + 机器消费者仍能拿到心跳"
+///   两句话的合取（2026-09-29 用户口径）；
+/// * **人看的通道**（**stderr**，C1 新增）：`--json` **没开**时默认**发** ——
+///   一行人类可读的 `… still building (12s) · <相对路径>`，周期同样是
+///   [`DEFAULT_TICK_MS`]，且**真事件会顶掉它**（`note()` ⇒ 距上一条输出 ≥1s ✓）。
+///   为什么不是"恢复 JSON 心跳"：2026-09-29 投诉的是**终端刷 JSON**，
+///   不是"动起来" ✗；这条走 stderr、是人话、且只在非 `--json` 时出现 ✓
+///   ⇒ 扩展（`build --json`）**拿不到它**，它的输出面板照旧干净 ✓。
 ///
-/// 1. **默认**：`stdout` **是管道**（机器消费者：扩展 spawn 的子进程、`| jq`、
-///    CI 的重定向）⇒ **发**，周期 [`DEFAULT_TICK_MS`]；**是终端**（人在看）
-///    ⇒ **不发** ✓ —— 这正是"人看的终端不再刷 + 机器消费者仍能拿到心跳"两句话的
-///    合取，也是工作单三选一里的第一项；
+/// 开关（**三档**）：
+///
+/// 1. **默认**：见上（两条通道各自的默认）；
 /// 2. `SOKO_BUILD_TICK_MS=<毫秒>` ⇒ **强制发**，用这个周期（终端里想看心跳的人/脚本）；
 ///    **空串** = 要心跳但用默认周期；
-/// 3. `SOKO_BUILD_TICK_MS=0` 或 `SOKO_BUILD_NO_TICK=1` ⇒ **强制不发**（逃生门）。
+/// 3. `SOKO_BUILD_TICK_MS=0` 或 `SOKO_BUILD_NO_TICK=1` ⇒ **强制不发**（逃生门，两条通道都关）。
 ///
 /// ⚠ **第一版把默认写成"一律不发"是错的** ✗（CI 当场判红）：那样**机器消费者也拿不到
 /// 心跳**，`scripts/check-progress-gap.py` 的「最长无输出间隔 ≤ 2.5s」立刻假红
 /// （实测 `4.99s > 2.5s`）—— 而那条判据要的正是"**能力上限**：两条通道都在时能做到
 /// 多好"。用户抱怨的是**终端**刷屏，不是管道里有心跳 ✓。
-fn tick_period_ms() -> Option<u64> {
+fn tick_period_ms(json: bool) -> Option<u64> {
     if std::env::var_os("SOKO_BUILD_NO_TICK").is_some() {
         return None;
     }
@@ -220,11 +225,18 @@ fn tick_period_ms() -> Option<u64> {
                 Err(_) => None,
             },
         },
-        // 没显式设置 ⇒ **看 stdout 是不是管道**：管道 = 机器消费者 ⇒ 发；
-        // 终端 = 人在看 ⇒ 不发 ✓。
+        // 没显式设置 ⇒ 按**通道**给默认：
+        // * 机器通道（`--json`）：**非终端**才发 JSON 心跳（终端刷 JSON 正是
+        //   2026-09-29 的投诉 ✗ ⇒ 契约不变）；
+        // * 人看的通道（非 `--json`）：**默认发**，走 stderr 的人话
+        //   （C1；见本函数文档的"人看的通道"那一段）。
         Err(_) => {
             use std::io::IsTerminal;
-            (!std::io::stdout().is_terminal()).then_some(DEFAULT_TICK_MS)
+            if json {
+                (!std::io::stdout().is_terminal()).then_some(DEFAULT_TICK_MS)
+            } else {
+                Some(DEFAULT_TICK_MS)
+            }
         }
     }
 }
@@ -260,12 +272,16 @@ struct ProgressCounter {
     done: std::sync::atomic::AtomicUsize,
     total: usize,
     enabled: bool,
-    /// **人看的那一半**（用户 2026-10-08：「build 没有反应」✗）：非 `--json` 时每 ~10%
-    /// 往 **stderr** 打一行 —— 861 个文件的预热以前是**几分钟零输出**（事件只在 `--json`
-    /// 下发）✗ ⇒ 现在至少每 10% 动一次 ✓。stderr 是给人看的，机器契约（stdout 的
-    /// `build.progress`）一个字没动 ✓。
+    /// **人看的那一半**（用户 2026-10-08：「build 没有反应」✗）：非 `--json` 时
+    /// **每个文件一条**（带相对路径）往 **stderr** 打 —— 861 个文件的预热以前是
+    /// **几分钟零输出**（事件只在 `--json` 下发）✗。
+    ///
+    /// ⚠ **C1（2026-10-08）把粒度从"每 10%"改成"每文件"**：原先是
+    /// `step = total/10`、`done % step == 0` 才打 ⇒ 真课程 ~240 文件时**每 24 个
+    /// 文件才一行**（用户报的"约 24 个文件才一条"就是这个数 ✗）。判据见
+    /// `scripts/check-progress-cadence.py`（N=120 ⇒ 人看的行数 ≥ N）。
+    /// stderr 是给人看的，机器契约（stdout 的 `build.progress`）一个字没动 ✓。
     human: bool,
-    step: usize,
 }
 
 impl ProgressCounter {
@@ -275,7 +291,6 @@ impl ProgressCounter {
             total,
             enabled: json,
             human: !json,
-            step: (total / 10).max(1),
         }
     }
 
@@ -292,9 +307,54 @@ impl ProgressCounter {
             }));
             return;
         }
-        if self.human && (done.is_multiple_of(self.step) || done == self.total) {
-            eprintln!("… {done}/{} file(s)", self.total);
+        if self.human {
+            eprintln!(
+                "… {done}/{} · {}",
+                self.total,
+                shorten_path(&file.display().to_string())
+            );
         }
+    }
+}
+
+/// **C1**：人看的那条上，两条 tick 之间的**最小间隔**（毫秒）。
+///
+/// 为什么节流：模块级 tick 是**每个模块**一条（真课程一个入口的闭包可能几十个模块），
+/// 861 个文件的预热会变成刷屏 ✗。150ms 的依据 = 比人的阅读速度快一档、又远密于
+/// 心跳的 1s（判据只认**行数**与**最长空档**，不认这个阈值 —— 见
+/// `PLAN-cli-editor-perf.md` §6.5）。
+const HUMAN_TICK_MIN_MS: u128 = 150;
+
+/// **C1**：模块级 tick 的**人看**那一半（非 `--json` 时接到 stderr）。
+///
+/// 为什么需要：模块级 tick 以前**只喂 `--json`**（三处 `if json { Some(&mut sink) }
+/// else { None }`）⇒ 一个入口要编 40 个闭包模块时，终端**整个入口期间零输出** ✗
+/// （真课程冷编的首条 `build.decl` 在 160.8s 之后）。
+struct HumanTicks {
+    last: std::time::Instant,
+}
+
+impl HumanTicks {
+    fn new() -> Self {
+        Self {
+            // 起手**允许第一条**立刻打（否则"第一个模块编完"要等到 150ms 后才有声音）。
+            last: std::time::Instant::now()
+                .checked_sub(std::time::Duration::from_millis(
+                    HUMAN_TICK_MIN_MS as u64 + 1,
+                ))
+                .unwrap_or_else(std::time::Instant::now),
+        }
+    }
+}
+
+impl sokonanoda_front::compile::ProgressSink for HumanTicks {
+    fn tick(&mut self, tick: sokonanoda_front::compile::ProgressTick<'_>) {
+        let now = std::time::Instant::now();
+        if now.duration_since(self.last).as_millis() < HUMAN_TICK_MIN_MS {
+            return;
+        }
+        self.last = now;
+        eprintln!("… module {}/{} · {}", tick.index + 1, tick.total, tick.module);
     }
 }
 
@@ -313,7 +373,10 @@ struct Heartbeat {
 
 impl Heartbeat {
     /// `period_ms = None` ⇒ **不发心跳**（默认路径：零线程、零输出 ✓）。
-    fn start(period_ms: Option<u64>) -> Self {
+    ///
+    /// `human = true`（非 `--json`）⇒ 心跳走 **stderr 的人话**；`false` ⇒ 照旧发
+    /// `build.tick` JSON（机器契约一字不变 ✓）。见 [`tick_period_ms`]。
+    fn start(period_ms: Option<u64>, human: bool) -> Self {
         use std::sync::atomic::{AtomicU64, Ordering};
         use std::sync::{Arc, Condvar, Mutex};
         let t0 = std::time::Instant::now();
@@ -347,11 +410,22 @@ impl Heartbeat {
                     if now.saturating_sub(last.load(Ordering::Relaxed)) >= period {
                         last.store(now, Ordering::Relaxed);
                         let file = cur.lock().map(|g| g.clone()).unwrap_or_default();
-                        emit_json(serde_json::json!({
-                            "type": "build.tick",
-                            "elapsed_ms": now,
-                            "file": file,
-                        }));
+                        if human {
+                            // **C1**：人看的通道 ⇒ **人话**走 stderr（不假装百分比 ✓、
+                            // 不往 stdout 塞 JSON ✓）。`file` 为空时只说用时。
+                            let where_ = if file.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" · {}", shorten_path(&file))
+                            };
+                            eprintln!("… still building ({}s){where_}", now / 1000);
+                        } else {
+                            emit_json(serde_json::json!({
+                                "type": "build.tick",
+                                "elapsed_ms": now,
+                                "file": file,
+                            }));
+                        }
                     }
                 }
             })
@@ -434,13 +508,19 @@ pub(crate) fn rebuild(
 
 /// 清**两处**存储（全局 + 位置参数能解出的模块根）。
 fn clean_stores(args: &[String], json: bool) -> ExitCode {
-    // **不给路径时把"只清了全局"说出来**（2026-10-08，用户「rebuild 没有实现」顺带修的面 ✗）：
-    // 无路径 ⇒ **解不出模块根** ⇒ 项目产物（`<模块根>/.sokonanoda/compiled/`）**一个都没清**
-    // ⇒ 紧接着的预热会全是 `hit`（"rebuild 什么都没重编" ✗ —— R-3/T-B5 那个假动作 ✓）。
-    // 语义**一字不变**（设计 §3.7：解不出就不清、也**不假装**清了 ✓），只是**不再默不作声** ✓。
-    if args.is_empty() {
+    // **不给路径时按"当前目录"解模块根**（**C2**，2026-10-08）—— 与 `warm` **同一个默认** ✓。
+    //
+    // 以前这里解不出任何模块根（`project_roots(&[])` ⇒ 空集）⇒ 项目产物
+    // （`<模块根>/.sokonanoda/compiled/`）**一个都没清** ⇒ 紧接着的预热**全是 `hit`**
+    // （实测：`build .` 后 `rebuild` 报 `1 hit, 1 compiled` —— "rebuild 什么都没重编"
+    // 这个**假动作** ✗）。设计 §3.7 说"解不出就不清、也不假装"——**有参数**时那条仍然成立；
+    // 无参数时**能**解出来（`warm` 的默认就是 `.`），只是以前没去解 ✗。
+    // `clean` 的"只清不编"语义**一字不变** ✓（这里只清，预热在 `warm` 里）。
+    let default_scan = args.is_empty();
+    if default_scan {
         eprintln!(
-            "note: 没有给路径 ⇒ 只清**全局**缓存；模块根下的项目产物没动（要一起清就带上路径，例如 `clean courses/set-theory`）"
+            "note: 没有给路径 ⇒ 按**当前目录**解模块根（与 `build` 同一个默认 ✓；\
+             只清全局的话给一个没有项目的路径即可）"
         );
     }
     // R-3（T-B5）：项目条目现在落在**模块根**的 `.sokonanoda/compiled/`，所以
@@ -448,8 +528,15 @@ fn clean_stores(args: &[String], json: bool) -> ExitCode {
     // 会命中项目条目 ⇒ 表面"清空了"，实际什么都没重编（用户可见的假动作 ✗）。
     let global = cache::clean();
     let mut project = 0usize;
-    for root in project_roots(args) {
+    let roots = project_roots(args);
+    let roots_found = roots.len();
+    for root in roots {
         project += sokonanoda_front::project::cache::clean_at(&root);
+    }
+    if default_scan {
+        eprintln!(
+            "… 当前目录下扫到 {roots_found} 个模块根，项目产物清了 {project} 条（只清不编 ✓）"
+        );
     }
     let removed = global + project;
     if json {
@@ -527,7 +614,7 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
         );
     }
     // **P2 心跳**：**默认不发**（见 [`tick_period_ms`] 的实测依据）；要就显式开。
-    let mut heartbeat = Heartbeat::start(tick_period_ms());
+    let mut heartbeat = Heartbeat::start(tick_period_ms(json), !json);
 
     // ═══ **入口级并行编译**（2026-09-29，用户 09:43「那就并行编译」）═══
     //
@@ -603,8 +690,11 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
                 let mut sink = |tick: sokonanoda_front::compile::ProgressTick<'_>| {
                     ticks.push((tick.module.to_string(), tick.index, tick.total));
                 };
+                // **C1**：模块级 tick **也喂人看的那条**（以前非 json 时是 `None`
+                // ⇒ 一个入口编 40 个闭包模块期间终端零输出 ✗）。
+                let mut human = HumanTicks::new();
                 let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> =
-                    if json { Some(&mut sink) } else { None };
+                    if json { Some(&mut sink) } else { Some(&mut human) };
                 let report =
                     sokonanoda_front::project::compile_plan_prechecked(plan, &options, progress);
                 let outcome = finish_project(report, &options, &digest, &artifacts_root);
@@ -656,9 +746,10 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
                                 >| {
                                     ticks.push((tick.module.to_string(), tick.index, tick.total));
                                 };
+                                let mut human = HumanTicks::new();
                                 let progress: Option<
                                     &mut dyn sokonanoda_front::compile::ProgressSink,
-                                > = if json { Some(&mut sink) } else { None };
+                                > = if json { Some(&mut sink) } else { Some(&mut human) };
                                 let status = std::fs::read_to_string(file)
                                     .map_err(|e| format!("cannot read: {e}"))
                                     .and_then(|src| {
@@ -688,8 +779,9 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
             let mut sink = |tick: sokonanoda_front::compile::ProgressTick<'_>| {
                 ticks.push((tick.module.to_string(), tick.index, tick.total));
             };
+            let mut human = HumanTicks::new();
             let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> =
-                if json { Some(&mut sink) } else { None };
+                if json { Some(&mut sink) } else { Some(&mut human) };
             let status = std::fs::read_to_string(file)
                 .map_err(|e| format!("cannot read: {e}"))
                 .and_then(|src| build_one(file, &src, root, no_project, progress, None));
@@ -817,9 +909,15 @@ fn build_jobs(files: usize) -> usize {
 
 /// `--clean` 用：从位置参数解析出**模块根**（项目入口的 `plan.root`）并去重。
 ///
-/// 无参数（`build --clean`）⇒ 返回空 ⇒ 只清全局缓存，并在输出里如实报告
-/// `project=0`（设计 §3.7：解不出模块根时不清项目产物，但不假装清了）。
+/// **无参数 = 当前目录**（**C2**，2026-10-08）：与 [`warm`] **同一个默认** ✓ ——
+/// 以前返回空集 ⇒ `clean`/`rebuild` 无参时项目产物一个都不清 ⇒ 紧接着的预热
+/// 全是 `hit`（用户报的"rebuild 是假重编"✗）。有参数时"解不出就不清、也不假装"
+/// （设计 §3.7）**一字不变** ✓；无参数时**能**解出来（`warm` 一直就是这么做的）。
+/// 扫描跳过 `.git`/`node_modules`/`target`/`.sokonanoda` 等（与 `warm` 同一份
+/// `SKIPPED_DIRS` ✓）。
 fn project_roots(args: &[String]) -> Vec<PathBuf> {
+    let default = [String::from(".")];
+    let args: &[String] = if args.is_empty() { &default } else { args };
     let mut files = Vec::new();
     for arg in args {
         collect_files(Path::new(arg), &mut files);
@@ -1052,7 +1150,7 @@ mod heartbeat_tests {
     fn stop_does_not_wait_a_full_period() {
         // 周期取 1s（= `DEFAULT_TICK_MS` ✓）：若 `stop()` 用 `sleep` 干等 ✗，
         // 它会等到**下一个整周期**（最坏 ≈1s ✗）；用 `Condvar` 唤醒 ✓ 则是**立即** ✓。
-        let mut hb = Heartbeat::start(Some(1000));
+        let mut hb = Heartbeat::start(Some(1000), false);
         std::thread::sleep(Duration::from_millis(50)); // 让它真的跑起来 ✓
         let t = Instant::now();
         hb.stop();
@@ -1066,7 +1164,7 @@ mod heartbeat_tests {
     #[test]
     fn stop_is_immediate_even_when_nothing_was_started() {
         // 没开心跳（`period_ms = None` ✓）⇒ `stop()` 必须**立刻**返回 ✓（幂等 ✓）。
-        let mut hb = Heartbeat::start(None);
+        let mut hb = Heartbeat::start(None, false);
         let t = Instant::now();
         hb.stop();
         assert!(

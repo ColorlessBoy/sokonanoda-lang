@@ -9,8 +9,8 @@
 
 | 用户报的 | 屏幕上多/少什么 | 判据（断言名 · 层） |
 |---|---|---|
-| ① 终端每秒刷 `build.tick` | 编译时终端**不再刷心跳**（默认不发；`SOKO_BUILD_TICK_MS=1` 强制发，`SOKO_BUILD_NO_TICK=1` 是逃生门） | `cli_build_heartbeat_is_off_unless_asked_for`（`crates/cli/tests/cli.rs` · 四态含反向） |
-| ② Rebuild 面板恒 `0%` | 进度**边编边走**（`build.progress` 每编完一个文件就报；`build.file` 的确定性不变） | e2e「Rebuild shows a non-zero percent while it is still running (②)」（**真宿主**）+ `cli_build_reports_file_progress_while_it_compiles`（CLI） |
+| ① 终端每秒刷 `build.tick` · 「build 没有反应」 | **机器通道不变**：`--json` 的 stdout 心跳契约一字不动（终端不发、管道发）✓；**人看的通道改走 stderr**：**逐文件**一行 `… 42/240 · <相对路径>`（C1，旧的是每 10% ⇒ 每 24 个才一条 ✗）+ 人话心跳 `… still building (12s)`（≥1s，真事件顶掉）；`SOKO_BUILD_TICK_MS=1` 强制、`SOKO_BUILD_NO_TICK=1` 逃生门 | `cli_build_heartbeat_is_off_unless_asked_for`（`crates/cli/tests/cli.rs` · 四态含反向）+ **`scripts/check-progress-cadence.py`**（N=120 ⇒ 人看 ≥120 行；拿 C1 之前的二进制跑**必须判红** = 10 行 ✓，`--selftest` 反向） |
+| ② Rebuild 面板恒 `0%` · 无参 rebuild 是假重编 | 进度**边编边走**（`build.progress` 每编完一个文件就报；`build.file` 的确定性不变）；**C2**：无参 `clean`/`rebuild` 也按**当前目录**解模块根、**两处都清**（旧的无参只清全局 ⇒ 紧接着的预热全 `hit` ✗） | e2e「Rebuild shows a non-zero percent while it is still running (②)」（**真宿主**）+ `cli_build_reports_file_progress_while_it_compiles`（CLI）+ **`a_no_argument_rebuild_also_clears_the_module_root_artifacts`**（`crates/cli/tests/artifacts.rs` · 反向验证已实跑：撤掉默认 ⇒ `clean.project == 0` 判红 ✓） |
 | ③ Infoview 版本戳陈旧 | 版本戳**每次写产物刷新**，裸版本号补标签（「由编译器 X 写入」/「服务器」） | `editor/vscode/test-project-first-screen.js`（stub 宿主，已进 `npm run test:unit`）+ 前端判据（两层都反向验证过） |
 | Q1 大项目编译超时 | `sokonanoda.build.timeoutMs`（默认 300000，**0 = 不限制**）+ 超时消息写明去哪改 | `editor/vscode/test-extension-host.js`（配置读取 + 传参 · stub 宿主） |
 | Q2 没装 CLI | `sokonanoda.installCli`（**自带即装**、离线、不校 SHA256） | `test-extension-host.js`（命令注册）+ **值**判据：跑 `--version` 与插件版本比 |

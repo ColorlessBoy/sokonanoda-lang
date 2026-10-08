@@ -1305,6 +1305,38 @@ async function main(argv) {
         )
         return 3
       }
+      // **C1 进度节奏判据**（用户 2026-10-08：「build 汇报太稀疏，约 24 个文件才一条」✗）：
+      // `check-progress-gap.py` 量的是 **`--json` 的事件流**（机器通道）—— 它**看不见
+      // 人看的那条**（stderr）✗。这条补上：N=120 个文件 ⇒ 人看的进度行 **≥ N**（旧的是
+      // 每 10% ⇒ 只有 10 行 ✗）+ 人话心跳 ≥2 条（显式 200ms 周期 ⇒ 结构判据）。
+      // 反向验证（`--selftest`：造"每 24 个一行"的流必须判红）也进 gate ✓。
+      // 快（~2s）⇒ `--fast` 也跑 ✓。
+      const progressCadence = path.join(REPO, 'scripts', 'check-progress-cadence.py')
+      if (!existsSync(progressCadence)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, progressCadence)} —— 进度节奏无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      for (const extra of [[], ['--selftest']]) {
+        const cadenceRun = spawnSync(python.cmd, [...python.args, progressCadence, ...extra], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (cadenceRun.error) {
+          process.stderr.write(
+            `scripts/soko gate: failed to run ${progressCadence} ${extra.join(' ')}: ${cadenceRun.error.message}\n`,
+          )
+          return 3
+        }
+        if ((cadenceRun.status ?? 3) !== 0) {
+          process.stderr.write(
+            `scripts/soko gate: ${path.relative(REPO, progressCadence)} ${extra.join(' ')} 失败 —— ` +
+              `人看的进度太稀/太静（或判据咬不住，exit 3）。\n`,
+          )
+          return cadenceRun.status ?? 3
+        }
+      }
       // **测试的环境档位隔离**（2026-09-30 事故）：`SOKO_JUDGE_INPLACE*` 走
       // `OnceLock` 只读一次环境，而**同一文件的多个 `#[test]` 共享一个进程**
       // ⇒ 两条判据抢同一个档位 ⇒ **间歇判红**（实测 6 连跑 4 红 2 绿；
