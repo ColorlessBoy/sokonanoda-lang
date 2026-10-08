@@ -729,3 +729,74 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   `PLAN-cli-editor-perf`（UX 与已量出的瓶颈）；三者的分工见 §0 与 §6.3。
 * **开工前必读顺序**：本文 §0.2（四处对账）→ §6.3（归属）→ §9.1（三处过期陈述）
   → 目标主题那一节；**不要**从 §1 的 Lean 机制表直接开工（那张表是参照系，不是任务单）。
+
+---
+
+## 11. 执行进度与读数（as-built · 每轮追加）
+
+> **纪律**：只追加**读数与落点**（计划段不动）；每条自带**构建身份**（探针纪律）。
+> 绝对毫秒只作**同机前后**比较，判据一律结构计数。
+
+### 11.1 第 1 轮（2026-10-08/09）—— 探针 + T4-A
+
+* **按键墙钟探针已落地**（本轮新增；此前只有"同进程 `LspService`"与"合成夹具结构计数"
+  两条路，都不是端到端）：`crates/lsp/tests/perf_keystroke_wallclock.rs` ——
+  **真 `sokonanoda-lsp` 子进程 + 真 stdio 客户端 + 真课程 unit08**，量
+  `didChange` → `publishDiagnostics`（= 用户看到 solved 那一刻）；输出 PERFJSON +
+  **构建身份**（`lsp-mtime`）+ 服务端自报 `compile_ms`（把"编译"与"调度/防抖"拆开）。
+  跑法：`cargo test -p sokonanoda-lsp --test perf_keystroke_wallclock -- --test-threads=1 --nocapture`。
+* **基线读数**（debug 构建 · `lsp-mtime=1791471562` · 产物命中臂）：
+
+  | 场景 | 墙钟 best / median / worst | 服务端 `compile_ms` | modules / prefix / by |
+  |---|---|---|---|
+  | **开档后第一刀**（不等 A5 预热） | **352.4ms** | **227** | 1 / 0 / **81** |
+  | 稳态一刀 · 改证明 | 15.7 / **78.6** / 230.9ms | 91 | 1 / 0 / **9** |
+  | 稳态一刀 · 改陈述 | 15.3 / 77.0 / 222.7ms | 80 | 1 / 0 / 9 |
+
+  ⇒ **北极星说的"热按键约 300ms"= 开档后第一刀**（本机 352ms），而且它**整笔是入口趟
+  重 elaborate**（`by=81` → 稳态 `9`；库层早已命中 ⇒ `modules=1`）✓ —— 与 §3.1 的
+  P2-2 逐字对上。推论：**②（入口命令级复用 T2-B）是唯一能打这一刀的结构件**；
+  ①（模块产物）与 ③（judge 合成趟，本轮读数 `prefix=0` ⇒ A2a 已把它挡在门外）
+  对这一刀只有间接贡献 ⇒ **T2-A→T2-B 的优先级按本轮读数上调**。
+  ⚠ **与 §8.1（`PLAN-cli-editor-perf`）的旧读数不可比**（那份 341/766ms 是
+  A2a/A5/A6/A7 **之前**的构建；探针纪律：不同构建不并排比）。
+* **T4-A 落点**：契约守卫 `crates/front/tests/cli_lsp_split_contract.rs` ——
+  ① CLI 路（`compile_project`）`lib_checkpoint_arenas_leaked()` **恒 0** ✓；
+  ② **判别力臂**：LSP 路（`QueryDoc` 项目编译）**≥ 1** ✓（没有这一臂，①的 0 只是
+  "计数器没接上"的假绿）；
+  ③ 两臂模块状态一致（分路只该影响"哪条路跑"，不该影响判定）。
+  **反向验证（已做）**：把 `compile_project` 临时拨到
+  `compile_plan_incremental(…, reuse_library=true)` ⇒ 守卫**判红** ✓（随后已还原，
+  `git diff crates/front/src/project/mod.rs` 为空）。
+* **并行线归属（开工时 `git status --short` 是干净的，本轮中途变成脏）**：
+  `crates/front/src/{judge,by}.rs` 由**另一写者**在飞（T3-B1 ①：`judge_infer_inplace_with_explicit`
+  + `by.rs` 的 `cases` 接线）⇒ 本轮**不碰**这两个文件；批次 A 里①（T1-A）的文件面
+  （`project/{mod,session}.rs`）此时空闲。
+
+### 11.2 T1-A 的设计约束（本轮核实 · **下一轮照这个做，别再重新发现**）
+
+把库层趟**切成逐模块趟**才能拿到"模块边界的环境快照"（`finish_pass` 之前 walk 已
+`add_declar`、但**内核拒收**的声明要到 `finish_pass` 才移除 ⇒ 中途快照不合法）。
+切了之后**逐字节等价**要同时给齐下面五样（少一样就是静默错编面）：
+
+1. **prelude 形状**：`install_all_preludes` 按**整条闭包**判让位（`prelude_shape` =
+   `explicit_nat`/`explicit_bool`/`shadowed`）⇒ 复用前缀检查点前**必须比对**
+   `PreludeShape`（现成的 `PartialEq` ✓）；形状不同就 miss（回退整条重编）。
+2. **prelude 安装上下文**：`taken` 也取整条闭包 ⇒ 逐模块趟要多一个"安装上下文"参数。
+3. **闭包身份种子**：`run_pass_with` 的 `closure_acc` 目前只在本趟内累加 ⇒ 逐模块趟
+   要显式喂"前缀单元的身份"，否则 judge 缓存键**变宽**（可能错命中）。
+4. **三张派生表的累计 override**：`template_closure` / `closure_prefixes_override` /
+   `display_override` / `defs_override` 都有现成入口 ✓ —— 逐模块趟分别给
+   `units[0..=i]`、`accumulate(units[0..i])`、`display_notations(全库)`、
+   `top_level_def_spans_over(全库)`（后两张**整库**才对得上今天的行为）。
+5. **计数与合并**：`out`/`reports`/`n_commands`/`prefix_commands` 逐模块累加 + 偏移，
+   `run_entries` 只认最终那份（`lib.out` 的形状不变）。
+6. **不等式（min/max/上界）**：只有**度数 ≥2** 的模块值得留检查点（否则 O(N²) 条目），
+   上界沿用 `MAX_LEAKED_LIB_ARENAS` / `MAX_REUSES_PER_CHECKPOINT` ✓。
+
+### 11.3 下一轮队列（按本轮读数重排）
+
+1. **T3-B1 ①（已在飞 · 另一写者）** —— 本轮不碰；落地后按它的判据（影子档 `diff=0`）复核。
+2. **T1-A** —— 文件面空闲；按 §11.2 的六条做，判据照 §2.4（`a3` 3→2 等）。
+3. **T2-A → T2-B** —— 按 §11.1 的读数，这是**唯一能打"第一刀 352ms"**的那条线。
+4. T2-B0 / T4-B0 —— 仍可做，但**优先级下移**（本轮读数显示它们不在要紧的那条路上）。
