@@ -117,18 +117,21 @@ fn synthesized_passes_are_measured_on_real_typing() {
             cmds.iter().sum::<u64>()
         );
     }
-    // **判据（读数型 · 只为证明"这条臂不是空转"）**：真实连续键入下**每一刀**都跑了
-    // 合成趟（实测 4 趟 / 302 条合成命令）—— 这正是 §11.8 那条"稳态 0 趟"**掩盖**掉的东西 ✗。
+    // **判据（T3-B2 的目标出口 · 本文件唯一的正确出口 ✓）**：真实连续键入下
+    // **一趟合成都不许跑**（`typing_passes == 0`）。
     //
-    // ⚠ **T3-B2（消合成趟）落地后**：本断言要改成 **`typing_passes == 0`**
-    //   —— 那是本文件**唯一的正确出口** ✓（同 `a3_cross_entry_module_reuse` 的纪律：
-    //   **不许**用放宽它的办法变绿 ✗）。
+    // 历史：本条原先是"夹具自检：`typing_passes >= 4`"（证明这条臂**真的**产生新文本、
+    // 且 §11.8 的"稳态 0 趟"是假象 ✗）。**T3-B1 第 5 条族落地后**（把"合成一份文档"
+    // 换成"就地读活环境的签名"）⇒ 该出口达成 ⇒ 按本文件原来的指令（"落地后改成 0"，
+    // **不许放宽** ✗）翻转 ✓。冷开仍有 `cold.0 > 0` 趟 ⇒ 计数器**没空转** ✓。
     let typing_passes: u64 = typing_rounds.iter().map(|r| r.0).sum();
     let alternating_passes: u64 = alt_rounds.iter().map(|r| r.0).sum();
-    assert!(
-        typing_passes >= 4,
-        "夹具自检：真实连续键入必须真的跑合成趟（实测 Σ={typing_passes}）—— \
-         若为 0 ⇒ 要么计数器没接上、要么这条臂不再产生新文本 ✗"
+    assert_eq!(
+        typing_passes, 0,
+        "**T3-B2 的目标出口**：真实连续键入下**一趟合成都不许跑** —— 现在 Σ={typing_passes} \
+         ⇒ 还有判定点走「合成一份文档 + 重跑前缀」✗（别放宽这条断言 ✗）。\
+         冷开仍有 {} 趟（对照 = `alternating` Σ={alternating_passes}）⇒ 计数器没空转 ✓",
+        cold.0
     );
     eprintln!(
         "PERF synthesized-typing-verdict: typing Σpasses={typing_passes} vs alternating \

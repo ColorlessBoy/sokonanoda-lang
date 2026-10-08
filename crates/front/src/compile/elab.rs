@@ -2082,11 +2082,16 @@ fn set_literal_prefix_args(
 ) -> Option<Vec<Expr>> {
     let expected = expected_src?;
     let canonical = resolve_known(known, ctx.ns, target, span).ok()?;
-    let text = render_expr(&Expr::Ident {
-        name: canonical,
-        span,
-    });
-    let signature = crate::judge::judge_type_of(ctx.prefix_src, ctx.options, &text).ok()?;
+    // **T3-B1 · §4.2 第 5 条（同一族，2026-10-09）**：这里是**裸常量**的类型 ——
+    // 就地读 `known` 的签名（与 `#check <裸常量>` 的 `sig` 快路**同一个字段** ✓）
+    // ⇒ 不合成前缀趟 ✓（答不出 ⇒ 原样回落 `judge_type_of_constant` ✓）。
+    let signature = crate::judge::type_of_constant_prefer_inplace(
+        known,
+        ctx.prefix_src,
+        ctx.options,
+        &canonical,
+    )
+    .ok()?;
     let (layers, result) = notation_telescope(&signature)?;
     let param = layers.first()?.0.clone();
     if param.is_empty() {
@@ -2139,11 +2144,14 @@ fn guarded_binder_type<'a>(
         return None;
     }
     let canonical = resolve_known(known, ctx.ns, target, *span).ok()?;
-    let text = render_expr(&Expr::Ident {
-        name: canonical,
-        span: *span,
-    });
-    let signature = crate::judge::judge_type_of(ctx.prefix_src, ctx.options, &text).ok()?;
+    // **T3-B1 · §4.2 第 5 条（同一族，2026-10-09）**：裸常量签名 ⇒ 就地读 `known` ✓。
+    let signature = crate::judge::type_of_constant_prefer_inplace(
+        known,
+        ctx.prefix_src,
+        ctx.options,
+        &canonical,
+    )
+    .ok()?;
     let (layers, _) = notation_telescope(&signature)?;
     let missing = layers.len().checked_sub(operands.len())?;
     let mut sigma: HashMap<String, Expr> = HashMap::new();
@@ -2238,11 +2246,14 @@ fn choose_notation_target<'a>(
         let result = resolve_known(known, ctx.ns, candidate, span)
             .ok()
             .and_then(|canonical| {
-                let text = render_expr(&Expr::Ident {
-                    name: canonical,
-                    span,
-                });
-                crate::judge::judge_type_of(ctx.prefix_src, ctx.options, &text).ok()
+                // **T3-B1 · §4.2 第 5 条（同一族，2026-10-09）**：裸常量签名 ⇒ 就地 ✓。
+                crate::judge::type_of_constant_prefer_inplace(
+                    known,
+                    ctx.prefix_src,
+                    ctx.options,
+                    &canonical,
+                )
+                .ok()
             })
             .and_then(|signature| notation_telescope(&signature).map(|(_, result)| result));
         results.push((candidate, result));
