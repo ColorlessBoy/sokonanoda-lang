@@ -5,15 +5,15 @@ dry-run）。**发布已全自动**：bump 两处版本 → commit 推 main → 
 `auto-tag` job（lint+test 全绿后）自动打 `v<version>` tag 并 dispatch
 release——人不再需要手打 tag。手动推 tag 仅作应急/重发备用路径。
 
-> 设计依据：`docs/design/bundled-lsp.md`（插件自带 per-target VSIX + universal
-> 回退包 + 版本锁定下载）。核心不变量：
-> **tag == `Cargo.toml` == `package.json` == VSIX 内嵌的 LSP 二进制版本。**
+> 设计依据：`docs/design/bundled-lsp.md`（插件自带 per-target VSIX + universal 回退包 +
+> 版本锁定下载）。核心不变量：**tag == `Cargo.toml` == `package.json` == VSIX 内嵌的 LSP 二进制版本。**
 
 ## 版本号只有一处来源：`scripts/bump.py`
 
 ```bash
 python3 scripts/bump.py 0.63.4          # 写：Cargo.toml + package.json + Cargo.lock + 所有清单的 requires
 python3 scripts/bump.py --check         # 查（gate 与 CI 都跑这条）
+scripts/release-preflight.sh            # **发版预检一条命令**：版本钉 + docs-lint + release 构建/暂存插件自带二进制 + 完整 gate（`--fast` 秒级 · `--sweep` 加全课程 `--json` 逐字节）
 ```
 
 **别再手改版本号**：漏掉一个清单的 `requires` 就是 G-24 的成因（用户原话：
