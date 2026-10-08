@@ -197,3 +197,15 @@ theorem ordinal_elems_elems_transitive (α : Type) (E : α → α → Prop) (x y
 theorem ordinal_elems_elems_isOrdinal (α : Type) (E : α → α → Prop) (x y z : α)
     (hx : IsOrdinal α E x) (hy : E y x) (hz : E z y) : IsOrdinal α E z :=
   ordinal_elem_isOrdinal α E y z (ordinal_elem_isOrdinal α E x y hx hy) hz
+
+-- 后继者的**元素刻画**取件子（C-118 收口 ✓ 2026-10-08）：`∧` 的右支是 ∀-命题，
+-- 现在直接 `And.right` 就能取 ✓（当年补不出实参 ✗ —— G-85/G-73 家族，已 `fixed`）。
+theorem isSuccOf_elem_iff (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsSuccOf α E x y) : ∀ (z : α), E z x ↔ (E z y ∨ z = y) :=
+  And.right (isSuccOf_parts α E x y h)
+
+-- 后继者元素之元素仍是传递集（C-125 收口 ✓ 2026-10-08）：前提里已给 `E z x`，
+-- 直接交给 `isSuccOf_elems_transitive` ✓（当年在"两层序数合成"上补不出实参 ✗）。
+theorem isSuccOf_elems_elems_transitive (α : Type) (E : α → α → Prop) (x y z : α)
+    (h : IsSuccOf α E x y) (hz : E z y) (hzx : E z x) : IsTransitive α E z :=
+  isSuccOf_elems_transitive α E x y z h hzx
