@@ -19,7 +19,7 @@
 //! 而 `ArenaRef` 是 `!Send`（内部是 `Cell<*mut u8>` 与裸指针）⇒ 带检查点的 `QueryDoc`
 //! 立刻撞 LSP 的 `tokio::spawn`（`Doc` 必须 `Send + Sync`，`crates/lsp/src/lib.rs:443`
 //! 的 `static EMPTY: OnceLock<Doc>` 与 `:549` 的 spawn 都会判红 ✗）。⇒ 持有者改成
-//! **线程局部**（[`LIB_CHECKPOINT`]）：它不需要 `Send` ✓，代价是检查点**只对同一条
+//! **线程局部**（[`LIB_CHECKPOINTS`]）：它不需要 `Send` ✓，代价是检查点**只对同一条
 //! 线程**可见 ⇒ 用它的那条路（LSP）必须把编译钉在一条线程上（见 `crates/lsp/src/lib.rs`
 //! 的编译专用 runtime）。
 
@@ -112,13 +112,31 @@ const MAX_REUSES_PER_CHECKPOINT: usize = 64;
 static LEAKED_LIB_ARENAS: AtomicUsize = AtomicUsize::new(0);
 
 thread_local! {
-    /// **跨调用的持有者**：本线程的库层检查点（最多一份 —— 换掉旧的 ⇒ 旧的
-    /// **语义上不可达** ✓）。
+    /// **跨调用的持有者**：本线程的库层检查点，**最多 [`MAX_LEAKED_LIB_ARENAS`] 份**，
+    /// 按 **LRU** 淘汰（**队首 = 最近用过** ✓）。
+    ///
+    /// ## 为什么不是一份（2026-10-08 实测驱动 · A3 读数的 ④ 号事实）
+    ///
+    /// 以前只有一份 ⇒ **换一个闭包就把上一条入口的检查点挤掉** ✗：实测
+    /// `MainA → MainB → MainA` 的第三刀**又是整条闭包重编**（3 个模块，而不是 1 个 ✗）
+    /// —— 学生在**几个单元之间来回切**时，每次回头都白付一趟库层（unit08 量级 ≈ 700ms ✗）。
+    /// 多留几份**不额外多泄漏**：泄漏的是**建过的** arena（[`LEAKED_LIB_ARENAS`] 只增不减 ✓），
+    /// 上界本来就是 [`MAX_LEAKED_LIB_ARENAS`] 份 ⇒ 槽位容量取同一个数，**一个字节都不多** ✓。
     ///
     /// 为什么是线程局部而不是 `QueryDoc` 的字段：内核环境是 `!Send`（见文件头），
     /// 而 `QueryDoc` 必须 `Send + Sync`（LSP 把它放进 `tokio::spawn` 的 future）✗。
     /// 为什么不是 `static Mutex<...>`：那要求 `Send` ✗（同一个原因）。
-    static LIB_CHECKPOINT: RefCell<Option<LibCheckpoint<'static>>> = const { RefCell::new(None) };
+    static LIB_CHECKPOINTS: RefCell<Vec<LibCheckpoint<'static>>> = const { RefCell::new(Vec::new()) };
+}
+
+/// **把一个检查点放进 LRU 队首**（同键的旧份先丢掉 —— 它已经过期 ✓），并淘汰到容量内 ✓。
+///
+/// 淘汰只丢**可达性**（arena 早已泄漏、无法回收 ✓）⇒ 与"单份时换掉旧的"是同一条
+/// 不变量：**活着的**检查点 ≤ [`MAX_LEAKED_LIB_ARENAS`] 份 ✓。
+fn push_checkpoint(slots: &mut Vec<LibCheckpoint<'static>>, cp: LibCheckpoint<'static>) {
+    slots.retain(|old| old.key != cp.key);
+    slots.insert(0, cp);
+    slots.truncate(MAX_LEAKED_LIB_ARENAS);
 }
 
 /// **上界判据的读数**（`#[doc(hidden)]`，判据用）：已经泄漏的库层 arena 数。
@@ -130,19 +148,25 @@ pub fn lib_checkpoint_arenas_leaked() -> usize {
 /// **上界判据的读数**（`#[doc(hidden)]`）：本线程现在有没有活着的检查点。
 #[doc(hidden)]
 pub fn lib_checkpoint_is_live() -> bool {
-    LIB_CHECKPOINT.with(|slot| slot.borrow().is_some())
+    LIB_CHECKPOINTS.with(|slot| !slot.borrow().is_empty())
 }
 
 /// **上界判据的读数**（`#[doc(hidden)]`）：本线程那份检查点被复用了多少次。
 #[doc(hidden)]
 pub fn lib_checkpoint_reuses() -> usize {
-    LIB_CHECKPOINT.with(|slot| slot.borrow().as_ref().map_or(0, |cp| cp.reuses))
+    LIB_CHECKPOINTS.with(|slot| {
+        slot.borrow()
+            .iter()
+            .map(|cp| cp.reuses)
+            .max()
+            .unwrap_or(0)
+    })
 }
 
 /// **判据用**（`#[doc(hidden)]`）：清掉本线程的检查点与泄漏计数（测试隔离）。
 #[doc(hidden)]
 pub fn lib_checkpoint_reset() {
-    LIB_CHECKPOINT.with(|slot| *slot.borrow_mut() = None);
+    LIB_CHECKPOINTS.with(|slot| slot.borrow_mut().clear());
     LEAKED_LIB_ARENAS.store(0, Ordering::Relaxed);
 }
 
@@ -249,7 +273,7 @@ pub(crate) fn with_project_session_trusted<R>(
 /// **设计 §33 的落地**：库层检查点**跨调用**复用（同一份库层摘要 ⇒ 省掉库层趟）。
 ///
 /// 与 [`with_project_session_trusted`] 的唯一区别：库层那趟的产物留在
-/// **线程局部**（[`LIB_CHECKPOINT`]）里；下一次调用若库层摘要**逐字相同**就直接
+/// **线程局部**（[`LIB_CHECKPOINTS`]，LRU 多槽 ✓）里；下一次调用若库层摘要**逐字相同**就直接
 /// 克隆它接着编入口 ✓。
 ///
 /// **回退是默认**（设计 §33）：摘要不等 · 检查点为空 · 入口被阻断 · 库层为空 ·
@@ -269,20 +293,29 @@ pub(crate) fn with_project_session_reusing<R>(
     ) -> R,
 ) -> Vec<R> {
     let key = lib_key(lib_units, options);
-    LIB_CHECKPOINT.with(|slot| {
-        let mut slot = slot.borrow_mut();
-        // ① **复用判据**：摘要逐字相同 + 复用次数未到上界（上界 ②）。
-        let hit = !lib_units.is_empty()
-            && slot
-                .as_ref()
-                .is_some_and(|cp| cp.key == key && cp.reuses < MAX_REUSES_PER_CHECKPOINT);
-        if hit {
-            let cp = slot.as_mut().expect("上面刚判过 Some");
+    LIB_CHECKPOINTS.with(|slots| {
+        let mut slots = slots.borrow_mut();
+        // ① **复用判据**：摘要逐字相同 + 复用次数未到上界（上界 ②）—— 多槽里找 ✓。
+        let hit = if lib_units.is_empty() {
+            None
+        } else {
+            slots
+                .iter()
+                .position(|cp| cp.key == key && cp.reuses < MAX_REUSES_PER_CHECKPOINT)
+        };
+        if let Some(at) = hit {
+            // LRU：用过就提到队首 ✓（**这一提就是本改动的全部收益来源**：换过闭包之后
+            // 回头再开原入口，原来那一份还在 ⇒ 库层趟不用重付 ✓）。
+            let mut cp = slots.remove(at);
             cp.reuses += 1;
             // `&LibCheckpoint<'static>` 按协变缩到本次 units 的寿命 ✓（浅拷贝 ⇒
             // 指针同一 ✓）。
-            let lib: &LibCheckpoint<'_> = cp;
-            return run_entries(lib, lib_units, entries, options, entry_trust, on_entry);
+            let out = {
+                let lib: &LibCheckpoint<'_> = &cp;
+                run_entries(lib, lib_units, entries, options, entry_trust, on_entry)
+            };
+            slots.insert(0, cp);
+            return out;
         }
         // ② **重建**：库层趟跑在一份**泄漏的** arena 上（`Box::leak` = 零 `unsafe`
         //    的 `'static` 来源 ✓）。库层为空（单文件）或泄漏上界用尽（上界 ①）
@@ -299,12 +332,12 @@ pub(crate) fn with_project_session_reusing<R>(
             let units = leak_lib_units(lib_units);
             let lib = run_library_pass(builder, PassTables::new(), units, options, key);
             let out = run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
-            // 换掉旧的检查点 ⇒ 旧的**语义上不可达** ✓（它的 arena 已经泄漏，
-            // 但**活着的**检查点恒 ≤ 1 份 ✓）。
-            *slot = Some(lib);
+            // 入 LRU 队首（同键旧份丢掉、超容量淘汰队尾 ✓）—— **活着的**检查点
+            // ≤ `MAX_LEAKED_LIB_ARENAS` 份 ✓（与"单份时换掉旧的"是同一条不变量 ✓）。
+            push_checkpoint(&mut slots, lib);
             out
         } else {
-            *slot = None;
+            slots.clear();
             let arena = stumpalo::Arena::new();
             let builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
             let lib = run_library_pass(builder, PassTables::new(), lib_units, options, key);
@@ -318,7 +351,7 @@ pub(crate) fn with_project_session_reusing<R>(
 /// ## 为什么需要它（开工 profiling 实测 · `PLAN-cli-editor-perf.md` §8.2）
 ///
 /// **产物命中**那条路（`crates/lsp/src/lib.rs` 的 `set_cached_entry`）**一趟 pass 都不跑**
-/// ⇒ 本线程的 [`LIB_CHECKPOINT`] 是**冷的** ⇒ **开档后的第一次编辑**要走
+/// ⇒ 本线程的 [`LIB_CHECKPOINTS`] 是**冷的** ⇒ **开档后的第一次编辑**要走
 /// [`with_project_session_reusing`] 的 miss 分支，把**整条库闭包重编一遍**：
 /// 实测 unit08 同一刀 = `modules=5 by=87 prefix=16` · **1233ms**，而检查点热的
 /// 同一刀只要 `modules=1 by=63` · **321ms** ✗。用户看到的就是"打开很快、敲第一个
@@ -342,10 +375,10 @@ pub(crate) fn warm_library(lib_units: &[SourceUnit<'_>], options: &CompileOption
         return false;
     }
     let key = lib_key(lib_units, options);
-    LIB_CHECKPOINT.with(|slot| {
-        let mut slot = slot.borrow_mut();
-        // 已经热的（键逐字相同）⇒ 别重复做（否则每开一次档白烧一趟库层 ✗）。
-        if slot.as_ref().is_some_and(|cp| cp.key == key) {
+    LIB_CHECKPOINTS.with(|slots| {
+        let mut slots = slots.borrow_mut();
+        // 已经热的（**任何一槽**键逐字相同）⇒ 别重复做（否则每开一次档白烧一趟库层 ✗）。
+        if slots.iter().any(|cp| cp.key == key) {
             return false;
         }
         // 上界 ①（与 miss 分支同一条）：到顶就不再建新检查点，回退到今天那条路。
@@ -358,8 +391,8 @@ pub(crate) fn warm_library(lib_units: &[SourceUnit<'_>], options: &CompileOption
         let builder = EnvBuilder::new(arena, Config::default());
         let units = leak_lib_units(lib_units);
         let lib = run_library_pass(builder, PassTables::new(), units, options, key);
-        // 换掉旧的 ⇒ 旧的**语义上不可达** ✓（与 miss 分支同一条不变量）。
-        *slot = Some(lib);
+        // 入 LRU 队首（与 miss 分支同一条不变量 ✓）。
+        push_checkpoint(&mut slots, lib);
         true
     })
 }
