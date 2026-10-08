@@ -826,3 +826,43 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * **T1-A 留给另一写者**（§11.2 的六条设计约束就是它的开工单 · `project/{mod,session}.rs`
   文件面空闲 ✓）；**T2-A→T2-B** 同样归另一写者（§11.1 判定它是唯一能打第一刀的结构件）。
 * ⚠ **纪律**：动手前先 `git status --short`；同一文件同一时间**只许一个写者** ✗。
+
+### 11.6 T1-A（进程内 per-module 检查点）—— **已落地**（2026-10-09 · 另一写者按 §11.2 开工）
+
+* **落点**：`crates/front/src/project/session.rs`（`LibCursor` / `run_library_from` /
+  `lib_prefix_keys` / `ResumeState`）+ `compile/check/{mod,walk}.rs`（`run_pass_with`
+  新增 `snapshot_state` / `resume` 两个**默认关**参数 + `Walk` 在模块边界交出续编状态）
+  + `compile/mod.rs`（`install_all_preludes`、`closure_prefixes_and_total`、`OpenEntry`
+  的 `pub(crate)` 出口）。
+* **机制（与 §11.2 的差异，逐条记）**：
+  1. **不是"一趟 + 中途快照"** —— `walk` 无条件 `add_declar`、而内核检查是**整趟一次**
+     做的（`finish_pass`）⇒ 要一份**合法**的模块边界环境，只能让那一趟**在那里结束**
+     ⇒ 改成**逐模块趟** ✓（`lib_units` 的每个模块各自一趟，`install_preludes` 只在
+     循环外装一次、上下文 = **整条库层** ✓）。
+  2. **新发现三件（§11.2 只点了第 3 条）**：模块边界上还要带上 **`exports`**（跨单元
+     可见性通道，`walk` 在单元切换处重放）与 **`example_idx`**（`_example_N` 是**整趟**
+     计数器 ⇒ 不带就会在两个模块里造出同名内部声明 ✗）⇒ 与 `closure_id` 合成
+     [`ResumeState`]。
+  3. **复用判据多一条**：检查点存**整条库层的** `PreludeShape`，前缀命中时比对
+     （prelude 是按**整条闭包**判让位的 ⇒ 前缀相同也可能落在不同 prelude 上 ✗）。
+  4. **续编不建检查点**（单元是本次调用的、非 `'static` ⇒ 存不进线程局部 ✗）——
+     代价如实记：续编过的库层**不留"整条"检查点** ⇒ 同一条入口**再开**仍走"前缀续编"。
+  5. **上界换成 `MAX_MODULE_CHECKPOINTS = 32`（新）**：§11.2 的"只给度数 ≥ 2 的模块留"
+     **没做**（度数信息到不了 session ✗）；改用**条目**上界 + LRU。泄漏的 **arena** 仍由
+     `MAX_LEAKED_LIB_ARENAS` 封顶 ✓（两个上界各管一头）。
+* **读数（结构计数优先）**：
+  | 判据 | 落地前 | 落地后 |
+  |---|---|---|
+  | `a3_cross_entry_module_reuse`（`MainA → MainB` 共享 `Common`） | 3 | **2** ✓（断言已按文件头的唯一出口翻） |
+  | `lsp_checkpoint_multi_slot`（编辑器层同形场景） | 3 | **2** ✓（同一个 LSP 进程、同一条编译线程） |
+  | **跨入口切换探针**（真课程 `unit08 → unit09`） | 冷开 = **8** | **5**（复用 **3**）✓ |
+  | 热按键（`perf_keystroke_wallclock`） | median 78.6ms / 第一刀 352.4ms | **不变**（78.2 / 375.6ms · **构建已变 ⇒ 不并排比** ✓） |
+* **判据（已跑）**：`cargo test -p sokonanoda-front` **28 个测试二进制全绿**（含
+  `a3` / `g29` / `a4a` / `keystroke_structure`）· `cargo test -p sokonanoda-lsp`
+  **9 个全绿** · **新增** `crates/front/tests/t1a_module_checkpoint_parity.rs`
+  （两臂**逐字对拍**：CLI"整条一趟" ↔ LSP"逐模块/续编"，含"续编不泄漏新 arena"的判别力臂 ✓）·
+  `scripts/dev-verify.sh` 结构计数**逐字相同**（CLI 路没动 ✓）。
+* **对北极星的贡献（诚实记）**：方向①要的是"**换单元不重编共享库层**"——
+  真课程实测 **8 → 5 个模块**；但那一刀的墙钟（1167ms）**主要不是库层**（`by=127` =
+  unit09 入口趟第一次全 elaborate）⇒ **要紧的仍是 §11.1 的"入口命令级复用"（T2-A→T2-B）**。
+
