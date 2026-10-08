@@ -1396,3 +1396,23 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 其中**"命令级快照能省掉的那一段"**占多少（做法：拿 `SOKO_STAGE_STATS`/逐声明 profile
 量入口趟的相位构成，再按"快照命中能跳过的命令数 × 单命令均摊"估上界 ✓）；
 上界若 < ~20ms ⇒ **不值得动**（它的前置件是"文件感知的 span 模型"，见 §11.10 ✗）。
+
+### 14. T2-B 的价值读数：**粗粒度先看（by 只占 ~11%），细化读数留给下一轮**
+
+* **读数**（`SOKO_STAGE_STATS=1 cargo test -p sokonanoda-front --test judge_synthesized_typing -- --nocapture`
+  —— 该用例 = **冷开 + 5 刀真实连续键入 + 5 刀两文本来回**，所以是**整程总量**不是单刀）：
+
+  | 相位 | 读数 |
+  |---|---|
+  | `passes` / `pass_total_ms` | 34 / **982ms**（≈29ms/趟） |
+  | `by_calls` / `by_total_ms` | 130 / **104ms**（**pass 总量的 ~11%**） |
+  | `judge_ms` | 100ms（~10%） |
+  | `tc_cache_builds` | **45768**（每趟都重建 `TcCache` —— 已知的预分配成本，`docs/PERF.md` 有账） |
+  | `hits=0 misses=13` · `doc_passes=0` | 合成趟已归零（§11.11 ✓） |
+
+* **它对 T2-B 意味着什么**：T2-B 要省的是"**入口命令级快照能跳过的那段 elaborate**"，而 `by`
+  只是其中一小块（~11%）⇒ **上界不高**；真正的大头在**每趟都要付的固定成本**（`tc_cache_builds`
+  每趟重建、pp、`pass` 骨架）——**那些 T2-B 一个都省不掉** ✗。
+* **所以先别开工**（同 §13 的纪律）。**下一轮做细化读数**：照第 3 轮那条路
+  （`SOKO_DECL_PROFILE=1 SOKO_DECL_PROFILE_MS=…`）只对**一刀**做**逐声明**分解 ⇒ 得出
+  "**未变命令**（= 快照候选）在这 77ms 里占多少" ✓。**判定门槛照旧：上界 < ~20ms ⇒ 不做** ✓。
