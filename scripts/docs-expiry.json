@@ -175,6 +175,12 @@
       "renewed": "2026-10-02",
       "tier": "spec"
     },
+    "docs/design/import-links.md": {
+      "expires": "2027-10-08",
+      "renewed": "2026-10-08",
+      "tier": "spec",
+      "reason": "import 行 documentLink 的契约（用户 2026-10-08 要求），现行规范"
+    },
     "docs/design/incremental-environment.md": {
       "expires": "2027-10-05",
       "renewed": "2026-10-05",

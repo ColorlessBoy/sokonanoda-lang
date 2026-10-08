@@ -50,10 +50,13 @@ skills.
   position; click the goal to jump to the tactic.
 - **Infoview panel** — a dockable, syntax-styled goal panel (Lean-Infoview
   style) in its **own container on the right side bar**, so it can sit next to
-  your proof: multi-goal columns with each goal's hypotheses, `by k/n`
+  your proof: multi-goal columns with each goal's hypotheses (`h : A ⊆ B` —
+  name, colon, type), `by k/n`
   progress, the declaration list (an **open** declaration also shows its goal as
   a coloured `⊢ …` line, one row per remaining goal), and the live server
-  version. Goal and
+  version. Only the declaration **name** is a link (it jumps to the
+  definition); notation symbols and identifiers in goals, hypotheses and types
+  are plain coloured text. Goal and
   hypothesis text is coloured from the **same single source** as the editor's
   semantic highlighting (no separate, drifting rules), **and it uses your
   file's own notation** — a goal the kernel prints as `Set.subset α A B`
@@ -78,7 +81,9 @@ skills.
 - **Multi-file projects** — start a file with `import Logic` and the whole
   import closure is compiled as one program: declarations from imported
   modules are in scope for diagnostics, hover, completion and code actions,
-  and **go to definition jumps into the imported module**. An optional
+  and **go to definition jumps into the imported module**. The `import` line
+  itself is a link — click the **module name** (`lib.Set` in `import lib.Set`)
+  to open that module's file. An optional
   `sokonanoda.toml` at the project root names the module root (`Logic` ↔
   `Logic.sokonanoda`, `Lib/And.sokonanoda` ↔ `Lib.And`); without a manifest
   the entry file's own directory is the root, so two files next to each

@@ -1,3 +1,54 @@
+## [0.84.0] — 2026-10-08
+
+> **The Infoview keeps exactly one jump** — notation symbols are no longer links
+> (the declaration name still goes to its definition) · **hypotheses read
+> `h : A ⊆ B`** · **artifact sizes pick their own unit** (`2 KiB`, `1.1 GiB`) ·
+> **`import lib.Set` is a link that opens the module file** · and **the goal after
+> `apply h a` keeps its notation** (`a ∈ A`, not the unfolded `A a`).
+
+### Added
+
+- **`import` lines link to the module file** (user report, 2026-10-08: "import
+  这一行的代码增加跳转功能，打开对应的文件"). `textDocument/documentLink` answers one
+  link per `import <module>` line whose module resolves in the closure: the range
+  covers the **module name** (`lib.Set`), the target is that module's file. A
+  single-file document answers an empty array, and an `import-not-found` module
+  gets **no** link (a dead link is worse than a link-less line — the diagnostic
+  already explains why). The scan is lexical and reads the buffer, so it stays
+  correct while typing; module→path comes from the closure's module table (the same
+  one cross-file definition/rename use) and is never re-derived here. VS Code
+  renders it with no extension-side change (the language client registers
+  `DocumentLinkFeature`). Design: `docs/design/import-links.md`.
+
+### Changed
+
+- **Infoview notation symbols are no longer clickable** (user decision, 2026-10-08:
+  "符号 notation 啥的不需要跳转链接，声明列表里开头的 theorem 名字能跳转就行"). Every
+  classified run used to become an underlined link (G-53), which turned the whole
+  goal panel into clickable tokens and made a symbol the easiest thing to hit by
+  accident. Now only the declaration card's **name** jumps (to its definition,
+  E27); the goal's `目标` label still reveals its source span. The wire keeps the
+  runs' source positions — only the consumer changed.
+- **Hypotheses read `name : type`** (user report, 2026-10-08). Infoview binder rows
+  now put a colon between the name and its type (`hA : a ∈ A`) instead of running
+  the two together.
+- **Artifact sizes scale their unit** (user report, 2026-10-08: "1160652678 字节
+  可以改成更智能的单位，根据数值大小变化"). The project block prints `512 B`,
+  `20 KiB`, `1.1 GiB` (1024-based, IEC names) instead of a raw byte count.
+
+### Fixed
+
+- **The goal after applying a `⊆` hypothesis keeps its notation** (user report,
+  2026-10-08: "sorry 这一行的目标 'A a' 有办法显示成 'a ∈ A' 吗"). `apply h a` builds
+  the new goal from the **definition body** of `Set.subset`; the course library wrote
+  that body in its unfolded form (`∀ x, A x → B x`), so the goal came out as `A a` —
+  and the display layer can only fold a notation whose **target name is still in the
+  text** (`Set.mem a A` → `a ∈ A`), never invert an arbitrary definition body. The
+  body (and `Set.subset_def`'s statement) now name `Set.mem`/`∈`, matching Mathlib's
+  `Set.Subset s₁ s₂ := ∀ ⦃a⦄, a ∈ s₁ → a ∈ s₂`, so the goal displays `a ∈ A` again.
+  Guarded by `docs/gaps/repro/G95-subset-goal-keeps-notation.sh`, whose reverse half
+  pins that an unfolded body still shows `A a` (the check cannot go vacuous).
+
 ## [0.83.0] — 2026-10-08
 
 > **Editing a declaration in a project is ~25% faster** (G-29 — the shared library

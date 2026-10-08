@@ -137,6 +137,10 @@ python3 scripts/gap.py check                # 台账契约：缺口复现必须�
   真相，违反 §2.4）。门槛测试：`crates/cli/tests/query.rs` 的
   `query_check_counts_match_the_json_event_stream` 钉死 `query` ≡ `--json`；
   `crates/cli/tests/dsh.rs` 钉死 MCP 工具 ↔ `query` op 一一对应。
+  **同款先例（0.84.0）**：`import` 行链接的**位置**走 `query::import_lines`
+  （词法层 `scan_import_lines` 的薄出口，闭包加载器那份 ✓）、**模块名→路径**走
+  `QueryDoc::module_path`（闭包模块表 ✓）⇒ LSP 的 `document_link` 只做
+  span→`Range` / path→URI ✓（设计 `docs/design/import-links.md`）。
 
 ## 4. 环境搭建（新机器）
 
