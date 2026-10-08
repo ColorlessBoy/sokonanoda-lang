@@ -289,6 +289,12 @@
       "renewed": "2026-10-03",
       "tier": "process"
     },
+    "docs/notes/PLAN-cli-editor-perf.md": {
+      "expires": "2027-01-06",
+      "renewed": "2026-10-08",
+      "tier": "process",
+      "reason": "下一轮 CLI/编辑器体验 + front 缓存线的唯一执行纲领（P1–P7 逐条归因 + 15 条任务 + 可执行判据 + 依赖排期）；执行完即复审/归档"
+    },
     "docs/notes/course-implicit-census.md": {
       "expires": "2027-01-01",
       "renewed": "2026-10-03",
