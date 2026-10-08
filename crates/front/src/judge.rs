@@ -3475,6 +3475,32 @@ mod tests {
     /// 键里是**原文** ⇒ 改证明体照样全失效 ⇒ 下游照样重跑 ✓。
     /// 用户 13:08 拍板：「**不许降级修**」✗ ⇒ 这条判据就是那条缝的守卫 ✓。
     ///
+    /// **A7（2026-10-08）**：文本哈希的**小 LRU 不许改变键** ✓。
+    ///
+    /// 记忆化是**纯优化**：命中判据是逐字节相等 ⇒ 键只由**内容**决定 ✓。
+    /// 这条判据把它钉死：① 同一份文本任何时候都得到同一个哈希；② 不同文本不同；
+    /// ③ 与**不用记忆化**的算法（`judge_cache_key(&[src])`）**逐字相同**（"键没变"的定义 ✓）；
+    /// ④ LRU 被灌满（> 4 条、发生淘汰）之后**仍然**逐字相同 ✓。
+    /// **反向验证**：把命中判据改成"只比长度" ⇒ ③ 必红 ✓。
+    #[test]
+    fn the_text_hash_memo_never_changes_a_key() {
+        let a = "axiom P : Prop\n";
+        let b = "axiom Q : Prop\n";
+        let ha = canonical_text_key(a);
+        let hb = canonical_text_key(b);
+        assert_eq!(ha, canonical_text_key(a), "同一份文本的键必须恒等");
+        assert_eq!(hb, canonical_text_key(b));
+        assert_ne!(ha, hb, "不同文本必须得到不同的键");
+        assert_eq!(ha, judge_cache_key(&[a]), "键必须与不用记忆化时逐字相同");
+        assert_eq!(hb, judge_cache_key(&[b]));
+        // 灌满 LRU（发生淘汰）之后，键**仍然**逐字相同 ✓。
+        for i in 0..8 {
+            let _ = canonical_text_key(&format!("axiom P{i} : Prop\n"));
+        }
+        assert_eq!(canonical_text_key(a), judge_cache_key(&[a]));
+        assert_eq!(canonical_text_key(b), judge_cache_key(&[b]));
+    }
+
     /// **判据本身** ✓：走 `canonical_prefix_cached`（闸就在它里面 ✓）⇒
     /// ① 不许有任何一次「退回原文」✓；② 身份**不许等于原文的键** ✓（等于就是退回 ✓）。
     /// ⚠ 计数器是**进程级**的 ✗（同 crate 的其它测试并行跑会串味 ✓）⇒ 取**差量** ✓。
