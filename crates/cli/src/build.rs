@@ -515,6 +515,8 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
     let mut hit = 0usize;
     let mut compiled = 0usize;
     let mut failed = 0usize;
+    // 失败明细（文件 → 原因）：汇总行只报数字不够用（2026-10-08 用户报障 ✓）。
+    let mut failures: Vec<(String, String)> = Vec::new();
     // **E23**：先把**总数**说出去 —— 进度条要报「3/13 文件」，而总数只在
     // `build.summary` 里、那已经是结束之后了 ✗。additive：老消费者忽略未知
     // `type` ✓（`docs/protocol.md` 的 build 事件契约已同步）。
@@ -586,9 +588,9 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
                 root: artifacts_root,
                 ticks,
             } => {
-                let status = finish_project(report, &options, &digest, &artifacts_root);
+                let outcome = finish_project(report, &options, &digest, &artifacts_root);
                 per_file_ticks[index] = ticks;
-                per_file[index] = Some(Ok(status));
+                per_file[index] = Some(outcome);
                 // ⚠ **不在这里 note_file**：会话已经逐入口报过 ✓（重复报 = 计数翻倍 ✗）。
             }
             Prep::Planned {
@@ -605,9 +607,9 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
                     if json { Some(&mut sink) } else { None };
                 let report =
                     sokonanoda_front::project::compile_plan_prechecked(plan, &options, progress);
-                let status = finish_project(report, &options, &digest, &artifacts_root);
+                let outcome = finish_project(report, &options, &digest, &artifacts_root);
                 per_file_ticks[index] = ticks;
-                per_file[index] = Some(Ok(status));
+                per_file[index] = Some(outcome);
                 progress_counter.note_file(&file);
             }
         }
@@ -714,25 +716,37 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
                 heartbeat.note();
             }
         }
-        let status = match per_file[index].take() {
-            Some(Ok(status)) => status,
+        // **失败原因要跟着走**（2026-10-08 用户：「`sokonanoda:rebuild` 会报失败 2，但是我又
+        // 不知道哪里失败的」✗）：以前 `Some(Err(message))` 只把消息打到 stderr，而
+        // `build.file` 事件里**只有** `status: "failed"` ✗ ⇒ 消费端（扩展通知）结构上就拿不到
+        // 原因 ⇒ 用户只看到数字 ✗。
+        let (status, failure) = match per_file[index].take() {
+            Some(Ok(status)) => (status, None),
             Some(Err(message)) => {
                 eprintln!("error: {}: {message}", file.display());
-                "failed"
+                ("failed", Some(message))
             }
-            None => "failed",
+            None => ("failed", None),
         };
         match status {
             "hit" => hit += 1,
             "compiled" => compiled += 1,
             _ => failed += 1,
         }
+        if let Some(message) = &failure {
+            failures.push((file_text.clone(), message.clone()));
+        }
         if json {
-            emit_json(serde_json::json!({
+            let mut event = serde_json::json!({
                 "type": "build.file",
                 "file": file_text,
                 "status": status,
-            }));
+            });
+            // additive：老消费者忽略未知字段 ✓（`docs/protocol.md` 已同步 ✓）。
+            if let Some(message) = &failure {
+                event["error"] = serde_json::Value::String(message.clone());
+            }
+            emit_json(event);
             heartbeat.note();
         }
     }
@@ -753,7 +767,33 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
     } else {
         println!("built {total} file(s) — {hit} hit, {compiled} compiled, {failed} failed");
     }
+    // **失败明细**（用户 2026-10-08：「失败 2，但是我又不知道哪里失败的」✗）：原因排在汇总行
+    // **之后**、成块给出 —— 不用在进度行里翻 ✗。stderr（人看），stdout 的机器契约不动 ✓。
+    if !failures.is_empty() {
+        eprintln!("失败明细（{} 个文件）：", failures.len());
+        for (file, reason) in &failures {
+            eprintln!("  ✗ {}: {reason}", shorten_path(file));
+        }
+        // 一句话出路 + 一句实话（**期望判红**的探针也会出现在这里 ⇒ 别把它当故障 ✗）。
+        eprintln!(
+            "提示：只想编某个子树就把目录当参数传（例如 `sokonanoda build units lib`）；\
+             仓库/课程里**故意判红**的探针（常见于 `gaps/`，文件名常带 `reject`）本来就会出现在这里 ✓。"
+        );
+    }
     ExitCode::SUCCESS
+}
+
+/// 明细里用**相对当前目录**的路径（绝对路径太长 ⇒ 一行读不完 ✗）；不在当前目录下就原样 ✓。
+fn shorten_path(file: &str) -> String {
+    let path = Path::new(file);
+    match std::env::current_dir().ok().and_then(|cwd| {
+        path.strip_prefix(&cwd)
+            .ok()
+            .map(|rest| rest.display().to_string())
+    }) {
+        Some(short) => short,
+        None => file.to_string(),
+    }
 }
 
 /// **并行度**（入口级并行）：`SOKONANODA_BUILD_JOBS` 可配，默认 = 可用核数。
@@ -807,7 +847,7 @@ fn finish_project(
     options: &CompileOptions,
     digest: &str,
     artifacts_root: &Path,
-) -> &'static str {
+) -> Result<&'static str, String> {
     let ok = report
         .entry_module()
         .is_none_or(|module| module.events.errors.is_empty())
@@ -816,9 +856,44 @@ fn finish_project(
         sokonanoda_front::project::cache::store_at(artifacts_root, digest, options, &report);
     }
     if ok {
-        "compiled"
+        Ok("compiled")
     } else {
-        "failed"
+        // **失败要带原因**（2026-10-08 用户：「`sokonanoda:rebuild` 会报失败 2，但是我又不知道
+        // 哪里失败的」✗）：这里以前只返回 `"failed"`，report 里的诊断**原地丢掉** ✗ ⇒
+        // 消费端（`build.file` 事件、扩展通知）只能报数字，用户无从下手 ✗。
+        Err(failure_reason(&report))
+    }
+}
+
+/// 一句话失败原因：**入口模块的第一条错误**（入口没错误就按拓扑序找第一条）⇒
+/// `模块名: 行:列: code: 消息` ✓。
+///
+/// 坐标用**内核给的行列**（1-based，与 `query check` 的 `failed[].start_line/start_col`
+/// 同一批数字 ✓）—— **不拿 offset 去切字符** ✗（中文/`α` 是多字节，G-15 的假象就是这么来的 ✓）。
+fn failure_reason(report: &sokonanoda_front::project::ProjectReport) -> String {
+    // `report.modules` 是**拓扑序、入口最后**（与 `query project` 同一条口径 ✓）⇒ 倒着走
+    // = 先看入口（用户最关心自己的文件 ✓），再往依赖里找。
+    for module in report.modules.iter().rev() {
+        if let Some(error) = module
+            .events
+            .errors
+            .first()
+            .or_else(|| module.report.errors.first())
+        {
+            return format!(
+                "{}: {}:{}: {}: {}",
+                module.name,
+                error.span.start.line,
+                error.span.start.column,
+                error.kind.code(),
+                error.message
+            );
+        }
+    }
+    match report.diagnostics.iter().find(|diag| diag.kind.is_error()) {
+        Some(diag) => format!("{}: {}: {}", diag.module, diag.code(), diag.message),
+        // 兜底：状态说"失败"却一条诊断都没有 —— 说不出原因就**如实说**（不许编 ✗）。
+        None => "编译失败，但报告里没有诊断（请把这一例开 issue）".to_string(),
     }
 }
 

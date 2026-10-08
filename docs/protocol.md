@@ -764,14 +764,13 @@ global fallback validates that the entry's module root matches the current one
   can resolve from the positionals (without positionals: global only, and
   `project` is reported as 0) — and prints `removed N cached file(s)
   (G global, P project)`;
-- `--json` emits `build.begin` (`{type, files}` — the **total** resolved file
-  count, so a client can render `3/13`; it comes **before** the first
-  `build.file`, and `files` equals both the number of `build.file` events and
-  `build.summary.files`), then one `build.file` per resolved file
-  (`{type, file, status}` with `status` ∈ `hit` / `compiled` / `failed`),
-  then `build.summary` (`{type, files, hit, compiled, failed}`); `build --clean
-  --json` emits `build.clean` (`{type, removed, global, project}`, additive:
-  `removed == global + project`);
+- `--json` emits `build.begin` (`{type, files}` — the **total** resolved file count, so a client can render
+  `3/13`; it comes **before** the first `build.file`, and `files` equals both the number of `build.file` events and
+  `build.summary.files`), then one `build.file` per resolved file (`{type, file, status}` with `status` ∈ `hit` /
+  `compiled` / `failed`; a **`failed`** entry **also carries `error`** — `<module>: <line>:<col>: <code>: <message>`,
+  additive ⇒ a consumer can name the file *and* say why, which `build.summary.failed` alone cannot), then
+  `build.summary` (`{type, files, hit, compiled, failed}`); `build --clean --json` emits `build.clean`
+  (`{type, removed, global, project}`, additive: `removed == global + project`);
 - **P2/P4 进度粒度**（2026-09-28/30，additive —— 老消费者忽略未知 `type` ✓，只在
   **真编译**时发、`hit` 不发）：`build.progress` (`{type, done, total, file}`) ——
   **② 每个文件编完就报**（`done` 是**绝对值**、消费者不累加），且**全部排在结果段
@@ -781,7 +780,8 @@ global fallback validates that the entry's module root matches the current one
   **`stdout` 是终端时默认不发**（用户实测"终端每秒刷"），**是管道时照发**（机器
   消费者仍拿得到）；`SOKO_BUILD_TICK_MS=<ms>` 强制发/换周期、`SOKO_BUILD_NO_TICK=1`
   强制关。兜底判据「最长无输出间隔 ≤ 2.5s」见 `scripts/check-progress-gap.py`；
-- the human summary is `built K file(s) — H hit, M compiled, F failed`.
+- the human summary is `built K file(s) — H hit, M compiled, F failed`, followed by a **failure
+  detail block on stderr** (`失败明细（N 个文件）：` + `✗ <file>: <reason>` per file) whenever anything failed.
 
 Environment: `SOKONANODA_CACHE_DIR` relocates the cache root,
 `SOKONANODA_NO_CACHE=1` disables it (loads always miss, stores are skipped — but

@@ -308,6 +308,47 @@ fn clean_without_a_path_says_project_stores_are_untouched() {
     );
 }
 
+/// **失败的 build 必须说清「哪个文件、为什么」**（用户 2026-10-08：「我运行
+/// `sokonanoda:rebuild` 会报 **失败 2**，但是我又不知道哪里失败的」✗）。
+///
+/// 两半都要钉 ✓：① `--json` 的 `build.file` 带 `error`（additive ⇒ 扩展/CI 拿得到原因 ✓）；
+/// ② 人话模式给**失败明细块**（不用在进度行里翻 ✗）。夹具是**期望判红**的探针
+///（`kernel-rejected` ✓ —— 与课程 `gaps/C-04-*-reject.sokonanoda` 同形 ✓）。
+#[test]
+fn a_failed_build_reports_the_file_and_the_reason() {
+    let dir = scratch("failed");
+    std::fs::write(dir.join("Lib.sokonanoda"), SOURCE).expect("write module");
+    // 入口故意判红：`Prop -> Type` 的恒等函数（内核正确地拒绝它 ✓）。
+    std::fs::write(
+        dir.join("entry.sokonanoda"),
+        "import Lib\n\ndef bad : Prop -> Type := fun (x : Prop) => x\n",
+    )
+    .expect("write entry");
+    let path = dir.to_str().expect("utf-8");
+    let cache = cache("failed");
+
+    // ① `--json`：失败事件必须带 `error`（原因），summary 记 failed = 1 ✓。
+    let (code, out, err) = run(&cache, &["build", "--json", path], None);
+    assert_eq!(code, 0, "{err}");
+    assert_eq!(summary(&out)["failed"], 1, "{out}");
+    let failed_event = events(&out)
+        .into_iter()
+        .find(|event| event["type"] == "build.file" && event["status"] == "failed")
+        .expect("必须有一条 build.file 失败事件");
+    let reason = failed_event["error"].as_str().unwrap_or("");
+    assert!(
+        reason.contains("entry") && reason.contains("kernel-rejected"),
+        "事件必须带原因（模块名 + code + 行列）：{failed_event}"
+    );
+
+    // ② 人话模式：stderr 要有**失败明细块**（点名 + 原因 ✓）。
+    let (code, _out, err) = run(&cache, &["build", path], None);
+    assert_eq!(code, 0, "{err}");
+    assert!(err.contains("失败明细"), "要给明细块：{err}");
+    assert!(err.contains("entry.sokonanoda"), "明细必须点名文件：{err}");
+    assert!(err.contains("kernel-rejected"), "明细必须给原因：{err}");
+}
+
 /// `build` 不给路径 = **当前目录**，且**要说话**（用户报的就是"没反应" ✗）。
 #[test]
 fn build_without_a_path_scans_the_current_directory_and_says_so() {
