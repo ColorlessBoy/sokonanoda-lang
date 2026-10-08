@@ -192,7 +192,33 @@ pub fn read(root: &Path, key: &str, options: &CompileOptions) -> Option<String> 
 // **载荷的合体形**（A = 内核环境文本 + B = 前端表文本）—— T1-B 批 2 的接线前件
 // ───────────────────────────────────────────────────────────────────────────
 
-/// 载荷头部（`<magic> <A 的字节数>\n` 然后接 A、再接 B）。
+/// **C 块：库层那趟的产物**（T1-B 批 2 的第三块）。
+///
+/// 为什么**必须**存它：消费入口要"**跳过库层 walk**、只走入口自己的命令"，而
+/// `run_entries` 把**库层输出与入口输出合并**成入口那份 `CompileOutput`
+/// （`on_entry` 收的就是合并结果）⇒ 少了库层这半，`--json` 就**不是逐字节相同** ✗。
+///
+/// 字段名与 [`crate::project::session::LibCheckpoint`] 一一对应（除 `builder`/`tables`
+/// —— 那两块是 A/B ✓）。
+#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct LibPassFacts {
+    /// 库层那趟的合并输出（`kernel_checks` 已搬好 ✓）
+    pub out: crate::compile::CompileOutput,
+    /// 库层逐模块报告（**并集顺序** ✓）
+    pub reports: Vec<crate::compile::DocumentReport>,
+    /// 并集顺序下每个库模块的命令区间 —— `std::ops::Range` 没有 serde 实现
+    /// ⇒ 落成 `(start, end)` 二元组 ✓
+    pub ranges: Vec<(usize, usize)>,
+    /// 库层那趟的命令数（合并输出的偏移量 ✓）
+    pub n_commands: usize,
+    /// 库层那趟去掉 `import` 行之后的命令数（入口趟的 `judge_prefix_offset` ✓）
+    pub prefix_commands: usize,
+    /// 库层全部单元拼接之后的**闭包前缀**（A4a ✓）
+    pub lib_prefix: String,
+}
+
+/// 载荷头部（`<magic> <A 的字节数> <B 的字节数>\n` 然后接 A、B、C 三段）。
 ///
 /// **为什么用一行定长头而不是 JSON 包一层**：A 是几十万字节的文本，
 /// 包进 JSON 要整体转义（体积 ×1.2、还要多一次分配 ✗）；一行头 + 两段拼接
@@ -207,10 +233,16 @@ pub const PAYLOAD_MAGIC: &str = "soko.module-artifact/1";
 pub(crate) fn encode_payload(
     env: &sokonanoda::util::ExportFile<'_>,
     tables: &crate::compile::PassTables<'_>,
+    facts: &LibPassFacts,
 ) -> Result<String, String> {
     let a = env.to_ndjson()?;
     let b = crate::project::tables::encode(&tables.known, &tables.defs, &tables.inductives)?;
-    Ok(format!("{PAYLOAD_MAGIC} {}\n{a}{b}", a.len()))
+    let c = serde_json::to_string(facts).map_err(|e| format!("库层产物（C 块）序列化失败：{e}"))?;
+    Ok(format!(
+        "{PAYLOAD_MAGIC} {} {}\n{a}{b}{c}",
+        a.len(),
+        b.len()
+    ))
 }
 
 /// 载荷文本 ⇒ `(A, B)`，**装进调用方给的 arena**（T1-B 的硬约束：
@@ -227,10 +259,11 @@ pub(crate) fn decode_payload<'a>(
     (
         sokonanoda::util::ExportFile<'a>,
         crate::compile::PassTables<'a>,
+        LibPassFacts,
     ),
     String,
 > {
-    let (a_text, b_text) = split_payload(text)?;
+    let (a_text, b_text, c_text) = split_payload(text)?;
     let config = sokonanoda::util::Config {
         unsafe_permit_all_axioms: true,
         unpermitted_axiom_hard_error: false,
@@ -243,6 +276,8 @@ pub(crate) fn decode_payload<'a>(
     let inductives = crate::project::tables::rehydrate_inductives(&decoded.inductives, |n| {
         by_name.get(n).cloned()
     })?;
+    let facts: LibPassFacts =
+        serde_json::from_str(c_text).map_err(|e| format!("库层产物（C 块）反序列化失败：{e}"))?;
     Ok((
         env,
         crate::compile::PassTables {
@@ -250,11 +285,12 @@ pub(crate) fn decode_payload<'a>(
             inductives,
             defs: decoded.defs,
         },
+        facts,
     ))
 }
 
 /// 拆头 + 按长度切两段。**任何不自洽都 `Err`**（截断、长度超界、格式号不认识 ✓）。
-fn split_payload(text: &str) -> Result<(&str, &str), String> {
+fn split_payload(text: &str) -> Result<(&str, &str, &str), String> {
     let nl = text
         .find('\n')
         .ok_or_else(|| "产物载荷没有头部".to_string())?;
@@ -270,13 +306,23 @@ fn split_payload(text: &str) -> Result<(&str, &str), String> {
         .ok_or_else(|| "产物头部缺 A 的长度".to_string())?
         .parse()
         .map_err(|_| "产物头部里 A 的长度不是数字".to_string())?;
-    if a_len > rest.len() {
+    let b_len: usize = parts
+        .next()
+        .ok_or_else(|| "产物头部缺 B 的长度".to_string())?
+        .parse()
+        .map_err(|_| "产物头部里 B 的长度不是数字".to_string())?;
+    if a_len.saturating_add(b_len) > rest.len() {
         return Err(format!(
-            "产物头部声称 A 有 {a_len} 字节，实际只剩 {}（截断 ✗）",
+            "产物头部声称 A+B 有 {} 字节，实际只剩 {}（截断 ✗）",
+            a_len.saturating_add(b_len),
             rest.len()
         ));
     }
-    Ok((&rest[..a_len], &rest[a_len..]))
+    Ok((
+        &rest[..a_len],
+        &rest[a_len..a_len + b_len],
+        &rest[a_len + b_len..],
+    ))
 }
 
 /// `规范名 → 声明` 表（`rehydrate_inductives` 的口子）。
@@ -547,14 +593,25 @@ mod tests {
             },
         );
 
-        // ③ 写 → 磁盘（过完整性三道）→ 读
-        let payload = encode_payload(&env, &tables).expect("encode payload");
+        // ③ C 块：库层那趟的产物（这里用最小形状 —— 判据要证的是"三段都能原样过 wire"）。
+        let facts = LibPassFacts {
+            out: crate::compile::CompileOutput::default(),
+            reports: vec![crate::compile::DocumentReport::default()],
+            ranges: vec![(0, 2), (2, 5)],
+            n_commands: 5,
+            prefix_commands: 3,
+            lib_prefix: "(lib prefix)\n".to_string(),
+        };
+
+        // ④ 写 → 磁盘（过完整性三道）→ 读
+        let payload = encode_payload(&env, &tables, &facts).expect("encode payload");
         write(&root, KEY, &payload, &options()).expect("write");
         let text = read(&root, KEY, &options()).expect("read（完整性三道全过 ⇒ 才给 Some）");
 
         // ④ 换一份 arena 装回来
         let arena2 = Arena::new();
-        let (env2, tables2) = decode_payload(arena2.as_arena_ref(), &text).expect("decode payload");
+        let (env2, tables2, facts2) =
+            decode_payload(arena2.as_arena_ref(), &text).expect("decode payload");
         assert_eq!(
             env2.declars.len(),
             env.declars.len(),
@@ -562,6 +619,13 @@ mod tests {
         );
         env2.check_all_declars();
         assert_eq!(tables2.known, tables.known, "前端表必须逐项相同");
+        // C 块也要原样回来（`DocumentReport` 没有 `PartialEq` ⇒ 比计数 + 其余字段 ✓）。
+        assert_eq!(facts2.out, facts.out, "库层输出必须逐项相同");
+        assert_eq!(facts2.reports.len(), facts.reports.len(), "逐模块报告条数");
+        assert_eq!(facts2.ranges, facts.ranges, "库模块命令区间");
+        assert_eq!(facts2.n_commands, facts.n_commands);
+        assert_eq!(facts2.prefix_commands, facts.prefix_commands);
+        assert_eq!(facts2.lib_prefix, facts.lib_prefix);
 
         // ⑤ **反向验证**：截断载荷 ⇒ `Err`（不许「猜着用」✗）。
         let arena3 = Arena::new();
