@@ -90,6 +90,9 @@ struct Arm {
     modules: u64,
     prefix: u64,
     by: u64,
+    /// **这一刀里 `TcCache` 构造了几次**（`LSP_TRACE … tc=`）—— §18/§19 要的"按一刀归属"✓。
+    tc: u64,
+    telescope: u64,
 }
 
 impl Arm {
@@ -140,6 +143,10 @@ fn run_scenario(
         modules: Client::trace_field(&line, "modules"),
         prefix: Client::trace_field(&line, "prefix"),
         by: Client::trace_field(&line, "by"),
+        // **这一刀里 `TcCache` 构造了几次**（§18/§19 的"按一刀归属"就在这里 ✓ ——
+        // 不必再抓子进程的 `STAGE_STATS`：那是**退出时**才打的 ✗，而 `tc=` 是**每刀**都有 ✓）。
+        tc: Client::trace_field(&line, "tc"),
+        telescope: Client::trace_field(&line, "telescope"),
     }
 }
 
@@ -293,7 +300,7 @@ fn perf_course_keystroke_wallclock_is_recorded() {
     for arm in [&proof, &statement, &typing, &equal_length, &trailing] {
         println!(
             "PERF keystroke-wallclock {} {}: best {:.1}ms · median {:.1}ms · worst {:.1}ms \
-             (n={}, {}) · compile={}ms modules={} prefix={} by={} · artifacts={}",
+             (n={}, {}) · compile={}ms modules={} prefix={} by={} tc={} telescope={} · artifacts={}",
             rel,
             arm.scenario,
             arm.best(),
@@ -305,6 +312,8 @@ fn perf_course_keystroke_wallclock_is_recorded() {
             arm.modules,
             arm.prefix,
             arm.by,
+            arm.tc,
+            arm.telescope,
             if artifacts_off { "off" } else { "on" },
         );
         perf_json(serde_json::json!({
@@ -320,6 +329,8 @@ fn perf_course_keystroke_wallclock_is_recorded() {
             "modules": arm.modules,
             "prefix": arm.prefix,
             "by": arm.by,
+            "tc": arm.tc,
+            "telescope": arm.telescope,
             "artifacts": if artifacts_off { "off" } else { "on" },
             "build": identity,
         }));
