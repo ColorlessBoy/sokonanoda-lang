@@ -721,9 +721,9 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 ## 10. 登记（本文档自身）
 
 * **登记状态（已由并行线完成 ✓，本文作者无需再动）**：`scripts/docs-budget.json` 的
-  `frozen` 已有 `docs/notes/PLAN-align-lean4.md = 732`，`layer_max_lines.L2 = 12212`
+  `frozen` 已有 `docs/notes/PLAN-align-lean4.md = 828`，`layer_max_lines.L2 = 12283`
   （提交 `c43aa1a0`，按 `_comment` **例外①** 走）；`scripts/docs-expiry.json` 登记
-  `expires 2026-11-07 / tier process`。⇒ **本文上限 = 732 行，只许减不许增** ——
+  `expires 2026-11-07 / tier process`。⇒ **本文上限 = 828 行，只许减不许增** ——
   要再加内容，先按同一例外改 `frozen`（评审可见），**别靠抬 L2 上限** ✗。
 * **上游关系**：本文**不替代** `perf-lean4`（Lean 侧机制）与
   `PLAN-cli-editor-perf`（UX 与已量出的瓶颈）；三者的分工见 §0 与 §6.3。
@@ -800,3 +800,29 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 2. **T1-A** —— 文件面空闲；按 §11.2 的六条做，判据照 §2.4（`a3` 3→2 等）。
 3. **T2-A → T2-B** —— 按 §11.1 的读数，这是**唯一能打"第一刀 352ms"**的那条线。
 4. T2-B0 / T4-B0 —— 仍可做，但**优先级下移**（本轮读数显示它们不在要紧的那条路上）。
+
+### 11.4 T3-B1 ①（`cases` 被消去项的就地路）—— **已落地**（`898b9718`）
+
+* **落点**：`judge::judge_infer_inplace_with_explicit`（受控入口 · `EXPLICIT_PP` 与慢路
+  **同源**）+ `by.rs::cases_tactic` 就地优先、答不出**原样**回落 `judge_infer_explicit`。
+  新增**专用**读数 `inplace_cases_report()` / `inplace_cases_shadow()`（**不与**
+  `judge_render_type` 那一档混 —— 混了就分不清哪条接线生效 ⇒ 判据空转 ✗）。
+* **判据**：① `crates/front/tests/judge_inplace_cases.rs`（独立进程）影子档
+  `same=1 · diff=0` ✓；② `SOKO_JUDGE_INPLACE_BY=0` vs 默认的 `--json` **逐字节相同**
+  （夹具 + `unit04-extensionality-identities` + `unit05-solution` +
+  `unit07-solution`）✓；③ 成本（同机同夹具）：`JUDGE_INFER calls 16→10 ·
+  total_ms 73→15 · misses 6→2` ⇒ **少 4 趟合成前缀** ✓；④ `--lib` **875/875** ·
+  就地家族 8/8 ✓。
+* **对北极星零贡献**（诚实记）：§11.1 的探针显示要紧的是**开档后第一刀**（352ms ·
+  `by=81` 入口趟重 elaborate），而 `cases` 全课程仅 **3 处** ⇒ 本条消的是方向③的 long tail。
+* **T3-B1 ② 已由 A2a 完成**（§4.4 把它列成"今天可做"是**过期** ✓）：`judge.rs:2369` 的
+  "不走就地快路"是**注释过期** —— 调用点 `by.rs:890` 早已接就地入口（`judge_render_type_inplace_with_explicit`）✓。
+
+### 11.5 归属声明（两写者不撞同一文件 · 2026-10-09 00:12）
+
+* **主会话**已交 `judge.rs` / `by.rs` 的 T3-B1 ①（`898b9718`）；**接着取 T3-B1 ③**
+  （同一文件面：`level_hint_of` 的**记法形态**分支，需要"文本 ⇒ AST"入口 ——
+  `elab.rs::universe_level_text_of_operands` 已有同形先例 ✓）。
+* **T1-A 留给另一写者**（§11.2 的六条设计约束就是它的开工单 · `project/{mod,session}.rs`
+  文件面空闲 ✓）；**T2-A→T2-B** 同样归另一写者（§11.1 判定它是唯一能打第一刀的结构件）。
+* ⚠ **纪律**：动手前先 `git status --short`；同一文件同一时间**只许一个写者** ✗。
