@@ -732,12 +732,19 @@ fn canonical_goal_type<'a>(
     // 折记法是**显示**接口的事，用在这里会改判定 = 内核红线。
     let ty_text = render_expr(ty);
     let term = crate::judge::render_type_query(&ty_text);
-    // **G-71（0.81.0）**：规范目标的文本**也要能回读**（它进 `nodes[cur].ty`，
-    // `cases` 的臂目标就是它的克隆）⇒ 目标里一旦出现**前导隐式 ≥ 2** 的 def
-    // （`Set.image {α β} f A`：pp 只丢第一个隐式 ⇒ 回读错位 ✗）就改用**全显式 pp**
-    // 并**跳过就地快路**（就地路的内核 pp 用默认选项 ⇒ 文本形态会分叉 ✗）。
-    // 其余目标（`implicit_prefix <= 1`：pp 丢的那个恰好就是"逐位对显式形参"那一档）
-    // **保持今天的行为，含就地快路** ⇒ 逐字节不变 ✓、性能不变 ✓。
+    // **G-71（0.81.0）→ A2a（2026-10-08 抬闸）**：规范目标的文本**也要能回读**
+    // （它进 `nodes[cur].ty`，`cases` 的臂目标就是它的克隆）⇒ 目标里出现**前导隐式
+    // ≥ 2** 的 def（`Set.image {α β} f A`：pp 只丢第一个隐式 ⇒ 回读错位 ✗）时必须用
+    // **全显式 pp** ✓ —— 这一条**不变**。
+    //
+    // ⚠ **变的是"全显式 pp 从哪来"**：闸当初把就地路整个压成 `ByMode::Off`，理由是
+    // 「就地路的内核 pp 用默认选项 ⇒ 文本形态会分叉」✗ —— 而 **2026-10-04 就地路已经
+    // 接上了 `judge::explicit_pp_active()`**（`elab.rs` 的 `pp_options.explicit`）⇒
+    // 两条路读的是**同一个线程局部** ✓ ⇒ 就地路只要**把这一档置起来**
+    // （[`crate::judge::judge_render_type_inplace_with_explicit`]）就与慢路同源 ✓。
+    // ⇒ 闸**抬掉**：`needs_explicit` 只决定 pp 档，不再决定走哪条路 ✓。
+    //
+    // 其余目标（`implicit_prefix <= 1`）保持原样（档 = false，逐字节不变 ✓）。
     let needs_explicit = crate::spine::mentions_multi_implicit(ty, defs);
     let slow = || {
         if needs_explicit {
@@ -746,17 +753,21 @@ fn canonical_goal_type<'a>(
             crate::judge::judge_render_type(prefix_src, options, &specs, &ty_text)
         }
     };
-    let by_mode = if needs_explicit {
-        crate::judge::ByMode::Off
-    } else {
-        crate::judge::inplace_by_mode()
-    };
+    let by_mode = crate::judge::inplace_by_mode();
     let text = match by_mode {
         // **影子档**：两条路**都跑**，比对文本、记 `same/diff`，**返回慢路那一份**
         // ⇒ 行为零变化、只取证 ✓（附九："影子档是这一档的必需品"）。
+        // ⚠ **A2a 起这一档必须也走 `needs_explicit` 的目标** —— 那正是抬闸的判据
+        // （`crates/front/tests/judge_inplace_by_multi_implicit.rs` ✓）。
         crate::judge::ByMode::Shadow => {
             let inplace = env.as_deref_mut().and_then(|env| {
-                crate::judge::judge_render_type_inplace(env, ctx, initial_binders, ty)
+                crate::judge::judge_render_type_inplace_with_explicit(
+                    needs_explicit,
+                    env,
+                    ctx,
+                    initial_binders,
+                    ty,
+                )
             });
             let slow_text = slow();
             match inplace {
@@ -806,8 +817,15 @@ fn canonical_goal_type<'a>(
                     // ⚠ 这里**不用** `as_deref_mut()`：`env` 本身就是
                     // `Option<&mut InplaceEnv>` ⇒ `and_then` 直接拿到 `&mut` ✓
                     // （`as_deref_mut` 会多一层解引用，clippy 判 `needless_option_as_deref`）。
+                    // **A2a**：pp 档与慢路同源（`needs_explicit` ⇒ 全显式）✓。
                     let inplace = env.as_mut().and_then(|env| {
-                        crate::judge::judge_render_type_inplace(env, ctx, initial_binders, ty)
+                        crate::judge::judge_render_type_inplace_with_explicit(
+                            needs_explicit,
+                            env,
+                            ctx,
+                            initial_binders,
+                            ty,
+                        )
                     });
                     match inplace {
                         Some(pp) => {

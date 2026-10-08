@@ -1725,6 +1725,30 @@ pub(crate) fn judge_render_type_inplace<'a>(
     crate::compile::elab::inplace_render_type(env, ctx, binders, ty)
 }
 
+/// **A2a（2026-10-08）**：带 **explicit pp 档**的就地渲染 —— 与慢路
+/// [`judge_render_type_explicit`] 读**同一个线程局部**（`EXPLICIT_PP`）✓。
+///
+/// 为什么需要它：慢路在 `needs_explicit`（目标里有**前导隐式 ≥ 2** 的 def 头）时
+/// 走**全显式 pp**（`judge_render_type_explicit`），而就地路的内核 pp 读的是
+/// [`explicit_pp_active`]（`elab.rs` 的 `pp_options.explicit = judge::explicit_pp_active()`）
+/// ⇒ **就地路必须把同一档置起来**，否则两条路的文本形态会分叉 ✗。
+/// G-71 闸（0.81.0）当初把就地路整个关掉就是因为这个；而 **2026-10-04 就地路已经
+/// 接上了 `explicit_pp_active()`** ⇒ 闸的理由已过期 ✓ —— 本函数就是把那一档
+/// **补到就地路上**，让两条路同源。
+///
+/// `ExplicitPpGuard` 是**私有**的 ⇒ 这里开一个**受控入口**：只暴露"带档跑一次就地
+/// 渲染"，不把 guard 本身交出去 ⇒ 调用方**不可能忘记还原** ✓（RAII 在函数内收口）。
+pub(crate) fn judge_render_type_inplace_with_explicit<'a>(
+    explicit: bool,
+    env: &mut crate::compile::elab::InplaceEnv<'_, 'a>,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+    binders: &[crate::ast::Binder],
+    ty: &Expr,
+) -> Option<String> {
+    let _guard = ExplicitPpGuard::new(explicit);
+    judge_render_type_inplace(env, ctx, binders, ty)
+}
+
 pub(crate) fn judge_render_type_finish(text: &str, extra_binders: usize) -> Option<String> {
     let rest = peel_binders(text.to_string(), extra_binders);
     let parsed = parse_expr_text(&rest).ok()?;
