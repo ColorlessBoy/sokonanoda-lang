@@ -1183,3 +1183,20 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   而**下游有一处消费者靠那张缓存的副作用活着** ✗ ⇒ 提速类改动必须问一句
   "**谁在靠这次调用的副作用？**"（本轮就是 `judge_prefix` 的空串 + 缓存副作用组合出来的
   定时炸弹）。影子档拦不住它（它比的是"就地 vs 慢路"的**返回值**，不是"谁写了缓存" ✗）。
+### 11.19 第 13 轮（2026-10-09）—— 首刀那 128ms 差额**不是** A5 预热挡的（探针加读数）
+
+* **读数**（`perf_keystroke_wallclock.rs` 的 `first-keystroke` 臂新加一行）：
+
+  ```
+  PERF first-keystroke-warmup: warm_lines=0 last=None
+  PERF first-keystroke-after-open …: 205.6ms · compile=78ms modules=1 prefix=0 by=9
+  ```
+
+  ⇒ 用户"开档就敲"的那一刀**到达诊断时 A5 的预热行还没出现**（`warm_lines=0`）——
+  要么它被"有 pending 编辑就跳过"的退让挡掉了（**设计如此 ✓**）、要么还没跑完；
+  两种情况下它**都不是**那 128ms 差额的来源 ✓（上一轮的怀疑被否掉）。
+* **⇒ 差额在服务端热路**（方向②）：候选依次是（a）`didChange` 处理排在开档那条流水线
+  （publish/进度条 End/下游调度）之后；（b）防抖静默期；（c）编译 worker 的排队。
+  **下一步（写死）**：在 LSP 侧给**一条** `didChange` 打三段时刻（收到通知 / 编译任务上 worker /
+  发诊断），与 `compile=` 并排 ⇒ 一眼看出差额落在哪一段 ✓（`crates/lsp/src/lib.rs`，本线可改 ✓）。
+  判据：三段之和 ≈ 现有墙钟（自洽 ✓），且改完 `typing` 臂读数不动 ✓。

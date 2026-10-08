@@ -363,6 +363,16 @@ fn perf_course_first_keystroke_after_open_is_recorded() {
     std::thread::sleep(std::time::Duration::from_millis(200));
     let line = client.last_trace();
     let identity = binary_identity();
+    // **第一刀的墙钟被谁挡住？**（2026-10-09 第 13 轮）`compile=` 只是服务端自报的编译时长，
+    // 差额去哪了要先看见：产物命中后紧跟着的是 **A5 的后台库层预热**（同一个编译 worker）
+    // ⇒ 用户立刻敲的那一刀可能**排在它后面** ✗。
+    let warm_lines = client.warm_trace_len();
+    println!(
+        "PERF first-keystroke-warmup: warm_lines={warm_lines} last={:?}",
+        // `last_warm_trace()` 在"一行都还没有"时**会 panic**（它有自己的前提 ✓）——这里
+        // 恰恰要问"预热到底跑完没有"，所以自己先判空 ✓。
+        (warm_lines > 0).then(|| client.last_warm_trace())
+    );
     println!(
         "PERF first-keystroke-after-open {rel}: {ms:.1}ms ({identity}) · compile={}ms modules={} \
          prefix={} by={} · artifacts={}\n  {line}",
