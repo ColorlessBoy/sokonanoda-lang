@@ -883,4 +883,9 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * **方向③的状态**：T3-B1 ①②③ 全落地（② 早已由 A2a 完成 ✓）⇒ 计划 §4.4 的"今天可做"
   三条做完 ✓；剩下的合成趟消去是 **T3-B2**（架构件 · 需重开门 + 内核线让位）与
   **T3-D**（`EnvProvider` 处置）。
+* **独立对拍（2026-10-09 另一会话 · T1-A + T3-B1 ①③ 一并验）**：
+  `python3 scripts/check-json-identity.py --baseline target/release/sokonanoda
+  --new target/debug/sokonanoda --sample 3` ⇒ **101/101 逐字节相同 · 0 处不同 ·
+  答得上 100/101（99%）** ✓（基线 = `0.86.0` 发布前的 release 构建 ⇒ 覆盖
+  T1-A 的逐模块趟 + 本条的就地路）。
 
