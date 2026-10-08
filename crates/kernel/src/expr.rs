@@ -166,7 +166,7 @@ impl<'a> crate::util::RawHash for Expr<'a> {
 ///
 /// These are only used by the pretty printer, and do not change the behavior of
 /// type checking.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
 pub enum BinderStyle {
     #[serde(rename = "default")]
     Default,

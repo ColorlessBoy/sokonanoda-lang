@@ -28,6 +28,7 @@ pub mod tc;
 mod tests;
 pub mod util;
 pub mod value;
+pub(crate) mod writer;
 
 pub(crate) const STACK_SIZE: usize = 2 * 1024 * 1024 * 1024;
 

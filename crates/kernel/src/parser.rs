@@ -55,37 +55,37 @@ pub struct Parser<'a, R: BufRead> {
     scratch_idxs: Vec<u32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-struct LeanMeta<'a> {
-    version: Cow<'a, str>,
-    githash: Cow<'a, str>
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
+pub(crate) struct LeanMeta<'a> {
+    pub(crate) version: Cow<'a, str>,
+    pub(crate) githash: Cow<'a, str>
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-struct ExporterMeta<'a> {
-    name: Cow<'a, str>,
-    version: Cow<'a, str>
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
+pub(crate) struct ExporterMeta<'a> {
+    pub(crate) name: Cow<'a, str>,
+    pub(crate) version: Cow<'a, str>
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-struct FormatMeta<'a> {
-    version: Cow<'a, str>
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
+pub(crate) struct FormatMeta<'a> {
+    pub(crate) version: Cow<'a, str>
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-struct FileMeta<'a> {
-    lean: LeanMeta<'a>,
-    exporter: ExporterMeta<'a>,
-    format: FormatMeta<'a>
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, serde::Serialize)]
+pub(crate) struct FileMeta<'a> {
+    pub(crate) lean: LeanMeta<'a>,
+    pub(crate) exporter: ExporterMeta<'a>,
+    pub(crate) format: FormatMeta<'a>
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-enum BackRef {
-    #[serde(alias = "in")]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, serde::Serialize)]
+pub(crate) enum BackRef {
+    #[serde(rename = "in", alias = "In")]
     In(u32),
-    #[serde(alias = "il")]
+    #[serde(rename = "il", alias = "Il")]
     Il(u32),
-    #[serde(alias = "ie")]
+    #[serde(rename = "ie", alias = "Ie")]
     Ie(u32),
 }
 
@@ -97,16 +97,16 @@ impl BackRef {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-struct ExportJsonObject<'a> {
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, serde::Serialize)]
+pub(crate) struct ExportJsonObject<'a> {
     #[serde(flatten)]
-    val: ExportJsonVal<'a>,
+    pub(crate) val: ExportJsonVal<'a>,
     #[serde(flatten)]
-    i: Option<BackRef>
+    pub(crate) i: Option<BackRef>
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-enum DefinitionSafety {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
+pub(crate) enum DefinitionSafety {
     #[serde(rename = "unsafe")]
     Unsafe,
     #[serde(rename = "safe")]
@@ -115,8 +115,8 @@ enum DefinitionSafety {
     Partial,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-enum QuotKind {
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, serde::Serialize)]
+pub(crate) enum QuotKind {
     #[serde(rename = "type")]
     Ty,
     #[serde(rename = "ctor")]
@@ -127,15 +127,15 @@ enum QuotKind {
     Ind,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-struct RecursorRule {
-    ctor: u32,
-    nfields: u16,
-    rhs: u32,
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
+pub(crate) struct RecursorRule {
+    pub(crate) ctor: u32,
+    pub(crate) nfields: u16,
+    pub(crate) rhs: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-struct IndInfo {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
+pub(crate) struct IndInfo {
     name: u32,
     #[serde(rename = "levelParams")]
     uparams: Vec<u32>,
@@ -157,8 +157,8 @@ struct IndInfo {
     is_unsafe: bool
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-struct Constructor {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
+pub(crate) struct Constructor {
     name: u32,
     #[serde(rename = "levelParams")]
     uparams: Vec<u32>,
@@ -174,8 +174,8 @@ struct Constructor {
     induct: u32
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-struct Recursor {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
+pub(crate) struct Recursor {
     name: u32,
     #[serde(rename = "levelParams")]
     uparams: Vec<u32>,
@@ -196,8 +196,8 @@ struct Recursor {
     k: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-enum ExportJsonVal<'a> {
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, serde::Serialize)]
+pub(crate) enum ExportJsonVal<'a> {
     // The exporter metadata, incl. info about the lean, exporter, and format versions used
     // to create the export file.
     #[serde(rename = "meta")]
@@ -220,7 +220,7 @@ enum ExportJsonVal<'a> {
     LevelIMax([u32; 2]),
     #[serde(rename = "param")]
     LevelParam(u32),
-    #[serde(rename = "natVal", deserialize_with = "deserialize_biguint_from_string")]
+    #[serde(rename = "natVal", deserialize_with = "deserialize_biguint_from_string", serialize_with = "serialize_biguint_to_string")]
     NatLit(BigUint),
     #[serde(rename = "strVal")]
     StrLit(Cow<'a, str>),
@@ -1500,6 +1500,13 @@ impl<'a, R: BufRead> Parser<'a, R> {
 
 /// Needed because the lean4export format serializes nat literals as strings: 
 /// https://github.com/leanprover/lean4export/blob/ddeb0869b0b5679b0104e16291ffd929fbaa6a48/format_ndjson.md?plain=1#L186
+/// **T1-B writer 用**（2026-10-09）：`BigUint` 序列化成**十进制字符串** ——
+/// 与 [`deserialize_biguint_from_string`] **对称**（Lean 导出格式就这么写 ✓）。
+fn serialize_biguint_to_string<S>(v: &BigUint, s: S) -> Result<S::Ok, S::Error>
+where S: serde::Serializer {
+    s.serialize_str(&v.to_str_radix(10))
+}
+
 fn deserialize_biguint_from_string<'de, D>(deserializer: D) -> Result<BigUint, D::Error>
 where D: Deserializer<'de> {
     use std::str::FromStr;

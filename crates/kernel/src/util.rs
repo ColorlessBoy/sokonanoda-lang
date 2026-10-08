@@ -664,6 +664,15 @@ impl<'p> ExportFile<'p> {
     /// The kernel still reports rejection through assertion panics today; this
     /// wrapper classifies them as [`CheckError::Rejected`]. Replacing those
     /// panics with explicit propagation is a follow-up kernel task.
+    /// **NDJSON writer**（T1-B 批 1 · 2026-10-09）：把这份环境写成 Lean 导出格式的文本
+    /// （`crate::parser` 读得回来 ✓）。**纯函数、不改环境** ✓。
+    ///
+    /// `Err` = 有本版**尚未支持**的节点（归纳块 / 占位符）⇒ 调用方**静默回退**到
+    /// "本地重编"（**不产生半个产物** ✓，同设计 §8.1 的"失败当不存在"）。
+    pub fn to_ndjson(&self) -> Result<String, String> {
+        crate::writer::write_export_file(self)
+    }
+
     pub fn try_check_declar(&self, d: &Declar<'p>) -> Result<(), CheckError> {
         self.try_check_declar_at(d, EnvLimit::ByName(d.info().name))
     }
