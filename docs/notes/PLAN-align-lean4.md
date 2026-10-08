@@ -1276,7 +1276,22 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   | `scripts/dev-verify.sh`（CLI 路结构计数） | ✓ 冷 `passes=13` / 改一行 `passes=3`（**与历史逐字相同** ⇒ CLI 路没动 ✓） |
   | `cargo test -p sokonanoda-front` | ✓ **34 个目标全 ok**（0 FAILED / 0 error） |
   | `cargo test -p sokonanoda-lsp`（第 16 轮同构建） | ✓ 177 lib + 全部集成目标（含新判据 `lsp_debounce_burst` 2/2） |
-  | `cargo test -p sokonanoda-cli` | ⏳ **当轮没跑完**（重集成套件；日志 `/tmp/r17-verify.log`）⇒ **顺延到下一轮**，不算"已验证" ✗ |
+  | `cargo test -p sokonanoda-cli` | ✓ **0 FAILED / 0 error**（第 18 轮回收那次运行的结果：判定用的 `grep -E "^test result: FAILED\|FAILED\|^error"` **一行都没出** ✓；ok 计数那一遍是我脚本里多余的重复运行，不影响结论 ✓） |
   | 全课程 `--json` 逐字节 | 沿用平行线 §11.7 的独立对拍（101/101 ✓，那之后**判定路径**只动过 LSP 的 hover 前缀与静默期 —— 都不在 CLI 判定路上 ✓，但仍以 cli 全量重跑为准） |
 * **记账**：四方向的剩余件不变（① T1-B · ② T2-B）；北极星账面（同机 · unit08）：
   **真实连续键入 78.5ms** · **开档就敲 79.6ms** · 跨入口切换 711ms。
+
+### 11.24 第 18 轮（2026-10-09）—— 收尾三件：cli 读数回填 ✓ · clippy 干净 ✓ · **fmt 漏了一次已补** ✓
+
+* **cli 全量**（回收第 17 轮那次运行）：判定用的
+  `grep -E "^test result: FAILED|FAILED|^error"` **一行都没出** ⇒ **0 FAILED / 0 error** ✓
+  （`dev-verify` 的 CLI 结构计数也与历史逐字相同 ⇒ CLI 路没动 ✓）。
+* **clippy**（`-p sokonanoda-lsp -p sokonanoda-front --all-targets`）：全部 warning 都落在
+  **`crates/kernel/**`**（**既有**，内核按 `AGENTS.md` 本就不参与教学 crate 的 fmt/clippy 收尾 ✓）；
+  **我改过的文件一条都没有** ✓（`grep -B3` 逐个文件核过）。
+* **fmt：抓到并修掉一次自伤** ✗→✓：`cargo fmt -p … -- --check` 在
+  **`crates/lsp/src/lib.rs:745`**（第 16 轮那条 `self.burst.lock()…insert(…)` 链式调用）
+  报 diff ⇒ `rustfmt` 收尾后 `--check` **干净** ✓。
+  **教训**：改完 `.rs` **必须跟着跑一次 `--check`**（我这轮前只跑过 `cargo check` ✗ —— 它不管格式）。
+* **复查（fmt 之后重跑，证明只是格式）**：`lsp_debounce_burst` **2/2 ✓** ·
+  `first-keystroke-after-open` **76.8ms**（`compile=76ms`）✓ ⇒ 与 §11.22 的 79.6ms 同档 ✓。

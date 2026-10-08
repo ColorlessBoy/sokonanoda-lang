@@ -745,10 +745,7 @@ impl Compiler {
         drop(pending);
         // 已有任务在飞：它下一轮循环会取走这条 pending。
         let scheduled = inflight.insert(uri.clone());
-        self.burst
-            .lock()
-            .expect("burst lock")
-            .insert(uri, burst);
+        self.burst.lock().expect("burst lock").insert(uri, burst);
         scheduled
     }
 
