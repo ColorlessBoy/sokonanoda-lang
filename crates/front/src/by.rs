@@ -629,6 +629,29 @@ pub struct ByFailure {
     pub steps: Vec<ByStep>,
 }
 
+/// **B3 的判据读数**（`#[doc(hidden)]`，只给判据用）：最近一次"失败后**从第 k 条续跑**"
+/// 记成 `k + 1`；**`0` = 没有续跑**（走的是"整段严格重跑"那条路 ✓）。
+///
+/// **为什么需要一个专门的读数**（而不是只看文档走查数）：`pass_count()` 的口径与
+/// "严格通道跑了几条 tactic"**不是一回事**（batching 关掉时它读到 0 —— 2026-10-08
+/// 实测踩到 ✗）⇒ "撤掉续跑"这个反向验证**咬不住**。这个读数直接回答
+/// "**有没有续跑、从第几条**" ⇒ 反向验证必然判红 ✓（同 `INPLACE_BY_SHADOW_*` 的纪律：
+/// 判据要读**机制本身**的计数，不要读一个语义相近的量 ✗）。
+static BY_FAILURE_RESUME_FROM: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+
+/// 见 [`BY_FAILURE_RESUME_FROM`]：`0` = 没有续跑。
+#[doc(hidden)]
+pub fn by_failure_resume_from() -> usize {
+    BY_FAILURE_RESUME_FROM.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// 判据用（测试之间隔离）：清掉那个读数。
+#[doc(hidden)]
+pub fn by_failure_resume_reset() {
+    BY_FAILURE_RESUME_FROM.store(0, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// 节点解决方案：洞 / 已闭合术语 / `apply`（f 应用于若干实参，其中子目标
 /// 实参指向节点 id）。
 #[derive(Clone)]
@@ -1275,7 +1298,10 @@ pub(crate) fn run_by<'a>(
                 .find(|(_, len)| *len <= bad_item)
                 .map(|(index, _)| *index);
             match owner {
-                Some(k) => run_by_inner(
+                Some(k) => {
+                    // **B3 的读数**（判据用）：记下"从第 k 条续跑" ✓。
+                    BY_FAILURE_RESUME_FROM.store(k + 1, std::sync::atomic::Ordering::Relaxed);
+                    run_by_inner(
                     ty,
                     by,
                     initial_binders,
@@ -1287,9 +1313,10 @@ pub(crate) fn run_by<'a>(
                     defs,
                     ctx,
                     crate::compile::elab::InplaceEnv::reborrow(&mut env),
-                    Some(k),
-                    &mut marks_for_strict,
-                ),
+                        Some(k),
+                        &mut marks_for_strict,
+                    )
+                }
                 // 拿不到边界（批次里一条判定都没有？）⇒ 退回今天的整段重跑 ✓。
                 None => strict_from_zero(),
             }

@@ -1836,6 +1836,45 @@ pub(crate) fn judge_infer_store(
 /// ⇒ 冷开**变慢**（实测 `unit12-synthesis` didOpen **8.5s → 11.2s** ✗）。
 /// 现在表里存 **u64 哈希** ✓ ⇒ 命中只读一个 8 字节 ✓。
 #[track_caller]
+/// **A7（2026-10-08）**：`src` 的**文本哈希**的小 LRU 记忆化（4 条）。
+///
+/// **为什么需要它**（端到端 profiling 实测）：`sample` 里 **judge 缓存键的 SipHash 占一次
+/// 按键编译样本的 22.5%** ✗ —— `judge_infer_cache_key` **每次调用**都对**整份前缀文本**
+/// 跑一遍 `judge_cache_key`（`canonical_prefix_cached` 的 `text_key`），而同一份前缀在一次
+/// 编译里会被问几百次 ⇒ 同一段字节被反复哈希 ✗。
+///
+/// **为什么不换更快的哈希**：键值一变，碰撞预算就要重新论证，而"**错键 = 静默用旧答案**"
+/// 是 B4 的红线 ✗。这里**哈希函数一字不动** ✓ —— 只是**不再重复算它**：
+/// 命中判据是**逐字节相等**（`String == &str`）⇒ 命中与否**只由内容决定** ⇒
+/// 指针复用（ABA）**不可能**给出错的哈希 ✓（哈希本来就是内容的函数）。
+///
+/// 守卫：`judge::tests::the_text_hash_memo_never_changes_a_key`（同一份文本的键恒等 +
+/// 不同文本的键不同 ✓）。
+fn text_hash_memo() -> &'static std::sync::Mutex<Vec<(String, u64)>> {
+    static MEMO: std::sync::OnceLock<std::sync::Mutex<Vec<(String, u64)>>> =
+        std::sync::OnceLock::new();
+    MEMO.get_or_init(|| std::sync::Mutex::new(Vec::new()))
+}
+
+/// 文本 → 哈希（带小 LRU；见 [`text_hash_memo`]）。
+fn canonical_text_key(src: &str) -> u64 {
+    /// 4 条够用：一次编译里被反复问的前缀就那几份（`extra_prefix` + 闭包前缀）。
+    const MEMO: usize = 4;
+    let mut memo = text_hash_memo().lock().expect("text hash memo");
+    if let Some(pos) = memo.iter().position(|(text, _)| text == src) {
+        let hit = memo.remove(pos);
+        let h = hit.1;
+        memo.push(hit); // LRU：命中挪到末尾
+        return h;
+    }
+    let h = judge_cache_key(&[src]);
+    if memo.len() >= MEMO {
+        memo.remove(0);
+    }
+    memo.push((src.to_string(), h));
+    h
+}
+
 fn canonical_prefix_cached(src: &str) -> u64 {
     if src.is_empty() {
         return 0;
@@ -1861,7 +1900,7 @@ fn canonical_prefix_cached(src: &str) -> u64 {
     // 一模一样的身份 ✓），但它把"删掉 O(n²)"这件事**又还回去了** ✗。
     // ⇒ 判据：整本课程 `evictions == 0` ✓（`identity_evictions()` / `STAGE_STATS` ✓）。
     const CAP: usize = 65536;
-    let text_key = judge_cache_key(&[src]);
+    let text_key = canonical_text_key(src);
     if let Some(hit) = canonical_prefix_table()
         .lock()
         .expect("canonical prefix table")
@@ -1906,7 +1945,8 @@ pub fn seed_canonical_prefix(text: &str, identity: &str) {
     if text.is_empty() {
         return;
     }
-    let text_key = judge_cache_key(&[text]);
+    // 与读取侧同一个记忆化（种进来的那一份往往就是接下来被问几百次的那一份 ✓）。
+    let text_key = canonical_text_key(text);
     let hash = judge_cache_key(&[identity]);
     let mut table = canonical_prefix_table()
         .lock()
@@ -3686,21 +3726,25 @@ mod tests {
             "关掉批处理应当逐条判（≥3 遍），实际 {strict_passes} 遍"
         );
 
-        // ── **B3（2026-10-08）**：**失败**的 `by` 块只付"1 次乐观批 + 1 次续跑"，
-        // **不随出错位置增长**（以前是 1 + N：严格趟从第 0 条重放 ✗）。
+        // ── **B3（2026-10-08）**：失败块的严格趟**从失败步续跑**（P3 成本面）──────
         //
-        // ⚠ **为什么并进这一条测试**（而不是另开一条）：`set_batching` 与
-        // `pass_count` 是**进程级**的，同一文件的多个 `#[test]` 并行跑会互相抢
-        // ⇒ 间歇假红 ✗（2026-09-30 的事故同形，`scripts/check-test-env-isolation.py`
-        // 就是为它立的）。同一个全局开关**只能有一个测试碰** ✓。
+        // 判据（两条，都**不依赖判定缓存的冷热** ✓）：
+        // 1. **直接读数** `by_failure_resume_from()`：`0` = 没续跑（退回整段严格重放 ✗）、
+        //    `k+1` = 从第 k 条续跑 ✓ —— 它直接回答"机制有没有生效"，**撤掉续跑必红** ✓；
+        // 2. **诊断红线**：`batched` 与 `strict`（关批处理）的诊断**逐字相同** ✓。
         //
-        // 判据（缺一不算）：① 走查数 = **2**，且第 1 条错与第 3 条错**相等**；
-        // ② **诊断与整段严格重跑逐字相同**（判定红线：续跑不许改变答案 ✓）。
+        // ⚠ **为什么不用"文档走查数"当判据**（原计划那条）：`pass_count()` 数的是
+        // `judge_pairs_uncached`，而**命中判定缓存**的判定一次都不计 ✗ —— 同一夹具
+        // 编第二遍就读到 **0**（实测踩到 ✗），于是"撤掉续跑"那条反向验证**咬不住**
+        // （"4 → 2"那个前后对比是**冷缓存**下的读数，不能当守卫 ✓）。⇒ 守卫改读
+        // **机制本身**（同 `INPLACE_BY_SHADOW_*` 的纪律：别拿语义相近的量当判据 ✗）。
+        // 冷缓存下的历史读数（如实留档、不作断言）：失败位置 3 ⇒ B3 前 **4** 遍、B3 后 **2** 遍。
         //
-        // 夹具要"前面的 tactic 一定成功、且不动目标"⇒ 用两条 `have`（只往上下文加
-        // 东西 ✓），最后一条 `exact h1` 对目标 `A ∧ B` 必然不匹配 ⇒ 失败位置 = 第 `bad` 条 ✓
-        // （实测：用 `apply And.intro` 那类**会动目标**的 tactic 会把失败位置挪到第 2 条 ✗）。
-        let block = |bad: usize| {
+        // 夹具要"前面的 tactic 一定成功、且不动目标"⇒ 两条 `have`（只往上下文加东西 ✓）
+        // + 最后一条 `exact h1` 对目标 `A ∧ B` 必然不匹配 ⇒ 失败位置 = 第 `bad` 条 ✓
+        // （用 `apply And.intro` 那类**会动目标**的 tactic 会把失败位置挪到第 2 条 ✗）。
+        // 夹具名字带 `tag`：判定缓存按前缀文本做键 ⇒ 每次测量用不同的 `tag` ✓。
+        let block = |bad: usize, tag: &str| {
             let steps = ["have a : A := h1", "have b : B := h2", "exact h1"];
             let mut body = String::new();
             for (i, step) in steps.iter().enumerate() {
@@ -3710,10 +3754,12 @@ mod tests {
                     body.push_str(&format!("  {step}\n"));
                 }
             }
-            format!("theorem t (A B : Prop) (h1 : A) (h2 : B) : A \u{2227} B := by\n{body}")
+            format!(
+                "theorem t_{tag} (A B : Prop) (h1 : A) (h2 : B) : A \u{2227} B := by\n{body}"
+            )
         };
-        let passes_for = |bad: usize, batching: bool| -> (usize, Vec<String>) {
-            let file = parse(&block(bad)).expect("parse");
+        let run_for = |bad: usize, batching: bool, tag: &str| -> (usize, Vec<String>) {
+            let file = parse(&block(bad, tag)).expect("parse");
             let previous = set_batching(batching);
             reset_pass_count();
             let report = check_document(&file);
@@ -3726,10 +3772,27 @@ mod tests {
                 .collect();
             (passes, errors)
         };
-        let (fail_first, errors_first) = passes_for(1, true);
-        let (fail_last, errors_last) = passes_for(3, true);
-        let (_, strict_first) = passes_for(1, false);
-        let (_, strict_last) = passes_for(3, false);
+        let resume_for = |bad: usize, tag: &str| -> usize {
+            crate::by::by_failure_resume_reset();
+            let _ = run_for(bad, true, tag);
+            crate::by::by_failure_resume_from()
+        };
+        assert_eq!(
+            resume_for(3, "r3"),
+            3,
+            "**B3 的正身**：第 3 条错 ⇒ 必须**从第 3 条续跑**（读数 = k+1 = 3）；\
+             0 = 没续跑（退回整段严格重放 ✗）"
+        );
+        assert_eq!(
+            resume_for(1, "r1"),
+            1,
+            "第 1 条错 ⇒ 从第 1 条续跑（读数 = 1）—— 与「整段重放」在这条夹具上等价，\
+             但读数仍然证明**走的是续跑那条路** ✓"
+        );
+        let (_, errors_first) = run_for(1, true, "p1");
+        let (_, errors_last) = run_for(3, true, "p3");
+        let (_, strict_first) = run_for(1, false, "s1");
+        let (_, strict_last) = run_for(3, false, "s3");
         assert_eq!(
             errors_first, strict_first,
             "第 1 条错：**续跑不许改变诊断**（判定红线）"
@@ -3741,15 +3804,6 @@ mod tests {
         assert!(
             !errors_last.is_empty(),
             "夹具前提：这一块必须真的失败（否则量的是成功路径）"
-        );
-        assert_eq!(
-            fail_last, 2,
-            "**B3 的正身**：第 3 条错 ⇒ 走查数该是 **2**（1 次乐观批 + 1 次续跑）；\
-             实测 {fail_last} ⇒ 严格趟又从头重放了 ✗"
-        );
-        assert_eq!(
-            fail_first, fail_last,
-            "**走查数不许随出错位置增长**（第 1 条错 {fail_first} vs 第 3 条错 {fail_last}）"
         );
     }
 
