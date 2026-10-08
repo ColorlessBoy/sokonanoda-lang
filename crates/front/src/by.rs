@@ -798,6 +798,16 @@ fn canonical_goal_type<'a>(
         // ⚠ **A2a 起这一档必须也走 `needs_explicit` 的目标** —— 那正是抬闸的判据
         // （`crates/front/tests/judge_inplace_by_multi_implicit.rs` ✓）。
         crate::judge::ByMode::Shadow => {
+            // ⚠ **"把两边逼到同一种渲染口径"这条试过了、不成立**（2026-10-08 实测 ✗）：
+            // 影子档里改成**强制全显式**（传 `true` 而不是 `needs_explicit`）之后
+            // `unit84` 的 `shadow_diff` **27 → 43** ✗ —— 因为**两边各自的显式性取决于
+            // 项自己的形态**，不是某个开关：同一条入口里既有
+            //   `fast = @Iff (@Set.subset α A B) …` vs `slow = Iff (Set.subset A B) …`（这回**慢路省**）
+            // 又有反过来的（上一轮那条：`fast` 省、`slow` 全显式 ✓）。
+            // ⇒ 结论：**文本层面的归一化做不到** ✓ —— 要让它成为语义判据，只能比
+            // **结构化结果**（把两边的项都拿出来比 ✓），那是独立课题 ✓。
+            // 所以这里**保持原样**（按 `needs_explicit` 渲染 ✓），`diff` 继续只当
+            // "文本不等"的计数用 ✓（生产档位 `On`/`Off` 一个字没动 ✓）。
             let inplace = env.as_deref_mut().and_then(|env| {
                 crate::judge::judge_render_type_inplace_with_explicit(
                     needs_explicit,
