@@ -875,8 +875,12 @@ bare_miss_ms={} bare_miss_share={:.3}",
                     .iter()
                     .map(|(name, n)| format!(" {name}={n}"))
                     .collect();
+                // **`TcCache` 构造次数**（2026-10-08 端到端 profiling 的读数）：
+                // 每一次 `with_tc` 都新建一份预分配 ≈ 4 MiB + 20 张表的 `TcCache`
+                // ⇒ 实测 61.8 µs/次、占一次按键编译样本的 63%（见 `util::TC_CACHE_BUILDS`）。
+                let tc_cache_builds = sokonanoda::util::tc_cache_builds_total();
                 eprintln!(
-                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={} fallbacks={fallbacks} identity_parses={identity_parses} identity_evictions={identity_evictions}{gates}",
+                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={} fallbacks={fallbacks} identity_parses={identity_parses} identity_evictions={identity_evictions} tc_cache_builds={tc_cache_builds}{gates}",
                     ms(PASS_NANOS.load(Ordering::Relaxed)),
                     ms(BY_NANOS.load(Ordering::Relaxed)),
                     ms(crate::judge::stats::nanos()),

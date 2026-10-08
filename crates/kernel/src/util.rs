@@ -21,6 +21,7 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::Write;
@@ -1280,6 +1281,8 @@ pub struct TcCache<'a, 't> {
 
 impl<'a, 't> TcCache<'a, 't> {
     pub(crate) fn new(arena: &'a bumpalo::Bump) -> Self {
+        // 判据读数（见 [`TC_CACHE_BUILDS`]）：它在热路径上，一次 `Relaxed` 加法。
+        TC_CACHE_BUILDS.fetch_add(1, Ordering::Relaxed);
         Self {
             unfold_const_cache: session_small_fx_hash_map(),
             rec_rule_cache: small_fx_hash_map(),
@@ -1640,11 +1643,53 @@ struct ExitStatus {
     pp_err: Option<String>,
 }
 
-pub(crate) const WHNF_ADMIT_LEN: usize = 1 << 22;
+/// **`whnf_admit` 表的位数**（表长 = `1 << WHNF_ADMIT_BITS`）。
+///
+/// ⚠ **它与 [`admit_slot`] 的移位是同一件事的两半** —— 必须一起看：
+/// 索引由 `>> (64 - WHNF_ADMIT_BITS)` 产生 ⇒ 改这里、`admit_slot` 自动跟着改 ✓。
+/// （2026-10-08 实测踩到：老代码把 `>> 42` 与 `1 << 22` **各写一处**，把表改小
+/// 就**越界 panic** ✗ —— 而且 panic 会被 `quiet_catch` 吞掉 ⇒ 量出来的"变快"是假象 ✗。
+/// 这正是 `AGENTS.md` 的"咬不住的守卫等于没有"：**两处手抄的常量必须合成一处** ✓。）
+///
+/// ## 为什么是 16 位（4 MiB → 64 KiB，2026-10-08 · A6）
+///
+/// 端到端 profiling（`docs/notes/PLAN-cli-editor-perf.md` §8.8）实测：一次按键
+/// **构造 `TcCache` 6876 次**（`LSP_TRACE … tc=` ✓），而 `TcCache::new` 的预分配里
+/// **87% 是这张表的清零**（4 MiB 的 `vec![0u8; ..]`：微基准 53.5 µs / 全构造 61.8 µs）
+/// ⇒ `sample` 里 `TcCache::new` 占一次按键编译样本的 **63%** ✗。
+/// 这张表只是 **"同一个 digest 见过 ≥2 次才准进 `whnf_store`"的启发式计数器**
+/// （`eval.rs::note_whnf`）⇒ 表小 = 哈希碰撞多 = **假准入变多**（只是多进几条缓存 ✓），
+/// **不改判定** ✓。64 KiB 对"一次 `with_tc` 生命周期内"的观察量绰绰有余。
+///
+/// ⚠ **与 T-K31 阴性结果的关系**（2026-09-24，`docs/perf/ledger.jsonl`）：那次把
+/// `whnf_admit` 做成复用池却**无收益** —— 因为池化**每次取出都 `fill(0)`**（4 MiB
+/// memset 照付 ✗），省下的只有 mmap 记账。**不是**"4 MiB 清零不要钱" ✓
+/// （当时的解释"mmap 惰性零页"与本轮 `sample` 的 `__bzero` 证据不符 ✗）。
+/// ⇒ 本轮换的是**表本身变小**（清零量 ÷64），不是池化 ✓。
+pub(crate) const WHNF_ADMIT_BITS: u32 = 16;
+pub(crate) const WHNF_ADMIT_LEN: usize = 1 << WHNF_ADMIT_BITS;
+
+/// **`TcCache` 构造次数**（进程级 · `#[doc(hidden)]` · 只给判据用）。
+///
+/// **为什么需要它**（2026-10-08 端到端 profiling）：每一次 `with_ctx`/`with_tc`
+/// 都**新建**一份 [`TcCache`]，而 `TcCache::new` 的预分配是
+/// `WHNF_ADMIT_LEN`（**4 MiB**，`vec![0u8; ..]`）+ 约 20 张 `with_capacity`
+/// 哈希表 ⇒ 实测 **61.8 µs/次**，其中 **53.5 µs 就是那张 4 MiB 表的清零**
+/// （`sample`：一次按键的编译里 `TcCache::new` 占 **63%** 的样本）。
+/// 判据用它数"一次按键构造了几次"，而不是数毫秒（`AGENTS.md` 判据纪律②）。
+pub static TC_CACHE_BUILDS: AtomicU64 = AtomicU64::new(0);
+
+/// 见 [`TC_CACHE_BUILDS`]。
+#[doc(hidden)]
+pub fn tc_cache_builds_total() -> u64 {
+    TC_CACHE_BUILDS.load(Ordering::Relaxed)
+}
 
 #[inline]
 pub(crate) fn admit_slot(k: u64) -> usize {
-    (k.wrapping_mul(0x9E37_79B9_7F4A_7C15) >> 42) as usize
+    // 索引位数由 [`WHNF_ADMIT_BITS`] 推出 ⇒ **不可能与表长脱钩** ✓
+    // （老代码是手抄的 `>> 42` ↔ `1 << 22`，改一处就越界 ✗）。
+    (k.wrapping_mul(0x9E37_79B9_7F4A_7C15) >> (64 - WHNF_ADMIT_BITS)) as usize
 }
 
 #[inline]
