@@ -1295,3 +1295,28 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   **教训**：改完 `.rs` **必须跟着跑一次 `--check`**（我这轮前只跑过 `cargo check` ✗ —— 它不管格式）。
 * **复查（fmt 之后重跑，证明只是格式）**：`lsp_debounce_burst` **2/2 ✓** ·
   `first-keystroke-after-open` **76.8ms**（`compile=76ms`）✓ ⇒ 与 §11.22 的 79.6ms 同档 ✓。
+
+### 11.25 第 19 轮（2026-10-09）—— 写穿缓存的**第二个消费者**（平行线补 · 带反向验证）
+
+* **背景**：§11.17 把 hover 回归的根因定到"就地档掐掉了 `judge_type_of_constant` 的
+  **缓存副作用**"✓；§11.18 选了修法 **(a) LSP 侧换前缀**（`judge_prefix_with_entry`），
+  并把修法 **(b) 就地路写穿缓存**评为"改动更大、且继续依赖副作用 ✗"。
+  ⇒ **平行线保留了 (b)**（`1dc71749`）—— 理由是**消费者不止一个** ✗。
+* **第二个消费者**（本轮实测 · 此前**零判据**）：`crates/lsp/src/lib.rs` 的
+  「**记法的目标**」分支（`notation_target_at` ⇒ `judge_type_of_constant("", …)`，
+  **空前缀**）—— 空前缀**合成不出**声明 ⇒ 它**只能靠编译期那次调用的缓存副作用**
+  活着。§11.18 的 (a) 只改了「记法符号」那一条 ⇒ **这一条仍会静默少一行签名** ✗。
+* **落点**：
+  * `1dc71749`（`judge.rs`）：把 `judge_type_of_constant` 的函数级 `CACHE` 抽成
+    `type_of_constant_cache_get/put`，就地路答上时**按同一把键写回** ✓
+    （只缓存成功，沿用原语义；`CAP = 4096` 的闸类出口照旧 ✓）。
+  * `5c5100af`（`crates/lsp/src/tests/hover.rs`）：新增
+    `hover_on_a_notation_target_name_shows_its_signature` —— hover
+    `infix:50 " ⊗ " => myop` 的目标名 ⇒ 必须给原始签名 ✓。
+* **判据**：① `cargo test -p sokonanoda-lsp --lib` **178/178** ✓（修前 176/1）；
+  ② **反向验证（已做）**：临时停掉 `type_of_constant_cache_put` 那行 ⇒ **新用例判红** ✓
+  （守卫有牙，随后已还原）；③ `typing` 臂 Σ合成趟仍 **0**（写缓存**不**重新引入合成趟 ✓）·
+  影子档 `same=78246 · diff=0` ✓；④ `--json` On/Off 逐字节相同（抽 24 份）✓ ·
+  `cargo test -p sokonanoda-front --lib` **875/875** ✓。
+* **两修法并存（互补，不是重复 ✗）**：(a) 让「记法符号」那条**不再依赖**副作用 ✓；
+  (b) 让**所有**消费者的旧行为**一字不变** ✓（第二消费者仍在靠它，直到它也拿到正确前缀）。
