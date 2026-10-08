@@ -543,6 +543,30 @@ pub(crate) mod stats {
         )
     }
 
+    /// **T3-B1 · §4.2 第 5 条（2026-10-09）**：记法目标签名（`judge_type_of_constant`）
+    /// 的就地读数。`(used, fallback)` = On 档就地答上 / 答不出；
+    /// 影子档另记 `(same, diff)`。**单独一组**（不与别的档混 ⇒ 判据不空转 ✓）。
+    pub(crate) static INPLACE_TOC_USED: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_TOC_FALLBACK: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_TOC_SHADOW_SAME: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_TOC_SHADOW_DIFF: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_TOC_FIRST_DIFF: std::sync::Mutex<Option<String>> =
+        std::sync::Mutex::new(None);
+
+    pub fn inplace_type_of_constant() -> (u64, u64) {
+        (
+            INPLACE_TOC_USED.load(Ordering::Relaxed),
+            INPLACE_TOC_FALLBACK.load(Ordering::Relaxed),
+        )
+    }
+
+    pub fn inplace_type_of_constant_shadow() -> (u64, u64) {
+        (
+            INPLACE_TOC_SHADOW_SAME.load(Ordering::Relaxed),
+            INPLACE_TOC_SHADOW_DIFF.load(Ordering::Relaxed),
+        )
+    }
+
     /// `cases` 就地读数 `(used, fallback)`。
     pub fn inplace_cases() -> (u64, u64) {
         (
@@ -2152,6 +2176,25 @@ pub fn synthesized_report() -> (u64, u64, u64) {
     stats::synthesized()
 }
 
+/// **T3-B1 · §4.2 第 5 条的读数**（记法目标签名的就地路）：`(used, fallback)`。
+/// `used > 0` 证明这条接线**真的被走到**（否则判据空转 ✗）。
+pub fn type_of_constant_report() -> (u64, u64) {
+    stats::inplace_type_of_constant()
+}
+
+/// **同上 · 影子档读数**：`(same, diff)`；`diff == 0` 是本档能开的前提 ✓。
+pub fn type_of_constant_shadow() -> (u64, u64) {
+    stats::inplace_type_of_constant_shadow()
+}
+
+/// **诊断**：影子档第一条分叉的原样记录（只记第一条）。
+pub fn type_of_constant_first_diff() -> Option<String> {
+    stats::INPLACE_TOC_FIRST_DIFF
+        .lock()
+        .ok()
+        .and_then(|g| g.clone())
+}
+
 /// **P1-a 就地判定的读数**（集成测试 / 诊断用；进程级，见 [`stats::inplace`]）：
 /// `(used, fallback, shadow_same, shadow_diff)`。
 ///
@@ -2363,6 +2406,78 @@ pub fn judge_type_of_constant(
         }
     }
     result
+}
+
+/// **T3-B1 · §4.2 第 5 条（2026-10-09）**：记法目标签名的**就地**版。
+///
+/// `elab_notation` 每展开一个记法符号都要问一次「目标常量的类型」
+/// （[`judge_type_of_constant`] ⇒ `judge_type_of` ⇒ **合成 `#check` + 整份前缀
+/// 从零重跑** ✗）。常量就在**活环境**里（它刚被 elaborate 过）⇒ 不必重跑 ✓。
+///
+/// 就地路 = 把常量名当 `Expr::Ident` 在活环境上 elaborate，再走
+/// [`crate::compile::elab::infer_type_text_inplace`] 的内核 pp —— 它设的
+/// `proofs = true` 与 `explicit_pp_active()` 与 `#check` 出口**同款** ✓
+/// ⇒ 文本与慢路**同源**。答不出 / 开关关着 ⇒ `None`，调用方**原样**回落慢路 ✓。
+///
+/// ⚠ **文本必须与慢路逐字节相同**：签名文本会被回读成记法目标 —— 文本分叉
+/// 就是 **elaborate 分叉** ✗ ⇒ 影子档逐条比对（见 [`type_of_constant_prefer_inplace`]）。
+fn judge_type_of_constant_inplace(
+    known: &crate::compile::elab::KnownTable,
+    name: &str,
+) -> Option<String> {
+    if crate::judge::inplace_mode() == InplaceMode::Off {
+        return None;
+    }
+    // **与慢路同源**：`#check <裸常量>` 的渲染走 `walk::check` 的 `sig` 快路
+    // （`known.get(name).signature()` ✓，U2）⇒ 这里**读同一张表**、取**同一个字段**
+    // ⇒ 文本**构造性相同** ✓（不必再 elaborate、不碰内核 pp ✗）。
+    known
+        .get(name)
+        .and_then(|info| info.signature())
+        .map(str::to_string)
+}
+
+/// **记法目标签名的档位入口**（T3-B1 · §4.2 第 5 条）：On 就地优先、Shadow 两条都跑、
+/// Off 原样走 [`judge_type_of_constant`]。
+///
+/// ⚠ Shadow 档**返回慢路那一份** ⇒ 行为零变化、只取证 ✓（同 A2a 的档位纪律）。
+pub(crate) fn type_of_constant_prefer_inplace(
+    known: &crate::compile::elab::KnownTable,
+    prefix_src: &str,
+    options: &CompileOptions,
+    name: &str,
+) -> Result<String, Judgement> {
+    match crate::judge::inplace_mode() {
+        InplaceMode::Off => judge_type_of_constant(prefix_src, options, name),
+        InplaceMode::On => match judge_type_of_constant_inplace(known, name) {
+            Some(text) => {
+                stats::INPLACE_TOC_USED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                Ok(text)
+            }
+            None => {
+                stats::INPLACE_TOC_FALLBACK.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                judge_type_of_constant(prefix_src, options, name)
+            }
+        },
+        InplaceMode::Shadow => {
+            let fast = judge_type_of_constant_inplace(known, name);
+            let slow = judge_type_of_constant(prefix_src, options, name);
+            let same = matches!((&fast, &slow), (Some(t), Ok(s)) if t == s);
+            if same {
+                stats::INPLACE_TOC_SHADOW_SAME.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            } else {
+                stats::INPLACE_TOC_SHADOW_DIFF.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                if let Ok(mut first) = stats::INPLACE_TOC_FIRST_DIFF.lock() {
+                    if first.is_none() {
+                        *first = Some(format!(
+                            "type-of-constant {name:?} | inplace={fast:?} | slow={slow:?}"
+                        ));
+                    }
+                }
+            }
+            slow
+        }
+    }
 }
 
 fn judge_type_of_uncached(

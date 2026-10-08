@@ -1357,8 +1357,19 @@ fn elab_notation<'a>(
     // 常量自己的、与调用点的 binder 无关。
     // 用**常量签名缓存**（键不含前缀）：记法在每个使用点都要问一次签名，而
     // `judge_type_of` 的缓存键含整段前缀 ⇒ 逐声明退化成正前缀重编译（O(n²)）。
-    let signature = crate::judge::judge_type_of_constant(ctx.prefix_src, ctx.options, &canonical)
-        .map_err(|j| {
+    //
+    // **T3-B1 · §4.2 第 5 条（2026-10-09）**：先试**就地** —— 目标常量刚被
+    // elaborate 过、就在**活环境**里（`builder` 现成）⇒ 不必合成 `#check`
+    // 文档、把整份前缀从零重跑 ✗（实测 unit08 冷开 35 趟 / 第 1 刀 4 趟）。
+    // 就地答不出 / 开关关着 ⇒ `type_of_constant_prefer_inplace` **原样**回落
+    // `judge_type_of_constant`（含它的前缀无关缓存）✓。
+    let signature = crate::judge::type_of_constant_prefer_inplace(
+        known,
+        ctx.prefix_src,
+        ctx.options,
+        &canonical,
+    )
+    .map_err(|j| {
         CompileError::elab(
             ErrorKind::ElabNotationUnknownTarget,
             format!(
