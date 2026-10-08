@@ -1799,3 +1799,35 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   偏移都挂在上面）⇒ **必须同一次改完并逐字节对拍**，别半接 ✓。
 * **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 ✓ · 批 2 的基础设施全齐，只剩接进 session** ·
   ② T2-A ✓ / T2-B 缓做 · ③ ✓ · ④ T4-A ✓。
+
+### 28. 第 36 轮（平行线）：载荷补上 **C 块** —— 批 2 的三块全部走得通 wire ✓
+
+* **为什么 C 不能省**（本轮读 `session.rs` 才定死）：消费入口要"**跳过库层 walk**、
+  只走入口自己的命令"，而 `run_entries` 把**库层输出与入口输出合并**成入口那份
+  `CompileOutput`（`on_entry` 收的就是**合并结果**）⇒ 少了库层这半 ⇒ `--json`
+  **不是逐字节相同** ✗。⇒ C 必须跟着产物走。
+* **落点**（`8ecf1610`）：`LibPassFacts`（字段与 `session::LibCheckpoint` **一一对应**，
+  除 `builder`/`tables` = A/B）：`out` · `reports` · `ranges`（`Range` 无 serde ⇒
+  落 `(start,end)` 二元组）· `n_commands` · `prefix_commands` · `lib_prefix`。
+  载荷头改成**两段长度** `<magic> <a_len> <b_len>\n` 后接 A、B、C；`split_payload`
+  任何一段**长度不自洽**都 ⇒ `Err` ✓。
+* **判据**：`payload_round_trips_across_arenas` 扩到三段 —— 真环境 + 前端表 + C 块
+  ⇒ 过磁盘 ⇒ **换 arena** 解码 ⇒ 环境过 `check_all_declars` ✓ · 表逐项相同 ✓ ·
+  **C 逐项相同** ✓；反向：截断 ⇒ `Err` · 头部长度超实际 ⇒ `Err` ✓。
+  front `--lib` **886/886** · fmt 干净 · clippy 0 ✓。
+* ⭐ **批 2 的状态**：**A / B / C 三块全部走得通 wire**（各自带判据）⇒
+  剩下的**纯粹是 session 里的控制流接线**，没有未知形状了 ✓：
+  1. **写入口**：`run_library_pass` 跑完 ⇒ `builder.snapshot()` 出 `ExportFile`
+     ⇒ `encode_payload` ⇒ `artifacts::write(root, lib_key(lib_units, options), …)`。
+     ⚠ `lib_key`（`session.rs:234`）**已经是**"库层集合+顺序+名字/路径/源文本+import 边
+     +prelude 模式"的摘要 ⇒ 直接复用当产物键即可（**不需要**再引 `module_keys`）✓。
+  2. **消费入口**：`artifacts::read` 命中 ⇒ `decode_payload` ⇒
+     `EnvBuilder::from_export_file` + `PassTables{…}` + `LibPassFacts` **拼出一份等价于
+     `LibCheckpoint` 的东西** ⇒ 直接进 `run_entries`（**不跑库层 walk** ✓）。
+     ⇒ 这正是"① 产物化：import 走 mmap 不 elaborate"的落点 ✓。
+  3. **必须先定的两件**（否则会半接）：① 产物的**根目录**从哪来（session 现在拿不到
+     `plan.root`，只有 units 的 `path` ⇒ 需要调用方传根，或从 entry 路径推）；
+     ② **默认开关**：设计 §8.3 说下载来的产物默认关 ⇒ **本地自己写的产物**可以默认开，
+     但要给一条逃生门（同 `SOKONANODA_NO_PROJECT_ARTIFACTS` 的既有纪律 ✓）。
+* **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 ✓ · 批 2：A/B/C 三块 wire 全通，
+  只剩 session 控制流接线** · ② T2-A ✓ / T2-B 缓做 · ③ ✓ · ④ T4-A ✓。
