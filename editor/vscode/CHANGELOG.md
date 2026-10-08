@@ -1,3 +1,121 @@
+## [0.86.0] — 2026-10-08
+
+> **The editing loop got much faster** — the hot keystroke's dedup table in the kernel
+> is 64× smaller (A6: **637–772 → 395–434 ms**), the cache-key hash stops re-reading the
+> whole prefix (A7), the artifact-hit open prewarms the library checkpoint (A5), and the
+> entry pass reuses more of what it already computed (A2a/A3/A4a/B3) · **`#check` and
+> `#print` now show their output in the Infoview** (C3) · **the prelude is real source you
+> can edit**, and `SOKO_PRELUDE_DIR` overrides it at run time without cargo (E1/E3) ·
+> **a failing last tactic no longer erases the goals of the steps that worked** (B1) ·
+> **the cursor inside a tactic answers the state *after* it**, and a proof closed at its
+> last tactic says 🎉 Q.E.D. (B2) · **`build` reports every file** and a no-argument
+> `clean`/`rebuild` really clears the project (C1/C2). The red line holds: the course's
+> `--json` output is **byte-identical, 251/251 course entries** (`scripts/check-json-identity.py`).
+
+### Added
+
+- **`#check` / `#print` output in the Infoview** (C3; user report 2026-10-08: "`#check` /
+  `#print` 在 infoview 没有内容"). `#check` was an inlay hint only, and `#print`'s
+  `Printed` event never entered `DocumentReport` — so the LSP structurally could not show
+  it. `DocumentReport` now carries the command outputs (`REPORT_SHAPE` 2 → 3),
+  `soko/stateAt` answers the outputs **on the caret's line** (the same shape as Lean's
+  `getInteractiveDiagnostics{lineRange?}`), and the Infoview renders them in a
+  **命令输出** block (`#check` ⇒ `expression : type`, `#print` ⇒ the definition text).
+  The `#check` inlay hint stays, and nothing is drawn when the caret's line has no
+  output. Guarded on three layers (front report · LSP wire · webview render) plus a
+  reverse verification.
+
+- **The prelude is source now** (E1). `prelude/Prelude.sokonanoda`,
+  `prelude/Eq.sokonanoda`, `prelude/L1.sokonanoda` and `prelude/Quot.sokonanoda` are the
+  truth; Rust keeps only `include_str!`. Editing one of those files really changes
+  behaviour (the old "mirror" file was generated from the constants, so editing it did
+  nothing), and **F12 on a prelude name lands in the repository file**, not in a cache
+  copy. Guarded by `the_three_source_files_are_the_truth_and_rust_holds_no_prelude_text`
+  plus a reverse verification (renaming `True` in `prelude/L1.sokonanoda` reddens the
+  `True.intro` probe).
+
+- **`SOKO_PRELUDE_DIR` — a run-time prelude override** (E3). Point it at a directory
+  containing any of `Eq.sokonanoda` / `L1.sokonanoda` / `Quot.sokonanoda` and that file
+  replaces the built-in one; the ones you do not provide stay built in. This is the half
+  of "the prelude is modifiable" that works for a **release install with no cargo**: drop
+  a file in a directory, restart the server, see the change. The override content is
+  folded into the cache key, and a malformed override exits **2 with the reason on
+  stderr** instead of panicking.
+
+### Changed
+
+- **`build` reports progress per file** (C1; user report: "约 24 个文件才一条" / "build
+  没有反应"). The human channel (stderr) now prints one line per compiled file
+  (`… 42/240 · <relative path>`; the old rule was one line per 10 %, i.e. every 24 files
+  on a 240-file project), plus a heartbeat (`… still building (12s)`) that a real event
+  displaces. The **machine channel is unchanged**: `--json` stdout keeps its heartbeat
+  contract (off for a terminal, on for a pipe), `SOKO_BUILD_TICK_MS=1` forces it and
+  `SOKO_BUILD_NO_TICK=1` is the escape hatch. Guarded by
+  `scripts/check-progress-cadence.py`, which reddens on the previous binary (10 lines for
+  N=120) and has a `--selftest`.
+
+- **A no-argument `clean` / `rebuild` also clears the module root** (C2). They used to
+  clear only the global cache, so the prewarm that followed was all cache `hit` — a
+  "rebuild" that rebuilt nothing. Both now resolve the module root from the current
+  directory and clear both places, and the extension's Rebuild / Clean commands call the
+  same subcommands.
+
+- **A failing `by` block keeps the goals of the steps that did succeed** (B1). One bad
+  last tactic used to discard the whole `by_steps` list, so the declaration fell back to
+  its statement (`step:-1, total:0`) and every earlier goal looked broken. The steps that
+  ran are kept and the failing step is marked; the strict pass then resumes **from the
+  failing step** (B3) — the walk count is `2`, not `1+N` growing with the error position.
+
+- **The cursor inside a tactic answers the state *after* it** (B2, aligning with Lean 4's
+  `useAfter`). Being strictly inside a tactic's span now selects the goals *after* that
+  tactic; exactly at its start it still shows the entering state. When the last tactic
+  closes the proof, the Infoview and the cursor tree both say **🎉 恭喜，证完了
+  （Q.E.D.）** (`open` / `failed` / tactic-less declarations keep the neutral 「已无目标 ✓」).
+
+- **Faster editing loop** (P7; pinned by structural counts, wall clock only as an order of
+  magnitude):
+  - **A6 (kernel)** — `whnf_admit`'s dedup table goes **4 MiB → 64 KiB** with the index
+    shift derived from the bit width (the old code hard-coded `>> 42` and `1 << 22` in two
+    places, so shrinking only the table panicked — and `quiet_catch` swallowed the panic,
+    which is how a "faster" reading can be an illusion). Hot keystroke
+    **637–772 → 395–434 ms**, cold open **1496–1502 → 821 ms**; the `TcCache` construction
+    count is unchanged (`tc=6876`), so only the unit price moved.
+  - **A6b (kernel)** — `TcCache::new`'s ~20 tables are lazy instead of preallocated:
+    construction **61.8 µs → 9.21 µs**, its share of compile samples **22.9 % → 4.0 %**.
+  - **A7 (front)** — the judge cache key no longer re-hashes the whole prefix text on
+    every call (4 small LRUs; the hit predicate is **byte equality**, so a hit depends on
+    content alone, and the hash function is untouched): SipHash frames **43.8 % → 8.9 %**
+    of compile samples.
+  - **A5 (LSP)** — an artifact hit now prewarms the library-layer checkpoint in the
+    background, so the first keystroke's `modules=` goes **5 → 1** (≈1233 ms → ≈320 ms).
+  - **A2a** — the in-place path takes over `needs_explicit` goals: editing a statement's
+    `prefix` goes **5 → 0**. **A4a** — the closure prefix is stored once with the library
+    checkpoint (0 recomputations from the second keystroke on). **A3** — the checkpoint is
+    a multi-slot LRU, so switching closures no longer evicts the previous entry (the
+    "back to the previous entry" edit goes **3 → 1**).
+
+### Notes
+
+- **`Nat` / `Bool` are registered as a boundary, not hidden** (E2). Those 9 names have no
+  source text — they are hand-built AST — so `prelude_def_span` answers `None` for them,
+  and `prelude/L1.sokonanoda`'s `builtin-rust` section says so. Source-ifying them fails
+  the byte-identity criterion and is recorded as an open item instead.
+- **E4's second step was attempted and reverted** (2026-10-08). Removing the shadow
+  mode's install-time prelude exclusion made the shadow comparison cover more, but the
+  course-level shadow run then showed **61 text-level diffs** — not semantic ones (the
+  in-place path omits implicit arguments, the slow path prints `@`-explicit ones; and
+  `Acc.rec`-style cases answer `None` in-place and fall back to the slow path). Since the
+  output stayed byte-identical (252/252), the correct handling was to **restore the
+  exclusion and register the finding**, not to accept `diff > 0` as noise. The remaining
+  question ("why do the two paths' *texts* differ at install time?") is filed separately.
+- **New repro scripts**: `scripts/check-json-identity.py` (the release red line above —
+  one command, compares against a build of the published tag, has `--selftest`) and
+  `scripts/check-progress-cadence.py` (C1). The identity checker now enumerates **files
+  only**: `rglob("*.sokonanoda")` also matched the module-root artifact **directory**
+  `<module root>/.sokonanoda/`, so the same tree counted **251** or **252** depending on
+  whether that directory existed at that moment — a reading that cannot be compared
+  across runs. The course has **251** `.sokonanoda` files.
+
 ## [0.85.2] — 2026-10-08
 
 > **Course content only — no language or kernel change.** The set-theory course's

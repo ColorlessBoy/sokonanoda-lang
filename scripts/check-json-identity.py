@@ -47,8 +47,15 @@ COURSE = ROOT / "courses" / "set-theory"
 
 def entries(sample: int) -> list[str]:
     """课程入口：全部 `lib/` + 每 `sample` 个 unit 取 1 + 每 `sample` 个解答取 1。"""
+    # ⚠ **只枚举文件** ✗✓（2026-10-08 发版点实测）：`rglob("*.sokonanoda")` 会把
+    # **模块根产物目录** `<模块根>/.sokonanoda/` **也当成一个"入口"** ✗ —— 于是
+    # 同一棵树在两个时刻枚举出 **251**（目录不在）与 **252**（目录在）两种总数，
+    # 读数不可比 ✗；那个"入口"还会被两侧同样地拒（空 stdout）⇒ 记成"相同"却
+    # **没答上**（`--min-answered` 兜住 ✓，但数字是假的 ✗）。⇒ 判据只认文件 ✓。
     allf = sorted(
-        str(p.relative_to(ROOT)) for p in COURSE.rglob("*.sokonanoda")
+        str(p.relative_to(ROOT))
+        for p in COURSE.rglob("*.sokonanoda")
+        if p.is_file()
     )
     libs = [f for f in allf if "/lib/" in f]
     units = [f for f in allf if "/units/" in f and "/solutions/" not in f]
