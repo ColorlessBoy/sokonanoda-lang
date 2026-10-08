@@ -229,6 +229,93 @@ test("state: notation symbols render as tok-keyword spans", () => {
   assert.deepStrictEqual(toks.map(textOf), ["⊆", "↔"]);
 });
 
+// **2026-10-08 用户两条**（同一条反馈里的 ① 与 ②）：
+//   ①「infoview 最上面的条件，name 和 type 中间加一个冒号隔开」⇒ `h : A ⊆ B`；
+//   ②「符号 notation 啥的不需要跳转链接，声明列表里开头的 theorem 名字能跳转就行」
+//      ⇒ 带**源位置**的 run 也**不许**注册 click（G-53 的消费端按用户拍板回退 ✗）。
+//
+// ⚠ 夹具里**故意带 `start`/`end`**（旧代码正是据此加 `tok-clickable` + click ✗）——
+// 不带位置的话这条判据**咬不住**旧行为（空转 ✗，AGENTS.md「验证设计纪律」第 3 条）。
+test("state: hypotheses read `name : type`, and only the decl name is clickable (2026-10-08)", () => {
+  const { root, send } = loadInfoview();
+  const runs = (kind, text, start, end) => ({ text, kind, start, end });
+  send({
+    protocol: 1,
+    type: "state",
+    uri: "file:///repo/units/u01.sokonanoda",
+    goal: "a ∈ A",
+    goal_runs: [
+      runs("binder", "a", 0, 1),
+      { text: " " },
+      runs("keyword", "∈", 2, 5),
+      { text: " " },
+      runs("binder", "A", 6, 7),
+    ],
+    binders: [
+      {
+        name: "h",
+        ty: "A ⊆ B",
+        ty_runs: [
+          runs("binder", "A", 0, 1),
+          { text: " " },
+          runs("keyword", "⊆", 2, 5),
+          { text: " " },
+          runs("binder", "B", 6, 7),
+        ],
+      },
+    ],
+  });
+  send({
+    protocol: 1,
+    type: "decls",
+    decls: [
+      {
+        name: "mem_of_subset",
+        kind: "theorem",
+        status: "open",
+        ty: "a ∈ A → a ∈ B",
+        ty_runs: [runs("binder", "a", 0, 1), { text: " " }, runs("keyword", "∈", 2, 5)],
+        range: { start: { line: 6, character: 8 } },
+      },
+    ],
+  });
+
+  // ① 冒号：**结构**上必须是 name → 冒号 → type（不是一个拼出来的字符串 ✓）。
+  const row = byClass(root, "binder")[0];
+  assert.ok(row, "假设行必须渲染");
+  assert.deepStrictEqual(
+    row.childNodes.map((node) => node.className),
+    ["binder-name", "binder-colon", "binder-ty"],
+    "假设行顺序必须是 name → `:` → type（用户 ①）",
+  );
+  assert.strictEqual(textOf(byClass(row, "binder-name")[0]), "h");
+  assert.strictEqual(textOf(byClass(row, "binder-colon")[0]), ":");
+  assert.strictEqual(textOf(byClass(row, "binder-ty")[0]), "A ⊆ B");
+
+  // ② 可点面**枚举**（多一个都得是有意的 ✓）：目标栏的 `goal-head`（它是 `reveal`
+  // ——「滚到这条目标的源码 span」，**不是**跳定义 ✗）与声明卡的 `decl-name`（E27 ✓）；
+  // **所有 `tok-` run 一律不可点**（用户 ②：符号 notation 不需要跳转链接）。
+  const clickable = descendants(root)
+    .filter((node) => node._listeners.click)
+    .map((node) => node.className);
+  assert.deepStrictEqual(
+    clickable,
+    ["goal-head", "decl-name"],
+    "可点面只能是 goal-head(reveal) + decl-name(定义)（用户 ②）",
+  );
+  assert.ok(
+    !clickable.some((className) => className.includes("tok")),
+    "带源位置的 run 不许可点（G-53 的消费端已按用户拍板回退 ✗）",
+  );
+  // 着色仍在（删的是链接，不是颜色 ✗）。
+  assert.deepStrictEqual(
+    descendants(row)
+      .filter((node) => node.className.includes("tok-"))
+      .map(textOf),
+    ["A", "⊆", "B"],
+  );
+});
+
 // 同一件事在**声明卡片**那一侧（`decls` 消息的 `ty_runs`）——两个 surface 都要有。
 test("decls: notation symbols render as tok-keyword spans in the type line", () => {
   const { root, send } = loadInfoview();
@@ -670,9 +757,43 @@ test("project: the manifest warning is visible text, never a tooltip (E30)", () 
     "计数汇总必须显示",
   );
   assert.ok(
-    textOf(byClass(body, "project-artifacts")[0]).includes("2048"),
-    "产物行必须显示 entries/bytes/compiler",
+    textOf(byClass(body, "project-artifacts")[0]).includes("2 KiB"),
+    `产物行必须显示 entries/bytes/compiler（字节按数量级换单位）：${textOf(byClass(body, "project-artifacts")[0])}`,
   );
+});
+
+// **2026-10-08 用户**：「infoview 里『1160652678 字节』可以改成更智能的单位，根据数值大小变化」。
+//
+// 口径 = **1024 进制 + IEC 名字**（`B`/`KiB`/`MiB`/`GiB`）：`artifacts.bytes` 是文件字节数，
+// 写 `KB` 会把 1024 说成 1000 ✗。判据钉**渲染出来的文本**（用户看得见的那一层 ✓），
+// 不是"函数返回值" ✗；并**反向**断言裸字节数不再出现（旧形状 `N 字节` 必须消失 ✗）。
+test("project: artifact bytes scale to B/KiB/MiB/GiB (user 2026-10-08)", () => {
+  const cases = [
+    [0, "0 B"],
+    [512, "512 B"],
+    [2048, "2 KiB"],
+    [20480, "20 KiB"],
+    [1160652678, "1.1 GiB"],
+  ];
+  for (const [bytes, expected] of cases) {
+    const { root, send } = loadInfoview();
+    send({
+      protocol: 1,
+      type: "project",
+      project: {
+        entry: "units.u01",
+        root: "/repo/courses/set-theory",
+        manifest: null,
+        modules: [],
+        counts: { modules: 1, decls: 0, compiled: 1, failed: 0, open_exercises: 0 },
+        artifacts: { entries: 7, bytes, compiler: "0.83.0" },
+      },
+      reason: null,
+    });
+    const line = textOf(byClass(root, "project-artifacts")[0]);
+    assert.ok(line.includes(expected), `${bytes} 字节 ⇒ 期望含 ${expected}：${line}`);
+    assert.ok(!/\d 字节/.test(line), `${bytes} 字节 ⇒ 不许再出现裸字节数：${line}`);
+  }
 });
 
 test("project: no project tells the reason apart, never a blank (E30)", () => {

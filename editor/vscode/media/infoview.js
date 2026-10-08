@@ -34,6 +34,25 @@
     while (node.firstChild) node.removeChild(node.firstChild);
   }
 
+  /// **产物字节数的智能单位**（2026-10-08 用户：「'1160652678 字节' 可以改成更智能的单位，
+  /// 根据数值大小变化」）。
+  ///
+  /// 口径：**1024 进制 + IEC 名字**（`B`/`KiB`/`MiB`/`GiB`/`TiB`）—— `artifacts.bytes`
+  /// 是**文件字节数**，所以 `KiB` 才是如实名字（写 `KB` 就把 1024 说成 1000 ✗）；
+  /// 非零档保留**一位小数**（`1.1 MiB`），整数不拖 `.0`；`B` 档是整数。
+  function bytesText(bytes) {
+    if (typeof bytes !== "number" || !isFinite(bytes) || bytes < 0) return "（未知）";
+    const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+    let value = bytes;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) {
+      value /= 1024;
+      unit += 1;
+    }
+    const shown = unit === 0 ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+    return shown + " " + units[unit];
+  }
+
   // Semantic runs (docs/design/goal-rendering.md §2.1): the server classifies
   // goal/hypothesis text with the SAME rules as the editor's semantic tokens
   // (`front::semantic`), so the Infoview never re-tokenizes and never drifts
@@ -54,28 +73,19 @@
       const text = (run && run.text) || "";
       const kind = run && run.kind;
       if (typeof kind === "string" && /^[a-z_]+$/.test(kind)) {
-        const span = el("span", "tok tok-" + kind, text);
-        // **G-53**：run 带**源位置**（`start`/`end`，字节 offset ✓）⇒ 记法符号/标识符
-        // **可点** ✓ ⇒ 发 `definition`（**offset 变体** ✓）。为什么发 offset 而不是行/列：
-        // webview **没有源文本** ✗、也不该自己换算（与既有注释同一条原则 ✓
-        // "webview 不猜定义在哪，落点由扩展问服务器" ✓）—— 换算由扩展用
-        // `TextDocument.positionAt` 做 ✓（那正是 LSP 的 UTF-16 语义 ✓，G-36 同源 ✓）。
-        // 位置缺失（`None` ✓）⇒ **不可点** ✓（宁可不可点，不可点错 ✗）。
-        if (typeof run.start === "number" && typeof run.end === "number") {
-          span.classList.add("tok-clickable");
-          span.title = "跳到定义";
-          span.addEventListener("click", function () {
-            if (typeof lastUri === "string") {
-              vscode.postMessage({
-                protocol: PROTOCOL,
-                type: "definition",
-                uri: lastUri,
-                offset: run.start,
-              });
-            }
-          });
-        }
-        pre.appendChild(span);
+        // **2026-10-08 用户拍板**：「infoview 里的符号 notation 啥的**不需要跳转链接**，
+        // 声明列表里**开头的 theorem 名字**能跳转就行」⇒ 这里只上色（`tok-<kind>`），
+        // **不注册 click、不发 `definition`** ✓。
+        //
+        // 为什么删掉 G-53 那条 offset 变体（2026-10-08 ✓）：它把**每个带位置的 run**
+        // （记法符号 `∈`、标识符、`{a}` …）都变成下划线链接 ⇒ 一屏全是可点项，
+        // 用户点开的多半是符号而不是定义 ✗。跳转**只剩一处**：声明卡的**名字按钮**
+        //（`renderDecls` 的 `decl-name` ✓，E27）。
+        //
+        // ⚠ wire 里的 `start`/`end` **保留**（服务端照发位置，`docs/protocol.md`）——
+        // 消费端不读 ≠ 契约要改 ✗：G-53 的复现件钉的是「wire 带位置」，
+        // 删字段会把它连带判红，而收益为零 ✓。
+        pre.appendChild(el("span", "tok tok-" + kind, text));
       } else {
         pre.appendChild(document.createTextNode(text));
       }
@@ -268,7 +278,7 @@
         "p",
         "project-artifacts",
         artifacts
-          ? `产物：${num(artifacts.entries)} 条 · ${num(artifacts.bytes)} 字节 · ` +
+          ? `产物：${num(artifacts.entries)} 条 · ${bytesText(artifacts.bytes)} · ` +
               `由编译器 ${artifacts.compiler ?? "?"} 写入`
           : "产物：还没有（下一次编译会写入模块根的 .sokonanoda/compiled/）",
       ),
@@ -414,6 +424,10 @@
           binders.forEach(function (binder) {
             const row = el("li", "binder");
             row.appendChild(el("span", "binder-name", (binder && binder.name) || ""));
+            // **2026-10-08 用户**：「最上面的条件，name 和 type 中间加一个冒号隔开」
+            // ⇒ `hA : a ∈ A`（此前是 `hA a ∈ A`，名字与类型只隔一个空格，读不出边界）。
+            // 冒号是**呈现层**加的（wire 的 `name`/`ty` 是两份数据，服务端不拼 ✓）。
+            row.appendChild(el("span", "binder-colon", ":"));
             row.appendChild(
               codeBlock(
                 "binder-ty",

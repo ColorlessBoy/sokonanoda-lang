@@ -140,15 +140,10 @@ body {
   margin-bottom: 6px;
 }
 
-/* **G-53**：带源位置的 run（记法符号/标识符 ✓）可点 ⇒ 给**可见**的可点信号 ✓
- *（下划线 + 手型 ✓）。判据绑**用户动作** ✓：点下去要真跳到定义 ✓（不是只验"消息发了" ✗）。 */
-.tok-clickable {
-  cursor: pointer;
-  text-decoration: underline dotted;
-}
-.tok-clickable:hover {
-  text-decoration: underline solid;
-}
+/* **2026-10-08 用户拍板**：goal/假设/类型里的 run **不再做跳转链接** ⇒
+ * `.tok-clickable` 整块删除（此前 G-53 给带位置的 run 加下划线 + 手型 ✓）。
+ * 现在**唯一**可点的是声明卡的名字按钮（`.decl-name`，E27 ✓）——
+ * 反向守卫见 `test-webview.js` 的 `runs are never clickable` 那条 ✓。 */
 
 .decl-name {
   font-weight: 600;
@@ -212,6 +207,12 @@ body {
 .binder-name {
   color: var(--vscode-symbolIcon-variableForeground, var(--vscode-foreground));
   font-weight: 600;
+}
+
+/* 名字与类型之间的冒号（2026-10-08 用户：「name 和 type 中间加一个冒号隔开」）。
+ * 字体继承 `.binder`（等宽 ✓），颜色压一档 —— 它是**分隔符**，不该跟名字抢注意力 ✓。 */
+.binder-colon {
+  color: var(--vscode-descriptionForeground);
 }
 
 /* binder 的类型（2026-10-03 ✓ 与 `.decl-ty` **同一族**横向排查后一起改 ✓）：
