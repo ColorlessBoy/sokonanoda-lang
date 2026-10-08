@@ -2,9 +2,9 @@
   "schema": "soko.e2e/1",
   "kind": "vscode-integration",
   "version": "0.85.2",
-  "commit": "2c39f57ae59bf042b645708c45bffec0ea8dbef0",
-  "dirty": false,
-  "date": "2026-10-08T08:42:19Z",
+  "commit": "4e2a2c37ea3c0fe10a5ceb127cac7af42281ae1d",
+  "dirty": true,
+  "date": "2026-10-08T13:34:05Z",
   "host": {
     "system": "Darwin",
     "machine": "arm64",
@@ -12,16 +12,16 @@
   },
   "vscode": "1.138.0",
   "tests": {
-    "passed": 41,
+    "passed": 1,
     "failed": 0,
     "pending": 0,
     "failing_cases": [],
     "failing_details": ""
   },
   "exit": 0,
-  "server": "0.85.2 (pid 4211) == 扩展 v0.85.2 (source=bundled)",
-  "lsp_sha256_16": "e95675a4f46ee3d4",
-  "log": "docs/e2e/logs/2026-10-08-2c39f57-vc1.138.0.log",
+  "server": "0.85.2 (pid 44045) == 扩展 v0.85.2 (source=bundled)",
+  "lsp_sha256_16": "e3642b9f18177e6d",
+  "log": "docs/e2e/logs/2026-10-08-4e2a2c37-vc1.138.0.log",
   "profile": "release",
-  "grep": null
+  "grep": "Rebuild shows a non-zero percent"
 }

@@ -842,11 +842,22 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const wall = Date.now() - started;
     assert.strictEqual(typeof rebuilt, "string", "rebuild 必须返回摘要文本");
 
-    // **自检（防空转）**：夹具不够慢 ⇒ "中途"根本不存在 ⇒ 判据无意义 ✗。
+    // **自检（防空转）**：这条判据问的是"**中途**有没有非 0%" ⇒ 前提是**采到了
+    // 足够多的帧**。⚠ 2026-10-08 改口径（**不是放宽** ✗）：原来钉的是**墙钟**
+    // `wall >= 400ms` —— 那是 25ms 采样时代的等价物；而采样已经改成 **5ms**
+    //（见上面的注释：慢 runner 上 25ms 会漏帧 ✓），于是 400ms 这个数字**失去了
+    // 语义锚点** ✗：本线 A6/A6b/A7 把 rebuild 从 ~400ms 压到 **125ms** 之后它就撞线，
+    // 而 125ms / 5ms = **25 帧** ⇒ 中间帧断言**一点也没空转** ✓。
+    // ⇒ 直接把"不空转"写成它**真正的意思**：**采到的帧数够多** ✓（与机器快慢无关 ✓），
+    // 墙钟只留一个**数量级**兜底（AGENTS.md：绝对毫秒只兜数量级 ✓）。
     assert.ok(
-      wall >= 400,
-      `rebuild 只跑了 ${wall}ms —— 太快的夹具会让"中途必须看到非 0%"**空转**，` +
-        `必须让它真的编一会儿`,
+      frames.length >= 5,
+      `rebuild 期间只采到 ${frames.length} 帧（耗时 ${wall}ms）—— 帧太少 ⇒ ` +
+        `"中途必须看到非 0%"**空转** ✗（要么夹具太短、要么采样断了）`,
+    );
+    assert.ok(
+      wall >= 50,
+      `rebuild 只跑了 ${wall}ms —— 这不是"编译了一会儿"，判据没有意义 ✗`,
     );
 
     const mid = frames.filter(

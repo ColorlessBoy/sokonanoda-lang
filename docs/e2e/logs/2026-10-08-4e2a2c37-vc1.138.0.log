@@ -1,0 +1,30 @@
+# scripts/vscode-e2e.sh — VS Code 1.138.0 · extension v0.85.2 · 4e2a2c37ea3c0fe10a5ceb127cac7af42281ae1d
+# 结果：1 passing / 0 failing / 0 pending（exit=0）
+
+## doctor（服务器解析与版本自述）
+--- doctor ---
+sokonanoda doctor — 扩展 v0.85.2 (6 checks)
+[ok] 1/6 resolution：bundled — /Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/bin/darwin-arm64/sokonanoda-lsp (source=bundled)
+[ok] 2/6 server-version：0.85.2 (pid 44045) == 扩展 v0.85.2 (source=bundled)
+[ok] 3/6 host-version：运行宿主 v0.85.2
+[ok] 4/6 ignored-override：没有被忽略的 serverPath/env 覆盖
+[info] 5/6 download-cache：缓存 marker 0.73.0 darwin-arm64 != 扩展 v0.85.2；可运行 sokonanoda update
+[info] 6/6 obsolete-versions：检测到 0 个扩展版本快照、0 个 .obsolete 条目；完整重启 VS Code 会自动清理
+
+## 用例
+    ✔ Rebuild shows a non-zero percent while it is still running (②) (566ms)
+
+## 扩展接线日志（SOKO_E2E_LOG）
+2026-10-08T13:34:09.080Z server command: /Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/bin/darwin-arm64/sokonanoda-lsp (source=bundled)
+2026-10-08T13:34:09.080Z client state: starting
+2026-10-08T13:34:09.225Z warmCacheOnOpen: exit=0
+2026-10-08T13:34:09.362Z client state: running
+2026-10-08T13:34:09.370Z loadProject: no active .sokonanoda document
+2026-10-08T13:34:09.452Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-10-08T13:34:09.522Z soko/project ok: project=null reason=no-imports
+2026-10-08T13:34:09.757Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-10-08T13:34:09.795Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-10-08T13:34:09.955Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-10-08T13:34:09.963Z active document changed: (none)
+2026-10-08T13:34:09.964Z loadProject: no active .sokonanoda document
+2026-10-08T13:34:09.978Z client state: stopped
