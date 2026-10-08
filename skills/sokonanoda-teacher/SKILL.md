@@ -424,7 +424,9 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   token 色——VS Code 没有稳定 API 暴露主题 token 色（平台限制）；
   分类与 hover 同源（`front::semantic`），
   颜色近似但非逐像素相同，这是设计如此；
-- `sokonanoda build [<file>|<dir>…]` 预热共享编译缓存，之后打开/判卷大文件更快
+- `sokonanoda build [<file>|<dir>…]` 预热共享编译缓存（`clean` = 只清不编 · `rebuild` = 清完重编，
+  与下面编辑器三条**同名同义** ✓；**不给路径 = 当前目录**，并跳过 `.git`/`node_modules`/`target`
+  等目录 ⇒ 在语言仓根上不会再"几分钟没反应" ✓），之后打开/判卷大文件更快
   （`SOKONANODA_CACHE_DIR` 改缓存根、`SOKONANODA_NO_CACHE=1` 关闭；内核仍是
   唯一判定者，设计 `docs/design/project-artifacts.md`）。**编辑器里等价的两个命令**
   （0.60.0 起）：`Sokonanoda: Build (编译项目，预热缓存)`（`alt+b`）与

@@ -2378,21 +2378,14 @@ async function runBuild(context, { clean = false, courseProvider } = {}) {
   const run = async (progress, token) => {
     nativeReport = (message, increment) => progress.report({ message, increment });
     if (clean) {
-      // ⚠ **`--clean` 必须带目标**（E22 同族，实测）：不带参数时 CLI 的
-      // `project_roots([])` 是空的 ⇒ 只清**全局**缓存、**项目条目留在原地** ⇒
-      // 紧接着的 build 全是 `hit` ⇒「Rebuild（清空编译缓存后重编译）」其实
-      // 什么都没重编（实测 `build --json --clean` 给
-      // `{"global":0,"project":0,"removed":0}`，而 `<root>/.sokonanoda/compiled/`
-      // 里的条目还在）。这正是 CLI 注释里点名的 R-3/T-B5 陷阱。
-      const cleaned = await runBuildProcess(
-        command,
-        ["build", "--json", "--clean", target],
-        channel,
-      );
-      for (const event of parseBuildEvents(cleaned.stdout)) {
-        if (event.type === "build.clean") removed = event.removed ?? 0;
-      }
-      if (cleaned.error) channel.appendLine(`[error] clean: ${cleaned.error}`);
+      // **2026-10-08**：CLI 现在有 `rebuild` 子命令（= 先清**两处**再预热，用户报
+      // 「rebuild 没有实现」✗ 后补的）⇒ 这里**一个进程**走完，不再"两次调用拼出来" ✓。
+      // ⚠ **目标必须带上**（E22 同族，实测）：不带参数时 CLI 只清**全局**缓存、
+      // **项目条目留在原地** ⇒ 紧接着的 build 全是 `hit` ⇒「Rebuild（清空编译缓存后重编译）」
+      // 其实什么都没重编（R-3/T-B5 陷阱）⇒ 传 `target` ✓。
+      // 事件流与以前**逐条相同**（`build.clean` → `build.begin`/`file`/`summary` ✓）：
+      // `removed` 由 `onLine` 的 `build.clean` 分支取（上面那一条 ✓）。
+      return runBuildProcess(command, ["rebuild", "--json", target], channel, { onLine, token });
     }
     return runBuildProcess(command, ["build", "--json", target], channel, { onLine, token });
   };
@@ -2481,12 +2474,14 @@ async function runClean(context, { courseProvider } = {}) {
   }
 
   const started = Date.now();
-  channel.appendLine(`> ${command} build --clean ${target}`);
+  // **2026-10-08**：CLI 有 `clean` 子命令了（≡ `build --clean`，用户报「clean 没有实现」✗ 后补的）
+  // ⇒ 编辑器这条命令走**同名子命令**，与 CLI 一一对应 ✓（事件流逐条相同 ✓）。
+  channel.appendLine(`> ${command} clean ${target}`);
   // 与 E23/E29 同款：状态栏先动起来，**成对**地退回（不能把"清除缓存"永远留着）。
   applyProgress({ phase: "begin", label: "清除编译缓存…", percent: null, detail: "清除缓存…" });
   let result;
   try {
-    result = await runBuildProcess(command, ["build", "--json", "--clean", target], channel);
+    result = await runBuildProcess(command, ["clean", "--json", target], channel);
   } finally {
     applyProgress({ phase: "end", label: null, percent: null, detail: "" });
   }

@@ -412,7 +412,13 @@ function fakeSpawn(command, args) {
     if (Array.isArray(args) && args[0] === "course" && courseEvents.length) {
       child.stdout.emit("data", courseEvents.map((event) => JSON.stringify(event)).join("\n") + "\n");
     }
-    if (Array.isArray(args) && args[0] === "build" && buildEvents.length) {
+    // **2026-10-08**：`clean` / `rebuild` 是 CLI 的子命令（`build --clean` 的同义写法 ✓），
+    // 它们吐的是**同一套** `build.*` 事件流 ⇒ 假 CLI 对三个入口一视同仁 ✓。
+    if (
+      Array.isArray(args) &&
+      ["build", "clean", "rebuild"].includes(args[0]) &&
+      buildEvents.length
+    ) {
       // **E23**：像真子进程那样**按行**吐 `build.begin` / `build.file` /
       // `build.summary`（`--json` 事件流）—— 扩展是流式消费的，一次全给
       // 也能逐行处理，但"中间态"必须真的被记下来（状态栏历史 ✓）。
@@ -741,19 +747,17 @@ test("build/rebuild target the project root, not the active file (E22)", async (
       "Build 必须编**项目**（服务端给的模块根），不是活动文件",
     );
 
-    // rebuild = 先清**这个项目**的缓存，再编项目。
-    // ⚠ 清缓存那一步以前**不带目标** ⇒ CLI 只清全局、项目条目留在原地 ⇒
-    // 紧接着的 build 全是 `hit` ⇒「Rebuild」其实什么都没重编（实测
+    // rebuild = **一个进程**（CLI 的 `rebuild` 子命令 = 先清**两处**再预热，2026-10-08 起）——
+    // 以前是扩展自己"两次调用拼出来"（`build --clean` + `build`）✗，CLI 有子命令后不再重复那份逻辑 ✓。
+    // ⚠ 目标**必须带上**：不带目标时 CLI 只清全局、项目条目留在原地 ⇒ 紧接着的 build
+    // 全是 `hit` ⇒「Rebuild」其实什么都没重编（R-3/T-B5 陷阱，实测
     // `build --json --clean` 给 `{"global":0,"project":0,"removed":0}`）。
     spawns.length = 0;
     await vscodeStub.__commands["sokonanoda.rebuild"]();
     assert.deepStrictEqual(
       spawns.map((s) => s.args),
-      [
-        ["build", "--json", "--clean", root],
-        ["build", "--json", root],
-      ],
-      "Rebuild 必须先清**项目**的缓存（带目标）再编项目",
+      [["rebuild", "--json", root]],
+      "Rebuild 走 CLI 的 `rebuild` 子命令（先清**这个项目**的缓存再编，一个进程 ✓）",
     );
   } finally {
     // 假客户端是模块级共享的：还原默认答案，别污染后面的测试。
@@ -1015,11 +1019,12 @@ test("Clean Cache clears both stores and does not compile anything (E31)", async
     vscodeStub.__statusBarHistory = [];
     const text = await vscodeStub.__commands["sokonanoda.clean"]();
 
-    // ① 只清、不编：**一次** spawn，argv 带模块根。
+    // ① 只清、不编：**一次** spawn，走 CLI 的 `clean` 子命令（2026-10-08 起；≡ `build --clean` ✓）
+    //    且 argv 带模块根。
     assert.deepStrictEqual(
       spawns.map((s) => s.args),
-      [["build", "--json", "--clean", root]],
-      "Clean 只能跑一次 `build --clean <模块根>`（**不许**跟着再 build 一次）",
+      [["clean", "--json", root]],
+      "Clean 只能跑一次 `clean <模块根>`（**不许**跟着再 build 一次）",
     );
     // ② 三个数来自 CLI 事件（`（Nms）` 是耗时后缀，允许变化）。
     assert.ok(

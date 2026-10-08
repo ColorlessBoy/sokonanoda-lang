@@ -1551,11 +1551,16 @@ fn build_and_rebuild_commands_warm_the_compile_cache() {
             "keybinding {key} must target {id}"
         );
     }
-    // rebuild = clean + build：`--clean` 必须出现，且 clean 只清缓存（CLI 语义），
-    // 所以脚本要跑第二次把缓存重新预热。
+    // rebuild 走 **CLI 的 `rebuild` 子命令**（2026-10-08：一个进程 = 先清**两处**再预热 ✓）——
+    // 以前是扩展自己"两次调用拼出来"（`build --clean` + `build`）✗ ⇒ CLI 有子命令之后
+    // 不再保留第二份实现 ✓（反向断言：脚本里不许再出现手拼的 `--clean` ✗）。
     assert!(
-        script.contains("\"build\"") && script.contains("\"--clean\""),
-        "rebuild must invoke `build --json --clean` (cache clean) before rebuilding"
+        script.contains("\"rebuild\""),
+        "rebuild must invoke the CLI's `rebuild` subcommand (clean both stores, then warm)"
+    );
+    assert!(
+        !script.contains("\"--clean\""),
+        "rebuild must not hand-roll `build --clean` + `build` any more (one process now)"
     );
     assert!(
         script.contains("build.summary") && script.contains("build.file"),

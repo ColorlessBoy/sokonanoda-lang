@@ -304,7 +304,9 @@ are hits instead of full recompiles. Two commands drive it from the editor:
   progress notification carries a **cancel** button — cancelling kills the CLI
   subprocess.
 - **`Sokonanoda: Rebuild (清空编译缓存后重编译)`** (`alt+shift+b`) — the same, but first runs
-  `build --clean <module root>` to drop the cache, i.e. "recompile everything from scratch"
+  `sokonanoda rebuild <module root>` (0.85.0: the CLI's own `rebuild` subcommand, **one
+  process** — it equals `clean` + `build`, where `clean` ≡ `build --clean`) to drop the
+  cache, i.e. "recompile everything from scratch"
   (it clears **both** the global cache and the module root's `.sokonanoda/`).
   Project artifacts live in **`<module root>/.sokonanoda/`** — a self-ignoring
   `.gitignore` (one line, `*`) keeps them out of your repository, so there is

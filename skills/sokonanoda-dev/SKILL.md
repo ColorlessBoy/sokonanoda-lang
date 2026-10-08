@@ -196,7 +196,9 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 cargo run -q -p sokonanoda-lsp                        # 编辑器反馈通道
 ```
 
-- 编译缓存（dev aid）：`sokonanoda build [--json] [--clean] [<file>|<dir>…]`
+- 编译缓存（dev aid）：`sokonanoda build|clean|rebuild [--json] [--clean] [<file>|<dir>…]`
+  （`clean` = **只清不编** · `rebuild` = **先清两处再预热**，与编辑器三条命令一一对应 ✓；
+  不给路径 = **当前目录**并**跳过** `.git`/`node_modules`/`target`/`.sokonanoda` 等 ✓）
   预热/清理共享落盘缓存（key = 编译器版本 + 二进制构建指纹 + prelude 模式 +
   源文本；内核仍是唯一判定者）；**项目**闭包产物落**模块根**
   `<模块根>/.sokonanoda/compiled/`（同格式同键、自忽略、上限 32 条按 mtime 淘汰、
