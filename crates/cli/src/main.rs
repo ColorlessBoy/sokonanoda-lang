@@ -83,6 +83,20 @@ fn main() -> ExitCode {
         }
         i += 1;
     }
+    // **E3（2026-10-08）**：prelude **运行时覆盖**（`SOKO_PRELUDE_DIR`）畸形时
+    // **在编译之前**报出来 —— 退出码 **2**（用法/环境错 ✓，与 CLI 的 0/1/2 契约一致），
+    // 而不是让 `install_*_prelude` 里的 `expect("… parses")` 去 panic ✗。
+    // 诊断类子命令（`version`/`doctor`）**不拦**：它们正是用来排查环境的 ✓。
+    let diagnosing = matches!(
+        positionals.first().map(String::as_str),
+        Some("version") | Some("doctor")
+    );
+    if !diagnosing {
+        if let Some(err) = sokonanoda_front::compile::prelude_override_error() {
+            eprintln!("sokonanoda: {err}");
+            return ExitCode::from(2);
+        }
+    }
     if (doc.is_some() || workspace.is_some())
         && positionals.first().map(String::as_str) != Some("watch")
     {

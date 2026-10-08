@@ -8,7 +8,9 @@
 //!
 //! 全部产物只是**建议**：判定永远由完整内核在填洞后终审（REQUIREMENTS §2 第 8 条）。
 
-use super::prelude::{l1_family_of, CompileOptions, PreludeMode, PRELUDE_EQ_SRC, PRELUDE_L1_SRC};
+use super::prelude::{
+    l1_family_of, prelude_eq_src, prelude_l1_src, CompileOptions, PreludeMode,
+};
 use super::report::{GoalBinder, SubGoal};
 use crate::ast::MatchArm;
 use crate::judge::{judge_infer_with, GoalBinderSpec};
@@ -76,7 +78,7 @@ impl GoalTemplates {
         // Eq prelude 是受信任安装（源码文本预置），只在 Full 且文件没有
         // 自己占用 `Eq` 三名时参与模板（与 `install_eq_prelude` 同规则）。
         if options.prelude == PreludeMode::Full && !file_owns_eq(file) {
-            if let Ok(parsed) = crate::parse(PRELUDE_EQ_SRC) {
+            if let Ok(parsed) = crate::parse(prelude_eq_src()) {
                 for command in &parsed.commands {
                     if let Command::Axiom {
                         name, universe, ty, ..
@@ -98,7 +100,7 @@ impl GoalTemplates {
         // 会让位——单文件与项目两种口径因此一致。
         if options.prelude == PreludeMode::Full {
             let taken = file_owns_l1(file);
-            if let Ok(parsed) = crate::parse(PRELUDE_L1_SRC) {
+            if let Ok(parsed) = crate::parse(prelude_l1_src()) {
                 for command in &parsed.commands {
                     match command {
                         Command::InductiveBlock {

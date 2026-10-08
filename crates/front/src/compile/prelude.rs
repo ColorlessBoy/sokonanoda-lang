@@ -205,7 +205,7 @@ pub const PRELUDE_EQ_SRC: &str = include_str!("../../../../prelude/Eq.sokonanoda
 /// Type 0 实例（0.60.0 的残留边界，设计 §4-1 已销账）。
 pub const PRELUDE_L1_SRC: &str = include_str!("../../../../prelude/L1.sokonanoda");
 
-/// **ST2（v0.77.0）**：`Quot` 五条的类型**源文本** —— 由 [`install_quot`] 交给
+/// **ST2（v0.77.0）**：`Quot` 五条的类型**源文本** —— 由 [`install_quot_src`] 交给
 /// **前端自己的 elaborator** 建成 `Declar::Quot`（四条）+ `Declar::Axiom`（`Quot.sound`）。
 ///
 /// **为什么写成源文本**（本环节最贵的一课，实测踩了 10+ 轮）：内核
@@ -224,6 +224,207 @@ pub const PRELUDE_L1_SRC: &str = include_str!("../../../../prelude/L1.sokonanoda
 /// 上必须**算得出来**（见 `crates/front/src/compile/tests.rs` 的 ST2 判据）。
 pub const QUOT_TYPES_SRC: &str = include_str!("../../../../prelude/Quot.sokonanoda");
 
+/// **E3（2026-10-08）：prelude 的运行时覆盖**（默认**关** ✓）。
+///
+/// **动机**（用户 P8 的"可修改"那一半）：学生用 release VSIX 时**没有 cargo**
+/// ⇒ 只有运行时覆盖才能"**改 prelude 就见效**" ✓（E1 已经把真相搬进
+/// `prelude/*.sokonanoda`，但那只对**仓库/贡献者**路径有效）。
+///
+/// **用法**：`SOKO_PRELUDE_DIR=<目录>` ⇒ 目录里的 `Eq.sokonanoda` /
+/// `L1.sokonanoda` / `Quot.sokonanoda` **按名覆盖**（**缺哪个用内置的哪个** ✓）。
+///
+/// **四条不变量（缺一不可）**：
+/// ① **默认关**：不设环境变量 ⇒ 三条源**逐字节等于内置**（自足分发不变 ✓）；
+/// ② **覆盖内容哈希进缓存键**（`cache` 的 `prelude_override_state()`）——
+///    换了内容却命中旧条目 = 拿旧 prelude 的答案 ✗（红线）；
+/// ③ **畸形覆盖不 panic**：解析不过的覆盖**不生效**（该条回落内置）且原因记在
+///    [`prelude_override_error`]，由 CLI/LSP 报成诊断或退出码 ✓
+///    （`install_*_prelude` 里的 `expect("… parses")` 因此**永远不会**被覆盖触发 ✓）；
+/// ④ **受信任安装语义不变**：覆盖的仍然是 prelude，走**同一条**安装路
+///    （`install_eq_prelude`/`install_l1_prelude`/`install_quot_src` ✓），`--bare` 不受影响 ✓。
+pub struct PreludeOverride {
+    pub eq: String,
+    pub l1: String,
+    pub quot: String,
+    /// 覆盖内容的指纹（**0 = 没有覆盖** ⇒ 键与今天逐字相同 ✓）。
+    pub hash: u64,
+    /// 畸形覆盖的原因（`None` = 干净）；**不 panic**，只记下来 ✓。
+    pub error: Option<String>,
+}
+
+/// **试装**一份覆盖源（第二道验证 · 见 [`load_prelude_override`] 的 ③）：
+/// 在一次性 scratch 环境里按**真装的顺序**走一遍（Nat → Bool → Eq → 该段 ✓），
+/// 把 panic 转成 `Err` ✓。
+///
+/// ⚠ **为什么可以在这里 `catch_unwind`**：scratch 环境**随后整份丢弃** ⇒ 半装坏的
+/// 中间态不会进真环境 ✓（这正是内核那条"`quiet_catch` 不可嵌套"纪律要防的东西 ✓）。
+fn trial_install(text: &str, file: &str) -> Result<(), String> {
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let arena = stumpalo::Arena::new();
+        let mut builder = EnvBuilder::new(arena.as_arena_ref(), Default::default());
+        let mut known = KnownTable::new();
+        let mut inductives = InductiveTable::new();
+        let mut defs = DefTable::new();
+        let empty: HashSet<String> = HashSet::new();
+        install_prelude(&mut builder, &mut known, &mut inductives);
+        install_bool_prelude(&mut builder, &mut known, &mut inductives);
+        match file {
+            "Eq.sokonanoda" => {
+                // Eq 段：真装走 `install_eq_prelude`，它读的是**生效源** ⇒ 这里临时
+                // 换成试装文本（进程级覆盖只读一次，试装期还没定下来 ✓）。
+                install_eq_prelude_src(&mut builder, &mut known, text, &empty)
+            }
+            _ => {
+                install_eq_prelude_src(&mut builder, &mut known, PRELUDE_EQ_SRC, &empty);
+                install_l1_prelude_src(
+                    &mut builder,
+                    &mut known,
+                    &mut inductives,
+                    &mut defs,
+                    text,
+                    QUOT_TYPES_SRC,
+                    &empty,
+                )
+            }
+        }
+    }));
+    result.map_err(|_| "试装时内核拒绝（前向引用/类型不成立之类）".to_string())
+}
+
+/// 读一个目录里的三份覆盖（**纯函数** ⇒ 可单测 ✓）。缺文件 = 用内置 ✓。
+pub fn load_prelude_override(dir: &std::path::Path) -> PreludeOverride {
+    let mut out = PreludeOverride {
+        eq: PRELUDE_EQ_SRC.to_string(),
+        l1: PRELUDE_L1_SRC.to_string(),
+        quot: QUOT_TYPES_SRC.to_string(),
+        hash: 0,
+        error: None,
+    };
+    let mut parts: Vec<String> = Vec::new();
+    for (file, slot) in [
+        ("Eq.sokonanoda", 0usize),
+        ("L1.sokonanoda", 1usize),
+        ("Quot.sokonanoda", 2usize),
+    ] {
+        let path = dir.join(file);
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue; // 缺文件 = 用内置 ✓（"只覆盖想改的那一份"）
+        };
+        // ③ **畸形覆盖不 panic**：两道验证，任何一道不过 ⇒ 该条**不生效** ✓。
+        // 第一道：**解析**（语法）。
+        if let Err(err) = crate::parse(&text) {
+            out.error = Some(format!(
+                "prelude 覆盖 `{}` 解析失败（**不生效**，回落内置）：{}",
+                path.display(),
+                err.message
+            ));
+            continue;
+        }
+        // 第二道：**装得上**（elaborate）。只验解析是**不够**的 ✗ —— 解析过但装不上的
+        // 覆盖（典型：前向引用，例如把 `True.intro` 的类型写成**后面**族才有的名字）
+        // 会在 `install_l1_command` 的 `expect` 上 **panic** ✗（实测踩到）。
+        // 做法：在**一次性的 scratch 环境**里试装一遍（顺序与真装一致：Nat/Bool/Eq/L1 ✓），
+        // 用 `catch_unwind` 把 panic 变成**可报的错** ✓ —— scratch 环境随后整份丢弃，
+        // 所以"半装坏"的中间态**不会**污染真环境 ✓。
+        if let Err(err) = trial_install(&text, file) {
+            out.error = Some(format!(
+                "prelude 覆盖 `{}` 装不上（**不生效**，回落内置）：{err}",
+                path.display()
+            ));
+            continue;
+        }
+        parts.push(format!("{file}\0{text}"));
+        match slot {
+            0 => out.eq = text,
+            1 => out.l1 = text,
+            _ => out.quot = text,
+        }
+    }
+    if !parts.is_empty() {
+        out.hash = crate::compile::cache::prelude_override_hash(&parts.join("\0"));
+    }
+    out
+}
+
+// **装载期重入闸**（E3 最贵的一课，实测：CLI 一启动就**死锁** ✗）。
+//
+// 为什么必须有：覆盖的装载里要**试装**（`trial_install` ⇒ `crate::parse` ⇒ …），
+// 而解析路上会读到 `prelude_source`（记法表 ✓）—— 那条路**又**要读覆盖
+// ⇒ **重入正在初始化的 `OnceLock`** ⇒ `Once::wait` **永久阻塞** ✗
+// （`sample` 栈：`prelude_override_error → OnceLock::initialize → load_prelude_override
+// → Once::wait` ✓）。修法：装载期间**一律回落到内置** ✓（试装本来就用显式源 ✓，
+// 所以语义不受影响；真装发生在装载**之后** ⇒ 读到的是已发布的覆盖 ✓）。
+thread_local! {
+    static LOADING_OVERRIDE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// 进程级覆盖（`OnceLock`：环境变量只读一次 ✓；`None` = 没设 ⇒ 零开销 ✓）。
+fn prelude_override() -> Option<&'static PreludeOverride> {
+    static OVERRIDE: std::sync::OnceLock<Option<PreludeOverride>> = std::sync::OnceLock::new();
+    // 装载期（含试装）内的任何一次读取 ⇒ 回落内置，**绝不重入** ✓。
+    if LOADING_OVERRIDE.with(std::cell::Cell::get) {
+        return None;
+    }
+    OVERRIDE
+        .get_or_init(|| {
+            LOADING_OVERRIDE.with(|f| f.set(true));
+            let loaded = load_prelude_override_from_env();
+            LOADING_OVERRIDE.with(|f| f.set(false));
+            loaded
+        })
+        .as_ref()
+}
+
+/// 真的去读环境变量 + 装载（**只在 [`prelude_override`] 的初始化里调用** ✓）。
+fn load_prelude_override_from_env() -> Option<PreludeOverride> {
+    {
+        {
+            let dir = std::env::var_os("SOKO_PRELUDE_DIR")?;
+            let dir = std::path::PathBuf::from(dir);
+            let loaded = load_prelude_override(&dir);
+            if let Some(err) = &loaded.error {
+                // 可见信号（③）：不 panic，但**必须看得见** ✓。
+                eprintln!("[sokonanoda] {err}");
+            }
+            Some(loaded)
+        }
+    }
+}
+
+/// 畸形覆盖的原因（`None` = 没有覆盖 / 覆盖干净）——CLI 用它定退出码 ✓。
+pub fn prelude_override_error() -> Option<&'static str> {
+    prelude_override().and_then(|o| o.error.as_deref())
+}
+
+/// 覆盖指纹（`0` = 没覆盖）——缓存键用 ✓。
+pub fn prelude_override_state() -> u64 {
+    prelude_override().map(|o| o.hash).unwrap_or(0)
+}
+
+/// **Eq 段**的生效源文本（覆盖优先；下同）。
+pub fn prelude_eq_src() -> &'static str {
+    match prelude_override() {
+        Some(o) => o.eq.as_str(),
+        None => PRELUDE_EQ_SRC,
+    }
+}
+
+/// **L1 段**的生效源文本。
+pub fn prelude_l1_src() -> &'static str {
+    match prelude_override() {
+        Some(o) => o.l1.as_str(),
+        None => PRELUDE_L1_SRC,
+    }
+}
+
+/// **Quot 段**的生效源文本。
+pub fn quot_types_src() -> &'static str {
+    match prelude_override() {
+        Some(o) => o.quot.as_str(),
+        None => QUOT_TYPES_SRC,
+    }
+}
+
 /// **A4（2026-09-26 用户报告第 4 条）**：prelude 的**只读源文本** —— 编辑器要
 /// "跳进 prelude"就得有一份能打开的源 ✓。
 ///
@@ -231,7 +432,17 @@ pub const QUOT_TYPES_SRC: &str = include_str!("../../../../prelude/Quot.sokonano
 /// 与真正喂进编译的是**同一份字节** ✓）。`OnceLock` 缓存：拼一次。
 pub fn prelude_source() -> &'static str {
     static SRC: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    SRC.get_or_init(|| format!("{PRELUDE_EQ_SRC}\n{PRELUDE_L1_SRC}\n{QUOT_TYPES_SRC}"))
+    static BUILTIN: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    // **E3**：装载期（试装的解析路上会走到这里）**必须**用内置视图 —— 既避免重入
+    // 正在初始化的覆盖 `OnceLock`（死锁 ✗），也保证这份缓存不会被"装载中的半态"
+    // 污染 ✓（两个 `OnceLock` 各管一份：内置的与生效的 ✓）。
+    if LOADING_OVERRIDE.with(std::cell::Cell::get) {
+        return BUILTIN.get_or_init(|| {
+            format!("{PRELUDE_EQ_SRC}\n{PRELUDE_L1_SRC}\n{QUOT_TYPES_SRC}")
+        });
+    }
+    // 走**生效**的三段（没设覆盖时逐字节等于内置 ✓）。
+    SRC.get_or_init(|| format!("{}\n{}\n{}", prelude_eq_src(), prelude_l1_src(), quot_types_src()))
 }
 
 /// prelude 名字 → 它在 [`prelude_source`] 里的**真 span**。
@@ -481,12 +692,26 @@ pub(crate) fn install_l1_prelude<'a>(
     defs: &mut DefTable,
     taken: &HashSet<String>,
 ) {
+    // **E3**：真装走**生效源**（有覆盖就是覆盖 ✓）；试装（`trial_install`）走 `_src` ✓。
+    install_l1_prelude_src(builder, known, inductives, defs, prelude_l1_src(), quot_types_src(), taken);
+}
+
+/// [`install_l1_prelude`] 的**显式源**版本（E3 的试装用它 ✓）。
+fn install_l1_prelude_src<'a>(
+    builder: &mut EnvBuilder<'a>,
+    known: &mut KnownTable,
+    inductives: &mut InductiveTable<'a>,
+    defs: &mut DefTable,
+    src: &str,
+    quot_src: &str,
+    taken: &HashSet<String>,
+) {
     // prelude 安装期间关闭隐式实参插入（见 `elab::PreludeInstallGuard` 的注释）。
     let _implicit_guard = crate::compile::elab::PreludeInstallGuard::enter();
     if L1_INSTALL_DEPTH.with(|d| d.get()) > 0 {
         return; // 见 `L1_INSTALL_DEPTH`：内层编译不再装 L1
     }
-    let Ok(file) = crate::parse(PRELUDE_L1_SRC) else {
+    let Ok(file) = crate::parse(src) else {
         panic!("L1 prelude source parses");
     };
     let options = CompileOptions::default();
@@ -504,7 +729,7 @@ pub(crate) fn install_l1_prelude<'a>(
     }
     L1_INSTALL_DEPTH.with(|d| d.set(d.get() - 1));
     // ST2：商类型（**不是** L1 的源级命令，见 `install_quot`）。
-    install_quot(builder, known, taken);
+    install_quot_src(builder, known, quot_src, taken);
 }
 
 /// **本条命令之前**的 prelude 源文本（不含本条 ✓）—— 慢路重跑要用它。
@@ -515,7 +740,7 @@ pub(crate) fn install_l1_prelude<'a>(
 /// * 空串是合法输入 ✓（第一条命令之前就是空 ✓）—— 与改动前的行为逐字相同 ✓。
 fn prelude_prefix_before(command: &Command) -> &'static str {
     let start = command.span().start.offset;
-    PRELUDE_L1_SRC.get(..start).unwrap_or("")
+    prelude_l1_src().get(..start).unwrap_or("")
 }
 
 /// 这条命令是不是本族的（按顶层名字判定；`ctor`/`rec` 归它们的归纳块）。
@@ -691,7 +916,18 @@ fn install_l1_command<'a>(
 /// 判据因此放在**归约**上 ✓。
 ///
 /// 让位口径与 L1 族一致：文件自己声明 `Quot` 族任一名字 ⇒ 整族不装（`taken`）。
-fn install_quot<'a>(builder: &mut EnvBuilder<'a>, known: &mut KnownTable, taken: &HashSet<String>) {
+/// **ST2 的 Quot 安装**（`Quot` 五条 + re-kind 成 `Declar::Quot`/`Axiom`）。
+///
+/// ⚠ **试装必须走显式源**：试装发生在覆盖的 `OnceLock` **正在初始化**的时候，
+/// 里面任何一次 `*_src()` 读取都会**重入** `OnceLock::get_or_init` ⇒ **死锁** ✗
+/// （实测：e2e 挂住 10 分钟）⇒ 所以试装一路只用**显式传入**的源 ✓，
+/// 真装（`install_l1_prelude`）传的是生效源 ✓。
+fn install_quot_src<'a>(
+    builder: &mut EnvBuilder<'a>,
+    known: &mut KnownTable,
+    src: &str,
+    taken: &HashSet<String>,
+) {
     const QUOT_NAMES: [&str; 6] = [
         "Quot",
         "Quot.mk",
@@ -705,7 +941,7 @@ fn install_quot<'a>(builder: &mut EnvBuilder<'a>, known: &mut KnownTable, taken:
     }
     // prelude 安装期间关闭隐式实参插入（与 Eq/L1 同一个守卫）。
     let _implicit_guard = crate::compile::elab::PreludeInstallGuard::enter();
-    let Ok(file) = crate::parse(QUOT_TYPES_SRC) else {
+    let Ok(file) = crate::parse(src) else {
         panic!("Quot type source parses");
     };
     let options = CompileOptions::default();
@@ -773,13 +1009,25 @@ pub(crate) fn install_eq_prelude(
     known: &mut KnownTable,
     taken: &std::collections::HashSet<String>,
 ) {
+    // **E3**：同 `install_l1_prelude`（真装 = 生效源 ✓）。
+    install_eq_prelude_src(builder, known, prelude_eq_src(), taken);
+}
+
+/// [`install_eq_prelude`] 的**显式源**版本（E3 的试装用它 ✓）。
+fn install_eq_prelude_src(
+    builder: &mut EnvBuilder<'_>,
+    known: &mut KnownTable,
+    src: &str,
+    taken: &std::collections::HashSet<String>,
+) {
     // prelude 安装期间关闭隐式实参插入（见 `elab::PreludeInstallGuard` 的注释）。
     let _implicit_guard = crate::compile::elab::PreludeInstallGuard::enter();
     const EQ_NAMES: [&str; 3] = ["Eq", "Eq.refl", "Eq.subst"];
     if EQ_NAMES.iter().any(|name| taken.contains(*name)) {
         return;
     }
-    let file = crate::parse(PRELUDE_EQ_SRC).expect("Eq prelude source parses");
+    // **E3**：走**生效**源（覆盖已在装载时验证过 ⇒ 这个 `expect` **永远不会**被覆盖触发 ✓）。
+    let file = crate::parse(src).expect("Eq prelude source parses");
     let empty: InductiveTable<'_> = InductiveTable::new();
     let options = CompileOptions::default();
     let ns = NamespaceScope::new();
@@ -997,4 +1245,90 @@ fn add_definition<'a>(builder: &mut EnvBuilder<'a>, name: &str, ty: ExprPtr<'a>,
             hint: ReducibilityHint::Regular(0),
         })
         .expect("duplicate builtin definition");
+}
+
+#[cfg(test)]
+mod e3_tests {
+    use super::*;
+
+    /// 每个用例一个**独立目录**（避免并行测试互相看见对方写的覆盖 ✓）。
+    fn tmpdir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("soko-e3-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        dir
+    }
+
+    /// **判据 ④ 的装载层那一半**：空目录 ⇒ 三条源**逐字节等于内置**、指纹 **0** ✓
+    /// ⇒ 缓存键与"没有 E3 时"逐字相同（自足分发不变 ✓）。
+    #[test]
+    fn an_absent_override_is_byte_identical_to_the_builtin() {
+        let o = load_prelude_override(&tmpdir("empty"));
+        assert_eq!(o.eq, PRELUDE_EQ_SRC);
+        assert_eq!(o.l1, PRELUDE_L1_SRC);
+        assert_eq!(o.quot, QUOT_TYPES_SRC);
+        assert_eq!(o.hash, 0, "没覆盖 ⇒ 指纹 0 ⇒ 键与今天逐字相同 ✓");
+        assert!(o.error.is_none());
+    }
+
+    /// **判据 ① 的装载层那一半 + ②**：只覆盖 `L1.sokonanoda` ⇒ 只有 L1 变 ✓；
+    /// 覆盖**留下指纹** ✓；换内容 ⇒ **指纹必变**（⇒ 缓存键必变 ⇒ 必 miss ✓）。
+    #[test]
+    fn an_override_replaces_only_the_named_file_and_fingerprints_it() {
+        let dir = tmpdir("one");
+        let extra = format!("{PRELUDE_L1_SRC}\naxiom E3Probe : Prop\n");
+        std::fs::write(dir.join("L1.sokonanoda"), &extra).expect("write");
+        let o = load_prelude_override(&dir);
+        assert_eq!(o.l1, extra, "被覆盖的那一条用覆盖内容");
+        assert_eq!(o.eq, PRELUDE_EQ_SRC, "没覆盖的仍用内置 ✓");
+        assert_eq!(o.quot, QUOT_TYPES_SRC);
+        assert_ne!(o.hash, 0, "覆盖必须留下指纹（进缓存键 ✓）");
+        assert!(o.error.is_none());
+
+        std::fs::write(
+            dir.join("L1.sokonanoda"),
+            format!("{extra}\naxiom E3Probe2 : Prop\n"),
+        )
+        .expect("write");
+        assert_ne!(
+            load_prelude_override(&dir).hash,
+            o.hash,
+            "换了覆盖内容 ⇒ 指纹必须变（否则会命中旧 prelude 的条目 ✗）"
+        );
+    }
+
+    /// **判据 ③ 的强一半**：**解析过但装不上**（前向引用）也**不许 panic** ✗ ——
+    /// 只验解析是**不够**的（实测：把 `True.intro` 的类型写成后面族才有的 `False`
+    /// ⇒ `install_l1_command` 的 `expect` 直接 panic ✗）⇒ E3 用**试装**（scratch 环境 +
+    /// `catch_unwind`）把它变成可报的错 ✓。
+    #[test]
+    fn an_override_that_parses_but_does_not_install_is_rejected_not_panicking() {
+        let dir = tmpdir("forward-ref");
+        let flipped = PRELUDE_L1_SRC.replacen(
+            "axiom True.intro : True",
+            "axiom True.intro : False",
+            1,
+        );
+        assert_ne!(flipped, PRELUDE_L1_SRC, "夹具前提：L1 里有那条 axiom");
+        std::fs::write(dir.join("L1.sokonanoda"), &flipped).expect("write");
+        let o = load_prelude_override(&dir);
+        assert_eq!(o.l1, PRELUDE_L1_SRC, "装不上 ⇒ 该条不生效 ✓");
+        assert_eq!(o.hash, 0);
+        let err = o.error.expect("必须记下原因 ✓");
+        assert!(err.contains("装不上"), "{err}");
+    }
+
+    /// **判据 ③**：畸形覆盖 ⇒ **不 panic**、该条**不生效**（回落内置）、原因**记下来**
+    /// （CLI 据此报退出码 2 ✓；`install_*_prelude` 的 `expect` 因此永远不会被覆盖触发 ✓）。
+    #[test]
+    fn a_malformed_override_does_not_panic_and_falls_back() {
+        let dir = tmpdir("bad");
+        std::fs::write(dir.join("L1.sokonanoda"), "theorem oops : : :\n").expect("write");
+        let o = load_prelude_override(&dir);
+        assert_eq!(o.l1, PRELUDE_L1_SRC, "解析不过 ⇒ 该条不生效 ✓");
+        assert_eq!(o.hash, 0, "没生效 ⇒ 不留指纹 ✓");
+        let err = o.error.expect("必须记下原因（否则用户看不见 ✗）");
+        assert!(err.contains("解析失败"), "{err}");
+        assert!(err.contains("L1.sokonanoda"), "原因里要有文件名：{err}");
+    }
 }

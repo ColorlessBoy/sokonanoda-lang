@@ -36,7 +36,10 @@ use std::path::{Path, PathBuf};
 /// 不同 `SOKO_*` 档位下的判定互不污染 ✓（b1/u1 跨档污染的根因）。按本常量自己的
 /// 规矩「改动键的构成 ⇒ bump」：旧键**够不着**是事实，bump 让这件事**写在条目里**
 /// ✓（本地那份 0.81.0 的陈旧条目也一并作废，免得下一轮读到「假中性」✗）。
-pub const CACHE_FORMAT: u32 = 5;
+/// `6`（2026-10-08 / **E3**）：**prelude 运行时覆盖的指纹进键** ——
+/// `SOKO_PRELUDE_DIR` 换了内容而键不变 ⇒ 会命中**旧 prelude** 编出来的条目 ✗
+/// （"拿旧答案"的红线）⇒ 按本常量自己的规矩 bump ✓。
+pub const CACHE_FORMAT: u32 = 6;
 
 /// One cached compile: the document report (for the LSP) and, when the
 /// producer computed it, the CLI event output.
@@ -193,6 +196,16 @@ fn flags_hash<I: IntoIterator<Item = (String, String)>>(vars: I) -> u64 {
     hash
 }
 
+/// **E3**：覆盖内容的指纹（FNV-1a 64；**只给缓存键用** ✓）。
+pub fn prelude_override_hash(text: &str) -> u64 {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in text.as_bytes() {
+        h ^= u64::from(*b);
+        h = h.wrapping_mul(0x100_0000_01b3);
+    }
+    h
+}
+
 pub fn key(src: &str, options: &CompileOptions) -> String {
     key_with_build(src, options, build_stamp())
 }
@@ -211,6 +224,8 @@ pub fn key_with_build(src: &str, options: &CompileOptions, build: u64) -> String
         options.prelude == PreludeMode::Bare,
         metavar_state(),
         flags_state(),
+        // **E3**：覆盖指纹（`0` = 没覆盖 ⇒ 键与今天逐字相同 ✓）。
+        super::prelude::prelude_override_state(),
         src,
     )
 }
@@ -236,6 +251,7 @@ fn key_parts(
     prelude_bare: bool,
     metavar_state: u8,
     flags_state: u64,
+    prelude_override: u64,
     src: &str,
 ) -> String {
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
@@ -260,6 +276,10 @@ fn key_parts(
     eat(u8::from(prelude_bare));
     eat(metavar_state);
     for byte in flags_state.to_le_bytes() {
+        eat(byte);
+    }
+    // **E3**：prelude 覆盖的指纹进键（`0` = 没覆盖 ⇒ 与今天逐字相同 ✓）。
+    for byte in prelude_override.to_le_bytes() {
         eat(byte);
     }
     for byte in src.as_bytes() {
@@ -384,6 +404,20 @@ pub(crate) fn clean_in(dir: &Path) -> usize {
 
 #[cfg(test)]
 mod tests {
+    /// **E3 判据 ② 的键那一半**：prelude 覆盖的指纹**必须进键** ⇒
+    /// 换了覆盖内容 ⇒ 键不同 ⇒ 缓存**必 miss** ✓（否则会拿旧 prelude 编出来的条目 ✗）。
+    #[test]
+    fn the_prelude_override_fingerprint_enters_the_key() {
+        let base = key_parts(6, 3, "0.0.0", 7, false, 0, 0, 0, "def x : Prop := Prop\n");
+        let other = key_parts(6, 3, "0.0.0", 7, false, 0, 0, 0xdead_beef, "def x : Prop := Prop\n");
+        assert_ne!(base, other, "覆盖指纹必须进键 ✓");
+        // 没覆盖（0）与**今天**的键逐字相同 —— 用同一批参数算两次自证纯函数 ✓。
+        assert_eq!(
+            base,
+            key_parts(6, 3, "0.0.0", 7, false, 0, 0, 0, "def x : Prop := Prop\n")
+        );
+    }
+
     use super::*;
 
     fn tmp_dir(tag: &str) -> PathBuf {
@@ -457,28 +491,28 @@ mod tests {
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &bare, 7));
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &full, 8));
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, "a"),
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.2.0", 7, false, 0, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0,0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.2.0", 7, false, 0, 0,0, "a"),
             "a version bump must miss"
         );
         // **IA-4 M1**：元变量档位必须分开（否则同一个缓存目录里先跑的那一档污染后面所有档 ✗）
         for (x, y) in [(0u8, 1u8), (0, 2), (1, 2)] {
             assert_ne!(
-                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, x, 0, "a"),
-                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, y, 0, "a"),
+                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, x, 0,0, "a"),
+                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, y, 0,0, "a"),
                 "不同元变量档位必须是不同的键（state {x} vs {y}）"
             );
         }
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, "a"),
-            key_parts(CACHE_FORMAT + 1, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0,0, "a"),
+            key_parts(CACHE_FORMAT + 1, REPORT_SHAPE, "0.1.0", 7, false, 0, 0,0, "a"),
             "a schema bump must miss"
         );
         // **报告形状版本也进键**（值守第 8 单）：形状一变，键必须变 ✓
         // ——否则"源码没变 + 二进制变了"会命中旧条目、静默给旧答案 ✗。
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, "a"),
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 1, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0,0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 1,0, "a"),
             "flags 状态变化必须 miss（b1 缓存污染根因的守护）"
         );
     }
@@ -493,7 +527,7 @@ mod tests {
         let dir = tmp_dir("shape");
         let src = "def two : Nat := 2\nexample : Prop := sorry\n";
         let entry = entry_for(src);
-        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0, src);
+        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0,0, src);
         store_in(&dir, &k, &entry);
         assert!(load_in(&dir, &k).is_some(), "当前形状必须读得回来 ✓");
 
@@ -519,13 +553,14 @@ mod tests {
 
         // ④ 键也必须随形状变（形状一变 ⇒ 整库换键 ⇒ 老条目够都够不着）
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0, src),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0, 0, src),
             key_parts(
                 CACHE_FORMAT,
                 REPORT_SHAPE + 1,
                 "0.48.0",
                 7,
                 false,
+                0,
                 0,
                 0,
                 src
@@ -546,7 +581,7 @@ mod tests {
                 .is_some_and(|out| !out.events.is_empty()),
             "the combined entry point must carry CLI events"
         );
-        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0, src);
+        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0,0, src);
         store_in(&dir, &k, &entry);
         let loaded = load_in(&dir, &k).expect("cache hit");
         assert_eq!(loaded.report.decls.len(), entry.report.decls.len());
@@ -561,6 +596,7 @@ mod tests {
             "0.48.0",
             7,
             false,
+            0,
             0,
             0,
             "def x : Nat := 1\n",

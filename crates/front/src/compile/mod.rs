@@ -41,9 +41,10 @@ pub use event::{CheckEvent, CompileOutput, CompileStats};
 pub use goals::{probe_sub_goal_types, probe_sub_goal_types_with};
 pub use hints::{attach_hints, attach_hints_to_report, source_hints};
 pub use prelude::{
-    explicit_prelude_mode, prelude_def_span, prelude_mode_from_source, prelude_source,
-    prelude_source_path, CompileOptions, PreludeMode, PRELUDE_EQ_SRC, PRELUDE_L1_SRC,
-    PRELUDE_NAMES, PRELUDE_NEVER_YIELDS,
+    explicit_prelude_mode, prelude_def_span, prelude_eq_src, prelude_l1_src,
+    prelude_mode_from_source, prelude_override_error, prelude_override_state, prelude_source,
+    prelude_source_path, quot_types_src, CompileOptions, PreludeMode, PRELUDE_EQ_SRC,
+    PRELUDE_L1_SRC, PRELUDE_NAMES, PRELUDE_NEVER_YIELDS,
 };
 pub use report::{
     ByGoalState, ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport,

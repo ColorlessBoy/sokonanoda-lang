@@ -841,8 +841,8 @@ pub fn prelude_arities() -> &'static HashMap<String, usize> {
     static CACHE: std::sync::OnceLock<HashMap<String, usize>> = std::sync::OnceLock::new();
     CACHE.get_or_init(|| {
         arities_in_sources(&[
-            crate::compile::PRELUDE_EQ_SRC,
-            crate::compile::PRELUDE_L1_SRC,
+            crate::compile::prelude_eq_src(),
+            crate::compile::prelude_l1_src(),
         ])
     })
 }

@@ -5,6 +5,24 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 
 # sokonanoda-dev：接手 sokonanoda-lang 开发
 
+## prelude 的运行时覆盖（E3 · 2026-10-08）
+
+prelude 的真相在 `prelude/*.sokonanoda`（E1）。**没有 cargo** 的形态（release 包 / VSIX）
+也能改它：
+
+```bash
+mkdir -p /tmp/my-prelude && cp prelude/L1.sokonanoda /tmp/my-prelude/   # 只改想改的那份
+$EDITOR /tmp/my-prelude/L1.sokonanoda
+SOKO_PRELUDE_DIR=/tmp/my-prelude scripts/soko grade playground.sokonanoda
+```
+
+* 三份按名覆盖：`Eq.sokonanoda` / `L1.sokonanoda` / `Quot.sokonanoda`；**缺哪个用内置的哪个**；
+* 覆盖内容**折进编译缓存键**（换内容 ⇒ 必 miss，不会拿旧 prelude 的答案）；
+* 覆盖只改**已有族**的声明内容 —— 往 L1 里**新增**名字不会被装进来
+  （`install_l1_prelude` 只装 `L1_FAMILIES` 认得的命令）；
+* 畸形覆盖（解析不过 / 装不上）⇒ 该份**不生效**（回落内置）+ 原因进 stderr，CLI 退出码 **2**，**不 panic**；
+* 不设这个变量 ⇒ 与今天**逐字节相同**（226 文件 `--json` 对拍 ✓）。
+
 ## 0. 接手清单（按序读完再动手）
 
 1. `AGENTS.md` —— 仓库根入口（硬规则速记 + 命令 + 收尾义务）；

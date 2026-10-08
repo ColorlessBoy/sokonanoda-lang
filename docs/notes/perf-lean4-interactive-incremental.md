@@ -17,23 +17,19 @@
 
 **四句话：**
 
-1. **Lean 4 的"快"是四层缓存的叠加，不是"编译器特别快"**：
-   ① **`.olean`**（模块预编译产物，`import` 走 **mmap**）· ② **`Environment` 持久化结构**
-   （`addDecl` 是结构共享的插入，不是重建）· ③ **服务器快照树**（每条命令的完整
-   `Command.State` —— 含环境 —— 都是可复用的对象）· ④ **语法等价复用**（编辑点**之前**
-   的命令一条都不重新 elaborate）。
-2. **它确实"依赖缓存"，而且是硬依赖**：`import` **不做任何 elaborate** —— 它 mmap `.olean`，
-   把常量表与扩展状态**装进**新环境（`Environment.lean:2317` `importModules`）；而
-   `importModules` 在服务器里**只有头语法真的变了才跑**（`Language/Lean.lean:471-483` 的慢路）。
-   **没有 `.olean`，Lean 的每次编辑都要从 prelude 重来。**
+1. **Lean 4 的"快"是四层缓存的叠加，不是"编译器特别快"**：① **`.olean`**（`import` 走 **mmap**）·
+   ② **`Environment` 持久化结构**（`addDecl` 结构共享，不重建）· ③ **服务器快照树**（每条命令的
+   完整 `Command.State` 都可复用）· ④ **语法等价复用**（编辑点**之前**的命令一条都不重 elaborate）。
+2. **它确实"依赖缓存"，而且是硬依赖**：`import` **不做任何 elaborate**（mmap `.olean`，把常量表
+   与扩展状态装进新环境，`Environment.lean:2317`）；服务器里它**只在头语法真的变了才跑**
+   （`Language/Lean.lean:471-483`）⇒ **没有 `.olean`，每次编辑都要从 prelude 重来**。
 3. **本仓库缺的不是"缓存"这个念头，是"缓存的分辨率"**：磁盘产物的键是**整条闭包**的摘要
    （`ProjectPlan::digest`，`project/mod.rs:157-191`）⇒ 改一个字节必 miss；进程内**没有**
    任何跨按键存活的**模块级**环境；per-module Merkle 键 `module_keys()`（`project/mod.rs:204`）
    **已实现但生产零调用**（调用点只有 `project/tests.rs`）。
    ⇒ **一次按键 = 整条闭包从零重编**，判据 `edit == cold == 2`（§2.3）。
-4. **最该先做的一件事**：Lean 的增量**只活在服务器那条热路上**（CLI 主动丢掉快照元数据，
-   `Elab/Frontend.lean:151` 的 `cmdlineSnapshots := true`）；本仓库**只有一条冷路**
-   —— LSP 带 `import` 的文档整个绕开 `QueryDoc` 的会话增量。
+4. **最该先做的一件事**：Lean 的增量**只活在服务器那条热路上**（CLI 主动丢掉快照元数据）；
+   本仓库**只有一条冷路** —— LSP 带 `import` 的文档整个绕开 `QueryDoc` 的会话增量。
    ⇒ **先把"库层检查点"交给一个跨调用存活的持有者**（`QueryDoc` 现成，§4.0/§4.1），
    再谈产物序列化（§4.2）。**顺序反了会白做功。**
 
@@ -207,11 +203,9 @@
 * **eager 到 EOF，不按光标优先级**：`Language/Basic.lean:97-100` 明写这是 TODO；
   离开快进路后**只开一个任务**跑完剩下的全部命令（`Language/Lean.lean:636-637` + `:746` 的 `sync := false`）。
 * 请求**等**快照，不驱动计算（`Server/Requests.lean:340-345` 的 `withWaitFindSnap`）。
-* **取消是"只取消被排除复用的那部分"**（`Language/Lean.lean:182-229` 的 `# Note [Incremental Cancellation]`）——
-  因为并行下取消整条旧调用会让快照引用到被取消的异步常量。
-* 唯一的"延迟"是**报告**：`server.reportDelayMs` 默认 200ms（`Server/FileWorker.lean:193-198`）。
-* 复用的快照连**交互式诊断对象**一起复用（`Server/FileWorker.lean:309-315` 读
-  `interactiveDiagsRef?` 的记忆值），避免重渲染。
+* **取消只取消"被排除复用的那部分"**（`Language/Lean.lean:182-229`）——并行下取消整条旧调用
+  会让快照引用到被取消的异步常量。唯一的"延迟"是**报告**（`reportDelayMs` 默认 200ms）。
+* 复用的快照连**交互式诊断对象**一起复用（`Server/FileWorker.lean:309-315`），避免重渲染。
 
 ---
 
@@ -292,10 +286,9 @@ assert_eq!(edit, cold,
 
 ### 2.5 已有的"准增量"（不是没有，是粒度不对）
 
-* **I8 TrustPlan / S2 信任前缀 / S6 依赖脏集**：入口趟能按"改动点之前的连续前缀 +
-  与改动点无依赖关系的后缀"跳过**内核重查**（`query/mod.rs:603-635`）。
-  读数（`keystroke_structure`）：改无人依赖的一条 ⇒ `recomputed_commands = 1`、
-  `entry_kernel_checks = 5`；改被 3 条依赖的一条 ⇒ `4` / `8`。**脏集模型是工作的**。
+* **I8 TrustPlan / S2 信任前缀 / S6 依赖脏集**：入口趟按"改动点之前的连续前缀 + 无依赖的后缀"
+  跳过**内核重查**（`query/mod.rs:603-635`）。读数：改无人依赖的一条 ⇒ `1`/`5`；改被 3 条依赖的
+  一条 ⇒ `4`/`8`（`recomputed_commands`/`entry_kernel_checks`）⇒ **脏集模型是工作的**。
 * **G-31/G-92 第二刀（`0.83.0`）**：把合成文档里"确实加过"的前缀 `theorem` 装成
   **不透明常量** ⇒ 前缀**证明体**不再 elaborate ⇒ `by_calls` 线性化（`10→20 = 2.00`，
   改前 `55→210 = 3.82`）。**已落地**，但它**不省前缀的类型/定义**，也不省环境重放。
