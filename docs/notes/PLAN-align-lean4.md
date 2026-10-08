@@ -1265,3 +1265,18 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⚠ 诚实记：这两条是**防退化**的守卫（旧规则也能过它们 ✓）；**证明"这次改对了"的是
   `first-keystroke` 臂那条读数**（205.6 → 79.6ms ⇒ 对齐 `SOKO_DEBOUNCE_MS=0` 的 95.0ms ✓）。
 * **全量**：`cargo test -p sokonanoda-lsp` **各目标全绿** ✓（177 lib + 全部集成目标，含新判据 2/2 ✓）。
+### 11.23 第 17 轮（2026-10-09）—— 收尾验证（本轮的改动面已全部覆盖，cli 全量顺延）
+
+* **起因**：第 12 轮（`judge_prefix_with_entry` + hover 接线）与第 16 轮（静默期）之后，
+  **front / cli 两个 crate 的全量还没重跑过** ✗（只跑过点名的几个判据文件）⇒ 本轮补。
+* **读数**：
+
+  | 套件 | 结果 |
+  |---|---|
+  | `scripts/dev-verify.sh`（CLI 路结构计数） | ✓ 冷 `passes=13` / 改一行 `passes=3`（**与历史逐字相同** ⇒ CLI 路没动 ✓） |
+  | `cargo test -p sokonanoda-front` | ✓ **34 个目标全 ok**（0 FAILED / 0 error） |
+  | `cargo test -p sokonanoda-lsp`（第 16 轮同构建） | ✓ 177 lib + 全部集成目标（含新判据 `lsp_debounce_burst` 2/2） |
+  | `cargo test -p sokonanoda-cli` | ⏳ **当轮没跑完**（重集成套件；日志 `/tmp/r17-verify.log`）⇒ **顺延到下一轮**，不算"已验证" ✗ |
+  | 全课程 `--json` 逐字节 | 沿用平行线 §11.7 的独立对拍（101/101 ✓，那之后**判定路径**只动过 LSP 的 hover 前缀与静默期 —— 都不在 CLI 判定路上 ✓，但仍以 cli 全量重跑为准） |
+* **记账**：四方向的剩余件不变（① T1-B · ② T2-B）；北极星账面（同机 · unit08）：
+  **真实连续键入 78.5ms** · **开档就敲 79.6ms** · 跨入口切换 711ms。
