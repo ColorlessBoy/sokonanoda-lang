@@ -80,14 +80,17 @@ fn level_hint_of(
     is_concrete_level(&level).then_some(level)
 }
 
-/// **就地版的 [`level_hint_of`]**（G-29 第 5 棒 ✓）：先试**活环境**，答不出就
-/// **原样回落**老函数 ✓ ⇒ **判定中性由构造保证** ✓（就地只在它答得上时替换答案，
-/// 而就地路的文本与慢路**逐字节一致** ✓ —— shadow `diff=0` ✓，见 `260a1318` ✓）。
+/// **就地版的 [`level_hint_of`]**（G-29 第 5 棒 ✓；**T3-B1 ③** 补齐记法形态 ✓）：
+/// 先试**活环境**，答不出就**原样回落**老函数 ✓ ⇒ **判定中性由构造保证** ✓
+/// （就地只在它答得上时替换答案，而就地路的文本与慢路**逐字节一致** ✓ ——
+/// shadow `diff=0` ✓，见 `260a1318` ✓）。
 ///
-/// **只对"点式形态"就地**（`args.len() >= params` ✓）：那一支只问一次
-/// 「首实参的类型」✓，正是 [`crate::compile::elab::infer_type_text_inplace`] 的语义 ✓；
-/// **记法形态**的第二问要的是**文本**（`infer(infer(...))` ✗）而就地路只收**源 AST** ✗
-/// ⇒ 整支回落慢路 ✓（不硬凑 ✗）。
+/// **两种形态都就地**（`args.len() >= params` 点式 / `< params` 记法）：
+/// * 点式：只问一次「首实参的类型」✓ —— 正是
+///   [`crate::compile::elab::infer_type_text_inplace`] 的语义 ✓；
+/// * 记法：问两次（`infer(infer(first))`）——第二问吃的是**文本** ✗ 而就地路只收
+///   **源 AST** ⇒ T3-B1 ③ 补一个「**文本 ⇒ AST**」回读（[`check_ast_of_text`]，
+///   与 `elab.rs::universe_level_text_of_operands` 的既有做法**同形** ✓）再就地 ✓。
 ///
 /// `binder_srcs.len() == binders.len()` 是**硬前提** ✓：`infer_type_text_inplace`
 /// 靠这个长度剥 binder 层数（那里有 `debug_assert_eq!` 钉着 ✓），长度对不上时
@@ -105,22 +108,44 @@ fn level_hint_of_inplace<'a>(
 ) -> Option<String> {
     let (name, args) = head_and_args(expr)?;
     let (params, universes) = def_shape(defs, name)?;
-    if universes == 1 && args.len() >= params && binder_srcs.len() == binders.len() {
-        if let Some(ctx) = ctx {
-            if let Some(first) = args.first() {
-                if let Some(e) = crate::compile::elab::InplaceEnv::reborrow(env) {
-                    if let Ok(text) = crate::compile::elab::infer_type_text_inplace(
-                        e,
-                        ctx,
-                        binder_srcs,
-                        first,
-                        binders.len(),
-                        None,
-                    ) {
-                        if let Some(level) = crate::compile::elab::level_text_of_sort(&text) {
-                            if is_concrete_level(&level) {
-                                return Some(level);
-                            }
+    if universes == 1 && binder_srcs.len() == binders.len() {
+        if let (Some(ctx), Some(first)) = (ctx, args.first()) {
+            if let Some(e) = crate::compile::elab::InplaceEnv::reborrow(env) {
+                let point_form = args.len() >= params;
+                let text = crate::compile::elab::infer_type_text_inplace(
+                    e,
+                    ctx,
+                    binder_srcs,
+                    first,
+                    binders.len(),
+                    None,
+                )
+                .ok()
+                .and_then(|first_ty| {
+                    if point_form {
+                        // 点式：首实参**自己**的类型就是那个 `Sort u`。
+                        Some(first_ty)
+                    } else {
+                        // 记法形态：首实参是**项** ⇒ 还要问「那个类型的 sort」；
+                        // 第二问的输入是**文本** ⇒ 回读成 `#check` 的 AST 再就地 ✓。
+                        let ast = check_ast_of_text(&first_ty)?;
+                        crate::compile::elab::infer_type_text_inplace(
+                            e,
+                            ctx,
+                            binder_srcs,
+                            &ast,
+                            binders.len(),
+                            None,
+                        )
+                        .ok()
+                    }
+                });
+                if let Some(text) = text {
+                    if let Some(level) = crate::compile::elab::level_text_of_sort(&text) {
+                        if is_concrete_level(&level) {
+                            crate::judge::stats::INPLACE_LEVEL_HINT_USED
+                                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            return Some(level);
                         }
                     }
                 }
@@ -128,6 +153,8 @@ fn level_hint_of_inplace<'a>(
         }
     }
     // **任何一处不成立 ⇒ 原样回落** ✓（逐字节等同改动前 ✓）。
+    crate::judge::stats::INPLACE_LEVEL_HINT_FALLBACK
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     //
     // **诊断**（`SOKO_INPLACE_WHY=1` ✓）：把"为什么没走成就地"分类打出来 ——
     // 否则回落之后 `#[track_caller]` 只会指向本行 ✗，看不出是"形态不支持"还是
@@ -135,8 +162,6 @@ fn level_hint_of_inplace<'a>(
     if crate::judge::inplace_why_enabled() {
         let why = if universes != 1 {
             "not-one-universe"
-        } else if args.len() < params {
-            "notation-form"
         } else if binder_srcs.len() != binders.len() {
             "binder-len-mismatch"
         } else if ctx.is_none() {
@@ -144,11 +169,29 @@ fn level_hint_of_inplace<'a>(
         } else if crate::compile::elab::InplaceEnv::reborrow(env).is_none() {
             "no-env"
         } else {
+            // 点式与记法**共用这一档**（T3-B1 ③ 起记法不再单独回落 ✓）。
             "inplace-failed"
         };
         eprintln!("BY_LEVEL_HINT_FALLBACK why={why}");
     }
     level_hint_of(expr, defs, binders, prefix_src, options)
+}
+
+/// **文本 ⇒ AST**（T3-B1 ③）：把内核 pp 出来的类型文本回读成 `#check` 的项 AST。
+///
+/// 就地路的第二条查询（「**那个类型的 sort**」）的输入天生是**文本** ✗
+/// （`infer(infer(first))` ⇒ 第一问的结果文本），而 `infer_type_text_inplace`
+/// 只收**源 AST** ✗ ⇒ 先回读。
+///
+/// ⚠ 与 `elab.rs::universe_level_text_of_operands` 的第二问**同形**（那里也是
+/// `parse_fragment("#check …")` ⇒ 取 `Command::Check` 的 `expr`）✓ ——
+/// **不是**新机制 ✓；回读失败 ⇒ `None` ⇒ 调用方**原样回落**慢路 ✓（不猜 ✗）。
+fn check_ast_of_text(text: &str) -> Option<Expr> {
+    let file = crate::parse_fragment(&format!("#check {text}\n")).ok()?;
+    match file.commands.first()? {
+        crate::ast::Command::Check { expr, .. } => Some(expr.clone()),
+        _ => None,
+    }
 }
 
 /// **受信任安装的 Eq prelude 常量**的 `(项参数个数, 宇宙参数个数)`。

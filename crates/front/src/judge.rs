@@ -504,6 +504,20 @@ pub(crate) mod stats {
     pub(crate) static INPLACE_CASES_FIRST_DIFF: std::sync::Mutex<Option<String>> =
         std::sync::Mutex::new(None);
 
+    /// **T3-B1 ③（2026-10-09）**：`level_hint_of` 的就地读数（**单独一组** ✓，
+    /// 同 `cases` 的理由：混进别的档就分不清哪条接线生效 ⇒ 判据空转 ✗）。
+    /// `(used, fallback)`：On 档答上 / 答不出。记法形态也计入（T3-B1 ③ 起）。
+    pub(crate) static INPLACE_LEVEL_HINT_USED: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INPLACE_LEVEL_HINT_FALLBACK: AtomicU64 = AtomicU64::new(0);
+
+    /// `level_hint` 就地读数 `(used, fallback)`。
+    pub fn inplace_level_hint() -> (u64, u64) {
+        (
+            INPLACE_LEVEL_HINT_USED.load(Ordering::Relaxed),
+            INPLACE_LEVEL_HINT_FALLBACK.load(Ordering::Relaxed),
+        )
+    }
+
     /// `cases` 就地读数 `(used, fallback)`。
     pub fn inplace_cases() -> (u64, u64) {
         (
@@ -2084,6 +2098,12 @@ pub fn inplace_cases_report() -> (u64, u64) {
 /// **T3-B1 ① 的影子档读数**：`(same, diff)`；`diff == 0` 是本档能开的前提 ✓。
 pub fn inplace_cases_shadow() -> (u64, u64) {
     stats::inplace_cases_shadow()
+}
+
+/// **T3-B1 ③ 的读数**（`level_hint_of` 的就地路，含记法形态）：`(used, fallback)`。
+/// 判据用法：`used > 0` 证明这条接线**真的被走到**（否则判据空转 ✗）。
+pub fn inplace_level_hint_report() -> (u64, u64) {
+    stats::inplace_level_hint()
 }
 
 /// **P1-a 就地判定的读数**（集成测试 / 诊断用；进程级，见 [`stats::inplace`]）：
