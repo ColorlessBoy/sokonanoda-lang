@@ -1062,3 +1062,30 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   T2-B 未做（前置件 §11.10）· ③ T3-B1 ①②③ + T3-B2 ✓ · ④ T4-A ✓。
 * **北极星账面**（§11.12 · 同构建）：真实连续键入 **81.7ms**、开档后立刻敲 **201.0ms**
   （compile 78ms ⇒ 差额是首刀的服务端排队/排空）、跨入口切换 **711ms**。
+### 11.14 第 8 轮（2026-10-09）—— **全量验证抓到一条用户可见回归**：就地签名文本 ≠ 慢路文本
+
+* **跑法**（`AGENTS.md` 的"最终全量测试"）：`scripts/dev-verify.sh` +
+  `cargo test -p sokonanoda-front -p sokonanoda-lsp -p sokonanoda-cli`。
+* **结果**：`dev-verify` ✓（冷 `passes=13` / 改一行 `passes=3`，与历史逐字相同 ⇒ CLI 路没动 ✓）；
+  front 各目标**全绿** ✓；**`--lib` 1 条红** ✗：
+  `tests::hover::hover_on_a_locally_declared_notation_symbol_explains_it`
+  （期望 hover 里有原始类型 `myop : (a : Prop) -> (b : Prop) -> Prop`，
+  实际只有折叠形态 `` `a ⊗ b : Prop` ``）。
+* **A/B 归因（决定性）**：
+
+  | 开关 | 该条 |
+  |---|---|
+  | 默认（`SOKO_JUDGE_INPLACE` 未设 = **On**） | **FAILED** ✗ |
+  | `SOKO_JUDGE_INPLACE=off`（回到合成趟） | **ok** ✓ |
+
+  ⇒ 根因 = **就地路返回的签名文本与慢路不同**：就地读 `known.signature()`（**过了显示记法折叠**
+  ⇒ `a ⊗ b : Prop`），而慢路走 `#check` 出口拿的是**未折叠**的
+  `(a : Prop) -> (b : Prop) -> Prop` ✗。
+* **这意味着什么（要紧）**：§11.12 那笔 **334ms → 81.7ms** 的收益**当前带着这条显示回归** ✗
+  —— 而 `judge_type_of_constant_inplace` 的文档注释自己写着"**文本必须与慢路逐字节相同**"
+  并以**影子档**（`type_of_constant_shadow()` 的 `diff`）为前提 ⇒ 本条的教训是
+  **影子档的 `diff == 0` 必须先量出来、并且真的当门用** ✗（现在它是"只报不拦"）。
+* **下一步（写死）**：① 量 `type_of_constant_shadow()` 的 `same/diff`（本用例应能咬住）；
+  ② 让就地路返回**与慢路同文本**的签名（要么用同一套 pp 参数、要么就地失败时回落慢路）；
+  ③ 判据 = 原 hover 用例转绿 **且** `typing` 臂的 `by` 仍为 9 / 墙钟仍 ~80ms（**不许用
+  "把显示改回去"当解法** ✗——那是拿回归换性能）。
