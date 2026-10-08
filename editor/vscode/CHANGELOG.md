@@ -1,3 +1,67 @@
+## [0.85.2] — 2026-10-08
+
+> **Course content only — no language or kernel change.** The set-theory course's
+> 2026-10-08 收口批次 ships: **21 course items closed** (C-113…C-132, plus C-05),
+> **+24 library lemmas** and **3 new unit exercises**, with the course gate at
+> **258 targets · 2188 checked · 916 open · 0 rejected**. Patch semantics: the
+> binaries are rebuilt and republished so the shipped course is the closed one;
+> nothing in `crates/` moved.
+
+### Added
+
+- **Course library, +24 lemmas** (`courses/set-theory/lib/`), the pieces the closed
+  items were waiting on:
+  - **`Equiv` +6** — `Type.Equiv` is now an equivalence relation in the course's own
+    terms: `Type.Equiv.symm` · `Type.Equiv.trans` (built on `comp`, with the two
+    `comp_left_aux`/`comp_right_aux` halves) · `Type.Equiv.elim` (eliminate a
+    `Type.Equiv` into an arbitrary `Prop`) · `Type.Equiv.of_inverses''` (a
+    bi-inverse pair with the domain hypotheses named).
+  - **`Cardinal` +8** — `Cardinal.mk` is **injective** (`Cardinal.mk_inj`, so
+    `|α| = |β|` reflects to `Type.Equiv α β`), and `≼` gains its working set:
+    `Set.Le.of_equiv` (`≈ ⇒ ≼`) · `Set.Le.powerset` (`A ≼ B ⇒ 𝒫 A ≼ 𝒫 B`) ·
+    `Set.image_mapsTo_powerset` · `Set.injOn_of_leftInvOn` ·
+    `Set.image_injOn` · `Set.mem_right_of_image_eq`.
+  - **`ZF` +4** — the `IsPair`/`Extensional`/`IsRegular` projections the ordered-pair
+    work needs: `extensional_def_apply` · `isRegular_apply` · `isPair_mem_left` ·
+    `isPair_elem_or`.
+  - **`Rel` +3** — `Rel.inv_comp_apply` (the inverse–composition exchange) ·
+    `Rel.transClosure_trans` (transitive closure is transitive) ·
+    `Rel.ofPartition_trans` (a partition's relation is transitive).
+  - **`Ordinal` +2** — `isSuccOf_elem_iff` · `isSuccOf_elems_elems_transitive`
+    (successor-of, and successor elements compose).
+  - **`SUnion` +1** — `Set.mem_pi_univ`: every `f : ι → α` is a member of the
+    **all-`univ` product**, so `λ` lands in `Set.pi`'s argument position.
+- **Three new exercises** in the canvas + solutions:
+  - **unit109 (ordinal arithmetic, exercises 6–7)** — `addsTo_succ_inv`, the inverse
+    lemma (`x + σ y = v` splits into a predecessor half, with the two hypotheses the
+    proposition genuinely needs: `σ w ≠ zero` and `σ` injective) and `addsTo_assoc`,
+    the **associativity** of relation-version addition (Enderton §8.1).
+  - **unit113 (exercise 7)** — **Cantor's theorem** `cantor_no_le`:
+    `𝒫 ℕ` is not `≼` `ℕ` (Enderton §6.4 6A · Halmos §22), constructively, via the
+    new `∃`-version `cantorDiagonal`. The unit now also records *why* the older
+    single-point `diagonal` cannot carry this proof (from `f A = m` you only get
+    `f {m} ≠ m`, never `A = {m}`).
+- **Repro scripts 7 → 14** (`courses/set-theory/gaps/*.sh`): seven new one-command
+  scripts (`C-113-C-114-cantor.sh` · `C-115-C-116-powerset-le.sh` ·
+  `C-118-C-125-ordinal-succ.sh` · `C-119-C-126-C-129-zf-extraction.sh` ·
+  `C-120-C-121-C-130-cardinal-laws.sh` · `C-123-C-128-rel.sh` ·
+  `C-124-C-127-pi-univ.sh`), each with its reverse verification, plus the two
+  `.sokonanoda` shape probes (`C-113-or-defapp` · `C-122-binder-annotations`).
+
+### Notes
+
+- **Residual boundaries, recorded rather than hidden** (`courses/set-theory/OPEN-ITEMS.md`):
+  a `def`-headed function still cannot be applied directly in continuation position
+  (land a `λ` instead) · a leading-implicit constant in a **nested argument** position
+  cannot have its implicits filled · a `λ` body written as a **type annotation**
+  `(e : T)` still fails to parse · **`Or.elim`'s argument order is the reverse of
+  Lean 4's** (the main premise comes last) · `|>` is not in the teaching syntax.
+- **Gate numbers for this batch** (`python3 courses/set-theory/tools/check.py`):
+  258 targets · 2188 checked · 916 open · **0 rejected**; `--gaps-only` **14/14**;
+  `check-lib-closure.sh` green; `notation-lint.py` **300 files, zero legacy forms**;
+  `build` on 251 files = 245 hit + 4 compiled + only the **2 deliberately-rejected**
+  wall probes.
+
 ## [0.85.1] — 2026-10-08
 
 > **“失败 2” now says *which* files and *why*** — a failing build/rebuild names the failing
