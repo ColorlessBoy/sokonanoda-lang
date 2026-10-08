@@ -832,8 +832,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             Err(failure) => {
                 self.out.push_error(idx, failure.error.clone());
                 {
-                    let mut st =
-                        failed_state(DeclKind::Definition, Some(name.to_string()), span, failure.error, idx);
+                    let mut st = failed_state(
+                        DeclKind::Definition,
+                        Some(name.to_string()),
+                        span,
+                        failure.error,
+                        idx,
+                    );
                     // **B1**：失败也要保留**已跑成功的**那些步（P3 显示面）✓
                     st.by_steps = by_step_states(&failure.steps, &self.display);
                     st.by_root = decl_prefix_state(ty, val, &self.display);
@@ -1192,8 +1197,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             Err(failure) => {
                 self.out.push_error(idx, failure.error.clone());
                 {
-                    let mut st =
-                        failed_state(DeclKind::Theorem, Some(name.to_string()), span, failure.error, idx);
+                    let mut st = failed_state(
+                        DeclKind::Theorem,
+                        Some(name.to_string()),
+                        span,
+                        failure.error,
+                        idx,
+                    );
                     // **B1**：失败也要保留**已跑成功的**那些步（P3 显示面）✓
                     st.by_steps = by_step_states(&failure.steps, &self.display);
                     st.by_root = decl_prefix_state(ty, val, &self.display);

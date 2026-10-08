@@ -8,9 +8,7 @@
 //!
 //! 全部产物只是**建议**：判定永远由完整内核在填洞后终审（REQUIREMENTS §2 第 8 条）。
 
-use super::prelude::{
-    l1_family_of, prelude_eq_src, prelude_l1_src, CompileOptions, PreludeMode,
-};
+use super::prelude::{l1_family_of, prelude_eq_src, prelude_l1_src, CompileOptions, PreludeMode};
 use super::report::{GoalBinder, SubGoal};
 use crate::ast::MatchArm;
 use crate::judge::{judge_infer_with, GoalBinderSpec};

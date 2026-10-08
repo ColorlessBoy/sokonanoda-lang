@@ -148,10 +148,8 @@ fn artifact_hit_open_warms_the_library_checkpoint() {
     // （这是设计，不是本用例的漏洞）。要量"关掉预热后那一刀"就必须先让**这一档**
     // 有产物可命中 —— 否则量的其实是"冷开" ✗。
     {
-        let mut seed_off = Client::start_traced_with_env(
-            &cache_dir("seed-off"),
-            &[("SOKO_NO_LIB_WARMUP", "1")],
-        );
+        let mut seed_off =
+            Client::start_traced_with_env(&cache_dir("seed-off"), &[("SOKO_NO_LIB_WARMUP", "1")]);
         let _ = seed_off.open(&root, &uri, &text);
         let _ = seed_off.wait_for_trace_after(0);
     }
@@ -240,10 +238,8 @@ fn typing_immediately_skips_the_warmup_instead_of_doubling_work() {
 /// 单文件（**没有 `import`**）不许预热：没有库层可喂（预热必须自己判空 ✓）。
 #[test]
 fn single_file_documents_have_no_library_to_warm() {
-    let root = std::env::temp_dir().join(format!(
-        "sokonanoda-lsp-a5-single-{}",
-        std::process::id()
-    ));
+    let root =
+        std::env::temp_dir().join(format!("sokonanoda-lsp-a5-single-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(&root).expect("mkdir");
     let entry: PathBuf = root.join("Solo.sokonanoda");

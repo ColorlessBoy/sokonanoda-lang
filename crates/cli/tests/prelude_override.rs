@@ -51,7 +51,10 @@ fn a_runtime_prelude_override_changes_behaviour() {
 
     // 不覆盖 ⇒ 内置 `True.intro : True` ⇒ 探针判绿 ✓。
     let (code, out, err) = grade(&file, None);
-    assert_eq!(code, 0, "内置 prelude 下探针必须判绿 ✓\nstdout:\n{out}\nstderr:\n{err}");
+    assert_eq!(
+        code, 0,
+        "内置 prelude 下探针必须判绿 ✓\nstdout:\n{out}\nstderr:\n{err}"
+    );
 
     // 覆盖 L1：只把 `axiom True.intro : True` 改成 `: False`（其余逐字照抄 ✓）
     // ⇒ 同一条探针**判红**（类型不匹配）—— 覆盖**真的进了安装** ✓。
@@ -72,7 +75,10 @@ fn a_runtime_prelude_override_changes_behaviour() {
         "axiom True.intro : True -> True",
         1,
     );
-    assert_ne!(flipped, builtin_l1, "夹具前提：L1 里要有 `axiom True.intro : True`");
+    assert_ne!(
+        flipped, builtin_l1,
+        "夹具前提：L1 里要有 `axiom True.intro : True`"
+    );
     std::fs::write(prelude.join("L1.sokonanoda"), &flipped).expect("write override");
 
     let (code, out, err) = grade(&file, Some(&prelude));
@@ -83,8 +89,11 @@ fn a_runtime_prelude_override_changes_behaviour() {
 
     // 只覆盖了 L1 ⇒ `Eq` 仍走内置（`Eq.refl` 可用）✓。
     let eq_probe = dir.join("EqProbe.sokonanoda");
-    std::fs::write(&eq_probe, "theorem eq_probe : Eq.{1} Prop True True := Eq.refl.{1} Prop True\n")
-        .expect("write eq probe");
+    std::fs::write(
+        &eq_probe,
+        "theorem eq_probe : Eq.{1} Prop True True := Eq.refl.{1} Prop True\n",
+    )
+    .expect("write eq probe");
     let (code, out, err) = grade(&eq_probe, Some(&prelude));
     assert_eq!(
         code, 0,
@@ -102,7 +111,10 @@ fn a_malformed_override_exits_two_without_panicking() {
     std::fs::write(prelude.join("L1.sokonanoda"), "theorem oops : : :\n").expect("write bad");
 
     let (code, _out, err) = grade(&file, Some(&prelude));
-    assert_eq!(code, 2, "畸形覆盖 = 用法/环境错 ⇒ 退出码 2 ✓（不是 panic ✗）\nstderr:\n{err}");
+    assert_eq!(
+        code, 2,
+        "畸形覆盖 = 用法/环境错 ⇒ 退出码 2 ✓（不是 panic ✗）\nstderr:\n{err}"
+    );
     assert!(
         err.contains("解析失败") && err.contains("L1.sokonanoda"),
         "stderr 要说清是哪一份、为什么 ✗：\n{err}"

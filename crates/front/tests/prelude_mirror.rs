@@ -91,9 +91,7 @@ fn the_repo_mirror_is_byte_identical_to_the_compiled_prelude() {
 /// 就改 `prelude_source()` 的字节 ⇒ 全课程 `--json` 会漂 ✗（判据③）。
 #[test]
 fn the_three_source_files_are_the_truth_and_rust_holds_no_prelude_text() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..");
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
     let read = |name: &str| {
         let path = root.join("prelude").join(name);
         std::fs::read_to_string(&path)

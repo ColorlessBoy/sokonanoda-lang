@@ -25,8 +25,7 @@ pub use types::{
     Answer, BinderInfo, CheckCounts, CheckSummary, CodeActionInfo, DeclHeader, DeclInfo,
     FailedDecl, GoalInfo, HoleInfo, LocatedHole, ProjectCounts, ProjectDiagnosticInfo,
     ProjectModule, ProjectView, QueryError, ReduceAnswer, RunInfo, StateAnswer, StateMessage,
-    SubGoalInfo,
-    WarningInfo,
+    SubGoalInfo, WarningInfo,
 };
 
 use crate::compile::{

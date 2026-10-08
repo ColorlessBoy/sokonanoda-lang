@@ -1302,17 +1302,17 @@ pub(crate) fn run_by<'a>(
                     // **B3 的读数**（判据用）：记下"从第 k 条续跑" ✓。
                     BY_FAILURE_RESUME_FROM.store(k + 1, std::sync::atomic::Ordering::Relaxed);
                     run_by_inner(
-                    ty,
-                    by,
-                    initial_binders,
-                    universe,
-                    prefix_src,
-                    options,
-                    canonical_goal,
-                    inductives,
-                    defs,
-                    ctx,
-                    crate::compile::elab::InplaceEnv::reborrow(&mut env),
+                        ty,
+                        by,
+                        initial_binders,
+                        universe,
+                        prefix_src,
+                        options,
+                        canonical_goal,
+                        inductives,
+                        defs,
+                        ctx,
+                        crate::compile::elab::InplaceEnv::reborrow(&mut env),
                         Some(k),
                         &mut marks_for_strict,
                     )

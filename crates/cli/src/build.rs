@@ -354,7 +354,12 @@ impl sokonanoda_front::compile::ProgressSink for HumanTicks {
             return;
         }
         self.last = now;
-        eprintln!("… module {}/{} · {}", tick.index + 1, tick.total, tick.module);
+        eprintln!(
+            "… module {}/{} · {}",
+            tick.index + 1,
+            tick.total,
+            tick.module
+        );
     }
 }
 
@@ -693,8 +698,11 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
                 // **C1**：模块级 tick **也喂人看的那条**（以前非 json 时是 `None`
                 // ⇒ 一个入口编 40 个闭包模块期间终端零输出 ✗）。
                 let mut human = HumanTicks::new();
-                let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> =
-                    if json { Some(&mut sink) } else { Some(&mut human) };
+                let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> = if json {
+                    Some(&mut sink)
+                } else {
+                    Some(&mut human)
+                };
                 let report =
                     sokonanoda_front::project::compile_plan_prechecked(plan, &options, progress);
                 let outcome = finish_project(report, &options, &digest, &artifacts_root);
@@ -749,7 +757,11 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
                                 let mut human = HumanTicks::new();
                                 let progress: Option<
                                     &mut dyn sokonanoda_front::compile::ProgressSink,
-                                > = if json { Some(&mut sink) } else { Some(&mut human) };
+                                > = if json {
+                                    Some(&mut sink)
+                                } else {
+                                    Some(&mut human)
+                                };
                                 let status = std::fs::read_to_string(file)
                                     .map_err(|e| format!("cannot read: {e}"))
                                     .and_then(|src| {
@@ -780,8 +792,11 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
                 ticks.push((tick.module.to_string(), tick.index, tick.total));
             };
             let mut human = HumanTicks::new();
-            let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> =
-                if json { Some(&mut sink) } else { Some(&mut human) };
+            let progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink> = if json {
+                Some(&mut sink)
+            } else {
+                Some(&mut human)
+            };
             let status = std::fs::read_to_string(file)
                 .map_err(|e| format!("cannot read: {e}"))
                 .and_then(|src| build_one(file, &src, root, no_project, progress, None));

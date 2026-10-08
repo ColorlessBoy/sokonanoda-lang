@@ -37,7 +37,8 @@ use sokonanoda_front::judge::{inplace_report, inplace_shadow_prelude_excluded};
 use sokonanoda_front::parse;
 
 /// 一份**必须走 prelude** 的夹具：`And` 的构造/投影都在 prelude 里。
-const FIXTURE: &str = "theorem t (A B : Prop) (h : A) (k : B) : A \u{2227} B := by\n  exact \u{27e8}h, k\u{27e9}\n";
+const FIXTURE: &str =
+    "theorem t (A B : Prop) (h : A) (k : B) : A \u{2227} B := by\n  exact \u{27e8}h, k\u{27e9}\n";
 
 #[test]
 fn the_prelude_install_exclusion_is_gone_and_the_shadow_agrees() {
@@ -77,7 +78,6 @@ fn the_prelude_install_exclusion_is_gone_and_the_shadow_agrees() {
         diff_after, diff_before,
         "**判定红线**：prelude 安装期两条路的文本必须**逐字相同**（`shadow_diff` {} → {}）—— \
          出 diff 就是**真分歧**（不是噪声 ✗）⇒ 停下来定性，不许放宽 ✗。",
-        diff_before,
-        diff_after
+        diff_before, diff_after
     );
 }

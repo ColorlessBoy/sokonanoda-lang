@@ -437,12 +437,18 @@ pub fn prelude_source() -> &'static str {
     // 正在初始化的覆盖 `OnceLock`（死锁 ✗），也保证这份缓存不会被"装载中的半态"
     // 污染 ✓（两个 `OnceLock` 各管一份：内置的与生效的 ✓）。
     if LOADING_OVERRIDE.with(std::cell::Cell::get) {
-        return BUILTIN.get_or_init(|| {
-            format!("{PRELUDE_EQ_SRC}\n{PRELUDE_L1_SRC}\n{QUOT_TYPES_SRC}")
-        });
+        return BUILTIN
+            .get_or_init(|| format!("{PRELUDE_EQ_SRC}\n{PRELUDE_L1_SRC}\n{QUOT_TYPES_SRC}"));
     }
     // 走**生效**的三段（没设覆盖时逐字节等于内置 ✓）。
-    SRC.get_or_init(|| format!("{}\n{}\n{}", prelude_eq_src(), prelude_l1_src(), quot_types_src()))
+    SRC.get_or_init(|| {
+        format!(
+            "{}\n{}\n{}",
+            prelude_eq_src(),
+            prelude_l1_src(),
+            quot_types_src()
+        )
+    })
 }
 
 /// prelude 名字 → 它在 [`prelude_source`] 里的**真 span**。
@@ -693,7 +699,15 @@ pub(crate) fn install_l1_prelude<'a>(
     taken: &HashSet<String>,
 ) {
     // **E3**：真装走**生效源**（有覆盖就是覆盖 ✓）；试装（`trial_install`）走 `_src` ✓。
-    install_l1_prelude_src(builder, known, inductives, defs, prelude_l1_src(), quot_types_src(), taken);
+    install_l1_prelude_src(
+        builder,
+        known,
+        inductives,
+        defs,
+        prelude_l1_src(),
+        quot_types_src(),
+        taken,
+    );
 }
 
 /// [`install_l1_prelude`] 的**显式源**版本（E3 的试装用它 ✓）。
@@ -1304,11 +1318,8 @@ mod e3_tests {
     #[test]
     fn an_override_that_parses_but_does_not_install_is_rejected_not_panicking() {
         let dir = tmpdir("forward-ref");
-        let flipped = PRELUDE_L1_SRC.replacen(
-            "axiom True.intro : True",
-            "axiom True.intro : False",
-            1,
-        );
+        let flipped =
+            PRELUDE_L1_SRC.replacen("axiom True.intro : True", "axiom True.intro : False", 1);
         assert_ne!(flipped, PRELUDE_L1_SRC, "夹具前提：L1 里有那条 axiom");
         std::fs::write(dir.join("L1.sokonanoda"), &flipped).expect("write");
         let o = load_prelude_override(&dir);

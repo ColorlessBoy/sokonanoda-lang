@@ -409,7 +409,17 @@ mod tests {
     #[test]
     fn the_prelude_override_fingerprint_enters_the_key() {
         let base = key_parts(6, 3, "0.0.0", 7, false, 0, 0, 0, "def x : Prop := Prop\n");
-        let other = key_parts(6, 3, "0.0.0", 7, false, 0, 0, 0xdead_beef, "def x : Prop := Prop\n");
+        let other = key_parts(
+            6,
+            3,
+            "0.0.0",
+            7,
+            false,
+            0,
+            0,
+            0xdead_beef,
+            "def x : Prop := Prop\n",
+        );
         assert_ne!(base, other, "覆盖指纹必须进键 ✓");
         // 没覆盖（0）与**今天**的键逐字相同 —— 用同一批参数算两次自证纯函数 ✓。
         assert_eq!(
@@ -491,28 +501,38 @@ mod tests {
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &bare, 7));
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &full, 8));
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0,0, "a"),
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.2.0", 7, false, 0, 0,0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.2.0", 7, false, 0, 0, 0, "a"),
             "a version bump must miss"
         );
         // **IA-4 M1**：元变量档位必须分开（否则同一个缓存目录里先跑的那一档污染后面所有档 ✗）
         for (x, y) in [(0u8, 1u8), (0, 2), (1, 2)] {
             assert_ne!(
-                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, x, 0,0, "a"),
-                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, y, 0,0, "a"),
+                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, x, 0, 0, "a"),
+                key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, y, 0, 0, "a"),
                 "不同元变量档位必须是不同的键（state {x} vs {y}）"
             );
         }
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0,0, "a"),
-            key_parts(CACHE_FORMAT + 1, REPORT_SHAPE, "0.1.0", 7, false, 0, 0,0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, 0, "a"),
+            key_parts(
+                CACHE_FORMAT + 1,
+                REPORT_SHAPE,
+                "0.1.0",
+                7,
+                false,
+                0,
+                0,
+                0,
+                "a"
+            ),
             "a schema bump must miss"
         );
         // **报告形状版本也进键**（值守第 8 单）：形状一变，键必须变 ✓
         // ——否则"源码没变 + 二进制变了"会命中旧条目、静默给旧答案 ✗。
         assert_ne!(
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0,0, "a"),
-            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 1,0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 0, 0, "a"),
+            key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.1.0", 7, false, 0, 1, 0, "a"),
             "flags 状态变化必须 miss（b1 缓存污染根因的守护）"
         );
     }
@@ -527,7 +547,7 @@ mod tests {
         let dir = tmp_dir("shape");
         let src = "def two : Nat := 2\nexample : Prop := sorry\n";
         let entry = entry_for(src);
-        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0,0, src);
+        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0, 0, src);
         store_in(&dir, &k, &entry);
         assert!(load_in(&dir, &k).is_some(), "当前形状必须读得回来 ✓");
 
@@ -581,7 +601,7 @@ mod tests {
                 .is_some_and(|out| !out.events.is_empty()),
             "the combined entry point must carry CLI events"
         );
-        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0,0, src);
+        let k = key_parts(CACHE_FORMAT, REPORT_SHAPE, "0.48.0", 7, false, 0, 0, 0, src);
         store_in(&dir, &k, &entry);
         let loaded = load_in(&dir, &k).expect("cache hit");
         assert_eq!(loaded.report.decls.len(), entry.report.decls.len());

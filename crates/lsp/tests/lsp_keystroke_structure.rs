@@ -132,9 +132,8 @@ fn changing_a_statement_must_invalidate_the_prefixes_after_it() {
         "id": request_id,
         "params": {"textDocument": {"uri": uri}, "position": null},
     }));
-    let answered = client.wait_for(|message| {
-        message.get("id") == Some(&serde_json::json!(request_id))
-    });
+    let answered =
+        client.wait_for(|message| message.get("id") == Some(&serde_json::json!(request_id)));
     assert!(
         answered.to_string().contains(&format!("{name}_a")),
         "**答案层**：改名之后 `soko/goals` 必须答**新名字** `{name}_a` ✓ —— \

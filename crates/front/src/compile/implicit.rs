@@ -49,8 +49,7 @@ pub(crate) struct Layer {
 /// 两处（本模块的 [`telescope`] 与 `elab::notation_telescope`）都**每次都
 /// `parse_expr_text`**（无 memo）⇒ "要不要做签名级缓存"**没有数据可依** ✗。
 /// 计数器先回答"一次按键解析几次"，再谈优化 ✓（判据纪律：先读数、后动手）。
-pub static TELESCOPE_PARSES: std::sync::atomic::AtomicU64 =
-    std::sync::atomic::AtomicU64::new(0);
+pub static TELESCOPE_PARSES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// 记一次 telescope 解析（**两处调用点共用**；只给判据用）。
 #[doc(hidden)]

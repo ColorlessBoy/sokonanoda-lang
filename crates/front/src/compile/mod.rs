@@ -23,14 +23,14 @@ pub use check::by_calls_total;
 pub use check::canonical_prefix_id;
 /// 同上，但**解析失败返回 `None`** ✓（增量身份的"片段探针"用 ✓，见 `check/walk.rs` ✓）。
 pub use check::canonical_prefix_id_checked;
+/// **A4a（2026-10-08）的判据读数**：闭包前缀累加次数（冷开 2、检查点复用后 0）。
+pub use check::closure_prefix_builds_total;
 pub use check::{
     check_document, check_document_with, closure_accumulated_over, closure_prefixes_for,
     compile_all_with, compile_fol, compile_fol_with, display_notations,
     display_notations_from_commands, fold_for_display, prelude_shape, render_expr, PreludeShape,
 };
 pub use check::{closure_module_compiles_total, module_compiles_total, note_module_compile};
-/// **A4a（2026-10-08）的判据读数**：闭包前缀累加次数（冷开 2、检查点复用后 0）。
-pub use check::closure_prefix_builds_total;
 pub(crate) use check::{
     run_incremental, run_pass_with, top_level_def_spans, top_level_def_spans_over, KernelFailed,
     PassTables, TrustPlan,
@@ -40,6 +40,8 @@ pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput, CompileStats};
 pub use goals::{probe_sub_goal_types, probe_sub_goal_types_with};
 pub use hints::{attach_hints, attach_hints_to_report, source_hints};
+/// **telescope 解析次数**（A4b 的判据读数）：先读数、后谈签名级缓存 ✓。
+pub use implicit::telescope_parses_total;
 pub use prelude::{
     explicit_prelude_mode, prelude_def_span, prelude_eq_src, prelude_l1_src,
     prelude_mode_from_source, prelude_override_error, prelude_override_state, prelude_source,
@@ -54,8 +56,6 @@ pub(crate) use scope::{join_ns, NamespaceScope};
 /// **`TcCache` 构造次数**（2026-10-08 端到端 profiling 的新读数）：判据用它数
 /// "一次按键构造了几次 `TcCache`"（每次预分配 ≈ 4 MiB + 20 张表 ⇒ 实测 61.8 µs/次）。
 pub use sokonanoda::util::tc_cache_builds_total;
-/// **telescope 解析次数**（A4b 的判据读数）：先读数、后谈签名级缓存 ✓。
-pub use implicit::telescope_parses_total;
 pub use units::{
     compile_all_units, compile_all_units_with_progress, split_report, unit_ranges, ProgressSink,
     ProgressTick, SourceUnit,

@@ -3799,9 +3799,7 @@ mod tests {
                     body.push_str(&format!("  {step}\n"));
                 }
             }
-            format!(
-                "theorem t_{tag} (A B : Prop) (h1 : A) (h2 : B) : A \u{2227} B := by\n{body}"
-            )
+            format!("theorem t_{tag} (A B : Prop) (h1 : A) (h2 : B) : A \u{2227} B := by\n{body}")
         };
         let run_for = |bad: usize, batching: bool, tag: &str| -> (usize, Vec<String>) {
             let file = parse(&block(bad, tag)).expect("parse");

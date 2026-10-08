@@ -154,13 +154,7 @@ pub fn lib_checkpoint_is_live() -> bool {
 /// **上界判据的读数**（`#[doc(hidden)]`）：本线程那份检查点被复用了多少次。
 #[doc(hidden)]
 pub fn lib_checkpoint_reuses() -> usize {
-    LIB_CHECKPOINTS.with(|slot| {
-        slot.borrow()
-            .iter()
-            .map(|cp| cp.reuses)
-            .max()
-            .unwrap_or(0)
-    })
+    LIB_CHECKPOINTS.with(|slot| slot.borrow().iter().map(|cp| cp.reuses).max().unwrap_or(0))
 }
 
 /// **判据用**（`#[doc(hidden)]`）：清掉本线程的检查点与泄漏计数（测试隔离）。
