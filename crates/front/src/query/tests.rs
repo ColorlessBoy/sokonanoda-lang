@@ -252,19 +252,22 @@ fn state_at_closed_declaration_without_a_by_block_has_no_goal() {
 }
 
 #[test]
-fn state_at_inside_a_tactic_shows_the_entering_state() {
+fn state_at_inside_a_tactic_shows_the_state_after_it() {
     let doc = doc(CANVAS);
-    // 光标落在 `apply And.intro` 内部 → 进入该 tactic **之前**的状态
-    // （三条 intro 已跑完：a、b、h 都在上下文里，目标还是 `And b a`）。
+    // **B2（2026-10-08）**：光标落在 `apply And.intro` **内部**（非起点）⇒ 该 tactic
+    // **执行后**的状态 —— 与 Lean 4 的 `goalsAfter` 一致（`InfoUtils.lean:448-481` 的
+    // `useAfter := hoverPos > pos`；权威样本 `plainGoal.lean.expected.out`：`intro a`
+    // 的 char3 ⇒ 后态 ✓）。`apply` 是第 4 条（index 3）⇒ `step == 3`、两个子目标都在。
+    // 改前这里答 `step: 2` / `goals.len(): 1`（"进入态" ✗）。
     let offset = CANVAS.find("apply And.intro").expect("tactic") + 3;
     let state = doc.state_at(offset).expect("answerable");
+    assert_eq!(state.step, 3, "`apply` is tactic index 3 → its state is 3");
     assert_eq!(
-        state.step, 2,
-        "`apply` is the 4th tactic → entering state is 2"
+        state.goals.len(),
+        2,
+        "after `apply And.intro` two sub-goals remain: {:?}",
+        state.goals.iter().map(|g| &g.goal).collect::<Vec<_>>()
     );
-    assert_eq!(state.goals.len(), 1);
-    // 线 C（T-C22）：`by` 步进的展示副本带记法（判定输入没动）。
-    assert_eq!(state.goals[0].goal, "b ∧ a");
     let names: Vec<&str> = state.goals[0]
         .binders
         .iter()
@@ -273,16 +276,34 @@ fn state_at_inside_a_tactic_shows_the_entering_state() {
     assert_eq!(names, vec!["a", "b", "h"], "the intros are in scope");
 }
 
+/// **边界（B2）**：光标**恰在起点**（`cursor == span.start`）仍是"**进入**该 tactic
+/// 之前"的状态 —— 与 Lean 的 `hoverPos > pos` 的严格不等一致 ✓（这是双向守卫的另一半，
+/// 另一半见 `state_at_inside_a_tactic_shows_the_state_after_it`）。
+#[test]
+fn state_at_the_start_of_a_tactic_still_shows_the_entering_state() {
+    let doc = doc(CANVAS);
+    let offset = CANVAS.find("apply And.intro").expect("tactic");
+    let state = doc.state_at(offset).expect("answerable");
+    assert_eq!(state.step, 2, "cursor == span.start ⇒ entering state (i-1)");
+    assert_eq!(state.goals.len(), 1);
+    // 线 C（T-C22）：`by` 步进的展示副本带记法（判定输入没动）。
+    assert_eq!(state.goals[0].goal, "b ∧ a");
+}
+
 #[test]
 fn state_at_after_apply_lists_every_sub_goal() {
     let doc = doc(CANVAS);
-    // 最后一个 `sorry` 之前 → `apply And.intro` 之后，两个子目标都在。
+    // `apply And.intro` **结束处**（边界：`cursor == span.end`）→ 该 tactic 之后，
+    // 两个子目标都在。
+    // ⚠ **B2 修正（2026-10-08）**：这里原来的取点是 `apply_end + i + 1`（= 第一条
+    // `sorry` 的**第二个字符**）—— 那**在 `sorry` 这条 tactic 内部** ✗，B2 之前它
+    // 恰好也答 `step: 3`（"进入 `sorry` 之前" = apply 之后）⇒ **看不出问题**；
+    // B2 之后同一取点答 `step: 4`（`sorry` 之后）✗。规划 §2 B2 的判据 ② 写的是
+    // "取点不在任何 tactic 内 ⇒ 不受影响" —— **那句是错的**（本轮实测纠正 ✓）。
+    // 改成**真正的边界取点**（`apply` 的 `end`）：语义 = "最后一条在光标前结束的
+    // tactic 之后" ✓，且顺带钉住"`cursor == span.end` 算之后"这条边界 ✓。
     let apply_end = CANVAS.find("apply And.intro").expect("tactic") + "apply And.intro".len();
-    let offset = CANVAS[apply_end..]
-        .find("sorry")
-        .map(|i| apply_end + i + 1)
-        .expect("the first sorry after apply");
-    let state = doc.state_at(offset).expect("answerable");
+    let state = doc.state_at(apply_end).expect("answerable");
     assert_eq!(state.step, 3, "`apply` is tactic index 3 → its state is 3");
     assert_eq!(state.total, 6, "3 intros + apply + 2 sorrys");
     assert_eq!(
@@ -294,6 +315,28 @@ fn state_at_after_apply_lists_every_sub_goal() {
     // 单值字段恒等于 goals[0]（老客户端契约）。
     assert_eq!(state.goal.as_deref(), Some(state.goals[0].goal.as_str()));
     assert_eq!(state.binders, state.goals[0].binders);
+}
+
+/// **B2 的另一条边界**：光标在**末条 tactic 之内**（非起点）⇒ 取它**作用后**的状态
+/// —— 这正是 Lean 的 `useAfter`（`hoverPos > pos`）在"证明末尾"那一格的行为。
+/// 夹具 `and_swap` 的末两条都是 `sorry`；我们的 `sorry` **不闭合目标**
+/// （与 Lean 的 `admitGoal` 不同 ⇒ 已知偏离）⇒ 取末条 `sorry` 之内时 `goals` 仍非空 ✓。
+#[test]
+fn state_at_inside_the_last_tactic_shows_its_own_state() {
+    let doc = doc(CANVAS);
+    let first_sorry = CANVAS.find("sorry").expect("first sorry");
+    let second = CANVAS[first_sorry + 1..]
+        .find("sorry")
+        .map(|i| first_sorry + 1 + i)
+        .expect("second sorry");
+    let state = doc.state_at(second + 1).expect("answerable");
+    assert_eq!(state.step, 5, "the last `sorry` is tactic index 5");
+    assert_eq!(state.total, 6);
+    assert_eq!(
+        state.goals.len(),
+        2,
+        "our `sorry` does not close goals (known deviation from Lean's admitGoal)"
+    );
 }
 
 #[test]
@@ -653,7 +696,7 @@ fn an_open_exercise_without_by_keeps_notation_in_its_goal() {
 ///
 /// 病（R-2 ②"infoview 里的目标也没有高亮"）：`goal`/`goals` 以前只有文本，
 /// 没有 runs ⇒ 声明卡片只能画纯文本。文本对了不等于用户看得见——runs 是着色的
-/// **唯一**来源（webview 不重新分词，`goal-rendering.md` §2.1）。
+/// **唯一**来源（webview 不重新分词，`docs/protocol.md` §`soko/stateAt`）。
 ///
 /// 反例守卫在最后一段：**闭合**声明没有目标，也必须没有 runs——别让"空数组"
 /// 被当成"有目标"渲染出来。

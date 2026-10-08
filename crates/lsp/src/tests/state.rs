@@ -2,7 +2,11 @@ use super::*;
 
 #[tokio::test]
 async fn state_at_inside_a_tactic_shows_the_entering_state() {
-    // 光标停在 tactic `intro h` 上：学习者要看到的是「这条 tactic 进来时的目标」。
+    // 光标停在 tactic `intro h` 的**起点**上：`cursor == span.start` 仍是"进入态"
+    // —— **B2（2026-10-08）双向守卫的一半**（另一半：光标严格在内部 ⇒ **作用后**，
+    // 见 `state_at_inside_the_last_tactic_of_a_checked_proof_has_no_goals`）。
+    // 语义对照：Lean 4 `InfoUtils.lean:448-481` 的 `useAfter := hoverPos > pos`
+    // ⇒ 起点（`hoverPos == pos`）取 `goalsBefore` ✓。
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
     did_open(&mut service, BY_OPEN).await;
@@ -29,7 +33,7 @@ async fn state_at_inside_a_tactic_shows_the_entering_state() {
 
 #[tokio::test]
 async fn state_at_carries_semantic_runs_for_goals_and_hypotheses() {
-    // docs/design/goal-rendering.md §2.1: `soko/stateAt` ships the same
+    // docs/protocol.md §`soko/stateAt`: `soko/stateAt` ships the same
     // classification the editor's semantic tokens use, so the Infoview can
     // colour identically instead of inventing its own rules.
     let (mut service, mut socket) = test_service();
@@ -79,7 +83,7 @@ async fn state_at_carries_semantic_runs_for_goals_and_hypotheses() {
 
 #[tokio::test]
 async fn hover_goal_text_equals_the_state_at_run_projection() {
-    // One content producer (docs/design/goal-rendering.md §2.1): the hover's
+    // One content producer (docs/protocol.md §`soko/stateAt`): the hover's
     // `sokonanoda` fence text must be the text projection of the very runs
     // `soko/stateAt` hands the Infoview (`goals[].binders[].ty_runs` +
     // `goals[].goal_runs`), so hover and Infoview can never drift.
@@ -117,6 +121,8 @@ async fn hover_goal_text_equals_the_state_at_run_projection() {
 
 #[tokio::test]
 async fn state_at_after_the_last_tactic_shows_the_remaining_goal() {
+    // 光标在 `intro h` 的**末尾**（`cursor == span.end`）⇒ 归入"最后一条在光标前
+    // 结束的 tactic"= `intro h` 本身 ⇒ 它作用后 ✓（B2 未改这条边界 ✓）。
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
     did_open(&mut service, BY_OPEN).await;
@@ -129,6 +135,44 @@ async fn state_at_after_the_last_tactic_shows_the_remaining_goal() {
     let binders = result["binders"].as_array().expect("binders array");
     assert_eq!(binders.len(), 2, "a and h are both in context");
     assert_eq!(binders[1]["name"], "h");
+    shutdown(&mut service).await;
+}
+
+/// **B2（2026-10-08）**：光标落在**末条 tactic 之内**（严格内部，非起点）⇒ 取它
+/// **作用后**的状态 —— 与 Lean 4 的 `useAfter`（`hoverPos > pos`）一致 ✓。
+///
+/// 这条同时是 **🎉/Q.E.D. 的 wire 判据**：证明在末条 tactic 闭合 ⇒
+/// `total > 0 && goals == [] && step == total-1` 且 `decl.status == "checked"`
+/// （渲染侧据此分叉出「恭喜，证完了」；判据见 `media/infoview.js` 与
+/// `editor/vscode/test-webview.js`）。改前这里答的是**进入态**（`step == total-2`、
+/// `goals` 非空）✗。
+#[tokio::test]
+async fn state_at_inside_the_last_tactic_of_a_checked_proof_has_no_goals() {
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+               theorem done (a b : Prop) (ha : a) (hb : b) : And a b := by\n\
+               \x20 apply And.intro\n\
+               \x20 exact ha\n\
+               \x20 exact hb\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+    let result = ask_state_at(&mut service, src, offset_of(src, "exact hb") + 3).await;
+    assert_eq!(result["decl"]["status"], "checked");
+    assert_eq!(result["total"], 3, "apply + two exacts");
+    assert_eq!(
+        result["step"], 2,
+        "strictly inside the last tactic ⇒ its own state (total-1)"
+    );
+    assert_eq!(
+        result["goals"].as_array().map(Vec::len),
+        Some(0),
+        "the proof is closed: {:?}",
+        result["goals"]
+    );
+    assert!(result["goal"].is_null(), "no single goal either");
     shutdown(&mut service).await;
 }
 

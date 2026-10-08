@@ -439,7 +439,7 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
 ```
 
 - `goal_runs` / `ty_runs` carry the **semantic runs** of `goal` / a
-  hypothesis's `ty` (`docs/design/goal-rendering.md` §2.1): an ordered list of
+  hypothesis's `ty` (`docs/protocol.md` §`soko/stateAt`): an ordered list of
   `{"text"}` fragments that concatenate back to the exact field text, each
   optionally carrying a `kind`. The vocabulary is the editor's own semantic
   classification, owned by `front::semantic::SemanticKind` and spelled by
@@ -450,10 +450,13 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   (whitespace/punctuation) and is drawn unstyled. Clients that colour goals
   (the Infoview) must use these runs and never re-tokenize the text — that is
   what keeps hover and the Infoview from drifting apart.
-- Selects the goal state at the caret with Lean `goalsAt?` semantics: inside
-  a tactic's span → the state **entering** it; else after the last tactic
-  ending at or before the caret; before the first tactic → the **statement
-  state**: the declaration's **named ∀ binders** in `binders` and what is left
+- Selects the goal state at the caret with Lean `goalsAt?` semantics: **strictly
+  inside** a tactic's span (`start < caret < end`) → the state **after** that
+  tactic (`goalsAfter`; Lean's `useAfter := hoverPos > pos`,
+  `Server/InfoUtils.lean:448-481`); at the **very start** of a tactic
+  (`caret == start`) → the state **entering** it (`goalsBefore`); else after the
+  last tactic ending at or before the caret; before the first tactic → the
+  **statement state**: the declaration's **named ∀ binders** in `binders` and what is left
   after peeling them in `goal` —— **与声明卡片（`soko/goals`）逐字一致**
   （**顶 ≡ 底** 是硬契约 ✓）；Π 语句保留自己的 `→`/`∀` ✓，失败的声明也答题面（非 null）✓。
 - `goals` is the **full** remaining-goal list at that position (current goal

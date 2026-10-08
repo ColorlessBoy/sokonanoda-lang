@@ -1220,10 +1220,12 @@ impl Backend {
     }
 
     /// Per-tactic goal state at the cursor (`soko/stateAt`,
-    /// docs/design/by-tactics.md §6). Lean `goalsAt?` semantics: a cursor
-    /// inside a tactic shows the state **entering** that tactic; otherwise
-    /// the state after the last tactic that ended before it. The response
-    /// carries the document version so clients drop stale answers.
+    /// `docs/protocol.md` §`soko/stateAt`). Lean `goalsAt?` semantics: a cursor
+    /// **strictly inside** a tactic shows the state **after** it (`goalsAfter`,
+    /// Lean's `useAfter := hoverPos > pos`); at the very start it shows the
+    /// state **entering** it; otherwise the state after the last tactic that
+    /// ended before it. The response carries the document version so clients
+    /// drop stale answers.
     ///
     /// 选择语义（在哪个声明里、哪条 tactic、根状态的目标）全部在真相层
     /// （`QueryDoc::state_at`，`docs/protocol.md` §`soko/stateAt`）；这里只把
@@ -1319,7 +1321,7 @@ fn tactic_goal_hover(
         .trim();
     // Header: the tactic itself + its 1-based position. The tactic is a
     // `sokonanoda` code block too, so its own syntax is highlighted (same fence
-    // language as the goal state below, docs/design/goal-rendering.md §7).
+    // language as the goal state below, docs/protocol.md §`soko/stateAt`).
     let mut value = code_block(tactic_text);
     if selection.total > 0 {
         value.push_str(&format!(
@@ -1411,7 +1413,7 @@ fn report_diagnostics(report: &sokonanoda_front::compile::DocumentReport) -> Vec
 /// Language id used by **every** markdown code fence the server emits, so the
 /// editor colours it with the `sokonanoda` TextMate grammar (which is
 /// contract-tested against `front::semantic`) — the single source for any
-/// `.sokonanoda` text the client renders (docs/design/goal-rendering.md §7).
+/// `.sokonanoda` text the client renders (docs/protocol.md §`soko/stateAt`).
 const CODE_LANG: &str = "sokonanoda";
 
 /// A fenced `sokonanoda` code block for editor markdown (hover / completion
@@ -2024,7 +2026,7 @@ impl LanguageServer for Backend {
                 None => format!("{} {}", d.kind.as_str(), decl_name(d)),
             };
             // Signature and goal state are `.sokonanoda` text → fenced blocks so
-            // the editor highlights them (docs/design/goal-rendering.md §7).
+            // the editor highlights them (docs/protocol.md §`soko/stateAt`).
             let mut value = code_block(&signature);
             match d.status {
                 DeclStatus::Open => {

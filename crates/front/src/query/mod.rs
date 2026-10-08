@@ -1237,8 +1237,11 @@ impl QueryDoc {
     // ── state（Lean `goalsAt?` 语义）─────────────────────────────────────────
 
     /// 光标处的目标状态。语义与 `soko/stateAt` **完全一致**（同一实现）：
-    /// 光标在某 tactic 的 span 内 → **进入**该 tactic 之前的状态；否则停在最后
-    /// 一条在光标前结束的 tactic 之后；首个 tactic 之前 → 根状态。
+    /// 光标**严格在某 tactic 的 span 内**（`start < cursor < end`）→ 该 tactic
+    /// **作用后**的状态（B2/2026-10-08：与 Lean 4 的 `goalsAfter` 一致）；**恰在
+    /// 起点**（`cursor == start`）→ **进入**它的状态；否则停在最后一条在光标前
+    /// 结束的 tactic 之后；首个 tactic 之前 → 根状态。原文见 `docs/protocol.md`
+    /// §`soko/stateAt` 与 [`select_state_at`]。
     pub fn state_at(&self, cursor: usize) -> Result<StateAnswer, QueryError> {
         if cursor > self.text.len() {
             return Err(QueryError::PositionOutOfRange);

@@ -37,7 +37,7 @@ pub(crate) struct RunInfo {
 pub(crate) struct GoalBinderInfo {
     pub(crate) name: String,
     pub(crate) ty: String,
-    /// Semantic runs of `ty` (`docs/design/goal-rendering.md` §2.1): the same
+    /// Semantic runs of `ty` (`docs/protocol.md` §`soko/stateAt`): the same
     /// classification the editor's semantic tokens use, so hover and the
     /// Infoview can never drift.
     pub(crate) ty_runs: Vec<RunInfo>,
@@ -172,7 +172,7 @@ pub(crate) struct StateDeclInfo {
 #[derive(Debug, Serialize)]
 pub(crate) struct StateGoalInfo {
     pub(crate) goal: String,
-    /// Semantic runs of `goal` (`docs/design/goal-rendering.md` §2.1).
+    /// Semantic runs of `goal` (`docs/protocol.md` §`soko/stateAt`).
     pub(crate) goal_runs: Vec<RunInfo>,
     pub(crate) binders: Vec<GoalBinderInfo>,
 }

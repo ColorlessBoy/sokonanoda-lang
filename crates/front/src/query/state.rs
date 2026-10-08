@@ -17,9 +17,18 @@ pub struct StateSelection {
 /// 光标处的状态选择（**Lean `goalsAt?` 语义的唯一实现**，协议原文见
 /// `docs/protocol.md` §`soko/stateAt`）：
 ///
-/// - 光标落在某条 tactic 的 span 内（**半开区间** `start <= cursor < end`：光标
-///   恰在 tactic 末尾算"之后"，不算"之内"）→ 该 tactic **执行前**的状态，
-///   即第 `i-1` 条执行后的状态（`i == 0` 时为根状态）；
+/// - 光标落在某条 tactic 的 span 内（**开区间** `start < cursor < end`）→ 该 tactic
+///   **执行后**的状态，即第 `i` 条执行后的状态（**与 Lean 4 的 `hoverPos > pos`
+///   一致** ✓）；光标**恰在起点**（`cursor == start`）⇒ 仍是"**进入**该 tactic 之前"
+///   （第 `i-1` 条之后）；光标**恰在末尾/之后** ⇒ 归入"最后一条在光标前结束的 tactic"。
+///   ⚠ **2026-10-08 更正（B2 · 与 Lean 对齐）**：这里原来是 `start <= cursor < end ⇒ i-1`
+///   （**半开区间取"进入态"**）⇒ 与 Lean 4 **相反** ✗。权威对照：
+///   `~/Documents/lean/lean4/src/Lean/Server/InfoUtils.lean:448-481` 的
+///   `useAfter := hoverPos > pos && !cs.any (hasNestedTactic pos tailPos)` ⇒ Lean 在
+///   tactic **内部**显示的是 `goalsAfter`；样本
+///   `tests/lean/interactive/plainGoal.lean.expected.out`：`intro a` 的 char2（起点）
+///   ⇒ 前态 · char3 ⇒ **后态** ✓。**边界两条**：`cursor == span.start` 仍是进入态；
+///   `cursor == span.end` 已归入"结束于光标前"（与"末尾算之后"的旧口径一致 ✓）。
 /// - 否则取"最后一条在光标前（含恰好结束）结束的 tactic"之后的状态；
 /// - 根状态（`step: -1`）：**第一条 tactic 之前的状态** = 声明的剩余目标
 ///   （`goal`）+ **声明的 ∀ 绑元**（`binders`），`span` = 声明范围。
@@ -121,12 +130,22 @@ pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
         step: -1,
         total: d.by_steps.len(),
     };
-    let selected = match d
-        .by_steps
-        .iter()
-        .position(|s| s.span.start.offset <= cursor && cursor < s.span.end.offset)
-    {
-        Some(i) => i as i64 - 1,
+    let selected = match d.by_steps.iter().position(|s| {
+        // **开区间**（B2）：`start < cursor < end` ⇒ 该 tactic **执行后** ✓
+        // （Lean `useAfter` 的 `hoverPos > pos`；`cursor == start` 仍是"进入态" ✓）。
+        if state_after_legacy() {
+            s.span.start.offset <= cursor && cursor < s.span.end.offset
+        } else {
+            s.span.start.offset < cursor && cursor < s.span.end.offset
+        }
+    }) {
+        Some(i) => {
+            if state_after_legacy() {
+                i as i64 - 1
+            } else {
+                i as i64
+            }
+        }
         None => d
             .by_steps
             .iter()
@@ -153,4 +172,12 @@ pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
 /// 行为。任何生产路径都不该设它 ✓。
 fn state_root_legacy() -> bool {
     matches!(std::env::var("SOKO_STATE_ROOT").as_deref(), Ok("legacy"))
+}
+
+/// 逃生门（**只给反向验证用** · B2）：`SOKO_STATE_AFTER=0` 恢复改动前的
+/// "**进入态**"选择（`start <= cursor < end ⇒ i-1`）。任何生产路径都不该设它 ✓
+/// —— 它的存在只为让判据能**反向验证**（撤掉修复 ⇒ ①④⑤与 webview 判据必须红 ✓）。
+fn state_after_legacy() -> bool {
+    static LEGACY: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *LEGACY.get_or_init(|| matches!(std::env::var("SOKO_STATE_AFTER").as_deref(), Ok("0")))
 }

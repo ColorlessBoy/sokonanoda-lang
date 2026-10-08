@@ -112,7 +112,7 @@ async fn ask_next_hole(
     .expect("soko/nextHole must answer")
 }
 
-// ---- soko/stateAt：光标处 tactic 目标（docs/design/by-tactics.md §6）----
+// ---- soko/stateAt：光标处 tactic 目标（docs/protocol.md §`soko/stateAt`）----
 
 async fn ask_state_at(
     service: &mut LspService<Backend>,

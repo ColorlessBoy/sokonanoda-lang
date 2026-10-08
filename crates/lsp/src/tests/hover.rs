@@ -228,7 +228,7 @@ async fn hover_on_partial_hole_lists_hypotheses() {
 
 #[test]
 fn code_fences_always_use_the_sokonanoda_language() {
-    // docs/design/goal-rendering.md §7: one language id for every rendered
+    // docs/protocol.md §`soko/stateAt`: one language id for every rendered
     // code block, so the single TM grammar colours all of them.
     assert_eq!(code_block("x : Nat"), "```sokonanoda\nx : Nat\n```");
     assert!(!code_block("x").contains("```text"));
