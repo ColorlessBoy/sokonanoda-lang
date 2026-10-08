@@ -38,3 +38,37 @@ theorem le_of_subset_mono (A A' B : Set Nat) (hA : A' ⊆ A) (h : A ⊆ B) : A' 
 theorem le_trans_mono_right (A B B' C : Set Nat) (h1 : A ≼ B) (hB : B ⊆ B') (h2 : B' ≼ C) :
     A ≼ C :=
   Set.Le.trans Nat Nat Nat A B' C (Set.Le.mono_right Nat Nat A B B' h1 hB) h2
+
+-- 演示：**对角线集（`∃` 版）** —— Cantor 定理用它 ✓（单点版 `diagonal` 载不动 ✓）。
+def cantorDiagonal (f : Set Nat → Nat) : Set Nat :=
+  fun (x : Nat) => ∃ (S : Set Nat), f S = x ∧ ¬ (x ∈ S)
+
+-- 解答内辅助（**画布不另设此题** ✓）：`𝒫 ℕ` 的成员条件 —— 一般形式已在单元11 作过练习 ✓。
+theorem mem_powerset_univ_nat (S : Set Nat) : S ∈ (𝒫 (@Set.univ Nat)) :=
+  Iff.mpr (Set.mem_powerset_iff Nat (@Set.univ Nat) S)
+    (fun (x : Nat) => fun (_ : x ∈ S) => Set.mem_univ x)
+
+-- 练习 7：**Cantor 定理**（C-114 收口 ✓ 2026-10-08）—— `𝒫 ℕ` 不 ≼ `ℕ`，构造性证明 ✓。
+theorem cantor_no_le : ¬ ((𝒫 (@Set.univ Nat)) ≼ (@Set.univ Nat)) :=
+  fun (h : (𝒫 (@Set.univ Nat)) ≼ (@Set.univ Nat)) =>
+    Set.Le.elim (Set Nat) Nat (𝒫 (@Set.univ Nat)) (@Set.univ Nat) False h
+      (fun (f : Set Nat → Nat)
+           (hf : Set.InjOn (Set Nat) Nat f (𝒫 (@Set.univ Nat)))
+           (_ : Set.MapsTo (Set Nat) Nat f (𝒫 (@Set.univ Nat)) (@Set.univ Nat)) =>
+        (fun (hnot : ¬ (f (cantorDiagonal f) ∈ cantorDiagonal f)) =>
+          hnot (Exists.intro (Set Nat)  -- soko:notation-ok: 见证位补不出前导类型（手册 G-30 同族）
+            (fun (S : Set Nat) => f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S))
+            (cantorDiagonal f)
+            (And.intro (Eq.refl.{1} Nat (f (cantorDiagonal f))) hnot)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (hA : f (cantorDiagonal f) ∈ cantorDiagonal f) =>
+            Exists.elim (Set Nat)
+              (fun (S : Set Nat) => f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S))
+              False hA
+              (fun (S : Set Nat) (hS : f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S)) =>
+                (And.right hS)
+                  (Eq.subst.{1} (Set Nat) (fun (T : Set Nat) => f (cantorDiagonal f) ∈ T)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                    (cantorDiagonal f) S
+                    (Eq.symm.{1} (Set Nat) S (cantorDiagonal f)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                      (hf S (mem_powerset_univ_nat S) (cantorDiagonal f)
+                        (mem_powerset_univ_nat (cantorDiagonal f)) (And.left hS)))
+                    hA))))

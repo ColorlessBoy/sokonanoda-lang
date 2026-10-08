@@ -1,0 +1,36 @@
+-- ============================================================================
+-- C-113 复现夹具（登记 **closed** ⇒ 下面这些形态**必须判绿** ✓）
+--
+-- 当年：结论是 `Or`、且两支是 **`def`-应用**（`≈` / `≼`）的声明被判 `rejected` ✗
+--   （报文原样：`expected a pi type, got: ((Or.[] ((Set.Equiv.[] …`）。
+-- 现在（G-73 家族 `fixed` ✓，2026-10-08 实测）：**判绿** ✓。
+--
+-- ⚠ 本夹具按**本语言**的 `Or.elim` 实参序写 —— 本语言是 `Or.elim f g h`
+--   （主前提在**最后** ✓，与 Lean 4 的 `Or.elim h f g` **相反** ✗）；
+--   按 Lean 序写会判红，但那是**实参序**问题，不是"动机位收不了 `False`" ✗。
+-- ============================================================================
+import lib.Set
+import lib.Equiv
+
+-- ① 假设与结论都是「两支 `≈` 的 `Or`」
+theorem or_equiv_notation (A B C D : Set Nat) (h : A ≈ B ∨ C ≈ D) : A ≈ B ∨ C ≈ D :=
+  h
+
+-- ② 假设是「两支 `≼` 的 `Or`」
+theorem or_le_notation (A B C D : Set Nat) (h : A ≼ B ∨ C ≼ D) : A ≼ B ∨ C ≼ D :=
+  h
+
+-- ③ CH 的**现场形态**：`∀ X, ℕ ≼ X → (ℕ ≈ X ∨ X ≈ 𝒫 ℕ)` 的结论位
+theorem or_ch_shape (X : Set (Set Nat))
+    (h : (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat))) :
+    (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
+  h
+
+-- ④ `Or.elim` 的**动机位**显式就是这种 `Or`（本语言序 ✓）
+theorem or_elim_ch_motive (X : Set (Set Nat))
+    (h : (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat))) :
+    (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
+  Or.elim ((@Set.univ Nat) ≈ X) (X ≈ (𝒫 (@Set.univ Nat)))
+    ((@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)))
+    (fun (h1 : (@Set.univ Nat) ≈ X) => Or.inl h1)
+    (fun (h2 : X ≈ (𝒫 (@Set.univ Nat))) => Or.inr h2) h
