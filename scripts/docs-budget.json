@@ -9,7 +9,7 @@
     "docs/RELEASE.md": 187,
     "docs/STATUS-ARCHIVE.md": 308,
     "docs/TESTING.md": 291,
-    "docs/architecture.md": 753,
+    "docs/architecture.md": 754,
     "docs/design/ci-parallelism.md": 240,
     "docs/design/command-naming.md": 104,
     "docs/design/course-gate-in-ci.md": 274,
@@ -51,7 +51,7 @@
     },
     "layer_max_lines": {
       "L0": 1521,
-      "L1": 5674,
+      "L1": 5675,
       "L2": 12802,
       "L3": 42
     },

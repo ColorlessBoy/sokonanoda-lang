@@ -204,6 +204,46 @@ impl<'a> EnvBuilder<'a> {
         }
     }
 
+    /// **T1-B 批 1 的装载口**（2026-10-09）：从一份**已建好的内核环境**
+    /// （[`ExportFile`]）**继续编**（装载之后照常 `add_declar` / `finish`）。
+    ///
+    /// ## 用途（设计 `docs/design/module-artifacts.md` §2.4 T1-B 第 2 件）
+    ///
+    /// 磁盘模块产物（`.olean` 等价物）的消费者要"**对着已 elaborate 的依赖环境**
+    /// 编自己那一层" —— 那要求内核能把一份环境的**全部表**原样接过来。
+    /// `builder.rs` 原有七个方法（`new` / `snapshot` / `hide_declars` /
+    /// `restore_declars` / `with_env` / `with_env_scope` / `finish`）**都不够**：
+    /// `new` 从空开始、`snapshot`/`with_env` 只借只读副本、`finish` 是反方向 ✗。
+    ///
+    /// ## 两条硬约束（都由调用方负责 · 本函数只做"搬家"）
+    ///
+    /// 1. **`arena` 必须是 `file` 那份表所在的同一个 arena**（或寿命 ⊇ 它的）：
+    ///    表里全是 arena 内裸地址（`ExprPtr`/`NamePtr`/`LevelPtr`）⇒ 换 arena
+    ///    就是**悬空指针** ✗。T1-B 的形状是"**装载进本趟 pass 自己的 arena**"
+    ///    （设计 §2.4 第 3 件）⇒ 这条不是可选优化，是**设计约束** ✓。
+    /// 2. **`file` 必须在声明边界上**（`block_in_progress` 丢弃为 `None`）：
+    ///    归纳块编到一半的 `ExportFile` **不是**一个合法环境（内核检查是整块做的）
+    ///    ⇒ 装载后 `begin_inductive_block` 的记账从头来 ✓。
+    ///
+    /// **指针同一性**：本函数**只搬字段、不重建任何东西**（`Dag` 的 intern 表也
+    /// 是整份搬走 ✓）⇒ 与 `hide_declars`/`restore_declars`、`snapshot` 同一条
+    /// 不变式 —— **同一份表、同一批地址** ✓（判据见本文件
+    /// `from_export_file_carries_the_intern_tables_not_a_rebuilt_dag`）。
+    pub fn from_export_file(arena: &'a ArenaRef<'a>, file: ExportFile<'a>) -> Self {
+        Self {
+            arena,
+            dag: file.dag,
+            anon: file.anon,
+            zero: file.zero,
+            declars: file.declars,
+            notations: file.notations,
+            config: file.config,
+            // 归纳块记账**不跨 `finish`**：装载点必须是声明边界 ✓（见文档）。
+            block_in_progress: None,
+            mutual_block_sizes: file.mutual_block_sizes,
+        }
+    }
+
     // -- inductive blocks ----------------------------------------------------
 
     /// Mark the start of an `inductive ... end` block so kernel checkers can
@@ -656,6 +696,96 @@ mod tests {
             before, rebuilt,
             "另一份 arena 里重建出来的环境**不是**同一份（地址不同）⇒ 那种环境**不许**\
              当作复用结果交出去，必须走回退（整份重编）✓"
+        );
+    }
+
+    /// **T1-B 批 1 的判据**（2026-10-09）：[`EnvBuilder::from_export_file`] 装载出来的
+    /// 环境必须是**同一份**（指针同一）—— 既不是"内容相等"，也不是"重建一份"。
+    ///
+    /// ## 为什么这条判据必须存在（不是形式主义）
+    ///
+    /// 磁盘产物（T1-B）的消费者要"对着**已 elaborate 的依赖环境**编自己那一层"。
+    /// 内核多处按**指针**比较（`conv.rs` 的 `NatLit`、`eval.rs` 用地址做内容哈希、
+    /// `NameInterner` 比 `StringPtr` 地址）⇒ 若装载路径交出来的是一份**重建**的表，
+    /// 同一个名字/字面量会出现**第二个节点** ⇒ 本该判过的 `def_eq` 假失败 ✗
+    /// （与本文件 `a_reused_environment_is_pointer_identical_and_a_rebuilt_one_is_not`
+    /// 同一条不变式，只是那条测 `hide/restore`，本条测**跨 `finish` 的装载** ✓）。
+    ///
+    /// ## 反向验证（同一用例里两条）
+    ///
+    /// ⑤ 空环境里同一条声明必须**判不过**（否则 ④ 的 `Ok` 是空转 ✗）；
+    /// ⑥ **重建**一份 `EnvBuilder`（新 `Dag`）之后同一个名字会被 intern 成
+    /// **第二个** `NamePtr` ⇒ 判据②当场能分辨"搬过来"与"重建一份" ✓。
+    #[test]
+    fn from_export_file_carries_the_intern_tables_not_a_rebuilt_dag() {
+        let arena = Arena::new();
+        let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+        // 造一条 `axiom w : Sort 0`（= Prop），就是"已 elaborate 的库层"的最小形态。
+        let w = builder.name_from_str("w");
+        let zero = builder.zero();
+        let ty = builder.mk_sort(zero);
+        let uparams = builder.alloc_levels_slice(&[]);
+        builder
+            .add_declar(Declar::Axiom {
+                info: DeclarInfo { name: w, uparams, ty },
+            })
+            .expect("a `Sort 0` axiom must be accepted");
+        let w_declar = builder.declars.get(&w).cloned().expect("declared");
+        // `finish()` = 产物（磁盘上是它的序列化形式；本轮先证"装载"这一半 ✓）。
+        let file = builder.finish();
+
+        let mut loaded = EnvBuilder::from_export_file(arena.as_arena_ref(), file);
+        // ① 声明整份搬过来，且与产物里那份**指针同一** ✓。
+        assert_eq!(loaded.declaration_count(), 1, "装载必须把声明整份搬过来");
+        assert_eq!(
+            loaded.declars.get(&w).cloned().expect("w in loaded"),
+            w_declar,
+            "装载只搬字段、不重建任何东西 ⇒ 必须与产物里那份**指针同一** ✗"
+        );
+        // ② **intern 表也搬过来了**（不是新 `Dag`）：同一个名字再 intern ⇒ 同一个指针。
+        let w_again = loaded.name_from_str("w");
+        assert_eq!(
+            w_again, w,
+            "装载换了新的 `Dag` ⇒ 同一个名字会造出**第二个** `Name` 节点 ✗ \
+             （指针同一性已破 ⇒ 下游 `def_eq` 会假失败）"
+        );
+        // ③ 装载后能照常 `add_declar`：造一条引用已装载 `w` 的 `u : w`。
+        let u = loaded.name_from_str("u");
+        let levels = loaded.alloc_levels_slice(&[]);
+        let u_ty = loaded.mk_const(w, levels);
+        let u_uparams = loaded.alloc_levels_slice(&[]);
+        let u_declar = Declar::Axiom {
+            info: DeclarInfo { name: u, uparams: u_uparams, ty: u_ty },
+        };
+        loaded
+            .add_declar(u_declar.clone())
+            .expect("loading must not break `add_declar`");
+        assert_eq!(loaded.declaration_count(), 2);
+
+        // ④ **内核真判**：`u : w` 在**装载来的**环境里判得过（`w` 在 idx 0 ⇒ `ByIndex(1)`）。
+        let env_loaded = loaded.finish();
+        assert!(
+            env_loaded
+                .try_check_declar_at(&u_declar, crate::env::EnvLimit::ByIndex(1))
+                .is_ok(),
+            "装载后 `u : w` 必须引用得到已装载的 `w`（内核判过 ✓）"
+        );
+        // ⑤ **反向验证**：同一份声明在**空环境**里**判不过** ⇒ ④ 不是空转 ✓。
+        let env_empty = EnvBuilder::new(arena.as_arena_ref(), Config::default()).finish();
+        assert!(
+            env_empty
+                .try_check_declar_at(&u_declar, crate::env::EnvLimit::ByIndex(0))
+                .is_err(),
+            "反向验证：空环境里 `u : w` 必须被判拒（`w` 不在环境里）—— \
+             它若也过 ⇒ ④ 的 `Ok` 是空转 ✗"
+        );
+        // ⑥ **反向验证（指针侧）**：**重建**一份 builder（新 `Dag`）⇒ 同一个名字是
+        //    **另一个** `NamePtr` ⇒ 判据②真的分得开"搬过来"与"重建一份" ✓。
+        let mut rebuilt = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+        let w_rebuilt = rebuilt.name_from_str("w");
+        assert_ne!(
+            w_rebuilt, w,
+            "重建的 `Dag` 必须为同一个名字造出**第二个**节点 ⇒ 判据②有牙 ✓"
         );
     }
 }
