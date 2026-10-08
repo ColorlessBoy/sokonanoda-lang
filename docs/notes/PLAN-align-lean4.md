@@ -1706,3 +1706,32 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   可能几十 MB），会直接踩性能纪律 ⇒ **先定型 B、把消费侧接上，再开写** ✓。
 * **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 ✓ · 批 2 前半 ✓（B 定型是下一个关口）** ·
   ② T2-A ✓ / T2-B 缓做 · ③ ✓ · ④ T4-A ✓。
+
+### 25. 第 33 轮（平行线）：B 块**定型 + 编解码**（`known` + `defs`）✓
+
+* **先核实了"B 能存"**（不是想当然）：读 `walk.rs` 的登记点 —— `KnownName::Decl`
+  的四个字段**只吃** `name`/`universe`/源级 `ty`（`proof::decl_signature` ·
+  `leading_implicit_prefix` · `explicit_arity`），`DefInfo` 同理
+  （`params`/`universes`/`implicit_prefix`/`body`/`telescope_arity`）
+  ⇒ **源级 AST 能序列化 ⇒ B 就能存** ✓（这也再次印证 §24：B 是**源**的函数、
+  **不是**内核环境的函数）。
+* **落点**（`1b80871f`）：`ast.rs` 给前端 AST **15 个类型**加 `Serialize/Deserialize`
+  （纯派生新增 ✓）· `elab.rs` 的 `KnownName`/`DefInfo` 加 serde（`DefInfo` 另加
+  `PartialEq`）· 新模块 `project/tables.rs`：`encode(&KnownTable, &DefTable)` /
+  `decode(&str)`。
+* **两条格式纪律**（进模块文档 + 判据）：① **确定序** —— `HashMap` 直接 serde
+  **顺序不定** ⇒ 同一份表可能编出**不同文本** ✗（缓存/对拍要逐字节）⇒ **按键排序** ✓；
+  ② **带格式号**，不认 ⇒ `Err` ⇒ 调用方**当不存在**、静默回退（与 §8.2 同纪律 ✓）。
+* **判据 3 条**：往返逐项相同（**三种** `KnownName` 变体 + 带源级 AST 体的 `DefInfo`
+  全覆盖）· **插入顺序无关**（文本逐字节相同）· **反向验证**（格式号 9999 与
+  **截断文本**都要被拒 ✓）。front `--lib` **884/884** · fmt 干净 · clippy 报错 0 ✓。
+* ⚠ 三处 `#[allow(dead_code)]`：**消费入口接上之前没人调** —— 遵守 §24 的顺序纪律
+  （先别只写入口），先定型 + 先带判据 ✓。
+* **B 的剩余**：`inductives`（`InductiveInfo` 带**内核裸指针** `MatchField.ty: ExprPtr`
+  ⇒ 只有两条路：(a) 序列化时把它落成"构造子 + 望远镜第 k 个 binder"的**名字式引用**、
+  装载时在已装载环境里重解析 ✓；(b) 干脆从内核环境重建这一张（`ctors` 的
+  `name`/`canonical`/`fields[].name`/`style` 都能从**装载来的 ctor 声明**读出来，
+  `src_ty`/`index_types` 是源级 AST ⇒ 得从源走 **parse-only** 那一半）。
+  ⇒ 这是 B 的最后一个关口，与**消费入口**同批做才不浪费 ✓。
+* **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 ✓ · 批 2：产物存储 ✓ · B(known+defs) ✓ ·
+  B(inductives) 与写/消费入口未做** · ② T2-A ✓ / T2-B 缓做 · ③ ✓ · ④ T4-A ✓。
