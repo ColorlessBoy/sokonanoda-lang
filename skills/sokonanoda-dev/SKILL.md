@@ -160,6 +160,37 @@ python3 scripts/gap.py check                # 台账契约：缺口复现必须�
   `QueryDoc::module_path`（闭包模块表 ✓）⇒ LSP 的 `document_link` 只做
   span→`Range` / path→URI ✓（设计 `docs/design/import-links.md`）。
 
+## 3.5 量一次按键：**结构计数优先**（改性能之前先读这节）
+
+判据纪律（`AGENTS.md`）：**不许用绝对毫秒**（共享 runner 上墙钟不可转移 ✗，同代码实测
+44ms ↔ 2431ms ✓）⇒ 一律用**结构计数**或**同 run 自比**；绝对毫秒只兜数量级。
+
+**一次按键的读数在哪**：LSP 的 `LSP_TRACE` 每次编译打一行，带全部结构计数：
+
+```bash
+SOKO_LSP_TRACE=1 <sokonanoda-lsp>        # 或在编辑器里看 "Sokonanoda" 输出通道
+# LSP_TRACE compile <uri> v<版本> <ms>ms publish=… modules=… by=… infer=<miss>/<calls> prefix=… tc=… telescope=…
+```
+
+| 字段 | 是什么 | 什么算"变好了" |
+|---|---|---|
+| `modules=` | 这次编译编了几个模块 | 库层复用时**下降**（A3/A5 的判据） |
+| `by=` | `by` 引擎的走查数 | 不随出错位置增长（B3 的判据） |
+| `infer=` | judge 合成趟的**未命中/调用** | `prefix=` 归零才是真省（A2a/A2b） |
+| `prefix=` | judge **合成前缀**重编了几趟 | 目标 **0**（A2a 已做到 ✓） |
+| `tc=` | `TcCache` **构造**次数 | 次数不变、**单价**变（A6/A6b 就是砍单价 ✓） |
+| `telescope=` | telescope 解析次数 | 只占样本 3.2% ⇒ 按数据不做（A4b ✓） |
+
+定义在 `crates/lsp/src/lib.rs` 的 `StructuralCounters` ✓；同名计数也进
+`SOKO_STAGE_STATS=1` 的 `STAGE_STATS` 行（CLI 侧）✓。
+
+**红线对拍（发版节点）**：`python3 scripts/check-json-identity.py --baseline <tag 构建> --new <当前构建>`
+—— 全课程 `grade --json` **逐字节**（基线必须从**已发布的 tag** 构建 ✓，`--selftest` 证明判据不空转 ✓）。
+
+**性能改动必须留档**：`docs/perf/ledger.jsonl` 追加一条（`soko.perf/1`，带构建身份 ✓）；
+日常单点用 `scripts/perf-check.sh --case <测试名子串> --threshold <n>`（`--case` 是**测试名子串** ✗，
+不是台账名 ✓），发版前用 `scripts/release-preflight.sh`。
+
 ## 4. 环境搭建（新机器）
 
 ```bash
