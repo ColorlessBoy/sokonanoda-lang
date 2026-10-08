@@ -69,7 +69,7 @@
 |---|---|---|---|---|
 | A | **A2a** | **就地路接管 `needs_explicit` 的 goal**（抬 G-71 闸 + explicit 档 + shadow） | `prefix=` 5→0 · shadow `diff=0` | 无（**纯接线 · 最高 ROI**） |
 | A | A2b | judge 合成编译**复用调用方活环境**（阶段 2 (i)/(ii)） | `prefix`/`passes` → 1 | A2a 的读数 + 内核线 |
-| A | A3 | **模块级产物 / `module_keys()` 接线**（新机制 · 先决策后动手） | 跨进程重编模块数 | 决策门（§2 A3） |
+| A | A3 | **模块级产物 / `module_keys()` 接线**（新机制） | 跨进程重编模块数 | **决策门已过（§8.11：值得做，等当前批次）** |
 | A | A4a | **库层三张 O(闭包) 派生表进检查点**（纯接线） | 表重建数 = 0（第 2 刀起） | 无 |
 | A | A4b | **telescope / 签名级缓存**（先建计数器） | telescope 解析次数 | 与 A4a 同片地 ⇒ 串行 |
 | A | **A6** | **`whnf_admit` 4 MiB → 64 KiB + 索引移位由位数推出**（**已落地** · §8.8） | `tc=` 不变 · 按键墙钟 −40%（同二进制自比）· 226 文件 `--json` 逐字节 | 无（**纯内核 · 最高单项 ROI**） |
@@ -1018,22 +1018,18 @@ A/B（同一二进制）：默认 **5 次/704ms** vs `SOKO_JUDGE_INPLACE=off` �
 > `target/release/sokonanoda-lsp`（2026-10-08 18:00 构建）· 夹具同 §8（unit08 改陈述）。
 > **方法**：macOS `sample`（1ms，26s 窗口 / 40 刀）+ 新增结构计数 `tc=`（`LSP_TRACE`）。
 
-* **现象**：`sample` 的调用树里 **`TcCache::new` 占一次按键编译样本的 63%**
-  （9279 / 14710；`compile_worker` 总样本 15871）—— 调用方分解：
-  `kernel_phase::finish_pass::{closure#0}` **52%** · `infer_type_text_inplace` **20%** ·
-  `TypeChecker::apply` **18%** · `level_exit::collect_mvars` **8%**。
-* **根因（两处，都是"每次 `with_tc` 新建一份预分配"）**：
-  1. **`whnf_admit` 固定 4 MiB**（`WHNF_ADMIT_LEN = 1<<22`，`vec![0u8; ..]`）——
-     微基准（临时 `#[test]`，跑完即撤）：**53.5 µs/次**，而整个 `TcCache::new` **61.8 µs/次**
-     ⇒ **87% 就是这张表的清零** ✗；
-  2. 另 ~20 张 `with_capacity(4096/8192)` 哈希表（`SESSION_MAP_CAP*`）≈ **8 µs/次**。
-* **规模（新计数器 `tc=`）**：一次**热按键 = 6876 次**构造（冷开 18194；CLI 冷编 unit08
-  = **17528 次 / 52 趟 pass** ≈ **337 次/趟**）⇒ 4 MiB × 6876 ≈ **26 GB 清零/按键** ✗。
-  两条独立证据自洽：6876 × 61.8 µs ≈ **425 ms** ↔ `sample` 的 63% × ~650 ms ≈ **410 ms** ✓。
-* **T-K31 的阴性结果要重新解读**（`docs/perf/ledger.jsonl`，2026-09-24）：那次"池化
-  `whnf_admit` 无收益"的真因**不是**"mmap 惰性零页"（本机 `sample` 明确看到
-  `xzm_segment_group_alloc_chunk → __bzero`）✗，而是**池化每次取出都 `fill(0)`**
-  ⇒ 4 MiB memset 照付，只省了 mmap 记账 ✓。⇒ 出路是**把表变小**（清零量 ÷64），不是池化。
+* **现象**：`sample` 调用树里 **`TcCache::new` 占一次按键编译样本的 63%**（9279 / 14710）——
+  调用方：`finish_pass::{closure#0}` **52%** · `infer_type_text_inplace` **20%** ·
+  `TypeChecker::apply` **18%** · `collect_mvars` **8%**。
+* **根因（每次 `with_tc` 都新建一份预分配）**：① **`whnf_admit` 固定 4 MiB**（`1<<22`）——
+  微基准（临时 `#[test]`，跑完即撤）**53.5 µs/次**，而整个 `TcCache::new` **61.8 µs/次** ⇒ **87%
+  是这张表的清零** ✗；② 另 ~20 张 `with_capacity(4096/8192)` 哈希表 ≈ **8 µs/次**。
+* **规模（新计数器 `tc=`）**：热按键 = **6876 次**构造（冷开 18194；CLI 冷编 unit08 = 17528 次 /
+  52 趟 ≈ 337 次/趟）⇒ 4 MiB × 6876 ≈ **26 GB 清零/按键** ✗；两条独立证据自洽：6876 × 61.8 µs
+  ≈ **425 ms** ↔ `sample` 的 63% × ~650 ms ≈ **410 ms** ✓。
+* **T-K31 要重新解读**（`docs/perf/ledger.jsonl`）：那次"池化无收益"的真因**不是**"mmap 惰性
+  零页"（`sample` 明确有 `__bzero`）✗，而是**池化每次取出都 `fill(0)`** ⇒ memset 照付 ✓
+  ⇒ 出路是**把表变小**（清零量 ÷64），不是池化（已同步改 `docs/PERF.md`/`architecture.md` ✓）。
 * **已落地（A6 · 纯内核 · 不动判定）**：`WHNF_ADMIT_BITS = 16`（4 MiB → **64 KiB**），
   且把索引移位**由位数推出**（`>> (64 - WHNF_ADMIT_BITS)`）。
   ⚠ **这一步是必须的**：老代码把 `>> 42` 与 `1 << 22` **手抄在两处**，只改表长会
@@ -1052,10 +1048,7 @@ A/B（同一二进制）：默认 **5 次/704ms** vs `SOKO_JUDGE_INPLACE=off` �
   | kernel 单测 | — | **63/63 绿** ✓ |
   | 全单元 `--json` 对拍（226 文件） | — | **逐字节 0 行不同** ✓ |
 
-* **剩下的第二笔（A6b · 决策门）**：那 ~20 张预分配哈希表 ≈ **8 µs × 6876 ≈ 55 ms/按键** ——
-  改成惰性（`FxHashMap::default()` 不预分配）或整份 `TcCache` 复用池都能拿掉，
-  但要先量"session 路（`check_all_declars_serial`，一次会话一份 cache）会不会因此变慢"。
-  **本轮不做**（读数决策）。
+* **第二笔（A6b）已落地** ⇒ 读数与判据见 §8.9 ✓。
 
 ### 8.9 A6 之后的复测（同一方法 · 22s 窗口 / 40 刀）——**下一笔在哪**
 
@@ -1067,13 +1060,19 @@ A/B（同一二进制）：默认 **5 次/704ms** vs `SOKO_JUDGE_INPLACE=off` �
 | judge 合成前缀重编 | 5740（39%） | **4763（41%）** | **现在是最大一笔**：`judge_type_of`（elaborate 里 `set_literal_prefix_args` 触发）**3046（26.3%）** + 嵌套的 `judge_render_type`（by 引擎探针，A2a 的正身）**1717（14.8%）** |
 | **judge 缓存键的 SipHash** | —（未单独看） | **2607（22.5%）** ✗ | **新发现**：`judge_infer_cache_key` 每次调用都对**整份前缀文本**跑 SipHash（`canonical_prefix_cached` → `judge_cache_key(&[src])`，前缀 ~40 KB × 每次两遍）⇒ 与 `TcCache` 同级 ✗ |
 
-⇒ **新增 A7（决策门 · 先建读数）**：judge 缓存键的 **O(前缀) 哈希**。判据形态：新增计数
-"每次按键的前缀哈希字节数"（今天没有出口）⇒ 冷开 = k、第 2 刀起应显著下降；`--json` 逐字节
-+ judge 缓存命中数不变。**风险**：键换成弱哈希 = **碰撞 ⇒ 静默用旧答案**（B4 的红线）⇒ 首选
-**不换哈希函数**，而是**避免重复哈希同一份前缀**（调用方已能增量给出身份 `seed_canonical_prefix`）。
-**A6b 的落地读数**：`--json` **226 文件逐字节相同** ✓ · kernel 单测 **63/63 + 21 集成全绿** ✓；
-会话路（`check_all_declars_serial`）只多几次 rehash（O(n)，可忽略），且它**只被
-`crates/kernel/src/main.rs` 与 `tests/arena.rs` 用**（不在 front/LSP 热路径 ✓）。
+⇒ **新增 A7（决策门 · 先建读数）**：judge 缓存键的 **O(前缀) 哈希**（判据：新增"前缀哈希字节数"
+读数 ⇒ 冷开 = k、第 2 刀起应显著下降；`--json` 逐字节）。**红线**：换弱哈希 = 碰撞 ⇒ **静默用旧
+答案**（B4 的红线）⇒ 首选**不换哈希函数**，而是**避免重复哈希同一份前缀**（调用方已能增量给出身份）。
+**A6b 落地**（`604513e5`）：`--json` 226 文件逐字节 · kernel 63/63+21 全绿 ✓（会话路只多几次
+rehash，且它只被 `crates/kernel/src/main.rs`/`tests/arena.rs` 用 ⇒ 不在 front/LSP 热路径 ✓）。
+
+### 8.11 A3 决策门读数（2026-10-08 · 只读 · **结论：值得做，但它是新机制 ⇒ 排在当前批次之后**）
+
+同一 LSP 进程依次 `didOpen`、`SOKONANODA_NO_PROJECT_ARTIFACTS=1`（真编）读 `modules=`：**同一闭包**
+（unit08 画布 → 它的解答）⇒ **5 → 1** ✓（检查点跨入口命中）；**不同闭包**（unit08 → unit09 → unit10）
+⇒ **5 → 8 → 8** ✗（每换一个闭包就把**整条库层**重编，≈1.2–1.8s/单元）。⇒ `lib_key` = 整条闭包摘要，
+而课程里各单元的库模块集合本就不同 ⇒ **跨入口的库层重复仍是主要成本** ⇒ **刀 2 值得做**
+（per-module Merkle + 模块产物），但内核**没有 `ExportFile → EnvBuilder` 入口** ⇒ 是新机制、不是接线。
 
 ---
 
