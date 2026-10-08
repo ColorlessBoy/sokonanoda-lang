@@ -87,7 +87,7 @@
 | D | D2 | build CLI 惯例（cargo/rustc/tsc/lean） | 结论件 | 与 C1 并行 |
 | D | D3 | 端到端做题基准（一次按键 → 目标更新） | 结构计数为主 | 与 A/B/C 并行 |
 | E | E1 | **prelude 方向翻转**：`prelude/*.sokonanoda` 成真相，Rust 只留 `include_str!` | Rust 里源文本行数 = 0 | 无（独立） |
-| E | E2 | **Nat/Bool 源化 或 如实登记边界**（先 spike） | 全课程 `--json` 逐字节 | E1 |
+| E | **E2** | **Nat/Bool 源化 或 如实登记边界** —— **已落地：如实登记**（spike 结论见 `prelude/L1.sokonanoda` 的 `builtin-rust` 区） | 登记行逐字 + `prelude_def_span` 9 名**全 None**（反向验证 ✓） | ✓ E1 |
 | E | E3 | **运行时覆盖** `--prelude`/`SOKO_PRELUDE_PATH`（决策门） | 缓存键折内容哈希 + 诊断非 panic | E1 |
 | E | E4 | **撤影子档的 prelude 排除**（`course-stdlib.md` §7 的目标） | 排除分支计数 = 0 · shadow `diff=0` | E1 |
 

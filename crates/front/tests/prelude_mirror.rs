@@ -20,7 +20,7 @@
 //! **反向验证**（改这里之前先跑）：把镜子文件改一个字符、或改常量里的一行 ⇒
 //! `the_repo_mirror_is_byte_identical_to_the_compiled_prelude` 必须判红 ✓。
 
-use sokonanoda_front::compile::prelude_source;
+use sokonanoda_front::compile::{prelude_def_span, prelude_source};
 use std::path::{Path, PathBuf};
 
 /// 镜子文件的路径（仓库根下的 `prelude/Prelude.sokonanoda`）。
@@ -263,6 +263,48 @@ fn the_lexer_recognises_a_builtin_notation_symbol_at_the_cursor() {
 /// `{x ∈ A | P x}` → `Set.sep`（`parser.rs`，**卷 I 的库常量**）；`{x : α | P x}`
 /// **没有目标常量**（脱糖成函数）⇒ 只要求**如实登记** ✓。`{x | P x}` **故意不登记**
 /// （它写不出来）⇒ 断言它**不在**登记区（防有人偷偷把它做成能写的）。
+/// **E2 的判据（2026-10-08）**：`Nat`/`Bool` 两族 9 个名字是**内核内建**
+/// （Rust 里手搓 AST + 内核按名字给算术规约）⇒ prelude 源里**没有**它们的声明
+/// ⇒ `prelude_def_span` 对它们**都**返回 `None`。这条把"边界"钉成**可查的事实** ✓：
+/// ① 登记行逐字在 prelude 里（学生看得到"为什么 F12 不跳"）；
+/// ② 9 个名字的 `prelude_def_span` **确实**是 `None`（登记**不许说谎** ✗）；
+/// ③ **反向**：哪天有人把它们源化了 ⇒ ② 判红 ⇒ 必须同轮更新登记行 ✓。
+///
+/// **为什么是"登记"而不是"源化"**（规划 §2 E2 的两半，本轮选了后一半）：spike 发现
+/// `Nat.add` 今天是 `Declar::Definition`（值自指 + `ReducibilityHint::Regular`）且
+/// 规约走内核内建（`eval.rs` 的 G-76 递归方程，**按名字**）⇒ 源级 `axiom` 会换掉内核
+/// 声明形态，过不了「与手搓版全课程 `--json` 逐字节相同」✗（`Nat`/`Bool` 又是最先装的）。
+#[test]
+fn builtin_rust_registry_is_honest() {
+    let prelude = prelude_source();
+    for line in [
+        "-- sokonanoda:builtin-rust \"Nat / Nat.zero / Nat.succ / Nat.rec / Nat.add\"",
+        "-- sokonanoda:builtin-rust \"Bool / Bool.true / Bool.false / Bool.rec\"",
+    ] {
+        assert!(
+            prelude.lines().any(|l| l == line),
+            "prelude 里必须有逐字登记行：{line:?} ✗（E2：内建家族登记区）"
+        );
+    }
+    for name in [
+        "Nat",
+        "Nat.zero",
+        "Nat.succ",
+        "Nat.rec",
+        "Nat.add",
+        "Bool",
+        "Bool.true",
+        "Bool.false",
+        "Bool.rec",
+    ] {
+        assert!(
+            prelude_def_span(name).is_none(),
+            "`{name}` 登记成「内核内建、无源位置」⇒ `prelude_def_span` 必须是 `None` ✗ \
+             （真源化了就同轮改登记行 ✓）"
+        );
+    }
+}
+
 #[test]
 fn builtin_sugar_registry_matches_the_elaborator() {
     let prelude = prelude_source();

@@ -85,3 +85,18 @@ def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq
 --     诊断 `set-builder-shape` 指路 ✓
 -- sokonanoda:builtin-sugar "{x : α | P x}" => 函数（fun (x : α) => P x），无目标常量
 -- sokonanoda:builtin-sugar "{x ∈ A | P x}" => Set.sep
+-- **E2（2026-10-08）：内核内建家族的登记**（`Nat` / `Bool` 两族共 9 个名字）。
+-- 它们**不是**源级声明：`install_prelude` / `install_bool_prelude` 在 Rust 里
+-- **手搓 AST** 装进环境（`crates/front/src/compile/prelude.rs`），算术规约
+-- （`Nat.add` / `Nat.mul` 的递归方程）由**内核按名字**给（`eval.rs`，G-76）
+-- ⇒ 源文本里**没有**它们的声明位置 ⇒ `prelude_def_span("Nat")` 如实返回 `None`
+-- （F12 对它们不跳 —— **已知边界**，不是 bug ✓）。
+-- **为什么这一半不源化**（2026-10-08 spike 的结论）：`Nat.add` 今天是
+-- `Declar::Definition`（值自指 + `ReducibilityHint::Regular`）且规约走内核内建，
+-- 写成源级 `axiom` 会**换掉内核声明形态** ⇒ 过不了「与手搓版全课程 `--json`
+-- 逐字节相同」那条判据 ✗；`Nat`/`Bool` 又是**最先装**的（`check/mod.rs`）。
+-- 守卫：`crates/front/tests/prelude_mirror.rs::builtin_rust_registry_is_honest`
+-- （登记行逐字 + 断言 9 个名字的 `prelude_def_span` **都**是 `None` ✓；
+-- **反向验证**：哪天把它们源化了 ⇒ 判红 ⇒ 必须同轮更新登记行 ✓）。
+-- sokonanoda:builtin-rust "Nat / Nat.zero / Nat.succ / Nat.rec / Nat.add"
+-- sokonanoda:builtin-rust "Bool / Bool.true / Bool.false / Bool.rec"
