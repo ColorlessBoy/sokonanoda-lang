@@ -54,7 +54,14 @@ impl Client {
     }
 
     fn spawn(cache: &Path, trace: bool, extra_env: &[(&str, &str)]) -> Self {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_sokonanoda-lsp"));
+        // **可换被子进程**（`SOKO_TEST_LSP_BIN`）：默认仍是 cargo 交给本测试的那个
+        // debug 构建 ✓（既有用例**一个字节都不变** ✓）；设了就用它 —— 用途是
+        // **北极星墙钟探针**（`perf_keystroke_wallclock.rs`）：debug 与 release 的
+        // 绝对毫秒差好几倍，跨机/跨构建的读数只有**同一档构建**才可比
+        // （`AGENTS.md` 的探针纪律：读数自带构建身份 ✓）。
+        let bin = std::env::var("SOKO_TEST_LSP_BIN")
+            .unwrap_or_else(|_| env!("CARGO_BIN_EXE_sokonanoda-lsp").to_string());
+        let mut command = Command::new(bin);
         command
             .env("SOKONANODA_CACHE_DIR", cache)
             // ⚠ **必须在这里设**：服务端只有看到 `SOKO_LSP_TRACE` 才会打那一行 ✗。

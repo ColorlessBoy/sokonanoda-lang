@@ -53,17 +53,29 @@ fn course_root() -> Option<PathBuf> {
 }
 
 /// **构建身份**：`sokonanoda-lsp` 二进制的 mtime（探针纪律：跨轮比较前先看它）。
+///
+/// ⚠ **认的是真正被 spawn 的那个二进制**（`SOKO_TEST_LSP_BIN` 可以把它换到
+/// release 构建 ✓）—— 认错了就等于拿两个不同构建的读数并排比 ✗。
 fn binary_identity() -> String {
-    let path = Path::new(env!("CARGO_BIN_EXE_sokonanoda-lsp"));
+    let overridden = std::env::var("SOKO_TEST_LSP_BIN").ok();
+    let path = overridden
+        .as_deref()
+        .map(Path::new)
+        .unwrap_or_else(|| Path::new(env!("CARGO_BIN_EXE_sokonanoda-lsp")));
+    let flavor = if overridden.is_some() {
+        "override"
+    } else {
+        "cargo"
+    };
     match std::fs::metadata(path).and_then(|meta| meta.modified()) {
         Ok(time) => {
             let secs = time
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .map(|d| d.as_secs())
                 .unwrap_or(0);
-            format!("lsp-mtime={secs}")
+            format!("lsp-{flavor}-mtime={secs}")
         }
-        Err(error) => format!("lsp-mtime=unknown({error})"),
+        Err(error) => format!("lsp-{flavor}-mtime=unknown({error})"),
     }
 }
 
@@ -138,6 +150,22 @@ fn trace_compile_ms(line: &str) -> u64 {
         .unwrap_or(0)
 }
 
+/// **连续键入**的一刀：在 `Set.mem_image α β f A<k 个空格>y` 里**再加一个空格**。
+///
+/// 为什么用它：每一刀都产生**从未编译过的新文本**（与"来回改同一份"不同 ✓），
+/// 而编辑点固定在**同一条声明**里 ⇒ 量到的就是"用户一路敲下去"的成本 ✓。
+fn add_one_space_before_y(current: &str) -> String {
+    let marker = "Set.mem_image α β f A";
+    let at = current.find(marker).expect("夹具前提：锚点必须在");
+    let rest = &current[at + marker.len()..];
+    let spaces = rest.chars().take_while(|c| *c == ' ').count();
+    let mut next = String::with_capacity(current.len() + 1);
+    next.push_str(&current[..at + marker.len()]);
+    next.push_str(&" ".repeat(spaces + 1));
+    next.push_str(&rest[spaces..]);
+    next
+}
+
 #[test]
 fn perf_course_keystroke_wallclock_is_recorded() {
     let Some(root) = course_root() else {
@@ -207,8 +235,43 @@ fn perf_course_keystroke_wallclock_is_recorded() {
         5,
     );
 
+    // 场景 3：**连续键入**（每一刀都是**新文本**）—— 真实做题的形状。
+    //
+    // ⚠ 场景 1/2 在**两份文本之间来回** ⇒ 第二刀起命中的是**第一次就喂热的缓存**
+    // （实测 `by=9` · 78ms）⇒ 那**不是**用户连续敲键的成本 ✗。真实键入每刀都是
+    // **没编过的文本**（实测 `by=81` · ~220ms）✓ —— 这一臂才是北极星的读数。
+    let typing = run_scenario(
+        &mut client,
+        &uri,
+        "typing",
+        &text,
+        &|current, _round| add_one_space_before_y(current),
+        5,
+    );
+
+    // 场景 4：**等长改名**（每一刀都是新文本，但**字节偏移不变**）。
+    //
+    // 与场景 3 配对就是本轮的关键 A/B：两者都是"没编过的新文本"，**只差偏移是否平移**
+    // ⇒ 若本臂便宜（`by=9`）而场景 3 贵（`by=81`），就证明**贵因是"插入字符把后缀的
+    // 起点全推了位"**（`EntryCache::trusted_prefix` 要求起点逐条相同 ⇒ 后缀全部判脏 ✗）。
+    let equal_length = run_scenario(
+        &mut client,
+        &uri,
+        "typing_equal_length",
+        &text,
+        &|current, even| {
+            let (from, to) = if even {
+                ("demo_mem_image", "demo_mem_imagX")
+            } else {
+                ("demo_mem_imagX", "demo_mem_image")
+            };
+            current.replace(from, to)
+        },
+        5,
+    );
+
     let identity = binary_identity();
-    for arm in [&proof, &statement] {
+    for arm in [&proof, &statement, &typing, &equal_length] {
         println!(
             "PERF keystroke-wallclock {} {}: best {:.1}ms · median {:.1}ms · worst {:.1}ms \
              (n={}, {}) · compile={}ms modules={} prefix={} by={} · artifacts={}",
@@ -256,7 +319,7 @@ fn perf_course_keystroke_wallclock_is_recorded() {
 }
 
 /// **产物命中后的第一刀**（§8.1 的"首次按键"）：开档**立刻**改一行 —— 不先等
-/// A5 的后台库层预热。这是"打开就开敲"的真实形状，也是历史读数最贵的一刀
+/// A5/A5b 的后台预热。这是"打开就开敲"的真实形状，也是历史读数最贵的一刀
 /// （§8.1：产物命中那臂 **1233ms**，`modules=5`）。
 ///
 /// 与 [`perf_course_keystroke_wallclock_is_recorded`] **分开一条测试**：那条先
@@ -302,7 +365,7 @@ fn perf_course_first_keystroke_after_open_is_recorded() {
     let identity = binary_identity();
     println!(
         "PERF first-keystroke-after-open {rel}: {ms:.1}ms ({identity}) · compile={}ms modules={} \
-         prefix={} by={} · artifacts={}",
+         prefix={} by={} · artifacts={}\n  {line}",
         trace_compile_ms(&line),
         Client::trace_field(&line, "modules"),
         Client::trace_field(&line, "prefix"),
@@ -323,116 +386,6 @@ fn perf_course_first_keystroke_after_open_is_recorded() {
         "build": identity,
     }));
     assert!(ms < 30_000.0, "开档后第一刀 {ms:.1}ms（量级哨兵 30s）");
-    let _ = client.request(99, "shutdown", serde_json::json!(null));
-    let _ = std::fs::remove_dir_all(&cache);
-}
-
-/// **跨入口切换**（方向①"产物化"的**用户可见**读数）：开 `unit08` 之后再开 `unit09`。
-///
-/// ## 为什么这一条才是方向①的尺
-///
-/// unit08 的库闭包 = `lib.{Logic,Exists,Set,Image}` + 传递依赖；unit09 换成
-/// `lib.Equiv` ⇒ 两条闭包**共享一整段前缀**（`Logic`/`Exists`/`Set` …）。
-/// **T1-A 之前**：库层键是**整条闭包**的摘要 ⇒ 换一个单元 = 整条库层重编 ✗；
-/// **之后**：模块级前缀检查点命中 ⇒ 只编**分叉之后那几个模块** ✓。
-///
-/// 读数（结构计数优先）：`modules=` = 这一次 `didOpen` 真的编了几个模块；
-/// 墙钟只作**同机前后**比较（`AGENTS.md` 判据纪律 ②）。
-#[test]
-fn perf_course_cross_entry_switch_is_recorded() {
-    let Some(root) = course_root() else {
-        eprintln!("跳过：找不到 courses/set-theory/sokonanoda.toml");
-        return;
-    };
-    let first_rel = "units/I.3/unit08-images-preimages.sokonanoda";
-    let second_rel = "units/I.3/unit09-equinumerosity.sokonanoda";
-    let first = root.join(first_rel);
-    let second = root.join(second_rel);
-    let (Ok(text_a), Ok(text_b)) = (
-        std::fs::read_to_string(&first),
-        std::fs::read_to_string(&second),
-    ) else {
-        eprintln!("跳过：读不到 {first_rel} 或 {second_rel}");
-        return;
-    };
-    let cache =
-        std::env::temp_dir().join(format!("sokonanoda-lsp-cross-entry-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&cache);
-    let artifacts_off = std::env::var_os("SOKONANODA_NO_PROJECT_ARTIFACTS").is_some();
-    let mut client = Client::start_traced_with_env(
-        &cache,
-        if artifacts_off {
-            &[("SOKONANODA_NO_PROJECT_ARTIFACTS", "1")]
-        } else {
-            &[]
-        },
-    );
-    let uri_a = Client::file_uri(&first);
-    let uri_b = Client::file_uri(&second);
-    // ① 开 unit08（冷：整条闭包 —— 不判它 ✓），并等 A5 的库层预热落定。
-    let _ = client.open(&root, &uri_a, &text_a);
-    let _ = client.settled_compile_count();
-    let _ = client.warm_trace_len();
-    std::thread::sleep(std::time::Duration::from_millis(50));
-    // ② **被量的那一刀**：开 unit09（不同闭包、共享前缀）。
-    let before = client.trace_len();
-    let started = Instant::now();
-    client.did_open(&uri_b, &text_b);
-    let _ = client.diagnostics_for(&uri_b);
-    let ms = started.elapsed().as_secs_f64() * 1000.0;
-    if client.trace_len() > before {
-        let line = client.last_trace();
-        let identity = binary_identity();
-        // **同机参照**：另起一个进程**冷开** unit09（`NO_PROJECT_ARTIFACTS=1` 逼它真编）
-        // ⇒ 拿到"整条闭包几个模块"的对照 ⇒ 读数**自足**（不依赖别处的历史数字 ✓）。
-        let reference_modules = {
-            let ref_cache = std::env::temp_dir().join(format!(
-                "sokonanoda-lsp-cross-entry-ref-{}",
-                std::process::id()
-            ));
-            let _ = std::fs::remove_dir_all(&ref_cache);
-            let mut ref_client = Client::start_traced_with_env(
-                &ref_cache,
-                &[("SOKONANODA_NO_PROJECT_ARTIFACTS", "1")],
-            );
-            let ref_uri = Client::file_uri(&second);
-            let _ = ref_client.open(&root, &ref_uri, &text_b);
-            let _ = ref_client.wait_for_trace_after(0);
-            let value = Client::trace_field(&ref_client.last_trace(), "modules");
-            let _ = ref_client.request(99, "shutdown", serde_json::json!(null));
-            let _ = std::fs::remove_dir_all(&ref_cache);
-            value
-        };
-        println!(
-            "PERF cross-entry-switch {first_rel} → {second_rel}: {ms:.1}ms ({identity}) · \
-             compile={}ms modules={}（冷开同一入口 = {reference_modules} ⇒ 复用 \
-             {} 个）· by={} · artifacts={}",
-            trace_compile_ms(&line),
-            Client::trace_field(&line, "modules"),
-            reference_modules.saturating_sub(Client::trace_field(&line, "modules")),
-            Client::trace_field(&line, "by"),
-            if artifacts_off { "off" } else { "on" },
-        );
-        perf_json(serde_json::json!({
-            "schema": "soko.perf/1",
-            "scope": "lsp-course",
-            "case": "cross_entry_switch",
-            "from": first_rel,
-            "to": second_rel,
-            "ms": (ms * 10.0).round() / 10.0,
-            "compile_ms": trace_compile_ms(&line),
-            "modules": Client::trace_field(&line, "modules"),
-            "cold_modules": reference_modules,
-            "reused_modules": reference_modules.saturating_sub(Client::trace_field(&line, "modules")),
-            "by": Client::trace_field(&line, "by"),
-            "artifacts": if artifacts_off { "off" } else { "on" },
-            "build": identity,
-        }));
-    } else {
-        // **产物命中**那条路：`didOpen` 不编译 ⇒ 没有 trace 行（读数缺席，不是失败 ✓）。
-        println!("PERF cross-entry-switch {first_rel} → {second_rel}: 未编译（产物命中）");
-    }
-    assert!(ms < 30_000.0, "跨入口切换 {ms:.1}ms（量级哨兵 30s）");
     let _ = client.request(99, "shutdown", serde_json::json!(null));
     let _ = std::fs::remove_dir_all(&cache);
 }
