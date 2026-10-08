@@ -6080,7 +6080,11 @@ pub(crate) fn elab_expr<'a>(
 
 /// Peel a constructor's elaborated kernel type into its field binder types
 /// (dependencies resolved by de Bruijn), in declaration order.
-fn kernel_field_binders<'a>(mut ty: ExprPtr<'a>) -> Vec<(BinderStyle, ExprPtr<'a>)> {
+/// **T1-B 批 2 的 B 块后半要用它**（2026-10-09）：从一份**已装载的内核环境**里
+/// 重新取出构造子望远镜的逐层 `(style, ty)` —— 与 `InductiveInfo` 的
+/// `MatchField.ty`（内核裸指针 ✗ 不可序列化）**同源**，所以"存 wire + 装载时按
+/// 构造子名字重解析"能给出**同一批**类型 ✓（判据见 `project/tables.rs`）。
+pub(crate) fn kernel_field_binders<'a>(mut ty: ExprPtr<'a>) -> Vec<(BinderStyle, ExprPtr<'a>)> {
     let mut out = Vec::new();
     loop {
         match &*ty {
