@@ -81,7 +81,7 @@
 | B | B4 | 逐 tactic 前缀快照缓存（**决策门 · 最后做**） | tactics executed/total | B3 的读数 |
 | C | C1 | **build 进度逐文件 / 短间隔**（P1） | stderr 进度**行数** | 无（快赢） |
 | C | C2 | **`clean`/`rebuild` 无参也清模块根**（P2 残留） | `build.summary.hit` | 无（快赢） |
-| C | C3 | **`#check`/`#print` 进 infoview**（P5，三层） | wire 字段 + 可见文本 | 协议设计先行 |
+| C | **C3** | **`#check`/`#print` 进 infoview**（P5，三层）—— **已落地**（`91c72399`+`95c78795`） | `stateAt.messages` 三层各一条 + 反向验证 | ✓（协议 §`soko/stateAt` 已写） |
 | C | C4 | 冷开 / 提交链路的**结构判据**（P6） | `hit`/模块编译数 | A3 |
 | D | D1 | Lean 4 infoview / `#check` 机制对照 | 源码行号（**本轮已完成**） | — |
 | D | D2 | build CLI 惯例（cargo/rustc/tsc/lean） | 结论件 | 与 C1 并行 |

@@ -269,6 +269,53 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("C3：`#check`/`#print` 的输出出现在 Infoview 的「命令输出」块里", async () => {
+    // **P5 的真宿主判据**（2026-10-08）：用户报「`#check`/`#print` 在 infoview
+    // **没有内容**」✗。上面那条钉的是 **inlay hint**（内联灰字，另一条通道）——
+    // 这条钉**面板**：`soko/stateAt.messages` 按**光标所在行**取，webview 渲染成
+    // 「命令输出」块（`#check` ⇒ `表达式 : 类型`，`#print` ⇒ 定义文本）。
+    // ⚠ 光标停在 `#check` 行上时**不在任何声明里** ⇒ 走的正是"空响应"那条路 ✓。
+    const src = "def myid (x : Nat) : Nat := x\n#check myid\n#print myid\n";
+    const uri = await writeDoc("c3-command-output.sokonanoda", src);
+    await vscode.workspace.openTextDocument(uri);
+    const editor = await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
+    // 光标放到 `#print myid` 那一行（列 3 ⇒ 行内任意位置即可，口径是**按行**取）。
+    const printLine = [...Array(editor.document.lineCount).keys()].find((i) =>
+      editor.document.lineAt(i).text.startsWith("#print"),
+    );
+    assert.notStrictEqual(printLine, undefined, "夹具里必须有 `#print myid`");
+    const pos = new vscode.Position(printLine, 3);
+    editor.selection = new vscode.Selection(pos, pos);
+
+    await waitFor("C3：`#print` 的输出到达 Infoview", async () => {
+      const state = extensionApi.infoview.lastState();
+      return (
+        state &&
+        Array.isArray(state.messages) &&
+        state.messages.some(
+          (m) => m.kind === "print" && typeof m.text === "string" && m.text.includes(":="),
+        )
+      );
+    });
+
+    // 再挪到 `#check myid` 那一行：换的是**行**，输出也要跟着换 ✓。
+    const checkLine = [...Array(editor.document.lineCount).keys()].find((i) =>
+      editor.document.lineAt(i).text.startsWith("#check"),
+    );
+    const checkPos = new vscode.Position(checkLine, 3);
+    editor.selection = new vscode.Selection(checkPos, checkPos);
+    await waitFor("C3：`#check` 的输出到达 Infoview", async () => {
+      const state = extensionApi.infoview.lastState();
+      return (
+        state &&
+        Array.isArray(state.messages) &&
+        state.messages.some(
+          (m) => m.kind === "check" && typeof m.text === "string" && m.text.includes("Nat"),
+        )
+      );
+    });
+  });
+
   test("clean lesson publishes empty diagnostics", async () => {
     const uri = await writeDoc("lesson-clean.sokonanoda", LESSON_CLEAN);
     await vscode.workspace.openTextDocument(uri);
