@@ -25,6 +25,7 @@ pub use check::canonical_prefix_id;
 pub use check::canonical_prefix_id_checked;
 /// **A4a（2026-10-08）的判据读数**：闭包前缀累加次数（冷开 2、检查点复用后 0）。
 pub use check::closure_prefix_builds_total;
+// **T2-B0 的两条读数**（2026-10-09）—— 与上面那条同形 ✓。
 pub use check::{
     check_document, check_document_with, closure_accumulated_over, closure_prefixes_for,
     compile_all_with, compile_fol, compile_fol_with, display_notations,
@@ -36,6 +37,7 @@ pub(crate) use check::{
     top_level_def_spans, top_level_def_spans_over, KernelFailed, PassTables, ResumeState,
     TrustPlan,
 };
+pub use check::{def_spans_builds_total, notation_table_builds_total};
 pub(crate) use elab::canonical_ctor_name;
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput, CompileStats};

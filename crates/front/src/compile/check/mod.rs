@@ -499,6 +499,8 @@ fn by_step_states(
 /// 元数从源级签名 + prelude。整趟建一次，给 `ty_text` 与 `by` 步进的展示副本共用。
 /// **给 front 的消费者建表用**（同上 ✓）：由 front 算 arity ✓，调用方**只拿结果** ✓。
 pub fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNotations {
+    // **T2-B0 的判据读数**（2026-10-09）：这张表是**闭包文本的纯函数**，今天**每刀重算** ✗。
+    NOTATION_TABLE_BUILDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let commands: Vec<crate::ast::Command> = units
         .iter()
         .flat_map(|unit| unit.file.commands.iter().cloned())
@@ -1138,6 +1140,26 @@ pub fn closure_prefix_builds_total() -> u64 {
     CLOSURE_PREFIX_BUILDS.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// **T2-B0 的判据读数**（`#[doc(hidden)]`，只给判据用）：**记法表**建了几次
+/// （`display_notations` 的唯一实现点 ⇒ 老路与会话路**同口径** ✓）。
+static NOTATION_TABLE_BUILDS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// 见 [`display_notations`]：它是**闭包文本的纯函数** ⇒ **冷开 = k（库层趟 + 入口趟）、
+/// 复用之后第 2 刀起应当 = 0**（T2-B0 的目标 ✓）。
+#[doc(hidden)]
+pub fn notation_table_builds_total() -> u64 {
+    NOTATION_TABLE_BUILDS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// **T2-B0 的判据读数**：**定义 span 表**建了几次（`top_level_def_spans_over` 的唯一实现点 ✓）。
+static DEF_SPANS_BUILDS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// 见 [`top_level_def_spans_over`]：与 [`notation_table_builds_total`] 同一条纪律 ✓。
+#[doc(hidden)]
+pub fn def_spans_builds_total() -> u64 {
+    DEF_SPANS_BUILDS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// **G-85 的键侧入口**：把一段前缀**源码**规范化成**环境身份** ✓（规则见
 /// [`closure_prefix_ids_for`] ✓）。
 ///
@@ -1690,6 +1712,9 @@ pub fn prelude_shape(units: &[SourceUnit<'_>]) -> PreludeShape {
 
 /// `top_level_def_spans` 等价。`project` 层也用它做闭包级检查（单一实现）。
 pub(crate) fn top_level_def_spans_over(units: &[SourceUnit<'_>]) -> HashMap<String, Span> {
+    // **T2-B0 的判据读数**（2026-10-09）：同 `display_notations` —— 闭包文本的纯函数、
+    // 今天每刀重算 ✗。
+    DEF_SPANS_BUILDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let mut defs: HashMap<String, Span> = HashMap::new();
     for unit in units {
         for (name, span) in top_level_def_spans(unit.file) {
