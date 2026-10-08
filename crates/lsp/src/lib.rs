@@ -623,6 +623,10 @@ struct StructuralCounters {
     infer_calls: u64,
     infer_miss: u64,
     prefix_runs: u64,
+    /// **`TcCache` 构造次数**（2026-10-08 端到端 profiling 的新读数）：每次 `with_tc`
+    /// 都新建一份预分配 ≈ 4 MiB + 20 张表的 `TcCache` ⇒ 实测 61.8 µs/次、
+    /// 占一次按键编译样本的 **63%**（见 `util::TC_CACHE_BUILDS`）。
+    tc_cache_builds: u64,
 }
 
 fn structural_counters() -> StructuralCounters {
@@ -644,6 +648,7 @@ fn structural_counters() -> StructuralCounters {
         infer_calls,
         infer_miss,
         prefix_runs,
+        tc_cache_builds: sokonanoda_front::compile::tc_cache_builds_total(),
     }
 }
 
@@ -889,7 +894,7 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
             let now = structural_counters();
             eprintln!(
                 "LSP_TRACE compile {uri} v{version} {}ms publish={} modules={} by={} \
-                 infer={}/{} prefix={}",
+                 infer={}/{} prefix={} tc={}",
                 cost.as_millis(),
                 out.len(),
                 now.modules - counters_before.modules,
@@ -897,6 +902,7 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
                 now.infer_miss - counters_before.infer_miss,
                 now.infer_calls - counters_before.infer_calls,
                 now.prefix_runs - counters_before.prefix_runs,
+                now.tc_cache_builds - counters_before.tc_cache_builds,
             );
         }
         for (target, diagnostics, version) in out {
