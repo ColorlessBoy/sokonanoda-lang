@@ -136,7 +136,13 @@ pub fn write(
     std::fs::create_dir_all(dir(root))?;
     ensure_self_ignore(root);
     let bin = payload_path(root, key);
-    std::fs::write(&bin, payload.as_bytes())?;
+    // **原子落盘**（T1-B 批 3）：先写**临时名**再 `rename` —— `rename` 在同一目录里是
+    // 原子的 ⇒ 并发读者**要么看到旧的那份、要么看到完整的新那份**，不会看到半份 ✓。
+    // ⚠ 即使这里被中断（临时文件残留），完整性三道也会把它当**不存在** ✓
+    // （临时名不是 `<key>.bin` ⇒ 根本读不到 ✓）；[`clean_in`] 会把残留一并清掉 ✓。
+    let tmp = dir(root).join(format!("{key}.bin.tmp-{}", std::process::id()));
+    std::fs::write(&tmp, payload.as_bytes())?;
+    std::fs::rename(&tmp, &bin)?;
     let meta = ArtifactMeta {
         format: ARTIFACT_FORMAT,
         front_version: env!("CARGO_PKG_VERSION").to_string(),
@@ -363,6 +369,32 @@ fn render_name(ctx: &sokonanoda::util::TcCtx<'_, '_>, n: sokonanoda::util::NameP
             out
         }
     }
+}
+
+/// **清掉这个模块根下的模块产物**（保留 `.gitignore`）；返回删除条数。
+///
+/// **为什么 `clean` 必须带上它**（T1-B 批 3）：`compiled/` 那条已经有过一次同形的
+/// 教训（R-3：只清全局 ⇒ `rebuild` 命中项目条目 ⇒ "清空了却什么都没重编"的**假动作** ✗）。
+/// 产物是**第三个**存放点 ⇒ 不清它，同一个假动作会在这一层重演 ✗。
+///
+/// 连 `*.tmp-*` 一起清（原子写的残留 ✓）—— 它们是**垃圾**，留着只会让目录越来越大。
+pub fn clean_in(root: &Path) -> usize {
+    let d = dir(root);
+    let Ok(entries) = std::fs::read_dir(&d) else {
+        return 0;
+    };
+    let mut removed = 0usize;
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if name == ".gitignore" {
+            continue;
+        }
+        if std::fs::remove_file(entry.path()).is_ok() {
+            removed += 1;
+        }
+    }
+    removed
 }
 
 #[cfg(test)]
@@ -646,6 +678,61 @@ mod tests {
             "头部声称的长度超过实际 ⇒ 必须被拒 ✓"
         );
 
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// **T1-B 批 3 · 原子落盘**：写完**不留**临时文件；残留的 `.tmp-*` **不是**产物 ✓。
+    #[test]
+    fn writing_is_atomic_and_leaves_no_temp_files() {
+        let root = temp_root("atomic");
+        write(&root, KEY, "payload", &options()).expect("write");
+        let leftovers: Vec<String> = std::fs::read_dir(dir(&root))
+            .expect("dir")
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.contains(".tmp-"))
+            .collect();
+        assert!(
+            leftovers.is_empty(),
+            "原子写不许留临时文件（实得 {leftovers:?}）—— 留了就是垃圾越积越多 ✗"
+        );
+        // 手造一份残留：它**不是** `<key>.bin` ⇒ 任何键都读不到它 ✓（命名即边界 ✓）。
+        std::fs::write(dir(&root).join("stray.bin.tmp-1"), b"junk").expect("stray");
+        assert_eq!(read(&root, "stray.bin.tmp-1", &options()), None);
+        assert_eq!(read(&root, KEY, &options()).as_deref(), Some("payload"));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// **T1-B 批 3 · `clean`**：`artifacts::clean_in` 清产物（含 `.tmp-*` 残留）、
+    /// **保留**自忽略文件；`cache::clean_at`（`sokonanoda clean` 的项目那一半）
+    /// **必须把两处都清** —— 否则 `rebuild` 命中旧产物 ⇒ 与 R-3 同形的
+    /// "清空了却什么都没重编"**假动作**会在产物这一层重演 ✗。
+    #[test]
+    fn clean_removes_artifacts_and_keeps_the_self_ignore() {
+        let root = temp_root("clean");
+        write(&root, KEY, "payload", &options()).expect("write");
+        std::fs::write(dir(&root).join("stray.bin.tmp-1"), b"junk").expect("stray");
+        // 再造一份 `compiled/` 条目（`clean_at` 的另一半 ✓）。
+        let compiled = crate::project::cache::compiled_at(&root);
+        std::fs::create_dir_all(&compiled).expect("mkdir");
+        std::fs::write(compiled.join("entry.bin"), b"x").expect("entry");
+
+        let n = crate::project::cache::clean_at(&root);
+        assert!(
+            n >= 3,
+            "`clean_at` 必须把 `compiled/` 的条目 + 产物的 `.bin`/`.meta.json`/残留都清掉（实得 {n}）"
+        );
+        assert_eq!(
+            read(&root, KEY, &options()),
+            None,
+            "清完之后必须读不到产物 ✓（否则 `rebuild` 会命中旧产物 = 假动作 ✗）"
+        );
+        assert!(
+            crate::project::cache::artifacts_dir(&root)
+                .join(".gitignore")
+                .exists(),
+            "自忽略文件必须留着（清了它，`git status` 会冒出 `?? .sokonanoda/` ✗）"
+        );
         let _ = std::fs::remove_dir_all(&root);
     }
 }

@@ -284,9 +284,13 @@ pub fn store_if_clean_at(
     store_at(root, digest, options, project);
 }
 
-/// 清掉某个模块根的产物**条目**（保留 `.gitignore` 与 `meta.json`）；返回删除条数。
+/// 清掉某个模块根的产物**条目**（保留 `.gitignore` 与 `meta.json`）**与模块产物**
+/// （`.sokonanoda/artifacts/` 里的全部内容，保留它的 `.gitignore`）；返回删除条数。
 pub fn clean_at(root: &Path) -> usize {
-    let removed = compiled::clean_in(&compiled_at(root));
+    // **T1-B 批 3**：模块产物（`.sokonanoda/artifacts/`）**一起清** —— 不清它，
+    // `rebuild` 会命中旧产物 ⇒ 与 R-3 同形的"清空了却什么都没重编"假动作会重演 ✗。
+    let removed =
+        compiled::clean_in(&compiled_at(root)) + crate::project::artifacts::clean_in(root);
     // 条目都删了 ⇒ 索引里的旧键一并清掉（否则它会一直指向不存在的文件）。
     let path = artifacts_dir(root).join("meta.json");
     if let Ok(bytes) = std::fs::read(&path) {
