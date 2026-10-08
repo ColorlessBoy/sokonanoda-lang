@@ -30,21 +30,32 @@ pub struct Client {
     /// 进程级计数器在**单元测试**里会串味（140+ 用例并行）；这里是**集成测试**、
     /// 服务端还是**独立进程** ⇒ 这些差量天然隔离 ✓。
     traces: Option<std::sync::Arc<std::sync::Mutex<Vec<String>>>>,
+    /// **A5**：`LSP_TRACE warm-library …` 行（产物命中后的后台库层预热）。
+    /// 与 `compile` 行**分开收**：`compile_count()`/`last_trace()` 那套判据读的是
+    /// "编译了几次"，预热不是编译 ⇒ 不许把它的行混进去 ✗。
+    warm_traces: Option<std::sync::Arc<std::sync::Mutex<Vec<String>>>>,
 }
 
 impl Client {
     pub fn start(cache: &Path) -> Self {
-        Self::spawn(cache, false)
+        Self::spawn(cache, false, &[])
     }
 
     /// 同 [`Self::start`]，但让服务端带 `SOKO_LSP_TRACE=1` 并把 stderr 收进
     /// 计数器（[`Self::compile_count`]）。
     pub fn start_traced(cache: &Path) -> Self {
-        Self::spawn(cache, true)
+        Self::spawn(cache, true, &[])
     }
 
-    fn spawn(cache: &Path, trace: bool) -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda-lsp"))
+    /// 同 [`Self::start_traced`]，外加**环境变量**（A5 的反向验证要
+    /// `SOKO_NO_LIB_WARMUP=1` ⇒ 需要一条能注入 env 的入口 ✓）。
+    pub fn start_traced_with_env(cache: &Path, env: &[(&str, &str)]) -> Self {
+        Self::spawn(cache, true, env)
+    }
+
+    fn spawn(cache: &Path, trace: bool, extra_env: &[(&str, &str)]) -> Self {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_sokonanoda-lsp"));
+        command
             .env("SOKONANODA_CACHE_DIR", cache)
             // ⚠ **必须在这里设**：服务端只有看到 `SOKO_LSP_TRACE` 才会打那一行 ✗。
             // 以前 `start_traced` 只**管道 stderr**、没设开关 ⇒ 除非调用方碰巧在父进程
@@ -52,7 +63,11 @@ impl Client {
             // （「咬不住的守卫等于没有」——2026-10-03 实测：等 trace 行等到超时 ✓）。
             .env("SOKO_LSP_TRACE", if trace { "1" } else { "0" })
             .env_remove("SOKONANODA_NO_CACHE")
-            .env_remove("SOKONANODA_LSP_BIN")
+            .env_remove("SOKONANODA_LSP_BIN");
+        for (key, value) in extra_env {
+            command.env(key, value);
+        }
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             // stderr 要有人读：管道写满会把这个进程堵死（trace 模式由一个
@@ -67,16 +82,27 @@ impl Client {
             .spawn()
             .expect("spawn sokonanoda-lsp");
         let reader = BufReader::new(child.stdout.take().expect("stdout"));
+        let mut warm_traces = None;
         let compiled = if trace {
             let stderr = child.stderr.take().expect("stderr");
             let count = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
             let sink = std::sync::Arc::clone(&count);
             let lines = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
             let into = std::sync::Arc::clone(&lines);
+            let warm = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+            let warm_into = std::sync::Arc::clone(&warm);
+            warm_traces = Some(warm);
             std::thread::spawn(move || {
                 use std::io::BufRead;
                 for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-                    if line.starts_with("LSP_TRACE compile") {
+                    // ⚠ 先判**两个**前缀、再 move（`line` 只能被搬走一次 ✗）。
+                    let is_warm = line.starts_with("LSP_TRACE warm-library");
+                    let is_compile = line.starts_with("LSP_TRACE compile");
+                    if is_warm {
+                        if let Ok(mut guard) = warm_into.lock() {
+                            guard.push(line);
+                        }
+                    } else if is_compile {
                         sink.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                         if let Ok(mut guard) = into.lock() {
                             guard.push(line);
@@ -97,7 +123,46 @@ impl Client {
             reader,
             compiled,
             traces,
+            warm_traces,
         }
+    }
+
+    /// **A5**：已经收到几行 `LSP_TRACE warm-library`。
+    pub fn warm_trace_len(&self) -> usize {
+        self.warm_traces
+            .as_ref()
+            .and_then(|lines| lines.lock().ok())
+            .map(|guard| guard.len())
+            .unwrap_or(0)
+    }
+
+    /// **A5**：等 `LSP_TRACE warm-library` 行数 **> `after`**（返回新的行数）。
+    ///
+    /// 为什么必须等：stderr 由**另一个线程**读 ⇒ 诊断到了不等于预热那行已经收进
+    /// `Vec`（同 [`Self::wait_for_trace_after`] 的教训 ✓）。
+    pub fn wait_for_warm_after(&self, after: usize) -> usize {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+        loop {
+            let len = self.warm_trace_len();
+            if len > after {
+                return len;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "等 warm-library 行超时（已有 {len} 行，在等第 {} 行）",
+                after + 1
+            );
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+    }
+
+    /// **A5**：最近一行 `LSP_TRACE warm-library`。
+    pub fn last_warm_trace(&self) -> String {
+        self.warm_traces
+            .as_ref()
+            .and_then(|lines| lines.lock().ok())
+            .and_then(|guard| guard.last().cloned())
+            .expect("last_warm_trace 需要 start_traced，且必须已经预热过至少一次")
     }
 
     /// 到目前为止服务端**真的编译了几次**（需要 `start_traced`）。

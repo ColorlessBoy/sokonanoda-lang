@@ -404,6 +404,32 @@ pub fn precheck_plan(plan: &mut ProjectPlan, options: &CompileOptions) {
     check_prelude_conflicts(&plan.closure, options, &mut plan.diagnostics);
 }
 
+/// **A5（2026-10-08）**：给"**产物命中**"的开档补一趟**后台库层预热**（见
+/// [`crate::project::session::warm_library`] 与 `PLAN-cli-editor-perf.md` §8.2）。
+///
+/// 计划与"真编译"**同一套步骤**（`plan_project_with_overlay` → `precheck_plan` →
+/// `units_for_modules`）—— 预热必须喂热**与真编译同一个键**的检查点，否则白做 ✗。
+/// 只跑库层趟：**不产报告、不发诊断、不碰缓存** ⇒ 对外**零可观察变化**（判据：
+/// 全课程 `--json` 逐字节不变）。
+///
+/// 返回 `true` = 真的建了一份新检查点。调用方（LSP）负责时机（诊断发出之后）与
+/// 退让（有**待编的编辑**就跳过 —— 那一趟本来就要做，别抢）。
+pub fn warm_library_checkpoint(
+    entry: &Path,
+    entry_src: &str,
+    root_override: Option<&Path>,
+    overlay: &[(PathBuf, String)],
+    options: &CompileOptions,
+) -> bool {
+    let mut plan = plan_project_with_overlay(entry, Some(entry_src), root_override, overlay);
+    // 与 `compile_plan_with_progress` **同序**：检查可能把模块标成 blocked，
+    // 那会改变"编哪些模块" ⇒ 顺序不能反（见 `precheck_plan` 的注释）。
+    precheck_plan(&mut plan, options);
+    let entry_path = plan.entry.clone();
+    let lib_units = units_for_modules(&plan, |m| m.path != entry_path);
+    crate::project::session::warm_library(&lib_units, options)
+}
+
 /// **切片 1（G-68）的接线口**：把"一次 session 的结果"组装成该入口的 `ProjectReport`。
 ///
 /// **为什么需要**：`build <dir>` 今天对**每个入口**走 `compile_plan_with_progress`

@@ -307,6 +307,57 @@ pub(crate) fn with_project_session_reusing<R>(
     })
 }
 
+/// **A5（2026-10-08）**：只跑**库层趟**、把检查点喂热 —— **不跑入口趟、不产报告、不发诊断**。
+///
+/// ## 为什么需要它（开工 profiling 实测 · `PLAN-cli-editor-perf.md` §8.2）
+///
+/// **产物命中**那条路（`crates/lsp/src/lib.rs` 的 `set_cached_entry`）**一趟 pass 都不跑**
+/// ⇒ 本线程的 [`LIB_CHECKPOINT`] 是**冷的** ⇒ **开档后的第一次编辑**要走
+/// [`with_project_session_reusing`] 的 miss 分支，把**整条库闭包重编一遍**：
+/// 实测 unit08 同一刀 = `modules=5 by=87 prefix=16` · **1233ms**，而检查点热的
+/// 同一刀只要 `modules=1 by=63` · **321ms** ✗。用户看到的就是"打开很快、敲第一个
+/// 字符卡一秒"。
+///
+/// ## 为什么它**不会更坏**（调用方敢在后台起它的理由）
+///
+/// 库层趟是"首次编辑那次编译**本来就必须做**的那部分功"的**子集**：
+/// * 编辑**先**到 ⇒ 由编辑自己的编译建检查点，总功不变（调用方起预热前会再看一眼
+///   有没有待编的编辑，有就跳过 ⇒ 这一趟压根不会跑）；
+/// * 编辑**后**到 ⇒ 省下这一趟 ✓。
+///
+/// ⇒ 与"今天"相比**功只减不增**，最坏情况 = 今天。
+///
+/// ## 判据
+///
+/// 返回 `true` = 真的建了一份**新**检查点（判据读数：预热有没有生效）；
+/// `false` = 库层为空 / 已经热的（键相同）/ 泄漏上界用尽 ⇒ **什么都不做**。
+pub(crate) fn warm_library(lib_units: &[SourceUnit<'_>], options: &CompileOptions) -> bool {
+    if lib_units.is_empty() {
+        return false;
+    }
+    let key = lib_key(lib_units, options);
+    LIB_CHECKPOINT.with(|slot| {
+        let mut slot = slot.borrow_mut();
+        // 已经热的（键逐字相同）⇒ 别重复做（否则每开一次档白烧一趟库层 ✗）。
+        if slot.as_ref().is_some_and(|cp| cp.key == key) {
+            return false;
+        }
+        // 上界 ①（与 miss 分支同一条）：到顶就不再建新检查点，回退到今天那条路。
+        if LEAKED_LIB_ARENAS.load(Ordering::Relaxed) >= MAX_LEAKED_LIB_ARENAS {
+            return false;
+        }
+        let arena: &'static ArenaRef<'static> =
+            Box::leak(Box::new(stumpalo::Arena::new())).as_arena_ref();
+        LEAKED_LIB_ARENAS.fetch_add(1, Ordering::Relaxed);
+        let builder = EnvBuilder::new(arena, Config::default());
+        let units = leak_lib_units(lib_units);
+        let lib = run_library_pass(builder, PassTables::new(), units, options, key);
+        // 换掉旧的 ⇒ 旧的**语义上不可达** ✓（与 miss 分支同一条不变量）。
+        *slot = Some(lib);
+        true
+    })
+}
+
 /// **库层趟**（切片 1b 的第 ① 步）：编共享库层，产出检查点（含活环境）。
 ///
 /// 与既有代码逐字同构：`install_preludes = true`（**只装一次** —— 入口趟必须

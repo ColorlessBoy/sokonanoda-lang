@@ -84,6 +84,16 @@ struct Doc {
     /// §6 坑③）。摘要只**读文件 + 哈希**，比"重编一遍闭包"便宜三个数量级。
     /// `None` = 单文件文档（文本 + 模式本身就决定结果）。
     compiled_digest: Option<String>,
+    /// **A5（2026-10-08）**：这一次编译是不是**产物命中**（一趟 pass 都没跑）。
+    ///
+    /// 为什么需要它：命中那条路（[`Self::set_text`] 的 `set_cached_entry` 分支）
+    /// **不跑任何 pass** ⇒ front 的**线程局部库层检查点**（G-29）没被喂热 ⇒
+    /// **开档后的第一次编辑**要把整条库闭包重编一遍（实测 unit08：`modules=5`
+    /// · 1233ms，而检查点热的同一刀只要 321ms ✗）。
+    /// `compile_worker` 据此在**诊断发出之后**起一次后台库层预热
+    /// （`sokonanoda_front::project::warm_library_checkpoint`）——
+    /// 那一趟是"首次编辑本来就要做的功"的**子集** ⇒ 最坏情况 = 今天 ✓。
+    served_from_artifact: bool,
 }
 
 impl Doc {
@@ -94,6 +104,7 @@ impl Doc {
             pending_text: None,
             pending_version: 0,
             compiled_digest: None,
+            served_from_artifact: false,
         }
     }
 
@@ -213,6 +224,9 @@ impl Doc {
                 .is_none_or(|digest| self.compiled_digest.as_deref() == Some(digest))
         {
             self.doc.version = lsp_version as u64;
+            // 文本一字没变 ⇒ 这次没有"新编译"，也就没有产物命中可言
+            // （检查点状态维持原样 ✓）。
+            self.served_from_artifact = false;
             return;
         }
         self.doc.path = path;
@@ -256,8 +270,12 @@ impl Doc {
                 entry.project,
             );
             self.compiled_digest = project_digest;
+            // **A5**：命中 = 这一趟**一个 pass 都没跑** ⇒ 库层检查点是冷的。
+            self.served_from_artifact = true;
             return;
         }
+        // 走到这里 = 真的编了（库层检查点与 judge 缓存都热了）⇒ 不需要预热。
+        self.served_from_artifact = false;
         // 原地复用会话（I8 增量的关键）：prelude 模式变化时由真相层重建。
         self.doc
             .set_text_with_overlay(text, lsp_version as u64, Some(mode), overlay);
@@ -837,7 +855,7 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
         // 「开档建的检查点、改一行时找不到」✗。`spawn`（不是 `spawn_blocking`）
         // 是为了拿到与今天同一档的**线程栈**（32MB —— `elab_expr` 递归很深，
         // 2MB 会 overflow，见 `run()` 的注释）。
-        let out = compile_runtime()
+        let outcome = compile_runtime()
             .spawn({
                 let client = client.clone();
                 let docs = std::sync::Arc::clone(&docs);
@@ -847,6 +865,7 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
             })
             .await
             .unwrap_or_else(|err| std::panic::resume_unwind(err.into_panic()));
+        let out = outcome.to_publish;
         // **成对**：`Begin` 之后任何路径都要 `End`（否则客户端那把进度条永远转 ✗）。
         // 这里 `compile_one` 不返回 `Result`，所以顺序执行就够；将来它要是会早退，
         // 必须换成 guard（见缺口台账的纪律：成对通知要能被"漏发"抓住）。
@@ -864,8 +883,9 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
         if trace_enabled() {
             // **结构计数**（机器无关）与墙钟一起打：`modules` = 模块编译次数
             // （库层有没有被重编）· `by` = `by` 引擎调用 · `infer` = 类型推断
-            // （调用/未命中）· `prefix` = 重跑整份前缀的趟数。判据用计数，墙钟只
-            // 做数量级兜底（`AGENTS.md`）。
+            // （调用/未命中）· `prefix` = 重跑整份前缀的趟数 · `tc` = `TcCache`
+            // 构造次数（每次预分配 ≈ 4 MiB + 20 张表 ⇒ 61.8 µs/次）。判据用计数，
+            // 墙钟只做数量级兜底（`AGENTS.md`）。
             let now = structural_counters();
             eprintln!(
                 "LSP_TRACE compile {uri} v{version} {}ms publish={} modules={} by={} \
@@ -884,7 +904,53 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
                 .publish_diagnostics(target, diagnostics, version)
                 .await;
         }
+        // **A5（2026-10-08）**：产物命中的开档 ⇒ 补一趟**后台库层预热**。
+        //
+        // 为什么放在这里（诊断**发完之后**）：第一屏是"打开就能看见"，
+        // 预热是"第一次按键不要卡" —— 顺序反了就把 1.2s 从按键挪到了开档 ✗。
+        // 为什么走 `compile_runtime().spawn`：库层检查点活在 front 的**线程局部**
+        // 里，只有**那一条** worker 线程看得见（见 `compile_runtime` 的注释）。
+        // 为什么可以先看一眼 `pending_version`：有**待编的编辑**就跳过 ——
+        // 那一趟本来就要由它自己的编译做（预热只是提前做，不是额外做）✓。
+        if let Some(warm) = outcome.warm {
+            let has_pending = compile.pending_version(&uri).is_some();
+            let still_open = docs.lock().expect("doc lock").map.contains_key(&uri);
+            if !has_pending && still_open && !lib_warmup_disabled() {
+                // 观测出口（`SOKO_LSP_TRACE=1`）：**预热自己一行**（前缀与编译那行
+                // 不同 ⇒ `compile_count()`/`last_trace()` 那套判据不受影响 ✓）。
+                // 判据要读它两件事：① 它出现在 `publishDiagnostics` **之后**
+                // （第一屏不被推迟 ✓）；② 它真的建了检查点（`built=true`）。
+                let traced = trace_enabled();
+                let uri_for_trace = uri.clone();
+                compile_runtime().spawn(async move {
+                    let started = std::time::Instant::now();
+                    let built = sokonanoda_front::project::warm_library_checkpoint(
+                        &warm.entry,
+                        &warm.text,
+                        warm.root.as_deref(),
+                        &warm.overlay,
+                        &warm.options,
+                    );
+                    if traced {
+                        eprintln!(
+                            "LSP_TRACE warm-library {uri_for_trace} built={built} {}ms",
+                            started.elapsed().as_millis()
+                        );
+                    }
+                });
+            }
+        }
     }
+}
+
+/// **A5 的逃生门**（默认**开**）：`SOKO_NO_LIB_WARMUP=1` ⇒ 不起后台预热。
+///
+/// 用途只有一个：**反向验证** —— 撤掉预热后，产物命中那一臂的首次按键
+/// `LSP_TRACE` 的 `modules=` **必须回到 5**（判据见 `PLAN-cli-editor-perf.md` §8.2）。
+/// 生产路径零影响（不设它 = 预热生效）✓。
+fn lib_warmup_disabled() -> bool {
+    static OFF: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *OFF.get_or_init(|| std::env::var_os("SOKO_NO_LIB_WARMUP").is_some())
 }
 
 /// **编译进度的令牌**（P1，2026-09-26）：按 **uri** 定 ⇒ 同一文件的连续编译
@@ -935,7 +1001,7 @@ fn compile_one(
     compile: &Arc<Compiler>,
     uri: &Url,
     job: Job,
-) -> Vec<(Url, Vec<Diagnostic>, Option<i32>)> {
+) -> CompileOutcome {
     // ① 快照：打开文档的内存文本就是编译器该看到的文本（未保存的编辑也算）。
     let overlay = {
         let docs = docs.lock().expect("doc lock");
@@ -958,11 +1024,11 @@ fn compile_one(
             .is_some_and(|newer| newer > job.version);
         if superseded {
             compile.put_carrier(uri.clone(), carrier);
-            return Vec::new();
+            return CompileOutcome::default();
         }
         let Some(committed) = docs.map.get_mut(uri) else {
             // 文档已经关了（`didClose`）：结果没人要，载体也别留。
-            return Vec::new();
+            return CompileOutcome::default();
         };
         // **只复制视图**：载体完整保留"输入 X 的状态"（它下一次编译的短路判据
         // 读的就是它），handlers 读的那一份拿到副本。见 `QueryDoc::adopt_view`。
@@ -979,8 +1045,20 @@ fn compile_one(
         // **调度**它们（各自一个任务），不在本任务里串行编——那会把一次通知
         // 变成 N 次编译的等待。
         let downstream = docs.stale_downstream(uri);
+        // **A5**：产物命中 ⇒ 记下后台预热的材料（诊断发完之后由 `compile_worker`
+        // 用）。只对**项目文档**（有入口路径）预热 —— 单文件没有库层 ✓。
+        let warm = match (&carrier.served_from_artifact, &carrier.doc.path) {
+            (true, Some(entry)) => Some(WarmRequest {
+                entry: entry.clone(),
+                text: job.text.clone(),
+                root: carrier.doc.root.clone(),
+                overlay: overlay.clone(),
+                options: CompileOptions { prelude: mode },
+            }),
+            _ => None,
+        };
         compile.put_carrier(uri.clone(), carrier);
-        (changed.then_some(diagnostics), downstream)
+        (changed.then_some(diagnostics), downstream, warm)
     };
 
     let mut to_publish: Vec<(Url, Vec<Diagnostic>, Option<i32>)> = Vec::new();
@@ -1002,7 +1080,30 @@ fn compile_one(
             tokio::spawn(compile_worker(other, client, docs, compile));
         }
     }
-    to_publish
+    CompileOutcome {
+        to_publish,
+        warm: published.2,
+    }
+}
+
+/// `compile_one` 的产物：要发的诊断 + **A5 的后台预热材料**。
+#[derive(Default)]
+struct CompileOutcome {
+    to_publish: Vec<(Url, Vec<Diagnostic>, Option<i32>)>,
+    /// `None` = 这次不是产物命中（真编过 ⇒ 检查点已经热了）或不是项目文档。
+    warm: Option<WarmRequest>,
+}
+
+/// **A5**：后台库层预热的材料 —— 编译时那份输入的**快照**。
+///
+/// 预热必须喂热**与真编译同一个键**的检查点（`lib_key` 含模块集合/顺序/路径/
+/// 源文本/开关）⇒ 这里存的必须是**这一次编译用的**那一份，不能到预热时重算 ✗。
+struct WarmRequest {
+    entry: std::path::PathBuf,
+    text: String,
+    root: Option<std::path::PathBuf>,
+    overlay: Vec<(std::path::PathBuf, String)>,
+    options: CompileOptions,
 }
 
 impl Backend {
