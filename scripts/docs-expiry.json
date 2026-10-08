@@ -289,6 +289,12 @@
       "renewed": "2026-10-03",
       "tier": "process"
     },
+    "docs/notes/PLAN-align-lean4-as-built.md": {
+      "expires": "2026-11-07",
+      "renewed": "2026-10-09",
+      "tier": "process",
+      "reason": "规划附录：§11 as-built 段的归档（原文一字未改）；与正文 PLAN-align-lean4.md 同档同到期日"
+    },
     "docs/notes/PLAN-align-lean4.md": {
       "expires": "2026-11-07",
       "renewed": "2026-10-08",

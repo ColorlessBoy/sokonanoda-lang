@@ -773,14 +773,19 @@ fn run_shared_group(
         crate::compile::CompileOutput,
         Vec<crate::compile::DocumentReport>,
         Vec<crate::compile::DocumentReport>,
-    )> = crate::project::session::with_project_session_artifacts(
+    )> = crate::project::session::with_project_session_artifacts_trusted(
         &lib_units,
         &entry_units,
         options0,
         // **T1-B 批 2**：CLI `build <dir>` 的多入口路也吃**磁盘产物** ✓
-        // （这一条**不碰**线程局部检查点 ⇒ T4-A 的契约原样成立 ✓；
-        //  逃生门 `SOKONANODA_NO_MODULE_ARTIFACTS=1` 在 session 里一次收口 ✓）。
+        // ⚠ **必须用 `_trusted` 那条**（不碰线程局部检查点 ⇒ T4-A 的契约 ✓）——
+        // 第一版误接成 `with_project_session_artifacts`（= **reusing** 那条，带 LRU）
+        // ⇒ ① 违反 T4-A 契约（CLI 短命进程不该用线程局部检查点）② **G-68 判据判红**
+        // （`marginal=1.80 > 1.5`，见 `crates/cli/tests/project_recompiles_shared_deps.rs`）
+        // —— 由**全量** `scripts/soko gate` 逮到（`--fast` 不跑 CLI 集成测试 ✗）。
         &plans[members[0]].root,
+        // 本调用方**没有**信任前缀（与老路一致 ✓）。
+        &[],
         |slot, merged, entry_reports, lib_reports, _lib_ranges, _entry_range| {
             // **逐入口的完成信号**（用户可见进度 ✓）：这一趟的编译已经做完了 ✓
             // （报告组装在会话之后做，但那不花时间 ✓）。
