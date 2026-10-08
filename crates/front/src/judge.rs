@@ -518,6 +518,31 @@ pub(crate) mod stats {
         )
     }
 
+    /// **T3-B2 的判据读数**（`PLAN-align-lean4.md` §4.3：合成趟的精确结构计数，2026-10-09）：
+    /// `(趟数, Σ命令数, 回退趟数)`。
+    ///
+    /// **为什么需要它**：`prefix=`（`PREFIX_RUNS`）**只数 `judge_infer` 的合成前缀重跑** ✗，
+    /// 不数 `judge_type_of` / `judge_pairs`（by 路径）的合成趟 ⇒ 「合成趟还剩多少」
+    /// 此前**没有出口** ✗。`MODULE_COMPILES` 也不行（它只在 `check::run` 里按
+    /// `units.len()` 累加，而合成趟走 `run_incremental` ✗）。
+    ///
+    /// * `趟数` = 真的跑了 `run_synthesized_incremental` 的次数（有担保、走了增量）；
+    /// * `Σ命令数` = 那些趟**重新 elaborate 的合成文档命令数**（= 前缀 + 合成声明，
+    ///   是"消合成趟"要消掉的**工作量**读数 ✓）；
+    /// * `回退趟数` = 没有担保 ⇒ `check_document_with` / `compile_fol_with` **整份重查**的次数
+    ///   （比"合成趟"更贵，回落是默认不是异常 ⇒ 必须与合成趟分开数 ✓）。
+    pub(crate) static SYNTHESIZED_PASSES: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static SYNTHESIZED_COMMANDS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static SYNTHESIZED_FALLBACKS: AtomicU64 = AtomicU64::new(0);
+
+    pub fn synthesized() -> (u64, u64, u64) {
+        (
+            SYNTHESIZED_PASSES.load(Ordering::Relaxed),
+            SYNTHESIZED_COMMANDS.load(Ordering::Relaxed),
+            SYNTHESIZED_FALLBACKS.load(Ordering::Relaxed),
+        )
+    }
+
     /// `cases` 就地读数 `(used, fallback)`。
     pub fn inplace_cases() -> (u64, u64) {
         (
@@ -1019,6 +1044,7 @@ fn check_synthesized(
         prefix_commands,
         prefix_opaque_mode() == PrefixOpaqueMode::On,
     ) else {
+        note_synthesized_fallback();
         return check_document_with(file, options);
     };
     // **影子档**：再跑一次"整份重查"，比对**判据**（行为仍返回整份那一份）。
@@ -1123,6 +1149,11 @@ fn synthesized_trust(
     Some((before.min(prefix_commands), failures, entered))
 }
 
+/// **T3-B2 的读数**：没有可用担保 ⇒ **整份重查**的回退（比"合成趟"更贵 ⇒ 分开数 ✓）。
+pub(crate) fn note_synthesized_fallback() {
+    stats::SYNTHESIZED_FALLBACKS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// **受信任前缀下的合成编译** ✓（**唯一实现** ✗ —— `by` 路径与 `#check` 路径共用 ✓）。
 ///
 /// `Some((CompileOutput, DocumentReport))` = 走了**增量**路 ✓（前缀**不再重查** ✓，
@@ -1162,6 +1193,13 @@ fn run_synthesized_incremental(
     // **S2 步 1**：`run_incremental` 的单元由调用方给（此前它写死单文件）。
     // 这条路是"judge 在**单文件**文本上重查前缀"，所以仍然是一个单元。
     let units = [crate::compile::SourceUnit::single("", file)];
+    // **T3-B2 的判据读数**（`PLAN-align-lean4.md` §4.3）：真的跑了一趟合成编译
+    // ⇒ 记趟数 + **重新 elaborate 的命令数**（= 要消掉的工作量 ✓）。
+    stats::SYNTHESIZED_PASSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    stats::SYNTHESIZED_COMMANDS.fetch_add(
+        file.commands.len() as u64,
+        std::sync::atomic::Ordering::Relaxed,
+    );
     let (out, report, _checks, _sigs, _cutoff) = run_incremental(&units, options, &plan, &failures);
     Some((out, report, before))
 }
@@ -2106,6 +2144,14 @@ pub fn inplace_level_hint_report() -> (u64, u64) {
     stats::inplace_level_hint()
 }
 
+/// **T3-B2 的读数**（合成趟）：`(趟数, Σ命令数, 回退趟数)`。
+///
+/// 判据用法（`PLAN-align-lean4.md` §4.3）：**先建这个读数**，再决定 T3-B2 开不开工
+/// —— `prefix=` 只数 `judge_infer` ✗，不数 `judge_type_of`/`judge_pairs` 的合成趟 ✓。
+pub fn synthesized_report() -> (u64, u64, u64) {
+    stats::synthesized()
+}
+
 /// **P1-a 就地判定的读数**（集成测试 / 诊断用；进程级，见 [`stats::inplace`]）：
 /// `(used, fallback, shadow_same, shadow_diff)`。
 ///
@@ -2346,7 +2392,10 @@ fn judge_type_of_uncached(
         prefix_opaque_mode() == PrefixOpaqueMode::On,
     ) {
         Some((out, _report, _before)) => out,
-        None => compile_fol_with(&file, options),
+        None => {
+            note_synthesized_fallback();
+            compile_fol_with(&file, options)
+        }
     };
     if let Some(err) = query_error(query_start, &out.errors) {
         return Err(err);
@@ -2882,7 +2931,10 @@ fn judge_infer_uncached(
         prefix_opaque_mode() == PrefixOpaqueMode::On,
     ) {
         Some((out, _report, _before)) => (out, true),
-        None => (compile_fol_with(&file, options), false),
+        None => {
+            note_synthesized_fallback();
+            (compile_fol_with(&file, options), false)
+        }
     };
     if let Some(err) = query_error(query_start, &out.errors) {
         return Err(err);
