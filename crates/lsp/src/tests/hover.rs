@@ -772,3 +772,61 @@ infix:50 \" ∈ \" => Set.mem\n",
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// **T-D50 / G-37 的判据**：hover 在 `infix … => myop` 的**目标名**上 ⇒ 要给签名。
+///
+/// ⚠ **为什么单独一条**：这条 hover 走
+/// `judge_type_of_constant("", …)`（**空前缀**，`lib.rs` 的「记法的目标」分支）
+/// —— 空前缀**合成不出** `myop` 的声明 ⇒ 它**只能靠编译期那次调用留下的缓存
+/// 副作用**（`elab_notation` 展开 `⊗` 时用**单元自己的文本**问过一次同名常量，
+/// 而那张缓存的键**不含前缀**）。
+///
+/// 就地档（`type_of_constant_prefer_inplace`）若**不写穿**那张缓存，这条 hover
+/// 就会**静默少一行签名** ✗ —— 与 `b734114d` 抓到的那条回归**同族**（那条走的是
+/// 「记法符号」分支，已被 §11.18 的空前缀修法覆盖；**本条是第二个消费者，至今没有
+/// 判据**）。修法见 `judge.rs::type_of_constant_cache_put` 的写穿 ✓。
+#[tokio::test]
+async fn hover_on_a_notation_target_name_shows_its_signature() {
+    let src = concat!(
+        "def myop (a b : Prop) : Prop := a\n",
+        "infix:50 \" ⊗ \" => myop\n",
+        "theorem t (a b : Prop) (h : a ⊗ b) : a ⊗ b := h\n",
+    );
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "notation target hover diagnostics").await;
+    // `=> myop` 里那个名字（**声明行**，不是使用点）。
+    let at = src.find("=> myop").expect("target line exists") + "=> ".len();
+    let pos = lsp_pos(src, at);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(3)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("a notation target name must not be silent");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("记法的目标"),
+        "hover must say what this is: {:?}",
+        markup.value
+    );
+    assert!(
+        markup
+            .value
+            .contains("myop : (a : Prop) -> (b : Prop) -> Prop"),
+        "记法目标名必须给出原始签名（空前缀 ⇒ 只能靠编译期缓存副作用）：{:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
