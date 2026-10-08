@@ -46,7 +46,7 @@ use sokonanoda_front::compile::{
     DocumentReport, GoalBinder, HoverType, PreludeMode, ResolvedTarget,
 };
 use sokonanoda_front::project::cache as project_cache;
-use sokonanoda_front::query::{decl_name, QueryDoc};
+use sokonanoda_front::query::{decl_name, import_lines, QueryDoc};
 use sokonanoda_front::semantic::{semantic_tokens as front_semantic_tokens, SemanticKind};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
@@ -1630,6 +1630,13 @@ impl LanguageServer for Backend {
                 document_highlight_provider: Some(OneOf::Left(true)),
                 selection_range_provider: Some(SelectionRangeProviderCapability::Simple(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
+                // **`import lib.Set` 的模块名是可点链接**（用户 2026-10-08：「import 这一行的
+                // 代码增加跳转功能，打开对应的文件」；设计 `docs/design/import-links.md`）。
+                // target 在 `document_link` 里直接给 ⇒ **不需要 resolve** ✓（与 inlay hint 同款）。
+                document_link_provider: Some(DocumentLinkOptions {
+                    resolve_provider: Some(false),
+                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                }),
                 rename_provider: Some(OneOf::Right(RenameOptions {
                     prepare_provider: Some(true),
                     work_done_progress_options: WorkDoneProgressOptions::default(),
@@ -2008,6 +2015,44 @@ impl LanguageServer for Backend {
             }));
         }
         Ok(Some(out))
+    }
+
+    /// `textDocument/documentLink`：`import lib.Set` 的**模块名**是链接，点开就是
+    /// 被导入的那个文件（用户 2026-10-08：「import 这一行的代码增加跳转功能，打开
+    /// 对应的文件」；设计 `docs/design/import-links.md`）。
+    ///
+    /// 三条边界（都是**有意的**）：
+    ///  * 单文件 / 没有 `import` ⇒ `Some(vec![])` —— **空数组合法**，不是错误 ✗
+    ///    （LSP 语义：没有链接就是没有链接，报错会让编辑器弹面板）；
+    ///  * 解析不到的模块（`import-not-found`）⇒ **不给链接** ✗ —— 点开一个不存在的
+    ///    文件比"点不动"更糟，而诊断已经在说原因 ✓；
+    ///  * 扫描的是 `latest_text()`（**用户缓冲区**那份 ✓，与语义 token 同一条纪律）：
+    ///    `import` 是**纯词法**的，打字中也要答得对 ⇒ 走 `front::query::import_lines`
+    ///    （唯一实现 = 闭包加载器那份 ✓，不重跑内核）。
+    async fn document_link(&self, params: DocumentLinkParams) -> Result<Option<Vec<DocumentLink>>> {
+        let request_uri = params.text_document.uri;
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus(&request_uri);
+        let text = docs.latest_text().to_string();
+        let mut links = Vec::new();
+        for (module, span) in import_lines(&text) {
+            // 模块名 → 绝对路径由真相层回答（闭包模块表）；答不出 ⇒ 不给死链 ✗。
+            let Some(path) = docs.query().module_path(&module) else {
+                continue;
+            };
+            let Ok(target) = Url::from_file_path(&path) else {
+                continue;
+            };
+            links.push(DocumentLink {
+                // `import` 行只有 ASCII 前导（`import` + 空白）⇒ `range_of`（按 char 计列）
+                // 与 LSP 的 UTF-16 口径在这里**必然一致** ✓，不需要 `range_of_in`。
+                range: range_of(span),
+                target: Some(target),
+                tooltip: Some(format!("打开模块 {module}")),
+                data: None,
+            });
+        }
+        Ok(Some(links))
     }
 
     async fn goto_definition(

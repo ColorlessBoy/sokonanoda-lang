@@ -148,6 +148,17 @@ pub(crate) async fn handshake(service: &mut LspService<Backend>) {
         Some(OneOf::Left(true)),
         "document highlight must be advertised"
     );
+    // **`import` 行的模块名是可点链接**（用户 2026-10-08）：没有这条能力声明，
+    // 客户端**根本不会问** `textDocument/documentLink` ⇒ 链接永远不出现 ✗
+    //（`vscode-languageclient` 只在服务端声明了 provider 时才注册它 ✓）。
+    assert_eq!(
+        caps.document_link_provider,
+        Some(DocumentLinkOptions {
+            resolve_provider: Some(false),
+            work_done_progress_options: WorkDoneProgressOptions::default(),
+        }),
+        "documentLink must be advertised (`import lib.Set` 的模块名可点)"
+    );
 }
 
 /// `initialize` 带会话根（I16 P5：项目模式要它来定位模块根）。

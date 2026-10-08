@@ -114,6 +114,99 @@ async fn definition_jumps_into_the_imported_module() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// **`import` 行的模块名是可点链接**（用户 2026-10-08：「import 这一行的代码增加
+/// 跳转功能，打开对应的文件」；设计 `docs/design/import-links.md`）。
+///
+/// 判据绑**用户动作的后果** ✓：`textDocument/documentLink` 的 `target` 必须是**被导入
+/// 模块的文件**，`range` 必须**正好盖住模块名**（盖整行 ⇒ 点注释也跳 ✗）。
+#[tokio::test]
+async fn import_lines_are_document_links_to_the_module_file() {
+    let dir = tmp_dir("links");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    let canvas = write(&dir, "Canvas.sokonanoda", CANVAS);
+    testutil::did_open_at(&mut service, &canvas, CANVAS).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &canvas, "canvas diagnostics").await;
+
+    let req = RpcRequest::build("textDocument/documentLink")
+        .params(serde_json::json!({ "textDocument": {"uri": canvas} }))
+        .id(2)
+        .finish();
+    let result = testutil::call(&mut service, req)
+        .await
+        .expect("documentLink answers");
+    let links: Vec<DocumentLink> = serde_json::from_value(result).expect("a DocumentLink array");
+    assert_eq!(links.len(), 1, "夹具只有一条 `import Logic`：{links:?}");
+    assert_eq!(
+        links[0].target.as_ref(),
+        Some(&logic),
+        "链接必须指向**被导入模块的文件**（用户要的「打开对应的文件」）"
+    );
+    // `import Logic`：`Logic` 在第 0 行第 7..12 列（0-based）——**正好盖住模块名** ✓。
+    assert_eq!(links[0].range.start.line, 0);
+    assert_eq!(links[0].range.start.character, 7);
+    assert_eq!(links[0].range.end.line, 0);
+    assert_eq!(links[0].range.end.character, 12);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// 反向判据（**这条才是"咬得住"的那半** ✓）：
+///  * 单文件（没有 `import`）⇒ **空数组**（不是 `None`、更不是错误 ✗）；
+///  * `import-not-found`（模块不在闭包里）⇒ **不给死链** ✗（诊断已经在说原因 ✓）。
+#[tokio::test]
+async fn document_links_are_empty_without_imports_and_skip_missing_modules() {
+    // ① 单文件：没有 import。
+    let dir = tmp_dir("links-none");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, _socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+    let solo = "theorem t (a : Prop) : a -> a := fun (h : a) => h\n";
+    let solo_uri = write(&dir, "Solo.sokonanoda", solo);
+    testutil::did_open_at(&mut service, &solo_uri, solo).await;
+    let req = RpcRequest::build("textDocument/documentLink")
+        .params(serde_json::json!({ "textDocument": {"uri": solo_uri} }))
+        .id(2)
+        .finish();
+    let result = testutil::call(&mut service, req)
+        .await
+        .expect("documentLink answers");
+    let links: Vec<DocumentLink> = serde_json::from_value(result).expect("a DocumentLink array");
+    assert!(links.is_empty(), "单文件必须答空数组：{links:?}");
+
+    // ② 缺失模块：`import Logic` 但磁盘上没有 Logic ⇒ 不许给链接（死链 ✗）。
+    let dir = tmp_dir("links-missing");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+    let canvas = write(&dir, "Canvas.sokonanoda", CANVAS);
+    testutil::did_open_at(&mut service, &canvas, CANVAS).await;
+    let diags = testutil::wait_diagnostics_for(&mut socket, &canvas, "missing import").await;
+    assert!(
+        diags
+            .diagnostics
+            .iter()
+            .any(|diag| testutil::code_of(diag) == "import-not-found"),
+        "前提：这条 import 确实是缺失的（否则本条判据空转 ✗）：{:?}",
+        diags.diagnostics
+    );
+    let req = RpcRequest::build("textDocument/documentLink")
+        .params(serde_json::json!({ "textDocument": {"uri": canvas} }))
+        .id(2)
+        .finish();
+    let result = testutil::call(&mut service, req)
+        .await
+        .expect("documentLink answers");
+    let links: Vec<DocumentLink> = serde_json::from_value(result).expect("a DocumentLink array");
+    assert!(
+        links.is_empty(),
+        "缺失的模块不许给死链（点开一个不存在的文件比点不动更糟 ✗）：{links:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 #[tokio::test]
 async fn definition_stays_in_the_entry_for_local_names() {
     let dir = tmp_dir("local");

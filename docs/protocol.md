@@ -541,6 +541,16 @@ new process is the new version" into a verifiable fact.
 
 ## Rename, references & inlay hints (LSP 3.17)
 
+- `textDocument/documentLink` — one link per `import <module>` line whose module
+  **resolves in the closure**: the range covers the **module name** only
+  (`lib.Set` in `import lib.Set`), the target is the module file's URI
+  (absolute; the module table owns the path, never re-derived here), the
+  tooltip says `打开模块 <module>`. Empty array (not an error) for a
+  single-file document; an `import-not-found` module gets **no** link
+  (a dead link is worse than a link-less line — the diagnostic already
+  explains). Scans `latest_text()`, so it is correct while typing.
+  Design: `docs/design/import-links.md`; judged by
+  `crates/lsp/src/tests/project.rs::import_lines_are_document_links_to_the_module_file`.
 - `textDocument/prepareRename` — resolves the target at the cursor
   (binder or declaration); returns `{range, placeholder}` covering the
   **name token** only; unresolved (prelude names, anonymous `example`)

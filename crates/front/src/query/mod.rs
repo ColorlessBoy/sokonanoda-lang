@@ -1606,6 +1606,23 @@ pub fn decl_name(d: &DeclState) -> String {
     }
 }
 
+/// 文件里的 `import` 行：`(模块名, 覆盖**模块名**的 span)`，按书写顺序、按名字去重。
+///
+/// **薄出口，唯一实现** ✓：真正的扫描是词法层的 [`crate::token::scan_import_lines`]
+/// —— 项目闭包加载器用的就是它（`project/graph.rs`，见那里的注释：它必须在**解析
+/// 模块之前**拿到 `import` 边）⇒ 这里不重算、不重跑内核、不产生第二份真相 ✓。
+///
+/// **为什么收 `text` 参数、而不是读 [`QueryDoc`] 里的文本**：`import` 链接要在
+/// **打字中**就对（LSP 传 `latest_text()`，比"上一次编译用的"那份新 ✓）；
+/// 也正因为是词法级，**语法错的时候它照样答得出来** —— 走 AST 会在入口用了
+/// 库记法、用户正打字时报 `notation-unknown-symbol`，链接整片消失 ✗。
+///
+/// 用途：LSP `textDocument/documentLink`（设计 `docs/design/import-links.md`）。
+/// **判定永不使用它**（判定只认 kernel，与 `scan_import_lines` 同一条纪律 ✓）。
+pub fn import_lines(text: &str) -> Vec<(String, Span)> {
+    crate::token::scan_import_lines(text)
+}
+
 /// 声明状态的稳定文本（协议 wire 用的就是它）。
 pub fn status_str(status: DeclStatus) -> &'static str {
     match status {

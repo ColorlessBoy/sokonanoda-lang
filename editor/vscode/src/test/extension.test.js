@@ -923,6 +923,48 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     // **不是**"在 Infoview 里点 `∈` 能跳" ✗。
   });
 
+  test("import 行的模块名是链接，指向被导入的文件（documentLink）", async () => {
+    // **2026-10-08 用户**：「import 这一行的代码增加跳转功能，打开对应的文件」。
+    //
+    // 判据绑**用户动作的后果** ✓（AGENTS.md 验证设计纪律第 0 条 (a)）：服务端的
+    // payload 由 LSP 单测钉（`crates/lsp/src/tests/project.rs` ✓），这里在**真 VS Code**
+    // 里问 `vscode.executeLinkProvider` —— **编辑器渲染 documentLink 用的就是它** ⇒
+    // 数据对了 ≠ 用户看见了，这一条才是"看得见"的那层 ✓。
+    const uris = await writeProject("import-links", {
+      "Logic.sokonanoda": "axiom And : Prop -> Prop -> Prop\n",
+      "Entry.sokonanoda":
+        "import Logic\n\ntheorem t (a b : Prop) : And a b -> And a b := fun (h : And a b) => h\n",
+    });
+    const entry = uris["Entry.sokonanoda"];
+    await showDoc(entry);
+    const doc = await vscode.workspace.openTextDocument(entry);
+    const text = doc.getText();
+    const offset = text.indexOf("Logic");
+    assert.ok(offset >= 0, "夹具前提：入口第一行是 `import Logic`");
+    const before = text.slice(0, offset);
+    const line = before.split("\n").length - 1;
+    const character = (before.split("\n").pop() || "").length;
+
+    const links = await requestUntil(
+      "documentLink：import 行的模块名",
+      () => vscode.commands.executeCommand("vscode.executeLinkProvider", entry),
+      (result) => Array.isArray(result) && result.length > 0,
+    );
+    const targets = links.map((link) => String(link.target?.fsPath ?? link.target ?? ""));
+    assert.ok(
+      targets.some((target) => target.endsWith("Logic.sokonanoda")),
+      `链接必须指向**被导入的文件**：${JSON.stringify(targets)}`,
+    );
+    const link = links.find((l) => String(l.target?.fsPath ?? "").endsWith("Logic.sokonanoda"));
+    assert.strictEqual(link.range.start.line, line, "range 必须落在 `import` 那一行");
+    assert.strictEqual(link.range.start.character, character, "range 起点 = 模块名起点");
+    assert.strictEqual(
+      link.range.end.character,
+      character + "Logic".length,
+      "range 终点 = 模块名终点（盖整行会让点注释也跳 ✗）",
+    );
+  });
+
   test("doctor command returns a read-only source + version report", async () => {
     // 冒烟（docs/design/extension-server-policy.md §5 集成层）：doctor 命令可
     // 执行，返回报告文本且包含来源（source=）与版本行；只读、绝不抛。

@@ -50,7 +50,7 @@
 ## 设计记录（`docs/design/`）
 
 已确认并落地的设计（含取舍、验收、as-built）。**2026-09-30 激进删档后只剩 17 篇**
-（2026-10-01 补回 `notation-input.md` ⇒ 18 篇）
+（2026-10-01 补回 `notation-input.md` · 2026-10-08 新增 `import-links.md` ⇒ **19 篇**）
 —— 判据 = ① 被 `AGENTS.md` / `REQUIREMENTS.md` 硬规则点名；② 被**代码/契约测试**读或断言
 （`crates/cli/tests/{dsh,extension,st1_boundary}.rs`、`scripts/plan.py`）；③ 仍是**未收口**那条线的
 唯一权威。其余（已收口 / 已否决 / 过程记录）**已删**，原文 ⇒ `git log --all -- docs/design/<文件>` ✓。
@@ -74,6 +74,7 @@
 - `project-artifacts.md` — 项目闭包编译产物落盘（`<模块根>/.sokonanoda/compiled/`）
 - `redundant-sorry.md` — 值位里多余的 `sorry` 判据（终审 = kernel）
 - `rename-inlay.md` — rename / find-references / inlay hints / `sokonanoda lsp`
+- `import-links.md` — `import` 行的**模块名可点**（`textDocument/documentLink` → 模块文件；契约 + 三条边界 + 判据）
 - `kernel-taxonomy.md` — 内核错误分类学 + 失败建议 + 基准 / fuzz 基建
 - **`site-single-page.md`** — **官网（GitHub Pages）当前权威**：单页站点 + 三条防漂移机制；
   验收 `python3 scripts/check-site.py`（10 项，exit 0 才算过）
