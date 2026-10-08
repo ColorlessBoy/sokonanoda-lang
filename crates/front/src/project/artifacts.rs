@@ -735,4 +735,63 @@ mod tests {
         );
         let _ = std::fs::remove_dir_all(&root);
     }
+
+    /// **T1-B 批 3 · 并发取证**：**多个写者同时写同一个键** ⇒ 读者**永远不会**
+    /// 看到"半份/混合"的载荷 —— 只可能读到**某一位写者的完整那份**，或者（凭据与载荷
+    /// 恰好来自不同写者时）**当不存在** ✓。
+    ///
+    /// 为什么这条就够了（而不是"必须串行化写"）：产物是**内容寻址**的 —— 同一个键
+    /// 在正常使用里对应**同一份内容**（键由输入算出 ✓）⇒ 交错是良性的；真出问题只会是
+    /// "读到半份" ⇒ 那正是本用例钉死的东西 ✓。
+    ///
+    /// 三条机制一起给这个性质：① 载荷 `rename` **原子** ✓；② **凭据最后写** ✓；
+    /// ③ 完整性三道（摘要不符 ⇒ miss ✓）。
+    #[test]
+    fn concurrent_writers_never_produce_a_torn_payload() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
+
+        let root = temp_root("concurrent");
+        // 四位写者，载荷长度**刻意不同**（半份/拼接最容易在这里露头 ✓）。
+        let payloads: Vec<String> = (0..4)
+            .map(|i| format!("{}{}", "x".repeat(1000 + i * 777), i))
+            .collect();
+        let stop = Arc::new(AtomicBool::new(false));
+        let mut handles = Vec::new();
+        for p in payloads.clone() {
+            let root = root.clone();
+            let stop = Arc::clone(&stop);
+            handles.push(std::thread::spawn(move || {
+                while !stop.load(Ordering::Relaxed) {
+                    // 写失败不算错（并发下 `rename` 竞争 ✓），只是这一轮不写。
+                    let _ = write(&root, KEY, &p, &options());
+                }
+            }));
+        }
+        // 读侧：任何一次"读到了"的东西都必须是**某一份完整载荷** ✓。
+        let mut reads = 0usize;
+        for _ in 0..4000 {
+            if let Some(got) = read(&root, KEY, &options()) {
+                assert!(
+                    payloads.contains(&got),
+                    "读到了**不完整/混合**的载荷（长度 {}）⇒ 原子性与完整性三道都没拦住 ✗",
+                    got.len()
+                );
+                reads += 1;
+            }
+        }
+        stop.store(true, Ordering::Relaxed);
+        for h in handles {
+            h.join().expect("writer thread");
+        }
+        assert!(
+            reads > 0,
+            "整段并发里一次都没读到 ⇒ 用例没打在判据生效点上（空转 ✗）"
+        );
+        // 收尾也要么是某一份完整的、要么不存在 ✓。
+        if let Some(last) = read(&root, KEY, &options()) {
+            assert!(payloads.contains(&last), "收尾读到了混合载荷 ✗");
+        }
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }

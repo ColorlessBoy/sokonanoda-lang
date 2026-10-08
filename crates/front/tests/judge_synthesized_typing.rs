@@ -50,6 +50,19 @@ fn synthesized_passes_are_measured_on_real_typing() {
         eprintln!("跳过：找不到课程单元（课程仓可分开检出）");
         return;
     };
+    // **T1-B 批 2/3 的副作用（2026-10-09 · 平行线）**：模块根一旦有**磁盘产物**，
+    // `QueryDoc` 的"冷开"就会**从产物装载库层**（那正是特性 ✓：`import` 不再 elaborate）
+    // ⇒ 本文件的**夹具自检**"冷开必须真的跑合成趟"会读到 **0 趟** ✗。
+    // ⇒ 冷开前先把该模块根的产物清掉 —— `.sokonanoda/` 是**自忽略的缓存目录** ✓，
+    // 清它是本用例的**准备动作**（要的是"真的冷"），不是断言 ✗。
+    // ⚠ 这条纪律对**所有**断言"冷开 = 全 elaborate"的用例都成立：先清产物再冷开 ✓。
+    let module_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("courses")
+        .join("set-theory");
+    let _ = sokonanoda_front::project::cache::clean_at(&module_root);
+
     let text = std::fs::read_to_string(&entry).expect("read unit08");
     assert!(
         text.contains("Set.mem_image α β f A y") && text.contains("demo_mem_image"),
