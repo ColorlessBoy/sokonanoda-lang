@@ -1583,3 +1583,38 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   gotchas ✓（**先读后动** ✗，本轮不动手）。
 * **判据（落地时）**：① `typing` 臂 `tc` **4225 → ≈113** 量级；② 墙钟 ≈ 固定底；
   ③ 全课程 `--json` 逐字节不变 ✓；④ `typing_equal_length`/`trailing_comment` **不许变慢** ✓。
+
+### 21. 第 29 轮：**先读后动** —— `with_tc` 的每调用状态与"为什么不能天真复用"（为下一棒铺路）
+
+* **读 `kernel/src/util.rs:696-716`（本轮的成果）**：`with_tc(limit, f)` = `with_ctx(...)` 里**每次**
+  新建一整套：
+
+  | 每调用新建 | 说明 |
+  |---|---|
+  | `Arena::new()` + `with_scope` | 每个 tc 一份**新 arena 作用域** ✗ |
+  | `bumpalo::Bump::new()` | 每份新 bump ✗ |
+  | **`TcCache::new(&bump)`** | **就是那 20 张表 + 4MiB 预分配**（§20 量到的 9.2µs/次 ✓）✗ |
+  | `TypeChecker::new(ctx, &env, bump, None, cache)` | 每调用一个 checker ✗ |
+
+  而 `TcCtx` 里**长期持有的**（属于 `Source`，不每次新建 ✓）：`export_file` · `dag` ·
+  `expr_cache` · `sig_cache`/`sig_computing` ✓ ⇒ **可复用与不可复用的边界很清楚** ✓。
+* **为什么不能天真地"把 TcCache 提出来复用"** ✗：`TcCache<'t,'t>` 借 **bump**，bump 借
+  **arena scope**，scope 的生命周期**活不出 `with_ctx` 的闭包** ✗ ⇒ 想复用就得解决
+  **自引用 + 生命周期**（要么把 `TcCache` 改成**不含 arena 借用**的形状、要么走"**泄漏一份
+  `'static` bump**"那条路 ✓ —— front 已有先例：`Box::leak` + `MAX_LEAKED_LIB_ARENAS = 8` 的
+  库层 arena 池 ✓）。
+* **`docs/architecture.md` §8 第 1 条给了硬边**（读到了 ✓）：*"`EnvBuilder`/`ExportFile`/`ExprPtr`
+  都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；……Session 每次 update 都开
+  新 arena —— **跨 update 只复用渲染后的快照，不复用内核对象**"*
+  ⇒ **跨 update 复用 `TcCache` 是明确禁止的** ✗；**可以**做的只有**同一次 update / 同一趟 pass 内**
+  的复用（那时 arena 本来就在 `compile_fol` 的作用域里活着 ✓）⇒ 候选设计 **1（按趟复用）** 是
+  **唯一合规**的那条 ✓，候选 2（泄漏池）要额外论证它不违反"跨 update 不复用内核对象" ✗。
+* **两条候选设计（下一棒二选一，都还未开工）**：
+  1. **按趟复用**（推荐先试）：在 pass 作用域里建**一次** `Bump+T cCache`，把引用**沿调用链**
+     传到 `elab_*`/`judge_*`（签名要扩 ✗，但改动是**显式**的、无 `unsafe` ✓）；
+  2. **池化 + 泄漏**：线程局部池（`Box::leak`，仿 front 的 arena 池 ✓），每次 `with_tc` 从池里
+     取一份 `reset` 过的；**代价是有界泄漏**（要像 front 那样给上限 ✓）。
+* **红线与风险（写死）**：① 它落在**内核相位**（`AGENTS.md` §8：arena 生命周期 · `quiet_catch`
+  **不可嵌套** ✗）⇒ 改完必须跑**全课程 `--json` 逐字节** ✓；② 判据四条沿用 §20
+  （`tc` 4225→≈113 量级 / 墙钟≈固定底 / `--json` 逐字节 / 另两臂不许变慢）✓；
+  ③ **不许**为了复用改变判定语义（`TcCache` 只影响**性能**，不许影响结果 ✓）。
