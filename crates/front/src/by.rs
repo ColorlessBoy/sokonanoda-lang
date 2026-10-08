@@ -683,7 +683,7 @@ enum ApplyArg {
     SubGoal(usize),
 }
 
-struct GoalNode {
+pub(crate) struct GoalNode {
     ty: Expr,
     intros: Vec<Binder>,
     parent: Option<usize>,
@@ -1214,6 +1214,7 @@ pub(crate) fn run_by<'a>(
     // 代价：判定全绿的解答只走一遍前缀（原来每步一遍）；判定真的失败时多跑一趟，
     // 而失败通常发生在块的前几步，严格重跑也随之很短。
     let scope = begin_batch();
+    let mut marks: Vec<(usize, usize)> = Vec::new();
     let optimistic = run_by_inner(
         ty,
         by,
@@ -1226,15 +1227,16 @@ pub(crate) fn run_by<'a>(
         defs,
         ctx,
         crate::compile::elab::InplaceEnv::reborrow(&mut env),
+        // 乐观趟：整段按乐观通道跑（`strict_from = None` ✓）
+        None,
+        &mut marks,
     );
-    let all_match = flush_batch(scope);
-    match optimistic {
-        // 判定全绿 ⇒ 这一趟就是严格趟（控制流相同），直接采信。
-        Ok(outcome) if all_match => Ok(outcome),
-        // 判定全绿但别处出错 ⇒ 这个错是真的，不必重跑（**B1**：把已跑成功的步一起交还 ✓）。
-        Err(failure) if all_match => Err(failure),
-        // 有判定没通过 ⇒ 严格重跑，拿与改动前逐字相同的诊断。
-        _ => run_by_inner(
+    let first_bad = flush_batch(scope);
+    // 今天的路（"整段严格重跑"）：**它必须与改动前逐字相同** ⇒ 只在需要时走 ✓。
+    // 它的 marks 没人看（`strict_from = None` ⇒ 整段按当前通道）⇒ 丢进一个临时槽 ✓。
+    let mut marks_for_strict: Vec<(usize, usize)> = Vec::new();
+    let mut strict_from_zero = || {
+        run_by_inner(
             ty,
             by,
             initial_binders,
@@ -1246,7 +1248,52 @@ pub(crate) fn run_by<'a>(
             defs,
             ctx,
             crate::compile::elab::InplaceEnv::reborrow(&mut env),
-        ),
+            None,
+            &mut marks_for_strict,
+        )
+    };
+    match (optimistic, first_bad) {
+        // 判定全绿 ⇒ 这一趟就是严格趟（控制流相同），直接采信。
+        (Ok(outcome), None) => Ok(outcome),
+        // 判定全绿但别处出错 ⇒ 这个错是真的，不必重跑（**B1**：把已跑成功的步一起交还 ✓）。
+        (Err(failure), None) => Err(failure),
+        // **B3（2026-10-08）**：有判定没通过 ⇒ **不必整段严格重放** ✗ ——
+        // 首个非 `Match` 的判定属于**哪条 tactic**（`marks` 给的边界），
+        // **从那条起**严格跑；它前面那几条的判定**已证明全是 `Match`** ⇒
+        // 用**乐观通道重放**（不判、零文档走查 ✓）就够重建同一点的状态 ✓。
+        //
+        // 等价性：严格趟跑到第 `owner` 条时的状态 = 乐观重放到第 `owner` 条时的状态
+        // （前面的判定全是 `Match` ⇒ 两条路控制流逐字相同 ✓）⇒ 尾巴用严格通道
+        // ⇒ 诊断/文案/位置与"整段严格重跑"逐字相同 ✓（判据：本文件的
+        // `a_failed_by_block_pays_one_batch_plus_one_resume` 与全课程 `--json` ✓）。
+        (_optimistic, Some(bad_item)) => {
+            // 乐观趟成功但判定翻车 ⇒ 它**不可信**；乐观趟失败 ⇒ owner ≤ 失败点 ✓
+            // ⇒ 两种情况都"从 owner 起重跑"✓（`marks` 是出参 ⇒ 两种都有 ✓）。
+            let owner = marks
+                .iter()
+                .rev()
+                .find(|(_, len)| *len <= bad_item)
+                .map(|(index, _)| *index);
+            match owner {
+                Some(k) => run_by_inner(
+                    ty,
+                    by,
+                    initial_binders,
+                    universe,
+                    prefix_src,
+                    options,
+                    canonical_goal,
+                    inductives,
+                    defs,
+                    ctx,
+                    crate::compile::elab::InplaceEnv::reborrow(&mut env),
+                    Some(k),
+                    &mut marks_for_strict,
+                ),
+                // 拿不到边界（批次里一条判定都没有？）⇒ 退回今天的整段重跑 ✓。
+                None => strict_from_zero(),
+            }
+        }
     }
 }
 
@@ -1267,6 +1314,15 @@ fn run_by_inner<'a>(
     defs: &DefTable,
     ctx: &crate::compile::elab::ElabCtx<'a, '_>,
     mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
+    // **B3（2026-10-08）**：`Some(k)` ⇒ **前 `k` 条用乐观通道重放**（它们的判定已由
+    // 第一次 flush 证明**全是 `Match`** ⇒ 重放**不判**、零文档走查 ✓），然后**从第 k 条
+    // 起严格跑** ✓ —— 这就是"从失败步续跑"，不必把整段再严格重放一遍 ✗。
+    // `None` ⇒ 今天那条路（整段按当前通道跑 ✓）。
+    strict_from: Option<usize>,
+    // **B3**：顶层每条 tactic **开跑前**的批边界 `(tactic 下标, 当时的批长)`。
+    // 出参（而不是塞进 `ByFailure`）：**乐观趟成功**时调用方也要用它 ✓
+    // （"乐观趟成功但有判定翻车"正是 B3 的主战场 ✓）。
+    marks_out: &mut Vec<(usize, usize)>,
 ) -> Result<ByOutcome, ByFailure> {
     let Expr::By {
         tactics,
@@ -1283,7 +1339,7 @@ fn run_by_inner<'a>(
                 "internal: declared binders do not match the declaration type",
                 span,
             ),
-            // 还没跑任何一条 ⇒ 空 ✓
+            // 还没跑任何一条 ⇒ 空 ✓（B3 的续跑边界也无从谈起 ⇒ 调用方退回整段重跑 ✓）
             steps: Vec::new(),
         }
     })?;
@@ -1324,11 +1380,42 @@ fn run_by_inner<'a>(
     });
     worklist.push(0);
 
+    // **B3**：乐观重放前 `k` 条（批次**直接丢弃** —— 不判 ✓），再严格跑尾巴。
+    if let Some(k) = strict_from {
+        let head = &tactics[..k.min(tactics.len())];
+        if !head.is_empty() {
+            let scope = crate::judge::begin_batch();
+            let replayed = run_tactics(
+                head,
+                &mut nodes,
+                &mut worklist,
+                &mut steps,
+                None,
+                universe,
+                prefix_src,
+                options,
+                inductives,
+                defs,
+                ctx,
+                crate::compile::elab::InplaceEnv::reborrow(&mut env),
+            );
+            drop(scope); // 丢弃批次：这批判定**已知全 Match**（调用方的 flush 证明过 ✓）
+            if let Err(error) = replayed {
+                // 重放里失败 ⇒ 与严格趟同点失败（判定全 Match ⇒ 控制流相同 ✓）
+                return Err(ByFailure { error, steps });
+            }
+        }
+    }
+    let tail: &[Tactic] = match strict_from {
+        Some(k) => &tactics[k.min(tactics.len())..],
+        None => tactics,
+    };
     if let Err(error) = run_tactics(
-        tactics,
+        tail,
         &mut nodes,
         &mut worklist,
         &mut steps,
+        Some(marks_out),
         universe,
         prefix_src,
         options,
@@ -1338,6 +1425,7 @@ fn run_by_inner<'a>(
         env,
     ) {
         // **B1**：`?` 会把已累积的 `steps` 整份丢掉 ✗ ⇒ 显式交还（失败那条不在里面 ✓）。
+        // **B3**：连**引擎状态**（节点图/待解队列）与**批边界**一起交还 ⇒ 严格续跑 ✓。
         return Err(ByFailure { error, steps });
     }
     let expr = assemble(&nodes, 0, hole_span(tactics, *by_span));
@@ -1351,6 +1439,10 @@ fn run_tactics<'a>(
     nodes: &mut Vec<GoalNode>,
     worklist: &mut Vec<usize>,
     steps: &mut Vec<ByStep>,
+    // **B3**：顶层调用传 `Some` ⇒ 每条 tactic **开跑前**记一格
+    // `(tactic 下标, 当时的批长)`；**嵌套**调用（`have := by …` / `cases … with`）
+    // 传 `None` —— 它们记录的判定属于**外层那条 tactic** ✓。
+    mut marks: Option<&mut Vec<(usize, usize)>>,
     universe: &[String],
     prefix_src: &str,
     options: &CompileOptions,
@@ -1359,7 +1451,10 @@ fn run_tactics<'a>(
     ctx: &crate::compile::elab::ElabCtx<'a, '_>,
     mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
 ) -> Result<(), CompileError> {
-    for tactic in tactics {
+    for (index, tactic) in tactics.iter().enumerate() {
+        if let Some(marks) = marks.as_deref_mut() {
+            marks.push((index, crate::judge::batch_len()));
+        }
         // 当前要解的目标 = worklist 末尾。
         let cur = *worklist
             .last()
@@ -1500,6 +1595,8 @@ fn run_tactics<'a>(
                             nodes,
                             worklist,
                             steps,
+                            // **B3**：嵌套（`have := by …`）⇒ 不记边界（判定属于外层 ✓）
+                            None,
                             universe,
                             prefix_src,
                             options,
@@ -2455,6 +2552,8 @@ fn cases_tactic<'a>(
             nodes,
             worklist,
             steps,
+            // **B3**：嵌套（`cases … with` 的臂）⇒ 不记边界（判定属于外层 ✓）
+            None,
             universe,
             prefix_src,
             options,

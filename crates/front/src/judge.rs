@@ -2075,19 +2075,28 @@ impl Drop for BatchScope {
     }
 }
 
-/// 把一批记录判掉，返回**是否全部 `Match`**。
+/// **B3（2026-10-08）**：当前批次的**条数** —— 顶层 tactic 用它记边界
+/// （`by.rs` 的 `marks`：每条 tactic **开跑前**记一格 `(下标, 批长)` ✓）。
+pub(crate) fn batch_len() -> usize {
+    BATCH.with(|b| b.borrow().as_ref().map_or(0, |items| items.len()))
+}
+
+/// 把一批记录判掉，返回**首个非 `Match` 的下标**（`None` = 全 `Match`）。
 ///
-/// 返回 `bool` 而不是逐条结论：非 `Match` 的处置一律是"丢掉乐观结果、严格
-/// 重跑"，所以这里只要知道有没有翻车。
-pub(crate) fn flush_batch(scope: BatchScope) -> bool {
+/// **B3 起返回值从 `bool` 变成 `Option<usize>`**：调用方（`by::run_by`）需要知道
+/// "第一个翻车的是哪一条" —— 如果它属于**失败的那条 tactic**，前几条在两条路下
+/// 控制流相同（判定全是 `Match` ✓）⇒ 可以**从失败点续跑**，不必整段重放 ✓；
+/// 若它属于**更早**的 tactic，严格路会在那里就失败 ⇒ 续跑会给出不同诊断 ✗
+/// ⇒ 调用方退回"整段严格重跑"（今天那条路）✓。
+pub(crate) fn flush_batch(scope: BatchScope) -> Option<usize> {
     let items = scope.take();
     drop(scope);
     if items.is_empty() {
-        return true;
+        return None;
     }
     // 一批里的 `(前缀, 选项)` 恒相同（同一个 `by` 块），但按 key 分组更稳：
     // 分组键变了就分开判，绝不把不同前缀的判定混进同一份文档。
-    let mut all_match = true;
+    let mut first_bad: Option<usize> = None;
     let mut start = 0usize;
     while start < items.len() {
         let key = (
@@ -2116,12 +2125,17 @@ pub(crate) fn flush_batch(scope: BatchScope) -> bool {
             &items[start].options,
             &pairs,
         );
-        if !judgements.iter().all(|j| matches!(j, Judgement::Match)) {
-            all_match = false;
+        if first_bad.is_none() {
+            if let Some(offset) = judgements
+                .iter()
+                .position(|j| !matches!(j, Judgement::Match))
+            {
+                first_bad = Some(start + offset);
+            }
         }
         start = end;
     }
-    all_match
+    first_bad
 }
 
 /// **一个项的类型文本**（不合成 lambda、不剥 binder）：合成 `#check <term>`
@@ -3670,6 +3684,72 @@ mod tests {
         assert!(
             strict_passes >= 3,
             "关掉批处理应当逐条判（≥3 遍），实际 {strict_passes} 遍"
+        );
+
+        // ── **B3（2026-10-08）**：**失败**的 `by` 块只付"1 次乐观批 + 1 次续跑"，
+        // **不随出错位置增长**（以前是 1 + N：严格趟从第 0 条重放 ✗）。
+        //
+        // ⚠ **为什么并进这一条测试**（而不是另开一条）：`set_batching` 与
+        // `pass_count` 是**进程级**的，同一文件的多个 `#[test]` 并行跑会互相抢
+        // ⇒ 间歇假红 ✗（2026-09-30 的事故同形，`scripts/check-test-env-isolation.py`
+        // 就是为它立的）。同一个全局开关**只能有一个测试碰** ✓。
+        //
+        // 判据（缺一不算）：① 走查数 = **2**，且第 1 条错与第 3 条错**相等**；
+        // ② **诊断与整段严格重跑逐字相同**（判定红线：续跑不许改变答案 ✓）。
+        //
+        // 夹具要"前面的 tactic 一定成功、且不动目标"⇒ 用两条 `have`（只往上下文加
+        // 东西 ✓），最后一条 `exact h1` 对目标 `A ∧ B` 必然不匹配 ⇒ 失败位置 = 第 `bad` 条 ✓
+        // （实测：用 `apply And.intro` 那类**会动目标**的 tactic 会把失败位置挪到第 2 条 ✗）。
+        let block = |bad: usize| {
+            let steps = ["have a : A := h1", "have b : B := h2", "exact h1"];
+            let mut body = String::new();
+            for (i, step) in steps.iter().enumerate() {
+                if i + 1 == bad {
+                    body.push_str("  exact h1\n");
+                } else {
+                    body.push_str(&format!("  {step}\n"));
+                }
+            }
+            format!("theorem t (A B : Prop) (h1 : A) (h2 : B) : A \u{2227} B := by\n{body}")
+        };
+        let passes_for = |bad: usize, batching: bool| -> (usize, Vec<String>) {
+            let file = parse(&block(bad)).expect("parse");
+            let previous = set_batching(batching);
+            reset_pass_count();
+            let report = check_document(&file);
+            let passes = pass_count();
+            set_batching(previous);
+            let errors: Vec<String> = report
+                .errors
+                .iter()
+                .map(|e| format!("{}:{}", e.code(), e.message))
+                .collect();
+            (passes, errors)
+        };
+        let (fail_first, errors_first) = passes_for(1, true);
+        let (fail_last, errors_last) = passes_for(3, true);
+        let (_, strict_first) = passes_for(1, false);
+        let (_, strict_last) = passes_for(3, false);
+        assert_eq!(
+            errors_first, strict_first,
+            "第 1 条错：**续跑不许改变诊断**（判定红线）"
+        );
+        assert_eq!(
+            errors_last, strict_last,
+            "第 3 条错：**续跑不许改变诊断**（判定红线）"
+        );
+        assert!(
+            !errors_last.is_empty(),
+            "夹具前提：这一块必须真的失败（否则量的是成功路径）"
+        );
+        assert_eq!(
+            fail_last, 2,
+            "**B3 的正身**：第 3 条错 ⇒ 走查数该是 **2**（1 次乐观批 + 1 次续跑）；\
+             实测 {fail_last} ⇒ 严格趟又从头重放了 ✗"
+        );
+        assert_eq!(
+            fail_first, fail_last,
+            "**走查数不许随出错位置增长**（第 1 条错 {fail_first} vs 第 3 条错 {fail_last}）"
         );
     }
 
