@@ -32,13 +32,13 @@
 //! `natVal`/`strVal`）。**归纳块（`inductive`/`ctor`/`recursor`）下一版** ——
 //! 遇到就返回 `Err`（调用方**静默回退**到"本地重编"，不产生半个产物 ✓）。
 
-use crate::env::{Declar, DeclarInfo};
+use crate::env::{ConstructorData, Declar, DeclarInfo, InductiveData, RecursorData};
 use crate::expr::Expr;
 use crate::level::Level;
 use crate::name::Name;
 use crate::parser::{
-    BackRef, DefinitionSafety, ExportJsonObject, ExportJsonVal, ExporterMeta, FileMeta, FormatMeta,
-    LeanMeta, QuotKind,
+    BackRef, Constructor, DefinitionSafety, ExportJsonObject, ExportJsonVal, ExporterMeta, FileMeta,
+    FormatMeta, IndInfo, LeanMeta, QuotKind, Recursor, RecursorRule,
 };
 use crate::util::{ExportFile, ExprPtr, FxHashMap, LevelPtr, LevelsPtr, NamePtr};
 use std::borrow::Cow;
@@ -267,7 +267,134 @@ impl<'a> Writer<'a> {
     }
 
     fn collect(&mut self, file: &ExportFile<'a>) -> Result<(), String> {
-        for (_, declar) in file.declars.iter() {
+        // 归纳块在 `declars` 里是**连续**的一段（ind… · ctor… · rec…），区间记账在
+        // `mutual_block_sizes`（`begin/end_inductive_block` 填的，前端每个块都调 ✓）。
+        let all: Vec<&Declar<'a>> = file.declars.values().collect();
+        let mut handled = vec![false; all.len()];
+        for i in 0..all.len() {
+            if handled[i] {
+                continue;
+            }
+            match all[i] {
+                Declar::Inductive(ind) => {
+                    let (start, size) = *file
+                        .mutual_block_sizes
+                        .get(&ind.info.name)
+                        .ok_or_else(|| "归纳块缺少 `mutual_block_sizes` 记账".to_string())?;
+                    if start != i || size == 0 || start + size > all.len() {
+                        return Err("归纳块的记账区间不自洽".to_string());
+                    }
+                    for k in start..start + size {
+                        handled[k] = true;
+                    }
+                    self.inductive_block(&all[start..start + size])?;
+                }
+                other => self.single_declar(other)?,
+            }
+        }
+        Ok(())
+    }
+
+    /// 一个**归纳块** ⇒ **一行** `inductive`（读侧 `Inductive { … }` 就是这个形状 ✓）。
+    fn inductive_block(&mut self, slice: &[&Declar<'a>]) -> Result<(), String> {
+        let mut ind_vals = Vec::new();
+        let mut ctor_vals = Vec::new();
+        let mut rec_vals = Vec::new();
+        for d in slice {
+            match d {
+                Declar::Inductive(x) => ind_vals.push(self.ind_info(x)?),
+                Declar::Constructor(x) => ctor_vals.push(self.ctor_info(x)?),
+                Declar::Recursor(x) => rec_vals.push(self.rec_info(x)?),
+                _ => return Err("归纳块里混进了别的声明".to_string()),
+            }
+        }
+        if ind_vals.is_empty() {
+            return Err("归纳块里没有归纳类型".to_string());
+        }
+        self.decl_lines.push(line(
+            ExportJsonVal::Inductive {
+                ind_vals,
+                ctor_vals,
+                rec_vals,
+            },
+            None,
+        )?);
+        Ok(())
+    }
+
+    fn ind_info(&mut self, x: &InductiveData<'a>) -> Result<IndInfo, String> {
+        let all = x
+            .all_ind_names
+            .iter()
+            .map(|n| self.name(*n))
+            .collect::<Result<Vec<u32>, String>>()?;
+        let ctors = x
+            .all_ctor_names
+            .iter()
+            .map(|n| self.name(*n))
+            .collect::<Result<Vec<u32>, String>>()?;
+        Ok(IndInfo {
+            name: self.name(x.info.name)?,
+            uparams: self.uparams(&x.info)?,
+            ty: self.expr(x.info.ty)?,
+            all,
+            ctors,
+            is_rec: x.is_recursive,
+            // ⚠ 读侧**忽略**这一位（`IndInfo { .. , .. }` 里是 `..` ✓）⇒ 写 `false`
+            // 不会丢语义；但**必须写一个确定值**，否则往返不幂等 ✗。
+            is_reflexive: false,
+            num_indices: x.num_indices,
+            num_nested: u16::from(x.is_nested),
+            num_params: x.num_params,
+            is_unsafe: false,
+        })
+    }
+
+    fn ctor_info(&mut self, x: &ConstructorData<'a>) -> Result<Constructor, String> {
+        Ok(Constructor {
+            name: self.name(x.info.name)?,
+            uparams: self.uparams(&x.info)?,
+            ty: self.expr(x.info.ty)?,
+            is_unsafe: false,
+            cidx: x.ctor_idx,
+            num_params: x.num_params,
+            num_fields: x.num_fields,
+            induct: self.name(x.inductive_name)?,
+        })
+    }
+
+    fn rec_info(&mut self, x: &RecursorData<'a>) -> Result<Recursor, String> {
+        let mut rules = Vec::new();
+        for r in x.rec_rules.iter() {
+            rules.push(RecursorRule {
+                ctor: self.name(r.ctor_name)?,
+                nfields: r.ctor_telescope_size_wo_params,
+                rhs: self.expr(r.val)?,
+            });
+        }
+        let all = x
+            .all_inductives
+            .iter()
+            .map(|n| self.name(*n))
+            .collect::<Result<Vec<u32>, String>>()?;
+        Ok(Recursor {
+            name: self.name(x.info.name)?,
+            uparams: self.uparams(&x.info)?,
+            ty: self.expr(x.info.ty)?,
+            is_unsafe: false,
+            num_params: x.num_params,
+            num_indices: x.num_indices,
+            num_motives: x.num_motives,
+            num_minors: x.num_minors,
+            rules,
+            all,
+            k: x.is_k,
+        })
+    }
+
+    /// 非归纳声明 ⇒ 一行。
+    fn single_declar(&mut self, declar: &Declar<'a>) -> Result<(), String> {
+        {
             match declar {
                 Declar::Axiom { info } => {
                     let (n, us, ty) =
@@ -349,9 +476,9 @@ impl<'a> Writer<'a> {
                         None,
                     )?);
                 }
-                // **下一版**（ind/ctor/recursor）—— 返回 `Err` ⇒ 调用方回退"本地重编" ✓。
+                // 归纳块走 `inductive_block`（上面）⇒ 到这里说明记账坏了。
                 Declar::Inductive(_) | Declar::Constructor(_) | Declar::Recursor(_) => {
-                    return Err("归纳块（inductive/ctor/recursor）尚未支持：本版只写非归纳声明".to_string())
+                    return Err("归纳块没走成块路径（`mutual_block_sizes` 记账缺失）".to_string())
                 }
             }
         }

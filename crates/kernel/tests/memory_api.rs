@@ -360,6 +360,41 @@ fn collect_block_declars<'a>(env: &ExportFile<'a>, ind: &Declar<'a>) -> Vec<Decl
         .collect()
 }
 
+/// **T1-B 批 1 的归纳块往返判据**（2026-10-09）：一个**真的**归纳块（`inductive MyNat`
+/// + 两个构造子 + 显式消去子 + iota 规则）写出去、读回来、**再写一遍**必须
+/// **逐字节相同** ✓，且读回来的环境**过得了完整内核检查** ✓。
+///
+/// 为什么这条必须在**这里**（而不是 `writer.rs` 的单测里）：这个文件有
+/// `build_my_nat_block` —— 仓库里唯一一个"与教学前端完全同构"的显式归纳块构造器 ✓。
+/// 归纳块是 T1-B 最后一块没被 `writer.rs` 单测覆盖的形状（那里只有 axiom/thm/def）✓。
+#[test]
+fn my_nat_block_round_trips_through_ndjson() {
+    let arena = Arena::new();
+    let mut b = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    build_my_nat_block(&mut b, RuleArrangement::InOrder);
+    let file = b.finish();
+    let text = file.to_ndjson().expect("writer 必须能写这份归纳块");
+
+    let arena2 = Arena::new();
+    let (file2, skipped) = sokonanoda::parser::parse_export_mapped(
+        arena2.as_arena_ref(),
+        text.as_bytes(),
+        Config::default(),
+    )
+    .expect("写出来的文本必须能被读侧解析");
+    assert!(skipped.is_empty(), "不该有被跳过的声明：{skipped:?}");
+    assert_eq!(
+        file2.declars.len(),
+        file.declars.len(),
+        "往返必须一个声明都不少、也不多（归纳块是 ind+ctor+ctor+rec 四条）"
+    );
+    // ① 结构幂等：再写一遍，逐字节相同（含 `isRec`/`numNested`/`k`/iota 规则顺序）。
+    let text2 = file2.to_ndjson().expect("读回来的环境也要能写");
+    assert_eq!(text, text2, "归纳块往返必须**逐字节**幂等");
+    // ② 读回来的环境过得了**完整内核检查**（含 iota 规则顺序这一条既有判据）。
+    file2.check_all_declars();
+}
+
 #[test]
 fn rejects_iota_rules_out_of_constructor_order() {
     let arena = Arena::new();

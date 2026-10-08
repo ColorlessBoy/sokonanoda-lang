@@ -136,64 +136,64 @@ pub(crate) struct RecursorRule {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
 pub(crate) struct IndInfo {
-    name: u32,
+    pub(crate) name: u32,
     #[serde(rename = "levelParams")]
-    uparams: Vec<u32>,
+    pub(crate) uparams: Vec<u32>,
     #[serde(rename = "type")]
-    ty: u32,
-    all: Vec<u32>,
-    ctors: Vec<u32>,
+    pub(crate) ty: u32,
+    pub(crate) all: Vec<u32>,
+    pub(crate) ctors: Vec<u32>,
     #[serde(rename = "isRec")]
-    is_rec: bool,
+    pub(crate) is_rec: bool,
     #[serde(rename = "isReflexive")]
-    is_reflexive: bool,
+    pub(crate) is_reflexive: bool,
     #[serde(rename = "numIndices")]
-    num_indices: u16,
+    pub(crate) num_indices: u16,
     #[serde(rename = "numNested")]
-    num_nested: u16,
+    pub(crate) num_nested: u16,
     #[serde(rename = "numParams")]
-    num_params: u16,
+    pub(crate) num_params: u16,
     #[serde(rename = "isUnsafe")]
-    is_unsafe: bool
+    pub(crate) is_unsafe: bool
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
 pub(crate) struct Constructor {
-    name: u32,
+    pub(crate) name: u32,
     #[serde(rename = "levelParams")]
-    uparams: Vec<u32>,
+    pub(crate) uparams: Vec<u32>,
     #[serde(rename = "type")]
-    ty: u32,
+    pub(crate) ty: u32,
     #[serde(rename = "isUnsafe")]
-    is_unsafe: bool,
-    cidx: u16,
+    pub(crate) is_unsafe: bool,
+    pub(crate) cidx: u16,
     #[serde(rename = "numParams")]
-    num_params: u16,
+    pub(crate) num_params: u16,
     #[serde(rename = "numFields")]
-    num_fields: u16,
-    induct: u32
+    pub(crate) num_fields: u16,
+    pub(crate) induct: u32
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
 pub(crate) struct Recursor {
-    name: u32,
+    pub(crate) name: u32,
     #[serde(rename = "levelParams")]
-    uparams: Vec<u32>,
+    pub(crate) uparams: Vec<u32>,
     #[serde(rename = "type")]
-    ty: u32,
+    pub(crate) ty: u32,
     #[serde(rename = "isUnsafe")]
-    is_unsafe: bool,
+    pub(crate) is_unsafe: bool,
     #[serde(rename = "numParams")]
-    num_params: u16,
+    pub(crate) num_params: u16,
     #[serde(rename = "numIndices")]
-    num_indices: u16,
+    pub(crate) num_indices: u16,
     #[serde(rename = "numMotives")]
-    num_motives: u16,
+    pub(crate) num_motives: u16,
     #[serde(rename = "numMinors")]
-    num_minors: u16,
-    rules: Vec<RecursorRule>,
-    all: Vec<u32>,
-    k: bool,
+    pub(crate) num_minors: u16,
+    pub(crate) rules: Vec<RecursorRule>,
+    pub(crate) all: Vec<u32>,
+    pub(crate) k: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, serde::Serialize)]
@@ -347,7 +347,10 @@ pub(crate) enum ExportJsonVal<'a> {
     },
 }
 
-pub(crate) fn parse_export_mapped<'p>(
+/// **从内存里的 NDJSON 文本建一份环境** —— [`crate::util::ExportFile::to_ndjson`] 的**读侧
+/// 对偶**（T1-B 批 1，2026-10-09）。写成 `pub` 是为了让**跨 crate 的往返判据**
+/// （`crates/kernel/tests/memory_api.rs`）能在**同一处**把"写→读→再写"闭环钉住 ✓。
+pub fn parse_export_mapped<'p>(
     arena: &'p ArenaRef<'p>,
     input: &[u8],
     config: Config,
