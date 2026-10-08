@@ -32,8 +32,9 @@ pub use check::{
 };
 pub use check::{closure_module_compiles_total, module_compiles_total, note_module_compile};
 pub(crate) use check::{
-    run_incremental, run_pass_with, top_level_def_spans, top_level_def_spans_over, KernelFailed,
-    PassTables, TrustPlan,
+    closure_prefixes_and_total, install_all_preludes, run_incremental, run_pass_with,
+    top_level_def_spans, top_level_def_spans_over, KernelFailed, PassTables, ResumeState,
+    TrustPlan,
 };
 pub(crate) use elab::canonical_ctor_name;
 pub use error::{CompileError, CompileStage, ErrorKind};
@@ -52,7 +53,7 @@ pub use report::{
     ByGoalState, ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport,
     GoalBinder, HoverType, PrintInfo, ResolvedTarget, SubGoal, REPORT_SHAPE,
 };
-pub(crate) use scope::{join_ns, NamespaceScope};
+pub(crate) use scope::{join_ns, NamespaceScope, OpenEntry};
 /// **`TcCache` 构造次数**（2026-10-08 端到端 profiling 的新读数）：判据用它数
 /// "一次按键构造了几次 `TcCache`"（每次预分配 ≈ 4 MiB + 20 张表 ⇒ 实测 61.8 µs/次）。
 pub use sokonanoda::util::tc_cache_builds_total;

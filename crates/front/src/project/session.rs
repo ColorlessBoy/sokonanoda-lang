@@ -30,8 +30,11 @@ use sokonanoda::builder::EnvBuilder;
 use sokonanoda::util::Config;
 use stumpalo::ArenaRef;
 
+use crate::compile::{
+    install_all_preludes, prelude_shape, CompileOutput, DocumentReport, ResumeState,
+};
 use crate::compile::{run_pass_with, split_report, CompileOptions, PassTables, SourceUnit};
-use crate::compile::{CompileOutput, DocumentReport};
+use crate::display::DisplayNotations;
 
 /// **S2 步 2**：某个入口那一趟的**信任前缀**（I8 的 `TrustPlan` + 已缓存失败）。
 ///
@@ -66,7 +69,24 @@ pub(crate) struct EntryTrust {
 ///    比较的地方不变，见 `crates/kernel/src/builder.rs` 的两向判据 ✓）。
 pub(crate) struct LibCheckpoint<'a> {
     /// 库层摘要（[`lib_key`]）—— 复用判据的键。
+    ///
+    /// **T1-A（2026-10-09）**：粒度从"**整条库层**"细到"**一个模块前缀**"——
+    /// 这条键 = `lib_key(lib_units[0..=j])`（第 j 个模块编完时的前缀）✓。
     key: String,
+    /// **T1-A**：这条检查点所属那趟的**库层 prelude 形状**（[`crate::compile::prelude_shape`]）。
+    ///
+    /// 为什么必须比对（**前缀复用独有的口子**）：`install_all_preludes` 是按
+    /// **整条闭包**判让位的（`explicit_nat`/`explicit_bool`/`shadowed`）⇒ 两个
+    /// 库层**前缀相同、整条不同**的话，prelude 环境可能不同 ⇒ 复用 = 静默改判 ✗。
+    ///
+    /// `None` = 这份检查点**不参与前缀复用**（整条一趟建的那条路：
+    /// `run_library_pass` / A5 预热）。整条命中**不需要**它：键已经把整条源文本
+    /// 折进去了 ⇒ 形状是键的纯函数 ✓（今天本来就不比 ✓）。
+    shape: Option<crate::compile::PreludeShape>,
+    /// **T1-A**：续编状态（`closure_id`/`exports`/`example_idx`）。
+    /// 整条一趟建的那条路填 [`ResumeState::default`]（它只服务**整条命中**，
+    /// 而整条命中**不从断点续编** ⇒ 这三个累加器用不上 ✓）。
+    resume: ResumeState,
     /// 库层趟跑完之后的 builder（**含库层声明**，不是 hidden 状态）。
     builder: EnvBuilder<'a>,
     /// 库层趟跑完之后的登记表（`PassTables` 是跨趟累加的 ⇒ 必须与 `builder` 同代）。
@@ -91,6 +111,26 @@ pub(crate) struct LibCheckpoint<'a> {
     lib_prefix: String,
 }
 
+/// **T1-A（2026-10-09）**：逐模块库层趟的**游标** —— "已经编好的前缀"的全部状态。
+///
+/// 它与 [`LibCheckpoint`] 的差别只有一个：**寿命**。检查点要进线程局部（`'static`），
+/// 游标只活在**这一趟续编**里（`'a` = 本次调用的单元寿命）⇒ **续编不必泄漏单元**
+/// （今天只有"冷建检查点"那条路才 `leak_lib_units` ✓ —— 泄漏量因此仍受
+/// [`MAX_LEAKED_LIB_ARENAS`] 管 ✓）。
+struct LibCursor<'a> {
+    builder: EnvBuilder<'a>,
+    tables: PassTables<'a>,
+    out: CompileOutput,
+    reports: Vec<DocumentReport>,
+    n_commands: usize,
+    prefix_commands: usize,
+    lib_prefix: String,
+    /// 下一个模块的**续编状态**（第一个模块用调用方给的那份）。
+    resume: Option<ResumeState>,
+    /// 下一个要编的模块下标。
+    next: usize,
+}
+
 /// **上界 ①**：进程内**泄漏的库层 arena** 数的上限。
 ///
 /// `Box::leak`（零 `unsafe`，设计 §33 授权的形状 (a)）拿不到 `'static` 的另一种写法
@@ -108,11 +148,24 @@ const MAX_LEAKED_LIB_ARENAS: usize = 8;
 /// 一次库层趟 ≈ 695ms，摊到每次 ≈ 11ms）。
 const MAX_REUSES_PER_CHECKPOINT: usize = 64;
 
+/// **T1-A（2026-10-09）上界 ③**：LRU 里**模块级检查点**的份数上限。
+///
+/// 与上界 ①（泄漏的 **arena**）分工不同，别混：
+/// * ① 管的是 **arena**（每份 ≈ 一整条库层的**项图**，最贵的那部分）；
+/// * 本上界管的是**检查点条目**（每份 = 一份 `EnvBuilder` **浅拷贝** + 三张前端表
+///   —— 只复制**表项指针**，**不复制 arena 里的项** ✗）。
+///
+/// 为什么要比 arena 数大：一份 arena 上现在可以挂**多个模块边界**（一条库层有
+/// `n` 个模块 ⇒ 最多 `n` 份），而"换一个入口、共享前几个模块"要的正是**浅**的那几份 ✓。
+/// 32 的取法：真课程单条库闭包 ≤ 8 个模块（unit08 实测 ✓）⇒ 32 够装**四条**不同的
+/// 库层前缀族；到顶按 LRU 淘汰 ⇒ **活着的**检查点恒 ≤ 32 份 ✓。
+const MAX_MODULE_CHECKPOINTS: usize = 32;
+
 /// 进程内**已经泄漏**的库层 arena 数（只增不减 —— 泄漏的定义）。
 static LEAKED_LIB_ARENAS: AtomicUsize = AtomicUsize::new(0);
 
 thread_local! {
-    /// **跨调用的持有者**：本线程的库层检查点，**最多 [`MAX_LEAKED_LIB_ARENAS`] 份**，
+    /// **跨调用的持有者**：本线程的库层检查点，**最多 [`MAX_MODULE_CHECKPOINTS`] 份**，
     /// 按 **LRU** 淘汰（**队首 = 最近用过** ✓）。
     ///
     /// ## 为什么不是一份（2026-10-08 实测驱动 · A3 读数的 ④ 号事实）
@@ -120,8 +173,12 @@ thread_local! {
     /// 以前只有一份 ⇒ **换一个闭包就把上一条入口的检查点挤掉** ✗：实测
     /// `MainA → MainB → MainA` 的第三刀**又是整条闭包重编**（3 个模块，而不是 1 个 ✗）
     /// —— 学生在**几个单元之间来回切**时，每次回头都白付一趟库层（unit08 量级 ≈ 700ms ✗）。
-    /// 多留几份**不额外多泄漏**：泄漏的是**建过的** arena（[`LEAKED_LIB_ARENAS`] 只增不减 ✓），
-    /// 上界本来就是 [`MAX_LEAKED_LIB_ARENAS`] 份 ⇒ 槽位容量取同一个数，**一个字节都不多** ✓。
+    ///
+    /// **T1-A（2026-10-09）**：槽位从"整条库层"细到"**模块边界**"（键 = 前缀的
+    /// `lib_key`）—— 两条入口**只共享前几个模块**时，就能从那个边界**续编**
+    /// （a3 的 `MainA → MainB`：3 → **2** ✓）。容量因此从
+    /// [`MAX_LEAKED_LIB_ARENAS`] 换成 [`MAX_MODULE_CHECKPOINTS`]（**条目**数），
+    /// 而**泄漏的 arena** 仍由 [`MAX_LEAKED_LIB_ARENAS`] 封顶 ✓（两个上界各管一头）。
     ///
     /// 为什么是线程局部而不是 `QueryDoc` 的字段：内核环境是 `!Send`（见文件头），
     /// 而 `QueryDoc` 必须 `Send + Sync`（LSP 把它放进 `tokio::spawn` 的 future）✗。
@@ -131,12 +188,12 @@ thread_local! {
 
 /// **把一个检查点放进 LRU 队首**（同键的旧份先丢掉 —— 它已经过期 ✓），并淘汰到容量内 ✓。
 ///
-/// 淘汰只丢**可达性**（arena 早已泄漏、无法回收 ✓）⇒ 与"单份时换掉旧的"是同一条
-/// 不变量：**活着的**检查点 ≤ [`MAX_LEAKED_LIB_ARENAS`] 份 ✓。
+/// 淘汰只丢**可达性**（arena 早已泄漏、无法回收 ✓）⇒ 不变量：**活着的**检查点
+/// ≤ [`MAX_MODULE_CHECKPOINTS`] 份 ✓。
 fn push_checkpoint(slots: &mut Vec<LibCheckpoint<'static>>, cp: LibCheckpoint<'static>) {
     slots.retain(|old| old.key != cp.key);
     slots.insert(0, cp);
-    slots.truncate(MAX_LEAKED_LIB_ARENAS);
+    slots.truncate(MAX_MODULE_CHECKPOINTS);
 }
 
 /// **上界判据的读数**（`#[doc(hidden)]`，判据用）：已经泄漏的库层 arena 数。
@@ -175,18 +232,62 @@ pub fn lib_checkpoint_reset() {
 ///   [`crate::compile::cache::key`] 统一折入（**单一真相** ✓，别在这里另造一套）；
 /// * **模块根**：每个模块的**绝对路径**已在键里 ⇒ 根变了路径就变 ✓。
 fn lib_key(lib_units: &[SourceUnit<'_>], options: &CompileOptions) -> String {
-    let mut text = String::from("soko.lib-checkpoint/1\0");
+    // ⚠ **O(#units) 一次哈希**（热按键每次都要走这里 ✗→✓ 别改成前缀链）：
+    // `lib_prefix_keys` 是 O(Σ 前缀字节) 的，只能用在**整条 miss 之后**那条路上
+    // （见它的注释 ✓）。两条路共用下面那个"折叠进文本"的助手 ⇒ 文本规则单一 ✓。
+    let mut text = String::from(LIB_KEY_TAG);
     for unit in lib_units {
-        text.push_str(unit.name);
-        text.push('\0');
-        if let Some(path) = unit.path {
-            text.push_str(&path.to_string_lossy());
-        }
-        text.push('\0');
-        text.push_str(&unit.file.src);
-        text.push('\0');
+        push_lib_key_text(&mut text, unit);
     }
     crate::compile::cache::key(&text, options)
+}
+
+/// 库层键文本的**头**（与 `cache::key` 一起构成"这条链是什么"的身份）。
+const LIB_KEY_TAG: &str = "soko.lib-checkpoint/1\0";
+
+/// 把一个单元**折叠进**库层键文本（[`lib_key`] 与 [`lib_prefix_keys`] 的**唯一**实现 ✓）。
+fn push_lib_key_text(text: &mut String, unit: &SourceUnit<'_>) {
+    text.push_str(unit.name);
+    text.push('\0');
+    if let Some(path) = unit.path {
+        text.push_str(&path.to_string_lossy());
+    }
+    text.push('\0');
+    text.push_str(&unit.file.src);
+    text.push('\0');
+}
+
+/// **T1-A（2026-10-09）**：**逐模块前缀键** —— `prefix_keys[j] = lib_key(lib_units[0..=j])`。
+///
+/// 与 [`lib_key`] **同一条链**（同一段文本 + 同一个 `cache::key` ✓）—— `lib_key`
+/// 就是本函数的最后一格 ✓（单一真相，别在这里另造哈希 ✗）。
+///
+/// ⚠ **只在整条键 miss 之后才调用**（调用方负责 ✓）：它是 O(Σ 前缀字节) 的
+/// （n 个模块各哈希一次越来越长的文本）⇒ 放进**热按键**那条路就是白白烧 CPU ✗。
+/// 整条命中（今天那条路，每次按键 ✓）只花 O(#units) 一次哈希 ✓。
+fn lib_prefix_keys(lib_units: &[SourceUnit<'_>], options: &CompileOptions) -> Vec<String> {
+    let mut text = String::from(LIB_KEY_TAG);
+    let mut keys = Vec::with_capacity(lib_units.len());
+    for unit in lib_units {
+        push_lib_key_text(&mut text, unit);
+        keys.push(crate::compile::cache::key(&text, options));
+    }
+    keys
+}
+
+/// 一组单元里**去掉 `import` 行**之后的命令数（`run_library_pass` 与逐模块趟**共用**
+/// 同一条口径 —— 判据 `judge_prefix_offset` 靠它 ✓）。
+fn commands_excluding_imports(units: &[SourceUnit<'_>]) -> usize {
+    units
+        .iter()
+        .map(|unit| {
+            unit.file
+                .commands
+                .iter()
+                .filter(|command| !matches!(command, crate::ast::Command::Import { .. }))
+                .count()
+        })
+        .sum()
 }
 
 /// 跑一次"库层一次 + 各入口各自"的编译会话；每个入口的结果经 `on_entry` 交回。
@@ -311,7 +412,81 @@ pub(crate) fn with_project_session_reusing<R>(
             slots.insert(0, cp);
             return out;
         }
-        // ② **重建**：库层趟跑在一份**泄漏的** arena 上（`Box::leak` = 零 `unsafe`
+        // ② **模块级前缀搜索**（T1-A · 只在整条 miss 之后才跑）：
+        //    两条入口**只共享前几个模块**时，从那个边界**续编**剩下的模块 ✓
+        //    （a3 的 `MainA → MainB`：3 → **2** ✓）。
+        //
+        //    ⚠ **形状必须比对**（前缀复用独有的口子）：prelude 是按**整条闭包**
+        //    判让位的（`prelude_shape`）⇒ 前缀相同、整条不同也可能落在**不同的
+        //    prelude 环境**上 ⇒ 不比 = 静默改判 ✗。整条命中**不需要**比（键已经把
+        //    整条源文本折进去了 ⇒ 形状是键的纯函数 ✓）。
+        let prefix_keys = lib_prefix_keys(lib_units, options);
+        let shape = (!lib_units.is_empty()).then(|| prelude_shape(lib_units));
+        let resume_at = (0..lib_units.len().saturating_sub(1)).rev().find(|&j| {
+            slots.iter().any(|cp| {
+                cp.key == prefix_keys[j]
+                    && cp.shape.as_ref() == shape.as_ref()
+                    && cp.reuses < MAX_REUSES_PER_CHECKPOINT
+            })
+        });
+        if let Some(j) = resume_at {
+            let at = slots
+                .iter()
+                .position(|cp| cp.key == prefix_keys[j] && cp.shape.as_ref() == shape.as_ref())
+                .expect("上面刚找到");
+            let mut cp = slots.remove(at);
+            cp.reuses += 1;
+            // **续编**：拿这份检查点当游标（**不泄漏任何新东西** ✓ —— 游标只活
+            // 在本次调用里；检查点的 arena 还是它原来那份 ✓）。
+            let cursor = LibCursor {
+                builder: cp.builder.clone(),
+                tables: cp.tables.clone(),
+                out: cp.out.clone(),
+                reports: cp.reports.clone(),
+                n_commands: cp.n_commands,
+                prefix_commands: cp.prefix_commands,
+                lib_prefix: cp.lib_prefix.clone(),
+                resume: Some(cp.resume.clone()),
+                next: j + 1,
+            };
+            // 检查点回队首（它**没有**过期：前缀的文本一个字节没变 ✓）。
+            slots.insert(0, cp);
+            let (prefixes, total) = crate::compile::closure_prefixes_and_total(lib_units);
+            let display = crate::compile::display_notations(lib_units);
+            let defs = crate::compile::top_level_def_spans_over(lib_units);
+            let (cursor, _made) = run_library_from(
+                cursor,
+                lib_units,
+                options,
+                &prefixes,
+                &total,
+                &prefix_keys,
+                shape.as_ref().expect("非空前缀搜索必有形状 ✓"),
+                &display,
+                &defs,
+                // **续编那几趟不建检查点**：它们的单元是**本次调用的**（非 `'static`）
+                // ⇒ 存不进线程局部 ✗（建了也白建）。代价如实记：**续编过的库层**
+                // 不留"整条"检查点 ⇒ 同一条入口**再开**仍走"前缀续编"（模块数照旧
+                // 便宜），只是比"整条命中"多一趟浅前缀的克隆 ✓。
+                false,
+            );
+            let lib = LibCheckpoint {
+                key: prefix_keys.last().cloned().unwrap_or_else(|| key.clone()),
+                shape: None,
+                resume: ResumeState::default(),
+                builder: cursor.builder,
+                tables: cursor.tables,
+                out: cursor.out,
+                reports: cursor.reports,
+                ranges: crate::compile::unit_ranges(lib_units),
+                n_commands: cursor.n_commands,
+                prefix_commands: cursor.prefix_commands,
+                reuses: 0,
+                lib_prefix: cursor.lib_prefix,
+            };
+            return run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
+        }
+        // ③ **重建**：库层趟跑在一份**泄漏的** arena 上（`Box::leak` = 零 `unsafe`
         //    的 `'static` 来源 ✓）。库层为空（单文件）或泄漏上界用尽（上界 ①）
         //    ⇒ 不建检查点，走栈上 arena（= 今天那条路，逐字节相同）✓。
         let can_leak = !lib_units.is_empty()
@@ -320,14 +495,60 @@ pub(crate) fn with_project_session_reusing<R>(
             let arena: &'static ArenaRef<'static> =
                 Box::leak(Box::new(stumpalo::Arena::new())).as_arena_ref();
             LEAKED_LIB_ARENAS.fetch_add(1, Ordering::Relaxed);
-            let builder = EnvBuilder::new(arena, Config::default());
             // 库层趟跑在**泄漏的单元副本**上（`run_pass_with` 要求 units 与 arena
             // 同寿命 ⇒ 要存成 `'static` 检查点就得让 units 也是 `'static` ✓）。
             let units = leak_lib_units(lib_units);
-            let lib = run_library_pass(builder, PassTables::new(), units, options, key);
+            let mut builder = EnvBuilder::new(arena, Config::default());
+            let mut tables = PassTables::new();
+            // **prelude 按整条库层装一次**：与今天**同一个函数**、**同一份上下文**
+            // （`units` = 整条库层 ✓）——逐模块趟传 `install_preludes = false`
+            // （否则第二个模块起会重复装 ⇒ 实测 `duplicate declaration Nat` ✗）。
+            install_all_preludes(
+                &mut builder,
+                &mut tables.known,
+                &mut tables.inductives,
+                &mut tables.defs,
+                units,
+                options,
+            );
+            let (prefixes, total) = crate::compile::closure_prefixes_and_total(units);
+            let prefix_keys = lib_prefix_keys(units, options);
+            // **形状算一次**（不是每个模块各算一遍 —— 那是 O(n × 闭包) 白跑 ✗）。
+            let shape = prelude_shape(units);
+            let display = crate::compile::display_notations(units);
+            let defs = crate::compile::top_level_def_spans_over(units);
+            let cursor = LibCursor {
+                builder,
+                tables,
+                out: CompileOutput::default(),
+                reports: Vec::new(),
+                n_commands: 0,
+                prefix_commands: 0,
+                lib_prefix: String::new(),
+                resume: None,
+                next: 0,
+            };
+            let (_cursor, mut made) = run_library_from(
+                cursor,
+                units,
+                options,
+                &prefixes,
+                &total,
+                &prefix_keys,
+                &shape,
+                &display,
+                &defs,
+                true,
+            );
+            // `made` 按模块序（浅 → 深）⇒ **最后一份 = 整条库层** ✓（与今天那份同键 ✓）。
+            let lib = made
+                .pop()
+                .expect("库层至少一个模块：上面 `lib_units` 非空 ✓");
             let out = run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
-            // 入 LRU 队首（同键旧份丢掉、超容量淘汰队尾 ✓）—— **活着的**检查点
-            // ≤ `MAX_LEAKED_LIB_ARENAS` 份 ✓（与"单份时换掉旧的"是同一条不变量 ✓）。
+            // 入 LRU：先前缀（浅 → 深），再**整条**（队首 = 最近用过 ✓）。
+            for checkpoint in made {
+                push_checkpoint(&mut slots, checkpoint);
+            }
             push_checkpoint(&mut slots, lib);
             out
         } else {
@@ -404,13 +625,15 @@ fn run_library_pass<'a>(
     key: String,
 ) -> LibCheckpoint<'a> {
     // 影子不建：`None` ⇒ 不需要额外的局部 arena，见 `run_pass_with` 的注释。
-    let (lib_pass, builder, tables) = run_pass_with(
+    let (lib_pass, builder, tables, _state) = run_pass_with(
         builder, None, true, tables, lib_units, options, true, None, None, None, None, None, None,
         // 建议材料：库层趟按 `lib_units` 自己算 ✓。
         None,
         // 库层趟：judge 的前缀（`closure_prefixes_for(lib_units)`）与本趟 `idx`
         // **同坐标系** ✓ ⇒ 不平移。
         0,
+        // **T1-A**：整条库层一趟那条路**不要**续编状态（它是"逐模块"那条的分支）。
+        false, None,
     );
     // **G-29 第 3 棒**：入口趟的 `idx` 是**入口空间**的，而 judge 的合成前缀是
     // **整条闭包** ⇒ 压栈的担保必须平移"**库层那一段的命令数**" ✓，否则
@@ -420,16 +643,7 @@ fn run_library_pass<'a>(
     // ⚠ 数的是**去掉 `import` 行之后**的命令数（`importless_source` 会剥掉它们，
     // 见 `closure_prefixes_for` ✓）—— 多算只会被 `before.min(prefix_commands)`
     // 夹回（更保守 ✓），**少算才会漏担保** ✗ ⇒ 必须按同一口径数 ✓。
-    let prefix_commands: usize = lib_units
-        .iter()
-        .map(|unit| {
-            unit.file
-                .commands
-                .iter()
-                .filter(|command| !matches!(command, crate::ast::Command::Import { .. }))
-                .count()
-        })
-        .sum();
+    let prefix_commands: usize = commands_excluding_imports(lib_units);
     // 读在 `lib_pass.report` 被搬走**之前**（`split_report` 会吃掉它）。
     let checks = lib_pass.kernel_checks();
     let ranges = crate::compile::unit_ranges(lib_units);
@@ -445,6 +659,12 @@ fn run_library_pass<'a>(
     out.stats.kernel_checks = checks;
     LibCheckpoint {
         key,
+        // **T1-A**：整条一趟那条路**不参与前缀复用** ⇒ `shape = None`
+        // （整条命中不需要它：形状是键的纯函数 ✓；`Some` 会让 `prelude_shape`
+        // 的 O(闭包) 扫描白跑一趟 —— CLI `build`/`check` 对性能敏感 ✗）。
+        shape: None,
+        // 整条命中**不从断点续编** ⇒ 三个累加器用不上（见字段注释 ✓）。
+        resume: ResumeState::default(),
         builder,
         tables,
         out,
@@ -455,6 +675,127 @@ fn run_library_pass<'a>(
         reuses: 0,
         lib_prefix,
     }
+}
+
+/// **T1-A（2026-10-09）**：**逐模块**跑库层趟 —— 每编完一个模块产出一份检查点，
+/// 返回 `(最终游标, 按模块序的检查点)`。
+///
+/// ## 为什么必须逐模块（而不是"一趟 + 中途快照"）
+///
+/// `walk` **无条件** `add_declar`（到当前命令为止的声明**尚未过内核检查**），
+/// 而 `finish_pass` 是**整趟一次**做的 ⇒ 想在"编完第 j 个模块"处得到一份
+/// **合法的**环境，就只能让那一趟**在那里结束** ✓（`snapshot_state` 拿到的
+/// `ResumeState` 正好是"下一趟从这儿接着跑"所需的三样累加器 ✓）。
+///
+/// ## 逐字节等价（每一格都是**现成覆盖入口**，不新造语义）
+///
+/// | 本趟要什么 | 怎么给 | 对得上今天吗 |
+/// |---|---|---|
+/// | 建议材料（累计） | `template_closure = &units[..=j]` | ✓（单单元趟 + 覆盖 = 整条一趟里的第 j 格） |
+/// | judge 前缀 | `closure_prefixes_override = &[prefixes[j]]` | ✓（`prefixes[j]` = 同一套累加规则 ✓） |
+/// | 记法表 / 定义 span 表 | `display_override` / `defs_override` = **整条** | ✓（今天也是整条闭包算的 ✓） |
+/// | 命令坐标系平移 | `judge_prefix_offset` = 前缀的命令数（去 `import`） | ✓（今天库里第 j 个模块的 `idx` 就在那个坐标 ✓） |
+/// | 跨单元累加器 | `resume`（`closure_id`/`exports`/`example_idx`） | ✓（`ResumeState` 的字段注释 ✓） |
+///
+/// `store` = `true` 时把每份检查点也建出来（**冷建**那条路：单元是泄漏的
+/// `'static` ⇒ 检查点能进线程局部 ✓）；`false` 时只跑不建（**续编**那条路：
+/// 单元是本次调用的 ⇒ 建了也存不进 ✗）。
+#[allow(clippy::too_many_arguments)]
+fn run_library_from<'a>(
+    mut cursor: LibCursor<'a>,
+    lib_units: &'a [SourceUnit<'a>],
+    options: &CompileOptions,
+    prefixes: &[String],
+    total: &str,
+    prefix_keys: &[String],
+    shape: &crate::compile::PreludeShape,
+    display: &DisplayNotations,
+    defs: &std::collections::HashMap<String, crate::Span>,
+    store: bool,
+) -> (LibCursor<'a>, Vec<LibCheckpoint<'a>>) {
+    let n = lib_units.len();
+    let mut made: Vec<LibCheckpoint<'a>> = Vec::new();
+    while cursor.next < n {
+        let j = cursor.next;
+        let units_j: &'a [SourceUnit<'a>] = &lib_units[j..=j];
+        let prefix_j: [String; 1] = [prefixes[j].clone()];
+        let (pass, builder, tables, state) = run_pass_with(
+            cursor.builder,
+            None,
+            // prelude **只在调用方那一步装一次**（见调用点的注释）✓。
+            false,
+            cursor.tables,
+            units_j,
+            options,
+            true,
+            None,
+            None,
+            None,
+            Some(&prefix_j),
+            Some(display),
+            Some(defs),
+            Some(&lib_units[..=j]),
+            cursor.prefix_commands,
+            // 本趟结束 = **模块边界** ⇒ 要那份续编状态 ✓。
+            true,
+            cursor.resume.take(),
+        );
+        let n_cmds = pass.n_commands;
+        let checks = pass.kernel_checks();
+        let mut out = pass.out;
+        // 报告要**本趟坐标系**的命令号（`split_report` 会按它归因 ✓）⇒ 先切、后偏移 ✓。
+        let reports = split_report(pass.report, &out.error_cmds, &out.warning_cmds, units_j);
+        let offset = cursor.n_commands;
+        for cmd in out.event_cmds.iter_mut() {
+            *cmd += offset;
+        }
+        for cmd in out.error_cmds.iter_mut() {
+            *cmd += offset;
+        }
+        for cmd in out.warning_cmds.iter_mut() {
+            *cmd += offset;
+        }
+        out.stats.kernel_checks = checks;
+        // 合并进游标（与 `run_entries` 合入口输出的手法同一条 ✓）。
+        cursor.out.events.extend(out.events);
+        cursor.out.event_cmds.extend(out.event_cmds);
+        cursor.out.errors.extend(out.errors);
+        cursor.out.error_cmds.extend(out.error_cmds);
+        cursor.out.warnings.extend(out.warnings);
+        cursor.out.warning_cmds.extend(out.warning_cmds);
+        cursor.out.stats.kernel_checks += checks;
+        cursor.reports.extend(reports);
+        cursor.n_commands += n_cmds;
+        cursor.prefix_commands += commands_excluding_imports(units_j);
+        cursor.lib_prefix = if j + 1 < n {
+            prefixes[j + 1].clone()
+        } else {
+            total.to_string()
+        };
+        cursor.builder = builder;
+        cursor.tables = tables;
+        cursor.next = j + 1;
+        cursor.resume = state;
+        if store {
+            made.push(LibCheckpoint {
+                key: prefix_keys[j].clone(),
+                // **T1-A**：前缀复用要的形状判据（**整条库层**的 `prelude_shape` ✓）
+                // —— 调用方**算好传进来**（在循环里算 = O(n × 闭包) 白跑 ✗）。
+                shape: Some(shape.clone()),
+                resume: cursor.resume.clone().unwrap_or_default(),
+                builder: cursor.builder.clone(),
+                tables: cursor.tables.clone(),
+                out: cursor.out.clone(),
+                reports: cursor.reports.clone(),
+                ranges: crate::compile::unit_ranges(&lib_units[..=j]),
+                n_commands: cursor.n_commands,
+                prefix_commands: cursor.prefix_commands,
+                reuses: 0,
+                lib_prefix: cursor.lib_prefix.clone(),
+            });
+        }
+    }
+    (cursor, made)
 }
 
 /// **各入口各自一趟**（切片 1b 的第 ③ 步）：每个入口从"只有库层"的环境起跑。
@@ -529,7 +870,7 @@ fn run_entries<'a, R>(
         let entry_defs = crate::compile::top_level_def_spans_over(&entry_closure);
         // **S2 步 2**：该入口这一趟的信任前缀（缺省 = 整份重查，与今天逐字节相同）。
         let trusted = entry_trust.get(index).and_then(|slot| slot.as_ref());
-        let (pass, _next, _next_tables) = run_pass_with(
+        let (pass, _next, _next_tables, _state) = run_pass_with(
             builder,
             None,
             false,
@@ -550,6 +891,9 @@ fn run_entries<'a, R>(
             Some(&entry_closure),
             // **G-29 第 3 棒**：把本趟 `idx` 平移到闭包坐标系（见 `prefix_commands`）。
             lib.prefix_commands,
+            // **T1-A**：入口趟**不要**续编状态（它不做逐模块检查点）。
+            false,
+            None,
         );
         let entry_range = lib_n..lib_n + pass.n_commands;
         // 读在 `pass.report` 被搬走**之前**（`split_report` 会吃掉它）。

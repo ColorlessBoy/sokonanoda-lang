@@ -190,6 +190,14 @@ pub(super) struct Walk<'arena: 'shadow, 'shadow> {
     /// `compile_fol_with`（整份前缀从零编 ✗）。平移量 = **库层那一段的命令数** ✓
     /// ⇒ 担保回到闭包空间 ✓。默认 `0` = 同坐标系（老路 / 单文件 / 库层趟 ✓）。
     pub(super) judge_prefix_offset: usize,
+    /// **T1-A（2026-10-09）**：**接着哪个模块边界继续编**（`None` = 从头 ✓）。
+    /// 见 [`crate::compile::ResumeState`]：`closure_id`/`exports`/`example_idx`
+    /// 三样都是**跨单元累加器** ⇒ 逐模块编译时必须显式带上 ✗→✓。
+    pub(super) resume: Option<crate::compile::ResumeState>,
+    /// **T1-A**：本趟结束时把 [`Walk::resume_out`] 算出来交回调用方。
+    pub(super) snapshot_state: bool,
+    /// 见 [`Walk::snapshot_state`]：本趟结束（= 模块边界）上的续编状态。
+    pub(super) resume_out: Option<crate::compile::ResumeState>,
 }
 
 /// 单个命令的派生上下文：每个命令算一次，arm 里按需取用。
@@ -429,7 +437,19 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // （判据 ④；前缀**能解析**时逐位相等 ✓，解析不过时以**这里**为准 ✓ —— 见探针 ✓）。
         let mut unit_env_ids: Vec<String> = vec![String::new(); units.len()];
         // 闭包累加（前面**所有单元**的身份）+ 每单元的快照（每单元只克隆一次 ✓）。
-        let mut closure_acc = String::new();
+        //
+        // **T1-A（2026-10-09）**：`resume` 时从**模块边界**起跑 —— 闭包身份接着
+        // 前缀的累加值、导出表与 `_example_N` 计数器一并带上（三样都是跨单元
+        // 累加器 ⇒ 不带就是静默错编面，见 `ResumeState` 的字段注释 ✓）。
+        let mut closure_acc = self
+            .resume
+            .as_ref()
+            .map(|r| r.closure_id.clone())
+            .unwrap_or_default();
+        if let Some(resume) = self.resume.take() {
+            self.exports = resume.exports;
+            self.example_idx = resume.example_idx;
+        }
         let mut closure_ids: Vec<Option<String>> = vec![None; units.len()];
         let mut prev_unit: Option<usize> = None;
         // 探针读数：**不可比**的条数（前缀解析不过 ⇒ `expect` 是原文 ⇒ 那次不比 ✓）。
@@ -649,6 +669,22 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // 还是**全被跳过** ✗ —— 上一棒正是栽在这里（把**降级**看成"零分歧" ✗）。
         if std::env::var_os("SOKO_PREFIX_ID_CHECK").is_some() {
             eprintln!("PREFIX_ID_CHECK uncomparable={id_uncomparable}");
+        }
+        // **T1-A**：把**本趟结束 = 模块边界**上的续编状态交回调用方。
+        // ⚠ 闭包身份必须**补上最后一个单元**：主循环只在**单元切换处**累加
+        // （`idx == 0 || flat[idx-1].0 != unit_idx`）⇒ 循环结束时 `closure_acc`
+        // 里**没有**最后一个单元 ✓ —— 而"模块边界"要的正是**含它**的那一份
+        // （与主循环里"切到下一个单元时"的读数逐字相同 ✓）。
+        if self.snapshot_state {
+            let mut closure_id = closure_acc;
+            if let Some(last) = prev_unit {
+                closure_id.push_str(&unit_env_ids[last]);
+            }
+            self.resume_out = Some(crate::compile::ResumeState {
+                closure_id,
+                exports: self.exports.clone(),
+                example_idx: self.example_idx,
+            });
         }
     }
 

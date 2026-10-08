@@ -915,14 +915,42 @@ impl Drop for StageTimer<'_> {
     }
 }
 
+/// **T1-A（2026-10-09）**：一个**模块边界**上的"**续编状态**" —— 把 `walk` 的
+/// **跨单元累加器**搬到边界上，续编那趟**原样接着跑**。
+///
+/// ## 为什么需要它（逐字段给理由，缺一样就是静默错编面）
+///
+/// * `closure_id`：judge 缓存键要的**环境身份**（`walk` 的 `closure_ids[unit]`
+///   = 该单元**之前**所有单元的身份之和）。不带它 ⇒ 续编那趟的键**丢掉前缀**
+///   ⇒ 变宽 ⇒ **可能错命中**（不同前缀共用一份旧答案 ✗）；
+/// * `exports`：`export` 是**唯一**跨 `import` 的可见性通道（设计 §N7）；`walk`
+///   在每个单元切换处 `ns.reset()` 之后**重放**它 ⇒ 不带它 = 续编那趟
+///   **丢掉前缀的 export** ✗；
+/// * `example_idx`：`_example_N` 是**整趟全局**计数器（`walk` 里两处自增）⇒
+///   不带它，两个模块都会造出 `_example_1` ⇒ **重名** ✗。
+///
+/// ⚠ **边界事实**：这三样都**不能**从"源文本"重算 —— 它们是 elaborate 过程中
+/// 累加出来的（`exports` 尤其：它来自 `open`/`export` 命令的**解释结果**）。
+/// ⇒ 只能在 walk 里**当场取**（`run_pass_with` 的 `snapshot_state`）。
+#[derive(Debug, Clone, Default)]
+pub(crate) struct ResumeState {
+    pub closure_id: String,
+    pub exports: Vec<crate::compile::OpenEntry>,
+    pub example_idx: usize,
+}
+
 /// **把 prelude 装进 `builder` 的唯一实现**（T-K12）。
+///
+/// **T1-A**：`pub(crate)` 是为了让 `project/session.rs` 的**逐模块库层趟**能在
+/// 循环**外面**装一次（per-module 趟传 `install_preludes = false`）。装的仍是
+/// **同一个**函数 ⇒ 「唯一实现」的纪律不变 ✓（判据 `prelude_shape` 同源）。
 ///
 /// 为什么必须有这条"唯一实现"：K1-b 要给 judge 准备**第二份**环境
 /// （影子环境，`docs/design/vscode-editor-feedback-plan.md` 的 T-K12），
 /// 而两份环境的 prelude 必须**逐条同款** —— prelude 装得不一样，
 /// 两边的判定就会分叉（那是 REQUIREMENTS §2 第 1 条的红线）。
 /// 所以条件（`prelude_shape` 的预扫描结果）与顺序（先 Eq 后 L1）都**只写一遍**。
-fn install_all_preludes<'a>(
+pub(crate) fn install_all_preludes<'a>(
     builder: &mut EnvBuilder<'a>,
     known: &mut KnownTable,
     inductives: &mut InductiveTable<'a>,
@@ -1033,6 +1061,9 @@ fn run_pass_in<'a>(
         None,
         // 老路/单文件/库层：judge 的前缀与本趟 `idx` **同坐标系** ✓ ⇒ 不平移。
         0,
+        // **T1-A**：老路不要续编状态、也不从断点起跑（逐字节回到今天 ✓）。
+        false,
+        None,
     )
     .0
 }
@@ -1065,6 +1096,19 @@ pub fn closure_prefixes_for(units: &[SourceUnit<'_>]) -> Vec<String> {
 /// 每一刀直接克隆 ✓（以前每一刀都重跑一遍 O(闭包) 的累加 ✗）。
 pub fn closure_accumulated_over(units: &[SourceUnit<'_>]) -> String {
     accumulate_prefixes(units).1
+}
+
+/// **T1-A（2026-10-09）**：`(逐格前缀, 全部之后的累加串)` 的 `pub(crate)` 出口。
+///
+/// 与 [`closure_prefixes_for`] 的差别**只有** `units.len() <= 1` 那条特例：
+/// 那条返回**空 `Vec`**（"单文件没有闭包前缀"的语义 ✓），而逐模块库层趟要的是
+/// `prefixes[0] = ""`（第 0 个模块的前缀就是空串 ✓）⇒ 这里**原样**给出
+/// [`accumulate_prefixes`] 的结果 ✓。
+///
+/// ⚠ **一次算全**（不许每个模块各算一遍 ✗）：`accumulate_prefixes` 就是判据读数
+/// [`closure_prefix_builds_total`] 的计数点 ⇒ 遂模块各算会把读数从 O(1) 抬成 O(n) ✗。
+pub(crate) fn closure_prefixes_and_total(units: &[SourceUnit<'_>]) -> (Vec<String>, String) {
+    accumulate_prefixes(units)
 }
 
 /// **累加规则的唯一实现**（A4a）：返回 `(逐格前缀, 全部之后的累加串)`。
@@ -1303,7 +1347,19 @@ pub(crate) fn run_pass_with<'a, 's>(
     // （老路 / 单文件 / 库层趟 ⇒ **逐字节回到今天** ✓）；session 的**入口趟**
     // 传"库层那一段的命令数"（见 `project/session.rs` ✓）。
     judge_prefix_offset: usize,
-) -> (PassResult, EnvBuilder<'a>, PassTables<'a>)
+    // **T1-A（2026-10-09）**：本趟结束时把 [`ResumeState`]（`closure_id`/`exports`/
+    // `example_idx`）交回来。`false` ⇒ 返回 `None`（**与今天逐字节相同** ✓）；
+    // 只有 `project/session.rs` 的**逐模块库层趟**传 `true`。
+    snapshot_state: bool,
+    // **T1-A**：本趟是"**接着某个模块边界继续编**" ⇒ 用它的 walk 状态起跑
+    // （见 [`ResumeState`]）。`None` ⇒ **与今天逐字节相同** ✓。
+    resume: Option<ResumeState>,
+) -> (
+    PassResult,
+    EnvBuilder<'a>,
+    PassTables<'a>,
+    Option<ResumeState>,
+)
 where
     'a: 's,
 {
@@ -1456,6 +1512,10 @@ where
         trusted_entered: trust.and_then(|t| t.trusted_entered.clone()),
         // **G-29 第 3 棒**：judge 合成文档前缀的坐标系平移量（默认 0 ✓）。
         judge_prefix_offset,
+        // **T1-A**：续编状态（`None` = 从头起跑 ⇒ 与今天逐字节相同 ✓）。
+        resume,
+        snapshot_state,
+        resume_out: None,
     };
     walk.run(
         units,
@@ -1577,7 +1637,7 @@ where
             );
         }
     }
-    (pass, walk.builder, tables)
+    (pass, walk.builder, tables, walk.resume_out.take())
 }
 
 /// Every top-level name this file declares, mapped to the span of the command
