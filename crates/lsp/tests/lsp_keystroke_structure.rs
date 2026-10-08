@@ -91,18 +91,25 @@ fn changing_a_statement_must_invalidate_the_prefixes_after_it() {
     );
 
     let cache = std::env::temp_dir().join(format!(
-        "sokonanoda-lsp-keystroke-structure-{}",
+        "sokonanoda-lsp-keystroke-structure-statement-{}",
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&cache);
+    // **同一个二进制里的 3 个用例是并行跑的** ✓（libtest 默认）⇒ 各自的缓存目录必须
+    // **互不相同** ✗✓：以前三条都用 `…-structure-<pid>`（同一个 pid ⇒ 同一个目录），
+    // 每个用例开头 `remove_dir_all` 会把**别人正在用**的缓存删掉 ✗（2026-10-08 发版点
+    // 才暴露：CI 上这条判红，本机 6/6 绿 —— 并行度与机器速度都不同）。
     let mut client = Client::start_traced(&cache);
     let uri = Client::file_uri(&path);
     let _ = client.open(&root, &uri, &text); // 开档（冷编译；这一步本来就贵，不判它）
 
-    let before = client.trace_len();
+    // ⚠ **基线取"落定值"** ✗✓（2026-10-08 CI 实测 `left: 2, right: 1`）：开档那一趟
+    // 走冷编还是产物命中**因机器而异**（本机 `courses/` 下有产物 ⇒ 不编 ✗），而
+    // `open()` 返回只保证**诊断**（stdout）到了、**不保证** trace 行（stderr，另一个
+    // 线程在读）已经进 `Vec` ✗ ⇒ 直接读会把开档那一行算进按键的差量 ✗。
+    let before = client.settled_compile_count();
     let _ = client.did_change(&uri, 2, &edited);
-    // stderr 由**另一个线程**读 ⇒ 诊断到了不等于那一行已经收到 ✓（实测踩过 ✗）。
-    let after = client.wait_for_trace_after(before);
+    let after = client.settled_compile_count();
     assert_eq!(
         after,
         before + 1,
@@ -232,9 +239,10 @@ fn proof_body_keystroke(shift: bool) {
     let uri = Client::file_uri(&path);
     let _ = client.open(&root, &uri, &text);
     let _ = client.did_change(&uri, 2, &after_warm); // 预热（冷态，不判它）
-    let before = client.trace_len();
+                                                     // 同 statement 那条：基线取**落定值**（`did_change` 返回 ≠ trace 行已进 `Vec` ✗）。
+    let before = client.settled_compile_count();
     let _ = client.did_change(&uri, 3, &after_measured);
-    let after = client.wait_for_trace_after(before);
+    let after = client.settled_compile_count();
     assert_eq!(after, before + 1, "一次按键必须恰好编译一次");
     let line = client.last_trace();
     let prefix = Client::trace_field(&line, "prefix");

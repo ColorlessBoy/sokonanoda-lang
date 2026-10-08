@@ -77,7 +77,9 @@ fn cache_dir(tag: &str) -> PathBuf {
 
 /// 等下一次编译的 trace 行，返回它的 `modules=` 字段（附 trace 原文 ✓）。
 fn modules_after(client: &mut Client, action: impl FnOnce(&mut Client)) -> (u64, String) {
-    let before = client.trace_len();
+    // 基线取**落定值** ✓（`trace_len()` 直接读会漏掉"行已写、读线程还没收"的那一趟 ✗
+    // —— 2026-10-08 CI 实测同形的判红，见 `Client::settled_compile_count` ✓）。
+    let before = client.settled_compile_count();
     action(client);
     let _ = client.wait_for_trace_after(before);
     let line = client.last_trace();

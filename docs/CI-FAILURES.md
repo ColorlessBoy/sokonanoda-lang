@@ -1,3 +1,38 @@
+## 2026-10-08 · `test (sokonanoda-lsp, tests)` 判红 = **trace 基线的 stderr 读线程竞态**（run `37795904518`）—— 判据改取"落定值" ✓
+
+**症状** ✓：`lsp_keystroke_structure::changing_a_statement_must_invalidate_the_prefixes_after_it`
+判红在 `crates/lsp/tests/lsp_keystroke_structure.rs:106` —— `assert_eq!(after, before + 1)`
+实测 **left: 2, right: 1**（= `before` 读到 **0**、`after` 读到 **2** ✗）。`fast-fail` 掐掉整轮
+⇒ run 结论 `cancelled`、`auto-tag` skip ✓（**不是**被新推顶掉 ✓）。
+
+**先排除"是我们的回归"** ✓（这一步别省 ✗）：**同 commit** 本机跑该用例 **6/6 绿**（单用例）
++ **3/3 绿**（整文件 3 个用例并行）⇒ 复现不出 ✓；`scripts/soko gate` 的
+`cargo test --workspace --locked` 也是 **exit 0** ✓。
+
+**真因** ✓：`open()`/`did_change()` 返回 = **那一版诊断**到了（走 **stdout** ✓），**不保证**
+`LSP_TRACE` 行（走 **stderr**、由**另一个线程** `lines()` 读）已经进 `Vec` ✗ —— 两条管道
+之间**没有顺序保证** ✓（这条竞态在本仓早有记载：「stderr 由另一个线程读 ⇒ 诊断到了不等于
+那一行已经收到」，`wait_for_trace_after` 就是为它写的 ✓；**但基线那一侧**一直直接读
+`trace_len()` ✗）。CI 上开档那一趟是**冷编**（checkout 里没有模块根产物）⇒ 它有一行；
+读基线时那一行还在读线程手里 ⇒ `before=0` ⇒ 按键那一趟到了就变 **2** ✗。
+
+**为什么本机不复现** ✓（**夹具在不同机器上走了两条不同的路** ✗✓）：本机
+`courses/set-theory/.sokonanoda/` **有**产物 ⇒ 开档走**产物命中**、那一趟**不产生** trace 行
+（本机实测：整段输出里只有按键那一行 `v2` ✓）⇒ `before=0` 本来就对、`after=1` ✓；
+CI 的干净 checkout 走冷编 ⇒ 多一行 ✗。
+
+**修复** ✓：新增 `Client::settled_compile_count()`（连续 **500ms** 没有新行才算"落定" ✓，
+带 180s 上限、超时**大声判红** ✗）—— 基线一律取落定值；`lsp_keystroke_structure.rs` 的三处
+读数（statement + proof-body 两条）与 `lsp_checkpoint_multi_slot.rs::modules_after` **同轮
+一次改齐** ✓（AGENTS.md：同类问题横向排查，不许修单点 ✓）；顺带把三条用例的缓存目录从
+`…-structure-<pid>`（**同一个 pid ⇒ 同一个目录**，而三条是**并行**跑的 ⇒ 互相
+`remove_dir_all` ✗）改成**每条一个** ✓。
+
+**预防** ✓：① **凡"取基线再比差量"的 trace 判据，基线必须取落定值** ✗✓ —— 直接
+`trace_len()` 只在"开档一定不编"时才对，而那取决于**机器上有没有产物** ✗；
+② 夹具要**显式**选一条路（冷 or 热），别让"机器状态"决定走哪条（本轮就是这么被咬的 ✓）；
+③ 同文件内并行的用例**不许共用**缓存目录/产物目录 ✓。
+
 ## 2026-10-08 · `test (sokonanoda-lsp, lib)` 红一次 = **墙钟比值臂在 4 核 runner 上的假红**（run `37694095005`）—— rerun 转绿 ✓ · 阈值按纪律加宽 ✓
 
 **症状** ✓：`perf_course::perf_course_did_open_is_recorded` 判红，卡在**形状臂**

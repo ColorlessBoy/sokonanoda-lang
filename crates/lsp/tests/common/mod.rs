@@ -193,6 +193,42 @@ impl Client {
             .unwrap_or(0)
     }
 
+    /// 等编译计数**落定**（连续 `quiet` 没有新行）并返回它 —— 取"基线"要用这个 ✓。
+    ///
+    /// **为什么不能直接读 `trace_len()` 当基线** ✗✓（2026-10-08 **CI 实测**）：
+    /// `LSP_TRACE` 走 **stderr**、由**另一个线程**读 ⇒ `open()`/`did_change()`
+    /// 返回（= 那一版诊断已经到了，走的是 **stdout**）**不等于**那一行已经进了
+    /// `Vec` ✗ —— 两条管道之间**没有顺序保证** ✓。CI 上 `changing_a_statement_…`
+    /// 就是这样判红的：`left: 2, right: 1`（`before` 读到 **0** —— 开档那一趟的行
+    /// 还在读线程手里 ✗），而本机 **6/6 不复现**：本机 `courses/` 下**有**模块根
+    /// 产物 ⇒ 开档走产物命中、**根本不编**、没有那一行 ✗ —— 同一个夹具在不同机器上
+    /// 走了**两条不同的路** ⇒ 读数不可比 ✗。
+    /// ⇒ 基线一律取"落定值"：等计数在 `quiet` 窗口里不再增长 ✓。
+    pub fn settled_compile_count(&self) -> usize {
+        self.settle_compile_count(500)
+    }
+
+    fn settle_compile_count(&self, quiet_ms: u64) -> usize {
+        let quiet = std::time::Duration::from_millis(quiet_ms);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(180);
+        let mut last = self.compile_count();
+        let mut stable_since = std::time::Instant::now();
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+            let now = self.compile_count();
+            if now != last {
+                last = now;
+                stable_since = std::time::Instant::now();
+            } else if stable_since.elapsed() >= quiet {
+                return last;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "等编译计数落定超时（已有 {last} 行，静默窗口 {quiet_ms}ms）"
+            );
+        }
+    }
+
     /// 等到 trace 行数 **> `after`**（返回新的行数）。
     ///
     /// **为什么必须等**：stderr 是**另一个线程**在读 ✗ —— 诊断到了不等于那一行已经
