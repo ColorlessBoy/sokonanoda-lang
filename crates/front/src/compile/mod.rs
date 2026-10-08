@@ -37,7 +37,10 @@ pub(crate) use check::{
     top_level_def_spans, top_level_def_spans_over, KernelFailed, PassTables, ResumeState,
     TrustPlan,
 };
-pub use check::{def_spans_builds_total, notation_table_builds_total};
+pub use check::{
+    def_spans_builds_total, def_spans_units_total, notation_table_builds_total,
+    notation_table_units_total,
+};
 pub(crate) use elab::canonical_ctor_name;
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput, CompileStats};

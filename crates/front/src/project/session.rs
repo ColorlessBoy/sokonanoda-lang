@@ -103,6 +103,12 @@ pub(crate) struct LibCheckpoint<'a> {
     prefix_commands: usize,
     /// 这份检查点被复用了多少次（单份 arena 的增长上界，见 [`MAX_REUSES_PER_CHECKPOINT`]）。
     reuses: usize,
+    /// **T2-B0（2026-10-09）**：**库层那一段**的显示记法表 —— 它是闭包文本的纯函数 ✓，
+    /// 随检查点存**一次**，每刀只建"入口那一段"再 [`merged_with`](crate::display::DisplayNotations::merged_with) ✓。
+    lib_display: crate::display::DisplayNotations,
+    /// **T2-B0**：**库层那一段**的定义 span 表（同 [`Self::lib_display`] 的理由 ✓）。
+    /// 合并顺序 = **库层先**（与"库层 ++ 入口"的一次性建表同序 ⇒ `or_insert` 语义一致 ✓）。
+    lib_defs: std::collections::HashMap<String, crate::Span>,
     /// **A4a（2026-10-08）**：库层全部单元拼接之后的**闭包前缀**（去 `import` 行 + 补行尾换行）。
     ///
     /// 入口趟要的前缀恰好就是它（`entry_closure` 的最后一格 = 库层那一段 ✓）——
@@ -356,12 +362,12 @@ pub fn module_artifacts_enabled() -> bool {
 fn load_lib_checkpoint(
     text: &str,
     key: &str,
-    _options: &CompileOptions,
+    lib_units: &[SourceUnit<'_>],
 ) -> Option<LibCheckpoint<'static>> {
     let arena: &'static ArenaRef<'static> =
         Box::leak(Box::new(stumpalo::Arena::new())).as_arena_ref();
     LEAKED_LIB_ARENAS.fetch_add(1, Ordering::Relaxed);
-    load_lib_checkpoint_in(arena, text, key)
+    load_lib_checkpoint_in(arena, text, key, lib_units)
 }
 
 /// 装载的**内核**：把产物装进**调用方给的 arena**（寿命由调用方负责 ✓）。
@@ -372,6 +378,7 @@ fn load_lib_checkpoint_in<'a>(
     arena: &'a ArenaRef<'a>,
     text: &str,
     key: &str,
+    lib_units: &[SourceUnit<'_>],
 ) -> Option<LibCheckpoint<'a>> {
     let (env, tables, facts) = crate::project::artifacts::decode_payload(arena, text).ok()?;
     let builder = EnvBuilder::from_export_file(arena, env);
@@ -387,6 +394,10 @@ fn load_lib_checkpoint_in<'a>(
         n_commands: facts.n_commands,
         prefix_commands: facts.prefix_commands,
         reuses: 0,
+        // **产物里不存这两张表**（它们是**文本的纯函数** ✓，存了只是把产物撑大 ✗）⇒
+        // 装载时按 `lib_units` 现算**一次** ✓（不是每刀 ✓）。
+        lib_display: crate::compile::display_notations(lib_units),
+        lib_defs: crate::compile::top_level_def_spans_over(lib_units),
         lib_prefix: facts.lib_prefix,
     })
 }
@@ -529,7 +540,7 @@ fn with_project_session_reusing_at<R>(
                 && LEAKED_LIB_ARENAS.load(Ordering::Relaxed) < MAX_LEAKED_LIB_ARENAS
             {
                 if let Some(lib) = crate::project::artifacts::read(root, &key, options)
-                    .and_then(|text| load_lib_checkpoint(&text, &key, options))
+                    .and_then(|text| load_lib_checkpoint(&text, &key, lib_units))
                 {
                     let out = run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
                     // 顺手喂热线程局部（**下一刀就命中 ①** ⇒ 产物只为"冷进程"付一次 ✓）。
@@ -608,6 +619,8 @@ fn with_project_session_reusing_at<R>(
                 n_commands: cursor.n_commands,
                 prefix_commands: cursor.prefix_commands,
                 reuses: 0,
+                lib_display: crate::compile::display_notations(lib_units),
+                lib_defs: crate::compile::top_level_def_spans_over(lib_units),
                 lib_prefix: cursor.lib_prefix,
             };
             return run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
@@ -807,7 +820,7 @@ pub(crate) fn with_project_session_artifacts_trusted<R>(
     // ① **产物命中**：栈上 arena ⇒ 装载出来的检查点只活这一次调用 ✓（零泄漏 ✓）。
     if let (true, Some(key)) = (on_artifacts, key.as_ref()) {
         if let Some(lib) = crate::project::artifacts::read(root, key, options)
-            .and_then(|text| load_lib_checkpoint_in(arena.as_arena_ref(), &text, key))
+            .and_then(|text| load_lib_checkpoint_in(arena.as_arena_ref(), &text, key, lib_units))
         {
             return run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
         }
@@ -889,6 +902,8 @@ fn run_library_pass<'a>(
         n_commands: lib_pass.n_commands,
         prefix_commands,
         reuses: 0,
+        lib_display: crate::compile::display_notations(lib_units),
+        lib_defs: crate::compile::top_level_def_spans_over(lib_units),
         lib_prefix,
     }
 }
@@ -1007,6 +1022,10 @@ fn run_library_from<'a>(
                 n_commands: cursor.n_commands,
                 prefix_commands: cursor.prefix_commands,
                 reuses: 0,
+                // ⚠ 这是**前缀**（`lib_units[..=j]`）那一段的表 ⇒ 按前缀算 ✓
+                // （每模块一次、只在建检查点时 ✓ —— 不是每刀 ✓）。
+                lib_display: crate::compile::display_notations(&lib_units[..=j]),
+                lib_defs: crate::compile::top_level_def_spans_over(&lib_units[..=j]),
                 lib_prefix: cursor.lib_prefix.clone(),
             });
         }
@@ -1078,12 +1097,28 @@ fn run_entries<'a, R>(
         } else {
             vec![lib.lib_prefix.clone()]
         };
-        let entry_display = crate::compile::display_notations(&entry_closure);
+        // **T2-B0**：库层那一段**随检查点存好了** ⇒ 每刀只建"**入口那一段**"再合并 ✓
+        // （合并与"一次性建表"逐位相同 —— 判据 `t2b0_display_merge_parity` ✓）。
+        let entry_display = if std::env::var_os("SOKO_T2B0_NO_SPLIT").is_some() {
+            // **反向验证的逃生门**（默认关 ⇒ 生产零影响 ✓）：退回"按整条闭包建表"那条老路
+            // ⇒ 每刀处理的**单元数**从 1 回到 O(闭包) ⇒ `t2b0_table_rebuilds` 当场判红 ✓。
+            crate::compile::display_notations(&entry_closure)
+        } else {
+            lib.lib_display
+                .merged_with(&crate::compile::display_notations(entry_units))
+        };
         // **跨模块 hover 回填**（切片 1b 的入口趟）：`resolution` 要指向**库层**声明
         // 的真实 span，而入口趟的 `units` 只有入口 ⇒ 不传这张表的话，入口里
         // `Point`（来自 `import Lib`）的 hover `resolution` 会退化成 `None`
         // ⇒ F12/高亮在跨模块名字上失效 ✗（实测：与会话外整份编译的报告因此不同）。
-        let entry_defs = crate::compile::top_level_def_spans_over(&entry_closure);
+        // **T2-B0**：同 `entry_display` —— 库层先、入口后（与一次性建表同序 ✓）。
+        let entry_defs = {
+            let mut defs = lib.lib_defs.clone();
+            for (name, span) in crate::compile::top_level_def_spans_over(entry_units) {
+                defs.entry(name).or_insert(span);
+            }
+            defs
+        };
         // **S2 步 2**：该入口这一趟的信任前缀（缺省 = 整份重查，与今天逐字节相同）。
         let trusted = entry_trust.get(index).and_then(|slot| slot.as_ref());
         let (pass, _next, _next_tables, _state) = run_pass_with(

@@ -104,13 +104,38 @@ use std::collections::HashMap;
 /// **元数**（arity）= 目标声明的 telescope 层数。只有 `spine.len() == arity`
 /// 才是记法实例——`Set.mem α a` 是**部分应用**，折成 `α ∈ a` 就是显示错误。
 /// 元数的来源是 T-C11；这里只**消费**它，好让折叠层能被单独测。
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DisplayNotations {
     table: Vec<NotationDecl>,
     arity: HashMap<String, usize>,
 }
 
 impl DisplayNotations {
+    /// **T2-B0（2026-10-09）**：把"**库层那一段**"与"**入口那一段**"两张表合并成一张 ——
+    /// 结果必须与"按 `库层 ++ 入口` **一次性**建表"**逐位相同** ✓
+    /// （判据 `crates/front/tests/t2b0_display_merge_parity.rs` ✓）。
+    ///
+    /// ## 为什么不是简单的 `table.extend`
+    ///
+    /// 两张表**各自**都带了内建记法（`display_notations_from_commands` 会把
+    /// `builtin_notation_decls()` **前插** ✓）⇒ 直接拼会**重复**内建项 ✗ ⇒
+    /// 折叠时同一个符号会匹配到**多条** ⇒ 行为可能与一次性建表分叉 ✗。
+    /// ⇒ 规则：`self.table`（含内建）**原样** + `other.table` **跳过它的内建前缀** ✓。
+    ///
+    /// 元数表：`self` 打底、`other` **覆盖**（与"入口在后"的插入顺序一致 ✓）。
+    pub fn merged_with(&self, other: &Self) -> Self {
+        let builtins = crate::notation::builtin_notation_decls().len();
+        let mut table = self.table.clone();
+        if other.table.len() >= builtins {
+            table.extend_from_slice(&other.table[builtins..]);
+        }
+        let mut arity = self.arity.clone();
+        for (name, n) in &other.arity {
+            arity.insert(name.clone(), *n);
+        }
+        Self { table, arity }
+    }
+
     pub fn new(table: Vec<NotationDecl>, arity: HashMap<String, usize>) -> Self {
         Self { table, arity }
     }

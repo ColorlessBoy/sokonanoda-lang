@@ -501,6 +501,7 @@ fn by_step_states(
 pub fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNotations {
     // **T2-B0 的判据读数**（2026-10-09）：这张表是**闭包文本的纯函数**，今天**每刀重算** ✗。
     NOTATION_TABLE_BUILDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    NOTATION_TABLE_UNITS.fetch_add(units.len() as u64, std::sync::atomic::Ordering::Relaxed);
     let commands: Vec<crate::ast::Command> = units
         .iter()
         .flat_map(|unit| unit.file.commands.iter().cloned())
@@ -1160,6 +1161,26 @@ pub fn def_spans_builds_total() -> u64 {
     DEF_SPANS_BUILDS.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// **T2-B0 的第二条读数**：这两张表**一共处理了多少个单元**。
+///
+/// **为什么必须有它**：T2-B0 的目标不是"把调用次数打到 0"（入口那一段**本来就该每刀建** ✓），
+/// 而是"**只随入口规模**" ✓ —— 调用次数**不变**、处理的**单元数**从 `O(闭包)` 掉到 `1` ✓。
+/// 只数调用次数会把"已经切开了"误读成"没做" ✗。
+static NOTATION_TABLE_UNITS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static DEF_SPANS_UNITS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// 见 [`notation_table_builds_total`]：**单元数**（切分前 = 每刀 O(闭包)、切分后 = 1 ✓）。
+#[doc(hidden)]
+pub fn notation_table_units_total() -> u64 {
+    NOTATION_TABLE_UNITS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// 见 [`def_spans_builds_total`]：**单元数**（同上 ✓）。
+#[doc(hidden)]
+pub fn def_spans_units_total() -> u64 {
+    DEF_SPANS_UNITS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// **G-85 的键侧入口**：把一段前缀**源码**规范化成**环境身份** ✓（规则见
 /// [`closure_prefix_ids_for`] ✓）。
 ///
@@ -1715,6 +1736,7 @@ pub(crate) fn top_level_def_spans_over(units: &[SourceUnit<'_>]) -> HashMap<Stri
     // **T2-B0 的判据读数**（2026-10-09）：同 `display_notations` —— 闭包文本的纯函数、
     // 今天每刀重算 ✗。
     DEF_SPANS_BUILDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    DEF_SPANS_UNITS.fetch_add(units.len() as u64, std::sync::atomic::Ordering::Relaxed);
     let mut defs: HashMap<String, Span> = HashMap::new();
     for unit in units {
         for (name, span) in top_level_def_spans(unit.file) {
