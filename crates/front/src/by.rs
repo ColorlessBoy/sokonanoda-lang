@@ -2369,7 +2369,13 @@ fn cases_tactic<'a>(
             // `infer_type_text_inplace` 靠 binder 层数剥层 ⇒ 长度对不上**不试**
             // （宁可慢，不可错 ✓；同 [`level_hint_of_inplace`] 的硬前提）。
             (binder_srcs.len() == binders_before.len()).then(|| {
-                crate::judge::judge_infer_inplace_with_explicit(true, e, ctx, &binder_srcs, &operand)
+                crate::judge::judge_infer_inplace_with_explicit(
+                    true,
+                    e,
+                    ctx,
+                    &binder_srcs,
+                    &operand,
+                )
             })?
         })
     };
@@ -2387,7 +2393,8 @@ fn cases_tactic<'a>(
                     } else {
                         crate::judge::stats::INPLACE_CASES_SHADOW_DIFF
                             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        if let Ok(mut first) = crate::judge::stats::INPLACE_CASES_FIRST_DIFF.lock() {
+                        if let Ok(mut first) = crate::judge::stats::INPLACE_CASES_FIRST_DIFF.lock()
+                        {
                             if first.is_none() {
                                 *first = Some(format!(
                                     "cases scrutinee={scrutinee_name:?} | fast={fast:?} | \
