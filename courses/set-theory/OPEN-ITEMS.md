@@ -413,7 +413,12 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **留档已判绿** ✓（别重做 ✓）：`isEmpty_no_elem` ✓（`ca5dffca`，`lib ZF` 12/0/0 ✓，反向验证 12→11→12 ✓）·
 `lib/Ordinal` 三条 ✓（16→15→16 / 17→16→17 / 18→17→18 ✓）。
 
-## C-120（**open · 绕行 = 搁置并换靶** · 2026-10-03 S-B 第 34 轮）`Exists.elim` **嵌套链**在 `def` 头目标下补不出实参 ✗
+## C-120（**closed · 2026-10-08 收口**）`Exists.elim` **嵌套链**在 `def` 头目标下补不出实参 ✗
+
+- **收口（2026-10-08 ✓）**：**两版都判绿** ✓，并**超额交付** ✓ —— `lib/Cardinal.sokonanoda` 新增：
+  `Type.Equiv.elim`（落地用的消去子 ✓）· **`Type.Equiv.symm`** · `Type.Equiv.comp_left_aux` / `comp_right_aux` · `Type.Equiv.comp` · **`Type.Equiv.trans`** ✓
+  ⇒ 加上库里原有的 `Type.Equiv.refl`，**自反/对称/传递三件齐了** ✓（这正是 C-121 的堵点 ✓）。
+- **复现件（登记在册 ✓，G7 重放）**：`gaps/C-120-C-121-C-130-cardinal-laws.sh` ✓。
 
 **目标**：`lib/Cardinal` 加 `Type.Equiv.symm`（`Type.Equiv α β → Type.Equiv β α` ✓）。**两版全红** ✗
 （判据 = `query check --root courses/set-theory` ✓）：
@@ -430,7 +435,13 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **形态规律累计** ✓（本 goal 实证 ✓）：① 绑定形态先落地成 λ ✓；② 内层 `∃` 拆具名引理 ✓；
 ③ 动机位 λ 体内**只能引用引理**、不内联嵌套 `∃` ✓；④ `Exists.elim` 动机**不写 `def` 头** ✗（且改成展开形态也无效 ✗）。
 
-## C-121（**open · 绕行 = 转单元侧** · 2026-10-03 S-B 第 49 轮）三库（Ordinal/ZF/Cardinal/Choice）**安全区已尽** ✗
+## C-121（**closed · 2026-10-08 收口**）三库（Ordinal/ZF/Cardinal/Choice）**安全区已尽** ✗
+
+- **收口（2026-10-08 ✓）**："三库安全区已尽"的判定**不再成立** ✓ —— 本轮**在 `lib/Cardinal` 交付 `Cardinal.mk_inj`** ✓
+  （`Cardinal.mk α = Cardinal.mk β ⇒ Type.Equiv α β` ✓）—— 它正是当年被 C-120 挡住的 `Quot.exact` 那条 ✓
+  （`Quot.exact` 要三条等价律 ✓，现由 `Type.Equiv.refl`/`symm`/`trans` 供上 ✓）。
+- **本轮各库新增（全部判绿 ✓）**：`lib/Cardinal` **+8** ✓ · `lib/Equiv` **+6** ✓ · `lib/ZF` **+4** ✓ · `lib/Rel` **+3** ✓ · `lib/Ordinal` **+2** ✓ · `lib/SUnion` **+1** ✓。
+- **复现件**：`gaps/C-120-C-121-C-130-cardinal-laws.sh` ✓（`Cardinal.mk_inj` 段 ✓）。
 
 **本轮逐库盘点** ✓（判据 = 各库文件自述 + 签名实读 + 探针 ✓）：
 
@@ -601,7 +612,11 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **留档已判绿 65 项** ✓（别重做 ✓）：库引理 62 ✓（`lib/Ordinal` 15 ✓ · `lib/ZF` **8** ✓ · `lib/Cardinal` 3 ✓ ·
 `lib/SUnion` 9 ✓ · `lib/Rel` 29 ✓）· 单元练习 4 道 ✓。
 
-## C-130（**open · 绕行 = 换靶** · 2026-10-03 S-B 第 218 轮）**声明形态**（`∃` 记法族）被判据挡住 ✗ ＋ 一条**诊断方法** ✓
+## C-130（**closed · 2026-10-08 收口**）**声明形态**（`∃` 记法族）被判据挡住 ✗ ＋ 一条**诊断方法** ✓
+
+- **收口（2026-10-08 ✓）**：**`Type.Equiv.of_inverses''` 已入 `lib/Cardinal` 并判绿** ✓ —— `of_inverses'` + `And.left`/`And.right` 一层包装 ✓
+  （两版都判绿 ✓：直接应用 ✓ / `Exists.intro` 展开 ✓）。登记的"**诊断方法**"仍然有效 ✓（两条不同证明项同位置同报文 ⇒ 卡点在声明形态 ⇒ 换靶 ✓）。
+- **复现件**：`gaps/C-120-C-121-C-130-cardinal-laws.sh` ✓。
 
 **目标**：`lib/Cardinal` 加 `Type.Equiv.of_inverses''`（合取前提 ⇒ 完整 `∃ f, ∃ g` ✓）。**两版全红** ✗：
 

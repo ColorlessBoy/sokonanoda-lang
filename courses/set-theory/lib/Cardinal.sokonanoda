@@ -140,3 +140,85 @@ theorem Type.Equiv.of_inverses_iff (α β : Type) (f : α → β) (g : β → α
       (∃ (g' : β → α), (∀ (a : α), g' (f a) = a) ∧ (∀ (b : β), f (g' b) = b)) :=
   fun (h : (∀ (a : α), g (f a) = a) ∧ (∀ (b : β), f (g b) = b)) =>
     Type.Equiv.of_inverses α β f g (And.left h) (And.right h)
+
+-- `of_inverses` 的**合取前提 ⇒ 完整 `∃ f, ∃ g`** 版（C-130 收口 ✓ 2026-10-08）：
+-- 先 `And.left`/`And.right` 拆前提，再交给 `of_inverses'`（**一层包装** ✓）。
+theorem Type.Equiv.of_inverses'' (α β : Type) (f : α → β) (g : β → α)
+    (h : (∀ (a : α), g (f a) = a) ∧ (∀ (b : β), f (g b) = b)) :
+    ∃ (f' : α → β), ∃ (g' : β → α), (∀ (a : α), g' (f' a) = a) ∧ (∀ (b : β), f' (g' b) = b) :=
+  Type.Equiv.of_inverses' α β f g (And.left h) (And.right h)
+
+-- ── `Type.Equiv` 的消去子与三条等价律（C-120 收口 ✓ 2026-10-08）────────────
+-- 当年两条路全红 ✗（`Exists.elim` 嵌套链，报文 `第 5 个绑元`）—— G-73 家族已 `fixed` ✓。
+-- ⚠ 残留（本轮实测）：`def` 头形态的函数**直接续应用**仍红 ✗（`… (isPair_def …) h a` 一族）
+-- ⇒ 交付一律**先 λ 落地**（本文件的 `elim` 就是那把落地锤 ✓）。
+theorem Type.Equiv.elim (α β : Type) (Q : Prop) (h : Type.Equiv α β)
+    (k : ∀ (f : α → β) (g : β → α),
+      (∀ (a : α), g (f a) = a) → (∀ (b : β), f (g b) = b) → Q) : Q :=
+  Exists.elim h
+    (fun (f : α → β)
+        (hf : ∃ (g : β → α), (∀ (a : α), g (f a) = a) ∧ (∀ (b : β), f (g b) = b)) =>
+      Exists.elim hf
+        (fun (g : β → α)
+            (hgf : (∀ (a : α), g (f a) = a) ∧ (∀ (b : β), f (g b) = b)) =>
+          k f g (And.left hgf) (And.right hgf)))
+
+-- 对称律（把互逆的一对**对调** ✓）
+theorem Type.Equiv.symm (α β : Type) (h : Type.Equiv α β) : Type.Equiv β α :=
+  Type.Equiv.elim α β (Type.Equiv β α) h
+    (fun (f : α → β) (g : β → α)
+        (h1 : ∀ (a : α), g (f a) = a) (h2 : ∀ (b : β), f (g b) = b) =>
+      Iff.mpr (Type.Equiv.iff β α) (Type.Equiv.of_inverses' β α g f h2 h1))
+
+-- 复合律的两条互逆律（**深嵌套一律拆辅助引理** ✓ 手册；`Eq.trans.{1}` 逐位写全 ✓）
+theorem Type.Equiv.comp_left_aux (α β γ : Type)
+    (f₁ : α → β) (g₁ : β → α) (f₂ : β → γ) (g₂ : γ → β)
+    (l₁ : ∀ (a : α), g₁ (f₁ a) = a) (l₂ : ∀ (b : β), g₂ (f₂ b) = b) (a : α) :
+    g₁ (g₂ (f₂ (f₁ a))) = a :=
+  Eq.trans.{1} α (g₁ (g₂ (f₂ (f₁ a)))) (g₁ (f₁ a)) a  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (Eq.subst.{1} β (fun (t : β) => g₁ t = g₁ (f₁ a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (f₁ a) (g₂ (f₂ (f₁ a)))
+      (Eq.symm.{1} β (g₂ (f₂ (f₁ a))) (f₁ a) (l₂ (f₁ a)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (Eq.refl.{1} α (g₁ (f₁ a))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (l₁ a)
+
+theorem Type.Equiv.comp_right_aux (α β γ : Type)
+    (f₁ : α → β) (g₁ : β → α) (f₂ : β → γ) (g₂ : γ → β)
+    (r₁ : ∀ (b : β), f₁ (g₁ b) = b) (r₂ : ∀ (c : γ), f₂ (g₂ c) = c) (c : γ) :
+    f₂ (f₁ (g₁ (g₂ c))) = c :=
+  Eq.trans.{1} γ (f₂ (f₁ (g₁ (g₂ c)))) (f₂ (g₂ c)) c  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (Eq.subst.{1} β (fun (t : β) => f₂ (f₁ (g₁ (g₂ c))) = f₂ t)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (f₁ (g₁ (g₂ c))) (g₂ c) (r₁ (g₂ c))
+      (Eq.refl.{1} γ (f₂ (f₁ (g₁ (g₂ c))))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (r₂ c)
+
+-- 复合律（`α ≈ β` 与 `β ≈ γ` 的互逆对逐条复合 ✓）
+theorem Type.Equiv.comp (α β γ : Type)
+    (f₁ : α → β) (g₁ : β → α) (f₂ : β → γ) (g₂ : γ → β)
+    (l₁ : ∀ (a : α), g₁ (f₁ a) = a) (r₁ : ∀ (b : β), f₁ (g₁ b) = b)
+    (l₂ : ∀ (b : β), g₂ (f₂ b) = b) (r₂ : ∀ (c : γ), f₂ (g₂ c) = c) :
+    Type.Equiv α γ :=
+  Iff.mpr (Type.Equiv.iff α γ)
+    (Type.Equiv.of_inverses' α γ
+      (fun (a : α) => f₂ (f₁ a)) (fun (c : γ) => g₁ (g₂ c))
+      (fun (a : α) => Type.Equiv.comp_left_aux α β γ f₁ g₁ f₂ g₂ l₁ l₂ a)
+      (fun (c : γ) => Type.Equiv.comp_right_aux α β γ f₁ g₁ f₂ g₂ r₁ r₂ c))
+
+-- 传递律（`elim` 两层嵌套 ✓）
+theorem Type.Equiv.trans (α β γ : Type)
+    (h₁ : Type.Equiv α β) (h₂ : Type.Equiv β γ) : Type.Equiv α γ :=
+  Type.Equiv.elim α β (Type.Equiv α γ) h₁
+    (fun (f₁ : α → β) (g₁ : β → α)
+        (h₁a : ∀ (a : α), g₁ (f₁ a) = a) (h₁b : ∀ (b : β), f₁ (g₁ b) = b) =>
+      Type.Equiv.elim β γ (Type.Equiv α γ) h₂
+        (fun (f₂ : β → γ) (g₂ : γ → β)
+            (h₂a : ∀ (b : β), g₂ (f₂ b) = b) (h₂c : ∀ (c : γ), f₂ (g₂ c) = c) =>
+          Type.Equiv.comp α β γ f₁ g₁ f₂ g₂ h₁a h₁b h₂a h₂c))
+
+-- ── `Cardinal.mk` 的**单射性**（C-121 收口 ✓ 2026-10-08）────────────────────
+-- `Quot.exact` 要**三条等价律**（`Setoid` 的字段 ✓）—— 它们正是上面刚交付的三件 ✓
+-- ⇒ 这条以前写不出（C-120 挡着 ✗），今天**一次判绿** ✓。
+theorem Cardinal.mk_inj (α β : Type) (h : Cardinal.mk α = Cardinal.mk β) :
+    Type.Equiv α β :=
+  Quot.exact.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y)
+    Type.Equiv.refl Type.Equiv.symm Type.Equiv.trans α β h
