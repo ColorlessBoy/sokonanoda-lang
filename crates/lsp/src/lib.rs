@@ -605,6 +605,12 @@ struct Compiler {
     /// 影响；大闭包才等静默期。一刀切地防抖会把每次编辑的诊断都推迟 120ms
     /// ——那是拿**反馈延迟**换**不冻结**，对小文件纯亏。
     cost: Mutex<HashMap<Url, Duration>>,
+    /// **这份文档"这次编辑是不是接在前一条写后面"**（§11.22，2026-10-09）。
+    ///
+    /// = `schedule` 那一刻，这份文档**已经有待编或在飞的任务** ✓（clangd 原话
+    /// "**写紧跟写**"的字面义）。静默期只保护这一种情况；"打开 → 读一眼 → 敲"里的
+    /// **第一刀**没有前一条写可保护 ⇒ 不该白等 120ms ✗（实测 205.6ms 里 ≈120ms 就是它）。
+    burst: Mutex<HashMap<Url, bool>>,
 }
 
 /// "重建慢"的门槛：上一次编译超过它，下一次编辑就等静默期。
@@ -681,6 +687,7 @@ impl Compiler {
             inflight: Mutex::new(HashSet::new()),
             debounce: debounce_from_env(),
             cost: Mutex::new(HashMap::new()),
+            burst: Mutex::new(HashMap::new()),
         }
     }
 
@@ -692,7 +699,17 @@ impl Compiler {
             .expect("cost lock")
             .get(uri)
             .is_some_and(|last| *last >= SLOW_REBUILD);
-        if slow {
+        // **§11.22**：静默期保护的是"**写紧跟写**"（连打时每键重编会冻结编辑器）。判据不是
+        // "距上次多久"（时间窗分不出"开档"与"编辑" —— §11.21 实测那版无效 ✗），而是
+        // **这次编辑接在前一条写之后**（`burst`，由 `schedule` 判定 ✓）。
+        let bursting = self
+            .burst
+            .lock()
+            .expect("burst lock")
+            .get(uri)
+            .copied()
+            .unwrap_or(false);
+        if slow && bursting {
             self.debounce
         } else {
             Duration::ZERO
@@ -711,7 +728,13 @@ impl Compiler {
     /// 锁序固定为 `inflight → pending`（`keep_going` 同序），避免死锁。
     fn schedule(&self, uri: Url, text: String, version: i32, always: bool) -> bool {
         let mut inflight = self.inflight.lock().expect("inflight lock");
-        self.pending.lock().expect("pending lock").insert(
+        let mut pending = self.pending.lock().expect("pending lock");
+        // **§11.22**：**这次编辑到来时，这份文档已经有待编/在飞的任务** ⇒ 用户在**连打**
+        // ⇒ 静默期才该生效 ✓（开档后的第一刀、以及"编译已跑完、隔了一会儿又敲"都**不是**
+        // 连打 ⇒ 不等 ✓）。这条规则**自调节**：编译比敲键快 ⇒ 队列里总是空的 ⇒ 永不防抖；
+        // 编译比敲键慢 ⇒ 队列里总有活儿 ⇒ 自动防抖 ✓✓。
+        let burst = pending.contains_key(&uri) || inflight.contains(&uri);
+        pending.insert(
             uri.clone(),
             Job {
                 text,
@@ -719,8 +742,14 @@ impl Compiler {
                 always,
             },
         );
+        drop(pending);
         // 已有任务在飞：它下一轮循环会取走这条 pending。
-        inflight.insert(uri)
+        let scheduled = inflight.insert(uri.clone());
+        self.burst
+            .lock()
+            .expect("burst lock")
+            .insert(uri, burst);
+        scheduled
     }
 
     /// 任务退出前的收尾：还有待编就**留下继续跑**（返回 `true`），否则摘掉

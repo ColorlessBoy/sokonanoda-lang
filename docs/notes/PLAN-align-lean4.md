@@ -1242,3 +1242,26 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ② **连打保护不丢**：冷开（记下 `cost ≥ 150ms`）后**连发 5 刀、每刀间隔 30ms** ⇒ 断言
   **编译次数 < 编辑次数** ✓（新用例：`crates/lsp/tests/` · 本线可写 ✓）；
   ③ `typing` 臂读数不动（现 **80.8ms** ✓）。
+### 11.22 第 16 轮（2026-10-09）—— **§11.21 的判据落地**：首刀 **205.6 → 79.6ms** ✓（连打保护已钉住 ✓）
+
+* **落点**（`crates/lsp/src/lib.rs`）：`Compiler` 加 `burst: Mutex<HashMap<Url, bool>>`；
+  `schedule` 里判 **"这次编辑到来时这份文档已经有待编/在飞的任务"**（`pending.contains_key
+  || inflight.contains`）写进 `burst` ✓；`debounce_for` 从"**上次编译慢就等**"改成
+  "**慢 ∧ 写紧跟写**才等" ✓（时间窗那版已在 §11.21 撤回 ✗）。
+* **读数（同构建 `lsp-cargo-mtime=1791481239`）**：
+
+  | 臂 | 改前 | **改后** |
+  |---|---|---|
+  | **`first-keystroke-after-open`（打开就敲）** | 205.6ms（compile 78ms ⇒ 118ms 纯等） | **79.6ms** · compile 79ms ✓（**墙钟 ≈ 编译** ⇒ 白等没了） |
+  | `typing`（真实连续键入） | 77.7 / 80.8ms | **78.5ms** ✓ 不动 |
+  | `proof` / `statement` | ~82ms | 81.7ms ✓ |
+  | `typing_equal_length` | 41ms | 40.6ms ✓ |
+  | `cross-entry-switch` | 711ms | 跑通 ✓（探针 3 条全绿） |
+* **连打保护（新判据 · `crates/lsp/tests/lsp_debounce_burst.rs`，两条都绿 ✓）**：
+  * `a_burst_of_edits_is_still_coalesced`：冷开（真编 ⇒ 记下 `cost ≥ 150ms`）后**连发 5 刀、
+    间隔 30ms** ⇒ 断言 `1 ≤ 编译次数 < 5` ✓（**保护没丢**）；
+  * `spaced_out_edits_are_not_debounced`：每刀**等诊断回来**（≈"读一眼再敲"）⇒ 断言**恰好 3 次** ✓
+    （**不该吞**）。
+  ⚠ 诚实记：这两条是**防退化**的守卫（旧规则也能过它们 ✓）；**证明"这次改对了"的是
+  `first-keystroke` 臂那条读数**（205.6 → 79.6ms ⇒ 对齐 `SOKO_DEBOUNCE_MS=0` 的 95.0ms ✓）。
+* **全量**：`cargo test -p sokonanoda-lsp` **各目标全绿** ✓（177 lib + 全部集成目标，含新判据 2/2 ✓）。
