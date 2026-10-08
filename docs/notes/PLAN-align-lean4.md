@@ -1765,3 +1765,37 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   （装载 A + 读回 B ⇒ 接着编）。⚠ 仍按 §24 的顺序：**两个一起接**，别只接写（纯开销 ✗）。
 * **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 ✓ · 批 2：产物存储 ✓ + B(known/defs/inductives) ✓
   ⇒ 只剩接线** · ② T2-A ✓ / T2-B 缓做 · ③ ✓ · ④ T4-A ✓。
+
+### 27. 第 35 轮（平行线）：批 2 的**载荷合体形**落地 —— A+B 跨 arena 往返打通 ✓
+
+* **落点**（`23215561`）：`project/artifacts.rs` 的 `encode_payload` /
+  `decode_payload` —— 一行头 `soko.module-artifact/1 <A 的字节数>\n` 后接
+  A（内核环境文本）、再接 B（前端表文本）。
+  ⚠ **不做 JSON 包一层**：A 是几十万字节文本，包 JSON 要整体转义（体积 ×1.2 + 多一次
+  分配 ✗）；一行头 + 两段拼接**确定、可流式校验** ✓。
+  `decode_payload` **收 arena**（T1-B 的设计约束：装载必须落在本趟 pass 自己的
+  arena 里 ✓），内部 = 拆头（任何不自洽 ⇒ `Err`）⇒ `parse_export_mapped` 出 A ⇒
+  `tables::decode` 出 B ⇒ `rehydrate_inductives` 按规范名回填 `MatchField.ty`。
+  另补 `declaration_index`/`render_name`（内核**没有**公开的"`NamePtr` ⇒ 字符串"
+  自由函数 ⇒ 用 `TcCtx::read_name/read_string` 递归拼，与 `pretty_printer::name_to_string`
+  **同一套语义** ✓）。
+* ⚠ **信任模型（§8.3）写进代码文档**：这条口子按"**自己人写出来的产物**"解析 ⇒
+  传的 `Config` **放行一切公理**（产物里的 `axiom` 是本地声明回放）。真要信任
+  **下载来**的产物是 §8.3 的开关 + 清单签名那件事 ✓。
+* ⭐ **判据 `payload_round_trips_across_arenas`**：真的内核环境（两条公理）+ 一张前端表
+  ⇒ 编码 ⇒ **过磁盘**（顺带走一遍完整性三道 ✓）⇒ **换一份 arena** 解码 ⇒
+  ① 声明一条不少 ② **`check_all_declars()` 过** ✓ ③ 前端表**逐项相同** ✓；
+  **两条反向验证**：**截断** ⇒ `Err` ✓ · 头部**声称长度超实际** ⇒ `Err` ✓。
+  front `--lib` **886/886** · fmt 干净 · clippy 0 报错 ✓。
+* ⚠ **过程教训（只影响我自己、已修正）**：`cat >>` 追加函数之后再"按最后一个 `}` 插
+  测试"会把测试插进**函数体里** ✗（本轮踩了两次，第二次靠**花括号配对**才修对）；
+  clippy 另外要求 **test 模块必须是文件最后一个 item**（`items_after_test_module`）⇒
+  测试模块一律放文件末尾 ✓。**这两条写进下一棒的注意事项：往已有文件追加时，
+  "插到测试模块里"必须用配对定位、不能数最后一个大括号** ✓。
+* **批 2 的账**：产物存储 ✓ · B（known/defs/inductives）✓ · 载荷合体形 ✓ ·
+  **⇒ 只剩"接进 session"**：写入口（每模块边界写一份）与消费入口（装载 A+B ⇒
+  跳过库层 walk ⇒ 只走该入口自己的命令）。
+  ⚠ 消费入口要动 `run_library_from` 的**控制流**（T1-A 的 `ResumeState` / judge 前缀
+  偏移都挂在上面）⇒ **必须同一次改完并逐字节对拍**，别半接 ✓。
+* **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 ✓ · 批 2 的基础设施全齐，只剩接进 session** ·
+  ② T2-A ✓ / T2-B 缓做 · ③ ✓ · ④ T4-A ✓。
