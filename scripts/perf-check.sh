@@ -46,13 +46,30 @@ done
 
 if [ "$list_only" = 1 ]; then
   python3 - <<'PY'
-import json, pathlib
+# ⚠ **2026-10-08 修**：这里原来只有 `import json, pathlib`，却用了 `os.environ`
+# ⇒ `--list` **一跑就 NameError** ✗（守卫自己坏了 ⇒ 谁也不敢信它给的台账视图 ✗）。
+import json, os, pathlib
 path = pathlib.Path(os.environ.get("SOKO_PERF_LEDGER", "docs/perf/ledger.jsonl"))
 if not path.exists():
     print("（还没有台账：先跑 scripts/perf-ledger.sh）")
     raise SystemExit(0)
-entry = json.loads(path.read_text(encoding="utf-8").strip().splitlines()[-1])
-print(f"台账最后一条：v{entry['version']} {entry['commit'][:7]} ({entry['date']}, cli={entry['cli_profile']})")
+# ⚠ **2026-10-08 修**：台账里**混着两种形状** —— `perf-ledger.sh` 自动写的
+# `soko.perf-ledger/1`（带 `records`/`cli_profile` ✓）与**手写的** `soko.perf/1`
+# （收口条目，如 `g90_*`/`a6_*`，**没有** `records` ✗）。原来这里直接读**最后一行**
+# 就取 `cli_profile` ⇒ 只要台账尾巴是手写条目就 **KeyError** ✗（= 视图坏掉 ⇒ 没人敢用）。
+# 正解：**从后往前找第一条带 `records` 的** ✓；一条都没有就如实说 ✓。
+entries = []
+for line in path.read_text(encoding="utf-8").strip().splitlines():
+    try:
+        entries.append(json.loads(line))
+    except Exception:  # noqa: BLE001
+        continue
+entry = next((e for e in reversed(entries) if e.get("records")), None)
+if entry is None:
+    print("（台账里还没有**自动记录**条目：先跑 scripts/perf-ledger.sh）")
+    raise SystemExit(0)
+print(f"台账最后一条自动记录：v{entry.get('version','?')} {str(entry.get('commit','?'))[:7]} "
+      f"({entry.get('date','?')}, cli={entry.get('cli_profile','?')})")
 for r in entry["records"]:
     ms = r.get("best_ms", r.get("ms"))
     print(f"  {r.get('scope','?'):14s} {r.get('case','?'):34s} {ms}ms")

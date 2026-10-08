@@ -289,6 +289,12 @@
       "renewed": "2026-10-03",
       "tier": "process"
     },
+    "docs/notes/PLAN-align-lean4.md": {
+      "expires": "2026-11-07",
+      "renewed": "2026-10-08",
+      "tier": "process",
+      "reason": "对齐 Lean 4 的规划文档（2026-10-08 新建，规划线在建；到期由后续 agent 审查）"
+    },
     "docs/notes/PLAN-cli-editor-perf.md": {
       "expires": "2027-01-06",
       "renewed": "2026-10-08",
