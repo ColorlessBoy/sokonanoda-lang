@@ -83,6 +83,12 @@ pub(crate) struct LibCheckpoint<'a> {
     prefix_commands: usize,
     /// 这份检查点被复用了多少次（单份 arena 的增长上界，见 [`MAX_REUSES_PER_CHECKPOINT`]）。
     reuses: usize,
+    /// **A4a（2026-10-08）**：库层全部单元拼接之后的**闭包前缀**（去 `import` 行 + 补行尾换行）。
+    ///
+    /// 入口趟要的前缀恰好就是它（`entry_closure` 的最后一格 = 库层那一段 ✓）——
+    /// 它是 `lib_key` 的**纯函数** ⇒ 随检查点存一次、每刀克隆即可 ✓
+    /// （以前每一刀重跑一遍 O(闭包) 的累加 ✗，判据读数 `closure_prefix_builds_total`）。
+    lib_prefix: String,
 }
 
 /// **上界 ①**：进程内**泄漏的库层 arena** 数的上限。
@@ -400,6 +406,8 @@ fn run_library_pass<'a>(
     // 读在 `lib_pass.report` 被搬走**之前**（`split_report` 会吃掉它）。
     let checks = lib_pass.kernel_checks();
     let ranges = crate::compile::unit_ranges(lib_units);
+    // **A4a**：库层那一段的闭包前缀（与入口趟**同一套累加规则** ✓）。
+    let lib_prefix = crate::compile::closure_accumulated_over(lib_units);
     let reports = split_report(
         lib_pass.report,
         &lib_pass.out.error_cmds,
@@ -418,6 +426,7 @@ fn run_library_pass<'a>(
         n_commands: lib_pass.n_commands,
         prefix_commands,
         reuses: 0,
+        lib_prefix,
     }
 }
 
@@ -469,11 +478,22 @@ fn run_entries<'a, R>(
         // 直接把整个 `entry_prefixes` 传进去 ⇒ `get(0)` = 空串 ⇒ 走 `_ =>` 分支
         // ⇒ **入口没有库层前缀** ✗ ⇒ 实测报「前缀源码无法解析」+ 一串记法解析失败
         // （`≠`/`{a,b}`/`=`/`∈` 全都"读不到目标类型"）。
-        let entry_prefixes_all = crate::compile::closure_prefixes_for(&entry_closure);
-        let entry_prefixes: Vec<String> = entry_prefixes_all
-            .last()
-            .map(|last| vec![last.clone()])
-            .unwrap_or_default();
+        // **A4a（2026-10-08）**：入口趟要的前缀 = **库层全部**那一段 ——
+        // 它是检查点里**存好的**（`lib.lib_prefix`，`lib_key` 的纯函数 ✓）⇒
+        // 每一刀只克隆一次，**不再重跑 O(闭包) 的累加** ✓。
+        // ⚠ **逐字节等价**：旧写法 `closure_prefixes_for(&entry_closure).last()`
+        // 拿的就是"库层全部单元拼接之后"那一份（入口是 `entry_closure` 的最后一格
+        // ⇒ 最后一格 = units[0..n-1] = 全部库层 ✓）；`lib_prefix` 用**同一套累加规则**
+        // （`closure_accumulated_over` 与 `closure_prefixes_for` 共用一个实现 ✓）。
+        // 库层为空（单文件）⇒ 保持旧路（那时 `closure_prefixes_for` 返回**空 Vec** ✓）。
+        let entry_prefixes: Vec<String> = if lib_units.is_empty() {
+            crate::compile::closure_prefixes_for(&entry_closure)
+                .last()
+                .map(|last| vec![last.clone()])
+                .unwrap_or_default()
+        } else {
+            vec![lib.lib_prefix.clone()]
+        };
         let entry_display = crate::compile::display_notations(&entry_closure);
         // **跨模块 hover 回填**（切片 1b 的入口趟）：`resolution` 要指向**库层**声明
         // 的真实 span，而入口趟的 `units` 只有入口 ⇒ 不传这张表的话，入口里

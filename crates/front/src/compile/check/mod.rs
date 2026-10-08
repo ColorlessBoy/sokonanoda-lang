@@ -1053,6 +1053,26 @@ pub fn closure_prefixes_for(units: &[SourceUnit<'_>]) -> Vec<String> {
     if units.len() <= 1 {
         return Vec::new();
     }
+    accumulate_prefixes(units).0
+}
+
+/// **A4a（2026-10-08）**：`units` **全部拼接之后**的累加串 ——
+/// `closure_prefixes_for` 的"最后一格**之后**"那一份 ✓（同一套拼接规则：去 `import` 行 +
+/// 补行尾换行）。
+///
+/// **为什么需要它**：入口趟要的前缀恰好就是**库层全部**（`entry_closure` 的最后一格 =
+/// 库层那一段 ✓）⇒ 而它是 `lib_key` 的纯函数 ⇒ 可以**随库层检查点存一次**、
+/// 每一刀直接克隆 ✓（以前每一刀都重跑一遍 O(闭包) 的累加 ✗）。
+pub fn closure_accumulated_over(units: &[SourceUnit<'_>]) -> String {
+    accumulate_prefixes(units).1
+}
+
+/// **累加规则的唯一实现**（A4a）：返回 `(逐格前缀, 全部之后的累加串)`。
+///
+/// ⚠ 判据读数 [`closure_prefix_builds_total`] 就记在这里 —— "派生表重建数"：
+/// 冷开 = 库层趟 1 次 + 入口趟 1 次；**检查点复用之后第 2 刀起 = 0** ✓。
+fn accumulate_prefixes(units: &[SourceUnit<'_>]) -> (Vec<String>, String) {
+    CLOSURE_PREFIX_BUILDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let mut prefixes = Vec::with_capacity(units.len());
     let mut accumulated = String::new();
     for unit in units {
@@ -1062,7 +1082,16 @@ pub fn closure_prefixes_for(units: &[SourceUnit<'_>]) -> Vec<String> {
             accumulated.push('\n');
         }
     }
-    prefixes
+    (prefixes, accumulated)
+}
+
+/// **A4a 的判据读数**（`#[doc(hidden)]`，只给判据用）：闭包前缀**累加**跑了几次。
+static CLOSURE_PREFIX_BUILDS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// 见 [`closure_accumulated_over`]：冷开 = 2（库层趟 + 入口趟）、**第 2 刀起 = 0** ✓。
+#[doc(hidden)]
+pub fn closure_prefix_builds_total() -> u64 {
+    CLOSURE_PREFIX_BUILDS.load(std::sync::atomic::Ordering::Relaxed)
 }
 
 /// **G-85 的键侧入口**：把一段前缀**源码**规范化成**环境身份** ✓（规则见

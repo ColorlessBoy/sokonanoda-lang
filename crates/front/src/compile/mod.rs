@@ -24,11 +24,13 @@ pub use check::canonical_prefix_id;
 /// 同上，但**解析失败返回 `None`** ✓（增量身份的"片段探针"用 ✓，见 `check/walk.rs` ✓）。
 pub use check::canonical_prefix_id_checked;
 pub use check::{
-    check_document, check_document_with, closure_prefixes_for, compile_all_with, compile_fol,
-    compile_fol_with, display_notations, display_notations_from_commands, fold_for_display,
-    prelude_shape, render_expr, PreludeShape,
+    check_document, check_document_with, closure_accumulated_over, closure_prefixes_for,
+    compile_all_with, compile_fol, compile_fol_with, display_notations,
+    display_notations_from_commands, fold_for_display, prelude_shape, render_expr, PreludeShape,
 };
 pub use check::{closure_module_compiles_total, module_compiles_total, note_module_compile};
+/// **A4a（2026-10-08）的判据读数**：闭包前缀累加次数（冷开 2、检查点复用后 0）。
+pub use check::closure_prefix_builds_total;
 pub(crate) use check::{
     run_incremental, run_pass_with, top_level_def_spans, top_level_def_spans_over, KernelFailed,
     PassTables, TrustPlan,
@@ -45,7 +47,7 @@ pub use prelude::{
 };
 pub use report::{
     ByGoalState, ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport,
-    GoalBinder, HoverType, ResolvedTarget, SubGoal, REPORT_SHAPE,
+    GoalBinder, HoverType, PrintInfo, ResolvedTarget, SubGoal, REPORT_SHAPE,
 };
 pub(crate) use scope::{join_ns, NamespaceScope};
 /// **`TcCache` 构造次数**（2026-10-08 端到端 profiling 的新读数）：判据用它数
