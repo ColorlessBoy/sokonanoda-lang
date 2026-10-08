@@ -59,7 +59,13 @@ namespace Set
 
 def mem {α : Type} (a : α) (A : Set α) : Prop := A a
 
-def subset {α : Type} (A B : Set α) : Prop := ∀ (x : α), A x → B x
+-- ⚠ **体里写点名（`∈` 记法的目标名），不写展开形态 `A x`** ✗
+-- （2026-10-08 用户报「`apply h a` 之后目标显示成 `A a`」的根因）：`A ⊆ B` 被 `apply`
+-- 时内核要 whnf 出 `∀ x, …`，**新目标的文本就是这里的体** ⇒ 体写展开形态就丢记法
+-- （`A a`，显示层折不回来 ✗）；写点名 ⇒ 目标保持点名形态 ⇒ 显示层折成 `a ∈ A` ✓。
+-- 记法 `∈` 在本文件下半段才声明，所以这里**只能写点名** ✓（同 `Exists.sokonanoda`
+-- 的先例 ✓；`lib/Equiv.sokonanoda` 的 `Set.MapsTo` 体里直接用 `x ∈ A` ✓）。
+def subset {α : Type} (A B : Set α) : Prop := ∀ (x : α), Set.mem x A → Set.mem x B  -- soko:notation-ok: `∈` 记法在本文件第 140 行才声明，定义体只能写点名
 
 def empty {α : Type} : Set α := fun (x : α) => False
 
@@ -151,7 +157,7 @@ infixr:80 " ×ˢ " => Set.prod
 -- `by` tactic 块。这些引理的作用就是"把定义展开写成一条等式"，所以两边都是
 -- 恒等函数——`constructor` 拆 `↔`，两个方向 `intro h; exact h`。
 theorem subset_def {α : Type} (A B : Set α) :
-    A ⊆ B ↔ ∀ (x : α), A x → B x := by
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B := by
   constructor
   intro h
   exact h
