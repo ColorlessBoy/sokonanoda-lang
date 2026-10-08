@@ -1161,3 +1161,25 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
     可写回的形状（改动更大，且是"继续依赖副作用" ✗）。
   ⇒ **判据（两条都要）**：① `crates/lsp` 的那条 hover 用例在**默认（On）**档转绿 ✓；
   ② `typing` 臂 `by=9` / 墙钟 ~80ms **不动** ✓（不许用它换性能）。
+### 11.18 第 12 轮（2026-10-09）—— **修法 (a) 落地**：那行 hover 转绿，`typing` 臂读数不动 ✓
+
+* **落点**：
+  * `crates/front/src/query/mod.rs`：新增 **`QueryDoc::judge_prefix_with_entry(offset)`**
+    = 闭包前缀 **+ 入口自己的文本**（过 `importless_source` —— 合成文档里 `import` 行会失败 ✓）。
+    语义与 `judge_prefix`（"闭包，不含入口"）**分开**，不改变后者的消费者 ✓。
+  * `crates/lsp/src/lib.rs::notation_symbol_hover`：目标**本文件声明**（`locally_declared`）时
+    用新前缀问 `judge_type_of_constant` —— **不再依赖任何缓存副作用** ✓。
+* **判据（两条都过 ✓）**：
+
+  | 判据 | 结果 |
+  |---|---|
+  | `crates/lsp` 那条 hover 用例（**默认 `On` 档**） | **ok** ✓（`off` 档也 ok ✓） |
+  | `cargo test -p sokonanoda-lsp --lib` | **177 passed / 0 failed** ✓（修前 176/1 ✗） |
+  | `typing` 臂（性能不许换） | median **77.7ms** · `by=9` · `compile=77ms` · `modules=1` ✓ 不动 |
+  | `SOKO_JUDGE_INPLACE=off` 对照 | 同样 ok ✓ ⇒ 两档一致 ✓ |
+* **代价（诚实记）**：本文件声明的记法 hover 现在会**多跑一份合成文档**（只在用户点符号时付一次）
+  ✓；`typing`/首刀/跨入口三条**热路读数不变** ✓。
+* **教训（回写）**：`type_of_constant_prefer_inplace` 的 `On` 命中分支**只读不写**缓存（正确 ✓），
+  而**下游有一处消费者靠那张缓存的副作用活着** ✗ ⇒ 提速类改动必须问一句
+  "**谁在靠这次调用的副作用？**"（本轮就是 `judge_prefix` 的空串 + 缓存副作用组合出来的
+  定时炸弹）。影子档拦不住它（它比的是"就地 vs 慢路"的**返回值**，不是"谁写了缓存" ✗）。

@@ -733,6 +733,32 @@ impl QueryDoc {
         out
     }
 
+    /// **§11.17 修法 (a)（2026-10-09）**：给"目标在**本文件**声明"的查询用的前缀 ——
+    /// 闭包前缀 **+ 入口自己的文本**（过 `importless_source`：合成出来的 `#check` 文档里
+    /// `import` 行会失败 ✓）。
+    ///
+    /// ## 为什么必须有它
+    ///
+    /// [`Self::judge_prefix`] 的语义是"**闭包**（不含入口）"（`take(len-1)`；单文件 ⇒ **空串**），
+    /// 而 `judge_type_of_constant(prefix, …, 目标)` 会合成 `#check 目标` —— 目标若在**本文件**
+    /// 声明，空前缀里没有它 ⇒ **必然失败** ✗。以前那条 hover 还出得来，靠的是**编译期写进
+    /// 函数级 `CACHE` 的副作用**（键不含前缀）；就地快路不再写它 ⇒ 整行消失
+    /// （§11.14–§11.17 的根因链 ✓）。⇒ 正确解是**把入口自己的文本给足**，不依赖任何缓存副作用。
+    pub fn judge_prefix_with_entry(&self, offset: usize) -> String {
+        let mut out = self.judge_prefix(offset);
+        let entry = match self.project_modules() {
+            Some(modules) => modules.last().map(|m| m.source.as_str()),
+            None => Some(self.text.as_str()),
+        };
+        if let Some(source) = entry {
+            out.push_str(&crate::project::importless_source(source));
+            if !out.ends_with('\n') {
+                out.push('\n');
+            }
+        }
+        out
+    }
+
     /// 用**闭包缓存**里的入口报告与事件装配文档（命中时零内核工作）。
     ///
     /// CLI `query --file` 用它与 `check`/`build` 共用同一份摘要键；`project` 结构

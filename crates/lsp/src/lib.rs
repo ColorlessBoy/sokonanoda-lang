@@ -1538,7 +1538,18 @@ fn notation_symbol_hover(
         let options = sokonanoda_front::compile::CompileOptions {
             prelude: query.mode,
         };
-        if let Ok(ty) = sokonanoda_front::judge::judge_type_of_constant(&prefix, &options, &target)
+        // **§11.17 修法 (a)（2026-10-09）**：目标在**本文件**声明时，前缀必须含**本文件
+        // 自己的文本** —— `judge_prefix` 只给**闭包**（不含入口），单文件时是**空串**
+        // ⇒ 合成的 `#check <目标>` 里根本没有那条声明 ⇒ 以前这条**整行消失** ✗。
+        // 以前"能出那行"靠的是编译期写进函数级 `CACHE` 的**副作用**（键不含前缀），
+        // 而就地快路不再写它（§11.14–§11.17）⇒ 这里**不依赖副作用**、把文本给足 ✓。
+        let judge_prefix = if locally_declared {
+            query.judge_prefix_with_entry(offset)
+        } else {
+            prefix.clone()
+        };
+        if let Ok(ty) =
+            sokonanoda_front::judge::judge_type_of_constant(&judge_prefix, &options, &target)
         {
             // 松散变量（`$N`）的文本不可信——与 `render::hover_type_at` 同一条
             // 纪律：拿不到干净的类型就不编。
