@@ -35,6 +35,17 @@ use crate::compile::PreludeMode;
 /// 让另一个失效 ✓。
 pub const ARTIFACT_FORMAT: u32 = 1;
 
+/// **产物对数的上界**（T1-B 批 3 收尾，2026-10-09）。
+///
+/// **为什么必须有**：`compiled/` 那条**天然有界**（"一份产物对应一个入口文件" ✓）；
+/// 产物这条**没有** —— 键 = **库层闭包的 Merkle 键** ⇒ 用户每改一次库层就多一个新键 ✓
+/// ⇒ 老产物**再也没人读**却一直占着盘 ✗（设计 §8.1 只说了"文件名即内容寻址"，没定上界 ✗）。
+///
+/// **怎么淘汰**：按 **mtime 最旧**先走（够用、判据便宜 ✓）；一次写之后最多扫一遍目录 ✓。
+/// 64 对 ≈ 真课程量级下"几十 MB"（单份 ~1MB 量级 ✓）—— 取的是**别无限长**，
+/// 不是"省盘" ✓（要更省就调小，或将来换成"按最近命中"的 LRU ✓）。
+pub const MAX_ARTIFACT_PAIRS: usize = 64;
+
 /// `<模块根>/.sokonanoda/artifacts/`。
 pub fn dir(root: &Path) -> PathBuf {
     crate::project::cache::artifacts_dir(root).join("artifacts")
@@ -155,7 +166,53 @@ pub fn write(
     let json = serde_json::to_string(&meta)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
     std::fs::write(meta_path(root, key), format!("{json}\n"))?;
+    // **有界**（best-effort：淘汰失败绝不影响"这次写成功了"这个事实 ✓）。
+    prune(root, key);
     Ok(bin)
+}
+
+/// 把产物目录压回 [`MAX_ARTIFACT_PAIRS`] 对以内（**按 mtime 最旧先走** ✓）。
+///
+/// ⚠ **刚写的那一对永不淘汰**（否则"写成功"与"读得到"会打架 ✗）。
+/// 淘汰的单位是**一对**（`.bin` + `.meta.json` 一起走 ✓）—— 只删一半会留下
+/// "有凭据没载荷"或反之的垃圾 ✓（读侧会把它们当 miss，但白占盘 ✗）。
+fn prune(root: &Path, keep_key: &str) {
+    // **反向验证的逃生门**（与仓里其它 `SOKO_*` 量具同源 ✓）：设了它就**不淘汰** ⇒
+    // `the_artifact_store_stays_bounded_and_keeps_the_newest` 当场判红（实测 `实得 70 > 64` ✓）
+    // ⇒ 证明那条判据**有牙**、不是空转 ✓。**默认关** ⇒ 生产零影响 ✓。
+    if std::env::var_os("SOKO_T1B_NO_PRUNE").is_some() {
+        return;
+    }
+    let d = dir(root);
+    let Ok(entries) = std::fs::read_dir(&d) else {
+        return;
+    };
+    // 收集 `<key>.bin`（每个键恰好一条 ⇒ 用它当"对"的代表 ✓）。
+    let mut pairs: Vec<(std::time::SystemTime, String)> = Vec::new();
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        let Some(key) = name.strip_suffix(".bin") else {
+            continue;
+        };
+        let mtime = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+        pairs.push((mtime, key.to_string()));
+    }
+    if pairs.len() <= MAX_ARTIFACT_PAIRS {
+        return;
+    }
+    pairs.sort_by_key(|(mtime, _)| *mtime);
+    let excess = pairs.len() - MAX_ARTIFACT_PAIRS;
+    for (_, key) in pairs.into_iter().take(excess) {
+        if key == keep_key {
+            continue;
+        }
+        let _ = std::fs::remove_file(payload_path(root, &key));
+        let _ = std::fs::remove_file(meta_path(root, &key));
+    }
 }
 
 /// 读一份产物 —— **三道全过**才返回 `Some`，否则 `None`（**当不存在** ✓ §8.2）。
@@ -791,6 +848,58 @@ mod tests {
         // 收尾也要么是某一份完整的、要么不存在 ✓。
         if let Some(last) = read(&root, KEY, &options()) {
             assert!(payloads.contains(&last), "收尾读到了混合载荷 ✗");
+        }
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// **T1-B 批 3 收尾 · 有界**：产物目录必须被压回 [`MAX_ARTIFACT_PAIRS`] 对以内，
+    /// **刚写的那一对永远留着**、最旧的走，且**不留"半对"垃圾** ✓。
+    ///
+    /// 为什么这条是判据而不是"实现细节"：键 = **库层闭包的 Merkle 键** ⇒ 用户每改一次
+    /// 库层就多一个新键 ⇒ 老产物**再也没人读**却一直占盘 ✗（`compiled/` 那条天然有界，
+    /// 产物这条**没有** ✓）。
+    #[test]
+    fn the_artifact_store_stays_bounded_and_keeps_the_newest() {
+        let root = temp_root("bounded");
+        let total = MAX_ARTIFACT_PAIRS + 6;
+        let mut keys = Vec::new();
+        for i in 0..total {
+            let key = format!("closure-{i:016x}");
+            write(&root, &key, &format!("payload-{i}"), &options()).expect("write");
+            keys.push(key);
+            // mtime 要**可分辨**，淘汰顺序才是确定的（否则这条判据会飘 ✗）。
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+        let bins = std::fs::read_dir(dir(&root))
+            .expect("dir")
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".bin"))
+            .count();
+        assert!(
+            bins <= MAX_ARTIFACT_PAIRS,
+            "产物对数必须被压到上界 {MAX_ARTIFACT_PAIRS} 以内（实得 {bins}）——              否则用户每改一次库层就多一份、永远不回收 ✗"
+        );
+        // 最新那一份**必须**还在（刚写的不许被自己淘汰掉 ✗）。
+        let last = keys.last().expect("at least one");
+        assert_eq!(
+            read(&root, last, &options()).as_deref(),
+            Some(format!("payload-{}", total - 1).as_str()),
+            "刚写的那一对不许被淘汰 ✓"
+        );
+        // 最旧那一份必须走了（否则上界没生效 ✓）。
+        assert_eq!(
+            read(&root, &keys[0], &options()),
+            None,
+            "最旧的那一对必须被淘汰 ✓"
+        );
+        // **不许留半对**：`.bin` 与 `.meta.json` 要么都在、要么都不在 ✓。
+        for key in &keys {
+            let has_bin = payload_path(&root, key).exists();
+            let has_meta = meta_path(&root, key).exists();
+            assert_eq!(
+                has_bin, has_meta,
+                "`{key}` 留下了半对（bin={has_bin} meta={has_meta}）⇒ 白占盘的垃圾 ✗"
+            );
         }
         let _ = std::fs::remove_dir_all(&root);
     }
