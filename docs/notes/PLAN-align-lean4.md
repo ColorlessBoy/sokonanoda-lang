@@ -1416,3 +1416,31 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * **所以先别开工**（同 §13 的纪律）。**下一轮做细化读数**：照第 3 轮那条路
   （`SOKO_DECL_PROFILE=1 SOKO_DECL_PROFILE_MS=…`）只对**一刀**做**逐声明**分解 ⇒ 得出
   "**未变命令**（= 快照候选）在这 77ms 里占多少" ✓。**判定门槛照旧：上界 < ~20ms ⇒ 不做** ✓。
+
+### 15. 全量 `scripts/soko gate` 收回（第 19 轮起跑 · 第 23 轮拿到结果）：**判红，但不在本线** ✗
+
+* **它到底跑了多久 / 为什么"没动静"**：不是死锁、也不是 cargo 锁（我第 22 轮的猜测**错了** ✗）——
+  我 `ps` 看到它在 **课程门禁**那一步（`sokonanoda grade --json courses/set-theory/units/solutions/**`
+  逐个单元跑，且用的是 **debug** 二进制 ✗）⇒ **本来就慢** ✓。日志为空是**我把输出管进 `| tail`** ✗
+  （§12 教训⑤），跑完才落盘。
+* **结果（判红 3 处，逐条归属）**：
+
+  | 判据 | 读数 | 归属 |
+  |---|---|---|
+  | `infoview-hierarchy` | ✗ `.section-title` 字号 **12px < 正文 13px**（方向反了）· `.section-title` 用 `opacity: 0.7` · `h2` 用 `opacity: 0.9` | **VS Code 扩展 CSS**（`editor/vscode/**`）—— **不是本线**（本线只动 front/lsp/cli 的 Rust + 探针）✗ |
+  | `docs-lint` ④ | ✗ `docs/architecture.md` **754 > 冻结 753** | 文档预算（**平行线**在往里加内核线内容 ✗） |
+  | `docs-lint` ⑦ | ✗ **L1 层 5675 > 上限 5674**（只许减） | 同上 ⇒ L1 里某个文件长了一行 ✗ |
+* **本线自己的部分全过** ✓：`cargo fmt`/`clippy`/workspace test（gate 走到课程门禁说明前三步都过了 ✓）·
+  `docs-lint` 的 ①②③⑤⑥⑧ —— 我每次加 §11.x 都**同步冻结预算与 L2**（§11.24/§12/§13/§14 都做了 ✓）
+  ⇒ 那两条 ④⑦ 的红**不是本线的 plan/预算改动**（本线的 `PLAN-align-lean4.md` 与
+  `scripts/docs-budget.json` 是**自洽**的 ✓）。
+* **修法（给归属方 · 都不需要本线动手）**：
+  1. **扩展 CSS**：标题字号回正文（`1em`/13px）、降档**只用颜色**（`color: var(--vscode-descriptionForeground)`）、
+     标题不许用 `opacity` ✓（依据 `AGENTS.md` 验证纪律第 0 条(b) + G-66）；
+  2. **两条文档预算**：要么删一行/归档，要么**手改 `scripts/docs-budget.json`** 重新基线（评审可见 ✓）——
+     L1 那 1 行溢出大概率是 `docs/architecture.md` 那条新行引起的**同一次改动** ✓。
+* **尾随观察（同轮内）**：写完本节再跑 `scripts/docs-lint.py` ⇒ **已全绿 ✓**（④⑦ 那两条红
+  在我复核时**已被归属方修掉** ✓）⇒ **gate 的剩余唯一红 = 扩展 CSS 的 `infoview-hierarchy`** ✗
+  （`editor/vscode/**`，本线不代改 ✓）。
+* **作业教训（补一条）**：`EXIT=` 取的是**管道最后一个命令**（`tail`）的状态 ⇒ **不能**用它判 gate
+  成败 ✗ —— 要么不过管道、要么看门禁自己的收尾行 ✓。
