@@ -1644,3 +1644,29 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * **四方向账（本轮后）**：① T1-A ✓ / **T1-B 批 1 = 装载口 ✓ + writer ✓（非归纳）**
   ⇒ 归纳块是批 1 唯一剩余 · ② T2-A ✓ / T2-B 缓做（§16 量级判定 ~40ms 上界）·
   ③ ✓（T3-B1 ①②③ + §4.2 第 5 条族 + T3-B2 出口）· ④ T4-A ✓。
+
+### 23. 第 31 轮（平行线）：**T1-B 批 1 完成** —— 归纳块也进 writer，序列化对全部声明形状闭环 ✓
+
+* **落点**（`4285b94c`）：`writer.rs` 的 `collect` 改**按块**走 —— 归纳块在 `declars` 里是
+  **连续**一段（ind… · ctor… · rec…），区间取 `mutual_block_sizes`（`begin/end_inductive_block`
+  填的，前端每个块都调 ✓）；**一个块 ⇒ 一行 `inductive`**（`types`/`ctors`/`recs`，与读侧
+  `Inductive { … }` 同形）。⚠ `is_reflexive` **读侧忽略**（`IndInfo` 里是 `..`）⇒ 恒写
+  `false` —— 必须是**确定值**，否则往返不幂等 ✗。
+  `parser.rs`：`IndInfo`/`Constructor`/`Recursor` 字段 `pub(crate)`；
+  **`parse_export_mapped` 提为 `pub`**（`to_ndjson` 的读侧对偶 ⇒ 跨 crate 判据能**同一处**闭环 ✓）。
+* **判据**：① `memory_api.rs` 新增 `my_nat_block_round_trips_through_ndjson` —— 用仓库里
+  唯一一个"与教学前端同构"的**显式归纳块**（`MyNat` + 2 构造子 + 显式消去子 + iota 规则）
+  ⇒ 写→读→**再写逐字节幂等** ✓ + 读回来的环境**过完整内核检查** ✓；
+  ② **反向验证（已做）**：iota 规则写成空 ⇒ 判据**判红** ✓（`inductive.rs:1714` 咬住，随后还原）
+  —— ⚠ 注意**幂等那一半咬不住内容丢失**（丢了规则的文本自身仍自洽）⇒ 有牙的是**内核检查那一半** ✓；
+  ③ 内核 **66/66** · front `--lib` **875/875** ✓。
+* **批 1 账**：`EnvBuilder::from_export_file`（装载口 ✓）· `ExportFile::to_ndjson`（writer ✓，
+  **覆盖全部声明形状**）· 三条判据（非归纳幂等 + 反向 + 归纳块幂等&内核检查 ✓）。
+  剩余 `Err` 出口只有"记账缺失/混合声明"两种异常 ⇒ 调用方静默回退"本地重编" ✓。
+* **下一件 = T1-B 批 2**：接到 `<根>/.sokonanoda/artifacts/` + **完整性/安全/离线三道**
+  （设计 `docs/design/module-artifacts.md` §8.1–§8.4：按 tag 锁定、失败当不存在、离线静默回退），
+  失效规则对齐 lake 的 `BuildTrace{hash, mtime}`（**mtime 永不参与正确性** ✓）。
+  ⚠ **批 2 会碰 `crates/front/src/compile/**` 与 `project/session.rs`** —— 与本线（TcCache）**同一片**，
+  开工前先看 `git status --short` 与 §11.5/§11.6 的归属约定 ✓。
+* **四方向账（本轮后）**：① T1-A ✓ / **T1-B 批 1 ✓✓（批 2/3 未做）** · ② T2-A ✓ / T2-B 缓做 ·
+  ③ ✓ · ④ T4-A ✓。
