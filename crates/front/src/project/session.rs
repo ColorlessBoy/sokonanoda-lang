@@ -332,6 +332,83 @@ fn leak_lib_units(lib_units: &[SourceUnit<'_>]) -> &'static [SourceUnit<'static>
     Box::leak(units.into_boxed_slice())
 }
 
+/// **T1-B 批 2 的逃生门**：`SOKONANODA_NO_MODULE_ARTIFACTS=1`（或既有的
+/// `SOKONANODA_NO_PROJECT_ARTIFACTS=1`）⇒ 模块产物**读写都关**。
+///
+/// 为什么要有它：产物是"**跨进程加速件**"，一旦怀疑它参与了某个怪现象，用户/agent
+/// 必须能**一条环境变量**把它摘掉再复现 —— 与 `compiled/` 那条既有纪律同源 ✓
+/// （`SOKONANODA_NO_PROJECT_ARTIFACTS`，见 `AGENTS.md`）。
+/// ⚠ 摘掉之后行为 = **今天**（整条库层重编）⇒ 只是慢，不是错 ✓。
+pub fn module_artifacts_enabled() -> bool {
+    std::env::var_os("SOKONANODA_NO_MODULE_ARTIFACTS").is_none()
+        && std::env::var_os("SOKONANODA_NO_PROJECT_ARTIFACTS").is_none()
+}
+
+/// **T1-B 批 2**：把一份磁盘产物装成 [`LibCheckpoint`]（`'static` —— 要进线程局部 LRU ✓）。
+///
+/// ⚠ **只装 arena 不装单元**：产物里没有源文本（它存的是**结果** ✓）⇒ 这条路上
+/// **不需要** `leak_lib_units`（省一份泄漏 ✓）。
+///
+/// 装出来的检查点与"整条趟"那份**逐字段可比**：`key`（产物键 = 库层摘要 ✓）·
+/// `shape = None`（整条命中不比形状 —— 键已经把整条源文本折进去了 ✓，与
+/// [`LibCheckpoint`] 的既有约定一致 ✓）· `resume = default`（同上 ✓）·
+/// `ranges` 由**本次的 units** 现算（它是 units 的纯函数 ✓，不存进产物 ✓）。
+fn load_lib_checkpoint(
+    text: &str,
+    key: &str,
+    _options: &CompileOptions,
+) -> Option<LibCheckpoint<'static>> {
+    let arena: &'static ArenaRef<'static> =
+        Box::leak(Box::new(stumpalo::Arena::new())).as_arena_ref();
+    let (env, tables, facts) = crate::project::artifacts::decode_payload(arena, text).ok()?;
+    let builder = EnvBuilder::from_export_file(arena, env);
+    LEAKED_LIB_ARENAS.fetch_add(1, Ordering::Relaxed);
+    Some(LibCheckpoint {
+        key: key.to_string(),
+        shape: None,
+        resume: ResumeState::default(),
+        builder,
+        tables,
+        out: facts.out,
+        reports: facts.reports,
+        ranges: facts.ranges.iter().map(|(a, b)| *a..*b).collect(),
+        n_commands: facts.n_commands,
+        prefix_commands: facts.prefix_commands,
+        reuses: 0,
+        lib_prefix: facts.lib_prefix,
+    })
+}
+
+/// **T1-B 批 2**：库层趟跑完 ⇒ 写一份产物。**best-effort**（任何一步失败都静默跳过 ✓）：
+/// 产物是**加速件**，写不出来只该"下次还慢"，**绝不该**让本次编译失败或改判 ✗。
+fn write_lib_artifact(
+    root: &std::path::Path,
+    key: &str,
+    cursor: &LibCursor<'static>,
+    lib_units: &[SourceUnit<'_>],
+    options: &CompileOptions,
+) {
+    let facts = crate::project::artifacts::LibPassFacts {
+        out: cursor.out.clone(),
+        reports: cursor.reports.clone(),
+        ranges: crate::compile::unit_ranges(lib_units)
+            .into_iter()
+            .map(|r| (r.start, r.end))
+            .collect(),
+        n_commands: cursor.n_commands,
+        prefix_commands: cursor.prefix_commands,
+        lib_prefix: cursor.lib_prefix.clone(),
+    };
+    let Ok(text) = crate::project::artifacts::encode_payload(
+        &cursor.builder.snapshot(),
+        &cursor.tables,
+        &facts,
+    ) else {
+        return;
+    };
+    let _ = crate::project::artifacts::write(root, key, &text, options);
+}
+
 /// 同 [`with_project_session`]，但**每个入口可以带一份信任前缀**（S2 步 2）。
 ///
 /// `entry_trust[i]` = 第 i 个入口的 [`EntryTrust`]；`None`/缺省 ⇒ 那一趟与今天
@@ -387,7 +464,55 @@ pub(crate) fn with_project_session_reusing<R>(
         std::ops::Range<usize>,
     ) -> R,
 ) -> Vec<R> {
+    // **T1-B 批 2**：这条口子**不带**磁盘产物（LSP 的既有行为逐字节不变 ✓）；
+    // 要开产物用 [`with_project_session_artifacts`] ✓。
+    with_project_session_reusing_at(lib_units, entries, options, entry_trust, None, on_entry)
+}
+
+/// **T1-B 批 2 的公开入口**：与 [`with_project_session_reusing`] 同一条路，
+/// 但**多一层磁盘产物**（`<模块根>/.sokonanoda/artifacts/`）。
+///
+/// 分层的顺序（**这个顺序本身就是判据**）：
+/// * **① 线程局部检查点**（同进程、同一刀）—— 最快，先看它 ✓；
+/// * **①.5 磁盘产物**（**跨进程**）—— 线程局部 miss 之后才看 ✓；
+/// * **② 模块前缀续编** ⇒ **③ 整条重建**（并把产物写出去 ✓）。
+///
+/// ⇒ 这正是 T4-A 那条契约的实现：**跨按键增量归检查点，跨进程增量归产物** ✓。
+pub fn with_project_session_artifacts<R>(
+    lib_units: &[SourceUnit<'_>],
+    entries: &[Vec<SourceUnit<'_>>],
+    options: &CompileOptions,
+    root: &std::path::Path,
+    on_entry: impl FnMut(
+        usize,
+        CompileOutput,
+        Vec<DocumentReport>,
+        &[DocumentReport],
+        &[std::ops::Range<usize>],
+        std::ops::Range<usize>,
+    ) -> R,
+) -> Vec<R> {
+    with_project_session_reusing_at(lib_units, entries, options, &[], Some(root), on_entry)
+}
+
+fn with_project_session_reusing_at<R>(
+    lib_units: &[SourceUnit<'_>],
+    entries: &[Vec<SourceUnit<'_>>],
+    options: &CompileOptions,
+    entry_trust: &[Option<EntryTrust>],
+    artifacts_root: Option<&std::path::Path>,
+    on_entry: impl FnMut(
+        usize,
+        CompileOutput,
+        Vec<DocumentReport>,
+        &[DocumentReport],
+        &[std::ops::Range<usize>],
+        std::ops::Range<usize>,
+    ) -> R,
+) -> Vec<R> {
     let key = lib_key(lib_units, options);
+    // **逃生门**在这里一次收口：关掉之后 `artifacts_root` 变 `None` ⇒ 读写两条路都不走 ✓。
+    let artifacts_root = artifacts_root.filter(|_| module_artifacts_enabled());
     LIB_CHECKPOINTS.with(|slots| {
         let mut slots = slots.borrow_mut();
         // ① **复用判据**：摘要逐字相同 + 复用次数未到上界（上界 ②）—— 多槽里找 ✓。
@@ -411,6 +536,24 @@ pub(crate) fn with_project_session_reusing<R>(
             };
             slots.insert(0, cp);
             return out;
+        }
+        // ①.5 **磁盘产物命中**（T1-B 批 2 · 跨进程那层）：线程局部 miss 之后才看它 ✓。
+        //
+        // ⚠ 三条都与"回退是默认"同一条纪律：产物读不出 / 装载失败 / 泄漏上界用尽
+        // ⇒ **什么都不做**，继续往下走（前缀续编 ⇒ 整条重建），**绝不半用** ✓。
+        if let Some(root) = artifacts_root {
+            if !lib_units.is_empty()
+                && LEAKED_LIB_ARENAS.load(Ordering::Relaxed) < MAX_LEAKED_LIB_ARENAS
+            {
+                if let Some(lib) = crate::project::artifacts::read(root, &key, options)
+                    .and_then(|text| load_lib_checkpoint(&text, &key, options))
+                {
+                    let out = run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
+                    // 顺手喂热线程局部（**下一刀就命中 ①** ⇒ 产物只为"冷进程"付一次 ✓）。
+                    push_checkpoint(&mut slots, lib);
+                    return out;
+                }
+            }
         }
         // ② **模块级前缀搜索**（T1-A · 只在整条 miss 之后才跑）：
         //    两条入口**只共享前几个模块**时，从那个边界**续编**剩下的模块 ✓
@@ -528,7 +671,7 @@ pub(crate) fn with_project_session_reusing<R>(
                 resume: None,
                 next: 0,
             };
-            let (_cursor, mut made) = run_library_from(
+            let (cursor, mut made) = run_library_from(
                 cursor,
                 units,
                 options,
@@ -540,6 +683,10 @@ pub(crate) fn with_project_session_reusing<R>(
                 &defs,
                 true,
             );
+            // **T1-B 批 2**：把整条库层**写出去**（best-effort —— 写不出来绝不影响本次编译 ✓）。
+            if let Some(root) = artifacts_root {
+                write_lib_artifact(root, &key, &cursor, lib_units, options);
+            }
             // `made` 按模块序（浅 → 深）⇒ **最后一份 = 整条库层** ✓（与今天那份同键 ✓）。
             let lib = made
                 .pop()

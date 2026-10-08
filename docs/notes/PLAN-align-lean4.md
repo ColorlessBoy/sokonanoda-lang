@@ -1831,3 +1831,43 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
      但要给一条逃生门（同 `SOKONANODA_NO_PROJECT_ARTIFACTS` 的既有纪律 ✓）。
 * **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 ✓ · 批 2：A/B/C 三块 wire 全通，
   只剩 session 控制流接线** · ② T2-A ✓ / T2-B 缓做 · ③ ✓ · ④ T4-A ✓。
+
+### 29. 第 37 轮（平行线）：**接线完成** —— 磁盘产物真的省掉了库层 elaborate ✓✓
+
+**这是 T1-B 批 2 的收口**：`import` 不再被重新 elaborate，而是**从产物装回来** ✓。
+
+* **落点**（`session.rs`）：
+  * 新增公开入口 **`with_project_session_artifacts(lib_units, entries, options, root, on_entry)`**
+    —— 与 `with_project_session_reusing` **同一条路**，只是多一层磁盘产物。
+    旧入口**原样不动**（LSP 的既有行为逐字节不变 ✓）。
+    内部改成 `with_project_session_reusing_at(..., artifacts_root: Option<&Path>, ...)`。
+  * **分层的顺序本身就是判据**：**① 线程局部检查点**（同进程同一刀，最快）⇒
+    **①.5 磁盘产物**（**跨进程**）⇒ ② 模块前缀续编 ⇒ ③ 整条重建（**并把产物写出去**）。
+    ⇒ 这就是 T4-A 那条契约的实现：**跨按键增量归检查点，跨进程增量归产物** ✓。
+  * 命中产物 ⇒ `load_lib_checkpoint`：`decode_payload` ⇒
+    `EnvBuilder::from_export_file` + `PassTables` + `LibPassFacts` **拼出一份
+    `LibCheckpoint`** ⇒ 直接进 `run_entries`（**一趟库层都不跑** ✓）；顺手 `push_checkpoint`
+    喂热线程局部（**下一刀就命中 ①** ⇒ 产物只为"冷进程"付一次 ✓）。
+    ⚠ **只装 arena 不装单元**（产物里没有源文本 ⇒ 省一份 `leak_lib_units` ✓）。
+  * 重建路径跑完 ⇒ `write_lib_artifact`（**best-effort**：任何一步失败都静默跳过 ✓
+    —— 产物是加速件，写不出来只该"下次还慢"，**绝不该**让本次编译失败或改判 ✗）。
+  * **逃生门**（本轮补）：`SOKONANODA_NO_MODULE_ARTIFACTS=1`（或既有的
+    `SOKONANODA_NO_PROJECT_ARTIFACTS=1`）⇒ **读写都关**，一次收口
+    （`let artifacts_root = artifacts_root.filter(|_| module_artifacts_enabled())`）✓。
+* ⭐ **判据**（`crates/front/tests/t1b_module_artifacts.rs` · 集成测试 ⇒ 进程级计数天然隔离 ✓）：
+  造"另一个进程"的办法 = 命中臂前 **`lib_checkpoint_reset()`**（线程局部清空 ⇒
+  唯一还能省掉库层的**只有磁盘产物** ✓，正是新进程的等价物 ✓）。
+  * ① **输出逐字节相同**：命中产物那条路的回调结果（`CompileOutput` + 入口报告 +
+    **库层报告 C 块**）与冷跑**一字不差** ✓ —— 这条同时守住"产物不许改判"的红线 ✓；
+  * ② **结构计数真的降**：冷 `by_calls=3` vs 命中 **更低** ✓（库层那三条 `by` 证明**没重跑**）
+    —— ② 同时证明 ① 不是空转（若产物没被用上，两条路一样忙 ⇒ ② 判红 ✓）；
+  * ③ 产物真的落了盘（`.bin` + `.meta.json` ≥ 2 个 ✓）。
+  * **两条反向验证（都已做）**：`SOKONANODA_NO_MODULE_ARTIFACTS=1` 跑同一用例 ⇒
+    **判红**（`冷 3 vs 命中 3` ✓ —— 逃生门真的关、判据真的有牙，同一件事的两面 ✓）。
+* 验证：front **全部目标**绿 ✓（`cargo test -p sokonanoda-front` exit 0；lib **886/886**）·
+  fmt `--check` 干净 ✓ · clippy `--all-targets` 报错 **0** ✓。
+* **四方向账（本轮后）**：① T1-A ✓ / **T1-B 批 1 ✓ · 批 2 ✓✓（产物真的在用）**，
+  剩批 3（并发/损坏/离线/`--clean` 的边界与课程门禁）；② T2-A ✓ / T2-B 缓做；
+  ③ ✓；④ T4-A ✓。
+  ⚠ **还没做**：把 CLI `build` 接到 `with_project_session_artifacts`（一行接线 + 模块根）；
+  在那之前"产物在用"只在测试里成立 ⇒ **下一棒第一件就是它** ✓。
