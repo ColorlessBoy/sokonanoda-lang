@@ -866,3 +866,21 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   真课程实测 **8 → 5 个模块**；但那一刀的墙钟（1167ms）**主要不是库层**（`by=127` =
   unit09 入口趟第一次全 elaborate）⇒ **要紧的仍是 §11.1 的"入口命令级复用"（T2-A→T2-B）**。
 
+### 11.7 T3-B1 ③（`level_hint_of` 的记法形态）—— **已落地**（`18ac57e8`）
+
+* **落点**：`by.rs::level_hint_of_inplace` 补**记法分支** + 新助手 `check_ast_of_text`
+  （文本 ⇒ AST，与 `elab.rs::universe_level_text_of_operands` 的第二问**同形** ——
+  不是新机制 ✓）；新增**专用**读数 `inplace_level_hint_report()`（不与别的档混 ✓）。
+* **判据**：① `crates/front/tests/judge_inplace_level_hint.rs`（真课程 unit08）
+  `used > 0`（**判据不空转** ✓）；② `SOKO_JUDGE_INPLACE=off` vs 默认的 `--json`
+  **逐字节相同**（I.1/I.2/I.3 抽 **24 份** `cmp` 全同）✓；③ `BY_LEVEL_HINT_MISS`
+  unit08 冷编 **3 → 0**（Off 档 16 ⇒ On 档 0）；④ `--lib` **875/875** · 就地家族全绿 ✓。
+* **对北极星的贡献**：只对**冷 judge 缓存**那一刀有效（3 趟 × ≈20ms ≈ 60ms 量级）；
+  稳态按键本来 `prefix=0`（缓存热）⇒ 零影响。§11.1 探针**同构建**复跑：第一刀
+  **341.2ms**（`compile=213 · by=81 · modules=1 · prefix=0`）——
+  ⚠ 与 §11.1 的 352.4ms **不同构建**（`lsp-mtime` 1791471562 → 1791477602）⇒
+  **不并排比** ✓，只作"结构计数一字不变"的证据。
+* **方向③的状态**：T3-B1 ①②③ 全落地（② 早已由 A2a 完成 ✓）⇒ 计划 §4.4 的"今天可做"
+  三条做完 ✓；剩下的合成趟消去是 **T3-B2**（架构件 · 需重开门 + 内核线让位）与
+  **T3-D**（`EnvProvider` 处置）。
+
