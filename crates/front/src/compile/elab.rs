@@ -3313,19 +3313,42 @@ fn infer_type_text<'a>(
         }
         // 影子档：**两条都跑**、比对文本；**返回源码重跑那份** ⇒ 判定逐字节不变 ✓。
         (crate::judge::InplaceMode::Shadow, Some(env)) => {
-            // **prelude 安装期不比（2026-10-06）→ E4 第二步撤掉（2026-10-08）**。
+            // **prelude 安装期不比（2026-10-06）** —— **E4 第二步试过撤掉，实测不成立，
+            // 本轮按判据纪律还原** ✓（2026-10-08）。
             //
             // 原文理由：安装期的判定在慢路那边合成重跑时"无法重跑 prelude 本身"
             // （`prefix_src` 为空）⇒ 环境里没有 `And` ⇒ `unknown identifier` ⇒
-            // 结构性 `None`。**这个前提已经被 E4 第二步消掉了** ✓：安装期现在把
-            // "本条命令之前的 prelude 源文本"当 `prefix_src` 交出去
-            // （`prelude.rs::prelude_prefix_before`）⇒ 慢路**真的能重跑**那段
-            // prelude ⇒ 两条路**可以逐字比** ✓。
+            // 结构性 `None`。
             //
-            // ⇒ 排除分支删除；**读数**（`INPLACE_SHADOW_PRELUDE_EXCLUDED`）从此恒为 0 ✓
-            // —— 判据见 `crates/front/tests/judge_inplace_shadow_prelude.rs` ✓。
-            // 这一段是**受信任安装**的判定 ⇒ 撤掉后必须 `shadow_diff == 0` ✓
-            // （出 diff 就是**真分歧**，不是噪声 ✗ ⇒ 停下来定性，不许放宽 ✗）。
+            // **E4 第二步把 `prefix_src` 换成"本条之前的 prelude 源文本"**
+            // （`prelude.rs::prelude_prefix_before` ✓）⇒ 慢路确实**能重跑**那段 prelude 了 ✓
+            // —— 但**撤掉排除之后 `shadow_diff` 不为 0** ✗：全课程抽样实测（10 个入口）
+            // `diff` 合计 **61** 处，逐条定性 ⇒ **全是文本/显式性层面的**，不是语义分歧：
+            // * `by` 路（`JUDGE_INPLACE_BY_FIRST_DIFF`）：
+            //   `fast = Exists α (fun …)` vs `slow = @Exists α (fun … @And … @Eq β …)`
+            //   —— 就地路省掉隐式实参、慢路打 `@` 全显式 ✓（同一个项 ✓）；
+            // * 通用路（`JUDGE_INPLACE_MISMATCH`）：`Acc.rec` 这类就地路**答 `None`**
+            //   （`why=Kernel` ⇒ 退回慢路 ✓）而慢路答得出类型 ✓ —— 结构性 ✓、**不是**错答案 ✓。
+            //
+            // 且**输出逐字节没变** ✓（`scripts/check-json-identity.py` 全量 **252/252** ✓）
+            // ⇒ 这些 diff **不影响判定结果**，只把影子档的信噪比打坏 ✗。
+            // ⇒ 判据纪律（"出 diff 就是真分歧 ⇒ 停下来定性，不许放宽 ✗"）的**正确处置 =
+            // 还原排除 + 如实登记** ✓，而不是把 `diff > 0` 当噪声接受 ✗。
+            // 真正的课题（"安装期两条路的**文本**为什么不一致"）另立 ✓。
+            if prelude_install_active() {
+                // **E4 的读数**（判据见 `crates/front/tests/judge_inplace_shadow_prelude.rs` ✓）：
+                // 这条排除**命中几次** —— 今天它必须 **> 0** ✓（撤掉会引入 61 处文本 diff ✗）。
+                crate::judge::stats::INPLACE_SHADOW_PRELUDE_EXCLUDED
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                return crate::judge::judge_infer_lookup(
+                    "",
+                    ctx.prefix_src,
+                    ctx.options,
+                    &binders,
+                    &term,
+                )
+                .map_or_else(slow, |hit| hit.ok());
+            }
             // 命中 ⇒ 两条路**都轮不到**（`On` 档同样直接返回缓存）⇒ 记一笔 same 即可。
             // 不在这里跑就地：那是 15 万次 × ~1 ms 的账 ✗（真正要比的是**未命中**那批）。
             if let Some(hit) =
