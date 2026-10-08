@@ -627,6 +627,9 @@ struct StructuralCounters {
     /// 都新建一份预分配 ≈ 4 MiB + 20 张表的 `TcCache` ⇒ 实测 61.8 µs/次、
     /// 占一次按键编译样本的 **63%**（见 `util::TC_CACHE_BUILDS`）。
     tc_cache_builds: u64,
+    /// **telescope 解析次数**（A4b 的判据读数，2026-10-08）：两处 telescope 每次都
+    /// `parse_expr_text`、**无 memo** ⇒ 先数"一次按键解析几次"，再谈签名级缓存 ✓。
+    telescope_parses: u64,
 }
 
 fn structural_counters() -> StructuralCounters {
@@ -649,6 +652,7 @@ fn structural_counters() -> StructuralCounters {
         infer_miss,
         prefix_runs,
         tc_cache_builds: sokonanoda_front::compile::tc_cache_builds_total(),
+        telescope_parses: sokonanoda_front::compile::telescope_parses_total(),
     }
 }
 
@@ -894,7 +898,7 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
             let now = structural_counters();
             eprintln!(
                 "LSP_TRACE compile {uri} v{version} {}ms publish={} modules={} by={} \
-                 infer={}/{} prefix={} tc={}",
+                 infer={}/{} prefix={} tc={} telescope={}",
                 cost.as_millis(),
                 out.len(),
                 now.modules - counters_before.modules,
@@ -903,6 +907,7 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
                 now.infer_calls - counters_before.infer_calls,
                 now.prefix_runs - counters_before.prefix_runs,
                 now.tc_cache_builds - counters_before.tc_cache_builds,
+                now.telescope_parses - counters_before.telescope_parses,
             );
         }
         for (target, diagnostics, version) in out {

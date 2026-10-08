@@ -43,7 +43,29 @@ pub(crate) struct Layer {
 /// `congrArg {α β} … (f : α → β)` 在 `theorem t (α β : Type) (g : β → α) … :=
 /// congrArg.{1} g hxy` 里把 `β` 解成用户的 `β` 而不是 `α`（实测判红）。fresh 名
 /// 让模板与用户表达式永不撞名。
+/// **telescope 解析次数**（A4b 的判据读数 · `#[doc(hidden)]` · 只给判据用）。
+///
+/// **为什么先建它**（2026-10-08 · 规划 §2 A4b）：telescope 解析**今天没有任何出口** ——
+/// 两处（本模块的 [`telescope`] 与 `elab::notation_telescope`）都**每次都
+/// `parse_expr_text`**（无 memo）⇒ "要不要做签名级缓存"**没有数据可依** ✗。
+/// 计数器先回答"一次按键解析几次"，再谈优化 ✓（判据纪律：先读数、后动手）。
+pub static TELESCOPE_PARSES: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
+
+/// 记一次 telescope 解析（**两处调用点共用**；只给判据用）。
+#[doc(hidden)]
+pub fn note_telescope_parse() {
+    TELESCOPE_PARSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// 见 [`TELESCOPE_PARSES`]。
+#[doc(hidden)]
+pub fn telescope_parses_total() -> u64 {
+    TELESCOPE_PARSES.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 pub(crate) fn telescope(signature: &str) -> Option<(Vec<Layer>, Expr)> {
+    note_telescope_parse();
     let mut cur = crate::proof::parse_expr_text(signature).ok()?;
     let mut layers: Vec<Layer> = Vec::new();
     let mut sigma: std::collections::HashMap<String, Expr> = std::collections::HashMap::new();

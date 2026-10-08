@@ -53,6 +53,8 @@ pub(crate) use scope::{join_ns, NamespaceScope};
 /// **`TcCache` 构造次数**（2026-10-08 端到端 profiling 的新读数）：判据用它数
 /// "一次按键构造了几次 `TcCache`"（每次预分配 ≈ 4 MiB + 20 张表 ⇒ 实测 61.8 µs/次）。
 pub use sokonanoda::util::tc_cache_builds_total;
+/// **telescope 解析次数**（A4b 的判据读数）：先读数、后谈签名级缓存 ✓。
+pub use implicit::telescope_parses_total;
 pub use units::{
     compile_all_units, compile_all_units_with_progress, split_report, unit_ranges, ProgressSink,
     ProgressTick, SourceUnit,

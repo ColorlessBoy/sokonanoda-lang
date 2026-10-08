@@ -2447,6 +2447,8 @@ fn notation_prefix_args<'a>(
 
 /// `signature` 的 Pi 望远镜：`(名字, 域)` 逐层 + 余下的结果类型。解析不出 ⇒ `None`。
 fn notation_telescope(signature: &str) -> Option<(Vec<(String, Expr)>, Expr)> {
+    // A4b 的判据读数（与 `implicit::telescope` 共用同一个计数器 ✓）。
+    crate::compile::implicit::note_telescope_parse();
     let sig = crate::proof::parse_expr_text(signature).ok()?;
     let mut layers: Vec<(String, Expr)> = Vec::new();
     let mut result = sig;
