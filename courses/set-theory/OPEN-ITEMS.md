@@ -286,7 +286,15 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **归属**：全部落在 **G-73 家族**（def-headed / 绑定注解处补不出前导实参 ✗）⇒ 内核侧 ✓。
 **处置** ✓：**暂不做**（unit113 已有 `CH` 陈述 + 展开 + 独立性读评 ✓ 判绿 ✓）；Cantor 留待内核侧收敛后重开 ✓。
 
-## C-115（**open · 绕行 = 写点态形态** · 2026-10-03 课程线第 36 轮）`𝒫` 出现在**期望类型位**时补不出前导类型参数 ✗
+## C-115（**closed · 2026-10-08 收口**）`𝒫` 出现在**期望类型位**时补不出前导类型参数 ✗
+
+- **收口（2026-10-08 ✓）**：登记的**两处卡点 + 补记 v0/v1/v2 全部判绿** ✓（当年的 `期望 Sort(0)，实际是 $13/$10/Sort(1)` 一条都不复现 ✓）；
+  目标引理**已交付 `lib/Equiv.sokonanoda`** ✓（import 区加了一行 `import lib.Image` ✓）：
+  `Set.mem_right_of_image_eq` · **`Set.image_injOn`**（`Set α` 作**元素类型**的高阶论域声明 ✓ —— 当年过不去的那一类 ✓）·
+  `Set.image_mapsTo_powerset` · **`Set.Le.powerset`**（`A ≼ B ⇒ 𝒫 A ≼ 𝒫 B` ✓）。
+- **残留（G-30 家族；库里都带 `soko:notation-ok` 标记 ✓）**：带前导隐式（Prop/Type）的常量写在**嵌套实参位**时隐式实参补不出来 ✗
+  ⇒ 显式写全、或先 **λ 落地** ✓（期望类型已知处短写仍可用 ✓）。
+- **复现件（登记在册 ✓，G7 重放）**：`gaps/C-115-C-116-powerset-le.sh` ✓。
 
 **实测两处**（判据 = `query check --root courses/set-theory` ✓）：
 
@@ -316,7 +324,11 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **绕行（最终）** ✓：**这类命题在本子集里不做** ✗ —— 改推**一阶/点态**条目 ✓（声明里不出现 `Set α` 作为元素类型 ✓，如已判绿的 `Set.Le.trans`/`Set.Le.refl` ✓）。
 **归属** ✓：G-73 家族（本子集的类型层限制 ✗）⇒ 内核侧 ✓。
 
-## C-116（**open · 绕行 = 换靶** · 2026-10-03 课程线第 45 轮）`Eq` 嵌套链出现在 `Set.InjOn` 证明体里判红 ✗
+## C-116（**closed · 2026-10-08 收口**）`Eq` 嵌套链出现在 `Set.InjOn` 证明体里判红 ✗
+
+- **收口（2026-10-08 ✓）**：辅助引理 `Set.injOn_of_leftInvOn` 与目标 **`Set.Le.of_equiv`**（`A ≈ B ⇒ A ≼ B` ✓）**判绿并已入 `lib/Equiv`** ✓ ——
+  当年"证明体里的 `Eq` 嵌套链"✗（`期望 Sort(0)，实际是 Sort(1)`）随 G-73 家族修复一并消失 ✓。
+- **复现件**：`gaps/C-115-C-116-powerset-le.sh` ✓（与 C-115 共用）。
 
 **目标**：`lib/Equiv` 加 `Set.Le.of_equiv`（`A ≈ B → A ≼ B` ✓）。**定位过程全部实测** ✓（判据 `query check --root courses/set-theory`）：
 

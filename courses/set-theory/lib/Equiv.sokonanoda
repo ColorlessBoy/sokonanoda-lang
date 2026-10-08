@@ -94,6 +94,7 @@ import lib.Logic
 import lib.Exists
 import lib.Set
 import lib.Fun
+import lib.Image
 
 -- ── 四条条件（Mathlib: Data/Set/Function.lean；L2：一行 ∀，没有数学内容）──
 -- ① 正向映射的域条件：A 里每个点都被 f 送进 B。
@@ -325,3 +326,74 @@ theorem Set.Le.mono_right (α β : Type) (A : Set α) (B B' : Set β) (h : A ≼
   Set.Le.elim α β A B (A ≼ B') h
     (fun (f : α → β) (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) =>
       Set.Le.intro α β A B' f hf (fun (x : α) (hx : A x) => hBB (f x) (hfm x hx)))
+
+-- ── C-115 收口（2026-10-08）：`𝒫` 单射 / `𝒫` 单调 ⇒ **`Set.Le.powerset`** ──────
+-- 当年卡在"`Set.InjOn` 作用在**高阶论域**（`Set α` 作为元素类型）上的声明"✗
+-- —— G-73 家族已 `fixed` ✓，四件一起判绿 ✓。
+-- 辅助引理：像集相等 + 单射 ⇒ 集合逐点相等（**两边都先展开成 ⊆ 再逐点走** ✓）
+theorem Set.mem_right_of_image_eq (α β : Type) (f : α → β) (A : Set α)
+    (hf : Set.InjOn α β f A) (S T : Set α) (hSA : S ⊆ A) (hTA : T ⊆ A)
+    (hST : f '' S = f '' T) (x : α) : x ∈ S → x ∈ T :=
+  fun (hx : x ∈ S) =>
+    Set.mem_image_elim f T (f x) (x ∈ T)
+      (Eq.subst.{1} (Set β) (fun (D : Set β) => f x ∈ D) (f '' S) (f '' T) hST  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (Set.mem_image_intro f S (f x) x hx (Eq.refl.{1} β (f x))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (fun (y : α) (hyT : y ∈ T) (hy : f y = f x) =>
+        Eq.subst.{1} α (fun (z : α) => z ∈ T) y x  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (Eq.symm.{1} α x y (hf x (hSA x hx) y (hTA y hyT) (Eq.symm.{1} β (f y) (f x) hy)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          hyT)
+
+-- 像集映射在 `𝒫 A` 上是**单射**（`Set α` 作元素类型的声明 ✓ —— 这正是当年过不去的那一类 ✓）
+theorem Set.image_injOn (α β : Type) (f : α → β) (A : Set α) (hf : Set.InjOn α β f A) :
+    Set.InjOn (Set α) (Set β) (fun (S : Set α) => f '' S) (𝒫 A) :=
+  fun (S : Set α) (hS : S ∈ 𝒫 A) (T : Set α) (hT : T ∈ 𝒫 A) (hST : f '' S = f '' T) =>
+    Set.ext S T (fun (x : α) =>
+      Iff.intro (x ∈ S) (x ∈ T)
+        (Set.mem_right_of_image_eq α β f A hf S T
+          (fun (z : α) (hz : z ∈ S) => Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (Set.mem_powerset_iff α A S) hS z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (fun (z : α) (hz : z ∈ T) => Iff.mp (T ∈ 𝒫 A) (T ⊆ A) (Set.mem_powerset_iff α A T) hT z hz) hST x)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+        (Set.mem_right_of_image_eq α β f A hf T S
+          (fun (z : α) (hz : z ∈ T) => Iff.mp (T ∈ 𝒫 A) (T ⊆ A) (Set.mem_powerset_iff α A T) hT z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (fun (z : α) (hz : z ∈ S) => Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (Set.mem_powerset_iff α A S) hS z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (Eq.symm.{1} (Set β) (f '' S) (f '' T) hST) x))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+
+-- 像集映射把 `A` 送进 `B` ⇒ 把 `𝒫 A` 送进 `𝒫 B`
+theorem Set.image_mapsTo_powerset (α β : Type) (f : α → β) (A : Set α) (B : Set β)
+    (hfm : Set.MapsTo α β f A B) :
+    Set.MapsTo (Set α) (Set β) (fun (S : Set α) => f '' S) (𝒫 A) (𝒫 B) :=
+  fun (S : Set α) (hS : S ∈ 𝒫 A) =>
+    Iff.mpr ((f '' S) ∈ 𝒫 B) ((f '' S) ⊆ B) (Set.mem_powerset_iff β B (f '' S))  -- soko:notation-ok: 嵌套实参位补不出前导命题（G-30 家族残留，手册边界）
+      (fun (y : β) (hy : y ∈ f '' S) =>
+        (fun (h : y ∈ f '' S) => Set.mem_image_elim f S y (y ∈ B) h
+          (fun (x : α) (hx : x ∈ S) (hxy : f x = y) =>
+            Eq.subst.{1} β (fun (z : β) => z ∈ B) (f x) y hxy  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+              (hfm x (Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (Set.mem_powerset_iff α A S) hS x hx))))  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          hy)
+
+-- **`𝒫` 单调**（C-115 的目标 ✓）：`A ≼ B` ⇒ `𝒫 A ≼ 𝒫 B`
+theorem Set.Le.powerset (α β : Type) (A : Set α) (B : Set β) (h : A ≼ B) : 𝒫 A ≼ 𝒫 B :=
+  Set.Le.elim α β A B (𝒫 A ≼ 𝒫 B) h
+    (fun (f : α → β) (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) =>
+      Set.Le.intro (Set α) (Set β) (𝒫 A) (𝒫 B) (fun (S : Set α) => f '' S)
+        (Set.image_injOn α β f A hf)
+        (Set.image_mapsTo_powerset α β f A B hfm))
+
+-- ── C-116 收口（2026-10-08）：`Set.Le.of_equiv`（`A ≈ B ⇒ A ≼ B`）────────────
+-- 当年病根："证明体里的 `Eq` 嵌套链"✗（辅助引理 `Set.injOn_of_leftInvOn` 判红）——
+-- G-73 家族已 `fixed` ✓。（这条与 C-115 的 `𝒫` 无关，是**一阶**形态 ✓。）
+theorem Set.injOn_of_leftInvOn (α β : Type) (f : α → β) (g : β → α) (A : Set α)
+    (hgf : Set.LeftInvOn α β g f A) : Set.InjOn α β f A :=
+  fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : f x = f y) =>
+    Eq.trans.{1} α x (g (f x)) y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (Eq.symm.{1} α (g (f x)) x (hgf x hx))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (Eq.trans.{1} α (g (f x)) (g (f y)) y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (rel_subst_right β (fun (u : β) (v : β) => (g u) = (g v))
+          (f x) (f x) (f y) h (Eq.refl.{1} α (g (f x))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (hgf y hy))
+
+-- **`≈` ⇒ `≼`**（C-116 的目标 ✓）：等势的一对里取**前向**那半 + 左逆律 ⇒ 单射 ✓
+theorem Set.Le.of_equiv (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : A ≼ B :=
+  Set.Equiv.elim α β A B (A ≼ B) h
+    (fun (f : α → β) (g : β → α) (hfm : Set.MapsTo α β f A B) (_ : Set.MapsTo β α g B A)
+        (hgf : Set.LeftInvOn α β g f A) (_ : Set.RightInvOn α β f g B) =>
+      Set.Le.intro α β A B f (Set.injOn_of_leftInvOn α β f g A hgf) hfm)
