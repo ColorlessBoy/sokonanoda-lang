@@ -1735,3 +1735,33 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⇒ 这是 B 的最后一个关口，与**消费入口**同批做才不浪费 ✓。
 * **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 ✓ · 批 2：产物存储 ✓ · B(known+defs) ✓ ·
   B(inductives) 与写/消费入口未做** · ② T2-A ✓ / T2-B 缓做 · ③ ✓ · ④ T4-A ✓。
+
+### 26. 第 34 轮（平行线）：B 块**完成**（`inductives` 的 wire 形 + 装载时重解析）✓
+
+* **关口的实质**：`InductiveInfo` 里**只有一样东西不可序列化** —— `MatchField.ty`
+  （内核 arena 裸指针 ✗）。本轮把它做成**唯一"存引用、装载时重解析"的字段**，
+  其余（含 `src_ty`/`index_types` 的**源级 AST**）照存 ✓。
+* **为什么这不是"丢信息"**：那份 `ty` 是"构造子望远镜里第 k 个 binder 的类型"，
+  而**构造子声明就在已装载的内核环境里** ⇒ 装载时按**规范名**取回声明、走**同一个**
+  `kernel_field_binders`（本轮提为 `pub(crate)`）重取一遍 ⇒ **同源、不漂移** ✓。
+* **落点**（`f551e172`）：`MatchFieldWire`/`MatchCtorWire`/`InductiveInfoWire` ·
+  `encode(known, defs, inductives)` · `decode ⇒ Decoded` ·
+  `rehydrate_inductives(wire, lookup)`（`lookup: Fn(&str) -> Option<Declar>` ——
+  前端**不能**把字符串 intern 进已建好的 `ExportFile`，所以这条口子必须是**回调** ✓）。
+  失败面一律 `Err`（回退本地重编）：构造子不在环境里 · **层数少于存的字段数** ·
+  逐层 `style` 与产物不符。
+* **判据 4 条**（`project/tables.rs`）：① `known`+`defs` 往返 · ② **插入顺序无关**
+  （文本逐字节相同）· ③ 反向：格式号/截断 ⇒ `Err` · ④ ⭐ **`inductives` 往返 + 重解析**
+  —— 造**真的**内核环境（`C : (α : Sort 0) → (x : α) → {y : α} → C`）⇒
+  重解析出来的 `MatchField.ty` 与原件**指针逐位相同** ✓ + `style` 对 ✓；
+  **两条反向验证**：`num_params` 写大 1 ⇒ 判红 ✓ · 规范名不在环境里 ⇒ 判红 ✓。
+  front `--lib` **885/885** · fmt 干净 · clippy 0 ✓。
+* ⚠ **夹具教训（写进注释了）**：`mk_pi` 是**从里往外**造的（最外层最后建）——
+  建反了 binder 顺序就倒过来 ⇒ `MatchField.ty` 错位（本条判据第一版就是这么红的 ✓）。
+* **B 的账（完成）**：`known` ✓ · `defs` ✓ · `inductives`（wire + 重解析）✓ ·
+  **两条格式纪律**（确定序 · 带格式号）✓。
+  ⇒ **批 2 剩下的就只剩"接线"**：**写入口**（session 在每个模块边界
+  `builder.snapshot().to_ndjson()` + `tables::encode` 写一份）与**消费入口**
+  （装载 A + 读回 B ⇒ 接着编）。⚠ 仍按 §24 的顺序：**两个一起接**，别只接写（纯开销 ✗）。
+* **四方向账（本轮后）**：① T1-A ✓ / T1-B **批 1 ✓ · 批 2：产物存储 ✓ + B(known/defs/inductives) ✓
+  ⇒ 只剩接线** · ② T2-A ✓ / T2-B 缓做 · ③ ✓ · ④ T4-A ✓。
