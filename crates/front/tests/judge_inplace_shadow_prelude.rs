@@ -14,11 +14,18 @@
 //! 合成前缀**可以**把 prelude 拼进去 ⇒ 那段安装期的判定**也能比**了 ⇒ 排除不再需要 ✓。
 //! 判据就是本文件读的那个数：**撤掉之后必须是 0** ✓。
 //!
-//! ## 今天它是什么（**断言当前行为**）
+//! ## E4 第二步已落地（2026-10-08）—— 断言已按约定翻转 ✓
 //!
-//! **> 0** ✓ —— prelude 安装期的判定全走排除。⚠ 这不是"想要的终态"，而是**起点读数**：
-//! E4 第二步（把 prelude 拼进合成前缀 + 撤掉分支）落地时，**必须把下面的断言从
-//! `> 0` 改成 `== 0`** ✓ —— 那是本文件唯一的正确出口，**不许**用放宽它的办法变绿 ✗。
+//! 第一步留的出口是"撤掉分支之后**必须**把断言从 `> 0` 改成 `== 0`" ✓ —— 本轮做到：
+//! 安装期现在把**本条命令之前的 prelude 源文本**当 `prefix_src` 交出去
+//! （`prelude.rs::prelude_prefix_before` ✓）⇒ 慢路**真的能重跑**那段 prelude ⇒
+//! 两条路可以逐字比 ⇒ 排除分支删除 ✓。
+//!
+//! 本文件现在同时钉三件事（缺一不算 ✓）：
+//! 1. **排除不再命中**：读数 `== 0` ✓（判据本体）；
+//! 2. **影子档真的跑了**（否则 1 是空转 ✗）：`same > 0` ✓；
+//! 3. **受信任安装期的两条路逐字相同**：`diff == 0` ✓ —— 出 diff 就是**真分歧**
+//!    （不是噪声 ✗）⇒ 停下来定性，**不许**放宽 ✗。
 //!
 //! ## 为什么是独立测试文件
 //!
@@ -26,22 +33,24 @@
 //! `judge_inplace_by.rs` 的纪律 ✓）。
 
 use sokonanoda_front::compile::{compile_all_units, CompileOptions, SourceUnit};
-use sokonanoda_front::judge::inplace_shadow_prelude_excluded;
+use sokonanoda_front::judge::{inplace_report, inplace_shadow_prelude_excluded};
 use sokonanoda_front::parse;
 
 /// 一份**必须走 prelude** 的夹具：`And` 的构造/投影都在 prelude 里。
 const FIXTURE: &str = "theorem t (A B : Prop) (h : A) (k : B) : A \u{2227} B := by\n  exact \u{27e8}h, k\u{27e9}\n";
 
 #[test]
-fn the_prelude_install_exclusion_is_still_hit_today() {
+fn the_prelude_install_exclusion_is_gone_and_the_shadow_agrees() {
     // 影子档：两条路都跑、比对文本（`SOKO_JUDGE_INPLACE=shadow`）。
     std::env::set_var("SOKO_JUDGE_INPLACE", "shadow");
+    let (_, _, same_before, diff_before) = inplace_report();
     let before = inplace_shadow_prelude_excluded();
     // 单文件（无 import）：prelude 安装 + 本文件的判定都要发生 ✓。
     let file = parse(FIXTURE).expect("夹具 parse");
     let units = [SourceUnit::single("Main", &file)];
     let (out, _reports) = compile_all_units(&units, &CompileOptions::default());
     let after = inplace_shadow_prelude_excluded();
+    let (_, _, same_after, diff_after) = inplace_report();
 
     // 夹具自检：这份夹具必须**编得过**（否则量的是错误路径 ✗）。
     assert!(
@@ -50,12 +59,25 @@ fn the_prelude_install_exclusion_is_still_hit_today() {
         out.errors
     );
     let hits = after - before;
+    assert_eq!(
+        hits, 0,
+        "**E4 的判据本体**：prelude 安装期的排除分支**不许再命中**（实测 {hits} 次）—— \
+         它已经被第二步撤掉了 ✓。若这里非 0 ⇒ 排除又回来了（或 `prelude_prefix_before` \
+         没接上）✗。"
+    );
+    // ② 影子档**真的跑了**（否则 ① 是空转 ✗）：本夹具必须让两条路都比过。
     assert!(
-        hits > 0,
-        "**E4 的起点读数**：prelude 安装期的排除分支今天必须是**被命中**的（实测 {hits} 次）—— \
-         若这里已经是 0 ⇒ 说明排除已经被撤掉了（好事 ✓）：那时请把本断言改成 `== 0` 并把 \
-         文件头的「断言当前行为」改成「E4 已落地」✓。若它变成 0 而 E4 并没做 ⇒ \
-         说明影子档根本没跑到 prelude 安装期 ⇒ 这条读数**空转** ✗（先查 `SOKO_JUDGE_INPLACE` \
-         有没有生效）。"
+        same_after > same_before,
+        "影子档必须**真的比过**（`shadow_same` 要增长：{} → {}）—— 否则 ① 的 0 是空转 ✗",
+        same_before,
+        same_after
+    );
+    // ③ **受信任安装期**的两条路必须逐字相同（判定红线）。
+    assert_eq!(
+        diff_after, diff_before,
+        "**判定红线**：prelude 安装期两条路的文本必须**逐字相同**（`shadow_diff` {} → {}）—— \
+         出 diff 就是**真分歧**（不是噪声 ✗）⇒ 停下来定性，不许放宽 ✗。",
+        diff_before,
+        diff_after
     );
 }

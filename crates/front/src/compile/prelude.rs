@@ -507,6 +507,17 @@ pub(crate) fn install_l1_prelude<'a>(
     install_quot(builder, known, taken);
 }
 
+/// **本条命令之前**的 prelude 源文本（不含本条 ✓）—— 慢路重跑要用它。
+///
+/// * `PRELUDE_L1_SRC` 是 `&'static str` ⇒ 切出来的子串也是 `'static` ✓（借用不成问题）；
+/// * 切点用**命令的 span 起点**（一定落在字符边界上 ✓；万一越界/非边界 ⇒ 退回 `""`，
+///   退化的只是"这一条判定不参与比对"，**不会 panic** ✓）；
+/// * 空串是合法输入 ✓（第一条命令之前就是空 ✓）—— 与改动前的行为逐字相同 ✓。
+fn prelude_prefix_before(command: &Command) -> &'static str {
+    let start = command.span().start.offset;
+    PRELUDE_L1_SRC.get(..start).unwrap_or("")
+}
+
 /// 这条命令是不是本族的（按顶层名字判定；`ctor`/`rec` 归它们的归纳块）。
 fn command_belongs_to(command: &Command, family: &PreludeFamily) -> bool {
     match command {
@@ -528,15 +539,23 @@ fn install_l1_command<'a>(
     options: &CompileOptions,
     command: &Command,
 ) {
-    // `prefix_src` 为空：L1 的签名不依赖文件前缀（它们是闭包无关的骨架），
-    // 且安装期间的 kernel 探针只需内建的 `Prop`（`L1_INSTALL_DEPTH` 挡掉
-    // 内层重入，所以内层环境里没有 L1 名字也不影响）。G-05：prelude 永远在
-    // 根命名空间、没有 `open`，作用域是空的那一份。
+    // `prefix_src` = **本条命令之前**的 prelude 源文本（**E4 第二步，2026-10-08**）。
+    //
+    // 以前这里是 `""`，理由（原文）："L1 的签名不依赖文件前缀 …… 安装期间的 kernel
+    // 探针只需内建的 `Prop`（`L1_INSTALL_DEPTH` 挡掉内层重入 ⇒ 内层环境里没有 L1
+    // 名字也不影响）"。**判定路径本身不受影响** ✓ —— 变的是**影子档**：它要把就地路
+    // 与慢路**逐字比**，而慢路（`judge_infer`）是"重跑前缀"⇒ 前缀为空时它手里没有
+    // `And`/`Or` ⇒ 结构性 `None` ⇒ 只能**排除不比** ✗（`elab.rs` 那条
+    // `prelude_install_active()` 早退，E4 要撤的就是它）。
+    //
+    // E1 之后 prelude 是**普通源文本**（`PRELUDE_L1_SRC` 是 `&'static str` ✓）⇒
+    // 把"本条之前"那一段交出去，慢路就**真的能重跑**这段 prelude ✓ ⇒ 安装期的判定
+    // **也能比**了 ✓。G-05 不变：prelude 永远在根命名空间、没有 `open` ✓。
     let ns = NamespaceScope::new();
     let empty_defs: DefTable = DefTable::new();
     let ctx = ElabCtx {
         notations: None,
-        prefix_src: "",
+        prefix_src: prelude_prefix_before(command),
         options,
         inductives,
         ns: &ns,

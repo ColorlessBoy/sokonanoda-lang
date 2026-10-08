@@ -3313,29 +3313,19 @@ fn infer_type_text<'a>(
         }
         // 影子档：**两条都跑**、比对文本；**返回源码重跑那份** ⇒ 判定逐字节不变 ✓。
         (crate::judge::InplaceMode::Shadow, Some(env)) => {
-            // **prelude 安装期不比（2026-10-06）**：prelude 安装对 recursor/内建
-            // 常量（`And.rec`/`Or.rec`/`Iff.intro`/`Or.elim`）的判定发生在安装
-            // **进行中**（`prefix_src` 为空、`prelude_install_active` 已置位）——
-            // 此时慢路合成重跑在 guard 下**无法重跑 prelude 本身** ⇒ 环境里没有
-            // `And` ⇒ `unknown identifier` ⇒ 结构性 `None`（非实现 bug）。这类
-            // 判定**不进入比对**：就地结果最终仍由内核把关，且 prelude 是内嵌
-            // 常量（有独立形状测试）⇒ 不比不放松用户文件期的严格性 ✓。
-            if prelude_install_active() {
-                // **E4 的读数**（2026-10-08）：这条排除**命中了几次** —— 撤掉它之后
-                // 这个数必须是 **0** ✓（判据见 `crates/front/tests/judge_inplace_shadow_prelude.rs`）。
-                crate::judge::stats::INPLACE_SHADOW_PRELUDE_EXCLUDED
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                return crate::judge::judge_infer_lookup(
-                    "",
-                    ctx.prefix_src,
-                    ctx.options,
-                    &binders,
-                    &term,
-                )
-                // ⚠ `slow` **按值**传（clippy 1.99 `needless_borrows_for_generic_args`：
-                // 本分支**随即 return** ⇒ 条件移动不与其他使用冲突 ✓）。
-                .map_or_else(slow, |hit| hit.ok());
-            }
+            // **prelude 安装期不比（2026-10-06）→ E4 第二步撤掉（2026-10-08）**。
+            //
+            // 原文理由：安装期的判定在慢路那边合成重跑时"无法重跑 prelude 本身"
+            // （`prefix_src` 为空）⇒ 环境里没有 `And` ⇒ `unknown identifier` ⇒
+            // 结构性 `None`。**这个前提已经被 E4 第二步消掉了** ✓：安装期现在把
+            // "本条命令之前的 prelude 源文本"当 `prefix_src` 交出去
+            // （`prelude.rs::prelude_prefix_before`）⇒ 慢路**真的能重跑**那段
+            // prelude ⇒ 两条路**可以逐字比** ✓。
+            //
+            // ⇒ 排除分支删除；**读数**（`INPLACE_SHADOW_PRELUDE_EXCLUDED`）从此恒为 0 ✓
+            // —— 判据见 `crates/front/tests/judge_inplace_shadow_prelude.rs` ✓。
+            // 这一段是**受信任安装**的判定 ⇒ 撤掉后必须 `shadow_diff == 0` ✓
+            // （出 diff 就是**真分歧**，不是噪声 ✗ ⇒ 停下来定性，不许放宽 ✗）。
             // 命中 ⇒ 两条路**都轮不到**（`On` 档同样直接返回缓存）⇒ 记一笔 same 即可。
             // 不在这里跑就地：那是 15 万次 × ~1 ms 的账 ✗（真正要比的是**未命中**那批）。
             if let Some(hit) =
