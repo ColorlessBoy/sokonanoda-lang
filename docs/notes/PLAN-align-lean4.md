@@ -1871,3 +1871,38 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ③ ✓；④ T4-A ✓。
   ⚠ **还没做**：把 CLI `build` 接到 `with_project_session_artifacts`（一行接线 + 模块根）；
   在那之前"产物在用"只在测试里成立 ⇒ **下一棒第一件就是它** ✓。
+
+### 30. 第 38 轮（平行线）：**产物接进 CLI** —— 端到端跑通 ✓（含实测读数与一处如实记的"没量出差别"）
+
+* **接线**（两条，都在 `project/mod.rs`）：
+  * `compile_plan_incremental`（LSP/`query` 那条）：`reuse_library` 两支都换成**带产物**的
+    口子 —— `true` ⇒ `with_project_session_reusing_artifacts`（检查点 + 产物，装载进 LRU）；
+    `false` ⇒ **`with_project_session_artifacts_trusted`**（**只有产物**）。
+  * `run_shared_group`（**CLI `build <dir>` 的多入口路**）：`with_project_session` ⇒
+    `with_project_session_artifacts` ✓。
+* ⭐ **`with_project_session_artifacts_trusted` 是这轮的关键设计**（CLI 专用）：
+  CLI 是**短命进程** ⇒ 不碰线程局部检查点（T4-A 契约 ✓），装载出来的检查点**只活这次调用**
+  ⇒ **arena 建在栈上**（不需要 `'static`）⇒ **零泄漏** ✓
+  （`lib_checkpoint_arenas_leaked()` 保持 **0** ⇒ **T4-A 的守卫原样绿** ✓，本轮实测确认 ✓）。
+  于是"**跨进程增量归产物（CLI）· 跨按键增量归检查点（LSP）**"字面落地 ✓。
+  装载内核拆成 `load_lib_checkpoint_in(arena, …)`（寿命由调用方负责）—— `'static` 与栈上
+  两条路**共用同一段装载代码** ✓。顺带删掉被取代的 `with_project_session_reusing`
+  （逃生门关掉之后它逐字节等价 ✓ ⇒ 不留两份实现 ✓）。
+* **端到端实测（真 CLI · debug 二进制）**：
+  * 夹具：`/tmp/t1b-proj`（`Lib` 8 条 `by` 证明 + 两个入口都 `import Lib` ⇒ **同一库闭包**）。
+  * 冷跑 ⇒ `.sokonanoda/artifacts/` 出现 **2 个文件**（`.bin` + `.meta.json` ✓）。
+  * 改入口一行（库层不动）⇒ 再跑 ⇒ **产物命中并装载成功**：`key=6f2527a4…` ·
+    载荷 **182005 字节** · 装载出 **65 条声明** ✓；`SOKONANODA_NO_MODULE_ARTIFACTS=1`
+    跑同一条 ⇒ **命中行 0** ✓（逃生门与判据同一件事的两面 ✓）。
+  * ⚠ **如实记：这个夹具量不出墙钟差别**（`with=0.229s` vs `no=0.219s` —— 8 条小证明，
+    进程启动占大头）。⇒ **不许**把它写成"CLI 变快了"✗；要读数得用真课程量级
+    （`build courses/set-theory/units`，规划 §7 的 174 模块口径）—— **留给下一棒** ✓。
+  * ⚠ **另一件如实记**：`courses/set-theory/units/I.2` 的 4 个单元**各自库闭包不同**
+    ⇒ `compile_entries_shared` 分成 4 个**单入口组** ⇒ 单入口组**被过滤掉**
+    （"会话是纯开销"✓）⇒ 那条路上**根本不会跑会话、也就没有产物** ✓。
+    这是**既有设计**（不是本轮的 bug ✓），但它决定了"产物在真课程上能覆盖多少"
+    ⇒ 下一棒量课程读数时要按**分组**看，别按"单元数"看 ✓。
+* 验证：front **全部目标** 35/35 绿 ✓ · fmt `--check` 干净 ✓ · clippy `--all-targets` 报错 **0** ✓。
+* **四方向账（本轮后）**：① T1-A ✓ / **T1-B 批 1 ✓ · 批 2 ✓✓（CLI 端到端已接）**，
+  剩批 3（并发/损坏/离线/`--clean` 的边界与课程门禁）+ **真课程读数**；
+  ② T2-A ✓ / T2-B 缓做；③ ✓；④ T4-A ✓（守卫原样绿）。

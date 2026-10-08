@@ -360,9 +360,21 @@ fn load_lib_checkpoint(
 ) -> Option<LibCheckpoint<'static>> {
     let arena: &'static ArenaRef<'static> =
         Box::leak(Box::new(stumpalo::Arena::new())).as_arena_ref();
+    LEAKED_LIB_ARENAS.fetch_add(1, Ordering::Relaxed);
+    load_lib_checkpoint_in(arena, text, key)
+}
+
+/// 装载的**内核**：把产物装进**调用方给的 arena**（寿命由调用方负责 ✓）。
+///
+/// * `'static` arena（LSP 那条路）⇒ 结果进线程局部 LRU ✓；
+/// * **栈上** arena（CLI 那条路）⇒ 结果只活本次调用 ⇒ **零泄漏** ✓。
+fn load_lib_checkpoint_in<'a>(
+    arena: &'a ArenaRef<'a>,
+    text: &str,
+    key: &str,
+) -> Option<LibCheckpoint<'a>> {
     let (env, tables, facts) = crate::project::artifacts::decode_payload(arena, text).ok()?;
     let builder = EnvBuilder::from_export_file(arena, env);
-    LEAKED_LIB_ARENAS.fetch_add(1, Ordering::Relaxed);
     Some(LibCheckpoint {
         key: key.to_string(),
         shape: None,
@@ -384,26 +396,24 @@ fn load_lib_checkpoint(
 fn write_lib_artifact(
     root: &std::path::Path,
     key: &str,
-    cursor: &LibCursor<'static>,
+    lib: &LibCheckpoint<'_>,
     lib_units: &[SourceUnit<'_>],
     options: &CompileOptions,
 ) {
     let facts = crate::project::artifacts::LibPassFacts {
-        out: cursor.out.clone(),
-        reports: cursor.reports.clone(),
+        out: lib.out.clone(),
+        reports: lib.reports.clone(),
         ranges: crate::compile::unit_ranges(lib_units)
             .into_iter()
             .map(|r| (r.start, r.end))
             .collect(),
-        n_commands: cursor.n_commands,
-        prefix_commands: cursor.prefix_commands,
-        lib_prefix: cursor.lib_prefix.clone(),
+        n_commands: lib.n_commands,
+        prefix_commands: lib.prefix_commands,
+        lib_prefix: lib.lib_prefix.clone(),
     };
-    let Ok(text) = crate::project::artifacts::encode_payload(
-        &cursor.builder.snapshot(),
-        &cursor.tables,
-        &facts,
-    ) else {
+    let Ok(text) =
+        crate::project::artifacts::encode_payload(&lib.builder.snapshot(), &lib.tables, &facts)
+    else {
         return;
     };
     let _ = crate::project::artifacts::write(root, key, &text, options);
@@ -440,33 +450,6 @@ pub(crate) fn with_project_session_trusted<R>(
         String::new(),
     );
     run_entries(&lib, lib_units, entries, options, entry_trust, on_entry)
-}
-
-/// **设计 §33 的落地**：库层检查点**跨调用**复用（同一份库层摘要 ⇒ 省掉库层趟）。
-///
-/// 与 [`with_project_session_trusted`] 的唯一区别：库层那趟的产物留在
-/// **线程局部**（[`LIB_CHECKPOINTS`]，LRU 多槽 ✓）里；下一次调用若库层摘要**逐字相同**就直接
-/// 克隆它接着编入口 ✓。
-///
-/// **回退是默认**（设计 §33）：摘要不等 · 检查点为空 · 入口被阻断 · 库层为空 ·
-/// 上界用尽 ⇒ **整条重编**并清掉检查点（与今天逐字节相同）✓。**不猜** ✓。
-pub(crate) fn with_project_session_reusing<R>(
-    lib_units: &[SourceUnit<'_>],
-    entries: &[Vec<SourceUnit<'_>>],
-    options: &CompileOptions,
-    entry_trust: &[Option<EntryTrust>],
-    on_entry: impl FnMut(
-        usize,
-        CompileOutput,
-        Vec<DocumentReport>,
-        &[DocumentReport],
-        &[std::ops::Range<usize>],
-        std::ops::Range<usize>,
-    ) -> R,
-) -> Vec<R> {
-    // **T1-B 批 2**：这条口子**不带**磁盘产物（LSP 的既有行为逐字节不变 ✓）；
-    // 要开产物用 [`with_project_session_artifacts`] ✓。
-    with_project_session_reusing_at(lib_units, entries, options, entry_trust, None, on_entry)
 }
 
 /// **T1-B 批 2 的公开入口**：与 [`with_project_session_reusing`] 同一条路，
@@ -671,7 +654,7 @@ fn with_project_session_reusing_at<R>(
                 resume: None,
                 next: 0,
             };
-            let (cursor, mut made) = run_library_from(
+            let (_cursor, mut made) = run_library_from(
                 cursor,
                 units,
                 options,
@@ -683,14 +666,14 @@ fn with_project_session_reusing_at<R>(
                 &defs,
                 true,
             );
-            // **T1-B 批 2**：把整条库层**写出去**（best-effort —— 写不出来绝不影响本次编译 ✓）。
-            if let Some(root) = artifacts_root {
-                write_lib_artifact(root, &key, &cursor, lib_units, options);
-            }
             // `made` 按模块序（浅 → 深）⇒ **最后一份 = 整条库层** ✓（与今天那份同键 ✓）。
             let lib = made
                 .pop()
                 .expect("库层至少一个模块：上面 `lib_units` 非空 ✓");
+            // **T1-B 批 2**：把整条库层**写出去**（best-effort —— 写不出来绝不影响本次编译 ✓）。
+            if let Some(root) = artifacts_root {
+                write_lib_artifact(root, &key, &lib, lib_units, options);
+            }
             let out = run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
             // 入 LRU：先前缀（浅 → 深），再**整条**（队首 = 最近用过 ✓）。
             for checkpoint in made {
@@ -757,6 +740,92 @@ pub(crate) fn warm_library(lib_units: &[SourceUnit<'_>], options: &CompileOption
         push_checkpoint(&mut slots, lib);
         true
     })
+}
+
+/// **T1-B 批 2**：LSP 那条路（`reuse_library = true`）的入口。
+///
+/// ⚠ **它就是"原来那个 `with_project_session_reusing` + 产物"**：原来的无产物口子
+/// 已被本函数取代 —— 逃生门（`module_artifacts_enabled()`）关掉之后，
+/// `artifacts_root` 变 `None` ⇒ **逐字节回到原来那条路** ✓（所以不必留两份实现 ✓）。
+pub(crate) fn with_project_session_reusing_artifacts<R>(
+    lib_units: &[SourceUnit<'_>],
+    entries: &[Vec<SourceUnit<'_>>],
+    options: &CompileOptions,
+    entry_trust: &[Option<EntryTrust>],
+    root: &std::path::Path,
+    on_entry: impl FnMut(
+        usize,
+        CompileOutput,
+        Vec<DocumentReport>,
+        &[DocumentReport],
+        &[std::ops::Range<usize>],
+        std::ops::Range<usize>,
+    ) -> R,
+) -> Vec<R> {
+    with_project_session_reusing_at(
+        lib_units,
+        entries,
+        options,
+        entry_trust,
+        Some(root),
+        on_entry,
+    )
+}
+
+/// **T1-B 批 2**：`with_project_session_trusted` 的**带产物**口子（**CLI 那条路** ✓）。
+///
+/// ## 为什么它与 reusing 那条**不同**（本函数存在的唯一理由）
+///
+/// CLI 是**短命进程**：线程局部检查点"只有代价没有收益"（T4-A 的契约 ✓）。
+/// ⇒ 这条口子**不碰 `LIB_CHECKPOINTS`**，装载出来的检查点**只活这一次调用** ⇒
+/// **arena 建在栈上**（不需要 `'static`）⇒ **零泄漏** ✓
+/// （`lib_checkpoint_arenas_leaked()` 保持 **0** ⇒ T4-A 的守卫原样绿 ✓）。
+///
+/// 于是产物与检查点各归其位：**跨进程增量归产物（CLI ✓）· 跨按键增量归检查点（LSP ✓）**
+/// —— 正好是 T4-A 那条契约的字面意思 ✓。
+///
+/// **逃生门**：`module_artifacts_enabled()` 为假 ⇒ 本函数**逐字节等价于**
+/// [`with_project_session_trusted`]（连 `key` 都传 `String::new()` ✓）。
+pub(crate) fn with_project_session_artifacts_trusted<R>(
+    lib_units: &[SourceUnit<'_>],
+    entries: &[Vec<SourceUnit<'_>>],
+    options: &CompileOptions,
+    root: &std::path::Path,
+    entry_trust: &[Option<EntryTrust>],
+    on_entry: impl FnMut(
+        usize,
+        CompileOutput,
+        Vec<DocumentReport>,
+        &[DocumentReport],
+        &[std::ops::Range<usize>],
+        std::ops::Range<usize>,
+    ) -> R,
+) -> Vec<R> {
+    let arena = stumpalo::Arena::new();
+    let on_artifacts = module_artifacts_enabled() && !lib_units.is_empty();
+    let key = on_artifacts.then(|| lib_key(lib_units, options));
+    // ① **产物命中**：栈上 arena ⇒ 装载出来的检查点只活这一次调用 ✓（零泄漏 ✓）。
+    if let (true, Some(key)) = (on_artifacts, key.as_ref()) {
+        if let Some(lib) = crate::project::artifacts::read(root, key, options)
+            .and_then(|text| load_lib_checkpoint_in(arena.as_arena_ref(), &text, key))
+        {
+            return run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
+        }
+    }
+    // ② 未命中：照今天那条路跑库层趟（栈上 arena、`key` 传空 —— 与
+    //    `with_project_session_trusted` **逐字相同** ✓）⇒ 跑完把产物写出去。
+    let builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    let lib = run_library_pass(
+        builder,
+        PassTables::new(),
+        lib_units,
+        options,
+        String::new(),
+    );
+    if let Some(key) = key.as_ref() {
+        write_lib_artifact(root, key, &lib, lib_units, options);
+    }
+    run_entries(&lib, lib_units, entries, options, entry_trust, on_entry)
 }
 
 /// **库层趟**（切片 1b 的第 ① 步）：编共享库层，产出检查点（含活环境）。

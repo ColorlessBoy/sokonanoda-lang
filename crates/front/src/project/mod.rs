@@ -557,13 +557,31 @@ pub(crate) fn compile_plan_incremental(
         let reports = merge_session_reports(&closure_units, &lib_units, lib_reports, vec![full]);
         assemble_from_session(&plan, merged, reports)
     };
+    // **T1-B 批 2**：两条路都带上**磁盘产物**（跨进程那层 ✓）——
+    // * `reuse_library = true`（LSP）：线程局部检查点 + 产物，装载出来的进 LRU ✓；
+    // * `reuse_library = false`（CLI）：**只有产物**，arena 建在**栈上** ⇒ **零泄漏** ✓
+    //   （T4-A 的守卫原样绿 —— CLI 依旧是"**不依赖线程局部检查点**"✓）。
+    //
+    // 逃生门 `SOKONANODA_NO_MODULE_ARTIFACTS=1` 在 session 里**一次收口** ⇒
+    // 关掉之后两条路都**逐字节回到今天** ✓（`artifacts_root` 变 `None`）。
+    let artifacts_root = plan.root.clone();
     let mut reports_out: Vec<ProjectReport> = if reuse_library {
-        crate::project::session::with_project_session_reusing(
-            &lib_units, &entries, options, &trust, on_entry,
+        crate::project::session::with_project_session_reusing_artifacts(
+            &lib_units,
+            &entries,
+            options,
+            &trust,
+            &artifacts_root,
+            on_entry,
         )
     } else {
-        crate::project::session::with_project_session_trusted(
-            &lib_units, &entries, options, &trust, on_entry,
+        crate::project::session::with_project_session_artifacts_trusted(
+            &lib_units,
+            &entries,
+            options,
+            &artifacts_root,
+            &trust,
+            on_entry,
         )
     };
     reports_out.pop().expect("一个入口必须回调一次")
@@ -755,10 +773,14 @@ fn run_shared_group(
         crate::compile::CompileOutput,
         Vec<crate::compile::DocumentReport>,
         Vec<crate::compile::DocumentReport>,
-    )> = crate::project::session::with_project_session(
+    )> = crate::project::session::with_project_session_artifacts(
         &lib_units,
         &entry_units,
         options0,
+        // **T1-B 批 2**：CLI `build <dir>` 的多入口路也吃**磁盘产物** ✓
+        // （这一条**不碰**线程局部检查点 ⇒ T4-A 的契约原样成立 ✓；
+        //  逃生门 `SOKONANODA_NO_MODULE_ARTIFACTS=1` 在 session 里一次收口 ✓）。
+        &plans[members[0]].root,
         |slot, merged, entry_reports, lib_reports, _lib_ranges, _entry_range| {
             // **逐入口的完成信号**（用户可见进度 ✓）：这一趟的编译已经做完了 ✓
             // （报告组装在会话之后做，但那不花时间 ✓）。
