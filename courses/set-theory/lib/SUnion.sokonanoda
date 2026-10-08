@@ -181,3 +181,10 @@ theorem Set.pi_mono_trans_apply (ι α : Type) (A B C : ι → Set α)
 theorem Set.pi_mono_left_apply (ι α : Type) (A A' : ι → Set α) (h : ∀ (i : ι), A i ⊆ A' i)
     (f : ι → α) (hf : f ∈ Set.pi ι α A) : f ∈ Set.pi ι α A' :=
   Set.pi_mono ι α A A' h f hf
+
+-- 全 `univ` 的**积成员资格无条件**（C-124/C-127 收口 ✓ 2026-10-08）：
+-- `Set.pi ι α (fun _ => Set.univ)` 的成员就是任意函数 ✓ —— λ 在 `Set.pi` 实参位
+-- 当年**解析失败** ✗，现三种拼法都判绿 ✓（见 `OPEN-ITEMS.md` 的 C-127 收口记录）。
+theorem Set.mem_pi_univ (ι α : Type) (f : ι → α) :
+    f ∈ Set.pi ι α (fun (_ : ι) => Set.univ) :=
+  Set.mem_pi_intro ι α (fun (_ : ι) => Set.univ) f (fun (i : ι) => Set.mem_univ (f i))

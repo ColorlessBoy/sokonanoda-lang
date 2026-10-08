@@ -507,7 +507,11 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 `lib/SUnion` 3 ✓ · `lib/Rel` **5** ✓：`comp_mono` ✓ `comp_mono_left` ✓ `comp_mono_right` ✓ `inv_inv` ✓ `subset_transClosure` ✓）·
 单元练习 4 道 ✓（unit19 `le_mono`/`le_mono_right` ✓ · unit18 `union_elim`/`union_intro` ✓）。
 
-## C-124（**open · 绕行 = 换靶** · 2026-10-03 S-B 第 107 轮）`univ` 配合律条目三轮全红 ✗
+## C-124（**closed · 2026-10-08 收口**）`univ` 配合律条目三轮全红 ✗
+
+- **收口（2026-10-08 ✓）**：**`Set.mem_pi_univ` 已入 `lib/SUnion` 并判绿** ✓ —— `f ∈ Set.pi ι α (fun (_ : ι) => Set.univ)` ✓（λ 在 `Set.pi` 实参位 ✓）；
+  三版拼法（隐式 `Set.univ` ✓ / `Set.univ α` ✓ / 点名 `Set.mem` ✓）**都判绿** ✓；**点名写法也不再解析失败** ✓。
+- **复现件（登记在册 ✓，G7 重放）**：`gaps/C-124-C-127-pi-univ.sh` ✓。
 
 **目标**：`lib/SUnion` 加 `Set.mem_pi_univ`（全 `univ` 的积成员资格无条件 ✓
 `f ∈ Set.pi ι α (fun _ => univ)`）。**三轮全红** ✗（判据 = `query check --root courses/set-theory` ✓）：
@@ -566,7 +570,13 @@ theorem bare_or : P ∨ Q := h      -- ✓ 判绿（两支是 Prop 变量）
 **纪律累计 6 条** ✓：断言用词边界 ✓ · 提交信息照实况 ✓ · 深水区早收手 ✓ · 探针须过记法门禁 ✓ ·
 **落盘一律追加到文件末尾** ✓（命名空间边界先读 ✓）· **落盘后必取模块读数 + 判红即自动回退** ✓。
 
-## C-127（**open · 绕行 = 整体回避** · 2026-10-03 S-B 第 138 轮）**λ 出现在 `Set.pi` 的实参位** ⇒ 解析失败 ✗
+## C-127（**closed · 2026-10-08 收口**）**λ 出现在 `Set.pi` 的实参位** ⇒ 解析失败 ✗
+
+- **收口（2026-10-08 ✓）**：**λ 现在可以正常出现在 `Set.pi` 的实参位** ✓ —— 三种拼法（隐式 `Set.univ` ✓ / `Set.univ α` ✓ / 点名 `Set.mem` ✓）**都判绿** ✓
+  （当年三种全红 ✗：`Set.[] 第 0 个绑元` · 解析错误 ✗）。
+- ⚠ **残留（另一条窄边界，如实记 ✓）**：λ 体写成**类型标注** `(Set.univ : Set α)` 时**仍是解析错误** ✗
+  （`expected -> after binder group, found RParen` ✓）。**复现口径** ✓（不带 `.sh` ✓）：把 `lib/SUnion` 的 `Set.mem_pi_univ` 那个 λ 体换成带标注的写法即复现 ✓。
+- **复现件（登记在册 ✓，G7 重放）**：`gaps/C-124-C-127-pi-univ.sh` ✓。
 
 **三次实证** ✓（同一类墙 ✓，判据 = `query check --root courses/set-theory` ✓）：
 
