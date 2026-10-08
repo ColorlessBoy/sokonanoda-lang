@@ -171,3 +171,33 @@ theorem isUnionOf_def_apply (α : Type) (E : α → α → Prop) (x : α) (F : �
     (h : IsUnionOf α E x F) (z : α) : E z x ↔ ∃ (A : α), F A ∧ E z A :=
   (fun (hz : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) => hz z)
     (Iff.mp (isUnionOf_def α E x F) h)
+
+-- 外延性定义的 **∀-形展开**（C-129 收口 ✓ 2026-10-08）：与 `extensional_apply` 同义，
+-- 区别只是把 `x y` 收在结论的 `∀` 里（登记要的就是这个形态 ✓）。
+theorem extensional_def_apply (α : Type) (E : α → α → Prop) (h : Extensional α E) :
+    ∀ (x : α) (y : α), (∀ (z : α), E z x ↔ E z y) → x = y :=
+  Iff.mp (extensional_def α E) h
+
+-- 正则性的**取件子**（C-126 收口 ✓ 2026-10-08）：`def` 头 `∀ A, (∃ x, E x A) → …`
+-- 的取用 —— 直接 `Iff.mp (isRegular_def α E)` ✓（当年两次判红 ✗）。
+theorem isRegular_apply (α : Type) (E : α → α → Prop) (h : IsRegular α E) :
+    ∀ (A : α), (∃ (x : α), E x A) →
+      ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) :=
+  Iff.mp (isRegular_def α E) h
+
+-- 配对取件子（C-119 收口 ✓ 2026-10-08）：`IsPair` 的定义是 `def` 头 ∀-命题 ✓
+-- ⇒ 先 λ 落地再 `Iff.mpr`/`Iff.mp`（当年三版全红 ✗ —— G-73 家族，已 `fixed`）。
+-- ⚠ 残留（本轮实测）：把展开引理**不落地**就直接续应用（在其结果上继续给实参）**仍红** ✗
+--   ⇒ 交付必须带 λ 落地 ✓（不要在注释里写出那个旧写法的例子 ✗ —— 注释同样受记法门禁 ✓）。
+theorem isPair_mem_left (α : Type) (E : α → α → Prop) (x a b : α)
+    (h : IsPair α E x a b) : E a x :=
+  (fun (hp : ∀ (z : α), E z x ↔ (z = a ∨ z = b)) =>
+    Iff.mpr (hp a) (Or.inl (Eq.refl.{1} α a)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (Iff.mp (isPair_def α E x a b) h)
+
+-- 配对元素的刻画（同一取件子的另一方向 ✓）
+theorem isPair_elem_or (α : Type) (E : α → α → Prop) (x a b z : α)
+    (h : IsPair α E x a b) (hz : E z x) : z = a ∨ z = b :=
+  (fun (hp : ∀ (z' : α), E z' x ↔ (z' = a ∨ z' = b)) =>
+    (fun (hz' : E z x) => Iff.mp (hp z) hz') hz)
+    (Iff.mp (isPair_def α E x a b) h)

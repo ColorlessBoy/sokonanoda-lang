@@ -1,0 +1,26 @@
+-- ============================================================================
+-- C-122 复现夹具（登记 **closed** ⇒ 下面这些**绑定注解**形态**必须判绿** ✓）
+--
+-- 当年：这两族**绑定注解**判红 ✗（"`Or` 绑定注解三次同族实证" +
+--   手册那条"`↔` + `¬` 的绑定注解要拆成两条蕴含"✗）。
+-- 现在（G-73 家族 `fixed` ✓，2026-10-08 实测）：**判绿** ✓。
+-- ============================================================================
+import lib.Set
+import lib.Rel
+import lib.ZF
+
+-- ① `Or` 的**绑定注解**（当年的"第 6/7/9 个绑元"一族）
+theorem binder_or_iff (α : Type) (E : α → α → Prop) (x a b : α)
+    (h : ∀ (z : α), E z x ↔ (z = a ∨ z = b)) : ∀ (z : α), E z x → (z = a ∨ z = b) :=
+  fun (z : α) => fun (hz : E z x) => Iff.mp (h z) hz
+
+-- ② `↔` + `¬` 的**绑定注解**（手册原话："必须拆成两条蕴含" ✗ —— 现在不必 ✓）
+theorem binder_iff_not (S : Nat → Nat → Prop) (a : Nat)
+    (h : ∀ (x : Nat), S a x ↔ ¬ (S x x)) : ∀ (x : Nat), S a x → ¬ (S x x) :=
+  fun (x : Nat) => fun (hx : S a x) => Iff.mp (h x) hx
+
+-- ③ 当年的绕法（拆成两条蕴含）也仍判绿 ✓ —— 两条路都可用 ✓
+theorem binder_split (S : Nat → Nat → Prop) (a : Nat)
+    (h1 : ∀ (x : Nat), S a x → ¬ (S x x)) (h2 : ∀ (x : Nat), ¬ (S x x) → S a x) :
+    ∀ (x : Nat), S a x → ¬ (S x x) :=
+  h1
