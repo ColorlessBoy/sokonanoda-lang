@@ -626,7 +626,7 @@ best-of-3）/`336ms`（红那次），本地（M 系 mac）17–20ms。**4× 的
 | `judge_infer` 的 miss（病灶） | 冷开 `unit12-solution`：`JUDGE_INFER` **11183ms / 90%**，`misses=247 ≈ 9.5s` | 病灶仍在，但 §3.C 之后 `judge_ms` **−83%**（全课墙钟 126.4s → **47.8s**） |
 | **K1-a**（front `TrustPlan` 复用） | "零收益" ✗（命中数 = 0） | ❌ **推翻**：那天担保**还没接到主编译 pass** ⇒ 命中必然为 0；§3.C 接通后同一开关 **1.25×**、**默认开**、全语料两态逐字节 **0 差异** |
 | **K1-b**（共享内核环境） | "未修" ✗（撞 `decl_idx` 槽位墙） | ❌ **推翻**：内核那一处 **T-K12a 已落地**（`EnvBuilder::with_env`）；T-K12c **不做也不再需要**（§3.C 走担保那条路） |
-| **T-K31**（`whnf_admit` 复用池） | 无收益 ⇒ 已回退 | ✓ 仍成立（`vec![0u8; 1<<22]` 走 mmap 惰性零页，池化反而强制 memset） |
+| **T-K31**（`whnf_admit` 复用池） | 无收益 ⇒ 已回退 | ⚠ **结论仍成立、解释已更正**（A6/2026-10-08，`PLAN-cli-editor-perf.md` §8.8）：真因不是"mmap 惰性零页"（本机 `sample` 明确看到 `xzm_segment_group_alloc_chunk → __bzero`）✗，而是**池化每次取出都 `fill(0)`** ⇒ 4 MiB memset 照付。⇒ 出路是**把表变小**（`WHNF_ADMIT_BITS=16`：4 MiB→64 KiB，一次按键 **−40%**、冷开 **−45%**）✓ |
 | **T-K30**（`build <dir>` 分组） | "做不到"（现有 API） | ❌ **推翻**：切片 1b 已落地（`build_one(…, precomputed)` + `PassTables`，`crates/cli/tests/imports.rs` 多入口守卫） |
 
 **留下的教训**（比数字值钱）：**"零收益"要先问"这条路的入口条件今天成立吗"** ——
