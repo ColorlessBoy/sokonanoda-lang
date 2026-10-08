@@ -34,7 +34,7 @@
     "docs/notes/dsh-project-assets.md": 345,
     "docs/notes/perf-lean4-interactive-incremental.md": 464,
     "docs/notes/PLAN-cli-editor-perf.md": 1128,
-    "docs/notes/PLAN-align-lean4.md": 1109,
+    "docs/notes/PLAN-align-lean4.md": 1131,
     "docs/protocol.md": 899,
     "docs/teaching-session.md": 189,
     "docs/vscode-dev-guide.md": 471
@@ -44,7 +44,7 @@
     "_measured": {
       "L0": 1521,
       "L1": 5674,
-      "L2": 12518,
+      "L2": 12540,
       "L3": 42,
       "date": "2026-10-08",
       "note": "**语义**：这里的数字是「设基线那一刻的实测值」，供人核对，不参与判定；判定用 `layer_max_lines`（只许减）。**2026-09-30 文档全量清理**：删/归档一批过时文档后按实测重设四层上限（**只收紧**），并把本节原先的逐次追加流水（~19 KB 过程记录）压成这一行 —— 规则在 `_comment` 里，过程进 commit message 与 `docs/STATUS-ARCHIVE.md` ✓。 **2026-10-07**：L2 9068（G-60 的 §19 计入）。 **2026-10-07（G-61）**：L1 5606（§5.3 的结构 η 条目 +3 行）。 **2026-10-07（perf-lean4 调研）**：L2 9068 → **9533**（= 新增文件 `docs/notes/perf-lean4-interactive-incremental.md` 464 行计入后的实测值，无余量 ⇒ 该层此后仍只许减 ✓）。 **2026-10-08（import 链接）**：L2 9533 → **9593**（= 新增文件 `docs/design/import-links.md` 63 行 + 台账两行计入后的实测值；**规则例外 ①**「新增文件到该层 ⇒ 基线跟着走一次」✓，无余量 ⇒ 该层此后仍只许减 ✓；同批 L0/L1 **没有**抬（STATUS 并 bullet −5 行、`docs/protocol.md` 压缩 −12 行 ⇒ 回到各自上限内 ✓）—— 即「新增文件才动基线，内容改大一律压缩」✓。 ｜ **2026-10-08（CLI/编辑器体验 + front 缓存线的执行纲领）**：L2 9593 → **10426**（= 新增文件 `docs/notes/PLAN-cli-editor-perf.md` 833 行计入后的实测值，无余量 ⇒ 该层此后仍只许减 ✓；规则例外 ①「新增文件到该层 ⇒ 基线跟着走一次」✓）。 **2026-10-08（同日追加 P8）**：该文件 833 → **969**（用户点名的 P8 补进规划），L2 10426 → **10562**（手改本文件 ⇒ 评审可见 ✓）。 **2026-10-08（开工 profiling 的 as-built §8）**：L2 10562 → **10655**（= 本文 969 → 1062 计入后的实测值；这是**同一份文件的必需修订**，按 `by-prefix-reuse.md` / 本文自身的先例手改本文件、评审可见 ✓）。 **2026-10-08（PLAN-align-lean4）**：L2 10655 → **12212**（新增文件 732 行计入后的实测值）。"
@@ -52,7 +52,7 @@
     "layer_max_lines": {
       "L0": 1521,
       "L1": 5674,
-      "L2": 12518,
+      "L2": 12540,
       "L3": 42
     },
     "onboarding_max_lines": 1000,

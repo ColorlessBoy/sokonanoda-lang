@@ -1107,3 +1107,25 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   的形状：就地结果 vs 合成结果**逐字节**），让它**先能报红**；② 再修文本分叉；
   ③ 判据 = 原 hover 用例转绿 **且** `typing` 臂 `by=9` / 墙钟 ~80ms 不动 ✓。
   ⚠ 不许跳过①直接改（否则改完没有任何东西能证明"分叉真的消失了" ✗）。
+### 11.16 第 10 轮（2026-10-09）—— 那条 hover 回归**不是"文本被折叠"**（定位到具体那一行）
+
+* **读源码定位**（`crates/lsp/src/lib.rs::notation_symbol_hover`）：这个 hover 由**两行**拼成，
+  而失败信息里**整条**是：
+
+  | 行 | 来源 | On 档下 |
+  |---|---|---|
+  | ① 原始类型 `` `myop : (a : Prop) -> (b : Prop) -> Prop` `` | `judge::judge_type_of_constant(&prefix, &options, &target)` | **整行不见了** ✗（不是被折叠 ✗） |
+  | ② 外层表达式类型 `` `a ⊗ b : Prop` `` | `report.hovers`（walk 的 hover） | 在 ✓ |
+
+  ⇒ §11.14 的定性（"就地签名文本 ≠ 慢路文本 ⇒ 折叠形态"）**说错了** ✗：真实的失败形态是
+  **①那条查询失败/返回空** ⇒ 该行被跳过（代码是 `if let Ok(ty) = … { if !ty.is_empty() … }`）。
+* **档位 A/B（更细）**：`SOKO_JUDGE_INPLACE=shadow` ⇒ **用例通过** ✓ 且退出报告
+  `JUDGE_INPLACE used=0 fallback=0 shadow_same=0 shadow_diff=0`、`JUDGE_INPLACE_BY` 同样全 0
+  ⇒ 这个场景里**两个被计数的就地档一次都没被走到** ✗。
+  ⚠ **但这条读数要打折**：`On` 档那一跑是 **FAILED**（panic）⇒ 退出报告**没打出来** ✗，
+  所以"On 档下也没走就地"**不能**从"shadow 档是 0"推出来。
+* **下一步（收窄到可执行）**：① 先在 `On` 档下把**退出报告强制打出来**（panic 不吞计数器 ——
+  照 `judge_inplace_report()` 的形状加一条 `catch_unwind` 后打印，或把该用例改成
+  "不断言、先打印再断言"）⇒ 拿到 `used/fallback` 与 `INPLACE_WHY` 的原因串;
+  ② 有了原因再决定是"就地这一支失败"还是"缓存写回污染了 `judge_type_of_constant`" ✗；
+  ③ 判据不变 = 原用例转绿 **且** `typing` 臂 `by=9` / 墙钟 ~80ms 不动。
