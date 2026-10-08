@@ -508,16 +508,15 @@ pub(crate) fn small_fx_hash_map<K, V>() -> FxHashMap<K, V> {
 
 pub(crate) const SESSION_MAP_CAP: usize = 1 << 13;
 
-pub(crate) const SESSION_MAP_CAP_SMALL: usize = 1 << 12;
-
-pub(crate) fn session_small_fx_hash_map<K, V>() -> FxHashMap<K, V> {
-    FxHashMap::with_capacity_and_hasher(SESSION_MAP_CAP_SMALL, Default::default())
-}
-
-pub(crate) fn session_small_fx_hash_set<K>() -> FxHashSet<K> {
-    FxHashSet::with_capacity_and_hasher(SESSION_MAP_CAP_SMALL, Default::default())
-}
-
+/// **`sig_cache`（`ExportFile`，一次会话一份）的预分配** —— 它活得久、条目多 ✓。
+///
+/// ⚠ **`TcCache::new` 不再用它**（A6b，2026-10-08）：那里是**每次 `with_tc` 一份**
+/// （实测一次按键 **6876 份**，见 [`TC_CACHE_BUILDS`]）⇒ 预分配 4096/8192 容量的
+/// ~20 张表 = **每份 ~7 µs 纯 malloc/memset** ✗。改成不预分配（`new_fx_hash_map()`）
+/// 后：`sample` 里 `TcCache::new` 的占比 **22.9% → 4.0%** ✓（`--json` 逐字节、
+/// kernel 单测全绿 ✓）。会话路（`check_all_declars_serial`，一份 cache 服务整份文件）
+/// 只会因此多几次 rehash（O(n)，相对 typecheck 本身可忽略），且它**只被
+/// `crates/kernel/src/main.rs` 与 `tests/arena.rs` 使用**（不在 front/LSP 热路径上 ✓）。
 pub(crate) fn session_fx_hash_map<K, V>() -> FxHashMap<K, V> {
     FxHashMap::with_capacity_and_hasher(SESSION_MAP_CAP, Default::default())
 }
@@ -1284,41 +1283,41 @@ impl<'a, 't> TcCache<'a, 't> {
         // 判据读数（见 [`TC_CACHE_BUILDS`]）：它在热路径上，一次 `Relaxed` 加法。
         TC_CACHE_BUILDS.fetch_add(1, Ordering::Relaxed);
         Self {
-            unfold_const_cache: session_small_fx_hash_map(),
+            unfold_const_cache: new_fx_hash_map(),
             rec_rule_cache: small_fx_hash_map(),
-            const_head_type_cache: session_small_fx_hash_map(),
-            const_head_value_cache: session_small_fx_hash_map(),
+            const_head_type_cache: new_fx_hash_map(),
+            const_head_value_cache: new_fx_hash_map(),
             const_result_level_cache: small_fx_hash_map(),
-            conv_cache_pos: session_small_fx_hash_set(),
-            conv_cache_neg: session_small_fx_hash_set(),
+            conv_cache_pos: new_fx_hash_set(),
+            conv_cache_neg: new_fx_hash_set(),
             probe_depth: 0,
-            closed_eval_cache: session_small_fx_hash_map(),
+            closed_eval_cache: new_fx_hash_map(),
             whnf_store: new_fx_hash_map(),
             whnf_store_filter: Box::new([0u64; 1024]),
             whnf_head_filter: Box::new([0u64; 1024]),
             whnf_admit: vec![0u8; WHNF_ADMIT_LEN].into_boxed_slice().try_into().expect("admit table size"),
-            lam_domain_cache: session_small_fx_hash_map(),
-            global_value_cache: session_fx_hash_map(),
-            open_eval_cache: session_fx_hash_map(),
+            lam_domain_cache: new_fx_hash_map(),
+            global_value_cache: new_fx_hash_map(),
+            open_eval_cache: new_fx_hash_map(),
             open_eval_seen: small_fx_hash_set(),
-            bvar_hc: session_small_fx_hash_map(),
-            spine_hc: session_fx_hash_map(),
-            lam_hc: session_small_fx_hash_map(),
-            pi_hc: session_small_fx_hash_map(),
-            type_cache: session_fx_hash_map(),
-            thunk_hc: session_fx_hash_map(),
-            quote_cache: session_fx_hash_map(),
-            frames: hashbrown::HashTable::with_capacity(SESSION_MAP_CAP),
+            bvar_hc: new_fx_hash_map(),
+            spine_hc: new_fx_hash_map(),
+            lam_hc: new_fx_hash_map(),
+            pi_hc: new_fx_hash_map(),
+            type_cache: new_fx_hash_map(),
+            thunk_hc: new_fx_hash_map(),
+            quote_cache: new_fx_hash_map(),
+            frames: hashbrown::HashTable::new(),
             lsub_bases: small_fx_hash_map(),
             level_subs: small_fx_hash_map(),
             prune_dm: Box::new([(0, 0, None); PRUNE_DM_LEN]),
-            rigid_hc: session_fx_hash_map(),
-            unfold_hc: session_fx_hash_map(),
-            iota_stuck: session_small_fx_hash_set(),
+            rigid_hc: new_fx_hash_map(),
+            unfold_hc: new_fx_hash_map(),
+            iota_stuck: new_fx_hash_set(),
             struct_eta_cache: small_fx_hash_map(),
-            iota_cache: session_fx_hash_map(),
-            canon_cache: session_fx_hash_map(),
-            content_hc: session_small_fx_hash_map(),
+            iota_cache: new_fx_hash_map(),
+            canon_cache: new_fx_hash_map(),
+            content_hc: new_fx_hash_map(),
             fvar_cache: small_fx_hash_map(),
             ind_occ_cache: small_fx_hash_map(),
             empty_env: crate::value::env_empty(arena),
