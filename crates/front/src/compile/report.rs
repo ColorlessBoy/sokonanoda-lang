@@ -89,7 +89,12 @@ pub struct ByStepState {
 /// ⇒ 这个常量**进缓存键、进条目本身、进 `meta.json` 的 schema**：形状一变，
 /// **整库不命中** ✓。**不许再用「字段可选（`#[serde(default)]`）」来兜兼容** ✗ ——
 /// 那正是掩盖机制：老缓存不报错、不 miss，只给旧答案。
-pub const REPORT_SHAPE: u32 = 1;
+/// **B1（2026-10-08）把它 1 → 2**：`DeclState.by_steps` 的**含义变了** ——
+/// 失败（tactic 报错 / 内核终审不过）的声明现在**也带**逐 tactic 状态
+/// （以前恒为空 ⇒ `query state` 退回题面 `step:-1/total:0` ✗）。
+/// 语义变化**同样算形状变化**（下面那段话的最后一句）⇒ 必须 bump，
+/// 否则旧缓存条目会静默给出"没有步进"的旧答案 ✗（G-78 踩过一次）。
+pub const REPORT_SHAPE: u32 = 2;
 
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone, Serialize, Deserialize)]

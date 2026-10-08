@@ -614,6 +614,21 @@ pub struct ByOutcome {
     pub steps: Vec<ByStep>,
 }
 
+/// **B1（2026-10-08）**：`by` 块**失败**时交还的东西 —— 诊断 **+ 已经跑成功的那些步**。
+///
+/// 为什么要有它（P3 显示面 · 用户原话「最后一条 tactic 报错 ⇒ **前面所有 goal 全坏**」✗）：
+/// 以前 `run_by_inner` 末尾的 `run_tactics(…)?` 让 `Err` 冒泡，**已累积的 `steps`
+/// 整份丢掉** ✗ ⇒ `DeclState.by_steps` 为空 ⇒ `query/state.rs` 走"失败的声明退回题面"
+/// 那条路 ⇒ 整份声明只剩一个根目标（`step:-1`、`total:0`）✗。**一条失败不该抹掉历史**
+/// （Lean 4 的 `TacticInfo` 同时带 `goalsBefore`/`goalsAfter` ⇒ 一次失败不抹状态 ✓）。
+///
+/// `steps` = **严格趟**里成功跑完的那些步（失败那条**不在**里面 ✓）——
+/// 与"逐 tactic 看目标"的语义一致：第 i 条之后的状态就是第 i 条成功执行后的状态 ✓。
+pub struct ByFailure {
+    pub error: CompileError,
+    pub steps: Vec<ByStep>,
+}
+
 /// 节点解决方案：洞 / 已闭合术语 / `apply`（f 应用于若干实参，其中子目标
 /// 实参指向节点 id）。
 #[derive(Clone)]
@@ -1184,7 +1199,7 @@ pub(crate) fn run_by<'a>(
     // `env == None`（开关关着）⇒ 这一档**逐字节回到今天** ✓。
     ctx: &crate::compile::elab::ElabCtx<'a, '_>,
     mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
-) -> Result<ByOutcome, CompileError> {
+) -> Result<ByOutcome, ByFailure> {
     // **乐观一趟**（0.62.0 性能）：`by` 块里的判定不逐步做，而是先记下来
     // （`judge_terms` 在批次里返回乐观的 `Match`），跑完由 `flush_batch` 把
     // **同一个前缀**的全部判定合成**一份文档**一次判完。
@@ -1216,8 +1231,8 @@ pub(crate) fn run_by<'a>(
     match optimistic {
         // 判定全绿 ⇒ 这一趟就是严格趟（控制流相同），直接采信。
         Ok(outcome) if all_match => Ok(outcome),
-        // 判定全绿但别处出错 ⇒ 这个错是真的，不必重跑。
-        Err(error) if all_match => Err(error),
+        // 判定全绿但别处出错 ⇒ 这个错是真的，不必重跑（**B1**：把已跑成功的步一起交还 ✓）。
+        Err(failure) if all_match => Err(failure),
         // 有判定没通过 ⇒ 严格重跑，拿与改动前逐字相同的诊断。
         _ => run_by_inner(
             ty,
@@ -1252,7 +1267,7 @@ fn run_by_inner<'a>(
     defs: &DefTable,
     ctx: &crate::compile::elab::ElabCtx<'a, '_>,
     mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
-) -> Result<ByOutcome, CompileError> {
+) -> Result<ByOutcome, ByFailure> {
     let Expr::By {
         tactics,
         span: by_span,
@@ -1262,11 +1277,15 @@ fn run_by_inner<'a>(
     };
     let root_ty = crate::proof::peel_pi_layers(ty, initial_binders.len()).ok_or_else(|| {
         let span = initial_binders.last().map(|b| b.span).unwrap_or(*by_span);
-        CompileError::elab(
-            ErrorKind::ElabTacticFailed,
-            "internal: declared binders do not match the declaration type",
-            span,
-        )
+        ByFailure {
+            error: CompileError::elab(
+                ErrorKind::ElabTacticFailed,
+                "internal: declared binders do not match the declaration type",
+                span,
+            ),
+            // 还没跑任何一条 ⇒ 空 ✓
+            steps: Vec::new(),
+        }
     })?;
     // G-05（设计 `docs/design/namespace-open.md` §4.6）：文件用了 namespace/open
     // 时，根目标先过一遍内核 pp —— `apply` 的 `unify_spine` 是**文本**对齐
@@ -1305,7 +1324,7 @@ fn run_by_inner<'a>(
     });
     worklist.push(0);
 
-    run_tactics(
+    if let Err(error) = run_tactics(
         tactics,
         &mut nodes,
         &mut worklist,
@@ -1317,7 +1336,10 @@ fn run_by_inner<'a>(
         defs,
         ctx,
         env,
-    )?;
+    ) {
+        // **B1**：`?` 会把已累积的 `steps` 整份丢掉 ✗ ⇒ 显式交还（失败那条不在里面 ✓）。
+        return Err(ByFailure { error, steps });
+    }
     let expr = assemble(&nodes, 0, hole_span(tactics, *by_span));
     Ok(ByOutcome { expr, steps })
 }

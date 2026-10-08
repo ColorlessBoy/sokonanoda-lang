@@ -179,7 +179,13 @@ fn check_then_add_decl<'arena>(
             }
             failed_cmds.insert(cmd, err.clone());
             out.push_error(j, err.clone());
-            decl_states.push(failed_state(kind, name, span, err, cmd));
+            // **B1（2026-10-08）**：`by` 块**跑通了**、只是**内核终审**不过时，
+            // per-tactic 状态同样**不许丢** ✗（用户看到的症状与"tactic 报错"一样：
+            // 整份声明退回题面 `step:-1/total:0`）⇒ 把 walk 交下来的两步状态带上 ✓。
+            let mut st = failed_state(kind, name, span, err, cmd);
+            st.by_steps = by_steps;
+            st.by_root = by_root;
+            decl_states.push(st);
             true
         }
     }

@@ -394,7 +394,7 @@ fn lower_by_val<'a>(
     defs: &crate::compile::elab::DefTable,
     ctx: &crate::compile::elab::ElabCtx<'a, '_>,
     env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
-) -> Result<(Expr, Vec<crate::by::ByStep>), CompileError> {
+) -> Result<(Expr, Vec<crate::by::ByStep>), crate::by::ByFailure> {
     if let Some((binders, by)) = crate::by::split_by_value(val) {
         stage_stats::BYS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let _by_timer = StageTimer(&stage_stats::BY_NANOS, std::time::Instant::now());
@@ -446,7 +446,7 @@ fn lower_value<'a>(
     defs: &crate::compile::elab::DefTable,
     ctx: &crate::compile::elab::ElabCtx<'a, '_>,
     env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
-) -> Result<LoweredValue, CompileError> {
+) -> Result<LoweredValue, crate::by::ByFailure> {
     lower_by_val(
         ty,
         val,

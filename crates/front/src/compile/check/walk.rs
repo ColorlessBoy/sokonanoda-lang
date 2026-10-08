@@ -829,11 +829,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             by_env.as_mut(),
         ) {
             Ok(v) => v,
-            Err(e) => {
-                self.out.push_error(idx, e.clone());
+            Err(failure) => {
+                self.out.push_error(idx, failure.error.clone());
                 {
                     let mut st =
-                        failed_state(DeclKind::Definition, Some(name.to_string()), span, e, idx);
+                        failed_state(DeclKind::Definition, Some(name.to_string()), span, failure.error, idx);
+                    // **B1**：失败也要保留**已跑成功的**那些步（P3 显示面）✓
+                    st.by_steps = by_step_states(&failure.steps, &self.display);
                     st.by_root = decl_prefix_state(ty, val, &self.display);
                     self.decl_states.push(st);
                 }
@@ -1187,11 +1189,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             by_env.as_mut(),
         ) {
             Ok(v) => v,
-            Err(e) => {
-                self.out.push_error(idx, e.clone());
+            Err(failure) => {
+                self.out.push_error(idx, failure.error.clone());
                 {
                     let mut st =
-                        failed_state(DeclKind::Theorem, Some(name.to_string()), span, e, idx);
+                        failed_state(DeclKind::Theorem, Some(name.to_string()), span, failure.error, idx);
+                    // **B1**：失败也要保留**已跑成功的**那些步（P3 显示面）✓
+                    st.by_steps = by_step_states(&failure.steps, &self.display);
                     st.by_root = decl_prefix_state(ty, val, &self.display);
                     self.decl_states.push(st);
                 }
@@ -1633,9 +1637,11 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             by_env.as_mut(),
         ) {
             Ok(v) => v,
-            Err(e) => {
-                self.out.push_error(idx, e.clone());
-                let mut st = failed_state(DeclKind::Example, None, span, e, idx);
+            Err(failure) => {
+                self.out.push_error(idx, failure.error.clone());
+                let mut st = failed_state(DeclKind::Example, None, span, failure.error, idx);
+                // **B1**：失败也要保留**已跑成功的**那些步（P3 显示面）✓
+                st.by_steps = by_step_states(&failure.steps, &self.display);
                 st.by_root = decl_prefix_state(ty, val, &self.display);
                 self.decl_states.push(st);
                 return;

@@ -339,3 +339,46 @@ async fn state_at_outside_any_declaration_is_empty() {
     assert_eq!(result["step"], -1);
     shutdown(&mut service).await;
 }
+
+/// **B1（2026-10-08）的 wire 判据**：**失败**的 `by` 块也要答得出逐 tactic 状态。
+///
+/// 用户报的现象（P3）：「最后一条 tactic 报错 ⇒ **前面所有 goal 全坏**」✗ ——
+/// 真相层以前把已累积的步进整份丢掉 ⇒ 声明退回题面（`total:0` / `step:-1`）✗。
+/// 这条钉**用户看得见的那一层**：`total`/`step`/`goals[0]` 三个字段的值 ✓
+/// （真相层的判据在 `crates/front/src/compile/tests.rs::failed_by_block_keeps_the_succeeded_steps`）。
+#[tokio::test]
+async fn state_at_in_a_failed_by_block_keeps_the_succeeded_steps() {
+    const FAILED: &str = "axiom And : Prop -> Prop -> Prop\n\
+                          axiom P : Prop\n\
+                          axiom Q : Prop\n\
+                          axiom hp : P\n\
+                          axiom hq : Q\n\
+                          axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+                          theorem bad : And P Q := by apply And.intro; exact hp; exact hp\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, FAILED).await;
+    let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+    // 光标停在**第 2 条 tactic（`exact hp`）的末尾** ⇒ "最后一条在光标前结束的"
+    // 就是它 ⇒ 它**执行后**的状态 = 只剩 `Q` ✓（这个取点在两种光标语义下都成立，
+    // 所以它钉的是 B1 而不是 B2 的档位 ✓）。
+    let cursor = offset_of(FAILED, "exact hp; exact hp") + "exact hp".len();
+    let result = ask_state_at(&mut service, FAILED, cursor).await;
+    assert_eq!(result["decl"]["name"], "bad");
+    assert_eq!(
+        result["decl"]["status"], "failed",
+        "前提：这一刀确实判失败（否则量的是另一条路）"
+    );
+    assert_eq!(
+        result["total"], 2,
+        "**B1 的正身**：两条成功的 tactic 必须留下步进（0 = 退回题面 ✗）"
+    );
+    assert_eq!(result["step"], 1, "第 2 条之后 ⇒ step 1（以前恒为 -1 ✗）");
+    assert_eq!(
+        result["goals"][0]["goal"], "Q",
+        "第 2 条之后只剩 `Q`（以前这里答的是题面 `P ∧ Q` ✗）"
+    );
+    assert_eq!(result["goal"], "Q", "单值字段 = goals[0]（老客户端契约）");
+    shutdown(&mut service).await;
+}

@@ -455,7 +455,7 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   at its **very start** → **entering** it; else after the last tactic ending at or before the caret; before the first tactic → the
   **statement state**: the declaration's **named ∀ binders** in `binders` and what is left
   after peeling them in `goal` —— **与声明卡片（`soko/goals`）逐字一致**
-  （**顶 ≡ 底** 是硬契约 ✓）；Π 语句保留自己的 `→`/`∀` ✓，失败的声明也答题面（非 null）✓。
+  （**顶 ≡ 底** 是硬契约 ✓）；Π 语句保留自己的 `→`/`∀` ✓；**没有 `by` 步进**的声明（无 `by` 块 / 题面之前）答题面（非 null）✓，而**失败的 `by` 块也逐 tactic 选状态**（B1，2026-10-08：`by_steps` 只记**已经跑成功**的那些 tactic ⇒ `total` = 成功条数、`step` 可达 `total-1`；以前恒 `0/-1`、整份退回题面 ✗ = 用户报的「最后一条 tactic 报错 ⇒ 前面所有 goal 全坏」）。
 - `goals` is the **full** remaining-goal list at that position (current goal
   first, `[]` = closed), each entry carrying its own `goal` text and
   `binders` — so a multi-subgoal tactic (`apply And.intro`) shows both

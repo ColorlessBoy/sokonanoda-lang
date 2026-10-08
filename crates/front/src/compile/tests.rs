@@ -4519,6 +4519,70 @@ fn partial_by_block_records_per_step_states() {
     assert_eq!(&src[s1.span.start.offset..s1.span.end.offset], "intro h");
 }
 
+/// **B1（2026-10-08）**：**失败**的 `by` 块也要保留**已经跑成功的**那些步。
+///
+/// 用户报的现象（P3）：「最后一条 tactic 报错 ⇒ **前面所有 goal 全坏**」✗ ——
+/// 根因是 `run_by_inner` 末尾 `run_tactics(…)?` 把已累积的 `steps` 整份丢掉，
+/// 而 `failed_state` 从 `by_steps: Vec::new()` 起步 ⇒ `query/state.rs` 走
+/// "失败的声明退回题面"那条路（`step:-1` / `total:0`）✗。
+///
+/// 判据：`by_steps.len()` **0 → 2**；且**光标停在第 2 条 tactic 起点**时
+/// `select_state_at` 答的是**它进入时**的状态（= 第 1 条执行后 = `[Q]` ✓），
+/// 不再是题面 `[P ∧ Q]` ✓。
+#[test]
+fn failed_by_block_keeps_the_steps_that_succeeded() {
+    use crate::query::select_state_at;
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               axiom P : Prop\n\
+               axiom Q : Prop\n\
+               axiom hp : P\n\
+               axiom hq : Q\n\
+               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+               theorem bad : And P Q := by apply And.intro; exact hp; exact hp\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(!report.errors.is_empty(), "最后一条 `exact hp` 必须报错");
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("bad"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Failed);
+    assert_eq!(
+        d.by_steps.len(),
+        2,
+        "**B1 的正身**：前两条成功的 tactic 必须留下步进（失败那条不在里面 ✓）；\
+         0 = 退回题面（用户报的「前面所有 goal 全坏」✗）"
+    );
+    // 第 1 条 `apply And.intro` 之后：两个子目标（当前目标在首位）。
+    assert_eq!(d.by_steps[0].goals.len(), 2);
+    assert_eq!(d.by_steps[0].goals[0].ty, "P");
+    assert_eq!(d.by_steps[0].goals[1].ty, "Q");
+    // 第 2 条 `exact hp` 之后：只剩 `Q`。
+    assert_eq!(d.by_steps[1].goals.len(), 1);
+    assert_eq!(d.by_steps[1].goals[0].ty, "Q");
+
+    // 光标停在**第 2 条 tactic 的结束处** ⇒ "最后一条在光标前结束的 tactic" = 第 2 条
+    // ⇒ `[Q]` ✓ —— 这个取点在**两种光标语义下都成立**（起点语义 B2 前后一致 ✓），
+    // 所以它钉的是 B1（失败声明有没有步进），不是 B2（档位）✓。
+    let cursor = d.by_steps[1].span.end.offset;
+    let selection = select_state_at(d, cursor);
+    assert_eq!(
+        selection.goals.len(),
+        1,
+        "失败的声明也必须能逐 tactic 选状态（以前只剩题面那一条 ✗）"
+    );
+    assert_eq!(selection.goals[0].ty, "Q", "第 2 条 `exact hp` 之后 = [Q]");
+    // 对照（P3 的病灶本身）：题面只有一个目标 —— 光标在第一条之前时，**旧行为**
+    // 与现在一样是题面；区别在于**旧行为下所有位置都只能是它** ✗。
+    let root = select_state_at(d, 0);
+    assert_eq!(root.goals.len(), 1, "题面只有一个目标");
+    assert!(
+        root.goals[0].ty.contains('∧'),
+        "题面是 `P ∧ Q`（折过记法）：{:?}",
+        root.goals[0].ty
+    );
+}
+
 #[test]
 fn apply_records_all_open_goals_current_first() {
     // 多目标（本轮修复）：`apply And.intro` 开出两个子目标，per-step 状态
