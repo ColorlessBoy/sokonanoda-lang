@@ -1357,8 +1357,13 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * 验证：front **全部目标 35/35** 绿 · fmt 干净 · clippy **0** 报错 ✓。
 * ⭐ **四方向结账（第 55 轮 · 全量 `scripts/soko gate` PASS ✓）**：**①** T1-A ✓ · T1-B 批 1/2/3 ✓✓ · 有界化 ✓ · **T1-C 契约+守卫 ✓**；**②** T1-A ✓（跨条目复用） · 静默期修复 ✓ · **T2-B0 ✓✓**（两张派生表 O(闭包)→O(入口)）· T2-B **缓做** （已量上界 ≈30–40ms、前置件大）；**③** T3 ✓（合成趟 Σ20→0）· 新读数指向此处，**A5b 已排除** ✗；
   **④** T4-A ✓（契约+守卫）· T4-B 前置件就绪（**阻塞①已核实**：CLI 确实传 sink ⇒ 需先给 session 开 sink 通道）·
-  T4-C 未做（大件 ✗）。**读数**：真实连续键入 **78.7ms**（vs 计划里 lean4 ~200ms 占位 ⇒ **2.5×** ✓）；
-  产物 **14×**（前端 · §31）· **9×**（CLI · §36）· 冷开第一刀 **333ms → 目标 ≤78ms**（未达 ✗，见 §41）。
+  T4-C 未做（大件 ✗）。**读数**：真实连续键入 **78.0ms** · 产物 **14×**（前端 · §31）· **9×**（CLI · §36）·
+  冷开第一刀 **333 → 127.2ms**（A5c/A5d ✓）。⭐ **但北极星要按两个口径读**（第 64 轮 · 并行线的真读数
+  `docs/notes/perf-lean4-bench.md` ✓）：**诊断全量落地 soko 81.4ms vs Lean 218.1ms ⇒ 快 2.7×** ✓✓；
+  **goal 更新完成 soko 81.4ms vs Lean 3.1ms ⇒ 慢 26×** ✗✗（Lean 靠 **per-command 快照** ✓ = 方向② **T2-B**
+  那一格 ✓，前置件 T2-A **并行线在飞** ✓）⇒ **"打平并超过"只在诊断口径成立，整体还没达成** ✗。
+  ⚠ 那份实测的**臂 B′（开档即敲）232.7ms** 是 **A5c/A5d 之前**的数（它自己写着 `warm-library built=true 217ms` ✓）
+  —— 那条**预热赛跑**已被本线拆掉 ⇒ 同臂现在 **127.2ms** ✓，重测时要换新数 ✓。
 
 * ⚠ **§21 的天花板要按 A6b 之后重估（第 58 轮 · 只读）**：`TcCache::new`（`kernel/src/util.rs:1291`）今天已是 **10 张空 HashMap + 三个定长数组**（`Box<[u64;1024]>` ×2 + `whnf_admit` ✓ —— A6b 已把 **4 MiB 预分配**拿掉 ✓） ⇒ 单次 ≈ **2–3µs**（不是 §20 量到的 9.2µs ✗）⇒ 稳态那一刀 `tc=4225` ⇒ 全部 ≈ **10ms / 79.7ms（~13%）** ✓。
   ⇒ **"按趟复用 TcCache"（§21 候选 1）今天的天花板只有 ~10ms**，而它要动 `with_tc` 的签名链 + 内核相位 ✗
@@ -1384,8 +1389,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   **A7 那条 22.5% 已经过期** ✗ ⇒ **这个靶子可以划掉、别再投** ✓（红线"不许换弱哈希"也就不用碰 ✓）。
 * **产物/缓存的体格（同轮实测）**：真课程 unit08 的产物载荷 **1,148,482 字节**（`.meta.json` 158 ✓）· `compiled/` 在探针跑完后为 **0**（各臂按纪律清过 ✓）⇒ **写产物 ≈ 1–3ms 量级**，不是热按键的大头 ✓； 真正的大头仍是"**声明 elaborate ≈24ms** + 声明之外 ≈54ms"（见上一条的逐声明归因 ✓）。
 
-* ⚠ **在制品协调（第 63 轮）**：并行线正在 `crates/kernel/{builder,util}.rs` 上做 **`EnvBuilder::clone` 常量化**（新用例 `builder::tests::env_clone_cost_is_constant_in_declaration_count` ✓
-  —— 那正是 **T2-A（声明表持久化/COW）** 这条 XL 前置件 ✓，也是解锁 T2-B 深水区的那一件 ✓）。
+* ⚠ **在制品协调（第 63 轮）**：并行线正在 `crates/kernel/{builder,util}.rs` 上做 **`EnvBuilder::clone` 常量化**（新用例 `builder::tests::env_clone_cost_is_constant_in_declaration_count` ✓ —— 那正是 **T2-A（声明表持久化/COW）** 这条 XL 前置件 ✓，也是解锁 T2-B 深水区的那一件 ✓）。
   它**当前未提交且未绿**（全量 gate 判红 = 它的新用例 ✗，不是本线的改动 ✓）⇒ 本线**不碰**那两个文件，
   等它落地后再重量北极星（克隆常量化会直接改热按键的成本结构 ✓）。
 
@@ -1428,11 +1432,9 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   | `build <file>`（今天 = `compile_plan_prechecked`，**整条闭包一趟**） | **0.396 / 0.435 / 0.396s** | 库层**每次重 elaborate** ✗ · **产物数 = 0**（这条路根本不碰 session ✓） |
   | `query check`（session + 产物） | 0.408s → **0.043 / 0.043s** | 第一刀写产物，之后**装载** ⇒ **≈9×** ✓ |
   ⇒ **T4-B 的价值 = 那 9×**，且它就是**库层 elaborate** 那一块 ✓（与方向① 的读数同源 ✓）。
-* **本轮落地（两件，都是"敢换"的前置件 ✓）**： 1. 新公开入口 **`project::compile_plan_with_artifacts(plan, options)`** = `compile_plan_incremental` 的 `reuse_library=false` 支（**不碰线程局部检查点** ✓ + 磁盘产物 ✓ ⇒ 与 T4-A 契约一致 ✓）； 2. **前置判据** `crates/front/tests/t4b_plan_parity.rs`：同一条闭包分别走
-     **整条一趟** 与 **session+产物** ⇒ **`ProjectReport` 逐字节相同** ✓（序列化比较、字段一个不漏 ✓）
+* **本轮落地（两件，都是"敢换"的前置件 ✓）**： 1. 新公开入口 **`project::compile_plan_with_artifacts(plan, options)`** = `compile_plan_incremental` 的 `reuse_library=false` 支（**不碰线程局部检查点** ✓ + 磁盘产物 ✓ ⇒ 与 T4-A 契约一致 ✓）； 2. **前置判据** `crates/front/tests/t4b_plan_parity.rs`：同一条闭包分别走 **整条一趟** 与 **session+产物** ⇒ **`ProjectReport` 逐字节相同** ✓（序列化比较、字段一个不漏 ✓）
      —— 这是"**换路不改报告**"的红线 ✓（判据过了**不等于**可以无脑换 ✗，见下）。
-* ⚠ **采用之前还要解决三件（如实记 · ① 已核实为真 ✓）**：① `compile_plan_incremental` **不收 `progress` sink** ⇒ 直接换会**丢掉 CLI 的进度事件**（用户可见 ✗）—— **第 53 轮核实** `build.rs:703-707`：它**确实**按 `json`/人看两态各传一个 sink ✓ ⇒ 不是假想 ✗；**第 56 轮试过接线、按时间盒撤回** ✗：
-  `&mut dyn ProgressSink` 默认是 `&mut (dyn … + 'static)` ⇒ 要往下传就得处处写 `+ '_` ✓，
+* ⚠ **采用之前还要解决三件（如实记 · ① 已核实为真 ✓）**：① `compile_plan_incremental` **不收 `progress` sink** ⇒ 直接换会**丢掉 CLI 的进度事件**（用户可见 ✗）—— **第 53 轮核实** `build.rs:703-707`：它**确实**按 `json`/人看两态各传一个 sink ✓ ⇒ 不是假想 ✗；**第 56 轮试过接线、按时间盒撤回** ✗： `&mut dyn ProgressSink` 默认是 `&mut (dyn … + 'static)` ⇒ 要往下传就得处处写 `+ '_` ✓，
   而它一路**级联进 `run_pass_with`**（`check/mod.rs`）⇒ 4 个文件、lifetime 错误滚雪球 ✗
   ⇒ **这是一件 2–3 轮的重构，不是"加个参数"** ✓（已还原 ⇒ 树绿 ✓）。下一棒要动它请**单独排一轮** ✓；② CLI 还有 **`build.*` 事件流**要整门课对拍
   （`--json` 逐字节 ✓）；③ `compile_entries_shared` 的**单入口组被过滤**（"会话是纯开销"）
@@ -1442,8 +1444,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 ### 37. 第 46 轮（平行线）：产物目录**有界化** —— 补上批 3 漏掉的一件（无界增长 ✗→✓）
 
-* **发现的缺口**：`compiled/` 那条**天然有界**（"一份产物对应一个入口文件" ✓），而 **产物这条没有** ✗ —— 键 = **库层闭包的 Merkle 键** ⇒ 用户每改一次库层就多一个新键
-  ⇒ 老产物**再也没人读**却一直占盘 ✗（设计 §8.1 只写了"文件名即内容寻址"，**没定上界** ✗）。
+* **发现的缺口**：`compiled/` 那条**天然有界**（"一份产物对应一个入口文件" ✓），而 **产物这条没有** ✗ —— 键 = **库层闭包的 Merkle 键** ⇒ 用户每改一次库层就多一个新键 ⇒ 老产物**再也没人读**却一直占盘 ✗（设计 §8.1 只写了"文件名即内容寻址"，**没定上界** ✗）。
 * **修法**：`MAX_ARTIFACT_PAIRS = 64` + `prune`（**按 mtime 最旧先走**、**成对**淘汰 ✓、 **刚写的那一对永不淘汰** ✓、best-effort ⇒ 淘汰失败不影响"这次写成功了" ✓）。
 * **判据**：`the_artifact_store_stays_bounded_and_keeps_the_newest` —— 连写
   `64 + 6` 份（每份隔 2ms 让 mtime 可分辨 ⇒ 顺序确定 ✓）⇒ ① 目录里 `.bin` 对数 ≤ 64 ✓
