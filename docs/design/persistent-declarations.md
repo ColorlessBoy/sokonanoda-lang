@@ -198,3 +198,44 @@ pub struct EnvSnapshot<'a> {           // Clone = O(1)
 > ⚠ **它单独不解决 goal 延迟**：T2-B 只回答"**从哪条开始编**"；要 goal 进 3ms 量级
 > 还需要**按命令发布** goal 状态（Lean 的 `AsyncList` + `waitFindAtPos`，见
 > `docs/notes/perf-lean4-bench.md` §8.1/§8.3）✓。
+
+## 7. 第三件：**按命令发布 goal**（对齐 Lean `AsyncList`/`waitFindSnapAtPos`）—— 可落地方案
+
+**读数定位**：T2-B 落地后 goal 口径 **13.48ms → 8.72ms** ✓（Lean 4 = 3.1ms）⇒ 还差
+**"把 goal 从'每次重算'变成'从已发布的快照里取'"** 这一件 ✓。
+
+### 7.1 Lean 怎么做（`~/Documents/lean/lean4/src/Lean/`，v4.28.0 ✓ 已核）
+
+| 机制 | Lean 4 | 我们 |
+|---|---|---|
+| 快照链 | `Snapshot { stx, mpState, cmdState }` **每条命令**一份，`AsyncList` 串成任务链（`Server/Snapshots.lean:28-33` · `Server/AsyncList.lean:21-23`） | 只有**每趟**的报告（`DocumentReport`），没有"每命令一份" |
+| 取法 | `withWaitFindSnapAtPos p = waitFind? (fun s => s.endPos ≥ p)` ⇒ **二分找 ≤ 光标的最近一份**（`Server/Requests.lean:340/357-363`） | `soko/goals` 现从**整份报告**里按声明找 ⇒ 每次按键后才有答案 |
+| 代价 | 查询**不触发重算**（快照已在链上） | 8.72ms 里含"这一刀的 elaborate + 内核检查 + 报告序列化" |
+
+### 7.2 我们的形状（可落地）
+
+1. **入口趟每条命令结束时发布一份 `CmdSnapshot { cmd_idx, end_pos, goal_view }`**
+   （`end_pos` = `command.span().end` 已有 ✓；`goal_view` = 该命令之后
+   `DeclState.goal`/`by_root` 的那一份 ⇒ 不必新算，**切出来共享**即可 ✓）；
+   会话持有 `Vec<CmdSnapshot>`（`Rc`/`Arc` 共享，同 `WalkCheckpoint` 的纪律：**只借 arena** ✓）。
+2. **`soko/goals` 改走"取 ≤ 光标的最近一份"**（二分 ✓）⇒ 请求**不触发编译**；
+   响应仍走同一份 `GoalPayload`（协议不变 ✓ `docs/protocol.md`）。
+3. **发布表与报告的所有权二选一** ⚠（同 T2-B 那条纪律）：goal 由**发布表**给，
+   报告仍给诊断/洞 ⇒ 两者**不重复计算** ✓。
+
+### 7.3 判据（结构计数，不用墙钟）
+
+* ① **不重算**：一次 `soko/goals` 请求的 `elaborate`/`by_calls` **增量 = 0** ✓
+  （今天 > 0 —— 请求要等/触发那一刀）；
+* ② **答案等价**：同一 fixture 下"发布表取出的 goal" vs "整趟重编后的 goal"
+  **逐字段相同** ✓（反向验证：故意把发布表的 `end_pos` 改错 ⇒ 必须判红 ✓ 咬得住）；
+* ③ **陈旧面**：改**最后一条**之后，光标在**倒数第二条**上取到的 goal 必须**与改前相同** ✓、
+  在**最后一条**上必须**变了** ✓（这条钉住"陈旧但不该变 vs 该变没变"两种错 ✗）。
+
+### 7.4 顺序（每步自带判据，缺一步不许往下）
+
+1. **先量账**：把 8.72ms 拆成"elaborate 1 条 + 内核检查 + 报告序列化 + 请求往返"
+   （`SOKO_STAGE_STATS` + LSP 侧计时）⇒ 才知道第三件能拿回多少 ✓（**不许**跳过这步直接写 ✗）；
+2. 发布表**只写不读** ＋ 判据 ②；
+3. `soko/goals` 改走发布表 ＋ 判据 ① ＋ ③；
+4. 若 ① 达标而 goal 仍 > 3ms ⇒ 余量在**序列化/往返** ⇒ 那时才动 wire（另立设计 ✗）。
