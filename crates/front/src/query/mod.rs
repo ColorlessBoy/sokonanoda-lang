@@ -19,7 +19,7 @@ mod types;
 
 use std::collections::BTreeSet;
 
-pub use pos::{line_col_of, offset_of_line_col, with_line_index};
+pub use pos::{line_col_of, offset_of_line_col, with_line_index, LineIndex};
 pub use state::{select_state_at, StateSelection};
 pub use types::{
     Answer, BinderInfo, CheckCounts, CheckSummary, CodeActionInfo, DeclHeader, DeclInfo,

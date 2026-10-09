@@ -1439,12 +1439,9 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ✅✅ **候选 B 的判据落地，且读数比估计更好（第 95 轮）**：`crates/front/tests/goals_runs_optional.rs` ✓ `PERF goals-runs-optional: 全量 decls≈89 515B（runs 共 1981 条）⇒ 剥掉后≈24 877B · 省 **64 638B（72%）**` ✓ ⇒ 判据 = **等价性**（名字/kind/status/span/ty/value/goal 逐字段相同 ✓ + 三个 `*_runs` 全空 ✓） ＋**反向前提放循环外**（"全量版总 runs > 0" ✓ —— 第 94 轮就是把它放进逐条循环才判红 ✗）； `1 passed` ✓。⇒ `soko/goals` 响应里那 ~55–64KB 是**真能去掉的** ✓（比我第 92 轮估的 61% 还多 ✓）。
 * ⏭ **LSP 接线（下一轮，4 个单点，已点名 ✓）**：① `protocol.rs:12` 的 `GoalsParams` 加 `#[serde(default = "…")] runs: bool` （缺省 **true** = 今天的行为 ⇒ 老客户端一字不改 ✓）；② 同文件加 `fn default_true()` ✓；③ `lsp/src/lib.rs` 的 `goal_decls(probe)` 加一个"要不要 runs"的入参（**新方法**，别改旧签名 ✓）；④ `goals()`（`:1183` 的 `goal_decls(true)`） 按 `params.runs` 分派 ✓。⚠ `GoalDeclInfo` 是 LSP 自己的类型 ✗（不是 front 的 `DeclInfo` ✓）⇒ 清空要在**调用 front 之后、 映射之前**做过 ✗ hmm ⇒ 最省事：`goal_decls` 里对 `query().goals(probe)` 换成 `goals_without_runs(probe)` ✓（front 那半已就位 ✓）。 然后按设计档同步 `docs/protocol.md`（**加法式**：新可选字段 ✓、旧字段一字不动 ✓）+ 一条体积/端到端读数 ✓。
 
-* ✅✅ **LSP 那 ~2.8ms 也切开了 —— 而且**不是载荷**（第 97 轮 · 新档 `crates/lsp/tests/goals_lsp_layers.rs`）**：三条工作量递增的请求 （同进程、同文档、稳态、各 3 次取中位）：`soko/version` **0.1ms/69B** · `soko/nextHole` **0.1ms/108B** · `soko/goals(runs=false)` **6.4ms/26 723B** · `soko/goals(runs=true)` **6.1ms/91 361B** ⇒ ① **固定开销 ≈0.0ms**（锁/请求/解析都不是问题） ② 全部 ≈6ms 在「**每声明**」那段（goals − nextHole）③ ⭐ **载荷不是驱动因素** —— 26.7KB 与 91.4KB 往返**一样快**（6.4 vs 6.1 = 噪声）
-  ⇒ 上一轮「−71% 载荷只换 1.1ms」由此解释，也**推翻**了我第 96 轮「剩余 2.8ms 在序列化」的猜测 ✗。
-* ⇒ **下一刀已定位到函数**：`query_map::decl_info`（`crates/lsp/src/query_map.rs:76`，**只有一个调用点** `lib.rs:1171`） 对每条声明（+每个洞）都调 `range_of_offsets` ⇒ `position_of` ⇒ `truth::line_col_of`（`crates/front/src/query/pos.rs:9` —— **已读源码确认**：它就是 `for (i, ch) in text.char_indices() { if i >= offset { break } … }` 的**从头扫描** ✗） ⇒ **27+ 次 × O(文本)** = 那 ~4ms ✓。**修法（先量再动）**：(a) 请求级**一次**建行首索引（O(文本) 一次、之后二分）
-  —— 要给 `decl_info`/`hole_info` 加索引参数（签名改动 ⇒ 按本区纪律**手工单点**或先搬家 ✓）；(b) 给 `line_col_of` 加**按文本有界**的记忆（键须含文本身份 ✗）。
-* ✅✅ **`line_col_of` 的从头扫描已修 —— goal 往返 6.4 → **4.0ms**（第 98 轮）**：做法 = **作用域行首索引** ✓ （`front::query::pos::with_line_index(text, || …)` ✓）：作用域内、**同一份 text**（按 `(ptr, len)` 认 ✓）⇒ 走索引 ✓； 其余情况**一律退回原扫描** ✓ ⇒ 行为不变 ✓；**零签名改动** ✓（`range_of_offsets` 有 8 处调用、跨 crate 还要传参 ⇒
-  签名改法面太大 ✗，这与本区"只许一处新增/手工单点"的纪律一致 ✓）。接线 = `lib.rs` 把**整段映射**包起来（1 处 ✓）。
+* ✅✅ **LSP 那 ~2.8ms 也切开了 —— 而且**不是载荷**（第 97 轮 · 新档 `crates/lsp/tests/goals_lsp_layers.rs`）**：三条工作量递增的请求 （同进程、同文档、稳态、各 3 次取中位）：`soko/version` **0.1ms/69B** · `soko/nextHole` **0.1ms/108B** · `soko/goals(runs=false)` **6.4ms/26 723B** · `soko/goals(runs=true)` **6.1ms/91 361B** ⇒ ① **固定开销 ≈0.0ms**（锁/请求/解析都不是问题） ② 全部 ≈6ms 在「**每声明**」那段（goals − nextHole）③ ⭐ **载荷不是驱动因素** —— 26.7KB 与 91.4KB 往返**一样快**（6.4 vs 6.1 = 噪声） ⇒ 上一轮「−71% 载荷只换 1.1ms」由此解释，也**推翻**了我第 96 轮「剩余 2.8ms 在序列化」的猜测 ✗。
+* ⇒ **下一刀已定位到函数**：`query_map::decl_info`（`crates/lsp/src/query_map.rs:76`，**只有一个调用点** `lib.rs:1171`） 对每条声明（+每个洞）都调 `range_of_offsets` ⇒ `position_of` ⇒ `truth::line_col_of`（`crates/front/src/query/pos.rs:9` —— **已读源码确认**：它就是 `for (i, ch) in text.char_indices() { if i >= offset { break } … }` 的**从头扫描** ✗） ⇒ **27+ 次 × O(文本)** = 那 ~4ms ✓。**修法（先量再动）**：(a) 请求级**一次**建行首索引（O(文本) 一次、之后二分） —— 要给 `decl_info`/`hole_info` 加索引参数（签名改动 ⇒ 按本区纪律**手工单点**或先搬家 ✓）；(b) 给 `line_col_of` 加**按文本有界**的记忆（键须含文本身份 ✗）。
+* ✅✅ **`line_col_of` 的从头扫描已修 —— goal 往返 6.4 → **4.0ms**（第 98 轮）**：做法 = **作用域行首索引** ✓ （`front::query::pos::with_line_index(text, || …)` ✓）：作用域内、**同一份 text**（按 `(ptr, len)` 认 ✓）⇒ 走索引 ✓； 其余情况**一律退回原扫描** ✓ ⇒ 行为不变 ✓；**零签名改动** ✓（`range_of_offsets` 有 8 处调用、跨 crate 还要传参 ⇒ 签名改法面太大 ✗，这与本区"只许一处新增/手工单点"的纪律一致 ✓）。接线 = `lib.rs` 把**整段映射**包起来（1 处 ✓）。
   **读数（同一探针 ✓）**：`goals(runs=false)` **6.4 → 4.0ms** ✓ · `goals(runs=true)` **6.1 → 4.6ms** ✓（−2.4ms ✓）；
   **响应体积逐字节不变**（26 723B / 91 361B ✓ ⇒ 位置字段没被改坏 ✓）；固定段仍 ≈0 ✓。
   **验证**：`cargo check --workspace --all-targets` **0 错** ✓ · **LSP 全套 13 个目标 exit 0** ✓（含位置敏感的
@@ -1452,6 +1449,13 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⚠ **仍缺一条**（下一棒第一步 ✓）：`line_col_of` vs `LineIndex::line_col_of` 的**逐位 parity 判据** ✗ ——
   本轮预算用尽，靠"LSP 全套 + 体积逐字节不变"当**间接**证据 ✓（不够 ✗，要补多行/多语言/边界偏移的逐一对比 ✓）。
   ⇒ **goal 现在 ≈4.0–4.6ms**（Lean 3.1ms ✗）：front 2.16 + 剩余 ≈1.7ms（映射/序列化/解析 ✓）—— 下一刀在那 1.7ms ✓。
+
+* ✅✅ **第 98 轮欠的那条 parity 判据补上了（第 99 轮）· 且做了反向验证** ✓：新档 `crates/front/tests/line_index_parity.rs` —— 对**每一个** offset（含 0 / EOF / **越界** ✓）在 11 组
+  刁钻文本（空串 / 无换行 / 结尾换行 / 多行 / 空行夹心 / **中文 3 字节** / **emoji 代理对** / 组合字符 /
+  **CRLF** / 仅换行 / 300 字长行 ✓）上比对 `LineIndex::line_col_of` 与旧路 `line_col_of` ⇒
+  **共 413 个 offset 逐位相同** ✓（1-based、列按 UTF-16 ✓）。**反向验证**：把索引故意改成"行号恒 1" ⇒
+  判据**当场判红** ✓ 并给出精确报文（`结尾换行 · offset 2/2：索引路 (1, 3) ≠ 旧路 (2, 1)` ✓）
+  ⇒ **这条守卫有牙** ✓（还原后复绿 ✓）。顺带把 `LineIndex` 从 `front::query` re-export ✓（判据才能用 ✓）。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
