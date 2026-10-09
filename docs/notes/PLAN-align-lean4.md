@@ -1403,25 +1403,27 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   （别在文档里留一个不存在的接口 ✗）；③ 判据 = `judge` 单测全绿 + 该处 `grep EnvProvider` 归零 ✓。
 * ⚠ **本轮的边界**：并行线在 `check/{mod,walk}.rs` + `project/session.rs` 上做 T2-B（三个文件未提交、 当前 `cargo check -p sokonanoda-front` **6 个错** ✗）⇒ 本线**不动这些文件**、也**跑不了任何编译判据** ✗ （这正是 T3-D 只做到"取证 + 决定"的原因 ✓）。
 
-* ⚠ **T3-D 的执行本轮试了 3 次、全部还原（换招：下次手工做 ✓）**：三处**脚本化删除**都误伤 —— ① 字符偏移法在文档块边界上切错（留下半行 ✗）；② 行法把 `#[test]` 属性留下 ⇒ "duplicated attribute" ✗； ③ 第三次"找悬空 `#[test]`"的判据写歪 ⇒ **删掉了旁边一条好测试的 `#[test]`** ✗（`the_text_hash_memo_never_changes_a_key`）。 ⇒ 按"同一处连红 3 次必须换招"的纪律**停手还原** ✓（还原后 `--all-targets` 0 错 · `judge` 单测全绿 ✓）。
-  **下次手工做的清单（已核实、别再写脚本 ✗）**：① `judge_infer_with_env`（含其长文档块）；② `provider_inputs`
+* ⚠ **T3-D 的执行本轮试了 3 次、全部还原（换招：下次手工做 ✓）**：三处**脚本化删除**都误伤 —— ① 字符偏移法在文档块边界上切错（留下半行 ✗）；② 行法把 `#[test]` 属性留下 ⇒ "duplicated attribute" ✗； ③ 第三次"找悬空 `#[test]`"的判据写歪 ⇒ **删掉了旁边一条好测试的 `#[test]`** ✗（`the_text_hash_memo_never_changes_a_key`）。 ⇒ 按"同一处连红 3 次必须换招"的纪律**停手还原** ✓（还原后 `--all-targets` 0 错 · `judge` 单测全绿 ✓）。 **下次手工做的清单（已核实、别再写脚本 ✗）**：① `judge_infer_with_env`（含其长文档块）；② `provider_inputs`
   （含文档块）；③ `pub trait EnvProvider`（`:2944`，含那段"形状还要重设计"的长文档 —— 建议**换成一条短记**留下线索 ✓）；
   ④ 测试 `env_provider_is_consulted_and_none_falls_back_byte_for_byte`（含内部 `impl EnvProvider for Fake` ✓）；
   ⑤ 台账 G-92 的 `expected_lean`；⑥ 判据 = `judge` 单测全绿 + **代码里** `grep EnvProvider` 归零（注释里的历史线索可留 ✓）。
 
-* ⭐ **方向③ 收口后的全臂重量（第 73 轮 · 构建 `…514384`）**：**真实连续键入 82.5ms** · 开档后第一刀 **131.9ms** · `proof`/`typing_equal_length` 16.6/17.2ms · `trailing_comment` 41.3ms · **跨入口 751.4ms**。 ⚠ **比上一组（78.0 / 127.2 / 38.1 / 663.5）整体慢 3–13%** ✗，但 **结构计数逐位相同** ✓
-  （`by=9`·`tc=4225`·`modules=1`；跨入口 `modules=5`·复用 3·`by=21` ✓）⇒ **按判据纪律这是噪声/负载，
+* ⭐ **方向③ 收口后的全臂重量（第 73 轮 · 构建 `…514384`）**：**真实连续键入 82.5ms** · 开档后第一刀 **131.9ms** · `proof`/`typing_equal_length` 16.6/17.2ms · `trailing_comment` 41.3ms · **跨入口 751.4ms**。 ⚠ **比上一组（78.0 / 127.2 / 38.1 / 663.5）整体慢 3–13%** ✗，但 **结构计数逐位相同** ✓ （`by=9`·`tc=4225`·`modules=1`；跨入口 `modules=5`·复用 3·`by=21` ✓）⇒ **按判据纪律这是噪声/负载，
   不是结构性回归** ✓（两条不可比：① 构建不同（本组含 T3-D ✗）；② 并行线此刻正在同一台机上跑
   自己的活 ✗）⇒ **墙钟只作同机前后参考、结构计数才是判据** ✓，这里**不做"变慢了"的结论** ✗。
 
-* ✅✅ **`export` 漏已修（第 74 轮 · 两行 + 一个开关）** —— 这是**用户可见**的修（LSP 那条路也走 session ✓）： ① `run_library_pass` 的 `snapshot_state` 从 `false` → **`true`**（库层趟的累加状态里带着 `exports` ✓；
-  以前 `false` ⇒ 状态是 `None` ⇒ 入口趟拿到**空**状态 ✗）；② 检查点的 `resume` 收**真状态**（不再恒 `default()` ✓）；
+* ✅✅ **`export` 漏已修（第 74 轮 · 两行 + 一个开关）** —— 这是**用户可见**的修（LSP 那条路也走 session ✓）： ① `run_library_pass` 的 `snapshot_state` 从 `false` → **`true`**（库层趟的累加状态里带着 `exports` ✓； 以前 `false` ⇒ 状态是 `None` ⇒ 入口趟拿到**空**状态 ✗）；② 检查点的 `resume` 收**真状态**（不再恒 `default()` ✓）；
   ③ 入口趟的 `run_pass_with` 从 `None` → **`Some(lib.resume.clone())`** ✓。⇒ 判据读数从
   `整条一趟=[] session+产物=["elab-unknown-identifier"]` ✗ 变成 **两侧都是 `[]`** ✓✓ —— 且那条判据按
   它自己的指示**改了判**（`the_export_dimension_is_a_known_divergence_today` → `…_agrees_on_both_paths`，
   `assert!(!b.is_empty())` → `assert_eq!(b, a)` ✓，**不许再放宽** ✗）。
-* ⇒ **T4-B 的前置从此全绿** ✓（CLI `check` 换 `compile_plan_with_artifacts` 那条路现在安全了 ✓ —— 但**下一轮**再做， 一轮一件 ✓）：`cli/tests/namespace` **10/10** ✓ · `t4b_plan_parity` **2/2** ✓ · front **41 个目标全绿** ✓ ·
-  fmt 干净 · clippy `--all-targets` **0** 报错 ✓。
+* ⇒ **T4-B 的前置从此全绿** ✓（CLI `check` 换 `compile_plan_with_artifacts` 那条路现在安全了 ✓ —— 但**下一轮**再做， 一轮一件 ✓）：`cli/tests/namespace` **10/10** ✓ · `t4b_plan_parity` **2/2** ✓ · front **41 个目标全绿** ✓ · fmt 干净 · clippy `--all-targets` **0** 报错 ✓。
+
+* ⚠ **红线的现状（第 75 轮）**：`export` 修复是**行为改动** ⇒ 该跑"整门课逐字节"那道 ✓。**全量 `scripts/soko gate` 判红** ✗ —— 但红在 **`crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env`**
+  （**内核**测试 ✓，与本次改动（只在 `front/project/session.rs`）**逻辑无关** ✓；那一带正是并行线
+  `EnvBuilder` 指针同一性判据的地盘 ✓）⇒ 归并行线/内核线 ✓，不是本修复的回归 ✓。
+* ✅ **课程那条红线**：单独跑 **`python3 courses/set-theory/tools/check.py`** ⇒ **exit 0** ✓ （**258 个目标 · 2188 checked · 916 open · 0 个被判负** ✓）⇒ 本次行为改动**过了课程门禁** ✓。
+  ⚠ 待办：等内核那条测试回绿后，再跑一次**全量 gate**（那里才有"整门课 `--json` 逐字节"那道 ✓）。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
@@ -1526,8 +1528,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   | `typing_equal_length` / `trailing_comment` | 18.1 / 37.2ms | 18.5 / 38.0ms | 持平 ✓ |
   | 跨入口切换 | **132.8ms**（`modules=1` · 复用 7） | 674.4ms（`modules=5` · 复用 3） | **大幅变好** —— 但**不是** T2-B0 的功劳（它只动那两张表 ✗），见下"状态依赖" ✓ |
   | 开档后第一刀 | **355.4ms**（`modules=5` · `prefix=4`） | 76.6ms（`modules=1`） | **同一构建、同一夹具 ⇒ 差 4.6×** ✗ ⇒ 见下 ✓ |
-* ⭐ **逮到探针的一处状态依赖（本轮最有价值的发现）**：`first-keystroke-after-open` 那一臂 量的是"**开档**（报告可能直接命中 `compiled/` 缓存 ⇒ **一趟都不跑**）+ **第一刀**" ✓ —— 于是它取决于**模块根里有没有磁盘产物** ✓： * **有产物** ⇒ 开档命中产物 ⇒ **A5 后台预热**跑一趟 ⇒ 检查点热 ⇒ 第一刀 **1 个模块 / 76.6ms** ✓；
-  * **没有产物**（本轮：上一轮我刚跑过 `t2b0_table_rebuilds`，它按 §32 的纪律
+* ⭐ **逮到探针的一处状态依赖（本轮最有价值的发现）**：`first-keystroke-after-open` 那一臂 量的是"**开档**（报告可能直接命中 `compiled/` 缓存 ⇒ **一趟都不跑**）+ **第一刀**" ✓ —— 于是它取决于**模块根里有没有磁盘产物** ✓： * **有产物** ⇒ 开档命中产物 ⇒ **A5 后台预热**跑一趟 ⇒ 检查点热 ⇒ 第一刀 **1 个模块 / 76.6ms** ✓； * **没有产物**（本轮：上一轮我刚跑过 `t2b0_table_rebuilds`，它按 §32 的纪律
     `clean_at(module_root)` **清掉了** ✓，`gate` 的课程那一步也跑过 ✓）⇒ 开档命中
     **报告缓存**（不编译 ⇒ 不预热 ✗）⇒ 第一刀**自己把库层编一遍** ⇒ **5 个模块 / 355.4ms** ✗。
   ⇒ ① **跨轮比较这一臂前必须先钉住"模块根有没有产物"** ✗（探针缺口 ⇒ 已在 §41 补上 ✓）；
@@ -1538,8 +1539,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 ### 41. 第 50–52 轮（平行线）：探针**状态显式化** ＋ 撤回一条错结论 ＋ **建通道拿到真答案** ✓
 
 * **① 状态显式化（成立 ✓）**：`first-keystroke-after-open` 开头清 `<模块根>/.sokonanoda/{artifacts,compiled}` （**两处都要清** ✗→✓：只清产物的话，播种那次开档会**命中报告缓存** ⇒ 一趟都不跑 ⇒ 什么也不写 ✗，实测踩到 ✓）， 默认档再用一个**一次性 client** 开档把**产物播种**出来 ✓（= "用户已经 build 过"的现实档 ✓）⇒ 该臂**可复现** ✓。
-* ⛔ **② 撤回（第 51 轮自查）**：我曾据"**加在产物读入口的 trace 一次都没打出来**"下结论 「LSP 第一刀根本没走产物路」—— **不成立** ✗✗。那条 trace 由 **LSP 子进程**打出，而子进程 stderr 被
-  `Client` 收走、只把 `LSP_TRACE …` 开头的行转成 trace 流 ⇒ 在**测试进程 stdout** 上 grep 它**必然为空** ✗
+* ⛔ **② 撤回（第 51 轮自查）**：我曾据"**加在产物读入口的 trace 一次都没打出来**"下结论 「LSP 第一刀根本没走产物路」—— **不成立** ✗✗。那条 trace 由 **LSP 子进程**打出，而子进程 stderr 被 `Client` 收走、只把 `LSP_TRACE …` 开头的行转成 trace 流 ⇒ 在**测试进程 stdout** 上 grep 它**必然为空** ✗
   —— **"没看见" ≠ "没走到"** ✓（错在**读数通道** ✗，不是结论对象 ✓）。
 * ⭐ **③ 建通道（第 52 轮正身）**：给**既有** trace 行加字段 `reuse=`（`lru`/`artifact`/`prefix`/`rebuilt`/`none` ✓）
   —— 由 `session::last_lib_source()` 报出**库层从哪来** ✓ ⇒ 探针只读既有 trace 行就能回答"走没走到产物那条" ✓。
