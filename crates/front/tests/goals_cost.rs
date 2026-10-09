@@ -83,7 +83,8 @@ fn goals_cost_on_the_real_course_unit() {
 fn goals_cost_scales_with_type_text_not_decl_count() {
     let mut src = String::from("axiom P : Prop\naxiom Q : Prop\n");
     // 13 条（与上面两条夹具同数），但类型是**深链**： run/记法的数量级上去 ✓。
-    let long_ty = "(P -> Q) -> (Q -> P) -> (P -> Q) -> (Q -> P) -> (P -> Q) -> (Q -> P) -> (P -> Q) -> P";
+    let long_ty =
+        "(P -> Q) -> (Q -> P) -> (P -> Q) -> (Q -> P) -> (P -> Q) -> (Q -> P) -> (P -> Q) -> P";
     for i in 0..13 {
         src.push_str(&format!("theorem long{i} : {long_ty} := by sorry\n"));
     }
@@ -112,7 +113,8 @@ fn goals_cost_scales_with_type_text_not_decl_count() {
 #[test]
 fn goals_cost_without_goals_isolates_the_fold() {
     let mut src = String::from("axiom P : Prop\naxiom Q : Prop\n");
-    let long_ty = "(P -> Q) -> (Q -> P) -> (P -> Q) -> (Q -> P) -> (P -> Q) -> (Q -> P) -> (P -> Q) -> P";
+    let long_ty =
+        "(P -> Q) -> (Q -> P) -> (P -> Q) -> (Q -> P) -> (P -> Q) -> (Q -> P) -> (P -> Q) -> P";
     for i in 0..13 {
         // `axiom` 有类型、**没有 goal** ⇒ `goal_display` 为 `None` ⇒ 不调 `fold` ✓。
         src.push_str(&format!("axiom long{i} : {long_ty}\n"));
