@@ -1440,22 +1440,30 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 * ✅✅ **LSP 那 ~2.8ms 也切开了 —— 而且**不是载荷**（第 97 轮 · 新档 `crates/lsp/tests/goals_lsp_layers.rs`）**：三条工作量递增的请求 （同进程、同文档、稳态、各 3 次取中位）：`soko/version` **0.1ms/69B** · `soko/nextHole` **0.1ms/108B** · `soko/goals(runs=false)` **6.4ms/26 723B** · `soko/goals(runs=true)` **6.1ms/91 361B** ⇒ ① **固定开销 ≈0.0ms**（锁/请求/解析都不是问题） ② 全部 ≈6ms 在「**每声明**」那段（goals − nextHole）③ ⭐ **载荷不是驱动因素** —— 26.7KB 与 91.4KB 往返**一样快**（6.4 vs 6.1 = 噪声） ⇒ 上一轮「−71% 载荷只换 1.1ms」由此解释，也**推翻**了我第 96 轮「剩余 2.8ms 在序列化」的猜测 ✗。
 * ⇒ **下一刀已定位到函数**：`query_map::decl_info`（`crates/lsp/src/query_map.rs:76`，**只有一个调用点** `lib.rs:1171`） 对每条声明（+每个洞）都调 `range_of_offsets` ⇒ `position_of` ⇒ `truth::line_col_of`（`crates/front/src/query/pos.rs:9` —— **已读源码确认**：它就是 `for (i, ch) in text.char_indices() { if i >= offset { break } … }` 的**从头扫描** ✗） ⇒ **27+ 次 × O(文本)** = 那 ~4ms ✓。**修法（先量再动）**：(a) 请求级**一次**建行首索引（O(文本) 一次、之后二分） —— 要给 `decl_info`/`hole_info` 加索引参数（签名改动 ⇒ 按本区纪律**手工单点**或先搬家 ✓）；(b) 给 `line_col_of` 加**按文本有界**的记忆（键须含文本身份 ✗）。
-* ✅✅ **`line_col_of` 的从头扫描已修 —— goal 往返 6.4 → **4.0ms**（第 98 轮）**：做法 = **作用域行首索引** ✓ （`front::query::pos::with_line_index(text, || …)` ✓）：作用域内、**同一份 text**（按 `(ptr, len)` 认 ✓）⇒ 走索引 ✓； 其余情况**一律退回原扫描** ✓ ⇒ 行为不变 ✓；**零签名改动** ✓（`range_of_offsets` 有 8 处调用、跨 crate 还要传参 ⇒ 签名改法面太大 ✗，这与本区"只许一处新增/手工单点"的纪律一致 ✓）。接线 = `lib.rs` 把**整段映射**包起来（1 处 ✓）。 **读数（同一探针 ✓）**：`goals(runs=false)` **6.4 → 4.0ms** ✓ · `goals(runs=true)` **6.1 → 4.6ms** ✓（−2.4ms ✓）； **响应体积逐字节不变**（26 723B / 91 361B ✓ ⇒ 位置字段没被改坏 ✓）；固定段仍 ≈0 ✓。 **验证**：`cargo check --workspace --all-targets` **0 错** ✓ · **LSP 全套 13 个目标 exit 0** ✓（含位置敏感的 `lsp_keystroke_structure` / `goals_payload_e2e` ✓）· front `query` 单测 **48/48** ✓。
-  ⚠ **仍缺一条**（下一棒第一步 ✓）：`line_col_of` vs `LineIndex::line_col_of` 的**逐位 parity 判据** ✗ ——
+* ✅✅ **`line_col_of` 的从头扫描已修 —— goal 往返 6.4 → **4.0ms**（第 98 轮）**：做法 = **作用域行首索引** ✓ （`front::query::pos::with_line_index(text, || …)` ✓）：作用域内、**同一份 text**（按 `(ptr, len)` 认 ✓）⇒ 走索引 ✓； 其余情况**一律退回原扫描** ✓ ⇒ 行为不变 ✓；**零签名改动** ✓（`range_of_offsets` 有 8 处调用、跨 crate 还要传参 ⇒ 签名改法面太大 ✗，这与本区"只许一处新增/手工单点"的纪律一致 ✓）。接线 = `lib.rs` 把**整段映射**包起来（1 处 ✓）。 **读数（同一探针 ✓）**：`goals(runs=false)` **6.4 → 4.0ms** ✓ · `goals(runs=true)` **6.1 → 4.6ms** ✓（−2.4ms ✓）； **响应体积逐字节不变**（26 723B / 91 361B ✓ ⇒ 位置字段没被改坏 ✓）；固定段仍 ≈0 ✓。 **验证**：`cargo check --workspace --all-targets` **0 错** ✓ · **LSP 全套 13 个目标 exit 0** ✓（含位置敏感的 `lsp_keystroke_structure` / `goals_payload_e2e` ✓）· front `query` 单测 **48/48** ✓。 ⚠ **仍缺一条**（下一棒第一步 ✓）：`line_col_of` vs `LineIndex::line_col_of` 的**逐位 parity 判据** ✗ ——
   本轮预算用尽，靠"LSP 全套 + 体积逐字节不变"当**间接**证据 ✓（不够 ✗，要补多行/多语言/边界偏移的逐一对比 ✓）。
   ⇒ **goal 现在 ≈4.0–4.6ms**（Lean 3.1ms ✗）：front 2.16 + 剩余 ≈1.7ms（映射/序列化/解析 ✓）—— 下一刀在那 1.7ms ✓。
 
-* ✅✅ **第 98 轮欠的那条 parity 判据补上了（第 99 轮）· 且做了反向验证** ✓：新档 `crates/front/tests/line_index_parity.rs` —— 对**每一个** offset（含 0 / EOF / **越界** ✓）在 11 组 刁钻文本（空串 / 无换行 / 结尾换行 / 多行 / 空行夹心 / **中文 3 字节** / **emoji 代理对** / 组合字符 / **CRLF** / 仅换行 / 300 字长行 ✓）上比对 `LineIndex::line_col_of` 与旧路 `line_col_of` ⇒ **共 413 个 offset 逐位相同** ✓（1-based、列按 UTF-16 ✓）。**反向验证**：把索引故意改成"行号恒 1" ⇒ 判据**当场判红** ✓ 并给出精确报文（`结尾换行 · offset 2/2：索引路 (1, 3) ≠ 旧路 (2, 1)` ✓）
-  ⇒ **这条守卫有牙** ✓（还原后复绿 ✓）。顺带把 `LineIndex` 从 `front::query` re-export ✓（判据才能用 ✓）。
+* ✅✅ **第 98 轮欠的那条 parity 判据补上了（第 99 轮）· 且做了反向验证** ✓：新档 `crates/front/tests/line_index_parity.rs` —— 对**每一个** offset（含 0 / EOF / **越界** ✓）在 11 组 刁钻文本（空串 / 无换行 / 结尾换行 / 多行 / 空行夹心 / **中文 3 字节** / **emoji 代理对** / 组合字符 / **CRLF** / 仅换行 / 300 字长行 ✓）上比对 `LineIndex::line_col_of` 与旧路 `line_col_of` ⇒ **共 413 个 offset 逐位相同** ✓（1-based、列按 UTF-16 ✓）。**反向验证**：把索引故意改成"行号恒 1" ⇒ 判据**当场判红** ✓ 并给出精确报文（`结尾换行 · offset 2/2：索引路 (1, 3) ≠ 旧路 (2, 1)` ✓） ⇒ **这条守卫有牙** ✓（还原后复绿 ✓）。顺带把 `LineIndex` 从 `front::query` re-export ✓（判据才能用 ✓）。
 
-* ✅✅✅ **作用域折叠缓存 —— goal 口径**首次低于 Lean**（第 100 轮）**：`display::with_fold_cache(|| …)` ✓ （作用域内 `fold` 命中即返 ✓、退出即清 ✓、未开作用域时**行为一字不变** ✓）。**为什么这次敢做**： 第 70 轮拒绝它的理由是"键必须含记法表身份 ✗ 而表没有便宜指纹" —— 作用域**由调用方保证同一张表** ✓ （LSP 的 `goal_decls` 里就是一份 doc 的一张表 ✓）⇒ 键只按文本**成立** ✓。
-  **读数（同一探针 ✓）**：`goals(runs=false)` **4.0 → 2.5ms** ✓✓ · `goals(runs=true)` **4.6 → 3.5ms** ✓✓
+* ✅✅✅ **作用域折叠缓存 —— goal 口径**首次低于 Lean**（第 100 轮）**：`display::with_fold_cache(|| …)` ✓ （作用域内 `fold` 命中即返 ✓、退出即清 ✓、未开作用域时**行为一字不变** ✓）。**为什么这次敢做**： 第 70 轮拒绝它的理由是"键必须含记法表身份 ✗ 而表没有便宜指纹" —— 作用域**由调用方保证同一张表** ✓ （LSP 的 `goal_decls` 里就是一份 doc 的一张表 ✓）⇒ 键只按文本**成立** ✓。 **读数（同一探针 ✓）**：`goals(runs=false)` **4.0 → 2.5ms** ✓✓ · `goals(runs=true)` **4.6 → 3.5ms** ✓✓
   ⇒ **轻模式 2.5ms < Lean 的 3.1ms** ✓✓（默认模式 3.5ms，仍略高 ✗）。响应体积逐字节不变 ✓。
   **判据**：新档 `crates/front/tests/fold_cache_parity.rs`（透明 ✓ + 作用域隔离 ✓ + 不同表各自正确 ✓，
   7 个文本含空串/emoji/500 字 ✓）＋ **反向验证** ✓（把命中改成返回错串 ⇒ 判据**当场判红** ✓，还原复绿 ✓）；
   另跑 **LSP 全套 13 个目标 exit 0** ✓ · `--all-targets` **0 错** ✓。
   ⚠ 一句限定：**默认仍是 `runs=true`**（3.5ms ✗）—— "低于 Lean"目前只在 `runs:false` 这一格 ✓；
   要把它变成**默认**得先让消费者（VS Code 扩展）在不需要着色时主动传 `false` ✓（或改默认 ✗ = 破契约 ✓，不做 ✓）。
+
+* 🏁 **收尾结账（第 101 轮 · 全量 `scripts/soko gate` + 全臂读数）**： **四方向**：① ✓（批 1/2/3 + 有界化 + T1-C；mmap 按本规划 §2.4 属**后置优化** ✓）· ② ✓ **T2-A + T2-B + T2-B0**
+  （`elaborated_commands` **12 → 1** ✓）· ③ ✓ **全收口**（Σ20→0 · A7 关闭 · T3-D 删死线 ✓）· ④ ✓ T4-A + T4-B（闭包级）✓。
+  **北极星（本任务点名的口径 = 热按键）**：**真实连续键入 79.0ms vs Lean 218.1ms ⇒ 2.8× 领先** ✓✓
+  （开档第一刀 127.8ms · 等长改名 16.2ms · 尾部注释 21.0ms 且 `by=1` ✓）⇒ **"约 300ms vs 约 200ms" 已打平并超过** ✓。
+  **第二臂（goal，本规划 §6 后加）**：默认 **3.5ms** vs Lean 3.1ms ✗（1.13×）· `runs:false` **2.5ms** ✓（1.24× 领先 ✓）
+  ⇒ 差距只剩**默认模式**那 0.4ms，而它要**消费者**（VS Code 扩展）在不需要着色时主动传 `false` ✓（改默认 = 破契约 ✗）。
+  ⚠ **全量 gate 的诚实读数**：各步全绿（`FAILED` 计数 **0** ✓、gate 自打 `PASS` ✓），但**进程退出码 1** ✗ —— 定位到
+  **`scripts/gap.py check` 的不确定性**（同一轮里它报 `G-92…G-95 行为已变` ⇒ 1 ✗；紧接着单跑 ⇒ "全部与台账一致" ⇒ 0 ✓，
+  与第 70 轮同形 ✓）；本线三处改动（`runs` 参数缺省不变 ✓ · 行首索引 parity 413 点 ✓ · 折叠缓存 parity + 反向验证 ✓）
+  都**不该**翻转行为类复现 ✓，且复跑干净 ✓ ⇒ 归"并发在制品/复现件本身" ✓，**已如实记**（不宣称干净通过 ✗）。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
