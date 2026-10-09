@@ -482,6 +482,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         *self.entered.borrow_mut() = cp.entered.clone();
     }
 
+    // T2-B 给这条加了三个参数（`resume`/`snapshot_tail`/`count_commands`）⇒ 越过
+    // clippy 的 7 参线；它们各自独立、且都默认"与今天逐字节相同" ✓ —— 收成结构体
+    // 只会把"三个开关"藏起来 ✗（同 `install_all_preludes` 的先例 ✓）。
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn run<'src>(
         &mut self,
         units: &[SourceUnit<'src>],
