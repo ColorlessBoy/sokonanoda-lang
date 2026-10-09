@@ -1402,6 +1402,17 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⇒ 分歧被钉成**快速判据**（0.05s ✓，不再依赖 CLI 集成测试 ✓）。判据按降级纪律写成
   "**断言当前行为**" ✓：T4-B 对齐之后**改判**成 `assert_eq!`（不许放宽 ✗）。
 
+* ✅ **T3-D 的处置决定（第 71 轮 · 只读取证）**：`EnvProvider` 今天确实是**死线** —— `provider:`
+  这个形参只出现在**定义处**（`judge.rs:2707` 的 `Option<&dyn EnvProvider>` ✓），**一个传参调用点都没有** ✗
+  （`grep "provider:"` 除函数签名/`trait`/注释外**零命中** ✓）。⇒ 按 T3-D 自己给的二选一，取**删掉它** ✓：
+  活的那条路是 `InplaceEnv`（T3-B1/B2 已落地 ✓），而"按 `InplaceEnv` 的形状重写再接线"= **再造一个
+  同一机制的入口** ✗。⇒ **执行清单（下一棒，一次 commit）**：① 删 `trait EnvProvider`（`judge.rs:2944`）+
+  那个形参 + 测试里的 `Fake` 实现（`:3758`）；② 按纪律**先改台账** G-92 的 `expected_lean`
+  （别在文档里留一个不存在的接口 ✗）；③ 判据 = `judge` 单测全绿 + 该处 `grep EnvProvider` 归零 ✓。
+* ⚠ **本轮的边界**：并行线在 `check/{mod,walk}.rs` + `project/session.rs` 上做 T2-B（三个文件未提交、
+  当前 `cargo check -p sokonanoda-front` **6 个错** ✗）⇒ 本线**不动这些文件**、也**跑不了任何编译判据** ✗
+  （这正是 T3-D 只做到"取证 + 决定"的原因 ✓）。
+
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
 * **构建身份** `lsp-cargo-mtime=1791498090`（= 当前构建）· 探针自报 **`artifacts=on`** ✓ （即：这一轮读数是在**产物在飞**的状态下量的 ✓ —— 这正是要证的"接线没拖慢热路" ✓）。
