@@ -115,3 +115,54 @@ pub struct EnvSnapshot<'a> {           // Clone = O(1)
 （此处 `builder` 恰好含 `[0..=idx]` 的全部声明）。复用判据**沿用** `EntryCache`
 （命令文本 + 起点）+ 依赖指纹 + 库层键；新增读数 = **elaborate 命令数**
 （改最后一条 ⇒ **1**）。
+
+---
+
+## 6. T2-B（**下一件** · 入口趟命令级环境快照）—— 可落地方案
+
+### 6.1 形状
+
+* **快照点** = `crates/front/src/compile/check/walk.rs` 的**命令循环体末尾**
+  （`for (idx, &(unit_idx, command)) in flat.iter().enumerate()`，循环体在 `:666` 闭合 ⇒
+  在此处 `builder` 恰好含 `[0..=idx]` 的全部声明 ✓）。
+* **快照内容**（计划 §3.3 的 `(EnvBuilder, PassTables, 报告片段)` 的**精确化**）：
+  **整份 walk 状态**，不是只有环境 —— `EnvSnapshot`（§2.3）+ `known` / `inductives` /
+  `defs` / `out` / `ops` / `cmd_hovers` / `decl_states` / `ns` / `exports` / `example_idx`
+  （字段清单 = `walk.rs:117-200`）。理由：任何一件没留，恢复出来的就是**另一个判定**
+  ⇒ 静默错编 ✗（红线）。
+* **恢复**：以它当新 `Walk` 的起点，只走 `flat[k..]`。
+
+### 6.2 三个硬约束（都不是"选择"）
+
+1. **arena 必须活过按键**：`Walk<'arena, 'shadow>` 借 arena，而入口趟今天用的是
+   **栈上 arena**（`session.rs` 的 `run_entries` 不走泄漏路）⇒ 快照跨 `didChange`
+   会**悬空** ✗。出路：入口趟改走**泄漏 arena**（`Box::leak`，同 T1-A 的
+   `LEAKED_LIB_ARENAS` 手法与 `MAX_LEAKED_LIB_ARENAS=8` 上界）。
+2. **快照成本必须与 #decls 无关**：`EnvSnapshot` ✓ 已经 O(1)（T2-A）；
+   其余累加器今天都是 `Vec` / `FxHashMap` ⇒ 每命令 O(状态) ⇒ 全留是 **O(N²)** ✗。
+   两条出路：**(a) 有界窗口**（W=4：编辑点落在最后 W 条内 ⇒ 命中；成本 O(W·状态)）；
+   **(b) 把累加器也做成共享 / 持久结构**（大件，照 §2 的分层手法逐个来）。
+   **先做 (a)**（它已经满足判据的"改最后一条 ⇒ 1"✓），(b) 留给"改第 k 条 ⇒ N−k+1"。
+3. **复用判据一律沿用现成的、不新造键**（计划 §3.3 的纪律）：`EntryCache.keys`/`starts`
+   （命令文本 + 起点）+ `dependency_fingerprint` + `lib_key` ⇒ **结构相等**，
+   **不是哈希缓存**（避开 B4 被否的那条路：错键 = 静默用旧目标判定 ✗）。
+
+### 6.3 判据（读数**已先建先红** ✓）
+
+* `elaborated_commands_total()`（`crates/front/src/compile/mod.rs`）：**改最后一条 ⇒ 1**
+  （今天该夹具 = **43**，入口 12 条 + 库层 + pass2）；改第 k 条 ⇒ N−k+1；
+  **反向验证**：改依赖文件 ⇒ 回到 N。
+* 守卫：`crates/front/tests/keystroke_structure.rs::
+  t2b_last_command_edit_still_reelaborates_every_entry_command`（今天断言 `≥ N`，
+  **T2-B 落地后改判成 `== 1`，不许放宽** ✗）。
+* 红线：全课程 `--json` 逐字节 + `keystroke_structure.rs` 既有四条断言**一个字不放松**。
+
+### 6.4 落地顺序（三步，每步自带判据）
+
+1. `Walk` 的**快照/恢复**一对方法（`checkpoint()` / `restore_from(cp)`）+ 命令边界记账 ✓（记账已做）；
+2. **有界窗口 W=4** + 入口趟**泄漏 arena** ⇒ 跨按键真的命中；
+3. 判据**改判**（`≥ N` → `== 1`）+ 反向验证 + `--json` 逐字节。
+
+> ⚠ **它单独不解决 goal 延迟**：T2-B 只回答"**从哪条开始编**"；要 goal 进 3ms 量级
+> 还需要**按命令发布** goal 状态（Lean 的 `AsyncList` + `waitFindAtPos`，见
+> `docs/notes/perf-lean4-bench.md` §8.1/§8.3）✓。

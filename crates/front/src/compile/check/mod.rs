@@ -787,11 +787,28 @@ pub fn closure_module_compiles_total() -> u64 {
     stage_stats::CLOSURE_MODULE_COMPILES.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// **T2-B 的判据读数**：入口趟**真的 elaborate 了几条命令**。
+///
+/// **判据**（`PLAN-align-lean4` §3.3 T2-B）：改**最后一条**命令 ⇒ 这个增量 = **1**
+/// （今天 = 入口文件的命令数 N）；改第 k 条 ⇒ N−k+1。**反向验证**：改依赖文件
+/// ⇒ 回到 N。与 [`closure_module_compiles_total`] 的分工：那个数**模块**、
+/// 这个数**命令**（入口趟内部的粒度 ✓）。
+///
+/// ⚠ 它是**进程级累计**（`atexit` 打，同 [`by_calls_total`] 纪律）⇒ 判据一律
+/// **前后取差** ✓。今天**还没有**命令级快照 ⇒ 每刀恒 = N（**先建先红**：这条读数
+/// 先写死"今天的行为"，T2-B 落地后**改判成 1，不许放宽** ✗）。
+#[doc(hidden)]
+pub fn elaborated_commands_total() -> u64 {
+    stage_stats::ELABORATED_COMMANDS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 pub(crate) mod stage_stats {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     pub(crate) static PASS_NANOS: AtomicU64 = AtomicU64::new(0);
     pub(crate) static PASSES: AtomicU64 = AtomicU64::new(0);
+    /// **真的 elaborate 过的命令条数**（T2-B 的判据读数；`walk` 的命令循环里 +1）。
+    pub(crate) static ELABORATED_COMMANDS: AtomicU64 = AtomicU64::new(0);
     /// 模块编译次数（切片 1 / G-68 的判据读数）。
     pub(crate) static MODULE_COMPILES: AtomicU64 = AtomicU64::new(0);
     /// **闭包模块编译次数**（G-29 的精确读数）：只数 `path: Some(..)` 的真模块。
@@ -883,8 +900,9 @@ bare_miss_ms={} bare_miss_share={:.3}",
                 // ⇒ 实测 61.8 µs/次、占一次按键编译样本的 63%（见 `util::TC_CACHE_BUILDS`）。
                 let tc_cache_builds = sokonanoda::util::tc_cache_builds_total();
                 eprintln!(
-                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={} fallbacks={fallbacks} identity_parses={identity_parses} identity_evictions={identity_evictions} tc_cache_builds={tc_cache_builds}{gates}",
+                    "STAGE_STATS passes={passes} pass_total_ms={} elaborated_commands={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={} fallbacks={fallbacks} identity_parses={identity_parses} identity_evictions={identity_evictions} tc_cache_builds={tc_cache_builds}{gates}",
                     ms(PASS_NANOS.load(Ordering::Relaxed)),
+                    ELABORATED_COMMANDS.load(Ordering::Relaxed),
                     ms(BY_NANOS.load(Ordering::Relaxed)),
                     ms(crate::judge::stats::nanos()),
                     crate::judge::stats::hits(),

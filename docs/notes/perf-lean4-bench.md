@@ -263,18 +263,54 @@ python3 lsp_bench.py soko --root "$ROOT" --file units/I.3/unit08-images-preimage
 
 ---
 
-## 7. 占位替换指引（本文替掉哪句话 · **不代改**）
+## 7. 占位替换指引 —— **已执行** ✓（2026-10-09）
 
-`~200ms` 这个占位出现在**并行开发线占用的两份规划**里 —— 按任务书的"互不干扰"，
-本轮**一个字节都没动它们**；下面把"哪一行、换成什么"列清楚，由那条线自己翻：
+本文原先列出的 7 处 `~200ms` 占位**已按"218ms（诊断口径）"就地改掉** ✓
+（`PLAN-align-lean4.md` 4 处 · `PLAN-align-lean4-as-built.md` 3 处；行数不变 ⇒ 不破冻结预算）。
+⚠ 读的时候**别**写成"Lean 4 = 200ms 所以打平了"：实测 **218ms**（P95 219ms），
+而且**只在"诊断全量落地"这一格**；换成 **goal 更新**那一格是**反的**
+（**3.1ms vs 81.4ms**，§0 表 1、§3.3 有内容验证）—— 机制与对齐路径见 **§8** ✓。
 
-| 位置 | 原文（节选） | 建议替换成 |
+---
+
+## 8. Lean 的 goal 为什么是 3ms · 我们的对齐路径
+
+### 8.1 机制（逐环节，本机 `leanprover/lean4:v4.28.0` 源码）
+
+| 环节 | Lean 4 怎么做 | 位置 |
 |---|---|---|
-| `docs/notes/PLAN-align-lean4.md:748` | `~200ms ⇒ **已超过**` | `**218ms**（实测：perf-lean4-bench.md）⇒ 81.4 vs 218 = **2.7×**` |
-| `docs/notes/PLAN-align-lean4.md:979` | `对 Lean 的 ~200ms 是 5×` | 同格口径（诊断落地），换算成 **218ms** |
-| `docs/notes/PLAN-align-lean4.md:1379` / `:1382` / `:1396` | `vs 计划里 lean4 ~200ms 占位` | `vs lean4 **218ms**（实测）⇒ 2.7×` |
-| `docs/notes/PLAN-align-lean4-as-built.md:223` / `:306` / `:309` | `已超过 Lean 4 的 ~200ms` / `lean4 约 200ms` | `**218ms**（实测）` |
+| **逐命令快照** | `Snapshot { stx, mpState, cmdState }` —— **每条命令**一份；`cmdState` 带 `env` · `messages` · `infoState`（tactic 的 before/after 目标都在里面） | `Server/Snapshots.lean:28-33` |
+| **增量产出** | `doc.cmdSnaps : AsyncList`：**任务链** —— 编到第 k 条就把第 k 份 cons 上去，后面的还在编 | `Server/AsyncList.lean:21-23` |
+| **按位置等** | `withWaitFindSnapAtPos` = `waitFind? (fun s => s.endPos >= pos)` ⇒ **只等光标所在那一条** | `Server/Requests.lean:340` · `:357-363` |
+| **取 goal** | `$/lean/plainGoal` → `getInteractiveGoals` → `findGoalsAt?`：从该快照的 `InfoState` 取**已算好**的 `goalsBefore/goalsAfter`，**不重跑** | `FileWorker/RequestHandling.lean:188-225` |
+| **前提** | 会话**已落定**；开档就敲 ⇒ goal 要等整轮（实测 194ms，§4.1） | — |
 
-⚠ 替换时**别**写成"Lean 4 = 200ms，所以打平了"：实测是 **218ms**（P95 219ms），
-而且**只在"诊断全量落地"这一格**；换成 **goal 更新**那一格是反的（**3.1ms vs 81.4ms**，
-§0 表 1、§3.3 有内容验证）。
+⇒ **3ms 的来源是"只等一条命令的快照"，不是"更快地重编"** ✓。编辑点之后那
+20 多条声明**照样在编**（213ms 才有诊断），只是 goal **不等它们** ✓。
+
+### 8.2 我们的差距（今天）
+
+`soko/goals` → `doc.report()`（`crates/lsp/src/lib.rs:1156-1163`）—— `report` 是**整趟入口
+编完之后**由 `assemble_from_session`（`crates/front/src/project/mod.rs:596`）组装的**一份**
+结构 ⇒ goal 与诊断**同一个时刻**（81.4ms）✓，**中途没有任何"命令级 goal 状态"被发布** ✗。
+
+### 8.3 对齐路径（三件，前两件是 T2-A/T2-B）
+
+* **T2-A（内核 · 结构性前置件）—— ✓ 已落地**（2026-10-09）：声明表**分层持久化 / COW**
+  ⇒ 命令边界取环境快照 **O(#decls) → O(1)**。读数：64 / 512 条声明**两臂相等且 = 0 条目**
+  被复制（先建先红实测：之前为 196 / 1540）。设计 = `docs/design/persistent-declarations.md`；
+  对照 = Lean `SMap`（导入层平坦表 + 本地层持久表，`Data/SMap.lean:28-33`）✓。
+* **T2-B（入口趟命令级环境快照）—— ⏳ 进行中**：在命令边界留
+  `(环境快照, walk 累加器, 报告片段)`，编辑后从**最后一个文本未变的命令**接着编。
+  **读数已先建先红** ✓：`elaborated_commands_total()`（`crates/front/src/compile/mod.rs`）
+  立在 `crates/front/tests/keystroke_structure.rs::t2b_last_command_edit_still_reelaborates_every_entry_command`
+  —— 今天"改最后一条"= **43 条**（入口 12 + 库层 + pass2），目标 = **1**。
+* **还差的第三件（真正决定 goal 延迟的那件）**：把 goal **按命令发布**（编到哪条就能问哪条）
+  —— Lean 侧的对照实现就是 `AsyncList` + `waitFindAtPos` ✓。**T2-B 只解决"从哪条开始编"，
+  不解决"编到哪条就能看"** ✗ —— 两件都做完，goal 才可能进 3ms 量级 ✓。
+
+### 8.4 口径（别混）
+
+* Lean 的 **218ms** 是"**诊断全量落地**"（编辑点之后整份文件）；**3.1ms** 是"**goal 更新**"。
+* sokonanoda 的 **81.4ms** 在**两个口径上是同一个数**（goal 与诊断同时到）⇒ 对齐目标是
+  **把这两个口径拆开**：诊断保持 81ms 量级 ✓，goal 单独降到 **~1 条命令的 elaborate 时间** ✓。

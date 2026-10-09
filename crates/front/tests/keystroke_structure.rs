@@ -30,7 +30,8 @@
 use std::path::{Path, PathBuf};
 
 use sokonanoda_front::compile::{
-    by_calls_total, closure_module_compiles_total, module_compiles_total,
+    by_calls_total, closure_module_compiles_total, elaborated_commands_total,
+    module_compiles_total,
 };
 use sokonanoda_front::depgraph::DepGraph;
 use sokonanoda_front::judge::infer_totals;
@@ -67,6 +68,12 @@ struct Reading {
     /// 类型推断**重跑整份前缀**的趟数与字节数。
     prefix_runs: u64,
     prefix_bytes: u64,
+    /// **T2-B 的判据读数**：这一刀**真的 elaborate 了几条命令**（进程级累计取差）。
+    ///
+    /// ⚠ **今天它 = 入口命令数（+ 库层那几条）** —— 命令级快照还没做 ⇒ 每刀从第 0 条
+    /// 重走 ✗。**先建先红**：下面的断言**写死今天的行为**（防漂移 ✓）；
+    /// **T2-B 落地后改判成"改最后一条 ⇒ 1"**（**不许放宽** ✗，同 T2-B0 的先例）。
+    elaborated_commands: u64,
 }
 
 impl Reading {
@@ -95,6 +102,7 @@ impl Reading {
             infer_miss: now.infer_miss - base.infer_miss,
             prefix_runs: now.prefix_runs - base.prefix_runs,
             prefix_bytes: now.prefix_bytes - base.prefix_bytes,
+            elaborated_commands: now.elaborated_commands - base.elaborated_commands,
         }
     }
 
@@ -103,7 +111,7 @@ impl Reading {
             "{{\"entry_kernel_checks\":{},\"recomputed_commands\":{},\"modules\":{},\
              \"closure_modules\":{},\"by\":{},\
              \"infer_calls\":{},\"infer_hits\":{},\"infer_miss\":{},\"infer_prefix_runs\":{},\
-             \"infer_prefix_bytes\":{}}}",
+             \"infer_prefix_bytes\":{},\"elaborated_commands\":{}}}",
             self.entry_kernel_checks,
             self.recomputed_commands,
             self.modules,
@@ -114,6 +122,7 @@ impl Reading {
             self.infer_miss,
             self.prefix_runs,
             self.prefix_bytes,
+            self.elaborated_commands,
         )
     }
 }
@@ -129,6 +138,8 @@ struct Counters {
     infer_miss: u64,
     prefix_runs: u64,
     prefix_bytes: u64,
+    /// **真的 elaborate 过的命令数**（T2-B 的判据读数）。
+    elaborated_commands: u64,
 }
 
 impl Counters {
@@ -143,6 +154,7 @@ impl Counters {
             infer_miss: miss,
             prefix_runs: runs,
             prefix_bytes: bytes,
+            elaborated_commands: elaborated_commands_total(),
         }
     }
 }
@@ -234,6 +246,69 @@ fn edit_decl(text: &str, index: usize) -> String {
         "这次按键必须**长度不变**（否则下游命令的起点平移 ⇒ 它们进脏集，量到的不是依赖脏集）"
     );
     format!("{}{}{}", &text[..at], edited, &text[end..])
+}
+
+/// 入口文件的**命令数**（`import Lib` + `DECLS` 条 `t…` + 3 条 `d…`）——
+/// T2-B 判据里的那个 N ✓。
+const ENTRY_COMMANDS: u64 = DECLS as u64 + 1 + 3;
+
+/// 一次**改最后一条命令**的按键（长度不变 ✓）：`d02` 的局部 binder 改名
+/// （`(h :` → `(k :`，`exact t00 a b h` → `exact t00 a b k`）。
+///
+/// 为什么专门有它：T2-B 的判据正是「改**最后一条** ⇒ elaborate 命令数 = **1**」✓。
+fn edit_last_decl(text: &str) -> String {
+    let at = text.find("theorem d02 ").expect("找不到 `theorem d02`");
+    let end = text[at..].find('\n').map_or(text.len(), |n| at + n);
+    let line = &text[at..end];
+    let edited = line
+        .replacen("(h :", "(k :", 1)
+        .replacen("exact t00 a b h", "exact t00 a b k", 1);
+    assert_eq!(
+        edited.len(),
+        line.len(),
+        "这次按键必须**长度不变**（否则下游起点平移，量到的不是「最后一条」）"
+    );
+    format!("{}{}{}", &text[..at], edited, &text[end..])
+}
+
+/// **T2-B 的"先建先红"**（2026-10-09）：今天，**改最后一条命令**也要把入口趟的
+/// **每一条命令**从头重走一遍 ✗（命令级环境快照未做）。
+///
+/// ## 判据（`PLAN-align-lean4` §3.3 T2-B）
+///
+/// 改**最后一条** ⇒ [`elaborated_commands_total`] 的增量 = **1**（今天 = 入口命令数
+/// N = [`ENTRY_COMMANDS`]，另加库层那几条）；改第 k 条 ⇒ N−k+1。
+/// **反向验证**：改依赖文件 ⇒ 回到 N。
+///
+/// ## 为什么这条现在断言的是"今天的行为"
+///
+/// T2-B 是多环节件（命令级快照要连 **walk 的累加器**一起留：`known`/`inductives`/
+/// `defs`/`out`/`ops`…，且跨按键要留住 arena）⇒ 本轮先把**读数**立起来 ✓。
+/// **先建先红**的纪律照 T2-B0 的先例：**T2-B 落地后把这里改判成 `== 1`，
+/// 不许放宽** ✗。
+#[test]
+fn t2b_last_command_edit_still_reelaborates_every_entry_command() {
+    let (entry, text) = gen_project("t2b");
+    let mut doc = open_doc(&entry, &text);
+    let base = Counters::now();
+    let edited = edit_last_decl(&text);
+    doc.set_text(&edited, 2, None);
+    let reading = Reading::snapshot(&doc, base);
+    println!(
+        "PERF t2b 改最后一条：elaborated_commands={}（入口命令数 N={ENTRY_COMMANDS}）",
+        reading.elaborated_commands
+    );
+    // **有牙**：读数不许是 0（那说明量具坏了、或什么都没编 ✗）。
+    assert!(
+        reading.elaborated_commands > 0,
+        "改最后一条必须真的 elaborate 了东西（读到 0 ⇒ 量具坏了 ✗）"
+    );
+    // **今天的行为**：整条入口趟从头重走 ⇒ ≥ N（+ 库层那几条）。
+    assert!(
+        reading.elaborated_commands >= ENTRY_COMMANDS,
+        "今天**改最后一条**也要把入口趟 {ENTRY_COMMANDS} 条命令全部重走，实测 {}          —— 小于它说明「命令级快照」已经（部分）生效 ✓ ⇒ **那时就把这条改判成 `== 1`**，         **不许放宽** ✗",
+        reading.elaborated_commands
+    );
 }
 
 /// 量三次按键：**无人依赖**的一条 · **被 2 条依赖**的一条 · **最后一条**。

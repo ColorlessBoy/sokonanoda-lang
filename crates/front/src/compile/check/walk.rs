@@ -476,6 +476,18 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 });
             }
             unit_seen[unit_idx] += 1;
+            // **T2-B 的判据读数**（2026-10-09）：**真的 elaborate 了几条命令**。
+            // 记在循环体最前 ⇒ 它数的就是"这一趟走过了几条命令"——**命令级快照**
+            // 落地后，未变的前缀会从这里被跳掉 ⇒ 改最后一条读到 **1** ✓（今天 = N ✗）。
+            //
+            // ⚠ **只数真模块**（`path: Some(..)`）—— 与 `CLOSURE_MODULE_COMPILES`
+            // 同一条纪律：judge 的**合成判定文档**（`SourceUnit::single`，`path: None`）
+            // 每问一句就整份重走一遍前缀 ⇒ 把它们算进来会把 O(N²) 的合成趟
+            // 当成"入口趟 elaborate 数" ✗（实测：不滤时 206–322，滤后见读数 ✓）。
+            if unit.path.is_some() {
+                super::stage_stats::ELABORATED_COMMANDS
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            }
             // G-05 N5：单元（文件）切换处清空作用域——`open` 与 `namespace`
             // 都是文件内的（`import` 不做模块限定，但被导入模块的**全局名**
             // 本来就可见，所以入口里的 `open Set` 对依赖的 `Set.mem` 仍然有效）。
