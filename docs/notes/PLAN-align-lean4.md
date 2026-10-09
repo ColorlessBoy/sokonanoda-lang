@@ -1397,8 +1397,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   （别在文档里留一个不存在的接口 ✗）；③ 判据 = `judge` 单测全绿 + 该处 `grep EnvProvider` 归零 ✓。
 * ⚠ **本轮的边界**：并行线在 `check/{mod,walk}.rs` + `project/session.rs` 上做 T2-B（三个文件未提交、 当前 `cargo check -p sokonanoda-front` **6 个错** ✗）⇒ 本线**不动这些文件**、也**跑不了任何编译判据** ✗ （这正是 T3-D 只做到"取证 + 决定"的原因 ✓）。
 
-* ⚠ **T3-D 的执行本轮试了 3 次、全部还原（换招：下次手工做 ✓）**：三处**脚本化删除**都误伤 —— ① 字符偏移法在文档块边界上切错（留下半行 ✗）；② 行法把 `#[test]` 属性留下 ⇒ "duplicated attribute" ✗； ③ 第三次"找悬空 `#[test]`"的判据写歪 ⇒ **删掉了旁边一条好测试的 `#[test]`** ✗（`the_text_hash_memo_never_changes_a_key`）。 ⇒ 按"同一处连红 3 次必须换招"的纪律**停手还原** ✓（还原后 `--all-targets` 0 错 · `judge` 单测全绿 ✓）。 **下次手工做的清单（已核实、别再写脚本 ✗）**：① `judge_infer_with_env`（含其长文档块）；② `provider_inputs`
-  （含文档块）；③ `pub trait EnvProvider`（`:2944`，含那段"形状还要重设计"的长文档 —— 建议**换成一条短记**留下线索 ✓）；
+* ⚠ **T3-D 的执行本轮试了 3 次、全部还原（换招：下次手工做 ✓）**：三处**脚本化删除**都误伤 —— ① 字符偏移法在文档块边界上切错（留下半行 ✗）；② 行法把 `#[test]` 属性留下 ⇒ "duplicated attribute" ✗； ③ 第三次"找悬空 `#[test]`"的判据写歪 ⇒ **删掉了旁边一条好测试的 `#[test]`** ✗（`the_text_hash_memo_never_changes_a_key`）。 ⇒ 按"同一处连红 3 次必须换招"的纪律**停手还原** ✓（还原后 `--all-targets` 0 错 · `judge` 单测全绿 ✓）。 **下次手工做的清单（已核实、别再写脚本 ✗）**：① `judge_infer_with_env`（含其长文档块）；② `provider_inputs` （含文档块）；③ `pub trait EnvProvider`（`:2944`，含那段"形状还要重设计"的长文档 —— 建议**换成一条短记**留下线索 ✓）；
   ④ 测试 `env_provider_is_consulted_and_none_falls_back_byte_for_byte`（含内部 `impl EnvProvider for Fake` ✓）；
   ⑤ 台账 G-92 的 `expected_lean`；⑥ 判据 = `judge` 单测全绿 + **代码里** `grep EnvProvider` 归零（注释里的历史线索可留 ✓）。
 
@@ -1412,28 +1411,29 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ⚠ **红线的现状（第 75 轮）**：`export` 修复是**行为改动** ⇒ 该跑"整门课逐字节"那道 ✓。**全量 `scripts/soko gate` 判红** ✗ —— 但红在 **`crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env`** （**内核**测试 ✓，与本次改动（只在 `front/project/session.rs`）**逻辑无关** ✓；那一带正是并行线 `EnvBuilder` 指针同一性判据的地盘 ✓）⇒ 归并行线/内核线 ✓，不是本修复的回归 ✓。
 * ✅ **课程那条红线**：单独跑 **`python3 courses/set-theory/tools/check.py`** ⇒ **exit 0** ✓ （**258 个目标 · 2188 checked · 916 open · 0 个被判负** ✓）⇒ 本次行为改动**过了课程门禁** ✓。 ⚠ 待办：等内核那条测试回绿后，再跑一次**全量 gate**（那里才有"整门课 `--json` 逐字节"那道 ✓）。
 
-* ✅ **T4-B 的 CLI `check` 换路落地（第 76 轮）**：`check.rs` 从 `compile_plan`（整条闭包一趟 ✗） 换成 **`precheck_plan` + `compile_plan_with_artifacts`** ✓（session + 磁盘产物、且不碰线程局部检查点 ✓）。 三条前置都核实过：① 报告逐字节相同（`t4b_plan_parity` ✓）；② 本调用方**没有** progress sink （`compile_plan` = `…_with_progress(None)` ✓）⇒ 不存在丢进度事件的问题 ✓；③ **`export` 已对齐** ✓
-  （第 43 轮正是死在这条上 ✗）。验证：`cli/tests/namespace` **10/10** ✓ · **CLI 全套 40 个目标 exit 0** ✓。
+* ✅ **T4-B 的 CLI `check` 换路落地（第 76 轮）**：`check.rs` 从 `compile_plan`（整条闭包一趟 ✗） 换成 **`precheck_plan` + `compile_plan_with_artifacts`** ✓（session + 磁盘产物、且不碰线程局部检查点 ✓）。 三条前置都核实过：① 报告逐字节相同（`t4b_plan_parity` ✓）；② 本调用方**没有** progress sink （`compile_plan` = `…_with_progress(None)` ✓）⇒ 不存在丢进度事件的问题 ✓；③ **`export` 已对齐** ✓ （第 43 轮正是死在这条上 ✗）。验证：`cli/tests/namespace` **10/10** ✓ · **CLI 全套 40 个目标 exit 0** ✓。
   ⚠ **如实记：没有量到墙钟收益** ✗ —— 夹具上两臂都是 **~0.035s**（`compiled/` 报告缓存 + 全局缓存把两臂都
   短路了 ✗，与第 13/43 轮同一条教训）⇒ 本次换路的依据是**判据（报告逐字节）+ 与 `query` 共用产物路** ✓，
   不是墙钟读数 ✓（要量收益得先让报告缓存 miss 而产物命中，夹具没做到 ✓）。
 
-* ⛔ **全量 gate 的红已定位到并行线的 `b10fa175`（T2-A）—— 它踩了自己那条判据** ✗✗： 红点是 `crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env` （K1-b 的"**跨 builder 名字查询不许静默取错**"守卫 ✓），报 `const_head_type: unknown const NamePtr(0x…)`
-  ⇒ **名字被"找到"了、找到的是别人** ✗。`git log -- crates/kernel/src/{builder,util}.rs` 的第一条就是
+* ⛔ **全量 gate 的红已定位到并行线的 `b10fa175`（T2-A）—— 它踩了自己那条判据** ✗✗： 红点是 `crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env` （K1-b 的"**跨 builder 名字查询不许静默取错**"守卫 ✓），报 `const_head_type: unknown const NamePtr(0x…)` ⇒ **名字被"找到"了、找到的是别人** ✗。`git log -- crates/kernel/src/{builder,util}.rs` 的第一条就是
   **`b10fa175 perf(kernel): T2-A —— 声明表分层持久化 / COW`** ✓ ⇒ 归它 ✓（内核那两个文件**没有**未提交改动 ✓）。
   ⚠ **要命的是**：本规划 §T2-A 的判据清单第 ② 条**自己写着**"指针同一性**两向**判据保持绿
   （`crates/kernel/src/builder.rs` 那条）" ✗ ⇒ T2-A 落地时**没守住自己的验收条件** ✓。
   ⇒ **本线不修**（那是 T2-A 的语义地盘：持久化/COW 会改变跨 builder 的 interning 语义 ✓，是"守卫要重设计"
   还是"实现有漏"得由内核线定 ✗）；但它**卡住全量 gate** ⇒ 也卡住本线"整门课 `--json` 逐字节"那道红线 ✗。
 
-* ⭐⭐ **T2-B 落地后的读数（第 77 轮）** —— **结构证据（无歧义 ✓）**：并行线的读数 `PERF t2b 改最后一条：elaborated_commands=1（入口命令数 N=12）` ✓✓（12 → **1**）；
-  本线探针同族证据：`trailing_comment` 臂从 **`by=9` → `by=1`、`tc=0`** ✓（改**文件末尾**那条 ⇒ 只重编 1 条 ✓）。
+* ⭐⭐ **T2-B 落地后的读数（第 77 轮）** —— **结构证据（无歧义 ✓）**：并行线的读数 `PERF t2b 改最后一条：elaborated_commands=1（入口命令数 N=12）` ✓✓（12 → **1**）； 本线探针同族证据：`trailing_comment` 臂从 **`by=9` → `by=1`、`tc=0`** ✓（改**文件末尾**那条 ⇒ 只重编 1 条 ✓）。
   ⇒ 这正是 Lean 的 **per-command 快照**行为 ✓（它也"编辑点之后的声明还在编" ✓ ⇒ 两者同构 ✓）。
   **goal 口径（外部量具 `~/lean4-bench/lsp_bench.py` · 同一夹具 n=5）**：`goal` median
   **13.48 → 8.72ms** ✓ · `first_diag`/`complete` **29.29 → 27.05ms** ✓（Lean 侧：goal **3.1ms** / 诊断 218.1ms）。
   ⚠ 两句限定语：① 该量具**没有**"goal 真的换了"的可机检字段（第 42 轮记过 ✗）⇒ 8.72ms 是**推断**
   （若答的是旧值，延迟会是 ~0.3ms 而不是 8.72ms ✓）；② 它的绝对值与本线探针**不同源** ✗（27 vs 84ms）
   ⇒ **只做同量具的前后比较** ✓：goal 相对 Lean 的差距从 **~4.3×** 收窄到 **~2.8×** ✓。
+
+* ✅✅✅ **全量 `scripts/soko gate` PASS（第 78 轮）** —— 自第 55 轮以来第一次 ✓，也是本线两处**行为改动** （`export` 可见性修复 ✓ + CLI `check` 换路 ✓）的**权威红线**：fmt · clippy · `cargo test` · playground 锚点 ·
+  **课程门禁** · 台账门禁**全过** ✓（跑在含并行线 `kernel/src/env.rs` 在制品的树上 ✓ ⇒ 他们的 WIP 也编译/格式干净 ✓）。
+  ⇒ 第 52/54 两轮欠的那道**补上了** ✓（课程门禁 exit 0 是单跑时的证据 ✓，这里是整条 CI 门禁的合并证据 ✓）。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
