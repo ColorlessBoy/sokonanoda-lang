@@ -244,6 +244,14 @@ pub(crate) struct EntryTail<'a> {
 
 /// **T2-B**：入口检查点的线程局部槽（同 `LIB_CHECKPOINTS` 的纪律 ✓）—— 寿命必须是
 /// `'static`（库层检查点的 arena 由 `Box::leak` 来 ✓）；按 `(库层键, 入口)` 去重 + 有界 ✓。
+/// ⭐ **T2-B 的逃生门**（2026-10-09）：`SOKO_NO_ENTRY_SNAPSHOT=1` ⇒ 入口趟**不续编**
+/// （回到 T2-B 之前的"整条重走"✓）。用途 = **同一份构建上的 A/B**（`STATUS.md` 的已知缺口 ✓）。
+/// 读一次就缓存（它在每次编辑的热路径上 ✓）。
+fn no_entry_snapshot() -> bool {
+    static OFF: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *OFF.get_or_init(|| std::env::var_os("SOKO_NO_ENTRY_SNAPSHOT").is_some())
+}
+
 const MAX_ENTRY_TAILS: usize = 8;
 thread_local! {
     static ENTRY_TAILS: RefCell<Vec<EntryTail<'static>>> = const { RefCell::new(Vec::new()) };
@@ -1296,18 +1304,28 @@ fn run_entries<'a, R>(
         // **T2-B**：命令级检查点的**复用判据是结构相等**（计划 §3.3 的纪律）：
         // ① `lib.key`（库层键）相同 · ② 同一个入口 · ③ **命令数相同** ·
         // ④ `keys[..=cp.idx]`（= 除最后一条以外的全部命令）**逐字相同** ✓。
-        let resume_walk = tails.and_then(|store| {
-            let mut store = store.borrow_mut();
-            let at = store.iter().position(|t| {
-                t.key == lib.key
-                    && t.entry == index
-                    && t.keys.len() == entry_keys.len()
-                    && t.cp.idx < entry_keys.len()
-                    && t.keys[..=t.cp.idx] == entry_keys[..=t.cp.idx]
-            })?;
-            // **搬走**（不是克隆）⇒ 省一次 O(状态) 复制 ✓；跑完存回新的 ✓。
-            Some(store.remove(at).cp)
-        });
+        // ⭐ **逃生门 `SOKO_NO_ENTRY_SNAPSHOT=1`（2026-10-09 · 平行线）**：关掉入口趟的
+        // **命令级续编** ⇒ 回到 T2-B 之前的行为（入口趟整条重走 ✓）。
+        // **为什么需要它**：`STATUS.md` 把"**进程隔离的 A/B**"列成 T2-B 的已知验证缺口 ✗ ——
+        // 同进程两臂会被**线程局部 `ENTRY_TAILS`** 互相喂缓存 ⇒ 不可比 ✓；有这个门，
+        // **同一份构建**就能跑两臂 ✓ ⇒ A/B 才成立 ✓。它**只关复用**、不碰任何判定语义 ✓
+        // （续编与否得到的报告已判据化为逐字节相同 ✓）。
+        let resume_walk = if no_entry_snapshot() {
+            None
+        } else {
+            tails.and_then(|store| {
+                let mut store = store.borrow_mut();
+                let at = store.iter().position(|t| {
+                    t.key == lib.key
+                        && t.entry == index
+                        && t.keys.len() == entry_keys.len()
+                        && t.cp.idx < entry_keys.len()
+                        && t.keys[..=t.cp.idx] == entry_keys[..=t.cp.idx]
+                })?;
+                // **搬走**（不是克隆）⇒ 省一次 O(状态) 复制 ✓；跑完存回新的 ✓。
+                Some(store.remove(at).cp)
+            })
+        };
 
         // **T2-B：续编的闸门 —— 信任前缀必须**真的覆盖到快照边界** ✓**
         // 前缀那一段的**报告**由 `EntryCache` 拼接提供（计划 §3.3 的纪律 ✓）；
