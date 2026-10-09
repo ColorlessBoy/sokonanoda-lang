@@ -423,6 +423,11 @@ fn perf_course_first_keystroke_after_open_is_recorded() {
     std::thread::sleep(std::time::Duration::from_millis(200));
     let line = client.last_trace();
     let identity = binary_identity();
+    // **诊断（2026-10-09）**：把这一刀的**原始 trace 行**也打出来 —— 它末尾带
+    // `reuse=`（`lru`/`artifact`/`prefix`/`rebuilt`/`none` ✓），是回答
+    // "**产物那条路走没走到**"的**唯一可靠通道** ✗→✓（第 50 轮拿 stderr 里
+    // "没有我打的 trace"下结论 ⇒ **错**，见 PLAN §41 的撤回 ✓）。
+    println!("PERF first-keystroke-trace: {line}");
     // **第一刀的墙钟被谁挡住？**（2026-10-09 第 13 轮）`compile=` 只是服务端自报的编译时长，
     // 差额去哪了要先看见：产物命中后紧跟着的是 **A5 的后台库层预热**（同一个编译 worker）
     // ⇒ 用户立刻敲的那一刀可能**排在它后面** ✗。

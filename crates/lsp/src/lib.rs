@@ -924,7 +924,7 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
             let now = structural_counters();
             eprintln!(
                 "LSP_TRACE compile {uri} v{version} {}ms publish={} modules={} by={} \
-                 infer={}/{} prefix={} tc={} telescope={}",
+                 infer={}/{} prefix={} tc={} telescope={} reuse={}",
                 cost.as_millis(),
                 out.len(),
                 now.modules - counters_before.modules,
@@ -934,6 +934,10 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
                 now.prefix_runs - counters_before.prefix_runs,
                 now.tc_cache_builds - counters_before.tc_cache_builds,
                 now.telescope_parses - counters_before.telescope_parses,
+                // **诊断（2026-10-09）**：这一趟的**库层从哪来**（`lru`/`artifact`/`prefix`/
+                // `rebuilt`/`none` ✓）—— 只读这一行就能回答"走没走到产物那条" ✓
+                // （第 50 轮那个**错**结论就是没有这条通道下的 ✗，见 PLAN §41 ✓）。
+                sokonanoda_front::project::session::last_lib_source(),
             );
         }
         for (target, diagnostics, version) in out {

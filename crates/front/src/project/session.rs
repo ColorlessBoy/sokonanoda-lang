@@ -170,6 +170,33 @@ const MAX_MODULE_CHECKPOINTS: usize = 32;
 /// 进程内**已经泄漏**的库层 arena 数（只增不减 —— 泄漏的定义）。
 static LEAKED_LIB_ARENAS: AtomicUsize = AtomicUsize::new(0);
 
+/// **诊断读数（2026-10-09）**：**上一趟"库层从哪来"** —— 0 = 没走会话 ·
+/// 1 = 线程局部检查点（①）· 2 = **磁盘产物**（①.5）· 3 = 前缀续编（②）· 4 = 整条重建（③）。
+///
+/// **为什么要有它**：`crates/lsp` 的 `LSP_TRACE compile …` 行**只报结构计数**
+/// （`modules`/`by`/`prefix` ✓）⇒ 从读数**反推不出**是哪条路服务的 ✗
+/// （第 50 轮我就是拿"stderr 里没有我打的 trace"下了**错**结论 ✗ ⇒ §41 的撤回 ✓）。
+/// 有了这条，探针**只读既有 trace 行**就能回答"走没走到产物那条" ✓。
+static LAST_LIB_SOURCE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+/// 见 [`LAST_LIB_SOURCE`]：`"lru"` / `"artifact"` / `"prefix"` / `"rebuilt"` / `"none"`。
+#[doc(hidden)]
+pub fn last_lib_source() -> &'static str {
+    match LAST_LIB_SOURCE.load(Ordering::Relaxed) {
+        1 => "lru",
+        2 => "artifact",
+        3 => "prefix",
+        4 => "rebuilt",
+        _ => "none",
+    }
+}
+
+/// 见 [`last_lib_source`]（`#[doc(hidden)]`，只给诊断用）。
+#[doc(hidden)]
+pub fn set_last_lib_source(v: u8) {
+    LAST_LIB_SOURCE.store(v, Ordering::Relaxed);
+}
+
 thread_local! {
     /// **跨调用的持有者**：本线程的库层检查点，**最多 [`MAX_MODULE_CHECKPOINTS`] 份**，
     /// 按 **LRU** 淘汰（**队首 = 最近用过** ✓）。
@@ -518,8 +545,9 @@ fn with_project_session_reusing_at<R>(
                 .position(|cp| cp.key == key && cp.reuses < MAX_REUSES_PER_CHECKPOINT)
         };
         if let Some(at) = hit {
-            // LRU：用过就提到队首 ✓（**这一提就是本改动的全部收益来源**：换过闭包之后
-            // 回头再开原入口，原来那一份还在 ⇒ 库层趟不用重付 ✓）。
+            set_last_lib_source(1); // ① 线程局部检查点
+                                    // LRU：用过就提到队首 ✓（**这一提就是本改动的全部收益来源**：换过闭包之后
+                                    // 回头再开原入口，原来那一份还在 ⇒ 库层趟不用重付 ✓）。
             let mut cp = slots.remove(at);
             cp.reuses += 1;
             // `&LibCheckpoint<'static>` 按协变缩到本次 units 的寿命 ✓（浅拷贝 ⇒
@@ -542,6 +570,7 @@ fn with_project_session_reusing_at<R>(
                 if let Some(lib) = crate::project::artifacts::read(root, &key, options)
                     .and_then(|text| load_lib_checkpoint(&text, &key, lib_units))
                 {
+                    set_last_lib_source(2); // ①.5 磁盘产物
                     let out = run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
                     // 顺手喂热线程局部（**下一刀就命中 ①** ⇒ 产物只为"冷进程"付一次 ✓）。
                     push_checkpoint(&mut slots, lib);
@@ -623,6 +652,7 @@ fn with_project_session_reusing_at<R>(
                 lib_defs: crate::compile::top_level_def_spans_over(lib_units),
                 lib_prefix: cursor.lib_prefix,
             };
+            set_last_lib_source(3); // ② 前缀续编
             return run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
         }
         // ③ **重建**：库层趟跑在一份**泄漏的** arena 上（`Box::leak` = 零 `unsafe`
@@ -631,6 +661,7 @@ fn with_project_session_reusing_at<R>(
         let can_leak = !lib_units.is_empty()
             && LEAKED_LIB_ARENAS.load(Ordering::Relaxed) < MAX_LEAKED_LIB_ARENAS;
         if can_leak {
+            set_last_lib_source(4); // ③ 整条重建
             let arena: &'static ArenaRef<'static> =
                 Box::leak(Box::new(stumpalo::Arena::new())).as_arena_ref();
             LEAKED_LIB_ARENAS.fetch_add(1, Ordering::Relaxed);
