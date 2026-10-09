@@ -321,7 +321,17 @@ goal 视图（`goal`/`binders`/`by_root`/`holes` ≈ 1–2 KB ✓）。**这就�
 | `editor/vscode/{project-tree.js,test-webview.js,test-extension-host.js}` | 消费方（实测读 `.decls`/`.errors`/`.warnings`）⇒ **先确认 `decls` 的哪些子字段真被渲染** 再裁 ✓ |
 | `scripts/audit-wire-fields.py` | A∖B 对账守卫（裁完必须仍绿 ✓） |
 
-**两步走（低风险版）**：① 先在 LSP 侧**只摘 run 类字段**（`ty_runs`/`value_runs`/
-`goals_runs`/`goal_runs` —— 占 95% ✗）并复跑契约测试 + 那条对账 ✓；② 再把
-"只回光标处声明"做成**新请求**（`soko/goalAt`）而不是改 `soko/goals` 的形状 ✗→✓
-—— 这样老消费者**零影响** ✓，新路径吃 §7.8 的收益 ✓。
+**⚠⚠ 更正（同一轮实测）：run 类字段不是"可以摘掉的噪声"，它们是客户端要渲染的** ✓
+
+`editor/vscode/*.js` 里 `ty_runs` 出现 **10** 次 · `goal_runs` **9** 次 · `goals_runs` **6** 次
+⇒ Infoview 卡片的高亮**就靠它们** ✗ ⇒ **"先摘 run 字段"= 静默降级用户可见的渲染** ✗✗
+（正是仓库点名的"数据对了 ≠ 用户看见了"）。**故上一版写的"两步走"作废** ✗。
+
+**正确的一步（唯一低风险路径）**：
+* **不动 `soko/goals`**（老形状、老消费者、老渲染全保留 ✓）；
+* **新增 `soko/goalAt`**：只回**光标处那一条**的 goal 视图（`goal`/`binders`/`by_root`/
+  `holes`/`sub_goals` ＋定位用 `name`/`kind`/`range`/`status` ≈ 1–3 KB ✓）；
+* **键盘路径由扩展改走它**（`editor/vscode` 那一侧同步改 ＋ e2e 断言"卡片仍看得见" ✓）；
+* 判据：新请求的响应字节 **≤ ~3000**（vs `soko/goals` 的 91358 ✓）·
+  `scripts/audit-wire-fields.py` 仍绿 ✓ · `crates/lsp/src/tests/goals.rs` 的契约不动 ✓ ·
+  **e2e 渲染判据不能少** ✓（"屏幕上会多/少什么"必须有断言 ✓）。
