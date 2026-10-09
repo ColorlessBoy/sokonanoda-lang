@@ -296,6 +296,38 @@ fn perf_course_keystroke_wallclock_is_recorded() {
         5,
     );
 
+    // ⭐ **RPC 底噪（第 84 轮）**：`soko/goals` 的 5.9ms 里有多少只是"**一来一回**"？
+    // 用一条**几乎零计算**的请求（`soko/version`：只答 `{version,pid}` ✓）量同一个往返 ✓
+    // ⇒ 与 `goals-wallclock` 一减，剩下的才是 **handler 自己的成本** ✓（第 61 轮已证探针不贵 ✗）。
+    {
+        let mut samples = Vec::new();
+        for k in 0..5 {
+            let id = 9101 + k;
+            let t = std::time::Instant::now();
+            client.send(serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "soko/version",
+                "id": id,
+                "params": {},
+            }));
+            let answered = client.wait_for(|m| m.get("id") == Some(&serde_json::json!(id)));
+            assert!(
+                answered.get("result").is_some(),
+                "`soko/version` 必须答得上：{answered:?}"
+            );
+            samples.push(t.elapsed().as_secs_f64() * 1000.0);
+        }
+        samples.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        println!(
+            "PERF rpc-floor {}: best {:.1}ms · median {:.1}ms · worst {:.1}ms (n=5, {}) · 对照 goals=见上",
+            rel,
+            samples[0],
+            samples[2],
+            samples[4],
+            binary_identity()
+        );
+    }
+
     // ⭐ **goal 口径的**一等读数**（2026-10-09 · 平行线）**：北极星的**第二臂**（Lean 的
     // `$/lean/plainGoal` = **3.1ms** ✗）此前只有外部 Python 量具在量 ✓；这里在**同一条
     // 真子进程 harness** 上量 `soko/goals` 的**请求往返** ⇒ 两臂可比、且与诊断臂同源 ✓。
