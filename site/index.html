@@ -51,14 +51,17 @@
       <svg class="ico ico-dark" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M13.4 9.8A5.7 5.7 0 0 1 6.2 2.6a5.7 5.7 0 1 0 7.2 7.2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
     </button>
     <!-- 语言按钮：**默认自动识别**（见 assets/i18n.js），这个按钮只给"想手动看一眼另一种语言"
-         的读者（用户 2026-10-09 点名要，方便验证）。标签写"切过去会变成什么"；
-         `hidden` 起步、JS 才放出来 ⇒ 没有 JS 时不出现一个点不动的按钮 ✓。 -->
+         的读者（用户 2026-10-09 点名要，方便验证）。标签写**当前语言**（中文页 `中` / 英文页 `EN`）
+         —— 用户 2026-10-09 问"是不是状态反了"：原先写的是"切过去会变成什么"（中文页显示 `EN`），
+         那是"动作"惯例、容易读成"现在就是英文" ✗ ⇒ 改成"你现在读到的是哪种语言" ✓；
+         点下去干什么由 `aria-label` 说全。`hidden` 起步、JS 才放出来 ⇒ 没有 JS 时不出现点不动的按钮 ✓。 -->
     <button class="theme-toggle lang-toggle" type="button" data-lang-toggle hidden
             data-i18n="langToggle" data-i18n-aria="langToggleLabel"
-            aria-label="切换到英文">EN</button>
-    <!-- GitHub 仓库（用户 2026-10-09：topbar 缺它）。文字而不是图标：预算是硬约束
-         （html+css+js 只剩几百字节），而 `GitHub` 是专名、不用翻译 ✓。 -->
-    <a class="theme-toggle gh-link" href="https://github.com/ColorlessBoy/sokonanoda-lang" data-i18n-aria="ghLabel" aria-label="GitHub 仓库">GitHub</a>
+            aria-label="当前中文，点击切换到英文">中</button>
+    <!-- GitHub 仓库：**图标**（用户 2026-10-09：「github 放一个 github 的图标就行了」）——
+         文字版 pill 宽 76.6px，换图标后与主题/语言同是 34×34 方框 ⇒ 英文 topbar 才放得下一行 ✓。 -->
+    <a class="theme-toggle gh-link icon-toggle" href="https://github.com/ColorlessBoy/sokonanoda-lang"
+       data-i18n-aria="ghLabel" aria-label="GitHub 仓库"><svg class="ico ico-github" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
     </span>
   </div>
 </header>
@@ -260,8 +263,8 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
   "navStart": "Getting started",
   "navCourses": "Courses",
   "themeToggleLabel": "Theme: System (click to change)",
-  "langToggle": "中",
-  "langToggleLabel": "Switch to Chinese",
+  "langToggle": "EN",
+  "langToggleLabel": "Currently English — click to switch to Chinese",
   "ghLabel": "GitHub repository",
   "heroTitle": "sokonanoda · a formal proof teaching language",
   "heroLead": "Write a proof the way you write it on paper — one line at a time, with the <strong>goal always in view</strong> and a <strong>kernel that tells you</strong> when you get it wrong. No proof assistant to learn first, no toolchain to install: one VS Code extension is enough to start.",

@@ -607,6 +607,17 @@ def _toggle_probe() -> str:
     btn.click();
     await new Promise((r) => setTimeout(r, 150));
     out.after = snap();
+    // ⚠ 用户报的是**英文**那版折行（"英文版的 topbar 都不能在一行放下"）⇒ 切到英文后必须再量一次。
+    const rowsOf = () => {
+      const hw = d.querySelector('.site-header .wrap');
+      if (!hw) return null;
+      const rs = Array.from(hw.children).filter((k) => k.getBoundingClientRect().height > 0)
+        .map((k) => k.getBoundingClientRect());
+      const overlap = Math.min(...rs.map((r) => r.bottom)) - Math.max(...rs.map((r) => r.top));
+      return { rows: overlap > 0 ? 1 : 2, w: Math.round(hw.getBoundingClientRect().width),
+               detail: rs.map((r) => `${Math.round(r.top)}-${Math.round(r.bottom)}`).join(' ') };
+    };
+    out.headerEn = rowsOf();
     btn.click();
     await new Promise((r) => setTimeout(r, 150));
     out.back = snap();
@@ -623,8 +634,53 @@ def _toggle_probe() -> str:
     out.iconsBefore = icons();          // 初态 = system（探针用干净 profile）
     // 控件必须**在一条水平线上**（用户 2026-10-09：「两个方框都不在一条水平线上」）——
     // 量的是**顶边**：差 >1px 就是错位（图标按钮没有文字基线，靠 .header-controls 兜住）。
-    const boxTop = (sel) => { const e = d.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().top) : null; };
-    out.align = { theme: boxTop('.icon-toggle'), lang: boxTop('.lang-toggle'), gh: boxTop('.gh-link') };
+    // 三个控件要**等高 + 同中心线**（用户 2026-10-09：「按钮高度搞统一，按钮中横线对齐」）。
+    // ⚠ 只量顶边是不够的：pill 比方框高 1.8px 时顶边只差 0.89px ⇒ 旧判据放它过去 ✗。
+    const geom = (sel) => {
+      const e = d.querySelector(sel);
+      if (!e) return null;
+      const r = e.getBoundingClientRect();
+      return { top: +r.top.toFixed(2), h: +r.height.toFixed(2), center: +((r.top + r.bottom) / 2).toFixed(2) };
+    };
+    // ⚠ **文字也要量**（用户 2026-10-09：「标题等文字，和三个方框感觉不在一个水平线上」）——
+    // 只量三个方框会漏掉"品牌/导航按文字基线落位"这条（实测中心线差 5.75px ✗）。
+    out.align = {
+      brand: geom('.brand'), nav: geom('.site-header nav'),
+      theme: geom('.icon-toggle'), lang: geom('.lang-toggle'), gh: geom('.gh-link')
+    };
+    // ── 通用几何审计：**别再靠人眼/手算**（用户 2026-10-09：「要手动计算吗？这么不智能」）──
+    // 把 header/footer 里每一项的顶边/高度/中心线/宽度全量出来，判据在 Python 侧逐条判，
+    // 失败时**直接把数字打出来** ⇒ 以后任何一项错位都由判据说话，不需要人去量。
+    const rowGeom = (sel) => {
+      const e = d.querySelector(sel);
+      if (!e) return null;
+      return Array.from(e.children).filter((k) => k.getBoundingClientRect().height > 0).map((k) => {
+        const r = k.getBoundingClientRect();
+        return { what: (k.className && String(k.className).split(/[ ]+/)[0]) || k.tagName.toLowerCase(),
+                 top: +r.top.toFixed(2), h: +r.height.toFixed(2), w: +r.width.toFixed(2),
+                 bottom: +r.bottom.toFixed(2), center: +((r.top + r.bottom) / 2).toFixed(2) };
+      });
+    };
+    out.rows = { header: rowGeom('.site-header .wrap'), footer: rowGeom('.site-footer .wrap') };
+    // 可点目标的命中尺寸（WCAG 2.2 AA 2.5.8 要求 ≥ 24×24 CSS px）
+    out.targets = Array.from(d.querySelectorAll('.site-header a, .site-header button, .site-footer a, .site-footer button'))
+      .map((e) => { const r = e.getBoundingClientRect();
+        return { t: (e.textContent || '').trim().slice(0, 14) || (e.getAttribute('aria-label') || '?'),
+                 w: +r.width.toFixed(1), h: +r.height.toFixed(1) }; });
+    // topbar 必须**放得下一行**（用户 2026-10-09：「英文版的 topbar 都不能在一行放下」）：
+    // 量 header 里三个子项（品牌 / 导航 / 控件组）的顶边有几行 —— >1 就是折行了 ✗。
+    const hw = d.querySelector('.site-header .wrap');
+    out.headerRows = (() => {
+      if (!hw) return null;
+      const rs = Array.from(hw.children).filter((k) => k.getBoundingClientRect().height > 0)
+        .map((k) => k.getBoundingClientRect());
+      if (rs.length < 2) return { rows: 1, detail: 'n/a' };
+      // ⚠ **一行 = 竖直区间互相重叠**，不是"顶边相同"：头部是 `align-items: baseline`，
+      // 同一行里品牌/导航/控件的顶边本来就不同 ⇒ 用顶边会把一行误判成三行（踩过 ✗）。
+      const overlap = Math.min(...rs.map((r) => r.bottom)) - Math.max(...rs.map((r) => r.top));
+      return { rows: overlap > 0 ? 1 : 2,
+               detail: rs.map((r) => `${Math.round(r.top)}-${Math.round(r.bottom)}`).join(' ') };
+    })();
     out.headerGithub = (() => { const h = d.querySelector('header'); return h ? h.querySelectorAll('a[href*="github.com"]').length : null; })();
     for (let i = 0; i < 3 && d.documentElement.getAttribute('data-theme') !== 'dark'; i++) {
       themeBtn.click();
@@ -736,14 +792,14 @@ def check_render() -> str:
                     raise Failure(f"{name}（{lang}）：页面文案没切到该语言（找不到 {shown}）")
                 if hidden in dom:
                     raise Failure(f"{name}（{lang}）：另一种语言的原文案还在（不该出现 {hidden}）")
-                # topbar 语言按钮：标签写"切过去会变成什么"（中文时 EN、英文时 中文），
+                # topbar 语言按钮：标签写**当前语言**（中文页「中」、英文页「EN」），
                 # 而且必须**已被 i18n.js 放出来**（HTML 里 `hidden` 起步 ⇒ 没跑就是隐藏的 ✗）。
                 toggle = re.search(r"<button[^>]*data-lang-toggle[^>]*>([^<]*)</button>", dom)
                 if not toggle:
                     raise Failure(f"{name}（{lang}）：找不到语言切换按钮（data-lang-toggle）")
                 if "hidden" in toggle.group(0).split(">")[0]:
                     raise Failure(f"{name}（{lang}）：语言按钮还是 hidden —— i18n.js 没把它放出来？")
-                want_label = "EN" if lang == "zh-CN" else "中"
+                want_label = "中" if lang == "zh-CN" else "EN"   # 标签 = **当前语言**
                 if toggle.group(1).strip() != want_label:
                     raise Failure(f"{name}（{lang}）：语言按钮标签是 {toggle.group(1).strip()!r}，应为 {want_label!r}")
                 for marker in runtime:
@@ -759,22 +815,57 @@ def check_render() -> str:
         if got.get("error"):
             raise Failure(f"语言按钮探针报错：{got['error']}")
         before, after, back = got["before"], got["after"], got["back"]
-        if before["lang"] != "zh-CN" or before["label"] != "EN" or before["hidden"]:
-            raise Failure(f"中文读者的初态不对：{before}（应为 lang=zh-CN · 标签 EN · 按钮可见）")
-        if after["lang"] != "en" or after["label"] != "中" or after["nav"] != "What it is" or after["stored"] != "en":
+        if before["lang"] != "zh-CN" or before["label"] != "中" or before["hidden"]:
+            raise Failure(f"中文读者的初态不对：{before}（应为 lang=zh-CN · 标签「中」= 当前语言 · 按钮可见）")
+        if after["lang"] != "en" or after["label"] != "EN" or after["nav"] != "What it is" or after["stored"] != "en":
             raise Failure(f"点一下没切到英文（可见结果不对）：{after}")
-        if back["lang"] != "zh-CN" or back["nav"] != "它是什么" or back["stored"] != "zh":
+        if back["lang"] != "zh-CN" or back["label"] != "中" or back["nav"] != "它是什么" or back["stored"] != "zh":
             raise Failure(f"再点一下没切回中文（原文没抓全？）：{back}")
         hero = got.get("hero") or {}
         if hero.get("light") != HERO:
             raise Failure(f"亮色下头图应是 {HERO}，实测 {hero.get('light')!r}")
         if hero.get("theme") != "dark" or hero.get("dark") != HERO_DARK:
             raise Failure(f"主题点到暗色后头图没换（要 {HERO_DARK}）：{hero}")
+        for label, rows in (("中文", got.get("headerRows")), ("英文", got.get("headerEn"))):
+            rows = rows or {}
+            if rows.get("rows") != 1:
+                raise Failure(f"{label} topbar 折行了（{rows}）—— 英文自然宽 ~750px / 中文 653px，"
+                              f"头部必须比正文栏宽一档（`.site-header .wrap` 的 max-width）✗")
         align = got.get("align") or {}
-        tops = [align.get("theme"), align.get("lang"), align.get("gh")]
-        if None in tops or max(tops) - min(tops) > 1:
-            raise Failure(f"topbar 控件不在一条水平线上（顶边 {tops}）—— 图标按钮没有文字基线，"
-                          f"必须靠 .header-controls 的 align-items:center 兜住 ✗")
+        boxes = [align.get("theme"), align.get("lang"), align.get("gh")]
+        if None in boxes:
+            raise Failure(f"topbar 少了一个控件（量到 {boxes}）—— 主题 / 语言 / GitHub 三个都要在")
+        heights = [b["h"] for b in boxes]
+        if max(heights) - min(heights) > 0.5:
+            raise Failure(f"topbar 三个控件**不等高**（{heights}）—— 用户 2026-10-09 实测报过："
+                          f"带文字的 pill 会长到 33.8px 而方框是 32px ✗；`.theme-toggle` 必须写死 height + flex 居中")
+        # ── 通用几何审计（每一行 × 每一项，失败时把数字全打出来）──
+        rows = got.get("rows") or {}
+        for where, items in (("topbar", rows.get("header")), ("页脚", rows.get("footer"))):
+            if not items:
+                raise Failure(f"{where} 量不到任何项（选择器坏了？）—— 判据不判绿")
+            cs = [it["center"] for it in items]
+            spread = max(cs) - min(cs)
+            if spread > 1.0:
+                detail = " · ".join(f'{it["what"]}(中心 {it["center"]}, 高 {it["h"]})' for it in items)
+                raise Failure(f"{where} 各项不在同一条中心线上（最大差 {spread:.2f}px）：{detail} —— "
+                              f"行容器必须 align-items:center（baseline 会让不同高度的项各按自己的基线落位 ✗）")
+        # 可点目标 ≥ 24×24（WCAG 2.2 AA 2.5.8 Target Size (Minimum)）
+        small = [t for t in (got.get("targets") or []) if t["w"] < 24 or t["h"] < 24]
+        if small:
+            raise Failure("这些可点目标小于 24×24 CSS px（WCAG 2.2 AA 2.5.8）："
+                          + " · ".join(f'{t["t"]} {t["w"]}×{t["h"]}' for t in small))
+        # 整行（**品牌文字 + 导航文字 + 三个控件**）必须共用一条中心线。
+        items = [align.get(k) for k in ("brand", "nav", "theme", "lang", "gh")]
+        if None in items:
+            raise Failure(f"topbar 少了一项（量到 {items}）—— 品牌 / 导航 / 三个控件都要在")
+        centers = [b["center"] for b in items]
+        names = ["品牌", "导航", "主题", "语言", "GitHub"]
+        spread = max(centers) - min(centers)
+        if spread > 1.0:
+            worst = ", ".join(f"{n}={c:.2f}" for n, c in zip(names, centers))
+            raise Failure(f"topbar 各项不在同一条中心线上（最大差 {spread:.2f}px：{worst}）—— "
+                          f"`.site-header .wrap` 必须 align-items:center（baseline 会让文字与方框各按自己的基线落位 ✗）")
         if got.get("headerGithub") != 1:
             raise Failure(f"topbar 里 GitHub 链接实测 {got.get('headerGithub')} 个（要恰好 1 个，用户 2026-10-09 点名）")
         ib, idk = got.get("iconsBefore") or {}, got.get("iconsDark") or {}
@@ -787,7 +878,8 @@ def check_render() -> str:
     finally:
         server.shutdown()
     return (f"Chrome 渲染 {len(PAGES)} 页 × 2 种语言通过（中文读者看中文 · 其它语言看英文），"
-            f"语言按钮真点过（中→英→中，含 localStorage 记忆）· 主题按钮真点过（图标按档切换 + 头图换成暗色那版），"
+            f"语言按钮真点过（中→英→中，含 localStorage 记忆）· 主题按钮真点过（图标按档切换 + 头图换成暗色那版）· "
+            f"topbar 中英各一行 · **topbar/页脚逐项几何审计通过**（共用中心线 · 三控件等高 · 命中尺寸 ≥24px），"
             f"版本 {version} 已回填，资源零 404")
 
 

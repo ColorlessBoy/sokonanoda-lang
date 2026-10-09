@@ -53,10 +53,11 @@
     </button>
     <button class="theme-toggle lang-toggle" type="button" data-lang-toggle hidden
             data-i18n="langToggle" data-i18n-aria="langToggleLabel"
-            aria-label="切换到英文">EN</button>
-    <!-- GitHub 仓库（用户 2026-10-09：topbar 缺它）。文字而不是图标：预算是硬约束
-         （html+css+js 只剩几百字节），而 `GitHub` 是专名、不用翻译 ✓。 -->
-    <a class="theme-toggle gh-link" href="https://github.com/ColorlessBoy/sokonanoda-lang" data-i18n-aria="ghLabel" aria-label="GitHub 仓库">GitHub</a>
+            aria-label="当前中文，点击切换到英文">中</button>
+    <!-- GitHub 仓库：**图标**（用户 2026-10-09：「github 放一个 github 的图标就行了」）——
+         文字版 pill 宽 76.6px，换图标后与主题/语言同是 34×34 方框 ⇒ 英文 topbar 才放得下一行 ✓。 -->
+    <a class="theme-toggle gh-link icon-toggle" href="https://github.com/ColorlessBoy/sokonanoda-lang"
+       data-i18n-aria="ghLabel" aria-label="GitHub 仓库"><svg class="ico ico-github" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
     </span>
   </div>
 </header>
@@ -321,8 +322,8 @@
   "navStart": "Getting started",
   "navCourses": "Courses",
   "themeToggleLabel": "Theme: System (click to change)",
-  "langToggle": "中",
-  "langToggleLabel": "Switch to Chinese",
+  "langToggle": "EN",
+  "langToggleLabel": "Currently English — click to switch to Chinese",
   "ghLabel": "GitHub repository",
   "changelogTitle": "Changelog",
   "changelogLead": "What changed in each release. <strong>This page is generated</strong>: the text comes from <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md\"><code>editor/vscode/CHANGELOG.md</code></a> in the repository, and only the most recent <strong>7</strong> versions are shown here.",

@@ -82,13 +82,13 @@
   --lh-body: 1.7;
   --lh-code: 1.6;
 
-  /* 行长：46rem = 736px ≈ 43 汉字 / 90 拉丁字符。
-     2026-10-09 用户实测：「正文太窄，现在标题都是两行」—— 40rem（640px）时 hero 的
-     中文标题 `sokonanoda · 形式化证明教学语言`（约 630px）**正好卡在换行边界**上，
-     1024 及以上宽度都折成两行 ✗。放宽到 46rem 后该标题单行放下（余量约 100px），
-     正文也不再贴着栏边。代价如实记：拉丁字符数超过"75 字符/行"那条经典可读性建议，
-     本站正文以中文为主、段落短 ⇒ 取"标题不折 + 版面不空"这一边 ✓。 */
-  --measure: 46rem;
+  /* 行长：52rem = 832px ≈ 49 汉字 / 102 拉丁字符 —— **与头图同宽**。
+     用户 2026-10-09 两轮实测：先是「正文太窄，标题都是两行」（40 → 46rem 修掉中文标题折行），
+     再是「正文最起码跟图片一样宽吧」⇒ 直接对齐到 `.wide`（头图/卡片那一档）的 52rem，
+     站点从此**只有一个宽度**（不再有"正文窄一档、图宽一档"）。代价如实记：这已明显
+     超过"每行 75 拉丁字符"的经典可读性建议；本站正文以中文为主、段落短、行距大，
+     取"标题不折 + 版面不空 + 与图对齐"这一边 ✓。 */
+  --measure: 52rem;
 
   /* 字族：衬线正文 + 等宽代码；CJK 走系统栈（见 fonts.css） */
   --font-prose:
@@ -206,9 +206,18 @@ a:hover { text-decoration-color: currentColor; }
   border-bottom: 1px solid var(--rule);
   background: var(--paper);
 }
+/* 头部是**导航 chrome，不是正文** ⇒ 不套正文栏宽（用户 2026-10-09：「英文版的 topbar
+   都不能在一行放下」）。实测：英文 topbar 自然宽 **790px**（中文 653px），而正文栏
+   46rem = 736px ⇒ 必然折行 ✗。这里与 `.wide`（截图/卡片）**同一档 52rem**：
+   站点只有"正文栏"与"宽一档"两个宽度，不再发明第三个 ✓。 */
 .site-header .wrap {
+  max-width: min(52rem, 100vw - 2 * var(--sp-5));
   display: flex;
-  align-items: baseline;
+  /* ⚠ **中心线对齐，不是文字基线**（用户 2026-10-09：「标题等文字和三个方框感觉不在
+     一条水平线上」）。`baseline` 会让高度不同的三项各按自己的基线落位 ⇒ 实测中心线
+     差 5.75px（品牌 28.15 / 导航 33.90 / 方框 30.89）✗。这里三项高度本来就接近
+     （32.3 / 31.8 / 32.0），改成 `center` 后中心线与基线**同时**对齐 ✓。 */
+  align-items: center;
   gap: var(--sp-4);
   padding-top: var(--sp-3);
   padding-bottom: var(--sp-3);
@@ -235,6 +244,14 @@ a:hover { text-decoration-color: currentColor; }
   padding: 0;
   list-style: none;
 }
+/* 命中尺寸：导航/页脚的文字链接原先只有 20px 高 ⇒ 低于 WCAG 2.2 AA 2.5.8 的 24×24 ✗
+   （通用几何审计抓到的第三类，不是人眼）。撑到 24px 高不影响版面：行高 32px 由控件决定。 */
+.site-header nav a,
+.site-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
 .site-header nav a { color: var(--ink-2); text-decoration: none; }
 .site-header nav a:hover { color: var(--ink); text-decoration: underline; }
 
@@ -245,8 +262,15 @@ a:hover { text-decoration-color: currentColor; }
   background: var(--surface);
   border: 1px solid var(--border-control);
   border-radius: var(--radius-control);
-  padding: var(--sp-1) var(--sp-3);
-  min-height: 32px;
+  /* ⚠ **固定高度 + flex 居中**，不用 `min-height` + 上下 padding（用户 2026-10-09：
+     「请把按钮高度搞统一，按钮中横线对齐」）：带文字的 pill 会按 line-height+padding
+     长到 33.8px，而图标/单字方框是 32px ⇒ 中心线对上了、**上下边仍差 1.8px** ✗。
+     固定 32px 后三种控件**逐个像素等高**，内容由 flex 居中，谁也不会再撑高它。 */
+  height: 32px;
+  padding: 0 var(--sp-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
 }
 .theme-toggle:hover { color: var(--ink); }
@@ -649,7 +673,9 @@ p code, li code, td code, dd code, dt code {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-2) var(--sp-5);
-  align-items: baseline;
+  /* 与头部同一条理由：**中心线对齐**（页脚也踩过：版权 span 23.8px vs 导航 31.8px
+     ⇒ 基线对齐时中心线差 4px ✗，是通用几何审计抓出来的，不是人眼）。 */
+  align-items: center;
 }
 .site-footer nav ul {
   display: flex;
