@@ -319,6 +319,12 @@
       "renewed": "2026-09-30",
       "tier": "record"
     },
+    "docs/notes/perf-lean4-bench.md": {
+      "expires": "2027-01-07",
+      "renewed": "2026-10-09",
+      "tier": "record",
+      "reason": "perf-lean4 实测交付（2026-10-09 用户点名）：lean4 端到端按键墙钟 + 与 sokonanoda 的同夹具对等对比表 = 北极星 ~200ms 占位的替换件；装置在 ~/lean4-bench（仓库外，只读测量），结论并入 PLAN-align-lean4 后可归档"
+    },
     "docs/notes/perf-lean4-interactive-incremental.md": {
       "expires": "2026-12-01",
       "renewed": "2026-10-08",
