@@ -442,15 +442,19 @@ impl<'x, 'a: 'x> Env<'x, 'a> {
     /// Get a declaration, bypassing the temporary extension, only searching in
     /// the persistent set of declarations.
     ///
-    /// **T2-A（2026-10-09）**：可见性判据是 `decl_idx < cutoff`（**前缀**语义），
-    /// 而取哪一条**按名字查** —— 不再拿 `decl_idx` 当 `declars` 的**下标**用
-    /// （分层之后 `base`/`local` 两张表，位置索引不再是唯一取法 ✓）。
-    /// 语义等价：`decl_idx` 就是插入位置、同名项唯一（`add_declar` 先查重 ✓）；
-    /// 且对"槽位已设但已不在本环境里"的名字**返回 `None`** 而不是误取别人 ✓。
+    /// ⚠⚠ **必须保持"按下标取"的既有语义**（T2-A 第一版曾改成"按名字查"⇒ **判红** ✗）：
+    /// `NameNode::decl_idx` 是挂在**被 intern 的节点**上的槽位 ⇒ **跨 builder** 查询时
+    /// 那个下标可能指向**另一份环境**的位置 —— 既有守卫
+    /// `crates/kernel/tests/memory_api.rs::
+    /// cross_builder_name_lookup_is_silently_positional_without_with_env`（K1-b）
+    /// **正是钉住这条语义的** ✓。T2-A 落地时把它改成 `declars.get(n)`（"按名字查、
+    /// 更正确"）⇒ 那条守卫当场判红（`const_head_type: unknown const`）✗
+    /// ⇒ **已改回按下标取** ✓（分层结构不影响位置语义：`get_index(i)` = 库层/本地层
+    /// 拼起来的第 i 个 ✓，与旧扁平表逐位相同）。
     pub fn get_old_declar(&self, n: &NamePtr<'a>) -> Option<&Declar<'a>> {
         let idx = n.as_ref().decl_idx() as usize;
         if idx < self.cutoff {
-            self.declars.get(n)
+            self.declars.get_index(idx).map(|(_, d)| d)
         } else {
             None
         }
