@@ -82,8 +82,13 @@
   --lh-body: 1.7;
   --lh-code: 1.6;
 
-  /* 行长：40rem = 640px ≈ 37.6 汉字 / 78 拉丁字符，两个 WCAG 上限同时满足 */
-  --measure: 40rem;
+  /* 行长：46rem = 736px ≈ 43 汉字 / 90 拉丁字符。
+     2026-10-09 用户实测：「正文太窄，现在标题都是两行」—— 40rem（640px）时 hero 的
+     中文标题 `sokonanoda · 形式化证明教学语言`（约 630px）**正好卡在换行边界**上，
+     1024 及以上宽度都折成两行 ✗。放宽到 46rem 后该标题单行放下（余量约 100px），
+     正文也不再贴着栏边。代价如实记：拉丁字符数超过"75 字符/行"那条经典可读性建议，
+     本站正文以中文为主、段落短 ⇒ 取"标题不折 + 版面不空"这一边 ✓。 */
+  --measure: 46rem;
 
   /* 字族：衬线正文 + 等宽代码；CJK 走系统栈（见 fonts.css） */
   --font-prose:
@@ -245,6 +250,24 @@ a:hover { text-decoration-color: currentColor; }
   cursor: pointer;
 }
 .theme-toggle:hover { color: var(--ink); }
+
+/* 主题按钮 = **图标**（用户 2026-10-09）：文字版「跟随系统」四个字 vs「浅色/深色」两个字
+   ⇒ 切换时宽度会跳；图标三种状态同宽。哪一版图标由 CSS 按 `:root[data-theme]` 选
+   （`system` = 没有 `data-theme` 属性 ⇒ 半明半暗那个），`site.js` 只管 `aria-label`。 */
+.icon-toggle {
+  width: 34px;
+  min-width: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-toggle .ico { display: none; width: 16px; height: 16px; }
+.icon-toggle .ico-system { display: block; }
+:root[data-theme="light"] .icon-toggle .ico-system,
+:root[data-theme="dark"] .icon-toggle .ico-system { display: none; }
+:root[data-theme="light"] .icon-toggle .ico-light { display: block; }
+:root[data-theme="dark"] .icon-toggle .ico-dark { display: block; }
 
 /* ── 大节 ─────────────────────────────────────────────────────── */
 .section { padding: var(--sp-7) 0; }
@@ -626,6 +649,20 @@ p code, li code, td code, dd code, dt code {
 .ver { font-family: var(--font-mono); }
 
 /* ── 窄屏：减节奏，不动信息 ───────────────────────────────────── */
+/* 窄屏：三栏卡片收成一栏。
+   三栏在 640px 以下每栏只有 ~104px（360px 视口），英文文案必然溢出（实测 6px ✗）——
+   而且那么窄也读不了。竖线改横线，与宽屏同一套"推理横线"的语汇。 */
+@media (max-width: 40rem) {
+  .cards { grid-template-columns: 1fr; }
+  .cards > li {
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+    padding: var(--sp-5) 0;
+  }
+  .cards > li:last-child { border-bottom: 0; }
+  .cards > li + li { padding-left: 0; }
+}
+
 @media (max-width: 30rem) {
   .section { padding: var(--sp-6) 0; }
   .brand small { display: none; }

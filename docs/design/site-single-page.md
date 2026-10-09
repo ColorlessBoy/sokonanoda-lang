@@ -32,8 +32,8 @@ site/
   index.html             ← 首页：头图 / 它是什么 / 怎么开始 / 教材 / 与 Lean 4 的关系
   changelog.html         ← 更新日志子页（**生成物**，源 editor/vscode/CHANGELOG.md）
   assets/site.css        ← 唯一的样式表（令牌 + 组件，自带亮/暗两套）
-  assets/site.js         ← 唯一的脚本（主题切换 / 版本回填 / 复制）· i18n.js 中英文自动识别 · fonts.css 自托管字体
-  assets/hero-vscode.png ← 头图：**真 VS Code + 已发布插件**的截图（生成物，见 §4）
+  assets/site.js         ← 唯一的脚本（主题切换 / 版本回填 / 复制 / 按主题换头图）· i18n.js 中英文自动识别与切换 · fonts.css 自托管字体
+  assets/hero-vscode{,-dark}.png ← 头图**两版配色**（真 VS Code + 已发布插件，生成物，见 §4）
   data/site.json         ← 生成物：已发布版本（**唯一**版本号来源）
   favicon.svg  robots.txt  sitemap.xml  llms.txt  .nojekyll
 ```
@@ -49,7 +49,7 @@ site/
 **中英文自动识别**（2026-10-09 追加需求）：静态 HTML 默认中文，每页页尾一份
 `<script type="application/json" id="i18n-en">` 英文文案字典 + `assets/i18n.js`（**同步**执行，
 换文案发生在首帧之前）—— `navigator.languages` 里**任何**一个 zh\* 保持中文，否则整页换英文；
-**没有开关、没有重定向、没有 `?lang=`**（用户点名）。没有 JS 时页面就是完整中文版 ✓。
+**没有 `?lang=`、没有重定向**（用户点名）；topbar 有一个**语言按钮**（用户 2026-10-09 点名要，方便手动验证两种语言）—— 它只往 `localStorage["soko-lang"]` 写一个覆盖值，**自动识别仍是默认路径**，按钮再点一下即回到自动 ✓。没有 JS 时页面就是完整中文版 ✓。
 
 子页 `changelog.html`：最近 8 个版本的正文 + 全部版本直链 —— **只放 8 个**是因为站点
 有 120 KB 的体积预算，而整份 CHANGELOG 是 160 KB 量级的 Markdown（加第二语言 +13 KB 后
@@ -58,10 +58,10 @@ site/
 ## 3. 保留了什么，为什么
 
 **设计语言整体保留**：方格纸背景、发丝线、零圆角结构容器、绿=内核通过过的东西 / 朱=诊断与
-诚实的限制的语义纪律、17px 中文锚点、40rem 行长、自托管字体子集 —— 它们是从题目推出来的
+诚实的限制的语义纪律、17px 中文锚点、46rem 行长（2026-10-09 用户实测「正文太窄、标题都是两行」⇒ 40 → 46rem，判据钉在"中文 hero 标题 ≥1024 单行"）、自托管字体子集 —— 它们是从题目推出来的
 选择（产物是判定 ⇒ 颜色由判定驱动），不是模板默认值。**被删掉的是受众错位，不是主张。**
 版本号机制、主题切换、`.nojekyll`、`site.js` 的三个钩子全部沿用；新增结构只有三处：`.wide`
-（截图与卡片比正文栏宽一档）、`.btn`（主按钮走**墨色**，不走绿：绿是语义色，拿去当行动色会稀释它）与 `assets/i18n.js`（语言，见 §2）。
+（截图与卡片比正文栏宽一档）、`.btn`（主按钮走**墨色**，不走绿：绿是语义色，拿去当行动色会稀释它）、`assets/i18n.js`（语言，见 §2）与 `.icon-toggle`（主题按钮改**图标**：文字版「跟随系统」四个字 vs「浅色/深色」两个字会让按钮宽度跳，用户 2026-10-09）。
 
 ## 4. 头图与更新日志：两份生成物，各有判据
 
@@ -82,17 +82,18 @@ VSIX** → 干净 profile 起真 VS Code → 把光标停在课程单元里 `int
 | 已发布 = 最新 `vX.Y.Z` tag | 同上（**不是** `Cargo.toml`） | 本仓库常有并行开发，`Cargo.toml` 会先于 tag bump |
 | 更新日志逐字节对账 | `changelog` 项（重生成再比） | 生成物一样会腐烂，只是腐烂方式是"悄悄停在旧版本" |
 | 头图宽高比与 `<img>` 一致 | `assets` 项（读 PNG 头 + `<img width/height>`） | 图被压扁这件事，光看页面看不出来 |
+| **两版头图同尺寸**且都被页面指到 | `assets` 项（两张 PNG 的 IHDR 相等 + `<img data-hero-*>`） | 尺寸不同 ⇒ 其中一张是别的什么截的；漏指 ⇒ 那版是死图 |
 | 横向溢出 | `layout` 项（`--browser`） | 实测抓到两个：CHANGELOG 里 836px 不可断行的测试路径、`.wide` 被组件 `margin` 简写覆盖 |
 
 `check-site.py` 的 11 项（`--browser` 另加 2 项）：`pages`（恰好这两页、无内部目录）·
 `sitemap`（与页面集合**双向**相等）· `links`（站内引用与锚点可解析，**含跨页锚点**）·
 `css-urls` · `version`（每页有回填钩子 + 除生成物外零写死版本号）· `meta`（head 元数据齐全 +
 每页只允许一段**可执行**内联 script）· `i18n`（字典合法 + **与 DOM 的 `data-i18n*` 键逐个对齐**，
-漏译/多译判红）· `markup` · `assets`（位图**只允许**头图、有预算、宽高比一致；html+css+js
+漏译/多译判红；topbar 语言按钮恰好 1 个）· `markup` · `assets`（位图**只允许两版头图**、有预算、宽高比一致、两版同尺寸；html+css+js
 ≤ 120 KB）· `data`（与最新 tag 一致）· `changelog`（逐字节）· `render` / `layout`（真 Chrome；
 `render` 用 `--accept-lang` 跑**两种浏览器语言**，判"中文读者看中文 / 其它语言看英文"）。
 
-**发布之后**：跑 `gen-site-data.py` 与 `gen-site-changelog.py` 把新版本写进数据与子页（两者的 `--check` 会因此判红，这是有意的：本地绿必须意味着"仓库里写的就是线上写的"）。头图不必每次重截 —— 只在 UI 变化时重跑 `node scripts/site-screenshot.mjs`。
+**发布之后**：先 `git fetch --tags`（`gen-site-data.py` 只看**本地 tag**，不 fetch 会静默停在旧版本 ✗），再跑 `gen-site-data.py` 与 `gen-site-changelog.py` 把新版本写进数据与子页（两者的 `--check` 会因此判红，这是有意的：本地绿必须意味着"仓库里写的就是线上写的"）。头图不必每次重截 —— 只在 UI 变化时重跑 `node scripts/site-screenshot.mjs [--theme dark]`（两版：同一 VSIX、同一靶子、同一裁切几何，只换 `workbench.colorTheme`）。
 
 ## 6. 已知边界
 

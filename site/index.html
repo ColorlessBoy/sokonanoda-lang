@@ -36,7 +36,21 @@
         <li><a href="#courses" data-i18n="navCourses">教材</a></li>
       </ul>
     </nav>
-    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" data-i18n="themeSystem">跟随系统</button>
+    <!-- 主题按钮用**图标**（用户 2026-10-09）：文字版「跟随系统」四个字、「浅色/深色」两个字
+         ⇒ 切换时按钮宽度会跳；图标三种状态同宽，且 `aria-label` 仍把状态与动作说全 ✓。
+         图标由 CSS 按 `:root[data-theme]` 选，`site.js` 只管 `aria-label`。 -->
+    <button class="theme-toggle icon-toggle" type="button" data-theme-toggle aria-pressed="false"
+            data-i18n-aria="themeToggleLabel" aria-label="配色：跟随系统（点击切换）">
+      <svg class="ico ico-system" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="5.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.6a5.4 5.4 0 0 0 0 10.8Z" fill="currentColor"/></svg>
+      <svg class="ico ico-light" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v2.1M8 12.9V15M1 8h2.1M12.9 8H15M3.05 3.05l1.48 1.48M11.47 11.47l1.48 1.48M12.95 3.05l-1.48 1.48M4.53 11.47l-1.48 1.48" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <svg class="ico ico-dark" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M13.4 9.8A5.7 5.7 0 0 1 6.2 2.6a5.7 5.7 0 1 0 7.2 7.2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    </button>
+    <!-- 语言按钮：**默认自动识别**（见 assets/i18n.js），这个按钮只给"想手动看一眼另一种语言"
+         的读者（用户 2026-10-09 点名要，方便验证）。标签写"切过去会变成什么"；
+         `hidden` 起步、JS 才放出来 ⇒ 没有 JS 时不出现一个点不动的按钮 ✓。 -->
+    <button class="theme-toggle lang-toggle" type="button" data-lang-toggle hidden
+            data-i18n="langToggle" data-i18n-aria="langToggleLabel"
+            aria-label="切换到英文">EN</button>
   </div>
 </header>
 
@@ -60,8 +74,13 @@
 
       <figure class="shot wide">
         <!-- 真 VS Code + 已发布插件截的真画面：光标停在 inter_comm 的 sorry 上，
-             右边是内核算出来的目标。重新生成：node scripts/site-screenshot.mjs -->
+             右边是内核算出来的目标。**两版配色**（用户 2026-10-09）：站点跟随系统配色，
+             暗色页上贴亮色截图会刺眼 ⇒ `site.js` 按当前主题换 `src`（两版同一 VSIX、
+             同一靶子、同一裁切几何，只换 `workbench.colorTheme`）。
+             重新生成：node scripts/site-screenshot.mjs [--theme dark] -->
         <img src="assets/hero-vscode.png" width="843" height="300" decoding="async"
+             data-hero-light="assets/hero-vscode.png"
+             data-hero-dark="assets/hero-vscode-dark.png"
              data-i18n-alt="heroAlt"
              alt="VS Code 里的真实画面：左边是课程文件 units/I.1/unit04-extensionality-identities.sokonanoda，光标停在 theorem inter_comm 的 sorry 上；右边目标面板显示内核算出的目标 ⊢ (A ∩ B) = (B ∩ A)，以及假设 α : Type、A : Set α、B : Set α。">
         <figcaption>
@@ -231,7 +250,9 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
   "navWhat": "What it is",
   "navStart": "Getting started",
   "navCourses": "Courses",
-  "themeSystem": "System",
+  "themeToggleLabel": "Theme: System (click to change)",
+  "langToggle": "中文",
+  "langToggleLabel": "Switch to Chinese",
   "heroTitle": "sokonanoda · a formal proof teaching language",
   "heroLead": "Write a proof the way you write it on paper — one line at a time, with the <strong>goal always in view</strong> and a <strong>kernel that tells you</strong> when you get it wrong. No proof assistant to learn first, no toolchain to install: one VS Code extension is enough to start.",
   "ctaInstall": "Install the VS Code extension",

@@ -20,10 +20,15 @@
 //
 // 用法
 // ----
-//   node scripts/site-screenshot.mjs                 # 版本取 site/data/site.json（已发布版本）
+//   node scripts/site-screenshot.mjs                 # 亮色，版本取 site/data/site.json（已发布版本）
+//   node scripts/site-screenshot.mjs --theme dark    # 暗色 ⇒ site/assets/hero-vscode-dark.png
 //   node scripts/site-screenshot.mjs --out /tmp/x.png --keep
 //   node scripts/site-screenshot.mjs --vsix ~/Downloads/sokonanoda-darwin-arm64.vsix
 //   node scripts/site-screenshot.mjs --version 0.87.0 --no-verify
+//
+// 两版主题（用户 2026-10-09）：站点跟随系统配色 ⇒ 头图也要两版，否则暗色页上贴一张
+// 亮色截图会刺眼。**两张图必须同一版 VSIX、同一靶子、同一裁切几何**，只换
+// `workbench.colorTheme` —— 这样两版只是"同一画面的两种配色"，不会各说各话。
 //
 // 依赖：macOS + 本机已装 VS Code（`/Applications/Visual Studio Code.app`，可用
 // `SOKO_VSCODE_BIN` 覆盖）+ `gh`（只在需要下载 VSIX 时；也可用 `--vsix` 免下载）
@@ -50,10 +55,11 @@ function usage() {
 }
 
 function parseArgs(argv) {
-  const a = { out: join(REPO, "site/assets/hero-vscode.png"), port: 9411, keep: false, verify: true, dirty: false };
+  const a = { out: null, theme: "light", port: 9411, keep: false, verify: true, dirty: false };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === "--out") a.out = resolve(argv[++i]);
+    else if (k === "--theme") a.theme = argv[++i];
     else if (k === "--version") a.version = argv[++i];
     else if (k === "--vsix") a.vsix = resolve(argv[++i]);
     else if (k === "--port") a.port = Number(argv[++i]);
@@ -65,6 +71,10 @@ function parseArgs(argv) {
     else if (k === "-h" || k === "--help") { usage(); process.exit(0); }
     else { console.error(`未知参数：${k}（--help 看用法）`); process.exit(2); }
   }
+  if (a.theme !== "light" && a.theme !== "dark") { console.error(`--theme 只认 light|dark（给了 ${a.theme}）`); process.exit(2); }
+  // 默认输出名跟着主题走：亮色仍是历史那个 `hero-vscode.png`（既有引用不用改），
+  // 暗色是 `hero-vscode-dark.png`（站点用 CSS 按配色换）。
+  if (!a.out) a.out = join(REPO, a.theme === "dark" ? "site/assets/hero-vscode-dark.png" : "site/assets/hero-vscode.png");
   return a;
 }
 const args = parseArgs(process.argv.slice(2));
@@ -153,7 +163,7 @@ function launch(version, extDir, cursorLine) {
   rmSync(profile, { recursive: true, force: true });
   mkdirSync(join(profile, "User"), { recursive: true });
   // 首帧状态就是**图的一部分**，所以这里把 UI 显式钉死（都是"让图更像教材"的选择）：
-  //   · 亮色主题 —— 配站点那张"方格纸"；
+  //   · 主题跟着 `--theme`（亮色配站点那张"方格纸"；暗色给暗色页用）；
   //   · 放大一档 —— 裁出来 ~840 CSS px 宽，正好铺在站点 592–832px 的栏里还是可读字号；
   //   · 关掉面包屑 / 粘性滚动 / 欢迎页 / 提示 / Copilot 登录弹窗 / git 父目录询问 ——
   //     它们是噪声，会把"定理 + sorry + 目标"挤出画面；
@@ -161,7 +171,7 @@ function launch(version, extDir, cursorLine) {
   writeFileSync(join(profile, "User", "settings.json"), JSON.stringify({
     "workbench.startupEditor": "none",
     "workbench.tips.enabled": false,
-    "workbench.colorTheme": "Default Light Modern",
+    "workbench.colorTheme": args.theme === "dark" ? "Default Dark Modern" : "Default Light Modern",
     "workbench.secondarySideBar.defaultVisibility": "visible",
     "window.commandCenter": false,
     "window.zoomLevel": 1,

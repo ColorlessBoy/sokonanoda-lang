@@ -24,7 +24,7 @@ harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deeps
 
 ```bash
 python3 scripts/check-site.py            # 11 项：结构 + 链接 + 版本 + 元数据 + 体积 + 已发布版本一致 + 更新日志逐字节 + **中英文文案键对齐**
-python3 scripts/check-site.py --browser  # 另加两项真 Chrome（两页 × **两种浏览器语言** 零 404 + 版本已回填 · 4 个宽度零横向溢出）
+python3 scripts/check-site.py --browser  # 另加两项真 Chrome：`render` 两页 × **两种浏览器语言**（零 404 + 版本回填 + 语言按钮**真点一下**中→英→中 + 主题按钮图标按档切换、头图换暗色那版）· `layout` 两页 × 4 宽度 × 2 语言零横向溢出 + **中文 hero 标题 ≥1024 单行**
 ```
 
 **站点写的是「已发布版本」的事实。** 本仓库常有并行开发，`crates/` 与 `courses/`

@@ -22,9 +22,12 @@
   /* 语言：`assets/i18n.js` 已经判定过（并且把静态文案换好了），这里只取**运行期**
      还要用的那几个字（按钮标签）。没有它（脚本没跑、字典坏了）就退回中文 ——
      页面在那种情况下本来就是完整中文版 ✓。 */
-  var I18N = window.SOKO_I18N || null;
-  var LABEL = (I18N && I18N.theme) || { system: "跟随系统", light: "浅色", dark: "深色", prefix: "配色：", suffix: "（点击切换）" };
-  var COPY = (I18N && I18N.copy) || { idle: "复制", done: "已复制" };
+  /* ⚠ **每次用时现取**，不要在加载时缓存：语言可以在页面上被切（topbar 那个按钮 ⇒
+     `i18n.js` 换完文案发 `soko:lang`），缓存住的话按钮会停在旧语言 ✗（实测过）。 */
+  var FALLBACK_THEME = { system: "跟随系统", light: "浅色", dark: "深色", prefix: "配色：", suffix: "（点击切换）" };
+  var FALLBACK_COPY = { idle: "复制", done: "已复制" };
+  function LABEL() { var i = window.SOKO_I18N; return (i && i.theme) || FALLBACK_THEME; }
+  function COPY() { var i = window.SOKO_I18N; return (i && i.copy) || FALLBACK_COPY; }
 
   /* ── 主题 ───────────────────────────────────────────────────────── */
   function readTheme() {
@@ -33,6 +36,24 @@
       return ORDER.indexOf(v) >= 0 ? v : "system";
     } catch (e) {
       return "system";
+    }
+  }
+
+  /* 头图有两版配色（亮/暗，`node scripts/site-screenshot.mjs [--theme dark]` 生成）：
+     暗色页上贴一张亮色 VS Code 截图会刺眼。这里按**当前生效的**主题换 `src`
+     —— 显式 `light`/`dark` 听 localStorage，`system` 听 `prefers-color-scheme`。
+     两个路径写在 HTML 的 `data-hero-*` 上（JS 不硬编码文件名，判据好对账）。 */
+  function systemPrefersDark() {
+    return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  }
+
+  function applyHero(mode) {
+    var imgs = document.querySelectorAll("[data-hero-light]");
+    if (!imgs.length) return;
+    var dark = mode === "dark" || (mode === "system" && systemPrefersDark());
+    for (var i = 0; i < imgs.length; i++) {
+      var want = imgs[i].getAttribute(dark ? "data-hero-dark" : "data-hero-light");
+      if (want && imgs[i].getAttribute("src") !== want) imgs[i].setAttribute("src", want);
     }
   }
 
@@ -46,9 +67,12 @@
     }
     var buttons = document.querySelectorAll("[data-theme-toggle]");
     for (var i = 0; i < buttons.length; i++) {
-      buttons[i].setAttribute("aria-label", LABEL.prefix + LABEL[mode] + LABEL.suffix);
-      buttons[i].textContent = LABEL[mode];
+      // 按钮里是**图标**（CSS 按 :root[data-theme] 选），这里只把状态与动作说全（无障碍）；
+      // 不再写 textContent —— 那会把三个 <svg> 一起抹掉 ✗（用户 2026-10-09：宽度会跳）。
+      var label = LABEL();
+      buttons[i].setAttribute("aria-label", label.prefix + label[mode] + label.suffix);
     }
+    applyHero(mode);
   }
 
   function wireTheme() {
@@ -59,6 +83,16 @@
       buttons[i].addEventListener("click", function () {
         applyTheme(ORDER[(ORDER.indexOf(readTheme()) + 1) % ORDER.length]);
       });
+    }
+    /* 系统配色变了：`system` 档下页面要跟着变（否则图会停在旧配色上）。 */
+    if (window.matchMedia) {
+      try {
+        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
+          if (readTheme() === "system") applyTheme("system");
+        });
+      } catch (e) {
+        /* 老浏览器没有 addEventListener 版：忽略（图停在首帧那版，不报错）。 */
+      }
     }
   }
 
@@ -101,10 +135,10 @@
         var text = target.textContent;
         var done = function () {
           button.setAttribute("data-copy-state", "done");
-          button.textContent = COPY.done;
+          button.textContent = COPY().done;
           window.setTimeout(function () {
             button.removeAttribute("data-copy-state");
-            button.textContent = COPY.idle;
+            button.textContent = COPY().idle;
           }, 1600);
         };
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -120,6 +154,12 @@
       });
     }
   }
+
+  /* 语言被切（topbar 按钮）⇒ 重画运行期那些按钮的字 + 头图（头图与语言无关，
+     但复用同一个"当前主题"入口最省事，且换 src 是幂等的 ✓）。 */
+  window.addEventListener("soko:lang", function () {
+    applyTheme(readTheme());
+  });
 
   wireTheme();
   wireVersion();

@@ -37,7 +37,18 @@
         <li><a href="index.html#courses" data-i18n="navCourses">教材</a></li>
       </ul>
     </nav>
-    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" data-i18n="themeSystem">跟随系统</button>
+    <!-- 主题按钮用**图标**（用户 2026-10-09）：文字版「跟随系统」四个字、「浅色/深色」两个字
+         ⇒ 切换时按钮宽度会跳；图标三种状态同宽，且 `aria-label` 仍把状态与动作说全 ✓。
+         图标由 CSS 按 `:root[data-theme]` 选，`site.js` 只管 `aria-label`。 -->
+    <button class="theme-toggle icon-toggle" type="button" data-theme-toggle aria-pressed="false"
+            data-i18n-aria="themeToggleLabel" aria-label="配色：跟随系统（点击切换）">
+      <svg class="ico ico-system" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="5.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.6a5.4 5.4 0 0 0 0 10.8Z" fill="currentColor"/></svg>
+      <svg class="ico ico-light" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v2.1M8 12.9V15M1 8h2.1M12.9 8H15M3.05 3.05l1.48 1.48M11.47 11.47l1.48 1.48M12.95 3.05l-1.48 1.48M4.53 11.47l-1.48 1.48" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <svg class="ico ico-dark" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M13.4 9.8A5.7 5.7 0 0 1 6.2 2.6a5.7 5.7 0 1 0 7.2 7.2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="theme-toggle lang-toggle" type="button" data-lang-toggle hidden
+            data-i18n="langToggle" data-i18n-aria="langToggleLabel"
+            aria-label="切换到英文">EN</button>
   </div>
 </header>
 
@@ -342,7 +353,9 @@
   "navWhat": "What it is",
   "navStart": "Getting started",
   "navCourses": "Courses",
-  "themeSystem": "System",
+  "themeToggleLabel": "Theme: System (click to change)",
+  "langToggle": "中文",
+  "langToggleLabel": "Switch to Chinese",
   "changelogTitle": "Changelog",
   "changelogLead": "What changed in each release. <strong>This page is generated</strong>: the text comes from <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md\"><code>editor/vscode/CHANGELOG.md</code></a> in the repository, and only the most recent <strong>8</strong> versions are shown here.",
   "changelogFactLead": "Current published version",

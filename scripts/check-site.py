@@ -56,6 +56,10 @@ PAGES = ["index.html", "changelog.html"]
 SIZE_BUDGET = 120 * 1024
 # 头图是**真截图**（不是装饰位图），所以有位图预算：一张、有上限。
 HERO = "assets/hero-vscode.png"
+# 两版配色（用户 2026-10-09）：站点跟随系统配色，暗色页上贴亮色截图会刺眼 ⇒ 头图也两版。
+# **两张必须是同一裁切几何**（同一靶子、同一 VSIX，只换 workbench.colorTheme）——
+# 尺寸不一致就说明其中一张是别的什么截的，判红（见 check_assets）。
+HERO_DARK = "assets/hero-vscode-dark.png"
 HERO_BUDGET = 400 * 1024
 BITMAP_EXT = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".bmp", ".ico")
 
@@ -110,6 +114,7 @@ class PageParser(HTMLParser):
         self.meta: dict[str, str] = {}
         self.images: list[dict] = []
         self.i18n_keys: set[str] = set()          # data-i18n / -alt / -aria 用到的键
+        self.lang_toggles = 0                     # topbar 的语言切换按钮个数
         self.json_blocks: dict[str, str] = {}     # <script type="application/json" id=…> 的内容
         self.scripts_src: list[str] = []          # 外链 <script src>
         self.inline_head = 0                      # **可执行**内联脚本（head / body 分开数）
@@ -139,7 +144,11 @@ class PageParser(HTMLParser):
                 self.refs.append((attr, attrs[attr], line))
         if tag == "img":
             self.images.append({"src": attrs.get("src", ""), "width": attrs.get("width"),
-                                "height": attrs.get("height"), "alt": attrs.get("alt"), "line": line})
+                                "height": attrs.get("height"), "alt": attrs.get("alt"), "line": line,
+                                "hero_light": attrs.get("data-hero-light"),
+                                "hero_dark": attrs.get("data-hero-dark")})
+        if "data-lang-toggle" in attrs:
+            self.lang_toggles += 1
         if tag == "html" and "lang" in attrs:
             self.meta["lang"] = attrs["lang"]
         if tag == "meta":
@@ -333,7 +342,7 @@ def check_i18n(pages: dict[str, PageParser]) -> str:
     if not os.path.exists(script_path):
         raise Failure(f"缺 {I18N_SCRIPT}（浏览器语言检测没有落点）")
     script = read(script_path)
-    for marker in ("navigator.languages", "zh", "data-i18n", "SOKO_I18N"):
+    for marker in ("navigator.languages", "zh", "data-i18n", "SOKO_I18N", "data-lang-toggle", "soko-lang"):
         if marker not in script:
             raise Failure(f"{I18N_SCRIPT} 里找不到语言判定标记 {marker!r}（机制被删了？）")
 
@@ -341,6 +350,9 @@ def check_i18n(pages: dict[str, PageParser]) -> str:
     for name, parser in pages.items():
         if I18N_SCRIPT not in parser.scripts_src:
             raise Failure(f"{name} 没有引用 {I18N_SCRIPT}（浏览器语言检测不会跑）")
+        if parser.lang_toggles != 1:
+            raise Failure(f"{name} 的 topbar 语言切换按钮实测 {parser.lang_toggles} 个（要恰好 1 个："
+                          f"`data-lang-toggle`，用户 2026-10-09 点名要，方便手动验证两种语言）")
         block = parser.json_blocks.get("i18n-en")
         if not block:
             raise Failure(f'{name} 缺 <script type="application/json" id="i18n-en">（英文文案字典）')
@@ -377,29 +389,45 @@ def png_size(path: str) -> tuple[int, int]:
 
 def check_assets(files: list[str], pages: dict[str, PageParser]) -> str:
     bitmaps = {os.path.relpath(f, SITE): f for f in files if f.lower().endswith(BITMAP_EXT)}
-    unexpected = [k for k in bitmaps if k != HERO]
+    allowed = {HERO, HERO_DARK}
+    unexpected = [k for k in bitmaps if k not in allowed]
     if unexpected:
-        raise Failure(f"位图只允许头图 {HERO}（它必须由 scripts/site-screenshot.mjs 生成）：{unexpected}")
-    detail = "零位图"
-    if HERO in bitmaps:
-        size = os.path.getsize(bitmaps[HERO])
+        raise Failure(f"位图只允许两版头图 {HERO} / {HERO_DARK}（都必须由 scripts/site-screenshot.mjs 生成）：{unexpected}")
+    missing = sorted(allowed - set(bitmaps))
+    if missing:
+        raise Failure(f"缺头图 {missing}（两版配色都要有：`node scripts/site-screenshot.mjs [--theme dark]`）")
+    sizes = {}
+    for key in (HERO, HERO_DARK):
+        size = os.path.getsize(bitmaps[key])
         if size > HERO_BUDGET:
-            raise Failure(f"{HERO} 有 {size} 字节，超过头图预算 {HERO_BUDGET}")
-        width, height = png_size(bitmaps[HERO])
-        # 宽高比必须与首页 <img> 上写的 width/height 一致：否则图会被压扁，而这一点
-        # 光看页面是看不出来的（"数据对了 ≠ 用户看见对了"）。
-        img = next((i for i in pages["index.html"].images if i["src"].endswith("hero-vscode.png")), None)
-        if img is None:
-            raise Failure(f"{HERO} 在 index.html 里没有被引用")
-        if not img["width"] or not img["height"]:
-            raise Failure("头图 <img> 必须写 width/height（否则首屏会跳版）")
-        want = float(img["width"]) / float(img["height"])
-        got = width / height
-        if abs(want - got) / got > 0.01:
-            raise Failure(f"头图宽高比 {got:.3f}（{width}×{height}）与 <img width/height> 的 {want:.3f} 不一致")
-        if not (img["alt"] or "").strip():
-            raise Failure("头图必须有 alt")
-        detail = f"头图 {HERO} {size // 1024} KB（预算 {HERO_BUDGET // 1024} KB，{width}×{height}）"
+            raise Failure(f"{key} 有 {size} 字节，超过头图预算 {HERO_BUDGET}")
+        sizes[key] = (size, png_size(bitmaps[key]))
+    if sizes[HERO][1] != sizes[HERO_DARK][1]:
+        raise Failure(f"两版头图尺寸不一致：{HERO} {sizes[HERO][1]} vs {HERO_DARK} {sizes[HERO_DARK][1]}"
+                      f"（同一靶子/同一裁切几何才对，见 site-screenshot.mjs）")
+    width, height = sizes[HERO][1]
+    # 宽高比必须与首页 <img> 上写的 width/height 一致：否则图会被压扁，而这一点
+    # 光看页面是看不出来的（"数据对了 ≠ 用户看见对了"）。
+    img = next((i for i in pages["index.html"].images if (i.get("hero_light") or i["src"]).endswith("hero-vscode.png")), None)
+    if img is None:
+        raise Failure(f"{HERO} 在 index.html 里没有被引用")
+    if not img["width"] or not img["height"]:
+        raise Failure("头图 <img> 必须写 width/height（否则首屏会跳版）")
+    want = float(img["width"]) / float(img["height"])
+    got = width / height
+    if abs(want - got) / got > 0.01:
+        raise Failure(f"头图宽高比 {got:.3f}（{width}×{height}）与 <img width/height> 的 {want:.3f} 不一致")
+    if not (img["alt"] or "").strip():
+        raise Failure("头图必须有 alt")
+    # 两版都要被页面**指到**：`site.js` 靠这两个属性换 src，漏一个那版就是死图。
+    if os.path.relpath(SITE + "/" + (img.get("hero_light") or ""), SITE) not in allowed:
+        raise Failure(f"<img> 的 data-hero-light 指向 {img.get('hero_light')!r}，不是 {HERO}")
+    if img.get("hero_dark") != HERO_DARK:
+        raise Failure(f"<img> 的 data-hero-dark 必须指向 {HERO_DARK}（site.js 靠它换暗色图），实测 {img.get('hero_dark')!r}")
+    light_kb = sizes[HERO][0] // 1024
+    dark_kb = sizes[HERO_DARK][0] // 1024
+    detail = (f"头图两版 {light_kb}+{dark_kb} KB（各 ≤{HERO_BUDGET // 1024} KB，{width}×{height}，"
+              f"尺寸一致）")
     total = sum(os.path.getsize(f) for f in files if f.endswith((".html", ".css", ".js")))
     if total > SIZE_BUDGET:
         raise Failure(f"html+css+js 共 {total} 字节，超过预算 {SIZE_BUDGET}")
@@ -514,13 +542,81 @@ def _layout_probe(widths: list[int]) -> str:
     f.src = page;
     document.body.appendChild(f);
     await new Promise((r) => {{ f.onload = r; }});
+    // ⚠ **等字体落定再量**：站点是自托管字体，回退字体与正文字体的度量不同 ⇒
+    // 不等就可能量到"还没换字体"的宽度（实测 360px 上差 6px，判据会时红时绿 ✗）。
+    try {{ await f.contentWindow.document.fonts.ready; }} catch (e) {{}}
     await new Promise((r) => setTimeout(r, 80));
-    out.push({{ page: page, width: w, inner: f.contentWindow.innerWidth,
-               scrollW: f.contentDocument.documentElement.scrollWidth }});
+    const doc = f.contentDocument, win = f.contentWindow;
+    const h1 = doc.querySelector('h1');
+    const cs = h1 ? win.getComputedStyle(h1) : null;
+    const lh = cs ? (parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2) : 0;
+    out.push({{ page: page, width: w, inner: win.innerWidth,
+               scrollW: doc.documentElement.scrollWidth,
+               lang: doc.documentElement.lang,
+               h1Lines: h1 && lh ? Math.max(1, Math.round(h1.getBoundingClientRect().height / lh)) : null }});
     f.remove();
   }}
   document.getElementById('out').textContent = JSON.stringify(out);
 }})();
+</script></body></html>"""
+
+
+def _toggle_probe() -> str:
+    """语言切换按钮的**用户动作**判据：真 Chrome 里真点一下（用户 2026-10-09 点名要按钮）。
+
+    判据必须是"点下去 ⇒ 可见结果"（AGENTS.md 验证纪律 0(a)）：`<html lang>`、
+    nav 文案、按钮自己的标签、以及 localStorage 里记住的选择，四样都要跟着变；
+    再点一下必须**回得去**（切回中文靠 `i18n.js` 抓下来的原文，抓漏了就回不去 ✗）。
+    """
+    return """<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>toggle</title>
+<link rel="icon" href="data:,"><!-- 探针页不请求 /favicon.ico（否则会被记成渲染期 404 ✗）-->
+</head>
+<body><pre id="out">pending</pre>
+<script>
+(async () => {
+  const out = {};
+  try {
+    const f = document.createElement('iframe');
+    f.style.cssText = 'width:1200px;height:900px;border:0';
+    f.src = 'index.html';
+    document.body.appendChild(f);
+    await new Promise((r) => { f.onload = r; });
+    await new Promise((r) => setTimeout(r, 250));
+    const d = f.contentDocument, win = f.contentWindow;
+    const btn = d.querySelector('[data-lang-toggle]');
+    const nav = () => ((d.querySelector('nav a[data-i18n="navWhat"]') || {}).textContent || '').trim();
+    const snap = () => ({ lang: d.documentElement.lang, label: btn ? btn.textContent.trim() : null,
+                          nav: nav(), hidden: btn ? btn.hidden : null,
+                          stored: (() => { try { return win.localStorage.getItem('soko-lang'); } catch (e) { return 'ERR'; } })() });
+    out.before = snap();
+    if (!btn) throw new Error('没有 data-lang-toggle 按钮');
+    btn.click();
+    await new Promise((r) => setTimeout(r, 150));
+    out.after = snap();
+    btn.click();
+    await new Promise((r) => setTimeout(r, 150));
+    out.back = snap();
+    // 主题按钮：点到暗色 ⇒ **头图必须换成暗色那版**（用户 2026-10-09 的"黑白两版"）。
+    const themeBtn = d.querySelector('[data-theme-toggle]');
+    const img = d.querySelector('img[data-hero-light]');
+    out.hero = { light: img && img.getAttribute('src'), theme: null, dark: null,
+                 expectLight: img && img.getAttribute('data-hero-light'),
+                 expectDark: img && img.getAttribute('data-hero-dark') };
+    // 主题按钮是**图标**（用户 2026-10-09）：三种状态各显示哪一个，由 CSS 按
+    // `:root[data-theme]` 选 —— 判据看**计算出来的 display**（不是"DOM 里有 svg"）。
+    const icon = (cls) => { const e = d.querySelector('.icon-toggle ' + cls); return e ? win.getComputedStyle(e).display : null; };
+    const icons = () => ({ system: icon('.ico-system'), light: icon('.ico-light'), dark: icon('.ico-dark') });
+    out.iconsBefore = icons();          // 初态 = system（探针用干净 profile）
+    for (let i = 0; i < 3 && d.documentElement.getAttribute('data-theme') !== 'dark'; i++) {
+      themeBtn.click();
+      await new Promise((r) => setTimeout(r, 90));
+    }
+    out.hero.theme = d.documentElement.getAttribute('data-theme');
+    out.hero.dark = img && img.getAttribute('src');
+    out.iconsDark = icons();
+  } catch (e) { out.error = String((e && e.message) || e); }
+  document.getElementById('out').textContent = JSON.stringify(out);
+})();
 </script></body></html>"""
 
 
@@ -552,6 +648,14 @@ class _SiteServer:
                 super().send_error(code, message, explain)
 
             def do_GET(self):
+                if self.path.startswith("/__toggle__"):
+                    body = _toggle_probe().encode("utf-8")
+                    self.send_response(200)
+                    self.send_header("content-type", "text/html; charset=utf-8")
+                    self.send_header("content-length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
                 if self.path.startswith("/__layout__"):
                     body = _layout_probe(LAYOUT_WIDTHS).encode("utf-8")
                     self.send_response(200)
@@ -595,8 +699,10 @@ def check_render() -> str:
             copy_zh = (">复制<",) if name == "index.html" else ()
             copy_en = (">Copy<",) if name == "index.html" else ()
             for lang, shown, hidden, html_lang, runtime in (
-                ("zh-CN", ">它是什么<", ">What it is<", 'lang="zh-CN"', (">跟随系统<",) + copy_zh),
-                ("en-US", ">What it is<", ">它是什么<", 'lang="en"', (">System<",) + copy_en),
+                ("zh-CN", ">它是什么<", ">What it is<", 'lang="zh-CN"',
+                 ('aria-label="配色：跟随系统（点击切换）"',) + copy_zh),
+                ("en-US", ">What it is<", ">它是什么<", 'lang="en"',
+                 ('aria-label="Theme: System (click to change)"',) + copy_en),
             ):
                 dom = _dump_dom(chrome, server.url(name), accept_lang=lang)
                 if not dom.strip():
@@ -611,19 +717,61 @@ def check_render() -> str:
                     raise Failure(f"{name}（{lang}）：页面文案没切到该语言（找不到 {shown}）")
                 if hidden in dom:
                     raise Failure(f"{name}（{lang}）：另一种语言的原文案还在（不该出现 {hidden}）")
+                # topbar 语言按钮：标签写"切过去会变成什么"（中文时 EN、英文时 中文），
+                # 而且必须**已被 i18n.js 放出来**（HTML 里 `hidden` 起步 ⇒ 没跑就是隐藏的 ✗）。
+                toggle = re.search(r"<button[^>]*data-lang-toggle[^>]*>([^<]*)</button>", dom)
+                if not toggle:
+                    raise Failure(f"{name}（{lang}）：找不到语言切换按钮（data-lang-toggle）")
+                if "hidden" in toggle.group(0).split(">")[0]:
+                    raise Failure(f"{name}（{lang}）：语言按钮还是 hidden —— i18n.js 没把它放出来？")
+                want_label = "EN" if lang == "zh-CN" else "中文"
+                if toggle.group(1).strip() != want_label:
+                    raise Failure(f"{name}（{lang}）：语言按钮标签是 {toggle.group(1).strip()!r}，应为 {want_label!r}")
                 for marker in runtime:
                     if marker not in dom:
                         raise Failure(f"{name}（{lang}）：运行期标签没跟上语言（找不到 {marker}）")
+        # ── topbar 语言按钮：**真点一下**（点下去 ⇒ 可见结果；再点回去也要成立）──
+        import html as html_mod
+        dom = _dump_dom(chrome, server.url("__toggle__"), budget=15000, timeout=60, accept_lang="zh-CN")
+        found = re.search(r'<pre id="out">(.*?)</pre>', dom, re.S)
+        if not found or found.group(1).strip() in ("", "pending"):
+            raise Failure("语言按钮探针没跑完（DOM 里没有结果）—— 探针坏了，不判绿")
+        got = json.loads(html_mod.unescape(found.group(1)))
+        if got.get("error"):
+            raise Failure(f"语言按钮探针报错：{got['error']}")
+        before, after, back = got["before"], got["after"], got["back"]
+        if before["lang"] != "zh-CN" or before["label"] != "EN" or before["hidden"]:
+            raise Failure(f"中文读者的初态不对：{before}（应为 lang=zh-CN · 标签 EN · 按钮可见）")
+        if after["lang"] != "en" or after["label"] != "中文" or after["nav"] != "What it is" or after["stored"] != "en":
+            raise Failure(f"点一下没切到英文（可见结果不对）：{after}")
+        if back["lang"] != "zh-CN" or back["nav"] != "它是什么" or back["stored"] != "zh":
+            raise Failure(f"再点一下没切回中文（原文没抓全？）：{back}")
+        hero = got.get("hero") or {}
+        if hero.get("light") != HERO:
+            raise Failure(f"亮色下头图应是 {HERO}，实测 {hero.get('light')!r}")
+        if hero.get("theme") != "dark" or hero.get("dark") != HERO_DARK:
+            raise Failure(f"主题点到暗色后头图没换（要 {HERO_DARK}）：{hero}")
+        ib, idk = got.get("iconsBefore") or {}, got.get("iconsDark") or {}
+        if ib.get("system") != "block" or ib.get("light") != "none" or ib.get("dark") != "none":
+            raise Failure(f"system 档应显示「跟随系统」那个图标（其余隐藏），实测 {ib}")
+        if idk.get("dark") != "block" or idk.get("system") != "none" or idk.get("light") != "none":
+            raise Failure(f"dark 档应只显示月亮图标，实测 {idk}")
         if server.missing:
             raise Failure(f"渲染时有 404：{sorted(set(server.missing))[:5]}")
     finally:
         server.shutdown()
     return (f"Chrome 渲染 {len(PAGES)} 页 × 2 种语言通过（中文读者看中文 · 其它语言看英文），"
+            f"语言按钮真点过（中→英→中，含 localStorage 记忆）· 主题按钮真点过（图标按档切换 + 头图换成暗色那版），"
             f"版本 {version} 已回填，资源零 404")
 
 
 def check_layout() -> str:
-    """真 Chrome 量**横向溢出**：每页 × 几个宽度，`scrollWidth` 不许超过视口。"""
+    """真 Chrome 量**横向溢出** + **中文 hero 标题不折行**：每页 × 几个宽度。
+
+    ⚠ 跑**两种浏览器语言**：溢出两种都要判（英文更长的词更容易撑破），而"标题单行"
+    只对**中文**判 —— 英文标题 `sokonanoda · a formal proof teaching language` 本来就长，
+    折两行是正常的（用户 2026-10-09 报的是中文页："标题都是两行"）。
+    """
     import html as html_mod
 
     chrome = find_chrome()
@@ -631,18 +779,28 @@ def check_layout() -> str:
         raise Failure("找不到 Chrome（--browser 需要它）")
     server = _SiteServer()
     try:
-        dom = _dump_dom(chrome, server.url("__layout__"), budget=20000, timeout=60)
+        rows_by_lang = {}
+        for lang in ("zh-CN", "en-US"):
+            dom = _dump_dom(chrome, server.url("__layout__"), budget=20000, timeout=60, accept_lang=lang)
+            found = re.search(r'<pre id="out">(.*?)</pre>', dom, re.S)
+            if not found or found.group(1).strip() in ("", "pending"):
+                raise Failure(f"布局探针没跑完（{lang} 的 DOM 里没有结果）—— 探针本身坏了，不判绿")
+            rows_by_lang[lang] = json.loads(html_mod.unescape(found.group(1)))
     finally:
         server.shutdown()
-    found = re.search(r'<pre id="out">(.*?)</pre>', dom, re.S)
-    if not found or found.group(1).strip() in ("", "pending"):
-        raise Failure("布局探针没跑完（DOM 里没有结果）—— 探针本身坏了，不判绿")
-    rows = json.loads(html_mod.unescape(found.group(1)))
-    bad = [r for r in rows if r["scrollW"] > r["inner"] + 1]
+    bad = [r for rows in rows_by_lang.values() for r in rows if r["scrollW"] > r["inner"] + 1]
     if bad:
         raise Failure("这些宽度下页面横向溢出："
                       + "、".join(f'{r["page"]}@{r["width"]}（内容 {r["scrollW"]}px > 视口 {r["inner"]}px）' for r in bad))
-    return f"{len(PAGES)} 页 × {len(LAYOUT_WIDTHS)} 个宽度（{LAYOUT_WIDTHS}）零横向溢出"
+    # 中文 hero 标题**必须单行**（2026-10-09 用户实测："正文太窄，标题都是两行" ⇒
+    # `--measure` 40rem → 46rem）。只判 1024 以上：360/768 是窄屏，折行是对的 ✓。
+    wrapped = [r for r in rows_by_lang["zh-CN"]
+               if r["page"] == "index.html" and r["width"] >= 1024 and r.get("h1Lines") != 1]
+    if wrapped:
+        raise Failure("中文 hero 标题在宽屏上折行了（用户实测过的那条）："
+                      + "、".join(f'{r["page"]}@{r["width"]} = {r["h1Lines"]} 行' for r in wrapped))
+    return (f"{len(PAGES)} 页 × {len(LAYOUT_WIDTHS)} 个宽度（{LAYOUT_WIDTHS}）× 2 种语言零横向溢出；"
+            f"中文 hero 标题在 ≥1024 单行")
 
 
 # ── 主流程 ─────────────────────────────────────────────────────────────
