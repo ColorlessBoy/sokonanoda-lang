@@ -910,4 +910,37 @@ mod tests {
         }
         let _ = std::fs::remove_dir_all(&root);
     }
+
+    /// **自忽略不许覆盖用户内容**（2026-10-09 自查）：`.sokonanoda/.gitignore` **已经存在**时
+    /// ⇒ `ensure_self_ignore` **一个字都不改** ✓（那是用户/别处的文件 ✗）；`clean` 也不许删它 ✓。
+    ///
+    /// 为什么值得一条判据：这个文件在**用户的项目里**（不是我们的临时目录）⇒ 覆盖它 =
+    /// 悄悄改人家的仓库卫生设置 ✗。今天的行为是"**只在缺席时补 `*`**" ✓ —— 钉住它。
+    #[test]
+    fn an_existing_self_ignore_is_never_rewritten() {
+        let root = temp_root("ignore");
+        let cache = crate::project::cache::artifacts_dir(&root);
+        std::fs::create_dir_all(&cache).expect("mkdir");
+        let ignore = cache.join(".gitignore");
+        let mine = "# 用户自己写的\ncompiled/\n";
+        std::fs::write(&ignore, mine).expect("write");
+
+        // 写一份产物 ⇒ 顺带走一遍 `ensure_self_ignore` ✓。
+        write(&root, "abcdef0123456789", "payload", &options()).expect("write");
+        assert_eq!(
+            std::fs::read_to_string(&ignore).expect("read"),
+            mine,
+            "**已有的 `.gitignore` 不许被覆盖** ✗（自忽略只在**缺席**时补一行 `*` ✓）"
+        );
+
+        // `clean` 也不许把它删掉 ✓（它是"自忽略"的凭据，不是产物 ✓）。
+        let _ = clean_in(&root);
+        assert!(ignore.is_file(), "`clean` 不许删掉 `.gitignore` ✓");
+        assert_eq!(
+            std::fs::read_to_string(&ignore).expect("read"),
+            mine,
+            "`clean` 之后内容也不许变 ✓"
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }
