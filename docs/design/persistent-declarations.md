@@ -262,3 +262,30 @@ pub struct EnvSnapshot<'a> {           // Clone = O(1)
   判据仍是**结构计数**：负载字节数 + 服务端处理步数（不许用墙钟 ✗）。
 * **仍然成立的部分**：`CmdSnapshot` 的形状与 §7.3 的三条判据（"请求不触发编译"）
   —— 只是它服务的是**别的**目标（多光标/陈旧面语义、查询不打编译），**不是** 3ms ✗。
+
+### 7.6 ⭐⭐ **负载量出来了：91 KB / 一次单点 goal 查询** —— 95% 与 goal 无关 ✗
+
+客户端侧量（**零探针** ✓：`/tmp` 里的临时 LSP 客户端，服务端二进制 = 本轮 test profile ✓）：
+
+```
+soko/goals 响应 = 91358 B · decls 27 条 · goal_ms = 7.4ms（与独立量具 6.93–8.93 一致 ✓）
+每字段合计：ty_runs 46136 B (51%) · value_runs 17819 B (20%) · goals_runs 10796 B (12%)
+            goal_runs 10778 B (12%) · binders 4884 B (5%) · range 2111 B (2%)
+            ty 1666 B · holes 1325 B · value 815 B
+```
+
+⇒ **"run"类（语法/语义高亮的 run 数组）占了 95%** ✗，而这次查询**要的只有光标那一条**的
+goal 视图（`goal`/`binders`/`by_root`/`holes` ≈ 1–2 KB ✓）。**这就是那 ≈7ms 的去处**
+（序列化 + 传输 91 KB，而 Lean 的 `plainGoal` 只回该位置的 goal ✓）。
+
+### 7.7 下一刀（**具体到接口** ✓）
+
+1. `soko/goals` 只回**该位置需要的**那份（`goal`/`binders`/`by_root`/`holes`/`sub_goals`
+   ＋声明定位所需的 `name`/`kind`/`range`/`status` ≈ **1–3 KB** ✓）；
+2. **run 类字段**（`ty_runs`/`value_runs`/`goals_runs`/`goal_runs`）留给**专门的高亮/装饰请求**
+   （编辑器侧的语义高亮本来就有独立通道 ✓）；
+3. **判据（结构计数 ✓ 不用墙钟 ✗）**：同夹具同位置回归 ⇒ **响应字节数 91358 → ≤ ~3000**
+   （≥30× ✓）且 **`goal_ms` 随之下移**（只作参考 ✓）；**契约不许松**：
+   `scripts/audit-wire-fields.py` 仍绿 ✓（消费方真正读的字段一个都不许少 ✗ ——
+   扩展侧实测读了 `.decls`/`.errors`/`.warnings` ⇒ 先确认 `decls` 的**哪些子字段**
+   真被渲染，再决定裁到哪一层 ✓）。
