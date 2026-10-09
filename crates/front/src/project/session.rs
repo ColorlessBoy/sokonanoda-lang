@@ -254,6 +254,13 @@ pub fn lib_checkpoint_reset() {
     LEAKED_LIB_ARENAS.store(0, Ordering::Relaxed);
 }
 
+/// **A5c**（2026-10-09）：算"这个库层闭包的产物键" —— 给**上层**判断"要不要投机预热"用 ✓。
+///
+/// `None` = 库层为空（单文件 ⇒ 没有产物这一层 ✓）。
+#[doc(hidden)]
+pub fn lib_artifact_key(lib_units: &[SourceUnit<'_>], options: &CompileOptions) -> Option<String> {
+    (!lib_units.is_empty()).then(|| lib_key(lib_units, options))
+}
 /// 库层摘要（**可复用判据的键**，设计 §33 的不变量 ①）。
 ///
 /// 进键的每一样都必须**逐字节**决定库层那趟的输入：

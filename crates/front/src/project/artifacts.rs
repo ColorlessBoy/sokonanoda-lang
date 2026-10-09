@@ -51,6 +51,13 @@ pub fn dir(root: &Path) -> PathBuf {
     crate::project::cache::artifacts_dir(root).join("artifacts")
 }
 
+/// **那一对产物在不在**（T4-B/A5c 用 · 2026-10-09）：`payload` 与 `meta` **都要在** ✓。
+///
+/// ⚠ 只作**提示**用（"要不要做一次投机预热" ✓）—— 真正的判据仍是 [`read`] 的完整性三道 ✓
+/// （这里说在、`read` 判坏了 ⇒ 走回退 ✓，不会静默用坏数据 ✓）。
+pub fn exists(root: &Path, key: &str) -> bool {
+    payload_path(root, key).is_file() && meta_path(root, key).is_file()
+}
 /// `<key>.bin`（载荷 = NDJSON 文本，`ExportFile::to_ndjson` 写出来的那份 ✓）。
 pub fn payload_path(root: &Path, key: &str) -> PathBuf {
     dir(root).join(format!("{key}.bin"))

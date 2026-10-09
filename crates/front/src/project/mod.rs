@@ -434,6 +434,24 @@ pub fn warm_library_checkpoint(
     // 第一刀 **330ms → 437ms**（`by=22 → 31`、`tc=14656 → 18839`，`prefix=4` 不变 ✗）。
     // ⇒ 那些 memo **不是**同一条线程能共享的（或键不同 ✓）⇒ **提前付的那一趟白付、还多付** ✗。
     // ⇒ 结论：**A5 的"预热入口趟"这条路走不通**；第一刀的合成前缀要另找切法（方向③ ✓）。
+    //
+    // ⭐ **A5c（2026-10-09 · 平行线）：有产物就**别预热** ✓✓ —— 实测（同一臂、同一构建）**：
+    // * 预热**开**：第一刀 **333ms** · `modules=5` · `prefix=4` · `reuse=lru` ✗
+    // * 预热**关**：第一刀 **129ms** · `modules=1` · `prefix=0` · `reuse=artifact` ✓✓
+    // 根因不是"预热没用"，而是**用户那一刀排在它后面**：编译钉在**一条** worker 线程上
+    // （`worker_threads(1)`，P2-4）⇒ 预热跑 ~215ms、用户开档就敲 ⇒ **等着它做完** ✗。
+    // 而 T1-B 之后产物**已经**把库层供上了（`reuse=artifact` ✓）⇒ 预热是**重复劳动** ✗。
+    // ⇒ 判据：**该闭包的产物已经在盘上 ⇒ 不预热** ✓（冷档没有产物 ⇒ 照旧预热 ✓，
+    // 那时它的活**必需**、不是浪费 ✓）。
+    if let Some(key) = crate::project::session::lib_artifact_key(&lib_units, options) {
+        let root = match root_override {
+            Some(r) => r.to_path_buf(),
+            None => plan.root.clone(),
+        };
+        if crate::project::artifacts::exists(&root, &key) {
+            return false;
+        }
+    }
     crate::project::session::warm_library(&lib_units, options)
 }
 
