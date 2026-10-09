@@ -1437,8 +1437,9 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   2. **前置判据** `crates/front/tests/t4b_plan_parity.rs`：同一条闭包分别走
      **整条一趟** 与 **session+产物** ⇒ **`ProjectReport` 逐字节相同** ✓（序列化比较、字段一个不漏 ✓）
      —— 这是"**换路不改报告**"的红线 ✓（判据过了**不等于**可以无脑换 ✗，见下）。
-* ⚠ **采用之前还要解决三件（如实记）**：① `compile_plan_incremental` **不收 `progress` sink**
-  ⇒ 直接换会**丢掉 CLI 的进度事件**（用户可见 ✗）；② CLI 还有 **`build.*` 事件流**要整门课对拍
+* ⚠ **采用之前还要解决三件（如实记 · ① 已核实为真 ✓）**：① `compile_plan_incremental` **不收 `progress` sink**
+  ⇒ 直接换会**丢掉 CLI 的进度事件**（用户可见 ✗）—— **第 53 轮核实** `build.rs:703-707`：它**确实**按
+  `json`/人看两态各传一个 sink ✓ ⇒ 不是假想 ✗（要么给 session 加 sink 通道、要么从报告重放 tick ✓）；② CLI 还有 **`build.*` 事件流**要整门课对拍
   （`--json` 逐字节 ✓）；③ `compile_entries_shared` 的**单入口组被过滤**（"会话是纯开销"）
   ⇒ 这条口子是给**单文件 `build`/`check`/`course`** 用的 ✓。
 * 验证：front **36 个测试目标**全绿 ✓（35 + 新判据）· fmt 干净 · clippy **0** 报错 ✓。
@@ -1557,9 +1558,8 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   「LSP 第一刀根本没走产物路」—— **不成立** ✗✗。那条 trace 由 **LSP 子进程**打出，而子进程 stderr 被
   `Client` 收走、只把 `LSP_TRACE …` 开头的行转成 trace 流 ⇒ 在**测试进程 stdout** 上 grep 它**必然为空** ✗
   —— **"没看见" ≠ "没走到"** ✓（错在**读数通道** ✗，不是结论对象 ✓）。
-* ⭐ **③ 建通道（本轮的正身）**：给**既有** trace 行加一个字段 `reuse=`（`lru`/`artifact`/`prefix`/
-  `rebuilt`/`none` ✓）—— 由 `session::last_lib_source()` 报出**库层从哪来** ✓ ⇒ 探针**只读既有 trace 行**
-  就能回答"走没走到产物那条" ✓（新增永久诊断面 ✓，正是防我这类错的那道口子 ✓）。
+* ⭐ **③ 建通道（第 52 轮正身）**：给**既有** trace 行加字段 `reuse=`（`lru`/`artifact`/`prefix`/`rebuilt`/`none` ✓）
+  —— 由 `session::last_lib_source()` 报出**库层从哪来** ✓ ⇒ 探针只读既有 trace 行就能回答"走没走到产物那条" ✓。
 * ✅ **答案（`reuse=lru` · 同一臂 · `lsp-cargo-mtime=1791504968`）**：**第一刀确实走了复用路** ✓
   （线程局部检查点命中 ✓ ⇒ **库层没有重编** ✓）。而 `modules=5` **不是**闭包模块 —— `lib.rs:649` 早就写明
   "`modules=` 与重编了几个模块**无关**，实测那 5 个**全是合成编译**" ✓ ⇒ 那 **≈330ms 花在 judge/合成那一段** ✓。
