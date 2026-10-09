@@ -12,8 +12,10 @@
 项会重新生成一次并**逐字节比对** —— 所以"忘了重新生成"会判红，而不是悄悄漂移。
 
 为什么只放最近 N 个版本：站点有 120 KB 的体积预算（`check-site.py` 的 `assets`
-项），而整份 CHANGELOG 是 160 KB 量级的 Markdown。页面上给最近 `--limit`（默认 12）
+项），而整份 CHANGELOG 是 160 KB 量级的 Markdown。页面上给最近 `--limit`（默认 **8**）
 个版本的正文 + 一个"更早的版本"直链（指仓库里的 `CHANGELOG.md`）。
+**为什么是 8 而不是 10**（2026-10-09）：加上中英文自动识别（每页一份英文文案字典）后
+站点体积到了 119.5 KB / 120 KB ⇒ 按"预算不抬、从内容侧省"的纪律把版本数从 10 收到 8 ✓。
 
 用法：
 
@@ -24,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import os
 import re
 import sys
@@ -61,19 +64,19 @@ HEAD = """<!DOCTYPE html>
 </head>
 
 <body>
-<a class="skip-link" href="#main">跳到正文</a>
+<a class="skip-link" href="#main" data-i18n="skip">跳到正文</a>
 
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="./">sokonanoda <small>形式化证明教学语言</small></a>
+    <a class="brand" href="./">sokonanoda <small data-i18n="brandTag">形式化证明教学语言</small></a>
     <nav aria-label="页面内导航">
       <ul>
-        <li><a href="index.html#what">它是什么</a></li>
-        <li><a href="index.html#start">怎么开始</a></li>
-        <li><a href="index.html#courses">教材</a></li>
+        <li><a href="index.html#what" data-i18n="navWhat">它是什么</a></li>
+        <li><a href="index.html#start" data-i18n="navStart">怎么开始</a></li>
+        <li><a href="index.html#courses" data-i18n="navCourses">教材</a></li>
       </ul>
     </nav>
-    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">跟随系统</button>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" data-i18n="themeSystem">跟随系统</button>
   </div>
 </header>
 
@@ -81,19 +84,20 @@ HEAD = """<!DOCTYPE html>
 
   <section class="section">
     <div class="wrap">
-      <h1>更新日志</h1>
-      <p class="lead">
+      <h1 data-i18n="changelogTitle">更新日志</h1>
+      <p class="lead" data-i18n="changelogLead">
         每次发版改了什么。<strong>这一页是生成物</strong>：正文来自仓库里的
         <a href="{repo}/blob/main/editor/vscode/CHANGELOG.md"><code>editor/vscode/CHANGELOG.md</code></a>，
         这里只放最近 <strong>{limit}</strong> 个版本。
       </p>
       <p class="fact">
-        当前发布版本 <span class="ver" data-site-version>当前发布版本</span> ·
+        <span data-i18n="changelogFactLead">当前发布版本</span>
+        <span class="ver" data-site-version>当前发布版本</span><span data-i18n="changelogFactRest"> ·
         全部版本与逐条细节见 <a href="{repo}/blob/main/editor/vscode/CHANGELOG.md">完整 CHANGELOG</a> ·
-        产物在 <a href="{repo}/releases">Releases</a>。
+        产物在 <a href="{repo}/releases">Releases</a>。</span>
       </p>
 
-      <nav class="toc" aria-label="版本列表">
+      <nav class="toc" aria-label="版本列表" data-i18n-aria="tocLabel">
         <ul>
 """
 
@@ -106,19 +110,24 @@ TAIL = """        </ul>
 
 <footer class="site-footer">
   <div class="wrap">
-    <span>版本 <span class="ver" data-site-version>当前发布版本</span> ·
+    <span><span data-i18n="footerVersion">版本</span> <span class="ver" data-site-version>当前发布版本</span> ·
       <a href="{repo}/blob/main/NOTICE.md">Apache-2.0</a></span>
     <nav aria-label="页脚">
       <ul>
-        <li><a href="{repo}">源码</a></li>
-        <li><a href="{repo}/releases">Releases</a></li>
+        <li><a href="{repo}" data-i18n="footerSource">源码</a></li>
+        <li><a href="{repo}/releases" data-i18n="footerReleases">Releases</a></li>
         <li><a href="changelog.html" aria-current="page">Changelog</a></li>
-        <li><a href="index.html">回到首页</a></li>
+        <li><a href="index.html" data-i18n="footerBack">回到首页</a></li>
       </ul>
     </nav>
   </div>
 </footer>
 
+<!-- 英文文案字典：**纯数据**（不是可执行脚本），check-site.py 会解析它做键对齐判据。 -->
+<script type="application/json" id="i18n-en">
+{i18n}
+</script>
+<script src="assets/i18n.js"></script>
 <script src="assets/site.js" defer></script>
 </body>
 </html>
@@ -281,8 +290,8 @@ def render(markdown: str, limit: int) -> str:
         for e in recent
     )
     if rest:
-        toc += (f'\n          <li><a href="{REPO_URL}/blob/main/editor/vscode/CHANGELOG.md">'
-                f'更早的 {len(rest)} 个版本</a></li>')
+        toc += (f'\n          <li><a href="{REPO_URL}/blob/main/editor/vscode/CHANGELOG.md" '
+                f'data-i18n="tocOlder">更早的 {len(rest)} 个版本</a></li>')
 
     sections = []
     for e in recent:
@@ -297,16 +306,44 @@ def render(markdown: str, limit: int) -> str:
             f'  </section>'
         )
 
+    i18n = {
+        "title": "Changelog · sokonanoda",
+        "description": f"What changed in each sokonanoda release: the most recent {limit} versions, "
+                       f"generated from editor/vscode/CHANGELOG.md in the repository.",
+        "skip": "Skip to content",
+        "brandTag": "a formal proof teaching language",
+        "navWhat": "What it is",
+        "navStart": "Getting started",
+        "navCourses": "Courses",
+        "themeSystem": "System",
+        "changelogTitle": "Changelog",
+        "changelogLead": f"What changed in each release. <strong>This page is generated</strong>: the text comes from "
+                          f'<a href="{REPO_URL}/blob/main/editor/vscode/CHANGELOG.md"><code>editor/vscode/CHANGELOG.md</code></a> '
+                          f"in the repository, and only the most recent <strong>{limit}</strong> versions are shown here.",
+        "changelogFactLead": "Current published version",
+        "changelogFactRest": f' · every version and every detail is in the '
+                             f'<a href="{REPO_URL}/blob/main/editor/vscode/CHANGELOG.md">full CHANGELOG</a> · '
+                             f'artifacts are on <a href="{REPO_URL}/releases">Releases</a>.',
+        "tocLabel": "Version list",
+        "footerVersion": "version",
+        "footerSource": "Source",
+        "footerReleases": "Releases",
+        "footerBack": "Back to the home page",
+    }
+    if rest:
+        i18n["tocOlder"] = f"{len(rest)} older versions"
+
     page = HEAD.format(limit=limit, repo=REPO_URL)
     page += toc + "\n"
-    page += TAIL.format(repo=REPO_URL, entries="\n".join(sections))
+    page += TAIL.format(repo=REPO_URL, entries="\n".join(sections),
+                        i18n=json.dumps(i18n, ensure_ascii=False, indent=2))
     return MARKER + "\n" + page
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="生成 site/changelog.html（源：editor/vscode/CHANGELOG.md）")
     ap.add_argument("--out", default=DEFAULT_OUT)
-    ap.add_argument("--limit", type=int, default=10)
+    ap.add_argument("--limit", type=int, default=8)
     ap.add_argument("--check", action="store_true", help="只校验：与磁盘上的文件逐字节一致？")
     args = ap.parse_args(argv)
 

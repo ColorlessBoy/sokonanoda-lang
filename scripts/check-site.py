@@ -14,17 +14,17 @@
 | `links`     | 每页的 `href`/`src` 都解析得到：相对路径文件存在；锚点（含跨页锚点）有对应 `id` |
 | `css-urls`  | CSS 里每个 `url(...)` 指向的文件存在（自托管字体） |
 | `version`   | 每页都有版本回填钩子；除生成物外**没有写死的版本号**（`0.x.y` 字面量） |
-| `meta`      | 每页 head 里 `lang`/`title`/`description`/`canonical`/`viewport`/`favicon`/`og:*` 齐全，且只允许一段内联 script |
+| `meta`      | 每页 head 里 `lang`/`title`/`description`/`canonical`/`viewport`/`favicon`/`og:*` 齐全，且**可执行**内联 script 只有 head 那一段（文案字典是 `application/json`，不算） |\n| `i18n`      | 每页引用 `assets/i18n.js`（内含 `navigator.languages` 的 zh 判定）；英文文案字典是合法 JSON，且**与页面 `data-i18n*` 键逐个对齐**（漏译/多译都判红） |
 | `markup`    | 标签配对（`html.parser` 走一遍）；没有内联 `style=` 属性 |
 | `assets`    | 位图**只允许**头图 `assets/hero-vscode.png`（且有体积预算、宽高比与 `<img>` 属性一致）；html+css+js 在预算内 |
 | `data`      | `site/data/site.json` 与最新**已发布 tag** 一致（`gen-site-data.py --check`） |
 | `changelog` | `changelog.html` 与 `CHANGELOG.md` **逐字节一致**（`gen-site-changelog.py --check`） |
-| `render`    | （`--browser`）真 Chrome 跑两页：资源零 404，且版本号被 JS 回填进 DOM |\n| `layout`    | （`--browser`）真 Chrome 量横向溢出：两页 × 4 个宽度，`scrollWidth` 不许超过视口 |
+| `render`    | （`--browser`）真 Chrome 跑两页 × 两种浏览器语言（`--accept-lang`）：资源零 404、版本号已回填、**中文读者看中文 / 其它语言看英文** |\n| `layout`    | （`--browser`）真 Chrome 量横向溢出：两页 × 4 个宽度，`scrollWidth` 不许超过视口 |
 
 用法：
 
 ```bash
-python3 scripts/check-site.py              # 默认 10 项（不需要浏览器）
+python3 scripts/check-site.py              # 默认 11 项（不需要浏览器）
 python3 scripts/check-site.py --browser    # 额外跑渲染实跑（要 Chrome）
 python3 scripts/check-site.py --json       # 机器可读
 ```
@@ -109,12 +109,27 @@ class PageParser(HTMLParser):
         self.inline_styles: list[int] = []
         self.meta: dict[str, str] = {}
         self.images: list[dict] = []
+        self.i18n_keys: set[str] = set()          # data-i18n / -alt / -aria 用到的键
+        self.json_blocks: dict[str, str] = {}     # <script type="application/json" id=…> 的内容
+        self.scripts_src: list[str] = []          # 外链 <script src>
+        self.inline_head = 0                      # **可执行**内联脚本（head / body 分开数）
+        self.inline_body = 0
+        self.in_head = True
+        self._json_id: str | None = None
+        self._json_text: list[str] = []
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
         line = self.getpos()[0]
         if tag not in VOID:
             self.stack.append((tag, line))
+        if tag == "head":
+            self.in_head = True
+        if tag == "body":
+            self.in_head = False
+        for key in ("data-i18n", "data-i18n-alt", "data-i18n-aria"):
+            if key in attrs:
+                self.i18n_keys.add(attrs[key])
         if "id" in attrs:
             self.ids.add(attrs["id"])
         if "style" in attrs:
@@ -135,11 +150,23 @@ class PageParser(HTMLParser):
             self.meta[f"link:{attrs['rel']}"] = attrs.get("href", "")
         if tag == "title":
             self.meta["_in_title"] = "1"
-        if tag == "script" and "src" not in attrs:
-            self.meta.setdefault("inline_scripts", "0")
-            self.meta["inline_scripts"] = str(int(self.meta["inline_scripts"]) + 1)
+        if tag == "script":
+            kind = (attrs.get("type") or "text/javascript").lower()
+            if attrs.get("src"):
+                self.scripts_src.append(attrs["src"])
+            elif kind == "application/json" and attrs.get("id"):
+                self._json_id = attrs["id"]        # 文案字典：**纯数据**，不算可执行脚本
+                self._json_text = []
+            elif kind in ("text/javascript", "module"):
+                if self.in_head:
+                    self.inline_head += 1
+                else:
+                    self.inline_body += 1
 
     def handle_endtag(self, tag):
+        if tag == "script" and self._json_id:
+            self.json_blocks[self._json_id] = "".join(self._json_text)
+            self._json_id = None
         if tag in VOID:
             return
         if not self.stack:
@@ -154,6 +181,8 @@ class PageParser(HTMLParser):
     def handle_data(self, data):
         if self.meta.pop("_in_title", None):
             self.meta["title"] = data.strip()
+        if self._json_id:
+            self._json_text.append(data)
 
     def close(self):
         super().close()
@@ -278,9 +307,55 @@ def check_meta(pages: dict[str, PageParser]) -> str:
             missing.append("favicon")
         if missing:
             raise Failure(f"{name} 的 head 缺元数据：{missing}")
-        if parser.meta.get("inline_scripts") != "1":
-            raise Failure(f"{name}：内联 <script> 只允许 head 里那一段配色 bootstrap（防首帧闪烁）")
-    return f"{len(required) + 2} 项 × {len(PAGES)} 页齐全"
+        if parser.inline_head != 1 or parser.inline_body != 0:
+            raise Failure(
+                f"{name}：内联**可执行** <script> 只允许 head 里那一段配色 bootstrap"
+                f"（实测 head={parser.inline_head} · body={parser.inline_body}）；"
+                f"语言脚本走 assets/i18n.js、文案字典走 <script type=\"application/json\"> ✓")
+    return f"{len(required) + 2} 项 × {len(PAGES)} 页齐全；内联可执行脚本各 1 段"
+
+
+I18N_SCRIPT = "assets/i18n.js"
+# 页面级键：不在 DOM 上（`<title>` 与 meta description 由脚本改）
+I18N_PAGE_KEYS = {"title", "description"}
+
+
+def check_i18n(pages: dict[str, PageParser]) -> str:
+    """中英文自动识别（2026-10-09 追加需求）：字典与页面文案**逐个键对齐**。
+
+    判据三条（都咬得住"漏译/多译/机制被删"）：
+      ① 每页都引用 `assets/i18n.js`，且那个文件里**真的有**语言判定（`navigator.languages` + `zh`）；
+      ② 每页的 `<script type="application/json" id="i18n-en">` 是**合法 JSON**，且带 `title`/`description`；
+      ③ **DOM 里用到的 `data-i18n*` 键集合 == 字典键集合 − {title, description}** ——
+         加了一句中文却忘了加英文（或多加了没人用的键）立刻判红。
+    """
+    script_path = os.path.join(SITE, I18N_SCRIPT)
+    if not os.path.exists(script_path):
+        raise Failure(f"缺 {I18N_SCRIPT}（浏览器语言检测没有落点）")
+    script = read(script_path)
+    for marker in ("navigator.languages", "zh", "data-i18n", "SOKO_I18N"):
+        if marker not in script:
+            raise Failure(f"{I18N_SCRIPT} 里找不到语言判定标记 {marker!r}（机制被删了？）")
+
+    detail: list[str] = []
+    for name, parser in pages.items():
+        if I18N_SCRIPT not in parser.scripts_src:
+            raise Failure(f"{name} 没有引用 {I18N_SCRIPT}（浏览器语言检测不会跑）")
+        block = parser.json_blocks.get("i18n-en")
+        if not block:
+            raise Failure(f'{name} 缺 <script type="application/json" id="i18n-en">（英文文案字典）')
+        try:
+            dictionary = json.loads(block)
+        except json.JSONDecodeError as error:
+            raise Failure(f"{name} 的英文文案字典不是合法 JSON：{error}")
+        if not dictionary.get("title") or not dictionary.get("description"):
+            raise Failure(f"{name} 的字典缺 title/description（<title> 与 meta description 换不了）")
+        missing = sorted(parser.i18n_keys - set(dictionary))
+        extra = sorted(set(dictionary) - parser.i18n_keys - I18N_PAGE_KEYS)
+        if missing or extra:
+            raise Failure(f"{name} 的英文文案与页面文案对不上：缺 {missing} · 多 {extra}")
+        detail.append(f"{name} {len(parser.i18n_keys)} 键")
+    return "字典与 DOM 键逐个对齐（" + " · ".join(detail) + f"）；{I18N_SCRIPT} 的 zh 判定在"
 
 
 def check_markup(pages: dict[str, PageParser]) -> str:
@@ -369,7 +444,7 @@ def find_chrome() -> str | None:
     return None
 
 
-def _dump_dom(chrome: str, url: str, budget: int = 5000, timeout: int = 30) -> str:
+def _dump_dom(chrome: str, url: str, budget: int = 5000, timeout: int = 30, accept_lang: str | None = None) -> str:
     """跑一次**旧版** headless Chrome，返回 DOM。
 
     为什么用旧版 headless：macOS 上 `--headless=new` + `--dump-dom` 会挂住不返回（实测 120s）。
@@ -390,6 +465,9 @@ def _dump_dom(chrome: str, url: str, budget: int = 5000, timeout: int = 30) -> s
             "--no-first-run", "--no-default-browser-check",
             "--disable-extensions", "--disable-background-networking",
             "--disable-sync", "--hide-scrollbars",
+            # `--accept-lang` 会改 `navigator.languages`（实测：en-US ⇒ ["en-US"]）——
+            # 于是"中文读者看中文 / 其它语言看英文"这条判据能在真浏览器里判 ✓。
+            *([f"--accept-lang={accept_lang}"] if accept_lang else []),
             f"--user-data-dir={profile}", f"--virtual-time-budget={budget}",
             "--dump-dom", url,
         ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
@@ -511,16 +589,37 @@ def check_render() -> str:
     server = _SiteServer()
     try:
         for name in PAGES:
-            dom = _dump_dom(chrome, server.url(name))
-            if not dom.strip():
-                raise Failure(f"{name}：Chrome 没有输出 DOM（进程可能起不来）")
-            if f">{version}<" not in dom.replace(" ", ""):
-                raise Failure(f"{name}：DOM 里没找到回填后的版本号 {version}（site.js 没跑或被缓存）")
+            # 第 5 个元素 = **运行期**标签（site.js 从 `window.SOKO_I18N` 取，不是静态文案）——
+            # 这条判据钉的是 i18n.js ↔ site.js 的**接缝**：静态文案换了、按钮没换 = 半页英文 ✗。
+            # 复制按钮只在首页（changelog 页没有命令块）⇒ 运行期标签按页取。
+            copy_zh = (">复制<",) if name == "index.html" else ()
+            copy_en = (">Copy<",) if name == "index.html" else ()
+            for lang, shown, hidden, html_lang, runtime in (
+                ("zh-CN", ">它是什么<", ">What it is<", 'lang="zh-CN"', (">跟随系统<",) + copy_zh),
+                ("en-US", ">What it is<", ">它是什么<", 'lang="en"', (">System<",) + copy_en),
+            ):
+                dom = _dump_dom(chrome, server.url(name), accept_lang=lang)
+                if not dom.strip():
+                    raise Failure(f"{name}（{lang}）：Chrome 没有输出 DOM（进程可能起不来）")
+                if f">{version}<" not in dom.replace(" ", ""):
+                    raise Failure(f"{name}（{lang}）：DOM 里没找到回填后的版本号 {version}（site.js 没跑或被缓存）")
+                if html_lang not in dom:
+                    raise Failure(f"{name}（{lang}）：<html> 的 lang 没切到 {html_lang}（i18n.js 没跑？）")
+                # 判据必须是**换过之后的元素文本**（`>…<`），不能只搜字符串：英文字典本身
+                # 就在 DOM 里（application/json 块），搜裸字符串会永远为真 ⇒ 守卫空转 ✗。
+                if shown not in dom:
+                    raise Failure(f"{name}（{lang}）：页面文案没切到该语言（找不到 {shown}）")
+                if hidden in dom:
+                    raise Failure(f"{name}（{lang}）：另一种语言的原文案还在（不该出现 {hidden}）")
+                for marker in runtime:
+                    if marker not in dom:
+                        raise Failure(f"{name}（{lang}）：运行期标签没跟上语言（找不到 {marker}）")
         if server.missing:
             raise Failure(f"渲染时有 404：{sorted(set(server.missing))[:5]}")
     finally:
         server.shutdown()
-    return f"Chrome 渲染 {len(PAGES)} 页通过，版本 {version} 已回填，资源零 404"
+    return (f"Chrome 渲染 {len(PAGES)} 页 × 2 种语言通过（中文读者看中文 · 其它语言看英文），"
+            f"版本 {version} 已回填，资源零 404")
 
 
 def check_layout() -> str:
@@ -555,6 +654,7 @@ CHECKS = [
     ("css-urls", lambda files, pages: check_css_urls(files)),
     ("version", lambda files, pages: check_version(files, pages)),
     ("meta", lambda files, pages: check_meta(pages)),
+    ("i18n", lambda files, pages: check_i18n(pages)),
     ("markup", lambda files, pages: check_markup(pages)),
     ("assets", lambda files, pages: check_assets(files, pages)),
     ("data", lambda files, pages: check_data()),

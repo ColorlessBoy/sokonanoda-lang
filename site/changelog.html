@@ -6,13 +6,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>更新日志 · sokonanoda</title>
-<meta name="description" content="sokonanoda 的更新日志：最近 10 个版本改了什么（由仓库里的 CHANGELOG.md 生成）。">
+<meta name="description" content="sokonanoda 的更新日志：最近 8 个版本改了什么（由仓库里的 CHANGELOG.md 生成）。">
 <link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/changelog.html">
 <meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="article">
 <meta property="og:title" content="更新日志 · sokonanoda">
-<meta property="og:description" content="最近 10 个版本改了什么（由仓库里的 CHANGELOG.md 生成）。">
+<meta property="og:description" content="最近 8 个版本改了什么（由仓库里的 CHANGELOG.md 生成）。">
 <meta property="og:url" content="https://colorlessboy.github.io/sokonanoda-lang/changelog.html">
 <meta property="og:locale" content="zh_CN">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -25,19 +25,19 @@
 </head>
 
 <body>
-<a class="skip-link" href="#main">跳到正文</a>
+<a class="skip-link" href="#main" data-i18n="skip">跳到正文</a>
 
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="./">sokonanoda <small>形式化证明教学语言</small></a>
+    <a class="brand" href="./">sokonanoda <small data-i18n="brandTag">形式化证明教学语言</small></a>
     <nav aria-label="页面内导航">
       <ul>
-        <li><a href="index.html#what">它是什么</a></li>
-        <li><a href="index.html#start">怎么开始</a></li>
-        <li><a href="index.html#courses">教材</a></li>
+        <li><a href="index.html#what" data-i18n="navWhat">它是什么</a></li>
+        <li><a href="index.html#start" data-i18n="navStart">怎么开始</a></li>
+        <li><a href="index.html#courses" data-i18n="navCourses">教材</a></li>
       </ul>
     </nav>
-    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">跟随系统</button>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" data-i18n="themeSystem">跟随系统</button>
   </div>
 </header>
 
@@ -45,19 +45,20 @@
 
   <section class="section">
     <div class="wrap">
-      <h1>更新日志</h1>
-      <p class="lead">
+      <h1 data-i18n="changelogTitle">更新日志</h1>
+      <p class="lead" data-i18n="changelogLead">
         每次发版改了什么。<strong>这一页是生成物</strong>：正文来自仓库里的
         <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md"><code>editor/vscode/CHANGELOG.md</code></a>，
-        这里只放最近 <strong>10</strong> 个版本。
+        这里只放最近 <strong>8</strong> 个版本。
       </p>
       <p class="fact">
-        当前发布版本 <span class="ver" data-site-version>当前发布版本</span> ·
+        <span data-i18n="changelogFactLead">当前发布版本</span>
+        <span class="ver" data-site-version>当前发布版本</span><span data-i18n="changelogFactRest"> ·
         全部版本与逐条细节见 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md">完整 CHANGELOG</a> ·
-        产物在 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">Releases</a>。
+        产物在 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">Releases</a>。</span>
       </p>
 
-      <nav class="toc" aria-label="版本列表">
+      <nav class="toc" aria-label="版本列表" data-i18n-aria="tocLabel">
         <ul>
           <li><a href="#v0.87.0">v0.87.0</a><span class="tag">2026-10-09</span></li>
           <li><a href="#v0.86.0">v0.86.0</a><span class="tag">2026-10-08</span></li>
@@ -67,9 +68,7 @@
           <li><a href="#v0.84.0">v0.84.0</a><span class="tag">2026-10-08</span></li>
           <li><a href="#v0.83.0">v0.83.0</a><span class="tag">2026-10-08</span></li>
           <li><a href="#v0.82.0">v0.82.0</a><span class="tag">2026-10-06</span></li>
-          <li><a href="#v0.81.0">v0.81.0</a><span class="tag">2026-10-03</span></li>
-          <li><a href="#v0.80.0">v0.80.0</a><span class="tag">2026-10-01</span></li>
-          <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md">更早的 104 个版本</a></li>
+          <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md" data-i18n="tocOlder">更早的 106 个版本</a></li>
         </ul>
       </nav>
     </div>
@@ -320,101 +319,47 @@
       </ul>
     </div>
   </section>
-  <section class="section release" id="v0.81.0">
-    <div class="wrap">
-      <h2><span class="ver">v0.81.0</span> <span class="tag">2026-10-03</span></h2>
-      <p class="lead"><strong>Nine language/kernel blockers cleared</strong> — the walls the set-theory course's "what Volume I can now write" list was waiting on: <strong>well-founded recursion (<code>Acc</code>)</strong> · <strong>large elimination</strong> · <strong>classical logic</strong> · <strong>quotients</strong>. Every one of them ships with its minimal reproduction flipped from red to green, a byte-for-byte corpus comparison, the course gate at <strong>0 rejected</strong>, and the real-VS-Code e2e at <strong>40 passed / 0 failed</strong>.</p>
-      <h3>Added</h3>
-      <ul>
-        <li><strong><code>Acc</code> (well-founded recursion) works</strong>, in the shape Lean core uses — <code>inductive Acc (α : Type) (r : α → α → Prop) : α → Prop</code> with the index written in the <strong>return</strong> position (G-56/G-64). Indexed inductive families whose recursive occurrences change the index (<code>TC</code>, transitive closure) elaborate, and their recursors <strong>eliminate into <code>Type</code></strong>, so <code>rank</code>-style functions and <code>∈</code>-induction over ordinals are expressible. The header-index form (<code>(x : α)</code> as a <em>parameter</em>) stays rejected, exactly as upstream Lean rejects it.
-        </li>
-        <li><strong>Large elimination</strong> (G-58/G-59): a <code>Prop</code>-valued inductive block whose non-<code>Prop</code> fields are all parameters or indices now eliminates into <code>Type</code> (<code>Acc.rec … → Type</code>), and the recursor's universe arguments are inferred from the expected type instead of defaulting to <code>0</code>.
-        </li>
-        <li><strong>Classical logic</strong> (G-74): the prelude now provides <code>Classical.em</code> (<code>∀ p : Prop, p ∨ ¬p</code>) and <code>Classical.byContradiction</code>. Proofs by contradiction and case splits on <code>em</code> type-check.
-        </li>
-        <li><strong><code>Quot.exact</code></strong> (G-75): equality of two quotient representatives reflects back to the relation, in the <strong>sound</strong> form that carries the equivalence-relation hypotheses (reflexivity/symmetry/transitivity).
-        </li>
-        <li><strong><code>Nat.add</code> / <code>Nat.mul</code> compute on variables</strong> (G-76): the recursive equations <code>Nat.add m 0 ≡ m</code>, <code>Nat.add m (succ n) ≡ succ (Nat.add m n)</code> (and the <code>mul</code> analogues) fire on the deep reduction path, so <code>#reduce</code> and <code>rfl</code> see through a variable-headed <code>Nat.add</code>.
-        </li>
-      </ul>
-      <h3>Fixed</h3>
-      <ul>
-        <li><strong><code>Sokonanoda: Install Command Line (安装命令行)</code> 装完</strong>真的<strong>能用</strong>（G-84）：安装目录会写进 登录 shell 读的 profile（带标记、幂等），提示文案改成<strong>真话</strong>（写不进就给出该加的那一行）； 覆盖安装时报告被替换的旧版本，并清掉 <code>*.bak-*</code> 残留。
-        </li>
-        <li><strong>新增 <code>Sokonanoda: Uninstall Command Line (卸载命令行)</code></strong>（G-84）：清掉安装位的二进制、 <code>.version</code> 版本标记与 <code>*.bak-*</code> 残留，并撤掉安装时写入的 PATH 行（同目录的语言服务器不动）。
-        </li>
-        <li>判据改成<strong>用户动作级</strong>：装完在<strong>新开登录 shell</strong> 里 <code>sokonanoda --version</code> 必须 == 插件版本 （不再比"刚拷贝的那份文件" —— 那是假绿 ✗）。复现件 <code>docs/gaps/repro/G84-vscode-cli-install.sh</code>（含反向验证 ✓）。
-        </li>
-        <li><strong><code>cases</code> on a membership in an image</strong> (G-71): <code>cases hy</code> with <code>hy : y ∈ (f '' (f ⁻¹' C))</code> used to report "the eliminated term is not an inductive value" with every argument shifted, and the arm's <code>exact</code> could not read its hypothesis back. The tactic context's types are now rendered with a <strong>fully explicit</strong> pretty-printer form (<code>@Set.image α β f A</code>), so the text it re-reads round-trips.
-        </li>
-        <li><strong>A definition whose return type is a literal arrow</strong> (G-72): <code>def mkRel (α) (r) : α → α → Prop := fun (a b : α) =&gt; …</code> was green when the module was graded on its own and red when imported (<code>unknown identifier b</code>) — the return type's arrows were counted as parameters, so the recorded body lost two binders.
-        </li>
-      </ul>
-    </div>
-  </section>
-  <section class="section release" id="v0.80.0">
-    <div class="wrap">
-      <h2><span class="ver">v0.80.0</span> <span class="tag">2026-10-01</span></h2>
-      <p class="lead"><strong>三件事一起发</strong>：编辑响应延迟收口（<code>declaration-incremental.md</code> §7）· 卷 I 集合论 <strong>69 个单元全部落地</strong>（课程门禁 <strong>158 目标 · 1431 checked · 616 open · 0 判负</strong>）· 输入缩写表 <strong>18 → 75 条</strong>。</p>
-      <h3>Changed</h3>
-      <ul>
-        <li><strong>Editing a declaration is no longer priced by the file's length.</strong> The editor used to re-check the whole prefix on every keystroke; a session snapshot plus the dependency-graph dirty propagation now re-check <strong>only the declarations that actually depend on what you touched</strong>. Same file, same operations, measured before → after (structure counts, wall clock only as an order of magnitude): editing the <strong>last</strong> declaration <strong>~2154–3039 ms → 321–346 ms</strong> (the library layer recompiles <strong>zero</strong> times); editing an <strong>earlier</strong> one <strong>~2154–3039 ms → 1159–1231 ms</strong> (<strong>−39%</strong>); the <strong>first keystroke after opening</strong> a project file <strong>~3390 ms → 1737–1997 ms</strong> (<strong>−46%</strong>). In a real VS Code host the steady-state keystroke → diagnostics path measures <strong>~110 ms</strong>. Full tables, the guard that pins them (<code>crates/front/tests/keystroke_structure.rs</code>) and the one thing deliberately <strong>not</strong> done: <code>docs/design/declaration-incremental.md</code> §7/§7.1.
-        </li>
-        <li><strong>The course finished.</strong> Volume I of the set-theory course is complete: <strong>69 units</strong> (canvas + solution + the standard-library lemmas each one needs), from sets/subset/union/intersection through power sets, relations, functions, images, equinumerosity, Cantor, Russell and the synthesis unit, up to order-theoretic inclusion, adjunction laws for <code>⋃</code>/<code>⋂</code> and the power set as a complete lattice. Gate: <strong>158 targets · 1431 checked · 616 open · 0 rejected</strong>, with the nine course guards green.
-        </li>
-      </ul>
-      <h3>Fixed</h3>
-      <ul>
-        <li><strong>The whole file's colours no longer scramble as you type.</strong> Syntax colouring for sokonanoda comes from the language server's <em>semantic tokens</em>, and the server was computing them from the <strong>last compiled</strong> text instead of the text in your editor. VS Code paints those tokens onto the <strong>current</strong> buffer, so every token after your edit landed on the wrong characters — one line off per inserted line, and it got worse the more you typed. It is fixed at the source (<code>crates/lsp/src/lib.rs</code>: the token handler is a pure function of the source text, so it now reads the buffer, not the previous compile). Project files made it obvious: one keystroke costs ~2.2 s of compilation there, so for those 2.2 s <em>every</em> token request answered for the old text.
-        </li>
-        <li>Pinned by <code>crates/lsp/src/tests/tokens.rs::semantic_tokens_follow_the_buffer_not_the_last_compile</code> (insert a line at the top → <code>theorem</code> must be reported on line 2; with the old code it is reported on line 1, so the guard bites).
-        </li>
-      </ul>
-      <h3>Added</h3>
-      <ul>
-        <li><strong>Greek letters — and every other symbol the course uses — now have typing abbreviations.</strong> <code>\alpha</code> (or just <code>\a</code>) + <code>Tab</code> → <code>α</code>; <code>\Gamma</code> → <code>Γ</code>, <code>\Omega</code> → <code>Ω</code>, … all <strong>48 Greek letters</strong> (24 lower case + 24 upper case). Also added: the set-theory library's <code>≈ ∘ ⁻¹ • ⊕ ⋃₀ ⋂₀</code> and the anonymous-constructor brackets <strong><code>\&lt;</code> / <code>\&gt;</code> → <code>⟨</code> <code>⟩</code></strong>. The table grew <strong>18 → 75 entries</strong>; the keys are copied key-for-key from Lean 4 (<code>leanprover/vscode-lean4</code>), so muscle memory transfers.
-          <ul>
-            <li><strong>One documented exception</strong>: Lean 4 has no <code>\Mu</code> — its capital mu is <code>\GM</code> only — so the table accepts <strong>both</strong> <code>\GM</code> (Lean's key) and <code>\Mu</code> (the spelled-out name the other 23 capitals use).</li>
-            <li><strong>Hovering tells you how to type it</strong> — including on a Greek-letter <em>variable</em> (<code>α : Prop</code> plus “输入：<code>\alpha</code>（别名 <code>\a</code>）”), which is exactly where the old hover stayed silent.</li>
-            <li><strong><code>\a</code> is unambiguous</strong>: it is a prefix of <code>\alpha</code> / <code>\approx</code> / <code>\and</code>, so it waits while you keep typing and lands only once the word is closed (space, punctuation or <code>Tab</code>) — the same rule Lean uses. Eager mode (<code>sokonanoda.input.eager</code>) follows that rule too.</li>
-            <li>Lean's single-letter keys that point at <em>logic</em> symbols (<code>\v</code> → ∨, <code>\i</code> → ∩, <code>\o</code> → ∘, <code>\r</code> → →) are deliberately <strong>not</strong> taken: <code>\i</code> giving ∩ while <code>\in</code> gives ∈ is a trap. Design + upstream evidence: <code>docs/design/notation-input.md</code>.</li>
-          </ul>
-        </li>
-      </ul>
-      <p class="lead">编辑响应：<strong>「敲一个字闪一下」没了</strong>（2026-10-01 用户反馈「一闪一闪」）。</p>
-      <h3>Fixed</h3>
-      <ul>
-        <li><strong>Typing no longer makes the editor flash.</strong> The server recompiles on <em>every</em> keystroke and a teaching-sized file finishes in about a millisecond, so the <code>$/progress</code> <code>begin</code>/<code>end</code> pair landed on every single key — and each <code>begin</code> painted a <strong>whole-document</strong> background decoration, flipped the status bar to <em>compiling…</em>, and inserted an Infoview progress block (then <code>end</code> took all three away again). Measured in a real VS Code host: <strong>8 keystrokes lit the UI 16 times</strong>. The <em>compiling…</em> affordance is now shown only after <code>sokonanoda.progress.showDelayMs</code> (default <strong>300 ms</strong>); a compile that finishes inside that window <strong>never touches the UI at all</strong>. Genuinely slow compiles (a cold open of the largest course file measured 7.8 s) still light up exactly as before, and <code>Sokonanoda: Build/Rebuild</code>'s per-file progress is untouched. <code>0</code> restores the old immediate behaviour.
-        </li>
-        <li><strong>A stale "already compiling" flag could suppress the indicator forever</strong> after a window reload: the state is module-level and was never reset on activation. <code>activate()</code> now resets it.
-        </li>
-      </ul>
-      <h3>Changed</h3>
-      <ul>
-        <li><strong>Measured end to end, before → after</strong> (real VS Code 1.138.0, same fixture, same operation): flicker <strong>16 → 0</strong> lights per 8 keystrokes; keystroke → diagnostics <strong>122 ms → 99–113 ms</strong>; keystroke → goal panel <strong>268 ms → 262 ms</strong>. The remaining panel latency is ~100 ms of VS Code's own diagnostics pipeline plus the extension's 150 ms multi-document debounce — the compiler itself is <strong>0.2 ms per keystroke</strong> on the same fixture. Full breakdown and the things deliberately <em>not</em> changed: <code>docs/design/edit-latency.md</code>.
-        </li>
-        <li><strong>Project mode measured too</strong> (<code>import</code> closures are a separate compile path): a same-run A/B over 9 keystrokes — <code>progress.showDelayMs = 0</code> (the old behaviour) lit the UI <strong>18</strong> times, exactly 2 per keystroke; the default lit it <strong>0</strong> times. Same process, same machine, same fixture, so the difference cannot be machine noise.
-        </li>
-      </ul>
-    </div>
-  </section>
 </main>
 
 <footer class="site-footer">
   <div class="wrap">
-    <span>版本 <span class="ver" data-site-version>当前发布版本</span> ·
+    <span><span data-i18n="footerVersion">版本</span> <span class="ver" data-site-version>当前发布版本</span> ·
       <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/NOTICE.md">Apache-2.0</a></span>
     <nav aria-label="页脚">
       <ul>
-        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang">源码</a></li>
-        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">Releases</a></li>
+        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang" data-i18n="footerSource">源码</a></li>
+        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases" data-i18n="footerReleases">Releases</a></li>
         <li><a href="changelog.html" aria-current="page">Changelog</a></li>
-        <li><a href="index.html">回到首页</a></li>
+        <li><a href="index.html" data-i18n="footerBack">回到首页</a></li>
       </ul>
     </nav>
   </div>
 </footer>
 
+<!-- 英文文案字典：**纯数据**（不是可执行脚本），check-site.py 会解析它做键对齐判据。 -->
+<script type="application/json" id="i18n-en">
+{
+  "title": "Changelog · sokonanoda",
+  "description": "What changed in each sokonanoda release: the most recent 8 versions, generated from editor/vscode/CHANGELOG.md in the repository.",
+  "skip": "Skip to content",
+  "brandTag": "a formal proof teaching language",
+  "navWhat": "What it is",
+  "navStart": "Getting started",
+  "navCourses": "Courses",
+  "themeSystem": "System",
+  "changelogTitle": "Changelog",
+  "changelogLead": "What changed in each release. <strong>This page is generated</strong>: the text comes from <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md\"><code>editor/vscode/CHANGELOG.md</code></a> in the repository, and only the most recent <strong>8</strong> versions are shown here.",
+  "changelogFactLead": "Current published version",
+  "changelogFactRest": " · every version and every detail is in the <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md\">full CHANGELOG</a> · artifacts are on <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/releases\">Releases</a>.",
+  "tocLabel": "Version list",
+  "footerVersion": "version",
+  "footerSource": "Source",
+  "footerReleases": "Releases",
+  "footerBack": "Back to the home page",
+  "tocOlder": "106 older versions"
+}
+</script>
+<script src="assets/i18n.js"></script>
 <script src="assets/site.js" defer></script>
 </body>
 </html>

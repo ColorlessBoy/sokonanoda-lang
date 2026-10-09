@@ -24,19 +24,19 @@
 </head>
 
 <body>
-<a class="skip-link" href="#main">跳到正文</a>
+<a class="skip-link" href="#main" data-i18n="skip">跳到正文</a>
 
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="./">sokonanoda <small>形式化证明教学语言</small></a>
+    <a class="brand" href="./">sokonanoda <small data-i18n="brandTag">形式化证明教学语言</small></a>
     <nav aria-label="页面内导航">
       <ul>
-        <li><a href="#what">它是什么</a></li>
-        <li><a href="#start">怎么开始</a></li>
-        <li><a href="#courses">教材</a></li>
+        <li><a href="#what" data-i18n="navWhat">它是什么</a></li>
+        <li><a href="#start" data-i18n="navStart">怎么开始</a></li>
+        <li><a href="#courses" data-i18n="navCourses">教材</a></li>
       </ul>
     </nav>
-    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">跟随系统</button>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" data-i18n="themeSystem">跟随系统</button>
   </div>
 </header>
 
@@ -45,27 +45,28 @@
   <!-- ── 头图 ─────────────────────────────────────────────────────── -->
   <section class="section hero">
     <div class="wrap">
-      <h1>sokonanoda · 形式化证明教学语言</h1>
+      <h1 data-i18n="heroTitle">sokonanoda · 形式化证明教学语言</h1>
 
-      <p class="lead">
+      <p class="lead" data-i18n="heroLead">
         像写数学证明一样，一句一句写：<strong>目标实时可见</strong>，写错了
         <strong>内核告诉你</strong>。不用先学会一整套证明助手，也不用装工具链 ——
         装一个 VS Code 插件就能开始。
       </p>
 
       <p class="cta">
-        <a class="btn btn--primary" href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda">安装 VS Code 插件</a>
-        <a class="btn" href="#courses">开始第一课</a>
+        <a class="btn btn--primary" href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda" data-i18n="ctaInstall">安装 VS Code 插件</a>
+        <a class="btn" href="#courses" data-i18n="ctaStart">开始第一课</a>
       </p>
 
       <figure class="shot wide">
         <!-- 真 VS Code + 已发布插件截的真画面：光标停在 inter_comm 的 sorry 上，
              右边是内核算出来的目标。重新生成：node scripts/site-screenshot.mjs -->
         <img src="assets/hero-vscode.png" width="843" height="300" decoding="async"
+             data-i18n-alt="heroAlt"
              alt="VS Code 里的真实画面：左边是课程文件 units/I.1/unit04-extensionality-identities.sokonanoda，光标停在 theorem inter_comm 的 sorry 上；右边目标面板显示内核算出的目标 ⊢ (A ∩ B) = (B ∩ A)，以及假设 α : Type、A : Set α、B : Set α。">
         <figcaption>
-          真 VS Code + 已发布插件 <span class="ver" data-site-version>当前发布版本</span>，打开卷 I 单元④：
-          光标停在 <code>sorry</code> 上，右边是内核算出来的目标。图里没有任何摆拍内容。
+          <span data-i18n="heroCaptionLead">真 VS Code + 已发布插件</span>
+          <span class="ver" data-site-version>当前发布版本</span><span data-i18n="heroCaptionRest">，打开卷 I 单元④：光标停在 <code>sorry</code> 上，右边是内核算出来的目标。图里没有任何摆拍内容。</span>
         </figcaption>
       </figure>
     </div>
@@ -76,23 +77,23 @@
   <!-- ── 它是什么 ─────────────────────────────────────────────────── -->
   <section class="section" id="what">
     <div class="wrap">
-      <h2><span class="num">01</span>它是什么</h2>
+      <h2><span class="num">01</span><span data-i18n="whatHeading">它是什么</span></h2>
 
       <ul class="cards">
         <li>
-          <b>判定走真内核，不是对答案</b>
-          <span>你写的证明由完整内核重新检查一遍：接受就是接受，拒绝就给出诊断。
+          <b data-i18n="card1t">判定走真内核，不是对答案</b>
+          <span data-i18n="card1p">你写的证明由完整内核重新检查一遍：接受就是接受，拒绝就给出诊断。
           不是文本比对，也不是模型打分 —— 你看到绿色，是因为它真的算过。</span>
         </li>
         <li>
-          <b>目标实时可见</b>
-          <span>光标停在 <code>sorry</code> 上，面板就显示此刻<strong>要证的东西</strong>
+          <b data-i18n="card2t">目标实时可见</b>
+          <span data-i18n="card2p">光标停在 <code>sorry</code> 上，面板就显示此刻<strong>要证的东西</strong>
           （<code>⊢ (A ∩ B) = (B ∩ A)</code>）和手里已有的假设 —— 像纸上的推导一样，
           每一步都知道自己在证什么。</span>
         </li>
         <li>
-          <b>语法是 Lean 4 的子集</b>
-          <span>逻辑连接符、集合记法、<code>by</code> 与 tactic、归纳类型、宇宙、
+          <b data-i18n="card3t">语法是 Lean 4 的子集</b>
+          <span data-i18n="card3p">逻辑连接符、集合记法、<code>by</code> 与 tactic、归纳类型、宇宙、
           多文件 <code>import</code> 都按 Lean 4 的写法来。你在这里练的写法，
           在 Lean 4 里成立。</span>
         </li>
@@ -105,28 +106,28 @@
   <!-- ── 怎么开始 ─────────────────────────────────────────────────── -->
   <section class="section" id="start">
     <div class="wrap">
-      <h2><span class="num">02</span>怎么开始</h2>
+      <h2><span class="num">02</span><span data-i18n="startHeading">怎么开始</span></h2>
 
       <ol class="steps">
         <li>
-          <b>装插件</b>
-          <span>在 VS Code 里搜 <code>sokonanoda</code>，或者点上面的
+          <b data-i18n="step1t">装插件</b>
+          <span data-i18n="step1p">在 VS Code 里搜 <code>sokonanoda</code>，或者点上面的
           <a href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda">安装按钮</a>。
           扩展里<strong>自带</strong>判卷内核与命令行，不用装 Rust、不用装 Lean 工具链。</span>
         </li>
         <li>
-          <b>把教材拉下来，打开一个课程文件</b>
-          <span>课程就是一堆 <code>.sokonanoda</code> 文件：一份文件里既有讲解、也有留了
+          <b data-i18n="step2t">把教材拉下来，打开一个课程文件</b>
+          <span data-i18n="step2p">课程就是一堆 <code>.sokonanoda</code> 文件：一份文件里既有讲解、也有留了
           <code>sorry</code> 的练习。</span>
           <div class="cmd cmd--tight">
             <pre id="cmd-clone">git clone https://github.com/ColorlessBoy/sokonanoda-lang
 code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
-            <button class="copy" type="button" data-copy="#cmd-clone">复制</button>
+            <button class="copy" type="button" data-copy="#cmd-clone" data-i18n="copyIdle">复制</button>
           </div>
         </li>
         <li>
-          <b>把 sorry 填成证明</b>
-          <span>光标停在 <code>sorry</code> 上会看到目标；一行一行往下写，写对了内核放行，
+          <b data-i18n="step3t">把 sorry 填成证明</b>
+          <span data-i18n="step3p">光标停在 <code>sorry</code> 上会看到目标；一行一行往下写，写对了内核放行，
           写错了它会说清楚哪里不对。卡住就看同目录的提示，或者翻开解答。</span>
         </li>
       </ol>
@@ -138,37 +139,37 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
   <!-- ── 教材 ─────────────────────────────────────────────────────── -->
   <section class="section" id="courses">
     <div class="wrap">
-      <h2><span class="num">03</span>教材</h2>
+      <h2><span class="num">03</span><span data-i18n="coursesHeading">教材</span></h2>
 
-      <p>
+      <p data-i18n="coursesIntro">
         两门课，都在仓库里，都能离线做：每个单元是一份<strong>可编译的画布</strong>
         （讲解 + 带 <code>sorry</code> 的练习 + 提示），旁边配一份同构的解答。
       </p>
 
       <ul class="courses">
         <li>
-          <h3>入门课 · 十一个单元</h3>
-          <p>
+          <h3 data-i18n="course1t">入门课 · 十一个单元</h3>
+          <p data-i18n="course1p">
             从「命题与证明项」「等式与 <code>rfl</code>」讲到函数、<code>by</code> 写法、
             宇宙、归纳与递归、量词、关系与联结词，最后落到模块与项目。
             第一次接触形式化证明就从这里开始。
           </p>
           <p class="goto">
-            <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/course">打开 <code>course/</code></a>
-            <span class="tag">11 个单元</span>
+            <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/course" data-i18n="course1link">打开 <code>course/</code></a>
+            <span class="tag" data-i18n="course1tag">11 个单元</span>
           </p>
         </li>
         <li>
-          <h3>卷 I《集合论》</h3>
-          <p>
+          <h3 data-i18n="course2t">卷 I《集合论》</h3>
+          <p data-i18n="course2p">
             13 章、112 个单元画布：集合、子集与集合运算 → 关系、函数与基数 →
             序关系与序数 → 选择公理与 ZF → 集合代数 → 关系的代数。
             配一份课程标准库 <code>lib/</code>（引理名照 Mathlib 取证），一路走到
             Cantor 定理与 Russell 悖论。学完入门课再来。
           </p>
           <p class="goto">
-            <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory">打开 <code>courses/set-theory/</code></a>
-            <span class="tag">13 章 · 112 个单元</span>
+            <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory" data-i18n="course2link">打开 <code>courses/set-theory/</code></a>
+            <span class="tag" data-i18n="course2tag">13 章 · 112 个单元</span>
           </p>
         </li>
       </ul>
@@ -178,9 +179,9 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
   <!-- ── 它和 Lean 4 的关系 ───────────────────────────────────────── -->
   <section class="section" id="lean4">
     <div class="wrap">
-      <h2><span class="num">04</span>它和 Lean 4 的关系</h2>
+      <h2><span class="num">04</span><span data-i18n="lean4Heading">它和 Lean 4 的关系</span></h2>
 
-      <p>
+      <p data-i18n="lean4p1">
         这里的教学语法是<strong>真实 Lean 4 的子集</strong>：<code>∀ ∃ ∧ ∨ ¬ → ↔</code>、
         <code>a ∈ A</code> / <code>A ⊆ B</code> / <code>A ∩ B</code> 这些记法、
         <code>by</code> 加 <code>intro</code> / <code>exact</code> / <code>apply</code> /
@@ -188,14 +189,14 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
         宇宙 <code>Type u</code>、多文件 <code>import</code> —— 都按 Lean 4 的写法。
       </p>
 
-      <p>
+      <p data-i18n="lean4p2">
         差别只在<strong>范围</strong>：这里只有教一节课需要的那部分（没有类型类、
         没有 tactic 宏、没有 mathlib），判定由本项目的内核给出。所以
         <strong>你在这里练的写法，在 Lean 4 里成立</strong>；反过来不成立的地方，
         文档里会明说。
       </p>
 
-      <p class="fact">
+      <p class="fact" data-i18n="lean4fact">
         想核对细节：语言子集与边界写在
         <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/REQUIREMENTS.md">需求总账</a>
         与 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/docs/design">设计文档</a> 里；
@@ -208,18 +209,71 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
 
 <footer class="site-footer">
   <div class="wrap">
-    <span>版本 <span class="ver" data-site-version>当前发布版本</span> ·
+    <span><span data-i18n="footerVersion">版本</span> <span class="ver" data-site-version>当前发布版本</span> ·
       <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/NOTICE.md">Apache-2.0</a></span>
     <nav aria-label="页脚">
       <ul>
-        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang">源码</a></li>
-        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">Releases</a></li>
+        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang" data-i18n="footerSource">源码</a></li>
+        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases" data-i18n="footerReleases">Releases</a></li>
         <li><a href="changelog.html">Changelog</a></li>
       </ul>
     </nav>
   </div>
 </footer>
 
+<!-- 英文文案字典：**纯数据**（不是可执行脚本），check-site.py 会解析它做键对齐判据。 -->
+<script type="application/json" id="i18n-en">
+{
+  "title": "sokonanoda · a formal proof teaching language",
+  "description": "Write a proof one line at a time, the way you write it on paper: the goal stays in view, and when you get it wrong the kernel tells you. One VS Code extension is enough to start — no Rust, no Lean toolchain.",
+  "skip": "Skip to content",
+  "brandTag": "a formal proof teaching language",
+  "navWhat": "What it is",
+  "navStart": "Getting started",
+  "navCourses": "Courses",
+  "themeSystem": "System",
+  "heroTitle": "sokonanoda · a formal proof teaching language",
+  "heroLead": "Write a proof the way you write it on paper — one line at a time, with the <strong>goal always in view</strong> and a <strong>kernel that tells you</strong> when you get it wrong. No proof assistant to learn first, no toolchain to install: one VS Code extension is enough to start.",
+  "ctaInstall": "Install the VS Code extension",
+  "ctaStart": "Start the first lesson",
+  "heroAlt": "A real VS Code window: on the left, the course file units/I.1/unit04-extensionality-identities.sokonanoda with the caret on the sorry of theorem inter_comm; on the right, the goal panel showing the goal the kernel computed — ⊢ (A ∩ B) = (B ∩ A) — with the hypotheses α : Type, A : Set α and B : Set α.",
+  "heroCaptionLead": "Real VS Code with the published extension",
+  "heroCaptionRest": ", opening Volume I unit ④: the caret sits on <code>sorry</code> and the panel on the right shows the goal the kernel computed. Nothing in this image is staged.",
+  "whatHeading": "What it is",
+  "card1t": "A real kernel decides, not answer-matching",
+  "card1p": "Your proof is re-checked by a full kernel: accepted means accepted, and a rejection comes with a diagnostic. It is not text comparison and not a model's opinion — when you see green, it really computed.",
+  "card2t": "The goal is always in view",
+  "card2p": "Put the caret on a <code>sorry</code> and the panel shows <strong>what you have to prove right now</strong> (<code>⊢ (A ∩ B) = (B ∩ A)</code>) together with the hypotheses you already have — like a derivation on paper, you always know what you are proving.",
+  "card3t": "The syntax is a subset of Lean 4",
+  "card3p": "Connectives, set notation, <code>by</code> and its tactics, inductive types, universes, multi-file <code>import</code> — all written the way Lean 4 writes them. What you practise here holds in Lean 4.",
+  "startHeading": "Getting started",
+  "step1t": "Install the extension",
+  "step1p": "Search for <code>sokonanoda</code> in VS Code, or use the <a href=\"https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda\">install button</a> above. The extension <strong>bundles</strong> the kernel and the command line — no Rust, no Lean toolchain.",
+  "step2t": "Clone the course and open a file",
+  "step2p": "The course is a set of <code>.sokonanoda</code> files: each one carries explanations and exercises with a <code>sorry</code> left for you.",
+  "step3t": "Turn sorry into a proof",
+  "step3p": "Put the caret on <code>sorry</code> to see the goal, then write line by line: the kernel lets you through when it is right and says what is wrong when it is not. Stuck? Read the hints in the file, or open the solution next to it.",
+  "coursesHeading": "Courses",
+  "coursesIntro": "Two courses, both in the repository and both usable offline: every unit is a <strong>compilable canvas</strong> (explanations + exercises with <code>sorry</code> + hints) with a matching solution beside it.",
+  "course1t": "Intro course · eleven units",
+  "course1p": "From \"propositions and proof terms\" and \"equality and <code>rfl</code>\" through functions, <code>by</code> tactics, universes, induction and recursion, quantifiers, relations and connectives, and finally modules and projects. Start here if formal proofs are new to you.",
+  "course1link": "Open <code>course/</code>",
+  "course1tag": "11 units",
+  "course2t": "Volume I: Set Theory",
+  "course2p": "13 chapters, 112 unit canvases: sets, subsets and set operations → relations, functions and cardinality → order relations and ordinals → the axiom of choice and ZF → set algebra → the algebra of relations. Comes with a course library <code>lib/</code> (lemma names taken from Mathlib) and runs all the way to Cantor's theorem and Russell's paradox. Do the intro course first.",
+  "course2link": "Open <code>courses/set-theory/</code>",
+  "course2tag": "13 chapters · 112 units",
+  "lean4Heading": "How it relates to Lean 4",
+  "lean4p1": "The teaching syntax here is a <strong>subset of real Lean 4</strong>: <code>∀ ∃ ∧ ∨ ¬ → ↔</code>, notation such as <code>a ∈ A</code> / <code>A ⊆ B</code> / <code>A ∩ B</code>, <code>by</code> with <code>intro</code> / <code>exact</code> / <code>apply</code> / <code>cases</code> / <code>constructor</code>, inductive types and recursion, universes <code>Type u</code>, multi-file <code>import</code> — all written the way Lean 4 writes them.",
+  "lean4p2": "The difference is <strong>scope</strong>: only the part one lesson needs is here (no type classes, no tactic macros, no mathlib), and the verdict comes from this project's kernel. So <strong>what you practise here holds in Lean 4</strong>; where it does not, the documentation says so.",
+  "lean4fact": "To check the details: the language subset and its boundaries live in the <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/REQUIREMENTS.md\">requirements ledger</a> and the <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/docs/design\">design documents</a>; every deviation from Lean 4 is either sourced or marked as a design decision.",
+  "footerVersion": "version",
+  "footerSource": "Source",
+  "footerReleases": "Releases",
+  "copyIdle": "Copy"
+}
+</script>
+<script src="assets/i18n.js"></script>
 <script src="assets/site.js" defer></script>
 </body>
 </html>

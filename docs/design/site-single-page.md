@@ -32,7 +32,7 @@ site/
   index.html             ← 首页：头图 / 它是什么 / 怎么开始 / 教材 / 与 Lean 4 的关系
   changelog.html         ← 更新日志子页（**生成物**，源 editor/vscode/CHANGELOG.md）
   assets/site.css        ← 唯一的样式表（令牌 + 组件，自带亮/暗两套）
-  assets/site.js         ← 唯一的脚本（主题切换 / 版本回填 / 复制）· fonts.css 自托管字体
+  assets/site.js         ← 唯一的脚本（主题切换 / 版本回填 / 复制）· i18n.js 中英文自动识别 · fonts.css 自托管字体
   assets/hero-vscode.png ← 头图：**真 VS Code + 已发布插件**的截图（生成物，见 §4）
   data/site.json         ← 生成物：已发布版本（**唯一**版本号来源）
   favicon.svg  robots.txt  sitemap.xml  llms.txt  .nojekyll
@@ -46,17 +46,22 @@ site/
 单元画布）→ **它和 Lean 4 的关系**（写法是 Lean 4 的子集，练的写法在 Lean 4 里成立；
 没有类型类 / tactic 宏 / mathlib 也说清楚）。
 
-子页 `changelog.html`：最近 10 个版本的正文 + 全部版本直链 —— **只放 10 个**是因为站点
-有 120 KB 的体积预算，而整份 CHANGELOG 是 160 KB 量级的 Markdown。
+**中英文自动识别**（2026-10-09 追加需求）：静态 HTML 默认中文，每页页尾一份
+`<script type="application/json" id="i18n-en">` 英文文案字典 + `assets/i18n.js`（**同步**执行，
+换文案发生在首帧之前）—— `navigator.languages` 里**任何**一个 zh\* 保持中文，否则整页换英文；
+**没有开关、没有重定向、没有 `?lang=`**（用户点名）。没有 JS 时页面就是完整中文版 ✓。
+
+子页 `changelog.html`：最近 8 个版本的正文 + 全部版本直链 —— **只放 8 个**是因为站点
+有 120 KB 的体积预算，而整份 CHANGELOG 是 160 KB 量级的 Markdown（加第二语言 +13 KB 后
+从内容侧省回来，不抬预算 ✓）。
 
 ## 3. 保留了什么，为什么
 
-**设计语言整体保留**：方格纸背景、发丝线、零圆角结构容器、绿=内核通过过的东西 /
-朱=诊断与诚实的限制的语义纪律、17px 中文锚点、40rem 行长、自托管字体子集 —— 它们是
-从题目推出来的选择（产物是判定 ⇒ 颜色由判定驱动），不是模板默认值。**被删掉的是受众
-错位，不是主张。** 版本号机制、主题切换、`.nojekyll`、`site.js` 的三个钩子全部沿用；新增结构只有两处：`.wide`（截图与卡片比正文栏宽一档 —— 40rem 是**读**的约束，不是版面
-的约束）与 `.btn`（主按钮走**墨色**，不走绿：绿是"内核真的通过过"的语义色，拿去当行动
-色会把语义稀释掉）。
+**设计语言整体保留**：方格纸背景、发丝线、零圆角结构容器、绿=内核通过过的东西 / 朱=诊断与
+诚实的限制的语义纪律、17px 中文锚点、40rem 行长、自托管字体子集 —— 它们是从题目推出来的
+选择（产物是判定 ⇒ 颜色由判定驱动），不是模板默认值。**被删掉的是受众错位，不是主张。**
+版本号机制、主题切换、`.nojekyll`、`site.js` 的三个钩子全部沿用；新增结构只有三处：`.wide`
+（截图与卡片比正文栏宽一档）、`.btn`（主按钮走**墨色**，不走绿：绿是语义色，拿去当行动色会稀释它）与 `assets/i18n.js`（语言，见 §2）。
 
 ## 4. 头图与更新日志：两份生成物，各有判据
 
@@ -65,14 +70,9 @@ site/
 VSIX** → 干净 profile 起真 VS Code → 把光标停在课程单元里 `inter_comm` 的 `sorry` 上 →
 走命令面板打开目标面板 → **等**面板里出现 `⊢` 才截图 → 按 DOM 量出来的矩形裁切。
 
-用 **CDP**（`--remote-debugging-port`）而不是 `screencapture`：后者要 macOS「屏幕录制」权限，本机实测被拒（`could not create image from display`）⇒ 不可复现。⚠ 带 `clip` 的
-`Page.captureScreenshot` 会**按裁切框重排页面**（实测面板内容漂了 80+ px）⇒ 一律整窗
-截图 + `sips --cropOffset` 裁切。**判据落在像素上**：截完用系统 Vision OCR 回读，逐条
-断言图里真的有定理名、`sorry`、面板里的目标等式与假设；缺一条就**删掉图**并退出码 1。
+用 **CDP**（`--remote-debugging-port`）而不是 `screencapture`：后者要 macOS「屏幕录制」权限，本机实测被拒（`could not create image from display`）⇒ 不可复现。⚠ 带 `clip` 的 `Page.captureScreenshot` 会**按裁切框重排页面**（实测面板内容漂了 80+ px）⇒ 一律整窗截图 + `sips --cropOffset` 裁切。**判据落在像素上**：截完用系统 Vision OCR 回读，逐条断言图里真的有定理名、`sorry`、面板里的目标等式与假设；缺一条就**删掉图**并退出码 1。
 
-**更新日志是生成物**：`scripts/gen-site-changelog.py` 从 `editor/vscode/CHANGELOG.md`
-生成 `site/changelog.html`（带生成标记）；`check-site.py` 的 `changelog` 项**重新生成一次
-并逐字节比对** ⇒ "忘了重新生成"判红，而不是悄悄漂移。
+**更新日志是生成物**：`scripts/gen-site-changelog.py` 从 `editor/vscode/CHANGELOG.md` 生成 `site/changelog.html`（带生成标记）；`check-site.py` 的 `changelog` 项**重新生成一次并逐字节比对** ⇒ "忘了重新生成"判红，而不是悄悄漂移。
 
 ## 5. 防漂移的机制
 
@@ -84,21 +84,20 @@ VSIX** → 干净 profile 起真 VS Code → 把光标停在课程单元里 `int
 | 头图宽高比与 `<img>` 一致 | `assets` 项（读 PNG 头 + `<img width/height>`） | 图被压扁这件事，光看页面看不出来 |
 | 横向溢出 | `layout` 项（`--browser`） | 实测抓到两个：CHANGELOG 里 836px 不可断行的测试路径、`.wide` 被组件 `margin` 简写覆盖 |
 
-`check-site.py` 的 10 项（`--browser` 另加 2 项）：`pages`（恰好这两页、无内部目录）·
+`check-site.py` 的 11 项（`--browser` 另加 2 项）：`pages`（恰好这两页、无内部目录）·
 `sitemap`（与页面集合**双向**相等）· `links`（站内引用与锚点可解析，**含跨页锚点**）·
-`css-urls` · `version`（每页有回填钩子 + 除生成物外零写死版本号）· `meta`（head 元数据
-齐全 + 每页只允许一段内联 script）· `markup`（标签配对 + 无内联 `style=`）· `assets`
-（位图**只允许**头图、有预算、宽高比一致；html+css+js ≤ 120 KB）· `data`（与最新 tag
-一致）· `changelog`（逐字节）· `render` / `layout`（真 Chrome）。
+`css-urls` · `version`（每页有回填钩子 + 除生成物外零写死版本号）· `meta`（head 元数据齐全 +
+每页只允许一段**可执行**内联 script）· `i18n`（字典合法 + **与 DOM 的 `data-i18n*` 键逐个对齐**，
+漏译/多译判红）· `markup` · `assets`（位图**只允许**头图、有预算、宽高比一致；html+css+js
+≤ 120 KB）· `data`（与最新 tag 一致）· `changelog`（逐字节）· `render` / `layout`（真 Chrome；
+`render` 用 `--accept-lang` 跑**两种浏览器语言**，判"中文读者看中文 / 其它语言看英文"）。
 
-**发布之后**：跑 `gen-site-data.py` 与 `gen-site-changelog.py` 把新版本写进数据与子页
-（两者的 `--check` 会因此判红，这是有意的：本地绿必须意味着"仓库里写的就是线上写的"）。
-头图不必每次重截 —— 只在 UI 变化时重跑 `node scripts/site-screenshot.mjs`。
+**发布之后**：跑 `gen-site-data.py` 与 `gen-site-changelog.py` 把新版本写进数据与子页（两者的 `--check` 会因此判红，这是有意的：本地绿必须意味着"仓库里写的就是线上写的"）。头图不必每次重截 —— 只在 UI 变化时重跑 `node scripts/site-screenshot.mjs`。
 
 ## 6. 已知边界
 
 - **单页放不下细节**：tactic 白名单、诊断码表、语言子集的完整边界仍只在仓库文档里。
   页面只给"是什么 + 怎么开始"，不试图成为手册。
-- **中英双语已取消**（2026-09-21 起的决定，本次不改）。
+- **中英双语是"识别"不是"开关"**：没有切换按钮、不做两个页面、不加 `?lang=`；字典与页面文案的键对齐由 `i18n` 项判死，两种语言的渲染由 `render` 项在真浏览器里判 ✓。
 - **子页只有更新日志**：不做文档站。真要加，先问"谁来同步这个事实"。
 - **`--browser` 不在 CI 里跑**：收益不如留作发布前的本地门禁。

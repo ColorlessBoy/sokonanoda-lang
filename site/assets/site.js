@@ -18,7 +18,13 @@
   var doc = document.documentElement;
   var THEME_KEY = "soko-theme";
   var ORDER = ["system", "light", "dark"];
-  var LABEL = { system: "跟随系统", light: "浅色", dark: "深色" };
+
+  /* 语言：`assets/i18n.js` 已经判定过（并且把静态文案换好了），这里只取**运行期**
+     还要用的那几个字（按钮标签）。没有它（脚本没跑、字典坏了）就退回中文 ——
+     页面在那种情况下本来就是完整中文版 ✓。 */
+  var I18N = window.SOKO_I18N || null;
+  var LABEL = (I18N && I18N.theme) || { system: "跟随系统", light: "浅色", dark: "深色", prefix: "配色：", suffix: "（点击切换）" };
+  var COPY = (I18N && I18N.copy) || { idle: "复制", done: "已复制" };
 
   /* ── 主题 ───────────────────────────────────────────────────────── */
   function readTheme() {
@@ -40,7 +46,7 @@
     }
     var buttons = document.querySelectorAll("[data-theme-toggle]");
     for (var i = 0; i < buttons.length; i++) {
-      buttons[i].setAttribute("aria-label", "配色：" + LABEL[mode] + "（点击切换）");
+      buttons[i].setAttribute("aria-label", LABEL.prefix + LABEL[mode] + LABEL.suffix);
       buttons[i].textContent = LABEL[mode];
     }
   }
@@ -95,10 +101,10 @@
         var text = target.textContent;
         var done = function () {
           button.setAttribute("data-copy-state", "done");
-          button.textContent = "已复制";
+          button.textContent = COPY.done;
           window.setTimeout(function () {
             button.removeAttribute("data-copy-state");
-            button.textContent = "复制";
+            button.textContent = COPY.idle;
           }, 1600);
         };
         if (navigator.clipboard && navigator.clipboard.writeText) {

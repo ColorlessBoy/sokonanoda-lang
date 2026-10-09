@@ -23,8 +23,8 @@ harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deeps
 「单页四节」版与 2026-09-20 的 28 页重构（**原文已删** ⇒ `git log --all -- docs/archive/site-rebuild-2026-09-26/` ✗）。验收：
 
 ```bash
-python3 scripts/check-site.py            # 10 项：结构 + 链接 + 版本 + 元数据 + 体积 + 已发布版本一致 + 更新日志逐字节
-python3 scripts/check-site.py --browser  # 另加两项真 Chrome（两页零 404 + 版本已回填 · 4 个宽度零横向溢出）
+python3 scripts/check-site.py            # 11 项：结构 + 链接 + 版本 + 元数据 + 体积 + 已发布版本一致 + 更新日志逐字节 + **中英文文案键对齐**
+python3 scripts/check-site.py --browser  # 另加两项真 Chrome（两页 × **两种浏览器语言** 零 404 + 版本已回填 · 4 个宽度零横向溢出）
 ```
 
 **站点写的是「已发布版本」的事实。** 本仓库常有并行开发，`crates/` 与 `courses/`
