@@ -980,8 +980,16 @@ async function main(argv) {
           const libCrates = crates.filter(hasLib)
           const binCrates = crates.filter((c) => !hasLib(c))
           const runs = []
-          if (libCrates.length) runs.push(['-p', ...libCrates, '--lib'])
-          if (binCrates.length) runs.push(['-p', ...binCrates, '--bins'])
+          // ⚠ **每个 crate 各自一个 `-p`**（2026-10-10 修，两个独立执行者都撞到）：
+          // `['-p', a, b, '--lib']` 里**第二个包名被 cargo 当成测试名过滤器**
+          // （`-p` 只吃一个值）⇒ 实测 `0 passed … 910 filtered out`：
+          // **第二个 crate 的单测从来没跑过** ✗ —— 「咬不住的守卫等于没有」的同族。
+          // 判据：`+ cargo test -p <a> -p <b> --lib` 这一行必须**每个包各带一个 `-p`**，
+          // 且两个 crate 的用例数都非 0（实测 `-p sokonanoda-front -p sokonanoda-lsp --lib`
+          // ⇒ 910 + 198 passed）。
+          const pkgFlags = (cs) => cs.flatMap((c) => ['-p', c])
+          if (libCrates.length) runs.push([...pkgFlags(libCrates), '--lib'])
+          if (binCrates.length) runs.push([...pkgFlags(binCrates), '--bins'])
           if (runs.length === 0) {
             process.stderr.write('scripts/soko gate --fast: 改动过的 crate 都没有可跑的 target（跳过）\n')
           }
