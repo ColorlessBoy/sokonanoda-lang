@@ -892,7 +892,7 @@ fn run_library_pass<'a>(
     key: String,
 ) -> LibCheckpoint<'a> {
     // 影子不建：`None` ⇒ 不需要额外的局部 arena，见 `run_pass_with` 的注释。
-    let (lib_pass, builder, tables, _state) = run_pass_with(
+    let (lib_pass, builder, tables, _state, _tail) = run_pass_with(
         builder, None, true, tables, lib_units, options, true, None, None, None, None, None, None,
         // 建议材料：库层趟按 `lib_units` 自己算 ✓。
         None,
@@ -900,7 +900,7 @@ fn run_library_pass<'a>(
         // **同坐标系** ✓ ⇒ 不平移。
         0,
         // **T1-A**：整条库层一趟那条路**不要**续编状态（它是"逐模块"那条的分支）。
-        false, None,
+        false, None, None, false, false,
     );
     // **G-29 第 3 棒**：入口趟的 `idx` 是**入口空间**的，而 judge 的合成前缀是
     // **整条闭包** ⇒ 压栈的担保必须平移"**库层那一段的命令数**" ✓，否则
@@ -988,7 +988,7 @@ fn run_library_from<'a>(
         let j = cursor.next;
         let units_j: &'a [SourceUnit<'a>] = &lib_units[j..=j];
         let prefix_j: [String; 1] = [prefixes[j].clone()];
-        let (pass, builder, tables, state) = run_pass_with(
+        let (pass, builder, tables, state, _tail) = run_pass_with(
             cursor.builder,
             None,
             // prelude **只在调用方那一步装一次**（见调用点的注释）✓。
@@ -1008,6 +1008,9 @@ fn run_library_from<'a>(
             // 本趟结束 = **模块边界** ⇒ 要那份续编状态 ✓。
             true,
             cursor.resume.take(),
+            None,
+            false,
+            false,
         );
         let n_cmds = pass.n_commands;
         let checks = pass.kernel_checks();
@@ -1165,7 +1168,7 @@ fn run_entries<'a, R>(
         };
         // **S2 步 2**：该入口这一趟的信任前缀（缺省 = 整份重查，与今天逐字节相同）。
         let trusted = entry_trust.get(index).and_then(|slot| slot.as_ref());
-        let (pass, _next, _next_tables, _state) = run_pass_with(
+        let (pass, _next, _next_tables, _state, _walk_tail) = run_pass_with(
             builder,
             None,
             false,
@@ -1189,6 +1192,14 @@ fn run_entries<'a, R>(
             // **T1-A**：入口趟**不要**续编状态（它不做逐模块检查点）。
             false,
             None,
+            // **T2-B**：`resume_walk`/`snapshot_walk` 仍关（**接线待下一刀**：
+            // 报告侧累加器与 `EntryCache` 前缀拼接**各算一份** ⇒ 报告里每条声明
+            // 出现两次 ✗ —— 守卫 `t2b_resumed_report_has_no_duplicate_declarations`
+            // 逮到了它 ⇒ **不许带着它落地** ✗）；`count_entry_commands = true` ✓
+            // ⇒ 判据读数（"改最后一条 ⇒ 1"）先量着、机制已就绪。
+            None,
+            false,
+            true,
         );
         let entry_range = lib_n..lib_n + pass.n_commands;
         // 读在 `pass.report` 被搬走**之前**（`split_report` 会吃掉它）。

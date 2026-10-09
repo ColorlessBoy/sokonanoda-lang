@@ -160,11 +160,40 @@ pub struct EnvSnapshot<'a> {           // Clone = O(1)
   **T2-B 落地后改判成 `== 1`，不许放宽** ✗）。
 * 红线：全课程 `--json` 逐字节 + `keystroke_structure.rs` 既有四条断言**一个字不放松**。
 
-### 6.4 落地顺序（三步，每步自带判据）
+### 6.4 as-built（2026-10-09 落地 ✓）
 
-1. `Walk` 的**快照/恢复**一对方法（`checkpoint()` / `restore_from(cp)`）+ 命令边界记账 ✓（记账已做）；
-2. **有界窗口 W=4** + 入口趟**泄漏 arena** ⇒ 跨按键真的命中；
-3. 判据**改判**（`≥ N` → `== 1`）+ 反向验证 + `--json` 逐字节。
+* **第 1 步（形状）**：`WalkCheckpoint`（**只装 `Walk` 的字段** + 四个循环局部量 ⇒
+  恢复时前缀**整段跳过**，不必"重放记账" —— 重放会把 `namespace`/`open` 的累加抹掉 ✗）
+  ＋ `Walk::checkpoint()` / `restore_from()`；`run` 收 `resume: Option<&WalkCheckpoint>` 与
+  `snapshot_tail`，前缀用 `continue` 跳过 ✓。
+* **第 2 步（跨按键）**：**关键前置件 = 把 units 与 arena 寿命解绑**
+  （`run_pass_with` / `install_all_preludes` / `run_entries` 的 `&[SourceUnit<'_>]`）——
+  否则"入口趟跑在 `'static` arena 上"与"units 是本次调用的"不可能同时成立 ✗。
+  检查点存线程局部 `ENTRY_TAILS`（`RefCell<Vec<EntryTail<'static>>>`，去重 + 上界 8 ✓），
+  只在 `LibCheckpoint` 是 `'static` 的三条路（LRU 命中 / 磁盘产物 / 整条重建）接；
+  栈上 arena 那两条（CLI / 前缀续编）传 `None` ⇒ **与今天逐字节相同** ✓。
+* **本轮的界**：只留**一个**边界（`cp.idx = 命令数 − 2`，W = 1）⇒ 满足判据
+  "改**最后一条** ⇒ 1" ✓；"改第 k 条 ⇒ N−k+1"要**有界窗口 W>1**（每边界一份）⇒ 下一刀 ✓。
+* **读数收口**：判据只数**入口趟**（`count_entry_commands`；不数库层/别的趟 ✗）
+  ⇒ 今天 = **入口命令数 N**（本夹具 12）；先建先红那一版是 43（没收口时）✓。
+* ⚠ **会话接线试过、已撤**（2026-10-09）：机制命中时判据确实读到 **1** ✓，但**正确性守卫
+  当场逮到**：装回报告侧累加器（`decl_states`/`out`/`ops`/`cmd_hovers`）之后，
+  **`EntryCache` 的前缀拼接又给了一份** ⇒ 报告里每条声明**出现两次**（22 vs 13 ✗）。
+  按红线**不许带着它落地** ✗ ⇒ 这一刀只留**机制 + 读数**（`resume_walk: None` /
+  `snapshot_walk: false`），接线回到"与今天逐字节相同" ✓。
+* **下一刀的三件（缺一不可）**：
+  1. **报告的所有权定死**：前缀的报告**要么**来自快照、**要么**来自 `EntryCache` 拼接
+     —— 二选一，不许两边都算 ✗（先读 `query/mod.rs` 的 `splice_entry_report`
+     与 `run_entries` 的 `lib.reports` 合并顺序再动手）；
+  2. **正确性守卫放回**：一条"报告里每条声明恰好一次 + 被改的那条真的 `Checked`"
+     （已试过、有牙 ✓）；
+  3. **干净的 A/B**：`QueryDoc` 的信任前缀缓存是**线程局部按内容键**的 ⇒ 同进程两臂
+     互相喂缓存、**不可比** ✗ ⇒ 要**进程隔离**（真 LSP 子进程 + 每臂全新缓存，
+     同 `crates/lsp/tests/perf_keystroke_wallclock.rs`），或 CLI 侧的等价装置 ✓。
+* **本轮已备好的前置件**（都在位、且**行为零变化** ✓）：`WalkCheckpoint` /
+  `checkpoint()` / `restore_from()` / `run` 的 `resume`+`snapshot_tail` /
+  `run_pass_with` 的三个参数 / units 与 arena **寿命解绑**（`run_pass_with` ·
+  `install_all_preludes` · `run_entries`）/ 线程局部读数（`note_elaborated_command`）。
 
 > ⚠ **它单独不解决 goal 延迟**：T2-B 只回答"**从哪条开始编**"；要 goal 进 3ms 量级
 > 还需要**按命令发布** goal 状态（Lean 的 `AsyncList` + `waitFindAtPos`，见

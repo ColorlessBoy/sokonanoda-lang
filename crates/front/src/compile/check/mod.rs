@@ -759,6 +759,9 @@ fn pass_trace_spec() -> Option<&'static str> {
 /// 进程内 `by` 引擎调用次数（**只给判据用**：集成测试各自独立进程 ⇒ 天然隔离，
 /// lib 内并行测试会互相干扰 —— 实测过）。
 #[doc(hidden)]
+#[allow(unused_imports)]
+pub(crate) use walk::WalkCheckpoint;
+
 pub fn by_calls_total() -> u64 {
     stage_stats::BYS.load(std::sync::atomic::Ordering::Relaxed)
 }
@@ -804,7 +807,20 @@ pub fn closure_module_compiles_total() -> u64 {
 /// 先写死"今天的行为"，T2-B 落地后**改判成 1，不许放宽** ✗）。
 #[doc(hidden)]
 pub fn elaborated_commands_total() -> u64 {
-    stage_stats::ELABORATED_COMMANDS.load(std::sync::atomic::Ordering::Relaxed)
+    stage_stats::TL_ELABORATED.with(|c| c.get())
+}
+
+/// **记一条"真的 elaborate 过的命令"**（只由 `walk` 的入口趟调用 ✓）。
+///
+/// ⚠ **线程局部**（不是进程级原子）：同一个**测试二进制**里的用例**并行**跑，
+/// 进程级计数会被别的夹具污染 ⇒ `Counters::now()` 取差读到别人的增量 ✗
+/// （实测：单独跑 `t2b` 读到 1 ✓，整包跑读到 33 ✗ —— 那不是机制坏了，是量具串味）。
+/// 取差与断言都发生在**同一个线程**（`QueryDoc::set_text` 是同步的 ✓）⇒ 线程局部即可 ✓。
+/// 同时**也**累加进程级那一份，供 `SOKO_STAGE_STATS` 的退出打印（诊断用 ✓）。
+#[doc(hidden)]
+pub fn note_elaborated_command() {
+    stage_stats::TL_ELABORATED.with(|c| c.set(c.get() + 1));
+    stage_stats::ELABORATED_COMMANDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 }
 
 pub(crate) mod stage_stats {
@@ -812,8 +828,12 @@ pub(crate) mod stage_stats {
 
     pub(crate) static PASS_NANOS: AtomicU64 = AtomicU64::new(0);
     pub(crate) static PASSES: AtomicU64 = AtomicU64::new(0);
-    /// **真的 elaborate 过的命令条数**（T2-B 的判据读数；`walk` 的命令循环里 +1）。
+    /// **真的 elaborate 过的命令条数**（进程级；只给 `SOKO_STAGE_STATS` 的退出打印 ✓）。
     pub(crate) static ELABORATED_COMMANDS: AtomicU64 = AtomicU64::new(0);
+    thread_local! {
+        /// **判据读数（线程局部）** —— 见 [`super::note_elaborated_command`] 的 ⚠。
+        pub(crate) static TL_ELABORATED: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+    }
     /// 模块编译次数（切片 1 / G-68 的判据读数）。
     pub(crate) static MODULE_COMPILES: AtomicU64 = AtomicU64::new(0);
     /// **闭包模块编译次数**（G-29 的精确读数）：只数 `path: Some(..)` 的真模块。
@@ -981,7 +1001,9 @@ pub(crate) fn install_all_preludes<'a>(
     known: &mut KnownTable,
     inductives: &mut InductiveTable<'a>,
     defs: &mut DefTable,
-    units: &[SourceUnit<'a>],
+    // **T2-B（探针）**：与 arena 寿命解绑（prelude 只**读**源码、往 builder 里放
+    // 的是 arena 内新 allocation ⇒ 不需要 units 活得像 arena 一样久 ✓）。
+    units: &[SourceUnit<'_>],
     options: &CompileOptions,
 ) {
     match options.prelude {
@@ -1090,6 +1112,11 @@ fn run_pass_in<'a>(
         // **T1-A**：老路不要续编状态、也不从断点起跑（逐字节回到今天 ✓）。
         false,
         None,
+        // **T2-B**：老路既不给快照、也不要快照（逐字节回到今天 ✓）；
+        // 也不是"入口趟" ⇒ 不数它的命令 ✓。
+        None,
+        false,
+        false,
     )
     .0
 }
@@ -1384,7 +1411,10 @@ pub(crate) fn run_pass_with<'a, 's>(
     install_preludes: bool,
     // **切片 1b**：prelude 登记表（跨趟复用；库层趟装好，入口趟接着用）。
     tables: PassTables<'a>,
-    units: &'a [SourceUnit<'a>],
+    // **T2-B（探针）**：units 与 arena 寿命**解绑**（`&[SourceUnit<'_>]`）——
+    // 只有解绑之后，"入口趟跑在 `'static` arena 上"才可能与"units 是本次调用的"
+    // 同时成立 ⇒ 命令级快照才存得进线程局部 ✓。
+    units: &[SourceUnit<'_>],
     options: &CompileOptions,
     collect: bool,
     skip: Option<&KernelFailed>,
@@ -1420,11 +1450,24 @@ pub(crate) fn run_pass_with<'a, 's>(
     // **T1-A**：本趟是"**接着某个模块边界继续编**" ⇒ 用它的 walk 状态起跑
     // （见 [`ResumeState`]）。`None` ⇒ **与今天逐字节相同** ✓。
     resume: Option<ResumeState>,
+    // **T2-B（2026-10-09）**：从一份**命令边界快照**续编（`flat[..=cp.idx]` 整段跳过）。
+    // `None` ⇒ **与今天逐字节相同** ✓。
+    //
+    // 类型是 `walk::WalkCheckpoint<'a, 's>`：它只借 arena（`'a`）**不借源码**
+    //（`Walk` 结构体不带 `'src`）⇒ 只有"入口趟跑在 `'static` arena 上"那一条路
+    // 才存得进线程局部 ✓（会话的 ③ 重建路就是这样；栈上 arena 那条路传 `None` ✓）。
+    resume_walk: Option<walk::WalkCheckpoint<'a>>,
+    // **T2-B**：跑完取一份**边界快照**交回调用方（`false` ⇒ 与今天逐字节相同 ✓）。
+    snapshot_walk: bool,
+    // **T2-B 的读数开关**：这一趟是**入口趟** ⇒ 它的命令数进
+    // [`elaborated_commands_total`]（判据的"elaborate 命令数"只数入口趟 ✓）。
+    count_entry_commands: bool,
 ) -> (
     PassResult,
     EnvBuilder<'a>,
     PassTables<'a>,
     Option<ResumeState>,
+    Option<walk::WalkCheckpoint<'a>>,
 )
 where
     'a: 's,
@@ -1583,7 +1626,9 @@ where
         snapshot_state,
         resume_out: None,
     };
-    walk.run(
+    // **T2-B**：`resume_walk` ⇒ 从命令边界快照续编；`snapshot_walk` ⇒ 跑完取一份
+    // 尾边界快照交回调用方（两者默认 `None`/`false` ⇒ **逐字节回到今天** ✓）。
+    let walk_tail = walk.run(
         units,
         &flat,
         options,
@@ -1592,6 +1637,9 @@ where
         &all_templates,
         closure_prefixes,
         progress,
+        resume_walk.as_ref(),
+        snapshot_walk,
+        count_entry_commands,
     );
     // **T-K12b 的一致性观测**：把影子环境推进到"全部已 elaborate 的前缀"
     // （`finish_pass` 会把 `walk` 的字段移走 ⇒ 必须在这之前取数 ✓）。
@@ -1703,7 +1751,13 @@ where
             );
         }
     }
-    (pass, walk.builder, tables, walk.resume_out.take())
+    (
+        pass,
+        walk.builder,
+        tables,
+        walk.resume_out.take(),
+        walk_tail,
+    )
 }
 
 /// Every top-level name this file declares, mapped to the span of the command

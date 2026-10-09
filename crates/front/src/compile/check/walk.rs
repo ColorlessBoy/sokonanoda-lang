@@ -200,6 +200,49 @@ pub(super) struct Walk<'arena: 'shadow, 'shadow> {
     pub(super) resume_out: Option<crate::compile::ResumeState>,
 }
 
+/// **T2-B：命令边界上的 walk 状态快照**（`PLAN-align-lean4` §3.3 · 设计档 §6.1）。
+///
+/// ## 它装什么、为什么装这些
+///
+/// **只装 [`Walk`] 的字段**（= 累加器），**不装 `run` 的循环局部量** ——
+/// `unit_seen` / `closure_ids` / `closure_acc` / `prev_unit` 那几件都是 `units`/`flat`
+/// 的**纯函数**（不含 elaborate 结果）⇒ 恢复时由循环体**重放**（跳过 elaborate 即可）✓。
+/// 少装一份就少一处"恢复出来的不是同一个判定"的风险 ✗。
+///
+/// ⚠ **`entered` 要深拷贝**（它是 `Rc<RefCell<HashSet>>`，克隆只共享同一格 ✗ ——
+/// 那种"快照"会跟着后面的命令一起长 ⇒ 恢复出来的不是命令 k 的状态 ✗）。
+///
+/// ⚠ **不含 `Dag`（intern 表）**：依据是 [`crate::compile::check`] 的单调 intern 引理
+/// （表只增不删、节点不可变 ⇒ 用更新的表重放旧命令，指针逐字节相同 ✓）⇒
+/// `builder` 里的 `Dag` 由**活的那一份**继续用 ✓（判据⑤：只有一份 intern 表）。
+/// ⚠ **单寿命（只借 arena）**：不装影子那份 `EnvBuilder<'shadow>`（它只在
+/// `SOKO_SHADOW_*` 实验开关下才建）⇒ 有影子时**不取快照**（见 `run` 的
+/// `snapshot_tail && self.shadow.is_none()`）✓ —— 那条实验路本来就不需要续编 ✓。
+#[allow(dead_code)]
+pub(crate) struct WalkCheckpoint<'arena> {
+    /// 本快照是在**走完 `flat[idx]` 之后**取的 ⇒ 续编从 `idx + 1` 起 ✓。
+    pub(crate) idx: usize,
+    display: crate::display::DisplayNotations,
+    builder: EnvBuilder<'arena>,
+    known: KnownTable,
+    inductives: InductiveTable<'arena>,
+    defs: crate::compile::elab::DefTable,
+    out: CompileOutput,
+    ops: Vec<PendingOp<'arena>>,
+    cmd_hovers: Vec<CmdHover<'arena>>,
+    decl_states: Vec<DeclState>,
+    example_idx: usize,
+    ns: NamespaceScope,
+    exports: Vec<OpenEntry>,
+    /// **深拷贝**（见上 ⚠）：快照要的是"命令 k 那一刻"的名表 ✓。
+    entered: std::collections::HashSet<String>,
+    // ── `run` 的循环局部量（纯记账；**显式带上** ⇒ 恢复时整段跳过、不必重放 ✓）──
+    unit_seen: Vec<usize>,
+    closure_ids: Vec<Option<String>>,
+    closure_acc: String,
+    prev_unit: Option<usize>,
+}
+
 /// 单个命令的派生上下文：每个命令算一次，arm 里按需取用。
 struct CmdCtx<'a> {
     idx: usize,
@@ -379,6 +422,66 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
 
     /// 扁平命令序走查。`flat` 是 `(单元下标, 命令)`，单文件时只有一个单元。
     #[allow(clippy::too_many_arguments)]
+    /// **T2-B**：在**命令边界**取一份 walk 状态快照（`idx` = 刚走完的那条命令）。
+    ///
+    /// 代价 = 一次状态克隆（`EnvBuilder` 那份是 O(1) 的分层共享 ✓，见 T2-A；
+    /// 其余累加器是 `Vec`/表 ⇒ 与"已走命令数"成正比）。**一趟只取一份**
+    /// （尾边界）⇒ 不随命令数叠加 ✗→✓。
+    pub(crate) fn checkpoint(
+        &self,
+        idx: usize,
+        unit_seen: &[usize],
+        closure_ids: &[Option<String>],
+        closure_acc: &str,
+        prev_unit: Option<usize>,
+    ) -> WalkCheckpoint<'arena> {
+        debug_assert!(
+            self.shadow.is_none(),
+            "有影子时不取快照（见 WalkCheckpoint 的 ⚠）"
+        );
+        WalkCheckpoint {
+            idx,
+            display: self.display.clone(),
+            builder: self.builder.clone(),
+            known: self.known.clone(),
+            inductives: self.inductives.clone(),
+            defs: self.defs.clone(),
+            out: self.out.clone(),
+            ops: self.ops.clone(),
+            cmd_hovers: self.cmd_hovers.clone(),
+            decl_states: self.decl_states.clone(),
+            example_idx: self.example_idx,
+            ns: self.ns.clone(),
+            exports: self.exports.clone(),
+            entered: self.entered.borrow().clone(),
+            unit_seen: unit_seen.to_vec(),
+            closure_ids: closure_ids.to_vec(),
+            closure_acc: closure_acc.to_string(),
+            prev_unit,
+        }
+    }
+
+    /// **T2-B**：把一份快照装回（[`Walk::checkpoint`] 的逆）。
+    ///
+    /// ⚠ **`Dag` 不动**（快照里根本没有它）⇒ 恢复后的 intern 指针与首次运行
+    /// **逐字节相同** ✓（单调 intern 引理；判据⑤：只有一份 intern 表 ✓）。
+    fn restore_from(&mut self, cp: &WalkCheckpoint<'arena>) {
+        self.display = cp.display.clone();
+        self.builder = cp.builder.clone();
+        self.known = cp.known.clone();
+        self.inductives = cp.inductives.clone();
+        self.defs = cp.defs.clone();
+        // ⚠ **报告侧的累加器不装回**（`out`/`ops`/`cmd_hovers`/`decl_states`）——
+        // 它们由**既有的 `EntryCache` 拼接**提供（计划 §3.3 的"复用判据沿用
+        // `EntryCache`"就是这条 ✓）：装回会与拼接**各算一份** ⇒ 报告里每条声明
+        // **出现两次** ✗（实测：整趟 13 条 vs 续编 **22** 条 ✓ 被正确性守卫逮到）。
+        // 环境侧（builder/known/inductives/defs/ns/entered/example_idx）才必须装回 ✓。
+        self.example_idx = cp.example_idx;
+        self.ns = cp.ns.clone();
+        self.exports = cp.exports.clone();
+        *self.entered.borrow_mut() = cp.entered.clone();
+    }
+
     pub(super) fn run<'src>(
         &mut self,
         units: &[SourceUnit<'src>],
@@ -389,7 +492,15 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         all_templates: &[GoalTemplates],
         closure_prefixes: &[String],
         mut progress: Option<&mut dyn crate::compile::ProgressSink>,
-    ) {
+        // **T2-B**：从一份命令边界快照**续编** —— 装回状态，并把 `flat[..=cp.idx]`
+        // **整段跳过**（连记账都不重放：那些量就在快照里 ✓）。
+        resume: Option<&WalkCheckpoint<'arena>>,
+        // **T2-B**：跑完**取一份边界快照**交回调用方（`false` ⇒ 逐字节回到今天 ✓）。
+        snapshot_tail: bool,
+        // **T2-B 的读数开关**：本趟是**入口趟** ⇒ 命令数进
+        // [`crate::compile::elaborated_commands_total`]（判据只数入口趟 ✓）。
+        count_commands: bool,
+    ) -> Option<WalkCheckpoint<'arena>> {
         // 影子重放要**同样跳过**本轮已知失败的命令（见 `shadow_skip` 的注释）。
         self.shadow_skip = skip.cloned();
         // G-05：每个单元是否用了 namespace/open（`by` 引擎的根目标规范化开关，
@@ -452,9 +563,30 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         }
         let mut closure_ids: Vec<Option<String>> = vec![None; units.len()];
         let mut prev_unit: Option<usize> = None;
+        // **T2-B：从快照续编** —— 状态整份装回（`Dag` 除外：快照里没有它 ✓），
+        // 循环局部量也从快照播种 ⇒ 前缀**整段跳过**（含记账）✓
+        // 这样做的理由：前缀那些"记账"里含 `ns.reset()` + `exports` 重放（单元切换处），
+        // 在**已恢复的状态**上重放会把 `namespace`/`open` 的累加抹掉 ✗ ⇒ 必须跳过，
+        // 而不是"跳过 elaborate、保留记账" ✗。
+        let resume_upto = resume.map(|cp| {
+            unit_seen.clone_from(&cp.unit_seen);
+            closure_ids.clone_from(&cp.closure_ids);
+            closure_acc.clone_from(&cp.closure_acc);
+            prev_unit = cp.prev_unit;
+            cp.idx
+        });
+        // ⚠ `restore_from` 必须在上面那段**之后**（它会整份覆盖 `self` 的状态，
+        // 包括 `exports`/`example_idx`/`ns` ✓）。
+        if let Some(cp) = resume {
+            self.restore_from(cp);
+        }
         // 探针读数：**不可比**的条数（前缀解析不过 ⇒ `expect` 是原文 ⇒ 那次不比 ✓）。
         let mut id_uncomparable = 0usize;
         for (idx, &(unit_idx, command)) in flat.iter().enumerate() {
+            // **T2-B**：前缀整段跳过（状态来自快照 ✓）。
+            if resume_upto.is_some_and(|k| idx <= k) {
+                continue;
+            }
             let unit = &units[unit_idx];
             // **每条声明一个计时事件**（`SOKO_DECL_PROFILE=1`；默认零开销 ✓）。
             // 为什么要有它：218.8s 只给聚合数答不了"花在哪一步"，更验不了
@@ -484,9 +616,12 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             // 同一条纪律：judge 的**合成判定文档**（`SourceUnit::single`，`path: None`）
             // 每问一句就整份重走一遍前缀 ⇒ 把它们算进来会把 O(N²) 的合成趟
             // 当成"入口趟 elaborate 数" ✗（实测：不滤时 206–322，滤后见读数 ✓）。
-            if unit.path.is_some() {
-                super::stage_stats::ELABORATED_COMMANDS
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            // ⚠ **只数"入口趟"那一趟**（`snapshot_walk` 就是那个信号：会话里只有
+            // **入口趟**开快照 ✓）。不这样收口的话，同一刀上库层趟/其它趟的命令
+            // 也会被算进来 ⇒ 判据"改最后一条 ⇒ 1"永远读不到 1 ✗
+            //（实测：不收口时 43 = 入口 12 + 别的趟）。
+            if count_commands && unit.path.is_some() {
+                super::note_elaborated_command();
             }
             // G-05 N5：单元（文件）切换处清空作用域——`open` 与 `namespace`
             // 都是文件内的（`import` 不做模块限定，但被导入模块的**全局名**
@@ -682,6 +817,22 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         if std::env::var_os("SOKO_PREFIX_ID_CHECK").is_some() {
             eprintln!("PREFIX_ID_CHECK uncomparable={id_uncomparable}");
         }
+        // **T2-B：尾边界快照**（`snapshot_tail`）—— 取在 `closure_acc` 被下面那一步
+        // **搬走之前** ✓。`flat` 为空 ⇒ 不取（那种"快照"会让续编跳过第 0 条 ✗）。
+        // ⚠ 取的是 **`flat.len() - 2`**（= **最后一条命令之前**那个边界）✗→✓：
+        // 取"尾边界"（`len-1`）的话，续编会把**最后一条也跳掉** ⇒ elaborate 0 条 ✗，
+        // 而判据要的是"**改最后一条 ⇒ 1**"（那一条必须**重新** elaborate ✓）。
+        let tail = if snapshot_tail && self.shadow.is_none() && flat.len() >= 2 {
+            Some(self.checkpoint(
+                flat.len() - 2,
+                &unit_seen,
+                &closure_ids,
+                &closure_acc,
+                prev_unit,
+            ))
+        } else {
+            None
+        };
         // **T1-A**：把**本趟结束 = 模块边界**上的续编状态交回调用方。
         // ⚠ 闭包身份必须**补上最后一个单元**：主循环只在**单元切换处**累加
         // （`idx == 0 || flat[idx-1].0 != unit_idx`）⇒ 循环结束时 `closure_acc`
@@ -698,6 +849,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 example_idx: self.example_idx,
             });
         }
+        tail
     }
 
     /// 一条命令的分发（原 `run` 主循环里的 `match`，逐字搬过来）。
