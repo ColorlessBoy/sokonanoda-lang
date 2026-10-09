@@ -354,6 +354,12 @@
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 entry = 365 天）",
       "renewed": "2026-09-30",
       "tier": "entry"
+    },
+    "docs/design/persistent-declarations.md": {
+      "expires": "2027-10-09",
+      "reason": "T2-A（内核声明表持久化/COW）的设计契约；与 docs/notes/PLAN-align-lean4.md 同档（内核持久化落地并收口后可并入 incremental-environment.md 再归档）",
+      "renewed": "2026-10-09",
+      "tier": "spec"
     }
   },
   "policy": {

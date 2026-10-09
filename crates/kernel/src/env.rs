@@ -1,4 +1,4 @@
-use crate::util::{ExprPtr, FxHashMap, FxIndexMap, LevelsPtr, NamePtr};
+use crate::util::{ExprPtr, FxIndexMap, LevelsPtr, NamePtr};
 use std::collections::HashSet;
 use std::sync::Arc;
 use serde::Deserialize;
@@ -242,19 +242,163 @@ pub struct Env<'x, 'a: 'x> {
     /// `EnvBuilder::with_env_scope` 让路：那里两张表是**局部 `mem::take` 出来的**
     /// ⇒ 只能借 `'x`（短），而表**内部**的指针仍是 `'a`（长）✓。
     /// 这是**纯泛化**（原来 `'a` 能过的，现在 `'x` 都能过）⇒ 既有调用点零变化 ✓。
-    declars: &'x FxIndexMap<NamePtr<'a>, Declar<'a>>,
+    declars: &'x DeclarMap<'a>,
     /// Used for checking nested inductives.
+    ///
+    /// ⚠ **这是"临时扩展"，不是环境主表** ⇒ 保持**平坦** `FxIndexMap`：
+    /// 它的生命周期只有一次归纳块检查、不参与命令级快照（T2-A 只动主表 ✓）。
     temp_declars: Option<&'x FxIndexMap<NamePtr<'a>, Declar<'a>>>,
     #[allow(dead_code)]
-    pub(crate) notation: &'x FxHashMap<NamePtr<'a>, Notation<'a>>,
+    pub(crate) notation: &'x NotationMap<'a>,
     /// `cutoff` is used to mark the end of what should be the "visible" environment.
     /// This allows us to make the complete environment at parse time, and then control visibility
     /// between threads by only making a particular slice of that environment available to a thread.
     cutoff: usize,
 }
 
-pub(crate) type DeclarMap<'a> = FxIndexMap<NamePtr<'a>, Declar<'a>>;
-pub(crate) type NotationMap<'a> = FxHashMap<NamePtr<'a>, Notation<'a>>;
+/// **声明表（T2-A：分层持久化 / COW）** —— 对齐 Lean `SMap`
+/// （`~/Documents/lean/lean4/src/Lean/Data/SMap.lean:28-33`）。
+///
+/// ## 形状（为什么是两层）
+///
+/// * **`base`（库层 = Lean 的 `map₁`）**：平坦 `FxIndexMap`。库层趟里**独占**
+///   （`stage1 == true`）⇒ 走破坏性写、O(1) 摊还插入 ✓；[`DeclarMap::seal`] 之后
+///   **只读共享** ⇒ 克隆只提升引用计数 ✓。
+/// * **`local`（本地层 = Lean 的 `map₂` 位）**：入口趟新增的声明；`Arc` + COW
+///   ⇒ 克隆 O(1)，复制只发生在**封层后第一次插入**、且**只复制本地层**
+///   （不是库层 ✗ —— 那正是 O(#decls) 的来源）。
+///
+/// Lean 的原话（同文件 `:17-25`）：导入条目**远多于**本地条目、HashMap 比 PHashMap 快、
+/// 读导入文件时**独占** ⇒ 走破坏性写。我们的分界（库层 / 入口）与它同构 ✓。
+///
+/// ⚠ **刻意偏离（写在设计里）**：Lean 的 `map₂` 是**真 PHashMap**（HAMT）；
+/// 我们的 `local` 用 `Arc` + COW（插入摊还 O(1)，但快照后第一次插入付一次
+/// O(#local)）。`#local` = **入口文件自己的声明数**（课程 ≤ ~120）⇒ 量级已拿到；
+/// 换 HAMT 的边际收益 ≤ 常数倍，却要新造一整个持久化**索引**结构（含位置索引与
+/// 保序迭代两个额外要求）。边界见 `docs/design/persistent-declarations.md` §1。
+///
+/// ## 两条不变式（破一条就是静默错判 ✗）
+///
+/// 1. **`decl_idx` = 位置**：新声明的槽位 = `len()` = `base.len() + local.len()`；
+///    **封层后 `base` 永不改变** ⇒ 既有 `decl_idx` 槽位逐字节不变 ✓。
+/// 2. **`seal()` 之后不许再写 `base`**：否则共享的 `Arc` 被 `make_mut` 整份复制
+///    ⇒ 克隆成本当场退回 O(#decls) ✗（反向验证见设计文档 §4）。
+#[derive(Clone)]
+pub struct DeclarMap<'a> {
+    base: Arc<FxIndexMap<NamePtr<'a>, Declar<'a>>>,
+    local: Arc<FxIndexMap<NamePtr<'a>, Declar<'a>>>,
+    /// `true` ⇒ 插入进 `base`（库层趟）；`false` ⇒ 插入 `local`（入口趟）。
+    /// 对齐 Lean `SMap.stage₁`（`SMap.lean:29`）。
+    stage1: bool,
+}
+
+impl<'a> Default for DeclarMap<'a> {
+    fn default() -> Self { Self::new() }
+}
+
+impl<'a> DeclarMap<'a> {
+    pub fn new() -> Self {
+        Self {
+            base: Arc::new(crate::util::new_fx_index_map()),
+            local: Arc::new(crate::util::new_fx_index_map()),
+            stage1: true,
+        }
+    }
+
+    /// **库层搭完 ⇒ 封层**（对齐 Lean `SMap.switch`，`SMap.lean:96-98`）：
+    /// 之后的插入一律进 `local` ⇒ `base` 变成**只读共享**的那一份 ✓。
+    ///
+    /// 幂等 ✓（已经封层再调 = 什么也不做）。
+    pub fn seal(&mut self) { self.stage1 = false; }
+
+    /// 是否已封层（只读共享）。
+    pub fn is_sealed(&self) -> bool { !self.stage1 }
+
+    /// 库层的条目数（库层/入口层的分界；位置语义用）。
+    pub fn base_len(&self) -> usize { self.base.len() }
+
+    #[inline]
+    pub fn len(&self) -> usize { self.base.len() + self.local.len() }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool { self.base.is_empty() && self.local.is_empty() }
+
+    /// 按名字查：**本地层先、库层后**（对齐 Lean `SMap.find?` 的 `map₂` 先查 ✓）。
+    ///
+    /// ⚠ `stage1 == true` 时 `local` 必空（[`Self::insert`] 只写 `base`、
+    /// [`Self::seal`] 单调）⇒ 两层的先后在这一态下无差别 ✓。
+    #[inline]
+    pub fn get(&self, k: &NamePtr<'a>) -> Option<&Declar<'a>> {
+        self.local.get(k).or_else(|| self.base.get(k))
+    }
+
+    #[inline]
+    pub fn contains_key(&self, k: &NamePtr<'a>) -> bool { self.get(k).is_some() }
+
+    /// **按位置取**（`decl_idx` 就是位置 ✓）：`inductive.rs` 按**下标区间**扫归纳块、
+    /// `tc.rs` 批量检查按 `get_index(i)` 走 ⇒ 这条 API 必须留 ✓。
+    #[inline]
+    pub fn get_index(&self, i: usize) -> Option<(&NamePtr<'a>, &Declar<'a>)> {
+        if i < self.base.len() {
+            self.base.get_index(i)
+        } else {
+            self.local.get_index(i - self.base.len())
+        }
+    }
+
+    /// 按名字取**位置**（`tc.rs:143` 的 recursor 序号）。
+    #[inline]
+    pub fn get_index_of(&self, k: &NamePtr<'a>) -> Option<usize> {
+        if let Some(i) = self.local.get_index_of(k) {
+            Some(self.base.len() + i)
+        } else {
+            self.base.get_index_of(k)
+        }
+    }
+
+    /// 插入（**取位置 = `len()`，与既有 `set_decl_idx` 的调用点一致 ✓**）。
+    #[inline]
+    pub fn insert(&mut self, k: NamePtr<'a>, v: Declar<'a>) -> Option<Declar<'a>> {
+        // ⚠ **共享时 `make_mut` 会整份复制** ⇒ 记进 COW 桶（判据①的 0 不许藏成本 ✗）。
+        let layer = if self.stage1 { &mut self.base } else { &mut self.local };
+        if Arc::get_mut(layer).is_none() {
+            crate::util::clone_stats::record_cow(layer.len());
+        }
+        Arc::make_mut(layer).insert(k, v)
+    }
+
+    /// **克隆成本的判据形态（测试用）**：两张表是否**共享同一批底层 `FxIndexMap`**
+    /// —— 共享 ⇒ 克隆只是引用计数、**不复制条目** ✓（判据①的结构面）。
+    #[allow(dead_code)]
+    pub(crate) fn shares_layers_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.base, &other.base) && Arc::ptr_eq(&self.local, &other.local)
+    }
+
+    /// 保序迭代（库层在前、本地层在后 = **插入序** ✓）。
+    pub fn iter(&self) -> impl Iterator<Item = (&NamePtr<'a>, &Declar<'a>)> {
+        self.base.iter().chain(self.local.iter())
+    }
+
+    pub fn keys(&self) -> impl Iterator<Item = &NamePtr<'a>> {
+        self.base.keys().chain(self.local.keys())
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = &Declar<'a>> {
+        self.base.values().chain(self.local.values())
+    }
+}
+
+impl<'a> std::ops::Index<usize> for DeclarMap<'a> {
+    type Output = Declar<'a>;
+    #[inline]
+    fn index(&self, i: usize) -> &Self::Output {
+        self.get_index(i)
+            .map(|(_, d)| d)
+            .expect("declaration index out of range")
+    }
+}
+
+pub(crate) type NotationMap<'a> = crate::util::CowMap<NamePtr<'a>, Notation<'a>>;
 
 impl<'x, 'a: 'x> Env<'x, 'a> {
     /// Create a new environment (without any temporary extension)
@@ -266,7 +410,7 @@ impl<'x, 'a: 'x> Env<'x, 'a> {
     /// extension is used for checking nested inductives.
     pub fn new_w_temp_ext(
         declars: &'x DeclarMap<'a>,
-        temp_declars: Option<&'x DeclarMap<'a>>,
+        temp_declars: Option<&'x FxIndexMap<NamePtr<'a>, Declar<'a>>>,
         notation: &'x NotationMap<'a>,
         limit: EnvLimit<'a>
     ) -> Self {
@@ -297,10 +441,16 @@ impl<'x, 'a: 'x> Env<'x, 'a> {
 
     /// Get a declaration, bypassing the temporary extension, only searching in
     /// the persistent set of declarations.
+    ///
+    /// **T2-A（2026-10-09）**：可见性判据是 `decl_idx < cutoff`（**前缀**语义），
+    /// 而取哪一条**按名字查** —— 不再拿 `decl_idx` 当 `declars` 的**下标**用
+    /// （分层之后 `base`/`local` 两张表，位置索引不再是唯一取法 ✓）。
+    /// 语义等价：`decl_idx` 就是插入位置、同名项唯一（`add_declar` 先查重 ✓）；
+    /// 且对"槽位已设但已不在本环境里"的名字**返回 `None`** 而不是误取别人 ✓。
     pub fn get_old_declar(&self, n: &NamePtr<'a>) -> Option<&Declar<'a>> {
         let idx = n.as_ref().decl_idx() as usize;
         if idx < self.cutoff {
-            Some(&self.declars[idx])
+            self.declars.get(n)
         } else {
             None
         }

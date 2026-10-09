@@ -22,6 +22,7 @@ use std::error::Error;
 use std::fs::OpenOptions;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::Write;
@@ -373,6 +374,9 @@ pub(crate) struct NameInterner<'a> {
     table: HashTable<&'a crate::name::NameNode<'a>>,
 }
 impl<'a> NameInterner<'a> {
+    #[allow(dead_code)]
+    pub(crate) fn len(&self) -> usize { self.table.len() }
+
     fn new() -> Self { Self { table: HashTable::new() } }
 
     fn with_capacity(cap: usize) -> Self { Self { table: HashTable::with_capacity(cap) } }
@@ -432,6 +436,9 @@ impl<'a> BigUintInterner<'a> {
         }
         self.insert(arena, v)
     }
+
+    #[allow(dead_code)]
+    pub(crate) fn len(&self) -> usize { self.table.len() }
 }
 
 #[derive(Clone)]
@@ -439,6 +446,9 @@ pub(crate) struct LevelsInterner<'a> {
     table: HashTable<&'a [LevelPtr<'a>]>,
 }
 impl<'a> LevelsInterner<'a> {
+    #[allow(dead_code)]
+    pub(crate) fn len(&self) -> usize { self.table.len() }
+
     fn new() -> Self { Self { table: HashTable::new() } }
     fn with_capacity(cap: usize) -> Self { Self { table: HashTable::with_capacity(cap) } }
     pub(crate) fn get<'b>(&self, v: &[LevelPtr<'b>]) -> Option<&'a [LevelPtr<'a>]>
@@ -495,6 +505,157 @@ impl<'a> Dag<'a> {
             bignums: if config.nat_extension { Some(BigUintInterner::new()) } else { None },
         }
     }
+
+    /// **T2-A 的结构计数读数**：六张 intern 表的**条目总数** —— 也就是
+    /// `Dag::clone` 今天要逐条复制的条目数（克隆成本里最大的一块之一）。
+    ///
+    /// 判据不是"这个数小"✗，而是**环境克隆在命令边界复制的条目数**（见
+    /// [`clone_stats`]）：这个数是它的一个分项 ✓，用来判断"该优化哪一块"。
+    #[allow(dead_code)]
+    pub(crate) fn table_entries(&self) -> usize {
+        self.names.len()
+            + self.levels.len()
+            + self.exprs.len()
+            + self.uparams.len()
+            + self.strings.len()
+            + self.bignums.as_ref().map_or(0, |b| b.len())
+    }
+}
+
+/// **T2-A 的结构计数**（2026-10-09）：**环境克隆成本**。
+///
+/// ## 判据（T2-A 判据①）
+///
+/// 「在**命令边界**取一份环境」要复制多少**表条目** —— 今天 = **O(#decls)**，
+/// 目标 = **O(log n) / O(1)**（对齐 Lean `SMap`/`PHashMap`：库层平坦表经共享、
+/// 本地层持久化 ⇒ 克隆只动根指针）。
+///
+/// ## 为什么必须**先建这个读数**（计划 §7 的自认）
+///
+/// 今天连"克隆要付多少钱"都量不到 ⇒ 任何"持久化更快"的说法都不可证伪 ✗。
+/// 三个桶分开记，是为了让**该优化哪一块**有数据（`declars` / intern 表 / 另两张表）。
+///
+/// ⚠ **一律同 run 自比**（`AGENTS.md` 判据纪律②）：这里的数字是**条目数**，
+/// 机器无关 ✓；用完 [`take`] 清零，绝不当跨轮绝对量比较。
+pub mod clone_stats {
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    /// 环境克隆**次数**。
+    pub static CLONES: AtomicU64 = AtomicU64::new(0);
+    /// `declars` 复制的条目数（声明表）。
+    pub static DECLARS: AtomicU64 = AtomicU64::new(0);
+    /// intern 表（`Dag`）复制的条目数。
+    pub static DAG: AtomicU64 = AtomicU64::new(0);
+    /// 其余表（`notations` + `mutual_block_sizes`）复制的条目数。
+    pub static TABLES: AtomicU64 = AtomicU64::new(0);
+    /// **最近一次**克隆复制的条目总数（判据①直接读它 ✓）。
+    pub static LAST: AtomicU64 = AtomicU64::new(0);
+
+    #[inline]
+    pub fn record(declars: usize, dag: usize, tables: usize) {
+        CLONES.fetch_add(1, Ordering::Relaxed);
+        DECLARS.fetch_add(declars as u64, Ordering::Relaxed);
+        DAG.fetch_add(dag as u64, Ordering::Relaxed);
+        TABLES.fetch_add(tables as u64, Ordering::Relaxed);
+        LAST.store((declars + dag + tables) as u64, Ordering::Relaxed);
+    }
+
+    /// 读 + 清零：`(clones, declars, dag, tables)`。
+    pub fn take() -> (u64, u64, u64, u64) {
+        (
+            CLONES.swap(0, Ordering::Relaxed),
+            DECLARS.swap(0, Ordering::Relaxed),
+            DAG.swap(0, Ordering::Relaxed),
+            TABLES.swap(0, Ordering::Relaxed),
+        )
+    }
+
+    /// 最近一次克隆复制的条目总数。
+    pub fn last() -> u64 { LAST.load(Ordering::Relaxed) }
+
+    // ── **写时复制（COW）的账**（诚实读数，不是判据①本身）──────────────────
+    //
+    // 快照只提升引用计数（判据① ✓），代价**推迟**到"封层/快照之后第一次插入"那一下：
+    // `Arc::make_mut` 会把整张表复制一份。这一桶记的就是"推迟的那笔钱"——
+    // 不记它，判据① 读到的 0 就变成"把成本藏起来" ✗。
+    /// `Arc::make_mut` 真的发生复制的**次数**。
+    pub static COW_COPIES: AtomicU64 = AtomicU64::new(0);
+    /// 这些复制一共搬了多少**条目**。
+    pub static COW_ENTRIES: AtomicU64 = AtomicU64::new(0);
+
+    #[inline]
+    pub fn record_cow(entries: usize) {
+        COW_COPIES.fetch_add(1, Ordering::Relaxed);
+        COW_ENTRIES.fetch_add(entries as u64, Ordering::Relaxed);
+    }
+
+    /// 读 + 清零 COW 桶：`(copies, entries)`。
+    pub fn take_cow() -> (u64, u64) {
+        (COW_COPIES.swap(0, Ordering::Relaxed), COW_ENTRIES.swap(0, Ordering::Relaxed))
+    }
+
+    /// 清零（含 `LAST`）—— 每个用例开头调，避免跨用例串味 ✗。
+    pub fn reset() {
+        CLONES.store(0, Ordering::Relaxed);
+        DECLARS.store(0, Ordering::Relaxed);
+        DAG.store(0, Ordering::Relaxed);
+        TABLES.store(0, Ordering::Relaxed);
+        LAST.store(0, Ordering::Relaxed);
+        COW_COPIES.store(0, Ordering::Relaxed);
+        COW_ENTRIES.store(0, Ordering::Relaxed);
+    }
+}
+
+/// **COW 表**（T2-A）：`Arc<FxHashMap>` + **写时复制** ⇒ **克隆 O(1)**（只提升引用计数）。
+///
+/// 用途 = 环境里那两张"随命令增长、但条目不多"的表（`notations` /
+/// `mutual_block_sizes`）：它们**必须**进命令级环境快照（否则恢复出来的环境不完整 ✗），
+/// 而快照的克隆成本必须与 #decls 无关 ⇒ 共享 + COW ✓。
+///
+/// 读走 [`std::ops::Deref`]（`get`/`len`/`iter`/`contains_key` 与 `FxHashMap` 同形 ✓）；
+/// 写走 [`CowMap::insert`]（共享时复制一次，记账进 [`clone_stats`] ✓）。
+///
+/// ⚠ **不是**给 `DeclarMap` 的本地层用的 —— 那层的条目数会随命令线性长，
+/// 整表 COW 会变成 O(N²)；`DeclarMap` 自己管两张分层表 ✓。
+#[derive(Clone)]
+pub struct CowMap<K, V> {
+    inner: Arc<FxHashMap<K, V>>,
+}
+
+impl<K, V> Default for CowMap<K, V> {
+    fn default() -> Self { Self { inner: Arc::new(new_fx_hash_map()) } }
+}
+
+impl<K: Eq + std::hash::Hash + Clone, V: Clone> CowMap<K, V> {
+    #[allow(dead_code)]
+    pub(crate) fn new() -> Self { Self::default() }
+
+    /// 唯一所有权 ⇒ 原地写；**共享 ⇒ 先整份复制**（记账 ✓）。
+    pub(crate) fn insert(&mut self, k: K, v: V) -> Option<V> {
+        if Arc::get_mut(&mut self.inner).is_none() {
+            clone_stats::record_cow(self.inner.len());
+        }
+        Arc::make_mut(&mut self.inner).insert(k, v)
+    }
+
+    /// **克隆成本的判据形态（测试用）**：两张表是否**共享同一份**底层 `FxHashMap`
+    /// —— 共享 ⇒ 克隆只是引用计数、**不复制条目** ✓（判据①的结构面）。
+    #[allow(dead_code)]
+    pub(crate) fn shares_with(&self, other: &Self) -> bool { Arc::ptr_eq(&self.inner, &other.inner) }
+
+    #[allow(dead_code)]
+    pub(crate) fn remove(&mut self, k: &K) -> Option<V> {
+        if Arc::get_mut(&mut self.inner).is_none() {
+            clone_stats::record_cow(self.inner.len());
+        }
+        Arc::make_mut(&mut self.inner).remove(k)
+    }
+}
+
+impl<K, V> std::ops::Deref for CowMap<K, V> {
+    type Target = FxHashMap<K, V>;
+    #[inline]
+    fn deref(&self) -> &Self::Target { &self.inner }
 }
 
 
@@ -631,7 +792,7 @@ pub struct ExportFile<'p> {
     pub notations: NotationMap<'p>,
     pub name_cache: NameCache<'p>,
     pub config: Config,
-    pub mutual_block_sizes: FxHashMap<NamePtr<'p>, (usize, usize)>,
+    pub mutual_block_sizes: CowMap<NamePtr<'p>, (usize, usize)>,
 }
 
 impl<'p> ExportFile<'p> {
@@ -650,11 +811,11 @@ impl<'p> ExportFile<'p> {
             dag,
             anon,
             zero,
-            declars: new_fx_index_map(),
-            notations: new_fx_hash_map(),
+            declars: DeclarMap::new(),
+            notations: NotationMap::default(),
             name_cache,
             config,
-            mutual_block_sizes: new_fx_hash_map(),
+            mutual_block_sizes: CowMap::default(),
         }
     }
 
@@ -845,7 +1006,7 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
 
     pub fn with_tc_and_env_ext<'x, F, A>(
         &mut self,
-        env_ext: &'x DeclarMap<'t>,
+        env_ext: &'x FxIndexMap<NamePtr<'t>, Declar<'t>>,
         env_limit: EnvLimit<'p>,
         arena: &'t bumpalo::Bump,
         cache: &mut TcCache<'t, 't>,

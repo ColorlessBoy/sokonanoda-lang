@@ -1,5 +1,5 @@
 use crate::value::{Closure, RigidHead, Value, S, V};
-use crate::env::{ConstructorData, Declar, DeclarInfo, DeclarMap, InductiveData, RecRule, RecursorData};
+use crate::env::{ConstructorData, Declar, DeclarInfo, InductiveData, RecRule, RecursorData};
 use crate::expr::{BinderStyle, Expr::*};
 use crate::tc::{TypeChecker};
 use crate::util::{ExportFile, ExprPtr, FxHashSet, FxIndexMap, LevelPtr, LevelsPtr, NamePtr, TcCtx};
@@ -245,7 +245,7 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
     ///
     /// Then assert that any of the inductive types in the temporary extension
     /// which are also in the export file are def_eq to those in the export file.
-    fn mk_ind_tys_env_ext(&mut self, st: &InductiveCheckState<'t>) -> DeclarMap<'t> {
+    fn mk_ind_tys_env_ext(&mut self, st: &InductiveCheckState<'t>) -> FxIndexMap<NamePtr<'t>, Declar<'t>> {
         // This will be different from the export file's list if this is a nested.
         let is_nested = !st.nested_to_unspecialized_ty.is_empty();
         let all_ind_names: Arc<[NamePtr]> = st.all_inductives_incl_specialized.iter().map(|x| x.name).collect();
@@ -267,7 +267,7 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
 
     /// Extend the current environment with new constructors, including modifications
     /// to accommodate any temporary declarations that come from nested inductives.
-    fn mk_ctors_env_ext(&mut self, nest_st: &InductiveCheckState<'t>, mut env_ext: DeclarMap<'t>) -> DeclarMap<'t> {
+    fn mk_ctors_env_ext(&mut self, nest_st: &InductiveCheckState<'t>, mut env_ext: FxIndexMap<NamePtr<'t>, Declar<'t>>) -> FxIndexMap<NamePtr<'t>, Declar<'t>> {
         // This will be different from the export file's list if this is a nested.
         for inductive in nest_st.all_inductives_incl_specialized.iter() {
             for (idx, ctor) in inductive.ctors.iter().copied().enumerate() {

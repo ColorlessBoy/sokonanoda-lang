@@ -1,12 +1,13 @@
 use crate::env::{
-    ConstructorData, Declar, DeclarInfo, InductiveData, Notation, RecursorData, ReducibilityHint,
+    ConstructorData, Declar, DeclarInfo, DeclarMap, InductiveData, NotationMap, RecursorData,
+    ReducibilityHint,
 };
 use crate::expr::{BinderStyle, Expr};
 use crate::hash64;
 use crate::level::Level;
 use crate::name::Name;
 use crate::util::{
-    new_fx_hash_map, new_fx_index_map, BigUintPtr, Config, Dag, ExprPtr, FxHashMap, FxIndexMap,
+    BigUintPtr, Config, Dag, ExprPtr,
     LevelPtr, LevelsPtr, NamePtr, StringPtr,
 };
 use num_bigint::BigUint;
@@ -47,11 +48,11 @@ pub struct Parser<'a, R: BufRead> {
     names_by_idx: Vec<Option<NamePtr<'a>>>,
     levels_by_idx: Vec<Option<LevelPtr<'a>>>,
     exprs_by_idx: Vec<ExprEntry<'a>>,
-    declars: FxIndexMap<NamePtr<'a>, Declar<'a>>,
-    notations: FxHashMap<NamePtr<'a>, Notation<'a>>,
+    declars: DeclarMap<'a>,
+    notations: NotationMap<'a>,
     config: Config,
     skipped: Vec<String>,
-    mutual_block_sizes: FxHashMap<NamePtr<'a>, (usize, usize)>,
+    mutual_block_sizes: crate::util::CowMap<NamePtr<'a>, (usize, usize)>,
     scratch_idxs: Vec<u32>,
 }
 
@@ -726,11 +727,11 @@ impl<'a, R: BufRead> Parser<'a, R> {
             names_by_idx,
             levels_by_idx,
             exprs_by_idx: Vec::with_capacity(input_len / 48),
-            declars: new_fx_index_map(),
-            notations: new_fx_hash_map(),
+            declars: DeclarMap::new(),
+            notations: NotationMap::default(),
             config,
             skipped: Vec::new(),
-            mutual_block_sizes: new_fx_hash_map(),
+            mutual_block_sizes: crate::util::CowMap::default(),
             scratch_idxs: Vec::new(),
         }
     }

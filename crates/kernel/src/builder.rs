@@ -15,7 +15,7 @@ use crate::expr::{
 use crate::level::{Level, PARAM_HASH};
 use crate::name::{Name, NUM_HASH, STR_HASH};
 use crate::util::{
-    new_fx_hash_map, new_fx_index_map, BigUintPtr, Config, CowStr, Dag, ExportFile, ExprPtr, LevelPtr, LevelsPtr,
+    BigUintPtr, Config, CowStr, Dag, ExportFile, ExprPtr, LevelPtr, LevelsPtr,
     NamePtr, StringPtr,
 };
 use num_bigint::BigUint;
@@ -33,8 +33,57 @@ use stumpalo::ArenaRef;
 /// 内容哈希、`NameInterner` 比 `StringPtr` 地址）**逐字节不变** ✓
 /// —— 与 `hide_declars`/`restore_declars`（`DeclarMap: Clone`）同一个不变式，
 /// 见本文件的
+/// **T2-A：命令边界的环境快照**（`Clone` = **O(1)**）。
+///
+/// ## 为什么**不含** `Dag`（intern 表）—— 单调 intern 引理
+///
+/// intern 表**只增不删**、节点在 arena 内**不可变** ⇒ `intern(v)` 一旦给出某指针，
+/// 之后恒给**同一个**指针；表在时刻 `t` 的状态恒是其后任意状态的**子集**。
+/// ⇒ 拿"更新的表"重放旧命令，得到的指针与首次运行**逐字节相同** ✓。
+/// 所以一趟只需要**一份**活表（判据⑤：**不许**第二份 intern 表），
+/// 快照**不必**捕获它 —— `Dag` 分项从 O(#interned) 直接归 **0**
+/// （不是"少复制一点"，是**不复制** ✓）。
+///
+/// ## 装回（[`EnvBuilder::restore_env`]）
+///
+/// 三张表整体装回（`declars` 连同它的 `seal` 状态 ✓）；`Dag` **一个字节都不动** ✓。
+/// ⚠ 命令边界上 `block_in_progress` 恒为 `None`（归纳块在一条命令内闭合，
+/// 见 `walk.rs` 的 `inductive_block`）⇒ 不进快照 ✓。
+///
+/// 详见 `docs/design/persistent-declarations.md` §2.2/§2.3。
+pub struct EnvSnapshot<'a> {
+    declars: DeclarMap<'a>,
+    notations: NotationMap<'a>,
+    mutual_block_sizes: crate::util::CowMap<NamePtr<'a>, (usize, usize)>,
+}
+
+/// 手写（不是 derive）⇒ 克隆成本进 [`crate::util::clone_stats`] ✓：
+/// 三张表**全是共享根** ⇒ **0 条目**被复制（判据①的目标值 ✓）。
+/// 「共享」不是口头承诺：[`EnvSnapshot::shares_tables_with`] 用 `Arc::ptr_eq` 直接判 ✓。
+impl<'a> Clone for EnvSnapshot<'a> {
+    fn clone(&self) -> Self {
+        crate::util::clone_stats::record(0, 0, 0);
+        Self {
+            declars: self.declars.clone(),
+            notations: self.notations.clone(),
+            mutual_block_sizes: self.mutual_block_sizes.clone(),
+        }
+    }
+}
+
+impl<'a> EnvSnapshot<'a> {
+    /// **判据①的结构面（测试用）**：这份快照与那个 builder 是否**共享同一批表**
+    /// —— 共享 ⇒ 上面的 `record(0,0,0)` 是**事实**而不是声明 ✓；
+    /// 谁把共享换成复制，这条当场判红 ✓。
+    #[allow(dead_code)]
+    pub(crate) fn shares_tables_with(&self, b: &EnvBuilder<'a>) -> bool {
+        self.declars.shares_layers_with(&b.declars)
+            && self.notations.shares_with(&b.notations)
+            && self.mutual_block_sizes.shares_with(&b.mutual_block_sizes)
+    }
+}
+
 /// `a_reused_environment_is_pointer_identical_and_a_rebuilt_one_is_not` ✓。
-#[derive(Clone)]
 pub struct EnvBuilder<'a> {
     arena: &'a ArenaRef<'a>,
     dag: Dag<'a>,
@@ -48,10 +97,75 @@ pub struct EnvBuilder<'a> {
     /// (start, size) per inductive-block head name, mirroring the NDJSON
     /// parser's bookkeeping; the kernel's inductive/recursor checkers need it
     /// to find block boundaries.
-    mutual_block_sizes: rustc_hash::FxHashMap<NamePtr<'a>, (usize, usize)>,
+    mutual_block_sizes: crate::util::CowMap<NamePtr<'a>, (usize, usize)>,
+}
+
+/// **手写 `Clone`（不是 derive）** —— T2-A 的**结构计数**在唯一的克隆出口记账 ✓：
+/// 「在命令边界取一份环境」要复制多少**表条目**（判据①，见
+/// [`crate::util::clone_stats`]，读数 = `declars` + intern 表 + 另两张表）。
+///
+/// ⚠ **记账是纯读**（各表的 `len()`）⇒ 克隆出来的环境与 derive 版**逐字段相同**，
+/// 判定行为零变化 ✓（硬规则 1 的红线不受影响 ✓）。
+/// **先建先红**：T2-A 落地前，这个读数 = O(#decls + #interned)，判据①当场判红 ✓。
+impl<'a> Clone for EnvBuilder<'a> {
+    fn clone(&self) -> Self {
+        // **T2-A 之后**：`declars`（分层 `Arc` 共享）与另两张表（`CowMap`）的克隆都
+        // 只提升引用计数 ⇒ **0 条目** ✓；仍然逐条复制的只剩 intern 表（`Dag`）。
+        // ⚠ **命令边界不走这条** —— 那条走 [`EnvSnapshot`]（不含 `Dag`，依据是它上面的
+        // **单调 intern 引理**）✓。
+        crate::util::clone_stats::record(0, self.dag.table_entries(), 0);
+        Self {
+            arena: self.arena,
+            dag: self.dag.clone(),
+            anon: self.anon,
+            zero: self.zero,
+            declars: self.declars.clone(),
+            notations: self.notations.clone(),
+            config: self.config.clone(),
+            block_in_progress: self.block_in_progress.clone(),
+            mutual_block_sizes: self.mutual_block_sizes.clone(),
+        }
+    }
 }
 
 impl<'a> EnvBuilder<'a> {
+    /// **T2-A**：把当前的**环境三张表**取成一份快照 —— **克隆成本 O(1)** ✓
+    /// （`declars` 分层共享、另两张表是 `CowMap`；`Dag` **不进快照**，
+    /// 依据见 [`EnvSnapshot`] 的单调 intern 引理 ✓）。
+    ///
+    /// 这是 T2-B「入口趟命令级环境快照」按命令边界要取的那一份 ✓。
+    pub fn env_snapshot(&self) -> EnvSnapshot<'a> {
+        // 取快照 = 三张表各提升一次引用计数 ⇒ **0 条目**被复制 ✓（判据①在**这个**
+        // 调用点记账 —— 它才是"命令边界取一份环境"那一下）。
+        crate::util::clone_stats::record(0, 0, 0);
+        EnvSnapshot {
+            declars: self.declars.clone(),
+            notations: self.notations.clone(),
+            mutual_block_sizes: self.mutual_block_sizes.clone(),
+        }
+    }
+
+    /// **T2-A**：把一份快照装回（[`Self::env_snapshot`] 的逆）—— `Dag` **不动** ✓
+    /// ⇒ 快照前后的 intern 指针**同一** ✓（判据⑤：只有一份 intern 表）。
+    ///
+    /// ⚠ 装回会**丢弃**当前三张表（连同当前 `seal` 状态）⇒ 只在"重新从某一命令边界
+    /// 往后编"那条路上用 ✓（正是 T2-B 的形状）。
+    pub fn restore_env(&mut self, snap: &EnvSnapshot<'a>) {
+        self.declars = snap.declars.clone();
+        self.notations = snap.notations.clone();
+        self.mutual_block_sizes = snap.mutual_block_sizes.clone();
+    }
+
+    /// **T2-A**：库层搭完 ⇒ **封层**（对齐 Lean `SMap.switch`）。
+    ///
+    /// 入口趟**必须**在插入任何入口声明**之前**调它：封层后插入走 `local`
+    /// （只复制本地层 ✓）；不封层则共享的库层会被 `Arc::make_mut` **整份复制** ✗
+    /// ⇒ 判据①当场退回 O(#decls)（反向验证见设计档 §4）。
+    pub fn seal_library_layer(&mut self) { self.declars.seal(); }
+
+    /// 库层是否已封层（= 插入走本地层、库层只读共享）。
+    pub fn library_layer_sealed(&self) -> bool { self.declars.is_sealed() }
+
     /// **把 builder 的字段临时装进一个 `ExportFile<'a>` 交给回调，回调结束后装回**
     /// （T-K12 / K1-b；`ExportFile` 结构体一字不改）。
     ///
@@ -196,11 +310,11 @@ impl<'a> EnvBuilder<'a> {
             dag,
             anon,
             zero,
-            declars: new_fx_index_map(),
-            notations: new_fx_hash_map(),
+            declars: DeclarMap::new(),
+            notations: NotationMap::default(),
             config,
             block_in_progress: None,
-            mutual_block_sizes: new_fx_hash_map(),
+            mutual_block_sizes: crate::util::CowMap::default(),
         }
     }
 
@@ -619,6 +733,42 @@ mod tests {
     use super::*;
     use stumpalo::Arena;
 
+    /// 造 `n` 条 `axiom a<i> : Sort 0`：名字走 intern ⇒ `Dag` 也一起长 ✓
+    /// （否则只量到 `declars` 那一块，读不出总成本 ✗）。
+    fn build_axioms<'a>(arena: &'a Arena, n: usize) -> EnvBuilder<'a> {
+        let mut b = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+        for i in 0..n {
+            add_axiom(&mut b, &format!("a{i}"));
+        }
+        b
+    }
+
+    /// 加一条 `axiom <name> : Sort 0`（与既有用例同形 ✓）。
+    fn add_axiom(b: &mut EnvBuilder<'_>, name: &str) {
+        let name = b.name_from_str(name);
+        let zero = b.zero();
+        let ty = b.mk_sort(zero);
+        let uparams = b.alloc_levels_slice(&[]);
+        b.add_declar(Declar::Axiom {
+            info: DeclarInfo { name, uparams, ty },
+        })
+        .expect("a `Sort 0` axiom must be accepted");
+    }
+
+    /// 克隆一份**命令边界快照** ⇒ `(总条目数, declars 桶, dag 桶, 其余桶)`。
+    fn snapshot_clone_cost(b: &EnvBuilder<'_>) -> (u64, u64, u64, u64) {
+        use crate::util::clone_stats;
+        clone_stats::reset();
+        // 两种形态都量：**取**快照（命令边界那一下）与**克隆**快照（T2-B 要留住它）。
+        let snap = b.env_snapshot();
+        let snap2 = snap.clone();
+        let last = clone_stats::last();
+        let (clones, declars, dag, tables) = clone_stats::take();
+        assert_eq!(clones, 2, "取 + 克隆快照各记一笔账 ✗");
+        drop((snap, snap2));
+        (last, declars, dag, tables)
+    }
+
     #[test]
     fn name_cache_discovers_nat() {
         let arena = Arena::new();
@@ -788,4 +938,119 @@ mod tests {
             "重建的 `Dag` 必须为同一个名字造出**第二个**节点 ⇒ 判据②有牙 ✓"
         );
     }
+
+    /// **T2-A 判据①**：「在**命令边界**取一份环境」（[`EnvSnapshot`]）要复制多少条目？
+    ///
+    /// ## 判据
+    ///
+    /// **与 #decls 无关**：`EnvSnapshot::clone` 复制的条目数在 64 条与 512 条声明上必须
+    /// **相同**、且是一个**小常数**（对齐 Lean `SMap`：库层平坦表经共享、本地层持久化
+    /// ⇒ 克隆只动根指针，`src/Lean/Data/SMap.lean:17-27`）。
+    ///
+    /// ## 为什么是"两臂相等"而不是"一个绝对数"
+    ///
+    /// 绝对数依赖实现细节 ⇒ 会变成"改一下就调阈值"的假判据 ✗。
+    /// **两臂相等**咬住的才是真东西：**伸缩性**（O(#decls) ⇒ O(1)）✓。
+    /// `AGENTS.md` 判据纪律②：结构计数、机器无关 ✓。
+    ///
+    /// ⚠ **先建先红**（2026-10-09 已实测 ✓）：T2-A 之前，同一把尺子量
+    /// `EnvBuilder::clone` 读出 **64 条 = 196 条目 / 512 条 = 1540 条目**（`declars` 512 +
+    /// `Dag` 1028）⇒ 本条**判红** ✓；分层落地后翻绿 ✓（**不许**放宽它）。
+    #[test]
+    fn env_snapshot_clone_cost_is_constant_in_declaration_count() {
+        let arena = Arena::new();
+        let small = build_axioms(&arena, 64);
+        let big = build_axioms(&arena, 512);
+
+        let (small_total, small_d, small_g, small_t) = snapshot_clone_cost(&small);
+        let (big_total, big_d, big_g, big_t) = snapshot_clone_cost(&big);
+
+        assert_eq!(
+            small_total, big_total,
+            "命令边界快照的克隆成本**随 #decls 增长** ✗（64 条 = {small_total} 条目              [declars {small_d} · dag {small_g} · 其余 {small_t}]，             512 条 = {big_total} 条目 [declars {big_d} · dag {big_g} · 其余 {big_t}]）⇒              命令级快照在数据结构上是 O(N²)（判据①要的是 O(1)）"
+        );
+        assert!(
+            big_total <= 8,
+            "快照克隆复制的条目数是 {big_total}（512 条声明）—— 判据①要求它是一个**小常数**             （O(1)：只动共享根指针）✗ [declars {big_d} · dag {big_g} · 其余 {big_t}]"
+        );
+        // **结构面**：`record(0,0,0)` 必须是**事实**，不是声明 ⇒ 快照与 builder
+        // **共享同一批表**（`Arc::ptr_eq`）✓。谁把共享换成复制，这条当场判红 ✓。
+        assert!(
+            big.env_snapshot().shares_tables_with(&big),
+            "快照与 builder 必须**共享同一批表**（`Arc::ptr_eq`）—— 不共享 ⇒              上面那个 0 是假的 ✗"
+        );
+    }
+
+    /// **T2-A 判据①的诚实面**：封层之后，快照的代价只是**推迟**到"下一次插入"那一下
+    /// （`Arc::make_mut` 的写时复制）。这条咬住的是：那次复制**只许与本地层
+    /// （入口文件自己的声明数）成比例**，**绝不许**与库层 (#base) 成比例 ✗。
+    ///
+    /// 为什么必须单独有它：判据① 读到的 0 有两种来源 —— ①**真共享** ✓；
+    /// ②**把成本藏到别处** ✗。这条排掉第二种 ✓。
+    #[test]
+    fn sealing_keeps_the_library_layer_out_of_the_copy_on_write() {
+        use crate::util::clone_stats;
+
+        let arena = Arena::new();
+        // 库层：512 条；封层；再取一份快照 —— 此后每次插入都会命中 COW。
+        let mut b = build_axioms(&arena, 512);
+        b.seal_library_layer();
+        assert!(b.library_layer_sealed());
+        assert_eq!(b.declaration_count(), 512, "夹具前提：库层 512 条");
+        let _snap = b.env_snapshot();
+
+        // 入口层：加 3 条（每条都跟在"快照共享"之后 ⇒ 第一次插入触发一次 COW）。
+        clone_stats::reset();
+        for i in 0..3 {
+            add_axiom(&mut b, &format!("entry{i}"));
+        }
+        let (copies, entries) = clone_stats::take_cow();
+        assert_eq!(copies, 1, "封层后**只该**复制一次本地层（第一次插入），实测 {copies} 次 ✗");
+        assert!(
+            entries < 512,
+            "写时复制搬了 {entries} 条 —— 它与**库层**（512 条）同量级 ⇒              共享没生效（封层没做 / 插入漏进了 `base`）✗"
+        );
+
+        // **反向验证**：不封层 ⇒ 插入命中共享的 `base` ⇒ 复制量 = 整条库层 ✓。
+        let mut unsealed = build_axioms(&arena, 512);
+        let _snap = unsealed.env_snapshot();
+        clone_stats::reset();
+        add_axiom(&mut unsealed, "leak");
+        let (copies2, entries2) = clone_stats::take_cow();
+        assert_eq!(copies2, 1, "不封层也要复制一次（且是整条库层）");
+        assert!(
+            entries2 >= 512,
+            "反向验证失败：不封层时那一次复制本该搬**整条库层**（≥512 条），实测 {entries2} ⇒              上一条的 `< 512` 咬不住东西 ✗"
+        );
+    }
+
+    /// **T2-A 判据⑤ + 单调 intern 引理**：快照**不含** `Dag` 的合法性依据 ——
+    /// 「拿更新的 intern 表重放旧命令，指针与首次运行**逐字节相同**」。
+    ///
+    /// 两向：
+    /// ① 快照**之前** intern 的名字，装回之后仍**同一**指针 ✓；
+    /// ② 快照**之后**才 intern 的名字也**同一**（表是超集、不重建）✓。
+    /// ⇒ 一趟只有**一份** intern 表（判据⑤），快照不必捕获 `Dag` ✓。
+    #[test]
+    fn snapshot_restore_keeps_the_single_intern_table_pointer_identical() {
+        let arena = Arena::new();
+        let mut b = build_axioms(&arena, 8);
+        b.seal_library_layer();
+        let before = b.name_from_str("stable");
+        let snap = b.env_snapshot();
+        let after_snapshot = b.name_from_str("later");
+        b.restore_env(&snap);
+        // 一次 `restore_env` 不许换表 ⇒ `Dag` 之外什么都没动 ✓。
+        assert_eq!(
+            b.name_from_str("stable"),
+            before,
+            "装回快照后重新 intern 同一个名字给出了**另一个** `NamePtr` ⇒              `restore_env` 动了 intern 表（本该一个字节都不动）✗"
+        );
+        assert_eq!(
+            b.name_from_str("later"),
+            after_snapshot,
+            "快照**之后**才 intern 的名字在装回后变了指针 ⇒ 表被回滚了 ✗             （单调 intern 引理要求：表只增不删，快照是它的子集 ✓）"
+        );
+    }
+
 }

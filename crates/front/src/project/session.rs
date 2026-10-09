@@ -1096,7 +1096,13 @@ fn run_entries<'a, R>(
     let mut out = Vec::with_capacity(entries.len());
     for (index, entry_units) in entries.iter().enumerate() {
         // ③ 回到只有库层的状态 ⇒ 入口之间不共享环境（克隆 = 浅拷贝 ⇒ 指针同一 ✓）。
-        let builder = lib.builder.clone();
+        let mut builder = lib.builder.clone();
+        // **T2-A（2026-10-09）**：库层**封层** —— 之后入口的插入走**本地层**
+        // （`DeclarMap` 的 `local`），共享的库层只读 ✓。不封层的话，共享的 `base`
+        // 会在第一次插入时被 `Arc::make_mut` **整份复制**（O(#decls)）✗
+        // ⇒ 判据①当场退回 O(#decls)（反向验证见 `docs/design/persistent-declarations.md` §4）。
+        // 语义零变化：封层只决定"新声明插进哪一层"，**取用顺序仍是插入序** ✓。
+        builder.seal_library_layer();
         let tables = lib.tables.clone();
         // **切片 1 路乙**：入口趟必须拿到"**该入口闭包**"的闭包前缀与记法表 ——
         // 否则入口里的 `judge_infer` **看不到库层声明**（它只吃源码字符串，
