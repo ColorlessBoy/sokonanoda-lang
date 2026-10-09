@@ -1370,3 +1370,123 @@ async fn hover_on_a_tactic_name_declared_in_the_same_file_shows_its_signature() 
     );
     shutdown(&mut service).await;
 }
+
+/// 签名编辑夹具（单文件：不需要项目清单）。
+fn signature_edit_fixture() -> (std::path::PathBuf, Url, String) {
+    const BEFORE: &str = "def myop : Nat := 0\n\ndef t1 : Nat := by\n  exact myop\n";
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-hover-signature-edit-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(&entry, BEFORE).expect("write entry");
+    let uri = Url::from_file_path(&entry).expect("file url");
+    (dir, uri, BEFORE.to_string())
+}
+
+/// **判据（wire / 用户动作）**：把常量**签名改了**之后再 hover，名字那一行必须是**新**签名。
+///
+/// 缺陷（2026-10-10 实测，真 LSP）：`judge_type_of_constant` 的缓存键只有
+/// `(prelude 模式, 名字)`、是**进程级**的、**没有任何失效路径** ⇒ 编辑后 hover 出的是
+/// **旧签名**（同一份 hover 里 goal state 已经是新的 ⇒ 自相矛盾 ✗：实测
+/// `⊢ Bool` 与 `` `myop : Nat` `` 同时出现）。修法 = hover 路径改走**前缀键**的
+/// `judge_type_of`（`lib.rs::hover_type_of_constant`，零性能代价：未命中时它本来就走这条）。
+///
+/// **反向验证**：把 `hover_type_of_constant` 换回 `judge_type_of_constant` ⇒ 本用例判红
+/// （实测第二次 hover 仍是 `` `myop : Nat` ``，而文件里已是 `Bool`）。
+#[tokio::test]
+async fn hover_on_a_tactic_name_reflects_an_edited_signature() {
+    const AFTER: &str = "def myop : Bool := Bool.true\n\ndef t1 : Bool := by\n  exact myop\n";
+    let (dir, uri, before) = signature_edit_fixture();
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, &before).await;
+    let params = testutil::wait_diagnostics_for(&mut socket, &uri, "signature edit hover").await;
+    assert!(
+        params.diagnostics.is_empty(),
+        "夹具必须干净（诊断=0）：{:?}",
+        params.diagnostics
+    );
+
+    // 第一次 hover：文件里是 `def myop : Nat := 0`。
+    let pos = lsp_pos(
+        &before,
+        offset_of(&before, "exact myop") + "exact ".len() + 1,
+    );
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let HoverContents::Markup(markup) = hover.expect("hover on the tactic name").contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("`myop : Nat`"),
+        "第一次 hover 必须给当时的签名：{:?}",
+        markup.value
+    );
+
+    // 用户动作：**把签名改掉**（编辑器里的普通编辑 ⇒ didChange）。
+    notify(
+        &mut service,
+        "textDocument/didChange",
+        json!({
+            "textDocument": {"uri": uri, "version": 2},
+            "contentChanges": [{"text": AFTER}],
+        }),
+    )
+    .await;
+    let params = testutil::wait_diagnostics_for(&mut socket, &uri, "hover after edit").await;
+    assert!(
+        params.diagnostics.is_empty(),
+        "编辑后的夹具也必须干净：{:?}",
+        params.diagnostics
+    );
+
+    // 第二次 hover：文件里已是 `def myop : Bool := Bool.true` ⇒ 名字那行必须跟着变。
+    let pos = lsp_pos(AFTER, offset_of(AFTER, "exact myop") + "exact ".len() + 1);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(3)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let HoverContents::Markup(markup) = hover.expect("hover on the tactic name").contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("`myop : Bool`"),
+        "编辑后 hover 必须给**新**签名（旧签名 = 假话 ✗）：{:?}",
+        markup.value
+    );
+    assert!(
+        !markup.value.contains("`myop : Nat`"),
+        "编辑后不许再出现旧签名：{:?}",
+        markup.value
+    );
+
+    shutdown(&mut service).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}

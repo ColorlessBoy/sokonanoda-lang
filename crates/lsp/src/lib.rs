@@ -1508,6 +1508,32 @@ fn tactic_name_at(text: &str, span: sokonanoda_front::Span, offset: usize) -> Op
     Some(name.clone())
 }
 
+/// **hover 里问常量签名**的唯一入口（2026-10-10 修一个**假话**缺陷）。
+///
+/// ⚠ **为什么不用 `judge_type_of_constant`**：它的缓存键只有
+/// `(prelude 模式, 名字)`（`judge.rs` 的前提是「常量签名与**谁在用它**无关，
+/// 名字唯一且单调增长」），而那张表是**进程级**的、**没有任何失效路径**
+/// ⇒ 同一个名字出现在**另一份环境**里（另一个项目、或用户刚把签名改了）会答出
+/// **旧签名** ✗。真 LSP 实测（用户可见）：`def myop : Nat := 0` 上 hover 出
+/// `` `myop : Nat` ``，把文件改成 `def myop : Bool := Bool.true` 再 hover
+/// ⇒ goal state 是**新的**（`⊢ Bool`）而名字那行**仍是 `Nat`** ✗ —— hover 说假话。
+///
+/// `judge_type_of` 的键**含整段前缀**（`judge_cache_key`）⇒ 环境变了必然重算 ✓；
+/// 而它自己的缓存仍在（同一份文档反复 hover ⇒ 命中；实测第二次 **1ms**）⇒
+/// **零性能代价**（`judge_type_of_constant` 未命中时走的就是这一条 ✓）。
+///
+/// 横向排查：`lib.rs` 里**所有 hover 路径**都走这里（记法符号的原始类型 ·
+/// 记法目标名 · tactic 里的名字 · 内核内建登记名）。**编译路径**（`elab_notation`
+/// 那条）仍用 `judge_type_of_constant`（它的前缀逐条增长 ⇒ 名字键才是那笔
+/// O(n²) 的解药）；那条路的**跨环境**风险另立台账（`docs/gaps/ledger.jsonl` G-100）。
+fn hover_type_of_constant(
+    prefix: &str,
+    options: &sokonanoda_front::compile::CompileOptions,
+    name: &str,
+) -> std::result::Result<String, sokonanoda_front::judge::Judgement> {
+    sokonanoda_front::judge::judge_type_of(prefix, options, name)
+}
+
 /// 名字的类型（**诚实省略**：拿不到干净类型就不编这一行）。
 ///
 /// 解析顺序 = 语言的名字解析顺序，两级：
@@ -1542,7 +1568,7 @@ fn tactic_name_type(
         prelude: query.mode,
     };
     let prefix = query.judge_prefix_with_entry(offset);
-    let ty = sokonanoda_front::judge::judge_type_of_constant(&prefix, &options, name).ok()?;
+    let ty = hover_type_of_constant(&prefix, &options, name).ok()?;
     if ty.is_empty() || ty.contains('$') {
         return None;
     }
@@ -1744,9 +1770,7 @@ fn notation_symbol_hover(
         } else {
             prefix.clone()
         };
-        if let Ok(ty) =
-            sokonanoda_front::judge::judge_type_of_constant(&judge_prefix, &options, &target)
-        {
+        if let Ok(ty) = hover_type_of_constant(&judge_prefix, &options, &target) {
             // 松散变量（`$N`）的文本不可信——与 `render::hover_type_at` 同一条
             // 纪律：拿不到干净的类型就不编。
             if !ty.is_empty() && !ty.contains('$') {
@@ -2179,7 +2203,7 @@ impl LanguageServer for Backend {
             // 的库里、或就在本文件里时都拿得到签名 ✓（以前传空串 ⇒ 只有 prelude
             // 名字拿得到，其余静默 ✗）。
             let prefix = doc.query().judge_prefix_with_entry(offset);
-            let ty = sokonanoda_front::judge::judge_type_of_constant(&prefix, &options, &name)
+            let ty = hover_type_of_constant(&prefix, &options, &name)
                 .ok()
                 .filter(|ty| !ty.is_empty() && !ty.contains('$'));
             match &ty {
@@ -2209,7 +2233,7 @@ impl LanguageServer for Backend {
             let options = sokonanoda_front::compile::CompileOptions {
                 prelude: doc.query().mode,
             };
-            if let Ok(ty) = sokonanoda_front::judge::judge_type_of_constant("", &options, &name) {
+            if let Ok(ty) = hover_type_of_constant("", &options, &name) {
                 if !ty.is_empty() && !ty.contains('$') {
                     lines.push(format!("`{name} : {ty}`"));
                 }
