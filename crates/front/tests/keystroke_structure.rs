@@ -30,8 +30,7 @@
 use std::path::{Path, PathBuf};
 
 use sokonanoda_front::compile::{
-    by_calls_total, closure_module_compiles_total, elaborated_commands_total,
-    module_compiles_total,
+    by_calls_total, closure_module_compiles_total, elaborated_commands_total, module_compiles_total,
 };
 use sokonanoda_front::depgraph::DepGraph;
 use sokonanoda_front::judge::infer_totals;
