@@ -2,6 +2,40 @@
 
 ### Fixed
 
+- **`#check` 的输出不再重复、也不再随每次操作累积**（2026-10-09 用户报「重复输出 2 次」、
+  「操作几下后直接输出 19 次」；第二次拍板给了精确触发条件：「**做完后面几道题目之后，
+  回头把光标移动回 `#check` 那一行**」）。根因在增量拼接 `front::query::splice_entry_report`：
+  一条**被信任**的命令，它的结论**可能**已经在这一趟的 `fresh` 报告里（没有可用快照时前缀
+  照走，`#check`/`#print` 这类命令会重新 elaborate 并产事件），也可能**只**在缓存里
+  （T2-B 命令级快照命中 ⇒ 前缀整段不走查）——旧代码无条件把缓存那份补回去，于是"两处都有"
+  时**同一条命令算两遍**，每编译一次 +1（`#check`、`#print`、那一行的 hover、以及它产生的
+  **诊断**全都长）。修法 = 拼接的唯一口径改成「**`fresh` 里已经有的命令，不再从缓存补**」：
+  谁算过谁说话，缓存只负责这一轮没算的那些命令，与走哪条路无关。判据（两个相反方向都钉）：
+  front `a_check_in_the_resumed_prefix_is_spliced_back_exactly_once`（用户的形状：`#check` 在最上面、
+  后面几道题、来回改）· front `repeated_edits_keep_command_outputs_single`（相反方向：
+  `#check` 在改动点之后）· LSP `revisiting_the_check_line_never_appends_a_second_output`
+  （真项目 + 连续编辑 + **纯光标往返 + hover**）· 真宿主 e2e「C3 重复输出…」。
+  **反向验证**：撤 `checks` 过滤器 ⇒ (2,1,10) 判红 · 撤诊断按位置去重 ⇒ 2 条判红 ·
+  撤 hovers 过滤器 ⇒ 11 vs 10 判红。
+- **`#check` 的行内提示（inlay hint）已去掉**（2026-10-09 用户：「**inline 提示已不需要**，
+  `#check` 尾部仍带且看不全、无意义」）。`textDocument/inlayHint` 现在**只**答开放练习的
+  洞的期望类型；命令输出在 Infoview 的「命令输出」块里完整可见（含记法与高亮），行内那一截
+  只会被行宽截断。判据：`check_results_are_not_inlay_hints`（带 `sorry` **正对照**——否则
+  "没有提示"可能是因为整条 inlay 路坏了 ✗）。**反向验证**：把 `#check` 那段循环放回去 ⇒
+  3 条 vs 1 条判红。
+- **输入 `\alpha` 现在敲完就是 `α`：按【空格】自动转换，不再依赖 `Tab`**（2026-10-09 用户
+  拍板：「对齐 Lean 4 —— 输入 `\a` 或 `\alpha` 后按【空格】即自动转成 α，不要依赖 +Tab」；
+  并指出「原 `+Tab` 触发在编辑器 UI 里**没有任何提示**、用户全程不知情」本身就是暴露问题）。
+  `sokonanoda.input.eager` **默认翻成开**：**分隔符**（空格/标点）封口即换
+  （`\alpha ` → `α `、`\a ` → `α `、`\in ` → `∈ `），而"不再是任何更长缩写的前缀"的词敲完
+  即换（`\alpha` → `α`）。`Tab` 键位**保留**为内部显式路径（`input.eager: false` 时它是唯一
+  一条），但**不再是对用户教的姿势**：README / 设置说明 / teacher 技能一律改教【空格】。
+  判据：真宿主**真按键** `scripts/vscode-input-e2e.mjs`（逐字符 keydown + 真 DOM + 存盘字节）
+  —— `\alpha `→`α ` · `\a `→`α ` · `\and `→`∧ ` · `\in `→`∈ ` · `\alpha` 敲完即换 ·
+  一次 undo 回到 `\in` · 对照臂（Tab 仍缩进 / `.txt` 不动）· 逃生门（`false` 时空格不换、
+  Tab 才换）；stub 宿主 `Space closes the word…` + `eager replacement is the default, not Tab`；
+  清单契约 `notation_input_tab_binding_is_gated_by_its_context_key`（默认值 = true）。
+  **反向验证**：把清单默认值改回 `false` ⇒ Rust 契约与 stub 两条同时判红 ✓。
 - **命令输出与面板其它内容同一套观感：记法 + 语法高亮**（2026-10-09 用户报「`#check` 在
   infoview 里的打印缺少 notation 显示和语法高亮」）。「命令输出」块以前把 `text` 画成一色
   `<pre>`；现在走**与目标/条件/声明卡片同一个** `codeBlock`（`runs` 分段 + `tok-*` 上色），

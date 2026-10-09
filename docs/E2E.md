@@ -61,11 +61,10 @@ scripts/vscode-e2e.sh --grep "declarations panel" --profile debug --no-build
 | 纯 Node 单测 | `npm run test:unit` | server.js 解析顺序/下载 URL、webview DOM、**stub 宿主**的扩展接线（含项目树渲染） |
 | 静态契约 | `cargo test -p sokonanoda-cli --test extension` | package.json 字段/命令注册/打包与版本一致性 |
 | **真宿主（本文）** | `scripts/vscode-e2e.sh` | 扩展在**真 VS Code** 里激活 → 起**真 LSP** → 诊断/inlay/hover/codeLens/重启/Infoview/doctor/项目树**端到端**成立；`.sokonanoda` 语言 id、项目树的行来自真 `soko/project` 答案 |
+| **真按键（CDP）** | `node scripts/vscode-input-e2e.mjs` | **用户按下去那一下**：真 VS Code + 真 keydown（逐字符 + `Tab`/`Cmd+Z`）⇒ 编辑器 DOM 与存盘字节。守记法输入法（`\alpha` 敲完即 `α` · `Tab` 显式路径 · 一次 undo · 对照臂「Tab 仍缩进 / 别的语言不碰」）——扩展宿主测试只能**直接调命令**，绕过的正是键位 + context key 那条路（`AGENTS.md` 验证纪律 0(a)） |
 | 手工 F5 | 开发者 | 肉眼观感、主题、Marketplace 安装态 |
 
-用例清单在 `editor/vscode/src/test/extension.test.js`（**现 36 条** —— 现测：`grep -c "^  test(" editor/vscode/src/test/extension.test.js`；0.64.1 时 24 条、0.60.0 起 15 条；
-0.58.0 起 14 条）；新增用户可见行为时**同一轮**加一条真宿主断言，并在 `docs/TESTING.md`
-的集成测试小节登记。
+用例清单在 `editor/vscode/src/test/extension.test.js`（**条数现测**：`grep -c "^  test(" editor/vscode/src/test/extension.test.js`）；新增用户可见行为时**同一轮**加一条真宿主断言，并在 `docs/TESTING.md` 的集成测试小节登记。
 
 **每次跑给一个全新的编译缓存目录**（`SOKONANODA_CACHE_DIR=$(mktemp -d)`，跑完删）：
 T-A60 的冷/热对比用例要有**真冷**的基准，否则"冷开"会命中上一次跑留下的条目，

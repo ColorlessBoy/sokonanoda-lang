@@ -77,9 +77,10 @@ jsdelivr 镜像与 raw **逐字节相同**，`sha256 fa5e317d…b5b0`，37039 B�
 Lean 本来就有的前缀关系，Tab/封口口径照旧）。
 
 **D2 · `\a` 是安全的**：改写器已有「完整表词」两态口径（`requireComplete`）——
-还在敲字母时**前缀不落定**，敲了空格/标点或按 Tab 才封口。所以 `\a` 与 `\and`/`\approx`
+还在敲字母时**前缀不落定**，敲了空格/标点才封口。所以 `\a` 与 `\and`/`\approx`
 共存**不引入歧义**，与 Lean 同规则（判据见 §4）。
 
+**D8 · 默认档 = 即时替换（2026-10-09 用户拍板）**：`input.eager` **默认开** —— 手势与 Lean 4 一致（打缩写 + **空格**封口即换），**不再教 `Tab`**（它在编辑器 UI 里无任何提示 ⇒ 用户全程不知情，用户点名这是暴露问题）；`Tab` 键位保留为内部显式路径（`false` 时唯一一条）。
 **D3 · 单字母只收希腊字母**：Lean 里 `\v`→∨、`\i`→∩、`\o`→∘、`\r`→→ 这些**不收**
 （`\i` 给 ∩ 而 `\in` 给 ∈ 是反直觉的，拼写名 `\or` `\cap` `\comp` `\to` 已经够短）；
 `\p`/`\P`→Π 收（它是希腊字母名，Lean 的怪癖逐字保留）。
@@ -122,8 +123,7 @@ token），且**只在**该 token 不是记法符号时追加（否则与 `notat
   且 `∈` 不重复出现两行输入提示。
 * **真宿主（用户看得见的那层）**：`editor/vscode/src/test/extension.test.js` 的
   `notation input: greek letters and the anon-ctor brackets, in a real host` ——
-  真 VS Code 1.138.0 + 真 LSP：hover 绑定变量 `α` 含 `\alpha` 且**不**说"记法符号"、
-  `\a`/`\alpha` + 命令 → `α`、`\<` + 命令 → `⟨`。台账 `docs/e2e/ledger.jsonl`（39/39）。
+  hover 绑定变量 `α` 含 `\alpha` 且**不**说"记法符号"；**真按键**（2026-10-09 新增，`AGENTS.md` 纪律 0(a)）：`node scripts/vscode-input-e2e.mjs` —— CDP 驱真 VS Code + 逐字符真 keydown + 真 DOM + 存盘字节：`\alpha `→`α ` · `\a `→`α ` · `\and `→`∧ ` · `\in `→`∈ ` · `\alpha` 敲完即换 · 一次 undo 回退 · 对照臂（Tab 仍缩进 / `.txt` 不动）· 逃生门（`false` 时空格不换、Tab 才换）。
 * **表 ↔ 上游逐键对账**（2026-10-01 首次执行；上游会漂移 ⇒ 复跑时**先比 sha256**）：
   拉上游表（`cdn.jsdelivr.net/gh/leanprover/vscode-lean4@master/lean4-unicode-input/src/abbreviations.json`，
   取证日 37039 B / `sha256 fa5e317d…b5b0`），然后把本表 **145 个键**逐个查上游。

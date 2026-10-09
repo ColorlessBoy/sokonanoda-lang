@@ -126,8 +126,10 @@ skills.
   updates themselves still apply on reload)
 - Greek binder letters (`α`, `β`, …) render plainly — the extension turns
   VS Code's confusable-character box off for `.sokonanoda` files by default
-- **Notation input, the Lean 4 way**: type `\and` and press `Tab` to get `∧`
-  (`\in` → `∈`, `\sub` → `⊆`, `\powerset` → `𝒫`, …)
+- **Notation input, the Lean 4 way**: type the abbreviation and press **Space** —
+  `\and` → `∧`, `\alpha` → `α`, `\in ` → `∈ `, `\sub ` → `⊆ `, `\powerset ` → `𝒫`
+  (it also lands as soon as the word is complete, so `\alpha` becomes `α` while
+  you type)
 - **Notation is navigable**: hover a notation symbol to see three things — what
   it expands to (`Set.mem`), **its own signature** (`Set.mem : forall (α : Type 0),
   α -> Set α -> Prop`), and how to type it; the hover box covers **exactly the
@@ -159,7 +161,11 @@ skills.
 
 ## Typing notation (`\and` → `∧`, `\alpha` → `α`)
 
-Write the abbreviation and press `Tab`. Logic and set theory first:
+Write the abbreviation and press **Space** — that is the same gesture as Lean 4:
+`\alpha` + Space → `α `, `\a` + Space → `α `, `\in` + Space → `∈ ` (a word that is
+still a prefix of a longer key waits for the separator, so `\in` is not turned
+into `∈` before you are done). A completed word lands even earlier — `\alpha`
+becomes `α` as soon as you type the `a`. Logic and set theory first:
 
 | you type | you get | aliases | | you type | you get | aliases |
 |---|---|---|---|---|---|---|
@@ -202,9 +208,9 @@ this table accepts **both** `\GM` (Lean's key) and `\Mu` (the spelled-out name t
 other 23 capitals use);
 hovering a symbol shows the same information (`∈` → "输入：`\in`（别名 `\mem`）"),
 and so does hovering a Greek-letter **variable** (`α` → "输入：`\alpha`（别名 `\a`）").
-`Tab` is only taken over **while a `\`-word is being typed**: ordinary indentation
-and suggestion acceptance in `.sokonanoda` files keep working, and a lone `\`
-(the set-difference symbol) is never rewritten.
+Ordinary typing is never touched: a lone `\` (the set-difference symbol) is never
+rewritten, indentation and suggestion acceptance keep working, and a word that is
+still a prefix of a longer abbreviation waits instead of guessing.
 
 A short key like `\a` is a **prefix** of `\alpha` / `\approx` / `\and`, so it
 waits while you keep typing and lands once the word is closed — that is Lean's
@@ -214,12 +220,14 @@ deliberately not taken: `\i` giving ∩ while `\in` gives ∈ would be a trap.
 
 Two more behaviours worth knowing:
 
-- **Eager mode** — set `sokonanoda.input.eager` to `true` and an abbreviation
-  is replaced as soon as the word is complete, no `Tab` needed. While you keep
-  typing letters a prefix waits (`\an` waits for `\and`, `\in` waits for
-  `\inter`, `\a` waits for `\alpha`); a separator closes the word and finishes it
-  (`\in ` → `∈ `, `\sub ` → `⊆ `, `\a ` → `α `). Off by default, because `Tab` is
-  the explicit, reviewable path.
+- **How a word lands** (Lean 4's rule): a separator — **Space**, punctuation —
+  closes the word and finishes it (`\in ` → `∈ `, `\sub ` → `⊆ `, `\a ` → `α `),
+  and a word that is no longer a prefix of any longer key lands immediately
+  (`\alpha` → `α`). While you keep typing letters a prefix waits (`\an` waits
+  for `\and`, `\in` waits for `\inter`, `\a` waits for `\alpha`). Turning
+  `sokonanoda.input.eager` off disables the automatic replacement (then `Tab`,
+  which the extension also binds while a `\`-word is being typed, is the only
+  way to force one).
 - **Undo** — a replacement is a single edit, so **one undo takes it back in
   one step**; with several cursors, each abbreviation is rewritten in that
   same single edit.
