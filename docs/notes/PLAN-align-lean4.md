@@ -1368,8 +1368,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   §8.9 的 A7 那条 22.5% ✗，且它的红线是"**不换弱哈希**"）✓。⇒ 下一棒的两个具体靶子：① `image_inter_subset`
   这类"**编辑点之后但依赖没变**"的声明（= T2-B 的深水区 ✓）；② A7 的前缀键（**先读 §8.9 的红线** ✓）。
 
-* ⚠ **A7 的 22.5% 要先重量再投（第 61 轮 · 只读复核）**：`judge.rs` 的前缀键今天已经是 `canonical_text_key` 的**小 LRU**（4 条 · 命中判据**逐字节相等** ✓ · 哈希函数一字未动 ✓ —— 红线"**不许换弱哈希**"守住了 ✓）。⚠ 但那条 memo 的**命中路径本身是 O(前缀长度)**（`text == src`）， 而**未命中**路径要重跑整段 SipHash ⇒ 一次编译里问几百次时，**4 条够不够**是个**没量过**的问题 ✗。 ✅ **量完了（第 62 轮 · `front/tests/a7_text_hash_memo_stats.rs`）**：冷开 **4242 命中 / 758 未命中** · **每一刀 955 / 28**（四刀完全相同 ⇒ 确定性 ✓）⇒ 合计 **8062 / 870 = 命中率 90.3%** ✓。 ⇒ **`MEMO = 4` 是够的**（残余 28 次未命中/刀 × 一次 SipHash ≈ **0.14ms 量级** ✓）⇒
-  **A7 那条 22.5% 已经过期** ✗ ⇒ **这个靶子可以划掉、别再投** ✓（红线"不许换弱哈希"也就不用碰 ✓）。
+* ⚠ **A7 的 22.5% 要先重量再投（第 61 轮 · 只读复核）**：`judge.rs` 的前缀键今天已经是 `canonical_text_key` 的**小 LRU**（4 条 · 命中判据**逐字节相等** ✓ · 哈希函数一字未动 ✓ —— 红线"**不许换弱哈希**"守住了 ✓）。⚠ 但那条 memo 的**命中路径本身是 O(前缀长度)**（`text == src`）， 而**未命中**路径要重跑整段 SipHash ⇒ 一次编译里问几百次时，**4 条够不够**是个**没量过**的问题 ✗。 ✅ **量完了（第 62 轮 · `front/tests/a7_text_hash_memo_stats.rs`）**：冷开 **4242 命中 / 758 未命中** · **每一刀 955 / 28**（四刀完全相同 ⇒ 确定性 ✓）⇒ 合计 **8062 / 870 = 命中率 90.3%** ✓。 ⇒ **`MEMO = 4` 是够的**（残余 28 次未命中/刀 × 一次 SipHash ≈ **0.14ms 量级** ✓）⇒ **A7 那条 22.5% 已经过期** ✗ ⇒ **这个靶子可以划掉、别再投** ✓（红线"不许换弱哈希"也就不用碰 ✓）。
 * **产物/缓存的体格（同轮实测）**：真课程 unit08 的产物载荷 **1,148,482 字节**（`.meta.json` 158 ✓）· `compiled/` 在探针跑完后为 **0**（各臂按纪律清过 ✓）⇒ **写产物 ≈ 1–3ms 量级**，不是热按键的大头 ✓； 真正的大头仍是"**声明 elaborate ≈24ms** + 声明之外 ≈54ms"（见上一条的逐声明归因 ✓）。
 
 * ⚠ **在制品协调（第 63 轮）**：并行线正在 `crates/kernel/{builder,util}.rs` 上做 **`EnvBuilder::clone` 常量化**（新用例 `builder::tests::env_clone_cost_is_constant_in_declaration_count` ✓ —— 那正是 **T2-A（声明表持久化/COW）** 这条 XL 前置件 ✓，也是解锁 T2-B 深水区的那一件 ✓）。 它**当前未提交且未绿**（全量 gate 判红 = 它的新用例 ✗，不是本线的改动 ✓）⇒ 本线**不碰**那两个文件， 等它落地后再重量北极星（克隆常量化会直接改热按键的成本结构 ✓）。
@@ -1407,8 +1406,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ✅ **T4-B 的 CLI `check` 换路落地（第 76 轮）**：`check.rs` 从 `compile_plan`（整条闭包一趟 ✗） 换成 **`precheck_plan` + `compile_plan_with_artifacts`** ✓（session + 磁盘产物、且不碰线程局部检查点 ✓）。 三条前置都核实过：① 报告逐字节相同（`t4b_plan_parity` ✓）；② 本调用方**没有** progress sink （`compile_plan` = `…_with_progress(None)` ✓）⇒ 不存在丢进度事件的问题 ✓；③ **`export` 已对齐** ✓ （第 43 轮正是死在这条上 ✗）。验证：`cli/tests/namespace` **10/10** ✓ · **CLI 全套 40 个目标 exit 0** ✓。 ⚠ **如实记：没有量到墙钟收益** ✗ —— 夹具上两臂都是 **~0.035s**（`compiled/` 报告缓存 + 全局缓存把两臂都 短路了 ✗，与第 13/43 轮同一条教训）⇒ 本次换路的依据是**判据（报告逐字节）+ 与 `query` 共用产物路** ✓，
   不是墙钟读数 ✓（要量收益得先让报告缓存 miss 而产物命中，夹具没做到 ✓）。
 
-* ⛔ **全量 gate 的红已定位到并行线的 `b10fa175`（T2-A）—— 它踩了自己那条判据** ✗✗： 红点是 `crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env` （K1-b 的"**跨 builder 名字查询不许静默取错**"守卫 ✓），报 `const_head_type: unknown const NamePtr(0x…)` ⇒ **名字被"找到"了、找到的是别人** ✗。`git log -- crates/kernel/src/{builder,util}.rs` 的第一条就是 **`b10fa175 perf(kernel): T2-A —— 声明表分层持久化 / COW`** ✓ ⇒ 归它 ✓（内核那两个文件**没有**未提交改动 ✓）。 ⚠ **要命的是**：本规划 §T2-A 的判据清单第 ② 条**自己写着**"指针同一性**两向**判据保持绿
-  （`crates/kernel/src/builder.rs` 那条）" ✗ ⇒ T2-A 落地时**没守住自己的验收条件** ✓。
+* ⛔ **全量 gate 的红已定位到并行线的 `b10fa175`（T2-A）—— 它踩了自己那条判据** ✗✗： 红点是 `crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env` （K1-b 的"**跨 builder 名字查询不许静默取错**"守卫 ✓），报 `const_head_type: unknown const NamePtr(0x…)` ⇒ **名字被"找到"了、找到的是别人** ✗。`git log -- crates/kernel/src/{builder,util}.rs` 的第一条就是 **`b10fa175 perf(kernel): T2-A —— 声明表分层持久化 / COW`** ✓ ⇒ 归它 ✓（内核那两个文件**没有**未提交改动 ✓）。 ⚠ **要命的是**：本规划 §T2-A 的判据清单第 ② 条**自己写着**"指针同一性**两向**判据保持绿 （`crates/kernel/src/builder.rs` 那条）" ✗ ⇒ T2-A 落地时**没守住自己的验收条件** ✓。
   ⇒ **本线不修**（那是 T2-A 的语义地盘：持久化/COW 会改变跨 builder 的 interning 语义 ✓，是"守卫要重设计"
   还是"实现有漏"得由内核线定 ✗）；但它**卡住全量 gate** ⇒ 也卡住本线"整门课 `--json` 逐字节"那道红线 ✗。
 
