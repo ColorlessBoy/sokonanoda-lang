@@ -60,6 +60,7 @@
 
       <nav class="toc" aria-label="版本列表" data-i18n-aria="tocLabel">
         <ul>
+          <li><a href="#v0.87.1">v0.87.1</a><span class="tag">2026-10-09</span></li>
           <li><a href="#v0.87.0">v0.87.0</a><span class="tag">2026-10-09</span></li>
           <li><a href="#v0.86.0">v0.86.0</a><span class="tag">2026-10-08</span></li>
           <li><a href="#v0.85.2">v0.85.2</a><span class="tag">2026-10-08</span></li>
@@ -67,10 +68,36 @@
           <li><a href="#v0.85.0">v0.85.0</a><span class="tag">2026-10-08</span></li>
           <li><a href="#v0.84.0">v0.84.0</a><span class="tag">2026-10-08</span></li>
           <li><a href="#v0.83.0">v0.83.0</a><span class="tag">2026-10-08</span></li>
-          <li><a href="#v0.82.0">v0.82.0</a><span class="tag">2026-10-06</span></li>
-          <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md" data-i18n="tocOlder">更早的 106 个版本</a></li>
+          <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md" data-i18n="tocOlder">更早的 107 个版本</a></li>
         </ul>
       </nav>
+    </div>
+  </section>
+  <section class="section release" id="v0.87.1">
+    <div class="wrap">
+      <h2><span class="ver">v0.87.1</span> <span class="tag">2026-10-09</span></h2>
+      <p class="lead"><strong>Three reported defects are closed, and one gesture now matches Lean 4.</strong> <code>#check</code> output no longer repeats or accumulates (it grew by one copy per compile — 19 copies after a few exercises); <code>#print</code> answers in project files (entries with an <code>import</code> showed nothing at all); and command output in the Infoview gets the same notation folding and syntax highlighting as every other card. Inlay hints stop echoing <code>#check</code> (the Infoview block is the complete view), the goal panel reads conditions-then-goal like Lean 4, the blank line after a proof still belongs to its declaration, and typing <code>\alpha</code> followed by <strong>space</strong> becomes <code>α</code> (<code>sokonanoda.input.eager</code> now defaults on; <code>Tab</code> stays as an internal explicit path). Patch semantics: no new protocol and no new capability — existing features became correct and usable.</p>
+      <h3>Fixed</h3>
+      <ul>
+        <li><strong><code>#check</code> 的输出不再重复、也不再随每次操作累积</strong>（2026-10-09 用户报「重复输出 2 次」、 「操作几下后直接输出 19 次」；第二次拍板给了精确触发条件：「<strong>做完后面几道题目之后， 回头把光标移动回 <code>#check</code> 那一行</strong>」）。根因在增量拼接 <code>front::query::splice_entry_report</code>： 一条<strong>被信任</strong>的命令，它的结论<strong>可能</strong>已经在这一趟的 <code>fresh</code> 报告里（没有可用快照时前缀 照走，<code>#check</code>/<code>#print</code> 这类命令会重新 elaborate 并产事件），也可能<strong>只</strong>在缓存里 （T2-B 命令级快照命中 ⇒ 前缀整段不走查）——旧代码无条件把缓存那份补回去，于是"两处都有" 时<strong>同一条命令算两遍</strong>，每编译一次 +1（<code>#check</code>、<code>#print</code>、那一行的 hover、以及它产生的 <strong>诊断</strong>全都长）。修法 = 拼接的唯一口径改成「<strong><code>fresh</code> 里已经有的命令，不再从缓存补</strong>」： 谁算过谁说话，缓存只负责这一轮没算的那些命令，与走哪条路无关。判据（两个相反方向都钉）： front <code>a_check_in_the_resumed_prefix_is_spliced_back_exactly_once</code>（用户的形状：<code>#check</code> 在最上面、 后面几道题、来回改）· front <code>repeated_edits_keep_command_outputs_single</code>（相反方向： <code>#check</code> 在改动点之后）· LSP <code>revisiting_the_check_line_never_appends_a_second_output</code> （真项目 + 连续编辑 + <strong>纯光标往返 + hover</strong>）· 真宿主 e2e「C3 重复输出…」。 <strong>反向验证</strong>：撤 <code>checks</code> 过滤器 ⇒ (2,1,10) 判红 · 撤诊断按位置去重 ⇒ 2 条判红 · 撤 hovers 过滤器 ⇒ 11 vs 10 判红。
+        </li>
+        <li><strong><code>#check</code> 的行内提示（inlay hint）已去掉</strong>（2026-10-09 用户：「<strong>inline 提示已不需要</strong>， <code>#check</code> 尾部仍带且看不全、无意义」）。<code>textDocument/inlayHint</code> 现在<strong>只</strong>答开放练习的 洞的期望类型；命令输出在 Infoview 的「命令输出」块里完整可见（含记法与高亮），行内那一截 只会被行宽截断。判据：<code>check_results_are_not_inlay_hints</code>（带 <code>sorry</code> <strong>正对照</strong>——否则 "没有提示"可能是因为整条 inlay 路坏了 ✗）。<strong>反向验证</strong>：把 <code>#check</code> 那段循环放回去 ⇒ 3 条 vs 1 条判红。
+        </li>
+        <li><strong>输入 <code>\alpha</code> 现在敲完就是 <code>α</code>：按【空格】自动转换，不再依赖 <code>Tab</code></strong>（2026-10-09 用户 拍板：「对齐 Lean 4 —— 输入 <code>\a</code> 或 <code>\alpha</code> 后按【空格】即自动转成 α，不要依赖 +Tab」； 并指出「原 <code>+Tab</code> 触发在编辑器 UI 里<strong>没有任何提示</strong>、用户全程不知情」本身就是暴露问题）。 <code>sokonanoda.input.eager</code> <strong>默认翻成开</strong>：<strong>分隔符</strong>（空格/标点）封口即换 （<code>\alpha </code> → <code>α </code>、<code>\a </code> → <code>α </code>、<code>\in </code> → <code>∈ </code>），而"不再是任何更长缩写的前缀"的词敲完 即换（<code>\alpha</code> → <code>α</code>）。<code>Tab</code> 键位<strong>保留</strong>为内部显式路径（<code>input.eager: false</code> 时它是唯一 一条），但<strong>不再是对用户教的姿势</strong>：README / 设置说明 / teacher 技能一律改教【空格】。 判据：真宿主<strong>真按键</strong> <code>scripts/vscode-input-e2e.mjs</code>（逐字符 keydown + 真 DOM + 存盘字节） —— <code>\alpha </code>→<code>α </code> · <code>\a </code>→<code>α </code> · <code>\and </code>→<code>∧ </code> · <code>\in </code>→<code>∈ </code> · <code>\alpha</code> 敲完即换 · 一次 undo 回到 <code>\in</code> · 对照臂（Tab 仍缩进 / <code>.txt</code> 不动）· 逃生门（<code>false</code> 时空格不换、 Tab 才换）；stub 宿主 <code>Space closes the word…</code> + <code>eager replacement is the default, not Tab</code>； 清单契约 <code>notation_input_tab_binding_is_gated_by_its_context_key</code>（默认值 = true）。 <strong>反向验证</strong>：把清单默认值改回 <code>false</code> ⇒ Rust 契约与 stub 两条同时判红 ✓。
+        </li>
+        <li><strong>命令输出与面板其它内容同一套观感：记法 + 语法高亮</strong>（2026-10-09 用户报「<code>#check</code> 在 infoview 里的打印缺少 notation 显示和语法高亮」）。「命令输出」块以前把 <code>text</code> 画成一色 <code>&lt;pre&gt;</code>；现在走<strong>与目标/条件/声明卡片同一个</strong> <code>codeBlock</code>（<code>runs</code> 分段 + <code>tok-*</code> 上色）， <code>#check</code> 的<strong>类型那一半还会折记法</strong>（<code>-&gt;</code> ⇒ <code>→</code>，与目标行一模一样）。分段由服务端的 <strong>唯一显示接口</strong>产出（<code>display.fold</code> + <code>display.runs</code>，与 <code>goal_runs</code> 同源）， 扩展不重新分词、也不硬编码样式。
+        </li>
+        <li><strong><code>#print</code> 在带 <code>import</code> 的文件里不再「完全没有反应」</strong>（2026-10-09 用户报）。报告组装 有两处只映射了 <code>#check</code>：项目模式走的 <code>run_pass_with</code> 组装段（<code>prints</code> 恒空）与增量 拼接 <code>splice_entry_report</code>（新查那一段的 <code>prints</code> 没拼回来）⇒ 课程文件（<strong>都有</strong> <code>import</code>）里 <code>#print</code> 什么也不显示。两处补齐后，入口自己的声明与<strong>库里</strong>的声明都能 打印，<code>def … := fun (n : Nat) =&gt; …</code> 这样的 <strong>lambda 定义会打出它的 λ 本体</strong>。 报告形状随之 <strong>3 → 4</strong>（旧缓存条目整库不命中，不会静默给「没反应」的旧答案）。
+        </li>
+        <li><strong>目标栏与 Lean 4 对齐：条件在上、目标在下</strong>（2026-10-09 用户报）。<code>renderGoals()</code> 原来先渲染 目标行（<code>⊢ 目标</code>）再渲染假设列表 ⇒ 与 Lean 4 Infoview 正好相反。现在顺序是 目标头（<code>目标 i/n</code>，可点 reveal，对应 Lean 的 <code>case</code> 行）→ 假设（<code>h : A</code>）→ <code>⊢ 目标</code>； 假设的 <code>name : type</code> 冒号照旧。
+        </li>
+        <li><strong>无目标只有一句文案：<code>🎉 已无目标 ✓</code></strong>（2026-10-09 用户拍板）。以前"证明在末条 tactic 闭合"会额外道贺（<code>🎉 恭喜，证完了（Q.E.D.）</code>），尾部还有 <code>sorry</code> 的声明则是中性的 <code>已无目标 ✓</code> ⇒ 同一格两种字样。现在 Infoview 与「当前光标处」树项<strong>同句</strong> （"证完了"是替学习者下的判决，"已无目标"才是看得见的事实）。
+        </li>
+        <li><strong>声明体之后的空白行仍算这条声明</strong>（<code>soko/stateAt</code>）。光标停在证明末尾下面的空行/行尾上时， 面板以前说「光标不在任何声明内。」；现在照旧显示该声明的剩余目标或「🎉 已无目标 ✓」。 边界：下一行是 <code>#check</code>/<code>#print</code> 时<strong>仍然</strong>不算（那一行的「命令输出」块靠这条路）。
+        </li>
+        <li><strong>产物版本号不再显示成裸问号</strong>。老产物目录的 <code>meta.json</code> 停在旧 schema （<code>soko.artifacts/1</code>，而当前是 <code>soko.artifacts/2.r3</code>）⇒ 读侧把整个目录当不存在 ⇒ 面板写「由编译器 ? 写入」。现在写产物时把 schema 与版本戳<strong>一起</strong>升到当前值； 万一真读不到，那一行也改说「（未知）」而不是 <code>?</code>。
+        </li>
+      </ul>
     </div>
   </section>
   <section class="section release" id="v0.87.0">
@@ -288,37 +315,6 @@
       </ul>
     </div>
   </section>
-  <section class="section release" id="v0.82.0">
-    <div class="wrap">
-      <h2><span class="ver">v0.82.0</span> <span class="tag">2026-10-06</span></h2>
-      <p class="lead"><strong>The <code>Iff.intro</code> / <code>And.intro</code> wall comes down</strong> (G-30 — the last blocker on the course's item-style proofs) · <strong>Infoview notation symbols become clickable</strong> (G-53) · <strong>editing a declaration gets ~2× faster</strong> (the <code>by</code> judgment's O(n²) prefix rerun is gone) · and the compile cache stops replaying a verdict that was produced under a different <code>SOKO_*</code> switch setting.</p>
-      <h3>Added</h3>
-      <ul>
-        <li><strong>Infoview runs are clickable → go to definition</strong> (G-53). Runs that carry a source position — notation symbols such as <code>{a}</code> / <code>∈</code> / <code>⊆</code>, identifiers, prelude names — now resolve to the declaration they came from. The data side (<code>semantic</code> runs carry spans), the wire side (the LSP forwards them) and the UI side (the webview renders them as links) each have their own assertion, and the e2e asserts the <strong>user action</strong> (click ⇒ jump) rather than "the link exists".
-        </li>
-      </ul>
-      <h3>Changed</h3>
-      <ul>
-        <li><strong>Editing a declaration is no longer priced by the file's length.</strong> The <code>by</code> judgment's O(n²) prefix rerun is gone: the incremental identity stopped re-parsing fragments and the identity table no longer thrashes. Cold opens in a real host: <code>unit12</code> <strong>10490 ms → 6173 ms (1.70×)</strong>, <code>unit01</code> 975 → <strong>851 ms</strong>, <code>unit08</code> 2555 → <strong>2113 ms</strong>. <code>#check</code>'s two paths now go through the same trusted prefix (<code>unit12-synthesis</code> <strong>10.97 s → 5.75 s, 1.91×</strong>).
-        </li>
-        <li><strong><code>SOKO_UNIVERSE_METAVAR</code> is retired.</strong> Constant-level universe metavariables are now always generated and solved, the way Lean's <code>mkFreshLevelMVars</code> + <code>levelMVarToParam</code> do it. The switch only ever produced a second, conflicting solution, so it is inert in both positions (the positive example <code>Show 0 5</code> — dropped leading implicits + a surplus argument + a level solved from the argument's type — checks either way).
-        </li>
-        <li><strong>The compile cache keys on every <code>SOKO_*</code> judgment switch.</strong> A verdict produced with <code>SOKO_ARG_EXPECTED=0</code> could previously be replayed for <code>SOKO_ARG_EXPECTED=1</code> (same source text, same cache directory) — which is what made CI's <code>test</code> job red while the same tests passed locally. The switch state is now folded into the key <strong>order-independently</strong> (so an entry warmed by <code>sokonanoda build</code> is still reusable by the editor, which runs in a different process) and <code>CACHE_FORMAT</code> is bumped to 5.
-        </li>
-      </ul>
-      <h3>Fixed</h3>
-      <ul>
-        <li><strong>Expected types now reach the arguments of nested applications</strong> (G-30, the course's last blocker). <code>Iff.intro (fun (_ : {a} = {b}) =&gt; h2) (fun (_ : a = b) =&gt; h1)</code> — and the same shape with <code>And.intro</code> — now check. Three parts, each aligned with Lean 4: the <code>Eq</code> family registers its real leading-implicit arity (an implicit binder never consumes a written argument — <code>Elab/App.lean:752-775</code>); <code>type_head_fits_layer</code> accepts <code>Sort u</code>, so a partially applied <code>Eq.subst.{1} Nat …</code> is not misread as the short form; and a <code>λ</code> argument receives its binder's type as the expected type (<code>elabAppArgs</code>'s <code>elabArg arg binderType</code>). The consequence is the important one: <strong><code>Eq</code>'s universe level is solved (<code>Eq.{1}</code>) instead of defaulting to <code>0</code></strong>, which is what made <code>{a} = {b}</code> unprovable. The three definition-head boundaries of G-73 and the three equivalence laws of G-62 flip with it.
-        </li>
-        <li><strong>A notation symbol glued to an identifier no longer steals the identifier</strong> (G-86): <code>r''</code> is one identifier (Lean likewise requires whitespace around <code>''</code>), so <code>lib/Prod</code>, <code>lib/Equiv</code> and <code>lib/Demo</code> compile again, while <code>Aᶜ</code> / <code>Bᶜ</code> (109 + 65 sites) keep splitting as before.
-        </li>
-        <li><strong>LSP positions are UTF-16</strong> (G-36): hovering or selecting past a non-BMP character no longer lands on the wrong span (three call sites fixed).
-        </li>
-        <li><strong>Explicitly universe-polymorphic constants take part in level inference</strong> (G-93): <code>myax α a</code> no longer silently defaults the level to <code>0</code> while <code>myax.{1} α a</code> worked — the two spellings now agree.
-        </li>
-      </ul>
-    </div>
-  </section>
 </main>
 
 <footer class="site-footer">
@@ -356,7 +352,7 @@
   "footerSource": "Source",
   "footerReleases": "Releases",
   "footerBack": "Back to the home page",
-  "tocOlder": "106 older versions"
+  "tocOlder": "107 older versions"
 }
 </script>
 <script src="assets/i18n.js"></script>

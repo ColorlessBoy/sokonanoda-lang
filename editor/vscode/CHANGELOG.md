@@ -1,4 +1,15 @@
-## [Unreleased]
+## [0.87.1] — 2026-10-09
+
+> **Three reported defects are closed, and one gesture now matches Lean 4.** `#check`
+> output no longer repeats or accumulates (it grew by one copy per compile — 19 copies
+> after a few exercises); `#print` answers in project files (entries with an `import`
+> showed nothing at all); and command output in the Infoview gets the same notation
+> folding and syntax highlighting as every other card. Inlay hints stop echoing `#check`
+> (the Infoview block is the complete view), the goal panel reads conditions-then-goal
+> like Lean 4, the blank line after a proof still belongs to its declaration, and typing
+> `\alpha` followed by **space** becomes `α` (`sokonanoda.input.eager` now defaults on;
+> `Tab` stays as an internal explicit path). Patch semantics: no new protocol and no new
+> capability — existing features became correct and usable.
 
 ### Fixed
 
