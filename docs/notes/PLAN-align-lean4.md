@@ -1411,6 +1411,15 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ⚠ **本轮的边界**：并行线在 `check/{mod,walk}.rs` + `project/session.rs` 上做 T2-B（三个文件未提交、 当前 `cargo check -p sokonanoda-front` **6 个错** ✗）⇒ 本线**不动这些文件**、也**跑不了任何编译判据** ✗
   （这正是 T3-D 只做到"取证 + 决定"的原因 ✓）。
 
+* ⚠ **T3-D 的执行本轮试了 3 次、全部还原（换招：下次手工做 ✓）**：三处**脚本化删除**都误伤 ——
+  ① 字符偏移法在文档块边界上切错（留下半行 ✗）；② 行法把 `#[test]` 属性留下 ⇒ "duplicated attribute" ✗；
+  ③ 第三次"找悬空 `#[test]`"的判据写歪 ⇒ **删掉了旁边一条好测试的 `#[test]`** ✗（`the_text_hash_memo_never_changes_a_key`）。
+  ⇒ 按"同一处连红 3 次必须换招"的纪律**停手还原** ✓（还原后 `--all-targets` 0 错 · `judge` 单测全绿 ✓）。
+  **下次手工做的清单（已核实、别再写脚本 ✗）**：① `judge_infer_with_env`（含其长文档块）；② `provider_inputs`
+  （含文档块）；③ `pub trait EnvProvider`（`:2944`，含那段"形状还要重设计"的长文档 —— 建议**换成一条短记**留下线索 ✓）；
+  ④ 测试 `env_provider_is_consulted_and_none_falls_back_byte_for_byte`（含内部 `impl EnvProvider for Fake` ✓）；
+  ⑤ 台账 G-92 的 `expected_lean`；⑥ 判据 = `judge` 单测全绿 + **代码里** `grep EnvProvider` 归零（注释里的历史线索可留 ✓）。
+
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
 * **构建身份** `lsp-cargo-mtime=1791498090`（= 当前构建）· 探针自报 **`artifacts=on`** ✓ （即：这一轮读数是在**产物在飞**的状态下量的 ✓ —— 这正是要证的"接线没拖慢热路" ✓）。
