@@ -1433,23 +1433,19 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 * ✅ **载荷瘦身先量后动：候选 A 只有 2.6×，**设计档的 10× 估计被实测推翻** ✓✗（第 92 轮）** —— 新档 `crates/front/tests/goals_payload_shape.rs`（真 unit08、项目模式 ✓）实读： **decls≈89 515B（文档 24 019B）· runs≈55 433B ⇒ 稀疏后 21 207B（2.6×）· 响应 113 534 → 79 308B** ✓ ⇒ ① kind 段**没那么连续**（2.6× 不是 5–10× ✗）；② 响应里**还有 ~34KB 不是 runs**（每条的 `ty`/`value`/`goal` 文本 + 名字/span ✓，必要的 ✓）⇒ **A 单独不够**（全做 A+B 也才 ~50KB ⇒ LSP 3.7 → ~2.5ms ⇒ goal ~4.7ms，**仍高于 Lean 3.1ms** ✗）。 ⇒ **结论（写进设计档 §3.1）**：载荷瘦身是**有界卫生**（−30% ✓）而**不是**"goal 反超"的那一刀 ✗ —— 真正对齐 Lean 的是**它的机制**（`plainGoal` 只读**该命令的快照**、**不产出**逐 token 着色数据 ✓）。 ⚠ 这条也是本会话第 4 次"**先量推翻了设计里的估计**" ✓ ⇒ 设计档里的数字**一律要标注"待量"** ✓。
 
-* ⛔ **候选 B（`RunsMode`：goal 查询不产 runs）第 1 次实现：改到编译差 1 处、已**整体还原** ✗（第 93 轮）**： 设计本身没问题 ✓（加法式、缺省即旧行为 ✓），但 `crates/front/src/query/mod.rs` 的 `goals()` 区域 **第 6 次**让文本手术失手 ✗（本轮三连：① 多行 `\n` 当成**一个** list 元素 ⇒ 后续锚点找不到 ✓； ② 枚举插进了 `impl` 里 ✓；③ 批量改写 `runs` 调用点时**越出函数范围**（改了 6 处、应改 4 处 ✓） ⇒ 只剩 `runs_of` 作用域错一处 ✓）。⇒ 已 `git checkout` **整体还原** ✓（`--all-targets` 0 错 ✓）。 ⭐ **给下一棒的硬建议**：这一区**别再走"脚本按行/按块改"** ✗ —— 改法二选一：
-  **(a) 先做一次"搬家"重构**（把 `goals()` 的 4 处 `runs` 调用抽成**同文件里的私有方法** ✗ 一次纯移动 ✓），
+* ⛔ **候选 B（`RunsMode`：goal 查询不产 runs）第 1 次实现：改到编译差 1 处、已**整体还原** ✗（第 93 轮）**： 设计本身没问题 ✓（加法式、缺省即旧行为 ✓），但 `crates/front/src/query/mod.rs` 的 `goals()` 区域 **第 6 次**让文本手术失手 ✗（本轮三连：① 多行 `\n` 当成**一个** list 元素 ⇒ 后续锚点找不到 ✓； ② 枚举插进了 `impl` 里 ✓；③ 批量改写 `runs` 调用点时**越出函数范围**（改了 6 处、应改 4 处 ✓） ⇒ 只剩 `runs_of` 作用域错一处 ✓）。⇒ 已 `git checkout` **整体还原** ✓（`--all-targets` 0 错 ✓）。 ⭐ **给下一棒的硬建议**：这一区**别再走"脚本按行/按块改"** ✗ —— 改法二选一： **(a) 先做一次"搬家"重构**（把 `goals()` 的 4 处 `runs` 调用抽成**同文件里的私有方法** ✗ 一次纯移动 ✓），
   之后再接 `RunsMode` ✓；**(b) 手工在编辑器里改**（人眼盯着作用域 ✓）—— 本会话 6 次失败**全部**来自脚本 ✓，
   而**新增整文件**（`goals_cost.rs` / `goals_cost_lsp.rs` / `goals_payload_shape.rs` ✓）**从未失败** ✓。
   ⇒ **纪律**：这一区只允许"**新增文件**"或"**手工单点**" ✗，不许脚本化多块改写 ✓。
 
-* ✅ **候选 B 的**第一步已落地**（第 94 轮 · 按"只允许新增/单点"的硬纪律 ✓）**：`QueryDoc::goals_without_runs` （`query/mod.rs` 里**一处新增** ✓ —— 走"后处理清空 `*_runs`"而不是给 `goals()` 加开关 ✓， 正是为了避开那 6 次脚本化失败 ✗）⇒ `--all-targets` **0 错** ✓、`query` 单测全绿 ✓。 ⚠ **如实记两件**：① 它只省**载荷**（≈55KB/次 ✓ = 序列化 + 客户端解析 ✓），front 的 tokenize 仍跑 ✗
-  （那 ≈0.5–1ms 要等 `goals()` 开 `RunsMode`，按纪律得先搬家重构或手工单点 ✗）；
+* ✅ **候选 B 的**第一步已落地**（第 94 轮 · 按"只允许新增/单点"的硬纪律 ✓）**：`QueryDoc::goals_without_runs` （`query/mod.rs` 里**一处新增** ✓ —— 走"后处理清空 `*_runs`"而不是给 `goals()` 加开关 ✓， 正是为了避开那 6 次脚本化失败 ✗）⇒ `--all-targets` **0 错** ✓、`query` 单测全绿 ✓。 ⚠ **如实记两件**：① 它只省**载荷**（≈55KB/次 ✓ = 序列化 + 客户端解析 ✓），front 的 tokenize 仍跑 ✗ （那 ≈0.5–1ms 要等 `goals()` 开 `RunsMode`，按纪律得先搬家重构或手工单点 ✗）；
   ② 配套的**等价性判据**写到一半（`goals_runs_optional.rs`）时**预算用尽** ✗ —— 它编译过了，但我自己写的
   "反向前提"断言在无 runs 的声明上判红 ✗ ⇒ 按"**不留红测试**"的纪律**删掉该文件** ✓（真值判据无损失：
   旧路径一个字节没动 ✓）。**下一棒第一步**：把那条判据重写成**全局**前提（不在逐条循环里断言 ✓）再落地 ✓。
 
-* ✅✅ **候选 B 的判据落地，且读数比估计更好（第 95 轮）**：`crates/front/tests/goals_runs_optional.rs` ✓ `PERF goals-runs-optional: 全量 decls≈89 515B（runs 共 1981 条）⇒ 剥掉后≈24 877B · 省 **64 638B（72%）**` ✓ ⇒ 判据 = **等价性**（名字/kind/status/span/ty/value/goal 逐字段相同 ✓ + 三个 `*_runs` 全空 ✓）
-  ＋**反向前提放循环外**（"全量版总 runs > 0" ✓ —— 第 94 轮就是把它放进逐条循环才判红 ✗）；
+* ✅✅ **候选 B 的判据落地，且读数比估计更好（第 95 轮）**：`crates/front/tests/goals_runs_optional.rs` ✓ `PERF goals-runs-optional: 全量 decls≈89 515B（runs 共 1981 条）⇒ 剥掉后≈24 877B · 省 **64 638B（72%）**` ✓ ⇒ 判据 = **等价性**（名字/kind/status/span/ty/value/goal 逐字段相同 ✓ + 三个 `*_runs` 全空 ✓） ＋**反向前提放循环外**（"全量版总 runs > 0" ✓ —— 第 94 轮就是把它放进逐条循环才判红 ✗）；
   `1 passed` ✓。⇒ `soko/goals` 响应里那 ~55–64KB 是**真能去掉的** ✓（比我第 92 轮估的 61% 还多 ✓）。
-* ⏭ **LSP 接线（下一轮，4 个单点，已点名 ✓）**：① `protocol.rs:12` 的 `GoalsParams` 加 `#[serde(default = "…")] runs: bool` （缺省 **true** = 今天的行为 ⇒ 老客户端一字不改 ✓）；② 同文件加 `fn default_true()` ✓；③ `lsp/src/lib.rs` 的 `goal_decls(probe)` 加一个"要不要 runs"的入参（**新方法**，别改旧签名 ✓）；④ `goals()`（`:1183` 的 `goal_decls(true)`）
-  按 `params.runs` 分派 ✓。⚠ `GoalDeclInfo` 是 LSP 自己的类型 ✗（不是 front 的 `DeclInfo` ✓）⇒ 清空要在**调用 front 之后、
+* ⏭ **LSP 接线（下一轮，4 个单点，已点名 ✓）**：① `protocol.rs:12` 的 `GoalsParams` 加 `#[serde(default = "…")] runs: bool` （缺省 **true** = 今天的行为 ⇒ 老客户端一字不改 ✓）；② 同文件加 `fn default_true()` ✓；③ `lsp/src/lib.rs` 的 `goal_decls(probe)` 加一个"要不要 runs"的入参（**新方法**，别改旧签名 ✓）；④ `goals()`（`:1183` 的 `goal_decls(true)`） 按 `params.runs` 分派 ✓。⚠ `GoalDeclInfo` 是 LSP 自己的类型 ✗（不是 front 的 `DeclInfo` ✓）⇒ 清空要在**调用 front 之后、
   映射之前**做过 ✗ hmm ⇒ 最省事：`goal_decls` 里对 `query().goals(probe)` 换成 `goals_without_runs(probe)` ✓（front 那半已就位 ✓）。
   然后按设计档同步 `docs/protocol.md`（**加法式**：新可选字段 ✓、旧字段一字不动 ✓）+ 一条体积/端到端读数 ✓。
 
