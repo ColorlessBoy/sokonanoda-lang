@@ -18,6 +18,10 @@
 
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/site.css">
+<!-- 暗色头图**预加载**：站点按主题换 `src`（site.js），不预加载的话切到深色要等
+     210 KB 下载完才换图（用户 2026-10-09 实测"变化好慢"）。`fetchpriority="low"`
+     让它不跟首屏那张抢带宽 ✓。 -->
+<link rel="preload" as="image" href="assets/hero-vscode-dark.png" fetchpriority="low">
 
 <!-- 首帧防闪烁：在 CSS 之前把用户选过的配色贴上 <html>。 -->
 <script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>

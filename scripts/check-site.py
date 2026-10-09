@@ -435,6 +435,13 @@ def check_assets(files: list[str], pages: dict[str, PageParser]) -> str:
         raise Failure(f"<img> 的 data-hero-light 指向 {img.get('hero_light')!r}，不是 {HERO}")
     if img.get("hero_dark") != HERO_DARK:
         raise Failure(f"<img> 的 data-hero-dark 必须指向 {HERO_DARK}（site.js 靠它换暗色图），实测 {img.get('hero_dark')!r}")
+    # 暗色头图必须**预加载**（用户 2026-10-09：「转深色模式的时候，图片变化好慢」）：
+    # 少了它，切主题要等 210 KB 下载完才换图 ✗。⚠ 这条是**补的** —— 上一次改动里
+    # 那句 `str.replace` 锚点缩进不匹配 ⇒ **静默没落地**，而当时没有任何判据咬它 ✗。
+    index_html = read(os.path.join(SITE, "index.html"))
+    if not re.search(r'<link[^>]*rel="preload"[^>]*as="image"[^>]*href="%s"' % re.escape(HERO_DARK), index_html):
+        raise Failure(f"index.html 没有预加载 {HERO_DARK}（要一条 `<link rel=preload as=image ...>`）"
+                      f"—— 切深色会等下载完才换图 ✗")
     light_kb = sizes[HERO][0] // 1024
     dark_kb = sizes[HERO_DARK][0] // 1024
     detail = (f"头图两版 {light_kb}+{dark_kb} KB（各 ≤{HERO_BUDGET // 1024} KB，{width}×{height}，"
