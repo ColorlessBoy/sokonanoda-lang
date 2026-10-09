@@ -1395,11 +1395,17 @@ fn position_to_offset_impl(text: &str, position: Position) -> usize {
 /// already records (`by_steps`) — no re-check, no text scan. The whole tactic
 /// span is the trigger; the goal view's hypotheses make term hovers redundant
 /// inside it.
+///
+/// **光标落在 tactic 里的名字上**（`apply Set.ext` 的 `Set.ext`、`exact h` 的
+/// `h`）：goal state 之后再加一条 Markdown 水平线 `---` 与该名字的类型行
+/// （用户 2026-10-10 反馈三；契约 `docs/protocol.md` §Tactic goal-state hover）。
+/// 关键字 / 数字 / 括号 / 字符串 / 记法符号上 ⇒ **逐字节不变**（不加、不改顺序）。
 fn tactic_goal_hover(
     report: &DocumentReport,
     text: &str,
     offset: usize,
     decls: &[(String, SemanticKind)],
+    query: &QueryDoc,
 ) -> Option<Hover> {
     let d = report
         .decls
@@ -1443,6 +1449,14 @@ fn tactic_goal_hover(
             value.push('\n');
         }
     }
+    // 名字行（用户反馈三）：光标下的名字 ⇒ 分割线 + 它的类型。拿不到干净类型
+    // （未知标识符 / 含 `$N` 松散变量）⇒ **不编那一行**（与记法 hover 同一条纪律）。
+    if let Some(name) = tactic_name_at(text, step.span, offset) {
+        if let Some(ty) = tactic_name_type(query, &selection.goals, offset, &name) {
+            value.push_str(NAME_DIVIDER);
+            value.push_str(&format!("`{name} : {ty}`"));
+        }
+    }
     Some(Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
@@ -1450,6 +1464,89 @@ fn tactic_goal_hover(
         }),
         range: Some(range_of(step.span)),
     })
+}
+
+/// goal state 与「名字的类型行」之间的**分割线**（Markdown 水平线）。
+///
+/// 前后各留一个空行：紧跟代码围栏的 `---` 会被 Markdown 当成 **setext 标题下划线**
+/// （把上一段变成 `<h2>`），空行隔开才是真的 `<hr>`（VS Code 的 hover 渲染器就是
+/// 标准 Markdown）。形式**只在这里定义一次**，契约写在 `docs/protocol.md`。
+const NAME_DIVIDER: &str = "\n\n---\n\n";
+
+/// tactic 关键字里**不在** [`sokonanoda_front::semantic::keywords`] 词表里的那些
+/// （今天只有 `sorry`）。它们不是"名字"——不给类型行（`#check sorry` 本来也会被
+/// 内核按 `elab-hole-misplaced` 拒掉，这里只是不去白问一次）。
+const NON_NAME_TACTIC_WORDS: &[&str] = &["sorry"];
+
+/// 光标下的 tactic **名字**：`Ident` token 且不是语言关键字 ⇒ 那个名字
+/// （点分名 `Set.ext` 在词法层是**一个** `Ident`，见 `front::token`）。
+///
+/// 数字 / 括号 / 字符串 / 记法符号（`Sym`）/ 关键字 ⇒ `None`。词法走**语言自己的
+/// lexer**（不是文本扫描）——"这是不是一个名字"与 parser 同源。
+///
+/// `_` 也是 `Ident`，但它是**占位符**不是名字（`#check _` 今天就是
+/// `elab-unknown-identifier`）⇒ 显式挡掉，省一次白问内核。
+fn tactic_name_at(text: &str, span: sokonanoda_front::Span, offset: usize) -> Option<String> {
+    if offset < span.start.offset || offset >= span.end.offset {
+        return None;
+    }
+    let slice = text.get(span.start.offset..span.end.offset)?;
+    let tokens = sokonanoda_front::tokenize(slice).ok()?;
+    let rel = offset - span.start.offset;
+    let token = tokens
+        .iter()
+        .find(|t| t.span.start.offset <= rel && rel < t.span.end.offset)?;
+    let sokonanoda_front::TokenKind::Ident(name) = &token.kind else {
+        return None;
+    };
+    if sokonanoda_front::semantic::keywords().contains(&name.as_str())
+        || NON_NAME_TACTIC_WORDS.contains(&name.as_str())
+        || name == "_"
+    {
+        return None;
+    }
+    Some(name.clone())
+}
+
+/// 名字的类型（**诚实省略**：拿不到干净类型就不编这一行）。
+///
+/// 解析顺序 = 语言的名字解析顺序，两级：
+///  1. **局部绑元**（`exact h` 的 `h`）：进入该 tactic 的 goal 快照里那个 binder
+///     的类型——与上面 goal block **同一份真相**（已折记法）；
+///  2. **常量**（`apply Set.ext`）：问内核（`judge_type_of_constant`，与记法
+///     hover 同一条路），前缀取**闭包 + 本文件**（目标在被 import 的库里也拿得到）。
+///
+/// 折记法（`query.fold_display`）与 goal state 同一观感；`$N` 松散变量的文本不可信
+/// ⇒ 弃用（`front::display::print_back` 对含 `$` 的输入本来就原样返回）。
+fn tactic_name_type(
+    query: &QueryDoc,
+    goals: &[sokonanoda_front::compile::ByGoalState],
+    offset: usize,
+    name: &str,
+) -> Option<String> {
+    // ① 局部假设：点分名不可能是绑元名，跳过（省一次遍历）。
+    if !name.contains('.') {
+        if let Some(ty) = goals
+            .iter()
+            .flat_map(|g| g.binders.iter())
+            .find(|b| b.name == name)
+            .map(|b| b.ty.clone())
+        {
+            if !ty.is_empty() && !ty.contains('$') {
+                return Some(ty);
+            }
+        }
+    }
+    // ② 常量：走内核（答不出 / 不干净 ⇒ 不编）。
+    let options = CompileOptions {
+        prelude: query.mode,
+    };
+    let prefix = query.judge_prefix_with_entry(offset);
+    let ty = sokonanoda_front::judge::judge_type_of_constant(&prefix, &options, name).ok()?;
+    if ty.is_empty() || ty.contains('$') {
+        return None;
+    }
+    Some(query.fold_display(&ty))
 }
 
 /// Diagnostics for a compiled [`sokonanoda_front::compile::DocumentReport`]:
@@ -2040,7 +2137,7 @@ impl LanguageServer for Backend {
         if std::env::var("SOKO_HOVER_TRACE").is_ok() {
             eprintln!("[hover-chain] 尝试 tactic_goal_hover (offset={offset})");
         }
-        if let Some(hover) = tactic_goal_hover(report, doc.text(), offset, &decls) {
+        if let Some(hover) = tactic_goal_hover(report, doc.text(), offset, &decls, doc.query()) {
             return Ok(Some(hover));
         }
         // 半截表达式的 goal-state（内核拒绝 + 有可推断的部分应用）。

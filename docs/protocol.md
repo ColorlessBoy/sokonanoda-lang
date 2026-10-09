@@ -300,6 +300,30 @@ with the same entry semantics: entering tactic *i* is the state after tactic
 current first). No re-check and no text scan happen at hover time. The hover
 range is the tactic's span. Editors need no extra work: it is ordinary hover.
 
+### The name under the cursor (2026-10-10)
+
+Cursor on a **name inside the tactic** (`Set.ext` in `apply Set.ext`, `h` in
+`exact h`) ⇒ the goal state above is followed by a Markdown horizontal rule
+and one signature line (example: the tail of the hover for `apply Set.ext`):
+
+    ---
+
+    `Set.ext : {α : Type} → (A : Set α) → (B : Set α) → … → A = B`
+
+- **Divider** = `---` alone on its line, blank line before and after (glued to
+  the preceding fence it would parse as a setext heading, not a rule).
+- **Resolution**: a hypothesis of the entering state first (`exact h` ⇒
+  `h : …`, the very text the goal block shows), else the kernel's constant
+  signature (`judge_type_of_constant`; prefix = import closure + entry file,
+  the route notation hovers already use), display-folded like the goal state.
+- **Honest omission**: no line when the type is unavailable or unclean
+  (unknown identifier, `$N` loose variables) — never an invented one. Tactic
+  keywords (`apply`, `intro`, `sorry`…), numbers, parentheses, strings,
+  notation symbols and `_` are not names.
+- **Range**: still the whole tactic span, not the name's — the trigger stays
+  "anywhere in the tactic" (clicking `apply` still shows the goal state), and
+  narrowing it to the name would make the keyword positions silent.
+
 ## Custom LSP requests (goal view, I9)
 
 Beyond standard LSP, the server answers five custom requests (tower-lsp

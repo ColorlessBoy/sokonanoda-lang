@@ -1029,3 +1029,344 @@ async fn hover_on_a_notation_target_name_shows_its_signature() {
     );
     shutdown(&mut service).await;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// 用户反馈三（2026-10-10）：tactic 里的**名字**上 hover ⇒ goal state 之后
+// **再加一条分割线与该名字的类型行**。契约 `docs/protocol.md`
+// §Tactic goal-state hover；判据分三层（wire / 词法 / 反向逐字节）。
+// ─────────────────────────────────────────────────────────────────────────
+
+/// 夹具：`apply <常量>`，常量在**被 import 的库**里 —— 与用户现场
+/// `courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda:65`
+/// （`apply Set.ext`，`Set.ext` 在课程库里）同形。
+fn apply_set_ext_fixture() -> (std::path::PathBuf, Url, String) {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-hover-tactic-name-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp project");
+    std::fs::write(
+        dir.join("SetLib.sokonanoda"),
+        "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+axiom Set.ext {α : Type} {A B : Set α} : (forall (x : α), A x ↔ B x) -> Eq.{1} (Set α) A B\n\
+infix:50 \" ∈ \" => Set.mem\n",
+    )
+    .expect("write lib");
+    let src = "import SetLib\n\n\
+theorem ext_test (α : Type) (A B : Set α) (h : forall (x : α), A x ↔ B x) :\n    \
+Eq.{1} (Set α) A B := by\n  apply Set.ext\n  exact h\n";
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(&entry, src).expect("write entry");
+    let uri = Url::from_file_path(&entry).expect("file url");
+    (dir, uri, src.to_string())
+}
+
+/// 光标在 **`apply` 关键字**上时的输出 —— **改动前**（2026-10-10，
+/// `5afd1938` + 同夹具）的 wire 字节，137 字节。反向判据的基线：
+/// 「关键字上 ⇒ 不加那一行」必须**逐字节**成立（不是"看着差不多"）。
+const APPLY_KEYWORD_BASELINE: &str = "\
+```sokonanoda
+apply Set.ext
+```
+tactic 1/2
+
+```sokonanoda
+α : Type
+A : Set α
+B : Set α
+h : (x : α) → (A x) ↔ (B x)
+⊢ ((Set α) = A) B
+```
+";
+
+/// **判据（wire / 用户动作）**：光标**正好落在 `Set.ext` 的字符上**（用户实际点的
+/// 那个字符）⇒ hover = goal state + 分割线 + 折记法的签名行。
+///
+/// ⚠ 三件**都要**断言，而且**按顺序**：只断言"有 `Set.ext` 字样"会被 goal state
+/// 自己骗过（硬规则 0(a)：断言用户实际看到的那一段）。
+#[tokio::test]
+async fn hover_on_a_tactic_constant_name_shows_goal_state_then_its_signature() {
+    let (dir, uri, src) = apply_set_ext_fixture();
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, &src).await;
+    let params = testutil::wait_diagnostics_for(&mut socket, &uri, "tactic name hover").await;
+    assert!(
+        params.diagnostics.is_empty(),
+        "夹具必须干净（诊断=0）：{:?}",
+        params.diagnostics
+    );
+
+    // 用户动作：鼠标停在 `Set.ext` 的**字符**上（第 2 个字符，`e`）。
+    let at = offset_of(&src, "Set.ext") + 1;
+    let pos = lsp_pos(&src, at);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("hover on a tactic name must answer");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    let value = &markup.value;
+    let goal = value
+        .find("⊢ ((Set α) = A) B")
+        .unwrap_or_else(|| panic!("goal state 必须还在：{value:?}"));
+    let divider = value
+        .find("\n---\n")
+        .unwrap_or_else(|| panic!("分割线必须在：{value:?}"));
+    let signature = value
+        .find("`Set.ext : {α : Type} → {A : Set α} → {B : Set α} → ((x : α) → (A x) ↔ (B x)) → ")
+        .unwrap_or_else(|| panic!("名字签名行（折记法）必须在：{value:?}"));
+    assert!(
+        goal < divider && divider < signature,
+        "顺序必须是 goal state → 分割线 → 签名行：{value:?}"
+    );
+    // `range` 决策（`docs/protocol.md`）：**保持整条 tactic** —— 点 `apply`
+    // 关键字也给 goal state（上一条判据），改成名字的 span 会与它冲突。
+    let range = hover.range.expect("tactic hover 带 range");
+    assert_eq!(range.start, lsp_pos(&src, offset_of(&src, "apply Set.ext")));
+    assert_eq!(
+        range.end,
+        lsp_pos(&src, offset_of(&src, "Set.ext") + "Set.ext".len())
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+    shutdown(&mut service).await;
+}
+
+/// **反向判据（逐字节）**：光标在 **tactic 关键字** `apply` 上 ⇒ 没有类型行、
+/// 没有分割线，输出与改动前**逐字节相同**。
+///
+/// 这条挡的是"整条 tactic 一律加一行"的退化；`range` 也必须还是整条 tactic。
+#[tokio::test]
+async fn hover_on_a_tactic_keyword_is_byte_identical_to_the_old_output() {
+    let (dir, uri, src) = apply_set_ext_fixture();
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, &src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "tactic keyword hover").await;
+
+    let at = offset_of(&src, "apply") + 1;
+    let pos = lsp_pos(&src, at);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("hover on `apply` must still answer with the goal state");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert_eq!(
+        markup.value, APPLY_KEYWORD_BASELINE,
+        "关键字上的输出必须与改动前逐字节相同（不许加行、不许改顺序）"
+    );
+    assert!(
+        !markup.value.contains("---"),
+        "关键字上不许出现分割线：{:?}",
+        markup.value
+    );
+    let range = hover.range.expect("tactic hover 带 range");
+    assert_eq!(range.start, lsp_pos(&src, offset_of(&src, "apply Set.ext")));
+    assert_eq!(
+        range.end,
+        lsp_pos(&src, offset_of(&src, "Set.ext") + "Set.ext".len())
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+    shutdown(&mut service).await;
+}
+
+/// **横向排查（局部假设 / 正在引入的绑元）**：
+/// * `exact hp` 的 `hp` 是**进入态的假设** ⇒ 给类型行（与 goal block 同源）；
+/// * `intro hp` 的 `hp` 是**这条 tactic 正在引入的绑元** ⇒ **不给** —— 它不在
+///   进入态里，也不该去编一个同名常量的签名（诚实省略：拿不到干净类型就不编）。
+#[tokio::test]
+async fn hover_on_a_tactic_local_name_gives_its_type_but_not_the_binder_being_introduced() {
+    let src = "axiom P : Prop\n\
+               axiom Q : Prop\n\
+               theorem t : P -> Q -> P := by\n  \
+               intro hp\n  \
+               intro hq\n  \
+               exact hp\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "tactic local name diagnostics").await;
+
+    // `exact hp`：进入态的假设里有 `hp : P`。
+    let exact_at = offset_of(src, "exact hp") + "exact ".len();
+    let hover = hover_opt_at(&mut service, src, exact_at)
+        .await
+        .expect("hover on `exact hp` must answer");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("hp : P"),
+        "goal block 里应有 `hp : P`：{:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("\n---\n\n`hp : P`"),
+        "局部假设也要给分割线 + 类型行：{:?}",
+        markup.value
+    );
+
+    // `intro hp`：`hp` 是这条 tactic 引入的，不在进入态 ⇒ 不编。
+    let intro_at = offset_of(src, "intro hp") + "intro ".len();
+    let hover = hover_opt_at(&mut service, src, intro_at)
+        .await
+        .expect("hover on `intro hp` must answer");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        !markup.value.contains("---"),
+        "正在引入的绑元名上不许加类型行：{:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+/// **横向排查（词法层）**：tactic 里哪些字符算「名字」——判据走**语言自己的
+/// lexer**（不是文本扫描）：数字 / 括号 / 字符串 / 记法符号 / `_` / 关键字 /
+/// `sorry` 都不是名字；**点分名是一个 `Ident`** ⇒ 整段命中。
+#[test]
+fn tactic_name_at_accepts_only_plain_identifiers() {
+    let text = "apply Set.ext; exact (h); use \"x\"; intro _; exact 0; exact ∈; assumption; sorry";
+    let span = sokonanoda_front::Span::new(
+        sokonanoda_front::Pos {
+            offset: 0,
+            line: 1,
+            column: 1,
+        },
+        sokonanoda_front::Pos {
+            offset: text.len(),
+            line: 1,
+            column: text.len() + 1,
+        },
+    );
+    let name_at = |needle: &str| {
+        let at = offset_of(text, needle);
+        crate::tactic_name_at(text, span, at)
+    };
+    assert_eq!(
+        name_at("Set.ext").as_deref(),
+        Some("Set.ext"),
+        "点分名在词法层是一个 Ident（用户点 `.` 也算在名字上）"
+    );
+    assert_eq!(
+        name_at("h)").as_deref(),
+        Some("h"),
+        "光标在括号里的名字上 ⇒ 仍是名字"
+    );
+    assert_eq!(name_at("("), None, "括号不是名字");
+    assert_eq!(name_at("\"x\""), None, "字符串不是名字");
+    assert_eq!(name_at("_"), None, "`_` 是占位符，不是名字");
+    assert_eq!(name_at("0"), None, "数字不是名字");
+    assert_eq!(name_at("∈"), None, "记法符号不是名字");
+    assert_eq!(
+        name_at("sorry"),
+        None,
+        "`sorry` 是 tactic 关键字（不在语义词表里）"
+    );
+    // **全部** tactic 关键字逐个过一遍（不是只挑两个）：它们都不能变成"名字"
+    // —— 否则 `apply` 上也会冒出类型行，与"关键字上逐字节不变"直接冲突。
+    for kw in [
+        "intro",
+        "exact",
+        "apply",
+        "assumption",
+        "rfl",
+        "constructor",
+        "left",
+        "right",
+        "use",
+        "exfalso",
+        "cases",
+        "have",
+        "with",
+        "sorry",
+    ] {
+        let span = sokonanoda_front::Span::new(
+            sokonanoda_front::Pos {
+                offset: 0,
+                line: 1,
+                column: 1,
+            },
+            sokonanoda_front::Pos {
+                offset: kw.len(),
+                line: 1,
+                column: kw.len() + 1,
+            },
+        );
+        assert_eq!(
+            crate::tactic_name_at(kw, span, 1),
+            None,
+            "`{kw}` 是 tactic 关键字，不是名字"
+        );
+    }
+}
+
+/// 横向：**本文件**声明的常量（`apply soko_local_op`）也要给签名 —— 前缀取的是
+/// **闭包 + 本文件**（`judge_prefix_with_entry`），不是只有闭包。
+///
+/// 为什么单独一条：`§11.17` 那次回归就是"目标在本文件 ⇒ 空前缀必然查不到"
+/// ⇒ 整行消失。这条钉住它（改回只看闭包 ⇒ 必红）。
+///
+/// ⚠ **名字必须全局唯一**（这里 `soko_local_op`，不是 `myop`）：`judge_type_of_constant`
+/// 的缓存键只有 `(options, name)`（`judge.rs` 的既定设计：常量签名与使用者无关）
+/// ⇒ **同一个测试进程里两个同名不同签名的夹具会互相投毒**。实测（2026-10-10）：
+/// 本用例起初用 `myop`（与 `hover_on_a_notation_target_name_shows_its_signature`
+/// 的夹具同名）⇒ 单跑绿、与 `hover` 全批一起跑**红**，拿到的正是另一个夹具的
+/// `myop : (a : Prop) → (b : Prop) → Prop`。换唯一名即可（**不是**改那张缓存：
+/// 那是 `crates/front` 的判定缓存，键的设计有其成本理由，不在本条的范围里）。
+#[tokio::test]
+async fn hover_on_a_tactic_name_declared_in_the_same_file_shows_its_signature() {
+    let src = "axiom P : Prop\n\
+               axiom soko_local_op : P -> P\n\
+               theorem t (h : P) : P := by\n  \
+               apply soko_local_op\n  \
+               exact h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "same-file tactic name diagnostics").await;
+
+    let at = offset_of(src, "apply soko_local_op") + "apply ".len() + 1;
+    let hover = hover_opt_at(&mut service, src, at)
+        .await
+        .expect("hover on `apply soko_local_op` must answer");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("\n---\n\n`soko_local_op : P → P`"),
+        "本文件声明的常量也要给分割线 + 折记法的签名：{:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
