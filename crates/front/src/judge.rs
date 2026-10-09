@@ -2686,80 +2686,7 @@ pub fn judge_render_type_explicit(
     judge_render_type(prefix_src, options, binders, ty)
 }
 
-/// 同 [`judge_infer`]，但把 `extra_prefix`（闭包上下文）拼在文档前缀之前。
-#[track_caller]
-/// **带环境提供方的判定入口** ✓（本片第 2 步 ✓，设计 `incremental-environment.md` §2/§5 ✓）。
-///
-/// **契约（三条，缺一不算成立 ✓）**：
-/// 1. `provider = None` ⇒ **逐字节回退**到今天的行为 ✓（合成前缀 + 重跑 ✓）
-///    —— 这既是**回退机制**，也是**判据之一** ✓；
-/// 2. `provider = Some(p)` 且 `p` 答得上 ⇒ **直接返回它给的类型文本** ✓（**不再合成前缀** ✓）；
-/// 3. `p` 答不上（`None`）或**输入解析不出来** ⇒ 同样回退 ✓（**不许猜** ✗）。
-///
-/// ⚠ **为什么是"加法式"新函数** ✗→✓：`judge_infer_with` 的调用点很多 ✓ ⇒ 直接改签名会让
-/// 整条链都要动 ✗；新函数让**接线**与**实现 provider** 可以**各自独立落地** ✓
-/// （本步 = 只把入口建好 + 用假 provider 钉住形状 ✓，真 provider 在 `elab.rs` 那条线收口后接 ✓）。
-///
-/// ⚠ **文本 ⇒ AST 是本函数自己做的** ✓（设计 §0.2 #1 的「出路 ①」✓）：复用现成的
-/// `synthesized_check_term`（它已经把 `binders` 合成 `fun (b1 : T1) => <term>` ✓）
-/// ⇒ 解析一次、拆出 `(名字, 源类型)` 对 + 操作数 ✓。
-pub fn judge_infer_with_env(
-    provider: Option<&dyn EnvProvider>,
-    extra_prefix: &str,
-    prefix_src: &str,
-    options: &CompileOptions,
-    binders: &[GoalBinderSpec],
-    term: &str,
-) -> Result<String, Judgement> {
-    if let Some(provider) = provider {
-        if let Some((binder_srcs, operand)) = provider_inputs(binders, term) {
-            if let Some(text) = provider.infer_type_text(&binder_srcs, &operand) {
-                return Ok(text);
-            }
-        }
-    }
-    judge_infer_with(extra_prefix, prefix_src, options, binders, term)
-}
 
-/// 把 `binders` + `term` 变成 provider 要的**源 AST 形** ✓（`(名字, 源类型)` 对 + 操作数 ✓）。
-///
-/// 复用 `synthesized_check_term` 的合成形状（`fun (b1 : T1) … => <term>` ✓）⇒ 解析后拆开 ✓；
-/// **任一步失败就 `None`** ✓（调用方据此回退 ✓，**不许猜** ✗）。
-fn provider_inputs(binders: &[GoalBinderSpec], term: &str) -> Option<(Vec<(String, Expr)>, Expr)> {
-    let query = synthesized_check_term(binders, term).ok()?;
-    // ⚠ 合成的是**裸项**（`fun (b1 : T1) … => <term>` ✓）⇒ 要包成 `#check` 才**解析得成文件** ✓
-    // （`crate::parse` 收的是文件 ✓；这一步失败就 `None` ⇒ 回退 ✓）。
-    let file = crate::parse(&format!("#check {query}\n")).ok()?;
-    let expr = file.commands.iter().find_map(|command| match command {
-        Command::Check { expr, .. } => Some(expr),
-        _ => None,
-    })?;
-    let mut binder_srcs = Vec::with_capacity(binders.len());
-    let operand = match expr {
-        // ⚠ **合成的是 λ 不是 ∀** ✗→✓（实测 ✓）：`synthesized_check_term` 给的是
-        // `fun (b1 : T1) => <term>` ✓ ⇒ 解析出来是 **`Expr::Lambda`** ✓；写 `Forall`
-        // 会让这个分支**永不命中** ⇒ `binder_srcs` 恒空 ✗ —— 判据
-        // `env_provider_is_consulted_and_none_falls_back_byte_for_byte` 第一次跑就抓到了 ✓
-        // （这正是"先建判据"的价值 ✓）。
-        Expr::Lambda {
-            binders: bs, body, ..
-        } => {
-            // **无类型 binder 直接跳过** ✓ —— 与 as-built 的 `judge_binder_srcs()`
-            // （`elab.rs:577` ✓ 的 `.filter_map(... src.as_ref().map(...))` ✓）**同一口径** ✓。
-            for binder in bs {
-                if let Some(ty) = &binder.ty {
-                    binder_srcs.push((binder.name.clone(), (**ty).clone()));
-                }
-            }
-            // ⚠ 必须写 **`Expr::clone(body)`** ✗→✓：`(*body).clone()` 会被**自动解引用**解析成
-            // `Box::clone` ⇒ 类型仍是 `Box<Expr>` ✗（实测卡了一轮 ✓）；显式写 `Expr::clone`
-            // 让 `&Box<Expr>` 走 **deref coercion** 变成 `&Expr` ✓。
-            Expr::clone(body)
-        }
-        other => other.clone(),
-    };
-    Some((binder_srcs, operand))
-}
 
 pub fn judge_infer_with(
     extra_prefix: &str,
@@ -2900,53 +2827,10 @@ fn judge_infer_cached(
     r
 }
 
-/// **当前 pass 的只读环境视图**（设计 `docs/design/incremental-environment.md` §2）。
-///
-/// ⚠⚠ **本 trait 至今零实现、零接线** ✗（2026-10-05 对账 ✓）：全仓只有本处定义与
-/// 3 处注释引用，**没有任何 `impl`**。**as-built 的接口不是它** —— P1-a/P1-b 实际走
-/// `compile/elab.rs` 的 `InplaceEnv`（活 `&mut EnvBuilder` + `KnownTable`）+
-/// `infer_type_text_inplace`（**按源 AST 而不是文本**，且**在调用点**做，不进
-/// `judge_infer`）⇒ 见设计 **§0.2 #2 与 §32**（含"为什么不是这个形状"的三条实测）。
-/// **下一步二选一**：按 as-built 重写本 trait 并接线，或删掉它（台账 G-92 的
-/// `expected_lean` 引用了它 ⇒ 删之前先改台账）。
-///
-/// **为什么需要它**：`judge_infer` 今天只拿到 `prefix_src: &str` ⇒ 只能把**整段前缀**
-/// 合成一份文件、交 `check_document_with` **从零重跑一趟 pass** ✗。实测（真课程）：
-/// judge 占墙钟 **≈88%**（219.3s → 跳掉后 **26.8s**）、合成 pass **253513** 次
-/// = 自身声明事件（2647）的 **95.8×**，且成本**随声明在文件里的序号线性增长**
-/// （41 模块里 20 个 r>0.5、均值 +0.44）⇒ **O(N²)**。
-///
-/// 机理：缓存键含**整段前缀的哈希** ⇒ 前缀随序号变长 ⇒ 后段全 miss ⇒ 前缀从零重跑。
-///
-/// **实现方**：`Walk`（`compile/check/walk.rs`）—— 它在 walk 期间**无条件**
-/// `add_declar`（9 处）⇒ 环境里**已经有到当前命令为止的声明** ✓。
-///
-/// **`None` 的语义**：没有环境（单文件/测试路径）⇒ **逐字节回退到今天的行为**
-/// （合成前缀 + 重跑）。这是**回退机制**，也是判据之一 ✓。
-///
-/// ⚠ **签名已按 as-built 对齐**（2026-10-05 ✓，设计 `docs/design/incremental-environment.md`
-/// §0.2 #2 + §32 ✓）：as-built 的机器是 **`InplaceEnv`**（活 `&mut EnvBuilder` + `KnownTable`）
-/// + **`infer_type_text_inplace`**（`compile/elab.rs` ✓，**收 `(名字, 源类型)` 对 + `operand: &Expr`** ✓）
-///   —— 旧签名收 `term: &str` 是**文本形** ✗，与它**接不上** ✓（这正是它至今零接线的原因之一 ✓）。
-///
-/// **借用形态（⚠ 2026-10-05 更正 ✓ —— 我先前写在这里的「`&self` + 实现方 `RefCell`」是错的 ✗）**：
-/// `infer_type_text_inplace`（`compile/elab.rs:3016` ✓）**真的要改 builder** ✗ ——
-/// `elab_expr(env.builder, …)` ✓ · `env.builder.mk_lambda(…)` ✓ · `env.builder.with_env(|ef| …)` ✓
-/// ⇒ **`&mut` 是真需求** ✗，不是签名保守 ✓。而判定调用发生在**调用方已持有 `&mut builder`** 的深处 ✓
-/// ⇒ 那一刻**没有任何地方能塞进 `RefCell`** ✗ ⇒ `&self` + 内部可变性**结构上不可能** ✗。
-///
-/// ✅ **正解 = 重借链** ✓：`InplaceEnv::reborrow`（`elab.rs:2851` ✓，注释就是为循环重借写的 ✓）
-/// ⇒ 把 `&mut InplaceEnv` **顺着调用链透传**到判定点 ✓（= 设计 §6 的「`ElabCtx` 加 `env_view` +
-/// 各处透传」✓，**链宽但每处只加一个参数** ✓）。
-/// ⚠ ⇒ **本 trait 的形状本身还要重设计** ✗：要么改成**闭包式**接口 ✓
-/// （设计 §2 的 `with_project_session` 同款 ✓：在借出窗口内回调 ✓），要么**不用 trait** ✓、
-/// 把判定点直接放进 walk 的借出窗口 ✓。**先定这个，再写接线代码** ✓。
-pub trait EnvProvider {
-    /// 在**当前环境**上求 `operand` 在 `binder_srcs` 语境下的类型文本（与今天 `#check` 同形）。
-    ///
-    /// `None` ⇒ 这条环境答不了（调用方**必须**回退到合成前缀那条路，**不许猜** ✗）。
-    fn infer_type_text(&self, binder_srcs: &[(String, Expr)], operand: &Expr) -> Option<String>;
-}
+// ⚠ **2026-10-09（T3-D）：`trait EnvProvider` 与 `judge_infer_with_env` / `provider_inputs` 已删** ✓
+// —— 它**零实现、零接线**（`provider:` 形参一个传参调用点都没有 ✗）；活的那条路是
+// `crate::compile::elab::infer_type_text_inplace` ✓。原设计（"重借链 / 闭包式接口"两条候选）
+// 见 git 历史与 `docs/notes/PLAN-align-lean4.md` 的 T3-D ✓。
 
 /// `SOKO_INFER_TRACE` 的取值（读一次就缓存——它在热路径上）。
 fn infer_trace_spec() -> Option<&'static str> {
@@ -3743,60 +3627,6 @@ mod tests {
     use crate::compile::{check_document, DeclState, DeclStatus, PreludeMode};
     use crate::parse;
 
-    /// **判据：`EnvProvider` 入口的三条契约** ✓（本片第 2 步 ✓，设计 §2/§5 ✓）。
-    ///
-    /// ① `None` ⇒ **逐字节回退**今天的行为 ✓（回退机制兼判据 ✓）；
-    /// ② `Some(p)` 且 `p` 答得上 ⇒ **用它的答案** ✓、**不再合成前缀** ✓；
-    /// ③ `p` 收到的是**解析后的 AST**（`(名字, 源类型)` 对 + 操作数 ✓），**不是文本** ✗
-    ///    —— 这是 as-built（`infer_type_text_inplace`）要的形状 ✓。
-    ///
-    /// ⚠ 夹具用 **`Cell` + `&self`** ✓ —— 它证明的只是**这个 trait 形状能编译、能被调用** ✓；
-    /// ⚠ **不**证明真 provider 能这么写 ✗ —— 真 provider 要 `&mut InplaceEnv` ✗，
-    /// 而判定点那一刻 builder 已被调用方借走 ✓ ⇒ **trait 形状还要重设计** ✓
-    /// （见 trait 上方的更正注释 ✓：正解是**重借链** / 闭包式接口 ✓）。
-    #[test]
-    fn env_provider_is_consulted_and_none_falls_back_byte_for_byte() {
-        struct Fake(std::cell::Cell<usize>);
-        impl EnvProvider for Fake {
-            fn infer_type_text(
-                &self,
-                binder_srcs: &[(String, Expr)],
-                _operand: &Expr,
-            ) -> Option<String> {
-                self.0.set(self.0.get() + 1);
-                assert_eq!(
-                    binder_srcs.len(),
-                    1,
-                    "binder 的「名字 + 源类型」对必须传进来 ✓"
-                );
-                assert_eq!(binder_srcs[0].0, "h", "binder 名字要对 ✓");
-                Some("PROVIDER-ANSWER".to_string())
-            }
-        }
-        let prefix = "axiom P : Prop\n";
-        let binders = vec![GoalBinderSpec {
-            name: "h".into(),
-            ty: Some("P".into()),
-        }];
-        let options = CompileOptions::default();
-
-        let fake = Fake(std::cell::Cell::new(0));
-        let got = judge_infer_with_env(Some(&fake), "", prefix, &options, &binders, "h");
-        assert_eq!(
-            got.ok().as_deref(),
-            Some("PROVIDER-ANSWER"),
-            "provider 答得上就必须用它的答案 ✓（否则接线等于没接 ✗）"
-        );
-        assert_eq!(fake.0.get(), 1, "provider 必须被问到**恰好一次** ✓");
-
-        let with_none = judge_infer_with_env(None, "", prefix, &options, &binders, "h");
-        let direct = judge_infer_with("", prefix, &options, &binders, "h");
-        assert_eq!(
-            format!("{with_none:?}"),
-            format!("{direct:?}"),
-            "`None` ⇒ 必须**逐字节回退**今天的行为 ✓（这是回退判据 ✓）"
-        );
-    }
 
     /// **判据：大前缀不许退回原文** ✗（判据 ③，值守 2026-10-04 派单 ✓）。
     ///

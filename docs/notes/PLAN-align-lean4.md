@@ -1362,8 +1362,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⚠ 那份实测的**臂 B′（开档即敲）232.7ms** 是 **A5c/A5d 之前**的数（它自己写着 `warm-library built=true 217ms` ✓）
   —— 那条**预热赛跑**已被本线拆掉 ⇒ 同臂现在 **127.2ms** ✓，重测时要换新数 ✓。
 
-* ⚠ **§21 的天花板要按 A6b 之后重估（第 58 轮 · 只读）**：`TcCache::new`（`kernel/src/util.rs:1291`）今天已是 **10 张空 HashMap + 三个定长数组**（`Box<[u64;1024]>` ×2 + `whnf_admit` ✓ —— A6b 已把 **4 MiB 预分配**拿掉 ✓） ⇒ 单次 ≈ **2–3µs**（不是 §20 量到的 9.2µs ✗）⇒ 稳态那一刀 `tc=4225` ⇒ 全部 ≈ **10ms / 79.7ms（~13%）** ✓。 ⇒ **"按趟复用 TcCache"（§21 候选 1）今天的天花板只有 ~10ms**，而它要动 `with_tc` 的签名链 + 内核相位 ✗
-  ⇒ **性价比已经不高**：下一棒别照 §20 的旧数字投 2–3 轮进去 ✓（真要碰，先重量单价再决定 ✗）。
+* ⚠ **§21 的天花板要按 A6b 之后重估（第 58 轮 · 只读）**：`TcCache::new`（`kernel/src/util.rs:1291`）今天已是 **10 张空 HashMap + 三个定长数组**（`Box<[u64;1024]>` ×2 + `whnf_admit` ✓ —— A6b 已把 **4 MiB 预分配**拿掉 ✓） ⇒ 单次 ≈ **2–3µs**（不是 §20 量到的 9.2µs ✗）⇒ 稳态那一刀 `tc=4225` ⇒ 全部 ≈ **10ms / 79.7ms（~13%）** ✓。 ⇒ **"按趟复用 TcCache"（§21 候选 1）今天的天花板只有 ~10ms**，而它要动 `with_tc` 的签名链 + 内核相位 ✗ ⇒ **性价比已经不高**：下一棒别照 §20 的旧数字投 2–3 轮进去 ✓（真要碰，先重量单价再决定 ✗）。
 
 * ⭐⭐ **A5d（第 59 轮）：模块产物在飞 ⇒ 一律不做投机预热** ✓✓ —— 同一探针、同一构建、只切 `SOKO_NO_LIB_WARMUP` 两档：**跨入口切换 911.1ms → 715.7ms**（`modules=8`/复用 **0** ⇒ `5`/复用 **3**）· **第一刀 333 → 124.7ms** · 其余四臂逐位持平 ✓。根因：A5 的预热与产物**做的是同一件事**， 而编译钉在**一条** worker 线程上 ⇒ 预热既**挡用户那一刀**、又**挤掉多槽 LRU**（"复用 3→0" ✗）。 ⇒ 判据 = **产物这条路开着 ⇒ 整条预热都是重复劳动 ⇒ 跳过** ✓（守卫 `front/tests/a5d_warmup_is_skipped.rs`：
   断言**返回值**、**反向验证已做**（去掉早退 ⇒ 当场判红 ✓）；逃生门关掉产物时才照旧预热 ✓ —— A5 的三条判据正是那样跑的 ⇒ 仍 **3/3** ✓）。落地后实测：第一刀 **127.2ms** · `typing` **78.0ms** ·
@@ -1391,8 +1390,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ⚠ **复跑外部量具（第 67 轮）：读数**低于**文档里的数 ⇒ 先别当改进** ✗。用 `~/lean4-bench/lsp_bench.py` 跑 soko 侧（`--settle diag` 臂 **17.27ms** · `typing` 臂 **29.29ms** · 其中 `goal_ms=13.48`）—— 而文档记的是 **232.7 / 81.4ms** ✗。**根因未定**：量具的 JSON 里**没有**"goal 真的换了"这个**可机检**字段 （§3.3 的"答案换了"是**手工**核的 ✓）⇒ 13.48ms 可能是**旧 goal**（那正是要防的"陈旧答案" ✗）， 29.29ms 也可能来自**静默期合并**（连发多刀被 debounce 合掉 ✓）。⇒ **不许**把它记成"goal 口径已达标" ✗；
   下一棒要复跑：给量具补一个**可机检**的"goal 变了没"（或逐刀 `waitForDiagnostics` 再发下一刀 ✓）。
 
-* ⛔ **T4-B 的 CLI `check` 接线：试过、判红、已撤（第 68 轮）** —— 但**逮到一条真缺口** ✓✓： `crates/cli/src/check.rs` 那条路**没有 progress sink**（`compile_plan` = `…_with_progress(None)` ✓） ⇒ 本来是最安全的换法 ✓（换 `compile_plan_with_artifacts` ＋ 显式 `precheck_plan` ✓）。换完 **`cli/tests/namespace.rs::export_reaches_the_importing_file_while_open_does_not` 判红** ✗
-  （`unknown identifier \`mem\`` ⇒ **`export` 没传到导入方** ✗）⇒ 已还原（该测试回绿 ✓）。
+* ⛔ **T4-B 的 CLI `check` 接线：试过、判红、已撤（第 68 轮）** —— 但**逮到一条真缺口** ✓✓： `crates/cli/src/check.rs` 那条路**没有 progress sink**（`compile_plan` = `…_with_progress(None)` ✓） ⇒ 本来是最安全的换法 ✓（换 `compile_plan_with_artifacts` ＋ 显式 `precheck_plan` ✓）。换完 **`cli/tests/namespace.rs::export_reaches_the_importing_file_while_open_does_not` 判红** ✗ （`unknown identifier \`mem\`` ⇒ **`export` 没传到导入方** ✗）⇒ 已还原（该测试回绿 ✓）。
   ⭐ **根因缺口不在产物、在判据**：`t4b_plan_parity` 的夹具**没有 `export`** ✗ ⇒ 两条路在
   "**导出传播**"这一维上**可能不同**而它看不出来 ✓（判据的覆盖缺口 ✓）。⇒ 下一棒要做 T4-B：
   **先把 `export` / `open` / 命名空间这几维加进 parity 夹具**（并让它先红一次 ✓），再谈换路 ✓。
@@ -1402,17 +1400,14 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⇒ 分歧被钉成**快速判据**（0.05s ✓，不再依赖 CLI 集成测试 ✓）。判据按降级纪律写成
   "**断言当前行为**" ✓：T4-B 对齐之后**改判**成 `assert_eq!`（不许放宽 ✗）。
 
-* ✅ **T3-D 的处置决定（第 71 轮 · 只读取证）**：`EnvProvider` 今天确实是**死线** —— `provider:` 这个形参只出现在**定义处**（`judge.rs:2707` 的 `Option<&dyn EnvProvider>` ✓），**一个传参调用点都没有** ✗
-  （`grep "provider:"` 除函数签名/`trait`/注释外**零命中** ✓）。⇒ 按 T3-D 自己给的二选一，取**删掉它** ✓：
+* ✅ **T3-D 的处置决定（第 71 轮 · 只读取证）**：`EnvProvider` 今天确实是**死线** —— `provider:` 这个形参只出现在**定义处**（`judge.rs:2707` 的 `Option<&dyn EnvProvider>` ✓），**一个传参调用点都没有** ✗ （`grep "provider:"` 除函数签名/`trait`/注释外**零命中** ✓）。⇒ 按 T3-D 自己给的二选一，取**删掉它** ✓：
   活的那条路是 `InplaceEnv`（T3-B1/B2 已落地 ✓），而"按 `InplaceEnv` 的形状重写再接线"= **再造一个
   同一机制的入口** ✗。⇒ **执行清单（下一棒，一次 commit）**：① 删 `trait EnvProvider`（`judge.rs:2944`）+
   那个形参 + 测试里的 `Fake` 实现（`:3758`）；② 按纪律**先改台账** G-92 的 `expected_lean`
   （别在文档里留一个不存在的接口 ✗）；③ 判据 = `judge` 单测全绿 + 该处 `grep EnvProvider` 归零 ✓。
-* ⚠ **本轮的边界**：并行线在 `check/{mod,walk}.rs` + `project/session.rs` 上做 T2-B（三个文件未提交、 当前 `cargo check -p sokonanoda-front` **6 个错** ✗）⇒ 本线**不动这些文件**、也**跑不了任何编译判据** ✗
-  （这正是 T3-D 只做到"取证 + 决定"的原因 ✓）。
+* ⚠ **本轮的边界**：并行线在 `check/{mod,walk}.rs` + `project/session.rs` 上做 T2-B（三个文件未提交、 当前 `cargo check -p sokonanoda-front` **6 个错** ✗）⇒ 本线**不动这些文件**、也**跑不了任何编译判据** ✗ （这正是 T3-D 只做到"取证 + 决定"的原因 ✓）。
 
-* ⚠ **T3-D 的执行本轮试了 3 次、全部还原（换招：下次手工做 ✓）**：三处**脚本化删除**都误伤 ——
-  ① 字符偏移法在文档块边界上切错（留下半行 ✗）；② 行法把 `#[test]` 属性留下 ⇒ "duplicated attribute" ✗；
+* ⚠ **T3-D 的执行本轮试了 3 次、全部还原（换招：下次手工做 ✓）**：三处**脚本化删除**都误伤 —— ① 字符偏移法在文档块边界上切错（留下半行 ✗）；② 行法把 `#[test]` 属性留下 ⇒ "duplicated attribute" ✗；
   ③ 第三次"找悬空 `#[test]`"的判据写歪 ⇒ **删掉了旁边一条好测试的 `#[test]`** ✗（`the_text_hash_memo_never_changes_a_key`）。
   ⇒ 按"同一处连红 3 次必须换招"的纪律**停手还原** ✓（还原后 `--all-targets` 0 错 · `judge` 单测全绿 ✓）。
   **下次手工做的清单（已核实、别再写脚本 ✗）**：① `judge_infer_with_env`（含其长文档块）；② `provider_inputs`
@@ -1494,8 +1489,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 ### 39. 第 48 轮（平行线）：**T2-B0 正身落地** —— 两张派生表从 O(闭包) 切到 O(入口) ✓✓
 
-* **做什么**（按 A4a 的切法 ✓）：把"**库层那一段**"随 [`LibCheckpoint`] 存一次 （`lib_display` / `lib_defs` 两个新字段 ✓），每刀只建"**入口那一段**"再合并 ✓。 * **合并的坑**（先证后做 ✓）：两张表**各自都带内建记法**（`display_notations_from_commands`
-    会前插 `builtin_notation_decls()` ✓）⇒ 天真 `extend` 会**重复内建项** ✗ ⇒ 折叠可能分叉 ✗。
+* **做什么**（按 A4a 的切法 ✓）：把"**库层那一段**"随 [`LibCheckpoint`] 存一次 （`lib_display` / `lib_defs` 两个新字段 ✓），每刀只建"**入口那一段**"再合并 ✓。 * **合并的坑**（先证后做 ✓）：两张表**各自都带内建记法**（`display_notations_from_commands` 会前插 `builtin_notation_decls()` ✓）⇒ 天真 `extend` 会**重复内建项** ✗ ⇒ 折叠可能分叉 ✗。
     ⇒ 新增 `DisplayNotations::merged_with`（`self.table` 原样 + `other.table` **跳过内建前缀** ✓；
     元数表 `self` 打底、`other` 覆盖 ✓），**前置判据**
     `crates/front/tests/t2b0_display_merge_parity.rs` 证"分段建 + 合并 == 一次性建"**逐位相同** ✓
@@ -1512,8 +1506,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
   ⇒ **调用次数不变**（入口那一段本来就该每刀建 ✓）、**单元数 O(闭包) → O(入口)** ✓✓
   —— 这正是 T2-B0 的目标（"**只随入口规模**" ✓）。
-* ⚠ **判据看的是"单元数"而不是"调用次数"** ✗→✓：只数调用次数会把"已经切开了"误读成 "没做" ✗ ⇒ 新增两条读数 `notation_table_units_total` / `def_spans_units_total` ✓。
-  **反向验证（已做）**：`SOKO_T2B0_NO_SPLIT=1` ⇒ 判据**判红**（实测 `[(5,1),(5,1),(5,1)]` ✓）。
+* ⚠ **判据看的是"单元数"而不是"调用次数"** ✗→✓：只数调用次数会把"已经切开了"误读成 "没做" ✗ ⇒ 新增两条读数 `notation_table_units_total` / `def_spans_units_total` ✓。 **反向验证（已做）**：`SOKO_T2B0_NO_SPLIT=1` ⇒ 判据**判红**（实测 `[(5,1),(5,1),(5,1)]` ✓）。
 * 验证：front **38 个目标**全绿 ✓ · fmt 干净 · clippy **0** 报错 ✓。
 * **四方向账**：① ✓ · ② T1-A ✓（跨条目复用） / **T2-B0 ✓✓** / T2-B 缓做 · ③ ✓ · ④ T4-A ✓ + T4-B 前置件已就绪。
 
@@ -1527,8 +1520,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   | `typing_equal_length` / `trailing_comment` | 18.1 / 37.2ms | 18.5 / 38.0ms | 持平 ✓ |
   | 跨入口切换 | **132.8ms**（`modules=1` · 复用 7） | 674.4ms（`modules=5` · 复用 3） | **大幅变好** —— 但**不是** T2-B0 的功劳（它只动那两张表 ✗），见下"状态依赖" ✓ |
   | 开档后第一刀 | **355.4ms**（`modules=5` · `prefix=4`） | 76.6ms（`modules=1`） | **同一构建、同一夹具 ⇒ 差 4.6×** ✗ ⇒ 见下 ✓ |
-* ⭐ **逮到探针的一处状态依赖（本轮最有价值的发现）**：`first-keystroke-after-open` 那一臂
-  量的是"**开档**（报告可能直接命中 `compiled/` 缓存 ⇒ **一趟都不跑**）+ **第一刀**" ✓ ——
+* ⭐ **逮到探针的一处状态依赖（本轮最有价值的发现）**：`first-keystroke-after-open` 那一臂 量的是"**开档**（报告可能直接命中 `compiled/` 缓存 ⇒ **一趟都不跑**）+ **第一刀**" ✓ ——
   于是它取决于**模块根里有没有磁盘产物** ✓：
   * **有产物** ⇒ 开档命中产物 ⇒ **A5 后台预热**跑一趟 ⇒ 检查点热 ⇒ 第一刀 **1 个模块 / 76.6ms** ✓；
   * **没有产物**（本轮：上一轮我刚跑过 `t2b0_table_rebuilds`，它按 §32 的纪律

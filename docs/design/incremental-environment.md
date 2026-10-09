@@ -58,7 +58,7 @@
    **形状已按 as-built 改成 AST 形** ✓ `fn infer_type_text(&self, binder_srcs: &[(String, Expr)], operand: &Expr)`（`edddbbae`）；**入口/文本⇒AST 已落** ✓（`787997f0`：`judge_infer_with_env(provider, …)`，**无调用点 ⇒ 零行为变化** ✓）。
    ⚠⚠ **但「`&self` + `RefCell`」那条借用形态已被内核线自己撤回** ✗（`5054ef50` · 读码实测 ✓）：`infer_type_text_inplace` **真的要改 builder**（`elab_expr`/`mk_lambda`/`with_env` ✓），而判定点**上游已持有 `&mut builder`** ⇒ **没有地方能塞 `RefCell`** ✗（**结构上不可能**）。
    ⇒ **正解 = 重借链** ✓（`InplaceEnv::reborrow` 现成 · `elab.rs:2851`）：把 `&mut InplaceEnv` **顺调用链透传**到判定点（= §6 原计划的"**各处透传**" ✓，每处只加一个参数）；**`&self` 的 trait 形状本身要重设计** ✗（改闭包式 = §2 的 `with_project_session` 同款，或**不用 trait**、把判定点放进 walk 的借出窗口）。
-   ⚠ **仍无真实现** ✗（`grep -rn "impl EnvProvider" crates/` = **1**，但那是**测试里的 `Fake`** ⇒ 死代码 ✓）；判据 = §32.3 四条。
+   ✅ **2026-10-09（T3-D）已删** ✓（零实现零接线 ⇒ 连同 `judge_infer_with_env`/`provider_inputs`/`Fake` 测试一并删；活路是 `infer_type_text_inplace` ✓）。
 3. **G-68 切片 1（按 `module_key` 复用产物）已停** —— §27.2/§28：并集 session 与 **per-entry 前缀**冲突，
    等价类分组只值 **2.28×** 且省不了趟数；`session_reuse.rs` 的正向守卫仍 `#[ignore]`（**不是待办** ✓）。
 4. **G-29 剩下的 8 趟**：全是 `on-elab-operand`（记法 `∅` → `Set.empty` 补不出前导类型参数）= **语言层限制**（G-62 家族）⇒ 到范围边界 ✓。
