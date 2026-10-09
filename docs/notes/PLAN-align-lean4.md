@@ -1397,8 +1397,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 * ⭐ **方向③ 收口后的全臂重量（第 73 轮 · 构建 `…514384`）**：**真实连续键入 82.5ms** · 开档后第一刀 **131.9ms** · `proof`/`typing_equal_length` 16.6/17.2ms · `trailing_comment` 41.3ms · **跨入口 751.4ms**。 ⚠ **比上一组（78.0 / 127.2 / 38.1 / 663.5）整体慢 3–13%** ✗，但 **结构计数逐位相同** ✓ （`by=9`·`tc=4225`·`modules=1`；跨入口 `modules=5`·复用 3·`by=21` ✓）⇒ **按判据纪律这是噪声/负载， 不是结构性回归** ✓（两条不可比：① 构建不同（本组含 T3-D ✗）；② 并行线此刻正在同一台机上跑 自己的活 ✗）⇒ **墙钟只作同机前后参考、结构计数才是判据** ✓，这里**不做"变慢了"的结论** ✗。
 
-* ✅✅ **`export` 漏已修（第 74 轮 · 两行 + 一个开关）** —— 这是**用户可见**的修（LSP 那条路也走 session ✓）： ① `run_library_pass` 的 `snapshot_state` 从 `false` → **`true`**（库层趟的累加状态里带着 `exports` ✓； 以前 `false` ⇒ 状态是 `None` ⇒ 入口趟拿到**空**状态 ✗）；② 检查点的 `resume` 收**真状态**（不再恒 `default()` ✓）； ③ 入口趟的 `run_pass_with` 从 `None` → **`Some(lib.resume.clone())`** ✓。⇒ 判据读数从 `整条一趟=[] session+产物=["elab-unknown-identifier"]` ✗ 变成 **两侧都是 `[]`** ✓✓ —— 且那条判据按
-  它自己的指示**改了判**（`the_export_dimension_is_a_known_divergence_today` → `…_agrees_on_both_paths`，
+* ✅✅ **`export` 漏已修（第 74 轮 · 两行 + 一个开关）** —— 这是**用户可见**的修（LSP 那条路也走 session ✓）： ① `run_library_pass` 的 `snapshot_state` 从 `false` → **`true`**（库层趟的累加状态里带着 `exports` ✓； 以前 `false` ⇒ 状态是 `None` ⇒ 入口趟拿到**空**状态 ✗）；② 检查点的 `resume` 收**真状态**（不再恒 `default()` ✓）； ③ 入口趟的 `run_pass_with` 从 `None` → **`Some(lib.resume.clone())`** ✓。⇒ 判据读数从 `整条一趟=[] session+产物=["elab-unknown-identifier"]` ✗ 变成 **两侧都是 `[]`** ✓✓ —— 且那条判据按 它自己的指示**改了判**（`the_export_dimension_is_a_known_divergence_today` → `…_agrees_on_both_paths`，
   `assert!(!b.is_empty())` → `assert_eq!(b, a)` ✓，**不许再放宽** ✗）。
 * ⇒ **T4-B 的前置从此全绿** ✓（CLI `check` 换 `compile_plan_with_artifacts` 那条路现在安全了 ✓ —— 但**下一轮**再做， 一轮一件 ✓）：`cli/tests/namespace` **10/10** ✓ · `t4b_plan_parity` **2/2** ✓ · front **41 个目标全绿** ✓ · fmt 干净 · clippy `--all-targets` **0** 报错 ✓。
 
@@ -1414,8 +1413,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⇒ **本线不修**（那是 T2-A 的语义地盘：持久化/COW 会改变跨 builder 的 interning 语义 ✓，是"守卫要重设计"
   还是"实现有漏"得由内核线定 ✗）；但它**卡住全量 gate** ⇒ 也卡住本线"整门课 `--json` 逐字节"那道红线 ✗。
 
-* ⭐⭐ **T2-B 落地后的读数（第 77 轮）** —— **结构证据（无歧义 ✓）**：并行线的读数 `PERF t2b 改最后一条：elaborated_commands=1（入口命令数 N=12）` ✓✓（12 → **1**）； 本线探针同族证据：`trailing_comment` 臂从 **`by=9` → `by=1`、`tc=0`** ✓（改**文件末尾**那条 ⇒ 只重编 1 条 ✓）。 ⇒ 这正是 Lean 的 **per-command 快照**行为 ✓（它也"编辑点之后的声明还在编" ✓ ⇒ 两者同构 ✓）。 **goal 口径（外部量具 `~/lean4-bench/lsp_bench.py` · 同一夹具 n=5）**：`goal` median **13.48 → 8.72ms** ✓ · `first_diag`/`complete` **29.29 → 27.05ms** ✓（Lean 侧：goal **3.1ms** / 诊断 218.1ms）。
-  ⚠ 两句限定语：① 该量具**没有**"goal 真的换了"的可机检字段（第 42 轮记过 ✗）⇒ 8.72ms 是**推断**
+* ⭐⭐ **T2-B 落地后的读数（第 77 轮）** —— **结构证据（无歧义 ✓）**：并行线的读数 `PERF t2b 改最后一条：elaborated_commands=1（入口命令数 N=12）` ✓✓（12 → **1**）； 本线探针同族证据：`trailing_comment` 臂从 **`by=9` → `by=1`、`tc=0`** ✓（改**文件末尾**那条 ⇒ 只重编 1 条 ✓）。 ⇒ 这正是 Lean 的 **per-command 快照**行为 ✓（它也"编辑点之后的声明还在编" ✓ ⇒ 两者同构 ✓）。 **goal 口径（外部量具 `~/lean4-bench/lsp_bench.py` · 同一夹具 n=5）**：`goal` median **13.48 → 8.72ms** ✓ · `first_diag`/`complete` **29.29 → 27.05ms** ✓（Lean 侧：goal **3.1ms** / 诊断 218.1ms）。 ⚠ 两句限定语：① 该量具**没有**"goal 真的换了"的可机检字段（第 42 轮记过 ✗）⇒ 8.72ms 是**推断**
   （若答的是旧值，延迟会是 ~0.3ms 而不是 8.72ms ✓）；② 它的绝对值与本线探针**不同源** ✗（27 vs 84ms）
   ⇒ **只做同量具的前后比较** ✓：goal 相对 Lean 的差距从 **~4.3×** 收窄到 **~2.8×** ✓。
 
@@ -1430,8 +1428,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⇒ 这两条合起来指向**候选刀**：把 `probe` 变成**惰性/按需**（或对"只看目标文本"的客户端走 `probe=false` 快路 ✓）——
   ⚠ **先测再动** ✗：还没量过 `goals(true)` vs `goals(false)` 的差 ✓（下一刀第一步 = 量它 ✓，别凭猜改 wire ✗）。
 
-* ⛔ **候选刀已量、已否 ✗（第 82 轮）**：加了逃生门 `SOKO_GOALS_NO_PROBE=1`（只关请求期探针 ✓）跑**同一构建 A/B**： **goal median `7.09ms`（探针开）vs `7.30ms`（探针关）** ✓ ⇒ **探针不贵**（差在噪声内、开还略快 ✗） ⇒ 第 81 轮那条候选刀**作废** ✓，逃生门**已还原**（`git checkout` · 0 错 ✓，不留改 wire 语义的死开关 ✗）。 **redirect**：8.72ms 里**没有**内核成分 ✓ ⇒ 剩下的是**请求往返 / 锁 / JSON 组装**这类固定开销 ✓
-  （对照 Lean 的 3.1ms ✗ ⇒ 差距在**协议与 handler 的固定成本**，不在 kernel ✓）；⚠ 同轮 `complete` 两臂 21 vs 83ms ✗
+* ⛔ **候选刀已量、已否 ✗（第 82 轮）**：加了逃生门 `SOKO_GOALS_NO_PROBE=1`（只关请求期探针 ✓）跑**同一构建 A/B**： **goal median `7.09ms`（探针开）vs `7.30ms`（探针关）** ✓ ⇒ **探针不贵**（差在噪声内、开还略快 ✗） ⇒ 第 81 轮那条候选刀**作废** ✓，逃生门**已还原**（`git checkout` · 0 错 ✓，不留改 wire 语义的死开关 ✗）。 **redirect**：8.72ms 里**没有**内核成分 ✓ ⇒ 剩下的是**请求往返 / 锁 / JSON 组装**这类固定开销 ✓ （对照 Lean 的 3.1ms ✗ ⇒ 差距在**协议与 handler 的固定成本**，不在 kernel ✓）；⚠ 同轮 `complete` 两臂 21 vs 83ms ✗
   **判为噪声**（共享机 + 该臂与 goal 独立 ✓）—— 不作结论 ✓。
 
 * ✅ **goal 口径有了**一等读数**（第 83 轮）**：`perf_keystroke_wallclock` 里新增 `PERF goals-wallclock` —— 在**同一条真子进程 harness** 上量 `soko/goals` 的请求往返（5 次取中位 ✓），与诊断臂**同源可比** ✓ （此前这第二臂只活在外部 Python 量具里 ✗）。**首读（构建 `…517542` · unit08）**：
