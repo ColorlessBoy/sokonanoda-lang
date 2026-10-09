@@ -44,13 +44,14 @@
     <!-- 配色与语言：**纯文字项**（用户 2026-10-09：「都不要方框和图标了，灾难……和它是什么
          怎么开始 教材 用一摸一样的样式。整体和左边网站标题同一水平线」）。
          当前档用 `aria-pressed="true"` 标出来（CSS 只改字重/颜色，不画框）。
-         `hidden` 起步、脚本才放出来 ⇒ 没有 JS 时不会出现点不动的项 ✓。 -->
-    <ul class="prefs" aria-label="配色" hidden>
+         **不用 `hidden` 起步**（2026-10-09 用户报"中英文和主题切换的没掉了"——那正是
+         JS 一旦有闪失整组就消失 ✗）：HTML 里就是可见的，脚本只负责让它们能点。 -->
+    <ul class="prefs" aria-label="配色">
       <li><button type="button" data-theme-choice="system" data-i18n="themeAuto" aria-pressed="false">自动</button></li>
       <li><button type="button" data-theme-choice="dark" data-i18n="themeDark" aria-pressed="false">深色</button></li>
       <li><button type="button" data-theme-choice="light" data-i18n="themeLight" aria-pressed="false">浅色</button></li>
     </ul>
-    <ul class="prefs" aria-label="语言" hidden>
+    <ul class="prefs" aria-label="语言">
       <li><button type="button" data-lang-choice="zh" data-i18n-aria="langZhLabel" aria-label="切换到中文" aria-pressed="true">中</button></li>
       <li><button type="button" data-lang-choice="en" data-i18n-aria="langEnLabel" aria-label="切换到英文" aria-pressed="false">英</button></li>
     </ul>

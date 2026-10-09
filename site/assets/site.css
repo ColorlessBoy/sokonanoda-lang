@@ -213,11 +213,13 @@ a:hover { text-decoration-color: currentColor; }
 .site-header .wrap {
   max-width: min(52rem, 100vw - 2 * var(--sp-5));
   display: flex;
-  /* ⚠ **中心线对齐，不是文字基线**（用户 2026-10-09：「标题等文字和三个方框感觉不在
-     一条水平线上」）。`baseline` 会让高度不同的三项各按自己的基线落位 ⇒ 实测中心线
-     差 5.75px（品牌 28.15 / 导航 33.90 / 方框 30.89）✗。这里三项高度本来就接近
-     （32.3 / 31.8 / 32.0），改成 `center` 后中心线与基线**同时**对齐 ✓。 */
-  align-items: center;
+  /* ⚠ 对齐方式跟着**内容形态**走（两个方向都踩过，别再随手改）：
+     · 行里是**带边框的方框**时 → `center`（方框按中心线对齐才不歪）；
+     · 行里全是**文字**时 → `baseline`（字号不同的文字只有基线对齐才是"同一条横线"；
+       `center` 对齐的是**盒子**，16px 的品牌与 14px 的导航字面会差 ~4px ✗）。
+     2026-10-09 用户两次实测：先是方框时期报"不在一条水平线上"（改 center ✓），
+     方框全删成纯文字后又报"左右两边的文字中心线也不在同一横线"⇒ 改回 baseline ✓。 */
+  align-items: baseline;
   gap: var(--sp-4);
   padding-top: var(--sp-3);
   padding-bottom: var(--sp-3);
@@ -261,20 +263,21 @@ a:hover { text-decoration-color: currentColor; }
   padding: 0;
   cursor: pointer;
   text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  /* 命中尺寸：≥24×24（WCAG 2.2 AA 2.5.8；原先文字链接只有 20px 高 ✗） */
-  min-height: 24px;
+  /* ⚠ 用 `inline-block` + `line-height`，**不要** `inline-flex` + `align-items:center`：
+     后者的基线是**合成**的（按边框盒底边）⇒ 整行按 baseline 对齐时它反而错位 ✗；
+     `inline-block` 的基线 = 最后一行文字的基线 ✓，命中高度又靠 line-height 撑到 24px ✓。 */
+  display: inline-block;
+  line-height: 24px;
+  text-align: center;
+  /* 命中尺寸：≥24×24（WCAG 2.2 AA 2.5.8；原先文字链接只有 20px 高、单字项只有 14px 宽 ✗） */
+  min-width: 24px;
 }
 .site-header nav a:hover,
 .site-header .prefs button:hover { color: var(--ink); text-decoration: underline; }
 .site-header .prefs button[aria-pressed="true"] { color: var(--ink); font-weight: 600; }
 /* 单个汉字的项（「中」「英」）只有 14px 宽 ⇒ 命中尺寸不足 24×24（WCAG 2.2 AA 2.5.8）✗。
-   给**命中宽度**而不是画框：字仍在正中，看上去还是纯文字 ✓。 */
-.site-header .prefs button {
-  min-width: 24px;
-  justify-content: center;
-}
+   给**命中宽度**而不是画框：字仍在正中，看上去还是纯文字 ✓（`min-width` 在上面那条
+   共用规则里，这里只补居中）。 */
 
 /* ── 大节 ─────────────────────────────────────────────────────── */
 .section { padding: var(--sp-7) 0; }
@@ -610,9 +613,9 @@ p code, li code, td code, dd code, dt code {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-2) var(--sp-5);
-  /* 与头部同一条理由：**中心线对齐**（页脚也踩过：版权 span 23.8px vs 导航 31.8px
-     ⇒ 基线对齐时中心线差 4px ✗，是通用几何审计抓出来的，不是人眼）。 */
-  align-items: center;
+  /* 与头部同一条理由：页脚也全是文字 ⇒ **基线对齐**（用户 2026-10-09：「bottom bar
+     也没横向对齐」）。 */
+  align-items: baseline;
 }
 .site-footer nav ul {
   display: flex;

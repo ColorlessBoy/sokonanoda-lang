@@ -603,7 +603,7 @@ def _toggle_probe() -> str:
                           theme: d.documentElement.getAttribute('data-theme'),
                           langPressed: pressed(langBtns, 'data-lang-choice'),
                           themePressed: pressed(themeBtns, 'data-theme-choice'),
-                          prefsHidden: Array.from(d.querySelectorAll('.prefs')).some((u) => u.hidden),
+                          prefsVisible: Array.from(d.querySelectorAll('.prefs')).every((u) => u.getBoundingClientRect().height > 0),
                           stored: (() => { try { return win.localStorage.getItem('soko-lang'); } catch (e) { return 'ERR'; } })() });
     out.before = snap();
     if (langBtns.length !== 2 || themeBtns.length !== 3) {
@@ -662,6 +662,35 @@ def _toggle_probe() -> str:
       });
     };
     out.rows = { header: rowGeom('.site-header .wrap'), footer: rowGeom('.site-footer .wrap') };
+    // ── 文字基线（用户 2026-10-09：「top bar 左右两边的文字中心线也不在同一横线」）──
+    // ⚠ 判"文字是否在同一条横线"**不能用盒子的 center**：字号不同时盒子中心对齐 ≠ 文字对齐 ✗。
+    // 插一个零宽 inline-block 探针，它的**底边**就落在该行的基线上 ✓ —— 这是唯一稳的量法。
+    // ⚠ 量法：用 Range 取该元素里**第一段文字**的行盒底边。
+    // 不要往元素里插零宽探针 —— `nav ul` / `.prefs` 是 flex 容器，插进去它就变成
+    // **flex item**、按 flex 规则落位（实测量出 18/35/66.8 三条"基线"，全是假的 ✗）。
+    // Range 走的是文字自身的行盒，与 flex 布局无关 ✓；不同字号的下伸部略有差别（~0.5px），
+    // 所以判据容差取 2px ✓。
+    const baselineOf = (el) => {
+      const walker = d.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let node = walker.nextNode();
+      while (node && !node.textContent.trim()) node = walker.nextNode();   // 跳过缩进空白
+      if (!node) return null;
+      const r = d.createRange();
+      r.setStart(node, 0);
+      r.setEnd(node, node.textContent.length);
+      const rects = r.getClientRects();
+      return rects.length ? +rects[0].bottom.toFixed(2) : null;
+    };
+    const rowBaselines = (sel) => {
+      const e = d.querySelector(sel);
+      if (!e) return null;
+      return Array.from(e.children).filter((k) => k.getBoundingClientRect().height > 0).map((k) => ({
+        what: (k.className && String(k.className).split(/[ ]+/)[0]) || k.tagName.toLowerCase(),
+        baseline: baselineOf(k), h: +k.getBoundingClientRect().height.toFixed(2) }));
+    };
+    out.baselines = { header: rowBaselines('.site-header .wrap'), footer: rowBaselines('.site-footer .wrap') };
+    // 偏好项**必须可见**（用户 2026-10-09 报「中英文和主题切换的没掉了」——那是 `hidden` 起步的锅）
+    out.prefsVisible = Array.from(d.querySelectorAll('.prefs')).map((u) => u.getBoundingClientRect().height > 0);
     // 可点目标的命中尺寸（WCAG 2.2 AA 2.5.8 要求 ≥ 24×24 CSS px）
     out.targets = Array.from(d.querySelectorAll('.site-header a, .site-header button, .site-footer a, .site-footer button'))
       .map((e) => { const r = e.getBoundingClientRect();
@@ -819,7 +848,7 @@ def check_render() -> str:
             raise Failure(f"语言按钮探针报错：{got['error']}")
         before, after, back = got["before"], got["after"], got["back"]
         if (before["lang"] != "zh-CN" or before["nav"] != "它是什么" or before["langPressed"] != ["zh"]
-                or before["prefsHidden"] or before["stored"] is not None):
+                or not before["prefsVisible"] or before["stored"] is not None):
             raise Failure(f"中文读者的初态不对：{before}（应为 lang=zh-CN · 导航中文 ·「中」是当前档 · "
                           f"偏好项已放出 · 还没记住过选择）")
         if after["lang"] != "en" or after["nav"] != "What it is" or after["langPressed"] != ["en"] or after["stored"] != "en":
@@ -837,16 +866,20 @@ def check_render() -> str:
                 raise Failure(f"{label} topbar 折行了（{rows}）—— 英文自然宽 ~750px / 中文 653px，"
                               f"头部必须比正文栏宽一档（`.site-header .wrap` 的 max-width）✗")
         # ── 通用几何审计（每一行 × 每一项，失败时把数字全打出来）──
-        rows = got.get("rows") or {}
-        for where, items in (("topbar", rows.get("header")), ("页脚", rows.get("footer"))):
+        bl = got.get("baselines") or {}
+        for where, items in (("topbar", bl.get("header")), ("页脚", bl.get("footer"))):
             if not items:
                 raise Failure(f"{where} 量不到任何项（选择器坏了？）—— 判据不判绿")
-            cs = [it["center"] for it in items]
-            spread = max(cs) - min(cs)
-            if spread > 1.0:
-                detail = " · ".join(f'{it["what"]}(中心 {it["center"]}, 高 {it["h"]})' for it in items)
-                raise Failure(f"{where} 各项不在同一条中心线上（最大差 {spread:.2f}px）：{detail} —— "
-                              f"行容器必须 align-items:center（baseline 会让不同高度的项各按自己的基线落位 ✗）")
+            bs = [it["baseline"] for it in items]
+            spread = max(bs) - min(bs)
+            if spread > 2.0:
+                detail = " · ".join(f'{it["what"]}(基线 {it["baseline"]})' for it in items)
+                raise Failure(f"{where} 各项的**文字基线**不在同一条横线上（最大差 {spread:.2f}px）：{detail} —— "
+                              f"纯文字行必须 `align-items: baseline`；用 `center` 对齐的是**盒子**，"
+                              f"字号不同（16px 品牌 vs 14px 导航）就会错开 ✗")
+        if not all(got.get("prefsVisible") or []):
+            raise Failure(f"偏好项（配色/语言）不可见 —— 用户 2026-10-09 报过「中英文和主题切换的没掉了」"
+                          f"（实测 {got.get('prefsVisible')}）")
         # 可点目标 ≥ 24×24（WCAG 2.2 AA 2.5.8 Target Size (Minimum)）
         small = [t for t in (got.get("targets") or []) if t["w"] < 24 or t["h"] < 24]
         if small:
@@ -858,7 +891,7 @@ def check_render() -> str:
         server.shutdown()
     return (f"Chrome 渲染 {len(PAGES)} 页 × 2 种语言通过（中文读者看中文 · 其它语言看英文），"
             f"语言项真点过（中→英→中，含 localStorage 记忆）· 配色项真点过（点「深色」⇒ 头图换暗色那版 + 当前档标对）· "
-            f"topbar 中英各一行 · **topbar/页脚逐项几何审计通过**（共用中心线 · 命中尺寸 ≥24px），"
+            f"topbar 中英各一行 · **topbar/页脚逐项几何审计通过**（文字同一条基线 · 偏好项可见 · 命中尺寸 ≥24px），"
             f"版本 {version} 已回填，资源零 404")
 
 
