@@ -1351,8 +1351,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ✅ **T1-C 收口（第 54 轮）**：契约 = **键优先、mtime 只兜底** —— **mtime 变、内容不变 ⇒ 不许 miss** ✓ · **内容变、mtime 不变 ⇒ 必须 miss** ✓（后者要命：否则"改完再把时间戳改回去"就能读到**旧环境** = 静默错判 ✗✗）。 守卫 `crates/front/tests/t1c_key_beats_mtime.rs` 用**产物文件本身**观测（命中 ⇒ 不重写 ⇒ mtime 不动 ✓）； **反向验证已做**：给 `lib_key` 临时混入时钟 ⇒ 判据**判红** ✓（守卫有牙 ✓，已还原 ✓）。
 * **批 3 状态**：`clean` ✓ · 原子 ✓ · 并发取证 ✓ · 损坏（三道，已有判据）✓ · **离线 = 本版 n/a**（不联网 ✓）· **课程门禁 ✓**（`gate --fast` PASS ✓）⇒ **批 3 收口**； 方向① 只剩 §8.4 的**下载线**（独立工作流，未开工）。
 * 验证：front **全部目标 35/35** 绿 · fmt 干净 · clippy **0** 报错 ✓。
-* ⭐ **四方向结账（第 55 轮 · 全量 `scripts/soko gate` PASS ✓）**：**①** T1-A ✓ · T1-B 批 1/2/3 ✓✓ · 有界化 ✓ · **T1-C 契约+守卫 ✓**；**②** T1-A ✓（跨条目复用） · 静默期修复 ✓ · **T2-B0 ✓✓**（两张派生表 O(闭包)→O(入口)）· T2-B **缓做** （已量上界 ≈30–40ms、前置件大）；**③** T3 ✓ **全收口**（合成趟 Σ20→0 · A7 靶子关闭（memo 命中 90.3% ✓）· **T3-D 死线已删** ✓）； **④** T4-A ✓（契约+守卫）· T4-B 前置件就绪（**阻塞①已核实**：CLI 确实传 sink ⇒ 需先给 session 开 sink 通道）· T4-C 未做（大件 ✗）。**读数**：真实连续键入 **78.0ms** · 产物 **14×**（前端 · §31）· **9×**（CLI · §36）·
-  冷开第一刀 **333 → 127.2ms**（A5c/A5d ✓）。⭐ **但北极星要按两个口径读**（第 64 轮 · 并行线的真读数
+* ⭐ **四方向结账（第 55 轮 · 全量 `scripts/soko gate` PASS ✓）**：**①** T1-A ✓ · T1-B 批 1/2/3 ✓✓ · 有界化 ✓ · **T1-C 契约+守卫 ✓**；**②** T1-A ✓（跨条目复用） · 静默期修复 ✓ · **T2-B0 ✓✓**（两张派生表 O(闭包)→O(入口)）· T2-B **缓做** （已量上界 ≈30–40ms、前置件大）；**③** T3 ✓ **全收口**（合成趟 Σ20→0 · A7 靶子关闭（memo 命中 90.3% ✓）· **T3-D 死线已删** ✓）； **④** T4-A ✓（契约+守卫）· T4-B 前置件就绪（**阻塞①已核实**：CLI 确实传 sink ⇒ 需先给 session 开 sink 通道）· T4-C 未做（大件 ✗）。**读数**：真实连续键入 **78.0ms** · 产物 **14×**（前端 · §31）· **9×**（CLI · §36）· 冷开第一刀 **333 → 127.2ms**（A5c/A5d ✓）。⭐ **但北极星要按两个口径读**（第 64 轮 · 并行线的真读数
   `docs/notes/perf-lean4-bench.md` ✓）：**诊断全量落地 soko 81.4ms vs Lean 218.1ms ⇒ 快 2.7×** ✓✓；
   **goal 更新完成 soko 81.4ms vs Lean 3.1ms ⇒ 慢 26×** ✗✗（Lean 靠 **per-command 快照** ✓ = 方向② **T2-B**
   那一格 ✓，前置件 T2-A **并行线在飞** ✓）⇒ **"打平并超过"只在诊断口径成立，整体还没达成** ✗。
@@ -1364,8 +1363,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ⭐⭐ **A5d（第 59 轮）：模块产物在飞 ⇒ 一律不做投机预热** ✓✓ —— 同一探针、同一构建、只切 `SOKO_NO_LIB_WARMUP` 两档：**跨入口切换 911.1ms → 715.7ms**（`modules=8`/复用 **0** ⇒ `5`/复用 **3**）· **第一刀 333 → 124.7ms** · 其余四臂逐位持平 ✓。根因：A5 的预热与产物**做的是同一件事**， 而编译钉在**一条** worker 线程上 ⇒ 预热既**挡用户那一刀**、又**挤掉多槽 LRU**（"复用 3→0" ✗）。 ⇒ 判据 = **产物这条路开着 ⇒ 整条预热都是重复劳动 ⇒ 跳过** ✓（守卫 `front/tests/a5d_warmup_is_skipped.rs`： 断言**返回值**、**反向验证已做**（去掉早退 ⇒ 当场判红 ✓）；逃生门关掉产物时才照旧预热 ✓ —— A5 的三条判据正是那样跑的 ⇒ 仍 **3/3** ✓）。落地后实测：第一刀 **127.2ms** · `typing` **78.0ms** ·
   `equal_length` **16.3ms** · **跨入口 664.8ms**（`modules=5`·复用 3 ✓；A5c 前 689.7、预热开 911.1 ✗）。
 
-* ⭐ **逐声明归因（第 60 轮 · 内置量具 `SOKO_DECL_PROFILE=1` ＋ `_MS=0`，跑在 `judge_synthesized_typing` 的**真实连续键入**臂上 ⇒ **在进程内**、不靠猜墙钟 ✓）**：970 条事件 / 71 个声明，耗时 top： **`image_inter_subset` 120.4ms（×13）** · `Set.sep_self` 40.9（×1）· **`image_empty` 38.5（×13）** · **`image_preimage_subset` 32.4（×13）** · **`inter_singletons_empty` 25.0（×13）** · `<example>` 22.5（×39） · `Set.image_mono` 20.9（×1） · `Set.image_subset_iff` 13.3（×1）。⇒ **每刀**：声明 elaborate 合计
-  **≈24ms**（其中 `image_inter_subset` 一条就 ≈9.3ms ✗ —— 它排在**编辑点之后** ⇒ 每刀都被重做 ✓），
+* ⭐ **逐声明归因（第 60 轮 · 内置量具 `SOKO_DECL_PROFILE=1` ＋ `_MS=0`，跑在 `judge_synthesized_typing` 的**真实连续键入**臂上 ⇒ **在进程内**、不靠猜墙钟 ✓）**：970 条事件 / 71 个声明，耗时 top： **`image_inter_subset` 120.4ms（×13）** · `Set.sep_self` 40.9（×1）· **`image_empty` 38.5（×13）** · **`image_preimage_subset` 32.4（×13）** · **`inter_singletons_empty` 25.0（×13）** · `<example>` 22.5（×39） · `Set.image_mono` 20.9（×1） · `Set.image_subset_iff` 13.3（×1）。⇒ **每刀**：声明 elaborate 合计 **≈24ms**（其中 `image_inter_subset` 一条就 ≈9.3ms ✗ —— 它排在**编辑点之后** ⇒ 每刀都被重做 ✓），
   而 78ms 的**其余 ≈54ms 在声明之外**（解析/望远镜/report/judge 的**前缀键 SipHash** ✓ —— 后者正是
   §8.9 的 A7 那条 22.5% ✗，且它的红线是"**不换弱哈希**"）✓。⇒ 下一棒的两个具体靶子：① `image_inter_subset`
   这类"**编辑点之后但依赖没变**"的声明（= T2-B 的深水区 ✓）；② A7 的前缀键（**先读 §8.9 的红线** ✓）。
@@ -1382,8 +1380,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 * ⚠ **复跑外部量具（第 67 轮）：读数**低于**文档里的数 ⇒ 先别当改进** ✗。用 `~/lean4-bench/lsp_bench.py` 跑 soko 侧（`--settle diag` 臂 **17.27ms** · `typing` 臂 **29.29ms** · 其中 `goal_ms=13.48`）—— 而文档记的是 **232.7 / 81.4ms** ✗。**根因未定**：量具的 JSON 里**没有**"goal 真的换了"这个**可机检**字段 （§3.3 的"答案换了"是**手工**核的 ✓）⇒ 13.48ms 可能是**旧 goal**（那正是要防的"陈旧答案" ✗）， 29.29ms 也可能来自**静默期合并**（连发多刀被 debounce 合掉 ✓）。⇒ **不许**把它记成"goal 口径已达标" ✗； 下一棒要复跑：给量具补一个**可机检**的"goal 变了没"（或逐刀 `waitForDiagnostics` 再发下一刀 ✓）。
 
-* ⛔ **T4-B 的 CLI `check` 接线：试过、判红、已撤（第 68 轮）** —— 但**逮到一条真缺口** ✓✓： `crates/cli/src/check.rs` 那条路**没有 progress sink**（`compile_plan` = `…_with_progress(None)` ✓） ⇒ 本来是最安全的换法 ✓（换 `compile_plan_with_artifacts` ＋ 显式 `precheck_plan` ✓）。换完 **`cli/tests/namespace.rs::export_reaches_the_importing_file_while_open_does_not` 判红** ✗ （`unknown identifier \`mem\`` ⇒ **`export` 没传到导入方** ✗）⇒ 已还原（该测试回绿 ✓）。 ⭐ **根因缺口不在产物、在判据**：`t4b_plan_parity` 的夹具**没有 `export`** ✗ ⇒ 两条路在
-  "**导出传播**"这一维上**可能不同**而它看不出来 ✓（判据的覆盖缺口 ✓）。⇒ 下一棒要做 T4-B：
+* ⛔ **T4-B 的 CLI `check` 接线：试过、判红、已撤（第 68 轮）** —— 但**逮到一条真缺口** ✓✓： `crates/cli/src/check.rs` 那条路**没有 progress sink**（`compile_plan` = `…_with_progress(None)` ✓） ⇒ 本来是最安全的换法 ✓（换 `compile_plan_with_artifacts` ＋ 显式 `precheck_plan` ✓）。换完 **`cli/tests/namespace.rs::export_reaches_the_importing_file_while_open_does_not` 判红** ✗ （`unknown identifier \`mem\`` ⇒ **`export` 没传到导入方** ✗）⇒ 已还原（该测试回绿 ✓）。 ⭐ **根因缺口不在产物、在判据**：`t4b_plan_parity` 的夹具**没有 `export`** ✗ ⇒ 两条路在 "**导出传播**"这一维上**可能不同**而它看不出来 ✓（判据的覆盖缺口 ✓）。⇒ 下一棒要做 T4-B：
   **先把 `export` / `open` / 命名空间这几维加进 parity 夹具**（并让它先红一次 ✓），再谈换路 ✓。
 
   ✅ **已在 front 层最小复现（第 69 轮）**：`t4b_plan_parity.rs` 新增 `the_export_dimension_is_a_known_divergence_today`
@@ -1391,8 +1388,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⇒ 分歧被钉成**快速判据**（0.05s ✓，不再依赖 CLI 集成测试 ✓）。判据按降级纪律写成
   "**断言当前行为**" ✓：T4-B 对齐之后**改判**成 `assert_eq!`（不许放宽 ✗）。
 
-* ✅ **T3-D 的处置决定（第 71 轮 · 只读取证）**：`EnvProvider` 今天确实是**死线** —— `provider:` 这个形参只出现在**定义处**（`judge.rs:2707` 的 `Option<&dyn EnvProvider>` ✓），**一个传参调用点都没有** ✗ （`grep "provider:"` 除函数签名/`trait`/注释外**零命中** ✓）。⇒ 按 T3-D 自己给的二选一，取**删掉它** ✓： 活的那条路是 `InplaceEnv`（T3-B1/B2 已落地 ✓），而"按 `InplaceEnv` 的形状重写再接线"= **再造一个 同一机制的入口** ✗。⇒ **执行清单（下一棒，一次 commit）**：① 删 `trait EnvProvider`（`judge.rs:2944`）+ 那个形参 + 测试里的 `Fake` 实现（`:3758`）；② 按纪律**先改台账** G-92 的 `expected_lean`
-  （别在文档里留一个不存在的接口 ✗）；③ 判据 = `judge` 单测全绿 + 该处 `grep EnvProvider` 归零 ✓。
+* ✅ **T3-D 的处置决定（第 71 轮 · 只读取证）**：`EnvProvider` 今天确实是**死线** —— `provider:` 这个形参只出现在**定义处**（`judge.rs:2707` 的 `Option<&dyn EnvProvider>` ✓），**一个传参调用点都没有** ✗ （`grep "provider:"` 除函数签名/`trait`/注释外**零命中** ✓）。⇒ 按 T3-D 自己给的二选一，取**删掉它** ✓： 活的那条路是 `InplaceEnv`（T3-B1/B2 已落地 ✓），而"按 `InplaceEnv` 的形状重写再接线"= **再造一个 同一机制的入口** ✗。⇒ **执行清单（下一棒，一次 commit）**：① 删 `trait EnvProvider`（`judge.rs:2944`）+ 那个形参 + 测试里的 `Fake` 实现（`:3758`）；② 按纪律**先改台账** G-92 的 `expected_lean` （别在文档里留一个不存在的接口 ✗）；③ 判据 = `judge` 单测全绿 + 该处 `grep EnvProvider` 归零 ✓。
 * ⚠ **本轮的边界**：并行线在 `check/{mod,walk}.rs` + `project/session.rs` 上做 T2-B（三个文件未提交、 当前 `cargo check -p sokonanoda-front` **6 个错** ✗）⇒ 本线**不动这些文件**、也**跑不了任何编译判据** ✗ （这正是 T3-D 只做到"取证 + 决定"的原因 ✓）。
 
 * ⚠ **T3-D 的执行本轮试了 3 次、全部还原（换招：下次手工做 ✓）**：三处**脚本化删除**都误伤 —— ① 字符偏移法在文档块边界上切错（留下半行 ✗）；② 行法把 `#[test]` 属性留下 ⇒ "duplicated attribute" ✗； ③ 第三次"找悬空 `#[test]`"的判据写歪 ⇒ **删掉了旁边一条好测试的 `#[test]`** ✗（`the_text_hash_memo_never_changes_a_key`）。 ⇒ 按"同一处连红 3 次必须换招"的纪律**停手还原** ✓（还原后 `--all-targets` 0 错 · `judge` 单测全绿 ✓）。 **下次手工做的清单（已核实、别再写脚本 ✗）**：① `judge_infer_with_env`（含其长文档块）；② `provider_inputs` （含文档块）；③ `pub trait EnvProvider`（`:2944`，含那段"形状还要重设计"的长文档 —— 建议**换成一条短记**留下线索 ✓）；
