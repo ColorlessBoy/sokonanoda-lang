@@ -423,6 +423,21 @@ pub fn warm_library_checkpoint(
     overlay: &[(PathBuf, String)],
     options: &CompileOptions,
 ) -> bool {
+    // ⭐⭐ **A5d（2026-10-09 · 平行线）：模块产物在飞 ⇒ 一律不做投机预热** ✓✓
+    //
+    // **为什么**（同一探针、同一构建、只切 `SOKO_NO_LIB_WARMUP` 两档）：
+    // * 开档后第一刀：**333ms → 124.7ms**（`modules=5`→`1`）✓
+    // * **跨入口切换**：**911.1ms → 715.7ms**（`modules=8`/复用 0 ⇒ `5`/复用 3）✓✓
+    // * 其余四臂**逐位持平**（`typing` 79.7→78.6 · `equal_length` 18.4→16.2 · …）✓
+    // 根因：A5 的预热与产物**做的是同一件事**（把库层供上 ✓），而编译被钉在**一条**
+    // worker 线程上（`worker_threads(1)`，P2-4）⇒ 预热不但**挡用户那一刀**，还会
+    // **挤掉多槽 LRU**（跨入口那臂的"复用 3 → 0"就是这么来的 ✗）。
+    // ⇒ **产物就是预热的替代品** ✓：产物在 ⇒ 跳过（A5c ✓）；产物这条路**开着** ⇒
+    // 整条预热都是重复劳动 ⇒ 一律跳过 ✓。产物被逃生门关掉时才照旧预热 ✓（A5 的
+    // 三条判据正是那样跑的 ⇒ 它们仍绿 ✓）。
+    if crate::project::session::module_artifacts_enabled() {
+        return false;
+    }
     let mut plan = plan_project_with_overlay(entry, Some(entry_src), root_override, overlay);
     // 与 `compile_plan_with_progress` **同序**：检查可能把模块标成 blocked，
     // 那会改变"编哪些模块" ⇒ 顺序不能反（见 `precheck_plan` 的注释）。
