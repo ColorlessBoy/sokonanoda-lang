@@ -98,6 +98,68 @@ fn trace_field_u64(line: &str, key: &str) -> u64 {
 /// **1 个模块** ⇒ 反向验证**变成空转** ✗（全量 `scripts/soko gate` 实测逮到 ✓）。
 const NO_ARTIFACTS: (&str, &str) = ("SOKONANODA_NO_MODULE_ARTIFACTS", "1");
 
+/// ⭐ **A5c/A5d 的守卫（2026-10-09 · 平行线）**：**产物在飞 ⇒ 不开投机预热** ✓✓
+///
+/// ## 为什么必须有这条
+///
+/// 预热与产物**做的是同一件事**（把库层供上），而编译被钉在**一条** worker 线程上
+/// （`worker_threads(1)`）⇒ 预热会**挡用户那一刀**、还会**挤掉多槽 LRU** ✗。实测（同一臂、
+/// 同一构建）：第一刀 **333 → 127ms**（2.6×）· 跨入口 **911 → 665ms**（−27%，`modules=8`
+/// 复用 0 ⇒ `5` 复用 3）。⇒ 这条守卫钉住"**产物开着就别预热**"，免得哪天被"顺手加回来" ✗。
+///
+/// ⚠ 与上面那条判据**不矛盾**：那条按纪律把产物**关掉**（`NO_ARTIFACTS`）⇒ 预热照跑 ✓。
+#[test]
+fn an_artifact_hit_open_does_not_run_the_speculative_warmup() {
+    let (root, entry, text) = fixture("a5d");
+    let uri = Client::file_uri(&entry);
+
+    // ① 冷编一次（**产物开着**）：只是把"产物已经在盘上"这个前提造出来 ✓（不是被测对象）。
+    {
+        let mut seed = Client::start_traced(&cache_dir("a5d-seed"));
+        let _ = seed.open(&root, &uri, &text);
+        let _ = seed.wait_for_trace_after(0);
+    }
+
+    // ② 产物命中的开档：**不许出现任何 `warm-library` 行** ✓（A5d 的落点）。
+    let mut hit = Client::start_traced(&cache_dir("a5d-hit"));
+    let _ = hit.open(&root, &uri, &text);
+    let _ = hit.wait_for_trace_after(0);
+    assert_eq!(
+        trace_field_u64(&hit.last_trace(), "modules"),
+        0,
+        "前提：这一步必须是**产物命中**（一个模块都不编）\n  {}",
+        hit.last_trace()
+    );
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    // ⚠ 判据看的是 **`built`**，不是"有没有那一行" ✗：`LSP_TRACE warm-library` 那行**照样会打**
+    // （LSP 先 spawn、由 `warm_library_checkpoint` 在**里面**判 A5d ✓）—— 它报 `built=false`
+    // 才是"**没建检查点**" ✓（A5d 的落点）。看行数会把"跳过了"误判成"跑了" ✗。
+    assert_eq!(
+        hit.warm_trace_len(),
+        1,
+        "前提：产物命中的开档**会** spawn 一次预热任务（真正判 A5d 的地方在它里面 ✓）"
+    );
+    let warm = hit.last_warm_trace();
+    assert!(
+        warm.contains("built=false"),
+        "**产物在飞 ⇒ 不许建检查点** ✗（A5d：预热与产物重复，且它挡用户那一刀、挤 LRU）\n  {warm}"
+    );
+
+    // ③ 而且那一刀**仍然只编入口** —— 预热"缺席"没有代价（产物把库层供上了 ✓）。
+    let _ = hit.did_change(&uri, 2, ENTRY_EDITED);
+    let _ = hit.wait_for_trace_after(1);
+    let edited = hit.last_trace();
+    assert_eq!(
+        trace_field_u64(&edited, "modules"),
+        1,
+        "**产物在飞时第一刀也该只编入口** ✗（预热没了 ≠ 库层没了 ⇒ 该走 `reuse=artifact` ✓）\n  {edited}"
+    );
+    assert!(
+        edited.contains("reuse=artifact"),
+        "这一刀该走**产物**那条路（而不是重编库层）\n  {edited}"
+    );
+}
+
 /// **判据主体**：产物命中的开档预热了库层检查点 ⇒ 第一次编辑只编入口。
 #[test]
 fn artifact_hit_open_warms_the_library_checkpoint() {
