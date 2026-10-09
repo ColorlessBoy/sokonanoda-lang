@@ -372,6 +372,17 @@ fn perf_course_first_keystroke_after_open_is_recorded() {
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&cache);
+    // ⭐ **状态显式化**（PLAN §40 逮到的缺口，2026-10-09）：这一臂的结果**取决于模块根里
+    // 有没有磁盘产物** —— 有 ⇒ 开档命中产物 ⇒ A5 预热跑一趟 ⇒ 第一刀 **1 个模块**；
+    // 没有 ⇒ 开档命中**报告缓存**（不编译 ⇒ 不预热）⇒ 第一刀**自己编库层** ⇒ **5 个模块**。
+    // 两个数都真、但**跨轮不可比** ✗ ⇒ 先把模块根**清成确定状态**，再按子臂摆好：
+    // * `artifacts_off`（逃生门那一档）⇒ 就让它**没有**产物 ✓（= 冷档）；
+    // * 默认档 ⇒ 用**一次性**的开档把产物**建出来** ✓（= "用户已经 build 过"的现实档）。
+    // ⚠ **两处都要清**：产物（`artifacts/`）**与**报告缓存（`compiled/`）—— 只清前者的话，
+    // 播种那次开档会**命中报告缓存**（一趟都不跑 ⇒ 什么也不写 ✗，实测踩到 ✓）。
+    let module_artifacts = root.join(".sokonanoda").join("artifacts");
+    let _ = std::fs::remove_dir_all(&module_artifacts);
+    let _ = std::fs::remove_dir_all(root.join(".sokonanoda").join("compiled"));
     let mut client = Client::start_traced_with_env(
         &cache,
         if artifacts_off {
@@ -381,6 +392,25 @@ fn perf_course_first_keystroke_after_open_is_recorded() {
         },
     );
     let uri = Client::file_uri(&path);
+    if !artifacts_off {
+        // **播种**：拿一个**一次性**的 client 开一次档 —— 它会真的编一遍（此刻没有产物 ✓）
+        // ⇒ 把产物**写出来** ✓；然后丢掉它，用**新** client 量"开档 + 第一刀" ✓。
+        // ⚠ 播种 client 用**自己的** cache 目录（否则它的 `compiled/` 会让被测那一刀不编译 ✗）。
+        let seed_cache = std::env::temp_dir().join(format!(
+            "sokonanoda-lsp-first-keystroke-seed-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&seed_cache);
+        let mut seed = Client::start_traced(&seed_cache);
+        let _ = seed.open(&root, &uri, &text);
+        let _ = seed.wait_for_trace_after(0);
+        let _ = std::fs::remove_dir_all(&seed_cache);
+        assert!(
+            module_artifacts.exists(),
+            "播种失败：开档没有写出模块产物 ⇒ 这一臂的状态仍不确定 ✗（路径 {:?}）",
+            module_artifacts
+        );
+    }
     let _ = client.open(&root, &uri, &text); // 只等诊断，**不等预热**
     let edited = text.replacen("Set.mem_image α β f A y", "Set.mem_image α β f A  y", 1);
     assert_ne!(edited, text, "夹具前提：这一刀必须真的改变文本");
