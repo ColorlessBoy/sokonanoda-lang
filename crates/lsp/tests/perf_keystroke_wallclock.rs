@@ -296,6 +296,40 @@ fn perf_course_keystroke_wallclock_is_recorded() {
         5,
     );
 
+    // ⭐ **goal 口径的**一等读数**（2026-10-09 · 平行线）**：北极星的**第二臂**（Lean 的
+    // `$/lean/plainGoal` = **3.1ms** ✗）此前只有外部 Python 量具在量 ✓；这里在**同一条
+    // 真子进程 harness** 上量 `soko/goals` 的**请求往返** ⇒ 两臂可比、且与诊断臂同源 ✓。
+    // 实测（第 82 轮，同一构建）：探针开/关两臂 **7.09 / 7.30ms** ⇒ 8.72ms 里**没有内核成分** ✓
+    // ⇒ 差在**协议与 handler 的固定开销** ✓（不是 kernel ✓）。
+    {
+        let mut samples = Vec::new();
+        for k in 0..5 {
+            let id = 9001 + k;
+            let t = std::time::Instant::now();
+            client.send(serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "soko/goals",
+                "id": id,
+                "params": {"textDocument": {"uri": uri}, "position": null},
+            }));
+            let answered = client.wait_for(|m| m.get("id") == Some(&serde_json::json!(id)));
+            assert!(
+                answered.get("result").is_some(),
+                "`soko/goals` 必须答得上（report 已落 ✓）：{answered:?}"
+            );
+            samples.push(t.elapsed().as_secs_f64() * 1000.0);
+        }
+        samples.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        println!(
+            "PERF goals-wallclock {}: best {:.1}ms · median {:.1}ms · worst {:.1}ms (n=5, {})",
+            rel,
+            samples[0],
+            samples[2],
+            samples[4],
+            binary_identity()
+        );
+    }
+
     // ⭐ **T2-B 的跨进程证据（2026-10-09 · 平行线）**：`STATUS.md` 把"**进程隔离的 A/B**"列成
     // T2-B 的**已知验证缺口** ✓ —— 同进程那两臂会被**线程局部的 `EntryCache`** 互相喂缓存 ✗
     // ⇒ 读数不可比。**本探针天生是跨进程的**（真 `sokonanoda-lsp` 子进程 + 真 stdio ✓）：
