@@ -1153,14 +1153,16 @@ impl Backend {
     /// 组 `soko/goals` 的 wire 数据。`probe` = 是否跑请求期 kernel 探针填
     /// 函数 spine 子洞的期望类型（`nextHole` 只看洞 span，用 `false` 不引入
     /// 内核成本）。
-    fn goal_decls(&self, probe: bool) -> Option<(String, Vec<GoalDeclInfo>)> {
+    fn goal_decls(&self, probe: bool, runs: bool) -> Option<(String, Vec<GoalDeclInfo>)> {
         let doc = self.doc.lock().expect("doc lock");
         // LSP 契约：没有报告（尚未编译 / parse 失败）时 `soko/goals` 答空。
         doc.report()?;
         let text = doc.text();
         let decls = doc
             .query()
-            .goals(probe)
+            // **候选 B（第 96 轮）**：`runs = false` ⇒ 走 `goals_without_runs` ✓
+            //（只清 `*_runs` ✓；名字/kind/span/文本一字不动 ✓）⇒ 载荷 −72% ✓。
+            .goals_or_without_runs(probe, runs)
             // 解析失败（`NotParsable`）与"还没有报告"同答空：LSP 的 parse 诊断
             // 走 `publishDiagnostics`（`Doc::diagnostics` 已经是 parse 优先），
             // `soko/goals` 的 wire 形状不改（G-17 只动 CLI/MCP 的 ok 信封）。
@@ -1180,7 +1182,7 @@ impl Backend {
             version = docs.version();
         }
         let decls = self
-            .goal_decls(true)
+            .goal_decls(true, params.runs)
             .map(|(_, decls)| decls)
             .unwrap_or_default();
         Ok(GoalsResponse {

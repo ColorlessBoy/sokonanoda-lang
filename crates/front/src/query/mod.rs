@@ -1552,6 +1552,20 @@ impl QueryDoc {
         Ok(out)
     }
 
+    /// **分派助手**：`want_runs ? goals : goals_without_runs`（LSP 的 `soko/goals` 用 ✓）。
+    /// 存在的理由 = 让接线处**只有一处分支** ✓（这一区禁止脚本化多块改写 ✗）。
+    pub fn goals_or_without_runs(
+        &self,
+        probe: bool,
+        want_runs: bool,
+    ) -> Result<Vec<DeclInfo>, QueryError> {
+        if want_runs {
+            self.goals(probe)
+        } else {
+            self.goals_without_runs(probe)
+        }
+    }
+
     /// **显示副本**：把一段**源级渲染**文本过唯一接口（A0 / A1，2026-09-26）。
     ///
     /// ⚠ **判定的输入绝不许走这里**：`DeclState.sub_goals[].ty` 被

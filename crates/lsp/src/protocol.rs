@@ -16,6 +16,16 @@ pub(crate) struct GoalsParams {
     #[allow(dead_code)]
     #[serde(default)]
     pub(crate) position: Option<Position>,
+    /// **可选**：要不要逐 token 的着色数据（设计 `docs/design/goals-payload-slimming.md` §3
+    /// 候选 B ✓）。**缺省 = `true` = 今天的行为** ⇒ 老客户端一字不改 ✓；`false` ⇒ 各 `*_runs`
+    /// 空数组 ✓（实测真 unit08 上 decls 载荷 **−72%**：89 515B → 24 877B ✓）。
+    #[serde(default = "default_true")]
+    pub(crate) runs: bool,
+}
+
+/// `runs` 的缺省值（**必须 true** ✓ —— 缺省即"今天的行为" ✓）。
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize)]

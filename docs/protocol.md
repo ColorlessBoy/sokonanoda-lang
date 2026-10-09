@@ -308,7 +308,14 @@ capabilities):
 
 ### `soko/goals`
 
-Request params: `{"textDocument": {"uri"}, "position"}` (position reserved).
+Request params: `{"textDocument": {"uri"}, "position", "runs"?}` (position reserved)。
+
+**`runs`（可选，2026-10-09）**：要不要**逐 token 的着色数据**（每条声明的 `ty_runs` /
+`value_runs` / `goal_runs`）。**缺省 `true` = 既有行为** ✓ ⇒ 老客户端一字不改 ✓；
+`false` ⇒ 这三组一律**空数组** ✓（名字 / kind / status / span / 各文本**一字不动** ✓）。
+**实测**（真 unit08 · 真子进程）：响应 **91 361B → 26 723B（−71 %）**、往返 **6.1 → 5.0ms** ✓。
+契约测试：`crates/front/tests/goals_runs_optional.rs`（等价性）+ `crates/lsp/tests/goals_payload_e2e.rs`
+（两种模式条数相同 + `runs:false` 时三组全空 ✓）。设计：`docs/design/goals-payload-slimming.md` §3 候选 B。
 
 **文档身份回显**（0.57.0）：响应带 `uri`（请求指向的文档）与 `version`（答的是哪一版）。
 多文档下客户端据此丢弃"答的是另一份文档/更旧版本"的过期响应——服务端已经按请求 URI
