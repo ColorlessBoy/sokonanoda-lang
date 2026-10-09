@@ -244,8 +244,7 @@ a:hover { text-decoration-color: currentColor; }
    配色三档（自动/深色/浅色）与语言两项（中/英）都是**纯文字**，与导航链接同一个选择器组
    —— 一套规则管两种元素，样式不可能漂。当前档用 `aria-pressed="true"` 标出（只改字重与
    颜色，不画框、不加背景）。 */
-.site-header nav ul,
-.site-header .prefs {
+.site-header nav ul {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-1) var(--sp-4);
@@ -255,7 +254,7 @@ a:hover { text-decoration-color: currentColor; }
   font-size: var(--fs-sm);
 }
 .site-header nav a,
-.site-header .prefs button {
+.site-header .pref {
   font: inherit;
   color: var(--ink-2);
   background: none;
@@ -273,11 +272,7 @@ a:hover { text-decoration-color: currentColor; }
   min-width: 24px;
 }
 .site-header nav a:hover,
-.site-header .prefs button:hover { color: var(--ink); text-decoration: underline; }
-.site-header .prefs button[aria-pressed="true"] { color: var(--ink); font-weight: 600; }
-/* 单个汉字的项（「中」「英」）只有 14px 宽 ⇒ 命中尺寸不足 24×24（WCAG 2.2 AA 2.5.8）✗。
-   给**命中宽度**而不是画框：字仍在正中，看上去还是纯文字 ✓（`min-width` 在上面那条
-   共用规则里，这里只补居中）。 */
+.site-header .pref:hover { color: var(--ink); text-decoration: underline; }
 
 /* ── 大节 ─────────────────────────────────────────────────────── */
 .section { padding: var(--sp-7) 0; }

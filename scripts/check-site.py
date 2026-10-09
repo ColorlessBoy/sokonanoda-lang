@@ -110,8 +110,8 @@ class PageParser(HTMLParser):
         self.meta: dict[str, str] = {}
         self.images: list[dict] = []
         self.i18n_keys: set[str] = set()          # data-i18n / -alt / -aria 用到的键
-        self.lang_choices = 0                     # topbar 的语言项个数（中/英）
-        self.theme_choices = 0                    # topbar 的配色项个数（自动/深色/浅色）
+        self.lang_toggles = 0                     # topbar 的语言按钮个数（要恰好 1）
+        self.theme_toggles = 0                    # topbar 的配色按钮个数（要恰好 1）
         self.in_header = False                    # 是否在 <header> 里（topbar 判据要用）
         self.github_in_header = 0                 # topbar 的 GitHub 链接个数
         self.json_blocks: dict[str, str] = {}     # <script type="application/json" id=…> 的内容
@@ -150,10 +150,10 @@ class PageParser(HTMLParser):
                                 "height": attrs.get("height"), "alt": attrs.get("alt"), "line": line,
                                 "hero_light": attrs.get("data-hero-light"),
                                 "hero_dark": attrs.get("data-hero-dark")})
-        if "data-lang-choice" in attrs:
-            self.lang_choices += 1
-        if "data-theme-choice" in attrs:
-            self.theme_choices += 1
+        if "data-lang-toggle" in attrs:
+            self.lang_toggles += 1
+        if "data-theme-toggle" in attrs:
+            self.theme_toggles += 1
         if tag == "html" and "lang" in attrs:
             self.meta["lang"] = attrs["lang"]
         if tag == "meta":
@@ -346,7 +346,7 @@ def check_i18n(pages: dict[str, PageParser]) -> str:
     if not os.path.exists(script_path):
         raise Failure(f"缺 {I18N_SCRIPT}（浏览器语言检测没有落点）")
     script = read(script_path)
-    for marker in ("navigator.languages", "zh", "data-i18n", "SOKO_I18N", "data-lang-choice", "soko-lang"):
+    for marker in ("navigator.languages", "zh", "data-i18n", "SOKO_I18N", "data-lang-toggle", "soko-lang"):
         if marker not in script:
             raise Failure(f"{I18N_SCRIPT} 里找不到语言判定标记 {marker!r}（机制被删了？）")
 
@@ -354,10 +354,10 @@ def check_i18n(pages: dict[str, PageParser]) -> str:
     for name, parser in pages.items():
         if I18N_SCRIPT not in parser.scripts_src:
             raise Failure(f"{name} 没有引用 {I18N_SCRIPT}（浏览器语言检测不会跑）")
-        if parser.lang_choices != 2 or parser.theme_choices != 3:
-            raise Failure(f"{name} 的 topbar 偏好项实测 语言 {parser.lang_choices} 个 / 配色 {parser.theme_choices} 个"
-                          f"（要 2 个「中/英」+ 3 个「自动/深色/浅色」——用户 2026-10-09："
-                          f"「都不要方框和图标了……和它是什么 怎么开始 教材 用一摸一样的样式」）")
+        if parser.lang_toggles != 1 or parser.theme_toggles != 1:
+            raise Failure(f"{name} 的 topbar 按钮实测 语言 {parser.lang_toggles} 个 / 配色 {parser.theme_toggles} 个"
+                          f"（要**各一个**——用户 2026-10-09：「应该是同一个但是单击会互相切换的状态，"
+                          f"等价于一个按钮」）")
         block = parser.json_blocks.get("i18n-en")
         if not block:
             raise Failure(f'{name} 缺 <script type="application/json" id="i18n-en">（英文文案字典）')
@@ -594,27 +594,24 @@ def _toggle_probe() -> str:
     await new Promise((r) => { f.onload = r; });
     await new Promise((r) => setTimeout(r, 250));
     const d = f.contentDocument, win = f.contentWindow;
-    const langBtns = Array.from(d.querySelectorAll('[data-lang-choice]'));
-    const themeBtns = Array.from(d.querySelectorAll('[data-theme-choice]'));
+    // 用户 2026-10-09：「自动 深色 浅色 应该是同一个但是单击会互相切换的状态，等价于一个按钮；
+    // 中 EN 也应该是……样式还是和其他文字一样」⇒ 每组**一个**纯文字按钮，标签 = 当前档。
+    const langBtn = d.querySelector('[data-lang-toggle]');
+    const themeBtn = d.querySelector('[data-theme-toggle]');
     const nav = () => ((d.querySelector('nav a[data-i18n="navWhat"]') || {}).textContent || '').trim();
-    const pressed = (arr, attr) => arr.filter((b) => b.getAttribute('aria-pressed') === 'true')
-      .map((b) => b.getAttribute(attr));
+    const labelOf = (b) => (b ? b.textContent.trim() : null);
+    const visible = (b) => !!(b && b.getBoundingClientRect().height > 0);
     const snap = () => ({ lang: d.documentElement.lang, nav: nav(),
                           theme: d.documentElement.getAttribute('data-theme'),
-                          langPressed: pressed(langBtns, 'data-lang-choice'),
-                          themePressed: pressed(themeBtns, 'data-theme-choice'),
-                          prefsVisible: Array.from(d.querySelectorAll('.prefs')).every((u) => u.getBoundingClientRect().height > 0),
+                          langLabel: labelOf(langBtn), themeLabel: labelOf(themeBtn),
+                          bothVisible: visible(langBtn) && visible(themeBtn),
                           stored: (() => { try { return win.localStorage.getItem('soko-lang'); } catch (e) { return 'ERR'; } })() });
     out.before = snap();
-    if (langBtns.length !== 2 || themeBtns.length !== 3) {
-      throw new Error('偏好项个数不对：语言 ' + langBtns.length + '（要 2：中/英）· 配色 ' + themeBtns.length + '（要 3：自动/深色/浅色）');
+    if (!langBtn || !themeBtn) throw new Error('找不到语言/配色按钮（data-lang-toggle / data-theme-toggle）');
+    if (d.querySelectorAll('[data-lang-toggle]').length !== 1 || d.querySelectorAll('[data-theme-toggle]').length !== 1) {
+      throw new Error('语言/配色按钮不是各一个（用户要"等价于一个按钮"）');
     }
-    const clickChoice = (attr, value) => {
-      const b = d.querySelector('[' + attr + '="' + value + '"]');
-      if (!b) throw new Error('找不到 ' + attr + '=' + value);
-      b.click();
-    };
-    clickChoice('data-lang-choice', 'en');
+    langBtn.click();
     await new Promise((r) => setTimeout(r, 150));
     out.after = snap();
     // ⚠ 用户报的是**英文**那版折行（"英文版的 topbar 都不能在一行放下"）⇒ 切到英文后必须再量一次。
@@ -628,7 +625,7 @@ def _toggle_probe() -> str:
                detail: rs.map((r) => `${Math.round(r.top)}-${Math.round(r.bottom)}`).join(' ') };
     };
     out.headerEn = rowsOf();
-    clickChoice('data-lang-choice', 'zh');
+    langBtn.click();
     await new Promise((r) => setTimeout(r, 150));
     out.back = snap();
     // 主题按钮：点到暗色 ⇒ **头图必须换成暗色那版**（用户 2026-10-09 的"黑白两版"）。
@@ -689,8 +686,6 @@ def _toggle_probe() -> str:
         baseline: baselineOf(k), h: +k.getBoundingClientRect().height.toFixed(2) }));
     };
     out.baselines = { header: rowBaselines('.site-header .wrap'), footer: rowBaselines('.site-footer .wrap') };
-    // 偏好项**必须可见**（用户 2026-10-09 报「中英文和主题切换的没掉了」——那是 `hidden` 起步的锅）
-    out.prefsVisible = Array.from(d.querySelectorAll('.prefs')).map((u) => u.getBoundingClientRect().height > 0);
     // 可点目标的命中尺寸（WCAG 2.2 AA 2.5.8 要求 ≥ 24×24 CSS px）
     out.targets = Array.from(d.querySelectorAll('.site-header a, .site-header button, .site-footer a, .site-footer button'))
       .map((e) => { const r = e.getBoundingClientRect();
@@ -712,11 +707,11 @@ def _toggle_probe() -> str:
     })();
     // GitHub 是**导航项**（用户 2026-10-09：「就在『教材』后面加一项」）⇒ 在 header 里数它。
     out.headerGithub = (() => { const h = d.querySelector('header'); return h ? h.querySelectorAll('a[href*="github.com"]').length : null; })();
-    clickChoice('data-theme-choice', 'dark');
+    themeBtn.click();          // 自动 → 深色（用户列举的顺序）
     await new Promise((r) => setTimeout(r, 150));
     out.hero.theme = d.documentElement.getAttribute('data-theme');
     out.hero.dark = img && img.getAttribute('src');
-    out.themePressedAfter = pressed(themeBtns, 'data-theme-choice');
+    out.themeLabelAfter = labelOf(themeBtn);
   } catch (e) { out.error = String((e && e.message) || e); }
   document.getElementById('out').textContent = JSON.stringify(out);
 })();
@@ -804,9 +799,9 @@ def check_render() -> str:
             for lang, shown, hidden, html_lang, runtime in (
                 # 运行期由脚本画的字（配色三项的标签 + 复制按钮）也必须跟上语言。
                 ("zh-CN", ">它是什么<", ">What it is<", 'lang="zh-CN"',
-                 (">自动<", ">深色<", ">浅色<") + copy_zh),
+                 (">自动<",) + copy_zh),
                 ("en-US", ">What it is<", ">它是什么<", 'lang="en"',
-                 (">Auto<", ">Dark<", ">Light<") + copy_en),
+                 (">Auto<",) + copy_en),
             ):
                 dom = _dump_dom(chrome, server.url(name), accept_lang=lang)
                 if not dom.strip():
@@ -823,17 +818,18 @@ def check_render() -> str:
                     raise Failure(f"{name}（{lang}）：另一种语言的原文案还在（不该出现 {hidden}）")
                 # topbar 语言按钮：标签写**当前语言**（中文页「中」、英文页「EN」），
                 # 而且必须**已被 i18n.js 放出来**（HTML 里 `hidden` 起步 ⇒ 没跑就是隐藏的 ✗）。
-                if re.search(r'<ul class="prefs"[^>]*hidden', dom):
-                    raise Failure(f"{name}（{lang}）：偏好项还是 hidden —— 脚本没把它放出来？")
-                want = "zh" if lang == "zh-CN" else "en"
-                got_btn = re.search(r'<button[^>]*data-lang-choice="%s"[^>]*>' % want, dom)
-                if not got_btn or 'aria-pressed="true"' not in got_btn.group(0):
-                    raise Failure(f"{name}（{lang}）：当前语言那一项（{want}）没被标为当前档："
-                                  f"{got_btn.group(0) if got_btn else '找不到该项'}")
-                other = "en" if want == "zh" else "zh"
-                other_btn = re.search(r'<button[^>]*data-lang-choice="%s"[^>]*>' % other, dom)
-                if other_btn and 'aria-pressed="true"' in other_btn.group(0):
-                    raise Failure(f"{name}（{lang}）：非当前语言那一项（{other}）也被标成了当前档 ✗")
+                # 语言/配色按钮的标签 = **当前档**（中文页「中」/「自动」，英文页「EN」/「Auto」）
+                lb = re.search(r'<button[^>]*data-lang-toggle[^>]*>([^<]*)</button>', dom)
+                want_lang = "中" if lang == "zh-CN" else "EN"
+                if not lb or lb.group(1).strip() != want_lang:
+                    raise Failure(f"{name}（{lang}）：语言按钮标签是 "
+                                  f"{lb.group(1).strip() if lb else '找不到'!r}，应为 {want_lang!r}"
+                                  f"（用户 2026-10-09：「应该是 中 EN 两个」）")
+                tb = re.search(r'<button[^>]*data-theme-toggle[^>]*>([^<]*)</button>', dom)
+                want_theme = "自动" if lang == "zh-CN" else "Auto"
+                if not tb or tb.group(1).strip() != want_theme:
+                    raise Failure(f"{name}（{lang}）：配色按钮标签是 "
+                                  f"{tb.group(1).strip() if tb else '找不到'!r}，应为 {want_theme!r}")
                 for marker in runtime:
                     if marker not in dom:
                         raise Failure(f"{name}（{lang}）：运行期标签没跟上语言（找不到 {marker}）")
@@ -847,14 +843,14 @@ def check_render() -> str:
         if got.get("error"):
             raise Failure(f"语言按钮探针报错：{got['error']}")
         before, after, back = got["before"], got["after"], got["back"]
-        if (before["lang"] != "zh-CN" or before["nav"] != "它是什么" or before["langPressed"] != ["zh"]
-                or not before["prefsVisible"] or before["stored"] is not None):
-            raise Failure(f"中文读者的初态不对：{before}（应为 lang=zh-CN · 导航中文 ·「中」是当前档 · "
-                          f"偏好项已放出 · 还没记住过选择）")
-        if after["lang"] != "en" or after["nav"] != "What it is" or after["langPressed"] != ["en"] or after["stored"] != "en":
-            raise Failure(f"点「英」没切到英文（可见结果不对）：{after}")
-        if back["lang"] != "zh-CN" or back["nav"] != "它是什么" or back["langPressed"] != ["zh"] or back["stored"] != "zh":
-            raise Failure(f"点「中」没切回中文（原文没抓全？）：{back}")
+        if (before["lang"] != "zh-CN" or before["nav"] != "它是什么" or before["langLabel"] != "中"
+                or before["themeLabel"] != "自动" or not before["bothVisible"] or before["stored"] is not None):
+            raise Failure(f"中文读者的初态不对：{before}（应为 lang=zh-CN · 导航中文 · 语言按钮写「中」· "
+                          f"配色按钮写「自动」· 两个按钮都可见 · 还没记住过选择）")
+        if after["lang"] != "en" or after["nav"] != "What it is" or after["langLabel"] != "EN" or after["stored"] != "en":
+            raise Failure(f"点语言按钮没切到英文（可见结果不对）：{after}")
+        if back["lang"] != "zh-CN" or back["nav"] != "它是什么" or back["langLabel"] != "中" or back["stored"] != "zh":
+            raise Failure(f"再点一下没切回中文（原文没抓全？）：{back}")
         hero = got.get("hero") or {}
         if hero.get("light") != HERO:
             raise Failure(f"亮色下头图应是 {HERO}，实测 {hero.get('light')!r}")
@@ -877,9 +873,11 @@ def check_render() -> str:
                 raise Failure(f"{where} 各项的**文字基线**不在同一条横线上（最大差 {spread:.2f}px）：{detail} —— "
                               f"纯文字行必须 `align-items: baseline`；用 `center` 对齐的是**盒子**，"
                               f"字号不同（16px 品牌 vs 14px 导航）就会错开 ✗")
-        if not all(got.get("prefsVisible") or []):
-            raise Failure(f"偏好项（配色/语言）不可见 —— 用户 2026-10-09 报过「中英文和主题切换的没掉了」"
-                          f"（实测 {got.get('prefsVisible')}）")
+        if got.get("themeLabelAfter") != "深色":
+            raise Failure(f"点了配色按钮但标签没跟着变（实测 {got.get('themeLabelAfter')!r}）—— "
+                          f"标签写**当前档**（自动/深色/浅色）")
+        if not (got.get("before") or {}).get("bothVisible"):
+            raise Failure("配色/语言按钮不可见 —— 用户 2026-10-09 报过「中英文和主题切换的没掉了」")
         # 可点目标 ≥ 24×24（WCAG 2.2 AA 2.5.8 Target Size (Minimum)）
         small = [t for t in (got.get("targets") or []) if t["w"] < 24 or t["h"] < 24]
         if small:
@@ -890,7 +888,7 @@ def check_render() -> str:
     finally:
         server.shutdown()
     return (f"Chrome 渲染 {len(PAGES)} 页 × 2 种语言通过（中文读者看中文 · 其它语言看英文），"
-            f"语言项真点过（中→英→中，含 localStorage 记忆）· 配色项真点过（点「深色」⇒ 头图换暗色那版 + 当前档标对）· "
+            f"语言按钮真点过（中→EN→中，含 localStorage 记忆）· 配色按钮真点过（点一下 ⇒ 标签转「深色」+ 头图换暗色那版）· "
             f"topbar 中英各一行 · **topbar/页脚逐项几何审计通过**（文字同一条基线 · 偏好项可见 · 命中尺寸 ≥24px），"
             f"版本 {version} 已回填，资源零 404")
 
