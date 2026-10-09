@@ -115,6 +115,8 @@ class PageParser(HTMLParser):
         self.images: list[dict] = []
         self.i18n_keys: set[str] = set()          # data-i18n / -alt / -aria 用到的键
         self.lang_toggles = 0                     # topbar 的语言切换按钮个数
+        self.in_header = False                    # 是否在 <header> 里（topbar 判据要用）
+        self.github_in_header = 0                 # topbar 的 GitHub 链接个数
         self.json_blocks: dict[str, str] = {}     # <script type="application/json" id=…> 的内容
         self.scripts_src: list[str] = []          # 外链 <script src>
         self.inline_head = 0                      # **可执行**内联脚本（head / body 分开数）
@@ -132,6 +134,10 @@ class PageParser(HTMLParser):
             self.in_head = True
         if tag == "body":
             self.in_head = False
+        if tag == "header":
+            self.in_header = True
+        if tag == "a" and "github.com" in (attrs.get("href") or "") and self.in_header:
+            self.github_in_header += 1
         for key in ("data-i18n", "data-i18n-alt", "data-i18n-aria"):
             if key in attrs:
                 self.i18n_keys.add(attrs[key])
@@ -173,6 +179,8 @@ class PageParser(HTMLParser):
                     self.inline_body += 1
 
     def handle_endtag(self, tag):
+        if tag == "header":
+            self.in_header = False
         if tag == "script" and self._json_id:
             self.json_blocks[self._json_id] = "".join(self._json_text)
             self._json_id = None
@@ -371,12 +379,18 @@ def check_i18n(pages: dict[str, PageParser]) -> str:
 
 
 def check_markup(pages: dict[str, PageParser]) -> str:
+    """标签配对 + 无内联样式 + **topbar 有 GitHub 仓库链接**（用户 2026-10-09 点名）。"""
     for name, parser in pages.items():
         if parser.errors:
             raise Failure(f"{name} 标签不配对：" + "；".join(parser.errors[:4]))
         if parser.inline_styles:
             raise Failure(f"{name}：内联 style= 出现在第 {parser.inline_styles} 行（样式只能进 site.css）")
-    return f"两页标签配对，无内联样式"
+        # topbar 必须有**恰好一个** GitHub 仓库链接（用户 2026-10-09："topbar 没有 github 链接呢？"）。
+        # 静态判据（不需要浏览器）；浏览器那一半在 `render` 里量同一个事实。
+        if parser.github_in_header != 1:
+            raise Failure(f"{name} 的 topbar 里 GitHub 链接实测 {parser.github_in_header} 个"
+                          f"（要恰好 1 个：header 内一个指向 github.com 的 <a>）")
+    return f"两页标签配对，无内联样式；topbar 各 1 个 GitHub 链接"
 
 
 def png_size(path: str) -> tuple[int, int]:
@@ -607,6 +621,11 @@ def _toggle_probe() -> str:
     const icon = (cls) => { const e = d.querySelector('.icon-toggle ' + cls); return e ? win.getComputedStyle(e).display : null; };
     const icons = () => ({ system: icon('.ico-system'), light: icon('.ico-light'), dark: icon('.ico-dark') });
     out.iconsBefore = icons();          // 初态 = system（探针用干净 profile）
+    // 控件必须**在一条水平线上**（用户 2026-10-09：「两个方框都不在一条水平线上」）——
+    // 量的是**顶边**：差 >1px 就是错位（图标按钮没有文字基线，靠 .header-controls 兜住）。
+    const boxTop = (sel) => { const e = d.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().top) : null; };
+    out.align = { theme: boxTop('.icon-toggle'), lang: boxTop('.lang-toggle'), gh: boxTop('.gh-link') };
+    out.headerGithub = (() => { const h = d.querySelector('header'); return h ? h.querySelectorAll('a[href*="github.com"]').length : null; })();
     for (let i = 0; i < 3 && d.documentElement.getAttribute('data-theme') !== 'dark'; i++) {
       themeBtn.click();
       await new Promise((r) => setTimeout(r, 90));
@@ -724,7 +743,7 @@ def check_render() -> str:
                     raise Failure(f"{name}（{lang}）：找不到语言切换按钮（data-lang-toggle）")
                 if "hidden" in toggle.group(0).split(">")[0]:
                     raise Failure(f"{name}（{lang}）：语言按钮还是 hidden —— i18n.js 没把它放出来？")
-                want_label = "EN" if lang == "zh-CN" else "中文"
+                want_label = "EN" if lang == "zh-CN" else "中"
                 if toggle.group(1).strip() != want_label:
                     raise Failure(f"{name}（{lang}）：语言按钮标签是 {toggle.group(1).strip()!r}，应为 {want_label!r}")
                 for marker in runtime:
@@ -742,7 +761,7 @@ def check_render() -> str:
         before, after, back = got["before"], got["after"], got["back"]
         if before["lang"] != "zh-CN" or before["label"] != "EN" or before["hidden"]:
             raise Failure(f"中文读者的初态不对：{before}（应为 lang=zh-CN · 标签 EN · 按钮可见）")
-        if after["lang"] != "en" or after["label"] != "中文" or after["nav"] != "What it is" or after["stored"] != "en":
+        if after["lang"] != "en" or after["label"] != "中" or after["nav"] != "What it is" or after["stored"] != "en":
             raise Failure(f"点一下没切到英文（可见结果不对）：{after}")
         if back["lang"] != "zh-CN" or back["nav"] != "它是什么" or back["stored"] != "zh":
             raise Failure(f"再点一下没切回中文（原文没抓全？）：{back}")
@@ -751,6 +770,13 @@ def check_render() -> str:
             raise Failure(f"亮色下头图应是 {HERO}，实测 {hero.get('light')!r}")
         if hero.get("theme") != "dark" or hero.get("dark") != HERO_DARK:
             raise Failure(f"主题点到暗色后头图没换（要 {HERO_DARK}）：{hero}")
+        align = got.get("align") or {}
+        tops = [align.get("theme"), align.get("lang"), align.get("gh")]
+        if None in tops or max(tops) - min(tops) > 1:
+            raise Failure(f"topbar 控件不在一条水平线上（顶边 {tops}）—— 图标按钮没有文字基线，"
+                          f"必须靠 .header-controls 的 align-items:center 兜住 ✗")
+        if got.get("headerGithub") != 1:
+            raise Failure(f"topbar 里 GitHub 链接实测 {got.get('headerGithub')} 个（要恰好 1 个，用户 2026-10-09 点名）")
         ib, idk = got.get("iconsBefore") or {}, got.get("iconsDark") or {}
         if ib.get("system") != "block" or ib.get("light") != "none" or ib.get("dark") != "none":
             raise Failure(f"system 档应显示「跟随系统」那个图标（其余隐藏），实测 {ib}")

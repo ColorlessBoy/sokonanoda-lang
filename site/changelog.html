@@ -6,13 +6,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>更新日志 · sokonanoda</title>
-<meta name="description" content="sokonanoda 的更新日志：最近 8 个版本改了什么（由仓库里的 CHANGELOG.md 生成）。">
+<meta name="description" content="sokonanoda 的更新日志：最近 7 个版本改了什么（由仓库里的 CHANGELOG.md 生成）。">
 <link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/changelog.html">
 <meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="article">
 <meta property="og:title" content="更新日志 · sokonanoda">
-<meta property="og:description" content="最近 8 个版本改了什么（由仓库里的 CHANGELOG.md 生成）。">
+<meta property="og:description" content="最近 7 个版本改了什么（由仓库里的 CHANGELOG.md 生成）。">
 <meta property="og:url" content="https://colorlessboy.github.io/sokonanoda-lang/changelog.html">
 <meta property="og:locale" content="zh_CN">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -40,6 +40,11 @@
     <!-- 主题按钮用**图标**（用户 2026-10-09）：文字版「跟随系统」四个字、「浅色/深色」两个字
          ⇒ 切换时按钮宽度会跳；图标三种状态同宽，且 `aria-label` 仍把状态与动作说全 ✓。
          图标由 CSS 按 `:root[data-theme]` 选，`site.js` 只管 `aria-label`。 -->
+    <!-- 控件组：**必须包一层**（用户 2026-10-09：「两个方框不在一条水平线上」）——
+         头部是 `align-items: baseline`，而图标按钮没有文字基线 ⇒ 它与带文字的按钮
+         按**不同的基线**对齐，必然错位 ✗。包一层 + `align-items: center` 让组内自己
+         对齐，`align-self: center` 让整组在头部行里居中。 -->
+    <span class="header-controls">
     <button class="theme-toggle icon-toggle" type="button" data-theme-toggle aria-pressed="false"
             data-i18n-aria="themeToggleLabel" aria-label="配色：跟随系统（点击切换）">
       <svg class="ico ico-system" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="5.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.6a5.4 5.4 0 0 0 0 10.8Z" fill="currentColor"/></svg>
@@ -49,6 +54,10 @@
     <button class="theme-toggle lang-toggle" type="button" data-lang-toggle hidden
             data-i18n="langToggle" data-i18n-aria="langToggleLabel"
             aria-label="切换到英文">EN</button>
+    <!-- GitHub 仓库（用户 2026-10-09：topbar 缺它）。文字而不是图标：预算是硬约束
+         （html+css+js 只剩几百字节），而 `GitHub` 是专名、不用翻译 ✓。 -->
+    <a class="theme-toggle gh-link" href="https://github.com/ColorlessBoy/sokonanoda-lang" data-i18n-aria="ghLabel" aria-label="GitHub 仓库">GitHub</a>
+    </span>
   </div>
 </header>
 
@@ -60,7 +69,7 @@
       <p class="lead" data-i18n="changelogLead">
         每次发版改了什么。<strong>这一页是生成物</strong>：正文来自仓库里的
         <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md"><code>editor/vscode/CHANGELOG.md</code></a>，
-        这里只放最近 <strong>8</strong> 个版本。
+        这里只放最近 <strong>7</strong> 个版本。
       </p>
       <p class="fact">
         <span data-i18n="changelogFactLead">当前发布版本</span>
@@ -78,8 +87,7 @@
           <li><a href="#v0.85.1">v0.85.1</a><span class="tag">2026-10-08</span></li>
           <li><a href="#v0.85.0">v0.85.0</a><span class="tag">2026-10-08</span></li>
           <li><a href="#v0.84.0">v0.84.0</a><span class="tag">2026-10-08</span></li>
-          <li><a href="#v0.83.0">v0.83.0</a><span class="tag">2026-10-08</span></li>
-          <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md" data-i18n="tocOlder">更早的 107 个版本</a></li>
+          <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md" data-i18n="tocOlder">更早的 108 个版本</a></li>
         </ul>
       </nav>
     </div>
@@ -285,47 +293,6 @@
       </ul>
     </div>
   </section>
-  <section class="section release" id="v0.83.0">
-    <div class="wrap">
-      <h2><span class="ver">v0.83.0</span> <span class="tag">2026-10-08</span></h2>
-      <p class="lead"><strong>Editing a declaration in a project is ~25% faster</strong> (G-29 — the shared library layer is compiled once and its environment is reused across keystrokes; the structural reading <code>edit.modules</code> goes <strong>5 → 1</strong>) · <strong><code>build</code> / <code>rebuild</code> stop paying for a shared dependency once per entry</strong> (G-68 — Σ closure compiles <strong>1614 → 517</strong>) · <strong>set-builder notation works</strong> (G-60) · <strong>Infoview notation targets answer <code>documentHighlight</code></strong> (G-55) · <strong>error messages name the binder and the missing leading type parameter</strong> (G-49 / G-21) · and a parallel <code>build</code> no longer aborts with a stack overflow (G-94).</p>
-      <h3>Added</h3>
-      <ul>
-        <li><strong>Set-builder notation</strong> (G-60). <code>{x : α | P x}</code> desugars to <code>fun (x : α) =&gt; P x</code> (pure kernel, no library needed), and <code>{x ∈ A | P x}</code> desugars to <code>Set.sep A (fun x =&gt; P x)</code> — the same head constant as the explicit <code>Set.sep A P</code>, so <code>mem_sep_iff</code> / <code>sep_subset</code> rewrite through it. <code>{x | P x}</code> stays rejected: this language has no metavariables, so <code>x</code>'s type would have no source. Its code changes from <code>set-literal-shape</code> (which pointed at the wrong thing) to the dedicated <code>set-builder-shape</code>, and the hint names the two accepted forms. Desugaring happens entirely in the parser, so the display side, <code>by</code> stepping, semantic highlighting, spine and goals are untouched.
-        </li>
-      </ul>
-      <h3>Changed</h3>
-      <ul>
-        <li><strong>Editing a declaration in a project no longer recompiles the library layer</strong> (G-29, the "editing is slow" report). The project session compiles the shared library layer once, keeps its environment as a <strong>checkpoint</strong>, and reuses it for the next keystroke when the library summary is byte-identical (names, absolute paths, source text, order — prelude, version and the <code>SOKO_*</code> switches are folded into the cache key). On <code>unit08</code> the structural reading — module compiles triggered by one edited line — goes <strong>5 → 1</strong>, and the edit wall clock goes <strong>3406 ms → 2555 ms (−25%)</strong>; the two earlier rounds on the same entry are included (the synthesized prefix compiles inside the entry pass go back through the incremental path, <strong>−20%</strong>; <code>infer_expected_level</code> joins the in-place path, <strong>−19%</strong>, <code>prefix</code> 10 → 5). Judgement-neutrality is pinned by <code>kernel-diff</code> (1724 cases, zero differences) plus the whole course's <code>build --json</code>, <code>course --json</code> and <code>query check --json</code> byte-for-byte. Two honest costs: the language server compiles on a dedicated single worker thread (concurrent compiles of different documents are serialized), and the reuse is bounded (≤ 8 arenas, ≤ 64 reuses per checkpoint) — at the ceiling the previous full-recompile path returns verbatim.
-        </li>
-        <li><strong>A synthesized judgment document no longer loads the prefix's <code>theorem</code>s as opaque constants</strong> (G-31 / G-92). The synthesized document used to wrap each prefix theorem in an opaque constant, which forced a second, structurally different judgment: <code>by_calls</code> <strong>3.82× → 2.00</strong>, and the reproduction's wall clock <strong>44.23 s → 2.98 s (14.8×)</strong>. A shadow arm compared 665 questions with <strong>0 differences</strong>.
-        </li>
-        <li><strong>The solver's budgets are configurable, and their defaults now follow Lean 4</strong> (G-88): <code>fuel</code> 4096 → 20000 (<code>synthInstance.maxHeartbeats</code>) and recursion depth 64 → 512 (<code>maxRecDepth</code>), registered with the other limits and reachable through the same <code>SOKO_LIMIT_*</code> switches. Hitting a budget still retries with a bigger one and, at the ceiling, <strong>abstains</strong> (<code>Tri::Undef</code>) — never "no".
-        </li>
-        <li><strong><code>build</code> / <code>rebuild</code> no longer compiles a shared dependency once per entry</strong> (G-68). The CLI now runs a pre-pass that groups project entries by their <strong>library closure signature</strong> and compiles each shared library layer <strong>once per group</strong> (groups run in parallel; every entry still starts from its own checkpoint, so its judgments are unchanged). On the full course (249 files, 248 entries with imports, 49 distinct library closures) the sum of closure module compiles drops from <strong>1614 to 517 (3.12×)</strong>. The acceptance readings are structural: the reproduction script's <code>by_calls</code> goes <strong>3 → 1</strong>, the <code>check-recompile-factor.py</code> budget is tightened <strong>3 → 1</strong>, and <code>project_recompiles_shared_deps</code>'s marginal pass count goes <strong>1.80 → 1.20</strong> (its threshold is tightened back to 1.5). The full course's cold <code>build --json</code> and the project artifact store (whole <code>ProjectReport</code>s) are byte-for-byte identical before and after. <code>build.progress</code> keeps reporting one event per finished entry, now emitted from inside the shared compile phase.
-        </li>
-      </ul>
-      <h3>Fixed</h3>
-      <ul>
-        <li><strong><code>documentHighlight</code> on a notation declaration's target name now answers</strong> (G-55). <code>prefix:70 " 𝒫 " =&gt; Set.powerset</code> puts a <em>reference</em> to <code>Set.powerset</code> in the declaration line, but it is not a use point in the AST, so the definition→references reverse lookup came up empty and the server returned <code>null</code> for all 11 notation targets in the real course library. The name under the cursor is now recognized lexically (the same check F12 uses) and the answer is the cumulative "same definition" set: the name under the cursor (always — so the result is never <code>null</code> and always contains the position the user clicked), every occurrence of the notation symbols this file declares for that target, and — when the target resolves inside this file — its definition name plus its explicit uses. Ranges on this path are recomputed from byte offsets, so a line containing an astral character such as <code>𝒫</code> no longer shifts the highlight by one column. Lean 4's <code>handleDocumentHighlight</code> (definition range + <code>usages</code>) is the reference semantics; the deviation from the minimal "only this one name" reading is deliberate — a single-range answer would <em>replace</em> the editor's own text-based occurrence highlighting and hide the definition occurrence.
-        </li>
-        <li><strong>A cold <code>build</code> with entry-level parallelism could abort with a stack overflow</strong> (G-94). Compile worker threads used the platform default stack (2 MB on macOS), and elaborating a deeply recursive file overflows it (<code>thread '&lt;unknown&gt;' has overflowed its stack</code>, <code>Abort trap: 6</code>) — the main thread has 8 MB, which is why <code>SOKONANODA_BUILD_JOBS=1</code> worked and the default (one thread per core) did not. Worker threads now get 32 MB, the same fix the language server already carried for the identical reason.
-        </li>
-        <li><strong>A short implicit call in argument position now receives its expected type</strong> (G-30's second reproduction). <code>theorem t3 (h : ¬ (P ∨ Q)) (hp : P) : False := h (Or.inl hp)</code> used to be rejected — <code>Or.inl</code>'s <code>?B</code> had no argument to read and fell back to the "same shape as its sibling" default (<code>?B := ?A := P</code>) — because the expected-type propagation hook (<code>elab::b1_local_expected</code>) was built but <strong>gated off by default</strong>. The gate is now <strong>on by default</strong>: the whole course's <code>build --json</code> is byte-for-byte identical with the gate on and off (50065 lines, diff 0), so this is judgment-neutral on real corpora while the shape above turns green. Escape hatch <code>SOKO_ARG_EXPECTED=0</code> restores the previous behavior exactly.
-        </li>
-        <li><strong>Infoview goal text for a module that uses an imported notation now matches the declaration card</strong> (G-81 / G-83). <code>QueryDoc::compute_display</code> parsed every module in the closure independently, with an empty inheritance table, so a module that used a notation declared in a dependency (<code>⋃₀</code> from <code>lib/SUnion</code>, <code>∃</code> from <code>lib/Exists</code>) failed to parse as a whole and its own notations never entered the table — the root state folded them, the card did not. The display copy now builds its table the way the closure loader does (topological order + <code>parse_with_inherited</code>), so the two agree by construction; the fields that feed judgement are untouched. Full scans: <strong>470/470</strong> open declarations across 113 canvases, <strong>901/901</strong> at the root-state level.
-        </li>
-        <li><strong>A type error names the binder instead of a raw de Bruijn index</strong> (G-49): <code>$4</code> now reads "the 4th binder (β)", with the name taken from the kernel's name stack and aligned with the kernel depth; the <code>by</code> path, <code>query_error</code> and <code>prefix_error</code> exits all use it.
-        </li>
-        <li><strong>A <code>by</code>-path type mismatch reuses the declaration-position diagnostic</strong> (G-21) and names the leading type parameter that was left implicit.
-        </li>
-        <li><strong>Kernel hardening that changes no verdict</strong>: the equality probe's step cap <code>PROBE_CAP=2048</code> is gone (Lean 4 has no such thing — G-89), and the signature mask grows <strong>64 → 128</strong> with its carrier <code>u64</code> → <code>u128</code> (G-90).
-        </li>
-        <li><strong>Hint text that said the wrong thing about cumulativity and <code>Exists.elim</code></strong> (L-06): both halves match official Lean 4, so the wrong words are gone (kernel unchanged).
-        </li>
-      </ul>
-    </div>
-  </section>
 </main>
 
 <footer class="site-footer">
@@ -347,17 +314,18 @@
 <script type="application/json" id="i18n-en">
 {
   "title": "Changelog · sokonanoda",
-  "description": "What changed in each sokonanoda release: the most recent 8 versions, generated from editor/vscode/CHANGELOG.md in the repository.",
+  "description": "What changed in each sokonanoda release: the most recent 7 versions, generated from editor/vscode/CHANGELOG.md in the repository.",
   "skip": "Skip to content",
   "brandTag": "a formal proof teaching language",
   "navWhat": "What it is",
   "navStart": "Getting started",
   "navCourses": "Courses",
   "themeToggleLabel": "Theme: System (click to change)",
-  "langToggle": "中文",
+  "langToggle": "中",
   "langToggleLabel": "Switch to Chinese",
+  "ghLabel": "GitHub repository",
   "changelogTitle": "Changelog",
-  "changelogLead": "What changed in each release. <strong>This page is generated</strong>: the text comes from <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md\"><code>editor/vscode/CHANGELOG.md</code></a> in the repository, and only the most recent <strong>8</strong> versions are shown here.",
+  "changelogLead": "What changed in each release. <strong>This page is generated</strong>: the text comes from <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md\"><code>editor/vscode/CHANGELOG.md</code></a> in the repository, and only the most recent <strong>7</strong> versions are shown here.",
   "changelogFactLead": "Current published version",
   "changelogFactRest": " · every version and every detail is in the <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md\">full CHANGELOG</a> · artifacts are on <a href=\"https://github.com/ColorlessBoy/sokonanoda-lang/releases\">Releases</a>.",
   "tocLabel": "Version list",
@@ -365,7 +333,7 @@
   "footerSource": "Source",
   "footerReleases": "Releases",
   "footerBack": "Back to the home page",
-  "tocOlder": "107 older versions"
+  "tocOlder": "108 older versions"
 }
 </script>
 <script src="assets/i18n.js"></script>

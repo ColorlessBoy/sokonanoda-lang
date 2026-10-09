@@ -39,6 +39,11 @@
     <!-- 主题按钮用**图标**（用户 2026-10-09）：文字版「跟随系统」四个字、「浅色/深色」两个字
          ⇒ 切换时按钮宽度会跳；图标三种状态同宽，且 `aria-label` 仍把状态与动作说全 ✓。
          图标由 CSS 按 `:root[data-theme]` 选，`site.js` 只管 `aria-label`。 -->
+    <!-- 控件组：**必须包一层**（用户 2026-10-09：「两个方框不在一条水平线上」）——
+         头部是 `align-items: baseline`，而图标按钮没有文字基线 ⇒ 它与带文字的按钮
+         按**不同的基线**对齐，必然错位 ✗。包一层 + `align-items: center` 让组内自己
+         对齐，`align-self: center` 让整组在头部行里居中。 -->
+    <span class="header-controls">
     <button class="theme-toggle icon-toggle" type="button" data-theme-toggle aria-pressed="false"
             data-i18n-aria="themeToggleLabel" aria-label="配色：跟随系统（点击切换）">
       <svg class="ico ico-system" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="5.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.6a5.4 5.4 0 0 0 0 10.8Z" fill="currentColor"/></svg>
@@ -51,6 +56,10 @@
     <button class="theme-toggle lang-toggle" type="button" data-lang-toggle hidden
             data-i18n="langToggle" data-i18n-aria="langToggleLabel"
             aria-label="切换到英文">EN</button>
+    <!-- GitHub 仓库（用户 2026-10-09：topbar 缺它）。文字而不是图标：预算是硬约束
+         （html+css+js 只剩几百字节），而 `GitHub` 是专名、不用翻译 ✓。 -->
+    <a class="theme-toggle gh-link" href="https://github.com/ColorlessBoy/sokonanoda-lang" data-i18n-aria="ghLabel" aria-label="GitHub 仓库">GitHub</a>
+    </span>
   </div>
 </header>
 
@@ -251,8 +260,9 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
   "navStart": "Getting started",
   "navCourses": "Courses",
   "themeToggleLabel": "Theme: System (click to change)",
-  "langToggle": "中文",
+  "langToggle": "中",
   "langToggleLabel": "Switch to Chinese",
+  "ghLabel": "GitHub repository",
   "heroTitle": "sokonanoda · a formal proof teaching language",
   "heroLead": "Write a proof the way you write it on paper — one line at a time, with the <strong>goal always in view</strong> and a <strong>kernel that tells you</strong> when you get it wrong. No proof assistant to learn first, no toolchain to install: one VS Code extension is enough to start.",
   "ctaInstall": "Install the VS Code extension",

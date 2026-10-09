@@ -12,10 +12,11 @@
 项会重新生成一次并**逐字节比对** —— 所以"忘了重新生成"会判红，而不是悄悄漂移。
 
 为什么只放最近 N 个版本：站点有 120 KB 的体积预算（`check-site.py` 的 `assets`
-项），而整份 CHANGELOG 是 160 KB 量级的 Markdown。页面上给最近 `--limit`（默认 **8**）
+项），而整份 CHANGELOG 是 160 KB 量级的 Markdown。页面上给最近 `--limit`（默认 **7**）
 个版本的正文 + 一个"更早的版本"直链（指仓库里的 `CHANGELOG.md`）。
-**为什么是 8 而不是 10**（2026-10-09）：加上中英文自动识别（每页一份英文文案字典）后
-站点体积到了 119.5 KB / 120 KB ⇒ 按"预算不抬、从内容侧省"的纪律把版本数从 10 收到 8 ✓。
+**为什么是 7**（2026-10-09）：加上中英文自动识别（每页一份英文文案字典）与 topbar 的
+图标/语言/GitHub 控件后站点体积顶到 120 KB 预算 ⇒ 按"预算不抬、从内容侧省"的纪律
+一路从 10 收到 8、再收到 **7**（每减一版约省 7 KB）✓。
 
 用法：
 
@@ -79,6 +80,11 @@ HEAD = """<!DOCTYPE html>
     <!-- 主题按钮用**图标**（用户 2026-10-09）：文字版「跟随系统」四个字、「浅色/深色」两个字
          ⇒ 切换时按钮宽度会跳；图标三种状态同宽，且 `aria-label` 仍把状态与动作说全 ✓。
          图标由 CSS 按 `:root[data-theme]` 选，`site.js` 只管 `aria-label`。 -->
+    <!-- 控件组：**必须包一层**（用户 2026-10-09：「两个方框不在一条水平线上」）——
+         头部是 `align-items: baseline`，而图标按钮没有文字基线 ⇒ 它与带文字的按钮
+         按**不同的基线**对齐，必然错位 ✗。包一层 + `align-items: center` 让组内自己
+         对齐，`align-self: center` 让整组在头部行里居中。 -->
+    <span class="header-controls">
     <button class="theme-toggle icon-toggle" type="button" data-theme-toggle aria-pressed="false"
             data-i18n-aria="themeToggleLabel" aria-label="配色：跟随系统（点击切换）">
       <svg class="ico ico-system" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="5.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.6a5.4 5.4 0 0 0 0 10.8Z" fill="currentColor"/></svg>
@@ -88,6 +94,10 @@ HEAD = """<!DOCTYPE html>
     <button class="theme-toggle lang-toggle" type="button" data-lang-toggle hidden
             data-i18n="langToggle" data-i18n-aria="langToggleLabel"
             aria-label="切换到英文">EN</button>
+    <!-- GitHub 仓库（用户 2026-10-09：topbar 缺它）。文字而不是图标：预算是硬约束
+         （html+css+js 只剩几百字节），而 `GitHub` 是专名、不用翻译 ✓。 -->
+    <a class="theme-toggle gh-link" href="https://github.com/ColorlessBoy/sokonanoda-lang" data-i18n-aria="ghLabel" aria-label="GitHub 仓库">GitHub</a>
+    </span>
   </div>
 </header>
 
@@ -327,8 +337,9 @@ def render(markdown: str, limit: int) -> str:
         "navStart": "Getting started",
         "navCourses": "Courses",
         "themeToggleLabel": "Theme: System (click to change)",
-        "langToggle": "中文",
+        "langToggle": "中",
         "langToggleLabel": "Switch to Chinese",
+        "ghLabel": "GitHub repository",
         "changelogTitle": "Changelog",
         "changelogLead": f"What changed in each release. <strong>This page is generated</strong>: the text comes from "
                           f'<a href="{REPO_URL}/blob/main/editor/vscode/CHANGELOG.md"><code>editor/vscode/CHANGELOG.md</code></a> '
@@ -356,7 +367,7 @@ def render(markdown: str, limit: int) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="生成 site/changelog.html（源：editor/vscode/CHANGELOG.md）")
     ap.add_argument("--out", default=DEFAULT_OUT)
-    ap.add_argument("--limit", type=int, default=8)
+    ap.add_argument("--limit", type=int, default=7)
     ap.add_argument("--check", action="store_true", help="只校验：与磁盘上的文件逐字节一致？")
     args = ap.parse_args(argv)
 

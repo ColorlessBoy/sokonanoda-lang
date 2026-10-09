@@ -251,10 +251,25 @@ a:hover { text-decoration-color: currentColor; }
 }
 .theme-toggle:hover { color: var(--ink); }
 
+/* 头部控件组（主题图标 / 语言 / GitHub）。**这一层是必需的**：`.site-header .wrap`
+   是 `align-items: baseline`，而图标按钮里没有文字 ⇒ 它的基线与带文字按钮的基线
+   不是一回事，两个方框会错开（用户 2026-10-09 实测报的「不在一条水平线上」）。
+   组内 `align-items: center` 自己对齐，`align-self: center` 让整组在头部行里居中。 */
+.header-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  align-self: center;
+}
+.gh-link { text-decoration: none; }
+
 /* 主题按钮 = **图标**（用户 2026-10-09）：文字版「跟随系统」四个字 vs「浅色/深色」两个字
    ⇒ 切换时宽度会跳；图标三种状态同宽。哪一版图标由 CSS 按 `:root[data-theme]` 选
    （`system` = 没有 `data-theme` 属性 ⇒ 半明半暗那个），`site.js` 只管 `aria-label`。 */
-.icon-toggle {
+/* 主题（图标）与语言（`EN`/`中`）都做成**同尺寸的方框**（用户 2026-10-09：
+   语言按钮"只需要一个方框"）—— 两个方框同宽同高，控件组里自然成一条线 ✓。 */
+.icon-toggle,
+.lang-toggle {
   width: 34px;
   min-width: 34px;
   padding: 0;
