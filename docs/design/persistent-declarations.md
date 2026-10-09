@@ -308,3 +308,20 @@ goal 视图（`goal`/`binders`/`by_root`/`holes` ≈ 1–2 KB ✓）。**这就�
 ⚠ 附带的诚实边界：小文件夹具的高亮 run 天然少 ⇒ 这条对照证明的是"**负载 ∝ 声明数、
 `goal_ms` ∝ 负载**"✓；要把它变成交付，仍需 §7.7 第 3 条的**契约守卫**（裁完
 `audit-wire-fields.py` 仍绿 + 扩展侧渲染不降级 ✓）。
+
+### 7.9 下一棒的**确切入口**（已定位到行 ✓，省掉重新找路）
+
+| 位置 | 是什么 |
+|---|---|
+| `crates/lsp/src/lib.rs:1174` | `Backend::goals` —— `soko/goals` 的处理器，**返回全部 `decls`** ✗（91 KB 的来源） |
+| `crates/lsp/src/lib.rs:1156` → `:1182` | `goal_decls(probe: bool)`（`probe = true`）⇒ `doc.query().goals(probe)`（front 的查询 API） |
+| `crates/lsp/src/protocol.rs` | `GoalsParams` / `GoalsResponse` 的 wire 定义（裁剪后要同步 ✓） |
+| `crates/lsp/src/tests/goals.rs` | **契约测试**（改 wire 必须同步 ✓） |
+| `crates/lsp/src/tests/perf.rs` · `crates/lsp/tests/{perf_keystroke_wallclock,lsp_keystroke_structure}.rs` | 现有性能/结构判据（裁剪后复跑 ✓） |
+| `editor/vscode/{project-tree.js,test-webview.js,test-extension-host.js}` | 消费方（实测读 `.decls`/`.errors`/`.warnings`）⇒ **先确认 `decls` 的哪些子字段真被渲染** 再裁 ✓ |
+| `scripts/audit-wire-fields.py` | A∖B 对账守卫（裁完必须仍绿 ✓） |
+
+**两步走（低风险版）**：① 先在 LSP 侧**只摘 run 类字段**（`ty_runs`/`value_runs`/
+`goals_runs`/`goal_runs` —— 占 95% ✗）并复跑契约测试 + 那条对账 ✓；② 再把
+"只回光标处声明"做成**新请求**（`soko/goalAt`）而不是改 `soko/goals` 的形状 ✗→✓
+—— 这样老消费者**零影响** ✓，新路径吃 §7.8 的收益 ✓。
