@@ -1158,18 +1158,19 @@ impl Backend {
         // LSP 契约：没有报告（尚未编译 / parse 失败）时 `soko/goals` 答空。
         doc.report()?;
         let text = doc.text();
-        let decls = doc
-            .query()
-            // **候选 B（第 96 轮）**：`runs = false` ⇒ 走 `goals_without_runs` ✓
-            //（只清 `*_runs` ✓；名字/kind/span/文本一字不动 ✓）⇒ 载荷 −72% ✓。
-            .goals_or_without_runs(probe, runs)
-            // 解析失败（`NotParsable`）与"还没有报告"同答空：LSP 的 parse 诊断
-            // 走 `publishDiagnostics`（`Doc::diagnostics` 已经是 parse 优先），
-            // `soko/goals` 的 wire 形状不改（G-17 只动 CLI/MCP 的 ok 信封）。
-            .unwrap_or_default()
-            .into_iter()
-            .map(|decl| query_map::decl_info(decl, text))
-            .collect();
+        let decls = sokonanoda_front::query::with_line_index(text, || {
+            doc.query()
+                // **候选 B（第 96 轮）**：`runs = false` ⇒ 走 `goals_without_runs` ✓
+                //（只清 `*_runs` ✓；名字/kind/span/文本一字不动 ✓）⇒ 载荷 −72% ✓。
+                .goals_or_without_runs(probe, runs)
+                // 解析失败（`NotParsable`）与"还没有报告"同答空：LSP 的 parse 诊断
+                // 走 `publishDiagnostics`（`Doc::diagnostics` 已经是 parse 优先），
+                // `soko/goals` 的 wire 形状不改（G-17 只动 CLI/MCP 的 ok 信封）。
+                .unwrap_or_default()
+                .into_iter()
+                .map(|decl| query_map::decl_info(decl, text))
+                .collect()
+        });
         Some((text.to_string(), decls))
     }
 
