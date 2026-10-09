@@ -176,20 +176,20 @@ pub struct EnvSnapshot<'a> {           // Clone = O(1)
   "改**最后一条** ⇒ 1" ✓；"改第 k 条 ⇒ N−k+1"要**有界窗口 W>1**（每边界一份）⇒ 下一刀 ✓。
 * **读数收口**：判据只数**入口趟**（`count_entry_commands`；不数库层/别的趟 ✗）
   ⇒ 今天 = **入口命令数 N**（本夹具 12）；先建先红那一版是 43（没收口时）✓。
-* ⚠ **会话接线试过、已撤**（2026-10-09）：机制命中时判据确实读到 **1** ✓，但**正确性守卫
-  当场逮到**：装回报告侧累加器（`decl_states`/`out`/`ops`/`cmd_hovers`）之后，
-  **`EntryCache` 的前缀拼接又给了一份** ⇒ 报告里每条声明**出现两次**（22 vs 13 ✗）。
-  按红线**不许带着它落地** ✗ ⇒ 这一刀只留**机制 + 读数**（`resume_walk: None` /
-  `snapshot_walk: false`），接线回到"与今天逐字节相同" ✓。
-* **下一刀的三件（缺一不可）**：
-  1. **报告的所有权定死**：前缀的报告**要么**来自快照、**要么**来自 `EntryCache` 拼接
-     —— 二选一，不许两边都算 ✗（先读 `query/mod.rs` 的 `splice_entry_report`
-     与 `run_entries` 的 `lib.reports` 合并顺序再动手）；
-  2. **正确性守卫放回**：一条"报告里每条声明恰好一次 + 被改的那条真的 `Checked`"
-     （已试过、有牙 ✓）；
-  3. **干净的 A/B**：`QueryDoc` 的信任前缀缓存是**线程局部按内容键**的 ⇒ 同进程两臂
-     互相喂缓存、**不可比** ✗ ⇒ 要**进程隔离**（真 LSP 子进程 + 每臂全新缓存，
-     同 `crates/lsp/tests/perf_keystroke_wallclock.rs`），或 CLI 侧的等价装置 ✓。
+* **会话接线（同日第二轮 · 已落地 ✓）**：线程局部 `ENTRY_TAILS`（按 `(库层键, 入口)`
+  去重 + 上界 8）；只在 `LibCheckpoint` 是 `'static` 的三条路接（LRU 命中 / 磁盘产物 /
+  整条重建），栈上 arena 那两条传 `None` ⇒ **与今天逐字节相同** ✓。
+  **判据当场达标**：改最后一条命令 ⇒ 入口趟 `elaborated = **1**` ✓。
+* ⚠⚠ **两道闸门（都是被守卫逼出来的 ✓，缺一就是静默错编 ✗）**：
+  1. **报告所有权**：快照**不装回**报告侧累加器（`out`/`ops`/`cmd_hovers`/`decl_states`）
+     —— 前缀那段的报告由**既有的 `EntryCache` 拼接**提供 ✓。装回会让每条声明**出现两次**
+     （22 vs 13）✗（守卫 `t2b_resumed_report_has_no_duplicate_declarations` 逮到 ✓）。
+  2. **信任闸门**：只在 `plan.before > cp.idx`（前缀**确实被信任**）时才续编 ——
+     否则拼接不会提供那段报告 ⇒ 报告**缺声明** ✗（`query::tests::
+     entry_trust_skips_the_prefix_only_when_it_is_unchanged` 逮到 ✓）。
+  3. **快照点必须在循环体内**（`idx + 2 == flat.len()`）✗→✓：循环**之后**取，
+     `self` 已经是"全部走完"的状态却被标成 `len-2` ⇒ 最后一条被**加两次**
+     ⇒ `duplicate declaration d02` ✗（同一个守卫逮到 ✓）。
 * **本轮已备好的前置件**（都在位、且**行为零变化** ✓）：`WalkCheckpoint` /
   `checkpoint()` / `restore_from()` / `run` 的 `resume`+`snapshot_tail` /
   `run_pass_with` 的三个参数 / units 与 arena **寿命解绑**（`run_pass_with` ·

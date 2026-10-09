@@ -29,6 +29,7 @@
 
 use std::path::{Path, PathBuf};
 
+use sokonanoda_front::compile::DeclStatus;
 use sokonanoda_front::compile::{
     by_calls_total, closure_module_compiles_total, elaborated_commands_total, module_compiles_total,
 };
@@ -302,11 +303,62 @@ fn t2b_last_command_edit_still_reelaborates_every_entry_command() {
         reading.elaborated_commands > 0,
         "改最后一条必须真的 elaborate 了东西（读到 0 ⇒ 量具坏了 ✗）"
     );
-    // **今天的行为**：整条入口趟从头重走 ⇒ ≥ N（+ 库层那几条）。
-    assert!(
-        reading.elaborated_commands >= ENTRY_COMMANDS,
-        "今天**改最后一条**也要把入口趟 {ENTRY_COMMANDS} 条命令全部重走，实测 {}          —— 小于它说明「命令级快照」已经（部分）生效 ✓ ⇒ **那时就把这条改判成 `== 1`**，         **不许放宽** ✗",
+    // **T2-B 的判据**：入口趟只 elaborate **最后那一条** ✓
+    // （检查点边界 = 倒数第二条之后 ⇒ 前缀整段跳过 ✓）。
+    assert_eq!(
+        reading.elaborated_commands, 1,
+        "改**最后一条**命令 ⇒ 入口趟只许 elaborate **1** 条；实测 {} ⇒ 检查点没命中 \
+         （或判据被人放宽了 ✗）",
         reading.elaborated_commands
+    );
+}
+
+/// **T2-B 的正确性守卫**：续编出来的报告里，入口的**每条声明恰好出现一次** ✓，
+/// 且被改的那条**真的重判过**（`Checked`）✓。
+///
+/// 为什么是这条（而不是"两臂逐字段对拍"）：`QueryDoc` 的信任前缀缓存
+/// （`EntryCache`）是**线程局部且按内容键**的 ⇒ 同一进程里"续编臂"会喂"重编臂"
+/// ⇒ 两臂**不可比** ✗（实测：重编那臂只报 1 条声明 —— 量具坏了，不是结果坏了）。
+/// **干净的 A/B 要进程隔离**（真 LSP 子进程 + 每臂全新缓存，同
+/// `crates/lsp/tests/perf_keystroke_wallclock.rs`）⇒ 记为**已知验证缺口**（设计档 §6.4）。
+///
+/// 这条**真咬过东西** ✓：快照装回报告侧累加器（`decl_states`）之后，`EntryCache`
+/// 的前缀拼接又给一份 ⇒ 报告里每条声明**出现两次**（22 vs 13）⇒ 正是它逮到的 ✓。
+#[test]
+fn t2b_resumed_report_has_no_duplicate_declarations() {
+    let (entry, text) = gen_project("t2b-dup");
+    let mut doc = open_doc(&entry, &text);
+    let edited = edit_last_decl(&text);
+    doc.set_text(&edited, 2, None); // ← 这一刀命中续编（只 elaborate 1 条命令）
+    let report = doc.report.as_ref().expect("报告");
+
+    // ① **不许重复**：入口自己的每条声明（`t…` / `d…`）恰好一次 ✓。
+    let mut counts: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for decl in &report.decls {
+        if let Some(name) = &decl.name {
+            if name.starts_with('t') || name.starts_with('d') {
+                *counts.entry(name.clone()).or_default() += 1;
+            }
+        }
+    }
+    let dup: Vec<_> = counts.iter().filter(|(_, n)| **n != 1).collect();
+    assert!(
+        dup.is_empty(),
+        "续编之后报告里出现**重复声明** ✗（{dup:?}）⇒ 快照装回的那一份与 \
+         `EntryCache` 的前缀拼接**各算了一次**（历史上正是这个 bug ✓）"
+    );
+    // ② **被改的那条真的重判过** ✓（续编不是"跳过一切" ✗）。
+    let d02 = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("d02"))
+        .expect("d02 必须在报告里");
+    assert!(
+        matches!(d02.status, DeclStatus::Checked),
+        "被改的那条 `d02` 必须是 `Checked`（续编只跳过**没变的前缀** ✗）—— 实测 {:?} · \
+         诊断 {:?}",
+        d02.status,
+        d02.error.as_ref().map(|e| e.message.clone())
     );
 }
 

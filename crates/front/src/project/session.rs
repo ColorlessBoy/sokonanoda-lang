@@ -223,6 +223,45 @@ thread_local! {
 ///
 /// 淘汰只丢**可达性**（arena 早已泄漏、无法回收 ✓）⇒ 不变量：**活着的**检查点
 /// ≤ [`MAX_MODULE_CHECKPOINTS`] 份 ✓。
+/// **T2-B（2026-10-09）**：入口趟的**命令级检查点**（跨按键）。
+///
+/// 装的是"**最后一条命令之前**那个边界"的 walk 状态（`cp.idx = 命令数 − 2`）⇒
+/// 同入口**只有最后一条变了**时从它续编 ⇒ **只 elaborate 1 条命令** ✓。
+///
+/// ⚠ **报告侧累加器不进快照、也不装回**（`out`/`ops`/`cmd_hovers`/`decl_states`）：
+/// 前缀那一段的报告由**既有的 `EntryCache` 拼接**提供（计划 §3.3 的"复用判据沿用
+/// `EntryCache`"就是这个意思 ✓）—— 两边都算会让报告里**每条声明出现两次** ✗
+/// （实测过：整趟 13 条 vs 续编 22 条 ✓ 被守卫逮到）。快照只负责**环境侧** ✓。
+///
+/// ⚠ **有界的第一步**：只留**一个**边界（W = 1）；"改第 k 条 ⇒ N−k+1"要每个边界
+/// 一份（有界窗口 W）⇒ 设计档 §6.2(b) 的下一刀 ✓。
+pub(crate) struct EntryTail<'a> {
+    key: String,
+    entry: usize,
+    keys: Vec<String>,
+    cp: crate::compile::WalkCheckpoint<'a>,
+}
+
+/// **T2-B**：入口检查点的线程局部槽（同 `LIB_CHECKPOINTS` 的纪律 ✓）—— 寿命必须是
+/// `'static`（库层检查点的 arena 由 `Box::leak` 来 ✓）；按 `(库层键, 入口)` 去重 + 有界 ✓。
+const MAX_ENTRY_TAILS: usize = 8;
+thread_local! {
+    static ENTRY_TAILS: RefCell<Vec<EntryTail<'static>>> = const { RefCell::new(Vec::new()) };
+}
+
+/// 入口的**命令原文**（判据形状：文本 + 顺序；与 `EntryCache.keys` 同一口径 ✓）。
+/// ⚠ **不用哈希**（计划 §3.3 的纪律）：结构相等才作数 —— 错键 = 静默错编 ✗。
+fn entry_command_keys(units: &[SourceUnit<'_>]) -> Vec<String> {
+    let mut out = Vec::new();
+    for unit in units {
+        for command in unit.file.commands.iter() {
+            let span = command.span();
+            out.push(unit.file.src[span.start.offset..span.end.offset].to_string());
+        }
+    }
+    out
+}
+
 fn push_checkpoint(slots: &mut Vec<LibCheckpoint<'static>>, cp: LibCheckpoint<'static>) {
     slots.retain(|old| old.key != cp.key);
     slots.insert(0, cp);
@@ -494,7 +533,15 @@ pub(crate) fn with_project_session_trusted<R>(
         options,
         String::new(),
     );
-    run_entries(&lib, lib_units, entries, options, entry_trust, on_entry)
+    run_entries(
+        &lib,
+        lib_units,
+        entries,
+        options,
+        entry_trust,
+        None,
+        on_entry,
+    )
 }
 
 /// **T1-B 批 2 的公开入口**：与 [`with_project_session_reusing`] 同一条路，
@@ -559,10 +606,19 @@ fn with_project_session_reusing_at<R>(
             cp.reuses += 1;
             // `&LibCheckpoint<'static>` 按协变缩到本次 units 的寿命 ✓（浅拷贝 ⇒
             // 指针同一 ✓）。
-            let out = {
-                let lib: &LibCheckpoint<'_> = &cp;
-                run_entries(lib, lib_units, entries, options, entry_trust, on_entry)
-            };
+            // **T2-B**：`cp` 是 `LibCheckpoint<'static>` ⇒ 传线程局部 store
+            //（`Some(...)` 把 `'a` 定到 `'static` ✓）⇒ 入口检查点存得下 ✓。
+            let out = ENTRY_TAILS.with(|tails| {
+                run_entries(
+                    &cp,
+                    lib_units,
+                    entries,
+                    options,
+                    entry_trust,
+                    Some(tails),
+                    on_entry,
+                )
+            });
             slots.insert(0, cp);
             return out;
         }
@@ -578,7 +634,17 @@ fn with_project_session_reusing_at<R>(
                     .and_then(|text| load_lib_checkpoint(&text, &key, lib_units))
                 {
                     set_last_lib_source(2); // ①.5 磁盘产物
-                    let out = run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
+                    let out = ENTRY_TAILS.with(|tails| {
+                        run_entries(
+                            &lib,
+                            lib_units,
+                            entries,
+                            options,
+                            entry_trust,
+                            Some(tails),
+                            on_entry,
+                        )
+                    });
                     // 顺手喂热线程局部（**下一刀就命中 ①** ⇒ 产物只为"冷进程"付一次 ✓）。
                     push_checkpoint(&mut slots, lib);
                     return out;
@@ -660,7 +726,16 @@ fn with_project_session_reusing_at<R>(
                 lib_prefix: cursor.lib_prefix,
             };
             set_last_lib_source(3); // ② 前缀续编
-            return run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
+                                    // ⚠ 这条路的 `lib` 是本次调用的（非 `'static`）⇒ 不读不写检查点 ✓。
+            return run_entries(
+                &lib,
+                lib_units,
+                entries,
+                options,
+                entry_trust,
+                None,
+                on_entry,
+            );
         }
         // ③ **重建**：库层趟跑在一份**泄漏的** arena 上（`Box::leak` = 零 `unsafe`
         //    的 `'static` 来源 ✓）。库层为空（单文件）或泄漏上界用尽（上界 ①）
@@ -725,7 +800,17 @@ fn with_project_session_reusing_at<R>(
             if let Some(root) = artifacts_root {
                 write_lib_artifact(root, &key, &lib, lib_units, options);
             }
-            let out = run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
+            let out = ENTRY_TAILS.with(|tails| {
+                run_entries(
+                    &lib,
+                    lib_units,
+                    entries,
+                    options,
+                    entry_trust,
+                    Some(tails),
+                    on_entry,
+                )
+            });
             // 入 LRU：先前缀（浅 → 深），再**整条**（队首 = 最近用过 ✓）。
             for checkpoint in made {
                 push_checkpoint(&mut slots, checkpoint);
@@ -737,7 +822,15 @@ fn with_project_session_reusing_at<R>(
             let arena = stumpalo::Arena::new();
             let builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
             let lib = run_library_pass(builder, PassTables::new(), lib_units, options, key);
-            run_entries(&lib, lib_units, entries, options, entry_trust, on_entry)
+            run_entries(
+                &lib,
+                lib_units,
+                entries,
+                options,
+                entry_trust,
+                None,
+                on_entry,
+            )
         }
     })
 }
@@ -860,7 +953,15 @@ pub(crate) fn with_project_session_artifacts_trusted<R>(
         if let Some(lib) = crate::project::artifacts::read(root, key, options)
             .and_then(|text| load_lib_checkpoint_in(arena.as_arena_ref(), &text, key, lib_units))
         {
-            return run_entries(&lib, lib_units, entries, options, entry_trust, on_entry);
+            return run_entries(
+                &lib,
+                lib_units,
+                entries,
+                options,
+                entry_trust,
+                None,
+                on_entry,
+            );
         }
     }
     // ② 未命中：照今天那条路跑库层趟（栈上 arena、`key` 传空 —— 与
@@ -876,7 +977,15 @@ pub(crate) fn with_project_session_artifacts_trusted<R>(
     if let Some(key) = key.as_ref() {
         write_lib_artifact(root, key, &lib, lib_units, options);
     }
-    run_entries(&lib, lib_units, entries, options, entry_trust, on_entry)
+    run_entries(
+        &lib,
+        lib_units,
+        entries,
+        options,
+        entry_trust,
+        None,
+        on_entry,
+    )
 }
 
 /// **库层趟**（切片 1b 的第 ① 步）：编共享库层，产出检查点（含活环境）。
@@ -1088,10 +1197,16 @@ fn run_library_from<'a>(
 /// （G-68：登记表也是逐入口克隆的，前一个入口的声明不会泄进后一个 ✓）。
 fn run_entries<'a, R>(
     lib: &LibCheckpoint<'a>,
-    lib_units: &'a [SourceUnit<'a>],
-    entries: &'a [Vec<SourceUnit<'a>>],
+    // **T2-B**：units/entries 与 arena 寿命**解绑**（`&[SourceUnit<'_>]`）—— 只有解绑
+    // 之后，"入口趟跑在 `'static` arena 上"与"units 是本次调用的"才可能同时成立 ⇒
+    // 命令级快照才存得进线程局部 ✓（`install_all_preludes`/`run_pass_with` 同轮解绑 ✓）。
+    lib_units: &[SourceUnit<'_>],
+    entries: &[Vec<SourceUnit<'_>>],
     options: &CompileOptions,
     entry_trust: &[Option<EntryTrust>],
+    // **T2-B**：入口趟的命令级检查点存储（跨按键）。`None` ⇒ 不读不写
+    //（**与今天逐字节相同** ✓ —— CLI 那条路就是 `None`）。
+    tails: Option<&RefCell<Vec<EntryTail<'a>>>>,
     mut on_entry: impl FnMut(
         usize,
         CompileOutput,
@@ -1172,9 +1287,38 @@ fn run_entries<'a, R>(
             }
             defs
         };
-        // **S2 步 2**：该入口这一趟的信任前缀（缺省 = 整份重查，与今天逐字节相同）。
+        // **T2-B**：命令级检查点的**复用判据是结构相等**（计划 §3.3 的纪律）：
+        // ① `lib.key`（库层键）相同 · ② 同一个入口 · ③ **命令数相同** ·
+        // ④ `keys[..=cp.idx]`（= 除最后一条以外的全部命令）**逐字相同**
+        // ⇒ 命中即从 `cp.idx` 续编 ⇒ **只 elaborate 最后那一条** ✓。
+        let entry_keys = entry_command_keys(entry_units);
         let trusted = entry_trust.get(index).and_then(|slot| slot.as_ref());
-        let (pass, _next, _next_tables, _state, _walk_tail) = run_pass_with(
+        // **T2-B**：命令级检查点的**复用判据是结构相等**（计划 §3.3 的纪律）：
+        // ① `lib.key`（库层键）相同 · ② 同一个入口 · ③ **命令数相同** ·
+        // ④ `keys[..=cp.idx]`（= 除最后一条以外的全部命令）**逐字相同** ✓。
+        let resume_walk = tails.and_then(|store| {
+            let mut store = store.borrow_mut();
+            let at = store.iter().position(|t| {
+                t.key == lib.key
+                    && t.entry == index
+                    && t.keys.len() == entry_keys.len()
+                    && t.cp.idx < entry_keys.len()
+                    && t.keys[..=t.cp.idx] == entry_keys[..=t.cp.idx]
+            })?;
+            // **搬走**（不是克隆）⇒ 省一次 O(状态) 复制 ✓；跑完存回新的 ✓。
+            Some(store.remove(at).cp)
+        });
+
+        // **T2-B：续编的闸门 —— 信任前缀必须**真的覆盖到快照边界** ✓**
+        // 前缀那一段的**报告**由 `EntryCache` 拼接提供（计划 §3.3 的纪律 ✓）；
+        // 信任没覆盖到它时续编 ⇒ 报告里**缺那一段声明** ✗
+        //（实测：`query::tests::entry_trust_skips_the_prefix_only_when_it_is_unchanged` 逮到 ✓）。
+        // ⇒ 只在 `plan.before > cp.idx`（`cp.idx + 1` 条都可信）时才续编 ✓。
+        let resume_walk = resume_walk.filter(|cp| {
+            let trusted_before = trusted.map_or(0, |t| t.plan.before);
+            trusted_before > cp.idx
+        });
+        let (pass, _next, _next_tables, _state, walk_tail) = run_pass_with(
             builder,
             None,
             false,
@@ -1200,15 +1344,26 @@ fn run_entries<'a, R>(
             // ⭐ **但累加状态要接上**（T4-B · 第 74 轮）：`exports` 在上头，以前给 `None`
             // ⇒ 库层的 `export` 到不了入口 ✗（见检查点里那条注释 ✓）。
             Some(lib.resume.clone()),
-            // **T2-B**：`resume_walk`/`snapshot_walk` 仍关（**接线待下一刀**：
-            // 报告侧累加器与 `EntryCache` 前缀拼接**各算一份** ⇒ 报告里每条声明
-            // 出现两次 ✗ —— 守卫 `t2b_resumed_report_has_no_duplicate_declarations`
-            // 逮到了它 ⇒ **不许带着它落地** ✗）；`count_entry_commands = true` ✓
-            // ⇒ 判据读数（"改最后一条 ⇒ 1"）先量着、机制已就绪。
-            None,
-            false,
+            // **T2-B**：从命令级检查点续编（`None` ⇒ 整趟从头，与今天逐字节相同 ✓）
+            // ＋ 跑完取一份新的边界检查点存回线程局部 ✓。
+            resume_walk,
+            tails.is_some(),
             true,
         );
+        // **T2-B**：把这一趟的检查点存回（按 (库层键, 入口) 去重 + 有界 ✓）。
+        if let (Some(store), Some(cp)) = (tails, walk_tail) {
+            let mut store = store.borrow_mut();
+            store.retain(|t| !(t.key == lib.key && t.entry == index));
+            store.push(EntryTail {
+                key: lib.key.clone(),
+                entry: index,
+                keys: entry_keys,
+                cp,
+            });
+            while store.len() > MAX_ENTRY_TAILS {
+                store.remove(0);
+            }
+        }
         let entry_range = lib_n..lib_n + pass.n_commands;
         // 读在 `pass.report` 被搬走**之前**（`split_report` 会吃掉它）。
         let entry_checks = pass.kernel_checks();

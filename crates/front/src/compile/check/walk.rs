@@ -586,6 +586,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         }
         // 探针读数：**不可比**的条数（前缀解析不过 ⇒ `expect` 是原文 ⇒ 那次不比 ✓）。
         let mut id_uncomparable = 0usize;
+        // **T2-B**：边界快照 —— **必须在循环体内取**（见下 ✓）。
+        let mut tail: Option<WalkCheckpoint<'arena>> = None;
         for (idx, &(unit_idx, command)) in flat.iter().enumerate() {
             // **T2-B**：前缀整段跳过（状态来自快照 ✓）。
             if resume_upto.is_some_and(|k| idx <= k) {
@@ -814,6 +816,15 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     start.elapsed(),
                 );
             }
+            // **T2-B：边界快照**（`flat.len() - 2` = **最后一条命令之前**）。
+            // ⚠⚠ **必须在循环体里取** ✗→✓：循环**结束之后**再取，`self` 已经是
+            // "全部命令都走完"的状态（**含最后一条的声明**），却被标成 `idx = len-2`
+            // ⇒ 续编时那条会被**再加一次** ⇒ `duplicate declaration d02` ✗
+            // （实测：守卫 `t2b_resumed_report_has_no_duplicate_declarations` 逮到 ✓）。
+            if snapshot_tail && self.shadow.is_none() && idx + 2 == flat.len() {
+                tail =
+                    Some(self.checkpoint(idx, &unit_seen, &closure_ids, &closure_acc, prev_unit));
+            }
         }
         // **探针读数**（`SOKO_PREFIX_ID_CHECK=1`）：这一趟 walk 里有多少条前缀
         // **解析不过**（⇒ 判据 ④ 那次不可比 ✓）。它必须能回答"零分歧"是**真等价** ✓
@@ -821,22 +832,6 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         if std::env::var_os("SOKO_PREFIX_ID_CHECK").is_some() {
             eprintln!("PREFIX_ID_CHECK uncomparable={id_uncomparable}");
         }
-        // **T2-B：尾边界快照**（`snapshot_tail`）—— 取在 `closure_acc` 被下面那一步
-        // **搬走之前** ✓。`flat` 为空 ⇒ 不取（那种"快照"会让续编跳过第 0 条 ✗）。
-        // ⚠ 取的是 **`flat.len() - 2`**（= **最后一条命令之前**那个边界）✗→✓：
-        // 取"尾边界"（`len-1`）的话，续编会把**最后一条也跳掉** ⇒ elaborate 0 条 ✗，
-        // 而判据要的是"**改最后一条 ⇒ 1**"（那一条必须**重新** elaborate ✓）。
-        let tail = if snapshot_tail && self.shadow.is_none() && flat.len() >= 2 {
-            Some(self.checkpoint(
-                flat.len() - 2,
-                &unit_seen,
-                &closure_ids,
-                &closure_acc,
-                prev_unit,
-            ))
-        } else {
-            None
-        };
         // **T1-A**：把**本趟结束 = 模块边界**上的续编状态交回调用方。
         // ⚠ 闭包身份必须**补上最后一个单元**：主循环只在**单元切换处**累加
         // （`idx == 0 || flat[idx-1].0 != unit_idx`）⇒ 循环结束时 `closure_acc`
