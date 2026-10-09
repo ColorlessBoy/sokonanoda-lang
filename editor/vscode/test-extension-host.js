@@ -73,14 +73,39 @@ const listeners = {
 };
 
 // Configuration overrides for the stub: `get(key, fallback)` returns the
-// override when a test set one, the declared default otherwise (exactly what
-// the real host does for an unset setting).
-const configValues = {};
+// override when a test set one, the **declared default** otherwise (exactly
+// what the real host does for an unset setting).
+//
+// ⚠ **默认值必须从 `package.json` 播种，不能靠 `get(key, fallback)` 的 fallback**
+// （2026-10-09 实测暴露的接缝）：扩展读 `sokonanoda.input.eager` 时**不传**
+// fallback——默认值的**唯一来源**就是清单 ⇒ 桩里恒 `undefined` ⇒ 桩把「默认关」
+// 当成了事实，改清单里的默认值**一条桩测试都不会动** ✗（真实宿主里却会变）。
+// 播种之后，清单就是默认值的单一来源，桩与真宿主同一条口径。
+const configDefaults = (() => {
+  const manifest = JSON.parse(
+    require("fs").readFileSync(require("path").join(__dirname, "package.json"), "utf8"),
+  );
+  const properties = (manifest.contributes && manifest.contributes.configuration
+    ? manifest.contributes.configuration.properties
+    : undefined) || {};
+  // ⚠ 清单里的键是**全名**（`sokonanoda.input.eager`），而扩展读的是
+  // `getConfiguration("sokonanoda").get("input.eager")`——**去掉段前缀**才是桩要的键。
+  return Object.fromEntries(
+    Object.entries(properties)
+      .filter(([, schema]) => schema && Object.prototype.hasOwnProperty.call(schema, "default"))
+      .map(([key, schema]) => [
+        key.startsWith("sokonanoda.") ? key.slice("sokonanoda.".length) : key,
+        schema.default,
+      ]),
+  );
+})();
+const configValues = { ...configDefaults };
 function setConfig(key, value) {
   configValues[key] = value;
 }
 function resetConfig() {
   for (const key of Object.keys(configValues)) delete configValues[key];
+  Object.assign(configValues, configDefaults);
 }
 
 class TreeItem {
@@ -2053,14 +2078,61 @@ test("a non-empty selection is never rewritten", async () => {
   assert.strictEqual(document.__undoStack.length, 0, "a selection must not be corrupted");
 });
 
-test("eager replacement is off by default", async () => {
+// **默认档 = 即时替换**（2026-10-09 用户实测 ③ 之后翻的默认，与 Lean 4 同）：
+// 用户报「输入 `\alpha` 未替换成 `α`」——真宿主真按键实测证明 `Tab` 那条路一直是好的
+// ⇒ 缺的是**不打 Tab** 的那条。默认值来自 `package.json`（桩从清单播种，见文件头
+// 的 `configDefaults`）⇒ 改清单默认值这条判据会跟着动 ✓。
+test("eager replacement is the default, not Tab", async () => {
   await activateExtension();
   const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\an");
   focus(document, [cursor(0, 3)]);
   typeText(document, cursor(0, 3), "d"); // the learner finishes typing `\and`
   await drain();
-  assert.strictEqual(document.getText(), "\\and", "the default path is Tab, not eager");
-  assert.strictEqual(document.__undoStack.length, 0);
+  assert.strictEqual(
+    document.getText(),
+    "∧",
+    "默认档（清单 `input.eager` 默认 true）⇒ 敲完即换，不用按 Tab",
+  );
+  assert.strictEqual(document.__undoStack.length, 1, "一次替换 = 一个 undo 单元");
+});
+
+// 逃生门：`input.eager: false` ⇒ 回到「Tab 是显式路径」的老行为（一个字都不许自己变）。
+test("`input.eager: false` keeps the explicit Tab-only path", async () => {
+  await activateExtension();
+  setConfig("input.eager", false);
+  const typed = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\an");
+  focus(typed, [cursor(0, 3)]);
+  typeText(typed, cursor(0, 3), "d");
+  await drain();
+  assert.strictEqual(typed.getText(), "\\and", "关掉之后敲完不许换");
+  assert.strictEqual(typed.__undoStack.length, 0);
+
+  // `Tab` 是显式命令：光标在词尾，整词落定（桩的 `typeText` 不搬光标 ⇒ 另起一份）。
+  const tab = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\and");
+  focus(tab, [cursor(0, 4)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(tab.getText(), "∧", "关掉之后 `Tab` 仍要换（显式路径）");
+});
+
+// **用户 2026-10-09 拍板的那一条**：输入 `\a` 或 `\alpha` 之后按【空格】即转成 α
+// —— 对齐 Lean 4，**不依赖 Tab**。`\a` 是 `alpha`/`approx`/`and` 的前缀 ⇒ 空格那一刀
+// 正是"封口"；`\alpha` 已经完整 ⇒ 敲完就换，空格只是跟在 α 后面。
+test("Space closes the word: `\\a ` and `\\alpha ` both give `α `", async () => {
+  await activateExtension();
+  const short = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\a");
+  focus(short, [cursor(0, 2)]);
+  typeText(short, cursor(0, 2), " ");
+  await drain();
+  assert.strictEqual(short.getText(), "α ", "`\\a` + Space ⇒ `α `");
+
+  const spelled = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\alph");
+  focus(spelled, [cursor(0, 5)]);
+  typeText(spelled, cursor(0, 5), "a");
+  await drain();
+  assert.strictEqual(spelled.getText(), "α", "`\\alpha` 敲完即换（前缀不再是理由）");
+  typeText(spelled, cursor(0, 1), " ");
+  await drain();
+  assert.strictEqual(spelled.getText(), "α ", "再按空格 ⇒ `α `");
 });
 
 test("eager mode rewrites the moment the word is complete", async () => {

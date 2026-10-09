@@ -1716,7 +1716,16 @@ fn abbreviation_table_mirrors_the_single_source() {
 
 /// Tab 键位**绝不能吞掉普通 Tab**（设计 §9 R-2 的缓解）：它必须由扩展置位的
 /// context key 把关——`when` 子句里的 key 名与 `abbreviation-rewriter.js` 里
-/// 真正写的那个是同一个字符串，且 `sokonanoda.input.eager` 默认关（§8 NI-2）。
+/// 真正写的那个是同一个字符串。
+///
+/// **`sokonanoda.input.eager` 默认开**（2026-10-09 用户实测 ③ 之后翻的默认）：
+/// 用户报「输入 `\alpha` 未替换成 `α`」——真宿主真按键实测
+/// （`scripts/vscode-input-e2e.mjs`）证明 **`Tab` 那条路一直是好的**（`\alpha` + Tab
+/// ⇒ `α`；工作树、已发布 0.87.0 VSIX、用户机器上装的 0.85.2 三份都过）⇒ 用户走的是
+/// **不打 Tab** 的那条路，而 Lean 4 的默认正是即时替换
+/// （`lean4.input.eagerReplacementEnabled` 默认 `true`）⇒ 默认对齐 Lean：敲完即换，
+/// `Tab` 仍是显式路径，`false` 是逃生门（设计 `docs/design/notation-input.md` §8 说的
+/// "等 e2e 证据再翻默认"——证据就是那条真按键 e2e）。
 #[test]
 fn notation_input_tab_binding_is_gated_by_its_context_key() {
     let manifest = manifest();
@@ -1753,8 +1762,10 @@ fn notation_input_tab_binding_is_gated_by_its_context_key() {
     );
     assert_eq!(
         eager["default"].as_bool(),
-        Some(false),
-        "eager replacement must default to off (design §8 NI-2: Tab is the explicit path)"
+        Some(true),
+        "eager replacement must default to ON (Lean 4 parity, 2026-10-09: the user typed \
+         `\\alpha` and expected `α`; `Tab` alone was verified good in a real host, so the \
+         no-Tab path is the one that was missing)"
     );
 }
 
