@@ -74,9 +74,11 @@ pub fn explicit_prelude_mode(src: &str) -> Option<PreludeMode> {
 /// prelude declarations are trusted installs without `DeclState`s, so the
 /// goal view / completion layer needs this list to offer them.
 ///
-/// L1 (`prelude/*.sokonanoda` §3.3) added 30 names: the 28
+/// L1 (`prelude/*.sokonanoda` §3.3) added 31 names: the 29
 /// declarations of [`PRELUDE_L1_SRC`] plus the two derived recursors
 /// (`And.rec`/`Or.rec`, which `install_inductive_block` generates).
+/// （2026-10-10 起 31 = 30 + `Iff.rfl`：与 Lean core 的 `protected theorem
+/// `Iff.rfl`` 命名对齐，`rfl` 认 `Iff` 头那件事的配套。）
 ///
 /// B8（L-03，2026-09-19；0.61.0 扩族）再加 5 条：`Eq.rec`、由它定义的
 /// `Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast`（Type 层重写；设计
@@ -128,6 +130,7 @@ pub const PRELUDE_NAMES: &[&str] = &[
     "Iff.mp",
     "Iff.mpr",
     "Iff.refl",
+    "Iff.rfl",
     "Iff.symm",
     "Iff.trans",
     // ---- L1: Eq 引理 (B7) ----
@@ -603,6 +606,7 @@ pub(crate) const L1_FAMILIES: &[PreludeFamily] = &[
             "Iff.mp",
             "Iff.mpr",
             "Iff.refl",
+            "Iff.rfl",
             "Iff.symm",
             "Iff.trans",
         ],

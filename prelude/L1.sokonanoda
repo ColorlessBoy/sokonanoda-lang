@@ -40,6 +40,10 @@ def Iff.intro {A B : Prop} (mp : A -> B) (mpr : B -> A) : Iff A B := And.intro (
 def Iff.mp {A B : Prop} (h : Iff A B) : A -> B := And.left (A -> B) (B -> A) h
 def Iff.mpr {A B : Prop} (h : Iff A B) : B -> A := And.right (A -> B) (B -> A) h
 def Iff.refl {A : Prop} : Iff A A := Iff.intro A A (fun (h : A) => h) (fun (h : A) => h)
+-- `Iff.rfl`：与 Lean core 的 `protected theorem Iff.rfl {a : Prop} : a ↔ a` 同名同义
+-- （`Init/Core.lean`）—— Mathlib 的 `mem_empty_iff_false` 原文就是 `Iff.rfl`。
+-- 体**照抄 `Iff.refl`**（不依赖隐式实参插入这条边角行为）。
+def Iff.rfl {A : Prop} : Iff A A := Iff.intro A A (fun (h : A) => h) (fun (h : A) => h)
 def Iff.symm {A B : Prop} (h : Iff A B) : Iff B A := Iff.intro B A (Iff.mpr A B h) (Iff.mp A B h)
 def Iff.trans {A B C : Prop} (h1 : Iff A B) (h2 : Iff B C) : Iff A C := Iff.intro A C (fun (a : A) => Iff.mp B C h2 (Iff.mp A B h1 a)) (fun (c : C) => Iff.mpr A B h1 (Iff.mpr B C h2 c))
 def Eq.symm {u} {α : Sort u} {a b : α} (h : Eq.{u} α a b) : Eq.{u} α b a := Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)

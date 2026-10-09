@@ -401,8 +401,8 @@ Response:
   - `exact <hypothesis>` — a hypothesis the kernel judges defeq to the hole's
     expected type (per hole: in a constructor spine each sub-hole is judged
     against its own expected type, never against the outer goal);
-  - `Eq.refl …` — for `Eq`-shaped goals, a `rfl` candidate that the kernel
-    validated before it is offered (dropped when rejected);
+  - `Eq.refl …` / `Iff.refl` — for `Eq`- and `Iff`-shaped goals (`Iff` only when
+    both sides are defeq), a kernel-validated `rfl` candidate (dropped when rejected);
   - `refine <skeleton>` — a constructor skeleton recovered from the
     declaration's own axiom/ctor shape (e.g. `And.intro a b sorry sorry`);
     structural, the kernel judges what the learner writes into sub-holes;

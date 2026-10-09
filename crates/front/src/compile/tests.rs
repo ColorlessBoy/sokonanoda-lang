@@ -1793,6 +1793,7 @@ def l1_false_elim (c : Prop) (h : False) : c := False.elim c h
 def l1_not_intro (a : Prop) (f : a -> False) : Not a := Not.intro a f
 def l1_not_elim (a c : Prop) (h : Not a) (ha : a) : c := Not.elim a c h ha
 def l1_iff_refl (a : Prop) : Iff a a := Iff.refl a
+def l1_iff_rfl (a : Prop) : Iff a a := Iff.rfl a
 def l1_iff_symm (a b : Prop) (h : Iff a b) : Iff b a := Iff.symm a b h
 def l1_iff_trans (a b c : Prop) (h1 : Iff a b) (h2 : Iff b c) : Iff a c := Iff.trans a b c h1 h2
 def l1_and_elim (a b c : Prop) (f : a -> b -> c) (h : And a b) : c := And.elim a b c f h
@@ -1836,7 +1837,7 @@ fn l1_prelude_is_available_in_full_mode() {
         .iter()
         .filter(|e| matches!(e, CheckEvent::DeclarationChecked { .. }))
         .count();
-    assert_eq!(checked, 20, "every L1 probe declaration must be checked");
+    assert_eq!(checked, 21, "every L1 probe declaration must be checked");
 }
 
 /// `Or`/`And` 是**真归纳块**：`match` 的两种模式拼写（点号名与裸名）都必须过。
@@ -1962,10 +1963,12 @@ fn prelude_names_match_installs() {
     // + 2（B9：`Ne`/`Ne.intro`，L2.3 的 `≠` 目标）
     // + 6（ST2：`Quot`/`Quot.mk`/`Quot.lift`/`Quot.ind`/`Quot.sound` + G-75 的
     //      `Quot.exact`，v0.77.0/0.81.0）
-    // + 2（B10：`Classical.em`/`Classical.byContradiction`，G-74）= 57。
+    // + 2（B10：`Classical.em`/`Classical.byContradiction`，G-74）
+    // + 1（B6：`Iff.rfl`，2026-10-10 —— 与 Lean core 的 `protected theorem
+    //      Iff.rfl` 命名对齐，`rfl` 认 `Iff` 头那件事的配套）= 58。
     assert_eq!(
         super::PRELUDE_NAMES.len(),
-        57,
+        58,
         "PRELUDE_NAMES drifted: {:?}",
         super::PRELUDE_NAMES
     );
@@ -4680,9 +4683,60 @@ fn assumption_without_a_match_is_a_tactic_error() {
 }
 
 #[test]
-fn rfl_on_non_eq_goal_is_a_tactic_error() {
-    // rfl 只对 Eq 形状的目标有效。
+fn rfl_on_a_non_eq_non_iff_goal_is_a_tactic_error() {
+    // rfl 只对 Eq / Iff 形状的目标有效（裸 Prop 目标两者都不是 ⇒ 报错）。
     let src = "axiom True : Prop\ntheorem t : (a : Prop) -> a -> a := by intro a; intro h; rfl\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(!report.errors.is_empty());
+    assert_eq!(report.errors[0].code(), "elab-tactic-failed");
+}
+
+#[test]
+fn rfl_closes_a_defeq_iff_goal_in_both_spellings() {
+    // 对齐 Lean 4（`Init/Core.lean`：`rfl` 字面上就是 `exact Iff.rfl`）：
+    // `Iff` 头两边 defeq ⇒ 过。两种写法都认：记法 `a ↔ a`（源 AST 是
+    // `Notation{target:"Iff"}`）与点名 `Iff a a`（`Expr::Ident` 头）。
+    let src = concat!(
+        "theorem iff_notation : (a : Prop) -> a ↔ a := by intro a; rfl\n",
+        "theorem iff_pointful : (a : Prop) -> Iff a a := by intro a; rfl\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    for name in ["iff_notation", "iff_pointful"] {
+        let d = report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some(name))
+            .unwrap();
+        assert_eq!(d.status, DeclStatus::Checked, "{name}");
+    }
+}
+
+#[test]
+fn rfl_closes_an_iff_goal_whose_sides_are_defeq_by_unfolding() {
+    // 用户形状（`a ∈ ∅ ↔ False`）的最小同构：两边**展开后**才相等
+    // （`mem a empty` → `empty a` → `False`）⇒ 候选 `Iff.refl` 交 kernel 判，
+    // defeq 说了算（不是文本比对）。
+    let src = concat!(
+        "def mem (a : Prop) (A : Prop -> Prop) : Prop := A a\n",
+        "def empty : Prop -> Prop := fun (_ : Prop) => False\n",
+        "theorem t : (a : Prop) -> mem a empty ↔ False := by intro a; rfl\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Checked);
+}
+
+#[test]
+fn rfl_on_a_non_defeq_iff_goal_is_a_tactic_error() {
+    // 两边不 defeq 的 `↔` 目标**仍然判红**：绝不放宽成「看到 `↔` 就过」。
+    let src = "theorem t : (a : Prop) -> (b : Prop) -> (a ↔ b) -> (a ↔ b) := \
+by intro a; intro b; intro h; rfl\n";
     let report = check_document(&parse(src).unwrap());
     assert!(!report.errors.is_empty());
     assert_eq!(report.errors[0].code(), "elab-tactic-failed");

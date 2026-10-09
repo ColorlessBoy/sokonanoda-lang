@@ -328,7 +328,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   * 联结词 `And`/`And.intro`/`And.left`/`And.right`/`And.elim`、
     `Or`/`Or.inl`/`Or.inr`/`Or.elim`（`And`/`Or` 是**真归纳块**，可 `match`）、
     `Not`/`Not.intro`/`Not.elim`/`absurd`、
-    `Iff`/`Iff.intro`/`Iff.mp`/`Iff.mpr`/`Iff.refl`/`Iff.symm`/`Iff.trans`；
+    `Iff`/`Iff.intro`/`Iff.mp`/`Iff.mpr`/`Iff.refl`/`Iff.rfl`/`Iff.symm`/`Iff.trans`；
   * 等式 `Eq.symm`/`Eq.trans`/`congrArg`（`congrArg` **只能同宇宙**）；
   * Type 层重写 `Eq.rec`/`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast`（0.60.0 起；
     0.61.0 层级算术 `u+1` 落地后后三条是**宇宙多态**的，签名与 Lean core
@@ -395,7 +395,8 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   别让他复制粘贴；
 - 洞尾 inlay 提示直接标注该洞的**期望类型**（子洞有各自的期望类型）；
 - 洞上灯泡（按目标形状的下一步建议，kernel 验证过的排最前并标 preferred）：
-  `exact <假设>`（该假设能闭合该洞时）、`Eq.refl …`（Eq 形状目标的 rfl）、
+  `exact <假设>`（该假设能闭合该洞时）、`Eq.refl …` / `Iff.refl`（`Eq` 与 `Iff`
+  形状目标的 rfl；`Iff` 只在两边定义上相等时过，与 `rfl` tactic 同一口径）、
   `refine <构造子骨架>`（如 `And.intro a b sorry sorry`）、`引入 N 个 binder`（把下一步
   写成 lambda；I13-S1 由 `intro` 改名）；
 - 练习树每个 open 声明有「提示」节点：逐条揭示画布里的 `-- soko:hint` 阶梯；

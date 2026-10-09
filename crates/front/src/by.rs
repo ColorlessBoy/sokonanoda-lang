@@ -1453,7 +1453,7 @@ fn run_by_inner<'a>(
     // 归一化（见 [`apply_tactic`]）——根目标保持源 AST，`rfl`/`match` 这些
     // **要读目标结构**的 tactic 才不会被内核 pp 的「丢隐式实参」打坏
     // （实测：把根目标归一化会让 `rfl` 在 `Eq.{1} (Set α) (Aᶜ) …` 上报
-    // 「需要一个 `Eq α x y` 形状的目标」）。
+    // 「`rfl` 需要一个 `Eq`/`Iff` 形状的目标」——pp 丢掉了 `Eq` 的类型实参）。
     let root_ty = if canonical_goal {
         canonical_goal_type(
             &root_ty,
@@ -1908,6 +1908,8 @@ fn run_tactics<'a>(
                 // （`canonical_goal_with_spec` 会把 `Eq` 丢掉的类型/宇宙实参
                 // `restore_universe_levels` 补回来）。判据仍然是内核判定，
                 // 归一化失败也一律退回原 AST（绝不因为 rfl 把好文件判红）。
+                // `Iff` 头（`A ↔ B` / `Iff A B`）在 [`rfl_candidate`] 里直接认，
+                // 不走这条归一化（候选 `Iff.refl` 不需要补隐式实参）。
                 let candidate_and_closed = rfl_candidate(&nodes[cur].ty).or_else(|| {
                     let spec = spec_of(nodes, cur, universe);
                     let src_binders = context_binders(nodes, cur);
@@ -1924,9 +1926,16 @@ fn run_tactics<'a>(
                     rfl_candidate(&canonical)
                 });
                 let Some((candidate, closed)) = candidate_and_closed else {
+                    // **错误文案要指出出路**（只说「需要 Eq」是死胡同 ✗）：
+                    // `rfl` 今天认 `Eq` 与 `Iff` 两种头，且 `Iff` 只在两边
+                    // 定义上相等时过 —— 目标是 `↔` 而两边不等时，出路是
+                    // `constructor`（分别证两个方向）。
                     return Err(CompileError::elab(
                         ErrorKind::ElabTacticFailed,
-                        "`rfl` 需要一个 `Eq α x y` 形状的目标",
+                        format!(
+                            "`rfl` 需要目标是 `Eq α x y` 或 `Iff A B` 形状（`Iff` 只在两边定义上相等时过）；当前目标是 `{}`。目标是 `↔` 时可先 `constructor` 再分别证两个方向",
+                            display_expr(prefix_src, &nodes[cur].ty)
+                        ),
                         *span,
                     ));
                 };
@@ -2209,7 +2218,7 @@ fn apply_tactic<'a>(
             // 只在**第一次失败**时才付这个代价，而且**不替换节点上的目标**
             // ——`rfl`/`match` 这些要读目标结构的 tactic 继续看源 AST
             // （实测：替换根目标会让 `rfl` 在 `Eq.{1} (Set α) (Aᶜ) …` 上报
-            // 「需要一个 `Eq α x y` 形状的目标」，因为 pp 会丢掉隐式实参）。
+            // 「`rfl` 需要一个 `Eq`/`Iff` 形状的目标」，因为 pp 会丢掉隐式实参）。
             let src_binders = context_binders(nodes, cur);
             let canonical = canonical_goal_with_spec(
                 &goal,
@@ -3404,13 +3413,45 @@ fn judge_strict(
         .next()
 }
 
-/// `rfl` 候选：目标 `Eq α x y` → `Eq.refl.{u} α x`（kernel 判定两边）。
+/// 目标头是不是 `Iff`：点名形态（`Iff A B`）或记法形态（`A ↔ B`）。
+///
+/// 与 [`goal_head_name`] 同口径（记法节点读 `target`）：`↔` 在源 AST 里是
+/// `Notation { target: "Iff" }`，不是 `Iff` 应用节点。
+///
+/// `pub(crate)`：quick-fix 的 rfl 建议（`crate::suggest`）用**同一份**判据
+/// ——「什么算 `Iff` 头」只允许有一个实现。
+pub(crate) fn iff_head(goal: &Expr) -> bool {
+    if let Expr::Notation {
+        target, lhs, rhs, ..
+    } = goal
+    {
+        return target == "Iff" && lhs.is_some() && rhs.is_some();
+    }
+    let (head, args) = spine_of(goal);
+    matches!(head, Expr::Ident { name, .. } if name == "Iff") && args.len() >= 2
+}
+
+/// `rfl` 候选：目标 `Eq α x y` → `Eq.refl.{u} α x`；目标 `Iff A B` → `Iff.refl`
+/// （两边是否相等**一律由 kernel 判定** —— 与 Lean 4 的 `@[refl] Iff.refl`
+/// 同口径：`Iff` 只在两边 defeq 时过，不 defeq 一律判红）。
 ///
 /// 返回 `(判定用文本, 闭合用 AST)`：**AST 直接构造**，不再把文本回读一遍。
 /// 回读要认识记法（`Eq.refl.{1} (Set α) ((A ᶜ) ∪ B)` 里的符号），而 `by` 引擎
 /// 手里没有记法表——构造 AST 从根上绕开这条文本往返（G-04 第二刀实测：记法
 /// 操作数上的 `by rfl` 曾整条判红）。
 fn rfl_candidate(goal: &Expr) -> Option<(String, Expr)> {
+    // `Iff` 头（记法 `A ↔ B` 或点名 `Iff A B`）：候选 `Iff.refl`。
+    // **不需要**任何实参 —— `Iff.refl {A : Prop} : Iff A A` 的 `A` 由期望类型
+    // 定死，所以这里不必像 `Eq` 那样退回内核 pp 去补隐式实参（记法形态直接认）。
+    if iff_head(goal) {
+        return Some((
+            "Iff.refl".to_string(),
+            Expr::Ident {
+                name: "Iff.refl".to_string(),
+                span: goal.span(),
+            },
+        ));
+    }
     let (head, args) = spine_of(goal);
     let level = match head {
         Expr::Ident { name, .. } if name == "Eq" => "0".to_string(),

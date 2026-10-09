@@ -445,7 +445,7 @@ ctor 一旦叫 `Nat.zero`/`Nat.succ`，name cache 的 `NatRed::Succ` 快路径�
 | B3 且 | `And`, `And.intro`, `And.left`, `And.right`, `And.elim` (+`And.rec`) | **真归纳块** + def | — |
 | B4 或 | `Or`, `Or.inl`, `Or.inr`, `Or.elim` (+`Or.rec`) | **真归纳块** + def | — |
 | B5 非 | `Not`, `Not.intro`, `Not.elim`, `absurd` | def | **B2** |
-| B6 当且仅当 | `Iff`, `Iff.intro`, `Iff.mp`, `Iff.mpr`, `Iff.refl`, `Iff.symm`, `Iff.trans` | def | **B3** |
+| B6 当且仅当 | `Iff`, `Iff.intro`, `Iff.mp`, `Iff.mpr`, `Iff.refl`, `Iff.rfl`, `Iff.symm`, `Iff.trans` | def | **B3** |
 | B7 Eq 引理 | `Eq.symm`, `Eq.trans`, `congrArg` | def | **Eq prelude** |
 
 **让位规则（谁声明谁拥有）**：粒度 = 族，不是单名；触发集合 `taken` =

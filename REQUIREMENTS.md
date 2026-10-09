@@ -106,7 +106,7 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   `sokonanoda` 二进制跑 `"$SOKO" --json playground.sokonanoda`（零 cargo；
   仅贡献者可用 `cargo run -q -p sokonanoda-cli --bin sokonanoda --` 等价形式）
   读结构化事件（decl.checked / exercise.open / diagnostic+code+hint）决定下一步；
-- 第一课内容：①表达式与类型 ②函数与箭头 ③命题与证明项 ④等式与 rfl；
+- 第一课内容：①表达式与类型 ②函数与箭头 ③命题与证明项 ④等式与 rfl（`rfl` 也吃两边 defeq 的 `↔`：`a ∈ ∅ ↔ False` 直接 `rfl`；不 defeq 仍判红）；
   练习判定只走 kernel；`???` 洞（含 lambda 体内的部分作答）是合法状态；
 - 课程细节与解答钥匙见 `docs/teaching-session.md`。
 - **课程排序哲学（2026-09-07 用户插话修正，优先级高于既有单元顺序）**：

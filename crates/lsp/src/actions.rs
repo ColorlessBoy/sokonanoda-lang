@@ -10,9 +10,9 @@
 //!
 //! kernel 拒绝的失败声明（`DeclStatus::Failed`）没有洞，编辑目标是整个
 //! 值位（tokenize 定位 `:=` 与值首）。`front::suggest` 的失败声明建议梯子：
-//! kernel 验证过的 `Eq.refl` 整值替换（Eq 形状声明）→ 保留已写 lambda
-//! 前缀的部分重置（Reset）→ 整值重启骨架（Restart）——都映射为值位
-//! 整体替换（docs/design/kernel-taxonomy.md §2）。
+//! kernel 验证过的 refl 整值替换（`Eq`/`Iff` 形状声明：`Eq.refl …` /
+//! `Iff.refl`）→ 保留已写 lambda 前缀的部分重置（Reset）→ 整值重启骨架
+//! （Restart）——都映射为值位整体替换（docs/design/kernel-taxonomy.md §2）。
 
 use super::render::decl_at;
 use sokonanoda_front::compile::{
@@ -62,7 +62,7 @@ pub(crate) fn code_actions(
                         SuggestionKind::Rfl { term } => {
                             push_action(
                                 &mut actions,
-                                "Eq.refl …（内核验证：两边就是同一个值，直接替换）".to_string(),
+                                format!("{term}（内核验证：两边就是同一个值，直接替换）"),
                                 edit_on_hole(uri.clone(), range, term.clone()),
                             );
                         }
@@ -117,7 +117,7 @@ pub(crate) fn code_actions(
                     };
                     push_action(
                         &mut actions,
-                        "Eq.refl …（两边本来就是同一个值，rfl 即可）".to_string(),
+                        format!("{term}（两边本来就是同一个值，rfl 即可）"),
                         edit_on_hole(uri.clone(), range, term.clone()),
                     );
                 }
@@ -467,7 +467,7 @@ And.intro a b sorry sorry\n";
         "theorem eq_t : (a : Nat) -> Eq.{1} Nat a a := fun (a : Nat) => sorry\n";
 
     #[tokio::test]
-    async fn code_action_rfl_only_for_eq_goals() {
+    async fn code_action_rfl_for_eq_and_iff_goals_only() {
         let (mut service, _socket) = opened(EQ_GOAL_DOC).await;
         let actions = code_actions_for(&mut service, EQ_GOAL_DOC).await;
         let rfl = actions
@@ -479,6 +479,12 @@ And.intro a b sorry sorry\n";
             "title: {:?}",
             rfl.title
         );
+        // 标题带**真的候选文本**（替换什么就说什么）。
+        assert!(
+            rfl.title.contains("Eq.refl.{1} Nat a"),
+            "title: {:?}",
+            rfl.title
+        );
         let (start, text) = first_edit(rfl);
         assert_eq!(text, "Eq.refl.{1} Nat a", "kernel-verified rfl term");
         assert_eq!(
@@ -487,14 +493,44 @@ And.intro a b sorry sorry\n";
             "rfl targets the hole"
         );
         shutdown(&mut service).await;
+    }
 
-        // 非 Eq goal 不出 rfl。
+    const IFF_GOAL_DOC: &str = "theorem iff_t : (a : Prop) -> a ↔ a := fun (a : Prop) => sorry\n";
+
+    #[tokio::test]
+    async fn code_action_iff_goal_offers_the_kernel_verified_rfl() {
+        // 与 `by rfl` 能力一致（同一份 `iff_head` 判据）：defeq 的 `↔` 目标
+        // 也给 quick-fix，且候选经 kernel 验证（`Iff.refl`）。
+        let (mut service, _socket) = opened(IFF_GOAL_DOC).await;
+        let actions = code_actions_for(&mut service, IFF_GOAL_DOC).await;
+        let rfl = actions
+            .iter()
+            .find(|a| a.title.contains("Iff.refl"))
+            .expect("a defeq Iff goal gets a kernel-verified rfl");
+        assert!(
+            rfl.title.contains("两边本来就是同一个值"),
+            "title: {:?}",
+            rfl.title
+        );
+        let (start, text) = first_edit(rfl);
+        assert_eq!(text, "Iff.refl");
+        assert_eq!(
+            start,
+            lsp_pos(IFF_GOAL_DOC, offset_of(IFF_GOAL_DOC, "sorry")),
+            "rfl targets the hole"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn code_action_non_eq_non_iff_goal_gets_no_rfl() {
+        // 非 `Eq`/非 `Iff` 头（箭头目标）不出 rfl。
         let arrow_src = "example : Prop -> Prop := sorry\n";
         let (mut service, _socket) = opened(arrow_src).await;
         let actions = code_actions_for(&mut service, arrow_src).await;
         assert!(
             !actions.iter().any(|a| a.title.contains("rfl")),
-            "non-Eq goal must not get rfl: {:?}",
+            "a non-Eq/non-Iff goal must not get rfl: {:?}",
             titles_of(&actions)
         );
         shutdown(&mut service).await;
@@ -686,6 +722,12 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
         let rfl = &actions[0];
         assert!(rfl.title.contains("内核验证"), "title: {:?}", rfl.title);
         assert!(rfl.title.contains("直接替换"), "title: {:?}", rfl.title);
+        // 标题带**真的候选文本**（不是写死的 `Eq.refl …`）：替换什么就说什么。
+        assert!(
+            rfl.title.contains("Eq.refl.{1} Nat 2"),
+            "title: {:?}",
+            rfl.title
+        );
         assert_eq!(rfl.is_preferred, Some(true), "the verified rfl is first");
         // 编辑目标 = 整个值位，替换文本恰为 kernel 验证过的 rfl 项。
         let (range, new_text) = first_edit_full(rfl);
@@ -713,6 +755,33 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
         assert_eq!(reset.is_preferred, None, "only the first is preferred");
         let (_, reset_text) = first_edit_full(reset);
         assert_eq!(reset_text, "fun (x : Nat) => sorry");
+        shutdown(&mut service).await;
+    }
+
+    // ---- 失败声明的 kernel 验证 rfl（Iff 形状声明，2026-10-10）----
+
+    const FAILED_IFF_DECL: &str = "example : True ↔ True := 3\n";
+
+    #[tokio::test]
+    async fn code_action_failed_iff_decl_offers_kernel_verified_rfl() {
+        let (mut service, _socket) = opened(FAILED_IFF_DECL).await;
+        let cursor = offset_of(FAILED_IFF_DECL, "3");
+        let actions = code_actions_at(&mut service, FAILED_IFF_DECL, cursor)
+            .await
+            .expect("a kernel-rejected Iff decl must offer the verified rfl");
+        assert_eq!(actions.len(), 1, "rfl only: {:?}", titles_of(&actions));
+        let rfl = &actions[0];
+        // 标题带**真的候选文本**（`Iff.refl`，不是写死的 `Eq.refl …`）。
+        assert!(rfl.title.contains("Iff.refl"), "title: {:?}", rfl.title);
+        assert!(rfl.title.contains("内核验证"), "title: {:?}", rfl.title);
+        assert_eq!(rfl.is_preferred, Some(true), "the verified rfl is first");
+        let (range, new_text) = first_edit_full(rfl);
+        assert_eq!(new_text, "Iff.refl");
+        assert_eq!(
+            range.start,
+            lsp_pos(FAILED_IFF_DECL, offset_of(FAILED_IFF_DECL, "3")),
+            "the edit starts at the value"
+        );
         shutdown(&mut service).await;
     }
 

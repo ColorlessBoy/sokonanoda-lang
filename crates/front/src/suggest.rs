@@ -97,7 +97,7 @@ pub fn suggest_with(
         // kernel 在学生下次编辑后终审。
         let mut out: Vec<Suggestion> = Vec::new();
         if let Some(decl_src) = decl_src {
-            if let Some(term) = decl_type_text(decl_src).and_then(|ty| eq_refl_candidate(ty, d)) {
+            if let Some(term) = decl_type_text(decl_src).and_then(|ty| refl_candidate(ty, d)) {
                 let judgements = judge_value_replace_with(
                     extra_prefix,
                     prefix_src,
@@ -142,7 +142,7 @@ pub fn suggest_with(
         };
         // 批量判定一次成型：前 4 个 binder（+ 单洞时的 rfl 候选）。
         let rfl_term = if single_hole {
-            eq_refl_candidate(&expected, d)
+            refl_candidate(&expected, d)
         } else {
             None
         };
@@ -470,13 +470,20 @@ fn intro_count(d: &DeclState) -> usize {
 }
 
 /// 期望类型形如 `Eq α x y`（或显式 `@Eq.{u} α x y`）时的 rfl 候选
-/// `Eq.refl.{u} <α> <a>`：kernel 裁决两边是否本来就是同一个值。期望类型
+/// `Eq.refl.{u} <α> <a>`；`Iff` 头（`Iff A B` 或记法 `A ↔ B`）时是
+/// `Iff.refl`（**同一份** `iff_head` 判据，与 `by` 引擎的 `rfl` 能力一致）。
+/// kernel 裁决两边是否本来就是同一个值（`Iff` 只在 defeq 时过）。期望类型
 /// 既可以是开放练习的剩余目标，也可以是失败声明的声明类型（后者经
 /// `judge_value_replace` 判定整值替换）。
 /// 宇宙层级：目标头写明 `Eq.{u}` 时取目标自身的层级，否则取声明的
 /// 首个宇宙参数（无则 0）。
-fn eq_refl_candidate(expected: &str, d: &DeclState) -> Option<String> {
+fn refl_candidate(expected: &str, d: &DeclState) -> Option<String> {
     let goal = parse_expr_text(expected).ok()?;
+    if crate::by::iff_head(&goal) {
+        // `Iff.refl {A : Prop} : Iff A A` 的 `A` 由期望类型定死 ⇒ 无实参
+        // （与 Lean 4 的 `Iff.rfl` 一样裸写）。
+        return Some("Iff.refl".to_string());
+    }
     let (head, args) = spine_of(&goal);
     let level = match head {
         Expr::Ident { name, .. } if name == "Eq" => d
@@ -651,12 +658,44 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
     }
 
     #[test]
-    fn non_eq_goal_gets_no_rfl() {
+    fn iff_goal_gets_kernel_verified_rfl() {
+        // `a ↔ a` 两边 defeq ⇒ 建议 `Iff.refl`（与 `by rfl` 的能力一致，
+        // 同一条 `iff_head` 判据、同样经 kernel 验证才给）。
+        let suggestions =
+            suggest_for("theorem iff_t : (a : Prop) -> a ↔ a := fun (a : Prop) => sorry\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Rfl {
+                term: "Iff.refl".to_string()
+            }],
+            "no binder matches the Iff goal; rfl is the verified next step"
+        );
+        assert!(suggestions[0].verified);
+    }
+
+    #[test]
+    fn non_defeq_iff_goal_gets_no_rfl() {
+        // `a ↔ b` 两边不 defeq ⇒ 候选被内核拒绝，绝不出现（判定走 kernel）。
+        let suggestions = suggest_for(
+            "theorem iff_t : (a : Prop) -> (b : Prop) -> (a ↔ b) -> (a ↔ b) := \
+fun (a : Prop) => fun (b : Prop) => fun (h : a ↔ b) => sorry\n",
+        );
+        assert!(
+            kinds(&suggestions)
+                .iter()
+                .all(|k| !matches!(k, SuggestionKind::Rfl { .. })),
+            "a non-defeq Iff goal must not offer rfl: {:?}",
+            kinds(&suggestions)
+        );
+    }
+
+    #[test]
+    fn non_eq_non_iff_goal_gets_no_rfl() {
         let suggestions = suggest_for("example : Prop -> Prop := sorry\n");
         let ks = kinds(&suggestions);
         assert!(
             ks.iter().all(|k| !matches!(k, SuggestionKind::Rfl { .. })),
-            "an Arrow goal is not an Eq: {ks:?}"
+            "an Arrow goal is neither Eq nor Iff: {ks:?}"
         );
         assert!(ks.iter().any(|k| matches!(k, SuggestionKind::Intro)));
     }
@@ -895,14 +934,40 @@ fun (d : Prop) => sorry"
     }
 
     #[test]
-    fn failed_non_eq_decl_gets_no_rfl() {
+    fn failed_iff_decl_gets_a_kernel_verified_rfl_replacement() {
+        // `True ↔ True` 两边 defeq ⇒ 整值替换建议 `Iff.refl`（记法头也认）。
+        let suggestions = suggest_for_failed("example : True ↔ True := 3\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Rfl {
+                term: "Iff.refl".to_string(),
+            }],
+            "the declared type is Iff-headed and the kernel accepts Iff.refl"
+        );
+        assert!(suggestions[0].verified);
+    }
+
+    #[test]
+    fn failed_iff_decl_rfl_that_the_kernel_rejects_is_dropped() {
+        // `True ↔ False` 不 defeq：Iff 形状成立但候选被内核拒绝，绝不出现。
+        let suggestions = suggest_for_failed("example : True ↔ False := 3\n");
+        assert!(
+            suggestions
+                .iter()
+                .all(|s| !matches!(s.kind, SuggestionKind::Rfl { .. })),
+            "a kernel-rejected Iff rfl must not be offered: {suggestions:?}"
+        );
+    }
+
+    #[test]
+    fn failed_non_eq_non_iff_decl_gets_no_rfl() {
         let suggestions =
             suggest_for_failed("example : (a : Prop) -> a -> a := fun (x : Prop) => 1\n");
         assert!(
             suggestions
                 .iter()
                 .all(|s| !matches!(s.kind, SuggestionKind::Rfl { .. })),
-            "a Pi-typed decl is not Eq-headed: {suggestions:?}"
+            "a Pi-typed decl is neither Eq- nor Iff-headed: {suggestions:?}"
         );
     }
 
