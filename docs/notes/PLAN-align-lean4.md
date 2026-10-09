@@ -1428,26 +1428,30 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 * ✅ **goal 口径有了**一等读数**（第 83 轮）**：`perf_keystroke_wallclock` 里新增 `PERF goals-wallclock` —— 在**同一条真子进程 harness** 上量 `soko/goals` 的请求往返（5 次取中位 ✓），与诊断臂**同源可比** ✓ （此前这第二臂只活在外部 Python 量具里 ✗）。**首读（构建 `…517542` · unit08）**： **goal `best 5.8 / median 5.9 / worst 6.6ms`** ✓ —— 对照 Lean `plainGoal` **3.1ms** ⇒ **~1.9×** ✗ （比外部量具的 8.72ms 还好 ✓，两者**不同 harness** ⇒ 只各自与 Lean 同量具比 ✓）；同轮诊断臂 **typing median 74.9ms** ✓ vs Lean 218.1ms ⇒ **2.9×** ✓。
 
-* ⭐ **goal 的 5.9ms 定位到**handler 自己**（第 84 轮 · 加了 `PERF rpc-floor` 读数）**：同 harness 里量一条 **几乎零计算**的请求 `soko/version`（只答 `{version,pid}` ✓）⇒ **median `0.0ms`** ✓（best 0.0 / worst 0.1 ✓） 而 `soko/goals` 是 **5.9ms** ✗ ⇒ **往返本身不是成本** ✓（第 61 轮也证了探针不贵 ✗）⇒ 全在 handler 里 ✓。 读码收口到**一处**：`QueryDoc::goals`（`query/mod.rs:1398`）**对每条声明**调 `self.runs(...)` （`:1079`）⇒ 每条类型文本**各 tokenize 一遍** ✓（unit08 十几条 ⇒ 十几遍 ✓ = 毫秒级 ✓，与读数同量级 ✓）。
-  ⇒ **下一刀（已定，未做 ✗）**：给 `runs` 的**结果**加一层**按 `(text, binders, notations)` 键**的 LRU ✓
+* ⭐ **goal 的 5.9ms 定位到**handler 自己**（第 84 轮 · 加了 `PERF rpc-floor` 读数）**：同 harness 里量一条 **几乎零计算**的请求 `soko/version`（只答 `{version,pid}` ✓）⇒ **median `0.0ms`** ✓（best 0.0 / worst 0.1 ✓） 而 `soko/goals` 是 **5.9ms** ✗ ⇒ **往返本身不是成本** ✓（第 61 轮也证了探针不贵 ✗）⇒ 全在 handler 里 ✓。 读码收口到**一处**：`QueryDoc::goals`（`query/mod.rs:1398`）**对每条声明**调 `self.runs(...)` （`:1079`）⇒ 每条类型文本**各 tokenize 一遍** ✓（unit08 十几条 ⇒ 十几遍 ✓ = 毫秒级 ✓，与读数同量级 ✓）。 ⇒ **下一刀（已定，未做 ✗）**：给 `runs` 的**结果**加一层**按 `(text, binders, notations)` 键**的 LRU ✓
   （与仓里既有的 `canonical_text_key` memo 同款 ✓）—— 编辑一条时其余十几条的**类型文本没变** ⇒ 全命中 ✓
   预期 **5.9 → ~1ms**（**低于 Lean 的 3.1ms** ✓）。⚠ 实现要点：键必须含 `binders`/`notations`（它们进 `runs` ✓）、
   LRU 有界 ✓、且**先建判据**（同一文档连问两次 ⇒ 第二次必须**逐字节相同** ✓ + 命中率读数 ✓）。
 
-* ⛔ **`runs` 记忆化：写了、量了、**没收益**、已还原 ✗（第 85 轮）** —— 并**纠正第 84 轮的定位** ✗： 按"读码 + 量级猜测"把 5.9ms 归到 `QueryDoc::goals` 里**每条声明各 tokenize 一遍**的 `runs()` ✓， 照下一刀清单加了**线程局部 + 有界 LRU**（键 = 全部入参 ✓、函数内自足 ✓、`--all-targets` 0 错 ✓、 front **41 个目标全绿** ✓）⇒ 但读数**一动不动**：`goals-wallclock` **5.9ms → 5.9ms** ✓（构建 mtime 变 ✓）
-  ⇒ **记忆化是中性**（要么没命中 ✓、要么贵因根本不在这一层 ✓）⇒ 按纪律**已还原** ✗（无读数收益的代码 = 债 ✓）。
+* ⛔ **`runs` 记忆化：写了、量了、**没收益**、已还原 ✗（第 85 轮）** —— 并**纠正第 84 轮的定位** ✗： 按"读码 + 量级猜测"把 5.9ms 归到 `QueryDoc::goals` 里**每条声明各 tokenize 一遍**的 `runs()` ✓， 照下一刀清单加了**线程局部 + 有界 LRU**（键 = 全部入参 ✓、函数内自足 ✓、`--all-targets` 0 错 ✓、 front **41 个目标全绿** ✓）⇒ 但读数**一动不动**：`goals-wallclock` **5.9ms → 5.9ms** ✓（构建 mtime 变 ✓） ⇒ **记忆化是中性**（要么没命中 ✓、要么贵因根本不在这一层 ✓）⇒ 按纪律**已还原** ✗（无读数收益的代码 = 债 ✓）。
   ⭐ **教训（与我自己的纪律对着干的一条）**：第 84 轮我把"**读码推断**"当成了定位 ✗ —— 而仓规写着
   "**先测再动**"；这轮就是它的代价 ✓（一轮工作量 ✗）。⇒ **下一刀第一步必须是**goals() **的内部分段计时** ✓
   （`parsable` / `decl_kinds` / `notation_symbols` / `redundant_hole_spans` / 逐条 `runs` 各占多少 ✓），
   **量出大头再动手** ✗，不许再靠读码猜 ✓。
 
-* ✅ **goal 5.9ms 第一次**真分层了**（第 86 轮 · 新增 `crates/front/tests/goals_cost.rs` ✓）**： **front 层**（13 条声明的合成夹具）`goals(false)` median **0.19ms** ✓ · `check()` **0.00ms** ✓
-  ⇒ 对照真子进程同一请求 **5.9ms** ✗ ⇒ **大头不在 front**（也早已排除往返 0.0ms ✓ 与内核探针 ✓）。
+* ✅ **goal 5.9ms 第一次**真分层了**（第 86 轮 · 新增 `crates/front/tests/goals_cost.rs` ✓）**： **front 层**（13 条声明的合成夹具）`goals(false)` median **0.19ms** ✓ · `check()` **0.00ms** ✓ ⇒ 对照真子进程同一请求 **5.9ms** ✗ ⇒ **大头不在 front**（也早已排除往返 0.0ms ✓ 与内核探针 ✓）。
   ⚠ **一条如实的限定**：那个夹具的类型是平凡的（`P`/`Q`）⇒ 只能当**下界** ✗；换成**真 unit08 文本**的那条
   读数据实**跳过**了（`import Set` ⇒ 单文件 `QueryDoc` 解不了闭包 ✗，报文里写明原因 ✓）——
   **下一刀**：给那条读数摆上 `path`/`root` 走**项目模式** ✓，才能真正判定"5.9ms 在 LSP 层还是在 front 的重类型工作量" ✓。
   ⚠ 顺带记：第 85 轮临时插桩**又**栽在"多块文本手术"上 ✗（`unexpected closing delimiter` ✓）⇒ 已还原 ✓；
   本轮改走**只新增测试文件**的路子 ✓（零侵入 ✓）—— 这条路子本次证明是安全的 ✓，后续插桩优先用它 ✓。
+
+* ✅✅ **5.9ms 的分账量出来了（第 87 轮）**：真 unit08 文本走**项目模式**（`doc.path = Some(entry)` ✓） ⇒ front 层 `goals(false)` median **2.16ms** ✓ · 真子进程全程 **5.9ms** ✗ · 往返 **0.0ms** ✓
+  ⇒ **front ≈2.2ms（37%）· LSP 层 ≈3.7ms（63%）** ✓ —— 两块都有份 ✓，下一刀可以**各打各的** ✓。
+* ⛔⛔ **`runs` 记忆化：两次实测都**中性**，别再试第三次 ✗**（第 85 轮在 LSP 层 5.9→5.9 ✗；第 87 轮在 front 层 **2.16→2.08ms** ✗）⇒ `runs` **不是**这两层的贵因 ✓（两轮都已还原 ✓）。⚠ **按"同一处连红 3 次必须换招"的纪律**，
+  这里**预先记死**：不许再给 `runs` 加记忆化 ✗ —— 下一步只能**换层找**（front 侧：`probed_report` / `decl_kinds` /
+  `notation_symbols` / `redundant_hole_spans` / `display.fold` 谁是大头 ✗ **仍需先量** ✓；LSP 侧：锁 / `decl_info` 映射 /
+  响应里**整份文档文本** ~10KB 的序列化 ✓）。量法沿用本轮证明安全的**只加测试文件** ✓。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
