@@ -1369,14 +1369,20 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   断言**返回值**、**反向验证已做**（去掉早退 ⇒ 当场判红 ✓）；逃生门关掉产物时才照旧预热 ✓ —— A5 的三条判据正是那样跑的 ⇒ 仍 **3/3** ✓）。落地后实测：第一刀 **127.2ms** · `typing` **78.0ms** ·
   `equal_length` **16.3ms** · **跨入口 664.8ms**（`modules=5`·复用 3 ✓；A5c 前 689.7、预热开 911.1 ✗）。
 
-* ⭐ **逐声明归因（第 60 轮 · 内置量具 `SOKO_DECL_PROFILE=1` ＋ `_MS=0`，跑在 `judge_synthesized_typing` 的**真实连续键入**臂上 ⇒ **在进程内**、不靠猜墙钟 ✓）**：970 条事件 / 71 个声明，耗时 top：
-  **`image_inter_subset` 120.4ms（×13）** · `Set.sep_self` 40.9（×1）· **`image_empty` 38.5（×13）** ·
+* ⭐ **逐声明归因（第 60 轮 · 内置量具 `SOKO_DECL_PROFILE=1` ＋ `_MS=0`，跑在 `judge_synthesized_typing` 的**真实连续键入**臂上 ⇒ **在进程内**、不靠猜墙钟 ✓）**：970 条事件 / 71 个声明，耗时 top： **`image_inter_subset` 120.4ms（×13）** · `Set.sep_self` 40.9（×1）· **`image_empty` 38.5（×13）** ·
   **`image_preimage_subset` 32.4（×13）** · **`inter_singletons_empty` 25.0（×13）** · `<example>` 22.5（×39） ·
   `Set.image_mono` 20.9（×1） · `Set.image_subset_iff` 13.3（×1）。⇒ **每刀**：声明 elaborate 合计
   **≈24ms**（其中 `image_inter_subset` 一条就 ≈9.3ms ✗ —— 它排在**编辑点之后** ⇒ 每刀都被重做 ✓），
   而 78ms 的**其余 ≈54ms 在声明之外**（解析/望远镜/report/judge 的**前缀键 SipHash** ✓ —— 后者正是
   §8.9 的 A7 那条 22.5% ✗，且它的红线是"**不换弱哈希**"）✓。⇒ 下一棒的两个具体靶子：① `image_inter_subset`
   这类"**编辑点之后但依赖没变**"的声明（= T2-B 的深水区 ✓）；② A7 的前缀键（**先读 §8.9 的红线** ✓）。
+
+* ⚠ **A7 的 22.5% 要先重量再投（第 61 轮 · 只读复核）**：`judge.rs` 的前缀键今天已经是 `canonical_text_key` 的**小 LRU**（4 条 · 命中判据**逐字节相等** ✓ · 哈希函数一字未动 ✓
+  —— 红线"**不许换弱哈希**"守住了 ✓）。⚠ 但那条 memo 的**命中路径本身是 O(前缀长度)**（`text == src`），
+  而**未命中**路径要重跑整段 SipHash ⇒ 一次编译里问几百次时，**4 条够不够**是个**没量过**的问题 ✗。
+  ⇒ 下一棒若打这个靶子：**先加命中/未命中计数**（本仓的常设做法 ✓）再决定，别照 §8.9 的旧百分比投 ✗。
+* **产物/缓存的体格（同轮实测）**：真课程 unit08 的产物载荷 **1,148,482 字节**（`.meta.json` 158 ✓）· `compiled/` 在探针跑完后为 **0**（各臂按纪律清过 ✓）⇒ **写产物 ≈ 1–3ms 量级**，不是热按键的大头 ✓；
+  真正的大头仍是"**声明 elaborate ≈24ms** + 声明之外 ≈54ms"（见上一条的逐声明归因 ✓）。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 ~200ms）
 
@@ -1397,22 +1403,18 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 ### 34. 第 43 轮（平行线）：**全量 gate 逮到并修掉我自己引进的一处回归** ✗→✓（教训：`--fast` 不跑 CLI 集成测试）
 
 * **症状**：全量 `scripts/soko gate` 判红 —— `cli/tests/project_recompiles_shared_deps.rs` 的 **G-68 判据**：`marginal=1.80 > 1.5`（多一个入口多 1.80 次 pass ⇒ 共享依赖又被按入口各编 ✗）。
-* **根因（我的）**：批 2 把 `run_shared_group` 误接到 **`with_project_session_artifacts`** —— 那是 **reusing** 那条（**带线程局部 LRU**）✗；CLI 该走的是 **`with_project_session_artifacts_trusted`**（**不碰 LRU**、栈上 arena、零泄漏 ✓）。
-  两处后果：① **违反 T4-A 契约**（CLI 短命进程不该用线程局部检查点 —— 而 T4-A 的守卫只测
+* **根因（我的）**：批 2 把 `run_shared_group` 误接到 **`with_project_session_artifacts`** —— 那是 **reusing** 那条（**带线程局部 LRU**）✗；CLI 该走的是 **`with_project_session_artifacts_trusted`**（**不碰 LRU**、栈上 arena、零泄漏 ✓）。 两处后果：① **违反 T4-A 契约**（CLI 短命进程不该用线程局部检查点 —— 而 T4-A 的守卫只测
   `compile_project`，**测不到**这条多入口路 ✗）；② G-68 判据判红 ✓。
 * **修法**：改接 `_trusted` 那条 + 传 `&[]` 信任（与老路一致 ✓）⇒ G-68 **`marginal=1.20`** ✓ · T4-A 守卫 ✓ · front **35/35** ✓。
-* ⭐ **教训（写给下一棒）**：**`gate --fast` 不跑 CLI 集成测试** ⇒ 跨 crate 的接线（尤其 `front/project/mod.rs` 这种被 CLI 消费的地方）**只有全量 `scripts/soko gate` 才拦得住** ✗
-  ⇒ 动过那类文件就**别只跑 `--fast`** ✓。
+* ⭐ **教训（写给下一棒）**：**`gate --fast` 不跑 CLI 集成测试** ⇒ 跨 crate 的接线（尤其 `front/project/mod.rs` 这种被 CLI 消费的地方）**只有全量 `scripts/soko gate` 才拦得住** ✗ ⇒ 动过那类文件就**别只跑 `--fast`** ✓。
 
 ### 35. 第 44 轮（平行线）：全量 gate 第二次逮到**产物与 A5 预热的交互** ✗→✓
 
 * **症状**：`lsp/tests/lsp_artifact_warmup.rs::artifact_hit_open_warms_the_library_checkpoint` 的**反向验证**判红 —— `SOKO_NO_LIB_WARMUP=1` 那一刀实测 **1 个模块**（该回到 2 ✗）。
 * **根因（不是 bug，是两条机制重叠）**：**产物**（本线）与 **A5 预热**（平行线）**都能** 省掉库层 ⇒ 关掉预热之后，产物**照样**把库层供上了 ⇒ 反向验证**变成空转** ✗。
-* **修法**：该文件量的是 **A5 预热**这条机制 ⇒ 把**产物**那条也一起关
-  （`SOKONANODA_NO_MODULE_ARTIFACTS=1`，四个 client 全加 ✓）⇒ 两臂回到"预热开 1 / 预热关 2" ✓
+* **修法**：该文件量的是 **A5 预热**这条机制 ⇒ 把**产物**那条也一起关 （`SOKONANODA_NO_MODULE_ARTIFACTS=1`，四个 client 全加 ✓）⇒ 两臂回到"预热开 1 / 预热关 2" ✓
   （**3/3** ✓）。
-* ⭐ **教训（与 §34 同族）**：**凡"关掉某个加速件 ⇒ 必须变慢/变多"的反向验证，都要问
-  "还有没有别的加速件在替它"** ✓ —— 本仓现在有**三个**（`compiled/` 缓存 · 线程局部检查点 ·
+* ⭐ **教训（与 §34 同族）**：**凡"关掉某个加速件 ⇒ 必须变慢/变多"的反向验证，都要问 "还有没有别的加速件在替它"** ✓ —— 本仓现在有**三个**（`compiled/` 缓存 · 线程局部检查点 ·
   磁盘产物）⇒ 反向验证要**点名关掉**它要证的那一个**以及**任何能替代它的 ✓。
 
 ### 36. 第 45 轮（平行线）：T4-B **先量后做** —— 差 9×，且**换路不改报告**已证 ✓
@@ -1424,8 +1426,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   | `build <file>`（今天 = `compile_plan_prechecked`，**整条闭包一趟**） | **0.396 / 0.435 / 0.396s** | 库层**每次重 elaborate** ✗ · **产物数 = 0**（这条路根本不碰 session ✓） |
   | `query check`（session + 产物） | 0.408s → **0.043 / 0.043s** | 第一刀写产物，之后**装载** ⇒ **≈9×** ✓ |
   ⇒ **T4-B 的价值 = 那 9×**，且它就是**库层 elaborate** 那一块 ✓（与方向① 的读数同源 ✓）。
-* **本轮落地（两件，都是"敢换"的前置件 ✓）**： 1. 新公开入口 **`project::compile_plan_with_artifacts(plan, options)`** = `compile_plan_incremental`
-     的 `reuse_library=false` 支（**不碰线程局部检查点** ✓ + 磁盘产物 ✓ ⇒ 与 T4-A 契约一致 ✓）；
+* **本轮落地（两件，都是"敢换"的前置件 ✓）**： 1. 新公开入口 **`project::compile_plan_with_artifacts(plan, options)`** = `compile_plan_incremental` 的 `reuse_library=false` 支（**不碰线程局部检查点** ✓ + 磁盘产物 ✓ ⇒ 与 T4-A 契约一致 ✓）；
   2. **前置判据** `crates/front/tests/t4b_plan_parity.rs`：同一条闭包分别走
      **整条一趟** 与 **session+产物** ⇒ **`ProjectReport` 逐字节相同** ✓（序列化比较、字段一个不漏 ✓）
      —— 这是"**换路不改报告**"的红线 ✓（判据过了**不等于**可以无脑换 ✗，见下）。
