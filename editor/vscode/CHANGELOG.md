@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.87.2] — 2026-10-10
 
 > **Four reported editor-feedback items are closed — plus two seams found while fixing
 > them.** The prelude's own source now compiles clean (it never did) and a guard keeps it
