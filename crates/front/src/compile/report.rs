@@ -97,7 +97,12 @@ pub struct ByStepState {
 /// **C3（2026-10-08）把它 2 → 3**：`DocumentReport` 多了 `prints`
 /// （`#print` 的结果 —— 以前那些事件**根本没进报告**）⇒ 形状变了，
 /// 旧条目必须整库不命中，否则 Infoview 会拿到"没有 prints"的旧答案 ✗。
-pub const REPORT_SHAPE: u32 = 3;
+/// **C3 补口（2026-10-09）把它 3 → 4**：`prints` 的**含义**变了 —— **项目模式**
+/// （入口带 `import`）里以前恒空（`run_pass_with` 只映射 `TypeChecked`；
+/// `splice_entry_report` 又漏拼 `fresh.prints`）⇒ 旧条目那份"空 prints"会静默
+/// 给出"课程文件里 `#print` 没反应"的旧答案 ✗。与上一条同一条纪律：
+/// **语义变化同样算形状变化**（G-78 踩过一次 ✓）。
+pub const REPORT_SHAPE: u32 = 4;
 
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -242,6 +242,89 @@ async fn definition_stays_in_the_entry_for_local_names() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// `soko/stateAt` 在**指定 URI** 的光标行上的命令输出（`messages`）。
+///
+/// 项目夹具用的是自己的 URI（`ask_state_at` 钉死在单文件 `URI` 上 ⇒ 用不了）。
+async fn state_messages_at(
+    service: &mut LspService<Backend>,
+    uri: &Url,
+    text: &str,
+    needle: &str,
+) -> Vec<serde_json::Value> {
+    let position =
+        testutil::position_json(testutil::lsp_pos(text, testutil::offset_of(text, needle)));
+    let answer = call(
+        service,
+        RpcRequest::build("soko/stateAt")
+            .params(json!({"textDocument": {"uri": uri}, "position": position}))
+            .id(43)
+            .finish(),
+    )
+    .await
+    .expect("soko/stateAt must answer");
+    answer["messages"].as_array().cloned().unwrap_or_default()
+}
+
+/// **用户实测（2026-10-09）**：`#print` 在**项目模式**（入口带 `import`）下整条丢 ——
+/// 课程文件**都有** `import` ⇒ 用户看到的就是"完全没有反应 / 功能未实现" ✗。
+///
+/// 两个丢失点（`front` 侧已修，这里钉**到得了 Infoview**）：① `run_pass_with` 组装
+/// 报告时只映射 `TypeChecked`（项目模式走的就是这条路）；② `splice_entry_report`
+/// 忘了把新查那一段的 `prints` 拼回来。`#check` 是**对照组**（它两条路都在）——
+/// "整份报告丢了"这类解释过不了这条判据 ✓。
+#[tokio::test]
+async fn state_at_keeps_command_outputs_in_a_project_entry() {
+    let dir = tmp_dir("print-state");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let _logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    // 入口里既有**自己的**声明（`local_id`），也有**库里的**（`And.intro`）。
+    let entry = "import Logic\n\n\
+                 def local_id (p : Prop) : Prop -> Prop := fun (q : Prop) => q\n\n\
+                 #check And.intro\n\
+                 #print And.intro\n\
+                 #print local_id\n";
+    let canvas = write(&dir, "Canvas.sokonanoda", entry);
+    testutil::did_open_at(&mut service, &canvas, entry).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &canvas, "canvas diagnostics").await;
+
+    // 对照组：`#check` 在项目模式下一直看得见。
+    let check = state_messages_at(&mut service, &canvas, entry, "#check And.intro").await;
+    assert_eq!(check.len(), 1, "#check 必须看得见: {check:?}");
+    assert_eq!(check[0]["kind"], "check");
+
+    // 本体：库里的声明与入口自己的声明**都要看得见**。
+    // ⚠ 库里那条是 `axiom`（没有 `:=`）⇒ 判据用"名字在、是声明文本"，
+    // 不用 `:=`（那是 `def` 专有 —— 用错会把 axiom 的正确答案判红 ✗）。
+    for (needle, name) in [
+        ("#print And.intro", "And.intro"),
+        ("#print local_id", "local_id"),
+    ] {
+        let messages = state_messages_at(&mut service, &canvas, entry, needle).await;
+        assert_eq!(messages.len(), 1, "`{needle}` 必须看得见: {messages:?}");
+        assert_eq!(messages[0]["kind"], "print");
+        let text = messages[0]["text"].as_str().expect("text");
+        assert!(
+            text.contains(name),
+            "`{needle}` 要答那条声明的文本: {text:?}"
+        );
+        assert!(
+            !messages[0]["runs"].as_array().expect("runs").is_empty(),
+            "`{needle}` 也要带分段（高亮）: {messages:?}"
+        );
+    }
+    // **用户要的重点**：打印一个 lambda 定义 ⇒ 输出里看得见它的 λ 表达式 ✓。
+    let local = state_messages_at(&mut service, &canvas, entry, "#print local_id").await;
+    let text = local[0]["text"].as_str().expect("text");
+    assert!(
+        text.contains(":=") && text.contains("fun (q : Prop) =>"),
+        "lambda 定义要打印出 λ 表达式: {text:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// 跨文件引用的公共夹具：打开入口，光标落在 `And.intro` 的使用点上。
 async fn cross_file_fixture(tag: &str) -> (LspService<Backend>, Url, Url, std::path::PathBuf) {
     let dir = tmp_dir(tag);

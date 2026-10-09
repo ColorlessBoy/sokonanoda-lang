@@ -423,6 +423,27 @@ async fn state_at_carries_the_command_outputs_on_the_caret_line() {
         "`#check` 要答 `表达式 : 类型`，实际 = {text:?}"
     );
     assert!(messages[0]["range"].is_object(), "range must be present");
+    // **2026-10-09（用户实测：命令输出缺 notation 与高亮）**：wire 上必须带
+    // `runs`（**字段存在性** = 本层的契约；值由 front 单测钉）——Infoview 的
+    // 目标/条件一直这么走，命令输出不许是例外 ✗。
+    let runs = messages[0]["runs"].as_array().expect("runs array");
+    assert!(
+        !runs.is_empty(),
+        "`#check` 的分段必须到得了 Infoview: {messages:?}"
+    );
+    let joined: String = runs
+        .iter()
+        .map(|run| run["text"].as_str().expect("run text"))
+        .collect();
+    assert_eq!(joined, text, "runs 必须逐字节拼回 text（同一接口的不变量）");
+    assert!(
+        runs.iter().any(|run| run["kind"].is_string()),
+        "至少一段要带 kind（否则等于没高亮）: {runs:?}"
+    );
+    assert!(
+        text.contains('→') && !text.contains("->"),
+        "类型要折过记法（`->` ⇒ `→`）: {text:?}"
+    );
 
     // ② `#print`：打印出来的定义文本。
     let print = ask_state_at(&mut service, src, offset_of(src, "#print")).await;
@@ -433,6 +454,16 @@ async fn state_at_carries_the_command_outputs_on_the_caret_line() {
     assert!(
         text.contains("myid") && text.contains(":="),
         "`#print` 要答定义文本，实际 = {text:?}"
+    );
+    let runs = messages[0]["runs"].as_array().expect("runs array");
+    let joined: String = runs
+        .iter()
+        .map(|run| run["text"].as_str().expect("run text"))
+        .collect();
+    assert_eq!(joined, text, "`#print` 的 runs 也要拼回 text");
+    assert!(
+        runs.iter().any(|run| run["kind"].is_string()),
+        "`#print` 也要高亮: {runs:?}"
     );
 
     // ③ 声明那一行没有命令输出（`messages` 空 ⇒ 面板不画那一块）。

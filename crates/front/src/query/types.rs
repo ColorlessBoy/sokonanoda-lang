@@ -136,6 +136,14 @@ pub struct StateMessage {
     /// 要显示的文本：`#check` ⇒ `表达式 : 类型`（与 Lean 的 `logInfoAt tk m!"{e} : {type}"`
     /// 同形 ✓）；`#print` ⇒ 打印出来的定义文本。
     pub text: String,
+    /// **`text` 的语义分段**（记法 + 语法高亮）—— **与目标/条件/声明卡片同一个
+    /// 唯一接口**（`display.fold` + `display.runs`，见 `query::QueryDoc::runs`）✓。
+    ///
+    /// 为什么要它（2026-10-09 用户实测）：命令输出以前只有一串**纯文本** ⇒
+    /// Infoview 里既没有记法（`->` 不折成 `→`）也没有高亮（`fun`/`Nat` 一色），
+    /// 与同一面板里的目标/条件/声明卡片**两套观感** ✗。不变量与其它 `*_runs`
+    /// 一致：拼接**逐字节等于** `text` ✓（`Rendered::is_consistent` 那条）。
+    pub runs: Vec<RunInfo>,
     /// 那条输出的范围（`#check` = 被检查的表达式；`#print` = 那条命令）。
     pub start: usize,
     pub end: usize,

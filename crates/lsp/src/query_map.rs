@@ -132,6 +132,9 @@ pub(crate) fn state_messages(
         .map(|m| StateMessageInfo {
             kind: m.kind,
             text: m.text,
+            // **显示面同一条路**（2026-10-09）：分段来自真相层的唯一接口，
+            // 适配器只搬运 ✓（`goal_runs` 一直这么走）。
+            runs: m.runs.into_iter().map(run_info).collect(),
             range: range_of_offsets(text, m.start, m.end),
         })
         .collect()

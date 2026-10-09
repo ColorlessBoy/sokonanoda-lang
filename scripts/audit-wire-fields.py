@@ -151,6 +151,9 @@ def main() -> int:
             "StateAtResponse",
             "StateDeclInfo",
             "StateGoalInfo",
+            # **命令输出**（C3）：`soko/stateAt.messages[]`（2026-10-09 接上，
+            # 让 `m.runs` 这个新读取点真的被守卫覆盖 ✓）。
+            "StateMessageInfo",
             "GoalsResponse",
             "HoleInfo",
             "SubGoalInfo",
@@ -215,6 +218,14 @@ def main() -> int:
             else ("StateAtResponse", "StateGoalInfo", "GoalBinderInfo", "RunInfo"),
             skip=ENVELOPE if var == "msg" else None,   # `msg` 兼作 webview 信封 ⇒ 定点排除 ✓
         )
+    # **命令输出**（`soko/stateAt.messages[]`，C3）：渲染器里的局部变量是 `m`
+    # （`messages.forEach(function (m) …)`）。
+    #
+    # 为什么要单列（2026-10-09）：`m.runs` 是**新接上的读取点**，而 `m` 不在上面
+    # 那几个变量里 ⇒ **抹掉 `StateMessageInfo.runs` 守卫仍印 `NONE ✓`** ✗ ——
+    # 那正是 R-1 的形状（读了 / 从不发 ⇒ 静默降级）。接上它，守卫才咬得住 ✓。
+    # 反向验证：`--selftest` 里把 `runs` 从发送侧抹掉 ⇒ 必须报出来 ✓。
+    collect(IV, "m", ("StateMessageInfo",))
     # 练习树：`soko/goals` 的 decls[] + `soko/stateAt` + `soko/nextHole`。
     collect(EX, "decl", ("GoalDeclInfo",))
     collect(EX, "cursor", ("StateAtResponse",))

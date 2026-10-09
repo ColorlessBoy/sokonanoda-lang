@@ -406,6 +406,11 @@ fn splice_entry_report(
     out.hover_cmds.append(&mut fresh.hover_cmds);
     out.errors.append(&mut fresh.errors);
     out.checks.append(&mut fresh.checks);
+    // **C3 的第二个缺口（2026-10-09 用户实测）**：`fresh.prints` 也必须拼进来。
+    // 上面那半段只从**缓存**里捞"被信任的" prints，忘了追加**新查那一段**的 ⇒
+    // 编辑一次（增量那一趟）`#print` 又整条没了 ✗（单文件不走这里，项目模式才走
+    // ⇒ 与"课程文件里 `#print` 没反应"同一个症状）。
+    out.prints.append(&mut fresh.prints);
     out.warnings.append(&mut fresh.warnings);
     out.decls.sort_by_key(|d| d.span.start.offset);
     out
@@ -1343,7 +1348,8 @@ impl QueryDoc {
             total: selection.total,
             // **C3**：光标所在**行**的命令输出（`#check`/`#print`）—— 选择语义
             // 与目标状态同一条纪律：**只有这一处实现** ✓（适配器只换算坐标）。
-            messages: self.messages_at(cursor),
+            // 名字表/记法表**复用上面那两份**（同一个请求里算两遍纯属浪费 ✓）。
+            messages: self.messages_at_with(cursor, &decls, &notations),
         })
     }
 
@@ -1353,7 +1359,27 @@ impl QueryDoc {
     /// **按行取** —— 光标所在行落在该输出的行范围内就命中（`#check` 的范围是**被检查的
     /// 表达式**，`#print` 的是**那条命令**）。**为什么在这里而不是 LSP 层**：与目标
     /// 状态同一条纪律 —— **选择语义只有一处实现** ✓（适配器只换算坐标）。
+    ///
+    /// 便捷入口（自己算名字表与记法表）；`state_at` 那条路已经有这两张表 ⇒ 走
+    /// [`Self::messages_at_with`]，不重复算 ✓。
     pub fn messages_at(&self, cursor: usize) -> Vec<StateMessage> {
+        let decls = self.decl_kinds();
+        let notations = self.notation_symbols();
+        self.messages_at_with(cursor, &decls, &notations)
+    }
+
+    /// [`Self::messages_at`] 的实现体：名字表/记法表由调用方给（`state_at` 已算过）。
+    ///
+    /// **显示走唯一接口**（2026-10-09 用户实测）：`text` 与 `runs` 是同一次转化的
+    /// 两个投影 —— 类型那一半过 `display.fold`（记法 ✓），整条再过
+    /// [`Self::runs`]（语法高亮 ✓）。修前命令输出只有一串纯文本 ⇒ Infoview 里
+    /// 既没有记法也没有高亮，与同一面板的目标/条件**两套观感** ✗。
+    fn messages_at_with(
+        &self,
+        cursor: usize,
+        decls: &[(String, SemanticKind)],
+        notations: &[String],
+    ) -> Vec<StateMessage> {
         let Some(report) = self.report.as_ref() else {
             return Vec::new();
         };
@@ -1362,15 +1388,22 @@ impl QueryDoc {
         let mut out = Vec::new();
         for check in &report.checks {
             if (check.span.start.line..=check.span.end.line).contains(&line) {
+                // 表达式那一半是**用户写的那份源文本**（原样，不折 —— 折它等于把
+                // 用户写的 `∈` 又翻译一遍 ✗）；类型那一半是内核 pp 出来的点名形式
+                // ⇒ **必须过记法接口**，否则同一个符号在目标行是 `→`、在命令输出里
+                // 是 `->`（用户报的"缺少 notation 显示"✗）。
                 let expr = self
                     .text
                     .get(check.span.start.offset..check.span.end.offset)
                     .unwrap_or("")
                     .trim();
+                let ty = self.display.fold(&check.text);
+                // 与 Lean 的 `logInfoAt tk m!"{e} : {type}"` 同形 ✓
+                let text = format!("{expr} : {ty}");
                 out.push(StateMessage {
+                    runs: self.runs(decls, notations, &text, &[]),
                     kind: "check".to_string(),
-                    // 与 Lean 的 `logInfoAt tk m!"{e} : {type}"` 同形 ✓
-                    text: format!("{expr} : {}", check.text),
+                    text,
                     start: check.span.start.offset,
                     end: check.span.end.offset,
                 });
@@ -1378,9 +1411,14 @@ impl QueryDoc {
         }
         for print in &report.prints {
             if (print.span.start.line..=print.span.end.line).contains(&line) {
+                // `#print` 的文本是**声明的 pp 输出**（`def X : T := v`），不是表达式
+                // ⇒ 不折（`fold` 只对表达式有定义；而且它是内核的逐字节输出，
+                // 折坏了就是改真相 ✗）。**只分段**：`fun`/`Nat.add`/`:=` 上色 ✓。
+                let text = print.text.clone();
                 out.push(StateMessage {
+                    runs: self.runs(decls, notations, &text, &[]),
                     kind: "print".to_string(),
-                    text: print.text.clone(),
+                    text,
                     start: print.span.start.offset,
                     end: print.span.end.offset,
                 });

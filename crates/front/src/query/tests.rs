@@ -1443,6 +1443,130 @@ theorem spine_x (a b : Prop) (h : a) (k : b) : And a b :=\n\
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// **C3 的缺口（2026-10-09 用户实测）**：`#print` 在**项目模式**（入口带 `import`）
+/// 下整条丢 ⇒ Infoview「完全没有反应」✗ —— 单文件看得见、而课程文件**都有**
+/// `import`，所以用户看到的就是"没实现"。
+///
+/// 两个丢失点都在"真相对、报告没带上"的接缝上（`AGENTS.md` 的那条病根）：
+/// ① `compile/check/kernel_phase.rs` 组装报告时只映射 `TypeChecked` ⇒
+///    `report.prints` 恒空（**项目模式走的就是这条 `run_pass_with` 路**）；
+/// ② `query::splice_entry_report` 拼前缀时忘了追加 `fresh.prints` ⇒
+///    改一下文件（增量那一趟）`#print` 又没了。
+///
+/// `#check` 是**对照组**：它两条路都在（`report.checks` 一直在映射），
+/// 所以"整条报告丢了"这类解释过不了这条判据 ✓。
+#[test]
+fn project_documents_keep_print_results_on_the_caret_line() {
+    let dir = project_dir("print-caret");
+    let entry = "import Lib\n\
+                 \n\
+                 def localid : Nat -> Nat := fun (n : Nat) => n + 1\n\
+                 \n\
+                 #check libid\n\
+                 #print libid\n\
+                 #print localid\n";
+    let doc = project_doc(
+        &dir,
+        "Main.sokonanoda",
+        &[
+            (
+                "Lib.sokonanoda",
+                "def libid : Nat -> Nat := fun (n : Nat) => n\n",
+            ),
+            ("Main.sokonanoda", entry),
+        ],
+    );
+    let at = |needle: &str| entry.find(needle).expect(needle);
+
+    // 对照组：`#check` 在项目模式下一直看得见。
+    let check = doc.messages_at(at("#check libid"));
+    assert_eq!(check.len(), 1, "#check 必须看得见: {check:?}");
+    assert_eq!(check[0].kind, "check");
+
+    // 本体：入口自己的声明与**库里的**声明都要看得见（闭包里的 `#print` 同样算）。
+    for needle in ["#print libid", "#print localid"] {
+        let msgs = doc.messages_at(at(needle));
+        assert_eq!(msgs.len(), 1, "`{needle}` 必须看得见: {msgs:?}");
+        assert_eq!(msgs[0].kind, "print");
+        assert!(
+            msgs[0].text.contains(":="),
+            "打印出来的是定义本体: {msgs:?}"
+        );
+    }
+
+    // ② **增量那一趟**（`splice_entry_report` 拼"信任前缀 + 新查一段"）同样不许丢。
+    // 改 `#check` 那一行（它在 `#print` 之前）⇒ 前缀非 0、`#print` 落在**新查**的
+    // 那一段里 —— 那正是第二个丢失点（新查的 prints 以前没拼回来 ✗）。
+    // `trusted_prefix_len() > 0` 是"这条判据真的咬住拼接路"的证据：前缀为 0 时
+    // 走的是整份重查，钉不到那个缺口 ✗。
+    let edited = entry.replace("#check libid", "#check localid");
+    let mut doc = doc;
+    doc.set_text(&edited, 2, None);
+    assert!(
+        doc.trusted_prefix_len() > 0,
+        "夹具必须走到拼接路（前缀 > 0），否则这条判据咬不住 splice_entry_report"
+    );
+    let edited_at = |needle: &str| edited.find(needle).expect(needle);
+    for needle in ["#print libid", "#print localid"] {
+        let msgs = doc.messages_at(edited_at(needle));
+        assert_eq!(msgs.len(), 1, "编辑后 `{needle}` 仍要看得见: {msgs:?}");
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **用户实测（2026-10-09）**：`#check` 在 Infoview 里"缺少 notation 显示和语法
+/// 高亮" ✗ —— 命令输出以前只有一串**纯文本**（没有分段）⇒ 面板只能画一色 `<pre>`。
+///
+/// 判据 = 与目标/条件/声明卡片**同一个唯一接口**（`display.fold` + `runs`）：
+/// ① `runs` 拼接**逐字节等于** `text`（`Rendered::is_consistent` 的不变量 ✓）；
+/// ② 类型那一半**折过记法**（`->` ⇒ `→`，与目标行同一观感 ✓）；
+/// ③ 至少一段带 `kind`（否则等于没高亮 ✗ —— "文本里有个箭头"咬不住"分段丢了"）。
+#[test]
+fn command_outputs_carry_notation_and_highlight_runs() {
+    let src = "def twice : Nat -> Nat := fun (n : Nat) => n + n\n\n#check twice\n#print twice\n";
+    let text = doc(src);
+    let at = |needle: &str| src.find(needle).expect(needle);
+
+    let check = text.messages_at(at("#check twice"));
+    assert_eq!(check.len(), 1, "{check:?}");
+    let check = &check[0];
+    let joined: String = check.runs.iter().map(|run| run.text.as_str()).collect();
+    assert_eq!(joined, check.text, "runs 必须逐字节拼回 text");
+    assert!(
+        check.text.contains('→'),
+        "类型要折记法（`->` ⇒ `→`）: {:?}",
+        check.text
+    );
+    assert!(
+        !check.text.contains("->"),
+        "折过之后不许残留 ASCII 箭头: {:?}",
+        check.text
+    );
+    assert!(
+        check.runs.iter().any(|run| run.kind.is_some()),
+        "至少一段要带 kind（高亮）: {:?}",
+        check.runs
+    );
+
+    // `#print`：文本是内核的声明 pp（**不折** —— 它不是表达式），但同样要分段
+    // （`fun`/`Nat.add`/`:=` 上色 ✓），而且 **lambda 本体看得见**（用户要的重点）。
+    let print = text.messages_at(at("#print twice"));
+    assert_eq!(print.len(), 1, "{print:?}");
+    let print = &print[0];
+    let joined: String = print.runs.iter().map(|run| run.text.as_str()).collect();
+    assert_eq!(joined, print.text, "runs 必须逐字节拼回 text");
+    assert!(
+        print.text.contains("fun (n : Nat) =>"),
+        "lambda 定义要打印出它的 λ 表达式: {:?}",
+        print.text
+    );
+    assert!(
+        print.runs.iter().any(|run| run.kind.is_some()),
+        "`#print` 也要高亮: {:?}",
+        print.runs
+    );
+}
+
 // ── 项目视图（`query project` / `soko/project`，0.58.0 批次 4）───────────────
 //
 // 语义守护：模块状态三分（compiled / load-failed / blocked）、拓扑序 + 入口标记、

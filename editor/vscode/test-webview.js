@@ -1171,6 +1171,57 @@ test("state: command outputs (#check / #print) render as a messages block", () =
   );
 });
 
+// **2026-10-09 用户实测**：`#check` 的输出"缺少 notation 显示和语法高亮" ✗ ——
+// 命令输出以前走 `el("pre", …, m.text)`（纯文本）⇒ 同一面板里目标/条件有记法有色、
+// 命令输出一色。修法 = **与目标/条件同一个 `codeBlock`**（`runs` 分段 + `tok-*`）✓。
+//
+// 判据钉**渲染结果**（不是"数据在"）：① 有 `runs` ⇒ 画成 `tok-*` span；
+// ② 没有 `runs`（老服务端 / 契约破坏）⇒ 仍然看得见文本（`text` 兜底 ✓）。
+test("state: command outputs render through the shared runs renderer (notation + highlight)", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    decl: null,
+    goal: null,
+    goals: [],
+    step: -1,
+    total: 0,
+    messages: [
+      {
+        kind: "check",
+        text: "twice : (n : Nat) → Nat",
+        runs: [
+          { text: "twice", kind: "def_use" },
+          { text: " : " },
+          { text: "(n : Nat)", kind: "binder" },
+          { text: " → " },
+          { text: "Nat", kind: "inductive_use" },
+        ],
+        range: {},
+      },
+      { kind: "print", text: "def twice : Nat → Nat := fun (n : Nat) => n + n", runs: [], range: {} },
+    ],
+  });
+  const rows = byClass(root, "message-text");
+  assert.strictEqual(rows.length, 2, "two output rows");
+  // ① 有 runs ⇒ 与目标/条件**同一条渲染路**：`tok` + `tok-<kind>` span。
+  const kinds = byClass(rows[0], "tok").map((node) => node.className);
+  assert.deepStrictEqual(
+    kinds,
+    ["tok tok-def_use", "tok tok-binder", "tok tok-inductive_use"],
+    "runs must become tok-* spans (highlighting comes from the shared renderer)",
+  );
+  assert.strictEqual(textOf(rows[0]), "twice : (n : Nat) → Nat", "runs join back to the text");
+  assert.ok(
+    textOf(rows[0]).includes("→"),
+    "the notation-folded arrow must be what the user sees",
+  );
+  // ② 没有 runs ⇒ 兜底仍然是**看得见的文本**（不静默变空）。
+  assert.strictEqual(textOf(rows[1]), "def twice : Nat → Nat := fun (n : Nat) => n + n");
+  assert.strictEqual(byClass(rows[1], "tok").length, 0, "no runs ⇒ plain text, not empty");
+});
+
 test("state: no command output ⇒ no messages block, placeholder stays", () => {
   const { root, send } = loadInfoview();
   send({

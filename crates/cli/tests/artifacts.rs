@@ -186,9 +186,10 @@ fn a_project_build_writes_its_artifact_into_the_module_root() {
     // `soko.artifacts/<条目格式>.r<报告形状版本>`（2026-10-02 值守第 8 单：形状版本进 schema
     // ⇒ 报告形状一变，整个产物目录不认 ✓）。字面量是**故意**的：集成测试盯的是**冻结的
     // 契约串**（front 的 `project::cache::meta_schema()` 是唯一来源 ✓，改它这里必须跟着改 ✓）。
-    // ⚠ **r2 → r3**：C3（`#print` 进报告，`DocumentReport.prints`）把 `REPORT_SHAPE`
-    // 2 → 3 ⇒ 这里必须同步（B1 的 1 → 2 也是同一条规矩 ✓）—— 漏改就是本套件判红 ✗。
-    assert_eq!(meta["schema"], "soko.artifacts/2.r3");
+    // ⚠ **r3 → r4**：C3 补口（2026-10-09，`DocumentReport.prints` 在**项目模式**下
+    // 从"恒空"变成"真的有"）把 `REPORT_SHAPE` 3 → 4 ⇒ 这里必须同步
+    // （C3 的 2 → 3、B1 的 1 → 2 都是同一条规矩 ✓）—— 漏改就是本套件判红 ✗。
+    assert_eq!(meta["schema"], "soko.artifacts/2.r4");
     assert!(meta["compiler"].as_str().is_some_and(|v| !v.is_empty()));
     // ⑤ 项目条目**不再**落全局缓存（分工：项目条目只认模块根）。
     assert!(

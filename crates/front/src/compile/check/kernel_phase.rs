@@ -20,6 +20,27 @@ use sokonanoda::env::{Declar, EnvLimit};
 use sokonanoda::util::{ExportFile, ExprPtr};
 use std::collections::HashMap;
 
+/// 扁平命令下标 → **那条命令自己的源码 span**（它所属单元自己的坐标系）。
+///
+/// `#print` 的 `Printed` 事件**不带 span**（内核只给名字与文本）⇒ 报告的
+/// `PrintInfo.span` 只能按命令回填（`report.rs` 的契约 ✓）。归因走**命令下标**
+/// 而不是 offset：不同文件的 offset 不在同一个坐标空间里（`units.rs` 的同一条纪律）。
+fn command_span(units: &[SourceUnit<'_>], unit_of_cmd: &[usize], cmd: usize) -> Span {
+    let Some(&slot) = unit_of_cmd.get(cmd) else {
+        return Span::default();
+    };
+    let start: usize = units
+        .iter()
+        .take(slot)
+        .map(|unit| unit.file.commands.len())
+        .sum();
+    units
+        .get(slot)
+        .and_then(|unit| unit.file.commands.get(cmd.saturating_sub(start)))
+        .map(|command| command.span())
+        .unwrap_or_default()
+}
+
 /// 命令走完后交给内核阶段的一切（原 `run_pass` 尾部读到的全部局部变量）。
 pub(super) struct Walked<'a, 'arena> {
     /// 显示期的记法表（`run_pass` 里建一次，`walk` 与这里共用）。
@@ -599,6 +620,31 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
             .filter_map(|(event, cmd)| match event {
                 CheckEvent::TypeChecked { text, span } => Some(crate::compile::report::CheckInfo {
                     span: *span,
+                    text: text.clone(),
+                    cmd: *cmd,
+                }),
+                _ => None,
+            })
+            .collect();
+        // **C3 的缺口（2026-10-09 用户实测）**：`#print` 的结果也要进报告 ——
+        // 与 `checks` **同一条规则**（同一次 `out.events` 扫描、同一个 `cmd` ✓）。
+        //
+        // 为什么以前整条丢：这一段只映射 `TypeChecked` ⇒ `report.prints` 恒空。
+        // 单文件（Session 路）由 `session::assemble_report` 填，看得见；**项目模式
+        // 走的是这条 `run_pass_with` 路** ⇒ 入口带 `import` 的课程文件里
+        // `#print` "完全没有反应" ✗（`--json` 事件流一直有它 ⇒ 真相在、报告没带上）。
+        //
+        // `span` 取**那条命令自己**的 span（`PrintInfo` 的契约，见 `report.rs`）——
+        // 用命令下标回填而**不是**跨文件猜 offset：不同文件的 offset 不在同一个
+        // 坐标空间里（`units.rs` 的同一条纪律 ✓）。`Printed` 事件自己不带 span。
+        report.prints = out
+            .events
+            .iter()
+            .zip(out.event_cmds.iter())
+            .filter_map(|(event, cmd)| match event {
+                CheckEvent::Printed { name, text } => Some(crate::compile::report::PrintInfo {
+                    span: command_span(units, unit_of_cmd, *cmd),
+                    name: name.clone(),
                     text: text.clone(),
                     cmd: *cmd,
                 }),

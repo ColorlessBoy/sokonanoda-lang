@@ -226,6 +226,10 @@ pub(crate) struct StateMessageInfo {
     pub(crate) kind: String,
     /// `#check` ⇒ `表达式 : 类型`；`#print` ⇒ 打印出来的定义文本。
     pub(crate) text: String,
+    /// **`text` 的语义分段**（记法 + 语法高亮）—— 与 `goal_runs`/`ty_runs` 同一个
+    /// 唯一接口的产物（**2026-10-09 用户实测**：命令输出以前是纯文本 ⇒ 面板里
+    /// 既没记法也没高亮 ✗）。不变量：拼接**逐字节等于** `text` ✓。
+    pub(crate) runs: Vec<RunInfo>,
     /// 那条输出的范围（`#check` = 被检查的表达式；`#print` = 那条命令）。
     pub(crate) range: Range,
 }

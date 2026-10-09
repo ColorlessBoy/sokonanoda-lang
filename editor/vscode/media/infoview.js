@@ -491,7 +491,11 @@
         const row = el("div", "message");
         row.appendChild(el("span", "message-kind",
           m.kind === "print" ? "#print" : "#check"));
-        row.appendChild(el("pre", "message-text", m.text || ""));
+        // **统一样式接口**（2026-10-09 用户实测）：与目标 / 条件 / 声明卡片**同一个**
+        // `codeBlock` —— `runs` 分段 + `tok-*` 上色 + `text` 兜底，样式一处都不硬编码 ✓。
+        // 修前这里是 `el("pre", "message-text", m.text)`（纯文本）⇒ 命令输出既没有
+        // 记法（`->` 不折 `→`）也没有高亮，与同一面板的其它内容**两套观感** ✗。
+        row.appendChild(codeBlock("message-text", m.runs, m.text || ""));
         box.appendChild(row);
       });
       goalsBody.appendChild(box);

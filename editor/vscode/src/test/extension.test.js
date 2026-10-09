@@ -316,6 +316,67 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     });
   });
 
+  test("C3（项目模式）：带 import 的文件里 `#print` 的输出也要到 Infoview", async () => {
+    // **2026-10-09 用户实测**：`#print` "完全没有反应" ✗ —— 上面那条用的是**单文件**
+    // 夹具（`Session` 那条路），而**课程文件都有 `import`**（项目模式走
+    // `run_pass_with` + `splice_entry_report` 那条路，`prints` 在那两处被丢）。
+    // ⇒ 判据必须用**真项目**夹具，否则修好了课程文件、测试还是绿的（或反过来）✗。
+    //
+    // 断言的是**载荷**（`soko/stateAt` 真的带上了 messages）—— 真宿主的 DOM 在
+    // iframe 里够不到（见 InfoviewProvider 的「测试可见的只读访问器」注释 ✓）；
+    // **渲染**由 `test-webview.js` 那两条钉（含新的 `runs` → `tok-*` 一条 ✓）。
+    const uris = await writeProject("c3-project", {
+      "Lib.sokonanoda": "def lib_double (n : Nat) : Nat := n + n\n",
+      "Main.sokonanoda":
+        "import Lib\n\n" +
+        "def local_double : Nat -> Nat := fun (n : Nat) => n + n\n\n" +
+        "#print lib_double\n" +
+        "#print local_double\n",
+    });
+    await showDoc(uris["Main.sokonanoda"]);
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "the entry must be the active editor");
+    const lineOf = (prefix) =>
+      [...Array(editor.document.lineCount).keys()].find((i) =>
+        editor.document.lineAt(i).text.startsWith(prefix),
+      );
+    const printLine = lineOf("#print lib_double");
+    assert.notStrictEqual(printLine, undefined, "夹具里必须有 `#print lib_double`");
+    const pos = new vscode.Position(printLine, 3);
+    editor.selection = new vscode.Selection(pos, pos);
+    await waitFor("C3（项目模式）：`#print` 的输出到达 Infoview", async () => {
+      const state = extensionApi.infoview.lastState();
+      return (
+        state &&
+        Array.isArray(state.messages) &&
+        state.messages.some(
+          (m) =>
+            m.kind === "print" &&
+            typeof m.text === "string" &&
+            m.text.includes(":=") &&
+            Array.isArray(m.runs) &&
+            m.runs.length > 0,
+        )
+      );
+    });
+
+    // 入口自己的声明（`local_double`，值是个 lambda）同样看得见 —— 用户要的
+    // "查看 lambda 表达式"就在这一格 ✓。
+    const localLine = lineOf("#print local_double");
+    const localPos = new vscode.Position(localLine, 3);
+    editor.selection = new vscode.Selection(localPos, localPos);
+    await waitFor("C3（项目模式）：入口自己的 `#print` 也到达 Infoview", async () => {
+      const state = extensionApi.infoview.lastState();
+      return (
+        state &&
+        Array.isArray(state.messages) &&
+        state.messages.some(
+          (m) => m.kind === "print" && typeof m.text === "string" && m.text.includes("fun"),
+        )
+      );
+    });
+  });
+
   test("clean lesson publishes empty diagnostics", async () => {
     const uri = await writeDoc("lesson-clean.sokonanoda", LESSON_CLEAN);
     await vscode.workspace.openTextDocument(uri);
