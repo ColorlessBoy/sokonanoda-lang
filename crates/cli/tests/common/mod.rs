@@ -50,8 +50,13 @@ pub const WATCH_HANDSHAKE: &str = "service.hello";
 /// documents it, but the skill vocabulary guard did not know the name — so any
 /// skill that mentioned it was rejected as "not part of the protocol contract"
 /// even though it is. Keeping this list in sync is the point of the guard.
-pub const LSP_CUSTOM_METHODS: [&str; 6] = [
+pub const LSP_CUSTOM_METHODS: [&str; 7] = [
     "soko/goals",
+    // `soko/goalAt`（2026-10-09）：光标处**那一条**声明的 goal 视图 —— Lean
+    // `$/lean/plainGoal` 的声明级对应物（`docs/protocol.md` §`soko/goalAt`）。
+    // 加新方法时**这份清单与 `docs/protocol.md` 必须同一轮改** ✓ —— 这条守卫
+    // 就是为此存在的（加它时正是它判红拦下的 ✓）。
+    "soko/goalAt",
     "soko/nextHole",
     "soko/hints",
     "soko/stateAt",

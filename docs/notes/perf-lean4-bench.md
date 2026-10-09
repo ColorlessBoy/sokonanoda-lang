@@ -261,6 +261,12 @@ python3 lsp_bench.py soko --root "$ROOT" --file units/I.3/unit08-images-preimage
 **本文没有改任何源码**；`git status --short crates/ courses/` 在本轮前后都由并行开发线
 自己的提交决定。
 
+**⚠ `goal` 臂的口径修正（2026-10-09）**：`SokoBackend.begin_edit` 的 `soko/goals` **要改成
+`soko/goalAt`**（一行；`~/lean4-bench` 不在版本控制里 ⇒ 留档在此 ✓）—— Lean 的对侧是
+`$/lean/plainGoal`（**该位置**的 goal ✓），而 `soko/goals` 答**整份声明列表**（真 unit08：
+27 条 / **91 361 B** ✗）⇒ 拿它量「某处的 goal」是**口径错配**。改后同一构建 `typing` 臂
+goal median **4.52 → 1.29ms**（全表 ⇒ `docs/design/persistent-declarations.md` §7.10 ✓）。
+
 ---
 
 ## 7. 占位替换指引 —— **已执行** ✓（2026-10-09）
