@@ -238,7 +238,19 @@ fn fold_once(text: &str, notations: &DisplayNotations) -> String {
 impl DisplayNotations {
     /// 唯一转化入口：**文本 → 带记法的文本** ✓。
     pub fn fold(&self, text: &str) -> String {
-        print_back(text, self).as_display_str().to_string()
+        // **作用域缓存命中** ⇒ 直接返回 ✓（见 `with_fold_cache` 的注释与 parity 判据 ✓）。
+        if let Some(hit) =
+            FOLD_CACHE.with(|c| c.borrow().as_ref().and_then(|m| m.get(text).cloned()))
+        {
+            return hit;
+        }
+        let out = print_back(text, self).as_display_str().to_string();
+        FOLD_CACHE.with(|c| {
+            if let Some(m) = c.borrow_mut().as_mut() {
+                m.insert(text.to_string(), out.clone());
+            }
+        });
+        out
     }
 
     /// 唯一转化入口（AST 版 ✓）：渲染**之后必过折叠** ✓。
@@ -1608,4 +1620,36 @@ infixr:80 \" '' \" => Set.image\n";
             println!("[probe {label}] out: {}", fold_text(text, &dn));
         }
     }
+}
+
+// ── **作用域折叠缓存**（第 100 轮 · 平行线）────────────────────────────────────────
+//
+// **为什么**：`fold` = `print_back(text, self)` ⇒ 逐条声明折一遍 ✓；实测（第 88 轮的控制实验：
+// 同款长类型、13 条）**有 goal（要折）1.11ms vs 无 goal（不折）0.44ms** ⇒ 折叠 ≈0.67ms/13 条 ✗。
+// `soko/goals` 每次请求都对**每条开放声明**折一次 ✓，而这些文本在稳态下**逐字不变** ✓
+// ⇒ 一次作用域内的缓存能把这一笔吃回来 ✓。
+//
+// **为什么是作用域而不是全局 LRU**：`fold` 的输入除了 `text` 还有**记法表**（`self` ✓），而
+// `DisplayNotations{table, arity}` **没有便宜的指纹** ✗ ⇒ 只按文本做键会在**换表**时给错答案 ✗
+// （第 70 轮就是因此**没落地** ✓）。作用域内由调用方保证"**同一张表**" ✓（LSP 的
+// `goal_decls` 里就是一份 doc 的一张表 ✓），并在**退出时清空** ✓ ⇒ 键只按 `text` 也**成立** ✓。
+thread_local! {
+    static FOLD_CACHE: std::cell::RefCell<Option<std::collections::HashMap<String, String>>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+/// **在作用域内缓存 `fold` 的结果**（调用方保证：作用域内 `fold` 用的都是**同一张记法表** ✓）。
+///
+/// 语义：命中 ⇒ 返回缓存 ✓（与重算**逐字节相同** ✓，判据 `crates/front/tests/fold_cache_parity.rs` ✓）；
+/// 未开作用域/未命中 ⇒ 照旧算 ✓ ⇒ **不开作用域时行为一字不变** ✓。
+pub fn with_fold_cache<T>(f: impl FnOnce() -> T) -> T {
+    struct Clear;
+    impl Drop for Clear {
+        fn drop(&mut self) {
+            FOLD_CACHE.with(|c| *c.borrow_mut() = None);
+        }
+    }
+    FOLD_CACHE.with(|c| *c.borrow_mut() = Some(std::collections::HashMap::new()));
+    let _clear = Clear;
+    f()
 }
