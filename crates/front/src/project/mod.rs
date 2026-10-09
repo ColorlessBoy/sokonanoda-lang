@@ -429,6 +429,11 @@ pub fn warm_library_checkpoint(
     precheck_plan(&mut plan, options);
     let entry_path = plan.entry.clone();
     let lib_units = units_for_modules(&plan, |m| m.path != entry_path);
+    // ⛔ **A5b 试过、已撤（2026-10-09 · 平行线）**：在**同一条后台任务**里把**入口趟**也跑一遍
+    // （想借此把第一刀的合成前缀 memo 提前喂热 ✓）—— **实测更坏** ✗：
+    // 第一刀 **330ms → 437ms**（`by=22 → 31`、`tc=14656 → 18839`，`prefix=4` 不变 ✗）。
+    // ⇒ 那些 memo **不是**同一条线程能共享的（或键不同 ✓）⇒ **提前付的那一趟白付、还多付** ✗。
+    // ⇒ 结论：**A5 的"预热入口趟"这条路走不通**；第一刀的合成前缀要另找切法（方向③ ✓）。
     crate::project::session::warm_library(&lib_units, options)
 }
 
