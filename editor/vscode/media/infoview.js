@@ -279,7 +279,13 @@
         "project-artifacts",
         artifacts
           ? `产物：${num(artifacts.entries)} 条 · ${bytesText(artifacts.bytes)} · ` +
-              `由编译器 ${artifacts.compiler ?? "?"} 写入`
+              // **需求 1B（2026-10-09 用户实测）**：`compiler` 为 `null` 时这里原来写
+              // **裸问号**「由编译器 ? 写入」——用户看到的就是那个 `?`，读不出是
+              // "还没写/读不到" 还是 "插件坏了" ✗。与上面 ② 那行 `project-version`
+              // 同一个友好兜底（「（未知）」）✓。服务端那半边（旧 schema ⇒ 不报
+              // `compiler`）已由 `front::project::cache::update_index` 的 schema 升级修掉；
+              // 这一行是**兜底**：真读不到时也要说人话。
+              `由编译器 ${artifacts.compiler || "（未知）"} 写入`
           : "产物：还没有（下一次编译会写入模块根的 .sokonanoda/compiled/）",
       ),
     );
@@ -396,17 +402,19 @@
 
     if (goals.length === 0) {
       if (decl) {
-        // **B2（2026-10-08）**：证明**在末条 tactic 闭合** ⇒ 道贺（Q.E.D.）。
-        // 判据全在既有的 `soko/stateAt` 字段里（不加新 wire 字段 ✓）：
-        // `total > 0 && goals 为空 && step == total-1` 且 `decl.status == "checked"`。
-        // 其余"无目标"（`def`/`axiom` 的 `total:0`、`open`/`failed` 的声明）
-        // **保持中性文案**「已无目标 ✓」—— 对一道没证完的题道贺是假话 ✗。
-        const proved = decl.status === "checked"
-          && typeof msg.total === "number" && msg.total > 0
-          && typeof msg.step === "number" && msg.step === msg.total - 1;
-        goalsBody.appendChild(el("p", "solved", proved
-          ? "🎉 恭喜，证完了（Q.E.D.）"
-          : "已无目标 ✓"));
+        // **需求 3（2026-10-09 用户拍板）：无目标只有**一个**文案** ✓。
+        //
+        // 以前这里分两套（B2/2026-10-08）：`status == "checked" && total > 0
+        // && step == total-1`（在末条 tactic 闭合）⇒「🎉 恭喜，证完了（Q.E.D.）」，
+        // 其余（含**尾部还有 `sorry`** 的声明）⇒「已无目标 ✓」。
+        // 用户要求**统一成一句**「🎉 已无目标 ✓」：
+        //   * 尾部带 `sorry` 的声明也会走到这里（我们的 `sorry` **不闭合目标**，
+        //     但光标停在声明后的空行/末条 tactic 之后时 `goals` 可以是空的）——
+        //     "已无目标" 就够，不替学习者下"证完了"的判决 ✗；
+        //   * 同一格不再因 `step`/`status` 抖出两套字样。
+        // **判据**：`editor/vscode/test-webview.js` 的两条（闭合的 / 没闭合的）
+        // 必须看到**同一行字**。
+        goalsBody.appendChild(el("p", "solved", "🎉 已无目标 ✓"));
       } else if (messages.length === 0) {
         // 光标在 `#check`/`#print` 那一行时**本来就不在任何声明里** ——
         // 那时下面那块「命令输出」才是要显示的东西，别用这句话盖过它 ✓。
@@ -431,10 +439,14 @@
           }
         });
         goal.appendChild(head);
-        goal.appendChild(
-          codeBlock("goal-ty", state && state.goal_runs, (state && state.goal) || "", "⊢ "),
-        );
 
+        // **需求 2（2026-10-09 用户实测）：条件在上、目标在下** ✓（与 Lean 4 Infoview
+        // 同一版式：`case …` → 假设列表 → `⊢ 目标`）。
+        //
+        // 以前先 `appendChild(goal-ty)` 再 `appendChild(binders)` ⇒ 目标在最上面、
+        // 条件在它下面 ✗（Lean 里恒相反）。这里只挪**渲染顺序**，两块本身一字不动：
+        // `goal-head` 仍在最上是"目标 N/M"的可点 reveal 按钮（对应 Lean 的 `case` 行 ✓），
+        // `binder-colon` 冒号照旧（2026-10-08 用户点名的那条，别改 ✗）。
         const binders = (state && state.binders) || [];
         if (binders.length > 0) {
           const list = el("ul", "binders");
@@ -456,6 +468,10 @@
           });
           goal.appendChild(list);
         }
+
+        goal.appendChild(
+          codeBlock("goal-ty", state && state.goal_runs, (state && state.goal) || "", "⊢ "),
+        );
         goalsBody.appendChild(goal);
       });
     }

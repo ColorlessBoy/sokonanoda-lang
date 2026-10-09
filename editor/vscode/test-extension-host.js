@@ -2605,11 +2605,12 @@ test("compile progress marks the active document in the overview ruler", async (
   );
 });
 
-// **B2（2026-10-08）**：`extension.js` 的**树项**与 `media/infoview.js` 是**同一判据的
-// 两个渲染点**（"同类问题横向排查" ✓）—— 证明在**末条 tactic** 闭合时，两边都要报
-// 「证完了」，而不是中性的「已无目标 ✓」。这条钉**树**那一半（Infoview 那一半在
-// `test-webview.js`；wire 那一半在 `crates/lsp/src/tests/state.rs`）。
-test("B2: the cursor tree congratulates a proof closed at its last tactic", async () => {
+// **需求 3（2026-10-09 用户拍板）**：`extension.js` 的**树项**与 `media/infoview.js`
+// 是**同一判据的两个渲染点**（"同类问题横向排查" ✓）—— 两边都只报**一句**
+// 「🎉 已无目标 ✓」（旧版这里分「🎉 证完了（Q.E.D.）」/「已无目标 ✓」两套 ✗）。
+// 这条钉**树**那一半（Infoview 那一半在 `test-webview.js`；wire 那一半在
+// `crates/lsp/src/tests/state.rs`）。
+test("goal wording: the cursor tree shows the unified no-goal line", async () => {
   stubbedResponses["soko/goals"] = () => ({
     decls: [{ name: "done", kind: "theorem", status: "checked", holes: [] }],
   });
@@ -2631,14 +2632,17 @@ test("B2: the cursor tree congratulates a proof closed at its last tactic", asyn
     assert.ok(group, `the cursor group must be present, got ${roots.map((i) => i.label)}`);
     const rows = await tree.getChildren(group);
     const descriptions = rows.map((item) => String(item.description ?? ""));
+    // 只看「目标」那一行（同一组里还有 `by 进度 2/2`，它有自己的 description ✓）。
+    const goalRow = rows.find((item) => String(item.label) === "目标");
+    assert.ok(goalRow, `the 目标 row must be present, got ${JSON.stringify(rows.map((i) => i.label))}`);
     assert.strictEqual(
-      descriptions.filter((d) => d.includes("Q.E.D.")).length,
-      1,
-      `exactly one congratulation row (got ${JSON.stringify(descriptions)})`,
+      String(goalRow.description ?? ""),
+      "🎉 已无目标 ✓",
+      `无目标只有一句文案：${JSON.stringify(descriptions)}`,
     );
     assert.ok(
-      !descriptions.includes("已无目标 ✓"),
-      `a closed proof must NOT fall back to the neutral line (got ${JSON.stringify(descriptions)})`,
+      !descriptions.some((d) => d.includes("Q.E.D.")),
+      `「证完了（Q.E.D.）」那套已被用户删掉：${JSON.stringify(descriptions)}`,
     );
   } finally {
     stubbedResponses["soko/goals"] = () => ({ decls: [] });

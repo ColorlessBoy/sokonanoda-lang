@@ -507,8 +507,8 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   recorded after each tactic runs); `total` is the tactic count. For a
   declaration without a `by` block both are `-1`/`0` and the response falls
   back to the declaration's remaining goal/context (`step: -1`).
-- `decl: null` = the caret is not inside any declaration; all other fields
-  then default (`goal: null`, empty `binders`, `span: null`, `step: -1`, `total: 0`).
+- `decl: null` = the caret is in no declaration **and not in the blank tail after one** (2026-10-09: a blank line / trailing whitespace right after a declaration body still belongs to that declaration, so the panel keeps showing its remaining goals instead of 「光标不在任何声明内」; the first line carrying other content — the next declaration, a comment, a `#check`/`#print` line — ends the tail);
+  all other fields then default (`goal: null`, empty `binders`, `span: null`, `step: -1`, `total: 0`).
 - The response carries the document `version` so clients drop stale answers.
   Selection is entirely server-side (clients never scan the source);
   `soko/goals` is unaffected. `messages` (**C3**, 2026-10-08) = the command outputs on the caret's line: `[{"kind": "check"|"print", "text": "…", "range": {…}}]` (`[]` = none); `check` → `expression : type` (Lean's `logInfoAt tk m!"{e} : {type}"`), `print` → the printed declaration; selection is **by line** (Lean's `getInteractiveDiagnostics{lineRange?}`) and lives in the truth layer (`front::query`) — clients only render it, and `#check` keeps its **inlay hint** ✓.

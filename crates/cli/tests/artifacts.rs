@@ -470,6 +470,83 @@ fn query_project_lists_the_artifacts_of_its_module_root() {
     let _ = std::fs::remove_dir_all(&escape_cache);
 }
 
+/// **需求 1（2026-10-09 用户实测）的可见层判据**：老产物目录（`meta.json` 的
+/// `schema` 停在旧格式）在一次 `build` 之后必须被**升级**，`query project` 才报得出
+/// `compiler`。
+///
+/// **屏幕上的判据**：扩展画的那一行「由编译器 X 写入」只读
+/// `soko/project.artifacts.compiler`（`editor/vscode/media/infoview.js`）——它是
+/// `null` 时面板就写「由编译器 ? 写入」✗（用户看到的就是这个裸问号）。所以这条
+/// **不看 `meta.json` 的字面量**，直接问用户界面问的那条命令（`query project`）✓。
+///
+/// 现场形状（本地 `course/shared/.sokonanoda/meta.json` 逐字节如此）：`compiler`
+/// 已被写侧刷新成当前版本，`schema` 却停在 `soko.artifacts/1` ⇒ 读侧两个消费者都
+/// 按 `schema == 当前` 过滤 ⇒ 整目录当不存在。
+#[test]
+fn a_stale_artifact_schema_is_upgraded_by_the_next_build() {
+    let root = scratch("stale-schema");
+    let cache = scratch("cache-stale-schema");
+    project(&root);
+    let entry = root.join("Main.sokonanoda");
+    let entry_arg = entry.to_str().unwrap();
+
+    // ① 先有一次正常 build —— 目录与条目都是真的。
+    let (code, _) = run(&cache, &["build", "--json", entry_arg]);
+    assert_eq!(code, 0);
+    let meta_path = root.join(".sokonanoda/meta.json");
+    let fresh: Value = serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
+    let current_schema = fresh["schema"].clone();
+    assert!(
+        current_schema.as_str().is_some_and(|s| !s.is_empty()),
+        "刚写完的 meta.json 必须有 schema：{fresh}"
+    );
+
+    // ② 把 `meta.json` 打回**用户现场那个形状**：schema 旧、compiler 旧。
+    //
+    //    ⚠ 这一格**不能**用 `query project` 去读"旧 schema ⇒ 不报 compiler"：`query`
+    //    自己就是一条会**写产物**的命令（`load_document` 未命中就
+    //    `store_if_clean_at`）⇒ 它一边读一边把目录修好了（这本身是修复 ✓，不是判据 ✗）。
+    //    "读侧过滤"那半边由 front 的单测钉：
+    //    `crates/front/src/query/project.rs::artifacts_snapshot_is_read_only_and_counts_only_entries` ②′
+    //    （只读快照，不写盘）。
+    let mut stale = fresh.clone();
+    stale["schema"] = Value::String("soko.artifacts/1".into());
+    stale["compiler"] = Value::String("0.78.0".into());
+    std::fs::write(&meta_path, format!("{stale}\n")).unwrap();
+    let on_disk: Value = serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
+    assert_eq!(
+        on_disk["schema"], "soko.artifacts/1",
+        "夹具必须真的把目录打回旧 schema：{on_disk}"
+    );
+
+    // ③ 再来一次 build ⇒ **写产物那一刻** schema 与版本戳一起升级。
+    let (code, events) = run(&cache, &["build", "--json", entry_arg]);
+    assert_eq!(code, 0);
+    assert_eq!(
+        summary(&events)["compiled"],
+        1,
+        "旧 schema ⇒ 读侧当 miss、重编（宁可重算，绝不误用）：{events:?}"
+    );
+    let after: Value = serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
+    assert_eq!(
+        after["schema"], current_schema,
+        "写产物必须把 schema 升回**当前**值（= ① 那次写下的；修前它永远停在 1 ✗）：{after}"
+    );
+
+    // ④ 用户可见的结果：面板那一行拿得到编译器版本号 ⇒ 不再画「?」。
+    let (code, stdout) = run_raw(&cache, &["query", "project", "--file", entry_arg], &[]);
+    assert_eq!(code, 0, "{stdout}");
+    let answer: Value = serde_json::from_str(&stdout).expect("query JSON");
+    assert_eq!(
+        answer["data"]["project"]["artifacts"]["compiler"].as_str(),
+        Some(env!("CARGO_PKG_VERSION")),
+        "升级后面板必须拿到当前编译器版本号（修前这里恒为 null ⇒「?」）：{stdout}"
+    );
+
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&cache);
+}
+
 #[test]
 fn every_entry_keeps_its_own_artifact_round_after_round() {
     // **性能回归的判据**（2026-09-25）：产物目录的语义是"**每个入口当前的编译结果**"

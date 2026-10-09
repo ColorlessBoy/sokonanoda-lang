@@ -119,9 +119,14 @@ fn enabled() -> bool {
 }
 
 /// 当前 `meta.json` 的 schema 串（**单一来源** ✓）：`soko.artifacts/<条目格式>.r<报告形状>`。
-/// 两个消费者都用它：`meta_ok`（决定产物目录认不认）与 `query::project`（决定要不要
-/// 把里面的 `compiler` 版本显示给用户 —— schema 不符 ⇒ **不显示** ✗，免得面板报一个
-/// 旧二进制写的版本号）。
+/// 三个消费者都用它：`meta_ok`（决定产物目录认不认）、`query::project`（决定要不要
+/// 把里面的 `compiler` 版本显示给用户 —— schema 不符 ⇒ **不显示** ✗）、
+/// 以及 [`update_index`]（**写侧把它升级成当前值** ✓，见那里的长注释）。
+///
+/// ⚠ **"免得报旧二进制版本号"这条顾虑已由写侧解决**（2026-10-09 需求 1）：`update_index`
+/// 与 `compiler`/`build_stamp` **同一次**把 schema 刷成当前值 ⇒ 读侧这道过滤从此只兜底
+/// "这份 `meta.json` 不是本进程写的、也没被本进程刷新过"（例如只读目录、逃生门、
+/// 或旧二进制写的目录还没被覆盖过）。
 pub fn meta_schema() -> String {
     format!(
         "soko.artifacts/{ARTIFACTS_FORMAT}.r{}",
@@ -130,6 +135,9 @@ pub fn meta_schema() -> String {
 }
 
 /// `meta.json` 可读且 schema 相符？（缺失也算不符——半成品目录不认）
+///
+/// 比对走 [`meta_schema`]（**单一来源** ✓ —— 这里以前把同一个 `format!` 又写了一遍，
+/// 2026-10-09 收敛掉：写侧现在也要用这个串，两处各写一份迟早漂移）。
 fn meta_ok(root: &Path) -> bool {
     let Ok(bytes) = std::fs::read(artifacts_dir(root).join("meta.json")) else {
         return false;
@@ -137,13 +145,7 @@ fn meta_ok(root: &Path) -> bool {
     serde_json::from_slice::<serde_json::Value>(&bytes)
         .ok()
         .and_then(|meta| meta.get("schema")?.as_str().map(str::to_string))
-        .is_some_and(|schema| {
-            schema
-                == format!(
-                    "soko.artifacts/{ARTIFACTS_FORMAT}.r{}",
-                    crate::compile::REPORT_SHAPE
-                )
-        })
+        .is_some_and(|schema| schema == meta_schema())
 }
 
 fn now_unix() -> u64 {
@@ -304,7 +306,12 @@ pub fn clean_at(root: &Path) -> usize {
     removed
 }
 
-/// 写完之后更新**索引**与 `written_unix`（best-effort；`meta.json` 只有几百字节）。
+/// 写完之后更新**索引**、`written_unix`、版本戳与 schema（best-effort；`meta.json`
+/// 只有几百字节）。
+///
+/// **读侧的 schema 过滤没变**（[`meta_ok`] / `artifacts_of` 仍要求 `== meta_schema()`）；
+/// 变的是**写侧**：写产物时把 schema 一并升到当前值 ⇒ 老目录不会永远卡在
+/// "整目录当不存在"（2026-10-09 需求 1 的根因与理由见下面那段注释 ✓）。
 ///
 /// 索引 = `入口路径 → 条目的磁盘键`，它承担两件事：
 /// ① **替换**：同一个入口的新结果把**它的**旧条目删掉（而不是让别的入口被淘汰）；
@@ -346,6 +353,25 @@ fn update_index(root: &Path, entry_path: &Path, key: &str) {
     let (compiler, build_stamp) = current_stamp();
     object.insert("compiler".into(), serde_json::json!(compiler));
     object.insert("build_stamp".into(), serde_json::json!(build_stamp));
+    // **schema 也必须升级**（2026-10-09 需求 1，用户实测）。
+    //
+    // 症状：面板顶上「编译器 ?」——根因是 `query::project::artifacts_of` 与
+    // [`meta_ok`] 都按 `schema == meta_schema()` 过滤，而老目录的 `schema` 停在旧格式
+    // （本地实测 `course/shared/.sokonanoda/meta.json` = `soko.artifacts/1`，而当前是
+    // `soko.artifacts/2.r3`）⇒ 整个产物目录**当不存在**：`compiler` 一律 `None` ⇒
+    // Infoview 画成「由编译器 ? 写入」✗；顺带每次编译都白读不到自己的产物。
+    //
+    // 为什么升级它**不是**"把陈旧数据画上屏"（[`meta_schema`] 那条老顾虑已不成立 ✓）：
+    // 走到这一行时，`compiled/` 里刚写进一条**当前编译器**产出的新条目，`compiler` /
+    // `build_stamp` 也在同一次刷新成当前值 ⇒ schema 描述的正是这份目录**现在的**写者。
+    // 陈旧条目不会因此被误用：条目的磁盘键里带版本 + `build_stamp`（`key_parts`），
+    // 每条还带 `CACHE_FORMAT` 校验（第二道保险）。
+    //
+    // 已经是当前值就一个字节都不动（幂等；也保住"文件没变化就不重写"的既有语义 ✓）。
+    let schema = meta_schema();
+    if object.get("schema").and_then(|value| value.as_str()) != Some(schema.as_str()) {
+        object.insert("schema".into(), serde_json::json!(schema));
+    }
     let _ = std::fs::write(&path, format!("{meta}\n"));
 }
 
@@ -405,11 +431,12 @@ mod tests {
             Some(build_stamp.as_str()),
             "build_stamp 同理：{raw}"
         );
-        // 刷新**不许**碰 schema（否则会命中「schema 不符 ⇒ 整个目录当不存在」）。
+        // **schema 已经是当前值**（这份目录是新编译器建的）⇒ 一个字节都不动
+        //（幂等 ✓；升级那条在下面 `the_artifact_schema_is_upgraded_...` 里钉）。
         assert_eq!(
             after.get("schema").and_then(|v| v.as_str()),
             Some(schema.as_str()),
-            "schema 不许动：{raw}"
+            "schema 已是最新时不许动：{raw}"
         );
         // 索引照常写入（这条是既有行为，顺带钉住"刷新没把别的字段挤掉"）。
         assert_eq!(
@@ -419,6 +446,68 @@ mod tests {
                 .and_then(|v| v.as_str()),
             Some("abc123"),
             "索引照常写入：{raw}"
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// **需求 1（2026-10-09 用户实测）**：老产物目录的 `meta.json` 停在**旧 schema**
+    /// ⇒ Infoview 显示「由编译器 ? 写入」✗。
+    ///
+    /// 现场形状（本地 `course/shared/.sokonanoda/meta.json` 逐字节如此）：`compiler`
+    /// 已经被 [`update_index`] 刷新成当前版本（`0.87.0`），`schema` 却还停在
+    /// `soko.artifacts/1`（当前是 `soko.artifacts/2.r3`）。两个读侧消费者都按
+    /// `schema == meta_schema()` 过滤 ⇒ 整目录当不存在 ⇒ `compiler: null` ⇒ 面板
+    /// 画成「由编译器 ? 写入」✗。
+    ///
+    /// 判据（**咬得住**）：把 `update_index` 里那段 schema 升级删掉 ⇒ 这条当场判红 ✓；
+    /// 顺带钉住"升级后读侧真的认这个目录"（[`meta_ok`] 由 false → true）——
+    /// 否则"升级了却还是读不到"会是第二个静默降级通道 ✗。
+    #[test]
+    fn the_artifact_schema_is_upgraded_when_the_directory_is_stale() {
+        let root = tmp_root("schema-upgrade");
+        assert!(ensure_layout(&root), "产物目录要建得起来");
+        let meta = artifacts_dir(&root).join("meta.json");
+        // 用户现场那份（schema 旧、compiler 新）。
+        let stale = serde_json::json!({
+            "schema": "soko.artifacts/1",
+            "compiler": "0.87.0",
+            "build_stamp": "0000000000000000",
+            "platform": "test/test",
+            "created_unix": 1,
+            "written_unix": 1,
+            "entries": {},
+        });
+        std::fs::write(&meta, format!("{stale}\n")).expect("write stale meta");
+        assert!(
+            !meta_ok(&root),
+            "读侧纪律不变：旧 schema 的目录在升级前当不存在（宁可重算，绝不误用）"
+        );
+
+        let entry = root.join("Entry.sokonanoda");
+        update_index(&root, &entry, "abc123");
+
+        let raw = std::fs::read_to_string(&meta).expect("meta readable");
+        let after: serde_json::Value = serde_json::from_str(&raw).expect("meta is json");
+        assert_eq!(
+            after.get("schema").and_then(|v| v.as_str()),
+            Some(meta_schema().as_str()),
+            "写产物必须把 schema 升到**当前**值（否则 `artifacts_of` 不报 compiler \
+             ⇒ 面板「由编译器 ? 写入」✗）：{raw}"
+        );
+        let (compiler, build_stamp) = current_stamp();
+        assert_eq!(
+            after.get("compiler").and_then(|v| v.as_str()),
+            Some(compiler),
+            "schema 与版本戳**同一次**刷新（不许只升一个）：{raw}"
+        );
+        assert_eq!(
+            after.get("build_stamp").and_then(|v| v.as_str()),
+            Some(build_stamp.as_str()),
+            "{raw}"
+        );
+        assert!(
+            meta_ok(&root),
+            "升级后读侧必须认这个目录（否则整个产物目录白写）：{raw}"
         );
         let _ = std::fs::remove_dir_all(&root);
     }

@@ -14,6 +14,81 @@ pub struct StateSelection {
     pub total: usize,
 }
 
+/// **光标落在哪一条声明上**（真相层的唯一定位实现；`QueryDoc::state_at` 用它）。
+///
+/// 判据两条：
+/// 1. `span.start <= cursor <= span.end` —— 既有口径（**两端都闭**；声明 span 不含
+///    行尾换行，见 `crates/lsp/src/tests/goals.rs` 的边界注释）；
+/// 2. **外加"声明末尾的空白尾巴"**（2026-10-09 需求 4 用户实测）：光标停在声明体
+///    之后的**行尾空白**或**空白行**上时，仍算这条声明。
+///
+/// 第 2 条要的是"光标在题目证明过程后面的空行上，面板不许说『光标不在任何声明内』"——
+/// 那时该声明的剩余目标（或「🎉 已无目标 ✓」）才是用户要看的东西 ✓。
+/// **边界**：尾巴在遇到**第一行非空白内容**时立刻断（下一条声明、注释、`#check`/
+/// `#print` 命令行都算内容）⇒ C3 的 `#check` 那一格仍然答"不在任何声明内"，
+/// 于是命令输出块照旧显示 ✓（不能把 `#check` 行首吞进上一条声明 ✗）。
+///
+/// 判据：`crates/front/src/query/tests.rs::state_at_owns_the_blank_lines_after_a_declaration`
+/// （真相层）+ `crates/lsp/src/tests/state.rs` 的同名 wire 判据（屏幕上看得见的那一层）。
+pub fn decl_at_cursor<'a>(
+    text: &str,
+    decls: &'a [DeclState],
+    cursor: usize,
+) -> Option<&'a DeclState> {
+    decls.iter().find(|d| {
+        (d.span.start.offset <= cursor && cursor <= d.span.end.offset)
+            || (cursor > d.span.end.offset && in_blank_tail(text, d.span.end.offset, cursor))
+    })
+}
+
+/// 光标是不是落在 `end` 之后的**空白尾巴**上（行尾空白 / 空白行）。
+///
+/// **逐行判**，不是"`end` 到光标之间字节全是空白" ✗ —— 后者会把 `#check` 行的
+/// **行首**吞掉（`def myid … := x\n#check myid` 里中间那个 `\n` 是空白，
+/// 但光标所在的那一行不是空白行 ✗）。
+///
+/// * ① 声明自己那一行：`end` 到行尾只许空白（行尾空格 / 制表符 / 换行 ✓）；
+/// * ② 跨行之后：**光标所在行为止，每一行都必须是空白行**（含其换行）；
+/// * ③ 光标落在空白行上的任何位置都算（行首 / 行尾 / 换行处 / EOF 那个空行）。
+fn in_blank_tail(text: &str, end: usize, cursor: usize) -> bool {
+    debug_assert!(cursor >= end, "只有 `end` 之后的位置才谈得上尾巴");
+    let bytes = text.as_bytes();
+    let len = bytes.len();
+    let end = end.min(len);
+    let cursor = cursor.min(len);
+    // ① 本行行尾。
+    let mut line_end = end;
+    while line_end < len && bytes[line_end] != b'\n' {
+        line_end += 1;
+    }
+    if !text[end..line_end].trim().is_empty() {
+        // 声明后面还有别的内容（注释 / 命令 / 下一条声明）⇒ 没有空白尾巴。
+        return false;
+    }
+    if cursor <= line_end {
+        return true;
+    }
+    // ② 跨行：逐行要求整行空白，直到光标落在其中某一行上。
+    let mut line_start = line_end + 1;
+    loop {
+        let mut line_end = line_start;
+        while line_end < len && bytes[line_end] != b'\n' {
+            line_end += 1;
+        }
+        if !text[line_start..line_end].trim().is_empty() {
+            return false;
+        }
+        if cursor <= line_end {
+            return true;
+        }
+        if line_end >= len {
+            // 光标在文件末尾之后（调用方已排除越界；这里只兜底）。
+            return false;
+        }
+        line_start = line_end + 1;
+    }
+}
+
 /// 光标处的状态选择（**Lean `goalsAt?` 语义的唯一实现**，协议原文见
 /// `docs/protocol.md` §`soko/stateAt`）：
 ///

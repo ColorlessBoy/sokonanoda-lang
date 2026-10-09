@@ -340,6 +340,61 @@ async fn state_at_outside_any_declaration_is_empty() {
     shutdown(&mut service).await;
 }
 
+/// **需求 4（2026-10-09 用户实测）的 wire 判据**：光标停在声明**后面的空白行**上时，
+/// `soko/stateAt` 必须仍答**那条声明**（`decl` 非 `null`）——Infoview 据此画该声明的
+/// 剩余目标 / 「🎉 已无目标 ✓」，而不是「光标不在任何声明内」✗。
+///
+/// 真相层的定位在 `front::query::decl_at_cursor`（**唯一实现**）；这一层钉的是
+/// **wire 上真的带着它**（`decl.name` + 可 reveal 的 `span`，客户端只渲染不重算 ✓）。
+///
+/// **边界（同一把尺子）**：`#check` 那一行**不许**被吞给上一条声明 —— C3 的命令输出
+/// 走的就是 `decl: null` 那条路（见 `state_at_carries_the_command_outputs_on_the_caret_line`）。
+#[tokio::test]
+async fn state_at_on_the_blank_line_after_a_declaration_keeps_that_declaration() {
+    let src = "def one : Prop -> Prop := fun (x : Prop) => x\n\
+               \n\
+               def two : Prop -> Prop := fun (x : Prop) => x\n\
+               \n\
+               #check two\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "stateAt blank-line diagnostics").await;
+
+    // 空行（0-based 行 1）⇒ 归 `one`。
+    let blank = src.find("\n\n").expect("空行") + 1;
+    let result = ask_state_at(&mut service, src, blank).await;
+    assert_eq!(
+        result["decl"]["name"], "one",
+        "声明后的空行必须归**上一条**声明：{result:?}"
+    );
+    assert!(
+        !result["span"].is_null(),
+        "还要带着可 reveal 的 span（否则连提示块都点不动）：{result:?}"
+    );
+    assert_eq!(result["uri"], json!(URI), "回显身份 ✓");
+
+    // 第二条之后的空行 ⇒ 归 `two`（**就近**，不是永远第一条 ✗）。
+    let two = src.find("def two").expect("第二条声明");
+    let blank_two = src[two..].find("\n\n").expect("空行") + two + 1;
+    let result = ask_state_at(&mut service, src, blank_two).await;
+    assert_eq!(result["decl"]["name"], "two", "{result:?}");
+
+    // `#check` 那一行仍答 `null`（C3 的命令输出通道不许被堵 ✗）——而且输出还在。
+    let check = src.find("#check").expect("命令");
+    let result = ask_state_at(&mut service, src, check).await;
+    assert!(
+        result["decl"].is_null(),
+        "`#check` 那一行仍不在任何声明内：{result:?}"
+    );
+    assert!(
+        !result["messages"].as_array().expect("messages").is_empty(),
+        "那一行的命令输出必须照旧带上（C3）：{result:?}"
+    );
+
+    shutdown(&mut service).await;
+}
+
 /// **C3（2026-10-08）的 wire 判据**：`#check` / `#print` 的输出要**到得了 Infoview**。
 ///
 /// 改前：`#check` 只有 **inlay hint**（内联灰字，不是面板），`#print` 的 `Printed`

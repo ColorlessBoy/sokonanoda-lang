@@ -316,6 +316,55 @@ test("state: hypotheses read `name : type`, and only the decl name is clickable 
   );
 });
 
+// **需求 2（2026-10-09 用户实测）**：目标栏的版式必须与 Lean 4 Infoview 一致 ——
+// **条件在上、目标在下**（`case …` → 假设列表 → `⊢ 目标`）。
+//
+// 修前 `renderGoals` 先 append `goal-ty` 再 append `binders` ⇒ 目标在最上面、
+// 条件在它下面 ✗（用户报的正是这个）。判据看的是**父节点的子节点顺序**（结构事实），
+// 不是文本——文本顺序对不上时 `textContent` 也能"看着像"，咬不住 ✗。
+// `goal-head`（"目标 N/M" 的可点 reveal 按钮）留在最上：它对应 Lean 的 `case` 行 ✓。
+test("state: hypotheses render ABOVE the goal (Lean 4 layout, 2026-10-09)", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    goal: "A",
+    goal_runs: [{ text: "A", kind: "axiom_use" }],
+    binders: [
+      { name: "h", ty: "B", ty_runs: [{ text: "B", kind: "binder" }] },
+    ],
+  });
+  const goal = byClass(root, "goal")[0];
+  assert.ok(goal, "目标块必须渲染");
+  assert.deepStrictEqual(
+    goal.childNodes.map((node) => node.className),
+    ["goal-head", "binders", "goal-ty"],
+    "版式必须是 目标头 → 条件 → 目标（条件在目标**上面**，用户需求 2）",
+  );
+  // 冒号那条（2026-10-08 用户）挪位置后不许丢 ✗。
+  assert.strictEqual(textOf(byClass(goal, "binder-colon")[0]), ":");
+  assert.strictEqual(textOf(byClass(goal, "goal-ty")[0]), "⊢ A");
+  assert.strictEqual(textOf(byClass(goal, "binders")[0]), "h:B");
+});
+
+// 条件为空时版式不受影响（只有 `goal-head` + `goal-ty`，不留空的 `binders` 壳）。
+test("state: an empty context renders no binders list at all (2026-10-09)", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    goal: "A",
+    goal_runs: [{ text: "A", kind: "axiom_use" }],
+    binders: [],
+  });
+  const goal = byClass(root, "goal")[0];
+  assert.deepStrictEqual(
+    goal.childNodes.map((node) => node.className),
+    ["goal-head", "goal-ty"],
+    "没有条件时不许画空列表",
+  );
+});
+
 // 同一件事在**声明卡片**那一侧（`decls` 消息的 `ty_runs`）——两个 surface 都要有。
 test("decls: notation symbols render as tok-keyword spans in the type line", () => {
   const { root, send } = loadInfoview();
@@ -796,6 +845,41 @@ test("project: artifact bytes scale to B/KiB/MiB/GiB (user 2026-10-08)", () => {
   }
 });
 
+// **需求 1B（2026-10-09 用户实测）**：`artifacts.compiler` 缺失时**不许画裸问号**
+// 「由编译器 ? 写入」——用户读不出那是"还没写/读不到"还是"插件坏了" ✗。
+// 与上面 ② 那行 `project-version` 同一个友好兜底（「（未知）」）✓。
+//
+// 服务端那半边（旧 schema ⇒ 不报 `compiler`）由 `update_index` 的 schema 升级修掉
+// （判据在 `crates/front/src/project/cache.rs` 与 `crates/cli/tests/artifacts.rs`）；
+// **这一条钉的是兜底**：真读不到时屏幕上也是人话。
+test("project: a missing compiler version reads （未知）, never a bare ? (2026-10-09)", () => {
+  for (const compiler of [null, undefined, ""]) {
+    const { root, send } = loadInfoview();
+    send({
+      protocol: 1,
+      type: "project",
+      project: {
+        entry: "units.u01",
+        root: "/repo/courses/set-theory",
+        manifest: null,
+        modules: [],
+        counts: { modules: 1, decls: 0, compiled: 1, failed: 0, open_exercises: 0 },
+        artifacts: { entries: 7, bytes: 2048, compiler },
+      },
+      reason: null,
+    });
+    const line = textOf(byClass(root, "project-artifacts")[0]);
+    assert.ok(
+      line.includes("由编译器 （未知） 写入"),
+      `compiler=${JSON.stringify(compiler)} ⇒ 期望友好文案：${line}`,
+    );
+    assert.ok(
+      !line.includes("?"),
+      `compiler=${JSON.stringify(compiler)} ⇒ 不许出现裸问号：${line}`,
+    );
+  }
+});
+
 test("project: no project tells the reason apart, never a blank (E30)", () => {
   // 没有项目时也要**说出原因**（单文件 / 解不出路径 / 先修语法）——
   // 空区块会让用户以为"面板坏了"✗（与 T-B12 的三态同一个道理）。
@@ -980,12 +1064,15 @@ test("progress: begin renders three lines, report updates in place, end removes 
   );
 });
 
-// **B2（2026-10-08）**：证明**在末条 tactic 闭合** ⇒ 道贺（Q.E.D.）。判据全在既有的
-// `soko/stateAt` 字段里（`total > 0 && goals 为空 && step == total-1` 且
-// `decl.status == "checked"`）——**不加新 wire 字段** ✓。
-// ⚠ 反向的一半在下面那条：**没证完**的"无目标"不许道贺（对一道没做完的题说
-// 「证完了」是假话 ✗）。
-test("state: a proof closed at its last tactic congratulates (Q.E.D.)", () => {
+// **需求 3（2026-10-09 用户拍板）：无目标只有**一句**文案**。
+//
+// 以前这里分两套（B2/2026-10-08）：在末条 tactic 闭合 ⇒「🎉 恭喜，证完了（Q.E.D.）」，
+// 其余（含**尾部还有 `sorry`** 的）⇒「已无目标 ✓」。用户要求统一成「🎉 已无目标 ✓」
+// ——"已无目标"是**看得见的事实**，"证完了"是替学习者下的判决 ✗。
+//
+// 判据形状：**同一格**（`goals: []` + `decl` 在场）不管 `status`/`step`/`total` 怎么变，
+// 渲染出来的那一行必须**逐字节相同**。下面两条故意用"以前会分叉"的两组字段取值。
+test("state: a closed proof shows the unified no-goal line (2026-10-09)", () => {
   const { root, send } = loadInfoview();
   send({
     protocol: 1,
@@ -998,15 +1085,15 @@ test("state: a proof closed at its last tactic congratulates (Q.E.D.)", () => {
   });
   const solved = byClass(root, "solved")[0];
   assert.ok(solved, "the solved line must be rendered");
-  const text = textOf(solved);
+  assert.strictEqual(textOf(solved), "🎉 已无目标 ✓");
   assert.ok(
-    text.includes("Q.E.D.") && text.includes("🎉"),
-    `a closed proof must congratulate, got ${JSON.stringify(text)}`,
+    !textOf(root).includes("Q.E.D."),
+    "「恭喜，证完了（Q.E.D.）」那套已被用户删掉（需求 3）",
   );
 });
 
-test("state: no-goal states that are NOT closed keep the neutral line", () => {
-  // ① `def`/`axiom`：`total: 0`（没有 tactic ⇒ 不是"在末条闭合"）。
+test("state: every other no-goal shape shows the SAME line (2026-10-09)", () => {
+  // ① `def`/`axiom`：`total: 0`（没有 tactic）。
   let { root, send } = loadInfoview();
   send({
     protocol: 1,
@@ -1017,10 +1104,9 @@ test("state: no-goal states that are NOT closed keep the neutral line", () => {
     step: -1,
     total: 0,
   });
-  assert.strictEqual(textOf(byClass(root, "solved")[0]), "已无目标 ✓");
+  assert.strictEqual(textOf(byClass(root, "solved")[0]), "🎉 已无目标 ✓");
 
-  // ② 开放练习：即便服务端给空 `goals`（例如光标停在声明头部、状态是题面）
-  //    也不许道贺 —— 这条钉的是 `status` 那一半。
+  // ② 开放练习（尾部还有 `sorry` 的那类）：字段取值与 ①/③ 都不同，字样必须一样。
   ({ root, send } = loadInfoview());
   send({
     protocol: 1,
@@ -1031,9 +1117,9 @@ test("state: no-goal states that are NOT closed keep the neutral line", () => {
     step: 1,
     total: 2,
   });
-  assert.strictEqual(textOf(byClass(root, "solved")[0]), "已无目标 ✓");
+  assert.strictEqual(textOf(byClass(root, "solved")[0]), "🎉 已无目标 ✓");
 
-  // ③ 失败的声明：同样不许道贺。
+  // ③ 失败的声明。
   ({ root, send } = loadInfoview());
   send({
     protocol: 1,
@@ -1044,7 +1130,7 @@ test("state: no-goal states that are NOT closed keep the neutral line", () => {
     step: 1,
     total: 2,
   });
-  assert.strictEqual(textOf(byClass(root, "solved")[0]), "已无目标 ✓");
+  assert.strictEqual(textOf(byClass(root, "solved")[0]), "🎉 已无目标 ✓");
 });
 
 // **C3（2026-10-08）**：`#check` / `#print` 的输出要**看得见**（用户 P5：「在 infoview

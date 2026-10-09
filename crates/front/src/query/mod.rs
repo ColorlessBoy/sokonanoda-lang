@@ -20,7 +20,7 @@ mod types;
 use std::collections::BTreeSet;
 
 pub use pos::{line_col_of, offset_of_line_col, with_line_index, LineIndex};
-pub use state::{select_state_at, StateSelection};
+pub use state::{decl_at_cursor, select_state_at, StateSelection};
 pub use types::{
     Answer, BinderInfo, CheckCounts, CheckSummary, CodeActionInfo, DeclHeader, DeclInfo,
     FailedDecl, GoalInfo, HoleInfo, LocatedHole, ProjectCounts, ProjectDiagnosticInfo,
@@ -1276,16 +1276,17 @@ impl QueryDoc {
     /// 起点**（`cursor == start`）→ **进入**它的状态；否则停在最后一条在光标前
     /// 结束的 tactic 之后；首个 tactic 之前 → 根状态。原文见 `docs/protocol.md`
     /// §`soko/stateAt` 与 [`select_state_at`]。
+    ///
+    /// **在哪条声明里**由 [`decl_at_cursor`] 定（**唯一定位实现**）：除声明自己的 span
+    /// 外，**声明末尾的空白行/行尾**也算它（2026-10-09 需求 4）——光标停在题目证明
+    /// 过程后面的空行上时，面板照旧显示该声明的剩余目标 / 「🎉 已无目标 ✓」，
+    /// 而不是「光标不在任何声明内」✗。
     pub fn state_at(&self, cursor: usize) -> Result<StateAnswer, QueryError> {
         if cursor > self.text.len() {
             return Err(QueryError::PositionOutOfRange);
         }
         let report = self.report.as_ref().ok_or(QueryError::NotParsable)?;
-        let Some(d) = report
-            .decls
-            .iter()
-            .find(|d| d.span.start.offset <= cursor && cursor <= d.span.end.offset)
-        else {
+        let Some(d) = decl_at_cursor(&self.text, &report.decls, cursor) else {
             return Err(QueryError::OutsideDeclarations);
         };
         let selection = select_state_at(d, cursor);

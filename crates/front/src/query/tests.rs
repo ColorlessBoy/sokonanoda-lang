@@ -347,6 +347,123 @@ fn state_at_outside_declarations_is_an_error_not_an_empty_answer() {
     assert_eq!(err.code(), "outside-declarations");
 }
 
+/// **需求 4（2026-10-09 用户实测）**：题目证明过程**后面的空白行**也归**它**。
+///
+/// 修前 `state_at` 只认 `span.start <= cursor <= span.end` ⇒ 光标停在声明体之后的
+/// 空白行/行尾上答 `OutsideDeclarations` ⇒ Infoview 显示「光标不在任何声明内。」✗
+/// （用户要的是那条声明的**剩余目标**，或「🎉 已无目标 ✓」）。
+///
+/// **边界（同一把尺子，缺一不可）**：
+/// ① 空行 / 行尾空白 ⇒ 算**前一条**声明 ✓（`crates/front/src/query/state.rs::in_blank_tail`）；
+/// ② 下一行是 `#check`/`#print`（非空白内容）⇒ 光标在那一行**仍答"不在任何声明内"** ✓
+///    —— C3 的命令输出块就靠这一点（`crates/lsp/src/tests/state.rs` 那条同名判据）；
+/// ③ **第一条声明之前**的空白不受影响（不许"就近归属"给下一条 ✗）。
+#[test]
+fn state_at_owns_the_blank_lines_after_a_declaration() {
+    // 行 0/2 是声明，行 1/3 是空行，行 4 是命令（非空白内容）。
+    const BLANK_TAIL: &str = "def one : Prop -> Prop := fun (x : Prop) => x\n\n\
+                              def two : Prop -> Prop := fun (x : Prop) => x\n\n\
+                              #check two\n";
+    let text = doc(BLANK_TAIL);
+    let blank_after_one = BLANK_TAIL.find("\n\n").expect("空行") + 1;
+    let two = BLANK_TAIL.find("def two").expect("第二条声明");
+    let blank_after_two = BLANK_TAIL[two..].find("\n\n").expect("第二条后的空行") + two + 1;
+    let check = BLANK_TAIL.find("#check").expect("命令");
+
+    // ① 空行 ⇒ 归上一条（**两条不同的空行，两个不同的答案** —— 就近乱猜过不了 ✓）。
+    let first = text.state_at(blank_after_one).expect("空行属于 `one`");
+    assert_eq!(
+        first.decl.as_ref().map(|d| d.name.as_str()),
+        Some("one"),
+        "声明一之后的空行必须归 `one`"
+    );
+    let second = text.state_at(blank_after_two).expect("空行属于 `two`");
+    assert_eq!(
+        second.decl.as_ref().map(|d| d.name.as_str()),
+        Some("two"),
+        "声明二之后的空行必须归 `two`（不是第一条 ✗）"
+    );
+    // 空行上答的是**该声明**的状态（`def` ⇒ 无目标、无 tactic）。
+    assert_eq!(second.step, -1);
+    assert_eq!(second.total, 0);
+    assert!(second.goals.is_empty(), "{:?}", second.goals);
+
+    // ② `#check` 那一行**仍不**属于任何声明（否则命令输出被「已无目标」盖掉 ✗）。
+    assert_eq!(
+        text.state_at(check).expect_err("`#check` 行不算声明"),
+        QueryError::OutsideDeclarations
+    );
+    // ②′ 命令**前一行**（空行）仍然属于 `two` —— 尾巴在"第一行非空白内容"处断 ✓。
+    assert_eq!(
+        text.state_at(check - 1)
+            .expect("命令前一行仍属于 `two`")
+            .decl
+            .as_ref()
+            .map(|d| d.name.as_str()),
+        Some("two"),
+        "空行归 `two`、命令行不归（断点就是那一行）"
+    );
+
+    // ③ 第一条声明**之前**的空白不归它（文件头的空白不属于任何声明）。
+    let head = doc("\n\ndef one : Prop -> Prop := fun (x : Prop) => x\n");
+    assert_eq!(
+        head.state_at(0).expect_err("文件头空白不算声明"),
+        QueryError::OutsideDeclarations
+    );
+
+    // ④ **行尾空白**（声明体之后同一行的空格）也算这条声明 —— 用户说的"声明末尾"。
+    const TRAILING: &str = "def one : Prop -> Prop := fun (x : Prop) => x   \n";
+    let trailing = doc(TRAILING);
+    let spaces = TRAILING.find("   \n").expect("行尾空格");
+    assert_eq!(
+        trailing
+            .state_at(spaces + 1)
+            .expect("行尾空白属于本行声明")
+            .decl
+            .as_ref()
+            .map(|d| d.name.as_str()),
+        Some("one"),
+    );
+    // 但同一行里"声明之外还有内容"时不算（这里是注释，不是空白尾巴）。
+    const COMMENT_TAIL: &str = "def one : Prop -> Prop := fun (x : Prop) => x -- 说明\n";
+    let commented = doc(COMMENT_TAIL);
+    assert_eq!(
+        commented
+            .state_at(COMMENT_TAIL.find("--").expect("注释"))
+            .expect_err("声明后同一行的注释不算空白尾巴"),
+        QueryError::OutsideDeclarations
+    );
+}
+
+/// **需求 4 的"剩余目标"那一半**：光标停在**未证完**的声明之后的空行上时，面板拿到的
+/// 仍是**该声明的剩余目标**（不是空、也不是邻居的）——这样 Infoview 才会画目标或
+/// 「🎉 已无目标 ✓」，而不是「光标不在任何声明内」。
+#[test]
+fn state_at_on_a_blank_line_keeps_the_open_goals_of_the_declaration_above() {
+    const OPEN_TAIL: &str = "axiom P : Prop\naxiom h : P\n\ntheorem open_one : P := by\n  \
+                             sorry\n\ntheorem next_one : P := by\n  exact h\n";
+    let doc = doc(OPEN_TAIL);
+    let open_one = OPEN_TAIL.find("theorem open_one").expect("第一条定理");
+    let blank = OPEN_TAIL[open_one..].find("\n\n").expect("空行") + open_one + 1;
+    let state = doc.state_at(blank).expect("空行属于 `open_one`");
+    assert_eq!(
+        state.decl.as_ref().map(|d| d.name.as_str()),
+        Some("open_one"),
+        "空行归**上面**那条（未证完的）声明"
+    );
+    assert_eq!(state.total, 1, "`open_one` 有一条 tactic（`sorry`）");
+    assert_eq!(
+        state.step, 0,
+        "光标在它的末条 tactic 之后 ⇒ 取该 tactic 之后的状态"
+    );
+    assert_eq!(
+        state.goal.as_deref(),
+        Some("P"),
+        "剩余目标必须还在：{state:?}"
+    );
+    assert_eq!(state.goals.len(), 1, "{:?}", state.goals);
+}
+
 #[test]
 fn state_at_past_the_end_is_out_of_range() {
     let doc = doc(CANVAS);
