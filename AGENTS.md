@@ -176,6 +176,9 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 **编译缓存**：**项目**闭包产物落**模块根** `<模块根>/.sokonanoda/compiled/`
 （同格式同键、自忽略；`--clean` **两处都清**；逃生门
 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`；设计 `docs/design/project-artifacts.md`）。
+**模块层产物**（T1-B）：库层闭包的**内核环境**落 `<模块根>/.sokonanoda/artifacts/`（`.bin`＋`.meta.json`，
+**键 = 库层闭包摘要** ⇒ 只服务"开档/冷进程"；自忽略、**有界**（超 64 对按 mtime 淘汰）、`clean` 一并清；
+逃生门 **`SOKONANODA_NO_MODULE_ARTIFACTS=1`**，设上面那条**也**会一并关掉 ✓）。
 `sokonanoda build|clean|rebuild [<file>|<dir>]`（CLI：`clean` = **只清不编**、`rebuild` = **先清两处再预热**，与下面编辑器那两条**一一对应** ✓）；
 ⚠ 不给路径 = **当前目录**，并**跳过** `.git`/`node_modules`/`target`/`.sokonanoda` 等（2026-10-08：以前全递归 ⇒ 语言仓根 269k 文件、几分钟零输出 = "没反应" ✗）。
 编辑器里的 `Sokonanoda: Build (编译项目，预热缓存)`（`alt+b`）/ `Rebuild`（`alt+shift+b`，先清缓存）是同一条路——第一次按键慢、或在编辑器外改了依赖后面板像"没反应"，先 rebuild。

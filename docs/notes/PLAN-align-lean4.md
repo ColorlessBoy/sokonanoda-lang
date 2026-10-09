@@ -1402,15 +1402,13 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⇒ 分歧被钉成**快速判据**（0.05s ✓，不再依赖 CLI 集成测试 ✓）。判据按降级纪律写成
   "**断言当前行为**" ✓：T4-B 对齐之后**改判**成 `assert_eq!`（不许放宽 ✗）。
 
-* ✅ **T3-D 的处置决定（第 71 轮 · 只读取证）**：`EnvProvider` 今天确实是**死线** —— `provider:`
-  这个形参只出现在**定义处**（`judge.rs:2707` 的 `Option<&dyn EnvProvider>` ✓），**一个传参调用点都没有** ✗
+* ✅ **T3-D 的处置决定（第 71 轮 · 只读取证）**：`EnvProvider` 今天确实是**死线** —— `provider:` 这个形参只出现在**定义处**（`judge.rs:2707` 的 `Option<&dyn EnvProvider>` ✓），**一个传参调用点都没有** ✗
   （`grep "provider:"` 除函数签名/`trait`/注释外**零命中** ✓）。⇒ 按 T3-D 自己给的二选一，取**删掉它** ✓：
   活的那条路是 `InplaceEnv`（T3-B1/B2 已落地 ✓），而"按 `InplaceEnv` 的形状重写再接线"= **再造一个
   同一机制的入口** ✗。⇒ **执行清单（下一棒，一次 commit）**：① 删 `trait EnvProvider`（`judge.rs:2944`）+
   那个形参 + 测试里的 `Fake` 实现（`:3758`）；② 按纪律**先改台账** G-92 的 `expected_lean`
   （别在文档里留一个不存在的接口 ✗）；③ 判据 = `judge` 单测全绿 + 该处 `grep EnvProvider` 归零 ✓。
-* ⚠ **本轮的边界**：并行线在 `check/{mod,walk}.rs` + `project/session.rs` 上做 T2-B（三个文件未提交、
-  当前 `cargo check -p sokonanoda-front` **6 个错** ✗）⇒ 本线**不动这些文件**、也**跑不了任何编译判据** ✗
+* ⚠ **本轮的边界**：并行线在 `check/{mod,walk}.rs` + `project/session.rs` 上做 T2-B（三个文件未提交、 当前 `cargo check -p sokonanoda-front` **6 个错** ✗）⇒ 本线**不动这些文件**、也**跑不了任何编译判据** ✗
   （这正是 T3-D 只做到"取证 + 决定"的原因 ✓）。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
@@ -1487,8 +1485,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 ### 39. 第 48 轮（平行线）：**T2-B0 正身落地** —— 两张派生表从 O(闭包) 切到 O(入口) ✓✓
 
-* **做什么**（按 A4a 的切法 ✓）：把"**库层那一段**"随 [`LibCheckpoint`] 存一次 （`lib_display` / `lib_defs` 两个新字段 ✓），每刀只建"**入口那一段**"再合并 ✓。
-  * **合并的坑**（先证后做 ✓）：两张表**各自都带内建记法**（`display_notations_from_commands`
+* **做什么**（按 A4a 的切法 ✓）：把"**库层那一段**"随 [`LibCheckpoint`] 存一次 （`lib_display` / `lib_defs` 两个新字段 ✓），每刀只建"**入口那一段**"再合并 ✓。 * **合并的坑**（先证后做 ✓）：两张表**各自都带内建记法**（`display_notations_from_commands`
     会前插 `builtin_notation_decls()` ✓）⇒ 天真 `extend` 会**重复内建项** ✗ ⇒ 折叠可能分叉 ✗。
     ⇒ 新增 `DisplayNotations::merged_with`（`self.table` 原样 + `other.table` **跳过内建前缀** ✓；
     元数表 `self` 打底、`other` 覆盖 ✓），**前置判据**

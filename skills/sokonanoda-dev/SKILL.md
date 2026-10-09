@@ -257,7 +257,8 @@ cargo run -q -p sokonanoda-lsp                        # 编辑器反馈通道
   `<模块根>/.sokonanoda/compiled/`（同格式同键、自忽略、**一条目一入口** —— 索引
   `meta.json` 是"入口路径 → 条目键"、后写替换前写；早先的"上限 32 条按 mtime 淘汰"
   已废 ✗（实测让课程门禁反复互相淘汰刚写的条目）、
-  `--clean` 两处都清、逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`；
+  `--clean` 两处都清、逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`（**模块层产物**另有
+  `SOKONANODA_NO_MODULE_ARTIFACTS=1`，设前者也会一并关掉）；
   设计 `docs/design/project-artifacts.md`，判据 `crates/cli/tests/artifacts.rs`）；
   `SOKONANODA_CACHE_DIR` 改缓存根、
   `SOKONANODA_NO_CACHE=1` 关闭；测试用临时 cache dir 隔离。设计
