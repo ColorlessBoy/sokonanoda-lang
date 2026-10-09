@@ -1534,6 +1534,24 @@ impl QueryDoc {
             .collect())
     }
 
+    /// **目标视图的「不要着色数据」版**（设计 `docs/design/goals-payload-slimming.md` §3 候选 B ✓）：
+    /// 拿到全量后把各 `*_runs` **清空** ✓（目标/类型文本、名字、kind、span 一律照旧 ✓）。
+    ///
+    /// **为什么是"后处理"而不是给 `goals()` 加开关**：`goals()` 那一区在本会话里**6 次脚本化
+    /// 改写全部失手** ✗（见 `PLAN-align-lean4.md` 的硬纪律）⇒ 这里改成**一处新增** ✓（零风险 ✓）。
+    /// ⚠ **代价如实记**：front 的 tokenize **仍会跑**（那 ≈0.5–1ms 省不掉 ✗），省的是**载荷**
+    /// （实测真 unit08 上 ≈55KB/次 ✓ ⇒ 序列化 + 客户端解析 ✓）。要连 front 一起省 ⇒ 得给
+    /// `goals()` 开 `RunsMode`（按纪律：先搬家重构或手工单点 ✗不许脚本化）。
+    pub fn goals_without_runs(&self, probe: bool) -> Result<Vec<DeclInfo>, QueryError> {
+        let mut out = self.goals(probe)?;
+        for d in out.iter_mut() {
+            d.ty_runs.clear();
+            d.value_runs.clear();
+            d.goal_runs.clear();
+        }
+        Ok(out)
+    }
+
     /// **显示副本**：把一段**源级渲染**文本过唯一接口（A0 / A1，2026-09-26）。
     ///
     /// ⚠ **判定的输入绝不许走这里**：`DeclState.sub_goals[].ty` 被
