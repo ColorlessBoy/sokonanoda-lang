@@ -1,0 +1,36 @@
+-- **G-98 自断言复现**：`rfl` 在 `↔` 形状的目标上不可用（**必须判绿** = 已修）。
+--
+-- 用户原话（2026-10-09/10）：「rfl 这个 tactic 好像不太好用，这类都不能使用 rfl」，
+-- 原形状 = `theorem mem_empty_iff_false {α : Type} (a : α) : a ∈ ∅ ↔ False := by rfl`。
+--
+-- 缺口（修前）：`crates/front/src/by.rs::rfl_candidate` 只认 `Eq` 头 ⇒
+-- `elab-tactic-failed`「`rfl` 需要一个 `Eq α x y` 形状的目标」（死胡同：不指出出路）；
+-- `Iff.rfl` 这个名字**不存在**（`#check Iff.rfl` ⇒ `unknown identifier`）。
+--
+-- Lean 4 对照（`~/Documents/lean/lean4/src/Init/Core.lean:1025-1029`）：
+-- `macro_rules | `(tactic| rfl) => `(tactic| exact Iff.rfl)` ⇒ Lean 的 `rfl` 字面上就是
+-- `exact Iff.rfl`；Mathlib 的 `mem_empty_iff_false` 原样证明就是 `Iff.rfl`。
+--
+-- 修后契约（2026-10-10，对齐 Lean 4）：`rfl` 接受 `Iff` 头（候选 `Iff.refl`），
+-- **只在两边 defeq 时过**（内核裁决）；`Iff.rfl` 与 `Iff.refl` 同名同义。
+-- ⇒ 本文件必须**干净判卷**（每条 `decl.checked`、0 诊断）。
+--
+-- 反向边界（不在本文件里，常驻判据在 `crates/front/src/compile/tests.rs`）：
+-- 两边**不** defeq 的 `a ↔ b` 上 `rfl` **仍须判红**（`Judgement::Mismatch`）。
+
+def myFalse : Prop := False
+def myEmpty (α : Type) : α -> Prop := fun (a : α) => myFalse
+def myMem (α : Type) (a : α) (A : α -> Prop) : Prop := A a
+
+-- ① 用户原形状的最小同构：`a ∈ ∅ ↔ False`（两边 defeq，但要**展开**才看得出来）
+theorem mem_empty_iff_false (α : Type) (a : α) : myMem α a (myEmpty α) ↔ False := by rfl
+
+-- ② 最朴素的 `Iff` 目标
+theorem iff_self (a : Prop) : a ↔ a := by rfl
+
+-- ③ 命名对齐：Mathlib 的原文写法（`Iff.rfl`）
+theorem iff_rfl_bare (a : Prop) : a ↔ a := Iff.rfl
+
+-- ④ `Iff.refl` 与 `Iff.rfl` 都在册（`#check` 不许 `unknown identifier`）
+#check Iff.refl
+#check Iff.rfl

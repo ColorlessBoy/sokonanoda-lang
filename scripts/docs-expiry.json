@@ -295,12 +295,6 @@
       "renewed": "2026-10-02",
       "tier": "process"
     },
-    "docs/notes/HANDOFF-editor-feedback-2026-10-10.md": {
-      "expires": "2026-11-15",
-      "renewed": "2026-10-10",
-      "tier": "process",
-      "reason": "临时交接件：四条编辑器反馈的实现 prompt（实测读数+根因+判据），四条做完即删或归档并回收预算"
-    },
     "docs/notes/HANDOFF-kernel.md": {
       "expires": "2026-11-15",
       "reason": "内核线换会话交接单（临时产物，换完即删）",
