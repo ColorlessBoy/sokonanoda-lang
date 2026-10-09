@@ -39,7 +39,7 @@
     "docs/teaching-session.md": 189,
     "docs/vscode-dev-guide.md": 471,
     "docs/notes/PLAN-align-lean4-as-built.md": 617,
-    "docs/design/persistent-declarations.md": 241
+    "docs/design/persistent-declarations.md": 264
   },
   "onboarding": {
     "_comment": "X1（v0.79.0）：接手成本预算。`path` = **必读路径**（全读）—— 每文件 `max_lines`、合计 `onboarding_max_lines`；`layer_max_lines` = 四层各自**总行数**上限。**语义（实测校准过 ✓）**：层上限 = **该层当前实测值**（新文件计入 ⇒ 基线跟着走一次），之后**只许减不许增**（**例外**：① 新增**文件**到该层；② 把轮次**归档**进 L3 —— 归档是合法堆积，但**单文件**仍受判据 ② 的 2000 行上限管 ✓，所以 STATUS 归档要**二次下沉**分段 ✓） —— 内容改大 ⇒ 判红 ⇒ 要么删、要么把文件移出该层 ⇒ 改本文件评审可见 ✓。`_measured` 是**设基线那一刻的实测值**（供人核对，不参与判定）✓。⚠ **不许靠抬上限达标** —— 用户 2026-09-26：「把上限从 3 MB 抬到 10 MB **不算完成**，要的是**少消耗注意力**，不是允许更多」✓。判据 `scripts/docs-lint.py` ⑦。 ｜ **2026-10-06（course-distribution.md 新增）**：登记**新增文件** `docs/design/course-distribution.md` = **103**（设计草案：课程下载与分发 —— CLI/VS Code 下载教程 + 独立 repo / 预编译缓存 / 教材市场三问 + 分阶段方案；用户 2026-10-06 拍板\"先落文档、后续再调研\"）。这是**必需修订**（本文件 _comment 例外①：**新增文件到该层 ⇒ 基线跟着走一次** ✓，同 metavar-engine.md / set-theory-syllabus.md 的先例）。同轮 `layer_max_lines.L2` **8976 → 9035**（= 该文件计入后的实测值，无余量 ⇒ 该层此后仍只许减 ✓）。 ｜ **2026-10-07（G-60 收口）**：`docs/design/notation-subset.md` 新增 §19（集合建构式 `{x : α | P x}` / `{x ∈ A | P x}` 的**设计先行**记录：形状 / 脱糖目标 / 边界（无元变量）/ 诊断口径 / 与 `binder_notation` 的关系）⇒ 该文件 981 → **1020**，L2 层 **9035 → 9068**（= 计入后的实测值，无余量 ⇒ 该层此后仍只许减 ✓）。**为什么是改这里而不是删**：设计先行是硬规则（AGENTS.md），而 `notation-subset.md` 就是记法子集的权威设计文档（§12/§13 的历史原文按纪律保留 ⇒ 没有可删的冗余）；新增**文件**会同样把基线顶上去 ⇒ 就地更新是更小的那一刀 ✓。 ｜ **2026-10-08（PLAN-align-lean4 调研）**：登记**新增文件** `docs/notes/PLAN-align-lean4.md` = **732**（Lean 4 交互性能四主题的机制对齐规划：产物化 / 服务器热路 / 活环境查询 / CLI-LSP 分路；现象→根因(文件:行)→分阶段任务→判据→批次+工作量）。这是**必需修订**（本文件 _comment 例外①：**新增文件到该层 ⇒ 基线跟着走一次** ✓，同 perf-lean4 / PLAN-cli-editor-perf 的先例）。同轮 `layer_max_lines.L2` **11480 → 12212**（= 该文件计入后的实测值，无余量 ⇒ 该层此后仍只许减 ✓）。 ｜ **2026-10-09（T2-A 设计先行）**：登记**新增文件** `docs/design/persistent-declarations.md` = **117**（内核声明表持久化/COW 的**契约**：Lean `SMap`/`PHashMap` 逐条对照 / 分层 `DeclarMap` / 单调 intern 引理（快照不含 `Dag`）/ 五条不变式 / 判据①–⑤与反向验证）。这是**必需修订**（本文件 _comment 例外①：**新增文件到该层 ⇒ 基线跟着走一次** ✓，同 perf-lean4-bench / PLAN-align-lean4 的先例）。同轮 `layer_max_lines.L2` **13211 → 13328**（= 该文件计入后的实测值，无余量 ⇒ 该层此后仍只许减 ✓）。 ｜ **2026-10-09（T2-A/T2-B · 用户点名）**：`docs/notes/perf-lean4-bench.md` **280 → 316**（+36）——用户点名要求「在 perf-lean4-bench.md 里更新 lean4 怎么实现 goal 的以及这个 goal」⇒ 新增 **§8**（Lean 的逐命令快照/AsyncList/`waitFindAtPos`/`findGoalsAt?` 逐环节对照 + 我们的差距 + T2-A/T2-B 对齐路径与今天的读数），并把**已执行完**的 §7（占位替换指引）压成 5 行 ✓。同轮 `layer_max_lines.L2` **13328 → 13364**（= 实测值，无余量 ⇒ 该层此后仍只许减 ✓）。这是**必需修订**（本文件 _comment 的既定先例：用户点名补进既有文档 ⇒ 手改本文件、评审可见 ✓，同 PLAN-cli-editor-perf 的 P8 那一次）。同轮另把 `PLAN-align-lean4(.md|-as-built.md)` 里 7 处 `~200ms` 占位**就地**换成实测 **218ms**（行数不变 ⇒ 不动冻结值 ✓）。 ｜ **2026-10-09（同日追加 T2-B 设计）**：`docs/design/persistent-declarations.md` **117 → 168** —— 同一件工作（T2-A/T2-B）的**下一半设计**：入口趟命令级环境快照的形状 / 快照内容清单（`Walk` 全字段）/ 三条硬约束（arena 跨按键、快照成本、复用判据沿用 `EntryCache`）/ 判据（读数已先建先红 = 43 → 目标 1）/ 三步落地顺序。**为什么就地长大而不是另开一份**：它是**同一份契约**的两半（T2-B 依赖 T2-A 的形状），拆开会让「快照里放什么」与「环境怎么共享」分居两处 ⇒ 下一棒必读两份 ✗。同轮 L2 相应 +51（= 实测值，无余量 ⇒ 此后仍只许减 ✓）。",
@@ -54,7 +54,7 @@
     "layer_max_lines": {
       "L0": 1521,
       "L1": 5676,
-      "L2": 13488,
+      "L2": 13511,
       "L3": 42
     },
     "onboarding_max_lines": 1000,
