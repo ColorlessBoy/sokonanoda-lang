@@ -1343,8 +1343,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 ### 32. 第 40–41 轮（平行线）：T1-B **批 3 收口** —— `clean` 带上产物 · 原子落盘 · 并发取证 ＋ 两条诚实结论
 
-* **`clean` 必须清产物**：`artifacts::clean_in(root)`（清 `artifacts/` 下除 `.gitignore` 外 的一切，含 `*.tmp-*` 残留）接进 `cache::clean_at`。**为什么**：`compiled/` 那条有过 **同形教训**（R-3：只清全局 ⇒ `rebuild` 命中项目条目 ⇒ "清空了却什么都没重编"的假动作 ✗）； 产物是**第三个**存放点 ⇒ 不清它就重演 ✗。**端到端**：`query check` 后 `artifacts=2` ⇒
-  `sokonanoda clean` ⇒ `removed 3 (0 global, 3 project)` · `artifacts=0` · `.gitignore` 留着 ✓。
+* **`clean` 必须清产物**：`artifacts::clean_in(root)`（清 `artifacts/` 下除 `.gitignore` 外 的一切，含 `*.tmp-*` 残留）接进 `cache::clean_at`。**为什么**：`compiled/` 那条有过 **同形教训**（R-3：只清全局 ⇒ `rebuild` 命中项目条目 ⇒ "清空了却什么都没重编"的假动作 ✗）； 产物是**第三个**存放点 ⇒ 不清它就重演 ✗。**端到端**：`query check` 后 `artifacts=2` ⇒ `sokonanoda clean` ⇒ `removed 3 (0 global, 3 project)` · `artifacts=0` · `.gitignore` 留着 ✓。
 * **原子落盘**：载荷先写 `<key>.bin.tmp-<pid>` 再 `rename`（同目录原子）⇒ 读者不会看到半份； 残留 `.tmp-*` **不是** `<key>.bin` ⇒ 任何键都读不到（**命名即边界** ✓）。
 * **并发取证**：`concurrent_writers_never_produce_a_torn_payload` —— 4 位写者同写一键 （载荷长度刻意不同）+ 读侧 4000 次 ⇒ "读到了就必然是某一份完整载荷" ✓（且至少读到一次 ⇒ 不空转 ✓）。
 * ⭐ **诚实结论 A（纵深防御的边界）**：把原子 `rename` **去掉**再跑同一条 ⇒ **照样绿**。 ⇒ 真正兜住的是**凭据里的摘要**（第②道），**不是**原子性 ✗。原子 rename 的价值是 **减少无谓 miss 与半份读**（纵深防御），**不是正确性必需** —— 已写进代码注释 ✓。
@@ -1388,21 +1387,23 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ⚠ **goal 口径的臂"试过、挂住、已撤"（第 65 轮 · 时间盒）**：照 `perf-lean4-bench.md` §3.3 的 方法在**本仓探针**里加一条 goal 臂（编辑刀 = 在 `↔ (A ⊆ (f ⁻¹' B)) := by` 后插 `constructor` ✓ ⇒ 真的改目标 ✓），用 `soko/goals` 问"换没换" ✓ —— **首问就挂死在 `wait_for` 上** ✗ （编译落定前 `soko/goals` 不答该请求 ⇒ 探针阻塞 ✗）。⇒ 按纪律**已还原**（树绿 ✓）。 **下一棒要做这条臂**：先确认"未落定时 `soko/goals` 到底答不答"（要么加超时、要么只问
   **落定之后**那一次、把"立刻"那一问改成**带超时的旁路** ✓）—— 别照 §3.3 直接照搬 ✗。
 
-* ⭐ **跨入口臂也钉住状态了（第 66 轮）**：那条臂此前只清 LSP 自己的 cache 目录 ✗，**没清模块根** ⇒ 同一构建在两轮里读出过 **689.7 / 664.8 / 911.1ms**（结构计数 `modules=5`/复用 3 **vs** `8`/复用 0 ✗） —— 那是**状态差**、不是性能差 ✓。⇒ 现在开头统一清 `<模块根>/.sokonanoda/{artifacts,compiled}` ✓ ⇒ 连跑两次：**663.5 / 675.8ms**，**结构计数逐位相同**（`modules=5` · 复用 3 · `by=21` ✓）
-  ⇒ 这一臂的读数从此**可跨轮比较** ✓（墙钟 ±2% 是正常的 ✓，结构计数才是判据 ✓）。
+* ⭐ **跨入口臂也钉住状态了（第 66 轮）**：那条臂此前只清 LSP 自己的 cache 目录 ✗，**没清模块根** ⇒ 同一构建在两轮里读出过 **689.7 / 664.8 / 911.1ms**（结构计数 `modules=5`/复用 3 **vs** `8`/复用 0 ✗） —— 那是**状态差**、不是性能差 ✓。⇒ 现在开头统一清 `<模块根>/.sokonanoda/{artifacts,compiled}` ✓ ⇒ 连跑两次：**663.5 / 675.8ms**，**结构计数逐位相同**（`modules=5` · 复用 3 · `by=21` ✓） ⇒ 这一臂的读数从此**可跨轮比较** ✓（墙钟 ±2% 是正常的 ✓，结构计数才是判据 ✓）。
 
-* ⚠ **复跑外部量具（第 67 轮）：读数**低于**文档里的数 ⇒ 先别当改进** ✗。用 `~/lean4-bench/lsp_bench.py` 跑 soko 侧（`--settle diag` 臂 **17.27ms** · `typing` 臂 **29.29ms** · 其中 `goal_ms=13.48`）—— 而文档记的是 **232.7 / 81.4ms** ✗。**根因未定**：量具的 JSON 里**没有**"goal 真的换了"这个**可机检**字段
-  （§3.3 的"答案换了"是**手工**核的 ✓）⇒ 13.48ms 可能是**旧 goal**（那正是要防的"陈旧答案" ✗），
+* ⚠ **复跑外部量具（第 67 轮）：读数**低于**文档里的数 ⇒ 先别当改进** ✗。用 `~/lean4-bench/lsp_bench.py` 跑 soko 侧（`--settle diag` 臂 **17.27ms** · `typing` 臂 **29.29ms** · 其中 `goal_ms=13.48`）—— 而文档记的是 **232.7 / 81.4ms** ✗。**根因未定**：量具的 JSON 里**没有**"goal 真的换了"这个**可机检**字段 （§3.3 的"答案换了"是**手工**核的 ✓）⇒ 13.48ms 可能是**旧 goal**（那正是要防的"陈旧答案" ✗），
   29.29ms 也可能来自**静默期合并**（连发多刀被 debounce 合掉 ✓）。⇒ **不许**把它记成"goal 口径已达标" ✗；
   下一棒要复跑：给量具补一个**可机检**的"goal 变了没"（或逐刀 `waitForDiagnostics` 再发下一刀 ✓）。
 
-* ⛔ **T4-B 的 CLI `check` 接线：试过、判红、已撤（第 68 轮）** —— 但**逮到一条真缺口** ✓✓： `crates/cli/src/check.rs` 那条路**没有 progress sink**（`compile_plan` = `…_with_progress(None)` ✓）
-  ⇒ 本来是最安全的换法 ✓（换 `compile_plan_with_artifacts` ＋ 显式 `precheck_plan` ✓）。换完
+* ⛔ **T4-B 的 CLI `check` 接线：试过、判红、已撤（第 68 轮）** —— 但**逮到一条真缺口** ✓✓： `crates/cli/src/check.rs` 那条路**没有 progress sink**（`compile_plan` = `…_with_progress(None)` ✓） ⇒ 本来是最安全的换法 ✓（换 `compile_plan_with_artifacts` ＋ 显式 `precheck_plan` ✓）。换完
   **`cli/tests/namespace.rs::export_reaches_the_importing_file_while_open_does_not` 判红** ✗
   （`unknown identifier \`mem\`` ⇒ **`export` 没传到导入方** ✗）⇒ 已还原（该测试回绿 ✓）。
   ⭐ **根因缺口不在产物、在判据**：`t4b_plan_parity` 的夹具**没有 `export`** ✗ ⇒ 两条路在
   "**导出传播**"这一维上**可能不同**而它看不出来 ✓（判据的覆盖缺口 ✓）。⇒ 下一棒要做 T4-B：
   **先把 `export` / `open` / 命名空间这几维加进 parity 夹具**（并让它先红一次 ✓），再谈换路 ✓。
+
+  ✅ **已在 front 层最小复现（第 69 轮）**：`t4b_plan_parity.rs` 新增 `the_export_dimension_is_a_known_divergence_today`
+  —— 同一份 `export` 夹具跑两条路：**整条一趟 = `[]`** ✓ · **session+产物 = `["elab-unknown-identifier"]`** ✗
+  ⇒ 分歧被钉成**快速判据**（0.05s ✓，不再依赖 CLI 集成测试 ✓）。判据按降级纪律写成
+  "**断言当前行为**" ✓：T4-B 对齐之后**改判**成 `assert_eq!`（不许放宽 ✗）。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
@@ -1445,8 +1446,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⇒ **T4-B 的价值 = 那 9×**，且它就是**库层 elaborate** 那一块 ✓（与方向① 的读数同源 ✓）。
 * **本轮落地（两件，都是"敢换"的前置件 ✓）**： 1. 新公开入口 **`project::compile_plan_with_artifacts(plan, options)`** = `compile_plan_incremental` 的 `reuse_library=false` 支（**不碰线程局部检查点** ✓ + 磁盘产物 ✓ ⇒ 与 T4-A 契约一致 ✓）； 2. **前置判据** `crates/front/tests/t4b_plan_parity.rs`：同一条闭包分别走 **整条一趟** 与 **session+产物** ⇒ **`ProjectReport` 逐字节相同** ✓（序列化比较、字段一个不漏 ✓）
      —— 这是"**换路不改报告**"的红线 ✓（判据过了**不等于**可以无脑换 ✗，见下）。
-* ⚠ **采用之前还要解决三件（如实记 · ① 已核实为真 ✓）**：① `compile_plan_incremental` **不收 `progress` sink** ⇒ 直接换会**丢掉 CLI 的进度事件**（用户可见 ✗）—— **第 53 轮核实** `build.rs:703-707`：它**确实**按 `json`/人看两态各传一个 sink ✓ ⇒ 不是假想 ✗；**第 56 轮试过接线、按时间盒撤回** ✗： `&mut dyn ProgressSink` 默认是 `&mut (dyn … + 'static)` ⇒ 要往下传就得处处写 `+ '_` ✓，
-  而它一路**级联进 `run_pass_with`**（`check/mod.rs`）⇒ 4 个文件、lifetime 错误滚雪球 ✗
+* ⚠ **采用之前还要解决三件（如实记 · ① 已核实为真 ✓）**：① `compile_plan_incremental` **不收 `progress` sink** ⇒ 直接换会**丢掉 CLI 的进度事件**（用户可见 ✗）—— **第 53 轮核实** `build.rs:703-707`：它**确实**按 `json`/人看两态各传一个 sink ✓ ⇒ 不是假想 ✗；**第 56 轮试过接线、按时间盒撤回** ✗： `&mut dyn ProgressSink` 默认是 `&mut (dyn … + 'static)` ⇒ 要往下传就得处处写 `+ '_` ✓， 而它一路**级联进 `run_pass_with`**（`check/mod.rs`）⇒ 4 个文件、lifetime 错误滚雪球 ✗
   ⇒ **这是一件 2–3 轮的重构，不是"加个参数"** ✓（已还原 ⇒ 树绿 ✓）。下一棒要动它请**单独排一轮** ✓；② CLI 还有 **`build.*` 事件流**要整门课对拍
   （`--json` 逐字节 ✓）；③ `compile_entries_shared` 的**单入口组被过滤**（"会话是纯开销"）
   ⇒ 这条口子是给**单文件 `build`/`check`/`course`** 用的 ✓。

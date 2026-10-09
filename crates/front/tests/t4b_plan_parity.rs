@@ -83,3 +83,73 @@ fn the_session_path_and_the_single_pass_path_agree_on_the_report() {
 
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// ⭐ **`export` 这一维：今天两条路**不同**（2026-10-09 · 第 69 轮）。**
+///
+/// ## 怎么发现的
+///
+/// 把 CLI 的 `check` 那条路（**没有 progress sink** ⇒ 本来最安全）换成
+/// `compile_plan_with_artifacts` 之后，`cli/tests/namespace.rs::
+/// export_reaches_the_importing_file_while_open_does_not` **判红** ✗ —— 导入方报
+/// `unknown identifier \`mem\`` ⇒ **`export` 没传到** ⇒ 已还原 ✓。
+///
+/// 根因是**本文件上面那条判据的覆盖缺口** ✗：它的夹具**没有 `export`** ⇒ 两条路在
+/// "**导出传播**"这一维上不同而它看不出来 ✓。
+///
+/// ## 这条判据为什么写成"断言当前行为"
+///
+/// 按 `AGENTS.md` 的降级纪律（同 T3-B2 的先例）：**先把它钉住、别让它漂** ✓ ——
+/// T4-B 把两条路对齐之后，按判据**改判**成 `assert_eq!`（**不许放宽** ✗）。
+#[test]
+fn the_export_dimension_is_a_known_divergence_today() {
+    let root = temp_root("export");
+    std::fs::create_dir_all(&root).expect("mkdir");
+    std::fs::write(
+        root.join("Lib.sokonanoda"),
+        "namespace Set\n\
+         def mem (α : Type) (a : α) (A : α -> Prop) : Prop := A a\n\
+         end Set\n\
+         export Set\n",
+    )
+    .expect("write lib");
+    // 入口**不写 `open`**、直接用**导出**的短名 `mem` ⇒ 这一维才被走到 ✓。
+    std::fs::write(
+        root.join("E.sokonanoda"),
+        "import Lib\ndef use (α : Type) (a : α) (A : α -> Prop) : Prop := mem α a A\n",
+    )
+    .expect("write entry");
+    let entry = root.join("E.sokonanoda");
+    let options = CompileOptions::default();
+
+    let single = compile_plan_prechecked(
+        plan_project(&entry, None, Some(root.as_path())),
+        &options,
+        None,
+    );
+    let session =
+        compile_plan_with_artifacts(plan_project(&entry, None, Some(root.as_path())), &options);
+
+    let errs = |r: &sokonanoda_front::project::ProjectReport| -> Vec<String> {
+        r.modules
+            .iter()
+            .flat_map(|m| m.report.errors.iter().map(|d| d.code().to_string()))
+            .collect()
+    };
+    let a = errs(&single);
+    let b = errs(&session);
+    println!("PERF t4b export: 整条一趟={a:?} session+产物={b:?}");
+
+    // ⚠ **断言当前行为**（防漂移 ✓）：两条路在 `export` 这一维上**今天不同** ——
+    // "整条一趟"认得导出的短名 ✓，"session+产物"不认 ✗。
+    assert!(
+        a.is_empty(),
+        "夹具前提：**整条一趟**必须认得 `export` 出来的短名 ✓（实得 {a:?}）"
+    );
+    assert!(
+        !b.is_empty(),
+        "**已知分歧**：`session+产物` 这条路今天**不认** `export` 短名 ✗ —— 若这里变空，说明 \
+         T4-B 已经把两条路对齐了 ✓ ⇒ 按判据**改判**成 `assert_eq!(b, a)`（**不许放宽** ✗）"
+    );
+
+    let _ = std::fs::remove_dir_all(&root);
+}
