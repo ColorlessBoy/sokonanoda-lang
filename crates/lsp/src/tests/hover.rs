@@ -540,12 +540,211 @@ async fn hover_on_a_builtin_notation_symbol_shows_the_raw_type() {
         "内建记法也要给原始类型：{:?}",
         markup.value
     );
-    // **T-D20 的落地决定**：内建 / prelude 目标（`∧`→`And`）**没有源码声明**，
-    // `definition` 只能返回 `null`（`top_level_def_spans` 按构造排除 prelude）
-    // ⇒ **hover 必须把原因说出来**：沉默的"跳不动"看起来像坏了。
+    // **E10 之后的事实（2026-10-10 更正）**：内建记法**有**声明点（prelude 里那行
+    // `-- sokonanoda:builtin-notation "∧" => And` 登记注释）⇒ `definition` **有**
+    // 落点 ⇒ hover **不许**再说「没有源码声明，`F12` 无处可跳」—— 那是 T-D20 时代
+    // 的话，今天与 `definition` 当场自相矛盾 ✗（用户 2026-10-10 反馈）。
     assert!(
-        markup.value.contains("没有源码声明"),
-        "内建记法要说明为什么跳不动（T-D20）：{:?}",
+        markup
+            .value
+            .contains("`F12` 落到 `prelude/Prelude.sokonanoda`"),
+        "内建记法要说清**落点在哪**（E10：声明点是 prelude 的登记注释行）：{:?}",
+        markup.value
+    );
+    assert!(
+        !markup.value.contains("没有源码声明") && !markup.value.contains("无处可跳"),
+        "E10 之后「没有源码声明 / 无处可跳」是**假话**（F12 真的跳得到）✗：{:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+/// **用户反馈（2026-10-10）**：`"a = b"` 里的 `=` —— hover 与 F12 必须**一致**。
+///
+/// 以前 `=` 的 hover 说「内建记法（内核 prelude）：**没有源码声明**，`F12` 无处可跳」，
+/// 而它确实是 `null` ⇒ 文案当时是真的、但那**不是**用户要的行为（他要跳得到）。
+/// 本轮给 `=` 补了 prelude 登记行 ⇒ 两件事一起变：F12 有落点（见
+/// `navigation::goto_definition_on_the_equals_notation_lands_in_the_prelude`）、
+/// hover 说清落点 ✓。**这条钉的是用户实际悬停的那个字符**（`a = b` 的 `=` 本身 ✓）。
+#[tokio::test]
+async fn hover_on_the_equals_notation_no_longer_claims_there_is_nothing_to_jump_to() {
+    let src = "theorem t (a b : Prop) (h : a = b) : a = b := h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "equals notation hover").await;
+
+    // 用户点的是**第一个 `=`**（`h : a = b` 里那个）—— 不是"能跑通的位置"。
+    let pos = lsp_pos(src, src.find(" = ").expect("the `=` the user clicks") + 1);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("`=` must not be silent");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("展开成 `Eq`"),
+        "`=` 的 hover 要说得出展开目标：{:?}",
+        markup.value
+    );
+    assert!(
+        markup
+            .value
+            .contains("`F12` 落到 `prelude/Prelude.sokonanoda`"),
+        "`=` 的 hover 要说清落点（与 F12 一致）：{:?}",
+        markup.value
+    );
+    assert!(
+        !markup.value.contains("没有源码声明") && !markup.value.contains("无处可跳"),
+        "`=` 现在**有**登记行 ⇒ 旧文案是假话 ✗：{:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+/// **用户反馈（2026-10-10）的第二跳**：prelude 登记注释里的**目标名** —— 以前
+/// `-- sokonanoda:builtin-notation "∧" => And` 的 `And` 上 hover 是 `null`（注释不
+/// 产生 token ✗）⇒ 用户「点击 `And` 无法跳转」的同一条根因。
+///
+/// 这条同时钉**同族横排**的两半（诚实说明 ≠ 静默 ✗）：
+///   * `And`（内建记法的目标）⇒ 给名字 + **签名**（prelude 名字解析得出来 ✓）；
+///   * `Set.singleton`（`builtin-sugar` 的目标，**卷 I 课程库**常量）⇒ 名字 +
+///     **说明为什么给不出签名、也没有落点** ✓（不是静默 `null` ✓）。
+#[tokio::test]
+async fn hover_on_a_comment_registration_target_name_explains_itself() {
+    let path = sokonanoda_front::compile::prelude_source_path().expect("prelude 源落盘路径");
+    // ⚠ **规范化**：`prelude_source_path()` 带 `..`，而 URI 过一趟 JSON（`json!`）会被
+    // URL 规范**归一化** ⇒ 测试手里的 `uri` 与服务端发布诊断用的 `uri` 不相等，
+    // `wait_diagnostics_for` 会**空等到超时** ✗（2026-10-10 实测踩到）。
+    let path = path.canonicalize().expect("canonicalize prelude");
+    let text = std::fs::read_to_string(&path).expect("read prelude");
+    let uri = Url::from_file_path(&path).expect("file url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, &text).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "prelude hover").await;
+
+    // `needle` 一律取到**目标名之前**（它的结尾就是用户点的那个字符 ✓）⇒
+    // 光标偏移 = needle 起点 + `needle.len()`（按**字节**；`∧` 是 3 字节，
+    // `offset_of` 也是字节偏移 ✓）。
+    let hover_at = |needle: &str| {
+        let pos = lsp_pos(&text, offset_of(&text, needle) + needle.len());
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(7)
+            .finish()
+    };
+
+    // ① 内建记法的目标名 `And`（用户实际点的那个字符位置 ✓）。
+    let result = call(
+        &mut service,
+        // `needle` 的**结尾**就是目标名的起点（用户点的那个字符 ✓）。
+        hover_at("-- sokonanoda:builtin-notation \"∧\" => "),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("注释登记行里的目标名不许静默（第二跳）✗");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("`And` —— 记法的目标"),
+        "要说清它是记法的目标：{:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("`And : "),
+        "prelude 名字解析得出来 ⇒ 必须给签名：{:?}",
+        markup.value
+    );
+
+    // ② `builtin-sugar` 的目标名 `Set.singleton`（卷 I 库常量，本文件闭包里没有）。
+    let result = call(
+        &mut service,
+        hover_at("-- sokonanoda:builtin-sugar \"{a}\" => "),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("`Set.singleton` 上不许静默（要说明原因）✗");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("`Set.singleton` —— 记法的目标"),
+        "要说清它是记法的目标：{:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("没有声明"),
+        "解析不出签名时必须**说明原因**（诚实说明 ≠ 静默）：{:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+/// **E2 的同族（2026-10-10）**：`-- sokonanoda:builtin-rust "Nat / …"` 里登记的名字
+/// （`Nat` / `Bool` 两族）在**源文本里没有声明位置** ⇒ `F12` 如实没有落点
+/// （`prelude_def_span` 返回 `None`，**不许编位置** ✗）。但 hover **不许静默**：
+/// 说清它是内核内建、为什么没有落点 ✓。
+#[tokio::test]
+async fn hover_on_a_builtin_rust_registry_name_explains_the_missing_span() {
+    let path = sokonanoda_front::compile::prelude_source_path().expect("prelude 源落盘路径");
+    // ⚠ **规范化**：`prelude_source_path()` 带 `..`，而 URI 过一趟 JSON（`json!`）会被
+    // URL 规范**归一化** ⇒ 测试手里的 `uri` 与服务端发布诊断用的 `uri` 不相等，
+    // `wait_diagnostics_for` 会**空等到超时** ✗（2026-10-10 实测踩到）。
+    let path = path.canonicalize().expect("canonicalize prelude");
+    let text = std::fs::read_to_string(&path).expect("read prelude");
+    let uri = Url::from_file_path(&path).expect("file url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, &text).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "builtin-rust hover").await;
+
+    let offset = offset_of(&text, "builtin-rust \"Nat /");
+    let pos = lsp_pos(&text, offset + "builtin-rust \"".len());
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(9)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("内建家族的登记名不许静默（E2）✗");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("`Nat` —— 内核内建"),
+        "要说清它是内核内建：{:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("没有它的声明位置"),
+        "要说清为什么 `F12` 没有落点（E2 如实登记）：{:?}",
         markup.value
     );
     shutdown(&mut service).await;

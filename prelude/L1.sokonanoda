@@ -50,18 +50,26 @@ def Eq.ndrec {u, v} (α : Sort u) (a : α) (motive : α -> Sort v) (m : motive a
 def Eq.mp {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) : α -> β := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => α -> x) (fun (a : α) => a) β h
 def Eq.mpr {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) : β -> α := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => x -> α) (fun (a : α) => a) β h
 def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq.mp.{u} α β h a
--- **E10（v0.76.0）：内建记法的声明点** —— `∧ ∨ ↔ ¬ ≠` 是**语言内建**记法，语言
+-- **E10（v0.76.0）：内建记法的声明点** —— `∧ ∨ ↔ ¬ = ≠` 是**语言内建**记法，语言
 -- **故意拒绝**重新声明它们（实测 `notation-shape`：「符号 `∧` 是语言内建记法……不需要也不能重新声明」✗✓ —— 那条守卫防的是「记法概念分叉」，与 E11 第 ③ 条同一纪律 ✓）。
 -- ⇒ 这里用仓库**已有**的 `-- sokonanoda:<指令>` 约定**登记声明点**（**零新增语法** ✓）：
 -- 记法表据此把每条内建记法的 `span` 指到**下面这一行** ⇒ 「名字 → 记法行 → 定义 →
 -- 回记法」那条双向路才有落点 ✓。判据：
--- `crates/front/src/notation.rs::every_builtin_notation_has_a_directive_line_in_the_prelude`
--- ⚠ **`=` 不登记**：词法的符号匹配是最长匹配且排在专用分支之前，`=` 进了符号表
--- 就会把 `=>` 吃成 `=` + `>`（`parser.rs` 有实测注释 ✗）。
+-- `crates/front/src/notation.rs::builtin_notations_carry_their_directive_line_as_the_declaration_site`
+-- ⚠ **两件事别混为一谈**（2026-10-10 更正：旧注释把下面这两条写成了一条 ⇒
+-- `=` 上 `F12` 无声返回的成因之一 ✗）：
+--   ① **注释登记行**（下面那几行 `-- sokonanoda:builtin-notation …`）：**安全** ✓
+--      —— 它是注释，只被 `notation::builtin_directive_span()` 做**纯文本查找**
+--      （给 F12 一个落点），**不喂词法** ⇒ 给 `=` 补一行**不会**影响 `=>` 的分词 ✓；
+--   ② **喂词法的符号表**（`parser.rs` 的 `lexer_builtin_symbols()` /
+--      `LEXER_NATIVE_SYMBOLS`）：`=` **永远不进** ✗ —— 符号匹配是最长匹配且排在
+--      专用分支之前，`=` 进了符号表就会把 `=>` 吃成 `=` + `>`（`parser.rs` 有实测
+--      注释 ✗；`crates/cli/tests/notation.rs` 的 R-2 用例钉住）。
 -- sokonanoda:builtin-notation "∧" => And
 -- sokonanoda:builtin-notation "∨" => Or
 -- sokonanoda:builtin-notation "↔" => Iff
 -- sokonanoda:builtin-notation "¬" => Not
+-- sokonanoda:builtin-notation "=" => Eq
 -- sokonanoda:builtin-notation "≠" => Ne
 -- **E11（v0.76.0）：内建糖的登记区** —— `{a}` / `{a, b}` / `⟨a, b⟩` 这三样是
 -- **内建语法糖**（`elab.rs` 里硬编码展开目标 ✗），学生看源码时同样「无处可查」✗。

@@ -86,24 +86,71 @@
 —— 它建一个真临时项目（`SetLib.sokonanoda` 声明 `∈` + `Canvas.sokonanoda` import 它），
 断言跳转结果的 `uri` 是**库文件**（`assert_eq!(uri, lib_uri, "要跳到**声明它的模块**")`）。
 
-## 内建 / prelude 目标的导航（T-D20 的落地决定，2026-09-24）## 内建 / prelude 目标的导航（T-D20 的落地决定，2026-09-24）
+## 内建 / prelude 目标的导航（T-D20 → **2026-10-10 重写**）
 
-**问题**：`∧`→`And`、`=`→`Eq` 的展开目标是**内核 prelude 名**，**没有源码声明**
-（`top_level_def_spans` 按构造排除 prelude）。
+**T-D20（2026-09-24）当时的决定**：`∧`→`And`、`=`→`Eq` 的展开目标是**内核 prelude
+名**，**没有源码声明**（`top_level_def_spans` 按构造排除 prelude）⇒ ① `definition`
+返回 `null`（编一个目标是撒谎）；② hover 说明「内建记法（内核 prelude）：**没有源码
+声明**，`F12` 无处可跳」；③ 判据断言那一行存在。
 
-**决定**：
-1. **`definition` 返回 `null`** —— 没有可跳的地方，编一个目标是撒谎；
-2. **但 hover 必须把原因说出来**：内建记法的 hover 多一行
-   「内建记法（内核 prelude）：**没有源码声明**，`F12` 无处可跳」。
-   沉默的"跳不动"看起来像坏了；说明白才是诚实的行为
-   （与 T-D50「不在闭包就诚实 null」同一条原则）。
-3. **判据**：`crates/lsp/src/tests/hover.rs::hover_on_a_builtin_notation_symbol_shows_the_raw_type`
-   里断言这一行存在。
+**⚠ 那份决定今天只剩"不编位置"这一半还成立**（用户 2026-10-10 反馈）：
 
-**判据实现的一个坑（记下来）**：内建符号在**闭包记法表里查不到**
-（`QueryDoc::notation_at` 返回 `None`）⇒ 判据必须写成
-「**既不是本文件声明的、也不来自任何模块**」，不能写成
-`module.is_none()`（那要求 `Some`，实测把内建判成了非内建 ✗）。
+* **`=` 不是"没有声明点"，是三处故意特例的叠加**：词法原生分支（`parser.rs` 的
+  `LEXER_NATIVE_SYMBOLS`，**永远不许动** ✗ —— `=` 进符号表会把 `=>` 吃成 `=` + `>`）·
+  旧注释**不登记**它 · `span.start.offset != 0` 的闸门 ⇒ F12 **无声返回 `null`**
+  （既不报错也不跳）✗；
+* **hover 那句话在 E10 之后是假话**：`∧ ∨ ↔ ¬ ≠` 早有 prelude 登记行
+  （`-- sokonanoda:builtin-notation "∧" => And`）、F12 **真的跳得到** ⇒ hover 与
+  `definition` **当场自相矛盾** ✗（同一份读数里 F12 落 prelude、hover 说无处可跳）。
+
+**今天的决定（2026-10-10）**：
+
+1. **对称**：prelude 登记区补一行 `-- sokonanoda:builtin-notation "=" => Eq` ⇒ **6 条
+   内建记法全都有声明点**。⚠ 登记行是**注释**、只被 `notation::builtin_directive_span`
+   做**纯文本查找** ⇒ **不喂词法**、对 `=>` 的分词**零影响** ✓ —— 旧注释把「注释登记行」
+   与「喂词法的符号表」**混为一谈**，那正是 `=` 被漏掉的成因 ✗（两处注释已同轮更正）。
+2. **项目无关的兜底**：`QueryDoc::notation_at` 只在**项目模式**下工作 ⇒ 单文件里
+   `=` 无声 `null`、`∧` 更糟（落到 `definition_at` 的 `Notation` 分支，`range` 用
+   **光标处**那个 span ⇒ **原地跳** ✗，E05/G-37 同一条教训）⇒ `definition` 加一条
+   `notation::builtin_declaration_span(symbol)` 兜底（与记法表**同一份 span** ✓）。
+3. **第二跳（注释登记行里的目标名）**：`=> And` 那个名字以前三条消费者全 `null`
+   （F12 / hover / documentHighlight）—— **注释不产生 token**，词法扫描永远认不出 ✗，
+   与 `docs/gaps/repro/G23-notation-navigation.js` 白纸黑字的**两跳模型**矛盾。
+   `notation_input::notation_target_at` 现在**两种形态都认** ✓（声明形态 + 注释形态），
+   名字解析走**已有真相通道**：`project_definition` → `prelude_def_span`
+   ⇒ `And` 落 `inductive And`、`Eq` 落 `axiom Eq` ✓（**不做文本比对** ✓）。
+4. **hover 说今天的事实**：内建记法 ⇒「声明点是 prelude 里那行登记注释，`F12` 落到
+   `prelude/Prelude.sokonanoda`」；`builtin-sugar` / `builtin-rust` 的目标名 ⇒ 说清
+   **为什么**给不出签名 / 没有落点（诚实说明 ≠ 静默 ✓）。
+5. **判据**（三层，都断言**用户实际点的字符位置**与**落点行号**，不许只断言"非 null"）：
+   front `notation_input::target_resolution_tests::a_comment_registration_target_name_is_found_at_its_own_offset`
+   （含反向：注释里别的词 ⇒ `None`）·
+   `notation::span_tests::builtin_notations_carry_their_directive_line_as_the_declaration_site`
+   （**6 条**，`=` 不再豁免）· `prelude_mirror::builtin_notations_reach_the_closure_notation_table`
+   （闭包表 **6 条**）；LSP `navigation::goto_definition_on_the_equals_notation_lands_in_the_prelude`
+   / `..._in_a_project_lands_in_the_prelude` /
+   `goto_definition_on_a_comment_registration_target_lands_on_its_definition` ·
+   `hover::hover_on_the_equals_notation_no_longer_claims_there_is_nothing_to_jump_to` /
+   `hover_on_a_comment_registration_target_name_explains_itself` /
+   `hover_on_a_builtin_rust_registry_name_explains_the_missing_span` ✓。
+
+**同族边界（本轮逐条表态，别只修单点）**：
+
+* `builtin-sugar` 的 `Set.singleton` / `Set.pair` / `Set.sep`：目标是**卷 I 课程库常量**，
+  在 prelude 文件自己的闭包里解析不到 ⇒ F12 **诚实 `null`**，但 hover **说明原因** ✓；
+* `builtin-rust` 的 `Nat`/`Bool` 两族 9 个名字：`prelude_def_span` 如实是 `None`（E2）⇒
+  F12 **诚实 `null`**，hover 说明「内核按名字安装、源文本里没有声明位置」✓；
+* 登记行**字符串里的符号**（`"∧"`）：F12 的落点只能是**那一行自己**（内建记法没有第二个
+  源位置）⇒ 必然**原地跳** ✗（E05/G-37 的教训）⇒ **不做**；hover 在注释里保持静默
+  （台账 G-55 notes ② 仍建议另立一条）；
+* `notation.rs::builtin_directive_span` 的**列按字节**（`∧` 那行整行 span 的 end 列多 2）：
+  本轮**不动** —— 它只影响整行 range 的 end 列，落点**行号**判据不受影响；真要修得另立
+  一条带列断言的判据（别顺手改没有判据的行为 ✗）。
+
+**判据实现的一个坑（记下来）**：内建符号在**闭包记法表里查不到**时
+（`QueryDoc::notation_at` 返回 `None`），**不能**用「既不是本文件声明的、也不来自任何
+模块」来**反推**它是内建 —— `∈` 没 `import` 库时同样满足那个条件 ✗。今天的判据直接问
+内建表：`notation::is_builtin_notation` ✓。
 
 ## ## 0. 一句话
 

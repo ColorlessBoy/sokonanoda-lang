@@ -92,6 +92,32 @@ pub(crate) fn builtin_notation_decls() -> Vec<NotationDecl> {
         .collect()
 }
 
+/// **内建记法的声明点**：符号 → prelude 源里那条**登记注释行**的 span。
+///
+/// 与 [`builtin_notation_decls`] 里那条 span **同一份真相**
+///（[`builtin_directive_span`] ✓），但**不经过闭包记法表**。
+///
+/// **为什么要有这个入口**（2026-10-10，用户反馈）：`Query::notation_at` 只在
+/// **项目模式**下工作（它查 `project.notations`）⇒ **单文件**里内建记法够不着
+/// 声明点：`=` 按 F12 **无声返回** ✗、`∧` 更糟 —— 落到 `definition_at` 的
+/// `ResolvedTarget::Notation` 分支，`range` 用**光标处**那个 span ⇒ **原地跳**
+///（E05/G-37 同一条教训 ✗）。内建记法的声明点是 prelude 的登记行，与项目无关 ⇒
+/// 这里直接给（LSP 的 `definition` 用它兜底 ✓）。
+///
+/// 非内建符号 ⇒ `None`（调用方据此**不编造位置** ✓）。
+pub fn builtin_declaration_span(symbol: &str) -> Option<crate::Span> {
+    builtin_directive_span(crate::compile::prelude_source(), symbol)
+}
+
+/// **这个符号是不是语言内建记法**（`∧ ∨ ↔ ¬ = ≠`）—— 直接问内建表。
+///
+/// ⚠ 别用「闭包表里查不到」**反推**内建（LSP 的旧文案就是这么写的 ✗）：那个反推
+/// 会把**没人声明的库记法**也算进来 —— `∈` 没 `import` 声明它的库时闭包表里同样
+/// 查不到 ⇒ 旧文案把 `∈` 说成「内建记法」= **假话** ✗（2026-10-10 更正）。
+pub fn is_builtin_notation(symbol: &str) -> bool {
+    crate::parser::builtin_notation_target(symbol).is_some()
+}
+
 /// **E10 的接缝判据要用它**（集成测试在 crate 外，`builtin_notation_decls` 是
 /// `pub(crate)` ✗）—— 只读、无副作用 ✓。
 pub fn builtin_notation_decls_for_test() -> Vec<NotationDecl> {
@@ -240,16 +266,16 @@ mod span_tests {
     ///
     /// 断言的是**具体值**：`span` 圈出来的文本**逐字等于**那一行指令 ✓ ——
     /// 只断言"不是默认值"会放过"指到了别的行" ✗。
+    ///
+    /// **2026-10-10 扩到 6 条**（用户反馈：`=` 上 F12 无声返回 ✗）：`=` 原来被
+    /// **豁免**（旧注释说"登记会把 `=>` 吃坏"—— 那是把**注释登记行**与**喂词法的
+    /// 符号表**混为一谈 ✗，见 `prelude/L1.sokonanoda` 的更正）⇒ 现在它也登记，
+    /// 豁免**删掉**、下界 5 → 6 ✓（改行为必须同轮改判据 ✓）。
     #[test]
     fn builtin_notations_carry_their_directive_line_as_the_declaration_site() {
         let prelude = crate::compile::prelude_source();
         let mut checked = 0;
         for decl in builtin_notation_decls() {
-            // `=` 不在 prelude 里登记（最长匹配会把 `=>` 吃坏 ✗）⇒ 它仍然没有声明点 ✓。
-            if decl.symbol == "=" {
-                assert_eq!(decl.span.start.offset, 0, "`=` 不登记，见 prelude 的注释 ✗");
-                continue;
-            }
             assert_eq!(
                 decl.module, None,
                 "内建不属于任何模块（prelude 不是模块）：{}",
@@ -268,11 +294,20 @@ mod span_tests {
                 "指令行必须以目标名结尾（{at:?} vs {}）",
                 decl.target
             );
+            // `notation::builtin_declaration_span`（LSP 的**项目无关**兜底用它）
+            // 必须与这里**同一份** span —— 两处漂移 ⇒ 单文件与项目模式跳向不同的行 ✗。
+            assert_eq!(
+                builtin_declaration_span(&decl.symbol),
+                Some(decl.span),
+                "`builtin_declaration_span` 必须与记法表里的 span 逐字相同（{}）",
+                decl.symbol
+            );
             checked += 1;
         }
-        assert!(
-            checked >= 5,
-            "至少要覆盖 ∧/∨/↔/¬/≠ 五条（实测 {checked} 条）"
+        assert_eq!(
+            checked, 6,
+            "内建记法共 6 条（`∧ ∨ ↔ ¬ = ≠`），每条都必须有登记行（实测 {checked} 条）—— \
+             `=` 不再是例外（2026-10-10）✗"
         );
     }
 

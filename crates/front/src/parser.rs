@@ -3491,6 +3491,11 @@ pub fn builtin_notation_target(symbol: &str) -> Option<&'static str> {
 /// 于是 `fun (x) => …` 全炸（实测：L1 prelude 第 9 行的 `=>` 当场解析失败）。
 /// `=` 由 `token.rs` 的 `'='` 分支**原生**产出（`Sym("=")`，后面跟 `>` 时仍走
 /// `FatArrow`）⇒ 词法不需要也不该再把它当候选符号。
+///
+/// ⚠ **别和 prelude 里的「登记注释」混为一谈**（2026-10-10 更正）：`prelude/L1.sokonanoda`
+/// 的 `-- sokonanoda:builtin-notation "=" => Eq` 是**注释**，只被
+/// `notation::builtin_directive_span()` 做纯文本查找（给 F12 一个落点）⇒ 它
+/// **不喂词法**、对 `=>` 的分词零影响 ✓。这一条（喂词法的符号表）才是 `=` 永远不进的那张表 ✗。
 pub(crate) fn lexer_builtin_symbols() -> Vec<String> {
     builtin_notation_symbols()
         .into_iter()

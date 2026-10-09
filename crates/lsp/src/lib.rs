@@ -1591,23 +1591,38 @@ fn notation_symbol_hover(
         head.push_str("（本文件声明）");
     }
     lines.push(head);
-    // **内建 / prelude 记法**（T-D20 的落地决定）：`∧`/`=` 的展开目标是内核
-    // **prelude 名**（`And`/`Eq`），**没有源码声明**可跳（`top_level_def_spans`
-    // 按构造排除 prelude，`check/mod.rs:668`）。
+    // **内建 / prelude 记法**（E10 之后的事实；**2026-10-10 更正**）：`∧`/`=` 的
+    // 展开目标是内核 **prelude 名**（`And`/`Eq`），它们**不在任何模块里**，但 E10
+    // 起 prelude 里有**登记注释行**（`-- sokonanoda:builtin-notation "∧" => And`）
+    // ⇒ `F12` **有**落点（落 `prelude/Prelude.sokonanoda` 那一行 ✓；单文件模式由
+    // `notation::builtin_declaration_span` 兜底 ✓）。
     //
-    // 决定：**`definition` 返回 `null`，但 hover 必须把原因说出来** ——
-    // 沉默的"跳不动"看起来像坏了；说明白"这是内建记法、没有源码可跳"才是
-    // 诚实的行为（与 T-D50 里"不在闭包就诚实 null"同一条原则）。
-    // 判据：`crates/lsp` 的单测 `a_builtin_notation_says_it_has_no_source_to_jump_to`。
-    // 判据是"**既不是本文件声明的、也不来自任何模块**"——内建符号在闭包表里
-    // 根本查不到（`notation_at` 返回 `None`），所以不能写成 `module.is_none()`
-    // （那要求 `Some`，实测把内建判成了非内建 ✗）。
+    // ⚠ 旧文案「内建记法（内核 prelude）：**没有源码声明**，`F12` 无处可跳」是
+    // **T-D20 时代**的话 —— E10 之后它在 `∧ ∨ ↔ ¬ ≠`（以及本轮之后的 `=`）上是
+    // **假话**，而且与 `definition` 的返回值**当场自相矛盾** ✗（用户 2026-10-10
+    // 反馈：F12 明明落到了 prelude，hover 却说无处可跳）。⇒ 删掉，改成今天的事实 ✓。
+    //
+    // 判据也从「闭包表里查不到」换成**直接问内建表**（`notation::is_builtin_notation`）：
+    // 旧反推会把**没人声明的库记法**（`∈` 没 import 库时）也算成"内建" ✗。
+    let builtin = sokonanoda_front::notation::is_builtin_notation(&symbol);
     let from_module = query
         .notation_at(text, offset)
         .is_some_and(|(_, _, module, _)| module.is_some());
-    let builtin = !locally_declared && !from_module;
     if builtin {
-        lines.push("内建记法（内核 prelude）：**没有源码声明**，`F12` 无处可跳".to_string());
+        lines.push(
+            "内建记法（内核 prelude）：声明点是 prelude 里那行 `-- sokonanoda:builtin-notation` \
+             登记注释，`F12` 落到 `prelude/Prelude.sokonanoda`"
+                .to_string(),
+        );
+    } else if !locally_declared && !from_module {
+        // **诚实说明 ≠ 静默**（T-D50 同一条纪律）：表里有这个符号、但这份文本的
+        // 闭包里没人声明它（典型：`∈` 没 `import` 声明它的课程库）⇒ `F12` 没有落点，
+        // 说清原因，别让学习者以为是坏了 ✓。
+        lines.push(
+            "这个符号在**本文件与它的 `import` 闭包**里都没有声明\
+             （课程库的记法要 `import` 声明它的模块）⇒ `F12` 没有落点"
+                .to_string(),
+        );
     }
     if let Some(target) = target {
         lines.push(format!("展开成 `{target}`"));
@@ -2049,10 +2064,51 @@ impl LanguageServer for Backend {
         // **记法声明的目标名**（T-D50 / 缺口 G-37）：`=> Set.image` 里那个名字
         // 在 AST 里不是使用点 ⇒ 以前 hover 完全静默。这里说清"它是谁的记法目标"，
         // 名字解析得出来时再补一行签名（与 `notation_symbol_hover` 同一口径）。
+        //
+        // **第二跳（2026-10-10）**：注释登记行（`-- sokonanoda:builtin-notation
+        // "∧" => And`）里的目标名也走这条 —— `notation_target_at` 现在两种形态
+        // 都认 ✓（判据 `notation_input::target_resolution_tests`）。
+        // **解析不出签名时必须说明原因**（诚实说明 ≠ 静默 ✗）：典型是
+        // `-- sokonanoda:builtin-sugar "{a}" => Set.singleton` —— 目标是**卷 I
+        // 课程库**的常量，不在 prelude 文件的闭包里 ⇒ `F12` 也没有落点 ✓。
         if let Some((name, _)) =
             sokonanoda_front::notation_input::notation_target_at(doc.text(), offset)
         {
             let mut lines = vec![format!("`{name}` —— 记法的目标")];
+            let options = sokonanoda_front::compile::CompileOptions {
+                prelude: doc.query().mode,
+            };
+            // 前缀取**闭包 + 本文件**（`judge_prefix_with_entry`）：目标在被 import
+            // 的库里、或就在本文件里时都拿得到签名 ✓（以前传空串 ⇒ 只有 prelude
+            // 名字拿得到，其余静默 ✗）。
+            let prefix = doc.query().judge_prefix_with_entry(offset);
+            let ty = sokonanoda_front::judge::judge_type_of_constant(&prefix, &options, &name)
+                .ok()
+                .filter(|ty| !ty.is_empty() && !ty.contains('$'));
+            match &ty {
+                Some(ty) => lines.push(format!("`{name} : {ty}`")),
+                None => lines.push(
+                    "这个名字在**本文件与它的 `import` 闭包**里没有声明 ⇒ 给不出签名，\
+                     `F12` 也没有落点（登记行只**登记**目标，不声明它）"
+                        .to_string(),
+                ),
+            }
+            return Ok(Some(Hover {
+                contents: HoverContents::Markup(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: lines.join("\n\n"),
+                }),
+                range: None,
+            }));
+        }
+        // **内核内建家族的登记名**（E2）：`-- sokonanoda:builtin-rust "Nat / …"` 里的
+        // 名字在**源文本里没有声明位置**（`install_prelude` 在 Rust 里手搓 AST 装进
+        // 环境）⇒ `F12` 如实没有落点（`prelude_def_span` 返回 `None` ✓，**不许编位置** ✗）。
+        // 但 hover **不许静默**（与 T-D50 同一条纪律）：说清它是什么、为什么没落点 ✓。
+        if let Some((name, _)) =
+            sokonanoda_front::notation_input::builtin_registry_name_at(doc.text(), offset)
+        {
+            let mut lines = vec![format!("`{name}` —— 内核内建（prelude）")];
             let options = sokonanoda_front::compile::CompileOptions {
                 prelude: doc.query().mode,
             };
@@ -2061,6 +2117,11 @@ impl LanguageServer for Backend {
                     lines.push(format!("`{name} : {ty}`"));
                 }
             }
+            lines.push(
+                "它由内核**按名字安装**（不是源文件里声明的）⇒ `prelude/Prelude.sokonanoda` \
+                 里没有它的声明位置，`F12` 没有落点（E2 如实登记）"
+                    .to_string(),
+            );
             return Ok(Some(Hover {
                 contents: HoverContents::Markup(MarkupContent {
                     kind: MarkupKind::Markdown,
@@ -2325,6 +2386,33 @@ impl LanguageServer for Backend {
                 }
             }
         }
+        // **内建记法的声明点，不依赖项目模式**（2026-10-10 用户反馈）：
+        // 上面那条 `notation_at` 只在**项目模式**下答得上（它查闭包记法表
+        // `project.notations`）⇒ **单文件**里内建记法够不着声明点，实测两种坏法：
+        //   * `=` ⇒ `definition_at` 也答不上来 ⇒ **无声返回 `null`** ✗（用户原话：
+        //     「`"a = b"` 里的等于号没有跳转」—— 有 import / 单文件都一样）；
+        //   * `∧` ⇒ 落到下面 `definition_at` 的 `ResolvedTarget::Notation` 分支，
+        //     它的 `range` 是**光标处**那个 span ⇒ **原地跳**（F12 视觉上没反应 ✗，
+        //     正是 E05/G-37 的教训）。
+        // 内建记法的声明点是 prelude 里那行**登记注释**，与项目无关 ⇒ 直接问前端
+        // 要（`notation::builtin_declaration_span`，与记法表**同一份 span** ✓）。
+        // 非内建符号 ⇒ `None` ⇒ 不抢别的分支 ✓。
+        {
+            let text = docs.text().to_string();
+            let offset = position_to_offset(&text, pos);
+            if let Some((symbol, _)) = sokonanoda_front::notation_input::symbol_at(&text, offset) {
+                if let Some(span) = sokonanoda_front::notation::builtin_declaration_span(&symbol) {
+                    if let Some(path) = sokonanoda_front::compile::prelude_source_path() {
+                        if let Ok(uri) = Url::from_file_path(&path) {
+                            return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                                uri,
+                                range: range_of(span),
+                            })));
+                        }
+                    }
+                }
+            }
+        }
         // **记法声明的目标名**（T-D50 / 缺口 G-37）：`infixr:80 " '' " => Set.image`
         // 里 `=>` 后面的名字是**普通引用**，但它在 AST 里不是使用点 ⇒
         // `definition_at` 答不上来。词法认出它之后，走与上面**同一条闭包通道**
@@ -2349,6 +2437,27 @@ impl LanguageServer for Backend {
                             uri,
                             range: range_of(def_span),
                         })));
+                    }
+                }
+                // **prelude 里的目标名**（第二跳，2026-10-10 用户反馈）：
+                // `-- sokonanoda:builtin-notation "∧" => And` 的 `And` 住在 **prelude
+                // 源**里，而 prelude **不是模块** ⇒ `project_definition` 查不到它
+                //（打开 prelude 文件本身时连项目模式都没有 ✗）⇒ 以前 F12 `null` ✗。
+                // 走与 A4 同一条**已有真相通道**：`PRELUDE_NAMES` + `prelude_def_span`
+                //（真 parser 出的 span ✓，不做文本比对 ✓）⇒ `And` 落 `inductive And`
+                // 那一行、`Eq` 落 `axiom Eq` 那一行 ✓。
+                // ⚠ **顺序**：`project_definition` 在前（闭包/本文件自己的声明优先 ——
+                // 与 A4 的「prelude 让位」同一条纪律 ✓）。
+                if sokonanoda_front::compile::PRELUDE_NAMES.contains(&name.as_str()) {
+                    if let Some((path, span)) = sokonanoda_front::compile::prelude_source_path()
+                        .zip(sokonanoda_front::compile::prelude_def_span(&name))
+                    {
+                        if let Ok(uri) = Url::from_file_path(&path) {
+                            return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                                uri,
+                                range: range_of(span),
+                            })));
+                        }
                     }
                 }
             }

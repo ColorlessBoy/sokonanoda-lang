@@ -830,6 +830,12 @@ pub fn symbol_occurrences(doc: &str, symbol: &str) -> Vec<crate::Span> {
 /// 标识符**——命令的形状就是这样（`keyword [:N] "sym" => Target`），所以不需要
 /// 认 `=>` 这个 token（词法里它是 `=` + `>` 两个 token）。
 pub fn notation_target_at(text: &str, offset: usize) -> Option<(String, crate::Span)> {
+    declaration_target_at(text, offset).or_else(|| comment_directive_target_at(text, offset))
+}
+
+/// [`notation_target_at`] 的**声明形态**那一半：`infix* "sym" => Target` 的目标名
+/// （词法扫描 —— 命令关键字 + 字符串 + 之后第一个标识符 ✓）。
+fn declaration_target_at(text: &str, offset: usize) -> Option<(String, crate::Span)> {
     const KEYWORDS: &[&str] = &[
         "infix",
         "infixl",
@@ -873,6 +879,171 @@ pub fn notation_target_at(text: &str, offset: usize) -> Option<(String, crate::S
         index += 1;
     }
     None
+}
+
+/// **注释登记行**里那个**目标名**（第二跳，2026-10-10）。
+///
+/// 现场（用户反馈）：
+/// `-- sokonanoda:builtin-notation "∧" => And` 里的 `And` 点不动 ——
+/// 因为**注释不产生 token** ⇒ [`declaration_target_at`] 的词法扫描永远看不见它
+/// ⇒ F12 / hover / documentHighlight 三条消费者全 `null` ✗。
+/// 这与仓库白纸黑字的**两跳模型**矛盾（`docs/gaps/repro/G23-notation-navigation.js`：
+/// 「`∈` → 记法声明 → 定义」）：第二跳在**记法声明**那条路上做了（T-D50/E05 ✓），
+/// 在**注释登记行**这条路上一直没做 ✗。
+///
+/// 识别口径（**只认 prelude 登记区的两种形状**）：
+///   * `-- sokonanoda:builtin-notation "<符号>" => <目标>`（E10）
+///   * `-- sokonanoda:builtin-sugar "<形状>" => <目标>`（E11 / G-60）
+///
+/// 目标名 = `=>` 之后那一段，且**必须是一个限定 ASCII 标识符、到行尾为止**
+/// （`And` / `Set.singleton` ✓）。中文说明文字（`期望类型决定` /
+/// `函数（fun (x : α) => P x），无目标常量`）**不是常量名** ⇒ **不认** ✓ ——
+/// 那两条登记行本来就没有目标常量，如实不认才是对的 ✓。
+///
+/// 名字解析**不在这里做**（这里只给名字与 span ✓）：调用方走已有的真相通道
+/// （`project_definition` / `prelude_def_span`），**不做文本比对** ✓。
+fn comment_directive_target_at(text: &str, offset: usize) -> Option<(String, crate::Span)> {
+    for directive in ["sokonanoda:builtin-notation", "sokonanoda:builtin-sugar"] {
+        for line in directive_lines(text, directive) {
+            let Some(after_arrow) = line.tail.trim_start().strip_prefix("=>") else {
+                continue;
+            };
+            let name = after_arrow.trim_start().trim_end();
+            if !is_qualified_ascii_name(name) {
+                continue;
+            }
+            let start = line.line.len() - name.len();
+            let end = start + name.len();
+            if line.line_offset + start <= offset && offset < line.line_offset + end {
+                return Some((name.to_string(), span_in_line(&line, start, end)));
+            }
+        }
+    }
+    None
+}
+
+/// **`-- sokonanoda:builtin-rust "Nat / Nat.zero / …"` 里被登记的名字**（E2）。
+///
+/// 它们**不是**记法目标（那一行没有 `=>`），而是「内核内建、源文本里没有声明位置」
+/// 的**如实登记**（`prelude/L1.sokonanoda` 的 E2 区 ✓）。LSP 的 hover 用这个入口
+/// 认出光标下的名字 ⇒ **不许静默**（说清它是内核内建、为什么 `F12` 没有落点 ✓）；
+/// `definition` **不用**它（落点如实是 `None`，编一个位置才是撒谎 ✗）。
+///
+/// 识别口径：行首（允许缩进）`-- sokonanoda:builtin-rust` + 一个双引号字符串，
+/// 名字 = 字符串里按 `/` 分段、每段 `trim` 之后**是限定 ASCII 标识符**的那些 ✓。
+pub fn builtin_registry_name_at(text: &str, offset: usize) -> Option<(String, crate::Span)> {
+    for line in directive_lines(text, "sokonanoda:builtin-rust") {
+        let mut cursor = 0usize;
+        for segment in line.quoted.split('/') {
+            let name = segment.trim();
+            let at = cursor + (segment.len() - segment.trim_start().len());
+            cursor += segment.len() + 1; // `/` 分隔符本身
+            if !is_qualified_ascii_name(name) {
+                continue;
+            }
+            let start = line.quoted_offset + at;
+            let end = start + name.len();
+            if start <= offset && offset < end {
+                let start_in_line = start - line.line_offset;
+                let end_in_line = end - line.line_offset;
+                return Some((
+                    name.to_string(),
+                    span_in_line(&line, start_in_line, end_in_line),
+                ));
+            }
+        }
+    }
+    None
+}
+
+/// 一条**注释登记行**的解析结果（[`directive_lines`] 的产物）。
+struct DirectiveLine<'a> {
+    /// 1-based 行号。
+    line_no: usize,
+    /// 整行（去掉行尾 `\n`）。
+    line: &'a str,
+    /// 整行在文本里的绝对字节偏移。
+    line_offset: usize,
+    /// 指令名之后那个双引号字符串的**内容**。
+    quoted: &'a str,
+    /// `quoted` 的绝对字节偏移。
+    quoted_offset: usize,
+    /// 字符串**之后**那一段（`=> <目标>` 或空）。
+    tail: &'a str,
+}
+
+/// 扫出所有形如 `-- <directive> "<字符串>" <tail>` 的**注释**行（行首允许缩进）。
+///
+/// 为什么按行扫：**注释不产生 token**（词法直接跳过）⇒ 想要注释里的名字就只能
+/// 做文本扫描。这里与 `notation::builtin_directive_span` 同一套口径（行首 `--` ✓），
+/// 但**只解析出结构化片段**，名字的合法性判据在调用方 ✓。
+fn directive_lines<'a>(text: &'a str, directive: &str) -> Vec<DirectiveLine<'a>> {
+    let mut out = Vec::new();
+    let mut line_offset = 0usize;
+    for (index, raw) in text.split_inclusive('\n').enumerate() {
+        let line = raw.trim_end_matches('\n');
+        if let Some(rest) = line.trim_start().strip_prefix("--") {
+            let rest = rest.trim_start();
+            if let Some(after) = rest.strip_prefix(directive) {
+                if after.starts_with(char::is_whitespace) {
+                    if let Some(after_quote) = after.trim_start().strip_prefix('"') {
+                        if let Some(close) = after_quote.find('"') {
+                            out.push(DirectiveLine {
+                                line_no: index + 1,
+                                line,
+                                line_offset,
+                                quoted: &after_quote[..close],
+                                quoted_offset: line_offset + (line.len() - after_quote.len()),
+                                tail: &after_quote[close + 1..],
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        line_offset += raw.len();
+    }
+    out
+}
+
+/// **限定 ASCII 标识符**（`And` / `Set.singleton`）：登记区里**真的目标名**的形状。
+///
+/// 反向（不认）的例子：`期望类型决定`（中文说明）、`函数（fun (x : α) => P x），无目标常量`
+/// （带标点的说明）—— 那两条登记行**没有目标常量**，认了反而是在编 ✗。
+fn is_qualified_ascii_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.split('.').all(|segment| {
+            let mut chars = segment.chars();
+            matches!(chars.next(), Some(c) if c.is_ascii_alphabetic() || c == '_')
+                && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+        })
+}
+
+/// 行内字节区间 → `Span`。
+///
+/// 列按 **UTF-16 码元**、1-based（LSP 口径 ✓ —— `render::range_of` 直接用它）。
+/// ⚠ `notation::builtin_directive_span` 用的是**字节列**（历史口径），别照抄 ✗：
+/// 那一行里有 `∧`（3 字节 / 1 码元），字节列会把名字的列号推后 2 ✓。
+fn span_in_line(line: &DirectiveLine<'_>, start: usize, end: usize) -> crate::Span {
+    let column = |at: usize| {
+        line.line[..at]
+            .chars()
+            .map(|c| c.len_utf16())
+            .sum::<usize>()
+            + 1
+    };
+    crate::Span::new(
+        crate::Pos {
+            offset: line.line_offset + start,
+            line: line.line_no,
+            column: column(start),
+        },
+        crate::Pos {
+            offset: line.line_offset + end,
+            line: line.line_no,
+            column: column(end),
+        },
+    )
 }
 
 /// 同 [`symbol_at`]，但展开目标还能从**闭包里**找（T-D02）。
@@ -1187,5 +1358,81 @@ mod target_resolution_tests {
         let (symbol, target) = symbol_at_with_sources(src, offset, &[lib]).expect("认得出来");
         assert_eq!(symbol, "∈");
         assert_eq!(target.as_deref(), Some("Set.mem"), "闭包里有声明就能解析");
+    }
+
+    /// **第二跳（2026-10-10 用户反馈）**：**注释登记行**里的目标名也要认得出来。
+    ///
+    /// 用户动作：在 `-- sokonanoda:builtin-notation "∧" => And` 的 `And` 上按 F12。
+    /// 以前 `notation_target_at` 是**词法**扫描（注释不产生 token）⇒ 永远 `None`
+    /// ⇒ F12 / hover / documentHighlight 三条全 `null` ✗。
+    ///
+    /// 断言的是**具体值**：名字 + span **逐字**圈住 `And`（只断言"非 null"会放过
+    /// 圈到别处的实现 ✗ —— 与 E05/G-37 同一条纪律 ✓）。
+    #[test]
+    fn a_comment_registration_target_name_is_found_at_its_own_offset() {
+        let src = "-- sokonanoda:builtin-notation \"∧\" => And\n";
+        let offset = src.find("And").expect("目标名在注释里");
+        let (name, span) = notation_target_at(src, offset).expect("注释登记行的目标名要认得出来 ✗");
+        assert_eq!(name, "And");
+        assert_eq!(
+            &src[span.start.offset..span.end.offset],
+            "And",
+            "span 必须**逐字**圈住目标名 ✗"
+        );
+        assert_eq!(span.start.line, 1, "1-based 行号");
+        // 列按 UTF-16 码元（LSP 口径）：`"∧"` 只占 3 个码元（`∧` 是 1 个），
+        // 所以 `And` 的列 == 行内**字符**偏移 + 1 ✓（按字节算会多 2 ✗）。
+        let char_col = src[..offset].chars().count() + 1;
+        assert_eq!(span.start.column, char_col, "列按 UTF-16 码元（LSP 口径）✗");
+
+        // **反向验证（硬要求）**：光标落在注释里**别的词**上 ⇒ `None`。
+        for other in ["sokonanoda", "builtin", "notation"] {
+            let at = src.find(other).expect("注释里的别的词");
+            assert!(
+                notation_target_at(src, at).is_none(),
+                "注释里 `{other}` 不是目标名 ⇒ 必须 `None` ✗"
+            );
+        }
+        // 行尾（`And` 之后）也不认。
+        assert!(notation_target_at(src, src.trim_end().len()).is_none());
+    }
+
+    /// **同族横排（做/不做的边界要可查）**：
+    /// * `builtin-sugar` 的 `=> Set.singleton` 是**目标名** ⇒ 认 ✓（解析归调用方，
+    ///   它在 prelude 闭包里查不到 ⇒ 诚实 `null` + hover 说明）；
+    /// * 两条**中文说明**（`期望类型决定` / `函数（…），无目标常量`）**不是常量名**
+    ///   ⇒ **不认** ✓（它们本来就没有目标常量，认了就是编 ✗）；
+    /// * `builtin-rust` 的名字走 [`builtin_registry_name_at`]（没有 `=>`，另一种形状 ✓）。
+    #[test]
+    fn only_real_target_names_in_the_registry_are_recognised() {
+        let sugar = "-- sokonanoda:builtin-sugar \"{a}\" => Set.singleton\n";
+        let (name, span) = notation_target_at(sugar, sugar.find("Set.singleton").expect("名字"))
+            .expect("builtin-sugar 的目标名要认得出来");
+        assert_eq!(name, "Set.singleton");
+        assert_eq!(&sugar[span.start.offset..span.end.offset], "Set.singleton");
+
+        for prose in [
+            "-- sokonanoda:builtin-sugar \"⟨a, b⟩\" => 期望类型决定\n",
+            "-- sokonanoda:builtin-sugar \"{x : α | P x}\" => 函数（fun (x : α) => P x），无目标常量\n",
+        ] {
+            let at = prose.find("=>").expect("箭头") + 3;
+            assert!(
+                notation_target_at(prose, at).is_none(),
+                "说明文字不是目标名 ⇒ 不认 ✗：{prose:?}"
+            );
+        }
+
+        // `builtin-rust`：名字在字符串里，按 `/` 分段 —— 认得出，且 span 逐字。
+        let rust = "-- sokonanoda:builtin-rust \"Nat / Nat.zero / Nat.succ\"\n";
+        let (name, span) = builtin_registry_name_at(rust, rust.find("Nat.zero").expect("名字"))
+            .expect("内建家族的登记名要认得出来");
+        assert_eq!(name, "Nat.zero");
+        assert_eq!(&rust[span.start.offset..span.end.offset], "Nat.zero");
+        assert_eq!(span.start.line, 1);
+        // **反向**：指令名自己、引号、`/` 都不认。
+        assert!(builtin_registry_name_at(rust, rust.find("sokonanoda").expect("指令名")).is_none());
+        assert!(builtin_registry_name_at(rust, rust.find('/').expect("分隔符")).is_none());
+        // 记法目标那条入口**不**认 `builtin-rust`（形状不同：没有 `=>`）。
+        assert!(notation_target_at(rust, rust.find("Nat.zero").expect("名字")).is_none());
     }
 }

@@ -294,10 +294,6 @@ fn builtin_notations_reach_the_closure_notation_table() {
     let prelude = prelude_source();
     let mut checked = 0;
     for decl in sokonanoda_front::notation::builtin_notation_decls_for_test() {
-        // `=` **故意**没有指令行（最长匹配会把 `=>` 吃坏 ✗）⇒ 它不在这条判据里 ✓。
-        if decl.symbol == "=" {
-            continue;
-        }
         let found = table
             .iter()
             .find(|it| it.symbol == decl.symbol)
@@ -315,7 +311,11 @@ fn builtin_notations_reach_the_closure_notation_table() {
         );
         checked += 1;
     }
-    assert!(checked >= 5, "至少 5 条（实测 {checked}）");
+    assert_eq!(
+        checked, 6,
+        "内建记法共 6 条（`∧ ∨ ↔ ¬ = ≠`）—— `=` 不再是例外（2026-10-10 用户反馈：\
+         `=` 上 F12 无声返回 ✗）：实测 {checked} 条"
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }
 

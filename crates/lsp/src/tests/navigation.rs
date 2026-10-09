@@ -750,6 +750,242 @@ async fn goto_definition_on_a_builtin_notation_lands_in_the_prelude() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// **用户反馈（2026-10-10）**：`"a = b"` 里的 `=` 按 `F12` 必须**有落点**。
+///
+/// 现场：`=` 是**三处故意特例**的叠加（`LEXER_NATIVE_SYMBOLS` 剔除 + 旧注释不登记
+/// + `span.start.offset != 0` 的闸门）⇒ `definition` **无声返回 `null`** ✗
+/// （既不报错也不跳，用户原话：「等于号没有跳转」）。本轮按**与另外 5 个内建记法
+/// 对称**的方案修：prelude 登记区补一行 `-- sokonanoda:builtin-notation "=" => Eq` ✓。
+///
+/// 这条钉的是**单文件模式**（无 `import` / 无清单）—— `Query::notation_at` 只在项目
+/// 模式下工作 ⇒ 走的是**项目无关**的那条兜底（`notation::builtin_declaration_span` ✓）。
+/// 项目模式那一半见下一条（`goto_definition_on_the_equals_notation_in_a_project_...`）。
+///
+/// **反向验证**：删掉 prelude 里那行登记 ⇒ `builtin_declaration_span("=")` = `None`
+/// ⇒ 本用例判红（`=` 必须有跳转目标）✓。
+#[tokio::test]
+async fn goto_definition_on_the_equals_notation_lands_in_the_prelude() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-def-equals-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    // ⚠ **故意**不写 `sokonanoda.toml`、不写 `import` ⇒ 单文件模式 ✓。
+    let src = "theorem eq_self (a b : Prop) (h : a = b) : a = b := h\n";
+    let entry = dir.join("Solo.sokonanoda");
+    std::fs::write(&entry, src).expect("entry");
+    let uri = Url::from_file_path(&entry).expect("url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "equals notation definition").await;
+
+    // 用户实际点的字符位置：`h : a = b` 里的那个 `=`（不是"能跑通的位置" ✗）。
+    let pos = lsp_pos(src, src.find(" = ").expect("the `=` the user clicks") + 1);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/definition")
+            .params(json!({"textDocument": {"uri": uri}, "position": position_json(pos)}))
+            .id(11)
+            .finish(),
+    )
+    .await
+    .expect("definition answers");
+    let location: Option<GotoDefinitionResponse> =
+        serde_json::from_value(result).expect("valid response");
+    let location = location.expect("`=` 必须有跳转目标（本轮修的正是它）✗");
+    let (landed, range) = match location {
+        GotoDefinitionResponse::Scalar(location) => (location.uri, location.range),
+        other => panic!("expected a single location: {other:?}"),
+    };
+    let path = landed.to_file_path().expect("file url");
+    let prelude_path = sokonanoda_front::compile::prelude_source_path().expect("prelude 路径");
+    assert_eq!(
+        path.canonicalize().expect("canonicalize landed"),
+        prelude_path.canonicalize().expect("canonicalize prelude"),
+        "`=` 的落点必须是 **prelude 源**（E10 的登记行在那里）✗"
+    );
+    let text = std::fs::read_to_string(&path).expect("read the landed file");
+    let landed_line = text
+        .lines()
+        .nth(range.start.line as usize)
+        .expect("landed line");
+    // **断言落点行号**（只断言"非 null"会放过原地跳 ✗ —— E05/G-37 的教训）：
+    // 落点行必须是 `=` 的登记行，且**不是**用户点的那一行（自跳）✗。
+    assert!(
+        landed_line
+            .trim_start()
+            .starts_with("-- sokonanoda:builtin-notation \"=\" => Eq"),
+        "必须落在 `=` 那条登记行上 ✗（实际：{landed_line:?}）"
+    );
+    assert_ne!(
+        landed_line.trim_start(),
+        src.lines().next().expect("entry line").trim_start(),
+        "落点不许是用户点的那一行（原地跳）✗"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **同上，项目模式那一半**（用户原话：「有 import / 单文件都一样」✗ ⇒ 两边都要修 ✓）：
+/// 有清单 + `import` 行时，`notation_at` 会给出内建记法的 span（E10 那条路 ✓），
+/// 但它**必须不是 offset 0** —— 那正是本轮给 `=` 补登记行要修的闸门 ✓。
+#[tokio::test]
+async fn goto_definition_on_the_equals_notation_in_a_project_lands_in_the_prelude() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-def-equals-project-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    std::fs::write(
+        dir.join("sokonanoda.toml"),
+        "entry = \"Canvas.sokonanoda\"\n",
+    )
+    .expect("manifest");
+    std::fs::write(
+        dir.join("SetLib.sokonanoda"),
+        "def Set (α : Type) : Type := α -> Prop\n",
+    )
+    .expect("lib");
+    let src = "import SetLib\n\ntheorem eq_self (a b : Prop) (h : a = b) : a = b := h\n";
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(&entry, src).expect("entry");
+    let uri = Url::from_file_path(&entry).expect("url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "equals project definition").await;
+
+    let pos = lsp_pos(src, src.find(" = ").expect("the `=` the user clicks") + 1);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/definition")
+            .params(json!({"textDocument": {"uri": uri}, "position": position_json(pos)}))
+            .id(12)
+            .finish(),
+    )
+    .await
+    .expect("definition answers");
+    let location: Option<GotoDefinitionResponse> =
+        serde_json::from_value(result).expect("valid response");
+    let location = location.expect("项目模式下 `=` 也必须有跳转目标 ✗");
+    let (landed, range) = match location {
+        GotoDefinitionResponse::Scalar(location) => (location.uri, location.range),
+        other => panic!("expected a single location: {other:?}"),
+    };
+    let path = landed.to_file_path().expect("file url");
+    let text = std::fs::read_to_string(&path).expect("read the landed file");
+    let landed_line = text
+        .lines()
+        .nth(range.start.line as usize)
+        .expect("landed line");
+    assert!(
+        landed_line
+            .trim_start()
+            .starts_with("-- sokonanoda:builtin-notation \"=\" => Eq"),
+        "必须落在 `=` 那条登记行上 ✗（实际：{landed_line:?}）"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **用户反馈（2026-10-10）的第二跳**：prelude 登记注释里的**目标名**按 `F12` 必须跳。
+///
+/// 现场（用户原话）：「prelude 里的 `-- sokonanoda:builtin-notation "∧" => And`
+/// 是注释，点击 `And` 无法跳转」✗ —— 注释**不产生 token** ⇒
+/// `notation_input::notation_target_at` 的词法扫描永远认不出它 ⇒ F12 / hover /
+/// documentHighlight 三条全 `null` ✗（与仓库白纸黑字的**两跳模型**矛盾：
+/// `docs/gaps/repro/G23-notation-navigation.js`「`∈` → 记法声明 → 定义」）。
+///
+/// 这条钉的是**用户实际点的字符位置**（那行注释里 `And` 的字符上 ✓）与**落点行号**
+/// （`inductive And` 那一行 ✓ —— 只断言"非 null"会放过原地跳 ✗）。
+///
+/// **反向验证**：撤掉 `comment_directive_target_at` 那一半（`notation_target_at`
+/// 只剩声明形态）⇒ 本用例判红（`And 必须有跳转目标`）✓。
+#[tokio::test]
+async fn goto_definition_on_a_comment_registration_target_lands_on_its_definition() {
+    let path = sokonanoda_front::compile::prelude_source_path().expect("prelude 源落盘路径");
+    // ⚠ **规范化**：`prelude_source_path()` 带 `..`，而 URI 过一趟 JSON（`json!`）会被
+    // URL 规范**归一化** ⇒ 测试手里的 `uri` 与服务端发布诊断用的 `uri` 不相等，
+    // `wait_diagnostics_for` 会**空等到超时** ✗（2026-10-10 实测踩到）。
+    let path = path.canonicalize().expect("canonicalize prelude");
+    let text = std::fs::read_to_string(&path).expect("read prelude");
+    let uri = Url::from_file_path(&path).expect("file url");
+    let want_line = text
+        .lines()
+        .position(|line| line.trim_start().starts_with("inductive And "))
+        .expect("`inductive And` 在 prelude 里") as u32;
+    let clicked_line = text
+        .lines()
+        .position(|line| {
+            line.trim_start()
+                .starts_with("-- sokonanoda:builtin-notation \"∧\" =>")
+        })
+        .expect("`∧` 的登记行在 prelude 里") as u32;
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, &text).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "comment target definition").await;
+
+    // 用户实际点的字符：`=>` 之后的 `And` 的第一个字符 ✓。
+    let needle = "-- sokonanoda:builtin-notation \"∧\" => ";
+    let pos = lsp_pos(&text, offset_of(&text, needle) + needle.len());
+    assert_eq!(
+        pos.line, clicked_line,
+        "夹具前提：光标必须落在**那条注释行**上（第 {clicked_line} 行）"
+    );
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/definition")
+            .params(json!({"textDocument": {"uri": uri}, "position": position_json(pos)}))
+            .id(13)
+            .finish(),
+    )
+    .await
+    .expect("definition answers");
+    let location: Option<GotoDefinitionResponse> =
+        serde_json::from_value(result).expect("valid response");
+    let location = location.expect("注释登记行里的目标名必须有跳转目标（第二跳）✗");
+    let (landed, range) = match location {
+        GotoDefinitionResponse::Scalar(location) => (location.uri, location.range),
+        other => panic!("expected a single location: {other:?}"),
+    };
+    let landed_path = landed.to_file_path().expect("file url");
+    assert_eq!(
+        landed_path.canonicalize().expect("canonicalize landed"),
+        path.canonicalize().expect("canonicalize prelude"),
+        "`And` 的定义就在 prelude 源里（它不是模块 ⇒ 不走 project_definition）"
+    );
+    let landed_text = std::fs::read_to_string(&landed_path).expect("read landed");
+    let landed_line = landed_text
+        .lines()
+        .nth(range.start.line as usize)
+        .expect("landed line");
+    assert_eq!(
+        range.start.line, want_line,
+        "必须落在 `inductive And` 那一行（0-based {want_line}）✗ —— 实际：{landed_line:?}"
+    );
+    assert!(
+        landed_line.trim_start().starts_with("inductive And "),
+        "落点行必须是 `inductive And` 的声明行 ✗（实际：{landed_line:?}）"
+    );
+    assert_ne!(
+        range.start.line, clicked_line,
+        "**自跳**（落在光标自己那一行 = F12 视觉上没反应）✗"
+    );
+}
+
 /// **G-55 的判据（2026-10-07 用户授权"本轮做"；语义定案 = ①+②+③ 累积式）**。
 ///
 /// 现场（E08 实测，真课程库 11 条）：`textDocument/documentHighlight` 对记法**目标名**
