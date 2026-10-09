@@ -497,6 +497,11 @@ fn perf_course_cross_entry_switch_is_recorded() {
         std::env::temp_dir().join(format!("sokonanoda-lsp-cross-entry-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&cache);
     let artifacts_off = std::env::var_os("SOKONANODA_NO_PROJECT_ARTIFACTS").is_some();
+    // ⭐ **状态显式化**（与"开档后第一刀"那条同一纪律，2026-10-09）：这一臂的读数
+    // **取决于模块根里已有的产物/报告缓存**（实测同一构建在两轮里读出过 689.7 / 664.8 / 911.1ms ✗）
+    // ⇒ 先把两处清成确定状态 ✓（`.sokonanoda/` 是自忽略的缓存目录 ✓，清它是**准备动作** ✓）。
+    let _ = std::fs::remove_dir_all(root.join(".sokonanoda").join("artifacts"));
+    let _ = std::fs::remove_dir_all(root.join(".sokonanoda").join("compiled"));
     let mut client = Client::start_traced_with_env(
         &cache,
         if artifacts_off {
