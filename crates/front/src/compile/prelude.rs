@@ -488,8 +488,11 @@ pub fn prelude_def_span(name: &str) -> Option<Span> {
 /// 可重定向）—— **不落工作区** ✓（不污染用户的树、不进 `build`）。
 /// 缓存被禁用（`root()` = `None`）⇒ 返回 `None` ⇒ 调用方**不编造位置** ✓。
 ///
-/// 实测前提：这份源作为**普通文档**编译是**干净**的（35 条声明 / 0 诊断 ✓）
-/// ⇒ 在编辑器里打开它不会满屏红 ✓。
+/// **实测前提：这份源作为普通文档编译是干净的** ⇒ 在编辑器里打开它不会满屏红 ✓。
+/// ⚠ 这条**不在这里写死数字**（写死的数字会过期 ✗ —— 这里曾写「35 条声明 / 0 诊断」，
+/// 早已是假话）：它由 `crates/front/tests/prelude_mirror.rs::
+/// the_prelude_source_grades_clean_as_an_ordinary_document` 钉住（0 诊断 + 声明计数 ✓，
+/// 走与 `scripts/soko grade` 同一条 `parse` → `compile_all_with` 通道）。
 pub fn prelude_source_path() -> Option<std::path::PathBuf> {
     let src = prelude_source();
     // ⓪ **仓库里的真源**（**E1，2026-10-08**）：检出仓库时 F12 直接落到

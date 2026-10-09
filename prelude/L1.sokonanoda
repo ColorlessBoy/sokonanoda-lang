@@ -29,7 +29,7 @@ axiom Classical.em : (p : Prop) -> Or p (Not p)
 -- Lean core 同名的推论（`Classical.byContradiction`）：反证法。
 def Classical.byContradiction : (p : Prop) -> (Not p -> False) -> p :=
   fun (p : Prop) (h : Not p -> False) =>
-    Or.elim p (Not p) (Classical.em p) (fun (hp : p) => hp) (fun (hnp : Not p) => False.elim p (h hnp))
+    Or.elim p (Not p) p (fun (hp : p) => hp) (fun (hnp : Not p) => False.elim p (h hnp)) (Classical.em p)
 -- `Ne`（L2.3）：`≠` 的**目标常量**，与 Lean core 的 `Ne` 同形（`a ≠ b` 就是
 -- `a = b -> False`）。带**一个宇宙参数** `u`（`α : Sort u`）——所以 `≠` 的记法
 -- 路径要解层级，与 `=` 同一份机械（`elab.rs` 的 `level_text_of_sort`）。

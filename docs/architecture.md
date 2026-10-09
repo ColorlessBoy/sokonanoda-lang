@@ -607,6 +607,16 @@ LEAN_KERNEL_ARENA=… LEAN_KERNEL_ARENA_MAX_BYTES=$((1024*1024*1024)) scripts/ke
     ④ **编辑器不许自己发明模块根**：LSP 的 `initialize` 工作区根不是模块根
     （把工作区根当 `root_override` 等于跳过清单发现，工作区里嵌套的项目会
     `import-not-found` 而 CLI 正常）；一律交给 front 按 CLI 同款规则发现。
+11. **prelude 是"受信任安装" ⇒ 体的类型错误只能靠"判 prelude 源"这条守卫抓**
+    （2026-10-10 实测）：`install_l1_command`（`compile/prelude.rs`）把每条命令
+    **elaborate** 成 `Declar` 就装进环境、**不进 PendingOp** ⇒ 内核**从不重查**它；
+    那里的 `.expect("L1 prelude definition elaborates")` **只保证 elaborate 成功、
+    不保证内核接受** ✗。实测：`Classical.byContradiction` 的 `Or.elim` 漏了动机位 `c`
+    （`Classical.em p` 被塞进 `f`）⇒ 装进环境**一声不响**（三层测试全绿 ✗），
+    而把生效源 `prelude/Prelude.sokonanoda` 当**普通文档**判立刻 `kernel-rejected`
+    （期望 `Sort(0)`）。守卫 = `crates/front/tests/prelude_mirror.rs::
+    the_prelude_source_grades_clean_as_an_ordinary_document`（0 诊断 + 声明计数 ≥ 43，
+    与 `scripts/soko grade` 同一条 `parse` → `compile_all_with` 通道 ✓）。
 
 ---
 

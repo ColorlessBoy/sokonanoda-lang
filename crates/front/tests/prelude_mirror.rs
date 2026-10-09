@@ -77,6 +77,104 @@ fn the_repo_mirror_is_byte_identical_to_the_compiled_prelude() {
     }
 }
 
+/// **prelude 源的干净性守卫（2026-10-10）**：把 prelude 的**生效源**
+/// （`prelude_source()` —— 编辑器 F12 打开的那一份）当**普通文档**判一遍，
+/// 断言 **0 诊断 + 声明计数** ✓。
+///
+/// **为什么必须有这条**（这才是它存在的理由）：prelude 是「**受信任的预置**」——
+/// 安装后**不再被内核重查**（`crates/front/src/compile/prelude.rs:3` 的设计 ✓）。
+/// ⇒ **体的类型错误只能靠"判 prelude 源"这条守卫抓** ✗✓：它不会在任何学生文件里
+/// 冒出来，而 `install_l1_command` 的 `.expect(...)` **只保证 elaborate 成功、
+/// 不保证内核接受** ✗。实测（2026-10-10）：`Classical.byContradiction` 的 `Or.elim`
+/// **漏了动机位 `c`** ⇒ `Classical.em p` 被塞进 `f` 的位置 ⇒ 这份源 43 条声明里
+/// 1 条判红，而**三层测试全绿**（没人判过这份源本身 ✗）。
+///
+/// **通道与 `scripts/soko grade` 同源**（不许自造一条文本比对的路 ✗）：无 `import`
+/// 的普通文档走 `parse` → `prelude_mode_from_source` → `compile_all_with`
+/// （= `crates/cli/src/check.rs:29` 的 `check_source` ✓）；计数读的就是
+/// `query check` 用的那两份（`output.events` / `output.errors`，`query/mod.rs` ✓）。
+///
+/// **反向验证**（硬要求，2026-10-10 实测）：把 L1 里那行改回错体
+/// （`Or.elim p (Not p) (Classical.em p) (fun …) (fun …)`）⇒ 本用例判红 ✓
+/// （`cargo test -p sokonanoda-front --test prelude_mirror \
+/// the_prelude_source_grades_clean_as_an_ordinary_document` ⇒ `FAILED`，exit 101）。
+/// 判红时的报错原文（逐字；下面按注释宽度折行，实际是两行）：
+///
+/// ```text
+/// prelude 源作为普通文档必须**0 诊断** ✗（`scripts/soko grade` 会 exit 1、编辑器里打开它就是满屏红）—— 它是**受信任安装**的源，体的类型错误不会在任何学生文件里冒出来，只有这条守卫抓得住：
+///   L34:1 [kernel-rejected] 类型不匹配：期望 `Sort(0)`，实际是 `((Or.[] 第 1 个绑元（p）) (Not.[] 第 1 个绑元（p）))`
+/// ```
+///
+/// ⚠ **计数只许多不许少**：`checked >= 43` 是**下界**（2026-10-10 实测 43）——
+/// 加声明不用改这条 ✓，**删**声明（或把它写成判红/`sorry`）会判红 ✓。
+#[test]
+fn the_prelude_source_grades_clean_as_an_ordinary_document() {
+    use sokonanoda_front::compile::{
+        compile_all_with, prelude_mode_from_source, CheckEvent, CompileOptions, DeclStatus,
+    };
+    let src = prelude_source();
+    let file = sokonanoda_front::parse(src)
+        .expect("prelude 源必须能 parse（否则学生 F12 打开它就是满屏红 ✗）");
+    let options = CompileOptions {
+        prelude: prelude_mode_from_source(src),
+    };
+    let (output, report) = compile_all_with(&file, &options);
+
+    let count = |status: DeclStatus| report.decls.iter().filter(|d| d.status == status).count();
+    let checked = count(DeclStatus::Checked);
+    let failed = count(DeclStatus::Failed);
+    let open = count(DeclStatus::Open);
+    let events_checked = output
+        .events
+        .iter()
+        .filter(|e| matches!(e, CheckEvent::DeclarationChecked { .. }))
+        .count();
+
+    // ① 0 诊断（与 `scripts/soko grade --json` / `query check` 的 `failed` 同源）。
+    assert!(
+        output.errors.is_empty() && report.errors.is_empty(),
+        "prelude 源作为普通文档必须**0 诊断** ✗（`scripts/soko grade` 会 exit 1、\
+         编辑器里打开它就是满屏红）—— 它是**受信任安装**的源，体的类型错误不会在\
+         任何学生文件里冒出来，只有这条守卫抓得住：\n{}",
+        output
+            .errors
+            .iter()
+            .map(|e| format!(
+                "  L{}:{} [{}] {}",
+                e.span.start.line,
+                e.span.start.column,
+                e.kind.code(),
+                e.message
+            ))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    // ② 声明计数：每条都 Checked（0 failed / 0 open），且不少于 43。
+    assert_eq!(
+        failed, 0,
+        "prelude 源里不许有判红的声明 ✗（{checked} checked / {failed} failed / {open} open）"
+    );
+    assert_eq!(
+        open, 0,
+        "prelude 源里不许有 open 练习 ✗（{checked} checked / {failed} failed / {open} open）"
+    );
+    assert_eq!(
+        checked,
+        report.decls.len(),
+        "prelude 源里每条声明都必须 Checked ✗（{} 条里只有 {checked} 条）",
+        report.decls.len()
+    );
+    assert_eq!(
+        events_checked, checked,
+        "事件计数（`query check` 读的那份）与报告计数必须一致 ✗"
+    );
+    assert!(
+        checked >= 43,
+        "prelude 的声明计数只许多不许少（2026-10-10 实测 43，今天 {checked}）—— \
+         变少说明有声明被删掉、或被写成了判红/`sorry` ✗"
+    );
+}
+
 /// **E1（2026-10-08）的方向翻转**：`prelude/*.sokonanoda` **三段真源**才是真相，
 /// 合并视图 `prelude/Prelude.sokonanoda` 是**由它们生成**的 ✓。
 ///
