@@ -296,6 +296,20 @@ fn perf_course_keystroke_wallclock_is_recorded() {
         5,
     );
 
+    // ⭐ **T2-B 的跨进程证据（2026-10-09 · 平行线）**：`STATUS.md` 把"**进程隔离的 A/B**"列成
+    // T2-B 的**已知验证缺口** ✓ —— 同进程那两臂会被**线程局部的 `EntryCache`** 互相喂缓存 ✗
+    // ⇒ 读数不可比。**本探针天生是跨进程的**（真 `sokonanoda-lsp` 子进程 + 真 stdio ✓）：
+    // `trailing_comment` 那一臂只往**文件末尾**追加注释（不移动任何命令的起点 ✓）⇒ 全部命令都可信任
+    // ⇒ T2-B 之后入口趟从**末尾快照**续编 ⇒ `by` 从 **9 → 1** ✓（改前/改后都实测过 ✓）。
+    // 判据用**结构计数**（`by` = by 引擎调用数 ✓，不是毫秒 ✓）；上界给到 3 是为了容忍
+    // "最后一条被重走一遍"这类小抖动 ✓ —— 而**旧的 9 会当场判红** ✓ ⇒ 它咬得住回归 ✓。
+    assert!(
+        trailing.by <= 3,
+        "**T2-B 的跨进程证据** ✗：只追加尾部注释时 `by` 该 ≤3（T2-B 前是 9 ✗）—— \
+         实得 {}（若回到 ~9 ⇒ 入口趟又在整条重 elaborate ✗，或 T2-B 的续编没生效 ✓）",
+        trailing.by
+    );
+
     let identity = binary_identity();
     for arm in [&proof, &statement, &typing, &equal_length, &trailing] {
         println!(

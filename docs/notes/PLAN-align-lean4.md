@@ -1411,29 +1411,32 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ⚠ **红线的现状（第 75 轮）**：`export` 修复是**行为改动** ⇒ 该跑"整门课逐字节"那道 ✓。**全量 `scripts/soko gate` 判红** ✗ —— 但红在 **`crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env`** （**内核**测试 ✓，与本次改动（只在 `front/project/session.rs`）**逻辑无关** ✓；那一带正是并行线 `EnvBuilder` 指针同一性判据的地盘 ✓）⇒ 归并行线/内核线 ✓，不是本修复的回归 ✓。
 * ✅ **课程那条红线**：单独跑 **`python3 courses/set-theory/tools/check.py`** ⇒ **exit 0** ✓ （**258 个目标 · 2188 checked · 916 open · 0 个被判负** ✓）⇒ 本次行为改动**过了课程门禁** ✓。 ⚠ 待办：等内核那条测试回绿后，再跑一次**全量 gate**（那里才有"整门课 `--json` 逐字节"那道 ✓）。
 
-* ✅ **T4-B 的 CLI `check` 换路落地（第 76 轮）**：`check.rs` 从 `compile_plan`（整条闭包一趟 ✗） 换成 **`precheck_plan` + `compile_plan_with_artifacts`** ✓（session + 磁盘产物、且不碰线程局部检查点 ✓）。 三条前置都核实过：① 报告逐字节相同（`t4b_plan_parity` ✓）；② 本调用方**没有** progress sink （`compile_plan` = `…_with_progress(None)` ✓）⇒ 不存在丢进度事件的问题 ✓；③ **`export` 已对齐** ✓ （第 43 轮正是死在这条上 ✗）。验证：`cli/tests/namespace` **10/10** ✓ · **CLI 全套 40 个目标 exit 0** ✓。
-  ⚠ **如实记：没有量到墙钟收益** ✗ —— 夹具上两臂都是 **~0.035s**（`compiled/` 报告缓存 + 全局缓存把两臂都
+* ✅ **T4-B 的 CLI `check` 换路落地（第 76 轮）**：`check.rs` 从 `compile_plan`（整条闭包一趟 ✗） 换成 **`precheck_plan` + `compile_plan_with_artifacts`** ✓（session + 磁盘产物、且不碰线程局部检查点 ✓）。 三条前置都核实过：① 报告逐字节相同（`t4b_plan_parity` ✓）；② 本调用方**没有** progress sink （`compile_plan` = `…_with_progress(None)` ✓）⇒ 不存在丢进度事件的问题 ✓；③ **`export` 已对齐** ✓ （第 43 轮正是死在这条上 ✗）。验证：`cli/tests/namespace` **10/10** ✓ · **CLI 全套 40 个目标 exit 0** ✓。 ⚠ **如实记：没有量到墙钟收益** ✗ —— 夹具上两臂都是 **~0.035s**（`compiled/` 报告缓存 + 全局缓存把两臂都
   短路了 ✗，与第 13/43 轮同一条教训）⇒ 本次换路的依据是**判据（报告逐字节）+ 与 `query` 共用产物路** ✓，
   不是墙钟读数 ✓（要量收益得先让报告缓存 miss 而产物命中，夹具没做到 ✓）。
 
-* ⛔ **全量 gate 的红已定位到并行线的 `b10fa175`（T2-A）—— 它踩了自己那条判据** ✗✗： 红点是 `crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env` （K1-b 的"**跨 builder 名字查询不许静默取错**"守卫 ✓），报 `const_head_type: unknown const NamePtr(0x…)` ⇒ **名字被"找到"了、找到的是别人** ✗。`git log -- crates/kernel/src/{builder,util}.rs` 的第一条就是
-  **`b10fa175 perf(kernel): T2-A —— 声明表分层持久化 / COW`** ✓ ⇒ 归它 ✓（内核那两个文件**没有**未提交改动 ✓）。
+* ⛔ **全量 gate 的红已定位到并行线的 `b10fa175`（T2-A）—— 它踩了自己那条判据** ✗✗： 红点是 `crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env` （K1-b 的"**跨 builder 名字查询不许静默取错**"守卫 ✓），报 `const_head_type: unknown const NamePtr(0x…)` ⇒ **名字被"找到"了、找到的是别人** ✗。`git log -- crates/kernel/src/{builder,util}.rs` 的第一条就是 **`b10fa175 perf(kernel): T2-A —— 声明表分层持久化 / COW`** ✓ ⇒ 归它 ✓（内核那两个文件**没有**未提交改动 ✓）。
   ⚠ **要命的是**：本规划 §T2-A 的判据清单第 ② 条**自己写着**"指针同一性**两向**判据保持绿
   （`crates/kernel/src/builder.rs` 那条）" ✗ ⇒ T2-A 落地时**没守住自己的验收条件** ✓。
   ⇒ **本线不修**（那是 T2-A 的语义地盘：持久化/COW 会改变跨 builder 的 interning 语义 ✓，是"守卫要重设计"
   还是"实现有漏"得由内核线定 ✗）；但它**卡住全量 gate** ⇒ 也卡住本线"整门课 `--json` 逐字节"那道红线 ✗。
 
-* ⭐⭐ **T2-B 落地后的读数（第 77 轮）** —— **结构证据（无歧义 ✓）**：并行线的读数 `PERF t2b 改最后一条：elaborated_commands=1（入口命令数 N=12）` ✓✓（12 → **1**）； 本线探针同族证据：`trailing_comment` 臂从 **`by=9` → `by=1`、`tc=0`** ✓（改**文件末尾**那条 ⇒ 只重编 1 条 ✓）。
-  ⇒ 这正是 Lean 的 **per-command 快照**行为 ✓（它也"编辑点之后的声明还在编" ✓ ⇒ 两者同构 ✓）。
+* ⭐⭐ **T2-B 落地后的读数（第 77 轮）** —— **结构证据（无歧义 ✓）**：并行线的读数 `PERF t2b 改最后一条：elaborated_commands=1（入口命令数 N=12）` ✓✓（12 → **1**）； 本线探针同族证据：`trailing_comment` 臂从 **`by=9` → `by=1`、`tc=0`** ✓（改**文件末尾**那条 ⇒ 只重编 1 条 ✓）。 ⇒ 这正是 Lean 的 **per-command 快照**行为 ✓（它也"编辑点之后的声明还在编" ✓ ⇒ 两者同构 ✓）。
   **goal 口径（外部量具 `~/lean4-bench/lsp_bench.py` · 同一夹具 n=5）**：`goal` median
   **13.48 → 8.72ms** ✓ · `first_diag`/`complete` **29.29 → 27.05ms** ✓（Lean 侧：goal **3.1ms** / 诊断 218.1ms）。
   ⚠ 两句限定语：① 该量具**没有**"goal 真的换了"的可机检字段（第 42 轮记过 ✗）⇒ 8.72ms 是**推断**
   （若答的是旧值，延迟会是 ~0.3ms 而不是 8.72ms ✓）；② 它的绝对值与本线探针**不同源** ✗（27 vs 84ms）
   ⇒ **只做同量具的前后比较** ✓：goal 相对 Lean 的差距从 **~4.3×** 收窄到 **~2.8×** ✓。
 
-* ✅✅✅ **全量 `scripts/soko gate` PASS（第 78 轮）** —— 自第 55 轮以来第一次 ✓，也是本线两处**行为改动** （`export` 可见性修复 ✓ + CLI `check` 换路 ✓）的**权威红线**：fmt · clippy · `cargo test` · playground 锚点 ·
-  **课程门禁** · 台账门禁**全过** ✓（跑在含并行线 `kernel/src/env.rs` 在制品的树上 ✓ ⇒ 他们的 WIP 也编译/格式干净 ✓）。
+* ✅✅✅ **全量 `scripts/soko gate` PASS（第 78 轮）** —— 自第 55 轮以来第一次 ✓，也是本线两处**行为改动** （`export` 可见性修复 ✓ + CLI `check` 换路 ✓）的**权威红线**：fmt · clippy · `cargo test` · playground 锚点 · **课程门禁** · 台账门禁**全过** ✓（跑在含并行线 `kernel/src/env.rs` 在制品的树上 ✓ ⇒ 他们的 WIP 也编译/格式干净 ✓）。
   ⇒ 第 52/54 两轮欠的那道**补上了** ✓（课程门禁 exit 0 是单跑时的证据 ✓，这里是整条 CI 门禁的合并证据 ✓）。
+
+* ✅ **补上 T2-B 的"进程隔离"那一半（第 79 轮）**：`STATUS.md` 把"**进程隔离的 A/B**"列成 T2-B 的 **已知验证缺口** ✓（同进程两臂会被**线程局部 `EntryCache`** 互相喂缓存 ✗ ⇒ 不可比）。本线的按键探针
+  **天生是跨进程的**（真 `sokonanoda-lsp` 子进程 + 真 stdio ✓）⇒ 已把它的 `trailing_comment` 臂
+  （只往**文件末尾**追加注释、不移动任何命令起点 ✓）立成**判据**：`assert!(trailing.by <= 3)` ✓
+  —— 实测 **`by=1`** ✓（T2-B 前是 **9** ✗ ⇒ 回归必红 ✓，用**结构计数**不用毫秒 ✓）。
+  ⚠ 仍缺的：真正带**开关**的 A/B（同一构建跑两臂 ✗ —— 今天没有"关掉 T2-B"的逃生门 ✓）；
+  本轮交的是**跨进程复现 + 回归守卫**这一半 ✓。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
@@ -1547,20 +1550,17 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ⛔ **② 撤回（第 51 轮自查）**：我曾据"**加在产物读入口的 trace 一次都没打出来**"下结论 「LSP 第一刀根本没走产物路」—— **不成立** ✗✗。那条 trace 由 **LSP 子进程**打出，而子进程 stderr 被 `Client` 收走、只把 `LSP_TRACE …` 开头的行转成 trace 流 ⇒ 在**测试进程 stdout** 上 grep 它**必然为空** ✗ —— **"没看见" ≠ "没走到"** ✓（错在**读数通道** ✗，不是结论对象 ✓）。
 * ⭐ **③ 建通道（第 52 轮正身）**：给**既有** trace 行加字段 `reuse=`（`lru`/`artifact`/`prefix`/`rebuilt`/`none` ✓） —— 由 `session::last_lib_source()` 报出**库层从哪来** ✓ ⇒ 探针只读既有 trace 行就能回答"走没走到产物那条" ✓。
 * ✅ **答案（`reuse=lru` · 同一臂 · `lsp-cargo-mtime=1791504968`）**：**第一刀确实走了复用路** ✓ （线程局部检查点命中 ✓ ⇒ **库层没有重编** ✓）。而 `modules=5` **不是**闭包模块 —— `lib.rs:649` 早就写明 "`modules=` 与重编了几个模块**无关**，实测那 5 个**全是合成编译**" ✓ ⇒ 那 **≈330ms 花在 judge/合成那一段** ✓。
-* ⭐⭐ **A5c（第 57 轮 · 本轮兑现）**：**有产物就别预热** ✓✓ —— 实测（同一臂、同一构建）：
-  预热**开** = **333ms** · `modules=5` · `prefix=4` · `reuse=lru` ✗；预热**关** = **129ms** ·
+* ⭐⭐ **A5c（第 57 轮 · 本轮兑现）**：**有产物就别预热** ✓✓ —— 实测（同一臂、同一构建）： 预热**开** = **333ms** · `modules=5` · `prefix=4` · `reuse=lru` ✗；预热**关** = **129ms** ·
   `modules=1` · `prefix=0` · `reuse=artifact` ✓✓。根因**不是**"预热没用"，而是**用户那一刀
   排在它后面**：编译钉在**一条** worker 线程上（`worker_threads(1)`，P2-4）⇒ 预热跑 ~215ms、
   用户开档就敲 ⇒ 等着它做完 ✗。而 T1-B 之后产物**已经**把库层供上了 ⇒ 预热是**重复劳动** ✗。
   ⇒ 落点：`warm_library_checkpoint` 先查"该闭包的产物在不在盘上"（`artifacts::exists` +
   `session::lib_artifact_key`）⇒ **在就跳过** ✓ ⇒ **第一刀 333ms → 136.2ms（2.4×）** ✓✓，
   结构计数同时回到 `modules=1` / `prefix=0` / `by=9`（= 稳态那一档 ✓）。冷档（没产物）照旧预热 ✓。
-* **A5c 之后的全臂重量（第 58 轮 · 构建 `…508589`）**：**开档后第一刀 131.2ms**（`modules=1`·`prefix=0`·`by=9`，
-  333 ⇒ **2.5×** ✓✓）· **真实连续键入 79.7ms**（78.7 ⇒ **持平** ✓，A5c 没碰热路）· `proof`/`statement`/
+* **A5c 之后的全臂重量（第 58 轮 · 构建 `…508589`）**：**开档后第一刀 131.2ms**（`modules=1`·`prefix=0`·`by=9`， 333 ⇒ **2.5×** ✓✓）· **真实连续键入 79.7ms**（78.7 ⇒ **持平** ✓，A5c 没碰热路）· `proof`/`statement`/
   `typing_equal_length` 18.1/18.2/18.4ms ✓ · `trailing_comment` 38.4ms ✓ · **跨入口切换 689.7ms**（`modules=5`·复用 3 ⇒
   换闭包的冷路，与 A5c 前逐位持平 ✓）⇒ **A5c 只动了投机预热那一条**，且第一刀与稳态的结构计数**已同档** ✓。
 * ⇒ **下一根杠杆在方向③（judge 前缀），不在产物** ✓（产物在 LSP 侧的角色是**冷进程**：开档 ✓）；验证：`perf_keystroke_wallclock` 3/3 ✓ · `lsp_artifact_warmup` 3/3 ✓ · fmt 干净 ✓。
-* ⛔ **A5b 试过、已撤（负结论 ✓）**：把 A5 的后台预热从"只热库层"扩成"**库层 + 入口趟**"
-  （想借此把第一刀的合成前缀 memo 提前喂热 ✓）⇒ **实测更坏** ✗：第一刀 **333 → 437ms**
+* ⛔ **A5b 试过、已撤（负结论 ✓）**：把 A5 的后台预热从"只热库层"扩成"**库层 + 入口趟**" （想借此把第一刀的合成前缀 memo 提前喂热 ✓）⇒ **实测更坏** ✗：第一刀 **333 → 437ms**
   （`by=22 → 31` · `tc=14656 → 18839`，`prefix=4` **不变** ✗）。⇒ 那些 memo **不是**这一步能共享的
   （线程/键 ✗）⇒ 提前付的那趟**白付还多付** ✗。**已还原**（同一臂回到 **333.2ms** ✓）⇒ 此路**不通** ✓。
