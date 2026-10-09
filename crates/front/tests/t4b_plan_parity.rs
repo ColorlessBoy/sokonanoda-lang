@@ -101,7 +101,7 @@ fn the_session_path_and_the_single_pass_path_agree_on_the_report() {
 /// 按 `AGENTS.md` 的降级纪律（同 T3-B2 的先例）：**先把它钉住、别让它漂** ✓ ——
 /// T4-B 把两条路对齐之后，按判据**改判**成 `assert_eq!`（**不许放宽** ✗）。
 #[test]
-fn the_export_dimension_is_a_known_divergence_today() {
+fn the_export_dimension_agrees_on_both_paths() {
     let root = temp_root("export");
     std::fs::create_dir_all(&root).expect("mkdir");
     std::fs::write(
@@ -139,16 +139,18 @@ fn the_export_dimension_is_a_known_divergence_today() {
     let b = errs(&session);
     println!("PERF t4b export: 整条一趟={a:?} session+产物={b:?}");
 
-    // ⚠ **断言当前行为**（防漂移 ✓）：两条路在 `export` 这一维上**今天不同** ——
-    // "整条一趟"认得导出的短名 ✓，"session+产物"不认 ✗。
+    // ✅ **2026-10-09（第 74 轮）已修** ✓：`run_library_pass` 的 `snapshot_state` 从 `false`
+    // 改成 `true`（库层趟的累加状态里带着 `exports` ✓），入口趟再接上 `lib.resume`
+    // ⇒ 两条路在这一维上**逐字节相同** ✓。**按判据改判**（原"断言当前行为"版已按它的
+    // 指示退休 ✓ —— 它当时写着"若这里变空 ⇒ 改判成 assert_eq!"）：
     assert!(
         a.is_empty(),
         "夹具前提：**整条一趟**必须认得 `export` 出来的短名 ✓（实得 {a:?}）"
     );
-    assert!(
-        !b.is_empty(),
-        "**已知分歧**：`session+产物` 这条路今天**不认** `export` 短名 ✗ —— 若这里变空，说明 \
-         T4-B 已经把两条路对齐了 ✓ ⇒ 按判据**改判**成 `assert_eq!(b, a)`（**不许放宽** ✗）"
+    assert_eq!(
+        b, a,
+        "**两条路必须逐字节相同** ✗：`session+产物` 不认 `export` 短名（实得 {b:?}）—— \
+         2026-10-09 之前这是**已知分歧**，修好之后这里**不许再放宽** ✓"
     );
 
     let _ = std::fs::remove_dir_all(&root);

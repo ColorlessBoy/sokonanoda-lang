@@ -892,15 +892,18 @@ fn run_library_pass<'a>(
     key: String,
 ) -> LibCheckpoint<'a> {
     // 影子不建：`None` ⇒ 不需要额外的局部 arena，见 `run_pass_with` 的注释。
-    let (lib_pass, builder, tables, _state, _tail) = run_pass_with(
+    let (lib_pass, builder, tables, lib_state, _tail) = run_pass_with(
         builder, None, true, tables, lib_units, options, true, None, None, None, None, None, None,
         // 建议材料：库层趟按 `lib_units` 自己算 ✓。
         None,
         // 库层趟：judge 的前缀（`closure_prefixes_for(lib_units)`）与本趟 `idx`
         // **同坐标系** ✓ ⇒ 不平移。
         0,
-        // **T1-A**：整条库层一趟那条路**不要**续编状态（它是"逐模块"那条的分支）。
-        false, None, None, false, false,
+        // **T4-B（第 74 轮）**：`snapshot_state` 从 `false` 改成 **`true`** ✓ ——
+        // 库层趟的**累加状态**里带着 `exports`（`export` 是唯一跨 `import` 的可见性通道 ✓），
+        // 而入口趟要靠它才看得到库层的 `export` ✓（判据 `t4b_plan_parity` 的 export 那条 ✓）。
+        // 以前 `false` ⇒ 状态是 `None` ⇒ 入口趟拿到空状态 ⇒ 导入方报 `unknown identifier` ✗。
+        true, None, None, false, false,
     );
     // **G-29 第 3 棒**：入口趟的 `idx` 是**入口空间**的，而 judge 的合成前缀是
     // **整条闭包** ⇒ 压栈的担保必须平移"**库层那一段的命令数**" ✓，否则
@@ -930,8 +933,11 @@ fn run_library_pass<'a>(
         // （整条命中不需要它：形状是键的纯函数 ✓；`Some` 会让 `prelude_shape`
         // 的 O(闭包) 扫描白跑一趟 —— CLI `build`/`check` 对性能敏感 ✗）。
         shape: None,
-        // 整条命中**不从断点续编** ⇒ 三个累加器用不上（见字段注释 ✓）。
-        resume: ResumeState::default(),
+        // ⭐ **T4-B（第 74 轮）**：`ResumeState` 里带着 **`exports`** —— 而 `export` 是**唯一**
+        // 跨 `import` 的可见性通道（设计 §N7）⇒ 以前恒给 `default()` ⇒ **入口趟看不到库层的
+        // `export`** ✗（判据 `t4b_plan_parity::the_export_dimension_is_a_known_divergence_today`
+        // 把它钉住了 ✓）。⇒ 收**真状态** ✓。
+        resume: lib_state.unwrap_or_default(),
         builder,
         tables,
         out,
@@ -1189,9 +1195,11 @@ fn run_entries<'a, R>(
             Some(&entry_closure),
             // **G-29 第 3 棒**：把本趟 `idx` 平移到闭包坐标系（见 `prefix_commands`）。
             lib.prefix_commands,
-            // **T1-A**：入口趟**不要**续编状态（它不做逐模块检查点）。
+            // **T1-A**：入口趟**不做逐模块检查点** ⇒ 这一格仍 `false` ✓。
             false,
-            None,
+            // ⭐ **但累加状态要接上**（T4-B · 第 74 轮）：`exports` 在上头，以前给 `None`
+            // ⇒ 库层的 `export` 到不了入口 ✗（见检查点里那条注释 ✓）。
+            Some(lib.resume.clone()),
             // **T2-B**：`resume_walk`/`snapshot_walk` 仍关（**接线待下一刀**：
             // 报告侧累加器与 `EntryCache` 前缀拼接**各算一份** ⇒ 报告里每条声明
             // 出现两次 ✗ —— 守卫 `t2b_resumed_report_has_no_duplicate_declarations`
