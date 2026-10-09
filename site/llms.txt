@@ -5,7 +5,8 @@
 > 你在同一个文件里把 `sorry` 填成证明，判定由**完整内核**给出——不是文本比对，
 > 也不是模型打分。教学语法是真实 Lean 4 的子集。
 
-官网只有一个页面：https://colorlessboy.github.io/sokonanoda-lang/
+官网：https://colorlessboy.github.io/sokonanoda-lang/（面向新人的单页：它是什么 /
+怎么开始 / 教材）· 更新日志子页 https://colorlessboy.github.io/sokonanoda-lang/changelog.html
 
 ## 是什么
 
@@ -31,7 +32,8 @@
 - 判定走完整内核，不是文本比对；agent 与用户看**同一份**判定。
 - 教学语法是真实 Lean 4 的子集。
 - 使用路径零工具链依赖；官方 Lean 工具链（lean / lake / elan）全程不调用。
-- 两门课：入门课 11 单元、卷 I《集合论》12 单元；每个目标都由课程门禁跑真内核。
+- 两门课，都在仓库里、可离线做：入门课 11 单元（`course/`）、卷 I《集合论》13 章
+  112 个单元画布（`courses/set-theory/`）；每个目标都由课程门禁跑真内核。
 - 编辑器集成：VS Code 的 goal 面板 / Infoview、进度树、tactic hover、记法输入提示。
 - 七个查询（`check` / `state` / `goals` / `holes` / `hints` / `reduce` / `project`）
   既是 CLI 又是 MCP 工具；`.agents/skills/` 技能目录自动发现。

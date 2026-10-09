@@ -17,14 +17,14 @@
 `site/`（数据由 `scripts/gen-site-data.py` 生成，永不手写版本号）。
 harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deepseek-harness.md`**。
 
-**改站点之前先读 `docs/design/site-single-page.md`**（2026-09-21 简化：官网是
-**一个页面**，只讲 是什么 / 怎么安装 / 核心特点 / 未来的计划）。它取代了
-2026-09-20 的 28 页重构（**原文已删** ⇒ `git log --all -- docs/archive/site-rebuild-2026-09-26/`；
-**不要照着它们新建页面** ✗）。一条命令验收：
+**改站点之前先读 `docs/design/site-single-page.md`**（2026-10-09 定稿：官网 = **面向新人的首页 +
+更新日志子页**——子页由 `scripts/gen-site-changelog.py` 从 `editor/vscode/CHANGELOG.md` 生成，头图由
+`scripts/site-screenshot.mjs` 用**真 VS Code + 已发布 VSIX** 截且有像素判据）。它接替 2026-09-21 的
+「单页四节」版与 2026-09-20 的 28 页重构（**原文已删** ⇒ `git log --all -- docs/archive/site-rebuild-2026-09-26/` ✗）。验收：
 
 ```bash
-python3 scripts/check-site.py            # 10 项：结构 + 链接 + 版本 + 元数据 + 体积 + 已发布版本一致
-python3 scripts/check-site.py --browser  # 额外跑真 Chrome（资源零 404 + 版本号已回填）
+python3 scripts/check-site.py            # 10 项：结构 + 链接 + 版本 + 元数据 + 体积 + 已发布版本一致 + 更新日志逐字节
+python3 scripts/check-site.py --browser  # 另加两项真 Chrome（两页零 404 + 版本已回填 · 4 个宽度零横向溢出）
 ```
 
 **站点写的是「已发布版本」的事实。** 本仓库常有并行开发，`crates/` 与 `courses/`

@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>sokonanoda —— 和 code agent 共用一张证明草稿纸，判卷的是真内核</title>
-<meta name="description" content="sokonanoda 是一个 Lean 4 式的教学编译栈：你和 code agent 打开同一个 .sokonanoda 文件，agent 出题、你填 sorry，判定由完整内核给出——不是文本比对，也不是模型打分。">
+<title>sokonanoda · 形式化证明教学语言</title>
+<meta name="description" content="像写数学证明一样一句一句写：目标实时可见，写错了内核告诉你。装一个 VS Code 插件就能开始，不用 Rust、不用 Lean 工具链。">
 <link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/">
 <meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
-<meta property="og:title" content="sokonanoda —— 和 code agent 共用一张证明草稿纸">
-<meta property="og:description" content="agent 出题、你填 sorry，判定由完整内核给出——不是文本比对，也不是模型打分。">
+<meta property="og:title" content="sokonanoda · 形式化证明教学语言">
+<meta property="og:description" content="像写数学证明一样一句一句写：目标实时可见，写错了内核告诉你。">
 <meta property="og:url" content="https://colorlessboy.github.io/sokonanoda-lang/">
 <meta property="og:locale" content="zh_CN">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -28,13 +28,12 @@
 
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="./">sokonanoda <small>Lean 4 式教学编译栈</small></a>
+    <a class="brand" href="./">sokonanoda <small>形式化证明教学语言</small></a>
     <nav aria-label="页面内导航">
       <ul>
-        <li><a href="#what">是什么</a></li>
-        <li><a href="#install">安装</a></li>
-        <li><a href="#features">核心特点</a></li>
-        <li><a href="#plan">计划</a></li>
+        <li><a href="#what">它是什么</a></li>
+        <li><a href="#start">怎么开始</a></li>
+        <li><a href="#courses">教材</a></li>
       </ul>
     </nav>
     <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">跟随系统</button>
@@ -43,175 +42,92 @@
 
 <main id="main">
 
-  <!-- ── 是什么 ───────────────────────────────────────────────────── -->
-  <section class="section" id="what">
+  <!-- ── 头图 ─────────────────────────────────────────────────────── -->
+  <section class="section hero">
     <div class="wrap">
-      <h1>你和 code agent 共用一张证明草稿纸，判卷的是真内核</h1>
+      <h1>sokonanoda · 形式化证明教学语言</h1>
 
       <p class="lead">
-        sokonanoda 是一个 <strong>Lean 4 式教学编译栈</strong>。你和一个 code agent
-        打开同一个 <code>.sokonanoda</code> 文件：agent 在里面写定义、举例子、出题；
-        你在同一个文件里把 <code>sorry</code> 填成证明；每一次改动都由
-        <strong>完整内核</strong>给出判定。
+        像写数学证明一样，一句一句写：<strong>目标实时可见</strong>，写错了
+        <strong>内核告诉你</strong>。不用先学会一整套证明助手，也不用装工具链 ——
+        装一个 VS Code 插件就能开始。
       </p>
 
-      <div class="goal">
-        <span class="hyps">-- 画布上 agent 写下的题目（练习位留成 sorry）<br>
-        theorem inter_comm (α : Type) (A B : Set α) : A ∩ B = B ∩ A := by<br>
-        &nbsp;&nbsp;sorry</span>
-      </div>
-
-      <p>把光标停在 <code>sorry</code> 上，编辑器给你的是内核算出来的目标状态：</p>
-
-      <div class="goal">
-        <span class="hyps">α : Type<br>A B : Set α</span>
-        <span class="rule-inline" role="presentation"></span>
-        <span class="goal-line"><b>⊢</b> A ∩ B = B ∩ A</span>
-      </div>
-
-      <p>
-        判定只有两个来源：内核接受了这个证明项（<code>decl.checked</code>），
-        或者内核拒绝了它（<code>diagnostic</code>）。没有第三条路——不是文本比对，
-        也不是模型打分。你看到绿色，是因为内核真的算过。
+      <p class="cta">
+        <a class="btn btn--primary" href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda">安装 VS Code 插件</a>
+        <a class="btn" href="#courses">开始第一课</a>
       </p>
 
-      <p>
-        同一份判定同时给两个人看：编辑器里给你（goal 面板、诊断、hover），
-        <code>--json</code> 事件流给 agent（状态、目标、错误分类），
-        agent 据此决定下一步教什么、题要不要换个问法。
-      </p>
+      <figure class="shot wide">
+        <!-- 真 VS Code + 已发布插件截的真画面：光标停在 inter_comm 的 sorry 上，
+             右边是内核算出来的目标。重新生成：node scripts/site-screenshot.mjs -->
+        <img src="assets/hero-vscode.png" width="843" height="300" decoding="async"
+             alt="VS Code 里的真实画面：左边是课程文件 units/I.1/unit04-extensionality-identities.sokonanoda，光标停在 theorem inter_comm 的 sorry 上；右边目标面板显示内核算出的目标 ⊢ (A ∩ B) = (B ∩ A)，以及假设 α : Type、A : Set α、B : Set α。">
+        <figcaption>
+          真 VS Code + 已发布插件 <span class="ver" data-site-version>当前发布版本</span>，打开卷 I 单元④：
+          光标停在 <code>sorry</code> 上，右边是内核算出来的目标。图里没有任何摆拍内容。
+        </figcaption>
+      </figure>
     </div>
   </section>
 
   <div class="wrap"><hr class="turnstile"></div>
 
-  <!-- ── 怎么安装 ─────────────────────────────────────────────────── -->
-  <section class="section" id="install">
+  <!-- ── 它是什么 ─────────────────────────────────────────────────── -->
+  <section class="section" id="what">
     <div class="wrap">
-      <h2><span class="num">01</span>怎么安装</h2>
+      <h2><span class="num">01</span>它是什么</h2>
 
-      <p>
-        三条路，按你的身份选一条就行。三条路都<strong>不需要 Rust、不需要 cargo</strong>，
-        也都锁定到同一个已发布版本：<span class="ver" data-site-version>当前发布版本</span>。
-      </p>
-
-      <dl class="paths">
-        <dt>A · VS Code 扩展 <span class="tag">推荐 · 自带 LSP 与 CLI</span></dt>
-        <dd>
-          <div class="cmd cmd--tight">
-            <pre id="cmd-ext">code --install-extension sokonanoda-lang.sokonanoda</pre>
-            <button class="copy" type="button" data-copy="#cmd-ext">复制</button>
-          </div>
-          <p>
-            也可以在 Marketplace 里搜 <code>sokonanoda</code>
-            （<a href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda">扩展页</a>）。
-            扩展按平台打包（8 个平台包 + 1 个 universal 回退包），包内<strong>内嵌</strong>对应平台的
-            LSP 与 CLI。装完打开任意 <code>.sokonanoda</code> 文件就能用。
-          </p>
-        </dd>
-
-        <dt>B · 只要 CLI <span class="tag">agent / headless / CI</span></dt>
-        <dd>
-          <div class="cmd cmd--tight">
-            <pre id="cmd-cli" data-version-text="curl -LO https://github.com/ColorlessBoy/sokonanoda-lang/releases/download/v{v}/sokonanoda-cli-aarch64-apple-darwin.tar.gz
-tar -xzf sokonanoda-cli-aarch64-apple-darwin.tar.gz
-./sokonanoda --version">curl -LO https://github.com/ColorlessBoy/sokonanoda-lang/releases/</pre>
-            <button class="copy" type="button" data-copy="#cmd-cli">复制</button>
-          </div>
-          <p>
-            把 <code>aarch64-apple-darwin</code> 换成你那一行：
-            <code>aarch64</code>／<code>x86_64</code> ×
-            <code>apple-darwin</code>／<code>unknown-linux-gnu</code>／
-            <code>unknown-linux-musl</code>／<code>pc-windows-msvc</code>。
-            tarball 里就是一个可直接执行的二进制。
-          </p>
-        </dd>
-
-        <dt>C · 在仓库里 <span class="tag">任何 harness：opencode / DeepSeek Harness / 终端</span></dt>
-        <dd>
-          <div class="cmd cmd--tight">
-            <pre id="cmd-repo">scripts/soko setup                       # 版本锁定的 CLI + LSP → 缓存（幂等）
-scripts/soko doctor --json               # 就绪诊断：0=就绪 3=未就绪
-scripts/soko grade playground.sokonanoda  # 判卷（--json 是事件流）</pre>
-            <button class="copy" type="button" data-copy="#cmd-repo">复制</button>
-          </div>
-          <p>
-            <code>scripts/soko</code> 是零依赖 Node 的启动器，解析顺序是
-            <code>$SOKONANODA_BIN</code> → 版本匹配的仓库构建 → 缓存 → 编辑器扩展自带 →
-            按版本钉下载。<strong>解析不出期望版本就绝不执行</strong>；缓存过期会拒绝运行，
-            并叫你先跑 <code>scripts/soko update</code>——它宁可停下，也不给你一个版本不对的二进制。
-          </p>
-        </dd>
-      </dl>
-
-      <p class="fact">
-        全部 26 个产物（8 个 CLI tarball、8 个 LSP tarball、9 个 VSIX、<code>SHA256SUMS</code>）
-        在 <a data-version-href="https://github.com/ColorlessBoy/sokonanoda-lang/releases/tag/v{v}" href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">Releases</a> 页；
-        下载一律按版本锁定，不用 <code>latest</code>。网络受限时先设
-        <code>HTTPS_PROXY</code>，启动器会把它交给下载器。
-      </p>
+      <ul class="cards">
+        <li>
+          <b>判定走真内核，不是对答案</b>
+          <span>你写的证明由完整内核重新检查一遍：接受就是接受，拒绝就给出诊断。
+          不是文本比对，也不是模型打分 —— 你看到绿色，是因为它真的算过。</span>
+        </li>
+        <li>
+          <b>目标实时可见</b>
+          <span>光标停在 <code>sorry</code> 上，面板就显示此刻<strong>要证的东西</strong>
+          （<code>⊢ (A ∩ B) = (B ∩ A)</code>）和手里已有的假设 —— 像纸上的推导一样，
+          每一步都知道自己在证什么。</span>
+        </li>
+        <li>
+          <b>语法是 Lean 4 的子集</b>
+          <span>逻辑连接符、集合记法、<code>by</code> 与 tactic、归纳类型、宇宙、
+          多文件 <code>import</code> 都按 Lean 4 的写法来。你在这里练的写法，
+          在 Lean 4 里成立。</span>
+        </li>
+      </ul>
     </div>
   </section>
 
   <div class="wrap"><hr class="turnstile"></div>
 
-  <!-- ── 核心特点 ─────────────────────────────────────────────────── -->
-  <section class="section" id="features">
+  <!-- ── 怎么开始 ─────────────────────────────────────────────────── -->
+  <section class="section" id="start">
     <div class="wrap">
-      <h2><span class="num">02</span>核心特点</h2>
+      <h2><span class="num">02</span>怎么开始</h2>
 
-      <ol class="features">
+      <ol class="steps">
         <li>
-          <b>判定走完整内核，不是文本比对。</b>
-          <span class="why"><code>grade</code> 的退出码就是结论：0 = 全部通过，1 = 有拒绝。
-          给机器看的是 <code>--json</code> 事件流（<code>decl.checked</code> /
-          <code>exercise.open</code> / <code>diagnostic</code>），agent 拿它决定下一步。</span>
+          <b>装插件</b>
+          <span>在 VS Code 里搜 <code>sokonanoda</code>，或者点上面的
+          <a href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda">安装按钮</a>。
+          扩展里<strong>自带</strong>判卷内核与命令行，不用装 Rust、不用装 Lean 工具链。</span>
         </li>
         <li>
-          <b>一份文件，两个读者。</b>
-          <span class="why">同一个 <code>.sokonanoda</code> 既是你的练习本，也是 agent 的状态源。
-          没有导出、没有第二个界面、没有人在中间转述。</span>
+          <b>把教材拉下来，打开一个课程文件</b>
+          <span>课程就是一堆 <code>.sokonanoda</code> 文件：一份文件里既有讲解、也有留了
+          <code>sorry</code> 的练习。</span>
+          <div class="cmd cmd--tight">
+            <pre id="cmd-clone">git clone https://github.com/ColorlessBoy/sokonanoda-lang
+code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
+            <button class="copy" type="button" data-copy="#cmd-clone">复制</button>
+          </div>
         </li>
         <li>
-          <b>教学语法是真实 Lean 4 的子集。</b>
-          <span class="why">连接符是语言内建记法（<code>∧ ∨ ↔ ¬ → = ≠</code>）、
-          <code>∀</code>／<code>∃</code>、<code>by</code> tactic 块
-          （<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>cases</code> /
-          <code>constructor</code> / <code>use</code> / <code>have</code> …）、
-          归纳类型与递归、宇宙 <code>Type u</code>、多文件 <code>import</code>。
-          你在这里练的写法，在 Lean 4 里成立。</span>
-        </li>
-        <li>
-          <b>使用路径零工具链依赖。</b>
-          <span class="why">获取与运行只用 Release 二进制或编辑器扩展，用户与 agent 都不装
-          Rust／cargo；官方 Lean 工具链（lean / lake / elan）全程不调用。</span>
-        </li>
-        <li>
-          <b>两门课，每个目标都由门禁跑真内核。</b>
-          <span class="why">入门课从命题与证明项讲到等式、函数、<code>by</code>、宇宙、归纳、
-          量词、关系与模块；卷 I《集合论》从集合与隶属一路走到 Cantor 定理与 Russell 悖论。
-          每个单元都是「画布（留 <code>sorry</code> 的题）+ 解答钥匙」，
-          <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory">课程门禁</a>
-          判的是形状而不是计数。</span>
-        </li>
-        <li>
-          <b>编辑器里看得见目标状态。</b>
-          <span class="why">VS Code 扩展有 goal 面板／Infoview、练习进度树、tactic hover，
-          以及「这个符号怎么敲」的记法输入提示（<code>\in</code>、<code>\sub</code>、<code>\cup</code> …）。</span>
-        </li>
-        <li>
-          <b>agent 是一等公民。</b>
-          <span class="why">七个查询既是 CLI 又是 MCP 工具：
-          <code>check</code> / <code>state</code> / <code>goals</code> / <code>holes</code> /
-          <code>hints</code> / <code>reduce</code> / <code>project</code>；
-          技能目录 <code>.agents/skills/</code> 会被 harness 自动发现。</span>
-        </li>
-        <li>
-          <b>没做完的事写在明处。</b>
-          <span class="why">缺口台账
-          <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/gaps/ledger.jsonl"><code>docs/gaps/ledger.jsonl</code></a>
-          每条都带一条<strong>能复现</strong>的命令，<code>scripts/gap.py check</code>
-          会验证「状态」与「复现结果」一致——不靠人记得改。</span>
+          <b>把 sorry 填成证明</b>
+          <span>光标停在 <code>sorry</code> 上会看到目标；一行一行往下写，写对了内核放行，
+          写错了它会说清楚哪里不对。卡住就看同目录的提示，或者翻开解答。</span>
         </li>
       </ol>
     </div>
@@ -219,54 +135,72 @@ scripts/soko grade playground.sokonanoda  # 判卷（--json 是事件流）</pre
 
   <div class="wrap"><hr class="turnstile"></div>
 
-  <!-- ── 未来的计划 ───────────────────────────────────────────────── -->
-  <section class="section" id="plan">
+  <!-- ── 教材 ─────────────────────────────────────────────────────── -->
+  <section class="section" id="courses">
     <div class="wrap">
-      <h2><span class="num">03</span>未来的计划</h2>
+      <h2><span class="num">03</span>教材</h2>
 
       <p>
-        下面这些是<strong>还没做</strong>的。写在这里是为了它们不被忘掉，
-        而不是为了好听——每一条都指得出它在仓库里的位置。
+        两门课，都在仓库里，都能离线做：每个单元是一份<strong>可编译的画布</strong>
+        （讲解 + 带 <code>sorry</code> 的练习 + 提示），旁边配一份同构的解答。
       </p>
 
-      <ul class="todo">
+      <ul class="courses">
         <li>
-          <b>卷 II：子类型 / Sigma / 结构体。</b>
-          前置债已经点名：<code>Eq.subst</code> 目前只支持 Prop motive，Type 层的重写还没有入口
-          （<code>docs/design/course-stdlib.md</code> 的 L-03）。先补语言，再写课。
+          <h3>入门课 · 十一个单元</h3>
+          <p>
+            从「命题与证明项」「等式与 <code>rfl</code>」讲到函数、<code>by</code> 写法、
+            宇宙、归纳与递归、量词、关系与联结词，最后落到模块与项目。
+            第一次接触形式化证明就从这里开始。
+          </p>
+          <p class="goto">
+            <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/course">打开 <code>course/</code></a>
+            <span class="tag">11 个单元</span>
+          </p>
         </li>
         <li>
-          <b>浏览器里判题。</b>
-          今天判题必须有一个本地二进制（扩展内嵌或 Release 下载）；WASM 版内核还没有。
-        </li>
-        <li>
-          <b>增量编译常驻。</b>
-          编译服务与 <code>file.didChange</code> 事件流（跨文件转播、<code>setContent</code>）
-          属于 L2/L3 远期，v1 未做。
-        </li>
-        <li>
-          <b>agent 侧的 goal / Infoview 通道。</b>
-          DeepSeek Harness 现在能判卷、能查询，但服务端诊断不会投递给 agent（H5 backlog）。
-        </li>
-        <li>
-          <b>性能：判定的成本。</b>
-          <strong>已发布版本里</strong>每走一步 tactic 都会重新判定整份文档，代价随步数
-          超线性（卷 I 单元⑫的解答要 91 秒）。<strong>工作树里</strong>已改成「同一个
-          <code>by</code> 块的判定合成一份文档一次判完」，有一条不通过就退回逐条判定
-          重跑、诊断逐字不变：实测 91 → 29 秒、整卷课程门禁 4 分 33 秒 → 2 分 56 秒。
-          同一条路上还量出并修掉了<strong>第二个入口</strong>：记法消解为了问一个类型
-          就把整份前缀重编一遍（每展开一次 <code>∈</code> / <code>⊆</code> /
-          <code>𝒫</code> 都算一次）；改成先取局部变量的书写类型之后，单元⑫的解答
-          11.4 秒 → <strong>7.5 秒</strong>。
-          <strong>仍未还清</strong>——剩下的都是「问一次类型就重走一遍前缀」，
-          根治要动<strong>环境复用</strong>。内核已于 2026-09-21 解冻，接口正在逐条
-          核对（计划 T-K20′）：前端自己绕不过去，但<strong>不再是做不到</strong>。
-        </li>
-        <li>
-          <b>项目模式的剩余项。</b>
-          <code>watch</code>、<code>[deps]</code>、<code>namespace</code>（P7 backlog）。
+          <h3>卷 I《集合论》</h3>
+          <p>
+            13 章、112 个单元画布：集合、子集与集合运算 → 关系、函数与基数 →
+            序关系与序数 → 选择公理与 ZF → 集合代数 → 关系的代数。
+            配一份课程标准库 <code>lib/</code>（引理名照 Mathlib 取证），一路走到
+            Cantor 定理与 Russell 悖论。学完入门课再来。
+          </p>
+          <p class="goto">
+            <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory">打开 <code>courses/set-theory/</code></a>
+            <span class="tag">13 章 · 112 个单元</span>
+          </p>
         </li>
       </ul>
+    </div>
+  </section>
+
+  <!-- ── 它和 Lean 4 的关系 ───────────────────────────────────────── -->
+  <section class="section" id="lean4">
+    <div class="wrap">
+      <h2><span class="num">04</span>它和 Lean 4 的关系</h2>
+
+      <p>
+        这里的教学语法是<strong>真实 Lean 4 的子集</strong>：<code>∀ ∃ ∧ ∨ ¬ → ↔</code>、
+        <code>a ∈ A</code> / <code>A ⊆ B</code> / <code>A ∩ B</code> 这些记法、
+        <code>by</code> 加 <code>intro</code> / <code>exact</code> / <code>apply</code> /
+        <code>cases</code> / <code>constructor</code> 这些 tactic、归纳类型与递归、
+        宇宙 <code>Type u</code>、多文件 <code>import</code> —— 都按 Lean 4 的写法。
+      </p>
+
+      <p>
+        差别只在<strong>范围</strong>：这里只有教一节课需要的那部分（没有类型类、
+        没有 tactic 宏、没有 mathlib），判定由本项目的内核给出。所以
+        <strong>你在这里练的写法，在 Lean 4 里成立</strong>；反过来不成立的地方，
+        文档里会明说。
+      </p>
+
+      <p class="fact">
+        想核对细节：语言子集与边界写在
+        <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/REQUIREMENTS.md">需求总账</a>
+        与 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/docs/design">设计文档</a> 里；
+        每一处与 Lean 4 的偏离都标了出处或「设计判断」。
+      </p>
     </div>
   </section>
 
@@ -280,9 +214,7 @@ scripts/soko grade playground.sokonanoda  # 判卷（--json 是事件流）</pre
       <ul>
         <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang">源码</a></li>
         <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">Releases</a></li>
-        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/course">入门课</a></li>
-        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory">卷 I 集合论</a></li>
-        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/REQUIREMENTS.md">需求总账</a></li>
+        <li><a href="changelog.html">Changelog</a></li>
       </ul>
     </nav>
   </div>

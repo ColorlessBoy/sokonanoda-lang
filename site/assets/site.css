@@ -287,7 +287,15 @@ p { margin: 0 0 var(--sp-4); }
 ul, ol { padding-left: 1.35em; margin: 0 0 var(--sp-4); }
 li { margin-bottom: var(--sp-2); }
 
-code, kbd, samp { font-family: var(--font-mono); font-size: 0.94em; }
+/* `overflow-wrap: anywhere` 不是装饰：CHANGELOG 里有一串 836px 不换行的测试路径
+   （`crate::lsp::tests::…`），它会把**整页**撑出横向滚动条（实测 768/1024 两个宽度）。
+   用 anywhere 而不是 break-word：只有 anywhere 会参与 min-content 计算，能把
+   父容器的宽度需求一起压下来。 */
+code, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 0.94em;
+  overflow-wrap: anywhere;
+}
 
 p code, li code, td code, dd code, dt code {
   background: var(--surface-sunken);
@@ -409,6 +417,188 @@ p code, li code, td code, dd code, dt code {
 /* 事实行：一句断言 + 它的判据 */
 .fact { color: var(--ink-2); font-size: var(--fs-sm); }
 .fact code { color: var(--ink); }
+
+/* ── 头图：招牌 + 一句话 + 两个按钮 + 真截图 ───────────────────── */
+.hero { padding-top: var(--sp-8); }
+.hero .lead { margin-bottom: var(--sp-5); }
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin: 0 0 var(--sp-6);
+}
+
+/* 按钮：主按钮走**墨色**，不走绿——绿在本页是"内核真的通过过"的语义色，
+   拿它当行动色会把语义稀释掉（文件头那条纪律）。 */
+.btn {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 1;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+.btn:hover { border-color: var(--ink); }
+.btn--primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+}
+.btn--primary:hover { background: var(--ink-2); border-color: var(--ink-2); }
+
+/* 截图：零圆角结构容器 + 发丝线，与 .goal 同一族 */
+.shot { margin: var(--sp-6) 0 0; }
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-strong);
+  background: var(--surface);
+}
+.shot figcaption {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+/* ── 它是什么：三张卡片（宽家具，窄屏落成一列）────────────────── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  list-style: none;
+  padding: 0;
+  margin: var(--sp-6) 0 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.cards > li {
+  margin: 0;
+  padding: var(--sp-5) var(--sp-5) var(--sp-6) 0;
+  border-right: 1px solid var(--rule);
+}
+.cards > li:last-child { border-right: 0; padding-right: 0; }
+.cards > li + li { padding-left: var(--sp-5); }
+.cards b {
+  display: block;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-heading);
+  margin-bottom: var(--sp-3);
+}
+.cards span { color: var(--ink-2); font-size: var(--fs-ui); }
+
+/* ── 怎么开始：三步（编号用等宽数字，与「核心特点」同一族）────── */
+.steps {
+  list-style: none;
+  counter-reset: step;
+  padding: 0;
+  margin: var(--sp-6) 0 0;
+}
+.steps > li {
+  counter-increment: step;
+  position: relative;
+  border-top: 1px solid var(--rule);
+  margin: 0;
+  padding: var(--sp-5) 0 var(--sp-5) 2.75rem;
+}
+.steps > li:last-child { border-bottom: 1px solid var(--rule); }
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: var(--sp-5);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--acc-ink);
+  border: 1px solid var(--acc-border);
+  border-radius: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  line-height: 1.4rem;
+  text-align: center;
+}
+.steps > li > b { display: block; font-size: var(--fs-lg); margin-bottom: var(--sp-2); }
+.steps > li > span { color: var(--ink-2); font-size: var(--fs-ui); }
+.steps .cmd { margin: var(--sp-4) 0 0; }
+
+/* ── 教材：两个大入口 ─────────────────────────────────────────── */
+.courses {
+  list-style: none;
+  padding: 0;
+  margin: var(--sp-6) 0 0;
+}
+.courses > li {
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-strong);
+  background: var(--surface);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+.courses > li > h3 { margin: 0 0 var(--sp-3); }
+.courses > li > p { margin-bottom: var(--sp-3); }
+.courses > li > p:last-child { margin-bottom: 0; }
+.courses .goto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-3);
+  font-size: var(--fs-ui);
+}
+
+/* 标记：等宽小字，通用（安装路径那三条原来自己有一份，现在共用） */
+.tag {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+/* ── 更新日志页（site/changelog.html，生成物）─────────────────── */
+.toc {
+  margin: var(--sp-6) 0 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: var(--sp-4) 0;
+  font-size: var(--fs-ui);
+}
+.toc ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.toc li { margin: 0; }
+.toc .tag { margin-left: var(--sp-2); }
+
+.release { padding: var(--sp-7) 0 0; }
+.release + .release { border-top: 1px solid var(--rule); }
+.release h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-3); }
+.release h2 .ver { font-size: var(--fs-2xl); }
+.release h3 {
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  color: var(--ink-3);
+  font-weight: 400;
+  margin: var(--sp-5) 0 var(--sp-2);
+}
+
+/* ── 「宽家具」：正文栏 40rem 是**读**的约束，不是版面的约束 ──────
+   截图与三张卡片可以比正文宽一档、居中悬挑；窄屏自动退回栏宽（min() 保证不横向溢出）。
+   ⚠ **必须放在组件之后**：`.shot` / `.cards` 自己的 `margin` 简写会把 margin-inline
+   覆盖成 0（同特异性比顺序，实测：图会靠左溢出、页面出横向滚动条）。 */
+.wide {
+  width: min(52rem, 100vw - 2 * var(--sp-5));
+  margin-inline: calc((100% - min(52rem, 100vw - 2 * var(--sp-5))) / 2);
+}
 
 /* ── 页脚 ─────────────────────────────────────────────────────── */
 .site-footer {
