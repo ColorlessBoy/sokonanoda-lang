@@ -108,6 +108,11 @@ const NO_ARTIFACTS: (&str, &str) = ("SOKONANODA_NO_MODULE_ARTIFACTS", "1");
 /// 复用 0 ⇒ `5` 复用 3）。⇒ 这条守卫钉住"**产物开着就别预热**"，免得哪天被"顺手加回来" ✗。
 ///
 /// ⚠ 与上面那条判据**不矛盾**：那条按纪律把产物**关掉**（`NO_ARTIFACTS`）⇒ 预热照跑 ✓。
+///
+/// ⚠ **本文件这条只是"端到端看着像"**：它的开关送不进 LSP 子进程（逃生门是 env 驱动 ✗）
+/// ⇒ **咬不住**。真正的守卫在**进程内**、且已做反向验证：
+/// `crates/front/tests/a5d_warmup_is_skipped.rs`（断言 [`warm_library_checkpoint`] 的**返回值** ✓，
+/// 把 A5d 的早退去掉 ⇒ 它当场判红 ✓）。
 #[test]
 fn an_artifact_hit_open_does_not_run_the_speculative_warmup() {
     let (root, entry, text) = fixture("a5d");
