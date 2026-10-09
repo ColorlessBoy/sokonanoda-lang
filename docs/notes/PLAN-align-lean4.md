@@ -1399,8 +1399,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ⚠ **红线的现状（第 75 轮）**：`export` 修复是**行为改动** ⇒ 该跑"整门课逐字节"那道 ✓。**全量 `scripts/soko gate` 判红** ✗ —— 但红在 **`crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env`** （**内核**测试 ✓，与本次改动（只在 `front/project/session.rs`）**逻辑无关** ✓；那一带正是并行线 `EnvBuilder` 指针同一性判据的地盘 ✓）⇒ 归并行线/内核线 ✓，不是本修复的回归 ✓。
 * ✅ **课程那条红线**：单独跑 **`python3 courses/set-theory/tools/check.py`** ⇒ **exit 0** ✓ （**258 个目标 · 2188 checked · 916 open · 0 个被判负** ✓）⇒ 本次行为改动**过了课程门禁** ✓。 ⚠ 待办：等内核那条测试回绿后，再跑一次**全量 gate**（那里才有"整门课 `--json` 逐字节"那道 ✓）。
 
-* ✅ **T4-B 的 CLI `check` 换路落地（第 76 轮）**：`check.rs` 从 `compile_plan`（整条闭包一趟 ✗） 换成 **`precheck_plan` + `compile_plan_with_artifacts`** ✓（session + 磁盘产物、且不碰线程局部检查点 ✓）。 三条前置都核实过：① 报告逐字节相同（`t4b_plan_parity` ✓）；② 本调用方**没有** progress sink （`compile_plan` = `…_with_progress(None)` ✓）⇒ 不存在丢进度事件的问题 ✓；③ **`export` 已对齐** ✓ （第 43 轮正是死在这条上 ✗）。验证：`cli/tests/namespace` **10/10** ✓ · **CLI 全套 40 个目标 exit 0** ✓。 ⚠ **如实记：没有量到墙钟收益** ✗ —— 夹具上两臂都是 **~0.035s**（`compiled/` 报告缓存 + 全局缓存把两臂都 短路了 ✗，与第 13/43 轮同一条教训）⇒ 本次换路的依据是**判据（报告逐字节）+ 与 `query` 共用产物路** ✓，
-  不是墙钟读数 ✓（要量收益得先让报告缓存 miss 而产物命中，夹具没做到 ✓）。
+* ✅ **T4-B 的 CLI `check` 换路落地（第 76 轮）**：`check.rs` 从 `compile_plan`（整条闭包一趟 ✗） 换成 **`precheck_plan` + `compile_plan_with_artifacts`** ✓（session + 磁盘产物、且不碰线程局部检查点 ✓）。 三条前置都核实过：① 报告逐字节相同（`t4b_plan_parity` ✓）；② 本调用方**没有** progress sink （`compile_plan` = `…_with_progress(None)` ✓）⇒ 不存在丢进度事件的问题 ✓；③ **`export` 已对齐** ✓ （第 43 轮正是死在这条上 ✗）。验证：`cli/tests/namespace` **10/10** ✓ · **CLI 全套 40 个目标 exit 0** ✓。 ⚠ **如实记：没有量到墙钟收益** ✗ —— 夹具上两臂都是 **~0.035s**（`compiled/` 报告缓存 + 全局缓存把两臂都 短路了 ✗，与第 13/43 轮同一条教训）⇒ 本次换路的依据是**判据（报告逐字节）+ 与 `query` 共用产物路** ✓， 不是墙钟读数 ✓（要量收益得先让报告缓存 miss 而产物命中，夹具没做到 ✓）。
 
 * ⛔ **全量 gate 的红已定位到并行线的 `b10fa175`（T2-A）—— 它踩了自己那条判据** ✗✗： 红点是 `crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env` （K1-b 的"**跨 builder 名字查询不许静默取错**"守卫 ✓），报 `const_head_type: unknown const NamePtr(0x…)` ⇒ **名字被"找到"了、找到的是别人** ✗。`git log -- crates/kernel/src/{builder,util}.rs` 的第一条就是 **`b10fa175 perf(kernel): T2-A —— 声明表分层持久化 / COW`** ✓ ⇒ 归它 ✓（内核那两个文件**没有**未提交改动 ✓）。 ⚠ **要命的是**：本规划 §T2-A 的判据清单第 ② 条**自己写着**"指针同一性**两向**判据保持绿 （`crates/kernel/src/builder.rs` 那条）" ✗ ⇒ T2-A 落地时**没守住自己的验收条件** ✓。
   ⇒ **本线不修**（那是 T2-A 的语义地盘：持久化/COW 会改变跨 builder 的 interning 语义 ✓，是"守卫要重设计"
@@ -1424,8 +1423,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 * ✅ **goal 口径有了**一等读数**（第 83 轮）**：`perf_keystroke_wallclock` 里新增 `PERF goals-wallclock` —— 在**同一条真子进程 harness** 上量 `soko/goals` 的请求往返（5 次取中位 ✓），与诊断臂**同源可比** ✓ （此前这第二臂只活在外部 Python 量具里 ✗）。**首读（构建 `…517542` · unit08）**： **goal `best 5.8 / median 5.9 / worst 6.6ms`** ✓ —— 对照 Lean `plainGoal` **3.1ms** ⇒ **~1.9×** ✗ （比外部量具的 8.72ms 还好 ✓，两者**不同 harness** ⇒ 只各自与 Lean 同量具比 ✓）；同轮诊断臂 **typing median 74.9ms** ✓ vs Lean 218.1ms ⇒ **2.9×** ✓。
 
-* ⭐ **goal 的 5.9ms 定位到**handler 自己**（第 84 轮 · 加了 `PERF rpc-floor` 读数）**：同 harness 里量一条 **几乎零计算**的请求 `soko/version`（只答 `{version,pid}` ✓）⇒ **median `0.0ms`** ✓（best 0.0 / worst 0.1 ✓） 而 `soko/goals` 是 **5.9ms** ✗ ⇒ **往返本身不是成本** ✓（第 61 轮也证了探针不贵 ✗）⇒ 全在 handler 里 ✓。 读码收口到**一处**：`QueryDoc::goals`（`query/mod.rs:1398`）**对每条声明**调 `self.runs(...)` （`:1079`）⇒ 每条类型文本**各 tokenize 一遍** ✓（unit08 十几条 ⇒ 十几遍 ✓ = 毫秒级 ✓，与读数同量级 ✓）。 ⇒ **下一刀（已定，未做 ✗）**：给 `runs` 的**结果**加一层**按 `(text, binders, notations)` 键**的 LRU ✓
-  （与仓里既有的 `canonical_text_key` memo 同款 ✓）—— 编辑一条时其余十几条的**类型文本没变** ⇒ 全命中 ✓
+* ⭐ **goal 的 5.9ms 定位到**handler 自己**（第 84 轮 · 加了 `PERF rpc-floor` 读数）**：同 harness 里量一条 **几乎零计算**的请求 `soko/version`（只答 `{version,pid}` ✓）⇒ **median `0.0ms`** ✓（best 0.0 / worst 0.1 ✓） 而 `soko/goals` 是 **5.9ms** ✗ ⇒ **往返本身不是成本** ✓（第 61 轮也证了探针不贵 ✗）⇒ 全在 handler 里 ✓。 读码收口到**一处**：`QueryDoc::goals`（`query/mod.rs:1398`）**对每条声明**调 `self.runs(...)` （`:1079`）⇒ 每条类型文本**各 tokenize 一遍** ✓（unit08 十几条 ⇒ 十几遍 ✓ = 毫秒级 ✓，与读数同量级 ✓）。 ⇒ **下一刀（已定，未做 ✗）**：给 `runs` 的**结果**加一层**按 `(text, binders, notations)` 键**的 LRU ✓ （与仓里既有的 `canonical_text_key` memo 同款 ✓）—— 编辑一条时其余十几条的**类型文本没变** ⇒ 全命中 ✓
   预期 **5.9 → ~1ms**（**低于 Lean 的 3.1ms** ✓）。⚠ 实现要点：键必须含 `binders`/`notations`（它们进 `runs` ✓）、
   LRU 有界 ✓、且**先建判据**（同一文档连问两次 ⇒ 第二次必须**逐字节相同** ✓ + 命中率读数 ✓）。
 
@@ -1433,15 +1431,13 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   （`parsable` / `decl_kinds` / `notation_symbols` / `redundant_hole_spans` / 逐条 `runs` 各占多少 ✓），
   **量出大头再动手** ✗，不许再靠读码猜 ✓。
 
-* ✅ **goal 5.9ms 第一次**真分层了**（第 86 轮 · 新增 `crates/front/tests/goals_cost.rs` ✓）**： **front 层**（13 条声明的合成夹具）`goals(false)` median **0.19ms** ✓ · `check()` **0.00ms** ✓ ⇒ 对照真子进程同一请求 **5.9ms** ✗ ⇒ **大头不在 front**（也早已排除往返 0.0ms ✓ 与内核探针 ✓）。 ⚠ **一条如实的限定**：那个夹具的类型是平凡的（`P`/`Q`）⇒ 只能当**下界** ✗；换成**真 unit08 文本**的那条 读数据实**跳过**了（`import Set` ⇒ 单文件 `QueryDoc` 解不了闭包 ✗，报文里写明原因 ✓）—— **下一刀**：给那条读数摆上 `path`/`root` 走**项目模式** ✓，才能真正判定"5.9ms 在 LSP 层还是在 front 的重类型工作量" ✓。
-  ⚠ 顺带记：第 85 轮临时插桩**又**栽在"多块文本手术"上 ✗（`unexpected closing delimiter` ✓）⇒ 已还原 ✓；
+* ✅ **goal 5.9ms 第一次**真分层了**（第 86 轮 · 新增 `crates/front/tests/goals_cost.rs` ✓）**： **front 层**（13 条声明的合成夹具）`goals(false)` median **0.19ms** ✓ · `check()` **0.00ms** ✓ ⇒ 对照真子进程同一请求 **5.9ms** ✗ ⇒ **大头不在 front**（也早已排除往返 0.0ms ✓ 与内核探针 ✓）。 ⚠ **一条如实的限定**：那个夹具的类型是平凡的（`P`/`Q`）⇒ 只能当**下界** ✗；换成**真 unit08 文本**的那条 读数据实**跳过**了（`import Set` ⇒ 单文件 `QueryDoc` 解不了闭包 ✗，报文里写明原因 ✓）—— **下一刀**：给那条读数摆上 `path`/`root` 走**项目模式** ✓，才能真正判定"5.9ms 在 LSP 层还是在 front 的重类型工作量" ✓。 ⚠ 顺带记：第 85 轮临时插桩**又**栽在"多块文本手术"上 ✗（`unexpected closing delimiter` ✓）⇒ 已还原 ✓；
   本轮改走**只新增测试文件**的路子 ✓（零侵入 ✓）—— 这条路子本次证明是安全的 ✓，后续插桩优先用它 ✓。
 
 * ✅✅ **5.9ms 的分账量出来了（第 87 轮）**：真 unit08 文本走**项目模式**（`doc.path = Some(entry)` ✓） ⇒ front 层 `goals(false)` median **2.16ms** ✓ · 真子进程全程 **5.9ms** ✗ · 往返 **0.0ms** ✓ ⇒ **front ≈2.2ms（37%）· LSP 层 ≈3.7ms（63%）** ✓ —— 两块都有份 ✓，下一刀可以**各打各的** ✓。
 * ⛔⛔ **`runs` 记忆化：两次实测都**中性**，别再试第三次 ✗**（第 85 轮在 LSP 层 5.9→5.9 ✗；第 87 轮在 front 层 **2.16→2.08ms** ✗）⇒ `runs` **不是**这两层的贵因 ✓（两轮都已还原 ✓）。⚠ **按"同一处连红 3 次必须换招"的纪律**， 这里**预先记死**：不许再给 `runs` 加记忆化 ✗ —— 下一步只能**换层找**（front 侧：`probed_report` / `decl_kinds` / `notation_symbols` / `redundant_hole_spans` / `display.fold` 谁是大头 ✗ **仍需先量** ✓；LSP 侧：锁 / `decl_info` 映射 / 响应里**整份文档文本** ~10KB 的序列化 ✓）。量法沿用本轮证明安全的**只加测试文件** ✓。
 
-* ✅ **front 那 2.16ms 的成本形状量清了（第 88 轮 · 三组控制实验，条数都固定 13）**： **平凡类型 0.20ms** ✓ · **深链类型（有 goal）1.11–1.31ms** ✓ · **同款深链但 `axiom`（无 goal ⇒ 不调 `fold`）0.44ms** ✓ ⇒ ① 成本**随类型文本规模走**（与条数无关 ✓，0.20→1.31 是 6.5× ✓）；② 其中 **≈0.7–0.9ms 是逐条的
-  `display.fold(goal)`**（只有**开放**声明才走 ✓ = 出题场景的主流 ✓）；③ 余下 ≈0.4ms 与类型文本本身有关
+* ✅ **front 那 2.16ms 的成本形状量清了（第 88 轮 · 三组控制实验，条数都固定 13）**： **平凡类型 0.20ms** ✓ · **深链类型（有 goal）1.11–1.31ms** ✓ · **同款深链但 `axiom`（无 goal ⇒ 不调 `fold`）0.44ms** ✓ ⇒ ① 成本**随类型文本规模走**（与条数无关 ✓，0.20→1.31 是 6.5× ✓）；② 其中 **≈0.7–0.9ms 是逐条的 `display.fold(goal)`**（只有**开放**声明才走 ✓ = 出题场景的主流 ✓）；③ 余下 ≈0.4ms 与类型文本本身有关
   （`runs` 已两次实测否掉 ✗ ⇒ 剩下的是每文档一次的 `notation_symbols`/`decl_kinds` 这类 ✓）。
 * ⇒ **下一刀二选一（都已量过、都要先建判据 ✓）**：(a) **front 的 `fold` 记忆化** —— 吃 ≈0.7ms（2.07→~1.3ms ✓， ~12% of 总 5.9ms ✓，**中等收益** ✗）；(b) ⭐ **LSP 那 3.7ms**（**63%** ✓ 的大头 ✓）—— 嫌疑 = `doc.lock()` / 逐条 `query_map::decl_info` 映射 / 响应里**整份文档文本 ~10KB** 的序列化 ✓ ⇒ **优先做 (b)** ✓（(a) 记着备用 ✓）。
 
