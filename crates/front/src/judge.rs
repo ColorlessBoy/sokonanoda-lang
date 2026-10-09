@@ -2686,8 +2686,6 @@ pub fn judge_render_type_explicit(
     judge_render_type(prefix_src, options, binders, ty)
 }
 
-
-
 pub fn judge_infer_with(
     extra_prefix: &str,
     prefix_src: &str,
@@ -3626,7 +3624,6 @@ mod tests {
     use super::*;
     use crate::compile::{check_document, DeclState, DeclStatus, PreludeMode};
     use crate::parse;
-
 
     /// **判据：大前缀不许退回原文** ✗（判据 ③，值守 2026-10-04 派单 ✓）。
     ///
