@@ -1982,14 +1982,34 @@ fn canonical_text_key(src: &str) -> u64 {
         let hit = memo.remove(pos);
         let h = hit.1;
         memo.push(hit); // LRU：命中挪到末尾
+        TEXT_HASH_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         return h;
     }
+    TEXT_HASH_MISSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let h = judge_cache_key(&[src]);
     if memo.len() >= MEMO {
         memo.remove(0);
     }
     memo.push((src.to_string(), h));
     h
+}
+
+/// **A7 的判据读数**（第 62 轮 · 只加计数、不改行为 ✓）：这条 memo 的**命中 / 未命中**次数。
+///
+/// **为什么必须有**：§8.9 把"judge 缓存键对整份前缀跑 SipHash"记成 **22.5% 编译样本**，
+/// 但那之后这条路上已经加了**小 LRU**（4 条 ✓）⇒ **旧百分比已经不可用** ✗。
+/// 而 `MEMO = 4` 够不够、命中率多少，**从来没人量过** ⇒ 先加这两个数，再决定要不要动它 ✓
+/// （动它的红线：**哈希函数一字不改** ✗ —— "错键 = 静默用旧答案"）。
+static TEXT_HASH_HITS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static TEXT_HASH_MISSES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// 见 [`TEXT_HASH_HITS`]：`(命中, 未命中)` ✓（判据用，`#[doc(hidden)]`）。
+#[doc(hidden)]
+pub fn text_hash_memo_stats() -> (u64, u64) {
+    (
+        TEXT_HASH_HITS.load(std::sync::atomic::Ordering::Relaxed),
+        TEXT_HASH_MISSES.load(std::sync::atomic::Ordering::Relaxed),
+    )
 }
 
 fn canonical_prefix_cached(src: &str) -> u64 {
