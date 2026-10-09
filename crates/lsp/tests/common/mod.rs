@@ -319,6 +319,26 @@ impl Client {
         format!("file://{}", p.display())
     }
 
+    /// 与外部对拍夹具 `~/lean4-bench/lsp_bench.py` 的 `marker_position` **同一位置**
+    /// （`Set.mem_image α β f A` 后面的那个 `y`）—— Lean 对拍的那一格用的就是这个光标 ✓。
+    ///
+    /// ⚠ LSP 的 `character` 是 **UTF-16 码元**（锚点行里有 `α`/`β` ⇒ 按字节数会多算 ✗）。
+    /// Python 夹具按**码点**数（那行里码点 = UTF-16 码元 ✓）⇒ 这里必须同口径 ✓。
+    pub fn marker_position(text: &str) -> (u32, u32) {
+        const MARKER: &str = "Set.mem_image α β f A";
+        let at = text.find(MARKER).expect("夹具前提：锚点必须在 unit08 里");
+        let y = text[at + MARKER.len()..]
+            .find('y')
+            .map(|i| i + at + MARKER.len())
+            .expect("夹具前提：锚点后必须有 y");
+        let before = &text[..y];
+        let line = before.rsplit('\n').next().unwrap_or_default();
+        (
+            before.matches('\n').count() as u32,
+            line.encode_utf16().count() as u32,
+        )
+    }
+
     pub fn initialize(&mut self, root: &Path) {
         self.send(serde_json::json!({
             "jsonrpc": "2.0", "id": 1, "method": "initialize",

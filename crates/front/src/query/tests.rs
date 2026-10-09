@@ -1805,3 +1805,91 @@ fn doc_report_of(entry: &std::path::Path, text: &str, last: &str) -> QueryDoc {
     d.set_text(last, 2, None);
     d
 }
+
+// ---- soko/goalAt 的真相层入口（设计 `docs/design/persistent-declarations.md` §7.9）----
+
+/// **`goal_at` 与 `goals` 是同一个映射** ✓ —— 光标处那一条必须与整份列表里含同一
+/// 光标的那条**逐字段相同**（两条入口漂移 = 第二份真相 ✗）。
+///
+/// 用**中间**那条声明做探针（不是第一条 ✗ —— 否则"恒答第一条"也能过，实测过 ✓）。
+#[test]
+fn goal_at_matches_the_goals_entry_that_contains_the_cursor() {
+    let doc = doc(CANVAS);
+    let all = doc.goals(false).expect("the canvas parses");
+    assert_eq!(all.len(), 5, "3 axioms + 2 theorems: {all:?}");
+
+    // `open_one`（最后一条）里的 `sorry` 偏移。
+    let cursor = CANVAS.find("theorem open_one").expect("open_one") + 20;
+    let one = doc
+        .goal_at(cursor, false)
+        .expect("parsable")
+        .expect("光标在 open_one 里");
+    assert_eq!(one.name, "open_one", "必须是含光标的那一条");
+    let expected = all
+        .iter()
+        .find(|d| d.start <= cursor && cursor <= d.end)
+        .expect("整份列表里含同一光标的那条");
+    assert_eq!(&one.name, &expected.name, "同一条声明");
+    // 逐字段：`DeclInfo` 没有 `PartialEq` ⇒ 比可比的字段（含三组 runs ✓ ——
+    // 摘掉 runs 的那种降级会在这里当场判红 ✓）。
+    assert_eq!(one.kind, expected.kind);
+    assert_eq!(one.status, expected.status);
+    assert_eq!((one.start, one.end), (expected.start, expected.end));
+    assert_eq!(one.ty, expected.ty);
+    assert_eq!(one.ty_runs.len(), expected.ty_runs.len(), "ty_runs 条数");
+    assert_eq!(one.value, expected.value);
+    assert_eq!(one.value_runs.len(), expected.value_runs.len());
+    assert_eq!(one.goal, expected.goal);
+    assert_eq!(
+        one.goal_runs.len(),
+        expected.goal_runs.len(),
+        "goal_runs 条数"
+    );
+    assert_eq!(one.goals, expected.goals);
+    assert_eq!(one.goals_runs.len(), expected.goals_runs.len());
+    assert_eq!(one.binders.len(), expected.binders.len());
+    assert_eq!(one.holes.len(), expected.holes.len());
+    assert_eq!(one.sub_goals.len(), expected.sub_goals.len());
+    assert!(!one.ty_runs.is_empty(), "返回的那一份必须带自己的 runs ✓");
+}
+
+/// 光标不在任何声明里（空白行/文件首尾）⇒ `None` —— 与 Lean `plainGoal` 在该处
+/// 答 `null` 同形 ✓；**不是**"随手给最近的一条" ✗，也不是错误。
+#[test]
+fn goal_at_outside_any_declaration_is_none() {
+    let plain = doc(CANVAS);
+    assert_eq!(
+        plain.goal_at(CANVAS.len() + 999, false).expect("parsable"),
+        None,
+        "越界 ⇒ None"
+    );
+    // 文件开头的注释/空行区（`CANVAS` 以 `axiom` 开头 ⇒ 用一条前置注释的文本）。
+    let with_header = format!("-- 一段注释\n\n{CANVAS}");
+    let headered = doc(&with_header);
+    assert_eq!(
+        headered.goal_at(0, false).expect("parsable"),
+        None,
+        "注释行不在任何声明的 span 里 ⇒ None"
+    );
+    assert!(
+        headered
+            .goal_at(
+                with_header.find("theorem and_swap").expect("and_swap") + 5,
+                false
+            )
+            .expect("parsable")
+            .is_some(),
+        "同一个文档里，声明内仍有答案（证明上面的 None 不是「整体失灵」✗）"
+    );
+}
+
+/// 解析失败 ⇒ `NotParsable`（与 `goals` 同判 ✓）：不可解析的画布**不许**被读成
+/// "这里没有目标" ✗（G-17 的口径）。
+#[test]
+fn goal_at_reports_a_parse_error_instead_of_none() {
+    let doc = doc("def broken : Prop :=\n");
+    assert!(matches!(
+        doc.goal_at(0, false),
+        Err(QueryError::NotParsable)
+    ));
+}

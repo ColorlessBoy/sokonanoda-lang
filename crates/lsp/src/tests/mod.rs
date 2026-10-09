@@ -133,6 +133,27 @@ async fn ask_state_at(
     .expect("soko/stateAt must answer")
 }
 
+// ---- soko/goalAt：光标处那一条声明（Lean `$/lean/plainGoal` 的声明级对应物）----
+
+async fn ask_goal_at(
+    service: &mut LspService<Backend>,
+    src: &str,
+    offset: usize,
+) -> serde_json::Value {
+    call(
+        service,
+        RpcRequest::build("soko/goalAt")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(lsp_pos(src, offset)),
+            }))
+            .id(44)
+            .finish(),
+    )
+    .await
+    .expect("soko/goalAt must answer")
+}
+
 const BY_OPEN: &str = "axiom And : Prop -> Prop -> Prop\n\
      theorem open : (a : Prop) -> And a a -> a := by intro a; intro h\n";
 

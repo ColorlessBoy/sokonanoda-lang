@@ -32,8 +32,8 @@ mod tokens;
 
 // 声明名是真相层的词表（`docs/protocol.md`）：用它的实现，不再保逐字副本。
 use protocol::{
-    GoalDeclInfo, GoalsParams, GoalsResponse, NextHoleParams, ProjectParams, ProjectResponse,
-    StateAtParams, StateAtResponse,
+    GoalAtParams, GoalAtResponse, GoalDeclInfo, GoalsParams, GoalsResponse, NextHoleParams,
+    ProjectParams, ProjectResponse, StateAtParams, StateAtResponse,
 };
 use render::{
     bracket_hover, decl_at, definition_at, diagnostic_from_compile, diagnostic_from_parse,
@@ -1196,6 +1196,52 @@ impl Backend {
             // 回显请求的文档身份：客户端据此丢弃"答的是另一份文档"的过期响应。
             uri: request_uri.to_string(),
             version,
+        })
+    }
+
+    /// `soko/goalAt`：**光标处那一条**声明的 goal 视图（Lean `$/lean/plainGoal`
+    /// 的声明级对应物，设计 `docs/design/persistent-declarations.md` §7.9 ✓）。
+    ///
+    /// 与 [`Self::goals`] 的关系：形状**逐字段相同**（同一条声明在两条入口上
+    /// 必须一模一样 ✓ —— 两份映射就是第二份真相 ✗），只是**只回含光标的那一条** ✓。
+    /// 老入口 `soko/goals`（整份声明列表）**一字不动** ✓：它服务的是练习树/Infoview
+    /// 的声明列表，那本来就该是整份 ✓。
+    ///
+    /// 这里与 `goal_decls` 共用同两条加速件（作用域行首索引 + 作用域折叠缓存 ✓）：
+    /// 两条入口走**同一份**映射实现，读数才可比 ✓。
+    async fn goal_at(&self, params: GoalAtParams) -> Result<GoalAtResponse> {
+        let request_uri = params.text_document.uri.clone();
+        let version;
+        let text;
+        let decl;
+        {
+            let mut docs = self.doc.lock().expect("doc lock");
+            docs.focus_request(&request_uri);
+            version = docs.version();
+            let doc = &*docs;
+            // 没有报告（尚未编译 / parse 失败）⇒ 与 `soko/goals` 同答"空"：LSP 的
+            // 错误通道是诊断通知（`Doc::diagnostics` 已经 parse 优先），不是这条应答。
+            text = doc.text().to_string();
+            decl = if doc.report().is_some() {
+                let cursor = position_to_offset(&text, params.position);
+                sokonanoda_front::query::with_line_index(&text, || {
+                    // 与 `goal_decls` 同一个**折叠缓存**作用域（同一份 doc 的同一张
+                    // 记法表 ⇒ 键只按文本成立 ✓；退出即清 ✓）。
+                    sokonanoda_front::display::with_fold_cache(|| {
+                        doc.query()
+                            .goal_at(cursor, true)
+                            .unwrap_or_default()
+                            .map(|decl| query_map::decl_info(decl, &text))
+                    })
+                })
+            } else {
+                None
+            };
+        }
+        Ok(GoalAtResponse {
+            uri: request_uri.to_string(),
+            version,
+            decl,
         })
     }
 
@@ -2739,6 +2785,7 @@ pub fn run() {
         let stdout = tokio::io::stdout();
         let (service, socket) = LspService::build(Backend::new)
             .custom_method("soko/goals", Backend::goals)
+            .custom_method("soko/goalAt", Backend::goal_at)
             .custom_method("soko/nextHole", Backend::next_hole)
             .custom_method("soko/hints", Backend::hints)
             .custom_method("soko/stateAt", Backend::state_at)

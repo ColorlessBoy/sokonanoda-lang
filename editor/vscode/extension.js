@@ -1568,11 +1568,22 @@ async function revealHint(context, uriArg, declName, declRange) {
   let name = declName;
   if (!name) {
     // 声明定位走服务端数据（客户端不扫文本找声明）。
-    const goals = await client.sendRequest("soko/goals", {
+    //
+    // **`soko/goalAt`（2026-10-09）**：只问**光标处那一条** ✓（真 unit08 实测
+    // 3 777B–6 560B）。以前这里问 `soko/goals` —— 那是**整份声明列表**
+    // （同一夹具 **91 361B** ✗），再在客户端 `positionInRange` 扫一遍挑出那条：
+    // 为了一个名字付整份列表的钱 ✗。服务端的包含语义与 `positionInRange`
+    // **逐字同口径**（两端都闭 ✓）⇒ 取到的声明与以前相同 ✓。
+    const at = await client.sendRequest("soko/goalAt", {
       textDocument: { uri: uriString },
+      position,
     }).catch(() => undefined);
-    name = (goals?.decls ?? []).find((d) => positionInRange(d.range, position))?.name
-      ?? `line:${position.line}:${position.character}`;
+    const decl = at?.decl;
+    // 「有就渲染」是反模式（AGENTS.md）：答回来的声明**必须真的含这个位置**，
+    // 否则宁可退回位置键 —— 绝不拿一个邻近声明的名字去当提示的键 ✗。
+    name = decl && positionInRange(decl.range, position)
+      ? decl.name
+      : `line:${position.line}:${position.character}`;
   }
   let response;
   try {

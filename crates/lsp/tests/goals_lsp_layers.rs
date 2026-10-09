@@ -57,9 +57,20 @@ fn where_the_remaining_lsp_milliseconds_go() {
     let (g_ms, g_b) = collect("soko/goals", light.clone(), 9300);
     light["runs"] = serde_json::json!(true);
     let (f_ms, f_b) = collect("soko/goals", light, 9400);
+    // **光标处那一条**：`soko/stateAt`（扩展真正的按键路径）与 `soko/goalAt`
+    // （声明卡片那一半）在同一位置上的读数 —— 用来判断"3.5ms 到底是不是
+    // 用户按键时付的那一笔"（AGENTS.md：探针必须打在用户实际动作上 ✓）。
+    let at = common::Client::marker_position(&text);
+    let cursor = serde_json::json!({
+        "textDocument": {"uri": uri},
+        "position": {"line": at.0, "character": at.1},
+    });
+    let (s_ms, s_b) = collect("soko/stateAt", cursor.clone(), 9500);
+    let (a_ms, a_b) = collect("soko/goalAt", cursor, 9600);
     println!(
         "PERF goals-lsp-layers: version {:.1}ms/{}B · nextHole {:.1}ms/{}B · \
-         goals(runs=false) {:.1}ms/{}B · goals(runs=true) {:.1}ms/{}B ⇒ \
+         goals(runs=false) {:.1}ms/{}B · goals(runs=true) {:.1}ms/{}B · \
+         stateAt@cursor {:.1}ms/{}B · goalAt@cursor {:.1}ms/{}B ⇒ \
          每声明那一段 ≈{:.1}ms（goals−nextHole）· 固定段 ≈{:.1}ms（nextHole−version）· cache={}",
         v_ms,
         v_b,
@@ -69,6 +80,10 @@ fn where_the_remaining_lsp_milliseconds_go() {
         g_b,
         f_ms,
         f_b,
+        s_ms,
+        s_b,
+        a_ms,
+        a_b,
         g_ms - h_ms,
         h_ms - v_ms,
         cache.display()

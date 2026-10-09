@@ -130,6 +130,35 @@ pub(crate) struct GoalsResponse {
     pub(crate) version: i32,
 }
 
+/// `soko/goalAt` 请求：**光标处那一条**声明的 goal 视图 —— Lean `$/lean/plainGoal`
+/// 的声明级对应物（设计 `docs/design/persistent-declarations.md` §7.9 ✓）。
+///
+/// 为什么不复用 `soko/goals` ✗：那一条答的是**整份入口的声明列表**（实测真 unit08
+/// 上 27 条 ⇒ 91 361B ✗），而"光标处的 goal"只要**一条**（≈1–3KB ✓）。
+/// **老形状与老消费者一字不动** ✓（`soko/goals` 的响应逐字节不变 ✓）。
+#[derive(Debug, Deserialize)]
+pub(crate) struct GoalAtParams {
+    #[serde(rename = "textDocument")]
+    #[allow(dead_code)]
+    pub(crate) text_document: TextDocumentIdentifier,
+    pub(crate) position: Position,
+}
+
+/// `soko/goalAt` 响应：光标处那条声明 + 请求身份回显。
+///
+/// `decl` 与 `soko/goals` 的 `decls[i]` **同一形状** ✓ ⇒ 消费方的卡片渲染**不降级** ✓
+/// ——返回的**每一份都带自己的** `ty_runs`/`value_runs`/`goal_runs`/`goals_runs` ✓
+/// （"按目标按需返回"，不是"摘掉 runs" ✗：摘掉 = 用户可见渲染静默降级 ✗）。
+#[derive(Debug, Serialize)]
+pub(crate) struct GoalAtResponse {
+    /// 回显请求指向的文档 URI 与版本（见 [`GoalsResponse::uri`]）。
+    pub(crate) uri: String,
+    pub(crate) version: i32,
+    /// `None` = 光标不在任何声明里（空白行/注释/文件首尾）——与 Lean `plainGoal`
+    /// 在该处答 `null` **同形** ✓，**不是**错误。
+    pub(crate) decl: Option<GoalDeclInfo>,
+}
+
 /// `soko/project` 请求（0.58.0 批次 4）：这个文档所在闭包的只读状态视图。
 #[derive(Debug, Deserialize)]
 pub(crate) struct ProjectParams {

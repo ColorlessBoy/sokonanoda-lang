@@ -408,6 +408,40 @@ Response:
     structural, the kernel judges what the learner writes into sub-holes;
   - `intro` — peel the next binder(s) into a lambda prefix.
 
+### `soko/goalAt`
+
+Request params: `{"textDocument": {"uri"}, "position"}`（**position 必填**）。
+
+**光标处那一条**声明的 goal 视图 —— Lean `$/lean/plainGoal` 的声明级对应物
+（设计 `docs/design/persistent-declarations.md` §7.9/§7.10，2026-10-09 落地）。
+**为什么另立一条**：`soko/goals` 答的是**整份入口的声明列表**（真 unit08：27 条
+⇒ **91 361 B** ✗），而"光标处的 goal"只要**一条**。**`soko/goals` 一字未动** ✓。
+
+**形状**：`decl` 与 `soko/goals` 的 `decls[i]` **逐字段相同** ✓（含各自的
+`ty_runs`/`value_runs`/`goal_runs`/`goals_runs`/`binders[].ty_runs` ✓）——
+**按目标按需返回，不是"摘掉 runs"** ✗（摘掉 = Infoview 卡片渲染的静默降级）。
+`decl: null` = 光标不在任何声明里（空白行/注释/首尾）——与 Lean `plainGoal` 在该处
+答 `null` **同形** ✓，**不是**错误。**包含语义两端都闭**（与 `soko/stateAt` 同一套 ✓）。
+
+```json
+{"uri": "file:///…/unit08.sokonanoda", "version": 7,
+ "decl": {"name": "demo_mem_image", "kind": "theorem", "status": "checked",
+          "range": {…}, "ty": "∀ (α β : Type 0) …", "ty_runs": […],
+          "goal": null, "goal_runs": [], "goals": [], "goals_runs": [],
+          "binders": […], "holes": [], "sub_goals": []}}
+```
+
+**实测**（真 unit08 · 真子进程 · 同一光标 = `lsp_bench.py` 的 `marker_position` ✓）：
+`soko/goals` **91 361 B** / ≈3.5–5.3ms（27 条）vs `soko/goalAt` **3 777 B**
+（对拍光标）· **6 560 B**（开练习里）/ ≈1.0–1.5ms ⇒ 结构比 **≥14×** ✓。
+判据 = ≤ `soko/goals` 的 **1/10**（噪声免疫 ✓）；守卫
+`crates/lsp/tests/goals_at_payload.rs`（结构比 + 逐字段相同 + **仍带自己的 runs** ✓，
+反向验证两条 ✓）· 契约测试 `crates/lsp/src/tests/goals.rs`。
+
+**消费者**：VS Code 扩展的「揭示下一条提示」（`revealHint` 的声明定位 —— 以前为
+**一个名字**拉整份列表 ✗）；编辑器真正的**按键**目标路径是 `soko/stateAt`
+（**497 B / 0.7ms** ✓，它本来就按光标答）。
+
 ### `soko/hints`
 
 Request params: `{"textDocument": {"uri"}, "position"}`. Response:

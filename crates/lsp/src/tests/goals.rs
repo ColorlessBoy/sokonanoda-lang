@@ -112,6 +112,110 @@ async fn goals_request_lists_every_open_goal_after_apply() {
     shutdown(&mut service).await;
 }
 
+// ---- soko/goalAt（设计 `docs/design/persistent-declarations.md` §7.9）----
+//
+// 判据三条：① **只回含光标的那一条**；② 与 `soko/goals` 的对应条目**逐字段相同**
+// （两条入口共用同一个映射实现 —— 谁少映射一个字段，这里当场判红 ✓）；
+// ③ 返回的那一份**仍带自己的 runs** ✓（"按需返回"，不是"摘掉 runs" ✗）。
+
+/// 三条声明，光标落在**中间**那条上（不是第一条 —— 否则"恒答第一条"也能过 ✗）。
+const THREE_DECLS: &str = "def one : Prop -> Prop := fun (x : Prop) => x\n\
+                           def two : Prop -> Prop := fun (x : Prop) => x\n\
+                           def three : Prop -> Prop := fun (x : Prop) => x\n";
+
+#[tokio::test]
+async fn goal_at_returns_exactly_the_decl_containing_the_cursor() {
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, THREE_DECLS).await;
+    let _ = wait_diagnostics(&mut socket, "goalAt diagnostics").await;
+
+    let all = request_goals(&mut service).await;
+    let decls = all["decls"].as_array().expect("decls").clone();
+    assert_eq!(decls.len(), 3, "三条声明：{all:?}");
+
+    let answer = ask_goal_at(&mut service, THREE_DECLS, offset_of(THREE_DECLS, "two")).await;
+    assert_eq!(
+        answer["decl"]["name"], "two",
+        "必须是**含光标**的那一条（不是第一条 ✗）：{answer:?}"
+    );
+    assert!(
+        answer["decl"] == decls[1],
+        "goalAt 的条目必须与 soko/goals 的对应条目**逐字段相同**（含全部 runs ✓）"
+    );
+    // 回显身份：客户端据此丢弃"答的是另一份文档"的过期响应（与 `soko/goals` 同契约 ✓）。
+    assert_eq!(answer["uri"], json!(URI), "uri 必须回显");
+    assert_eq!(answer["version"], 1, "version 必须回显");
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn goal_at_outside_a_declaration_is_null_not_a_neighbour() {
+    let src = "def one : Prop -> Prop := fun (x : Prop) => x\n\
+               \n\
+               def two : Prop -> Prop := fun (x : Prop) => x\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "goalAt blank-line diagnostics").await;
+
+    // 空白行（第 2 行）**不在**任何声明的 span 里 ⇒ `decl: null`。
+    // 与 Lean `plainGoal` 在该处答 `null` 同形 ✓ —— **不是**「随手给最近的一条」✗，
+    // 也不是错误（错误通道是诊断通知）。
+    //
+    // ⚠ 边界（实测，`target/scratch/spans.sokonanoda` 的 `soko/goals` 读数 ✓）：
+    // 声明 span **不含行尾换行**（`def one … x` = `0..45`，换行在 45）⇒ 包含语义是
+    // **两端都闭**（与 `state_at` 同一套 ✓）时，**换行那个 offset 仍算在前一条里** ✓，
+    // 真正的空行 offset 才落在所有声明之外 ✓。探针取空行自己的 offset（`+ 1`）。
+    let blank = src.find("\n\n").expect("空行") + 1;
+    let answer = ask_goal_at(&mut service, src, blank).await;
+    assert!(
+        answer["decl"].is_null(),
+        "空白行上的 goalAt 必须答 null（不许给邻近声明 ✗）：{answer:?}"
+    );
+    assert_eq!(answer["uri"], json!(URI), "null 也带回显身份 ✓");
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn goal_at_carries_its_own_runs_so_the_card_keeps_its_colours() {
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, EXERCISE).await;
+    let _ = wait_diagnostics(&mut socket, "goalAt runs diagnostics").await;
+
+    let answer = ask_goal_at(&mut service, EXERCISE, 0).await;
+    let decl = &answer["decl"];
+    assert_eq!(decl["status"], "open", "开放练习：{answer:?}");
+    assert_eq!(decl["goal"], "Prop → Prop");
+    // 硬约束：**返回的每一份仍带自己的 runs** ✓（摘掉 = 用户可见渲染的静默降级 ✗
+    // —— Infoview 卡片的目标行/类型行就靠它们上色，R-1/R-2 同形）。
+    assert_eq!(
+        reconstruct_runs(&decl["ty_runs"]),
+        decl["ty"].as_str().expect("ty"),
+        "ty_runs 必须逐字节重建 ty"
+    );
+    assert_eq!(
+        reconstruct_runs(&decl["goal_runs"]),
+        decl["goal"].as_str().expect("goal"),
+        "goal_runs 必须逐字节重建 goal（否则目标行只能画纯文本 ✗）"
+    );
+    assert!(
+        !run_kinds(&decl["goal_runs"]).is_empty(),
+        "goal_runs 必须有 kind（着色的唯一来源）：{:?}",
+        decl["goal_runs"]
+    );
+    // `goals_runs` 与 `goals` 按位置对齐（父子成对，T-A5）。
+    let goals = decl["goals"].as_array().expect("goals");
+    let goals_runs = decl["goals_runs"].as_array().expect("goals_runs");
+    assert_eq!(
+        goals_runs.len(),
+        goals.len(),
+        "goals_runs 必须与 goals 对齐"
+    );
+    shutdown(&mut service).await;
+}
+
 #[tokio::test]
 async fn next_hole_navigates_between_two_holes() {
     let src = format!("{EXERCISE}example : Prop := sorry\n");

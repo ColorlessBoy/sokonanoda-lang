@@ -1410,128 +1410,175 @@ impl QueryDoc {
         Ok(report
             .decls
             .iter()
-            .map(|d| {
-                let name = decl_name(d);
-                let binder_names: Vec<String> = d.binders.iter().map(|b| b.name.clone()).collect();
-                let ty_runs = d
-                    .ty_text
-                    .as_deref()
-                    .map(|ty| self.runs(&decls, &notations, ty, &binder_names))
-                    .unwrap_or_default();
-                let open = d.status == DeclStatus::Open;
-                // **T-U4（2026-09-25）**：非 `by` 的开放练习，**目标 ≈ 声明的类型** ✓
-                // ⇒ 显示副本用**折过的** `ty_text` ✓。`d.goal` 是 **judge 文本** ✗
-                // （红线：它同时喂判卷 ✓），拿它直接打标签/runs ⇒ 永远是点形式
-                // —— 用户报的「顶部目标没记法化」正是这一处 ✓。
-                // **回退说明（2026-09-25 第 75 轮）**：这里曾改成"优先用 `ty_text`
-                // （内核 pp 的折叠副本）"✗ —— 那是**换掉了**一个**本来正确**的 surface：
-                // `d.goal` 是 `render_expr` 的**源级渲染** ✓（学习者写的形状、**本来就带记法** ✓，
-                // 例如 `(A ⊆ B) -> (a : α) -> …` ✓），而 `ty_text` 是内核 pp（`(A B : Set α)` ✗
-                // 丢精度）✓。`notation_fold.rs` 第 2 组就是这条**行程开关** ✓，它当场判红 ✓
-                // 并提示"回来更新设计里那张表" ✓（设计：`vscode-editor-feedback-plan.md` §T-C24 ✓）。
-                // **显示副本折**（A1 / T-N5）：`d.goal` 是**判定文本**（红线：
-                // 它同时喂判卷 ✓）⇒ 只折**副本** ✓。修之前这一行是
-                // `d.goal.clone()` ⇒ 非 `by` 的开放练习在 Infoview 里显示的
-                // 是未折的 `Prop -> Prop` ✗（T-U4 的注释写着"显示副本"，
-                // 但它当时并没有折 ✗）。
-                let goal_display: Option<String> = d.goal.as_deref().map(|g| self.display.fold(g));
-                // 最后一步的全部未闭合目标（当前在前）；非 `by` 的开练习回退到
-                // 走查得到的那个目标。**文本与 runs 必须成对产出**（T-A5）：只给
-                // 文本不给 runs，声明卡片就只能画纯文本——那正是 R-2 的
-                // "目标不高亮"（runs 的 kind 是着色的唯一来源）。
-                let goals: Vec<String> = if open {
-                    d.by_steps
-                        .last()
-                        .map(|s| s.goals.iter().map(|g| g.ty.clone()).collect())
-                        .unwrap_or_else(|| goal_display.clone().into_iter().collect())
-                } else {
-                    Vec::new()
-                };
-                let goals_runs: Vec<Vec<RunInfo>> = goals
-                    .iter()
-                    .map(|g| self.runs(&decls, &notations, g, &binder_names))
-                    .collect();
-                DeclInfo {
-                    name,
-                    kind: d.kind.as_str().to_string(),
-                    status: status_str(d.status).to_string(),
-                    start: d.span.start.offset,
-                    end: d.span.end.offset,
-                    ty: d.ty_text.clone(),
-                    ty_runs,
-                    value: d.val_text.clone(),
-                    value_runs: d
-                        .val_text
-                        .as_deref()
-                        .map(|v| self.runs(&decls, &notations, v, &[]))
-                        .unwrap_or_default(),
-                    // **T-U4**：wire 的 `goal` 是**显示副本** ✓ ⇒ 与 `goal_runs` **同源同形** ✓
-                    // （下面那条 `runs_to_text(goal_runs) == goal` 的不变量必须成立 ✓ ——
-                    // 只折 runs 不折文本就会自相矛盾 ✗，单测当场抓到过 ✓）。
-                    // ⚠ front 内部的 `DeclState.goal`（**喂 judge** ✗）一个字节都没动 ✓。
-                    goal: goal_display.clone(),
-                    // 父：声明自己的目标（老客户端只读文本，卡片读 runs）。
-                    goal_runs: goal_display
-                        .as_deref()
-                        .map(|g| self.runs(&decls, &notations, g, &binder_names))
-                        .unwrap_or_default(),
-                    goals,
-                    // 子：与 `goals` 按位置对齐（长度相等，单测钉死）。
-                    goals_runs,
-                    binders: d
-                        .binders
-                        .iter()
-                        .map(|b| {
-                            let ty = self.display.fold(&b.ty);
-                            BinderInfo {
-                                name: b.name.clone(),
-                                ty_runs: self.runs(&decls, &notations, &ty, &binder_names),
-                                ty,
-                            }
-                        })
-                        .collect(),
-                    hole: if open {
-                        d.holes.first().map(|s| (s.start.offset, s.end.offset))
-                    } else {
-                        None
-                    },
-                    holes: if open {
-                        d.holes
-                            .iter()
-                            .enumerate()
-                            .map(|(index, span)| HoleInfo {
-                                start: span.start.offset,
-                                end: span.end.offset,
-                                id: format!("{}:{index}", decl_name(d)),
-                                redundant: hole_is_redundant(span, &redundant_spans),
-                            })
-                            .collect()
-                    } else {
-                        Vec::new()
-                    },
-                    sub_goals: if open {
-                        // **显示副本**（A0，2026-09-26）：洞的期望类型在 LSP hover
-                        // 上给用户看 ⇒ 过唯一接口 ✓。真相层那份
-                        // （`DeclState.sub_goals[].ty`）**一个字节都不折** ——
-                        // `suggest.rs` 会回读它算 exact/rfl 建议 ✗。这里折的是
-                        // **wire 上那份克隆** ✓。
-                        d.sub_goals
-                            .iter()
-                            .map(|sub| SubGoalInfo {
-                                start: sub.span.start.offset,
-                                end: sub.span.end.offset,
-                                ty: sub.ty.as_deref().map(|t| self.display.fold(t)),
-                            })
-                            .collect()
-                    } else {
-                        Vec::new()
-                    },
-                    // 内核判定的下一步建议来自 LSP 侧的 code-action 层（需要
-                    // judge 上下文）；CLI/MCP 侧目前留空，见 H6-A 的 as-built。
-                    code_actions: Vec::new(),
-                }
-            })
+            .map(|d| self.decl_info(d, &decls, &notations, &redundant_spans))
             .collect())
+    }
+
+    /// **一条**声明的 goal 视图 —— [`Self::goals`] 与 [`Self::goal_at`] 的**唯一**
+    /// 映射实现 ✓（两份映射就是第二份真相 ✗：同一份 `DeclState` 在两个入口上
+    /// 漂移，正是"数据对了 ≠ 用户看见了"那类接缝 bug 的温床）。
+    ///
+    /// `decls`/`notations`/`redundant_spans` 由调用方**按整份报告算一次**再传进来
+    /// （逐条重算是 O(n²) ✗）。字段语义与 [`Self::goals`] 逐字段相同 ✓。
+    fn decl_info(
+        &self,
+        d: &DeclState,
+        decls: &[(String, SemanticKind)],
+        notations: &[String],
+        redundant_spans: &[Span],
+    ) -> DeclInfo {
+        let name = decl_name(d);
+        let binder_names: Vec<String> = d.binders.iter().map(|b| b.name.clone()).collect();
+        let ty_runs = d
+            .ty_text
+            .as_deref()
+            .map(|ty| self.runs(decls, notations, ty, &binder_names))
+            .unwrap_or_default();
+        let open = d.status == DeclStatus::Open;
+        // **T-U4（2026-09-25）**：非 `by` 的开放练习，**目标 ≈ 声明的类型** ✓
+        // ⇒ 显示副本用**折过的** `ty_text` ✓。`d.goal` 是 **judge 文本** ✗
+        // （红线：它同时喂判卷 ✓），拿它直接打标签/runs ⇒ 永远是点形式
+        // —— 用户报的「顶部目标没记法化」正是这一处 ✓。
+        // **回退说明（2026-09-25 第 75 轮）**：这里曾改成"优先用 `ty_text`
+        // （内核 pp 的折叠副本）"✗ —— 那是**换掉了**一个**本来正确**的 surface：
+        // `d.goal` 是 `render_expr` 的**源级渲染** ✓（学习者写的形状、**本来就带记法** ✓，
+        // 例如 `(A ⊆ B) -> (a : α) -> …` ✓），而 `ty_text` 是内核 pp（`(A B : Set α)` ✗
+        // 丢精度）✓。`notation_fold.rs` 第 2 组就是这条**行程开关** ✓，它当场判红 ✓
+        // 并提示"回来更新设计里那张表" ✓（设计：`vscode-editor-feedback-plan.md` §T-C24 ✓）。
+        // **显示副本折**（A1 / T-N5）：`d.goal` 是**判定文本**（红线：
+        // 它同时喂判卷 ✓）⇒ 只折**副本** ✓。修之前这一行是
+        // `d.goal.clone()` ⇒ 非 `by` 的开放练习在 Infoview 里显示的
+        // 是未折的 `Prop -> Prop` ✗（T-U4 的注释写着"显示副本"，
+        // 但它当时并没有折 ✗）。
+        let goal_display: Option<String> = d.goal.as_deref().map(|g| self.display.fold(g));
+        // 最后一步的全部未闭合目标（当前在前）；非 `by` 的开练习回退到
+        // 走查得到的那个目标。**文本与 runs 必须成对产出**（T-A5）：只给
+        // 文本不给 runs，声明卡片就只能画纯文本——那正是 R-2 的
+        // "目标不高亮"（runs 的 kind 是着色的唯一来源）。
+        let goals: Vec<String> = if open {
+            d.by_steps
+                .last()
+                .map(|s| s.goals.iter().map(|g| g.ty.clone()).collect())
+                .unwrap_or_else(|| goal_display.clone().into_iter().collect())
+        } else {
+            Vec::new()
+        };
+        let goals_runs: Vec<Vec<RunInfo>> = goals
+            .iter()
+            .map(|g| self.runs(decls, notations, g, &binder_names))
+            .collect();
+        DeclInfo {
+            name,
+            kind: d.kind.as_str().to_string(),
+            status: status_str(d.status).to_string(),
+            start: d.span.start.offset,
+            end: d.span.end.offset,
+            ty: d.ty_text.clone(),
+            ty_runs,
+            value: d.val_text.clone(),
+            value_runs: d
+                .val_text
+                .as_deref()
+                .map(|v| self.runs(decls, notations, v, &[]))
+                .unwrap_or_default(),
+            // **T-U4**：wire 的 `goal` 是**显示副本** ✓ ⇒ 与 `goal_runs` **同源同形** ✓
+            // （下面那条 `runs_to_text(goal_runs) == goal` 的不变量必须成立 ✓ ——
+            // 只折 runs 不折文本就会自相矛盾 ✗，单测当场抓到过 ✓）。
+            // ⚠ front 内部的 `DeclState.goal`（**喂 judge** ✗）一个字节都没动 ✓。
+            goal: goal_display.clone(),
+            // 父：声明自己的目标（老客户端只读文本，卡片读 runs）。
+            goal_runs: goal_display
+                .as_deref()
+                .map(|g| self.runs(decls, notations, g, &binder_names))
+                .unwrap_or_default(),
+            goals,
+            // 子：与 `goals` 按位置对齐（长度相等，单测钉死）。
+            goals_runs,
+            binders: d
+                .binders
+                .iter()
+                .map(|b| {
+                    let ty = self.display.fold(&b.ty);
+                    BinderInfo {
+                        name: b.name.clone(),
+                        ty_runs: self.runs(decls, notations, &ty, &binder_names),
+                        ty,
+                    }
+                })
+                .collect(),
+            hole: if open {
+                d.holes.first().map(|s| (s.start.offset, s.end.offset))
+            } else {
+                None
+            },
+            holes: if open {
+                d.holes
+                    .iter()
+                    .enumerate()
+                    .map(|(index, span)| HoleInfo {
+                        start: span.start.offset,
+                        end: span.end.offset,
+                        id: format!("{}:{index}", decl_name(d)),
+                        redundant: hole_is_redundant(span, redundant_spans),
+                    })
+                    .collect()
+            } else {
+                Vec::new()
+            },
+            sub_goals: if open {
+                // **显示副本**（A0，2026-09-26）：洞的期望类型在 LSP hover
+                // 上给用户看 ⇒ 过唯一接口 ✓。真相层那份
+                // （`DeclState.sub_goals[].ty`）**一个字节都不折** ——
+                // `suggest.rs` 会回读它算 exact/rfl 建议 ✗。这里折的是
+                // **wire 上那份克隆** ✓。
+                d.sub_goals
+                    .iter()
+                    .map(|sub| SubGoalInfo {
+                        start: sub.span.start.offset,
+                        end: sub.span.end.offset,
+                        ty: sub.ty.as_deref().map(|t| self.display.fold(t)),
+                    })
+                    .collect()
+            } else {
+                Vec::new()
+            },
+            // 内核判定的下一步建议来自 LSP 侧的 code-action 层（需要
+            // judge 上下文）；CLI/MCP 侧目前留空，见 H6-A 的 as-built。
+            code_actions: Vec::new(),
+        }
+    }
+
+    /// **光标处那一条**声明的 goal 视图（`soko/goalAt` 的真相层入口）。
+    ///
+    /// 为什么另立入口 ✗→✓：`goals()` 会把**整份入口的每条声明**都映射一遍
+    /// （实测真 unit08 上 27 条 ≈2.5ms、wire ≈91KB ✗），而"光标处的 goal"只需要
+    /// **一条** ✓（Lean 的 `$/lean/plainGoal` 也只回该位置那一份 ✓）。这里按
+    /// 声明 span 取**含光标的那一条**再走同一个 [`Self::decl_info`] ⇒ 返回的每一份
+    /// 仍带**自己的** runs ✓（不许"顺手摘掉 runs" —— 那是用户可见渲染的静默降级 ✗）。
+    ///
+    /// `None` = 光标不在任何声明里（空白行/注释/文件首尾）——与 Lean `plainGoal`
+    /// 在该处答 `null` **同形** ✓，不是错误。
+    ///
+    /// 解析失败 ⇒ [`QueryError::NotParsable`]（与 [`Self::goals`] 同判：不可解析的
+    /// 画布不许被读成"这里没有目标" ✗）。
+    pub fn goal_at(&self, cursor: usize, probe: bool) -> Result<Option<DeclInfo>, QueryError> {
+        self.parsable()?;
+        let report = if probe {
+            self.probed_report()
+        } else {
+            self.report.clone().unwrap_or_default()
+        };
+        let redundant_spans = redundant_hole_spans(&report);
+        let decls = self.decl_kinds();
+        let notations = self.notation_symbols();
+        Ok(report
+            .decls
+            .iter()
+            // **与 `state_at` 同一套包含语义**（两端都闭 ✓）：同一句「光标在哪条声明
+            // 里」在两个入口上必须给同一个答案，否则同一处会答出两条不同的声明 ✗
+            // （`state_at` 用的是 `d.span.start.offset <= cursor && cursor <= d.span.end.offset`）。
+            .find(|d| d.span.start.offset <= cursor && cursor <= d.span.end.offset)
+            .map(|d| self.decl_info(d, &decls, &notations, &redundant_spans)))
     }
 
     /// **目标视图的「不要着色数据」版**（设计 `docs/design/goals-payload-slimming.md` §3 候选 B ✓）：

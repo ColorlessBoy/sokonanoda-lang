@@ -12,11 +12,16 @@ use tower_lsp::jsonrpc::Request as RpcRequest;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{ClientSocket, LspService};
 
-/// 带全部自定义方法注册的服务（soko/goals、soko/nextHole、soko/hints、
+/// 带全部自定义方法注册的服务（soko/goals、soko/goalAt、soko/nextHole、soko/hints、
 /// soko/stateAt、soko/project、soko/version）。
+///
+/// ⚠ **这份清单与 `lib.rs` 的 `run_server` 是两处**（同一个注册面写两遍）⇒ 只在
+/// `lib.rs` 加一个新方法、忘了这里，单测会答 `MethodNotFound` ✗（实测：加
+/// `soko/goalAt` 时正是这样被抓到的 ✓）。谁加新方法，**两处一起加** ✓。
 pub(crate) fn test_service() -> (LspService<Backend>, ClientSocket) {
     LspService::build(Backend::new)
         .custom_method("soko/goals", Backend::goals)
+        .custom_method("soko/goalAt", Backend::goal_at)
         .custom_method("soko/nextHole", Backend::next_hole)
         .custom_method("soko/hints", Backend::hints)
         .custom_method("soko/stateAt", Backend::state_at)

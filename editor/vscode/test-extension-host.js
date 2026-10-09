@@ -394,6 +394,9 @@ const vscodeLanguageclientStub = {
 const stubbedResponses = {
   "soko/version": () => ({ version: "0.58.0", pid: 4242 }),
   "soko/goals": () => ({ decls: [] }),
+  // `soko/goalAt`（2026-10-09）：光标处**那一条**声明。缺省答 `decl: null`
+  // （= 光标不在任何声明里）⇒ 老用例行为一字不变 ✓。
+  "soko/goalAt": () => ({ uri: "", version: 1, decl: null }),
   "soko/project": () => ({ uri: "", version: 1, project: null, reason: "no-imports" }),
   "soko/stateAt": () => ({ decls: [], goals: [] }),
   "soko/nextHole": () => null,
@@ -664,12 +667,23 @@ async function activateExtension(config = {}) {
   vscodeStub.window.visibleTextEditors = [];
   vscodeStub.__commands = {};
   vscodeStub.__contexts = {};
+  // 提示的「已揭示到第几条」记在 `workspaceState` 里（`hintStateKey`）——记下来才能
+  // 断言"提示真的按**声明名**记账"（用户可见结果，不是"链路通"✗）。
+  vscodeStub.__workspaceState = {};
   const context = {
     subscriptions: [],
     extensionPath: __dirname,
     extension: { packageJSON: { version: "0.58.0" } },
     globalState: { get: () => undefined, update: async () => undefined },
-    workspaceState: { get: () => undefined, update: async () => undefined },
+    workspaceState: {
+      // ⚠ **必须尊重默认值**（`get(key, 0)`）：忽略它 ⇒ `revealed` 是 `undefined`
+      // ⇒ `hints[undefined]` 把 `undefined` 当提示显示出来 ✗（实测踩过 ✓）。
+      get: (key, fallback) => vscodeStub.__workspaceState?.[key] ?? fallback,
+      update: async (key, value) => {
+        vscodeStub.__workspaceState = vscodeStub.__workspaceState ?? {};
+        vscodeStub.__workspaceState[key] = value;
+      },
+    },
   };
   await extension.activate(context);
   // Activation kicks off fire-and-forget work (server start + doctor); let the
@@ -685,6 +699,10 @@ function statusBarStub() {
 
 function goalsRequests() {
   return requests.filter((request) => request.method === "soko/goals");
+}
+
+function goalAtRequests() {
+  return requests.filter((request) => request.method === "soko/goalAt");
 }
 
 // 排空已排队的微任务。切活动文档现在会**主动**取一次 `soko/goals`（声明卡片
@@ -1378,6 +1396,88 @@ test("clicking a declaration name never pops an empty notice (P0)", async () => 
   assert.ok(
     vscodeStub.__commandsCalled.some((c) => c.id === "vscode.executeDefinitionProvider"),
     "降级前仍必须先问 definition（不许跳过服务端直接 reveal ✗）",
+  );
+});
+
+test("揭示提示只问光标处那一条声明（soko/goalAt），提示真的看得见", async () => {
+  // **2026-10-09**：`revealHint` 的声明定位从 `soko/goals`（整份声明列表 ——
+  // 真 unit08 上 27 条 / **91 361B** ✗）换成 `soko/goalAt`（**那一条** ✓）。
+  //
+  // 判据绑**用户动作**（AGENTS.md 验证设计纪律第 0 条 (a)）：点「揭示下一条提示」
+  // ⇒ ① 屏幕上**真的出现提示文本** ✓；② 记账的键用的是**声明名** ✓（不是
+  // `line:l:c` 兜底 —— 用错了键，提示会永远从头再来 ✗）；③ 只问那一条声明 ✓。
+  await activateExtension();
+  const text = "theorem t : Prop := by\n  sorry\n";
+  const doc = fakeDocument("/repo/units/u01.sokonanoda", "sokonanoda", text);
+  // ⚠ `editorFor()` **只收 document**（位置参数会被丢掉 ✗ —— 实测踩过：光标
+  // 落在 (0,0) 而不是这里写的位置）⇒ 要指定光标就用 `fakeEditor` ✓。
+  const editor = fakeEditor(doc, [{ line: 1, character: 3 }]);
+  vscodeStub.window.activeTextEditor = editor;
+  vscodeStub.window.visibleTextEditors = [editor];
+  stubbedResponses["soko/goalAt"] = () => ({
+    uri: doc.uri.toString(),
+    version: 1,
+    decl: {
+      name: "t",
+      kind: "theorem",
+      status: "open",
+      range: { start: { line: 0, character: 0 }, end: { line: 1, character: 7 } },
+      ty: "Prop",
+      ty_runs: [],
+      goal: "Prop",
+      goal_runs: [{ text: "Prop", kind: "sort" }],
+      goals: ["Prop"],
+      goals_runs: [[{ text: "Prop", kind: "sort" }]],
+      binders: [],
+      holes: [],
+      sub_goals: [],
+    },
+  });
+  stubbedResponses["soko/hints"] = () => ({ hints: ["先用 intro", "再用 exact"] });
+  vscodeStub.__messages = [];
+  requests.length = 0;
+
+  await vscodeStub.__commands["sokonanoda.revealHint"](doc.uri.toString());
+
+  assert.deepStrictEqual(
+    vscodeStub.__messages,
+    ["先用 intro"],
+    `提示必须**看得见**（屏幕上多什么 = 这条断言）：${JSON.stringify(vscodeStub.__messages)}`,
+  );
+  assert.strictEqual(
+    vscodeStub.__workspaceState["sokonanoda.hintRevealed:" + doc.uri.toString() + ":t"],
+    1,
+    "记账必须按**声明名**（用兜底位置键的话，同一条提示会被反复当「第一条」✗）",
+  );
+  assert.strictEqual(goalAtRequests().length, 1, "声明定位必须问一次 soko/goalAt");
+  assert.strictEqual(
+    requests.filter((r) => r.method === "soko/goals").length,
+    0,
+    "为了一个声明名**不许**再拉整份列表（91KB ✗）",
+  );
+});
+
+test("soko/goalAt 答 null 时提示照样看得见（退回位置键，不崩）", async () => {
+  // 光标在声明之外（空白行/注释）：服务端答 `decl: null`（与 Lean plainGoal 同形 ✓）。
+  // 判据 = **提示仍然可见** ✓ + 键退回 `line:l:c` ✓（不许因为定位失败就什么都不显示 ✗）。
+  await activateExtension();
+  const text = "theorem t : Prop := by\n  sorry\n";
+  const doc = fakeDocument("/repo/units/u01.sokonanoda", "sokonanoda", text);
+  const editor = fakeEditor(doc, [{ line: 0, character: 40 }]);
+  vscodeStub.window.activeTextEditor = editor;
+  vscodeStub.window.visibleTextEditors = [editor];
+  stubbedResponses["soko/goalAt"] = () => ({ uri: doc.uri.toString(), version: 1, decl: null });
+  stubbedResponses["soko/hints"] = () => ({ hints: ["先用 intro"] });
+  vscodeStub.__messages = [];
+  requests.length = 0;
+
+  await vscodeStub.__commands["sokonanoda.revealHint"](doc.uri.toString());
+
+  assert.deepStrictEqual(vscodeStub.__messages, ["先用 intro"], "提示仍然看得见 ✓");
+  assert.strictEqual(
+    vscodeStub.__workspaceState["sokonanoda.hintRevealed:" + doc.uri.toString() + ":line:0:40"],
+    1,
+    "定位不到声明时退回位置键（与旧行为同形 ✓）",
   );
 });
 

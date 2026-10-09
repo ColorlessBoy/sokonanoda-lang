@@ -449,8 +449,9 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   **`Sokonanoda: Clean Cache (清除编译缓存)`**（E31，0.73.0 起）= **只清不编**
   （清全局 + 模块根两处，通知给三个数 `清掉 N（全局 X · 项目 Y）`）——学习者
   抱怨"缓存坏了 / 想从头来"又不想等一次重编时用它；
-- `soko/goals` / `soko/nextHole` / `soko/hints` / `soko/stateAt` 自定义请求可供
-  工具深挖 goal 视图、提示与光标处 goal（见 `docs/protocol.md`）。
+- `soko/goals`（整份声明列表）/ **`soko/goalAt`（光标处那一条，2026-10-09）** /
+  `soko/nextHole` / `soko/hints` / `soko/stateAt` 自定义请求可供工具深挖 goal
+  视图、提示与光标处 goal（见 `docs/protocol.md`）。
 
 ## 7. 硬规则（不可违反）
 
