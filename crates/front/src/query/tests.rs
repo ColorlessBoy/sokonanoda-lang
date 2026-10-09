@@ -2134,3 +2134,204 @@ fn goal_at_reports_a_parse_error_instead_of_none() {
         Err(QueryError::NotParsable)
     ));
 }
+
+/// **用户实测 ③（2026-10-09）**：`#check` 的输出在 Infoview 里**重复**、而且随操作
+/// **累积**——用户原话是「重复输出 2 次」，「操作几下后直接输出 19 次」。
+///
+/// **根因 = 信任模型的一处不诚实**（不是缓存坏了、也不是渲染层重复画）：
+/// `#check` / `#reduce` / `#print` 在 `walk.rs` 里**不看 `CmdCtx::trusted`**——永远
+/// elaborate 并推 `PendingOp` ⇒ 它们的结论**必然**在 `fresh` 报告里；而拼接
+/// （[`splice_entry_report`]）按"文本没变 ⇒ 从缓存恢复"又把缓存那份**再补一遍**
+/// ⇒ **每编译一次 +1**（只有项目模式走拼接 ⇒ 单文件恒 1，这也正是"课程文件里才有"
+/// 的原因）。`#print`、这些命令上的 hovers、以及它们产生的**诊断**同病。
+///
+/// **判据 = 逐轮数条数**（不是"某一次对"）：真项目夹具 + 连续 6 次编辑，每一轮的
+/// `messages_at` 都必须**恰好 1 条**、`report.hovers` 不许长、`report.errors`
+/// 不许翻倍。**结构前提**：`trusted_prefix_len() > 0` —— 前缀为 0 时走整份重查，
+/// 根本钉不到拼接路（那正是这条 bug 能活到今天的原因 ✗）。
+#[test]
+fn repeated_edits_keep_command_outputs_single() {
+    let dir = project_dir("check-accum");
+    let entry = "import Lib\n\
+                 \n\
+                 def localid : Nat -> Nat := fun (n : Nat) => n + 1\n\
+                 \n\
+                 #check libid\n\
+                 #print libid\n";
+    let mut doc = project_doc(
+        &dir,
+        "Main.sokonanoda",
+        &[
+            (
+                "Lib.sokonanoda",
+                "def libid : Nat -> Nat := fun (n : Nat) => n\n",
+            ),
+            ("Main.sokonanoda", entry),
+        ],
+    );
+    let at = |text: &str, needle: &str| text.find(needle).expect(needle);
+    let counts = |doc: &QueryDoc, text: &str| {
+        (
+            doc.messages_at(at(text, "#check libid")).len(),
+            doc.messages_at(at(text, "#print libid")).len(),
+            doc.report.as_ref().map(|r| r.hovers.len()).unwrap_or(0),
+        )
+    };
+    assert_eq!(
+        counts(&doc, entry),
+        (1, 1, 10),
+        "开档那一趟：各一条（hovers 的绝对值不是判据，只看它**不随轮次增长**）"
+    );
+
+    let mut text = entry.to_string();
+    for round in 1..=6u32 {
+        // 每次"操作"= 改一处（模拟按键）：`def localid` 的值 +1。
+        text = text.replace(&format!("n + {round}"), &format!("n + {}", round + 1));
+        doc.set_text(&text, u64::from(round) + 1, None);
+        assert!(
+            doc.trusted_prefix_len() > 0,
+            "第 {round} 轮必须走到拼接路（前缀 > 0），否则这条判据咬不住重复拼接"
+        );
+        assert_eq!(
+            counts(&doc, &text),
+            (1, 1, 10),
+            "第 {round} 轮：`#check`/`#print` 各**恰好一条**、hovers 不长 —— \
+             修前这里是 (1+round, 1+round, 10+round)（每操作一次 +1 ✗）"
+        );
+    }
+
+    // **另一半：编辑点在 `#check` 之后**（连续前缀把 `#check` 整个盖住）。
+    // 这一半咬的是"前缀信任"那条路（`cmd < before`）——只在 `trusted_extra` 上修
+    // 不够：`#check` 落进 `[0, before)` 时仍然会被当成"没重算"⇒ 缓存那份再补一遍 ✗。
+    let appended = format!("{text}def tail : Nat := 1\n");
+    doc.set_text(&appended, 50, None);
+    assert!(
+        doc.trusted_prefix_len() >= 4,
+        "编辑点必须落在 `#check`/`#print` **之后**（前缀要盖住它们），实测 {}",
+        doc.trusted_prefix_len()
+    );
+    assert_eq!(
+        counts(&doc, &appended),
+        (1, 1, 10),
+        "编辑点在命令输出**之后**时同样各恰好一条（修前是 2/2/11 ✗）"
+    );
+
+    // **诊断同病**（同一个接缝的另一面）：`#check` 打一个不存在的名字 ⇒ 每轮都在
+    // `fresh.errors` 里；缓存那份若照旧补回来，同一个错误会**报两次**。
+    let with_bad_check = entry.replace("#check libid", "#check nosuchname");
+    doc.set_text(&with_bad_check, 99, None);
+    let after_first = doc
+        .report
+        .as_ref()
+        .expect("报告")
+        .errors
+        .iter()
+        .filter(|e| with_bad_check[e.span.start.offset..e.span.end.offset].contains("nosuchname"))
+        .count();
+    assert_eq!(after_first, 1, "`#check` 的错误恰好一条: {:?}", doc.report);
+    let edited = format!("{with_bad_check}def tail : Nat := 1\n");
+    doc.set_text(&edited, 100, None);
+    assert!(
+        doc.trusted_prefix_len() >= 4,
+        "这一半也要走**前缀**信任（编辑点在 `#check` 之后）"
+    );
+    let after_edit = doc
+        .report
+        .as_ref()
+        .expect("报告")
+        .errors
+        .iter()
+        .filter(|e| edited[e.span.start.offset..e.span.end.offset].contains("nosuchname"))
+        .count();
+    assert_eq!(
+        after_edit, 1,
+        "编辑一轮之后同一条 `#check` 的错误仍**恰好一条**（修前是两条 ✗）"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// 对照组：**单文件**（没有 `import`）那条路不走拼接 ⇒ 修前也是 1。
+/// 留着它是因为"重复"只可能出现在项目模式——这条钉住修复没有反过来把单文件弄坏。
+#[test]
+fn repeated_edits_keep_single_file_command_outputs_single() {
+    let mut text =
+        "def twice : Nat -> Nat := fun (n : Nat) => n + n\n\n#check twice\n#print twice\n"
+            .to_string();
+    let mut doc = doc(&text);
+    let at = |t: &str, needle: &str| t.find(needle).expect(needle);
+    for round in 1..=3u32 {
+        text = text.replace("n + n", "n + n + 0");
+        doc.set_text(&text, u64::from(round) + 1, None);
+        assert_eq!(
+            doc.messages_at(at(&text, "#check twice")).len(),
+            1,
+            "第 {round} 轮单文件仍是一条"
+        );
+        assert_eq!(doc.messages_at(at(&text, "#print twice")).len(), 1);
+    }
+}
+
+/// **用户实测 ③ 的第二个触发面（2026-10-09 用户第二次拍板）**：「**做完后面几道题目
+/// 之后，回头把光标移动回 `#check` 那一行**」——输出**再追加一次**，随每次回看累积
+/// （用户读数 2 次 → 19 次）。
+///
+/// 这一条与 [`repeated_edits_keep_command_outputs_single`] 钉的是**两个相反方向**，
+/// 少任何一条，修法都会在另一条上判红：
+/// * 那条：`#check` 在**改动点之后**（走"整走查"那一趟，`#check` 照走照产事件）
+///   ⇒ `fresh` 里已经有它 ⇒ 缓存那份**不许**再补（补了就是 2、3、4… ✗）；
+/// * 这条：`#check` 在**前缀**里、而这一趟走的是**续编路**（T2-B 命令级快照命中 ⇒
+///   前缀**整段不走查**）⇒ `fresh` 里**没有**它 ⇒ 缓存那份**必须**补回来
+///   （不补就是输出**整条消失**：实测 1 → 0 ✗ —— 第一版按"命令种类"判（`#check`
+///   永远重跑）正是这么错的）。
+///
+/// ⇒ 唯一站得住的判据是「**`fresh` 里已经有的命令，不再从缓存补**」（见
+/// [`splice_entry_report`]）：谁算过谁说话，与走哪条路无关 ✓。
+#[test]
+fn a_check_in_the_resumed_prefix_is_spliced_back_exactly_once() {
+    let dir = project_dir("check-resume");
+    // 入口形状照用户的：`#check` 在最上面，**后面还有几道题**（`theorem` + `def`）。
+    let entry = |n: u32| {
+        format!(
+            "import Logic\n\n\
+             #check And.intro\n\n\
+             theorem and_comm_like (a b : Prop) (h : And a b) : And b a :=\n  \
+             And.intro b a (And.right a b h) (And.left a b h)\n\n\
+             def later_{n} : Prop -> Prop := fun (p : Prop) => p\n"
+        )
+    };
+    let mut doc = project_doc(
+        &dir,
+        "Canvas.sokonanoda",
+        &[
+            (
+                "Logic.sokonanoda",
+                "axiom And : Prop -> Prop -> Prop\n\
+                 axiom And.intro : forall (a b : Prop), a -> b -> And a b\n\
+                 axiom And.left : forall (a b : Prop), And a b -> a\n\
+                 axiom And.right : forall (a b : Prop), And a b -> b\n",
+            ),
+            ("Canvas.sokonanoda", &entry(1)),
+        ],
+    );
+    let count =
+        |doc: &QueryDoc, text: &str| doc.messages_at(text.find("#check").expect("#check")).len();
+    assert_eq!(count(&doc, &entry(1)), 1, "开档那一趟：一条");
+
+    // "做完后面几道题" = 连着改后面那条 `def`（每一刀都是一趟闭包编译）。
+    for round in 2..=6u32 {
+        let text = entry(round);
+        doc.set_text(&text, u64::from(round), None);
+        assert!(
+            doc.trusted_prefix_len() >= 3,
+            "第 {round} 轮：`#check` 必须落在**被信任的前缀**里（前缀要盖过它），实测 {}",
+            doc.trusted_prefix_len()
+        );
+        assert_eq!(
+            count(&doc, &text),
+            1,
+            "第 {round} 轮：`#check` 仍**恰好一条**（续编路里它在缓存里，必须补回来；\
+             补两遍或整条丢掉都是错的 ✗）"
+        );
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}

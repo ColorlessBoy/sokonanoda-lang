@@ -350,12 +350,44 @@ fn splice_entry_report(
     // **信任判据**（S6）：`cmd < before` 是连续前缀；`trusted[cmd]` 是脏集模型下
     // "与改动点无依赖关系 ⇒ 从缓存恢复"的那些命令。两者合起来 = 本次**没重查**的集合。
     let is_trusted = |cmd: usize| cmd < before || trusted.get(cmd).copied().unwrap_or(false);
+    // **「新查的赢」**（2026-10-09 用户实测 ③，**两轮才对**）：
+    //
+    // 信任位的语义是"这条命令这一轮**没算**，结论从缓存补"。但它**不是**"命令种类说了算"
+    // ——同一个 `#check` 两种走法都可能：
+    //   * **续编路**（T2-B 命令级快照命中）：前缀**整段不走查** ⇒ 它的 `#check`/`#print`/
+    //     hover 只存在于缓存里 ⇒ **必须补回来**（不补 = 输出整条消失 ✗）；
+    //   * **整走查路**（没有可用快照）：前缀照走，只是**跳内核检查** ⇒ `#check`/`#print`
+    //     这类命令照样 elaborate 并产事件 ⇒ 结论**已经在 `fresh` 里** ⇒ 缓存那份再补
+    //     一遍就是**同一条命令算两遍** ✗（用户报的「重复输出 2 次、操作几下 19 次」）。
+    //
+    // ⇒ 唯一站得住的判据是**看 `fresh` 有没有**：「这一轮算过的命令，不再从缓存补」。
+    // 谁算过谁说话，缓存只负责这一轮没算的那些命令 —— 与走哪条路无关 ✓。
+    let fresh_decls: std::collections::BTreeSet<usize> =
+        fresh.decls.iter().map(|d| d.cmd).collect();
+    let fresh_checks: std::collections::BTreeSet<usize> =
+        fresh.checks.iter().map(|c| c.cmd).collect();
+    let fresh_prints: std::collections::BTreeSet<usize> =
+        fresh.prints.iter().map(|p| p.cmd).collect();
+    let fresh_hovers: std::collections::BTreeSet<usize> =
+        fresh.hover_cmds.iter().copied().collect();
+    // 诊断没有 `cmd`（只有 span）⇒ 按**位置**判重：同一处的那一条已经在 `fresh` 里，
+    // 就不许再从缓存补一份（否则同一个错误报两次 ✗）。
+    let fresh_errors: std::collections::BTreeSet<(usize, usize)> = fresh
+        .errors
+        .iter()
+        .map(|e| (e.span.start.offset, e.span.end.offset))
+        .collect();
+    let fresh_warnings: std::collections::BTreeSet<(usize, usize)> = fresh
+        .warnings
+        .iter()
+        .map(|w| (w.span.start.offset, w.span.end.offset))
+        .collect();
     let mut out = DocumentReport {
         decls: cache
             .report
             .decls
             .iter()
-            .filter(|d| is_trusted(d.cmd))
+            .filter(|d| is_trusted(d.cmd) && !fresh_decls.contains(&d.cmd))
             .cloned()
             .collect(),
         hovers: Vec::new(),
@@ -364,14 +396,17 @@ fn splice_entry_report(
             .report
             .errors
             .iter()
-            .filter(|e| cache.offset_is_trusted(trusted, before, e.span.start.offset))
+            .filter(|e| {
+                cache.offset_is_trusted(trusted, before, e.span.start.offset)
+                    && !fresh_errors.contains(&(e.span.start.offset, e.span.end.offset))
+            })
             .cloned()
             .collect(),
         checks: cache
             .report
             .checks
             .iter()
-            .filter(|c| is_trusted(c.cmd))
+            .filter(|c| is_trusted(c.cmd) && !fresh_checks.contains(&c.cmd))
             .cloned()
             .collect(),
         // **C3**：`#print` 与 `#check` 同一条信任规则 ✓。
@@ -379,14 +414,17 @@ fn splice_entry_report(
             .report
             .prints
             .iter()
-            .filter(|p| is_trusted(p.cmd))
+            .filter(|p| is_trusted(p.cmd) && !fresh_prints.contains(&p.cmd))
             .cloned()
             .collect(),
         warnings: cache
             .report
             .warnings
             .iter()
-            .filter(|w| cache.offset_is_trusted(trusted, before, w.span.start.offset))
+            .filter(|w| {
+                cache.offset_is_trusted(trusted, before, w.span.start.offset)
+                    && !fresh_warnings.contains(&(w.span.start.offset, w.span.end.offset))
+            })
             .cloned()
             .collect(),
     };
@@ -395,7 +433,7 @@ fn splice_entry_report(
             .report
             .hover_cmds
             .get(i)
-            .is_some_and(|c| is_trusted(*c))
+            .is_some_and(|c| is_trusted(*c) && !fresh_hovers.contains(c))
         {
             out.hovers.push(hover.clone());
             out.hover_cmds.push(cache.report.hover_cmds[i]);

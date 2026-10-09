@@ -241,31 +241,46 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
-  test("#check results appear as inlay hints", async () => {
-    // Lean Infoview 的 #check 等价物：`#check Nat` 之后常显 `: Type 0`。
-    const src = "#check Nat\n#check (Nat -> Nat)\n";
-    const uri = await writeDoc("check.sokonanoda", src);
+  test("`#check` results are NOT inlay hints (they live in the Infoview)", async () => {
+    // **2026-10-09 用户实测 ①**：`#check` 的行内提示**已不需要** ——「inline 提示已不需要，
+    // `#check` 尾部仍带且看不全、无意义」✗（它以前在表达式后面常显 `: Type 0`）。
+    // 命令输出在 Infoview 的「命令输出」块里完整可见（记法 + 高亮），行内那一截只会被行宽截断。
+    //
+    // ⚠ **正对照必须有**（否则"没有提示"可能是因为整条 inlay 路坏了 ✗）：同一份文本里放一个
+    // `sorry` 洞 ⇒ 洞的期望类型提示照旧在，`#check` 的**一个都不许有**。
+    const src = "#check Nat\n#check (Nat -> Nat)\nexample : Prop -> Prop := sorry\n";
+    const uri = await writeDoc("check-no-inlay.sokonanoda", src);
     await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
-    await waitFor("inlay hints for #check", async () => {
-      const hints = await vscode.commands.executeCommand(
+    const hintsAt = () =>
+      vscode.commands.executeCommand(
         "vscode.executeInlayHintProvider",
         uri,
         new vscode.Range(0, 0, 10, 0),
       );
-      return Array.isArray(hints) && hints.length >= 2;
+    // 正对照先到：洞那条提示（`: Prop -> Prop`）出现 ⇒ inlay 这条路是通的。
+    await waitFor("the hole's inlay hint (positive control)", async () => {
+      const hints = await hintsAt();
+      return (
+        Array.isArray(hints) &&
+        hints.some((h) => {
+          const label = typeof h.label === "string" ? h.label : h.label?.value ?? "";
+          return label.includes("Prop -> Prop");
+        })
+      );
     });
-    const hints = await vscode.commands.executeCommand(
-      "vscode.executeInlayHintProvider",
-      uri,
-      new vscode.Range(0, 0, 10, 0),
-    );
+    const hints = await hintsAt();
     const labels = hints.map((h) =>
       typeof h.label === "string" ? h.label : h.label?.value ?? "",
     );
     assert.ok(
-      labels.includes(": Type 0"),
-      `check hints must show the kernel result, got: ${JSON.stringify(labels)}`,
+      !labels.includes(": Type") && !labels.includes(": Type 0"),
+      `\`#check\` 的表达式后面不许再有行内提示（修前这里就是它们 ✗）: ${JSON.stringify(labels)}`,
+    );
+    assert.deepStrictEqual(
+      labels,
+      [": Prop -> Prop"],
+      `只该剩下洞那一条（正对照）: ${JSON.stringify(labels)}`,
     );
   });
 
@@ -375,6 +390,108 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
         )
       );
     });
+  });
+
+  test("C3 重复输出：项目文件里连续编辑，`#check` 的输出始终只有一条", async () => {
+    // **2026-10-09 用户实测 ③**：Infoview 最上头 `#check` 重复输出 **2 次**，
+    // 「操作几下后直接输出 **19 次**」。根因 = 信任模型的一处不诚实（不是渲染层
+    // 重复画、也不是 webview 没清 DOM）：`#check`/`#reduce`/`#print` 在 `walk.rs`
+    // 里**不看 `trusted`**（永远 elaborate + 推 `PendingOp`）⇒ 它们的结论必然在
+    // `fresh` 报告里；而 `splice_entry_report` 按"文本没变 ⇒ 从缓存恢复"又把缓存
+    // 那份补一遍 ⇒ **每编译一次 +1**（只有项目模式走拼接 ⇒ 课程文件才有）。
+    //
+    // 判据 = **用户动作 ⇒ 可见结果**（真宿主 + 真 LSP + 真项目夹具）：连续改文件
+    // 若干次，每一次都先**同步**（等到载荷的 `version` 追上缓冲区版本 ⇒ 这份载荷
+    // 确实是在新文本上算的，不是"没刷新所以只有一条"✗），再断言 `kind === "check"`
+    // 的条数**恰好 1**。编辑点在 `#check` **之前**（走前缀信任那条路）。
+    const uris = await writeProject("check-repeat", {
+      "Lib.sokonanoda": "def lib_id : Nat -> Nat := fun (n : Nat) => n\n",
+      "Main.sokonanoda":
+        "import Lib\n\n" +
+        "def local_id : Nat -> Nat := fun (n : Nat) => n + 1\n\n" +
+        "#check lib_id\n",
+    });
+    const uri = uris["Main.sokonanoda"];
+    await showDoc(uri);
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "the entry must be the active editor");
+    const lineOf = (prefix) =>
+      [...Array(editor.document.lineCount).keys()].find((i) =>
+        editor.document.lineAt(i).text.startsWith(prefix),
+      );
+    const checkCount = () =>
+      (extensionApi.infoview.lastState()?.messages ?? []).filter((m) => m.kind === "check")
+        .length;
+    // **真人的"把光标挪回 `#check` 那一行"**：先从别处再回来 ⇒ 选区真的变了 ⇒
+    // 扩展才会重新请求 `soko/stateAt`（不这样，编辑后光标原地不动就等不到新载荷，
+    // 判据会退化成"什么都没发生所以只有一条" ✗）。
+    const caretOnCheckLine = () => {
+      const checkLine = lineOf("#check lib_id");
+      assert.notStrictEqual(checkLine, undefined, "夹具里必须有 `#check lib_id`");
+      editor.selection = new vscode.Selection(0, 0, 0, 0);
+      const pos = new vscode.Position(checkLine, 3);
+      editor.selection = new vscode.Selection(pos, pos);
+    };
+    caretOnCheckLine();
+    await waitFor("C3 重复输出：第一版 `#check` 输出到达 Infoview", async () => {
+      const state = extensionApi.infoview.lastState();
+      return (
+        state && state.version === editor.document.version && checkCount() === 1
+      );
+    });
+
+    for (let round = 2; round <= 4; round += 1) {
+      const defLine = lineOf("def local_id");
+      assert.notStrictEqual(defLine, undefined, "夹具里必须有 `def local_id`");
+      await editor.edit((builder) => {
+        builder.replace(
+          new vscode.Range(defLine, 0, defLine, editor.document.lineAt(defLine).text.length),
+          `def local_id : Nat -> Nat := fun (n : Nat) => n + ${round}`,
+        );
+      });
+      caretOnCheckLine();
+      await waitFor(
+        `C3 重复输出：第 ${round} 次编辑后的载荷（version 追上缓冲区）`,
+        async () => {
+          const state = extensionApi.infoview.lastState();
+          return state && state.version === editor.document.version;
+        },
+      );
+      assert.strictEqual(
+        checkCount(),
+        1,
+        `第 ${round} 次操作之后 \`#check\` 仍然只有一条（修前会随每一趟编译 +1 ✗）: ` +
+          JSON.stringify(extensionApi.infoview.lastState()?.messages),
+      );
+    }
+
+    // **用户第二次拍板的触发动作**：「做完后面几道题目之后，**回头把光标移动回
+    // `#check` 那一行**」——不编辑，只在"别处 ↔ `#check` 行"之间来回，并在它上面
+    // hover（用户点名"`#check` 与 hover 同源"）。每一次回看都必须仍然**只有一条**。
+    for (let trip = 1; trip <= 4; trip += 1) {
+      const away = new vscode.Position(0, 0);
+      editor.selection = new vscode.Selection(away, away);
+      await sleep(300);
+      caretOnCheckLine();
+      await waitFor(`回看第 ${trip} 次：载荷跟上（version 一致）`, async () => {
+        const state = extensionApi.infoview.lastState();
+        return state && state.version === editor.document.version;
+      });
+      // 真 hover 一次（`vscode.executeHoverProvider` = 编辑器鼠标悬停走的那条路）。
+      const checkLine = lineOf("#check lib_id");
+      await vscode.commands.executeCommand(
+        "vscode.executeHoverProvider",
+        uri,
+        new vscode.Position(checkLine, 3),
+      );
+      await sleep(300);
+      assert.strictEqual(
+        checkCount(),
+        1,
+        `回看第 ${trip} 次（光标移回 + hover）之后 \`#check\` 仍然只有一条: ` +
+          JSON.stringify(extensionApi.infoview.lastState()?.messages),
+      );
+    }
   });
 
   test("clean lesson publishes empty diagnostics", async () => {

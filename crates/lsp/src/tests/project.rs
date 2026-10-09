@@ -325,6 +325,146 @@ async fn state_at_keeps_command_outputs_in_a_project_entry() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// **用户实测 ③ 的精确复现（2026-10-09 第二次拍板）**：「**做完后面几道题目之后，
+/// 回头把光标移动回 `#check` 那一行**」——`#check` 的输出会**再追加一次**
+/// （用户读数：2 次 → 19 次），而且用户点名"`#check` 与 hover 同源"。
+///
+/// ⇒ 这条判据把**两个动作分开钉**（用户归因是"移回光标"，而真正加一的是**每一趟
+/// 编译**——只测一个就会修一条、漏一条 ✗）：
+///   ① **编辑**（"做完后面几道题" = 敲键盘 ⇒ 每次 `didChange` 一趟闭包编译）；
+///   ② **纯光标往返 + hover**（不编辑，只把光标移回 `#check` 行、并在它上面 hover
+///      ——读路径不许有副作用）。
+/// 两种情况下 `messages` 里 `kind == "check"` 的条数都必须**恒为 1**：
+/// 「光标回到 `#check` 行时只更新/替换该 `#check` 的输出，绝不追加」。
+///
+/// **机制**（`front::query::splice_entry_report`）：拼接的两条走法都要对 ——
+/// * 这一条夹具里 `#check` 落在**被信任的前缀**里、这一趟走**续编路**（T2-B 命令级
+///   快照命中 ⇒ 前缀整段不走查）⇒ 缓存那份**必须**补回来；
+/// * `front` 的 `repeated_edits_keep_command_outputs_single` 钉**相反方向**
+///   （`#check` 在改动点之后、走"整走查"那一趟 ⇒ 结论已在 `fresh` 里 ⇒ 缓存那份
+///   **不许**补）。⇒ 唯一站得住的判据 = 「`fresh` 里已经有的命令，不再从缓存补」。
+#[tokio::test]
+async fn revisiting_the_check_line_never_appends_a_second_output() {
+    let dir = tmp_dir("check-revisit");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let _logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    // 入口：`#check` 在前，**后面还有一道"题"**（用户说的"后面几道题目"）。
+    let entry = |n: u32| {
+        format!(
+            "import Logic\n\n\
+             #check And.intro\n\n\
+             theorem and_comm_like (a b : Prop) (h : And a b) : And b a :=\n  \
+             And.intro b a (And.right a b h) (And.left a b h)\n\n\
+             def later_{n} : Prop -> Prop := fun (p : Prop) => p\n"
+        )
+    };
+    let text = entry(1);
+    let canvas = write(&dir, "Canvas.sokonanoda", &text);
+    testutil::did_open_at(&mut service, &canvas, &text).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &canvas, "canvas diagnostics").await;
+
+    let at = |text: &str, needle: &str| testutil::offset_of(text, needle);
+    let position_of = |text: &str, needle: &str| {
+        testutil::position_json(testutil::lsp_pos(text, at(text, needle)))
+    };
+    /// `soko/stateAt` 的整份回答（要 `version` 才能确认"这一版真的编完了"）。
+    async fn state_at(
+        service: &mut LspService<Backend>,
+        uri: &Url,
+        position: serde_json::Value,
+    ) -> serde_json::Value {
+        call(
+            service,
+            RpcRequest::build("soko/stateAt")
+                .params(json!({"textDocument": {"uri": uri}, "position": position}))
+                .id(77)
+                .finish(),
+        )
+        .await
+        .expect("soko/stateAt must answer")
+    }
+    fn check_count(answer: &serde_json::Value) -> usize {
+        answer["messages"]
+            .as_array()
+            .map(|list| {
+                list.iter()
+                    .filter(|m| m["kind"].as_str() == Some("check"))
+                    .count()
+            })
+            .unwrap_or(0)
+    }
+    /// 等到**这一版**（`version`）编完 —— 否则"没刷新所以只有一条"也能让判据变绿 ✗。
+    async fn settled_check_count(
+        service: &mut LspService<Backend>,
+        uri: &Url,
+        position: serde_json::Value,
+        version: i64,
+    ) -> usize {
+        let mut last = 0;
+        for _ in 0..200 {
+            let answer = state_at(service, uri, position.clone()).await;
+            last = check_count(&answer);
+            if answer["version"].as_i64() == Some(version) {
+                return last;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        last
+    }
+
+    let check_pos = position_of(&text, "#check And.intro");
+    assert_eq!(
+        settled_check_count(&mut service, &canvas, check_pos.clone(), 1).await,
+        1,
+        "开档那一趟：`#check` 恰好一条"
+    );
+
+    // ① **编辑**（"做完后面几道题"）：每次 `didChange` 都是一趟编译。
+    let mut version = 1i64;
+    let mut current = text.clone();
+    for round in 2..=5u32 {
+        current = entry(round);
+        version += 1;
+        testutil::did_change_at(&mut service, &canvas, version as i32, &current).await;
+        let pos = position_of(&current, "#check And.intro");
+        let count = settled_check_count(&mut service, &canvas, pos, version).await;
+        assert_eq!(
+            count, 1,
+            "第 {round} 版（编辑之后）`#check` 仍恰好一条（这一路它是从缓存补回来的，\
+             补两遍或整条丢掉都是错的 ✗）"
+        );
+    }
+
+    // ② **纯光标往返 + hover**（用户点名的那个动作）：不编辑，只在"别处"与
+    // `#check` 行之间来回，并在 `#check` 行上 hover 几次。
+    let elsewhere = position_of(&current, "def later_");
+    let on_check = position_of(&current, "#check And.intro");
+    for trip in 1..=5 {
+        let _ = state_at(&mut service, &canvas, elsewhere.clone()).await;
+        // 用户说「`#check` 与 hover 同源」⇒ hover 也真发一次（读路径不许有副作用）。
+        let hovered = call(
+            &mut service,
+            RpcRequest::build("textDocument/hover")
+                .params(json!({"textDocument": {"uri": &canvas}, "position": on_check.clone()}))
+                .id(78)
+                .finish(),
+        )
+        .await
+        .expect("textDocument/hover must answer");
+        let _ = hovered;
+        let answer = state_at(&mut service, &canvas, on_check.clone()).await;
+        assert_eq!(
+            check_count(&answer),
+            1,
+            "第 {trip} 次把光标移回 `#check` 行：仍恰好一条（**绝不追加**）: {answer}"
+        );
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// 跨文件引用的公共夹具：打开入口，光标落在 `And.intro` 的使用点上。
 async fn cross_file_fixture(tag: &str) -> (LspService<Backend>, Url, Url, std::path::PathBuf) {
     let dir = tmp_dir(tag);

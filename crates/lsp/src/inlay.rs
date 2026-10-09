@@ -3,32 +3,25 @@
 //!
 //! Read-only information only — no `textEdits` on hints (rust-analyzer
 //! lesson: interactive inlays are expensive and rarely wanted).
+//!
+//! **`#check` 的结果不再是 inlay**（2026-10-09 用户实测 ①）：它以前在表达式
+//! 后面常显 `: Type 0`（`document_hints` 里的第二个循环）。用户报「**inline
+//! 提示已不需要**，#check 尾部仍带且看不全、无意义」——命令输出在 Infoview 的
+//! 「命令输出」块里**已经完整可见**（含记法与高亮，见 `front::query` 的
+//! `messages_at`），行内那一截只会被行宽截断、还和编辑器自己的类型提示抢位置。
+//! ⇒ 这里**只**留洞的期望类型（学习者在 `sorry` 上真正需要的那一条）。
 
 use sokonanoda_front::compile::{DeclState, DeclStatus, DocumentReport};
 use sokonanoda_front::Span;
 use tower_lsp::lsp_types::*;
 
-/// All editor inlay hints for a document: hole hints (expected types) plus
-/// `#check` results (`#check Nat` → `Nat` 之后常显 `: Type 0`，Lean Infoview
-/// 的 #check 等价物）。
+/// All editor inlay hints for a document: **only** hole hints (expected types).
+///
+/// `#check`/`#print` 的输出**不走这条路**（见模块头：用户 2026-10-09 拍板去掉
+/// 行内提示）——它们在 Infoview 的「命令输出」块里，`report.checks` 仍然是
+/// 真相（`soko/stateAt.messages` 读它），只是不再变成 inlay。
 pub(crate) fn document_hints(text: &str, report: &DocumentReport) -> Vec<InlayHint> {
-    let mut hints = hole_hints(text, report);
-    for check in &report.checks {
-        hints.push(InlayHint {
-            position: end_position(check.span),
-            label: InlayHintLabel::String(format!(": {}", check.text)),
-            kind: Some(InlayHintKind::TYPE),
-            text_edits: None,
-            tooltip: Some(InlayHintTooltip::MarkupContent(MarkupContent {
-                kind: MarkupKind::Markdown,
-                value: "`#check` 的内核结果".to_string(),
-            })),
-            padding_left: Some(true),
-            padding_right: None,
-            data: None,
-        });
-    }
-    hints
+    hole_hints(text, report)
 }
 
 /// One hint per hole: sub-hole types come from the server-side walk
@@ -304,30 +297,53 @@ theorem t : And p q := by apply imp\n";
     }
 
     #[tokio::test]
-    async fn check_results_appear_as_inlay_hints() {
-        // Lean Infoview 的 #check 等价物：`#check Nat` 在表达式后常显
-        // `: Type 0`（内核结果，LSP 消费 front 报告的 checks）。
-        let src = "#check Nat\n#check (Nat -> Nat)\n";
+    async fn check_results_are_not_inlay_hints() {
+        // **2026-10-09 用户实测 ①**：`#check` 的行内提示（表达式后面那截 `: Type 0`）
+        // **已不需要** —— 「`#check` 尾部仍带且看不全、无意义」✗。命令输出在
+        // Infoview 的「命令输出」块里完整可见（记法 + 高亮），inlay 这一截只会被
+        // 行宽截断。
+        //
+        // ⚠ **正对照必须有**（否则"没有提示"可能是因为**整条 inlay 路坏了** ✗）：
+        // 同一份文本里再放一个 `sorry` 洞 ⇒ 洞的期望类型提示照旧在，`#check`
+        // 的**一个都不许有**。
+        let src = "#check Nat\n#check (Nat -> Nat)\nexample : Prop -> Prop := sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let params = wait_diagnostics(&mut socket, "check diagnostics").await;
-        assert!(
-            params.diagnostics.is_empty(),
-            "#check-only file has no diagnostics: {:?}",
-            params.diagnostics
+        assert_eq!(
+            params
+                .diagnostics
+                .iter()
+                .map(|d| format!("{:?}", d.code.clone()))
+                .collect::<Vec<_>>(),
+            vec![r#"Some(String("sorry"))"#.to_string()],
+            "`#check` 不产生诊断；唯一的诊断是正对照那个 `sorry` 洞的提醒"
         );
         let hints = ask_inlay(&mut service, src).await.expect("hints array");
-        assert_eq!(hints.len(), 2, "two #check hints: {hints:?}");
-        assert_eq!(label_of(&hints[0]), ": Type");
-        assert_eq!(label_of(&hints[1]), ": Type 0");
-        // 位置在表达式末尾（`Nat` 之后 / `(Nat -> Nat)` 之后）。
-        let first = offset_of(src, "Nat");
         assert_eq!(
-            hints[0].position,
-            lsp_pos(src, first + "Nat".len()),
-            "first hint sits right after the checked expression"
+            hints.len(),
+            1,
+            "只有洞那条提示；`#check` 一条都不许有（修前这里会是 3 条）: {hints:?}"
         );
+        assert_eq!(
+            label_of(&hints[0]),
+            ": Prop -> Prop",
+            "剩下的是洞的期望类型"
+        );
+        let after_hole = lsp_pos(src, offset_of(src, "sorry") + "sorry".len());
+        assert_eq!(
+            hints[0].position, after_hole,
+            "洞的提示仍紧跟在 `sorry` 之后（正对照）"
+        );
+        // 反向取证：`#check` 的两个表达式后面**一个提示都没有**。
+        for needle in ["Nat\n", "(Nat -> Nat)\n"] {
+            let after = lsp_pos(src, offset_of(src, needle) + needle.len() - 1);
+            assert!(
+                !hints.iter().any(|h| h.position == after),
+                "`{needle}` 之后不许有 inlay 提示: {hints:?}"
+            );
+        }
     }
 
     #[tokio::test]
