@@ -686,6 +686,9 @@ impl<'a> ElabScope<'a> {
 
 /// One recorded sub-expression during elaboration, with the binder scope it
 /// lives under (outermost first). Used to answer editor hovers.
+/// **T2-B 第 1 步**（`Walk` 的命令级快照要克隆 `CmdHover`）⇒ 它必须 `Clone`
+/// —— 纯加法 ✓。
+#[derive(Clone)]
 pub(crate) struct HoverNode<'a> {
     pub(crate) span: Span,
     pub(crate) expr: ExprPtr<'a>,

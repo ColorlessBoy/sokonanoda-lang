@@ -128,8 +128,11 @@ pub struct EnvSnapshot<'a> {           // Clone = O(1)
 * **快照内容**（计划 §3.3 的 `(EnvBuilder, PassTables, 报告片段)` 的**精确化**）：
   **整份 walk 状态**，不是只有环境 —— `EnvSnapshot`（§2.3）+ `known` / `inductives` /
   `defs` / `out` / `ops` / `cmd_hovers` / `decl_states` / `ns` / `exports` / `example_idx`
-  （字段清单 = `walk.rs:117-200`）。理由：任何一件没留，恢复出来的就是**另一个判定**
+  （字段清单 = `walk.rs:117-203`）。理由：任何一件没留，恢复出来的就是**另一个判定**
   ⇒ 静默错编 ✗（红线）。
+  **Clone 现状（2026-10-09 编译探针实测 ✓）**：`Walk` 的字段类型**全部可 `Clone`** ——
+  探针查出只有 `PendingOp` / `CmdHover`（及其内层 `HoverNode`）缺 `#[derive(Clone)]`，
+  **已补**（纯加法、零行为变化 ✓）⇒ 第 1 步只剩"逐个字段搬一遍"的机械件 ✓。
 * **恢复**：以它当新 `Walk` 的起点，只走 `flat[k..]`。
 
 ### 6.2 三个硬约束（都不是"选择"）

@@ -23,6 +23,9 @@ use sokonanoda::env::{Declar, EnvLimit};
 use sokonanoda::util::{Config, ExportFile, ExprPtr, NamePtr};
 use std::collections::HashMap;
 
+/// **T2-B 第 1 步**：`Walk` 的命令级快照要克隆累加器 ⇒ 它必须 `Clone`
+/// （纯加法：derive 不改任何行为 ✓）。
+#[derive(Clone)]
 pub(crate) enum PendingOp<'a> {
     Decl {
         name: Option<String>,
@@ -112,6 +115,8 @@ pub(crate) enum PendingOp<'a> {
     },
 }
 
+/// **T2-B 第 1 步**（同 [`PendingOp`]）：命令级快照要克隆它。
+#[derive(Clone)]
 pub(crate) struct CmdHover<'a> {
     env_at: usize,
     nodes: Vec<HoverNode<'a>>,
