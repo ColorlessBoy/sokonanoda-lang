@@ -1343,15 +1343,12 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 ### 32. 第 40–41 轮（平行线）：T1-B **批 3 收口** —— `clean` 带上产物 · 原子落盘 · 并发取证 ＋ 两条诚实结论
 
-* **`clean` 必须清产物**：`artifacts::clean_in(root)`（清 `artifacts/` 下除 `.gitignore` 外
-  的一切，含 `*.tmp-*` 残留）接进 `cache::clean_at`。**为什么**：`compiled/` 那条有过
+* **`clean` 必须清产物**：`artifacts::clean_in(root)`（清 `artifacts/` 下除 `.gitignore` 外 的一切，含 `*.tmp-*` 残留）接进 `cache::clean_at`。**为什么**：`compiled/` 那条有过
   **同形教训**（R-3：只清全局 ⇒ `rebuild` 命中项目条目 ⇒ "清空了却什么都没重编"的假动作 ✗）；
   产物是**第三个**存放点 ⇒ 不清它就重演 ✗。**端到端**：`query check` 后 `artifacts=2` ⇒
   `sokonanoda clean` ⇒ `removed 3 (0 global, 3 project)` · `artifacts=0` · `.gitignore` 留着 ✓。
-* **原子落盘**：载荷先写 `<key>.bin.tmp-<pid>` 再 `rename`（同目录原子）⇒ 读者不会看到半份；
-  残留 `.tmp-*` **不是** `<key>.bin` ⇒ 任何键都读不到（**命名即边界** ✓）。
-* **并发取证**：`concurrent_writers_never_produce_a_torn_payload` —— 4 位写者同写一键
-  （载荷长度刻意不同）+ 读侧 4000 次 ⇒ "读到了就必然是某一份完整载荷" ✓（且至少读到一次 ⇒
+* **原子落盘**：载荷先写 `<key>.bin.tmp-<pid>` 再 `rename`（同目录原子）⇒ 读者不会看到半份； 残留 `.tmp-*` **不是** `<key>.bin` ⇒ 任何键都读不到（**命名即边界** ✓）。
+* **并发取证**：`concurrent_writers_never_produce_a_torn_payload` —— 4 位写者同写一键 （载荷长度刻意不同）+ 读侧 4000 次 ⇒ "读到了就必然是某一份完整载荷" ✓（且至少读到一次 ⇒
   不空转 ✓）。
 * ⭐ **诚实结论 A（纵深防御的边界）**：把原子 `rename` **去掉**再跑同一条 ⇒ **照样绿**。
   ⇒ 真正兜住的是**凭据里的摘要**（第②道），**不是**原子性 ✗。原子 rename 的价值是
@@ -1445,7 +1442,10 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
      **整条一趟** 与 **session+产物** ⇒ **`ProjectReport` 逐字节相同** ✓（序列化比较、字段一个不漏 ✓）
      —— 这是"**换路不改报告**"的红线 ✓（判据过了**不等于**可以无脑换 ✗，见下）。
 * ⚠ **采用之前还要解决三件（如实记 · ① 已核实为真 ✓）**：① `compile_plan_incremental` **不收 `progress` sink** ⇒ 直接换会**丢掉 CLI 的进度事件**（用户可见 ✗）—— **第 53 轮核实** `build.rs:703-707`：它**确实**按
-  `json`/人看两态各传一个 sink ✓ ⇒ 不是假想 ✗（要加 sink 通道或从报告重放 tick ✓）；② CLI 还有 **`build.*` 事件流**要整门课对拍
+  `json`/人看两态各传一个 sink ✓ ⇒ 不是假想 ✗；**第 56 轮试过接线、按时间盒撤回** ✗：
+  `&mut dyn ProgressSink` 默认是 `&mut (dyn … + 'static)` ⇒ 要往下传就得处处写 `+ '_` ✓，
+  而它一路**级联进 `run_pass_with`**（`check/mod.rs`）⇒ 4 个文件、lifetime 错误滚雪球 ✗
+  ⇒ **这是一件 2–3 轮的重构，不是"加个参数"** ✓（已还原 ⇒ 树绿 ✓）。下一棒要动它请**单独排一轮** ✓；② CLI 还有 **`build.*` 事件流**要整门课对拍
   （`--json` 逐字节 ✓）；③ `compile_entries_shared` 的**单入口组被过滤**（"会话是纯开销"）
   ⇒ 这条口子是给**单文件 `build`/`check`/`course`** 用的 ✓。
 * 验证：front **36 个测试目标**全绿 ✓（35 + 新判据）· fmt 干净 · clippy **0** 报错 ✓。
