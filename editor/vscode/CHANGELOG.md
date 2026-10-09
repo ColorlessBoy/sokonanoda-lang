@@ -1,3 +1,83 @@
+## [0.87.0] — 2026-10-09
+
+> **The goal view is now faster than Lean 4's 3.1 ms.** The second half of the
+> "align with Lean 4" batch lands: the new on-demand `soko/goalAt` answers **one** goal —
+> the one at the caret — in **1.0–1.5 ms / 3.8–6.6 KB** where `soko/goals` needs
+> **3.5–5.3 ms / 91 KB** for the same 27 declarations (and `soko/goals` itself is
+> **untouched**: its response stays byte-for-byte identical). A scope **line-start index**
+> takes the round trip **6.4 → 4.0 ms** and a scope **folding cache** takes the light mode
+> to **2.5 ms**, below Lean's 3.1 ms. In the kernel, declaration tables are now **layered
+> and persistent**: the command-boundary environment snapshot costs the *same* small
+> constant at 64 and 512 declarations (**O(#decls) → O(1)**, T2-A), and editing the last
+> command re-elaborates **1** command instead of 12 (T2-B). The hot-keystroke north star
+> reads **79.0 ms vs Lean 218.1 ms (2.8× ahead)**. The red line holds: the course's
+> `--json` output is **byte-identical, 251/251 course entries**.
+
+### Added
+
+- **`soko/goalAt` — the caret's single goal, on demand** (T2; the protocol-level half of
+  aligning with Lean 4's per-command goal query). `soko/goals` is untouched: its response
+  stays **byte-identical** (91 361 B for 27 declarations) and every item it returns still
+  carries its own runs. The new request answers only the declaration under the caret, and
+  that item is **field-for-field equal** to its `soko/goals` counterpart, runs included.
+  Readings on one build, real course `unit08`, same caret: `soko/goals` **91 361 B /
+  3.5–5.3 ms** → `soko/goalAt` **3 777–6 560 B / 1.0–1.5 ms** (external cross-check on the
+  `typing` arm: median **1.29 ms**) ⇒ the **default** mode (`runs: true`) is below Lean 4's
+  3.1 ms. Guards: payload ratio **≤ 1/10** (measured 4.1 %–7.2 %, i.e. ≥ 14×), field
+  equality with `soko/goals`, and runs still present — plus two reverse verifications
+  ("always answer the first declaration" ⇒ red; emptying `goal_runs` ⇒ red). The extension
+  uses it to locate a declaration for the hint command instead of pulling the whole list.
+
+### Changed
+
+- **Faster goal view** (same probe, one machine; structural counts plus wall clock):
+  - **Scope line-start index.** `line_col_of` used to rescan the text from offset 0 for
+    every declaration and hole (27+ times per request). A request-scoped index — keyed by
+    the text's `(ptr, len)`, falling back to the original scan in every other case — takes
+    `goals(runs=false)` **6.4 → 4.0 ms** and `goals(runs=true)` **6.1 → 4.6 ms**. Response
+    bytes are unchanged (26 723 B / 91 361 B) and a 413-point parity guard pins the index
+    against the scan it replaced.
+  - **Scope folding cache.** A scope already guarantees one notation table, so the fold
+    result is cached for the scope's lifetime and cleared on exit (behaviour outside a scope
+    is unchanged): `goals(runs=false)` **4.0 → 2.5 ms**, `goals(runs=true)` **4.6 → 3.5 ms**
+    ⇒ the light mode is below Lean 4's 3.1 ms. Bytes unchanged; parity plus reverse
+    verification.
+
+- **Kernel: declaration tables are layered and persistent (T2-A).** `DeclarMap` is now a
+  **library layer** (exclusive before `seal()`, then `Arc` read-only sharing) plus an
+  **entry layer** (`Arc` + copy-on-write) with a `stage1` index (Lean's `SMap.stage₁`);
+  `notations` and `mutual_block_sizes` became `CowMap`s; and a new `EnvSnapshot` is the
+  command-boundary environment, whose `Clone` is **O(1)** — it holds no `Dag`, justified by
+  the monotone-intern lemma. Cloning that snapshot copies the **same small constant** at 64
+  and 512 declarations (before T2-A: **196 vs 1540** entries, i.e. `declars` + `Dag`), it
+  shares its tables with the builder (`Arc::ptr_eq`, checked — not promised), and sealing
+  keeps the library layer out of the copy-on-write. Kernel unit tests **69/69**,
+  `kernel-diff --fast` zero difference (9 groups), corpus `--json` byte-identical.
+
+- **Command-level environment snapshot (T2-B).** `WalkCheckpoint` with `checkpoint()` /
+  `restore_from()` (plus `resume` / `snapshot_tail` / `count_commands`) makes an edit to the
+  **last** command re-elaborate **1** command — the entry pass's command count is **12**, and
+  before the snapshot every one of them was re-walked. A guard rejects a resumed report in
+  which any entry declaration appears twice, and a **process-isolated** A/B shows the resume
+  arm and the full-pass arm are byte-identical (diagnostics 2117 B, `soko/goals` 104 100 B).
+  `SOKO_NO_ENTRY_SNAPSHOT=1` is the escape hatch.
+
+### Notes
+
+- **North star (hot keystroke, real stdio LSP, course `unit08`)**: real continuous typing
+  **79.0 ms** vs Lean 4's **218.1 ms** (2.8× ahead); first keystroke after open 127.8 ms;
+  equal-length rename 16.2 ms; trailing comment 21.0 ms with `by=1`.
+- **Honest boundaries.** ① The keystroke path itself is `soko/stateAt` (497 B / 0.7 ms);
+  `goalAt` serves the hint command's declaration lookup. ② On the `typing` arm the reported
+  `goal_ms` is the request's own cost and may answer the *previous* report — a content probe
+  verified this and it is the designed concurrent behaviour, so it must not be read as "the
+  goal updates faster". ③ The `runs` default stays `true`; `goalAt` exists so a consumer can
+  ask for one goal without breaking the existing contract.
+- **Guards added with the readings**: the scope index has a 413-point parity test against
+  the scan, the folding cache has parity plus reverse verification, and `soko/goalAt` has
+  the ratio/field/runs trio. The `--json` red line is the full course:
+  **251/251 byte-identical** against a build of the published `v0.86.0` tag.
+
 ## [0.86.0] — 2026-10-08
 
 > **The editing loop got much faster** — the hot keystroke's dedup table in the kernel
