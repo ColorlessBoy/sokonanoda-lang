@@ -1428,22 +1428,28 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ⇒ 这两条合起来指向**候选刀**：把 `probe` 变成**惰性/按需**（或对"只看目标文本"的客户端走 `probe=false` 快路 ✓）——
   ⚠ **先测再动** ✗：还没量过 `goals(true)` vs `goals(false)` 的差 ✓（下一刀第一步 = 量它 ✓，别凭猜改 wire ✗）。
 
-* ⛔ **候选刀已量、已否 ✗（第 82 轮）**：加了逃生门 `SOKO_GOALS_NO_PROBE=1`（只关请求期探针 ✓）跑**同一构建 A/B**： **goal median `7.09ms`（探针开）vs `7.30ms`（探针关）** ✓ ⇒ **探针不贵**（差在噪声内、开还略快 ✗） ⇒ 第 81 轮那条候选刀**作废** ✓，逃生门**已还原**（`git checkout` · 0 错 ✓，不留改 wire 语义的死开关 ✗）。 **redirect**：8.72ms 里**没有**内核成分 ✓ ⇒ 剩下的是**请求往返 / 锁 / JSON 组装**这类固定开销 ✓ （对照 Lean 的 3.1ms ✗ ⇒ 差距在**协议与 handler 的固定成本**，不在 kernel ✓）；⚠ 同轮 `complete` 两臂 21 vs 83ms ✗
-  **判为噪声**（共享机 + 该臂与 goal 独立 ✓）—— 不作结论 ✓。
+* ⛔ **候选刀已量、已否 ✗（第 82 轮）**：加了逃生门 `SOKO_GOALS_NO_PROBE=1`（只关请求期探针 ✓）跑**同一构建 A/B**： **goal median `7.09ms`（探针开）vs `7.30ms`（探针关）** ✓ ⇒ **探针不贵**（差在噪声内、开还略快 ✗） ⇒ 第 81 轮那条候选刀**作废** ✓，逃生门**已还原**（`git checkout` · 0 错 ✓，不留改 wire 语义的死开关 ✗）。 **redirect**：8.72ms 里**没有**内核成分 ✓ ⇒ 剩下的是**请求往返 / 锁 / JSON 组装**这类固定开销 ✓ （对照 Lean 的 3.1ms ✗ ⇒ 差距在**协议与 handler 的固定成本**，不在 kernel ✓）；⚠ 同轮 `complete` 两臂 21 vs 83ms ✗ **判为噪声**（共享机 + 该臂与 goal 独立 ✓）—— 不作结论 ✓。
 
-* ✅ **goal 口径有了**一等读数**（第 83 轮）**：`perf_keystroke_wallclock` 里新增 `PERF goals-wallclock` —— 在**同一条真子进程 harness** 上量 `soko/goals` 的请求往返（5 次取中位 ✓），与诊断臂**同源可比** ✓ （此前这第二臂只活在外部 Python 量具里 ✗）。**首读（构建 `…517542` · unit08）**：
-  **goal `best 5.8 / median 5.9 / worst 6.6ms`** ✓ —— 对照 Lean `plainGoal` **3.1ms** ⇒ **~1.9×** ✗
+* ✅ **goal 口径有了**一等读数**（第 83 轮）**：`perf_keystroke_wallclock` 里新增 `PERF goals-wallclock` —— 在**同一条真子进程 harness** 上量 `soko/goals` 的请求往返（5 次取中位 ✓），与诊断臂**同源可比** ✓ （此前这第二臂只活在外部 Python 量具里 ✗）。**首读（构建 `…517542` · unit08）**： **goal `best 5.8 / median 5.9 / worst 6.6ms`** ✓ —— 对照 Lean `plainGoal` **3.1ms** ⇒ **~1.9×** ✗
   （比外部量具的 8.72ms 还好 ✓，两者**不同 harness** ⇒ 只各自与 Lean 同量具比 ✓）；同轮诊断臂
   **typing median 74.9ms** ✓ vs Lean 218.1ms ⇒ **2.9×** ✓。
 
-* ⭐ **goal 的 5.9ms 定位到**handler 自己**（第 84 轮 · 加了 `PERF rpc-floor` 读数）**：同 harness 里量一条 **几乎零计算**的请求 `soko/version`（只答 `{version,pid}` ✓）⇒ **median `0.0ms`** ✓（best 0.0 / worst 0.1 ✓）
-  而 `soko/goals` 是 **5.9ms** ✗ ⇒ **往返本身不是成本** ✓（第 61 轮也证了探针不贵 ✗）⇒ 全在 handler 里 ✓。
+* ⭐ **goal 的 5.9ms 定位到**handler 自己**（第 84 轮 · 加了 `PERF rpc-floor` 读数）**：同 harness 里量一条 **几乎零计算**的请求 `soko/version`（只答 `{version,pid}` ✓）⇒ **median `0.0ms`** ✓（best 0.0 / worst 0.1 ✓） 而 `soko/goals` 是 **5.9ms** ✗ ⇒ **往返本身不是成本** ✓（第 61 轮也证了探针不贵 ✗）⇒ 全在 handler 里 ✓。
   读码收口到**一处**：`QueryDoc::goals`（`query/mod.rs:1398`）**对每条声明**调 `self.runs(...)`
   （`:1079`）⇒ 每条类型文本**各 tokenize 一遍** ✓（unit08 十几条 ⇒ 十几遍 ✓ = 毫秒级 ✓，与读数同量级 ✓）。
   ⇒ **下一刀（已定，未做 ✗）**：给 `runs` 的**结果**加一层**按 `(text, binders, notations)` 键**的 LRU ✓
   （与仓里既有的 `canonical_text_key` memo 同款 ✓）—— 编辑一条时其余十几条的**类型文本没变** ⇒ 全命中 ✓
   预期 **5.9 → ~1ms**（**低于 Lean 的 3.1ms** ✓）。⚠ 实现要点：键必须含 `binders`/`notations`（它们进 `runs` ✓）、
   LRU 有界 ✓、且**先建判据**（同一文档连问两次 ⇒ 第二次必须**逐字节相同** ✓ + 命中率读数 ✓）。
+
+* ⛔ **`runs` 记忆化：写了、量了、**没收益**、已还原 ✗（第 85 轮）** —— 并**纠正第 84 轮的定位** ✗： 按"读码 + 量级猜测"把 5.9ms 归到 `QueryDoc::goals` 里**每条声明各 tokenize 一遍**的 `runs()` ✓，
+  照下一刀清单加了**线程局部 + 有界 LRU**（键 = 全部入参 ✓、函数内自足 ✓、`--all-targets` 0 错 ✓、
+  front **41 个目标全绿** ✓）⇒ 但读数**一动不动**：`goals-wallclock` **5.9ms → 5.9ms** ✓（构建 mtime 变 ✓）
+  ⇒ **记忆化是中性**（要么没命中 ✓、要么贵因根本不在这一层 ✓）⇒ 按纪律**已还原** ✗（无读数收益的代码 = 债 ✓）。
+  ⭐ **教训（与我自己的纪律对着干的一条）**：第 84 轮我把"**读码推断**"当成了定位 ✗ —— 而仓规写着
+  "**先测再动**"；这轮就是它的代价 ✓（一轮工作量 ✗）。⇒ **下一刀第一步必须是**goals() **的内部分段计时** ✓
+  （`parsable` / `decl_kinds` / `notation_symbols` / `redundant_hole_spans` / 逐条 `runs` 各占多少 ✓），
+  **量出大头再动手** ✗，不许再靠读码猜 ✓。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
@@ -1557,8 +1563,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ⛔ **② 撤回（第 51 轮自查）**：我曾据"**加在产物读入口的 trace 一次都没打出来**"下结论 「LSP 第一刀根本没走产物路」—— **不成立** ✗✗。那条 trace 由 **LSP 子进程**打出，而子进程 stderr 被 `Client` 收走、只把 `LSP_TRACE …` 开头的行转成 trace 流 ⇒ 在**测试进程 stdout** 上 grep 它**必然为空** ✗ —— **"没看见" ≠ "没走到"** ✓（错在**读数通道** ✗，不是结论对象 ✓）。
 * ⭐ **③ 建通道（第 52 轮正身）**：给**既有** trace 行加字段 `reuse=`（`lru`/`artifact`/`prefix`/`rebuilt`/`none` ✓） —— 由 `session::last_lib_source()` 报出**库层从哪来** ✓ ⇒ 探针只读既有 trace 行就能回答"走没走到产物那条" ✓。
 * ✅ **答案（`reuse=lru` · 同一臂 · `lsp-cargo-mtime=1791504968`）**：**第一刀确实走了复用路** ✓ （线程局部检查点命中 ✓ ⇒ **库层没有重编** ✓）。而 `modules=5` **不是**闭包模块 —— `lib.rs:649` 早就写明 "`modules=` 与重编了几个模块**无关**，实测那 5 个**全是合成编译**" ✓ ⇒ 那 **≈330ms 花在 judge/合成那一段** ✓。
-* ⭐⭐ **A5c（第 57 轮 · 本轮兑现）**：**有产物就别预热** ✓✓ —— 实测（同一臂、同一构建）： 预热**开** = **333ms** · `modules=5` · `prefix=4` · `reuse=lru` ✗；预热**关** = **129ms** · `modules=1` · `prefix=0` · `reuse=artifact` ✓✓。根因**不是**"预热没用"，而是**用户那一刀 排在它后面**：编译钉在**一条** worker 线程上（`worker_threads(1)`，P2-4）⇒ 预热跑 ~215ms、 用户开档就敲 ⇒ 等着它做完 ✗。而 T1-B 之后产物**已经**把库层供上了 ⇒ 预热是**重复劳动** ✗。 ⇒ 落点：`warm_library_checkpoint` 先查"该闭包的产物在不在盘上"（`artifacts::exists` +
-  `session::lib_artifact_key`）⇒ **在就跳过** ✓ ⇒ **第一刀 333ms → 136.2ms（2.4×）** ✓✓，
+* ⭐⭐ **A5c（第 57 轮 · 本轮兑现）**：**有产物就别预热** ✓✓ —— 实测（同一臂、同一构建）： 预热**开** = **333ms** · `modules=5` · `prefix=4` · `reuse=lru` ✗；预热**关** = **129ms** · `modules=1` · `prefix=0` · `reuse=artifact` ✓✓。根因**不是**"预热没用"，而是**用户那一刀 排在它后面**：编译钉在**一条** worker 线程上（`worker_threads(1)`，P2-4）⇒ 预热跑 ~215ms、 用户开档就敲 ⇒ 等着它做完 ✗。而 T1-B 之后产物**已经**把库层供上了 ⇒ 预热是**重复劳动** ✗。 ⇒ 落点：`warm_library_checkpoint` 先查"该闭包的产物在不在盘上"（`artifacts::exists` + `session::lib_artifact_key`）⇒ **在就跳过** ✓ ⇒ **第一刀 333ms → 136.2ms（2.4×）** ✓✓，
   结构计数同时回到 `modules=1` / `prefix=0` / `by=9`（= 稳态那一档 ✓）。冷档（没产物）照旧预热 ✓。
 * **A5c 之后的全臂重量（第 58 轮 · 构建 `…508589`）**：**开档后第一刀 131.2ms**（`modules=1`·`prefix=0`·`by=9`， 333 ⇒ **2.5×** ✓✓）· **真实连续键入 79.7ms**（78.7 ⇒ **持平** ✓，A5c 没碰热路）· `proof`/`statement`/ `typing_equal_length` 18.1/18.2/18.4ms ✓ · `trailing_comment` 38.4ms ✓ · **跨入口切换 689.7ms**（`modules=5`·复用 3 ⇒ 换闭包的冷路，与 A5c 前逐位持平 ✓）⇒ **A5c 只动了投机预热那一条**，且第一刀与稳态的结构计数**已同档** ✓。
 * ⇒ **下一根杠杆在方向③（judge 前缀），不在产物** ✓（产物在 LSP 侧的角色是**冷进程**：开档 ✓）；验证：`perf_keystroke_wallclock` 3/3 ✓ · `lsp_artifact_warmup` 3/3 ✓ · fmt 干净 ✓。
