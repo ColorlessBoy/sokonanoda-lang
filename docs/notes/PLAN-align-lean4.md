@@ -1367,8 +1367,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   断言**返回值**、**反向验证已做**（去掉早退 ⇒ 当场判红 ✓）；逃生门关掉产物时才照旧预热 ✓ —— A5 的三条判据正是那样跑的 ⇒ 仍 **3/3** ✓）。落地后实测：第一刀 **127.2ms** · `typing` **78.0ms** ·
   `equal_length` **16.3ms** · **跨入口 664.8ms**（`modules=5`·复用 3 ✓；A5c 前 689.7、预热开 911.1 ✗）。
 
-* ⭐ **逐声明归因（第 60 轮 · 内置量具 `SOKO_DECL_PROFILE=1` ＋ `_MS=0`，跑在 `judge_synthesized_typing` 的**真实连续键入**臂上 ⇒ **在进程内**、不靠猜墙钟 ✓）**：970 条事件 / 71 个声明，耗时 top： **`image_inter_subset` 120.4ms（×13）** · `Set.sep_self` 40.9（×1）· **`image_empty` 38.5（×13）** · **`image_preimage_subset` 32.4（×13）** · **`inter_singletons_empty` 25.0（×13）** · `<example>` 22.5（×39） ·
-  `Set.image_mono` 20.9（×1） · `Set.image_subset_iff` 13.3（×1）。⇒ **每刀**：声明 elaborate 合计
+* ⭐ **逐声明归因（第 60 轮 · 内置量具 `SOKO_DECL_PROFILE=1` ＋ `_MS=0`，跑在 `judge_synthesized_typing` 的**真实连续键入**臂上 ⇒ **在进程内**、不靠猜墙钟 ✓）**：970 条事件 / 71 个声明，耗时 top： **`image_inter_subset` 120.4ms（×13）** · `Set.sep_self` 40.9（×1）· **`image_empty` 38.5（×13）** · **`image_preimage_subset` 32.4（×13）** · **`inter_singletons_empty` 25.0（×13）** · `<example>` 22.5（×39） · `Set.image_mono` 20.9（×1） · `Set.image_subset_iff` 13.3（×1）。⇒ **每刀**：声明 elaborate 合计
   **≈24ms**（其中 `image_inter_subset` 一条就 ≈9.3ms ✗ —— 它排在**编辑点之后** ⇒ 每刀都被重做 ✓），
   而 78ms 的**其余 ≈54ms 在声明之外**（解析/望远镜/report/judge 的**前缀键 SipHash** ✓ —— 后者正是
   §8.9 的 A7 那条 22.5% ✗，且它的红线是"**不换弱哈希**"）✓。⇒ 下一棒的两个具体靶子：① `image_inter_subset`
@@ -1408,22 +1407,26 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   ④ 测试 `env_provider_is_consulted_and_none_falls_back_byte_for_byte`（含内部 `impl EnvProvider for Fake` ✓）；
   ⑤ 台账 G-92 的 `expected_lean`；⑥ 判据 = `judge` 单测全绿 + **代码里** `grep EnvProvider` 归零（注释里的历史线索可留 ✓）。
 
-* ⭐ **方向③ 收口后的全臂重量（第 73 轮 · 构建 `…514384`）**：**真实连续键入 82.5ms** · 开档后第一刀 **131.9ms** · `proof`/`typing_equal_length` 16.6/17.2ms · `trailing_comment` 41.3ms · **跨入口 751.4ms**。 ⚠ **比上一组（78.0 / 127.2 / 38.1 / 663.5）整体慢 3–13%** ✗，但 **结构计数逐位相同** ✓ （`by=9`·`tc=4225`·`modules=1`；跨入口 `modules=5`·复用 3·`by=21` ✓）⇒ **按判据纪律这是噪声/负载，
-  不是结构性回归** ✓（两条不可比：① 构建不同（本组含 T3-D ✗）；② 并行线此刻正在同一台机上跑
+* ⭐ **方向③ 收口后的全臂重量（第 73 轮 · 构建 `…514384`）**：**真实连续键入 82.5ms** · 开档后第一刀 **131.9ms** · `proof`/`typing_equal_length` 16.6/17.2ms · `trailing_comment` 41.3ms · **跨入口 751.4ms**。 ⚠ **比上一组（78.0 / 127.2 / 38.1 / 663.5）整体慢 3–13%** ✗，但 **结构计数逐位相同** ✓ （`by=9`·`tc=4225`·`modules=1`；跨入口 `modules=5`·复用 3·`by=21` ✓）⇒ **按判据纪律这是噪声/负载， 不是结构性回归** ✓（两条不可比：① 构建不同（本组含 T3-D ✗）；② 并行线此刻正在同一台机上跑
   自己的活 ✗）⇒ **墙钟只作同机前后参考、结构计数才是判据** ✓，这里**不做"变慢了"的结论** ✗。
 
-* ✅✅ **`export` 漏已修（第 74 轮 · 两行 + 一个开关）** —— 这是**用户可见**的修（LSP 那条路也走 session ✓）： ① `run_library_pass` 的 `snapshot_state` 从 `false` → **`true`**（库层趟的累加状态里带着 `exports` ✓； 以前 `false` ⇒ 状态是 `None` ⇒ 入口趟拿到**空**状态 ✗）；② 检查点的 `resume` 收**真状态**（不再恒 `default()` ✓）；
-  ③ 入口趟的 `run_pass_with` 从 `None` → **`Some(lib.resume.clone())`** ✓。⇒ 判据读数从
+* ✅✅ **`export` 漏已修（第 74 轮 · 两行 + 一个开关）** —— 这是**用户可见**的修（LSP 那条路也走 session ✓）： ① `run_library_pass` 的 `snapshot_state` 从 `false` → **`true`**（库层趟的累加状态里带着 `exports` ✓； 以前 `false` ⇒ 状态是 `None` ⇒ 入口趟拿到**空**状态 ✗）；② 检查点的 `resume` 收**真状态**（不再恒 `default()` ✓）； ③ 入口趟的 `run_pass_with` 从 `None` → **`Some(lib.resume.clone())`** ✓。⇒ 判据读数从
   `整条一趟=[] session+产物=["elab-unknown-identifier"]` ✗ 变成 **两侧都是 `[]`** ✓✓ —— 且那条判据按
   它自己的指示**改了判**（`the_export_dimension_is_a_known_divergence_today` → `…_agrees_on_both_paths`，
   `assert!(!b.is_empty())` → `assert_eq!(b, a)` ✓，**不许再放宽** ✗）。
 * ⇒ **T4-B 的前置从此全绿** ✓（CLI `check` 换 `compile_plan_with_artifacts` 那条路现在安全了 ✓ —— 但**下一轮**再做， 一轮一件 ✓）：`cli/tests/namespace` **10/10** ✓ · `t4b_plan_parity` **2/2** ✓ · front **41 个目标全绿** ✓ · fmt 干净 · clippy `--all-targets` **0** 报错 ✓。
 
-* ⚠ **红线的现状（第 75 轮）**：`export` 修复是**行为改动** ⇒ 该跑"整门课逐字节"那道 ✓。**全量 `scripts/soko gate` 判红** ✗ —— 但红在 **`crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env`**
-  （**内核**测试 ✓，与本次改动（只在 `front/project/session.rs`）**逻辑无关** ✓；那一带正是并行线
+* ⚠ **红线的现状（第 75 轮）**：`export` 修复是**行为改动** ⇒ 该跑"整门课逐字节"那道 ✓。**全量 `scripts/soko gate` 判红** ✗ —— 但红在 **`crates/kernel/tests/memory_api.rs::cross_builder_name_lookup_is_silently_positional_without_with_env`** （**内核**测试 ✓，与本次改动（只在 `front/project/session.rs`）**逻辑无关** ✓；那一带正是并行线
   `EnvBuilder` 指针同一性判据的地盘 ✓）⇒ 归并行线/内核线 ✓，不是本修复的回归 ✓。
-* ✅ **课程那条红线**：单独跑 **`python3 courses/set-theory/tools/check.py`** ⇒ **exit 0** ✓ （**258 个目标 · 2188 checked · 916 open · 0 个被判负** ✓）⇒ 本次行为改动**过了课程门禁** ✓。
-  ⚠ 待办：等内核那条测试回绿后，再跑一次**全量 gate**（那里才有"整门课 `--json` 逐字节"那道 ✓）。
+* ✅ **课程那条红线**：单独跑 **`python3 courses/set-theory/tools/check.py`** ⇒ **exit 0** ✓ （**258 个目标 · 2188 checked · 916 open · 0 个被判负** ✓）⇒ 本次行为改动**过了课程门禁** ✓。 ⚠ 待办：等内核那条测试回绿后，再跑一次**全量 gate**（那里才有"整门课 `--json` 逐字节"那道 ✓）。
+
+* ✅ **T4-B 的 CLI `check` 换路落地（第 76 轮）**：`check.rs` 从 `compile_plan`（整条闭包一趟 ✗） 换成 **`precheck_plan` + `compile_plan_with_artifacts`** ✓（session + 磁盘产物、且不碰线程局部检查点 ✓）。
+  三条前置都核实过：① 报告逐字节相同（`t4b_plan_parity` ✓）；② 本调用方**没有** progress sink
+  （`compile_plan` = `…_with_progress(None)` ✓）⇒ 不存在丢进度事件的问题 ✓；③ **`export` 已对齐** ✓
+  （第 43 轮正是死在这条上 ✗）。验证：`cli/tests/namespace` **10/10** ✓ · **CLI 全套 40 个目标 exit 0** ✓。
+  ⚠ **如实记：没有量到墙钟收益** ✗ —— 夹具上两臂都是 **~0.035s**（`compiled/` 报告缓存 + 全局缓存把两臂都
+  短路了 ✗，与第 13/43 轮同一条教训）⇒ 本次换路的依据是**判据（报告逐字节）+ 与 `query` 共用产物路** ✓，
+  不是墙钟读数 ✓（要量收益得先让报告缓存 miss 而产物命中，夹具没做到 ✓）。
 
 ### 33. 第 42 轮（平行线）：方向① 落地后**重量北极星** —— 无回归 ✓（79.1ms vs lean4 218ms）
 
@@ -1528,8 +1531,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
   | `typing_equal_length` / `trailing_comment` | 18.1 / 37.2ms | 18.5 / 38.0ms | 持平 ✓ |
   | 跨入口切换 | **132.8ms**（`modules=1` · 复用 7） | 674.4ms（`modules=5` · 复用 3） | **大幅变好** —— 但**不是** T2-B0 的功劳（它只动那两张表 ✗），见下"状态依赖" ✓ |
   | 开档后第一刀 | **355.4ms**（`modules=5` · `prefix=4`） | 76.6ms（`modules=1`） | **同一构建、同一夹具 ⇒ 差 4.6×** ✗ ⇒ 见下 ✓ |
-* ⭐ **逮到探针的一处状态依赖（本轮最有价值的发现）**：`first-keystroke-after-open` 那一臂 量的是"**开档**（报告可能直接命中 `compiled/` 缓存 ⇒ **一趟都不跑**）+ **第一刀**" ✓ —— 于是它取决于**模块根里有没有磁盘产物** ✓： * **有产物** ⇒ 开档命中产物 ⇒ **A5 后台预热**跑一趟 ⇒ 检查点热 ⇒ 第一刀 **1 个模块 / 76.6ms** ✓； * **没有产物**（本轮：上一轮我刚跑过 `t2b0_table_rebuilds`，它按 §32 的纪律
-    `clean_at(module_root)` **清掉了** ✓，`gate` 的课程那一步也跑过 ✓）⇒ 开档命中
+* ⭐ **逮到探针的一处状态依赖（本轮最有价值的发现）**：`first-keystroke-after-open` 那一臂 量的是"**开档**（报告可能直接命中 `compiled/` 缓存 ⇒ **一趟都不跑**）+ **第一刀**" ✓ —— 于是它取决于**模块根里有没有磁盘产物** ✓： * **有产物** ⇒ 开档命中产物 ⇒ **A5 后台预热**跑一趟 ⇒ 检查点热 ⇒ 第一刀 **1 个模块 / 76.6ms** ✓； * **没有产物**（本轮：上一轮我刚跑过 `t2b0_table_rebuilds`，它按 §32 的纪律 `clean_at(module_root)` **清掉了** ✓，`gate` 的课程那一步也跑过 ✓）⇒ 开档命中
     **报告缓存**（不编译 ⇒ 不预热 ✗）⇒ 第一刀**自己把库层编一遍** ⇒ **5 个模块 / 355.4ms** ✗。
   ⇒ ① **跨轮比较这一臂前必须先钉住"模块根有没有产物"** ✗（探针缺口 ⇒ 已在 §41 补上 ✓）；
   ② ⚠ **但 §41 之后这条判读要打折** ✗：那一臂的成本主要在**合成前缀**（`prefix=4` ✓），
@@ -1539,10 +1541,8 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 ### 41. 第 50–52 轮（平行线）：探针**状态显式化** ＋ 撤回一条错结论 ＋ **建通道拿到真答案** ✓
 
 * **① 状态显式化（成立 ✓）**：`first-keystroke-after-open` 开头清 `<模块根>/.sokonanoda/{artifacts,compiled}` （**两处都要清** ✗→✓：只清产物的话，播种那次开档会**命中报告缓存** ⇒ 一趟都不跑 ⇒ 什么也不写 ✗，实测踩到 ✓）， 默认档再用一个**一次性 client** 开档把**产物播种**出来 ✓（= "用户已经 build 过"的现实档 ✓）⇒ 该臂**可复现** ✓。
-* ⛔ **② 撤回（第 51 轮自查）**：我曾据"**加在产物读入口的 trace 一次都没打出来**"下结论 「LSP 第一刀根本没走产物路」—— **不成立** ✗✗。那条 trace 由 **LSP 子进程**打出，而子进程 stderr 被 `Client` 收走、只把 `LSP_TRACE …` 开头的行转成 trace 流 ⇒ 在**测试进程 stdout** 上 grep 它**必然为空** ✗
-  —— **"没看见" ≠ "没走到"** ✓（错在**读数通道** ✗，不是结论对象 ✓）。
-* ⭐ **③ 建通道（第 52 轮正身）**：给**既有** trace 行加字段 `reuse=`（`lru`/`artifact`/`prefix`/`rebuilt`/`none` ✓）
-  —— 由 `session::last_lib_source()` 报出**库层从哪来** ✓ ⇒ 探针只读既有 trace 行就能回答"走没走到产物那条" ✓。
+* ⛔ **② 撤回（第 51 轮自查）**：我曾据"**加在产物读入口的 trace 一次都没打出来**"下结论 「LSP 第一刀根本没走产物路」—— **不成立** ✗✗。那条 trace 由 **LSP 子进程**打出，而子进程 stderr 被 `Client` 收走、只把 `LSP_TRACE …` 开头的行转成 trace 流 ⇒ 在**测试进程 stdout** 上 grep 它**必然为空** ✗ —— **"没看见" ≠ "没走到"** ✓（错在**读数通道** ✗，不是结论对象 ✓）。
+* ⭐ **③ 建通道（第 52 轮正身）**：给**既有** trace 行加字段 `reuse=`（`lru`/`artifact`/`prefix`/`rebuilt`/`none` ✓） —— 由 `session::last_lib_source()` 报出**库层从哪来** ✓ ⇒ 探针只读既有 trace 行就能回答"走没走到产物那条" ✓。
 * ✅ **答案（`reuse=lru` · 同一臂 · `lsp-cargo-mtime=1791504968`）**：**第一刀确实走了复用路** ✓
   （线程局部检查点命中 ✓ ⇒ **库层没有重编** ✓）。而 `modules=5` **不是**闭包模块 —— `lib.rs:649` 早就写明
   "`modules=` 与重编了几个模块**无关**，实测那 5 个**全是合成编译**" ✓ ⇒ 那 **≈330ms 花在 judge/合成那一段** ✓。

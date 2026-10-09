@@ -79,7 +79,21 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
                 return output.errors.is_empty();
             }
         }
-        let project = sokonanoda_front::project::compile_plan(plan, &options);
+        // **T4-B（2026-10-09 · 第 76 轮）**：这条路以前走 `compile_plan`（**整条闭包一趟** ✗）
+        // ⇒ 入口改一行、库层没变时，**库层照样重 elaborate**。换成"**走 session + 磁盘产物**"
+        // （`compile_plan_with_artifacts` = `compile_plan_incremental(reuse_library=false)` ✓）
+        // ⇒ 库层从**产物**装载（跨进程增量归产物 ✓）、且**不碰线程局部检查点**（T4-A 契约 ✓）。
+        // ⚠ 三条前置都核实过才敢换：
+        // ① **报告逐字节相同** —— `front/tests/t4b_plan_parity.rs`（两条路序列化相等 ✓）；
+        // ② **本调用方没有 progress sink**（`compile_plan` = `compile_plan_with_progress(None)` ✓）
+        //    ⇒ 不存在"丢 CLI 进度事件"的问题 ✓（`build` 那条**有** sink ⇒ 仍留原路 ✓）；
+        // ③ **`export` 传播已对齐** —— 第 43 轮换过一次、正是死在这里（`unknown identifier`），
+        //    修好（`session` 接上库层 `exports` ✓）之后 `cli/tests/namespace` 才 10/10 ✓。
+        // ⚠ session 家族**要求调用方先 precheck**（`project/mod.rs:488` 的硬前提 ✓）——
+        // `compile_plan_with_progress` 是在**里面**做 precheck 的 ⇒ 这里必须显式补上 ✓。
+        let mut plan = plan;
+        sokonanoda_front::project::precheck_plan(&mut plan, &options);
+        let project = sokonanoda_front::project::compile_plan_with_artifacts(plan, &options);
         let ok = report_project(&project, src, json);
         crate::project_cache::store_if_clean_at(&artifacts_root, &digest, &options, &project);
         return ok;
