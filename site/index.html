@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>sokonanoda · 形式化证明教学语言</title>
+<title>Sokonanoda · 形式化证明教学语言</title>
 <meta name="description" content="像写数学证明一样一句一句写：目标实时可见，写错了内核告诉你。装一个 VS Code 插件就能开始，不用 Rust、不用 Lean 工具链。">
 <link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/">
 <meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
-<meta property="og:title" content="sokonanoda · 形式化证明教学语言">
+<meta property="og:title" content="Sokonanoda · 形式化证明教学语言">
 <meta property="og:description" content="像写数学证明一样一句一句写：目标实时可见，写错了内核告诉你。">
 <meta property="og:url" content="https://colorlessboy.github.io/sokonanoda-lang/">
 <meta property="og:locale" content="zh_CN">
@@ -28,41 +28,28 @@
 
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="./">sokonanoda <small data-i18n="brandTag">形式化证明教学语言</small></a>
+    <a class="brand" href="./">Sokonanoda <small data-i18n="brandTag">形式化证明教学语言</small></a>
     <nav aria-label="页面内导航">
       <ul>
         <li><a href="#what" data-i18n="navWhat">它是什么</a></li>
         <li><a href="#start" data-i18n="navStart">怎么开始</a></li>
         <li><a href="#courses" data-i18n="navCourses">教材</a></li>
+        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang" data-i18n="navGithub">GitHub</a></li>
       </ul>
     </nav>
-    <!-- 主题按钮用**图标**（用户 2026-10-09）：文字版「跟随系统」四个字、「浅色/深色」两个字
-         ⇒ 切换时按钮宽度会跳；图标三种状态同宽，且 `aria-label` 仍把状态与动作说全 ✓。
-         图标由 CSS 按 `:root[data-theme]` 选，`site.js` 只管 `aria-label`。 -->
-    <!-- 控件组：**必须包一层**（用户 2026-10-09：「两个方框不在一条水平线上」）——
-         头部是 `align-items: baseline`，而图标按钮没有文字基线 ⇒ 它与带文字的按钮
-         按**不同的基线**对齐，必然错位 ✗。包一层 + `align-items: center` 让组内自己
-         对齐，`align-self: center` 让整组在头部行里居中。 -->
-    <span class="header-controls">
-    <button class="theme-toggle icon-toggle" type="button" data-theme-toggle aria-pressed="false"
-            data-i18n-aria="themeToggleLabel" aria-label="配色：跟随系统（点击切换）">
-      <svg class="ico ico-system" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="5.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.6a5.4 5.4 0 0 0 0 10.8Z" fill="currentColor"/></svg>
-      <svg class="ico ico-light" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v2.1M8 12.9V15M1 8h2.1M12.9 8H15M3.05 3.05l1.48 1.48M11.47 11.47l1.48 1.48M12.95 3.05l-1.48 1.48M4.53 11.47l-1.48 1.48" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-      <svg class="ico ico-dark" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M13.4 9.8A5.7 5.7 0 0 1 6.2 2.6a5.7 5.7 0 1 0 7.2 7.2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-    </button>
-    <!-- 语言按钮：**默认自动识别**（见 assets/i18n.js），这个按钮只给"想手动看一眼另一种语言"
-         的读者（用户 2026-10-09 点名要，方便验证）。标签写**当前语言**（中文页 `中` / 英文页 `EN`）
-         —— 用户 2026-10-09 问"是不是状态反了"：原先写的是"切过去会变成什么"（中文页显示 `EN`），
-         那是"动作"惯例、容易读成"现在就是英文" ✗ ⇒ 改成"你现在读到的是哪种语言" ✓；
-         点下去干什么由 `aria-label` 说全。`hidden` 起步、JS 才放出来 ⇒ 没有 JS 时不出现点不动的按钮 ✓。 -->
-    <button class="theme-toggle lang-toggle" type="button" data-lang-toggle hidden
-            data-i18n="langToggle" data-i18n-aria="langToggleLabel"
-            aria-label="当前中文，点击切换到英文">中</button>
-    <!-- GitHub 仓库：**图标**（用户 2026-10-09：「github 放一个 github 的图标就行了」）——
-         文字版 pill 宽 76.6px，换图标后与主题/语言同是 34×34 方框 ⇒ 英文 topbar 才放得下一行 ✓。 -->
-    <a class="theme-toggle gh-link icon-toggle" href="https://github.com/ColorlessBoy/sokonanoda-lang"
-       data-i18n-aria="ghLabel" aria-label="GitHub 仓库"><svg class="ico ico-github" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
-    </span>
+    <!-- 配色与语言：**纯文字项**（用户 2026-10-09：「都不要方框和图标了，灾难……和它是什么
+         怎么开始 教材 用一摸一样的样式。整体和左边网站标题同一水平线」）。
+         当前档用 `aria-pressed="true"` 标出来（CSS 只改字重/颜色，不画框）。
+         `hidden` 起步、脚本才放出来 ⇒ 没有 JS 时不会出现点不动的项 ✓。 -->
+    <ul class="prefs" aria-label="配色" hidden>
+      <li><button type="button" data-theme-choice="system" data-i18n="themeAuto" aria-pressed="false">自动</button></li>
+      <li><button type="button" data-theme-choice="dark" data-i18n="themeDark" aria-pressed="false">深色</button></li>
+      <li><button type="button" data-theme-choice="light" data-i18n="themeLight" aria-pressed="false">浅色</button></li>
+    </ul>
+    <ul class="prefs" aria-label="语言" hidden>
+      <li><button type="button" data-lang-choice="zh" data-i18n-aria="langZhLabel" aria-label="切换到中文" aria-pressed="true">中</button></li>
+      <li><button type="button" data-lang-choice="en" data-i18n-aria="langEnLabel" aria-label="切换到英文" aria-pressed="false">英</button></li>
+    </ul>
   </div>
 </header>
 
@@ -71,7 +58,7 @@
   <!-- ── 头图 ─────────────────────────────────────────────────────── -->
   <section class="section hero">
     <div class="wrap">
-      <h1 data-i18n="heroTitle">sokonanoda · 形式化证明教学语言</h1>
+      <h1 data-i18n="heroTitle">Sokonanoda · 形式化证明教学语言</h1>
 
       <p class="lead" data-i18n="heroLead">
         像写数学证明一样，一句一句写：<strong>目标实时可见</strong>，写错了
@@ -246,7 +233,7 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
       <ul>
         <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang" data-i18n="footerSource">源码</a></li>
         <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases" data-i18n="footerReleases">Releases</a></li>
-        <li><a href="changelog.html">Changelog</a></li>
+        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md">Changelog</a></li>
       </ul>
     </nav>
   </div>
@@ -255,18 +242,20 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
 <!-- 英文文案字典：**纯数据**（不是可执行脚本），check-site.py 会解析它做键对齐判据。 -->
 <script type="application/json" id="i18n-en">
 {
-  "title": "sokonanoda · a formal proof teaching language",
+  "title": "Sokonanoda · a formal proof teaching language",
   "description": "Write a proof one line at a time, the way you write it on paper: the goal stays in view, and when you get it wrong the kernel tells you. One VS Code extension is enough to start — no Rust, no Lean toolchain.",
   "skip": "Skip to content",
   "brandTag": "a formal proof teaching language",
   "navWhat": "What it is",
   "navStart": "Getting started",
   "navCourses": "Courses",
-  "themeToggleLabel": "Theme: System (click to change)",
-  "langToggle": "EN",
-  "langToggleLabel": "Currently English — click to switch to Chinese",
-  "ghLabel": "GitHub repository",
-  "heroTitle": "sokonanoda · a formal proof teaching language",
+  "navGithub": "GitHub",
+  "themeAuto": "Auto",
+  "themeDark": "Dark",
+  "themeLight": "Light",
+  "langZhLabel": "Switch to Chinese",
+  "langEnLabel": "Switch to English",
+  "heroTitle": "Sokonanoda · a formal proof teaching language",
   "heroLead": "Write a proof the way you write it on paper — one line at a time, with the <strong>goal always in view</strong> and a <strong>kernel that tells you</strong> when you get it wrong. No proof assistant to learn first, no toolchain to install: one VS Code extension is enough to start.",
   "ctaInstall": "Install the VS Code extension",
   "ctaStart": "Start the first lesson",

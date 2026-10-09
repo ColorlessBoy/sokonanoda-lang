@@ -20,14 +20,8 @@
 (function () {
   "use strict";
 
-  var ZH = {
-    copy: { idle: "复制", done: "已复制" },
-    theme: { system: "跟随系统", light: "浅色", dark: "深色", prefix: "配色：", suffix: "（点击切换）" }
-  };
-  var EN = {
-    copy: { idle: "Copy", done: "Copied" },
-    theme: { system: "System", light: "Light", dark: "Dark", prefix: "Theme: ", suffix: " (click to change)" }
-  };
+  var ZH = { copy: { idle: "复制", done: "已复制" } };
+  var EN = { copy: { idle: "Copy", done: "Copied" } };
   var STORE_KEY = "soko-lang";
 
   var block = document.getElementById("i18n-en");
@@ -109,6 +103,12 @@
       if (ariaValue !== undefined) nodesAria[l].setAttribute("aria-label", ariaValue);
     }
     window.SOKO_I18N = chinese ? ZH : EN;
+    /* 语言两项标出**当前档**（中文页「中」高亮、英文页「英」高亮） */
+    var choices = document.querySelectorAll("[data-lang-choice]");
+    for (var c = 0; c < choices.length; c++) {
+      choices[c].setAttribute("aria-pressed",
+        String(choices[c].getAttribute("data-lang-choice") === (chinese ? "zh" : "en")));
+    }
     /* 运行期那些按钮（复制/主题）由 `site.js` 画，它们也要跟着换 —— 用事件而不是直接调用：
        两个脚本都在 body 末尾，谁先跑由 HTML 决定，事件对两种顺序都成立 ✓。 */
     try {
@@ -118,14 +118,16 @@
     }
   }
 
-  /* topbar 的切换按钮：**渐进增强**（HTML 里 `hidden` 起步，JS 才把它放出来）。
-     标签写"切过去会变成什么"（中文时显示 `EN`，英文时显示 `中文`）。 */
+  /* topbar 的语言两项：**渐进增强**（HTML 里 `hidden` 起步，JS 才把整组放出来）。
+     点「中」/「英」直接设定该语言（并记住）；不点则一直走自动识别 ✓。 */
   function wireToggle() {
-    var buttons = document.querySelectorAll("[data-lang-toggle]");
-    for (var b = 0; b < buttons.length; b++) {
-      buttons[b].hidden = false;
-      buttons[b].addEventListener("click", function () {
-        var next = detect() === "en" ? "zh" : "en";
+    var choices = document.querySelectorAll("[data-lang-choice]");
+    if (!choices.length) return;
+    var group = choices[0].closest ? choices[0].closest(".prefs") : null;
+    if (group) group.hidden = false;
+    for (var b = 0; b < choices.length; b++) {
+      choices[b].addEventListener("click", function () {
+        var next = this.getAttribute("data-lang-choice");
         try {
           localStorage.setItem(STORE_KEY, next);
         } catch (error) {

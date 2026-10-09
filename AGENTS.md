@@ -17,14 +17,14 @@
 `site/`（数据由 `scripts/gen-site-data.py` 生成，永不手写版本号）。
 harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deepseek-harness.md`**。
 
-**改站点之前先读 `docs/design/site-single-page.md`**（2026-10-09 定稿：官网 = **面向新人的首页 +
-更新日志子页**——子页由 `scripts/gen-site-changelog.py` 从 `editor/vscode/CHANGELOG.md` 生成，头图由
+**改站点之前先读 `docs/design/site-single-page.md`**（2026-10-09 定稿：官网 = **面向新人的单页**——
+更新日志不再进站点、页脚直链 GitHub 的 `CHANGELOG.md`，头图由
 `scripts/site-screenshot.mjs` 用**真 VS Code + 已发布 VSIX** 截且有像素判据）。它接替 2026-09-21 的
 「单页四节」版与 2026-09-20 的 28 页重构（**原文已删** ⇒ `git log --all -- docs/archive/site-rebuild-2026-09-26/` ✗）。验收：
 
 ```bash
-python3 scripts/check-site.py            # 11 项：结构 + 链接 + 版本 + 元数据 + 体积 + 已发布版本一致 + 更新日志逐字节 + **中英文文案键对齐**
-python3 scripts/check-site.py --browser  # 另加两项真 Chrome：`render` 两页 × **两种浏览器语言**（零 404 + 版本回填 + 语言按钮**真点一下**中→英→中 + 主题按钮图标按档切换、头图换暗色那版）· `layout` 两页 × 4 宽度 × 2 语言零横向溢出 + **中文 hero 标题 ≥1024 单行**
+python3 scripts/check-site.py            # 10 项：结构 + 链接 + 版本 + 元数据 + 体积 + 已发布版本一致 + **中英文文案键对齐**（更新日志逐字节那项已随子页取消）
+python3 scripts/check-site.py --browser  # 另加两项真 Chrome：`render` × **两种浏览器语言**（零 404 + 版本回填 + 真点「英」「中」「深色」并核对当前档 + topbar 一行 + **逐项几何审计**：共用中心线 / 命中尺寸 ≥24px）· `layout` × 4 宽度 × 2 语言零横向溢出 + **中文 hero 标题 ≥1024 单行**
 ```
 
 **站点写的是「已发布版本」的事实。** 本仓库常有并行开发，`crates/` 与 `courses/`

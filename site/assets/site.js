@@ -22,11 +22,9 @@
   /* 语言：`assets/i18n.js` 已经判定过（并且把静态文案换好了），这里只取**运行期**
      还要用的那几个字（按钮标签）。没有它（脚本没跑、字典坏了）就退回中文 ——
      页面在那种情况下本来就是完整中文版 ✓。 */
-  /* ⚠ **每次用时现取**，不要在加载时缓存：语言可以在页面上被切（topbar 那个按钮 ⇒
-     `i18n.js` 换完文案发 `soko:lang`），缓存住的话按钮会停在旧语言 ✗（实测过）。 */
-  var FALLBACK_THEME = { system: "跟随系统", light: "浅色", dark: "深色", prefix: "配色：", suffix: "（点击切换）" };
+  /* ⚠ **每次用时现取**，不要在加载时缓存：语言可以在页面上被切（topbar 那两项 ⇒
+     `i18n.js` 换完文案发 `soko:lang`），缓存住的话复制按钮会停在旧语言 ✗（实测过）。 */
   var FALLBACK_COPY = { idle: "复制", done: "已复制" };
-  function LABEL() { var i = window.SOKO_I18N; return (i && i.theme) || FALLBACK_THEME; }
   function COPY() { var i = window.SOKO_I18N; return (i && i.copy) || FALLBACK_COPY; }
 
   /* ── 主题 ───────────────────────────────────────────────────────── */
@@ -65,26 +63,27 @@
     } catch (e) {
       /* 隐私模式下写不进去不是错误：主题只对本次会话有效。 */
     }
-    var buttons = document.querySelectorAll("[data-theme-toggle]");
-    for (var i = 0; i < buttons.length; i++) {
-      // 按钮里是**图标**（CSS 按 :root[data-theme] 选），这里只把状态与动作说全（无障碍）；
-      // 不再写 textContent —— 那会把三个 <svg> 一起抹掉 ✗（用户 2026-10-09：宽度会跳）。
-      var label = LABEL();
-      buttons[i].setAttribute("aria-label", label.prefix + label[mode] + label.suffix);
+    /* 当前档标出来（CSS 只改字重与颜色，不画框）—— 三档都可见，读者一眼看到自己在哪档 ✓ */
+    var choices = document.querySelectorAll("[data-theme-choice]");
+    for (var i = 0; i < choices.length; i++) {
+      choices[i].setAttribute("aria-pressed",
+        String(choices[i].getAttribute("data-theme-choice") === mode));
     }
     applyHero(mode);
   }
 
   function wireTheme() {
-    var buttons = document.querySelectorAll("[data-theme-toggle]");
-    if (!buttons.length) return;
+    var choices = document.querySelectorAll("[data-theme-choice]");
+    if (!choices.length) return;
+    var group = choices[0].closest ? choices[0].closest(".prefs") : null;
+    if (group) group.hidden = false;   /* 没有 JS 时不出现点不动的项 ✓ */
     applyTheme(readTheme());
-    for (var i = 0; i < buttons.length; i++) {
-      buttons[i].addEventListener("click", function () {
-        applyTheme(ORDER[(ORDER.indexOf(readTheme()) + 1) % ORDER.length]);
+    for (var i = 0; i < choices.length; i++) {
+      choices[i].addEventListener("click", function () {
+        applyTheme(this.getAttribute("data-theme-choice"));
       });
     }
-    /* 系统配色变了：`system` 档下页面要跟着变（否则图会停在旧配色上）。 */
+    /* 系统配色变了：`自动`档下页面要跟着变（否则图会停在旧配色上）。 */
     if (window.matchMedia) {
       try {
         window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
@@ -155,7 +154,7 @@
     }
   }
 
-  /* 语言被切（topbar 按钮）⇒ 重画运行期那些按钮的字 + 头图（头图与语言无关，
+  /* 语言被切（topbar 那两项）⇒ 重画运行期那些按钮的字 + 头图（头图与语言无关，
      但复用同一个"当前主题"入口最省事，且换 src 是幂等的 ✓）。 */
   window.addEventListener("soko:lang", function () {
     applyTheme(readTheme());

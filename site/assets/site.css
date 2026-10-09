@@ -236,77 +236,45 @@ a:hover { text-decoration-color: currentColor; }
   margin-left: var(--sp-2);
 }
 .site-header nav { font-size: var(--fs-sm); }
-.site-header nav ul {
+
+/* ── 头部的导航与偏好项：**同一套样式**（用户 2026-10-09：「都不要方框和图标了，灾难。
+   和它是什么 怎么开始 教材 用一摸一样的样式。整体和左边网站标题同一水平线」）─────
+   配色三档（自动/深色/浅色）与语言两项（中/英）都是**纯文字**，与导航链接同一个选择器组
+   —— 一套规则管两种元素，样式不可能漂。当前档用 `aria-pressed="true"` 标出（只改字重与
+   颜色，不画框、不加背景）。 */
+.site-header nav ul,
+.site-header .prefs {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-1) var(--sp-4);
   margin: 0;
   padding: 0;
   list-style: none;
+  font-size: var(--fs-sm);
 }
-/* 命中尺寸：导航/页脚的文字链接原先只有 20px 高 ⇒ 低于 WCAG 2.2 AA 2.5.8 的 24×24 ✗
-   （通用几何审计抓到的第三类，不是人眼）。撑到 24px 高不影响版面：行高 32px 由控件决定。 */
 .site-header nav a,
-.site-footer a {
+.site-header .prefs button {
+  font: inherit;
+  color: var(--ink-2);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
+  /* 命中尺寸：≥24×24（WCAG 2.2 AA 2.5.8；原先文字链接只有 20px 高 ✗） */
   min-height: 24px;
 }
-.site-header nav a { color: var(--ink-2); text-decoration: none; }
-.site-header nav a:hover { color: var(--ink); text-decoration: underline; }
-
-.theme-toggle {
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
-  background: var(--surface);
-  border: 1px solid var(--border-control);
-  border-radius: var(--radius-control);
-  /* ⚠ **固定高度 + flex 居中**，不用 `min-height` + 上下 padding（用户 2026-10-09：
-     「请把按钮高度搞统一，按钮中横线对齐」）：带文字的 pill 会按 line-height+padding
-     长到 33.8px，而图标/单字方框是 32px ⇒ 中心线对上了、**上下边仍差 1.8px** ✗。
-     固定 32px 后三种控件**逐个像素等高**，内容由 flex 居中，谁也不会再撑高它。 */
-  height: 32px;
-  padding: 0 var(--sp-3);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.theme-toggle:hover { color: var(--ink); }
-
-/* 头部控件组（主题图标 / 语言 / GitHub）。**这一层是必需的**：`.site-header .wrap`
-   是 `align-items: baseline`，而图标按钮里没有文字 ⇒ 它的基线与带文字按钮的基线
-   不是一回事，两个方框会错开（用户 2026-10-09 实测报的「不在一条水平线上」）。
-   组内 `align-items: center` 自己对齐，`align-self: center` 让整组在头部行里居中。 */
-.header-controls {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  align-self: center;
-}
-.gh-link { text-decoration: none; }
-
-/* 主题按钮 = **图标**（用户 2026-10-09）：文字版「跟随系统」四个字 vs「浅色/深色」两个字
-   ⇒ 切换时宽度会跳；图标三种状态同宽。哪一版图标由 CSS 按 `:root[data-theme]` 选
-   （`system` = 没有 `data-theme` 属性 ⇒ 半明半暗那个），`site.js` 只管 `aria-label`。 */
-/* 主题（图标）与语言（`EN`/`中`）都做成**同尺寸的方框**（用户 2026-10-09：
-   语言按钮"只需要一个方框"）—— 两个方框同宽同高，控件组里自然成一条线 ✓。 */
-.icon-toggle,
-.lang-toggle {
-  width: 34px;
-  min-width: 34px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
+.site-header nav a:hover,
+.site-header .prefs button:hover { color: var(--ink); text-decoration: underline; }
+.site-header .prefs button[aria-pressed="true"] { color: var(--ink); font-weight: 600; }
+/* 单个汉字的项（「中」「英」）只有 14px 宽 ⇒ 命中尺寸不足 24×24（WCAG 2.2 AA 2.5.8）✗。
+   给**命中宽度**而不是画框：字仍在正中，看上去还是纯文字 ✓。 */
+.site-header .prefs button {
+  min-width: 24px;
   justify-content: center;
 }
-.icon-toggle .ico { display: none; width: 16px; height: 16px; }
-.icon-toggle .ico-system { display: block; }
-:root[data-theme="light"] .icon-toggle .ico-system,
-:root[data-theme="dark"] .icon-toggle .ico-system { display: none; }
-:root[data-theme="light"] .icon-toggle .ico-light { display: block; }
-:root[data-theme="dark"] .icon-toggle .ico-dark { display: block; }
 
 /* ── 大节 ─────────────────────────────────────────────────────── */
 .section { padding: var(--sp-7) 0; }
@@ -622,37 +590,6 @@ p code, li code, td code, dd code, dt code {
   color: var(--ink-3);
 }
 
-/* ── 更新日志页（site/changelog.html，生成物）─────────────────── */
-.toc {
-  margin: var(--sp-6) 0 0;
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  padding: var(--sp-4) 0;
-  font-size: var(--fs-ui);
-}
-.toc ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2) var(--sp-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.toc li { margin: 0; }
-.toc .tag { margin-left: var(--sp-2); }
-
-.release { padding: var(--sp-7) 0 0; }
-.release + .release { border-top: 1px solid var(--rule); }
-.release h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-3); }
-.release h2 .ver { font-size: var(--fs-2xl); }
-.release h3 {
-  font-family: var(--font-mono);
-  font-size: var(--fs-ui);
-  color: var(--ink-3);
-  font-weight: 400;
-  margin: var(--sp-5) 0 var(--sp-2);
-}
-
 /* ── 「宽家具」：正文栏 40rem 是**读**的约束，不是版面的约束 ──────
    截图与三张卡片可以比正文宽一档、居中悬挑；窄屏自动退回栏宽（min() 保证不横向溢出）。
    ⚠ **必须放在组件之后**：`.shot` / `.cards` 自己的 `margin` 简写会把 margin-inline
@@ -685,7 +622,12 @@ p code, li code, td code, dd code, dt code {
   padding: 0;
   list-style: none;
 }
-.site-footer a { color: var(--ink-2); }
+.site-footer a {
+  color: var(--ink-2);
+  display: inline-flex;      /* 命中尺寸 ≥24×24（WCAG 2.2 AA 2.5.8） */
+  align-items: center;
+  min-height: 24px;
+}
 .site-footer a:hover { color: var(--ink); }
 .ver { font-family: var(--font-mono); }
 

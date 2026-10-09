@@ -1,4 +1,4 @@
-# 官网：面向新人的首页 + 更新日志子页（2026-10-09）
+# 官网：面向新人的**单页**（2026-10-09）
 
 > **本文是 `site/` 的权威设计。** 它接替 2026-09-21 的「单页四节」版（是什么 /
 > 怎么安装 / 核心特点 / 未来的计划），并继续取代 2026-09-20 的 28 页重构
@@ -30,7 +30,6 @@ python3 scripts/check-site.py --browser  # 另加两项真 Chrome：零 404 + �
 ```text
 site/
   index.html             ← 首页：头图 / 它是什么 / 怎么开始 / 教材 / 与 Lean 4 的关系
-  changelog.html         ← 更新日志子页（**生成物**，源 editor/vscode/CHANGELOG.md）
   assets/site.css        ← 唯一的样式表（令牌 + 组件，自带亮/暗两套）
   assets/site.js         ← 唯一的脚本（主题切换 / 版本回填 / 复制 / 按主题换头图）· i18n.js 中英文自动识别与切换 · fonts.css 自托管字体
   assets/hero-vscode{,-dark}.png ← 头图**两版配色**（真 VS Code + 已发布插件，生成物，见 §4）
@@ -51,9 +50,9 @@ site/
 换文案发生在首帧之前）—— `navigator.languages` 里**任何**一个 zh\* 保持中文，否则整页换英文；
 **没有 `?lang=`、没有重定向**（用户点名）；topbar 有一个**语言按钮**（用户 2026-10-09 点名要，方便手动验证两种语言）—— 它只往 `localStorage["soko-lang"]` 写一个覆盖值，**自动识别仍是默认路径**，按钮再点一下即回到自动 ✓；按钮标签写**当前语言**（中文页「中」/ 英文页「EN」—— 2026-10-09 用户问过"是不是状态反了"，原先写"切过去会变成什么"会被读成"现在就是英文" ✗）。没有 JS 时页面就是完整中文版 ✓。
 
-子页 `changelog.html`：最近 **7** 个版本的正文 + 全部版本直链 —— **只放 7 个**是因为站点有
-120 KB 体积预算（`assets` 项判死），而整份 CHANGELOG 是 160 KB 量级的 Markdown；2026-10-09
-加第二语言与 topbar 三控件后按"预算不抬、从内容侧省"一路 10 → 8 → **7**（每减一版约省 7 KB）✓。
+**更新日志不再有子页**（2026-10-09 用户拍板：「changelog 不要单独子页面了，链接到 github
+对应的地方吧」）⇒ 页脚直链 `editor/vscode/CHANGELOG.md` 的 GitHub 页面：站点因此只剩一页，
+少一份生成物、少一份逐字节判据、也少 47 KB 体积（`html+css+js` 从 114 KB 掉到 60 KB）✓。
 
 ## 3. 保留了什么，为什么
 
@@ -72,7 +71,7 @@ VSIX** → 干净 profile 起真 VS Code → 把光标停在课程单元里 `int
 
 用 **CDP**（`--remote-debugging-port`）而不是 `screencapture`：后者要 macOS「屏幕录制」权限，本机实测被拒（`could not create image from display`）⇒ 不可复现。⚠ 带 `clip` 的 `Page.captureScreenshot` 会**按裁切框重排页面**（实测面板内容漂了 80+ px）⇒ 一律整窗截图 + `sips --cropOffset` 裁切。**判据落在像素上**：截完用系统 Vision OCR 回读，逐条断言图里真的有定理名、`sorry`、面板里的目标等式与假设；缺一条就**删掉图**并退出码 1。
 
-**更新日志是生成物**：`scripts/gen-site-changelog.py` 从 `editor/vscode/CHANGELOG.md` 生成 `site/changelog.html`（带生成标记）；`check-site.py` 的 `changelog` 项**重新生成一次并逐字节比对** ⇒ "忘了重新生成"判红，而不是悄悄漂移。
+**更新日志不进站点**：直接指向 GitHub 上的 `CHANGELOG.md`（`scripts/gen-site-changelog.py` 与 `site/changelog.html` 已删）—— 少一份生成物就少一处漂移面，版本历史本来就在那边维护 ✓。
 
 ## 5. 防漂移的机制
 
@@ -93,7 +92,7 @@ VSIX** → 干净 profile 起真 VS Code → 把光标停在课程单元里 `int
 ≤ 120 KB）· `data`（与最新 tag 一致）· `changelog`（逐字节）· `render` / `layout`（真 Chrome；
 `render` 用 `--accept-lang` 跑**两种浏览器语言**，判"中文读者看中文 / 其它语言看英文"）。
 
-**发布之后**：先 `git fetch --tags`（`gen-site-data.py` 只看**本地 tag**，不 fetch 会静默停在旧版本 ✗），再跑 `gen-site-data.py` 与 `gen-site-changelog.py` 把新版本写进数据与子页（两者的 `--check` 会因此判红，这是有意的：本地绿必须意味着"仓库里写的就是线上写的"）。头图不必每次重截 —— 只在 UI 变化时重跑 `node scripts/site-screenshot.mjs [--theme dark]`（两版：同一 VSIX、同一靶子、同一裁切几何，只换 `workbench.colorTheme`）。
+**发布之后**：先 `git fetch --tags`（`gen-site-data.py` 只看**本地 tag**，不 fetch 会静默停在旧版本 ✗），再跑 `gen-site-data.py` 把新版本写进数据（`--check` 会因此判红，这是有意的：本地绿必须意味着"仓库里写的就是线上写的"）。头图不必每次重截 —— 只在 UI 变化时重跑 `node scripts/site-screenshot.mjs [--theme dark]`（两版：同一 VSIX、同一靶子、同一裁切几何，只换 `workbench.colorTheme`）。
 
 ## 6. 已知边界
 

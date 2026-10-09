@@ -1,12 +1,12 @@
-# sokonanoda
+# Sokonanoda
 
-> sokonanoda 是一个 Lean 4 式教学编译栈。你和一个 code agent 打开同一个
+> Sokonanoda 是一个 Lean 4 式教学编译栈。你和一个 code agent 打开同一个
 > `.sokonanoda` 文件：agent 在里面写定义、举例子、出题（练习位留成 `sorry`），
 > 你在同一个文件里把 `sorry` 填成证明，判定由**完整内核**给出——不是文本比对，
 > 也不是模型打分。教学语法是真实 Lean 4 的子集。
 
 官网：https://colorlessboy.github.io/sokonanoda-lang/（面向新人的单页：它是什么 /
-怎么开始 / 教材）· 更新日志子页 https://colorlessboy.github.io/sokonanoda-lang/changelog.html
+怎么开始 / 教材）· 更新日志见 https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md
 
 ## 是什么
 
