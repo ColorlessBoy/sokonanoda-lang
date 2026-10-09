@@ -135,7 +135,15 @@ skills.
   α -> Set α -> Prop`), and how to type it; the hover box covers **exactly the
   symbol** (so `⁻¹'` and `×ˢ` are framed correctly). `F12` / ctrl+click on a
   notation symbol jumps to the `infix:`/`prefix:`/`postfix:` line that declared
-  it — **across `import`**, into the library module.
+  it — **across `import`**, into the library module. The **built-in** symbols
+  (`∧ ∨ ↔ ¬ ≠ =`) jump to their registration line in the prelude source, and so
+  do the target names inside those comments (`And` → `inductive And`,
+  `Eq` → `axiom Eq`); targets that live in a course library you have not
+  imported say so in the hover instead of failing silently.
+- **Hover inside a tactic**: the goal state entering that tactic, and — when the
+  cursor is on a **name** (`apply Set.ext`, `exact h`, …) — a divider followed by
+  that name's own type. On the tactic keyword, on numbers, brackets or strings
+  nothing is added, so the goal panel reads exactly as before.
 - **Compile progress you can see**: the status bar switches to a *compiling…* state,
   the Infoview shows a three-line progress block, and the overview ruler marks the
   document being compiled (`sokonanoda.progress.throttleMs` throttles the in-between

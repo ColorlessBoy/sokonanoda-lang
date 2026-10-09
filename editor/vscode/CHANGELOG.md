@@ -1,3 +1,45 @@
+## [Unreleased]
+
+> **Four reported editor-feedback items are closed — plus two seams found while fixing
+> them.** The prelude's own source now compiles clean (it never did) and a guard keeps it
+> that way; `=` has a go-to-definition target and the target names inside the prelude's
+> registration comments are navigable; `rfl` accepts `Iff` goals whose sides are
+> definitionally equal (matching Lean 4, where `rfl` is literally `exact Iff.rfl`) and
+> `Iff.rfl` exists; hovering a name inside a tactic shows that name's type after a
+> divider. While fixing those, two seams were found and closed: hovering a name could
+> show a **stale** type after you edited the constant's signature, and `soko gate --fast`
+> never actually ran the second crate's unit tests.
+
+### Fixed
+
+- **prelude 的生效源自己编译不过**（用户报「「prelude」文件自己都编译不过自己」）。
+  `prelude/L1.sokonanoda` 的 `Classical.byContradiction` 里 `Or.elim` **漏了动机位 `c`**
+  （`Classical.em p` 被塞进 `f`）⇒ 那份源 43 条声明里 1 条判红，而它是**受信任安装**
+  （装进环境后内核从不重查）⇒ 体的类型错误被静默装进环境，**没有任何判据**判过它。
+  修法 = 只修体 + **新守卫**把**生效源**（F12 打开的那一份）当普通文档判（0 诊断 +
+  声明计数），与 `scripts/soko grade` 同一条通道。判据：`grade` exit 1 → **exit 0 /
+  43 checked / 0 诊断**；**反向验证**：把体改回错的 ⇒ 守卫当场判红 ✓。
+- **`=` 上没有 F12 · 指令登记注释行里的目标名不可跳 · 内建记法的 hover 说假话**。
+  prelude 登记区补 `-- sokonanoda:builtin-notation "=" => Eq`（与另外 5 条对称；**词法
+  符号表一行未动** ⇒ `=>` 的分词由 R-2 用例钉住）；`notation_target_at` 同时认**注释
+  形态** ⇒ 注释里的目标名走已有真相通道落到**定义那一行**；hover 删掉「没有源码声明，
+  `F12` 无处可跳」（E10 之后它与 `definition` 当场自相矛盾）。判据都**断言落点行号 +
+  非自跳**（E05/G-37 的教训），**反向验证**：删登记行 ⇒ front + LSP 逐字判红 ✓。
+- **`rfl` 在 `↔` 形状的目标上不可用**（用户报「这类都不能使用 rfl」）。**对齐 Lean 4**：
+  `rfl` 接受 `Iff` 头（候选 `Iff.refl`，**仍由内核裁决** —— 两边不 defeq 的 `a ↔ b`
+  **仍判红** ✓）；补全与 quick-fix 在 `Iff` 形状目标上也给**内核验证过的** `Iff.refl`；
+  形状错误文案改成**指出出路**；并按 Lean core 加上 **`Iff.rfl`**（Mathlib 的
+  `mem_empty_iff_false` 原文就是它）。
+- **tactic 里的名字上 hover 没有它本身的类型**（用户报「我希望 hover 除了 goal state，
+  分割线后再加上 `Set.ext` 本身的类型」）。光标在**名字**上 ⇒ goal state + Markdown
+  水平线 + 该名字的类型（折记法）；在 **tactic 关键字**上**一个字节都不加**（与改前
+  逐字节相同）；拿不到干净类型（`$N` / unknown）⇒ **不编那一行**。`range` 仍是整条
+  tactic（写进 `docs/protocol.md`）。
+- **改完签名再 hover 会说旧签名**（做上一条时横向排查逮到的**假话**）：hover 里问常量
+  签名走的是进程级**名字键**缓存（没有失效路径）⇒ `def myop : Nat := 0` 改成
+  `def myop : Bool := …` 之后，goal state 是新的而名字那行仍是 `Nat`。修法 = `lib.rs` 里
+  **所有 hover 路径**改走**前缀键**的查询（零性能代价）。
+
 ## [0.87.1] — 2026-10-09
 
 > **Three reported defects are closed, and one gesture now matches Lean 4.** `#check`
