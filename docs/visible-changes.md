@@ -28,6 +28,8 @@
 ---
 
 `myop : Nat`` · 编译路径那一半**未动**，登记台账 **G-100（open）** |
+| **hover 收口 + 命令输出不重复（2026-10-10 用户逐条实测）** | ① **tactic 里名字的类型行**从行内码变成**独立 ```sokonanoda 围栏块**（与 tactic 行/goal 同一套上色；`apply h` 的 `h` 同样）——修前它一个像素的高亮都没有；② `def` 的声明 hover **多一个 `:= <值>` 围栏块**（`theorem`/`axiom`/`inductive` **逐字节不变**）；③ 光标在 `#check`/`#print` 那一行 ⇒ hover 显示**那条命令自己的输出**（`#print Set.singleton` 修前**完全静默**；`#check Eq.refl` 修前只剩 `Eq.refl`、没有类型 —— 真根因是内核 pp 在**层元变量**上 panic 被静默吞成空串）；④ Infoview 的「命令输出」**不再每编辑一次 +1**（修前 3 → 4 条）；⑤ 类型文本不再折坏（`(α = a) a` → `a = a`） | LSP wire：`hover_on_a_tactic_constant_name_shows_goal_state_then_its_signature`（结构断言：围栏 + `名字 : ` + 非空类型）· `hover_on_a_def_declaration_shows_its_type_then_its_value` · `hover_on_a_theorem_or_axiom_declaration_has_no_value_block` · `hover_on_a_check_line_shows_the_command_output`（含**不许出现 `?u`**）· `hover_on_a_print_line_shows_the_printed_declaration` · `command_line_hover_does_not_hijack_a_declaration_name`（`cargo test -p sokonanoda-lsp --lib hover` = **45 passed**）· front 真相：`mvar_levels_compare_without_panicking`（内核）· `an_artifact_round_trip_keeps_the_command_attribution` · `splicing_is_idempotent` · 折叠逐条表 · 真 LSP/真产物复现件 `docs/gaps/repro/G10{2,3,4,5}-*.sh`（修前 exit 0 ⇒ 修后 **exit 1**）· 反向验证四条各自实测判红 |
+
 ## 怎么跑（每一列一条命令）
 
 ```bash

@@ -1,3 +1,43 @@
+## [Unreleased]
+
+> **Hover is one surface now, and the Infoview's command output stops duplicating.**
+> Every piece of `.sokonanoda` text in a hover (a tactic's name type, notation
+> signatures, a declaration's signature, a `def`'s value) is rendered through the
+> same fenced code block, so it gets the same syntax colours as the goal state.
+> Hovering a `#check`/`#print` line shows that command's own output — the same
+> truth the Infoview's 「命令输出」 block shows. `def` declarations now show both
+> their type and their `:=` body. And the command output no longer duplicates on
+> every edit (it did grow by one per edit, because a replayed project artifact
+> lost the command attribution the incremental splice de-duplicates on).
+
+### Fixed
+
+- **hover 的语言文本统一走围栏块**（用户报「不是从统一渲染接口获取的，也没有正常的代码高亮」）：
+  tactic 里名字的类型行、记法符号/目标名/内建登记名的签名行，以前是**行内码**
+  （VS Code 不给行内码上色）⇒ 现在一律是**独立的 ```sokonanoda 围栏块**，与
+  tactic 行 / goal state / 声明卡片**同一个 `code_block`**。判据：LSP hover
+  5 条结构断言（围栏 + `名字 : ` + 非空类型；**不锁类型字面**）+ 真 LSP 复现件
+  `docs/gaps/repro/G103-hover-unified-rendering.sh`。
+- **`def` 的 hover 带上 `:=` 值块**（用户：「hover 信息应该把类型和 `:=` 后面的含义块
+  也显示出来……跟 infoview 里面的声明列表对齐」）：类型块之后多一个 `:= <值>` 围栏块
+  （与 Infoview 的 `decl-val-line` 同语义）；`theorem`/`axiom`/`inductive` 的 `val_text`
+  是 `None` ⇒ **逐字节不变**。
+- **`#check` / `#print` 那一行的 hover**（用户报「`#check Eq.refl` 只有一个高亮的
+  `Eq.refl`，没有有效的类型信息」·「`#print Set.singleton` 上没有 hover 信息弹出」）：
+  光标落在命令行上 ⇒ 显示**那条命令自己的输出**（真相层 `QueryDoc::messages_at`，
+  与 Infoview 的「命令输出」块**同一份真相**）。`#print` 那一行以前**一个 hover 行
+  都没有**（`walk.rs::print` 从不 push `cmd_hovers`）⇒ 完全静默。`#check Eq.refl`
+  的真根因是**内核 pp 在未解层元变量上 panic**、被 `resolve_hovers` 静默吞成空文本
+  ⇒ `leq_core` 按 Lean 4（`level.h:57` / `level.cpp:507`，无 panic 路径）补齐 `MVar`
+  臂（**只覆盖以前 panic 的输入**）。
+- **Infoview 的「命令输出」不再每编辑一次 +1**（用户报「每编辑一下，`#check` 和
+  `#print` 就会多重复一次」，现场 3 → 4 条）：根因 = 项目产物/全局缓存**回放**时
+  `CheckInfo::cmd`/`PrintInfo::cmd`（`#[serde(skip)]`）**归零**，而增量拼接按 `cmd`
+  去重 ⇒ 缓存那份永远留下 + 新查那份照样追加。修法 = `cmd` **进序列化**
+  （`REPORT_SHAPE` 4 → 5，旧条目整库不命中）+ 拼接加**与 cmd 无关的幂等闸门**
+  （按源位置去重、留 fresh 那份）。判据：front 两条 + 真 LSP/真产物复现件
+  `docs/gaps/repro/G102-command-output-not-duplicated.sh`（修前 `["check","check"]`）。
+
 ## [0.87.2] — 2026-10-10
 
 > **Four reported editor-feedback items are closed — plus two seams found while fixing

@@ -29,7 +29,12 @@ skills.
 - **Types on hover, with real names** — hover any expression (including
   inside parentheses) for `expression : type`; partial applications
   print your actual binder names, definition heads stay folded
-  (`Not a`, not `a -> False`).
+  (`Not a`, not `a -> False`). Hovering a **name inside a tactic** shows the
+  goal state, then that name's own type; hovering a **declaration** shows its
+  signature and, for a `def`, the `:=` body too; hovering a **`#check` /
+  `#print` line** shows that command's output. Every piece of `.sokonanoda`
+  text in a hover is a syntax-coloured fenced block (the same renderer as the
+  goal state and the Infoview cards).
 - **Honest warnings** — a declaration named `Prop`, `Sort` or `Type` still
   compiles, but those names are already defined by the kernel, so the name
   can never be used; the editor flags it with a `reserved-declaration-name`

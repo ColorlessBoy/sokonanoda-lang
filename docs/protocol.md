@@ -304,14 +304,20 @@ range is the tactic's span. Editors need no extra work: it is ordinary hover.
 
 Cursor on a **name inside the tactic** (`Set.ext` in `apply Set.ext`, `h` in
 `exact h`) ⇒ the goal state above is followed by a Markdown horizontal rule
-and one signature line (example: the tail of the hover for `apply Set.ext`):
+and one signature **block** (example: the tail of the hover for `apply Set.ext`):
 
     ---
 
-    `Set.ext : {α : Type} → (A : Set α) → (B : Set α) → … → A = B`
+    ```sokonanoda
+    Set.ext : {α : Type} → (A : Set α) → (B : Set α) → … → A = B
+    ```
 
 - **Divider** = `---` alone on its line, blank line before and after (glued to
   the preceding fence it would parse as a setext heading, not a rule).
+- **Signature block** = its own fenced `sokonanoda` block (the same fence
+  language as the tactic line and the goal state above), first line
+  `<name> : <type>` — so the editor colours the name and its type instead of
+  rendering a bare inline-code line.
 - **Resolution**: a hypothesis of the entering state first (`exact h` ⇒
   `h : …`, the very text the goal block shows), else the kernel's constant
   signature (`judge_type_of_constant`; prefix = import closure + entry file,
@@ -323,6 +329,37 @@ and one signature line (example: the tail of the hover for `apply Set.ext`):
 - **Range**: still the whole tactic span, not the name's — the trigger stays
   "anywhere in the tactic" (clicking `apply` still shows the goal state), and
   narrowing it to the name would make the keyword positions silent.
+
+## Declaration hover (2026-10-10)
+
+`textDocument/hover` on a declaration's **name** answers with fenced
+`sokonanoda` blocks (keyword positions stay silent, as before):
+
+1. the signature — `<kind> <name> : <type>` (`def`/`theorem`/`axiom`/…;
+   `<kind> <name>` alone when the kernel has no type text);
+2. the **value**, when the declaration has one — a second, independent block
+   holding `:= <value>` on one line. Only `def`/`opaque` have a value
+   (`theorem`/`axiom`/`inductive` have none ⇒ no second block at all). This is
+   the very text the Infoview declaration card shows as its `decl-val-line`
+   (`value`/`value_runs` in `soko/goals`): a `def`'s type often cannot tell you
+   what it *is* (`Set.mem`'s type is
+   `forall (α : Type 0), α -> Set α -> Prop`; its value is
+   `fun (α : Type 0) (a : α) (A : Set α) => A a`);
+
+followed by the existing status line (`已通过内核检查` / `未通过，见诊断` /
+the open-exercise text). The hover range stays the declaration's span.
+
+## Command-line hover (2026-10-10)
+
+`textDocument/hover` **on a `#check` / `#print` line** (anywhere on that line)
+answers with **that command's own output** as one fenced `sokonanoda` block —
+the very `text` the Infoview's 「命令输出」 block shows (`soko/stateAt.messages`,
+same selection semantics: by line). Hover and the panel therefore cannot drift.
+The hover range is the command's span; a line with no command output falls
+through to the ordinary hover chain (`#check Eq.refl` used to answer with the
+bare expression because the kernel pretty-printer panicked on an unsolved level
+metavariable and the hover map silently degraded to an empty type text;
+`#print` had no hover row at all).
 
 ## Custom LSP requests (goal view, I9)
 

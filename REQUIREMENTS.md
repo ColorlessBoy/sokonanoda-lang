@@ -243,6 +243,10 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 
 **要求**：默认中文；`navigator.languages` 含 `zh*` 保持中文，否则整页换英文（英文文案字典）；**无 toggle、无重定向、无 `?lang=`**；所有文案（hero / 两个按钮 / 三卡片 / 三步 / 教材 / 与 Lean 4 的关系 / 页脚）与 changelog 子页都要有英文版。做法与判据：`site/assets/i18n.js` + 每页 `<script type="application/json" id="i18n-en">` 字典（纯数据），`i18n` 项判"字典键与 DOM 逐个对齐"、`render` 项用 `--accept-lang` 判两种语言的真渲染 ✓。
 
+### 9.9 2026-10-10 专项：编辑器 hover 统一收口 + 命令输出不重复（用户逐条实测 ✓）
+
+用户逐条：① tactic 名字的类型「不是从统一渲染接口获取的，也没有正常的代码高亮」；② `#check Eq.refl` 的 hover「只有一个高亮的 `Eq.refl`，没有有效的类型信息」；③ `#print Set.singleton`「没有 hover 信息弹出」；④ `def` 的 hover 要「把类型和 `:=` 后面的含义块也显示出来……跟 infoview 的声明列表对齐」；⑤「每编辑一下 `#check`/`#print` 就多重复一次……编辑 `mem_of_subset_singleton` 会影响非它块的东西，完全不符合预期」。**要求**：hover 里凡 `.sokonanoda` 语言文本（tactic 名字的类型 · 记法符号/目标名/内建登记名签名 · 声明签名与 `def` 的值）一律走**同一个围栏块接口**（`code_block`+`CODE_LANG`；**行内码不许再渲染语言文本** ✗）；`def` hover = 类型块 + `:= <值>` 块（`theorem`/`axiom`/`inductive` 一个字节都不加）；光标在 `#check`/`#print` 行 ⇒ 显示**那条命令自己的输出**（真相层 `messages_at`，与 Infoview「命令输出」块同一份真相）；命令输出**每编辑一次 +1 是 bug** ⇒ 判据「产物命中 + 编辑一次后 `stateAt.messages` 仍恰好 1 条」+「同一报告拼接两次幂等」，**编辑的爆炸半径 = 那个声明自己**（用户既有设计）；内核 pp 在未解层元变量上 panic 曾让类型被吞成空串（② 的真根因）⇒ `leq_core` 按 Lean 4 补齐（`level.h:57` / `level.cpp:507`，**无 panic 路径**）。契约 `docs/protocol.md`；读数 `docs/visible-changes.md` + `STATUS.md`；台账 **G-102…G-105**。
+
 ### 9.4 历史索引（一行一条；**全文见归档** ✓）
 
 * **归档**：`docs/archive/REQUIREMENTS-ARCHIVE.md` —— **3146 行逐字原文** ✓
