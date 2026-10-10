@@ -1080,15 +1080,26 @@ Eq.{1} (Set α) A B := by\n  apply Set.ext\n  exact h\n";
     (dir, uri, src.to_string())
 }
 
-/// 光标在 **`apply` 关键字**上时的输出 —— **改动前**（2026-10-10，
-/// `5afd1938` + 同夹具）的 wire 字节。反向判据的基线：
-/// 「关键字上 ⇒ 不加那一行」必须**逐字节**成立（不是"看着差不多"）。
+/// 光标在 **`apply` 关键字**上时的输出 —— **tactic 文档体系 P2 之前**（2026-10-10，
+/// `5afd1938` + 同夹具）的 wire 字节。
+///
+/// ⚠ **口径在 P2 改过一次**（设计 `docs/design/tactic-docs.md` §4.1 D2 / §4.8.1 ①）：
+/// P2 起，**tactic 关键字**上的 hover 会多**一行摘要**（需求①）⇒ "整段等于本基线"
+/// **不再成立、也不可能成立**。本基线**保留**，但降级成「**goal state 那一段**」的
+/// 期望值：判据改成 **"把新增的摘要行删掉 ⇒ 剩下的与本基线逐字节相同"**
+/// （`hover_on_a_tactic_keyword_adds_only_the_summary_line`）✓ —— 本意（不许顺手改
+/// goal state 的渲染 / 围栏 / 顺序）**完整保留**，改的只是口径。
+///
+/// 它今天挡的是：① goal state 那一段被改动（围栏语言 / `tactic i/n` / 空行 / 顺序 /
+/// 目标文本）；② 摘要行**之外**还多出别的东西；③ 摘要文本里出现 `---`（关键字上
+/// 不许有名字行那条断言仍在）或**新增围栏**（`fence_blocks()` 的计数判据在别处）。
 ///
 /// ⚠ **目标那一行在 2026-10-10 更新过一次**（G-105：记法折叠只折**完全应用**）：
 /// 以前 `Eq (Set α) A` 这个内层**部分应用**被折成 `(Set α) = A`、尾巴 `B` 留在
 /// 外面 ⇒ `⊢ ((Set α) = A) B` ✗；修后是 `⊢ A = B` ✓（`Eq (Set α) A B` 本就该这样读）。
 /// **其余每一行逐字节不变**（围栏 / `tactic 1/2` / 空行 / 顺序）—— 这条守卫挡的是
-/// "关键字上多加一行"，不是"目标怎么折"，所以基线跟着折叠修法走、结构不许动 ✓。
+/// "goal state 那一段被顺手改走"，不是"目标怎么折"，所以基线跟着折叠修法走、
+/// 结构不许动 ✓。
 const APPLY_KEYWORD_BASELINE: &str = "\
 ```sokonanoda
 apply Set.ext
@@ -1103,6 +1114,109 @@ h : (x : α) → (A x) ↔ (B x)
 ⊢ A = B
 ```
 ";
+
+/// **语言关键字基线 ①（§7 边界 7）**：光标在 tactic **里面**的语言关键字
+/// （`exact fun (a : P) => a` 的 `fun` / `=>`）上 —— **P2 之前**（2026-10-10 实测，
+/// `crates/lsp/src/lib.rs` 的探针）的 wire 字节。
+///
+/// 它们是"**有 hover 的路**"的语言关键字：光标在 tactic 的 span 里 ⇒ 今天就走
+/// `tactic_goal_hover`（goal state）。P2 只许在**这一步自己的关键字**上加摘要
+/// ⇒ `fun` / `=>` 上必须**逐字节**仍是这一段（那两行里**没有**摘要）。
+const LANGUAGE_KEYWORD_IN_TACTIC_BASELINE: &str = "\
+```sokonanoda
+exact fun (a : P) => a
+```
+tactic 1/1
+
+```sokonanoda
+⊢ P → P
+```
+";
+
+/// **语言关键字基线 ②（§7 边界 7）**：值位的 `=>`
+/// （`def myid : Prop -> Prop := fun (x : Prop) => x` 里那个）—— **P2 之前**
+/// （2026-10-10 实测）走的是**表达式 hover**（不是 `None`）。
+///
+/// 记在这里是为了让"语言关键字一字不动"这条判据**咬得住两条不同的形态**：
+/// 被关键字闸门吞掉的（`def` / 值位 `fun` / `by` ⇒ `None`）与**有真 hover** 的
+/// （本基线）。反向验证：把关卡放开、或让摘要行对语言关键字也生效 ⇒ 两条都判红 ✓。
+const ARROW_IN_VALUE_BASELINE: &str = "\
+```sokonanoda
+fun (x : Prop) => x : Prop → Prop
+```";
+
+/// **tactic 关键字的偏移**：`anchor` 必须以那条 tactic 的**整行**结尾，且在源码里
+/// **唯一**（`assert_eq!` 计数）—— 免得 `offset_of(src, "apply")` 命中注释 / 名字里
+/// 的同一个词（那种"打错位置 ⇒ 调试一个幻影"的坑）。
+fn tactic_at(src: &str, anchor: &str) -> usize {
+    assert_eq!(
+        src.matches(anchor).count(),
+        1,
+        "anchor 在 fixture 里必须唯一：{anchor:?}"
+    );
+    let start = src.find(anchor).expect("anchor 在 fixture 里");
+    let line = anchor.rsplit('\n').next().unwrap_or(anchor);
+    let indent = line.len() - line.trim_start().len();
+    start + anchor.len() - line.len() + indent
+}
+
+/// **摘要行的判据**（wire / 用户可见）：`name` 那条 tactic 的 hover 里，
+/// 摘要行必须
+/// ① 紧跟 tactic 围栏块的闭合行（= 插在 tactic 行与 `tactic i/n` 之间）；
+/// ② **逐字**等于 `**`<关键字>`** — <表里的摘要> · 完整文档：`F12``
+///    （摘要取 `front::tactics`，**不是**"含有某句话"、更不是同一句 fallback ✗）；
+/// ③ 摘要**恰好出现一次**、且在 goal state（`⊢`）**之前**；
+/// ④ 不新增围栏（仍是 tactic 行 + goal state 两个块）、不出现 `---`。
+fn assert_tactic_summary_line(value: &str, name: &str) {
+    let doc = sokonanoda_front::tactics::doc(name).unwrap_or_else(|| panic!("`{name}` 必须在表里"));
+    let expected = format!("**`{name}`** — {} · 完整文档：`F12`", doc.summary);
+    let lines: Vec<&str> = value.split('\n').collect();
+    let close = lines
+        .iter()
+        .position(|l| *l == "```")
+        .unwrap_or_else(|| panic!("tactic 围栏块必须闭合：{value:?}"));
+    assert_eq!(
+        lines.get(close + 1).copied(),
+        Some(expected.as_str()),
+        "摘要行必须紧跟 tactic 围栏块、且逐字等于表里那一句：{value:?}"
+    );
+    assert!(
+        lines
+            .get(close + 2)
+            .is_some_and(|l| l.starts_with("tactic ")),
+        "摘要行之后必须是 `tactic i/n`：{value:?}"
+    );
+    assert_eq!(
+        value.matches(doc.summary).count(),
+        1,
+        "摘要必须**恰好出现一次**：{value:?}"
+    );
+    let goal = value
+        .find('⊢')
+        .unwrap_or_else(|| panic!("goal state 必须还在：{value:?}"));
+    assert!(
+        value.find(doc.summary).expect("摘要") < goal,
+        "摘要必须在 goal state **之前**：{value:?}"
+    );
+    assert_eq!(
+        fence_blocks(value).len(),
+        2,
+        "摘要不许新增围栏（tactic 行 + goal state = 2）：{value:?}"
+    );
+    assert!(!value.contains("---"), "摘要不许引入分割线：{value:?}");
+}
+
+/// 把**新增的摘要行**（tactic 围栏块闭合之后的下一行）整行删掉 —— 判据用它把
+/// "新增的"与"原有的"分开：删掉后必须与**改动前**的基线逐字节相同。
+fn strip_summary_line(value: &str) -> String {
+    let mut lines: Vec<&str> = value.split('\n').collect();
+    let close = lines
+        .iter()
+        .position(|l| *l == "```")
+        .unwrap_or_else(|| panic!("tactic 围栏块必须闭合：{value:?}"));
+    lines.remove(close + 1);
+    lines.join("\n")
+}
 
 /// **围栏块的内容列表**（wire 层）：按 ```sokonanoda 切开，返回每个块的正文
 /// （到闭合围栏为止）。用于"恰好几个块 / 第几个块是什么"这类**结构**判据。
@@ -1224,12 +1338,22 @@ async fn hover_on_a_tactic_constant_name_shows_goal_state_then_its_signature() {
     shutdown(&mut service).await;
 }
 
-/// **反向判据（逐字节）**：光标在 **tactic 关键字** `apply` 上 ⇒ 没有类型行、
-/// 没有分割线，输出与改动前**逐字节相同**。
+/// **判据（逐字节 + 用户可见的那一行）**：光标在 **tactic 关键字** `apply` 上 ⇒
+/// 输出 = **一行摘要** + **改动前那一整段**（P2 的 ①②）。
 ///
-/// 这条挡的是"整条 tactic 一律加一行"的退化；`range` 也必须还是整条 tactic。
+/// 两条一起断言，缺一条都是假绿（**② 先判**，反向验证 (a) 打的就是它）：
+/// ① 摘要行在、逐字、在 goal state 之前（[`assert_tactic_summary_line`]）；
+/// ② **把新增那一行删掉 ⇒ 剩下的与 `APPLY_KEYWORD_BASELINE` 逐字节相同** ——
+///    本意（不许顺手改 goal state 的渲染 / 围栏 / 顺序）**完整保留**，只是口径从
+///    "整段等于基线"改成"删掉新增行后等于基线"（设计 §4.1 D2 / §4.8.1 ①）。
+///
+/// **反向验证**：把插入的那一行撤掉（`lib.rs::tactic_goal_hover` 里的
+/// `tactic_keyword_at` 一段）⇒ ② 段当场判红（"删掉"变成删掉 `tactic 1/2` 那一行）。
+///
+/// ⚠ 旧的函数名 `hover_on_a_tactic_keyword_is_byte_identical_to_the_old_output`
+/// 在 P2 之后**是假话**（keywords 上确实多了一行）⇒ 同轮更名 ✓。
 #[tokio::test]
-async fn hover_on_a_tactic_keyword_is_byte_identical_to_the_old_output() {
+async fn hover_on_a_tactic_keyword_adds_only_the_summary_line() {
     let (dir, uri, src) = apply_set_ext_fixture();
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
@@ -1255,10 +1379,16 @@ async fn hover_on_a_tactic_keyword_is_byte_identical_to_the_old_output() {
     let HoverContents::Markup(markup) = hover.contents else {
         panic!("expected markup hover");
     };
+    // ② 删掉新增那一行 ⇒ 剩下的必须与改动前**逐字节相同**（**先判它**：摘要一被撤掉，
+    //    这里删掉的就成了 `tactic i/n` ⇒ 本断言当场判红 —— 反向验证 (a) 打的就是它）。
     assert_eq!(
-        markup.value, APPLY_KEYWORD_BASELINE,
-        "关键字上的输出必须与改动前逐字节相同（不许加行、不许改顺序）"
+        strip_summary_line(&markup.value),
+        APPLY_KEYWORD_BASELINE,
+        "删掉新增的摘要行后，剩下的必须与改动前逐字节相同\
+         （不许顺手改 goal state 的渲染 / 围栏 / 顺序）"
     );
+    // ① 新增的那一行（摘要）：在、逐字、在 goal state 之前。
+    assert_tactic_summary_line(&markup.value, "apply");
     assert!(
         !markup.value.contains("---"),
         "关键字上不许出现分割线：{:?}",
@@ -1854,4 +1984,356 @@ async fn command_line_hover_does_not_hijack_a_declaration_name() {
         "声明名上仍带状态行（没有被命令输出顶掉）：{markup:?}"
     );
     shutdown(&mut service).await;
+}
+
+/// **14 条 tactic 的 `by` 夹具**（每条一个 `example`，**都喂过真内核**：12 checked +
+/// 2 open（`use a` 后面跟 `sorry`、最后那条 `sorry`），`failed` 为空）。
+///
+/// `use` 那条为什么要 `sorry` 收尾：`use w` = `apply <构造子>` + `exact w`，而
+/// `apply` 只做**位置 spine 合一**（教学子集）⇒ 剩下的 `p ?w` 里那个元变量不会被
+/// 后面那步赋值 ⇒ 用 `sorry` 让这条练习**合法地**保持开放（`exercise_open`），
+/// 与"夹具必须能编译出 `by_steps`"这件事不冲突 ✓。
+/// `Sigma` 是**本文件自己声明**的单构造子归纳（单文件夹具用不了课程库的 `Exists`，
+/// 而 prelude 没有 `∃` 记法 —— 实测 `notation-unknown-symbol`）✓。
+const EVERY_TACTIC_SOURCE: &str = "\
+example (a b : Prop) : a → b → a := by
+  intro ha hb
+  exact ha
+
+example : True := by
+  exact True.intro
+
+example (a b : Prop) (h : a) (g : a → b) : b := by
+  apply g
+  exact h
+
+example (a : Prop) (h : a) : a := by
+  assumption
+
+example (n : Nat) : n = n := by
+  rfl
+
+example (n : Nat) : Nat := by
+  match n with
+  | Nat.zero => Nat.zero
+  | Nat.succ k => k
+
+example (a : Prop) (h : a) : a ∧ a := by
+  constructor
+  exact h
+  exact h
+
+example (a b : Prop) (h : a) : a ∨ b := by
+  left
+  exact h
+
+example (a b : Prop) (h : b) : a ∨ b := by
+  right
+  exact h
+
+inductive Sigma (α : Type) (p : α → Prop) : Prop
+ctor mk (w : α) (h : p w) : Sigma α p
+end
+
+example (α : Type) (a : α) : Sigma α (fun (x : α) => x = x) := by
+  use a
+  sorry
+
+example (a : Prop) (h : False) : a := by
+  exfalso
+  exact h
+
+example (a b : Prop) (h : a ∧ b) : b ∧ a := by
+  cases h with
+  | intro ha hb => exact And.intro hb ha
+
+example : True := by
+  have h : True := True.intro
+  exact True.intro
+
+example : True := by
+  sorry
+";
+
+/// **判据（wire / 用户动作，覆盖全部 14 条 —— 含 `sorry`）**：14 条 tactic 的关键字上
+/// 各 hover 一次 ⇒ 摘要行**恰出现一次**、在 goal state **之前**、且**逐字等于
+/// `front::tactics` 表里那一条**（不是"含有某句话"、更不是同一句 fallback
+/// —— 那正是"覆盖了但其实没覆盖"的假绿 ✗）。
+///
+/// 覆盖是**双向**的：本清单必须**逐条等于** `TACTIC_DOCS`（顺序也一致 ⇒ 表里加一条
+/// 而忘了加夹具 ⇒ 判红）✓。
+///
+/// **反向验证**：把 `lib.rs` 里摘要那一行的**一个字符**改掉（或让某条 fallback 到
+/// 同一句）⇒ 本条当场判红 ✓。
+#[tokio::test]
+async fn hover_on_every_tactic_keyword_shows_its_summary() {
+    // (以那条 tactic 的整行结尾的**唯一**片段, 关键字)
+    const CASES: &[(&str, &str)] = &[
+        (
+            "example (a b : Prop) : a → b → a := by\n  intro ha hb",
+            "intro",
+        ),
+        ("example : True := by\n  exact True.intro", "exact"),
+        (
+            "example (a b : Prop) (h : a) (g : a → b) : b := by\n  apply g",
+            "apply",
+        ),
+        (
+            "example (a : Prop) (h : a) : a := by\n  assumption",
+            "assumption",
+        ),
+        ("example (n : Nat) : n = n := by\n  rfl", "rfl"),
+        ("example (n : Nat) : Nat := by\n  match n with", "match"),
+        (
+            "example (a : Prop) (h : a) : a ∧ a := by\n  constructor",
+            "constructor",
+        ),
+        ("example (a b : Prop) (h : a) : a ∨ b := by\n  left", "left"),
+        (
+            "example (a b : Prop) (h : b) : a ∨ b := by\n  right",
+            "right",
+        ),
+        (
+            "example (α : Type) (a : α) : Sigma α (fun (x : α) => x = x) := by\n  use a",
+            "use",
+        ),
+        (
+            "example (a : Prop) (h : False) : a := by\n  exfalso",
+            "exfalso",
+        ),
+        (
+            "example (a b : Prop) (h : a ∧ b) : b ∧ a := by\n  cases h with",
+            "cases",
+        ),
+        (
+            "example : True := by\n  have h : True := True.intro",
+            "have",
+        ),
+        ("example : True := by\n  sorry", "sorry"),
+    ];
+    // 覆盖判据（双向）：清单逐条等于表 —— 漏一条 / 多一条 / 顺序漂了都判红。
+    let listed: Vec<&str> = CASES.iter().map(|(_, name)| *name).collect();
+    let tabled: Vec<&str> = sokonanoda_front::TACTIC_DOCS
+        .iter()
+        .map(|d| d.name)
+        .collect();
+    assert_eq!(
+        listed, tabled,
+        "14 条清单必须逐条等于 `front::tactics` 表（顺序也要一致）"
+    );
+
+    let (mut service, _socket) = open_and_wait(EVERY_TACTIC_SOURCE).await;
+    for (anchor, name) in CASES {
+        let at = tactic_at(EVERY_TACTIC_SOURCE, anchor);
+        let value = hover_markup_at(&mut service, EVERY_TACTIC_SOURCE, at).await;
+        assert_tactic_summary_line(&value, name);
+    }
+    shutdown(&mut service).await;
+}
+
+/// **反向判据（§7 边界 7）**：**只有 tactic 关键字**上有摘要 —— 语言关键字
+/// （`fun` / `def` / `by` / `=>`）上的 hover 与**改动前逐字节相同**。
+///
+/// 两种形态都钉（缺口在最容易被忽略的那一种里）：
+/// * **有 hover 的路**：tactic **里面**的 `fun` / `=>`（走 `tactic_goal_hover`，
+///   `LANGUAGE_KEYWORD_IN_TACTIC_BASELINE`）与值位的 `=>`
+///   （走表达式 hover，`ARROW_IN_VALUE_BASELINE`）—— 它们**不是** null，
+///   "不许变"因此是一句**有内容**的断言（不是 `None == None` 的空转）；
+/// * **静默的路**：`def` / 值位 `fun` / `by` 今天被关键字闸门吞掉 ⇒ 仍必须是 `None`。
+///
+/// 同一条夹具里的 `exact`（**tactic 关键字**）作为**对照**：它**必须**有摘要 ——
+/// 否则"语言关键字上没有摘要"可以靠"谁都没有摘要"骗过 ✗。
+#[tokio::test]
+async fn hover_on_language_keywords_gets_no_tactic_summary() {
+    let in_tactic = "axiom P : Prop\n\
+                     theorem lang_kw : P → P := by\n  \
+                     exact fun (a : P) => a\n";
+    let (mut service, _socket) = open_and_wait(in_tactic).await;
+    // 对照：同一条 tactic 的**关键字**上有摘要。
+    let exact_at = tactic_at(in_tactic, "exact fun (a : P) => a");
+    let exact_hover = hover_markup_at(&mut service, in_tactic, exact_at).await;
+    assert_tactic_summary_line(&exact_hover, "exact");
+    // 语言关键字（tactic 里面）：一字不动。
+    for needle in ["fun (a", "=> a"] {
+        let at = offset_of(in_tactic, needle) + 1;
+        let value = hover_markup_at(&mut service, in_tactic, at).await;
+        assert_eq!(
+            value, LANGUAGE_KEYWORD_IN_TACTIC_BASELINE,
+            "tactic 里面的语言关键字 `{needle}` 上**一个字都不许变**（§7 边界 7）"
+        );
+        assert!(
+            !value.contains(sokonanoda_front::tactics::doc("exact").unwrap().summary),
+            "语言关键字上不许出现 tactic 摘要：{value:?}"
+        );
+    }
+
+    let value_pos = "axiom P : Prop\n\
+                     def myid : Prop -> Prop := fun (x : Prop) => x\n\
+                     theorem lang_by (h : P) : P := by\n  \
+                     exact h\n";
+    let (mut service, _socket) = open_and_wait(value_pos).await;
+    // 值位的 `=>`：今天走表达式 hover（**非 null**）⇒ 逐字节相同。
+    let arrow_at = offset_of(value_pos, "=> x") + 1;
+    let arrow = hover_markup_at(&mut service, value_pos, arrow_at).await;
+    assert_eq!(
+        arrow, ARROW_IN_VALUE_BASELINE,
+        "值位 `=>` 上的 hover 必须与改动前逐字节相同（§7 边界 7）"
+    );
+    // 静默的三个：`def` / 值位 `fun` / `by`。
+    for (needle, delta) in [("def myid", 1usize), ("fun (x", 1), ("by\n  exact", 1)] {
+        let at = offset_of(value_pos, needle) + delta;
+        assert!(
+            hover_markup_opt_at(&mut service, value_pos, at)
+                .await
+                .is_none(),
+            "语言关键字 `{needle}` 上必须仍然**静默**（今天被关键字闸门吞掉；\
+             §7 边界 7：本轮**不**顺手放开它）"
+        );
+    }
+    shutdown(&mut service).await;
+}
+
+/// **判据（wire / D4）**：tactic 关键字的补全项**在序列化载荷里**带 `detail` 与
+/// `documentation`（**字段存在性**，不只是"值算出来了" —— AGENTS.md 验证设计纪律
+/// 第 2 条：LSP 单测守的是 wire 契约 ✗→✓）。
+///
+/// 顺带钉两条边界：① `documentation` 的正文 = 摘要 + 空行 + 指路（**不**把正文塞进
+/// wire —— 正文的唯一落点是 `reference/tactics/**`）；② **非** tactic 关键字
+/// （`def` / `fun` / `by`）的补全项**不许**多出这两个字段（§7 边界 7）。
+#[tokio::test]
+async fn tactic_keyword_completion_carries_its_summary_on_the_wire() {
+    let (mut service, _socket) = open_and_wait(VALID).await;
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/completion")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": {"line": 0, "character": 0},
+            }))
+            .id(72)
+            .finish(),
+    )
+    .await
+    .expect("completion must answer");
+    let items: Vec<serde_json::Value> = match result {
+        serde_json::Value::Array(items) => items,
+        serde_json::Value::Object(map) => map
+            .get("items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .expect("CompletionList 必须带 items"),
+        other => panic!("unexpected completion payload: {other:?}"),
+    };
+    let item_of = |label: &str| {
+        items
+            .iter()
+            .find(|i| i.get("label").and_then(|l| l.as_str()) == Some(label))
+            .unwrap_or_else(|| panic!("补全项里必须有 `{label}`"))
+    };
+    let mut tactic_items = 0usize;
+    for doc in sokonanoda_front::TACTIC_DOCS {
+        // `sorry` 不在 `semantic::KEYWORDS` 里（它是 `Hole`，front 的既定分类）
+        // ⇒ 今天**没有**它的补全项；本轮**不**凭空加一个（那会与编辑器词表漂移 ✗）。
+        // 这条断言是"断言当前行为、防漂移"，不是"要求它永远如此" ✓。
+        if !sokonanoda_front::semantic::keywords().contains(&doc.name) {
+            assert_eq!(doc.name, "sorry", "不在词表里的 tactic 今天只有 `sorry`");
+            continue;
+        }
+        tactic_items += 1;
+        let item = item_of(doc.name);
+        assert_eq!(
+            item.get("detail").and_then(|v| v.as_str()),
+            Some(doc.summary),
+            "`{}` 的补全项 `detail` 必须在 wire 上等于表里的摘要",
+            doc.name
+        );
+        let documentation = item
+            .get("documentation")
+            .unwrap_or_else(|| panic!("`{}` 的补全项必须在 wire 上带 `documentation`", doc.name));
+        assert_eq!(
+            documentation.get("kind").and_then(|v| v.as_str()),
+            Some("markdown"),
+            "`documentation` 必须是 markdown MarkupContent：{documentation:?}"
+        );
+        assert_eq!(
+            documentation.get("value").and_then(|v| v.as_str()),
+            Some(format!("{}\n\n完整文档：`F12` 跳转", doc.summary).as_str()),
+            "`documentation` 的正文 = 摘要 + 空行 + 指路"
+        );
+    }
+    assert_eq!(
+        tactic_items, 13,
+        "词表里的 tactic 关键字是 13 条（`sorry` 除外）"
+    );
+    assert!(
+        items
+            .iter()
+            .all(|i| i.get("label").and_then(|l| l.as_str()) != Some("sorry")),
+        "`sorry` 今天没有补全项（它不在编辑器词表里）；本轮不凭空加 ✗"
+    );
+    for label in ["def", "fun", "by"] {
+        let item = item_of(label);
+        assert!(
+            item.get("detail").is_none() && item.get("documentation").is_none(),
+            "非 tactic 关键字 `{label}` 的补全项一个字段都不许多（§7 边界 7）：{item:?}"
+        );
+    }
+    shutdown(&mut service).await;
+}
+
+/// **判据（文档 ↔ 代码互相咬）**：`docs/protocol.md` 里写的摘要行必须与
+/// [`crate::tactic_summary_line`] 渲染的**逐字相同**（设计 §4.1：确切措辞在 P2
+/// 落地时定稿并写进 `protocol.md`）⇒ 改任一侧的一个字符 ⇒ 判红 ✓。
+///
+/// 三件都查：① `apply` 那一行（含 `·` 与「完整文档：`F12`」的**整行**形态）；
+/// ② `sorry` 的摘要（**具名例外**：它不在 `KEYWORDS` 里，但**有**摘要）；
+/// ③ 指路那半句的措辞（纯文本，不是链接）。
+#[test]
+fn the_hover_summary_line_matches_the_protocol() {
+    let protocol = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../docs/protocol.md"
+    ))
+    .expect("docs/protocol.md 必须可读");
+    let apply_line = format!(
+        "**`apply`** — {} · 完整文档：`F12`",
+        sokonanoda_front::tactics::doc("apply")
+            .expect("表里有 apply")
+            .summary
+    );
+    assert!(
+        protocol.contains(&apply_line),
+        "`docs/protocol.md` 必须**逐字**写着摘要行的形态：{apply_line}"
+    );
+    assert!(
+        protocol.contains(sokonanoda_front::tactics::doc("sorry").unwrap().summary),
+        "`sorry` 也给摘要（用户 2026-10-10「一个都不能少」）⇒ protocol.md 要写它"
+    );
+    assert!(
+        protocol.contains("完整文档：`F12`") && !protocol.contains("](command:"),
+        "指路必须是**纯文本**：不受信任的 hover markdown 会剥掉命令链接，\
+         而本仓没有 `isTrusted`（放链接 = 说假话 ✗）"
+    );
+}
+
+/// **判据（实现前提）**：`tactic_keyword_at` 用"表里哪个名字正好是这一步的开头"来认
+/// 关键字 ⇒ 表里 14 个名字**两两不许互为前缀**（否则 `exact` / `exact?` 这种会认错，
+/// 而且实测 2026-10-10 本语言**没有** `exact?` —— 设计 §1.1 第 3 条边界）。
+///
+/// 反向：将来若给表加一个 `intros`（`intro` 的延长）/`exact?` ⇒ 本条判红 ⇒ 那时
+/// 必须换匹配方式（词法或最长匹配 + 边界断言），**不许**让歧义静默留着 ✓。
+#[test]
+fn tactic_names_are_prefix_free() {
+    for a in sokonanoda_front::TACTIC_DOCS {
+        for b in sokonanoda_front::TACTIC_DOCS {
+            if a.name != b.name {
+                assert!(
+                    !b.name.starts_with(a.name),
+                    "`{}` 是 `{}` 的前缀 ⇒ 认 tactic 关键字会歧义（`tactic_keyword_at`）",
+                    a.name,
+                    b.name
+                );
+            }
+        }
+    }
 }
