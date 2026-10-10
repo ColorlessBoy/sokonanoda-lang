@@ -3,8 +3,8 @@
   "kind": "vscode-integration",
   "version": "0.87.2",
   "commit": "896dbdd6188aa6601128c1f63b307d8b78e92c4f",
-  "dirty": true,
-  "date": "2026-10-10T01:13:39Z",
+  "dirty": false,
+  "date": "2026-10-09T20:15:14Z",
   "host": {
     "system": "Darwin",
     "machine": "arm64",
@@ -19,9 +19,9 @@
     "failing_details": ""
   },
   "exit": 0,
-  "server": "0.87.2 (pid 87113) == 扩展 v0.87.2 (source=bundled)",
-  "lsp_sha256_16": "fae79d8366efcd9b",
-  "log": "docs/e2e/logs/2026-10-10-896dbdd6-vc1.138.0.log",
+  "server": "0.87.2 (pid 5037) == 扩展 v0.87.2 (source=bundled)",
+  "lsp_sha256_16": "57bdc246f26d01f4",
+  "log": "docs/e2e/logs/2026-10-09-896dbdd-vc1.138.0.log",
   "profile": "release",
   "grep": null
 }
