@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.87.3] — 2026-10-10
 
 > **Hover is one surface now, and the Infoview's command output stops duplicating.**
 > Every piece of `.sokonanoda` text in a hover (a tactic's name type, notation
