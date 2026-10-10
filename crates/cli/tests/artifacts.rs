@@ -189,7 +189,10 @@ fn a_project_build_writes_its_artifact_into_the_module_root() {
     // ⚠ **r3 → r4**：C3 补口（2026-10-09，`DocumentReport.prints` 在**项目模式**下
     // 从"恒空"变成"真的有"）把 `REPORT_SHAPE` 3 → 4 ⇒ 这里必须同步
     // （C3 的 2 → 3、B1 的 1 → 2 都是同一条规矩 ✓）—— 漏改就是本套件判红 ✗。
-    assert_eq!(meta["schema"], "soko.artifacts/2.r4");
+    // ⚠ **r4 → r5**：G-102（2026-10-10，`CheckInfo::cmd`/`PrintInfo::cmd` **进序列化**
+    // —— 回放后按 `cmd` 去重的增量拼接才认得出同一份报告）把 `REPORT_SHAPE` 4 → 5
+    // ⇒ 这里同样必须同步（**实测**：这一版发版预检就是漏了这一步判红 ✗✓）。
+    assert_eq!(meta["schema"], "soko.artifacts/2.r5");
     assert!(meta["compiler"].as_str().is_some_and(|v| !v.is_empty()));
     // ⑤ 项目条目**不再**落全局缓存（分工：项目条目只认模块根）。
     assert!(
