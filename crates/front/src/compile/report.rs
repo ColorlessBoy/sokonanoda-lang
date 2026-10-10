@@ -102,7 +102,11 @@ pub struct ByStepState {
 /// `splice_entry_report` 又漏拼 `fresh.prints`）⇒ 旧条目那份"空 prints"会静默
 /// 给出"课程文件里 `#print` 没反应"的旧答案 ✗。与上一条同一条纪律：
 /// **语义变化同样算形状变化**（G-78 踩过一次 ✓）。
-pub const REPORT_SHAPE: u32 = 4;
+/// **重复输出（2026-10-10 用户实测）把它 4 → 5**：`CheckInfo::cmd` /
+/// `PrintInfo::cmd` 进序列化（以前 `#[serde(skip)]` ⇒ 项目产物回放后 cmd 归零
+/// ⇒ 拼接时同一条命令算两遍 ⇒ Infoview 的「命令输出」每编辑一次 +1 ✗）。
+/// 旧条目**不含 cmd** ⇒ 必须整库不命中（否则它反序列化成 0，重复照旧 ✗）。
+pub const REPORT_SHAPE: u32 = 5;
 
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -236,8 +240,16 @@ pub struct CheckInfo {
     pub span: Span,
     pub text: String,
     /// 产生它的命令下标（`file.commands[cmd]`）。跨文件编译时按它归因；
-    /// 不进序列化（缓存条目只服务单文件，协议形状保持不变）。
-    #[serde(skip)]
+    /// **项目模式**下 [`crate::query::QueryDoc`] 的拼接（`splice_entry_report`）
+    /// 也按它去重。
+    ///
+    /// ⚠ **必须进序列化**（2026-10-10 用户实测的重复输出根因）：以前这里是
+    /// `#[serde(skip)]`，理由是"缓存条目只服务单文件" —— 但**项目产物**
+    /// （`<模块根>/.sokonanoda/compiled/*.json`）回放的是**整份报告**，反序列化
+    /// 后所有 `cmd` 归零 ⇒ 拼接时"缓存那份"与"新查那份"的键对不上 ⇒
+    /// **同一条命令的输出出现两份**，而且产物每回放一次就再多留一份 ✗
+    /// （用户现场：「每编辑一下，`#check`/`#print` 就多重复一次」，3 → 4 条）。
+    /// ⇒ 语义变化同样算形状变化 ⇒ `REPORT_SHAPE` 4 → 5（旧条目整库不命中 ✓）。
     pub cmd: usize,
 }
 
@@ -254,8 +266,8 @@ pub struct PrintInfo {
     pub span: Span,
     pub name: String,
     pub text: String,
-    /// 产生它的命令下标（与 [`CheckInfo::cmd`] 同纪律：不进序列化）。
-    #[serde(skip)]
+    /// 产生它的命令下标（与 [`CheckInfo::cmd`] **同一条纪律**：必须进序列化
+    /// —— 项目产物回放后 cmd 归零正是"重复输出"的根因，见那边注释）。
     pub cmd: usize,
 }
 

@@ -451,7 +451,38 @@ fn splice_entry_report(
     out.prints.append(&mut fresh.prints);
     out.warnings.append(&mut fresh.warnings);
     out.decls.sort_by_key(|d| d.span.start.offset);
+    // **幂等闸门**（2026-10-10 用户实测的「重复输出」收口）：
+    //
+    // 上面那套去重**只认 `cmd`**，而 `cmd` 有两个已知的归零口子：
+    //   * **项目产物回放**（`compiled/*.json` 反序列化）—— 修法是让 `cmd` 进序列化
+    //     （`CheckInfo::cmd` 的注释），但**旧产物**（形状 4）里根本没有这个字段；
+    //   * 任何将来新加的、`cmd` 语义不成立的报告生产者。
+    // ⇒ 这里再加一道**与 cmd 无关**的闸门：同一个**命令位置**（span 逐字节相同，
+    // 而信任前缀的前提正是"文本与起点都没变"）的 `#check`/`#print` **只留一份**，
+    // 且留 `fresh` 那份（它在后面 ⇒ 保留后出现的）。这样"同一份报告拼接两次"
+    // 也**恒等**（判据 `splicing_is_idempotent`），重复输出不可能再靠 cmd 的口子复活 ✓。
+    dedup_by_span(&mut out.checks, |c| {
+        (c.span.start.offset, c.span.end.offset)
+    });
+    dedup_by_span(&mut out.prints, |p| {
+        (p.span.start.offset, p.span.end.offset)
+    });
+    out.checks.sort_by_key(|c| c.span.start.offset);
+    out.prints.sort_by_key(|p| p.span.start.offset);
     out
+}
+
+/// 按**源位置**去重（保留**最后**一份 = `fresh` 那份），并保持入参顺序稳定。
+fn dedup_by_span<T: Clone, K: Ord + Copy>(items: &mut Vec<T>, key: impl Fn(&T) -> K) {
+    let mut seen: std::collections::BTreeSet<K> = std::collections::BTreeSet::new();
+    let mut kept: Vec<T> = Vec::with_capacity(items.len());
+    for item in items.drain(..).rev() {
+        if seen.insert(key(&item)) {
+            kept.push(item);
+        }
+    }
+    kept.reverse();
+    *items = kept;
 }
 
 impl Default for QueryDoc {

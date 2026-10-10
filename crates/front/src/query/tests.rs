@@ -1326,6 +1326,94 @@ fn a_declarations_ty_is_notation_folded_too() {
     assert!(ty.contains('∈'), "`ty` 必须带记法（生产者 3，T-C20）：{ty}");
 }
 
+/// **切片判据（真项目层，2026-10-10）：真 `QueryDoc` 编一个带 `import` 的课程形状
+/// 闭包，断言显示文本里没有"把部分应用当完全应用"折出来的片段 `(α = `。**
+///
+/// 用户现场（逐字）：`#check Eq.refl` 的类型行是
+/// `Eq.refl : {α : Sort u} → (a : α) → (α = a) a`（应为 `… → a = a`）。
+/// 根因两条（见 `display.rs::fold_spine` / `fold_collecting_inner`）：
+/// ① 元数口径只数**显式 binder** ⇒ **开项**（pp 不省略隐式实参）的
+///    `Eq.{u} α a a`（3 个实参）反而被判成"部分应用"；
+/// ② 那条脊的**内层** `Eq.{u} α a`（2 个实参）被判成"完全应用" ⇒
+///    父节点整脊重渲染 ⇒ `(α = a) a`。
+///
+/// **为什么不手搓表**：走真闭包（`lib/` 模块 + 入口 `import`）⇒ 记法继承、两张表
+/// （元数 + 前导隐式）、prelude 与编辑器里那条路**同源** ✓（手搓表会把"建表"这
+/// 一层排除在外，而这一层的 bug 正是本切片的根因）。`#check` 的输出走的是
+/// **hover 同一条渲染路**（用户现场就是 hover / 命令输出这一行）✓。
+#[test]
+fn a_defs_display_text_never_folds_a_partial_application() {
+    let dir = project_dir("fold-partial-application");
+    let entry = "import lib.Set\n\
+                 \n\
+                 def eq_self {α : Type} (a : α) : Eq α a a := Eq.refl.{1} α a\n\
+                 \n\
+                 theorem mem_self {α : Type} (a : α) : Set.mem a (Set.singleton a) := by\n\
+                 \x20 sorry\n\
+                 \n\
+                 #check Eq.refl\n";
+    let doc = project_doc(
+        &dir,
+        "Main.sokonanoda",
+        &[
+            (
+                "lib/Set.sokonanoda",
+                "def Set (α : Type) : Type := α -> Prop\n\
+                 def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n\
+                 infix:50 \" ∈ \" => Set.mem\n\
+                 def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+            ),
+            ("Main.sokonanoda", entry),
+        ],
+    );
+    assert!(
+        doc.project_entry_compiled(),
+        "夹具前提：闭包必须编译成功（入口自己 parse 不了——`∈` 来自 import）"
+    );
+    let decls = doc.goals(false).expect("闭包好 ⇒ goals 必须可用");
+
+    // ① **用户现场**：`#check Eq.refl` 的类型行（开项 telescope：pp 不省略隐式 α）。
+    let at = entry.find("#check Eq.refl").expect("#check 那一行");
+    let msgs = doc.messages_at(at);
+    assert_eq!(msgs.len(), 1, "`#check Eq.refl` 必须看得见：{msgs:?}");
+    let text = &msgs[0].text;
+    assert!(
+        !text.contains("(α = "),
+        "类型行里出现了折坏的片段（内层部分应用被当成完全应用）✗ 实际 = {text}"
+    );
+    assert!(
+        text.contains("a = a"),
+        "开项 telescope 体里的 `Eq.{{u}} α a a` 必须折成 `a = a` ✓ 实际 = {text}"
+    );
+
+    // ② **闭项形状**（pp 省掉隐式 `α` ⇒ 两个实参就是两个操作数）：用户声明的签名。
+    let eq_self = decls
+        .iter()
+        .find(|d| d.name == "eq_self")
+        .expect("eq_self 必须在声明列表里");
+    let ty = eq_self.ty.as_deref().expect("eq_self 有类型显示副本");
+    assert!(!ty.contains("(α = "), "类型行里也有折坏片段 ✗ 实际 = {ty}");
+    assert!(
+        ty.contains("a = a"),
+        "闭项形状的 `Eq a a` 必须折 ✓ 实际 = {ty}"
+    );
+
+    // ③ 目标行：`Set.mem`（闭项）+ 集合字面量（闭项）都要折，且不许漏点形式。
+    let mem_self = decls
+        .iter()
+        .find(|d| d.name == "mem_self")
+        .expect("mem_self 必须在声明列表里");
+    let goal = mem_self.goal.as_deref().expect("开放声明有目标显示副本");
+    assert!(
+        !goal.contains("Set.mem ") && !goal.contains("Set.singleton "),
+        "目标行里漏出了点形式（折叠没接上/元数对不上）✗ 实际 = {goal}"
+    );
+    assert!(
+        goal.contains('∈') && goal.contains('{'),
+        "目标行必须带记法 `∈` 与集合字面量 `{{…}}` ✓ 实际 = {goal}"
+    );
+}
+
 #[test]
 fn probe_fills_sub_goal_types_that_the_walk_cannot_determine() {
     let doc = doc(CANVAS);
@@ -2334,4 +2422,142 @@ fn a_check_in_the_resumed_prefix_is_spliced_back_exactly_once() {
         );
     }
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **重复输出（2026-10-10 用户实测）的根因判据 ①**：`cmd` 必须**活着穿过
+/// 项目产物**（序列化往返）。
+///
+/// 用户现场：每编辑一次，Infoview 的「命令输出」里 `#check`/`#print` 就多一条
+/// （3 → 4）。根因是 `CheckInfo::cmd` / `PrintInfo::cmd` 带 `#[serde(skip)]`
+/// ⇒ `<模块根>/.sokonanoda/compiled/*.json` 回放后所有 `cmd` 归零 ⇒
+/// [`splice_entry_report`] 的按 `cmd` 去重全部失配（`is_trusted(0)` 恒真、
+/// 而 fresh 的入口局部下标 ≥ 1）⇒ 缓存那份永远留下、fresh 那份照样追加。
+///
+/// **反向验证**：把两个 `cmd` 字段改回 `#[serde(skip)]` ⇒ 本判据当场判红。
+#[test]
+fn an_artifact_round_trip_keeps_the_command_attribution() {
+    let report = DocumentReport {
+        checks: vec![crate::compile::CheckInfo {
+            span: Span::default(),
+            text: "a : Prop".to_string(),
+            cmd: 7,
+        }],
+        prints: vec![crate::compile::PrintInfo {
+            span: Span::default(),
+            name: "myid".to_string(),
+            text: "def myid : Prop := True".to_string(),
+            cmd: 9,
+        }],
+        ..DocumentReport::default()
+    };
+    let json = serde_json::to_string(&report).expect("serialize");
+    assert!(
+        json.contains("\"cmd\":7") && json.contains("\"cmd\":9"),
+        "`cmd` 必须进 JSON（产物回放靠它去重）: {json}"
+    );
+    let back: DocumentReport = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(
+        back.checks[0].cmd, 7,
+        "往返之后 `#check` 的命令归属不许归零"
+    );
+    assert_eq!(
+        back.prints[0].cmd, 9,
+        "往返之后 `#print` 的命令归属不许归零"
+    );
+}
+
+/// **重复输出（2026-10-10 用户实测）的根因判据 ②**：拼接**幂等**。
+///
+/// 形状照**旧产物**（`cmd` 归零那一版）：缓存里的 `#check`/`#print` 带着
+/// `cmd = 0`，而 fresh 那份带**真**入口局部下标 ⇒ 只按 `cmd` 去重时两份都留下
+/// （用户看到的"同一条命令两条输出"✗，而且每回放一次产物再多留一份）。
+/// 判据：**按 span 的幂等闸门**必须让"同一位置只留一份"，且**再拼一次不变**。
+#[test]
+fn splicing_is_idempotent() {
+    use crate::compile::{CheckInfo, DocumentReport, PrintInfo};
+    let span = Span::new(
+        crate::span::Pos {
+            offset: 10,
+            ..crate::span::Pos::default()
+        },
+        crate::span::Pos {
+            offset: 20,
+            ..crate::span::Pos::default()
+        },
+    );
+    // 缓存 = 旧产物：cmd 全 0（`#[serde(skip)]` 时代写下的条目）。
+    let cache = EntryCache {
+        keys: Vec::new(),
+        starts: Vec::new(),
+        deps: 0,
+        report: DocumentReport {
+            checks: vec![CheckInfo {
+                span,
+                text: "Eq.refl : {α : Sort u} -> (a : α) -> Eq.{u} α a a".to_string(),
+                cmd: 0,
+            }],
+            prints: vec![PrintInfo {
+                span,
+                name: "subset_id".to_string(),
+                text: "def subset_id : Set -> Set := fun (A : Set) => A".to_string(),
+                cmd: 0,
+            }],
+            ..DocumentReport::default()
+        },
+    };
+    // fresh = 这一轮新查的那份：**真**命令下标（入口局部）。
+    let fresh = DocumentReport {
+        checks: vec![CheckInfo {
+            span,
+            text: "Eq.refl : {α : Sort u} -> (a : α) -> Eq.{u} α a a".to_string(),
+            cmd: 3,
+        }],
+        prints: vec![PrintInfo {
+            span,
+            name: "subset_id".to_string(),
+            text: "def subset_id : Set -> Set := fun (A : Set) => A".to_string(),
+            cmd: 4,
+        }],
+        ..DocumentReport::default()
+    };
+    // `before = 8`（改动点在两条命令之后）+ 全 false 的脏集 ⇒ `is_trusted(0)` 为真
+    // —— 这正是"缓存那份会被留下"的条件。
+    let out = splice_entry_report(&cache, 8, &[false; 8], fresh.clone());
+    assert_eq!(
+        out.checks.len(),
+        1,
+        "`#check` 的输出必须恰好一条: {:?}",
+        out.checks
+    );
+    assert_eq!(
+        out.prints.len(),
+        1,
+        "`#print` 的输出必须恰好一条: {:?}",
+        out.prints
+    );
+    assert_eq!(out.checks[0].cmd, 3, "留下的是 fresh 那份（cmd 真实）");
+    assert_eq!(out.prints[0].cmd, 4);
+
+    // **幂等**：把上一轮的结果当缓存、同一份 fresh 再拼一次 ⇒ 计数与内容不变。
+    let cache2 = EntryCache {
+        keys: Vec::new(),
+        starts: Vec::new(),
+        deps: 0,
+        report: out.clone(),
+    };
+    let again = splice_entry_report(&cache2, 8, &[false; 8], fresh);
+    assert_eq!(
+        again.checks.len(),
+        1,
+        "再拼一次仍恰好一条（幂等）: {:?}",
+        again.checks
+    );
+    assert_eq!(
+        again.prints.len(),
+        1,
+        "再拼一次仍恰好一条（幂等）: {:?}",
+        again.prints
+    );
+    assert_eq!(again.checks[0].cmd, 3);
+    assert_eq!(again.prints[0].cmd, 4);
 }

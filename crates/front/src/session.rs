@@ -594,8 +594,12 @@ fn assemble_report(snaps: &[CmdSnapshot], spans: &[Span]) -> DocumentReport {
                     checks.push(crate::compile::CheckInfo {
                         span: *span,
                         text: text.clone(),
-                        // 会话快照按命令归属重建；`cmd` 在这里没有意义（单文档）。
-                        cmd: 0,
+                        // **真命令下标**（`snaps` 的下标 = 命令下标，与 `hover_cmds`
+                        // 同一条纪律 ✓）。以前恒 0（"单文档里没意义"）—— 但**项目模式**
+                        // 的入口报告也走这里，而 `splice_entry_report` **按 cmd 去重**
+                        // ⇒ 恒 0 会让"缓存那份"与"新查那份"的键对不上 ✗（2026-10-10
+                        // 用户实测的重复输出：同一条命令的输出留下两份）。
+                        cmd: j,
                     });
                 }
                 // **C3**：`#print` 的结果也进报告（以前被丢 ✗）⇒ Infoview 看得见。
@@ -604,7 +608,7 @@ fn assemble_report(snaps: &[CmdSnapshot], spans: &[Span]) -> DocumentReport {
                         span: spans.get(j).copied().unwrap_or_default(),
                         name: name.clone(),
                         text: text.clone(),
-                        cmd: 0,
+                        cmd: j,
                     });
                 }
                 _ => {}
