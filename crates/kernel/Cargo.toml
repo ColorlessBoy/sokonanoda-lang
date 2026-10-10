@@ -1,7 +1,13 @@
 
 [package]
 name = "sokonanoda"
-version = "0.5.0"
+# **版本跟产品走**（2026-10-11 用户拍板）：这里原来写死上游 fork 的 `0.5.0`（"它自己那条线"）
+# ⇒ CI 日志里 `Compiling sokonanoda v0.5.0 (crates/kernel)` 被读成"跑的是旧版本" ✗
+# —— 内核的**包名**就叫 `sokonanoda`（与 CLI 的**二进制**同名、与 `sokonanoda-cli` 不同包），
+# cargo 那行打的是**这个包**的版本，不是产品版本 ✓。
+# 现在由 `[workspace.package] version` 单点决定（`scripts/bump.py` 同步 `Cargo.lock`
+# 里这一条）；上游出处见 `crates/kernel/README.md` 与下面的 `repository`/`description` ✓。
+version.workspace = true
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/intgrah/sokonanoda"

@@ -128,15 +128,17 @@ def write(version: str) -> int:
         re.sub(r'"version":\s*"[^"]+"', f'"version": "{version}"', package, count=1),
         encoding="utf-8",
     )
-    # `Cargo.lock` 里**只改 workspace 自己的那几个包**。
+    # `Cargo.lock` 里改 workspace 自己的那几个包 —— **用精确的名字表，不用前缀** ✗：
+    # 内核（`crates/kernel`）的**包名**也叫 `sokonanoda`，前缀正则会连它一起匹配。
     #
-    # 陷阱（实测踩到）：`name = "sokonanoda[^"]*"` 会连**内核**一起匹配——
-    # 内核在 lock 里就叫 `sokonanoda`，而它的版本是**独立**的（`0.5.0`，
-    # 跟的是它自己那条线，`crates/kernel/Cargo.toml` 里写死的）。第一版正则把
-    # 它改成了 0.63.3，`cargo test --locked` 立刻拒绝。
-    # 用**精确的名字表**，不用前缀。
+    # 历史（实测踩到）：内核曾经在 `crates/kernel/Cargo.toml` 里写死上游 fork 的
+    # `0.5.0`（"它自己那条线"）—— 那时第一版前缀正则把它改成 0.63.3，
+    # `cargo test --locked` 立刻拒绝 ✗。
+    # **2026-10-11 起内核 `version.workspace = true`**（用户拍板：CI 日志里
+    # `Compiling sokonanoda v0.5.0 (crates/kernel)` 会被读成"跑的是旧版本" ✗）
+    # ⇒ 它也进这张表、**必须一起 bump**，否则 `--locked` 拒绝 ✓。
     lock = LOCK.read_text(encoding="utf-8")
-    for name in ("sokonanoda-front", "sokonanoda-cli", "sokonanoda-lsp"):
+    for name in ("sokonanoda", "sokonanoda-front", "sokonanoda-cli", "sokonanoda-lsp"):
         lock = re.sub(
             rf'(name = "{re.escape(name)}"\nversion = )"[^"]+"',
             rf'\g<1>"{version}"',

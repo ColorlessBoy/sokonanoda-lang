@@ -24,7 +24,7 @@ scripts/release-preflight.sh            # **发版预检一条命令**：版本�
 
 | 位置 | 说明 |
 | --- | --- |
-| `Cargo.toml` → `[workspace.package].version` | **Rust 侧单一来源**。四个 crate 均 `version.workspace = true`，改这一处即可。 |
+| `Cargo.toml` → `[workspace.package].version` | **Rust 侧单一来源**。四个 crate 均 `version.workspace = true`，改这一处即可。⚠ **内核的包名就叫 `sokonanoda`** ⇒ CI 日志里那行 `Compiling sokonanoda v0.88.x (crates/kernel)` 打的是**产品版本** ✓；2026-10-11 之前它写死上游 fork 的 `0.5.0`（`bump.py` 特意跳过它），日志因此看着像"跑的是旧版本" ✗。 |
 | `editor/vscode/package.json` → `version` | 扩展版本。必须与 Rust 一致，由契约测试 `cargo_and_extension_versions_match` 与 release 的 version gate 双重强制。 |
 | `editor/vscode/CHANGELOG.md` | 扩展变更记录，发布时补对应版本条目。 |
 
