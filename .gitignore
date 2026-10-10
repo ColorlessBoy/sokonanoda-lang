@@ -14,6 +14,10 @@ learner/
 # 打包时 stage 的 LSP 二进制（scripts/stage-lsp.js 生成，不进仓库）
 editor/vscode/bin/
 
+# 打包时 stage 的 tactic 文档（scripts/stage-docs.js 生成，随 VSIX 发；
+# 照 `bin/` 的「生成目录 + 随包发」先例 —— 提交副本会让插件里的文档陈旧 ✗）
+editor/vscode/docs/
+
 # 本地 agent 会话记忆（工作台私有，不入库）
 .workbuddy/
 

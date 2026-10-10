@@ -2,7 +2,7 @@
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
   "description": "Learn theorem proving in a self-contained Lean-4-style language: real kernel grading, an Infoview goal panel, graded exercises, and agent skills that turn an LLM into your proof teacher. Zero setup - the language server ships inside the extension.",
-  "version": "0.87.3",
+  "version": "0.88.0",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {
@@ -359,9 +359,10 @@
     "compile": "echo ok",
     "clean:lsp": "node -e \"require('fs').rmSync('bin',{recursive:true,force:true})\"",
     "stage:lsp": "node scripts/stage-lsp.js",
-    "package": "vsce package --out sokonanoda.vsix",
+    "stage:docs": "node scripts/stage-docs.js",
+    "package": "node scripts/stage-docs.js && vsce package --out sokonanoda.vsix",
     "package:host": "node scripts/stage-lsp.js --package",
-    "package:universal": "npm run clean:lsp && vsce package --out sokonanoda-universal.vsix",
+    "package:universal": "npm run clean:lsp && node scripts/stage-docs.js && vsce package --out sokonanoda-universal.vsix",
     "test:unit": "node test-server.js && node test-download.js && node test-webview.js && node test-extension-host.js && node test-project-first-screen.js --check",
     "test": "vscode-test"
   },

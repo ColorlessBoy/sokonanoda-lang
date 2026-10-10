@@ -1,8 +1,7 @@
 # 项目要求总账（REQUIREMENTS）
 
 > 这是用户全部要求的**权威记录**。任何 agent 接手任何任务前先读本文，
-> 再读 `ROADMAP.md`（里程碑）与 `STATUS.md`（当前进度）。
-> 新要求出现时追加到本文末尾并注明日期；冲突时以本文为准。
+> 再读 `ROADMAP.md`（里程碑）与 `STATUS.md`（当前进度）。新要求出现时追加到本文末尾并注明日期；冲突时以本文为准。
 
 ## 1. 产品愿景（不变）
 
@@ -247,6 +246,8 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 
 用户逐条：① tactic 名字的类型「不是从统一渲染接口获取的，也没有正常的代码高亮」；② `#check Eq.refl` 的 hover「只有一个高亮的 `Eq.refl`，没有有效的类型信息」；③ `#print Set.singleton`「没有 hover 信息弹出」；④ `def` 的 hover 要「把类型和 `:=` 后面的含义块也显示出来……跟 infoview 的声明列表对齐」；⑤「每编辑一下 `#check`/`#print` 就多重复一次……编辑 `mem_of_subset_singleton` 会影响非它块的东西，完全不符合预期」。**要求**：hover 里凡 `.sokonanoda` 语言文本（tactic 名字的类型 · 记法符号/目标名/内建登记名签名 · 声明签名与 `def` 的值）一律走**同一个围栏块接口**（`code_block`+`CODE_LANG`；**行内码不许再渲染语言文本** ✗）；`def` hover = 类型块 + `:= <值>` 块（`theorem`/`axiom`/`inductive` 一个字节都不加）；光标在 `#check`/`#print` 行 ⇒ 显示**那条命令自己的输出**（真相层 `messages_at`，与 Infoview「命令输出」块同一份真相）；命令输出**每编辑一次 +1 是 bug** ⇒ 判据「产物命中 + 编辑一次后 `stateAt.messages` 仍恰好 1 条」+「同一报告拼接两次幂等」，**编辑的爆炸半径 = 那个声明自己**（用户既有设计）；内核 pp 在未解层元变量上 panic 曾让类型被吞成空串（② 的真根因）⇒ `leq_core` 按 Lean 4 补齐（`level.h:57` / `level.cpp:507`，**无 panic 路径**）。契约 `docs/protocol.md`；读数 `docs/visible-changes.md` + `STATUS.md`；台账 **G-102…G-105**。
 
+### 9.10 2026-10-10 专项：**tactic 文档体系**（用户拍板 ✓）
+用户原话：「`intro` / `exact` / `rfl` 这几个 tactic 没有好的文档，要求补齐三样：① 代码区域 hover 显示简短 tactic 说明；② 支持 F12 跳转到对应文档；③ 实现完整 tactic 介绍文档（markdown），含如何使用、适用场景、原理（背后内核规则/判定，如 `rfl` = defEq 自反、`exact` = defeq 统一）」；同日两次补充：**范围扩大到【所有】tactic**（一个都不能少）· **要有机制保证以后新增一个 tactic 也自动要求补文档** · **文档打包在 VS Code 插件里随插件自然附带分发**（像 `prelude.lean` 一样，装插件即自带、离线、无需额外拉取或访问外部站点）。**落地**：14 条的单一真相表 `crates/front/src/tactics.rs`（白名单由表派生 · 文档 `include_str!` 内嵌 · 独立 lint `scripts/tactic-docs-lint.py` ⇒ 加了 tactic 忘补文档过不了门禁）· 14 篇正文 + 索引 `reference/tactics/`（每篇的 `sokonanoda` 例子逐块喂真内核、零诊断）· hover 一行摘要 + F12 五档落点（**插件自带那一档**随 VSIX 打包成真文件 ⇒ 离线）· 设计 `docs/design/tactic-docs.md`（十决策 · 八阶段 P1–P7 · 26 风险）。**机械判据**：`unzip -l <vsix>` 的 15 个条目逐名核对 + `stage-docs.js --check` 防漂移 + 真宿主 e2e「F12 的落点在扩展目录下」。
 ### 9.4 历史索引（一行一条；**全文见归档** ✓）
 
 * **归档**：`docs/archive/REQUIREMENTS-ARCHIVE.md` —— **3146 行逐字原文** ✓

@@ -175,6 +175,13 @@ else
   fi
 fi
 
+# **文档 stage 无条件跑**（docs/design/tactic-docs.md §4.9.7）：`--no-build` 只跳过
+# **二进制**的构建与 stage，而 F12 判据要求 `editor/vscode/docs/tactics/<kw>.md`
+# 就在扩展目录下 ⇒ 跟着跳过会让快路误红 ✗（而快路正是 docs/E2E.md §1b 推荐的）。
+# 15 次文件拷贝、零编译、毫秒级 ⇒ 快路与全量路的判据同口径 ✓。
+echo "+ stage: editor/vscode/docs/tactics/（文档 stage 无条件跑，--no-build 也跑）"
+(cd editor/vscode && node scripts/stage-docs.js)
+
 echo "+ vscode-test（VS Code ${test_version}，真宿主 + 真 LSP）"
 set +e
 if [ -n "$grep_name" ]; then

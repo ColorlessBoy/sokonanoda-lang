@@ -155,13 +155,14 @@ $SOKO repl
   **今天被内核拒绝**（隐式实参落地后才会变成合法）；⑥ 未声明就用报 `notation-unknown-symbol`
   （hint 给"先声明"与"点名写法"两条出路）；⑦ 第三刀（0.60.x）已落：`prefix`/`postfix`、
   `binder_notation`（`∃ (x : α), p`）、`scoped`、集合字面量 `{a}`、记法重载。
-- **`by` 块的 tactic 全集（0.61.0）**：`intro a b c`（一次剥多层；**按你写的名字
-  改名**——`intro y` 之后目标里的绑定名就是 `y`）、`exact e`、`apply e`、
-  `assumption`、`rfl`、`constructor`、`left` / `right`、`use w`、
-  `exfalso`、`cases h`（不带 `with` 按构造子顺序）/ `cases h with | ctor a b => …`
-  （臂体用**缩进**界定）、**`have h : T := t` / `have h : T := by …`**（引入中间
-  结论，目标不变；嵌套 `by` 也按缩进界定，第一个列号 ≤ `have` 所在列的 tactic
-  属于外层）、`sorry`。`match` 在 tactic 位等价于 `exact (match …)`。
+- **`by` 块的 tactic（全量 14 条）**：每条的语法、适用场景、内核在背后判什么、
+  常见错误与出路 ⇒ **`reference/tactics/<关键字>.md`**（索引 `reference/tactics/README.md`；
+  与单一真相表 `crates/front/src/tactics.rs` 同源，新增 tactic 会被门禁要求补文档）。
+  几条最容易讲错的：`intro a b c` 一次剥多层、**按你写的名字改名**（`intro y` 之后
+  目标里的绑定名就是 `y`）；`cases h` 不带 `with` 按构造子顺序，带 `with` 时臂体用
+  **缩进**界定；**`have h : T := t` / `have h : T := by …`** 引入中间结论、目标不变，
+  嵌套 `by` 也按缩进界定（第一个列号 ≤ `have` 所在列的 tactic 属于外层）；
+  `match` 在 tactic 位等价于 `exact (match …)`。
   类型不匹配的报错是**人话**（`期望 B，实际是 C`），且报在出错那一行。
 - **匿名构造子 `⟨a, b⟩`（0.61.0）**：用哪个构造子由**期望类型**决定——
   `A ∧ B` ⇒ `And.intro`、`A ↔ B` ⇒ `Iff.intro`、`∃ (x : α), p x` ⇒ `Exists.intro`、
@@ -283,9 +284,9 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   **边界**（保留点名 + 行内 `-- soko:notation-ok`）：等式族证明项
   （`Eq.symm`/`Eq.trans`/`congrArg`）的宇宙层级、`Set.univ α`、`intro` 派生的
   目标/假设、`Exists`-headed def、嵌套 `Exists.elim`、复合记法操作数。
-- **tactic 白名单（全量）**：`intro` / `exact` / `apply` / `assumption` / `rfl` /
-  `match` / `constructor` / `left` / `right` / `use` / `exfalso` / `cases` / `have` /
-  `⟨a, b⟩` / `sorry`。**按单元解锁**：①④⑧ 的 `And`/`Or` 是公理 ⇒ 那里
+- **tactic 白名单（全量 14 条 + 匿名构造子 `⟨a, b⟩`）**：清单与每条怎么讲见
+  **`reference/tactics/`**（单一真相表 `crates/front/src/tactics.rs`；编辑器里
+  悬停给一句摘要、**F12 打开那一篇**）。**按单元解锁**：①④⑧ 的 `And`/`Or` 是公理 ⇒ 那里
   `constructor`/`cases`/`left`/`right` 不可用（要真归纳类型），继续点名
   `And.intro`/`Or.inl` + `apply`；⑨⑩⑪ 有真 `inductive Or` ⇒ `left`/`right`/`cases`
   可用；`use` 要 `∃`（单元⑧）。`by sorry` 是合法占位（目标保持开放）。
@@ -390,6 +391,10 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   一条分割线 + 该名字的类型；② **声明名**（`def Set.mem`）⇒ 签名 + `def` 的 `:=` 值块
   （与 Infoview 声明卡片同源）；③ **`#check`/`#print` 那一行** ⇒ 显示**那条命令自己的输出**
   （与 Infoview 的「命令输出」块同一份真相）——语言文本一律**围栏块上色**，不是行内码；
+- **tactic 关键字自己也有文档**（2026-10-10）：悬停 `by` 块里的 `intro`/`exact`/`rfl` 这类
+  关键字 ⇒ 那一行下面多**一句摘要** + 「完整文档：`F12`」；**按 F12** ⇒ 直接打开那篇
+  `reference/tactics/<关键字>.md`（14 篇随插件分发、离线可读，不必联网）——学习者问
+  "这条 tactic 到底怎么用/为什么"时，先让他悬停看摘要、再按 F12 读全篇 ✓；
 - **符号可以打出来**（0.62.0 起；2026-10-01 扩到 75 条）：**打出缩写再按【空格】**
   ——`\and ` → `∧ `、`\in ` → `∈ `、**`\alpha `（或 `\a `）→ `α `**、`\Gamma ` → `Γ `、
   `\<` → `⟨`；词一完整就落定（`\alpha` 敲完 `a` 就是 `α`）。别名

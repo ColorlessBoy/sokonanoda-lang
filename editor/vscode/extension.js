@@ -2831,9 +2831,16 @@ async function activate(context) {
       return;
     }
     const command = resolution.command;
+    // 插件自带的 tactic 文档目录（`docs/design/tactic-docs.md` §4.9.4）：LSP 的
+    // `doc_path()` 第二档读它 ⇒ F12 落在**插件自己的文件**上（离线、无运行时写盘）。
+    // ⚠ 只写**新增的那一个键**，不要 `...process.env`：`vscode-languageclient` 的
+    // `getEnvironment()` 自己会把 `process.env` 铺底再用这里的键覆盖 ⇒ 这是
+    // **追加**语义，写 `...process.env` 会让人误以为它替换（与既有的
+    // `SOKONANODA_CACHE_DIR` / `SOKONANODA_LSP_BIN` 同一条纪律）。
+    const env = { SOKONANODA_DOCS_DIR: path.join(context.extensionPath, "docs", "tactics") };
     serverOptions = {
-      run: { command, transport: TransportKind.stdio },
-      debug: { command, transport: TransportKind.stdio },
+      run: { command, transport: TransportKind.stdio, options: { env } },
+      debug: { command, transport: TransportKind.stdio, options: { env } },
     };
     client = new LanguageClient("sokonanoda", "sokonanoda", serverOptions, {
       documentSelector: [{ language: "sokonanoda", scheme: "file" }],

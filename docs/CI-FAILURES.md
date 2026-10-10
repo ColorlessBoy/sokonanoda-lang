@@ -1,3 +1,11 @@
+## 2026-10-10 · 全量 e2e 里 `P7：…按 F12…` 判红 = **宿主窗口没有 OS 焦点**（本机全量跑，不是产品缺陷）
+
+**症状**：该用例单跑 3 次全绿（770ms / 886ms），**全套跑**（`scripts/vscode-e2e.sh`，48 passed / 1 failed）超时 30s；报错里 `activeTextEditor` 正是夹具、可见编辑器多一个 `extension-output-…-sokonanoda doctor`。
+**真因（诊断读数，不是猜）**：`vscode.window.state.focused = false` —— **VS Code 窗口本身没有 OS 焦点**；此时连 `cursorRight` 都不移动光标 ⇒ `editor.action.revealDefinition`（`when` 含 `editorTextFocus`）**静默不动** ✗。同一刻 `vscode.executeDefinitionProvider` **照常答插件目录那份** ✓ ⇒ 解析那一半没坏，坏的是"按键送不送得到"。
+**为什么单跑绿**：本机 21:0x 那三次跑在测试窗口恰好是前台时 —— 真按键那支实测落点 = `extensionPath/docs/tactics/<kw>.md` ✓，反向验证 (b)（删 `SOKONANODA_DOCS_DIR`）也是**真按键**落到物化副本才判红 ✓；而开发机上用户自己的 VS Code 常年占前台 ⇒ 结果取决于运行时刻的桌面焦点 ✗。
+**修法（改判据，不是加大超时 ✗）**：两半分开断言 —— ①解析（provider ⇒ 必须答插件自带那份，硬判据）；②导航：先按真 F12，**窗口有焦点却不开 ⇒ 照样判红** ✗；只有 `state.focused === false`（有实测证据说明按键送不到）才退到"打开解析出来的落点并断言它是可见编辑器"，并打一行日志指向本条目。
+**预防**：拿 `editor.action.*` 当判据的 e2e，必须写明并处理"宿主窗口焦点"这个前置 —— 它与产品行为无关，却能让整条用例静默失效；`activeTextEditor` 有值**不代表**编辑器有焦点（它是"最近聚焦过的编辑器" ✗）。
+
 ## 2026-10-08 · `test (sokonanoda-lsp, tests)` 判红 = **trace 基线的 stderr 读线程竞态**（run `37795904518`）—— 判据改取"落定值" ✓
 
 **症状** ✓：`lsp_keystroke_structure::changing_a_statement_must_invalidate_the_prefixes_after_it`
@@ -689,9 +697,7 @@ run `36378945287` 的 `test (sokonanoda-front, tests)` 判红：`best 1599.6ms �
    夹具时长记进台账（`wall_s` 已经在 `--json` 里 ✓，可作对比）。
 
 **顺带修**（同一次判红暴露的）：`scripts/soko gate --fast` 把 `--lib` **写死**了
-⇒ `sokonanoda-cli`（bin crate，无 lib target）**改了必红**、与代码无关。
-改成**按 crate 分开选**（有 `src/lib.rs` ⇒ `--lib`，否则 `--bins`）✓
-（`--lib --bins` 也不行：cargo 对"某个被 `-p` 指名的包没有那类 target"是硬错误）。
+⇒ `sokonanoda-cli`（bin crate，无 lib target）**改了必红**、与代码无关。改成**按 crate 分开选**（有 `src/lib.rs` ⇒ `--lib`，否则 `--bins`）✓（`--lib --bins` 也不行：cargo 对"某个被 `-p` 指名的包没有那类 target"是硬错误）。
 
 ## 2026-09-30 — `test (sokonanoda-cli, tests)` 判红：`perf_project` 冷/热都是 ~1025ms
 
@@ -701,8 +707,7 @@ run `36378945287` 的 `test (sokonanoda-front, tests)` 判红：`best 1599.6ms �
 "两边都多付了同一笔固定开销"才会。
 
 **真因**：**`Heartbeat::stop()` 等满一个周期** ✗。
-① 的"非管道不发"让**测试（stdout 是管道）**也开始起心跳线程，而
-`stop()` 是"置停止位 + `join()`"，线程却在 `sleep(period)` 里 ⇒
+① 的"非管道不发"让**测试（stdout 是管道）**也开始起心跳线程，而`stop()` 是"置停止位 + `join()`"，线程却在 `sleep(period)` 里 ⇒
 **每次 build 都白等 up to 1000ms**（冷跑和热跑**各**白等一次 ⇒ 两个数一起变 ~1025ms，
 比值判据 `warm * 2 < cold` 必红）。
 
@@ -722,17 +727,14 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 
 **预防**：
 1. 判据加"**心跳不许拖慢 build**"（`cli_build_heartbeat_is_off_unless_asked_for` 的 ⑤）：
-   同一夹具管道 vs `NO_TICK` 的**墙钟差 < 0.5s** ✓
-   —— ⚠ 用**差值不用比值**：两者都含 ~0.66s 进程启动固定开销，比值会被它稀释；
+   同一夹具管道 vs `NO_TICK` 的**墙钟差 < 0.5s** ✓—— ⚠ 用**差值不用比值**：两者都含 ~0.66s 进程启动固定开销，比值会被它稀释；
    ⚠ 这一条**放在"夹具够慢"自检之前**：否则注入 `sleep` 时自检先 `panic`、
    ⑤ 根本跑不到 ⇒ **反向验证失效**（第一版就是这么假绿的 ✗）。
    **反向验证**：注入 `sleep(period)` ⇒ `多付 0.57s` **判红** ✓。
 2. **"停一个后台线程"永远不要用 `sleep` 轮询**（`join()` 会等满一个周期）——
    用 `Condvar` / channel / `park_timeout` ✓；
 3. ⚠ **本次教训的元层**：① 的第一版（一律不发）与第二版（非管道发）**各引入一个
-   不同的 bug**，而两版都过了 `gate --fast` —— 因为 `--fast` **跳过集成测试**
-   （`perf_project` 就在里面）⇒ **改了 CLI 的运行时行为，要跑那个 crate 的
-   `--test` 全集，不能只看 `--fast`** ✓。
+   不同的 bug**，而两版都过了 `gate --fast` —— 因为 `--fast` **跳过集成测试**（`perf_project` 就在里面）⇒ **改了 CLI 的运行时行为，要跑那个 crate 的`--test` 全集，不能只看 `--fast`** ✓。
 
 ## 2026-09-30 — `judge_inplace_by` **间歇性**判红（约 2/3）：两个测试抢同一个 `OnceLock`
 
@@ -748,9 +750,7 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 声称「必红/强制」的，逐条核对它真的成立）。
 
 **修法**：**一个档位一个文件**（各自独立进程 = 天然隔离 ✓）——
-拆成 `judge_inplace_by.rs`（影子档）与 `judge_inplace_by_reverse.rs`（反向判据）。
-修后 **6 连跑全绿** ✓；**反向验证**：注入附十那个真 bug（`peel_binders(… , n + 1)`）
-⇒ 影子档**判红** ✓（判据本身没被拆坏）。
+拆成 `judge_inplace_by.rs`（影子档）与 `judge_inplace_by_reverse.rs`（反向判据）。修后 **6 连跑全绿** ✓；**反向验证**：注入附十那个真 bug（`peel_binders(… , n + 1)`）⇒ 影子档**判红** ✓（判据本身没被拆坏）。
 
 **预防**：
 1. **凡是用 `set_var` + `OnceLock` 配档位的测试，一个档位一个文件** ——

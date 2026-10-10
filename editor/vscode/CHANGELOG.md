@@ -1,6 +1,30 @@
-## [Unreleased]
+## [0.88.0] — 2026-10-10
 
-> **One card for every hover, an honest artifact version, and quieter declaration names.**
+> **Every tactic now has a page, and it ships inside the extension.**
+> Hover a tactic keyword in a `by` block for a one-line summary; press F12 to open
+> that tactic's full page. The 14 pages plus their index are packaged into the
+> VSIX itself, so reading them needs no network and no external site. Alongside:
+> every `.sokonanoda` hover is one declaration card again, the Infoview's command
+> output stops duplicating, and the artifact version stamp tells the truth.
+
+### Added
+
+- **tactic 关键字上有 hover 摘要了（14 条全覆盖）**：`by` 块里悬停 `intro`/`exact`/`rfl`
+  这类关键字 ⇒ tactic 行下面多一行摘要 + 纯文本「完整文档：`F12`」。摘要与补全弹窗的
+  `detail`/`documentation` 来自同一张表（`crates/front/src/tactics.rs`），不是各处手写的
+  文案；**名字**与**语言关键字**（`def`/`fun`/`by`/`=>`）上仍然一个字节不变。
+- **F12 打开那条 tactic 的文档**：光标放在 `by` 块里的关键字上按 F12 ⇒ 打开
+  `reference/tactics/<关键字>.md`（14 条都有）。落点按五档解析：仓库真源 → **插件自带目录**
+  → 缓存物化 → 临时物化 → 没有落点；装好的插件走插件自带那一档 ⇒ 离线可读，不访问外部站点。
+  走不到任何一档时如实答"没有可跳转的定义"，不给死指针。
+- **14 篇 tactic 文档 + 索引随插件分发**：`intro` / `exact` / `apply` / `assumption` /
+  `use` / `constructor` / `left` / `right` / `cases` / `match` / `have` / `exfalso` /
+  `rfl` / `sorry` 各一篇（怎么用 · 什么时候用 · 内核在背后判什么 · 常见错误与出路 · 相关），
+  打包成 VSIX 里的真文件 `extension/docs/tactics/*.md`（`unzip -l` 可见）。每篇里的
+  `sokonanoda` 例子都逐块喂过真内核，零诊断。
+- **新增 tactic 会被要求补文档**：tactic 清单只有一份（`crates/front/src/tactics.rs`），
+  白名单由它派生、文档由 `include_str!` 编译期内嵌，另有独立的源码 lint
+  `scripts/tactic-docs-lint.py` ⇒ 加了 tactic 忘了补文档会被拦下，不靠"记得同步"。
 
 ### Fixed
 

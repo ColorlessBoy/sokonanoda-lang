@@ -178,12 +178,17 @@ jobs:
         run: |
           mkdir -p dist
           npm run clean:lsp
+          # 这条回退包是**裸** `vsce package`（不经过 stage-lsp.js）⇒ 文档 stage
+          # 必须显式补一次，否则这一类 VSIX 不带 `docs/tactics/`
+          # （docs/design/tactic-docs.md §4.9.6 接线点 ④，最容易漏的一处）。
+          node scripts/stage-docs.js
           npx --yes @vscode/vsce package --out dist/sokonanoda-universal.vsix
 
-      - name: VSIX smoke test (payload + exec bits + target manifest)
+      - name: VSIX smoke test (payload + exec bits + target manifest + tactic docs)
         working-directory: editor/vscode
         run: |
           python3 - <<'PY'
+          import pathlib
           import zipfile
 
           # (vsce target, bundled base names) — the VSIX carries BOTH the LSP
@@ -200,6 +205,24 @@ jobs:
           }
           universal = "dist/sokonanoda-universal.vsix"
 
+          # 14 tactic pages + the index, checked BY NAME and byte-for-byte against
+          # `reference/tactics/` — this is the "拷贝 == 源" judgement for the docs
+          # channel (docs/design/tactic-docs.md §4.9.1 / R22), run on EVERY
+          # artifact so a packaging line that forgot the docs stage cannot ship.
+          DOCS = [
+              "README.md", "apply.md", "assumption.md", "cases.md", "constructor.md",
+              "exact.md", "exfalso.md", "have.md", "intro.md", "left.md", "match.md",
+              "rfl.md", "right.md", "sorry.md", "use.md",
+          ]
+
+          def check_docs(path, names, read):
+              for name in DOCS:
+                  entry = f"extension/docs/tactics/{name}"
+                  assert entry in names, f"{path}: missing {entry}"
+                  want = pathlib.Path(f"../../reference/tactics/{name}").read_bytes()
+                  assert read(entry) == want, f"{path}: {entry} differs from reference/tactics/{name}"
+              print(f"ok {path}: {len(DOCS)} tactic docs, byte-identical to reference/tactics/")
+
           for path, (target, bases) in EXPECTED.items():
               with zipfile.ZipFile(path) as zf:
                   names = zf.namelist()
@@ -214,12 +237,15 @@ jobs:
                       if not target.startswith("win32"):
                           assert mode & 0o111, f"{path}: {binary} is not executable (mode={oct(mode)})"
                       print(f"ok {path}: {binary} mode={oct(mode)} size={info.file_size}")
+                  check_docs(path, names, zf.read)
 
           with zipfile.ZipFile(universal) as zf:
-              assert not any(n.startswith("extension/bin/") for n in zf.namelist()), \
+              names = zf.namelist()
+              assert not any(n.startswith("extension/bin/") for n in names), \
                   f"{universal}: fallback package must not embed a platform binary"
-              assert "extension.vsixmanifest" in zf.namelist()
+              assert "extension.vsixmanifest" in names
               print(f"ok {universal}: no bundled binary")
+              check_docs(universal, names, zf.read)
           PY
 
       - uses: actions/upload-artifact@v7

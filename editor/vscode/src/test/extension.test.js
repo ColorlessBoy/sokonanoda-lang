@@ -2461,6 +2461,163 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("P7：tactic 关键字上按 F12 ⇒ 真的打开**插件自带**的那篇文档（2026-10-10）", async () => {
+    // 需求 ②（F12 跳到 tactic 文档）的**用户可见**判据（设计 `docs/design/tactic-docs.md`
+    // §5 P7 / §4.9 D10）：光标放在 `by` 块里的 tactic 关键字上按 F12（VS Code 内置动作，
+    // 命令 = `editor.action.revealDefinition`）⇒ 编辑器**真的打开**那篇 `.md`，落点在
+    // **扩展目录**的 `docs/tactics/<kw>.md` —— 「文档随插件分发」的用户可见证据 ✓。
+    //
+    // ⚠ 五档解析里 ① 档（仓库真源）是**编译期**路径（`env!("CARGO_MANIFEST_DIR")`）⇒ 开发树里
+    // 它必然先命中、② 档（插件目录）不可观测 ⇒ 探针期间把仓库那份**临时藏起来**（模拟安装
+    // 形态：用户机器上 ① 档不存在），`finally` 还原 —— 同 P6 的 `HiddenRepoDoc` ✓。
+    //
+    // ⚠⚠ **两半分开断言**（2026-10-10 全量 e2e 实测，见 `docs/CI-FAILURES.md`）：
+    // ① **解析那一半**（确定性）：`vscode.executeDefinitionProvider` 就是编辑器 F12 经
+    //    language client 发出去的**同一条请求** ⇒ 必须答**插件自带**那一份（硬判据）；
+    // ② **导航那一半**：`editor.action.revealDefinition` 是**编辑器命令**，它的 `when` 含
+    //    `editorTextFocus` ⇒ **宿主窗口没有 OS 焦点时它静默不动**（实测：`window.state.focused
+    //    = false` 时连 `cursorRight` 都不移动光标）。宿主的窗口焦点不是产品状态：单跑本用例时
+    //    窗口刚起来（聚焦）⇒ 走"真按键"那支 ✓；全套跑时窗口可能已被别的应用抢走焦点 ⇒ 退到
+    //    「把解析出来的落点**打开**并断言它是可见编辑器」（同一个用户可见结果，由测试代按），
+    //    并打一行日志说明这一趟没走真按键。**反向验证 (b) 就是真按键那支的实测**：删掉
+    //    `SOKONANODA_DOCS_DIR` ⇒ 真 F12 落到物化副本 ⇒ 判红 ✓。
+    const ext = vscode.extensions.getExtension(EXTENSION_ID);
+    const docsDir = path.join(ext.extensionPath, "docs", "tactics");
+    assert.ok(
+      fs.existsSync(docsDir),
+      `插件目录 ${docsDir} 必须存在（scripts/vscode-e2e.sh 无条件跑 stage-docs.js）`,
+    );
+    const staged = fs.readdirSync(docsDir).filter((n) => n.endsWith(".md")).sort();
+    assert.strictEqual(
+      staged.length,
+      15,
+      `插件目录里应是 14 篇 + 索引，实际 ${staged.length}：${staged.join(", ")}`,
+    );
+
+    // 三条覆盖三族（设计 §5 P7 点名）：引入族 `intro` · 糖 `constructor` · 容易抢项位的 `match`。
+    // ⚠ 声明名**不许含关键字**（第一版叫 `t_intro`/`t_match`，`indexOf(kw)` 于是落在**声明名**
+    // 上、F12 答 null —— 判据自己指错了位置 ✗），定位一律从 `:= by` 之后找 ✓。
+    const cases = [
+      {
+        kw: "intro",
+        src: "theorem p7_one (a b : Prop) (ha : a) : b -> a := by\n  intro hb\n  exact ha\n",
+      },
+      {
+        kw: "constructor",
+        src: "theorem p7_two (a b : Prop) (ha : a) (hb : b) : a ∧ b := by\n  constructor\n  exact ha\n  exact hb\n",
+      },
+      {
+        kw: "match",
+        src: "theorem p7_three (a b : Prop) (h : a ∧ b) : a := by\n  match h with\n  | And.intro ha _ => ha\n",
+      },
+    ];
+
+    const repoDoc = (kw) => path.join(REPO_ROOT, "reference", "tactics", `${kw}.md`);
+    const pluginDoc = (kw) => path.join(docsDir, `${kw}.md`);
+    // 上一轮若在探针中途被杀会留下 `*.p7-e2e-hidden` ⇒ 先自愈（e2e 不许把工作树弄脏）。
+    for (const { kw } of cases) {
+      const hidden = `${repoDoc(kw)}.p7-e2e-hidden`;
+      if (!fs.existsSync(repoDoc(kw)) && fs.existsSync(hidden)) fs.renameSync(hidden, repoDoc(kw));
+    }
+
+    // 真按键那支到底跑了几条（写进日志，别让"退到代按"这件事静默发生 ✗）。
+    const realKeypress = [];
+    for (const { kw, src } of cases) {
+      const uri = await writeDoc(`p7-docs-${kw}.sokonanoda`, src);
+      await showDoc(uri);
+      const editor = vscode.window.activeTextEditor;
+      assert.ok(editor, `${kw}：夹具必须是活跃编辑器`);
+      const position = editor.document.positionAt(src.indexOf(kw, src.indexOf(":= by")));
+      editor.selection = new vscode.Selection(position, position);
+      // 把键盘焦点还给编辑器组（`activeTextEditor` 是"**最近**聚焦过的编辑器"，焦点不在编辑器里
+      // 时它照样有值 ⇒ 编辑器命令的 `when` 仍为假）。这一步只解决"焦点在别的编辑器 tab"，
+      // 解决不了"整个窗口没有 OS 焦点"（那种情况下面走代按那支）。
+      await vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
+      editor.selection = new vscode.Selection(position, position);
+
+      // 藏起仓库真源 ⇒ 只剩插件目录那一档（模拟安装形态）。
+      const hidden = `${repoDoc(kw)}.p7-e2e-hidden`;
+      fs.renameSync(repoDoc(kw), hidden);
+      try {
+        // ① 解析那一半：先等服务器对这份文档给出落点（新开的文档要等 didOpen 编译完）。
+        const found = await requestUntil(
+          `F12 在 \`${kw}\` 上有落点`,
+          () =>
+            vscode.commands.executeCommand(
+              "vscode.executeDefinitionProvider",
+              uri,
+              position,
+            ),
+          (result) => Array.isArray(result) && result.length > 0,
+        );
+        assert.ok(
+          Array.isArray(found) && found.length > 0,
+          `\`${kw}\` 上必须有落点（仓库真源已藏起 ⇒ 只能是插件目录那份）`,
+        );
+        assert.strictEqual(
+          fs.realpathSync(found[0].uri.fsPath),
+          fs.realpathSync(pluginDoc(kw)),
+          `${kw}：落点必须在**扩展目录**下（随插件分发），实际 = ${found[0].uri.fsPath}`,
+        );
+
+        // ② 导航那一半：按 F12（编辑器命令），看那一篇是否真的被打开。
+        await vscode.commands.executeCommand("editor.action.revealDefinition");
+        let opened;
+        try {
+          await waitFor(
+            `F12（${kw}）打开插件自带的文档`,
+            async () => {
+              const active = vscode.window.activeTextEditor;
+              return Boolean(active && active.document.uri.fsPath.endsWith(`docs/tactics/${kw}.md`));
+            },
+            4000,
+          );
+          opened = vscode.window.activeTextEditor.document;
+          realKeypress.push(kw);
+        } catch (error) {
+          // 窗口没有 OS 焦点 ⇒ 编辑器命令根本不会执行（连光标都不动）——这不是产品行为，
+          // 是宿主的限制 ⇒ 退到"打开解析出来的落点并断言它是可见编辑器"，并留一行日志。
+          if (vscode.window.state.focused) throw error;
+          console.log(
+            `[P7] ${kw}：宿主窗口没有 OS 焦点（window.state.focused=false）⇒ 编辑器命令静默不动；` +
+              "退到「打开落点并断言可见」（限制记在 docs/CI-FAILURES.md）",
+          );
+          await vscode.window.showTextDocument(found[0].uri, { preview: false });
+          await waitFor(
+            `打开 ${kw} 的落点时它成为可见编辑器`,
+            async () =>
+              vscode.window.visibleTextEditors.some(
+                (e) => e.document.uri.fsPath === pluginDoc(kw),
+              ),
+            4000,
+          );
+          opened = vscode.window.visibleTextEditors.find(
+            (e) => e.document.uri.fsPath === pluginDoc(kw),
+          ).document;
+        }
+        // 不管走哪一支，**打开的那一份**都必须正是那篇文档（不是空文件、不是别处那份）。
+        assert.strictEqual(
+          fs.realpathSync(opened.uri.fsPath),
+          fs.realpathSync(pluginDoc(kw)),
+          `${kw}：打开的必须是插件自带那一份，实际 = ${opened.uri.fsPath}`,
+        );
+        assert.ok(
+          opened.getText().startsWith(`# ${kw}`),
+          `${kw}：打开的必须真是那篇文档，实际首行 = ${opened.getText().split("\n")[0]}`,
+        );
+      } finally {
+        if (fs.existsSync(hidden)) fs.renameSync(hidden, repoDoc(kw));
+      }
+    }
+    for (const { kw } of cases) {
+      assert.ok(fs.existsSync(repoDoc(kw)), `探针结束后仓库真源必须还原：${kw}.md`);
+    }
+    console.log(
+      `[P7] F12 导航那一半：真按键 ${realKeypress.length}/${cases.length} 条` +
+        `（${realKeypress.join(", ") || "无"}）· 其余走"打开落点并断言可见"`,
+    );
+  });
+
   test("hover on a notation symbol shows the target's signature", async () => {
     // 用例 #8（G-23）：hover 必须给出 `Set.mem` 的**原始类型**。
     const entry = fixtureEntry();

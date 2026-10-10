@@ -147,8 +147,16 @@ skills.
   imported say so in the hover instead of failing silently.
 - **Hover inside a tactic**: the goal state entering that tactic, and — when the
   cursor is on a **name** (`apply Set.ext`, `exact h`, …) — a divider followed by
-  that name's own type. On the tactic keyword, on numbers, brackets or strings
-  nothing is added, so the goal panel reads exactly as before.
+  that name's own type. On numbers, brackets or strings nothing is added, so the
+  goal panel reads exactly as before.
+- **Every tactic has a page, and the pages ship inside the extension** (0.88.0):
+  hover a tactic keyword (`intro`, `exact`, `rfl`, `match`, …) and the hover adds
+  a one-line summary plus a plain-text `完整文档：F12`. Press `F12` there to open
+  that tactic's page — what it does, when to use it, what the kernel checks behind
+  it, the errors you can hit and the way out. All 14 pages plus their index are
+  packaged into the extension (`docs/tactics/*.md`), so they open offline with no
+  external site. A tactic added later without a page fails the build instead of
+  shipping a broken link.
 - **Compile progress you can see**: the status bar switches to a *compiling…* state,
   the Infoview shows a three-line progress block, and the overview ruler marks the
   document being compiled (`sokonanoda.progress.throttleMs` throttles the in-between

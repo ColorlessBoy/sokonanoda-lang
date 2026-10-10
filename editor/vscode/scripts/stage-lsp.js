@@ -13,10 +13,15 @@
 // Staging keeps exactly one target in `bin/` (the packaging job iterates
 // targets by re-running this script), so a single VSIX never carries another
 // platform's payload. Exit code 1 on unsupported host or missing binary.
+//
+// It also stages the tactic docs (`scripts/stage-docs.js`) on every run, so
+// both the binaries and the docs are in place before `--package` calls `vsce`
+// (docs/design/tactic-docs.md §4.9.6).
 
 const { execFileSync, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const stageDocs = require("./stage-docs.js");
 
 const HOST_TO_VSCE = {
   "x86_64-unknown-linux-gnu": "linux-x64",
@@ -134,6 +139,12 @@ function packageVsix(target, out, log = console.log) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const staged = stage(args);
+  // **文档 stage 也走这条脚本**（docs/design/tactic-docs.md §4.9.6 接线点 ①③）：
+  // 本地 `npm run package:host` 与 CI 的逐 target 打包都调它，而 `--package` 是
+  // **同一进程里**接着调 `vsce` 的 ⇒ 前置的 npm script 写法不适用 ✗。
+  // 无条件跑（不只在 `--package` 时）：`scripts/vscode-e2e.sh` 的常规路也只调这条
+  // 命令来 stage 二进制，而 e2e 的 F12 判据要求 `docs/tactics/` 就在扩展目录下 ✓。
+  stageDocs.stage();
   if (args.package) packageVsix(staged.target, args.out);
 }
 
