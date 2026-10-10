@@ -691,7 +691,14 @@ impl<'a> ElabScope<'a> {
 #[derive(Clone)]
 pub(crate) struct HoverNode<'a> {
     pub(crate) span: Span,
-    pub(crate) expr: ExprPtr<'a>,
+    /// 这个出现点的表达式（用来推它的类型）。
+    ///
+    /// `None` = **词法行**（G-108）：这段源码**没能走到 elaborate**（开放练习的
+    /// 证明体、或报错 tactic 之后的剩余部分）⇒ 没有内核表达式可推 ⇒ 只保留
+    /// span/resolution 供**导航与源码切片悬停**用（类型文本留空，不编造 ✗）。
+    /// 见 [`crate::ast::Expr::for_each_ident`] 与 `walk.rs` 的
+    /// `push_lexical_hover_rows`。
+    pub(crate) expr: Option<ExprPtr<'a>>,
     pub(crate) scope_names: Vec<String>,
     pub(crate) scope_tys: Vec<ExprPtr<'a>>,
     /// When this node is an ident use point: where the name is defined.
@@ -712,7 +719,7 @@ pub(crate) fn record_hover<'a>(
 ) {
     hovers.push(HoverNode {
         span,
-        expr,
+        expr: Some(expr),
         scope_names: scope.names.clone(),
         scope_tys: scope.tys.clone(),
         resolution,
@@ -730,7 +737,7 @@ pub(crate) fn record_binder_hover<'a>(
 ) {
     hovers.push(HoverNode {
         span,
-        expr: ty,
+        expr: Some(ty),
         scope_names: scope.names.clone(),
         scope_tys: scope.tys.clone(),
         resolution: None,

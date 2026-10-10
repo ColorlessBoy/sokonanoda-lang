@@ -2023,12 +2023,14 @@ pub(crate) fn resolve_hovers(
         for node in cmd.nodes {
             // Binder-declaration rows render from their own source slice, so
             // skip the (possibly panic-prone) type inference entirely.
+            // **词法行**（`expr == None`，G-108）同理：这段源码没 elaborate 过
+            // ⇒ 没有类型可推（**不编造** ✗），只保留 span/resolution 供导航 ✓。
             let text = if node.binder {
                 String::new()
-            } else {
+            } else if let Some(expr) = node.expr {
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     env.with_tc(EnvLimit::ByIndex(cmd.env_at), |tc| {
-                        let ty = tc.infer_under_binders(&node.scope_tys, node.expr);
+                        let ty = tc.infer_under_binders(&node.scope_tys, expr);
                         // 用 scope binder 名字播种 pp：松散变量还原为真名
                         //（`$N` 不再出现），telescope 域的 lift 恰好被抵消。
                         tc.with_pp_scoped(&node.scope_names, |pp| pp.pp_expr(ty))
@@ -2059,6 +2061,10 @@ pub(crate) fn resolve_hovers(
                         String::new()
                     }
                 }
+            } else {
+                // **词法行**（`expr == None`，G-108）：这段源码没 elaborate 过 ⇒
+                // 没有类型可推（**不编造** ✗），只保留 span/resolution 供导航 ✓。
+                String::new()
             };
             // 保留所有行（含 $N 行——LSP 层只显示源码切片，不显示乱码类型）。
             // 此前按 $ 过滤导致子表达式行丢失，外层行"遮蔽"了子表达式 hover。

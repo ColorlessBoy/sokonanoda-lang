@@ -192,7 +192,11 @@ fn a_project_build_writes_its_artifact_into_the_module_root() {
     // ⚠ **r4 → r5**：G-102（2026-10-10，`CheckInfo::cmd`/`PrintInfo::cmd` **进序列化**
     // —— 回放后按 `cmd` 去重的增量拼接才认得出同一份报告）把 `REPORT_SHAPE` 4 → 5
     // ⇒ 这里同样必须同步（**实测**：这一版发版预检就是漏了这一步判红 ✗✓）。
-    assert_eq!(meta["schema"], "soko.artifacts/2.r5");
+    // ⚠ **r5 → r6**：G-108/G-109（2026-10-10，`DocumentReport.hovers` 的**含义**变了
+    // —— 报错/`sorry` 的那段源码现在也有行（词法行）；且 `apply` 按 defeq 展开后
+    // 原本 Failed 的声明可能变 Checked）把 `REPORT_SHAPE` 5 → 6 ⇒ 老条目必须整库
+    // 不命中（回放它等于把"跳不了/目标不匹配"的旧答案放回来 ✗）⇒ 这里同步。
+    assert_eq!(meta["schema"], "soko.artifacts/2.r6");
     assert!(meta["compiler"].as_str().is_some_and(|v| !v.is_empty()));
     // ⑤ 项目条目**不再**落全局缓存（分工：项目条目只认模块根）。
     assert!(

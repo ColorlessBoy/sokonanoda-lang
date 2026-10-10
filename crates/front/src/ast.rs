@@ -324,6 +324,121 @@ impl Expr {
             | Expr::AnonCtor { span, .. } => *span,
         }
     }
+
+    /// 遍历这棵表达式树里**每一个标识符出现点**（名字 + 它自己的 span）。
+    ///
+    /// **为什么要它**（G-108，2026-10-10 用户实测）：`by` 块里**没能走到
+    /// elaborate 的那部分**（证明体以 `sorry` 收尾 ⇒ 走"开放练习"那条路；
+    /// 或某条 tactic 报错 ⇒ elaborate 中途 `Err`）**不会产生 `HoverNode`**
+    /// ⇒ 那段源码里所有名字都没有 hover 行 ⇒ **F12 整个失效** ✗
+    /// （用户原话：「加了 `sorry`（或其他引起报错的 tactic），就会导致
+    /// `Eq.refl` 无法跳转」）。词法行就是给这段"补座位"：**不改判定**
+    /// （判定仍由 kernel 终审），只让导航/悬停认得这些名字 ✓。
+    ///
+    /// ⚠ 只收**值/证明体里**的出现点（`Ident`）；`match` 的模式、binder 名字
+    /// 是**绑定点**不是使用点 ⇒ 不收（它们本来就不该往外跳）。
+    /// `UniverseApp`（`f.{u}`）的 span 覆盖整段 `f.{u}`，给它造行会让 F12
+    /// 落在错误宽度上 ⇒ 不收（正常路径 elaborate 时本来就有它的行 ✓）。
+    ///
+    /// ⚠ **穷尽 match**：新增 `Expr` 变体时编译器会在这里报错 ⇒ 不会漏 ✓。
+    pub fn for_each_ident(&self, f: &mut impl FnMut(&str, Span)) {
+        match self {
+            Expr::Ident { name, span } => f(name, *span),
+            Expr::Sort { .. } | Expr::UniverseApp { .. } | Expr::Num { .. } | Expr::Hole { .. } => {
+            }
+            Expr::App { fun, arg, .. } => {
+                fun.for_each_ident(f);
+                arg.for_each_ident(f);
+            }
+            Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
+                for binder in binders {
+                    if let Some(ty) = binder.ty.as_deref() {
+                        ty.for_each_ident(f);
+                    }
+                }
+                body.for_each_ident(f);
+            }
+            Expr::Arrow {
+                domain, codomain, ..
+            }
+            | Expr::Plus {
+                lhs: domain,
+                rhs: codomain,
+                ..
+            } => {
+                domain.for_each_ident(f);
+                codomain.for_each_ident(f);
+            }
+            Expr::Let {
+                binder, val, body, ..
+            } => {
+                if let Some(ty) = binder.ty.as_deref() {
+                    ty.for_each_ident(f);
+                }
+                val.for_each_ident(f);
+                body.for_each_ident(f);
+            }
+            Expr::By { tactics, .. } => {
+                for tactic in tactics {
+                    tactic.for_each_ident(f);
+                }
+            }
+            Expr::Match {
+                scrutinee, arms, ..
+            } => {
+                scrutinee.for_each_ident(f);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        guard.for_each_ident(f);
+                    }
+                    arm.body.for_each_ident(f);
+                }
+            }
+            Expr::Notation { lhs, rhs, .. } => {
+                if let Some(lhs) = lhs {
+                    lhs.for_each_ident(f);
+                }
+                if let Some(rhs) = rhs {
+                    rhs.for_each_ident(f);
+                }
+            }
+            Expr::SetLiteral { elements, .. } | Expr::AnonCtor { elements, .. } => {
+                for element in elements {
+                    element.for_each_ident(f);
+                }
+            }
+        }
+    }
+}
+
+impl Tactic {
+    /// 见 [`Expr::for_each_ident`]：tactic 的**表达式位**里的标识符出现点
+    /// （`exact e` / `apply e` / `use e` / `cases e` / `have := v`）。
+    /// `intro` 的名字、`cases` 臂的 binder 是**绑定点** ⇒ 不收 ✓。
+    pub fn for_each_ident(&self, f: &mut impl FnMut(&str, Span)) {
+        match self {
+            Tactic::Exact { expr, .. }
+            | Tactic::Apply { expr, .. }
+            | Tactic::Use { expr, .. }
+            | Tactic::Cases { expr, .. } => expr.for_each_ident(f),
+            Tactic::Have { value, .. } => match value {
+                HaveValue::Term(expr) => expr.for_each_ident(f),
+                HaveValue::By(tactics) => {
+                    for tactic in tactics {
+                        tactic.for_each_ident(f);
+                    }
+                }
+            },
+            Tactic::Intro { .. }
+            | Tactic::Assumption { .. }
+            | Tactic::Rfl { .. }
+            | Tactic::Constructor { .. }
+            | Tactic::Left { .. }
+            | Tactic::Right { .. }
+            | Tactic::Exfalso { .. }
+            | Tactic::Sorry { .. } => {}
+        }
+    }
 }
 
 /// 教学白名单里的一个 tactic（`by` 块内）。

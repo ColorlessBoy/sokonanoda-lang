@@ -254,6 +254,47 @@ fn peel_pi_delta_deep(
     crate::spine::peel_pi_delta_n(expr, defs, &hint_of, limit)
 }
 
+/// 头**递归展开**若干轮（G-109）：`apply` 的目标匹配要**对齐到判等**。
+///
+/// **Lean 4 对照**（本机 `~/Documents/lean/lean4`，`MVarId.apply` =
+/// `src/Lean/Meta/Tactic/Apply.lean:166`）：`forallMetaTelescopeReducing`（`:204`，
+/// **reducing** 望远镜 ⇒ 非 Π 时 `whnf`）+ `isDefEqApply`（`:206`）⇒
+/// `isExprDefEqAuxImpl`（`Meta/ExprDefEq.lean:2108`）两侧 `whnfCore`
+/// （`Meta/WHNF.lean:639`），default transparency ⇒ **展开定义**。我们这边
+/// `unify_spine` 是**源级表面匹配**（头名 + 实参位对齐，不调内核），失败重试
+/// 以前**只展开一层** ⇒ 目标与结论差两层 delta（用户现场：`a ∈ ({a})` 要
+/// `Set.mem` → `Set.singleton` → beta 才到 `a = a`）时报「目标不匹配」✗。
+///
+/// 这里用**源级多轮展开逼近 whnf**：每轮按**当前**表达式重算层级提示，
+/// `unfold_one_with` 自己消 beta redex（`spine.rs:427-429`）。**判等终审仍在
+/// 内核**（`exact` 那条 `check_def_like_v`/`def_eq_at`）—— 我们只决定"往哪个
+/// 形状上对齐"，不自己宣布相等 ✓。这是**白纸黑字的偏离**：不引入内核 mvar 合一。
+///
+/// 返回每一轮的候选（按展开深度递增），供调用方逐轮试。
+fn unfold_head_deep(
+    expr: &Expr,
+    defs: &DefTable,
+    binders: &[GoalBinderSpec],
+    prefix_src: &str,
+    options: &CompileOptions,
+    limit: usize,
+) -> Vec<Expr> {
+    let mut out = Vec::new();
+    let mut cur = expr.clone();
+    for _ in 0..limit {
+        let hint = level_hint_of(&cur, defs, binders, prefix_src, options);
+        let Some(next) = unfold_head_once(&cur, defs, hint.as_deref()) else {
+            break;
+        };
+        if next == cur {
+            break;
+        }
+        out.push(next.clone());
+        cur = next;
+    }
+    out
+}
+
 /// 目标头**展开到归纳**（`cases`/`constructor`/`left`/`right`/`use` 共用）：
 /// `x ∈ B ∩ C` 要展开两层才露出 `And`（`Set.mem` → `Set.inter`）。
 fn goal_unfolded_to_inductive(
@@ -2205,8 +2246,10 @@ fn apply_tactic<'a>(
     };
     // 位置 spine 合一：codomain 与当前目标头相同、逐参数位对应 → σ。
     let goal = nodes[cur].ty.clone();
-    let sigma = match unify_spine(&codomain, &goal, &layers) {
-        Some(sigma) => sigma,
+    // 匹配成功 ⇒ σ；三条源级尝试（原形 / 内核 pp 形 / 头展开一层 / **递归展开**）
+    // 都不行 ⇒ `None`（兜底交给下面的内核判等，见 G-109）。
+    let matched = match unify_spine(&codomain, &goal, &layers) {
+        Some(sigma) => Some(sigma),
         None => {
             // **记法 / 集合字面量的失败重试**（G-04；设计
             // `docs/design/course-lean-style.md` X1）：目标里的 `A ∧ B` /
@@ -2241,19 +2284,69 @@ fn apply_tactic<'a>(
             };
             unify_spine(&codomain, &canonical, &layers)
                 .or_else(|| unify_spine(&codomain, &unfolded_goal, &layers))
-                .ok_or_else(|| {
-                    CompileError::elab(
-                        ErrorKind::ElabTacticFailed,
-                        format!(
-                            "`apply` 的目标不匹配：`{}` 的结果是 `{}`，无法对齐当前目标 `{}`",
-                            display_expr(prefix_src, expr),
-                            display_expr(prefix_src, &codomain),
-                            display_expr(prefix_src, &goal)
-                        ),
-                        span,
-                    )
-                })?
+                // **G-109**（2026-10-10 用户实测）：还不行 ⇒ **递归展开**再试。
+                // 追加在链尾 ⇒ 前面两条的命中路径**逐字节不变** ✓（零回归面）。
+                // 两侧都展：目标侧（`a ∈ ({a})` → `a = a`）与结论侧
+                // （`lem : Foo2 a` 的 `Foo2` → `a = a` 这种镜像形状）。
+                .or_else(|| {
+                    let goals =
+                        unfold_head_deep(&canonical, defs, &spec.binders, prefix_src, options, 4);
+                    let codomains =
+                        unfold_head_deep(&codomain, defs, &spec.binders, prefix_src, options, 4);
+                    goals
+                        .iter()
+                        .find_map(|goal| unify_spine(&codomain, goal, &layers))
+                        .or_else(|| {
+                            codomains
+                                .iter()
+                                .find_map(|cd| unify_spine(cd, &canonical, &layers))
+                        })
+                        .or_else(|| {
+                            goals.iter().find_map(|goal| {
+                                codomains
+                                    .iter()
+                                    .find_map(|cd| unify_spine(cd, goal, &layers))
+                            })
+                        })
+                })
         }
+    };
+    let Some(sigma) = matched else {
+        // **G-109 第二刀（内核判等兜底）**：三条源级尝试全对不上时，让**内核**判
+        // 一次「这条应用是不是本来就证明了目标」。
+        //
+        // 依据（Lean 4 对照）：`apply` 的实参给完了就**没有子目标**，这时
+        // `apply` ≡ `exact`；Lean 的 `MVarId.apply` 走 `isDefEqApply`
+        // （`Meta/Tactic/Apply.lean:206`）⇒ 两侧 whnf ⇒ **default transparency
+        // 展开定义**。我们的表面匹配（源 AST 比头名 + 实参位）做不到"展开式
+        // 判等"，而**内核本来就会**（`def_eq_at`，`exact` 走的就是它）⇒ 复用它 ✓。
+        //
+        // 用户现场：目标 `a ∈ ({a})` 与 `Eq.refl a` 的结果 `a = a` 是 defeq
+        // （`Set.mem` 展开 + beta + `Set.singleton` 展开）⇒ 以前报「目标不匹配」
+        // 而 `exact` 能过 ✗。
+        //
+        // ⚠ 只在**今天就要报错的输入**上多这一趟（失败路径）⇒ 今天能过的 `apply`
+        // 逐字节不变 ✓（零回归面）。失败时 `exact_tactic` 不改 `nodes`/`worklist`
+        // （Err 臂只构造错误 ✓）⇒ 仍回落原来那句诊断 ✓。
+        if exact_tactic(
+            expr, span, nodes, worklist, universe, prefix_src, options, defs,
+        )
+        .is_ok()
+        {
+            // 内核判等成功 ⇒ 目标**已闭合**（没有子目标）⇒ 收工
+            // （`exact_tactic` 已把节点标成 `Closed` 并弹了 worklist ✓）。
+            return Ok(());
+        }
+        return Err(CompileError::elab(
+            ErrorKind::ElabTacticFailed,
+            format!(
+                "`apply` 的目标不匹配：`{}` 的结果是 `{}`，无法对齐当前目标 `{}`",
+                display_expr(prefix_src, expr),
+                display_expr(prefix_src, &codomain),
+                display_expr(prefix_src, &goal)
+            ),
+            span,
+        ));
     };
     // —— 类型参数**二次求解**（R2 实测的 `apply Set.ext` 静默错子目标）——
     //

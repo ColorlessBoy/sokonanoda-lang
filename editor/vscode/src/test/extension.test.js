@@ -792,6 +792,110 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("G-108/G-109：报错里的名字仍可 F12；`apply` 按 defeq 展开闭合目标（2026-10-10）", async () => {
+    // 两个用户实测缺陷的真宿主判据（台账 G-108 / G-109）：
+    //
+    // **G-108**：`sorry` / 报错的 tactic 不许打死同一份文件里正确代码的跳转 ——
+    //   以前 hover 行只在声明**成功检查**那条路上收集（开放练习那条路只 elaborate
+    //   签名、失败路径把已收到的行丢掉）⇒ 证明体里的名字一个行都没有 ⇒
+    //   `definition_at` 与 prelude 回退都无从下手 ⇒ F12 **null** ✗。
+    //   修法 = 给"没走到 elaborate 的那段"补**词法行**（不推类型、不改判定 ✓）。
+    //
+    // **G-109**：`apply Eq.refl a` 在目标与结论 **defeq**（`a ∈ ({a})` vs `a = a`）
+    //   时必须能闭合 —— Lean 4 的 `MVarId.apply` 走 `isDefEqApply`（两侧 whnf、
+    //   展开定义）；我们表面匹配对不上 ⇒ 现在**失败路径**上复用内核判等
+    //   （`exact` 那条）⇒ 目标闭合、零子目标 ✓。
+    const uris = await writeProject("g108-g109", {
+      "Lib.sokonanoda":
+        "def Set (α : Type) : Type := α -> Prop\n\n" +
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n\n" +
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n\n" +
+        "def lib_id (n : Nat) : Nat := n + 1\n",
+      "Main.sokonanoda":
+        "import Lib\n\n" +
+        // G-108 的两个现场：证明后再来一行 `sorry`（冗余 sorry ⇒ Failed）、
+        // 以及一条失败的 tactic（Failed）—— 体里**正确**的 `Eq.refl` 必须仍能跳。
+        "theorem after_sorry (a : Nat) : lib_id a = lib_id a := by\n" +
+        "  exact Eq.refl (lib_id a)\n" +
+        "  sorry\n\n" +
+        "theorem after_failure (α : Type) (a : α) : Set.mem a (Set.singleton a) := by\n" +
+        "  exact Nat.zero\n" +
+        "  apply Eq.refl a\n\n" +
+        // G-109 的现场：目标 `a ∈ ({a})` 与 `a = a` defeq ⇒ `apply` 必须能闭合。
+        "theorem apply_defeq (α : Type) (a : α) : Set.mem a (Set.singleton a) := by\n" +
+        "  apply Eq.refl a\n",
+    });
+    const uri = uris["Main.sokonanoda"];
+    await showDoc(uri);
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "the entry must be the active editor");
+    const doc = editor.document;
+    const text = doc.getText();
+    const posOf = (offset) => {
+      const before = text.slice(0, offset);
+      return new vscode.Position(
+        before.split("\n").length - 1,
+        (before.split("\n").pop() || "").length,
+      );
+    };
+    /// 真 F12：`vscode.executeDefinitionProvider`（编辑器那条命令）。
+    const definitionAt = async (offset) => {
+      const result = await vscode.commands.executeCommand(
+        "vscode.executeDefinitionProvider",
+        uri,
+        posOf(offset),
+      );
+      return result?.[0] ?? null;
+    };
+
+    // 等诊断到齐（三份声明：两份带错、一份必须**没有**错）。
+    await waitFor("G-108/G-109：诊断到达", async () => {
+      const diags = vscode.languages.getDiagnostics(uri);
+      return diags.length >= 2;
+    });
+
+    // ① G-108：`after_sorry` 体里那个 `Eq.refl`（在 `sorry` **之前**）必须能跳。
+    const sorryBody = text.indexOf("exact Eq.refl (lib_id a)") + "exact ".length + 3;
+    const sorryJump = await definitionAt(sorryBody);
+    assert.ok(
+      sorryJump,
+      "`sorry` 存在时体里的 `Eq.refl` 仍必须跳得动（G-108 之前是 null ✗）",
+    );
+    assert.ok(
+      String(sorryJump.uri.fsPath).endsWith("Prelude.sokonanoda"),
+      `必须落到前奏源，实际 = ${sorryJump.uri}`,
+    );
+    // ② G-108：失败 tactic **之后**那行 `apply Eq.refl a` 里的 `Eq.refl` 也要能跳
+    //（失败点之后的源码同样要有行 —— 这条只有"词法补位"才做得到）。
+    const afterFailure = text.indexOf("apply Eq.refl a") + "apply ".length + 3;
+    const afterFailureJump = await definitionAt(afterFailure);
+    assert.ok(
+      afterFailureJump,
+      "失败的 tactic **之后**那段里的 `Eq.refl` 也要跳得动（G-108）",
+    );
+    // ③ G-109：`apply_defeq` 那条必须**没有**诊断（= 判定通过）。
+    const applyLine = text.indexOf("theorem apply_defeq");
+    const applyDiags = vscode.languages
+      .getDiagnostics(uri)
+      .filter((d) => d.range.start.line >= doc.positionAt(applyLine).line);
+    assert.deepStrictEqual(
+      applyDiags.map((d) => d.message),
+      [],
+      "`apply Eq.refl a` 在 defeq 目标上必须闭合（G-109：以前报「目标不匹配」✗）",
+    );
+    // ④ 反向守卫：`after_failure` 那条**必须仍然报错**（修 G-109 不许把错误吞掉）。
+    const failureDiags = vscode.languages
+      .getDiagnostics(uri)
+      .filter((d) => {
+        const line = doc.positionAt(text.indexOf("exact Nat.zero")).line;
+        return d.range.start.line === line && d.severity === vscode.DiagnosticSeverity.Error;
+      });
+    assert.ok(
+      failureDiags.length >= 1,
+      "`exact Nat.zero` 必须仍然报错（G-109 的兜底只许**多接受**defeq 情形，不许吞错）",
+    );
+  });
+
   test("clean lesson publishes empty diagnostics", async () => {
     const uri = await writeDoc("lesson-clean.sokonanoda", LESSON_CLEAN);
     await vscode.workspace.openTextDocument(uri);

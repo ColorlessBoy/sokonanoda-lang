@@ -10304,3 +10304,94 @@ fn struct_eta_terminates_on_a_deep_chain() {
     ));
     g61_checked(&src, "stress_eta");
 }
+
+/// **G-108 判据**（2026-10-10 用户实测）：**`sorry` / 报错的 tactic 不许打死
+/// 同一份文件里正确代码的符号导航** ——
+/// `theorem … := by apply h; exact Eq.refl a; sorry` 里 `Eq.refl` 的 F12 以前
+/// 是 `null` ✗。
+///
+/// 病根（两处，都在 `walk.rs`）：① 开放练习那条路**只 elaborate 签名**
+/// （`open_signature`）⇒ 证明体一个 hover 行都没有；② `lower_value`/`build_*`
+/// 的 `Err` 臂**把已收到的行丢掉**。⇒ 修法是给"没走到 elaborate 的那段"补
+/// **词法行**（`expr: None`，不推类型、**不改判定** ✓）。
+///
+/// 判据直接钉**报告里有没有行**（F12 能不能跳完全取决于它）：体里的
+/// `Eq.refl`（prelude 名字）与 `lib_id`（本文件名字）都必须有行，且后者要
+/// **resolve 到它的声明** ✓。四种声明状态各来一份（状态本身是钉子，不许被这次
+/// 改动动到）：
+/// * `Checked`（干净）、`Open`（`constructor` 后留一个真洞）、
+///   `Failed`（证明写完后多写一行 `sorry` = 冗余 sorry，**正是用户现场 B**）、
+///   `Failed`（一条 tactic 失败，**用户现场 C** —— 注意失败点**之后**的名字也要有行）。
+#[test]
+fn a_failing_or_open_proof_still_records_hover_rows_for_its_body() {
+    let defs = "def lib_id (n : Nat) : Nat := n + 1\n";
+    let cases: [(&str, &str, DeclStatus); 4] = [
+        (
+            "A_clean",
+            "theorem t (a : Nat) : lib_id a = lib_id a := by\n  exact Eq.refl (lib_id a)\n",
+            DeclStatus::Checked,
+        ),
+        (
+            "B_redundant_sorry",
+            "theorem t (a : Nat) : lib_id a = lib_id a := by\n  exact Eq.refl (lib_id a)\n  sorry\n",
+            DeclStatus::Failed,
+        ),
+        (
+            "B2_open",
+            "theorem t (a : Nat) : And (lib_id a = lib_id a) True := by\n  constructor\n  \
+             exact Eq.refl (lib_id a)\n  sorry\n",
+            DeclStatus::Open,
+        ),
+        (
+            "C_failed_tactic",
+            "theorem t (a : Nat) : lib_id a = lib_id a := by\n  exact Nat.zero\n  \
+             exact Eq.refl (lib_id a)\n",
+            DeclStatus::Failed,
+        ),
+    ];
+    for (tag, body, want) in cases {
+        let src = format!("{defs}{body}");
+        let file = parse(&src).expect("parse");
+        let report = check_document(&file);
+        let status = report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some("t"))
+            .map(|d| d.status)
+            .expect("夹具前提：必须有声明 `t`");
+        assert_eq!(status, want, "[{tag}] 声明状态（钉子：这次改动不许动判定）");
+        // `Eq.refl`（prelude 名字）与 `lib_id`（本文件名字，取体里最后一处）。
+        let prelude_use = src.find("Eq.refl").expect("`Eq.refl` 出现点") + 3;
+        let local_use = src.rfind("lib_id").expect("`lib_id` 出现点") + 2;
+        for (what, at) in [("Eq.refl", prelude_use), ("lib_id", local_use)] {
+            assert!(
+                report
+                    .hovers
+                    .iter()
+                    .any(|h| h.span.start.offset <= at && at < h.span.end.offset),
+                "[{tag} · {status:?}] 体里的 `{what}`（offset {at}）必须有 hover 行 \
+                 —— 没有行 ⇒ LSP 的 F12 直接 null ✗（G-108）。现有行：{:?}",
+                report
+                    .hovers
+                    .iter()
+                    .map(|h| (h.span.start.offset, h.span.end.offset))
+                    .collect::<Vec<_>>()
+            );
+        }
+        // 本文件名字那条还要**真的指向它的定义**（F12 走的就是这个 resolution）。
+        let def_start = src.find("def lib_id").expect("def 起点");
+        assert!(
+            report.hovers.iter().any(|h| {
+                h.span.start.offset <= local_use
+                    && local_use < h.span.end.offset
+                    && matches!(
+                        &h.resolution,
+                        Some(ResolvedTarget::Declaration { name, span })
+                            if name == "lib_id" && span.start.offset == def_start
+                    )
+            }),
+            "[{tag} · {status:?}] `lib_id` 的 hover 行必须 resolve 到它的声明（offset {def_start}）\
+             —— 否则 F12 跳不到本文件的名字 ✗"
+        );
+    }
+}

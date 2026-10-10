@@ -508,7 +508,7 @@ mod tests {
     ///
     /// 现场形状（本地 `course/shared/.sokonanoda/meta.json` 逐字节如此）：`compiler`
     /// 已经被 [`update_index`] 刷新成当前版本（`0.87.0`），`schema` 却还停在
-    /// `soko.artifacts/1`（当前是 `soko.artifacts/2.r5`）。两个读侧消费者都按
+    /// `soko.artifacts/1`（当前是 `soko.artifacts/2.r6`）。两个读侧消费者都按
     /// `schema == meta_schema()` 过滤 ⇒ 整目录当不存在 ⇒ `compiler: null` ⇒ 面板
     /// 画成「由编译器 ? 写入」✗。
     ///

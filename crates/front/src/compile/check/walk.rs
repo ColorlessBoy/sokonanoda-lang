@@ -23,7 +23,7 @@ use crate::compile::error::{CompileError, ErrorKind};
 use crate::compile::event::CompileOutput;
 use crate::compile::goals::{expr_has_hole, open_goal, spine_without_arg, GoalTemplates};
 use crate::compile::prelude::CompileOptions;
-use crate::compile::report::{ByGoalState, DeclKind, DeclState, GoalBinder};
+use crate::compile::report::{ByGoalState, DeclKind, DeclState, GoalBinder, ResolvedTarget};
 use crate::compile::scope::{NamespaceScope, OpenEntry};
 use crate::compile::units::SourceUnit;
 use crate::{Binder, Command, CtorDecl, Expr, IotaRule, OpenFilter, RecDecl, Span};
@@ -1029,6 +1029,18 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         ) {
             Ok(v) => v,
             Err(failure) => {
+                // **G-108**：`by` 引擎在 lowering 就失败 ⇒ 这条声明**一个 hover 行
+                // 都还没收**（连签名都没有）。补词法行：源码里写下的名字仍要能悬停 /
+                // 跳转（用户报的就是这个 —— 一处报错不该打死整份文件的符号导航 ✗）。
+                let mut lexical_rows = Vec::new();
+                self.push_lexical_hover_rows(val, &mut lexical_rows);
+                if !lexical_rows.is_empty() {
+                    self.cmd_hovers.push(CmdHover {
+                        env_at: c.env_before,
+                        nodes: lexical_rows,
+                        cmd: idx,
+                    });
+                }
                 self.out.push_error(idx, failure.error.clone());
                 {
                     let mut st = failed_state(
@@ -1157,6 +1169,18 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 nodes: std::mem::take(&mut signature.hovers),
                 cmd: idx,
             });
+            // **G-108**：开放练习（含尾部 `sorry`）**只 elaborate 了签名** ⇒ 证明体
+            // 里写下的名字（`exact Eq.refl a` 那个 `Eq.refl`）一个 hover 行都没有
+            // ⇒ F12 null ✗。补词法行（行数 = 源码里的出现点，按 span 与签名行去重 ✓）。
+            let mut lexical_rows = Vec::new();
+            self.push_lexical_hover_rows(val, &mut lexical_rows);
+            if !lexical_rows.is_empty() {
+                self.cmd_hovers.push(CmdHover {
+                    env_at: c.env_before,
+                    nodes: lexical_rows,
+                    cmd: idx,
+                });
+            }
             self.ops.push(PendingOp::OpenExercise {
                 name: Some(name.to_string()),
                 kind: DeclKind::Definition,
@@ -1290,6 +1314,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 });
             }
             Err(e) => {
+                // **G-108**：报错**不许**把这段源码的 hover 行整段丢掉 ✗ ——
+                // 已经 elaborate 过的部分（签名 + 失败点之前的名字）留下的行照发，
+                // 没走到的部分补词法行（否则 `Eq.refl` 这类名字的 F12 直接 null ✗）。
+                self.push_lexical_hover_rows(val, &mut hovers);
                 self.out.push_error(idx, e.clone());
                 {
                     let mut st =
@@ -1297,6 +1325,11 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     st.by_root = by_root.clone();
                     self.decl_states.push(st);
                 }
+                self.cmd_hovers.push(CmdHover {
+                    env_at: c.env_before,
+                    nodes: hovers,
+                    cmd: idx,
+                });
             }
         }
     }
@@ -1394,6 +1427,18 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         ) {
             Ok(v) => v,
             Err(failure) => {
+                // **G-108**：`by` 引擎在 lowering 就失败 ⇒ 这条声明**一个 hover 行
+                // 都还没收**（连签名都没有）。补词法行：源码里写下的名字仍要能悬停 /
+                // 跳转（用户报的就是这个 —— 一处报错不该打死整份文件的符号导航 ✗）。
+                let mut lexical_rows = Vec::new();
+                self.push_lexical_hover_rows(val, &mut lexical_rows);
+                if !lexical_rows.is_empty() {
+                    self.cmd_hovers.push(CmdHover {
+                        env_at: c.env_before,
+                        nodes: lexical_rows,
+                        cmd: idx,
+                    });
+                }
                 self.out.push_error(idx, failure.error.clone());
                 {
                     let mut st = failed_state(
@@ -1532,6 +1577,18 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 nodes: std::mem::take(&mut signature.hovers),
                 cmd: idx,
             });
+            // **G-108**：开放练习（含尾部 `sorry`）**只 elaborate 了签名** ⇒ 证明体
+            // 里写下的名字（`exact Eq.refl a` 那个 `Eq.refl`）一个 hover 行都没有
+            // ⇒ F12 null ✗。补词法行（行数 = 源码里的出现点，按 span 与签名行去重 ✓）。
+            let mut lexical_rows = Vec::new();
+            self.push_lexical_hover_rows(val, &mut lexical_rows);
+            if !lexical_rows.is_empty() {
+                self.cmd_hovers.push(CmdHover {
+                    env_at: c.env_before,
+                    nodes: lexical_rows,
+                    cmd: idx,
+                });
+            }
             self.ops.push(PendingOp::OpenExercise {
                 name: Some(name.to_string()),
                 kind: DeclKind::Theorem,
@@ -1669,6 +1726,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 });
             }
             Err(e) => {
+                // **G-108**：同 `def` —— 失败也要把已收到的 hover 行发出去（+ 词法补位）。
+                self.push_lexical_hover_rows(val, &mut hovers);
                 self.out.push_error(idx, e.clone());
                 {
                     let mut st =
@@ -1676,6 +1735,11 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     st.by_root = by_root.clone();
                     self.decl_states.push(st);
                 }
+                self.cmd_hovers.push(CmdHover {
+                    env_at: c.env_before,
+                    nodes: hovers,
+                    cmd: idx,
+                });
             }
         }
     }
@@ -1795,7 +1859,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 });
             }
             Err(e) => {
+                // **G-108**：同 `def` —— 失败也要把已收到的 hover 行发出去（公理没有
+                // 值位 ⇒ 没有可补的词法行，但签名那些行不许丢 ✗）。
                 self.out.push_error(idx, e.clone());
+                self.cmd_hovers.push(CmdHover {
+                    env_at: c.env_before,
+                    nodes: hovers,
+                    cmd: idx,
+                });
                 self.decl_states.push(failed_state(
                     DeclKind::Axiom,
                     Some(name.to_string()),
@@ -1847,6 +1918,18 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         ) {
             Ok(v) => v,
             Err(failure) => {
+                // **G-108**：`by` 引擎在 lowering 就失败 ⇒ 这条声明**一个 hover 行
+                // 都还没收**（连签名都没有）。补词法行：源码里写下的名字仍要能悬停 /
+                // 跳转（用户报的就是这个 —— 一处报错不该打死整份文件的符号导航 ✗）。
+                let mut lexical_rows = Vec::new();
+                self.push_lexical_hover_rows(val, &mut lexical_rows);
+                if !lexical_rows.is_empty() {
+                    self.cmd_hovers.push(CmdHover {
+                        env_at: c.env_before,
+                        nodes: lexical_rows,
+                        cmd: idx,
+                    });
+                }
                 self.out.push_error(idx, failure.error.clone());
                 let mut st = failed_state(DeclKind::Example, None, span, failure.error, idx);
                 // **B1**：失败也要保留**已跑成功的**那些步（P3 显示面）✓
@@ -1946,6 +2029,18 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 nodes: std::mem::take(&mut signature.hovers),
                 cmd: idx,
             });
+            // **G-108**：开放练习（含尾部 `sorry`）**只 elaborate 了签名** ⇒ 证明体
+            // 里写下的名字（`exact Eq.refl a` 那个 `Eq.refl`）一个 hover 行都没有
+            // ⇒ F12 null ✗。补词法行（行数 = 源码里的出现点，按 span 与签名行去重 ✓）。
+            let mut lexical_rows = Vec::new();
+            self.push_lexical_hover_rows(val, &mut lexical_rows);
+            if !lexical_rows.is_empty() {
+                self.cmd_hovers.push(CmdHover {
+                    env_at: c.env_before,
+                    nodes: lexical_rows,
+                    cmd: idx,
+                });
+            }
             self.ops.push(PendingOp::OpenExercise {
                 name: None,
                 kind: DeclKind::Example,
@@ -2055,12 +2150,69 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 });
             }
             Err(e) => {
+                // **G-108**：同 `def`/`theorem`（例子没有名字，但值位一样要能导航）。
+                self.push_lexical_hover_rows(val, &mut hovers);
                 self.out.push_error(idx, e.clone());
                 let mut st = failed_state(DeclKind::Example, None, span, e, idx);
                 st.by_root = by_root.clone();
                 self.decl_states.push(st);
+                self.cmd_hovers.push(CmdHover {
+                    env_at: c.env_before,
+                    nodes: hovers,
+                    cmd: idx,
+                });
             }
         }
+    }
+
+    /// **G-108（2026-10-10 用户实测）**：给**没走到 elaborate 的那段源码**补
+    /// **词法 hover 行** —— 报错/`sorry` 不许把整份文件的符号导航打死 ✗。
+    ///
+    /// 用户现场：`theorem … := by apply h; exact Eq.refl a; sorry`（或任何引起
+    /// 报错的 tactic）⇒ `Eq.refl` 的 F12 直接 **null** ✗（`hover` 却还在 —— 它走
+    /// `tactic_goal_hover` 那条**另一份真相**，所以症状看着像"只有跳转坏了"）。
+    ///
+    /// 病根（两处，都在本函数附近）：① 开放练习那条路**只 elaborate 签名**
+    /// （`open_signature`）⇒ 证明体一个 `HoverNode` 都没有；② `build_*`/`lower_value`
+    /// 的 `Err` 臂**把已经收到的 `hovers` 丢掉** ⇒ 连签名和失败点之前的那些行
+    /// 也没了。两条合起来：`report.hovers` 里没有那段源码的行 ⇒
+    /// `definition_at`（以及 prelude 回退那条）都无从下手 ✗。
+    ///
+    /// 词法行的形状（**不碰判定** ✓）：
+    /// * `expr: None` ⇒ `resolve_hovers` **不推类型**（**不编造类型文本** ✗），
+    ///   悬停时按 `binder` 那条路渲染**源码切片** ✓；
+    /// * `resolution`：名字在 `known` 里（本文件/prelude 的名字）⇒ 给
+    ///   `Declaration` 占位；**顶层名字的真 span 由 `kernel_phase` 的回填循环**
+    ///   用 `defs` 表补 ✓；prelude 名字回填后是 `None` ⇒ 交给 LSP 那条
+    ///   `PRELUDE_NAMES` 回退（它按行的 span 取源码文本 ✓）。
+    ///
+    /// 与已有行**按 span 去重** ⇒ 正常路径（整段都 elaborate 过）**零影响** ✓。
+    fn push_lexical_hover_rows(&self, val: &Expr, hovers: &mut Vec<HoverNode<'arena>>) {
+        let mut seen: Vec<(usize, usize)> = hovers
+            .iter()
+            .map(|h| (h.span.start.offset, h.span.end.offset))
+            .collect();
+        let known = &self.known;
+        val.for_each_ident(&mut |name: &str, span: Span| {
+            let key = (span.start.offset, span.end.offset);
+            if seen.contains(&key) {
+                return;
+            }
+            seen.push(key);
+            hovers.push(HoverNode {
+                span,
+                expr: None,
+                scope_names: Vec::new(),
+                scope_tys: Vec::new(),
+                resolution: known
+                    .contains_key(name)
+                    .then(|| ResolvedTarget::Declaration {
+                        name: name.to_string(),
+                        span,
+                    }),
+                binder: true,
+            });
+        });
     }
 
     /// `inductive … end`：整块进 `InductiveTable` 与 env，作为最小增量单元。

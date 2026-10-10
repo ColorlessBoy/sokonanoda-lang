@@ -1429,3 +1429,119 @@ async fn goto_definition_on_a_prelude_name_lands_in_the_prelude_source() {
         "prelude 名字上 hover 必须给出签名（含名字本身），实际 = {value:?}"
     );
 }
+
+/// **G-108 判据**（2026-10-10 用户实测）：**一处报错（`sorry` / 失败的 tactic）
+/// 不许打死同一份文件里正确代码的 F12** ——
+/// `theorem … := by apply h; exact Eq.refl a; sorry` 里 `Eq.refl` 的跳转以前是
+/// `null` ✗。
+///
+/// 为什么（`walk.rs`）：开放练习那条路**只 elaborate 签名**（`open_signature`），
+/// `lower_value`/`build_*` 的 `Err` 臂**把已收到的 hover 行丢掉** ⇒ 证明体里的名字
+/// **一个 hover 行都没有** ⇒ `definition_at` 无从下手、prelude 回退也切不出名字 ✗。
+/// 修法是给那段补**词法行**（`expr: None`，不推类型、**不改判定** ✓）。
+///
+/// 这里走**用户实际按的那条路**（`textDocument/definition`）钉两端：
+/// * `Eq.refl`（prelude 名字）⇒ 必须落到 `Prelude.sokonanoda`；
+/// * `lib_id`（本文件名字）⇒ 必须落到本文件里那条声明的**行首**。
+///
+/// **反向验证**：把 `walk.rs::push_lexical_hover_rows` 里那几行 push 撤掉 ⇒
+/// 本判据判红（实测：`B_redundant_sorry` 那份只剩签名行，`Eq.refl` 返回 `null`）。
+#[tokio::test]
+async fn goto_definition_inside_a_failing_or_open_proof_still_lands() {
+    // 四种状态各一段（用户的 B/C 都在里面；`A` 是对照组）。
+    let cases = [
+        (
+            "A_clean",
+            "theorem t (a : Nat) : lib_id a = lib_id a := by\n  exact Eq.refl (lib_id a)\n",
+        ),
+        (
+            "B_redundant_sorry",
+            "theorem t (a : Nat) : lib_id a = lib_id a := by\n  exact Eq.refl (lib_id a)\n  sorry\n",
+        ),
+        (
+            "B2_open",
+            "theorem t (a : Nat) : And (lib_id a = lib_id a) True := by\n  constructor\n  exact Eq.refl (lib_id a)\n  sorry\n",
+        ),
+        (
+            "C_failed_tactic",
+            "theorem t (a : Nat) : lib_id a = lib_id a := by\n  exact Nat.zero\n  exact Eq.refl (lib_id a)\n",
+        ),
+    ];
+    for (tag, body) in cases {
+        let src = format!("def lib_id (n : Nat) : Nat := n + 1\n{body}");
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, &src).await;
+        let _ = wait_diagnostics(&mut socket, &format!("didOpen ({tag})")).await;
+
+        // offset → (line, character)；全部按**源码自己**算，别写死行号。
+        let pos_of = |at: usize| {
+            let line = src[..at].matches('\n').count();
+            let col = at - (src[..at].rfind('\n').map(|i| i + 1).unwrap_or(0));
+            (line, col)
+        };
+        // ① prelude 名字：必须落到前奏源文件。
+        let at = src.find("Eq.refl").expect("source mentions Eq.refl") + 3;
+        let (line, col) = pos_of(at);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/definition")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": {"line": line, "character": col},
+                }))
+                .id(11)
+                .finish(),
+        )
+        .await
+        .expect("definition must answer");
+        let location: Option<GotoDefinitionResponse> =
+            serde_json::from_value(result).expect("valid GotoDefinitionResponse");
+        let Some(GotoDefinitionResponse::Scalar(location)) = location else {
+            panic!(
+                "[{tag}] `Eq.refl` 上 F12 必须有位置（G-108 之前是 null ✗），实际 = {location:?}"
+            );
+        };
+        let path = location.uri.to_file_path().expect("file url");
+        assert!(
+            path.file_name().and_then(|n| n.to_str()) == Some("Prelude.sokonanoda"),
+            "[{tag}] `Eq.refl` 必须落到前奏源，实际 = {}",
+            path.display()
+        );
+
+        // ② 本文件名字（体里最后一处 `lib_id`）：必须落到那条声明的行首。
+        let local_at = src.rfind("lib_id").expect("source mentions lib_id") + 2;
+        let (line, col) = pos_of(local_at);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/definition")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": {"line": line, "character": col},
+                }))
+                .id(12)
+                .finish(),
+        )
+        .await
+        .expect("definition must answer");
+        let location: Option<GotoDefinitionResponse> =
+            serde_json::from_value(result).expect("valid GotoDefinitionResponse");
+        let Some(GotoDefinitionResponse::Scalar(location)) = location else {
+            panic!("[{tag}] 体里的 `lib_id` 上 F12 必须有位置（G-108），实际 = {location:?}");
+        };
+        assert_eq!(
+            location.uri.as_str(),
+            URI,
+            "[{tag}] `lib_id` 必须跳回**本文件**（同一个 URI），实际 = {}",
+            location.uri
+        );
+        assert_eq!(
+            location.range.start.line, 0,
+            "[{tag}] `lib_id` 的声明在第 0 行（`def lib_id …`），实际 = {location:?}"
+        );
+        assert_eq!(
+            location.range.start.character, 0,
+            "[{tag}] 落点必须在行首（span 来自真 parser ✓），实际 = {location:?}"
+        );
+    }
+}

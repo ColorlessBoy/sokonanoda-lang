@@ -106,7 +106,12 @@ pub struct ByStepState {
 /// `PrintInfo::cmd` 进序列化（以前 `#[serde(skip)]` ⇒ 项目产物回放后 cmd 归零
 /// ⇒ 拼接时同一条命令算两遍 ⇒ Infoview 的「命令输出」每编辑一次 +1 ✗）。
 /// 旧条目**不含 cmd** ⇒ 必须整库不命中（否则它反序列化成 0，重复照旧 ✗）。
-pub const REPORT_SHAPE: u32 = 5;
+/// **G-108（2026-10-10 用户实测）把它 5 → 6**：`hovers` 的**含义**变了 —— 报错 /
+/// `sorry` 的那段源码现在也有行（**词法行**：`expr: None` + `binder: true`，见
+/// `walk.rs::push_lexical_hover_rows`），F12/悬停因此才认得那些名字。
+/// 老条目里那段源码**没有行** ⇒ 回放它 = 把"跳不了"的旧行为放回来 ✗
+/// ⇒ 整库不命中，重编一遍 ✓（与上面两条同一条纪律：语义变化算形状变化）。
+pub const REPORT_SHAPE: u32 = 6;
 
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone, Serialize, Deserialize)]
