@@ -9,7 +9,9 @@
 # `via_assumption` 若也 checked ⇒ 已修（exit 1）；只要它带
 # 「没有找到类型与目标一致的假设」诊断 ⇒ 缺口仍在（exit 0）。
 set -u
-cd /Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang || exit 2
+# 自定位（本目录其余 90 个复现件同款；⚠ 绝不写死绝对路径 —— 2026-10-11 CI 就是这样判红的：
+# 写死本机路径 ⇒ 本机绿、CI 里 `cd` 失败 ⇒ exit 2 ⇒ 台账判「环境异常」）。
+cd "$(dirname "$0")/../../.." || exit 2
 SOKO=scripts/soko
 [ -x "$SOKO" ] || { echo "找不到 $SOKO" >&2; exit 2; }
 command -v python3 >/dev/null 2>&1 || { echo "需要 python3" >&2; exit 2; }
