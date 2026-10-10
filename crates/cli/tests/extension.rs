@@ -1018,12 +1018,15 @@ fn rendered_language_text_uses_the_sokonanoda_fence() {
 }
 
 #[test]
-fn infoview_declaration_list_shows_types_and_line_hints() {
+fn infoview_declaration_list_shows_types_without_line_hints() {
     // The declaration list renders each declaration's type as a small,
-    // syntax-coloured hint (same runs as the goal state) plus a 1-based line
-    // hint (`L12`, from `range.start.line`). Rows are read-only now: no click,
-    // no `focusExercise` postMessage and no host-side jump plumbing (jumping is
-    // the tree's job), so a row can never be mistaken for a button.
+    // syntax-coloured hint (same runs as the goal state) plus the `def` value
+    // line. The 1-based line hint (`L12`) was removed on 2026-10-11 (user:
+    // 「声明列表里的行号可以不需要了，去掉吧」) and the name became plain bold
+    // text (「超链接的蓝色和下划线也都太抢镜了」) — `range` still travels on the
+    // wire because clicking the name asks the server for the definition.
+    // Rows stay read-only apart from that name: no `focusExercise` postMessage
+    // and no host-side jump plumbing.
     let webview = media_file("infoview.js");
     assert!(
         webview.contains("ty_runs") && webview.contains("decl-ty"),
@@ -1035,12 +1038,13 @@ fn infoview_declaration_list_shows_types_and_line_hints() {
         "the Infoview goal line must start with `⊢ `"
     );
     assert!(
-        webview.contains("range.start.line") && webview.contains("\"L\" + (line + 1)"),
-        "the declaration row must show a 1-based line hint derived from range.start.line"
+        !webview.contains("decl-line-hint") && !webview.contains("\"L\" + (line + 1)"),
+        "the declaration row must no longer paint a line hint (2026-10-11) —— \
+         删的是显示：`range.start` 仍要用于点击名字后的 `definition` 消息"
     );
     assert!(
-        webview.contains("decl-line-hint"),
-        "the line hint must carry its own dedicated CSS class"
+        webview.contains("range.start") && webview.contains("\"definition\""),
+        "clicking a declaration name must still post its source position (E27)"
     );
     assert!(
         !webview.contains("focusExercise") && !webview.contains("declsUri"),
@@ -1051,9 +1055,20 @@ fn infoview_declaration_list_shows_types_and_line_hints() {
         css.contains(".decl-ty") && css.contains("white-space: pre-wrap"),
         "the type hint must wrap (it was truncated before)"
     );
+    // ⚠ 注释里提到那个选择器不算（本轮就在 `.decl-line-hint` 的位置留了一条
+    // "已删" 的注释 ⇒ 拿裸文本查会假红）⇒ 判据一律读**剥过注释**的那份 ✓。
+    let css_plain = strip_css_comments(&css);
     assert!(
-        css.contains(".decl-line-hint"),
-        "the line hint must be styled small/dim via .decl-line-hint"
+        !css_plain.contains(".decl-line-hint"),
+        "行号那一格已删（2026-10-11）—— 加回来会同时判红这条与本文件的 webview 断言"
+    );
+    assert!(
+        css_plain.contains("font-weight: 700"),
+        "声明名必须是**普通粗体**（2026-10-11 用户点名；注释里提到不算 ⇒ 先剥注释）"
+    );
+    assert!(
+        !css_plain.contains("underline") && !css_plain.contains("textLink"),
+        "声明名不许再借链接的语言（下划线 / `--vscode-textLink-*`）—— 用户 2026-10-11"
     );
     assert!(
         !css.contains("text-overflow: ellipsis"),

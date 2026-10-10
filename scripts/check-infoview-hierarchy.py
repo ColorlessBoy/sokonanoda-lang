@@ -169,7 +169,7 @@ def selftest() -> int:
         (".section-title { font-size: 0.8em; font-weight: 600; }", True),
         (".section-title { font-size: 0.8em; opacity: 0.7; }", True),
         (".decl-kind { font-size: 0.8em; opacity: 0.7; }", True),
-        (".decl-line-hint { font-size: 0.72em; opacity: 0.55; }", True),
+        (".decl-val-label { font-size: 0.78em; opacity: 0.55; }", True),
         (".section-title { font-size: 1em; font-weight: 600; }", False),
         (".decl-kind { font-size: 0.8em; color: var(--vscode-descriptionForeground); }", False),
         (".empty { opacity: 0.7; font-style: italic; }", False),

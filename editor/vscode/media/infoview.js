@@ -550,19 +550,14 @@
     renderGoals(msg);
   }
 
-  // 1-based source line (`L12`) from the declaration's start position, or ""
-  // when the server did not send a range.
-  function declLineHint(decl) {
-    const line = decl && decl.range && decl.range.start
-      ? decl.range.start.line
-      : undefined;
-    return typeof line === "number" ? "L" + (line + 1) : "";
-  }
-
-  // Declaration rows are plain, **non-interactive** rows: `name · kind · line`
-  // with the line in small dim text, over the syntax-coloured type line. The
-  // webview is a read-only presentation layer now — no click, no postMessage
-  // (jumping is the tree's job), so a row can never be mistaken for a button.
+  // **2026-10-11**：声明行的 `L12` 行号提示**已删**（用户：「声明列表里的行号可以不需要了，
+  // 去掉吧」）—— `decl.range` 本身**照旧**用在"点名字跳到定义"上（下面 `definition`
+  // 消息那一段 ✓），删掉的只是屏幕上那个 `L<n>` ✗。
+  //
+  // Declaration rows are plain rows over the syntax-coloured type line; the
+  // **name** is the only interactive part (E27: it posts `definition`, i.e.
+  // jumps to the declaration) — everything else is read-only: no jump-to-hole
+  // plumbing of any kind lives here.
   function renderDecls(decls) {
     lastDeclsPayload = decls;
     clear(declsBody);
@@ -597,10 +592,8 @@
       });
       head.appendChild(nameButton);
       head.appendChild(el("span", "decl-kind", (decl && decl.kind) || ""));
-      const hint = declLineHint(decl);
-      if (hint) head.appendChild(el("span", "decl-line-hint", hint));
       row.appendChild(head);
-      // The declaration's type as a small, dim, syntax-coloured hint
+      // The declaration's type, syntax-coloured
       // (docs/design/goal-rendering.md §2.1: same runs as the goal state).
       if (decl && Array.isArray(decl.ty_runs) && decl.ty_runs.length > 0) {
         row.appendChild(codeBlock("decl-ty", decl.ty_runs, (decl && decl.ty) || ""));

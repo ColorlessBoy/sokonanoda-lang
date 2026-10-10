@@ -401,10 +401,12 @@ async function main() {
       pLine = findLine((l) => l.trim() === "#print Set.subset");
       if (pLine < 0) throw new Error("`#print Set.subset` 没落成独立一行");
     }
-    /// **声明列表名字的计算样式**（2026-10-10 用户第 5 条：暗色主题下不许抢镜）。
+    /// **声明列表名字的计算样式**（2026-10-11 用户第三条：去掉行号 + 名字改**普通粗体**）。
     ///
     /// 判据 = **真宿主里算出来的样式**（`getComputedStyle`，不是我们自己写的 CSS 规则
-    /// 文本）：字重不许 ≥600、背景必须透明、必须带下划线（= 链接式文字）。
+    /// 文本）：必须**粗体**（font-weight ≥ 700）、背景必须透明、**不许**有下划线
+    /// （链接式文字正是用户这次点名要去掉的 ✗）；顺带把计算出来的颜色打进读数
+    /// （人读：它应当是正文前景色，而不是主题的链接蓝 ✓）。
     const declNameStyle = async () => {
       return await infoviewEval(`({
         fontWeight: (function () {
@@ -422,6 +424,12 @@ async function main() {
           if (!el) return null;
           return getComputedStyle(el).textDecorationLine;
         })(),
+        color: (function () {
+          const el = d.querySelector('.decl-name');
+          if (!el) return null;
+          return getComputedStyle(el).color;
+        })(),
+        lineHints: d.querySelectorAll('.decl-line-hint').length,
         artifacts: (function () {
           const el = d.querySelector('.project-artifacts');
           return el ? (el.textContent || '').trim() : null;
@@ -477,25 +485,28 @@ async function main() {
     const bad = rows.filter((r) => r.check !== 1 || r.print !== 1);
     log("──────── 声明列表名字的**计算样式**（真宿主）────────");
     for (const r of rows) {
-      log(`  ${r.tag}：font-weight=${r.style?.fontWeight} · background=${r.style?.background} · ` +
-        `text-decoration=${r.style?.decoration}`);
+      log(`  ${r.tag}：font-weight=${r.style?.fontWeight} · color=${r.style?.color} · ` +
+        `background=${r.style?.background} · text-decoration=${r.style?.decoration} · ` +
+        `.decl-line-hint=${r.style?.lineHints}`);
     }
     const style0 = rows.at(-1)?.style || {};
     const weight = Number(style0.fontWeight || 400);
-    const bold = !(weight < 600); // 600/700/bold 都算"抢镜"
+    const bold = weight >= 700; // **普通粗体**（用户 2026-10-11 点名要的那个样式 ✓）
     const opaque = !(style0.background === "rgba(0, 0, 0, 0)" || style0.background === "transparent");
-    const noUnderline = !String(style0.decoration || "").includes("underline");
-    const styleBad = bold || opaque || noUnderline;
+    const underlined = String(style0.decoration || "").includes("underline");
+    const hints = Number(style0.lineHints || 0);
+    const styleBad = !bold || opaque || underlined || hints !== 0;
     log(`  产物行：${style0.artifacts || "(没有 .project-artifacts)"}`);
     report.verdict = bad.length === 0 && !styleBad
-      ? "SINGLE_EVERY_OPERATION + PLAIN_LINK_NAME"
+      ? "SINGLE_EVERY_OPERATION + PLAIN_BOLD_NAME"
       : (bad.length ? "REPRODUCED" : "NAME_STILL_LOUD");
     log(bad.length === 0
       ? "  ✅ 每次操作都只显示一条（达标）"
       : `  ✗ 有 ${bad.length} 次读数不是一条：${JSON.stringify(bad.map((r) => [r.tag, r.check, r.print]))}`);
     log(styleBad
-      ? `  ✗ 声明名样式仍抢镜：bold=${bold} opaqueBackground=${opaque} noUnderline=${noUnderline}`
-      : "  ✅ 声明名是普通链接式文字（不加粗 / 背景透明 / 有下划线）");
+      ? `  ✗ 声明名样式不符合「普通粗体」：bold=${bold} opaqueBackground=${opaque} ` +
+        `underlined=${underlined} lineHints=${hints}`
+      : "  ✅ 声明名是普通粗体（加粗 / 背景透明 / 无下划线 / 无 L<n> 行号）");
     const problems = rows.reduce((n, r) => n + (r.check === 1 && r.print === 1 ? 0 : 1), 0) + (styleBad ? 1 : 0);
     snapshot("accept", report);
     wb.close();

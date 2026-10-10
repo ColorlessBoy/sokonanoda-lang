@@ -145,32 +145,41 @@ body {
  * 现在**唯一**可点的是声明卡的名字按钮（`.decl-name`，E27 ✓）——
  * 反向守卫见 `test-webview.js` 的 `runs are never clickable` 那条 ✓。 */
 
-/* **2026-10-10 用户实测（第四条）**：「声明列表里的名字 css 样式比较抢镜，尤其暗色主题
- * 下刺眼。可以改成普通的、类似于带超链接的文字（正常字号、不加粗/不花哨，
- * 超链接式下划线或可点击样式即可）」。
+/* **2026-10-11 用户实测（第三条）**：「声明列表里的名字，超链接的蓝色和下划线也都太抢镜了，
+ * 直接改成普通粗体，不带其他样式了」。
  *
- * 病根有两条（**同一类问题横向排查**，AGENTS.md 验证纪律 0(b)）：
- *  ① `font-weight: 600`：名字比正文**粗一档** ⇒ 一屏名字全在喊 ✗；
- *  ② 它是 **`<button>`** ⇒ UA 默认的 `background-color: buttonface` + 边框 + padding
- *     全都还在（本文件没有通用 button reset）⇒ 暗色主题下就是一块**亮灰底**，
- *     正是用户说的"刺眼" ✗。
+ * 前两轮的轨迹（同一处，逐步收）：
+ *   · 2026-10-10（第四条）：`font-weight: 600` + UA 按钮亮灰底 ⇒ 收成**普通链接式文字**
+ *     （继承字号字重、去掉按钮外观、链接色 + 下划线表达"可点"）；
+ *   · 2026-10-11（本条）：链接色 + 下划线**仍然抢镜** ⇒ 收到**普通粗体** —— 名字的
+ *     视觉权重回到"标题类"该有的那一档（粗体），**不再借用链接的视觉语言** ✓。
  *
- * ⇒ 收成**普通链接式文字**：字号/字重继承正文（`font: inherit`），去掉按钮外观
- *（背景/边框/内边距），用主题的**链接色** + 下划线表达"可点"（E27 的语义不变：
- * 点它 = 跳到定义，行为一个字没动 ✓）。 */
+ * 三条一起改（**同一类问题横向排查**，AGENTS.md 验证纪律 0(b)）：
+ *  ① `color` / `text-decoration` **都不再借链接**（`--vscode-textLink-*` / `underline`
+ *     全部删掉）⇒ 名字用**正文前景色**、粗体 ✓；`.decl-name:hover` 那条链接色的
+ *     变色规则随之**整条删除**（否则悬停仍然闪一下蓝 ✗）；
+ *  ② `font-weight: 700`：这一轮要的就是"普通**粗体**" ✓（与 `.section-title` 的 600
+ *     同族；它不再是"名字比正文粗一档"那个病 —— 那一条的病根是**叠加了链接色/亮灰底**，
+ *     不是粗体本身，用户这次点名要粗体 ✓）；
+ *  ③ `cursor: pointer` **只留给真按钮**（下一条 `button.decl-name`）—— 目标面板那一行
+ *     的 `decl-name` 是 `<span>`（不可点，E27 只让声明卡的名字可点）✗：以前它跟着这条
+ *     规则也长出手型光标 = **假的可点暗示** ⇒ 顺手收掉 ✓。
+ *
+ * **行为一个字不动** ✓：声明卡的名字仍是 `<button>` ⇒ 点它 = 跳到定义（E27）。 */
 .decl-name {
   font: inherit;
+  font-weight: 700;
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--vscode-textLink-foreground, var(--vscode-foreground));
-  text-decoration: underline;
-  cursor: pointer;
+  color: var(--vscode-foreground);
+  text-decoration: none;
 }
 
-.decl-name:hover {
-  color: var(--vscode-textLink-activeForeground, var(--vscode-textLink-foreground));
+/* 真可点的那一个（声明卡里的 `<button>`，E27）：只留手型光标，**没有别的样式** ✓。 */
+button.decl-name {
+  cursor: pointer;
 }
 
 .decl-name:focus-visible {
@@ -343,12 +352,11 @@ body {
   align-items: baseline;
 }
 
-/* 1-based source line hint (`L12`): small and dim, pushed to the right. */
-.decl-line-hint {
-  margin-left: auto;
-  font-size: 0.72em;
-  font-variant-numeric: tabular-nums;
-}
+/* ⚠ **`.decl-line-hint`（`L12` 那个靠右的 1-based 行号）2026-10-11 已删** ✗✓
+ * （用户：「声明列表里的行号可以不需要了，去掉吧」）。
+ * 删的是**显示**，不是数据：`decl.range` 仍在 wire 上、仍是"点名字跳到定义"的发车位
+ * （`infoview.js` 的 `definition` 消息 ✓）⇒ 谁把行号加回来，`test-webview.js` 的
+ * 「no line hint」那条当场判红 ✓。 */
 
 /* The declaration's type (2026-09-26 用户反馈：**太小太暗** ⇒ 字号回到 1em、
  * 行高 1.5、去掉叠在前景色上的 opacity)。

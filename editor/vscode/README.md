@@ -59,8 +59,9 @@ skills.
   name, colon, type), `by k/n`
   progress, the declaration list (an **open** declaration also shows its goal as
   a coloured `⊢ …` line, one row per remaining goal), and the live server
-  version. Only the declaration **name** is a link (it jumps to the
-  definition); notation symbols and identifiers in goals, hypotheses and types
+  version. Only the declaration **name** is clickable (it jumps to the
+  definition; it is plain bold text, not a link, and no source line number is
+  shown); notation symbols and identifiers in goals, hypotheses and types
   are plain coloured text. Goal and
   hypothesis text is coloured from the **same single source** as the editor's
   semantic highlighting (no separate, drifting rules), **and it uses your

@@ -642,7 +642,12 @@ test("decls: clicking a name asks for the DEFINITION, never a reveal (E27)", () 
   );
 });
 
-test("decls: name, 1-based line hint and type line; rows are not interactive", () => {
+test("decls: name + type line, **no line hint**; rows are not interactive", () => {
+  // **2026-10-11 用户实测（第三条）**：「声明列表里的行号可以不需要了，去掉吧」⇒
+  // `L12` 那个 `.decl-line-hint` 整个删掉（**显示**删、`decl.range` 仍在 wire 上：
+  // 它是"点名字跳到定义"的发车位 ✓）。
+  // 判据绑**用户看得见的那一行**：喂一条**带 range**（line 11）的声明 ⇒ 行里
+  // **不许**出现行号，且 head 的结构就是 `name → kind` 两格（多一格当场判红 ✓）。
   const { root, messages, send } = loadInfoview();
   const before = messages.length;
   send({
@@ -661,10 +666,21 @@ test("decls: name, 1-based line hint and type line; rows are not interactive", (
   assert.strictEqual(rows.length, 1, "exactly one declaration row");
   const row = rows[0];
   assert.strictEqual(textOf(byClass(row, "decl-name")[0]), "t");
+  const head = byClass(row, "decl-head")[0];
+  assert.ok(head, "声明行必须有 head");
+  assert.deepStrictEqual(
+    head.childNodes.map((node) => node.className),
+    ["decl-name", "decl-kind"],
+    "head 只许有「名字 + 种类」两格 —— 行号（`.decl-line-hint`）已删（2026-10-11）",
+  );
   assert.strictEqual(
-    textOf(byClass(row, "decl-line-hint")[0]),
-    "L12",
-    "the line hint must be the 1-based start line (line 11 -> L12)",
+    byClass(row, "decl-line-hint").length,
+    0,
+    "不许再画行号：`range` 只服务跳转，不进屏幕（用户 2026-10-11）",
+  );
+  assert.ok(
+    !/L1[12]/.test(textOf(row)),
+    `整行文本里不许有 L<n> 行号：${JSON.stringify(textOf(row))}`,
   );
   const ty = byClass(row, "decl-ty")[0];
   assert.ok(ty, "the type line must render");
@@ -1093,37 +1109,59 @@ test("CSS: declaration type/value/goal text is body-sized, bright and airy", () 
   );
 });
 
-// **2026-10-10 用户实测（第四条）**：声明列表里的**名字**「css 样式比较抢镜，尤其暗色
-// 主题下刺眼」⇒ 收成普通的链接式文字（正常字号、不加粗、无按钮外观、下划线表达可点）。
+// **2026-10-11 用户实测（第三条）**：声明列表里的**名字**「超链接的蓝色和下划线也都太抢镜了，
+// 直接改成普通粗体，不带其他样式了」—— 接着 2026-10-10 那条（先是去掉亮灰底/加粗，
+// 收成链接式文字）继续收 ✗⇒✓。
 //
-// 判据钉**用户看得见的三件事**（读的是 CSS 文本 = 屏幕上生效的那份）：
-//  ① **不加粗**：不许出现 `font-weight`（继承正文），也不许再写 600/700；
-//  ② **没有按钮外观**：它是一个 `<button>`（E27 的可点语义要靠它）⇒ background / border /
-//     padding 必须被显式清掉，否则暗色主题下 UA 的 `buttonface` 亮灰底就回来了 ✗；
-//  ③ **链接式**：`text-decoration: underline` + 主题链接色（`--vscode-textLink-foreground`）。
-// **反向验证**：把这一条改回 `font-weight: 600`（删掉其余清样式）⇒ 本判据当场判红 ✓。
-test("CSS: declaration names read as plain links, not loud buttons (2026-10-10)", () => {
-  const css = fs.readFileSync(path.join(__dirname, "media", "infoview.css"), "utf8");
-  const m = /(\.decl-name)\s*\{([^}]*)\}/.exec(css);
-  assert.ok(m, "infoview.css must define .decl-name");
-  const body = m[2];
+// 判据钉**用户看得见的三件事**（读的是 CSS 文本 = 屏幕上生效的那份；先剥注释，
+// 否则本节注释里提到的 `underline` / `textLink` 会把判据喂饱 ✗）：
+//  ① **普通粗体**：`font-weight: 700`（这正是用户点名的样式）、字号继承正文；
+//  ② **不借链接的语言**：`.decl-name` 的任何规则里都不许出现下划线或主题链接色
+//     （含删掉的 `:hover` 变色规则 —— 加回来当场判红 ✓）；
+//  ③ **没有按钮外观**：它是 `<button>`（E27 的可点语义要靠它）⇒ background / border /
+//     padding 必须被显式清掉，否则暗色主题下 UA 的 `buttonface` 亮灰底就回来了 ✗。
+// 另钉**假的可点暗示**：手型光标只留给真按钮（`button.decl-name`）；目标面板那一行的
+// `.decl-name` 是 `<span>`（不可点）⇒ 不许有 `cursor`。
+// **反向验证**：把链接色/下划线加回来、或删掉 `font-weight: 700` ⇒ 本判据当场判红 ✓。
+test("CSS: declaration names are plain bold text, not links (2026-10-11)", () => {
+  const raw = fs.readFileSync(path.join(__dirname, "media", "infoview.css"), "utf8");
+  const css = raw.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].map((m) => ({
+    sel: m[1].trim().split("\n").pop().trim(),
+    body: m[2],
+  }));
+  const nameRules = rules.filter((rule) => rule.sel.includes(".decl-name"));
+  assert.ok(nameRules.length > 0, "infoview.css must define .decl-name");
+
+  const base = nameRules.find((rule) => rule.sel === ".decl-name");
+  assert.ok(base, "必须有 `.decl-name` 的基础规则（其它形态只许是它的补充）");
   assert.ok(
-    /font:\s*inherit;/.test(body) && !/font-weight/.test(body),
-    `名字必须继承正文字号/字重（不加粗、不放大）：${body}`,
+    /font:\s*inherit;/.test(base.body) && /font-weight:\s*(700|bold)/.test(base.body),
+    `名字必须是**普通粗体**（字号继承正文 + font-weight 700）：${base.body}`,
   );
   for (const prop of ["background:\\s*transparent", "border:\\s*0", "padding:\\s*0"]) {
     assert.ok(
-      new RegExp(prop).test(body),
-      `按钮外观必须清掉（暗色主题下 UA 的亮灰底就是用户说的"刺眼"）——缺 ${prop}：${body}`,
+      new RegExp(prop).test(base.body),
+      `按钮外观必须清掉（暗色主题下 UA 的亮灰底就是用户说的"刺眼"）——缺 ${prop}：${base.body}`,
     );
   }
   assert.ok(
-    /text-decoration:\s*underline;/.test(body),
-    `"可点"要用链接式下划线表达（用户点名的样式）：${body}`,
+    /color:\s*var\(--vscode-foreground\)/.test(base.body),
+    `颜色回到**正文前景色**（不借链接色）：${base.body}`,
   );
+  for (const rule of nameRules) {
+    assert.ok(
+      !/underline/.test(rule.body) && !/textLink/.test(rule.body),
+      `\`.decl-name\` 不许再借链接的语言（下划线 / \`--vscode-textLink-*\`）` +
+        `（用户 2026-10-11：「蓝色和下划线太抢镜」）——违规规则 \`${rule.sel}\`：${rule.body}`,
+    );
+  }
+  const button = nameRules.find((rule) => rule.sel === "button.decl-name");
+  assert.ok(button && /cursor:\s*pointer/.test(button.body), "真可点的那个（声明卡里的 button）保留手型光标");
   assert.ok(
-    /color:\s*var\(--vscode-textLink-foreground/.test(body),
-    `颜色走主题的链接色（跟随亮/暗主题，不写死）：${body}`,
+    !/cursor/.test(base.body),
+    `基础规则不许给光标 —— 目标面板那一行的 \`.decl-name\` 是 \`<span>\`（不可点）⇒ ` +
+      `手型光标是**假的可点暗示**：${base.body}`,
   );
 });
 
