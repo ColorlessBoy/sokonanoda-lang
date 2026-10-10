@@ -292,3 +292,62 @@ pub struct DocumentReport {
     /// `DiagnosticSeverity::WARNING`.
     pub warnings: Vec<CompileWarning>,
 }
+
+impl DocumentReport {
+    /// **回放闸门**：一条命令的 `#check`/`#print` 结果只许留一份。
+    ///
+    /// 为什么要它（2026-10-10 用户实测的「每编辑一下多一份」闭环，台账 G-102）：
+    /// 报告是**会被持久化再回放**的（模块根 `<root>/.sokonanoda/compiled/*.json`
+    /// 与全局缓存，两者同一个条目格式）。只要某一次写出去的报告里同一条命令
+    /// 带着两份结果，回放就把两份都装进内存；下一次编辑的拼接
+    /// （`query::splice_entry_report`）再把缓存那份 + 新算那份一起交出来
+    /// ⇒ **每编辑一次 +1**，一路累积到用户看到的 19 份 ✗。
+    ///
+    /// 上面两道闸（`cmd` 进序列化 + 拼接按 span 幂等）修的是**产出侧**；
+    /// 这一道修的是**入口侧**：凡是从磁盘读回来的报告，进场前先把自己内部的
+    /// 重复收干净 —— 与 `splice_entry_report` 的闸门同一条纪律
+    /// （**同一个命令位置只留一份**），于是"旧产物/将来某个新生产者写出的重复"
+    /// 都无法再靠回放复活 ✓。
+    ///
+    /// 判据：`cache::tests::a_replayed_report_is_sanitised_before_it_leaves_the_cache`
+    /// （撤掉调用 ⇒ 判红 ✓）。
+    ///
+    /// **不变量**（去重键都取自"来源身份"，不是猜）：
+    /// * `checks`/`prints` —— 键 = 自己的 span（命令位置；同一条命令的同一次输出
+    ///   必然逐字节同一个 span，而不同命令的 span 不会相同）；
+    /// * `decls` —— 键 = `(cmd, span)`（`cmd` 一条命令一个；inductive 块的一条命令
+    ///   可以产多个构造子 ⇒ span 必须一起进键）。
+    ///
+    /// `hovers` **不动**：同一条命令里可以有多个 hover（不同的名字使用处），
+    /// 它们不是重复 —— 那是"同一份报告"的合法内容 ✗ 不许拿它当重复删。
+    pub fn drop_replayed_duplicates(&mut self) {
+        dedup_keep_first(&mut self.checks, |c| {
+            (c.span.start.offset, c.span.end.offset)
+        });
+        dedup_keep_first(&mut self.prints, |p| {
+            (p.span.start.offset, p.span.end.offset)
+        });
+        dedup_keep_first(&mut self.decls, |d| {
+            (d.cmd, d.span.start.offset, d.span.end.offset)
+        });
+    }
+}
+
+/// 按 `key` 去重、**留第一份**、保持原有顺序（`drop_replayed_duplicates` 用）。
+///
+/// 留第一份而不是最后一份：回放条目里那些重复是**同一个结论的副本**，
+/// 谁留下都一样；而"留第一份"让这个函数对"输入里本来没有重复"是**恒等**的
+/// （不会因为去重把顺序搅动 ⇒ 判据/`--json` 面零变化 ✓）。
+fn dedup_keep_first<T, K: Ord>(items: &mut Vec<T>, key: impl Fn(&T) -> K) {
+    if items.len() < 2 {
+        return;
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    let mut kept = Vec::with_capacity(items.len());
+    for item in items.drain(..) {
+        if seen.insert(key(&item)) {
+            kept.push(item);
+        }
+    }
+    *items = kept;
+}

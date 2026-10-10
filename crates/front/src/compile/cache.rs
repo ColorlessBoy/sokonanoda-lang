@@ -317,10 +317,23 @@ pub(crate) fn load_in(dir: &Path, key: &str) -> Option<CachedCompile> {
     if file.shape != crate::compile::REPORT_SHAPE && !shape_check_disabled() {
         return None;
     }
+    // **回放闸门**（2026-10-10 · G-102 的入口侧）：条目里的报告可能带着
+    // "同一条命令两份结果"（历史产物、或将来某个新生产者的口子）。这里
+    // **进场前收干净**，下游（LSP 的 `set_cached_entry`、CLI 的 `query`/`check`/
+    // `build`）拿到的都是单份 ⇒ 回放不可能再把重复装回内存、再靠拼接 +1 ✗。
+    //
+    // ⚠ 只清 `checks`/`prints`/`decls`（**来源身份**重复），不动 `hovers`
+    // （同一条命令的多个使用处是合法的）——见 `DocumentReport::drop_replayed_duplicates`。
+    let mut report = file.report;
+    report.drop_replayed_duplicates();
+    let project = file.project.map(|mut project| {
+        project.sanitize_replayed_outputs();
+        project
+    });
     Some(CachedCompile {
-        report: file.report,
+        report,
         output: file.output,
-        project: file.project,
+        project,
     })
 }
 
@@ -429,6 +442,7 @@ mod tests {
     }
 
     use super::*;
+    use crate::Span;
 
     fn tmp_dir(tag: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
@@ -733,5 +747,138 @@ theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\
         assert!(loaded.project.is_none(), "单文件条目不带项目报告");
         assert!(loaded.output.is_none());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// **回放闸门**（2026-10-10 · G-102 的入口侧）：条目里"同一条命令多份结果"
+    /// 必须在**离开缓存之前**收干净。
+    ///
+    /// 现场物证就是磁盘上这种形状（用户机器上 `compiled/*.json` 里同一条
+    /// `#check` 躺着 3 份、逐字节相同）：回放 ⇒ 内存里 3 份 ⇒ 下一次编辑拼接
+    /// 再 +1 ⇒ **每编辑一次多一份**，一路到 19 份。这条判据钉的是"回放这一侧"
+    /// ——**撤掉 `load_in` 里那句 `drop_replayed_duplicates()` 当场判红** ✓。
+    ///
+    /// 顺带钉住"干净条目进场后逐字段不变"（闸门对正常条目是恒等变换 ⇒
+    /// 回放语义零变化 ✓）。
+    #[test]
+    fn a_replayed_entry_is_sanitised_before_it_leaves_the_cache() {
+        let dir = tmp_dir("replay-sanitise");
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        let clean = CachedCompile {
+            report: DocumentReport {
+                checks: vec![crate::compile::CheckInfo {
+                    span: Span::default(),
+                    text: "lib_id : Nat -> Nat".to_string(),
+                    cmd: 3,
+                }],
+                prints: vec![crate::compile::PrintInfo {
+                    span: Span::default(),
+                    name: "lib_id".to_string(),
+                    text: "def lib_id : Nat -> Nat := fun (n : Nat) => n".to_string(),
+                    cmd: 4,
+                }],
+                ..DocumentReport::default()
+            },
+            output: None,
+            project: None,
+        };
+        store_in(&dir, "dup", &clean);
+
+        // 干净的条目：读回来**逐字段相同**（闸门是恒等变换）。
+        let same = load_in(&dir, "dup").expect("条目必须读得回来");
+        assert_eq!(
+            serde_json::to_value(&same.report).expect("serialize"),
+            serde_json::to_value(&clean.report).expect("serialize"),
+            "没有重复的条目进场后必须一个字节都不变"
+        );
+
+        // 往磁盘上注入重复 = 伪造"历史产物/坏产物"（正是用户机器上那份的形状）。
+        let path = dir.join("dup.json");
+        let mut json: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).expect("read entry")).expect("entry json");
+        for _ in 0..2 {
+            let clone = json["report"]["checks"][0].clone();
+            json["report"]["checks"]
+                .as_array_mut()
+                .expect("checks array")
+                .push(clone);
+            let clone = json["report"]["prints"][0].clone();
+            json["report"]["prints"]
+                .as_array_mut()
+                .expect("prints array")
+                .push(clone);
+        }
+        std::fs::write(&path, serde_json::to_vec(&json).expect("serialize")).expect("write entry");
+        // 前提：磁盘上**确实**是 3 份（否则这条判据会空转 ✗）。
+        let raw: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).expect("read entry")).expect("entry json");
+        assert_eq!(
+            raw["report"]["checks"].as_array().map(Vec::len),
+            Some(3),
+            "注入失败：磁盘上必须真的有三份 `#check` 结果"
+        );
+
+        let loaded = load_in(&dir, "dup").expect("坏条目也要读得回来");
+        assert_eq!(
+            loaded.report.checks.len(),
+            1,
+            "回放前必须收成一份（修前 = 3 份 ⇒ 回放后每编辑一次 +1）: {:?}",
+            loaded.report.checks
+        );
+        assert_eq!(loaded.report.prints.len(), 1, "`#print` 同一条纪律");
+        assert_eq!(loaded.report.checks[0].cmd, 3, "留下的是原结论，不是新猜的");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// **同类横向排查**（`AGENTS.md` 验证纪律 0(b)）：「整份报告被追加一遍」这类
+    /// 坏条目不会只重复 `#check`/`#print` —— 声明卡片同样会重复。这里把同一道
+    /// 闸门对 `decls` 也钉住（键 = `(cmd, span)`；inductive 块的一条命令多个构造子
+    /// ⇒ span 必须一起进键，别把合法内容当重复删 ✗）。
+    #[test]
+    fn the_replay_gate_keeps_distinct_declarations_and_drops_copies() {
+        let mut report = DocumentReport {
+            decls: vec![
+                decl(1, 10, 20, Some("t1")),
+                // 同一条命令的**另一个构造子**（span 不同）⇒ 必须留下。
+                decl(1, 30, 40, Some("t1.mk")),
+                decl(1, 10, 20, Some("t1")),
+            ],
+            ..DocumentReport::default()
+        };
+        report.drop_replayed_duplicates();
+        let kept: Vec<(usize, usize)> = report
+            .decls
+            .iter()
+            .map(|d| (d.cmd, d.span.start.offset))
+            .collect();
+        assert_eq!(
+            kept,
+            vec![(1, 10), (1, 30)],
+            "同一个 (cmd, span) 的复制品要删、同命令不同位置的声明要留"
+        );
+    }
+
+    fn decl(cmd: usize, start: usize, end: usize, name: Option<&str>) -> crate::compile::DeclState {
+        let mut span = Span::default();
+        span.start.offset = start;
+        span.end.offset = end;
+        crate::compile::DeclState {
+            kind: crate::compile::DeclKind::Theorem,
+            name: name.map(str::to_string),
+            span,
+            status: crate::compile::DeclStatus::Checked,
+            error: None,
+            goal: None,
+            by_root: None,
+            binders: Vec::new(),
+            cmd,
+            universe: Vec::new(),
+            holes: Vec::new(),
+            sub_goals: Vec::new(),
+            ty_text: None,
+            val_text: None,
+            refine_template: None,
+            hints: Vec::new(),
+            by_steps: Vec::new(),
+        }
     }
 }
