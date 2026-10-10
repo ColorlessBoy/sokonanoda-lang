@@ -31,6 +31,7 @@ pub mod semantic;
 pub mod session;
 pub mod spine;
 pub mod suggest;
+pub mod tactics;
 
 mod ast;
 mod diagnostic;
@@ -45,4 +46,5 @@ pub use ast::{
 pub use diagnostic::{Diagnostic, DiagnosticKind, Result};
 pub use parser::{parse, parse_fragment, parse_with_inherited, Parser};
 pub use span::{Pos, Span};
+pub use tactics::{TacticDoc, TACTIC_DOCS};
 pub use token::{tokenize, Lexer, Token, TokenKind};

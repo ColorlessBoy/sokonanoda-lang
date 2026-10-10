@@ -74,16 +74,27 @@ const KEYWORDS: &[&str] = &[
     "apply",
     "assumption",
     "rfl",
-    // 课程 Lean 化（设计 `docs/design/course-lean-style.md` L3）新增的 tactic：
-    // 与 `is_tactic_keyword`（`parser.rs`）**同集合**——编辑器词表跟着走。
+    // 课程 Lean 化（设计 `docs/design/course-lean-style.md` L3）新增的 tactic。
+    //
+    // ⚠ **本表与 tactic 清单的关系（2026-10-10 起）**：tactic 的**唯一真相**是
+    // `crate::tactics::TACTIC_DOCS`（设计 `docs/design/tactic-docs.md` §4.2 D3），
+    // 而 `parser::is_tactic_keyword` 已改成**查那张表** ⇒ 这里不再是"两份手写名单
+    // 靠注释同步" ✗。本表**故意保持 `const`**（`keywords()` 的签名是
+    // `-> &'static [&'static str]`，`crates/cli/tests/extension.rs:1247-1255`
+    // 直接拿它与 TM 语法比对 ⇒ 派生会牵动公开签名），改由**判据**钉住：
+    // `crates/front/tests/tactic_docs.rs::semantic_keywords_cover_every_tactic_except_the_named_hole`
+    // ① 表里 `semantic_kind == Keyword` 的 13 条**必须**在本表里；
+    // ② `sorry` 是**具名例外**（它归 `SemanticKind::Hole`，有意不在本表里，
+    //    见本文件 `classify_ident` 附近与 `:999`/`:1419` 的判据）✗ 判据不许写成
+    //    "跳过所有不在表里的项"（那等于把判据阉掉 ✗）。
+    // 历史：`cases`（L3.1）与 `have`（L3.6）曾**漏过**——`is_tactic_keyword`
+    // 里有、词表里没有，于是编辑器里它们不着色也不补全（当时的守护测试只保证
+    // 「TM 语法 = KEYWORDS」，两边一起漏是看不见的）⇒ 现在有上面那条判据挡着 ✓。
     "constructor",
     "left",
     "right",
     "use",
     "exfalso",
-    // `cases`（L3.1）与 `have`（L3.6）此前**漏了**——`is_tactic_keyword`
-    // 里有、词表里没有，于是编辑器里它们不着色也不补全（守护测试只保证
-    // 「TM 语法 = KEYWORDS」，两边一起漏是看不见的）。
     "cases",
     "have",
     "#check",

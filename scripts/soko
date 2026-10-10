@@ -1217,6 +1217,37 @@ async function main(argv) {
         )
         return 3
       }
+      // **tactic 清单三处一致**（L4，设计 `docs/design/tactic-docs.md` §4.2）：
+      // 表（`tactics.rs` 的 `name:`）↔ parser 的 tactic 臂 ↔ `reference/tactics/*.md`。
+      // 为什么在 gate 里：Rust 侧那五条判据挡不住"**绕开 `is_tactic_keyword`
+      // 直接往 `parse_tactic_inner` 加臂**"那种写法（那时关键字不被认作 tactic），
+      // 而本脚本读的是**源码字面量** ⇒ 一个在编译/测试侧、一个在文本侧，两头咬 ✓。
+      // 快（毫秒级）⇒ `--fast` 也跑 ✓；`--selftest` 三个方向都必须判红 ✓。
+      const tacticDocsLint = path.join(REPO, 'scripts', 'tactic-docs-lint.py')
+      if (!existsSync(tacticDocsLint)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, tacticDocsLint)} —— tactic 清单一致性无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      for (const extra of [[], ['--selftest']]) {
+        const step = spawnSync(python.cmd, [...python.args, tacticDocsLint, ...extra], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (step.error) {
+          process.stderr.write(
+            `scripts/soko gate: failed to run ${tacticDocsLint}: ${step.error.message}\n`,
+          )
+          return 3
+        }
+        if ((step.status ?? 3) !== 0) {
+          process.stderr.write(
+            `scripts/soko gate: ${path.relative(REPO, tacticDocsLint)} ${extra.join(' ')} 判红 —— tactic 清单漂移（exit ${step.status}）。\n`,
+          )
+          return step.status ?? 3
+        }
+      }
       // Ledger contract: every gap's repro must still agree with its recorded
       // status (`docs/gaps/ledger.jsonl`, docs/gaps/README.md). Cheap (~3 s) and
       // it is the only thing that keeps "fixed_in" honest as the language moves.

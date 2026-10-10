@@ -1432,9 +1432,7 @@ impl Parser {
             }
             TokenKind::Ident(kw) if kw == "assumption" => {
                 self.bump();
-                Ok(Tactic::Assumption {
-                    span: tok.span,
-                })
+                Ok(Tactic::Assumption { span: tok.span })
             }
             TokenKind::Ident(kw) if kw == "rfl" => {
                 self.bump();
@@ -1545,9 +1543,7 @@ impl Parser {
                 self.bump();
                 Ok(Tactic::Sorry { span: tok.span })
             }
-            _ => Err(self.error_here(&format!(
-                "未知 tactic：`by` 块只支持 intro / exact / apply / assumption / rfl / match / constructor / left / right / use / exfalso / cases / sorry（白名单），发现 {tok:?}"
-            ))),
+            _ => Err(self.error_here(&unknown_tactic_message(&tok))),
         }
     }
 
@@ -3566,26 +3562,45 @@ fn is_expr_keyword(name: &str) -> bool {
     matches!(name, "let" | "match")
 }
 
+/// `parse_tactic_inner` 兜底臂的文案（**抽成具名函数是为了可判**）。
+///
+/// ⚠ **这条兜底今天【不可达】**（2026-10-10 实测，属**设计自审的第 6 条更正**）：
+/// `parse_tactic()` 只有 **3 个**调用点（`parse_by_block` / `parse_tactic_sequence_in_arm` /
+/// `parse_nested_tactic_sequence`），每个前面都有 `tactic_keyword_ahead()` 闸门，
+/// 而它走的就是 `is_tactic_keyword`（= 表成员）⇒ 进得来的一定在表里；
+/// 表里 14 条在 `parse_tactic_inner` 里**都有自己的臂** ⇒ 兜底臂取不到 ✗。
+///
+/// **那为什么还留它、还从表拼**：它挡的是"**表里加了一行、parser 忘了加臂**"这一种漂移
+/// —— 那时 `tactic_keyword_ahead` 说"是 tactic"、`parse_tactic_inner` 却无臂可走
+/// ⇒ 兜底臂**当场变成可达**，学习者看到的支持清单**必须完整** ✓。
+/// 这一条由 `scripts/tactic-docs-lint.py`（L4，比字面量）与
+/// `crates/front/tests/tactic_docs.rs` 的
+/// `every_tactic_in_the_table_has_a_real_parser_arm`（比**行为**）两头咬 ✓。
+///
+/// 文案**由表拼出**（`crate::tactics::whitelist_text`），不许手写 ✗：手写的那份曾经
+/// **漏了 `have`**——因为不可达，所以没人发现，也**没有任何判据**看着它。
+fn unknown_tactic_message(tok: &Token) -> String {
+    format!(
+        "未知 tactic：`by` 块只支持 {}（白名单），发现 {tok:?}",
+        crate::tactics::whitelist_text()
+    )
+}
+
 /// `by` 块白名单里的 tactic 关键字（`parse_tactic_inner` 的 `match` 臂与
 /// 换行边界判定共用同一集合）。
+///
+/// **唯一真相在 `crate::tactics::TACTIC_DOCS`**（设计 `docs/design/tactic-docs.md`
+/// §4.2 D3 的 L1 层）：本函数只是它的**派生视图** ⇒ "加了 tactic 却忘了补文档"
+/// **在构造上不可能** —— 表里没有的关键字**根本不被当成 tactic**
+/// （`parse_by_block` 只在 `tactic_keyword_ahead()` 为真时才解析 tactic，
+/// 而它走的就是这里）⇒ `by foo` 会按普通表达式解析而报错，不是"能跑但没文档" ✓。
+///
+/// ⚠ 这里**不再手写名单** ✗：手写的那份曾在 `cases`/`have` 上漂过
+/// （`semantic.rs:77-86` 的注释记着这次事故），2026-10-10 又抓到"未知 tactic"
+/// 文案漏了 `have` 且零判据覆盖 ⇒ 现在两处都从表派生，判据见
+/// `crates/front/tests/tactic_docs.rs` 与 `scripts/tactic-docs-lint.py`。
 fn is_tactic_keyword(name: &str) -> bool {
-    matches!(
-        name,
-        "intro"
-            | "exact"
-            | "apply"
-            | "assumption"
-            | "rfl"
-            | "match"
-            | "constructor"
-            | "left"
-            | "right"
-            | "use"
-            | "exfalso"
-            | "cases"
-            | "have"
-            | "sorry"
-    )
+    crate::tactics::is_tactic(name)
 }
 
 /// `namespace` / `end` / `open` 后面那个名字不能是**关键字**（G-05 N1）：
@@ -3645,6 +3660,45 @@ fn is_open_in_body(command: &Command) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// **"未知 tactic" 文案**（`crates/front/tests/tactic_docs.rs` 判据 3 的单元层）：
+    /// 它必须列出**全部 14 条**、且不许把没实现的东西说成支持（`exact?`）✓。
+    ///
+    /// ⚠ 这条兜底**今天不可达**（见 `unknown_tactic_message` 的注释）：`parse_tactic` 的
+    /// 3 个调用点都有白名单闸门、14 条也都有自己的臂。它是"表里加了一行、parser 忘了加臂"
+    /// 那种漂移的**兜底提示** ⇒ 直接调它来判文案，是因为**那条路走不通**（不是偷懒 ✗）。
+    #[test]
+    fn unknown_tactic_message_lists_every_tactic_and_claims_nothing_more() {
+        let tok = Token {
+            kind: TokenKind::Ident("hax".to_string()),
+            span: Span::new(
+                Pos {
+                    offset: 0,
+                    line: 1,
+                    column: 1,
+                },
+                Pos {
+                    offset: 3,
+                    line: 1,
+                    column: 4,
+                },
+            ),
+        };
+        let msg = unknown_tactic_message(&tok);
+        assert!(msg.contains("（白名单）"), "文案形状变了：{msg}");
+        for entry in crate::tactics::TACTIC_DOCS {
+            assert!(
+                msg.contains(&format!(" {}", entry.name))
+                    || msg.contains(&format!("{} ", entry.name)),
+                "文案里没有 `{}` ✗：{msg}",
+                entry.name
+            );
+        }
+        // 2026-10-10 抓到的那条漏项（手写文案漏了 `have`）不许回归。
+        assert!(msg.contains("have"), "`have` 必须在文案里 ✗：{msg}");
+        // `exact?` 本语言**没有实现** ⇒ 文案不许说它在白名单里。
+        assert!(!msg.contains("exact?"), "文案说了没实现的东西 ✗：{msg}");
+    }
 
     #[test]
     fn parses_def_check_and_hole() {

@@ -72,6 +72,26 @@ jobs:
       - name: 文档预算 lint（活文档 ≤10.0 MB · 入口 ≤800 行 · 设计 ≤150 行/冻结 · 归档索引齐）
         run: python3 scripts/docs-lint.py
 
+  # `scripts/tactic-docs-lint.py`（**L4**，设计 `docs/design/tactic-docs.md` §4.2）：
+  # tactic 清单的**三处一致** —— 表（`crates/front/src/tactics.rs` 的 `name:`）↔
+  # parser 的 tactic 臂（`parser.rs::parse_tactic_inner` 的 `kw == "…"`）↔
+  # `reference/tactics/*.md` 的文件名。
+  #
+  # **为什么另有一条**（而不只靠 `cargo test -p sokonanoda-front`）：Rust 侧那五条判据
+  # 挡不住"**绕开 `is_tactic_keyword`、直接往 `parse_tactic_inner` 加臂**"那种写法
+  # —— 实测过：注入一条只有臂、没进表的关键字，**六条 Rust 判据全绿**，而这条脚本判红 ✓。
+  # 一个在编译/测试侧、一个在文本侧，**两头咬** ✓。毫秒级 ⇒ 永远跑 ✓。
+  tactic-docs-lint:
+    name: tactic-docs-lint（tactic 清单三处一致 + selftest）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: 清单一致（表 ↔ parser 臂 ↔ reference/tactics/*.md）
+        run: python3 scripts/tactic-docs-lint.py
+      - name: 判据自检（控制组判绿、三个漂移方向都必须判红）
+        run: python3 scripts/tactic-docs-lint.py --selftest
+
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
     runs-on: ubuntu-24.04

@@ -271,6 +271,12 @@
       "renewed": "2026-09-30",
       "tier": "spec"
     },
+    "docs/design/tactic-docs.md": {
+      "expires": "2027-09-30",
+      "renewed": "2026-10-10",
+      "tier": "spec",
+      "reason": "tactic 文档体系（hover 摘要 / F12 跳转 / 完整介绍）的唯一权威设计档；实现跨五个阶段，落地期间是各阶段判据的依据，按期随实现进度复审"
+    },
     "docs/design/teaching-project.md": {
       "expires": "2027-09-30",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
