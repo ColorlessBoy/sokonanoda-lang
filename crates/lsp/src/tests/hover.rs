@@ -439,12 +439,19 @@ async fn hover_on_a_locally_declared_notation_symbol_explains_it() {
         markup.value
     );
     // **T-D03 形态①：本文件声明的**——目标解析得出来（本文件的声明行），
-    // 所以"原始类型"那一行要在。
+    // 所以**声明卡片**（def 头 + 类型 + `:=` body）要在。
+    //
+    // **2026-10-10 用户实测第三条第二次追加改了形状**：以前这里只给一行
+    // `myop : (a : Prop) -> …`（缺 def 头与 body ✗）；现在与使用处 / `#check` /
+    // `#print` / 声明名**同一份卡片渲染**（[`declaration_card_value`]）。
     assert!(
-        markup
-            .value
-            .contains("myop : (a : Prop) -> (b : Prop) -> Prop"),
-        "本文件声明的记法也要给原始类型：{:?}",
+        markup.value.contains("def myop : Prop → Prop → Prop"),
+        "记法符号的 hover 要给**声明卡片**（def 头 + 折过记法的类型）：{:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("```sokonanoda\n:= "),
+        "`def` 的 `:=` body 也要给（用户点名缺的就是它）：{:?}",
         markup.value
     );
     shutdown(&mut service).await;
@@ -962,11 +969,17 @@ infix:50 \" ∈ \" => Set.mem\n",
         "import 来的记法也要说出展开目标：{:?}",
         markup.value
     );
+    // **2026-10-10 用户实测第三条第二次追加**：以前只给一行
+    // `Set.mem : (α : Type) -> …`（缺 def 头与 `:=` body ✗ —— 用户现场就是
+    // `(h : A ⊆ B)` 的 `⊆`）；现在给**声明卡片**，与使用处/`#check`/`#print` 同一份。
     assert!(
-        markup
-            .value
-            .contains("Set.mem : (α : Type) -> (a : α) -> (A : Set α) -> Prop"),
-        "hover 必须给出原始类型：{:?}",
+        markup.value.contains("def Set.mem"),
+        "hover 必须给**声明卡片**（def 头）：{:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("```sokonanoda\n:= "),
+        "`def` 的 `:=` body 必须给（这是用户报的缺口）：{:?}",
         markup.value
     );
     let _ = std::fs::remove_dir_all(&dir);
@@ -1646,6 +1659,11 @@ async fn hover_on_a_theorem_or_axiom_declaration_has_no_value_block() {
 ///
 /// **反向验证**：撤掉 `command_line_hover` 那一段 ⇒ 本判据当场判红（旧形状只剩
 /// `myid`，没有 `myid : `）。
+///
+/// **2026-10-10 第三条用户实测（收口统一）把形状改了**：`#check <裸名字>` 的 hover
+/// 现在与 `#print <同一个名字>` **逐字节相同**（声明卡片：`def` 头 + 签名 + `:=` body）
+/// —— 见 [`hover_on_a_check_line_matches_the_print_line_for_a_name`]；非名字形态由
+/// [`hover_on_a_check_of_an_expression_keeps_expr_colon_type`] 钉。
 #[tokio::test]
 async fn hover_on_a_check_line_shows_the_command_output() {
     // 夹具照**用户现场**：`#check Eq.refl` —— `Eq.refl` 带宇宙参数 ⇒ 类型里
@@ -1657,19 +1675,128 @@ async fn hover_on_a_check_line_shows_the_command_output() {
     let at = offset_of(src, "#check Eq.refl") + "#check ".len() + 2;
     let markup = hover_markup_at(&mut service, src, at).await;
     let blocks = fence_blocks(&markup);
-    assert_eq!(blocks.len(), 1, "命令输出必须是一个围栏块：{markup:?}");
-    let body = blocks[0];
     assert!(
-        body.starts_with("Eq.refl : "),
-        "`#check` 的输出形状 = `表达式 : 类型`：{body:?}"
+        !blocks.is_empty(),
+        "这一行必须有 hover（不许静默）：{markup:?}"
     );
+    let body = blocks.join("\n");
     assert!(
-        body.trim_end().len() > "Eq.refl : ".len(),
-        "类型那一半不许为空（用户报的就是「只有名字、没有类型」）：{body:?}"
+        body.contains("Eq.refl"),
+        "hover 必须说到被查的名字：{body:?}"
     );
     assert!(
         !body.contains("?u"),
-        "命令输出是**出口后**的类型（层元变量已收口成 `u`）；`?u.N` 是中间态：{body:?}"
+        "结论是**出口后**的类型（层元变量已收口成 `u`）；`?u.N` 是中间态：{body:?}"
+    );
+    shutdown(&mut service).await;
+}
+
+/// **命令行 hover ①b（2026-10-10 用户实测第三条 · 收口统一）**：
+/// `#check <裸名字>` 的 hover 必须与 `#print <同一个名字>` 的 hover **逐字节相同**。
+///
+/// 用户原话：「`#print Set.subset` 显示 `def … := …`（对）；`#check Set.subset`
+/// 显示 `Set.subset : {α : Type} → …`，没有完全对齐 —— **缺少 def 头以及 `:=`
+/// 后面的 body 数据**……代码区域所有的 hover 信息收口统一（`#check` 的 hover
+/// 应与 `#print` 对齐，含 def/类型/`:=`/body）」。
+///
+/// **判据为什么是"两条互相比"**：对齐 = 同一个结论，不是"两条各写一遍"——
+/// 自己写死一份期望文本会掩护"第二份渲染"✗。两条命令同夹具、真 LSP 往返，
+/// 结果必须**逐字节相同** ✓。
+///
+/// **反向验证**：撤掉 `command_line_hover` 里 `judge_print_of` 那一段 ⇒
+/// `#check` 那边退回 `myid : Prop -> Prop` ⇒ 本判据当场判红 ✓。
+#[tokio::test]
+async fn hover_on_a_check_line_matches_the_print_line_for_a_name() {
+    let src = "def myid : Prop -> Prop := fun (x : Prop) => x\n\n#check myid\n#print myid\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    let check_at = offset_of(src, "#check myid") + "#check ".len() + 2;
+    let print_at = offset_of(src, "#print myid") + "#print ".len() + 2;
+    let check = hover_markup_at(&mut service, src, check_at).await;
+    let printed = hover_markup_at(&mut service, src, print_at).await;
+    assert_eq!(
+        check, printed,
+        "`#check <名字>` 的 hover 必须与 `#print <名字>` **逐字节相同**（收口统一）"
+    );
+    // 用户点名的三段：def 头 / 类型 / `:=` body。
+    assert!(check.contains("def myid"), "缺 `def` 头：{check:?}");
+    assert!(check.contains(":="), "缺 `:=` 后面的 body：{check:?}");
+    shutdown(&mut service).await;
+}
+
+/// **命令行 hover ①c（边界）**：`#check` 的**非名字**形态（表达式）没有声明可打
+/// ⇒ 保持 Lean 口径 `表达式 : 类型`（**不许**为了"看起来统一"编一个声明 ✗）。
+#[tokio::test]
+async fn hover_on_a_check_of_an_expression_keeps_expr_colon_type() {
+    let src = "def myid : Prop -> Prop := fun (x : Prop) => x\n\n#check fun (x : Prop) => x\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    let at = offset_of(src, "#check fun") + "#check ".len() + 2;
+    let markup = hover_markup_at(&mut service, src, at).await;
+    let blocks = fence_blocks(&markup);
+    assert_eq!(blocks.len(), 1, "一个围栏块：{markup:?}");
+    let body = blocks[0];
+    assert!(
+        body.starts_with("fun (x : Prop) => x : "),
+        "非名字形态仍是 `表达式 : 类型`：{body:?}"
+    );
+    assert!(
+        !body.contains(" := "),
+        "没有声明可打时不许编一个 `:=` body：{body:?}"
+    );
+    shutdown(&mut service).await;
+}
+
+/// **使用处 hover（2026-10-10 用户实测第三条的第二次追加）**：hover 在**使用处**的
+/// `def` 名字上也要给**同一张声明卡片**。
+///
+/// 用户原话：「范围不限于 `#check` 行，包括 `(h : A ⊆ B)` 这类**使用处**鼠标移上去
+/// 的 hover 信息（目前也只显示 `Set.subset : {α : Type} -> …`）……**只要是 def，
+/// 任何位置 hover 到它，都应显示带 `:=` 的完整信息**……数据收口到一处（单一数据
+/// 源），其他地方复用同一份渲染，不要各写各的。」
+///
+/// **判据 = "同一个结论"的强形式**：使用处的卡片必须与**声明名上**的卡片
+/// （`decl_at` 那条路）**逐字节相同**（那块状态行除外）——这样"单一数据源"才是
+/// 可判的，而不是靠肉眼看着像 ✓。
+///
+/// **反向验证**：撤掉 `hover()` 使用处分支里 `resolution == Declaration` 那一段
+/// ⇒ 使用处退回 `myid : Nat -> Nat` ⇒ 本判据当场判红 ✓。
+#[tokio::test]
+async fn hover_on_a_def_use_site_shows_the_same_card_as_its_declaration() {
+    let src = "def myid : Nat -> Nat := fun (n : Nat) => n + 1\n\n\
+               theorem uses_it (a : Nat) (h : myid a = a) : True := True.intro\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    // 使用处：`h : myid a = a` 里那个 `myid`。
+    let use_at = offset_of(src, "h : myid a") + "h : ".len() + 2;
+    let use_markup = hover_markup_at(&mut service, src, use_at).await;
+    let use_blocks = fence_blocks(&use_markup);
+    assert_eq!(
+        use_blocks.len(),
+        2,
+        "使用处的 `def` 必须给卡片（签名块 + `:=` 值块）：{use_markup:?}"
+    );
+    assert!(
+        use_blocks[0].contains("def myid"),
+        "使用处也要有 `def` 头（用户报的就是它缺失）：{use_markup:?}"
+    );
+    assert!(
+        use_blocks[1].starts_with(":= ") && use_blocks[1].contains("fun"),
+        "使用处也要有 `:=` body：{use_markup:?}"
+    );
+    // 声明名上（`decl_at` 那条路）必须给出**同一张**卡片（外加状态行）。
+    // ⚠ **名字的第 1 个字符**（`+4`）：`…name` 的第 2 个字符起会命中一个**既有的**
+    // 无关缺陷（本夹具下 hover 出 `d : : Type 0` 这种无意义文本；用 HEAD 的
+    // `crates/lsp/src/lib.rs` 同样复现 ⇒ **不是本轮引入**，如实记在 STATUS 的
+    // 已知问题里）。这里只用不受它影响的位置来钉"同一份渲染"。
+    let decl_at_pos = offset_of(src, "def myid") + "def ".len();
+    let decl_markup = hover_markup_at(&mut service, src, decl_at_pos).await;
+    let decl_blocks = fence_blocks(&decl_markup);
+    assert!(
+        decl_blocks.len() >= 2,
+        "声明名上也要给卡片：{decl_markup:?}"
+    );
+    assert_eq!(
+        (&use_blocks[0], &use_blocks[1]),
+        (&decl_blocks[0], &decl_blocks[1]),
+        "使用处与声明名必须是**同一份渲染**（单一数据源）：use={use_markup:?} decl={decl_markup:?}"
     );
     shutdown(&mut service).await;
 }
@@ -1685,15 +1812,28 @@ async fn hover_on_a_print_line_shows_the_printed_declaration() {
     let (mut service, _socket) = open_and_wait(src).await;
     let at = offset_of(src, "#print myid") + "#print ".len() + 2;
     let markup = hover_markup_at(&mut service, src, at).await;
+    // **2026-10-10 用户实测第三条第二次追加**：`#print` 那一行也走**声明卡片**
+    // （与 `#check` / 使用处 / 声明名同一份渲染）⇒ `def` 是**两个**围栏块：
+    // 签名块 + `:=` 值块。以前是内核 `pp_declar` 的**整行**一个块 —— 信息相同、
+    // 形状不同 ⇒ 用户要求"不要各写各的" ✗✓。
     let blocks = fence_blocks(&markup);
     assert_eq!(
         blocks.len(),
-        1,
-        "`#print` 的输出必须是一个围栏块：{markup:?}"
+        2,
+        "`#print` 的 `def` 必须是 签名块 + `:=` 值块：{markup:?}"
     );
-    let body = blocks[0];
-    assert!(body.contains("def myid"), "打印的是声明本体：{body:?}");
-    assert!(body.contains(":="), "`def` 的 `:=` 值必须在：{body:?}");
+    assert!(
+        blocks[0].contains("def myid"),
+        "第一块是声明本体：{markup:?}"
+    );
+    assert!(
+        blocks[1].starts_with(":= "),
+        "第二块必须以 `:= ` 开头：{markup:?}"
+    );
+    assert!(
+        blocks[1].contains("fun"),
+        "第二块是内核 pp 出来的值：{markup:?}"
+    );
     shutdown(&mut service).await;
 }
 

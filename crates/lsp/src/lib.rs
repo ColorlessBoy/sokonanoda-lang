@@ -1705,6 +1705,7 @@ fn hover_markup(res: render::HoverResolved, input_hint: Option<&str>) -> Hover {
 /// 拿不到输出（那一行不是命令、或命令没有结果）⇒ `None`，既有 hover 链继续走。
 fn command_line_hover(
     query: &sokonanoda_front::query::QueryDoc,
+    report: &DocumentReport,
     text: &str,
     cursor: usize,
 ) -> Option<Hover> {
@@ -1712,17 +1713,228 @@ fn command_line_hover(
     if message.text.trim().is_empty() {
         return None;
     }
+    // **凡"一条声明"的 hover 都走同一个卡片渲染器**（用户 2026-10-10 实测第三条，
+    // 含第二次追加：「只要是 def，任何位置 hover 到它，都应显示带 `:=` 的完整信息…
+    // 数据收口到一处（单一数据源），其他地方复用同一份渲染，不要各写各的」）：
+    // * `#check <裸名字>` —— 以前只给 `名字 : 类型`（缺 def 头与 body ✗）；
+    // * `#print <名字>` —— 以前给内核 `pp_declar` 的**整行**（对，但与 ② 不同形）。
+    // ⇒ 两条命令现在都给**同一张卡片**（签名块 + `def`/`opaque` 的 `:=` 值块），
+    // 与声明名 hover、使用处 hover（`(h : A ⊆ B)` 的 `⊆`）**逐字节同形** ✓。
+    //
+    // 边界（如实）：`#check` 的**非名字**形态（`#check fun x => x`）没有声明可打
+    // ⇒ 保持 `表达式 : 类型`（Lean 口径）✓；Infoview 的「命令输出」块也保持
+    // Lean 口径（它是**命令输出**，不是 hover —— 用户点名的面是代码区 hover）。
+    let range = Some(query_map::range_of_offsets(
+        text,
+        message.start,
+        message.end,
+    ));
+    let command_name = || -> Option<String> {
+        let source = text.get(message.start..message.end)?.trim();
+        let argument = match message.kind.as_str() {
+            // `#check <expr>`：整段就是被查的表达式。
+            "check" => source,
+            // `#print <name>`：整段是那条命令（`#print Set.subset`）⇒ 去掉命令词。
+            "print" => source.strip_prefix("#print").map(str::trim)?,
+            _ => return None,
+        };
+        checked_declaration_name(argument).map(str::to_string)
+    };
+    if let Some(name) = command_name() {
+        if let Some(hover) = declaration_card_hover(query, report, message.start, &name, range) {
+            return Some(hover);
+        }
+    }
     Some(Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
             value: code_block(&message.text),
         }),
         // 高亮范围 = 那条命令的源范围（`messages_at` 给的就是命令自己的 span）。
-        range: Some(query_map::range_of_offsets(
-            text,
-            message.start,
-            message.end,
-        )),
+        range,
+    })
+}
+
+/// `#check` 被查的那个表达式**是不是一个裸名字**（`Set.subset` / `lib_id` / `Nat.add`）。
+///
+/// 是 ⇒ 返回它（hover 会把它当声明打出来，与 `#print` 对齐）；不是 ⇒ `None`
+/// （`fun x => x`、`Eq.refl.{1}`、`(Set.subset)` 这类没有"一条声明"可打，
+/// 保持 `表达式 : 类型` 的既有结论）。
+///
+/// 判据故意**窄**（宁可退回既有形态，也不猜）：允许点分名、`_`、数字、
+/// Unicode 字母（教学文件里的 `α` 等）与希腊名，但不接受空格/括号/运算符。
+fn checked_declaration_name(expr_src: &str) -> Option<&str> {
+    let name = expr_src.trim();
+    if name.is_empty() {
+        return None;
+    }
+    let mut segments = 0usize;
+    for segment in name.split('.') {
+        if segment.is_empty() {
+            return None;
+        }
+        if !segment
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '\'' || c == '«' || c == '»')
+        {
+            return None;
+        }
+        segments += 1;
+    }
+    (segments >= 1).then_some(name)
+}
+
+/// **声明卡片（唯一渲染点）**：`<kind> <name> : <ty>` 块 ＋（只有 `def`/`opaque`）
+/// `:= <body>` 块。
+///
+/// ## 为什么要有这个函数（2026-10-10 用户实测第三条的第二次追加）
+///
+/// 用户原话：「范围不限于 `#check` 行，包括 `(h : A ⊆ B)` 这类**使用处**鼠标移上去
+/// 的 hover 信息（目前也只显示 `Set.subset : {α : Type} -> …`）……**只要是 def，
+/// 任何位置 hover 到它，都应显示带 `:=` 的完整信息**（含 def 头/类型/`:=`/body）。
+/// 总之就是**数据收口到一处（单一数据源），其他地方复用同一份渲染，不要各写各的**。」
+///
+/// ⇒ 全仓**只有这一处**把"一条声明"渲染成卡片，四类 hover 点全部走它：
+/// ① 声明名上（`decl_at` 那条路）；② 任何**使用处**（`report.hovers` 里
+/// `resolution == Declaration` 的名字 —— `(h : A ⊆ B)` 的 `⊆` 就是它）；
+/// ③ `#check <名字>` 那一行；④ `#print <名字>` 那一行与记法符号 hover 的目标签名。
+///
+/// ## 数据源（也只有一处）
+///
+/// **① 编译报告里的声明状态**（`DocumentReport.decls` —— 入口那份 + 闭包每个模块那份）
+/// ⇒ `ty_text`/`val_text` 就是 **Infoview 声明列表**渲染的那两个字段（同一次内核
+/// `pp_expr` + 同一个 `display.fold` 接口）✓ ⇒ 面板与 hover **同源同形**，
+/// 箭头也是折过的 `→`（`pp_declar` 那条路给的是 `->` ✗）。
+///
+/// **② 报告里没有（prelude 名字等）** ⇒ 合成 `#print <名字>`
+/// （[`sokonanoda_front::judge::judge_print_of`]）取内核 `pp_declar`，切分 + 折叠。
+/// 这一支是**兜底**：报告覆盖不到的名字才走（判据
+/// `hover_on_a_prelude_def_use_site_still_shows_a_card`）。
+///
+/// 拿不到（开放练习还没进环境、名字不在闭包里…）⇒ `None` ⇒ 调用方退回该处既有的
+/// 形态（诚实省略，**不编** ✗）。
+fn declaration_card(
+    query: &sokonanoda_front::query::QueryDoc,
+    report: &DocumentReport,
+    offset: usize,
+    name: &str,
+) -> Option<(String, Option<String>)> {
+    // ① 报告（入口 + 闭包）。名字按**规范名**比 —— `resolution`/`decl_at` 给的
+    //    就是这个口径（`Set.mem` 落到库模块那条声明上 ✓）。
+    let from_report = report
+        .decls
+        .iter()
+        .chain(
+            query
+                .project_report_ref()
+                .into_iter()
+                .flat_map(|project| project.modules.iter())
+                .flat_map(|module| module.report.decls.iter()),
+        )
+        .find(|d| d.name.as_deref() == Some(name));
+    if let Some(d) = from_report {
+        let signature = match d.ty_text.as_deref().filter(|ty| !ty.is_empty()) {
+            Some(ty) => format!("{} {} : {}", d.kind.as_str(), name, ty),
+            None => format!("{} {}", d.kind.as_str(), name),
+        };
+        // `def`/`opaque` 才有 `:=` 值块（`theorem` 的证明不是"定义" ——
+        // T-D52 的既有契约：`val_text` 对 theorem/axiom 是 `None` ✓，这里同一条纪律）。
+        let value = d
+            .val_text
+            .as_deref()
+            .filter(|v| !v.trim().is_empty())
+            .map(|v| format!(":= {v}"));
+        return Some((signature, value));
+    }
+    // ② 兜底：问内核要 `#print` 的结论（与用户真写 `#print` 同一份文本）。
+    let options = sokonanoda_front::compile::CompileOptions {
+        prelude: query.mode,
+    };
+    let prefix = query.judge_prefix_with_entry(offset);
+    let printed = sokonanoda_front::judge::judge_print_of(&prefix, &options, name).ok()?;
+    let printed = printed.trim();
+    if printed.is_empty() {
+        return None;
+    }
+    // 顶层第一个 ` := ` —— 内核 pp 的**签名**里不会出现裸 ` := `
+    //（绑定器是 `=>`、类型是 `->`/`→`），`:=` 只出现在"声明的值"这一处。
+    let (signature, value) = match printed.find(" := ") {
+        Some(at) => (
+            printed[..at].to_string(),
+            Some(printed[at + 4..].to_string()),
+        ),
+        None => (printed.to_string(), None),
+    };
+    let signature = query.fold_display(&signature);
+    let value = match value {
+        Some(body) if signature.starts_with("def ") || signature.starts_with("opaque ") => {
+            Some(query.fold_display(&format!(":= {body}")))
+        }
+        _ => None,
+    };
+    Some((signature, value))
+}
+
+/// **卡片的唯一装配器**：签名块 + （有就给）`:=` 值块。
+///
+/// 三个入口（[`declaration_card_value`] / [`card_blocks_from_state`]）都走它 ——
+/// 用户 2026-10-10 的要求：「数据收口到一处（单一数据源），其他地方复用同一份渲染，
+/// 不要各写各的」。
+fn card_blocks(signature: &str, value: Option<String>) -> String {
+    let mut text = code_block(signature);
+    if let Some(value) = value {
+        text.push_str("\n\n");
+        text.push_str(&code_block(&value));
+    }
+    text
+}
+
+/// 手里已有 `DeclState`（声明名 hover）时的卡片载荷。
+fn card_blocks_from_state(d: &DeclState, value: Option<String>) -> String {
+    card_blocks(&declaration_card_of_state(d).0, value)
+}
+
+/// 卡片的 hover 载荷（围栏块 + 值块）—— 与 [`declaration_card`] 一样只有这一处。
+///
+/// `range` = 高亮范围（使用处 / 命令行给得出就给，声明名那处由调用方另行给出）。
+fn declaration_card_value(
+    query: &sokonanoda_front::query::QueryDoc,
+    report: &DocumentReport,
+    offset: usize,
+    name: &str,
+) -> Option<String> {
+    let (signature, value) = declaration_card(query, report, offset, name)?;
+    Some(card_blocks(&signature, value))
+}
+
+/// 报告里那条声明的卡片（**声明名 hover** 用：它已经握着 `DeclState`，不必再搜）。
+fn declaration_card_of_state(d: &DeclState) -> (String, Option<String>) {
+    let signature = match d.ty_text.as_deref().filter(|ty| !ty.is_empty()) {
+        Some(ty) => format!("{} {} : {}", d.kind.as_str(), decl_name(d), ty),
+        None => format!("{} {}", d.kind.as_str(), decl_name(d)),
+    };
+    let value = d
+        .val_text
+        .as_deref()
+        .filter(|v| !v.trim().is_empty())
+        .map(|v| format!(":= {v}"));
+    (signature, value)
+}
+
+/// [`declaration_card_value`] 的 hover 包装（四类调用点共用）。
+fn declaration_card_hover(
+    query: &sokonanoda_front::query::QueryDoc,
+    report: &DocumentReport,
+    offset: usize,
+    name: &str,
+    range: Option<Range>,
+) -> Option<Hover> {
+    Some(Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: declaration_card_value(query, report, offset, name)?,
+        }),
+        range,
     })
 }
 
@@ -1818,14 +2030,26 @@ fn notation_symbol_hover(
         } else {
             prefix.clone()
         };
-        if let Ok(ty) = hover_type_of_constant(&judge_prefix, &options, &target) {
-            // 松散变量（`$N`）的文本不可信——与 `render::hover_type_at` 同一条
-            // 纪律：拿不到干净的类型就不编。
-            if !ty.is_empty() && !ty.contains('$') {
-                // **语言文本走围栏块**（2026-10-10 横向排查）：类型行是
-                // `.sokonanoda` 文本 ⇒ 与 tactic 名字行 / 声明签名同一条
-                // `code_block` 接口（行内码在 VS Code 里**不上色** ✗）。
-                lines.push(code_block(&format!("{target} : {ty}")));
+        // **声明卡片**（唯一渲染点；2026-10-10 用户实测第三条的第二次追加 ——
+        // 用户现场**就是这一行**）：hover `(h : A ⊆ B)` 的 `⊆` 以前只给
+        // `Set.subset : {α : Type} -> …`（**缺 def 头与 `:=` body** ✗）。
+        // 现在与使用处 / `#check` / `#print` / 声明名走**同一份**渲染
+        //（[`declaration_card_value`]）⇒ 任何位置 hover 到 def 都看得见它的值 ✓。
+        // 拿不到卡片（目标不在闭包里、开放练习还没进环境…）⇒ 退回既有的
+        // "目标 : 类型"那一行（诚实省略，**不编** ✗）。
+        match declaration_card_value(query, report, offset, &target) {
+            Some(card) => lines.push(card),
+            None => {
+                if let Ok(ty) = hover_type_of_constant(&judge_prefix, &options, &target) {
+                    // 松散变量（`$N`）的文本不可信——与 `render::hover_type_at` 同一条
+                    // 纪律：拿不到干净的类型就不编。
+                    if !ty.is_empty() && !ty.contains('$') {
+                        // **语言文本走围栏块**（2026-10-10 横向排查）：类型行是
+                        // `.sokonanoda` 文本 ⇒ 与 tactic 名字行 / 声明签名同一条
+                        // `code_block` 接口（行内码在 VS Code 里**不上色** ✗）。
+                        lines.push(code_block(&format!("{target} : {ty}")));
+                    }
+                }
             }
         }
     }
@@ -2219,7 +2443,7 @@ impl LanguageServer for Backend {
         if std::env::var("SOKO_HOVER_TRACE").is_ok() {
             eprintln!("[hover-chain] 尝试 command_line_hover (offset={offset})");
         }
-        if let Some(hover) = command_line_hover(doc.query(), doc.text(), offset) {
+        if let Some(hover) = command_line_hover(doc.query(), report, doc.text(), offset) {
             return Ok(Some(hover));
         }
         // `by` tactic hover: show the goal state entering the tactic under the
@@ -2340,6 +2564,28 @@ impl LanguageServer for Backend {
         // **追加**在类型行之后，不抢主线（`α : Prop` 才是学习者要看的）。
         let input_hint = sokonanoda_front::notation_input::input_hint_at(doc.text(), offset);
         if let Some(h) = hover_type_at_offset(&report.hovers, offset) {
+            // **使用处的名字 ⇒ 声明卡片**（2026-10-10 用户实测第三条的第二次追加）：
+            // 用户原话 ——「范围不限于 `#check` 行，包括 `(h : A ⊆ B)` 这类**使用处**
+            // 鼠标移上去的 hover 信息（目前也只显示 `Set.subset : {α : Type} -> …`）……
+            // **只要是 def，任何位置 hover 到它，都应显示带 `:=` 的完整信息**」。
+            //
+            // 判据 = `resolution == Declaration { name }`（前端已经算好的**名字解析
+            // 真相**，不是在这里猜文本）：解析到顶层声明才给卡片；绑元 / 记法符号 /
+            // 解析不到的名字保持 `表达式 : 类型`（那条路的信息仍然有用 ✓）。
+            //
+            // 拿不到卡片（开放练习还没进环境、库外名字…）⇒ 退回既有的 `expr : type`
+            //（诚实省略，**不编** ✗）。
+            if let Some(ResolvedTarget::Declaration { name, .. }) = h.resolution.as_ref() {
+                if let Some(card) = declaration_card_hover(
+                    doc.query(),
+                    report,
+                    h.span.start.offset,
+                    name,
+                    Some(range_of(h.span)),
+                ) {
+                    return Ok(Some(card));
+                }
+            }
             // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片
             //（括号平衡成良构），并返回表达式范围供编辑器高亮。
             return Ok(Some(hover_markup(
@@ -2379,25 +2625,27 @@ impl LanguageServer for Backend {
             }
         }
         if let Some(d) = decl_at(&report.decls, pos.line, pos.character) {
-            let signature = match &d.ty_text {
-                Some(ty) => format!("{} {} : {}", d.kind.as_str(), decl_name(d), ty),
-                None => format!("{} {}", d.kind.as_str(), decl_name(d)),
-            };
             // Signature and goal state are `.sokonanoda` text → fenced blocks so
             // the editor highlights them (docs/protocol.md §`soko/stateAt`).
-            let mut value = code_block(&signature);
-            // **`def` 的值**（T-D52 / 用户第 8 条反馈，2026-10-10 用户要求
-            // hover 也带上）：`:=` 之后那个东西 —— 类型看不出 `Set.mem` 的本质，
-            // 值才看得出。与 Infoview 的 `decl-val-line` 同一语义（`:=` 标签 +
-            // 值块 ⇒ 这里是 `:= <值>` 的**独立围栏块**）。
             //
-            // `theorem`/`axiom`/`inductive` 的 `val_text` 是 `None`（证明 / 公设 /
-            // 构造子表都不是"定义"）⇒ **一个字节都不加**（回归基线：它们的 hover
-            // 与改动前逐字节相同）。空值同样不加（诚实省略，不编一个空块）。
-            if let Some(val) = d.val_text.as_deref().filter(|t| !t.is_empty()) {
-                value.push_str("\n\n");
-                value.push_str(&code_block(&format!(":= {val}")));
-            }
+            // **卡片优先走唯一渲染点**（2026-10-10 用户实测第三条第二次追加：
+            // 「数据收口到一处（单一数据源），其他地方复用同一份渲染，不要各写各的」）：
+            // 名字解析得出、合成 `#print` 拿得到 ⇒ 用 [`declaration_card_value`]
+            // （与使用处 / `#check` / `#print` / 记法符号那四处**同一份**渲染）。
+            // * 拿不到（**开放练习**还没进环境 = 最常见的拿不到）⇒ 退回下面这份
+            //   由 `DeclState.ty_text`/`val_text` 拼的卡片（同一条内核 pp + 折叠，
+            //   只是数据来自本文件的报告）✓ —— 那条路还要挂洞/目标/状态信息。
+            let mut value = match declaration_card_value(
+                doc.query(),
+                report,
+                d.span.start.offset,
+                &decl_name(d),
+            ) {
+                Some(card) => card,
+                // 报告里搜不到（理论上不该发生：`d` 就在报告里）⇒ 用手里这份
+                // `DeclState` 直接拼 —— 同一个 [`card_blocks`] 装配器，形状不变 ✓。
+                None => card_blocks_from_state(d, None),
+            };
             match d.status {
                 DeclStatus::Open => {
                     // 光标正落在某个 `sorry` 上：先给这个洞的精确期望类型

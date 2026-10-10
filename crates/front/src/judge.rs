@@ -2581,6 +2581,93 @@ fn judge_type_of_uncached(
     })
 }
 
+/// **一条声明的打印文本**（= `#print <name>` 的结论）。
+///
+/// ## 为什么要它（2026-10-10 用户实测第三条）
+///
+/// 用户原话：`#print Set.subset` 的 hover 给了 `def … := <body>`（对），而
+/// `#check Set.subset` 的 hover 只给 `Set.subset : …`（**缺 def 头与 `:=` 的 body**）
+/// ⇒ 「代码区域所有的 hover 信息收口统一（`#check` 的 hover 应与 `#print` 对齐）」。
+///
+/// 这里合成 `#print <name>` 走**完整流水线**取 `Printed` 事件的文本 ⇒ 与用户在
+/// 源码里写 `#print <name>` 得到的**是同一份内核 pp**（`pp_declar`）——不是第二条
+/// 真相、不是客户端拼字符串 ✓。LSP 的 hover 拿它渲染声明卡片。
+///
+/// 前缀键缓存与 [`judge_type_of`] 同一条纪律（**不许**用"进程级名字键"：那种缓存
+/// 无失效路径，编辑后会给出旧签名 —— `0ef864db` 的实测教训）。
+pub fn judge_print_of(
+    prefix_src: &str,
+    options: &CompileOptions,
+    name: &str,
+) -> Result<String, Judgement> {
+    let key = judge_cache_key(&[prefix_src, &options_key(options), "print-of", name]);
+    if let Some(JudgeCacheValue::Infer(r)) = type_cache_get(key) {
+        return r;
+    }
+    let r = judge_print_of_uncached(prefix_src, options, name);
+    type_cache_put(key, JudgeCacheValue::Infer(r.clone()));
+    r
+}
+
+fn judge_print_of_uncached(
+    prefix_src: &str,
+    options: &CompileOptions,
+    name: &str,
+) -> Result<String, Judgement> {
+    let mut src = String::from(prefix_src);
+    let query_start = src.len();
+    src.push_str("#print ");
+    src.push_str(name);
+    src.push('\n');
+    let Ok(file) = crate::parse_fragment(&src) else {
+        return Err(Judgement::Error {
+            code: "parse".to_string(),
+            message: "无法解析声明打印查询".to_string(),
+        });
+    };
+    let prefix_commands = file.commands.len().saturating_sub(1);
+    let out = match run_synthesized_incremental(
+        &file,
+        options,
+        prefix_commands,
+        prefix_opaque_mode() == PrefixOpaqueMode::On,
+    ) {
+        Some((out, _report, _before)) => out,
+        None => {
+            note_synthesized_fallback();
+            compile_fol_with(&file, options)
+        }
+    };
+    if let Some(err) = query_error(query_start, &out.errors) {
+        return Err(err);
+    }
+    let last_cmd = file.commands.len().checked_sub(1);
+    pick_printed(&out, last_cmd).ok_or_else(|| {
+        prefix_error(&out.errors).unwrap_or(Judgement::Error {
+            code: "judge-print-none".to_string(),
+            message: "内核未返回声明文本".to_string(),
+        })
+    })
+}
+
+/// 取 `Printed` 事件的文本（最后一条命令优先，与 [`pick_type_checked`] 同法）。
+fn pick_printed(out: &CompileOutput, last_cmd: Option<usize>) -> Option<String> {
+    out.events
+        .iter()
+        .zip(out.event_cmds.iter())
+        .filter(|(_, cmd)| Some(**cmd) == last_cmd)
+        .find_map(|(e, _)| match e {
+            CheckEvent::Printed { text, .. } => Some(text.clone()),
+            _ => None,
+        })
+        .or_else(|| {
+            out.events.iter().rev().find_map(|e| match e {
+                CheckEvent::Printed { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+        })
+}
+
 /// 推断 `term` 在 `binders` 语境下的**类型文本**（kernel 判定驱动，供
 /// `apply` 读取被应用函数的类型）。合成 `<prefix>\n#check fun <binders> =>
 /// <term>\n` 走完整流水线，取 `TypeChecked` 事件文本，再剥掉 n 层
@@ -3743,6 +3830,38 @@ mod tests {
         let with_notation = base.replace("def f", "notation \"z\" => f\n\ndef f");
         assert_ne!(with_notation, base, "夹具前提：⑤这一刀必须真的改到文本");
         assert_ne!(id(base), id(&with_notation), "改**记法声明**必须改身份 ✗");
+    }
+
+    /// **`judge_print_of` = `#print` 的结论**（2026-10-10 用户实测第三条）。
+    ///
+    /// LSP 的 `#check <名字>` hover 靠它渲染**与 `#print` 逐字节相同的声明卡片**
+    /// （`def` 头 + 签名 + `:=` body）。这条判据钉住它真的是**声明本体**、
+    /// 而不是又一条 `名字 : 类型`（那就是用户报的"缺少 def 头与 body" ✗）。
+    ///
+    /// **反向验证**：把 `judge_print_of_uncached` 里的 `#print` 换成 `#check`
+    /// ⇒ 文本不再含 `:=` ⇒ 当场判红 ✓。
+    #[test]
+    fn judge_print_of_returns_the_declaration_body_not_just_its_type() {
+        let prefix = "def myid : Prop -> Prop := fun (x : Prop) => x\n";
+        let options = CompileOptions::default();
+        let printed = judge_print_of(prefix, &options, "myid").expect("`#print myid` 必须答得上");
+        assert!(
+            printed.contains("def myid"),
+            "打印的是声明本体（`def` 头 + 名字）：{printed:?}"
+        );
+        assert!(
+            printed.contains(":="),
+            "`def` 的值（`:=` body）必须在（用户点名缺的就是它）：{printed:?}"
+        );
+        assert!(
+            printed.contains("fun"),
+            "body 文本必须是内核 pp 出来的那一份：{printed:?}"
+        );
+        // 未知名字 ⇒ 如实报错（不编一个空声明）。
+        assert!(
+            judge_print_of(prefix, &options, "nope_not_here").is_err(),
+            "未知名字必须报错，不许编一个声明 ✗"
+        );
     }
 
     fn spec(ty: &str, binders: &[(&str, Option<&str>)]) -> OpenGoalSpec {
