@@ -103,12 +103,14 @@ async function responseFor(lsp, id) { for (;;) { const m = await lsp.next(); if 
   const defLine = first && first.range && first.range.start ? first.range.start.line : null;
   const defOk = defUri !== null && defUri.endsWith('Lib.sokonanoda') && defLine === wantDefLine;
   const hoverText = (detail['hover'] && detail['hover'].contents && detail['hover'].contents.value) || '';
-  const hoverOk = hoverText.includes('`Lib.op :');
+  // **2026-10-10 形状更新**：签名行从**行内码**改成**独立 ```sokonanoda 围栏块**
+  //（用户实测：行内码在 VS Code 里不上色）⇒ 判据跟着走形状，不锁类型字面。
+  const hoverOk = hoverText.includes('```sokonanoda\nLib.op :');
   console.log('== 落点/内容核对（升级后的判据：断言具体值）==');
   console.log(`   definition  uri=${defUri === null ? 'null' : defUri.split('/').pop()}`
     + ` 落 L${defLine === null ? 'null' : defLine + 1} · 期望 L${wantDefLine + 1}（记法声明行）`
     + `  ${defOk ? '✓' : '✗'}`);
-  console.log(`   hover       含签名行 \`Lib.op :  ${hoverOk ? '✓' : '✗'}`);
+  console.log(`   hover       含围栏块里的 \`Lib.op :  ${hoverOk ? '✓' : '✗'}`);
 
   if (defOk && hoverOk) {
     console.log('结论：G-39 已修——import 的用户记法符号在使用处能跳转（**落到记法声明行**）也能悬停（**带签名行**）。');

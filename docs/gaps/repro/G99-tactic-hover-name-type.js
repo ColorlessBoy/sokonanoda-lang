@@ -168,7 +168,14 @@ const kwHover = text(onKeyword);
 ok(nameHover.length > 0, '`Set.ext` 上 hover 是 null（连 goal state 都没了？）');
 ok(/⊢/.test(nameHover), '`Set.ext` 上 hover 丢了 goal state 块');
 ok(nameHover.includes('\n\n---\n\n'), '`Set.ext` 上 hover 没有分割线（`---` 独占一行、前后各一空行）');
-ok(/`Set\.ext : /.test(nameHover), '`Set.ext` 上 hover 没有 `Set.ext` 的类型行');
+// **2026-10-10 形状更新**：类型行从**行内码**改成**独立 ```sokonanoda 围栏块**
+//（用户实测：行内码在 VS Code 里不上色，而同一条 hover 的 tactic 行 / goal state
+// 都是围栏 ⇒ 同一份内容两种观感 ✗）。判据跟着走**形状**，不锁类型字面。
+ok(
+  /---\n\n```sokonanoda\nSet\.ext : /.test(nameHover),
+  '`Set.ext` 上 hover 没有「分割线 + 围栏块」里的 `Set.ext` 类型行',
+);
+ok(!/`Set\.ext : /.test(nameHover), '`Set.ext` 的类型行不许再是行内码（不上色）');
 
 ok(kwHover.length > 0, '`apply` 关键字上 hover 是 null（goal state 不该丢）');
 ok(/⊢/.test(kwHover), '`apply` 关键字上 hover 丢了 goal state 块');
