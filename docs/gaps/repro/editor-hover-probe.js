@@ -141,6 +141,7 @@ async function main() {
       '  exact h\n' +
       '\n' +
       '#check Eq.refl\n' +
+      '#check myid\n' +
       '#print myid\n';
     const file = path.join(dir, 'Main.sokonanoda');
     fs.writeFileSync(file, src);
@@ -181,19 +182,33 @@ async function main() {
         '`def` 的 hover 缺 `:= <值>` 块（类型看不出 def 的本质）',
       );
     } else {
-      // ③ `#check` 那一行：必须给**表达式 : 类型**，且类型是**出口后**的
-      //    （层元变量已收口成 `u`；`?u.N` 是中间态 —— 修前正是静默降级成空文本）。
-      const onCheck = textOf(await hoverAt(src.indexOf('#check Eq.refl') + '#check '.length + 2));
-      observed['`#check` 行上的 hover'] = onCheck;
-      ok(onCheck.length > 0, '`#check` 那一行 hover 是 null');
-      ok(/Eq\.refl : /.test(onCheck), '`#check` 的 hover 没有 `表达式 : 类型`');
-      ok(!/\?u/.test(onCheck), '`#check` 的类型是中间态（`?u.N`）而不是出口后的文本');
-      // ④ `#print` 那一行：必须给打印出来的声明（修前**一个 hover 行都没有** ⇒ null）。
+      // ③ `#check` 那一行：修前它**静默降级成空文本**（内核 pp 的层元变量 panic）
+      //    ⇒ 现在必须给出**声明卡片**（2026-10-10 用户第 3 条：与 `#print` 对齐、
+      //    含 def 头 / 类型 / `:=` body），且类型是**出口后**的（层元变量收口成
+      //    `u`；`?u.N` 是中间态 —— 那条老断言留着 ✓）。
+      const onCheckPrelude = textOf(
+        await hoverAt(src.indexOf('#check Eq.refl') + '#check '.length + 2),
+      );
+      observed['`#check` 行上的 hover（prelude 常量）'] = onCheckPrelude;
+      ok(onCheckPrelude.length > 0, '`#check` 那一行 hover 是 null');
+      ok(/Eq\.refl/.test(onCheckPrelude), '`#check` 的 hover 没有那个名字');
+      ok(
+        /(axiom|def|theorem|opaque|inductive)\s+Eq\.refl/.test(onCheckPrelude),
+        '`#check` 的 hover 不是声明卡片（缺 `kind name` 头）',
+      );
+      ok(!/\?u/.test(onCheckPrelude), '`#check` 的类型是中间态（`?u.N`）而不是出口后的文本');
+      // ④ `#check <名字>` 与 `#print <名字>` 必须是**逐字节相同**的卡片
+      //    （用户原话：「代码区域所有的 hover 信息收口统一」「不要各写各的」）。
+      const onCheck = textOf(await hoverAt(src.indexOf('#check myid') + '#check '.length + 2));
       const onPrint = textOf(await hoverAt(src.indexOf('#print myid') + '#print '.length + 2));
-      observed['`#print` 行上的 hover'] = onPrint;
+      observed['`#check myid` 行上的 hover'] = onCheck;
+      observed['`#print myid` 行上的 hover'] = onPrint;
+      ok(onCheck.length > 0, '`#check <名字>` 那一行 hover 是 null');
       ok(onPrint.length > 0, '`#print` 那一行 hover 是 null（修前完全静默）');
       ok(/def myid/.test(onPrint), '`#print` 的 hover 没有打印出来的声明');
       ok(/:=/.test(onPrint), '`#print` 的 hover 缺 `:=` 值');
+      ok(onCheck === onPrint, '`#check <名字>` 与 `#print <名字>` 的 hover 不一致（没做到"收口到一处"）');
+      ok(/:=/.test(onCheck), '`#check <名字>` 的卡片缺 `:=` body（用户第 3 条）');
     }
     lsp.stop();
   } else if (mode === 'duplication') {

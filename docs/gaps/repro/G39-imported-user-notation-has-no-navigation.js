@@ -105,7 +105,11 @@ async function responseFor(lsp, id) { for (;;) { const m = await lsp.next(); if 
   const hoverText = (detail['hover'] && detail['hover'].contents && detail['hover'].contents.value) || '';
   // **2026-10-10 形状更新**：签名行从**行内码**改成**独立 ```sokonanoda 围栏块**
   //（用户实测：行内码在 VS Code 里不上色）⇒ 判据跟着走形状，不锁类型字面。
-  const hoverOk = hoverText.includes('```sokonanoda\nLib.op :');
+  // **同日第二刀（用户第 3 条「数据收口到一处」）**：记法符号的 hover 也走
+  // `declaration_card` ⇒ 围栏块里现在是**声明卡片**（`def Lib.op : …` + `:=` 值块），
+  // 不再是光秃秃的签名行 ⇒ 判据跟着前移，仍然断言"有签名块"（不锁类型字面 ✓）。
+  const hoverOk =
+    /```sokonanoda\ndef Lib\.op :/.test(hoverText) && hoverText.includes(':= ');
   console.log('== 落点/内容核对（升级后的判据：断言具体值）==');
   console.log(`   definition  uri=${defUri === null ? 'null' : defUri.split('/').pop()}`
     + ` 落 L${defLine === null ? 'null' : defLine + 1} · 期望 L${wantDefLine + 1}（记法声明行）`
