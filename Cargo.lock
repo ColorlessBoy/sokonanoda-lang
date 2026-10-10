@@ -1158,7 +1158,7 @@ checksum = "b9be42f50aa861c555654aa3a37f52f4b1074bacf4e48fe0ef7fa584e80f1f0f"
 
 [[package]]
 name = "sokonanoda"
-version = "0.5.0"
+version = "0.88.1"
 dependencies = [
  "bumpalo",
  "hashbrown 0.17.1",
@@ -1179,7 +1179,7 @@ dependencies = [
 
 [[package]]
 name = "sokonanoda-cli"
-version = "0.88.0"
+version = "0.88.1"
 dependencies = [
  "flate2",
  "serde_json",
@@ -1191,7 +1191,7 @@ dependencies = [
 
 [[package]]
 name = "sokonanoda-front"
-version = "0.88.0"
+version = "0.88.1"
 dependencies = [
  "criterion",
  "num-bigint",
@@ -1204,7 +1204,7 @@ dependencies = [
 
 [[package]]
 name = "sokonanoda-lsp"
-version = "0.88.0"
+version = "0.88.1"
 dependencies = [
  "futures",
  "serde",

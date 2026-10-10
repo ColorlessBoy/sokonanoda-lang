@@ -1,3 +1,31 @@
+## [0.88.1] — 2026-10-11
+
+> **Two small screen-level corrections, plus one honest log line.**
+> The Infoview's declaration list no longer prints a source line number, and a
+> declaration's name is plain bold text rather than a blue underlined link.
+> Build logs now say `Compiling sokonanoda v0.88.1` instead of `v0.5.0`,
+> because the kernel crate stopped carrying a version of its own.
+
+### Changed
+
+- **声明列表不再显示行号**（用户：「声明列表里的行号可以不需要了，去掉吧」）：右下角那个
+  `L12` 小字整格删掉，一行只剩「名字 + 种类」，下面照旧是类型行与 `def` 的 `:=` 值行。
+  删掉的是显示，不是数据：`decl.range` 仍在 wire 上，仍然是「点名字跳到定义」的发车位，
+  跨文件落点照旧由服务器解析，行为一个字没动。
+- **声明名改成普通粗体**（用户：「超链接的蓝色和下划线也都太抢镜了，直接改成普通粗体，
+  不带其他样式了」）：不再借链接的视觉语言，没有链接色、没有下划线、没有按钮亮灰底，
+  用正文前景色加粗。它仍然是声明卡里唯一可点的地方（点它跳到定义），键盘
+  `:focus-visible` 描边保留；手型光标只留给这个真按钮，目标面板里同名的 `<span>`
+  不再有假的可点暗示。
+
+### Fixed
+
+- **`Compiling sokonanoda v0.5.0` 不再出现**（用户问：「为什么不是 v0.88.0」）：`crates/kernel`
+  的包名就叫 `sokonanoda`，而它的版本从 fork 那天起写死上游的 `0.5.0`，`scripts/bump.py`
+  特意跳过它，于是 CI 日志里那行看着像"跑的是旧版本"。现在它随 workspace 版本走，与
+  CLI、LSP、扩展同为产品版本（`bump.py` 同步 `Cargo.lock` 里那条精确名）。内核里没有任何
+  地方读这个版本号，判定与运行行为零变化，只有 cargo 那行日志变了。
+
 ## [0.88.0] — 2026-10-10
 
 > **Every tactic now has a page, and it ships inside the extension.**
