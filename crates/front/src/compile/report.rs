@@ -111,7 +111,11 @@ pub struct ByStepState {
 /// `walk.rs::push_lexical_hover_rows`），F12/悬停因此才认得那些名字。
 /// 老条目里那段源码**没有行** ⇒ 回放它 = 把"跳不了"的旧行为放回来 ✗
 /// ⇒ 整库不命中，重编一遍 ✓（与上面两条同一条纪律：语义变化算形状变化）。
-pub const REPORT_SHAPE: u32 = 6;
+/// **G-108 的悬停面（2026-10-10 同日第二刀）把它 6 → 7**：`HoverType` 多一个
+/// `lexical` 字段（词法行 ⇒ LSP 把"只有一个名字"的悬停升级成**声明卡片**）——
+/// 老条目没有这个字段 ⇒ 反序列化失败 ⇒ miss 重编 ✓（`#[serde(default)]` 会让它
+/// 静默读成 `false` ⇒ 词法行的悬停退回旧行为 ✗）。
+pub const REPORT_SHAPE: u32 = 7;
 
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -235,6 +239,12 @@ pub struct HoverType {
     /// This row is a lambda/forall **binder declaration** (`name : ty`): the
     /// editor renders the declaration itself, not `expr : type`.
     pub binder: bool,
+    /// **词法行**（G-108）：这段源码没 elaborate 过（开放练习的体 / 报错之后），
+    /// 行里没有类型 ⇒ LSP 侧把"切片只是一个名字"的悬停升级成**声明卡片** ✓。
+    /// ⚠ **没有 `#[serde(default)]`，故意的**（同 `by_root` 那条纪律）：老缓存里
+    /// 没有这个字段 ⇒ 反序列化失败 ⇒ 当 miss 重编 ✓（否则它会静默读成 `false`
+    /// ⇒ 词法行的悬停退回"只有一个名字"的旧行为 ✗）。形状变了 ⇒ `REPORT_SHAPE` ✓。
+    pub lexical: bool,
 }
 
 /// A `#check` command's result: the checked expression's span and the

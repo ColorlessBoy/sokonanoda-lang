@@ -2074,6 +2074,7 @@ pub(crate) fn resolve_hovers(
                 scope_names: node.scope_names,
                 resolution: node.resolution,
                 binder: node.binder,
+                lexical: node.lexical,
             });
             out_cmds.push(cmd.cmd);
         }

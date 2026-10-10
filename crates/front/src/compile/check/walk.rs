@@ -2211,6 +2211,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         span,
                     }),
                 binder: true,
+                // **词法行**：LSP 侧据此把"只有一个名字"的悬停升级成声明卡片 ✓。
+                lexical: true,
             });
         });
     }

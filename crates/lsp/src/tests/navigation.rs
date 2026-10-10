@@ -1545,3 +1545,86 @@ async fn goto_definition_inside_a_failing_or_open_proof_still_lands() {
         );
     }
 }
+
+/// **G-108 的悬停面**（2026-10-10 用户追问：「hover 只剩名字是啥意思，东西坏了吗？」）：
+/// 报错/`sorry` 那段源码里的名字，悬停必须给**声明卡片**（与别处 hover 同一个名字
+/// **同形**），不许只给一个光秃秃的名字。
+///
+/// 为什么会有"只剩名字"那一版：修 F12 时给那段补的是**词法行**（不 elaborate ⇒
+/// 没有类型）⇒ 渲染只能显示**源码切片**（就一个名字）—— 比修 F12 之前（落回整张
+/// 声明卡片）**信息更少** ✗。现在词法行带 `lexical` 标记，LSP 侧看到"切片是个
+/// 标识符"就改答 `declaration_card_hover`（自带 prelude 的合成 `#print` 回退 ✓）。
+///
+/// 判据（真 `textDocument/hover`）：
+/// * 失败 tactic **之后**那行里的 `Eq.refl`（prelude 名字）⇒ 卡片（含 `Eq.refl` 与 `:`）；
+/// * 同一段里的**局部 binder 名**（`a`）⇒ 仍是源码切片（查不到卡片 ⇒ 诚实回落 ✓，
+///   不编一张假卡片 ✗）。
+#[tokio::test]
+async fn hover_inside_a_failing_proof_shows_the_declaration_card() {
+    let src = "def lib_id (n : Nat) : Nat := n + 1\n\
+               theorem t (a : Nat) : lib_id a = lib_id a := by\n\
+               \x20 exact Nat.zero\n\
+               \x20 exact Eq.refl (lib_id a)\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen (hover in failing proof)").await;
+
+    let pos_of = |at: usize| {
+        let line = src[..at].matches('\n').count();
+        let col = at - (src[..at].rfind('\n').map(|i| i + 1).unwrap_or(0));
+        (line, col)
+    };
+    // ① prelude 名字（`exact Eq.refl …` 里的 `Eq.refl`）：必须是**卡片**。
+    let at = src.rfind("Eq.refl").expect("source mentions Eq.refl") + 3;
+    let (line, col) = pos_of(at);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": {"line": line, "character": col},
+            }))
+            .id(21)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let value = match hover.map(|h| h.contents) {
+        Some(HoverContents::Markup(m)) => m.value,
+        other => panic!("expected markup hover, got {other:?}"),
+    };
+    assert!(
+        value.contains("Eq.refl") && value.contains(':'),
+        "报错段里的 `Eq.refl` 悬停必须是**声明卡片**（含 `Eq.refl` 与类型），实际 = {value:?}"
+    );
+    assert!(
+        !value.trim().eq("```sokonanoda\nEq.refl\n```"),
+        "不许只给一个光秃秃的名字（那就是用户追问的「只剩名字」✗），实际 = {value:?}"
+    );
+    // ② 局部 binder 名（`(lib_id a)` 里的 `a`）：查不到卡片 ⇒ 诚实地回落源码切片。
+    let a_at = src.rfind("lib_id a)").expect("source mentions lib_id a") + "lib_id ".len();
+    let (line, col) = pos_of(a_at);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": {"line": line, "character": col},
+            }))
+            .id(22)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let value = match hover.map(|h| h.contents) {
+        Some(HoverContents::Markup(m)) => m.value,
+        other => panic!("expected markup hover, got {other:?}"),
+    };
+    assert!(
+        !value.contains("axiom") && !value.contains("def "),
+        "局部 binder 名**不许**编出一张声明卡片（它没有声明），实际 = {value:?}"
+    );
+}

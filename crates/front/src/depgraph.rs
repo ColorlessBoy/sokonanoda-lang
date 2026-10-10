@@ -215,6 +215,7 @@ mod tests {
                 span: span(0),
             }),
             binder: false,
+            lexical: false,
         }
     }
 

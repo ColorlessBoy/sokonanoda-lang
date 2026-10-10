@@ -708,6 +708,12 @@ pub(crate) struct HoverNode<'a> {
     /// This node is a lambda/forall **binder declaration** (`name : ty`):
     /// the hover should render the declaration itself (not `expr : type`).
     pub(crate) binder: bool,
+    /// **词法行**（G-108）：这段源码**没走到 elaborate**（开放练习的证明体、
+    /// 或报错 tactic 之后的剩余部分）⇒ 行里没有类型。与 `binder` 的区别：
+    /// binder 行的"源码切片"**就是**它要显示的东西（`(h : A ⊆ B)`），
+    /// 而词法行的切片只是一个**名字** ⇒ LSP 侧应当改答**声明卡片**
+    /// （与别处 hover 同一个名字**同形** ✓）。见 `walk.rs::push_lexical_hover_rows`。
+    pub(crate) lexical: bool,
 }
 
 pub(crate) fn record_hover<'a>(
@@ -724,6 +730,7 @@ pub(crate) fn record_hover<'a>(
         scope_tys: scope.tys.clone(),
         resolution,
         binder: false,
+        lexical: false,
     });
 }
 
@@ -742,6 +749,7 @@ pub(crate) fn record_binder_hover<'a>(
         scope_tys: scope.tys.clone(),
         resolution: None,
         binder: true,
+        lexical: false,
     });
 }
 

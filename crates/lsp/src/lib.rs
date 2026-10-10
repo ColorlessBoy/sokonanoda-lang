@@ -1534,6 +1534,32 @@ fn tactic_name_at(text: &str, span: sokonanoda_front::Span, offset: usize) -> Op
 /// 记法目标名 · tactic 里的名字 · 内核内建登记名）。**编译路径**（`elab_notation`
 /// 那条）仍用 `judge_type_of_constant`（它的前缀逐条增长 ⇒ 名字键才是那笔
 /// O(n²) 的解药）；那条路的**跨环境**风险另立台账（`docs/gaps/ledger.jsonl` G-100）。
+/// 这段源码切片是不是**恰好一个标识符**（G-108 的悬停面）。
+///
+/// 判据走**真词法**（`sokonanoda_front::tokenize`）而不是"看起来像名字"的文本猜测：
+/// 词法给出**恰好一个** `TokenKind::Ident`、且它铺满整片 slice ⇒ 是名字 ✓。
+/// 否则（`(h : A ⊆ B)` 这种 binder 切片、记法符号、多 token 表达式）⇒ 不是，
+/// 调用方原样回落"显示源码切片"那条路 ✓。
+fn is_single_identifier(slice: &str) -> bool {
+    if slice.is_empty() {
+        return false;
+    }
+    match sokonanoda_front::tokenize(slice) {
+        Ok(tokens) => {
+            let mut idents = tokens
+                .iter()
+                .filter(|t| matches!(t.kind, sokonanoda_front::TokenKind::Ident(_)));
+            let Some(first) = idents.next() else {
+                return false;
+            };
+            idents.next().is_none()
+                && first.span.start.offset == 0
+                && first.span.end.offset == slice.len()
+        }
+        Err(_) => false,
+    }
+}
+
 fn hover_type_of_constant(
     prefix: &str,
     options: &sokonanoda_front::compile::CompileOptions,
@@ -2584,6 +2610,34 @@ impl LanguageServer for Backend {
                     Some(range_of(h.span)),
                 ) {
                     return Ok(Some(card));
+                }
+            }
+            // **词法行的悬停**（G-108 的悬停面，2026-10-10 用户追问「hover 只剩名字
+            // 是啥意思，东西坏了吗」）：这段源码**没走到 elaborate**（开放练习的证明体 /
+            // 报错 tactic 之后）⇒ 行里没有类型，以前只能显示**源码切片**（就一个名字）
+            // —— 比修 F12 之前（落回整张声明卡片）**信息更少** ✗。
+            //
+            // 现在：切片是个**标识符**时，直接答**同一张声明卡片** ⇒ 与别处 hover 到
+            // 同一个名字**同形** ✓（正是用户第 3/4 条要的「数据收口到一处」）。
+            // prelude 名字（`Eq.refl`）那条路的 `resolution` 被回填成 `None`（上面那条
+            // 分支够不到）⇒ 这里靠 `declaration_card_hover` **自带**的合成 `#print`
+            // 回退 ✓；名字查不到卡片（局部 binder `a`、未知名）⇒ 原样回落源码切片 ✓。
+            if h.lexical {
+                if let Some(name) = doc
+                    .text()
+                    .get(h.span.start.offset..h.span.end.offset)
+                    .map(str::trim)
+                    .filter(|slice| is_single_identifier(slice))
+                {
+                    if let Some(card) = declaration_card_hover(
+                        doc.query(),
+                        report,
+                        h.span.start.offset,
+                        name,
+                        Some(range_of(h.span)),
+                    ) {
+                        return Ok(Some(card));
+                    }
                 }
             }
             // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片

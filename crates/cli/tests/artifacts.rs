@@ -196,7 +196,9 @@ fn a_project_build_writes_its_artifact_into_the_module_root() {
     // —— 报错/`sorry` 的那段源码现在也有行（词法行）；且 `apply` 按 defeq 展开后
     // 原本 Failed 的声明可能变 Checked）把 `REPORT_SHAPE` 5 → 6 ⇒ 老条目必须整库
     // 不命中（回放它等于把"跳不了/目标不匹配"的旧答案放回来 ✗）⇒ 这里同步。
-    assert_eq!(meta["schema"], "soko.artifacts/2.r6");
+    // ⚠ **r6 → r7**：同日的悬停面第二刀（`HoverType.lexical` ⇒ 词法行的悬停改答
+    // 声明卡片）又加了一个字段 ⇒ 老条目反序列化失败 ⇒ 这里同步（同一条规矩 ✓）。
+    assert_eq!(meta["schema"], "soko.artifacts/2.r7");
     assert!(meta["compiler"].as_str().is_some_and(|v| !v.is_empty()));
     // ⑤ 项目条目**不再**落全局缓存（分工：项目条目只认模块根）。
     assert!(

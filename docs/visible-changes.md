@@ -6,7 +6,7 @@
 | 「由编译器 0.87.3 写入」是假的（实际 0.87.2 编的） | 显示**真写者**；不是这份编译器写的 ⇒ 多一句「建议 Rebuild」 | front `one_write_cannot_rewrite_the_other_entries_writer_version`；webview 渲染两条；`docs/protocol.md` 的 `artifacts` |
 | `#check` 的 hover 缺 def 头/`:=` body；使用处也只有一行类型 | 任何位置 hover 到 `def` ⇒ **同一张卡片**（签名 + `:=` 值） | LSP `hover_on_a_check_line_matches_the_print_line_for_a_name`（两命令逐字节相同）+ 使用处 ≡ 声明名 |
 | 声明列表名字「抢镜」（暗色主题刺眼） | 名字变**普通链接式文字**（正常字号、不加粗、下划线、无亮灰底） | webview CSS 判据（反向：改回 `font-weight: 600` 判红） |
-| 报错/`sorry` 里的名字跳不动（G-108）· `apply` 在 defeq 目标上误报「目标不匹配」（G-109） | 报错段的名字**照样能 F12**；defeq 的 `apply` **判绿**（今天能过的 `apply` 行为不变、真不匹配仍报错） | 真宿主 e2e `G-108/G-109…` + front/LSP 判据；复现件 `G108/G109-…sh` 均 exit 1 |
+| 报错/`sorry` 里的名字跳不动（G-108）· `apply` 在 defeq 目标上误报「目标不匹配」（G-109） | 报错段的名字**照样能 F12**、悬停给**同一张声明卡片**；defeq 的 `apply` **判绿**（今天能过的 `apply` 行为不变、真不匹配仍报错） | 真宿主 e2e `G-108/G-109…` + front/LSP 判据；复现件 `G108/G109-…sh` 均 exit 1 |
 | tactic 关键字上 hover 没有一句说明（P2 需求①） | **14 条** tactic 关键字（含 `sorry`）的 hover 在 tactic 行下多**一行摘要** + 纯文本「完整文档：`F12`」；**名字**与**语言关键字**（`def`/`fun`/`by`/`=>`）上**一个字节不变**；补全弹窗同轮带上 `detail`/`documentation` | LSP `hover::hover_on_every_tactic_keyword_shows_its_summary`（14 条逐条**逐字**等于表）+ `hover_on_a_tactic_keyword_adds_only_the_summary_line`（删掉新增行 == 改前基线逐字节）+ `hover_on_language_keywords_gets_no_tactic_summary`（反向：§7 边界 7）+ `tactic_keyword_completion_carries_its_summary_on_the_wire`（**字段在 wire 里**）|
 
 # 「看得见的变化」清单（批次 N 收尾 · 2026-09-26 专项）

@@ -10378,6 +10378,27 @@ fn a_failing_or_open_proof_still_records_hover_rows_for_its_body() {
                     .collect::<Vec<_>>()
             );
         }
+        // **悬停面**（同日第二刀）：词法行必须带 `lexical` 标记 —— LSP 侧据此把
+        // "切片只是一个名字"的悬停升级成**声明卡片**（否则用户看到的就只有一个名字，
+        // 比修 F12 之前信息更少 ✗）。而**正常路径**的行不许带它（那是"有类型"的行）。
+        let lexical_rows: Vec<usize> = report
+            .hovers
+            .iter()
+            .filter(|h| h.lexical)
+            .map(|h| h.span.start.offset)
+            .collect();
+        if want == DeclStatus::Checked {
+            assert!(
+                lexical_rows.is_empty(),
+                "[{tag}] 整段都 elaborate 过 ⇒ 不许有词法行（实际 = {lexical_rows:?}）"
+            );
+        } else {
+            assert!(
+                lexical_rows.contains(&(prelude_use - 3)),
+                "[{tag}] `Eq.refl` 那处必须是**词法行**（lexical 标记）⇒ LSP 才知道要答卡片；\
+                 实际词法行 = {lexical_rows:?}"
+            );
+        }
         // 本文件名字那条还要**真的指向它的定义**（F12 走的就是这个 resolution）。
         let def_start = src.find("def lib_id").expect("def 起点");
         assert!(
