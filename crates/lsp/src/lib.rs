@@ -1429,6 +1429,16 @@ fn tactic_goal_hover(
     // `sokonanoda` code block too, so its own syntax is highlighted (same fence
     // language as the goal state below, docs/protocol.md §`soko/stateAt`).
     let mut value = code_block(tactic_text);
+    // **摘要行（P2 · 需求①，`docs/design/tactic-docs.md` §4.5 的「落地形态」）**：
+    // 光标在**这一步的 tactic 关键字**上 ⇒ 在 tactic 围栏块之后、`tactic i/n`
+    // 之前插**一行**（纯文本 ⇒ `fence_blocks()` 的计数一个字不变 ✓）。
+    // **整段可删**：把 `\n` + 这一行删掉，剩下的必须与改动前**逐字节相同**
+    //（基线 `APPLY_KEYWORD_BASELINE`；判据
+    // `hover_on_a_tactic_keyword_adds_only_the_summary_line`）✓。
+    if let Some(doc) = tactic_keyword_at(text, step.span, offset) {
+        value.push('\n');
+        value.push_str(&tactic_summary_line(doc));
+    }
     if selection.total > 0 {
         value.push_str(&format!(
             "\ntactic {}/{}\n",
@@ -1472,6 +1482,117 @@ fn tactic_goal_hover(
         }),
         range: Some(range_of(step.span)),
     })
+}
+
+/// 光标下的 **tactic 关键字**（P2 · 需求①：hover 摘要）—— **表驱动的精确匹配**。
+///
+/// `step.span` 的起点**由 parser 保证**就是这条 tactic 的关键字（`by_steps` 的语义，
+/// 与上面「进入态」取的是同一个 span 起点）⇒ 只要问一句"`front::tactics` 表里哪个
+/// 名字正好是它开头"，再要求关键字之后**不是**标识符字符（`used` / `leftover`
+/// 这类不算关键字）✓ —— 这是**查表**，不是"扫文本猜名字" ✗。
+///
+/// ⚠ **为什么不用词法**（[`tactic_name_at`] 用的 `front::tokenize`）：前端今天
+/// **没有公开"带记法符号表的词法"**（`tokenize_with_symbols` 在私有模块 `token` 里、
+/// `Lexer::next_token` 也是私有）⇒ 不带符号表时，tactic 文本里出现**已声明符号**
+/// （`exact a ⊗ b`）会让整片 slice 词法失败 ⇒ 摘要**静默消失** ✗（一个不可观测的洞，
+/// 正是"咬不住的守卫"那一类）。查表没有这个失败模式 ✓。
+///
+/// 前提 = **表里 14 个名字两两不互为前缀**（`exact` / `exfalso` 也不是）⇒
+/// 最多命中一个。这条前提由单测 `tactic_names_are_prefix_free`
+/// （`tests/hover.rs`）钉住：将来加 `intros` / `exact?` 那种破坏前提的名字 ⇒ 当场判红 ✓。
+///
+/// **只认这一步自己的关键字**：光标在名字（`apply Set.ext` 的 `Set.ext`）或**项位**
+/// 关键字（`exact fun … => …` 的 `fun` / `=>`）上 ⇒ `None` ⇒ §7 边界 7
+/// 「只有 tactic 关键字有摘要」在实现层成立（判据
+/// `hover_on_language_keywords_gets_no_tactic_summary` 钉住）✓。
+fn tactic_keyword_at(
+    text: &str,
+    span: sokonanoda_front::Span,
+    offset: usize,
+) -> Option<&'static sokonanoda_front::TacticDoc> {
+    if offset < span.start.offset || offset > span.end.offset {
+        return None;
+    }
+    let rest = text.get(span.start.offset..span.end.offset)?;
+    let doc = sokonanoda_front::TACTIC_DOCS.iter().find(|d| {
+        rest.starts_with(d.name)
+            && !rest[d.name.len()..]
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '\'')
+    })?;
+    let end = span.start.offset + doc.name.len();
+    (offset < end).then_some(doc)
+}
+
+/// 光标下的 **tactic 文档**（P6 · 需求②：F12 跳转）。
+///
+/// 触发条件**两条**（设计 §4.4 D5，缺一不可）：
+/// ① 光标在**某条 `by` 步骤的 span 里**（`report.decls[].by_steps`，与
+///    [`tactic_goal_hover`] **同一个选择器**）；
+/// ② 它正好是**这一步自己的关键字 token**（[`tactic_keyword_at`]，与 P2 的 hover
+///    摘要同一个选择器 —— 查表，不是扫文本 ✗）。
+///
+/// ② 的意义：`match`（还有 `let`）在**项位**也是合法写法（`parser.rs::is_expr_keyword`）
+/// ⇒ 没有 ① 就会把"值位 `match`"也当成 tactic 抢去跳文档 ✗（判据
+/// `goto_definition_does_not_steal_term_positions` 钉住）。
+fn tactic_doc_at(
+    report: &DocumentReport,
+    text: &str,
+    offset: usize,
+) -> Option<&'static sokonanoda_front::TacticDoc> {
+    let decl = report
+        .decls
+        .iter()
+        .find(|d| d.span.start.offset <= offset && offset <= d.span.end.offset)?;
+    let step = decl
+        .by_steps
+        .iter()
+        .find(|s| s.span.start.offset <= offset && offset <= s.span.end.offset)?;
+    tactic_keyword_at(text, step.span, offset)
+}
+
+/// 落点文档里 `# <name>` 标题那个名字 token 的**字节区间**（D5 的 `range`）。
+///
+/// ⚠ **为什么不是源文件里光标那个 token 的 span**：`Location.range` 是**目标文件**
+/// 的坐标（与 prelude 那一跳返回**前奏源里**的声明 span 同一条口径）—— 把源文件的
+/// 行列搬过去，编辑器会在打开的 `.md` 里把光标停到**第 N 行的空白处**（实测：`intro`
+/// 的落点被停到 `# intro` 之后的空行 ✗）。标题名 token 才同时满足两件事：
+/// ① `range` 指向 `# <关键字>` 那一行；② 与"点了哪个词"一一对应（选中它）✓。
+///
+/// 标题行由 §4.7.1 的骨架判据钉住（每篇第一行是 `# <name>`）；找不到 ⇒ `None`
+/// ⇒ 这一跳**不编造位置**（诚实回落，与文件那一档同一条纪律）✓。
+fn doc_heading_token(markdown: &str, name: &str) -> Option<(usize, usize)> {
+    let heading = format!("# {name}");
+    let mut from = 0;
+    while let Some(at) = markdown[from..].find(&heading) {
+        let start = from + at;
+        let at_line_start = start == 0 || markdown.as_bytes()[start - 1] == b'\n';
+        let ends_line = markdown[start + heading.len()..]
+            .chars()
+            .next()
+            .is_none_or(|c| c == '\n' || c == '\r');
+        if at_line_start && ends_line {
+            // `# ` 之后就是名字本身（两个字节都是 ASCII）。
+            let name_start = start + "# ".len();
+            return Some((name_start, name_start + name.len()));
+        }
+        from = start + heading.len();
+    }
+    None
+}
+
+/// hover 摘要行的**唯一**渲染点（契约 `docs/protocol.md` §Tactic goal-state hover
+/// —— 那一段与本函数**逐字对齐**，判据 `the_hover_summary_line_matches_the_protocol`）。
+///
+/// 文案**全部**来自单一真相表 `front::tactics` 的 `summary` ⇒ LSP 里**没有**第二份
+/// 摘要 ✗；这里只加装饰（关键字加粗 + 指路）。
+/// ⚠ 指路那半句是**纯文本、不是链接**：VS Code 对**不受信任**的 hover markdown 会
+/// 剥掉命令链接，而本仓任何地方都没有 `isTrusted`（放一个点了没反应的链接 = 说假话 ✗）。
+/// ⚠ 整行**不许**含 `---`、不许含围栏：前者会被 Markdown 当成 setext 下划线 / 水平线，
+/// 后者会让 `fence_blocks()` 的计数判据判红（`tests/hover.rs` 两条都盯着）。
+fn tactic_summary_line(doc: &sokonanoda_front::TacticDoc) -> String {
+    format!("**`{}`** — {} · 完整文档：`F12`", doc.name, doc.summary)
 }
 
 /// goal state 与「名字的类型行」之间的**分割线**（Markdown 水平线）。
@@ -2851,6 +2972,35 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let pos = params.text_document_position_params.position;
+        // **tactic 关键字 ⇒ 那一条 tactic 的完整文档**（P6 · 需求②，设计 §4.4 D5）：
+        // 光标落在**某条 `by` 步骤里**、且正好是这一步自己的关键字（14 条，表驱动）
+        // ⇒ 落到 `front::tactics::doc_path` 给的**真 `.md`**（五档解析 §4.9 D10：
+        // 仓库真源 → 插件目录 → 缓存物化 → 临时物化 → `None`）✓。
+        // 两条闸门缺一不可 ⇒ **值位 `match` / 名字 / 项位关键字都不在这里**，
+        // 仍走既有链（判据 `goto_definition_does_not_steal_term_positions`）✓。
+        // ⚠ `range` = **落点文档里 `# <关键字>` 标题那个名字 token**（D5）：编辑器
+        // 据此把光标停在打开的文档里并选中它；hover 的 `range` 仍是**整条 tactic**
+        // —— 两条相反的取舍都是有意为之，契约 `docs/protocol.md` §Tactic keyword
+        // definition ✓。⚠ `Location.range` 是**目标文件**的坐标，不是源文件里光标
+        // 那个 token 的位置 ✗（`doc_heading_token` 的头注记着实测）。
+        // ⚠ 五档都不成立（只读环境物化失败 / 插件目录被删）⇒ `doc_path` 答 `None`
+        // ⇒ 这里**不编造位置**，继续往下走（与 §7 边界 6 同一条纪律）✓。
+        {
+            let text = docs.text().to_string();
+            let offset = position_to_offset(&text, pos);
+            if let Some(doc) = tactic_doc_at(report, &text, offset) {
+                if let Some(path) = sokonanoda_front::tactics::doc_path(doc.name) {
+                    if let Ok(uri) = Url::from_file_path(&path) {
+                        if let Some((start, end)) = doc_heading_token(doc.markdown, doc.name) {
+                            return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                                uri,
+                                range: query_map::range_of_offsets(doc.markdown, start, end),
+                            })));
+                        }
+                    }
+                }
+            }
+        }
         // **记法符号**（T-D12/T-D13，用户第 6 条反馈的后半："代码里的 notation
         // 不能跳转"）：`∈` 不是声明名，`definition_at`（走 hover span + 声明表）
         // 答不上来。先试记法：闭包记法表给出**声明它的模块 + 那一行的 span**。
@@ -3159,11 +3309,26 @@ impl LanguageServer for Backend {
                 }
             }
         }
-        // Keywords (single source: front::semantic).
+        // Keywords (single source: front::semantic). **tactic** 关键字另外带上
+        // 「一句话 + 指路」（设计 `docs/design/tactic-docs.md` §4.3 D4 / §4.5 的
+        // 落地形态）：`detail` = 摘要、`documentation` = 摘要 + 空行 + 指路 ✓。
+        // 摘要同样取 `front::tactics`（**与 hover 同一份真相** ⇒ 补全 / hover /
+        // F12 / 正文四处永不漂移 ✓）；非 tactic 关键字一字不变（`detail`/`documentation`
+        // 仍为 `None` —— §7 边界 7 只管语言关键字**不给 tactic 文档**）。
+        // ⚠ `sorry` 不在 `KEYWORDS` 里（它是 `SemanticKind::Hole`，front 的既定分类）
+        // ⇒ 这里也**不**凭空多出一个补全项（那会与编辑器词表漂移 ✗）。
         for keyword in sokonanoda_front::semantic::keywords() {
+            let doc = sokonanoda_front::tactics::doc(keyword);
             items.push(CompletionItem {
                 label: (*keyword).to_string(),
                 kind: Some(CompletionItemKind::KEYWORD),
+                detail: doc.map(|d| d.summary.to_string()),
+                documentation: doc.map(|d| {
+                    Documentation::MarkupContent(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: format!("{}\n\n完整文档：`F12` 跳转", d.summary),
+                    })
+                }),
                 ..Default::default()
             });
         }

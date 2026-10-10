@@ -64,10 +64,9 @@ payload fields are additive and machine-meaningful.
 **`exercise.open` 的边界（G-01，2026-09-19）**：签名**不是**"值位是 `sorry`
 就免检"的——签名 elaborate 不了、不是一个类型，或 `theorem` 的签名不是 `Prop`，
 都会（与值位错误同罪）变成一条 `diagnostic`、声明是 Failed、**不**发
-`exercise.open`。所以 `exercise.open` 的计数**不能**单独用来判断"签名有没有腐烂"：
-判据要看 `diagnostic` / `failed`（这也正是 `docs/design/teaching-project.md` §6.4
-那条纪律的样板）。签名诊断的 `span` 取**签名自身**的源范围，不照抄内核消息里的
-span（G-15）。
+`exercise.open` ⇒ 它的计数**不能**单独用来判断"签名有没有腐烂"：判据要看
+`diagnostic` / `failed`（样板见 `docs/design/teaching-project.md` §6.4）。签名
+诊断的 `span` 取**签名自身**的源范围，不照抄内核消息里的 span（G-15）。
 
 Example:
 
@@ -84,30 +83,26 @@ can re-run or display it without re-parsing.
 `warning` events use the same span shape as diagnostics but carry no `stage`
 and never change the exit code. Codes today:
 
-- `reserved-declaration-name`: `Prop` / `Sort` / `Type` are already defined by
-  the kernel and cannot be declared again, so a top-level declaration with one
-  of those names is accepted but never used
-  (`docs/design/reserved-decl-warning.md`).
+- `reserved-declaration-name`: `Prop` / `Sort` / `Type` are kernel-defined and
+  cannot be redeclared, so a top-level declaration with one of those names is
+  accepted but never used (`docs/design/reserved-decl-warning.md`).
 - `redundant-sorry`: the value already proves the goal and the `sorry` is an
-  extra argument tacked onto a complete term, so deleting that line is what
-  makes the declaration check. The declaration stays `exercise.open` (semantics
-  unchanged) — the warning only says *which* line is the leftover. The verdict
-  is the kernel's: the term with that argument removed must pass a full check
-  of the declaration (`docs/design/redundant-sorry.md`).
-  **对照**：`redundant-sorry` 是"值位已经证完、声明仍是 `exercise.open`"；
-  签名的毛病是**另一个方向**——签名不过就不是练习，必须报 diagnostic
-  （修 G-01 时明确**不**把它做成 warning：warning 不改退出码，
-  课程侧就永远发现不了签名腐烂）。
+  extra argument on a complete term, so deleting that line is what makes the
+  declaration check; the declaration stays `exercise.open` (semantics unchanged)
+  and the warning only says *which* line is the leftover. The verdict is the
+  kernel's: the term with that argument removed must pass a full check of the
+  declaration (`docs/design/redundant-sorry.md`).
+  **对照**：这与签名腐烂是**两个方向** —— 签名不过就不是练习，必须报 diagnostic
+  （修 G-01 时明确**不**把它做成 warning：warning 不改退出码，课程侧就永远
+  发现不了签名腐烂）。
 - `import-has-open-exercises`: the imported module still has `sorry`s; their
   declarations never enter the environment, so downstream code cannot see
   those names (`docs/design/imports-and-projects.md` §4.5).
 - `open-shadowed-name`: an `open`/`export` gave a short name a **second**
-  candidate (two opens claim the same short name, or the short name collides
-  with a root declaration). This language resolves by a fixed order and
-  silently takes the first candidate, so the warning says *which* one wins
-  (`docs/design/namespace-open.md` §N8). It is syntax-level and file-local: a
-  candidate declared by an *imported* module is not visible to the warning
-  pass, so that case is not reported.
+  candidate (two opens claim it, or it collides with a root declaration). This
+  language resolves by a fixed order and silently takes the first, so the warning
+  says *which* one wins (`docs/design/namespace-open.md` §N8). It is syntax-level
+  and file-local: a candidate from an *imported* module is not reported.
 
 ## Error staging and codes
 
@@ -264,15 +259,7 @@ ENUM_MEMBER (constructors), PARAMETER (binders). Encoding is UTF-16 correct.
 
 ## Value-position keywords (removed)
 
-The value position once accepted `funintro` (and before it `funapply`) teaching
-keywords. Both were removed — `funapply` in 0.22.0, `funintro` in 0.27.0
-(`docs/design/remove-funintro.md`). The value position now accepts only a plain
-expression or a `by <tactic>; …` block. `funintro` is no longer a keyword: it
-parses as an ordinary identifier and fails elaboration as an unknown name.
-Declarations may still carry Lean-style binders
-(`theorem t (a : Prop) (h : a) : a -> a := by …`): they desugar to a Forall type
-plus a Lambda value, so `:= sorry` reports the codomain goal with the
-declaration binders already in context.
+`funapply` (0.22.0) and `funintro` (0.27.0, `docs/design/remove-funintro.md`) are gone: the value position takes a plain expression or a `by <tactic>; …` block, and `funintro` now parses as an ordinary identifier that fails elaboration as an unknown name. Lean-style binders still desugar to a Forall type plus a Lambda value, so `:= sorry` reports the codomain goal with the binders in context.
 
 ## Half-expression goal state (0.23.0)
 
@@ -284,27 +271,37 @@ on the keystroke path) via `judge_infer`, whose results are cached (bounded
 
 ## Tactic goal-state hover (0.27.0)
 
-`textDocument/hover` on a `by` tactic (anywhere in its source span) shows the
-goal state **entering** that tactic — every remaining goal with its
-hypotheses, Lean-Infoview style:
+`textDocument/hover` on a `by` tactic (anywhere in its span) shows the goal
+state **entering** that tactic — Lean-Infoview style: every remaining goal
+with its hypotheses (`P : Prop`, `Q : Prop`, `⊢ And P Q`).
 
-```text
-P : Prop
-Q : Prop
-⊢ And P Q
-```
+Data is the same per-tactic snapshot as `soko/stateAt` (`by_steps`), same entry
+semantics (entering tactic *i* = the state after *i-1*; multi-subgoal steps list
+every goal, current first). Hover re-checks and text-scans nothing; `range` is
+always the tactic's span; design and stages: `docs/design/tactic-docs.md`.
 
-Data comes from the same per-tactic snapshot as `soko/stateAt` (`by_steps`),
-with the same entry semantics: entering tactic *i* is the state after tactic
-*i-1* (the root for the first tactic; multi-subgoal steps list every goal,
-current first). No re-check and no text scan happen at hover time. The hover
-range is the tactic's span. Editors need no extra work: it is ordinary hover.
+### The tactic keyword: one summary line (P2, 2026-10-10)
+
+Cursor on the tactic's **own keyword token** (`apply` in `apply Set.ext`,
+`sorry` in `by sorry`) inserts one plain-text line between the tactic block and
+the `tactic i/n` line; the text is the single source
+`sokonanoda_front::tactics::doc(name).summary`:
+
+    **`apply`** — 用一条函数的结论对上目标，它剩下的前提各自变成新目标。 · 完整文档：`F12`
+
+- Delete that line ⇒ the rest is byte-identical to the pre-P2 output (pinned by
+  `APPLY_KEYWORD_BASELINE` in `crates/lsp/src/tests/hover.rs`).
+- Only the 14 `front::tactics` keywords get it (**all** of them — `sorry` too:
+  its line reads `占位：目标保持开放。练习没做完的合法状态，不是错误。`); it adds
+  **no fence and no `---`**; the pointer is **plain text, not a link**
+  (untrusted hover markdown strips command links; no `isTrusted` is set).
+  Language keywords (`def` / `fun` / `by` / `=>`) keep their pre-P2 hover.
 
 ### The name under the cursor (2026-10-10)
 
 Cursor on a **name inside the tactic** (`Set.ext` in `apply Set.ext`, `h` in
-`exact h`) ⇒ the goal state above is followed by a Markdown horizontal rule
-and one signature **block** (example: the tail of the hover for `apply Set.ext`):
+`exact h`) ⇒ the goal state above is followed by a Markdown rule and one
+signature **block** (the tail of the hover for `apply Set.ext`):
 
     ---
 
@@ -313,22 +310,38 @@ and one signature **block** (example: the tail of the hover for `apply Set.ext`)
     ```
 
 - **Divider** = `---` alone on its line, blank line before and after (glued to
-  the preceding fence it would parse as a setext heading, not a rule).
-- **Signature block** = its own fenced `sokonanoda` block (the same fence
-  language as the tactic line and the goal state above), first line
-  `<name> : <type>` — so the editor colours the name and its type instead of
-  rendering a bare inline-code line.
-- **Resolution**: a hypothesis of the entering state first (`exact h` ⇒
-  `h : …`, the very text the goal block shows), else the kernel's constant
-  signature (`judge_type_of_constant`; prefix = import closure + entry file,
-  the route notation hovers already use), display-folded like the goal state.
-- **Honest omission**: no line when the type is unavailable or unclean
-  (unknown identifier, `$N` loose variables) — never an invented one. Tactic
-  keywords (`apply`, `intro`, `sorry`…), numbers, parentheses, strings,
-  notation symbols and `_` are not names.
-- **Range**: still the whole tactic span, not the name's — the trigger stays
-  "anywhere in the tactic" (clicking `apply` still shows the goal state), and
-  narrowing it to the name would make the keyword positions silent.
+  the preceding fence it parses as a setext heading, not a rule).
+- **Signature block** = its own fenced `sokonanoda` block, first line
+  `<name> : <type>` — the editor colours the name and its type.
+- **Resolution**: a hypothesis of the entering state first (`exact h` ⇒ `h : …`),
+  else the kernel's signature (`judge_type_of`; prefix = closure + entry file).
+- **Honest omission**: no line when the type is unclean (unknown identifier,
+  `$N` loose variables) — never an invented one; keywords, numbers, parens,
+  strings, notation symbols and `_` are not names.
+- **Range**: still the whole tactic span, not the name's (`apply` still shows
+  the goal state; narrowing it would silence the keyword positions).
+
+### The tactic keyword: F12 lands in its document (P6, 2026-10-10)
+
+`textDocument/definition` on a tactic's **own keyword token** (same two gates as
+the summary line above: it is that step's keyword *and* it lies inside the step's
+`by_steps` span) answers one `Location`:
+
+- `uri` = a **real `.md` on disk**, in five tiers, each guarded by `is_file()`:
+  repo source `reference/tactics/<name>.md` (`CARGO_MANIFEST_DIR` is compile-time
+  ⇒ only a dev tree) → `$SOKONANODA_DOCS_DIR/<name>.md` (the VS Code extension
+  points it at the plugin's own `docs/tactics`) → cache materialization
+  `<cache root>/reference/tactics/` (idempotent by content; `sokonanoda clean`
+  only removes `<root>/compiled/*.json`) → temp materialization
+  `<temp>/sokonanoda-reference/tactics/` → `null`;
+- `range` = the name token inside that file's `# <keyword>` heading. A
+  `Location` range is **target-document** coordinates — not the source token's
+  span (that would park the cursor on a blank line of the `.md`) and not the
+  whole tactic (hover keeps that range).
+
+Term-position `match` (outside any `by` step) and every other position keep the
+pre-P6 chain; no custom scheme / `TextDocumentContentProvider` is involved.
+Design and criteria: `docs/design/tactic-docs.md` §5 P6.
 
 ## Declaration card: one renderer for every hover (2026-10-10)
 
@@ -350,12 +363,10 @@ The card is fenced `sokonanoda` blocks:
    `<kind> <name>` alone when the kernel has no type text);
 2. the **value**, when the declaration has one — a second, independent block
    holding `:= <value>` on one line. Only `def`/`opaque` have a value
-   (`theorem`/`axiom`/`inductive` have none ⇒ no second block at all). This is
-   the very text the Infoview declaration card shows as its `decl-val-line`
-   (`value`/`value_runs` in `soko/goals`): a `def`'s type often cannot tell you
-   what it *is* (`Set.mem`'s type is
-   `forall (α : Type 0), α -> Set α -> Prop`; its value is
-   `fun (α : Type 0) (a : α) (A : Set α) => A a`);
+   (`theorem`/`axiom`/`inductive` have none ⇒ no second block at all; a `def`'s
+   type often cannot tell you what it *is*). This is the very text the Infoview
+   declaration card shows as its `decl-val-line` (`value`/`value_runs` in
+   `soko/goals`);
 
 followed, on a declaration name, by the existing status line
 (`已通过内核检查` / `未通过，见诊断` / the open-exercise text). The hover range
@@ -386,10 +397,7 @@ line). For a **bare name** argument the answer is the declaration card above
 (identical bytes for `#check X` and `#print X`); otherwise it is one fenced
 `sokonanoda` block holding the command's text. Hover and the panel therefore
 cannot drift. The hover range is the command's span; a line with no command
-output falls through to the ordinary hover chain (`#check Eq.refl` used to
-answer with the bare expression because the kernel pretty-printer panicked on an
-unsolved level metavariable and the hover map silently degraded to an empty type
-text; `#print` had no hover row at all).
+output falls through to the ordinary hover chain.
 
 ## Custom LSP requests (goal view, I9)
 
@@ -684,11 +692,10 @@ Request params: `{"textDocument": {"uri"}}`. Response:
 
 ### `soko/version`
 
-Request params: `{}`. Response: `{"version": "<CARGO_PKG_VERSION>",
-"pid": <server pid>}`. Consumers: the extension's
-`Sokonanoda: Restart Server (重启服务器)` command asks before and after a restart — the
-receipt (`0.16.2 (pid 1001) → 0.19.0 (pid 2002)`) turns "old process died,
-new process is the new version" into a verifiable fact.
+Request params: `{}`. Response: `{"version": "<CARGO_PKG_VERSION>", "pid":
+<server pid>}`. The extension's `Sokonanoda: Restart Server (重启服务器)` command asks
+before and after a restart — the receipt (`0.16.2 (pid 1001) → 0.19.0 (pid 2002)`)
+turns "old process died, new process is the new version" into a verifiable fact.
 
 ## Rename, references & inlay hints (LSP 3.17)
 
@@ -942,22 +949,15 @@ instead of writing `<module root>/.sokonanoda/`.
 
 ## REPL history
 
-`sokonanoda repl` appends every non-empty input line to
-`$HOME/.sokonanoda_history` (created on demand; silently disabled when
-`HOME` is unset, truncated to the most recent 1000 lines on load).
-Line-editing / arrow-key recall is out of scope.
+`sokonanoda repl` appends every non-empty line to `$HOME/.sokonanoda_history` (created on demand; disabled when `HOME` is unset; truncated to the most recent 1000 lines on load). Line editing / arrow-key recall is out of scope.
 
 ## Future structured event names (service layer)
 
-The service stream vocabulary is now implemented (see "Watch stream" above).
-Future additions:
-
-- `decl.rejected` (today: a `diagnostic` with stage `kernel`; if added, it is
-  an alias of `decl.failed` — the two are never emitted together)
-- `diagnostic.*` kinds once sub-stage codes exist
-
-Each event carries `span {offset,line,column}` plus a human text and a machine
-payload when relevant.
+The service stream vocabulary is implemented (see "Watch stream" above); future
+additions: `decl.rejected` (today a `diagnostic` with stage `kernel`; if added it
+is an alias of `decl.failed` — the two are never emitted together) and
+`diagnostic.*` kinds once sub-stage codes exist. Each event carries
+`span {offset,line,column}` plus a human text and a machine payload when relevant.
 
 ## Agent contract
 

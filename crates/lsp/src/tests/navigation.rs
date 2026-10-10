@@ -1628,3 +1628,519 @@ async fn hover_inside_a_failing_proof_shows_the_declaration_card() {
         "局部 binder 名**不许**编出一张声明卡片（它没有声明），实际 = {value:?}"
     );
 }
+
+// ---- P6：F12 落到 tactic 文档（设计 `docs/design/tactic-docs.md` §5 P6）----
+
+/// 碰「进程级环境变量」与「仓库真源改名」的两个判据互斥。
+///
+/// 环境变量（`SOKONANODA_DOCS_DIR`）与真文件改名都是**进程全局**状态 ⇒ 与
+/// `testutil.rs::HEAVY_LOCK` 同款：判据自己串行，不动任何断言 ✓。
+static DOCS_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+/// 进程级环境变量的**存-改-还**（照 `scripts/gap.py::clean_env` 的纪律：判据跑完
+/// 必须回到原值，否则同一进程里后面的判据会被污染 ✗）。
+///
+/// `Drop` 里还原 ⇒ **panic 也还原** ✓（同一条纪律见 `HiddenRepoDoc`）。
+struct EnvGuard {
+    key: &'static str,
+    old: Option<std::ffi::OsString>,
+}
+
+impl EnvGuard {
+    fn set(key: &'static str, value: &std::path::Path) -> Self {
+        let old = std::env::var_os(key);
+        std::env::set_var(key, value);
+        Self { key, old }
+    }
+}
+
+impl Drop for EnvGuard {
+    fn drop(&mut self) {
+        match self.old.take() {
+            Some(value) => std::env::set_var(self.key, value),
+            None => std::env::remove_var(self.key),
+        }
+    }
+}
+
+/// 把仓库真源**临时改名藏起来**：模拟"安装形态"（① 档那个**编译期**路径上
+/// 没有这份文件 —— 发布产物在用户机器上就是如此）。
+///
+/// ⚠ **为什么需要它**（设计 §4.9.3 的一个直接推论）：五档解析里 ① 是编译期路径，
+/// 只要判据跑在开发树里它就**必然**命中 ⇒ ② 档（插件目录）在开发树里**不可观测**。
+/// 要判"② 档本身成立"，只能把 ① 档那份文件挪开；**顺序不改**（开发机上 ① 先命中
+/// 是有意为之：改文档立即生效 ✓）。
+///
+/// `Drop` 的**第一件事**就是还原（照注入纪律 `trap restore EXIT` 的写法：崩了也
+/// 还原 ✓）；判据自己还会在还原后核对内容与 `TACTIC_DOCS[i].markdown` 逐字节相同 ✓。
+struct HiddenRepoDoc {
+    original: std::path::PathBuf,
+    hidden: std::path::PathBuf,
+}
+
+impl HiddenRepoDoc {
+    fn hide(original: std::path::PathBuf) -> Self {
+        assert!(
+            original.is_file(),
+            "本判据只在开发树里跑：① 档的仓库真源必须存在（{}）",
+            original.display()
+        );
+        let hidden = original.with_extension("md.p6-hidden");
+        std::fs::rename(&original, &hidden).expect("把仓库真源临时改名");
+        Self { original, hidden }
+    }
+
+    fn restore(&mut self) {
+        if self.hidden.is_file() {
+            std::fs::rename(&self.hidden, &self.original).expect("把仓库真源改回来");
+        }
+    }
+}
+
+impl Drop for HiddenRepoDoc {
+    fn drop(&mut self) {
+        self.restore();
+    }
+}
+
+/// F12 的答案 → **标量位置**（不是标量就当场判红，顺带把 `null` 说清楚）。
+fn definition_location(target: Option<GotoDefinitionResponse>, at: &str) -> Location {
+    let Some(GotoDefinitionResponse::Scalar(location)) = target else {
+        panic!("`{at}` 上 F12 必须给一个**标量位置**，实际 = {target:?}");
+    };
+    location
+}
+
+/// 位置的落点 → 真实文件路径（`file:` 之外一律判红：本仓只有 `file:` 一种 URI 形态）。
+fn definition_file(location: &Location) -> std::path::PathBuf {
+    location.uri.to_file_path().unwrap_or_else(|_| {
+        panic!(
+            "落点必须是 `file:` URI（零自定义 scheme），实际 = {}",
+            location.uri
+        )
+    })
+}
+
+/// **14 条 tactic 各一条真能过的写法**（每条 tactic 一行，`anchor` = 该 tactic 所在
+/// 那个**唯一**片段）。
+///
+/// 与 `hover.rs::EVERY_TACTIC_SOURCE` 是**同一份夹具的两个副本**（那边验 hover 摘要、
+/// 这边验 F12 落点）：tactic 必须**真的在目标上成立**，`by_steps` 才有那一步 ——
+/// 实测：`intro` 用在不匹配的目标上 ⇒ 该声明**零 `by_steps`**（`soko/stateAt` 答
+/// `step:-1 / total:0`）⇒ 光标位置根本不在任何步骤里 ✗（这也是判据不能拿"随便一条
+/// 目标 + 关键字"当夹具的原因）。
+const EVERY_TACTIC_SOURCE: &str = "\
+example (a b : Prop) : a → b → a := by
+  intro ha hb
+  exact ha
+
+example : True := by
+  exact True.intro
+
+example (a b : Prop) (h : a) (g : a → b) : b := by
+  apply g
+  exact h
+
+example (a : Prop) (h : a) : a := by
+  assumption
+
+example (n : Nat) : n = n := by
+  rfl
+
+example (n : Nat) : Nat := by
+  match n with
+  | Nat.zero => Nat.zero
+  | Nat.succ k => k
+
+example (a : Prop) (h : a) : a ∧ a := by
+  constructor
+  exact h
+  exact h
+
+example (a b : Prop) (h : a) : a ∨ b := by
+  left
+  exact h
+
+example (a b : Prop) (h : b) : a ∨ b := by
+  right
+  exact h
+
+inductive Sigma (α : Type) (p : α → Prop) : Prop
+ctor mk (w : α) (h : p w) : Sigma α p
+end
+
+example (α : Type) (a : α) : Sigma α (fun (x : α) => x = x) := by
+  use a
+  sorry
+
+example (a : Prop) (h : False) : a := by
+  exfalso
+  exact h
+
+example (a b : Prop) (h : a ∧ b) : b ∧ a := by
+  cases h with
+  | intro ha hb => exact And.intro hb ha
+
+example : True := by
+  have h : True := True.intro
+  exact True.intro
+
+example : True := by
+  sorry
+";
+
+/// 夹具里那条 tactic 的**关键字**偏移（`anchor` 必须在夹具里唯一）。
+fn tactic_keyword_offset(src: &str, anchor: &str) -> usize {
+    assert_eq!(
+        src.matches(anchor).count(),
+        1,
+        "anchor 在夹具里必须唯一：{anchor:?}"
+    );
+    let start = src.find(anchor).expect("anchor 在夹具里");
+    let line = anchor.rsplit('\n').next().unwrap_or(anchor);
+    let indent = line.len() - line.trim_start().len();
+    start + anchor.len() - line.len() + indent
+}
+
+/// **P6 判据 ①（含 ③）**：**全部 14 条** tactic 关键字上按 F12 ⇒ 落到**那一条**的
+/// 参考文档。
+///
+/// 每条断言五件：ⓐ 落点是**真文件**（存在 + 可读 —— 物化失败必须 `None` 而不是死
+/// 指针 ✗，判据 ③）；ⓑ 内容含 `# <关键字>`；ⓒ `range.start.line` **就是**那一行；
+/// ⓓ `range` == **关键字 token 的 span**（D5）；ⓔ **文件名与 §1.1 基线表一致**
+/// （防"全跳到同一篇"的假绿 ✗）。
+///
+/// ⚠ 每条测**两个位置**：关键字的**头一个字符**与**最后一个字符** —— 用户点的就是
+/// 那两个字（E27 的教训：拿"能跑通的位置"代替"用户实际点的位置" ✗）。
+/// ⚠ 14 条**逐个**跑（只测用户点名的 `intro`/`exact`/`rfl` 等于没测横向 ✗）；清单与
+/// 表**双向**对齐（漏一条 / 多一条 / 顺序漂了都判红 ✓）。
+#[tokio::test]
+async fn goto_definition_on_every_tactic_keyword_lands_in_its_reference_file() {
+    let _serial = DOCS_LOCK.lock().await;
+    // (anchor, 关键字) —— 顺序 = 夹具顺序 = 表序。
+    const CASES: &[(&str, &str)] = &[
+        (
+            "example (a b : Prop) : a → b → a := by\n  intro ha hb",
+            "intro",
+        ),
+        ("example : True := by\n  exact True.intro", "exact"),
+        (
+            "example (a b : Prop) (h : a) (g : a → b) : b := by\n  apply g",
+            "apply",
+        ),
+        (
+            "example (a : Prop) (h : a) : a := by\n  assumption",
+            "assumption",
+        ),
+        ("example (n : Nat) : n = n := by\n  rfl", "rfl"),
+        ("example (n : Nat) : Nat := by\n  match n with", "match"),
+        (
+            "example (a : Prop) (h : a) : a ∧ a := by\n  constructor",
+            "constructor",
+        ),
+        ("example (a b : Prop) (h : a) : a ∨ b := by\n  left", "left"),
+        (
+            "example (a b : Prop) (h : b) : a ∨ b := by\n  right",
+            "right",
+        ),
+        (
+            "example (α : Type) (a : α) : Sigma α (fun (x : α) => x = x) := by\n  use a",
+            "use",
+        ),
+        (
+            "example (a : Prop) (h : False) : a := by\n  exfalso",
+            "exfalso",
+        ),
+        (
+            "example (a b : Prop) (h : a ∧ b) : b ∧ a := by\n  cases h with",
+            "cases",
+        ),
+        (
+            "example : True := by\n  have h : True := True.intro",
+            "have",
+        ),
+        ("example : True := by\n  sorry", "sorry"),
+    ];
+    let listed: Vec<&str> = CASES.iter().map(|(_, name)| *name).collect();
+    let tabled: Vec<&str> = sokonanoda_front::TACTIC_DOCS
+        .iter()
+        .map(|d| d.name)
+        .collect();
+    assert_eq!(
+        listed, tabled,
+        "14 条清单必须逐条等于 `front::tactics` 表（顺序也要一致）—— 覆盖基线是 14 条 ✓"
+    );
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, EVERY_TACTIC_SOURCE).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen (every tactic F12)").await;
+
+    for (anchor, name) in CASES {
+        let doc = sokonanoda_front::tactics::doc(name).expect("表里有它");
+        let kw = tactic_keyword_offset(EVERY_TACTIC_SOURCE, anchor);
+        assert!(
+            EVERY_TACTIC_SOURCE[kw..].starts_with(name),
+            "夹具里 `{name}` 的关键字偏移算错了：实际 = {:?}",
+            &EVERY_TACTIC_SOURCE[kw..kw + name.len()]
+        );
+        // 用户实际点的是关键字的**头一个字符**与**最后一个字符**。
+        for offset in [kw, kw + name.len() - 1] {
+            let at = format!("`{name}` 的第 {} 个字符", offset - kw + 1);
+            let location = definition_location(
+                goto_definition_at(&mut service, EVERY_TACTIC_SOURCE, offset).await,
+                &at,
+            );
+            let path = definition_file(&location);
+            // ⓐ 落点是真文件（判据 ③：物化失败必须 `None`，不许给死指针）。
+            assert!(
+                path.is_file(),
+                "{at}：F12 落点必须**真实存在**，实际 = {}",
+                path.display()
+            );
+            let text = std::fs::read_to_string(&path).unwrap_or_else(|err| {
+                panic!(
+                    "{at}：F12 落点必须**可读**（{err}），实际 = {}",
+                    path.display()
+                )
+            });
+            // ⓔ 文件名与 §1.1 基线表一致（防"全跳到同一篇"）。
+            let expected_name = format!("{name}.md");
+            assert_eq!(
+                path.file_name().and_then(|n| n.to_str()),
+                Some(expected_name.as_str()),
+                "{at}：落点文件名必须是 §1.1 基线表里的 `{expected_name}`，实际 = {}",
+                path.display()
+            );
+            // ⓑ 内容含 `# <关键字>`，且与表里内嵌的那一份**逐字节相同**（单一源）。
+            assert!(
+                text.contains(&format!("# {name}")),
+                "{at}：`{}` 的内容必须含 `# {name}`，实际开头 = {:?}",
+                path.display(),
+                text.lines().next().unwrap_or_default()
+            );
+            assert_eq!(
+                text, doc.markdown,
+                "{at}：落点内容必须与 `TACTIC_DOCS` 里内嵌的那一份逐字节相同（一份源）"
+            );
+            // ⓒ `range` 指向 `# <关键字>` 那一行。
+            let line = text
+                .lines()
+                .nth(location.range.start.line as usize)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "{at}：range.start.line = {} 超出落点文件（{} 行）",
+                        location.range.start.line,
+                        text.lines().count()
+                    )
+                });
+            assert_eq!(
+                line.trim_end(),
+                format!("# {name}"),
+                "{at}：range 必须指向 `# {name}` 那一行（不是文件第 0 行、更不是原地跳）"
+            );
+            // ⓓ `range` == **落点文档里**那个名字 token 的 span（D5）——
+            // `Location.range` 是**目标文件**的坐标（拿源文件里光标那个 token 的
+            // 行列去比，会把光标停到 `.md` 的第 N 行空白处 ✗，实测过一次）。
+            let heading = format!("# {name}");
+            let heading_start = text.find(&heading).expect("落点文件有 `# <name>` 标题");
+            let name_at = heading_start + "# ".len();
+            assert_eq!(
+                location.range.start,
+                lsp_pos(&text, name_at),
+                "{at}：range.start 必须 == 落点文档里标题名 token 的起点"
+            );
+            assert_eq!(
+                location.range.end,
+                lsp_pos(&text, name_at + name.len()),
+                "{at}：range.end 必须 == 落点文档里标题名 token 的终点"
+            );
+        }
+    }
+    shutdown(&mut service).await;
+}
+
+/// **P6 判据 ④**：**项位**的 `match` 上按 F12 **仍走既有链** —— 不许被文档分支抢走 ✗。
+///
+/// 依据：文档分支的触发条件是**两条**（设计 §4.4 D5）：token 是这一步的关键字
+/// **且**它落在某条 `by` 步骤的 span 里。值位 `match`（`parser.rs::is_expr_keyword`
+/// 认的那个写法）不满足第二条 ⇒ 答案必须与**没有这条分支时**同一个（关键字既不是
+/// 名字也不是记法 ⇒ `null`）。
+#[tokio::test]
+async fn goto_definition_does_not_steal_term_positions() {
+    let _serial = DOCS_LOCK.lock().await;
+    let src = "def pick (n : Nat) : Nat := match n with\n  \
+               | Nat.zero => Nat.zero\n  \
+               | Nat.succ k => k\n";
+    let kw = src.find("match").expect("源码里有值位 match");
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen (term-position match)").await;
+    for offset in [kw, kw + "match".len() - 1] {
+        let target = goto_definition_at(&mut service, src, offset).await;
+        assert!(
+            target.is_none(),
+            "值位 `match` 的第 {} 个字符上 F12 必须仍走既有链（关键字没有落点 ⇒ null），\
+             实际 = {target:?} —— 若你把它接到 tactic 文档上，那是**抢项位** ✗",
+            offset - kw + 1
+        );
+    }
+    shutdown(&mut service).await;
+}
+
+/// **P6 判据 ⑥（正反两半）**：**插件目录那一档（② 档）单独判**（设计 §4.9 D10）。
+///
+/// 三步一条线（同一个 `SOKONANODA_DOCS_DIR` = 临时目录，里面放着 `rfl.md`）：
+/// ① 开发树里 ① 档先命中（**有意为之**：改文档立即生效）⇒ 落点 = 仓库真源；
+/// ② 把那份真源**临时藏起来**（模拟安装形态：① 档不存在）⇒ 落点必须是**插件目录
+///    里那一份**（不是缓存、不是仓库），内容与 `TACTIC_DOCS[i].markdown` **逐字节相同**；
+/// ③ **反向的那一半**：把插件目录里那份删掉 ⇒ 解析**继续往下走**（③ 档物化），
+///    答一个**真实存在**的文件 —— **不是**死指针 ✗。
+///
+/// ⚠ 环境变量是**进程全局**的 ⇒ `EnvGuard` 存-改-还；真源改名走 `HiddenRepoDoc`
+/// 的 `Drop` ⇒ **两条都是 panic 也还原** ✓。还原后本判据自己核对真源**逐字节**
+/// 回到了 `TACTIC_DOCS[i].markdown` ✓（"改回来过"不是"改回来对了"）。
+#[tokio::test]
+async fn goto_definition_uses_the_plugin_doc_dir_when_the_repo_source_is_absent() {
+    let _serial = DOCS_LOCK.lock().await;
+    let doc = sokonanoda_front::tactics::doc("rfl").expect("表里有 rfl");
+    let src = "theorem t (a : Nat) : a = a := by\n  rfl\n";
+    let kw = src.find("rfl").expect("源码里有 rfl");
+
+    // 插件目录：一份**与源逐字节相同**的假文档（R24：两份都是派生物 ⇒ 不许漂移）。
+    let plugin_dir = std::env::temp_dir().join(format!("soko-p6-docs-{}", std::process::id()));
+    std::fs::create_dir_all(&plugin_dir).expect("建插件目录");
+    let plugin_doc = plugin_dir.join("rfl.md");
+    std::fs::write(&plugin_doc, doc.markdown).expect("写插件那份文档");
+    let _env = EnvGuard::set("SOKONANODA_DOCS_DIR", &plugin_dir);
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen (plugin docs tier)").await;
+
+    // ① 开发树：① 档（仓库真源）先命中 —— 顺序是设计定的（§4.9.3），不是巧合。
+    let first = definition_location(goto_definition_at(&mut service, src, kw).await, "rfl");
+    let repo_doc = definition_file(&first);
+    assert!(
+        repo_doc.is_file() && repo_doc != plugin_doc,
+        "开发树里 ① 档必须**先**命中（插件目录设了也不抢）：实际 = {}",
+        repo_doc.display()
+    );
+
+    // ② 藏起真源 ⇒ ② 档（插件目录）必须命中。
+    let mut hidden = HiddenRepoDoc::hide(repo_doc.clone());
+    let second = definition_location(goto_definition_at(&mut service, src, kw).await, "rfl");
+    let landed = definition_file(&second);
+    assert_eq!(
+        landed,
+        plugin_doc,
+        "① 档不存在时必须落到 `SOKONANODA_DOCS_DIR` 那一份（不是缓存、不是仓库）：实际 = {}",
+        landed.display()
+    );
+    assert_eq!(
+        std::fs::read_to_string(&landed).expect("插件那份必须可读"),
+        doc.markdown,
+        "插件那份的内容必须与 `TACTIC_DOCS[i].markdown` 逐字节相同（R24：一份源）"
+    );
+
+    // ③ 反向：插件目录里那份**不存在** ⇒ 继续往下走到 ③ 档物化，**不是**死指针 ✗。
+    std::fs::remove_file(&plugin_doc).expect("删掉插件那份");
+    let third = definition_location(goto_definition_at(&mut service, src, kw).await, "rfl");
+    let materialized = definition_file(&third);
+    assert_ne!(
+        materialized, plugin_doc,
+        "插件那份已经不存在了 ⇒ 绝不许把**不存在的路径**当答案（死指针 ✗）"
+    );
+    assert!(
+        materialized.is_file(),
+        "② 档不成立 ⇒ 必须继续物化出一个**真实存在**的文件，实际 = {}",
+        materialized.display()
+    );
+    assert_eq!(
+        std::fs::read_to_string(&materialized).expect("物化那份必须可读"),
+        doc.markdown,
+        "物化出来的内容必须与表里那份逐字节相同（幂等写入：与源一致 ✓）"
+    );
+    match sokonanoda_front::compile::cache::root() {
+        // ③ 档：缓存可写 ⇒ 必须落在缓存根下（路径稳定 ⇒ 编辑器里的打开文档/书签不漂）。
+        Some(root) if materialized.starts_with(&root) => {}
+        // ④ 档：缓存**不可写**（受限沙箱 / 只读 HOME）⇒ 落到临时物化 —— 这正是
+        // R10 设计的兜底（prelude 同款三段兜底），也是判据 ③ 要的"**存在且可读**" ✓。
+        Some(root) => assert!(
+            materialized.starts_with(std::env::temp_dir()),
+            "缓存根（{}）下没写成 ⇒ 只许落到 ④ 档临时物化，实际 = {}",
+            root.display(),
+            materialized.display()
+        ),
+        None => assert!(
+            materialized.starts_with(std::env::temp_dir()),
+            "缓存被禁 ⇒ 必须落到 ④ 档临时物化，实际 = {}",
+            materialized.display()
+        ),
+    }
+
+    // 还原真源并**核对内容**（Drop 也做这件事；这里显式做一次是为了能断言 ✓）。
+    hidden.restore();
+    assert!(repo_doc.is_file(), "真源必须改回来：{}", repo_doc.display());
+    assert_eq!(
+        std::fs::read_to_string(&repo_doc).expect("真源必须可读"),
+        doc.markdown,
+        "改回来的真源必须与内嵌的那一份逐字节相同"
+    );
+    // 还原后再问一次：开发树又回到 ① 档（证明"藏起来"确实是唯一变量 ✓）。
+    let after = definition_location(goto_definition_at(&mut service, src, kw).await, "rfl");
+    assert_eq!(
+        definition_file(&after),
+        repo_doc,
+        "真源回来后 ① 档必须重新命中"
+    );
+
+    let _ = std::fs::remove_dir_all(&plugin_dir);
+    shutdown(&mut service).await;
+}
+
+/// **P6 判据 ⑦**（父会话追加，G-108 那条线的同一个立场）：**文件里有失败声明 /
+/// 诊断时，tactic 关键字上的 F12 仍必须落到文档**。
+///
+/// G-108 修的是"一处报错不许打死同一份文件里正确代码的 F12"（对**名字**）；
+/// P6 的新分支必须守同一条线：文档落点与判定结果**无关**（只查 `by_steps` 的
+/// span + 表）⇒ 文件里有没有红，都不该让它静默 ✗。
+///
+/// 判据自己先断言"这份文件**确实有**诊断"（否则这条判据会退化成 ① 的重复 ✓），
+/// 再对 `apply` 的**头一个 / 最后一个字符**各问一次。
+///
+/// **反向验证**：在文档分支前加一句"有诊断 ⇒ `return Ok(None)`" ⇒ 本判据判红 ✓。
+#[tokio::test]
+async fn goto_definition_on_a_tactic_keyword_survives_a_failing_declaration() {
+    let _serial = DOCS_LOCK.lock().await;
+    // 第一段：`apply h` 之后接 `sorry`（用户报的那种形状）；第二段：一条真失败的声明。
+    let src = "theorem t (a : Prop) (h : a) : a := by\n  apply h\n  sorry\n\
+               theorem broken : Prop := by\n  exact Nat.zero\n";
+    let kw = src.find("apply").expect("源码里有 apply");
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let diagnostics = wait_diagnostics(&mut socket, "didOpen (failing declaration)").await;
+    assert!(
+        !diagnostics.diagnostics.is_empty(),
+        "本判据的前提是这份文件**真的有**诊断（否则它退化成判据 ① 的重复 ✗），实际 = {diagnostics:?}"
+    );
+
+    for offset in [kw, kw + "apply".len() - 1] {
+        let location = definition_location(
+            goto_definition_at(&mut service, src, offset).await,
+            "apply（文件里有诊断）",
+        );
+        let path = definition_file(&location);
+        assert_eq!(
+            path.file_name().and_then(|n| n.to_str()),
+            Some("apply.md"),
+            "有诊断时 `apply` 的 F12 仍必须落到它的文档，实际 = {}",
+            path.display()
+        );
+        assert!(path.is_file(), "落点必须真实存在：{}", path.display());
+    }
+    shutdown(&mut service).await;
+}
