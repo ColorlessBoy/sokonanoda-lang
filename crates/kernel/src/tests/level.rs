@@ -290,3 +290,49 @@ mod r2a_level_solve {
         })
     }
 }
+
+/// **R1b+（2026-10-10 用户实测）**：层元变量在 `leq`/`is_zero` 里是**不透明
+/// 原子** —— 只与**自己**可比，**从不 panic**。
+///
+/// 对齐 Lean 4：`src/kernel/level.h:57` 的 `is_zero()` 是**纯语法**判定
+/// （`kind() == level_kind::Zero`；mvar 不是零），`src/kernel/level.cpp:507` 的
+/// `is_geq_core` 也**没有 panic 路径**（mvar 走 `to_offset`：指针相等才 true）。
+///
+/// **为什么必须有这条**（真用户形状）：`#check Eq.refl` 的 hover 要 pp 出
+/// `{α : Sort ?u.0} → …`；以前 `(MVar, Zero)` 落到 `leq_core` 末尾的
+/// `_ => panic!()` ⇒ `resolve_hovers` 的 `catch_unwind` 静默降级成**空文本**
+/// ⇒ 用户看到「hover 只有 `Eq.refl`、没有类型」✗。
+///
+/// **只覆盖以前 panic 的输入** ⇒ 非 mvar 输入的判定逐字节不变 ✓。
+#[test]
+fn mvar_levels_compare_without_panicking() -> Result<(), Box<dyn Error>> {
+    use crate::level::Level;
+    use crate::tests::util::test_ctx;
+    use std::error::Error;
+
+    test_ctx(None, |ctx| {
+        let h7 = crate::hash64!(crate::level::MVAR_HASH, 7u64);
+        let h8 = crate::hash64!(crate::level::MVAR_HASH, 8u64);
+        let m7 = ctx.alloc_level(Level::MVar(7, h7));
+        let m7b = ctx.alloc_level(Level::MVar(7, h7));
+        let m8 = ctx.alloc_level(Level::MVar(8, h8));
+        let z = ctx.zero();
+        let s = ctx.succ(z);
+        // `pp_sort` 的第一句就是它：以前这里 panic。
+        assert!(!ctx.is_zero(m7), "mvar 不是零（Lean level.h:57 的语法判定）");
+        assert!(ctx.leq(m7, m7b), "同一个 mvar ≤ 自己");
+        assert!(!ctx.leq(m7, m8), "不同 mvar 不可比 ⇒ false（不许 panic）");
+        assert!(!ctx.leq(m7, z), "mvar ≤ 0 ⇒ false");
+        assert!(ctx.leq(z, m7), "0 ≤ mvar ⇒ true");
+        let s7 = ctx.succ(m7);
+        assert!(ctx.leq(m7, s7), "mvar ≤ mvar+1");
+        assert!(!ctx.leq(m7, s), "mvar ≤ 1 不成立（1 是具体层）");
+        let mx = ctx.max(m7, s);
+        assert!(ctx.leq(m7, mx), "mvar ≤ max(mvar, 1)");
+        assert!(!ctx.leq(mx, m7), "max(mvar, 1) ≤ mvar ⇒ false");
+        // `imax` 的形状（`simplify` 会先问 `is_zero`/`is_one` ⇒ 以前也 panic）。
+        let im = ctx.imax(m7, s);
+        assert!(!ctx.is_zero(im), "imax(mvar, 1) 不是零");
+        assert!(ctx.leq(im, im), "imax 自反");
+    })
+}

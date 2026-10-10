@@ -402,6 +402,25 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
                 }
                 _ => panic!(),
             },
+            // **R1b+（2026-10-10）**：层元变量是**不透明原子** —— 只与**自己**可比。
+            //
+            // 对齐 Lean 4：`src/kernel/level.h:57` 的 `is_zero()` 是**纯语法**判定
+            // （`kind() == level_kind::Zero`；mvar 不是零 ✓），`src/kernel/level.cpp:507`
+            // 的 `is_geq_core` 也**从不 panic** —— mvar 走 `to_offset` 那条路
+            // （指针相等才 true，否则 false ✓）。
+            //
+            // ⚠ 以前这几对组合全部落到末尾的 `_ => panic!()` ✗ ⇒ 任何**含未解层
+            // 元变量**的项一旦被 `is_zero`/`leq`（`pp_sort` 就调它）就 panic：
+            // 实测 `#check Eq.refl` 的 hover（类型 `{α : Sort ?u} → …`）在
+            // `resolve_hovers` 里 panic ⇒ `catch_unwind` 把它静默降级成**空文本**
+            // ⇒ 用户看到"hover 只有 `Eq.refl`、没有类型"（2026-10-10 用户实测）。
+            // 这些臂**只覆盖以前 panic 的输入** ⇒ 非 mvar 输入的判定逐字节不变 ✓。
+            (MVar(a, ..), MVar(x, ..)) => a == x && diff >= 0,
+            (MVar(..), Zero) => false,
+            (Zero, MVar(..)) => diff >= 0,
+            (MVar(..), Max(x, y, ..)) => self.leq_core(l_in, x, diff) || self.leq_core(l_in, y, diff),
+            (MVar(..), IMax(x, y, ..)) => self.leq_core(l_in, x, diff) && self.leq_core(l_in, y, diff),
+            (IMax(_, b, ..), MVar(..)) => self.leq_core(b, r_in, diff),
             _ => panic!(),
         }
     }
