@@ -1398,7 +1398,9 @@ fn position_to_offset_impl(text: &str, position: Position) -> usize {
 ///
 /// **光标落在 tactic 里的名字上**（`apply Set.ext` 的 `Set.ext`、`exact h` 的
 /// `h`）：goal state 之后再加一条 Markdown 水平线 `---` 与该名字的类型行
-/// （用户 2026-10-10 反馈三；契约 `docs/protocol.md` §Tactic goal-state hover）。
+/// —— 类型行是**独立的 ```sokonanoda 围栏块**（与 tactic 行 / goal state 同一个
+/// [`CODE_LANG`] ⇒ 同样上色），不是行内码（用户 2026-10-10 反馈三 + 实测；
+/// 契约 `docs/protocol.md` §Tactic goal-state hover）。
 /// 关键字 / 数字 / 括号 / 字符串 / 记法符号上 ⇒ **逐字节不变**（不加、不改顺序）。
 fn tactic_goal_hover(
     report: &DocumentReport,
@@ -1451,10 +1453,16 @@ fn tactic_goal_hover(
     }
     // 名字行（用户反馈三）：光标下的名字 ⇒ 分割线 + 它的类型。拿不到干净类型
     // （未知标识符 / 含 `$N` 松散变量）⇒ **不编那一行**（与记法 hover 同一条纪律）。
+    //
+    // **渲染走同一个围栏**（2026-10-10 用户实测）：这一行以前是**行内码**
+    // （`` `Set.ext : …` ``）⇒ VS Code 不给它上色，而同一条 hover 里的 tactic 行
+    // 与 goal state 都是 ```sokonanoda 围栏 ⇒ 同一份内容两种观感 ✗。现在它是
+    // **独立围栏块**（[`code_block`]，与 tactic 行 / goal state / 声明签名同一个
+    // `CODE_LANG`）⇒ 名字与类型都按 `sokonanoda` 语法上色。
     if let Some(name) = tactic_name_at(text, step.span, offset) {
         if let Some(ty) = tactic_name_type(query, &selection.goals, offset, &name) {
             value.push_str(NAME_DIVIDER);
-            value.push_str(&format!("`{name} : {ty}`"));
+            value.push_str(&code_block(&format!("{name} : {ty}")));
         }
     }
     Some(Hover {
@@ -1678,6 +1686,46 @@ fn hover_markup(res: render::HoverResolved, input_hint: Option<&str>) -> Hover {
     }
 }
 
+/// 光标落在 `#check` / `#print` 那一行时，hover 显示**那条命令自己的输出**。
+///
+/// **数据来自真相层**（[`sokonanoda_front::query::QueryDoc::messages_at`]）——
+/// 与 Infoview 的「命令输出」块（`soko/stateAt.messages`）**同一份**：选择语义 =
+/// 按**行**取（贴 Lean 的 `getInteractiveDiagnostics{lineRange?}`），`#check` 的
+/// 类型那一半已过记法折叠，`#print` 是内核的声明 pp。⇒ hover 与面板**永不漂移** ✓
+/// （适配器只做映射：文本进围栏块 ⇒ 与目标/条件/声明卡片**同一个** `code_block`
+/// 上色接口；`start..end` 折成 LSP `Range` 当高亮范围）。
+///
+/// **为什么必须有这条路**（用户 2026-10-10 实测两条）：
+/// * `#check Eq.refl` 以前落回"表达式 hover"，而那条路的文本来自
+///   `infer_under_binders` + pp（含未解层元变量时曾 panic ⇒ 静默降级成空文本）
+///   ⇒ hover 只剩 `Eq.refl`、**没有类型** ✗；
+/// * `#print Set.singleton` 那一行**一个 hover 行都没有**（`walk.rs::print`
+///   从不 push `cmd_hovers`）⇒ 完全静默 ✗。
+///
+/// 拿不到输出（那一行不是命令、或命令没有结果）⇒ `None`，既有 hover 链继续走。
+fn command_line_hover(
+    query: &sokonanoda_front::query::QueryDoc,
+    text: &str,
+    cursor: usize,
+) -> Option<Hover> {
+    let message = query.messages_at(cursor).into_iter().next()?;
+    if message.text.trim().is_empty() {
+        return None;
+    }
+    Some(Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: code_block(&message.text),
+        }),
+        // 高亮范围 = 那条命令的源范围（`messages_at` 给的就是命令自己的 span）。
+        range: Some(query_map::range_of_offsets(
+            text,
+            message.start,
+            message.end,
+        )),
+    })
+}
+
 /// 记法**符号**的 hover：这个符号是什么、展开成什么、**怎么打出来**。
 ///
 /// 用户要求（原话）：「要考虑 notation 如何输入，应该像 lean4 一样 `\xxx` 替换，
@@ -1774,7 +1822,10 @@ fn notation_symbol_hover(
             // 松散变量（`$N`）的文本不可信——与 `render::hover_type_at` 同一条
             // 纪律：拿不到干净的类型就不编。
             if !ty.is_empty() && !ty.contains('$') {
-                lines.push(format!("`{target} : {ty}`"));
+                // **语言文本走围栏块**（2026-10-10 横向排查）：类型行是
+                // `.sokonanoda` 文本 ⇒ 与 tactic 名字行 / 声明签名同一条
+                // `code_block` 接口（行内码在 VS Code 里**不上色** ✗）。
+                lines.push(code_block(&format!("{target} : {ty}")));
             }
         }
     }
@@ -1796,7 +1847,7 @@ fn notation_symbol_hover(
                 .unwrap_or_default()
                 .trim();
             if !expr.is_empty() {
-                lines.push(format!("`{expr} : {}`", h.text));
+                lines.push(code_block(&format!("{expr} : {}", h.text)));
             }
         }
     }
@@ -2155,6 +2206,22 @@ impl LanguageServer for Backend {
         // Declaration table computed once per hover request and reused by every
         // goal-block builder below (front goal runs need it for classification).
         let decls = sokonanoda_front::semantic::declaration_kinds(doc.text());
+        // **命令行 hover**（`#check` / `#print`，2026-10-10 用户实测的两条）：
+        // 光标落在那一行 ⇒ 直接显示**那条命令自己的输出**。**必须最先试**：
+        // 命令行不在任何声明里，它要的答案就是命令输出本身（与 Infoview 的
+        // 「命令输出」块同一份真相 `QueryDoc::messages_at` ⇒ 永不漂移 ✓）。
+        //
+        // 修前两条路的病：`#check Eq.refl` 落回"表达式 hover"，那条路依赖
+        // `infer_under_binders` 的推断文本（含未解层元变量时曾 panic ⇒
+        // `resolve_hovers` 静默降级成空文本 ⇒ hover 只剩 `Eq.refl`、没有类型 ✗）；
+        // `#print` 那一行**一个 hover 行都没有**（`walk.rs::print` 从不 push
+        // `cmd_hovers`）⇒ 完全静默 ✗。
+        if std::env::var("SOKO_HOVER_TRACE").is_ok() {
+            eprintln!("[hover-chain] 尝试 command_line_hover (offset={offset})");
+        }
+        if let Some(hover) = command_line_hover(doc.query(), doc.text(), offset) {
+            return Ok(Some(hover));
+        }
         // `by` tactic hover: show the goal state entering the tactic under the
         // cursor (Lean Infoview-style, user request). Before keyword suppression
         // below, because tactic words (intro/exact/…) are keywords.
@@ -2207,7 +2274,7 @@ impl LanguageServer for Backend {
                 .ok()
                 .filter(|ty| !ty.is_empty() && !ty.contains('$'));
             match &ty {
-                Some(ty) => lines.push(format!("`{name} : {ty}`")),
+                Some(ty) => lines.push(code_block(&format!("{name} : {ty}"))),
                 None => lines.push(
                     "这个名字在**本文件与它的 `import` 闭包**里没有声明 ⇒ 给不出签名，\
                      `F12` 也没有落点（登记行只**登记**目标，不声明它）"
@@ -2235,7 +2302,7 @@ impl LanguageServer for Backend {
             };
             if let Ok(ty) = hover_type_of_constant("", &options, &name) {
                 if !ty.is_empty() && !ty.contains('$') {
-                    lines.push(format!("`{name} : {ty}`"));
+                    lines.push(code_block(&format!("{name} : {ty}")));
                 }
             }
             lines.push(
@@ -2319,6 +2386,18 @@ impl LanguageServer for Backend {
             // Signature and goal state are `.sokonanoda` text → fenced blocks so
             // the editor highlights them (docs/protocol.md §`soko/stateAt`).
             let mut value = code_block(&signature);
+            // **`def` 的值**（T-D52 / 用户第 8 条反馈，2026-10-10 用户要求
+            // hover 也带上）：`:=` 之后那个东西 —— 类型看不出 `Set.mem` 的本质，
+            // 值才看得出。与 Infoview 的 `decl-val-line` 同一语义（`:=` 标签 +
+            // 值块 ⇒ 这里是 `:= <值>` 的**独立围栏块**）。
+            //
+            // `theorem`/`axiom`/`inductive` 的 `val_text` 是 `None`（证明 / 公设 /
+            // 构造子表都不是"定义"）⇒ **一个字节都不加**（回归基线：它们的 hover
+            // 与改动前逐字节相同）。空值同样不加（诚实省略，不编一个空块）。
+            if let Some(val) = d.val_text.as_deref().filter(|t| !t.is_empty()) {
+                value.push_str("\n\n");
+                value.push_str(&code_block(&format!(":= {val}")));
+            }
             match d.status {
                 DeclStatus::Open => {
                     // 光标正落在某个 `sorry` 上：先给这个洞的精确期望类型

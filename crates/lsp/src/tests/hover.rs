@@ -669,7 +669,7 @@ async fn hover_on_a_comment_registration_target_name_explains_itself() {
         markup.value
     );
     assert!(
-        markup.value.contains("`And : "),
+        markup.value.contains("```sokonanoda\nAnd : "),
         "prelude 名字解析得出来 ⇒ 必须给签名：{:?}",
         markup.value
     );
@@ -1085,6 +1085,53 @@ h : (x : α) → (A x) ↔ (B x)
 ```
 ";
 
+/// **围栏块的内容列表**（wire 层）：按 ```sokonanoda 切开，返回每个块的正文
+/// （到闭合围栏为止）。用于"恰好几个块 / 第几个块是什么"这类**结构**判据。
+fn fence_blocks(value: &str) -> Vec<&str> {
+    let opener = format!("```{}\n", crate::CODE_LANG);
+    value
+        .split(&opener)
+        .skip(1)
+        .map(|rest| rest.split("\n```").next().unwrap_or(rest))
+        .collect()
+}
+
+/// **名字行的结构判据**（wire 层，用户实测 2026-10-10）：分割线之后必须是
+/// **独立的 ```sokonanoda 围栏块**，块内首行 = `<名字> : <非空类型>`；并断言
+/// **不再**出现行内码形状 `` `名字 : ``（旧渲染 —— VS Code 不给行内码上色，
+/// 而同一条 hover 里的 tactic 行 / goal state 都是围栏 ⇒ 用户看到的是"没上色的一行"）。
+///
+/// ⚠ **不整串断言类型文本**：类型字面（记法折叠）可能被别的改动调整；这条钉的是
+/// **形状**（围栏 + `名字 : ` 前缀 + 非空类型），返回块内容供调用方按需再断言。
+fn assert_name_line_is_a_code_block<'a>(value: &'a str, name: &str) -> &'a str {
+    let marker = format!("---\n\n```{}\n", crate::CODE_LANG);
+    let at = value.find(&marker).unwrap_or_else(|| {
+        panic!(
+            "名字行必须在分割线之后的 ```{} 围栏块里：{value:?}",
+            crate::CODE_LANG
+        )
+    });
+    let block = &value[at + marker.len()..];
+    let end = block
+        .find("\n```")
+        .unwrap_or_else(|| panic!("名字行的围栏块必须闭合：{value:?}"));
+    let body = &block[..end];
+    let prefix = format!("{name} : ");
+    assert!(
+        body.starts_with(&prefix),
+        "块内首行必须是 `{prefix}…`（名字 + 冒号 + 类型）：{body:?}"
+    );
+    assert!(
+        !body[prefix.len()..].trim().is_empty(),
+        "名字行必须有非空类型：{body:?}"
+    );
+    assert!(
+        !value.contains(&format!("`{name} : ")),
+        "不许再出现行内码形状的旧渲染（`{name} : …`，VS Code 不给它上色）：{value:?}"
+    );
+    body
+}
+
 /// **判据（wire / 用户动作）**：光标**正好落在 `Set.ext` 的字符上**（用户实际点的
 /// 那个字符）⇒ hover = goal state + 分割线 + 折记法的签名行。
 ///
@@ -1130,12 +1177,19 @@ async fn hover_on_a_tactic_constant_name_shows_goal_state_then_its_signature() {
     let divider = value
         .find("\n---\n")
         .unwrap_or_else(|| panic!("分割线必须在：{value:?}"));
-    let signature = value
-        .find("`Set.ext : {α : Type} → {A : Set α} → {B : Set α} → ((x : α) → (A x) ↔ (B x)) → ")
-        .unwrap_or_else(|| panic!("名字签名行（折记法）必须在：{value:?}"));
+    // 名字行 = **围栏块**（不是行内码）：结构断言（围栏 + `Set.ext : ` 前缀 +
+    // 非空类型），字面类型文本不整串断言（记法折叠可能被别的改动调整）。
+    let name_line = assert_name_line_is_a_code_block(value, "Set.ext");
     assert!(
-        goal < divider && divider < signature,
-        "顺序必须是 goal state → 分割线 → 签名行：{value:?}"
+        name_line.starts_with("Set.ext : ") && name_line.len() > "Set.ext : ".len(),
+        "名字行必须是 `Set.ext : <类型>`：{name_line:?}"
+    );
+    let fence = value
+        .find(&format!("---\n\n```{}\n", crate::CODE_LANG))
+        .expect("名字行的围栏块起点");
+    assert!(
+        goal < divider && divider < fence,
+        "顺序必须是 goal state → 分割线 → 名字围栏块：{value:?}"
     );
     // `range` 决策（`docs/protocol.md`）：**保持整条 tactic** —— 点 `apply`
     // 关键字也给 goal state（上一条判据），改成名字的 span 会与它冲突。
@@ -1229,10 +1283,11 @@ async fn hover_on_a_tactic_local_name_gives_its_type_but_not_the_binder_being_in
         "goal block 里应有 `hp : P`：{:?}",
         markup.value
     );
+    // 局部假设的类型行同样走**围栏块**（与 goal state 同一观感）。
+    let name_line = assert_name_line_is_a_code_block(&markup.value, "hp");
     assert!(
-        markup.value.contains("\n---\n\n`hp : P`"),
-        "局部假设也要给分割线 + 类型行：{:?}",
-        markup.value
+        name_line.starts_with("hp : "),
+        "局部假设也要给名字行：{name_line:?}"
     );
 
     // `intro hp`：`hp` 是这条 tactic 引入的，不在进入态 ⇒ 不编。
@@ -1363,10 +1418,11 @@ async fn hover_on_a_tactic_name_declared_in_the_same_file_shows_its_signature() 
     let HoverContents::Markup(markup) = hover.contents else {
         panic!("expected markup hover");
     };
+    // 本文件声明的常量：同样是**围栏块**的名字行（结构断言，不锁类型字面）。
+    let name_line = assert_name_line_is_a_code_block(&markup.value, "soko_local_op");
     assert!(
-        markup.value.contains("\n---\n\n`soko_local_op : P → P`"),
-        "本文件声明的常量也要给分割线 + 折记法的签名：{:?}",
-        markup.value
+        name_line.starts_with("soko_local_op : "),
+        "本文件声明的常量也要给名字行：{name_line:?}"
     );
     shutdown(&mut service).await;
 }
@@ -1435,10 +1491,10 @@ async fn hover_on_a_tactic_name_reflects_an_edited_signature() {
     let HoverContents::Markup(markup) = hover.expect("hover on the tactic name").contents else {
         panic!("expected markup hover");
     };
+    let first = assert_name_line_is_a_code_block(&markup.value, "myop");
     assert!(
-        markup.value.contains("`myop : Nat`"),
-        "第一次 hover 必须给当时的签名：{:?}",
-        markup.value
+        first.contains("Nat"),
+        "第一次 hover 必须给当时的签名：{first:?}"
     );
 
     // 用户动作：**把签名改掉**（编辑器里的普通编辑 ⇒ didChange）。
@@ -1476,17 +1532,178 @@ async fn hover_on_a_tactic_name_reflects_an_edited_signature() {
     let HoverContents::Markup(markup) = hover.expect("hover on the tactic name").contents else {
         panic!("expected markup hover");
     };
+    let second = assert_name_line_is_a_code_block(&markup.value, "myop");
     assert!(
-        markup.value.contains("`myop : Bool`"),
-        "编辑后 hover 必须给**新**签名（旧签名 = 假话 ✗）：{:?}",
-        markup.value
+        second.contains("Bool"),
+        "编辑后 hover 必须给**新**签名（旧签名 = 假话 ✗）：{second:?}"
     );
     assert!(
-        !markup.value.contains("`myop : Nat`"),
+        !markup.value.contains("myop : Nat"),
         "编辑后不许再出现旧签名：{:?}",
         markup.value
     );
 
     shutdown(&mut service).await;
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 用户要求（2026-10-10）：`def` 的**声明 hover** 也要带 `:=` 之后的定义体
+// —— T-D52 的 `val_text` 早就在真相层（Infoview 的 `decl-val-line` 就是它），
+// hover 侧漏了。契约 `docs/protocol.md` §Declaration hover (2026-10-10)。
+// ─────────────────────────────────────────────────────────────────────────
+
+/// **判据（wire / 用户动作）**：`def` 的声明名上 hover ⇒ **两个** ```sokonanoda
+/// 围栏块：类型块 + **独立的** `:= <值>` 块（与 Infoview 的 `decl-val-label` 同语义）。
+///
+/// 为什么：类型看不出 `Set.mem` 的本质，`:=` 之后那个东西才看得出（用户第 8 条
+/// 反馈；Infoview 已做，hover 侧漏了 ⇒ 同一份真相两种观感 ✗）。
+#[tokio::test]
+async fn hover_on_a_def_declaration_shows_its_type_then_its_value() {
+    let src = "def soko_hover_def_value : Nat := 41\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    let at = offset_of(src, "soko_hover_def_value") + 1;
+    let markup = hover_markup_at(&mut service, src, at).await;
+    assert!(
+        markup.contains("def soko_hover_def_value : Nat"),
+        "类型块必须在：{markup:?}"
+    );
+    let fences = fence_blocks(&markup);
+    assert_eq!(
+        fences.len(),
+        2,
+        "`def` 的 hover 必须恰好两个围栏块（类型 + 值）：{markup:?}"
+    );
+    assert!(
+        fences[0].contains("def soko_hover_def_value : Nat"),
+        "第一个块是声明签名：{markup:?}"
+    );
+    assert!(
+        fences[1].starts_with(":= "),
+        "第二个块必须以 `:= ` 开头（与 Infoview 的 `decl-val-label` 同语义）：{markup:?}"
+    );
+    assert!(
+        fences[1].contains("41"),
+        "第二个块必须含 `:=` 之后的值文本：{markup:?}"
+    );
+    // 顺序：类型块 → 值块 → 既有的状态行（状态行不许跑到值块前面）。
+    let status = markup
+        .find("已通过内核检查")
+        .unwrap_or_else(|| panic!("状态行必须还在：{markup:?}"));
+    let value_block = markup
+        .find("```sokonanoda\n:= ")
+        .unwrap_or_else(|| panic!("值块必须还在：{markup:?}"));
+    assert!(
+        value_block < status,
+        "顺序必须是 类型块 → 值块 → 状态行：{markup:?}"
+    );
+    shutdown(&mut service).await;
+}
+
+/// **反向基线**：`theorem` / `axiom` 的 `val_text == None`（证明 / 公设都不是"定义"）
+/// ⇒ hover **一个字节都不许多**：只有一个围栏块、没有 `:=` 值块。
+#[tokio::test]
+async fn hover_on_a_theorem_or_axiom_declaration_has_no_value_block() {
+    let src = "axiom soko_hover_ax : Prop\n\
+               theorem soko_hover_thm : soko_hover_ax -> soko_hover_ax :=\n  \
+               fun (h : soko_hover_ax) => h\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    for (name, ty) in [
+        ("soko_hover_ax", "axiom soko_hover_ax : Prop"),
+        ("soko_hover_thm", "theorem soko_hover_thm"),
+    ] {
+        let at = offset_of(src, name) + 1;
+        let markup = hover_markup_at(&mut service, src, at).await;
+        assert!(markup.contains(ty), "`{name}` 的签名块必须在：{markup:?}");
+        assert_eq!(
+            fence_blocks(&markup).len(),
+            1,
+            "`{name}` 没有值 ⇒ 只许一个围栏块：{markup:?}"
+        );
+        assert!(
+            !markup.contains("\n:= "),
+            "`{name}` 没有值 ⇒ 不许出现 `:=` 值块：{markup:?}"
+        );
+    }
+    shutdown(&mut service).await;
+}
+
+/// **命令行 hover ①**：`#check` 那一行必须显示**那条命令的输出**（表达式 + 类型），
+/// 而不是"只有表达式、没有类型"。
+///
+/// 用户实测（2026-10-10）：`#check Eq.refl` 上 hover 只有 `Eq.refl` —— 根因是它
+/// 落回"表达式 hover"，而那条路的类型文本来自 `infer_under_binders` + 内核 pp
+/// （含未解层元变量时 panic ⇒ `resolve_hovers` 静默降级成空文本）。修法 = 命令行
+/// hover 走**真相层** `QueryDoc::messages_at`（与 Infoview 的「命令输出」块同一份）。
+///
+/// **反向验证**：撤掉 `command_line_hover` 那一段 ⇒ 本判据当场判红（旧形状只剩
+/// `myid`，没有 `myid : `）。
+#[tokio::test]
+async fn hover_on_a_check_line_shows_the_command_output() {
+    // 夹具照**用户现场**：`#check Eq.refl` —— `Eq.refl` 带宇宙参数 ⇒ 类型里
+    // 有**层元变量**。这一条同时钉住"命令输出是**出口后**的文本"：表达式 hover
+    // 那条路打的是中间态（`?u.0`），命令输出走的是 `level_exit` 收口后的
+    // `Sort u` ⇒ 判据里**不许出现 `?u`**（这一条能把两条路区分开 ✓）。
+    let src = "def myid : Prop -> Prop := fun (x : Prop) => x\n\n#check Eq.refl\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    let at = offset_of(src, "#check Eq.refl") + "#check ".len() + 2;
+    let markup = hover_markup_at(&mut service, src, at).await;
+    let blocks = fence_blocks(&markup);
+    assert_eq!(blocks.len(), 1, "命令输出必须是一个围栏块：{markup:?}");
+    let body = blocks[0];
+    assert!(
+        body.starts_with("Eq.refl : "),
+        "`#check` 的输出形状 = `表达式 : 类型`：{body:?}"
+    );
+    assert!(
+        body.trim_end().len() > "Eq.refl : ".len(),
+        "类型那一半不许为空（用户报的就是「只有名字、没有类型」）：{body:?}"
+    );
+    assert!(
+        !body.contains("?u"),
+        "命令输出是**出口后**的类型（层元变量已收口成 `u`）；`?u.N` 是中间态：{body:?}"
+    );
+    shutdown(&mut service).await;
+}
+
+/// **命令行 hover ②**：`#print` 那一行必须显示**打印出来的声明**（类型 + `:=` 值）。
+///
+/// 用户实测（2026-10-10）：「`#print Set.singleton` 上没有 hover 信息弹出」——
+/// 根因是 `walk.rs::print` 从不 push `cmd_hovers` ⇒ 那一行**一个 hover 行都没有**
+/// ⇒ hover 链走到底返回 `null`。修法与 ① 同一条（真相层 `messages_at`）。
+#[tokio::test]
+async fn hover_on_a_print_line_shows_the_printed_declaration() {
+    let src = "def myid : Prop -> Prop := fun (x : Prop) => x\n\n#print myid\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    let at = offset_of(src, "#print myid") + "#print ".len() + 2;
+    let markup = hover_markup_at(&mut service, src, at).await;
+    let blocks = fence_blocks(&markup);
+    assert_eq!(
+        blocks.len(),
+        1,
+        "`#print` 的输出必须是一个围栏块：{markup:?}"
+    );
+    let body = blocks[0];
+    assert!(body.contains("def myid"), "打印的是声明本体：{body:?}");
+    assert!(body.contains(":="), "`def` 的 `:=` 值必须在：{body:?}");
+    shutdown(&mut service).await;
+}
+
+/// **命令行 hover ③（边界）**：**不在命令行上**时这条路**不许**抢既有 hover ——
+/// 声明名上仍是"签名 + 状态"（`decl_at` 那条路），不是命令输出。
+#[tokio::test]
+async fn command_line_hover_does_not_hijack_a_declaration_name() {
+    let src = "def myid : Prop -> Prop := fun (x : Prop) => x\n\n#check myid\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    let at = offset_of(src, "myid") + 1;
+    let markup = hover_markup_at(&mut service, src, at).await;
+    assert!(
+        markup.contains("def myid : "),
+        "声明名上仍是声明签名：{markup:?}"
+    );
+    assert!(
+        markup.contains("已通过内核检查"),
+        "声明名上仍带状态行（没有被命令输出顶掉）：{markup:?}"
+    );
+    shutdown(&mut service).await;
 }
