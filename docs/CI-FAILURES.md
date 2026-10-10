@@ -14,31 +14,25 @@
 ⇒ run 结论 `cancelled`、`auto-tag` skip ✓（**不是**被新推顶掉 ✓）。
 
 **先排除"是我们的回归"** ✓（这一步别省 ✗）：**同 commit** 本机跑该用例 **6/6 绿**（单用例）
-+ **3/3 绿**（整文件 3 个用例并行）⇒ 复现不出 ✓；`scripts/soko gate` 的
-`cargo test --workspace --locked` 也是 **exit 0** ✓。
++ **3/3 绿**（整文件 3 个用例并行）⇒ 复现不出 ✓；`scripts/soko gate` 的 `cargo test --workspace --locked` 也是 **exit 0** ✓。
 
 **真因** ✓：`open()`/`did_change()` 返回 = **那一版诊断**到了（走 **stdout** ✓），**不保证**
 `LSP_TRACE` 行（走 **stderr**、由**另一个线程** `lines()` 读）已经进 `Vec` ✗ —— 两条管道
-之间**没有顺序保证** ✓（这条竞态在本仓早有记载：「stderr 由另一个线程读 ⇒ 诊断到了不等于
-那一行已经收到」，`wait_for_trace_after` 就是为它写的 ✓；**但基线那一侧**一直直接读
-`trace_len()` ✗）。CI 上开档那一趟是**冷编**（checkout 里没有模块根产物）⇒ 它有一行；
-读基线时那一行还在读线程手里 ⇒ `before=0` ⇒ 按键那一趟到了就变 **2** ✗。
+之间**没有顺序保证** ✓（这条竞态在本仓早有记载：「stderr 由另一个线程读 ⇒ 诊断到了不等于 那一行已经收到」，`wait_for_trace_after` 就是为它写的 ✓；**但基线那一侧**一直直接读
+`trace_len()` ✗）。CI 上开档那一趟是**冷编**（checkout 里没有模块根产物）⇒ 它有一行； 读基线时那一行还在读线程手里 ⇒ `before=0` ⇒ 按键那一趟到了就变 **2** ✗。
 
 **为什么本机不复现** ✓（**夹具在不同机器上走了两条不同的路** ✗✓）：本机
 `courses/set-theory/.sokonanoda/` **有**产物 ⇒ 开档走**产物命中**、那一趟**不产生** trace 行
-（本机实测：整段输出里只有按键那一行 `v2` ✓）⇒ `before=0` 本来就对、`after=1` ✓；
-CI 的干净 checkout 走冷编 ⇒ 多一行 ✗。
+（本机实测：整段输出里只有按键那一行 `v2` ✓）⇒ `before=0` 本来就对、`after=1` ✓； CI 的干净 checkout 走冷编 ⇒ 多一行 ✗。
 
 **修复** ✓：新增 `Client::settled_compile_count()`（连续 **500ms** 没有新行才算"落定" ✓，
 带 180s 上限、超时**大声判红** ✗）—— 基线一律取落定值；`lsp_keystroke_structure.rs` 的三处
 读数（statement + proof-body 两条）与 `lsp_checkpoint_multi_slot.rs::modules_after` **同轮
-一次改齐** ✓（AGENTS.md：同类问题横向排查，不许修单点 ✓）；顺带把三条用例的缓存目录从
-`…-structure-<pid>`（**同一个 pid ⇒ 同一个目录**，而三条是**并行**跑的 ⇒ 互相
+一次改齐** ✓（AGENTS.md：同类问题横向排查，不许修单点 ✓）；顺带把三条用例的缓存目录从 `…-structure-<pid>`（**同一个 pid ⇒ 同一个目录**，而三条是**并行**跑的 ⇒ 互相
 `remove_dir_all` ✗）改成**每条一个** ✓。
 
 **预防** ✓：① **凡"取基线再比差量"的 trace 判据，基线必须取落定值** ✗✓ —— 直接
-`trace_len()` 只在"开档一定不编"时才对，而那取决于**机器上有没有产物** ✗；
-② 夹具要**显式**选一条路（冷 or 热），别让"机器状态"决定走哪条（本轮就是这么被咬的 ✓）；
+`trace_len()` 只在"开档一定不编"时才对，而那取决于**机器上有没有产物** ✗； ② 夹具要**显式**选一条路（冷 or 热），别让"机器状态"决定走哪条（本轮就是这么被咬的 ✓）；
 ③ 同文件内并行的用例**不许共用**缓存目录/产物目录 ✓。
 
 ## 2026-10-08 · `test (sokonanoda-lsp, lib)` 红一次 = **墙钟比值臂在 4 核 runner 上的假红**（run `37694095005`）—— rerun 转绿 ✓ · 阈值按纪律加宽 ✓
@@ -54,8 +48,7 @@ unit01 **726ms** / unit08 **1373ms** / unit12 **3612ms** ⇒ 比值 **4.98** ✓
 ⇒ 不是判定/编译路径的回归 ✓。
 
 **真因** ✓（与 2026-09-28 那条同族，但这次红的是**另一条臂**）：比值臂的前提
-「同 run 自比 ⇒ 与机器无关」**不成立** ✗ —— 两种情形：① 4 核 runner 上的**不对称争用**
-（大编译 unit12 与其余 171 条用例的突发重叠，小编译 unit01 撞在安静窗口）；
+「同 run 自比 ⇒ 与机器无关」**不成立** ✗ —— 两种情形：① 4 核 runner 上的**不对称争用** （大编译 unit12 与其余 171 条用例的突发重叠，小编译 unit01 撞在安静窗口）；
 ② **缓存冷热不同**（同 binary 里别的用例先预热了 unit01 的库闭包 ⇒ 分母异常小：
 CI 的 unit01 只比本机慢 **2×**，unit12 却慢 **5.9×**）。历史读数同向：正常 CI ~4.1 ·
 3× 慢 runner **10.4**（run `36347147870`）· 本轮 **14.8** ⇒ 12 的余量本来就不足 ✗。
@@ -64,15 +57,13 @@ CI 的 unit01 只比本机慢 **2×**，unit12 却慢 **5.9×**）。历史读�
 ⇒ `auto-tag` 打 `v0.83.0` + dispatch release ✓（**先 rerun 再定性**，与 2026-09-27 e2e 那条同一手法 ✓）。
 
 **修复** ✓：比值阈值 **12 → 25**（`crates/lsp/src/tests/perf_course.rs`，注释里写全本轮的
-四条读数与两种机制 ✓）。**这不是"为数字放宽"** ✗：按 `AGENTS.md` 的 perf 纪律
-「要拦墙钟 ⇒ 同机比值 **+ 宽天花板**」，而这条用例真正关心的"每次打开重编 ×N / O(n²)"
+四条读数与两种机制 ✓）。**这不是"为数字放宽"** ✗：按 `AGENTS.md` 的 perf 纪律 「要拦墙钟 ⇒ 同机比值 **+ 宽天花板**」，而这条用例真正关心的"每次打开重编 ×N / O(n²)"
 会把比值推到 **50+**；pre-P 组那批真回归的比值本来也只有 **~4.7** ⇒ 12 从来不是它们的判据 ✗。
 
 **预防** ✓：① **能拦的用计数拦** —— 逐次数的守卫是 `scripts/check-recompile-factor.py`
 （`gates-fast`，**判红** ✓、噪声免疫 ✓），墙钟这条只是**宽网** ✓；② 序列口径的读数看
 `Performance report`（`scripts/perf-report.sh`，`--test-threads=1`）⇒ 不受并行争用影响 ✓；
-③ 新增墙钟判据时，**天花板要按实测读数留 ≥2× 余量**（本轮 14.8 ⇒ 25 只有 1.7×，
-但它是"几十才算事故"的量级网，不是精度判据 ✓）。
+③ 新增墙钟判据时，**天花板要按实测读数留 ≥2× 余量**（本轮 14.8 ⇒ 25 只有 1.7×， 但它是"几十才算事故"的量级网，不是精度判据 ✓）。
 
 ## 2026-10-06 · `lint-clippy` 红 ⇒ `auto-tag` skip ⇒ **v0.82.0 发不出去**（run `37421086685`）—— 根因 = **本地/CI 工具链漂移** ✗
 
@@ -103,12 +94,10 @@ CI 的 unit01 只比本机慢 **2×**，unit12 却慢 **5.9×**）。历史读�
 
 **根因**（从 job log 读到，**不是猜**）：
 
-```
-warning: spurious network error (3 tries remaining): [6] Couldn't resolve host name
+``` warning: spurious network error (3 tries remaining): [6] Couldn't resolve host name
          (Could not resolve host: index.crates.io)
 error: failed to get `bumpalo` as a dependency of package `sokonanoda v0.5.0`
-Caused by: unable to update registry `crates-io` / download of config.json failed
-```
+Caused by: unable to update registry `crates-io` / download of config.json failed ```
 
 ⇒ **runner 的 DNS 解析不了 `index.crates.io`** ⇒ `cargo` 拉不到依赖 ⇒ 编译失败。
 **与本次改动无关**（同一 commit 的 ubuntu e2e 与本地全绿）。
@@ -116,8 +105,7 @@ Caused by: unable to update registry `crates-io` / download of config.json faile
 **修法**：**不改代码** —— 这类是基础设施抖动，重跑即过。
 **预防**：CI 里 `cargo` 一律带 `--locked`（已有 ✓，它保证**不更新 registry 索引内容**，
 但**仍需要**能解析 `index.crates.io` 才能下载 crate）⇒ 真要免抖，得预热
-`Swatinem/rust-cache` 的 registry 缓存（**已有 ✓**）—— 本轮的抖动是**缓存没命中**
-（新 runner 冷启动）撞上 DNS 故障。
+`Swatinem/rust-cache` 的 registry 缓存（**已有 ✓**）—— 本轮的抖动是**缓存没命中** （新 runner 冷启动）撞上 DNS 故障。
 **判据**：同一 commit 的 ubuntu e2e **success** ⇒ 不是代码问题 ✓。
 
 ## 2026-09-29 · **perf-gate 判红一轮就假红** ⇒ 回退为"只报不拦"，计数守卫接棒
@@ -127,12 +115,10 @@ Caused by: unable to update registry `crates-io` / download of config.json faile
 
 **根因**：**共享 CI runner 上的墙钟抖动**。同一套件实测 **本机 37.37s vs CI 278.58s（7.5×）**
 （`AGENTS.md` 已记），而 `--threshold 50` 是**绝对百分比** ⇒ 挡不住这个量级的抖动。
-上一轮加的"**同 runner 家族基线**"解决了**跨宿主比较**（那是对的 ✓ **保留**），
-但**没解决同一 runner 家族内部的 run-to-run 抖动** ⇒ 判红必然**假红**。
+上一轮加的"**同 runner 家族基线**"解决了**跨宿主比较**（那是对的 ✓ **保留**）， 但**没解决同一 runner 家族内部的 run-to-run 抖动** ⇒ 判红必然**假红**。
 
 **修法**：**回退为"只报不拦"**（`continue-on-error: true` + 循环里 `|| true`），
-但**不是"就不拦了"** ✗ —— **真正的拦截接棒给** `gates-fast` 的
-`scripts/check-recompile-factor.py`（**测次数、不测耗时**）：
+但**不是"就不拦了"** ✗ —— **真正的拦截接棒给** `gates-fast` 的 `scripts/check-recompile-factor.py`（**测次数、不测耗时**）：
 
 * 它**已经判红**（`gates-fast` 无 `continue-on-error`）；
 * 它**噪声免疫**（`by_calls` 是**结构计数**，与机器快慢无关）；
@@ -759,3 +745,16 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
    遇到就先**连跑 6 次**看是不是间歇的（本次一次就复现）；
 3. **注释里写"天然隔离/必红"之类的断言要当场核对**（本条的注释就是错的 ✗）。
 
+## 2026-10-11 — `ledger (3)` 判红：G-110 复现件写死了本机绝对路径
+
+**症状**：run `38066372589` 的 `ledger (3)` 红，注解逐字：`G-110 open script 环境异常` +
+`…/G110-….sh: line 12: cd: /Users/penglingwei/…: No such file or directory`。
+
+**原因**：新写的复现件第 12 行 `cd /Users/penglingwei/…` —— 本机那个目录**确实存在** ⇒
+本机 `gap.py check` 永远绿，只有别的机器（CI）才暴露。
+
+**修法**：照本目录其余 90 个复现件的写法自定位 `cd "$(dirname "$0")/../../.." || exit 2`；
+横向排查确认 `docs/gaps/repro/` 下只有这一个 `.sh` 写死路径（另两处是缓存 JSON，不受影响）。
+
+**预防**：**复现件与判据脚本一律自定位，禁止写死绝对路径** —— 判据若只在本机成立，
+它就不是判据；这类"本机必绿"的洞只有发版节点跑全量才抓得住。
