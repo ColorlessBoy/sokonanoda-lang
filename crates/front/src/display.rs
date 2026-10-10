@@ -91,23 +91,47 @@ impl From<&str> for DisplayText {
 //
 // 三条纪律（都来自设计，别在这里"顺手放宽"）：
 //   * **命中不了就原样返回**——不猜。折错比不折坏得多（用户看到的是错式子）。
-//   * **只有 `spine.len() == arity` 才是记法实例**（§3.2 硬规则）：
-//     `Set.mem α a`（部分应用）不许打成 `α ∈ a`。
+//   * **只有"完全应用"才是记法实例**（§3.2 硬规则）：`Set.mem α a`（部分应用）
+//     不许打成 `α ∈ a`。⚠ **pp 的"完全应用"有两种形状**（见
+//     [`DisplayNotations`] 的「前导隐式个数」）：闭项省略前导隐式实参、开项不省略
+//     ⇒ 两种实参个数都算完全应用；而**同一条脊的内层节点**不是（由脊根负责折，
+//     见 [`fold_collecting_inner`] 的 `is_fun_part`）。
 //   * **产物是 [`DisplayText`]**：它进不了任何回读通道（编译期保证）。
 
 use crate::ast::{Binder, Expr, MatchArm, NotationAssoc, NotationDecl};
 use crate::Span;
 use std::collections::HashMap;
 
-/// 显示期的记法表（设计 §3.3）：记法声明 + 「target 点名 → 元数」。
+/// 显示期的记法表（设计 §3.3）：记法声明 + 「target 点名 → 元数」+「target 点名 →
+/// 前导隐式个数」。
 ///
-/// **元数**（arity）= 目标声明的 telescope 层数。只有 `spine.len() == arity`
-/// 才是记法实例——`Set.mem α a` 是**部分应用**，折成 `α ∈ a` 就是显示错误。
-/// 元数的来源是 T-C11；这里只**消费**它，好让折叠层能被单独测。
+/// **元数**（arity）= 目标声明的 **telescope 层数**（含隐式 binder，T-C11）。
+/// 内核 pp 打**完全应用**时有**两种形状**（`crates/kernel/src/pretty_printer.rs::
+/// is_implicit_fun`）：
+///
+/// * **闭项**（能推断 binder 风格）⇒ pp **省略前导隐式实参** ⇒ 实参个数 = 元数 −
+///   前导隐式个数（`Set.mem a A`、`Eq a b`）；
+/// * **开项**（含松散变量 ⇒ `num_loose_bvars() > 0` 短路 ⇒ 不省略）⇒ 实参个数 =
+///   元数（`Eq.{u} α a a`、`Set.mem α a A`）。
+///
+/// ⇒ 两种个数都是"完全应用"，[`fold_spine`] 都收；更少的是**部分应用**，不折。
+/// 元数与隐式前缀的来源是 T-C11；这里只**消费**它们，好让折叠层能被单独测。
+///
+/// ⚠ **中间形状（省略了一部分前导隐式）故意不折**——实测它真实存在
+/// （`Set.image β f S`：`α` 被省、`β` 留着；pp 的省略是**逐实参**判定的，
+/// `pretty_printer.rs::is_implicit_fun` 对含松散变量的函数前缀会短路）。它与
+/// **闭项过应用**（`Set.image f A x` = `(f '' A) x`，同一条脊多一个实参）**逐字
+/// 同形** ⇒ 折它会显示错式子（`A '' x`）。按本模块第一条纪律（不猜）取"原样"：
+/// 课程语料里这种声明显示点形式 `Set.image β f S`，而不是**错的**记法 ✓
+/// （实测：全课程 135 条声明从"错记法"退回点形式，见切片回报）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DisplayNotations {
     table: Vec<NotationDecl>,
     arity: HashMap<String, usize>,
+    /// 「target 点名 → 签名的**前导隐式 binder 个数**」（0 = 没有前导隐式）。
+    /// 与 `arity` 成对使用：完全应用的两种 pp 形状就是 `arity` 与
+    /// `arity - implicit_prefix` 两个实参个数。
+    implicit_prefix: HashMap<String, usize>,
 }
 
 impl DisplayNotations {
@@ -123,6 +147,8 @@ impl DisplayNotations {
     /// ⇒ 规则：`self.table`（含内建）**原样** + `other.table` **跳过它的内建前缀** ✓。
     ///
     /// 元数表：`self` 打底、`other` **覆盖**（与"入口在后"的插入顺序一致 ✓）。
+    /// **隐式前缀表同规矩**（两张表必须一起合并——只合并一张会让另一张退回默认值，
+    /// 折叠判据随之分叉 ✗）。
     pub fn merged_with(&self, other: &Self) -> Self {
         let builtins = crate::notation::builtin_notation_decls().len();
         let mut table = self.table.clone();
@@ -133,11 +159,30 @@ impl DisplayNotations {
         for (name, n) in &other.arity {
             arity.insert(name.clone(), *n);
         }
-        Self { table, arity }
+        let mut implicit_prefix = self.implicit_prefix.clone();
+        for (name, n) in &other.implicit_prefix {
+            implicit_prefix.insert(name.clone(), *n);
+        }
+        Self {
+            table,
+            arity,
+            implicit_prefix,
+        }
     }
 
+    /// **签名不变**（既有调用/测试不受影响）：前导隐式表默认为空 = 0。
     pub fn new(table: Vec<NotationDecl>, arity: HashMap<String, usize>) -> Self {
-        Self { table, arity }
+        Self {
+            table,
+            arity,
+            implicit_prefix: HashMap::new(),
+        }
+    }
+
+    /// 链式补上「前导隐式个数」表（[`Self::new`] 的签名保持不变的原因见那里）。
+    pub fn with_implicit_prefix(mut self, implicit_prefix: HashMap<String, usize>) -> Self {
+        self.implicit_prefix = implicit_prefix;
+        self
     }
 
     pub fn is_empty(&self) -> bool {
@@ -150,7 +195,11 @@ impl DisplayNotations {
             .iter()
             .filter_map(|decl| Some((decl.target.clone(), arity_of(&decl.target)?)))
             .collect();
-        Self { table, arity }
+        Self {
+            table,
+            arity,
+            implicit_prefix: HashMap::new(),
+        }
     }
 
     /// 这个 target 名下的记法声明，**按声明顺序**（重载取第一个就是取它）。
@@ -376,7 +425,7 @@ fn fold_collecting(
     src: &str,
     base: usize,
 ) -> Expr {
-    fold_collecting_inner(expr, dn, edits, false, src, base).0
+    fold_collecting_inner(expr, dn, edits, false, false, src, base).0
 }
 
 /// 同 [`fold_collecting`]，另外回报"这棵子树变了没有"。
@@ -386,7 +435,7 @@ fn fold_collecting(
 /// `(Set.mem α a A) B` 的 `Set.mem α a A` 是完整的三元应用，就地换成 `a ∈ A`
 /// 就得到 `a ∈ A B`，重新解析是 `Set.mem α a (A B)`（**换了个意思**）。
 /// 规则：那种情况下把替换范围**上提到这条应用脊的根**，整条脊交给
-/// `render_expr` 渲染——括号归它管，它本来就是干这个的。实测得到 `(a ∈ A) B` ✓
+/// `render_expr` 渲染——括号归它管，它本来就是干这个的。
 ///
 /// 只上提到 `App`：`Set.mem α a A -> P` 的父节点是 `Arrow`（不是应用），
 /// 就地换是安全的（`∈` 比 `->` 紧，重解析一致）⇒ 保留原文的其它部分。
@@ -395,21 +444,59 @@ fn fold_collecting(
 /// 不传它的话，折点之上的**每一层** `App` 祖先都会 `render_expr` 一遍整棵子树
 /// ——实测 `did_open` 因此退化 **+18~22%**（`lsp-course` 三档全中），改回 O(1) 次。
 /// 记多次也不影响结果（[`splice`] 只取最外层），纯粹是白烧。
+/// **语义 = "这个节点的父节点是 `App`"**（`fun` 与 `arg` 两个子节点都算——它们
+/// 都在同一条脊上）。
+///
+/// **`is_fun_part`（切片：折坏部分应用）**：这个节点是不是某条应用脊的 `fun`
+/// 子节点（即"它是同一条脊的下一层"）。
+/// * `fun` 子节点 ⇒ `true`：它**属于父节点那条脊**，**不折**（[`fold_spine`] 在
+///   调用点被跳过）——折叠由**脊根**负责。少了这一条，`Eq.{u} α a a` 的内层
+///   `Eq.{u} α a` 会被当成完全应用折成 `α = a`，父节点再整脊重渲染 ⇒
+///   `(α = a) a`（用户 2026-10-10 报的那一形）。
+/// * `arg` 子节点 / 其它形状的子节点 ⇒ `false`：它**是另一棵子树**的根（或不在
+///   脊上），自己的脊自己折 ⇒ `Set.subset (Set.singleton α a) A` 的内层照折 ✓。
 fn fold_collecting_inner(
     expr: Expr,
     dn: &DisplayNotations,
     edits: &mut Vec<(Span, String)>,
     in_spine: bool,
+    is_fun_part: bool,
     src: &str,
     base: usize,
 ) -> (Expr, bool) {
     let is_app = matches!(expr, Expr::App { .. });
     let mut child_changed = false;
-    let expr = map_children_with(expr, &mut |e| {
-        let (out, changed) = fold_collecting_inner(e, dn, edits, is_app, src, base);
-        child_changed |= changed;
-        out
-    });
+    // **`App` 的两个子节点必须分开处理**：`map_children_with` 一视同仁，会把
+    // `fun`（同一条脊的下一层）也当成"一棵独立子树"递归 ⇒ 内层被折 ✗。
+    let expr = match expr {
+        Expr::App {
+            fun,
+            arg,
+            explicit_spine,
+            span,
+        } => Expr::App {
+            fun: Box::new({
+                let (out, changed) =
+                    fold_collecting_inner(*fun, dn, edits, is_app, true, src, base);
+                child_changed |= changed;
+                out
+            }),
+            arg: Box::new({
+                let (out, changed) =
+                    fold_collecting_inner(*arg, dn, edits, is_app, false, src, base);
+                child_changed |= changed;
+                out
+            }),
+            explicit_spine,
+            span,
+        },
+        // 其它形状的子节点一律 `is_fun_part = false`（它们不在应用脊上）。
+        other => map_children_with(other, &mut |e| {
+            let (out, changed) = fold_collecting_inner(e, dn, edits, is_app, false, src, base);
+            child_changed |= changed;
+            out
+        }),
+    };
     // **`forall` 关键字形状 → `∀`**（T-D51 第二步 / 缺口 G-38）。
     //
     // 为什么不能靠"查表"：`∀` 是 **parser 关键字**（`parse_forall`），**不在**
@@ -507,9 +594,13 @@ fn fold_collecting_inner(
         }
         return (expr, child_changed);
     }
-    if let Some(folded) = fold_spine(&expr, dn) {
-        edits.push((folded.span(), crate::proof::render_expr(&folded)));
-        return (folded, true);
+    // **脊根才折**（`is_fun_part` 的节点是同一条脊的下一层 ⇒ 它是**部分应用**，
+    // 折它就会拼出 `(α = a) a`）。见 [`fold_collecting_inner`] 的文档。
+    if !is_fun_part {
+        if let Some(folded) = fold_spine(&expr, dn) {
+            edits.push((folded.span(), crate::proof::render_expr(&folded)));
+            return (folded, true);
+        }
     }
     if child_changed && is_app && !in_spine {
         edits.push((expr.span(), crate::proof::render_expr(&expr)));
@@ -549,6 +640,15 @@ fn arrow_token_between(src: &str, base: usize, from: usize, to: usize) -> Option
 /// **第一刀只做二元 infix 族**（`Infix`/`Infixl`/`Infixr`）——一元前缀/后缀与
 /// binder 记法的折叠留给后续环节；它们的 `arity` 与操作数位不同（一元 1 个、
 /// binder 2 个且第 2 个是 lambda），一起做会把这一刀撑大。
+///
+/// **两种完全应用形状都收**（切片：折坏部分应用）：`k == full`（开项，pp 不省略
+/// 前导隐式）与 `k == full - implicit_prefix`（闭项，pp 省略前导隐式）。
+/// **操作数永远取最后 `operand_count` 个实参**——两种形状下前导实参都是类型/命题
+/// 参数（`∈` 的 `α`），要丢掉；闭项形状下"最后 N 个"就是全部实参。
+///
+/// ⚠ **只有极大应用脊的根走到这里**（[`fold_collecting_inner`] 的 `is_fun_part`）：
+/// 内层节点（`Eq α a` 在 `Eq α a a` 里）是**部分应用**，折它会拼出
+/// `(α = a) a`（用户 2026-10-10 报的那一形）。
 fn fold_spine(expr: &Expr, dn: &DisplayNotations) -> Option<Expr> {
     let (head, args) = crate::spine::spine_of(expr);
     let name = head_name(head)?;
@@ -556,15 +656,14 @@ fn fold_spine(expr: &Expr, dn: &DisplayNotations) -> Option<Expr> {
     // **内建语法**（`ast::Expr::SetLiteral`，展开成 `Set.singleton α a` /
     // `Set.pair α a b`）——它**不是记法声明**，`dn.arity` 里查不到它，所以照
     // `forall` 关键字那条先例单独认。判据与记法**同一条**：只有**完全应用**
-    // 才是那个形状（`Set.singleton α` 是部分应用 ⇒ 不折）。
+    // 才是那个形状（两种 pp 形状都算，见 [`fold_set_literal`]）。
     if let Some(folded) = fold_set_literal(name, &args, expr.span()) {
         return Some(folded);
     }
-    let arity = *dn.arity.get(name)?;
-    // §3.2 硬规则：只有完全应用才是记法实例。
-    if args.len() != arity {
-        return None;
-    }
+    // **元数 = 全望远镜层数**（含隐式 binder）；前导隐式个数单独查。
+    let full = *dn.arity.get(name)?;
+    let prefix = dn.implicit_prefix.get(name).copied().unwrap_or(0);
+    let k = args.len();
     // 重载：同一 target 声明了两个符号 ⇒ **取声明顺序第一个**（写进文档 + 测试）。
     let decl = dn.decls_for(name).next()?;
     // **每一种记法都要折**（T-D51 / 缺口 G-38）。以前这里只放行 infix 族
@@ -580,9 +679,18 @@ fn fold_spine(expr: &Expr, dn: &DisplayNotations) -> Option<Expr> {
         NotationAssoc::Prefix | NotationAssoc::Postfix | NotationAssoc::Binder => 1,
         NotationAssoc::Nullary => 0,
     };
+    // §3.2 硬规则：**部分应用不是记法实例**。两种完全应用形状之外的个数一律不折
+    // （`k < operand_count` 先挡掉——它同时保证下面那句不越界）。
+    if k < operand_count {
+        return None;
+    }
+    if !(k == full || k == full.saturating_sub(prefix)) {
+        return None;
+    }
     // 前导实参（`Set.mem α a A` 里的 `α`）**丢掉**：它们是展开时补上的隐式
-    // 类型参数，源里本来就不写。
-    let operands = &args[arity - operand_count..];
+    // 类型参数，源里本来就不写。闭项形状（`Set.mem a A`）下前导实参已经被 pp
+    // 省掉，"最后 N 个"就是全部实参。
+    let operands = &args[k - operand_count..];
     let (lhs, rhs) = match (decl.assoc, operands) {
         (NotationAssoc::Infix | NotationAssoc::Infixl | NotationAssoc::Infixr, [a, b]) => {
             (Some(Box::new((*a).clone())), Some(Box::new((*b).clone())))
@@ -614,10 +722,16 @@ fn fold_spine(expr: &Expr, dn: &DisplayNotations) -> Option<Expr> {
 /// `Set.pair α a b`；第一个实参是**元素类型**（展开时补上的前导参数）⇒ 丢掉。
 /// `render_expr(SetLiteral)` 本来就打成 `{a}` / `{a, b}` ✓，所以折出来的节点直接
 /// 复用**既有**渲染规则，不新增第二套括号/逗号规则。
+///
+/// **两种 pp 形状都收**（与记法同一条规则，切片：折坏部分应用）：`Set.singleton`
+/// 的 `k == 2`（开项全形 `Set.singleton α a`）与 `k == 1`（闭项省略形
+/// `Set.singleton a`，**这正是课程 goal 里的形状** `Set.mem a (Set.singleton a)`）；
+/// `Set.pair` 的 `k == 3` / `k == 2`。元素**从尾部取**：更小的 `k` ⇒ `None`。
 fn fold_set_literal(name: &str, args: &[&Expr], span: Span) -> Option<Expr> {
-    let elements: Vec<Expr> = match (name, args.len()) {
-        ("Set.singleton", 2) => vec![args[1].clone()],
-        ("Set.pair", 3) => vec![args[1].clone(), args[2].clone()],
+    let k = args.len();
+    let elements: Vec<Expr> = match name {
+        "Set.singleton" if k == 2 || k == 1 => vec![args[k - 1].clone()],
+        "Set.pair" if k == 3 || k == 2 => vec![args[k - 2].clone(), args[k - 1].clone()],
         _ => return None,
     };
     Some(Expr::SetLiteral { elements, span })
@@ -757,16 +871,21 @@ fn map_binder_with(binder: Binder, f: &mut impl FnMut(Expr) -> Expr) -> Binder {
 
 // ---- 元数的来源（T-C11）----------------------------------------------------
 //
-// 设计 §3.2 的硬规则要一个数：**目标声明的 telescope 层数**（= 完全应用时
-// `spine.len()`）。有了它才能判断"这是记法实例"还是"部分应用"：
-// `Set.mem α a A`（3 = 3）⇒ `a ∈ A`；`Set.mem α a`（2 ≠ 3）⇒ 原样。
+// 设计 §3.2 的硬规则要两个数：**目标声明的 telescope 层数**（= 开项完全应用时
+// `spine.len()`）与它的**前导隐式 binder 个数**。有了它们才能判断"这是记法实例"
+// 还是"部分应用"：
+// `Set.mem α a A`（3 = 3，开项）⇒ `a ∈ A`；`Set.mem a A`（2 = 3 − 1，闭项
+// ——pp 省掉了隐式 `α`）⇒ `a ∈ A`；`Set.mem a`（1 ≠ 3 且 ≠ 2）⇒ 原样。
 //
-// **口径先对齐**（两处容易混）：
+// **口径先对齐**（三处容易混）：
 //   * **telescope**（= 本模块的 `arity`）= 声明类型上剥出来的 binder 总数
-//     （`def Set.mem (α : Type) (a : α) (A : Set α) : Prop` ⇒ **3**）。
-//     它对应 `spine.len()`。
+//     （`def Set.mem {α : Type} (a : α) (A : Set α) : Prop` ⇒ **3**）。
+//     它对应**开项**完全应用的 `spine.len()`（pp 不省略隐式）。
+//   * **前导隐式个数**（= `implicit_prefix`）= 签名开头**连续**的隐式 binder 数
+//     （`{α : Type}` ⇒ **1**）。闭项完全应用的 `spine.len()` = telescope − 它
+//     （pp 把前导隐式实参省掉了）。
 //   * **操作数个数** = 记法自己写出来的位置（二元 infix ⇒ **2**）。
-//   两者之差 = **前导参数**（`∈` 的 `α`），折叠时丢掉。
+//   三者之差 = **前导参数**（`∈` 的 `α`），折叠时丢掉。
 //
 // 来源：**源级签名**，从闭包各模块的源文本（`ModuleReport.source`）与 prelude
 // 源码里数出来。找不到 ⇒ `None` ⇒ 折叠层**原样返回**（不猜）。
@@ -793,20 +912,15 @@ pub fn telescope_len(ty: &Expr) -> usize {
     }
 }
 
-/// 折叠层要的**元数**：pp 文本里**完全应用**时会出现几个实参。
+/// 折叠层**曾经的**元数口径：**显式 binder 的个数**。
 ///
-/// **等于「显式 binder 的个数」**——不是 telescope 层数。为什么：内核 pp
-/// **会省略隐式参数**，而不会省略显式参数。
-///
-/// | 目标 | 源级签名 | telescope | 元数 | pp 形态 |
-/// |---|---|---|---|---|
-/// | `Set.mem` | `(α : Type) (a : α) (A : Set α)` | 3 | **3** | `Set.mem α a A`（实测） |
-/// | `Eq` | `{α : Sort u} (a : α) (b : α)` | 3 | **2** | `Eq A B`（实测，隐式 `α` 被省） |
-/// | `And` | `(a b : Prop)` | 2 | **2** | `And p q` |
-/// | `Not` | `(A : Prop)` | 1 | **1** | `Not p` |
-///
-/// 用 telescope 层数会在 `Eq` 上直接失效（pp 给 2 个实参、telescope 是 3 ⇒ 永远
-/// 判成"部分应用"、`=` 永远折不出来）——这是接进生产者（T-C20）时实测撞到的。
+/// ⚠ **不再是折叠用的元数**（切片：折坏部分应用，2026-10-10）：pp 对**开项**
+/// **不省略**隐式实参 ⇒ 只用显式个数会把开项完全应用判成"部分应用"、并让内层
+/// 部分应用被当成完全应用折掉（`Eq.{u} α a a` → `(α = a) a`）。折叠现在用
+/// [`telescope_len`] + [`implicit_prefixes_in_commands`] 两个数一起判
+/// （[`fold_spine`]）。这里保留这个纯函数：它仍是"显式实参层数"的定义，
+/// 供诊断/对照使用（`crates/front/src/compile/elab.rs::explicit_arity` 是它在
+/// 判定路径上的同名兄弟）。
 pub fn explicit_arity(ty: &Expr) -> usize {
     let mut count = 0;
     let mut cur = ty;
@@ -849,6 +963,10 @@ pub fn arities_in_sources(sources: &[&str]) -> HashMap<String, usize> {
 /// **名字直接用 parser 给的**：它**已经**按 `namespace`/`end` 限定好了
 /// （实测 `namespace Foo` 里的 `def bar` 解析成 `name: "Foo.bar"`），与
 /// `NotationDecl.target` 存的全名同一口径。自己再拼一次会得到 `Foo.Foo.bar`（踩过）。
+///
+/// **口径 = 全 telescope 层数**（含隐式 binder）：pp 打**开项**（含松散变量）时
+/// **不省略**隐式实参 ⇒ 开项完全应用就是这个数。闭项形状（pp 省掉前导隐式）由
+/// [`implicit_prefixes_in_commands`] 那张表配合 [`fold_spine`] 一起认。
 pub fn arities_in_commands(commands: &[crate::ast::Command]) -> HashMap<String, usize> {
     let mut out = HashMap::new();
     for command in commands {
@@ -856,7 +974,7 @@ pub fn arities_in_commands(commands: &[crate::ast::Command]) -> HashMap<String, 
             crate::ast::Command::Def { name, ty, .. }
             | crate::ast::Command::Theorem { name, ty, .. }
             | crate::ast::Command::Axiom { name, ty, .. } => {
-                out.insert(name.clone(), explicit_arity(ty));
+                out.insert(name.clone(), telescope_len(ty));
             }
             // 归纳类型：`params`（`inductive And (a b : Prop)`）+ 类型上的 binder。
             crate::ast::Command::InductiveBlock {
@@ -870,18 +988,119 @@ pub fn arities_in_commands(commands: &[crate::ast::Command]) -> HashMap<String, 
     out
 }
 
-/// prelude 里那些记法目标（`And` / `Or` / `Not` / `Iff` / `Eq`）的 telescope 层数。
+/// 一串 binder 里**开头连续**的隐式 binder 个数；碰到第一个显式 binder 就停。
+fn leading_implicit_binders(binders: &[Binder]) -> (usize, bool) {
+    let mut n = 0;
+    for b in binders {
+        if b.style == crate::ast::BinderKind::Implicit {
+            n += 1;
+        } else {
+            // `false` = 还没走完这串（前导隐式在更前面就断了）。
+            return (n, false);
+        }
+    }
+    (n, true)
+}
+
+/// 从若干段**源文本**里收出「声明的全名 → 前导隐式 binder 个数」。
+pub fn implicit_prefixes_in_sources(sources: &[&str]) -> HashMap<String, usize> {
+    let mut out = HashMap::new();
+    for src in sources {
+        let Ok(file) = crate::parse(src) else {
+            continue;
+        };
+        out.extend(implicit_prefixes_in_commands(&file.commands));
+    }
+    out
+}
+
+/// 同 [`implicit_prefixes_in_sources`]，但吃**已经解析好的**命令序列。
 ///
-/// **parse 一次就缓存**：它在**每次编译的出口**都要用（每个声明一次），而 prelude
-/// 源码是常量。线 C 的四个生产者都会经过它。
-pub fn prelude_arities() -> &'static HashMap<String, usize> {
-    static CACHE: std::sync::OnceLock<HashMap<String, usize>> = std::sync::OnceLock::new();
+/// **口径与 `elab.rs::leading_implicit_prefix` 一致**（同一份源级 AST 走查，
+/// 零内核调用）：`{u} {α : Sort u} (a : α) …` ⇒ `2`；前导隐式一旦被显式 binder
+/// 打断就停（`(a : α) {b : β} …` ⇒ `0`——pp 不会跨过显式实参省略后面的隐式）。
+///
+/// 归纳块：先数 `params` 的前导隐式；**全 `params` 都是隐式**时再接着数 `ty` 的
+/// （与 `params.len() + telescope_len(ty)` 那条全层数口径对齐）。
+pub fn implicit_prefixes_in_commands(commands: &[crate::ast::Command]) -> HashMap<String, usize> {
+    let mut out = HashMap::new();
+    for command in commands {
+        match command {
+            crate::ast::Command::Def { name, ty, .. }
+            | crate::ast::Command::Theorem { name, ty, .. }
+            | crate::ast::Command::Axiom { name, ty, .. } => {
+                out.insert(name.clone(), leading_implicit_prefix(ty));
+            }
+            crate::ast::Command::InductiveBlock {
+                name, params, ty, ..
+            } => {
+                let (n, all_implicit) = leading_implicit_binders(params);
+                let n = if all_implicit {
+                    n + leading_implicit_prefix(ty)
+                } else {
+                    n
+                };
+                out.insert(name.clone(), n);
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// 声明类型望远镜的**前导隐式 binder 个数**（与
+/// `crate::compile::elab::leading_implicit_prefix` 同口径；那边是 `pub(crate)`，
+/// 这里要 `pub` 给 front 之外的建表路径用）。
+///
+/// `peel_pi` 把 `BinderKind` 丢了，所以这里自己走 `Expr::Forall`。
+pub fn leading_implicit_prefix(ty: &Expr) -> usize {
+    let mut n = 0;
+    let mut cur = ty;
+    loop {
+        match cur {
+            Expr::Forall { binders, body, .. } => {
+                let (count, all_implicit) = leading_implicit_binders(binders);
+                n += count;
+                if !all_implicit {
+                    return n;
+                }
+                cur = body;
+            }
+            _ => return n,
+        }
+    }
+}
+
+/// prelude 段的两张表（元数 + 前导隐式个数），**parse 一次就缓存**。
+///
+/// 为什么合并成一次：两张表来自**同一份** prelude 源文本，而它在**每次编译的
+/// 出口**都要用（每个声明一次）。分别缓存会白解析一遍（源是常量，但解析不是）。
+fn prelude_tables() -> &'static (HashMap<String, usize>, HashMap<String, usize>) {
+    static CACHE: std::sync::OnceLock<(HashMap<String, usize>, HashMap<String, usize>)> =
+        std::sync::OnceLock::new();
     CACHE.get_or_init(|| {
-        arities_in_sources(&[
+        let sources = [
             crate::compile::prelude_eq_src(),
             crate::compile::prelude_l1_src(),
-        ])
+        ];
+        (
+            arities_in_sources(&sources),
+            implicit_prefixes_in_sources(&sources),
+        )
     })
+}
+
+/// prelude 里那些记法目标（`And` / `Or` / `Not` / `Iff` / `Eq`）的 telescope 层数。
+///
+/// **parse 一次就缓存**（与隐式前缀表共用同一次解析）：它在**每次编译的出口**
+/// 都要用（每个声明一次），而 prelude 源码是常量。线 C 的四个生产者都会经过它。
+pub fn prelude_arities() -> &'static HashMap<String, usize> {
+    &prelude_tables().0
+}
+
+/// prelude 里那些记法目标的**前导隐式 binder 个数**（`Eq` 的 `{α : Sort u}` ⇒ 1）。
+pub fn prelude_implicit_prefixes() -> &'static HashMap<String, usize> {
+    &prelude_tables().1
 }
 
 /// 把 prelude 的元数并进 `extra`（`extra` 覆盖同名项——文件自己的声明优先）。
@@ -897,6 +1116,20 @@ pub fn arities_with_prelude(sources: &[&str]) -> HashMap<String, usize> {
     arities_with_prelude_from(arities_in_sources(sources))
 }
 
+/// 把 prelude 的**前导隐式个数**并进 `extra`（`extra` 覆盖同名项）。
+pub fn implicit_prefixes_with_prelude_from(
+    extra: HashMap<String, usize>,
+) -> HashMap<String, usize> {
+    let mut out = prelude_implicit_prefixes().clone();
+    out.extend(extra);
+    out
+}
+
+/// 同 [`arities_with_prelude`]，收的是**前导隐式个数**表。
+pub fn implicit_prefixes_with_prelude(sources: &[&str]) -> HashMap<String, usize> {
+    implicit_prefixes_with_prelude_from(implicit_prefixes_in_sources(sources))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -905,6 +1138,8 @@ mod tests {
     /// 夹具：把一段**记法声明**源码解析成表，再按给定元数建 [`DisplayNotations`]。
     ///
     /// 元数在 T-C11 之前由测试**显式给**——折叠层只消费它，好被单独测。
+    /// **前导隐式表默认空（= 0）**：`arities` 给的就是"两种 pp 形状都收"的那两个数
+    /// 之一（见 [`notations_with_prefixes`] 要 prefix 的场合）。
     fn notations(src: &str, arities: &[(&str, usize)]) -> DisplayNotations {
         let file = crate::parse(src).expect("夹具必须能解析");
         let table = notation_table(&file.commands);
@@ -915,7 +1150,211 @@ mod tests {
         DisplayNotations::new(table, map)
     }
 
+    /// 夹具（切片：折坏部分应用）：**两张表都给**——`arity` = 全望远镜层数、
+    /// `prefixes` = 前导隐式个数。pp 的两种完全应用形状就是这两个数。
+    fn notations_with_prefixes(
+        src: &str,
+        arities: &[(&str, usize)],
+        prefixes: &[(&str, usize)],
+    ) -> DisplayNotations {
+        let file = crate::parse(src).expect("夹具必须能解析");
+        let table = notation_table(&file.commands);
+        let map: HashMap<String, usize> = arities
+            .iter()
+            .map(|(n, a)| ((*n).to_string(), *a))
+            .collect();
+        let prefix: HashMap<String, usize> = prefixes
+            .iter()
+            .map(|(n, a)| ((*n).to_string(), *a))
+            .collect();
+        DisplayNotations::new(table, map).with_implicit_prefix(prefix)
+    }
+
+    /// **真管线形状**的夹具（切片：折坏部分应用）：与
+    /// `compile::display_notations_from_commands` 逐句相同地建两张表
+    /// （记法表 + 内建 splice + `arities_with_prelude_from` +
+    /// `implicit_prefixes_with_prelude_from`）——折叠层的判据与真编译同源 ✓。
+    fn real_pipeline_notations(sources: &[&str]) -> DisplayNotations {
+        let mut commands: Vec<crate::ast::Command> = Vec::new();
+        for src in sources {
+            let file = crate::parse(src).expect("夹具必须能解析");
+            commands.extend(file.commands);
+        }
+        let mut table = notation_table(&commands);
+        table.splice(0..0, crate::notation::builtin_notation_decls());
+        let arities = arities_with_prelude_from(arities_in_commands(&commands));
+        let prefixes =
+            implicit_prefixes_with_prelude_from(implicit_prefixes_in_commands(&commands));
+        DisplayNotations::new(table, arities).with_implicit_prefix(prefixes)
+    }
+
     // ---- 元数的来源（T-C11）--------------------------------------------
+
+    /// **切片判据（2026-10-10）：pp 的两种完全应用形状都折、部分应用不折。**
+    ///
+    /// 用户现场：`exact Eq.refl α a` 的 hover 类型行显示
+    /// `Eq.refl : {α : Sort u} → (a : α) → (α = a) a`（应为 `… → a = a`）。
+    /// 两条根因都在这条测试里钉住：
+    /// ① 元数口径曾是"显式 binder 个数" ⇒ **开项**（pp 不省略隐式实参）的
+    ///    `Eq.{u} α a a`（3 个实参）被判成"部分应用"；
+    /// ② 那条脊的**内层** `Eq.{u} α a`（2 个实参）反倒被判成"完全应用" ⇒
+    ///    父节点整脊重渲染 ⇒ `(α = a) a`。
+    ///
+    /// 夹具走**真管线形状**（[`real_pipeline_notations`]：两张表都从源级签名
+    /// 数出来 + 内建记法 splice + prelude）——折叠判据与真编译同源 ✓。
+    ///
+    /// ⚠ **两处与任务书逐字不同的地方**（都是"文本上不可区分"的必然结果，
+    /// 不是判据放松）：`Eq α a` 与 `Set.singleton α` 在**闭项**读法下就是
+    /// **完全应用**（pp 省掉前导隐式后的形状，与 `Eq A B` / `Set.singleton a`
+    /// 逐字同形）⇒ 折。真正的部分应用（开项的内层节点、`k < operand_count`、
+    /// 超出两种形状的 `k`）一律原样 ✓（下面每一条都点明）。
+    #[test]
+    fn a_full_application_folds_in_both_pp_shapes_and_partial_ones_do_not() {
+        let dn = real_pipeline_notations(&[SHAPES_LIB]);
+
+        // ① 等式族：开项全形（`Eq.{u} α a a`）与开项无宇宙标注的写法（pp 实测两种都打）
+        assert_eq!(fold_text("Eq.{u} α a a", &dn), "a = a", "开项全形");
+        assert_eq!(fold_text("Eq α a a", &dn), "a = a", "开项（无宇宙标注）");
+        // **闭项完全应用**（pp 省掉隐式 `α` ⇒ 两个实参就是两个操作数）：
+        // 与任务书的"`Eq α a` 必须原样"**不同**——那个文本在闭项读法下就是
+        // `α = a`（元素叫 α 与 a），与开项部分应用 `Eq.{u} α a` 逐字同形。
+        // 取"折"：否则**所有闭项等式目标**（`⊢ A = B` 显示成 `Eq A B`）都不折 ✗。
+        assert_eq!(
+            fold_text("Eq α a", &dn),
+            "α = a",
+            "闭项完全应用（两个实参就是两个操作数）"
+        );
+        // 真正的部分应用：实参个数连操作数都不够 ⇒ 原样 ✓
+        assert_eq!(fold_text("Eq α", &dn), "Eq α", "k = 1 < 操作数 2");
+        assert_eq!(fold_text("Eq", &dn), "Eq", "k = 0");
+
+        // ② 隶属/子集：两种形状都折（**闭项形状就是课程 goal 的实测形状**）
+        assert_eq!(fold_text("Set.mem α a A", &dn), "a ∈ A", "开项全形");
+        assert_eq!(fold_text("Set.mem a A", &dn), "a ∈ A", "闭项省略形");
+        assert_eq!(
+            fold_text("Set.mem a", &dn),
+            "Set.mem a",
+            "部分应用（k = 1）"
+        );
+        assert_eq!(fold_text("Set.subset α A B", &dn), "A ⊆ B");
+        assert_eq!(fold_text("Set.subset A B", &dn), "A ⊆ B");
+        assert_eq!(fold_text("Set.subset A", &dn), "Set.subset A");
+
+        // ③ 无隐式前导的目标：两种形状重合（回归基线，别被这次改动碰坏）
+        assert_eq!(fold_text("And a b", &dn), "a ∧ b");
+        assert_eq!(fold_text("Not a", &dn), "¬ a");
+        assert_eq!(fold_text("Iff a b", &dn), "a ↔ b");
+
+        // ④ 集合字面量特例同步放宽：元素**从尾部取**
+        assert_eq!(fold_text("Set.singleton α a", &dn), "{a}", "开项全形");
+        assert_eq!(fold_text("Set.singleton a", &dn), "{a}", "闭项省略形");
+        assert_eq!(fold_text("Set.pair α a b", &dn), "{a, b}");
+        assert_eq!(fold_text("Set.pair a b", &dn), "{a, b}");
+        // 同上那条歧义：`Set.singleton α`（k = 1 = 闭项完全应用）折成 `{α}`，
+        // 而 `Set.singleton a` 也折成 `{a}`——两者逐字同形，无法区分。
+        assert_eq!(fold_text("Set.singleton α", &dn), "{α}", "闭项完全应用");
+
+        // ⑤ **用户现场整串**：开项 telescope（binder 体里引用 binder）里的
+        //    `Eq.{u} α a a` 必须折成 `a = a`（修前是 `(α = a) a`）
+        assert_eq!(
+            fold_text("{α : Sort u} -> (a : α) -> Eq.{u} α a a", &dn),
+            "{α : Sort u} → (a : α) → a = a"
+        );
+
+        // ⑥ **内层实参脊仍要折**（切片不能把嵌套一起关掉）：
+        //    `Set.singleton α a` 是 `⊆` 的**实参**（不是同一条脊的 `fun`）⇒ 折 ✓。
+        //    ⚠ 括号来自 `render_atom`（`proof.rs`，**判定渲染器**）的"复合操作数
+        //    补括号"规则——SetLiteral 也在那张表里 ⇒ `({a})`。那是既有规则，
+        //    且 proof.rs 不在本切片的可写范围（改它会动判定文本）⇒ 按实测钉住。
+        assert_eq!(
+            fold_text("Set.subset (Set.singleton α a) A", &dn),
+            "({a}) ⊆ A"
+        );
+        assert_eq!(
+            fold_text("Set.mem a (Set.singleton a)", &dn),
+            "a ∈ ({a})",
+            "课程 goal 的实测形状"
+        );
+
+        // ⑦ **脊根规则**（第 4 条）：整条脊的实参个数**超出**两种完全应用形状时
+        //    ⇒ 一个节点都不折（内层是这条脊的部分应用，折它会拼出 `(…) …`）。
+        //    没有这一条：内层 `Set.mem a A B`（k = 3 = 全层数）会被折成 `A ∈ B`，
+        //    父节点整脊重渲染 ⇒ `(A ∈ B) C`。
+        assert_eq!(fold_text("Set.mem a A B C", &dn), "Set.mem a A B C");
+        assert_eq!(fold_text("Set.mem α a A B", &dn), "Set.mem α a A B");
+    }
+
+    /// **折叠规则本身**（两张表显式给，不经源级扫描）：`full = 3`、`prefix = 1`
+    /// ⇒ `k == 3`（开项）与 `k == 2`（闭项）都折、其余不折；操作数**从尾部取**。
+    #[test]
+    fn the_fold_rule_accepts_exactly_the_two_full_application_shapes() {
+        let dn = notations_with_prefixes(SET_LIB, &[("Set.mem", 3)], &[("Set.mem", 1)]);
+        assert_eq!(
+            fold_text("Set.mem α a A", &dn),
+            "a ∈ A",
+            "开项全形（k = 3）"
+        );
+        assert_eq!(
+            fold_text("Set.mem a A", &dn),
+            "a ∈ A",
+            "闭项省略形（k = 2）"
+        );
+        // k = 2 在闭项读法下就是完全应用（前导 `α` 被 pp 省掉）⇒ 折；
+        // 只有连操作数都不够（k = 1）才是**两种读法都成立**的部分应用 ⇒ 原样。
+        assert_eq!(fold_text("Set.mem α", &dn), "Set.mem α", "k = 1");
+        assert_eq!(
+            fold_text("Set.mem α a A B", &dn),
+            "Set.mem α a A B",
+            "k = 4 超出两种形状 ⇒ 整条脊不折（脊根规则）"
+        );
+        // 前缀表缺项 ⇒ 0（旧行为：只认全层数那一种形状）。
+        let no_prefix = notations_with_prefixes(SET_LIB, &[("Set.mem", 3)], &[]);
+        assert_eq!(fold_text("Set.mem α a A", &no_prefix), "a ∈ A");
+        assert_eq!(fold_text("Set.mem a A", &no_prefix), "Set.mem a A");
+    }
+
+    /// **前缀表的来源**（切片）：`{α : Type}` 是隐式 ⇒ 1；显式 binder 打断就停；
+    /// 归纳块先数 `params` 再（全隐式时）接 `ty`。
+    #[test]
+    fn implicit_prefixes_are_counted_from_the_signature() {
+        let prefixes = implicit_prefixes_in_sources(&[SHAPES_LIB]);
+        assert_eq!(prefixes.get("Set.mem").copied(), Some(1), "`{{α : Type}}`");
+        assert_eq!(prefixes.get("Set.subset").copied(), Some(1));
+        // 显式 binder 在开头 ⇒ 0（pp 不会跨过显式实参去省后面的隐式）。
+        assert_eq!(
+            implicit_prefixes_in_sources(&["def f (a : Prop) {b : Prop} : Prop := a\n"])
+                .get("f")
+                .copied(),
+            Some(0)
+        );
+        // 归纳块：`params` = **全部**参数（隐式与显式都在里面）⇒ 前导隐式数到
+        // 第一个显式参数为止（`{A : Type} (p : A -> Prop)` ⇒ 1）。
+        let ind = "inductive Exists {A : Type} (p : A -> Prop) : Prop\n\
+                   ctor intro (w : A) (h : p w) : Exists A p\n\
+                   end\n";
+        let p = implicit_prefixes_in_sources(&[ind]);
+        assert_eq!(p.get("Exists").copied(), Some(1));
+        // 与 elab 的同名函数同口径（同一份源级 AST 走查）。
+        let file = crate::parse(ind).expect("夹具必须能解析");
+        if let crate::ast::Command::InductiveBlock { ty, params, .. } = &file.commands[0] {
+            let (n, all) = leading_implicit_binders(params);
+            assert_eq!(n, 1, "`{{A : Type}}` 是前导隐式");
+            assert!(!all, "`(p : A -> Prop)` 是显式 ⇒ 前导隐式到此为止");
+            assert_eq!(leading_implicit_prefix(ty), 0, "`ty` = `Prop`，没有 binder");
+        } else {
+            panic!("夹具第一个命令必须是归纳块");
+        }
+        // 全隐式 `params` 时**才**接着数 `ty` 的前导隐式。
+        let all_implicit = "inductive Box {A : Type} {B : Type} : Type\n\
+                            ctor mk (a : A) (b : B) : Box A B\n\
+                            end\n";
+        assert_eq!(
+            implicit_prefixes_in_sources(&[all_implicit])
+                .get("Box")
+                .copied(),
+            Some(2)
+        );
+    }
 
     /// **判据**：`infix:50 " ∈ " => Set.mem` 的 telescope = **3**（`α` / `a` / `A`），
     /// 而 `∈` 是二元 ⇒ **前导参数 = 1**（那个 `α`）。两者之差正是折叠时丢掉的东西。
@@ -934,42 +1373,59 @@ mod tests {
         assert_eq!(arities.get("Set.image").copied(), Some(4));
     }
 
-    /// **元数 = 显式 binder 的个数**，不是 telescope 层数——`Eq` 是那条判据。
+    /// **元数 = 全 telescope 层数**（含隐式 binder）——切片（2026-10-10）改口径的判据。
     ///
-    /// `axiom Eq {u} : {α : Sort u} -> α -> α -> Prop` 的 telescope 是 3，但内核 pp
-    /// **省略隐式参数** ⇒ 打出来是 `Eq A B`（**2** 个实参）。用 telescope 当元数
-    /// 会把 `Eq A B` 永远判成"部分应用"、`=` 永远折不出来（接进生产者时实测撞到）。
+    /// `axiom Eq {u} : {α : Sort u} -> α -> α -> Prop` 的 telescope 是 **3**；pp 打
+    /// **开项**（含松散变量）时**不省略**隐式实参 ⇒ 打出来是 `Eq.{u} α a a`（**3** 个
+    /// 实参）。旧口径（显式 binder 个数 = 2）会把这种完全应用判成"部分应用"、同时把
+    /// **内层**的 `Eq.{u} α a` 判成完全应用 ⇒ `(α = a) a`（用户现场）。
+    /// 闭项形状（pp 省掉隐式 α ⇒ `Eq A B`，**2** 个实参）由**前导隐式表**配合认。
+    ///
+    /// `Ne` 的 `α` 是**显式**的（`def Ne {u} (α : Sort u) (a b : α)`）⇒ 前导隐式 0
+    /// ⇒ 两种形状重合（只有 3）。这一对（Eq 3+prefix 1 / Ne 3+prefix 0）正好把新
+    /// 口径钉死。
     #[test]
-    fn arity_counts_explicit_binders_not_the_whole_telescope() {
+    fn arity_is_the_whole_telescope_and_the_prefix_says_what_pp_elides() {
         let arities = arities_with_prelude(&[]);
         assert_eq!(
             arities.get("Eq").copied(),
-            Some(2),
-            "`Eq A B`（隐式 α 被 pp 省掉）"
+            Some(3),
+            "`{{α : Sort u}} -> α -> α -> Prop` ⇒ 3 层（开项 pp 写全 3 个实参）"
         );
-        // `Ne` 反过来：prelude 里它的 `α` 是**显式**的
-        // （`def Ne {u} (α : Sort u) (a b : α)`）⇒ 元数 3，pp 也写 `Ne α a b`。
-        // 这一对（`Eq` 2 / `Ne` 3）正好把"显式 binder 个数"这条规则钉死。
+        assert_eq!(
+            prelude_implicit_prefixes().get("Eq").copied(),
+            Some(1),
+            "`{{α : Sort u}}` ⇒ 前导隐式 1（闭项 pp 省掉它 ⇒ `Eq A B`）"
+        );
         assert_eq!(arities.get("Ne").copied(), Some(3));
-        // 全是显式 binder 的目标：两者相同。
+        assert_eq!(
+            prelude_implicit_prefixes().get("Ne").copied(),
+            Some(0),
+            "`(α : Sort u)` 是显式 ⇒ 不省"
+        );
+        // 全是显式 binder 的目标：两层数相同。
         assert_eq!(arities.get("And").copied(), Some(2));
         assert_eq!(arities.get("Not").copied(), Some(1));
+        assert_eq!(arities.get("Iff").copied(), Some(2));
     }
 
     /// **内建记法要自己补**：`↔`/`∧`/`∨`/`¬`/`=`/`≠` 不在任何源文本里
     /// （parser 有硬编码表），"从源里收记法"收不到它们。
+    ///
+    /// **两张表都要**（切片：折坏部分应用）：`Eq` 的 `α` 是隐式 ⇒ 只用 arity 会把
+    /// 闭项形状 `Eq A B`（pp 省掉 `α`）判成部分应用 ⇒ 这里改走**真管线形状**的夹具
+    /// （[`real_pipeline_notations`]）✓。
     #[test]
     fn builtin_notations_fold_too() {
-        let file = crate::parse(SET_LIB).expect("夹具必须能解析");
-        let mut table = notation_table(&file.commands);
-        table.splice(0..0, crate::notation::builtin_notation_decls());
-        let dn = DisplayNotations::new(table, arities_with_prelude(&[SET_LIB]));
+        let dn = real_pipeline_notations(&[SET_LIB]);
         assert_eq!(
             fold_text("Iff (Set.subset α A B) (Set.subset α A B)", &dn),
             "(A ⊆ B) ↔ (A ⊆ B)"
         );
         assert_eq!(fold_text("And p q", &dn), "p ∧ q");
+        // **闭项形状**（隐式 α 被 pp 省掉）与**开项形状**都要折。
         assert_eq!(fold_text("Eq A B", &dn), "A = B");
+        assert_eq!(fold_text("Eq.{u} α a a", &dn), "a = a");
         // 一元前缀（`¬`）**现在也折**（T-D51：四种记法都折，见
         // `every_notation_kind_folds`）；这里顺带守住"内建的前缀也走同一条路"。
         assert_eq!(fold_text("Not p", &dn), "¬ p");
@@ -1061,15 +1517,20 @@ mod tests {
     /// **部分应用不回退成"看起来像"的东西**：元数对不上就不折。
     ///
     /// `Set.mem α a`（3 元只给了 2 个）折成 `a ∈` 是荒谬的；`Set.mem α a A B`
-    /// （多给一个）折成 `(a ∈ A) B` 更荒谬。两条都必须原样。
+    /// （多给一个）也**不折**——**切片（2026-10-10）改了后者的期望值**：脊根规则
+    /// （[`fold_collecting_inner`] 的 `is_fun_part`）让"元数对不上的脊"里**内层**
+    /// 节点也不折，所以过应用整条原样 ✓。
+    ///
+    /// ⚠ **为什么不再折成 `(a ∈ A) B`**：那条路要先把内层 `Set.mem α a A` 折成
+    /// `a ∈ A`、再由父节点整脊重渲染补括号。同一条规则在 `Eq.{u} α a a` 上就是
+    /// 用户报的 bug（内层 `Eq.{u} α a` 被当成完全应用 ⇒ `(α = a) a`）——根因是
+    /// **内层节点不是一条独立的脊**，它是同一条脊的部分应用。过应用在真 pp 输出里
+    /// 不出现（它不良型），所以代价只是"不折"而不是"折错"✓。
     #[test]
     fn partial_and_over_application_fall_back() {
         let dn = notations(SET_LIB, SET_ARITY);
         assert_eq!(fold_text("Set.mem α a", &dn), "Set.mem α a");
-        // **折过的子树被应用**时，替换范围上提到应用脊根，括号交给 `render_expr`：
-        // `(Set.mem α a A) B` 折成 `(a ∈ A) B`——**不是** `a ∈ A B`
-        // （后者重新解析是 `Set.mem α a (A B)`，换了个意思）。
-        assert_eq!(fold_text("Set.mem α a A B", &dn), "(a ∈ A) B");
+        assert_eq!(fold_text("Set.mem α a A B", &dn), "Set.mem α a A B");
         // 头不是记法目标时也不折（`Set.union` 是，`Set` 不是）。
         assert_eq!(fold_text("Set α", &dn), "Set α");
     }
@@ -1230,6 +1691,18 @@ infixr:80 \" '' \" => Set.image\n";
         ("Set.image", 4),
     ];
 
+    /// **切片（2026-10-10）的夹具库**：与课程库同形——前导类型参数**隐式**
+    /// （`{α : Type}`）⇒ pp 的闭项形状会省略它（`Set.mem a A`），开项形状不会
+    /// （`Set.mem α a A`）。两种形状都要折，这条夹具是判据的输入。
+    const SHAPES_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n\
+def Set.subset {α : Type} (A B : Set α) : Prop := forall (x : α), Set.mem x A -> Set.mem x B\n\
+infix:50 \" ⊆ \" => Set.subset\n\
+def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n\
+def Set.pair {α : Type} (a b : α) : Set α := fun (x : α) => x = a\n";
+
     fn fold_text(text: &str, dn: &DisplayNotations) -> String {
         print_back(text, dn).as_display_str().to_string()
     }
@@ -1305,8 +1778,14 @@ infixr:80 \" '' \" => Set.image\n";
             "{zero, one}",
             "二元集合字面量"
         );
-        // **部分应用不折**（与记法同一条硬规则：只有完全应用才是那个形状）
-        assert_eq!(fold_text("Set.singleton Nat", &dn), "Set.singleton Nat");
+        // **部分应用不折**（与记法同一条硬规则：只有完全应用才是那个形状）。
+        // `Set.pair` 接受 `k == 3 || k == 2`（开项 / 闭项两种完全应用形状）
+        // ⇒ 反例取 `k == 1`。
+        assert_eq!(fold_text("Set.pair Nat", &dn), "Set.pair Nat");
+        // **闭项省略形**（pp 省掉元素类型 ⇒ 只有元素）也是完全应用 ⇒ 折
+        // （课程 goal 里的 `Set.mem a (Set.singleton a)` 就是这个形状）。
+        assert_eq!(fold_text("Set.singleton Nat", &dn), "{Nat}");
+        assert_eq!(fold_text("Set.pair Nat zero", &dn), "{Nat, zero}");
     }
 
     #[test]
@@ -1469,7 +1948,9 @@ infixr:80 \" '' \" => Set.image\n";
     #[test]
     fn prelude_arities_cover_their_own_targets() {
         let a = prelude_arities();
-        for (name, want) in [("And", 2), ("Or", 2), ("Not", 1), ("Iff", 2), ("Eq", 2)] {
+        // **切片（2026-10-10）**：口径改成"全望远镜层数" ⇒ `Eq` 是 **3**
+        // （`{α : Sort u} -> α -> α -> Prop`），闭项形状由隐式前缀表配合认。
+        for (name, want) in [("And", 2), ("Or", 2), ("Not", 1), ("Iff", 2), ("Eq", 3)] {
             assert_eq!(
                 a.get(name),
                 Some(&want),

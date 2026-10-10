@@ -537,6 +537,13 @@ pub fn display_notations_from_commands(
     table.splice(0..0, crate::notation::builtin_notation_decls());
     let arities =
         crate::display::arities_with_prelude_from(crate::display::arities_in_commands(commands));
+    // **前导隐式个数**（切片：折坏部分应用，2026-10-10）：pp 对**闭项**省略前导
+    // 隐式实参、对**开项**不省略 ⇒ 完全应用有两种实参个数（`Set.mem a A` 与
+    // `Set.mem α a A`）。两张表必须**一起**建、一起传（`arity` 单独一张会在开项上
+    // 判成"部分应用"，在内层节点上判成"完全应用" ⇒ `(α = a) a`）。
+    let implicit_prefixes = crate::display::implicit_prefixes_with_prelude_from(
+        crate::display::implicit_prefixes_in_commands(commands),
+    );
     // **③ 的第二层诊断**：那条声明**本身**长什么样（③ 已经夹到"实例里的声明" ✗）。
     if std::env::var_os("SOKO_TRACE_NOTATIONS").is_some() {
         let n = table.iter().filter(|d| d.target == "Exists").count();
@@ -571,7 +578,7 @@ pub fn display_notations_from_commands(
             arities.len()
         );
     }
-    crate::display::DisplayNotations::new(table, arities)
+    crate::display::DisplayNotations::new(table, arities).with_implicit_prefix(implicit_prefixes)
 }
 
 /// **给 front 之外的消费者（LSP hover 等）折一段文本**（T-U11 A 组 ✓ 2026-09-25）。
@@ -2034,7 +2041,23 @@ pub(crate) fn resolve_hovers(
                     // infer_under_binders panic（delta 展开限制）：保留 span、
                     // text 置空——LSP 层的括号回退仍能定位到正确的子表达式，
                     // hover 显示源码切片（不带类型后缀）。
-                    Err(_) => String::new(),
+                    // ⚠ **静默降级是这条路的病**（2026-10-10 用户实测的 `#check`
+                    // hover「只有符号、没有类型」）：panic 的文本被吞成空串 ⇒
+                    // 上层只看到"没有类型"✗。内核侧已按 Lean 4 补齐层元变量
+                    // （`level.rs::leq_core`，合法输入不再走到这里），这一臂留作
+                    // 安全网；`SOKO_HOVER_PANIC_TRACE=1` 时把原因打出来（诊断出口，
+                    // 与 `SOKO_HOVER_TRACE` / `SOKO_POS_TRACE` 同一纪律）。
+                    Err(p) => {
+                        if std::env::var("SOKO_HOVER_PANIC_TRACE").is_ok() {
+                            let msg = p
+                                .downcast_ref::<String>()
+                                .cloned()
+                                .or_else(|| p.downcast_ref::<&str>().map(|s| s.to_string()))
+                                .unwrap_or_else(|| "<non-string panic>".to_string());
+                            eprintln!("[hover-panic] span={:?} msg={}", node.span, msg);
+                        }
+                        String::new()
+                    }
                 }
             };
             // 保留所有行（含 $N 行——LSP 层只显示源码切片，不显示乱码类型）。
