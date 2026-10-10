@@ -253,24 +253,40 @@ async function main() {
     // **第二趟**：命中缓存打开 ⇒ 编辑一次 ⇒ 数条数（修前 = 2）。
     const lsp = startLsp();
     await open(lsp, dir, file, src);
-    const edited = src.replace('  exact h a\n', '  exact h a\n  -- touch\n');
-    lsp.send({
-      jsonrpc: '2.0',
-      method: 'textDocument/didChange',
-      params: {
-        textDocument: { uri: uri(file), version: 2 },
-        contentChanges: [{ text: edited }],
-      },
-    });
-    for (;;) {
-      const m = await lsp.next();
-      if (m.method === 'textDocument/publishDiagnostics' && m.params?.uri === uri(file)) break;
+    // **连续编辑**（用户现场：「每编辑一下代码就多重复一次」，1 → 3-4）：每改一次就数一次。
+    let text = src;
+    let version = 1;
+    let worst = 0;
+    const perRound = [];
+    for (let round = 1; round <= 4; round++) {
+      version += 1;
+      text = text.replace('  exact h a\n', `  exact h a\n${'  '.repeat(round)}-- touch ${round}\n`);
+      lsp.send({
+        jsonrpc: '2.0',
+        method: 'textDocument/didChange',
+        params: {
+          textDocument: { uri: uri(file), version },
+          contentChanges: [{ text }],
+        },
+      });
+      for (;;) {
+        const m = await lsp.next();
+        if (m.method === 'textDocument/publishDiagnostics' && m.params?.uri === uri(file)) break;
+      }
+      const checks = await countMessages(lsp, text, '#check libid');
+      const prints = await countMessages(lsp, text, '#print libid');
+      perRound.push({ round, checks, prints });
+      worst = Math.max(worst, checks, prints);
     }
-    const checks = await countMessages(lsp, edited, '#check libid');
-    const prints = await countMessages(lsp, edited, '#print libid');
     lsp.stop();
-    ok(checks === 1, `编辑一次后 \`#check\` 的输出有 ${checks} 条（应为 1 —— 修前 2 条）`);
-    ok(prints === 1, `编辑一次后 \`#print\` 的输出有 ${prints} 条（应为 1 —— 修前 2 条）`);
+    observed['每步份数（#check / #print）'] = JSON.stringify(perRound);
+    for (const r of perRound) {
+      ok(
+        r.checks === 1 && r.prints === 1,
+        `第 ${r.round} 次编辑后：#check=${r.checks} 条 · #print=${r.prints} 条（应为 1/1）`,
+      );
+    }
+    ok(worst <= 1, `「每编辑一次 +1」仍然存在（最大 ${worst} 份）`);
   } else if (mode === 'fold') {
     // **G-105**：真现场 = `#check` 的**命令输出**（开项 pp `Eq.{u} α a a`）。
     const src = 'def myid : Prop -> Prop := fun (p : Prop) => p\n\n#check Eq.refl\n';
