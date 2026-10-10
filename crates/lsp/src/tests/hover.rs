@@ -1068,8 +1068,14 @@ Eq.{1} (Set α) A B := by\n  apply Set.ext\n  exact h\n";
 }
 
 /// 光标在 **`apply` 关键字**上时的输出 —— **改动前**（2026-10-10，
-/// `5afd1938` + 同夹具）的 wire 字节，137 字节。反向判据的基线：
+/// `5afd1938` + 同夹具）的 wire 字节。反向判据的基线：
 /// 「关键字上 ⇒ 不加那一行」必须**逐字节**成立（不是"看着差不多"）。
+///
+/// ⚠ **目标那一行在 2026-10-10 更新过一次**（G-105：记法折叠只折**完全应用**）：
+/// 以前 `Eq (Set α) A` 这个内层**部分应用**被折成 `(Set α) = A`、尾巴 `B` 留在
+/// 外面 ⇒ `⊢ ((Set α) = A) B` ✗；修后是 `⊢ A = B` ✓（`Eq (Set α) A B` 本就该这样读）。
+/// **其余每一行逐字节不变**（围栏 / `tactic 1/2` / 空行 / 顺序）—— 这条守卫挡的是
+/// "关键字上多加一行"，不是"目标怎么折"，所以基线跟着折叠修法走、结构不许动 ✓。
 const APPLY_KEYWORD_BASELINE: &str = "\
 ```sokonanoda
 apply Set.ext
@@ -1081,7 +1087,7 @@ tactic 1/2
 A : Set α
 B : Set α
 h : (x : α) → (A x) ↔ (B x)
-⊢ ((Set α) = A) B
+⊢ A = B
 ```
 ";
 
@@ -1171,8 +1177,10 @@ async fn hover_on_a_tactic_constant_name_shows_goal_state_then_its_signature() {
         panic!("expected markup hover");
     };
     let value = &markup.value;
+    // 目标那一行 = **修后**的折叠（G-105：`Eq (Set α) A B` ⇒ `A = B`；以前那条
+    // 内层部分应用被折坏成 `⊢ ((Set α) = A) B` ✗）。
     let goal = value
-        .find("⊢ ((Set α) = A) B")
+        .find("⊢ A = B")
         .unwrap_or_else(|| panic!("goal state 必须还在：{value:?}"));
     let divider = value
         .find("\n---\n")
