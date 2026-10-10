@@ -149,6 +149,19 @@ pub struct ProjectReport {
 }
 
 impl ProjectReport {
+    /// **回放闸门**（2026-10-10 · G-102）：逐模块把"同一条命令两份结果"收干净。
+    ///
+    /// 由 `compile::cache::load_in` 在**条目离开缓存之前**调用一次 —— 覆盖
+    /// 两个回放口（模块根 `<root>/.sokonanoda/compiled/` 与全局缓存），
+    /// 于是 LSP 的 `set_cached_entry`（读 `entry_report()`）与 CLI 的
+    /// `query`/`check`/`build` 拿到的是同一份干净报告 ✓。
+    /// 语义/判据见 [`DocumentReport::drop_replayed_duplicates`]。
+    pub fn sanitize_replayed_outputs(&mut self) {
+        for module in &mut self.modules {
+            module.report.drop_replayed_duplicates();
+        }
+    }
+
     /// 入口模块的报告（单文档消费者用它）。
     pub fn entry_module(&self) -> Option<&ModuleReport> {
         self.modules.last()

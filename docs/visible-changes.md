@@ -1,3 +1,12 @@
+# 可见变化（第 3 轮，2026-10-10）：四条用户反馈
+
+| 用户报的 | 屏幕上多/少什么 | 哪一层哪条断言 |
+|---|---|---|
+| `#check`/`#print` 还是重复（2→3→4→19） | 回放之后**不再**每编辑一次多一行 | 真宿主 `C3 重复输出（产物回放）…`；CDP DOM `docs/E2E.md` §8 逐步读份数；front 回放闸判据 |
+| 「由编译器 0.87.3 写入」是假的（实际 0.87.2 编的） | 显示**真写者**；不是这份编译器写的 ⇒ 多一句「建议 Rebuild」 | front `one_write_cannot_rewrite_the_other_entries_writer_version`；webview 渲染两条；`docs/protocol.md` 的 `artifacts` |
+| `#check` 的 hover 缺 def 头/`:=` body；使用处也只有一行类型 | 任何位置 hover 到 `def` ⇒ **同一张卡片**（签名 + `:=` 值） | LSP `hover_on_a_check_line_matches_the_print_line_for_a_name`（两命令逐字节相同）+ 使用处 ≡ 声明名 |
+| 声明列表名字「抢镜」（暗色主题刺眼） | 名字变**普通链接式文字**（正常字号、不加粗、下划线、无亮灰底） | webview CSS 判据（反向：改回 `font-weight: 600` 判红） |
+
 # 「看得见的变化」清单（批次 N 收尾 · 2026-09-26 专项）
 
 > **这是什么** ✓：用户 2026-09-26 专项（记法 × 隐式参数 × 产品交互）的**验收面**——

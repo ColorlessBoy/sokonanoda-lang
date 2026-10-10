@@ -277,18 +277,54 @@
       el(
         "p",
         "project-artifacts",
-        artifacts
-          ? `产物：${num(artifacts.entries)} 条 · ${bytesText(artifacts.bytes)} · ` +
-              // **需求 1B（2026-10-09 用户实测）**：`compiler` 为 `null` 时这里原来写
-              // **裸问号**「由编译器 ? 写入」——用户看到的就是那个 `?`，读不出是
-              // "还没写/读不到" 还是 "插件坏了" ✗。与上面 ② 那行 `project-version`
-              // 同一个友好兜底（「（未知）」）✓。服务端那半边（旧 schema ⇒ 不报
-              // `compiler`）已由 `front::project::cache::update_index` 的 schema 升级修掉；
-              // 这一行是**兜底**：真读不到时也要说人话。
-              `由编译器 ${artifacts.compiler || "（未知）"} 写入`
-          : "产物：还没有（下一次编译会写入模块根的 .sokonanoda/compiled/）",
+        artifacts ? artifactsLine(artifacts) : "产物：还没有（下一次编译会写入模块根的 .sokonanoda/compiled/）",
       ),
     );
+  }
+
+  /// 「产物」那一行（**写者照实说 + 不一致就提示 Rebuild**）。
+  ///
+  /// **2026-10-10 用户实测①**：这一行原来写「由编译器 0.87.3 写入」是**假的**
+  /// —— 用户用 0.87.2 编完、装上 0.87.3 还没 rebuild，面板就说 0.87.3
+  /// （「失去了这个版本号的意义」）。服务端已改成**照实统计条目文件名里的写者**
+  /// （`project::cache::entry_stem`）⇒ 这里只负责**如实渲染**：
+  ///   * 单一写者 ⇒ `由编译器 0.87.2 写入`；
+  ///   * 混合（升级后只重编了一部分）⇒ `由编译器 0.87.2（247）· 0.87.3（2）写入`；
+  ///   * 全是旧命名（写者未记录）⇒ `编译器版本未记录（旧格式）`，**不猜** ✗；
+  ///   * `stale` ⇒ 追加「当前编译器 X ⇒ 建议 Rebuild（Alt+Shift+B）」。
+  ///     `stale` 的语义是"有产物不是这份编译器写的 ⇒ 键不同 ⇒ **不可能被命中**"
+  ///     （条目键里带版本 + 构建戳），所以这条提示是**可执行**的、不是装饰。
+  /// **判据**：`test-webview.js` 的四条（单一/混合/未记录/非 stale 无提示）。
+  function artifactsLine(artifacts) {
+    // `num` 在 `renderProject` 里是局部常量 ⇒ 这里自带一个（同一条口径：
+    // 非数字当 0，绝不把 `undefined` 画上屏）。
+    const n = (value) => (typeof value === "number" ? value : 0);
+    const writers = Array.isArray(artifacts.writers) ? artifacts.writers : [];
+    const entries = n(artifacts.entries);
+    const bytes = bytesText(artifacts.bytes);
+    let written;
+    if (writers.length === 0) {
+      // 老服务端（只有 `compiler`）/ 空目录 / 全是旧命名（写者未记录）。
+      written = artifacts.compiler
+        ? `由编译器 ${artifacts.compiler} 写入`
+        : artifacts.entries > 0
+          ? "编译器版本未记录（旧格式）"
+          : "还没有";
+    } else if (writers.length === 1) {
+      written = `由编译器 ${writers[0].compiler} 写入`;
+    } else {
+      // 混合：最多列两个写者，其余折成「等 N 个版本」（面板不是日志 ✗）。
+      const shown = writers
+        .slice(0, 2)
+        .map((w) => `${w.compiler}（${n(w.entries)}）`)
+        .join(" · ");
+      const more = writers.length > 2 ? ` 等 ${writers.length} 个版本` : "";
+      written = `由编译器 ${shown}${more}写入`;
+    }
+    const stale = artifacts.stale === true
+      ? ` · 当前编译器 ${artifacts.current || "?"} ⇒ 建议 Rebuild（Alt+Shift+B）`
+      : "";
+    return `产物：${entries} 条 · ${bytes} · ${written}${stale}`;
   }
 
   function renderServer(server) {

@@ -365,8 +365,36 @@ pub struct ProjectArtifacts {
     pub entries: usize,
     /// 条目总字节数 —— 项目条目是整份报告，实测 MB 量级，让人/agent 一眼看到代价。
     pub bytes: u64,
-    /// `meta.json` 记的编译器版本（`None` = 还没有 meta 或读不出）。
+    /// **真实写者**：写这些产物的编译器版本 —— 条目**文件名**自带写者标记
+    /// （`<compiler>+<stamp>+<key>.json`）⇒ 它是**照实统计**出来的，不是
+    /// `meta.json` 里那个"最后一次写入"的戳（那个会被**任何一次写入**刷成当前
+    /// 版本 ⇒ 一条新条目就能把另外 247 条的历史改写掉 ✗，2026-10-10 用户实测）。
+    /// 混合时取条数最多的那一个。
+    ///
+    /// `None` = 目录为空、或所有条目都是**旧命名**（写者未记录）。
     pub compiler: Option<String>,
+    /// 写者分布（条数降序、同数按版本升序）—— 混合目录（升级后只重编了一部分）
+    /// 面板要如实说「0.87.2（247）· 0.87.3（2）」，只报一个数会把这盖掉 ✗。
+    /// `entries - Σ writers[].entries` = **写者未记录**的条数（旧命名）。
+    pub writers: Vec<ArtifactWriter>,
+    /// **有产物不是当前这份编译器写的**（版本或构建戳不同；含"写者未记录"的旧命名）
+    /// ⇒ 它们**不可能被命中**（键里带版本 + 构建戳）⇒ 面板提示 Rebuild。
+    pub stale: bool,
+    /// 当前运行中的编译器版本（= 服务端版本）—— 让提示能同时说出两边
+    /// （「由 0.87.2 写入 · 当前 0.87.3 ⇒ 建议 Rebuild」），不靠客户端去猜。
+    pub current: String,
+}
+
+/// 产物目录里的一个写者：谁、写了多少条（[`ProjectArtifacts::writers`]）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArtifactWriter {
+    /// 编译器版本（`x.y.z`）。
+    pub compiler: String,
+    /// 构建戳（`build_stamp` 的 16 位十六进制）—— 同版本的不同构建（debug /
+    /// release / `SOKO_BUILD_LABEL`）也区分得开。
+    pub build_stamp: String,
+    /// 它写的条目数。
+    pub entries: usize,
 }
 
 /// 项目状态视图：**根、清单来源、闭包模块表、每模块状态、项目级诊断**。

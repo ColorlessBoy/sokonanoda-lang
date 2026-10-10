@@ -145,8 +145,37 @@ body {
  * 现在**唯一**可点的是声明卡的名字按钮（`.decl-name`，E27 ✓）——
  * 反向守卫见 `test-webview.js` 的 `runs are never clickable` 那条 ✓。 */
 
+/* **2026-10-10 用户实测（第四条）**：「声明列表里的名字 css 样式比较抢镜，尤其暗色主题
+ * 下刺眼。可以改成普通的、类似于带超链接的文字（正常字号、不加粗/不花哨，
+ * 超链接式下划线或可点击样式即可）」。
+ *
+ * 病根有两条（**同一类问题横向排查**，AGENTS.md 验证纪律 0(b)）：
+ *  ① `font-weight: 600`：名字比正文**粗一档** ⇒ 一屏名字全在喊 ✗；
+ *  ② 它是 **`<button>`** ⇒ UA 默认的 `background-color: buttonface` + 边框 + padding
+ *     全都还在（本文件没有通用 button reset）⇒ 暗色主题下就是一块**亮灰底**，
+ *     正是用户说的"刺眼" ✗。
+ *
+ * ⇒ 收成**普通链接式文字**：字号/字重继承正文（`font: inherit`），去掉按钮外观
+ *（背景/边框/内边距），用主题的**链接色** + 下划线表达"可点"（E27 的语义不变：
+ * 点它 = 跳到定义，行为一个字没动 ✓）。 */
 .decl-name {
-  font-weight: 600;
+  font: inherit;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vscode-textLink-foreground, var(--vscode-foreground));
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.decl-name:hover {
+  color: var(--vscode-textLink-activeForeground, var(--vscode-textLink-foreground));
+}
+
+.decl-name:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, currentColor);
+  outline-offset: 1px;
 }
 
 .decl-kind,

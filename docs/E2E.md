@@ -222,6 +222,74 @@ CI 有**两个** e2e job（`.github/workflows/ci.yml`），合计 3 条腿：
 文件系统）、换 VS Code 版本复现历史、以及"钉住版本 + 提交台账"这件事本身（CI 的
 runner 每次都是干净的，历史趋势只在仓库里）。
 
+## 8. **CDP DOM 层**：断言"屏幕上真的画了几份"（2026-10-10 起）
+
+### 为什么还要这一层
+
+`vscode-test` 那层（§1/§2）读的是**载荷**：`extensionApi.infoview.lastState()` 是
+扩展收到、准备 POST 给 webview 的那份数据（`test-extension-host.js`/`test-webview.js`
+再各守渲染的一半）。**载荷对 ≠ 屏幕上对** —— 2026-10-10 的 `#check`/`#print`
+重复 bug（台账 G-102）就活在接缝上：**报告拼接**那一层重复了同一条命令的输出，
+面板于是把同一行画两遍，而"数据层"看起来一切正常（`messages` 里就是两条，
+谁也不觉得它错）。
+
+⇒ 这一层的判据是**渲染 DOM 的实际份数**：真 VS Code（Extension Development Host）
++ 真扩展 + 真 LSP，用 **CDP** 读 Infoview `#active-frame` 里的
+`.messages .message`，**只读 DOM，不截图、不 OCR**（截图判据会随主题/字体抖）。
+
+### 工具
+
+* `scripts/testing/e2e-vscode-dom.mjs` —— 通用驱动（真键盘 + CDP + DOM 读数）。
+
+  ```bash
+  # ① 起窗口 + Rebuild（预热产物）+ 走用户的"加 #check → 做题 → 回看"序列
+  SOKO_WS=/tmp/soko-dom-accept/ws SOKO_OUT=/tmp/soko-dom-accept PORT=9480 \
+  SOKO_LSP=$PWD/target/release/sokonanoda-lsp \
+    node scripts/testing/e2e-vscode-dom.mjs --phase=all
+  # ② 验收：补一行 `#print` → 重启服务器（走**产物回放**）→ 连编辑两刀
+  #    每一步都读 DOM 份数；任何一次 ≠ 1 条 ⇒ **exit 1**
+  … --phase=accept
+  ```
+
+  * `SOKO_WS` **必须指向工作区的一份副本**（`cp -R courses/set-theory /tmp/…/ws`）：
+    驱动会**改文件**（加 `#check`、追加定理），改教材原文会把工作区弄脏 ✗；
+  * `SOKO_LSP` = 被测服务器（不给就用扩展自带那份）；`SOKO_EXT_PATH` 可换扩展；
+  * 读数行形如
+    `[②.1 第 1 刀之后 · #check] Infoview(.decl=true .status=true) 「命令输出」 ⇒ 1 条：[…]`；
+  * 阶段可对**已开着**的窗口续跑（`launch`/`rebuild`/`panel`/`accept`/…），
+    快照落在 `$SOKO_OUT/snapshot-<phase>.json`。
+
+### 纪律（与 §1 的三层不重叠）
+
+1. **真动作**：加行、编辑、存盘、重启服务器都走**真键盘**（`Input.dispatchKeyEvent`
+   /`Input.insertText`）与命令面板 —— 不直接调内部 API 改状态（那正是"用能跑通的
+   位置代替用户实际点的位置" ✗，AGENTS 验证纪律 0(a)）；
+2. **真读数**：判据只认 DOM 里的份数（`.messages .message`，`kind` 取
+   `.message-kind`），帧的识别判据 = 同时有 `.decl`/`.status`（= 真 Infoview）；
+3. **每一次操作一条读数**：断言的粒度是"**这一次操作之后**屏幕上几条"，
+   不是"最后总数"（累积型 bug 只有逐步读数才定位得到）；
+4. **反向验证**：守卫必须能咬住历史 bug —— 用**未修复版**跑同一序列必须读到 ≥2 条
+   （G-102 的实测读数：回放 3 条 → 编辑一次 4 条，`dom4-run.log`；
+   `docs/gaps/repro/editor-hover-probe.js duplication` 是同一现场的无头版）。
+   ⚠ **这一层的复现是"有状态"的**：同一序列在 0.87.2 上也可能读到 1（取决于入口趟
+   有没有从命令级检查点续编）⇒ **它当验收判据（当前版本必须恒为 1）✓，
+   不要拿它当反向验证的唯一证据** —— 反向验证用下面那条更确定的路：
+   **把修复撤掉重跑 `vscode-test` 的 `C3 重复输出（产物回放）…`**（`cmd` 回到
+   `#[serde(skip)]` ⇒ 用例在"产物回放之后再编辑"那一格读到 2 条 ✗，实测）；
+5. **跑完 `git status`**（见下一节）—— 驱动的工件都在 `$SOKO_OUT`
+   （默认 `/tmp/soko-dom-repro`），仓库里只应有台账/文档。
+
+### 与其它层的分工
+
+| 层 | 读到的东西 | 例子 |
+|---|---|---|
+| `vscode-test`（§1） | **载荷**（`lastState()`/诊断/LSP 往返） | 「产物回放之后再编辑，`messages` 里 `#check`/`#print` 各恰好一条」（`C3 重复输出（产物回放）…`） |
+| `test-webview.js`（§1 的纯 Node 层） | **渲染函数**（DOM，但输入是造的） | 「`.messages .message` 渲染成 `tok-*` span」 |
+| **本节（CDP）** | **真宿主里渲染出来的 DOM** | 「真窗口里每一步都只画一条」 |
+
+三层都要有：前两层快、确定性高（CI 每次都跑）；这一层慢、要真桌面
+（本地/手动，或专门排查 UI 接缝时跑）。
+
 ## ⚠ **跑完 e2e 必须 `git status`**（2026-09-26 实测 ✓）
 
 **e2e 会改工作区** ✓ —— 实测两处 ✓：

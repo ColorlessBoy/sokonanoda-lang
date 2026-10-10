@@ -172,6 +172,56 @@ fn current_stamp() -> (&'static str, String) {
     )
 }
 
+/// **条目文件名的写者标记**：`<compiler>+<stamp16>+<key>`（不含 `.json`）。
+///
+/// ## 为什么把写者写进**文件名**（2026-10-10 用户实测的第二个反馈）
+///
+/// 用户现场：「`产物：248 条 · 1.2 GiB · 由编译器 0.87.3 写入` 这个版本号是假的
+/// —— 我用 0.87.2 编完，装上 0.87.3 还没 rebuild，面板就说 0.87.3 了」。
+/// 根因是**目录级**的 `meta.json.compiler` 会被**任何一次写入**刷成"当前编译器"
+/// （[`update_index`]）⇒ 一条新条目就能把另外 247 条的历史改写掉，这个版本号
+/// 从此失去意义 ✗。
+///
+/// ⇒ 写者只认**条目自己**：写的时候把 `(compiler, build_stamp)` 编进文件名，
+/// 读侧一次 `read_dir` 就能如实统计"这些产物分别是哪个编译器写的"（零额外 IO、
+/// 不解析条目内容——条目是整份报告，MB 量级），而且**不会被后来的写入改写** ✓。
+/// `ls` 一眼也能看出写者（人/agent 都读得到）。
+///
+/// **分隔符选 `+`**：版本号按仓规只能是纯 `x.y.z`（带后缀会被 `scripts/soko`
+/// 按 G-16 拒绝运行）⇒ 版本里不可能出现 `+`，于是"从左边切两刀"永远无歧义 ✓
+/// （用 `.` 会与版本号里的点撞车 ✗）。
+///
+/// **旧命名 `<key>.json` 怎么办**：不认（当 miss、重编 ⇒ 与升级后的键本来就
+/// 命中不了同一件事），读侧把它算成"写者未记录"⇒ 面板如实说"未记录 · 建议
+/// Rebuild"，**不再**拿 `meta.json` 那个会被刷新的字段冒充 ✓。
+pub fn entry_stem(key: &str) -> String {
+    let (compiler, stamp) = current_stamp();
+    format!("{compiler}+{stamp}+{key}")
+}
+
+/// 从条目文件名（含或不含 `.json`）解出写者 `(compiler, build_stamp)`。
+///
+/// `None` = 旧命名（`<key>.json`）或形状不认识 ⇒ **写者未记录**（读侧如实说，
+/// 不猜）。判据见 `query::project::tests`。
+pub fn writer_of_entry_file(name: &str) -> Option<(&str, &str)> {
+    let stem = name.strip_suffix(".json").unwrap_or(name);
+    let mut parts = stem.split('+');
+    let compiler = parts.next()?;
+    let stamp = parts.next()?;
+    let key = parts.next()?;
+    // 三段都要在，且 key 段必须恰好一段（多于三段 = 不是我们的命名）。
+    if compiler.is_empty() || stamp.is_empty() || key.is_empty() || parts.next().is_some() {
+        return None;
+    }
+    Some((compiler, stamp))
+}
+
+/// 当前编译器身份（`current_stamp()` 的公开只读视图，读侧比"产物是不是这份
+/// 编译器写的"要用它）。
+pub fn current_writer() -> (&'static str, String) {
+    current_stamp()
+}
+
 /// 建目录 + `.gitignore`（一行 `*`，自忽略）+ `meta.json`。
 ///
 /// `.gitignore` 的内容**恰好一行 `*`**：实测 `git status --porcelain` 完全看不见
@@ -208,8 +258,8 @@ fn ensure_layout(root: &Path) -> bool {
 /// 条目仍然命中）。
 pub fn load_at(root: &Path, digest: &str, options: &CompileOptions) -> Option<CachedCompile> {
     if enabled() && meta_ok(root) {
-        if let Some(entry) = compiled::load_in(&compiled_at(root), &compiled::key(digest, options))
-        {
+        let key = compiled::key(digest, options);
+        if let Some(entry) = compiled::load_in(&compiled_at(root), &entry_stem(&key)) {
             return Some(entry);
         }
     }
@@ -259,9 +309,10 @@ pub fn store_at(root: &Path, digest: &str, options: &CompileOptions, project: &P
         return;
     };
     let key = compiled::key(digest, options);
+    let stem = entry_stem(&key);
     compiled::store_in(
         &compiled_at(root),
-        &key,
+        &stem,
         &CachedCompile {
             report: entry.report.clone(),
             output: Some(entry.events.clone()),
@@ -269,7 +320,9 @@ pub fn store_at(root: &Path, digest: &str, options: &CompileOptions, project: &P
         },
     );
     // `entry.path` 就是这个入口**文件**的路径（模块根下的某个 `.sokonanoda`）。
-    update_index(root, &entry.path, &key);
+    // 索引里存**完整文件名**（不是裸 key）：它同时是"替换时要删掉的那一份"的
+    // 句柄，也是读侧统计写者的依据 ✓。
+    update_index(root, &entry.path, &stem);
 }
 
 /// [`store_at`] 的"只缓存干净项目"版本（判据与全局那条完全一致）。
@@ -322,7 +375,7 @@ pub fn clean_at(root: &Path) -> usize {
 /// 条目**，命中率崩掉、反复重编（CI 的 `test` job 从 ~15 分钟变成 50+ 分钟）。
 /// 判据：`crates/cli/tests/artifacts.rs::every_entry_keeps_its_own_artifact_round_after_round`
 /// （34 个入口 ⇒ 34 条产物、第二轮全命中；条数上限版本实测 **32 ≠ 34** ✗）。
-fn update_index(root: &Path, entry_path: &Path, key: &str) {
+pub(crate) fn update_index(root: &Path, entry_path: &Path, key: &str) {
     let path = artifacts_dir(root).join("meta.json");
     let Ok(bytes) = std::fs::read(&path) else {
         return;

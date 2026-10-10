@@ -845,14 +845,39 @@ test("project: artifact bytes scale to B/KiB/MiB/GiB (user 2026-10-08)", () => {
   }
 });
 
-// **需求 1B（2026-10-09 用户实测）**：`artifacts.compiler` 缺失时**不许画裸问号**
-// 「由编译器 ? 写入」——用户读不出那是"还没写/读不到"还是"插件坏了" ✗。
-// 与上面 ② 那行 `project-version` 同一个友好兜底（「（未知）」）✓。
-//
-// 服务端那半边（旧 schema ⇒ 不报 `compiler`）由 `update_index` 的 schema 升级修掉
-// （判据在 `crates/front/src/project/cache.rs` 与 `crates/cli/tests/artifacts.rs`）；
-// **这一条钉的是兜底**：真读不到时屏幕上也是人话。
-test("project: a missing compiler version reads （未知）, never a bare ? (2026-10-09)", () => {
+// **需求 1B（2026-10-09 用户实测）+ 2026-10-10 用户实测①**：`artifacts.compiler`
+// 缺失时**不许画裸问号**「由编译器 ? 写入」——用户读不出那是"还没写/读不到"
+// 还是"插件坏了" ✗。2026-10-10 起，`compiler` 为 `null` 且**有产物**的语义
+// 明确成「写者未记录（旧格式）」：条目是本次改动之前的旧命名（写者写在文件名里），
+// **不猜**是哪个编译器写的（那正是用户报的谎 ✗），并提示 Rebuild。
+test("project: a missing compiler version never reads as a bare ? (2026-10-09/10)", () => {
+  // 老服务端形状（只有 `compiler`，没有 `writers`）：照旧说人话。
+  for (const compiler of ["0.83.0"]) {
+    const { root, send } = loadInfoview();
+    send({
+      protocol: 1,
+      type: "project",
+      project: {
+        entry: "units.u01",
+        root: "/repo/courses/set-theory",
+        manifest: null,
+        modules: [],
+        counts: { modules: 1, decls: 0, compiled: 1, failed: 0, open_exercises: 0 },
+        artifacts: { entries: 7, bytes: 2048, compiler },
+      },
+      reason: null,
+    });
+    const line = textOf(byClass(root, "project-artifacts")[0]);
+    assert.ok(
+      line.includes(`由编译器 ${compiler} 写入`),
+      `compiler=${JSON.stringify(compiler)} ⇒ 期望友好文案：${line}`,
+    );
+    assert.ok(
+      !line.includes("?"),
+      `compiler=${JSON.stringify(compiler)} ⇒ 不许出现裸问号：${line}`,
+    );
+  }
+  // 读不到写者（`compiler: null` + 有产物）⇒ 如实说"未记录"，**不编**一个版本号。
   for (const compiler of [null, undefined, ""]) {
     const { root, send } = loadInfoview();
     send({
@@ -870,14 +895,82 @@ test("project: a missing compiler version reads （未知）, never a bare ? (20
     });
     const line = textOf(byClass(root, "project-artifacts")[0]);
     assert.ok(
-      line.includes("由编译器 （未知） 写入"),
-      `compiler=${JSON.stringify(compiler)} ⇒ 期望友好文案：${line}`,
+      line.includes("编译器版本未记录"),
+      `compiler=${JSON.stringify(compiler)} ⇒ 期望「未记录」：${line}`,
     );
     assert.ok(
       !line.includes("?"),
       `compiler=${JSON.stringify(compiler)} ⇒ 不许出现裸问号：${line}`,
     );
   }
+});
+
+// **2026-10-10 用户实测①**：「`产物：248 条 · 1.2 GiB · 由编译器 0.87.3 写入` 这个
+// 版本号是假的 —— 我用 0.87.2 编完，装上 0.87.3 还没 rebuild，面板就说 0.87.3」。
+//
+// 服务端改成**照实统计条目文件名里的写者**（`project::cache::entry_stem`）之后，
+// 面板这一行必须：① 说**真的**写者；② 混合目录如实列分布；③ 不是当前编译器写的
+// 就提示 Rebuild（那些条目键不同 ⇒ **不可能被命中**）；④ 一致时**不许**提示
+// （提示变成噪声 = 用户不再看它 ✗）。
+test("project: the artifact version is the real writer, with a rebuild hint on mismatch (2026-10-10)", () => {
+  const project = (artifacts) => ({
+    entry: "units.u01",
+    root: "/repo/courses/set-theory",
+    manifest: null,
+    modules: [],
+    counts: { modules: 1, decls: 0, compiled: 1, failed: 0, open_exercises: 0 },
+    artifacts,
+  });
+  const lineFor = (artifacts) => {
+    const { root, send } = loadInfoview();
+    send({ protocol: 1, type: "project", project: project(artifacts), reason: null });
+    return textOf(byClass(root, "project-artifacts")[0]);
+  };
+
+  // ① 单一写者 + 与当前一致 ⇒ 说真的写者，**没有**提示。
+  const clean = lineFor({
+    entries: 248,
+    bytes: 1288490188,
+    compiler: "0.87.3",
+    writers: [{ compiler: "0.87.3", build_stamp: "aaaa", entries: 248 }],
+    stale: false,
+    current: "0.87.3",
+  });
+  assert.ok(clean.includes("由编译器 0.87.3 写入"), clean);
+  assert.ok(!clean.includes("Rebuild"), `一致时不许提示 Rebuild（噪声）：${clean}`);
+
+  // ② 用户现场：产物是 0.87.2 写的，当前 0.87.3（还没 rebuild）⇒
+  //    **显示真实写者** + 提示 Rebuild。修前这里写的是"0.87.3"（谎 ✗）。
+  const stale = lineFor({
+    entries: 249,
+    bytes: 1288490188,
+    compiler: "0.87.2",
+    writers: [
+      { compiler: "0.87.2", build_stamp: "bbbb", entries: 248 },
+      { compiler: "0.87.3", build_stamp: "aaaa", entries: 1 },
+    ],
+    stale: true,
+    current: "0.87.3",
+  });
+  assert.ok(
+    stale.includes("0.87.2（248）") && stale.includes("0.87.3（1）"),
+    `混合目录必须如实列两个写者：${stale}`,
+  );
+  assert.ok(stale.includes("当前编译器 0.87.3"), stale);
+  assert.ok(stale.includes("建议 Rebuild"), stale);
+
+  // ③ 全是旧命名（写者未记录）⇒ 如实说"未记录" + 提示 Rebuild（键不同 ⇒ 命中不了）。
+  const legacy = lineFor({
+    entries: 248,
+    bytes: 1024,
+    compiler: null,
+    writers: [],
+    stale: true,
+    current: "0.87.3",
+  });
+  assert.ok(legacy.includes("编译器版本未记录"), legacy);
+  assert.ok(legacy.includes("建议 Rebuild"), legacy);
+  assert.ok(!legacy.includes("由编译器 0.87.3"), `不许冒充当前编译器：${legacy}`);
 });
 
 test("project: no project tells the reason apart, never a blank (E30)", () => {
@@ -997,6 +1090,40 @@ test("CSS: declaration type/value/goal text is body-sized, bright and airy", () 
   assert.ok(
     /\.decl\s*\{[^}]*padding:\s*4px 8px;/.test(css),
     "`.decl` 的内边距必须是 4px 8px（行与行不再挤在一起）",
+  );
+});
+
+// **2026-10-10 用户实测（第四条）**：声明列表里的**名字**「css 样式比较抢镜，尤其暗色
+// 主题下刺眼」⇒ 收成普通的链接式文字（正常字号、不加粗、无按钮外观、下划线表达可点）。
+//
+// 判据钉**用户看得见的三件事**（读的是 CSS 文本 = 屏幕上生效的那份）：
+//  ① **不加粗**：不许出现 `font-weight`（继承正文），也不许再写 600/700；
+//  ② **没有按钮外观**：它是一个 `<button>`（E27 的可点语义要靠它）⇒ background / border /
+//     padding 必须被显式清掉，否则暗色主题下 UA 的 `buttonface` 亮灰底就回来了 ✗；
+//  ③ **链接式**：`text-decoration: underline` + 主题链接色（`--vscode-textLink-foreground`）。
+// **反向验证**：把这一条改回 `font-weight: 600`（删掉其余清样式）⇒ 本判据当场判红 ✓。
+test("CSS: declaration names read as plain links, not loud buttons (2026-10-10)", () => {
+  const css = fs.readFileSync(path.join(__dirname, "media", "infoview.css"), "utf8");
+  const m = /(\.decl-name)\s*\{([^}]*)\}/.exec(css);
+  assert.ok(m, "infoview.css must define .decl-name");
+  const body = m[2];
+  assert.ok(
+    /font:\s*inherit;/.test(body) && !/font-weight/.test(body),
+    `名字必须继承正文字号/字重（不加粗、不放大）：${body}`,
+  );
+  for (const prop of ["background:\\s*transparent", "border:\\s*0", "padding:\\s*0"]) {
+    assert.ok(
+      new RegExp(prop).test(body),
+      `按钮外观必须清掉（暗色主题下 UA 的亮灰底就是用户说的"刺眼"）——缺 ${prop}：${body}`,
+    );
+  }
+  assert.ok(
+    /text-decoration:\s*underline;/.test(body),
+    `"可点"要用链接式下划线表达（用户点名的样式）：${body}`,
+  );
+  assert.ok(
+    /color:\s*var\(--vscode-textLink-foreground/.test(body),
+    `颜色走主题的链接色（跟随亮/暗主题，不写死）：${body}`,
   );
 });
 

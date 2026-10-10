@@ -494,6 +494,304 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     }
   });
 
+  test("C3 重复输出（产物回放）：从模块根产物回放之后再编辑，`#check`/`#print` 仍恰好一条", async () => {
+    // **2026-10-10 用户实测（G-102 的真现场）**：上一条用例只覆盖"同一进程里连续
+    // 编辑"，而用户看到的重复来自**另一条路** —— 报告落盘（`<模块根>/.sokonanoda/
+    // compiled/*.json`）之后**回放**：回放出来的那份 `cmd` 归零/与 fresh 对不上
+    // ⇒ 拼接时缓存那份 + 新算那份都留下 ⇒ **每编辑一次 +1**（现场 2 → 3 → 4 → 19）。
+    //
+    // ⇒ 这条用例补的正是**此前缺的那一步**（这正是当初没发现此 bug 的原因）：
+    //   ① 冷编 + 写产物；② **重启服务器**（下一次打开走**产物回放**）；
+    //   ③ 在**命令之后**的声明上编辑两刀；④ 每一步都断言 `#check`/`#print`
+    //   **恰好一条**；⑤ 存盘后再读**磁盘上的产物**：仍然一条（回放不会累积）。
+    //
+    // 判据 = 用户动作 ⇒ 可见结果：真宿主 + 真 LSP + 真项目 + 真产物回放。
+    // 反向验证：用 0.87.2 的 LSP 跑同一条用例 ⇒ 第 ③ 步读到 2 条（`dom4-run.log`
+    // 的实机读数；G-102 的复现件 `docs/gaps/repro/G102-…` 是它的无头版）。
+    const lib = "def lib_id : Nat -> Nat := fun (n : Nat) => n\n";
+    const filler = (n) =>
+      `theorem filler_${n} (A : Nat -> Prop) (a : Nat) : A a -> A a := by\n  intro h\n  exact h\n\n`;
+    const body =
+      "import Lib\n\n" +
+      "#check lib_id\n" +
+      "#print lib_id\n\n" +
+      Array.from({ length: 8 }, (_, i) => filler(i + 1)).join("") +
+      "theorem mem_of_subset (A B : Nat -> Prop) (h : forall (x : Nat), A x -> B x) (a : Nat) :\n" +
+      "    A a -> B a := by\n" +
+      "  intro ha\n" +
+      "  sorry\n\n" +
+      Array.from({ length: 8 }, (_, i) => filler(i + 9)).join("") +
+      "theorem eq_of_same_elements (A B : Nat -> Prop) (h : forall (x : Nat), A x -> B x) :\n" +
+      "    forall (x : Nat), A x -> B x := by\n" +
+      "  sorry\n";
+    const uris = await writeProject("check-replay", {
+      "Lib.sokonanoda": lib,
+      "Main.sokonanoda": body,
+    });
+    const uri = uris["Main.sokonanoda"];
+    const moduleRoot = path.dirname(uri.fsPath);
+    await showDoc(uri);
+    // ⚠ **`restartServer` 之后要重新取**：重启会让旧 `TextEditor` 失效
+    // （`editor.edit` 会抛 "editor is no longer valid"）⇒ 用 `let` + 重取。
+    let editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "the entry must be the active editor");
+    const lineOf = (prefix) =>
+      [...Array(editor.document.lineCount).keys()].find((i) =>
+        editor.document.lineAt(i).text.startsWith(prefix),
+      );
+    /// 真人的"把光标挪回命令行"：选区真的变 ⇒ 扩展才重新问 `soko/stateAt`。
+    const caretOn = (prefix) => {
+      const line = lineOf(prefix);
+      assert.notStrictEqual(line, undefined, `夹具里必须有 \`${prefix}\``);
+      editor.selection = new vscode.Selection(0, 0, 0, 0);
+      const pos = new vscode.Position(line, 3);
+      editor.selection = new vscode.Selection(pos, pos);
+    };
+    /// 把光标放到 `prefix` 那一行，等**那一行自己的**命令输出到达（版本一致 ⇒ 不是
+    /// 旧载荷）。
+    ///
+    /// ⚠ 只等"版本追上缓冲区"是不够的：光标移动**不改文档版本** ⇒ 上一次的位置
+    /// 留下的载荷会让判据读到**别人那一行**的输出（实测：在 `#print` 行上读到了
+    /// `#check` 的输出 ✗）。⇒ 判据加一条"这一行真的出现了期望 kind 的输出" ✓。
+    const readOn = async (prefix, kind, desc) => {
+      caretOn(prefix);
+      await waitFor(`${desc}（${prefix}）：这一行的命令输出到达`, async () => {
+        const state = extensionApi.infoview.lastState();
+        return (
+          state &&
+          state.version === editor.document.version &&
+          Array.isArray(state.messages) &&
+          state.messages.some((m) => m.kind === kind)
+        );
+      });
+      return (extensionApi.infoview.lastState()?.messages ?? []).filter((m) => m.kind === kind);
+    };
+    /// **两条命令行各读一次**：`soko/stateAt.messages` 是按**光标那一行**取的
+    /// ⇒ 数 `#print` 的份数必须把光标放到 `#print` 那一行（数 `#check` 同理）。
+    const assertSingle = async (where) => {
+      const checks = await readOn("#check lib_id", "check", where);
+      assert.strictEqual(
+        checks.length,
+        1,
+        `${where}：\`#check\` 必须恰好一条（修前每回放/编辑一次 +1）：` + JSON.stringify(checks),
+      );
+      const prints = await readOn("#print lib_id", "print", where);
+      assert.strictEqual(
+        prints.length,
+        1,
+        `${where}：\`#print\` 必须恰好一条：` + JSON.stringify(prints),
+      );
+    };
+    /// **磁盘上的产物**：`compiled/*.json` 里那份带 `#check` 的报告。
+    const artifactReport = () => {
+      const dir = path.join(moduleRoot, ".sokonanoda", "compiled");
+      if (!fs.existsSync(dir)) return null;
+      for (const file of fs.readdirSync(dir)) {
+        if (!file.endsWith(".json")) continue;
+        let entry;
+        try {
+          entry = JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"));
+        } catch {
+          continue;
+        }
+        const report = entry.report;
+        if (report && Array.isArray(report.checks) && report.checks.length > 0) return report;
+      }
+      return null;
+    };
+    // ① 冷编 + 写产物（缓冲 == 磁盘 ⇒ 落**模块根**）。
+    await assertSingle("① 冷编");
+    await waitFor("① 产物落盘（`compiled/*.json` 里那份带 `#check` 的报告）", async () => {
+      const report = artifactReport();
+      return report && report.checks.length === 1 && report.prints.length === 1;
+    });
+    const written = artifactReport();
+    assert.strictEqual(written.checks.length, 1, "写出去的产物里 `#check` 只许一条");
+    assert.strictEqual(written.prints.length, 1, "写出去的产物里 `#print` 只许一条");
+
+    // ② **重启服务器** ⇒ 重开这一份文档走**产物回放**（用户现场那条路）。
+    await vscode.commands.executeCommand("sokonanoda.restartServer");
+    await showDoc(uri);
+    editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "restart 之后入口必须仍是活跃编辑器");
+
+    await assertSingle("② 产物回放（修前这里开始就不是 1 了）");
+
+    // ③ 在**命令之后**的声明上编辑两刀（`#check`/`#print` 落进信任前缀 → 靠拼接回填）。
+    const prove = async (round, body) => {
+      const thm = lineOf(body[0]);
+      assert.notStrictEqual(thm, undefined, `夹具里必须有 \`${body[0]}\``);
+      const sorry = lineOf("  sorry");
+      await editor.edit((builder) => {
+        builder.replace(
+          new vscode.Range(sorry, 0, sorry, editor.document.lineAt(sorry).text.length),
+          body[1],
+        );
+      });
+      await assertSingle(`③ 第 ${round} 刀之后`);
+    };
+    await prove(1, [
+      "theorem mem_of_subset",
+      // 夹具里已经有 `intro ha`（它在 `sorry` 那行之前）⇒ 这里只补剩下两步。
+      "  apply h\n  exact ha",
+    ]);
+    await prove(2, [
+      "theorem eq_of_same_elements",
+      "  intro x\n  exact h x",
+    ]);
+
+    // ④ 存盘 ⇒ 产物被**重写**（缓冲 == 磁盘了）⇒ 磁盘那份也必须仍是一条。
+    await vscode.commands.executeCommand("workbench.action.files.save");
+    await sleep(1500);
+    await assertSingle("④ 存盘之后");
+    const afterSave = artifactReport();
+    if (afterSave) {
+      assert.strictEqual(
+        afterSave.checks.length,
+        1,
+        "落盘的产物里 `#check` 只许一条（否则下次开档回放 k 份 ⇒ 再编辑 k+1 ✗）",
+      );
+      assert.strictEqual(afterSave.prints.length, 1, "落盘的产物里 `#print` 只许一条");
+    }
+  });
+
+  test("hover 收口 + 产物写者照实：卡片三处同形，产物版本不说谎（2026-10-10 第 3 轮）", async () => {
+    // 用户第 3 轮的五条里，②③④ 在这里（① 在 `C3 重复输出（产物回放）…`；
+    // ⑤ = 声明列表名字的 CSS，webview 的 DOM 在集成宿主里够不到 ⇒ 它在
+    // `test-webview.js`（渲染 + CSS 规则）与 `docs/E2E.md` §8 的 CDP DOM 层（真宿主
+    // 里读 `.decl-name` 的**计算样式**）各有一条 ✓）。
+    //   ② 产物版本号不许是"最后一次写入"的戳：显示**条目自己记的写者**，
+    //      与当前编译器不一致时 `stale` 为真（面板据此提示 Rebuild）；
+    //   ③ `#check <名字>` 的 hover 必须与 `#print <名字>` **逐字节相同**（声明卡片：
+    //      def 头 + 类型 + `:=` body）；
+    //   ④ **使用处**（`(h : lib_id a = a)` 里那个 `lib_id`）也要给**同一张卡片**。
+    const version = JSON.parse(
+      fs.readFileSync(path.join(REPO_ROOT, "editor", "vscode", "package.json"), "utf8"),
+    ).version;
+    const uris = await writeProject("hover-card", {
+      "Lib.sokonanoda": "def lib_id (n : Nat) : Nat := n + 1\n",
+      "Main.sokonanoda":
+        "import Lib\n\n" +
+        "#check lib_id\n" +
+        "#print lib_id\n\n" +
+        "theorem uses_it (a : Nat) (h : lib_id a = a) : True := True.intro\n",
+    });
+    const uri = uris["Main.sokonanoda"];
+    const root = path.dirname(uri.fsPath);
+    await showDoc(uri);
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "the entry must be the active editor");
+    const lineOf = (prefix) =>
+      [...Array(editor.document.lineCount).keys()].find((i) =>
+        editor.document.lineAt(i).text.startsWith(prefix),
+      );
+    /// 一行上某个位置的真 hover 文本（`vscode.executeHoverProvider` = 编辑器里
+    /// 鼠标悬停走的那条路 ✓）。
+    const hoverOn = async (line, ch) => {
+      const hovers = await vscode.commands.executeCommand(
+        "vscode.executeHoverProvider",
+        uri,
+        new vscode.Position(line, ch),
+      );
+      const contents = hovers?.[0]?.contents;
+      if (contents === undefined) return "";
+      if (typeof contents === "string") return contents;
+      if (Array.isArray(contents)) {
+        return contents.map((p) => (typeof p === "string" ? p : p.value ?? "")).join("\n");
+      }
+      return contents.value ?? "";
+    };
+
+    // ③ `#check lib_id` vs `#print lib_id`：**逐字节相同**。
+    await waitFor("hover 收口：命令行输出已就绪", async () => {
+      const state = extensionApi.infoview.lastState();
+      return state && state.version === editor.document.version;
+    });
+    const checkLine = lineOf("#check lib_id");
+    const printLine = lineOf("#print lib_id");
+    assert.notStrictEqual(checkLine, undefined, "夹具里必须有 `#check lib_id`");
+    assert.notStrictEqual(printLine, undefined, "夹具里必须有 `#print lib_id`");
+    const checkHover = await hoverOn(checkLine, "#check ".length + 2);
+    const printHover = await hoverOn(printLine, "#print ".length + 2);
+    assert.strictEqual(
+      checkHover,
+      printHover,
+      "`#check <名字>` 的 hover 必须与 `#print <名字>` 逐字节相同（收口统一）",
+    );
+    assert.ok(checkHover.includes("def lib_id"), `卡片要有 def 头：${checkHover}`);
+    assert.ok(checkHover.includes(":="), `卡片要有 := body：${checkHover}`);
+
+    // ④ 使用处（`h : lib_id a = a`）也要给**同一张卡片**。
+    const useLine = lineOf("theorem uses_it");
+    assert.notStrictEqual(useLine, undefined, "夹具里必须有 theorem uses_it");
+    const useText = editor.document.lineAt(useLine).text;
+    const useCol = useText.indexOf("lib_id") + 2;
+    const useHover = await hoverOn(useLine, useCol);
+    assert.ok(
+      useHover.includes("def lib_id"),
+      `使用处的 hover 也要有 def 头（用户报的就是它缺失）：${useHover}`,
+    );
+    assert.ok(useHover.includes(":="), `使用处的 hover 也要有 := body：${useHover}`);
+
+    // ② 产物写者照实：新编的目录 ⇒ 写者 = 当前版本、不 stale。
+    await waitFor("② 产物快照到达（`soko/project`）", async () => {
+      const posted = extensionApi?.infoview?.lastProject?.();
+      return !!(posted && posted.project && posted.project.artifacts);
+    });
+    const fresh = extensionApi.infoview.lastProject().project.artifacts;
+    assert.strictEqual(
+      fresh.compiler,
+      version,
+      `刚编完的产物写者必须是当前编译器：${JSON.stringify(fresh)}`,
+    );
+    assert.strictEqual(fresh.stale, false, `当前编译器写的产物不许 stale：${JSON.stringify(fresh)}`);
+    assert.strictEqual(
+      fresh.current,
+      version,
+      `要带上当前版本（面板提示用）：${JSON.stringify(fresh)}`,
+    );
+
+    // ②′ **伪造现场**：把条目文件名改成"旧写者 0.9.9 编的"，并让 `meta.json` 说当前版本
+    //（= 用户现场"新条目把目录级戳刷新"之后的形状）。再编辑一次文档让服务端重新出
+    // `soko/project` ⇒ 显示的必须是**条目自己记的写者** + `stale`。
+    const compiledDir = path.join(root, ".sokonanoda", "compiled");
+    const metaPath = path.join(root, ".sokonanoda", "meta.json");
+    for (const name of fs.readdirSync(compiledDir)) {
+      if (!name.endsWith(".json")) continue;
+      const parts = name.slice(0, -".json".length).split("+");
+      if (parts.length !== 3) continue;
+      fs.renameSync(
+        path.join(compiledDir, name),
+        path.join(compiledDir, `0.9.9+${parts[1]}+${parts[2]}.json`),
+      );
+    }
+    const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+    meta.compiler = version; // 谎：目录级戳说"当前版本"
+    fs.writeFileSync(metaPath, `${JSON.stringify(meta)}\n`);
+    const lastLine = editor.document.lineCount - 1;
+    await editor.edit((builder) => {
+      builder.insert(
+        new vscode.Position(lastLine, editor.document.lineAt(lastLine).text.length),
+        "\n",
+      );
+    });
+    await waitFor("②′ 伪造之后重新出产物快照", async () => {
+      const posted = extensionApi?.infoview?.lastProject?.();
+      return !!(posted && posted.project && posted.project.artifacts?.stale);
+    });
+    const stale = extensionApi.infoview.lastProject().project.artifacts;
+    assert.strictEqual(
+      stale.compiler,
+      "0.9.9",
+      `显示的必须是条目自己记的写者（不是 meta.json 那个会被刷新的戳）：${JSON.stringify(stale)}`,
+    );
+    assert.strictEqual(
+      stale.stale,
+      true,
+      `不是当前编译器写的 ⇒ stale（面板提示 Rebuild）：${JSON.stringify(stale)}`,
+    );
+  });
+
   test("clean lesson publishes empty diagnostics", async () => {
     const uri = await writeDoc("lesson-clean.sokonanoda", LESSON_CLEAN);
     await vscode.workspace.openTextDocument(uri);

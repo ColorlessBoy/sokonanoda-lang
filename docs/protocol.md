@@ -330,10 +330,21 @@ and one signature **block** (example: the tail of the hover for `apply Set.ext`)
   "anywhere in the tactic" (clicking `apply` still shows the goal state), and
   narrowing it to the name would make the keyword positions silent.
 
-## Declaration hover (2026-10-10)
+## Declaration card: one renderer for every hover (2026-10-10)
 
-`textDocument/hover` on a declaration's **name** answers with fenced
-`sokonanoda` blocks (keyword positions stay silent, as before):
+`textDocument/hover` answers **the same declaration card** wherever a `def`
+(or any declaration) can be named — the user's requirement (2026-10-10) was
+literally 「只要是 def，任何位置 hover 到它，都应显示带 `:=` 的完整信息（含 def
+头/类型/`:=`/body）……数据收口到一处（单一数据源），其他地方复用同一份渲染，
+不要各写各的」. The four sites are:
+
+1. the declaration's **name** (`decl_at`);
+2. any **use site** whose resolution is `ResolvedTarget::Declaration { name }`
+   — `Set.subset` inside `(h : A ⊆ B)`, a name inside a tactic, …;
+3. the **`#check <name>`** line;
+4. the **`#print <name>`** line (and the target line of a notation-symbol hover).
+
+The card is fenced `sokonanoda` blocks:
 
 1. the signature — `<kind> <name> : <type>` (`def`/`theorem`/`axiom`/…;
    `<kind> <name>` alone when the kernel has no type text);
@@ -346,20 +357,39 @@ and one signature **block** (example: the tail of the hover for `apply Set.ext`)
    `forall (α : Type 0), α -> Set α -> Prop`; its value is
    `fun (α : Type 0) (a : α) (A : Set α) => A a`);
 
-followed by the existing status line (`已通过内核检查` / `未通过，见诊断` /
-the open-exercise text). The hover range stays the declaration's span.
+followed, on a declaration name, by the existing status line
+(`已通过内核检查` / `未通过，见诊断` / the open-exercise text). The hover range
+stays the declaration's / use point's span.
+
+**Single data source**: the card is built from the compile report's declaration
+state (`ty_text`/`val_text` — the same fields `soko/goals` ships to the
+Infoview card, already folded through `display.fold`). When the report does not
+contain the name (prelude constants such as `Nat.add`), the server synthesizes
+`#print <name>` through the real pipeline (`judge::judge_print_of`) and splits
+its kernel `pp_declar` text at the top-level ` := `. Nothing is assembled on the
+client and there is no second rendering of a declaration anywhere.
+
+**Boundaries (honest)**: `#check` of a **non-name** expression
+(`#check fun x => x`, `#check Eq.refl.{1}`) has no declaration to print and
+keeps the Lean form `expression : type`; the Infoview's 「命令输出」 block also
+keeps Lean's `expr : type` for `#check` (it is *command output*, not a hover).
+Open exercises are not in the kernel environment (`#print` cannot answer) ⇒ the
+name hover falls back to the report's own state rendering, which additionally
+carries the goal/hole text.
 
 ## Command-line hover (2026-10-10)
 
 `textDocument/hover` **on a `#check` / `#print` line** (anywhere on that line)
-answers with **that command's own output** as one fenced `sokonanoda` block —
-the very `text` the Infoview's 「命令输出」 block shows (`soko/stateAt.messages`,
-same selection semantics: by line). Hover and the panel therefore cannot drift.
-The hover range is the command's span; a line with no command output falls
-through to the ordinary hover chain (`#check Eq.refl` used to answer with the
-bare expression because the kernel pretty-printer panicked on an unsolved level
-metavariable and the hover map silently degraded to an empty type text;
-`#print` had no hover row at all).
+answers with **that command's own output** — the very `text` the Infoview's
+「命令输出」 block shows (`soko/stateAt.messages`, same selection semantics: by
+line). For a **bare name** argument the answer is the declaration card above
+(identical bytes for `#check X` and `#print X`); otherwise it is one fenced
+`sokonanoda` block holding the command's text. Hover and the panel therefore
+cannot drift. The hover range is the command's span; a line with no command
+output falls through to the ordinary hover chain (`#check Eq.refl` used to
+answer with the bare expression because the kernel pretty-printer panicked on an
+unsolved level metavariable and the hover map silently degraded to an empty type
+text; `#print` had no hover row at all).
 
 ## Custom LSP requests (goal view, I9)
 
@@ -592,7 +622,11 @@ Request params: `{"textDocument": {"uri"}}`. Response:
              "counts": {"modules": 2, "compiled": 2, "failed": 0, "blocked": 0,
                         "decls": 7, "errors": 0, "warnings": 0, "open_exercises": 2},
              "artifacts": {"dir": "/abs/project/.sokonanoda", "entries": 1,
-                           "bytes": 3626, "compiler": "0.67.0"}},
+                           "bytes": 3626, "compiler": "0.87.2",
+                           "writers": [{"compiler": "0.87.2",
+                                        "build_stamp": "0123456789abcdef",
+                                        "entries": 1}],
+                           "stale": true, "current": "0.87.3"}},
  "reason": null}
 ```
 
@@ -620,11 +654,26 @@ Request params: `{"textDocument": {"uri"}}`. Response:
   empty tree.
 - `artifacts` (R-3 / 0.67.0) is a **read-only snapshot of the module root's
   `<root>/.sokonanoda/`**: the directory path, how many `compiled/*.json`
-  entries it holds, their total bytes, and the `compiler` recorded in its
-  `meta.json`. `null` when the directory does not exist (nothing was built yet,
+  entries it holds, their total bytes, and **which compiler wrote them**.
+  `null` when the directory does not exist (nothing was built yet,
   or `SOKONANODA_NO_PROJECT_ARTIFACTS=1` was used) — it is **never created** by
   reading the view. This is what makes "vscode and code agents read the compiled
   data from the project root" checkable instead of folklore.
+- **`compiler` is the *real* writer, per entry** (2026-10-10 user report): each
+  entry file is named `<compiler>+<build_stamp>+<key>.json`, so the server
+  counts writers from the **file names** — it does **not** trust
+  `meta.json.compiler`, which is refreshed to "whoever wrote last" and therefore
+  used to claim a version that compiled nothing (the user's words: 「这个版本号
+  是假的……失去了这个版本号的意义」). `writers[]` is the honest histogram (most
+  entries first); `entries - Σ writers[].entries` = entries with an **unrecorded**
+  writer (the older `<key>.json` naming). `compiler` is `writers[0].compiler`
+  (`null` when there are no attributable entries).
+- **`stale`** = at least one entry was written by a *different* build
+  (`compiler` or `build_stamp` differs, or its writer is unrecorded). Those
+  entries can never be replayed (the key folds version + stamp), so the Infoview
+  appends a "建议 Rebuild" hint next to the honest version — that hint is the
+  user-visible half of the same report. `current` is the running server's own
+  version, so the hint can name both sides without the client guessing.
 - Read-only derivation: the answer comes from the already-compiled closure
   (no recompile, no cache write, no digest). `uri`/`version` are echoed so a
   client can drop answers for another document (same discipline as

@@ -1,3 +1,24 @@
+## [Unreleased]
+
+> **One card for every hover, an honest artifact version, and quieter declaration names.**
+
+### Fixed
+
+- **`#check`/`#print` 的输出不再随编辑累积重复**（用户报「2→3→4→19 份」）：除了产出侧的两道闸
+  （命令号进序列化 + 拼接按位置幂等），**回放侧**也加了闸 —— 从 `<模块根>/.sokonanoda/compiled/`
+  或全局缓存读回来的报告，进场前先把「同一条命令两份结果」收干净。判据：真宿主 e2e
+  `C3 重复输出（产物回放）…`（冷编 → **重启服务器走产物回放** → 连编辑两刀 → 每步 `#check`/`#print`
+  各恰好一条），以及 CDP DOM 层 `docs/E2E.md` §8 的逐步读数。
+- **「由编译器 X 写入」不再说谎**（用户报「0.87.2 编完、装上 0.87.3 还没 rebuild 就显示 0.87.3」）：
+  写者现在记在**产物条目自己**（文件名），面板照实显示；当产物不是当前编译器写的（那些条目
+  也**不可能被命中**）时，后面会提示「建议 Rebuild」。
+- **所有 hover 收口成同一张声明卡片**（用户报「`#check` 的 hover 缺 def 头与 `:=` body」+
+  「使用处（`h : A ⊆ B`）也要完整信息……数据收口到一处」）：声明名、任何使用处、`#check X`、
+  `#print X` 现在给**逐字节相同**的卡片（签名块 + `def`/`opaque` 的 `:=` 值块）；`#check` 的
+  非名字形态（`#check fun x => x`）仍是 Lean 的 `表达式 : 类型`。
+- **声明列表里的名字收成链接式文字**（用户报「css 比较抢镜，暗色主题尤其刺眼」）：正常字号、
+  不加粗，去掉按钮默认的亮灰底与边框，用主题链接色 + 下划线表达"可点"（点击行为不变）。
+
 ## [0.87.3] — 2026-10-10
 
 > **Hover is one surface now, and the Infoview's command output stops duplicating.**
