@@ -14,6 +14,11 @@
   · 基础类型的**隐式实参**与 Lean 对齐：`And.intro h1 h2` / `And.left h` /
     `Or.inl h` / `Exists.intro w hw` ……（写全 A B 的就是旧写法）
   · **代码与注释（含 `-- soko:hint`）都算**；tactic 块不动，term 可以保留。
+  · **`.md` 里的 ```sokonanoda 围栏块也算**（2026-10-10，设计
+    `docs/design/tactic-docs.md` §5 P3 判据 ③）：`reference/tactics/*.md` 是**给学习者看的正文**，
+    它的例子若写旧记法，就是一边判绿一边教错东西 ✗。
+    ⚠ **围栏块之外（中文散文、错误消息表格）不扫** —— 散文里的 `->` 是引用，不是代码
+    （扫了必然假红 ✗）。
 
 **明说的边界（脚本按约定不报，别当成已对齐）**：
   · 宇宙多态的等式族**证明项** `Eq.refl` / `Eq.symm` / `Eq.trans` / `Eq.subst` /
@@ -50,12 +55,22 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 
-# ── 扫描范围（用户拍板：卷 I + 入门课 + 共享画布）──────────────────────────
+# ── 扫描范围（用户拍板：卷 I + 入门课 + 共享画布 + **tactic 文档正文**）──────
+# `reference/tactics` 是 2026-10-10 加的（设计 `docs/design/tactic-docs.md` §5 P3 判据 ③）：
+# 那 15 篇 `.md` 是**随产品发出去**的正文 ⇒ 它的 ```sokonanoda 例子与课程同受
+# 「一律写记法」这条硬规则（AGENTS.md 硬规则 3）管 ✓。
 DEFAULT_ROOTS = [
     "courses/set-theory",
     "course",
     "playground.sokonanoda",
+    "reference/tactics",
 ]
+
+# ── markdown 里的代码围栏（与 `crates/front/tests/tactic_docs.rs::fenced_sokonanoda_blocks`
+#    同一口径：只认**整行**（右侧空白除外）的 ```sokonanoda 与闭合的 ```）────────────
+MD_SUFFIX = ".md"
+FENCE_OPEN = "```sokonanoda"
+FENCE_CLOSE = "```"
 
 # ── 豁免（整文件）────────────────────────────────────────────────────────
 EXEMPT_FILES = [
@@ -343,6 +358,92 @@ def scan_text(text: str, line_no: int, is_comment: bool) -> list[dict]:
     return hits
 
 
+def markdown_blocks(text: str) -> list[tuple[int, list[str]]]:
+    """抽 `.md` 里**每一个** ```sokonanoda 围栏块 ⇒ `[(块内第一行的行号, 行表)]`。
+
+    ⚠ 口径与 `crates/front/tests/tactic_docs.rs::fenced_sokonanoda_blocks` **逐字一致**
+    （只认**整行**的围栏，右侧空白除外）—— 判据与 lint 必须看到**同一批块**，
+    否则"判绿的那块"与"扫过的那块"可以不是同一块 ✗。
+    围栏**不闭合**在这里不判（`tactic_docs.rs` 有一条断言会让它 panic）⇒
+    本函数只返回闭合的块，不让格式错变成**记法假红** ✗。
+    """
+    out: list[tuple[int, list[str]]] = []
+    cur: list[str] | None = None
+    start = 0
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.rstrip()
+        if cur is None and s == FENCE_OPEN:
+            cur = []
+            start = i + 1          # 块内第一行 = 围栏行的下一行 ✓（报告里的行号）
+        elif cur is not None and s == FENCE_CLOSE:
+            out.append((start, cur))
+            cur = None
+        elif cur is not None:
+            cur.append(line)
+    return out
+
+
+def scan_code_lines(lines: list[str], line_numbers: list[int]) -> tuple[list[dict], int]:
+    """扫一批**代码行**（`.sokonanoda` 全文，或 `.md` 的一个 ```sokonanoda 块）。
+
+    返回 `(hits, 被 soko:notation-ok 显式豁免的命中数)`。
+    `line_numbers[i]` = `lines[i]` 在**它那份文件里**的 1-based 行号
+    （`.md` 的块传块内第一行的真实行号 ⇒ 命中直接指到读者要看的那一行 ✓）。
+    """
+    hits: list[dict] = []
+    exempt_marker = 0
+    current_inductive: str | None = None
+    for pos, raw in enumerate(lines):
+        line_no = line_numbers[pos]
+        code, comment = split_line(raw)
+        # `inductive`/`ctor` 的**声明行**：本行里归纳类型自己的名字允许
+        # `Exists A p` 这种结果位写法（那是定义，不是使用）。
+        exempt_names: list[str] = []
+        stripped = code.strip()
+        first = stripped.split(None, 1)[0] if stripped else ""
+        tokens = stripped.split()
+        # **声明位**（`axiom` / `inductive` / `ctor`）：整行的代码是「定义」，
+        # 不是「使用」——`axiom Exists.intro : … → Exists A p` 的结果位必须留
+        # 点名形式（引擎按声明装它）。`def`/`theorem` 不整行豁免：它们的**类型**
+        # 是使用点，照样要写记法。
+        decl_line = first in ("axiom", "inductive", "ctor")
+        if first == "inductive" and len(tokens) > 1:
+            current_inductive = tokens[1].split("(")[0].split(":")[0].strip()
+            exempt_names.append(current_inductive)
+        elif first in DECL_KEYWORDS and len(tokens) > 1:
+            # 匿名 `example : …` 的第二个 token 是 `:`（或带标注时的 `(`）⇒
+            # 名字为空；空名字会让下面的豁免正则匹配一切、**静默吞掉整行**。
+            decl_name = tokens[1].split("(")[0].split(":")[0].strip()
+            if decl_name:
+                exempt_names.append(decl_name)
+            if first == "ctor" and current_inductive:
+                exempt_names.append(current_inductive)
+        local: list[dict] = []
+        if code.strip() and not decl_line:
+            local.extend(scan_text(code, line_no, False))
+        if comment.strip():
+            local.extend(scan_text(comment, line_no, True))
+        for h in local:
+            # 声明位豁免只免**被声明那个名字自己的**旧写法（`inductive
+            # Exists` 行里的 `Exists A p`、`ctor intro` 的结果位），不免同一行
+            # 里别的连接符：`def Iff (A B) := And …` 的 `And` 仍要报。
+            rule_head = h["rule"].split()[0] if h["rule"] else ""
+            heads = {rule_head}
+            if "." in rule_head:
+                heads.add(rule_head.split(".")[0])
+            if heads & set(exempt_names):
+                continue
+            # `soko:notation-ok` 标记：本行或上一行写了就豁免本行
+            # （`.md` 块里"上一行"= 块内的上一行 ✓，不跨越围栏去借散文 ✗）。
+            window = raw + (lines[pos - 1] if pos > 0 else "")
+            if MARKER in window:
+                h["exempt"] = MARKER
+                exempt_marker += 1   # ← 如实计数 ✓（不再静默丢掉 ✗）
+                continue
+            hits.append(h)
+    return hits, exempt_marker
+
+
 class Linter:
     def __init__(self, roots: list[Path]) -> None:
         self.roots = roots
@@ -370,6 +471,10 @@ class Linter:
                 # （崩了就不判，等于没有守卫 ✗）。按"是不是文件"过滤是**通用**修法：
                 # 以后任何同名目录/软链都不会再把它打崩 ✓。
                 out.extend(sorted(p for p in root.rglob("*.sokonanoda") if p.is_file()))
+                # `.md` 也收（2026-10-10）：只扫它里面的 ```sokonanoda 围栏块
+                # （`scan_file` 分流）—— `reference/tactics/*.md` 是**产品正文**，
+                # 它的例子与课程同受「一律写记法」管 ✓。
+                out.extend(sorted(p for p in root.rglob("*.md") if p.is_file()))
         return out
 
     def scan_file(self, path: Path) -> tuple[list[dict], str]:
@@ -377,56 +482,20 @@ class Linter:
         if rel in EXEMPT_FILES:
             return [], "exempt:cheatsheet"
         src = path.read_text(encoding="utf-8")
+        if path.suffix == MD_SUFFIX:
+            # `.md`：**逐块**扫（块内第一行的真实行号 ⇒ 命中指到读者要看的那一行 ✓）；
+            # 围栏**之外**的散文与错误消息表格**不扫**（散文里的 `->` 是引用，不是代码 ✗）。
+            hits: list[dict] = []
+            for start, block in markdown_blocks(src):
+                local, n = scan_code_lines(block, list(range(start, start + len(block))))
+                hits.extend(local)
+                self.exempt_marker += n
+            return hits, "scanned:markdown"
         lines = src.splitlines()
-        hits: list[dict] = []
-        current_inductive: str | None = None
-        for idx, raw in enumerate(lines):
-            code, comment = split_line(raw)
-            # `inductive`/`ctor` 的**声明行**：本行里归纳类型自己的名字允许
-            # `Exists A p` 这种结果位写法（那是定义，不是使用）。
-            exempt_names: list[str] = []
-            stripped = code.strip()
-            first = stripped.split(None, 1)[0] if stripped else ""
-            tokens = stripped.split()
-            # **声明位**（`axiom` / `inductive` / `ctor`）：整行的代码是「定义」，
-            # 不是「使用」——`axiom Exists.intro : … → Exists A p` 的结果位必须留
-            # 点名形式（引擎按声明装它）。`def`/`theorem` 不整行豁免：它们的**类型**
-            # 是使用点，照样要写记法。
-            decl_line = first in ("axiom", "inductive", "ctor")
-            if first == "inductive" and len(tokens) > 1:
-                current_inductive = tokens[1].split("(")[0].split(":")[0].strip()
-                exempt_names.append(current_inductive)
-            elif first in DECL_KEYWORDS and len(tokens) > 1:
-                # 匿名 `example : …` 的第二个 token 是 `:`（或带标注时的 `(`）⇒
-                # 名字为空；空名字会让下面的豁免正则匹配一切、**静默吞掉整行**。
-                decl_name = tokens[1].split("(")[0].split(":")[0].strip()
-                if decl_name:
-                    exempt_names.append(decl_name)
-                if first == "ctor" and current_inductive:
-                    exempt_names.append(current_inductive)
-            local: list[dict] = []
-            if code.strip() and not decl_line:
-                local.extend(scan_text(code, idx + 1, False))
-            if comment.strip():
-                local.extend(scan_text(comment, idx + 1, True))
-            for h in local:
-                # 声明位豁免只免**被声明那个名字自己的**旧写法（`inductive
-                # Exists` 行里的 `Exists A p`、`ctor intro` 的结果位），不免同一行
-                # 里别的连接符：`def Iff (A B) := And …` 的 `And` 仍要报。
-                rule_head = h["rule"].split()[0] if h["rule"] else ""
-                heads = {rule_head}
-                if "." in rule_head:
-                    heads.add(rule_head.split(".")[0])
-                if heads & set(exempt_names):
-                    continue
-                # `soko:notation-ok` 标记：本行或上一行写了就豁免本行。
-                window = raw + (lines[idx - 1] if idx > 0 else "")
-                if MARKER in window:
-                    h["exempt"] = MARKER
-                    self.exempt_marker += 1   # ← 如实计数 ✓（不再静默丢掉 ✗）
-                    continue
-                hits.append(h)
+        hits, n = scan_code_lines(lines, list(range(1, len(lines) + 1)))
+        self.exempt_marker += n
         return hits, "scanned"
+
 
 
 def _rel(path: Path) -> str:
@@ -917,6 +986,22 @@ def selftest() -> int:
             ("`And.left A B h` 写全了前导实参 ⇒ 该红",
              "theorem t : And.left A B h := h", 1, "And.left 写全了前导参数（3 个实参）"),
         ]
+        # ⚠ **`.md` 入口自己也要有正向 + 反向**（2026-10-10 加，设计 §5 P3 判据 ③）：
+        #   光加一条 walk 而自检里没有它 ⇒ 这条新判据**咬不住任何东西**时也全绿 ✗
+        #   （AGENTS.md：「咬不住的守卫等于没有」）。
+        md_cases = [
+            # 正向：围栏块里的旧写法必须红，且**行号指到块内那一行** ✓
+            # （`\n` 数：散文行 = 1 · 围栏行 = 2 ⇒ 块内第一行 = 3）
+            ("md：围栏块里的 `And.left A B h` ⇒ 该红（行号 = 3）",
+             "散文第一行\n```sokonanoda\ntheorem t : P := And.left A B h\n```\n", 1,
+             "And.left 写全了前导参数（3 个实参）", 3),
+            # 反向 ①：**围栏之外**的散文不扫（中文里的 `->` 是引用，不是代码 ✗）
+            ("md：围栏块**之外**的 `P -> Q` ⇒ **不扫**（不误红）",
+             "正文里写 `P -> Q` 只是引用，不是代码\n", 0, None, None),
+            # 反向 ②：围栏块**闭合之后**的散文也不扫（不能一路扫到文件尾 ✗）
+            ("md：围栏块**之后**的散文 ⇒ **不扫**",
+             "```sokonanoda\ntheorem t : P := h\n```\n这里再说 `P -> Q` 只是引用\n", 0, None, None),
+        ]
         bad = 0
         for label, src, want_n, want_rule in cases:
             hits = scan_text(src, 1, False)
@@ -929,11 +1014,31 @@ def selftest() -> int:
                   f"（期望 {want_n} 条{extra}）")
             if not okc:
                 bad += 1
+        for label, src, want_n, want_rule, want_line in md_cases:
+            hits = [
+                h
+                for start, block in markdown_blocks(src)
+                for h in scan_code_lines(block, list(range(start, start + len(block))))[0]
+            ]
+            okc = (
+                len(hits) == want_n
+                and (want_rule is None or any(h["rule"] == want_rule for h in hits))
+                and (want_line is None or any(h["line"] == want_line for h in hits))
+            )
+            got = ", ".join(f"{h['rule']}@{h['line']}" for h in hits) or "(无)"
+            extra = "" if want_rule is None else " · 含 " + want_rule
+            if want_line is not None:
+                extra += f" · 行号 {want_line}"
+            print(f"  {'✓' if okc else '✗'} {label:<36} → {len(hits)} 条 [{got}]"
+                  f"（期望 {want_n} 条{extra}）")
+            if not okc:
+                bad += 1
+        total_cases = len(cases) + len(md_cases)
         print()
         if bad:
-            print(f"✗ selftest 判红：{bad}/{len(cases)} 个用例不符 ✗")
+            print(f"✗ selftest 判红：{bad}/{total_cases} 个用例不符 ✗")
             return 1
-        print(f"✓ selftest 全过：{len(cases)}/{len(cases)} 个用例符合 ✓")
+        print(f"✓ selftest 全过：{total_cases}/{total_cases} 个用例符合 ✓")
         return 0
     finally:
         POINTFUL_ALL = saved
@@ -942,13 +1047,14 @@ def selftest() -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="notation-lint.py",
-        description="courses 记法规则检查器（旧写法 → Lean 4 记法）",
+        description="课程 + tactic 文档的记法规则检查器（旧写法 → Lean 4 记法）",
     )
     parser.add_argument(
         "--root",
         action="append",
         default=None,
-        help="扫描根（可重复；默认 courses/set-theory + course + playground.sokonanoda）",
+        help="扫描根（可重复；默认 courses/set-theory + course + playground.sokonanoda"
+             " + reference/tactics；`.md` 只扫它的 ```sokonanoda 围栏块）",
     )
     parser.add_argument("--json", action="store_true", help="单 JSON 对象输出")
     parser.add_argument("--list", action="store_true", help="只列文件与计数")
