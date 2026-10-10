@@ -184,6 +184,13 @@ jobs:
               # 全被 skip ✗ ⇒ **刚改的那条 job 永远得不到验证** ✓（本轮修 `ledger` 的 Node
               # 就是这么被 skip 掉的 ✗）。⇒ 把工作流文件也算进"会改变验证结果" ✓。
               - ".github/workflows/**"
+              # **docs/gaps/** 也算"会改变验证结果"** ✓（2026-10-11 ✓ —— **第三次**同形洞 ✗，
+              # 前两次是 `scripts/**` 与 `.github/workflows/**`，见上两条）。复现件与台账都在
+              # `docs/gaps/**`，而 `ledger` 的 `if` 只看 `rust`/`courses` ⇒ **只改复现件**时三个
+              # 标志全 false ✗ ⇒ `ledger` 被 skip ✗ ⇒ **刚修好的那条复现件永远得不到验证** ✗。
+              # 实测（G-110）：写死本机路径的复现件**本机必绿**、只有 CI 判「环境异常」✗；
+              # 而**修好它的那次 push 反而什么都没跑** ✗ —— 正是用户抱怨的那种形态 ✓。
+              - "docs/gaps/**"
             editor:
               - "editor/**"
             courses:
