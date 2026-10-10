@@ -202,17 +202,35 @@ async function main() {
       path.join(dir, 'Lib.sokonanoda'),
       'def libid : Nat -> Nat := fun (n : Nat) => n\n',
     );
-    // ⚠ **命令必须在被编辑的声明之前**：那样缓存的 span 会被前缀重映射到**同一行**
-    // ⇒ 重复的两份落在**同一行**上（用户看到的正是"同一行三条"）；命令在编辑点
-    // 之后时两份 span 不同（各自匹配各自的行）⇒ 这条判据就咬不住重复 ✗（实测过）。
+    // ⚠ **用户的稳定复现序列**（2026-10-10 12:07 用户实测：「做完 `mem_of_subset`，
+    // 继续做 `eq_of_same_elements`，编辑一下，前面的 `#check` 和 `#print` 就会重复
+    // 一下，现在重复 3 次了」）⇒ 夹具必须复刻**三件事**，少一件就咬不住：
+    //   ① 命令（`#check`/`#print`）在**被编辑的声明之前** ⇒ 它们落进**信任前缀**，
+    //      而信任前缀的报告正是**从项目产物回放**的那一份（`cmd` 归零）；
+    //   ② 被编辑的声明在**长前缀**之后（用户文件 100+ 行，前面还有一整段做过的题）
+    //      ⇒ 每次编辑只重算后缀、前缀照旧回放；
+    //   ③ **两次编辑落在不同声明上**（先 `mem_of_subset`、再 `eq_of_same_elements`）
+    //      ⇒ 每编辑一次就在回放那份上再追加一份（1 → 2 → 3）。
+    const filler = (n) =>
+      `theorem filler_${n} (A : Nat -> Prop) (a : Nat) : A a -> A a := by\n  intro h\n  exact h\n\n`;
     const src =
       'import Lib\n' +
       '\n' +
       '#check libid\n' +
       '#print libid\n' +
       '\n' +
-      'theorem mem_like (A : Nat -> Prop) (h : forall (x : Nat), A x) (a : Nat) : A a := by\n' +
-      '  exact h a\n';
+      Array.from({ length: 12 }, (_, i) => filler(i + 1)).join('') +
+      'theorem mem_of_subset (A B : Nat -> Prop) (h : forall (x : Nat), A x -> B x) (a : Nat) :\n' +
+      '    A a -> B a := by\n' +
+      '  intro ha\n' +
+      '  sorry\n' +
+      '\n' +
+      Array.from({ length: 12 }, (_, i) => filler(i + 13)).join('') +
+      // ⚠ 这里**只用 ASCII 能表达的等价说法**：语言的 `↔`/`∀` 是内建记法，
+      // 写 `<->` 会 parse 失败（整份编不过 ⇒ 命令输出 0 条 ⇒ 判据空转 ✗，实测踩过）。
+      'theorem eq_of_same_elements (A B : Nat -> Prop) (h : forall (x : Nat), A x -> B x) :\n' +
+      '    forall (x : Nat), A x -> B x := by\n' +
+      '  sorry\n';
     const file = path.join(dir, 'Main.sokonanoda');
     fs.writeFileSync(file, src);
     let stateId = 900;
@@ -244,23 +262,53 @@ async function main() {
       observed[`\`${needle}\` 的 messages`] = JSON.stringify(r.messages.map((m) => m.kind));
       return r.messages.length;
     };
-    // **第一趟**：把这一版文本写进缓存（下一次打开就是命中）。
+    // **第一趟**：把这一版文本写进缓存 + 项目产物（下一次打开就是命中）。
     {
       const lsp = startLsp();
       await open(lsp, dir, file, src);
       lsp.stop();
     }
-    // **第二趟**：命中缓存打开 ⇒ 编辑一次 ⇒ 数条数（修前 = 2）。
+    // **第二趟**：命中产物打开 ⇒ 按用户的顺序编辑 ⇒ 每次编辑后数条数。
     const lsp = startLsp();
     await open(lsp, dir, file, src);
-    // **连续编辑**（用户现场：「每编辑一下代码就多重复一次」，1 → 3-4）：每改一次就数一次。
+    const steps = [
+      // ① 做 `mem_of_subset`（把 `sorry` 换成证明）
+      {
+        why: '做 mem_of_subset（第一个声明）',
+        edit: (t) =>
+          t.replace(
+            'theorem mem_of_subset (A B : Nat -> Prop) (h : forall (x : Nat), A x -> B x) (a : Nat) :\n    A a -> B a := by\n  intro ha\n  sorry\n',
+            'theorem mem_of_subset (A B : Nat -> Prop) (h : forall (x : Nat), A x -> B x) (a : Nat) :\n    A a -> B a := by\n  intro ha\n  exact h a ha\n',
+          ),
+      },
+      // ②③④ 做 `eq_of_same_elements`（后面的声明）——用户说「编辑一下，就重复一下」。
+      // ⚠ 编辑必须是**能编过的改动**（这里插注释）：夹具一旦编不过，`#check`/`#print`
+      // 那两行根本不会产出命令输出 ⇒ 读数是 0 条，判据空转 ✗（踩过）。
+      {
+        why: '做 eq_of_same_elements（1）',
+        edit: (t) => t.replace('    forall (x : Nat), A x -> B x := by\n  sorry\n', '    forall (x : Nat), A x -> B x := by\n  -- step 1\n  sorry\n'),
+      },
+      {
+        why: '做 eq_of_same_elements（2）',
+        edit: (t) => t.replace('  -- step 1\n  sorry\n', '  -- step 1\n  -- step 2\n  sorry\n'),
+      },
+      {
+        why: '做 eq_of_same_elements（3）',
+        edit: (t) => t.replace('  -- step 2\n  sorry\n', '  -- step 2\n  -- step 3\n  sorry\n'),
+      },
+    ];
     let text = src;
     let version = 1;
     let worst = 0;
     const perRound = [];
-    for (let round = 1; round <= 4; round++) {
+    for (const [i, step] of steps.entries()) {
+      const next = step.edit(text);
+      if (next === text) {
+        problems.push(`夹具自检：第 ${i + 1} 步（${step.why}）没有改动文本 ⇒ 判据空转 ✗`);
+        break;
+      }
+      text = next;
       version += 1;
-      text = text.replace('  exact h a\n', `  exact h a\n${'  '.repeat(round)}-- touch ${round}\n`);
       lsp.send({
         jsonrpc: '2.0',
         method: 'textDocument/didChange',
@@ -275,15 +323,15 @@ async function main() {
       }
       const checks = await countMessages(lsp, text, '#check libid');
       const prints = await countMessages(lsp, text, '#print libid');
-      perRound.push({ round, checks, prints });
+      perRound.push({ step: step.why, checks, prints });
       worst = Math.max(worst, checks, prints);
     }
     lsp.stop();
-    observed['每步份数（#check / #print）'] = JSON.stringify(perRound);
+    observed['每步份数（用户序列）'] = JSON.stringify(perRound);
     for (const r of perRound) {
       ok(
         r.checks === 1 && r.prints === 1,
-        `第 ${r.round} 次编辑后：#check=${r.checks} 条 · #print=${r.prints} 条（应为 1/1）`,
+        `${r.step} 之后：#check=${r.checks} 条 · #print=${r.prints} 条（应为 1/1 —— 用户现场会累积到 3）`,
       );
     }
     ok(worst <= 1, `「每编辑一次 +1」仍然存在（最大 ${worst} 份）`);
