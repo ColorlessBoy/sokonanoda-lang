@@ -20,8 +20,8 @@ Infoview 的「命令输出」块（光标停在那一行时；hover 那一行�
 | | 声明（`def` / `theorem` / …） | 命令（`#check` / `#reduce` / `#print` / `set_option`） |
 |---|---|---|
 | 进环境吗 | 进（后面的代码能用这个名字） | **不进** |
-| 产事件吗 | `decl.checked` / `exercise.open` … | `expr.typed` / `decl.printed`（`set_option` 不产事件） |
-| 判卷算它吗 | 算 | 不算（命令的报错只影响它自己那一行） |
+| 产事件吗 | `decl.checked` / `exercise.open` … | `expr.typed` / `decl.printed`（`set_option` 不产事件）；**报错 ⇒ `diagnostic`** |
+| 判卷算它吗 | 算（声明状态就是判卷口径） | 命令**不进声明状态**；但它一旦报错就出 `diagnostic` ⇒ **整份文件判负**（`grade` exit 1）—— 别在练习文件里留报错的命令 |
 
 `set_option` 是**唯一**不是 `#` 开头的命令：它只调显示档，不印东西（见
 [set_option](set_option.md)）。
