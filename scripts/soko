@@ -1399,6 +1399,62 @@ async function main(argv) {
         }
         if ((r.status ?? 3) !== 0) return r.status ?? 3
       }
+      // **`target/` 体积守卫**（2026-10-11 用户：「浪费我太多 ssd，好麻烦」✓）：
+      // 增量编译每会话往 `deps/` 吐一批新的 `*.rcgu.o`、cargo **从不回收** ✗
+      // ⇒ 2026-09-27 实测堆到 `target/` **205 GB**；2026-10-11 又堆到 **142 GiB**
+      // （61.7 万个 `.rcgu.o` + `incremental/` 53 GiB）。
+      // ⚠ **本守卫以前从没跑过** ✗：`grep -rn target-hygiene scripts/soko .github/workflows/`
+      // = 0 ⇒ 文档宣称有守卫、实际**从不执行** ✗ —— 与 R-3「门禁崩了却不判」同形 ✓。
+      // **为什么不进 CI**：runner 是**一次性**的，`target/` 天生只有一次构建 ⇒ 在那边
+      // 没有意义 ✓（`scripts/soko gate` 本来也不被 CI 调用：CI 按 job 拆开各跑同源判据 ✓）。
+      // **退出码口径**（有意与别步不同 ✓）：`2 = 告警`（40 GB / 25 万个 .o —— 用户 2026-09-27
+      // 指定的"两周没清"量级）**只报不拦** ✓ —— 拦在告警线上会让 gate 在日常规模就常红，
+      // 别的东西就没法判了 ✗；`1 = 判红`（100 GB / 60 万个 .o / 60 GiB incremental）
+      // **真拦** ✓，那时它确实是病态。判红了就 `python3 scripts/target-hygiene.py --reclaim` ✓。
+      // 健康时 0.3 秒（实测 1.7 GB / 23,498 文件）；病态规模约 16–21 秒（实测速率
+      // 43–59k files/s 外推到 91.8 万文件）⇒ 只在**该知道的时候**才慢 ✓ ⇒ `--fast` 也跑 ✓。
+      const targetHygiene = path.join(REPO, 'scripts', 'target-hygiene.py')
+      if (!existsSync(targetHygiene)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, targetHygiene)} —— target/ 体积无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const hygiene = spawnSync(python.cmd, [...python.args, targetHygiene], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (hygiene.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${targetHygiene}: ${hygiene.error.message}\n`)
+        return 3
+      }
+      const hygieneStatus = hygiene.status ?? 3
+      if (hygieneStatus === 1 || hygieneStatus === 3) {
+        process.stderr.write(
+          `scripts/soko gate: target/ 体积判红（exit ${hygieneStatus}）—— ` +
+            '回收：`python3 scripts/target-hygiene.py --reclaim` ✓\n',
+        )
+        return hygieneStatus
+      }
+      if (hygieneStatus === 2) {
+        process.stderr.write(
+          'scripts/soko gate: target/ 体积**告警**（未超红线，不拦 gate ✓）—— ' +
+            '要腾空间就跑 `python3 scripts/target-hygiene.py --reclaim` ✓\n',
+        )
+      }
+      // 反向验证也进 gate ✓（`AGENTS.md`：**咬不住的守卫等于没有** ✓）：自检里那条
+      // **硬链接夹具**必须咬得住 2026-10-11 的"高报 60%" ✗⇒✓（实测：撤掉按 inode
+      // 去重 ⇒ 6 条链接读成 1.5 MB、第 ③ 条当场判红 ✓）。毫秒级 ⇒ `--fast` 也跑 ✓。
+      const hygieneSelf = spawnSync(python.cmd, [...python.args, targetHygiene, '--selftest'], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (hygieneSelf.error || (hygieneSelf.status ?? 3) !== 0) {
+        process.stderr.write(
+          `scripts/soko gate: ${path.relative(REPO, targetHygiene)} --selftest 失败 —— 守卫咬不住堆积（exit 3）。\n`,
+        )
+        return 3
+      }
       if (fast) {
         process.stderr.write(
           'scripts/soko gate --fast: 跳过缺口台账门禁（~94s；它是**提交前**的契约，' +

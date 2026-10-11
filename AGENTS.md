@@ -157,6 +157,7 @@ python3 courses/set-theory/tools/check.py --selftest   # 课程判据通道自�
 python3 courses/set-theory/tools/check.py --only "单元 5" --bisect   # 二分到第一个判红的声明
 python3 scripts/gap.py selftest   # 台账判据自检（judge() 的期望推导 / repro_expect / 非法值）
 python3 scripts/gap.py check      # 台账契约：每条缺口的复现必须与 status 一致（gate 已含，单跑用这条）
+python3 scripts/target-hygiene.py [--reclaim]   # cargo `target/` 体积守卫（**已进 gate** ✓）；`--reclaim` = 定向回收 deps/+incremental/（保留 release 与二进制；有构建在跑时拒绝）
 scripts/perf-ledger.sh   # 性能台账：跑全部 perf 套件 → docs/perf/ledger.jsonl（提交它）
 SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh
 #   真 VS Code 集成测试（构建 release → stage → npm test）→ docs/e2e/ledger.jsonl（提交它）；手册 docs/E2E.md
@@ -165,8 +166,7 @@ SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh
 # `cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda`。
 # 或手动：
 cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
-# 禁止 `cargo fmt --all`：kernel 的 rustfmt.toml 需要 nightly，`--all` 会重排整个内核
-# （噪声巨大、掩盖真实 diff）。只 fmt 教学 crates，或直接 `scripts/soko gate`。
+# 禁止 `cargo fmt --all`：kernel 的 rustfmt.toml 需要 nightly，`--all` 会重排整个内核（噪声巨大、掩盖真实 diff）；只 fmt 教学 crates，或直接 `scripts/soko gate`。
 cargo clippy --workspace --all-targets
 cargo test --workspace --locked
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda

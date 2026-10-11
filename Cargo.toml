@@ -20,9 +20,14 @@ rust-version = "1.96"
 #
 # **结论 = 保住增量 ✓、磁盘另解 ✓**（用户 2026-09-27 明确：性能/迭代速度最重要 ✓）：
 #   ① 增量让「改一行就重编」快 ⇒ **不许关** ✗（关掉等于拿用户最在意的东西换磁盘 ✗）；
-#   ② 磁盘走**守卫 + 回收**：`python3 scripts/target-hygiene.py` 超阈判红 ✓，
-#      回收 `rm -rf target/debug/deps target/debug/incremental`（⚠ 本机 `cargo clean` 会被
-#      EPERM 拦 ✗，见 `docs/E2-HANDOVER.md` 陷阱清单 ✓）；
+#   ② 磁盘走**守卫 + 回收**：`python3 scripts/target-hygiene.py` 超阈判红 ✓
+#      （**已进 `scripts/soko gate`** ✓ —— 2026-10-11 补：此前它**从不自动跑** ✗，
+#      堆到 142 GiB 是用户问起才发现的 ✗），回收 `python3 scripts/target-hygiene.py --reclaim` ✓
+#      （= 定向 `rm -rf target/debug/deps target/debug/incremental`，**有意不调 `cargo clean`**：
+#      后者会连 `target/release` 与 `target/gate-cache` 一起端掉，而前者正是 `scripts/soko`
+#      解析仓库构建时要用的 ✓。⚠ 旧版此处写"本机 `cargo clean` 会被 EPERM 拦"并指向
+#      `docs/E2-HANDOVER.md` —— 该文件**已于 2026-09-29 有意删除**（`docs/README.md`），
+#      而 `cargo clean` 2026-10-11 在 `/tmp` 合成工程实测 **exit 0** ✓ ⇒ 死指针已删 ✓）；
 #   ③ sccache 命中率 0% 是**同一根因的另一面** ✓（sccache 见 `-C incremental` 主动放弃缓存 ✓）
 #      —— 这是**已知且接受**的代价 ✓，**不是待修的 bug** ✗。
 #
