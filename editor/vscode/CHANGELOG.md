@@ -1,3 +1,36 @@
+## [0.88.2] — 2026-10-11
+
+> **A new compiler version now rebuilds the project instead of recompiling one file.**
+> When you upgrade the extension, the first project file you open used to recompile
+> only its own import closure — the artifacts on disk were written by the previous
+> compiler, so none of them could ever be reused, and the Infoview kept suggesting a
+> rebuild. The extension now notices that the project's artifacts come from an older
+> compiler and warms the whole module root in the background (about 22 seconds for
+> the 251-file set-theory course), once per project per session.
+
+### Added
+
+- **版本切换 ⇒ 自动全量预热**（用户：「最小编译策略平时是可以的，但是请增加版本检测
+  功能：如果是项目，并且项目 cache 的编译器是老版本，相比当前 vscode 插件（或者 cli
+  对应的编译器版本）就不能用这个最小编译策略，而是 rebuild 策略」；同日拍板「cli 不用
+  自动，vscode 才需要」）：打开一份项目文件时，若 `<模块根>/.sokonanoda/compiled/` 里
+  **有任一条目是别的编译器版本写的**，扩展就在后台跑一次
+  `sokonanoda rebuild --json <模块根>` —— 与 `Alt+Shift+B` 同一条命令、同一个目标
+  （模块根，不是当前文件）。跑完面板那行变成单一写者、不再提示 Rebuild。
+  - **判定读条目文件名**（`<编译器>+<构建戳>+<键>.json`），不读 `meta.json.compiler`
+    —— 后者会被任何一次写入刷成当前版本，照它判会漏判"247 条旧 + 1 条新"这种目录。
+  - **只看版本、不看构建戳**：同版本换构建（debug/release 各写一份）不算"版本切换"，
+    不触发。
+  - **CLI 对齐闸**：写产物的是 CLI、读产物的是 LSP；两者版本不一致时预热写了也白写
+    （每次开档都全量预热）⇒ 先跑一次 `sokonanoda --version` 与服务器自述比，不一致就
+    不动手，交给 `Sokonanoda: Doctor` 报。
+  - **每个模块根、每个会话只自动跑一次**；**不阻塞、不弹窗**，进度进
+    `sokonanoda build` 输出通道；失败只是没预热（`doctor` 能查）。
+  - 代价实测（release，课程 251 个文件）：全量预热 **22.3 秒**
+    （`files 251 · compiled 248 · failed 2 · hit 1`；那 2 个 failed 是 `gaps/` 里
+    "故意必须判红"的负例）。
+  - 设计档：`docs/design/version-switch-rebuild.md`。
+
 ## [0.88.1] — 2026-10-11
 
 > **Two small screen-level corrections, plus one honest log line.**

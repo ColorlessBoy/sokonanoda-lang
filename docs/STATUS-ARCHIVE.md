@@ -255,3 +255,5 @@
 > **第 494 / 500–501 轮**原文逐字 ⇒ `docs/archive/status-removed-round-494-2026-10-01.md.gz` ·
 > `docs/archive/status-removed-rounds-500-501-2026-10-01.md.gz`（2026-10-01 二次下沉：
 > **L1 层预算只许减不许增** ⇒ 最老的段进 L3 ✓）；更早的 ⇒ `git log --all -- docs/STATUS-ARCHIVE.md` ✓。
+
+## 收口（2026-10-11）`v0.88.1`：声明列表去行号 + 名字普通粗体（判据四层 + **反向验证 8 条**判红 ✓）· 内核包版本随产品 · 本地 `gate` 被 60 分钟 timeout 截断（0 失败）。**原文** ⇒ git log --all -- STATUS.md ✓
