@@ -155,7 +155,7 @@ $SOKO repl
   **今天被内核拒绝**（隐式实参落地后才会变成合法）；⑥ 未声明就用报 `notation-unknown-symbol`
   （hint 给"先声明"与"点名写法"两条出路）；⑦ 第三刀（0.60.x）已落：`prefix`/`postfix`、
   `binder_notation`（`∃ (x : α), p`）、`scoped`、集合字面量 `{a}`、记法重载。
-- **`by` 块的 tactic（全量 14 条）**：每条的语法、适用场景、内核在背后判什么、
+- **`by` 块的 tactic（全量 15 条）**：每条的语法、适用场景、内核在背后判什么、
   常见错误与出路 ⇒ **`reference/tactics/<关键字>.md`**（索引 `reference/tactics/README.md`；
   与单一真相表 `crates/front/src/tactics.rs` 同源，新增 tactic 会被门禁要求补文档）。
   几条最容易讲错的：`intro a b c` 一次剥多层、**按你写的名字改名**（`intro y` 之后
@@ -189,7 +189,10 @@ $SOKO repl
   `Nat`/`Bool`、参数化与带索引归纳都可 match（带索引的 v1 结果类型不依赖索引）。
 - `match`（tactic）：`by match c with | … => <项>`——臂体是**项**（同值位），以
   当前目标为期望类型判定；等价 `exact (match …)`。
-- `by` 块 tactic 集：`intro`/`exact`/`apply`/`assumption`/`rfl`/`match`/`sorry`；
+- `by` 块 tactic 集：`intro`/`exact`/`apply`/`assumption`/`rfl`/**`unfold`**/`match`/`sorry`；
+  `unfold Foo Bar`（2026-10-11 加，Lean 同名）把目标里点名的常量展开成定义体
+  （`a ∈ {a}` 上 `unfold Set.mem Set.singleton` ⇒ `a = a`）；**逐处**展开、结果必须与
+  原来定义相等（内核验收后才提交）；不做 `at h`。
   tactic 之间用 `;` **或换行**分隔（可混用，无缩进敏感）。
 - prelude `Bool`：`Bool`/`Bool.true`/`Bool.false` + 派生 `Bool.rec`（非递归真实
   可信归纳）；文件自带 `inductive Bool` 时让位。
@@ -284,7 +287,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   **边界**（保留点名 + 行内 `-- soko:notation-ok`）：等式族证明项
   （`Eq.symm`/`Eq.trans`/`congrArg`）的宇宙层级、`Set.univ α`、`intro` 派生的
   目标/假设、`Exists`-headed def、嵌套 `Exists.elim`、复合记法操作数。
-- **tactic 白名单（全量 14 条 + 匿名构造子 `⟨a, b⟩`）**：清单与每条怎么讲见
+- **tactic 白名单（全量 15 条 + 匿名构造子 `⟨a, b⟩`）**：清单与每条怎么讲见
   **`reference/tactics/`**（单一真相表 `crates/front/src/tactics.rs`；编辑器里
   悬停给一句摘要、**F12 打开那一篇**）。**按单元解锁**：①④⑧ 的 `And`/`Or` 是公理 ⇒ 那里
   `constructor`/`cases`/`left`/`right` 不可用（要真归纳类型），继续点名
@@ -394,7 +397,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   （与 Infoview 的「命令输出」块同一份真相）——语言文本一律**围栏块上色**，不是行内码；
 - **tactic 关键字自己也有文档**（2026-10-10）：悬停 `by` 块里的 `intro`/`exact`/`rfl` 这类
   关键字 ⇒ 那一行下面多**一句摘要** + 「完整文档：`F12`」；**按 F12** ⇒ 直接打开那篇
-  `reference/tactics/<关键字>.md`（14 篇随插件分发、离线可读，不必联网）——学习者问
+  `reference/tactics/<关键字>.md`（15 篇随插件分发、离线可读，不必联网）——学习者问
   "这条 tactic 到底怎么用/为什么"时，先让他悬停看摘要、再按 F12 读全篇 ✓；
 - **符号可以打出来**（0.62.0 起；2026-10-01 扩到 75 条）：**打出缩写再按【空格】**
   ——`\and ` → `∧ `、`\in ` → `∈ `、**`\alpha `（或 `\a `）→ `α `**、`\Gamma ` → `Γ `、

@@ -255,6 +255,9 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 
 用户原话：①「`#print demo_mem_def` … `:= Iff.refl` … 结果不符合预期，你先帮我查查哪里的原因。这里 `Iff.refl` 都没有输入参数，怎么能够通过内核检查呢？请问是 `#print` 打印简略内容呢？还是内核被 heck 了」；②「lean4里也是这样吗？`Iff.refl` 是隐变量？另外我想让 `#print` 打印隐变量出来，需要加配置参数吗？还是你直接默认实现呢？」。**拍板 A**：加 **Lean 兼容**的 `set_option pp.explicit true`（含 `pp.all true`）—— `#print` / `#check <表达式>` / `#reduce` 显示隐式实参；**默认逐字节不变**；只两条名字（其余给专用诊断，**不静默**）；`… in …` 本轮不做；只影响命令输出（`ty_text`/hover 保持 G-71 可回读策略，如实登记为**有意偏离** Lean）。**拍板 B**：`Iff.refl` 的签名对齐 Lean core（`(A : Prop)` **显式**；隐式版兄弟 `Iff.rfl`），`by rfl` 与洞上灯泡候选改用 `Iff.rfl`，课程 5 处 + `notation-lint` + 文档/技能同轮同步（台账 **G-113**）。设计 `docs/design/set-option-pp.md`（判据 8 条，§5）。
 
+### 9.13 2026-10-11 三处用户实测：`rfl` 对齐 Lean 4（defeq 目标）· 新 tactic `unfold` · 失败声明的签名 F12
+
+用户原话：①「`theorem mem_of_subset_singleton … := by apply h; rfl` 的 rfl 报错，这个应该是 bug」；②「`(h : {a} ⊆ A)` 鼠标移动到花括号，但是 F12 没办法跳转到 `Set.singleton`」；③「`apply h` 到这一步的目标是 `⊢ a ∈ ({a})`，但是我想增加一个 tactic，展开成 `⊢ a = a`，调研查查 lean4 有没有类似功能的 tactic」。**落地**：① `rfl` 走**源级多轮展开逼近 whnf**（对齐 Lean 的 `MVarId.applyRfl` 先 `whnfR`；候选仍交内核终审 ⇒ 零假绿面；台账 **G-114**）；② **失败声明**的签名跳转行不再丢（G-108 第二刀：签名再 elaborate 一遍只为收行，不 `add_declar`；台账 **G-115**）；③ 新增 **`unfold Foo Bar`**（Lean 同名 tactic，`Init/Tactics.lean:802` 对照；非递归 def = deltaExpand + beta；**逐处**展开 + `.visit`；**内核验收后才提交**；子集边界：不做 `at h`），tactic 真相表 **14 → 15**（正文 `reference/tactics/unfold.md` + 索引 + `semantic::KEYWORDS` + 两条 lint 判据同轮跟上）。设计 `docs/design/unfold-tactic.md`。
 ### 9.4 历史索引（一行一条；**全文见归档** ✓）
 
 * **归档**：`docs/archive/REQUIREMENTS-ARCHIVE.md` —— **3146 行逐字原文** ✓（移入前 §9 = **2989 行** ✗）+ **139 条索引** ✓；**纯文本、可 grep** ✓（它是"要求的账本"，**可检索性优先** ✓，不 gzip）。

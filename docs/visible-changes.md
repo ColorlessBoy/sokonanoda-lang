@@ -1,3 +1,17 @@
+# 可见变化（第 5 轮，2026-10-11）：`rfl` 对齐 Lean 4 + `unfold` tactic + 失败声明的 F12
+
+| 用户报的 | 屏幕上多/少什么 | 哪一层哪条断言 |
+|---|---|---|
+| 「`apply h; rfl` 的 rfl 报错，这个应该是 bug」 | 修前：`rfl` 报「需要目标是 `Eq α x y` 或 `Iff A B` 形状；当前目标是 `a ∈ ({a})`」✗。修后：**同一段代码判绿** —— `rfl` 现在会看穿 `Set.mem` / `Set.singleton` 这类定义（与真 Lean 4 一致，判定仍在内核） | front `rfl_closes_a_goal_that_is_an_eq_only_after_unfolding_the_sugar`（正向，断言判绿）+ `rfl_stays_red_when_the_unfolded_membership_is_not_reflexive`（反向 2 条：`a ∈ {b}` / `a ∈ {a, b}` 仍判红）· 复现件 `docs/gaps/repro/G114-rfl-defeq-eq.sokonanoda`（`gap.py check` 判 clean） |
+| 「`(h : {a} ⊆ A)` 鼠标移到花括号，F12 跳不到 `Set.singleton`」 | 修前：**失败声明**签名里的 `{a}` 按 F12 **毫无反应**（同文件里能编过的 `{a}` 却能跳 ✗）。修后：签名里的 `{a}` **一律落** `lib/Set.sokonanoda` 的 `def singleton` | 真 LSP 探针 `docs/gaps/repro/G115-f12-on-a-failing-signature.sh`（打**用户实际点的 `{` 字符**，断言**落点行**、不是"非 null"）· front `a_failing_declaration_keeps_the_hover_rows_of_its_signature`（反向：撤三处调用 ⇒ 当场判红） |
+| 「想增加一个 tactic，把 `⊢ a ∈ ({a})` 展开成 `⊢ a = a`」 | 新增 **`unfold Foo Bar`**（Lean 同名）：`apply h` → `unfold Set.mem Set.singleton` ⇒ 目标栏显示 **`a = a`**；名字不在目标里 ⇒ **报错点名那个名字**（不静默）；**不做** `at h` | front `unfold_expands_the_named_constants_and_shows_the_result`（断言**目标文本**，不是"没报错"）· `unfold_only_touches_the_named_constant_and_keeps_the_goal_defeq` · `unfold_reports_a_name_that_does_not_occur_in_the_goal` · `unfold_without_a_name_is_a_parse_error` · `tactic_docs` **6/6**（15 条基线）· 正文 `reference/tactics/unfold.md`（每个例子逐块喂内核判绿） |
+
+> **同轮取证**（用户看不见，但决定上面三条是否真成立）：① `rfl` 的修法是**源级多轮展开逼近 whnf**
+> （对齐 Lean `MVarId.applyRfl` 的 `whnfR`；与 G-109 的 `apply` 修复**同一份**机械），候选仍交内核终审
+> ⇒ **零假绿面**；反向验证实跑（退回 `unfold_head_once` ⇒ 判据当场判红）✓。② `unfold` 的展开结果
+> **必须先过内核判等才提交**（`goal_rewrite_is_defeq`）⇒ 源级对齐猜错也不会把目标换成不等价的东西 ✓。
+> ③ 设计 `docs/design/unfold-tactic.md`（新档）· 台账 G-114 / G-115（各带会跑的复现件）。
+
 # 可见变化（第 4 轮，2026-10-11）：`set_option pp.*` + `Iff.refl` 对齐 Lean 4
 
 | 用户报的 | 屏幕上多/少什么 | 哪一层哪条断言 |

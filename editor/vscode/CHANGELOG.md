@@ -1,13 +1,30 @@
-## [Unreleased]
+## [0.89.0] — 2026-10-11
 
 ### Added
 
+- **新 tactic `unfold Foo Bar`**（Lean 同名，2026-10-11 用户要求）：把目标里点名的常量
+  展开成定义体 —— `apply h` 之后目标 `⊢ a ∈ ({a})`，写 `unfold Set.mem Set.singleton`
+  就变成 `⊢ a = a`，`rfl` 一步收尾。展开是**逐处**的（目标里每一处都换）、展开结果
+  必须与原来**定义相等**（内核验收后才提交，绝不会静默换错目标）；某个名字一处都没
+  展开 ⇒ 报错点名。**边界**：不做 `at h`（只改当前目标）。文档见
+  `reference/tactics/unfold.md`（hover 摘要 + F12 跳转 + 完整介绍）。
 - **`set_option pp.explicit true` / `set_option pp.all true`**（用户 2026-10-11 实测：
   `#print demo_mem_def` 印出 `… := Iff.refl`，追问「是 pp 简略还是内核被 heck」）：
   `#print` / `#check <表达式>` / `#reduce` 的输出现在可以**显示隐式实参**（常量带 `@`，
   例如 `@Iff.refl (@Set.mem α a A)`）。**默认逐字节不变**（不写选项 ⇒ 与之前完全相同）。
   只支持这两条名字（其余选项给专用诊断、**不静默**）；`set_option … in …` 这一轮不做
   （把选项单独写一行即可）。设计 `docs/design/set-option-pp.md`。
+
+### Fixed
+
+- **`rfl` 现在能关掉「定义上等于 `a = a`」的目标**（用户原形状：`apply h` 之后
+  `⊢ a ∈ ({a})`）。修前它报「`rfl` 需要目标是 `Eq α x y` 或 `Iff A B` 形状」✗ ——
+  而真 Lean 4 里这段代码不用改写就过（`rfl` 先对目标做 weak-head 归约）。现在 `rfl`
+  也会看穿 `Set.mem` / `Set.singleton` 这类定义（判定仍在内核）。
+- **失败声明签名里的名字 / 记法现在照样能跳转**（用户原形状：`{a}` 上按 F12 没反应）：
+  修前一条**编不过**的声明会把**签名里**已经算出来的跳转行整段丢掉（同文件里能编过的
+  `{a}` 却能跳 ⇒ 用户看到「有的能跳、有的不能」）✗ ⇒ 现在签名里的 `{a}` 一律落到
+  `Set.singleton` 的定义。
 
 ### Changed
 
