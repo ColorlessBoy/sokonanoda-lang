@@ -487,6 +487,15 @@ const serverStub = {
   firstExisting: (candidates) => candidates[0],
   platformTarget: () => "darwin-arm64",
   serverVersionMarker: () => "/stub/version",
+  // **版本切换检测**（2026-10-11）：真实现读 `<模块根>/.sokonanoda/compiled/` 的
+  // 条目文件名（`server.js::projectArtifactsWrittenByOtherVersion`，它的单元判据在
+  // `test-server.js`）。宿主层只关心**接线**：这里让用例按需造"旧版本写的产物"。
+  // `__serverArtifactsStale` 可以是 `true`（所有根）或一个 `Set`（指定根）。
+  projectArtifactsWrittenByOtherVersion: (root) => {
+    const stale = vscodeStub.__serverArtifactsStale;
+    if (stale instanceof Set) return stale.has(root);
+    return stale === true;
+  },
   newestInstalledExtensionVersion: () => undefined,
   downloadLspBinary: async () => "/stub/sokonanoda-lsp",
   // **Q2**：stub 的"装自带 CLI"。默认**对齐**（与插件同版本）—— 不一致那一档
@@ -824,6 +833,150 @@ test("build/rebuild target the project root, not the active file (E22)", async (
     );
   } finally {
     // 假客户端是模块级共享的：还原默认答案，别污染后面的测试。
+    stubbedResponses["soko/project"] = () => ({
+      uri: "",
+      version: 1,
+      project: null,
+      reason: "no-imports",
+    });
+  }
+});
+
+// **版本切换 ⇒ 自动全量预热**（2026-10-11 用户要求：「最小编译策略在版本切换时
+// 自动变成 rebuild」）。三条判据钉的是**接线**（不是检测本身 —— 检测的判据在
+// `test-server.js`）：
+//   ① 产物是**旧编译器版本**写的 ⇒ 打开项目文件后必须起一次
+//      `rebuild --json <模块根>`（rebuild = 先清两处再预热，与面板那条提示同义）；
+//   ② 产物是**当前版本**写的 ⇒ **一次都不许起**（否则每次开档都白跑 22 秒 ✗）；
+//   ③ 每个模块根**只跑一次**（`autoRebuiltRoots`）—— 没有它，预热引发的诊断事件
+//      会再触发判定 ⇒ 再预热，是死循环级的事故。
+test("version switch: project artifacts from another compiler trigger a rebuild (2026-10-11)", async () => {
+  const root = "/repo/units-version-switch";
+  const entry = `${root}/u01.sokonanoda`;
+  const projectAnswer = () => ({
+    uri: `file://${entry}`,
+    version: 1,
+    project: {
+      entry: "u01",
+      root,
+      manifest: `${root}/sokonanoda.toml`,
+      requires_warning: null,
+      modules: [],
+      diagnostics: [],
+      counts: { modules: 1, compiled: 0, failed: 0, open: 0 },
+      artifacts: {
+        dir: `${root}/.sokonanoda`,
+        entries: 2,
+        bytes: 2048,
+        compiler: "0.87.0",
+        writers: [{ compiler: "0.87.0", build_stamp: "aaaa", entries: 2 }],
+        stale: true,
+        current: "0.58.0",
+      },
+    },
+    reason: null,
+  });
+  stubbedResponses["soko/project"] = projectAnswer;
+  try {
+    // ① 旧版本写的产物 ⇒ 起 rebuild，目标是**模块根**（不是活动文件、不是工作区根）。
+    vscodeStub.__serverArtifactsStale = true;
+    await activateExtension();
+    focus(fakeDocument(entry));
+    await settle();
+    assert.deepStrictEqual(
+      spawns.map((s) => s.args),
+      [["rebuild", "--json", root]],
+      `旧版本产物 ⇒ 必须起一次全量预热（rebuild）：${JSON.stringify(spawns)}`,
+    );
+
+    // ③ 再打开一次（诊断/切文档都会重跑 loadProject）⇒ 不许再起第二个。
+    spawns.length = 0;
+    focus(fakeDocument(entry));
+    await settle();
+    assert.deepStrictEqual(
+      spawns,
+      [],
+      `每个模块根只许自动预热一次（否则诊断事件会把它变成死循环）：${JSON.stringify(spawns)}`,
+    );
+  } finally {
+    stubbedResponses["soko/project"] = () => ({
+      uri: "",
+      version: 1,
+      project: null,
+      reason: "no-imports",
+    });
+  }
+
+  // ② 产物是当前版本写的 ⇒ 一次都不起（用**另一个根**，绕开上面那条"每根一次"的记账）。
+  const freshRoot = "/repo/units-version-current";
+  const freshEntry = `${freshRoot}/u01.sokonanoda`;
+  stubbedResponses["soko/project"] = () => ({
+    uri: `file://${freshEntry}`,
+    version: 1,
+    project: {
+      entry: "u01",
+      root: freshRoot,
+      manifest: `${freshRoot}/sokonanoda.toml`,
+      requires_warning: null,
+      modules: [],
+      diagnostics: [],
+      counts: { modules: 1, compiled: 0, failed: 0, open: 0 },
+      artifacts: { dir: `${freshRoot}/.sokonanoda`, entries: 2, bytes: 2048, compiler: "0.58.0" },
+    },
+    reason: null,
+  });
+  try {
+    vscodeStub.__serverArtifactsStale = false;
+    await activateExtension();
+    focus(fakeDocument(freshEntry));
+    await settle();
+    assert.deepStrictEqual(
+      spawns,
+      [],
+      `产物是当前版本写的 ⇒ 不许自动预热（最小策略保持不变）：${JSON.stringify(spawns)}`,
+    );
+  } finally {
+    vscodeStub.__serverArtifactsStale = undefined;
+    stubbedResponses["soko/project"] = () => ({
+      uri: "",
+      version: 1,
+      project: null,
+      reason: "no-imports",
+    });
+  }
+
+  // ④ **对齐闸**（G-112 的防线）：CLI 与服务器版本不一致 ⇒ 预热写出来的条目
+  //    LSP 也读不到 ⇒ 会**反复全量预热**（22 秒 × 每次开档 ✗）⇒ 必须一次都不起。
+  const skewRoot = "/repo/units-version-skew";
+  const skewEntry = `${skewRoot}/u01.sokonanoda`;
+  stubbedResponses["soko/project"] = () => ({
+    uri: `file://${skewEntry}`,
+    version: 1,
+    project: {
+      entry: "u01",
+      root: skewRoot,
+      manifest: `${skewRoot}/sokonanoda.toml`,
+      requires_warning: null,
+      modules: [],
+      diagnostics: [],
+      counts: { modules: 1, compiled: 0, failed: 0, open: 0 },
+    },
+    reason: null,
+  });
+  try {
+    vscodeStub.__serverArtifactsStale = true; // 产物确实是旧版本写的……
+    vscodeStub.__cliVersion = "0.57.0"; // ……但 CLI 与服务器（0.58.0）不一致
+    await activateExtension();
+    focus(fakeDocument(skewEntry));
+    await settle();
+    assert.deepStrictEqual(
+      spawns,
+      [],
+      `CLI 与服务器版本不一致 ⇒ 不许预热（否则每次开档都白跑一次全量）：${JSON.stringify(spawns)}`,
+    );
+  } finally {
+    vscodeStub.__serverArtifactsStale = undefined;
+    vscodeStub.__cliVersion = undefined;
     stubbedResponses["soko/project"] = () => ({
       uri: "",
       version: 1,

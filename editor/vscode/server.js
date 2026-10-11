@@ -214,6 +214,58 @@ function cachedServerIsCurrent(version, fsImpl = fs) {
   }
 }
 
+// ── 项目产物的**编译器版本检测**（2026-10-11 用户要求）─────────────────────
+//
+// 用户原话：「**最小编译策略**在版本切换时自动变成 rebuild」：装了新版本之后，
+// 打开一份项目文件时不该只编"这一份的 import 闭包"，而该把**整个模块根**预热
+// 一遍 —— 旧版本写的产物键里带旧版本（`compile::cache::key_parts`）⇒ **一条都
+// 命中不了**，留着它们只会让面板一直提示 Rebuild、并让"最小策略"每次开档都白编
+// 一次闭包。本机实测：251 个文件全量预热 **22 秒**（release，2026-10-11）。
+//
+// ⚠ **只看编译器版本，不看构建戳**（这是与面板 `artifacts.stale` 的**有意差异**）：
+// 面板那条说的是"有产物不是这份编译器写的 ⇒ 不可能命中"，所以它把
+// `(版本, 构建戳)` 都算进去（debug/release 也算）；而这里要回答的是"**这个项目
+// 的产物是不是上一代编译器留下的**"，同版本换构建（G-112）不属于"版本切换"
+// ⇒ 不触发自动预热（用户 2026-10-11 明确只要版本切换这一条）。
+//
+// 判定依据是**条目文件名**，不是 `meta.json.compiler` —— 后者会被**任何一次写入**
+// 刷成当前版本（G-106 的谎），照它判会漏判现场那种"247 条旧 + 1 条新"的目录。
+// 命名契约（`crates/front/src/project/cache.rs::entry_stem`）：
+//   `<编译器>+<构建戳16hex>+<键>.json`
+const ENTRY_NAME_RE = /^([^+]+)\+([^+]+)\+([^+]+)\.json$/;
+
+/// 一条产物文件名是不是**别的编译器版本**写的（形状不认识 ⇒ `false`，不猜）。
+function entryWrittenByOtherVersion(name, version) {
+  const match = ENTRY_NAME_RE.exec(name);
+  if (!match) return false;
+  const [, compiler] = match;
+  if (!version) return false;
+  return compiler !== String(version);
+}
+
+/// 模块根下的项目产物里，有没有**别的编译器版本**写的条目。
+///
+/// `true` ⇒ 调用方（扩展）该把这个模块根**全量预热**一遍（= Rebuild 的"重编"
+/// 那一半）。目录不存在 / 空 / 全是当前版本 ⇒ `false`（**不创建、不写入** ——
+/// 这是只读探针，与 `QueryDoc::project_view` 同一条纪律）。
+///
+/// 形状不认识的文件（旧命名 `<键>.json`、写了一半的 `*.tmp-*`）**忽略**：
+/// 它们不是"版本切换"的证据，面板会如实说"写者未记录"。
+function projectArtifactsWrittenByOtherVersion(root, version, fsImpl = fs) {
+  if (!root || !version) return false;
+  const dir = path.join(String(root), ".sokonanoda", "compiled");
+  let names;
+  try {
+    names = fsImpl.readdirSync(dir);
+  } catch {
+    return false; // 没有产物目录 ⇒ 谈不上"旧版本写的"
+  }
+  for (const name of names) {
+    if (entryWrittenByOtherVersion(String(name), version)) return true;
+  }
+  return false;
+}
+
 /// Version-pinned asset URL. `undefined` for platforms with no build.
 function downloadUrl(version, platform, arch, alpine = false) {
   const target = rustTarget(platform, arch, alpine);
@@ -472,6 +524,8 @@ module.exports = {
   serverDest,
   serverVersionMarker,
   cachedServerIsCurrent,
+  entryWrittenByOtherVersion,
+  projectArtifactsWrittenByOtherVersion,
   downloadUrl,
   downloadLspBinary,
   resolveServerCommand,

@@ -371,6 +371,88 @@ async function run() {
     );
   });
 
+  // ── 版本切换检测（2026-10-11 用户要求：最小编译策略在版本切换时自动变 rebuild）──
+  //
+  // 判定依据**只有条目文件名**（`<编译器>+<构建戳>+<键>.json`）——`meta.json.compiler`
+  // 会被任何一次写入刷成当前版本（G-106 的谎）⇒ 照它判会漏判"247 条旧 + 1 条新"。
+  await test("entryWrittenByOtherVersion: 只认条目文件名里的编译器版本", () => {
+    const current = "0.88.1";
+    assert.strictEqual(
+      server.entryWrittenByOtherVersion("0.88.0+209c01a9b479e460+abc.json", current),
+      true,
+      "旧版本写的条目必须被认出来（触发全量预热）",
+    );
+    assert.strictEqual(
+      server.entryWrittenByOtherVersion("0.88.1+209c01a9b479e460+abc.json", current),
+      false,
+      "当前版本写的条目不是证据",
+    );
+    // ⚠ **同版本、不同构建戳 ⇒ 不算**（与面板 `artifacts.stale` 的有意差异）：
+    // G-112 是"同版本换构建"，不是"版本切换"（用户 2026-10-11 明确只要后者）。
+    assert.strictEqual(
+      server.entryWrittenByOtherVersion("0.88.1+751385453009d556+abc.json", current),
+      false,
+      "同版本不同构建戳不算版本切换（G-112 那条另算）",
+    );
+    // 形状不认识 ⇒ 不猜（旧命名 / 写了一半的 tmp / 别的文件）。
+    assert.strictEqual(server.entryWrittenByOtherVersion("abc.json", current), false);
+    assert.strictEqual(server.entryWrittenByOtherVersion("0.88.0+abc.json", current), false);
+    assert.strictEqual(
+      server.entryWrittenByOtherVersion("0.88.0+abc+def.json.tmp-1", current),
+      false,
+    );
+    assert.strictEqual(server.entryWrittenByOtherVersion("0.88.0+abc+def.json", ""), false);
+  });
+
+  await test("projectArtifactsWrittenByOtherVersion: 只读目录、缺失即 false", () => {
+    const root = "/proj";
+    const dir = path.join(root, ".sokonanoda", "compiled");
+    const fsWith = (names) => ({
+      readdirSync: (p) => {
+        if (p !== dir) throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+        return names;
+      },
+    });
+    assert.strictEqual(
+      server.projectArtifactsWrittenByOtherVersion(
+        root,
+        "0.88.1",
+        fsWith(["0.88.1+aaaa+1.json", "0.88.0+bbbb+2.json"]),
+      ),
+      true,
+      "混合目录（升级后只重编了一部分）也是旧版本 ⇒ 必须预热",
+    );
+    assert.strictEqual(
+      server.projectArtifactsWrittenByOtherVersion(
+        root,
+        "0.88.1",
+        fsWith(["0.88.1+aaaa+1.json", "0.88.1+bbbb+2.json"]),
+      ),
+      false,
+      "全是当前版本 ⇒ 不动",
+    );
+    assert.strictEqual(
+      server.projectArtifactsWrittenByOtherVersion(root, "0.88.1", fsWith([])),
+      false,
+      "空目录 ⇒ 不动",
+    );
+    // 目录不存在（没编过）⇒ false，且**绝不创建**（只读探针）。
+    assert.strictEqual(
+      server.projectArtifactsWrittenByOtherVersion(root, "0.88.1", {
+        readdirSync: () => {
+          throw new Error("ENOENT");
+        },
+      }),
+      false,
+      "没有产物目录 ⇒ 谈不上旧版本",
+    );
+    assert.strictEqual(
+      server.projectArtifactsWrittenByOtherVersion(undefined, "0.88.1", fsWith(["x"])),
+      false,
+      "没有模块根 ⇒ 不动",
+    );
+  });
+
   console.log(`\n${passed + failed} tests, ${passed} passed, ${failed} failed\n`);
   process.exit(failed > 0 ? 1 : 0);
 }

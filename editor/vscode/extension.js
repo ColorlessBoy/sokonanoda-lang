@@ -1233,6 +1233,11 @@ async function loadProject() {
     e2eLog(
       `soko/project ok: project=${answer?.project ? `${answer.project.entry} (${answer.project.counts?.modules} modules)` : "null"} reason=${answer?.reason ?? "null"}`,
     );
+    // **版本切换 ⇒ 自动全量预热**（用户 2026-10-11：「最小编译策略在版本切换时
+    // 自动变成 rebuild」）。模块根就在 `answer` 里（零额外取数），判定只读一次
+    // 目录（`server.js::projectArtifactsWrittenByOtherVersion`）。
+    // **不 await**：它是后台活，绝不能拖慢"打开文档 ⇒ 看到目标"。
+    void autoRebuildOnVersionChange(answer);
   } catch (error) {
     e2eLog(`soko/project failed for ${uri}: ${error?.message ?? error}`);
     return;
@@ -1914,6 +1919,11 @@ async function restartServer(context) {
     );
     return;
   }
+  // 换了进程 ⇒ 自述版本要重新问（缓存的是"上一个服务器"的答案 ✗）；重启也可能
+  // 换了二进制（`serverPath` 改了 / 刚 `scripts/soko update`）⇒ **自动预热的记账
+  // 一并清空**，让新的"版本切换"重新有机会触发（否则重启后永远不再自动预热 ✗）。
+  serverCompilerVersionCache = undefined;
+  autoRebuiltRoots.clear();
   const after = await serverVersion();
   vscode.window.showInformationMessage(
     `sokonanoda: server restarted${before ? ` — ${before}` : ""} → ${
@@ -1959,6 +1969,32 @@ function buildTimeoutMs() {
 }
 
 let buildChannel;
+/// **已经自动预热过的模块根**（`autoRebuildOnVersionChange`）—— 每个模块根、每个
+/// 会话只跑一次。⚠ 没有它就是死循环级的事故：预热会引发诊断事件 ⇒ `loadProject`
+/// ⇒ 再判定 ⇒ 再预热 ✗（判定用"是否还有旧版本写的条目"，而预热期间旧条目**仍在**）。
+const autoRebuiltRoots = new Set();
+
+/// 服务器自述的编译器版本（`soko/version` 的 `version`）——**只问一次、缓存住**。
+///
+/// 版本检测每次 `loadProject()` 都要问一次（切文档 / 诊断事件都会重跑它）⇒ 不缓存
+/// 就是每个事件一次 IPC。服务器**重启**会换二进制 ⇒ `restartServer` 那条路必须
+/// 显式失效（见那里的 `serverCompilerVersionCache = undefined`）。
+/// 失败（服务器没起 / 请求报错）⇒ **不缓存**，下一次再问（绝不把 `undefined` 记成答案 ✗）。
+let serverCompilerVersionCache;
+async function serverCompilerVersion() {
+  if (serverCompilerVersionCache !== undefined) return serverCompilerVersionCache;
+  if (!client) return undefined;
+  try {
+    const self = await client.sendRequest("soko/version", {});
+    const version = self?.version;
+    if (typeof version === "string" && version.length > 0) {
+      serverCompilerVersionCache = version;
+    }
+    return typeof version === "string" && version.length > 0 ? version : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function buildOutput(context) {
   if (!buildChannel) {
@@ -2075,6 +2111,91 @@ function parseBuildEvents(stdout) {
     }
   }
   return events;
+}
+
+/// **版本切换 ⇒ 自动全量预热**（2026-10-11 用户要求，最小改动）。
+///
+/// 用户原话：「**最小编译策略**在版本切换时自动变成 rebuild」。打开一份项目文件时
+/// LSP 只编"这一份的 import 闭包"（最小策略）—— 那是**对的**，除了一种情况：
+/// **模块根里的产物是别的编译器版本写的**。那些条目的键里带旧版本
+/// （`compile::cache::key_parts`）⇒ **一条都命中不了**，于是最小策略每次开档都白编
+/// 一遍闭包、面板还一直提示 Rebuild。这时该把**整个模块根**预热一遍。
+///
+/// 本机实测（2026-10-11，release，课程 251 个文件）：全量预热 **22 秒**。
+///
+/// 五条纪律（都是既有经验的直接套用）：
+///  ① **只读判定**：`server.js::projectArtifactsWrittenByOtherVersion` 只读一次
+///     目录，**不创建、不写入**；判据是**条目文件名**（`meta.json.compiler` 会被
+///     任何一次写入刷新 ⇒ 照它判会漏判 —— G-106 的谎）；
+///  ② **只看编译器版本**（不看构建戳）：同版本换构建（G-112）不是"版本切换"
+///     ⇒ 不触发（用户 2026-10-11 明确只要这一条）；
+///  ③ **每个模块根、每个会话只自动跑一次**（`autoRebuiltRoots`）—— 否则每次
+///     诊断事件都触发一轮 22 秒的预热，那就是死循环级的事故 ✗；
+///  ④ **不阻塞、不弹窗、不报错**：后台活，进度进 `sokonanoda build` 输出通道
+///     （与 `warmCacheOnOpen` 同款）；失败只是没预热，`sokonanoda: doctor` 能查；
+///  ⑤ **版本取服务器自述**（`soko/version`）—— 编译这个项目的是 **LSP**，
+///     不是扩展自己；扩展版本与它按设计一致（`installBundledCli` 的"自带即装"），
+///     但"该拿谁当基准"这件事必须由服务器回答（拿扩展版本会掩盖 skew）。
+///
+/// 目标 = `answer.project.root`（模块根，不是工作区根）：与 E22 的
+/// `Build`/`Rebuild` 同一条口径，也才是"这个项目的产物"所在。
+async function autoRebuildOnVersionChange(answer) {
+  const root = answer?.project?.root;
+  if (typeof root !== "string" || root.length === 0) return;
+  if (autoRebuiltRoots.has(root)) return;
+  const version = await serverCompilerVersion();
+  if (version === undefined) return;
+  if (!server.projectArtifactsWrittenByOtherVersion(root, version)) return;
+  let command;
+  try {
+    command = resolveCliCommand();
+  } catch {
+    command = undefined;
+  }
+  if (!command) return; // 没有 CLI ⇒ 什么都不做（面板仍会提示手动 Rebuild）
+  // **对齐闸**（G-112 的防线）：写产物的是 **CLI**，读产物的是 **LSP**。两者版本
+  // 不一致时预热写出来的条目 LSP 也读不到 ⇒ 每次开档又判定成"旧版本" ⇒ **反复
+  // 全量预热**（22 秒 × 每次开档 ✗）。判据与 `installCli` 的"值断言"同款：跑一次
+  // `--version`，**取出版本 token** 与服务器自述比（CLI 打的是 `sokonanoda 0.88.1`，
+  // 带程序名前缀 ⇒ 直接比字符串永远不成立 ✗）。不一致 ⇒ 只记账、不动手，
+  // 让 `sokonanoda: doctor` 去报（那是版本 skew 的既有出口）。
+  let cliVersion;
+  try {
+    const reported = await new Promise((resolve, reject) => {
+      cp.execFile(command, ["--version"], (error, stdout) => {
+        if (error) reject(error);
+        else resolve(String(stdout ?? "").trim());
+      });
+    });
+    cliVersion = (reported.match(/\d+\.\d+\.\d+/) ?? [])[0];
+  } catch {
+    cliVersion = undefined;
+  }
+  if (cliVersion !== version) {
+    e2eLog(
+      `autoRebuildOnVersionChange: skip（CLI ${cliVersion ?? "?"} != 服务器 ${version}）root=${root}`,
+    );
+    return;
+  }
+  // 记账要在**闸门之后**：`runBuildProcess` 是长活，期间 `loadProject` 会被诊断
+  // 事件再叫起来几次 ⇒ 不先记账就会并发起好几个 build ✗；但反过来（闸门之前记账）
+  // 会让"这次没跑成"变成"永远不跑" ✗ —— 两个坑都要躲，所以记账放在这里。
+  autoRebuiltRoots.add(root);
+  const channel = buildOutput();
+  channel.appendLine(
+    `> ${command} rebuild --json ${root}（版本切换：产物由旧编译器写入 ⇒ 自动全量预热）`,
+  );
+  const result = await runBuildProcess(command, ["rebuild", "--json", root], channel);
+  channel.appendLine(`[autoRebuild] exit=${result.code}`);
+  // 记账（`SOKO_E2E_LOG`）：真宿主用例靠这一行证明"接线真的跑了"。
+  e2eLog(`autoRebuildOnVersionChange: root=${root} version=${version} exit=${result.code}`);
+  if (result.code === 0) {
+    // 预热完 ⇒ 让读缓存的视图重算（与 `runBuild` 收尾同一组刷新；`courseProvider`
+    // 是 `activate()` 的局部量、这里够不着 —— 课程树本来就由它自己的刷新驱动 ✓）。
+    goalProvider?.refresh?.();
+    projectProvider?.refresh?.();
+    loadProject();
+  }
 }
 
 /// T-A52：`sokonanoda.warmCacheOnOpen`（**默认关**）——激活时后台把工作区根

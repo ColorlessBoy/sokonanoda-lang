@@ -295,6 +295,12 @@
       "renewed": "2026-09-30",
       "tier": "spec"
     },
+    "docs/design/version-switch-rebuild.md": {
+      "expires": "2027-10-11",
+      "renewed": "2026-10-11",
+      "tier": "spec",
+      "reason": "初始登记：版本切换自动全量预热的设计档（2026-10-11 用户要求，最小改动）（分档 spec = 365 天）"
+    },
     "docs/notes/HANDOFF-course.md": {
       "expires": "2026-11-15",
       "reason": "课程线换会话交接单（临时产物，换完即删）",
