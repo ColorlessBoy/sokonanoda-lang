@@ -3736,8 +3736,17 @@ fn is_namespace_name_keyword(name: &str) -> bool {
     is_reserved_command(name) || is_expr_keyword(name)
 }
 
+/// 保留字 = **声明 / 作用域关键字**（本函数内联）**加上全部命令**（查真相表
+/// [`crate::commands::COMMAND_DOCS`]）。
+///
+/// **命令那半由表派生**（与 `is_tactic_keyword` → `is_tactic` 同款，2026-10-11）：
+/// 表里没有的 `#` 命令 parser 根本不认 ⇒「加了命令忘了补文档」在**构造上不可能** ✓
+/// （以前这四行字面量是手写的第二份表示，与文档表靠记忆同步 ✗）。
+/// 反向守卫：`crates/front/tests/command_docs.rs` 直接读本函数的 `#` 字面量 ⇒
+/// 「绕开表、往下面这个 `matches!` 里直接加一条 `#eval`」照样判红 ✓。
 fn is_reserved_command(name: &str) -> bool {
     NOTATION_COMMANDS.contains(&name)
+        || crate::commands::is_command(name)
         || matches!(
             name,
             "scoped"
@@ -3755,10 +3764,6 @@ fn is_reserved_command(name: &str) -> bool {
                 | "namespace"
                 | "open"
                 | "export"
-                | "set_option"
-                | "#check"
-                | "#reduce"
-                | "#print"
         )
 }
 

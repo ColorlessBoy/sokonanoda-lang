@@ -2627,6 +2627,152 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("P8：命令关键字上按 F12 ⇒ 真的打开**插件自带**的那篇命令文档（2026-10-11）", async () => {
+    // 用户要求（2026-10-11）：「把命令文档加入 vsix，`set_option` `#print` `#check`
+    // 等等 F12 跳转到对应文档里」⇒ 这条是那件事的**用户可见**判据（渲染层），
+    // 与 P7 同形（设计 `docs/design/command-docs.md` §5）。三半分开：
+    //   ① 载荷：插件目录 `docs/commands/` 真在、5 篇（4 篇 + 索引）；
+    //   ② 解析：`vscode.executeDefinitionProvider`（= F12 经 language client 发的
+    //      **同一条请求**）必须答**插件自带**那一份 —— 探针期间把仓库真源藏起来
+    //      （模拟安装形态：用户机器上 ① 档不存在），`finally` 还原 ✓；
+    //   ③ 导航：`editor.action.revealDefinition`（F12 绑的就是它）⇒ 那一篇真的被打开。
+    // ⚠ 焦点那一课与 P7 同：窗口没有 OS 焦点时编辑器命令静默不动（宿主限制，
+    // 见 `docs/CI-FAILURES.md`）⇒ 退到"打开解析出来的落点并断言可见"，并留日志。
+    const ext = vscode.extensions.getExtension(EXTENSION_ID);
+    const docsDir = path.join(ext.extensionPath, "docs", "commands");
+    assert.ok(
+      fs.existsSync(docsDir),
+      `插件目录 ${docsDir} 必须存在（scripts/vscode-e2e.sh 无条件跑 stage-docs.js）`,
+    );
+    const staged = fs.readdirSync(docsDir).filter((n) => n.endsWith(".md")).sort();
+    assert.strictEqual(
+      staged.length,
+      5,
+      `插件目录里应是 4 篇 + 索引，实际 ${staged.length}：${staged.join(", ")}`,
+    );
+
+    // 两条覆盖两族（设计 §5）：`#check`（`#` 族）· `set_option`（**无** `#` 族）。
+    const cases = [
+      {
+        cmd: "#check",
+        stem: "check",
+        src: "def p8_id : Prop -> Prop := fun (x : Prop) => x\n\n#check p8_id\n",
+      },
+      {
+        cmd: "set_option",
+        stem: "set_option",
+        src: "set_option pp.explicit true\n\ndef p8_two : Prop := True\n",
+      },
+    ];
+
+    const repoDoc = (stem) => path.join(REPO_ROOT, "reference", "commands", `${stem}.md`);
+    const pluginDoc = (stem) => path.join(docsDir, `${stem}.md`);
+    // 上一轮若在探针中途被杀会留下 `*.p8-e2e-hidden` ⇒ 先自愈（e2e 不许把工作树弄脏）。
+    for (const { stem } of cases) {
+      const hidden = `${repoDoc(stem)}.p8-e2e-hidden`;
+      if (!fs.existsSync(repoDoc(stem)) && fs.existsSync(hidden)) fs.renameSync(hidden, repoDoc(stem));
+    }
+
+    const realKeypress = [];
+    for (const { cmd, stem, src } of cases) {
+      const uri = await writeDoc(`p8-docs-${stem}.sokonanoda`, src);
+      await showDoc(uri);
+      const editor = vscode.window.activeTextEditor;
+      assert.ok(editor, `${cmd}：夹具必须是活跃编辑器`);
+      // 用户点的就是**命令字本身**（头一个字符）。
+      const position = editor.document.positionAt(src.indexOf(cmd));
+      editor.selection = new vscode.Selection(position, position);
+      await vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
+      editor.selection = new vscode.Selection(position, position);
+
+      const hidden = `${repoDoc(stem)}.p8-e2e-hidden`;
+      fs.renameSync(repoDoc(stem), hidden);
+      try {
+        // ② 解析那一半（硬判据）。
+        const found = await requestUntil(
+          `F12 在 \`${cmd}\` 上有落点`,
+          () =>
+            vscode.commands.executeCommand(
+              "vscode.executeDefinitionProvider",
+              uri,
+              position,
+            ),
+          (result) => Array.isArray(result) && result.length > 0,
+        );
+        assert.ok(
+          Array.isArray(found) && found.length > 0,
+          `\`${cmd}\` 上必须有落点（仓库真源已藏起 ⇒ 只能是插件目录那份）`,
+        );
+        assert.strictEqual(
+          fs.realpathSync(found[0].uri.fsPath),
+          fs.realpathSync(pluginDoc(stem)),
+          `${cmd}：落点必须在**扩展目录**下（随插件分发），实际 = ${found[0].uri.fsPath}`,
+        );
+        // `range` 必须指向那篇文档的 `# <命令>` 标题（D5：**目标文件**的坐标）。
+        assert.strictEqual(
+          found[0].range.start.line,
+          0,
+          `${cmd}：range 必须指向第 0 行的标题，实际 = ${JSON.stringify(found[0].range)}`,
+        );
+
+        // ③ 导航那一半。
+        await vscode.commands.executeCommand("editor.action.revealDefinition");
+        let opened;
+        try {
+          await waitFor(
+            `F12（${cmd}）打开插件自带的文档`,
+            async () => {
+              const active = vscode.window.activeTextEditor;
+              return Boolean(
+                active && active.document.uri.fsPath.endsWith(`docs/commands/${stem}.md`),
+              );
+            },
+            4000,
+          );
+          opened = vscode.window.activeTextEditor.document;
+          realKeypress.push(cmd);
+        } catch (error) {
+          if (vscode.window.state.focused) throw error;
+          console.log(
+            `[P8] ${cmd}：宿主窗口没有 OS 焦点（window.state.focused=false）⇒ 编辑器命令静默不动；` +
+              "退到「打开落点并断言可见」（限制记在 docs/CI-FAILURES.md）",
+          );
+          await vscode.window.showTextDocument(found[0].uri, { preview: false });
+          await waitFor(
+            `打开 ${cmd} 的落点时它成为可见编辑器`,
+            async () =>
+              vscode.window.visibleTextEditors.some(
+                (e) => e.document.uri.fsPath === pluginDoc(stem),
+              ),
+            4000,
+          );
+          opened = vscode.window.visibleTextEditors.find(
+            (e) => e.document.uri.fsPath === pluginDoc(stem),
+          ).document;
+        }
+        // 不管走哪一支，**打开的那一份**都必须正是那篇文档。
+        assert.strictEqual(
+          fs.realpathSync(opened.uri.fsPath),
+          fs.realpathSync(pluginDoc(stem)),
+          `${cmd}：打开的必须是插件自带那一份，实际 = ${opened.uri.fsPath}`,
+        );
+        assert.ok(
+          opened.getText().startsWith(`# ${cmd}`),
+          `${cmd}：打开的必须真是那篇文档，实际首行 = ${opened.getText().split("\n")[0]}`,
+        );
+      } finally {
+        if (fs.existsSync(hidden)) fs.renameSync(hidden, repoDoc(stem));
+      }
+    }
+    for (const { stem } of cases) {
+      assert.ok(fs.existsSync(repoDoc(stem)), `探针结束后仓库真源必须还原：${stem}.md`);
+    }
+    console.log(
+      `[P8] F12 导航那一半：真按键 ${realKeypress.length}/${cases.length} 条` +
+        `（${realKeypress.join(", ") || "无"}）· 其余走"打开落点并断言可见"`,
+    );
+  });
+
   test("hover on a notation symbol shows the target's signature", async () => {
     // 用例 #8（G-23）：hover 必须给出 `Set.mem` 的**原始类型**。
     const entry = fixtureEntry();

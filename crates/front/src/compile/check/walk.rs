@@ -2555,9 +2555,16 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
     }
 
     /// `#print name`：只记名字指针，打印在内核阶段。
+    ///
+    /// **F12 行**（2026-10-11 用户实测：「`#print Set.singleton` 里 `Set.singleton`
+    /// 不支持 F12 跳转」）：这条命令**必须**给那个名字 push 一条 hover 行 —— 以前它
+    /// 一个行都不 push ⇒ `definition_at`（它只认 hover 行的 `resolution`）答 `null` ✗。
+    /// hover 那半**不受影响**：`command_line_hover` 在**行**一级顶上（C3 契约：显示
+    /// 命令自己的输出），判据 `hover_on_a_print_line_shows_the_printed_declaration` 盯着 ✓。
     #[allow(clippy::too_many_arguments)]
     fn print(&mut self, c: &CmdCtx<'_>, name: &str, span: Span) {
         let idx = c.idx;
+        let env_before = c.env_before;
         // R2：`#print mk` 与 `#print Wrap.mk` 打印同一条声明（别名解析到规范名）；
         // 歧义/未知走各自稳定的错误码，与 `#check` 同源。G-05：命名空间/open
         // 的候选顺序也走这一条（`#print mem` 在 `namespace Set` 里解析到 `Set.mem`）。
@@ -2569,6 +2576,29 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             }
         };
         let ptr = self.builder.name_from_str(&canonical);
+        // 形状与 [`Self::push_lexical_hover_rows`] 的单名字那一支**逐字段相同**：
+        // * `expr: None` ⇒ `resolve_hovers` **不推类型、不编造**（同 G-108 的纪律 ✓）；
+        // * `resolution` 写**规范名** ⇒ 回填（`kernel_phase` 的 `defs`，入口趟是**整条
+        //   闭包**的表）与跨模块（`project_definition`）两条都按规范名走 ✓；prelude
+        //   名字回填后是 `None` ⇒ 交给 LSP 那条 `PRELUDE_NAMES` 回退（按 span 取源文本 ✓）；
+        // * `lexical: true` ⇒ LSP 侧把它当"一个名字"渲染（hover 用不到 —— 行一级那条
+        //   先答；高亮/引用那条链用得到 ✓）。
+        self.cmd_hovers.push(CmdHover {
+            env_at: env_before,
+            nodes: vec![HoverNode {
+                span,
+                expr: None,
+                scope_names: Vec::new(),
+                scope_tys: Vec::new(),
+                resolution: Some(ResolvedTarget::Declaration {
+                    name: canonical.clone(),
+                    span,
+                }),
+                binder: true,
+                lexical: true,
+            }],
+            cmd: idx,
+        });
         self.ops.push(PendingOp::Print {
             name: canonical,
             ptr,

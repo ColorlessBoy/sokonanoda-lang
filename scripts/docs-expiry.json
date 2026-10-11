@@ -103,6 +103,12 @@
       "renewed": "2026-09-30",
       "tier": "spec"
     },
+    "docs/design/command-docs.md": {
+      "expires": "2027-10-11",
+      "renewed": "2026-10-11",
+      "tier": "spec",
+      "reason": "第七轮：命令文档进 VSIX + 命令字 F12 的设计档（新文件初始登记）（分档 spec = 365 天）"
+    },
     "docs/design/command-naming.md": {
       "expires": "2027-09-30",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",

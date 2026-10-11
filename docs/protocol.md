@@ -343,6 +343,35 @@ Term-position `match` (outside any `by` step) and every other position keep the
 pre-P6 chain; no custom scheme / `TextDocumentContentProvider` is involved.
 Design and criteria: `docs/design/tactic-docs.md` §5 P6.
 
+### The command keyword: F12 lands in its document (2026-10-11)
+
+`textDocument/definition` on a **command keyword token** (`#check` / `#reduce` /
+`#print` / `set_option`) answers one `Location`, in the same shape as the tactic
+one above:
+
+- **trigger** = the token itself, recognised through
+  `front::semantic::semantic_tokens`' `Keyword` run (an exact token span; no
+  truth-layer channel for command keywords exists today — `checks[].span` is the
+  *expression*, `prints[].span` covers only `#print`, `#reduce`'s event is
+  dropped and `set_option`'s span is dropped in the walk). It is therefore
+  **lexical**: it also works while the file has diagnostics, and it **never**
+  fires on arguments (`#check id` / `#print id` still jump to the declaration —
+  G-116 — and `set_option pp.explicit true`'s option/value have no target);
+- `uri` = a real `.md`, same five tiers as the tactic channel but for
+  `reference/commands/<stem>.md` (`#check` ⇒ `check.md`) with its own plugin
+  directory key `$SOKONANODA_COMMAND_DOCS_DIR` (the extension points it at
+  `<extension>/docs/commands`; `SOKONANODA_DOCS_DIR` keeps meaning
+  `docs/tactics` — one key per directory, no breakage);
+- `range` = the name token inside that file's `# <command>` heading
+  (**target-document** coordinates, same D5 rule as the tactic channel).
+
+`hover` is deliberately untouched: on a `#check` / `#print` line
+`command_line_hover` stays the first link of the chain and keeps answering the
+command's own output. The command docs ship inside the VSIX
+(`extension/docs/commands/`, staged from `reference/commands/`), and the release
+smoke asserts every artifact's copies are byte-identical to the source.
+Design and criteria: `docs/design/command-docs.md`.
+
 ## Declaration card: one renderer for every hover (2026-10-10)
 
 `textDocument/hover` answers **the same declaration card** wherever a `def`

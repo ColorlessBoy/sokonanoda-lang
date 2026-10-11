@@ -185,78 +185,21 @@ pub fn doc(name: &str) -> Option<&'static TacticDoc> {
     TACTIC_DOCS.iter().find(|t| t.name == name)
 }
 
-/// 一篇 tactic 文档的**真实文件路径**（`F12` 落点；设计 §4.9 D10 的**五档解析**）。
+/// ② 档读的插件目录键（扩展侧写的**那一个**键，见 `editor/vscode/extension.js`）。
 ///
-/// 顺序（**每一档都过 `is_file()`** —— 目录在而文件缺 ⇒ 继续往下走，不是死指针 ✗）：
+/// ⚠ 命令文档用**另一个**键（[`crate::commands::PLUGIN_DOCS_DIR_ENV`]）：这个键今天
+/// 指 `<ext>/docs/tactics`，改成父目录会让既有 wire 判据与 e2e 的路径断言同时失效 ✗。
+pub const PLUGIN_DOCS_DIR_ENV: &str = "SOKONANODA_DOCS_DIR";
+
+/// 一篇 tactic 文档的**真实文件路径**（`F12` 落点）。
 ///
-/// | 档 | 来源 | 谁走这一档 |
-/// |---|---|---|
-/// | ① | 仓库真源 `<仓库>/reference/tactics/<name>.md` | 开发树 / CI |
-/// | ② | `$SOKONANODA_DOCS_DIR/<name>.md`（扩展指到插件自带的 `docs/tactics`） | 安装形态 |
-/// | ③ | 缓存物化 `<cache::root()>/reference/tactics/<name>.md` | CLI / opencode / DSH |
-/// | ④ | 临时物化 `<temp_dir>/sokonanoda-reference/tactics/<name>.md` | 缓存不可写 |
-/// | ⑤ | `None` | 五档都不成立 ⇒ 答"没有落点" |
-///
-/// ⚠ **① 是编译期路径**（`env!("CARGO_MANIFEST_DIR")` 烘的是**编译机**的路径）⇒
-/// 只在开发树/CI 上存在；发布产物（VSIX / 缓存二进制）在用户机器上 `is_file()`
-/// 为假 ⇒ 天然落到 ②（插件目录）或 ③（物化）✓ —— 这正是 `prelude_source_path`
-/// 的既有形态（`compile/prelude.rs:499`，同一门纪律）。
-///
-/// ③④ 与 prelude 同款：**幂等**（读出来与 [`TacticDoc::markdown`] 一致就不重写，
-/// 免得每次 F12 动一次 mtime 让编辑器反复重载）、写不进就试下一档、两档都写不进
-/// ⇒ `None`（**绝不编造位置** ✗）。`sokonanoda clean` 只删 `<root>/compiled/*.json`
-/// （`cache::clean_in`）⇒ **不动这些文档**（与平级的 `<root>/prelude/Prelude.sokonanoda`
-/// 同待遇）✓。
-///
-/// 落点必须是**磁盘上的真 `.md`**：本仓只有 `file:` 一种 URI 形态
-/// （零 `TextDocumentContentProvider`、零自定义 scheme）✓。
+/// 五档解析的机械**只有一份**：[`crate::reference_docs::doc_path`]（顺序、每档都过
+/// `is_file()`、③④ 的幂等物化、"绝不编造位置"—— 三条纪律与实测都写在它的头注记里）。
+/// 这里只填 tactic 的三个参数：子目录 `tactics`、文件名 `<name>.md`、插件目录键
+/// [`PLUGIN_DOCS_DIR_ENV`] ✓。
 pub fn doc_path(name: &str) -> Option<std::path::PathBuf> {
     let doc = doc(name)?;
-    let file_name = format!("{name}.md");
-    // ① 仓库真源（开发树首选：改文档立即生效，不必重打包）。
-    let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .join("reference")
-        .join("tactics")
-        .join(&file_name);
-    if repo.is_file() {
-        return Some(repo);
-    }
-    // ② 插件目录（安装形态：扩展把 `SOKONANODA_DOCS_DIR` 指到 `<extension>/docs/tactics`）。
-    if let Some(dir) = std::env::var_os("SOKONANODA_DOCS_DIR") {
-        let plugin = std::path::PathBuf::from(dir).join(&file_name);
-        if plugin.is_file() {
-            return Some(plugin);
-        }
-    }
-    // ③ 缓存物化 → ④ 临时物化（照 `prelude_source_path` 的三段兜底，少一段仓库）。
-    let candidates = crate::compile::cache::root()
-        .map(|root| root.join("reference").join("tactics").join(&file_name))
-        .into_iter()
-        .chain(std::iter::once(
-            std::env::temp_dir()
-                .join("sokonanoda-reference")
-                .join("tactics")
-                .join(&file_name),
-        ));
-    for path in candidates {
-        if matches!(std::fs::read_to_string(&path), Ok(old) if old == doc.markdown) {
-            return Some(path);
-        }
-        let written = path
-            .parent()
-            .map(std::fs::create_dir_all)
-            .transpose()
-            .ok()
-            .flatten()
-            .and_then(|()| std::fs::write(&path, doc.markdown).ok());
-        if written.is_some() {
-            return Some(path);
-        }
-    }
-    // ⑤ 五档都不成立 ⇒ 没有落点（编辑器答"没有定义"，比给死指针好 ✓）。
-    None
+    crate::reference_docs::doc_path("tactics", doc.name, doc.markdown, PLUGIN_DOCS_DIR_ENV)
 }
 
 /// 全部关键字（**表序**，即 [`whitelist_text`] 的顺序）。

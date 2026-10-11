@@ -206,6 +206,43 @@ async fn goto_definition_jumps_from_check_use_to_declaration() {
     shutdown(&mut service).await;
 }
 
+/// **用户实测（2026-10-11）**：「`#print Set.singleton` 里 `Set.singleton` 不支持
+/// F12 跳转」。
+///
+/// 病根（`crates/front/src/compile/check/walk.rs::print`）：这条命令只 push
+/// `PendingOp::Print`，**从不 push `CmdHover`** ⇒ `#print` 那一行**一个 hover 行都
+/// 没有** ⇒ `definition_at`（它只认 hover 行的 `resolution`）答 `null` ✗。
+/// hover 之所以看起来没事：`command_line_hover` 在**行**一级顶上（显示命令自己的
+/// 输出，C3 契约）✓ —— 那条契约**不许**被这条修动（判据
+/// `hover_on_a_print_line_shows_the_printed_declaration` 盯着它）。
+///
+/// 判据绑**用户动作**：光标放在 `#print <名字>` 的**名字**上 ⇒ 落点必须是那条声明的
+/// 定义行（**不是**原地跳、不是 null）。
+#[tokio::test]
+async fn goto_definition_from_a_print_name_lands_on_its_declaration() {
+    let src = format!("{VALID}#print id\n");
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, &src).await;
+    let _ = wait_diagnostics(&mut socket, "goto def print diagnostics").await;
+
+    let at = src.find("#print id").expect("#print id exists") + "#print ".len();
+    let target = goto_definition_at(&mut service, &src, at).await;
+    let GotoDefinitionResponse::Scalar(location) =
+        target.expect("`#print` 的名字必须能跳定义（用户 2026-10-11 实测的缺口）")
+    else {
+        panic!("expected a scalar definition location");
+    };
+    let decl_end = "def id : Prop -> Prop := fun (x : Prop) => x".len();
+    assert_eq!(
+        location.range.start,
+        lsp_pos(&src, 0),
+        "落点必须是 `def id` 那一行（不许原地跳）"
+    );
+    assert_eq!(location.range.end, lsp_pos(&src, decl_end));
+    shutdown(&mut service).await;
+}
+
 #[tokio::test]
 async fn goto_definition_returns_none_without_resolution() {
     let (mut service, mut socket) = test_service();
@@ -2194,5 +2231,280 @@ async fn goto_definition_on_a_tactic_keyword_survives_a_failing_declaration() {
         );
         assert!(path.is_file(), "落点必须真实存在：{}", path.display());
     }
+    shutdown(&mut service).await;
+}
+
+// ── 命令关键字 ⇒ 命令文档（2026-10-11 用户要求；设计 `docs/design/command-docs.md`）──
+
+/// 四条命令的夹具（每条**各出现一次** ⇒ anchor 唯一，`tactic_keyword_offset` 可复用）。
+///
+/// `#check id` 是**裸常量**（U2 捷径）· `#reduce id` 求值成 lambda · `#print id` 打定义 ·
+/// `set_option` 不产事件 —— 四种形态都在，且整份文件**零诊断** ✓。
+const EVERY_COMMAND_SOURCE: &str = "def id : Prop -> Prop := fun (x : Prop) => x\n\
+                                    \n\
+                                    #check id\n\
+                                    #reduce id\n\
+                                    #print id\n\
+                                    set_option pp.explicit true\n";
+
+/// **命令关键字上按 F12 ⇒ 落到那一条命令的参考文档**（用户 2026-10-11：「`set_option`
+/// `#print` `#check` 等等 F12 跳转到对应文档」）。
+///
+/// 每条断言五件（与 tactic 那条同形）：ⓐ 落点是**真文件**（物化失败必须 `None`，
+/// 不许给死指针 ✗）· ⓑ 内容含 `# <命令>` · ⓒ `range.start.line` **就是**那一行 ·
+/// ⓓ `range` == **落点文档里**标题那个名字 token（D5：`Location.range` 是目标文件的
+/// 坐标）· ⓔ 文件名 == 表里的 `stem`（防"全跳到同一篇"的假绿 ✗）。
+///
+/// ⚠ 每条测**两个位置**：命令字的**头一个字符**与**最后一个字符**（用户点的就是那两处
+/// —— E27 的教训：拿"能跑通的位置"代替"用户实际点的位置" ✗）。
+/// ⚠ 四条**逐个**跑；清单与 `front::commands` 表**逐字**对齐（漏一条 / 多一条 / 顺序
+/// 漂了都判红 ✓）。
+#[tokio::test]
+async fn goto_definition_on_every_command_keyword_lands_in_its_reference_file() {
+    let _serial = DOCS_LOCK.lock().await;
+    let listed: Vec<&str> = sokonanoda_front::commands::COMMAND_DOCS
+        .iter()
+        .map(|d| d.name)
+        .collect();
+    assert_eq!(
+        listed,
+        vec!["#check", "#reduce", "#print", "set_option"],
+        "命令基线是 4 条（`front::commands::COMMAND_DOCS` 的表序 = 索引序）"
+    );
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, EVERY_COMMAND_SOURCE).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen (every command F12)").await;
+
+    for doc in sokonanoda_front::commands::COMMAND_DOCS {
+        let name = doc.name;
+        // 每条命令在夹具里**只出现一次** ⇒ anchor 唯一，偏移直接取它（`#` 是首个字符）。
+        let kw = tactic_keyword_offset(EVERY_COMMAND_SOURCE, name);
+        assert!(
+            EVERY_COMMAND_SOURCE[kw..].starts_with(name),
+            "夹具里 `{name}` 的关键字偏移算错了：实际 = {:?}",
+            &EVERY_COMMAND_SOURCE[kw..kw + name.len()]
+        );
+        for offset in [kw, kw + name.len() - 1] {
+            let at = format!("`{name}` 的第 {} 个字符", offset - kw + 1);
+            let location = definition_location(
+                goto_definition_at(&mut service, EVERY_COMMAND_SOURCE, offset).await,
+                &at,
+            );
+            let path = definition_file(&location);
+            // ⓐ 落点是真文件（物化失败必须 `None`，不许死指针）。
+            assert!(
+                path.is_file(),
+                "{at}：落点必须真实存在，实际 = {}",
+                path.display()
+            );
+            let text = std::fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("{at}：落点必须可读（{e}）"));
+            // ⓔ 文件名 == 表里的 stem（防"全跳到同一篇"）。
+            let expected = format!("{}.md", doc.stem);
+            assert_eq!(
+                path.file_name().and_then(|n| n.to_str()),
+                Some(expected.as_str()),
+                "{at}：落点文件名必须是 `{expected}`，实际 = {}",
+                path.display()
+            );
+            // ⓑ 内容含 `# <命令>`，且与表里内嵌那份**逐字节相同**（一份源）。
+            assert!(
+                text.contains(&format!("# {name}")),
+                "{at}：内容必须含 `# {name}`，实际开头 = {:?}",
+                text.lines().next().unwrap_or_default()
+            );
+            assert_eq!(
+                text, doc.markdown,
+                "{at}：落点内容必须与 `COMMAND_DOCS` 内嵌那份逐字节相同（一份源）"
+            );
+            // ⓒ `range` 指向 `# <命令>` 那一行。
+            let line = text
+                .lines()
+                .nth(location.range.start.line as usize)
+                .unwrap_or_else(|| panic!("{at}：range.start.line 超出落点文件"));
+            assert_eq!(
+                line.trim_end(),
+                format!("# {name}"),
+                "{at}：range 必须指向 `# {name}` 那一行（不是第 0 行、更不是原地跳）"
+            );
+            // ⓓ `range` == 落点文档里标题名 token 的 span（D5）。
+            let heading = format!("# {name}");
+            let heading_start = text.find(&heading).expect("落点文件有标题");
+            let name_at = heading_start + "# ".len();
+            assert_eq!(
+                location.range.start,
+                lsp_pos(&text, name_at),
+                "{at}：range.start 必须 == 落点文档里标题名 token 的起点"
+            );
+            assert_eq!(
+                location.range.end,
+                lsp_pos(&text, name_at + name.len()),
+                "{at}：range.end 必须 == 落点文档里标题名 token 的终点"
+            );
+        }
+    }
+    shutdown(&mut service).await;
+}
+
+/// **反向（不许抢参数位）**：命令**参数**上的 F12 必须与"没有这条分支时"同一个答案。
+///
+/// 触发条件是**精确 token**（`semantic_tokens` 的 `Keyword` run）⇒
+/// * `#check id` / `#print id` 的 `id` ⇒ 仍走既有链，落到**声明**（`def id` 那一行）✓
+///   —— 这两条正是 G-116 与既有契约（`goto_definition_jumps_from_check_use_to_declaration`、
+///   `goto_definition_from_a_print_name_lands_on_its_declaration`）咬的东西；
+/// * `set_option pp.explicit true` 的 `pp.explicit` / `true` ⇒ 不是命令字、也不是声明
+///   ⇒ `None`（**不许**落到 `set_option.md` ✗）；
+/// * 表外的 `#` 命令（`#eval`）⇒ 词表里没有它 ⇒ `None` ✓。
+#[tokio::test]
+async fn goto_definition_does_not_steal_command_arguments() {
+    let _serial = DOCS_LOCK.lock().await;
+    let src = "def id : Prop -> Prop := fun (x : Prop) => x\n\
+               \n\
+               #check id\n\
+               #print id\n\
+               set_option pp.explicit true\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen (command arguments)").await;
+
+    let decl_end = "def id : Prop -> Prop := fun (x : Prop) => x".len();
+    for (needle, label) in [
+        ("#check id", "`#check` 的参数"),
+        ("#print id", "`#print` 的参数"),
+    ] {
+        let at = src.find(needle).expect("夹具里有这条命令") + needle.len() - 1;
+        let location = definition_location(goto_definition_at(&mut service, src, at).await, label);
+        assert_eq!(
+            location.uri.as_str(),
+            URI,
+            "{label}：`id` 必须跳到**本文件**的声明（不是命令文档）"
+        );
+        assert_eq!(
+            location.range.start,
+            lsp_pos(src, 0),
+            "{label}：`id` 的落点必须是 `def id` 那一行"
+        );
+        assert_eq!(location.range.end, lsp_pos(src, decl_end));
+    }
+
+    for (needle, label) in [
+        ("pp.explicit", "`set_option` 的选项名"),
+        ("true", "`set_option` 的值"),
+    ] {
+        let at = src.find(needle).expect("夹具里有它");
+        let target = goto_definition_at(&mut service, src, at).await;
+        assert!(
+            target.is_none(),
+            "{label}（`{needle}`）上 F12 必须仍走既有链（它既不是命令字也不是声明 ⇒ null），\
+             实际 = {target:?} —— 若你把它接到命令文档上，那是**抢参数位** ✗"
+        );
+    }
+    shutdown(&mut service).await;
+}
+
+/// **表外的 `#` 命令没有落点**（`#eval` 不在 `COMMAND_DOCS` 里 ⇒ 词表里也没有它 ⇒
+/// `semantic_tokens` 不给 `Keyword` run ⇒ 这一跳无从谈起）。
+///
+/// ⚠ 单独一条（不在上一条里复用 service）：这份夹具**解析不过**（`#eval` 是 parse 错），
+/// 与"能编译的文件"是两种状态 —— 混在一条判据里会让失败原因不可判读 ✗。
+#[tokio::test]
+async fn goto_definition_on_an_unknown_hash_command_has_no_doc_target() {
+    let _serial = DOCS_LOCK.lock().await;
+    let src = "#eval 1\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen (#eval)").await;
+    let at = src.find("#eval").expect("#eval") + 1;
+    let target = goto_definition_at(&mut service, src, at).await;
+    assert!(
+        target.is_none(),
+        "表外的 `#eval` 上 F12 必须是 null（它既没有文档、也不是声明），实际 = {target:?}"
+    );
+    shutdown(&mut service).await;
+}
+
+/// **插件目录那一档（② 档）单独判**（与 tactic 那条同形）：命令文档也要能从
+/// `SOKONANODA_COMMAND_DOCS_DIR`（安装形态）读到 —— 这是"随 VSIX 分发"的 **wire 层**
+/// 判据（载荷层 = release 冒烟的逐字节断言；渲染层 = e2e 的 P7 同形用例）。
+///
+/// 三步：① 开发树里 ① 档先命中（**有意为之**）⇒ ② 藏起真源 ⇒ 必须落到插件目录那份
+/// （内容与表里内嵌的**逐字节相同**）⇒ ③ 删掉插件那份 ⇒ **继续往下走**（③/④ 档物化），
+/// 答一个**真实存在**的文件（**不是**死指针 ✗）。
+#[tokio::test]
+async fn goto_definition_on_a_command_keyword_uses_the_plugin_doc_dir() {
+    let _serial = DOCS_LOCK.lock().await;
+    let doc = sokonanoda_front::commands::doc("#print").expect("表里有 #print");
+    let src = "def id : Prop -> Prop := fun (x : Prop) => x\n\n#print id\n";
+    let kw = src.find("#print").expect("源码里有 #print");
+
+    let plugin_dir = std::env::temp_dir().join(format!("soko-command-docs-{}", std::process::id()));
+    std::fs::create_dir_all(&plugin_dir).expect("建插件目录");
+    let plugin_doc = plugin_dir.join(format!("{}.md", doc.stem));
+    std::fs::write(&plugin_doc, doc.markdown).expect("写插件那份文档");
+    let _env = EnvGuard::set(sokonanoda_front::commands::PLUGIN_DOCS_DIR_ENV, &plugin_dir);
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen (command plugin docs tier)").await;
+
+    // ① 开发树：① 档（仓库真源）先命中。
+    let first = definition_location(goto_definition_at(&mut service, src, kw).await, "#print");
+    let repo_doc = definition_file(&first);
+    assert!(
+        repo_doc.is_file() && repo_doc != plugin_doc,
+        "开发树里 ① 档必须先命中（插件目录设了也不抢）：实际 = {}",
+        repo_doc.display()
+    );
+
+    // ② 藏起真源 ⇒ ② 档（插件目录）必须命中。
+    let mut hidden = HiddenRepoDoc::hide(repo_doc.clone());
+    let second = definition_location(goto_definition_at(&mut service, src, kw).await, "#print");
+    let landed = definition_file(&second);
+    assert_eq!(
+        landed,
+        plugin_doc,
+        "① 档不存在时必须落到插件目录那一份（不是缓存、不是仓库）：实际 = {}",
+        landed.display()
+    );
+    assert_eq!(
+        std::fs::read_to_string(&landed).expect("插件那份必须可读"),
+        doc.markdown,
+        "插件那份的内容必须与 `COMMAND_DOCS` 内嵌那份逐字节相同（一份源）"
+    );
+
+    // ③ 反向：插件那份不存在 ⇒ 继续物化，**不是**死指针 ✗。
+    std::fs::remove_file(&plugin_doc).expect("删掉插件那份");
+    let third = definition_location(goto_definition_at(&mut service, src, kw).await, "#print");
+    let materialized = definition_file(&third);
+    assert_ne!(
+        materialized, plugin_doc,
+        "插件那份已经不存在 ⇒ 绝不许把不存在的路径当答案（死指针 ✗）"
+    );
+    assert!(
+        materialized.is_file(),
+        "② 档不成立 ⇒ 必须继续物化出一个真实存在的文件，实际 = {}",
+        materialized.display()
+    );
+    assert_eq!(
+        std::fs::read_to_string(&materialized).expect("物化那份必须可读"),
+        doc.markdown,
+        "物化出来的内容必须与表里那份逐字节相同（幂等写入 ✓）"
+    );
+
+    // 还原真源并核对内容（Drop 也做，这里显式做一次是为了能断言）。
+    hidden.restore();
+    assert!(repo_doc.is_file(), "真源必须改回来：{}", repo_doc.display());
+    assert_eq!(
+        std::fs::read_to_string(&repo_doc).expect("真源必须可读"),
+        doc.markdown,
+        "改回来的真源必须与内嵌那份逐字节相同"
+    );
+
+    let _ = std::fs::remove_dir_all(&plugin_dir);
     shutdown(&mut service).await;
 }

@@ -2952,13 +2952,21 @@ async function activate(context) {
       return;
     }
     const command = resolution.command;
-    // 插件自带的 tactic 文档目录（`docs/design/tactic-docs.md` §4.9.4）：LSP 的
-    // `doc_path()` 第二档读它 ⇒ F12 落在**插件自己的文件**上（离线、无运行时写盘）。
-    // ⚠ 只写**新增的那一个键**，不要 `...process.env`：`vscode-languageclient` 的
+    // 插件自带的参考文档目录（tactic：`docs/design/tactic-docs.md` §4.9.4；
+    // 命令：`docs/design/command-docs.md`）：LSP 的五档解析第二档读它们 ⇒ F12 落在
+    // **插件自己的文件**上（离线、无运行时写盘）。
+    // ⚠ **两个目录两个键**（不是父目录一个键）：`SOKONANODA_DOCS_DIR` 今天指
+    // `<ext>/docs/tactics`，改成父目录会让既有 wire 判据（`navigation.rs` 的插件目录
+    // 那一条）与 e2e P7 的路径断言同时失效 ✗ ⇒ 命令侧**只加一个新键**（零破坏 ✓）。
+    // ⚠ 只写**新增的那两个键**，不要 `...process.env`：`vscode-languageclient` 的
     // `getEnvironment()` 自己会把 `process.env` 铺底再用这里的键覆盖 ⇒ 这是
     // **追加**语义，写 `...process.env` 会让人误以为它替换（与既有的
     // `SOKONANODA_CACHE_DIR` / `SOKONANODA_LSP_BIN` 同一条纪律）。
-    const env = { SOKONANODA_DOCS_DIR: path.join(context.extensionPath, "docs", "tactics") };
+    // ⚠ 键名 ↔ 目录名的对账判据在 `crates/cli/tests/extension.rs`（接缝守卫）。
+    const env = {
+      SOKONANODA_DOCS_DIR: path.join(context.extensionPath, "docs", "tactics"),
+      SOKONANODA_COMMAND_DOCS_DIR: path.join(context.extensionPath, "docs", "commands"),
+    };
     serverOptions = {
       run: { command, transport: TransportKind.stdio, options: { env } },
       debug: { command, transport: TransportKind.stdio, options: { env } },

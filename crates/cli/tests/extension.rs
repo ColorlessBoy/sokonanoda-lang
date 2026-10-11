@@ -1879,3 +1879,42 @@ fn command_titles_follow_the_r4_naming_rule() {
         );
     }
 }
+
+/// **文档通道的 env 键对账**（2026-10-11，设计 `docs/design/command-docs.md` §2）。
+///
+/// 接缝：**扩展写哪个键 / LSP 读哪个键**必须同名 —— 这条今天没有任何守卫
+/// （`scripts/audit-wire-fields.py` 管的是 wire 字段，env 键不在它的射程内）⇒
+/// 改名只改一半（改扩展忘了改 front，或反过来）会让 F12 **静默**落到物化副本
+/// （用户看不出差别，但"随插件分发"这件事已经失效 ✗）。
+///
+/// 判据：三个来源**逐字**对齐 ——
+/// ① `editor/vscode/extension.js` 里的键 + 目录；
+/// ② `front::tactics::PLUGIN_DOCS_DIR_ENV` / `front::commands::PLUGIN_DOCS_DIR_ENV`；
+/// ③ `editor/vscode/scripts/stage-docs.js` 的 `PAIRS`（打包侧把哪两个目录放进去）。
+#[test]
+fn doc_channels_agree_on_their_env_keys_and_dirs() {
+    let script = entry_script();
+    for (env_key, sub) in [
+        (sokonanoda_front::tactics::PLUGIN_DOCS_DIR_ENV, "tactics"),
+        (sokonanoda_front::commands::PLUGIN_DOCS_DIR_ENV, "commands"),
+    ] {
+        assert!(
+            script.contains(env_key),
+            "extension.js 必须写 `{env_key}`（front 侧读的就是它）"
+        );
+        let want = format!("path.join(context.extensionPath, \"docs\", \"{sub}\")");
+        assert!(
+            script.contains(&want),
+            "extension.js 必须把 `{env_key}` 指到 `{want}`（front 的 ② 档按这个子目录拼）"
+        );
+    }
+    // 打包侧：stage-docs.js 必须把这两个子目录都镜像进 `docs/`（否则扩展指的目录是空的）。
+    let stage = fs::read_to_string(vscode_dir().join("scripts").join("stage-docs.js"))
+        .expect("stage-docs.js");
+    for sub in ["tactics", "commands"] {
+        assert!(
+            stage.contains(&format!("\"{sub}\"")),
+            "stage-docs.js 的 PAIRS 必须覆盖 `{sub}`（否则 VSIX 里没有这个目录 ✗）"
+        );
+    }
+}

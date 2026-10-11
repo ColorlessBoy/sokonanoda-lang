@@ -1,3 +1,23 @@
+## [Unreleased]
+
+### Added
+
+- **命令文档随插件分发 + 命令关键字 `F12` 跳文档**（2026-10-11 用户：「把命令文档加入
+  vsix，`set_option` `#print` `#check` 等等 F12 跳转到对应文档里」）：`#check` /
+  `#reduce` / `#print` / `set_option` 四个**命令字**上按 `F12` ⇒ 打开那一篇文档
+  （`#check` ⇒ `check.md`、`set_option` ⇒ `set_option.md`…），落点选中 `# <命令>` 标题。
+  4 篇 + 索引随 VSIX 打包（`extension/docs/commands/`，离线可读）；仓库真源不在时
+  自动落到插件自带那份（与 tactic 文档**同一套五档解析**，各自一个 env 键）。
+  **边界**：命令**参数**位上的 `F12` 不受影响 —— `#check id` / `#print id` 的 `id`
+  仍跳声明，`set_option pp.explicit true` 的选项名/值仍没有落点。
+
+### Fixed
+
+- **`#print <名字>` 的名字现在能 `F12` 跳定义**（2026-10-11 用户：「`#print
+  Set.singleton` 里 `Set.singleton` 不支持 F12 跳转」）：这条命令以前**一个 hover 行
+  都不产生** ⇒ 跳转答 `null`（hover 那半一直是好的：它显示命令自己的输出）⇒ 现在给那个
+  名字补一条 hover 行，跨模块（库里的 `Set.singleton`）也跳得到。
+
 ## [0.90.0] — 2026-10-11
 
 ### Added

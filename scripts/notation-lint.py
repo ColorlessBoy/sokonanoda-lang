@@ -64,6 +64,10 @@ DEFAULT_ROOTS = [
     "course",
     "playground.sokonanoda",
     "reference/tactics",
+    # `reference/commands` 是 2026-10-11 加的（设计 `docs/design/command-docs.md`）：
+    # 那 5 篇（4 篇 + 索引）与 tactic 正文同待遇 —— **随 VSIX 发出去**的正文 ⇒
+    # 它的 ```sokonanoda 例子同样受「一律写记法」这条硬规则（AGENTS.md 硬规则 3）管 ✓。
+    "reference/commands",
 ]
 
 # ── markdown 里的代码围栏（与 `crates/front/tests/tactic_docs.rs::fenced_sokonanoda_blocks`

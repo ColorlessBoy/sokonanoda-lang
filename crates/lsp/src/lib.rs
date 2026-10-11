@@ -1552,6 +1552,35 @@ fn tactic_doc_at(
     tactic_keyword_at(text, step.span, offset)
 }
 
+/// 光标下的**命令文档**（2026-10-11，设计 `docs/design/command-docs.md`：F12 落到
+/// `reference/commands/<stem>.md`）。
+///
+/// **为什么走词法通道**（`front::semantic::semantic_tokens` 的 `Keyword` run）：
+/// 命令字今天**没有**任何 truth-layer 通道 —— `report.checks[].span` 是**表达式**的
+/// span（不含 `#check`）、`report.prints[].span` 只覆盖 `#print` 一条、`#reduce` 的
+/// 事件落进 `_ => {}`（`session.rs`）、`set_option` 的 span 在 walk 里被 `..` 丢掉
+/// ⇒ 要真做进报告，得动 `DocumentReport`（它进缓存回放）—— 那是**另一刀**（设计 §3
+/// 记为"方案 B"，本刀有意不做）。词法 run 是**精确 token span**、整文件可用（解析
+/// 失败也退化得出）、且**不碰判定** ✓。
+///
+/// ⚠ 与 [`tactic_keyword_at`] 的**关键差别**：命令不在 `by` 块里 ⇒ 这里**没有**
+/// "落在某条步骤里"那条闸门，只看光标是不是**那个 token**。参数位（`#check id` 的
+/// `id`、`set_option pp.explicit true` 的 `true` / `pp.explicit`）不是 `Keyword` run
+/// ⇒ 天然不在这里（判据 `goto_definition_does_not_steal_command_arguments`）✓。
+fn command_keyword_at(
+    text: &str,
+    offset: usize,
+) -> Option<&'static sokonanoda_front::commands::CommandDoc> {
+    let spans = front_semantic_tokens(text);
+    let span = spans.iter().find(|s| {
+        s.kind == SemanticKind::Keyword
+            && s.span.start.offset <= offset
+            && offset < s.span.end.offset
+    })?;
+    let name = text.get(span.span.start.offset..span.span.end.offset)?;
+    sokonanoda_front::commands::doc(name)
+}
+
 /// 落点文档里 `# <name>` 标题那个名字 token 的**字节区间**（D5 的 `range`）。
 ///
 /// ⚠ **为什么不是源文件里光标那个 token 的 span**：`Location.range` 是**目标文件**
@@ -2990,6 +3019,37 @@ impl LanguageServer for Backend {
             let offset = position_to_offset(&text, pos);
             if let Some(doc) = tactic_doc_at(report, &text, offset) {
                 if let Some(path) = sokonanoda_front::tactics::doc_path(doc.name) {
+                    if let Ok(uri) = Url::from_file_path(&path) {
+                        if let Some((start, end)) = doc_heading_token(doc.markdown, doc.name) {
+                            return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                                uri,
+                                range: query_map::range_of_offsets(doc.markdown, start, end),
+                            })));
+                        }
+                    }
+                }
+            }
+        }
+        // **命令关键字 ⇒ 那一条命令的完整文档**（2026-10-11 用户要求：「`set_option`
+        // `#print` `#check` 等等 F12 跳转到对应文档」；设计 `docs/design/command-docs.md`）：
+        // 光标正好落在 `#check` / `#reduce` / `#print` / `set_option` 这四个 token 上
+        // ⇒ 落到 `front::commands::doc_path` 给的真 `.md`（与 tactic **同一份**五档机械
+        // `reference_docs::doc_path`：仓库真源 → 插件目录 → 缓存物化 → 临时物化 → `None`）。
+        // ⚠ 触发条件是**精确 token**（`semantic_tokens` 的 `Keyword` run）⇒ `#check id`
+        // 的 `id`、`set_option pp.explicit true` 的 `true` 都**不**在这里 ⇒ 既有的
+        // "参数名跳声明"契约原样保留 ✓（判据
+        // `goto_definition_does_not_steal_command_arguments` +
+        // `goto_definition_jumps_from_check_use_to_declaration` +
+        // `goto_definition_from_a_print_name_lands_on_its_declaration`）。
+        // ⚠ 顺序：放在 tactic 分支**之后**（两者关键字集合不交 —— 写清是为了让"命令不是
+        // tactic"这件事在代码里可见 ✓）。`range` 与 tactic 同口径 = **落点文档里标题那个
+        // 名字 token**（D5：`Location.range` 是**目标文件**的坐标 ✗ 不是源文件里光标的
+        // 位置）。⚠ 五档都不成立 ⇒ `doc_path` 答 `None` ⇒ **不编造位置**，继续往下走 ✓。
+        {
+            let text = docs.text().to_string();
+            let offset = position_to_offset(&text, pos);
+            if let Some(doc) = command_keyword_at(&text, offset) {
+                if let Some(path) = sokonanoda_front::commands::doc_path(doc.name) {
                     if let Ok(uri) = Url::from_file_path(&path) {
                         if let Some((start, end)) = doc_heading_token(doc.markdown, doc.name) {
                             return Ok(Some(GotoDefinitionResponse::Scalar(Location {

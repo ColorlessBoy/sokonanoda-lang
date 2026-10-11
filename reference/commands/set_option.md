@@ -8,7 +8,7 @@
 
 ```sokonanoda
 def myid {a : Type} (x : a) : a := x
-def uses : Nat -> Nat := fun (n : Nat) => myid n
+def uses : Nat → Nat := fun (n : Nat) => myid n
 
 #print uses
 set_option pp.explicit true
@@ -30,7 +30,7 @@ def uses : @Nat -> @Nat := fun (n : @Nat) => @myid @Nat n
 | `pp.all` | 上一条的**超集**：再关掉记法、印出宇宙层（`Prop` 印成 `Sort 0`） |
 
 ```sokonanoda
-def uses : Nat -> Nat := fun (n : Nat) => n + n
+def uses : Nat → Nat := fun (n : Nat) => n + n
 
 set_option pp.all true
 #print uses

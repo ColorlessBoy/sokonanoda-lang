@@ -162,6 +162,15 @@ skills.
   packaged into the extension (`docs/tactics/*.md`), so they open offline with no
   external site. A tactic added later without a page fails the build instead of
   shipping a broken link.
+- **The four commands ship too, and their keywords are navigable** (2026-10-11):
+  `#check`, `#reduce`, `#print` and `set_option` each have a page — what it
+  prints, when to reach for it, what the kernel does behind it, the errors and
+  the way out, plus the boundaries (`set_option pp.explicit` reveals implicit
+  arguments; it only affects command output). Press `F12` on the **command
+  keyword itself** to open that page (`#check` → `check.md`); the pages are
+  packaged into the extension (`docs/commands/*.md`) and open offline. Argument
+  positions keep their own answers — `F12` on the name in `#check id` still
+  jumps to the declaration, and `set_option`'s option/value have no target.
 - **Compile progress you can see**: the status bar switches to a *compiling…* state,
   the Infoview shows a three-line progress block, and the overview ruler marks the
   document being compiled (`sokonanoda.progress.throttleMs` throttles the in-between

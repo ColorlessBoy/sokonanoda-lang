@@ -19,7 +19,7 @@ def myid : forall {a : Type 0}, a -> a := fun {a : Type 0} (x : a) => x
 定理印出来的是它的**证明项** —— `by` 块最后建出来的那个 lambda：
 
 ```sokonanoda
-theorem t (a : Prop) : a -> a := by intro h; exact h
+theorem t (a : Prop) : a → a := by intro h; exact h
 
 #print t
 ```
@@ -52,7 +52,7 @@ inductive Nat : Type 0
 
 ```sokonanoda
 def myid {a : Type} (x : a) : a := x
-def uses : Nat -> Nat := fun (n : Nat) => myid n
+def uses : Nat → Nat := fun (n : Nat) => myid n
 
 set_option pp.explicit true
 #print uses

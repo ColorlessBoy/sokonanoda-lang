@@ -1,3 +1,12 @@
+# 可见变化（第 7 轮，2026-10-11）：`#print` 的名字能 F12 + 命令文档随 VSIX 分发、命令字 F12 跳文档
+
+| 用户报的 | 屏幕上多/少什么 | 哪一层哪条断言 |
+|---|---|---|
+| 「`#print Set.singleton` 里 `Set.singleton` 不支持 F12 跳转」 | 光标放在 `#print <名字>` 的**名字**上按 F12：以前**答 null** ✗ ⇒ 现在落到那条声明（同一份文件里 `#check <同一个名字>` 一直跳得到 ⇒ 差别只在命令本身）；`#print` 那一行的 **hover 一个字没变**（仍是命令自己的输出） | LSP `goto_definition_from_a_print_name_lands_on_its_declaration`（单文件，落点行 = `def id`）+ `goto_definition_from_a_print_name_in_a_project_lands_in_the_imported_module`（项目模式 = 用户现场的"库模块里的名字"那一半，断言落点行 `def singleton`）；真 LSP 复现件 `docs/gaps/repro/G116-print-name-goto.sh` **exit 1** ✓（修前 exit 0）；既有 C3 hover 契约 5 条不动 ✓；台账 **G-116** |
+| 「把命令文档加入 vsix，`set_option` `#print` `#check` 等等 F12 跳转到对应文档里」 | ① 装插件即有 4 篇命令文档（`#check` / `#reduce` / `#print` / `set_option`，随 VSIX 离线可读）② 光标放在这四个**命令字**上按 F12 ⇒ 打开那篇文档（`#check` ⇒ `check.md` …），落点选中 `# <命令>` 标题那一行 ③ `#check id` 的 `id`、`set_option pp.explicit true` 的 `pp.explicit` / `true` 上 F12 **仍是原来的答案**（跳声明 / null）—— 命令字与参数位互不抢 | front `crates/front/tests/command_docs.rs` **9 条**（表↔文件双向 · parser 字面量反向 · 例子逐块喂真内核）· LSP `goto_definition_on_every_command_keyword_lands_in_its_reference_file`（4 条 × 头/尾字符 × 五件断言）+ `goto_definition_does_not_steal_command_arguments` + `goto_definition_on_a_command_keyword_uses_the_plugin_doc_dir`（② 档 + "删掉插件那份继续物化、不是死指针"反向）· 真 VS Code e2e **P8**（插件目录 5 篇 → 真按键 ⇒ 那一篇真被打开、首行 `# <命令>`）· 载荷 `release.yml` 对 **9 个产物**逐字节查 `extension/docs/commands/` ↔ `reference/commands/` · 接缝 `crates/cli/tests/extension.rs::doc_channels_agree_on_their_env_keys_and_dirs` |
+
+> `#env` / `#prove` / `#help` 是 **REPL 交互命令**（不是语言命令）⇒ 不进文档表、没有 F12 落点。
+
 # 可见变化（第 6 轮，2026-10-11）：`unfold … at h` + 目标显示不再吞掉那次应用 + `unfold` 的实参可跳
 
 | 用户报的 | 屏幕上多/少什么 | 哪一层哪条断言 |

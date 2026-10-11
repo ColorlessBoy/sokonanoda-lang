@@ -17,6 +17,7 @@
 #![allow(clippy::result_large_err)]
 
 pub mod by;
+pub mod commands;
 pub mod compile;
 pub mod depgraph;
 pub mod display;
@@ -36,6 +37,7 @@ pub mod tactics;
 mod ast;
 mod diagnostic;
 mod parser;
+mod reference_docs;
 mod span;
 mod token;
 

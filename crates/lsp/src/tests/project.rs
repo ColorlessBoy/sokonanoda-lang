@@ -114,6 +114,63 @@ async fn definition_jumps_into_the_imported_module() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// **用户现场那一半**（2026-10-11）：「`#print Set.singleton` 里 `Set.singleton`
+/// 不支持 F12 跳转」—— 那个名字住在**库模块**里（课程 `lib/Set.sokonanoda` 正是
+/// `namespace Set` + `def singleton` 的形状），所以这一跳必须走
+/// `ResolvedTarget::Declaration { name }` ⇒ `project_definition(name)` 那条**跨文件**路
+/// （`crates/lsp/src/lib.rs` 的 `definition`）。
+///
+/// 与单文件那条（`navigation::goto_definition_from_a_print_name_lands_on_its_declaration`）
+/// 分工：那条咬「`#print` 有没有 hover 行」，这条咬「跨模块名字有没有活过回填」。
+#[tokio::test]
+async fn goto_definition_from_a_print_name_in_a_project_lands_in_the_imported_module() {
+    let dir = tmp_dir("print-goto");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let setlib = write(
+        &dir,
+        "SetLib.sokonanoda",
+        "namespace Set\n\ndef singleton (a : Prop) : Prop := a\n\nend Set\n",
+    );
+    let entry_src = "import SetLib\n\n#print Set.singleton\n";
+    let canvas = write(&dir, "Canvas.sokonanoda", entry_src);
+    testutil::did_open_at(&mut service, &canvas, entry_src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &canvas, "print goto diagnostics").await;
+
+    // 光标落在 `#print ` 后面的**名字**上（用户实际点的位置）。
+    let offset = testutil::offset_of(entry_src, "Set.singleton");
+    let pos = testutil::lsp_pos(entry_src, offset + 4);
+    let req = RpcRequest::build("textDocument/definition")
+        .params(serde_json::json!({
+            "textDocument": {"uri": canvas},
+            "position": testutil::position_json(pos),
+        }))
+        .id(3)
+        .finish();
+    let result = testutil::call(&mut service, req)
+        .await
+        .expect("definition answers");
+    let location: tower_lsp::lsp_types::Location =
+        serde_json::from_value(result).expect("a Location");
+    assert_eq!(
+        location.uri, setlib,
+        "`#print` 的库名必须跳到被 import 的模块（用户 2026-10-11 实测的缺口）"
+    );
+    // **断言落点行**（只断言"非 null"会放过原地跳 / 落错行 ✗）。
+    let text = std::fs::read_to_string(setlib.to_file_path().expect("path")).expect("read lib");
+    let landed = text
+        .lines()
+        .nth(location.range.start.line as usize)
+        .expect("landed line");
+    assert!(
+        landed.trim_start().starts_with("def singleton"),
+        "落点必须是 `def singleton` 那一行 ✗（实际：{landed:?}）"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// **`import` 行的模块名是可点链接**（用户 2026-10-08：「import 这一行的代码增加
 /// 跳转功能，打开对应的文件」；设计 `docs/design/import-links.md`）。
 ///

@@ -1,61 +1,42 @@
 //! **命令文档（`reference/commands/`）的守卫** —— 与 `tactic_docs.rs` 同形，咬的是
-//! 同一类病：命令在本仓有**三份**表示（`parser.rs::is_reserved_command` 的白名单 ·
+//! 同一类病：命令在本仓曾经有**三份**表示（`parser.rs::is_reserved_command` 的白名单 ·
 //! `crates/cli/src/help.rs` 的自文档化文案 · `reference/commands/` 的正文），靠注释与
 //! 记忆同步 ⇒ 加一条命令忘了补文档，学生就看不到它 ✗（2026-10-11 用户实测：
 //! 「`set_option pp.explicit` 的文档在哪」—— 功能有、用户向文档没有 ✗）。
 //!
-//! **唯一真相是 [`COMMANDS`]**，本文件是它的守卫：
+//! **唯一真相是 [`sokonanoda_front::commands::COMMAND_DOCS`]**（2026-10-11 起；在那
+//! 之前本文件里另有一份测试局部的 `COMMANDS` 表 = 第二份表示 ✗ —— 现在 parser 的
+//! 白名单也由那张表派生）。
 //!
-//! 1. `every_parser_command_has_a_doc_page` —— **parser ↔ 文档**（双向：`is_reserved_command`
-//!    里每条 `#` 命令 + `set_option` 都要有页面；目录里也不许有表外的孤儿文档）。
-//! 2. `every_documented_command_really_parses` —— **行为判据**：每条命令的最小片段真的能过
-//!    parser（不是"名字写在文档里"就算数）；反向：表外的 `#` 命令必须解析失败。
-//! 3. `every_command_doc_file_has_all_sections_and_a_budget` —— H1 == 命令名 + 首句 ==
+//! 判据：
+//! 1. `every_command_in_the_table_has_a_doc_page` —— **表 ↔ 文件**（双向：每条命令都
+//!    要有一篇；目录里也不许有表外的孤儿文档）。
+//! 2. `parser_reserved_commands_are_derived_from_the_table` —— **反向**：直接读
+//!    `parser.rs::is_reserved_command` 里的 `#` 字面量 ⇒ 必须 ⊆ 表（"绕开表、往
+//!    `matches!` 里直接加一条 `#eval`"照样判红 ✓）。
+//! 3. `every_documented_command_really_parses` —— **行为判据**：每条命令的最小片段
+//!    真的能过 parser；表外的 `#` 命令必须解析失败。
+//! 4. `semantic_keywords_cover_every_command` —— 命令字必须在 `semantic::KEYWORDS`
+//!    里（否则编辑器不着色、LSP 的 `command_doc_at` 也认不出它 —— F12 那条链的第一跳）。
+//! 5. `embedded_markdown_matches_the_file_on_disk` —— `include_str!` 内嵌的那份必须与
+//!    磁盘上的 `reference/commands/<stem>.md` **逐字节相同**（接缝：编译期内嵌 ↔ 打包源）。
+//! 6. `every_command_doc_file_has_all_sections_and_a_budget` —— H1 == 命令名 + 首句 ==
 //!    表里的摘要（**逐字**）+ 五个小节齐备 + 每篇 ≤120 行 / 本目录 ≤600 行。
-//! 4. `index_lists_every_command_with_its_summary` —— 索引行**逐字**等于「命令 + 摘要 +
+//! 7. `index_lists_every_command_with_its_summary` —— 索引行**逐字**等于「命令 + 摘要 +
 //!    链接」，且不许有表外的行。
-//! 5. `pages_have_kernel_green_examples` —— **防真空判绿**：每篇至少一个 ```sokonanoda
-//!    例子，且每个例子**逐块喂真内核**、零诊断（文档在教错东西就判红）。
+//! 8. `pages_have_kernel_green_examples` —— **防真空判绿**：每篇至少一个
+//!    ```sokonanoda 例子，且每个例子**逐块喂真内核**、零诊断（文档在教错东西就判红）。
 //!
 //! **反向验证**（改这里之前先跑，三条缺一不可）：
-//! * 往 `is_reserved_command` 加一条 `#eval`、不建页面 ⇒ 判据 1 判红；
-//! * 删掉某篇正文的一个 `##` 小节 ⇒ 判据 3 判红；
-//! * 把某篇的一个例子改错（`#check nope`）⇒ 判据 5 判红。
+//! * 往 `is_reserved_command` 的 `matches!` 里加一条 `#eval` 字面量 ⇒ 判据 2 判红；
+//! * 删掉某篇正文的一个 `##` 小节 ⇒ 判据 6 判红；
+//! * 把某篇的一个例子改错（`#check nope`）⇒ 判据 8 判红。
 
+use sokonanoda_front::commands::{self, COMMAND_DOCS};
 use sokonanoda_front::compile::{compile_all_units, CompileOptions, SourceUnit};
 use sokonanoda_front::parse;
+use sokonanoda_front::semantic;
 use std::path::{Path, PathBuf};
-
-/// **唯一真相**：命令 →（文档文件名, 一句话摘要, 最小可解析片段）。
-///
-/// 摘要同时出现在三处（索引行 · 正文第 3 行 · 本条），判据 3/4 逐字比对 ⇒
-/// 「索引与正文漂移」这类事当场判红 ✓。
-const COMMANDS: &[(&str, &str, &str, &str)] = &[
-    (
-        "#check",
-        "check",
-        "把表达式交给内核，印出它推出来的类型。",
-        "#check Nat\n",
-    ),
-    (
-        "#reduce",
-        "reduce",
-        "把表达式交给内核算到底，印出归约后的值。",
-        "#reduce 1\n",
-    ),
-    (
-        "#print",
-        "print",
-        "印出环境里某条声明的类型与定义体（证明项也在内）。",
-        "#print Nat\n",
-    ),
-    (
-        "set_option",
-        "set_option",
-        "调 `#print` / `#check` / `#reduce` 的显示档 —— 让隐式实参看得见。",
-        "set_option pp.explicit true\n",
-    ),
-];
 
 /// 文档小节（**五个**：`# <命令>` 是一级标题，另算）。
 ///
@@ -72,6 +53,20 @@ const SECTIONS: &[&str] = &[
 const MAX_PAGE_LINES: usize = 120;
 const MAX_DIR_LINES: usize = 600;
 const MAX_INDEX_LINES: usize = 80;
+
+/// 每条命令的**最小可解析片段**（判据 3 的夹具）。
+///
+/// ⚠ 这**不是**第二份真相表：它只证明"这条命令 parser 真的认"，与文档内容无关。
+/// 新增一条命令 ⇒ 这里没写 ⇒ 判据 3 **当场 panic**（提醒补夹具，不是静默跳过 ✗）。
+fn snippet_for(name: &str) -> &'static str {
+    match name {
+        "#check" => "#check Nat\n",
+        "#reduce" => "#reduce 1\n",
+        "#print" => "#print Nat\n",
+        "set_option" => "set_option pp.explicit true\n",
+        other => panic!("表里新加了命令 `{other}` ⇒ 请在本函数里补它的最小可解析片段"),
+    }
+}
 
 /// 仓库根（`crates/front` 往上两层）。
 fn repo_root() -> PathBuf {
@@ -91,11 +86,12 @@ fn read(path: &Path) -> String {
     })
 }
 
-/// 从 `parser.rs` 的 `is_reserved_command` 里抽**命令字面量**：`#` 开头的 + `set_option`。
+/// 从 `parser.rs` 的 `is_reserved_command` 里抽 `#` 开头的字面量（判据 2 的输入）。
 ///
-/// **为什么只这两类**：声明关键字（`def` / `theorem` / …）不是命令（它们进环境、产
-/// `decl.checked`），语法文档在 `README.md`；`set_option` 是唯一非 `#` 的命令 ⇒ 具名收进来。
-fn parser_commands() -> Vec<String> {
+/// 为什么读**源码文本**：命令那半现在由表派生（`crate::commands::is_command`）⇒
+/// 正常路径下这里**一个 `#` 字面量都不该有**；但"绕开表、直接往 `matches!` 里加一条"
+/// 那种写法**只有文本侧看得见** ⇒ 这一条是那类写法的唯一守卫 ✓。
+fn parser_hash_literals() -> Vec<String> {
     let path = repo_root()
         .join("crates")
         .join("front")
@@ -114,7 +110,7 @@ fn parser_commands() -> Vec<String> {
         .split('"')
         .skip(1)
         .step_by(2)
-        .filter(|s| s.starts_with('#') || *s == "set_option")
+        .filter(|s| s.starts_with('#'))
         .map(str::to_string)
         .collect();
     out.sort();
@@ -122,32 +118,20 @@ fn parser_commands() -> Vec<String> {
     out
 }
 
-// ── 判据 1：parser ↔ 文档（双向） ────────────────────────────────────────────
+// ── 判据 1：表 ↔ 文件（双向） ────────────────────────────────────────────────
 
 #[test]
-fn every_parser_command_has_a_doc_page() {
-    let from_parser = parser_commands();
-    assert!(
-        !from_parser.is_empty(),
-        "抽取规则失效：`is_reserved_command` 里一条命令都没扫到（没扫到 ≠ 绿 ✗）"
-    );
-    let mut documented: Vec<String> = COMMANDS.iter().map(|(cmd, ..)| cmd.to_string()).collect();
-    documented.sort();
-    assert_eq!(
-        documented,
-        from_parser,
-        "parser 的命令 ↔ 文档表必须**同集合**（某个方向多一条都算漂移 ✗）\n\
-         parser 独有（加了命令没补文档）：{:?}\n文档独有（写了文档但命令没了）：{:?}",
-        from_parser
-            .iter()
-            .filter(|c| !documented.contains(c))
-            .collect::<Vec<_>>(),
-        documented
-            .iter()
-            .filter(|c| !from_parser.contains(c))
-            .collect::<Vec<_>>()
-    );
-
+fn every_command_in_the_table_has_a_doc_page() {
+    assert!(!COMMAND_DOCS.is_empty(), "真相表是空的（没扫到 ≠ 绿 ✗）");
+    for doc in COMMAND_DOCS {
+        let path = docs_dir().join(format!("{}.md", doc.stem));
+        assert!(
+            path.is_file(),
+            "表里有 `{}`，但缺正文文件 {}",
+            doc.name,
+            path.display()
+        );
+    }
     // 反向：目录里不许有表外的孤儿文档（`README.md` 是索引，不算）。
     let mut files: Vec<String> = std::fs::read_dir(docs_dir())
         .unwrap_or_else(|e| panic!("读不到 {}：{e}", docs_dir().display()))
@@ -157,28 +141,56 @@ fn every_parser_command_has_a_doc_page() {
         .map(|n| n.trim_end_matches(".md").to_string())
         .collect();
     files.sort();
-    let mut want: Vec<String> = COMMANDS
-        .iter()
-        .map(|(_, stem, ..)| stem.to_string())
-        .collect();
+    let mut want: Vec<String> = COMMAND_DOCS.iter().map(|d| d.stem.to_string()).collect();
     want.sort();
     assert_eq!(files, want, "`reference/commands/` 里有表外的孤儿文档 ✗");
 }
 
-// ── 判据 2：每条命令**真的**存在（行为判据） ─────────────────────────────────
+// ── 判据 2：parser 的白名单由表派生（反向：字面量必须 ⊆ 表） ──────────────────
+
+#[test]
+fn parser_reserved_commands_are_derived_from_the_table() {
+    let documented: Vec<&str> = COMMAND_DOCS.iter().map(|d| d.name).collect();
+    for literal in parser_hash_literals() {
+        assert!(
+            documented.contains(&literal.as_str()),
+            "`parser.rs::is_reserved_command` 里有一条手写 `#` 字面量 `{literal}`，\
+             但真相表里没有它 ⇒ 要么把它删掉（命令由 `crate::commands::is_command` 派生 ✓），\
+             要么加进 `COMMAND_DOCS` + 补 `reference/commands/<stem>.md` ✗"
+        );
+    }
+    // 正向：表里每条都真的被认作命令（行为判据的一半，另一半是判据 3）。
+    for doc in COMMAND_DOCS {
+        assert!(
+            commands::is_command(doc.name),
+            "`{}` 在表里，但 `commands::is_command` 说不认识它",
+            doc.name
+        );
+    }
+    // 反向：表外的 `#` 命令不许被认作命令。
+    for bogus in ["#eval", "#env", "#help"] {
+        assert!(
+            !commands::is_command(bogus),
+            "`{bogus}` 不在表里 ⇒ `is_command` 必须答 false"
+        );
+    }
+}
+
+// ── 判据 3：每条命令**真的**存在（行为判据） ─────────────────────────────────
 
 #[test]
 fn every_documented_command_really_parses() {
-    for (cmd, _, _, snippet) in COMMANDS {
+    for doc in COMMAND_DOCS {
+        let snippet = snippet_for(doc.name);
         parse(snippet).unwrap_or_else(|e| {
             panic!(
-                "`{cmd}` 在文档表里，但它的最小片段解析不过 ⇒ 命令根本不存在（或片段写错了）✗\n\
+                "`{}` 在真相表里，但它的最小片段解析不过 ⇒ 命令根本不存在（或片段写错了）✗\n\
                  片段：{snippet:?}\n报错：{}",
-                e.message
+                doc.name, e.message
             )
         });
     }
-    // 反向：表外的 `#` 命令必须解析失败（文档表不是"什么都能写"的装饰）。
+    // 反向：表外的 `#` 命令必须解析失败（表不是"什么都能写"的装饰）。
     for bogus in ["#eval 1\n", "#env\n"] {
         assert!(
             parse(bogus).is_err(),
@@ -187,32 +199,64 @@ fn every_documented_command_really_parses() {
     }
 }
 
-// ── 判据 3 + 4 + 5：文件夹的真相 ─────────────────────────────────────────────
+// ── 判据 4：命令字必须在 `KEYWORDS` 里（F12 那条链的第一跳） ─────────────────
+
+#[test]
+fn semantic_keywords_cover_every_command() {
+    let keywords = semantic::keywords();
+    for doc in COMMAND_DOCS {
+        assert!(
+            keywords.contains(&doc.name),
+            "`{}` 不在 `semantic::KEYWORDS` 里 ⇒ 编辑器不着色、LSP 的 `command_doc_at` \
+             （它按 `SemanticKind::Keyword` 的 run 认命令字）也认不出它 ⇒ F12 那条链断在第一跳 ✗",
+            doc.name
+        );
+    }
+}
+
+// ── 判据 5：内嵌那份 == 磁盘那份（编译期 ↔ 打包源的接缝） ─────────────────────
+
+#[test]
+fn embedded_markdown_matches_the_file_on_disk() {
+    for doc in COMMAND_DOCS {
+        let path = docs_dir().join(format!("{}.md", doc.stem));
+        let on_disk = read(&path);
+        assert_eq!(
+            doc.markdown,
+            on_disk,
+            "{} 与 `COMMAND_DOCS` 里 `include_str!` 内嵌的那份不一致 ⇒ \
+             重新编译（内嵌是编译期的）或检查文件被谁改过 ✗",
+            path.display()
+        );
+    }
+}
+
+// ── 判据 6 + 7 + 8：文件夹的真相 ─────────────────────────────────────────────
 
 #[test]
 fn every_command_doc_file_has_all_sections_and_a_budget() {
     let dir = docs_dir();
     let mut total_lines = 0usize;
-    for (cmd, stem, summary, _) in COMMANDS {
-        let path = dir.join(format!("{stem}.md"));
-        assert!(path.is_file(), "缺正文文件 {}", path.display());
+    for doc in COMMAND_DOCS {
+        let path = dir.join(format!("{}.md", doc.stem));
         let text = read(&path);
 
         // H1 == 命令名（屏幕上第一眼就是它）。
         let first = text.lines().next().unwrap_or_default();
         assert_eq!(
             first,
-            format!("# {cmd}"),
-            "{} 的 H1 必须是 `# {cmd}`",
-            path.display()
+            format!("# {}", doc.name),
+            "{} 的 H1 必须是 `# {}`",
+            path.display(),
+            doc.name
         );
 
-        // 首句 == 表里的摘要（**逐字**）⇒ 索引 / 正文**一处文本**。
+        // 首句 == 表里的摘要（**逐字**）⇒ 索引 / 正文 / 表**一处文本**。
         let third = text.lines().nth(2).unwrap_or_default();
         assert_eq!(
             third,
-            *summary,
-            "{} 的首句必须逐字等于 COMMANDS 的摘要",
+            doc.summary,
+            "{} 的首句必须逐字等于 `COMMAND_DOCS` 的摘要",
             path.display()
         );
 
@@ -251,8 +295,11 @@ fn index_lists_every_command_with_its_summary() {
         lines.len()
     );
 
-    for (cmd, stem, summary, _) in COMMANDS {
-        let want = format!("| `{cmd}` | {summary} | [{stem}]({stem}.md) |");
+    for doc in COMMAND_DOCS {
+        let want = format!(
+            "| `{}` | {} | [{}]({}.md) |",
+            doc.name, doc.summary, doc.stem, doc.stem
+        );
         assert!(
             lines.iter().any(|l| *l == want),
             "索引里没有逐字的那一行（学生看不到这条命令）：\n{want}"
@@ -262,29 +309,32 @@ fn index_lists_every_command_with_its_summary() {
     let rows = lines.iter().filter(|l| l.starts_with("| `")).count();
     assert_eq!(
         rows,
-        COMMANDS.len(),
+        COMMAND_DOCS.len(),
         "索引里有 {rows} 行命令，表里只有 {}",
-        COMMANDS.len()
+        COMMAND_DOCS.len()
     );
 }
 
 /// **防真空判绿**：每篇必须有例子，且每个例子**逐块喂真内核**判绿。
+///
+/// ⚠ 喂的是 `doc.markdown`（**编译期内嵌**那份，判据 5 已钉住它 == 磁盘那份）——
+/// 这样"文档在教错东西"这件事在**编译产物**上就被咬住，不依赖测试时读盘 ✓。
 #[test]
 fn pages_have_kernel_green_examples() {
-    for (cmd, stem, _, _) in COMMANDS {
-        let path = docs_dir().join(format!("{stem}.md"));
-        let text = read(&path);
-        let blocks = fenced_sokonanoda_blocks(&text);
+    for doc in COMMAND_DOCS {
+        let blocks = fenced_sokonanoda_blocks(doc.markdown);
         assert!(
             !blocks.is_empty(),
-            "{}（`{cmd}`）一个 ```sokonanoda 例子都没有（零例子真空判绿 ✗）",
-            path.display()
+            "`reference/commands/{}.md`（`{}`）一个 ```sokonanoda 例子都没有\
+             （零例子真空判绿 ✗）",
+            doc.stem,
+            doc.name
         );
         for (i, block) in blocks.iter().enumerate() {
             let file = parse(block).unwrap_or_else(|e| {
                 panic!(
-                    "{} 的第 {} 个例子**解析都过不了**：{}\n--- 例子 ---\n{block}",
-                    path.display(),
+                    "`{}` 的第 {} 个例子**解析都过不了**：{}\n--- 例子 ---\n{block}",
+                    doc.name,
                     i + 1,
                     e.message
                 )
@@ -293,8 +343,8 @@ fn pages_have_kernel_green_examples() {
             let (out, _reports) = compile_all_units(&units, &CompileOptions::default());
             assert!(
                 out.errors.is_empty(),
-                "{} 的第 {} 个例子**内核判红** ⇒ 文档在教错东西 ✗\n错误：{:?}\n--- 例子 ---\n{block}",
-                path.display(),
+                "`{}` 的第 {} 个例子**内核判红** ⇒ 文档在教错东西 ✗\n错误：{:?}\n--- 例子 ---\n{block}",
+                doc.name,
                 i + 1,
                 out.errors.iter().map(|e| &e.message).collect::<Vec<_>>()
             );
@@ -323,4 +373,12 @@ fn fenced_sokonanoda_blocks(text: &str) -> Vec<String> {
     }
     assert!(cur.is_none(), "有一个 ```sokonanoda 块没有闭合");
     out
+}
+
+/// 让 `CommandDoc` 的字段在编译期都被用到（防"加了字段没人读"）—— 判据本身在别处。
+#[test]
+fn command_doc_fields_are_all_consumed() {
+    for doc in COMMAND_DOCS {
+        let _: (&str, &str, &str, &str) = (doc.name, doc.stem, doc.summary, doc.markdown);
+    }
 }

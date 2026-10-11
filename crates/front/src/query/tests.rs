@@ -2267,8 +2267,9 @@ fn repeated_edits_keep_command_outputs_single() {
     };
     assert_eq!(
         counts(&doc, entry),
-        (1, 1, 10),
-        "开档那一趟：各一条（hovers 的绝对值不是判据，只看它**不随轮次增长**）"
+        (1, 1, 11),
+        "开档那一趟：各一条（hovers 的绝对值不是判据，只看它**不随轮次增长**；\
+         11 而不是 10 = 2026-10-11 给 `#print` 补的那条 F12 hover 行，见台账 **G-116** ✓）"
     );
 
     let mut text = entry.to_string();
@@ -2282,7 +2283,7 @@ fn repeated_edits_keep_command_outputs_single() {
         );
         assert_eq!(
             counts(&doc, &text),
-            (1, 1, 10),
+            (1, 1, 11),
             "第 {round} 轮：`#check`/`#print` 各**恰好一条**、hovers 不长 —— \
              修前这里是 (1+round, 1+round, 10+round)（每操作一次 +1 ✗）"
         );
@@ -2300,7 +2301,7 @@ fn repeated_edits_keep_command_outputs_single() {
     );
     assert_eq!(
         counts(&doc, &appended),
-        (1, 1, 10),
+        (1, 1, 11),
         "编辑点在命令输出**之后**时同样各恰好一条（修前是 2/2/11 ✗）"
     );
 

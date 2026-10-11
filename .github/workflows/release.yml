@@ -179,7 +179,7 @@ jobs:
           mkdir -p dist
           npm run clean:lsp
           # 这条回退包是**裸** `vsce package`（不经过 stage-lsp.js）⇒ 文档 stage
-          # 必须显式补一次，否则这一类 VSIX 不带 `docs/tactics/`
+          # 必须显式补一次，否则这一类 VSIX 不带 `docs/tactics/` 与 `docs/commands/`
           # （docs/design/tactic-docs.md §4.9.6 接线点 ④，最容易漏的一处）。
           node scripts/stage-docs.js
           npx --yes @vscode/vsce package --out dist/sokonanoda-universal.vsix
@@ -214,6 +214,12 @@ jobs:
               "exact.md", "exfalso.md", "have.md", "intro.md", "left.md", "match.md",
               "rfl.md", "right.md", "sorry.md", "unfold.md", "use.md",
           ]
+          # 4 command pages + the index（`reference/commands/`）—— 与 tactic 同一门
+          # 判据、同一条纪律（docs/design/command-docs.md）：源↔包**逐字节**，且对
+          # **每一个**产物都查 ⇒ 哪条打包线忘了 stage 都出不去。
+          COMMAND_DOCS = [
+              "README.md", "check.md", "print.md", "reduce.md", "set_option.md",
+          ]
 
           def check_docs(path, names, read):
               for name in DOCS:
@@ -221,7 +227,15 @@ jobs:
                   assert entry in names, f"{path}: missing {entry}"
                   want = pathlib.Path(f"../../reference/tactics/{name}").read_bytes()
                   assert read(entry) == want, f"{path}: {entry} differs from reference/tactics/{name}"
-              print(f"ok {path}: {len(DOCS)} tactic docs, byte-identical to reference/tactics/")
+              for name in COMMAND_DOCS:
+                  entry = f"extension/docs/commands/{name}"
+                  assert entry in names, f"{path}: missing {entry}"
+                  want = pathlib.Path(f"../../reference/commands/{name}").read_bytes()
+                  assert read(entry) == want, f"{path}: {entry} differs from reference/commands/{name}"
+              print(
+                  f"ok {path}: {len(DOCS)} tactic docs + {len(COMMAND_DOCS)} command docs, "
+                  "byte-identical to reference/"
+              )
 
           for path, (target, bases) in EXPECTED.items():
               with zipfile.ZipFile(path) as zf:
