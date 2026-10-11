@@ -758,3 +758,24 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 
 **预防**：**复现件与判据脚本一律自定位，禁止写死绝对路径** —— 判据若只在本机成立，
 它就不是判据；这类"本机必绿"的洞只有发版节点跑全量才抓得住。
+
+## 2026-10-11（四十七）`e2e` 三条腿全红：插件目录文档数的**硬编码**没跟上新 tactic
+
+**症状**：run `38134489153` 的三条 e2e 腿全红，工件日志逐字：
+`AssertionError: 插件目录里应是 14 篇 + 索引，实际 16：… unfold.md …`（48 passing / 1 failing）。
+`auto-tag` 因此被跳过（**没有误发版** ✓ —— 闸门按设计生效）。
+
+**原因**：本轮新增 `unfold` 篇 ⇒ `reference/tactics/` 15 篇 + 索引 = **16 个条目**，
+而 `editor/vscode/src/test/extension.test.js` 的 P7 用例把"14 篇 + 索引 = 15"**写死**了 ✗。
+同一类硬编码本轮一共四处（`release.yml` 的 `DOCS` 名单 · LSP `hover.rs`/`navigation.rs`
+的清单与计数 · `tactic_docs.rs`/`tactics.rs` 的基线）—— 前四处被本地门禁（`cargo test`）
+与**发版预检**当场逮住并修好 ✓，只有 e2e 这条**只在真宿主里跑** ⇒ 本地 `cargo test`
+与预检都看不见 ✗（预检不跑 e2e，按纪律 e2e 是批次收尾那一步）。
+
+**修法**：断言改 16（文案同步）；**本机单用例复跑** `SOKO_E2E_GREP="P7" npx vscode-test`
+⇒ 1 passing ✓（先在本机复现再推，别拿 CI 当调试器 ✓）。
+
+**预防**：新增 tactic 的"文档数"检查清单 = **六处**：`tactics.rs` 表 · `tactic_docs.rs`
+手写清单 · `semantic::KEYWORDS` · TM 语法 · `release.yml` 的 `DOCS` · **e2e 的
+`staged.length`**（最后这条只有真宿主看得见）。⇒ 以后加 tactic，**先把这六处一次改齐**，
+再跑一次 `SOKO_E2E_GREP` 点名的单用例（14 秒 ✓）—— 比等一轮 30 分钟的 CI 便宜得多。
