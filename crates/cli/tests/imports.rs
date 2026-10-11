@@ -197,6 +197,38 @@ fn root_flag_points_at_the_module_root_from_elsewhere() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// `grade` 子命令也要认 `--root`（2026-10-12 修）：`AGENTS.md` 把它写成
+/// `scripts/soko grade --root <模块根> <入口.sokonanoda>` 的用法，而 `env::grade`
+/// 原先只收位置参数 ⇒ `--root` 被**静默丢掉**、按**入口目录**找模块。
+/// 判据两半：① 带 `--root` ⇒ 绿；② 不带 ⇒ `import-not-found`（证明这条判据咬得住）。
+#[test]
+fn grade_subcommand_honors_root() {
+    let dir = tmp_dir("grade-root");
+    write(&dir, "lib/Logic.sokonanoda", "axiom A : Prop\n");
+    write(
+        &dir,
+        "sub/Canvas.sokonanoda",
+        "import lib.Logic\n\ndef use : Prop := A\n",
+    );
+    let entry = dir.join("sub/Canvas.sokonanoda");
+    let entry = entry.to_str().expect("utf8 path");
+    let root = dir.to_str().expect("utf8 path");
+    let with = run(&dir, &["grade", "--root", root, entry], None);
+    assert!(
+        with.status.success() && !stdout(&with).contains("import-not-found"),
+        "`grade --root` 必须认模块根：stdout={} stderr={}",
+        stdout(&with),
+        stderr(&with)
+    );
+    let without = run(&dir, &["grade", entry], None);
+    assert!(
+        !without.status.success() && stdout(&without).contains("import-not-found"),
+        "不带 --root 时必须按入口目录找模块（否则这条判据是空转的 ✗）：stdout={}",
+        stdout(&without)
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn stdin_with_imports_without_root_is_a_clear_error() {
     let dir = tmp_dir("stdin-no-root");

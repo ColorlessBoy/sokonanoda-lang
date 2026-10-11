@@ -113,7 +113,9 @@ fn main() -> ExitCode {
         Some("doctor") => env::doctor(json),
         Some("setup") => env::setup(force),
         Some("update") => env::update(),
-        Some("grade") => env::grade(&positionals[1..]),
+        // `--root` 必须传进去（2026-10-12 修：以前漏传 ⇒ `grade --root` 静默按入口
+        // 目录找模块，而 `AGENTS.md` 把它写成了显式模块根的用法 ✗）。
+        Some("grade") => env::grade(&positionals[1..], root.as_deref()),
         Some("gate") => env::gate(&args),
         // 内核真相查询（agent/MCP 的"提问式"通道；单 JSON 对象）。
         // 设计：docs/design/agent-query-channel.md §5。

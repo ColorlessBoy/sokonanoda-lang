@@ -177,12 +177,19 @@ pub fn update() -> ExitCode {
     setup(true)
 }
 
-/// `grade <file...>`: the `--json` batch view for one or more files.
-pub fn grade(paths: &[String]) -> ExitCode {
+/// `grade <file...> [--root <dir>]`: the `--json` batch view for one or more files.
+///
+/// `root` = `--root <dir>`（显式模块根，`docs/design/imports-and-projects.md` §4.9）。
+/// ⚠ **2026-10-12 修**：以前这里**只收位置参数** ⇒ `--root` 被 `main` 解析进 `root`
+/// 变量却**没传进来** ⇒ `scripts/soko grade --root <根> <入口>`（`AGENTS.md` 写的用法）
+/// **静默按入口目录找模块**（`import lib.Set` 报 `import-not-found`，期望路径是入口
+/// 目录而不是 `--root`）✗。判据 `crates/cli/tests/imports.rs::grade_subcommand_honors_root`。
+pub fn grade(paths: &[String], root: Option<&str>) -> ExitCode {
     if paths.is_empty() {
-        eprintln!("usage: sokonanoda grade <file...>");
+        eprintln!("usage: sokonanoda grade <file...> [--root <dir>]");
         return ExitCode::FAILURE;
     }
+    let root = root.map(std::path::PathBuf::from);
     let mut ok = true;
     for path in paths {
         match std::fs::read_to_string(path) {
@@ -192,7 +199,7 @@ pub fn grade(paths: &[String]) -> ExitCode {
                     label: path,
                     json: true,
                     bare: false,
-                    root: None,
+                    root: root.clone(),
                     no_project: false,
                 }) {
                     ok = false;
