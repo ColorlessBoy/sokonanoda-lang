@@ -143,7 +143,8 @@ In `repl`, declarations accumulate line by line. Commands:
 
 - `#check <expr>` — print the inferred type;
 - `#reduce <expr>` — evaluate closed terms;
-- `#print <name>` — print a declaration (types and proof terms).
+- `#print <name>` — print a declaration (types and proof terms);
+- `set_option pp.explicit true` — show implicit arguments ([command reference](reference/commands/README.md)).
 
 `#prove` shows that tactics are just building the lambda:
 
