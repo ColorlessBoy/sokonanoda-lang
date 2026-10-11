@@ -92,7 +92,7 @@ end
 -- `Exists.elim` = 常值 motive 的小消去：由自动派生的 `Exists.rec` 定义
 -- （与 lib/Logic 的 `Or.elim` 同款）。**IA-2 起前导隐式 binder**：调用点写
 -- `Exists.elim h f` 即可（与 Lean 对齐；旧的逐位写全调用仍可用）。
-def Exists.elim {A : Type} {p : A → Prop} {Q : Prop} (h : Exists A p)  -- soko:notation-ok: `∃` 记法在本文件第 103 行才声明，声明位只能写点名
+theorem Exists.elim {A : Type} {p : A → Prop} {Q : Prop} (h : Exists A p)  -- soko:notation-ok: `∃` 记法在本文件第 103 行才声明，声明位只能写点名
     (f : (w : A) → p w → Q) : Q :=
   Exists.rec A p (fun (_ : Exists A p) => Q) f h  -- soko:notation-ok: `∃` 记法在本文件第 103 行才声明
 

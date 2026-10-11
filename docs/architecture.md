@@ -435,20 +435,20 @@ ctor 一旦叫 `Nat.zero`/`Nat.succ`，name cache 的 `NatRed::Succ` 快路径�
 #### 5.4.1 L1：逻辑与等式骨架（0.59.0；设计 `prelude/*.sokonanoda`）
 
 `install_l1_prelude` 在 Full 模式下把 Lean core 的逻辑与等式骨架也作为受信任预置装入
-（规范源文本 `PRELUDE_L1_SRC`，与用户声明走**同一条 elaborator**：`build_axiom`/
-`build_def`/`install_inductive_block`）。30 个顶层名字分 7 个**族**：
+（规范源文本 `PRELUDE_L1_SRC`，与用户声明走**同一条 elaborator**：`build_axiom`/`build_def`/`build_theorem`/
+`install_inductive_block`）。30 个顶层名字分 7 个**族**（**关键字逐条对齐 Lean 4 core**：证明类写 `theorem`、Lean 写 `def`/`abbrev`/structure 投影的保持 `def`，见下表加粗项与 `prelude/L1.sokonanoda` 末尾登记区；守卫 `prelude_mirror.rs::the_prelude_declaration_kinds_are_pinned` 源级 + 内核 `#print` 两层）：
 
 | 族 | 名字 | 形态 | 依赖（被让位时本族也让位） |
 |---|---|---|---|
 | B1 真伪 | `True`, `True.intro` | axiom | — |
-| B2 假与爆炸 | `False`, `False.rec`, `False.elim` | axiom + def | — |
-| B3 且 | `And`, `And.intro`, `And.left`, `And.right`, `And.elim` (+`And.rec`) | **真归纳块** + def | — |
-| B4 或 | `Or`, `Or.inl`, `Or.inr`, `Or.elim` (+`Or.rec`) | **真归纳块** + def | — |
-| B5 非 | `Not`, `Not.intro`, `Not.elim`, `absurd` | def | **B2** |
-| B6 当且仅当 | `Iff`, `Iff.intro`, `Iff.mp`, `Iff.mpr`, `Iff.refl`, `Iff.rfl`, `Iff.symm`, `Iff.trans` | def | **B3** |
-| B7 Eq 引理 | `Eq.symm`, `Eq.trans`, `congrArg` | def | **Eq prelude** |
+| B2 假与爆炸 | `False`, `False.rec`, `False.elim` | axiom + **theorem**（`False.elim`） | — |
+| B3 且 | `And`, `And.intro`, `And.left`, `And.right`, `And.elim` (+`And.rec`) | **真归纳块** + **theorem**（`And.left`/`And.right`/`And.elim`；`And.intro` 是构造子） | — |
+| B4 或 | `Or`, `Or.inl`, `Or.inr`, `Or.elim` (+`Or.rec`) | **真归纳块** + **theorem**（`Or.elim`） | — |
+| B5 非 | `Not`, `Not.intro`, `Not.elim`, `absurd` | def（`Not` 是类型构造子）+ **theorem**（其余 3 条） | **B2** |
+| B6 当且仅当 | `Iff`, `Iff.intro`, `Iff.mp`, `Iff.mpr`, `Iff.refl`, `Iff.rfl`, `Iff.symm`, `Iff.trans` | def（`Iff` 是类型构造子）+ **theorem**（其余 7 条） | **B3** |
+| B7 Eq 引理 | `Eq.symm`, `Eq.trans`, `congrArg` | **theorem**（对齐 Lean core） | **Eq prelude** |
 
-**让位规则（谁声明谁拥有）**：粒度 = 族，不是单名；触发集合 `taken` =
+**关键字规则（2026-10-11 用户拍板）**：**声明类型是 Prop 的证明类声明一律 `theorem`**（L1 共 20 条；`Not`/`Iff`/`Ne` 是类型构造子、`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast` 结果未必 Prop ⇒ 保持 `def`）。理由：① 初学者友好（用户「def 的版本对用户以及初学者非常不友好」）；② **性能** —— `theorem` 在 def_eq 里不展开（`conv.rs::unfold_hint` 只展开 `Declar::Definition`）⇒ 越多 theorem = 越少 delta 展开；③ 11 条 Lean 4 core 也写 `theorem`，另 9 条 Lean 因结果 `Sort u`/结构投影写 `def`（本语言签名收窄到 `Prop` ⇒ 有意偏离，语法仍合法）。判据 `crates/front/tests/prelude_mirror.rs::the_prelude_declaration_kinds_are_pinned`（源级 kind 表 + 内核 `#print` 读回，两层逐条）；理由全文 ⇒ `REQUIREMENTS.md` §9.16。 **让位规则（谁声明谁拥有）**：粒度 = 族，不是单名；触发集合 `taken` =
 整个闭包的顶层名字并集（`top_level_def_spans_over` 的键集，**含构造子与递归子**）。
 命中任一名 ⇒ 该族 + 依赖它的族一起不装。依赖边的方向是**被依赖者被占用则依赖者让位**
 （`Iff.mp` 的定义体用 `And.left`，所以文件声明 `And` ⇒ `Iff` 消失；反过来不成立）。

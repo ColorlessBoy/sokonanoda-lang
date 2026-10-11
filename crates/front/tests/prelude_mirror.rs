@@ -219,7 +219,10 @@ fn the_three_source_files_are_the_truth_and_rust_holds_no_prelude_text() {
     // 咬自己 ✗（实测踩到）。拼出来 = 源文本里永远不会有整条哨兵 ✓ 覆盖不缩水 ✓。
     let sentinels = [
         concat!("axiom Classical.em", " : (p : Prop)"),
-        concat!("def Or.elim", " {a b c : Prop}"),
+        // ⚠ **2026-10-11**：`Or.elim` 与 Lean 4 core 对齐成 `theorem` ⇒ 哨兵跟着换成
+        // **新**原文（留着旧的 = 咬不住"把今天的 prelude 抄回 Rust" ✗ —— 咬不住的
+        // 守卫等于没有 ✓）。
+        concat!("theorem Or.elim", " {a b c : Prop}"),
         concat!("axiom Quot.mk", " {u} : {A : Sort u}"),
     ];
     let mut rust_files: Vec<PathBuf> = Vec::new();
@@ -448,5 +451,156 @@ fn builtin_sugar_registry_matches_the_elaborator() {
             .any(|line| line.starts_with("-- sokonanoda:builtin-sugar \"{x | P x}\"")),
         "`{{x | P x}}` 故意不登记（没有元变量 ⇒ 类型没有来源，诊断 `set-builder-shape` 指路）\
          —— 出现登记行说明边界被打破了 ✗"
+    );
+}
+
+/// **2026-10-11（用户要求）：证明类声明的关键字与 Lean 4 core 逐条对齐** ——
+/// 这张表把**生效源**（`prelude_source()`，E3：有覆盖就是覆盖 ✓）的 kind 钉死，
+/// **逐条**比（不是只查一两个 ✗）。
+///
+/// **两层判据（缺一不算）**：
+/// ① **源级**：`prelude_source()` parse 出来的命令 kind 逐条 == 表 —— 钉住
+///    "文件里写的是哪个关键字" ✓（读的是 AST 的 `Command` 变体，**不是**文本匹配 ✗）。
+/// ② **内核级**：把每条名字喂给 `#print` —— `pp_declar` 按**声明种类**出关键字
+///    （`crates/kernel/src/pretty_printer.rs::main_def` 的
+///    `Declar::Theorem => "theorem"` / `Declar::Definition => "def"` ✓）⇒ 这一层
+///    走的是**真的 prelude 安装路**（`prelude.rs::install_l1_command`）：
+///    漏了 `Command::Theorem` 那一臂 ⇒ 名字**静默不装** ⇒ `#print` 报未知标识符
+///    ⇒ 判红 ✓（实测踩过：只改源文件、不改安装器 ⇒ 全课程 `Or.elim` 全变未知标识符 ✗）。
+///
+/// **规则（用户 2026-10-11 拍板）**：**声明类型是 Prop 的证明类声明一律
+/// `theorem`**（20 条）；类型/数据定义保持 `def`（7 条：`Not`/`Iff`/`Ne` 是返回
+/// Prop 的**类型构造子**，`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast` 的结果未必是 Prop）。
+/// 为什么不是"照抄 Lean 4 core 的关键字"：① 初学者友好（用户原话「def 的版本对
+/// 用户以及初学者非常不友好」）；② **性能**（用户原话「应该性能还会好一些」）——
+/// `theorem` 在 def_eq 里**不展开**（`conv.rs::unfold_hint` 只展开
+/// `Declar::Definition`）⇒ 越多 theorem = 越少 delta 展开 ✓。11 条 Lean 也写
+/// `theorem`；另 9 条 Lean 因结果 `Sort u` 或结构投影而写 `def`，本语言签名收窄到
+/// `Prop` ⇒ 写 `theorem` 是有意偏离（语法仍是合法 Lean）。逐条证据与 Lean 行号见
+/// `prelude/L1.sokonanoda` 末尾的登记区。
+///
+/// **反向验证**（硬要求）：把表里任一条在 `prelude/L1.sokonanoda` 里改回 `def`
+/// ⇒ ① 当场判红、② 同时判红（同一份生效源）✓。
+#[test]
+fn the_prelude_declaration_kinds_are_pinned() {
+    use sokonanoda_front::compile::{compile_all_with, CompileOptions};
+    use sokonanoda_front::Command;
+    use std::collections::HashMap;
+
+    // 名字 → 期望关键字。**两侧都要在**：只钉 theorem 那一半 ⇒ 有人把 `False.elim`
+    // 改成 theorem（与 Lean 的 `def` 漂开）也无人发现 ✗。
+    const KINDS: &[(&str, &str)] = &[
+        // ---- 类型是 Prop 的证明类声明 ⇒ 一律 `theorem`（20 条）----
+        // Lean 4 core 也写 `theorem` 的 11 条：
+        ("Or.elim", "theorem"),                   // Init/Prelude.lean:589
+        ("Not.intro", "theorem"),                 // Init/Core.lean:1637
+        ("Classical.byContradiction", "theorem"), // Init/Classical.lean:135
+        ("Ne.intro", "theorem"),                  // Init/Core.lean:883
+        ("Iff.refl", "theorem"),                  // Init/Core.lean:1022
+        ("Iff.rfl", "theorem"),                   // Init/Core.lean:1025（protected）
+        ("Iff.symm", "theorem"),                  // Init/Core.lean:1046
+        ("Iff.trans", "theorem"),                 // Init/Core.lean:1033
+        ("Eq.symm", "theorem"),                   // Init/Prelude.lean:322
+        ("Eq.trans", "theorem"),                  // Init/Prelude.lean:334
+        ("congrArg", "theorem"),                  // Init/Prelude.lean:361
+        // Lean 写 def/abbrev/结构投影、本语言签名收窄到 Prop 的 9 条（有意偏离）：
+        ("False.elim", "theorem"), // Lean Init/Prelude.lean:235（`{C : Sort u}`）
+        ("And.left", "theorem"),   // Lean：structure And 的投影（Init/Prelude.lean:555）
+        ("And.right", "theorem"),  // 同上
+        ("And.elim", "theorem"),   // Lean Init/Core.lean:1628（abbrev）
+        ("Not.elim", "theorem"),   // Lean Init/Core.lean:1625（`{α : Sort _}`）
+        ("absurd", "theorem"),     // Lean Init/Prelude.lean:245（`{b : Sort v}`）
+        ("Iff.intro", "theorem"),  // Lean：structure Iff 的构造子（Init/Core.lean:185）
+        ("Iff.mp", "theorem"),     // 同上（投影）
+        ("Iff.mpr", "theorem"),    // 同上（投影）
+        // ---- 类型/数据定义 ⇒ `def`（7 条）----
+        ("Not", "def"),      // Init/Prelude.lean:223
+        ("Iff", "def"),      // 本语言是 def 别名（Lean 是 structure）
+        ("Ne", "def"),       // Init/Core.lean:870（`@[reducible] def`）
+        ("Eq.ndrec", "def"), // 结果 `motive b : Sort v` 未必 Prop
+        ("Eq.mp", "def"),    // 结果 `α -> β`（`α β : Sort u`，u 可 > 0）
+        ("Eq.mpr", "def"),   // 同上
+        ("cast", "def"),     // 同上
+    ];
+
+    // ---- ① 源级：生效源的命令 kind 表 ----
+    let src = prelude_source();
+    let file = sokonanoda_front::parse(src).expect("prelude 源必须能 parse");
+    let mut src_kinds: HashMap<&str, &str> = HashMap::new();
+    for command in &file.commands {
+        match command {
+            Command::Def { name, .. } => {
+                src_kinds.insert(name.as_str(), "def");
+            }
+            Command::Theorem { name, .. } => {
+                src_kinds.insert(name.as_str(), "theorem");
+            }
+            Command::Axiom { name, .. } => {
+                src_kinds.insert(name.as_str(), "axiom");
+            }
+            Command::InductiveBlock { name, .. } => {
+                src_kinds.insert(name.as_str(), "inductive");
+            }
+            _ => {}
+        }
+    }
+    let mut mismatches: Vec<String> = Vec::new();
+    for (name, want) in KINDS {
+        match src_kinds.get(name) {
+            Some(got) if got == want => {}
+            Some(got) => mismatches.push(format!("{name}: 源里是 `{got}`，Lean 4 是 `{want}`")),
+            None => mismatches.push(format!("{name}: 生效源里**没有**这条声明")),
+        }
+    }
+    assert!(
+        mismatches.is_empty(),
+        "prelude 生效源的声明关键字必须与「类型是 Prop ⇒ theorem」这条规则逐条一致 ✗（{} 条不一致）：\n  {}\n\
+         ⇒ 改 `prelude/L1.sokonanoda`（证据与理由写在文件末尾的登记区），**别改这张表**
+         去迁就 —— 除非这条规则本身被用户改掉 ✓",
+        mismatches.len(),
+        mismatches.join("\n  ")
+    );
+
+    // ---- ② 内核级：`#print` 读回的**声明种类**（走真的安装路 ✓）----
+    let probe: String = KINDS
+        .iter()
+        .map(|(name, _)| format!("#print {name}\n"))
+        .collect();
+    let probe_file = sokonanoda_front::parse(&probe).expect("#print 探针必须能 parse");
+    let (out, report) = compile_all_with(&probe_file, &CompileOptions::default());
+    assert!(
+        out.errors.is_empty(),
+        "`#print` 探针必须 0 诊断（prelude 名字必须真的装在环境里 ✗）：{:?}",
+        out.errors
+            .iter()
+            .map(|e| format!("L{}: {}", e.span.start.line, e.message))
+            .collect::<Vec<_>>()
+    );
+    let printed: HashMap<&str, &str> = report
+        .prints
+        .iter()
+        .map(|p| (p.name.as_str(), p.text.as_str()))
+        .collect();
+    let mut kernel_mismatches: Vec<String> = Vec::new();
+    for (name, want) in KINDS {
+        match printed.get(name) {
+            Some(text) => {
+                let head = text.split_whitespace().next().unwrap_or("<空>");
+                if head != *want {
+                    kernel_mismatches.push(format!(
+                        "{name}: 内核 `#print` 是 `{head}`，Lean 4 是 `{want}`"
+                    ));
+                }
+            }
+            None => kernel_mismatches.push(format!("{name}: `#print` 没有结果（没装进环境 ✗）")),
+        }
+    }
+    assert!(
+        kernel_mismatches.is_empty(),
+        "内核里的声明种类必须与 Lean 4 core 逐条一致 ✗（{} 条不一致）：\n  {}\n\
+         ⇒ 若①绿②红：`prelude.rs::install_l1_command` 漏了 `Command::Theorem` 那一臂 \
+         （名字会被**静默跳过** ✗）",
+        kernel_mismatches.len(),
+        kernel_mismatches.join("\n  ")
     );
 }

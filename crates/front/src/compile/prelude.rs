@@ -7,8 +7,8 @@
 //!   （例如自带 `inductive Nat` 块或纯逻辑公理文件）。
 
 use super::elab::{
-    build_axiom, build_def, install_inductive_block, params_of_ty, strip_lambdas_n, DefInfo,
-    DefTable, ElabCtx, InductiveTable, KnownName, KnownTable,
+    build_axiom, build_def, build_theorem, install_inductive_block, params_of_ty, strip_lambdas_n,
+    DefInfo, DefTable, ElabCtx, InductiveTable, KnownName, KnownTable,
 };
 use super::scope::NamespaceScope;
 use crate::{Binder, BinderKind, Command, CtorDecl, Expr, SortKind, Span};
@@ -765,9 +765,15 @@ fn prelude_prefix_before(command: &Command) -> &'static str {
 }
 
 /// 这条命令是不是本族的（按顶层名字判定；`ctor`/`rec` 归它们的归纳块）。
+///
+/// ⚠ **`Command::Theorem` 必须在这里**（2026-10-11）：`Eq.symm`/`Or.elim` 一类
+/// 与 Lean 4 对齐成 `theorem` 之后，漏了这一臂 ⇒ 该命令**不属于任何族** ⇒
+/// **静默不装**（名字消失、任何用它的人都报未知标识符 ✗）。守卫：
+/// `crates/front/tests/prelude_mirror.rs::the_prelude_declaration_kinds_are_pinned`
+/// 用内核 `#print` 读回 kind（名字不在环境里 ⇒ 那条当场判红 ✓）。
 fn command_belongs_to(command: &Command, family: &PreludeFamily) -> bool {
     match command {
-        Command::Axiom { name, .. } | Command::Def { name, .. } => {
+        Command::Axiom { name, .. } | Command::Def { name, .. } | Command::Theorem { name, .. } => {
             family.names.contains(&name.as_str())
         }
         Command::InductiveBlock { name, .. } => family.names.contains(&name.as_str()),
@@ -775,8 +781,9 @@ fn command_belongs_to(command: &Command, family: &PreludeFamily) -> bool {
     }
 }
 
-/// 装一条 L1 命令。axiom 走 `build_axiom`，def 走 `build_def`，归纳块走
-/// `install_inductive_block`（构造子与派生递归子由它一起登记）。
+/// 装一条 L1 命令。axiom 走 `build_axiom`，def 走 `build_def`，theorem 走
+/// `build_theorem`，归纳块走 `install_inductive_block`（构造子与派生递归子由它
+/// 一起登记）。
 fn install_l1_command<'a>(
     builder: &mut EnvBuilder<'a>,
     known: &mut KnownTable,
@@ -862,6 +869,36 @@ fn install_l1_command<'a>(
                 }
             });
         }
+        Command::Theorem {
+            name,
+            universe,
+            ty,
+            val,
+            ..
+        } => {
+            // **2026-10-11**：证明类声明与 Lean 4 core 的关键字逐条对齐（见
+            // `prelude/L1.sokonanoda` 末尾的登记 + `docs/architecture.md` §5.4.1）。
+            // 安装路必须与**普通声明路**（`walk.rs::Walk::theorem`）同款：
+            // `build_theorem` + `add_declar` + `known.insert` ✓。
+            // ⚠ **`defs`（源级 delta 表）不插** —— 那张表只收 `fn def`
+            // （`walk.rs` 的原话："定理一律 `Opaque`、**永不展开**"；`conv.rs::unfold_hint`
+            // 只认 `Declar::Definition`）⇒ 漏了这条，prelude 里的 theorem 会比
+            // 用户写的 theorem 多一份可展开性（E4 影子档会量出来 ✗）。
+            let decl = build_theorem(builder, name, universe, ty, val, known, &mut hovers, &ctx)
+                .expect("L1 prelude theorem elaborates");
+            builder
+                .add_declar(decl)
+                .expect("duplicate L1 prelude theorem");
+            known.insert(
+                name.clone(),
+                KnownName::Decl {
+                    universes: universe.clone(),
+                    implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+                    explicit_arity: crate::compile::elab::explicit_arity(ty),
+                    signature: Some(crate::proof::decl_signature(ty)),
+                },
+            );
+        }
         Command::InductiveBlock {
             name,
             params,
@@ -890,7 +927,7 @@ fn install_l1_command<'a>(
             )
             .expect("L1 prelude inductive block installs");
         }
-        _ => panic!("L1 prelude must only contain axiom/def/inductive commands"),
+        _ => panic!("L1 prelude must only contain axiom/def/theorem/inductive commands"),
     }
 }
 

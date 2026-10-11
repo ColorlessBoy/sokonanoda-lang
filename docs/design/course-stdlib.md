@@ -71,14 +71,14 @@ L-01…L-13）——P4 之后该文件不再声明任何名字，签名一律以
 | 名字（Lean core 原名） | 形式 | 备注 |
 |---|---|---|
 | `True` / `True.intro` | axiom | 与 `False` 对称 |
-| `False` / `False.rec` / `False.elim` | axiom + def | 已有 `False` 系公理的课程不少，prelude 给全 |
-| `And` / `And.intro` / `And.left` / `And.right` / `And.elim` | **真归纳块 + 点号构造子**（G-02 已由 WO-005 修好，L1 不再走 axiom 族） | 已落地：`PRELUDE_L1_SRC` 的 B3 族（`prelude/*.sokonanoda` §1.1 第 6–10 行） |
-| `Or` / `Or.inl` / `Or.inr` / `Or.elim` | **inductive** + def | 构造子已定形为**点号名** `Or.inl`/`Or.inr`（B4 族）；裸模式 `\| inl a =>` 仍被接受 |
-| `Not` / `Not.intro` / `Not.elim` | def | `Not A := A → False`（与 Lean 同） |
-| `absurd` | def | `a → ¬a → b` |
-| `Iff` / `Iff.intro` / `Iff.mp` / `Iff.mpr` | def + def | Lean 里是 structure，我们是 `And (A→B) (B→A)` |
-| `Iff.refl` / `Iff.rfl` / `Iff.symm` / `Iff.trans` | def | Mathlib 级，但写集合等式天天用。**签名与 Lean core 逐字同形**（2026-10-11）：`Iff.refl (A : Prop)` 是**显式**实参、`Iff.rfl {A : Prop}` 是隐式版（`rfl` tactic 走后者，`Init/Core.lean:1029`）——裸写 `Iff.refl` 在真 Lean 4 判红，别写 ✗ |
-| `Eq.symm` / `Eq.trans` / `congrArg` | def | **受 G-14 限制**：当前只能同宇宙 |
+| `False` / `False.rec` / `False.elim` | axiom + **theorem**（`False.elim`） | 已有 `False` 系公理的课程不少，prelude 给全 |
+| `And` / `And.intro` / `And.left` / `And.right` / `And.elim` | **真归纳块 + 点号构造子**；`And.left`/`And.right`/`And.elim` 是 **theorem**（G-02 已由 WO-005 修好，L1 不再走 axiom 族） | 已落地：`PRELUDE_L1_SRC` 的 B3 族（`prelude/*.sokonanoda` §1.1 第 6–10 行） |
+| `Or` / `Or.inl` / `Or.inr` / `Or.elim` | **inductive** + **theorem**（`Or.elim`） | 构造子已定形为**点号名** `Or.inl`/`Or.inr`（B4 族）；裸模式 `\| inl a =>` 仍被接受 |
+| `Not` / `Not.intro` / `Not.elim` | def（`Not`）+ **theorem**（`Not.intro`/`Not.elim`） | `Not A := A → False`（与 Lean 同） |
+| `absurd` | **theorem** | `a → ¬a → b` |
+| `Iff` / `Iff.intro` / `Iff.mp` / `Iff.mpr` | def（`Iff`）+ **theorem**（其余 3 条） | Lean 里是 structure，我们是 `And (A→B) (B→A)` |
+| `Iff.refl` / `Iff.rfl` / `Iff.symm` / `Iff.trans` | **theorem** | Mathlib 级，但写集合等式天天用。**签名与 Lean core 逐字同形**（2026-10-11）：`Iff.refl (A : Prop)` 是**显式**实参、`Iff.rfl {A : Prop}` 是隐式版（`rfl` tactic 走后者，`Init/Core.lean:1029`）——裸写 `Iff.refl` 在真 Lean 4 判红，别写 ✗ |
+| `Eq.symm` / `Eq.trans` / `congrArg` | **theorem** | **受 G-14 限制**：当前只能同宇宙 | ⚠ **关键字口径（2026-10-11 用户拍板）**：**声明类型是 Prop 的证明类声明一律 `theorem`**（L1 共 20 条；类型/数据定义保持 `def`）—— 含 9 条 Lean 自己写 `def`/`abbrev`/投影的（`False.elim`/`absurd`/`Not.elim`/`And.elim`/`And.left`/`And.right`/`Iff.intro`/`Iff.mp`/`Iff.mpr`）= **有意偏离**（本语言签名收窄到 `Prop`），语法仍是合法 Lean ✓；理由与判据 ⇒ `REQUIREMENTS.md` §9.16 + `docs/architecture.md` §5.4.1。
 
 **落地要求**（硬规则 3）：prelude 增量必须配 **课程用例 + 三层测试 + 白名单**；
 **已定形（0.59.0）**：G-02 的结论是「构造子进类型命名空间」（`Ind.ctor`），所以 L1 的 `And`/`Or` 用点号构造子；这条不再悬置。
