@@ -2062,7 +2062,7 @@ fn run_tactics<'a>(
                     None => unreachable!(),
                 }
             }
-            Tactic::Unfold { names, span } => {
+            Tactic::Unfold { names, at, span } => {
                 // **Lean 4 对照**（本机 `~/Documents/lean/lean4`）：`unfold Foo Bar`
                 // （`Init/Tactics.lean:802` + `Lean/Elab/Tactic/Unfold.lean`）把目标里
                 // **每一处**这些常量展开出来（非递归 `def` 走 `deltaExpand` + beta，
@@ -2079,52 +2079,118 @@ fn run_tactics<'a>(
                 // 候选都要先问内核「它与原目标**定义相等**吗」（`judge_terms` 的同一份
                 // 判等，见 [`goal_rewrite_is_defeq`]），过了才提交；全不过 ⇒ 报错 ✓。
                 //
-                // ⚠ **子集边界**（与 Lean 的偏离，白纸黑字）：不做 `at h` 位置
-                // （只改主目标）—— 与 `intro`/`cases` 同口径 ✓。
-                for (name, _) in names {
-                    let one = vec![name.clone()];
-                    let spec = spec_of(nodes, cur, universe);
-                    let hint =
-                        level_hint_of(&nodes[cur].ty, defs, &spec.binders, prefix_src, options);
-                    // 读法顺序：**先源形态**（`Short`，绝大多数目标），再**旧写法**
-                    // （前导隐式实参也写出来：`Set.mem α a A`）——静态分不开 ⇒ 两种都
-                    // 试，但**验过才算数** ✓（与 `unfold_to_inductive` 的纪律一致）。
-                    let mut committed = None;
-                    for mode in [
-                        crate::spine::UnfoldAlign::Short,
-                        crate::spine::UnfoldAlign::Old,
-                    ] {
-                        let Some(candidate) = crate::spine::unfold_named_in(
-                            &nodes[cur].ty,
-                            &one,
-                            defs,
-                            hint.as_deref(),
-                            mode,
-                            16,
-                        ) else {
-                            continue;
+                // `at h`（2026-10-11 收掉最后一条子集边界）：改**点名假设的类型**
+                // （Lean 的 `location` 子集，`at *` 要 `*` token、本语言没有 ⇒ 白纸
+                // 黑字写在 `reference/tactics/unfold.md` ✓）。**验收判据不同**：
+                // 目标那条问"展开后的目标能不能被原来那个洞证出来"；假设这条问
+                // **"假设 `h` 自己能不能证明展开后的类型"** —— 能 ⇒ 新旧类型定义
+                // 相等 ✓（走 `judge_terms` 的同一份判等，与 `exact h` 同一条路 ✓）。
+                if let crate::ast::UnfoldAt::Hyps(hyps) = at {
+                    for (hyp, hyp_span) in hyps {
+                        let Some((owner, slot)) = find_binder(nodes, Some(cur), hyp) else {
+                            return Err(tactic_error(
+                                format!(
+                                    "`unfold` … `at {hyp}`：当前上下文里没有假设 `{hyp}`（名字写错了？）"
+                                ),
+                                *hyp_span,
+                            ));
                         };
-                        // 判定查询文本走**显示层唯一接口**（`display_expr` = 折记法的
-                        // `render_expr` + 前缀记法表）⇒ 与 `judge` 稍后解析它用的是
-                        // **同一张表** ✓，也满足 `audit-notation-paths.py` 的守卫 ✓。
-                        // 判定查询文本用 [`crate::proof::render_atom`]（**忠实渲染** +
-                        // 复合式补括号）—— 与 `rfl_candidate` 的候选文本同源 ✓。
-                        // ⚠ **不许用 `display_expr`/`DisplayNotations::render`**：它们会
-                        // **折记法**，而这里是**判定输入**（`({a}) a` 会被折成 `{a}` ⇒
-                        // 语义都变了 ✗ —— 2026-10-11 实测踩到，由判据当场逮住 ✓）。
-                        // `render_atom` 不是 `audit-notation-paths.py` 的绕过形式 ✓。
-                        if goal_rewrite_is_defeq(
-                            &spec,
-                            &crate::proof::render_atom(&candidate),
-                            prefix_src,
-                            options,
-                        ) {
-                            committed = Some(candidate);
-                            break;
+                        let Some(old_ty) = nodes[owner].intros[slot].ty.as_deref().cloned() else {
+                            return Err(tactic_error(
+                                format!("`unfold` … `at {hyp}`：这个假设没有类型标注"),
+                                *hyp_span,
+                            ));
+                        };
+                        let spec = spec_of(nodes, cur, universe);
+                        let hint = level_hint_of(&old_ty, defs, &spec.binders, prefix_src, options);
+                        let mut next = old_ty.clone();
+                        for (name, _) in names {
+                            let one = vec![name.clone()];
+                            let mut committed = None;
+                            for mode in [
+                                crate::spine::UnfoldAlign::Short,
+                                crate::spine::UnfoldAlign::Old,
+                            ] {
+                                let Some(candidate) = crate::spine::unfold_named_in(
+                                    &next,
+                                    &one,
+                                    defs,
+                                    hint.as_deref(),
+                                    mode,
+                                    16,
+                                ) else {
+                                    continue;
+                                };
+                                if hyp_rewrite_is_defeq(
+                                    &spec,
+                                    &crate::proof::render_atom(&candidate),
+                                    hyp,
+                                    prefix_src,
+                                    options,
+                                ) {
+                                    committed = Some(candidate);
+                                    break;
+                                }
+                            }
+                            let Some(ok) = committed else {
+                                return Err(tactic_error(
+                                    format!(
+                                        "`unfold` 没有展开 `{name}`：它在假设 `{hyp}` 的类型里没有出现\
+                                         （或这一处展不动），当前类型是 `{}`",
+                                        display_expr(prefix_src, &next)
+                                    ),
+                                    *span,
+                                ));
+                            };
+                            next = ok;
                         }
+                        nodes[owner].intros[slot].ty = Some(Box::new(next));
                     }
-                    let Some(next) = committed else {
-                        return Err(tactic_error(
+                } else {
+                    for (name, _) in names {
+                        let one = vec![name.clone()];
+                        let spec = spec_of(nodes, cur, universe);
+                        let hint =
+                            level_hint_of(&nodes[cur].ty, defs, &spec.binders, prefix_src, options);
+                        // 读法顺序：**先源形态**（`Short`，绝大多数目标），再**旧写法**
+                        // （前导隐式实参也写出来：`Set.mem α a A`）——静态分不开 ⇒ 两种都
+                        // 试，但**验过才算数** ✓（与 `unfold_to_inductive` 的纪律一致）。
+                        let mut committed = None;
+                        for mode in [
+                            crate::spine::UnfoldAlign::Short,
+                            crate::spine::UnfoldAlign::Old,
+                        ] {
+                            let Some(candidate) = crate::spine::unfold_named_in(
+                                &nodes[cur].ty,
+                                &one,
+                                defs,
+                                hint.as_deref(),
+                                mode,
+                                16,
+                            ) else {
+                                continue;
+                            };
+                            // 判定查询文本走**显示层唯一接口**（`display_expr` = 折记法的
+                            // `render_expr` + 前缀记法表）⇒ 与 `judge` 稍后解析它用的是
+                            // **同一张表** ✓，也满足 `audit-notation-paths.py` 的守卫 ✓。
+                            // 判定查询文本用 [`crate::proof::render_atom`]（**忠实渲染** +
+                            // 复合式补括号）—— 与 `rfl_candidate` 的候选文本同源 ✓。
+                            // ⚠ **不许用 `display_expr`/`DisplayNotations::render`**：它们会
+                            // **折记法**，而这里是**判定输入**（`({a}) a` 会被折成 `{a}` ⇒
+                            // 语义都变了 ✗ —— 2026-10-11 实测踩到，由判据当场逮住 ✓）。
+                            // `render_atom` 不是 `audit-notation-paths.py` 的绕过形式 ✓。
+                            if goal_rewrite_is_defeq(
+                                &spec,
+                                &crate::proof::render_atom(&candidate),
+                                prefix_src,
+                                options,
+                            ) {
+                                committed = Some(candidate);
+                                break;
+                            }
+                        }
+                        let Some(next) = committed else {
+                            return Err(tactic_error(
                             format!(
                                 "`unfold` 没有展开 `{name}`：它在当前目标里没有出现（或这一处展不动）。\
                                  要展开的常量用**点名写法**写出来（`Set.mem`、`Set.singleton`），\
@@ -2133,10 +2199,11 @@ fn run_tactics<'a>(
                             ),
                             *span,
                         ));
-                    };
-                    // 目标换成展开形态：**证明项一个字不动** —— 新目标与旧目标定义
-                    // 相等（上面刚由内核验过），最终声明仍由内核对着**原始陈述**重查 ✓。
-                    nodes[cur].ty = next;
+                        };
+                        // 目标换成展开形态：**证明项一个字不动** —— 新目标与旧目标定义
+                        // 相等（上面刚由内核验过），最终声明仍由内核对着**原始陈述**重查 ✓。
+                        nodes[cur].ty = next;
+                    }
                 }
             }
             Tactic::Apply { expr, span } => {
@@ -3643,6 +3710,41 @@ fn judge_strict(
 /// ⚠ 批次语义：`by` 块里 `judge_terms` 走**乐观批次**（先答 `Match`、跑完一次判完）
 /// ⇒ 万一这条验收乐观地放过了，`flush_batch` 会当场判红、`run_by` 严格重跑 ⇒
 /// **判定不变** ✓（这正是批次机制的设计前提）。
+/// 在**当前节点及其祖先**里找那个假设（与 [`canonicalize_binder_type`] 同一条路：
+/// `intro` 出来的假设挂在祖先节点的 `intros` 上 ✓）⇒ `(节点下标, intros 里的槽位)`。
+fn find_binder(nodes: &[GoalNode], mut id: Option<usize>, name: &str) -> Option<(usize, usize)> {
+    while let Some(i) = id {
+        if let Some(slot) = nodes[i].intros.iter().position(|b| b.name == name) {
+            return Some((i, slot));
+        }
+        id = nodes[i].parent;
+    }
+    None
+}
+
+/// `unfold … at h` 的**内核验收**：把展开后的类型当**目标**，问「假设 `h` 自己能不能
+/// 证明它」—— 能 ⇒ 展开后的类型与 `h` 原来的类型**定义相等** ✓。
+///
+/// 与 [`goal_rewrite_is_defeq`] 同一份判等（`judge_terms` ⇒ `exact` 那条内核路 ✓），
+/// **不做文本比对** ✓（硬规则 4）。假设的类型是要被真的换掉的 ⇒ 这一道闸不能省：
+/// 源级展开是按名字对齐实参的近似，读法选错就会把假设改成**另一个命题** ✗。
+fn hyp_rewrite_is_defeq(
+    spec: &OpenGoalSpec,
+    new_ty: &str,
+    hyp: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+) -> bool {
+    let mut probe = spec.clone();
+    probe.ty = new_ty.to_string();
+    matches!(
+        judge_terms(prefix_src, options, &probe, &[hyp])
+            .into_iter()
+            .next(),
+        Some(Judgement::Match)
+    )
+}
+
 fn goal_rewrite_is_defeq(
     spec: &OpenGoalSpec,
     new_ty: &str,

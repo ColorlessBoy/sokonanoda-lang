@@ -143,12 +143,17 @@ pub enum Expr {
 /// `None` = 这个元素个数没有对应常量（`{}` 与 ≥3 个元素 parser 已经给专用诊断 ⇒
 /// 这里只是兜底：调用方一律 `return None`，退回既有行为 ✓）。
 pub(crate) fn set_literal_target(elements: usize) -> Option<&'static str> {
-    match elements {
-        1 => Some("Set.singleton"),
-        2 => Some("Set.pair"),
-        _ => None,
-    }
+    SUGAR_TARGETS
+        .iter()
+        .find(|(n, _)| *n == elements)
+        .map(|(_, name)| *name)
 }
+
+/// 内建糖的**唯一一张表**：`(元素个数, 目标常量)`。
+///
+/// 正向 [`set_literal_target`]（`{a}` → `Set.singleton`）· 反向 [`sugar_closed_arity`]。
+/// 第三张表出现在任何地方之前，先问这里 ✓。
+const SUGAR_TARGETS: &[(usize, &str)] = &[(1, "Set.singleton"), (2, "Set.pair")];
 
 /// 记法命令的结合性 / 元数（`docs/design/notation-subset.md` N1 + §10.1）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -446,9 +451,14 @@ impl Tactic {
                 }
             },
             // `unfold` 的名字是**引用**（不是表达式位）⇒ 单独报它们自己的 span。
-            Tactic::Unfold { names, .. } => {
+            Tactic::Unfold { names, at, .. } => {
                 for (name, span) in names {
                     f(name, *span);
+                }
+                if let UnfoldAt::Hyps(hyps) = at {
+                    for (name, span) in hyps {
+                        f(name, *span);
+                    }
                 }
             }
             Tactic::Intro { .. }
@@ -464,6 +474,22 @@ impl Tactic {
 }
 
 /// 教学白名单里的一个 tactic（`by` 块内）。
+/// `unfold … at …` 的**落点**（Lean 4 的 `location`，本语言的子集）。
+///
+/// **Lean 4 对照**：`Init/Tactics.lean:802` 的
+/// `syntax "unfold" (ppSpace colGt ident)+ (" at " location)?`，`location` =
+/// `(ident,*)|*|⊢`。本语言收**点名假设**这一种；`at *` 需要 `*` token（本语言
+/// lexer 没有 ⇒ 实测报 `expected a valid .sokonanoda token, found *` ✗），
+/// `at ⊢` 与"不写 `at`"同义（都是目标）✓ —— 两条偏离都写在
+/// `reference/tactics/unfold.md` ✓。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum UnfoldAt {
+    /// 目标：不写 `at`（`unfold Foo`）。
+    Goal,
+    /// 点名假设：`unfold Foo at h1 h2`（那些假设的类型被展开成定义体）。
+    Hyps(Vec<(String, Span)>),
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Tactic {
     /// `intro a b c`：一次剥掉多层 Pi/Arrow。**多名字**是 Lean 的常态写法
@@ -551,14 +577,16 @@ pub enum Tactic {
     /// **Lean 4 对照**（本机 `~/Documents/lean/lean4`）：`Init/Tactics.lean:802`
     /// 的 `syntax "unfold" ident+ (location)?` + `Lean/Elab/Tactic/Unfold.lean` +
     /// `Lean/Meta/Tactic/Unfold.lean`（非递归 def 走 `deltaExpand` + beta）。
-    /// 本语言**不做** `at h` 位置（子集边界，与 `intro`/`cases` 同口径）；
-    /// 展开后的目标必须**与展开前定义相等**（内核验收，见 `by.rs`）。
+    /// 本语言收 `at h`（点名假设），**不收** `at *`（lexer 没有 `*` token）；
+    /// 展开后的目标/假设类型必须**与展开前定义相等**（内核验收，见 `by.rs`）。
     Unfold {
         /// 要展开的常量名（≥1，按用户写的拼写；引擎按头名逐处匹配）+ 它在源里的
         /// **span**。带 span 是为了 **F12/hover**：`unfold Set.mem` 里的 `Set.mem`
         /// 是一个**引用**（Lean 也是 `realizeGlobalConstNoOverloadWithInfo`），
         /// 不是绑定名 ⇒ 走 [`Tactic::for_each_ident`] 那条词法行通道 ✓。
         names: Vec<(String, Span)>,
+        /// 落点：目标（不写 `at`）或**点名假设**（`at h`）✓。
+        at: UnfoldAt,
         span: Span,
     },
 }

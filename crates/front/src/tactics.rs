@@ -99,7 +99,8 @@ pub static TACTIC_DOCS: &[TacticDoc] = &[
     },
     TacticDoc {
         name: "unfold",
-        summary: "把目标里点名的常量展开成定义体（`unfold Set.mem Set.singleton`）。",
+        summary:
+            "把目标或点名假设里点名的常量展开成定义体（`unfold Set.mem` / `unfold Set.mem at h`）。",
         variant: "Unfold",
         semantic_kind: SemanticKind::Keyword,
         markdown: include_str!("../../../reference/tactics/unfold.md"),

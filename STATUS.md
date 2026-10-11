@@ -1,4 +1,12 @@
 # 当前快照（2026-10-11 · 最新一轮：**`rfl` 对齐 Lean 4（defeq 目标）+ 新 tactic `unfold` + 失败声明的签名 F12**（未发版）；上一发版批次 **`v0.88.2`** = 版本切换 ⇒ 自动全量预热）
+## 用户实测线（2026-10-11 第六轮）：**三条尾巴全部收口**（`unfold … at h` · 目标显示不吞应用 · `unfold` 实参可跳）✓（未发版）
+- **用户原话**：「不要留尾巴 全做好」= 第五轮如实登记的三条边界 ✓。
+- **① `unfold Foo at h`**：AST 加 `UnfoldAt::{Goal, Hyps}`（`at` 是**上下文关键字**，不进 `KEYWORDS`）；引擎沿 `parent` 链找假设（`find_binder`），验收换成「**假设自己能不能证明展开后的类型**」（`hyp_rewrite_is_defeq` ⇒ `judge_terms`，与 `exact h` 同路）⇒ 过了才写回 ✓。实测 `unfold Set.mem at h` ⇒ `h : ({a}) a`、目标不动 ⇒ `exact h` 判绿 ✓。`at *` 不做（lexer 没有 `*` token，报错文案入档）。
+- **② 目标显示不再吞应用**：根因是**文本折叠的固有歧义**（`Set.singleton a a` 两读同形）⇒ 修在**折叠层**（糖**只折闭项形状**，开项不折 ⇒ 宁可少折、不许撒谎）⇒ 面板与错误消息都不再印成 `{a}` ✗；第一版修在渲染层**不成立** —— 糖的含义取决于环境（夹具里 α 是显式绑定的），被既有 CLI 判据当场逮住 ✓。
+- **③ `unfold` 实参可 hover/F12**：成功臂补词法行；关键是**必须用源表达式**（`let val = &lowered.0;` 之后 `val` 已是 elaborate 过的项 ⇒ 探针实测 `is_by=false` 才定位到）✓。真 LSP 判据：点那个名字 ⇒ 落 `def Set.mem` 行 ✓。
+- **递归 `def` = n/a（取证）**：`def myLoop (n : Nat) : Nat := myLoop n` 报 `unknown identifier` ⇒ 不是"没做" ✗；留一条**断言当前行为**的判据防漂移 ✓。
+- **读数**：front lib **942/0**（新增 6 条）· lsp lib **219/219**（新增 1 条用户动作判据）· 三条尾巴各带**反向验证实跑** ✓。
+
 ## 用户实测线（2026-10-11 第五轮）：**`rfl` 对齐 Lean 4（defeq 目标）· 新 tactic `unfold` · 失败声明的签名 F12** ✓（未发版）
 - **三条用户原话**：①「`theorem mem_of_subset_singleton … := by apply h; rfl` 的 rfl 报错，这个应该是 bug」②「`(h : {a} ⊆ A)` 鼠标移动到花括号，但是 F12 没办法跳转到 `Set.singleton`」③「`apply h` 到这一步的目标是 `⊢ a ∈ ({a})`，但是我想增加一个 tactic，展开成 `⊢ a = a`，调研查查 lean4 有没有类似功能的 tactic」。
 - **①（台账 G-114）**：**不是内核缺陷** —— 真内核判 `exact Eq.refl a` / `apply Eq.refl a` 都绿（`decl.checked`）；是前端 `rfl_candidate` 只认**语法上** `Eq`/`Iff` 头的目标。修法对齐 Lean 的 `MVarId.applyRfl`（`Meta/Tactic/Rfl.lean`：先 `whnfR` 目标类型）：源级多轮展开逼近 whnf（`unfold_head_deep`，与 G-109 的 `apply` 修复**同一份**机械）+ 认**内建糖的头**（`{a}` → `Set.singleton`；`ast::set_literal_target` 与 elab 共用一张表）+ 便宜的形状闸（头不是 Eq/Iff 就不花那次内核 pp）。**零假绿面**（候选仍交内核 `judge`）。**反向验证实跑**：退回 `unfold_head_once` ⇒ 判据当场判红（报的正是用户那句文案）✓。

@@ -700,14 +700,24 @@ fn render_tactic(tactic: &Tactic) -> String {
             };
             format!("have {name} : {} := {value}", render_expr(ty))
         }
-        Unfold { names, .. } => format!(
-            "unfold {}",
-            names
+        Unfold { names, at, .. } => {
+            let list = names
                 .iter()
-                .map(|(name, _)| name.as_str())
+                .map(|(n, _)| n.as_str())
                 .collect::<Vec<_>>()
-                .join(" ")
-        ),
+                .join(" ");
+            match at {
+                crate::ast::UnfoldAt::Goal => format!("unfold {list}"),
+                crate::ast::UnfoldAt::Hyps(hyps) => {
+                    let hs = hyps
+                        .iter()
+                        .map(|(n, _)| n.as_str())
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    format!("unfold {list} at {hs}")
+                }
+            }
+        }
         Sorry { .. } => "sorry".to_string(),
     }
 }

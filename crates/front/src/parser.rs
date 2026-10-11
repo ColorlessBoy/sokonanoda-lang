@@ -1436,7 +1436,10 @@ impl Parser {
                 let mut names: Vec<(String, Span)> = Vec::new();
                 let mut end = tok.span.end;
                 while let TokenKind::Ident(name) = &self.peek().kind {
-                    if is_tactic_keyword(name) {
+                    // `at` 是 `unfold` 的**上下文关键字**（名字列到这里为止）——
+                    // 与 tactic 关键字同一条停法 ✓（代价：常量名恰好叫 `at` 时
+                    // 展不了它；Lean 4 里 `at` 同样是保留字 ✓）。
+                    if is_tactic_keyword(name) || name == "at" {
                         break;
                     }
                     let name_tok = self.bump();
@@ -1449,8 +1452,31 @@ impl Parser {
                 if names.is_empty() {
                     return Err(self.error_here("`unfold` constant name"));
                 }
+                // `at h1 h2`（Lean 的 `location`，子集）：`at` 是**上下文关键字**
+                // —— 只在 `unfold` 的名字之后认它 ⇒ 不进 `KEYWORDS`、不影响别处
+                // 拿 `at` 当名字 ✓（`unfold Foo at` 之后没名字 ⇒ 当场报错 ✓）。
+                let mut at = crate::ast::UnfoldAt::Goal;
+                if matches!(&self.peek().kind, TokenKind::Ident(w) if w == "at") {
+                    self.bump();
+                    let mut hyps: Vec<(String, Span)> = Vec::new();
+                    while let TokenKind::Ident(name) = &self.peek().kind {
+                        if is_tactic_keyword(name) {
+                            break;
+                        }
+                        let name_tok = self.bump();
+                        end = name_tok.span.end;
+                        if let TokenKind::Ident(name) = name_tok.kind {
+                            hyps.push((name, name_tok.span));
+                        }
+                    }
+                    if hyps.is_empty() {
+                        return Err(self.error_here("`unfold` … `at` hypothesis name"));
+                    }
+                    at = crate::ast::UnfoldAt::Hyps(hyps);
+                }
                 Ok(Tactic::Unfold {
                     names,
+                    at,
                     span: Span::new(tok.span.start, end),
                 })
             }

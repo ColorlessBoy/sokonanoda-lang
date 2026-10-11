@@ -4968,6 +4968,218 @@ fn unfold_expands_the_named_constants_and_shows_the_result() {
 }
 
 #[test]
+fn unfold_at_a_hypothesis_rewrites_its_type_and_leaves_the_goal_alone() {
+    // **用户要求（2026-10-11）**：`unfold` 的 `at h` 位置（Lean 4 的 `location` 子集，
+    // `Init/Tactics.lean:802` 的 `(" at " location)?`）。判据打在**用户看到的东西**上：
+    // 目标面板里那条**假设的类型**（`by_steps` 的展示副本 ✓），并且**目标一个字节不动** ✓
+    // —— 只断言判绿会放过"假设没变、只是恰好证完了" ✗。
+    let src = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n",
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+        "infix:50 \" ∈ \" => Set.mem\n",
+        "theorem t (α : Type) (a : α) (h : a ∈ {a}) : a = a := by\n",
+        "  unfold Set.mem at h\n",
+        "  exact h\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("夹具前提：声明 `t` 存在");
+    assert_eq!(d.status, DeclStatus::Checked);
+    let step = &d.by_steps[0];
+    assert_eq!(step.goals[0].ty, "a = a", "目标必须**一个字节不动**");
+    let h = step.goals[0]
+        .binders
+        .iter()
+        .find(|b| b.name == "h")
+        .expect("假设 `h` 必须在展示里");
+    assert_eq!(
+        h.ty.as_str(),
+        "({a}) a",
+        "`unfold Set.mem at h` 之后假设 `h` 的类型要变成展开形态"
+    );
+}
+
+#[test]
+fn unfold_at_an_unknown_hypothesis_names_it() {
+    // **反向验证（判据不许空转）**：假设名写错 ⇒ **报错并点名**，绝不静默成功 ✗。
+    let src = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n",
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+        "infix:50 \" ∈ \" => Set.mem\n",
+        "theorem t (α : Type) (a : α) (h : a ∈ {a}) : a = a := by\n",
+        "  unfold Set.mem at nope\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(!report.errors.is_empty(), "必须判红（没有这个假设）");
+    assert!(
+        report.errors[0].message.contains("`nope`"),
+        "错误必须**点名**那个假设：{}",
+        report.errors[0].message
+    );
+}
+
+#[test]
+fn unfold_at_without_a_hypothesis_is_a_parse_error() {
+    // `at` 之后必须至少有一个假设名（与 `unfold` 之后必须至少有一个常量名同口径 ✓）。
+    let src = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "theorem t (α : Type) (h : Set α) : True := by\n",
+        "  unfold Set at\n",
+    );
+    let err = parse(src).expect_err("`unfold Set at` 必须解析失败");
+    let text = format!("{err:?}");
+    assert!(
+        text.contains("hypothesis name"),
+        "报错要点名缺的是假设名：{text}"
+    );
+}
+
+#[test]
+fn a_self_referential_def_is_rejected_so_unfold_has_no_recursive_case() {
+    // **`unfold` 的第二条子集边界的取证**（2026-10-11）：Lean 4 对**递归** `def` 走
+    // **展开引理**（`id.eq_def`，`Lean/Meta/Tactic/Unfold.lean` 的 `simp` 分支）；
+    // 本语言**根本没有递归 `def`** —— 名字要在**定义体 elaborate 之后**才进环境 ⇒
+    // 自引用当场报 `unknown identifier` ✓（实测）。所以"递归 def 的展开引理"在
+    // 本语言里 **n/a**，不是"没做" ✗ —— 这条判据**断言当前行为**，将来真加了递归
+    // `def`，它会红 ⇒ 那时必须把 `unfold` 的递归分支补上 ✓（防漂移 ✓）。
+    let src = "def myLoop (n : Nat) : Nat := myLoop n\n";
+    let report = check_document(&parse(src).unwrap());
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert!(
+        report.errors[0].message.contains("unknown identifier"),
+        "自引用 `def` 必须报 `unknown identifier`（递归 def 不存在的证据）：{}",
+        report.errors[0].message
+    );
+}
+
+#[test]
+fn the_argument_of_unfold_keeps_a_jump_row_in_a_successful_declaration() {
+    // **用户实测（2026-10-11 第 3 条尾巴）**：`unfold Foo` 里的 `Foo` 只是**给展开
+    // 机械的名字**（Lean 4 的 `unfold` 也单独收这个引用 —— 它自己不是被展开项的一部分），
+    // 展开之后**一个字节都不进证明项** ⇒ 构建期的 `elab_expr` 收不到它的行 ⇒
+    // 光标放上去 **F12 答 null** ✗、hover 也不给声明卡片 ✗。
+    //
+    // 判据打在**用户实际点的那个名字**上（`unfold ` 之后的那个 token，不是别处 ✗），
+    // 并断言 resolution **指向 `Set.mem`** —— 只断言"有行"会放过一条指向别处的行。
+    //
+    // 夹具前提是这条声明**成功**（`DeclStatus::Checked` ✓）：以前只有**失败**路径
+    // 补词法行（G-108 第一刀），成功路径一个词法行都没有 ⇒ 这正是缺口所在 ✓。
+    let src = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n",
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+        "infix:50 \" ∈ \" => Set.mem\n",
+        "theorem t (α : Type) (a : α) : a ∈ {a} := by\n",
+        "  unfold Set.mem\n",
+        "  rfl\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("夹具前提：声明 `t` 存在");
+    assert_eq!(d.status, DeclStatus::Checked, "夹具前提：这条必须**成功**");
+    let at = src.find("unfold Set.mem").expect("`unfold Set.mem` 出现点") + "unfold ".len();
+    assert!(
+        report.hovers.iter().any(|h| {
+            h.span.start.offset <= at
+                && at < h.span.end.offset
+                && matches!(
+                    &h.resolution,
+                    Some(ResolvedTarget::Declaration { name, .. }) if name == "Set.mem"
+                )
+        }),
+        "成功声明里 `unfold` 的实参（offset {at}）必须留下指向 `Set.mem` 的跳转行 ——          它不进证明项 ⇒ 只有词法补位能给 ✓。现有行：{:?}",
+        report
+            .hovers
+            .iter()
+            .map(|h| (h.span.start.offset, h.span.end.offset, &h.resolution))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn an_applied_set_literal_shows_the_application_instead_of_dropping_an_argument() {
+    // **用户实测（2026-10-11 第 3 条尾巴）**：`apply h` 之后的目标来自**内核 pp 文本**
+    // ⇒ 它里面的糖是**点形式**（`Set.singleton a`，闭项 ✓）；`unfold Set.mem` 把那个
+    // 集合放进**函数位** ⇒ AST 是 `(Set.singleton a) a`。
+    //
+    // 它的点形式文本 `Set.singleton a a` 与**开项完全应用** `Set.singleton α a`
+    // **逐字同形** ⇒ 文本折叠按开项读法把它折成 `{a}` ✗ **丢掉那次应用** ——
+    // 实测：**目标面板**与**错误消息**都印成 `{a}` ✗（真目标是 Prop、`{a}` 是集合
+    // ⇒ **是错的**，不只是难看 ✗）。
+    //
+    // 修法在**渲染**层（`proof::render_closed_sugar`）：闭项元数的糖**就是**糖
+    // （`Set.singleton a` ≡ `{a}` ✓ —— 结构判据，不是猜 ✓）⇒ 内层打成 `{a}` ✓、
+    // 外层自然成为 `({a}) a` ✓，而折叠对 `({a}) a` 不再有歧义 ✓。
+    //
+    // 两条判据都打在**用户看到的东西**上：目标面板的文本（`by_steps` 展示副本 ✓）
+    // 与错误消息正文 ✓ —— 只断言判绿会放过"面板印错" ✗。
+    let src = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n",
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+        "def Set.subset {α : Type} (A B : Set α) : Prop :=\n",
+        "  forall (x : α), Set.mem x A -> Set.mem x B\n",
+        "infix:50 \" ∈ \" => Set.mem\n",
+        "infix:50 \" ⊆ \" => Set.subset\n",
+        // ① 目标面板：`apply h` 给的点形式目标，`unfold Set.mem` 之后必须显示
+        //    `({a}) a` —— 而不是被折掉实参的 `{a}` ✗。
+        "theorem t (α : Type) (A : Set α) (a : α) (h : {a} ⊆ A) : a ∈ A := by\n",
+        "  apply h\n",
+        "  unfold Set.mem\n",
+        "  exact Eq.refl a\n",
+        // ② 错误消息：同一条目标 + 一条必错的 tactic ⇒ 消息里印的"期望"也必须是
+        //    `({a}) a` ✓（这条走 `display_expr`，与面板**不是**同一条路 ✓）。
+        "theorem u (α : Type) (A : Set α) (a : α) (h : {a} ⊆ A) : a ∈ A := by\n",
+        "  apply h\n",
+        "  unfold Set.mem\n",
+        "  exact Nat.zero\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    let t = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .unwrap();
+    assert_eq!(t.status, DeclStatus::Checked, "{:?}", report.errors);
+    // ⚠ 形状口径（2026-10-11 定稿）：`apply h` 给的目标是**内核 pp 文本**（点形式）
+    // ⇒ 它的糖是 `Set.singleton a`（闭项 ✓）。`unfold Set.mem` 把那个集合放进**函数位**
+    // ⇒ 文本是 `Set.singleton a a` —— 与**开项完全应用**逐字同形 ✗ ⇒ 折叠层**不折**
+    // （宁可少折、不许撒谎 ✓）⇒ 展示的就是点形式 ✓。**关键是它带着那次应用** ✓
+    // （修前是 `{{a}}` ✗：那是集合、真目标是 Prop ⇒ 印错了 ✗）。
+    assert_eq!(
+        t.by_steps[1].goals[0].ty, "Set.singleton a a",
+        "`unfold Set.mem` 之后的目标必须**带着那次应用**（`{{a}}` 是错的 ✗）"
+    );
+    assert_ne!(
+        t.by_steps[1].goals[0].ty, "{a}",
+        "绝不能印成丢掉应用的 `{{a}}` ✗"
+    );
+    let u_msg = report
+        .errors
+        .iter()
+        .find(|e| e.span.start.line >= 13)
+        .map(|e| e.message.clone())
+        .unwrap_or_default();
+    assert!(
+        u_msg.contains("`Set.singleton a a`"),
+        "错误消息里那个「期望」也必须**带着那次应用**（实际消息：{u_msg}）"
+    );
+    assert!(
+        !u_msg.contains("期望 `{a}`"),
+        "错误消息绝不能印成丢掉应用的 `{{a}}` ✗（实际消息：{u_msg}）"
+    );
+}
+
+#[test]
 fn unfold_only_touches_the_named_constant_and_keeps_the_goal_defeq() {
     // 只展开**内层**那一个名字（`{a}` 是 `Set.singleton`，`∈` 不动）⇒ 目标变成
     // `a ∈ (fun (x : α) => x = a)`。**判据有两条**：

@@ -729,9 +729,21 @@ fn fold_spine(expr: &Expr, dn: &DisplayNotations) -> Option<Expr> {
 /// `Set.pair` 的 `k == 3` / `k == 2`。元素**从尾部取**：更小的 `k` ⇒ `None`。
 fn fold_set_literal(name: &str, args: &[&Expr], span: Span) -> Option<Expr> {
     let k = args.len();
+    // **只折闭项形状**（2026-10-11 用户实测的第 3 条尾巴）。
+    //
+    // 原来的规则把**开项**也收（`Set.singleton α a` ⇒ `{a}`）—— 而开项与
+    // 「**闭项完全应用再被应用一次**」**逐字同形**（`Set.singleton a a` = `(Set.singleton a) a`）✗
+    // ⇒ 折叠按开项读法把后者折成 `{a}` ✗ **丢掉那次应用**：实测 `apply h` 之后
+    // `unfold Set.mem` 的目标 `(Set.singleton a) a` 在**目标面板**与**错误消息**里
+    // 都印成 `{a}` ✗（那是集合，真目标是 Prop ⇒ **是错的** ✗）。
+    //
+    // 折叠是**纯文本**通道 ⇒ 分不开这两种读法 ✗；**AST 才分得开**（`SetLiteral` 头
+    // vs `Ident` 头 + 实参个数）⇒ 这条歧义只能在"少折一点"这一侧收掉：**开项不折** ✓
+    // （它只在 pp 打出隐式实参时出现，罕见），于是整条脊不折、但**内层闭项照折** ✓
+    // ⇒ `Set.singleton a a` 折成 `({a}) a` ✓（真值，且不再撒谎 ✓）。
     let elements: Vec<Expr> = match name {
-        "Set.singleton" if k == 2 || k == 1 => vec![args[k - 1].clone()],
-        "Set.pair" if k == 3 || k == 2 => vec![args[k - 2].clone(), args[k - 1].clone()],
+        "Set.singleton" if k == 1 => vec![args[k - 1].clone()],
+        "Set.pair" if k == 2 => vec![args[k - 2].clone(), args[k - 1].clone()],
         _ => return None,
     };
     Some(Expr::SetLiteral { elements, span })
@@ -1245,11 +1257,26 @@ mod tests {
         assert_eq!(fold_text("Not a", &dn), "¬ a");
         assert_eq!(fold_text("Iff a b", &dn), "a ↔ b");
 
-        // ④ 集合字面量特例同步放宽：元素**从尾部取**
-        assert_eq!(fold_text("Set.singleton α a", &dn), "{a}", "开项全形");
+        // ④ 集合字面量特例：**只折闭项形状**（2026-10-11 用户实测的第 3 条尾巴）。
+        //
+        // 开项形状（`Set.singleton α a`）与「闭项完全应用**再被应用一次**」
+        // （`Set.singleton a a` = `(Set.singleton a) a`）**逐字同形** ✗ ⇒ 折叠是纯文本
+        // 通道、分不开 ⇒ 只能在"少折一点"这一侧收：开项**不折** ✓（它只在 pp 打出
+        // 隐式实参时出现，罕见），换掉的是"把 `(Set.singleton a) a` 折成 `{a}` ✗
+        // **丢掉那次应用**"那个**撒谎**的行为（实测：目标面板与错误消息都把 Prop
+        // 印成集合 ✗）。闭项形状（课程里的真形状）照折 ✓。
+        assert_eq!(
+            fold_text("Set.singleton α a", &dn),
+            "Set.singleton α a",
+            "开项全形：与「闭项再被应用」同形 ⇒ 不折（宁可少折，不许撒谎）"
+        );
         assert_eq!(fold_text("Set.singleton a", &dn), "{a}", "闭项省略形");
-        assert_eq!(fold_text("Set.pair α a b", &dn), "{a, b}");
-        assert_eq!(fold_text("Set.pair a b", &dn), "{a, b}");
+        assert_eq!(
+            fold_text("Set.pair α a b", &dn),
+            "Set.pair α a b",
+            "开项全形（同上）"
+        );
+        assert_eq!(fold_text("Set.pair a b", &dn), "{a, b}", "闭项省略形");
         // 同上那条歧义：`Set.singleton α`（k = 1 = 闭项完全应用）折成 `{α}`，
         // 而 `Set.singleton a` 也折成 `{a}`——两者逐字同形，无法区分。
         assert_eq!(fold_text("Set.singleton α", &dn), "{α}", "闭项完全应用");
@@ -1266,9 +1293,16 @@ mod tests {
         //    ⚠ 括号来自 `render_atom`（`proof.rs`，**判定渲染器**）的"复合操作数
         //    补括号"规则——SetLiteral 也在那张表里 ⇒ `({a})`。那是既有规则，
         //    且 proof.rs 不在本切片的可写范围（改它会动判定文本）⇒ 按实测钉住。
+        // ⚠ 形状口径（2026-10-11 同④）：`Set.singleton α a` 是**开项** ⇒ 不折 ✓
+        // （`⊆` 那条**照折** —— 它不是同一条脊的 `fun`，切片没把它一起关掉 ✓）。
         assert_eq!(
             fold_text("Set.subset (Set.singleton α a) A", &dn),
-            "({a}) ⊆ A"
+            "(Set.singleton α a) ⊆ A"
+        );
+        assert_eq!(
+            fold_text("Set.subset (Set.singleton a) A", &dn),
+            "({a}) ⊆ A",
+            "闭项形状照折 ✓"
         );
         assert_eq!(
             fold_text("Set.mem a (Set.singleton a)", &dn),
@@ -1768,15 +1802,28 @@ def Set.pair {α : Type} (a b : α) : Set α := fun (x : α) => x = a\n";
     #[test]
     fn set_literals_fold_back_to_braces() {
         let dn = notations(SET_LIB, SET_ARITY);
+        // ⚠ 形状口径（2026-10-11）：`Set.singleton Nat zero` 是**开项**（实参 = 元素类型 +
+        // 元素）⇒ 与"闭项再被应用"同形 ⇒ **不折** ✓；产物里真出现的是闭项形状
+        // （`Set.singleton zero`）✓，那条照折 ✓。
         assert_eq!(
             fold_text("Set.singleton Nat zero", &dn),
+            "Set.singleton Nat zero",
+            "开项形状：与「闭项再被应用」同形 ⇒ 不折"
+        );
+        assert_eq!(
+            fold_text("Set.singleton zero", &dn),
             "{zero}",
-            "一元集合字面量"
+            "一元集合字面量（闭项）"
         );
         assert_eq!(
             fold_text("Set.pair Nat zero one", &dn),
+            "Set.pair Nat zero one",
+            "开项形状（同上：与「闭项再被应用」同形 ⇒ 不折）"
+        );
+        assert_eq!(
+            fold_text("Set.pair zero one", &dn),
             "{zero, one}",
-            "二元集合字面量"
+            "二元集合字面量（闭项）"
         );
         // **部分应用不折**（与记法同一条硬规则：只有完全应用才是那个形状）。
         // `Set.pair` 接受 `k == 3 || k == 2`（开项 / 闭项两种完全应用形状）

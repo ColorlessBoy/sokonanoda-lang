@@ -1,6 +1,6 @@
 # unfold
 
-把目标里点名的常量展开成定义体（`unfold Set.mem Set.singleton`）。
+把目标或点名假设里点名的常量展开成定义体（`unfold Set.mem` / `unfold Set.mem at h`）。
 
 ## 怎么用
 
@@ -69,8 +69,30 @@ example (α : Type) (a : α) : a ∈ {a} := by
 - `` `unfold` 没有展开 `X` ``：目标里没有 `X`，或名字拼错了。名字要用**点名写法**
   （`Set.mem`），并且必须是目标里真的出现的那个常量。
 - 展开后目标变长、看不清：正常现象。接着用 `intro` / `apply` / `rfl` 往下走。
-- 想展开**假设**里的常量（Lean 的 `unfold Foo at h`）：本语言不支持 `at` 位置
-  （子集边界），只能展开**当前目标**里的常量。
+- 想展开**假设**里的常量：写 `unfold Foo at h`（见上一节）。
+- `unfold Foo at *`（Lean 的"所有假设 + 目标"）：**本语言没有 `*` 这个 token**
+  （实测报 `expected a valid .sokonanoda token, found *`）⇒ 一次点名一个假设。
+
+## 展开假设：`unfold Foo at h`
+
+目标之外的第二个落点：**点名假设**（Lean 的 `unfold Foo at h` 同形）。
+
+```sokonanoda
+def Set (α : Type) : Type := α → Prop
+def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a
+infix:50 " ∈ " => Set.mem
+
+theorem at_hypothesis (α : Type) (a : α) (h : a ∈ {a}) : a = a := by
+  unfold Set.mem at h
+  exact h
+```
+
+`h` 的类型从 `a ∈ ({a})` 变成展开形态，目标**一个字节不动**。判据与目标那条同源、
+但问法不同：内核要判「**假设 `h` 自己能不能证明展开后的类型**」—— 能才说明新旧
+类型**定义相等**，改完才不会把假设变成另一个命题。
+
+一次可以点名多个：`unfold Set.mem Set.singleton at h g`。名字写错 ⇒ 当场报错点名。
 
 ## 相关
 

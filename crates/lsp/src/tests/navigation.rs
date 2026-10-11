@@ -120,6 +120,48 @@ async fn folding_ranges_cover_multiline_declarations_only() {
     shutdown(&mut service).await;
 }
 
+/// **用户实测（2026-10-11 第 3 条尾巴）**：`unfold Foo` 里的 `Foo` 只是**给展开机械的
+/// 名字** —— 它不进证明项 ⇒ 构建期 `elab_expr` 收不到它的行 ⇒ 光标放上去 **F12 答
+/// null** ✗（同一条声明里别的名字都跳得动，所以症状看着像"只有这个坏"）。
+///
+/// 判据 = **用户动作**（点 `unfold ` 之后那个名字 ⇒ 看得见的落点 ✓），且断言落到
+/// **那个声明所在的行** —— 只断言"有落点"会放过一条指向别处的行 ✗。
+#[tokio::test]
+async fn goto_definition_on_an_unfold_argument_lands_on_that_declaration() {
+    const SRC: &str = "\
+def Set (α : Type) : Type := α -> Prop
+def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a
+infix:50 \" ∈ \" => Set.mem
+
+theorem t (α : Type) (a : α) : a ∈ {a} := by
+  unfold Set.mem
+  rfl
+";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, SRC).await;
+    let _ = wait_diagnostics(&mut socket, "unfold argument diagnostics").await;
+
+    let at = SRC
+        .find("unfold Set.mem")
+        .expect("`unfold Set.mem` 在夹具里")
+        + "unfold ".len();
+    let target = goto_definition_at(&mut service, SRC, at).await;
+    let GotoDefinitionResponse::Scalar(location) =
+        target.expect("`unfold` 的实参必须能跳（以前是 null ✗）")
+    else {
+        panic!("expected a scalar definition location");
+    };
+    let def_at = SRC.find("def Set.mem").expect("`def Set.mem` 在夹具里");
+    assert_eq!(
+        location.range.start,
+        lsp_pos(SRC, def_at),
+        "必须落到 `def Set.mem` 那一行（不是别处、也不是 null）"
+    );
+    shutdown(&mut service).await;
+}
+
 #[tokio::test]
 async fn goto_definition_jumps_from_use_to_binder() {
     let (mut service, mut socket) = test_service();

@@ -1,3 +1,12 @@
+# 可见变化（第 6 轮，2026-10-11）：`unfold … at h` + 目标显示不再吞掉那次应用 + `unfold` 的实参可跳
+
+| 用户报的 | 屏幕上多/少什么 | 哪一层哪条断言 |
+|---|---|---|
+| 「不要留尾巴 全做好」（第 5 轮如实登记的三条边界） | ① `unfold Set.mem at h` 现在能用：**假设 `h` 的类型**从 `a ∈ ({a})` 变成展开形态，目标不动 ② 目标面板与错误消息里 `(Set.singleton a) a` 以前印成 **`{a}`** ✗（丢掉那次应用 ⇒ 显示的是集合、真目标是 Prop）⇒ 现在**带着那次应用**印出来 ✓（点形式 `Set.singleton a a`；糖只折闭项形状 ⇒ 宁可少折、不许撒谎） ③ 光标放在 `unfold Set.mem` 的那个 `Set.mem` 上：以前 F12 **答 null** ✗ ⇒ 现在落到 `def Set.mem` 那一行 ✓ | ① front `unfold_at_a_hypothesis_rewrites_its_type_and_leaves_the_goal_alone`（断言**展示的假设类型** + 目标逐字节不动）+ `unfold_at_an_unknown_hypothesis_names_it` + `unfold_at_without_a_hypothesis_is_a_parse_error`；反向验证：撤写回 ⇒ 判红 ② front `an_applied_set_literal_shows_the_application_instead_of_dropping_an_argument`（**目标面板**与**错误消息**两条路都断言）；反向验证：让规则失效 ⇒ 判红（`{a}` vs `({a}) a`）③ front `the_argument_of_unfold_keeps_a_jump_row_in_a_successful_declaration` + LSP `goto_definition_on_an_unfold_argument_lands_on_that_declaration`（**用户动作**：点那个名字 ⇒ 断言落点行）；反向验证：撤补位 ⇒ 两条都判红 |
+| （顺带的取证）递归 `def` 的展开引理 | 无变化 —— 本语言**没有递归 `def`**（自引用当场报 `unknown identifier`）⇒ 那条边界是 **n/a**，不是"没做" | front `a_self_referential_def_is_rejected_so_unfold_has_no_recursive_case`（**断言当前行为** ⇒ 将来真加了递归 `def` 它会红，逼着补上） |
+
+> `unfold Foo at *` 仍**不做**：本语言 lexer 没有 `*` token（实测报错文案入档）⇒ 一次点名一个假设。
+
 # 可见变化（第 5 轮，2026-10-11）：`rfl` 对齐 Lean 4 + `unfold` tactic + 失败声明的 F12
 
 | 用户报的 | 屏幕上多/少什么 | 哪一层哪条断言 |
@@ -25,16 +34,7 @@
 > 的新夹具逮到（`#print` 的 `cmd` 6 vs 2）并修好 —— 判据：该对拍用例（含 `set_option`
 > 跨模块携带的 `pp` 档）。
 
-# 可见变化（第 3 轮，2026-10-10）：四条用户反馈
-
-| 用户报的 | 屏幕上多/少什么 | 哪一层哪条断言 |
-|---|---|---|
-| `#check`/`#print` 还是重复（2→3→4→19） | 回放之后**不再**每编辑一次多一行 | 真宿主 `C3 重复输出（产物回放）…`；CDP DOM `docs/E2E.md` §8 逐步读份数；front 回放闸判据 |
-| 「由编译器 0.87.3 写入」是假的（实际 0.87.2 编的） | 显示**真写者**；不是这份编译器写的 ⇒ 多一句「建议 Rebuild」 | front `one_write_cannot_rewrite_the_other_entries_writer_version`；webview 渲染两条；`docs/protocol.md` 的 `artifacts` |
-| `#check` 的 hover 缺 def 头/`:=` body；使用处也只有一行类型 | 任何位置 hover 到 `def` ⇒ **同一张卡片**（签名 + `:=` 值） | LSP `hover_on_a_check_line_matches_the_print_line_for_a_name`（两命令逐字节相同）+ 使用处 ≡ 声明名 |
-| 声明列表名字「抢镜」（暗色主题刺眼）· **行号多余**（2026-10-11 追加） | 名字变**普通粗体**（不借链接色、不加下划线、无亮灰底），**`L<n>` 行号去掉** | webview CSS 判据（**两条反向**：加回下划线/链接色、或删掉 `font-weight: 700` ⇒ 判红）+ DOM 结构判据（喂**带 `range`** 的声明 ⇒ head 只许 `name → kind`，`.decl-line-hint` 计数 0；反向：把行号加回来 ⇒ 判红）+ 真宿主 CDP 计算样式（`font-weight ≥ 700` / 背景透明 / 无下划线 / 行号计数 0） |
-| 报错/`sorry` 里的名字跳不动（G-108）· `apply` 在 defeq 目标上误报「目标不匹配」（G-109） | 报错段的名字**照样能 F12**、悬停给**同一张声明卡片**；defeq 的 `apply` **判绿**（今天能过的 `apply` 行为不变、真不匹配仍报错） | 真宿主 e2e `G-108/G-109…` + front/LSP 判据；复现件 `G108/G109-…sh` 均 exit 1 |
-| tactic 关键字上 hover 没有一句说明（需求①）· 按 F12 落不到文档（需求②） | **14 条** tactic 关键字（含 `sorry`）的 hover 在 tactic 行下多**一行摘要** + 纯文本「完整文档：`F12`」；**按 F12** ⇒ 打开那篇 `reference/tactics/<kw>.md`，落点在**扩展目录**的 `docs/tactics/`（14 篇 + 索引随 VSIX 打包 ⇒ 离线、无外部站点）；**名字**与**语言关键字**（`def`/`fun`/`by`/`=>`）上**一个字节不变**；补全弹窗同轮带上 `detail`/`documentation` | LSP `hover::hover_on_every_tactic_keyword_shows_its_summary`（14 条逐条**逐字**等于表）+ `hover_on_a_tactic_keyword_adds_only_the_summary_line`（删掉新增行 == 改前基线逐字节）+ `hover_on_language_keywords_gets_no_tactic_summary`（反向：§7 边界 7）+ `tactic_keyword_completion_carries_its_summary_on_the_wire`（**字段在 wire 里**）· LSP navigation 五档判据（含插件目录那一档）+ **真宿主 e2e `P7：tactic 关键字上按 F12…`**（`intro`/`constructor`/`match` 三条：断言**真的打开**且落点 = `extensionPath/docs/tactics/<kw>.md`）+ 打包判据 `unzip -l <vsix>` 的 15 个条目逐名核对 + `stage-docs.js --check` 防漂移（反向：删 `stage()` ⇒ VSIX 无条目；删 `SOKONANODA_DOCS_DIR` ⇒ 落点变物化副本）|
+# 可见变化（第 3 轮，2026-10-10）：四条用户反馈 —— **原文已删**（只留最近 3 轮）⇒ `git log --all -- docs/visible-changes.md`
 
 # 「看得见的变化」清单（批次 N 收尾 · 2026-09-26 专项）
 

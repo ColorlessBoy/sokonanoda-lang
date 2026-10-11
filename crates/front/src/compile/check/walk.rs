@@ -1105,6 +1105,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             }
         };
         let by_root = decl_prefix_state(ty, val, &self.display);
+        // **词法补位必须用源表达式**（2026-10-11）：下面这行之后 `val` 是
+        // **elaborate 过**的项 —— 里面的 tactic 语法（`unfold Foo` 的 `Foo`）
+        // 一个字节都不剩 ✗。成功臂补词法行时用它，不然什么也补不到。
+        let src_val = val;
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         // 源级 delta 表：**值完整**的 def 才登记（开练习的值是洞，展开没意义）。
@@ -1353,6 +1357,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     span,
                     cmd: idx,
                 });
+                // **成功路径也要补词法行**（2026-10-11 用户实测的第 3 条尾巴）：
+                // 有些**实参**根本不进证明项 ⇒ 构建期 `elab_expr` 收不到它们的行。
+                // 现场 = `unfold Foo`：`Foo` 只是**给展开机械的名字**（Lean 4 的
+                // `unfold` 也单独收引用 —— `realizeGlobalConstOverloadWithInfo` ✓），
+                // 展开之后它自己一个字节都不剩 ⇒ 光标放上去 F12 答 null ✗、
+                // hover 也不给声明卡片 ✗。词法行按 span 与已有行**去重** ⇒ 正常
+                // 路径零影响 ✓（只有"没人收过"的名字才多出一行 ✓）。
+                self.push_lexical_hover_rows(src_val, &mut hovers);
                 self.cmd_hovers.push(CmdHover {
                     env_at: env_after,
                     nodes: hovers,
@@ -1526,6 +1538,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         let by_root = src_root
             .as_ref()
             .map(|state| fold_root_state(state, &self.display));
+        // **词法补位必须用源表达式**（2026-10-11）：下面这行之后 `val` 是
+        // **elaborate 过**的项 —— 里面的 tactic 语法（`unfold Foo` 的 `Foo`）
+        // 一个字节都不剩 ✗。成功臂补词法行时用它，不然什么也补不到。
+        let src_val = val;
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
@@ -1782,6 +1798,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     span,
                     cmd: idx,
                 });
+                // **成功路径也要补词法行**（2026-10-11 用户实测的第 3 条尾巴）：
+                // 有些**实参**根本不进证明项 ⇒ 构建期 `elab_expr` 收不到它们的行。
+                // 现场 = `unfold Foo`：`Foo` 只是**给展开机械的名字**（Lean 4 的
+                // `unfold` 也单独收引用 —— `realizeGlobalConstOverloadWithInfo` ✓），
+                // 展开之后它自己一个字节都不剩 ⇒ 光标放上去 F12 答 null ✗、
+                // hover 也不给声明卡片 ✗。词法行按 span 与已有行**去重** ⇒ 正常
+                // 路径零影响 ✓（只有"没人收过"的名字才多出一行 ✓）。
+                self.push_lexical_hover_rows(src_val, &mut hovers);
                 self.cmd_hovers.push(CmdHover {
                     env_at: env_after,
                     nodes: hovers,
@@ -2027,6 +2051,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         let by_root = src_root
             .as_ref()
             .map(|state| fold_root_state(state, &self.display));
+        // **词法补位必须用源表达式**（2026-10-11）：下面这行之后 `val` 是
+        // **elaborate 过**的项 —— 里面的 tactic 语法（`unfold Foo` 的 `Foo`）
+        // 一个字节都不剩 ✗。成功臂补词法行时用它，不然什么也补不到。
+        let src_val = val;
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
@@ -2224,6 +2252,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     span,
                     cmd: idx,
                 });
+                // **成功路径也要补词法行**（2026-10-11 用户实测的第 3 条尾巴）：
+                // 有些**实参**根本不进证明项 ⇒ 构建期 `elab_expr` 收不到它们的行。
+                // 现场 = `unfold Foo`：`Foo` 只是**给展开机械的名字**（Lean 4 的
+                // `unfold` 也单独收引用 —— `realizeGlobalConstOverloadWithInfo` ✓），
+                // 展开之后它自己一个字节都不剩 ⇒ 光标放上去 F12 答 null ✗、
+                // hover 也不给声明卡片 ✗。词法行按 span 与已有行**去重** ⇒ 正常
+                // 路径零影响 ✓（只有"没人收过"的名字才多出一行 ✓）。
+                self.push_lexical_hover_rows(src_val, &mut hovers);
                 self.cmd_hovers.push(CmdHover {
                     env_at: env_after,
                     nodes: hovers,

@@ -192,7 +192,8 @@ $SOKO repl
 - `by` 块 tactic 集：`intro`/`exact`/`apply`/`assumption`/`rfl`/**`unfold`**/`match`/`sorry`；
   `unfold Foo Bar`（2026-10-11 加，Lean 同名）把目标里点名的常量展开成定义体
   （`a ∈ {a}` 上 `unfold Set.mem Set.singleton` ⇒ `a = a`）；**逐处**展开、结果必须与
-  原来定义相等（内核验收后才提交）；不做 `at h`。
+  原来定义相等（内核验收后才提交）；`unfold Foo at h` 展开**假设**的类型（目标不动，
+  验收问的是「假设自己能不能证明展开后的类型」）；`at *` 不做（本语言没有 `*` token）。
   tactic 之间用 `;` **或换行**分隔（可混用，无缩进敏感）。
 - prelude `Bool`：`Bool`/`Bool.true`/`Bool.false` + 派生 `Bool.rec`（非递归真实
   可信归纳）；文件自带 `inductive Bool` 时让位。
