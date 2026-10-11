@@ -751,9 +751,18 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       `要带上当前版本（面板提示用）：${JSON.stringify(fresh)}`,
     );
 
-    // ②′ **伪造现场**：把条目文件名改成"旧写者 0.9.9 编的"，并让 `meta.json` 说当前版本
-    //（= 用户现场"新条目把目录级戳刷新"之后的形状）。再编辑一次文档让服务端重新出
-    // `soko/project` ⇒ 显示的必须是**条目自己记的写者** + `stale`。
+    // ②′ **伪造现场**：把条目文件名改成"**另一个构建**写的"（**同版本、换构建戳**），
+    // 并让 `meta.json` 说当前版本（= 用户现场"新条目把目录级戳刷新"之后的形状）。
+    // 再编辑一次文档让服务端重新出 `soko/project` ⇒ 显示的必须是**条目自己记的写者**
+    // + `stale`。
+    //
+    // ⚠ **伪造的写者必须与当前版本号相同**（2026-10-11 改，原为 `0.9.9`）：扩展现在有
+    // 「**版本切换 ⇒ 自动全量预热**」（`autoRebuildOnVersionChange`，同轮加入）—— 它咬的
+    // 正是"目录里有**别的版本**写的条目"。用 `0.9.9` 伪造会**同时**触发那次自动
+    // `rebuild`（它先 clean ⇒ 目录被清空 ⇒ 这条断言永远等不到快照，CI 实测 30s 超时 ✗）。
+    // 而面板的 `stale` 判据本来就同时看**构建戳**（`artifacts_of` 比 `(版本, 戳)` 两样 ✓）
+    // ⇒ **同版本换戳**才是这条用例真正要钉的形状，而且它**不**触发自动预热 ✓。
+    const otherStamp = "0123456789abcdef";
     const compiledDir = path.join(root, ".sokonanoda", "compiled");
     const metaPath = path.join(root, ".sokonanoda", "meta.json");
     for (const name of fs.readdirSync(compiledDir)) {
@@ -762,7 +771,7 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       if (parts.length !== 3) continue;
       fs.renameSync(
         path.join(compiledDir, name),
-        path.join(compiledDir, `0.9.9+${parts[1]}+${parts[2]}.json`),
+        path.join(compiledDir, `${version}+${otherStamp}+${parts[2]}.json`),
       );
     }
     const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
@@ -782,13 +791,13 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const stale = extensionApi.infoview.lastProject().project.artifacts;
     assert.strictEqual(
       stale.compiler,
-      "0.9.9",
+      version,
       `显示的必须是条目自己记的写者（不是 meta.json 那个会被刷新的戳）：${JSON.stringify(stale)}`,
     );
     assert.strictEqual(
       stale.stale,
       true,
-      `不是当前编译器写的 ⇒ stale（面板提示 Rebuild）：${JSON.stringify(stale)}`,
+      `不是这份编译器（同版本、换构建戳）写的 ⇒ stale（面板提示 Rebuild）：${JSON.stringify(stale)}`,
     );
   });
 

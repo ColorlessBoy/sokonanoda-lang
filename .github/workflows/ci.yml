@@ -654,7 +654,14 @@ jobs:
         # `sokonanoda-lsp`（`scripts/soko:785` ✓），而这里原先**只构建 CLI** ✗
         # ⇒ `target/release/sokonanoda-lsp` 不存在 ⇒ 落到缓存（CI 空 ✗）/下载 ⇒ **挂住** ✗
         # ⇒ 探针看门狗 120s 触发 ⇒ `exit 2` ⇒ `gap.py` 判"环境异常" ⇒ **`G-37` 判红** ✗。
-        run: cargo build --release -p sokonanoda-cli -p sokonanoda-lsp --locked
+        # **同时构建 debug CLI**（2026-10-11 G-112）：`G112-…sh` 测的**就是**
+        # "同一版本的两个构建共用一个产物目录"，所以它需要 release + debug 两份
+        # 不同 profile 的产物（`build_stamp` 里 profile 不同 ⇒ 戳不同 ✓）。
+        # 只建 release ⇒ 那条复现件拿到"环境不齐"⇒ `exit 2` ⇒ `gap.py` 判红 ✗
+        # （2026-10-11 CI 实测，本轮修）。debug 与 release 共用依赖缓存 ⇒ 增量很便宜。
+        run: |
+          cargo build --release -p sokonanoda-cli -p sokonanoda-lsp --locked
+          cargo build -p sokonanoda-cli --locked
       - name: Stage bundled CLI + LSP for the extension repros
         # **G-84 的守卫以前是空转的** ✗（2026-10-03 值守实测 ✓）：`editor/vscode/bin/**`
         # 是 **gitignored**（`.gitignore:15` ✓）⇒ CI 里永远没有暂存产物 ⇒

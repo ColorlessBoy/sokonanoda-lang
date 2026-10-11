@@ -41,12 +41,34 @@ unset SOKONANODA_NO_PROJECT_ARTIFACTS
 # ⚠ 顺带记下这个真实风险：**同一次会话里 `scripts/soko` 解析到哪个构建，取决于
 # 谁最后被编**，而扩展的 `builtBinaryCandidates()` 是 `debug → release` 的**固定序**
 # ⇒ 两条路可以各自选中不同构建（G-112 的现场形状）。
-# 两个二进制缺一 ⇒ 环境不齐（exit 2，**不当成"已修"**）。
+# 两个二进制缺一 ⇒ **先试着按需补建**（debug 那份；release 由调用方负责 ——
+# `scripts/soko gate` 与 CI 的 ledger job 都已经建了它）。
+# ⚠ **为什么必须"按需补建"而不是直接 exit 2**（2026-10-11 CI 实测判红 ✗）：
+# CI 的 `ledger` job 原来**只**建 `--release`（那一步叫 "Build CLI for the gap repros"）
+# ⇒ 本件在 CI 上拿到的是 `环境不齐：target/debug/sokonanoda 不存在` ⇒ `exit 2`
+# ⇒ `gap.py` 判「环境异常」⇒ **判红** ✗。本件测的**就是**"同一版本的两个构建"，
+# 所以它天生需要两份不同 profile 的产物 —— 由它自己保证前提，别指望调用方。
+# 超时/失败仍 `exit 2`（环境异常 ⇒ 响亮，不当成"已修" ✓）。
 SOKO_A=target/release/sokonanoda
 SOKO_B=target/debug/sokonanoda
+[ -x "$SOKO_A" ] || {
+  echo "环境不齐：$SOKO_A 不存在（cargo build --release -p sokonanoda-cli --locked）" >&2
+  exit 2
+}
+if [ ! -x "$SOKO_B" ]; then
+  command -v cargo >/dev/null 2>&1 || {
+    echo "环境不齐：$SOKO_B 不存在，且没有 cargo 可以补建" >&2
+    exit 2
+  }
+  echo "· $SOKO_B 不存在 ⇒ 按需补建（debug CLI；cargo 缓存通常已热）"
+  timeout 240 cargo build -p sokonanoda-cli --locked >&2 || {
+    echo "环境不齐：补建 $SOKO_B 失败或超时" >&2
+    exit 2
+  }
+fi
 for bin in "$SOKO_A" "$SOKO_B"; do
   [ -x "$bin" ] || {
-    echo "环境不齐：$bin 不存在（cargo build -p sokonanoda-cli --locked [--release]）" >&2
+    echo "环境不齐：$bin 仍不存在" >&2
     exit 2
   }
 done
