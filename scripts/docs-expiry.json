@@ -253,6 +253,12 @@
       "renewed": "2026-09-30",
       "tier": "spec"
     },
+    "docs/design/set-option-pp.md": {
+      "expires": "2027-10-11",
+      "renewed": "2026-10-11",
+      "tier": "spec",
+      "reason": "新增设计档：set_option pp.* 与 Iff.refl 对齐（用户 2026-10-11 拍板）（分档 spec = 365 天）"
+    },
     "docs/design/set-theory-syllabus.md": {
       "expires": "2027-10-01",
       "reason": "S-A 重建的卷 I 大纲：教材对齐（Enderton/Halmos 逐节目录）+ 10 个新单元的必证/必破 + 内核墙排期口径，是卷 I 后续所有单元的唯一权威大纲",

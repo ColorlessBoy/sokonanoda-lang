@@ -66,6 +66,12 @@ pub enum DiagnosticKind {
     SetBuilderShape {
         detail: String,
     },
+    /// **`set_option`**（`docs/design/set-option-pp.md`）形状不合法：缺选项名、
+    /// 选项名不在白名单（只 `pp.explicit` / `pp.all`）、值不是 `true`/`false`、
+    /// 或写了本轮不做的 `… in …`。`detail` 是逐原因的正文。
+    SetOptionShape {
+        detail: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -100,6 +106,7 @@ impl Diagnostic {
             DiagnosticKind::NamespaceShape { .. } => "parse-namespace-shape",
             DiagnosticKind::SetLiteralShape { .. } => "set-literal-shape",
             DiagnosticKind::SetBuilderShape { .. } => "set-builder-shape",
+            DiagnosticKind::SetOptionShape { .. } => "set-option-shape",
         }
     }
 
@@ -147,6 +154,9 @@ impl Diagnostic {
             }
             DiagnosticKind::SetBuilderShape { .. } => {
                 "集合建构式的形状是 `{x : α | P x}`（类型自己给）或 `{x ∈ A | P x}`（类型从 A 来）—— 变量与谓词之间用一个 `|` 隔开；`{x | P x}` 写不出来：本语言没有元变量，`x` 的类型没有来源。"
+            }
+            DiagnosticKind::SetOptionShape { .. } => {
+                "显示选项的形状是：set_option pp.explicit true（单独一行，对本行之后的命令生效）。本语言只支持 pp.explicit 与 pp.all 两条名字，值只认 true / false；`set_option … in …` 这一轮不做。"
             }
         }
     }

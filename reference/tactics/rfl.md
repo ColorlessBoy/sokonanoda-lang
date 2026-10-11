@@ -54,7 +54,8 @@ example (a : Prop) : MyP a ↔ a := by rfl
 的两边展开后仍然不同（左边是 `a`，右边是 `a ∧ True`），内核判不等，`rfl` 就报错。
 
 判定由内核做，`rfl` 只负责造出候选证明项：目标是 `=` 时造 `Eq.refl`，是 `↔` 时造
-`Iff.refl`。它只看内核的回答 —— 相等就过，不相等就报错，中间没有别的判断。
+`Iff.rfl`（Lean core 的隐式版；`rfl` 在 `Init/Core.lean` 里字面上就是 `exact Iff.rfl`）。
+它只看内核的回答 —— 相等就过，不相等就报错，中间没有别的判断。
 
 ## 常见错误与出路
 

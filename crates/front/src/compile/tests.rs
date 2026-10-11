@@ -233,6 +233,127 @@ fn checks_universe_polymorphic_id_declaration() {
     assert_eq!(out.errors, vec![]);
 }
 
+/// **`set_option pp.explicit true`**（设计 `docs/design/set-option-pp.md`）：
+/// ① 默认档**逐字节不变**（选项之前的那条 `#print` 就是今天那份文本）；
+/// ② 开档后 `#print` 把**隐式实参**也印出来（常量带 `@`）；
+/// ③ 档是**文件作用域**（只影响它之后的命令）；
+/// ④ `set_option pp.explicit false` 能关回去（逐字节回到 ①）。
+#[test]
+fn set_option_pp_explicit_shows_implicit_arguments() {
+    let file = parse(
+        "def wrap {A : Prop} (h : A) : Iff A A :=\n\
+         Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
+         #print wrap\n\
+         set_option pp.explicit true\n\
+         #print wrap\n\
+         set_option pp.explicit false\n\
+         #print wrap\n",
+    )
+    .expect("parse set_option fixture");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let texts: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|event| match event {
+            CheckEvent::Printed { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(texts.len(), 3, "三条 #print 各一条输出：{texts:?}");
+    // ① 默认档：隐式实参被印掉（`Iff`/`Iff.intro` 不带 `@`、实参不写出来）。
+    const DEFAULT: &str = "def wrap :\n  \
+        forall {A : Prop}, A -> Iff A A :=\n  \
+        fun {A : Prop} (h : A) => Iff.intro A (fun (x : A) => x) (fun (x : A) => x)";
+    // ② 开档：常量带 `@`、每个实参都写出来（`@Iff.intro A A …`）。
+    const EXPLICIT: &str = "def wrap :\n  \
+        forall {A : Prop}, A -> @Iff A A :=\n  \
+        fun {A : Prop} (h : A) => @Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)";
+    assert_eq!(
+        texts[0], DEFAULT,
+        "选项**之前**的 #print 不受影响（文件作用域）"
+    );
+    assert_eq!(texts[1], EXPLICIT, "开档后隐式实参要写出来");
+    assert_eq!(texts[2], DEFAULT, "关档后逐字节回到默认");
+}
+
+/// **`set_option pp.all true`**（设计 §2）：它是 `pp.explicit` 的**超集** ——
+/// 除了隐式实参，还**关掉记法**（实测：同一夹具里 `Prop` 印成 `Sort 0`，
+/// 因为 `Prop` 是 `Sort 0` 的记法、`all` 会把 `notation` 关掉）✓。
+/// 这条判据把"`all` ⊃ `explicit`"**钉死**（只断言"也能显示隐参"会放过 `all` 退化 ✗）。
+#[test]
+fn set_option_pp_all_is_strictly_more_than_explicit() {
+    let file = parse(
+        "def wrap {A : Prop} (h : A) : Iff A A :=\n\
+         Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
+         set_option pp.explicit true\n\
+         #print wrap\n\
+         set_option pp.explicit false\n\
+         set_option pp.all true\n\
+         #print wrap\n",
+    )
+    .expect("parse set_option pp.all fixture");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let texts: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|event| match event {
+            CheckEvent::Printed { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(texts.len(), 2, "两条 #print：{texts:?}");
+    assert!(
+        texts[0].contains("forall {A : Prop}, A -> @Iff A A")
+            && texts[0].contains("@Iff.intro A A"),
+        "`pp.explicit` 要把隐式实参写出来、但不动记法：{}",
+        texts[0]
+    );
+    assert!(
+        texts[1].contains("forall {A : Sort 0}, A -> @Iff A A")
+            && texts[1].contains("@Iff.intro A A"),
+        "`pp.all` 还关掉记法（`Prop` 印成 `Sort 0`）：{}",
+        texts[1]
+    );
+}
+
+/// **边界（设计 §6）**：`#check <裸常量>` 走 **U2 的签名源文本**捷径（G-63：
+/// 裸写法默认层 0 ⇒ 直接渲签名才不撒谎）⇒ **有意不受档影响** ✓；而
+/// `#check <表达式>` 走内核 pp ⇒ 受档影响。这条判据把两者**同时**钉住。
+#[test]
+fn set_option_pp_explicit_covers_check_expressions_but_not_bare_constant_signatures() {
+    let file = parse(
+        "def wrap {A : Prop} (h : A) : Iff A A :=\n\
+         Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
+         #check wrap\n\
+         set_option pp.explicit true\n\
+         #check wrap\n\
+         #check (fun (h : Prop) => wrap h)\n",
+    )
+    .expect("parse set_option #check fixture");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let texts: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|event| match event {
+            CheckEvent::TypeChecked { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(texts.len(), 3, "三条 #check：{texts:?}");
+    assert_eq!(
+        texts[0], texts[1],
+        "裸常量的签名源文本路径（U2/G-63）有意不受档影响"
+    );
+    assert!(
+        texts[2].contains("@Iff"),
+        "表达式那条路受档影响（内核 pp）：{}",
+        texts[2]
+    );
+}
+
 #[test]
 fn checks_explicit_universe_application() {
     let file = parse(
@@ -4715,7 +4836,7 @@ fn rfl_closes_a_defeq_iff_goal_in_both_spellings() {
 #[test]
 fn rfl_closes_an_iff_goal_whose_sides_are_defeq_by_unfolding() {
     // 用户形状（`a ∈ ∅ ↔ False`）的最小同构：两边**展开后**才相等
-    // （`mem a empty` → `empty a` → `False`）⇒ 候选 `Iff.refl` 交 kernel 判，
+    // （`mem a empty` → `empty a` → `False`）⇒ 候选 `Iff.rfl` 交 kernel 判，
     // defeq 说了算（不是文本比对）。
     let src = concat!(
         "def mem (a : Prop) (A : Prop -> Prop) : Prop := A a\n",

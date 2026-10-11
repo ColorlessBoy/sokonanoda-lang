@@ -88,13 +88,22 @@ pub fn split_report(
         let unit = unit_of_cmd(cmd).unwrap_or(fallback);
         reports[unit].errors.push(error);
     }
-    for check in checks {
+    for mut check in checks {
         let unit = unit_of_cmd(check.cmd).unwrap_or(fallback);
+        // **2026-10-11 修**：`cmd` 也要像 `decls`/`hover_cmds` 一样**重基到模块内**
+        // ✗→✓。原先只归因不重基 ⇒ 同一份报告里坐标系自相矛盾（`event_cmds` 是模块序、
+        // `checks[].cmd` 是闭包序）⇒ 整条一趟与逐模块两条路的报告**不再逐字相同**
+        // （T1-A 红线判据逮到：`#print` 的 `cmd` 6 vs 2 ✓）。单文件时 `start == 0`
+        // ⇒ 恒等、逐字节不变 ✓。
+        check.cmd -= ranges[unit].start;
         reports[unit].checks.push(check);
     }
     // **C3**：`#print` 同法按命令归因（与 `checks` 一条规则 ✓）。
-    for print in prints {
+    for mut print in prints {
         let unit = unit_of_cmd(print.cmd).unwrap_or(fallback);
+        // 同 `checks`：归因之后必须重基（否则整条一趟那条路的 `prints[].cmd`
+        // 留在闭包坐标系里 ✗）。
+        print.cmd -= ranges[unit].start;
         reports[unit].prints.push(print);
     }
     // 警告同法按命令归因：语法级的被 `kernel_phase` 钉在所属单元的首条命令上，

@@ -471,7 +471,7 @@ fn intro_count(d: &DeclState) -> usize {
 
 /// 期望类型形如 `Eq α x y`（或显式 `@Eq.{u} α x y`）时的 rfl 候选
 /// `Eq.refl.{u} <α> <a>`；`Iff` 头（`Iff A B` 或记法 `A ↔ B`）时是
-/// `Iff.refl`（**同一份** `iff_head` 判据，与 `by` 引擎的 `rfl` 能力一致）。
+/// `Iff.rfl`（**同一份** `iff_head` 判据，与 `by` 引擎的 `rfl` 能力一致）。
 /// kernel 裁决两边是否本来就是同一个值（`Iff` 只在 defeq 时过）。期望类型
 /// 既可以是开放练习的剩余目标，也可以是失败声明的声明类型（后者经
 /// `judge_value_replace` 判定整值替换）。
@@ -480,9 +480,10 @@ fn intro_count(d: &DeclState) -> usize {
 fn refl_candidate(expected: &str, d: &DeclState) -> Option<String> {
     let goal = parse_expr_text(expected).ok()?;
     if crate::by::iff_head(&goal) {
-        // `Iff.refl {A : Prop} : Iff A A` 的 `A` 由期望类型定死 ⇒ 无实参
-        // （与 Lean 4 的 `Iff.rfl` 一样裸写）。
-        return Some("Iff.refl".to_string());
+        // `Iff.rfl {A : Prop} : Iff A A` 的 `A` 由期望类型定死 ⇒ 无实参
+        // （与 Lean 4 的 `exact Iff.rfl` 一样裸写；2026-10-11 从 `Iff.refl` 改来，
+        // 设计 `docs/design/set-option-pp.md` §4）。
+        return Some("Iff.rfl".to_string());
     }
     let (head, args) = spine_of(&goal);
     let level = match head {
@@ -659,14 +660,14 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
 
     #[test]
     fn iff_goal_gets_kernel_verified_rfl() {
-        // `a ↔ a` 两边 defeq ⇒ 建议 `Iff.refl`（与 `by rfl` 的能力一致，
+        // `a ↔ a` 两边 defeq ⇒ 建议 `Iff.rfl`（与 `by rfl` 的能力一致，
         // 同一条 `iff_head` 判据、同样经 kernel 验证才给）。
         let suggestions =
             suggest_for("theorem iff_t : (a : Prop) -> a ↔ a := fun (a : Prop) => sorry\n");
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                term: "Iff.refl".to_string()
+                term: "Iff.rfl".to_string()
             }],
             "no binder matches the Iff goal; rfl is the verified next step"
         );
@@ -935,14 +936,14 @@ fun (d : Prop) => sorry"
 
     #[test]
     fn failed_iff_decl_gets_a_kernel_verified_rfl_replacement() {
-        // `True ↔ True` 两边 defeq ⇒ 整值替换建议 `Iff.refl`（记法头也认）。
+        // `True ↔ True` 两边 defeq ⇒ 整值替换建议 `Iff.rfl`（记法头也认）。
         let suggestions = suggest_for_failed("example : True ↔ True := 3\n");
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                term: "Iff.refl".to_string(),
+                term: "Iff.rfl".to_string(),
             }],
-            "the declared type is Iff-headed and the kernel accepts Iff.refl"
+            "the declared type is Iff-headed and the kernel accepts Iff.rfl"
         );
         assert!(suggestions[0].verified);
     }

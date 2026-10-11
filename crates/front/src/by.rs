@@ -1950,7 +1950,7 @@ fn run_tactics<'a>(
                 // `restore_universe_levels` 补回来）。判据仍然是内核判定，
                 // 归一化失败也一律退回原 AST（绝不因为 rfl 把好文件判红）。
                 // `Iff` 头（`A ↔ B` / `Iff A B`）在 [`rfl_candidate`] 里直接认，
-                // 不走这条归一化（候选 `Iff.refl` 不需要补隐式实参）。
+                // 不走这条归一化（候选 `Iff.rfl` 不需要补隐式实参）。
                 let candidate_and_closed = rfl_candidate(&nodes[cur].ty).or_else(|| {
                     let spec = spec_of(nodes, cur, universe);
                     let src_binders = context_binders(nodes, cur);
@@ -3524,23 +3524,29 @@ pub(crate) fn iff_head(goal: &Expr) -> bool {
     matches!(head, Expr::Ident { name, .. } if name == "Iff") && args.len() >= 2
 }
 
-/// `rfl` 候选：目标 `Eq α x y` → `Eq.refl.{u} α x`；目标 `Iff A B` → `Iff.refl`
+/// `rfl` 候选：目标 `Eq α x y` → `Eq.refl.{u} α x`；目标 `Iff A B` → `Iff.rfl`
 /// （两边是否相等**一律由 kernel 判定** —— 与 Lean 4 的 `@[refl] Iff.refl`
 /// 同口径：`Iff` 只在两边 defeq 时过，不 defeq 一律判红）。
+///
+/// **2026-10-11（设计 `docs/design/set-option-pp.md` §4）**：`Iff` 分支的候选从
+/// 裸 `Iff.refl` 改成 **`Iff.rfl`** —— 对齐 Lean 的
+/// `macro_rules | `(tactic| rfl) => `(tactic| exact Iff.rfl)`（`Init/Core.lean:1029`），
+/// 也让生成的证明项在**真 Lean 4** 里逐字合法（`Iff.refl` 在 core 里要**显式**实参）。
+/// 两者在本仓同义（`Iff.rfl {A : Prop} : Iff A A`）⇒ 判定不变，只是项的名字换了。
 ///
 /// 返回 `(判定用文本, 闭合用 AST)`：**AST 直接构造**，不再把文本回读一遍。
 /// 回读要认识记法（`Eq.refl.{1} (Set α) ((A ᶜ) ∪ B)` 里的符号），而 `by` 引擎
 /// 手里没有记法表——构造 AST 从根上绕开这条文本往返（G-04 第二刀实测：记法
 /// 操作数上的 `by rfl` 曾整条判红）。
 fn rfl_candidate(goal: &Expr) -> Option<(String, Expr)> {
-    // `Iff` 头（记法 `A ↔ B` 或点名 `Iff A B`）：候选 `Iff.refl`。
-    // **不需要**任何实参 —— `Iff.refl {A : Prop} : Iff A A` 的 `A` 由期望类型
+    // `Iff` 头（记法 `A ↔ B` 或点名 `Iff A B`）：候选 `Iff.rfl`。
+    // **不需要**任何实参 —— `Iff.rfl {A : Prop} : Iff A A` 的 `A` 由期望类型
     // 定死，所以这里不必像 `Eq` 那样退回内核 pp 去补隐式实参（记法形态直接认）。
     if iff_head(goal) {
         return Some((
-            "Iff.refl".to_string(),
+            "Iff.rfl".to_string(),
             Expr::Ident {
-                name: "Iff.refl".to_string(),
+                name: "Iff.rfl".to_string(),
                 span: goal.span(),
             },
         ));

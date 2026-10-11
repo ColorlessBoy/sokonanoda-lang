@@ -77,7 +77,7 @@ L-01…L-13）——P4 之后该文件不再声明任何名字，签名一律以
 | `Not` / `Not.intro` / `Not.elim` | def | `Not A := A → False`（与 Lean 同） |
 | `absurd` | def | `a → ¬a → b` |
 | `Iff` / `Iff.intro` / `Iff.mp` / `Iff.mpr` | def + def | Lean 里是 structure，我们是 `And (A→B) (B→A)` |
-| `Iff.refl` / `Iff.symm` / `Iff.trans` | def | Mathlib 级，但写集合等式天天用（`Iff.rfl` 与 Lean core 同名：`rfl` 认 `Iff` 头的命名对齐，2026-10-10） |
+| `Iff.refl` / `Iff.rfl` / `Iff.symm` / `Iff.trans` | def | Mathlib 级，但写集合等式天天用。**签名与 Lean core 逐字同形**（2026-10-11）：`Iff.refl (A : Prop)` 是**显式**实参、`Iff.rfl {A : Prop}` 是隐式版（`rfl` tactic 走后者，`Init/Core.lean:1029`）——裸写 `Iff.refl` 在真 Lean 4 判红，别写 ✗ |
 | `Eq.symm` / `Eq.trans` / `congrArg` | def | **受 G-14 限制**：当前只能同宇宙 |
 
 **落地要求**（硬规则 3）：prelude 增量必须配 **课程用例 + 三层测试 + 白名单**；

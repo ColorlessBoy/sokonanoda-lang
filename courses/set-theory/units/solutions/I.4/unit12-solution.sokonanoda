@@ -88,11 +88,11 @@ theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     fun (h : (g ∘ f) x = (g ∘ f) y) =>
       hf x y (hg (f x) (f y) h)
 
--- X4：复合的原像 = 先拉后拉。两边展开后是同一个命题，所以逐元素是 Iff.refl。
+-- X4：复合的原像 = 先拉后拉。两边展开后是同一个命题，所以逐元素是 Iff.rfl。
 theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C : Set γ) :
     f ⁻¹' (g ⁻¹' C) = (g ∘ f) ⁻¹' C :=
   Set.ext α (f ⁻¹' (g ⁻¹' C)) ((g ∘ f) ⁻¹' C)
-    (fun (x : α) => Iff.refl )
+    (fun (x : α) => Iff.rfl )
 
 -- R1：错证明 A 的改正版——"反向显然"里偷用的前提被摆到台面上（hC）。
 -- → 方向把 `f x = y` 沿 Eq.subst 搬到 y 上；← 方向由 hC 供料，

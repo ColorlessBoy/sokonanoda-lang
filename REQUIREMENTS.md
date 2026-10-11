@@ -251,6 +251,10 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 ### 9.11 2026-10-11 两处收口：声明列表去行号 + 名字普通粗体 · 内核包版本随产品（用户实测 + 拍板 ✓）
 
 用户原话：①「infoview 里的『声明列表』里的行号可以不需要了，去掉吧。声明的名字，超链接的蓝色和下划线也都太抢镜了，直接改成普通粗体，不带其他样式了」；②（问「`Compiling sokonanoda v0.5.0 (crates/kernel)` 为什么不是 v0.88.0」后**拍板**）内核包版本**跟产品版本一致**。**要求**：声明卡**不再画 `L<n>`**（`decl.range` 仍只服务「点名字跳到定义」✗ 删的是显示、不是数据）· 名字是**普通粗体**（不借链接色 / 下划线 / 亮灰底；手型光标只留给真按钮 ⇒ 目标面板那行的 `<span>` 不再有假的可点暗示；`<button>` 与 click 语义**一个字不动**）· `crates/kernel` 的 `version` 改 `version.workspace = true`（`scripts/bump.py` 同步 `Cargo.lock` 里那条**精确名** ⇒ 手写 `0.5.0` 的旧形态作废；cargo 日志从此打产品版本）。
+### 9.12 2026-10-11 两处收口：`set_option pp.explicit true`（看得见隐式实参）· `Iff.refl` 签名对齐 Lean 4（用户实测追问 + 拍板 ✓）
+
+用户原话：①「`#print demo_mem_def` … `:= Iff.refl` … 结果不符合预期，你先帮我查查哪里的原因。这里 `Iff.refl` 都没有输入参数，怎么能够通过内核检查呢？请问是 `#print` 打印简略内容呢？还是内核被 heck 了」；②「lean4里也是这样吗？`Iff.refl` 是隐变量？另外我想让 `#print` 打印隐变量出来，需要加配置参数吗？还是你直接默认实现呢？」。**拍板 A**：加 **Lean 兼容**的 `set_option pp.explicit true`（含 `pp.all true`）—— `#print` / `#check <表达式>` / `#reduce` 显示隐式实参；**默认逐字节不变**；只两条名字（其余给专用诊断，**不静默**）；`… in …` 本轮不做；只影响命令输出（`ty_text`/hover 保持 G-71 可回读策略，如实登记为**有意偏离** Lean）。**拍板 B**：`Iff.refl` 的签名对齐 Lean core（`(A : Prop)` **显式**；隐式版兄弟 `Iff.rfl`），`by rfl` 与洞上灯泡候选改用 `Iff.rfl`，课程 5 处 + `notation-lint` + 文档/技能同轮同步（台账 **G-113**）。设计 `docs/design/set-option-pp.md`（判据 8 条，§5）。
+
 ### 9.4 历史索引（一行一条；**全文见归档** ✓）
 
 * **归档**：`docs/archive/REQUIREMENTS-ARCHIVE.md` —— **3146 行逐字原文** ✓（移入前 §9 = **2989 行** ✗）+ **139 条索引** ✓；**纯文本、可 grep** ✓（它是"要求的账本"，**可检索性优先** ✓，不 gzip）。

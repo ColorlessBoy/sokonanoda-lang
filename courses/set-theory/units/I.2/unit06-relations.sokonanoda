@@ -80,7 +80,7 @@ theorem demo_empty_transitive (A : Type) : Transitive A (EmptyRelation A) := by
 --
 --   (r ⁻¹) b a ↔ r a b        （把两个参数对调）
 --   (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c   （先走 r 再走 s）
--- 两条展开引理 Rel.inv_apply / Rel.comp_apply 在 lib/Rel 里（证明是 Iff.refl）。
+-- 两条展开引理 Rel.inv_apply / Rel.comp_apply 在 lib/Rel 里（证明是 Iff.rfl）。
 -- ─────────────────────────────────────────────────────────────────────────
 
 -- 练习 1（T 类）：逆的逆。

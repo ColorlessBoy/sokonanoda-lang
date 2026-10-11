@@ -1,3 +1,16 @@
+# 可见变化（第 4 轮，2026-10-11）：`set_option pp.*` + `Iff.refl` 对齐 Lean 4
+
+| 用户报的 | 屏幕上多/少什么 | 哪一层哪条断言 |
+|---|---|---|
+| 「`#print demo_mem_def` 印出 `… := Iff.refl`，一个实参都没有怎么过内核？是 pp 简略还是内核被 heck」 | **默认一个字都不变**；写一行 `set_option pp.explicit true` 之后，同一条 `#print` 印出 `… := @Iff.refl (@Set.mem α a A)` —— 隐式实参**看得见**（`pp.all true` 更狠：连记法也关，`Prop` 印成 `Sort 0`）；`set_option pp.explicit false` 关回去 | front `set_option_pp_explicit_shows_implicit_arguments`（含**选项之前那条不受影响** + 关档逐字节回默认）· `set_option_pp_all_is_strictly_more_than_explicit`（`all ⊃ explicit`）· CLI `cli_set_option_pp_explicit_shows_implicit_arguments` · 坏选项判红 `cli_set_option_rejects_unknown_options` · parser `set_option_shape_errors_are_dedicated`（未知名字 / 坏值 / `… in …` 三条专用码） |
+| （同轮追问）「Lean 4 里 `Iff.refl` 也是隐变量吗」 | **不是**：Lean core 里 `Iff.refl (a : Prop)` 是**显式**、`Iff.rfl {a : Prop}` 才是隐式（`Init/Core.lean:1022/1025`，`rfl` = `exact Iff.rfl`）。本仓原先把两条都写成隐式 ⇒ **裸写 `Iff.refl` 在这里能过、放进真 Lean 4 判红** ✗ ⇒ 现在签名与 Lean 逐字同形；`by rfl` 与灯泡的候选改用 `Iff.rfl` | front `by_`/`rfl` 用例（候选文本逐字）· LSP `actions` 四条（标题/插入文本逐字 `Iff.rfl`）· prelude 镜像 `prelude_mirror` 7 条（三段拼接 == 视图 == 真源）· 课程门禁 `courses/set-theory/tools/check.py` + `scripts/notation-lint.py`（规则翻转：`Iff.refl` 现在**必须**写 1 个实参） |
+
+> **同轮顺带修**（用户看不见、但两条路对拍咬到的）：`split_report` 里 `checks[].cmd` /
+> `prints[].cmd` **漏了重基**（整条一趟那条路的报告里，这两个字段留在闭包坐标系、而同报告
+> 的 `event_cmds` 是本模块序 ⇒ 同一份报告自相矛盾）。由 `t1a_module_checkpoint_parity`
+> 的新夹具逮到（`#print` 的 `cmd` 6 vs 2）并修好 —— 判据：该对拍用例（含 `set_option`
+> 跨模块携带的 `pp` 档）。
+
 # 可见变化（第 3 轮，2026-10-10）：四条用户反馈
 
 | 用户报的 | 屏幕上多/少什么 | 哪一层哪条断言 |

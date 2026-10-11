@@ -1,0 +1,21 @@
+-- **G-113 自断言复现**：prelude 的 `Iff.refl` 签名必须与 Lean core 同形（**必须判红** = 已修）。
+--
+-- 用户追问（2026-10-11）：「lean4 里也是这样吗？`Iff.refl` 是隐变量？」
+-- Lean core 实测（`~/Documents/lean/lean4/src/Init/Core.lean`）：
+--   `@[refl] theorem Iff.refl (a : Prop) : a ↔ a`            -- **显式**实参（:1022）
+--   `protected theorem Iff.rfl {a : Prop} : a ↔ a := Iff.refl a`  -- 隐式版（:1025-1026）
+--   `macro_rules | `(tactic| rfl) => `(tactic| exact Iff.rfl)`    -- `rfl` 走隐式版（:1029）
+--
+-- 缺口（修前）：本仓 prelude 把**两条都**写成 `{A : Prop}`（隐式）⇒ **裸写 `Iff.refl`
+-- 在这里能过**、而放进真 Lean 4 判红 ✗ —— 与 `playground.sokonanoda` 开头
+-- 「填好的每一行放进官方 Lean 也一样合法」冲突。
+--
+-- 修后契约（2026-10-11，设计 `docs/design/set-option-pp.md` §4）：
+-- `Iff.refl (A : Prop)` 显式、`Iff.rfl {A : Prop}` 隐式；`by rfl` 与灯泡的候选 = `Iff.rfl`。
+-- ⇒ **本文件必须判红**：下面这一行**少写了显式实参**（改成 `Iff.refl A` 或 `Iff.rfl` 即绿 ✓）。
+--
+-- 常驻判据（不在本文件里）：`crates/front/src/compile/tests.rs` 的 rfl 用例、
+-- LSP `actions` 四条（候选文本逐字）、`crates/front/tests/prelude_mirror.rs` 七条、
+-- `scripts/notation-lint.py`（`Iff.refl` 的 allowed 0 → 1 + `--census-selftest` 两条新样例）。
+
+theorem bare_iff_refl (A : Prop) : Iff A A := Iff.refl

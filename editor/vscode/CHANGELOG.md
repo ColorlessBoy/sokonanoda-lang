@@ -1,3 +1,22 @@
+## [Unreleased]
+
+### Added
+
+- **`set_option pp.explicit true` / `set_option pp.all true`**（用户 2026-10-11 实测：
+  `#print demo_mem_def` 印出 `… := Iff.refl`，追问「是 pp 简略还是内核被 heck」）：
+  `#print` / `#check <表达式>` / `#reduce` 的输出现在可以**显示隐式实参**（常量带 `@`，
+  例如 `@Iff.refl (@Set.mem α a A)`）。**默认逐字节不变**（不写选项 ⇒ 与之前完全相同）。
+  只支持这两条名字（其余选项给专用诊断、**不静默**）；`set_option … in …` 这一轮不做
+  （把选项单独写一行即可）。设计 `docs/design/set-option-pp.md`。
+
+### Changed
+
+- **`Iff.refl` 的签名对齐 Lean 4 core**：`Iff.refl (A : Prop)` 是**显式**实参，隐式版
+  兄弟是 `Iff.rfl {A : Prop}`（`Init/Core.lean`）。以前本仓把两条都写成隐式 ⇒
+  **裸写 `Iff.refl` 在这里能过、放进真 Lean 4 会判红** ✗ ⇒ 现在与 Lean 逐字同形。
+  `by rfl` 与洞上灯泡的候选改用 `Iff.rfl`（对齐 Lean 的 `exact Iff.rfl`）。
+  **迁移**：写过 `:= Iff.refl`（不带实参）的地方请改成 `Iff.rfl`（或 `Iff.refl A`）。
+
 ## [0.88.2] — 2026-10-11
 
 > **A new compiler version now rebuilds the project instead of recompiling one file.**

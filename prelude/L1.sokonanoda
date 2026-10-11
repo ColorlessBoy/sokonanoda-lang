@@ -39,10 +39,17 @@ def Iff (A B : Prop) : Prop := And (A -> B) (B -> A)
 def Iff.intro {A B : Prop} (mp : A -> B) (mpr : B -> A) : Iff A B := And.intro (A -> B) (B -> A) mp mpr
 def Iff.mp {A B : Prop} (h : Iff A B) : A -> B := And.left (A -> B) (B -> A) h
 def Iff.mpr {A B : Prop} (h : Iff A B) : B -> A := And.right (A -> B) (B -> A) h
-def Iff.refl {A : Prop} : Iff A A := Iff.intro A A (fun (h : A) => h) (fun (h : A) => h)
+-- **`Iff.refl` 的签名对齐 Lean 4（2026-10-11，设计 `docs/design/set-option-pp.md` §4）**：
+-- Lean core 里它是 `@[refl] theorem Iff.refl (a : Prop) : a ↔ a`（**显式**实参，
+-- `Init/Core.lean:1022`），隐式版兄弟才是 `Iff.rfl {a : Prop}`（`:1025`）。
+-- 本仓原先把两条都写成隐式 ⇒ 裸写 `Iff.refl` 在这里能过、**放进真 Lean 4 判红** ✗
+-- （与 `playground.sokonanoda` 开头"填好的每一行放进官方 Lean 也一样合法"冲突）
+-- ⇒ 现在与 Lean 逐字同形；`by rfl` 的候选也改用 `Iff.rfl`（对齐 Lean 的
+-- `macro_rules | `(tactic| rfl) => `(tactic| exact Iff.rfl)`，`:1029`）。
+def Iff.refl (A : Prop) : Iff A A := Iff.intro A A (fun (h : A) => h) (fun (h : A) => h)
 -- `Iff.rfl`：与 Lean core 的 `protected theorem Iff.rfl {a : Prop} : a ↔ a` 同名同义
 -- （`Init/Core.lean`）—— Mathlib 的 `mem_empty_iff_false` 原文就是 `Iff.rfl`。
--- 体**照抄 `Iff.refl`**（不依赖隐式实参插入这条边角行为）。
+-- 体**照抄 `Iff.refl`**（`Iff.refl A`：显式实参，与 Lean core 的 `Iff.refl a` 同形）。
 def Iff.rfl {A : Prop} : Iff A A := Iff.intro A A (fun (h : A) => h) (fun (h : A) => h)
 def Iff.symm {A B : Prop} (h : Iff A B) : Iff B A := Iff.intro B A (Iff.mpr A B h) (Iff.mp A B h)
 def Iff.trans {A B C : Prop} (h1 : Iff A B) (h2 : Iff B C) : Iff A C := Iff.intro A C (fun (a : A) => Iff.mp B C h2 (Iff.mp A B h1 a)) (fun (c : C) => Iff.mpr A B h1 (Iff.mpr B C h2 c))

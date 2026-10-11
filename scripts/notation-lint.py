@@ -172,7 +172,11 @@ PRELUDE_CALLS = {
     "Iff.intro": (2, "Iff.intro h1 h2"),
     "Iff.mp": (2, "Iff.mp h / Iff.mp h a"),
     "Iff.mpr": (2, "Iff.mpr h / Iff.mpr h a"),
-    "Iff.refl": (0, "Iff.refl"),
+    # **2026-10-11（设计 `docs/design/set-option-pp.md` §4）**：`Iff.refl` 的签名
+    # 对齐 Lean 4 core（`(a : Prop)` 是**显式**实参）⇒ 现在**必须**写 1 个实参；
+    # 隐式版兄弟是 `Iff.rfl`（`allowed = 0`，`rfl` 形状目标的写法）。
+    "Iff.refl": (1, "Iff.refl A"),
+    "Iff.rfl": (0, "Iff.rfl"),
     "Iff.symm": (1, "Iff.symm h"),
     "Iff.trans": (2, "Iff.trans h1 h2"),
     "Not.intro": (1, "Not.intro f"),
@@ -924,8 +928,10 @@ def census_selftest() -> int:
          "theorem t : P := Exists.intro A p w hw", 1,
          "theorem t : P := Exists.intro w hw", "drop-args"),
         ("`->` ⇒ `→`", "theorem t : P -> Q := h", 1, "theorem t : P → Q := h", "arrow"),
-        ("`Iff.refl A` ⇒ `Iff.refl`（allowed=0 ⇒ **全删** ✓）",
-         "theorem t : P := Iff.refl A", 1, "theorem t : P := Iff.refl", "drop-args"),
+        ("`Iff.refl A` **保留**（allowed=1 ⇒ 实参是签名的一部分 ✓）",
+         "theorem t : P := Iff.refl A", 0, None, "clean"),
+        ("`Iff.rfl A` ⇒ `Iff.rfl`（隐式版，allowed=0 ⇒ **全删** ✓）",
+         "theorem t : P := Iff.rfl A", 1, "theorem t : P := Iff.rfl", "drop-args"),
         ("点名 → 中缀：**拒绝改**（needs-manual）✗",
          "theorem t : P := Set.mem α a A", 1, None, "needs-manual"),
         ("`Eq.{1}`：**拒绝改**（needs-manual）✗",

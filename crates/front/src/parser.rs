@@ -296,6 +296,9 @@ impl Parser {
             TokenKind::Ident(kw) if kw == "#check" => self.parse_hash_check(),
             TokenKind::Ident(kw) if kw == "#reduce" => self.parse_hash_reduce(),
             TokenKind::Ident(kw) if kw == "#print" => self.parse_hash_print(),
+            // `set_option pp.explicit true`（设计 `docs/design/set-option-pp.md`）：
+            // **不是声明**、不产事件；只改本行之后命令输出的显示档。
+            TokenKind::Ident(kw) if kw == "set_option" => self.parse_set_option(),
             TokenKind::Ident(kw) if kw == "infix" || kw == "infixl" || kw == "infixr" => {
                 self.parse_infix_command(None)
             }
@@ -1057,6 +1060,18 @@ impl Parser {
         )
     }
 
+    /// `set_option` 的形状错（设计 `docs/design/set-option-pp.md`）：缺名字、
+    /// 名字不在白名单、值不是布尔、或写了本轮不做的 `… in …`。
+    fn set_option_shape_error(&self, detail: &str, span: Span) -> Diagnostic {
+        Diagnostic::new(
+            DiagnosticKind::SetOptionShape {
+                detail: detail.to_string(),
+            },
+            span,
+            detail.to_string(),
+        )
+    }
+
     /// `import Foo.Bar`：一行一个点分模块名，且必须是合法标识符分量。
     /// 置顶规则在 `parse_file` 里统一判定（这里只管单条命令的形状）。
     fn parse_import(&mut self) -> Result<Command> {
@@ -1767,6 +1782,64 @@ impl Parser {
         Ok(Command::Print {
             name,
             span: Span::new(start, end),
+        })
+    }
+
+    /// `set_option <名字> true|false`（设计 `docs/design/set-option-pp.md`）。
+    ///
+    /// **文件作用域**：对本行之后的 `#print`/`#check`/`#reduce` 生效（与 Lean 的
+    /// section/文件作用域同形 ⇒ 是 Lean 语法的子集 ✓）。
+    ///
+    /// 三条形状闸（都走专用码 `set-option-shape`，**不静默忽略** ✓）：
+    /// ① 名字白名单**只有** `pp.explicit` / `pp.all`（其余选项今天不可观察 ⇒
+    ///    暴露它们等于撒谎 ✗）；② 值只认 `true` / `false`；③ `… in …` 本轮不做
+    ///    （同 `open scoped … in …` 的先例，让选项单独写一行）。
+    fn parse_set_option(&mut self) -> Result<Command> {
+        let kw = self.bump();
+        let name_tok = self.peek().clone();
+        let name = match &name_tok.kind {
+            TokenKind::Ident(name) => name.clone(),
+            _ => {
+                return Err(self.set_option_shape_error(
+                    "`set_option` 后面要跟选项名（本语言支持 `pp.explicit` 与 `pp.all`）",
+                    name_tok.span,
+                ))
+            }
+        };
+        if !matches!(name.as_str(), "pp.explicit" | "pp.all") {
+            return Err(self.set_option_shape_error(
+                &format!(
+                    "`set_option` 只支持 `pp.explicit` 与 `pp.all` 两条名字（当前写的是 `{name}`）；\
+                     其余选项今天没有可观察的显示差异，所以不静默接受"
+                ),
+                name_tok.span,
+            ));
+        }
+        self.bump();
+        let value_tok = self.peek().clone();
+        let value = match &value_tok.kind {
+            TokenKind::Ident(word) if word == "true" => true,
+            TokenKind::Ident(word) if word == "false" => false,
+            _ => {
+                return Err(self.set_option_shape_error(
+                    &format!("`set_option {name}` 的值只认 `true` / `false`"),
+                    value_tok.span,
+                ))
+            }
+        };
+        self.bump();
+        if matches!(&self.peek().kind, TokenKind::Ident(word) if word == "in") {
+            let tok = self.peek().clone();
+            return Err(self.set_option_shape_error(
+                "`set_option … in …` 这一轮不做：把这一行单独写出来即可（它对本行之后的命令都生效）",
+                tok.span,
+            ));
+        }
+        let end = self.tokens[self.cursor - 1].span.end;
+        Ok(Command::SetOption {
+            name,
+            value,
+            span: Span::new(kw.span.start, end),
         })
     }
 
@@ -3629,6 +3702,7 @@ fn is_reserved_command(name: &str) -> bool {
                 | "namespace"
                 | "open"
                 | "export"
+                | "set_option"
                 | "#check"
                 | "#reduce"
                 | "#print"
@@ -5276,6 +5350,48 @@ end
         assert_eq!(err.code(), "parse-namespace-shape");
     }
 
+    /// `set_option`（设计 `docs/design/set-option-pp.md`）：三条形状闸各自给
+    /// **专用码** `set-option-shape`（不落进通用 `unexpected-token`，也不静默 ✗）。
+    #[test]
+    fn set_option_shape_errors_are_dedicated() {
+        // ① 名字白名单只有 `pp.explicit` / `pp.all`（其余选项今天不可观察）。
+        let err = parse("set_option pp.universes true\n").expect_err("unsupported option");
+        assert_eq!(err.code(), "set-option-shape");
+        assert!(
+            err.message.contains("pp.universes"),
+            "诊断要点名写错的那条：{err:?}"
+        );
+        // ② 值只认 `true` / `false`。
+        let err = parse("set_option pp.explicit yes\n").expect_err("bad value");
+        assert_eq!(err.code(), "set-option-shape");
+        // ③ `… in …` 本轮不做（同 `open scoped … in …` 的先例）。
+        let err = parse("set_option pp.all true in\n").expect_err("in-form");
+        assert_eq!(err.code(), "set-option-shape");
+        // ④ 缺名字。
+        let err = parse("set_option\n").expect_err("no name");
+        assert_eq!(err.code(), "set-option-shape");
+        // ⑤ 正例：两条名字 × 两个值都解析得出来，且 span 覆盖整条命令。
+        let file = parse("set_option pp.explicit true\nset_option pp.all false\n")
+            .expect("parse set_option");
+        assert!(
+            matches!(
+                &file.commands[0],
+                Command::SetOption { name, value: true, span }
+                    if name == "pp.explicit" && span.start.line == 1
+            ),
+            "commands: {:?}",
+            file.commands
+        );
+        assert!(
+            matches!(
+                &file.commands[1],
+                Command::SetOption { name, value: false, .. } if name == "pp.all"
+            ),
+            "commands: {:?}",
+            file.commands
+        );
+    }
+
     #[test]
     fn parse_fragment_tolerates_an_unclosed_namespace() {
         // 判卷合成路径专用（judge.rs 的前缀是文件的一个片段，见设计 §4.1）。
@@ -5284,7 +5400,6 @@ end
         // 严格入口仍然报（同一份文本）。
         assert!(parse("namespace A\ndef mem : Type := Prop\n").is_err());
     }
-
     #[test]
     fn namespace_and_open_are_reserved_inside_expressions() {
         let err = parse("def f : Type := namespace\n").expect_err("keyword as expression");

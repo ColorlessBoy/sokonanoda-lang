@@ -66,6 +66,10 @@ pub(crate) fn print_help() {
     println!("  #check <expr>                  print the inferred type");
     println!("  #reduce <expr>                 evaluate a closed expression");
     println!("  #print <name>                  print a declaration");
+    println!("  set_option pp.explicit true    show implicit arguments in #print/#check/#reduce");
+    println!(
+        "  set_option pp.all true         the sledgehammer: explicit + universes + no notation"
+    );
     println!("  infix:N \" sym \" => name        user notation: binary, no assoc (N 1-1000)");
     println!("  infixl:N / infixr:N \" sym \" => name   left / right associative");
     println!("  prefix:N \" sym \" => name       unary before its operand (e.g. \" 𝒫 \")");
@@ -86,7 +90,9 @@ pub(crate) fn print_help() {
 }
 
 pub(crate) fn print_repl_help() {
-    println!("commands: #check <expr>, #reduce <expr>, #print <name>,");
+    println!(
+        "commands: #check <expr>, #reduce <expr>, #print <name>, set_option pp.explicit true,"
+    );
     println!("          #env, #prove <goal>, #help, #exit");
     println!(
         "proof mode: intro <name>, exact <term>, apply <term>, assumption, undo, lambda, done"

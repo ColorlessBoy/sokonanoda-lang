@@ -37,7 +37,15 @@ fn gen_project(tag: &str) -> (PathBuf, PathBuf, PathBuf) {
     let dir = std::env::temp_dir().join(format!("soko-t1a-parity-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("temp dir");
-    std::fs::write(dir.join("Common.sokonanoda"), "axiom P : Prop\n").expect("Common");
+    std::fs::write(
+        dir.join("Common.sokonanoda"),
+        // **`set_option pp.*` 是跨模块累加器**（设计 `docs/design/set-option-pp.md` §3.3）：
+        // 档设在**被检查点的那个模块**里 ⇒ 续编那一臂必须从检查点/`ResumeState`
+        // 把它带上，否则 `LibB`/`MainA` 的 `#print` 会退回默认档（`@P` 消失 ✗）
+        // ⇒ 两条路报告不再逐字相同（下面两条断言会当场红 ✓）。
+        "axiom P : Prop\nset_option pp.explicit true\n",
+    )
+    .expect("Common");
     std::fs::write(
         dir.join("LibA.sokonanoda"),
         "import Common\n\naxiom a : P\n",
@@ -45,11 +53,12 @@ fn gen_project(tag: &str) -> (PathBuf, PathBuf, PathBuf) {
     .expect("LibA");
     std::fs::write(
         dir.join("LibB.sokonanoda"),
-        "import Common\n\ntheorem b : P -> P := fun (h : P) => h\naxiom b2 : P\n",
+        // `#print b`：显式档下 `P` 印成 `@P` ⇒ 这一行是档有没有被带上的**探针**。
+        "import Common\n\ntheorem b : P -> P := fun (h : P) => h\n#print b\naxiom b2 : P\n",
     )
     .expect("LibB");
     let main_a = dir.join("MainA.sokonanoda");
-    std::fs::write(&main_a, "import LibA\n\ntheorem ta : P := a\n").expect("MainA");
+    std::fs::write(&main_a, "import LibA\n\ntheorem ta : P := a\n#print ta\n").expect("MainA");
     let main_b = dir.join("MainB.sokonanoda");
     std::fs::write(&main_b, "import LibB\n\ntheorem tb : P := b2\n").expect("MainB");
     (dir, main_a, main_b)

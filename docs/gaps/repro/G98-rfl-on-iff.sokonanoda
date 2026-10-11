@@ -11,7 +11,7 @@
 -- `macro_rules | `(tactic| rfl) => `(tactic| exact Iff.rfl)` ⇒ Lean 的 `rfl` 字面上就是
 -- `exact Iff.rfl`；Mathlib 的 `mem_empty_iff_false` 原样证明就是 `Iff.rfl`。
 --
--- 修后契约（2026-10-10，对齐 Lean 4）：`rfl` 接受 `Iff` 头（候选 `Iff.refl`），
+-- 修后契约（2026-10-10，对齐 Lean 4；**2026-10-11 候选改为 `Iff.rfl`**，见 G-113）：`rfl` 接受 `Iff` 头，
 -- **只在两边 defeq 时过**（内核裁决）；`Iff.rfl` 与 `Iff.refl` 同名同义。
 -- ⇒ 本文件必须**干净判卷**（每条 `decl.checked`、0 诊断）。
 --

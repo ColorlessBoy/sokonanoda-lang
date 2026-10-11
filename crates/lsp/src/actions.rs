@@ -11,7 +11,7 @@
 //! kernel 拒绝的失败声明（`DeclStatus::Failed`）没有洞，编辑目标是整个
 //! 值位（tokenize 定位 `:=` 与值首）。`front::suggest` 的失败声明建议梯子：
 //! kernel 验证过的 refl 整值替换（`Eq`/`Iff` 形状声明：`Eq.refl …` /
-//! `Iff.refl`）→ 保留已写 lambda 前缀的部分重置（Reset）→ 整值重启骨架
+//! `Iff.rfl`）→ 保留已写 lambda 前缀的部分重置（Reset）→ 整值重启骨架
 //! （Restart）——都映射为值位整体替换（docs/design/kernel-taxonomy.md §2）。
 
 use super::render::decl_at;
@@ -500,12 +500,13 @@ And.intro a b sorry sorry\n";
     #[tokio::test]
     async fn code_action_iff_goal_offers_the_kernel_verified_rfl() {
         // 与 `by rfl` 能力一致（同一份 `iff_head` 判据）：defeq 的 `↔` 目标
-        // 也给 quick-fix，且候选经 kernel 验证（`Iff.refl`）。
+        // 也给 quick-fix，且候选经 kernel 验证（`Iff.rfl`，2026-10-11 从
+        // `Iff.refl` 改来：设计 `docs/design/set-option-pp.md` §4）。
         let (mut service, _socket) = opened(IFF_GOAL_DOC).await;
         let actions = code_actions_for(&mut service, IFF_GOAL_DOC).await;
         let rfl = actions
             .iter()
-            .find(|a| a.title.contains("Iff.refl"))
+            .find(|a| a.title.contains("Iff.rfl"))
             .expect("a defeq Iff goal gets a kernel-verified rfl");
         assert!(
             rfl.title.contains("两边本来就是同一个值"),
@@ -513,7 +514,7 @@ And.intro a b sorry sorry\n";
             rfl.title
         );
         let (start, text) = first_edit(rfl);
-        assert_eq!(text, "Iff.refl");
+        assert_eq!(text, "Iff.rfl");
         assert_eq!(
             start,
             lsp_pos(IFF_GOAL_DOC, offset_of(IFF_GOAL_DOC, "sorry")),
@@ -771,12 +772,12 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
             .expect("a kernel-rejected Iff decl must offer the verified rfl");
         assert_eq!(actions.len(), 1, "rfl only: {:?}", titles_of(&actions));
         let rfl = &actions[0];
-        // 标题带**真的候选文本**（`Iff.refl`，不是写死的 `Eq.refl …`）。
-        assert!(rfl.title.contains("Iff.refl"), "title: {:?}", rfl.title);
+        // 标题带**真的候选文本**（`Iff.rfl`，不是写死的 `Eq.refl …`）。
+        assert!(rfl.title.contains("Iff.rfl"), "title: {:?}", rfl.title);
         assert!(rfl.title.contains("内核验证"), "title: {:?}", rfl.title);
         assert_eq!(rfl.is_preferred, Some(true), "the verified rfl is first");
         let (range, new_text) = first_edit_full(rfl);
-        assert_eq!(new_text, "Iff.refl");
+        assert_eq!(new_text, "Iff.rfl");
         assert_eq!(
             range.start,
             lsp_pos(FAILED_IFF_DECL, offset_of(FAILED_IFF_DECL, "3")),

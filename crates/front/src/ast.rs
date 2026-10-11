@@ -638,6 +638,16 @@ pub enum Command {
         name: String,
         span: Span,
     },
+    /// `set_option pp.explicit true` / `set_option pp.all true`（`docs/design/set-option-pp.md`）。
+    ///
+    /// **不是声明**（与 `Command::Import` 同族）：不产事件、不进声明表；副作用是
+    /// **文件作用域**的显示档 —— 对本行之后的 `#print`/`#check`/`#reduce` 生效。
+    /// 白名单只有 `pp.explicit` / `pp.all` 两条名字（parser 判，其余给专用诊断）。
+    SetOption {
+        name: String,
+        value: bool,
+        span: Span,
+    },
     /// `infix:N " sym " => name` / `infixl` / `infixr` / `prefix` / `postfix` /
     /// `notation " sym " => name`（G-04 / WO-011 第一刀 + 第二刀）。
     ///
@@ -747,6 +757,7 @@ impl Command {
             | Command::Check { span, .. }
             | Command::Reduce { span, .. }
             | Command::Print { span, .. }
+            | Command::SetOption { span, .. }
             | Command::Notation { span, .. }
             | Command::Namespace { span, .. }
             | Command::End { span, .. }

@@ -8,7 +8,7 @@
 
 use super::{
     declar_signature, failed_state, inductive_signature, op_cmd, quiet_catch, resolve_hovers,
-    top_level_def_spans_over, CmdHover, KernelFailed, PassResult, PendingOp, TrustPlan,
+    top_level_def_spans_over, CmdHover, KernelFailed, PassResult, PendingOp, PpFlags, TrustPlan,
 };
 use crate::compile::error::{refine_kernel_kind, render_def_eq_mismatch, CompileError, ErrorKind};
 use crate::compile::event::{CheckEvent, CompileOutput};
@@ -19,6 +19,36 @@ use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, EnvLimit};
 use sokonanoda::util::{ExportFile, ExprPtr};
 use std::collections::HashMap;
+
+/// 把一条命令的 **`set_option pp.*` 档**叠加到内核 pp 选项上
+/// （设计 `docs/design/set-option-pp.md` §3.4）。
+///
+/// **只碰四个字段**（`all` / `explicit` / `universes` / `notation`）——
+/// **绝不碰 `proofs`** ✗：内核阶段开头就全局置了 `proofs = true`
+/// （见上面 `env.config.pp_options.proofs = true` 的注释），把它打回 `false`
+/// 会让证明项重新印成 `_`（行为回归 ✗）。调用方负责**保存并还原**
+/// （`let saved = env.config.pp_options.clone(); … env.config.pp_options = saved;`）。
+///
+/// `explicit_extra` 是 **G-71 的内部档**（`judge::explicit_pp_active()`，tactic
+/// 上下文要把类型文本再回读成项）——它与用户档是**或**的关系：任一为真即全显式 ✓。
+fn apply_pp_flags(
+    opts: &mut sokonanoda::pretty_printer::PpOptions,
+    pp: PpFlags,
+    explicit_extra: bool,
+) {
+    if pp.all {
+        // 内核 `PpOptions::all()` 的那一套（`all` 蕴含 explicit/universes、关记法）。
+        opts.all = true;
+        opts.explicit = true;
+        opts.universes = true;
+        opts.notation = false;
+    } else if pp.explicit {
+        opts.explicit = true;
+    }
+    if explicit_extra {
+        opts.explicit = true;
+    }
+}
 
 /// 扁平命令下标 → **那条命令自己的源码 span**（它所属单元自己的坐标系）。
 ///
@@ -478,6 +508,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     span,
                     cmd,
                     sig,
+                    pp,
                 } => {
                     // **U2（2026-10-05 ✓）**：裸常量 ⇒ 直接渲**签名源文本** ✓
                     // （`{A : Sort u} -> …` 层参数形式 ✓，对齐 Lean `#check` 的显示 ✓）。
@@ -497,17 +528,22 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     // **G-71（0.81.0）**：`judge_infer_explicit` 期间把 pp 切成
                     // **全显式**（`@f a b`：每个实参都写出来）⇒ 这份文本能**完整
                     // 回读** ✓（tactic 上下文要把 binder 类型再回读成项）。
-                    // 调用一结束立刻还原 ⇒ 其它任何 `#check` 的输出**逐字节不变** ✓。
-                    let explicit = crate::judge::explicit_pp_active();
-                    let saved_explicit = env.config.pp_options.explicit;
-                    env.config.pp_options.explicit = explicit;
+                    // **`set_option pp.explicit true`（2026-10-11）**：用户档与
+                    // G-71 的内部档是**或**的关系（`apply_pp_flags` 的第三个实参）。
+                    // 调用一结束立刻还原 ⇒ 不带 `set_option` 的文件**逐字节不变** ✓。
+                    let saved_pp = env.config.pp_options.clone();
+                    apply_pp_flags(
+                        &mut env.config.pp_options,
+                        pp,
+                        crate::judge::explicit_pp_active(),
+                    );
                     let checked = quiet_catch(|| {
                         env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
                             let ty = tc.infer_closed_type(expr);
                             tc.with_pp(|pp| pp.pp_expr(ty))
                         })
                     });
-                    env.config.pp_options.explicit = saved_explicit;
+                    env.config.pp_options = saved_pp;
                     match checked {
                         Ok(text) => out.push_event(cmd, CheckEvent::TypeChecked { text, span }),
                         Err(msg) => out.push_error(
@@ -525,13 +561,18 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     env_at,
                     span,
                     cmd,
+                    pp,
                 } => {
-                    match quiet_catch(|| {
+                    let saved_pp = env.config.pp_options.clone();
+                    apply_pp_flags(&mut env.config.pp_options, pp, false);
+                    let reduced = quiet_catch(|| {
                         env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
                             let reduced = tc.reduce_closed(expr);
                             tc.with_pp(|pp| pp.pp_expr(reduced))
                         })
-                    }) {
+                    });
+                    env.config.pp_options = saved_pp;
+                    match reduced {
                         Ok(text) => out.push_event(cmd, CheckEvent::Reduced { text, span }),
                         Err(msg) => out.push_error(
                             j,
@@ -548,8 +589,12 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     ptr,
                     span,
                     cmd,
+                    pp,
                 } => {
+                    let saved_pp = env.config.pp_options.clone();
+                    apply_pp_flags(&mut env.config.pp_options, pp, false);
                     let printed = env.with_pp(|pp| pp.pp_declar(ptr));
+                    env.config.pp_options = saved_pp;
                     match printed {
                         Some(text) => out.push_event(cmd, CheckEvent::Printed { name, text }),
                         None => out.push_error(

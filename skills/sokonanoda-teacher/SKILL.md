@@ -329,7 +329,8 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   * 联结词 `And`/`And.intro`/`And.left`/`And.right`/`And.elim`、
     `Or`/`Or.inl`/`Or.inr`/`Or.elim`（`And`/`Or` 是**真归纳块**，可 `match`）、
     `Not`/`Not.intro`/`Not.elim`/`absurd`、
-    `Iff`/`Iff.intro`/`Iff.mp`/`Iff.mpr`/`Iff.refl`/`Iff.rfl`/`Iff.symm`/`Iff.trans`；
+    `Iff`/`Iff.intro`/`Iff.mp`/`Iff.mpr`/`Iff.refl`（**显式实参**：`Iff.refl A`）/
+    `Iff.rfl`（隐式版，`↔` 形状目标的惯用写法，`rfl` tactic 走它）/`Iff.symm`/`Iff.trans`；
   * 等式 `Eq.symm`/`Eq.trans`/`congrArg`（`congrArg` **只能同宇宙**）；
   * Type 层重写 `Eq.rec`/`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast`（0.60.0 起；
     0.61.0 层级算术 `u+1` 落地后后三条是**宇宙多态**的，签名与 Lean core
@@ -404,7 +405,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   别让他复制粘贴；
 - 洞尾 inlay 提示直接标注该洞的**期望类型**（子洞有各自的期望类型）；
 - 洞上灯泡（按目标形状的下一步建议，kernel 验证过的排最前并标 preferred）：
-  `exact <假设>`（该假设能闭合该洞时）、`Eq.refl …` / `Iff.refl`（`Eq` 与 `Iff`
+  `exact <假设>`（该假设能闭合该洞时）、`Eq.refl …` / `Iff.rfl`（`Eq` 与 `Iff`
   形状目标的 rfl；`Iff` 只在两边定义上相等时过，与 `rfl` tactic 同一口径）、
   `refine <构造子骨架>`（如 `And.intro a b sorry sorry`）、`引入 N 个 binder`（把下一步
   写成 lambda；I13-S1 由 `intro` 改名）；
@@ -446,6 +447,10 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   **带 `import` 的文件同样有效**（课程文件都有 `import`；`#print` 在项目模式里曾经整条不显示 ✗）。
   ⚠ `#print` 打的是**环境里**的声明 ⇒ 对 `sorry` 体的**开放练习**会报 `unknown identifier`
   （它还没进环境），那不是"没反应"而是如实报错。
+  **要看隐式实参**（「`:= Iff.refl` 怎么没有实参？」这类问题）：在文件里加一行
+  `set_option pp.explicit true`（**Lean 同名选项**，对它之后的命令生效；`pp.all true`
+  连记法一起关），`#print` 就会印成 `… := @Iff.refl (@Set.mem α a A)`；
+  默认档**一个字都不变**。设计 `docs/design/set-option-pp.md`。
   ⇒ 讲类型/定义时**可以让学习者把光标放到那行自己看**，不必只靠你转述；
   **开放练习**的卡片还多一行
   `目标 ⊢ <目标>`（多目标时 `目标 i/n`）——它读的是与目标面板**同一批 runs**，

@@ -11,7 +11,7 @@
 //! 不产生额外分配：A1（无 `import` 的文件逐字节不变）不受影响。
 
 use super::{
-    by_step_states, failed_state, lower_value, skipped, CmdHover, KernelFailed, PendingOp,
+    by_step_states, failed_state, lower_value, skipped, CmdHover, KernelFailed, PendingOp, PpFlags,
     TrustPlan,
 };
 use crate::compile::elab::{
@@ -170,6 +170,12 @@ pub(super) struct Walk<'arena: 'shadow, 'shadow> {
     /// **跨单元导出表**（第二刀 §N7）：`export Foo` 记在这里，单元切换时重放。
     /// 依赖按拓扑序排在入口之前，所以入口文件在文件头就能用依赖导出的短名。
     pub(super) exports: Vec<OpenEntry>,
+    /// **`set_option pp.*` 的当前档**（设计 `docs/design/set-option-pp.md`）：
+    /// **文件作用域** —— `Command::SetOption` 的臂改它，之后每条命令的
+    /// `PendingOp::{Print,Check,Reduce}` 各带一份**当时的拷贝**（⇒ 档是前缀的
+    /// 函数：缓存键自动带住 ✓、续编快照也必须带上 ✓）。默认档 = 今天
+    /// ⇒ 不带 `set_option` 的文件**逐字节不变** ✓。
+    pub(super) pp: PpFlags,
     /// **本趟 pass「成功进环境」的声明名**（G-31/G-92 第二刀 ✓，2026-10-07）。
     ///
     /// 逐命令压进 `TRUSTED_PREFIX` 栈项（`run` 里的 `with_trusted_prefix` ✓）
@@ -234,6 +240,10 @@ pub(crate) struct WalkCheckpoint<'arena> {
     example_idx: usize,
     ns: NamespaceScope,
     exports: Vec<OpenEntry>,
+    /// **`set_option pp.*` 的档**（设计 `docs/design/set-option-pp.md` §3.3）：
+    /// 续编从这条命令之后起走，`set_option` 那几行**整段被跳过** ⇒ 档必须进
+    /// 快照，否则续编出来的 `#print` 会退回默认档（**丢了档 = 文本分叉** ✗）。
+    pp: PpFlags,
     /// **深拷贝**（见上 ⚠）：快照要的是"命令 k 那一刻"的名表 ✓。
     entered: std::collections::HashSet<String>,
     // ── `run` 的循环局部量（纯记账；**显式带上** ⇒ 恢复时整段跳过、不必重放 ✓）──
@@ -453,6 +463,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             example_idx: self.example_idx,
             ns: self.ns.clone(),
             exports: self.exports.clone(),
+            pp: self.pp,
             entered: self.entered.borrow().clone(),
             unit_seen: unit_seen.to_vec(),
             closure_ids: closure_ids.to_vec(),
@@ -479,6 +490,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         self.example_idx = cp.example_idx;
         self.ns = cp.ns.clone();
         self.exports = cp.exports.clone();
+        // `set_option` 档：续编跳过了那些命令 ⇒ 从快照装回（否则退回默认档 ✗）。
+        self.pp = cp.pp;
         *self.entered.borrow_mut() = cp.entered.clone();
     }
 
@@ -564,6 +577,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         if let Some(resume) = self.resume.take() {
             self.exports = resume.exports;
             self.example_idx = resume.example_idx;
+            // `set_option pp.*` 同样是跨模块累加器（设计 §3.3）：库层设了档、
+            // 入口这趟不带上 ⇒ 同一份源码在 CLI（整条一趟）与 LSP（逐模块）
+            // 两条路上会印出不同的 `#print` 文本 ✗（T1-A 红线）。
+            self.pp = resume.pp;
         }
         let mut closure_ids: Vec<Option<String>> = vec![None; units.len()];
         let mut prev_unit: Option<usize> = None;
@@ -846,6 +863,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 closure_id,
                 exports: self.exports.clone(),
                 example_idx: self.example_idx,
+                pp: self.pp,
             });
         }
         tail
@@ -903,6 +921,17 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             Command::Check { expr, span: _ } => self.check(c, expr),
             Command::Reduce { expr, span: _ } => self.reduce(c, expr),
             Command::Print { name, span } => self.print(c, name, *span),
+            // `set_option pp.explicit true` / `set_option pp.all true`
+            // （设计 `docs/design/set-option-pp.md`）：**不是声明**、不产事件 ——
+            // 与 `Command::Import` 同族；只改**本行之后**命令输出的显示档。
+            // parser 已把名字白名单钉死（其余名字走 `set-option-shape` 专用诊断）
+            // ⇒ 这里的 `other` 臂不可达，留着只为"parser 加了名字、walk 忘了接"
+            // 这种漂移**当场炸**（debug 档），不静默 ✗。
+            Command::SetOption { name, value, .. } => match name.as_str() {
+                "pp.explicit" => self.pp.explicit = *value,
+                "pp.all" => self.pp.all = *value,
+                other => debug_assert!(false, "set_option 的白名单与 walk 漂移：{other}"),
+            },
             // 记法命令**不是声明**（设计 N6）：不 elaborate、不产
             // PendingOp、不进声明表——与 `Command::Import` 同族。
             Command::Notation { .. } => {}
@@ -2373,6 +2402,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     span: expr.span(),
                     cmd: idx,
                     sig,
+                    pp: self.pp,
                 });
                 self.cmd_hovers.push(CmdHover {
                     env_at: env_before,
@@ -2424,6 +2454,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     env_at: env_before,
                     span: expr.span(),
                     cmd: idx,
+                    pp: self.pp,
                 });
                 self.cmd_hovers.push(CmdHover {
                     env_at: env_before,
@@ -2455,6 +2486,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             ptr,
             span,
             cmd: idx,
+            pp: self.pp,
         });
     }
 }

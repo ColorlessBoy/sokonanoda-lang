@@ -116,6 +116,9 @@ pub fn collect_warnings(file: &FolFile) -> Vec<CompileWarning> {
             | Command::End { .. }
             | Command::Open { .. }
             | Command::OpenIn { .. }
+            // `set_option` 不声明名字（设计 `docs/design/set-option-pp.md`）⇒
+            // 没有「占了内核保留名」这类 warning 可查。
+            | Command::SetOption { .. }
             | Command::Export { .. } => continue,
         };
         if !RESERVED_SORT_NAMES.contains(&name.as_str()) {

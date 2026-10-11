@@ -100,6 +100,9 @@ const KEYWORDS: &[&str] = &[
     "#check",
     "#reduce",
     "#print",
+    // `set_option pp.explicit true`（设计 `docs/design/set-option-pp.md`）：
+    // 与上面三条 `#` 命令同族（都是"有命令、无声明"）。
+    "set_option",
 ];
 
 const SORTS: &[&str] = &["Prop", "Type", "Sort"];
@@ -240,6 +243,9 @@ pub fn declaration_kinds(src: &str) -> Vec<(String, SemanticKind)> {
             // 由 `effective_commands` 展开后**单独**走到这里（所以这里的
             // `inner` 不会被漏掉，也不会被数两次）。
             Command::OpenIn { .. } | Command::Export { .. } => {}
+            // `set_option` 不声明名字、没有表达式要着色（选项名与布尔值是
+            // **命令参数**，不是引用）——与 `Command::Import` 同族。
+            Command::SetOption { .. } => {}
         }
     }
     out
@@ -709,6 +715,9 @@ fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
             // 第二刀 §N7：同 `declaration_kinds`——`OpenIn` 包住的命令由
             // `effective_commands` 展开后单独着色。
             Command::OpenIn { .. } | Command::Export { .. } => {}
+            // `set_option` 的选项名与布尔值是命令参数、不是引用（同
+            // `Command::Namespace` 的 `Foo`）⇒ 不产生任何高亮名。
+            Command::SetOption { .. } => {}
         }
     }
 }

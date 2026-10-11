@@ -122,6 +122,10 @@ skills.
   modules**; document highlight stays within the file
 - Inlay hints showing the expected type at each hole — and the result of
   every `#check` (`#check Nat` → `Nat : Type 0`, Lean-Infoview style)
+- `set_option pp.explicit true` (a line in the file, Lean-compatible) makes
+  `#print` / `#check <expr>` / `#reduce` show **implicit arguments**
+  (`… := @Iff.refl (@Set.mem α a A)`); `pp.all true` is the sledgehammer.
+  The default is unchanged (implicit arguments hidden)
 - Code actions: introduce-and-refine templates, `exact` suggestions,
   restart scaffolds — every suggestion is kernel-verified before it's
   offered

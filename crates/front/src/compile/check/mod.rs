@@ -100,19 +100,40 @@ pub(crate) enum PendingOp<'a> {
         /// **Lean 4 对照** ✓：`#check Quot.lift` 显示的是 `.{u, v}` **层参数形式** ✓。
         /// ⚠ **只影响渲染** ✓ —— 判定路径一个字都不动 ✓（零行为变化 ✓）。
         sig: Option<String>,
+        /// 这条命令**当时**的 `set_option pp.*` 档（设计 `docs/design/set-option-pp.md`）。
+        pp: PpFlags,
     },
     Reduce {
         expr: ExprPtr<'a>,
         env_at: usize,
         span: Span,
         cmd: usize,
+        /// 同 [`PendingOp::Check`] 的 `pp`。
+        pp: PpFlags,
     },
     Print {
         name: String,
         ptr: NamePtr<'a>,
         span: Span,
         cmd: usize,
+        /// 同 [`PendingOp::Check`] 的 `pp`。
+        pp: PpFlags,
     },
+}
+
+/// **`set_option pp.*` 的有效档**（设计 `docs/design/set-option-pp.md` §2）。
+///
+/// 只有两条名字（`pp.explicit` / `pp.all`）⇒ 只需要两个布尔 ✓：
+/// * `explicit` ⇒ 内核 pp 的 `explicit`（隐式实参也印出来，常量带 `@`）；
+/// * `all` ⇒ 连宇宙/记法/名字全限定一起开（内核 `PpOptions::all()` 的那一套）。
+///
+/// **`proofs` 不在这里**：内核阶段开头就全局置 `proofs = true`
+/// （`kernel_phase.rs` 的 `env.config.pp_options.proofs = true`）⇒ 本档只**叠加**
+/// 在那一份之上、执行完还原 ⇒ 不会把证明项打回 `_` ✗。
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct PpFlags {
+    pub all: bool,
+    pub explicit: bool,
 }
 
 /// **T2-B 第 1 步**（同 [`PendingOp`]）：命令级快照要克隆它。
@@ -982,6 +1003,13 @@ impl Drop for StageTimer<'_> {
 /// * `example_idx`：`_example_N` 是**整趟全局**计数器（`walk` 里两处自增）⇒
 ///   不带它，两个模块都会造出 `_example_1` ⇒ **重名** ✗。
 ///
+/// **2026-10-11（`docs/design/set-option-pp.md` §3.3）**：新增 `pp` ——
+/// `set_option pp.*` 也是**跨模块累加器**（文件作用域，但逐模块编译时每个模块
+/// 各走一趟）⇒ 库层设了档、入口不带上，同一份源码在**整条一趟**（CLI）与
+/// **逐模块**（LSP）两条路上会印出**不同的 `#print` 文本** ✗（T1-A 的红线正是
+/// "两条路报告逐字相同"）。判据 = `crates/front/tests/t1a_module_checkpoint_parity.rs`
+/// 的夹具（`Common` 里设档、`LibB`/`MainA` 里 `#print`）。
+///
 /// ⚠ **边界事实**：这三样都**不能**从"源文本"重算 —— 它们是 elaborate 过程中
 /// 累加出来的（`exports` 尤其：它来自 `open`/`export` 命令的**解释结果**）。
 /// ⇒ 只能在 walk 里**当场取**（`run_pass_with` 的 `snapshot_state`）。
@@ -990,6 +1018,8 @@ pub(crate) struct ResumeState {
     pub closure_id: String,
     pub exports: Vec<crate::compile::OpenEntry>,
     pub example_idx: usize,
+    /// `set_option pp.*` 的档（见上 ✗→✓ 的理由）。
+    pub pp: PpFlags,
 }
 
 /// **把 prelude 装进 `builder` 的唯一实现**（T-K12）。
@@ -1366,6 +1396,9 @@ fn command_kind_tag(command: &Command) -> &'static str {
         Command::Check { .. } => "check",
         Command::Reduce { .. } => "reduce",
         Command::Print { .. } => "print",
+        // `set_option` 也是"有命令、无声明"的一类；它的身份就是
+        // `name + value`（两者都在自己的 span 文本里）⇒ 单列一个标签 ✓。
+        Command::SetOption { .. } => "set-option",
         _ => "other",
     }
 }
@@ -1621,6 +1654,9 @@ where
         // 是唯一的跨单元例外（`export`，设计 §N7）。
         ns: crate::compile::NamespaceScope::new(),
         exports: Vec::new(),
+        // `set_option pp.*` 的档：默认 = 今天（隐式实参照旧印掉 ✓）——
+        // 只有文件里真写了 `set_option` 才会变（设计 `docs/design/set-option-pp.md`）。
+        pp: PpFlags::default(),
         // **本趟 pass 自己的**「成功进环境」名表（G-31/G-92 第二刀 ✓）。
         entered: std::rc::Rc::new(std::cell::RefCell::new(std::collections::HashSet::new())),
         // 调用方那一趟的名表：**只有 judge 的合成编译**会设（`TrustPlan` ✓），
@@ -1877,6 +1913,9 @@ pub(crate) fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
             | Command::End { .. }
             | Command::Open { .. }
             | Command::OpenIn { .. }
+            // `set_option` 同样不是声明（设计 `docs/design/set-option-pp.md`）：
+            // 它只改后续命令输出的显示档，不声明名字、也没有声明 span。
+            | Command::SetOption { .. }
             | Command::Export { .. } => {}
         }
     }

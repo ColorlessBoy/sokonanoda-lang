@@ -70,7 +70,7 @@
       "name": "keyword.other.sokonanoda"
     },
     "commands": {
-      "match": "(#check|#reduce|#print)\\b",
+      "match": "(#check|#reduce|#print|set_option)\\b",
       "name": "keyword.control.sokonanoda"
     },
     "sorts": {

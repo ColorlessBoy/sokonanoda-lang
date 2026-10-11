@@ -124,7 +124,7 @@ theorem nat_equiv_nat : (Set.univ Nat) ≈ (Set.univ Nat) := by
 -- 练习 3（T 类）：对角线集合的成员判定——把 D := fun (y : α) => ¬ (f y y) 写开。
 -- soko:hint 思路：`∈` 就是函数应用（`x ∈ A` 即 `A x`），D 本身又是一个 λ：两边都是"算一下"。
 -- soko:hint 目标形态：(x ∈ (fun (y : α) => ¬ (f y y))) ↔ (¬ (f x x))。
--- soko:hint 关键件：这是定义层面的相等，直接交 Iff.refl 作用在右边那个命题上。
+-- soko:hint 关键件：这是定义层面的相等，直接交 Iff.rfl（隐式版；Lean core 的 `rfl` 就是 `exact Iff.rfl`）。
 theorem diag_mem_iff (α : Type) (f : α → Set α) (x : α) :
     (x ∈ (fun (y : α) => ¬ (f y y))) ↔ (¬ (f x x)) := by
   sorry

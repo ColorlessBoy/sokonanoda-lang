@@ -226,9 +226,9 @@ theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
 --   「复合函数的原像，就是先把外层拉回来、再把内层拉回来。」
 --
 -- （f ⁻¹' B 是回拉：x ∈ f ⁻¹' B 当且仅当 f x ∈ B。）
--- soko:hint 思路：两边展开后逐点是同一个命题，不需要真的"推理"——外延加 Iff.refl 就够。
+-- soko:hint 思路：两边展开后逐点是同一个命题，不需要真的"推理"——外延加 Iff.rfl 就够。
 -- soko:hint 目标形态：f ⁻¹' (g ⁻¹' C) = (g ∘ f) ⁻¹' C；逐元素时两边都展开成 C (g (f x))。
--- soko:hint 关键件：触发条件是"两边定义上相等"（`Set.preimage` 与函数复合都是 λ）；apply Set.ext 之后逐元素交 Iff.refl 就行了（这是本单元唯一不用拆 ∃ 的题）。
+-- soko:hint 关键件：触发条件是"两边定义上相等"（`Set.preimage` 与函数复合都是 λ）；apply Set.ext 之后逐元素交 Iff.rfl 就行了（这是本单元唯一不用拆 ∃ 的题）。
 theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C : Set γ) :
     f ⁻¹' (g ⁻¹' C) = (g ∘ f) ⁻¹' C := by
   sorry

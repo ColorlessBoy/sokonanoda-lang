@@ -457,6 +457,43 @@ fn cli_prints_definitions() {
 }
 
 #[test]
+fn cli_set_option_pp_explicit_shows_implicit_arguments() {
+    // 设计 `docs/design/set-option-pp.md`：端到端 —— 同一条 `#print`，开档后把
+    // **隐式实参**印出来（常量带 `@`）；选项**之前**那条同时钉住"默认逐字节不变" ✓。
+    let out = run("def wrap {A : Prop} (h : A) : Iff A A :=\n\
+         Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
+         #print wrap\n\
+         set_option pp.explicit true\n\
+         #print wrap\n");
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("forall {A : Prop}, A -> Iff A A"),
+        "选项之前的 #print 必须是默认档（隐式实参印掉）：{stdout}"
+    );
+    assert!(
+        stdout.contains("forall {A : Prop}, A -> @Iff A A") && stdout.contains("@Iff.intro A A"),
+        "开档后隐式实参要写出来：{stdout}"
+    );
+}
+
+#[test]
+fn cli_set_option_rejects_unknown_options() {
+    // 白名单之外的名字 ⇒ 专用诊断 + 判红（**不静默忽略** ✓，设计 §2）。
+    let out = run("set_option pp.universes true\n");
+    assert!(!out.status.success(), "未知选项必须判红");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("只支持") && stderr.contains("pp.universes"),
+        "诊断要点名白名单与写错的那条：{stderr}"
+    );
+}
+
+#[test]
 fn repl_accumulates_declarations_and_checks_them() {
     let out = run_repl(
         "def id : Prop -> Prop := fun (x : Prop) => x\n\
@@ -483,6 +520,12 @@ fn cli_help_is_self_documenting() {
     assert!(stdout.contains("sokonanoda repl"));
     assert!(stdout.contains("#check"));
     assert!(stdout.contains("#print"));
+    // `set_option pp.*`（设计 `docs/design/set-option-pp.md`）也要自文档化：
+    // 用户第一次问"怎么让 #print 显示隐式实参"时查的就是这里。
+    assert!(
+        stdout.contains("set_option pp.explicit true"),
+        "stdout: {stdout}"
+    );
     // G-08：`abbrev` 必须自文档化（真 Lean 代码粘进来时，用户第一次查的就是这里）。
     assert!(stdout.contains("abbrev <name>"), "stdout: {stdout}");
     // G-04 第二刀：两条一元记法命令也必须自文档化（第一刀的四条此前没进 help）。
