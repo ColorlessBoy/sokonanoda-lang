@@ -54,7 +54,8 @@ theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) :
 -- soko:hint 关键件：apply Set.ext 会把目标换成逐元素的 ∀ 命题，再 intro 一个 x，交给 h。
 theorem eq_of_same_elements (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
     A = B := by
-  sorry
+  apply Set.ext
+  exact h
 
 -- 练习 3（T 类）：{a} ⊆ A 推出 a ∈ A。（**这一步用不到第 4 题**）
 -- soko:hint 思路：子集给每个元素一条通道；把 a 自己喂进去。
