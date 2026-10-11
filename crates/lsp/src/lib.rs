@@ -2973,7 +2973,7 @@ impl LanguageServer for Backend {
         };
         let pos = params.text_document_position_params.position;
         // **tactic 关键字 ⇒ 那一条 tactic 的完整文档**（P6 · 需求②，设计 §4.4 D5）：
-        // 光标落在**某条 `by` 步骤里**、且正好是这一步自己的关键字（14 条，表驱动）
+        // 光标落在**某条 `by` 步骤里**、且正好是这一步自己的关键字（15 条，表驱动）
         // ⇒ 落到 `front::tactics::doc_path` 给的**真 `.md`**（五档解析 §4.9 D10：
         // 仓库真源 → 插件目录 → 缓存物化 → 临时物化 → `None`）✓。
         // 两条闸门缺一不可 ⇒ **值位 `match` / 名字 / 项位关键字都不在这里**，

@@ -40,7 +40,7 @@
    **装插件即自带、离线、零外部站点** ✓；实测两条关键事实支持这个形态：
    **`.vscodeignore` 不排除它** ✓、**`.gitignore` 不影响 `vsce`**（`bin/` 就是"生成目录 + 随包发"的既有先例）✓。
    判据是**机械的**：`unzip -l <vsix>` 里必须有那 15 个条目 + 打包脚本 `--check` 防漂移 ✓。
-5. **覆盖范围 = 本语言已实现的【全部】14 条 tactic**（不是三条）⇒
+5. **覆盖范围 = 本语言已实现的【全部】15 条 tactic**（不是三条）⇒
    **文档覆盖基线 = §1.1 的清单**，**commit 与验收逐条按它核对** ✓。
 6. **有一条既存判据会正面冲突，处置已定（P2 已落）** ✓：`crates/lsp/src/tests/hover.rs:1231`
    那条判据今天**强制**关键字上的 hover **整段**逐字节不变，而需求 ① 要求加摘要 ⇒ 两者
@@ -51,7 +51,7 @@
   ① **构造**（`is_tactic_keyword` 派生自文档表 ⇒ 表外关键字**根本不被当成 tactic**）；
   ② **编译期**（`include_str!`）；③ **判据**（手写清单 ↔ 表，双向）；④ **独立源码 lint**。
   ⚠ **初稿曾写"取枚举变体名做判据"，那是错的** —— Rust 没有反射，实现不了（§12 第 1 条）。
-8. **tactic 清单今天有六份副本**（§1.2）：`parser.rs:3569-3589` 白名单（**真源**，14 条）·
+8. **tactic 清单今天有六份副本**（§1.2）：`parser.rs:3569-3589` 白名单（**真源**，15 条）·
   `Tactic` 枚举（13）· `span()` 穷尽臂 · `semantic::KEYWORDS`（13，`sorry` 故意是 `Hole`）·
   `render_tactic`（13）· **"未知 tactic"错误文案（13，已经漏了 `have`）**。
   其中**只有错误文案没有任何判据**，所以它已经漂了而没人知道 ⇒ 本设计把它**由表拼出** ✓。
@@ -59,7 +59,7 @@
    `crates/front/src/judge.rs:10` 一句**注释**提到 Lean 的 `exact?` 教训，
    parser 没有对应分支）⇒ 它**不进文档基线** ✓；同理没有 `intros` 别名
    （只有 `intro` 一条，`intro a b c` 一次剥多层 ✓）。
-10. ⭐ **14 条摘要已在设计阶段定稿**（§4.5：一份文本同时供 hover / 补全 / 索引 / 正文首句，
+10. ⭐ **15 条摘要已在设计阶段定稿**（§4.5：一份文本同时供 hover / 补全 / 索引 / 正文首句，
    四处消费）⇒ P2 只负责落地、不再重新措辞 ✓；**版式也定了**：§4.7 D8 给了模板 +
    **一篇填满且判绿的样板**（`intro.md`，48 行，两个例子都喂过真内核）⇒ P3–P5 是**填空** ✓。
 11. ⭐ **归属已澄清（2026-10-10 用户）**：`apply` 的「目标匹配应做定义展开」是**内核/tactic 行为缺陷**，已改派给**修复线 `d9a701e4`** ⇒ 本文档**不纳入、不要求、不实现**（§7 边界 9）；`apply` 的**文档照写**，但**以落地当天的实际行为为准**（§1.3 已改成显式快照 + R20/R21）✓。**已落地（2026-10-10，G-109）**：`apply` 今天先做多轮定义展开、再按实参位对齐，对不上才报错（报错文案**逐字未变**）⇒ 文档按**新**行为写 ✓。
@@ -69,7 +69,7 @@
 
 ## 1. 现状盘点（每条带 `文件:行`）
 
-### 1.1 ⭐ 文档覆盖基线：本语言**全部**已实现 tactic（14 条）
+### 1.1 ⭐ 文档覆盖基线：本语言**全部**已实现 tactic（15 条）
 
 > **这一节就是 commit / 验收要逐条核对的清单** ✓。口径 = "**用户能在 `by` 块里
 > 写出来的关键字**"，权威来源是 `parser.rs::parse_tactic_inner` 的 match 臂
@@ -124,7 +124,7 @@
 **⑦ 是一条免费的断言链** ⇒ 本设计白拿一层保护：
 `TM 语法 ↔ KEYWORDS ↔ TACTICS(新表)` 一旦接起来，**加一条 tactic 就必须同时**补
 TM 语法词表、编辑器词表、文档表三处，否则既有判据（`extension.rs:1240-1261`）
-或新判据立刻判红 ✓。**本轮 14 条都已在 TM 语法里** ⇒ 不必改那个文件，
+或新判据立刻判红 ✓。**本轮 15 条都已在 TM 语法里** ⇒ 不必改那个文件，
 但 **P1 的判据要显式覆盖这条链**（把"不必改"变成"改了就必须一起改" ✓）。
 
 **⇒ 结论（本设计要建的机制，六件事）**：
@@ -135,7 +135,7 @@ TM 语法词表、编辑器词表、文档表三处，否则既有判据（`exte
    才解析 tactic ⇒ **表里没有的关键字根本不被当成 tactic**（`by` 块直接收空、
    随后按普通表达式解析而报错）⇒ 功能用不了、不是"能跑但没文档" ✓；
 3. **⑥ 从表派生**（错误文案由 `TACTICS` 拼出来）⇒ 顺手**修掉那条真 bug**，
-   并补一条断言文案含全部 14 条（今天零覆盖 ✗）；
+   并补一条断言文案含全部 15 条（今天零覆盖 ✗）；
 4. **④ 保持 `const`，不派生**（理由见 §4.2）⇒ 用**双向判据 + 一条具名的 `sorry` 例外**钉住；
 5. **①②⑤ 交给编译器**（穷尽 match，今天已经在兜）⇒ 判据只需覆盖 ③④⑥⑧ 与⑦那条链；
 6. **一条独立的、编译之外的守卫**（Python 源码 lint，第二意见）⇒ 见 §4.2 末条。
@@ -217,7 +217,7 @@ TM 语法词表、编辑器词表、文档表三处，否则既有判据（`exte
 * **关键字闸门的位置**（`lsp/lib.rs:2545-2551`）：`SemanticKind::Keyword` ⇒ `Ok(None)`。
   它排在 `tactic_goal_hover` **之后** ⇒ tactic 关键字（`intro`/`exact`/`rfl`…）
   今天**已经**有 goal state，而 `def`/`theorem`/`fun`/`=>` 这类关键字 hover **静默** ✗。
-  **① 只动 tactic 那 14 条**：闸门一个字不改（改它 = 顺手放出一堆关键字 hover，
+  **① 只动 tactic 那 15 条**：闸门一个字不改（改它 = 顺手放出一堆关键字 hover，
   那是**另一个需求**，见 §7 边界 7）✓。
 * **`match` 的双重身份**（P1/P3 必须先定死）：`match` 同时是**项位关键字**
   （`is_expr_keyword`，`parser.rs:3565-3567`）与 **tactic**。它今天**已经**在 `by`
@@ -268,19 +268,19 @@ TM 语法词表、编辑器词表、文档表三处，否则既有判据（`exte
 
 | 需求 | 落点 | 用户屏幕上多什么 |
 |---|---|---|
-| ① hover 显示简短说明 | `tactic_goal_hover` 里追加摘要（插入点见 §4.1 ①） | **全部 14 条** tactic 关键字的 hover 里多一段（goal state **之上**、**仍是同一张卡片**） |
+| ① hover 显示简短说明 | `tactic_goal_hover` 里追加摘要（插入点见 §4.1 ①） | **全部 15 条** tactic 关键字的 hover 里多一段（goal state **之上**、**仍是同一张卡片**） |
 | ② F12 跳文档 | `goto_definition` **新增一段前置分支**（插在 `lsp/lib.rs:2848` 那段之前、`definition_at`（`:2913`）之前） | 光标在**任一** tactic 关键字上按 F12 ⇒ 打开 `reference/tactics/<关键字>.md` 并停在标题行 |
-| ③ 完整介绍文档 | 新增 `reference/tactics/**`（**14 篇 + 1 篇索引**） | 每篇 markdown：怎么用 / 什么时候用 / 内核在背后判什么 / 常见错误与出路 / 相关 tactic |
+| ③ 完整介绍文档 | 新增 `reference/tactics/**`（**15 篇 + 1 篇索引**） | 每篇 markdown：怎么用 / 什么时候用 / 内核在背后判什么 / 常见错误与出路 / 相关 tactic |
 | ④ **范围 = 全部 tactic**（用户 2026-10-10 补充） | **文档覆盖基线** = §1.1 的 14 行清单；阶段按族切（§5 P3–P5） | 没有"某条 tactic 点进去没文档"的漏项 ✓ |
 | ⑤ **防漏项机制**（用户 2026-10-10 补充） | §5 P1 的覆盖判据（并集 ↔ 表**双向**比对，进 `soko gate` + CI） | 以后新增 tactic 忘了补文档 ⇒ **CI 判红**，不会静默漏 ✓ |
-| ⑥ **随插件打包分发**（用户 2026-10-10 补充） | §4.9 D10：文档**也**以真文件进 VSIX（`editor/vscode/docs/tactics/`）+ 扩展经 `SOKONANODA_DOCS_DIR` 交给 LSP | 装插件即自带完整文档；`unzip` VSIX 能看见那 14 篇；**离线、零外部站点、零额外拉取** ✓ |
+| ⑥ **随插件打包分发**（用户 2026-10-10 补充） | §4.9 D10：文档**也**以真文件进 VSIX（`editor/vscode/docs/tactics/`）+ 扩展经 `SOKONANODA_DOCS_DIR` 交给 LSP | 装插件即自带完整文档；`unzip` VSIX 能看见那 15 篇；**离线、零外部站点、零额外拉取** ✓ |
 
 ## 3. 决策 D1：文档放在 `reference/tactics/`（**新目录**），不放 `docs/`
 
 **理由（三条，都是可核的）**：
 1. **身份不同**：它是**产品内容**（`include_str!` 进二进制、随 VSIX 发出去、被 `reference/` 之外的课程与技能引用），而 `docs/` 按 `docs/README.md:110-113` 是
    开发者台账（含 CI 失败记录与内部取舍）。把教学文档塞进开发者台账 ⇒ 两类读者、两套寿命混在一处 ✗。
-2. **预算语义不同**：`docs/design/**` 的新文件被 `docs-lint` ④ 卡在 150 行（`docs-lint.py:52`），而这 14 篇是**要长期随语言长大的教学内容**（每加一条
+2. **预算语义不同**：`docs/design/**` 的新文件被 `docs-lint` ④ 卡在 150 行（`docs-lint.py:52`），而这 15 篇是**要长期随语言长大的教学内容**（每加一条
    tactic 就加一篇）⇒ 硬塞进 `docs/design/` 必然长期顶预算、逼出"抬上限"这种被用户点名禁止的动作（`docs-budget.json:_comment`：「**不许靠抬上限达标**」）✗。
 3. **不污染用户的工作区**：`docs/` 是仓库里的开发者面；`reference/` 与 `prelude/`（2026-10-08 E1 落的"真源目录"，`prelude/Prelude.sokonanoda`）同级，
    语义清楚：**这两个目录都是"随产品发出去的内容源"** ✓。
@@ -307,7 +307,7 @@ TM 语法词表、编辑器词表、文档表三处，否则既有判据（`exte
   删掉 ⇒ 新断言必须判红 ✓（AGENTS.md：「守卫必须能咬住已知的历史 bug」）。
   ⚠ **`APPLY_KEYWORD_BASELINE` 不删**（`hover.rs:1092-1105`）：它降级成"**goal state 那一段**"的期望值，继续咬住那份渲染 ✓。
 * ⭐ **`sorry` 也给摘要 —— 本轮已定，不再留"P2 二选一"** ✓：用户补充把范围写成"**【所有】**
-  tactic …… 一个都不能少"，而 `sorry` 就在 §1.1 的 14 条里 ⇒ **它有一句**（§4.5 末行）。
+  tactic …… 一个都不能少"，而 `sorry` 就在 §1.1 的 15 条里 ⇒ **它有一句**（§4.5 末行）。
   **别把两件事混起来** ✗：`NON_NAME_TACTIC_WORDS`（`lsp/lib.rs`）讲的是"**不给它名字类型行**"
   （`#check sorry` 会被内核按 `elab-hole-misplaced` 拒掉），与"**tactic 摘要**"无关。
 
@@ -335,7 +335,7 @@ pub static TACTICS: &[TacticDoc] = &[ /* 14 项 */ ];
 * `include_str!` 的**路径深度有先例**：`prelude.rs:178` 用
   `"../../../../prelude/Eq.sokonanoda"`（从 `crates/front/src/compile/`）；
   本表在 `crates/front/src/tactics.rs` ⇒ 少一层 = `"../../../reference/tactics/<name>.md"` ✓。
-* **体积账**：14 篇 × 约 100 行 × 约 40 B ≈ **50–60 KB**，进 `front` 的每个二进制
+* **体积账**：15 篇 × 约 100 行 × 约 40 B ≈ **50–60 KB**，进 `front` 的每个二进制
   （CLI + LSP + 全部测试）。与 prelude 的三个 `include_str!`（同量级）并列，可忽略 ✓；
   P3 的预算判据（总量 ≤1200 行）同时也是这个数字的上界 ✓。
 
@@ -345,7 +345,7 @@ pub static TACTICS: &[TacticDoc] = &[ /* 14 项 */ ];
 |---|---|---|---|
 | **L1 构造** | `is_tactic_keyword(name)` **派生自** `TACTICS`（`parser.rs:3571-3589` 的 match 换成查表） | ⭐ **"加了 tactic 却没进表"**：表外的关键字不被认作 tactic（`parse_by_block` 直接收空、`tactic_keyword_ahead` 为假）⇒ 功能不可用，而不是"能跑但没文档" ✗→✓ | 一处函数体 |
 | **L2 编译期** | `markdown: include_str!(…)` | **"表里有行、文件不在"** ⇒ **编译失败** ✓（比运行时 `open()` 找不到再静默强得多） | 0（宏自带） |
-| **L3 判据（Rust）** | ① 手写清单（**14 条字面量**）== `TACTICS` 名字集合（**双向**）；② `KEYWORDS` ∩ 名单 == 名单 ∖ {`sorry`}（**具名例外**，理由见下）；③ **行为判据**：表里每条都**不许掉进**兜底臂（兜底臂今天不可达，见 §12 第 6 条）+ 文案本身由 `parser.rs` 单元测试判；④ 每篇正文的文件名 == `name`、且含 **5 个** `##` 小节 | **"绕开 `is_tactic_keyword` 直接往 `parse_tactic_inner` 里加 `kw == \"…\"` 臂"**（那时 L1 不生效）；④ 挡"文件在但正文是空壳" | 一个测试文件 |
+| **L3 判据（Rust）** | ① 手写清单（**15 条字面量**）== `TACTICS` 名字集合（**双向**）；② `KEYWORDS` ∩ 名单 == 名单 ∖ {`sorry`}（**具名例外**，理由见下）；③ **行为判据**：表里每条都**不许掉进**兜底臂（兜底臂今天不可达，见 §12 第 6 条）+ 文案本身由 `parser.rs` 单元测试判；④ 每篇正文的文件名 == `name`、且含 **5 个** `##` 小节 | **"绕开 `is_tactic_keyword` 直接往 `parse_tactic_inner` 里加 `kw == \"…\"` 臂"**（那时 L1 不生效）；④ 挡"文件在但正文是空壳" | 一个测试文件 |
 | **L4 源码 lint（Python，编译之外）** | `scripts/tactic-docs-lint.py`：从 `tactics.rs` 抽 `name: "…"`、从 `parser.rs` 的 `parse_tactic_inner` 区间抽 `kw == "…"` 字面量、从 `reference/tactics/*.md` 抽文件名，**三者比对** | **第二意见**：一侧在 Rust 编译/测试侧、一侧在文本侧，**任一侧漂移都红**；也覆盖"忘了跑 cargo 就先提交"的情形 | 一个小脚本（进 `soko gate` + CI） |
 
 **为什么 L3① 要用手写清单**：Rust **没有反射**（无 `strum`/`variant_count`，
@@ -375,7 +375,7 @@ pub static TACTICS: &[TacticDoc] = &[ /* 14 项 */ ];
 **⑦ 那条既有断言链白拿**：`TM 语法 ↔ KEYWORDS` 的判据已经在
 （`crates/cli/tests/extension.rs:1240-1261`）⇒ 接上 L3② 后，链变成
 `TM 语法 ↔ KEYWORDS ↔ TACTICS` ⇒ **加一条 tactic 必须同时补三处**（TM 词表 /
-KEYWORDS / 文档表），否则任一条判红 ✓。**本轮 14 条都已在 TM 语法里** ⇒ 不改那个文件，
+KEYWORDS / 文档表），否则任一条判红 ✓。**本轮 15 条都已在 TM 语法里** ⇒ 不改那个文件，
 但 P1 的判据清单里要写明"这条链已被覆盖"✓。
 
 ### 4.3 D4：补全弹窗顺带吃到同一份表（① 的免费收益）
@@ -404,7 +404,7 @@ EG-04 的记法目标名）。
 **保持整条 tactic**（`docs/protocol.md:329-331` 已定：在 tactic 任意位置都触发）
 —— 两条相反的取舍**都是有意的**，不写清楚下一棒会以为其中一条写错了 ✗。
 
-### 4.5 D6：14 条摘要**定稿**（P2 只负责落地，不再重新措辞）
+### 4.5 D6：15 条摘要**定稿**（P2 只负责落地，不再重新措辞）
 
 > 为什么在设计阶段就把这 14 句定下来：它们同时是 **hover 摘要**（P2）、
 > **补全弹窗的 `detail`/`documentation`**（P2）、**索引页的一行说明**（P1/P3–P5）
@@ -480,7 +480,7 @@ EG-04 的记法目标名）。
 **⚠ 改一篇文档会重编 `front`（已实测）**：`include_str!` 的文件**进 cargo 的 dep-info** ——
 `target/debug/libsokonanoda_front.d` 里逐字列着 prelude 那三份源
 （`…/src/compile/../../../../prelude/{Eq,L1,Quot}.sokonanoda`）✓。
-⇒ 加 14 篇 `include_str!` 之后，**改任何一篇 ⇒ `front` 重编（连带 `lsp`/`cli`）** ✓。
+⇒ 加 15 篇 `include_str!` 之后，**改任何一篇 ⇒ `front` 重编（连带 `lsp`/`cli`）** ✓。
 这是**设计上的预期**（文档是二进制的一部分、随产物发出去），但对 P3–P5 的
 "写文档"循环有成本含义 ⇒
 * 日常反馈用 `scripts/dev-verify.sh`（脚本头自己写着"**冷跑 ≤ 2 秒**"，`dev-verify.sh:13`）✓；
@@ -489,7 +489,7 @@ EG-04 的记法目标名）。
 
 ### 4.7 D8：页面模板 + **一篇填满的样板**（P3–P5 照抄，不再自行设计版式）
 
-**为什么在设计阶段就把版式定死**：14 篇由 P3–P5 三个阶段写；没有样板 ⇒ 14 种版式，
+**为什么在设计阶段就把版式定死**：15 篇由 P3–P5 三个阶段写；没有样板 ⇒ 14 种版式，
 而判据只查 `##` 标题在不在（**查不出"写得不像同一套文档"** ✗）。
 样板的每一处都对应一条判据，写的人只要**填空** ✓。
 
@@ -582,7 +582,7 @@ example (a b : Prop) : a → b → a := by
 - [`constructor`](constructor.md) —— 目标是 `∧` 时拆成两个子目标
 ````
 
-**行数**：样板 **48 行** ⇒ 距每篇上限（120 行）留一倍余量 ✓；14 篇按这个密度约
+**行数**：样板 **48 行** ⇒ 距每篇上限（120 行）留一倍余量 ✓；15 篇按这个密度约
 **700 行**，也在总量上限（1200）之内 ✓。
 
 #### 4.7.3 索引页 `reference/tactics/README.md` 的形状
@@ -590,7 +590,7 @@ example (a b : Prop) : a → b → a := by
 ````markdown
 # tactic 速查
 
-本语言实现的全部 14 条 `by` tactic。一句话说不清的地方，点进每一篇看完整文档 ——
+本语言实现的全部 15 条 `by` tactic。一句话说不清的地方，点进每一篇看完整文档 ——
 在编辑器里把光标放在 tactic 关键字上按 `F12`，也会直接落到对应那篇。
 
 > 预算（本目录自己的闸，判据在 `crates/front/tests/tactic_docs.rs`）：
@@ -606,7 +606,7 @@ example (a b : Prop) : a → b → a := by
 **逐字**；第三列的链接指向存在的文件 ✓。
 
 > ⚠ **相对链接在 VS Code 的 Markdown 预览里可用** ✓（`exact.md` 这种同目录相对链接），
-> 而物化时 14 篇 + 索引**落在同一个目录**（§4.6 D7）⇒ 链接**在发布形态下也成立** ✓
+> 而物化时 15 篇 + 索引**落在同一个目录**（§4.6 D7）⇒ 链接**在发布形态下也成立** ✓
 > （不是"只在仓库里能点" ✗）。
 
 #### 4.7.4 ⭐ 正文文风：**说人话、教材式连贯叙述**（用户 2026-10-10 拍板，P3–P5 必须遵守）
@@ -627,7 +627,7 @@ example (a b : Prop) : a → b → a := by
 
 **为什么文风不写成判据**（诚实交代）：机器判不了"说人话" ✗ ⇒ 这一条只能靠
 **写的人自查 + 评审抽查**；判据层能保证的是**结构与例子正确**（可核部分）✓。
-**它仍然必须写进设计**：否则 P3–P5 会照 §4.7.2 的要点式样板抄出 14 篇清单 ✗。
+**它仍然必须写进设计**：否则 P3–P5 会照 §4.7.2 的要点式样板抄出 15 篇清单 ✗。
 
 ### 4.8 D9：本次改动**会碰到 / 不会碰到**的既有判据清单（逐条点名）
 
@@ -639,7 +639,7 @@ example (a b : Prop) : a → b → a := by
 
 | # | 判据 / 契约 | 它现在断言什么 | 处置 |
 |---|---|---|---|
-| ① | `crates/lsp/src/tests/hover.rs` `hover_on_a_tactic_keyword_adds_only_the_summary_line`（P2 前叫 `…_is_byte_identical_to_the_old_output`） | 关键字上的 hover **整段** == `APPLY_KEYWORD_BASELINE`（`:1258-1261`），且**不含 `---`**（`:1262-1266`） | **改口径**：改成"把新增那几段删掉后与基线逐字节相同"（§4.1 ①②）；**`---` 那条保留原样** —— ⚠ **它顺带变成对摘要文本的约束：摘要里不许出现 `---`**（实测：14 条摘要**都没有** ✓，最长 44 字） |
+| ① | `crates/lsp/src/tests/hover.rs` `hover_on_a_tactic_keyword_adds_only_the_summary_line`（P2 前叫 `…_is_byte_identical_to_the_old_output`） | 关键字上的 hover **整段** == `APPLY_KEYWORD_BASELINE`（`:1258-1261`），且**不含 `---`**（`:1262-1266`） | **改口径**：改成"把新增那几段删掉后与基线逐字节相同"（§4.1 ①②）；**`---` 那条保留原样** —— ⚠ **它顺带变成对摘要文本的约束：摘要里不许出现 `---`**（实测：15 条摘要**都没有** ✓，最长 44 字） |
 | ② | 同文件 `:1085-1091` —— 基线自己的**文档注释** | 写着"这条守卫挡的是「关键字上**多加一行**」" | ✅ **P2 已改写**（注释写明：现在挡的是"goal state 那一段被改动 / 摘要行之外多东西 / 摘要里的 `---` 与新增围栏"）|
 | ③ | 同文件 `:1109-` `fence_blocks()` + 多处 `fence_blocks(&markup).len()`（如 `:1640`） | 数 hover 里有**几个** ```sokonanoda 围栏块 | **不许新增围栏** ⇒ 摘要**用纯文本**（§4.5 的落地形态已如此定）✓ —— 这条是"纯文本"的**第二个**理由（第一个是 `isTrusted` 缺位让链接没用） |
 | ④ | `crates/cli/tests/extension.rs:1240-1261` | **TM 语法词表 == `KEYWORDS` + `sorts` + `forall/∀`** | **不动**（本案不改 `KEYWORDS`、不改 TM 语法）✓ —— 但它是 §1.2 ⑦ 那条链的一半，P1 的判据要覆盖它 |
@@ -779,18 +779,18 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
   `git status --short -- crates editor skills` **无本会话新增改动** ✓。
 * **不做**：任何 `crates/**`、`editor/**`、`skills/**`、`courses/**`、`prelude/**` 的改动 ✗。
 
-### P1 · 机制：`front::tactics` 表 + **全部 14 条**的单一真相 + 四层防漏项机制 ✅ **已落地（2026-10-10）**
+### P1 · 机制：`front::tactics` 表 + **全部 15 条**的单一真相 + 四层防漏项机制 ✅ **已落地（2026-10-10）**
 
 **as-built**（设计→实现的落点与**每一条实测读数**；下同，"✅ 已落地"= 验收判据全绿 ✓）：
 
 | 交付物 | 落点 | 读数 |
 |---|---|---|
-| ① 单一真相表 | `crates/front/src/tactics.rs`（**234 行**，`TacticDoc` 五字段 + `TACTIC_DOCS` 14 项） | 14 条 ✓ |
+| ① 单一真相表 | `crates/front/src/tactics.rs`（**234 行**，`TacticDoc` 五字段 + `TACTIC_DOCS` 14 项） | 15 条 ✓ |
 | ② 白名单派生（L1） | `parser.rs::is_tactic_keyword` ⇒ `crate::tactics::is_tactic` | 4 个调用点行为不变（`cargo test -p sokonanoda-front --lib` **924 passed**）✓ |
 | ③ 错误文案由表拼出 | `parser.rs::unknown_tactic_message` + `crate::tactics::whitelist_text()` | 顺手修掉"手写名单漏 `have`"✓（**但那条兜底不可达** ⇒ §12 第 6 条更正） |
 | ④ L3 判据 | `crates/front/tests/tactic_docs.rs`（**366 行**，**6** 条判据） | 6 passed ✓ |
 | ⑤ L4 独立 lint | `scripts/tactic-docs-lint.py`（**229 行**，`--json` + `--selftest`） | `表 14 · parser 臂 14 · 文档 14` ✓；`--selftest` **8/8** ✓ |
-| ⑥ 文档骨架 | `reference/tactics/*.md`（**15 篇**，14 篇骨架 + 索引，共 234 行） | 每篇 15 行、索引 21 行（预算 ≤120/≤1200/≤80）✓ |
+| ⑥ 文档骨架 | `reference/tactics/*.md`（**15 篇**，15 篇骨架 + 索引，共 234 行） | 每篇 15 行、索引 21 行（预算 ≤120/≤1200/≤80）✓ |
 | ⑦ 接线 | `scripts/soko`（gate，两步：本体 + `--selftest`）· `.github/workflows/ci.yml`（新 job `tactic-docs-lint`，两个 step） | `ci-yml-lint ✓ 4 个 workflow · 24 个 job` ✓ |
 | ⑧ L1 正面验证（派生后**行为不变**） | `cargo test -p sokonanoda-front --lib` · `cargo test -p sokonanoda-cli` · `cargo test -p sokonanoda-lsp --lib` | front lib **924** · **cli 40 个测试二进制全绿**（0 failed）· lsp lib **207** ✓ |
 
@@ -805,21 +805,21 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
 | 5 | 把 parser 的 `left` 臂改成永不匹配（表里仍有 `left`） | **L4 判红** + **L3 判红**：`` `left` 在表里，却掉进了「未知 tactic」兜底臂 `` | 两头都咬；且**兜底臂当场变成可达** —— 正是它存在的理由 ✓ |
 
 **顺带记两件实现期的发现**（都在 §12 留档）：
-* **那条兜底文案今天不可达**（14 条都有自己的臂 + 3 个调用点都有白名单闸门）
+* **那条兜底文案今天不可达**（15 条都有自己的臂 + 3 个调用点都有白名单闸门）
   ⇒ 初稿把"漏 `have`"记成**用户可见 bug** 是**过重**的，实为**不可达的死文本**（§12 第 6 条更正）✓；
 * **改 `match` 最后一条臂的写法会触发 rustfmt 重排同 `match` 的兄弟臂**
   （`Assumption` 那条被合并成一行）⇒ 属于 fmt 的连带，已随 `cargo fmt -p sokonanoda-front` 一并落 ✓。
 
-### P2 · hover 摘要（需求 ①，**覆盖全部 14 条**）✅ **已落地（2026-10-10）**
+### P2 · hover 摘要（需求 ①，**覆盖全部 15 条**）✅ **已落地（2026-10-10）**
 
 **as-built**（交付物 → 落点 → 读数）：
 
 | 交付物 | 落点 | 读数 |
 |---|---|---|
-| ① hover 摘要行 | `crates/lsp/src/lib.rs`：`tactic_goal_hover` 里插一行；新助手 `tactic_keyword_at`（认关键字）+ `tactic_summary_line`（**唯一渲染点**，文案只来自表） | 14 条全量 ✓ |
+| ① hover 摘要行 | `crates/lsp/src/lib.rs`：`tactic_goal_hover` 里插一行；新助手 `tactic_keyword_at`（认关键字）+ `tactic_summary_line`（**唯一渲染点**，文案只来自表） | 15 条全量 ✓ |
 | ② 补全 `detail`/`documentation` | 同文件 `completion()` 的 keywords 循环 | **13** 条（`sorry` 不在 `KEYWORDS` ⇒ 今天没有它的补全项，**不**凭空造）✓ |
 | ③ 判据改口径 + 更名 | `crates/lsp/src/tests/hover.rs`：`hover_on_a_tactic_keyword_adds_only_the_summary_line`（`APPLY_KEYWORD_BASELINE` 降级成"goal state 那一段"的期望值，注释已改写） | 绿 ✓ |
-| ④ 五条判据 | 同文件：`hover_on_every_tactic_keyword_shows_its_summary`（14 条**逐字** + 双向覆盖）· `hover_on_language_keywords_gets_no_tactic_summary`（边界 7 · 反向）· `tactic_keyword_completion_carries_its_summary_on_the_wire`（**字段存在性**）· `the_hover_summary_line_matches_the_protocol`（文档 ↔ 代码互咬）· `tactic_names_are_prefix_free`（实现前提） | 全绿 ✓ |
+| ④ 五条判据 | 同文件：`hover_on_every_tactic_keyword_shows_its_summary`（15 条**逐字** + 双向覆盖）· `hover_on_language_keywords_gets_no_tactic_summary`（边界 7 · 反向）· `tactic_keyword_completion_carries_its_summary_on_the_wire`（**字段存在性**）· `the_hover_summary_line_matches_the_protocol`（文档 ↔ 代码互咬）· `tactic_names_are_prefix_free`（实现前提） | 全绿 ✓ |
 | ⑤ wire 契约 + 登记 | `docs/protocol.md` 新增 **§The tactic keyword**（`apply` 那一行**逐字** + `sorry` 具名例外）· `docs/visible-changes.md` +1 行 | protocol **1047 ≤ 1048** · visible-changes **56 = 56**（**同轮等量压缩**：protocol 压掉 4 行旧过程叙述、visible-changes 合并 2 行 ✓）|
 
 **三条 P2 定稿的实现决定 / 修正**（设计没写死或写得含糊的地方）：
@@ -839,7 +839,7 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
 |---|---|---|---|
 | 1 | 摘要**不写进输出**（保留调用、去掉 `push_str`） | `hover_on_a_tactic_keyword_adds_only_the_summary_line`（字节判据） | ② 咬得住"少一行"✓ —— ⚠ **第一次的写法（整段删掉）直接编译失败**：两个助手成了 dead code，而本 workspace `-D warnings` ⇒ **构造层比判据层先挡住**（也算一条护栏，但它证不了判据会红）；换成"照常调用、只是不写进输出"才落到判据层 ✓ |
 | 2 | 放宽门（语言关键字也给摘要：`hover()` 的关键字闸门之前插一段） | `hover_on_language_keywords_gets_no_tactic_summary` | 边界 7 有守卫，不是承诺 ✓ |
-| 3 | 改 `tactic_summary_line` 里一个字符 | `hover_on_every_tactic_keyword_shows_its_summary`（14 条里那一条） | "逐字等于表"不是"含有某句话"✓ |
+| 3 | 改 `tactic_summary_line` 里一个字符 | `hover_on_every_tactic_keyword_shows_its_summary`（15 条里那一条） | "逐字等于表"不是"含有某句话"✓ |
 
 ### P3 · 文档正文（一）：**引入与消去** 5 篇 ✅ **已落地（2026-10-10）**
 
@@ -917,7 +917,7 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
 
 | 交付物 | 落点 | 读数 |
 |---|---|---|
-| ① 四篇正文 | `reference/tactics/{have,exfalso,rfl,sorry}.md`（骨架标记已删） | **70 / 54 / 77 / 88** 行（每篇 ≤120 ✓）；**14 篇合计 916** 行（+ 索引 24 = 本目录 940 行 ≤1200 ✓） |
+| ① 四篇正文 | `reference/tactics/{have,exfalso,rfl,sorry}.md`（骨架标记已删） | **70 / 54 / 77 / 88** 行（每篇 ≤120 ✓）；**15 篇合计 916** 行（+ 索引 24 = 本目录 940 行 ≤1200 ✓） |
 | ② 索引 | `reference/tactics/README.md`（**未改**） | 14 行**逐字**等于表（`index_lists_every_tactic_with_its_summary` 绿 ✓）；无状态列 ✓ |
 | ③ 记法规则覆盖 `.md` | `scripts/notation-lint.py`（**未改** —— P3 已建入口，P5 白拿 ✓） | `--root reference/tactics` **15 篇零旧写法** ✓；`--selftest` **11/11** ✓；**整树 6 处全在** untracked 的 `courses/set-theory/units/zz-scratch-user-snippet.sokonanoda`（他人草稿，P3/P4 已证基线）✓ |
 | ④ 例子喂真内核 | `cargo test -p sokonanoda-front --test tactic_docs` | **6 passed**（含 **11 个块逐块 0 诊断** ✓：四篇各 3/1/4/3 块） |
@@ -948,7 +948,7 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
   的目标 λ 项** ⇒ 表格首列记完整原文、表下如实翻译（`第 N 个绑元` = 第几个绑元、`Sort(0)` = `Prop`
   的内部写法）—— §1.3 与 §4.7.1 规则 3 之间的一处**口径歧义**，按"诚实文档"取向解决 ✓。
 
-### P6 · F12 跳转（需求 ②，**覆盖全部 14 条**）✅ **已落地（2026-10-10）**
+### P6 · F12 跳转（需求 ②，**覆盖全部 15 条**）✅ **已落地（2026-10-10）**
 * **交付物**：`goto_definition` 新增一段分支（位置见 §2 表）+
   `front::tactics::doc_path()` 的**五档解析**（§4.9 D10 的 ①②③④⑤：
   仓库真源 → **`SOKONANODA_DOCS_DIR`（插件目录）** → 缓存物化 → 临时物化 → `None`；
@@ -958,7 +958,7 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
   `docs/protocol.md`。
 * **验收（**必须绑用户动作** ✗，AGENTS.md 第 0 条 (a)）**：
   ① `goto_definition_on_every_tactic_keyword_lands_in_its_reference_file`：
-  **14 条逐个**（不是只挑 `intro`/`exact`/`rfl` —— 那正是用户点名的三条，
+  **15 条逐个**（不是只挑 `intro`/`exact`/`rfl` —— 那正是用户点名的三条，
   只测它们等于没测横向 ✗）；每条光标放在**用户实际点的那个字符**
   （关键字的**头一个字符**与**最后一个字符**各测一次 —— E27 的教训是用
   "能跑通的位置"代替"用户点的位置" ✗）；断言 ① 落点是**真文件**、
@@ -975,7 +975,7 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
   指向一个临时目录（里面放假文档）⇒ 断言 F12 **落在那个目录里**（不是缓存、不是仓库），
   且内容与 `TACTICS[i].markdown` **逐字节相同** ✓；**反向判据**：那目录里的文件**不存在**时
   ⇒ 必须**继续往下走**（落到 ③ 档），**不是**返回死指针 ✗；
-  ⑦ ⭐ **那 14 篇正文若在本阶段之前又变过**（R20/R21）：动笔前把 §1.3 的复现片段**重新喂一次**
+  ⑦ ⭐ **那 15 篇正文若在本阶段之前又变过**（R20/R21）：动笔前把 §1.3 的复现片段**重新喂一次**
   内核，按**当次读数**落笔，**不许照抄快照** ✗（⚠ 本条原为"`apply.md` 对着当天内核写"，
   `apply` 那条线已落地 ⇒ **该判据已移交 P3** ✓）。
 * **不做**：不新增自定义 scheme / `TextDocumentContentProvider` ✗（§1.4 末条）。
@@ -1034,7 +1034,7 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
   端到端判据**（front 验表与例子、LSP 验 wire、e2e 验用户看见的东西 ✓）。⚠ 至少覆盖**三条**（引入族
   `intro`、糖 `constructor`、容易抢项位的 `match`），其余交给 LSP 层逐条判据 ✓。
 * **验收**：① **打包判据（机械）**：VSIX 里**真的有**那 15 个条目（`unzip -l <vsix> | grep
-  extension/docs/tactics/` ⇒ **14 篇 + 索引**，逐名核对）✓ —— 把"随插件分发"变成**可判的事实** ✗→✓；
+  extension/docs/tactics/` ⇒ **15 篇 + 索引**，逐名核对）✓ —— 把"随插件分发"变成**可判的事实** ✗→✓；
   ② **漂移判据**：`node editor/vscode/scripts/stage-docs.js --check` exit 0（**反向验证**：手改插件里那份
   一个字节 ⇒ 判红 ✓）；③ **e2e**：断言打开的**落点在扩展目录下**（`…/docs/tactics/<kw>.md`）——
   "随插件分发"的**用户可见**判据 ✓（与①合起来是**一条用例的两个断言**，不重复跑宿主）；
@@ -1058,12 +1058,12 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
 | R4 | **hover 变长把 goal state 挤掉** | 摘要**插在 tactic 行之后、goal state 之前**且**不新起段落**；判据钉"把新增那几行删掉后与 `APPLY_KEYWORD_BASELINE` 逐字节相同"（§4.1 ②） |
 | R5 | **两处 wire 契约文档都在 0 余量的 L1 层**：`docs/protocol.md` **1048/1048**、`docs/visible-changes.md` **56/56**（冻结值 = 当前实测值）⇒ P2/P4 想加行，`docs-lint` ⑦ 立刻判红 ✗ | **对策（也是本设计对文档纪律的表态）**：**同轮做等量压缩**，不许抬 L1 上限 ✗。具体：`docs/protocol.md` §Tactic goal-state hover（`:285-333`）里属于"**将来会变**"的部分（摘要行措辞、F12 分支的**动机与阶段计划**）压缩成 **≤6 行 + 指向本文**（`docs/design/tactic-docs.md` 才是计划的唯一权威，`protocol.md` 只留**今天的 wire 契约** ✓）；F12 那一节同理。`docs/visible-changes.md` 的 +2 行从它自己的旧条目里压回来 ✓ |
 | R6 | **例子判红**（文档里的代码过不了内核） | §5 P3–P5 的共同判据 ② 把**每个** ```sokonanoda 例子喂 `parse`+`compile`（0 诊断）；写正文前先 `scripts/soko grade <临时文件>` 跑一遍 |
-| R7 | **14 篇文档与 `skills/sokonanoda-teacher` 已有的 tactic 说法分叉** | §5 P7 把 SKILL.md 的"tactic 白名单（全量）"段（`skills/sokonanoda-teacher/SKILL.md:286` 附近）改成**指向 `reference/tactics/`**（**同一份真相**）；`crates/cli/tests/skill.rs` 的既有守卫继续管入口不漂移 |
+| R7 | **15 篇文档与 `skills/sokonanoda-teacher` 已有的 tactic 说法分叉** | §5 P7 把 SKILL.md 的"tactic 白名单（全量）"段（`skills/sokonanoda-teacher/SKILL.md:286` 附近）改成**指向 `reference/tactics/`**（**同一份真相**）；`crates/cli/tests/skill.rs` 的既有守卫继续管入口不漂移 |
 | R8 | **`with` / `sorry` 是不是 tactic** 的边界说法不一 | §1.1 + §4.1 定死：`with` **不在基线里**（`cases … with` 的连接词，`parser.rs:3569-3589` 本来就没有它）；`sorry` **在基线里、也给摘要**（用户补充的「一个都不能少」已包含它），它与 `NON_NAME_TACTIC_WORDS`（不给**名字类型行**）是两件不同的事 ✓ |
 | R9 | **`docs/design/by-tactics.md` 已删但仍有 9 处引用**（`crates/front/src/lib.rs:11`、`by.rs` 4 处、`judge.rs:335`、`report.rs:65`、`check/mod.rs` 2 处、`crates/cli/tests/extension.rs:117`），另有 `docs/design/tactic-hover.md` 被 `ROADMAP.md:403` 引用 | 这**不在本需求范围内**（`docs/README.md:101-104` 的全局规则已覆盖："历史由 git 追溯"）；但 P3 的文本**可以**顺手提供"tactic 引擎在哪、按什么判"的活指针 ⇒ 建议 P5 把那批引用改成指向 `docs/design/tactic-docs.md` §1.4（**单独立项、不混进本批** ✗）。本文的**命名刻意避开这两个死名字**（叫 `tactic-docs.md`）✓ |
 | R10 | **物化写盘在只读环境失败**（受限沙箱 / 只读 HOME / 只读缓存） | 照抄 `prelude_source_path` 的三段兜底（仓库真源 → 缓存 → 临时目录），**四处都写不进 ⇒ `None`**；F12 的判据里**必须**有一条「答 `None` 而不是给死指针」（§5 P6 验收 ③）✓ |
-| R12 | ⭐ **范围扩到全部 tactic 后，工作量与"完整性"同时放大**（14 篇正文 + 14 条 hover + 14 条 F12）；若只做完 `intro`/`exact`/`rfl` 就报"完成"，用户看到的仍是"大部分 tactic 没有文档" ✗ | **阶段按族切**（§5 P3/P4/P5 各 5+5+4 篇）⇒ 每一族**独立可交付**；**验收按 §1.1 的 14 条基线逐条核**（判据是"并集 ⊆ 表"且"表 ⊆ 并集"，不是抽查）✓；**任何一族没做完就不许报"需求 ③ 完成"** ✗ |
-| R13 | **`match` 被"重复计数"或"被漏计"**：它既在 parser 白名单里、又长得像 `exact`（§1.2 第 ⑤ 行） | 基线表 §1.1 **按"关键字"取值**（14 条，`match` 单独一行）；P1 判据的输入是 §1.1 的关键字列，**不是**枚举名 ⇒ 重复/漏计两个方向都被判据挡掉 ✓ |
+| R12 | ⭐ **范围扩到全部 tactic 后，工作量与"完整性"同时放大**（15 篇正文 + 15 条 hover + 15 条 F12）；若只做完 `intro`/`exact`/`rfl` 就报"完成"，用户看到的仍是"大部分 tactic 没有文档" ✗ | **阶段按族切**（§5 P3/P4/P5 各 5+5+4 篇）⇒ 每一族**独立可交付**；**验收按 §1.1 的 15 条基线逐条核**（判据是"并集 ⊆ 表"且"表 ⊆ 并集"，不是抽查）✓；**任何一族没做完就不许报"需求 ③ 完成"** ✗ |
+| R13 | **`match` 被"重复计数"或"被漏计"**：它既在 parser 白名单里、又长得像 `exact`（§1.2 第 ⑤ 行） | 基线表 §1.1 **按"关键字"取值**（15 条，`match` 单独一行）；P1 判据的输入是 §1.1 的关键字列，**不是**枚举名 ⇒ 重复/漏计两个方向都被判据挡掉 ✓ |
 | R14 | **用户清单里的 `exact?` 被当成"已实现"写进文档** | §1.1 已实证：`exact?` **本语言没有**（只有 `judge.rs:10` 一句注释）；P3–P5 的验收③（骨架 + 内容）里加一条：文档正文**不许出现**基线表之外的关键字当"支持"（人工评审 + §1.1 是唯一权威）✓ |
 | R16 | ⭐ **"取 `Tactic` 枚举的变体名做判据"在 Rust 里实现不了**（无反射、无 `strum`/`variant_count`；本仓 `Cargo.toml` 也没有）⇒ 初稿的 P1 判据 ① 是**不可实现**的 ✗ | **已改**（§4.2 L1/L3）：机制改成 **L1 派生（构造上不可能漏）+ L3 手写清单**（本仓已有同形先例 `hover.rs:1374-1389`）+ **L4 独立源码 lint**。**不再声称能"枚举变体"** ✓ —— 见 §12 第 1 条 |
 | R17 | **`sorry` 会让粗糙判据假红**：它在白名单里（真 tactic），但**故意不在 `KEYWORDS`**（是 `SemanticKind::Hole`，`semantic.rs:866-867`） | §4.2 L3② 给**具名例外**（表里带 `semantic_kind` 字段并按字段分流）；**禁止**写成"跳过所有不在 KEYWORDS 的项"（那等于阉掉判据 ✗）—— 见 §12 第 2 条 |
@@ -1072,10 +1072,10 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
 | R26 | **`--no-build` 快路下文档没 stage** ⇒ P7 的"F12 落点在扩展目录下"**误红** ✗ （而 `--no-build` 正是 `docs/E2E.md` §1b 推荐的秒级单用例路） | §4.9.7：`--no-build` **只**跳过二进制构建与 stage；**文档 stage 无条件跑**（15 次拷贝、零编译）⇒ 快路与全量路**同口径** ✓ |
 | R22 | ⭐ **插件里那份拷贝会与源漂移**（`reference/tactics/` 改了、忘了重跑打包脚本）⇒ 插件自带的文档与 hover 摘要/索引**说的不是一回事** ✗ | §5 P7 的 `stage-docs.js --check`（只比对不写、漂移 exit 1）挂进 `soko gate` + CI + 打包线 ✓；**反向验证**：手改插件里那份一个字节 ⇒ 判红 ✓。⚠ **不靠"记得同步"** ✗ —— 那是本设计要消灭的病（§1.2 六份副本）✓ |
 | R23 | **LSP 拿不到 `SOKONANODA_DOCS_DIR`**（opencode / DSH / CLI / 用户在非扩展环境直跑）⇒ 若把插件目录当**唯一**来源，这些入口**没有文档** ✗（回归） | **两条通道**（§4.9 D10）：通道 ② 的 `include_str!` 内嵌是**兜底且自包含**的 ⇒ 五档解析里 ②（插件目录）不成立就落到 ③④（物化）✓；P6 判据 ⑥ 专门钉「目录在但文件缺 ⇒ 继续往下走」✓ |
-| R24 | **VSIX 里出现两份同样的文档**（`bin/` 里 LSP 内嵌的 + `docs/tactics/` 的真文件）⇒ 体积 +「到底哪份是权威」的歧义 ✗ | 体积：14 篇 ≈ **60 KB**，对 **16 MB** 的 VSIX 可忽略 ✓；权威性：**源唯一**（仓库 `reference/tactics/`），两份都是**派生物**且由 R22 的判据保证一致 ⇒ 歧义只在"没有源"时才会被感知，而那时两份必然相同 ✓ （**判据**：P6 判据 ⑥ 断言插件那份与 `TACTICS[i].markdown` 逐字节相同 ✓）|
+| R24 | **VSIX 里出现两份同样的文档**（`bin/` 里 LSP 内嵌的 + `docs/tactics/` 的真文件）⇒ 体积 +「到底哪份是权威」的歧义 ✗ | 体积：15 篇 ≈ **60 KB**，对 **16 MB** 的 VSIX 可忽略 ✓；权威性：**源唯一**（仓库 `reference/tactics/`），两份都是**派生物**且由 R22 的判据保证一致 ⇒ 歧义只在"没有源"时才会被感知，而那时两份必然相同 ✓ （**判据**：P6 判据 ⑥ 断言插件那份与 `TACTICS[i].markdown` 逐字节相同 ✓）|
 | R20 | ⭐ **`apply` 的行为曾被另一条线改**（修复线 `d9a701e4`：`apply` 的目标匹配要做定义展开对齐 Lean 4）⇒ 本文 §1.3/§4.5 对 `apply` 的描述一度是**旧行为**，照抄就会交付一篇**描述旧行为**的文档 ✗ | **已落地 2026-10-10**：§1.3 的 `apply` 行、表下那条、§4.5 的注、§0 第 11 条**同轮改齐**；**P3 判据 ⑦**（原挂 P6）：写 `apply.md` 前**必须重新喂一次内核**，以当天行为为准 —— P3 已按此办理（新行为过 ✓、报错文案逐字未变 ✓）；**§7 边界 9** 明写这条修复**不归本文档**（不写需求、不立判据、不动判定路径）✓ |
 | R21 | **同类风险普遍存在**：本设计的所有行为读数（§1.3 的 12 条消息、§4.5 的摘要依据）都是**某一天的快照**，别的线随时可能改掉其中任何一条 ⇒ 若把快照当契约，交付的文档会悄悄变成假话 ✗ | 把「**照抄 §1.3**」降级成「**以落地当天的实测为准**」：P3–P5 的判据 ②（例子逐块喂内核）已经强制"例子必须真绿"，再加一条**人为规则**（§4.7.1 规则 3 的"逐字复制"限定在**当天重测过**的前提下）✓ —— **判据能咬住"例子错"，咬不住"描述旧行为"** ✗，所以这一条只能靠流程 + 本文的显式声明 ✓ |
-| R19 | **"未知 tactic" 文案漏 `have`（既有用户可见 bug）且今天零判据覆盖** ⇒ 同类漂移随时会再发生 | §4.2 让文案**由表拼出**（⑥ 派生）+ P1 判据 (c) 断言含全部 14 条。⚠ **要不要在本轮修**：**要**（一行改动 + 一条判据，属于"顺手修掉同类漏项"，不是新功能 ✗）—— 见 §12 第 4 条 |
+| R19 | **"未知 tactic" 文案漏 `have`（既有用户可见 bug）且今天零判据覆盖** ⇒ 同类漂移随时会再发生 | §4.2 让文案**由表拼出**（⑥ 派生）+ P1 判据 (c) 断言含全部 15 条。⚠ **要不要在本轮修**：**要**（一行改动 + 一条判据，属于"顺手修掉同类漏项"，不是新功能 ✗）—— 见 §12 第 4 条 |
 | R15 | **`reference/**` 完全在 `docs-lint` 与过期机制之外** ⇒ 长期可能变成"没人管的文档堆" ✗ | §1.6 已把这条写成**明账**；P1 的判据把 `reference/tactics/**` 纳入 CI（覆盖 + 骨架 + 例子 + 预算）⇒ 它**有自己的闸**，而且比 `docs-lint` 更严（例子必须过内核 ✓）|
 | R11 | **`docs/protocol.md` 已有未修的计数漂移**（`:396` 写 "five custom requests"，实际注册 7 条，`lsp/lib.rs:3344-3350`） | P5 顺手改掉这一句，并**同类横排**：`docs/protocol.md` 里所有"几条/几个"的数字都核一遍（AGENTS.md 第 0 条 (b)：同类问题不许只修单点）✓ —— 但这属于**文档纠错**，不与本需求的契约新增混为一谈 ✓ |
 
@@ -1091,7 +1091,7 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
 8. **不给 Infoview 加"点关键字看文档"**：`extension.js:1473-1500` 的 `gotoDefinition()` 在服务端答 `null`时**静默降级成 `revealRange`**（`extension.js:1481-1496`）⇒ 走那条路要么改它的降级行为、要么加一条它会静默骗人的用例。P4 交付的是 **F12（用户点名的那条）**；Infoview 那条**记进 §6 R6 的边界** ✓。
 
 9. ⭐ **不实现 `apply` 的目标匹配修复**（**归属：修复线 `d9a701e4`**，用户 2026-10-10 澄清）：`mem_of_subset_singleton` 里 `apply Eq.refl a` 报"目标不匹配"、期望 `apply` 支持**定义展开**对齐 Lean 4 —— 那是**内核/tactic 行为缺陷**，属**修复**范畴 ✗。本次交付的是**文档体系**（hover 摘要 /
-   F12 跳转 / 14 篇介绍 / 防漏项门禁）：**不把它写进需求、不立判据、不改 `by.rs` 的判定路径** ✓。`apply` 的**文档照写**，但**以落地当天的实际行为为准**（§1.3 的快照规则）✓。
+   F12 跳转 / 15 篇介绍 / 防漏项门禁）：**不把它写进需求、不立判据、不改 `by.rs` 的判定路径** ✓。`apply` 的**文档照写**，但**以落地当天的实际行为为准**（§1.3 的快照规则）✓。
 10. **不做任何"在线文档 / 外部站点 / 首次运行拉取"**（用户 2026-10-10 明确）：文档**只**从插件与二进制里来（§4.9 D10 两条通道），**没有网络调用、没有 CDN、没有"缺文档就下载"** ✗ —— 这与仓库既有的版本锁定纪律（禁 `releases/latest`）同向 ✓。
 ## 8. 预算账（本文自己也要过闸）
 
@@ -1201,8 +1201,8 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
    **改成**：`is_tactic_keyword` **派生自表**（构造上不可能"有 tactic 无文档"，
    因为 `parse_by_block`/`tactic_keyword_ahead` 走同一个函数）+ 手写清单判据
    （本仓先例 `crates/lsp/src/tests/hover.rs:1374-1389`）+ 独立的 Python 源码 lint ✓。
-   **保留的正确部分**：基线表 = 14 条（§1.1）、"只比枚举会漏 `match`"的论断仍然成立 ✓。
-2. **"`KEYWORDS` 覆盖 14 条" —— 是错的，实际 13** ✗→✓。
+   **保留的正确部分**：基线表 = 15 条（§1.1）、"只比枚举会漏 `match`"的论断仍然成立 ✓。
+2. **"`KEYWORDS` 覆盖 15 条" —— 是错的，实际 13** ✗→✓。
    初稿把 `semantic::KEYWORDS` 记成"14，靠注释人肉同步"。实测：`KEYWORDS` 39 项里
    tactic 只有 **13**，`sorry` **不在**其中 —— 而这是**有意设计**：`sorry` 被归成
    `SemanticKind::Hole`（`semantic.rs:866-867`，判据 `:999`/`:1419`）✓。
@@ -1237,7 +1237,7 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
    **实测推翻了它**：`parse_tactic()` 只有 **3 个**调用点
    （`parse_by_block` / `parse_tactic_sequence_in_arm` / `parse_nested_tactic_sequence`），
    **每个前面都有 `tactic_keyword_ahead()` 闸门**，而它走 `is_tactic_keyword`（= 表成员）
-   ⇒ 进得来的一定在表里；表里 **14 条在 `parse_tactic_inner` 里都有自己的臂**
+   ⇒ 进得来的一定在表里；表里 **15 条在 `parse_tactic_inner` 里都有自己的臂**
    ⇒ 兜底臂**取不到**。打错一条 tactic（`hax`）走的是"空 `by` 块 + 未知命令"
    那条路（实测报 `expected a .sokonanoda command, found Token { … Ident("hax") }`），
    **根本到不了**那条文案。
@@ -1270,11 +1270,11 @@ serverOptions = { run:   { command, transport: TransportKind.stdio, options: { e
 
 ### 12.3 本文**三张 14 行表**的一致性（用 L4 的同一手法自查）
 
-本文有三处独立手写的 tactic 表：**§1.1** 覆盖基线 · **§1.3** 语义与错误文案 · **§4.5** 14 条摘要 —— 一处漏
+本文有三处独立手写的 tactic 表：**§1.1** 覆盖基线 · **§1.3** 语义与错误文案 · **§4.5** 15 条摘要 —— 一处漏
 一条或写错名，设计就自相矛盾 ✗（而"六份副本靠人同步"正是本设计要消灭的病，§1.2）。
 **手法 = L4 的预览**：正则抽三张表的关键字列 → 断言 **都是 14 行** · **三个集合相等** · **编号都是 1..14** ·
 **§1.1 的文档文件列逐行等于 `<关键字>.md`** ✓。
-**读数**：**通过 ✓**（三张表都是同样 14 条）。⭐ **它当场咬到一次**：§1.3 原先把 `left`/`right` 合成**一行**
+**读数**：**通过 ✓**（三张表都是同样 15 条）。⭐ **它当场咬到一次**：§1.3 原先把 `left`/`right` 合成**一行**
 （13 行）⇒ 判据立刻报"§1.3 不是 14 行" ⇒ 已拆成两行 ✓ —— **这条读数本身就是 L4 可行性的证据** ✓。
 ⚠ **已知假阳性**：它与**节范围**绑定，而一节里可能出现**第二张表**（§1.3 表下那张"快照/归属"表，首列又是
 `apply`）⇒ 会报"§1.3 有 15 行" ✗；**修法 = 只看每节的【第一张连续表】**（已改 ✓）。⚠ 这条限制**不影响

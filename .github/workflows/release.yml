@@ -205,14 +205,14 @@ jobs:
           }
           universal = "dist/sokonanoda-universal.vsix"
 
-          # 14 tactic pages + the index, checked BY NAME and byte-for-byte against
+          # 15 tactic pages + the index, checked BY NAME and byte-for-byte against
           # `reference/tactics/` — this is the "拷贝 == 源" judgement for the docs
           # channel (docs/design/tactic-docs.md §4.9.1 / R22), run on EVERY
           # artifact so a packaging line that forgot the docs stage cannot ship.
           DOCS = [
               "README.md", "apply.md", "assumption.md", "cases.md", "constructor.md",
               "exact.md", "exfalso.md", "have.md", "intro.md", "left.md", "match.md",
-              "rfl.md", "right.md", "sorry.md", "use.md",
+              "rfl.md", "right.md", "sorry.md", "unfold.md", "use.md",
           ]
 
           def check_docs(path, names, read):

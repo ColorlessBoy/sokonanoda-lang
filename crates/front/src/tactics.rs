@@ -98,6 +98,13 @@ pub static TACTIC_DOCS: &[TacticDoc] = &[
         markdown: include_str!("../../../reference/tactics/rfl.md"),
     },
     TacticDoc {
+        name: "unfold",
+        summary: "把目标里点名的常量展开成定义体（`unfold Set.mem Set.singleton`）。",
+        variant: "Unfold",
+        semantic_kind: SemanticKind::Keyword,
+        markdown: include_str!("../../../reference/tactics/unfold.md"),
+    },
+    TacticDoc {
         name: "match",
         summary: "对项做情形分析，臂体写的是项（等价于 `exact (match …)`）。",
         // `match` 是**唯一**"关键字 ≠ AST 变体"的一条：它解析成
@@ -274,7 +281,11 @@ mod tests {
     /// 只是让本模块的自测能独立咬住"手滑"）。
     #[test]
     fn the_table_has_no_duplicate_and_no_empty_entry() {
-        assert_eq!(TACTIC_DOCS.len(), 14, "tactic 基线是 14 条（设计 §1.1）");
+        assert_eq!(
+            TACTIC_DOCS.len(),
+            15,
+            "tactic 基线是 15 条（设计 §1.1；`unfold` 2026-10-11 加）"
+        );
         for t in TACTIC_DOCS {
             assert!(!t.name.is_empty() && !t.summary.is_empty() && !t.variant.is_empty());
             assert!(!t.markdown.is_empty(), "`{}` 的正文是空的", t.name);
@@ -287,13 +298,13 @@ mod tests {
         }
     }
 
-    /// 白名单文本**恰好**含全部 14 条、且以 ` / ` 分隔（"未知 tactic"文案照它拼）。
+    /// 白名单文本**恰好**含全部 15 条、且以 ` / ` 分隔（"未知 tactic"文案照它拼）。
     #[test]
     fn whitelist_text_lists_every_tactic() {
         let text = whitelist_text();
         let parts: Vec<&str> = text.split(" / ").collect();
         assert_eq!(parts, names().collect::<Vec<_>>());
-        assert_eq!(parts.len(), 14);
+        assert_eq!(parts.len(), 15);
     }
 
     /// `is_tactic` 与表**同集合**（两个方向都试）。

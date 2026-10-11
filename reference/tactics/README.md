@@ -13,6 +13,7 @@
 | `apply` | 用一条函数的结论对上目标，它剩下的前提各自变成新目标。 | [apply](apply.md) |
 | `assumption` | 在已有假设里找一条与目标定义相等的，直接结束当前目标。 | [assumption](assumption.md) |
 | `rfl` | 自反：目标是 `=` 或 `↔`，且两边定义相等时成立。 | [rfl](rfl.md) |
+| `unfold` | 把目标里点名的常量展开成定义体（`unfold Set.mem Set.singleton`）。 | [unfold](unfold.md) |
 | `match` | 对项做情形分析，臂体写的是项（等价于 `exact (match …)`）。 | [match](match.md) |
 | `constructor` | 按目标取第一个构造子，它的参数变成新目标。 | [constructor](constructor.md) |
 | `left` | 选目标归纳的第一个构造子（`A ∨ B` 上就是左边 `A`）。 | [left](left.md) |

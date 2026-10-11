@@ -1,0 +1,44 @@
+-- **G-114 自断言复现**：`rfl` 必须能关掉「**定义上**等于 `a = a`、但语法头不是 `Eq`」的目标。
+--
+-- 用户原报（2026-10-11）：
+--   `theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α) (h : {a} ⊆ A)
+--    : a ∈ A := by apply h; rfl`
+--   ⇒ 修前报「`rfl` 需要目标是 `Eq α x y` 或 `Iff A B` 形状；当前目标是 `a ∈ ({a})`」✗
+--   （`apply h` 之后的目标就是 `a ∈ ({a})`，它**定义上**是 `a = a`：
+--     `Set.mem` → `Set.singleton` → beta）。
+--
+-- **Lean 4 对照**（本机 `~/Documents/lean/lean4`，`MVarId.applyRfl` =
+-- `src/Lean/Meta/Tactic/Rfl.lean`）：
+--   `let t ← whnfR <|← goal.getType` ⇒ 先把目标类型 **weak-head 归约**、再
+--   `isDefEq lhs rhs`、最后 `goal.assign (mkApp2 (mkConst ``Eq.refl us) α lhs)`
+--   ⇒ 真 Lean 里这段代码**不用改写就过** ✓（`Init/Tactics.lean:427` 的
+--   `macro_rules | `(tactic| rfl) => `(tactic| apply_rfl)`）。
+--
+-- 修后契约（2026-10-11）：本语言**没有内核 whnf 的公开入口** ⇒ 用**源级多轮展开
+-- 逼近 whnf**（`by.rs::unfold_head_deep`，与 G-109 的 `apply` 修复同一份机械；
+-- `spine::unfold_one_with` 认内建糖的头 `{a}` → `Set.singleton` 并自消 beta）。
+-- 候选仍交**内核**终审 ⇒ **零假绿面**（形状猜错内核照样判红）。
+-- ⇒ **本文件必须判绿**（`repro_expect: clean`）。
+--
+-- 常驻判据（不在本文件里）：
+--   * `crates/front/src/compile/tests.rs::rfl_closes_a_goal_that_is_an_eq_only_after_unfolding_the_sugar`
+--     （正向；**反向验证已实测**：把 `unfold_head_deep` 退回 `unfold_head_once` ⇒ 当场判红 ✓）
+--   * `...::rfl_stays_red_when_the_unfolded_membership_is_not_reflexive`
+--     （反向：`a ∈ {b}` / `a ∈ {a, b}` 仍判红，不许放宽成"见到糖就过"）。
+
+def Set (α : Type) : Type := α → Prop
+def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a
+def Set.subset {α : Type} (A B : Set α) : Prop := ∀ (x : α), Set.mem x A → Set.mem x B
+infix:50 " ∈ " => Set.mem
+infix:50 " ⊆ " => Set.subset
+
+-- ① 用户原形状：`apply h` 之后目标是 `a ∈ ({a})`。
+theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
+    (h : {a} ⊆ A) : a ∈ A := by
+  apply h
+  rfl
+
+-- ② 最简同构（直接就是那个目标）。
+theorem direct (α : Type) (a : α) : a ∈ {a} := by
+  rfl

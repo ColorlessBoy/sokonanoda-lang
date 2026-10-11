@@ -1427,6 +1427,33 @@ impl Parser {
                     span: Span::new(tok.span.start, end),
                 })
             }
+            TokenKind::Ident(kw) if kw == "unfold" => {
+                // `unfold Foo Bar`（Lean 同名 tactic，2026-10-11 用户要求）：把目标里
+                // **每一处**这些常量的定义体展开出来。与 `intro` **同一条纪律**：
+                // 吃名字时**遇到 tactic 关键字就停** —— `unfold Set.mem` 换行后写
+                // `rfl` / `exact …` 是常态，那些关键字绝不能被当成常量名 ✗。
+                self.bump();
+                let mut names: Vec<(String, Span)> = Vec::new();
+                let mut end = tok.span.end;
+                while let TokenKind::Ident(name) = &self.peek().kind {
+                    if is_tactic_keyword(name) {
+                        break;
+                    }
+                    let name_tok = self.bump();
+                    end = name_tok.span.end;
+                    if let TokenKind::Ident(name) = name_tok.kind {
+                        // span = **名字自己的**（不含前导空格）⇒ hover/F12 用它。
+                        names.push((name, name_tok.span));
+                    }
+                }
+                if names.is_empty() {
+                    return Err(self.error_here("`unfold` constant name"));
+                }
+                Ok(Tactic::Unfold {
+                    names,
+                    span: Span::new(tok.span.start, end),
+                })
+            }
             TokenKind::Ident(kw) if kw == "exact" => {
                 self.bump();
                 let expr = self.parse_expr()?;

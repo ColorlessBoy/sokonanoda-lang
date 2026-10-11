@@ -254,7 +254,8 @@ fn peel_pi_delta_deep(
     crate::spine::peel_pi_delta_n(expr, defs, &hint_of, limit)
 }
 
-/// 头**递归展开**若干轮（G-109）：`apply` 的目标匹配要**对齐到判等**。
+/// 头**递归展开**若干轮（G-109）：`apply` 的目标匹配要**对齐到判等**；
+/// `rfl` 也要它（对齐 Lean 4 的 `whnfR`，见 `Tactic::Rfl`）。
 ///
 /// **Lean 4 对照**（本机 `~/Documents/lean/lean4`，`MVarId.apply` =
 /// `src/Lean/Meta/Tactic/Apply.lean:166`）：`forallMetaTelescopeReducing`（`:204`，
@@ -266,9 +267,10 @@ fn peel_pi_delta_deep(
 /// `Set.mem` → `Set.singleton` → beta 才到 `a = a`）时报「目标不匹配」✗。
 ///
 /// 这里用**源级多轮展开逼近 whnf**：每轮按**当前**表达式重算层级提示，
-/// `unfold_one_with` 自己消 beta redex（`spine.rs:427-429`）。**判等终审仍在
-/// 内核**（`exact` 那条 `check_def_like_v`/`def_eq_at`）—— 我们只决定"往哪个
-/// 形状上对齐"，不自己宣布相等 ✓。这是**白纸黑字的偏离**：不引入内核 mvar 合一。
+/// `unfold_one` 自己消 beta redex、并认**内建糖的头**（`{a}` → `Set.singleton`，
+/// 见 `spine::unfold_one_with`）。**判等终审仍在**内核（`exact` 那条
+/// `check_def_like_v`/`def_eq_at`）—— 我们只决定"往哪个形状上对齐"，不自己宣布
+/// 相等 ✓。这是**白纸黑字的偏离**：不引入内核 mvar 合一。
 ///
 /// 返回每一轮的候选（按展开深度递增），供调用方逐轮试。
 fn unfold_head_deep(
@@ -283,7 +285,7 @@ fn unfold_head_deep(
     let mut cur = expr.clone();
     for _ in 0..limit {
         let hint = level_hint_of(&cur, defs, binders, prefix_src, options);
-        let Some(next) = unfold_head_once(&cur, defs, hint.as_deref()) else {
+        let Some(next) = crate::spine::unfold_one(&cur, defs, hint.as_deref()) else {
             break;
         };
         if next == cur {
@@ -1951,22 +1953,67 @@ fn run_tactics<'a>(
                 // 归一化失败也一律退回原 AST（绝不因为 rfl 把好文件判红）。
                 // `Iff` 头（`A ↔ B` / `Iff A B`）在 [`rfl_candidate`] 里直接认，
                 // 不走这条归一化（候选 `Iff.rfl` 不需要补隐式实参）。
-                let candidate_and_closed = rfl_candidate(&nodes[cur].ty).or_else(|| {
+                //
+                // **第 1..=4 轮（2026-10-11 用户实测）**：目标是 `a ∈ ({a})` 时，
+                // 上面两条都答不上来 —— 它**定义上**就是 `a = a`，但源 AST 与内核
+                // pp 的头都是 `Set.mem`。**Lean 4 对照**（本机
+                // `~/Documents/lean/lean4`，`MVarId.applyRfl` =
+                // `src/Lean/Meta/Tactic/Rfl.lean`）：`let t ← whnfR <|← goal.getType`
+                // ⇒ **先把目标类型 weak-head 归约**、再 `isDefEq lhs rhs`、最后
+                // `goal.assign (mkApp2 (mkConst ``Eq.refl us) α lhs)` —— 真 Lean 里
+                // 这段代码**不用改写就过**（`Init/Tactics.lean:427` 的
+                // `rfl => apply_rfl`）✓。
+                //
+                // 我们**没有内核 whnf 的公开入口** ⇒ 用**源级多轮展开逼近 whnf**
+                // （`unfold_head_deep`，与 G-109 的 `apply` 修复**同一份机械**：
+                // `Set.mem` → `Set.singleton` → beta 才到 `a = a`）。判定仍在内核
+                // （候选照旧交 `judge` 终审）⇒ 只多"往哪个形状上看"的能力，
+                // **零假绿面**（形状猜错 ⇒ 内核照样判红）✓。
+                //
+                // ⚠ **只在既有两条都失败后才走**（失败路径）⇒ 今天能过的 `rfl`
+                // 逐字节不变 ✓；展开形态的头不是 `Eq`/`Iff` 时**不花**那次内核 pp
+                // （便宜的形状闸，见下）✓。
+                let mut found = rfl_candidate(&nodes[cur].ty);
+                if found.is_none() {
                     let spec = spec_of(nodes, cur, universe);
                     let src_binders = context_binders(nodes, cur);
-                    let canonical = canonical_goal_with_spec(
-                        &nodes[cur].ty,
-                        &spec,
-                        &src_binders,
-                        prefix_src,
-                        options,
-                        defs,
-                        ctx,
-                        crate::compile::elab::InplaceEnv::reborrow(&mut env),
-                    );
-                    rfl_candidate(&canonical)
-                });
-                let Some((candidate, closed)) = candidate_and_closed else {
+                    let mut canonical_of = |goal: &Expr| {
+                        let canonical = canonical_goal_with_spec(
+                            goal,
+                            &spec,
+                            &src_binders,
+                            prefix_src,
+                            options,
+                            defs,
+                            ctx,
+                            crate::compile::elab::InplaceEnv::reborrow(&mut env),
+                        );
+                        rfl_candidate(&canonical)
+                    };
+                    found = canonical_of(&nodes[cur].ty);
+                    if found.is_none() {
+                        for unfolded in unfold_head_deep(
+                            &nodes[cur].ty,
+                            defs,
+                            &spec.binders,
+                            prefix_src,
+                            options,
+                            4,
+                        ) {
+                            // 便宜的形状闸：展开形态的头**不是** `Eq`/`Iff` ⇒
+                            // 内核 pp 那一趟必然也答不上来 ⇒ 不值得花（`rfl` 失败
+                            // 是常见路径，别把它的代价放大 4 倍 ✗）。
+                            if !matches!(goal_head_name(&unfolded), Some("Eq") | Some("Iff")) {
+                                continue;
+                            }
+                            found = rfl_candidate(&unfolded).or_else(|| canonical_of(&unfolded));
+                            if found.is_some() {
+                                break;
+                            }
+                        }
+                    }
+                }
+                let Some((candidate, closed)) = found else {
                     // **错误文案要指出出路**（只说「需要 Eq」是死胡同 ✗）：
                     // `rfl` 今天认 `Eq` 与 `Iff` 两种头，且 `Iff` 只在两边
                     // 定义上相等时过 —— 目标是 `↔` 而两边不等时，出路是
@@ -2013,6 +2060,83 @@ fn run_tactics<'a>(
                         ));
                     }
                     None => unreachable!(),
+                }
+            }
+            Tactic::Unfold { names, span } => {
+                // **Lean 4 对照**（本机 `~/Documents/lean/lean4`）：`unfold Foo Bar`
+                // （`Init/Tactics.lean:802` + `Lean/Elab/Tactic/Unfold.lean`）把目标里
+                // **每一处**这些常量展开出来（非递归 `def` 走 `deltaExpand` + beta，
+                // `Lean/Meta/Tactic/Unfold.lean`）；某个名字**一处都没展开** ⇒ 当场报
+                // 那个名字（`did not unfold 'X'`）——不静默 ✓。
+                //
+                // 本语言在**源级**做同一件事（`spine::unfold_named_in`，认记法/糖的头），
+                // 并且**逐个名字**报错（与 Lean 同口径 ✓）。
+                //
+                // ⚠ **展开结果必须过内核才提交**：源级展开是"按名字对齐实参"的近似
+                // （`UnfoldAlign` 三种读法：源形态 / 旧写法 / pp 形态），读法选错会
+                // 展开出一个**错的目标** ✗ —— 那种错误绝不能静默提交（用户看到的目标
+                // 会变成胡说八道，报错落在后面几条 tactic 上、离根因很远）。所以每个
+                // 候选都要先问内核「它与原目标**定义相等**吗」（`judge_terms` 的同一份
+                // 判等，见 [`goal_rewrite_is_defeq`]），过了才提交；全不过 ⇒ 报错 ✓。
+                //
+                // ⚠ **子集边界**（与 Lean 的偏离，白纸黑字）：不做 `at h` 位置
+                // （只改主目标）—— 与 `intro`/`cases` 同口径 ✓。
+                for (name, _) in names {
+                    let one = vec![name.clone()];
+                    let spec = spec_of(nodes, cur, universe);
+                    let hint =
+                        level_hint_of(&nodes[cur].ty, defs, &spec.binders, prefix_src, options);
+                    // 读法顺序：**先源形态**（`Short`，绝大多数目标），再**旧写法**
+                    // （前导隐式实参也写出来：`Set.mem α a A`）——静态分不开 ⇒ 两种都
+                    // 试，但**验过才算数** ✓（与 `unfold_to_inductive` 的纪律一致）。
+                    let mut committed = None;
+                    for mode in [
+                        crate::spine::UnfoldAlign::Short,
+                        crate::spine::UnfoldAlign::Old,
+                    ] {
+                        let Some(candidate) = crate::spine::unfold_named_in(
+                            &nodes[cur].ty,
+                            &one,
+                            defs,
+                            hint.as_deref(),
+                            mode,
+                            16,
+                        ) else {
+                            continue;
+                        };
+                        // 判定查询文本走**显示层唯一接口**（`display_expr` = 折记法的
+                        // `render_expr` + 前缀记法表）⇒ 与 `judge` 稍后解析它用的是
+                        // **同一张表** ✓，也满足 `audit-notation-paths.py` 的守卫 ✓。
+                        // 判定查询文本用 [`crate::proof::render_atom`]（**忠实渲染** +
+                        // 复合式补括号）—— 与 `rfl_candidate` 的候选文本同源 ✓。
+                        // ⚠ **不许用 `display_expr`/`DisplayNotations::render`**：它们会
+                        // **折记法**，而这里是**判定输入**（`({a}) a` 会被折成 `{a}` ⇒
+                        // 语义都变了 ✗ —— 2026-10-11 实测踩到，由判据当场逮住 ✓）。
+                        // `render_atom` 不是 `audit-notation-paths.py` 的绕过形式 ✓。
+                        if goal_rewrite_is_defeq(
+                            &spec,
+                            &crate::proof::render_atom(&candidate),
+                            prefix_src,
+                            options,
+                        ) {
+                            committed = Some(candidate);
+                            break;
+                        }
+                    }
+                    let Some(next) = committed else {
+                        return Err(tactic_error(
+                            format!(
+                                "`unfold` 没有展开 `{name}`：它在当前目标里没有出现（或这一处展不动）。\
+                                 要展开的常量用**点名写法**写出来（`Set.mem`、`Set.singleton`），\
+                                 当前目标是 `{}`",
+                                display_expr(prefix_src, &nodes[cur].ty)
+                            ),
+                            *span,
+                        ));
+                    };
+                    // 目标换成展开形态：**证明项一个字不动** —— 新目标与旧目标定义
+                    // 相等（上面刚由内核验过），最终声明仍由内核对着**原始陈述**重查 ✓。
+                    nodes[cur].ty = next;
                 }
             }
             Tactic::Apply { expr, span } => {
@@ -3504,6 +3628,38 @@ fn judge_strict(
     judge_terms_strict(prefix_src, options, &spec, terms)
         .into_iter()
         .next()
+}
+
+/// **目标改写的内核验收**：`new_ty` 与当前目标**定义相等**吗？（`unfold` 用）
+///
+/// 做法（不发明新机制）：把 `new_ty` 当成**一条假设的类型**塞进望远镜，把**当前
+/// 目标**当成目标，然后判「那条假设本身」这个候选 —— 它类型正确 ⇔ 两者 defeq ✓。
+/// 走的是 `exact` 的**同一份**内核判等（`judge_terms`），**不做文本比对** ✓。
+///
+/// 为什么要它：`unfold` 的源级展开是"按名字对齐实参"的近似（`UnfoldAlign`），读法
+/// 选错会展开出一个**错的目标** ✗ —— 那种错误绝不能静默提交（用户看到的目标会变成
+/// 胡说八道，报错落在后面几条 tactic 上，离根因很远）。
+///
+/// ⚠ 批次语义：`by` 块里 `judge_terms` 走**乐观批次**（先答 `Match`、跑完一次判完）
+/// ⇒ 万一这条验收乐观地放过了，`flush_batch` 会当场判红、`run_by` 严格重跑 ⇒
+/// **判定不变** ✓（这正是批次机制的设计前提）。
+fn goal_rewrite_is_defeq(
+    spec: &OpenGoalSpec,
+    new_ty: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+) -> bool {
+    let mut probe = spec.clone();
+    probe.binders.push(GoalBinderSpec {
+        name: "__soko_unfold_h".to_string(),
+        ty: Some(new_ty.to_string()),
+    });
+    matches!(
+        judge_terms(prefix_src, options, &probe, &["__soko_unfold_h"])
+            .into_iter()
+            .next(),
+        Some(Judgement::Match)
+    )
 }
 
 /// 目标头是不是 `Iff`：点名形态（`Iff A B`）或记法形态（`A ↔ B`）。

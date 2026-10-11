@@ -66,7 +66,7 @@
       }
     },
     "keywords": {
-      "match": "\\b(import|def|abbrev|theorem|example|axiom|inductive|ctor|rec|iota|end|fun|let|match|with|by|infix|infixl|infixr|prefix|postfix|notation|binder_notation|scoped|intro|exact|apply|assumption|rfl|constructor|left|right|use|exfalso|cases|have|forall|∀)\\b",
+      "match": "\\b(import|def|abbrev|theorem|example|axiom|inductive|ctor|rec|iota|end|fun|let|match|with|by|infix|infixl|infixr|prefix|postfix|notation|binder_notation|scoped|intro|exact|apply|assumption|rfl|unfold|constructor|left|right|use|exfalso|cases|have|forall|∀)\\b",
       "name": "keyword.other.sokonanoda"
     },
     "commands": {

@@ -289,6 +289,12 @@
       "renewed": "2026-09-30",
       "tier": "spec"
     },
+    "docs/design/unfold-tactic.md": {
+      "expires": "2027-10-11",
+      "renewed": "2026-10-11",
+      "tier": "spec",
+      "reason": "新增设计档：unfold tactic 与 rfl 的 whnf 逼近（用户 2026-10-11 报的三条），是这条线的唯一权威"
+    },
     "docs/design/v077-kernel-deficiencies.md": {
       "expires": "2027-09-30",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",

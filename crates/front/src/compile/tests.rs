@@ -4854,6 +4854,183 @@ fn rfl_closes_an_iff_goal_whose_sides_are_defeq_by_unfolding() {
 }
 
 #[test]
+fn rfl_closes_a_goal_that_is_an_eq_only_after_unfolding_the_sugar() {
+    // **用户现场（2026-10-11）**：
+    // `theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α) (h : {a} ⊆ A)
+    //  : a ∈ A := by apply h; rfl` —— `apply h` 之后目标是 `a ∈ ({a})`，它
+    // **定义上**就是 `a = a`（`Set.mem` → `Set.singleton` → beta），但源 AST 与
+    // 内核 pp 的头都是 `Set.mem` ⇒ 修前报「`rfl` 需要目标是 `Eq α x y` 或
+    // `Iff A B` 形状；当前目标是 `a ∈ ({a})`」✗。
+    //
+    // **Lean 4 对照**（本机 `~/Documents/lean/lean4`，`MVarId.applyRfl` =
+    // `src/Lean/Meta/Tactic/Rfl.lean`）：`let t ← whnfR <|← goal.getType`
+    // ⇒ 先把目标类型 weak-head 归约、再 `isDefEq lhs rhs` ⇒ 真 Lean 里这段代码
+    // **不用改写就过** ✓。本仓**没有内核 whnf 的公开入口** ⇒ 源级多轮展开逼近
+    // （`unfold_head_deep`，与 G-109 的 `apply` 修复**同一份机械**）。
+    let src = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n",
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+        "def Set.subset {α : Type} (A B : Set α) : Prop :=\n",
+        "  forall (x : α), Set.mem x A -> Set.mem x B\n",
+        "infix:50 \" ∈ \" => Set.mem\n",
+        "infix:50 \" ⊆ \" => Set.subset\n",
+        "theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)\n",
+        "    (h : {a} ⊆ A) : a ∈ A := by\n",
+        "  apply h\n",
+        "  rfl\n",
+        "theorem direct (α : Type) (a : α) : a ∈ {a} := by\n",
+        "  rfl\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    for name in ["mem_of_subset_singleton", "direct"] {
+        let d = report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some(name))
+            .unwrap();
+        assert_eq!(d.status, DeclStatus::Checked, "{name} 必须判绿");
+    }
+}
+
+#[test]
+fn rfl_stays_red_when_the_unfolded_membership_is_not_reflexive() {
+    // **反向验证（判据不许空转）**：`a ∈ {b}` 展开成 `a = b` —— a、b 无关 ⇒
+    // 两边**不** defeq ⇒ 仍然判红（绝不放宽成「见到糖就过」✗）；
+    // `a ∈ {a, b}` 展开成 `a = a ∨ a = b`，头是 `Or` 不是 `Eq`/`Iff` ⇒ 形状闸
+    // 之后照样报形状错 ✓。两条都断言**错误码**，不是"非空就算过"。
+    let defs = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n",
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+        "def Set.pair {α : Type} (a b : α) : Set α := fun (x : α) => x = a ∨ x = b\n",
+        "infix:50 \" ∈ \" => Set.mem\n",
+    );
+    for (tag, body) in [
+        (
+            "other_element",
+            "theorem t (α : Type) (a b : α) : a ∈ {b} := by\n  rfl\n",
+        ),
+        (
+            "pair_is_an_or",
+            "theorem t (α : Type) (a b : α) : a ∈ {a, b} := by\n  rfl\n",
+        ),
+    ] {
+        let src = format!("{defs}{body}");
+        let report = check_document(&parse(&src).unwrap());
+        assert!(!report.errors.is_empty(), "[{tag}] 必须判红（不许假绿）");
+        assert_eq!(
+            report.errors[0].code(),
+            "elab-tactic-failed",
+            "[{tag}] 错误码必须是 tactic 失败（形状/判等）"
+        );
+    }
+}
+
+#[test]
+fn unfold_expands_the_named_constants_and_shows_the_result() {
+    // **用户需求（2026-10-11）**：`apply h` 之后目标 `⊢ a ∈ ({a})`，要一条 tactic
+    // 把它展成 `⊢ a = a`。**Lean 4 对照**（本机 `~/Documents/lean/lean4`）：
+    // `unfold Foo Bar`（`Init/Tactics.lean:802` + `Lean/Meta/Tactic/Unfold.lean`：
+    // 非递归 def 走 `deltaExpand` + beta）。
+    //
+    // 判据断言**用户看到的目标文本**（`by_steps` 的展示副本）—— 不是"没报错"：
+    // 只断言判绿会放过"展开了但目标没变" ✗。
+    let src = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n",
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+        "def Set.subset {α : Type} (A B : Set α) : Prop :=\n",
+        "  forall (x : α), Set.mem x A -> Set.mem x B\n",
+        "infix:50 \" ∈ \" => Set.mem\n",
+        "infix:50 \" ⊆ \" => Set.subset\n",
+        "theorem t (α : Type) (A : Set α) (a : α) (h : {a} ⊆ A) : a ∈ A := by\n",
+        "  apply h\n",
+        "  unfold Set.mem Set.singleton\n",
+        "  rfl\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Checked);
+    assert_eq!(d.by_steps.len(), 3, "三条 tactic 各一条状态");
+    // step 0 = `apply h` 之后：目标 `a ∈ ({a})`（用户报的原话）。
+    assert_eq!(d.by_steps[0].goals[0].ty, "a ∈ ({a})");
+    // step 1 = `unfold Set.mem Set.singleton` 之后：**目标就是 `a = a`** ✓（需求本体）。
+    assert_eq!(d.by_steps[1].goals[0].ty, "a = a");
+    // step 2 = `rfl` 之后：目标关掉（`rfl` 与展开是配套的 ✓）。
+    assert!(d.by_steps[2].goals.is_empty(), "`rfl` 之后不该还有目标");
+}
+
+#[test]
+fn unfold_only_touches_the_named_constant_and_keeps_the_goal_defeq() {
+    // 只展开**内层**那一个名字（`{a}` 是 `Set.singleton`，`∈` 不动）⇒ 目标变成
+    // `a ∈ (fun (x : α) => x = a)`。**判据有两条**：
+    // ① 显示的目标确实是那个形态（展开是**逐处**做的，不是只看最外层）；
+    // ② 目标与原来**定义相等** —— 所以 `exact Eq.refl a` 照样过 ✓
+    //    （这条同时是"内核验收真的在管"的正面证据）。
+    let src = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n",
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+        "infix:50 \" ∈ \" => Set.mem\n",
+        "theorem t (α : Type) (a : α) : a ∈ {a} := by\n",
+        "  unfold Set.singleton\n",
+        "  exact Eq.refl a\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Checked);
+    assert_eq!(
+        d.by_steps[0].goals[0].ty, "a ∈ (fun (x : α) => x = a)",
+        "只展开 `Set.singleton` ⇒ `∈` 留着（逐处展开，与 Lean 同口径）"
+    );
+}
+
+#[test]
+fn unfold_reports_a_name_that_does_not_occur_in_the_goal() {
+    // **反向验证（判据不许空转）**：名字不在目标里 ⇒ **报错并点名那个名字**
+    // （Lean 的 `Tactic \`unfold\` failed to unfold 'X'` 同口径），绝不静默成功 ✗。
+    let src = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n",
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+        "def Set.pair {α : Type} (a b : α) : Set α := fun (x : α) => x = a ∨ x = b\n",
+        "infix:50 \" ∈ \" => Set.mem\n",
+        "theorem t (α : Type) (a : α) : a ∈ {a} := by\n",
+        "  unfold Set.pair\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(!report.errors.is_empty(), "必须判红（名字不在目标里）");
+    assert_eq!(report.errors[0].code(), "elab-tactic-failed");
+    assert!(
+        report.errors[0].message.contains("`Set.pair`"),
+        "错误必须**点名**没展开的那个常量：{}",
+        report.errors[0].message
+    );
+}
+
+#[test]
+fn unfold_without_a_name_is_a_parse_error() {
+    // 语法面：`unfold` 后面至少要一个名字（Lean 的 `ident+` 同口径）。
+    let src = "theorem t (a : Prop) (h : a) : a := by\n  unfold\n  exact h\n";
+    assert!(
+        parse(src).is_err(),
+        "`unfold` 没有名字必须报错（不许解析成别的 tactic）"
+    );
+}
+
+#[test]
 fn rfl_on_a_non_defeq_iff_goal_is_a_tactic_error() {
     // 两边不 defeq 的 `↔` 目标**仍然判红**：绝不放宽成「看到 `↔` 就过」。
     let src = "theorem t : (a : Prop) -> (b : Prop) -> (a ↔ b) -> (a ↔ b) := \
@@ -10536,4 +10713,49 @@ fn a_failing_or_open_proof_still_records_hover_rows_for_its_body() {
              —— 否则 F12 跳不到本文件的名字 ✗"
         );
     }
+}
+
+#[test]
+fn a_failing_declaration_keeps_the_hover_rows_of_its_signature() {
+    // **G-108 第二刀（2026-10-11 用户实测）**：值位 lowering 一失败，签名里那些
+    // **真读数**（`{a}` → `Set.singleton`、`∈` → 记法声明行）以前随 `lower_value`
+    // 的**局部** `hovers` 一起被丢掉 ⇒ 签名里 `{a}` 的 F12 变 `null`，而同文件
+    // 其它 `{a}` 都跳得动 ✗（用户现场：`mem_of_subset_singleton` 的 `rfl` 报错）。
+    //
+    // 判据打在**用户实际点的那个字符**上（`{a}` 的 `{`，不是别处 ✗），并断言
+    // resolution 指向 `Set.singleton` —— 只断言"有行"会放过一条指向别处的行。
+    let src = concat!(
+        "def Set (α : Type) : Type := α -> Prop\n",
+        "def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a\n",
+        "def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n",
+        "infix:50 \" ∈ \" => Set.mem\n",
+        "theorem bad (α : Type) (a : α) : a ∈ {a} := by\n",
+        "  exact a\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    // 夹具前提：这条声明真的**失败**（走的就是 lowering 失败臂）。
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("bad"))
+        .expect("夹具前提：声明 `bad` 存在");
+    assert_eq!(d.status, DeclStatus::Failed, "夹具前提：`bad` 必须失败");
+    let brace = src.find("{a}").expect("`{a}` 出现点");
+    assert!(
+        report.hovers.iter().any(|h| {
+            h.span.start.offset <= brace
+                && brace < h.span.end.offset
+                && matches!(
+                    &h.resolution,
+                    Some(ResolvedTarget::Declaration { name, .. }) if name == "Set.singleton"
+                )
+        }),
+        "失败声明的**签名**里 `{{a}}`（offset {brace}）必须留下指向 `Set.singleton` 的跳转行 \
+         —— 丢了就是「一处报错打死这条声明的符号导航」✗（G-108 第二刀）。现有行：{:?}",
+        report
+            .hovers
+            .iter()
+            .map(|h| (h.span.start.offset, h.span.end.offset, &h.resolution))
+            .collect::<Vec<_>>()
+    );
 }

@@ -134,6 +134,22 @@ pub enum Expr {
     },
 }
 
+/// **集合字面量展开成的点名常量**（`{a}` → `Set.singleton`、`{a, b}` → `Set.pair`）。
+///
+/// **唯一一份实现**：`elab.rs` 的 `Expr::SetLiteral` 分支（真展开）与 `spine.rs` 的
+/// 源级 delta 展开（`unfold_one_with`，`rfl`/`apply`/`intro`/`cases` 逼近 whnf 用）
+/// 都问这里 —— 两处各写一张表就会在"加了第三种糖"时**静默分叉** ✗。
+///
+/// `None` = 这个元素个数没有对应常量（`{}` 与 ≥3 个元素 parser 已经给专用诊断 ⇒
+/// 这里只是兜底：调用方一律 `return None`，退回既有行为 ✓）。
+pub(crate) fn set_literal_target(elements: usize) -> Option<&'static str> {
+    match elements {
+        1 => Some("Set.singleton"),
+        2 => Some("Set.pair"),
+        _ => None,
+    }
+}
+
 /// 记法命令的结合性 / 元数（`docs/design/notation-subset.md` N1 + §10.1）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NotationAssoc {
@@ -429,6 +445,12 @@ impl Tactic {
                     }
                 }
             },
+            // `unfold` 的名字是**引用**（不是表达式位）⇒ 单独报它们自己的 span。
+            Tactic::Unfold { names, .. } => {
+                for (name, span) in names {
+                    f(name, *span);
+                }
+            }
             Tactic::Intro { .. }
             | Tactic::Assumption { .. }
             | Tactic::Rfl { .. }
@@ -523,6 +545,22 @@ pub enum Tactic {
     Sorry {
         span: Span,
     },
+    /// `unfold Foo Bar`（Lean 同名 tactic，2026-10-11 用户要求）：把目标里
+    /// **每一处** `Foo` / `Bar` 的定义体展开出来，目标换成展开后的形态。
+    ///
+    /// **Lean 4 对照**（本机 `~/Documents/lean/lean4`）：`Init/Tactics.lean:802`
+    /// 的 `syntax "unfold" ident+ (location)?` + `Lean/Elab/Tactic/Unfold.lean` +
+    /// `Lean/Meta/Tactic/Unfold.lean`（非递归 def 走 `deltaExpand` + beta）。
+    /// 本语言**不做** `at h` 位置（子集边界，与 `intro`/`cases` 同口径）；
+    /// 展开后的目标必须**与展开前定义相等**（内核验收，见 `by.rs`）。
+    Unfold {
+        /// 要展开的常量名（≥1，按用户写的拼写；引擎按头名逐处匹配）+ 它在源里的
+        /// **span**。带 span 是为了 **F12/hover**：`unfold Set.mem` 里的 `Set.mem`
+        /// 是一个**引用**（Lean 也是 `realizeGlobalConstNoOverloadWithInfo`），
+        /// 不是绑定名 ⇒ 走 [`Tactic::for_each_ident`] 那条词法行通道 ✓。
+        names: Vec<(String, Span)>,
+        span: Span,
+    },
 }
 
 /// `have` 的值位：项（`:= t`）或嵌套 tactic 块（`:= by …`）。
@@ -562,6 +600,7 @@ impl Tactic {
             | Tactic::Exfalso { span }
             | Tactic::Cases { span, .. }
             | Tactic::Have { span, .. }
+            | Tactic::Unfold { span, .. }
             | Tactic::Sorry { span } => *span,
         }
     }

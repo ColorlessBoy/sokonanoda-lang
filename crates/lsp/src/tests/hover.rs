@@ -1507,6 +1507,7 @@ fn tactic_name_at_accepts_only_plain_identifiers() {
         "apply",
         "assumption",
         "rfl",
+        "unfold",
         "constructor",
         "left",
         "right",
@@ -1986,7 +1987,7 @@ async fn command_line_hover_does_not_hijack_a_declaration_name() {
     shutdown(&mut service).await;
 }
 
-/// **14 条 tactic 的 `by` 夹具**（每条一个 `example`，**都喂过真内核**：12 checked +
+/// **15 条 tactic 的 `by` 夹具**（每条一个 `example`，**都喂过真内核**：12 checked +
 /// 2 open（`use a` 后面跟 `sorry`、最后那条 `sorry`），`failed` 为空）。
 ///
 /// `use` 那条为什么要 `sorry` 收尾：`use w` = `apply <构造子>` + `exact w`，而
@@ -2012,6 +2013,12 @@ example (a : Prop) (h : a) : a := by
 
 example (n : Nat) : n = n := by
   rfl
+
+def MyP (a : Prop) : Prop := a
+
+example (a : Prop) (h : a) : MyP a := by
+  unfold MyP
+  exact h
 
 example (n : Nat) : Nat := by
   match n with
@@ -2055,7 +2062,7 @@ example : True := by
   sorry
 ";
 
-/// **判据（wire / 用户动作，覆盖全部 14 条 —— 含 `sorry`）**：14 条 tactic 的关键字上
+/// **判据（wire / 用户动作，覆盖全部 15 条 —— 含 `sorry`）**：15 条 tactic 的关键字上
 /// 各 hover 一次 ⇒ 摘要行**恰出现一次**、在 goal state **之前**、且**逐字等于
 /// `front::tactics` 表里那一条**（不是"含有某句话"、更不是同一句 fallback
 /// —— 那正是"覆盖了但其实没覆盖"的假绿 ✗）。
@@ -2083,6 +2090,10 @@ async fn hover_on_every_tactic_keyword_shows_its_summary() {
             "assumption",
         ),
         ("example (n : Nat) : n = n := by\n  rfl", "rfl"),
+        (
+            "example (a : Prop) (h : a) : MyP a := by\n  unfold MyP",
+            "unfold",
+        ),
         ("example (n : Nat) : Nat := by\n  match n with", "match"),
         (
             "example (a : Prop) (h : a) : a ∧ a := by\n  constructor",
@@ -2119,7 +2130,7 @@ async fn hover_on_every_tactic_keyword_shows_its_summary() {
         .collect();
     assert_eq!(
         listed, tabled,
-        "14 条清单必须逐条等于 `front::tactics` 表（顺序也要一致）"
+        "15 条清单必须逐条等于 `front::tactics` 表（顺序也要一致）"
     );
 
     let (mut service, _socket) = open_and_wait(EVERY_TACTIC_SOURCE).await;
@@ -2262,8 +2273,8 @@ async fn tactic_keyword_completion_carries_its_summary_on_the_wire() {
         );
     }
     assert_eq!(
-        tactic_items, 13,
-        "词表里的 tactic 关键字是 13 条（`sorry` 除外）"
+        tactic_items, 14,
+        "词表里的 tactic 关键字是 14 条（`sorry` 除外）"
     );
     assert!(
         items

@@ -1721,7 +1721,7 @@ fn definition_file(location: &Location) -> std::path::PathBuf {
     })
 }
 
-/// **14 条 tactic 各一条真能过的写法**（每条 tactic 一行，`anchor` = 该 tactic 所在
+/// **15 条 tactic 各一条真能过的写法**（每条 tactic 一行，`anchor` = 该 tactic 所在
 /// 那个**唯一**片段）。
 ///
 /// 与 `hover.rs::EVERY_TACTIC_SOURCE` 是**同一份夹具的两个副本**（那边验 hover 摘要、
@@ -1746,6 +1746,12 @@ example (a : Prop) (h : a) : a := by
 
 example (n : Nat) : n = n := by
   rfl
+
+def MyP (a : Prop) : Prop := a
+
+example (a : Prop) (h : a) : MyP a := by
+  unfold MyP
+  exact h
 
 example (n : Nat) : Nat := by
   match n with
@@ -1802,7 +1808,7 @@ fn tactic_keyword_offset(src: &str, anchor: &str) -> usize {
     start + anchor.len() - line.len() + indent
 }
 
-/// **P6 判据 ①（含 ③）**：**全部 14 条** tactic 关键字上按 F12 ⇒ 落到**那一条**的
+/// **P6 判据 ①（含 ③）**：**全部 15 条** tactic 关键字上按 F12 ⇒ 落到**那一条**的
 /// 参考文档。
 ///
 /// 每条断言五件：ⓐ 落点是**真文件**（存在 + 可读 —— 物化失败必须 `None` 而不是死
@@ -1812,7 +1818,7 @@ fn tactic_keyword_offset(src: &str, anchor: &str) -> usize {
 ///
 /// ⚠ 每条测**两个位置**：关键字的**头一个字符**与**最后一个字符** —— 用户点的就是
 /// 那两个字（E27 的教训：拿"能跑通的位置"代替"用户实际点的位置" ✗）。
-/// ⚠ 14 条**逐个**跑（只测用户点名的 `intro`/`exact`/`rfl` 等于没测横向 ✗）；清单与
+/// ⚠ 15 条**逐个**跑（只测用户点名的 `intro`/`exact`/`rfl` 等于没测横向 ✗）；清单与
 /// 表**双向**对齐（漏一条 / 多一条 / 顺序漂了都判红 ✓）。
 #[tokio::test]
 async fn goto_definition_on_every_tactic_keyword_lands_in_its_reference_file() {
@@ -1833,6 +1839,10 @@ async fn goto_definition_on_every_tactic_keyword_lands_in_its_reference_file() {
             "assumption",
         ),
         ("example (n : Nat) : n = n := by\n  rfl", "rfl"),
+        (
+            "example (a : Prop) (h : a) : MyP a := by\n  unfold MyP",
+            "unfold",
+        ),
         ("example (n : Nat) : Nat := by\n  match n with", "match"),
         (
             "example (a : Prop) (h : a) : a ∧ a := by\n  constructor",
@@ -1868,7 +1878,7 @@ async fn goto_definition_on_every_tactic_keyword_lands_in_its_reference_file() {
         .collect();
     assert_eq!(
         listed, tabled,
-        "14 条清单必须逐条等于 `front::tactics` 表（顺序也要一致）—— 覆盖基线是 14 条 ✓"
+        "15 条清单必须逐条等于 `front::tactics` 表（顺序也要一致）—— 覆盖基线是 15 条 ✓"
     );
 
     let (mut service, mut socket) = test_service();

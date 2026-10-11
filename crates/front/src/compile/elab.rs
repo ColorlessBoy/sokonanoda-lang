@@ -1240,6 +1240,35 @@ pub(crate) fn build_example<'a>(
     })
 }
 
+/// **只为收 hover 行**地把一个**类型**（签名）elaborate 一遍（G-108 第二刀）。
+///
+/// 为什么需要：值位 lowering（`lower_value`）一失败，签名里那些**真读数** ——
+/// `{a}` → `Set.singleton`（A3）、记法符号 → 声明行、名字 → 定义 —— 就随
+/// `lower_value` 的**局部** `hovers` 一起被丢掉 ✗ ⇒ 用户看到"一处报错打死这条
+/// 声明的符号导航"（现场：`mem_of_subset_singleton` 的 `rfl` 报错 ⇒ 签名里 `{a}`
+/// 的 F12 变 `null`，而同文件其它 `{a}` 都跳得动）。
+///
+/// **只 elaborate 类型、不 `add_declar`** ⇒ 环境一个字节不动 ✓；代价只发生在
+/// **失败声明**上（成功路径不会调它）✓。失败也照样把**已经收到**的行交出去
+/// （部分行好过零行 ✓）。
+///
+/// 与 [`build_axiom`] 的**前半是同一份实现**（它现在调这里）—— 两处各写一遍
+/// `elab_expr` 的实参表就会在加参数时静默分叉 ✗。
+pub(crate) fn elab_type_for_hovers<'a>(
+    builder: &mut EnvBuilder<'a>,
+    ty: &Expr,
+    universe: &[String],
+    known: &KnownTable,
+    hovers: &mut Vec<HoverNode<'a>>,
+    ctx: &ElabCtx<'a, '_>,
+) -> Result<ExprPtr<'a>, CompileError> {
+    let mut scope = ElabScope::new();
+    let univ = make_univ_map(builder, universe);
+    elab_expr(
+        builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
+    )
+}
+
 pub(crate) fn build_axiom<'a>(
     builder: &mut EnvBuilder<'a>,
     name: &str,
@@ -1249,12 +1278,9 @@ pub(crate) fn build_axiom<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<Declar<'a>, CompileError> {
-    let mut scope = ElabScope::new();
-    let univ = make_univ_map(builder, universe);
-    let ty = elab_expr(
-        builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
-    )?;
+    let ty = elab_type_for_hovers(builder, ty, universe, known, hovers, ctx)?;
     let name = builder.name_from_str(name);
+    let univ = make_univ_map(builder, universe);
     let uparams = collect_uparams(builder, &univ, universe);
     Ok(Declar::Axiom {
         info: DeclarInfo { name, uparams, ty },
@@ -5402,10 +5428,17 @@ pub(crate) fn elab_expr<'a>(
         // 复用记法展开的前导参数补全与操作数期望类型传播：`α` 由元素类型或
         // 期望类型解出（`{∅}` 走期望类型那条路）。
         Expr::SetLiteral { elements, span } => {
-            let (symbol, target) = if elements.len() == 1 {
-                ("{a}", "Set.singleton")
-            } else {
-                ("{a, b}", "Set.pair")
+            // 目标常量查**唯一一份表**（`ast::set_literal_target`）——源级 delta 展开
+            // （`spine::unfold_one_with`，`rfl`/`apply` 逼近 whnf 用）走的是同一张表
+            // ⇒ "加了第三种糖只改一处" ✓（两处各写一张就会静默分叉 ✗）。
+            let symbol = if elements.len() == 1 { "{a}" } else { "{a, b}" };
+            let Some(target) = crate::ast::set_literal_target(elements.len()) else {
+                // parser 已经拦掉 `{}` 与 ≥3 个元素 ⇒ 这里只是兜底（不静默 ✗）。
+                return Err(CompileError::elab(
+                    ErrorKind::ElabSetLiteralUnknownTarget,
+                    format!("集合字面量 `{symbol}` 没有对应的点名常量：v1 只支持 1–2 个元素"),
+                    *span,
+                ));
             };
             let Ok(canonical) = resolve_known(known, ctx.ns, target, *span) else {
                 return Err(CompileError::elab(

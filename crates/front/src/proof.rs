@@ -700,6 +700,14 @@ fn render_tactic(tactic: &Tactic) -> String {
             };
             format!("have {name} : {} := {value}", render_expr(ty))
         }
+        Unfold { names, .. } => format!(
+            "unfold {}",
+            names
+                .iter()
+                .map(|(name, _)| name.as_str())
+                .collect::<Vec<_>>()
+                .join(" ")
+        ),
         Sorry { .. } => "sorry".to_string(),
     }
 }

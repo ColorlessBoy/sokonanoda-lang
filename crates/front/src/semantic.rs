@@ -74,6 +74,9 @@ const KEYWORDS: &[&str] = &[
     "apply",
     "assumption",
     "rfl",
+    // `unfold Foo Bar`（Lean 同名 tactic，2026-10-11 加）：目标里点名的常量展开成
+    // 定义体。进词表 ⇒ 语义高亮与补全自动跟上（判据 `tactic_docs.rs` 那条盯着 ✓）。
+    "unfold",
     // 课程 Lean 化（设计 `docs/design/course-lean-style.md` L3）新增的 tactic。
     //
     // ⚠ **本表与 tactic 清单的关系（2026-10-10 起）**：tactic 的**唯一真相**是
@@ -755,6 +758,9 @@ fn walk_tactic(tactic: &crate::Tactic, toks: &[Token], names: &mut Names) {
         | Left { .. }
         | Right { .. }
         | Exfalso { .. }
+        // `unfold` 的名字是**常量引用**（不是表达式位）⇒ 着色由词法通道管，
+        // 这里不递归（与 `intro` 的名字同口径）。
+        | Unfold { .. }
         | Sorry { .. } => {}
     }
 }

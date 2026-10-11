@@ -256,6 +256,215 @@ pub(crate) fn unfold_to_inductive(
     short
 }
 
+/// 节点**头部的常量名**：普通应用链读头名，记法节点读 `target`，内建糖
+/// （`{a}` / `{a, b}`）读它展开成的常量（`ast::set_literal_target` —— 与
+/// [`unfold_one_with`] **同一张表** ✓）。
+///
+/// 为什么单独要它：`unfold` tactic 的**点名过滤**（"这个名字是不是这一处的头"）
+/// 与 [`unfold_one_with`] 的展开判据必须**同源** —— 不同源就会出现"名字明明给了、
+/// 这一处也明明能展开，却说 did not unfold" ✗。
+pub(crate) fn head_const_name(expr: &Expr) -> Option<&str> {
+    let (head, _) = spine_of(expr);
+    match head {
+        Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => Some(name.as_str()),
+        Expr::Notation { target, .. } => Some(target.as_str()),
+        Expr::SetLiteral { elements, .. } => crate::ast::set_literal_target(elements.len()),
+        _ => None,
+    }
+}
+
+/// **整棵目标树**上按名字做源级 delta 展开（`unfold` tactic 的机械）。
+///
+/// **Lean 4 对照**（本机 `~/Documents/lean/lean4`）：`unfold Foo` 的
+/// `Meta.unfoldTarget`（`src/Lean/Meta/Tactic/Unfold.lean`）对非递归 `def` 走
+/// `deltaExpand e (· == declName)`（`Meta/Tactic/Delta.lean:22`）—— 一棵
+/// `Core.transform`：命中就把定义体 **beta 化**（`f.betaRev …`）并对结果
+/// `.visit`（⇒ 目标里**每一处**该常量都展开、展开产生的 redex 继续被处理 ✓）。
+/// 这里做同一件事，只是**在源级**（不调内核）：
+///
+/// * 命中 `names` 里的头 ⇒ [`unfold_one_with`]（它自己消 beta、认记法/糖的头 ✓），
+///   再对结果 `.visit`（`Set.mem` → `{a} a` → `Set.singleton` → `a = a` 一条链走完 ✓）；
+/// * 没命中 ⇒ 递归子节点（**每一处**都展开，与 Lean 同口径 ✓）。
+///
+/// `steps` = 展开步数上限（防自引用定义把前端挂死；内核那边靠良基性，这里显式封顶）。
+/// 返回 `None` = **一处都没展开**（调用方据此报 Lean 同款 "did not unfold"，不静默 ✓）。
+///
+/// ⚠ **已知偏离**（白纸黑字）：实参对齐是**源级**的（右对齐 + 跳前导隐式，见
+/// [`unfold_one_with`] 的 `UnfoldAlign`），而 Lean 在 de Bruijn 层展开 ⇒ 定义体里
+/// 重新绑定形参名时本函数可能串名（[`substitute`] 不 capture-avoiding，同
+/// [`beta_apply`] 的已知边界）。课程库里没有那种写法 ✓。**调用方必须拿内核验收
+/// 展开结果**（`unfold` tactic 就是这么做的）⇒ 错位展开不会被静默提交 ✓。
+pub(crate) fn unfold_named_in(
+    expr: &Expr,
+    names: &[String],
+    defs: &crate::compile::elab::DefTable,
+    level_hint: Option<&str>,
+    mode: UnfoldAlign,
+    steps: usize,
+) -> Option<Expr> {
+    struct Ctx<'a> {
+        names: &'a [String],
+        defs: &'a crate::compile::elab::DefTable,
+        hint: Option<&'a str>,
+        mode: UnfoldAlign,
+        left: usize,
+        changed: bool,
+    }
+    fn visit(e: &Expr, cx: &mut Ctx<'_>) -> Expr {
+        if cx.left == 0 {
+            return e.clone();
+        }
+        let named = head_const_name(e).is_some_and(|n| cx.names.iter().any(|m| m == n));
+        if named {
+            if let Some(next) = unfold_one_with(e, cx.defs, cx.hint, cx.mode) {
+                if &next != e {
+                    cx.left -= 1;
+                    cx.changed = true;
+                    // `.visit` 语义（Lean `Core.transform` 同款）：展开结果**继续**处理。
+                    return visit(&next, cx);
+                }
+            }
+        }
+        map_children(e, &mut |c| visit(c, cx))
+    }
+    let mut cx = Ctx {
+        names,
+        defs,
+        hint: level_hint,
+        mode,
+        left: steps,
+        changed: false,
+    };
+    let out = visit(expr, &mut cx);
+    cx.changed.then_some(out)
+}
+
+/// 把 `f` 作用到 `expr` 的**直接子表达式**上并重建节点（其余字段逐字保留）。
+///
+/// 与 [`rename_free`] / [`beta_normalize`] 同一条纪律：**只有一处**知道"哪些字段
+/// 是子表达式"。新增 `Expr` 变体时**这里要跟着改**（兜底臂 `other => other.clone()`
+/// 会让新变体里的常量**静默不展开** ✗ —— 与那两条函数的边界完全一致，写在这里
+/// 以免以后当 bug 查）。
+///
+/// `By` 不递归：目标/类型位不会出现 `by` 块（值位才有），而它的 tactic 里套表达式
+/// 需要另一套遍历 —— 与 `rename_free` 的处理一致 ✓。
+fn map_children(expr: &Expr, f: &mut dyn FnMut(&Expr) -> Expr) -> Expr {
+    let mut binders = |bs: &[Binder]| -> Vec<Binder> {
+        bs.iter()
+            .map(|b| Binder {
+                ty: b.ty.as_deref().map(|t| Box::new(f(t))),
+                ..b.clone()
+            })
+            .collect()
+    };
+    match expr {
+        Expr::App {
+            fun,
+            arg,
+            explicit_spine,
+            span,
+        } => Expr::App {
+            fun: Box::new(f(fun)),
+            arg: Box::new(f(arg)),
+            explicit_spine: *explicit_spine,
+            span: *span,
+        },
+        Expr::Lambda {
+            binders: bs,
+            body,
+            span,
+        } => Expr::Lambda {
+            binders: binders(bs),
+            body: Box::new(f(body)),
+            span: *span,
+        },
+        Expr::Forall {
+            binders: bs,
+            body,
+            span,
+        } => Expr::Forall {
+            binders: binders(bs),
+            body: Box::new(f(body)),
+            span: *span,
+        },
+        Expr::Arrow {
+            domain,
+            codomain,
+            span,
+        } => Expr::Arrow {
+            domain: Box::new(f(domain)),
+            codomain: Box::new(f(codomain)),
+            span: *span,
+        },
+        Expr::Plus { lhs, rhs, span } => Expr::Plus {
+            lhs: Box::new(f(lhs)),
+            rhs: Box::new(f(rhs)),
+            span: *span,
+        },
+        Expr::Let {
+            binder,
+            val,
+            body,
+            span,
+        } => Expr::Let {
+            binder: Binder {
+                ty: binder.ty.as_deref().map(|t| Box::new(f(t))),
+                ..binder.clone()
+            },
+            val: Box::new(f(val)),
+            body: Box::new(f(body)),
+            span: *span,
+        },
+        Expr::Match {
+            scrutinee,
+            arms,
+            span,
+        } => Expr::Match {
+            scrutinee: Box::new(f(scrutinee)),
+            arms: arms
+                .iter()
+                .map(|arm| MatchArm {
+                    pattern: arm.pattern.clone(),
+                    guard: arm.guard.as_ref().map(&mut *f),
+                    body: f(&arm.body),
+                    span: arm.span,
+                })
+                .collect(),
+            span: *span,
+        },
+        Expr::Notation {
+            symbol,
+            assoc,
+            lhs,
+            rhs,
+            target,
+            span,
+            alternatives,
+            symbol_span,
+        } => Expr::Notation {
+            symbol: symbol.clone(),
+            assoc: *assoc,
+            lhs: lhs.as_deref().map(|e| Box::new(f(e))),
+            rhs: rhs.as_deref().map(|e| Box::new(f(e))),
+            target: target.clone(),
+            span: *span,
+            alternatives: alternatives.clone(),
+            symbol_span: *symbol_span,
+        },
+        Expr::SetLiteral { elements, span } => Expr::SetLiteral {
+            elements: elements.iter().map(&mut *f).collect(),
+            span: *span,
+        },
+        Expr::AnonCtor { elements, span } => Expr::AnonCtor {
+            elements: elements.iter().map(&mut *f).collect(),
+            span: *span,
+        },
+        // 叶子（`Sort`/`Ident`/`UniverseApp`/`Num`/`Hole`）与不递归的 `By`：
+        // 逐字保留 ✓。
+        other => other.clone(),
+    }
+}
+
 /// 按给定读法逐层展开，直到 `done` 成立（或展开不动 / 到 `limit`）。
 fn unfold_loop(
     ty: &Expr,
@@ -332,6 +541,13 @@ pub(crate) fn unfold_one_with(
                 .map(|e| (**e).clone())
                 .collect::<Vec<Expr>>(),
         ),
+        // **内建糖的头**（`{a}` / `{a, b}`）：目标常量与 elab 查**同一张表**
+        // （`ast::set_literal_target`）⇒ 源级展开与真展开不会分叉 ✓。
+        // 实参就是元素（与记法操作数同一条对齐规则 ✓）。
+        Expr::SetLiteral { elements, .. } => {
+            let target = crate::ast::set_literal_target(elements.len())?;
+            (target, elements.clone())
+        }
         Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => (
             name.as_str(),
             spine_args
@@ -366,7 +582,7 @@ pub(crate) fn unfold_one_with(
     let mut const_args = const_args;
     let align: &[String];
     let extra: Vec<Expr>;
-    if matches!(head, Expr::Notation { .. }) {
+    if matches!(head, Expr::Notation { .. } | Expr::SetLiteral { .. }) {
         if mode == UnfoldAlign::Pp {
             // pp 形态里**记法操作数不是显式实参**：`Set.image {α β} f A` 的 pp 是
             // `Set.image β f A`（丢的只有 α）⇒ 操作数与 spine 实参是**一条**实参表，

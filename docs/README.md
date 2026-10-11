@@ -78,6 +78,7 @@
 - `import-links.md` — `import` 行的**模块名可点**（`textDocument/documentLink` → 模块文件；契约 + 三条边界 + 判据）
 - `kernel-taxonomy.md` — 内核错误分类学 + 失败建议 + 基准 / fuzz 基建
 - `set-option-pp.md` — **`set_option pp.*`（命令输出的显示档）+ `Iff.refl` 签名对齐 Lean 4**（只两条选项名 · 只影响 `#print`/`#check`/`#reduce` · 默认逐字节不变 · `… in …` 不做）
+- `unfold-tactic.md` — **`unfold` tactic 与 `rfl` 的 whnf 逼近**（新 tactic 的契约 · **内核验收后才提交** · 不做 `at h` · 与 Lean 4 的逐条对照 · 已知偏离）
 - **`site-single-page.md`** — **官网（GitHub Pages）当前权威**：单页站点 + 三条防漂移机制；
   验收 `python3 scripts/check-site.py`（10 项，exit 0 才算过）
 

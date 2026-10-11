@@ -328,6 +328,12 @@ def scan_text(text: str, line_no: int, is_comment: bool) -> list[dict]:
     11 个实参）——只数**反引号里的代码片段**；记法/点名叫法这两类正则仍然扫
     整段注释。
     """
+    # **`unfold` 的参数位必须点名**（2026-10-11 加）：`unfold Set.mem Set.singleton` 里
+    # 那两个名字是**常量引用**（tactic 语法本来就要求点名），不是"该写记法"的位置 ⇒
+    # 按旧写法报出来是**假阳性**（改成 `a ∈ A` 根本解析不了 ✗）。与"声明位豁免"
+    # （`exempt_names`）同一条纪律：**结构性豁免**、不是 `soko:notation-ok` 那种逐处标记 ✓。
+    if not is_comment and re.match(r"\s*unfold\s+[\w.]", text):
+        return []
     hits: list[dict] = []
     for label, pat, fix in PREFIX_LOGIC:
         for m in pat.finditer(text):
@@ -936,6 +942,8 @@ def census_selftest() -> int:
          "theorem t : P := Set.mem α a A", 1, None, "needs-manual"),
         ("`Eq.{1}`：**拒绝改**（needs-manual）✗",
          "theorem t : P := Eq.{1} T a b", 1, None, "needs-manual"),
+        ("`unfold Set.mem` 的参数位**必须点名** ⇒ 不报（结构性豁免 ✓）",
+         "unfold Set.mem", 0, None, "clean"),
     ]
     bad = 0
     for label, src, want_n, want_text, want_kind in cases:

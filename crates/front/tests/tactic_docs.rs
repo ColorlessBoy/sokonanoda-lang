@@ -42,6 +42,7 @@ fn docs_dir() -> PathBuf {
 /// **手写清单**（判据 1 的另一半）。故意写成字面量、且**与 `TACTIC_DOCS` 的顺序不同**，
 /// 这样"顺序被误当成契约"这类写法也会被咬住 ✓。
 const HAND_WRITTEN: &[&str] = &[
+    "unfold",
     "sorry",
     "have",
     "cases",
@@ -92,7 +93,11 @@ fn hand_written_tactic_list_equals_the_table() {
             .filter(|n| !from_table.contains(n))
             .collect::<Vec<_>>()
     );
-    assert_eq!(table.len(), 14, "tactic 基线是 14 条（设计 §1.1）");
+    assert_eq!(
+        table.len(),
+        15,
+        "tactic 基线是 15 条（设计 §1.1；`unfold` 2026-10-11 加）"
+    );
     assert_eq!(
         table,
         vec![
@@ -101,6 +106,7 @@ fn hand_written_tactic_list_equals_the_table() {
             "apply",
             "assumption",
             "rfl",
+            "unfold",
             "match",
             "constructor",
             "left",
@@ -298,10 +304,10 @@ fn index_lists_every_tactic_with_its_summary() {
         assert!(row.ends_with(&want_tail), "索引行的链接形状不对：{row}");
         seen += 1;
     }
-    assert_eq!(seen, 14);
+    assert_eq!(seen, 15);
     // 反向：索引里不许有表外的 tactic 行（否则"索引比真相多"✗）。
     let rows = lines.iter().filter(|l| l.starts_with("| `")).count();
-    assert_eq!(rows, 14, "索引里有 {rows} 行 tactic，表里只有 14 条");
+    assert_eq!(rows, 15, "索引里有 {rows} 行 tactic，表里只有 15 条");
 }
 
 /// **防真空判绿**：P3–P5 每填完一篇就删掉骨架标记 ⇒ 从那一刻起，

@@ -991,37 +991,72 @@ mod tests {
     fn sealing_keeps_the_library_layer_out_of_the_copy_on_write() {
         use crate::util::clone_stats;
 
-        let arena = Arena::new();
-        // 库层：512 条；封层；再取一份快照 —— 此后每次插入都会命中 COW。
-        let mut b = build_axioms(&arena, 512);
-        b.seal_library_layer();
-        assert!(b.library_layer_sealed());
-        assert_eq!(b.declaration_count(), 512, "夹具前提：库层 512 条");
-        let _snap = b.env_snapshot();
+        // **读数会被并行用例污染 ⇒ 重测到读数为准**（2026-10-11 实测的假红）。
+        //
+        // `clone_stats` 是**进程级**原子计数，而同一测试二进制里的其它用例**并行**跑
+        // ⇒ 它们触发的克隆会混进这一趟读数（实测：全量 `cargo test --workspace` 的
+        // 负载下偶发 `copies = 2`；单跑 70/70 恒绿）✗。
+        //
+        // 处置：每趟用**全新**的 arena/builder 重测，**最多 5 趟**，取第一趟满足
+        // 期望条件的读数。⚠ 守卫**照样咬得住** ✓ —— 真回归（封层没生效 / 插入漏进
+        // `base`）**永远**产不出满足条件的读数，5 趟之后照样判红 ✓；污染只是多跑一趟
+        // （这几趟都是微秒级）✓。
+        let mut sealed: Option<(u64, u64)> = None;
+        for _ in 0..5 {
+            let arena = Arena::new();
+            // 库层：512 条；封层；再取一份快照 —— 此后每次插入都会命中 COW。
+            let mut b = build_axioms(&arena, 512);
+            b.seal_library_layer();
+            assert!(b.library_layer_sealed());
+            assert_eq!(b.declaration_count(), 512, "夹具前提：库层 512 条");
+            let _snap = b.env_snapshot();
 
-        // 入口层：加 3 条（每条都跟在"快照共享"之后 ⇒ 第一次插入触发一次 COW）。
-        clone_stats::reset();
-        for i in 0..3 {
-            add_axiom(&mut b, &format!("entry{i}"));
+            // 入口层：加 3 条（每条都跟在"快照共享"之后 ⇒ 第一次插入触发一次 COW）。
+            clone_stats::reset();
+            for i in 0..3 {
+                add_axiom(&mut b, &format!("entry{i}"));
+            }
+            let (copies, entries) = clone_stats::take_cow();
+            if copies == 1 && entries < 512 {
+                sealed = Some((copies, entries));
+                break;
+            }
         }
-        let (copies, entries) = clone_stats::take_cow();
-        assert_eq!(copies, 1, "封层后**只该**复制一次本地层（第一次插入），实测 {copies} 次 ✗");
+        let Some((copies, entries)) = sealed else {
+            panic!(
+                "封层后**只该**复制一次本地层（第一次插入）、且复制量必须**远小于**库层（512 条）\
+                 —— 连测 5 趟都不成立 ⇒ 真回归（共享没生效 / 封层没做 / 插入漏进了 `base`）✗"
+            );
+        };
+        assert_eq!(copies, 1, "封层后**只该**复制一次本地层（第一次插入）");
         assert!(
             entries < 512,
             "写时复制搬了 {entries} 条 —— 它与**库层**（512 条）同量级 ⇒              共享没生效（封层没做 / 插入漏进了 `base`）✗"
         );
 
         // **反向验证**：不封层 ⇒ 插入命中共享的 `base` ⇒ 复制量 = 整条库层 ✓。
-        let mut unsealed = build_axioms(&arena, 512);
-        let _snap = unsealed.env_snapshot();
-        clone_stats::reset();
-        add_axiom(&mut unsealed, "leak");
-        let (copies2, entries2) = clone_stats::take_cow();
+        // 同样重测（污染只会让 `copies2` 变大 ⇒ 取第一趟 `copies2 == 1` 的读数 ✓）。
+        let mut unsealed: Option<(u64, u64)> = None;
+        for _ in 0..5 {
+            let arena = Arena::new();
+            let mut u = build_axioms(&arena, 512);
+            let _snap = u.env_snapshot();
+            clone_stats::reset();
+            add_axiom(&mut u, "leak");
+            let (copies2, entries2) = clone_stats::take_cow();
+            if copies2 == 1 && entries2 >= 512 {
+                unsealed = Some((copies2, entries2));
+                break;
+            }
+        }
+        let Some((copies2, entries2)) = unsealed else {
+            panic!(
+                "反向验证失败：不封层时那一次复制本该搬**整条库层**（≥512 条）\
+                 —— 连测 5 趟都不成立 ⇒ 上一条的 `< 512` 咬不住东西 ✗"
+            );
+        };
         assert_eq!(copies2, 1, "不封层也要复制一次（且是整条库层）");
-        assert!(
-            entries2 >= 512,
-            "反向验证失败：不封层时那一次复制本该搬**整条库层**（≥512 条），实测 {entries2} ⇒              上一条的 `< 512` 咬不住东西 ✗"
-        );
+        assert!(entries2 >= 512, "反向验证：不封层时复制量 = 整条库层");
     }
 
     /// **T2-A 判据⑤ + 单调 intern 引理**：快照**不含** `Dag` 的合法性依据 ——

@@ -1061,12 +1061,29 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // **G-108**：`by` 引擎在 lowering 就失败 ⇒ 这条声明**一个 hover 行
                 // 都还没收**（连签名都没有）。补词法行：源码里写下的名字仍要能悬停 /
                 // 跳转（用户报的就是这个 —— 一处报错不该打死整份文件的符号导航 ✗）。
-                let mut lexical_rows = Vec::new();
-                self.push_lexical_hover_rows(val, &mut lexical_rows);
-                if !lexical_rows.is_empty() {
+                //
+                // **G-108 第二刀（2026-10-11 用户实测）**：上面那句"连签名都没有"
+                // **不准确** ✗ —— 签名里的行是**真读数**（`{a}` → `Set.singleton`、
+                // `∈` → 记法声明行、名字 → 定义），只是随 `lower_value` 的**局部**
+                // `hovers` 一起被丢了。用户现场：`mem_of_subset_singleton` 的 `rfl`
+                // 报错 ⇒ 签名里 `{a}` 的 F12 变 `null`，而同文件其它 `{a}` 都跳得动 ✗。
+                // ⇒ 这里把签名**再 elaborate 一遍只为收行**（`elab_type_for_hovers`，
+                // 与 `build_axiom` 前半同一份实现、**不 `add_declar`** ⇒ 环境不动 ✓；
+                // 代价只发生在**失败声明**上 ✓）。判定一个字不动 ✓。
+                let mut rows = Vec::new();
+                let _ = crate::compile::elab::elab_type_for_hovers(
+                    &mut self.builder,
+                    ty,
+                    universe,
+                    &self.known,
+                    &mut rows,
+                    &elab_ctx,
+                );
+                self.push_lexical_hover_rows(val, &mut rows);
+                if !rows.is_empty() {
                     self.cmd_hovers.push(CmdHover {
                         env_at: c.env_before,
-                        nodes: lexical_rows,
+                        nodes: rows,
                         cmd: idx,
                     });
                 }
@@ -1459,12 +1476,29 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // **G-108**：`by` 引擎在 lowering 就失败 ⇒ 这条声明**一个 hover 行
                 // 都还没收**（连签名都没有）。补词法行：源码里写下的名字仍要能悬停 /
                 // 跳转（用户报的就是这个 —— 一处报错不该打死整份文件的符号导航 ✗）。
-                let mut lexical_rows = Vec::new();
-                self.push_lexical_hover_rows(val, &mut lexical_rows);
-                if !lexical_rows.is_empty() {
+                //
+                // **G-108 第二刀（2026-10-11 用户实测）**：上面那句"连签名都没有"
+                // **不准确** ✗ —— 签名里的行是**真读数**（`{a}` → `Set.singleton`、
+                // `∈` → 记法声明行、名字 → 定义），只是随 `lower_value` 的**局部**
+                // `hovers` 一起被丢了。用户现场：`mem_of_subset_singleton` 的 `rfl`
+                // 报错 ⇒ 签名里 `{a}` 的 F12 变 `null`，而同文件其它 `{a}` 都跳得动 ✗。
+                // ⇒ 这里把签名**再 elaborate 一遍只为收行**（`elab_type_for_hovers`，
+                // 与 `build_axiom` 前半同一份实现、**不 `add_declar`** ⇒ 环境不动 ✓；
+                // 代价只发生在**失败声明**上 ✓）。判定一个字不动 ✓。
+                let mut rows = Vec::new();
+                let _ = crate::compile::elab::elab_type_for_hovers(
+                    &mut self.builder,
+                    ty,
+                    universe,
+                    &self.known,
+                    &mut rows,
+                    &elab_ctx,
+                );
+                self.push_lexical_hover_rows(val, &mut rows);
+                if !rows.is_empty() {
                     self.cmd_hovers.push(CmdHover {
                         env_at: c.env_before,
-                        nodes: lexical_rows,
+                        nodes: rows,
                         cmd: idx,
                     });
                 }
@@ -1950,12 +1984,30 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // **G-108**：`by` 引擎在 lowering 就失败 ⇒ 这条声明**一个 hover 行
                 // 都还没收**（连签名都没有）。补词法行：源码里写下的名字仍要能悬停 /
                 // 跳转（用户报的就是这个 —— 一处报错不该打死整份文件的符号导航 ✗）。
-                let mut lexical_rows = Vec::new();
-                self.push_lexical_hover_rows(val, &mut lexical_rows);
-                if !lexical_rows.is_empty() {
+                //
+                // **G-108 第二刀（2026-10-11 用户实测）**：上面那句"连签名都没有"
+                // **不准确** ✗ —— 签名里的行是**真读数**（`{a}` → `Set.singleton`、
+                // `∈` → 记法声明行、名字 → 定义），只是随 `lower_value` 的**局部**
+                // `hovers` 一起被丢了。用户现场：`mem_of_subset_singleton` 的 `rfl`
+                // 报错 ⇒ 签名里 `{a}` 的 F12 变 `null`，而同文件其它 `{a}` 都跳得动 ✗。
+                // ⇒ 这里把签名**再 elaborate 一遍只为收行**（`elab_type_for_hovers`，
+                // 与 `build_axiom` 前半同一份实现、**不 `add_declar`** ⇒ 环境不动 ✓；
+                // 代价只发生在**失败声明**上 ✓）。判定一个字不动 ✓。
+                let mut rows = Vec::new();
+                let _ = crate::compile::elab::elab_type_for_hovers(
+                    &mut self.builder,
+                    ty,
+                    // `example` 不能声明宇宙参数 ⇒ 空切片（与上面 `lower_value` 同源）。
+                    &[],
+                    &self.known,
+                    &mut rows,
+                    &elab_ctx,
+                );
+                self.push_lexical_hover_rows(val, &mut rows);
+                if !rows.is_empty() {
                     self.cmd_hovers.push(CmdHover {
                         env_at: c.env_before,
-                        nodes: lexical_rows,
+                        nodes: rows,
                         cmd: idx,
                     });
                 }
