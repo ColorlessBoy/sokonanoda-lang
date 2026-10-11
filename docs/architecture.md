@@ -598,15 +598,15 @@ LEAN_KERNEL_ARENA=… LEAN_KERNEL_ARENA_MAX_BYTES=$((1024*1024*1024)) scripts/ke
     （`error_cmds` / `warning_cmds`），绝不能按 span——不同文件的字节偏移会互相
     命中；新增"每命令输出通道"时先看 `split_report` 与
     `session::build_suffix_snapshots` 两个消费者（0.58.0 合并轮就踩过 warning 丢
-    归因）；② **不要**给 `import`-free 的
-    文件加任何项目开销（`plan_project` 只在解析出 import 后才被调用，A1 回归由
-    `crates/cli/tests/imports.rs` 的 stdin/文件同字节断言守住）；③ 内存覆盖与诊断
-    发布：覆盖的路径要 `canonicalize` 后再比（macOS `/var` vs `/private/var`），
-    构建覆盖时**先把当前文档的新文本替进去**（否则下游重编译看到的还是上一版依赖
-    ——实测踩过），多文档测试要边处理边排空（见 §4.5 末与 `docs/TESTING.md` §5.7）；
-    ④ **编辑器不许自己发明模块根**：LSP 的 `initialize` 工作区根不是模块根
-    （把工作区根当 `root_override` 等于跳过清单发现，工作区里嵌套的项目会
-    `import-not-found` 而 CLI 正常）；一律交给 front 按 CLI 同款规则发现。
+    归因）；② **不要**给 `import`-free 的文件加任何项目开销（`plan_project` 只在
+    解析出 import 后才被调用，A1 回归由 `crates/cli/tests/imports.rs` 的 stdin/
+    文件同字节断言守住）；③ 内存覆盖与诊断发布：覆盖的路径要 `canonicalize` 后再比
+    （macOS `/var` vs `/private/var`），构建覆盖时**先把当前文档的新文本替进去**
+    （否则下游重编译看到的还是上一版依赖——实测踩过），多文档测试要边处理边排空
+    （见 §4.5 末与 `docs/TESTING.md` §5.7）；④ **编辑器不许自己发明模块根**：
+    LSP 的 `initialize` 工作区根不是模块根（把工作区根当 `root_override` 等于跳过清单
+    发现，工作区里嵌套的项目会 `import-not-found` 而 CLI 正常）；一律交给 front 按
+    CLI 同款规则发现。
 11. **prelude 是"受信任安装" ⇒ 体的类型错误只能靠"判 prelude 源"这条守卫抓**
     （2026-10-10 实测）：`install_l1_command`（`compile/prelude.rs`）把每条命令
     **elaborate** 成 `Declar` 就装进环境、**不进 PendingOp** ⇒ 内核**从不重查**它；
@@ -617,6 +617,9 @@ LEAN_KERNEL_ARENA=… LEAN_KERNEL_ARENA_MAX_BYTES=$((1024*1024*1024)) scripts/ke
     （期望 `Sort(0)`）。守卫 = `crates/front/tests/prelude_mirror.rs::
     the_prelude_source_grades_clean_as_an_ordinary_document`（0 诊断 + 声明计数 ≥ 43，
     与 `scripts/soko grade` 同一条 `parse` → `compile_all_with` 通道 ✓）。
+12. **同版本的两个构建（release / debug）共用一个 `.sokonanoda/` ⇒ 互不命中、且互相删条目**
+    （G-112，2026-10-11 用户实测）：`build_stamp` 是编译期常量且**进键**，`update_index` 又对
+    一个入口只留一条条目 ⇒ 两个构建轮流擦掉对方、每次保存重编整条库层闭包、面板**恒**报 `stale`。
 
 ---
 
@@ -734,12 +737,9 @@ scripts/kernel-diff.sh --self-test target/debug/sokonanoda
 **✅ 已自动化**（2026-09-25 ✓）：`scripts/ci-local.sh` 里那条
 `gates：折叠判据的反向验证（必须判红 ✗）` ✓ —— 它把**已证明咬得住**的那两条判据在
 `SOKO_NO_NOTATION_FOLD=1` 下重跑 ✓，**必须判红** ✗；**若仍然绿 ⇒ 门自己红** ✓。
-（为什么需要它 ✓：本 session **三次**写出"通过但咬不住"的判据 ✗，每次都是靠**人手**反向验证才发现 ✓
-⇒ 把它交给门 ✓，才不会复发 ✓。）
 本仓库现成的两个干净手法：
 * **代码层**：在 `crates/front/src/display.rs` 的 `print_back` 入口注入"原样返回" ✓
-  （⚠ **必须打在 `print_back`** ✗ —— 打在 `DisplayNotations::fold` 上会"看起来不咬" ✓，
-  因为有些显示副本走的是**直接调 `print_back`** 的老路 ✓）；
+  （⚠ 打在 `DisplayNotations::fold` 上会"看起来不咬" ✓ —— 有些显示副本直接调 `print_back` ✗）；
 * **开关层**（首选 ✓，不改代码 ✓）：`SOKO_NO_NOTATION_FOLD=1 cargo test …` ✓
   —— `display_notations` 见它返回**空表** ✓ ⇒ 一切折叠失效 ✓ ⇒ 判据**必须判红** ✗。
 
