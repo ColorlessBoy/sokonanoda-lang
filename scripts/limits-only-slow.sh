@@ -46,7 +46,10 @@ cd "$ROOT" || exit 2
 
 BIN="${SOKO_BIN:-}"
 if [ -z "$BIN" ]; then
-  for cand in "$ROOT/target/release/sokonanoda" "$ROOT/target/debug/sokonanoda"; do
+  # ⚠ 受管环境把 `CARGO_TARGET_DIR` 指到 worktree 之外 ⇒ 下面两条路径构造上不存在 ✗
+  # （接口 agent 提交 `SUB-dev-verify-managed-env`；同族三个脚本一起修）
+  for cand in "${CARGO_TARGET_DIR:-}/release/sokonanoda" "${CARGO_TARGET_DIR:-}/debug/sokonanoda" \
+              "$ROOT/target/release/sokonanoda" "$ROOT/target/debug/sokonanoda"; do
     [ -x "$cand" ] && BIN="$cand" && break
   done
 fi

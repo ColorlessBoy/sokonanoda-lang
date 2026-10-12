@@ -59,7 +59,9 @@ fi
 step "③ release 构建 + 暂存插件自带二进制"
 cargo build --release -p sokonanoda-cli -p sokonanoda-lsp || exit 1
 node editor/vscode/scripts/stage-lsp.js || exit 1
-BIN="$PWD/target/release/sokonanoda"
+# ⚠ 上面那条 `cargo build` 尊重 `CARGO_TARGET_DIR` ⇒ 这里必须按同一个变量取产物，
+# 否则受管环境下会去 worktree 里找一个**构造上不存在**的路径 ✗（同族一起修 ✓）
+BIN="${CARGO_TARGET_DIR:-$PWD/target}/release/sokonanoda"
 echo "锚点二进制：$("$BIN" version --json | sed 's/.*"version":"\([^"]*\)".*/\1/')"
 
 # ④ 完整门禁（坑 1+2：显式给锚点、且它必须是刚建的那份）

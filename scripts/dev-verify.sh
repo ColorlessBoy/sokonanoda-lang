@@ -38,13 +38,35 @@ KEEP=0
 # ── ① 解析被测二进制（**打印出来** ✓ —— "0 有两种来源" ✗，先自证真的跑了 ✓）──
 BIN="${SOKO_BIN:-}"
 if [ -z "$BIN" ]; then
-  for cand in "$ROOT/target/release/sokonanoda" "$ROOT/target/debug/sokonanoda"; do
-    [ -x "$cand" ] && BIN="$cand" && break
+  # ⚠ **受管环境**（`agent-worktree.sh new` + `compile-cache.py env`，即接手路径规定的
+  # 唯一开工方式）把 `CARGO_TARGET_DIR` 指到 **worktree 之外**
+  # （`.cache/compile/targets/<id>`）⇒ 下面那两个路径**构造上永远不存在** ✗。
+  # 于是本脚本在受管环境里**必然 exit 2** —— 而它是「改一处的默认验证」判据
+  # ⇒ **每个 subagent 的日常判据都是死的**（接口 agent 提交 `SUB-dev-verify-managed-env`
+  # 实测；LANG-B 也独立撞到并写进它的收尾报告）。
+  # ⇒ 解析顺序加两条：**① `$CARGO_TARGET_DIR`**（受管环境的真实产物位置）
+  # · **② `scripts/soko`**（harness 中立的启动器，AGENTS.md 的推荐形态）。
+  # ⚠ `scripts/soko` 要有可信构建才答得上（否则 exit 3 拒跑）⇒ 先探测再用 ✓。
+  for cand in "${CARGO_TARGET_DIR:-}/release/sokonanoda" "${CARGO_TARGET_DIR:-}/debug/sokonanoda" \
+              "$ROOT/target/release/sokonanoda" "$ROOT/target/debug/sokonanoda"; do
+    [ -n "$cand" ] && [ -x "$cand" ] && BIN="$cand" && break
   done
+fi
+# ⚠ **必须可归属**（与 `scripts/ux-probes/**` 同一条纪律，2026-10-13 反向验证实测）：
+# 只探「`scripts/soko` 答得上」是**不够的** —— 没有仓库构建时它会回落到**用户缓存**
+# （实测 `cli.source = cache(STALE: expected 0.90.0, found 0.83.0)`）⇒ 那等于**拿 0.83.0
+# 的二进制量 0.90.0 的仓库**，读数与本次改动无关 ✗（反向验证实测：临时树里它没报
+# 环境不对，而是拿着缓存跑进了超时 ✗）。
+# ⇒ 要求 `cli.source == "repo-build"`：**读不出来就不许判** ✓。
+if [ -z "$BIN" ] && [ -x "$ROOT/scripts/soko" ]; then
+  _v="$("$ROOT/scripts/soko" version --json 2>/dev/null)"
+  if printf '%s' "$_v" | grep -q '"source": *"repo-build"'; then
+    BIN="$ROOT/scripts/soko"
+  fi
 fi
 if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
   echo "环境不对：找不到 sokonanoda 二进制（先 cargo build --release -p sokonanoda-cli）" >&2
-  echo "  找过：\$SOKO_BIN · target/release/sokonanoda · target/debug/sokonanoda" >&2
+  echo "  找过：\$SOKO_BIN · \$CARGO_TARGET_DIR/{release,debug} · target/{release,debug} · scripts/soko" >&2
   exit 2
 fi
 echo "== dev-verify（合成夹具 · 改一行 ⇒ 重编闭包）=="

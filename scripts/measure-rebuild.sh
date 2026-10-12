@@ -26,7 +26,8 @@
 # 输出：stdout 的 markdown 表（直接贴进 docs/perf/ 记录即可）。
 set -u
 cd "$(dirname "$0")/.." || exit 2
-BIN="${SOKONANODA_BIN:-$PWD/target/release/sokonanoda}"
+# ⚠ 受管环境把产物放 `$CARGO_TARGET_DIR`（worktree 之外）⇒ 先看它（同族一起修 ✓）
+BIN="${SOKONANODA_BIN:-${CARGO_TARGET_DIR:-$PWD/target}/release/sokonanoda}"
 # 兜底：release 没构建过就明确报错，**不要**悄悄退到 debug ✗（那正是这次踩的坑）。
 if [ ! -x "$BIN" ] && [ -z "${SOKONANODA_BIN:-}" ]; then
   echo "找不到 release 二进制：$BIN" >&2
