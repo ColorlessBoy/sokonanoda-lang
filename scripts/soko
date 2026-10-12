@@ -1477,6 +1477,22 @@ async function main(argv) {
         }
         if ((r.status ?? 3) !== 0) return r.status ?? 3
       }
+      // **编译缓存预算**（2026-10-12 用户：「rust 编译器对编译缓存文件的管理非常差，经常占了一百多 G……
+      // 多 workspace 会放大这种问题，现在收口到我们这边来管理」）：`compile-cache.py status --quiet`
+      // 报一行总量（跨工作树，硬链接去重 ⇒ 与 `du` 同口径 ✓），**超预算判红** ✗。
+      // 预算 = `SOKO_CACHE_BUDGET_GB` 或 `.cache/compile/registry.json`（默认 60 G）。
+      const cacheMgr = path.join(REPO, 'scripts', 'compile-cache.py')
+      if (existsSync(cacheMgr)) {
+        const cc = spawnSync(python.cmd, [...python.args, cacheMgr, 'status', '--quiet'], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (cc.error) {
+          process.stderr.write(`scripts/soko gate: failed to run ${cacheMgr}: ${cc.error.message}\n`)
+          return 3
+        }
+        if ((cc.status ?? 3) !== 0) return cc.status ?? 3
+      }
       // **多会话/工作树门禁**（2026-10-12 并行 agent 基建）：`check-multi-session.py` 在 **worktree**
       // 里跑时会拦「台账落后 main ⇒ 合回必冲突」（正解 = worktree 隔离 + 台账只在 main 上改 ✓）。
       // 秒级 ⇒ `--fast` 也跑；在主工作树且不落后时它直接绿 ✓。

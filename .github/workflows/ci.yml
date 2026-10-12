@@ -716,6 +716,9 @@ jobs:
             # 并行 agent 基建：多会话判据自检（反例必须判红 ✓）+ 真跑（主工作树/不落后 ⇒ 绿）
             python3 "$GITHUB_WORKSPACE/scripts/check-multi-session.py" --selftest
             python3 "$GITHUB_WORKSPACE/scripts/check-multi-session.py"
+            # 编译缓存总管：判据自检（回收顺序/预算反向验证）；CI 上不设预算 ⇒ 只报数不判红 ✓
+            python3 "$GITHUB_WORKSPACE/scripts/compile-cache.py" --selftest
+            SOKO_CACHE_BUDGET_GB=200 python3 "$GITHUB_WORKSPACE/scripts/compile-cache.py" status --quiet
           fi
 
   fast-fail:
