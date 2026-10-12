@@ -61,9 +61,9 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=29 blocker=0 high=3 medium=17 low=9 -->
-**未完成 29 条**（blocker **0** · high **3** · medium **17** · low **9**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
-最靠前的 5 条：`F3` · `G-100` · `G-112` · `D2` · `D5`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
+<!-- QUEUE:COUNTS total=20 blocker=0 high=1 medium=13 low=6 -->
+**未完成 20 条**（blocker **0** · high **1** · medium **13** · low **6**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+最靠前的 5 条：`F3` · `D2` · `D5` · `DOC-REFS-CODE` · `F6`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
 > **口径（2026-10-12 清台账 + 事件调度器）**：**明细只活在脚本里** —— `--next` 取队列 · `--claim <id>` 认领（**最多 4 个并发（"4 核"）**，写锁 + 
@@ -76,8 +76,6 @@
 |---|---|---|---|
 | W-3 | 课程侧隐变量适配 | 课程侧整批豁免未删（引擎侧已收口）⇒ 先小批量跑通口径 | `notation-lint` 零旧写法 + 课程门禁 `failed=0` + 计数如实记账 |
 | W-5 | prelude 剥离 | 内嵌 Rust 字符串 → 真 `.soko` 文件（建 `crates/prelude/`） | 剥离后 `docs-lint` ✓ + 全课 `--json` 逐字节不变 + 三层测试 |
-| G-112 | 缺口台账（**仍复现**） | release/debug 共用 `.sokonanoda/` 互擦 ⇒ 键或目录带上构建档 | `docs/gaps/repro/G112-*.sh` 转绿 + 两档构建不互擦的实测读数 |
-| G-100 | 缺口台账 | 编译路径的进程级名字键缓存**没有失效路径** ⇒ 加失效路径或收窄 | `python3 scripts/gap.py check` exit 0 + `docs/architecture.md` §6 口径 |
 | Q | 调度器自身的缺口（接口 agent 的 **13 条提交** + `Q-1`） | `--submit`/`--inbox`/受理四态/`--claim` 原子性（**已修**）· 其余按 `--inbox` 逐条受理 | `python3 scripts/ux-queue.py --inbox` 无 `todo` 残留 + `--selftest` exit 0 |
 
 > **`G-110` 已收口**（2026-10-12 · commit `ead7829f`）：`assumption` 现在搜遍全部局部假设

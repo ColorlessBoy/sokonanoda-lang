@@ -15,16 +15,20 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/cache.rs": {
-      "lines": 1045,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1138,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1045,
+      "growth_reason": "frontG 本轮两个 high 修复：G-112（profile 不再进 build_stamp ⇒ 两个构建档共用产物）+ G-100（进程级名字键缓存加环境代际 + 新复现件带对照臂）⇒ cache.rs +93 · judge.rs +127 · check/mod.rs +8。⚠ 如实：债务增长（三个文件早已超 500 行软线），换来两个 high 缺口收口 + 两条带对照臂的复现件；软线目标未变，这三个文件仍待拆"
     },
     "crates/front/src/compile/check/kernel_phase.rs": {
       "lines": 871,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/check/mod.rs": {
-      "lines": 2183,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2191,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2183,
+      "growth_reason": "frontG 本轮两个 high 修复：G-112（profile 不再进 build_stamp ⇒ 两个构建档共用产物）+ G-100（进程级名字键缓存加环境代际 + 新复现件带对照臂）⇒ cache.rs +93 · judge.rs +127 · check/mod.rs +8。⚠ 如实：债务增长（三个文件早已超 500 行软线），换来两个 high 缺口收口 + 两条带对照臂的复现件；软线目标未变，这三个文件仍待拆"
     },
     "crates/front/src/compile/check/walk.rs": {
       "lines": 2855,
@@ -63,8 +67,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/judge.rs": {
-      "lines": 4543,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 4670,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 4543,
+      "growth_reason": "frontG 本轮两个 high 修复：G-112（profile 不再进 build_stamp ⇒ 两个构建档共用产物）+ G-100（进程级名字键缓存加环境代际 + 新复现件带对照臂）⇒ cache.rs +93 · judge.rs +127 · check/mod.rs +8。⚠ 如实：债务增长（三个文件早已超 500 行软线），换来两个 high 缺口收口 + 两条带对照臂的复现件；软线目标未变，这三个文件仍待拆"
     },
     "crates/front/src/notation_input.rs": {
       "lines": 1438,
@@ -176,9 +182,7 @@
     },
     "crates/lsp/src/lib.rs": {
       "lines": 3844,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 3826,
-      "growth_reason": "把 `SOKO_NO_TACTIC_DEF_CARD` 从 `tactic_name_at` 一支**扩到全部卡片渲染点**（`card_value_enabled()` 助手 + 三个调用点 + 说明注释）⇒ `crates/lsp/src/lib.rs` **3826 → 3844（+18）**。⚠ **如实：这是债务增长**（该文件早已超 500 行软线），收益是**一条判据从无法反向验证变成咬得住**（H2 关闸 ⇒ exit 1 ✓）—— 用 18 行换一条真守卫，值得；但软线目标未变，该文件仍待拆"
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/render.rs": {
       "lines": 1342,
