@@ -22,8 +22,19 @@
 //!   "假设 ≡ 该子洞期望类型"——同样的合成声明裁判语义，判定对象换成子洞
 //!   期望类型。这也顺带修复了旧 `exact` 把"匹配外层 goal 的假设"塞进子洞
 //!   的错位建议：外层匹配者与子洞期望类型不合，kernel 拒绝即不出现。
+//!
+//! **位置模式（A1，2026-10-12 blocker）**：洞分 **tactic 位**（`by` 块里剩下的
+//! 目标）与 **项位**（声明值位/项内部的洞），模式由 walk 带出来
+//! （`DeclState.hole_modes`，出身 = `by` 引擎装配的未闭合目标）。
+//! 建议的**插入文本必须与模式同形** ✗→✓：tactic 位给 `exact hp` / `rfl` / `intro x`，
+//! 项位给 `hp` / `Eq.refl …` / `fun (x : T) => sorry`。以前一律给项文本 ⇒ 插进
+//! tactic 位是语法错误、判卷红 ✗（UX 探针 `A1-codeaction-by-hole-breaks`）。
+//! **判定也换到与模式同一条通道**：tactic 位单洞时用 `judge_hole_fill`（把
+//! **tactic 文本**填进源里再走完整 kernel —— 正是"插入文本能过判卷"这条判据的
+//! 内建版 ✓）；多洞仍走逐洞 `judge_terms`（其余洞保持 `sorry` ⇒ `judge_hole_fill`
+//! 的合成声明必然 Open，bump 不出"这一填对不对"，见 `judgement_of`）。
 
-use crate::compile::{CompileOptions, DeclState, DeclStatus};
+use crate::compile::{CompileOptions, DeclState, DeclStatus, HoleMode};
 use crate::judge::{
     judge_hole_fill_with, judge_terms_with, judge_value_replace_with, GoalBinderSpec, Judgement,
     OpenGoalSpec,
@@ -36,13 +47,27 @@ use crate::{BinderKind, Expr};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SuggestionKind {
     /// 第 `hole` 个洞（`DeclState.holes` 下标）填该假设。
-    Exact { binder: String, hole: usize },
+    ///
+    /// `text` 是**要插进洞里的文本**（已按位置模式定型：tactic 位 `exact hp`、
+    /// 项位 `hp`）；`binder` 只是命中的假设名（标题用）。
+    Exact {
+        binder: String,
+        hole: usize,
+        text: String,
+    },
     /// 用 `DeclState.refine_template` 拆分子目标。
+    ///
+    /// ⚠ **只在项位出现**（A1）：模板是**项**（`And.intro … sorry`），而本语言没有
+    /// `refine` tactic ⇒ tactic 位上不给这一条（插进去是语法错误 ✗）。
     Refine,
     /// 剥一层/多层 binder。
-    Intro,
-    /// kernel 验证过的 `Eq.refl` 候选。
-    Rfl { term: String },
+    ///
+    /// `text` 是**要插进洞里的文本**（已按位置模式定型：tactic 位 `intro x`、
+    /// 项位 `fun (x : T) => sorry`）。结构生成、`verified: false`（与今天一致）。
+    Intro { text: String },
+    /// kernel 验证过的 `rfl` 候选：`text` 是**要插进洞里的文本**（已按位置模式
+    /// 定型：tactic 位 `rfl`、项位 `Eq.refl …` / `Iff.rfl`）。
+    Rfl { text: String },
     /// kernel 拒绝的失败声明且答案以 lambda 开头：保留已写的 lambda 前缀，
     /// 把第一个非 lambda 部分整体换成 `sorry`（前缀 + `sorry` 的全文，直接可作
     /// 编辑的 new_text）。结构生成、kernel 在学生下次编辑后终审。
@@ -107,7 +132,9 @@ pub fn suggest_with(
                 );
                 if judgements.first() == Some(&Judgement::Match) {
                     out.push(Suggestion {
-                        kind: SuggestionKind::Rfl { term },
+                        // 整值替换：值位是**项位**（`<term>` 直接替换 `:=` 之后那一段）
+                        // ⇒ 文本就是那个项（与 A1 的洞位模式无关 ✓）。
+                        kind: SuggestionKind::Rfl { text: term },
                         verified: true,
                     });
                 }
@@ -140,6 +167,11 @@ pub fn suggest_with(
         let Some(expected) = hole_goal_text(d, i) else {
             continue;
         };
+        // **位置模式**（A1）：与 `holes` 逐位对齐。缺一格就**不给这一洞的建议** ✗
+        // （**不猜**：猜错正是 A1 那个 bug —— 项文本插进 tactic 位）。
+        let Some(mode) = d.hole_modes.get(i).copied() else {
+            continue;
+        };
         // 批量判定一次成型：前 4 个 binder（+ 单洞时的 rfl 候选）。
         let rfl_term = if single_hole {
             refl_candidate(&expected, d)
@@ -152,7 +184,27 @@ pub fn suggest_with(
             terms.push(term.clone());
         }
         let refs: Vec<&str> = terms.iter().map(String::as_str).collect();
-        let judgements = if d.sub_goals.is_empty() {
+        // **要插进洞里的文本**（与位置模式同形）—— 判定与插入用**同一份**文本 ✓
+        // （两处各拼一次 = 又一条"真相与显示两条路"的缝 ✗）。
+        let mut shaped: Vec<String> = binders.iter().map(|t| mode.shape_exact(t)).collect();
+        if let Some(term) = &rfl_term {
+            shaped.push(mode.shape_rfl(term));
+        }
+        let shaped_refs: Vec<&str> = shaped.iter().map(String::as_str).collect();
+        let judgements = if mode == HoleMode::Tactic && single_hole {
+            // **tactic 位**：把 **tactic 文本**填进源里再交完整 kernel —— 判定对象
+            // 与插入文本逐字相同 ✓（这条通道本身就要求"填进去能过判卷"）。
+            // 多洞不给它：其余洞保持 `sorry` ⇒ 合成声明必然 Open ⇒ `judge_hole_fill`
+            // 读不出"这一填对不对"（见模块注释）⇒ 多洞退回逐洞 `judge_terms`。
+            judge_hole_fill_with(
+                extra_prefix,
+                prefix_src,
+                options,
+                d.span,
+                *hole,
+                &shaped_refs,
+            )
+        } else if d.sub_goals.is_empty() {
             // 主洞：judge_terms 语义。
             judge_terms_with(
                 extra_prefix,
@@ -185,15 +237,23 @@ pub fn suggest_with(
                 kind: SuggestionKind::Exact {
                     binder: terms[pos].clone(),
                     hole: i,
+                    // 插入文本 = 判定过的那个候选按模式定型（单洞 tactic 位时
+                    // `judged == shaped` ⇒ 这里的文本就是**被判定过的那一份** ✓；
+                    // 多洞 tactic 位判定的是项、插入的是它的 tactic 形 —— `exact` 的
+                    // 语义（用该类型的项闭合目标）由 `by.rs::exact_tactic` 走同一条
+                    // `judge_terms` 保证，见模块注释的边界）。
+                    text: shaped[pos].clone(),
                 },
                 verified: true,
             });
         }
         // rfl 候选被拒即丢弃，不出现。
-        if let Some(term) = rfl_term {
+        if let Some(term) = &rfl_term {
             if judgements.get(rfl_base) == Some(&Judgement::Match) {
                 rfl.push(Suggestion {
-                    kind: SuggestionKind::Rfl { term },
+                    kind: SuggestionKind::Rfl {
+                        text: mode.shape_rfl(term),
+                    },
                     verified: true,
                 });
             }
@@ -201,20 +261,54 @@ pub fn suggest_with(
     }
     let mut out = exact;
     out.extend(rfl);
-    if d.refine_template.is_some() {
+    // **Refine 只在项位**（A1）：模板是**项**（`And.intro … sorry`），而本语言没有
+    // `refine` tactic ⇒ tactic 位上这一条插进去是语法错误 ✗。落点与 LSP 的
+    // `hole_range` 同一格（min offset，并列取下标最小者 ⇒ 就是 `first_hole_mode`）。
+    if d.refine_template.is_some() && first_hole_mode(d) == Some(HoleMode::Term) {
         out.push(Suggestion {
             kind: SuggestionKind::Refine,
             verified: false,
         });
     }
     if intro_count(d) > 0 {
-        out.push(Suggestion {
-            kind: SuggestionKind::Intro,
-            verified: false,
-        });
+        // Intro 的文本也按**落点那一个洞**的位置模式定型（同一个 `hole_range` 规则 ✓）。
+        if let Some(text) = first_hole_mode(d).and_then(|m| intro_text(m, d.goal.as_deref()?)) {
+            out.push(Suggestion {
+                kind: SuggestionKind::Intro { text },
+                verified: false,
+            });
+        }
     }
     out.truncate(MAX_SUGGESTIONS);
     out
+}
+
+/// **落点那一个洞**的位置模式（A1）：LSP 的 `hole_range` 取的是**最小 offset**
+/// 的洞（并列时取下标最小者，`min_by_key` 的语义 ✓）——两条 Intro/Refine 的编辑
+/// 都落在那一格，所以它们的形态也按那一格定 ✓（同一份 `hole_modes`，不另判一次 ✗）。
+fn first_hole_mode(d: &DeclState) -> Option<HoleMode> {
+    let index = d
+        .holes
+        .iter()
+        .enumerate()
+        .min_by_key(|(_, span)| span.start.offset)
+        .map(|(i, _)| i)?;
+    d.hole_modes.get(index).copied()
+}
+
+/// Intro 建议的**插入文本**（A1）：tactic 位 ⇒ `intro x`（本语言的 `intro` 是
+/// tactic）；项位 ⇒ `fun (x : T) => sorry`（与今天逐字相同）。
+///
+/// 两条路都先让 [`crate::proof::ProofState`] 真的剥一层 —— 剥不动（目标不是
+/// Pi/Arrow）就没有这一条建议（与今天同一条守卫 ✓）。名字沿用项位那条的 `x` ✓
+/// （`intro x` 是重命名，与本语言的语义一致）。
+fn intro_text(mode: HoleMode, goal_text: &str) -> Option<String> {
+    let mut state = crate::proof::ProofState::start(goal_text).ok()?;
+    state.intro("x").ok()?;
+    match mode {
+        HoleMode::Tactic => Some("intro x".to_string()),
+        HoleMode::Term => Some(state.lambda_text()),
+    }
 }
 
 /// 重启骨架最多剥的 Pi 层数（docs/design/kernel-taxonomy.md §2）。
@@ -576,11 +670,70 @@ mod tests {
             kinds(&suggestions),
             vec![SuggestionKind::Exact {
                 binder: "h".to_string(),
-                hole: 0
+                hole: 0,
+                text: "h".to_string(),
             }],
             "goal `a` has no binder to peel; the exact suggestion is kernel-verified"
         );
         assert!(suggestions[0].verified);
+    }
+
+    /// **A1（2026-10-12 blocker）**：建议的**插入文本按洞的位置模式定型** ——
+    /// `by` 块里剩下的目标是 **tactic 位**（给 `exact hp` / `rfl` / `intro x`），
+    /// 声明值位/项内部的洞是**项位**（给 `hp` / `Eq.refl …` / `fun (x : T) => sorry`）。
+    ///
+    /// **为什么**：以前一律给项文本 ⇒ 插进 tactic 位是语法错误、判卷红 ✗
+    /// （UX 探针 `A1-codeaction-by-hole-breaks`）。模式来自 walk 的
+    /// `DeclState.hole_modes`（出身 = `by` 引擎装配的未闭合目标），**不看文本** ✗。
+    #[test]
+    fn the_insertion_text_follows_the_holes_position_mode() {
+        // ① tactic 位 + 假设命中 ⇒ `exact hp`。
+        let suggestions = suggest_for("theorem by_hole (p : Prop) (hp : p) : p := by\n  sorry\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Exact {
+                binder: "hp".to_string(),
+                hole: 0,
+                text: "exact hp".to_string(),
+            }],
+            "`by` 块里的洞要 tactic：插入文本必须是 `exact hp`"
+        );
+        assert!(suggestions[0].verified);
+
+        // ② 项位（对照）⇒ 还是 `hp`（**不带** `exact`）。
+        let suggestions = suggest_for("theorem term_hole (p : Prop) (hp : p) : p := sorry\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Exact {
+                binder: "hp".to_string(),
+                hole: 0,
+                text: "hp".to_string(),
+            }],
+            "声明值位的洞要项：插入文本就是 `hp`"
+        );
+
+        // ③ tactic 位的 rfl ⇒ `rfl`（**不是** `Eq.refl …` 那个项）。
+        let suggestions =
+            suggest_for("theorem eq_by (α : Type) (a : α) : Eq.{1} α a a := by\n  sorry\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Rfl {
+                text: "rfl".to_string()
+            }],
+            "tactic 位的 rfl 候选要写成 `rfl` tactic"
+        );
+        assert!(suggestions[0].verified);
+
+        // ④ tactic 位的 intro ⇒ `intro x`（**不是** `fun (x : T) => sorry`）。
+        let suggestions =
+            suggest_for("theorem pi_by (p q : Prop) (h : q) : p → q := by\n  sorry\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Intro {
+                text: "intro x".to_string()
+            }],
+            "tactic 位的 intro 要写成 `intro x`"
+        );
     }
 
     const SPINE_DOC: &str = "axiom And : Prop -> Prop -> Prop\n\
@@ -597,11 +750,13 @@ And.intro a b sorry sorry\n";
             vec![
                 SuggestionKind::Exact {
                     binder: "ha".to_string(),
-                    hole: 0
+                    hole: 0,
+                    text: "ha".to_string(),
                 },
                 SuggestionKind::Exact {
                     binder: "hb".to_string(),
-                    hole: 1
+                    hole: 1,
+                    text: "hb".to_string(),
                 },
             ],
             "each sub-hole gets its own hypothesis; the outer-goal match `whole` \
@@ -622,7 +777,8 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
             kinds(&suggestions),
             vec![SuggestionKind::Exact {
                 binder: "hb".to_string(),
-                hole: 0
+                hole: 0,
+                text: "hb".to_string(),
             }],
             "the last sub-hole's fill completes the proof; the kernel judges it whole"
         );
@@ -637,7 +793,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                term: "Eq.refl.{1} Nat a".to_string()
+                text: "Eq.refl.{1} Nat a".to_string()
             }],
             "no binder matches the Eq goal; rfl is the verified next step"
         );
@@ -652,7 +808,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                term: "Eq.refl.{1} Nat (Nat.add 1 1)".to_string()
+                text: "Eq.refl.{1} Nat (Nat.add 1 1)".to_string()
             }],
         );
         assert!(suggestions[0].verified);
@@ -667,7 +823,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                term: "Iff.rfl".to_string()
+                text: "Iff.rfl".to_string()
             }],
             "no binder matches the Iff goal; rfl is the verified next step"
         );
@@ -698,7 +854,7 @@ fun (a : Prop) => fun (b : Prop) => fun (h : a ↔ b) => sorry\n",
             ks.iter().all(|k| !matches!(k, SuggestionKind::Rfl { .. })),
             "an Arrow goal is neither Eq nor Iff: {ks:?}"
         );
-        assert!(ks.iter().any(|k| matches!(k, SuggestionKind::Intro)));
+        assert!(ks.iter().any(|k| matches!(k, SuggestionKind::Intro { .. })));
     }
 
     #[test]
@@ -713,10 +869,11 @@ fun (a : Nat) => fun (h : Eq.{1} Nat 2 2) => sorry\n",
             vec![
                 SuggestionKind::Exact {
                     binder: "h".to_string(),
-                    hole: 0
+                    hole: 0,
+                    text: "h".to_string(),
                 },
                 SuggestionKind::Rfl {
-                    term: "Eq.refl.{1} Nat 2".to_string()
+                    text: "Eq.refl.{1} Nat 2".to_string()
                 },
             ]
         );
@@ -736,10 +893,13 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
             vec![
                 SuggestionKind::Exact {
                     binder: "k".to_string(),
-                    hole: 0
+                    hole: 0,
+                    text: "k".to_string(),
                 },
                 SuggestionKind::Refine,
-                SuggestionKind::Intro,
+                SuggestionKind::Intro {
+                    text: "fun (x : a) => sorry".to_string(),
+                },
             ],
             "kernel-verified exact first, then structural refine, then intro"
         );
@@ -909,7 +1069,7 @@ fun (d : Prop) => sorry"
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                term: "Eq.refl.{1} Nat 2".to_string(),
+                text: "Eq.refl.{1} Nat 2".to_string(),
             }],
             "the declared type is Eq-headed and the kernel accepts the refl term"
         );
@@ -928,7 +1088,7 @@ fun (d : Prop) => sorry"
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                term: "Eq.refl.{1} Nat (Nat.add 1 1)".to_string(),
+                text: "Eq.refl.{1} Nat (Nat.add 1 1)".to_string(),
             }],
         );
         assert!(suggestions[0].verified);
@@ -941,7 +1101,7 @@ fun (d : Prop) => sorry"
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                term: "Iff.rfl".to_string(),
+                text: "Iff.rfl".to_string(),
             }],
             "the declared type is Iff-headed and the kernel accepts Iff.rfl"
         );
@@ -1006,7 +1166,7 @@ fun (d : Prop) => sorry"
             kinds(&suggestions),
             vec![
                 SuggestionKind::Rfl {
-                    term: "Eq.refl.{1} Nat 2".to_string(),
+                    text: "Eq.refl.{1} Nat 2".to_string(),
                 },
                 SuggestionKind::Reset {
                     new_text: "fun (x : Nat) => sorry".to_string(),

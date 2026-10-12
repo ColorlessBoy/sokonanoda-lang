@@ -115,7 +115,49 @@ pub struct ByStepState {
 /// `lexical` 字段（词法行 ⇒ LSP 把"只有一个名字"的悬停升级成**声明卡片**）——
 /// 老条目没有这个字段 ⇒ 反序列化失败 ⇒ miss 重编 ✓（`#[serde(default)]` 会让它
 /// 静默读成 `false` ⇒ 词法行的悬停退回旧行为 ✗）。
-pub const REPORT_SHAPE: u32 = 7;
+/// **A1（2026-10-12 blocker，UX 探针 `A1-codeaction-by-hole-breaks`）把它 7 → 8**：
+/// `DeclState` 多了 `hole_modes`（**与 `holes` 逐位对齐**的位置模式：`by` 块里剩下的
+/// 目标 = tactic 位，声明值位/项内部的洞 = 项位）。**意义**：灯泡（code action）以前
+/// 对两种洞一视同仁地插**项**文本 ⇒ tactic 位的洞插进去是语法错误、判卷红 ✗。
+/// 老条目没有这个字段 ⇒ 反序列化失败 ⇒ 整库不命中、重编 ✓（`#[serde(default)]`
+/// 会让它静默读成空表 ⇒ 灯泡退回"一律插项文本"的旧行为 ✗ —— 那正是本条要修的）。
+pub const REPORT_SHAPE: u32 = 8;
+
+/// **洞的位置模式**（A1）：这个 `sorry` 在源码里占的是 **tactic 位**还是**项位**。
+///
+/// **判据来自 walk，不是文本启发式** ✗：`by` 块降级时由**引擎**记下它装配出来的
+/// 未闭合目标（`by.rs` 的 `NodeKind::Hole` ⇒ `Expr::Hole`，见 `ByOutcome::tactic_holes`）
+/// ⇒ 洞的**出身**决定模式。**不许**靠"往上找 `by`"、缩进、正则之类的文本启发式：
+/// `:= And.intro (by exact hp) sorry` 里那个 `sorry` 是**项位**（虽然同一行里有
+/// `by`），而 `by\n apply And.intro\n sorry\n sorry` 里的两个洞都是**tactic 位**
+/// （虽然值里没有 `by` 关键字——它在装配后的 AST 里已经消失了）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HoleMode {
+    /// **tactic 位**：`by` 块里剩下的目标 —— 这里要写的是 **tactic**（`exact hp`）。
+    Tactic,
+    /// **项位**：声明值位、或项内部的洞 —— 这里要写的是**项**（`hp`）。
+    Term,
+}
+
+impl HoleMode {
+    /// 建议文本按位置模式定型（`exact hp` / `hp`）—— 唯一实现，别在别处再判一次 ✗。
+    pub fn shape_exact(self, term: &str) -> String {
+        match self {
+            HoleMode::Tactic => format!("exact {term}"),
+            HoleMode::Term => term.to_string(),
+        }
+    }
+
+    /// `rfl` 候选按位置模式定型：tactic 位要的是 **`rfl` tactic**（本语言里
+    /// `rfl` 是 tactic，`Eq.refl …` 是项 ✗）；项位就是那个项（`Eq.refl …` /
+    /// `Iff.rfl`）—— 同一个候选，两种位置模式的合法写法不同 ✓。
+    pub fn shape_rfl(self, term: &str) -> String {
+        match self {
+            HoleMode::Tactic => "rfl".to_string(),
+            HoleMode::Term => term.to_string(),
+        }
+    }
+}
 
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,6 +202,18 @@ pub struct DeclState {
     /// and the goal panel; the server derives them from the walk — clients
     /// never scan text.
     pub holes: Vec<Span>,
+    /// **与 `holes` 逐位对齐**的位置模式（A1）：`hole_modes[i]` 说的是
+    /// `holes[i]` 那个洞该填 **tactic**（`exact hp`）还是 **项**（`hp`）。
+    ///
+    /// **为什么必须由 walk 带出来**（2026-10-12 blocker）：`by` 块里剩下的目标与
+    /// 声明值位的 `sorry` 在报告里长得**一模一样**（都是一个 `Span`），而它们要填的
+    /// 文本形态不同 ⇒ 灯泡以前一律插项文本 ⇒ tactic 位插进去是语法错误、判卷红 ✗。
+    /// 出身（`by` 引擎装配的未闭合目标 vs 值里的洞）只有降级那一步知道 ⇒ 在这里带出来。
+    ///
+    /// **不变量**：`hole_modes.len() == holes.len()`（逐位对齐；两个数组由
+    /// `walk.rs::hole_modes_for` **一次性**生成 ✓）。老条目没有这个字段 ⇒
+    /// 反序列化失败 ⇒ 当 miss 重编（`REPORT_SHAPE` 7 → 8 ✓）。
+    pub hole_modes: Vec<HoleMode>,
     /// Open exercises: expected types for constructor-spine sub-holes,
     /// positionally aligned with `sub_goals` below.
     pub sub_goals: Vec<SubGoal>,

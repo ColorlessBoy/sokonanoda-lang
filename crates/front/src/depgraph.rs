@@ -194,6 +194,7 @@ mod tests {
             cmd,
             universe: Vec::new(),
             holes: Vec::new(),
+            hole_modes: Vec::new(),
             sub_goals: Vec::new(),
             ty_text: None,
             val_text: None,

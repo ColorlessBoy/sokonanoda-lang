@@ -60,7 +60,7 @@ pub use prelude::{
 };
 pub use report::{
     ByGoalState, ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport,
-    GoalBinder, HoverType, PrintInfo, ResolvedTarget, SubGoal, REPORT_SHAPE,
+    GoalBinder, HoleMode, HoverType, PrintInfo, ResolvedTarget, SubGoal, REPORT_SHAPE,
 };
 pub(crate) use scope::{join_ns, NamespaceScope, OpenEntry};
 /// **`TcCache` 构造次数**（2026-10-08 端到端 profiling 的新读数）：判据用它数

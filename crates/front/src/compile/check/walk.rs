@@ -23,11 +23,36 @@ use crate::compile::error::{CompileError, ErrorKind};
 use crate::compile::event::CompileOutput;
 use crate::compile::goals::{expr_has_hole, open_goal, spine_without_arg, GoalTemplates};
 use crate::compile::prelude::CompileOptions;
-use crate::compile::report::{ByGoalState, DeclKind, DeclState, GoalBinder, ResolvedTarget};
+use crate::compile::report::{
+    ByGoalState, DeclKind, DeclState, GoalBinder, HoleMode, ResolvedTarget,
+};
 use crate::compile::scope::{NamespaceScope, OpenEntry};
 use crate::compile::units::SourceUnit;
 use crate::{Binder, Command, CtorDecl, Expr, IotaRule, OpenFilter, RecDecl, Span};
 use sokonanoda::builder::EnvBuilder;
+
+/// **洞的位置模式**（A1，2026-10-12 blocker）：`by` 引擎装配出来的**未闭合目标**
+/// （`lowered.tactic_holes`）就是 **tactic 位**；其余（声明值位、项内部的洞）是**项位**。
+///
+/// ⚠ 判据是洞的**出身**，不是文本启发式 ✗：`:= And.intro (by exact hp) sorry` 里那个
+/// `sorry` 是**项位**（虽然同一行里有 `by`），而 `by\n apply And.intro\n sorry` 里的洞是
+/// **tactic 位**（虽然降级后的值里已经看不到 `by` 关键字）⇒ 只有降级那一步知道，
+/// 所以由 [`crate::by::ByOutcome::tactic_holes`] 带出来。
+///
+/// **不变量**：返回表与 `holes` **等长逐位对齐**（唯一生成点，见
+/// `DeclState::hole_modes` 的文档）。
+fn hole_modes_for(holes: &[Span], tactic_holes: &[Span]) -> Vec<HoleMode> {
+    holes
+        .iter()
+        .map(|h| {
+            if tactic_holes.contains(h) {
+                HoleMode::Tactic
+            } else {
+                HoleMode::Term
+            }
+        })
+        .collect()
+}
 
 /// **声明头部的根状态**：**只剥源位 λ 链的绑元**（= 声明里写的**具名绑元**），
 /// **不是**整条 ∀ 望远镜 ✗。
@@ -1109,8 +1134,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // **elaborate 过**的项 —— 里面的 tactic 语法（`unfold Foo` 的 `Foo`）
         // 一个字节都不剩 ✗。成功臂补词法行时用它，不然什么也补不到。
         let src_val = val;
-        let val = &lowered.0;
-        let by_steps = by_step_states(&lowered.1, &self.display);
+        let val = &lowered.expr;
+        let by_steps = by_step_states(&lowered.steps, &self.display);
         // 源级 delta 表：**值完整**的 def 才登记（开练习的值是洞，展开没意义）。
         // `by` 引擎的 `intro`/`apply` 靠它看穿 `A ⊆ B` 这类 def 头。
         if open_goal(ty, val, templates, &mut Vec::new()).is_none() {
@@ -1281,6 +1306,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 sig_span: signature.span,
                 goal: Some(info.goal.clone()),
                 binders: info.binders.clone(),
+                // **A1**：洞的位置模式（tactic 位 vs 项位）——与 `holes` 逐位对齐 ✓
+                // （同一个 `info` 出来的两份数据，唯一生成点 = `hole_modes_for` ✓）。
+                hole_modes: hole_modes_for(&info.holes, &lowered.tactic_holes),
                 holes: info.holes,
                 sub_goals: info.sub_goals,
                 refine_template: info.refine_template,
@@ -1542,8 +1570,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // **elaborate 过**的项 —— 里面的 tactic 语法（`unfold Foo` 的 `Foo`）
         // 一个字节都不剩 ✗。成功臂补词法行时用它，不然什么也补不到。
         let src_val = val;
-        let val = &lowered.0;
-        let by_steps = by_step_states(&lowered.1, &self.display);
+        let val = &lowered.expr;
+        let by_steps = by_step_states(&lowered.steps, &self.display);
         if trusted {
             if skip.is_some_and(|s| s.contains_key(&idx))
                 || open_goal(ty, val, templates, &mut Vec::new()).is_some()
@@ -1718,6 +1746,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 sig_span: signature.span,
                 goal: Some(info.goal.clone()),
                 binders: info.binders.clone(),
+                // **A1**：洞的位置模式（tactic 位 vs 项位）——与 `holes` 逐位对齐 ✓
+                // （同一个 `info` 出来的两份数据，唯一生成点 = `hole_modes_for` ✓）。
+                hole_modes: hole_modes_for(&info.holes, &lowered.tactic_holes),
                 holes: info.holes,
                 sub_goals: info.sub_goals,
                 refine_template: info.refine_template,
@@ -2055,8 +2086,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // **elaborate 过**的项 —— 里面的 tactic 语法（`unfold Foo` 的 `Foo`）
         // 一个字节都不剩 ✗。成功臂补词法行时用它，不然什么也补不到。
         let src_val = val;
-        let val = &lowered.0;
-        let by_steps = by_step_states(&lowered.1, &self.display);
+        let val = &lowered.expr;
+        let by_steps = by_step_states(&lowered.steps, &self.display);
         if trusted {
             if skip.is_some_and(|s| s.contains_key(&idx))
                 || open_goal(ty, val, templates, &mut Vec::new()).is_some()
@@ -2195,6 +2226,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 sig_span: signature.span,
                 goal: Some(info.goal.clone()),
                 binders: info.binders.clone(),
+                // **A1**：洞的位置模式（tactic 位 vs 项位）——与 `holes` 逐位对齐 ✓
+                // （同一个 `info` 出来的两份数据，唯一生成点 = `hole_modes_for` ✓）。
+                hole_modes: hole_modes_for(&info.holes, &lowered.tactic_holes),
                 holes: info.holes,
                 sub_goals: info.sub_goals,
                 refine_template: info.refine_template,

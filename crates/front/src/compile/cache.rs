@@ -873,6 +873,7 @@ theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\
             cmd,
             universe: Vec::new(),
             holes: Vec::new(),
+            hole_modes: Vec::new(),
             sub_goals: Vec::new(),
             ty_text: None,
             val_text: None,

@@ -526,15 +526,24 @@ Response:
 - kernel-judged code actions (next-step suggestions, per goal shape; see
   `docs/design/hints-suggestions.md`): at most three per request, the first
   one carries `is_preferred: true`:
+  - **insertion text follows the hole's position mode** (A1, 2026-10-12): a goal left
+    open in a `by` block is a **tactic position** ⇒ *tactic* text (`exact hp`,
+    `rfl`, `intro x`); a hole in the declaration's value is a **term position** ⇒
+    *term* text (`hp`, `Eq.refl …`, `fun (x : T) => sorry`). The mode comes from the
+    walk (`DeclState.hole_modes`, derived from the `by` engine's unclosed goals —
+    never from text), so *what the light bulb inserts always passes `grade`*;
   - `exact <hypothesis>` — a hypothesis the kernel judges defeq to the hole's
     expected type (per hole: in a constructor spine each sub-hole is judged
     against its own expected type, never against the outer goal);
   - `Eq.refl …` / `Iff.refl` — for `Eq`- and `Iff`-shaped goals (`Iff` only when
-    both sides are defeq), a kernel-validated `rfl` candidate (dropped when rejected);
+    both sides are defeq), a kernel-validated `rfl` candidate (dropped when
+    rejected); **in a tactic position it is written as the `rfl` tactic**;
   - `refine <skeleton>` — a constructor skeleton recovered from the
     declaration's own axiom/ctor shape (e.g. `And.intro a b sorry sorry`);
     structural, the kernel judges what the learner writes into sub-holes;
-  - `intro` — peel the next binder(s) into a lambda prefix.
+    **term positions only** (this language has no `refine` tactic);
+  - `intro` — peel the next binder(s) into a lambda prefix (`intro x` in a tactic
+    position, `fun (x : T) => sorry` in a term position).
 
 ### `soko/goalAt`
 

@@ -198,7 +198,12 @@ fn a_project_build_writes_its_artifact_into_the_module_root() {
     // 不命中（回放它等于把"跳不了/目标不匹配"的旧答案放回来 ✗）⇒ 这里同步。
     // ⚠ **r6 → r7**：同日的悬停面第二刀（`HoverType.lexical` ⇒ 词法行的悬停改答
     // 声明卡片）又加了一个字段 ⇒ 老条目反序列化失败 ⇒ 这里同步（同一条规矩 ✓）。
-    assert_eq!(meta["schema"], "soko.artifacts/2.r7");
+    // ⚠ **r7 → r8**：A1（2026-10-12 blocker，UX 探针 `A1-codeaction-by-hole-breaks`）
+    // 给 `DeclState` 加了 `hole_modes`（**与 `holes` 逐位对齐**的位置模式：`by` 块里
+    // 剩下的目标 = tactic 位 ⇒ 灯泡插 `exact hp`；声明值位/项内部的洞 = 项位 ⇒ 插 `hp`）
+    // ⇒ 老条目没有这个字段 ⇒ 整库不命中、重编 ✓。**回放老条目 = 把"tactic 位插项文本、
+    // 判卷红"那个坏行为放回来** ✗ —— 所以这里必须同步（同一条规矩 ✓）。
+    assert_eq!(meta["schema"], "soko.artifacts/2.r8");
     assert!(meta["compiler"].as_str().is_some_and(|v| !v.is_empty()));
     // ⑤ 项目条目**不再**落全局缓存（分工：项目条目只认模块根）。
     assert!(

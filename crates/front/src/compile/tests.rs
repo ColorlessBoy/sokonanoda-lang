@@ -11055,3 +11055,76 @@ fn apply_rejects_a_conclusion_that_does_not_match_the_goal() {
         report_ok.errors
     );
 }
+
+/// **A1（2026-10-12 blocker）**：洞的**位置模式**由 walk 带出来（`DeclState.hole_modes`，
+/// 与 `holes` **逐位对齐**）—— `by` 块里剩下的目标是 **tactic 位**（那里要写
+/// `exact hp`），声明值位/项内部的洞是**项位**（那里要写 `hp`）。
+///
+/// **为什么必须单独钉**：`by\n  sorry` 与 `:= sorry` 在报告里长得**一模一样**
+/// （都是一个 `Span` + 一个 `DeclState`），灯泡（code action）以前对两者一视同仁地插
+/// **项**文本 ⇒ tactic 位插进去是语法错误、判卷红 ✗（UX 探针 `A1-codeaction-by-hole-breaks`）。
+/// 位置模式只能来自**降级那一步**（`by` 引擎装配出来的未闭合目标），
+/// **不许**用"往上找 `by`"这类文本启发式 ✗ —— 最后一段就是那条反向臂：
+/// `And.intro (by exact hp) sorry` 里**有** `by`，但那个洞是**项位** ✓。
+#[test]
+fn hole_modes_come_from_the_walk_and_stay_aligned_with_holes() {
+    let modes_of = |src: &str, name: &str| {
+        let report = check_document(&parse(src).expect("parse"));
+        let d = report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some(name))
+            .unwrap_or_else(|| panic!("decl {name}: {:?}", report.errors))
+            .clone();
+        assert_eq!(
+            d.hole_modes.len(),
+            d.holes.len(),
+            "{name}: 位置模式必须与洞逐位对齐：{:?} vs {:?}",
+            d.hole_modes,
+            d.holes
+        );
+        (d.status, d.hole_modes)
+    };
+
+    // ① `by` 块里剩下的目标 ⇒ tactic 位。
+    let (status, modes) = modes_of(
+        "theorem by_hole (p : Prop) (hp : p) : p := by\n  sorry\n",
+        "by_hole",
+    );
+    assert_eq!(status, DeclStatus::Open);
+    assert_eq!(modes, vec![HoleMode::Tactic], "`by` 块里的洞是 tactic 位");
+
+    // ② 多洞的 `by` 块（`apply` 拆子目标 ⇒ 两个未闭合目标）⇒ 全是 tactic 位。
+    let (_, modes) = modes_of(
+        "theorem by_two (p q : Prop) (hp : p) (hq : q) : And p q := by\n  apply And.intro\n  sorry\n  sorry\n",
+        "by_two",
+    );
+    assert_eq!(
+        modes,
+        vec![HoleMode::Tactic, HoleMode::Tactic],
+        "两个未闭合目标都是 tactic 位"
+    );
+
+    // ③ 声明值位 ⇒ 项位（对照臂：同一份文件里的另一类洞）。
+    let (_, modes) = modes_of(
+        "theorem term_hole (p : Prop) (hp : p) : p := sorry\n",
+        "term_hole",
+    );
+    assert_eq!(modes, vec![HoleMode::Term], "声明值位的洞是项位");
+
+    // ④ **位置模式按出身判、不按文本**（本条的判据核心）：源码里**有** `by`，
+    //    但那个洞在**项位**（`by` 嵌在构造子实参里，不在值位）⇒ 仍然是项位 ✓。
+    //    ⚠ 这个形状**本身**不可 elaborate（本语言不支持项里的 `by`，实读
+    //    `unknown identifier \`by\``）⇒ 它只用来钉"模式不来自文本"，
+    //    不作为"能判卷绿"的臂（探针侧的等价臂见 `A1b`）。
+    let (status, modes) = modes_of(
+        "theorem nested (p q : Prop) (hp : p) (hq : q) : And p q := And.intro (by exact hp) sorry\n",
+        "nested",
+    );
+    assert_eq!(status, DeclStatus::Open);
+    assert_eq!(
+        modes,
+        vec![HoleMode::Term],
+        "值和 `by` 块不是同一条（`by` 在实参里）⇒ 洞仍是项位"
+    );
+}

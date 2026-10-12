@@ -606,6 +606,97 @@ CASE({
 });
 
 CASE({
+  id: 'A1b-codeaction-position-mode-is-per-hole',
+  title: '【反向臂】一份文件里 tactic 位洞给 **tactic**（`exact hp`）、项位洞给**项**（`hp`）—— 模式按洞的**出身**判，不按文本',
+  severity: 'control',
+  blocker: false,
+  expect: '两处插入都必须能直接过判卷；且 `by` 块那处带 `exact `、声明值位那处**不带**（`:= exact hp` 不是项）',
+  async run(ctx) {
+    // 形状说明（**如实**）：用户点名的字面反向臂 `:= by exact (sorry : p)` **在本语言里
+    // 不可解析**（`(e : T)` 不是语法），而"`by` 嵌在项里"的形状（`And.intro (by exact hp) sorry`）
+    // **不可 elaborate**（`unknown identifier \`by\``）⇒ 那种洞里**任何**插入都过不了判卷。
+    // 可表达的等价臂 = **同一份文件里的两类洞**：位置模式必须逐洞判（一个"整份文件有 by
+    // 就加 exact"的实现会在这里翻面 ✗）。两条读数都记在 observed 里。
+    const text =
+      'theorem rev_by (p : Prop) (hp : p) : p := by\n  sorry\n\n' +
+      'theorem rev_term (p : Prop) (hp : p) : p := sorry\n';
+    const file = fixture('a1b.sokonanoda', text);
+    await ctx.lsp.open(file, text, 1);
+    const shown = {};
+    const texts = {};
+    const exits = {};
+    for (const nth of [1, 2]) {
+      const pos = codePos(text, 'sorry', nth);
+      const res = await ctx.lsp.raw('textDocument/codeAction', { textDocument: { uri: uriOf(file) }, range: { start: pos, end: pos }, context: { diagnostics: [] } });
+      const actions = res.result || [];
+      const first = actions[0];
+      const insert = first ? editsOf(first).map((e) => e.newText).join('') : null;
+      const edited = first ? applyEdits(text, editsOf(first)) : text;
+      const g = grade(`a1b-out-${nth}.sokonanoda`, edited);
+      const key = nth === 1 ? 'by 块里的洞' : '声明值位的洞';
+      shown[key] = { 候选: actions.map((a) => a.title), 插入文本: insert };
+      exits[key] = g.exit;
+      texts[key] = edited;
+    }
+    const byInsert = shown['by 块里的洞'].插入文本;
+    const termInsert = shown['声明值位的洞'].插入文本;
+    const ok =
+      typeof byInsert === 'string' &&
+      typeof termInsert === 'string' &&
+      byInsert.startsWith('exact ') &&
+      !termInsert.startsWith('exact ') &&
+      exits['by 块里的洞'] === 0 &&
+      exits['声明值位的洞'] === 0;
+    return {
+      ok,
+      observed: { ...shown, 'grade.exit': exits },
+      evidence: `by 块 ⇒ ${JSON.stringify(byInsert)}（grade exit=${exits['by 块里的洞']}）· 值位 ⇒ ${JSON.stringify(termInsert)}（grade exit=${exits['声明值位的洞']}）`,
+    };
+  },
+});
+
+CASE({
+  id: 'A1c-codeaction-tactic-ladder-grades',
+  title: 'tactic 位上**每一条**候选都必须能直接过判卷（不止 exact —— `rfl`/`intro` 也得是 tactic 形态）',
+  severity: 'control',
+  blocker: false,
+  expect: '`by` 块里每条候选应用后 `scripts/soko grade` exit 0（不许给出语法错误的候选）',
+  async run(ctx) {
+    const probes = [
+      // exact + rfl 各一条（都是 tactic 位）
+      ['exact 与 rfl', 'theorem tac_both (α : Type) (a : α) (h : Eq.{1} α a a) : Eq.{1} α a a := by\n  sorry\n'],
+      // intro（目标 `p → q`；项位那条会插 `fun (x : p) => sorry` ⇒ 语法错误）
+      ['intro', 'theorem tac_intro (p q : Prop) (h : q) : p → q := by\n  sorry\n'],
+    ];
+    const observed = {};
+    let allGreen = true;
+    for (const [label, text] of probes) {
+      const file = fixture(`a1c-${label.length}.sokonanoda`, text);
+      await ctx.lsp.open(file, text, 1);
+      const pos = codePos(text, 'sorry', 1);
+      const res = await ctx.lsp.raw('textDocument/codeAction', { textDocument: { uri: uriOf(file) }, range: { start: pos, end: pos }, context: { diagnostics: [] } });
+      const actions = res.result || [];
+      const rows = [];
+      for (let i = 0; i < actions.length; i += 1) {
+        const edited = applyEdits(text, editsOf(actions[i]));
+        const g = grade(`a1c-${label.length}-${i}.sokonanoda`, edited);
+        rows.push({ 标题: actions[i].title, 插入文本: editsOf(actions[i]).map((e) => e.newText).join(''), 'grade.exit': g.exit, 'grade.codes': g.codes });
+        if (g.exit !== 0) allGreen = false;
+      }
+      observed[label] = rows;
+      if (rows.length === 0) allGreen = false;
+    }
+    return {
+      ok: allGreen,
+      observed,
+      evidence: allGreen
+        ? `两组共 ${Object.values(observed).reduce((n, rows) => n + rows.length, 0)} 条候选全部判卷 exit 0`
+        : `有不判绿的候选：${JSON.stringify(observed)}`,
+    };
+  },
+});
+
+CASE({
   id: 'A2-codeaction-term-hole-ok',
   title: '【对照】项位的洞：同一条 quick fix 应用后判卷**绿**（证明缺口只在 `by` 块那一侧）',
   severity: 'control',

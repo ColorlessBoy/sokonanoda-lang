@@ -59,11 +59,11 @@ pub(crate) fn code_actions(
             if let Some(range) = value_range_at(text, d) {
                 for suggestion in suggestions {
                     match &suggestion.kind {
-                        SuggestionKind::Rfl { term } => {
+                        SuggestionKind::Rfl { text: insert } => {
                             push_action(
                                 &mut actions,
-                                format!("{term}（内核验证：两边就是同一个值，直接替换）"),
-                                edit_on_hole(uri.clone(), range, term.clone()),
+                                format!("{insert}（内核验证：两边就是同一个值，直接替换）"),
+                                edit_on_hole(uri.clone(), range, insert.clone()),
                             );
                         }
                         SuggestionKind::Reset { new_text } => {
@@ -96,7 +96,11 @@ pub(crate) fn code_actions(
             suggest::suggest_with(&judge_prefix(d.span.start.offset), src, None, &options, d)
         {
             match &suggestion.kind {
-                SuggestionKind::Exact { binder, hole } => {
+                SuggestionKind::Exact {
+                    binder,
+                    hole,
+                    text: insert,
+                } => {
                     let Some(range) = hole_range_at(text, d, *hole) else {
                         continue;
                     };
@@ -105,20 +109,23 @@ pub(crate) fn code_actions(
                     } else {
                         format!("exact {binder}（用假设 {binder} 补第 {} 个洞）", hole + 1)
                     };
+                    // **A1**：插入的是 front 按**洞的位置模式**定型、并**用同一份文本**
+                    // 判过的 `insert`（tactic 位 `exact hp` / 项位 `hp`）—— LSP 不再自己
+                    // 拼前缀 ✗（各拼一次 = 判定与插入两条路，正是 A1 那条缝）。
                     push_action(
                         &mut actions,
                         title,
-                        edit_on_hole(uri.clone(), range, binder.clone()),
+                        edit_on_hole(uri.clone(), range, insert.clone()),
                     );
                 }
-                SuggestionKind::Rfl { term } => {
+                SuggestionKind::Rfl { text: insert } => {
                     let Some(range) = hole_range(text, d) else {
                         continue;
                     };
                     push_action(
                         &mut actions,
-                        format!("{term}（两边本来就是同一个值，rfl 即可）"),
-                        edit_on_hole(uri.clone(), range, term.clone()),
+                        format!("{insert}（两边本来就是同一个值，rfl 即可）"),
+                        edit_on_hole(uri.clone(), range, insert.clone()),
                     );
                 }
                 SuggestionKind::Refine => {
@@ -132,20 +139,23 @@ pub(crate) fn code_actions(
                         edit,
                     );
                 }
-                SuggestionKind::Intro => {
+                SuggestionKind::Intro { text: insert } => {
                     let Some(goal_text) = &d.goal else {
                         continue;
                     };
                     let Some(intros) = intro_count(goal_text) else {
                         continue;
                     };
-                    let Some(edit) = intro_edit(uri.clone(), text, d, goal_text) else {
+                    // **A1**：文本由 front 按落点那个洞的位置模式定型（tactic 位
+                    // `intro x` / 项位 `fun (x : T) => sorry`）—— 落点仍是本地的
+                    // `hole_range`（LSP 坐标），两者按同一条"第一个洞"规则对齐 ✓。
+                    let Some(range) = hole_range(text, d) else {
                         continue;
                     };
                     push_action(
                         &mut actions,
                         format!("引入 {intros} 个 binder（把证明写成 lambda 的第一步）"),
-                        edit,
+                        edit_on_hole(uri.clone(), range, insert.clone()),
                     );
                 }
                 // 失败声明专属的建议不会出现在开放练习里。
@@ -271,23 +281,6 @@ pub(crate) fn edit_on_hole(uri: Url, range: Range, new_text: String) -> Workspac
         changes: Some(changes),
         ..Default::default()
     }
-}
-
-/// Replace the first `sorry` inside the declaration with `fun (x : T) => sorry`,
-/// using the same "tactics build a lambda" machinery as the REPL `#prove`.
-pub(crate) fn intro_edit(
-    uri: Url,
-    text: &str,
-    d: &DeclState,
-    goal_text: &str,
-) -> Option<WorkspaceEdit> {
-    let range = hole_range(text, d)?;
-    let mut state = sokonanoda_front::proof::ProofState::start(goal_text).ok()?;
-    state.intro("x").ok()?;
-    // The intro step is just "peel one binder and keep the hole":
-    //   fun (x : T) => sorry
-    let replacement = state.lambda_text();
-    Some(edit_on_hole(uri, range, replacement))
 }
 
 /// Replace the first `sorry` with the constructor skeleton the walk recovered
@@ -893,6 +886,45 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
         assert!(
             actions.is_none(),
             "no next step for a bare axiom goal: {actions:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    /// **A1（2026-10-12 blocker）：wire 层的判据** —— 灯泡插入的文本必须与**洞的位置
+    /// 模式**同形：`by` 块里剩下的目标是 **tactic 位** ⇒ `exact hp`；声明值位是
+    /// **项位** ⇒ `hp`（不带 `exact`）。
+    ///
+    /// 这一层钉的是**用户实际拿到的那段 newText**（三层里的 wire 层）：修前这里读到的
+    /// 是 `hp`（而标题写着 `exact hp`）⇒ 插进去语法错误、判卷红 ✗。
+    #[tokio::test]
+    async fn exact_action_inserts_a_tactic_in_a_by_hole_and_a_term_in_a_value_hole() {
+        // ① tactic 位（`by` 块里的洞）。
+        let by_src = "theorem by_hole (p : Prop) (hp : p) : p := by\n  sorry\n";
+        let (mut service, _socket) = opened(by_src).await;
+        let actions = code_actions_for(&mut service, by_src).await;
+        let tactic = actions
+            .iter()
+            .find(|a| a.title.contains("exact hp"))
+            .unwrap_or_else(|| panic!("tactic 位要有 `exact hp` 候选：{actions:?}"));
+        assert_eq!(
+            first_edit(tactic).1,
+            "exact hp",
+            "tactic 位的插入文本必须带 `exact`（标题与正文一致）"
+        );
+        shutdown(&mut service).await;
+
+        // ② 项位（声明值位的洞）—— 同一个洞形、同一个假设名，**不带** `exact`。
+        let term_src = "theorem term_hole (p : Prop) (hp : p) : p := sorry\n";
+        let (mut service, _socket) = opened(term_src).await;
+        let actions = code_actions_for(&mut service, term_src).await;
+        let term = actions
+            .iter()
+            .find(|a| a.title.contains("exact hp"))
+            .unwrap_or_else(|| panic!("项位要有 `exact hp` 候选：{actions:?}"));
+        assert_eq!(
+            first_edit(term).1,
+            "hp",
+            "项位的插入文本必须还是项（`:= exact hp` 不是项）"
         );
         shutdown(&mut service).await;
     }

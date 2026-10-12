@@ -698,6 +698,17 @@ pub struct ByStep {
 pub struct ByOutcome {
     pub expr: Expr,
     pub steps: Vec<ByStep>,
+    /// **tactic 位洞**的 span（A1，2026-10-12）：装配时由 `NodeKind::Hole`（= 未闭合
+    /// 目标）产生的那些 `Expr::Hole` 用的是哪个 span。**这是"洞的出身"的唯一来源** ——
+    /// 装配后的 AST 里 tactic 位的洞与项位的洞**长得一模一样**（都是 `Expr::Hole`），
+    /// 报告层（`DeclState.hole_modes`）与灯泡（`front::suggest`）只能靠它区分：
+    /// 洞的 span 在表里 ⇒ **tactic 位**（该填 `exact hp`），否则 ⇒ 项位（该填 `hp`）。
+    ///
+    /// ⚠ 与 `steps` 的区别：`steps` 只记**跑过的 tactic**，而洞位在"块尾没有 tactic"
+    /// （`by` 空块 ⇒ 洞位取 `by_span`）与"嵌套 `have := by …`"（洞位取那条 `have`
+    /// 的 span）时都对不上"最后一条 tactic" ⇒ 拿 steps 反推洞的出身会漏 ✗。
+    /// 这里由**装配点**直接记，**不反推** ✓。
+    pub tactic_holes: Vec<Span>,
 }
 
 /// **B1（2026-10-08）**：`by` 块**失败**时交还的东西 —— 诊断 **+ 已经跑成功的那些步**。
@@ -1513,6 +1524,10 @@ fn run_by_inner<'a>(
     let mut nodes: Vec<GoalNode> = Vec::new();
     let mut worklist: Vec<usize> = Vec::new();
     let mut steps: Vec<ByStep> = Vec::new();
+    // **A1**：装配时记下"哪些 span 上的洞是**未闭合目标**"（= tactic 位）——见
+    // [`ByOutcome::tactic_holes`]。嵌套 `have := by …` / `cases` 臂体里的洞由
+    // `run_tactics` 一路带出来（它们同样是 tactic 位 ✓）。
+    let mut tactic_holes: Vec<Span> = Vec::new();
 
     // 根目标 = 声明类型（先剥掉声明 binder）；声明 binder 进初始上下文。
     nodes.push(GoalNode {
@@ -1541,6 +1556,7 @@ fn run_by_inner<'a>(
                 defs,
                 ctx,
                 crate::compile::elab::InplaceEnv::reborrow(&mut env),
+                &mut tactic_holes,
             );
             drop(scope); // 丢弃批次：这批判定**已知全 Match**（调用方的 flush 证明过 ✓）
             if let Err(error) = replayed {
@@ -1566,13 +1582,18 @@ fn run_by_inner<'a>(
         defs,
         ctx,
         env,
+        &mut tactic_holes,
     ) {
         // **B1**：`?` 会把已累积的 `steps` 整份丢掉 ✗ ⇒ 显式交还（失败那条不在里面 ✓）。
         // **B3**：连**引擎状态**（节点图/待解队列）与**批边界**一起交还 ⇒ 严格续跑 ✓。
         return Err(ByFailure { error, steps });
     }
-    let expr = assemble(&nodes, 0, hole_span(tactics, *by_span));
-    Ok(ByOutcome { expr, steps })
+    let expr = assemble(&nodes, 0, hole_span(tactics, *by_span), &mut tactic_holes);
+    Ok(ByOutcome {
+        expr,
+        steps,
+        tactic_holes,
+    })
 }
 
 /// 跑一串 tactic（`by` 块的主循环，`cases` 的臂体递归复用它）。
@@ -1593,6 +1614,9 @@ fn run_tactics<'a>(
     defs: &DefTable,
     ctx: &crate::compile::elab::ElabCtx<'a, '_>,
     mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
+    // **A1**：装配出来的**未闭合目标**（tactic 位洞）的 span 出口 —— 嵌套
+    // `have := by …` 的装配也往这里记（那同样是一个 tactic 位 ✓）。
+    tactic_holes: &mut Vec<Span>,
 ) -> Result<(), CompileError> {
     for (index, tactic) in tactics.iter().enumerate() {
         if let Some(marks) = marks.as_deref_mut() {
@@ -1747,9 +1771,10 @@ fn run_tactics<'a>(
                             defs,
                             ctx,
                             crate::compile::elab::InplaceEnv::reborrow(&mut env),
+                            tactic_holes,
                         )?;
                         worklist.truncate(base);
-                        assemble(nodes, id, *span)
+                        assemble(nodes, id, *span, tactic_holes)
                     }
                 };
                 // ② **立刻判一次** `value : T`。判定用一份「目标换成 T」的规格
@@ -2235,6 +2260,7 @@ fn run_tactics<'a>(
                     defs,
                     ctx,
                     crate::compile::elab::InplaceEnv::reborrow(&mut env),
+                    tactic_holes,
                 )?;
             }
             // `sorry` = 占位：当前目标保持开放（no-op，节点仍是 Hole）。
@@ -2676,6 +2702,8 @@ fn cases_tactic<'a>(
     defs: &DefTable,
     ctx: &crate::compile::elab::ElabCtx<'a, '_>,
     mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
+    // **A1**：`cases … with` 臂体里的未闭合目标也是 tactic 位洞 ⇒ 一路带出去 ✓
+    tactic_holes: &mut Vec<Span>,
 ) -> Result<(), CompileError> {
     let cur = *worklist
         .last()
@@ -3066,6 +3094,7 @@ fn cases_tactic<'a>(
             defs,
             ctx,
             crate::compile::elab::InplaceEnv::reborrow(&mut env),
+            tactic_holes,
         )?;
         worklist.truncate(base);
     }
@@ -3100,8 +3129,11 @@ fn ctor_matches(written: &str, ctor: &MatchCtor<'_>) -> bool {
 
 /// 组装整棵树 → 单一 lambda AST（叶子洞 = `Expr::Hole`，span 用未闭合目标
 /// 的洞位——`by … sorry` 里就是 `sorry` 的位置，供 open_goal/hole 导航使用）。
-fn assemble(nodes: &[GoalNode], id: usize, hole_span: Span) -> Expr {
-    let mut expr = node_body(nodes, id, hole_span);
+///
+/// **A1**：`tactic_holes` 收下每个 `NodeKind::Hole`（= 未闭合目标）用的那个 span
+/// —— 那是"这个洞是 **tactic 位**"的唯一凭据（装配后的 AST 里两种洞同形 ✗）。
+fn assemble(nodes: &[GoalNode], id: usize, hole_span: Span, tactic_holes: &mut Vec<Span>) -> Expr {
+    let mut expr = node_body(nodes, id, hole_span, tactic_holes);
     for binder in nodes[id].intros.iter().rev() {
         expr = Expr::Lambda {
             binders: vec![binder.clone()],
@@ -3113,9 +3145,13 @@ fn assemble(nodes: &[GoalNode], id: usize, hole_span: Span) -> Expr {
 }
 
 /// 组装节点的**体**（不含本节点的 intros 包装）。
-fn node_body(nodes: &[GoalNode], id: usize, hole_span: Span) -> Expr {
+fn node_body(nodes: &[GoalNode], id: usize, hole_span: Span, tactic_holes: &mut Vec<Span>) -> Expr {
     match &nodes[id].kind {
-        NodeKind::Hole => Expr::Hole { span: hole_span },
+        NodeKind::Hole => {
+            // 未闭合目标 = **tactic 位**洞：记下它的 span（A1）。
+            tactic_holes.push(hole_span);
+            Expr::Hole { span: hole_span }
+        }
         NodeKind::Closed(e) => e.clone(),
         // **`let h : T := t; <body>`**——`h` 在 `<body>` 里是自由变量，由这一层
         // 绑定（它同时出现在父链的 intros 里，供判定用）。
@@ -3137,7 +3173,7 @@ fn node_body(nodes: &[GoalNode], id: usize, hole_span: Span) -> Expr {
                 span: Span::default(),
             },
             val: Box::new(value.clone()),
-            body: Box::new(assemble(nodes, *body, hole_span)),
+            body: Box::new(assemble(nodes, *body, hole_span, tactic_holes)),
             span: Span::default(),
         },
         NodeKind::Apply { f, args } => {
@@ -3145,7 +3181,7 @@ fn node_body(nodes: &[GoalNode], id: usize, hole_span: Span) -> Expr {
             for arg in args {
                 let arg_expr = match arg {
                     ApplyArg::TypeParam(e) => e.clone(),
-                    ApplyArg::SubGoal(i) => assemble(nodes, *i, hole_span),
+                    ApplyArg::SubGoal(i) => assemble(nodes, *i, hole_span, tactic_holes),
                 };
                 app = Expr::App {
                     fun: Box::new(app),
@@ -3163,7 +3199,7 @@ fn node_body(nodes: &[GoalNode], id: usize, hole_span: Span) -> Expr {
                 .map(|arm| MatchArm {
                     pattern: arm.pattern.clone(),
                     guard: None,
-                    body: arm_body(nodes, arm, hole_span),
+                    body: arm_body(nodes, arm, hole_span, tactic_holes),
                     span: Span::default(),
                 })
                 .collect(),
@@ -3175,8 +3211,13 @@ fn node_body(nodes: &[GoalNode], id: usize, hole_span: Span) -> Expr {
 /// 组装一个 `cases` 分支的体：**跳过**模式绑定的那几个 intro
 /// （`| Or.inl ha => …` 里的 `ha` 由模式绑定，包成 lambda 就错了），
 /// 只把臂体里自己 `intro` 出来的那些包上。
-fn arm_body(nodes: &[GoalNode], arm: &CasesArmNode, hole_span: Span) -> Expr {
-    let mut expr = node_body(nodes, arm.node, hole_span);
+fn arm_body(
+    nodes: &[GoalNode],
+    arm: &CasesArmNode,
+    hole_span: Span,
+    tactic_holes: &mut Vec<Span>,
+) -> Expr {
+    let mut expr = node_body(nodes, arm.node, hole_span, tactic_holes);
     for binder in nodes[arm.node].intros.iter().skip(arm.binders).rev() {
         expr = Expr::Lambda {
             binders: vec![binder.clone()],

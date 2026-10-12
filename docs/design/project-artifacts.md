@@ -121,14 +121,14 @@ best-effort（写失败绝不让调用方失败）；读失败/损坏/`format` �
 
 ### 3.2 `meta.json`（人可读、机器可判）
 ```json
-{ "schema": "soko.artifacts/1",
+{ "schema": "soko.artifacts/2.r8",
   "compiler": "0.67.0",
   "build_stamp": "…hex…",
   "platform": "macos/aarch64",
   "created": "2026-09-24T…Z",
   "written": "2026-09-24T…Z" }
 ```
-* `schema` 不符 ⇒ **整目录当不存在**（读方忽略、按需要重建）——与 `CACHE_FORMAT`
+* `schema` = `<条目格式>.r<报告形状版本>`（`report::REPORT_SHAPE` **进** schema ⇒ 报告形状一变整个目录不认 ✓；权威 = `crates/cli/tests/artifacts.rs` 那条冻结断言）——**不符** ⇒ **整目录当不存在**（读方忽略、按需要重建），与 `CACHE_FORMAT`
   同一条纪律：宁可重算，绝不误用；**写侧会把它升到当前值**（`update_index` 写产物那一刻与 `compiler`/`build_stamp` **同一次**刷新，2026-10-09：不升的话老目录永远读不到自己的产物 ⇒ Infoview 画「由编译器 ? 写入」✗；陈旧条目仍被键里的版本/stamp + `CACHE_FORMAT` 挡住 ✓）；
 * `compiler`/`build_stamp` 只作**诊断与提示**；真正的作废靠键里的版本 + stamp ✓
   （两次保险不需要，键已经够了）。

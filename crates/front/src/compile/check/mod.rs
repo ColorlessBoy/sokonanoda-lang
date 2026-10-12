@@ -71,6 +71,8 @@ pub(crate) enum PendingOp<'a> {
         goal: Option<String>,
         binders: Vec<GoalBinder>,
         holes: Vec<Span>,
+        /// **与 `holes` 逐位对齐**的位置模式（A1）：tactic 位 vs 项位。
+        hole_modes: Vec<crate::compile::report::HoleMode>,
         sub_goals: Vec<SubGoal>,
         refine_template: Option<String>,
         span: Span,
@@ -420,7 +422,7 @@ fn lower_by_val<'a>(
     defs: &crate::compile::elab::DefTable,
     ctx: &crate::compile::elab::ElabCtx<'a, '_>,
     env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
-) -> Result<(Expr, Vec<crate::by::ByStep>), crate::by::ByFailure> {
+) -> Result<LoweredValue, crate::by::ByFailure> {
     if let Some((binders, by)) = crate::by::split_by_value(val) {
         stage_stats::BYS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let _by_timer = StageTimer(&stage_stats::BY_NANOS, std::time::Instant::now());
@@ -437,15 +439,30 @@ fn lower_by_val<'a>(
             ctx,
             env,
         )
-        .map(|o| (o.expr, o.steps))
+        .map(|o| LoweredValue {
+            expr: o.expr,
+            steps: o.steps,
+            tactic_holes: o.tactic_holes,
+        })
     } else {
-        Ok((val.clone(), Vec::new()))
+        // 值位不是 `by` 块 ⇒ 里面的洞都是**项位**（`tactic_holes` 空 ✓）。
+        Ok(LoweredValue {
+            expr: val.clone(),
+            steps: Vec::new(),
+            tactic_holes: Vec::new(),
+        })
     }
 }
 
-/// 值位降低产物：`(值, per-tactic 状态)`。`by` 块走 tactic 引擎；其它值原样
-/// 透传（per-tactic 状态为空）。
-pub(crate) type LoweredValue = (Expr, Vec<crate::by::ByStep>);
+/// 值位降低产物：值 + per-tactic 状态 + **tactic 位洞的 span**（A1）。`by` 块走
+/// tactic 引擎；其它值原样透传（per-tactic 状态为空、洞里没有 tactic 位）。
+pub(crate) struct LoweredValue {
+    pub expr: Expr,
+    pub steps: Vec<crate::by::ByStep>,
+    /// `by` 引擎装配出来的**未闭合目标**用的那些 span（见 [`crate::by::ByOutcome`]）。
+    /// 报告层用它把每个洞分成 `HoleMode::Tactic` / `HoleMode::Term` ✓。
+    pub tactic_holes: Vec<Span>,
+}
 
 /// 值位是 `by` 块时走 tactic 引擎；其它值原样透传。
 ///
@@ -2031,6 +2048,7 @@ pub(crate) fn failed_state(
         cmd,
         universe: Vec::new(),
         holes: Vec::new(),
+        hole_modes: Vec::new(),
         sub_goals: Vec::new(),
         refine_template: None,
         by_steps: Vec::new(),
