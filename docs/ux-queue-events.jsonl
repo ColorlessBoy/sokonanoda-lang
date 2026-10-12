@@ -155,3 +155,5 @@
 {"ts": "2026-10-12T17:58:35+00:00", "event": "advance", "id": "F13", "to": "done", "commit": "e56e0c75", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T17:58:35+00:00", "event": "claim", "id": "F17", "owner": "orchestrator", "resources": ["editor/vscode"]}
 {"ts": "2026-10-12T17:58:36+00:00", "event": "advance", "id": "F17", "to": "done", "commit": "e56e0c75", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T18:12:13+00:00", "event": "claim", "id": "SUB-dev-verify-managed-env", "owner": "orchestrator", "resources": ["scripts"]}
+{"ts": "2026-10-12T18:12:14+00:00", "event": "advance", "id": "SUB-dev-verify-managed-env", "to": "done", "commit": "aab657da", "reading": "受管环境 exit 2→0（冷 passes=13 ⇒ 改一行 passes=3）；无 repo-build 时仍 exit 2 且不静默用缓存（要求 source=repo-build）", "reason": null, "owner": "orchestrator"}
