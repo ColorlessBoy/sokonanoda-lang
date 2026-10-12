@@ -1280,7 +1280,14 @@ async function main() {
         evidence: `用例抛错：${error.message}`,
         error: error.message,
         // 夹具/锚点问题 ⇒ **判据不可用**（不是"缺口仍在"）⇒ 上层走 exit 2 ✓
-        unusable: Boolean(error && error.fixture),
+        //
+        // ⚠ **2026-10-13 扩到 `TypeError`**（回归扫描实测）：`C1`（**high**）与 `N3`（对照）
+        // 报的是 `Cannot read properties of undefined (reading 'length'/'indexOf')`
+        // —— 那是**探针自己的代码**在读一个不存在的夹具对象 ⇒ **判据坏了**，
+        // 而旧口径把它记成「不一致（缺口仍在）」✗ ⇒ 台账会记下**假缺口**（C1 还是 high！）。
+        // 判据：**JS 级 `TypeError` 绝不是产品判定**（产品的问题会以 diagnostic/answer 形式
+        // 回来，不会抛 JS 异常）⇒ 一律算**判据不可用** ✓。
+        unusable: Boolean(error && (error.fixture || error instanceof TypeError)),
       };
     }
     results.push({
