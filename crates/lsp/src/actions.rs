@@ -225,6 +225,27 @@ pub(crate) fn code_actions(
     if actions.is_empty() {
         return None;
     }
+    // **A5**：同一份编辑给两条候选 = 纯噪声 —— 实测判红的
+    // `theorem fail_fun (p q : Prop) : p → p := fun (x : p) => q` 上，
+    // `Reset` 与 `Restart` 生成**逐字节相同**的 `fun (x : p) => sorry`
+    //（只有标题不同）。判据 = **装配好的编辑**（LSP 侧那份唯一文本，不再各算
+    // 一份 ✗，"判定与插入两条路"正是这条缝的病根）；保留**先出现**的那条
+    //（梯子按强度排序 ⇒ 第一条的说法更贴切）。
+    // 逃生门 `SOKO_NO_CODE_ACTION_DEDUP=1` ⇒ 回到旧行为（反向验证）。
+    if std::env::var_os("SOKO_NO_CODE_ACTION_DEDUP").is_none() {
+        let mut seen: Vec<String> = Vec::new();
+        actions.retain(|action| {
+            let CodeActionOrCommand::CodeAction(action) = action else {
+                return true;
+            };
+            let key = edit_fingerprint(action.edit.as_ref());
+            if seen.contains(&key) {
+                return false;
+            }
+            seen.push(key);
+            true
+        });
+    }
     // 恰好第一条标 preferred（TryThis / rust-analyzer 惯例）。
     if let Some(CodeActionOrCommand::CodeAction(first)) = actions.first_mut() {
         first.is_preferred = Some(true);
@@ -275,6 +296,35 @@ fn range_at_offsets(text: &str, start: usize, end: usize) -> Option<Range> {
             character: (ec - 1) as u32,
         },
     })
+}
+
+/// 编辑的**指纹**（A5 去重用）：URI + 每个 edit 的 range 与替换文本。
+///
+/// 为什么不用 `serde_json::to_string(&edit)`：`changes` 是 `HashMap`（迭代序
+/// 随机 ✗），同一份编辑可能给出两个指纹。这里按键排序后拼，恒定 ✓。
+fn edit_fingerprint(edit: Option<&WorkspaceEdit>) -> String {
+    let Some(edit) = edit else {
+        return String::new();
+    };
+    let mut out = String::new();
+    if let Some(changes) = &edit.changes {
+        let mut keys: Vec<(&Url, &Vec<TextEdit>)> = changes.iter().collect();
+        keys.sort_by(|a, b| a.0.as_str().cmp(b.0.as_str()));
+        for (uri, edits) in keys {
+            out.push_str(uri.as_str());
+            for e in edits {
+                out.push_str(&format!(
+                    "|{}:{}:{}:{}:{}",
+                    e.range.start.line,
+                    e.range.start.character,
+                    e.range.end.line,
+                    e.range.end.character,
+                    e.new_text
+                ));
+            }
+        }
+    }
+    out
 }
 
 /// **记法头那两级的灯泡后备**（A3/A4 的 **LSP 侧那一半**）。
@@ -1236,6 +1286,33 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
             "Eq.refl a",
             "整值替换：新值就是 `Eq.refl a`"
         );
+        shutdown(&mut service).await;
+    }
+
+    /// **A5**：同一份编辑不许给两条候选（标题不同不算不同候选）。
+    /// 夹具 = 判红的 `fun (x : p) => q`：`Reset` 与 `Restart` 生成**逐字节相同**
+    /// 的 `fun (x : p) => sorry`。
+    ///
+    /// **反向验证**：`SOKO_NO_CODE_ACTION_DEDUP=1`（逃生门）⇒ 本用例判红。
+    #[tokio::test]
+    async fn duplicate_code_actions_are_deduplicated() {
+        let src = "theorem fail_fun (p q : Prop) : p \u{2192} p := fun (x : p) => q\n";
+        let (mut service, _socket) = opened(src).await;
+        let actions = code_actions_at(&mut service, src, offset_of(src, "fun (x"))
+            .await
+            .unwrap_or_default();
+        // **判据是"只剩一条"**：改前这里给两条（`Reset` + `Restart`，编辑逐字节
+        // 相同）⇒ 本断言当场判红（逃生门那档同样判红）。
+        assert_eq!(actions.len(), 1, "同一份编辑只许留一条候选：{actions:?}");
+        let mut keys: Vec<String> = Vec::new();
+        for action in &actions {
+            let key = super::edit_fingerprint(action.edit.as_ref());
+            assert!(
+                !keys.contains(&key),
+                "两条候选的编辑逐字节相同（只有标题不同）：{actions:?}"
+            );
+            keys.push(key);
+        }
         shutdown(&mut service).await;
     }
 }
