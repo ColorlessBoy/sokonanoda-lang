@@ -1735,9 +1735,7 @@ fn tactic_name_at(text: &str, span: sokonanoda_front::Span, offset: usize) -> Op
 
 /// **hover 里问常量签名**的唯一入口（2026-10-10 修一个**假话**缺陷）。
 ///
-/// ⚠ **为什么不用 `judge_type_of_constant`**：它的缓存键只有
-/// `(prelude 模式, 名字)`（`judge.rs` 的前提是「常量签名与**谁在用它**无关，
-/// 名字唯一且单调增长」），而那张表是**进程级**的、**没有任何失效路径**
+/// ⚠ **为什么不用 `judge_type_of_constant`**：它的缓存键是 `(环境代际, prelude 模式, 名字)`（`judge.rs` 的前提是「常量签名与**谁在用它**无关，名字唯一且单调增长」），而那张表是**进程级**的、**没有任何失效路径**
 /// ⇒ 同一个名字出现在**另一份环境**里（另一个项目、或用户刚把签名改了）会答出
 /// **旧签名** ✗。真 LSP 实测（用户可见）：`def myop : Nat := 0` 上 hover 出
 /// `` `myop : Nat` ``，把文件改成 `def myop : Bool := Bool.true` 再 hover
