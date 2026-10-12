@@ -82,3 +82,9 @@
 {"ts": "2026-10-12T14:44:03+00:00", "event": "claim", "id": "CI-WIRE-GUARD", "owner": "orchestrator", "resources": ["docs", "scripts"]}
 {"ts": "2026-10-12T14:44:03+00:00", "event": "advance", "id": "CI-WIRE-GUARD", "to": "done", "commit": "85ef4b85", "reading": "见 extras 的 observed 字段（判据命令 + 实测读数）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T14:44:29+00:00", "event": "submit", "id": "DOC-REFS-CODE", "owner": "penglingwei@penglingweis-Laptop", "kind": "finding", "evidence": "python3 scripts/docs-lint.py --json ⇒ doc_refs_dangling=445 / doc_refs_paths=90（基线内、无新增）；权威处已改写后 469→445"}
+{"ts": "2026-10-12T14:45:03+00:00", "event": "claim", "id": "W-1", "owner": "orchestrator", "resources": ["docs"]}
+{"ts": "2026-10-12T14:45:03+00:00", "event": "advance", "id": "W-1", "to": "done", "commit": "934d5d73", "reading": "G-30 status=fixed/fixed_in=0.82.0；metavar-engine.md 自述 B1 ✅ 已收口（2026-10-06）· 闸门翻默认开 · 当前片 B2", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T14:45:03+00:00", "event": "claim", "id": "W-2", "owner": "orchestrator", "resources": ["docs"]}
+{"ts": "2026-10-12T14:45:03+00:00", "event": "advance", "id": "W-2", "to": "done", "commit": "b59f8cbf", "reading": "syllabus 在位（19942B）· 点名 4 路径悬空 0 · docs-lint exit 0（含判据 ⑧）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T14:45:23+00:00", "event": "claim", "id": "W-STALE-PREMISE", "owner": "orchestrator", "resources": ["docs"]}
+{"ts": "2026-10-12T14:45:23+00:00", "event": "advance", "id": "W-STALE-PREMISE", "to": "done", "commit": "b59f8cbf", "reading": "W-1 收口（G-30 fixed/fixed_in=0.82.0 · B1 自述已收口）· W-2 收口（syllabus 在位 · 4 路径悬空 0 · docs-lint exit 0）· 横排 W-3/W-4/W-5：仅 W-5 前提仍成立（prelude 仍内嵌）", "reason": null, "owner": "orchestrator"}
