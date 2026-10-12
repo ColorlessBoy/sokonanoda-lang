@@ -3,3 +3,4 @@
 {"ts": "2026-10-12T10:59:36+00:00", "event": "claim", "id": "N2", "owner": "orchestrator-n2", "pid": 13287, "resources": ["crates/front/src/parser.rs"]}
 {"ts": "2026-10-12T10:59:36+00:00", "event": "claim", "id": "A3", "owner": "orchestrator-a3", "pid": 13294, "resources": ["crates/lsp"]}
 {"ts": "2026-10-12T11:05:07+00:00", "event": "claim", "id": "Q-1", "owner": "orchestrator-tooling", "resources": ["scripts/**"]}
+{"ts": "2026-10-12T11:07:07+00:00", "event": "advance", "id": "Q-1", "to": "done", "commit": "3a9fdaea", "reading": "--selftest exit 0（新增 2 组守卫）· 真 CLI 连认领 3 条锁里都在 · 收口归还槽位 · 反向验证两半各自关掉 ⇒ selftest exit 1 · --check exit 0", "reason": null, "owner": "orchestrator-tooling"}
