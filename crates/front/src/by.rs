@@ -1950,11 +1950,27 @@ fn run_tactics<'a>(
                 let refs: Vec<&str> = names.iter().map(|s| s.as_str()).collect();
                 // **严格通道**：`assumption` 要按结论**挑**哪条假设命中（不是
                 // "通过/报错"二选一），乐观批次给不出这个信息。
+                //
+                // `js` 是**一条候选一个判定**（与 `refs` 同序 = 最新优先）⇒ 取
+                // **第一个命中**的候选：与 Lean 4（本机
+                // `~/Documents/lean/lean4/src/Lean/Meta/Tactic/Assumption.lean:17-25`
+                // 的 `findLocalDeclWithType?`）对齐 ——「最新优先、**搜遍全部**、
+                // 取第一个 defeq 命中」✓。
+                // ⚠ **G-110**：`judge_strict` 曾经返回 `Option<Judgement>`（把候选
+                // 判定列表**塌缩成至多一个**）⇒ `position` 只可能返回 `0` ⇒ 永远只
+                // 挑 `names[0]` = 最新那条假设，后面的假设一概够不到 ✗。
                 let js = judge_strict(prefix_src, options, nodes, worklist, cur, universe, &refs);
-                let matched = js
-                    .iter()
-                    .position(|j| matches!(j, Judgement::Match))
-                    .map(|i| names[i].clone());
+                let matched = if assumption_first_only() {
+                    // 逃生门档（`SOKO_ASSUMPTION_FIRST_ONLY=1`）= G-110 的塌缩行为，
+                    // 只用于**反向验证**（关掉新闸 ⇒ 复现件必须重新判红）。
+                    js.first()
+                        .filter(|j| matches!(j, Judgement::Match))
+                        .map(|_| names[0].clone())
+                } else {
+                    js.iter()
+                        .position(|j| matches!(j, Judgement::Match))
+                        .map(|i| names[i].clone())
+                };
                 match matched {
                     Some(name) => {
                         let e = Expr::Ident { name, span: *span };
@@ -3752,6 +3768,13 @@ fn judge(
 
 /// [`judge`] 的**严格**版本：绕过乐观批次，当场判（只有需要读结论本身的
 /// tactic 才用它，见 `Tactic::Assumption`）。
+///
+/// 返回**一条候选一个判定**（与 `terms` 同序）✓ —— 调用方要按结论**挑**哪条
+/// 候选命中（`assumption`），所以这里**绝不能塌缩** ✗。
+///
+/// ⚠ **G-110**：这里以前 `.into_iter().next()` 把列表塌缩成 `Option<Judgement>`
+/// ⇒ `assumption` 的 `position` 只可能返回 `0` ⇒ 永远只挑最新那条假设 ✗
+/// （Lean 4 `findLocalDeclWithType?` 是「最新优先、**搜遍全部**」）。
 #[allow(clippy::too_many_arguments)]
 fn judge_strict(
     prefix_src: &str,
@@ -3761,12 +3784,21 @@ fn judge_strict(
     cur: usize,
     universe: &[String],
     terms: &[&str],
-) -> Option<Judgement> {
+) -> Vec<Judgement> {
     let spec = spec_of(nodes, cur, universe);
     let _ = worklist;
     judge_terms_strict(prefix_src, options, &spec, terms)
-        .into_iter()
-        .next()
+}
+
+/// **G-110 的逃生门**：`SOKO_ASSUMPTION_FIRST_ONLY=1` ⇒ `assumption` 回到
+/// 「只看最新那条假设」的塌缩行为，**只用于反向验证**
+/// （关掉新闸 ⇒ `docs/gaps/repro/G110-*.sh` 必须重新 exit 0）✓。
+///
+/// 与 `crate::judge` 的 `SOKO_JUDGE_INPLACE` 同一纪律：只读一次环境 ✓；
+/// 默认档 = 修好后的行为（搜遍全部）✓。
+fn assumption_first_only() -> bool {
+    static FIRST_ONLY: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *FIRST_ONLY.get_or_init(|| std::env::var("SOKO_ASSUMPTION_FIRST_ONLY").is_ok_and(|v| v == "1"))
 }
 
 /// **目标改写的内核验收**：`new_ty` 与当前目标**定义相等**吗？（`unfold` 用）
@@ -3927,4 +3959,41 @@ fn atom_text(expr: &Expr) -> String {
 
 fn tactic_error(msg: impl Into<String>, span: Span) -> CompileError {
     CompileError::elab(ErrorKind::ElabTacticFailed, msg, span)
+}
+
+#[cfg(test)]
+mod assumption_search_tests {
+    use crate::compile::{check_document, DeclStatus};
+    use crate::parse;
+
+    /// **G-110**：`assumption` 必须搜遍**全部**局部假设（与 Lean 4
+    /// `findLocalDeclWithType?` 的「最新优先、搜遍全部、取第一个 defeq 命中」对齐）
+    /// —— 命中的假设**不是上下文里最新那条**时也必须过 ✓。
+    ///
+    /// 反向判据在**进程外**（`SOKO_ASSUMPTION_FIRST_ONLY=1` 逃生门，见
+    /// [`super::assumption_first_only`]）：复现件
+    /// `docs/gaps/repro/G110-assumption-only-checks-the-newest-hypothesis.sh` 必须
+    /// 在那档下重新 exit 0 ✓。
+    #[test]
+    fn assumption_searches_every_hypothesis_not_just_the_newest() {
+        let src = "theorem t (a b : Prop) (ha : a) (hb : b) : a := by assumption\n";
+        let report = check_document(&parse(src).unwrap());
+        assert!(report.errors.is_empty(), "{:?}", report.errors);
+        let d = report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some("t"))
+            .unwrap();
+        assert_eq!(d.status, DeclStatus::Checked);
+    }
+
+    /// 同一条判据的**反向形状**：候选里真的没有能证明目标的假设时**仍然判红**
+    /// （搜遍全部 ≠ 放宽判据）✓。
+    #[test]
+    fn assumption_still_fails_when_no_hypothesis_matches_the_goal() {
+        let src = "theorem t (a b : Prop) (hb : b) : a := by assumption\n";
+        let report = check_document(&parse(src).unwrap());
+        assert!(!report.errors.is_empty());
+        assert_eq!(report.errors[0].code(), "elab-tactic-failed");
+    }
 }
