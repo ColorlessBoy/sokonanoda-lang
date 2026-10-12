@@ -22,6 +22,12 @@
   let lastVersion = -1;
   let lastDeclsPayload = [];
   let showingEmptyDecls = false;
+  // **F18（2026-10-13）**：主机 `status` 里带的**本文件错误数**（诊断里的真相）。
+  // 为什么需要它：`soko/goals` 对「**parse 失败**」与「还没编译」**同答空**
+  // （LSP 契约）⇒ 文件写坏时面板会说「这个文件没有声明。」/「光标不在任何声明内。」
+  // —— 真相是**文件没解析成功**，那两句话把用户引到错的方向 ✗。
+  let lastStatusErrors = 0;
+  let lastStatePayload = null;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -354,6 +360,10 @@
       return "读取声明失败——看「sokonanoda」输出面板，或跑一次 Sokonanoda: Restart Server (重启服务器)。";
     }
     if (lastStatusState === "idle") return "等待 .sokonanoda 文件。";
+    // **F18**：有错误且一条声明都读不出来 ⇒ 文件**根本没解析成功**（不是"没有声明"）。
+    if (lastStatusErrors > 0) {
+      return "文件没解析成功：先按 Problems 面板改掉语法错误，声明列表就会回来。";
+    }
     return "这个文件没有声明。";
   }
 
@@ -361,6 +371,7 @@
     clear(statusLine);
     const state = (status && status.state) || "idle";
     lastStatusState = state;
+    lastStatusErrors = typeof (status && status.errors) === "number" ? status.errors : 0;
     let text;
     if (state === "ready") {
       const count = typeof status.decls === "number" ? status.decls : 0;
@@ -377,6 +388,9 @@
     // 用一个标志位而不是 `querySelector`：webview 的 stub DOM（测试用）只实现了
     // 最小集合，查选择器会让测试在无关的地方炸掉。
     if (showingEmptyDecls) renderDecls(lastDeclsPayload);
+    // 目标区那句空态话同样跟着错误数变（F18）：状态包可能**后于** state 包到，
+    // 所以这里用**上一份 state 载荷**重画一次（没有就不画）。
+    if (lastStatePayload && !(lastStatePayload.decl)) renderGoals(lastStatePayload);
   }
 
   /// **编译进度**（P3，2026-09-26 用户需求：慢文件编译时面板像"冻住了"）。
@@ -454,7 +468,10 @@
       } else if (messages.length === 0) {
         // 光标在 `#check`/`#print` 那一行时**本来就不在任何声明里** ——
         // 那时下面那块「命令输出」才是要显示的东西，别用这句话盖过它 ✓。
-        goalsBody.appendChild(el("p", "empty", "光标不在任何声明内。"));
+        // **F18**：但"文件根本没解析成功"是**另一回事**，不许说成"光标不在声明内"。
+        goalsBody.appendChild(el("p", "empty", lastStatusErrors > 0
+          ? "文件没解析成功：先修语法错误，再看目标。"
+          : "光标不在任何声明内。"));
       }
     } else {
       goals.forEach(function (state, index) {
@@ -547,6 +564,7 @@
       }
       lastVersion = msg.version;
     }
+    lastStatePayload = msg;
     renderGoals(msg);
   }
 

@@ -463,6 +463,10 @@ class GoalsTreeDataProvider {
     this.onStatus?.({
       state: requestedUri === undefined ? "idle" : "ready",
       decls: decls.length,
+      // **F18（2026-10-13）**：`soko/goals` 对「parse 失败」与「还没编译」同答空
+      // （LSP 契约）⇒ 面板会把"读不出来"说成"这个文件没有声明"/"光标不在任何声明内" ✗。
+      // 诊断是另一条通道、且已经到客户端 ⇒ 一起发给 webview（它只渲染、不猜）。
+      errors: activeErrorCount(requestedUri),
     });
   }
 }
@@ -941,7 +945,15 @@ async function openInfoview() {
 // Course map (docs/design/course-status.md §2): one node per unit, rendered
 // from `course.unit` events emitted by the CLI subprocess. The client never
 // re-derives unit status — the CLI is the single data source.
-const COURSE_TIMEOUT_MS = 10000;
+//
+// **F16（2026-10-13）**：这个超时原来是 **10 s**，而 CLI 编**整门课**的冷缓存实测
+// **47.5 s**（热 2.5 s，同一份 `soko course <manifest> --json`）⇒ 第一次展开「课程」
+// 必定超时 ⇒ `runCourseCommand` 答 `[]` ⇒ 树**空着**、还没有任何说明 ✗
+// （探针实测：`课程 0 行`，而同一轮的「练习 6 行 · 项目 4 行」）。
+// 现在：① 预算按**冷缓存实测**放宽到 90 s（VS Code 在 provider 的 promise 未决时
+// 自己显示加载指示器，所以等待是**看得见**的）；② 超时/失败**不再答空**，给一条
+// 说明行；③ 失败**不进 30 s 缓存**（否则用户重试也还是空的）。
+const COURSE_TIMEOUT_MS = 90000;
 
 function courseUnitIcon(unit) {
   if (unit.error !== undefined || (unit.failed ?? 0) > 0) {
@@ -1104,28 +1116,40 @@ function runCourseCommand(command, manifestPath) {
     let settled = false;
     let child;
     let timer;
-    const finish = (units) => {
+    // **答的是 `{units, reason}`**（F16）：空结果有两种 ——「CLI 正常跑完但一个单元
+    // 都没有」（可缓存、不提示）与「超时/起不来」（**要提示、且不进缓存**）。
+    // 原来两者都答 `[]` ⇒ 超时被当成"课程是空的"静默吞掉 ✗。
+    const finish = (units, reason) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
       child.kill();
-      resolve(units);
+      resolve({ units, reason });
     };
     try {
       child = cp.spawn(command, ["course", manifestPath, "--json"]);
     } catch {
-      resolve([]);
+      resolve({ units: [], reason: "spawn-error" });
       return;
     }
-    timer = setTimeout(() => finish([]), COURSE_TIMEOUT_MS);
+    timer = setTimeout(() => finish([], "timeout"), COURSE_TIMEOUT_MS);
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", (chunk) => {
       stdout += chunk;
     });
     child.stderr.resume();
-    child.on("error", () => finish([]));
-    child.on("close", () => finish(parseCourseEvents(stdout)));
+    child.on("error", () => finish([], "spawn-error"));
+    child.on("close", () => finish(parseCourseEvents(stdout), null));
   });
+}
+
+/// 课程树里的**说明行**（F16）：拿不到数据时不许**空着**（用户看不到"为什么空"）。
+function courseNoticeItem(message) {
+  const item = new vscode.TreeItem(message, vscode.TreeItemCollapsibleState.None);
+  item.iconPath = new vscode.ThemeIcon("info");
+  item.tooltip = message;
+  item.contextValue = "courseNotice";
+  return item;
 }
 
 // 课程树的一次完整刷新 = 一个 CLI 进程编译 11 个单元（实测 release 热缓存
@@ -1140,6 +1164,7 @@ class CourseTreeDataProvider {
     this.onDidChangeTreeData = this._emitter.event;
     this.manifestDir = undefined;
     this.units = [];
+    this.failed = false;
     this._pending = undefined;
     this._loadedAt = 0;
   }
@@ -1165,17 +1190,34 @@ class CourseTreeDataProvider {
     }
     this._pending = this.runCourse().finally(() => {
       this._pending = undefined;
-      this._loadedAt = Date.now();
+      // **失败不进缓存**（F16）：把超时的空结果缓存 30 s ⇒ 用户重试也还是空的 ✗。
+      // 成功的空结果（清单里真的没有单元）照旧缓存 ✓（stub 宿主的既有用例
+      // 「repeated resolves must reuse the cached course run」就靠这条）。
+      this._loadedAt = this.failed ? 0 : Date.now();
     });
     return this._pending;
   }
 
   async runCourse() {
     this.units = [];
+    this.failed = false;
     const manifest = resolveCourseManifest();
-    if (!manifest) return this.units; // no course manifest -> empty tree
-    const units = await runCourseCommand(resolveCliCommand(), manifest);
+    if (!manifest) {
+      // 没有清单 ⇒ **说出来**（原来是空树：用户看不出是"没清单"还是"还没编完"）。
+      this.units = [courseNoticeItem("没有课程清单：把 course/course.json 放到工作区根就能看到课程地图")];
+      return this.units;
+    }
+    const { units, reason } = await runCourseCommand(resolveCliCommand(), manifest);
     this.manifestDir = path.dirname(manifest);
+    if (reason) {
+      // 超时 / 起不来：**不进缓存 + 给一条说明行**（F16：冷编整门课实测 47.5 s，
+      // 旧预算 10 s 必定超时 ⇒ 原来是**静默空树** ✗）。
+      this.failed = true;
+      this.units = [courseNoticeItem(reason === "timeout"
+        ? `课程编译超过 ${Math.round(COURSE_TIMEOUT_MS / 1000)} 秒还没结束：再展开一次会重试（这一趟已经把缓存写热，第二次通常几秒）`
+        : "课程命令起不来（看 Sokonanoda 输出通道）")];
+      return this.units;
+    }
     // v2 (any event carries a volume) ⇒ 卷 → 章 → 单元；v1 ⇒ 平铺（不许回归）。
     this.units = courseHasVolumes(units)
       ? courseVolumeGroups(units, this.manifestDir)
@@ -1456,16 +1498,52 @@ function updateStatusBar(provider) {
   // 而项目树/`projectStatusLine` 那个是**整个闭包**的（`counts.open_exercises` ✓）——
   // 原来两处都只写"练习"✗ ⇒ 同一窗口两个数、**用户无法分辨** ✓。这里把范围写进
   // **文本**（不是只写进 tooltip ✓：状态栏本来就只有一瞥的时间 ✓）。
-  statusBar.text = `$(circle-outline) 本文件 ${provider.openCount}`;
+  //
+  // **F8（2026-10-13）**：这个数**读不出来时是 0**，而 0 与"全做完了"长得一模一样 ✗。
+  // 为什么会读不出来：`soko/goals` 对「**parse 失败**」与「还没编译」**同答空**
+  //（LSP 契约，见 `crates/lsp/src/lib.rs::goal_decls` —— 错误通道是诊断通知，
+  // 不是这条应答）⇒ 写坏一个字符（实测：第 1 行行首多一个 `)`），`decls` 变空、
+  // `openCount` 从 5 变 **0**，状态栏就写「本文件 0」= **看着像做完了** ✗。
+  // 诊断是**另一条**通道、而且已经到客户端 ⇒ 有错就把错误数**写进同一行**
+  //（用户一瞥就能看出"这个 0 不算数"）；读不到诊断 API（stub 宿主）时退回旧文案 ✓。
+  const errors = activeErrorCount(provider.uri);
+  statusBar.text = errors > 0
+    ? `$(error) 本文件 ${provider.openCount} · ${errors} 错误`
+    : `$(circle-outline) 本文件 ${provider.openCount}`;
   const lines = [
     `sokonanoda：**本文件**还有 ${provider.openCount} 个练习未完成（点击查看练习面板）`,
   ];
+  if (errors > 0) {
+    lines.push(
+      `⚠ 本文件有 **${errors}** 条错误（Problems 面板有落点）——上面那个数只覆盖` +
+        `**读得出来的**部分：编译不过时它可能停在 0，**不代表做完了**。`,
+    );
+  }
   if (projectStatusLine) {
     lines.push(`下面这行是**整个项目**的：`);
     lines.push(projectStatusLine);
   }
   statusBar.tooltip = new vscode.MarkdownString(lines.join("\n\n"));
   statusBar.show();
+}
+
+/// **本文件**当前的错误诊断条数（F8，2026-10-13）。
+///
+/// 为什么用诊断而不是再加一条 LSP 请求：`soko/goals` 的空答案**故意**不区分
+/// 「parse 失败」与「还没编译」（见 `updateStatusBar` 的说明），而诊断里那条
+/// parse 错误（`entry-parse-failed` / `unexpected-token`）**已经**推到客户端了
+/// —— 再问一次服务器既慢又多一条真相 ✗。
+/// 读不到 API（`test-extension-host.js` 的 stub 宿主只有 `onDidChangeDiagnostics`）
+/// ⇒ 返回 0 = 旧行为，stub 三层里的读数一字不变 ✓。
+function activeErrorCount(uriString) {
+  try {
+    if (!uriString || typeof vscode.languages.getDiagnostics !== "function") return 0;
+    return vscode.languages
+      .getDiagnostics(vscode.Uri.parse(uriString))
+      .filter((d) => d.severity === vscode.DiagnosticSeverity.Error).length;
+  } catch {
+    return 0;
+  }
 }
 
 /// **E27**：Infoview 里点声明名 ⇒ **跳到定义**，语义与编辑器 F12 **完全同一条**

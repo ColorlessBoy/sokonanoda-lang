@@ -1408,7 +1408,10 @@ test("Infoview empty states: loading / ready-empty / error are told apart (E28)"
     await settle();
     assert.deepStrictEqual(
       states[states.length - 1],
-      { state: "ready", decls: 0 },
+      // `errors` 是 **F18（2026-10-13）** 加的**附加**字段（本文件的错误诊断数：
+      // 「空数组 + 有错」= 文件没解析成功，webview 靠它把话说对）。stub 宿主没有
+      // `languages.getDiagnostics` ⇒ 恒为 0（读不到 ⇒ 退回旧文案，老宿主不炸 ✓）。
+      { state: "ready", decls: 0, errors: 0 },
       `空数组是"真的没声明"（ready + 0），不是 loading：${JSON.stringify(states)}`,
     );
 
