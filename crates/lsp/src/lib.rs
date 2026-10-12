@@ -3515,6 +3515,17 @@ impl LanguageServer for Backend {
             params.range.start,
             // 项目模式下把闭包前缀交给 suggest：入口里对导入名字也有 quick-fix。
             &|offset| doc.query().judge_prefix(offset),
+            // 记法头读取器：`a ∈ A` / `A ⊆ B` 这类**课程库**符号不在内建表里
+            // ⇒ 解析要把闭包记法表一起喂进去（表在 `ProjectReport` 上）。
+            &|ty: &str| {
+                let notations = doc
+                    .query()
+                    .project_report_ref()
+                    .map(|project| project.notations.as_slice())
+                    .unwrap_or(&[]);
+                let expr = sokonanoda_front::proof::parse_expr_text_with(ty, notations).ok()?;
+                actions::notation_head_operand(&expr, ty)
+            },
         ))
     }
 

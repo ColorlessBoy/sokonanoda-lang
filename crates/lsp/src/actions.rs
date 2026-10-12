@@ -8,6 +8,12 @@
 //!   模板（refine / intro）；
 //! * 判定永远走 kernel，禁止文本比对（REQUIREMENTS §2.8）。
 //!
+//! **记法头那两级**（A3/A4 的 **LSP 侧那一半**）：`front::suggest` 的形状判据
+//! 全部走**点名头**（`refl_candidate` 要 `Eq α x y`），而课程一律写**记法**
+//! （`a = a` / `p ∧ q` / `A ↔ B` 都是 `Expr::Notation`）⇒ 这些目标上梯子是
+//! 0 条。本文件补两条后备（`notation_ladder_fallbacks` / 失败声明的整值 rfl），
+//! 候选照旧交 kernel 终审；front 学会记法头之后整体删掉。
+//!
 //! kernel 拒绝的失败声明（`DeclStatus::Failed`）没有洞，编辑目标是整个
 //! 值位（tokenize 定位 `:=` 与值首）。`front::suggest` 的失败声明建议梯子：
 //! kernel 验证过的 refl 整值替换（`Eq`/`Iff` 形状声明：`Eq.refl …` /
@@ -16,8 +22,9 @@
 
 use super::render::decl_at;
 use sokonanoda_front::compile::{
-    CompileOptions, DeclState, DeclStatus, DocumentReport, PreludeMode,
+    CompileOptions, DeclState, DeclStatus, DocumentReport, HoleMode, PreludeMode,
 };
+use sokonanoda_front::judge::{self as front_judge, Judgement};
 use sokonanoda_front::suggest::{self, SuggestionKind};
 use sokonanoda_front::{tokenize, TokenKind};
 use std::collections::HashMap;
@@ -35,6 +42,13 @@ pub(crate) fn code_actions(
     // 判据前缀提供者（**闭包上下文**）：项目模式下 `suggest` 靠它看见被导入的
     // 名字；单文件传 `&|_| String::new()`。按声明起点问，便于将来按偏移裁剪。
     judge_prefix: &dyn Fn(usize) -> String,
+    // **记法头读取器**：把一段目标/类型文本读成 `(记法目标名, 左操作数源码切片)`。
+    //
+    // 为什么是回调而不是表：解析要带**闭包记法表**（`a ∈ A` / `A ⊆ B` 这些课程库
+    // 符号不在内建表里），而那张表的元素类型 `front::ast::NotationDecl` 落在 front
+    // 的**私有模块**里（`mod ast;` 没有 `pub use`）⇒ 下游 crate 命名不了它。
+    // 调用方（`lib.rs`）手里有 `ProjectReport::notations`，由它把表喂进解析 ✓。
+    notation_head: &dyn Fn(&str) -> Option<(String, String)>,
 ) -> Option<CodeActionResponse> {
     let d = decl_at(&report.decls, pos.line, pos.character)?;
     if d.status == DeclStatus::Checked {
@@ -87,6 +101,37 @@ pub(crate) fn code_actions(
                             );
                         }
                         _ => {}
+                    }
+                }
+                // **A4（LSP 侧那半）**：`=` 记法头的整值 rfl —— front 的
+                // `refl_candidate` 只认**点名头** `Eq α x y`（`a = a` 是
+                // `Expr::Notation{target:"Eq"}`）⇒ 判红声明上给 0 条，
+                // 而同形状的 `Eq.refl α a` 判卷绿（用例实测）。见
+                // [`notation_head_operand`] 的说明与 `SOKO_NO_NOTATION_RFL`。
+                //
+                // 只有 `=` 头有"两边就是同一个值"的**整值**候选；别的记法头
+                // （`∧`/`↔`…）在整值替换这条路上没有东西可给（`constructor`
+                // 是 tactic，不是项 ✗）⇒ 只认 `Eq`。
+                let eq_type = notation_rfl_enabled()
+                    .then(|| decl_type_text(decl_src).and_then(notation_head))
+                    .flatten()
+                    .filter(|(target, _)| target == "Eq")
+                    .map(|(_, lhs)| lhs);
+                if let Some(lhs) = eq_type {
+                    let cand = format!("Eq.refl {lhs}");
+                    let verdict = front_judge::judge_value_replace_with(
+                        &judge_prefix(d.span.start.offset),
+                        src,
+                        &options,
+                        d.span,
+                        &[cand.as_str()],
+                    );
+                    if verdict.first() == Some(&Judgement::Match) {
+                        push_action(
+                            &mut actions,
+                            format!("{cand}（内核验证：两边就是同一个值，直接替换）"),
+                            edit_on_hole(uri.clone(), range, cand),
+                        );
                     }
                 }
             }
@@ -162,6 +207,20 @@ pub(crate) fn code_actions(
                 SuggestionKind::Reset { .. } | SuggestionKind::Restart { .. } => {}
             }
         }
+        // **A3（LSP 侧那半）**：单洞开放练习上的记法头 rfl / constructor ——
+        // front 的 `refl_candidate` 认不出 `=` 记法头（`a = a`），
+        // `refine_template` 也穿不过记法头（`p ∧ q` / `A ↔ B`）⇒ 这些目标上
+        // 灯泡给 0 条（用例实测四处全空）。见下面两个函数的说明。
+        notation_ladder_fallbacks(
+            &mut actions,
+            &uri,
+            text,
+            src,
+            d,
+            &options,
+            judge_prefix,
+            notation_head,
+        );
     }
     if actions.is_empty() {
         return None;
@@ -216,6 +275,162 @@ fn range_at_offsets(text: &str, start: usize, end: usize) -> Option<Range> {
             character: (ec - 1) as u32,
         },
     })
+}
+
+/// **记法头那两级的灯泡后备**（A3/A4 的 **LSP 侧那一半**）。
+///
+/// **为什么需要它们**：`front::suggest` 的形状判据全部走**点名头** ——
+/// `refl_candidate` 要 `Eq α x y` / `Iff A B`（外加 `↔` 记法），
+/// `refine_template` 来自 walk 的构造子识别；而课程一律写**记法**
+/// （`a = a` / `p ∧ q` / `A ↔ B` 都是 `Expr::Notation`，不是 `Ident` 应用节点）
+/// ⇒ 这三类目标上梯子是 **0 条**。两条后备：
+///   * **`=` 记法头** ⇒ `rfl`（tactic 位）/ `Eq.refl <左操作数>`（项位），
+///     候选**照旧交 kernel 终审**（`judge_hole_fill_with` / `judge_value_replace_with`）
+///     ⇒ 判不过就**不出现**，零假绿面 ✓；
+///   * **`∧`/`↔` 记法头** ⇒ **结构性** `constructor`（拆子目标）。为什么不能
+///     kernel 验证：`judge_hole_fill` 的语义是"填进去后整条命令闭合"，
+///     而 `constructor` **必然**留下两个子目标 ⇒ 判定层如实回
+///     `elab-hole-misplaced`（"洞不在可填写的位置"）—— 那是"tactic 成功了"
+///     的信号，但它是个**错误码**，拿它当正面判据 = 咬不住的守卫 ✗。
+///     所以这一条与 `Intro` / `Restart` 同档（结构建议，内核在学生写下的
+///     每一步之后照旧终审）。
+///
+/// **边界（如实）**：`=` 记法头**不写**显式类型实参（记法形态里没有它）——
+/// `Eq.refl` 的首个参数是隐式的，判卷层能从期望类型反解（实测 `a = a` 上
+/// `Eq.refl a` 判 `Match`）。副作用：生成的是 `Eq.refl a` 而不是 front 那条
+/// `Eq.refl.{u} α a`；两者在真 Lean 4 里**都合法**（`Init/Core.lean` 的
+/// `Eq.refl` 首参就是隐式）。
+///
+/// **退役判据**：front 的 `refl_candidate` / refine 识别学会记法头之后，
+/// 这个函数应当**整体删掉**（判定形状只允许有一个实现）。
+/// 逃生门 `SOKO_NO_NOTATION_RFL=1`（反向验证用，见 VERDICT）。
+fn notation_ladder_fallbacks(
+    actions: &mut Vec<CodeActionOrCommand>,
+    uri: &Url,
+    text: &str,
+    src: &str,
+    d: &DeclState,
+    options: &CompileOptions,
+    judge_prefix: &dyn Fn(usize) -> String,
+    notation_head: &dyn Fn(&str) -> Option<(String, String)>,
+) {
+    if !notation_rfl_enabled() {
+        return;
+    }
+    // 只对**单洞、无子目标**的开放练习下这一手：多洞时 `judge_hole_fill` 读不出
+    // "这一填对不对"（其余洞仍是 `sorry` ⇒ 合成声明照样 Open，见 `front::suggest`
+    // 的同一条注释）⇒ 宁可少给，不给没判过的 ✗。
+    if d.holes.len() != 1 || !d.sub_goals.is_empty() {
+        return;
+    }
+    let (Some(hole), Some(mode)) = (d.holes.first().copied(), d.hole_modes.first().copied()) else {
+        return;
+    };
+    let Some(range) = hole_range(text, d) else {
+        return;
+    };
+    let Some(goal_text) = d.goal.as_deref() else {
+        return;
+    };
+    let Some((target, operand)) = notation_head(goal_text) else {
+        return;
+    };
+    let insert = match (target.as_str(), mode) {
+        // `=` 记法：tactic 位就是 `rfl` tactic（本语言的 `rfl` 是 tactic，
+        // `Eq.refl …` 是项 ✗）；项位是 `Eq.refl <左操作数>`。
+        ("Eq", HoleMode::Tactic) => "rfl".to_string(),
+        ("Eq", HoleMode::Term) => format!("Eq.refl {operand}"),
+        // `∧` / `↔`：拆子目标。只在这两个**内建记法的目标名**上给 —— 别的记法
+        // （`∈` / `⊆` / 课程自定义）背后不一定是归纳类型 ⇒ 给了就是死胡同 ✗。
+        ("And" | "Iff", HoleMode::Tactic) => "constructor".to_string(),
+        _ => return,
+    };
+    let verified = target == "Eq";
+    if verified {
+        let verdict = front_judge::judge_hole_fill_with(
+            &judge_prefix(d.span.start.offset),
+            src,
+            options,
+            d.span,
+            hole,
+            &[insert.as_str()],
+        );
+        if verdict.first() != Some(&Judgement::Match) {
+            return;
+        }
+    }
+    let title = match (target.as_str(), mode) {
+        ("Eq", HoleMode::Tactic) => "rfl（内核验证：两边本来就是同一个值）".to_string(),
+        _ if verified => format!("{insert}（内核验证：两边本来就是同一个值）"),
+        _ => format!("constructor（把 `{target}` 目标拆成两个子目标，内核随后逐层判）"),
+    };
+    push_action(actions, title, edit_on_hole(uri.clone(), range, insert));
+}
+
+/// 记法头后备的**逃生门**（反向验证用）：`SOKO_NO_NOTATION_RFL=1` 时两条
+/// 记法头后备（开放练习的 rfl/constructor 与判红声明的 rfl 整值）**整体关闭**
+/// ⇒ 步骤 A3/A4 必须回到"不一致"（读数见 `.cache/ux/fix-lspA/VERDICT.md`）。
+fn notation_rfl_enabled() -> bool {
+    std::env::var_os("SOKO_NO_NOTATION_RFL").is_none()
+}
+
+/// 解析好的表达式是**记法头**时返回 `(目标名, 左操作数源码切片)`。
+///
+/// 解析在调用方（`lib.rs`，它握着闭包记法表）走 `front::proof::parse_expr_text_with`
+/// —— **与 front 自己读目标文本同一份 parser**，不是 LSP 另造一套；它内部带
+/// `#check ` 前缀 ⇒ 切片要减掉 `CHECK_PREFIX_LEN`（`suggest.rs::check_slice`
+/// 是同一条约定）。
+pub(crate) fn notation_head_operand(
+    expr: &sokonanoda_front::Expr,
+    ty_text: &str,
+) -> Option<(String, String)> {
+    let body = peel_binders(expr);
+    let sokonanoda_front::Expr::Notation { target, lhs, .. } = body else {
+        return None;
+    };
+    let lhs = lhs.as_deref()?;
+    let span = lhs.span();
+    let start = span.start.offset.checked_sub(CHECK_PREFIX_LEN)?;
+    let end = span.end.offset.checked_sub(CHECK_PREFIX_LEN)?;
+    Some((target.clone(), ty_text.get(start..end)?.trim().to_string()))
+}
+
+/// 剥掉 `∀`/`→` 层（声明类型文本是整句量词式，记法头在**体内**）。
+fn peel_binders(expr: &sokonanoda_front::Expr) -> &sokonanoda_front::Expr {
+    let mut cur = expr;
+    loop {
+        cur = match cur {
+            sokonanoda_front::Expr::Forall { body, .. } => body,
+            sokonanoda_front::Expr::Arrow { codomain, .. } => codomain,
+            _ => return cur,
+        };
+    }
+}
+
+/// `parse_expr_text` 的 `#check ` 前缀长度（`front::suggest::CHECK_PREFIX_LEN` 同值）。
+const CHECK_PREFIX_LEN: usize = "#check ".len();
+
+/// 声明**类型**那一半的源码切片（`:=` 之前、顶层 `:` 之后）—— 与
+/// `front::suggest::decl_type_text` **同一份机械**（tokenize 定位，绝不扫文本）。
+///
+/// ⚠ 它是 front 的**私有**函数 ⇒ 这里是 LSP 侧的镜像。**退役条件**：front 把
+/// `refl_candidate` 教成认记法头之后，这个函数与两个后备一起删。
+fn decl_type_text(decl_src: &str) -> Option<&str> {
+    let tokens = tokenize(decl_src).ok()?;
+    let colon_eq = tokens.iter().position(|t| t.kind == TokenKind::ColonEq)?;
+    let mut depth = 0usize;
+    let mut colon_end = None;
+    for tok in &tokens[..colon_eq] {
+        match tok.kind {
+            TokenKind::LParen | TokenKind::LBrace => depth += 1,
+            TokenKind::RParen | TokenKind::RBrace => depth = depth.saturating_sub(1),
+            TokenKind::Colon if depth == 0 && colon_end.is_none() => {
+                colon_end = Some(tok.span.end.offset);
+            }
+            _ => {}
+        }
+    }
+    Some(&decl_src[colon_end?..tokens[colon_eq].span.start.offset])
 }
 
 fn push_action(actions: &mut Vec<CodeActionOrCommand>, title: String, edit: WorkspaceEdit) {
@@ -946,5 +1161,81 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
             "40 characters plus the ellipsis"
         );
         assert!(long.starts_with(summary.trim_end_matches('…')));
+    }
+
+    /// **A3/A4（LSP 侧那半）**：`=` **记法头**（`Expr::Notation{target:"Eq"}`）的
+    /// rfl —— front 的 `refl_candidate` 只认点名头 `Eq α x y`，于是这些目标上
+    /// 灯泡给 0 条；候选由 kernel 终审（判不过不出现）。
+    #[tokio::test]
+    async fn eq_notation_goal_gets_a_kernel_verified_rfl() {
+        let src = "theorem a3a (\u{3b1} : Type) (a : \u{3b1}) : a = a := by\n  sorry\n";
+        let (mut service, _socket) = opened(src).await;
+        let actions = code_actions_for(&mut service, src).await;
+        let rfl = actions
+            .iter()
+            .find(|a| a.title.starts_with("rfl（内核验证"))
+            .unwrap_or_else(|| panic!("`a = a` 目标要有内核验证过的 rfl：{actions:?}"));
+        assert_eq!(
+            first_edit(rfl).1,
+            "rfl",
+            "tactic 位的 rfl 插入文本就是 `rfl`（`Eq.refl …` 是项，插进 by 块是语法错误）"
+        );
+        shutdown(&mut service).await;
+    }
+
+    /// **反向**：`=` 头但**不是**自反的（`a = b`）⇒ 内核判红 ⇒ 0 条 rfl ——
+    /// 后备层不许出现假绿（"形状对就报"正是要避免的）。
+    #[tokio::test]
+    async fn eq_notation_goal_that_is_not_reflexive_gets_no_rfl() {
+        let src = "theorem t (\u{3b1} : Type) (a b : \u{3b1}) : a = b := by\n  sorry\n";
+        let (mut service, _socket) = opened(src).await;
+        // 这一档 front 本来就一条都不给 ⇒ 响应可以是 `None`（用 `_at` 那条口子，
+        // 断言的是**没有**新候选，而不是"有响应"）。
+        let actions = code_actions_at(&mut service, src, offset_of(src, "sorry"))
+            .await
+            .unwrap_or_default();
+        assert!(
+            !actions.iter().any(|a| a.title.contains("rfl")),
+            "`a = b` 上不该有 rfl 候选（内核会判红）：{actions:?}"
+        );
+        assert!(
+            !actions.iter().any(|a| a.title.contains("constructor")),
+            "`=` 头不该给 constructor：{actions:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    /// `∧` / `↔` **记法头**：`constructor`（结构性——`judge_hole_fill` 对"留子目标"
+    /// 的 tactic 答不出 `Match`，所以这一条如实不是 kernel 验证档）。
+    #[tokio::test]
+    async fn and_notation_goal_gets_the_constructor_step() {
+        let src = "theorem a3b (p q : Prop) (hp : p) (hq : q) : p \u{2227} q := by\n  sorry\n";
+        let (mut service, _socket) = opened(src).await;
+        let actions = code_actions_for(&mut service, src).await;
+        let ctor = actions
+            .iter()
+            .find(|a| a.title.starts_with("constructor"))
+            .unwrap_or_else(|| panic!("`p \u{2227} q` 目标要有 constructor 这一步：{actions:?}"));
+        assert_eq!(first_edit(ctor).1, "constructor");
+        shutdown(&mut service).await;
+    }
+
+    /// **A4**：判红的 `a = a := a` 给整值 `Eq.refl a`（front 只给 `Iff` 那一半）。
+    #[tokio::test]
+    async fn failed_eq_declaration_gets_the_refl_value() {
+        let src = "theorem fail_eq (\u{3b1} : Type) (a : \u{3b1}) : a = a := a\n";
+        let (mut service, _socket) = opened(src).await;
+        let actions = code_actions_at(&mut service, src, offset_of(src, "a\n")).await;
+        let actions = actions.expect("failed declarations answer with suggestions");
+        let rfl = actions
+            .iter()
+            .find(|a| a.title.starts_with("Eq.refl a"))
+            .unwrap_or_else(|| panic!("判红的 `a = a` 要有整值 rfl 候选：{actions:?}"));
+        assert_eq!(
+            first_edit(rfl).1,
+            "Eq.refl a",
+            "整值替换：新值就是 `Eq.refl a`"
+        );
+        shutdown(&mut service).await;
     }
 }
