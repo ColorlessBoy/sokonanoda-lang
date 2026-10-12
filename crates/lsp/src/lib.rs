@@ -18,6 +18,7 @@
 mod actions;
 #[cfg(test)]
 mod by_sorry_range_tests;
+mod completion;
 mod hints;
 mod inlay;
 mod project_refs;
@@ -402,6 +403,18 @@ impl Docs {
         if self.active.as_ref() == Some(uri) {
             self.active = self.order.first().cloned();
         }
+    }
+
+    /// **prelude 候选（含签名，C4）**——活跃文档的闭包环境算齐（有进程级缓存，
+    /// 见 [`completion::prelude_signatures`]）。
+    ///
+    /// 补全可能一秒被问好几次（客户端打一个字母一次），所以这里**不做任何
+    /// 逐请求工作**：缓存命中的成本 = 一次前缀字符串比较 + 克隆 56 条。
+    fn prelude_signatures(&mut self) -> Vec<(String, Option<String>)> {
+        let Some(doc) = self.active() else {
+            return Vec::new();
+        };
+        completion::prelude_signatures(doc.query(), doc.mode())
     }
 
     /// 打开文档的**内存覆盖**（依赖的未保存编辑对闭包编译可见，I16 P5）。
@@ -3366,102 +3379,92 @@ impl LanguageServer for Backend {
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let mut docs = self.doc.lock().expect("doc lock");
         docs.focus_request(&params.text_document_position.text_document.uri);
+        // ⑤ **prelude 名**（含签名，C4）先算：它要 `&mut Docs`（要重建缓存），
+        //    而下面整段都是 `&*docs` 的只读工作 —— 顺序反过来借用检查器不允许
+        //    （同一个 `docs` 不能同时被可变与不可变借用）。签名与光标位置无关
+        //    ⇒ 先算不改变任何语义。一次请求算一次、按 (文本, prelude 模式) 缓存
+        //    整个列表（56 条 `#print` 判定是毫秒×56 的量级）。
+        let prelude: Vec<(String, Option<String>)> = docs.prelude_signatures();
         let doc = &*docs;
-        let mut items: Vec<CompletionItem> = Vec::new();
-        // In-scope binders at the cursor (smallest enclosing hover row);
-        // outside any hover span the list stays keyword/prelude-only.
         let pos = params.text_document_position.position;
-        // In-scope binders at the cursor (smallest enclosing hover row);
-        // outside any hover span the list stays keyword/prelude-only.
+        let text = doc.text();
+        let mut items: Vec<CompletionItem> = Vec::new();
+
+        // ① **光标处在域内的假设**（C1）：两条真相**并起来**，各自负责它最准的
+        //    情形（顺序 = 先"当前表达式那一层"，再"这条路走不到时的兜底"）：
+        //
+        //    * **包含光标的 hover 行**（`report.hovers`，`scope_names_at`）：光标
+        //      落在已存在的 token/表达式里时，那是**最内层**的域（`fun (x : T) => x`
+        //      的值位只有 `x`）——这条是**既有行为**，一个名字都不许少；
+        //    * **声明/tactic 层的域**（`QueryDoc::scope_binders_at`，与
+        //      `soko/stateAt` 同一份选择语义）：**行末**（用户真正打字处）没有
+        //      hover span 命中 ⇒ 老路一个 binder 都不给 ✗，而声明末尾的尾巴/
+        //      行尾在 `decl_at_cursor` 里算**那一条声明** ⇒ 这里给得出
+        //      `h`/`a`/`A`/`α` ✓（C1 的现场）。
+        //
+        //    两条并集按名字去重（同一批 binder 会出现两次）。
+        let cursor = position_to_offset(text, pos);
+        let mut binder_names: Vec<String> = Vec::new();
         if let Some(report) = doc.report() {
             if let Some(names) = scope_names_at(&report.hovers, pos.line, pos.character) {
                 for name in names {
-                    if name.is_empty() {
-                        continue; // anonymous arrow binder
+                    if name.is_empty() || binder_names.contains(name) {
+                        continue; // 匿名箭头 binder / 已收过
                     }
-                    items.push(CompletionItem {
-                        label: name.clone(),
-                        kind: Some(CompletionItemKind::VARIABLE),
-                        detail: Some("本域 binder".to_string()),
-                        ..Default::default()
-                    });
+                    binder_names.push(name.clone());
                 }
             }
         }
-        // Keywords (single source: front::semantic). **tactic** 关键字另外带上
-        // 「一句话 + 指路」（设计 `docs/design/tactic-docs.md` §4.3 D4 / §4.5 的
-        // 落地形态）：`detail` = 摘要、`documentation` = 摘要 + 空行 + 指路 ✓。
-        // 摘要同样取 `front::tactics`（**与 hover 同一份真相** ⇒ 补全 / hover /
-        // F12 / 正文四处永不漂移 ✓）；非 tactic 关键字一字不变（`detail`/`documentation`
-        // 仍为 `None` —— §7 边界 7 只管语言关键字**不给 tactic 文档**）。
-        // ⚠ `sorry` 不在 `KEYWORDS` 里（它是 `SemanticKind::Hole`，front 的既定分类）
-        // ⇒ 这里也**不**凭空多出一个补全项（那会与编辑器词表漂移 ✗）。
+        for name in doc.query().scope_binders_at(text, cursor) {
+            if name.is_empty() || binder_names.contains(&name) {
+                continue;
+            }
+            binder_names.push(name);
+        }
+        for name in &binder_names {
+            completion::push_binder(&mut items, name);
+        }
+
+        // ② `\…` 输入法（C5）：只在光标前**正打着一个 `\片段`** 时给，且只给
+        //    这个文件/闭包**声明过的**符号（给全表就是承诺写不出来的东西 ✗）。
+        if let Some(range) = completion::backslash_fragment_at(text, pos) {
+            for symbol in doc.query().notation_symbols_for_completion() {
+                completion::push_input_method(&mut items, &symbol, Some(range));
+            }
+        }
+
+        // ③ 语言关键字（单一来源：front::semantic）。**tactic** 关键字另外带上
+        //    「一句话 + 指路」（设计 `docs/design/tactic-docs.md` §4.3 D4 / §4.5 的
+        //    落地形态）：`detail` = 摘要、`documentation` = 摘要 + 空行 + 指路 ✓。
+        //    摘要同样取 `front::tactics`（**与 hover 同一份真相** ⇒ 补全 / hover /
+        //    F12 / 正文四处永不漂移 ✓）；非 tactic 关键字一字不变。
+        //    ⚠ `sorry` 不在 `KEYWORDS` 里（它是 `SemanticKind::Hole`，front 的既定
+        //    分类）⇒ 这里也**不**凭空多出一个补全项（那会与编辑器词表漂移 ✗）。
         for keyword in sokonanoda_front::semantic::keywords() {
-            let doc = sokonanoda_front::tactics::doc(keyword);
-            items.push(CompletionItem {
-                label: (*keyword).to_string(),
-                kind: Some(CompletionItemKind::KEYWORD),
-                detail: doc.map(|d| d.summary.to_string()),
-                documentation: doc.map(|d| {
-                    Documentation::MarkupContent(MarkupContent {
-                        kind: MarkupKind::Markdown,
-                        value: format!("{}\n\n完整文档：`F12` 跳转", d.summary),
-                    })
-                }),
-                ..Default::default()
-            });
+            completion::push_keyword(&mut items, keyword);
         }
-        // Sorts (Prop / Type / Sort).
+        // ④ 宇宙（Prop / Type / Sort）。
         for sort in sokonanoda_front::semantic::sorts() {
-            items.push(CompletionItem {
-                label: (*sort).to_string(),
-                kind: Some(CompletionItemKind::STRUCT),
-                detail: Some("宇宙".to_string()),
-                ..Default::default()
-            });
+            completion::push_sort(&mut items, sort);
         }
-        // Trusted prelude names (no DeclState exists for them).
-        for name in sokonanoda_front::compile::PRELUDE_NAMES {
-            items.push(CompletionItem {
-                label: (*name).to_string(),
-                kind: Some(CompletionItemKind::FUNCTION),
-                detail: Some("prelude".to_string()),
-                ..Default::default()
-            });
+        // ⑤ prelude 名（上面已算好，签名见 `completion::prelude_signature`）。
+        for (name, signature) in &prelude {
+            completion::push_prelude(&mut items, name, signature.as_deref());
         }
-        // The document's own declarations (anonymous examples excluded).
+        // ⑥ 本文件自己的声明（匿名 example 除外，内部名不给）。
         if let Some(report) = doc.report() {
-            for decl in &report.decls {
-                let Some(name) = &decl.name else {
-                    continue;
-                };
-                if name.starts_with('_') {
-                    continue; // internal names (_example_N)
-                }
-                items.push(CompletionItem {
-                    label: name.clone(),
-                    kind: Some(match decl.kind {
-                        sokonanoda_front::compile::DeclKind::Inductive => {
-                            CompletionItemKind::STRUCT
-                        }
-                        sokonanoda_front::compile::DeclKind::Axiom => CompletionItemKind::CONSTANT,
-                        _ => CompletionItemKind::FUNCTION,
-                    }),
-                    detail: Some(format!(
-                        "{} · {}",
-                        decl.kind.as_str(),
-                        status_label(decl.status)
-                    )),
-                    // Signature as a `sokonanoda` fence so the docs popup is
-                    // highlighted like every other surface (§7).
-                    documentation: decl.ty_text.as_ref().map(|ty| {
-                        Documentation::MarkupContent(MarkupContent {
-                            kind: MarkupKind::Markdown,
-                            value: code_block(&format!("{} {} : {ty}", decl.kind.as_str(), name)),
-                        })
-                    }),
-                    ..Default::default()
-                });
+            let decls = report.decls.clone();
+            completion::push_document_decls_with(&mut items, &decls);
+        }
+        // ⑦ **import 进来的库名**（C2）：来源是已解析的项目闭包/模块表
+        //    （`project_modules()`，"入口在最后"），**不是**硬编码的课程库。
+        //    ⚠ 逃生门 `SOKO_COMPLETION_CLOSURE=0` **只给反向验证用**：撤掉这一支
+        //    ⇒ 探针 C2 必须重新判红（`docs/gaps` 的同款纪律：守卫要能咬住已知的
+        //    缺口，见 `AGENTS.md`「验证设计纪律」第 3 条）。
+        if completion::closure_enabled() {
+            if let Some(modules) = doc.query().project_modules() {
+                let modules = modules.to_vec();
+                completion::push_closure_decls(&mut items, &modules);
             }
         }
         Ok(Some(CompletionResponse::Array(items)))

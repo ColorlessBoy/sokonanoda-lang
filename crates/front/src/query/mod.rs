@@ -1118,6 +1118,16 @@ impl QueryDoc {
         out
     }
 
+    /// **补全用的**符号集（长尾 ④/C5）：本文件 + 闭包声明过的记法符号，
+    /// **公开**给 LSP 的 `\…` 输入法候选用（`notation_symbols` 本身是私有
+    /// 辅助，只服务本模块的 runs 着色）。
+    ///
+    /// 为什么不给全表（75 个）：`\and` 能变出 `∧`，但这个文件里**写不了** `∧`
+    /// ——给了就是骗人（设计 `docs/design/notation-input.md` D3 的同一条纪律）。
+    pub fn notation_symbols_for_completion(&self) -> Vec<String> {
+        self.notation_symbols()
+    }
+
     /// 文档可见的记法符号（每次查询算一次，与 `decl_kinds` 同一条路）——
     /// 线 C 之后 goal / 类型行里会出现 `∈`/`⊆`/`∧`，没有它那些符号就掉成裸 run。
     ///
@@ -1436,6 +1446,62 @@ impl QueryDoc {
             // 名字表/记法表**复用上面那两份**（同一个请求里算两遍纯属浪费 ✓）。
             messages: self.messages_at_with(cursor, &decls, &notations),
         })
+    }
+
+    /// 光标处**在域内**的假设名（补全用，长尾 ④/2026-10-12）。
+    ///
+    /// 选择语义与 [`Self::state_at`] 同源（同一份 [`decl_at_cursor`] +
+    /// [`select_state_at`]），但有**一处刻意的差别**，理由见下。
+    ///
+    /// ## `state_at` 会把"正在打的那一步"的上下文吃掉
+    ///
+    /// `state_at` 贴的是 Lean `goalsAt?`（B2/2026-10-08）：光标严格在某 tactic
+    /// **内部** ⇒ 答该 tactic **作用后**的状态。那是**面板**要的（"这一步做完了
+    /// 剩下什么"）；对**补全**却是反的 —— 用户正在写 `exact h a`，光标停在行末
+    /// 准备打下一个名字，此时"作用后"是**目标已闭合**（`goals: []`）⇒ 一个名字
+    /// 都给不出 ✗，而 `h`/`a`/`A`/`α` 明明都在手边（C1 的现场）。
+    ///
+    /// ⇒ 这里：**先用 `state_at` 那套选** ✓（选择语义一处都不许抄，抄一份就会与
+    /// 面板/G-108 那些修分叉）；选出来的状态**一条 goal 都没有**时，退回**进入
+    /// 那一步**的状态（`cursor == tactic.span.start` 的答案，即 `select_state_at`
+    /// 对"恰在起点"的答案）—— 那正是"写这一步时手里有什么" ✓。
+    ///
+    /// 拿不到（越界 / 不在任何声明里 / 报告不可用）⇒ 空数组：补全不该因为光标
+    /// 停在注释里就报错（与 `state_at` 的 `Err` 分工不同）。
+    pub fn scope_binders_at(&self, text: &str, cursor: usize) -> Vec<String> {
+        if cursor > text.len() {
+            return Vec::new();
+        }
+        let Some(report) = self.report.as_ref() else {
+            return Vec::new();
+        };
+        let Some(d) = decl_at_cursor(text, &report.decls, cursor) else {
+            return Vec::new();
+        };
+        let names = |selection: &crate::query::StateSelection| -> Vec<String> {
+            let mut names: Vec<String> = Vec::new();
+            for goal in &selection.goals {
+                for binder in &goal.binders {
+                    if binder.name.is_empty() || names.contains(&binder.name) {
+                        continue; // 匿名箭头 binder / 同一名字在多个子目标里重复
+                    }
+                    names.push(binder.name.clone());
+                }
+            }
+            names
+        };
+        let selection = select_state_at(d, cursor);
+        let found = names(&selection);
+        if !found.is_empty() || !selection.goals.is_empty() {
+            return found;
+        }
+        // 目标已闭合 ⇒ 退回"写这一步时"的上下文（见上）。
+        match selection.span {
+            Some(span) if span.start.offset < cursor => {
+                names(&select_state_at(d, span.start.offset))
+            }
+            _ => found,
+        }
     }
 
     /// 光标所在**行**的命令输出（`#check`/`#print`）—— **C3/2026-10-08**。

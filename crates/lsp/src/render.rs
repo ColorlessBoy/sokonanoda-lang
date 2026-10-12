@@ -522,6 +522,11 @@ fn line_col_to_offset(text: &str, line: u32, character: u32) -> usize {
     text.len()
 }
 
+/// 光标处那个 **hover 行**里的在域名字（补全的"最内层域"支路）。
+///
+/// ⚠ 它**只覆盖光标落在已存在 token 里的情形**（没有 span 命中就 `None`）——
+/// 行末/声明尾巴上的兜底在 `QueryDoc::scope_binders_at`（C1）。两条在 LSP 侧
+/// 并集去重，见 `Backend::completion`。
 pub(crate) fn scope_names_at(hovers: &[HoverType], line: u32, character: u32) -> Option<&[String]> {
     hover_type_at(hovers, line, character).map(|h| h.scope_names.as_slice())
 }

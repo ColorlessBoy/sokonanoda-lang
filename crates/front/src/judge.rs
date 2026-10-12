@@ -2613,6 +2613,90 @@ pub fn judge_print_of(
     r
 }
 
+/// **批量版** [`judge_print_of`]：一次判定打印**多个**名字（长尾 ④/C4）。
+///
+/// 为什么要有它（**性能**，不是新语义）：补全要把 50+ 个 prelude 名连同签名一起
+/// 摆出来，而 `judge_print_of` 一次只问一个 —— 实测（debug 构建，2026-10-12）
+/// 一条 ≈ 270–390ms ⇒ 56 条 = **15–20s**，补全（打字时每键一次）绝对吃不下 ✗。
+/// 这里把 N 条 `#print` 合成**一份**文档、**一趟**判定取回：命令数从 N 降到 1，
+/// 而前缀（依赖库 + prelude 的安装）只付一次。
+///
+/// 与 [`judge_print_of`] 的契约差别只有一条，且是**保守方向**：单条版问不到就
+/// `Err`；批量版是 `Vec<Option<Result>>`，**与 `names` 逐位对齐** —— 某一条问
+/// 不到只影响那一位 ⇒ 调用方（补全）少一条签名，不整批失败。一个名字都没有时
+/// **不跑**流水线（返回空 `Vec`）。
+///
+/// 不套 [`judge_print_of`] 那层前缀键缓存（那条键含单个名字；批量版一次性回答，
+/// 调用方按 (闭包前缀, 模式) 自己缓存整份结果 ⇒ 再加一层只是多一份要失效的状态）。
+pub fn judge_print_all(
+    prefix_src: &str,
+    options: &CompileOptions,
+    names: &[&str],
+) -> Vec<Option<Result<String, Judgement>>> {
+    if names.is_empty() {
+        return Vec::new();
+    }
+    let mut src = String::from(prefix_src);
+    let query_start = src.len();
+    for name in names {
+        src.push_str("#print ");
+        src.push_str(name);
+        src.push('\n');
+    }
+    let Ok(file) = crate::parse_fragment(&src) else {
+        return vec![None; names.len()];
+    };
+    let prefix_commands = file.commands.len().saturating_sub(names.len());
+    let out = match run_synthesized_incremental(
+        &file,
+        options,
+        prefix_commands,
+        prefix_opaque_mode() == PrefixOpaqueMode::On,
+    ) {
+        Some((out, _report, _before)) => out,
+        None => {
+            note_synthesized_fallback();
+            compile_fol_with(&file, options)
+        }
+    };
+    let printed = |name: &str| -> Option<String> {
+        out.events.iter().find_map(|event| match event {
+            CheckEvent::Printed {
+                name: printed,
+                text,
+            } if printed == name => Some(text.clone()),
+            _ => None,
+        })
+    };
+    // 位置对齐：第 i 条合成命令对应 `names[i]`（`error_cmds` 是**命令坐标**，
+    // 与 `query_error` 的"span 落在查询区之后"合起来才能把那一条的错认出来）。
+    // 认不出具体哪一条时按 `Printed` 事件的缺席报 `judge-print-none`
+    // —— 与单条版同码、同兜底顺序（先 `prefix_error`）。
+    (0..names.len())
+        .map(|index| {
+            let name = names[index];
+            let cmd = prefix_commands + index;
+            if let Some(err) = out
+                .errors
+                .iter()
+                .find(|e| e.span.start.offset >= query_start)
+                .filter(|_| out.error_cmds.contains(&cmd))
+            {
+                return Some(Err(Judgement::Error {
+                    code: err.code().to_string(),
+                    message: err.message.clone(),
+                }));
+            }
+            Some(printed(name).ok_or_else(|| {
+                prefix_error(&out.errors).unwrap_or(Judgement::Error {
+                    code: "judge-print-none".to_string(),
+                    message: "内核未返回声明文本".to_string(),
+                })
+            }))
+        })
+        .collect()
+}
+
 fn judge_print_of_uncached(
     prefix_src: &str,
     options: &CompileOptions,

@@ -2508,3 +2508,192 @@ async fn goto_definition_on_a_command_keyword_uses_the_plugin_doc_dir() {
     let _ = std::fs::remove_dir_all(&plugin_dir);
     shutdown(&mut service).await;
 }
+
+/// 写一份项目文件并返回它的 URI（`project` 子模块那份是同名私有 helper，
+/// 跨子模块拿不到 ⇒ 这里各留一份）。
+fn write_file(dir: &std::path::Path, name: &str, text: &str) -> Url {
+    let path = dir.join(name);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).expect("create parent");
+    }
+    std::fs::write(&path, text).expect("write file");
+    Url::from_file_path(&path).expect("file url")
+}
+
+/// 补全请求（指定 URI 与位置）—— 项目档要用它（`request_completions_at` 写死
+/// `URI`）。
+async fn completions_at_uri(
+    service: &mut LspService<Backend>,
+    uri: &Url,
+    pos: Position,
+) -> Vec<CompletionItem> {
+    let result = call(
+        service,
+        RpcRequest::build("textDocument/completion")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(73)
+            .finish(),
+    )
+    .await
+    .expect("completion must answer");
+    let response: Option<CompletionResponse> =
+        serde_json::from_value(result).expect("valid CompletionResponse");
+    match response.expect("completions must be returned") {
+        CompletionResponse::Array(items) => items,
+        CompletionResponse::List(list) => list.items,
+    }
+}
+
+/// **长尾 ④ / C2**：`import` 进来的库名必须进候选，且**来源是项目闭包**
+/// （`project_modules()`）—— 不是把课程库硬编码进 LSP。
+///
+/// 判据绑用户动作的后果：用户在 `import SetLib` 的文件里打 `Set.singleton`，
+/// 候选里得真有这一条；来源模块**只有这一份临时项目**有（不在仓库里）⇒ 名字只
+/// 可能来自闭包，不可能来自任何硬编码表 ✓（这条判据因此也咬得住"退化成硬编码
+/// 课程库"的将来改动）。
+#[tokio::test]
+async fn completion_offers_names_imported_from_the_project_closure() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-lsp-completion-closure-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("create temp dir");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let lib_text = "namespace Set\n\ndef singleton (a : Prop) : Prop := a\n\nend Set\n";
+    let _lib = write_file(&dir, "SetLib.sokonanoda", lib_text);
+    let entry_text = "import SetLib\n\ndef t (a : Prop) : Prop := Set.singleton a\n";
+    let entry = write_file(&dir, "Canvas.sokonanoda", entry_text);
+    testutil::did_open_at(&mut service, &entry, entry_text).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &entry, "closure completion").await;
+
+    // 用户在写 `Set.singleton` 的过程中（光标在那一行的行尾）。
+    let pos = lsp_pos(
+        entry_text,
+        entry_text.rfind("Set.singleton").expect("use site") + 4,
+    );
+    let items = completions_at_uri(&mut service, &entry, pos).await;
+    let hit = items
+        .iter()
+        .find(|item| item.label == "Set.singleton")
+        .unwrap_or_else(|| {
+            panic!(
+                "库名 `Set.singleton` 必须在候选里（来源 = 项目闭包）：{:?}",
+                items.iter().map(|i| &i.label).collect::<Vec<_>>()
+            )
+        });
+    assert_eq!(hit.kind, Some(CompletionItemKind::FUNCTION));
+    assert!(
+        hit.detail.as_deref().is_some_and(|d| d.contains("SetLib")),
+        "候选要说清它来自哪个模块（`detail` 是用户唯一能看到的来历）：{:?}",
+        hit.detail
+    );
+    assert!(
+        hit.documentation.is_some(),
+        "库声明的候选要带签名（`documentation`）"
+    );
+    assert!(
+        hit.sort_text.is_some(),
+        "候选要带 `sortText`（客户端据此把本地名字排在库名前）"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+    shutdown(&mut service).await;
+}
+
+/// **长尾 ④ / C1**：`by` 块里的 tactic 行**行末**（用户真正打字处）必须给得出
+/// 本域假设 —— 而"光标落在已存在 token 里面"那条老路在行末**一个都不给**
+/// （它靠 `report.hovers` 里某个 span 真包含光标）。
+///
+/// 判据绑用户动作：用户在 `exact h` 后面接着打下一个名字 ⇒ 候选里得有
+/// `h`（`intro` 引入的假设）与更外层的绑元，且带 `本域 binder` 那行 `detail`
+/// （编辑器据此把变量与关键字分堆显示）。
+#[tokio::test]
+async fn completion_offers_tactic_scope_binders_at_line_end() {
+    let src =
+        "theorem t (p q : Prop) (h : p) : p -> q -> p := by\n  intro h2\n  exact fun h3 => h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "line-end binder diagnostics").await;
+
+    // 光标在 `  intro h2` 的**行末**（不是 `h2` 那个 token 上）——那一步之后
+    // 仍有目标（`q → p`），所以域里既有声明的 ∀ 绑元也有新引入的假设。
+    let line_end = src.find("intro h2").expect("tactic line") + "intro h2".len();
+    let items = request_completions_at(&mut service, lsp_pos(src, line_end)).await;
+    for expected in ["h2", "h", "p", "q"] {
+        let binder = items
+            .iter()
+            .find(|i| i.label == expected)
+            .unwrap_or_else(|| {
+                panic!(
+                    "行末必须能补全本域 binder `{expected}`：{:?}",
+                    items.iter().map(|i| &i.label).collect::<Vec<_>>()
+                )
+            });
+        assert_eq!(binder.kind, Some(CompletionItemKind::VARIABLE));
+        assert!(
+            binder
+                .detail
+                .as_deref()
+                .is_some_and(|d| d.contains("本域 binder")),
+            "binder 候选要带标记（与关键字/库名分开）：{:?}",
+            binder.detail
+        );
+    }
+    shutdown(&mut service).await;
+}
+
+/// **长尾 ④ 的已知边界（断言当前行为，防漂移）**：文件 parse 不过时，**本文件
+/// 已写下的 binder 拿不到** —— 因为真相层那时**没有声明报告**（`report: None`，
+/// 见 `QueryDoc::usable`：单文件 parse 失败 = 问不出来；项目入口 parse 失败时
+/// `soko/project` 也只答 `reason: "parse-error"`，闭包表同样是空的）。
+///
+/// 所以补全的现状是：**仍然答**（关键字 + 宇宙 + prelude 名，位置无关的那几份），
+/// 但**不会**凭空给出任何名字。两条一起钉：① 不许因为 parse 失败而**整个请求失败**
+/// 或答 `null`（那会让编辑器把已经能给的候选也丢掉 ✗）；② 不许**编造**名字
+/// （报告不可用时给出来的每个名字都必须是编译器真知道的）。
+///
+/// ⚠ 这不是"要求它永远如此"：哪天真相层决定为 parse 失败的文档保留**上一次成功
+/// 编译**的声明报告（`soko:hint` 那种"边写边错"的常态），这条断言就该跟着改 ——
+/// 但改之前必须有报告可依，否则就是编 ✗。
+#[tokio::test]
+async fn completion_answers_without_inventing_names_when_parsing_fails() {
+    let src = "def f (a b : Prop) (h : a) : Prop := a\ndef g : Prop :=\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let diags = wait_diagnostics(&mut socket, "parse-bad completion diagnostics").await;
+    assert!(
+        !diags.diagnostics.is_empty(),
+        "这份夹具就是要 parse 失败（判据的前提）：{:?}",
+        diags.diagnostics
+    );
+
+    // 光标在**最后一行行末**（真正打字处）+ 第一行 `f` 的行末，两处都要答。
+    for offset in [src.find('\n').expect("line 1 end"), src.len()] {
+        let items = request_completions_at(&mut service, lsp_pos(src, offset)).await;
+        let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+        assert!(
+            labels.contains(&"def") && labels.contains(&"Eq.subst"),
+            "parse 失败时补全仍要答关键字与 prelude 名（位置无关的那几份）：{labels:?}"
+        );
+        assert!(
+            !items
+                .iter()
+                .any(|i| i.detail.as_deref() == Some("本域 binder")),
+            "没有声明报告 ⇒ 不许编造 binder 候选：{:?}",
+            items
+                .iter()
+                .filter(|i| i.detail.as_deref() == Some("本域 binder"))
+                .map(|i| &i.label)
+                .collect::<Vec<_>>()
+        );
+    }
+    shutdown(&mut service).await;
+}
