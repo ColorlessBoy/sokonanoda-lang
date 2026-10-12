@@ -52,7 +52,15 @@ use std::path::{Path, PathBuf};
 /// 让下一次改 prelude 的构建也顺手整库作废 —— 对一个**已经必然 miss** 的改动是
 /// 纯多付的代价 ✗）。判据：`a_different_builtin_prelude_must_change_the_key`
 /// ＋ `.cache/ux/fix-a5/VERDICT.md` 的两条行为读数（改 prelude ⇒ 只重建 ⇒ 行为变 ✓）。
-pub const CACHE_FORMAT: u32 = 6;
+/// `7`（2026-10-13 / **G-112**）：**profile 不再进 `build_stamp`**（`key_parts` 里
+/// `build` 那一段的**构成**变了 ⇒ 按本常量的规矩 bump ✓）。同一版本号的 release /
+/// debug 两个构建以前各有各的戳 ⇒ 同一个模块根下**互不命中、还互相删条目**
+/// （用户现场：`compiled/` 里 247 条 release 戳 + 1 条 debug 戳，面板据此**恒**报
+/// `stale: true` + 建议 Rebuild，照做也修不好 ✗）。判据：
+/// `docs/gaps/repro/G112-two-builds-of-one-version-cannot-share-the-artifact-dir.sh`
+/// （0 = 缺口仍在 / 1 = 已修）＋逃生门 `SOKO_CACHE_KEY_KEEP_PROFILE=1`（回到旧行为，
+/// 复现件必须重新判红 ✓）。
+pub const CACHE_FORMAT: u32 = 7;
 
 /// One cached compile: the document report (for the LSP) and, when the
 /// producer computed it, the CLI event output.
@@ -127,10 +135,29 @@ fn compiled_dir() -> Option<PathBuf> {
 ///    机械复现：`docs/gaps/repro/G27-cache-key-folds-binary-mtime.sh`。
 ///
 /// 换成编译期常量之后，它表达的才是"这份二进制是什么"：`CARGO_PKG_VERSION`
-/// （调用方已单独折进键）、profile（debug/release 不串台）、目标平台
-/// （`consts::OS` + `consts::ARCH`，跨平台不串台）。开发期想区分"同版本号的
-/// 不同构建"时，用**显式环境变量** `SOKO_BUILD_LABEL`（`option_env!` 在编译期
-/// 取值），而不是靠文件系统的副作用。
+/// （调用方已单独折进键）、目标平台（`consts::OS` + `consts::ARCH`，跨平台不串台）、
+/// **内建 prelude 的摘要**（M-07，见下）。开发期想区分"同版本号的不同构建"时，
+/// 用**显式环境变量** `SOKO_BUILD_LABEL`（`option_env!` 在编译期取值），
+/// 而不是靠文件系统的副作用。
+///
+/// ## **G-112（2026-10-13）**：**profile（debug/release）不再是构建身份**
+///
+/// 这里以前还折了一个 profile 字节（`cfg!(debug_assertions)` ⇒ `d`/`r`），理由是
+/// "debug/release 不串台"。实测的代价（用户 2026-10-11 现场）：**同一个版本号的两个
+/// 构建**共用一个模块根 `.sokonanoda/`，而戳进了键（[`key_parts`]）**又进了条目文件名**
+/// （`project::cache::entry_stem`）⇒ 两边**永远互不命中**，且 `update_index` 的
+/// "一个入口一条条目"语义让它们**轮流删掉对方**刚写的条目；面板据此恒报
+/// `stale: true` + 建议 Rebuild（用户照做也修不好：换个二进制编一次又 stale ✗）。
+///
+/// ⇒ 把 profile 从戳里去掉：**它不改变"这份二进制算什么"** —— 判定只看
+/// （版本 · 平台 · 内建 prelude · 档位 · 用户源码），而 `cfg!(debug_assertions)`
+/// 在本仓**没有任何一处**参与判定（`git grep debug_assertions crates/{front,kernel,cli,lsp}/src`
+/// 只命中本文件这一行 ✓）。于是同版本的 release / debug 共用同一份条目 ✓
+/// （用户要的正是这个），而"不同版本 / 不同平台 / 改了 prelude / 显式 `SOKO_BUILD_LABEL`"
+/// 这些**真正**的构建差异照旧进戳 ✓。
+///
+/// 逃生门（只给反向验证用）：`SOKO_CACHE_KEY_KEEP_PROFILE=1` ⇒ profile 重新进戳
+/// （= 旧行为）⇒ G-112 的复现件必须重新判红 ✓。
 ///
 /// ## **M-07（2026-10-12）**：内建 prelude 的摘要也是构建身份
 ///
@@ -155,11 +182,32 @@ pub fn build_stamp() -> u64 {
     stamp_with_prelude_digest(builtin_prelude_digest())
 }
 
-/// [`build_stamp`] 的**纯函数**那一半（可单测 ✓）：`(profile, OS, ARCH, prelude 摘要)`。
+/// [`build_stamp`] 的**纯函数**那一半（可单测 ✓）：`(OS, ARCH, prelude 摘要[, label][, profile])`。
 ///
 /// 单独拆出来是为了让"prelude 摘要确实折进去了"有**可执行的判据** ——
 /// 传两个不同的摘要必须得到两个不同的 stamp（否则就是在自证空转 ✗）。
 fn stamp_with_prelude_digest(prelude_digest: u64) -> u64 {
+    stamp_of(prelude_digest, keep_profile_in_stamp())
+}
+
+/// **逃生门（只给反向验证用）**：`SOKO_CACHE_KEY_KEEP_PROFILE=1` ⇒ profile 重新进
+/// `build_stamp`（= 2026-10-13 之前的行为）⇒ 同一版本的两个构建又互不命中
+/// （G-112 的复现件必须重新判红 ✓）。
+///
+/// 极性说明：**新**行为是"profile **不**进键"，所以逃生门说的是"**保留** profile"。
+/// ⚠ 它自己也以 `SOKO_` 开头 ⇒ 被 [`flags_state`] 折进键 ⇒ 开着它跑出来的条目与
+/// 关着它跑出来的**永不互命中**（不会互相污染 ✓）。
+fn keep_profile_in_stamp() -> bool {
+    matches!(
+        std::env::var("SOKO_CACHE_KEY_KEEP_PROFILE").as_deref(),
+        Ok("1")
+    )
+}
+
+/// [`stamp_with_prelude_digest`] 的**纯函数**内核（`keep_profile` 是显式形参 ⇒
+/// 两个 profile 都能在**同一个**测试进程里判 ✓，见
+/// `the_build_stamp_no_longer_folds_the_profile`）。
+fn stamp_of(prelude_digest: u64, keep_profile: bool) -> u64 {
     // FNV-1a 64 over the compile-time identity string. 纯函数、跨进程稳定。
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     let mut eat = |byte: u8| {
@@ -168,9 +216,14 @@ fn stamp_with_prelude_digest(prelude_digest: u64) -> u64 {
     };
     // `PROFILE` / `TARGET` 是 **build script** 的环境变量，库 crate 里取不到
     // （`env!` 直接编译失败）。用同样是编译期常量的替代：
-    // `cfg!(debug_assertions)`（debug / release 不串台）+
     // `std::env::consts::{OS, ARCH}`（跨平台不串台）。
-    eat(if cfg!(debug_assertions) { b'd' } else { b'r' });
+    //
+    // **G-112**：profile（`cfg!(debug_assertions)`）**不进戳** —— 它不改变"这份
+    // 二进制算什么"（判定路径里没有一处读它 ✓），却让同版本的两个构建互相擦条目 ✗。
+    // 逃生门开着时才回到旧行为（见 [`keep_profile_in_stamp`]）。
+    if keep_profile {
+        eat(if cfg!(debug_assertions) { b'd' } else { b'r' });
+    }
     for byte in std::env::consts::OS.bytes() {
         eat(byte);
     }
@@ -538,6 +591,43 @@ mod tests {
         assert_eq!(
             key_with_build(src, &options, old_prelude),
             key_with_build(src, &options, old_prelude)
+        );
+    }
+
+    /// **G-112 判据（纯函数那一半）**：`build_stamp` **不再折 profile**，但仍对
+    /// （OS/ARCH · 内建 prelude 摘要 · `SOKO_BUILD_LABEL`）敏感。
+    ///
+    /// **为什么这条测试是"可判据"的**：一个测试进程只能是**一个** profile
+    /// （`cfg!(debug_assertions)` 是编译期常量）⇒ "release 与 debug 同戳"这件事
+    /// 在单测里**测不到**；能测的是**机制**：`keep_profile = true/false` 必须给出
+    /// **两个不同的戳**（否则逃生门是空转 ✗），而 `false`（= 默认路径）那一份
+    /// 对 prelude 摘要仍然敏感（M-07 不许被这次改动弄丢 ✓）。
+    ///
+    /// 端到端判据（两个真构建）：
+    /// `docs/gaps/repro/G112-two-builds-of-one-version-cannot-share-the-artifact-dir.sh`
+    /// ⇒ 0 = 缺口仍在 / 1 = 已修。
+    #[test]
+    fn the_build_stamp_no_longer_folds_the_profile() {
+        let digest = 0x1111_2222_3333_4444;
+        assert_ne!(
+            stamp_of(digest, true),
+            stamp_of(digest, false),
+            "逃生门（keep_profile）必须真的改变戳 —— 否则它挡不住任何东西 ✗"
+        );
+        assert_eq!(
+            stamp_of(digest, false),
+            stamp_of(digest, false),
+            "默认那一份必须是纯函数（两个 profile 的构建会算出同一个戳 ✓）"
+        );
+        assert_ne!(
+            stamp_of(digest, false),
+            stamp_of(digest ^ 1, false),
+            "去掉 profile 之后，prelude 摘要**仍然**必须参与戳（M-07 的红线 ✓）"
+        );
+        assert_eq!(
+            stamp_of(digest, false),
+            stamp_with_prelude_digest(digest),
+            "默认路径（没设 SOKO_CACHE_KEY_KEEP_PROFILE）走的必须是不带 profile 那一份"
         );
     }
 

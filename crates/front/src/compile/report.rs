@@ -81,7 +81,9 @@ pub struct ByStepState {
 ///
 /// 为什么必须有它（**2026-10-02 值守第 8 单**，用户实测报的 ✗）：缓存键里只有
 /// **源码 digest** + 编译期常量（`CACHE_FORMAT` / `CARGO_PKG_VERSION` /
-/// `build_stamp` = debug|OS|ARCH）。**源码没变而二进制变了**（正是"修好了但用户看不到"
+/// `build_stamp` = OS|ARCH|内建 prelude 摘要[|`SOKO_BUILD_LABEL`]；**G-112 起不含
+/// profile** —— 同一版本的 release/debug 必须能共用条目 ✓）。**源码没变而二进制变了**
+/// （正是"修好了但用户看不到"
 /// 的形态 ✗）⇒ 键不变 ⇒ 旧条目**命中** ⇒ 而新字段走 `#[serde(default)]` ⇒ 静默给旧答案 ✗
 /// （实测：G-78 的 `DeclState.by_root` 被整库陈旧缓存挡掉 —— 250+ 条里 **0 条**含
 /// `by_root`；用户删掉那一条缓存后同一条命令立刻变对 ✓）。
