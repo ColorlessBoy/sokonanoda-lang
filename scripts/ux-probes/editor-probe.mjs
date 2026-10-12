@@ -26,7 +26,7 @@
 
 import { execFileSync, spawn } from "node:child_process";
 import {
-  cpSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync,
+  cpSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, symlinkSync, writeFileSync,
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { homedir, tmpdir } from "node:os";
@@ -198,7 +198,16 @@ const CASES = [
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
     steps: ["@wait:2500", "@infoview", "@snap:infoview@open", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "@wait:2500", "@snap:on-sorry", "@shot:on-sorry", "@grade"],
-    probes: ["infoview", "status", "markers", "lncol"] },
+    probes: ["infoview", "status", "markers", "lncol"],
+    // **F6 的判据（2026-10-13 加强）**：同一个 Infoview 里，**目标卡片**把宇宙层级
+    // 印成 `Type`、而**声明列表**印成 `Type 0` —— 同一个东西两种写法。
+    // 判据 = 正文里**不许出现** `Type 0`（原始形态）且目标卡片在（有 `⊢`）。
+    check: (r) => {
+      const t = r.snaps.find((s) => s.label === "on-sorry")?.infoview?.text ?? "";
+      const n = (t.match(/Type 0/g) ?? []).length;
+      return { ok: /⊢/.test(t) && n === 0,
+        why: `Infoview 正文里 \`Type 0\` ×${n}（期望 0 —— 目标卡片印的是 \`Type\`）；正文片段「${t.slice(0, 140)}」` };
+    } },
 
   { id: "goal-after-apply", note: "**`apply` 之后的目标与假设**：练习5 里写 `apply` 到一半 ⇒ 目标被换成什么、假设列有没有 h",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
@@ -220,12 +229,38 @@ const CASES = [
     steps: ["@wait:2500", "@infoview", "@click:.monaco-editor", "<ctrl+g>", String(MID_PROOF), "<CR>", "@wait:2500", "@snap:mid-proof", "@grade"],
     probes: ["infoview", "status", "markers"] },
 
-  { id: "hints-visibility", note: "**soko:hint 在编辑器里怎么看**：有没有任何 UI 呈现练习 6 的 3 条 hint（命令 `sokonanoda.revealHint` 存在 ⇒ 手动跑一次）",
+  { id: "hints-visibility", note: "**soko:hint 在编辑器里怎么看**：命令面板 `Reveal Hint` **一次给一条**；练习树里那个可点的「提示 · 逐条揭示」节点**点两下**该给**两条不同的**提示",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
+    // **F11 的判据（2026-10-13 加强）**：旧用例只跑了命令面板 ⇒ 结论写成
+    // 「hint 只在 toast 里、**没有可点入口**」✗ —— 练习树里明明有 `提示` 节点
+    //（`extension.js::buildOpenChildren`：`description = "逐条揭示"` +
+    // `command = sokonanoda.revealHint`）。判据改成**用户动作 ⇒ 可见结果**：
+    // 展开练习树 ⇒ 点那个节点 ⇒ toast 出提示；再点 ⇒ 出**下一条**（梯子）。
     steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "@snap:before-hint",
-      "@cmd:Sokonanoda: Reveal Hint", "@wait:1200", "@snap:after-hint-cmd"],
-    probes: ["status", "notifications", "infoview", "markers"] },
+      "@cmd:Sokonanoda: Reveal Hint", "@wait:1200", "@snap:after-hint-cmd",
+      "@expand:练习", "@wait:800", "@snap:tree",
+      // 树是**虚拟列表**（实测只有 6 行在 DOM 里）⇒ 「提示」节点常常**不在 DOM 里**，
+      // 按文本点不到 ✗。改用**键盘导航**（VS Code 树的 `End` = 最后一项；树的最后
+      // 一项正是最后一个开放声明的「提示」节点）——这也是用户的真实动作之一。
+      "@clickpane:练习|当前光标处", "@wait:600", "@snap:tree-focused",
+      "<End>", "@wait:800", "<CR>", "@wait:1500", "@snap:after-click-1",
+      "<CR>", "@wait:1500", "@snap:after-click-2"],
+    probes: ["status", "notifications", "infoview", "markers", "views"],
+    check: (r) => {
+      const hints = (label) => ((r.snaps.find((s) => s.label === label)?.notifications?.product) ?? [])
+        .filter((x) => !/^Source:|GitHub|argv\.json/i.test(x));
+      const cmd = hints("after-hint-cmd"), t1 = hints("after-click-1"), t2 = hints("after-click-2");
+      // ① 命令面板那条路给一条提示（梯子第 1 条）；
+      // ② **练习树里那个可点的「提示」节点**（`End` + `CR`）给**下一条**（新文本）；
+      // ③ 再点一次给**又一条**（梯子真的在往上走，不是同一个 toast 停着）。
+      const fresh1 = t1.filter((x) => !cmd.includes(x));
+      const fresh2 = t2.filter((x) => !t1.includes(x));
+      const focus = r.events.find((e) => e.step === "@clickpane:练习|mem_of_subset")?.click ?? {};
+      return { ok: cmd.length > 0 && fresh1.length > 0 && fresh2.length > 0,
+        why: `命令面板给 ${JSON.stringify(cmd.slice(0, 1))} · 树里点一下给新的 ${JSON.stringify(fresh1.slice(0, 1))} · ` +
+          `再点给新的 ${JSON.stringify(fresh2.slice(0, 1))}（树焦点行=${JSON.stringify(focus.text ?? focus.why ?? null)}）` };
+    } },
 
   // ═══ B. 洞与导航 ═════════════════════════════════════════════════════════
   { id: "nexthole", note: "**alt+n** 从文件头出发：能不能跳到第一个洞、跳几次到第二个、洞上的呈现（`sorry` 高亮？）",
@@ -246,12 +281,42 @@ const CASES = [
       "<alt+shift+n>", "@wait:800", "@snap:alt-shift-n-1", "<alt+shift+n>", "@wait:800", "@snap:alt-shift-n-2", "@shot:prevhole"],
     probes: ["status", "lncol", "markers", "notifications"] },
 
-  { id: "hole-lightbulb", note: "**灯泡 / quick-fix**：`sorry` 上按 `<M-.>` ⇒ 有没有候选（能不能一键插入并过判卷）",
+  { id: "hole-lightbulb", note: "**灯泡 / quick-fix**：光标停在 `sorry` **里面**（列 4，用户点的就是那个词）按 `<M-.>` ⇒ 有没有候选（能不能一键插入并过判卷）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "@snap:on-sorry",
-      "<cmd+.>", "@wait:1500", "@snap:quickfix-open", "@shot:quickfix"],
-    probes: ["quickfix", "status", "markers", "notifications"] },
+    // ⚠ **列 3**（2026-10-13）：旧版 `<ctrl+g> 93` 把光标放在**列 1**，而 `sorry`
+    // 的**洞 range 是列 3–8**（诊断 range 同源）—— 用户是**点在 `sorry` 上**再按
+    // 灯泡的；列 1 是不是也算"落在洞里"属于产品语义，不该由探针替它决定 ✗。
+    // 列用 `<Right>` 走（**不用 `93:4`**：那要 Go-to-Line 认列语法，实测有一次
+    // 盒子没开 ⇒ `93:4` 被当正文打进去，把文件写坏 ✗）。
+    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "<Right>", "<Right>", "@snap:on-sorry",
+      "<cmd+.>", "@wait:1500", "@snap:quickfix-key", "@shot:quickfix-key",
+      "<Esc>", "@wait:400",
+      // **决定性对照**：绕开 macOS 上可能被抢的键位，走命令面板 `Quick Fix...`
+      // ⇒ 分清"键位没触发"与"服务端没给候选"（同 `completion-palette` 的手法）。
+      "@cmd:Quick Fix", "@wait:1500", "@snap:quickfix-palette", "@shot:quickfix-palette",
+      "<Esc>", "@wait:400",
+      // **第二个洞（形状对照）**：练习 1 的目标头是**箭头**（`(a ∈ A) → a ∈ B`），
+      // 练习 6 的目标头是**记法**（`({a} = {b}) ↔ a = b`）。LSP 里有一条**已知**的
+      // 形状差（`crates/lsp/src/actions.rs` 的 A3 注释：记法头 `↔`/`=` 上梯子给
+      // 0 条，靠 `notation_ladder_fallbacks` 兜）⇒ 判据要**两处都问**，才能把
+      // "完全没有 quick fix"与"某种目标形状没有"分开 ✓。
+      "<ctrl+g>", String(HOLE_EX1), "<CR>", "<Right>", "<Right>", "@snap:on-sorry-ex1",
+      "@cmd:Quick Fix", "@wait:1500", "@snap:qf-ex1", "@shot:qf-ex1"],
+    probes: ["quickfix", "status", "markers", "notifications"],
+    check: (r) => {
+      // **必须是 sokonanoda 自己给的候选**（`crates/lsp/src/actions.rs` 的标题都带
+      // 这些词）—— 只看"菜单里有行"会被 VS Code 内置的 `Rewrite`/`Generate`
+      // 骗成假绿（实测第一版就是这样 ✗）。
+      const SOKO = /用假设|补第|rfl|按构造子|引入 |内核验证|重启|重置/;
+      const q = (label) => r.snaps.find((s) => s.label === label)?.quickfix ?? {};
+      const soko = (x) => (x.rows ?? []).map((y) => y.text).filter((t) => SOKO.test(t));
+      const key = q("quickfix-key"), pal = q("quickfix-palette"), ex1 = q("qf-ex1");
+      return { ok: soko(pal).length > 0 && soko(ex1).length > 0,
+        why: `⌘. ⇒ ${JSON.stringify((key.rows ?? []).map((x) => x.text))} · ` +
+          `练习6（记法头 ↔）⇒ ${JSON.stringify((pal.rows ?? []).map((x) => x.text))} · ` +
+          `练习1（箭头头）⇒ ${JSON.stringify((ex1.rows ?? []).map((x) => x.text))}（各期望 ≥1 条 sokonanoda 候选）` };
+    } },
 
   { id: "hole-after-fill", note: "**洞填完的反馈**：把练习6 填成 `constructor` 之后 —— 有没有「这题过了」的可见信号（状态栏/Infoview/通知）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
@@ -363,9 +428,20 @@ const CASES = [
   { id: "course-map", note: "**课程地图 / 项目视图**：Explorer 里的「练习 / 课程 / 项目」三个视图有没有内容（引导「下一步做什么」）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
+    // ⚠ **`@expand` 现在会等到该视图真的有行**（上限 8s；读数带 `rows`/`rows_ms`）——
+    // 旧版 `@expand` 后只 sleep 1.2s ⇒ 读到 `rows: []` 被写成"视图是空的"（**DOM
+    // 时机伪影**，实测「练习」要 ≈2.0s、「项目」≈2.0s）。
     steps: ["@wait:3000", "@snap:start", "@expand:练习", "@snap:goals-view", "@shot:goals-view",
-      "@expand:课程", "@snap:course-view", "@expand:项目", "@snap:project-view", "@shot:project-view"],
-    probes: ["status", "views", "notifications", "problems"] },
+      // 课程视图要起 CLI 编**整门课**：冷缓存 47.5s / 热 2.5s（实测）⇒ 预算给足。
+      "@expand:课程|90000", "@snap:course-view", "@expand:项目", "@snap:project-view", "@shot:project-view"],
+    probes: ["status", "views", "notifications", "problems"],
+    check: (r) => {
+      const s = r.snaps.at(-1);
+      const rows = (t) => ((s?.views ?? []).find((v) => v.title === t)?.rows ?? []).length;
+      const [ex, co, pr] = [rows("练习"), rows("课程"), rows("项目")];
+      return { ok: ex > 0 && co > 0 && pr > 0,
+        why: `练习 ${ex} 行 · 课程 ${co} 行 · 项目 ${pr} 行（三个视图都该有内容；课程视图要有工作区的 course/course.json 清单）` };
+    } },
 
   // ═══ F. 性能与手感 ═══════════════════════════════════════════════════════
   { id: "perf-undo-redo", note: "**撤销/重做**：打 12 个字符后连撤 12 次再重做 12 次 —— 文本是否逐字符可逆、有无跳变",
@@ -433,12 +509,26 @@ const CASES = [
     check: (r) => { const s = r.snaps.at(-1).suggest;
       return { ok: !!(s && s.visible && s.count > 0), why: `suggest=${JSON.stringify(s).slice(0, 220)}` }; } },
 
-  { id: "problems-jump-sorry", note: "**Problems 里 `sorry` 警告点下去跳到哪**：警告的行号与洞的实际行号（按声明名算）是否一致 —— 跳错地方就是导航坑",
+  { id: "problems-jump-sorry", note: "**Problems 里 `sorry` 警告点下去跳到哪**：点**第一条**警告（新文案 `声明 \\`mem_of_subset\\` 还没证完…`）⇒ 光标该落在**洞**上（练习 1 = 第 45 行），不是声明行 —— 跳错地方就是导航坑",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
+    // ⚠ **判据过期（2026-10-13 修）**：点击文案原来写 `uses 'sorry'` —— 那是**旧**
+    // 英文文案（整条声明 range）；现在的文案是中文、range 指向**第一个洞**
+    //（`crates/lsp/src/lib.rs::report_diagnostics`）⇒ 老 needle 匹配不到任何行
+    //（实测 `found: false`，光标原地不动）⇒ 用例**什么都没验**。改成按**新文案**点。
     steps: ["@wait:2500", "@problems", "@wait:1800", "@snap:panel",
-      "@clicktext:.markers-panel .monaco-list-row|uses 'sorry'", "@wait:1800", "@snap:after-jump", "@shot:after-jump"],
-    probes: ["problems", "status", "markers"] },
+      "@clicktext:.markers-panel .monaco-list-row|还没证完", "@wait:1800", "@snap:after-jump", "@shot:after-jump"],
+    probes: ["problems", "status", "markers", "lncol"],
+    check: (r) => {
+      const panel = r.snaps.find((s) => s.label === "panel")?.problems ?? {};
+      const first = (panel.rows ?? []).find((x) => /还没证完/.test(x.aria ?? ""))?.aria ?? "";
+      const line = r.snaps.find((s) => s.label === "after-jump")?.cursor_line;
+      // ① 警告自己的落点 = 洞那一行（不是声明行）；② 点下去光标真的到洞上。
+      const warnOk = new RegExp(`at line ${HOLE_EX1} and character`).test(first);
+      const jumpOk = line === HOLE_EX1;
+      return { ok: warnOk && jumpOk,
+        why: `首条警告「${first.slice(0, 90)}」（期望 at line ${HOLE_EX1}）· 点击后光标 Ln ${line}（期望 ${HOLE_EX1}）` };
+    } },
 
   { id: "diag-parse-cascade", note: "**判据**：末尾一个 parse 错**不该**让前面正确行的记法被报成「未声明记法」（期望 = 没有 notation-unknown-symbol）",
     file: "Scratch_diag.sokonanoda",
@@ -467,13 +557,54 @@ const CASES = [
       const s2 = r.snaps.at(-1).suggest;
       return { ok: !!(ev?.best?.visible || s2?.visible), why: `poll=${JSON.stringify(ev?.best)} final=${JSON.stringify(s2).slice(0,120)}` }; } },
 
-  { id: "solve-ex5-full", note: "**把练习5 整题做完**（alt+n 选中 sorry → 打 3 行证明）⇒ 有没有「这题过了」的可见信号（状态栏/Problems/Infoview/练习树）",
+  { id: "solve-ex5-full", note: "**做完一道题 ⇒ 有没有「这题过了」的可见信号**（状态栏/练习树），**再把文件写坏 ⇒ 状态栏不许说成「本文件 0」**。" +
+      "⚠ **id 沿用 `solve-ex5-full`**：旧画布的 45 行是练习 5；`d9248b73` 把锚点改成按声明名之后，`alt+n` 从第 1 行出发落在的是**练习 1**（`mem_of_subset` = 第 45 行）——" +
+      "所以这里做的是练习 1（它的证明自带、不依赖别的未完成题：本语言里 `sorry` 的声明**不在**后续声明的名字作用域里，练习 5 必须先做完 3、4 才能引用它们）。",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
+    // ⚠ 每一行之间插 `<Esc>`（**必须单独一步**：`press` 只在整步是键位 token 时才当键）：
+    // 打字会自动弹出补全（`completion-autotype` 实测），而 **Enter 会接受补全项** ⇒
+    // 整段证明被吃进**一行**（实测：`  constructor  exact …` ⇒ `entry-parse-failed`）
+    // ⇒ 用例根本没在做题。`<Esc>` 先关掉弹窗，再 Enter 才是换行 ✓。
     steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", "1", "<CR>", "<alt+n>", "@wait:800", "@snap:hole",
-      "constructor\n  exact mem_of_subset_singleton α A a\n  exact subset_of_mem_singleton α A a", "@wait:4000",
-      "@snap:solved", "@shot:solved", "@grade", "@problems", "@wait:1500", "@snap:problems-after"],
-    probes: ["infoview", "status", "markers", "notifications", "problems", "views"] },
+      "intro ha", "<Esc>", "\n  exact h a ha", "@wait:4000", "@expand:练习",
+      "@snap:solved", "@shot:solved", "@grade",
+      // **写坏**：第 1 行行首插一个 `)`（注释行被打断 ⇒ parse 失败，且**行号不漂**）。
+      "<ctrl+g>", "1", "<CR>", "<Home>", ")", "@wait:4000", "@snap:broken", "@shot:broken", "@grade",
+      "@problems", "@wait:1500", "@snap:problems-after"],
+    probes: ["infoview", "status", "markers", "notifications", "problems", "views"],
+    check: (r) => {
+      const bar = (label) => ((r.snaps.find((s) => s.label === label)?.status) ?? [])
+        .find((x) => x.includes("本文件")) ?? "";
+      const hole = bar("hole"), solved = bar("solved"), broken = bar("broken");
+      // ① 「这题过了」的**可见信号**：未完成数必须真的降下来（5 ⇒ 4）。
+      const passOk = /本文件\s*5/.test(hole) && /本文件\s*4/.test(solved);
+      // ② 写坏之后**不许**只说「本文件 0」（= 看着像做完了）；要有错误信号。
+      const brokenOk = /错误/.test(broken);
+      return { ok: passOk && brokenOk,
+        why: `完成前「${hole}」⇒ 完成后「${solved}」（期望 5⇒4）· 写坏后「${broken}」（期望带「错误」）` };
+    } },
+
+  { id: "broken-status-bar", note: "**写坏一个字符 ⇒ 状态栏/Infoview 说什么**：parse 不过时状态栏不许把「读不出来」说成「本文件 0」（像做完了），" +
+      "Infoview 也不许把「文件没解析成功」说成「光标不在任何声明内」",
+    file: "Scratch_broken.sokonanoda",
+    initial: ["import lib.Logic", "import lib.Set", "", "theorem t (α : Type) (A B : Set α) :", "    A ⊆ B := by", "  )"],
+    steps: ["@wait:2500", "@click:.monaco-editor", "@wait:2500", "@snap:broken", "@grade",
+      "@problems", "@wait:1200", "@snap:panel", "@infoview", "@wait:1500", "@snap:iv"],
+    probes: ["status", "problems", "markers", "infoview"],
+    check: (r) => {
+      const bar = ((r.snaps.find((s) => s.label === "broken")?.status) ?? [])
+        .find((x) => x.includes("本文件")) ?? "";
+      const iv = r.snaps.find((s) => s.label === "iv")?.infoview?.text ?? "";
+      const parseErr = (r.grade?.failed ?? []).some((f) => String(f.code).includes("parse"));
+      // ① 状态栏：有 parse 错误 ⇒ 必须带错误信号，**不许**只有一个「本文件 0」。
+      const barOk = parseErr && /错误/.test(bar);
+      // ② Infoview：不许说「光标不在任何声明内」（那是**没有光标目标**的说法，
+      //    不是"文件读不出来"）；这一条是 F18。
+      const ivOk = parseErr && iv.length > 0 && !/光标不在任何声明内/.test(iv);
+      return { ok: barOk && ivOk,
+        why: `parse 失败=${parseErr} · 状态栏「${bar}」 · Infoview「${iv.slice(0, 120)}」` };
+    } },
 
   { id: "infoview-project-block", note: "**Infoview 的「项目」区块**：编译产物/建议 Rebuild 那些行到底写了什么（DOM 文本，不靠截图猜）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
@@ -624,17 +755,22 @@ async function connect(url) {
         let c = null;
         try {
           c = await connect(t.webSocketDebuggerUrl);
-          const head = await c.eval(`(() => {
-            const out = [];
-            const walk = (doc, depth) => { try {
-              out.push(((doc.body && doc.body.innerText) || '').slice(0, 300));
-              if (depth < 3) Array.from(doc.querySelectorAll('iframe')).forEach((f) => {
-                try { if (f.contentDocument) walk(f.contentDocument, depth + 1); } catch (e) {} });
-            } catch (e) {} };
-            walk(document, 0);
-            return out.join('\n'); })()`);
+          try { await c.call("Runtime.enable"); } catch { /* 有些 target 不许 enable */ }
+          // ⚠ **第四版（2026-10-13）两处都修了**：
+          //  ① 这一句原来写在**模板字面量**里 —— `\n` 在探针进程就被吃成**真换行**，
+          //     喂给 webview 的是 `out.join('` + 换行 + `');` = **语法错误** ⇒
+          //     `Runtime.evaluate` 回 `exceptionDetails` ⇒ `c.eval` 返回 `{_error}`
+          //     对象 ⇒ 旧代码 `String(head)` = `"[object Object]"`、`looksRight=false`
+          //     ⇒ **每一拍都 `no-infoview-content`**（F17/F18 的"进不去 webview"）。
+          //  ② 判据原来只看 `document.body.innerText`：**外层 webview 的 body 全是
+          //     引导脚本**（实测 textContent 39 054 B、剥掉 script 后 **6 B**），
+          //     真正的内容在它的**同源 iframe**（`./fake.html?id=…`，实测 1 304 B）
+          //     里 ⇒ 必须**走进 iframe** 再取 `textContent`（`innerText` 在 webview
+          //     里恒为空 ✗）。⇒ 与 `READ_INFOVIEW` 用**同一段**取值逻辑 ✓。
+          const head = await c.eval(IV_BEST_TEXT);
+          const headText = typeof head === "string" ? head : JSON.stringify(head ?? null);
           const looksRight = typeof head === "string" && /目标|⊢|练习|课程|已无目标|等待编译/.test(head);
-          tried.push({ url: String(t.url).slice(0, 70), head: String(head).slice(0, 80), picked: looksRight });
+          tried.push({ url: String(t.url).slice(0, 70), head: String(headText).slice(0, 90), picked: looksRight });
           if (looksRight) return await c.eval(expression);
         } catch (e) { tried.push({ url: String(t.url).slice(0, 70), error: String(e?.message ?? e).slice(0, 90) }); }
         finally { try { c?.close(); } catch { /* ignore */ } }
@@ -868,13 +1004,21 @@ const READ_SUGGEST = `(() => {
   return JSON.stringify({ visible: vis, count: rows.length, rows: rows.slice(0, 25), details });
 })()`;
 const READ_QUICKFIX = `(() => {
-  const views = Array.from(document.querySelectorAll('.context-view')).filter((v) => v.offsetParent !== null);
-  const rows = views.flatMap((v) => Array.from(v.querySelectorAll('.monaco-list-row')).map((r) => ({
-    text: (r.textContent || '').replace(/\\s+/g, ' ').trim(),
-    focused: r.classList.contains('focused'),
-  })));
-  const lightbulb = !!document.querySelector('.lightbulb-glyph, .codelens-decoration .lightbulb');
-  return JSON.stringify({ visible: rows.length > 0, count: rows.length, rows: rows.slice(0, 20), lightbulb });
+  // ⚠ **选择器放宽（2026-10-13）**：原来只认 .context-view 里的
+  // .monaco-list-row —— 现代 VS Code 的 quick-fix 菜单是
+  // .context-view.monaco-menu-container 里的 .action-menu-item（或
+  // .monaco-menu .action-item）⇒ 旧选择器会把"弹着"读成"没弹" ✗。
+  // 现在把三种容器都收，并把**命中容器的类名**一起记进读数（空读数也能自证）。
+  const views = Array.from(document.querySelectorAll('.context-view'))
+    .filter((v) => v.offsetParent !== null || v.getBoundingClientRect().width > 0);
+  const rows = views.flatMap((v) => Array.from(v.querySelectorAll('.monaco-list-row, .action-menu-item, .monaco-menu .action-item'))
+    .map((r) => ({
+      text: (r.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 80),
+      focused: r.classList.contains('focused'),
+    })));
+  const lightbulb = !!document.querySelector('.lightbulb-glyph, .codelens-decoration .lightbulb, .codicon-lightbulb');
+  return JSON.stringify({ visible: rows.length > 0, count: rows.length, rows: rows.slice(0, 20),
+    containers: views.map((v) => String(v.className).slice(0, 60)), lightbulb });
 })()`;
 const READ_PROBLEMS = `(() => {
   const panel = document.querySelector('.markers-panel');
@@ -907,6 +1051,30 @@ const READ_VIEWS = `(() => {
   }));
   return JSON.stringify(sections.filter((s) => s.title));
 })()`;
+/// Infoview 正文的**唯一取值表达式**（2026-10-13）：在 webview target 里走进
+/// **同源 iframe**（实测内容在 `<webview>/fake.html?id=…` 那一层）取 `textContent`，
+/// 挑最长的一份。`infoviewEval` 的"这个 target 是不是 Infoview"判据与
+/// `READ_INFOVIEW` 的正文都从这里来 ⇒ **一处定义、两处引用**（不再各写一份 ✗）。
+const IV_BEST_TEXT = `(() => {
+  const docs = [];
+  const walk = (doc, depth) => {
+    docs.push(doc);
+    if (depth < 3) { try { Array.from(doc.querySelectorAll('iframe')).forEach((f) => {
+      try { if (f.contentDocument) walk(f.contentDocument, depth + 1); } catch (e) {} }); } catch (e) {} }
+  };
+  try { walk(document, 0); } catch (e) { return ''; }
+  const textOf = (doc) => {
+    try {
+      const body = doc.body;
+      if (!body) return '';
+      const clone = body.cloneNode(true);
+      clone.querySelectorAll('script, style, template').forEach((n) => n.remove());
+      return (clone.textContent || '').replace(/[ \\t]+/g, ' ').replace(/\\n{3,}/g, '\\n\\n').trim();
+    } catch (e) { return ''; }
+  };
+  let best = '';
+  for (const d of docs) { const t = textOf(d); if (t.length > best.length) best = t; }
+  return best; })()`;
 const READ_INFOVIEW = `(() => {
   // Infoview 是两层 webview；且外层文档的 body.innerText 实测返回**非字符串**
   // （读成 [object Object] ⇒ 第一/二版都判成「没有内容」）。这里：
@@ -925,7 +1093,11 @@ const READ_INFOVIEW = `(() => {
       if (!body) return '';
       const clone = body.cloneNode(true);
       clone.querySelectorAll('script, style, template').forEach((n) => n.remove());
-      return (clone.textContent || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+      // ⚠ **转义必须写双反斜杠**（2026-10-13）：这是**模板字面量**里的一段
+      // 被 eval 的代码 —— 写单反斜杠 n 在探针进程里就被吃成**真换行** ⇒ 喂进去
+      // 的是斜杠+换行+{3,}/g = **未闭合正则**（SyntaxError）⇒ 读数全废。
+      // 同族的单反斜杠 s 更阴：它不报错，只是**静默变成 s**（斜杠 s 加号 ⇒ 匹配 s）✗。
+      return (clone.textContent || '').replace(/[ \t]+/g, ' ').replace(/\\n{3,}/g, '\\n\\n').trim();
     } catch (e) { return ''; }
   };
   const KEY = /目标|⊢|练习|声明|已无目标|等待编译|编译器/;
@@ -935,7 +1107,7 @@ const READ_INFOVIEW = `(() => {
     if (t.length > bestText.length) { best = d; bestText = t; } }
   const root = (best && (best.querySelector('#root') || best.body)) || null;
   const cards = root ? Array.from(root.querySelectorAll('.card, .goal, .decl, li, p, div'))
-    .map((e) => (e.textContent || '').replace(/\s+/g, ' ').trim())
+    .map((e) => (e.textContent || '').replace(/\\s+/g, ' ').trim())
     .filter((x) => x && x.length < 200).slice(0, 60) : [];
   return JSON.stringify({ text: bestText.slice(0, 4000), cards, docs: docs.length });
 })()`;
@@ -1050,11 +1222,30 @@ function prepare(tag, arm) {
 /// **为什么**：工作区原先靠上一轮会话手工复制 ⇒ clone 之后探针跑不起来；探针必须自足。
 function ensureWorkspace() {
   mkdirSync(WS, { recursive: true });
-  if (existsSync(join(WS, "sokonanoda.toml"))) return;
-  for (const rel of ["sokonanoda.toml", "lib", "units"]) {
-    cpSync(join(REPO, "courses", "set-theory", rel), join(WS, rel), { recursive: true });
+  if (!existsSync(join(WS, "sokonanoda.toml"))) {
+    for (const rel of ["sokonanoda.toml", "lib", "units"]) {
+      cpSync(join(REPO, "courses", "set-theory", rel), join(WS, rel), { recursive: true });
+    }
+    log(`工作区自举：${WS}（从 courses/set-theory/ 镜像）`);
   }
-  log(`工作区自举：${WS}（从 courses/set-theory/ 镜像）`);
+  // **课程清单**（2026-10-13 修 F16）：扩展按 `<workspaceRoot>/course/course.json`
+  // 找清单（`extension.js::resolveCourseManifest`），而本仓的卷 I 清单在
+  // `courses/set-theory/course.json`、里面的单元路径**相对清单目录** ⇒ 探针工作区
+  // 必须按**同一个约定**摆一份，否则「课程」视图**天生是空的**、读数会被写成产品
+  // 缺口 ✗（实测：旧截图里它也是空的 —— 而「项目」视图的空是**DOM 时机**伪影，
+  // 两件事不同因）。`units` 用**符号链接**接过去（不复制 100+ 个单元文件）。
+  const courseDir = join(WS, "course");
+  const manifest = join(courseDir, "course.json");
+  if (!existsSync(manifest)) {
+    mkdirSync(courseDir, { recursive: true });
+    cpSync(join(REPO, "courses", "set-theory", "course.json"), manifest);
+    log(`课程清单自举：${manifest}（单元经 course/units 符号链接）`);
+  }
+  const unitsLink = join(courseDir, "units");
+  if (!existsSync(unitsLink)) {
+    try { symlinkSync(join("..", "units"), unitsLink, "dir"); }
+    catch (e) { log(`course/units 符号链接建不起来 ⇒ 课程视图会是空的：${e?.message ?? e}`); }
+  }
 }
 
 
@@ -1142,6 +1333,15 @@ const ACTIVE_TAB = `(() => { const t = document.querySelector('.tabs-container .
 
 async function openFile(client, name) {
   const base = name.replace(/\.sokonanoda$/, "");
+  // ⚠ **已经是当前 tab 就直接返回**（2026-10-13）：批量跑时上一条 case 刚开过
+  // 同一个文件，而快速打开列表里它未必排第一 ⇒ 下面的 rows 检查失败、循环走完 ⇒
+  // 末尾 throw 的却是**正确的**当前文件（实测 `infoview-dom-debug`：
+  // 「快速打开没能切到 unit01-sets-membership.sokonanoda（当前：unit01-sets-membership.sokonanoda）」）
+  // = **判据侧假失败**，不是产品现象 ✗。
+  {
+    const tab0 = await client.eval(ACTIVE_TAB);
+    if (String(tab0 ?? "").includes(name)) return { opened: name, query: "(already-active)", tab: tab0 };
+  }
   for (const query of [base, name]) {
     await client.chord("p", { meta: true });
     await sleep(800);
@@ -1291,7 +1491,10 @@ async function runCase(client, testCase, arm) {
   for (const step of testCase.steps ?? []) {
     if (step.startsWith("@snap:")) { await rec(step.slice(6)); continue; }
     if (step.startsWith("@expand:")) {
-      const title = step.slice(8);
+      // `@expand:<标题>` / `@expand:<标题>|<预算 ms>`（预算用于「课程」这种要起 CLI
+      // 编整门课的视图：**冷缓存实测 47.5s**，热 2.5s —— 8s 预算会把"还在编"读成"空的"）。
+      const [title, budgetRaw] = step.slice(8).split("|");
+      const budget = Number(budgetRaw) > 0 ? Number(budgetRaw) : 8000;
       const r = await client.eval(`(() => {
         const hs = Array.from(document.querySelectorAll('.pane-header'));
         const h = hs.find((x) => ((x.querySelector('.title')?.textContent || x.textContent || '').trim()) === ${JSON.stringify(title)});
@@ -1300,19 +1503,49 @@ async function runCase(client, testCase, arm) {
         return JSON.stringify({ found: true, x: b.x + b.width / 2, y: b.y + b.height / 2, expanded: h.getAttribute('aria-expanded') });
       })()`);
       const j = jparse(r);
-      if (j.found) {
+      // 已经展开的**不要再点**（点了就是收起 ⇒ 后面读到空行，纯自伤 ✗）。
+      const wasExpanded = j?.expanded === "true";
+      if (j.found && !wasExpanded) {
         for (const type of ["mousePressed", "mouseReleased"])
           await client.call("Input.dispatchMouseEvent", { type, x: j.x, y: j.y, button: "left",
             clickCount: 1, buttons: type === "mousePressed" ? 1 : 0, pointerType: "mouse" });
       }
-      events.push({ step, expand: j });
-      await sleep(1200);
+      // ⚠ **展开之后要等行真的填出来**（2026-10-13 修 F16）：Explorer 的树是
+      // **异步**加载的，`@expand` 后立刻 `@snap` 会读到 `rows: []`（实测：同一轮
+      // 截图里「练习/课程/项目」都有内容，而 DOM 读数是空的 ⇒ 差点写成"视图空"
+      // 的产品缺口 ✗ = **DOM 时机伪影**）。判据 = 轮询该视图到有行（上限 8s）；
+      // 读数带 `rows`/`rows_ms` ⇒ **空也自明"等过"**，不再是没等就断言 ✓。
+      const t0 = Date.now();
+      let rowsN = 0;
+      while (Date.now() - t0 < budget) {
+        const secs = jparse(await client.eval(READ_VIEWS));
+        const sec = (secs ?? []).find((s) => s.title === title);
+        rowsN = (sec?.rows ?? []).length;
+        if (rowsN > 0) break;
+        await sleep(400);
+      }
+      events.push({ step, expand: j, was_expanded: wasExpanded, rows: rowsN,
+        rows_ms: rowsN > 0 ? Date.now() - t0 : null });
       continue;
     }
     if (step === "@dump-webviews") {
       const targets = await cdpTargets();
       const cands = targets.filter((x) => ["iframe", "page", "webview"].includes(x.type) && x.webSocketDebuggerUrl);
       const out = [];
+      // **浏览器级 `Target.getTargets`**（2026-10-13）：`/json/list` 只列"可 attach 的
+      // 顶层 target" —— Infoview 的**内层** `media/infoview.html` 是 OOPIF，实测
+      // 在 `/json/list` 里**根本看不见**（只有外层引导页）。要判断"内层到底在不在、
+      // 能不能 attach"，只有浏览器端点这一条路（`type: iframe` + `attached`）。
+      let allTargets = null;
+      try {
+        const ver = await (await fetch(`http://127.0.0.1:${debugPort}/json/version`)).json();
+        const bc = await connect(ver.webSocketDebuggerUrl);
+        try {
+          const r = await bc.call("Target.getTargets");
+          allTargets = (r?.targetInfos ?? []).map((t) => ({ type: t.type, attached: t.attached,
+            url: String(t.url).slice(0, 80) }));
+        } finally { bc.close(); }
+      } catch (e) { allTargets = { error: String(e?.message ?? e).slice(0, 90) }; }
       for (const t of cands) {
         let c = null;
         try {
@@ -1321,9 +1554,20 @@ async function runCase(client, testCase, arm) {
             const d = document;
             const body = d.body;
             const root = d.querySelector('#root');
+            const iframes = Array.from(d.querySelectorAll('iframe')).map((f) => ({
+              src: String(f.getAttribute('src') || '').slice(0, 70),
+              sameOriginDoc: (() => { try { return !!f.contentDocument; } catch (e) { return 'throw'; } })(),
+              innerTextLen: (() => { try { return ((f.contentDocument && f.contentDocument.body &&
+                f.contentDocument.body.textContent) || '').length; } catch (e) { return -1; } })(),
+            }));
+            const clone = body ? body.cloneNode(true) : null;
+            if (clone) clone.querySelectorAll('script, style, template').forEach((n) => n.remove());
             return JSON.stringify({ bodyType: typeof body, innerTextType: typeof (body && body.innerText),
               textContentLen: body ? (body.textContent || '').length : -1,
+              strippedLen: clone ? (clone.textContent || '').length : -1,
+              strippedHead: clone ? (clone.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 200) : null,
               childCount: body ? body.children.length : -1,
+              iframes,
               rootText: root ? (root.textContent || '').replace(/\\s+/g, ' ').slice(0, 200) : null,
               title: d.title });
           })()`);
@@ -1331,7 +1575,7 @@ async function runCase(client, testCase, arm) {
         } catch (e) { out.push({ url: String(t.url).slice(0, 60), error: String(e?.message ?? e).slice(0, 80) }); }
         finally { try { c?.close(); } catch { /* ignore */ } }
       }
-      events.push({ step, targets: out });
+      events.push({ step, targets: out, all_targets: allTargets });
       continue;
     }
     if (step === "@dump-suggest") {
@@ -1359,6 +1603,34 @@ async function runCase(client, testCase, arm) {
         await sleep(120);
       }
       events.push({ step, ms: Date.now() - t0, best, samples: seen.slice(0, 12) });
+      continue;
+    }
+    if (step.startsWith("@clickpane:")) {
+      // `@clickpane:<视图标题>|<文本片段>`：**限定在那个视图里**按文本点一行。
+      // 为什么不能直接用 `@clicktext:.monaco-list-row|…`：`.monaco-list-row` 是
+      // **全窗口**的（Explorer 文件树排在前面 ⇒ 实测点到了 `.sokonanoda`/`lib` 那些
+      // **文件行**，`found: false` 而读数看着像"入口不存在" ✗）。
+      // 视图是按 `.pane-header` 的标题找的（与 `READ_VIEWS` 同一套定位）。
+      const [title, frag] = step.slice(11).split("|");
+      const r = await client.eval(`(() => {
+        const hs = Array.from(document.querySelectorAll('.pane-header'));
+        const h = hs.find((x) => ((x.querySelector('.title')?.textContent || x.textContent || '').trim()) === ${JSON.stringify(title)});
+        if (!h) return JSON.stringify({ found: false, why: 'no-pane', titles: hs.map((x) => (x.querySelector('.title')?.textContent || '').trim()) });
+        const pane = h.parentElement;
+        const rows = pane ? Array.from(pane.querySelectorAll('.monaco-list-row')) : [];
+        const i = rows.findIndex((x) => (x.textContent || '').includes(${JSON.stringify(frag)}));
+        if (i < 0) return JSON.stringify({ found: false, why: 'no-row', n: rows.length,
+          texts: rows.map((x) => (x.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40)) });
+        const b = rows[i].getBoundingClientRect();
+        return JSON.stringify({ found: true, i, n: rows.length, x: b.x + 40, y: b.y + b.height / 2,
+          text: (rows[i].textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 60) });
+      })()`);
+      const j = jparse(r);
+      if (j?.found) for (const type of ["mousePressed", "mouseReleased"])
+        await client.call("Input.dispatchMouseEvent", { type, x: j.x, y: j.y, button: "left",
+          clickCount: 1, buttons: type === "mousePressed" ? 1 : 0, pointerType: "mouse" });
+      events.push({ step, click: j });
+      await sleep(600);
       continue;
     }
     if (step.startsWith("@clicktext:")) {
@@ -1548,6 +1820,32 @@ if (!existsSync(join(EXTENSION, "bin"))) {
   process.exit(3);
 }
 ensureWorkspace();
+// ⚠ **判据侧自检（2026-10-13）：先把每个要 eval 的表达式在本进程"只解析不执行"**。
+//
+// 起因（真实事故，两次同形）：这些表达式写在**模板字面量**里 —— 里面的 `\n`
+// 在探针进程就被吃成**真换行**，喂给编辑器/webview 的是一段**语法错误**的 JS；
+// `Runtime.evaluate` 回 `exceptionDetails` ⇒ `c.eval` 返回 `{_error}` 对象 ⇒
+// 旧代码 `String(head)` = `"[object Object]"` ⇒ **每一拍都判成"没有内容"**
+// （F17/F18 的"进不去 webview"就是这一条，不是产品 ✗）。
+// 同族的 `\s` 更阴：不报错，只**静默变成 `s`**（`/\s+/` ⇒ `/s+/`）。
+//
+// 判据 = `new Function` **只解析**（不执行，`document` 用不到）⇒ 任何语法错误
+// 在**开窗口之前**就 exit 3。**反向验证**：把任意一处 `\\n` 改回 `\n` ⇒ 立刻 exit 3 ✓。
+{
+  const EXPRS = { READ_LINES, READ_STATUS, READ_LNCOL, READ_VISIBLE, READ_CURSOR_LINE,
+    READ_MARKERS, READ_NOTIFICATIONS, READ_SUGGEST, READ_QUICKFIX, READ_PROBLEMS,
+    READ_QUICKINPUT, READ_VIEWS, READ_INFOVIEW, READ_FOCUS, ACTIVE_TAB, IV_BEST_TEXT };
+  const bad = [];
+  for (const [name, expr] of Object.entries(EXPRS)) {
+    try { new Function(`return (${expr})`); }
+    catch (e) { bad.push(`${name}: ${e.message}`); }
+  }
+  if (bad.length > 0) {
+    console.error("error: 探针表达式不是合法 JS（多半是模板字面量里的转义 bug —— `\\n`/`\\s` 要写 `\\\\n`/`\\\\s`）：");
+    for (const b of bad) console.error(`  · ${b}`);
+    process.exit(3);
+  }
+}
 const identity = buildIdentity();
 if (args.list) {
   for (const c of CASES) console.log(`${(c.vim ? "vim " : "    ")} ${c.id.padEnd(22)} ${c.note}`);
