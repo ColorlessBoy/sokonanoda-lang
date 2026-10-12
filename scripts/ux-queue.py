@@ -1171,6 +1171,13 @@ def check_plan(rows: list[dict]) -> int:
     disp = {r["id"]: r.get("disposition") for r in rows}
     for ident, cur in sorted(state.items()):
         st = cur.get("state")
+        # ⚠ **合成测试 id 不算幽灵**（2026-10-12 反复踩到）：`--selftest` 的夹具用 `X-*`、
+        # 集群并发验证脚本用 `R-*`（8 路认领）/`P-*`（未声明资源），它们**故意**不登记进来源。
+        # 这些脚本在四棵 worktree 里都会跑，而**事件表是主 checkout 单点**
+        # （`SOKO_QUEUE_ROOT`）⇒ 每跑一次就往真台账里写一条 ⇒ `--check-plan` 反复假红 ✗。
+        # 真幽灵（"来源被删了"）是**别的 id**：那些照样判红 ✓（判据没放宽，只是划出测试命名空间）。
+        if ident.startswith(("R-", "P-")):
+            continue
         if ident not in known:
             print(f"✗ 事件里的 `{ident}` 不在任何来源里 ⇒ 幽灵条目（删来源了？）✗", file=sys.stderr)
             bad += 1

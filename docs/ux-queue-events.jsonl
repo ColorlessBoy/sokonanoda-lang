@@ -32,3 +32,5 @@
 {"ts": "2026-10-12T11:45:32+00:00", "event": "triage", "id": "SUB-duplicate-found-msg", "to": "deferred", "reason": "实缺口（error_here:3536 追加 ', found {:?}'，而调用点 :3460 的消息自带 'found {other:?}' ⇒ 双写），同在 parser.rs、同被 N2 持锁 ⇒ 与 SUB-keyword-decl-name 同波修", "commit": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T11:53:52+00:00", "event": "advance", "id": "N2", "to": "done", "commit": "00139c65", "reading": "lsp-probe --case N2 exit 1→0（hover=theorem ok_one…、documentSymbol=ok_one+ok_two、诊断仍逐字 unexpected-token@5）；反向验证 SOKO_NO_PARSE_RECOVERY=1 ⇒ exit 1（hover=null）；--all 28 条逐条 verdict 差异=恰好 N2；front --lib 954/0", "reason": null, "owner": "agent-n2"}
 {"ts": "2026-10-12T11:54:48+00:00", "event": "claim", "id": "A3", "owner": "LSP-A", "resources": ["crates/lsp"]}
+{"ts": "2026-10-12T11:57:25+00:00", "event": "submit", "id": "SUB-retest-should-not-exist", "owner": "penglingwei@penglingweis-Laptop", "kind": "fix", "evidence": "probe"}
+{"ts": "2026-10-12T11:57:30+00:00", "event": "triage", "id": "SUB-retest-should-not-exist", "to": "rejected", "reason": "接口 agent 的验证探针（复跑 --submit 判据时产生），非真实缺口，作废", "commit": null, "owner": "penglingwei@penglingweis-Laptop"}
