@@ -1464,6 +1464,28 @@ async function runArm(cases, arm, tag, port) {
 
 // ── 主流程 ──────────────────────────────────────────────────────────────────
 if (!existsSync(join(EXTENSION, "package.json"))) { console.error("error: 扩展目录不完整"); process.exit(3); }
+// ⚠ **扩展激活前置**（2026-10-12 LSP-B 实测，与 lsp/lang 线的假绿同族）：
+// 新 worktree 里 `editor/vscode/node_modules` 是 **gitignored** ⇒ 缺它时扩展
+// **激活失败**，而本探针的读数会**静默全绿**：markers 全 0 · 没有 Infoview ·
+// 命令 `sokonanoda.nextHole` not found ⇒ 看着"一切正常"，其实**什么都没跑** ✗。
+// ⇒ 缺依赖一律 **exit 3 = 环境不满足**（读不出来就不许判 ✓，与 `scripts/soko` 的
+// "无可信构建就拒跑"同一条纪律）。补法：`cp -Rc <主 checkout>/editor/vscode/node_modules .`
+// （≈3s/130MB）或 `(cd editor/vscode && npm ci --omit=dev)`。
+if (!existsSync(join(EXTENSION, "node_modules"))) {
+  console.error(
+    "error: editor/vscode/node_modules 缺失 ⇒ 扩展**激活不起来**，读数会静默全绿（假绿）⇒ 拒绝判定（exit 3）\n" +
+      "       补：cp -Rc <主 checkout>/editor/vscode/node_modules editor/vscode/  （或 npm ci）",
+  );
+  process.exit(3);
+}
+// 同理：LSP 二进制要 stage 过（`node scripts/stage-lsp.js --profile release`，尊重 CARGO_TARGET_DIR）
+if (!existsSync(join(EXTENSION, "bin"))) {
+  console.error(
+    "error: editor/vscode/bin 缺失 ⇒ LSP 未 stage ⇒ 读数不可归属 ⇒ 拒绝判定（exit 3）\n" +
+      "       补：(cd editor/vscode && node scripts/stage-lsp.js --profile release)",
+  );
+  process.exit(3);
+}
 ensureWorkspace();
 const identity = buildIdentity();
 if (args.list) {
