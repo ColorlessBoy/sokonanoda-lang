@@ -2810,7 +2810,7 @@ fn l1_yield_is_closure_wide() {
     .expect("write Main");
     let entry: PathBuf = dir.join("Main.sokonanoda");
     let report = compile_project(&entry, None, &CompileOptions::default(), None);
-    let entry_errors: Vec<&'static str> = report
+    let entry_errors: Vec<&str> = report
         .entry_module()
         .map(|m| m.report.errors.iter().map(|e| e.code()).collect())
         .unwrap_or_default();
@@ -9266,9 +9266,13 @@ inductive Exists (A : Type) (p : A -> Prop) : Prop\n\
 ctor intro (w : A) (h : p w) : Exists A p\n\
 end\n";
 
-fn third_cut_codes(src: &str) -> Vec<&'static str> {
+fn third_cut_codes(src: &str) -> Vec<String> {
     let file = parse(src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
-    compile_fol(&file).errors.iter().map(|e| e.code()).collect()
+    compile_fol(&file)
+        .errors
+        .iter()
+        .map(|e| e.code().to_string())
+        .collect()
 }
 
 /// §12.4：`{a}` / `{a, b}` 展开成点名形式 `Set.singleton α a` / `Set.pair α a b`，

@@ -69,8 +69,30 @@ enum SetBuilderKind {
     Untyped,
 }
 
+/// **恢复式解析**的结果（N2）：能解析出来的命令照常返回，坏掉的各带一条诊断。
+///
+/// 与 [`parse`] 的关系是**相加**、不是替换：`parse` 的契约（首错即返、全有或全无）
+/// 一字未动，判卷通道照旧；只有**编辑器/查询**通道（`session::Session`）改用这个
+/// 入口——那里"一条坏声明 ⇒ 整份文件的报告没了"正是 N2 的病。
+#[derive(Debug)]
+pub struct RecoveredFile {
+    /// 成功解析的命令（坏掉的那条**不在**里面）。
+    pub file: FolFile,
+    /// 每条坏掉的命令一条诊断（按 span 起点排序）。
+    pub diagnostics: Vec<Diagnostic>,
+}
+
+/// 递归下降解析器：tokens → 命令与 AST。
+///
+/// `Clone` 是**恢复式解析**（[`Parser::parse_file_recovering`]）要的：跳过一条坏命令
+/// 时要反复问"这个位置能不能重新解析出一条命令"，而失败的那次**不许留下副作用**
+/// （半截 `namespace` / `infix` 会污染记法表与命名空间栈）⇒ 在克隆上试、成功才采纳。
+/// 为了让这个探针**便宜**（它是按键路径上的最坏情况：一路扫到文件尾），token 表
+/// 用 `Arc<[Token]>` 共享 —— 克隆一个 `Parser` 只拷那几个**会被写的小表**
+/// （记法表 / 作用域 / 命名空间栈），不拷 token，也不为每个 `Ident` 分配字符串。
+#[derive(Clone)]
 pub struct Parser {
-    tokens: Vec<Token>,
+    tokens: std::sync::Arc<[Token]>,
     cursor: usize,
     /// `match` 的 scrutinee 解析期间 > 0：让 `with` 停止 `parse_app` 的实参
     /// 收集（`with` 是普通标识符，否则会被当成 `c` 的实参吃掉）。
@@ -104,6 +126,7 @@ pub struct Parser {
 
 /// 一个未闭合的 `namespace`：写出来的名字 + 累积全前缀 + 那行的 span
 /// （未闭合诊断指回它，不是文件尾）。
+#[derive(Clone)]
 struct OpenNamespace {
     written: String,
     full: String,
@@ -202,7 +225,7 @@ impl Parser {
             }
         }
         Self {
-            tokens,
+            tokens: std::sync::Arc::from(tokens),
             cursor: 0,
             scrutinee_depth: 0,
             by_depth: 0,
@@ -280,6 +303,128 @@ impl Parser {
             commands,
             src: src.to_string(),
         })
+    }
+
+    /// **恢复式**整文件解析（N2）：一条命令解析失败时**不让整份文件作废** ——
+    /// 记下它的诊断，往后找**第一条能重新解析成命令**的位置继续，直到文件尾。
+    ///
+    /// 与 [`Parser::parse_file_with`]（全有或全无）的关系是**相加**：判卷通道仍走
+    /// 那一条，编辑器/查询通道走这一条。语义逐条对齐 Lean 4 的模块级恢复
+    /// （`Lean/Parser/Module.lean::parseCommand`）：
+    ///
+    /// * **至少前进一个 token** —— 在失败的位置原地重试会死循环（Lean 同一处注释：
+    ///   `advance at least one token to prevent infinite loops`）；
+    /// * **一次失败一条诊断** —— 粒度是"一条命令"，不是"一个 token"（否则一个没写完
+    ///   的声明会炸出几十条同义诊断）；诊断**不丢**，照常返回给调用方；
+    /// * **失败不留副作用** —— 每次"这里能解析出一条命令吗"都在**克隆**上试，只有
+    ///   成功才采纳那次的状态；否则半截 `namespace Foo` / `infix` 会把命名空间栈与
+    ///   记法表弄脏，**后面本来好的命令会跟着错**（那正是"修好一条、坏掉一片"）。
+    pub fn parse_file_recovering(&mut self, src: &str) -> RecoveredFile {
+        let mut commands = Vec::new();
+        let mut diagnostics = Vec::new();
+        let mut seen_declaration = false;
+        while !self.at_eof() {
+            // 先在克隆上试：失败的命令不许在 `self` 上留下半截副作用。
+            let mut probe = self.clone();
+            match probe.parse_command() {
+                Ok(command) => {
+                    *self = probe;
+                    if !Self::accept_recovered(
+                        command,
+                        &mut seen_declaration,
+                        &mut commands,
+                        &mut diagnostics,
+                    ) {
+                        break;
+                    }
+                }
+                Err(diag) => {
+                    diagnostics.push(diag);
+                    match self.recover_command() {
+                        Some(command) => {
+                            if !Self::accept_recovered(
+                                command,
+                                &mut seen_declaration,
+                                &mut commands,
+                                &mut diagnostics,
+                            ) {
+                                break;
+                            }
+                        }
+                        None => break,
+                    }
+                }
+            }
+        }
+        // 未闭合的 `namespace` 与 [`Parser::parse_file`] **同一条判据**（G-05）：
+        // 区别只在它是诊断而不是整份文件的判决——能解析的部分照常返回。
+        if let Some(open) = self.namespaces.last() {
+            diagnostics.push(Diagnostic::new(
+                DiagnosticKind::NamespaceUnclosed {
+                    name: open.written.clone(),
+                },
+                open.span,
+                format!("`namespace {}` 没有闭合：文件到这里就结束了", open.written),
+            ));
+        }
+        diagnostics.sort_by_key(|diag| diag.span.start.offset);
+        RecoveredFile {
+            file: FolFile {
+                commands,
+                src: src.to_string(),
+            },
+            diagnostics,
+        }
+    }
+
+    /// 恢复式解析的共用一步：收下一条命令，顺带执行**文件级**规则
+    /// （`import` 必须走在所有声明之前，与 [`Parser::parse_file_with`] 同一条）。
+    ///
+    /// 返回 `false` ⇒ 这条命令违反文件级规则（`import` 写晚了）：恢复到此为止，
+    /// 与 `parse_file_with` 的"整份不认"在**同一位置**收口，只是不再丢掉前面的好命令。
+    fn accept_recovered(
+        command: Command,
+        seen_declaration: &mut bool,
+        commands: &mut Vec<Command>,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) -> bool {
+        if command.is_import() {
+            if *seen_declaration {
+                diagnostics.push(Diagnostic::new(
+                    DiagnosticKind::ImportMustPrecedeDeclarations,
+                    command.span(),
+                    "`import` 必须写在所有声明之前".to_string(),
+                ));
+                return false;
+            }
+        } else {
+            *seen_declaration = true;
+        }
+        commands.push(command);
+        true
+    }
+
+    /// 从当前位置往后找**下一条能解析成命令**的位置：找到就把游标停在它**之后**
+    /// （那条命令已经吃进去）并返回它；一路到文件尾都找不到 ⇒ `None`。
+    ///
+    /// 每步至少前进一个 token；每次试探都在**克隆**上做（失败不留副作用，见
+    /// [`Parser::parse_file_recovering`]）。
+    fn recover_command(&mut self) -> Option<Command> {
+        while !self.at_eof() {
+            // 至少前进一个 token（Lean 4：advance at least one token to prevent
+            // infinite loops）。`bump()` 在 Eof 上不前进，所以这里直接推游标；
+            // 上面那条 `at_eof()` 保证它不会推过 Eof。
+            self.cursor += 1;
+            if self.at_eof() {
+                return None;
+            }
+            let mut probe = self.clone();
+            if let Ok(command) = probe.parse_command() {
+                *self = probe;
+                return Some(command);
+            }
+        }
+        None
     }
 
     fn parse_command(&mut self) -> Result<Command> {
@@ -3675,24 +3820,30 @@ pub fn parse(src: &str) -> Result<FolFile> {
     parse_with_inherited(src, &[])
 }
 
+/// **恢复式**解析（N2）：与 [`parse`] 走**同一条**词法入口（本文件声明的记法 +
+/// 内建记法，一个符号都不少），但**一条坏命令不再让整份文件作废** —— 能解析出来
+/// 的命令照常返回，每条坏命令各带一条诊断（见
+/// [`Parser::parse_file_recovering`]）。
+///
+/// 词法本身失败（未闭合字符串之类**连 token 都切不出来**）⇒ 照旧 `Err`：那种文本
+/// 没有可信的命令边界，恢复没有意义（Lean 同样在词法层就停）。
+pub fn parse_recovering(src: &str) -> Result<RecoveredFile> {
+    parse_recovering_with_inherited(src, &[])
+}
+
 /// 带**继承记法表**的解析（第二刀 §10.3）：被导入模块声明的记法既进词法的
 /// 符号表（[`scan_notation_symbols`] 收本文件的 + `inherited` 收依赖的），
 /// 也进 parser 的算子表。空继承表 ⇒ [`parse`] 逐字节相同。
 pub fn parse_with_inherited(src: &str, inherited: &[NotationDecl]) -> Result<FolFile> {
-    let mut symbols = scan_notation_symbols(src);
-    for symbol in lexer_builtin_symbols() {
-        if !symbols.contains(&symbol) {
-            symbols.push(symbol);
-        }
-    }
-    for decl in inherited {
-        if !symbols.contains(&decl.symbol) {
-            symbols.push(decl.symbol.clone());
-        }
-    }
-    let tokens = tokenize_with_symbols(src, &symbols)?;
-    let mut parser = Parser::with_inherited(tokens, inherited);
-    parser.parse_file(src)
+    parser_for(src, inherited)?.parse_file(src)
+}
+
+/// [`parse_recovering`] 的继承表版本（与 [`parse_with_inherited`] 对称）。
+pub fn parse_recovering_with_inherited(
+    src: &str,
+    inherited: &[NotationDecl],
+) -> Result<RecoveredFile> {
+    Ok(parser_for(src, inherited)?.parse_file_recovering(src))
 }
 
 /// 解析一个**源码片段**（G-05）：只跳过「文件尾未闭合 `namespace`」的校验，
@@ -3704,6 +3855,18 @@ pub fn parse_fragment(src: &str) -> Result<FolFile> {
 
 /// [`parse_fragment`] 的继承表版本（判卷合成路径不跨模块，留作对称入口）。
 pub fn parse_fragment_with_inherited(src: &str, inherited: &[NotationDecl]) -> Result<FolFile> {
+    parser_for(src, inherited)?.parse_fragment(src)
+}
+
+/// **词法 + parser 的唯一构造点**：每个 `parse*` 入口都从这里出发
+/// （`parse` / `parse_fragment` / `parse_recovering` 各自的继承表版本）。
+///
+/// 喂给词法的符号表有**三个来源**，缺一个都会让记法在分词阶段就丢：
+/// 本文件声明的（`scan_notation_symbols`，G-04 第二刀）+ 内建记法
+/// （`lexer_builtin_symbols`）+ 继承表（`inherited`，依赖模块声明的）。
+/// 以前这段在三个入口里**各抄一遍**（N2 加恢复式入口时差点抄第四遍）——
+/// 一处漂移就会让"同一条文本在不同入口下分词不同"，所以收成一处。
+fn parser_for(src: &str, inherited: &[NotationDecl]) -> Result<Parser> {
     let mut symbols = scan_notation_symbols(src);
     for symbol in lexer_builtin_symbols() {
         if !symbols.contains(&symbol) {
@@ -3716,8 +3879,7 @@ pub fn parse_fragment_with_inherited(src: &str, inherited: &[NotationDecl]) -> R
         }
     }
     let tokens = tokenize_with_symbols(src, &symbols)?;
-    let mut parser = Parser::with_inherited(tokens, inherited);
-    parser.parse_fragment(src)
+    Ok(Parser::with_inherited(tokens, inherited))
 }
 
 /// 词法级 `import` 扫描（G-04 第二刀）：闭包加载器要在解析一个模块**之前**
@@ -3836,6 +3998,86 @@ fn is_open_in_body(command: &Command) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 把含 `needle` 的**那一行**换成等长空白（offset 不变 ⇒ span 可逐字节对比）。
+    fn mask_line(src: &str, needle: &str) -> String {
+        let mut out = src
+            .lines()
+            .map(|line| {
+                if line.contains(needle) {
+                    " ".repeat(line.len())
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        if src.ends_with('\n') {
+            out.push('\n');
+        }
+        out
+    }
+
+    /// **N2（2026-10-12）**：恢复式解析 —— 一条没写完的声明不许让整份文件作废。
+    ///
+    /// 三条一起断言（缺一条就可能是"吞掉错误换绿"✗）：
+    /// 1. **好命令一个不少**：`ok_one`/`ok_two` 都在，且与"把坏命令掩掉后单独解析"
+    ///    **逐条相同**（含 span）；
+    /// 2. **坏命令各带一条诊断**：`unexpected-token` 落在文件尾那行；同时
+    ///    `parse()` 的老契约（首错即返 `Err`）一字未变；
+    /// 3. **失败不留副作用**：第 1 条里的"与掩码文本相同"就是这条的判据 ——
+    ///    半截 `namespace`/`infix` 或深度计数器泄漏都会让后面本来好的命令解析不出来，
+    ///    那时下面这两条断言必红。
+    #[test]
+    fn recovering_parse_keeps_the_good_commands_and_reports_the_broken_one() {
+        let src = "theorem ok_one (p : Prop) (hp : p) : p := hp\n\n\
+                   theorem ok_two (p : Prop) (hp : p) : p := ok_one p hp\n\n\
+                   theorem broken (p : Prop) : p := \n";
+        // 老契约（判卷通道走这条）一字未变：首错即返。
+        let err = parse(src).unwrap_err();
+        assert_eq!(err.code(), "unexpected-token");
+        let recovered = parse_recovering(src).expect("词法能过");
+        assert_eq!(recovered.diagnostics.len(), 1);
+        assert_eq!(recovered.diagnostics[0].code(), "unexpected-token");
+        // 文件尾（`Pos.line` 是**1 基**：第 6 行行首 = LSP 的 0 基第 5 行）：
+        // 位置没有被牵连到别的声明上。
+        assert_eq!(recovered.diagnostics[0].span.start.line, 6);
+        // 好命令与"掩掉坏命令"的解析**逐条相同**（span 也算）。
+        let masked = mask_line(src, "theorem broken");
+        let clean = parse(&masked).expect("掩掉坏命令后必须能解析");
+        assert_eq!(recovered.file.commands, clean.commands);
+        assert_eq!(recovered.file.commands.len(), 2);
+    }
+
+    /// **N2 的第二半**：坏命令在**中间**时，恢复点必须是**后面那条命令**
+    /// （Lean 4 `Parser/Module.lean::parseCommand` 的 recovering 语义：往后找到
+    /// 第一条能重新解析成命令的位置），而不是"从这里开始整段丢掉"。
+    #[test]
+    fn recovering_parse_resumes_at_the_next_command() {
+        let src = "theorem ok_one (p : Prop) (hp : p) : p := hp\n\n\
+                   def broken : Nat := )\n\n\
+                   theorem ok_two (p : Prop) (hp : p) : p := ok_one p hp\n";
+        assert!(parse(src).is_err(), "夹具前提：整份 parse 失败");
+        let recovered = parse_recovering(src).expect("词法能过");
+        assert_eq!(recovered.diagnostics.len(), 1);
+        assert_eq!(recovered.diagnostics[0].code(), "unexpected-token");
+        // 坏命令**那一行**（1 基第 3 行）——不是文件尾。
+        assert_eq!(recovered.diagnostics[0].span.start.line, 3);
+        let masked = mask_line(src, "def broken");
+        let clean = parse(&masked).expect("掩掉坏命令后必须能解析");
+        assert_eq!(recovered.file.commands, clean.commands);
+        assert_eq!(recovered.file.commands.len(), 2);
+    }
+
+    /// 恢复式解析**救不回来**的两种情形照旧是"没有命令"：词法失败（未闭合字符串
+    /// ——连 token 都切不出来）与"整份就一条坏命令"。`Session` 据此走老契约。
+    #[test]
+    fn recovering_parse_yields_no_commands_when_nothing_is_recoverable() {
+        assert!(parse_recovering("theorem t : Prop := \"unterminated\n").is_err());
+        let recovered = parse_recovering("def broken : Prop :=\n").expect("词法能过");
+        assert!(recovered.file.commands.is_empty());
+        assert_eq!(recovered.diagnostics.len(), 1);
+    }
 
     /// **"未知 tactic" 文案**（`crates/front/tests/tactic_docs.rs` 判据 3 的单元层）：
     /// 它必须列出**全部 14 条**、且不许把没实现的东西说成支持（`exact?`）✓。

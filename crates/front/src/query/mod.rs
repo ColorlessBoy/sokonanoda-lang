@@ -1219,7 +1219,13 @@ impl QueryDoc {
                 let (start_line, start_col, end_line, end_col) = line_col(e.span);
                 FailedDecl {
                     name: None,
-                    code: e.kind.code().to_string(),
+                    // **码只认 `CompileError::code()`**（N2 起）：它是"这条错误叫什么"
+                    // 的**唯一**实现；直接读 `kind.code()` 会绕过它 —— 恢复式解析挂进
+                    // 报告的语法诊断（`CompileError::from_parse`）在那里给的是**原诊断
+                    // 的码**（`unexpected-token`），绕过它就变成 `entry-parse-failed`，
+                    // 与 `grade --json`（`Diagnostic::code()`）两个身份 ✗（G-10 的
+                    // 两通道对账 `crates/cli/tests/query.rs` 当场判红）。
+                    code: e.code().to_string(),
                     message: e.message.clone(),
                     start: e.span.start.offset,
                     end: e.span.end.offset,

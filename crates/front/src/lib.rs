@@ -46,7 +46,10 @@ pub use ast::{
     RecDecl, SortKind, Tactic,
 };
 pub use diagnostic::{Diagnostic, DiagnosticKind, Result};
-pub use parser::{parse, parse_fragment, parse_with_inherited, Parser};
+pub use parser::{
+    parse, parse_fragment, parse_recovering, parse_recovering_with_inherited, parse_with_inherited,
+    Parser, RecoveredFile,
+};
 pub use span::{Pos, Span};
 pub use tactics::{TacticDoc, TACTIC_DOCS};
 pub use token::{tokenize, Lexer, Token, TokenKind};

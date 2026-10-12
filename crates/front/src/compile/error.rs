@@ -428,6 +428,29 @@ pub struct CompileError {
     /// For kernel type mismatches (`kernel-rejected`): the actual (inferred)
     /// type, when the rejection message carried both sides.
     pub actual: Option<String>,
+    /// **解析诊断的原样身份**（N2 恢复式解析）：`Some` ⇒ [`CompileError::code`] /
+    /// [`CompileError::hint`] 走它，不走 `kind`。
+    ///
+    /// 为什么要有这一格：恢复式解析把坏命令的诊断**挂进报告**（那是编辑器唯一看得见
+    /// 的出口，`crates/lsp` 的 `report_diagnostics` 只读 `report.errors`），而报告里的
+    /// 错误码来自 `ErrorKind`（静态、项目层，`entry-parse-failed` 那一族）—— 直接用它
+    /// 就会让**同一条语法诊断**在两条通道上有两个身份：`grade --json` / `doc.code()`
+    /// 报 `unexpected-token`（`Diagnostic::code()`），报告通道却报 `entry-parse-failed`
+    /// ⇒ G-10/G-22 那一类"两条通道打架"。
+    ///
+    /// 所以这里存**原诊断的码与提示**（都是短字符串，`DiagnosticKind::code()` /
+    /// `hint()` 的产物），`kind` 只留 [`ErrorKind::EntryParseFailed`] 的**阶段**
+    /// （`stage() == Parse`）。
+    ///
+    /// `skip_serializing_if` 是**产物契约**：没有这一格的报告（今天的所有报告）
+    /// 序列化逐字节不变 ⇒ 不进 `REPORT_SHAPE`；带这一格的报告必然含错误 ⇒
+    /// 本来就进不了缓存（`ProjectReport::is_clean`）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parse_code: Option<String>,
+    /// 见 [`CompileError::parse_code`]：原诊断的**教学提示**（`Diagnostic::hint()`），
+    /// 与码同进同出。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parse_hint: Option<String>,
 }
 
 impl CompileError {
@@ -438,6 +461,27 @@ impl CompileError {
             kind,
             expected: None,
             actual: None,
+            parse_code: None,
+            parse_hint: None,
+        }
+    }
+
+    /// **解析诊断 ⇒ 报告错误**（N2 恢复式解析的唯一构造点）。
+    ///
+    /// 码与提示逐字取原诊断（[`Diagnostic::code`] / [`Diagnostic::hint`]）⇒
+    /// `diagnostic_from_parse(diag)` 与 `diagnostic_from_compile(err)` 对**同一条**
+    /// 语法错误给出**同一个** code / hint / message / span，只差它现在同时出现在
+    /// 一份**有内容**的报告里（好命令的 hover/大纲因此不再被牵连）。
+    pub fn from_parse(diag: &crate::Diagnostic) -> Self {
+        Self {
+            message: diag.message.clone(),
+            span: diag.span,
+            // 阶段 = Parse（`entry-parse-failed` 的 stage）；码/提示见上面两个字段。
+            kind: ErrorKind::EntryParseFailed,
+            expected: None,
+            actual: None,
+            parse_code: Some(diag.code().to_string()),
+            parse_hint: Some(diag.hint().to_string()),
         }
     }
 
@@ -487,13 +531,23 @@ impl CompileError {
     }
 
     /// Stable machine code (used by `--json` and the protocol).
-    pub fn code(&self) -> &'static str {
-        self.kind.code()
+    ///
+    /// 解析诊断（[`CompileError::from_parse`]）给的是**原诊断的码**
+    /// （`unexpected-token` 那一族），其余一律来自 `kind`。
+    pub fn code(&self) -> &str {
+        self.parse_code
+            .as_deref()
+            .unwrap_or_else(|| self.kind.code())
     }
 
     /// First teaching hint for this error.
-    pub fn hint(&self) -> &'static str {
-        self.kind.hint()
+    ///
+    /// 解析诊断的提示与码同源（[`CompileError::parse_code`]）：同一个错误在
+    /// 解析通道与报告通道必须说同一句话。
+    pub fn hint(&self) -> &str {
+        self.parse_hint
+            .as_deref()
+            .unwrap_or_else(|| self.kind.hint())
     }
 }
 

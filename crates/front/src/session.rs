@@ -19,7 +19,7 @@ use crate::{
         prelude_mode_from_source, run_incremental, CheckEvent, CompileError, CompileOptions,
         CompileStats, DeclState, DeclStatus, DocumentReport, HoverType, PreludeMode, TrustPlan,
     },
-    Pos, Span,
+    FolFile, Pos, Span,
 };
 use std::collections::HashMap;
 
@@ -128,6 +128,15 @@ impl Session {
     }
 
     /// 送入文档新文本；返回带版本号、delta 与内核检查统计的更新。
+    ///
+    /// **N2（2026-10-12）**：单文件 parse 失败时先试**恢复式解析**
+    /// （[`crate::parse_recovering`]，语义对齐 Lean 4 `Parser/Module.lean` 的模块级
+    /// 恢复）—— 一条没写完的声明**不再让整份文件的报告消失**。救回来 ≥1 条命令时：
+    /// 好命令照常编译（hover / F12 / 大纲 / 灯泡因此有东西可答），坏命令的诊断
+    /// **挂进报告**（`report.errors` 是编辑器唯一看得见的出口），`parse_error` 也
+    /// 保持原样（`usable()` / `parsable()` 的语义一字不变）。
+    /// 一条都救不回来（词法失败 / 整份都是坏的 / 唯一那条命令就是坏的）⇒
+    /// **老契约逐字节不变**：空报告 + `parse_error`。
     pub fn update(&mut self, src: &str, version: u64) -> SessionUpdate {
         self.version = version;
         // prelude 注释指令可能中途出现/消失：决策依赖整文件内容，变化时重建。
@@ -138,24 +147,55 @@ impl Session {
             self.keys.clear();
             self.snaps.clear();
         }
-        let file = match parse(src) {
-            Ok(file) => file,
+        let (file, parse_diagnostics) = match parse(src) {
+            Ok(file) => (file, Vec::new()),
             Err(diag) => {
-                self.keys.clear();
-                self.snaps.clear();
-                self.src.clear();
-                self.started = true;
-                return SessionUpdate {
-                    report: Default::default(),
-                    events: Vec::new(),
-                    delta: Vec::new(),
-                    version,
-                    recompiled_from: None,
-                    stats: CompileStats::default(),
-                    parse_error: Some(diag),
+                let recovered = if parse_recovery_enabled(src) {
+                    crate::parse_recovering(src).ok()
+                } else {
+                    None
                 };
+                match recovered {
+                    Some(recovered) if !recovered.file.commands.is_empty() => {
+                        (recovered.file, recovered.diagnostics)
+                    }
+                    // 没有可救的命令 ⇒ 老契约一字不变（空报告 + `parse_error`），
+                    // 会话状态也像以前那样清干净。
+                    _ => {
+                        self.keys.clear();
+                        self.snaps.clear();
+                        self.src.clear();
+                        self.started = true;
+                        return SessionUpdate {
+                            report: Default::default(),
+                            events: Vec::new(),
+                            delta: Vec::new(),
+                            version,
+                            recompiled_from: None,
+                            stats: CompileStats::default(),
+                            parse_error: Some(diag),
+                        };
+                    }
+                }
             }
         };
+        let mut update = self.update_parsed(src, version, file);
+        if !parse_diagnostics.is_empty() {
+            // 语法诊断排在**最前**：它是这份文件的第一因，位置也最靠前
+            // （`--json` / 编辑器都按数组顺序读第一条）。
+            for diag in parse_diagnostics.iter().rev() {
+                update
+                    .report
+                    .errors
+                    .insert(0, CompileError::from_parse(diag));
+            }
+            update.parse_error = parse_diagnostics.into_iter().next();
+        }
+        update
+    }
+
+    /// parse 已经成功（含**恢复式**解析）之后的会话更新：原 `update` 的正文。
+    fn update_parsed(&mut self, src: &str, version: u64, file: FolFile) -> SessionUpdate {
         // prelude 决策看整文件（explicit-Nat / Eq all-or-nothing）：特征变化
         // 时缓存快照全部失效，整体重建（与全量语义严格一致）。这也保证
         // early cutoff 的前提——会话前缀环境相同——在 prelude 层面成立。
@@ -381,6 +421,26 @@ fn remap_snapshots(
             warning.span = remap_span(warning.span, old_c, new_c, new_src);
         }
     }
+}
+
+/// **恢复式解析的适用面与逃生门**（N2）：`SOKO_NO_PARSE_RECOVERY=1` ⇒ 整条关掉，
+/// `update` 退回"parse 失败 = 空报告 + `parse_error`"的老行为。
+///
+/// 与 `SOKONANODA_NO_PROJECT_ARTIFACTS` / `SOKONANODA_NO_MODULE_ARTIFACTS`
+/// 同一条纪律：**反向验证**要能一键退回去（设上它，`lsp-probe --case N2-…`
+/// 必须重新 exit 1），排查现场时也能立刻分辨"这是不是恢复式解析带来的"。
+///
+/// **只对没有 `import` 行的纯单文件开**（判据 `project::source_has_import_line`，
+/// 纯词法、不依赖 parse 成功）：`Session` 是**单文件**流水线，把带 `import` 的文件
+/// 的命令在这里"救回来"等于把它们**脱离闭包**编译 —— 依赖模块声明的记法（`∈`）与
+/// 常量（`Set`）都不在环境里 ⇒ 编辑器和 `query check` 上会多出一串**假诊断**
+/// （`notation-unknown-symbol` / `ElabUnknownIdentifier`），真错反而被埋掉 ✗
+/// （实测：`crates/cli/tests/query.rs` 的两条"两通道对账"当场判红）。
+/// 这类文件走**闭包自己的归因**（`entry-parse-failed`，`project::graph`），
+/// 那条路一个字都不动。
+fn parse_recovery_enabled(src: &str) -> bool {
+    std::env::var_os("SOKO_NO_PARSE_RECOVERY").is_none()
+        && !crate::project::source_has_import_line(src)
 }
 
 /// 影响 prelude 安装的整文件特征（与 `run_pass` 的判定一致）：模式、
@@ -800,6 +860,56 @@ mod tests {
             .delta
             .iter()
             .any(|e| e.kind == SessionEventKind::DeclChecked));
+    }
+
+    /// **N2（2026-10-12）**：一条没写完的声明**不许**让整份文件的报告消失 ——
+    /// `ok_one`/`ok_two` 照常进报告（编辑器 hover / F12 / 大纲的数据源就是它），
+    /// 而坏命令那条诊断**一个字都不许吞**（码、位置、severity 都还在）。
+    ///
+    /// ⚠ 这条判据在**真相层**（front `Session`）：wire 层由
+    /// `scripts/ux-probes/lsp-probe.mjs --case N2-nav-one-bad-decl-kills-file` 判
+    /// （探针读的是 LSP 的 `report` → hover/documentSymbol/codeAction）。
+    #[test]
+    fn session_keeps_good_declarations_when_one_declaration_does_not_parse() {
+        let mut session = Session::new(CompileOptions::default());
+        let src = "theorem ok_one (p : Prop) (hp : p) : p := hp\n\n\
+                   theorem ok_two (p : Prop) (hp : p) : p := ok_one p hp\n\n\
+                   theorem broken (p : Prop) : p := \n";
+        let u = update(&mut session, src, 1);
+        // ① 好声明照常进报告，且都真的过了内核（不是"挂个名字"）。
+        let names: Vec<Option<String>> = u.report.decls.iter().map(|d| d.name.clone()).collect();
+        assert_eq!(names, vec![Some("ok_one".into()), Some("ok_two".into())]);
+        assert!(u
+            .report
+            .decls
+            .iter()
+            .all(|d| d.status == DeclStatus::Checked));
+        // ② hover 有内容 —— 编辑器 hover 读的就是这份（N2 的现场是 hover=null）。
+        assert!(
+            !u.report.hovers.is_empty(),
+            "报告里必须有 hover 类型（编辑器 hover 的唯一数据源）"
+        );
+        // ③ 坏命令的诊断**没被吞**：码与解析通道同源（`unexpected-token`），
+        //    位置在文件尾那一行（`Pos.line` 1 基第 6 行 = LSP 的 0 基第 5 行），
+        //    不是被算到别的声明头上。
+        assert_eq!(u.report.errors.len(), 1);
+        assert_eq!(u.report.errors[0].code(), "unexpected-token");
+        assert_eq!(u.report.errors[0].span.start.line, 6);
+        assert_eq!(
+            u.report.errors[0].stage(),
+            crate::compile::CompileStage::Parse
+        );
+        // ④ `parse_error` 仍在 ⇒ `usable()` / `parsable()` 的语义一字未变
+        //    （这份文档整体仍然"有语法错误"，只是好声明不再被牵连）。
+        assert!(u.parse_error.is_some());
+        // ⑤ 修好以后诊断及时消失、声明照常 checked（对照组，防"报告粘住"）。
+        let fixed = src.replace(
+            "theorem broken (p : Prop) : p := \n",
+            "theorem broken (p : Prop) (hp : p) : p := hp\n",
+        );
+        let u2 = update(&mut session, &fixed, 2);
+        assert!(u2.report.errors.is_empty());
+        assert_eq!(u2.report.decls.len(), 3);
     }
 
     // ---- I8 真增量 ----

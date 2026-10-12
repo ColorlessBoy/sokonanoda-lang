@@ -29,7 +29,7 @@ fn compile(dir: &Path, entry: &str) -> ProjectReport {
     compile_project(&path, None, &CompileOptions::default(), None)
 }
 
-fn codes(report: &ProjectReport) -> Vec<&'static str> {
+fn codes(report: &ProjectReport) -> Vec<&str> {
     report.diagnostics.iter().map(|diag| diag.code()).collect()
 }
 
@@ -728,7 +728,7 @@ axiom And.mk : forall (a b : Prop), a -> b -> And a b\n"
     let broken = compile_project_with_overlay(&canvas, None, &options, None, &overlay);
     // 入口的 elab 错误挂在**入口模块的报告**里（`ProjectReport::diagnostics`
     // 只装闭包级规则：找不到/环/重名/依赖阻断）。
-    let entry_errors: Vec<&'static str> = broken
+    let entry_errors: Vec<&str> = broken
         .entry_module()
         .map(|module| module.report.errors.iter().map(|e| e.code()).collect())
         .unwrap_or_default();
@@ -775,7 +775,7 @@ theorem or_comm (A : Prop) (B : Prop) (h : Or A B) : Or B A :=\n\
     );
     let report = compile_project(&entry, None, &CompileOptions::default(), None);
     assert!(report.diagnostics.is_empty(), "{:?}", codes(&report));
-    let entry_errors: Vec<&'static str> = report
+    let entry_errors: Vec<&str> = report
         .entry_module()
         .map(|module| {
             module
@@ -811,7 +811,7 @@ theorem and_intro_demo (a b : Prop) (h : a) (k : b) : And a b := by\n\
   exact k\n",
     );
     let report = compile_project(&entry, None, &CompileOptions::default(), None);
-    let entry_errors: Vec<&'static str> = report
+    let entry_errors: Vec<&str> = report
         .entry_module()
         .map(|module| {
             module
@@ -884,7 +884,7 @@ fn a_duplicated_bare_ctor_across_modules_is_ambiguous() {
     );
     let report = compile(&dir, "Main.sokonanoda");
     // elab 错误挂在**入口模块的报告**里（`diagnostics` 只装闭包级规则）。
-    let entry_errors: Vec<&'static str> = report
+    let entry_errors: Vec<&str> = report
         .entry_module()
         .map(|module| module.report.errors.iter().map(|e| e.code()).collect())
         .unwrap_or_default();
@@ -974,7 +974,7 @@ fn a_notation_from_a_module_that_was_not_imported_is_not_visible() {
         vec!["lib.Set", "Main"],
         "an unimported module must not even be loaded"
     );
-    let entry_errors: Vec<&'static str> = report
+    let entry_errors: Vec<&str> = report
         .entry_module()
         .map(|module| module.report.errors.iter().map(|e| e.code()).collect())
         .unwrap_or_default();
@@ -1010,7 +1010,7 @@ fn redeclaring_an_inherited_notation_is_a_dedicated_error() {
          infixl:65 \" ∪ \" => Other.union\n",
     );
     let report = compile(&dir, "Main.sokonanoda");
-    let codes: Vec<&'static str> = report.diagnostics.iter().map(|d| d.code()).collect();
+    let codes: Vec<&str> = report.diagnostics.iter().map(|d| d.code()).collect();
     // **归因必须是入口自己**（长尾 ②/r06，2026-10-12）：入口重声明继承来的记法
     // 是**本文件**的解析失败，闭包加载器一律包成 `import-module-invalid` 的话，
     // 学习者会被指去翻 `lib/Set.sokonanoda`（那是好的）✗。`lib.Set` 自己仍然
