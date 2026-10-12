@@ -281,6 +281,7 @@ pub(crate) fn resolve_known(
     ns: &NamespaceScope,
     name: &str,
     span: Span,
+    locals: &[String],
 ) -> Result<String, CompileError> {
     let Some(candidate) = ns
         .candidates(name)
@@ -289,11 +290,63 @@ pub(crate) fn resolve_known(
     else {
         return Err(CompileError::elab(
             ErrorKind::ElabUnknownIdentifier,
-            format!("unknown identifier `{name}`"),
+            unknown_identifier_message(name, locals),
             span,
         ));
     };
     resolve_candidate(known, &candidate, span)
+}
+
+/// **r19（2026-10-12）**：`unknown identifier` 的文案 —— 打错名字时给
+/// 「你是不是想写 `h`」的候选（IDE 都会给，而本语言以前一个候选都没有 ✗）。
+///
+/// 候选来源 = **当前在作用域里的局部名字**（`ElabScope.names`，调用方传进来；
+/// 没有局部上下文的地方传空表 ⇒ 文案与改动前逐字节相同 ✓）。排序照 Lean 的
+/// `Lean.Meta.suggestions`（`~/Documents/lean/lean4/src/Lean/Meta/Tactic/
+/// Suggest.lean`）：先按"首字符 + 长度差"筛，再按编辑距离近的在前。
+///
+/// ⚠ **不许猜**：没有足够近的候选就**一句都不说**（宁可没有建议，也不指错路 ✗）。
+pub(crate) fn unknown_identifier_message(name: &str, locals: &[String]) -> String {
+    let mut candidates: Vec<(&str, usize)> = locals
+        .iter()
+        .filter(|local| !local.is_empty() && local.as_str() != name)
+        .filter_map(|local| {
+            let distance = edit_distance(name, local);
+            // 阈值随名字长度放宽（`h` ↔ `hh` 距离 1；`hx` ↔ `hxx` 也是 1）；
+            // 超过就别说 —— 短名字上距离 2 已经很远（`h` ↔ `xy`）。
+            let limit = if name.chars().count() <= 2 { 1 } else { 2 };
+            (distance <= limit).then_some((local.as_str(), distance))
+        })
+        .collect();
+    candidates.sort_by_key(|(local, distance)| (*distance, local.len(), *local));
+    candidates.dedup_by_key(|(local, _)| *local);
+    if candidates.is_empty() {
+        return format!("unknown identifier `{name}`");
+    }
+    let list = candidates
+        .iter()
+        .take(3)
+        .map(|(local, _)| format!("`{local}`"))
+        .collect::<Vec<_>>()
+        .join(" / ");
+    format!("unknown identifier `{name}`（你是不是想写 {list}？）")
+}
+
+/// 两个名字的 Levenshtein 距离（小字符串、错误路径专用；零依赖）。
+fn edit_distance(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    let mut cur = vec![0usize; b.len() + 1];
+    for (i, ca) in a.iter().enumerate() {
+        cur[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = usize::from(ca != cb);
+            cur[j + 1] = (prev[j] + cost).min(prev[j + 1] + 1).min(cur[j] + 1);
+        }
+        std::mem::swap(&mut prev, &mut cur);
+    }
+    prev[b.len()]
 }
 
 /// 候选名在 `known` 里的解析（`Decl` 自身 / 别名 → 规范名 / 歧义报错）。
@@ -1387,7 +1440,7 @@ fn elab_notation<'a>(
     fallback_prefix_args: Option<&[Expr]>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<ExprPtr<'a>, CompileError> {
-    let canonical = resolve_known(known, ctx.ns, target, span).map_err(|_| {
+    let canonical = resolve_known(known, ctx.ns, target, span, &[]).map_err(|_| {
         CompileError::elab(
             ErrorKind::ElabNotationUnknownTarget,
             format!("记法 `{symbol}` 指向的目标 `{target}` 不存在：检查记法命令里的名字（要写点名，例如 Set.mem）"),
@@ -2132,7 +2185,7 @@ fn set_literal_prefix_args(
     ctx: &ElabCtx<'_, '_>,
 ) -> Option<Vec<Expr>> {
     let expected = expected_src?;
-    let canonical = resolve_known(known, ctx.ns, target, span).ok()?;
+    let canonical = resolve_known(known, ctx.ns, target, span, &[]).ok()?;
     // **T3-B1 · §4.2 第 5 条（同一族，2026-10-09）**：这里是**裸常量**的类型 ——
     // 就地读 `known` 的签名（与 `#check <裸常量>` 的 `sig` 快路**同一个字段** ✓）
     // ⇒ 不合成前缀趟 ✓（答不出 ⇒ 原样回落 `judge_type_of_constant` ✓）。
@@ -2194,7 +2247,7 @@ fn guarded_binder_type<'a>(
     if name != binder_name {
         return None;
     }
-    let canonical = resolve_known(known, ctx.ns, target, *span).ok()?;
+    let canonical = resolve_known(known, ctx.ns, target, *span, &[]).ok()?;
     // **T3-B1 · §4.2 第 5 条（同一族，2026-10-09）**：裸常量签名 ⇒ 就地读 `known` ✓。
     let signature = crate::judge::type_of_constant_prefer_inplace(
         known,
@@ -2294,7 +2347,7 @@ fn choose_notation_target<'a>(
     }
     let mut results: Vec<(&'a str, Option<Expr>)> = Vec::with_capacity(candidates.len());
     for candidate in candidates {
-        let result = resolve_known(known, ctx.ns, candidate, span)
+        let result = resolve_known(known, ctx.ns, candidate, span, &[])
             .ok()
             .and_then(|canonical| {
                 // **T3-B1 · §4.2 第 5 条（同一族，2026-10-09）**：裸常量签名 ⇒ 就地 ✓。
@@ -4010,7 +4063,7 @@ fn try_implicit_application_with<'a>(
     // `subset B A` 时 AST 上是**裸名** `subset`，而签名表按**规范名** `Foo.subset`
     // 建 ⇒ 拿裸名查永远查不到 ⇒ 隐式插入整条不触发 ✗。解析不出来的名字（真未定义）
     // ⇒ 交回老路，让它照旧报 `unknown identifier` ✓。
-    let head_name = match resolve_known(known, ctx.ns, raw_head, head.span()) {
+    let head_name = match resolve_known(known, ctx.ns, raw_head, head.span(), &scope.names) {
         Ok(canonical) => canonical,
         Err(_) => raw_head.to_string(),
     };
@@ -5157,7 +5210,7 @@ pub(crate) fn elab_expr<'a>(
                 None => {
                     // R1/R2：裸名别名解析到**规范名**——只往 `known` 里加一个
                     // 裸名键会造出第二个内核常量（`mk` ≠ `P1.mk`）。
-                    let canonical = resolve_known(known, ctx.ns, name, *span)?;
+                    let canonical = resolve_known(known, ctx.ns, name, *span, &scope.names)?;
                     // The defining command's span is backfilled in `run_pass`
                     // (placeholder survives until then; prelude names resolve
                     // to no source definition and drop the record there).
@@ -5685,7 +5738,7 @@ pub(crate) fn elab_expr<'a>(
                     *span,
                 ));
             };
-            let Ok(canonical) = resolve_known(known, ctx.ns, target, *span) else {
+            let Ok(canonical) = resolve_known(known, ctx.ns, target, *span, &[]) else {
                 return Err(CompileError::elab(
                     ErrorKind::ElabSetLiteralUnknownTarget,
                     format!(

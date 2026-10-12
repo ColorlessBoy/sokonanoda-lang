@@ -2621,7 +2621,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // R2：`#print mk` 与 `#print Wrap.mk` 打印同一条声明（别名解析到规范名）；
         // 歧义/未知走各自稳定的错误码，与 `#check` 同源。G-05：命名空间/open
         // 的候选顺序也走这一条（`#print mem` 在 `namespace Set` 里解析到 `Set.mem`）。
-        let canonical = match resolve_known(&self.known, &self.ns, name, span) {
+        // 命令位没有局部上下文（`#print` 不在任何 binder 作用域里）⇒ 候选表为空 ✓。
+        let canonical = match resolve_known(&self.known, &self.ns, name, span, &[]) {
             Ok(canonical) => canonical,
             Err(e) => {
                 self.out.push_error(idx, e);

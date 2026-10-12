@@ -11160,3 +11160,42 @@ fn hole_modes_come_from_the_walk_and_stay_aligned_with_holes() {
         "值和 `by` 块不是同一条（`by` 在实参里）⇒ 洞仍是项位"
     );
 }
+
+/// **r19（2026-10-12）**：`unknown identifier` 在打错名字时给候选，**别的时候一句
+/// 都不许多说**。
+///
+/// 病：`exact hh`（手里只有 `h`）只报 `unknown identifier \`hh\`` —— 定位准、但
+/// 零候选（所有 IDE 都会给"你是不是想写 h"）✗。
+///
+/// 判据三条：① 距离够近 ⇒ 给候选（`hh` → `h`）；② **没有足够近的候选 ⇒ 与
+/// 改动前逐字节相同**（不许硬凑一个 ✗）；③ 精确同名（大小写不同）也当候选
+/// （`Hx` → `hx`）。
+#[test]
+fn unknown_identifier_suggests_a_nearby_local_name() {
+    use crate::compile::elab::unknown_identifier_message;
+    let locals = |names: &[&str]| names.iter().map(|n| n.to_string()).collect::<Vec<_>>();
+    // ① 用户报的那一形。
+    let msg = unknown_identifier_message("hh", &locals(&["h", "A", "a"]));
+    assert!(
+        msg.contains("unknown identifier `hh`"),
+        "原句必须保留（消费者按它匹配）：{msg}"
+    );
+    assert!(msg.contains("你是不是想写 `h`"), "要给出候选：{msg}");
+    // ② 没有近邻 ⇒ 逐字节等于改动前那句。
+    assert_eq!(
+        unknown_identifier_message("zzzzz", &locals(&["h", "A"])),
+        "unknown identifier `zzzzz`",
+        "不许硬凑候选 ✗"
+    );
+    assert_eq!(
+        unknown_identifier_message("hh", &[]),
+        "unknown identifier `hh`",
+        "没有局部上下文时（命令位）文案不许变 ✗"
+    );
+    // ③ 大小写打错也是近邻。
+    let msg = unknown_identifier_message("Hx", &locals(&["hx"]));
+    assert!(msg.contains("你是不是想写 `hx`"), "{msg}");
+    // ④ 候选**不重复**且**不含自己**。
+    let msg = unknown_identifier_message("hh", &locals(&["h", "h"]));
+    assert_eq!(msg.matches("`h`").count(), 1, "候选去重失败：{msg}");
+}
