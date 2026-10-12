@@ -28,15 +28,11 @@
     },
     "crates/front/src/compile/check/walk.rs": {
       "lines": 2855,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 2854,
-      "growth_reason": "langB 本轮的四个合法修复（r13 洞的期望类型 · r17 常见语法给出路 · r19 拼写候选 · SUB-duplicate-found-msg 诊断去重）落在这几个已超软线的文件里：parser.rs +187 · elab.rs +53 · query/mod.rs +45 · token.rs +18 · check/walk.rs +1。**不是顺手加长**：它们各自有独立判据与反向验证（见台账）。⚠ **如实记账：这是债务增长，不是达标** —— 软线 500 行的目标未变，下一步应把这几个文件拆开（已由 ⑨ 的 grew_from 逐条留痕，git diff 可见）"
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/elab.rs": {
       "lines": 8389,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 8336,
-      "growth_reason": "langB 本轮的四个合法修复（r13 洞的期望类型 · r17 常见语法给出路 · r19 拼写候选 · SUB-duplicate-found-msg 诊断去重）落在这几个已超软线的文件里：parser.rs +187 · elab.rs +53 · query/mod.rs +45 · token.rs +18 · check/walk.rs +1。**不是顺手加长**：它们各自有独立判据与反向验证（见台账）。⚠ **如实记账：这是债务增长，不是达标** —— 软线 500 行的目标未变，下一步应把这几个文件拆开（已由 ⑨ 的 grew_from 逐条留痕，git diff 可见）"
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/error.rs": {
       "lines": 948,
@@ -75,10 +71,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/parser.rs": {
-      "lines": 6470,
+      "lines": 6471,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 6283,
-      "growth_reason": "langB 本轮的四个合法修复（r13 洞的期望类型 · r17 常见语法给出路 · r19 拼写候选 · SUB-duplicate-found-msg 诊断去重）落在这几个已超软线的文件里：parser.rs +187 · elab.rs +53 · query/mod.rs +45 · token.rs +18 · check/walk.rs +1。**不是顺手加长**：它们各自有独立判据与反向验证（见台账）。⚠ **如实记账：这是债务增长，不是达标** —— 软线 500 行的目标未变，下一步应把这几个文件拆开（已由 ⑨ 的 grew_from 逐条留痕，git diff 可见）"
+      "grew_from": 6470,
+      "growth_reason": "langB 的两笔**后置**提交（`63801c07` r14 的 front 侧那一半 `state_without_runs` + `3b693104` `cargo fmt` 格式化收口）又落在这三个文件上：parser.rs +1 · query/mod.rs +31 · token.rs +10。其中 query/mod.rs 的 +31 是 r14 的**新 API**（`state_at_with(cursor, want_runs)` 提成唯一实现 + 3 条单测）；parser/token 的 +11 是 fmt 与 r14 的连带。⚠ **如实：仍是债务增长**，软线 500 的目标未变"
     },
     "crates/front/src/project/artifacts.rs": {
       "lines": 946,
@@ -109,10 +105,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/query/mod.rs": {
-      "lines": 2083,
+      "lines": 2114,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 2038,
-      "growth_reason": "langB 本轮的四个合法修复（r13 洞的期望类型 · r17 常见语法给出路 · r19 拼写候选 · SUB-duplicate-found-msg 诊断去重）落在这几个已超软线的文件里：parser.rs +187 · elab.rs +53 · query/mod.rs +45 · token.rs +18 · check/walk.rs +1。**不是顺手加长**：它们各自有独立判据与反向验证（见台账）。⚠ **如实记账：这是债务增长，不是达标** —— 软线 500 行的目标未变，下一步应把这几个文件拆开（已由 ⑨ 的 grew_from 逐条留痕，git diff 可见）"
+      "grew_from": 2083,
+      "growth_reason": "langB 的两笔**后置**提交（`63801c07` r14 的 front 侧那一半 `state_without_runs` + `3b693104` `cargo fmt` 格式化收口）又落在这三个文件上：parser.rs +1 · query/mod.rs +31 · token.rs +10。其中 query/mod.rs 的 +31 是 r14 的**新 API**（`state_at_with(cursor, want_runs)` 提成唯一实现 + 3 条单测）；parser/token 的 +11 是 fmt 与 r14 的连带。⚠ **如实：仍是债务增长**，软线 500 的目标未变"
     },
     "crates/front/src/semantic.rs": {
       "lines": 1712,
@@ -131,10 +127,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/token.rs": {
-      "lines": 1211,
+      "lines": 1221,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 1193,
-      "growth_reason": "langB 本轮的四个合法修复（r13 洞的期望类型 · r17 常见语法给出路 · r19 拼写候选 · SUB-duplicate-found-msg 诊断去重）落在这几个已超软线的文件里：parser.rs +187 · elab.rs +53 · query/mod.rs +45 · token.rs +18 · check/walk.rs +1。**不是顺手加长**：它们各自有独立判据与反向验证（见台账）。⚠ **如实记账：这是债务增长，不是达标** —— 软线 500 行的目标未变，下一步应把这几个文件拆开（已由 ⑨ 的 grew_from 逐条留痕，git diff 可见）"
+      "grew_from": 1211,
+      "growth_reason": "langB 的两笔**后置**提交（`63801c07` r14 的 front 侧那一半 `state_without_runs` + `3b693104` `cargo fmt` 格式化收口）又落在这三个文件上：parser.rs +1 · query/mod.rs +31 · token.rs +10。其中 query/mod.rs 的 +31 是 r14 的**新 API**（`state_at_with(cursor, want_runs)` 提成唯一实现 + 3 条单测）；parser/token 的 +11 是 fmt 与 r14 的连带。⚠ **如实：仍是债务增长**，软线 500 的目标未变"
     },
     "crates/kernel/src/builder.rs": {
       "lines": 1091,
