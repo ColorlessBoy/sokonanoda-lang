@@ -70,6 +70,36 @@ function fixture(name, text) {
   return file;
 }
 
+// ── H2/H3 的夹具正文（**锚点重定 2026-10-12**）────────────────────────────
+//
+// 画布 `5c6eeff8` 重写后**没有任何 `def`、也没有一条 `#check`** ⇒ 旧锚点
+// `Set.singleton`（裸名/`#check` 行）在画布上不存在。`def` 只剩闭包库里的
+// （`courses/set-theory/lib/Set.sokonanoda:74` 的 `Set.singleton`），而
+// `#check <库名>` 那一行画布上没有 ⇒ 写进探针自己的夹具（模块根之内 ⇒
+// `import lib.Set` 生效）。**不碰 `courses/**`**（用户在用那份画布）。
+//
+// ⚠ 夹具必须**判绿**（`rfl` 那行是真实的项位使用点；`#check` 行要有输出），
+// 否则 hover 拿不到报告 ⇒ 用例会读成"缺口"而不是"锚点坏" ✗。
+const H2_QUAD = [
+  'import lib.Set',
+  '',
+  'theorem h2_quad (α : Type) (a : α) : Set.singleton α a = {a} := by',
+  '  rfl',
+  '',
+  '#check Set.singleton',
+  '',
+].join('\n');
+
+const H3_CHECK = [
+  'import lib.Set',
+  '',
+  'theorem h3_check (A : Prop) (h : A) : A := by',
+  '  exact h',
+  '',
+  '#check Iff.refl',
+  '',
+].join('\n');
+
 // ── 最小 JSON-RPC 客户端（stdio） ───────────────────────────────────────────
 
 const uriOf = (file) => 'file://' + file;
@@ -378,25 +408,53 @@ CASE({
 
 CASE({
   id: 'H2-hover-def-value-drift',
-  title: '同一个 `def` 的 hover 在四处给的信息不一致（tactic 里的名字**没有 `:=` 值块**）',
+  title: '同一个 `def` 的 hover 在四处给的信息不一致（有的位置**没有 `:=` 值块**）',
   severity: 'high',
   blocker: false,
   expect: '按声明卡片契约（用户原话「只要是 def，任何位置 hover 到它，都应显示带 `:=` 的完整信息」）四处都该有 `:=` 值块',
+  // **锚点重定（2026-10-12，画布 `5c6eeff8` 重写后）**：旧锚点 `Set.singleton` /
+  // `{a}` / `#check Set.singleton` 在**当前画布**上：`Set.singleton` 只在注释里
+  // （`codePos` 明确跳过注释）、`#check` 一行都没有（实测 `grep -c '#check'` = 0）
+  // ⇒ `codePos` 抛错 ⇒ 判据不可用（exit 2）。**意图不变**（同一个 `def` 的四处
+  // hover 都要带 `:=` 值块），只把锚点换成当前画布上**真实存在**的等价位置：
+  //   · `{a}` / `{b}` —— 画布上两处**记法**（记法 `{a}` 展开成 `Set.singleton`，
+  //     见 `prelude/Prelude.sokonanoda:97` 的 `builtin-sugar` 登记）；
+  //   · `Set.singleton`（**裸名**）—— 画布上没有裸名 ⇒ 用夹具里 `rfl` 那行的
+  //     **项位裸名**（与旧锚点同形：一个真实使用点的裸名）；
+  //   · `#check Set.singleton` —— 画布上没有 `#check` ⇒ 写在**探针自己的夹具**里
+  //     （`fixture()` 落在 `.cache/ux/lsp/fixtures/probe/`，模块根之内 ⇒ `import lib.Set`
+  //     生效；**不碰 `courses/**`**）。
+  // 四处都是 `Set.singleton` 这个 `def` 的**真实可达**位置（实测 hover 给同一张卡片）。
   async run(ctx) {
     const text = fs.readFileSync(CANVAS, 'utf8');
     await ctx.lsp.open(CANVAS, text, 1);
-    const a = hoverText((await ctx.lsp.raw('textDocument/hover', { textDocument: { uri: uriOf(CANVAS) }, position: codePos(text, 'Set.singleton', 1) })).result) || '';
-    const b = hoverText((await ctx.lsp.raw('textDocument/hover', { textDocument: { uri: uriOf(CANVAS) }, position: codePos(text, '{a}', 1) })).result) || '';
-    const c = hoverText((await ctx.lsp.raw('textDocument/hover', { textDocument: { uri: uriOf(CANVAS) }, position: codePos(text, '#check Set.singleton', 1) })).result) || '';
+    const hov = async (file, position) =>
+      hoverText((await ctx.lsp.raw('textDocument/hover', { textDocument: { uri: uriOf(file) }, position })).result) || '';
+    // 先把**画布**那两处读掉（此刻活跃文档 = 画布），再开夹具读后两处 ——
+    // ⚠ 不要读完之后再 `open` 另一份文档：`hover` handler 会 `focus_request`
+    // 切活跃文档，**位置却来自另一份文本** ⇒ 读到的是夹具上的坐标（H2 第一版
+    // 就这么让 C3 假绿过一次：跨文档焦点没还原）。
+    const a = await hov(CANVAS, codePos(text, '{a}', 1));
+    const b = await hov(CANVAS, codePos(text, '{b}', 1));
+    const quad = fixture('h2-quad.sokonanoda', H2_QUAD);
+    const qtext = fs.readFileSync(quad, 'utf8');
+    await ctx.lsp.open(quad, qtext, 1);
+    const c = await hov(quad, codePos(qtext, 'Set.singleton', 1));
+    const d = await hov(quad, codePos(qtext, '#check Set.singleton', 1));
     const has = (md) => md.includes(':=');
+    const arms = [
+      ['记法 {a} 上（画布）', a],
+      ['记法 {b} 上（画布）', b],
+      ['裸名项位（夹具）', c],
+      ['#check Set.singleton 行（夹具）', d],
+    ];
+    const missing = arms.filter(([, md]) => !has(md)).map(([label]) => label);
     return {
-      ok: has(a) && has(b) && has(c),
-      observed: {
-        'unfold Set.singleton（tactic 里的名字）': a.replace(/\n/g, ' ⏎ '),
-        '记法 {a} 上': b.replace(/\n/g, ' ⏎ '),
-        '#check Set.singleton 行': c.replace(/\n/g, ' ⏎ '),
-      },
-      evidence: `tactic 里的名字 hover 无 \`:=\`（只有签名）；记法/{a} 与 #check 行有 \`:=\` ⇒ 同一常量四种渲染`,
+      ok: missing.length === 0,
+      observed: Object.fromEntries(arms.map(([label, md]) => [label, md.replace(/\n/g, ' ⏎ ')])),
+      evidence: missing.length
+        ? `${missing.join(' / ')} 的 hover **没有** \`:=\` 值块 ⇒ 同一个 \`def\` 在不同位置渲染不一致`
+        : '四处都给了带 `:=` 值块的声明卡片',
     };
   },
 });
@@ -407,18 +465,28 @@ CASE({
   severity: 'high',
   blocker: false,
   expect: 'protocol.md 明写 command-line hover 与面板「cannot drift」⇒ 两处必须同形（且应当折叠记法）',
+  // **锚点重定（2026-10-12）**：旧锚点 `#check Iff.refl` 在**当前画布**上不存在
+  // （画布一条 `#check` 都没有）⇒ `codePos` 抛错 ⇒ 判据不可用（exit 2）。
+  // **意图不变**（`#check` 那一行的 hover 与面板 `soko/stateAt.messages` 同形：
+  // 类型那半过记法折叠、不带 `@`），锚点换成**探针夹具**里的 `#check Iff.refl`
+  // —— `Iff.refl` 是 prelude 真名字（`prelude/Prelude.sokonanoda:53`），实测
+  // hover 与 `soko/stateAt` 都给折叠后的 `A ↔ A`（`@` 已被剥掉）。
   async run(ctx) {
-    const text = fs.readFileSync(CANVAS, 'utf8');
-    await ctx.lsp.open(CANVAS, text, 1);
-    const hover = hoverText((await ctx.lsp.raw('textDocument/hover', { textDocument: { uri: uriOf(CANVAS) }, position: codePos(text, '#check Iff.refl', 1) })).result) || '';
+    const file = fixture('h3-check.sokonanoda', H3_CHECK);
+    const text = fs.readFileSync(file, 'utf8');
+    await ctx.lsp.open(file, text, 1);
     const at = codePos(text, '#check Iff.refl', 1);
-    const state = await ctx.lsp.request('soko/stateAt', { textDocument: { uri: uriOf(CANVAS) }, position: at });
+    const hover = hoverText((await ctx.lsp.raw('textDocument/hover', { textDocument: { uri: uriOf(file) }, position: at })).result) || '';
+    const state = await ctx.lsp.request('soko/stateAt', { textDocument: { uri: uriOf(file) }, position: at });
     const msg = (state.messages || []).map((m) => m.text).join(' ｜ ');
     const unfolded = hover.includes('@Iff');
+    const folded = hover.includes('↔');
     return {
-      ok: !unfolded && hover.includes('↔'),
+      ok: !unfolded && folded,
       observed: { hover: hover.replace(/\n/g, ' ⏎ '), 'soko/stateAt.messages': msg },
-      evidence: `hover 给 \`@Iff A A\`（未折叠、带显式 @），面板给 \`A ↔ A\`（已折叠）⇒ 同一行两个面自相矛盾`,
+      evidence: !unfolded && folded
+        ? `hover 与面板都折叠成 \`A ↔ A\`（无 \`@\`）⇒ 两面同形（面板那一行：${msg}）`
+        : `hover 未折叠/带显式 \`@\`（${unfolded ? '有 `@Iff`' : '缺 `↔`'}），面板给 \`A ↔ A\`（已折叠）⇒ 同一行两个面自相矛盾`,
     };
   },
 });
@@ -502,17 +570,27 @@ CASE({
 
 CASE({
   id: 'C3-completion-position-blind',
-  title: '补全**与位置无关**：by 块/项位/`#check ` 后/注释里都给同一份 110 条，且含 `ctor`/`rec`/`iota`',
+  title: '补全**与位置无关**：by 块/项位/`#check ` 后/注释里都给同一份候选，且含 `ctor`/`rec`/`iota`',
   severity: 'medium',
   blocker: false,
   expect: '候选应当与位置相关（项位不该给 `ctor`/`rec`/`iota` 这类声明内部关键字），至少要有 `isIncomplete`/`sortText` 让客户端能排序',
+  // **锚点重定（2026-10-12）**：旧锚点 `exact h a`（项位）与 `#check Iff.refl` 在
+  // **当前画布**上都不存在（画布没有 `exact h a`，也一条 `#check` 都没有）
+  // ⇒ `codePos` 抛错 ⇒ 判据不可用（exit 2）。
+  // **意图不变**（补全不该是"位置盲"：不同位置给**不同**候选，且项位不该给声明
+  // 内部关键字），锚点换成当前画布上**真实存在**的四处等价位置：
+  //   · `sorry`（练习 1 的 by 块里）—— 与旧锚点 `exact h a` **同为 tactic 位**；
+  //   · `sorry`（练习 3 的 by 块里）—— 第二个 tactic 位（不同目标/假设）；
+  //   · `Set.subset_def`（`demo_subset_def` 的项位）—— 项位（与旧锚点同类）；
+  //   · 注释行（第 1 行）—— 对照组（那里本就不该有补全）。
+  // ⚠ 候选条数**不写死**（旧标题的"110 条"是当时的读数；条数会随 prelude 漂移）。
   async run(ctx) {
     const text = fs.readFileSync(CANVAS, 'utf8');
     await ctx.lsp.open(CANVAS, text, 1);
     const spots = [
-      ['by 块空行', { line: 3, character: 2 }],
-      ['项位（:= 之后）', codePos(text, 'exact h a', 1)],
-      ['#check 后', codePos(text, '#check Iff.refl', 1)],
+      ['by 块（练习 1 的 sorry）', codePos(text, 'sorry', 1)],
+      ['by 块（练习 3 的 sorry）', codePos(text, 'sorry', 2)],
+      ['项位（demo_subset_def 的 Set.subset_def）', codePos(text, 'Set.subset_def', 1)],
       ['注释行内', { line: 1, character: 0 }],
     ];
     const seen = [];
@@ -527,7 +605,9 @@ CASE({
     return {
       ok: !same || internals.length === 0,
       observed: { 各处: seen.map((s) => [s.label, s.count, s.shape]), 声明内部关键字: internals },
-      evidence: `四处候选**逐字节相同**（都是 ${seen[0].count} 条、Array 形状、无 sortText/isIncomplete），且包含 ${JSON.stringify(internals)}`,
+      evidence: same
+        ? `四处候选**逐字节相同**（都是 ${seen[0].count} 条、Array 形状），且包含 ${JSON.stringify(internals)}`
+        : `各处候选不同（${seen.map((s) => `${s.label}=${s.count}`).join(' · ')}）`,
     };
   },
 });
@@ -984,11 +1064,24 @@ CASE({
   severity: 'medium',
   blocker: false,
   expect: 'Location.uri 应当是规范路径（同一个文件只有一个 URI 身份）',
+  // **锚点重定（2026-10-12）**：旧锚点 `Eq.subst` / `#check` 在**当前画布**上只
+  // 出现在**注释行**（`codePos` 明确跳过注释；`#check` 画布上一条都没有）
+  // ⇒ `codePos` 抛错 ⇒ 判据不可用（exit 2）。
+  // **意图不变**（F12 落点的 URI 必须规范化），锚点换成当前画布上**真实存在**、
+  // 且走**同一条路径**的符号 —— 前端 `prelude_source_path()` 是从
+  // `CARGO_MANIFEST_DIR/../..` 拼出来的（`crates/front/src/compile/prelude.rs:507`），
+  // 所以凡是落点在 prelude / reference 的 F12 都会经过那个带 `..` 的路径：
+  //   · `↔`（内建记法）⇒ 落点 `prelude/Prelude.sokonanoda`（prelude 那条路，与
+  //     旧锚点 `Eq.subst` **同一个落点目录**）；
+  //   · `intro`（tactic）⇒ 落点 `reference/tactics/intro.md`（reference 那条路）；
+  //   · `∈`（记法）⇒ 落点 `lib/Set.sokonanoda`（工作区内，**对照组**：本来就干净）。
+  // 反向验证：`SOKO_NO_URI_NORMALIZE=1` 是 `render::file_uri` 的逃生门
+  // （`crates/lsp/src/render.rs:64`）⇒ 前两条必须重新带 `/../`。
   async run(ctx) {
     const text = fs.readFileSync(CANVAS, 'utf8');
     await ctx.lsp.open(CANVAS, text, 1);
     const out = {};
-    for (const [label, needle] of [['Eq.subst（prelude）', 'Eq.subst'], ['tactic: intro（reference/）', 'intro'], ['#check（reference/）', '#check'], ['Set.mem（lib，工作区内）', 'Set.mem']]) {
+    for (const [label, needle] of [['↔（内建记法 ⇒ prelude）', '↔'], ['tactic: intro（reference/）', 'intro'], ['∈（记法 ⇒ lib，工作区内）', '∈']]) {
       const pos = codePos(text, needle, 1);
       const res = await ctx.lsp.raw('textDocument/definition', { textDocument: { uri: uriOf(CANVAS) }, position: pos });
       const loc = res.result && (Array.isArray(res.result) ? res.result[0] : res.result);
