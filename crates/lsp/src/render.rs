@@ -1323,4 +1323,20 @@ def viaPrefix : Wrap := Wrap.mk\ndef viaAlias : Wrap := mk\n";
             "/repo/lib/Set.sokonanoda"
         );
     }
+
+    /// **H4**：记法节点的 span 起点会落在开括号**里面** ⇒ 切片两端都要配平。
+    #[test]
+    fn balanced_span_both_includes_the_opening_paren() {
+        let text = "theorem t : (a \u{2208} A) \u{2194} A a := by\n  sorry\n";
+        // 记法节点 `(a ∈ A) ↔ A a` 的 span 实测从 `a` 起（丢掉开括号）。
+        let start = text.find("a \u{2208}").expect("operand");
+        let end = text.find(" := by").expect("end");
+        let span = Span::new(pos_at(text, start), pos_at(text, end));
+        let slice = &text[balanced_span_both(text, span).start.offset
+            ..balanced_span_both(text, span).end.offset];
+        assert_eq!(slice, "(a \u{2208} A) \u{2194} A a", "{slice:?}");
+        let open = slice.matches('(').count();
+        let close = slice.matches(')').count();
+        assert_eq!(open, close, "括号必须配对：{slice:?}");
+    }
 }

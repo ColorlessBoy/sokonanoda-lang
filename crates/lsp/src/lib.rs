@@ -2415,7 +2415,13 @@ fn notation_symbol_hover(
             // **H4**：末块的源切片两端都要配平 —— 记法节点的 AST span 起点会落在
             // 开括号**里面**（`(a ∈ A) ↔ A a` 从 `a` 起）⇒ 直接切会得到
             // `a ∈ A) ↔ A a`（右括号多一个 ✗）。
-            let slice = render::balanced_span_both(text, h.span);
+            // 逃生门（反向验证用）：`SOKO_NO_HOVER_SLICE_BALANCE=1` 回到"直接切
+            // `h.span`"的旧行为 ⇒ H4 用例必须重新判红（读数见 VERDICT）。
+            let slice = if std::env::var_os("SOKO_NO_HOVER_SLICE_BALANCE").is_some() {
+                h.span
+            } else {
+                render::balanced_span_both(text, h.span)
+            };
             let expr = text
                 .get(slice.start.offset..slice.end.offset)
                 .unwrap_or_default()
