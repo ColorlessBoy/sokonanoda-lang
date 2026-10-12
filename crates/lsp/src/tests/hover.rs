@@ -1872,6 +1872,35 @@ async fn hover_on_a_check_line_shows_the_command_output() {
     shutdown(&mut service).await;
 }
 
+/// **判据（wire / 用户动作，H3）**：`#check Iff.refl` 这一行的 hover 与
+/// Infoview 面板（`soko/stateAt.messages`）**同一种渲染** —— 类型里的记法要折
+///（`Iff A A` → `A ↔ A`），且**不许留** `@`（`set_option pp.explicit true` 下
+/// 内核 pp 会打 `@Iff`）。
+///
+/// 缺陷（2026-10-12 实测，真课程画布）：`declaration_card` 的 `judge_print_of`
+/// 兜底把**整串**签名（`theorem Iff.refl (A : Prop) : …`）交给 `fold_display`，
+/// 而它走 `parse_expr_text_with`（`#check <文本>`）⇒ 整串解析不了 ⇒ 一个记法都
+/// 不折 ⇒ hover 给 `@Iff A A`，面板给 `A ↔ A` ✗（protocol.md 明写两条「cannot
+/// drift」）。
+///
+/// **反向验证**：`SOKO_NO_CARD_FOLD=1`（逃生门）⇒ 本用例判红。
+#[tokio::test]
+async fn hover_on_a_check_line_folds_the_type_notation_like_the_panel() {
+    let src = "set_option pp.explicit true\n#check Iff.refl\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    let at = offset_of(src, "#check Iff.refl") + "#check ".len() + 2;
+    let markup = hover_markup_at(&mut service, src, at).await;
+    assert!(
+        markup.contains("\u{2194}"),
+        "类型里的 `Iff A A` 必须折成 `A \u{2194} A`（与面板同形）：{markup:?}"
+    );
+    assert!(
+        !markup.contains("@Iff") && !markup.contains("@A"),
+        "`@` 显式实参标记不许漏进 hover（面板不带它）：{markup:?}"
+    );
+    shutdown(&mut service).await;
+}
+
 /// **命令行 hover ①b（2026-10-10 用户实测第三条 · 收口统一）**：
 /// `#check <裸名字>` 的 hover 必须与 `#print <同一个名字>` 的 hover **逐字节相同**。
 ///

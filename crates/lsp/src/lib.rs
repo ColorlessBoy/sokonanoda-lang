@@ -2106,14 +2106,83 @@ fn declaration_card(
         ),
         None => (printed.to_string(), None),
     };
-    let signature = query.fold_display(&signature);
+    // **折叠只折"类型那一半"**（H3）：`fold_display` 走 `parse_expr_text_with`
+    //（`#check <文本>`），带 `theorem <名字> (A : Prop) :` 头的**整串解析不了**
+    // ⇒ 原样返回 ⇒ 类型里的记法一个都不折（实测：`#check Iff.refl` 的 hover 给
+    // `@Iff A A`，而 Infoview 面板同一行给 `A ↔ A` ⇒ 同一行两个面自相矛盾 ✗）。
+    // ⚠ `value` 那一半同理（`:= ` 前缀会让整串解析失败）。
+    let signature = fold_signature_type(query, &signature);
     let value = match value {
         Some(body) if signature.starts_with("def ") || signature.starts_with("opaque ") => {
-            Some(query.fold_display(&format!(":= {body}")))
+            Some(format!(":= {}", query.fold_display(&body)))
         }
         _ => None,
     };
     Some((signature, value))
+}
+
+/// 折叠**声明签名里的类型那一半**（`<kind> <名字> (binders) : <类型>`）。
+///
+/// 只折顶层 `:` 之后那一段（括号内的 `:` 是 binder 的，`:=` 是值位的）——
+/// 整串折不动的原因见调用点。没有顶层 `:`（无类型声明）⇒ 原样返回。
+fn fold_signature_type(query: &sokonanoda_front::query::QueryDoc, signature: &str) -> String {
+    // 逃生门（反向验证用）：`SOKO_NO_CARD_FOLD=1` 回到"整串原样"的旧行为 ⇒
+    // H3 用例必须重新判红（读数见 VERDICT）。
+    if std::env::var_os("SOKO_NO_CARD_FOLD").is_some() {
+        return signature.to_string();
+    }
+    let Some(at) = top_level_colon(signature) else {
+        return signature.to_string();
+    };
+    let (head, ty) = signature.split_at(at + 1);
+    // **`@` 显式实参标记**：`set_option pp.explicit true` 下内核 pp 会打
+    // `@Iff A A`，而折记法只吃 `Iff A A` 那一段的 span ⇒ `@` 会**剩下**变成
+    // `@A ↔ A`（真跑出来的形状 ✗）。折叠前把**独立的** `@` 标记去掉：面板
+    //（`#check` 的命令输出）本来就不带它，hover 与面板同形的要求在这里落地。
+    // ⚠ 只去"`@` + 标识符起始"这一种（本语言的 `@` 只有这一个语义，
+    // `token.rs` 里 `'@' => TokenKind::At`）。
+    let ty = strip_explicit_markers(ty);
+    format!("{head}{}", query.fold_display(&ty))
+}
+
+/// 去掉内核 pp 的**显式实参标记** `@`（`set_option pp.explicit true` 的产物）。
+///
+/// 只认 "`@` 紧跟标识符起始" 这一种形状（`@Iff` / `@Eq.refl`）：它不可能是
+/// 别的东西 —— 本语言的 `@` 只有 `TokenKind::At` 一个语义。前一个字符是标识符
+/// 字符时不动（那是名字的一部分，虽然今天不存在这种名字）。
+fn strip_explicit_markers(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut prev_ident = false;
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '@' && !prev_ident {
+            match chars.peek() {
+                Some(next) if next.is_alphabetic() || *next == '_' => {
+                    prev_ident = false;
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        prev_ident = ch.is_alphanumeric() || ch == '_' || ch == '\'';
+        out.push(ch);
+    }
+    out
+}
+
+/// 顶层（括号深度 0）的第一个 `:`，跳过 `:=`。
+fn top_level_colon(text: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let mut depth = 0i32;
+    for (i, b) in bytes.iter().enumerate() {
+        match b {
+            b'(' | b'{' => depth += 1,
+            b')' | b'}' => depth -= 1,
+            b':' if depth == 0 && bytes.get(i + 1) != Some(&b'=') => return Some(i),
+            _ => {}
+        }
+    }
+    None
 }
 
 /// **卡片的唯一装配器**：签名块 + （有就给）`:=` 值块。
