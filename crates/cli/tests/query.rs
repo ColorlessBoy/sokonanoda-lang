@@ -833,6 +833,8 @@ def bad : Prop -> Type := fun (x : Prop) => x
 def after : Prop -> Prop := fun (p : Prop) => p
 ";
     const BAD: &str = "def bad : Prop -> Type := fun (x : Prop) => x";
+    /// **A3**：值那一位（诊断 span 收到的就是它 ✓）。
+    const BAD_VALUE: &str = "fun (x : Prop) => x";
     let dir = std::env::temp_dir().join(format!(
         "sokonanoda-query-g15-{}-{}",
         std::process::id(),
@@ -862,14 +864,29 @@ def after : Prop -> Prop := fun (p : Prop) => p
         "the fixture must keep bytes ≠ chars before the failure (that is the G-15 trap)"
     );
 
+    // **A3（2026-10-12）**：内核拒绝的诊断 span 收到**出错子项**（值那一位 ✓）
+    // —— 不再是整条命令。G-15 的两件事都保住 ✓：
+    // ① `start`/`end` 仍是**字节** offset（这里逐字切出**值** ✓，字节 ≠ 字符的
+    //    陷阱照旧在刀口上 ✓）；② 不溢到相邻的 `after` 声明 ✓。
+    let value_start = ENTRY
+        .find(BAD_VALUE)
+        .expect("fixture contains the bad value");
+    let value_end = value_start + BAD_VALUE.len();
     let failed = &value["data"]["failed"][0];
     assert_eq!(failed["code"], "kernel-rejected", "{value}");
-    assert_eq!(failed["start"], start, "start is a BYTE offset: {value}");
-    assert_eq!(failed["end"], end, "end is a BYTE offset: {value}");
+    assert_eq!(
+        failed["start"], value_start,
+        "start is a BYTE offset into the offending value: {value}"
+    );
+    assert_eq!(failed["end"], value_end, "end too: {value}");
     assert_eq!(failed["start_line"], 6, "{value}");
-    assert_eq!(failed["start_col"], 1, "{value}");
+    assert_eq!(failed["start_col"], 27, "the `:=` right-hand side: {value}");
     assert_eq!(failed["end_line"], 6, "no overflow onto `after`: {value}");
     assert_eq!(failed["end_col"], 46, "{value}");
+    assert!(
+        start <= value_start && value_end <= end,
+        "the narrowed span stays inside the command it belongs to"
+    );
 
     // 同一份文本的另一个视图：`grade --json` 的诊断事件。行列必须一致。
     let out = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
@@ -887,8 +904,8 @@ def after : Prop -> Prop := fun (p : Prop) => p
         .iter()
         .find(|e| e["type"] == "diagnostic" && e["code"] == "kernel-rejected")
         .unwrap_or_else(|| panic!("kernel diagnostic in: {stream}"));
-    assert_eq!(diag["span"]["start"]["offset"], start, "{stream}");
-    assert_eq!(diag["span"]["end"]["offset"], end, "{stream}");
+    assert_eq!(diag["span"]["start"]["offset"], value_start, "{stream}");
+    assert_eq!(diag["span"]["end"]["offset"], value_end, "{stream}");
     assert_eq!(
         failed["start_line"], diag["span"]["start"]["line"],
         "{value}"
@@ -900,8 +917,8 @@ def after : Prop -> Prop := fun (p : Prop) => p
     assert_eq!(failed["end_line"], diag["span"]["end"]["line"], "{value}");
     assert_eq!(failed["end_col"], diag["span"]["end"]["column"], "{value}");
 
-    // 字节切出来的就是出错的那条命令（`start`/`end` 的语义没被动过）。
-    assert_eq!(&ENTRY[start..end], BAD);
+    // 字节切出来的就是出错的那个子项（`start`/`end` 的语义没被动过）。
+    assert_eq!(&ENTRY[value_start..value_end], BAD_VALUE);
 
     // `warnings[]` 同样带行列（依赖里的开放练习在**入口**的 import 行上报）。
     let warning = &value["data"]["warnings"][0];

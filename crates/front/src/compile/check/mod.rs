@@ -32,6 +32,13 @@ pub(crate) enum PendingOp<'a> {
         kind: DeclKind,
         declar: Declar<'a>,
         span: Span,
+        /// **A3（2026-10-12）**：**值那位**（`:=` 右边）的源范围 ✓。
+        ///
+        /// 内核终审不过时，诊断 span 收到**这里**而不是整条声明（长尾 ③ / r15：
+        /// 以前 `theorem … := ha` 的红波浪跨 3 行、画在整条声明上 ✗）。
+        /// 没有值位的声明（`axiom`）⇒ `Span::default()`（空 ⇒ 调用方原样用
+        /// 声明 span ✓，见 `kernel_phase::def_eq_error_span` ✓）。
+        val_span: Span,
         cmd: usize,
         /// Per-tactic states for a `by` value (empty otherwise), carried to
         /// the `DeclState` for `soko/stateAt`.

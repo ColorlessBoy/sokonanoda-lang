@@ -98,7 +98,7 @@
 |---|---|---|---|
 | ST1-predicate-set-operations.sokonanoda | positive | 7 | — |
 | ST1-predicate-ordinal.sokonanoda | positive | 7 | — |
-| ST1-no-cumulativity.sokonanoda | negative | 0 | kernel-rejected ;; 类型不匹配：期望 Pi (P : Sort(0)), Sort(1)，实际是 Pi (P : Sort(0)), Sort(0) |
+| ST1-no-cumulativity.sokonanoda | negative | 0 | kernel-rejected ;; 类型不匹配：期望 `∀(P : Sort(0)), Sort(1)`，实际是 `∀(P : Sort(0)), Sort(0)` |
 | ST1-acc-well-founded-recursion.sokonanoda | negative | 0 | kernel-rejected ;; rejected: inductive occurrence is not applied uniformly to the block parameters and universe levels |
 
 ## §不做什么（本环节的边界）

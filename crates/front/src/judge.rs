@@ -1618,6 +1618,7 @@ fn judge_pairs_uncached(
             pre_judged[k] = true;
             continue;
         };
+        let val_span = term_expr.span();
         let val = wrap_binders(&pair.spec.binders, term_expr, &notations);
         commands.push(Command::Def {
             name: format!("_soko_judge_{k}"),
@@ -1625,6 +1626,9 @@ fn judge_pairs_uncached(
             ty,
             val,
             span: after_prefix,
+            // **A3**：合成声明的「值位」= 学习者写的那段术语（`after_prefix` 的
+            // span 是**整个合成块** ✗）——判卷失败时诊断要指到这里 ✓。
+            val_span,
         });
     }
     let report = check_synthesized(

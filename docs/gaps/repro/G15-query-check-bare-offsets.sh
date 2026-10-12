@@ -3,7 +3,7 @@
 # 没有行列、没有单位、没有坐标空间说明（agent 的 MCP `check` 走的就是这条通道）。
 #
 # 退出码约定（全部 repro 脚本一致，见 docs/gaps/README.md）：
-#   0 = 缺口仍在（缺行列字段，或行列与事件自带 span 不一致，或 span 不再等于出错命令）
+#   0 = 缺口仍在（缺行列字段，或行列与事件自带 span 不一致，或 span 不再落在出错命令内）
 #   1 = 行为变了（已修：两个数组自带 1 基行列，且与 `grade --json` 的 span 逐字段一致）
 #   2 = 环境/形状异常（跑不起来 / 不是可解析的 JSON ⇒ 需要人看，不算结果）
 #
@@ -21,6 +21,13 @@
 # 每条带 `start_line/start_col/end_line/end_col`（1 基，与事件 `span` 同一批数字）；
 # `start`/`end` 仍是**字节** offset，坐标空间 = **入口文件**（依赖的病只以
 # `import-dependency-failed` 出现在入口，见 F′ 形状）。
+#
+# ⚠ **A3（2026-10-12）收窄了 span，本脚本的期望随之更新**（不是放宽 ✓）：
+# `kernel-rejected` 的诊断 span 从**整条命令**收到**出错子项**（值那位）——
+# `theorem … := ha` 之类的红波浪以前跨整行整段、指不出错在哪（长尾 ③ / r15）。
+# 本脚本的夹具（`def bad : Prop -> Type := fun (x : Prop) => x`）拿到的是**值**
+# `fun (x : Prop) => x` ✓。断言改成**两条**（都比原来更贴刀口 ✓）：
+#   ① 字节切片逐字等于**出错子项**本身；② 它**落在**那条命令的范围内（不漂到邻行）。
 
 set -u
 cd "$(dirname "$0")/../../.." || exit 2
@@ -140,7 +147,10 @@ if not has_fields:
 
 print("   failed[0] 行列 = %d:%d → %d:%d · 字节 offset %d..%d"
       % (f["start_line"], f["start_col"], f["end_line"], f["end_col"], s, e))
-EXPECTED = "def bad : Prop -> Type := fun (x : Prop) => x"
+# **A3**：诊断 span = 出错**子项**（值那位）；命令本身的字节范围按源码找出来，
+# 用来断言「子项落在命令内、不漂到相邻声明」（G-15 的原始关切 ✓）。
+COMMAND = "def bad : Prop -> Type := fun (x : Prop) => x"
+OFFENDING = "fun (x : Prop) => x"
 mismatch = []
 if (f["start_line"], f["start_col"], f["end_line"], f["end_col"]) != span_of(diag):
     mismatch.append("failed[] 的行列与事件 span 不一致：%s vs %s" % (
@@ -149,8 +159,13 @@ if (s, e) != (diag["span"]["start"]["offset"], diag["span"]["end"]["offset"]):
     mismatch.append("failed[] 的字节 offset 与事件 span 不一致")
 if f["start_line"] != line_at(s) or f["end_line"] != line_at(e):
     mismatch.append("failed[] 的行号与**按字节**重算的行号不一致（行列的单位/坐标空间没说清）")
-if block.strip() != EXPECTED:
-    mismatch.append("字节切片不是出错的那条命令（span 真的漂了）：%r" % block)
+if block.strip() != OFFENDING:
+    mismatch.append("字节切片不是出错的那个子项（span 真的漂了）：%r" % block)
+cmd_start = src.find(COMMAND.encode())
+if cmd_start < 0:
+    mismatch.append("夹具里找不到那条命令（形状异常）")
+elif not (cmd_start <= s and e <= cmd_start + len(COMMAND.encode())):
+    mismatch.append("子项的 span 跑到命令之外了（G-15 的原始关切）：%d..%d" % (s, e))
 if warnings:
     w, wev = warnings[0], (warns[0] if warns else None)
     wkeys = ("start_line", "start_col", "end_line", "end_col")
@@ -168,7 +183,8 @@ if mismatch:
     sys.exit(0)
 
 print("   → failed[] / warnings[] 自带行列、单位（字节 offset）与坐标空间（入口文件）")
-print("     与事件流逐字段一致；字节切片逐字等于第 6 行的坏声明。")
+print("     与事件流逐字段一致；字节切片逐字等于第 6 行那条命令里**出错的子项**，")
+print("     且落在该命令范围内（A3：span 已从整条命令收到出错子项）。")
 sys.exit(1)
 PY
 shape=$?
@@ -185,5 +201,6 @@ if [ "$shape" = 3 ]; then
 fi
 [ "$q_exit" = 1 ] || { echo "结论：行列已带，但 query check 退出码 = ${q_exit}（契约要求 1）⇒ 需要人看。" >&2; exit 2; }
 echo "结论：G-15 已修——query check 的 failed[] / warnings[] 自带 1 基行列（与 grade --json 的"
-echo "      span 逐字段一致），start/end 仍是字节 offset（坐标空间 = 入口文件）。"
+echo "      span 逐字段一致），start/end 仍是字节 offset（坐标空间 = 入口文件），"
+echo "      且 A3 之后 kernel-rejected 的 span 精确到**出错子项**。"
 exit 1

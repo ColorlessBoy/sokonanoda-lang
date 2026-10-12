@@ -663,6 +663,12 @@ pub enum Command {
         ty: Expr,
         val: Expr,
         span: Span,
+        /// **A3（2026-10-12）**：**值那位**（`:=` 右边）自己的源范围 ✓。
+        ///
+        /// `val` 是 [`wrap_decl_binders`] 包过的 λ（span 跨**整条声明** ✗）⇒
+        /// 从它身上拿不回值的范围。诊断要指到出错子项时用它
+        /// （`kernel_phase::def_eq_error_span` ✓；长尾 ③ / r15 ✓）。
+        val_span: Span,
     },
     Theorem {
         name: String,
@@ -670,11 +676,15 @@ pub enum Command {
         ty: Expr,
         val: Expr,
         span: Span,
+        /// **A3**：同上 ✓（`theorem … := ha` ⇒ `ha` 那一段 ✓）。
+        val_span: Span,
     },
     Example {
         ty: Expr,
         val: Expr,
         span: Span,
+        /// **A3**：同上 ✓。
+        val_span: Span,
     },
     Axiom {
         name: String,

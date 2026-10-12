@@ -1142,6 +1142,9 @@ impl Parser {
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
         let val = self.parse_value()?;
+        // **A3**：值的**源范围**要在 `wrap_decl_binders` 之前取 ✓
+        // （包成 λ 之后它的 span 跨整条声明 ✗）。
+        let val_span = val.span();
         let span = Span::new(start, val.span().end);
         let (ty, val) = wrap_decl_binders(binders, ty, val);
         Ok(Command::Def {
@@ -1150,6 +1153,7 @@ impl Parser {
             ty,
             val,
             span,
+            val_span,
         })
     }
 
@@ -1163,6 +1167,8 @@ impl Parser {
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
         let val = self.parse_value()?;
+        // **A3**：同上 ✓（值的源范围先取 ✓）。
+        let val_span = val.span();
         let span = Span::new(start, val.span().end);
         let (ty, val) = wrap_decl_binders(binders, ty, val);
         Ok(Command::Theorem {
@@ -1171,6 +1177,7 @@ impl Parser {
             ty,
             val,
             span,
+            val_span,
         })
     }
 
@@ -1188,9 +1195,16 @@ impl Parser {
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
         let val = self.parse_value()?;
+        // **A3**：同上 ✓。
+        let val_span = val.span();
         let span = Span::new(start, val.span().end);
         let (ty, val) = wrap_decl_binders(binders, ty, val);
-        Ok(Command::Example { ty, val, span })
+        Ok(Command::Example {
+            ty,
+            val,
+            span,
+            val_span,
+        })
     }
 
     /// 声明级 binder（官方 Lean 风格）：`theorem f (a : A) (h : B a) : C := v`

@@ -3495,6 +3495,10 @@ fn mismatch_error(
             "{original}。{reason}（内核的原始判定：期望 `{kernel_expected}`，实际是 `{kernel_actual}`）"
         ),
         span,
+        // **A3**：这条路的 `original` 已经过显示层（`display_expr` ✓），两侧
+        // 片段是**内核原文的引文**（现场证据 ✓）⇒ 不在这里二次折叠 ✓
+        // （行为与 A3 之前逐字节相同 ✓）。
+        None,
     )
 }
 

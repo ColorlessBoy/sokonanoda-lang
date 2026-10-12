@@ -259,6 +259,13 @@ the human message is rendered as
 same text (plus `hint`). `CompileError` additionally carries the machine fields
 `expected`/`actual` when present.
 
+Both sides are **source-level** (2026-10-12): `$k(name)` renders as the binder's
+source name, `.[]` is dropped, `Pi (x : T),` becomes `∀ (x : T),`, and the text goes
+through the **only notation interface** (`Set.mem α a A` folds back to `a ∈ A`). Under a
+Pi comparison the span is the **value**; a bare-sort comparison keeps the declaration
+span (`DeclState.span` never changes). Field set, `start`/`end` byte semantics, artifact
+schema and verdicts are unchanged; `SOKO_NO_SOURCE_KERNEL_MSG=1` restores the old form.
+
 ## Editor semantic tokens
 
 The LSP server implements `textDocument/semanticTokens` (full). Legend:

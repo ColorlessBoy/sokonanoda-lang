@@ -100,6 +100,65 @@ pub(super) struct Walked<'a, 'arena> {
     pub(super) kernel_checks: usize,
 }
 
+/// **A3（2026-10-12）**：`kernel-rejected` 的诊断 span 收到**出错子项**。
+///
+/// 内核终审（`infer.rs::check_def_like_v`）比的是**值那位**推出来的类型与**声明**
+/// 的类型；`PendingOp::Decl` 的 `span` 却是**整条声明**（`theorem … := ha` ⇒
+/// 从 `theorem` 到函数体末，跨 3 行 ✓）⇒ 编辑器把红波浪画在整条声明上，学习者
+/// 既不知道哪一行、也不知道哪个子项（长尾 ③ / r15 ✓）。
+///
+/// 换 span 的**条件**（四条都要 ✓，否则原样返回 ⇒ 零影响 ✓）：
+/// 1. 失败文本是 **def-eq 不匹配**（`DEF_EQ_MARKER` ✓）—— 其它内核拒绝
+///    （`expected a sort`、构造子/递归规则…）**不动** ✗；
+/// 2. **内核比的是 Pi 下的两个类型**（`debug-print` 的 `Pi (…),` ✓）——
+///    这是「声明位绑元都过了、错在**值那位**」的形状 ✓（r01：`ha` 的类型对不上
+///    目标 ✓）。裸 sort 的比较（`def bad : Prop -> Type := fun (x : Prop) => x`
+///    ⇒ 期望 `Sort(0)`）里错的是**签名**，指到值只会指错 ✗ ⇒ 原样用声明 span ✓；
+/// 3. `val_span` **非空**（`theorem t : P := by` 这种空值位的退化情形 ⇒ 原样 ✓）；
+/// 4. `val_span` **落在**声明 span 之内（跨文件/合成声明的 `val_span` 可能不在
+///    同一坐标空间 ✓ ⇒ 只认包含关系，绝不乱指 ✗）。
+///
+/// ⚠ **只动诊断的 span** ✓：`DeclState.span`（声明卡片 / 大纲 / 导航）仍是整条
+/// 声明 ✓，判定与事件计数一个字不动 ✓。
+fn def_eq_error_span(msg: &str, span: Span, val_span: Span) -> Span {
+    use crate::compile::error::{source_kernel_msg_disabled, DEF_EQ_MARKER};
+    // **A3 的关断开关**（反向验证用 ✓，同 `error::source_kernel_msg_disabled`）。
+    if source_kernel_msg_disabled() {
+        return span;
+    }
+    if !msg.contains(DEF_EQ_MARKER) {
+        return span;
+    }
+    // 内核比的是 Pi 下的**体**（绑元已对齐）⇒ 错在值那一位；
+    // 裸 sort 的比较 ⇒ 错在签名 ⇒ 不动 ✓。
+    if !kernel_compares_under_pi(msg) {
+        return span;
+    }
+    if val_span.start.offset >= val_span.end.offset {
+        return span;
+    }
+    if val_span.start.offset < span.start.offset || val_span.end.offset > span.end.offset {
+        return span;
+    }
+    val_span
+}
+
+/// 这条 def-eq 失败比的**是不是 Pi 下的两个类型**（见 [`def_eq_error_span`] 条件 2）。
+///
+/// 认 `DEF_EQ_MARKER` 之后那一侧的开头：内核的调试打印把 Pi 打成
+/// `Pi (名字 : 类型), 体` ✓（`crates/kernel/src/debug_printer.rs` ✓）——
+/// 先跳过前导空白再比 `Pi` ✓。不是这个形状 ⇒ `false`（原样用声明 span ✓）。
+fn kernel_compares_under_pi(msg: &str) -> bool {
+    use crate::compile::error::{DEF_EQ_ACTUAL_SEP, DEF_EQ_MARKER};
+    let Some(start) = msg.find(DEF_EQ_MARKER) else {
+        return false;
+    };
+    let rest = &msg[start + DEF_EQ_MARKER.len()..];
+    // 只要**任一侧**是 Pi ⇒ 比较发生在绑元之下 ✓（两侧同深度 ⇒ 通常都是 ✓）。
+    rest.split(DEF_EQ_ACTUAL_SEP)
+        .any(|side| side.trim_start().starts_with("Pi "))
+}
+
 /// **检查→加入**一条声明（T-D1：把这段逻辑收进单一函数）。
 ///
 /// 从 `finish_pass` 的 `PendingOp::Decl` 分支**逐字搬过来**（纯重构、零行为变化 ✓）——
@@ -127,6 +186,7 @@ fn check_then_add_decl<'arena>(
         by_steps,
         by_root,
         span,
+        val_span,
         cmd,
     } = op
     else {
@@ -221,11 +281,19 @@ fn check_then_add_decl<'arena>(
         }
         Err(e) => {
             let msg = format!("{e}");
-            let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg.as_str(), span);
-            // **G-49**：从**原始**内核文本取两侧（`err.message` 在构造点已渲染 ✓）——
-            // `$4` ⇒ 「第 4 个绑元（β）」（名字来自内核名字栈 ✓）。
-            if let Some((message, expected, actual)) = render_def_eq_mismatch(&msg) {
-                err.message = message;
+            // **A3（2026-10-12）**：span 收到**出错子项** —— 内核终审比的是
+            // 「值的类型 vs 声明类型」，而 `span` 是**整条声明**（`theorem … := ha`
+            // 的从 `theorem` 到函数体末）⇒ 编辑器把红波浪画在整条声明上，指不出
+            // 出错子项（长尾 ③ / r15 ✓）。`val_span` = **值那位**的源范围 ✓
+            // （`by` 块 ⇒ 整块 ✓）；只在内核这一条路径上换 span，报告里
+            // `DeclState.span`（声明卡片 / 导航）**不变** ✓。
+            let span = def_eq_error_span(&msg, span, val_span);
+            // G-49 / A3：内核原文在构造点人话化 + 折成源级记法（`display` ✓）。
+            let mut err =
+                CompileError::kernel(refine_kernel_kind(&msg), msg.as_str(), span, Some(&display));
+            // 两侧文本（已折过记法 ✓）进 `expected`/`actual` 字段 ✓ ——
+            // 「内核说的期望/实际是什么」是协议的稳定面，别让消费者自己再切消息 ✗。
+            if let Some((_, expected, actual)) = render_def_eq_mismatch(&msg, Some(&display)) {
                 err.expected = Some(expected);
                 err.actual = Some(actual);
             }
@@ -451,12 +519,18 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                         kernel_checks += 1;
                         if let Err(e) = env.try_check_declar(declar) {
                             let msg = format!("{e}");
-                            let mut err =
-                                CompileError::kernel(refine_kernel_kind(&msg), msg.as_str(), span);
-                            // **G-49**：同上 ✓（两个构造点同款 ✓）。
-                            if let Some((message, expected, actual)) = render_def_eq_mismatch(&msg)
+                            // **G-49 / A3**：同上 ✓（同款渲染 + 同款两侧字段 ✓）。
+                            // span 仍是**整个 `inductive` 块**（块里的哪一条成员错
+                            // 由错误文本说 ✓；块内子项的源范围没有稳定的单点 ✓）。
+                            let mut err = CompileError::kernel(
+                                refine_kernel_kind(&msg),
+                                msg.as_str(),
+                                span,
+                                Some(&display),
+                            );
+                            if let Some((_, expected, actual)) =
+                                render_def_eq_mismatch(&msg, Some(&display))
                             {
-                                err.message = message;
                                 err.expected = Some(expected);
                                 err.actual = Some(actual);
                             }
@@ -556,6 +630,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                                 refine_kernel_kind(&msg),
                                 format!("类型检查失败：{msg}"),
                                 span,
+                                Some(&display),
                             ),
                         ),
                     }
@@ -584,6 +659,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                                 refine_kernel_kind(&msg),
                                 format!("化简失败：{msg}"),
                                 span,
+                                Some(&display),
                             ),
                         ),
                     }
@@ -767,7 +843,12 @@ fn open_signature_failure<'t>(
     let limit = EnvLimit::ByIndex(env_before);
     if let Err(e) = env.try_check_declar_at(sig_probe, limit) {
         let msg = format!("{e}");
-        return Some(CompileError::kernel(refine_kernel_kind(&msg), msg, span));
+        return Some(CompileError::kernel(
+            refine_kernel_kind(&msg),
+            msg,
+            span,
+            None,
+        ));
     }
     if kind != DeclKind::Theorem {
         return None;
@@ -781,5 +862,10 @@ fn open_signature_failure<'t>(
     let rendered = quiet_catch(|| env.with_tc(limit, |tc| tc.with_pp(|pp| pp.pp_expr(ty))))
         .unwrap_or_default();
     let msg = format!("rejected: theorem type must be Prop (sort 0): {rendered}");
-    Some(CompileError::kernel(refine_kernel_kind(&msg), msg, span))
+    Some(CompileError::kernel(
+        refine_kernel_kind(&msg),
+        msg,
+        span,
+        None,
+    ))
 }

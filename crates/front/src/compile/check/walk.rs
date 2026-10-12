@@ -910,21 +910,28 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 ty,
                 val,
                 span,
-            } => self.def(c, name, universe, ty, val, *span),
+                val_span,
+            } => self.def(c, name, universe, ty, val, *span, *val_span),
             Command::Theorem {
                 name,
                 universe,
                 ty,
                 val,
                 span,
-            } => self.theorem(c, name, universe, ty, val, *span),
+                val_span,
+            } => self.theorem(c, name, universe, ty, val, *span, *val_span),
             Command::Axiom {
                 name,
                 universe,
                 ty,
                 span,
             } => self.axiom(c, name, universe, ty, *span),
-            Command::Example { ty, val, span } => self.example(c, ty, val, *span),
+            Command::Example {
+                ty,
+                val,
+                span,
+                val_span,
+            } => self.example(c, ty, val, *span, *val_span),
             Command::InductiveBlock {
                 name,
                 params,
@@ -1043,6 +1050,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         ty: &Expr,
         val: &Expr,
         span: Span,
+        val_span: Span,
     ) {
         let idx = c.idx;
         let templates = c.templates;
@@ -1383,6 +1391,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     by_steps: by_steps.clone(),
                     by_root: by_root.clone(),
                     span,
+                    // **A3**：值那位的源范围（内核终审不过时诊断 span 收到这里 ✓）。
+                    // ⚠ 用 parser 交下来的 `val_span`：`val` 这时是
+                    // `wrap_decl_binders` 包过的 λ（span 跨整条声明 ✗）。
+                    val_span,
                     cmd: idx,
                 });
                 // **成功路径也要补词法行**（2026-10-11 用户实测的第 3 条尾巴）：
@@ -1430,6 +1442,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         ty: &Expr,
         val: &Expr,
         span: Span,
+        val_span: Span,
     ) {
         let idx = c.idx;
         let templates = c.templates;
@@ -1827,6 +1840,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     by_steps: by_steps.clone(),
                     by_root: by_root.clone(),
                     span,
+                    // **A3**：同上 ✓（`by` 块 ⇒ 整块 ✓）。
+                    val_span,
                     cmd: idx,
                 });
                 // **成功路径也要补词法行**（2026-10-11 用户实测的第 3 条尾巴）：
@@ -1968,6 +1983,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     by_steps: Vec::new(),
                     by_root: None,
                     span,
+                    // **A3**：`axiom` **没有值位** ⇒ 空 span（调用方原样用声明 span ✓）。
+                    val_span: Span::default(),
                     cmd: idx,
                 });
                 self.cmd_hovers.push(CmdHover {
@@ -1998,7 +2015,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
 
     /// `example : T := v`：没有名字，内部名按出现次序编号（`_example_N`）。
     #[allow(clippy::too_many_arguments)]
-    fn example(&mut self, c: &CmdCtx<'_>, ty: &Expr, val: &Expr, span: Span) {
+    fn example(&mut self, c: &CmdCtx<'_>, ty: &Expr, val: &Expr, span: Span, val_span: Span) {
         let idx = c.idx;
         let templates = c.templates;
         // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
@@ -2284,6 +2301,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     by_steps: by_steps.clone(),
                     by_root: by_root.clone(),
                     span,
+                    // **A3**：同上 ✓（`example` 也有值位 ✓）。
+                    val_span,
                     cmd: idx,
                 });
                 // **成功路径也要补词法行**（2026-10-11 用户实测的第 3 条尾巴）：

@@ -445,24 +445,37 @@ impl CompileError {
         Self::new(kind, message, span)
     }
 
-    pub(crate) fn kernel(kind: ErrorKind, message: impl Into<String>, span: Span) -> Self {
-        // **G-49**：内核拒绝文本**一律**在这里过一层人话化 ✓。
-        //
-        // * def-eq 不匹配 ⇒ 走**唯一渲染器** [`render_def_eq_mismatch`]：
-        //   `rejected: def_eq failed: def_eq mismatch expected: Sort(1) | actual: $2` ✗
-        //   ⇒ `类型不匹配：期望 `Sort(1)`，实际是 `第 2 个绑元（α）`` ✓（`$4(β)` ⇒
-        //   「第 4 个绑元（β）」，名字来自**内核名字栈** ✓）；
-        // * 其它内核原文 ⇒ 只把裸 de Bruijn 编号换成占位 ✓（`humanize_de_bruijn`）。
-        //
-        // 为什么放在**构造点**：内核原文不止一条出口 —— `by` 路径
-        // （`judge.rs::judgement_of` 的 `_` 分支 / `query_error`）会把
-        // `rejected: def_eq failed: …` 原样抬给学习者 ✗（台账 G-49 的「同族」），
-        // 只有这里能一次盖全 ✓。
-        // ⚠ **分类必须在人话化之前**：`refine_kernel_kind` 由**调用方**在**原始**
-        // 文本上算 ✓（它认的就是 `$k` / `Sort(n)` 的形状 —— G-21 的
-        // `classify_term_in_type_position` ✓），构造点拿到的只是渲染 ✓。
+    /// **A3（2026-10-12）**：`display` = 本次编译的**显示期记法表**（`None` ⇒ 只有
+    /// 通用人话化，见下）。
+    ///
+    /// **G-49**：内核拒绝文本**一律**在这里过一层人话化 ✓。
+    ///
+    /// * def-eq 不匹配 ⇒ 走**唯一渲染器** [`render_def_eq_mismatch`]：
+    ///   `rejected: def_eq failed: def_eq mismatch expected: Sort(1) | actual: $2` ✗
+    ///   ⇒ `类型不匹配：期望 `Sort(1)`，实际是 `第 2 个绑元（α）`` ✓（`$4(β)` ⇒
+    ///   「第 4 个绑元（β）」，名字来自**内核名字栈** ✓）；
+    /// * 其它内核原文 ⇒ 只把裸 de Bruijn 编号换成占位 ✓（`humanize_de_bruijn`）。
+    ///
+    /// 为什么放在**构造点**：内核原文不止一条出口 —— `by` 路径
+    /// （`judge.rs::judgement_of` 的 `_` 分支 / `query_error`）会把
+    /// `rejected: def_eq failed: …` 原样抬给学习者 ✗（台账 G-49 的「同族」），
+    /// 只有这里能一次盖全 ✓。
+    /// ⚠ **分类必须在人话化之前**：`refine_kernel_kind` 由**调用方**在**原始**
+    /// 文本上算 ✓（它认的就是 `$k` / `Sort(n)` 的形状 —— G-21 的
+    /// `classify_term_in_type_position` ✓），构造点拿到的只是渲染 ✓。
+    ///
+    /// ⚠ **A3**：`display` 有值时两侧文本先过 [`render_both_sides`]（记法折叠到
+    /// 源级 `∈`/`⊆`/`=` + 绑元点名 ✓）⇒ 中间**不再出现** `第 N 个绑元` 这种
+    /// 内部形态占位 ✓；拿不到表（`by` 路径 / 反序列化回放）⇒ 行为与 A3 之前
+    /// **逐字节相同** ✓（走 `humanize_de_bruijn` ✓）。
+    pub(crate) fn kernel(
+        kind: ErrorKind,
+        message: impl Into<String>,
+        span: Span,
+        display: Option<&crate::display::DisplayNotations>,
+    ) -> Self {
         let raw = message.into();
-        let rendered = match render_def_eq_mismatch(&raw) {
+        let rendered = match render_def_eq_mismatch(&raw, display) {
             Some((message, _, _)) => message,
             None => humanize_de_bruijn(&raw),
         };
@@ -487,8 +500,8 @@ impl CompileError {
 /// Stable markers the kernel embeds in def-eq failure panics:
 /// `def_eq mismatch expected: <E-TEXT> | actual: <A-TEXT>`
 /// (the panic payload is wrapped into `rejected: ...` by `CheckError`).
-const DEF_EQ_MARKER: &str = "def_eq mismatch expected: ";
-const DEF_EQ_ACTUAL_SEP: &str = " | actual: ";
+pub(crate) const DEF_EQ_MARKER: &str = "def_eq mismatch expected: ";
+pub(crate) const DEF_EQ_ACTUAL_SEP: &str = " | actual: ";
 
 /// Parse the kernel's def-eq mismatch message into `(expected, actual)`.
 /// Returns `None` for rejections that do not carry both sides.
@@ -550,18 +563,188 @@ fn trailing_paren_name(text: &str, at: usize) -> Option<(String, usize)> {
 
 /// **G-49**：把内核的 def-eq 不匹配原文渲染成**教学文案** + 两侧文本。
 ///
-/// 输出 = `("类型不匹配：期望 `X`，实际是 `Y`", X, Y)`，两侧都过
-/// [`humanize_de_bruijn`] ✓。不是这个形状 ⇒ `None`（调用方原样处理 ✓）。
+/// 输出 = `("类型不匹配：期望 `X`，实际是 `Y`", X, Y)`。不是这个形状 ⇒ `None`
+/// （调用方原样处理 ✓）。
 ///
 /// **唯一实现**：声明位（`check/kernel_phase.rs` 两个构造点 ✓）、`by` 路径
 /// （`judge.rs::query_error` ✓ —— 内核原文从前那里直接抬给学习者 ✗）与 G-21 的
 /// 同形对照共用它，口径不会分叉 ✓。
-pub(crate) fn render_def_eq_mismatch(raw: &str) -> Option<(String, String, String)> {
+///
+/// **A3（2026-10-12）**：`display` 给得出显示期记法表时，两侧文本先过
+/// [`render_both_sides`]（`Set.[]`/`$k` 这类内部形态 ⇒ 源级记法 + 点名 ✓）；
+/// 给不出（`by` 路径）⇒ 与 A3 之前逐字节相同（[`humanize_de_bruijn`] ✓）。
+pub(crate) fn render_def_eq_mismatch(
+    raw: &str,
+    display: Option<&crate::display::DisplayNotations>,
+) -> Option<(String, String, String)> {
     let (expected, actual) = parse_def_eq_mismatch(raw)?;
-    let expected = humanize_de_bruijn(&expected);
-    let actual = humanize_de_bruijn(&actual);
+    if source_kernel_msg_disabled() {
+        let expected = humanize_de_bruijn(&expected);
+        let actual = humanize_de_bruijn(&actual);
+        let message = format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+        return Some((message, expected, actual));
+    }
+    let display = display?;
+    let (expected, actual) = render_both_sides(&expected, &actual, display);
     let message = format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
     Some((message, expected, actual))
+}
+
+/// **A3 的关断开关**（`SOKO_NO_SOURCE_KERNEL_MSG=1`）：源级渲染整体退回
+/// [`humanize_de_bruijn`]（「第 N 个绑元（α）」）。存在的意义与 `SOKO_NO_NOTATION_FOLD`
+/// 同族 ✓ —— **反向验证**：关掉之后 r01/r15 两条探针**必须重新判红** ✓
+/// （咬不住的守卫等于没有 ✓）。
+pub(crate) fn source_kernel_msg_disabled() -> bool {
+    std::env::var_os("SOKO_NO_SOURCE_KERNEL_MSG").is_some()
+}
+
+/// **A3 的渲染**：把内核**显式形态**的两侧类型文本变成**源级可读**形式。
+///
+/// 内核 def-eq 失败的原文是**内部形态**（`crates/kernel/src/debug_printer.rs` 的
+/// `Debug` 实现 ✓）：`Pi (α : Sort(1)), Pi (A : (Set.[] $0(α))), …` —— 学习者
+/// 看到的是一串 `Pi (… : …)`、`Set.[]`、`$4(α)`（前端渲染成「第 4 个绑元（α）」✗）
+/// ⇒ **初学最常撞的那条通道完全读不懂**（长尾 ③ / r01 ✓）。这里做三件事，
+/// **只动文本** ✓（判定、事件计数、错误码、分类一律不碰 ✗）：
+///
+/// 1. 把 `$k(名字)` / `$k` 换成**源级绑元名**（名字本来就在内核名字栈里 ✓，
+///    G-49 已经把它带出来了 ✓）⇒ 不再需要「第 N 个绑元」这种占位 ✗；
+/// 2. 去掉调试打印的宇宙实参后缀 `.[]`（`Set.[]` ⇒ `Set` ✓ —— 内核**有**
+///    `.{1}` 形态（`Eq.{1}`），parser 认；空的 `.[]` 它不认 ✗）；
+/// 3. 整段过**唯一记法接口** [`DisplayNotations::fold`] ⇒ `Set.mem α a A` 折成
+///    `a ∈ A` ✓（`fold` 任何一步失败都原样返回 ✓ ⇒ 折不动时只是少折一点 ✓）。
+///
+/// ⚠ **不去标"分歧子串"**（试过 `⟨…⟩`，撤了 ✓）：分歧位置**由内核的选择决定**、
+/// 不总是学习者眼里的那个 —— `Sort(1)` vs `Sort(0)` 会标在数字上，而
+/// `∀(x : T), Sort(0)` vs `∀(_ : T), Sort(1)` 会标两处（`x`/`_` 与 `0`/`1`）⇒
+/// 读起来像在说"绑元名写错了" ✗。两侧照内核原样给 ✓ —— 补上**源级记法**（`∈`）
+/// 与**点名**（`α`/`a`）之后它已经可读 ✓。
+pub(crate) fn render_both_sides(
+    expected: &str,
+    actual: &str,
+    display: &crate::display::DisplayNotations,
+) -> (String, String) {
+    (
+        render_one_side(expected, display),
+        render_one_side(actual, display),
+    )
+}
+
+/// 一侧：内核显式形态 ⇒ 源级文本（见 [`render_both_sides`] 的三步）。
+fn render_one_side(text: &str, display: &crate::display::DisplayNotations) -> String {
+    let (bound, names) = bind_vars_for_display(text);
+    let normalized = pi_to_forall(&strip_empty_universe_suffix(&bound));
+    let mut out = display.fold(&normalized);
+    for (placeholder, name) in names {
+        if placeholder != name {
+            out = out.replace(&placeholder, &name);
+        }
+    }
+    out
+}
+
+/// 调试打印里**空宇宙实参**的后缀：`Set.[]` ⇒ `Set`、`Set.mem.[]` ⇒ `Set.mem`。
+///
+/// 只删**空的**那一对 ✓：`Eq.{1}` 保留（parser 认这种形态 ✓）。`[{` 一起处理是
+/// 因为层渲染的 `{}` 与 `[]` 之间**没有**分隔符（`LevelsPtr` 的 `Debug` 是
+/// `debug_list` ⇒ `Eq.{1}` ✓、空表 ⇒ `Eq.[]` ✓）。
+fn strip_empty_universe_suffix(text: &str) -> String {
+    text.replace(".[]", "").replace(".{[]}", "")
+}
+
+/// 内核调试打印的 `Pi (名字 : 类型), 体` ⇒ 前端的 `∀ (名字 : 类型), 体` ✓。
+///
+/// **为什么要换**：`Pi` 是内核 `Expr` 变体的**调试名** ✗，前端 parser 只认
+/// `∀`/`→`（实测 `Pi (α : Sort(1)), …` 报 `expected ) , found Colon` ✓）。
+/// 逐 token 扫描、按**配对的括号**处理 ⇒ 嵌套 `Pi`（binder 的类型本身是 Pi ✓）
+/// 与外层多个 `Pi` 都正确 ✓；**认不出就不动** ✓（宁可少折，不许切错 ✗）。
+fn pi_to_forall(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0usize;
+    while i < bytes.len() {
+        if text[i..].starts_with("Pi (") && (i == 0 || !bytes[i - 1].is_ascii_alphanumeric()) {
+            // `"Pi ("` 有 4 个字节 ⇒ 那个 `(` 在 `i + 3` ✓（不是 +2 ✗）。
+            if let Some(close) = matching_paren(bytes, i + 3) {
+                // `close` = `)` 的**字节**下标 ⇒ 切片要 `close + 1` 才**含**它 ✓
+                // （`..=close` 是按字节的闭区间 ✗ —— α 这类多字节字符上会切在
+                // 字符中间，实测直接掉进 `None` ⇒ 整条不转换 ✗）。
+                if bytes.get(close + 1) == Some(&b',') {
+                    out.push('∀');
+                    out.push_str(&text[i + 3..close + 1]);
+                    out.push(',');
+                    i = close + 2;
+                    continue;
+                }
+            }
+        }
+        let ch = text[i..].chars().next().unwrap_or('\0');
+        out.push(ch);
+        i += ch.len_utf8();
+    }
+    out
+}
+
+/// `text[open]` 是 `(` 时它**配对**的 `)` 的字节下标（`None` = 没配上 / 不是 `(`）。
+pub(crate) fn matching_paren(bytes: &[u8], open: usize) -> Option<usize> {
+    if bytes.get(open) != Some(&b'(') {
+        return None;
+    }
+    let mut depth = 0usize;
+    for (offset, byte) in bytes[open..].iter().enumerate() {
+        match byte {
+            b'(' => depth += 1,
+            b')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(open + offset);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// `$k(名字)` / `$k` ⇒ **能过 parser 的源级名** + 「占位 → 源名」表。
+///
+/// 名字直接来自内核名字栈（`crates/kernel/src/conv.rs` 的
+/// `render_value_for_def_eq_error` 带的 ✓）—— **不是猜的** ✓。拿不到名字的
+/// `$k`（匿名 binder / 名字栈与深度不齐）⇒ 保持原样 ✓（`humanize_de_bruijn`
+/// 的语义：宁可少说 ✗），那种文本 parser 也过不去 ⇒ 调用方退回通用人话化 ✓。
+fn bind_vars_for_display(text: &str) -> (String, Vec<(String, String)>) {
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut names: Vec<(String, String)> = Vec::new();
+    let mut next = 0usize;
+    let mut i = 0usize;
+    while i < bytes.len() {
+        if bytes[i] == b'$' {
+            let mut j = i + 1;
+            while j < bytes.len() && bytes[j].is_ascii_digit() {
+                j += 1;
+            }
+            if j > i + 1 {
+                let trailing = trailing_paren_name(text, j);
+                if let Some((name, end)) = trailing {
+                    let placeholder = format!("sokov{next}");
+                    next += 1;
+                    names.push((placeholder.clone(), name));
+                    out.push_str(&placeholder);
+                    i = end;
+                    continue;
+                }
+                // 没有名字：保持 `$k`（`humanize_de_bruijn` 会把它变成占位，
+                // 那条文本过不了 parser ⇒ 整体退回旧路径 ✓）。
+                out.push_str(&text[i..j]);
+                i = j;
+                continue;
+            }
+        }
+        let ch = text[i..].chars().next().unwrap_or('\0');
+        out.push(ch);
+        i += ch.len_utf8();
+    }
+    (out, names)
 }
 
 pub(crate) fn parse_def_eq_mismatch(msg: &str) -> Option<(String, String)> {

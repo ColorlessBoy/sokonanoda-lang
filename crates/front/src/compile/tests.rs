@@ -91,17 +91,29 @@ fn reports_kernel_rejection_with_span() {
     assert!(!out.errors.is_empty(), "expected a kernel rejection");
     let e = &out.errors[0];
     assert_eq!(e.code(), "kernel-rejected");
-    // 收紧（G-15 / WO-010）：span 必须**逐字**等于出错的那条命令，而不只是
+    // 收紧（G-15 / WO-010）：span 必须**逐字**等于出错的**值那一位**，而不只是
     // `line >= 1`（旧断言等于没断言——任何漂移都能过）。按**字节**切片，
     // 因为 `span.offset` 是字节偏移（`crates/front/src/token.rs`）。
+    //
+    // **A3（2026-10-12）**：这里从「整条命令」收成「值」（长尾 ③ / r15 ✓）——
+    // 内核比的是 `Pi (x : Prop), Sort(0)` vs `Pi (x : Prop), Sort(1)`，绑元已经
+    // 对齐 ⇒ 错在**值那位**（`fun (x : Prop) => x` ✓）。反漂移的力度不变：
+    // 切片仍是**逐字**比 ✓、并另加"不许溢到相邻行"的断言 ✓。
     assert_eq!(
         &src[e.span.start.offset..e.span.end.offset],
-        "def bad : Prop -> Type := fun (x : Prop) => x"
+        "fun (x : Prop) => x",
+        "the span is the offending value, verbatim"
+    );
+    assert_eq!(e.span.start.line, 1, "stays on the declaration's line");
+    assert_eq!(
+        e.span.end.line, 1,
+        "and never overflows onto the next command"
     );
 }
 
-/// G-15 的真实判据（WO-010）：内核拒绝的 span == **出错命令**的范围，不许溢到
-/// 相邻声明上。三条声明、坏的夹在中间；span 一旦漂到 `good`/`after` 就红。
+/// G-15 的真实判据（WO-010）：内核拒绝的 span 落在**出错那条声明**里，不许溢到
+/// 相邻声明上（**A3** 之后进一步收到**值那一位** ✓）。三条声明、坏的夹在中间；
+/// span 一旦漂到 `good`/`after` 就红。
 #[test]
 fn kernel_rejection_span_is_the_failing_command_range() {
     let src = "def good : Prop -> Prop := fun (p : Prop) => p\n\
@@ -117,11 +129,13 @@ fn kernel_rejection_span_is_the_failing_command_range() {
     );
     let e = &out.errors[0];
     assert_eq!(e.code(), "kernel-rejected");
+    // **A3**：span = 出错子项（值那位 ✓），仍在**坏声明那一行**里。
     assert_eq!(
         &src[e.span.start.offset..e.span.end.offset],
-        "def bad : Prop -> Type := fun (x : Prop) => x"
+        "fun (x : Prop) => x",
+        "the span is the offending value, verbatim"
     );
-    assert_eq!(e.span.start.line, 2, "the command starts on line 2");
+    assert_eq!(e.span.start.line, 2, "the value sits on line 2");
     assert_eq!(e.span.end.line, 2, "and ends on it: no overflow");
 }
 
