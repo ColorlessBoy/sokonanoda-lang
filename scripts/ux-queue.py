@@ -924,7 +924,7 @@ def cmd_add_child(parent: str, child: str, title: str, owner: str, rows: list[di
     return 0
 
 
-def cmd_release(owner: str, reason: str) -> int:
+def cmd_unclaim(owner: str, reason: str) -> int:
     """放掉 `owner` 的**全部**认领（4 核里的自己那几格）⇒ 条目回 todo。"""
     claims = read_lock()["claims"]
     mine = [c for c in claims if c.get("owner") == owner]
@@ -1015,6 +1015,256 @@ def check_plan(rows: list[dict]) -> int:
             print(f"✗ 认领 `{c.get('id')}` 不在队列里 ⇒ 幽灵认领 ✗", file=sys.stderr)
             bad += 1
     return bad
+
+
+# ── 发版节点（栅栏 + 克制 + 防无限 bug 分支）与外部**提交面**（inbox） ─────────
+#
+# 用户 2026-10-12 两条要求：
+#   ①「在克制的前提下，增加有限的发版节点（发版耗时）」+「多 agent 同时收拢」+「发出去的是**可用的完整
+#      版本**」+「防止为修发版问题陷入无限的新 bug 分支、远离主线」；
+#   ②「主进程新增一个接口，支持外部 agent 调整」⇒ 清账过程中发现的**主线问题**要能**提交**进主线解决。
+#
+# 落点：两者都长在**同一个队列**上（不新开账本 ✗）——
+#   * 发版节点 = 一条 `kind=release` 的条目 + 它的**栅栏规则**（收拢：不许有在飞认领 / 树要干净 /
+#     入版条目必须 done 且有证据）；**防无限分支**：同一 blocker 的「试修」上限 = **3**（与仓库
+#     "同一处连红 3 次就换招或降级"同源），第 4 次**由脚本拒绝** ✗ ⇒ 只能把它 `--release drop`
+#     （带着**已知问题**发，写清理由）—— 这样"修发版 bug"永远有界 ✓。
+#   * 外部提交 = 一条 `source=external-submission` 的队列条目 + `docs/inbox/<id>.patch`；外部 agent
+#     **只提交不改主线** ✗（提交面是 append-only 的），主流（主会话）`--triage` 决定 applied/deferred/
+#     rejected —— 这就是"一次只有一个写者"在跨 agent 场景下的落法 ✓。
+
+INBOX_DIR = ROOT / "docs" / "inbox"
+RELEASE_KINDS = ("release", "release-blocker")
+MAX_RELEASE_ATTEMPTS = 3          # 与仓库"连红 3 次换招/降级"同源：第 4 次由脚本拒绝 ✗
+MIN_ITEMS_PER_RELEASE = 3         # 克制：一次发版至少收 3 条（除非 `--force` 并写理由）
+MIN_HOURS_BETWEEN_RELEASES = 12   # 克制：两次发版至少隔 12h（除非 `--force` 并写理由）
+
+
+def _read_jsonl(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    out: list[dict] = []
+    for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        try:
+            out.append(json.loads(line))
+        except json.JSONDecodeError as err:
+            raise UsageError(f"{_label(path)}:{lineno} 不是合法 JSON：{err}") from err
+    return out
+
+
+def cmd_submit(args: argparse.Namespace) -> int:
+    """**外部 agent 的提交面**：只追加，不改主线 ✗ ⇒ 主流 `--triage` 才动代码。"""
+    if not args.submit:
+        raise UsageError("`--submit` 要配 `--id <新id>`")
+    ident = args.id or args.submit
+    if not args.why or not args.evidence:
+        print("✗ 提交必须带 `--why '<为什么>'` + `--evidence '<判据读数>'`（**没证据的提交不受理** ✗）",
+              file=sys.stderr)
+        return 1
+    existing = {r["id"] for r in _read_jsonl(EXTRAS)}
+    if ident in existing:
+        print(f"✗ `{ident}` 已经在队列里（id 是键 ⇒ 换一个 id，别覆盖 ✗）", file=sys.stderr)
+        return 1
+    patch_note = ""
+    if args.patch:
+        src = Path(args.patch)
+        if not src.exists():
+            raise UsageError(f"`--patch {args.patch}` 不存在")
+        INBOX_DIR.mkdir(parents=True, exist_ok=True)
+        dst = INBOX_DIR / f"{ident}.patch"
+        dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+        patch_note = f" · patch `{_label(dst)}`（{len(dst.read_text(encoding='utf-8').splitlines())} 行）"
+    entry = {"id": ident, "source": "external-submission", "facet": args.facet or "主线",
+             "severity": args.severity or "medium",
+             "repro": args.repro or "（无复现件：判据见 where）",
+             "disposition": "fix", "owner": args.owner or "main",
+             "why": f"[{args.submit}] {args.why}",
+             "where": args.where or "（未写落点）"}
+    with EXTRAS.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    append_event({"event": "submit", "id": ident, "owner": args.owner or "external",
+                  "kind": args.submit, "evidence": args.evidence})
+    print(f"✓ 已提交 `{ident}`（{args.submit} · {args.where or '?'}）{patch_note}\n"
+          f"  证据：{args.evidence}\n"
+          f"  主流受理：`python3 scripts/ux-queue.py --triage {ident} --to applied|deferred|rejected "
+          f"--reason '<为什么>' [--commit <sha>]`")
+    return 0
+
+
+def cmd_inbox(rows: list[dict]) -> int:
+    """列出**外部提交**及其状态（submitted / applied / deferred / rejected）。"""
+    state = fold()
+    subs = [r for r in rows if r.get("source") == "external-submission"]
+    if not subs:
+        print("（inbox 空：还没有外部提交）")
+        return 0
+    for r in sorted(subs, key=lambda r: r["id"]):
+        cur = state.get(r["id"], {})
+        st = cur.get("state", "submitted")
+        print(f"{r['id']:<14}{st:<11}{r.get('severity','?'):<8}{r.get('where','')}")
+        print(f"  为什么：{r.get('why','')}")
+        if cur.get("commit"):
+            print(f"  收口：{cur['commit'][:8]} · {cur.get('reading','')}")
+        if cur.get("reason"):
+            print(f"  处置理由：{cur['reason']}")
+    print(f"\n共 {len(subs)} 条提交（`--triage <id> --to applied|deferred|rejected --reason …`）")
+    return 0
+
+
+def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int:
+    """**主流受理提交**：applied 必须带 commit（证据）；rejected/deferred 必须带理由。"""
+    rows = _read_jsonl(EXTRAS)
+    if ident not in {r["id"] for r in rows}:
+        raise UsageError(f"inbox 里没有 `{ident}`")
+    if to == "applied" and not commit:
+        print("✗ `applied` 必须带 `--commit <sha>`（**受理 = 已进主线**，没 commit 就是没受理 ✗）",
+              file=sys.stderr)
+        return 1
+    if to in {"rejected", "deferred"} and not reason:
+        print(f"✗ `{to}` 必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
+        return 1
+    append_event({"event": "triage", "id": ident, "to": to, "reason": reason or None,
+                  "commit": commit or None, "owner": owner})
+    print(f"✓ `{ident}` ⇒ {to}" + (f" · commit {commit[:8]}" if commit else "")
+          + (f" · {reason}" if reason else ""))
+    return 0
+
+
+def worktree_dirty() -> str:
+    """工作树脏不脏（发版栅栏要它干净；抽成函数便于 selftest 隔离）。"""
+    return subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True,
+                          text=True).stdout.strip()
+
+
+def release_nodes() -> dict[str, dict]:
+    """发版节点（`kind=release` 的事件折叠）：{版本: {items, blockers, cut, attempts}}。"""
+    out: dict[str, dict] = {}
+    for ev in load_events():
+        kind = ev.get("event")
+        if kind == "release-open":
+            out[ev["id"]] = {"id": ev["id"], "version": ev.get("version"), "items": [],
+                             "blockers": {}, "ts": ev.get("ts"), "cut": None}
+        elif kind == "release-add" and ev.get("rel") in out:
+            out[ev["rel"]]["items"].append(ev["id"])
+        elif kind == "release-drop" and ev.get("rel") in out:
+            node = out[ev["rel"]]
+            node["items"] = [i for i in node["items"] if i != ev.get("id")]
+            node["blockers"].pop(ev.get("id"), None)
+        elif kind == "release-block" and ev.get("rel") in out:
+            node = out[ev["rel"]]
+            node["blockers"][ev["id"]] = node["blockers"].get(ev["id"], 0) + 1
+        elif kind == "release-cut" and ev.get("id") in out:
+            out[ev["id"]]["cut"] = {"commit": ev.get("commit"), "ci": ev.get("ci"),
+                                    "ts": ev.get("ts")}
+    return out
+
+
+def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
+    state = fold()
+    nodes = release_nodes()
+    action = args.release
+    if action == "open":
+        if not args.version:
+            raise UsageError("`--release open` 要配 `--version <x.y.z>`")
+        cut_nodes = [n for n in nodes.values() if n["cut"]]
+        if cut_nodes and not args.force:
+            last = max(cut_nodes, key=lambda n: n["cut"]["ts"])
+            age_h = (_age_s(last["cut"]["ts"]) or 0) / 3600
+            if age_h < MIN_HOURS_BETWEEN_RELEASES:
+                print(f"✗ 克制：距上次发版（`{last['id']}`）才 {age_h:.1f}h < "
+                      f"{MIN_HOURS_BETWEEN_RELEASES}h ⇒ 攒一攒再发（`--force` + `--reason` 可越过）✗",
+                      file=sys.stderr)
+                return 1
+        ident = f"REL-{args.version}"
+        append_event({"event": "release-open", "id": ident, "version": args.version,
+                      "owner": args.owner})
+        print(f"✓ 开节点 `{ident}`（version {args.version}）—— 栅栏：\n"
+              f"   ① 入版条目 `--release add <id>`（**只能加 done 且有证据的**）\n"
+              f"   ② 收拢：所有写者停手（认领清零）、工作树干净\n"
+              f"   ③ `--release check` 过一遍，再 `--release cut --commit <sha> --ci <run>`")
+        return 0
+    rel = args.rel or (f"REL-{args.version}" if args.version else "")
+    if not rel or rel not in nodes:
+        raise UsageError(f"没有这个发版节点：`{rel}`（先 `--release open --version …`）")
+    node = nodes[rel]
+    if action == "add":
+        if not args.id:
+            raise UsageError("`--release add` 要配 `--id <条目id>`")
+        cur = state.get(args.id, {})
+        if cur.get("state") != "done" or not cur.get("commit"):
+            print(f"✗ 克制：`{args.id}` 还没 done（或有 done 无证据）⇒ **不许塞进版本** ✗ "
+                  f"（宁可下个节点，也别让「修发版 bug」变成无限分支）", file=sys.stderr)
+            return 1
+        append_event({"event": "release-add", "rel": rel, "id": args.id, "owner": args.owner})
+        print(f"✓ `{args.id}` 进 `{rel}`（当前 {len(node['items']) + 1} 条）")
+        return 0
+    if action == "block":
+        if not args.id or not args.reason:
+            raise UsageError("`--release block` 要配 `--id` + `--reason`")
+        attempts = node["blockers"].get(args.id, 0) + 1
+        if attempts > MAX_RELEASE_ATTEMPTS:
+            print(f"✗ **防无限分支**：`{args.id}` 已试修 {MAX_RELEASE_ATTEMPTS} 次 ⇒ 脚本拒绝第 "
+                  f"{attempts} 次 ✗ —— 按仓库「连红 3 次就换招或降级」：把它 `--release drop {args.id} "
+                  f"--reason '<已知问题>'`（带**已知问题**发版）或换思路 ✗", file=sys.stderr)
+            return 1
+        append_event({"event": "release-block", "rel": rel, "id": args.id,
+                      "reason": args.reason, "owner": args.owner})
+        print(f"⚠ `{args.id}` 记为**发版阻塞**（第 {attempts}/{MAX_RELEASE_ATTEMPTS} 次试修；"
+              f"超限脚本会拒绝 ⇒ 只能 drop 或换招）")
+        return 0
+    if action == "drop":
+        if not args.id or not args.reason:
+            raise UsageError("`--release drop` 要配 `--id` + `--reason`（**已知问题要写清**）")
+        append_event({"event": "release-drop", "rel": rel, "id": args.id, "reason": args.reason,
+                      "owner": args.owner})
+        print(f"✓ `{args.id}` 移出 `{rel}`（已知问题：{args.reason}）⇒ 版本照发 ✓")
+        return 0
+    if action == "check":
+        bad = 0
+        if not node["items"]:
+            print("✗ 空节点不成立：一条 done 都没入版 ⇒ 发出去的不是「可用的完整版本」✗",
+                  file=sys.stderr)
+            bad += 1
+        elif len(node["items"]) < MIN_ITEMS_PER_RELEASE and not args.force:
+            print(f"✗ 克制：本节点才 {len(node['items'])} 条 < {MIN_ITEMS_PER_RELEASE} 条 ⇒ "
+                  f"再攒攒（`--force --reason …` 可越过）✗", file=sys.stderr)
+            bad += 1
+        for ident in node["items"]:
+            cur = state.get(ident, {})
+            if cur.get("state") != "done" or not cur.get("commit"):
+                print(f"✗ 入版条目 `{ident}` 未 done 或无证据 ⇒ **发出去就不是完整可用版本** ✗",
+                      file=sys.stderr)
+                bad += 1
+        live = live_claims()
+        if live:
+            print(f"✗ **收拢未完成**：还有 {len(live)} 个在飞认领 "
+                  f"{[c.get('id') for c in live]} ⇒ 等它们收口（或 `--release block` 记录）✗",
+                  file=sys.stderr)
+            bad += 1
+        dirty = worktree_dirty()
+        if dirty:
+            print(f"✗ 工作树不干净（{len(dirty.splitlines())} 处）⇒ 先 commit，"
+                  f"否则「可用的完整版本」无从谈起 ✗", file=sys.stderr)
+            bad += 1
+        if bad:
+            print(f"\n✗ 发版节点 `{rel}` 未就绪：{bad} 条红", file=sys.stderr)
+            return 1
+        print(f"✓ 节点 `{rel}` 就绪：{len(node['items'])} 条入版 · 无在飞认领 · 工作树干净 ⇒ "
+              f"可以 `--release cut --commit <sha> --ci <run>`（**本地 gate 与 CI 都绿**再切 ✓）")
+        return 0
+    if action == "cut":
+        if not args.commit or not args.ci:
+            raise UsageError("`--release cut` 要配 `--commit <sha>` + `--ci <run-id>`（两者都是判据）")
+        if cmd_release(argparse.Namespace(**{**vars(args), "release": "check"}), rows) != 0:
+            return 1
+        append_event({"event": "release-cut", "id": rel, "commit": args.commit,
+                      "ci": args.ci, "owner": args.owner})
+        print(f"✓ 节点 `{rel}` 切了：commit {args.commit[:8]} · CI {args.ci} ⇒ "
+              f"下个节点至少隔 {MIN_HOURS_BETWEEN_RELEASES}h、至少 {MIN_ITEMS_PER_RELEASE} 条 ✓")
+        return 0
+    raise UsageError(f"未知的 `--release {action}`（open/add/block/drop/check/cut）")
 
 
 # ── 输出 ───────────────────────────────────────────────────────────────────
@@ -1108,7 +1358,7 @@ def selftest_scheduler(expect) -> None:
             expect("陈旧认领可 --force 接管",
                    quiet(cmd_claim, "X-3", "w3", True, rows, "mod/a") == 0)
             # ⑨ 放锁：owner 的认领全部释放
-            expect("释放 w3 的认领", quiet(cmd_release, "w3", "测完") == 0)
+            expect("释放 w3 的认领", quiet(cmd_unclaim, "w3", "测完") == 0)
             # 在 ⑧ 里 w3 `--force` 接管了 mod/a（把 w1 挤掉）⇒ 释放 w3 后应只剩 w2 的 mod/b
             expect(f"释放后只剩 w2（{len(live_claims())}）",
                    [c["owner"] for c in live_claims()] == ["w2"])
@@ -1122,6 +1372,86 @@ def selftest_scheduler(expect) -> None:
         finally:
             EVENTS = saved_events
             globals()["lock_file"] = saved_lock
+
+
+def selftest_release_inbox(expect) -> None:
+    """**外部提交面 + 发版节点**的判据自检：没证据的提交/没 commit 的受理/第 4 次试修都必须被拒 ✗。"""
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INBOX_DIR
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INBOX_DIR, globals()["worktree_dirty"], globals()["lock_file"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INBOX_DIR = Path(tmp) / "inbox"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        globals()["worktree_dirty"] = lambda: ""
+
+        def quiet(fn, *a, **kw) -> int:
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc
+
+        def ns(**kw):
+            base = dict(submit="", id="", why="", evidence="", patch="", facet="", severity="",
+                        repro="", where="", owner="t", release="", rel="", version="", commit="",
+                        ci="", reason="", force=False)
+            base.update(kw)
+            return argparse.Namespace(**base)
+
+        try:
+            # ① 没证据的提交 ⇒ 拒
+            expect("提交缺 why/evidence ⇒ 拒",
+                   quiet(cmd_submit, ns(submit="fix", id="SUB-1", where="a.rs:1")) == 1)
+            # ② 带证据 ⇒ 受理进队，inbox 看得到；triage applied 没 commit ⇒ 拒
+            expect("带证据的提交进队",
+                   quiet(cmd_submit, ns(submit="fix", id="SUB-1", why="主线 bug", evidence="rc 0→1",
+                                        where="crates/front/a.rs:1")) == 0)
+            rows = _read_jsonl(EXTRAS)
+            expect("提交写进了来源（external-submission）",
+                   [r["id"] for r in rows] == ["SUB-1"] and rows[0]["source"] == "external-submission")
+            expect("inbox 列得出这条", quiet(cmd_inbox, rows) == 0)
+            expect("triage applied 没 commit ⇒ 拒",
+                   quiet(cmd_triage, "SUB-1", "applied", "", "", "main") == 1)
+            expect("triage applied 带 commit ⇒ 过",
+                   quiet(cmd_triage, "SUB-1", "applied", "", "deadbeef", "main") == 0)
+            expect("triage rejected 没理由 ⇒ 拒",
+                   quiet(cmd_triage, "SUB-1", "rejected", "", "", "main") == 1)
+            # ③ 发版节点：克制（<3 条）、收拢（有在飞认领）、入版必须 done
+            expect("开节点", quiet(cmd_release, ns(release="open", version="9.9.9"), rows) == 0)
+            expect("没 done 的条目不许入版",
+                   quiet(cmd_release, ns(release="add", version="9.9.9", id="SUB-1"), rows) == 1)
+            expect("check：<3 条 ⇒ 拒（克制）",
+                   quiet(cmd_release, ns(release="check", version="9.9.9"), rows) == 1)
+            expect("check：有在飞认领 ⇒ 拒（收拢未完成）",
+                   quiet(cmd_claim, "SUB-1", "t", False, rows, "mod/x") == 0
+                   and quiet(cmd_release, ns(release="check", version="9.9.9"), rows) == 1)
+            write_lock([])
+            expect("check：--force 越过克制但仍要条目 done",
+                   quiet(cmd_release, ns(release="check", version="9.9.9", force=True), rows) == 1)
+            # ④ **防无限 bug 分支**：同一 blocker 第 4 次试修 ⇒ 脚本拒绝 ✗
+            oks = [quiet(cmd_release, ns(release="block", version="9.9.9", id="SUB-1",
+                                         reason=f"试修{i}"), rows) for i in range(1, 4)]
+            expect(f"前 3 次试修都记下（{oks}）", all(rc == 0 for rc in oks))
+            expect("**第 4 次试修必须被拒**（防无限分支）",
+                   quiet(cmd_release, ns(release="block", version="9.9.9", id="SUB-1",
+                                         reason="再来一次"), rows) == 1)
+            expect("drop 带理由 ⇒ 允许（带已知问题发版）",
+                   quiet(cmd_release, ns(release="drop", version="9.9.9", id="SUB-1",
+                                         reason="已知问题：留待下个节点"), rows) == 0)
+            # ⑤ 切版要 commit + CI 两个判据
+            try:
+                quiet(cmd_release, ns(release="cut", version="9.9.9", commit="cafe", force=True), rows)
+                rc_cut = 0
+            except UsageError:
+                rc_cut = 2
+            expect(f"cut 缺 --ci ⇒ 用法错（rc={rc_cut}）", rc_cut == 2)
+        finally:
+            EVENTS, EXTRAS, INBOX_DIR = saved[0], saved[1], saved[2]
+            globals()["worktree_dirty"] = saved[3]
+            globals()["lock_file"] = saved[4]
 
 
 def cmd_selftest(args: argparse.Namespace) -> int:
@@ -1239,8 +1569,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
             INDEX, EXTRAS, ONBOARDING, GAPS_LEDGER = saved
             globals()["probe_inventory"] = saved_inv
 
-    # ③b 调度器判据（非法迁移 / 无证据 / umbrella / 锁 / --next）
+    # ③b 调度器判据（非法迁移 / 无证据 / umbrella / 4 核 / 资源互斥 / --next）
     selftest_scheduler(expect)
+    # ③c 提交面 + 发版节点（证据 / 克制 / 收拢 / 防无限分支）
+    selftest_release_inbox(expect)
 
     # ④ 真来源：三张表 + 台账 + extras 都能解析
     try:
@@ -1292,13 +1624,28 @@ def main() -> int:
                         help="显式声明要写的资源（逗号分隔，覆盖 owner 的默认映射）")
     parser.add_argument("--advance", metavar="ID", help="状态迁移（**规则在脚本里**）")
     parser.add_argument("--to", metavar="STATE", help=f"迁移目标：{list(SCHED_STATES)}")
-    parser.add_argument("--commit", metavar="SHA", help="收口证据①：commit")
+    parser.add_argument("--commit", metavar="SHA", help="收口/切版证据①：commit（`--advance --to done` 与 `--release cut` 共用）")
     parser.add_argument("--reading", metavar="TEXT", help="收口证据②：判据读数")
     parser.add_argument("--reason", metavar="TEXT", help="wo_filed / blocked / 重开的理由")
     parser.add_argument("--add-child", metavar="PARENT", help="就地拆解：给父条目加一个子任务")
     parser.add_argument("--child", metavar="ID", help="子任务 id（配 --add-child）")
     parser.add_argument("--title", metavar="TEXT", help="子任务标题（配 --add-child）")
-    parser.add_argument("--release", action="store_true", help="放锁（认领作废，条目回 todo）")
+    parser.add_argument("--release", metavar="ACTION",
+                        help="发版节点：open/add/block/drop/check/cut（栅栏 + 克制 + 防无限 bug 分支）")
+    parser.add_argument("--rel", metavar="ID", help="发版节点 id（默认 REL-<version>）")
+    parser.add_argument("--version", metavar="X.Y.Z", help="发版节点的版本号")
+    parser.add_argument("--ci", metavar="RUN", help="切版要带 CI run id（判据之一）")
+    parser.add_argument("--id", metavar="ID", help="条目 id（配 --release add/block/drop）")
+    parser.add_argument("--submit", metavar="KIND",
+                        help="**外部提交**：fix/doc/gate/release-blocker（只追加，不改主线 ✗）")
+    parser.add_argument("--where", metavar="LOC", help="提交的落点（文件:行 / 台账 id）")
+    parser.add_argument("--evidence", metavar="TEXT", help="提交的证据（判据读数；**必填**）")
+    parser.add_argument("--patch", metavar="PATH", help="提交的补丁文件（拷进 docs/inbox/<id>.patch）")
+    parser.add_argument("--inbox", action="store_true", help="列出外部提交及状态")
+    parser.add_argument("--triage", metavar="ID", help="主流受理提交：--to applied|deferred|rejected")
+    parser.add_argument("--facet", metavar="F", default="", help="提交的面（默认 主线）")
+    parser.add_argument("--severity", metavar="S", default="", help="提交的严重度（默认 medium）")
+    parser.add_argument("--unclaim", action="store_true", help="放掉自己的认领（槽位归还）")
     parser.add_argument("--owner", default=_default_owner(), help="认领者（默认 $SOKO_OWNER 或 用户@主机）")
     parser.add_argument("--force", action="store_true", help="接管**陈旧**锁（进程已死或超 TTL）")
     args = parser.parse_args()
@@ -1319,8 +1666,19 @@ def main() -> int:
             if not args.child:
                 raise UsageError("`--add-child` 要配 `--child <id>`（建议再给 `--title`）")
             return cmd_add_child(args.add_child, args.child, args.title or "", args.owner, view)
+        if args.unclaim:
+            return cmd_unclaim(args.owner, args.reason or "")
         if args.release:
-            return cmd_release(args.owner, args.reason or "")
+            return cmd_release(args, view)
+        if args.submit:
+            return cmd_submit(args)
+        if args.inbox:
+            return cmd_inbox(view)
+        if args.triage:
+            if not args.to:
+                raise UsageError("`--triage` 要配 `--to applied|deferred|rejected`")
+            return cmd_triage(args.triage, args.to, args.reason or "", args.commit or "",
+                              args.owner)
         if args.next:
             return cmd_next(view, args.owner)
         if args.render:

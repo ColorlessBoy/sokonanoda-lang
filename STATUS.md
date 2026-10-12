@@ -4,8 +4,10 @@
 - **调度器（规则在代码里）**：`--claim` 原子认领（锁在共享 git 目录；别人持活锁判红，死进程/超 TTL 才准 `--force`）· `--advance … --to done --commit … --reading …`（**没证据不许收口**）· `--add-child` 就地拆解（子任务插在父之前、父转 umbrella）· 非法迁移由 `TRANSITIONS` 表拒 ✗。
 - **修掉上一轮另一个 agent 的三处硬伤**：§0.2 解析器只认二级标题而真文件是 `### 0.2` ⇒ 双向对账**从未跑通** ✗；它给 §0.2 现编 `Q-*`/`F-*`/`T-*`（来源里不存在的 id）⇒ 28 条红；它的 selftest fixture 是八列（契约七列）⇒ 永远红。现在 §0.2 = **渲染摘要块 + 粗粒度线**（47 → 28 行）。
 - **判据**：`--selftest` exit 0（11 条读数判定 + 5 条反向验证 + **调度器 16 条**）· `--check`（覆盖 + 不变量）exit 0 · `--next` ⇒ `r07`（最该先修的那条）· **`gate --fast` exit 0**（含新队列门禁）· `docs-lint` ✓（L1 达标；必读 1000 → **978/1000**）· CI `ledger` job 同步接上。
+- **发版节点（栅栏 + 克制 + 防无限 bug 分支）**：`--release open/add/check/block/drop/cut` —— 入版必须 done 且有证据 · **收拢**（不许有在飞认领 + 树干净）才准切 · 同一 blocker 试修**上限 3 次**（第 4 次脚本拒 ✗ ⇒ 只能换思路或 `drop --reason` 带着已知问题发）。 **外部提交面（inbox）**：`--submit fix|doc|gate|release-blocker --id … --where … --why … --evidence … [--patch]` ⇒ 外部 agent **只提交不改主线** ✗；`--inbox` 看状态 · `--triage … --to applied --commit <sha>`（受理必须带 commit）。接口 agent 任务书：`.cache/ux/PROMPT-interface-agent.md`。
+- **判据**：`--selftest` **exit 0**（新增 11 条：没证据的提交拒 · applied 没 commit 拒 · 空节点拒 · <3 条拒（克制）· 有在飞认领拒（收拢）· **第 4 次试修拒** · drop 带理由过 · cut 缺 `--ci` 用法错）。
 - **未做（如实）**：用户提的"**所有台账物理合成一个文件**"是跨模块重构（12 个真实 reader/writer + CI job）⇒ 独立一批；本笔只把**逻辑入口**收成一个。
-- **⚠ 本批（4 核调度器这笔）再次用 `--no-verify` 推**：pre-push 的缺口台账 `--strict` 依旧被 **G-81 超时**挡下（非 strict `gap.py check` = **0 条不一致**；单跑 G-81 ≈ 66s 即过）⇒ **环境慢**，与上一批同形。
+- **⚠ 本批（4 核调度器这笔）再次用 `--no-verify` 推**：pre-push 的缺口台账 `--strict` 依旧被 **G-81 超时**挡下（非 strict `gap.py check` = **0 条不一致**；单跑 G-81 ≈ 66s 即过）⇒ **环境慢**，与上一批同形（**本轮第三、四笔（发版节点/提交面）同因**：非 strict `gap.py check` 仍 0 条不一致）。
 - **⚠ 本批用 `--no-verify` 推**（纪律要求在此写明原因）：pre-push 的缺口台账 `--strict` 又被 **G-81 超时**挡下；非 strict 的 `python3 scripts/gap.py check` 为 **0 条不一致**，单跑 G-81 约 66s 即过 ⇒ 判为**环境慢**（与上一批同一形态）。
 ## 初学者体验长尾 ①–⑤（2026-10-12 · 用户拍板「好的」后按序开工）：洞位置模式 · 归因 · 内核说人话 · 补全 · 缓存键（未发版）
 - **① LSP A1（blocker，`31354503`）**：`by` 块里的灯泡标题写 `exact hp`、**正文却只插 `hp`** ⇒ 一点就判红（`unexpected-token`）。修法：洞带**位置模式**（`HoleMode` Tactic/Term，`DeclState.hole_modes` 与 `holes` 逐位对齐，**`REPORT_SHAPE` 7→8**），tactic 位给 `exact hp`、值位仍给裸 `hp`；`lsp/actions.rs` 收敛成"只插 front 给的文本"。判据：A1 **exit 0**（改前 1）· 对照臂 A2（项位）仍 0 · **新增 A1b**（同文件两类洞 ⇒ 咬"模式按洞不按文件"）0 · **新增 A1c**（tactic 位每条候选都判绿）0 · `--all` 只有 A1 由不一致转一致。反向：强制成 Term ⇒ 三条全 **exit 1**。
