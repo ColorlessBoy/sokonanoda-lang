@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! `soko/hints` custom request: the hint ladder of the declaration at the
 //! cursor (docs/design/hints-suggestions.md, protocol.md).
 //!

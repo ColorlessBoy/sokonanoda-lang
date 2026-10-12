@@ -1,4 +1,4 @@
-//! Code-action helpers: map next-step suggestions into quick-fix text edits
+//! Code-action helpers: map next-step suggestions into quick-fix text edits  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! for open exercises (docs/design/hints-suggestions.md §4.3).
 //!
 //! 建议生成在 `front::suggest`（kernel 验证优先：exact → rfl → refine →

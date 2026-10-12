@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! 编辑并发：**编译不阻塞消息循环**（T-A30）。
 //!
 //! 判据来自 clangd 的 threads 设计（`docs/design/lsp-edit-concurrency.md` §1）：

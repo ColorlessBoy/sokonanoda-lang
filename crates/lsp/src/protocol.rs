@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! `soko/*` 自定义请求的 wire 类型（`docs/protocol.md`）。
 //!
 //! 这里是 wire 形状的**唯一定义处**：字段名与语义就是协议本身，改字段名等于

@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! 真相层 → `soko/*` wire 的**唯一**形状映射点（`docs/protocol.md`）。
 //!
 //! `sokonanoda_front::query`（编辑器无关的真相层）用**字节 offset** 作答、

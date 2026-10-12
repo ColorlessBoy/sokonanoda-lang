@@ -1,4 +1,4 @@
-//! `sokonanoda-lsp`: a language server for `.sokonanoda` teaching files.
+//! `sokonanoda-lsp`: a language server for `.sokonanoda` teaching files.  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! Feedback philosophy (docs/design/infrastructure.md):
 //! - diagnostics per declaration with stable codes and teaching hints;

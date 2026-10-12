@@ -4,10 +4,10 @@
     "docs/design/abbrev.md": {
       "count": 5,
       "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
-      "example": "crates/front/src/compile/tests.rs:8913"
+      "example": "crates/front/src/compile/tests.rs:9120"
     },
     "docs/design/agent-query-channel.md": {
-      "count": 8,
+      "count": 7,
       "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
       "example": "crates/front/src/compile/elab.rs:8133"
     },
@@ -19,7 +19,7 @@
     "docs/design/by-tactics.md": {
       "count": 8,
       "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
-      "example": "crates/front/src/by.rs:2388"
+      "example": "crates/front/src/by.rs:2550"
     },
     "docs/design/closure-incremental.md": {
       "count": 1,
@@ -39,7 +39,7 @@
     "docs/design/ctor-namespace.md": {
       "count": 1,
       "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
-      "example": "crates/front/src/compile/tests.rs:7551"
+      "example": "crates/front/src/compile/tests.rs:7589"
     },
     "docs/design/elaborator-let-match.md": {
       "count": 2,
@@ -57,7 +57,7 @@
       "example": "crates/front/src/semantic.rs:260"
     },
     "docs/design/hints-suggestions.md": {
-      "count": 8,
+      "count": 5,
       "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
       "example": "crates/front/src/compile/hints.rs:2"
     },
@@ -79,17 +79,12 @@
     "docs/design/indexed-inductives.md": {
       "count": 1,
       "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
-      "example": "crates/front/src/compile/tests.rs:6646"
+      "example": "crates/front/src/compile/tests.rs:6684"
     },
     "docs/design/infrastructure.md": {
-      "count": 2,
+      "count": 1,
       "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
       "example": "crates/front/src/compile/error.rs:32"
-    },
-    "docs/design/lsp-edit-concurrency.md": {
-      "count": 3,
-      "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
-      "example": "crates/lsp/src/lib.rs:84"
     },
     "docs/design/match-dependent-motive.md": {
       "count": 3,
@@ -134,10 +129,10 @@
     "docs/design/parameterized-inductives.md": {
       "count": 1,
       "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
-      "example": "crates/front/src/compile/tests.rs:6466"
+      "example": "crates/front/src/compile/tests.rs:6504"
     },
     "docs/design/project-view.md": {
-      "count": 5,
+      "count": 4,
       "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
       "example": "crates/front/src/query/project.rs:1"
     },
@@ -145,11 +140,6 @@
       "count": 2,
       "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
       "example": "crates/front/src/compile/elab.rs:1039"
-    },
-    "docs/design/real-input-tests.md": {
-      "count": 3,
-      "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
-      "example": "crates/lsp/src/inlay.rs:134"
     },
     "docs/design/site-rebuild/research/R1-design-craft.md": {
       "count": 1,
