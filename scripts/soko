@@ -389,17 +389,35 @@ function writeMarker(base, version) {
 
 // ── resolution chain ─────────────────────────────────────────────────────────
 
-/// Newest of the contributor builds (`target/release|debug`).
+/// Newest of the contributor builds (`<cargo target dir>/release|debug`).
+///
+/// ⚠ **必须认 `CARGO_TARGET_DIR`**（2026-10-12 接口 agent 提交 `SUB-cargo-target-dir`）：
+/// `scripts/agent-worktree.sh new` 打印的唯一推荐路径是
+/// `eval "$(scripts/compile-cache.py env <id>)"`，而那一行导出的正是
+/// `CARGO_TARGET_DIR=<主 checkout>/.cache/compile/targets/<id>` ⇒ worktree 里自己刚编好的
+/// 二进制在 `<repo>/target/` **根本不存在** ⇒ 旧实现（只看 `REPO/target`）解析不到
+/// `cli`/`lsp`（实测两者都是空对象）、离线时直接判"没有"，AGENTS.md 承诺的解析顺序
+/// "版本匹配的仓库构建 → 缓存 → 下载"在受管环境下不成立 ✗。
+/// 顺序保持原样（`release` → `debug`，按 mtime 取最新）——**只多认一个根** ✓。
 function repoBuild(base) {
   const name = binaryName(base)
+  const roots = []
+  const custom = process.env.CARGO_TARGET_DIR
+  if (custom) {
+    // `CARGO_TARGET_DIR` 允许相对路径（相对**当前工作目录**，cargo 的口径）⇒ 先 resolve ✓
+    roots.push(path.resolve(custom))
+  }
+  if (!roots.includes(path.join(REPO, 'target'))) roots.push(path.join(REPO, 'target'))
   let best
-  for (const profile of ['release', 'debug']) {
-    const candidate = path.join(REPO, 'target', profile, name)
-    try {
-      const mtime = statSync(candidate).mtimeMs
-      if (!best || mtime > best.mtime) best = { path: candidate, mtime }
-    } catch {
-      // not built
+  for (const root of roots) {
+    for (const profile of ['release', 'debug']) {
+      const candidate = path.join(root, profile, name)
+      try {
+        const mtime = statSync(candidate).mtimeMs
+        if (!best || mtime > best.mtime) best = { path: candidate, mtime }
+      } catch {
+        // not built
+      }
     }
   }
   return best?.path

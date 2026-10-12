@@ -6,7 +6,7 @@
 一小部分 —— 过程记录、已收口批次的计划、调研笔记、遗留临时物全堆在一起 ✗。
 **清理一次没用** ✗：没有判据就一定回胖 ✗ ⇒ 把"文档重量"变成**机械可判** ✓。
 
-**六条判据**（逐条可判 ✓）：
+**七条判据**（逐条可判 ✓）：
   ① **活文档总量** ≤ `MAX_LIVE_BYTES` —— 活文档 = 仓根 `*.md`（git 跟踪）
      + `docs/**`（git 跟踪），**不含** `docs/archive/**`（归档是"可追溯" ✓，
      不是"每次都要读" ✗）；
@@ -23,6 +23,13 @@
   ⑥ **归档可追溯**（红线：**归档≠销毁** ✓）：`docs/archive/**` 每个文件都必须
      在 `docs/archive/README.md` 里被**点名** ✓，且归档总量 ≤ `MAX_ARCHIVE_BYTES`
      （防"归档变成垃圾场" ✗）。
+  ⑦ **接手路径**（X1，2026-09-28）：`docs/ONBOARDING.md` 的**必读表** —— 每文件必须存在、
+     不超它自己的 `max_lines`、**合计**不超 `onboarding_max_lines`（`docs-budget.json`
+     的 `onboarding` 一节）⇒ 「接手要读多少」是**会判红的数字**，不是一句希望 ✓。
+
+⚠ **文档过期（2026-09-30 的那条）不在本文件**：它在 `scripts/docs-expiry-check.py`
+（`pre-commit` 钩子跑的那条）。此前 `STATUS.md` 把两条混着数成"判据 ①–⑧"、
+本 docstring 又只列到 ⑥ ⇒ 三处数字互相打架（接口 agent 的 `SUB-docs-lint-criterion-count-drift`）。
 
 `--freeze` 重算冻结表（**只会收紧** ✓，放宽要手改）；`--json` 出机器可读摘要。
 

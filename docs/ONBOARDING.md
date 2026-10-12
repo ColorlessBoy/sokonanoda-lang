@@ -13,8 +13,11 @@
 |---|---|---|---|
 | 1 | `AGENTS.md` | 硬规则速记 + 命令 + 收尾义务（**本文件由 harness 自动读**） | 435 |
 | 2 | `docs/ONBOARDING.md` | **本文件**：接手路径/预算 + **开工单**（现在在哪 / **唯一队列** / 判据 / 纪律） | 260 |
-| 3 | `REQUIREMENTS.md` | 权威总账：硬规则全文 + §9 用户新要求 | 250 |
+| 3 | `REQUIREMENTS.md` | 权威总账：硬规则全文 + §9 用户新要求 | 267 |
 | 4 | `STATUS.md` | 当前快照 + 最近 3 轮 + **未决项**（**队列不在这里** ⇒ 见本文件 §0.2） | 240 |
+
+**实测合计 991 / 1000**（2026-10-12：`AGENTS.md` 435 · 本文件 200 · `REQUIREMENTS.md` 267 · `STATUS.md` 89）
+—— ⚠ 上表第 4 列是**逐文件上限**，**相加无意义**（逐文件由判据⑦ 核，合计上限另有 `onboarding_max_lines` = 1000）⇒ 别把 435+260+267+240 当成「已超标」✗。
 
 **按需查（不进必读表，但接手第一个小时大概率会碰）**：
 
@@ -58,9 +61,9 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=62 blocker=2 high=11 medium=33 low=16 -->
-**未完成 62 条**（blocker **2** · high **11** · medium **33** · low **16**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
-最靠前的 5 条：`SUB-submit-cli-crash` · `r07` · `F3` · `G-100` · `G-112`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
+<!-- QUEUE:COUNTS total=57 blocker=1 high=8 medium=32 low=16 -->
+**未完成 57 条**（blocker **1** · high **8** · medium **32** · low **16**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+最靠前的 5 条：`r07` · `F3` · `G-100` · `G-112` · `H1`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
 > **口径（2026-10-12 清台账 + 事件调度器）**：**明细只活在脚本里** —— `--next` 取队列 · `--claim <id>` 认领（**最多 4 个并发（"4 核"）**，写锁 + 

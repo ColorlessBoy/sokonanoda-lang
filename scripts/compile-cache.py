@@ -109,28 +109,106 @@ def worktrees() -> list[dict]:
     return trees
 
 
-def managed_entries() -> list[dict]:
+def _is_worktree_alive(wt: Path) -> bool:
+    """这棵工作树**还在不在**（`dead` = 可回收的唯一判据）。
+
+    * 链接工作树（`git worktree add`）⇒ 根下是 **`.git` 文件**（`gitdir: …`）✓
+    * 主工作树 ⇒ 根下是 **`.git` 目录** ✓
+    * 两者都不是（目录被删剩空壳 / 手工 `rm -rf <wt>/*`）⇒ **不在了**，可回收 ✓
+
+    ⚠ 只查 `.is_file()` 会把**主工作树**判死（它的 `.git` 是目录）——实测踩过一次：
+    那一下把主 checkout 的 **26.9 GB** target 标成"可回收" ✗（`reclaim` 会删掉整个
+    主 target ⇒ 灾难）。所以两个形状都要认 ✓。
+    """
+    marker = wt / ".git"
+    return marker.is_file() or marker.is_dir()
+
+
+def _hard_safety_check(entries: dict[str, dict]) -> None:
+    """**主工作树的 target 永远不许被判可回收**（删它 = 删掉整仓构建产物 ✗）。
+
+    这是"判据写错一次就够致命"的那类地方 ⇒ 不只靠上面的函数写对，**回收前再断言一次** ✓。
+    """
+    main_target = (REPO / "target").resolve()
+    for e in entries.values():
+        if Path(e["path"]).resolve() == main_target and e.get("dead"):
+            raise SystemExit(
+                f"✗ 内部不变量被破坏：主工作树的 `target/` 被判成**可回收**（{main_target}）"
+                f" ⇒ 拒绝回收（判据写错了，不是磁盘问题）✗")
+
+
+def managed_entries() -> dict[str, dict]:
+    """`{绝对路径: 条目}`（key 就是**去重键**：同一棵 target 只出现一次）。
+
+    ⚠ 返回的是 **dict 不是 list**（注解历史上写错了 ⇒ 调用方 `for e in managed_entries()`
+    拿到的是**字符串键**、`e["path"]` 直接 `TypeError`）。2026-10-12 修 `SUB-reclaim-never-fires`
+    时踩到：`cmd_reclaim` 的 ① 档本来就会崩在这上面（而它此前从未被跑到 ⇒ 崩了也没人知道）。
+    现在每个调用点都显式取 `.values()`，并加一条形状断言（见下）。
+    """
     """所有受管 target：主工作树的 `target/` + 每棵工作树的 target + 受管根下的 `targets/*` ✓。"""
     entries: dict[str, dict] = {}
 
-    def add(path: Path, owner: str, kind: str) -> None:
+    def add(path: Path, owner: str, kind: str, dead: bool | None = None) -> None:
+        """`dead` = "**可回收**"（默认：路径不存在）。
+
+        ⚠ 工作树那一路要传**自己的判据**：`git worktree list` 里**残留的注册**会让
+        `wt["path"]` 照样出现在列表里（目录没了、或只剩个空壳），此时
+        `not path.exists()` 是 `False` ⇒ 那棵还占着盘的 `target/` 被当成活的、**永远回收不了** ✗
+        （`SUB-reclaim-never-fires` 的真实机制）。判据 = "**它还是不是一棵工作树**"
+        （`<wt>/.git` 标记文件在不在）✓。
+        """
         key = str(path.resolve()) if path.exists() else str(path)
         if key in entries:
+            if dead is not None and dead:
+                entries[key]["dead"] = True              # 后来者可以把它标死（反之不改 ✓）
             return
         entries[key] = {"path": path, "owner": owner, "kind": kind,
                         "bytes": tree_bytes(path) if path.is_dir() else 0,
-                        "mtime": mtime(path), "dead": not path.exists()}
+                        "mtime": mtime(path),
+                        "dead": (not path.exists()) if dead is None else dead}
 
     for wt in worktrees():
         t = wt["path"] / "target"
-        add(t, wt["branch"], "worktree")
+        add(t, wt["branch"], "worktree", dead=not _is_worktree_alive(wt["path"]))
     if CACHE_ROOT.is_dir():
         for child in sorted((CACHE_ROOT / "targets").glob("*")) if (CACHE_ROOT / "targets").is_dir() else []:
             add(child, child.name, "managed")
     # 老式同级 target-<branch>/（仓库历史上用过）
     for sib in sorted(REPO.parent.glob(f"{REPO.name}/target-*")) + sorted(REPO.glob("target-*")):
         add(sib, sib.name, "sibling")
-    return sorted(entries.values(), key=lambda e: -e["bytes"])
+    # **孤儿 target**（2026-10-12 接口 agent 提交 `SUB-reclaim-never-fires` 的真形态）：
+    # `git worktree remove` / 手工 `rm -rf <wt>` 都**不会**动 `<wt>/target` ⇒ 那棵 target
+    # 从此**再也没人枚举**（不是"被跳过"，是**看不见**）⇒ 永远占盘、`reclaim` 第①档永不触发 ✗。
+    # 两处扫描（都**只认确实的工作树形状**，别扫无关目录 —— 实测踩过一次：
+    # `REPO.parent.glob("*/target")` 会把**另一个仓库** `/…/sokonanoda/sokonanoda/target`
+    # 当成孤儿 ✗）：
+    #   ① `<REPO>/.worktrees/<id>/target`（我们自己的约定；目录里必须有 `.git` **文件**）
+    #   ② **git 注册过、但目录已消失**的工作树（读 `.git/worktrees/*/gitdir`）—— `git worktree
+    #      prune` 认得的那一类；它的 `target/` 若还在，就是货真价实的孤儿 ✓。
+    for cand in sorted((REPO / ".worktrees").glob("*/target")):
+        if not cand.is_dir() or str(cand.resolve()) in entries:
+            continue
+        if not (cand.parent / ".git").is_file():
+            continue                                     # 不是链接工作树 ⇒ 不碰 ✓
+        add(cand, f"（孤儿：{cand.parent.name}）", "orphan-worktree")
+        entries[str(cand.resolve())]["dead"] = True       # 主人已不在工作树列表 ⇒ 可回收 ✓
+    for meta in sorted((REPO / ".git" / "worktrees").glob("*/gitdir")):
+        try:
+            wt_path = Path(meta.read_text(encoding="utf-8").strip())
+        except OSError:
+            continue
+        wt = wt_path.parent if wt_path.name == ".git" else wt_path
+        target = wt / "target"
+        # "主人还在吗"的判据**不能只看 `wt.exists()`**：手工 `rm -rf <wt>/*` / 删到一半时
+        # 那个目录**还在**（于是 target 也还在、还占着盘）⇒ 只要**不再是工作树**
+        # （`.git` 标记文件没了）就算孤儿 ✓。实测踩过这一次（`find -delete` 留下的空壳）。
+        still_worktree = (wt / ".git").is_file()
+        if still_worktree or not target.is_dir() or str(target.resolve()) in entries:
+            continue
+        add(target, f"（工作树已消失：{wt.name}）", "orphan-worktree")
+        entries[str(target.resolve())]["dead"] = True
+    _hard_safety_check(entries)
+    return entries
 
 
 def load_registry() -> dict:
@@ -148,10 +226,20 @@ def save_registry(data: dict) -> None:
 
 
 def budget_bytes(reg: dict | None = None) -> int:
+    """预算字节数。⚠ `reg` 的**空字典**是合法入参（= "没有 registry"）⇒ 走默认值。
+
+    2026-10-12 实测的 bug（接口 agent 提交 `SUB-compile-cache-selftest-false-red`）：
+    旧写法 `reg = reg or load_registry()` 把**空 dict**（falsy）当成"没传" ⇒ **回落去读真
+    registry.json**，而 `--set-budget` 正是写那个文件 ⇒ 用户按文档设过一次预算之后，
+    `--selftest` 的 `budget_bytes({}) == DEFAULT_BUDGET_GB` **永久判红** —— 而这条 selftest
+    已进 `scripts/soko gate` 与 CI（任何设过预算的机器 gate 假红 ✗）。
+    判据用 `is None`（只有真的没传才回落）✓。
+    """
     env = os.environ.get("SOKO_CACHE_BUDGET_GB")
     if env:
         return int(float(env) * 1024**3)
-    reg = reg or load_registry()
+    if reg is None:
+        reg = load_registry()
     return int(float(reg.get("budget_gb", DEFAULT_BUDGET_GB)) * 1024**3)
 
 
@@ -165,7 +253,7 @@ def builders_running() -> list[str]:
     拿不到锁文件（不存在/无权限）⇒ 记成"这一棵看不出来"，不据此拒绝。"""
     import fcntl
     busy: list[str] = []
-    for e in managed_entries():
+    for e in managed_entries().values():
         lock = e["path"] / ".cargo-lock"
         if not lock.exists():
             lock = e["path"] / "debug" / ".cargo-lock"
@@ -199,7 +287,7 @@ def reclaim_order(entries: list[dict]) -> list[dict]:
 
 
 def cmd_status(as_json: bool, quiet: bool) -> int:
-    entries = managed_entries()
+    entries = list(managed_entries().values())
     total = sum(e["bytes"] for e in entries)
     budget = budget_bytes()
     over = total > budget
@@ -253,7 +341,7 @@ def cmd_reclaim(to_budget: bool) -> int:
         for line in running[:5]:
             print(f"    {line}")
         return 2
-    entries = managed_entries()
+    entries = list(managed_entries().values())
     budget = budget_bytes()
     before = sum(e["bytes"] for e in entries)
     freed, acted = 0, []
@@ -283,7 +371,7 @@ def cmd_reclaim(to_budget: bool) -> int:
             freed += size
             after -= size
             acted.append(f"LRU 整棵 {e['path']}")
-    gone = sum(e["bytes"] for e in managed_entries())
+    gone = sum(e["bytes"] for e in managed_entries().values())
     print(f"回收前：{human(before)} ⇒ 回收后：**{human(gone)}**（释放 **{human(freed)}** · 预算 {human(budget)}）")
     for a in acted[:12]:
         print(f"  · 删了 {a}")
@@ -318,12 +406,47 @@ def selftest() -> int:
     expect("预算 1B ⇒ 判超（反向验证）", budget_bytes({"budget_gb": 0}) <= 2)
     del os.environ["SOKO_CACHE_BUDGET_GB"]
     expect("registry 里的预算生效", budget_bytes({"budget_gb": 7}) == 7 * 1024**3)
-    expect("默认预算 60G", budget_bytes({}) == DEFAULT_BUDGET_GB * 1024**3)
+    # ⚠ **空 dict ≠ 没传**：`{}` 是"没有 registry"⇒ 必须走默认值；用 `is None` 判（见
+    # `budget_bytes` 的说明）。这里同时钉住"真 registry 会不会把它带偏"：
+    # 把 `load_registry` 换成一个**非默认预算**的假 registry ⇒ 空 dict 仍须给默认值。
+    saved_load = globals()["load_registry"]
+    globals()["load_registry"] = lambda: {"budget_gb": 7}
+    try:
+        expect("空 dict ⇒ 默认 60G（**不许**回落去读真 registry ✗）",
+               budget_bytes({}) == DEFAULT_BUDGET_GB * 1024**3)
+        expect("没传（None）⇒ 才回落 registry", budget_bytes() == 7 * 1024**3)
+    finally:
+        globals()["load_registry"] = saved_load
+
+    # 孤儿的判定：`<worktree>/target` 在、工作树已消失 ⇒ 必须被枚举成 dead（可回收）
+    import tempfile as _tf
+    with _tf.TemporaryDirectory() as td:
+        # 形状要照**受管约定**放：`<REPO>/.worktrees/<id>/target`（`managed_entries` 的扫描面；
+        # 侧放一个没有 `.git` 的兄弟目录当**反面对照** ⇒ 它必须**不被**枚举成孤儿 ✓）
+        root = Path(td) / ".worktrees" / "gone"
+        (root / "target").mkdir(parents=True)
+        (root / ".git").write_text("gitdir: /nowhere\n", encoding="utf-8")
+        decoy = Path(td) / ".worktrees" / "not-a-worktree" / "target"
+        decoy.mkdir(parents=True)
+        saved_wt, saved_root, saved_cache = globals()["worktrees"], globals()["REPO"], globals()["CACHE_ROOT"]
+        globals()["worktrees"] = lambda: [{"path": saved_root, "branch": "main"}]
+        globals()["REPO"] = Path(td)
+        globals()["CACHE_ROOT"] = Path(td) / ".cache"
+        try:
+            ents = list(managed_entries().values())
+            orphan = [e for e in ents if e["kind"] == "orphan-worktree"]
+            expect(f"孤儿 worktree target 被枚举（{len(orphan)} 条）", len(orphan) == 1)
+            expect("孤儿被标 dead（⇒ reclaim 第①档才会碰它）",
+                   bool(orphan) and orphan[0]["dead"] is True)
+            expect("**没有 `.git` 的兄弟目录不被误认**（反面对照）",
+                   all("not-a-worktree" not in str(e["path"]) for e in orphan))
+        finally:
+            globals()["worktrees"], globals()["REPO"], globals()["CACHE_ROOT"] = saved_wt, saved_root, saved_cache
 
     if bad:
         print(f"compile-cache.py selftest: {bad} 条判据不成立 ✗", file=sys.stderr)
         return 1
-    print("compile-cache.py selftest: 4 条成立 ✓（死树优先 · LRU 最旧优先 · 预算反向验证 · registry/默认预算）")
+    print("compile-cache.py selftest: 7 条成立 ✓（死树优先 · LRU 最旧优先 · 预算反向验证 · registry/默认预算 · **空 dict ≠ 没传** · **孤儿 target 被枚举成 dead**）")
     return 0
 
 

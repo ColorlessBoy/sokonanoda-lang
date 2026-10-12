@@ -1369,14 +1369,23 @@ def release_nodes() -> dict[str, dict]:
     for ev in load_events():
         kind = ev.get("event")
         if kind == "release-open":
-            out[ev["id"]] = {"id": ev["id"], "version": ev.get("version"), "items": [],
-                             "blockers": {}, "ts": ev.get("ts"), "cut": None}
+            # ⚠ **别覆盖已有节点**（2026-10-12 接口 agent 提交 `SUB-release-drop-resets-attempts`）：
+            # `release-open` 对同一个版本可以再来一次（重开节点），而 `blockers` 是**试修计数**
+            # ⇒ 覆盖 = 把"同一问题最多试修 3 次"的账清零 ⇒ 防无限 bug 分支的守卫形同虚设 ✗。
+            prev = out.get(ev["id"]) or {}
+            out[ev["id"]] = {"id": ev["id"], "version": ev.get("version"),
+                             "items": prev.get("items", []),
+                             "blockers": dict(prev.get("blockers", {})),
+                             "ts": ev.get("ts"), "cut": prev.get("cut")}
         elif kind == "release-add" and ev.get("rel") in out:
             out[ev["rel"]]["items"].append(ev["id"])
         elif kind == "release-drop" and ev.get("rel") in out:
             node = out[ev["rel"]]
             node["items"] = [i for i in node["items"] if i != ev.get("id")]
-            node["blockers"].pop(ev.get("id"), None)
+            # ⚠ **不动 `blockers`**：`drop` 是"带着已知问题发版"的合法出路，但试修计数是
+            # **跨节点累计的历史**（同一问题试修过 3 次就是 3 次）⇒ 把它一起 pop 掉
+            # 就等于"drop 一次又能 block 3 次、再 drop、再 3 次……"无限循环 ✗
+            #（用户 2026-10-12 明确要求"同一问题最多试修 3 次，第 4 次走 drop 带已知问题发版"）。
         elif kind == "release-block" and ev.get("rel") in out:
             node = out[ev["rel"]]
             node["blockers"][ev["id"]] = node["blockers"].get(ev["id"], 0) + 1
@@ -1746,6 +1755,12 @@ def selftest_release_inbox(expect) -> None:
             except UsageError:
                 rc_cut = 2
             expect(f"cut 缺 --ci ⇒ 用法错（rc={rc_cut}）", rc_cut == 2)
+            # ⑤b **防无限 bug 分支不能被 `drop` 重置**（2026-10-12 接口 agent 提交
+            #     `SUB-release-drop-resets-attempts`）：已有 3 次试修 → drop → 再 block
+            #     ⇒ **第 4 次仍必须被拒**（计数是跨节点累计的历史 ✗）。
+            expect("drop 之后第 4 次 block 仍被拒（计数不许被 drop 清零）",
+                   quiet(cmd_release, ns(release="block", version="9.9.9", id="SUB-1",
+                                         reason="再来一次"), rows) == 1)
             globals()["effective_state"] = saved_eff
             # 发版用例清过事件表、② 又落过 claim/advance ⇒ ⑥ 要的形状（"提交了但还没受理"）
             # 得**再清一次表**并只落一条 submit 事件（否则残留的 claim 事件会把状态钉在
