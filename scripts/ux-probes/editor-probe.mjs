@@ -1255,6 +1255,25 @@ function prepare(tag, arm) {
 /// **为什么**：工作区原先靠上一轮会话手工复制 ⇒ clone 之后探针跑不起来；探针必须自足。
 function ensureWorkspace() {
   mkdirSync(WS, { recursive: true });
+  // ⚠ **每次开工都刷新夹具**（2026-10-13 修 F12 判据的假红，lspD 附带发现）：
+  // 旧口径只在 `sokonanoda.toml` **缺失**时镜像一次 ⇒ 一旦某轮被改写（实测：`⌘.`
+  // 菜单里 VS Code 内置 AI 的 `Rewrite`/`Generate` 是 **focused** 项，被 `<CR>` 选中
+  // ⇒ 它把 `sorry` 从缓冲区删掉），工作区就**永久留脏** ⇒ 之后**每轮** `hole-lightbulb`
+  // 必然红 ✗ —— 而红的原因是**探针自己的夹具**，不是产品（判据假红 = 最坏的一种红）。
+  // ⇒ 无条件把用例真正读的那几个文件按源覆盖（`writeFileSync` 之后 `revertFile`
+  // 会把编辑器缓冲区拉回磁盘内容 ✓，见 `runCase`）。
+  for (const rel of ["units/I.1/unit01-sets-membership.sokonanoda"]) {
+    const src = join(REPO, "courses", "set-theory", rel);
+    const dst = join(WS, rel);
+    if (!existsSync(src)) continue;
+    mkdirSync(dirname(dst), { recursive: true });
+    try {
+      if (!existsSync(dst) || readFileSync(dst, "utf8") !== readFileSync(src, "utf8")) {
+        cpSync(src, dst);
+        log(`夹具复位：${rel}（源 ⇒ 工作区）`);
+      }
+    } catch { /* 读不了就跳过，别让自举挡住判定 */ }
+  }
   if (!existsSync(join(WS, "sokonanoda.toml"))) {
     for (const rel of ["sokonanoda.toml", "lib", "units"]) {
       cpSync(join(REPO, "courses", "set-theory", rel), join(WS, rel), { recursive: true });
