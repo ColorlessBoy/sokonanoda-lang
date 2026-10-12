@@ -1526,7 +1526,16 @@ async function nextHole(backward) {
     vscode.window.showWarningMessage("sokonanoda 语言服务器没有运行。");
     return;
   }
-  const position = editor.selection.active;
+  // **后退从选区的起点问，前进才用 `active`**（2026-10-12 修 `prevhole` 卡住 ✗）：
+  // `soko/nextHole` 的判据是 `hole.start > cursor` / `hole.start < cursor`（严格
+  // 不等，见 `crates/front/src/query/mod.rs::next_hole`），而下面的 `revealRange`
+  // 把选区设成 `Selection(range.start, range.end)` ⇒ `active` 落在洞的**终点**：
+  //   * 前进：自己的 `start` 不大于自己的 `end` ⇒ 天然跳过自己 ✓；
+  //   * 后退：自己的 `start` **小于**自己的 `end` ⇒ **命中自己** ⇒ alt+shift+n
+  //     卡在同一个洞上原地不动（实测轨迹 `93>82>82>82`）✗。
+  // 从**起点**问后退 = "从洞的开头往前找"，与前进方向对称；没有选区时
+  // `start === active`，行为一字不变 ✓。
+  const position = backward ? editor.selection.start : editor.selection.active;
   const ask = (pos, forward) =>
     client.sendRequest("soko/nextHole", {
       textDocument: { uri: editor.document.uri.toString() },

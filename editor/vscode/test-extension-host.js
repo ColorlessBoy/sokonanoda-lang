@@ -596,11 +596,27 @@ function fakeEditor(document, positions, { anchor } = {}) {
   // 见上：P4 的装饰记录（`[{type, ranges}]`，便于断言"成对"✓）。
   const decorationCalls = [];
   const points = positions ?? [{ line: 0, character: 0 }];
-  let selections = points.map((active) => ({
-    active,
-    anchor: anchor ?? active,
-    isEmpty: anchor === undefined || (anchor.line === active.line && anchor.character === active.character),
-  }));
+  // 真 API 的 `Selection` 是 `Range` 的子类 ⇒ **`start`/`end` 一定在**（`start` =
+  // 较小那一端、`end` = 较大那一端，与 anchor 是否反向无关 ✓）。桩原先只给
+  // `active`/`anchor` ⇒ 读 `selection.start` 的代码（`sokonanoda.previousHole`
+  // 的落点判据）在桩里拿到 `undefined` ✗（判据就会变成"桩的缺陷"而不是扩展的）。
+  const before = (a, b) =>
+    a.line < b.line || (a.line === b.line && a.character < b.character);
+  let selections = points.map((active) => {
+    const anchorPoint = anchor ?? active;
+    const [start, end] = before(anchorPoint, active)
+      ? [anchorPoint, active]
+      : [active, anchorPoint];
+    return {
+      active,
+      anchor: anchorPoint,
+      start,
+      end,
+      isEmpty:
+        anchor === undefined ||
+        (anchor.line === active.line && anchor.character === active.character),
+    };
+  });
   const editor = {
     document,
     // 真宿主里 `editor.selections = [...]` **同时**更新 `selection`（= 主选区，
@@ -2139,6 +2155,61 @@ test("a project answer for another document is dropped", async () => {
     `an answer for another document must not paint this tree: ${roots.map((r) => r.label)}`,
   );
   stubbedResponses["soko/project"] = () => ({ uri: "", version: 1, project: null, reason: "no-imports" });
+});
+
+test("previousHole 从洞的**起点**问后退：连按不许卡在同一个洞上（F10 prevhole）", async () => {
+  // 2026-10-12 修：`soko/nextHole` 的判据是 `hole.start < cursor`（**严格**不等，
+  // 见 `crates/front/src/query/mod.rs::next_hole`），而 `revealRange` 把选区设成
+  // `Selection(range.start, range.end)` ⇒ 用 `active`（= 洞的**终点**）问后退会
+  // **命中自己** ⇒ alt+shift+n 原地不动（真 VS Code 实测轨迹 `93>82>82>82` ✗）。
+  // 判据打在**扩展真正发出去的那个 position** + **光标落到哪个洞** 上
+  // （同一份代码路径，桩宿主与真宿主共用 ✓）。
+  await activateExtension();
+  const doc = fakeDocument("/repo/units/u01.sokonanoda", "sokonanoda", "a\nb\n");
+  const holes = [
+    { start: { line: 20, character: 2 }, end: { line: 20, character: 7 } },
+    { start: { line: 10, character: 2 }, end: { line: 10, character: 7 } },
+  ];
+  const before = (a, b) => a.line < b.line || (a.line === b.line && a.character < b.character);
+  // 服务端语义照抄真相层：前进 = 第一个 `start > cursor`；后退 = 最后一个 `start < cursor`。
+  stubbedResponses["soko/nextHole"] = (params) => {
+    const from = params.position;
+    return params.forward
+      ? holes.find((h) => before(from, h.start)) ?? null
+      : [...holes].reverse().find((h) => before(h.start, from)) ?? null;
+  };
+  // 站上**第二个洞**：这正是 `revealRange` 留下的形状（anchor = 起点、active = 终点）。
+  const editor = focus(doc, [{ line: 20, character: 7 }], { anchor: { line: 20, character: 2 } });
+  requests.length = 0;
+
+  await vscodeStub.__commands["sokonanoda.previousHole"]();
+
+  const asked = requests.filter((r) => r.method === "soko/nextHole");
+  assert.strictEqual(asked.length, 1, "后退只问一次");
+  assert.deepStrictEqual(
+    asked[0].params.position,
+    { line: 20, character: 2 },
+    `后退必须从选区**起点**问（拿 active=终点 会命中自己 ⇒ 卡住）：${JSON.stringify(asked[0].params.position)}`,
+  );
+  assert.deepStrictEqual(
+    editor.selection.active,
+    { line: 10, character: 7 },
+    `alt+shift+n 必须走到**前一个**洞，而不是原地不动：${JSON.stringify(editor.selection.active)}`,
+  );
+
+  // 前进方向一字不变：仍从 `active`（= 当前洞的终点）问 ⇒ 跳过自己、走到下一个洞。
+  requests.length = 0;
+  await vscodeStub.__commands["sokonanoda.nextHole"]();
+  assert.deepStrictEqual(
+    requests.filter((r) => r.method === "soko/nextHole")[0].params.position,
+    { line: 10, character: 7 },
+    "前进仍从 active 问（跳过自己）",
+  );
+  assert.deepStrictEqual(
+    editor.selection.active,
+    { line: 20, character: 7 },
+    `alt+n 从第一个洞回到第二个洞：${JSON.stringify(editor.selection.active)}`,
+  );
 });
 
 test("cursor moves ask only for the caret state", async () => {
