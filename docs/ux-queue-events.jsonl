@@ -195,3 +195,4 @@
 {"ts": "2026-10-12T22:33:54+00:00", "event": "advance", "id": "r18", "to": "done", "commit": "98318d5e", "reading": "见 extras 的 observed（判据 + 反向验证 + 判定不变 + 如实边界）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T22:33:54+00:00", "event": "claim", "id": "r16", "owner": "orchestrator", "resources": ["crates/front"]}
 {"ts": "2026-10-12T22:33:54+00:00", "event": "advance", "id": "r16", "to": "done", "commit": "00f94e03", "reading": "见 extras 的 observed（判据 + 反向验证 + 判定不变 + 如实边界）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T23:09:34+00:00", "event": "reopen", "id": "r18", "reason": "修法把 prelude 文本写进 Rust 字面量 ⇒ 违反定过案的契约（the_three_source_files_are_the_truth_and_rust_holds_no_prelude_text）⇒ 已 revert", "owner": "penglingwei@penglingweis-Laptop"}
