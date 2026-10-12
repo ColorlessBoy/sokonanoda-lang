@@ -469,6 +469,137 @@ pub(crate) fn decl_at(decls: &[DeclState], line: u32, character: u32) -> Option<
         .find(|d| pos_within_span(line, character, d.span))
 }
 
+// ── F6：内核 pp 的 `Type 0` 按 **Lean 4** 印成 `Type`（显示层，判定一行不动）──────
+//
+// ## Lean 4 对照（本机源码 `~/Documents/lean/lean4/src/Lean/**`）
+//
+// * `PrettyPrinter/Delaborator/Builtins.lean:82-91` `delabSort`：
+//   `Level.zero => Prop` · **`Level.succ .zero => Type`**（**层级 0 是丢掉的**）·
+//   更高层 `Type n` · 非数字层 `Sort u`。
+// * `…/Builtins.lean:1009`（`delabForall`）与 `:913`（`delabLam`）的 binder 域走
+//   `withBindingDomain delab` ⇒ **binder 位与结论位同一条规则，没有特判**。
+// * `…/Delaborator/Options.lean:56` `pp.universes` 默认 `false`，且 `delabSort`
+//   **根本不读它**（它只管常量应用的层实参，`Builtins.lean:113`）⇒ 与本规则无关。
+//
+// ## 我们这边的缝（F6，2026-10-13）
+//
+// 声明列表的 `ty` 是**内核 pp 的原样搬运** —— `crates/kernel/src/pretty_printer.rs:694`
+// 的 `pp_sort` 对 `Succ` **无条件**写层 ⇒ `Type 0`；而目标卡片那一半
+// （`binders[].ty`）走的是**源级**渲染（写的是 `Type`）⇒ 同一份类型两处两种写法
+// （Infoview 正文里 `Type 0` ×8，全是 `ty`）。内核 pp 的修法在 `crates/kernel`，
+// 本层做的是**显示层**的等价改写。
+//
+// ## 为什么 runs 必须一起搬
+//
+// `ty_runs` 是 `ty` 的着色分段（T-A5：**文本与 runs 必须成对产出**）。删掉两个字节
+// 而不同步搬偏移 ⇒ 从第一个 `Type 0` 起的高亮全部错位（"数据对了 ≠ 用户看见了"）。
+// 这里按**分段自己的文本**切（输入满足"runs 依次拼接 == 文本"的不变量，实测 8/8
+// 条声明成立），偏移由拼接位置重算 ⇒ 输出的"文本 ↔ runs"自洽是**构造保证**的。
+//
+// **退役条件**：内核 `pp_sort` 按 Lean 4 丢掉 `Type 0` 的层之后，本组函数整体删掉。
+
+/// `Type 0` 里那两个字节（` 0`）在 `text` 里的字节区间。
+///
+/// 判据（与 Lean 4 的 `delabSort` 同口径）：`Type` 是**独立 token**
+/// （前一个字节不是标识符字符）、后面恰好是**空格 + `0`**、且 `0` 后面不是数字。
+/// `Type 1` / `Type u` / `Sort u` / `Prop` **一个都不动** ✓。
+fn level_zero_cuts(text: &str) -> Vec<(usize, usize)> {
+    let bytes = text.as_bytes();
+    let mut cuts: Vec<(usize, usize)> = Vec::new();
+    let mut from = 0usize;
+    while let Some(found) = text[from..].find("Type") {
+        let at = from + found;
+        from = at + "Type".len();
+        let prev_is_ident = at > 0 && {
+            let b = bytes[at - 1];
+            b.is_ascii_alphanumeric() || b == b'_' || b == b'\'' || b == b'.' || b >= 0x80
+        };
+        if prev_is_ident {
+            continue;
+        }
+        let rest = &text[from..];
+        let spaces = rest.len() - rest.trim_start_matches(' ').len();
+        if spaces == 0 {
+            continue;
+        }
+        let after = &rest[spaces..];
+        if !after.starts_with('0') || after[1..].starts_with(|c: char| c.is_ascii_digit()) {
+            continue;
+        }
+        // 删掉 ` 0` 两个字节（`spaces >= 1` ⇒ `zero_at - 1` 就是那个空格）。
+        let zero_at = from + spaces;
+        cuts.push((zero_at - 1, zero_at + 1));
+    }
+    cuts
+}
+
+/// 文本版：`Type 0` → `Type`（给 Markdown 形态的卡片用；没有 runs 要搬）。
+pub(crate) fn lean4_universe_text(text: &str) -> String {
+    let cuts = level_zero_cuts(text);
+    if cuts.is_empty() {
+        return text.to_string();
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut cursor = 0usize;
+    for (start, end) in &cuts {
+        out.push_str(&text[cursor..*start]);
+        cursor = *end;
+    }
+    out.push_str(&text[cursor..]);
+    out
+}
+
+/// wire 版：`ty` + `ty_runs` **成对**过同一条规则（偏移按拼接位置重算 ⇒ 自洽）。
+pub(crate) fn lean4_universe_runs(
+    ty: String,
+    runs: Vec<crate::protocol::RunInfo>,
+) -> (String, Vec<crate::protocol::RunInfo>) {
+    let cuts = level_zero_cuts(&ty);
+    if cuts.is_empty() {
+        return (ty, runs);
+    }
+    let text = lean4_universe_text(&ty);
+    let mut out: Vec<crate::protocol::RunInfo> = Vec::with_capacity(runs.len());
+    let mut pos = 0usize;
+    let mut new_pos = 0usize;
+    for run in runs {
+        let len = run.text.len();
+        let (s, e) = (pos, pos + len);
+        pos = e;
+        // 这份 run 与删掉的区间**求差**（run 的 `text` 就是它在整串里的那一段）。
+        let mut kept = String::new();
+        let mut k = s;
+        for (cs, ce) in &cuts {
+            if *ce <= s || *cs >= e {
+                continue;
+            }
+            let a = (*cs).max(s);
+            let b = (*ce).min(e);
+            if a > k {
+                kept.push_str(&run.text[k - s..a - s]);
+            }
+            k = b;
+        }
+        if k < e {
+            kept.push_str(&run.text[k - s..]);
+        }
+        if kept.is_empty() {
+            continue;
+        }
+        let has_offsets = run.start.is_some() && run.end.is_some();
+        let start = has_offsets.then_some(new_pos);
+        let end = has_offsets.then_some(new_pos + kept.len());
+        new_pos += kept.len();
+        out.push(crate::protocol::RunInfo {
+            text: kept,
+            kind: run.kind,
+            start,
+            end,
+        });
+    }
+    (text, out)
+}
+
 /// The name use point under the cursor resolves to this definition
 /// (smallest enclosing use wins; prelude/unknown idents stay unresolved).
 pub(crate) fn definition_at(
@@ -1338,5 +1469,125 @@ def viaPrefix : Wrap := Wrap.mk\ndef viaAlias : Wrap := mk\n";
         let open = slice.matches('(').count();
         let close = slice.matches(')').count();
         assert_eq!(open, close, "括号必须配对：{slice:?}");
+    }
+}
+
+#[cfg(test)]
+mod lean4_universe_tests {
+    use super::{lean4_universe_runs, lean4_universe_text};
+    use crate::protocol::RunInfo;
+
+    fn run(text: &str, kind: Option<&str>) -> RunInfo {
+        RunInfo {
+            text: text.to_string(),
+            kind: kind.map(str::to_string),
+            start: None,
+            end: None,
+        }
+    }
+
+    /// **F6 的判据（真相层）**：内核 pp 的 `Type 0` 印成 `Type`（Lean 4 的
+    /// `delabSort`），而 `Type 1` / `Type u` / `Sort u` / `Prop` 一个都不动。
+    #[test]
+    fn type_zero_loses_its_level_and_nothing_else_changes() {
+        assert_eq!(
+            lean4_universe_text("∀ (α : Type 0) (A : Set α), A ⊆ A"),
+            "∀ (α : Type) (A : Set α), A ⊆ A"
+        );
+        // 更高层 / 变量层 / 非数字层：**逐字节不动**。
+        for keep in [
+            "∀ (α : Type 1), α → α",
+            "∀ (α : Type u), α → α",
+            "Sort u → Sort u",
+            "Prop → Prop",
+            // 名字里带 `Type` 的标识符不是 `Type` token。
+            "MyType 0 → MyType 0",
+            "Set.Type 0 → Set.Type 0",
+        ] {
+            assert_eq!(lean4_universe_text(keep), keep, "不许动：{keep}");
+        }
+    }
+
+    /// **runs 与文本必须一起变**（T-A5）：`ty_runs` 依次拼接 == `ty`，
+    /// 且 `start`/`end` 是**字节**偏移、等于拼接位置 —— 改完这条不变量照旧成立
+    /// （否则从第一个 `Type 0` 起的高亮全部错位 ✗）。
+    #[test]
+    fn runs_move_with_the_text_and_stay_tiled() {
+        let ty = "∀ (α : Type 0) (A : Type 1), A ⊆ A".to_string();
+        // 分段：`Type`（带位置）/ 空格 / `0`（带位置）/ …（与 wire 上的形状同构）。
+        let runs: Vec<RunInfo> = vec![
+            RunInfo {
+                text: "∀ (α : ".into(),
+                kind: Some("keyword".into()),
+                start: Some(0),
+                end: Some(6),
+            },
+            RunInfo {
+                text: "Type".into(),
+                kind: Some("sort".into()),
+                start: Some(6),
+                end: Some(10),
+            },
+            run(" ", None),
+            RunInfo {
+                text: "0".into(),
+                kind: Some("number".into()),
+                start: Some(11),
+                end: Some(12),
+            },
+            RunInfo {
+                text: ") (A : ".into(),
+                kind: None,
+                start: Some(12),
+                end: Some(19),
+            },
+            RunInfo {
+                text: "Type".into(),
+                kind: Some("sort".into()),
+                start: Some(19),
+                end: Some(23),
+            },
+            run(" ", None),
+            RunInfo {
+                text: "1".into(),
+                kind: Some("number".into()),
+                start: Some(24),
+                end: Some(25),
+            },
+            RunInfo {
+                text: "), A ⊆ A".into(),
+                kind: None,
+                start: Some(25),
+                end: Some(33),
+            },
+        ];
+        let (text, out) = lean4_universe_runs(ty, runs);
+        assert_eq!(text, "∀ (α : Type) (A : Type 1), A ⊆ A");
+        assert_eq!(
+            out.iter().map(|r| r.text.as_str()).collect::<String>(),
+            text,
+            "runs 必须仍然**铺满**文本（拼接 == 文本）"
+        );
+        let mut pos = 0usize;
+        for r in &out {
+            if let (Some(s), Some(e)) = (r.start, r.end) {
+                assert_eq!((s, e), (pos, pos + r.text.len()), "偏移 = 拼接位置（字节）");
+            }
+            pos += r.text.len();
+        }
+        // 被删掉的 `" "` 与 `"0"` 两段**整段消失**，`Type 1` 的层**原样留着**。
+        assert!(out.iter().any(|r| r.text == "1"));
+        assert!(!out.iter().any(|r| r.text == "0"));
+    }
+
+    /// 没有 `Type 0` 时**逐字节不变**（含 runs 原样返回）。
+    #[test]
+    fn nothing_changes_without_type_zero() {
+        let ty = "∀ (α : Type), α → α".to_string();
+        let runs = vec![run("∀ (α : Type), α → α", None)];
+        let (text, out) = lean4_universe_runs(ty.clone(), runs);
+        assert_eq!(text, ty);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].text, ty);
     }
 }

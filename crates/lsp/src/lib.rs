@@ -2125,7 +2125,15 @@ fn declaration_card(
         .find(|d| d.name.as_deref() == Some(name));
     if let Some(d) = from_report {
         let signature = match d.ty_text.as_deref().filter(|ty| !ty.is_empty()) {
-            Some(ty) => format!("{} {} : {}", d.kind.as_str(), name, ty),
+            // **F6 的横向那一半**：卡片与声明列表同源同形 —— 声明列表的 `ty`
+            // 过 `render::lean4_universe_runs`，这里过同一条规则的文本版
+            // （否则同一份类型在「面板 / hover」两个面上又是两种写法 ✗）。
+            Some(ty) => format!(
+                "{} {} : {}",
+                d.kind.as_str(),
+                name,
+                crate::render::lean4_universe_text(ty)
+            ),
             None => format!("{} {}", d.kind.as_str(), name),
         };
         // `def`/`opaque` 才有 `:=` 值块（`theorem` 的证明不是"定义" ——

@@ -74,13 +74,24 @@ pub(crate) fn sub_goal_info(sub_goal: truth::SubGoalInfo, text: &str) -> SubGoal
 /// `textDocument/codeAction`（`crates/lsp/src/actions.rs`，需要 judge 上下文），
 /// 既有 wire 与既有行为都保持不变。
 pub(crate) fn decl_info(decl: truth::DeclInfo, text: &str) -> GoalDeclInfo {
+    // **F6**：`ty` 是内核 pp 的原样搬运 ⇒ `Type 0`；按 **Lean 4 的 `delabSort`**
+    // 印成 `Type`，并与 `ty_runs` **成对**搬移（见 `render::lean4_universe_*` 的对照表）。
+    // runs 先过 `run_info`（front → wire 的换算），再过规则（它吃/吐 wire 形状）。
+    let wire_runs: Vec<RunInfo> = decl.ty_runs.into_iter().map(run_info).collect();
+    let (ty, ty_runs) = match decl.ty {
+        Some(ty) => {
+            let (ty, runs) = super::render::lean4_universe_runs(ty, wire_runs);
+            (Some(ty), runs)
+        }
+        None => (None, wire_runs),
+    };
     GoalDeclInfo {
         name: decl.name,
         kind: decl.kind,
         status: decl.status,
         range: range_of_offsets(text, decl.start, decl.end),
-        ty: decl.ty,
-        ty_runs: decl.ty_runs.into_iter().map(run_info).collect(),
+        ty,
+        ty_runs,
         // R-1：`value`/`value_runs` 以前在这里**漏了** ✗ ⇒ Infoview 的 `def`
         // 卡片第二行（`:= <值>`）永远不出现。与 `ty_runs` 同实现 ✓。
         value: decl.value,
