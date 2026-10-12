@@ -524,11 +524,21 @@ CASE({
   severity: 'high',
   blocker: false,
   expect: '在 tactic 行末（准备写下一个名字的位置）应当能补全本域 binder（h/a/A/α）',
+  // **锚点重定（2026-10-13）**：旧锚点 `  exact h a` 在**当前画布**上不存在
+  // （画布重写后练习 1 是 `sorry`，没有那条 `exact h a` 的证明体）⇒
+  // `lines.findIndex` 返回 **-1** ⇒ `lines[-1].length` = `undefined.length`
+  // ⇒ `TypeError` ⇒ 判据不可用（**不是**产品缺口，见 PROBE-ANCHORS-STALE 同类）。
+  // **意图不变**（tactic 行末 = 用户真正打字处，必须给得出本域 binder），锚点换成
+  // 当前画布上**同形**的真实一行：`eq_of_same_elements` 的 `  exact h`
+  // （第 3 处；前两处在 `demo_mem_def`，第 58 行）。
+  // ⚠ 用 `codePos`（找不到就抛**带 `fixture` 标签**的错 ⇒ 上层判 exit 2
+  // 「判据不可用」），不再裸 `findIndex`：裸写法把"锚点坏了"变成 `TypeError`，
+  // 读数里看不出是判据自己的问题 ✗。
   async run(ctx) {
     const text = fs.readFileSync(CANVAS, 'utf8');
     await ctx.lsp.open(CANVAS, text, 1);
     const lines = text.split('\n');
-    const line = lines.findIndex((l) => l === '  exact h a');
+    const line = codePos(text, '  exact h', 3).line;
     const width = lines[line].length;
     const sweep = [];
     for (let c = 0; c <= width + 1; c += 1) {
@@ -541,7 +551,9 @@ CASE({
     return {
       ok: atEnd.binders.length > 0,
       observed: { 行: lines[line], 列扫描: sweep },
-      evidence: `binder 只在 col=${withBinders.map((s) => s.col).join(',')}（正好是 h/a 两个 token 的字符位）出现；col=${width + 1}（行末）⇒ ${JSON.stringify(atEnd.binders)}`,
+      // 证据**按读数写**（旧文案"正好是 h/a 两个 token 的字符位"属于被重写掉的
+      // 画布：新锚点那一行只有一个 binder token `h`）—— 不写死任何列号/名字。
+      evidence: `第 ${line + 1} 行 ${JSON.stringify(lines[line])} 列扫描：binder 出现在 col=${withBinders.map((s) => s.col).join(',') || '（无）'}；col=${width + 1}（行末，真正打字处）⇒ ${JSON.stringify(atEnd.binders)}`,
     };
   },
 });
@@ -1134,22 +1146,32 @@ CASE({
 
 CASE({
   id: 'N3-nav-use-to-binder-ok',
-  title: '【对照】使用处 → binder 的 F12 正常（canvas `exact h a`）',
+  title: '【对照】使用处 → binder 的 F12 正常（canvas `exact h`）',
   severity: 'control',
   blocker: false,
   expect: 'tactic 里的 `h` 应当跳到签名里的 binder（对照组）',
+  // **锚点重定（2026-10-13）**：旧锚点 `  exact h a` 在当前画布上不存在
+  // （`lines.findIndex` ⇒ -1 ⇒ `lines[-1].indexOf` = `undefined.indexOf`
+  // ⇒ `TypeError` ⇒ 判据不可用）。**对照组必须一致**才算健康（对照红 = 判据
+  // 本身不可信），所以这条**必须**修好，不能留成 exit 2。
+  // **意图不变**（tactic 里的 binder **使用处** → 签名里的 binder），锚点换成当前
+  // 画布上同形的 `  exact h`（`eq_of_same_elements`，第 58 行；那里的 `h` 正是
+  // **签名**里的 `(h : ∀ (x : α), A x ↔ B x)`，与旧锚点 `exact h a` 里的 `h` 同类）。
+  // **期望落点由内容导出**（`eq_of_same_elements` 的签名那一行），不再硬编码行号
+  // —— 旧值 `42` 属于被重写掉的画布（现在的 42 是练习 1 的签名行，巧合而已）。
   async run(ctx) {
     const text = fs.readFileSync(CANVAS, 'utf8');
     await ctx.lsp.open(CANVAS, text, 1);
     const lines = text.split('\n');
-    const line = lines.findIndex((l) => l === '  exact h a');
+    const line = codePos(text, '  exact h', 3).line;
     const col = lines[line].indexOf('h');
     const res = await ctx.lsp.raw('textDocument/definition', { textDocument: { uri: uriOf(CANVAS) }, position: { line, character: col } });
     const loc = res.result && (Array.isArray(res.result) ? res.result[0] : res.result);
+    const wantLine = lines.findIndex((l) => l.startsWith('theorem eq_of_same_elements'));
     return {
-      ok: Boolean(loc && loc.range.start.line === 42),
-      observed: { 落点: loc && [loc.range.start.line, loc.range.start.character, loc.range.end.character] },
-      evidence: `h @${line}:${col} ⇒ ${JSON.stringify(loc && [loc.range.start.line, loc.range.start.character])}`,
+      ok: Boolean(loc && loc.range.start.line === wantLine),
+      observed: { 落点: loc && [loc.range.start.line, loc.range.start.character, loc.range.end.character], 期望行: wantLine },
+      evidence: `h @${line}:${col} ⇒ ${JSON.stringify(loc && [loc.range.start.line, loc.range.start.character])}（期望签名行 ${wantLine}）`,
     };
   },
 });
