@@ -173,3 +173,7 @@
 {"ts": "2026-10-12T19:53:31+00:00", "event": "advance", "id": "D2", "to": "done", "commit": "6f7cf98c", "reading": "见 extras 的 observed（判据 + 改前改后 + 反向验证 + 判定不变对拍）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T19:53:31+00:00", "event": "claim", "id": "D5", "owner": "orchestrator", "resources": ["crates/front"]}
 {"ts": "2026-10-12T19:53:31+00:00", "event": "advance", "id": "D5", "to": "done", "commit": "2dc313a2", "reading": "见 extras 的 observed（判据 + 改前改后 + 反向验证 + 判定不变对拍）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T20:13:21+00:00", "event": "release", "id": "F12", "owner": "LSP-D", "reason": "lspD 收工（2 commit 已落地并验证）⇒ 归还槽位与 crates/lsp"}
+{"ts": "2026-10-12T20:13:21+00:00", "event": "claim", "id": "F6", "owner": "orchestrator", "resources": ["crates/lsp"]}
+{"ts": "2026-10-12T20:13:21+00:00", "event": "advance", "id": "F6", "to": "done", "commit": "92f0088b", "reading": "editor-probe --case goal-on-sorry ⇒ exit 1→0；wire Type 0 8→0；反向=短路 decl_info ⇒ exit 1；Lean4 对照 delabSort", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T20:14:08+00:00", "event": "split", "id": "F12b-notation-blind-intro", "parent": "F12", "title": "∈ 头的目标没有 quick fix：front 的 intro_count 记法盲 + LSP 后备只覆盖 Eq/And/Iff", "owner": "penglingwei@penglingweis-Laptop"}
