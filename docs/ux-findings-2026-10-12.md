@@ -126,28 +126,28 @@
   `elab-unknown-identifier` 的 span 精确度 · `sorry`/开放练习状态清楚 · hover 签名（编辑器 F7）·
   Build/Clean 的反馈（F14）· 撤销/重做与保存（F15）· 编辑器 F1 的因果对照 `notation-clean-control`。
 
-## 6. ⏳ 在途 / 未验证（**不许当成已修好**）
+## 6. 🔄 复跑现状与仍未收口项（2026-10-12 09:2x 主会话复跑，**干净缓存**）
 
-1. **vim 修复间歇未收口**：用户那段完整证明的判据 `python3 .cache/ux/main-verify/full-proof-assert.py 5`
-   最近一次 **2/5 红** ⇒ 修复**在途、间歇未收口**（不是已修好）。探针判据 = `--pair diag-caret-shift`
-   与 `--pair pair-alpha-space`；本次汇总**未复跑**。
-2. **C 线隐式实参修复在途**（未提交，已重编进 `target/debug/sokonanoda` 08:39）：本次复跑 **r05 / r09 转
-   exit 1**，`m03` 里 M-03/M-04 也不再命中；**但 r08（`congrArg`）仍 exit 0、M-05 仍命中** ⇒ 未收口。
-   A/B 取证：`SOKONANODA_BIN=target/release/sokonanoda` 跑 r05/r09/m03 **仍 exit 0** ⇒ 差异来自该修复。
-3. **编辑器 PM 自述未验证面**（原文 §5）：vim 三条新候选（`vim-infoview-mode`/`vim-suggest-tab`/
-   `vim-problems-jump`）没跑 · 首次打开项目耗时（webview 文本读法失败）· Infoview 逐字 DOM 文本
-   （本机 Electron 取不到 ⇒ 证据是截图像素 + 内核侧数据）· `pp.explicit` 开/关在编辑器里的差别 ·
-   大文件/多模块卡顿 · `Rebuild`（`alt+shift+b`）未单独取证 · 课程/项目视图为空是否设计如此 · `alt+s` 未定论。
-4. **vim 自述未验证面**：`.`（点重复）未单独测 · 打开文件的初始模式 NORMAL/INSERT **实测不稳定**
-   （只断言「NORMAL 起手 ⇒ C 必然发生」）· 长串连打里 `<CR>` 未生效那条未隔离成最小复现（不下结论）。
-5. **M-07 的探针只验「键的构成」**（`bash scripts/ux-probes/lang/m07-prelude-digest.sh`：独立复算
-   FNV(profile/OS/ARCH) 与产物 `build_stamp` 比对 ⇒ 证明键里**没有** prelude 摘要）；**行为判据**要改
-   `prelude/**`（本汇总任务禁改）——步骤：改一行 prelude → **只重建、不清缓存** → 在带旧产物的模块根跑
-   `#print And.left` ⇒ 仍打印旧形态；删 `<模块根>/.sokonanoda/`
-   后立刻变 ⇒ 判据 = 行为必须变（反向：改回去 ⇒ 再变）。
-6. **编辑器/vim 探针本次未复跑**（需真 VS Code；同批次另有 subagent 在跑真 VS Code e2e ⇒ 按探针
-   并发纪律串行）。只跑了 `--list`（两者 exit 0）：`node scripts/ux-probes/editor-probe.mjs --list` ·
-   `node scripts/ux-probes/vim-probe.mjs --list`。补跑命令见 §7。
+**已修好（探针转 exit 1）**：`r04`（`apply` 结论校验 —— 负例现在报「`apply` 的目标不匹配…」并落在写错那行；
+两条正确用法仍绿）· `r05`/`r08`/`r09`（隐式实参第二候选 + `congrArg` 空名 Pi）· `r12`。独立夹具
+`.cache/ux/main-verify/c-probe.sokonanoda` **9/9 checked、0 诊断**（裸写 `Eq.symm hx` · `exact Eq.subst
+(Eq.symm hx) hp` · `apply Eq.subst (Eq.symm hx)` · 5 个既有绿例 · 用户原来的位置填隐参写法）。
+
+**⚠ 探针自己的两个坑（本轮修掉，判据随之修正）**：① **干净缓存纪律** —— 25 条语言探针原先都没隔离缓存
+⇒ 语言改了以后会读 M-07 的旧条目**假红**（`r04` 实测：修好之后探针仍报 exit 0）⇒ 现已全部加 `mktemp`
+缓存 + 关两处产物 + `trap` 清理；② **`r02` 从「缺口」改成「对照臂」** —— 原判据用 `#check <裸常量>`，而
+裸常量走签名源文本捷径、**有意**不受 `pp.explicit` 影响（`reference/commands/set_option.md` §边界）⇒ 改成
+同时断言「`#print` 必须变（`Set α` → `@Set α`）+ `#check` 裸常量必须不变」，exit 0 = 对照成立。
+
+**仍未收口 / 未验证（不许当成已修好）**：① **vim 残留** —— 60ms/字符连打时 vim 臂偶发**丢一个 Enter**
+（实测 1/5；同节奏无 vim 3/3 干净），是掉键不是文本错乱，疑在 VSCodeVim 的 `<CR>` 异步处理，未定性；
+用户原症状（多 `)`）已修（主会话以**磁盘**为准复跑 8 次无 `)` 错乱，修前副本对照臂红）·
+② **编辑器 PM 自述未验证面**：vim 三条新候选没跑 · 首次打开耗时（webview 文本读法失败）· Infoview 逐字
+DOM（只有截图像素 + 内核侧数据）· 大文件/多模块卡顿 · `Rebuild` · 课程/项目视图为空是否设计如此 · `alt+s` ·
+③ **vim 自述未验证面**：`.`（点重复）未单独测 · 初始模式 NORMAL/INSERT **实测不稳定** · `<CR>` 未隔离 ·
+④ **M-07 的探针只验「键的构成」**（`m07` 独立复算 FNV(profile/OS/ARCH) 与产物 `build_stamp` 比对 ⇒ 证明键里
+没有 prelude 摘要）；**行为判据**要改 `prelude/**`（本汇总任务禁改），步骤见 `m07` 脚本头 ·
+⑤ **编辑器/vim 探针未复跑**（需真 VS Code；只跑 `--list`，两者 exit 0）：`node scripts/ux-probes/editor-probe.mjs --list` · `node scripts/ux-probes/vim-probe.mjs --list`。
 
 ## 7. 🔁 复核方法（怎么复跑一条）
 
