@@ -1502,9 +1502,42 @@ fn tactic_goal_hover(
     // **独立围栏块**（[`code_block`]，与 tactic 行 / goal state / 声明签名同一个
     // `CODE_LANG`）⇒ 名字与类型都按 `sokonanoda` 语法上色。
     if let Some(name) = tactic_name_at(text, step.span, offset) {
-        if let Some(ty) = tactic_name_type(query, &selection.goals, offset, &name) {
-            value.push_str(NAME_DIVIDER);
-            value.push_str(&code_block(&format!("{name} : {ty}")));
+        // **H2**：光标下是 **def/opaque** ⇒ 给**声明卡片**（签名块 + `:=` 值块）——
+        // 与声明名 hover / 使用处 hover / `#check` 行走**同一份**渲染
+        //（用户原话：「只要是 def，任何位置 hover 到它，都应显示带 `:=` 的完整
+        // 信息」；实测 `unfold Set.singleton` 上只有 `Set.singleton : {α : Type} →
+        // (a : α) → Set α`，**没有值块** ✗）。
+        //
+        // 边界（**不猜**，两条各有用例）：
+        // * 名字是**本域绑元**时一律走既有那一行 —— 同名的库声明与它无关
+        //   （`h` 这类名字在库里撞车很常见）；
+        // * 声明**没有值**（theorem/axiom/inductive）时也走既有那一行：
+        //   卡片给不出更多，而目标状态里的类型已经过记法折叠。
+        let is_binder = selection
+            .goals
+            .iter()
+            .flat_map(|goal| goal.binders.iter())
+            .any(|binder| binder.name == name);
+        // 逃生门（反向验证用）：`SOKO_NO_TACTIC_DEF_CARD=1` 回到"只有
+        // `名字 : 类型` 一行"的旧行为 ⇒ H2 用例必须重新判红。
+        let card_enabled = std::env::var_os("SOKO_NO_TACTIC_DEF_CARD").is_none();
+        let card = if is_binder || !card_enabled {
+            None
+        } else {
+            declaration_card(query, report, step.span.start.offset, &name)
+                .filter(|(_, value_block)| value_block.is_some())
+        };
+        match card {
+            Some((signature, value_block)) => {
+                value.push_str(NAME_DIVIDER);
+                value.push_str(&card_blocks(&signature, value_block));
+            }
+            None => {
+                if let Some(ty) = tactic_name_type(query, &selection.goals, offset, &name) {
+                    value.push_str(NAME_DIVIDER);
+                    value.push_str(&code_block(&format!("{name} : {ty}")));
+                }
+            }
         }
     }
     Some(Hover {

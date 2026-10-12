@@ -1249,11 +1249,22 @@ fn assert_name_line_is_a_code_block<'a>(value: &'a str, name: &str) -> &'a str {
         .find("\n```")
         .unwrap_or_else(|| panic!("名字行的围栏块必须闭合：{value:?}"));
     let body = &block[..end];
-    let prefix = format!("{name} : ");
-    assert!(
-        body.starts_with(&prefix),
-        "块内首行必须是 `{prefix}…`（名字 + 冒号 + 类型）：{body:?}"
-    );
+    // **H2（2026-10-12）**：`def`/`opaque` 的名字块现在是**声明卡片**
+    //（`def myop : …` ＋ 独立的 `:= …` 块）—— 与声明名 hover / 使用处 hover /
+    // `#check` 行走**同一份**渲染（用户原话：「只要是 def，任何位置 hover 到它，
+    // 都应显示带 `:=` 的完整信息」）。没有值的声明（axiom/theorem/inductive）
+    // 仍是 `名字 : 类型` 一行 ⇒ 两种形状都接受，判据是"块首行是这个声明的签名"。
+    let typed = format!("{name} : ");
+    let prefix = std::iter::once(typed.clone())
+        .chain(
+            ["def ", "opaque ", "theorem ", "axiom ", "inductive "]
+                .iter()
+                .map(|kind| format!("{kind}{typed}")),
+        )
+        .find(|candidate| body.starts_with(candidate.as_str()))
+        .unwrap_or_else(|| {
+            panic!("块内首行必须是 `{typed}…` 或 `<kind> {typed}…`（声明的签名）：{body:?}")
+        });
     assert!(
         !body[prefix.len()..].trim().is_empty(),
         "名字行必须有非空类型：{body:?}"
@@ -1575,6 +1586,45 @@ async fn hover_on_a_tactic_name_declared_in_the_same_file_shows_its_signature() 
     assert!(
         name_line.starts_with("soko_local_op : "),
         "本文件声明的常量也要给名字行：{name_line:?}"
+    );
+    shutdown(&mut service).await;
+}
+
+/// **判据（wire / 用户动作，H2）**：光标落在 **tactic 里的 `def` 名字**上 ⇒
+/// 分割线之后是**声明卡片**（签名块 + 独立的 `:= <值>` 块），与 `#check` 行 /
+/// 使用处 hover **逐字节同形**。
+///
+/// 缺陷（2026-10-12 实测，真 LSP + 真课程画布）：`unfold Set.singleton` 上只有
+/// `Set.singleton : {α : Type} → (a : α) → Set α`，**没有值块** —— 而同一条 hover
+/// 的 `#check Set.singleton` 行有 `:= fun … ⇒ 同一常量四种渲染 ✗。
+///
+/// **反向验证**：`SOKO_NO_TACTIC_DEF_CARD=1`（逃生门）⇒ 本用例判红
+/// （读数见 `.cache/ux/fix-lspA/VERDICT.md`）。
+#[tokio::test]
+async fn hover_on_a_tactic_def_name_shows_the_declaration_card() {
+    let src = "axiom P : Prop\n\n\
+               def soko_tactic_def_card : P -> P := fun (x : P) => x\n\n\
+               theorem t (h : P) : P := by\n  \
+               apply soko_tactic_def_card\n  \
+               exact h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let params = wait_diagnostics(&mut socket, "tactic def card diagnostics").await;
+    assert!(
+        params.diagnostics.is_empty(),
+        "夹具必须干净（诊断=0）：{:?}",
+        params.diagnostics
+    );
+    let at = offset_of(src, "apply soko_tactic_def_card") + "apply ".len() + 1;
+    let markup = hover_markup_at(&mut service, src, at).await;
+    assert!(
+        markup.contains("def soko_tactic_def_card : P \u{2192} P"),
+        "tactic 里的 `def` 要给带 `def` 头的签名块：{markup:?}"
+    );
+    assert!(
+        markup.contains(":= fun (x : P) => x"),
+        "`def` 必须带 `:=` 值块（用户第 8 条反馈的同一契约）：{markup:?}"
     );
     shutdown(&mut service).await;
 }
