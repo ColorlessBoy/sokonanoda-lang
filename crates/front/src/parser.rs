@@ -3615,10 +3615,15 @@ impl Parser {
                     span: Span::new(tok.span.start, end),
                 })
             }
-            other => Err(self.error_here(&format!(
-                "expected a binder, found {}",
-                token_kind_text(&other)
-            ))),
+            // ⚠ **别在这里自己接 ", found …"**：`error_here` 已经接了
+            // （SUB-duplicate-found-msg：以前这里再写一遍 ⇒ 学习者看到
+            // `expected a binder, found Eof, found Eof`，"found" 写两遍）。
+            // 这条兜底臂**本来就**停在 `self.peek()` 那个 token 上（三个成功臂
+            // 都 `bump()` 过、失败臂不动游标）⇒ `error_here` 报的就是 `other`。
+            other => {
+                debug_assert!(self.peek().kind == other, "兜底臂必须停在同一个 token 上");
+                Err(self.error_here("expected a binder"))
+            }
         }
     }
 
@@ -3689,10 +3694,10 @@ impl Parser {
         keyword: &str,
         span: Span,
     ) -> Result<()> {
-        if keyword_decl_name_allowed() || name.contains('.') || self.current_namespace().is_some() {
+        if name.contains('.') || self.current_namespace().is_some() {
             return Ok(());
         }
-        if !is_reserved_decl_name(name) {
+        if keyword_decl_name_allowed_value(keyword_decl_name_allowed(), name) {
             return Ok(());
         }
         let detail = format!(
@@ -3733,7 +3738,20 @@ impl Parser {
         tok
     }
 
+    /// 在当前 token 上报错：**本函数负责接 `, found <记号>`**。
+    ///
+    /// ⚠ 调用方**不许**自己在 `msg` 里写 "found …" —— 那会双写
+    /// （SUB-duplicate-found-msg，实测 `def f : Nat := fun` ⇒
+    /// `expected a binder, found Eof, found Eof`）。下面这条 `debug_assert!`
+    /// 就是那道守卫：它让"以后又有人顺手写一遍"在**跑测试时当场**炸，而不是等
+    /// 学习者看到一条结巴的诊断。要提 token 就写**别的前缀**
+    /// （`… 实际是 {}` / `读到 {name}` 之类），或者用 [`Self::expect_ident`]
+    /// 那种自带完整消息、**不**走 `error_here` 的写法。
     fn error_here(&self, msg: &str) -> Diagnostic {
+        debug_assert!(
+            !msg.contains("found "),
+            "error_here 的 msg 不许自带 \"found …\"（会双写）：{msg}"
+        );
         let tok = self.peek();
         Diagnostic::new(
             DiagnosticKind::UnexpectedToken {
@@ -3997,6 +4015,13 @@ fn is_namespace_name_keyword(name: &str) -> bool {
 /// （不看值），这样 `=0` 也是"开"——开关的语义是"打开逃生门"。
 pub fn keyword_decl_name_allowed() -> bool {
     std::env::var_os("SOKO_ALLOW_KEYWORD_DECL_NAME").is_some()
+}
+
+/// [`keyword_decl_name_allowed`] 的**纯函数核**：`allowed` 由调用方喂 ⇒ 可逐值判、
+/// **不必动进程环境**（环境是全局的，在 libtest 里 `set_var` 会与同进程的其它
+/// 测试抢跑——实测过一次 flake）。`true` ⇒ 放行（旧行为）；`false` ⇒ 只拦关键字。
+fn keyword_decl_name_allowed_value(allowed: bool, name: &str) -> bool {
+    allowed || !is_reserved_decl_name(name)
 }
 
 /// **唯一真相**：哪些名字当**裸**声明名是死路 —— 声明得出来、却引用不到。
@@ -5776,6 +5801,56 @@ end
         assert_eq!(err.span.start.line, 1);
     }
 
+    /// **SUB-duplicate-found-msg**（2026-10-12）：诊断里 `found` 只许出现**一次**。
+    ///
+    /// 改前 `def f : Nat := fun` ⇒ `expected a binder, found 输入末尾, found 输入末尾`
+    /// （"found" 写两遍）：`parse_binder` 的兜底臂把**自带** `found …` 的文案交给
+    /// `error_here`，而 `error_here` **自己又追加** `", found …"` ⇒ 双写。
+    ///
+    /// 这条同时钉两半：
+    /// 1. **探针那一例**（`def f : Nat := fun`）`found` 恰好一次；
+    /// 2. **同族的 `have` 那一例**（工单点名要一起检查）也恰好一次 —— 它走
+    ///    `error_here("`have` binder name")`，本来就不双写，这里当**回归**钉住。
+    #[test]
+    fn a_binder_diagnostic_says_found_exactly_once() {
+        for (tag, src) in [
+            ("fun", "def f : Nat := fun\n"),
+            ("have", "theorem t : True := by\n  have\n"),
+            ("fun-binder", "def f : (Nat) := fun\n"),
+        ] {
+            let err = parse(src).expect_err(tag);
+            assert_eq!(
+                err.message.matches("found").count(),
+                1,
+                "{tag}: `found` 必须恰好一次，实际是 {:?}",
+                err.message
+            );
+            assert!(
+                !err.message.contains("found 输入末尾, found"),
+                "{tag}: 还是双写：{:?}",
+                err.message
+            );
+        }
+    }
+
+    /// **横向排查的守卫**（SUB-duplicate-found-msg）：`error_here` 的契约是
+    /// **它**负责接 `, found …` ⇒ 调用方的 `msg` 里不许再自带 `found `。
+    ///
+    /// 这条不靠"记住别写"，而是让 `error_here` 里的 `debug_assert!` 在**任何**
+    /// 解析测试里当场炸 ⇒ 以后又有人顺手写一遍，跑测试就红 ✓。
+    #[test]
+    fn error_here_appends_found_once_and_its_contract_holds() {
+        let err = parse("theorem t : True := by\n  have\n").expect_err("have");
+        assert_eq!(err.message.matches("found").count(), 1, "{:?}", err.message);
+        // 演示双写长什么样（契约的反面：msg 自带 "found " ⇒ 结果两次）。
+        let doubled = format!(
+            "{msg}, found {tok}",
+            msg = "expected a binder, found Eof",
+            tok = "Eof"
+        );
+        assert_eq!(doubled.matches("found").count(), 2, "演示双写长什么样");
+    }
+
     /// **SUB-keyword-decl-name**（2026-10-12）：关键字不能当**顶层声明名**。
     ///
     /// 改前：`def match : Nat := 0` **判绿**（`expect_decl_name` 只拒 `.` 结尾），
@@ -5918,19 +5993,22 @@ end
         );
     }
 
-    /// 逃生门**真的读环境变量**（上一条只验了纯函数的两个取值）。
+    /// 逃生门的**纯函数**那半：`allowed` 喂什么就是什么（不碰进程环境）。
     ///
-    /// ⚠ 改进程环境——libtest 默认多线程，`remove_var` 之后立刻断言，窗口极短；
-    /// 这里只读**自己那一次**调用的结果，不依赖别的测试的时序（也不断言"默认是关"
-    /// ——那取决于调用时环境里有没有这个变量，属集成层判据的地盘）。
+    /// ⚠ 这里**故意不 `set_var`**：libtest 默认多线程、进程环境是**全局**的 ⇒
+    /// 在本进程里设 `SOKO_ALLOW_KEYWORD_DECL_NAME` 会与**同进程**的
+    /// [`keyword_decl_name_is_a_dedicated_parse_error`] 抢跑（实测：一次
+    /// `cargo test -p sokonanoda-front --lib` 把它偶发判红、再跑两次又全绿
+    /// —— 典型的环境竞态 flake ✗）。**逃生门"真的读环境变量"由子进程判**
+    /// （`crates/cli/tests/keyword_decl_name_escape_hatch.rs` 用
+    /// `Command::new(env!("CARGO_BIN_EXE_sokonanoda")).env(...)`，环境是它自己的）。
     #[test]
-    fn keyword_decl_name_escape_hatch_reads_the_env_var() {
-        std::env::set_var("SOKO_ALLOW_KEYWORD_DECL_NAME", "1");
-        let on = keyword_decl_name_allowed();
-        std::env::remove_var("SOKO_ALLOW_KEYWORD_DECL_NAME");
-        let off = keyword_decl_name_allowed();
-        assert!(on, "设了 SOKO_ALLOW_KEYWORD_DECL_NAME ⇒ 逃生门必须开");
-        assert!(!off, "没设 ⇒ 逃生门必须关（闸门生效）");
+    fn the_escape_hatch_is_a_pure_decision_on_its_input() {
+        // 闸门开着 ⇒ 放行（旧行为）；关着 ⇒ 只有关键字才拦。
+        assert!(keyword_decl_name_allowed_value(true, "match"));
+        assert!(!keyword_decl_name_allowed_value(false, "match"));
+        // 名字不是关键字 ⇒ 两种取值都放行（闸门只认关键字表）。
+        assert!(keyword_decl_name_allowed_value(false, "matchFoo"));
     }
 
     #[test]
