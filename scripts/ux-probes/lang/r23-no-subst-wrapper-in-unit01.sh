@@ -52,9 +52,17 @@ mkdir -p "$W"
 [ -e "$W/lib" ] || ln -s "$REPO/courses/set-theory/lib" "$W/lib"
 U="$REPO/courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda"
 echo "unit01 imports: $(grep -o '^import .*' "$U" | tr '\n' ' ')"
-echo "hint 77: $(sed -n '77p' "$U")"
-if ! grep -q '^import lib.Rel' "$U" && grep -q 'Eq.subst' <<<"$(sed -n '77p' "$U")" \
-   && ! grep -qE 'rel_subst' <<<"$(sed -n '77p' "$U")"; then
+# ⚠ **锚点按内容找，不写死行号**（2026-10-12）：旧版读 `sed -n '77p'`，而画布
+# `5c6eeff8` 重写后第 77 行是**空行** ⇒ `grep 'Eq.subst'` 不命中 ⇒ 判据落到
+# "FIXED" 分支 = **假绿**（实测：真 hint 在 71 行、明写 `Eq.subst`）。
+# 现在找**含 `Eq.subst` 的那条 hint 行**；一条都没有 ⇒ hint 不再提裸 Eq.subst。
+HINT_LINE=$(grep -n 'soko:hint' "$U" | grep 'Eq.subst' | head -1)
+if [ -z "$HINT_LINE" ]; then
+  echo "FIXED: hint 不再提裸 Eq.subst（锚点：按内容找 hint 行，无硬编码行号）"; exit 1
+fi
+echo "hint（第 ${HINT_LINE%%:*} 行）: ${HINT_LINE#*:}"
+HINT_TEXT=${HINT_LINE#*:}
+if ! grep -q '^import lib.Rel' "$U" && ! grep -qE 'rel_subst' <<<"$HINT_TEXT"; then
   echo "STILL REPRODUCES: 单元① 拿不到搬运包装，hint 只指裸 Eq.subst"; exit 0
 fi
 echo "FIXED: 已提供具名搬运引理"; exit 1

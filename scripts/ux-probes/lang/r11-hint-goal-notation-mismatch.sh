@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # r11-hint-goal-notation-mismatch.sh —— hint 的「目标形态」用点名写法，state 用记法，对不上
-# 现象: 练习 4 的 hint 第 76 行写「目标是 A x」；而 `query state` 在那一行给的是 `x ∈ A`。
-#       两者是同一个命题的两种渲染，但初学者没法把 `A x` 与 `x ∈ A` 对上——
-#       这正是用户抱怨「不知道当前目标长什么样」的来源。
-# 期望: hint 的「目标形态」直接抄 state 的渲染（`x ∈ A`），或两种都写。
-# 判据: exit 0 = 问题仍在（hint 写点名 `A x`、state 写 `x ∈ A`）/ exit 1 = 已统一
+# 现象: 练习 4 的 hint 写「目标是 A x」（**点名**写法）；而 `query state` 在同一道题上
+#       给的是**记法**写法。两者是同一个命题的两种渲染，初学者没法把 `A x` 与 `x ∈ A`
+#       对上——这正是用户抱怨「不知道当前目标长什么样」的来源。
+# 期望: hint 的「目标形态」直接抄 state 的渲染（记法），或两种都写。
+# 判据: exit 0 = 问题仍在（hint 写点名 `A x`、state 给记法）/ exit 1 = 已统一
+#
+# ⚠ **锚点重定（2026-10-12）**：旧版读 `sed -n '76p'` + `--line 81`（旧画布练习 4 的
+# 证明体，那时 state 给 `x ∈ A`）。画布 `5c6eeff8` 重写后：练习 4 只剩 `sorry`
+# ⇒ 锚点按**声明名**（`subset_of_mem_singleton`）取同一道题的 hint 与洞。
+# 该洞上的 state 是**初始目标**（`({a}) ⊆ A`，还没 intro），所以"state 给记法"这条
+# 改判为**"state 里出现 `∈` 记法"**（不再要求 `x ∈ A` 那个中间态 —— 那个态今天
+# 在画布上不存在了）。⚠ 如实登记：hint 的「目标是 A x」描述的是 **intro 之后**的态，
+# 与洞上的初始态本就不是同一个命题 —— 这条探针今天测的是「hint 的点名写法 vs
+# state 的记法写法」这个**渲染**差异，不是同一个命题的两种写法。
 set -uo pipefail
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 
@@ -49,11 +58,26 @@ mkdir -p "$W"
 [ -f "$W/sokonanoda.toml" ] || printf 'name = "ux-lang-work"\n' > "$W/sokonanoda.toml"
 [ -e "$W/lib" ] || ln -s "$REPO/courses/set-theory/lib" "$W/lib"
 U="$REPO/courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda"
-hint=$(sed -n '76p' "$U")
-st=$(timeout 300 "$REPO/scripts/soko" query state --compact --file "$U" --line 81 --col 3 2>&1)
+# ⚠ **锚点按声明名 + 内容定位**（2026-10-12）：旧版读 `sed -n '76p'`（hint）+
+# `--line 81`（当时练习 4 的证明体），画布 `5c6eeff8` 重写后两者都漂了 ⇒
+# 判据落到 "FIXED" = **假绿**（实测：新 76 行是练习 5 的 hint、新 81 行是练习 5
+# 的签名 —— 与练习 4 毫无关系）。
+# 现在按**声明名**锁定练习 4（`subset_of_mem_singleton`）：它的 hint 与它的洞
+# 是**同一道题**的，绝不跨题配对。
+DECL=subset_of_mem_singleton
+DLINE=$(grep -n "^theorem $DECL" "$U" | head -1 | cut -d: -f1)
+[ -z "$DLINE" ] && { echo "环境不满足：画布里找不到声明 $DECL（锚点失效）⇒ 无法判定"; exit 2; }
+# 该题的 hint = 声明**之前**最近的那条「目标是」注释
+HLINE=$(awk -v d="$DLINE" 'NR<d && /soko:hint/ && /目标是/{n=NR} END{print n}' "$U")
+[ -z "$HLINE" ] && { echo "环境不满足：$DECL 之前找不到「目标是」的 hint（锚点失效）⇒ 无法判定"; exit 2; }
+hint=$(sed -n "${HLINE}p" "$U")
+# 该题的洞 = 声明之后第一条 `sorry`（跳过注释）
+HOLE=$(awk -v d="$DLINE" 'NR>d && !/^[[:space:]]*--/ && /sorry/{print NR; exit}' "$U")
+[ -z "$HOLE" ] && { echo "环境不满足：$DECL 之后找不到 sorry（锚点失效）⇒ 无法判定"; exit 2; }
+st=$(timeout 300 "$REPO/scripts/soko" query state --compact --file "$U" --line "$HOLE" --col 3 2>&1)
 goal=$(grep -o '"goal":"[^"]*"' <<<"$st" | head -1)
 echo "hint 目标形态: $hint"; echo "state goal   : $goal"
-if grep -q '目标是 A x' <<<"$hint" && grep -q 'x ∈ A' <<<"$goal"; then
-  echo "STILL REPRODUCES: hint 用点名 `A x`，state 用记法 `x ∈ A`，两种渲染没打通"; exit 0
+if grep -q '目标是 A x' <<<"$hint" && grep -q '∈' <<<"$goal"; then
+  echo "STILL REPRODUCES: hint 用点名 \`A x\`，state 用记法（${goal}），两种渲染没打通"; exit 0
 fi
-echo "FIXED: hint 与 state 的渲染已一致"; exit 1
+echo "FIXED: hint 不再用点名写法（或 state 不再给记法）"; exit 1

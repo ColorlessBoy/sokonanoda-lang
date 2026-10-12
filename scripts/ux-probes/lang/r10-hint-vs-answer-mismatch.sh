@@ -51,8 +51,18 @@ mkdir -p "$W"
 [ -f "$W/sokonanoda.toml" ] || printf 'name = "ux-lang-work"\n' > "$W/sokonanoda.toml"
 [ -e "$W/lib" ] || ln -s "$REPO/courses/set-theory/lib" "$W/lib"
 U="$REPO/courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda"
-hint=$(sed -n '77p' "$U")
-body=$(sed -n '78,84p' "$U")
+# ⚠ **锚点按内容找，不写死行号**（2026-10-12）：旧版读 `sed -n '77p'`（hint）与
+# `78,84p`（画布答案），画布 `5c6eeff8` 重写后两者都漂了 —— 旧 77 行是练习 5 的
+# hint、旧 78-84 行是**旧练习 4 的证明体**（新版练习 4 是 `sorry`）⇒ 判据落到
+# "FIXED" = **假绿**。现在按**内容**找：含 `Set.mem_singleton_iff` 的那条 hint，
+# 以及它**后面**那条声明的证明体。
+hint=$(grep 'soko:hint' "$U" | grep 'Set.mem_singleton_iff' | head -1)
+[ -z "$hint" ] && { echo "FIXED: 没有 hint 再提 Set.mem_singleton_iff（按内容找）"; exit 1; }
+# 证明体 = hint 之后第一条 `:= by` 声明的后续行（到下一个 `theorem`/文件尾为止）
+start=$(grep -n 'soko:hint' "$U" | grep 'Set.mem_singleton_iff' | head -1 | cut -d: -f1)
+end=$(awk -v s="$start" 'NR>s && /^theorem /{print NR-1; exit}' "$U")
+[ -z "$end" ] && end=$(wc -l < "$U")
+body=$(sed -n "${start},${end}p" "$U")
 if grep -q 'Set.mem_singleton_iff' <<<"$hint" && ! grep -q 'Set.mem_singleton_iff' <<<"$body" \
    && grep -q 'exact 的实参' <<<"$hint" && grep -q 'unfold' <<<"$body" && ! grep -q 'unfold' <<<"$hint"; then
   echo "STILL REPRODUCES: hint 说的路（Set.mem_singleton_iff + exact 实参）与画布答案（unfold + apply）不一致"

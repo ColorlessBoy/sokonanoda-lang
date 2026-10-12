@@ -49,7 +49,15 @@ mkdir -p "$W"
 [ -f "$W/sokonanoda.toml" ] || printf 'name = "ux-lang-work"\n' > "$W/sokonanoda.toml"
 [ -e "$W/lib" ] || ln -s "$REPO/courses/set-theory/lib" "$W/lib"
 U="$REPO/courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda"
-st=$(timeout 300 "$REPO/scripts/soko" query state --compact --file "$U" --line 80 --col 3 2>&1)
+# ⚠ **锚点按声明名定位**（2026-10-12）：旧版写死 `--line 80`（旧画布练习 5 的
+# 证明体）。画布 `5c6eeff8` 重写后行号漂了 —— 新 80 行是练习 5 的**签名行**，
+# 洞在 82 行。签名行与洞上恰好给同一个目标（读数没变），但锚点必须指向**洞**，
+# 否则画布一改又会静默落到别处。⇒ 按声明名找洞行号。
+DLINE=$(grep -n '^theorem singleton_subset_iff' "$U" | head -1 | cut -d: -f1)
+[ -z "$DLINE" ] && { echo "环境不满足：画布里找不到 singleton_subset_iff（锚点失效）⇒ 无法判定"; exit 2; }
+HOLE=$(awk -v d="$DLINE" 'NR>d && !/^[[:space:]]*--/ && /sorry/{print NR; exit}' "$U")
+[ -z "$HOLE" ] && { echo "环境不满足：singleton_subset_iff 之后找不到 sorry（锚点失效）⇒ 无法判定"; exit 2; }
+st=$(timeout 300 "$REPO/scripts/soko" query state --compact --file "$U" --line "$HOLE" --col 3 2>&1)
 goal=$(grep -o '"goal":"[^"]*"' <<<"$st" | head -1)
 echo "state goal: $goal"
 if grep -q '({a})' <<<"$goal"; then
