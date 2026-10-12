@@ -1522,7 +1522,7 @@ fn tactic_goal_hover(
             .any(|binder| binder.name == name);
         // 逃生门（反向验证用）：`SOKO_NO_TACTIC_DEF_CARD=1` 回到"只有
         // `名字 : 类型` 一行"的旧行为 ⇒ H2 用例必须重新判红。
-        let card_enabled = std::env::var_os("SOKO_NO_TACTIC_DEF_CARD").is_none();
+        let card_enabled = card_value_enabled();
         let card = if is_binder || !card_enabled {
             None
         } else {
@@ -2090,6 +2090,22 @@ fn checked_declaration_name(expr_src: &str) -> Option<&str> {
 ///
 /// 拿不到（开放练习还没进环境、名字不在闭包里…）⇒ `None` ⇒ 调用方退回该处既有的
 /// 形态（诚实省略，**不编** ✗）。
+/// `def`/`opaque` 卡片的 `:= 值` 块**是否启用**。
+///
+/// **逃生门**（反向验证用）：`SOKO_NO_TACTIC_DEF_CARD=1` ⇒ 回到"只有
+/// `名字 : 类型` 一行"的旧行为。
+///
+/// ⚠ **2026-10-13 扩到全部卡片渲染点**：原来这个开关只作用在 `tactic_name_at`
+/// 那一支（本文件 1523 行附近），于是 **H2 探针的四条臂**（走
+/// `ResolvedTarget::Declaration` / `command_line_hover`）**关掉开关也逐字节不变**
+/// ⇒ 那条判据**无法反向验证** ✗（probeA 实测：`SOKO_NO_TACTIC_DEF_CARD=1` 咬不住，
+/// 试了三条路后按「连红 3 次换招」停手并如实登记）。**一条不能反向验证的判据是弱判据** ✓
+/// ⇒ 把它提到**所有**卡片构造的公共路径上（`declaration_card` /
+/// `declaration_card_of_state`），开关一关**处处**退旧行为 ✓。
+fn card_value_enabled() -> bool {
+    std::env::var_os("SOKO_NO_TACTIC_DEF_CARD").is_none()
+}
+
 fn declaration_card(
     query: &sokonanoda_front::query::QueryDoc,
     report: &DocumentReport,
@@ -2120,6 +2136,7 @@ fn declaration_card(
             .val_text
             .as_deref()
             .filter(|v| !v.trim().is_empty())
+            .filter(|_| card_value_enabled()) // 逃生门：关掉 ⇒ 不给 `:=` 块 ✓
             .map(|v| format!(":= {v}"));
         return Some((signature, value));
     }
@@ -2263,6 +2280,7 @@ fn declaration_card_of_state(d: &DeclState) -> (String, Option<String>) {
         .val_text
         .as_deref()
         .filter(|v| !v.trim().is_empty())
+        .filter(|_| card_value_enabled()) // 逃生门（同上）✓
         .map(|v| format!(":= {v}"));
     (signature, value)
 }
