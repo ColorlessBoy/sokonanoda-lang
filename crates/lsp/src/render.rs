@@ -49,6 +49,45 @@ pub(crate) fn diagnostic_from_parse(diag: &sokonanoda_front::Diagnostic) -> Diag
     }
 }
 
+/// **URI 规范化**（N1）：同一个文件只能有**一个** `file://` 身份。
+///
+/// 路径可能带 `.` / `..` —— 前端的 `prelude_source_path()` 就是从
+/// `crates/front/../..` 拼出来的 ⇒ `Url::from_file_path` 把它们**原样**编进
+/// URI，`Location.uri` 于是给出 `…/crates/front/../../prelude/Prelude.sokonanoda`
+/// （实测 3 条落点带 `/../`）。编辑器拿它当**另一个文件**：同一个 prelude
+/// 会有两份身份（已打开文档的高亮/面包屑/`documentSymbol` 全部分叉 ✗）。
+///
+/// 这里做**词法**规范化（逐组件消掉 `.` 与 `..`，不碰文件系统）：
+/// 判据是"同一个字符串路径只有一个 URI"，不是"解析真实路径" —— 后者是
+/// `canonicalize` 的活（会解析符号链接、在 macOS 上还会把 `/var` 换
+/// `/private/var` ⇒ 与编辑器手里那份 URI **反而不一致** ✗）。
+pub(crate) fn file_uri(path: &std::path::Path) -> Option<Url> {
+    // 逃生门（反向验证用）：`SOKO_NO_URI_NORMALIZE=1` 回到"原样编码"的旧行为
+    // ⇒ N1 用例必须重新判红（读数见 VERDICT）。
+    if std::env::var_os("SOKO_NO_URI_NORMALIZE").is_some() {
+        return Url::from_file_path(path).ok();
+    }
+    Url::from_file_path(normalize_path(path)).ok()
+}
+
+/// 词法规范化：消掉 `.`、就地消掉 `..`（`..` 落在根上时保留，交给 `Url` 处理）。
+fn normalize_path(path: &std::path::Path) -> std::path::PathBuf {
+    use std::path::Component;
+    let mut out = std::path::PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !out.pop() {
+                    out.push("..");
+                }
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
 pub(crate) fn range_of(span: Span) -> Range {
     Range {
         start: Position {
@@ -1255,6 +1294,33 @@ def viaPrefix : Wrap := Wrap.mk\ndef viaAlias : Wrap := mk\n";
             hover_type_at(&narrow, 0, 1).expect("row").text,
             "narrow",
             "更窄的 span 仍然优先"
+        );
+    }
+
+    /// **N1**：`..` / `.` 必须被词法消掉 —— 同一个文件只能有一个 `file://` 身份。
+    #[test]
+    fn file_uri_normalizes_parent_components() {
+        let uri = file_uri(std::path::Path::new(
+            "/repo/crates/front/../../prelude/P.sokonanoda",
+        ))
+        .expect("file url");
+        assert_eq!(uri.path(), "/repo/prelude/P.sokonanoda", "{uri:?}");
+        assert!(
+            !uri.as_str().contains("/../"),
+            "URI 里不许再出现 `/../`（编辑器会当另一个文件）：{uri:?}"
+        );
+        // `.` 与重复分隔符同样消掉；无关的路径一个字节不变。
+        assert_eq!(
+            file_uri(std::path::Path::new("/repo/./a//b.sokonanoda"))
+                .expect("file url")
+                .path(),
+            "/repo/a/b.sokonanoda"
+        );
+        assert_eq!(
+            file_uri(std::path::Path::new("/repo/lib/Set.sokonanoda"))
+                .expect("file url")
+                .path(),
+            "/repo/lib/Set.sokonanoda"
         );
     }
 }

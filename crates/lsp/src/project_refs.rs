@@ -188,7 +188,7 @@ theorem and_intro_demo (a b : Prop) (h : a) (k : b) : And a b := And.intro a b h
             .modules
             .iter()
             .map(|module| ModuleView {
-                uri: Url::from_file_path(&module.path).expect("file url"),
+                uri: crate::render::file_uri(&module.path).expect("file url"),
                 text: &module.source,
                 version: Some(7),
                 report: &module.report,

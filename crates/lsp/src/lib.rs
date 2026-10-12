@@ -529,7 +529,7 @@ fn project_views(docs: &Docs) -> Option<Vec<project_refs::ModuleView<'_>>> {
     let modules = docs.query().project_modules()?;
     let mut views = Vec::with_capacity(modules.len());
     for module in modules {
-        let uri = Url::from_file_path(&module.path).ok()?;
+        let uri = render::file_uri(&module.path)?;
         match docs.map.get(&uri) {
             Some(doc) => {
                 let Some(report) = doc.report() else {
@@ -3109,7 +3109,7 @@ impl LanguageServer for Backend {
             let Some(path) = docs.query().module_path(&module) else {
                 continue;
             };
-            let Ok(target) = Url::from_file_path(&path) else {
+            let Some(target) = render::file_uri(&path) else {
                 continue;
             };
             links.push(DocumentLink {
@@ -3157,7 +3157,7 @@ impl LanguageServer for Backend {
             let offset = position_to_offset(&text, pos);
             if let Some(doc) = tactic_doc_at(report, &text, offset) {
                 if let Some(path) = sokonanoda_front::tactics::doc_path(doc.name) {
-                    if let Ok(uri) = Url::from_file_path(&path) {
+                    if let Some(uri) = render::file_uri(&path) {
                         if let Some((start, end)) = doc_heading_token(doc.markdown, doc.name) {
                             return Ok(Some(GotoDefinitionResponse::Scalar(Location {
                                 uri,
@@ -3188,7 +3188,7 @@ impl LanguageServer for Backend {
             let offset = position_to_offset(&text, pos);
             if let Some(doc) = command_keyword_at(&text, offset) {
                 if let Some(path) = sokonanoda_front::commands::doc_path(doc.name) {
-                    if let Ok(uri) = Url::from_file_path(&path) {
+                    if let Some(uri) = render::file_uri(&path) {
                         if let Some((start, end)) = doc_heading_token(doc.markdown, doc.name) {
                             return Ok(Some(GotoDefinitionResponse::Scalar(Location {
                                 uri,
@@ -3216,7 +3216,7 @@ impl LanguageServer for Backend {
                 // 按 F12 **毫无反应** ✗（E10 要修的「回记法」那一跳 ✓）。
                 if module.is_none() && span.start.offset != 0 {
                     if let Some(path) = sokonanoda_front::compile::prelude_source_path() {
-                        if let Ok(uri) = Url::from_file_path(&path) {
+                        if let Some(uri) = render::file_uri(&path) {
                             return Ok(Some(GotoDefinitionResponse::Scalar(Location {
                                 uri,
                                 range: range_of(span),
@@ -3226,7 +3226,7 @@ impl LanguageServer for Backend {
                 }
                 if let Some(module) = module {
                     if let Some(path) = docs.query().module_path(&module) {
-                        if let Ok(uri) = Url::from_file_path(&path) {
+                        if let Some(uri) = render::file_uri(&path) {
                             return Ok(Some(GotoDefinitionResponse::Scalar(Location {
                                 uri,
                                 range: range_of(span),
@@ -3253,7 +3253,7 @@ impl LanguageServer for Backend {
             if let Some((symbol, _)) = sokonanoda_front::notation_input::symbol_at(&text, offset) {
                 if let Some(span) = sokonanoda_front::notation::builtin_declaration_span(&symbol) {
                     if let Some(path) = sokonanoda_front::compile::prelude_source_path() {
-                        if let Ok(uri) = Url::from_file_path(&path) {
+                        if let Some(uri) = render::file_uri(&path) {
                             return Ok(Some(GotoDefinitionResponse::Scalar(Location {
                                 uri,
                                 range: range_of(span),
@@ -3282,7 +3282,7 @@ impl LanguageServer for Backend {
                 sokonanoda_front::notation_input::notation_target_at(&text, offset)
             {
                 if let Some((path, def_span)) = docs.query().project_definition(&name) {
-                    if let Ok(uri) = Url::from_file_path(&path) {
+                    if let Some(uri) = render::file_uri(&path) {
                         return Ok(Some(GotoDefinitionResponse::Scalar(Location {
                             uri,
                             range: range_of(def_span),
@@ -3302,7 +3302,7 @@ impl LanguageServer for Backend {
                     if let Some((path, span)) = sokonanoda_front::compile::prelude_source_path()
                         .zip(sokonanoda_front::compile::prelude_def_span(&name))
                     {
-                        if let Ok(uri) = Url::from_file_path(&path) {
+                        if let Some(uri) = render::file_uri(&path) {
                             return Ok(Some(GotoDefinitionResponse::Scalar(Location {
                                 uri,
                                 range: range_of(span),
@@ -3340,7 +3340,7 @@ impl LanguageServer for Backend {
                         if let Some((path, span)) = sokonanoda_front::compile::prelude_source_path()
                             .zip(sokonanoda_front::compile::prelude_def_span(name))
                         {
-                            if let Ok(uri) = Url::from_file_path(&path) {
+                            if let Some(uri) = render::file_uri(&path) {
                                 return Ok(Some(GotoDefinitionResponse::Scalar(Location {
                                     uri,
                                     range: range_of(span),
@@ -3358,7 +3358,7 @@ impl LanguageServer for Backend {
             ResolvedTarget::Declaration { name, .. } => docs
                 .query()
                 .project_definition(name)
-                .and_then(|(path, _)| Url::from_file_path(path).ok()),
+                .and_then(|(path, _)| render::file_uri(&path)),
             ResolvedTarget::Binder(_) => None,
             // 记法符号的**跨模块**跳转走 T-D10 的记法分支（在 `definition_at`
             // 之前就返回了）；走到这里的是本文件内声明的记法 ⇒ 没有跨文件目标。
