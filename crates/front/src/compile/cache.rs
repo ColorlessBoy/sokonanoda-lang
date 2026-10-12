@@ -10,6 +10,11 @@
 //! —— 逃生门 `SOKO_NOTATION_METAVAR=0` 会被静默忽略（release `v0.79.0` 实测复现 ✗）。
 //! 新增任何这类开关时，**同轮**把它加进 [`key_parts`]。
 //!
+//! ⚠ **内建 prelude 是"编译结果的一部分"，但不走 [`key_parts`]**（M-07，2026-10-12）：
+//! `prelude/*.sokonanoda` 由 `include_str!` **编进二进制** ⇒ 改一行源就是**另一个构建**，
+//! 折进 [`build_stamp`]（内部走 `builtin_prelude_digest`）——见那里的事故与理由。
+//! 于是"只改 prelude"不可能与"什么都没改"共用一条键 ✓。
+//!
 //! The kernel stays the single judge: an entry only holds a report the kernel
 //! produced for exactly that content, and the key embeds the compiler version +
 //! build stamp, so a new binary always misses. Nothing is ever *inferred* from
@@ -39,6 +44,14 @@ use std::path::{Path, PathBuf};
 /// `6`（2026-10-08 / **E3**）：**prelude 运行时覆盖的指纹进键** ——
 /// `SOKO_PRELUDE_DIR` 换了内容而键不变 ⇒ 会命中**旧 prelude** 编出来的条目 ✗
 /// （"拿旧答案"的红线）⇒ 按本常量自己的规矩 bump ✓。
+/// `7`（2026-10-12 / **M-07**）：**内建 prelude 的摘要进 `build_stamp`**（键里的
+/// build 分量不再只是 profile/OS/ARCH）。⚠ 写这一段是为了记下**为什么不动本常量**
+/// ✗：内建 prelude 是 `include_str!` 编进二进制的，摘要折进 `build_stamp` 之后
+/// **每一次"改了 prelude"的构建都自带一条新键**（旧条目够不着 ✓），而条目 schema
+/// 与键里显式列出的各分量**一个都没变** ⇒ 按上面这条规矩**不 bump**（bump 只会
+/// 让下一次改 prelude 的构建也顺手整库作废 —— 对一个**已经必然 miss** 的改动是
+/// 纯多付的代价 ✗）。判据：`a_different_builtin_prelude_must_change_the_key`
+/// ＋ `.cache/ux/fix-a5/VERDICT.md` 的两条行为读数（改 prelude ⇒ 只重建 ⇒ 行为变 ✓）。
 pub const CACHE_FORMAT: u32 = 6;
 
 /// One cached compile: the document report (for the LSP) and, when the
@@ -118,7 +131,35 @@ fn compiled_dir() -> Option<PathBuf> {
 /// （`consts::OS` + `consts::ARCH`，跨平台不串台）。开发期想区分"同版本号的
 /// 不同构建"时，用**显式环境变量** `SOKO_BUILD_LABEL`（`option_env!` 在编译期
 /// 取值），而不是靠文件系统的副作用。
+///
+/// ## **M-07（2026-10-12）**：内建 prelude 的摘要也是构建身份
+///
+/// 事故（本批实测）：把 `prelude/L1.sokonanoda` 的 `And.left` 从 `theorem` 改回
+/// `def`、**只重建不清缓存** ⇒ 旧条目被复用、`#print And.left` 继续答 `theorem` ✗。
+/// 根因就是这里：prelude 是 `include_str!` **编进二进制**的
+/// （[`super::prelude::PRELUDE_EQ_SRC`] / `PRELUDE_L1_SRC` / `QUOT_TYPES_SRC` +
+/// 两张名字表），而本函数当时只折 profile/OS/ARCH ⇒
+/// **"同版本、同档位、只动 prelude"= 键完全不变** ✗ ——
+/// 正是"源码没变而行为变了却命中旧答案"那条红线，只是变的是**内建源**不是用户源。
+///
+/// ⇒ 折进 [`builtin_prelude_digest`]（**编译期常量**算出来的纯函数值 ✓）。
+/// 于是"改一行 prelude"= **另一个构建** ⇒ 全部缓存键（含模块层产物键，
+/// `project::ProjectPlan::module_keys` 走的也是 [`key`]）一起变 ⇒ 必 miss ✓。
+///
+/// **为什么不在这里读 [`super::prelude::prelude_source`]**：那份可以带
+/// `SOKO_PRELUDE_DIR` 的**运行时**覆盖（E3）——运行时状态进 `build_stamp` 会破坏
+/// "纯函数、跨进程稳定"这条前提（同一个进程内先问一次键、再读一次覆盖，值就变了 ✗），
+/// 而且覆盖本来就有自己的键分量（[`super::prelude::prelude_override_state`] ✓）。
+/// 这里只要**内建**那三段的字节 + 两张名字表。
 pub fn build_stamp() -> u64 {
+    stamp_with_prelude_digest(builtin_prelude_digest())
+}
+
+/// [`build_stamp`] 的**纯函数**那一半（可单测 ✓）：`(profile, OS, ARCH, prelude 摘要)`。
+///
+/// 单独拆出来是为了让"prelude 摘要确实折进去了"有**可执行的判据** ——
+/// 传两个不同的摘要必须得到两个不同的 stamp（否则就是在自证空转 ✗）。
+fn stamp_with_prelude_digest(prelude_digest: u64) -> u64 {
     // FNV-1a 64 over the compile-time identity string. 纯函数、跨进程稳定。
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     let mut eat = |byte: u8| {
@@ -137,11 +178,59 @@ pub fn build_stamp() -> u64 {
     for byte in std::env::consts::ARCH.bytes() {
         eat(byte);
     }
+    // **M-07**：内建 prelude 的摘要（排在 label 之前 —— label 是可选尾巴，
+    // 加它的人要的是"再区分一层"，不该改变下面这个必需分量的位置 ✓）。
+    eat(b'/');
+    for byte in prelude_digest.to_le_bytes() {
+        eat(byte);
+    }
     if let Some(label) = option_env!("SOKO_BUILD_LABEL") {
         eat(0);
         for byte in label.bytes() {
             eat(byte);
         }
+    }
+    hash
+}
+
+/// **M-07**：**内建** prelude 的摘要（FNV-1a 64）—— 编进这份二进制的那些
+/// `include_str!` 源 + 两张名字表。
+///
+/// 覆盖哪些东西的判据是**"改了它 ⇒ 同一份用户源码的判定/显示会变"**：
+/// * `PRELUDE_EQ_SRC` / `PRELUDE_L1_SRC` / `QUOT_TYPES_SRC`：真装进内核的源 ✓
+///   （`And.left` 是 `theorem` 还是 `def` 就是这里的一行）；
+/// * `PRELUDE_NAMES` / `PRELUDE_NEVER_YIELDS`：补全/悬停的**材料**表（LSP 的
+///   `PRELUDE_NAMES` 回退直接把它当"这里有定义"讲给用户 ✓）—— 漂了同样是
+///   "改了行为却答旧答案"。
+///
+/// ⚠ **顺序与分隔符是契约**：名字表用 `\0` 逐个隔开（`["ab","c"]` 与 `["a","bc"]`
+/// 不许撞车），三段源之间用 `\0`，末尾不再补 —— 与
+/// [`super::prelude::prelude_source`] 的合并视图**不要求逐字相同**（那份是给
+/// 编辑器 F12 用的），这里只要求**稳定 + 敏感** ✓。
+fn builtin_prelude_digest() -> u64 {
+    use super::prelude::{
+        PRELUDE_EQ_SRC, PRELUDE_L1_SRC, PRELUDE_NAMES, PRELUDE_NEVER_YIELDS, QUOT_TYPES_SRC,
+    };
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    let mut eat = |byte: u8| {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    };
+    for text in [PRELUDE_EQ_SRC, PRELUDE_L1_SRC, QUOT_TYPES_SRC] {
+        for byte in text.bytes() {
+            eat(byte);
+        }
+        eat(0);
+    }
+    for names in [PRELUDE_NAMES, PRELUDE_NEVER_YIELDS] {
+        for name in names {
+            for byte in name.bytes() {
+                eat(byte);
+            }
+            eat(0);
+        }
+        // 两张表之间再加一个 `\0`（空表与"少一张表"不许撞车 ✓）。
+        eat(0);
     }
     hash
 }
@@ -417,6 +506,77 @@ pub(crate) fn clean_in(dir: &Path) -> usize {
 
 #[cfg(test)]
 mod tests {
+    /// **M-07 判据 ②（键那一半）**：**内建 prelude 的摘要必须折进键** ⇒ 同一份源码、
+    /// 同 profile/OS/ARCH、**只换 prelude** ⇒ 键**必须不同** ✓。
+    ///
+    /// **为什么必须有这条**（2026-10-12 实测咬过一次）：改一行
+    /// `prelude/L1.sokonanoda`、只重建不清缓存 ⇒ 旧条目被复用、`#print And.left`
+    /// 继续答 `theorem` ✗ —— 正是"修好了但用户看到旧的"那条红线。
+    /// 键 = `…, build, …`，而 `build = stamp_with_prelude_digest(内建 prelude 摘要)`
+    /// ⇒ 这条测试把两半都咬住：只改**摘要**（build 分量）就得换键；只改**用户源码**
+    /// 也得换键（下面第二段，反过来证明"换键"不是无条件成立 ✗）。
+    ///
+    /// 反向验证（**咬得住**）：把 `key_with_build` 里的 `build` 那一段从
+    /// `key_parts` 删掉 ⇒ 第一段当场判红 ✓。
+    #[test]
+    fn a_different_builtin_prelude_must_change_the_key() {
+        let src = "import lib.Set\n\n#print And.left\n";
+        let options = CompileOptions::default();
+        let old_prelude = stamp_with_prelude_digest(0x1111_2222_3333_4444);
+        let new_prelude = stamp_with_prelude_digest(0x1111_2222_3333_4445); // 只差 1 bit
+        assert_ne!(
+            old_prelude, new_prelude,
+            "prelude 摘要必须真的参与 stamp（否则这一条在自证空转 ✗）"
+        );
+        // 同 profile/OS/ARCH、同 prelude 档位、同源码：**只** prelude 摘要不同。
+        assert_ne!(
+            key_with_build(src, &options, old_prelude),
+            key_with_build(src, &options, new_prelude),
+            "换了内建 prelude ⇒ 缓存键必须不同（否则旧条目会答旧行为 ✗）"
+        );
+        // 反过来：同一份 prelude 摘要 ⇒ 键逐字相同（纯函数、跨进程稳定 ✓）。
+        assert_eq!(
+            key_with_build(src, &options, old_prelude),
+            key_with_build(src, &options, old_prelude)
+        );
+    }
+
+    /// **M-07**：`builtin_prelude_digest` 的几个**可判据**的性质 ——
+    /// 非退化（不是 0、也不是纯 FNV offset）、且**对内容敏感**。
+    ///
+    /// ⚠ 这里**不**复算"真源的 FNV 应该等于多少"（那与实现同源、等于自证 ✓）；
+    /// "改了真源 ⇒ 摘要必变"由端到端判据钉住（改 `prelude/L1.sokonanoda` 一行 ⇒
+    /// 重建 ⇒ 键变 ⇒ 行为变，见 `.cache/ux/fix-a5/VERDICT.md`）。
+    /// 这里钉的是**纯函数那半边**：分隔符/顺序不许把不同输入折成同一份。
+    #[test]
+    fn the_builtin_prelude_digest_is_content_sensitive() {
+        let digest = builtin_prelude_digest();
+        assert_ne!(digest, 0, "退化值会把 prelude 分量抹掉 ✗");
+        assert_ne!(digest, 0xcbf2_9ce4_8422_2325, "不能等于 FNV offset basis");
+        assert_eq!(digest, builtin_prelude_digest(), "纯函数 ⇒ 两次相同 ✓");
+        // 名字表必须**分隔**着折（`["ab","c"]` 与 `["a","bc"]` 不许撞车）——
+        // 这条用同一函数的两张真表间接证明不了，直接按同一条公式验编码方式。
+        let join = |names: &[&str]| {
+            let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+            let mut eat = |byte: u8| {
+                h ^= u64::from(byte);
+                h = h.wrapping_mul(0x0000_0100_0000_01b3);
+            };
+            for name in names {
+                for byte in name.bytes() {
+                    eat(byte);
+                }
+                eat(0);
+            }
+            h
+        };
+        assert_ne!(
+            join(&["ab", "c"]),
+            join(&["a", "bc"]),
+            "名字表必须带分隔符（否则两张不同的表会折成同一个摘要 ✗）"
+        );
+    }
+
     /// **E3 判据 ② 的键那一半**：prelude 覆盖的指纹**必须进键** ⇒
     /// 换了覆盖内容 ⇒ 键不同 ⇒ 缓存**必 miss** ✓（否则会拿旧 prelude 编出来的条目 ✗）。
     #[test]
