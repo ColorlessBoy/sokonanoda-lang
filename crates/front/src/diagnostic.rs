@@ -315,3 +315,116 @@ fn is_lean_common_tactic(word: &str) -> bool {
 }
 
 pub type Result<T> = std::result::Result<T, Diagnostic>;
+
+// ── r17（2026-10-12）：常见 Lean 语法被拒时**点名 + 给替代** ──────────────────
+//
+// 病：从任何 Lean 教程过来的学习者先写 `intros` / `simp` / `rw [X]`，而工具侧
+// 只说「不在白名单里」（`command_position_note`）或干脆是词法兜底那句
+// `expected a valid .sokonanoda token, found [`（parser 的注解**没机会说话** ✗）
+// ⇒ 学习者分不清"语法没实现"和"我写错了"。
+//
+// 做法照 Lean 4（`lean4/src/Lean/Parser/Module.lean::mkErrorMessage`）：**把意外
+// 记号名字化**（`unexpected token '·'`）并把它变成一句可行动的提示。我们多给一层
+// ——「本子集不支持 X，改用 Y」；替代项只写**白名单里真有**的那个（`is_tactic`
+// 现查）⇒ 哪天 `simp` 真做出来了，这里的"本子集没有"自动闭嘴 ✓（不会说谎 ✗）。
+
+/// **反向验证逃生门**（r17）：`SOKO_NO_LEAN_LESSON=1` ⇒ 这一轮的两句教学提示
+/// （tactic 名字化 + `[ … ]` 名字化）全部闭嘴 ⇒ 回到改动前的诊断
+/// （`scripts/ux-probes/lang/r17-common-lean-syntax.sh` 回到 exit 0）。
+/// 只给判别性实验用，默认关闭。
+fn legacy_no_lean_lesson() -> bool {
+    std::env::var_os("SOKO_NO_LEAN_LESSON").is_some()
+}
+
+/// 常见 Lean 4 tactic → 本子集的出路（`None` = 本子集**没有**对应物，那就说清楚
+/// 「这一步得自己给证明项」）。**唯一真相**：`is_lean_common_tactic` 的名单只决定
+/// "值不值得解释"，这里决定"怎么解释"。
+fn lean_tactic_replacement(word: &str) -> Option<&'static str> {
+    Some(match word {
+        "intros" => "intro",
+        // Lean 里 `rw`/`rewrite` 的活在本子集是"把那条引理显式用出来"：
+        // `unfold Foo at h`（定义展开）+ `exact` / `apply`（把引理交出去）。
+        "rw" | "rewrite" => "unfold",
+        _ => return None,
+    })
+}
+
+/// 一句「本子集**不支持** X（不是写错了）+ 你能写什么」。
+///
+/// 只对**本子集确实没有**的 Lean 常见写法开口（`!is_tactic` 闸门与
+/// [`command_position_note`] 同款）⇒ 表里哪天收了一条，这里自动闭嘴 ✓。
+pub(crate) fn unsupported_lean_tactic_lesson(word: &str) -> Option<String> {
+    if legacy_no_lean_lesson() || crate::tactics::is_tactic(word) || !is_lean_common_tactic(word) {
+        return None;
+    }
+    let alternative = lean_tactic_replacement(word);
+    // 替代项必须在白名单里（否则就是"指了一条也不通的路"✗）。查不到就退回
+    // "本子集没有它"这一半——那半永远成立 ✓。
+    let advice = match alternative.filter(|name| crate::tactics::is_tactic(name)) {
+        Some(name) => format!("请改用 `{name}`"),
+        None => "本子集没有对应物，这一步要自己给出证明项（例如手里有 `h : P` 而目标就是 `P`，写 `exact h`）".to_string(),
+    };
+    Some(format!(
+        "`{word}` 是 Lean 的 tactic，**本子集不支持**（不是你把名字写错了）：{advice}。\
+         本子集的 tactic 只有 {}。",
+        crate::tactics::whitelist_text()
+    ))
+}
+
+/// **记法样式的 `[ … ]`**（r17 第二层）：`rw [Set.mem_singleton_iff]` 里的 `[`
+/// 在**词法**层就没有 token（它不是数学符号码点）⇒ parser 的注解没机会说话
+/// （实测报 `expected a valid .sokonanoda token, found [`）✗。
+///
+/// ⇒ 在词法的兜底臂上把它名字化并给一句出路（这正是 `mkErrorMessage` 的名字化
+/// 那一步，只是我们的兜底臂在 lexer 里）。
+pub(crate) fn unsupported_bracket_symbol(c: char) -> Option<String> {
+    if legacy_no_lean_lesson() {
+        return None;
+    }
+    let what = match c {
+        '[' => "列表式语法 `[ … ]`",
+        ']' => "列表式语法 `… ]`",
+        _ => return None,
+    };
+    Some(format!(
+        "{what} 是 Lean 的写法（`rw [lemma]` / `simp [lemma]`），**本子集不支持**：\
+         引理要显式用出来——`unfold Foo at h` 展开定义、`exact` / `apply` 交出去。"
+    ))
+}
+
+#[cfg(test)]
+mod unsupported_lean_tactic_lesson_tests {
+    use super::*;
+
+    /// 判据（r17）：三种写法都要有「不支持」+ 出路，且**不许**说白名单里有的
+    /// tactic 不被支持（那句必须在构造上不可能 ✓）。
+    #[test]
+    fn unsupported_tactics_all_get_a_lesson() {
+        for word in ["intros", "simp", "rw", "rewrite", "omega", "linarith"] {
+            let lesson = unsupported_lean_tactic_lesson(word)
+                .unwrap_or_else(|| panic!("`{word}` 是本子集没有的常见 tactic，必须给一句提示"));
+            assert!(lesson.contains("不支持"), "{word}: {lesson}");
+            assert!(
+                lesson.contains("请改用") || lesson.contains("本子集没有对应物"),
+                "{word}: {lesson}"
+            );
+        }
+        // 替代项指错了就是"指了一条不通的路"✗：`intros` 必须指向 `intro`。
+        let intros = unsupported_lean_tactic_lesson("intros").unwrap();
+        assert!(intros.contains("请改用 `intro`"), "{intros}");
+        // **白名单里真有的**一律不许多嘴（`intro` 是支持的）。
+        assert!(unsupported_lean_tactic_lesson("intro").is_none());
+        assert!(unsupported_lean_tactic_lesson("exact").is_none());
+        // 不认识的名字也不许多嘴（那时正确答案是"未知 tactic"，见 parser）。
+        assert!(unsupported_lean_tactic_lesson("hax").is_none());
+    }
+
+    /// 第二层：`[` 要名字化 + 给出路；其它字符不许被这条抢走。
+    #[test]
+    fn bracket_symbol_gets_a_lesson_but_others_do_not() {
+        let lesson = unsupported_bracket_symbol('[').expect("`[` 要有提示");
+        assert!(lesson.contains("本子集不支持"), "{lesson}");
+        assert!(lesson.contains("`rw [lemma]`"), "{lesson}");
+        assert!(unsupported_bracket_symbol('*').is_none());
+    }
+}

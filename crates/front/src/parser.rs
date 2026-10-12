@@ -3708,7 +3708,14 @@ impl Parser {
             legacy_found_append() || !contains_found_clause(msg),
             "error_here 的 msg 自带 `found …`，再追加一次就会双写：{msg}"
         );
-        let message = if contains_found_clause(msg) && !legacy_found_append() {
+        let message = if legacy_found_append() {
+            // 逃生门：把**改动前**那句原样拼回来 —— 旧呼叫点自带
+            // `", found X"`（`legacy_found_clause_text`），追加点又加一遍 ⇒
+            // 双写回来，单测当场判红（left 2 / right 1）。⚠ 只在逃生门后面
+            // 成立：默认路径上呼叫点已经是光秃秃的那句，**没有**可复现的双写
+            // （见 `legacy_found_clause_text` 的注释）。
+            format!("{msg}{}, found {found}", legacy_found_clause_text(msg))
+        } else if contains_found_clause(msg) {
             msg.to_string()
         } else {
             format!("{msg}, found {found}")
@@ -3741,12 +3748,23 @@ impl Parser {
     /// [`command_position_note`] 附一句教学出路（子弹 / 分支标签 / Lean 的
     /// 未支持 tactic —— 它们都会让 `by` 块当场结束，报错点落在下一条命令上）。
     ///
+    /// **r17**：`command_position_note` 那句只说"不在白名单里"，学习者分不清
+    /// 「语法没实现」与「我写错了」⇒ 命中 [`crate::diagnostic::unsupported_lean_tactic_lesson`]
+    /// 时**先**给「本子集不支持 X，改用 Y」（那是更强的信号 ✓），后面那句
+    /// "为什么错报在下一条命令上"仍然有用 ⇒ 两句都留 ✓。
+    ///
     /// 老实现把 `Token` 的 `Debug` 整串拼进消息
     /// （`found Token { kind: Ident("·"), span: Span { … } }`）⇒ 学习者看到的是
     /// 编译器内部结构 ✗。
     fn expected_command_error(&self, tok: &Token) -> Diagnostic {
         let found = token_text(tok);
         let mut message = format!("expected a .sokonanoda command, found {found}");
+        if let TokenKind::Ident(word) = &tok.kind {
+            if let Some(lesson) = crate::diagnostic::unsupported_lean_tactic_lesson(word) {
+                message.push('；');
+                message.push_str(&lesson);
+            }
+        }
         if let Some(note) = command_position_note(&tok.kind) {
             message.push('；');
             message.push_str(&note);
@@ -3769,6 +3787,20 @@ impl Parser {
 /// 也算 ✓，而正文里顺笔提到别的词不算 ✗（否则那句话会被静默吞掉一半）。
 fn contains_found_clause(msg: &str) -> bool {
     msg.ends_with("found") || msg.contains("found ")
+}
+
+/// 改动前那句呼叫点自带的 `", found X"` 尾巴 —— **只给反向验证的逃生门**用。
+///
+/// 为什么需要它（别删 ✗）：默认路径上 `parse_binder` 的呼叫点已经是光秃秃的
+/// `"expected a binder"` ⇒ 就算把去重关掉，追加点也只加一遍 ⇒ **旧的双写
+/// 复现不出来**（逃生门就成了"空转的守卫"✗，那正是仓库点名的病）。
+/// 这里按**改动前的原文**补回那个尾巴，逃生门才真的能翻出旧读数。
+fn legacy_found_clause_text(msg: &str) -> &'static str {
+    if msg == "expected a binder" {
+        ", found 输入末尾"
+    } else {
+        ""
+    }
 }
 
 /// **反向验证逃生门**（N3 / `SUB-duplicate-found-msg`）：`SOKO_LEGACY_FOUND_APPEND=1`
@@ -3952,11 +3984,22 @@ fn is_expr_keyword(name: &str) -> bool {
 /// 文案**由表拼出**（`crate::tactics::whitelist_text`），不许手写 ✗：手写的那份曾经
 /// **漏了 `have`**——因为不可达，所以没人发现，也**没有任何判据**看着它。
 fn unknown_tactic_message(tok: &Token) -> String {
-    format!(
+    let mut message = format!(
         "未知 tactic：`by` 块只支持 {}（白名单），发现 {}",
         crate::tactics::whitelist_text(),
         token_text(tok)
-    )
+    );
+    // **r17**：从 Lean 教程带过来的 `intros` / `simp` / `rw` 落在这里。学习者
+    // 需要的是「本子集**没实现**它，你能写什么」——只说"不在白名单里"分不清
+    // "语法没实现"与"我写错了"。命中 [`unsupported_lean_tactic_lesson`] 时补上
+    // 那一句（它自带 `!is_tactic` 闸门 ⇒ 白名单真收了就自动闭嘴 ✓）。
+    if let TokenKind::Ident(word) = &tok.kind {
+        if let Some(lesson) = crate::diagnostic::unsupported_lean_tactic_lesson(word) {
+            message.push('；');
+            message.push_str(&lesson);
+        }
+    }
+    message
 }
 
 /// `by` 块白名单里的 tactic 关键字（`parse_tactic_inner` 的 `match` 臂与
@@ -4161,6 +4204,47 @@ mod tests {
         // （那句话只留给「学习者从 Lean 带过来」的名字；否则每条拼错的名字都套上
         // 一句无关的解释 ✗）。
         assert!(!msg.contains("不支持"), "`hax` 不该拿 Lean 教学那句 ✗：{msg}");
+    }
+
+    /// **r17（2026-10-12）**：从 Lean 教程带过来的 tactic 必须被点名
+    /// 「本子集不支持」并给出路（`intros` → `intro`）——学习者要能分清
+    /// "语法没实现"与"我写错了"。
+    ///
+    /// ⚠ **只改文案**：判定一个字没变（`intros` 依旧被拒、位置依旧是**下一条
+    /// 命令**——`by` 块遇到不属于它的记号就结束，这是语言语义 ✗ 不是 bug）。
+    #[test]
+    fn unknown_tactic_message_teaches_lean_common_tactics() {
+        let tok = |word: &str| Token {
+            kind: TokenKind::Ident(word.to_string()),
+            span: Span::new(
+                Pos {
+                    offset: 0,
+                    line: 1,
+                    column: 3,
+                },
+                Pos {
+                    offset: word.len(),
+                    line: 1,
+                    column: 3 + word.len(),
+                },
+            ),
+        };
+        for (word, replacement) in [("intros", "intro"), ("rw", "unfold"), ("rewrite", "unfold")] {
+            let msg = unknown_tactic_message(&tok(word));
+            assert!(msg.contains("不支持"), "`{word}` 要说明本子集没有：{msg}");
+            assert!(
+                msg.contains(&format!("请改用 `{replacement}`")),
+                "`{word}` 要指向 `{replacement}`：{msg}"
+            );
+        }
+        // `simp` 在本子集**没有**对应物 ⇒ 不许指一条不通的路 ✗，但必须说清楚
+        // "这一步得自己给证明项"。
+        let simp = unknown_tactic_message(&tok("simp"));
+        assert!(simp.contains("不支持"), "{simp}");
+        assert!(simp.contains("本子集没有对应物"), "{simp}");
+        // 白名单里的名字**不许**被这条碰上（构造上如此：`error_here` 那条路
+        // 只在没有臂命中的兜底上走，这里直接验闸门）。
+        assert!(crate::diagnostic::unsupported_lean_tactic_lesson("intro").is_none());
     }
 
     #[test]
