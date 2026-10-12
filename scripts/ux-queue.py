@@ -1211,6 +1211,24 @@ def check_plan(rows: list[dict]) -> int:
                 print(f"✗ `{ident}` 调度器里 done，来源处置却是 `{disp.get(ident)}` ⇒ "
                       f"**两层漂移**（把来源台账改成 fixed/wo-filed）✗", file=sys.stderr)
                 bad += 1
+        # **反向两层漂移**（`SUB-inflight-claims-never-closed`，2026-10-12）：
+        # 上面只查了 `done` + 来源不是终态这一个方向；**反方向一直没人查** ✗ ——
+        # 实测事故：`r07`/`G-110` 的修复早已落地、来源处置也已是 `fixed`，但事件表里
+        # **只有 claim、没有 advance** ⇒ 调度器停在 `in_progress` ⇒ 仍算 **open**：
+        # 队列对"还剩什么"**多报**，`--next` 会把**已经做完**的条目推荐出来 ✗。
+        # ⇒ 补上这个方向：来源已是终态、调度器却没到终态 ⇒ 判红（并指名怎么收口 ✓）。
+        _d = disp.get(ident)
+        if _d in {"fixed", "wo-filed"} and st not in TERMINAL_STATES and st != "submitted":
+            if _d == "fixed":
+                print(f"✗ `{ident}` 来源处置已是 `fixed`（终态），调度器却停在 `{st}` ⇒ "
+                      f"**反向两层漂移**：**修好了没登记** ⇒ 队列多报、`--next` 会把做完的推出来 ✗"
+                      f"（收口：`--advance {ident} --to done --commit <sha> --reading '<读数>'`）",
+                      file=sys.stderr)
+            else:
+                print(f"✗ `{ident}` 来源处置已是 `wo-filed`（终态），调度器却停在 `{st}` ⇒ "
+                      f"**反向两层漂移**（收口：`--advance {ident} --to wo_filed "
+                      f"--reason '<为什么不做>'`）", file=sys.stderr)
+            bad += 1
         if st == "umbrella":
             kids = cur.get("children", [])
             if not kids:
@@ -1591,6 +1609,17 @@ def selftest_scheduler(expect) -> None:
             expect(f"todo → done 必须被拒（rc={rc}）", rc == 1)
             # ② 认领 → 无证据收口必须被拒；带证据则通过
             expect("认领 X-1", quiet(cmd_claim, "X-1", "t", False, rows, "mod/1") == 0)
+            # ③b **反向两层漂移**（`SUB-inflight-claims-never-closed`，2026-10-12）：
+            #     来源处置已是 `fixed`、调度器却停在 `in_progress` ⇒ **必须判红** ✓。
+            #     单列的理由：上面 ③ 只测了一个方向；**实测事故是反方向** ——
+            #     `r07`/`G-110` 的修复早已落地、来源也已 `fixed`，但事件表里只有 claim
+            #     没有 advance ⇒ 仍算 open ⇒ 队列**多报**、`--next` 把做完的推出来 ✗。
+            #     （此刻 X-1 恰是 `in_progress` ⇒ 正是要测的形状 ✓。）
+            x1 = next(r for r in rows if r["id"] == "X-1")
+            x1["disposition"] = "fixed"
+            expect("来源 fixed 而调度器 in_progress ⇒ 判红", check_plan(rows) >= 1)
+            x1["disposition"] = "fix"
+            expect("还原后不再误红", check_plan(rows) == 0)
             rc = quiet(cmd_advance, "X-1", "done", "", "", "", "t", False, rows)
             expect(f"无证据收口必须被拒（rc={rc}）", rc == 1)
             rc = quiet(cmd_advance, "X-1", "done", real_sha, "probe exit 0→1", "", "t",
