@@ -8,7 +8,7 @@
 // tools (`mcp__sokonanoda__state`, …) so the model gets them as first-class
 // tool calls instead of hand-built shell pipelines.
 //
-// Design: docs/design/agent-query-channel.md §6. Rules kept on purpose:
+// Design: `docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` §6. Rules kept on purpose:
 //   * NO Lean logic here — this file only declares schemas and forwards JSON.
 //     All judgement lives in `front::query` behind `sokonanoda query`.
 //   * NO environment assumptions — the contract is (cwd = repo root) or

@@ -1,6 +1,6 @@
 //! `sokonanoda query <op>` end-to-end: the agent-facing single-JSON view of the
 //! kernel truth (`docs/protocol.md` §"`query` subcommand",
-//! `docs/design/agent-query-channel.md` H6-A).
+//! `docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` H6-A).
 //!
 //! The load-bearing test here is [`query_check_counts_match_the_json_event_stream`]:
 //! `query check` and `--json` must agree, because they are two views of the same
@@ -680,7 +680,7 @@ fn query_goals_and_holes_report_parse_errors_instead_of_empty_answers() {
         "no fake `holes: []` + `navigated: null`: {holes}"
     );
     // 对照组：能解析的空画布仍是 `ok:true` + 空数组——"正常的没有"不是错误
-    // （协议把两者严格分开，`docs/design/agent-query-channel.md` §4.1）。
+    // （协议把两者严格分开，`docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` §4.1）。
     let (empty, code) = query(&["goals", "--text", "-- 只有注释\n"], None);
     assert_eq!(code, 0, "{empty}");
     assert_eq!(empty["ok"], true, "{empty}");

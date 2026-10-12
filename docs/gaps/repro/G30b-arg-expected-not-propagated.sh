@@ -32,7 +32,7 @@
 # ── 归属（**不是 U1/U2** ✗，别含糊 ✓）──
 #   这是设计 `docs/design/metavar-engine.md` **§2.10 范围 B 的 B1**
 #   （「期望类型传播：实参位**逐层**拿期望类型」✓），并且正是 `elab.rs` 里
-#   **parked 的 TODO(G-21)**（原文见 `docs/design/course-lean-style.md` §9）：
+#   **parked 的 TODO(G-21)**（原文见 `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）` §9）：
 #   放宽那条闸当场**栈溢出**（本轮实测 exit 134 ✗ —— 算期望类型要 `judge_infer`
 #   头的类型，判定**再入** elaborate ⇒ 递归 ✗）；加深度守卫后**不崩也不生效** ✗。
 #   ⇒ 最小验证路径：① 给 `application_arg_expected` 加**递归守卫**（或在

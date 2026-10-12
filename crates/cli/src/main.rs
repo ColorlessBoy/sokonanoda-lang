@@ -118,7 +118,7 @@ fn main() -> ExitCode {
         Some("grade") => env::grade(&positionals[1..], root.as_deref()),
         Some("gate") => env::gate(&args),
         // 内核真相查询（agent/MCP 的"提问式"通道；单 JSON 对象）。
-        // 设计：docs/design/agent-query-channel.md §5。
+        // 设计：`docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` §5。
         Some("query") if !json => query::run(&positionals[1..], root.as_deref()),
         Some("query") => {
             eprintln!("error: query 自带 JSON 输出，不要加 --json");

@@ -426,7 +426,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 #### I15 —— 内核真相查询通道（✅ 0.56.0 落地，0.56.1 结构债清零；H6-E backlog）
 
-> 设计：**`docs/design/agent-query-channel.md`**。一句话：**"内核真相"此前只有 LSP 一条出口**，
+> 设计：**`docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）`**。一句话：**"内核真相"此前只有 LSP 一条出口**，
 > 而 DSH 的 LSP host 丢弃诊断 ⇒ agent 只能整文件扫事件流。落地顺序与设计一致：
 > **真相层（`front::query`）→ 传输（CLI `query` + MCP）→ LSP 改为调用同一个真相层**。
 

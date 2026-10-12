@@ -1,6 +1,6 @@
 //! `sokonanoda query <op>`：内核真相的 CLI 出口（harness 中立、零配置）。
 //!
-//! 设计与契约：`docs/design/agent-query-channel.md` §5、`docs/protocol.md`。
+//! 设计与契约：`docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` §5、`docs/protocol.md`。
 //! 与 `sokonanoda --json <file>` 的关系：**同一份判卷，两种视图**——`--json` 是
 //! 全量事件流（既有消费者不变），`query` 是"摘要 + 可寻址"的单 JSON 对象，
 //! 供 agent/脚本一次解析。两者都由 `front::query` 同一实现产出。

@@ -1,6 +1,6 @@
 # DeepSeek Harness 适配（设计 + 计划）
 
-> 状态：**H0–H4 已落地**（0.54.0 → 0.55.0，见 §9）；H5 的 B2 已被 `docs/design/agent-query-channel.md` 取代（MCP 已落 ✓），B1/B3/B4 仍 backlog（本文件是 `H0–H4` 的执行依据）。
+> 状态：**H0–H4 已落地**（0.54.0 → 0.55.0，见 §9）；H5 的 B2 已被 `docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` 取代（MCP 已落 ✓），B1/B3/B4 仍 backlog（本文件是 `H0–H4` 的执行依据）。
 > 触发：用户 2026-09-17「接手这个项目，但很多地方还没适配 deepseek harness，
 > 先理解项目、分析要适配哪里、列计划文档」。
 > 权威顺序：`REQUIREMENTS.md`（要求总账）> 本文件（DSH 适配方案）> `AGENTS.md`。
@@ -179,7 +179,7 @@ opencode 的文档与契约测试。
 | 资产 | DSH 可移植性 | 处置 |
 |---|---|---|
 | kernel / front / cli / lsp（Rust） | 完全可移植（与 harness 无关） | 不改 |
-| `--json` 事件协议、`soko/*` 请求 | 协议可移植；⚠ **MCP 已落地**（`dsh/mcp/server.js`，7 个 `mcp__sokonanoda__*` 工具，见 `docs/design/agent-query-channel.md` §8）—— 不再是"备选" | 不动协议；客户端插件（H6-E）仍 backlog |
+| `--json` 事件协议、`soko/*` 请求 | 协议可移植；⚠ **MCP 已落地**（`dsh/mcp/server.js`，7 个 `mcp__sokonanoda__*` 工具，见 `docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` §8）—— 不再是"备选" | 不动协议；客户端插件（H6-E）仍 backlog |
 | `AGENTS.md` | 原生支持（D1，且 `CLAUDE.md` 一并读） | 改写 Setup 章节为 harness 中立 + 增加 DSH 段；不变动其结构 |
 | `skills/*/SKILL.md` | 格式兼容（`name`+`description` 即合法）；相对 `references/` 受支持（D4） | 需加薄网关到 DSH 能扫的根；路由词写进 `description` |
 | `.opencode/command/**` | 不等价（D14）；但技能名即命令（D5） | 内容并入技能 + 保留薄命令（opencode） |
@@ -343,14 +343,14 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
 ### H5 —— 远期（不做承诺，入 backlog）
 
 > **2026-09-17 更新**：B2「诊断通道」**已升级为独立设计与计划**——
-> `docs/design/agent-query-channel.md`（ROADMAP **I15** / H6-A…H6-E）：不再"等 DSH
+> `docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）`（ROADMAP **I15** / H6-A…H6-E）：不再"等 DSH
 > 支持 `publishDiagnostics`"，而是把**内核真相查询层**从 LSP 里抽出来
 > （`front::query`），再上 CLI `query` 与 MCP 两个薄传输。B1/B3/B4 仍留在下面。
 
 - **B1 DSH 客户端插件复刻 Infoview**：把 `soko/goals`/`soko/stateAt` 接到 Web GUI
   的自定义视图（D9 证明现有 LSP 通道到不了；需要 DSH 客户端插件 + host handler）。
   → 将消费 `front::query` 的结论（I15 H6-A），不必再走 LSP 自定义请求。
-- **B2 诊断通道**：**→ 已并入 I15**（`docs/design/agent-query-channel.md`）：
+- **B2 诊断通道**：**→ 已并入 I15**（`docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）`）：
   ① CLI `sokonanoda query check/state/goals/holes/hints/reduce/project`（单 JSON、零配置、
      所有 harness 通用）；② MCP server（`scripts/soko mcp` + `dsh/mcp/server.js`，
      DSH 官方通道，默认关闭需 opt-in）；③ 追踪 DSH LSP 是否支持诊断投递作为补充。

@@ -320,7 +320,7 @@
   后只跑单个 crate 的测试会拿旧二进制对拍（先 `cargo build --workspace`）。
 - **守护位置**：`crates/front/src/query/tests.rs`（no-`by` 两条红先单测）、
   `crates/cli/tests/query.rs::query_state_and_lsp_agree_without_a_by_block`
-  （端到端跑真实 LSP）、`docs/design/agent-query-channel.md` §4 as-built 3 / §12。
+  （端到端跑真实 LSP）、`docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` §4 as-built 3 / §12。
 
 ## 镜像内核谓词：逐字翻译 + 给"判别性输入"写测试（2026-09-17，H6-C 的 `is_k`）
 
@@ -358,7 +358,7 @@
   文档里，让后人以为"做不到"；② 一条行数类验收要问清"算不算测试、算不算生成代码"，
   否则争论的不是同一个数；③ 就算确实要改口径，也要在文档里写**实测构成**
   （test/非 test 各多少行），而不是形容词。
-- **守护位置**：`docs/design/agent-query-channel.md` §3.2/§11 A5（最终数字）、
+- **守护位置**：`docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` §3.2/§11 A5（最终数字）、
   `docs/TESTING.md` 的 LSP 行（测试文件位置）、本条目。
 
 ## 静默成功是最坏的失败：`update` 刷新不了缓存却 exit 0（2026-09-17，第九十一轮实测）

@@ -107,7 +107,7 @@ sokonanoda-lang/
 - `--` 是行注释；`sorry` 是 Hole（未完成练习/占位符；旧的 `???` 已于 2026-09-07 移除）。
 - `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / **`abbrev`**（G-08：与 `def` **同语义**的拼写，共用 `parse_def`，设计 `docs/design/abbrev.md`）/ `theorem` / `example` / `axiom` / `inductive ... end` / `#check` / `#reduce` / `#print` / **记法声明 `infix:N` / `infixl:N` / `infixr:N` / `notation`**（0.59.0）/ **一元记法 `prefix:N` / `postfix:N`**（0.60.0）/ **binder 记法 `binder_notation "∃" => Exists`**（第三刀）/ **作用域命令 `namespace <name>` / `end <name>` / `open <name>` / `open scoped <name>`**（0.60.0 + 第三刀 + 第二刀：`open` 的 `(a b)` / `hiding a b` / `renaming a => b` 三条互斥子句、只影响一条命令的 `open <name> … in <命令>`、跨 `import` 的 `export <name> [<子句>]`）/ **`scoped <记法命令>`**（第三刀）。
 - 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | <pattern> [if <guard>] => body`；pattern = `_` / 绑定名 / 构造子（可嵌套）/ Nat 字面量）、**`Notation`**（`lhs symbol rhs` 与零元 `symbol`；0.59.0；第三刀加 `alternatives` 字段做**重载**候选表）、**`SetLiteral`**（`{a}` / `{a, b}`，第三刀——**新语法**，展开成点名形式 `Set.singleton` / `Set.pair`）。
-- **语言内建记法**（0.61.0，设计 `docs/design/course-lean-style.md` L2.2–L2.4b）：`∧ ∨ ↔ ¬`
+- **语言内建记法**（0.61.0，设计 `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）` L2.2–L2.4b）：`∧ ∨ ↔ ¬`
   （`And`/`Or`/`Iff`/`Not`）、**`=`（`Eq`）与 `≠`（`Ne`）**——**任何文件零声明可用，
   且不能被重声明**。为什么是内建表而不是写进 prelude：`install_l1_prelude` 只认
   `Axiom`/`Def`/`InductiveBlock`，记法命令会被**静默忽略**。`=`/`≠` 各带一个宇宙参数，
@@ -119,9 +119,9 @@ sokonanoda-lang/
   `Ne`）⇒ `by.rs::level_hint_of` 按**操作数的 sort** 算层级提示，喂给
   `spine::resolve_levels`（点名形态取首实参的 sort、记法形态取首实参**类型的**
   sort；算不出具体数字就不填，悬空变量会响亮报错）。见
-  `docs/design/course-lean-style.md` §9 残留②。
+  `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）` §9 残留②。
   `→` 不在表里（函数空间不是常量，走**词法别名**）。
-- **匿名构造子 `⟨a, b⟩`**（0.61.0，设计 `docs/design/course-lean-style.md` L2.7）：
+- **匿名构造子 `⟨a, b⟩`**（0.61.0，设计 `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）` L2.7）：
   **新语法**（`Expr::AnonCtor` + 专用 token `⟨`/`⟩`），用哪个构造子由**期望类型**
   决定——`And`→`And.intro`、`Iff`→`Iff.intro`、`Exists`→`Exists.intro`、
   `Prod`→`Prod.mk`、单构造子归纳→它的构造子（多构造子/非归纳头报专用码

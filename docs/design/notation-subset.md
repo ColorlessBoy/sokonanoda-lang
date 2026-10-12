@@ -859,7 +859,7 @@ binder_notation "∃" => Exists        -- 命令形状与 notation 同族（不�
 
 ## 15. R2 课程 Lean 化之后：契约翻转与 `≠` 的层级提示（2026-09-21）
 
-R2（课程全面 Lean 化，设计 `docs/design/course-lean-style.md`）把**卷 I 单元②**
+R2（课程全面 Lean 化，设计 `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）`）把**卷 I 单元②**
 画布与解答都改成了记法版，于是本节 §8/§14.7 里两条"课程仍用点名"的记录
 **到此为止**。翻转后的契约（测试名与方向都改了）：
 

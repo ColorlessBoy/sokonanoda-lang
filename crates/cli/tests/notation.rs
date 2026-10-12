@@ -934,7 +934,7 @@ theorem after (α : Type) (a : α) : {a} ≠ ∅ := by
 }
 
 /// `≠` 的 **delta 展开**必须带上正确的宇宙层级（设计
-/// `docs/design/course-lean-style.md` §9「R2 课程改写第一站」）。
+/// `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）`）` §9「R2 课程改写第一站」）。
 ///
 /// `Ne` 是 `def Ne {u} (α : Sort u) (a b : α) : Prop := Eq.{u} α a b -> False`：
 /// `intro h` 要看穿 `Ne` 就得展开定义体，而定义体里的 `u` 只能由**调用点**定。
@@ -1342,7 +1342,7 @@ fn the_shipped_course_demos_the_binder_notation() {
 }
 
 /// **记法 + tactic 必须能一起用**（G-04 × `by` 引擎；设计
-/// `docs/design/course-lean-style.md` §1.3 的 X1 / X2 / X11）。
+/// `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）`）` §1.3 的 X1 / X2 / X11）。
 ///
 /// 改前三个实测故障（本测试是它们的回归钉）：
 ///
@@ -1361,7 +1361,7 @@ fn the_shipped_course_demos_the_binder_notation() {
 /// （内核 pp 会丢掉隐式实参，`Eq.{1} (Set α) (Aᶜ) …` 会退化成 `Eq a b`，
 /// `rfl` 就认不出 `Eq α x y` 形状了）——所以归一化只发生在 `apply` 的
 /// **失败重试**路径上，不替换节点上的目标。
-/// `intro a b c`（Lean 常态写法；设计 `docs/design/course-lean-style.md` L1.3）。
+/// `intro a b c`（Lean 常态写法；设计 `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）`）` L1.3）。
 ///
 /// 改前 `intro` 只吃**一个**名字，`intro a b` 是 parse 错（S2 审计的 E01），
 /// 而且**裸 `intro`** 会把下一行的 `exact` 整个吃掉（E02）。现在：一次吃一串
@@ -1415,7 +1415,7 @@ fn intro_accepts_several_names_at_once() {
     );
 }
 
-/// 课程 Lean 化的第一批新 tactic（设计 `docs/design/course-lean-style.md`
+/// 课程 Lean 化的第一批新 tactic（设计 `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）`）`
 /// L3.2/L3.3/L3.4/L3.7）：`constructor` / `left` / `right` / `use` / `exfalso`。
 ///
 /// 它们都建立在既有机械上（前四个是 `apply <构造子>` 的糖，`exfalso` 是
@@ -1496,7 +1496,7 @@ fn the_new_sugar_tactics_grade_with_notation_goals() {
     );
 }
 
-/// `cases`（设计 `docs/design/course-lean-style.md` L3.1）——课程改写唯一的
+/// `cases`（设计 `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）`）` L3.1）——课程改写唯一的
 /// **真阻塞**：`Or.elim` / `Exists.elim` 在课程里 100+ 处，没有等价的 tactic。
 ///
 /// 实现路线是**降低成 `match`**（臂体各自组装成项，递归子/iota 交给既有的
@@ -1675,7 +1675,7 @@ fn cases_sees_through_a_definition_body_written_with_notation() {
     assert_eq!(checked, 4, "two defs + two theorems: {events:?}");
 }
 
-/// **内建记法**（设计 `docs/design/course-lean-style.md` L2.2）：Lean core 级的
+/// **内建记法**（设计 `docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md（**已删** ⇒ 原文 `git log --all -- docs/design/course-lean-style.md`）`）` L2.2）：Lean core 级的
 /// 逻辑符号 `∧ ∨ ↔ ¬` 在**任何文件里零声明可用**——地位与 Lean 的 `Init`
 /// 记法一致。两条契约：
 ///

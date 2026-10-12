@@ -62,6 +62,36 @@ MIN_FROZEN = 20  # ④ 冻结下限（空/极短文件也允许 20 行，免得�
 MAX_ARCHIVE_BYTES = 2_500_000  # ⑥ 归档总量（本轮实测 2.12 MB）
 
 BUDGET = Path("scripts/docs-budget.json")
+DOC_REFS = Path("scripts/doc-refs-baseline.json")
+
+# ⑧ 文档引用可解析（DOC-DANGLING，2026-10-12）：**活指针必须指得到东西** ✓
+#
+# 起因（真实盲区）：`dae75759` 一笔删掉 64 份 `docs/design/**`（"已收口/已否决/过程记录"）
+# ⇒ 全仓留下 **86 个指向已删文档的路径 · 460 处引用**，而**八条判据全绿也查不出** ✗
+# （没有一条在问"你引用的这份文档还在不在"）。读者按指针去找 = 404。
+#
+# 口径（三条，缺一条都会变成噪声或假绿）：
+#  1. **只查"活指针"**：同一行带历史标记（`git log` / `原文 ⇒` / `已删` / `归档` …）的
+#     不算 —— 仓库惯例本来就是「原文 ⇒ `git log --all -- <path>`」，那种写法**是对的** ✓。
+#  2. **历史台账/自检夹具豁免**：`docs/gaps/ledger.jsonl`（记录当初的工单号）·
+#     `scripts/docs-expiry-check.py`（自检**故意**用 `docs/none.md` 这种假路径）——
+#     对它们判红 = 让守卫咬自己的夹具 ✗。
+#  3. **基线冻结 + 只许减不许增**（与 ④ 同一个模式）：存量债务记进
+#     `scripts/doc-refs-baseline.json`（带 reason）；**新增悬空 ⇒ 判红** ·
+#     **某条变多 ⇒ 判红** · **某条已归零却没删基线 ⇒ 判红**（逼基线收紧 ✗ 防腐烂）。
+#     ⇒ 它今天**咬得住新窟窿**，而存量是**看得见、只能减**的债务，不是"绿了就算"。
+DOC_REF_PAT = re.compile(r"docs/[A-Za-z0-9_./\-]+\.md")
+# 同一行出现这些 ⇒ 该指针**自己说了**这是历史位置 ⇒ 不算悬空
+DOC_REF_HISTORY = ("git log", "原文 ⇒", "已删", "删除", "历史", "归档", "archive/", "HANDOVER")
+# 本身就是"点名已删路径"的文件 ⇒ 不参与扫描
+DOC_REF_EXEMPT = {
+    "scripts/docs-lint.py",  # 本文件（常量与说明里就写着判据本身）
+    "scripts/docs-expiry-check.py",  # 自检夹具故意用不存在的路径
+    "docs/gaps/ledger.jsonl",  # 历史台账：记的是**当初**的工单路径
+    "docs/ux-queue-extras.jsonl",  # 台账：DOC-DANGLING 这条本身要写出那两个路径
+    "scripts/doc-refs-baseline.json",  # 基线自己
+}
+
 ARCHIVE = Path("docs/archive")
 ARCHIVE_INDEX = ARCHIVE / "README.md"
 
@@ -115,6 +145,91 @@ def live_docs(files: set[str]) -> list[str]:
         if f.startswith("docs/") or ("/" not in f and f.endswith(".md")):
             out.append(f)
     return sorted(out)
+
+
+def scan_doc_refs(files: set[str]) -> dict[str, list[str]]:
+    """⑧ 扫出**悬空的活指针** ⇒ `{被引用的路径: ["文件:行", …]}`。
+
+    口径见 `DOC_REF_*` 常量上的说明（活指针 / 历史台账豁免 / 历史标记）。
+    **零扫描不许当绿**：调用方负责核对"扫过的文件数 > 0"（判据 ① 已有同款地板）。
+    """
+    existing = {f for f in files if Path(f).exists()}
+    targets = [
+        f
+        for f in sorted(files)
+        if f not in DOC_REF_EXEMPT
+        and (
+            (f.startswith("docs/") and not f.startswith("docs/archive/"))
+            or ("/" not in f and f.endswith(".md"))
+            or f.startswith(("scripts/", "crates/", "editor/", "dsh/"))
+        )
+    ]
+    out: dict[str, list[str]] = {}
+    for f in targets:
+        p = Path(f)
+        if not p.exists() or p.suffix in {".png", ".jpg", ".gif", ".vsix"}:
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for i, line in enumerate(text.splitlines(), 1):
+            if any(h in line for h in DOC_REF_HISTORY):
+                continue
+            for m in DOC_REF_PAT.findall(line):
+                ref = m.rstrip(".,;:)）`")
+                if ref in existing:
+                    continue
+                out.setdefault(ref, []).append(f"{f}:{i}")
+    return out
+
+
+_DOC_REFS_PATHS_OVERRIDE: dict | None = None
+
+
+def load_doc_refs_baseline() -> dict:
+    """⑧ 基线：`{"paths": {path: {"count": N, "reason": "…"}}}`（缺失 ⇒ 空基线）。"""
+    if _DOC_REFS_PATHS_OVERRIDE is not None:  # 自检注入（见 selftest ✓）
+        return _DOC_REFS_PATHS_OVERRIDE
+    if not DOC_REFS.exists():
+        return {}
+    try:
+        return (json.loads(DOC_REFS.read_text(encoding="utf-8")) or {}).get("paths") or {}
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def check_doc_refs(files: set[str]) -> tuple[list[str], dict]:
+    """⑧ 的判据本体（抽出来是为了 `--check-doc-refs` 能单跑 + 自检能打它）。"""
+    found = scan_doc_refs(files)
+    base = load_doc_refs_baseline()
+    bad: list[str] = []
+    shrunk: list[str] = []
+    for ref, sites in sorted(found.items()):
+        cap = (base.get(ref) or {}).get("count")
+        if cap is None:
+            bad.append(
+                f"⑧ **新增**悬空文档引用 `{ref}`（{len(sites)} 处，例：{sites[0]}）"
+                f" ⇒ 要么修指针、要么把路径建出来；确属历史位置 ⇒ 按仓库惯例写"
+                f"「原文 ⇒ git log --all -- {ref}」✓"
+            )
+        elif len(sites) > cap:
+            bad.append(
+                f"⑧ `{ref}` 的悬空引用**变多**了：{len(sites)} > 基线 {cap}（例：{sites[0]}）"
+                f" ⇒ 基线只许减不许增 ✗"
+            )
+        elif len(sites) < cap:
+            shrunk.append(f"{ref}（基线 {cap} ⇒ 实测 {len(sites)}）")
+    for ref, meta in sorted(base.items()):
+        if ref not in found:
+            bad.append(
+                f"⑧ 基线过期：`{ref}` 已无悬空引用（基线记着 {meta.get('count')} 处）"
+                f" ⇒ **删掉这条**（基线只许减不许增，留着就是腐烂 ✗）"
+            )
+    stats = {"doc_refs_dangling": sum(len(v) for v in found.values()), "doc_refs_paths": len(found)}
+    if shrunk:
+        stats["doc_refs_shrinkable"] = shrunk
+    return bad, stats
 
 
 def load_budget() -> dict[str, int]:
@@ -294,6 +409,10 @@ def check() -> tuple[list[str], dict]:
         arch_bytes = 0
         bad.append(f"⑥ 找不到归档目录 {ARCHIVE} ⇒ 判据 ⑥ **无法判定 ≠ 绿** ✗")
 
+    # ⑧ 文档引用可解析（DOC-DANGLING）
+    ref_bad, ref_stats = check_doc_refs(files)
+    bad += ref_bad
+
     # ⚠ **零扫描 ≠ 绿** ✗✓（E00 切片 B 实测）：`cd scripts && python3 docs-lint.py` 会印
     # 「活文档 **0 个** / 0.00 MB ✓ · 归档 0 个 … 归档索引齐 ✓」并 **exit 0** ✗ ——
     # 各条判据都在"什么都没扫到"上**真空中通过** ✗。判据 ① 的本意是"活文档 ≤ 上限"，
@@ -304,6 +423,7 @@ def check() -> tuple[list[str], dict]:
         "archive_bytes": arch_bytes,
         "archive_files": len(arch_files),
         "max_live_bytes": MAX_LIVE_BYTES,
+        **ref_stats,
     }
     return bad, stats
 
@@ -452,6 +572,42 @@ def selftest() -> int:
     results.append(("⑦", "必读单文件超上限", any(
             b.startswith("⑦") and "必读文件" in b for b in bad)))
 
+    # ⑧ 文档引用可解析：**三条都要咬** ——
+    #   (a) 新增悬空引用 ⇒ 判红（也就是它存在的理由 ✓）；
+    #   (b) 历史标记的指针 ⇒ **不许误红**（否则仓库惯例「原文 ⇒ git log --all -- …」
+    #       会被自己的守卫拦下 ✗ —— 误红同样是坏判据 ✓）；
+    #   (c) 基线里某条已归零却没删 ⇒ 判红（逼基线收紧，防"冻结了就不管"✗）。
+    tmp_doc = Path("docs/design/__docref_selftest__.md")
+    tmp_doc.write_text("见 `docs/design/__docref_absent__.md` 的说明。\n", encoding="utf-8")
+    try:
+        bad, _ = check_doc_refs(tracked())
+    finally:
+        tmp_doc.unlink(missing_ok=True)
+    results.append(("⑧", "新增悬空文档引用", any(
+        b.startswith("⑧") and "__docref_absent__" in b for b in bad)))
+
+    hist_doc = Path("docs/design/__docref_hist_selftest__.md")
+    hist_doc.write_text(
+        "指针：`docs/design/__docref_absent__.md`（已删；原文 ⇒ git log --all -- docs/design/__docref_absent__.md）\n",
+        encoding="utf-8",
+    )
+    try:
+        bad, _ = check_doc_refs(tracked())
+    finally:
+        hist_doc.unlink(missing_ok=True)
+    results.append(("⑧", "历史标记的指针**不误红**", not any(
+        "__docref_absent__" in b for b in bad)))
+
+    saved_base = load_doc_refs_baseline()
+    global _DOC_REFS_PATHS_OVERRIDE
+    _DOC_REFS_PATHS_OVERRIDE = {**saved_base, "docs/definitely-not-there-selftest.md": {"count": 3, "reason": "自检"}}
+    try:
+        bad, _ = check_doc_refs(tracked())
+    finally:
+        _DOC_REFS_PATHS_OVERRIDE = None
+    results.append(("⑧", "基线过期（已归零却留着）", any(
+        b.startswith("⑧") and "基线过期" in b for b in bad)))
+
     ok = all(hit for _, _, hit in results)
     for code, label, hit in results:
         print(f"  {'✓' if hit else '✗'} {code} {label}")
@@ -507,18 +663,97 @@ def freeze() -> int:
     return 0
 
 
+def check_doc_refs_only() -> int:
+    """`--check-doc-refs`：只跑判据 ⑧（DOC-DANGLING 的判据就是这条命令 ✓）。"""
+    try:
+        files = tracked()
+    except subprocess.CalledProcessError as e:
+        print(f"docs-lint: 环境错：{e}", file=sys.stderr)
+        return 2
+    bad, stats = check_doc_refs(files)
+    if bad:
+        print(f"docs-lint --check-doc-refs：{len(bad)} 条不通过 ✗", file=sys.stderr)
+        for b in bad:
+            print(f"  - {b}", file=sys.stderr)
+        return 1
+    print(
+        f"docs-lint --check-doc-refs ✓ 悬空引用 {stats['doc_refs_dangling']} 处 / "
+        f"{stats['doc_refs_paths']} 个路径 ⇒ **都在基线内、且没有新增** ✓"
+    )
+    if stats.get("doc_refs_shrinkable"):
+        print(f"  ⚠ 可收紧基线（存量已下降）：{' · '.join(stats['doc_refs_shrinkable'])}")
+    return 0
+
+
+def freeze_doc_refs() -> int:
+    """`--freeze-doc-refs`：把**当前实测**的悬空引用写成新基线（只许减不许增 ✓）。
+
+    拒绝"变大"：任何一条实测比旧基线多 ⇒ exit 2（**不许用重新基线掩盖增长** ✗）。
+    """
+    files = tracked()
+    found = scan_doc_refs(files)
+    old = load_doc_refs_baseline()
+    grown = [
+        f"{r}（{len(found.get(r, []))} > 基线 {meta.get('count')}）"
+        for r, meta in old.items()
+        if len(found.get(r, [])) > meta.get("count", 0)
+    ]
+    if grown:
+        print(
+            f"✗ 拒绝重新基线：这些路径的悬空引用**变多了** ⇒ 先修指针，别拿基线盖住 ✗\n  "
+            + "\n  ".join(grown),
+            file=sys.stderr,
+        )
+        return 2
+    paths = {}
+    for ref, sites in sorted(found.items()):
+        paths[ref] = {
+            "count": len(sites),
+            "reason": (old.get(ref) or {}).get("reason")
+            or "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
+            "example": sites[0],
+        }
+    DOC_REFS.write_text(
+        json.dumps(
+            {
+                "_comment": (
+                    "判据 ⑧ 的存量基线（DOC-DANGLING）：这些 `docs/**.md` 路径已不存在，"
+                    "但引用点还没改写成「原文 ⇒ git log --all -- <path>」。**只许减不许增** ✓ —— "
+                    "新增悬空引用会立刻判红；某条归零后必须从这里删掉（否则判红：基线腐烂 ✗）。"
+                ),
+                "paths": paths,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    print(f"doc-refs 基线已更新：{len(paths)} 条（悬空引用 {sum(len(v) for v in found.values())} 处）")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     # ⚠ **不许静默回落** ✗✓（E00 切片 B 实测 ✓）：这几个脚本原来用 `"--x" in argv`
     # **子串**判模式 ⇒ **错拼的参数被静默忽略、回落成全量检查并 exit 0** ✗ ⇒
     # 表现是「**自检没跑，退出码却是绿的**」✗（我上次"它没有自检"的错结论就是这么来的 ✓）。
     # ⇒ 未知参数一律 **exit 2**（只有 `notation-lint.py` 本来就用 argparse、是对的 ✓）。
-    unknown = [a for a in argv if a.startswith("-") and a not in {"--help", "-h", "--freeze", "--selftest", "--json"}]
+    unknown = [
+        a
+        for a in argv
+        if a.startswith("-")
+        and a not in {"--help", "-h", "--freeze", "--selftest", "--json", "--check-doc-refs", "--freeze-doc-refs"}
+    ]
     if unknown:
         print(f"✗ 未知参数 {unknown} ⇒ 拒绝执行（**不许静默回落全量检查** ✗）", file=sys.stderr)
         return 2
     if "--help" in argv or "-h" in argv:
         print(__doc__)
         return 0
+    if "--check-doc-refs" in argv:
+        return check_doc_refs_only()
+    if "--freeze-doc-refs" in argv:
+        return freeze_doc_refs()
     if "--freeze" in argv:
         return freeze()
     if "--selftest" in argv:
