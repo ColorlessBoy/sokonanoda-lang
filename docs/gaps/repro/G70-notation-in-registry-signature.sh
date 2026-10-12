@@ -16,7 +16,13 @@
 # 期望：缺口**仍在**时 exit 0；修好后 exit 1。
 set -uo pipefail
 cd "$(dirname "$0")/../../.." || exit 2
-BIN=./target/release/sokonanoda
+# **优先 `scripts/soko`**（受管环境里 `CARGO_TARGET_DIR` 指向别处 ⇒ 下面那些
+# `target/{release,debug}` 路径永远不存在 ⇒ 本件一律 exit 2 = "环境异常"，
+# 而 `gap.py check`（`soko gate`/CI 的一步）会因此判红 ✗ —— 2026-10-12 独立复核发现）。
+# ⚠ 先探测它**真的能答**：无可信构建时 `scripts/soko` **exit 3 拒跑**，不探测就会
+# 掉进"grep 不到复现标记 ⇒ 已修"的**假绿** ✗。
+if [ -x scripts/soko ] && scripts/soko version >/dev/null 2>&1; then BIN=scripts/soko
+else BIN=./target/release/sokonanoda; fi
 [ -x "$BIN" ] || { echo "G-70：先跑 cargo build --release -p sokonanoda-cli" >&2; exit 2; }
 
 DIR=$(mktemp -d)

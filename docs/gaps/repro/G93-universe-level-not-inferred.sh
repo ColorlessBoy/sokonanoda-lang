@@ -70,8 +70,16 @@ cd "$ROOT" || exit 2
 
 BIN="${SOKO_BIN:-}"
 if [ -z "$BIN" ]; then
+# **优先 `scripts/soko`**（受管环境里 `CARGO_TARGET_DIR` 指向别处 ⇒ 下面那些
+# `target/{release,debug}` 路径永远不存在 ⇒ 本件一律 exit 2 = "环境异常"，
+# 而 `gap.py check`（`soko gate`/CI 的一步）会因此判红 ✗ —— 2026-10-12 独立复核发现）。
+# ⚠ 先探测它**真的能答**：无可信构建时 `scripts/soko` **exit 3 拒跑**，不探测就会
+# 掉进"grep 不到复现标记 ⇒ 已修"的**假绿** ✗。
+  if [ -x "$ROOT/scripts/soko" ] && (cd "$ROOT" && scripts/soko version >/dev/null 2>&1); then
+    BIN="$ROOT/scripts/soko"
+  fi
   for cand in "$ROOT/target/release/sokonanoda" "$ROOT/target/debug/sokonanoda"; do
-    [ -x "$cand" ] && BIN="$cand" && break
+    [ -n "$BIN" ] || { [ -x "$cand" ] && BIN="$cand" && break; }
   done
 fi
 [ -n "$BIN" ] && [ -x "$BIN" ] || { echo "环境不对：找不到 sokonanoda 二进制" >&2; exit 2; }

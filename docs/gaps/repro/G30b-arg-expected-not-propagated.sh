@@ -59,7 +59,16 @@ cd "$ROOT"
 
 BIN="${SOKONANODA_BIN:-}"
 if [ -z "$BIN" ]; then
-  if [ -x target/debug/sokonanoda ]; then BIN=target/debug/sokonanoda
+  # **优先 `scripts/soko`**（harness 中立的启动器，AGENTS.md 的推荐形态）：
+  # 受管环境里 `CARGO_TARGET_DIR` 指向别处 ⇒ `target/release/sokonanoda`
+  # **永远不存在** ⇒ 这批复现件一律 exit 2，而 `gap.py check`（`soko gate` 与 CI
+  # 的一步）把 exit 2 记成"环境异常" ⇒ **门禁在受管环境下必然判红** ✗
+  # （2026-10-12 独立复核实测：23 个脚本硬编码路径 · 22 条判环境异常）。
+  # ⚠ **先探测它真的能答**：`scripts/soko` 没有可信构建时 **exit 3 拒跑** ——
+  # 若不探测就交给它，退出码会掉进"grep 不到复现标记 ⇒ 已修"的**假绿**路径 ✗
+  # （同族隐患：干净缓存 + 无构建时 lang 探针会假报 FIXED）。探测不过就往下走旧路径 ✓。
+  if [ -x scripts/soko ] && scripts/soko version >/dev/null 2>&1; then BIN=scripts/soko
+  elif [ -x target/debug/sokonanoda ]; then BIN=target/debug/sokonanoda
   elif [ -x target/release/sokonanoda ]; then BIN=target/release/sokonanoda
   else echo "G-30b: 找不到 sokonanoda 二进制（先 cargo build -p sokonanoda-cli）" >&2; exit 2; fi
 fi
