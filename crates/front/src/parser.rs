@@ -2918,7 +2918,7 @@ impl Parser {
                     other => {
                         return Err(self.error_here(&format!(
                             "集合建构式 `{{x ∈ A | P x}}` 里，`x` 后面要跟关系符号 `∈`，实际是 {}",
-                            token_kind_text(&other)
+                            token_kind_text(other)
                         )));
                     }
                 };
