@@ -724,6 +724,14 @@ pub struct ByOutcome {
 pub struct ByFailure {
     pub error: CompileError,
     pub steps: Vec<ByStep>,
+    /// **r22（2026-10-13）**：同一条 `by` 块里**其它独立失败**的诊断（按源码顺序，
+    /// 第一条就是 `error` 之外的那些 ✓）。
+    ///
+    /// Lean 语义：一条 tactic 失败 ⇒ 它被**回滚**，块**继续**在剩下的目标上跑后面的
+    /// tactic ⇒ 每条失败各报一条（`by exact hh; exact hh` 报**两条**）。
+    /// 本字段由 [`collect_remaining_tactic_errors`] 的**探针**产出 —— 真判定一个字
+    /// 都没动（声明仍是"失败 + `error`"）✓。探针拿不到现场 ⇒ 空 ⇒ 与今天逐字相同 ✓。
+    pub extra_errors: Vec<CompileError>,
 }
 
 /// **B3 的判据读数**（`#[doc(hidden)]`，只给判据用）：最近一次"失败后**从第 k 条续跑**"
@@ -803,6 +811,9 @@ enum ApplyArg {
     SubGoal(usize),
 }
 
+/// **`Clone` 是 r22 要的**：失败后的**探针**要在克隆出来的引擎状态上逐条试后面的
+/// tactic（失败即丢弃克隆 = 回滚 ✓）。只在**失败路径**上克隆 ✓（成功路径零开销）。
+#[derive(Clone)]
 pub(crate) struct GoalNode {
     ty: Expr,
     intros: Vec<Binder>,
@@ -1495,6 +1506,7 @@ fn run_by_inner<'a>(
             ),
             // 还没跑任何一条 ⇒ 空 ✓（B3 的续跑边界也无从谈起 ⇒ 调用方退回整段重跑 ✓）
             steps: Vec::new(),
+            extra_errors: Vec::new(),
         }
     })?;
     // G-05（设计 `docs/design/namespace-open.md` §4.6）：文件用了 namespace/open
@@ -1529,6 +1541,9 @@ fn run_by_inner<'a>(
     // `run_tactics` 一路带出来（它们同样是 tactic 位 ✓）。
     let mut tactic_holes: Vec<Span> = Vec::new();
 
+    // **r22**：留一份**初始根目标**给失败后的探针（`nodes[0].ty` 到那时可能已被
+    // `intro`/`apply` 改过 ⇒ 拿它重放会从错的地方起步 ✗）。一次克隆 / 一条声明 ✓。
+    let probe_root_ty = root_ty.clone();
     // 根目标 = 声明类型（先剥掉声明 binder）；声明 binder 进初始上下文。
     nodes.push(GoalNode {
         ty: root_ty,
@@ -1561,7 +1576,28 @@ fn run_by_inner<'a>(
             drop(scope); // 丢弃批次：这批判定**已知全 Match**（调用方的 flush 证明过 ✓）
             if let Err(error) = replayed {
                 // 重放里失败 ⇒ 与严格趟同点失败（判定全 Match ⇒ 控制流相同 ✓）
-                return Err(ByFailure { error, steps });
+                let extra_errors = marks_out
+                    .last()
+                    .map(|(index, _)| {
+                        collect_remaining_tactic_errors(
+                            tactics,
+                            *index,
+                            &probe_root_ty,
+                            initial_binders,
+                            universe,
+                            prefix_src,
+                            options,
+                            inductives,
+                            defs,
+                            ctx,
+                        )
+                    })
+                    .unwrap_or_default();
+                return Err(ByFailure {
+                    error,
+                    steps,
+                    extra_errors,
+                });
             }
         }
     }
@@ -1586,7 +1622,33 @@ fn run_by_inner<'a>(
     ) {
         // **B1**：`?` 会把已累积的 `steps` 整份丢掉 ✗ ⇒ 显式交还（失败那条不在里面 ✓）。
         // **B3**：连**引擎状态**（节点图/待解队列）与**批边界**一起交还 ⇒ 严格续跑 ✓。
-        return Err(ByFailure { error, steps });
+        // **r22**：`marks_out` 里最后一条 mark 就是**失败那条 tactic** 的下标
+        // （每条 tactic **开跑前**记一格 ✓）；`strict_from = Some(k)` 时下标是
+        // **尾巴内**的相对值 ⇒ 加回 `k` 才是绝对下标 ✓（重放那段的 mark 在前面、
+        // 下标从 0 起，`last()` 只会取到尾巴那条 ✓）。
+        let offset = strict_from.unwrap_or(0);
+        let extra_errors = marks_out
+            .last()
+            .map(|(index, _)| {
+                collect_remaining_tactic_errors(
+                    tactics,
+                    offset + *index,
+                    &probe_root_ty,
+                    initial_binders,
+                    universe,
+                    prefix_src,
+                    options,
+                    inductives,
+                    defs,
+                    ctx,
+                )
+            })
+            .unwrap_or_default();
+        return Err(ByFailure {
+            error,
+            steps,
+            extra_errors,
+        });
     }
     let expr = assemble(&nodes, 0, hole_span(tactics, *by_span), &mut tactic_holes);
     Ok(ByOutcome {
@@ -1594,6 +1656,99 @@ fn run_by_inner<'a>(
         steps,
         tactic_holes,
     })
+}
+
+/// **r22（2026-10-13）**：`by` 块在第 `failing` 条 tactic 上失败之后，把**后面那些
+/// tactic 的独立失败**也收出来 —— Lean 语义：失败的 tactic 被**回滚**，块**继续**在
+/// 剩下的目标上跑后续 tactic，每条失败各一条诊断（`by exact hh; exact hh` ⇒ **两条**）。
+///
+/// ## 为什么是"探针"而不是"改引擎"
+///
+/// 真判定**一个字都不许动**：声明仍是「失败 + 第一条错误」。这里在**克隆**出来的引擎
+/// 状态上重放前缀、再逐条试后面的 tactic，产物**只**当额外诊断 ✓。
+///
+/// * **前缀重放**（`0..failing`）：那些 tactic 在真判定里**都跑成功了**（否则失败点
+///   更早）⇒ 重放确定性、必定成功；一旦不成功 ⇒ **返回空**（保守，行为与今天逐字相同 ✓）。
+/// * **每条后续 tactic 在克隆上跑**：失败 ⇒ 丢弃克隆（= 回滚 ✓，与 Lean 的
+///   `TacticM` 事务语义同形）、记下诊断；成功 ⇒ 采纳那份克隆（后面的 tactic 要看见
+///   它的效果 ✓）。
+/// * `env = None` ⇒ 探针走**非就地**通道、**不碰活环境**（就地/非就地的等价性由既有的
+///   shadow 判据钉住 ✓）；`marks = None` ⇒ 不往真判定那条 B3 边界里塞东西 ✓。
+/// * 代价只发生在**失败路径**上（成功路径零开销 ✓）。
+#[allow(clippy::too_many_arguments)]
+fn collect_remaining_tactic_errors<'a>(
+    tactics: &[Tactic],
+    failing: usize,
+    root_ty: &Expr,
+    initial_binders: &[Binder],
+    universe: &[String],
+    prefix_src: &str,
+    options: &CompileOptions,
+    inductives: &InductiveTable<'_>,
+    defs: &DefTable,
+    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
+) -> Vec<CompileError> {
+    if failing >= tactics.len() {
+        return Vec::new();
+    }
+    let mut nodes: Vec<GoalNode> = vec![GoalNode {
+        ty: root_ty.clone(),
+        intros: initial_binders.to_vec(),
+        parent: None,
+        kind: NodeKind::Hole,
+    }];
+    let mut worklist: Vec<usize> = vec![0];
+    let mut steps: Vec<ByStep> = Vec::new();
+    let mut holes: Vec<Span> = Vec::new();
+    if run_tactics(
+        &tactics[..failing],
+        &mut nodes,
+        &mut worklist,
+        &mut steps,
+        None,
+        universe,
+        prefix_src,
+        options,
+        inductives,
+        defs,
+        ctx,
+        None,
+        &mut holes,
+    )
+    .is_err()
+    {
+        // 前缀重放不成功（理论上不该发生）⇒ 不猜，交回空 ✓。
+        return Vec::new();
+    }
+    let mut errors: Vec<CompileError> = Vec::new();
+    for index in failing + 1..tactics.len() {
+        let mut probe_nodes = nodes.clone();
+        let mut probe_worklist = worklist.clone();
+        let mut probe_steps: Vec<ByStep> = Vec::new();
+        let mut probe_holes: Vec<Span> = Vec::new();
+        match run_tactics(
+            &tactics[index..index + 1],
+            &mut probe_nodes,
+            &mut probe_worklist,
+            &mut probe_steps,
+            None,
+            universe,
+            prefix_src,
+            options,
+            inductives,
+            defs,
+            ctx,
+            None,
+            &mut probe_holes,
+        ) {
+            Ok(()) => {
+                nodes = probe_nodes;
+                worklist = probe_worklist;
+            }
+            Err(error) => errors.push(error),
+        }
+    }
+    errors
 }
 
 /// 跑一串 tactic（`by` 块的主循环，`cases` 的臂体递归复用它）。

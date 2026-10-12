@@ -1121,6 +1121,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     });
                 }
                 self.out.push_error(idx, failure.error.clone());
+                // **r22（2026-10-13）**：同一条 `by` 块里**其它独立失败**也报出来
+                // （Lean 语义：失败的 tactic 回滚、块继续 ⇒ 每条失败各一条诊断 ✓）。
+                // 由 `by::collect_remaining_tactic_errors` 的**探针**产出 ——
+                // 真判定一个字没动（声明仍是"失败 + 第一条错误"）✓。
+                for extra in &failure.extra_errors {
+                    self.out.push_error(idx, extra.clone());
+                }
                 {
                     let mut st = failed_state(
                         DeclKind::Definition,
@@ -1556,6 +1563,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     });
                 }
                 self.out.push_error(idx, failure.error.clone());
+                // **r22（2026-10-13）**：同一条 `by` 块里**其它独立失败**也报出来
+                // （Lean 语义：失败的 tactic 回滚、块继续 ⇒ 每条失败各一条诊断 ✓）。
+                // 由 `by::collect_remaining_tactic_errors` 的**探针**产出 ——
+                // 真判定一个字没动（声明仍是"失败 + 第一条错误"）✓。
+                for extra in &failure.extra_errors {
+                    self.out.push_error(idx, extra.clone());
+                }
                 {
                     let mut st = failed_state(
                         DeclKind::Theorem,
@@ -2084,6 +2098,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     });
                 }
                 self.out.push_error(idx, failure.error.clone());
+                // **r22（2026-10-13）**：同一条 `by` 块里**其它独立失败**也报出来
+                // （Lean 语义：失败的 tactic 回滚、块继续 ⇒ 每条失败各一条诊断 ✓）。
+                // 由 `by::collect_remaining_tactic_errors` 的**探针**产出 ——
+                // 真判定一个字没动（声明仍是"失败 + 第一条错误"）✓。
+                for extra in &failure.extra_errors {
+                    self.out.push_error(idx, extra.clone());
+                }
                 let mut st = failed_state(DeclKind::Example, None, span, failure.error, idx);
                 // **B1**：失败也要保留**已跑成功的**那些步（P3 显示面）✓
                 st.by_steps = by_step_states(&failure.steps, &self.display);

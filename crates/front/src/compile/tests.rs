@@ -26,6 +26,44 @@ fn py_core_rejects(extra: &str) {
     assert!(!out.errors.is_empty(), "expected rejection: {extra}");
 }
 
+/// **r22（2026-10-13 ✓）**：一条 `by` 块里的**多处独立失败**要**各报一条**。
+///
+/// Lean 语义：失败的 tactic 被**回滚**，块**继续**在剩下的目标上跑后面的 tactic
+/// ⇒ `by exact hh; exact hh` 报**两条**（各自的位置也要归**自己那条** ✗ 不是都指第一条）。
+/// 我们的真判定没变（声明仍 Failed + 第一条错误），额外的那些来自
+/// `by::collect_remaining_tactic_errors` 的**探针** ✓。
+#[test]
+fn a_by_block_reports_every_independent_tactic_failure() {
+    let file = parse("theorem t (p : Prop) (h : p) : p := by\n  exact hh\n  exact hh\n").unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(
+        out.errors.len(),
+        2,
+        "两处独立失败各一条（改前只有 1 条）：{:?}",
+        out.errors
+    );
+    assert!(
+        out.errors.iter().all(|e| e.code() == "elab-tactic-failed"),
+        "{:?}",
+        out.errors
+    );
+    // 逐条归位：两条诊断的起点行**不同**（分别指第 2、3 行的 `exact hh` ✓）。
+    assert_ne!(
+        out.errors[0].span.start.line, out.errors[1].span.start.line,
+        "两条诊断必须各指自己那条 tactic：{:?}",
+        out.errors
+    );
+    // **判定没被放宽**：这条声明**仍然失败** ⇒ 不发 `decl.checked` ✓
+    // （额外的诊断只是"另报一份"，不是"多判过一条" ✓）
+    assert!(
+        !out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "多报诊断 ≠ 放宽判定：这条声明仍必须失败：{:?}",
+        out.events
+    );
+}
+
 #[test]
 fn checks_a_valid_file_end_to_end() {
     let file = parse("def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n").unwrap();
