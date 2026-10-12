@@ -574,6 +574,16 @@ def check_uncovered(rows: list[dict], live: bool, timeout: int, undecided: list[
 
 EVENTS = ROOT / "docs" / "ux-queue-events.jsonl"
 LOCK_TTL_S = 2 * 60 * 60  # 两小时没心跳 ⇒ 陈旧（默认**只警告**；`--force` 才接管）
+# **并发 = 4 核**（2026-10-12 用户：「允许最多 4 个 subagent，类比 4 核心 cpu」）——
+# 但**同一模块同一时间只允许一个写者** ✗ ⇒ 认领要过**资源矩阵**（不是简单的计数锁）。
+MAX_SLOTS = int(os.environ.get("SOKO_QUEUE_SLOTS", "4") or 4)
+# `owner` → 它要写的资源（粗粒度 = 仓库里"改动过的 crate"那一层）
+RESOURCE_OF_OWNER = {
+    "front": "crates/front/**", "lsp": "crates/lsp/**", "cli": "crates/cli/**",
+    "kernel": "crates/kernel/**", "editor": "editor/vscode/**", "courses": "courses/**",
+    "docs": "docs/**", "prelude": "prelude/**", "scripts/soko": "scripts/soko",
+    "tooling": "scripts/**", "scripts": "scripts/**",
+}
 
 SCHED_STATES = ("todo", "in_progress", "blocked", "done", "wo_filed", "umbrella")
 TERMINAL_STATES = {"done", "wo_filed"}
@@ -629,27 +639,91 @@ def lock_file() -> Path:
     return _git_common_dir() / "soko-ux-queue.lock"
 
 
-def read_lock() -> dict | None:
+def read_lock() -> dict:
+    """锁文件 = `{"claims": [ {id, owner, pid, resources, ts} … ]}`（兼容旧的单条格式）。"""
     path = lock_file()
     if not path.exists():
-        return None
+        return {"claims": []}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return None
+        return {"claims": []}
+    if isinstance(data, dict) and isinstance(data.get("claims"), list):
+        return data
+    if isinstance(data, dict) and data.get("id"):        # 旧格式 ⇒ 当成一条认领
+        return {"claims": [data]}
+    return {"claims": []}
 
 
-def lock_is_live(lock: dict | None) -> tuple[bool, str]:
-    """活的锁 = 持锁进程还在 **且** 没超 TTL。"""
-    if not lock:
-        return (False, "没有锁")
-    pid, age = lock.get("pid"), _age_s(lock.get("ts"))
-    who = f"{lock.get('owner') or '?'}（pid {pid}·{int(age or 0)}s 前认领 `{lock.get('id')}`）"
+def write_lock(claims: list[dict]) -> None:
+    path = lock_file()
+    if not claims:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        return
+    path.write_text(json.dumps({"claims": claims}, ensure_ascii=False), encoding="utf-8")
+
+
+def claim_is_live(claim: dict) -> tuple[bool, str]:
+    pid, age = claim.get("pid"), _age_s(claim.get("ts"))
+    who = (f"{claim.get('owner') or '?'}（pid {pid}·{int(age or 0)}s 前认领 `{claim.get('id')}`"
+           f"·资源 {','.join(claim.get('resources') or []) or '?'}）")
     if pid and not _pid_alive(pid):
         return (False, f"{who} —— 进程已不在")
     if age is not None and age > LOCK_TTL_S:
         return (False, f"{who} —— 超过 TTL {LOCK_TTL_S}s 没动静")
     return (True, who)
+
+
+def live_claims() -> list[dict]:
+    return [c for c in read_lock()["claims"] if claim_is_live(c)[0]]
+
+
+def resources_of(row: dict | None, override: str) -> list[str]:
+    if override:
+        return [r.strip() for r in override.split(",") if r.strip()]
+    owner = (row or {}).get("owner") or ""
+    res = RESOURCE_OF_OWNER.get(owner.strip())
+    return [res] if res else [f"（未声明资源：{owner or '?'}）"]
+
+
+def acquire_claim(ident: str, owner: str, resources: list[str], force: bool) -> bool:
+    """**4 核 + 资源互斥**：槽位满 ⇒ 拒；与活跃认领撞资源 ⇒ 拒（除非 `--force` 接管陈旧）。"""
+    claims = read_lock()["claims"]
+    live = [c for c in claims if claim_is_live(c)[0]]
+    stale = [c for c in claims if not claim_is_live(c)[0]]
+    if any(c.get("id") == ident and c.get("owner") == owner for c in live):
+        return True                                     # 幂等：自己已经持有
+    if len(live) >= MAX_SLOTS:
+        print(f"✗ {MAX_SLOTS} 个槽位已满：{[c.get('id') for c in live]} ⇒ 等其中一个收口再认领 ✗",
+              file=sys.stderr)
+        return False
+    want = set(resources)
+    clash = [c for c in live if want & set(c.get("resources") or [])]
+    if clash:
+        who = "；".join(claim_is_live(c)[1] for c in clash)
+        if not force:
+            print(f"✗ 资源冲突（**同一模块同一时间只许一个写者** ✗）：{who}\n"
+                  f"  你要 `{','.join(resources)}` ⇒ 等同资源的那个收口，或改用户主（`--touch` 显式声明）",
+                  file=sys.stderr)
+            return False
+        print(f"⚠ `--force`：与 {who} 抢同一资源（只在确认它已死/放弃时用）", file=sys.stderr)
+        live = [c for c in live if c not in clash]
+    kept = live + [{"id": ident, "owner": owner, "pid": os.getpid(),
+                    "resources": resources, "ts": _now()}]
+    if stale:
+        print(f"⏳ 清掉 {len(stale)} 条陈旧认领（进程已死/超 TTL）："
+              f"{[c.get('id') for c in stale]}", file=sys.stderr)
+    write_lock(kept)
+    return True
+
+
+def drop_claim(ident: str, owner: str) -> None:
+    claims = read_lock()["claims"]
+    kept = [c for c in claims if not (c.get("id") == ident and c.get("owner") == owner)]
+    write_lock(kept)
 
 
 def load_events() -> list[dict]:
@@ -756,21 +830,25 @@ def check_lock_or_die(owner: str, force: bool, taking: bool) -> bool:
     return True
 
 
-def cmd_claim(ident: str, owner: str, force: bool, rows: list[dict]) -> int:
+def cmd_claim(ident: str, owner: str, force: bool, rows: list[dict],
+              touch: str = "") -> int:
     state = fold()
-    if ident not in {r["id"] for r in rows} and ident not in state:
+    row = next((r for r in rows if r["id"] == ident), None)
+    if row is None and ident not in state:
         raise UsageError(f"队列里没有 `{ident}` ⇒ 先把它登记进来源（`--json` 看现有 id）")
     cur = state.get(ident, {})
     if cur.get("state") in TERMINAL_STATES:
         print(f"✗ `{ident}` 已是终态 `{cur['state']}` ⇒ 要重开得先 "
               f"`--advance {ident} --to todo --reason '<为什么>'` ✗", file=sys.stderr)
         return 1
-    if not check_lock_or_die(owner, force, taking=True):
+    resources = resources_of(row, touch)
+    if not acquire_claim(ident, owner, resources, force):
         return 1
-    append_event({"event": "claim", "id": ident, "owner": owner, "pid": os.getpid()})
-    lock_file().write_text(json.dumps({"owner": owner, "pid": os.getpid(), "id": ident,
-                                       "ts": _now()}, ensure_ascii=False), encoding="utf-8")
-    print(f"✓ 认领 `{ident}`（owner={owner} · pid {os.getpid()}）⇒ 做完交证据：\n"
+    append_event({"event": "claim", "id": ident, "owner": owner, "pid": os.getpid(),
+                  "resources": resources})
+    slots = len(live_claims())
+    print(f"✓ 认领 `{ident}`（owner={owner} · pid {os.getpid()} · 资源 {','.join(resources)} · "
+          f"占用 {slots}/{MAX_SLOTS} 核）⇒ 做完交证据：\n"
           f"    python3 scripts/ux-queue.py --advance {ident} --to done "
           f"--commit <sha> --reading '<判据读数>'")
     return 0
@@ -804,8 +882,12 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
         print(f"✗ `{to}` 必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
         return 1
     if frm == "in_progress" and to in {"done", "wo_filed", "blocked", "todo"}:
-        if not check_lock_or_die(owner, force, taking=False):
+        held = [c for c in read_lock()["claims"] if c.get("id") == ident]
+        if held and held[0].get("owner") != owner and not force:
+            print(f"✗ `{ident}` 被 `{held[0].get('owner')}` 认领着 ⇒ 别替别人收口 ✗",
+                  file=sys.stderr)
             return 1
+        drop_claim(ident, held[0].get("owner") if held else owner)
     if to == "done":
         kids = cur.get("children", [])
         open_kids = [k for k in kids if state.get(k, {}).get("state") not in TERMINAL_STATES]
@@ -831,53 +913,31 @@ def cmd_add_child(parent: str, child: str, title: str, owner: str, rows: list[di
         print(f"✗ 父条目 `{parent}` 已终态 ⇒ 先 `--advance {parent} --to todo --reason …` ✗",
               file=sys.stderr)
         return 1
-    if not check_lock_or_die(owner, True, taking=True):
+    if not acquire_claim(f"split:{parent}", owner, resources_of(
+            next((r for r in rows if r["id"] == parent), None), ""), True):
         return 1
     append_event({"event": "split", "id": child, "parent": parent, "title": title,
                   "owner": owner})
+    drop_claim(f"split:{parent}", owner)
     print(f"✓ 就地拆解：`{child}`（{title}）插在 `{parent}` **之前**；"
           f"`{parent}` 转 umbrella ⇒ 子任务全关才能收口 ✓")
     return 0
 
 
 def cmd_release(owner: str, reason: str) -> int:
-    lock = read_lock()
-    if not lock:
-        print("（没有锁要放）")
+    """放掉 `owner` 的**全部**认领（4 核里的自己那几格）⇒ 条目回 todo。"""
+    claims = read_lock()["claims"]
+    mine = [c for c in claims if c.get("owner") == owner]
+    if not mine:
+        print(f"（`{owner}` 没有持有任何认领；活跃的是 "
+              f"{[c.get('id') for c in live_claims()]}）")
         return 0
-    if (lock or {}).get("owner") != owner:
-        print(f"✗ 锁是 `{lock.get('owner')}` 的，不是你（{owner}）的 —— 不许替别人放锁 ✗",
-              file=sys.stderr)
-        return 1
-    append_event({"event": "release", "id": lock.get("id"), "owner": owner,
-                  "reason": reason or None})
-    try:
-        lock_file().unlink()
-    except OSError:  # pragma: no cover
-        pass
-    print(f"✓ 放锁（`{lock.get('id')}` 回到 todo）" + (f" · {reason}" if reason else ""))
-    return 0
-
-
-def cmd_render(rows: list[dict]) -> int:
-    """把 §0.2 的摘要块**写进文档**（幂等：有标记块就替换，没有就插在 `0.2` 标题之后）。"""
-    block = render_onboarding(rows)
-    lines = ONBOARDING.read_text(encoding="utf-8").splitlines()
-    try:
-        begin = lines.index(ONB_BEGIN)
-        end = lines.index(ONB_END)
-    except ValueError:
-        head = next((i for i, l in enumerate(lines) if re.match(r"^#{2,4} 0\.2 ", l)), None)
-        if head is None:
-            raise UsageError(f"{_label(ONBOARDING)} 里找不到 `0.2` 标题 ⇒ 唯一入口不见了 ✗") from None
-        # 插在标题之后（口径段之前），块后留一行空行
-        new_lines = lines[:head + 1] + [""] + block.split("\n") + [""] + lines[head + 1:]
-        ONBOARDING.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
-        print(f"✓ 已在 {_label(ONBOARDING)} §0.2 插入渲染摘要块")
-        return 0
-    new_lines = lines[:begin] + block.split("\n") + lines[end + 1:]
-    ONBOARDING.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
-    print(f"✓ 已刷新 {_label(ONBOARDING)} §0.2 的渲染摘要块")
+    for c in mine:
+        append_event({"event": "release", "id": c.get("id"), "owner": owner,
+                      "reason": reason or None})
+    write_lock([c for c in claims if c.get("owner") != owner])
+    print(f"✓ 放掉 {len(mine)} 条认领（{[c.get('id') for c in mine]}）"
+          + (f" · {reason}" if reason else ""))
     return 0
 
 
@@ -941,10 +1001,19 @@ def check_plan(rows: list[dict]) -> int:
         if st == "wo_filed" and not cur.get("reason"):
             print(f"✗ `{ident}` 是 wo_filed 却没写理由 ✗", file=sys.stderr)
             bad += 1
-    lock = read_lock()
-    live, why = lock_is_live(lock)
-    if lock and not live:
-        print(f"⏳ 陈旧锁：{why} ⇒ 下一个写者可用 `--force` 接管 ✓", file=sys.stderr)
+    claims = read_lock()["claims"]
+    live = [c for c in claims if claim_is_live(c)[0]]
+    stale = [c for c in claims if not claim_is_live(c)[0]]
+    if live:
+        print(f"⏳ 活跃认领 {len(live)}/{MAX_SLOTS} 核：" +
+              "；".join(claim_is_live(c)[1] for c in live), file=sys.stderr)
+    for c in stale:
+        print(f"⏳ 陈旧认领：{claim_is_live(c)[1]} ⇒ 下一个写者可用 `--force` 接管 ✓",
+              file=sys.stderr)
+    for c in claims:
+        if c.get("id") not in known and c.get("id") not in state:
+            print(f"✗ 认领 `{c.get('id')}` 不在队列里 ⇒ 幽灵认领 ✗", file=sys.stderr)
+            bad += 1
     return bad
 
 
@@ -965,17 +1034,16 @@ def print_table(rows: list[dict]) -> None:
 
 
 def selftest_scheduler(expect) -> None:
-    """调度器判据自检：**故意造非法形状，每一条都必须被拒** ✗（规则在代码里 ⇒ 必须咬得住）。"""
+    """调度器判据自检：**故意造非法形状，每一条都必须被拒** ✗（规则在代码里 ⇒ 必须咬得住）。
+
+    覆盖：迁移合法性 · 收口证据 · 两层漂移 · **4 核槽位** · **资源互斥** · 陈旧认领接管 · `--next` 过滤。
+    """
     import contextlib
     import io
     import tempfile
     global EVENTS
-    rows = [{"id": "X-1", "disposition": "fix", "repro": "true", "facet": "语言",
-             "severity": "medium", "owner": "t"},
-            {"id": "X-2", "disposition": "fixed", "repro": "true", "facet": "语言",
-             "severity": "low", "owner": "t"},
-            {"id": "X-3", "disposition": "control", "repro": "true", "facet": "语言",
-             "severity": "low", "owner": "t"}]
+    rows = [{"id": f"X-{i}", "disposition": "fix", "repro": "true", "facet": "语言",
+             "severity": "medium", "owner": f"mod{i}"} for i in range(1, 6)]
 
     def quiet(fn, *a, **kw) -> int:
         buf, err = io.StringIO(), io.StringIO()
@@ -992,46 +1060,64 @@ def selftest_scheduler(expect) -> None:
             rc = quiet(cmd_advance, "X-1", "done", "abc123", "读数", "", "t", False, rows)
             expect(f"todo → done 必须被拒（rc={rc}）", rc == 1)
             # ② 认领 → 无证据收口必须被拒；带证据则通过
-            expect("认领 X-1", quiet(cmd_claim, "X-1", "t", False, rows) == 0)
+            expect("认领 X-1", quiet(cmd_claim, "X-1", "t", False, rows, "mod/1") == 0)
             rc = quiet(cmd_advance, "X-1", "done", "", "", "", "t", False, rows)
             expect(f"无证据收口必须被拒（rc={rc}）", rc == 1)
             rc = quiet(cmd_advance, "X-1", "done", "deadbeef", "probe exit 0→1", "", "t",
                        False, rows)
             expect(f"带证据收口必须通过（rc={rc}）", rc == 0)
             # ③ 两层漂移：调度器 done 了，来源处置还是 fix ⇒ check_plan 必须判红
-            bad = check_plan(rows)
-            expect(f"done 而来源仍 fix ⇒ 判红（bad={bad}）", bad >= 1)
+            expect(f"done 而来源仍 fix ⇒ 判红", check_plan(rows) >= 1)
             # ④ 终态不许再认领；要重开必须带理由
-            rc = quiet(cmd_claim, "X-1", "t", False, rows)
+            rc = quiet(cmd_claim, "X-1", "t", False, rows, "mod/1")
             expect(f"终态再认领必须被拒（rc={rc}）", rc == 1)
-            rc = quiet(cmd_advance, "X-1", "todo", "", "", "", "t", False, rows)
-            expect(f"重开不带理由必须被拒（rc={rc}）", rc == 1)
+            expect("重开不带理由必须被拒",
+                   quiet(cmd_advance, "X-1", "todo", "", "", "", "t", False, rows) == 1)
             expect("重开带理由通过",
                    quiet(cmd_advance, "X-1", "todo", "", "", "回归了", "t", False, rows) == 0)
-            # ⑤ umbrella：拆解后父不许在子任务没关时收口
-            expect("拆解 X-1 → 子 X-1a", quiet(cmd_add_child, "X-1", "X-1a", "小任务", "t", rows) == 0)
+            # ⑤ umbrella：拆解后父不许在子任务没关时收口，且子任务排在父之前
+            expect("拆解 X-1 → 子 X-1a",
+                   quiet(cmd_add_child, "X-1", "X-1a", "小任务", "t", rows) == 0)
             view = sched_rows(rows, fold())
             ids = [r["id"] for r in view]
             expect(f"子任务排在父之前（{ids[:3]}）", ids.index("X-1a") < ids.index("X-1"))
             expect("父转 umbrella", fold()["X-1"]["state"] == "umbrella")
             rc = quiet(cmd_advance, "X-1", "done", "deadbeef", "读数", "", "t", True, view)
             expect(f"umbrella 子在开 ⇒ 不许收口（rc={rc}）", rc == 1)
-            # ⑥ 锁：别人持活锁 ⇒ 不许认领；陈旧锁（死 pid）⇒ 可 --force
-            lock_file().write_text(json.dumps({"owner": "别人", "pid": os.getpid(), "id": "X-1",
-                                               "ts": _now()}), encoding="utf-8")
-            rc = quiet(cmd_claim, "X-2", "t", False, rows)
-            expect(f"别人持活锁 ⇒ 认领被拒（rc={rc}）", rc == 1)
-            lock_file().write_text(json.dumps({"owner": "别人", "pid": 999999, "id": "X-1",
-                                               "ts": _now()}), encoding="utf-8")
-            live, why = lock_is_live(read_lock())
-            expect(f"死 pid ⇒ 锁不算活（{why}）", not live)
-            expect("陈旧锁可 --force 接管",
-                   quiet(cmd_claim, "X-2", "t", True, rows) == 0)
-            # ⑦ --next 跳过终态 / 对照臂 / umbrella
+            # ⑥ **4 核槽位**：4 个互不相干的认领都行，第 5 个必须被拒
+            write_lock([])
+            oks = [quiet(cmd_claim, f"X-{i}", f"w{i}", False, rows, f"mod/{i}")
+                   for i in range(1, 5)]
+            expect(f"4 核：4 个不相干认领都该成功（{oks}）", all(rc == 0 for rc in oks))
+            rc = quiet(cmd_claim, "X-5", "w5", False, rows, "mod/5")
+            expect(f"4 核：第 5 个必须被拒（rc={rc}）", rc == 1)
+            expect(f"活跃认领恰好 4 条（{len(live_claims())}）", len(live_claims()) == 4)
+            # ⑦ **资源互斥**：同一模块同一时间只许一个写者
+            write_lock([])
+            expect("先占 mod/a", quiet(cmd_claim, "X-1", "w1", False, rows, "mod/a") == 0)
+            rc = quiet(cmd_claim, "X-3", "w3", False, rows, "mod/a")
+            expect(f"撞同一资源必须被拒（rc={rc}）", rc == 1)
+            expect("资源不相干 ⇒ 可并发（4 核之内）",
+                   quiet(cmd_claim, "X-2", "w2", False, rows, "mod/b") == 0
+                   and len(live_claims()) == 2)
+            # ⑧ 陈旧认领（进程已死）不算活跃 ⇒ 可被 --force 接管
+            write_lock(read_lock()["claims"] + [          # 追加（别覆盖：w1/w2 还活着）
+                {"id": "X-3", "owner": "ghost", "pid": 999999, "resources": ["mod/a"],
+                 "ts": _now()}])
+            expect("死进程认领不算活跃", all(c["owner"] != "ghost" for c in live_claims()))
+            expect("陈旧认领可 --force 接管",
+                   quiet(cmd_claim, "X-3", "w3", True, rows, "mod/a") == 0)
+            # ⑨ 放锁：owner 的认领全部释放
+            expect("释放 w3 的认领", quiet(cmd_release, "w3", "测完") == 0)
+            # 在 ⑧ 里 w3 `--force` 接管了 mod/a（把 w1 挤掉）⇒ 释放 w3 后应只剩 w2 的 mod/b
+            expect(f"释放后只剩 w2（{len(live_claims())}）",
+                   [c["owner"] for c in live_claims()] == ["w2"])
+            write_lock([])
+            # ⑩ --next 跳过终态 / 对照臂
             nxt = io.StringIO()
             with contextlib.redirect_stdout(nxt):
                 cmd_next(view, "t")
-            expect(f"--next 不吐终态/对照（吐的是 {nxt.getvalue().split()[0] if nxt.getvalue() else '空'}）",
+            expect("--next 不吐终态/对照",
                    not nxt.getvalue().startswith(("X-2", "X-3")))
         finally:
             EVENTS = saved_events
@@ -1172,8 +1258,9 @@ def cmd_selftest(args: argparse.Namespace) -> int:
         return 1
     print(f"ux-queue.py selftest: {len(cases)} 条读数判定 + §0.2/摘要块解析 + "
           f"**5 条反向验证**（缺渲染块判红 · 补块转绿 · 幽灵行判红 · 手改计数判红 · 未登记探针判红）"
-          f" + **调度器 16 条**（非法迁移/无证据收口/两层漂移/重开要理由/umbrella 子在开不许收口/"
-          f"活锁拒认领/死进程锁可接管/--next 跳过终态与对照）+ 真来源解析 全部成立 ✓")
+          f" + **调度器 20 条**（非法迁移/无证据收口/两层漂移/重开要理由/umbrella 子在开不许收口/"
+          f"**4 核槽位满拒第 5 个**/**同资源互斥**/死进程认领不算活跃且可 `--force` 接管/`--release` 只放自己的/"
+          f"--next 跳过终态与对照）+ 真来源解析 全部成立 ✓")
     return 0
 
 
@@ -1199,7 +1286,10 @@ def main() -> int:
     parser.add_argument("--next", action="store_true", help="打印**下一个可动**的条目（调度器给序）")
     parser.add_argument("--render", action="store_true",
                         help="把 §0.2 的摘要块按当前队列**重渲染**（幂等）")
-    parser.add_argument("--claim", metavar="ID", help="原子认领（写锁；别人持锁 ⇒ 判红 ✗）")
+    parser.add_argument("--claim", metavar="ID",
+                        help=f"原子认领（**{MAX_SLOTS} 核**+资源互斥：槽位满或撞同一模块 ⇒ 判红 ✗）")
+    parser.add_argument("--touch", metavar="RES", default="",
+                        help="显式声明要写的资源（逗号分隔，覆盖 owner 的默认映射）")
     parser.add_argument("--advance", metavar="ID", help="状态迁移（**规则在脚本里**）")
     parser.add_argument("--to", metavar="STATE", help=f"迁移目标：{list(SCHED_STATES)}")
     parser.add_argument("--commit", metavar="SHA", help="收口证据①：commit")
@@ -1219,7 +1309,7 @@ def main() -> int:
         state = fold()
         view = sched_rows(rows, state)
         if args.claim:
-            return cmd_claim(args.claim, args.owner, args.force, view)
+            return cmd_claim(args.claim, args.owner, args.force, view, args.touch)
         if args.advance:
             if not args.to:
                 raise UsageError("`--advance` 要配 `--to <state>`")
@@ -1243,7 +1333,8 @@ def main() -> int:
             if bad:
                 print(f"\n✗ 队列不变量：**{bad} 条红**", file=sys.stderr)
                 return 1
-            print("✓ 队列不变量通过：收口都有证据 · umbrella 有子任务 · 两层不漂移 · 锁新鲜")
+            print(f"✓ 队列不变量通过：收口都有证据 · umbrella 有子任务 · 两层不漂移 · "
+                  f"认领 {len(live_claims())}/{MAX_SLOTS} 核")
             return 0
         if args.check_uncovered:
             return check_uncovered(view, live=args.live, timeout=args.timeout, undecided=undecided)
