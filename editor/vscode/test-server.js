@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 // Unit tests for server.js (bundled-binary resolution + version-pinned
 // download URL). Run: node editor/vscode/test-server.js
 // No VS Code, no network, no Rust needed — pure Node with an injected fs.

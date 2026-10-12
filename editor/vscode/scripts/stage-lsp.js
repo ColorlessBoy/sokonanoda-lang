@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 // Stage the built sokonanoda binaries (`sokonanoda-lsp` server + `sokonanoda`
 // CLI) into `editor/vscode/bin/<target>/` so `vsce package --target <target>`
 // produces a platform-specific VSIX with both bundled

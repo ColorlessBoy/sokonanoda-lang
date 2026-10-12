@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 // VS Code 集成测试：扩展在真实 VS Code（@vscode/test-electron）里跑，
 // 由 `vscode-test`（@vscode/test-cli）经 .vscode-test.mjs 启动。
 // 前置条件：被测服务器必须先构建并 stage 到 `bin/<target>/`——测试自身绝不构建

@@ -1,3 +1,4 @@
+-- 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 -- G-03 最小复现：**「Prop 结果 + Type 参数 + 单构造子 + 构造子自有字段」的
 -- inductive 被内核断言拒绝**（不是正常的错误消息，是 assert 失败）。
 --

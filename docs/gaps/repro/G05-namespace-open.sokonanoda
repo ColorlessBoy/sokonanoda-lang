@@ -1,3 +1,4 @@
+-- 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 -- G-05 最小复现：**没有 namespace / open** —— 已修（0.60.0）
 --
 -- 期望（官方 Lean 4 语义）：大库靠命名空间分节，且 `open` 之后短名可用：

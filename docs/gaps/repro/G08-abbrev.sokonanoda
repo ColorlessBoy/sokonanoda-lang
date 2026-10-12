@@ -1,3 +1,4 @@
+-- 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 -- G-08 复现（**已修后形状**，0.60.0）：`abbrev` 是与 `def` **同语义**的拼写。
 --
 -- 期望（官方 Lean 4 语义）：`abbrev Set (α : Type) : Type := α → Prop` 是
