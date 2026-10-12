@@ -1030,6 +1030,7 @@ fn every_error_kind_has_stable_code_and_hint() {
                 | ErrorKind::ImportPreludeConflict
                 | ErrorKind::ManifestInvalid
                 | ErrorKind::ImportModuleInvalid
+                | ErrorKind::EntryParseFailed
         )
     };
     let all = [
@@ -1065,6 +1066,7 @@ fn every_error_kind_has_stable_code_and_hint() {
         ErrorKind::ImportPreludeConflict,
         ErrorKind::ManifestInvalid,
         ErrorKind::ImportModuleInvalid,
+        ErrorKind::EntryParseFailed,
     ];
     for kind in all {
         let code = kind.code();
@@ -1087,6 +1089,17 @@ fn every_error_kind_has_stable_code_and_hint() {
                 assert!(
                     code.starts_with("import-") || code.starts_with("manifest-"),
                     "{kind:?} is a project kind but its code is `{code}`"
+                );
+            }
+            CompileStage::Parse => {
+                // 解析家族（长尾 ②/r06：入口自己的 parse 失败）：不许借用别的
+                // 阶段的命名空间，否则 `stage` 与 `code` 又会对不上。
+                assert!(
+                    !code.starts_with("elab-")
+                        && !code.starts_with("kernel-")
+                        && !code.starts_with("import-")
+                        && !code.starts_with("manifest-"),
+                    "{kind:?} is a parse kind but its code is `{code}`"
                 );
             }
         }
@@ -1805,6 +1818,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ImportPreludeConflict => {}
         ErrorKind::ManifestInvalid => {}
         ErrorKind::ImportModuleInvalid => {}
+        ErrorKind::EntryParseFailed => {}
     };
     let undocumented: Vec<&str> = all
         .iter()

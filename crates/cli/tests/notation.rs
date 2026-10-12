@@ -553,9 +553,23 @@ fn a_library_notation_works_in_the_entry_through_import() {
         code, 1,
         "an unimported notation must not resolve: {events:?}"
     );
-    // 诊断的**消息**逐字保留（`notation-unknown-symbol` 的原话）；code/stage 是
-    // 闭包路径的 `import-module-invalid`——入口单独 parse 失败、闭包也没救回来
-    // 时走的就是这条路（设计 §11 的已知差异）。
+    // 诊断的**消息**逐字保留（`notation-unknown-symbol` 的原话）；code/stage 由
+    // 闭包路径给定 —— 入口单独 parse 失败、闭包也没救回来时，闭包把它归因到
+    // **入口自己**（`entry-parse-failed`，长尾 ②/r06 · 2026-10-12；以前一律包成
+    // `import-module-invalid`，把读者指去翻被导入的文件 ✗）。
+    let codes: Vec<&str> = events
+        .iter()
+        .filter(|e| e["type"] == "diagnostic")
+        .filter_map(|e| e["code"].as_str())
+        .collect();
+    assert!(
+        codes.contains(&"entry-parse-failed"),
+        "the entry's own parse failure is attributed to the entry: {codes:?}"
+    );
+    assert!(
+        !codes.contains(&"import-module-invalid"),
+        "no imported file is at fault here: {codes:?}"
+    );
     let messages: Vec<&str> = events
         .iter()
         .filter(|e| e["type"] == "diagnostic")

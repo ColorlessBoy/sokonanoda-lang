@@ -211,6 +211,15 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   prelude); `manifest-invalid` reports an unreadable or malformed
   `sokonanoda.toml`, and `import-module-invalid` reports an imported file that
   does not parse at all.
+- `parse` stage — the entry file does not parse at all: `entry-parse-failed`
+  (2026-10-12 · 长尾 ②/r06). Its `message` is the parse diagnostic's own text
+  (the same wording a single-file parse error carries) and its `span` is that
+  diagnostic's span, so the squiggle stays on **this** file. It is **not**
+  `import-module-invalid`: that code is reserved for a module reached through
+  `import`, whose failure is discovered while loading the closure, and its hint
+  tells the reader to open that other file. Attribution is decided by the
+  loader from "which module failed to parse" (entry vs dependency), never from
+  the file name.
 
 Human output prints `error[<stage>]: <message>` — the bracket carries the
 **pipeline stage** (`parse`/`import`/`elab`/`kernel`), not the code; the stable

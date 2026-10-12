@@ -1232,19 +1232,35 @@ impl QueryDoc {
         // 报 `∈` 未声明，而同一份文本 `grade` exit 0、计数 5/7——两条通道打架）。
         // 闸门与 `goals` 共用同一条判据（[`Self::usable`]，G-22 的教训：
         // 同一条判据写两遍，就会有一处漏掉）。
-        if let Some(diag) = self.parse_error.as_ref().filter(|_| !self.usable()) {
-            let (start_line, start_col, end_line, end_col) = line_col(diag.span);
-            failed.push(FailedDecl {
-                name: None,
-                code: diag.code().to_string(),
-                message: diag.message.clone(),
-                start: diag.span.start.offset,
-                end: diag.span.end.offset,
-                start_line,
-                start_col,
-                end_line,
-                end_col,
-            });
+        //
+        // **第二条闸门（长尾 ②/r06，2026-10-12 · 两通道对齐）**：`output.errors`
+        // 里**已经有**入口自己的诊断时不再补 `parse_error`。
+        //
+        // 为什么：`output` 就是**入口模块**的事件视图，而入口的 parse 失败现在由
+        // 闭包**如实归因**（`entry-parse-failed`，见 `project::graph`）并挂进
+        // `ModuleReport.report.errors` ⇒ 已经出现在 `failed` 里。此时再补
+        // **单独 parse** 的那条，就是同一份文件报**两条**诊断：一条真位置（闭包）、
+        // 一条假位置（单独 parse 看不到 `import` 带进来的记法 ⇒ 报签名里那个
+        // `∈`），而 `grade --json` 只有前者 ⇒ 两个通道诊断集不等 ✗。
+        //
+        // 判据是"入口自己有没有报过错"（真相层的 `output.errors.is_empty()`），不是
+        // 文本启发式；单文件模式 / 入口报告为空时闸门为真，老契约（G-10/G-17）
+        // 一字不变。
+        if output.errors.is_empty() {
+            if let Some(diag) = self.parse_error.as_ref().filter(|_| !self.usable()) {
+                let (start_line, start_col, end_line, end_col) = line_col(diag.span);
+                failed.push(FailedDecl {
+                    name: None,
+                    code: diag.code().to_string(),
+                    message: diag.message.clone(),
+                    start: diag.span.start.offset,
+                    end: diag.span.end.offset,
+                    start_line,
+                    start_col,
+                    end_line,
+                    end_col,
+                });
+            }
         }
         let warnings: Vec<WarningInfo> = output
             .warnings

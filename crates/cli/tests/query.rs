@@ -507,6 +507,145 @@ fn query_check_reports_parse_errors_with_exit_one() {
     let _ = std::fs::remove_file(path);
 }
 
+/// **长尾 ②/r06 的硬判据（2026-10-12）**：同一份夹具下 `query check` 与
+/// `grade --json` 的**诊断集逐条相等**（码 + 起止行列 + 文本）。
+///
+/// 为什么单列一条：两条通道**各有一条独立的历史**——`query check` 从
+/// `QueryDoc::check` 取（`output.errors` + 那条**单独 parse** 的兜底），
+/// `grade --json` 从项目报告的逐模块诊断取。r06 之前它们是两套结论：
+/// `query check` 报 `import-module-invalid`（真位置）**外加**一条级联的
+/// `notation-unknown-symbol`（假位置：单独 parse 看不到 `import` 带进来的记法），
+/// 而 `grade` 只有前一条 ✗。修好归因之后，入口自己的 parse 失败走
+/// `entry-parse-failed`，两条通道必须**逐字对齐**。
+///
+/// 夹具两个受控对照（唯一变量 = 入口有没有用依赖声明的记法）：
+/// * `uses-notation`：`import lib.Set` + 签名里用 `∈`，错在 `by` 块里拼错的
+///   tactic（单独 parse 会先死在 `∈` 上 ⇒ 以前那条假诊断就是它）；
+/// * `plain`：一模一样的错，但签名不用记法（单独 parse 也报真错）。
+#[test]
+fn query_check_and_grade_agree_on_a_project_entry_parse_error() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-query-two-channels-{}-{}",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(dir.join("lib")).expect("temp project");
+    std::fs::write(dir.join("sokonanoda.toml"), "name = \"two-channels\"\n")
+        .expect("write manifest");
+    std::fs::write(
+        dir.join("lib/Set.sokonanoda"),
+        "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n",
+    )
+    .expect("write lib");
+    // 唯一变量就是签名里有没有 `∈`：两边的**真错**都在 `exactt h` 那一行。
+    // `expect_code` 是**分发**决定的，不是通道决定的（两条通道共用
+    // `project::is_project_source`）：签名用了 `import` 带进来的 `∈` ⇒ 单独 parse
+    // 死在 `∈` 上、闭包能走 ⇒ 闭包如实归因（`entry-parse-failed`）；签名不用
+    // 记法 ⇒ 单独 parse 就报真错 ⇒ 老路（`unexpected-token`，契约一字不变）。
+    let fixtures: [(&str, &str, &str); 2] = [
+        (
+            "uses-notation",
+            "import lib.Set\n\ntheorem bad (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := by\n  exactt h\n",
+            "entry-parse-failed",
+        ),
+        (
+            "plain",
+            "import lib.Set\n\ntheorem bad (P : Prop) (h : P) : P := by\n  exactt h\n",
+            "unexpected-token",
+        ),
+    ];
+    for (tag, text, expect_code) in fixtures {
+        let entry = dir.join(format!("{tag}.sokonanoda"));
+        std::fs::write(&entry, text).expect("write entry");
+
+        // 两条通道各用**自己的新缓存目录**：任何"先跑哪条把状态捂热"的路径都盖不住。
+        let (value, code) = query(
+            &["check", "--file", entry.to_str().unwrap(), "--compact"],
+            None,
+        );
+        assert_eq!(code, 1, "{tag}: a parse failure is a rejection: {value}");
+        let from_query: Vec<(String, u64, u64, u64, u64, String)> = value["data"]["failed"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{tag}: failed[]: {value}"))
+            .iter()
+            .map(|f| {
+                (
+                    f["code"].as_str().unwrap_or_default().to_string(),
+                    f["start_line"].as_u64().unwrap_or_default(),
+                    f["start_col"].as_u64().unwrap_or_default(),
+                    f["end_line"].as_u64().unwrap_or_default(),
+                    f["end_col"].as_u64().unwrap_or_default(),
+                    f["message"].as_str().unwrap_or_default().to_string(),
+                )
+            })
+            .collect();
+
+        let out = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+            .args(["grade", "--json", entry.to_str().unwrap()])
+            .env("SOKONANODA_CACHE_DIR", cache_dir("two-channels-grade"))
+            .output()
+            .expect("run grade");
+        assert_eq!(out.status.code(), Some(1), "{tag}: grade rejects it too");
+        let from_grade: Vec<(String, u64, u64, u64, u64, String)> =
+            String::from_utf8_lossy(&out.stdout)
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .map(|line| serde_json::from_str::<serde_json::Value>(line).expect("json event"))
+                .filter(|event| event["type"] == "diagnostic")
+                .map(|event| {
+                    (
+                        event["code"].as_str().unwrap_or_default().to_string(),
+                        event["span"]["start"]["line"].as_u64().unwrap_or_default(),
+                        event["span"]["start"]["column"]
+                            .as_u64()
+                            .unwrap_or_default(),
+                        event["span"]["end"]["line"].as_u64().unwrap_or_default(),
+                        event["span"]["end"]["column"].as_u64().unwrap_or_default(),
+                        event["message"].as_str().unwrap_or_default().to_string(),
+                    )
+                })
+                .collect();
+
+        assert_eq!(
+            from_query, from_grade,
+            "{tag}: the two channels must carry the same diagnostic set"
+        );
+        // 归因的**正确性**（不只是"两边一样"）：真错在 `exactt` 那一列，且**不许**
+        // 报成被导入的文件坏了（`import-module-invalid` 的 message 带 `（模块名）`
+        // 后缀、hint 让人去打开别的文件——那正是 r06 的病灶）。
+        assert_eq!(
+            from_query.len(),
+            1,
+            "{tag}: exactly one diagnostic: {from_query:?}"
+        );
+        assert_eq!(from_query[0].0, expect_code, "{tag}: {from_query:?}");
+        assert_eq!(
+            from_query[0].1, 4,
+            "{tag}: the real error is on line 4: {from_query:?}"
+        );
+        assert_eq!(
+            from_query[0].2, 3,
+            "{tag}: at column 3 (`exactt`): {from_query:?}"
+        );
+        assert!(
+            from_query[0].5.contains("exactt"),
+            "{tag}: the message must name the misspelled token: {from_query:?}"
+        );
+        assert!(
+            !from_query[0].5.contains("（bad）") && !from_query[0].5.contains("(bad)"),
+            "{tag}: an entry error must not carry the dependency-style module suffix: {from_query:?}"
+        );
+        assert!(
+            !from_query[0].5.contains("import-module-invalid"),
+            "{tag}: {from_query:?}"
+        );
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// G-17：同族的另外两个出口。`goals`/`holes` 在解析失败时曾经答空数组 +
 /// `ok:true`（读起来就是"这份画布没有声明 / 没有洞"）——现在必须与 `check` 一样
 /// 承认"问不出来"：`ok:false` + `error.code = not-parsable` + 退出码 1。

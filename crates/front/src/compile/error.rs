@@ -6,6 +6,11 @@ use crate::Span;
 /// Which pipeline stage produced an error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompileStage {
+    /// **解析**（`EntryParseFailed`：入口文件自己的语法错误 —— 长尾 ②/r06）。
+    ///
+    /// 以前没有这一档：入口的解析失败被包成 `ImportModuleInvalid`（`import`
+    /// 阶段），于是 `--json` 的 `stage` 与 LSP 的诊断来源一起指错文件。
+    Parse,
     /// 项目层的 import 解析（找不到模块、成环、依赖失败…）。
     Import,
     Elab,
@@ -15,6 +20,7 @@ pub enum CompileStage {
 impl CompileStage {
     pub fn code(self) -> &'static str {
         match self {
+            CompileStage::Parse => "parse",
             CompileStage::Import => "import",
             CompileStage::Elab => "elab",
             CompileStage::Kernel => "kernel",
@@ -112,6 +118,18 @@ pub enum ErrorKind {
     ManifestInvalid,
     /// 被导入的模块文件本身有语法错误（parse 阶段失败）。
     ImportModuleInvalid,
+    /// **入口文件自己**没解析成功（parse 阶段失败，2026-10-12 · 长尾 ②/r06）。
+    ///
+    /// 为什么必须与 [`Self::ImportModuleInvalid`] 分开：闭包加载器以前把
+    /// **任何**模块的解析失败都包成 `import-module-invalid`，于是"入口自己写错
+    /// 一个符号"被报成"**被导入的文件**坏了" + 甩锅 hint（r06 实测：hint 说
+    /// 「先打开它、修好那里的语法错误」，而 `lib/Logic`、`lib/Set` 都是好的）。
+    /// 归因判据是**真相层**的"这次 parse 失败的是哪个模块"（入口 vs 依赖），
+    /// 不是文件名/路径启发式。
+    ///
+    /// `stage = parse`（入口自己的解析失败就该是 parse 阶段）；被导入模块那条
+    /// 仍是 `import` 阶段的 [`Self::ImportModuleInvalid`]（它确实是加载期发现的）。
+    EntryParseFailed,
 }
 
 impl ErrorKind {
@@ -169,6 +187,7 @@ impl ErrorKind {
             | ImportPreludeConflict
             | ManifestInvalid
             | ImportModuleInvalid => CompileStage::Import,
+            EntryParseFailed => CompileStage::Parse,
         }
     }
 
@@ -226,6 +245,7 @@ impl ErrorKind {
             ImportPreludeConflict => "import-prelude-conflict",
             ManifestInvalid => "manifest-invalid",
             ImportModuleInvalid => "import-module-invalid",
+            EntryParseFailed => "entry-parse-failed",
         }
     }
 
@@ -389,6 +409,9 @@ impl ErrorKind {
             }
             ImportModuleInvalid => {
                 "被导入的文件本身没解析成功：先打开它、修好那里的语法错误，再回来看这里（下游不会替你猜）。"
+            }
+            EntryParseFailed => {
+                "这个文件自己没解析成功：按上面那条诊断的位置改**本文件**，与它 import 的文件无关（那些文件没有被牵连）。"
             }
         }
     }

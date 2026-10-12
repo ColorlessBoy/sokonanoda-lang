@@ -1011,19 +1011,109 @@ fn redeclaring_an_inherited_notation_is_a_dedicated_error() {
     );
     let report = compile(&dir, "Main.sokonanoda");
     let codes: Vec<&'static str> = report.diagnostics.iter().map(|d| d.code()).collect();
+    // **归因必须是入口自己**（长尾 ②/r06，2026-10-12）：入口重声明继承来的记法
+    // 是**本文件**的解析失败，闭包加载器一律包成 `import-module-invalid` 的话，
+    // 学习者会被指去翻 `lib/Set.sokonanoda`（那是好的）✗。`lib.Set` 自己仍然
+    // 用 `entry-parse-failed` 以外的码表，见 `graph.rs` 的入口/依赖分支。
     assert!(
-        codes.contains(&"import-module-invalid"),
-        "the entry cannot be parsed: {codes:?}"
+        codes.contains(&"entry-parse-failed"),
+        "the entry's own parse failure must be attributed to the entry: {codes:?}"
+    );
+    assert!(
+        !codes.contains(&"import-module-invalid"),
+        "the entry is not an imported module: {codes:?}"
     );
     let message = report
         .diagnostics
         .iter()
-        .find(|d| d.code() == "import-module-invalid")
+        .find(|d| d.code() == "entry-parse-failed")
         .map(|d| d.message.clone())
         .unwrap_or_default();
     assert!(
         message.contains("已经声明过记法"),
         "the message must name the rule: {message}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **长尾 ②/r06（2026-10-12）**：入口**自己**的语法错必须归因到入口。
+///
+/// 受控对照（唯一变量 = 入口有没有用依赖声明的记法 `ᶜ`）：
+/// * 不用记法 ⇒ 单独 parse 就失败，报 `unexpected-token`（诚实的旧行为）；
+/// * 用了记法 ⇒ 单独 parse 也是失败，但**闭包先收 import 边、拿到记法表**之后
+///   才解析自己 ⇒ 真实第一因是**入口里那个 `·`**。以前闭包把这条也包成
+///   `import-module-invalid`（"**被导入的文件**没解析成功"）+ 甩锅 hint，
+///   学习者会去翻 `lib/Set.sokonanoda`（它完全没问题）✗。
+///
+/// 判据是**真相层**的"哪个模块 parse 失败"（入口 vs 依赖），不是文件名启发式。
+#[test]
+fn an_entry_parse_error_is_attributed_to_the_entry_not_to_its_imports() {
+    let dir = tmp_dir("entry-parse-attribution");
+    // 依赖是干净的（`∪` / `ᶜ` 都声明在这里）。
+    write(&dir, "lib/Set.sokonanoda", NOTATION_LIB);
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import lib.Set\n\n\
+         axiom Other.bullet : (α : Type) -> Set α -> Set α\n\
+         infixl:65 \" · \" => Other.bullet\n\
+         \u{00b7}\n",
+    );
+    let report = compile(&dir, "Main.sokonanoda");
+    let entry_codes = codes(&report);
+    assert!(
+        entry_codes.contains(&"entry-parse-failed"),
+        "入口自己的 parse 失败要归因到入口：{entry_codes:?}"
+    );
+    assert!(
+        !entry_codes.contains(&"import-module-invalid"),
+        "依赖是干净的，不许甩锅给它：{entry_codes:?}"
+    );
+    // 位置 = 入口里真正出错的那一行（第 5 行那个裸 `·`），不是 import 行。
+    let diag = report
+        .diagnostics
+        .iter()
+        .find(|diag| diag.code() == "entry-parse-failed")
+        .expect("entry-parse-failed");
+    let span = diag.span.expect("the parse diagnostic carries a span");
+    assert_eq!(span.start.line, 5, "真错在第 5 行：{diag:?}");
+    assert_eq!(diag.module, "Main", "归属模块是入口：{diag:?}");
+    // hint 不许甩锅到别的文件（那条话属于 `import-module-invalid`）。
+    let hint = diag.hint();
+    assert!(hint.contains("本文件"), "hint 必须把读者留在本文件：{hint}");
+    assert!(
+        !hint.contains("打开它"),
+        "hint 不许让读者去打开依赖：{hint}"
+    );
+
+    // **对照**：依赖自己坏掉时仍走 `import-module-invalid`（那才是它的语义），
+    // 且消息带**依赖的**模块名 —— 归因改动不许把这一半也改掉。
+    let dir = tmp_dir("entry-parse-attribution-dep");
+    write(&dir, "Bad.sokonanoda", "def broken : Nat := )\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Bad\n\ndef use : Nat := 1\n",
+    );
+    let report = compile(&dir, "Main.sokonanoda");
+    let dep_codes = codes(&report);
+    assert!(
+        dep_codes.contains(&"import-module-invalid"),
+        "依赖的解析失败仍是 import-module-invalid：{dep_codes:?}"
+    );
+    assert!(
+        !dep_codes.contains(&"entry-parse-failed"),
+        "入口自己没写错，不许报入口：{dep_codes:?}"
+    );
+    let dep = report
+        .diagnostics
+        .iter()
+        .find(|diag| diag.code() == "import-module-invalid")
+        .expect("import-module-invalid");
+    assert_eq!(dep.module, "Bad", "{dep:?}");
+    assert!(
+        dep.message.contains("Bad"),
+        "依赖的诊断要带它的模块名：{dep:?}"
     );
     let _ = std::fs::remove_dir_all(&dir);
 }

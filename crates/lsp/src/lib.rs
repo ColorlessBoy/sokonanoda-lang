@@ -113,22 +113,27 @@ impl Doc {
     /// 两条契约并存（G-20 / X15）：
     /// - **老契约**（单文件模式 / 闭包也失败）：parse 错误优先——parse 不过时报告
     ///   是空的，发它等于什么都不说。
-    /// - **新契约**（闭包编译成功）：以**闭包报告**为准。用库记法的单元单文件
+    /// - **新契约**（闭包报告有内容）：以**闭包报告**为准。用库记法的单元单文件
     ///   必然 parse 失败（记法随 `import` 传播，G-04 第二刀），而闭包是好的；
     ///   此时发 parse 错误就是**假诊断**（编辑器里一条 `notation-unknown-symbol`
     ///   红波浪线，CLI 判卷却 exit 0）。
+    ///
+    /// **长尾 ②/r06（2026-10-12）**：入口**自己**有语法错时闭包也失败，以前这条
+    /// 走"老契约"⇒ 发的是**单独 parse** 的诊断（`∈` 未声明，落在签名那一列），
+    /// 而真实第一因在下一行（`exactt`）——两个通道各报各的 ✗。现在闭包把入口的
+    /// parse 失败**如实归因**（`entry-parse-failed`，见 `front::project::graph`），
+    /// 报告里就有那条带真位置的诊断 ⇒ 发报告；`parse_error` 只在**报告拿不出
+    /// 东西**时兜底（单文件模式的空报告）。
     fn diagnostics(&self) -> Vec<Diagnostic> {
-        let rescued = self.doc.project_entry_compiled();
-        if !rescued {
+        let report = self.doc.report.as_ref();
+        // 判据本体在真相层（`DocumentReport::has_content`）—— 同一个问题在
+        // `set_text` 还要问一次，两处必须是同一条实现。
+        if !report.is_some_and(|report| report.has_content()) {
             if let Some(diag) = self.doc.parse_error.as_ref() {
                 return vec![diagnostic_from_parse(diag)];
             }
         }
-        self.doc
-            .report
-            .as_ref()
-            .map(report_diagnostics)
-            .unwrap_or_default()
+        report.map(report_diagnostics).unwrap_or_default()
     }
 
     /// 当前文本（`doc.text()` 的读法）。
@@ -288,9 +293,23 @@ impl Doc {
             // **例外**（G-20 / X15）：项目闭包**编译成功**时报告是真的、有用的
             // （入口单文件 parse 失败只是因为记法来自 `import`，见
             // `QueryDoc::project_entry_compiled`），丢掉它会让编辑器发假诊断
-            // 并把 hover/documentSymbol 全部打成 `null`。这条例外只在闭包好使时
-            // 生效——闭包也失败（入口 `LoadFailed`）时仍走老契约。
-            self.doc.report = None;
+            // 并把 hover/documentSymbol 全部打成 `null`。
+            //
+            // **例外的例外（长尾 ②/r06，2026-10-12）**：闭包**失败**但报告里
+            // **有内容**时也不能丢 —— 那条内容就是入口自己的 parse 诊断
+            // （`entry-parse-failed`，带**真位置**）。丢了它，LSP 只能退回
+            // **单独 parse** 的诊断（`∈` 未声明 @签名那一列），而 CLI 报的是
+            // 真错那一行 ⇒ 两个通道各报各的 ✗（D1 探针就是这么来的）。
+            // 判据是"报告里有没有东西"（真相层 [`DocumentReport::has_content`] 给的
+            // 唯一实现），不是文件名启发式。
+            if !self
+                .doc
+                .report
+                .as_ref()
+                .is_some_and(sokonanoda_front::compile::DocumentReport::has_content)
+            {
+                self.doc.report = None;
+            }
             return;
         }
         // **写回项目缓存**（T-A11）：不写的话，只有"用户先跑过 CLI `build`"

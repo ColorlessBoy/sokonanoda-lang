@@ -107,6 +107,7 @@ pub fn load_closure_with_overlay(
         &mut stack,
         &mut visiting,
         &mut exports,
+        Some(&entry_name),
     );
 
     let mut notations = exports.remove(&entry_name).unwrap_or_default();
@@ -224,6 +225,7 @@ fn visit(
     stack: &mut Vec<String>,
     visiting: &mut HashSet<String>,
     exports: &mut HashMap<String, Vec<NotationDecl>>,
+    entry_name: Option<&str>,
 ) -> VisitOutcome {
     if by_name.contains_key(name) {
         return VisitOutcome::Loaded; // 重复 import 只算一次
@@ -323,6 +325,7 @@ fn visit(
                     stack,
                     visiting,
                     exports,
+                    entry_name,
                 ) {
                     VisitOutcome::Loaded => {}
                     VisitOutcome::Cycle(cycle) => {
@@ -396,9 +399,33 @@ fn visit(
     let (file, parsed) = match parse_with_inherited(&text, &inherited) {
         Ok(file) => (file, true),
         Err(diagnostic) => {
+            // **归因来自真相层：这次 parse 失败的是哪个模块**（长尾 ②/r06）。
+            //
+            // 入口自己写错时**不许**报成"被导入的文件坏了"：`ImportModuleInvalid`
+            // 的 hint 让人去打开依赖文件，而依赖可能完全没问题（r06 的受控对照：
+            // 同一份文件只差用不用 `∈`，归因就从 `unexpected-token` 变成
+            // `import-module-invalid`）。判据是"`name` 是不是入口"，**不是**
+            // 文件名/路径启发式；`entry_name` 由 `load_closure*` 用
+            // `module_name_of_path(root, entry_path)` 算出来（与入口模块同名）。
+            //
+            // 依赖那条**保持** `import-module-invalid`：它确实是加载期发现的
+            // "被导入的文件没解析成功"（协议码与既有判据不变）。
+            let is_entry = entry_name == Some(name);
+            let kind = if is_entry {
+                ErrorKind::EntryParseFailed
+            } else {
+                ErrorKind::ImportModuleInvalid
+            };
+            // 入口的正文**不加**模块名后缀：诊断本就归属这个文件（`file` 字段
+            // 已经写着它），而"（probe.d1）"这种后缀对学习者只是噪声。
+            let message = if is_entry {
+                diagnostic.message.clone()
+            } else {
+                format!("{}（{name}）", diagnostic.message)
+            };
             diagnostics.push(ProjectDiagnostic {
-                kind: ProjectKind::Error(ErrorKind::ImportModuleInvalid),
-                message: format!("{}（{name}）", diagnostic.message),
+                kind: ProjectKind::Error(kind),
+                message,
                 module: name.to_string(),
                 path: Some(path.to_path_buf()),
                 span: Some(diagnostic.span),

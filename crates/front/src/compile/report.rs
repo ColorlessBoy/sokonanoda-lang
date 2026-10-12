@@ -363,6 +363,20 @@ pub struct DocumentReport {
 }
 
 impl DocumentReport {
+    /// 这份报告里**有没有东西可说**（诊断 / 声明 / 警告任一非空）。
+    ///
+    /// **唯一实现**（长尾 ②/r06，2026-10-12）：LSP 侧有两处要问同一件事 ——
+    /// "parse 失败时那份报告还值不值得发"（`Doc::diagnostics`）与"还要不要把它
+    /// 折成 `None`"（`Doc::set_text`）。同一条判据写两遍就会有一处分叉
+    /// （G-22 的教训），所以放在真相层、由两个消费者共用。
+    ///
+    /// 为什么不是 `report.is_none()`：单文件模式的 parse 失败会留下**空报告 +
+    /// `parse_error`**，那种"空"该让 `parse_error` 兜底；而入口自己的 parse
+    /// 失败现在会留下**带 `entry-parse-failed` 的报告**，那份有真位置、必须发。
+    pub fn has_content(&self) -> bool {
+        !self.errors.is_empty() || !self.decls.is_empty() || !self.warnings.is_empty()
+    }
+
     /// **回放闸门**：一条命令的 `#check`/`#print` 结果只许留一份。
     ///
     /// 为什么要它（2026-10-10 用户实测的「每编辑一下多一份」闭环，台账 G-102）：
