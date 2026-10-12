@@ -58,16 +58,16 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=50 blocker=1 high=9 medium=26 low=14 -->
-**未完成 50 条**（blocker **1** · high **9** · medium **26** · low **14**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
-最靠前的 5 条：`r07` · `F3` · `G-100` · `G-110` · `G-112`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
+<!-- QUEUE:COUNTS total=62 blocker=2 high=11 medium=33 low=16 -->
+**未完成 62 条**（blocker **2** · high **11** · medium **33** · low **16**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+最靠前的 5 条：`SUB-submit-cli-crash` · `r07` · `F3` · `G-100` · `G-112`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
 > **口径（2026-10-12 清台账 + 事件调度器）**：**明细只活在脚本里** —— `--next` 取队列 · `--claim <id>` 认领（**最多 4 个并发（"4 核"）**，写锁 + 
 > **同一模块的写者互斥**；槽位满或撞资源即判红）· `--advance <id> --to done --commit <sha> --reading '<判据读数>'` 收口（**没有证据不许收口** ✗，
 > 规则写在脚本的迁移表里，不靠提示词）；拆解大项用 `--add-child <父> --child <新id>`（子任务插在父之前，父转 umbrella）。
 > 处置**只有两种**：**实现** 或 `wo-filed`（定案不做 + 理由）—— **"排期 / 以后做"不是处置** ✗（大工程可跨轮，
-> 但每轮必须交**已合入的读数**）。本表只列**粗粒度的线**（明细 50 条见 `--json`）；摘要块由 `--render` 生成 ✗ 手改判红。
+> 但每轮必须交**已合入的读数**）。本表只列**粗粒度的线**（明细见 `--json`，条数见上方摘要块）；摘要块由 `--render` 生成 ✗ 手改判红。
 
 | 线 | 是什么 | 下一步最小动作 | 判据（可执行） |
 |---|---|---|---|
@@ -76,9 +76,12 @@
 | W-3 | 课程侧隐变量适配 | 课程侧整批豁免未删（引擎侧已收口）⇒ 先小批量跑通口径 | `notation-lint` 零旧写法 + 课程门禁 `failed=0` + 计数如实记账 |
 | W-4 | 编辑慢（用户 10-02 报） | 旧包读数不算 ⇒ **在新包上重测**再定位 | `scripts/dev-verify.sh` + 与 `docs/design/edit-latency.md` 同机同口径 |
 | W-5 | prelude 剥离 | 内嵌 Rust 字符串 → 真 `.soko` 文件（建 `crates/prelude/`） | 剥离后 `docs-lint` ✓ + 全课 `--json` 逐字节不变 + 三层测试 |
-| G-110 | 缺口台账（**仍复现**） | `assumption` 只判最新那条假设 ⇒ 搜遍全部局部上下文 | `docs/gaps/repro/G110-*.sh` 转"行为已变" + 反向验证 |
 | G-112 | 缺口台账（**仍复现**） | release/debug 共用 `.sokonanoda/` 互擦 ⇒ 键或目录带上构建档 | `docs/gaps/repro/G112-*.sh` 转绿 + 两档构建不互擦的实测读数 |
 | G-100 | 缺口台账 | 编译路径的进程级名字键缓存**没有失效路径** ⇒ 加失效路径或收窄 | `python3 scripts/gap.py check` exit 0 + `docs/architecture.md` §6 口径 |
+| Q | 调度器自身的缺口（接口 agent 的 **13 条提交** + `Q-1`） | `--submit`/`--inbox`/受理四态/`--claim` 原子性（**已修**）· 其余按 `--inbox` 逐条受理 | `python3 scripts/ux-queue.py --inbox` 无 `todo` 残留 + `--selftest` exit 0 |
+
+> **`G-110` 已收口**（2026-10-12 · commit `ead7829f`）：`assumption` 现在搜遍全部局部假设
+> （逃生门 `SOKO_ASSUMPTION_FIRST_ONLY=1` 复现旧行为）⇒ 已从本表摘除 ✓。
 
 **别的台账是守卫输入、不是队列**（`docs/{gaps,e2e,perf,courses}/ledger.jsonl`：`gap.py check` 逐条重跑复现件 ⇒ **归档 = 关掉守卫** ✗）；
 索引 `docs/ux-findings-2026-10-12.md` 到期 **2026-11-12** ⇒ 到期前把仍开项搬进队列 ✓（**本表只留粗粒度线**）。

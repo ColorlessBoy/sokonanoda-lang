@@ -231,6 +231,9 @@ def load_extras() -> list[dict]:
             "disposition": entry["disposition"],
             "owner": entry.get("owner") or "",
             "note": entry["why"][:80],
+            # ⚠ `why` **原文**要留着：`--inbox` 要打印"为什么"，而 `note` 是截断的（[80]）
+            # ⇒ 只留 note 会让回执少半句（实测 `--inbox` 恒答空，见 `cmd_inbox`）。
+            "why": entry["why"],
             "where": entry.get("where") or "",
             "expect": entry.get("expect"),
         })
@@ -424,18 +427,34 @@ def run_probe(row: dict, timeout: int) -> tuple[str, str]:
         return ("error", f"跑不起来：{err}")
     rc = proc.returncode
     tail = " ".join((proc.stdout or proc.stderr or "").strip().splitlines()[-1:])[:120]
-    if kind == "lang":
+    verdict, note = judge_rc(kind, rc)
+    return (verdict, f"{note} —— {tail}" if note else tail)
+
+
+def judge_rc(kind: str, rc: int) -> tuple[str, str]:
+    """探针**退出码 → 判定**（**约定按 `kind` 分流** —— 四类探针并不共用一套约定）。
+
+    * `lang/*.sh`：exit 0 = 缺口仍在 · 1 = 已变/已修 · 其它 = 环境错
+    * `vim-probe.mjs`：**与 lang 同向** —— 它判的是"**无 vim 臂绿 + 有 vim 臂红**"这个
+      **冲突是否成立** ⇒ exit 0 = 冲突仍在（缺口仍在）· 1 = 冲突已不在（已修）
+    * `lsp-probe.mjs` / `editor-probe.mjs`：exit 0 = 与期望一致（已变）· 1 = 不一致（缺口仍在）
+
+    ⚠ 2026-10-12 实测的 bug（接口 agent 提交 `SUB-vim-exit-inverted`）：旧代码只有
+    "lang" 与"其余一律按 lsp"两套 ⇒ **vim 被判反**：缺口仍在中报 `fixed`（假绿）、
+    已修报 `reproducing`（假红）⇒ `--live` 对 vim 条目永远给反的读数。抽成纯函数是为了让
+    `--selftest` 能逐档断言（见"探针退出码约定对账"）✓。
+    """
+    if kind in {"lang", "vim"}:
         if rc == 0:
-            return ("reproducing", tail)
+            return ("reproducing", "")
         if rc == 1:
-            return ("fixed", tail)
-        return ("error", f"退出码 {rc}（约定只认 0/1）—— {tail}")
-    # mjs 探针（lsp / editor / vim）
+            return ("fixed", "")
+        return ("error", f"退出码 {rc}（约定只认 0/1）")
     if rc == 0:
-        return ("fixed", tail)
+        return ("fixed", "")
     if rc == 1:
-        return ("reproducing", tail)
-    return ("error", f"退出码 {rc}（2 = 用法/环境，3 = 前置缺失）—— {tail}")
+        return ("reproducing", "")
+    return ("error", f"退出码 {rc}（2 = 用法/环境，3 = 前置缺失）")
 
 
 def reading_ok(row: dict, verdict: str) -> tuple[bool, str]:
@@ -611,7 +630,12 @@ RESOURCE_OF_OWNER = {
     "tooling": "scripts/**", "scripts": "scripts/**",
 }
 
-SCHED_STATES = ("todo", "in_progress", "blocked", "done", "wo_filed", "umbrella")
+SCHED_STATES = ("todo", "in_progress", "blocked", "done", "wo_filed", "umbrella",
+                # 外部提交面（`--submit`/`--triage`）的两个状态：**提交者只追加**，
+                # 主流受理后才终态 ⇒ 用独立状态名，别借用 `done`（`done` 的证据要求是
+                # "commit + 判据读数"，而受理的证据是"commit"（applied）或"理由"（rejected））。
+                "submitted", "triage_rejected")
+TRIAGE_STATES = {"submitted", "triage_rejected"}
 TERMINAL_STATES = {"done", "wo_filed"}
 # **允许的迁移表 = 规则的唯一出处**（改这里才改得动行为）
 TRANSITIONS = {
@@ -681,6 +705,42 @@ def read_lock() -> dict:
     return {"claims": []}
 
 
+def lock_guard():
+    """**跨进程互斥**：锁文件旁边的 `.guard` 上一个 `flock`（`with lock_guard():`）。
+
+    ⚠ 为什么需要（2026-10-12 实测的 bug，由接口 agent 提交 `SUB-claim-not-atomic`）：
+    `acquire_claim` 是 `read_lock()` → 判定 → `write_lock(kept)` 的 **check-then-act**，
+    而 `write_lock` 是**整文件覆盖** ⇒ 同资源的 N 个并发认领**全部打印"✓ 认领"**，
+    但锁里只剩**最后写者**那一条（既超发、又静默丢别人的认领）✗ —— 本脚本存在的唯一理由
+    就是"4 棵 worktree 并行时的安全认领" ⇒ 不原子 = 前提不成立。
+    实测（8 路子进程过同一 barrier）：`success reports = 3 | claims in lock = 1`（期望 1 / 1）。
+
+    `fcntl` 缺席（非 POSIX）⇒ 退化成 no-op **并大声说明**（"判不了 ≠ 绿" ✗，同仓库其它守卫口径）。
+    """
+    import contextlib
+
+    try:
+        import fcntl
+    except ImportError:                                  # pragma: no cover - 非 POSIX
+        # ⚠ 这里不能静默：没有 flock 就没有原子性，调用方要能看见
+        print("⚠ 没有 fcntl ⇒ `--claim` 的跨进程互斥**不成立**（并发认领可能超发）✗",
+              file=sys.stderr, end="")
+        return contextlib.nullcontext()
+
+    @contextlib.contextmanager
+    def _guard():
+        path = lock_file().with_suffix(".guard")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a+", encoding="utf-8") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+    return _guard()
+
+
 def write_lock(claims: list[dict]) -> None:
     path = lock_file()
     if not claims:
@@ -689,7 +749,11 @@ def write_lock(claims: list[dict]) -> None:
         except OSError:
             pass
         return
-    path.write_text(json.dumps({"claims": claims}, ensure_ascii=False), encoding="utf-8")
+    # 原子替换：**别就地截断写**（读者可能正读到一半 ⇒ 半截 JSON）——
+    # `os.replace` 在同一文件系统上是原子的，读者要么看到旧文件、要么看到新文件 ✓。
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"claims": claims}, ensure_ascii=False), encoding="utf-8")
+    os.replace(tmp, path)
 
 
 def claim_is_live(claim: dict) -> tuple[bool, str]:
@@ -726,7 +790,16 @@ def resources_of(row: dict | None, override: str) -> list[str]:
 
 
 def acquire_claim(ident: str, owner: str, resources: list[str], force: bool) -> bool:
-    """**4 核 + 资源互斥**：槽位满 ⇒ 拒；与活跃认领撞资源 ⇒ 拒（除非 `--force` 接管陈旧）。"""
+    """**4 核 + 资源互斥**：槽位满 ⇒ 拒；与活跃认领撞资源 ⇒ 拒（除非 `--force` 接管陈旧）。
+
+    ⚠ 整段 read→判定→write 必须在 `lock_guard()` 里（见那里的说明：不原子 ⇒ 并发认领全部
+    "成功"而锁里只剩最后一条 ✗）。
+    """
+    with lock_guard():
+        return _acquire_claim_locked(ident, owner, resources, force)
+
+
+def _acquire_claim_locked(ident: str, owner: str, resources: list[str], force: bool) -> bool:
     claims = read_lock()["claims"]
     live = [c for c in claims if claim_is_live(c)[0]]
     stale = [c for c in claims if not claim_is_live(c)[0]]
@@ -759,9 +832,10 @@ def acquire_claim(ident: str, owner: str, resources: list[str], force: bool) -> 
 
 
 def drop_claim(ident: str, owner: str) -> None:
-    claims = read_lock()["claims"]
-    kept = [c for c in claims if not (c.get("id") == ident and c.get("owner") == owner)]
-    write_lock(kept)
+    with lock_guard():
+        claims = read_lock()["claims"]
+        kept = [c for c in claims if not (c.get("id") == ident and c.get("owner") == owner)]
+        write_lock(kept)
 
 
 def load_events() -> list[dict]:
@@ -817,6 +891,26 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             cur.update(parent=ev.get("parent"), title=ev.get("title") or cur.get("title") or ident)
         elif kind == "reopen":
             cur.update(state="todo", owner=None, pid=None, reason=ev.get("reason"))
+        elif kind == "triage":
+            # ⚠ **受理状态必须被折叠回来**（2026-10-12 接口 agent 提交 `SUB-triage-state-unread`）：
+            # 旧代码没有这一支 ⇒ `cmd_triage` 写的 triage 事件对状态**完全不可见**，
+            # `--inbox` 永远显示 `todo` ⇒ REQUIREMENTS §9.20 承诺的
+            # submitted / applied / deferred / rejected 四态不可达，"外部只提交、主流受理"
+            # 这条跨 agent 通道无法被追踪（谁受理了 / 什么时候 / 带哪个 commit 都看不到）✗。
+            # 映射口径：受理 = 这一条**关账**（`done`）· 退回 = 回到 `todo`（可重开）·
+            # 拒收 = `wo_filed`（终态，理由必填 —— `cmd_triage` 已经强制了）。
+            to = ev.get("to")
+            if to == "applied":
+                cur.update(state="done", owner=None, pid=None,
+                           commit=ev.get("commit"), reason=ev.get("reason"))
+            elif to == "rejected":
+                cur.update(state="triage_rejected", owner=None, pid=None, reason=ev.get("reason"))
+            elif to == "deferred":
+                cur.update(state="todo", owner=None, pid=None, reason=ev.get("reason"))
+            cur["triage"] = to
+        elif kind == "submit":
+            cur.update(state="submitted" if cur.get("state") == "todo" else cur["state"],
+                       owner=ev.get("owner"), kind=ev.get("kind"))
     return state
 
 
@@ -923,12 +1017,18 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
     # 否则文档写的 `--claim X` … `--advance X --to done`（不经 `in_progress`）会**漏放锁**，
     # 槽位一直被自己占着（实测：`--to done` 之后 `live_claims()` 仍是 1）✗。
     if to in {"done", "wo_filed", "blocked", "todo"}:
-        held = [c for c in read_lock()["claims"] if c.get("id") == ident]
-        if held and held[0].get("owner") != owner and not force:
-            print(f"✗ `{ident}` 被 `{held[0].get('owner')}` 认领着 ⇒ 别替别人收口 ✗",
-                  file=sys.stderr)
-            return 1
-        drop_claim(ident, held[0].get("owner") if held else owner)
+        # ⚠ 读取与放锁必须在**同一段** `lock_guard()` 里（否则两个收口者可以都读到"没人持有"
+        # ⇒ 都放一次、都通过；原子性见 `lock_guard` 的说明）。
+        with lock_guard():
+            held = [c for c in read_lock()["claims"] if c.get("id") == ident]
+            if held and held[0].get("owner") != owner and not force:
+                print(f"✗ `{ident}` 被 `{held[0].get('owner')}` 认领着 ⇒ 别替别人收口 ✗",
+                      file=sys.stderr)
+                return 1
+            holder = held[0].get("owner") if held else owner
+            claims = read_lock()["claims"]
+            write_lock([c for c in claims
+                        if not (c.get("id") == ident and c.get("owner") == holder)])
     if to == "done":
         kids = cur.get("children", [])
         open_kids = [k for k in kids if state.get(k, {}).get("state") not in TERMINAL_STATES]
@@ -967,16 +1067,17 @@ def cmd_add_child(parent: str, child: str, title: str, owner: str, rows: list[di
 
 def cmd_unclaim(owner: str, reason: str) -> int:
     """放掉 `owner` 的**全部**认领（4 核里的自己那几格）⇒ 条目回 todo。"""
-    claims = read_lock()["claims"]
-    mine = [c for c in claims if c.get("owner") == owner]
-    if not mine:
-        print(f"（`{owner}` 没有持有任何认领；活跃的是 "
-              f"{[c.get('id') for c in live_claims()]}）")
-        return 0
-    for c in mine:
-        append_event({"event": "release", "id": c.get("id"), "owner": owner,
-                      "reason": reason or None})
-    write_lock([c for c in claims if c.get("owner") != owner])
+    with lock_guard():
+        claims = read_lock()["claims"]
+        mine = [c for c in claims if c.get("owner") == owner]
+        if not mine:
+            print(f"（`{owner}` 没有持有任何认领；活跃的是 "
+                  f"{[c.get('id') for c in live_claims()]}）")
+            return 0
+        for c in mine:
+            append_event({"event": "release", "id": c.get("id"), "owner": owner,
+                          "reason": reason or None})
+        write_lock([c for c in claims if c.get("owner") != owner])
     print(f"✓ 放掉 {len(mine)} 条认领（{[c.get('id') for c in mine]}）"
           + (f" · {reason}" if reason else ""))
     return 0
@@ -986,6 +1087,8 @@ def effective_state(row: dict, cur: dict) -> str:
     """事件状态优先；没有事件 ⇒ 用来源的处置翻译（`fix`/`scheduled` 都是**可动**的 todo）。"""
     if cur.get("state"):
         return cur["state"]
+    if "external-submission" in (row.get("sources") or []):
+        return "submitted"          # 外部提交在受理前不是"可动的 todo"（没人认领它）
     return {"fix": "todo", "scheduled": "todo", "fixed": "done",
             "wo-filed": "wo_filed", "boundary": "boundary", "control": "control"}.get(
         row.get("disposition"), "todo")
@@ -1035,11 +1138,36 @@ def cmd_next(rows: list[dict], owner: str) -> int:
     return 0
 
 
+def source_history_ids() -> set[str]:
+    """**来源台账里出现过的所有 id**（含 `fixed`/`wo-filed` 等终态）。
+
+    ⚠ 为什么不能只看 `rows`（那是 open 集合）：条目**收口之后**就离开队列了，
+    而它的历史事件仍在（`claim`/`advance`），于是每个已修条目都会在收口那一刻被
+    `check_plan` 判成"幽灵条目" ✗（实测：`G-110` 标 `fixed` 后立刻红）。
+    幽灵判据要咬的是**从来没登记过的 id**（例如并发测试脚本往共享事件表里写的合成 id）。
+    """
+    out: set[str] = set()
+    try:
+        for entry in load_extras():
+            out.add(entry["id"])
+    except (UsageError, OSError, KeyError, ValueError):
+        pass
+    try:
+        for line in GAPS_LEDGER.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                ident = json.loads(line).get("id")
+                if ident:
+                    out.add(ident)
+    except (OSError, ValueError):
+        pass
+    return out
+
+
 def check_plan(rows: list[dict]) -> int:
     """**调度器不变量**：状态与来源不许漂移、收口必须有证据、umbrella 不许空、锁要新鲜。"""
     state = fold()
     bad = 0
-    known = {r["id"] for r in rows}
+    known = {r["id"] for r in rows} | source_history_ids()
     disp = {r["id"]: r.get("disposition") for r in rows}
     for ident, cur in sorted(state.items()):
         st = cur.get("state")
@@ -1047,8 +1175,12 @@ def check_plan(rows: list[dict]) -> int:
             print(f"✗ 事件里的 `{ident}` 不在任何来源里 ⇒ 幽灵条目（删来源了？）✗", file=sys.stderr)
             bad += 1
             continue
+        if st == "triage_rejected" and not cur.get("reason"):
+            print(f"✗ `{ident}` 是 `triage_rejected` 却没写理由 ⇒ 拒收也要讲清为什么 ✗",
+                  file=sys.stderr)
+            bad += 1
         if st == "done":
-            if not (cur.get("commit") and cur.get("reading")):
+            if not (cur.get("commit") and (cur.get("reading") or cur.get("triage") == "applied")):
                 print(f"✗ `{ident}` 标了 done 却没有 `commit`+`reading` ⇒ **没证据的收口** ✗",
                       file=sys.stderr)
                 bad += 1
@@ -1160,9 +1292,16 @@ def cmd_submit(args: argparse.Namespace) -> int:
 
 
 def cmd_inbox(rows: list[dict]) -> int:
-    """列出**外部提交**及其状态（submitted / applied / deferred / rejected）。"""
+    """列出**外部提交**及其状态（submitted / applied / deferred / rejected）。
+
+    ⚠ 判定键是 `sources`（**列表**）而不是 `source`（2026-10-12 实测的 bug）：
+    `build_queue()`/`load_extras()` 早就把来源收进了 `sources`（`["extras", "external-submission"]`），
+    行里**没有** `source` 键 ⇒ 旧写法 `r.get("source") == "external-submission"` **恒为假**
+    ⇒ `--inbox` 永远答「（inbox 空：还没有外部提交）」，而同一时刻 extras 里明明有那些行 ✗
+    ⇒ 提交者看不到自己的提交（也无法跟踪受理状态），整条"发现→提交→受理"通道没有回执。
+    """
     state = fold()
-    subs = [r for r in rows if r.get("source") == "external-submission"]
+    subs = [r for r in rows if "external-submission" in (r.get("sources") or [])]
     if not subs:
         print("（inbox 空：还没有外部提交）")
         return 0
@@ -1170,7 +1309,7 @@ def cmd_inbox(rows: list[dict]) -> int:
         cur = state.get(r["id"], {})
         st = cur.get("state", "submitted")
         print(f"{r['id']:<14}{st:<11}{r.get('severity','?'):<8}{r.get('where','')}")
-        print(f"  为什么：{r.get('why','')}")
+        print(f"  为什么：{r.get('why') or r.get('note','')}")
         if cur.get("commit"):
             print(f"  收口：{cur['commit'][:8]} · {cur.get('reading','')}")
         if cur.get("reason"):
@@ -1191,9 +1330,29 @@ def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int
     if to in {"rejected", "deferred"} and not reason:
         print(f"✗ `{to}` 必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
         return 1
+    # ⚠ 只写事件还不够：**来源处置**才是 open 集合的口径（`OPEN_DISPOSITIONS`）
+    # ⇒ 受理/拒收必须同轮把 extras 那行翻成终态，否则这条提交**永远是 open**
+    # （`--check-uncovered` 会把它算进"未完成"，而 `--inbox` 又显示已受理 ⇒ 自相矛盾 ✗）。
+    want = {"applied": "fixed", "rejected": "wo-filed", "deferred": "fix"}[to]
+    # ⚠ 逐行改写（**保住抬头的 `#` 注释**）—— 整文件重排会把 `docs/ux-queue-extras.jsonl`
+    # 顶部的说明段（它就是这份台账的协议）整段抹掉 ✗。
+    lines = EXTRAS.read_text(encoding="utf-8").splitlines()
+    out = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            row = json.loads(line)
+            if row.get("id") == ident:
+                row["disposition"] = want
+                row["triage"] = {"to": to, "commit": commit or None, "reason": reason or None,
+                                 "owner": owner, "ts": _now()}
+                line = json.dumps(row, ensure_ascii=False)
+        out.append(line)
+    EXTRAS.write_text("\n".join(out) + "\n", encoding="utf-8")
     append_event({"event": "triage", "id": ident, "to": to, "reason": reason or None,
                   "commit": commit or None, "owner": owner})
-    print(f"✓ `{ident}` ⇒ {to}" + (f" · commit {commit[:8]}" if commit else "")
+    print(f"✓ `{ident}` ⇒ {to}（来源处置 → `{want}`）"
+          + (f" · commit {commit[:8]}" if commit else "")
           + (f" · {reason}" if reason else ""))
     return 0
 
@@ -1447,6 +1606,26 @@ def selftest_scheduler(expect) -> None:
             expect(f"释放后只剩 w2（{len(live_claims())}）",
                    [c["owner"] for c in live_claims()] == ["w2"])
             write_lock([])
+            # ⑨b **认领必须是原子的**（接口 agent 提交的 `SUB-claim-not-atomic`，2026-10-12）：
+            #   8 路**真并发**抢同一资源 ⇒ 恰好 1 个成功、锁里恰好 1 条。
+            #   修复前实测：`success reports = 3 | claims in lock = 1`（超发 + 静默丢认领）✗。
+            #   用**子进程**跑真 `--claim`（同一把锁文件）⇒ 这才咬得住"check-then-act"。
+            import subprocess as _sp
+            lock_path = Path(tmp) / "atomic.lock"
+            env = dict(os.environ, SOKO_QUEUE_ROOT=str(ROOT))
+            script = (
+                "import importlib.util,sys;"
+                f"spec=importlib.util.spec_from_file_location('q',{str(Path(__file__).resolve())!r});"
+                "m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);"
+                f"m.lock_file=lambda: __import__('pathlib').Path({str(lock_path)!r});"
+                "sys.exit(0 if m.acquire_claim('R-x', sys.argv[1], ['mod/same'], False) else 1)")
+            procs = [_sp.Popen([sys.executable, "-c", script, f"w{i}"],
+                               stdout=_sp.DEVNULL, stderr=_sp.DEVNULL, env=env)
+                     for i in range(8)]
+            oks = sum(1 for p in procs if p.wait() == 0)
+            n_claims = len(json.loads(lock_path.read_text(encoding="utf-8"))["claims"])
+            expect(f"8 路并发抢同一资源：恰好 1 个成功（实测 {oks}）", oks == 1)
+            expect(f"8 路并发后锁里恰好 1 条（实测 {n_claims}）", n_claims == 1)
             # ⑩ **认领必须活过 CLI 调用**（2026-10-12 实测 bug 的反向验证）：`--claim` 写自己的
             # pid ⇒ 进程一退，下一条 `--claim` 就把它当陈旧清掉 ⇒ 连认领 2 条只剩最后 1 条 ✗。
             # 判据：两次 `cmd_claim` 之后**两条都在**（各自独立资源），且锁里**不写 pid**。
@@ -1489,6 +1668,10 @@ def selftest_release_inbox(expect) -> None:
     import io
     import tempfile
     global EVENTS, EXTRAS, INBOX_DIR
+    # ⚠ `effective_state` 也要能猴子补丁：本自检里 `SUB-1` 在"提交"之后状态就是
+    # `submitted`（triage 分支修好后），而**发版节点**那几条用例要的是"有条目还没 done"
+    # 这个形状（与提交面无关）⇒ 那一段临时把状态口径钉成 `todo`，见 ③。
+    saved_eff = globals().get("effective_state")
     with tempfile.TemporaryDirectory() as tmp:
         saved = (EVENTS, EXTRAS, INBOX_DIR, globals()["worktree_dirty"], globals()["lock_file"])
         EVENTS = Path(tmp) / "events.jsonl"
@@ -1529,6 +1712,12 @@ def selftest_release_inbox(expect) -> None:
             expect("triage rejected 没理由 ⇒ 拒",
                    quiet(cmd_triage, "SUB-1", "rejected", "", "", "main") == 1)
             # ③ 发版节点：克制（<3 条）、收拢（有在飞认领）、入版必须 done
+            # ⚠ 这一段要的是"有条目**还没 done**"这个形状，与提交面无关 ⇒
+            #   ① 状态口径钉成 `todo`（`sched_rows` 那条路）；② **清事件表**，让
+            #   `fold()` 里 `SUB-1` 也回到 todo —— 否则 ⑥ 之后 `SUB-1` 已是 `done`
+            #   （triage 分支修好后才成立）⇒ "入版必须 done"那条**反过来**变红 ✗。
+            globals()["effective_state"] = lambda row, cur: "todo"
+            EVENTS.write_text("", encoding="utf-8")
             expect("开节点", quiet(cmd_release, ns(release="open", version="9.9.9"), rows) == 0)
             expect("没 done 的条目不许入版",
                    quiet(cmd_release, ns(release="add", version="9.9.9", id="SUB-1"), rows) == 1)
@@ -1557,8 +1746,47 @@ def selftest_release_inbox(expect) -> None:
             except UsageError:
                 rc_cut = 2
             expect(f"cut 缺 --ci ⇒ 用法错（rc={rc_cut}）", rc_cut == 2)
+            globals()["effective_state"] = saved_eff
+            # 发版用例清过事件表、② 又落过 claim/advance ⇒ ⑥ 要的形状（"提交了但还没受理"）
+            # 得**再清一次表**并只落一条 submit 事件（否则残留的 claim 事件会把状态钉在
+            # `in_progress` ⇒ 断言读到别人的历史 ✗，实测踩过一次）。
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "submit", "id": "SUB-1", "owner": "ext", "kind": "fix",
+                          "evidence": "rc 0→1"})
+            # ⑥ **受理状态必须可读**（2026-10-12 接口 agent 提交 `SUB-triage-state-unread`）：
+            #    旧 `fold()` 没有 submit/triage 分支 ⇒ `--triage applied` 写的事件对状态
+            #    **完全不可见**，`--inbox` 永远显示 `todo` ⇒ 四态不可达 ✗。
+            #    判据 = 折叠后的状态 + 来源处置（两处都要翻，否则条目永远 open）。
+            # ⚠ ② 里已经 triage 过一次（applied）⇒ extras 那行的处置已经是 `fixed`。
+            #   要造"还没受理"的形状必须**先写回 `fix`**（这一步本身就是"受理会翻处置"的
+            #   反向验证：翻回去 ⇒ 又变成 submitted ✓）。
+            write_lock([])
+            raw = _read_jsonl(EXTRAS)
+            raw[0]["disposition"] = "fix"
+            EXTRAS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in raw),
+                              encoding="utf-8")
+            rows2, _u2 = build_queue()
+            # ⚠ 按 **id 取**，别取 `rows2[0]`：`GAPS_LEDGER` 没被夹具替换 ⇒ 真台账的行
+            # 排在前面（实测踩过一次：拿到的是某条 gap 行 ⇒ 断言读的是别人的状态 ✗）。
+            _row2 = next(r for r in rows2 if r["id"] == "SUB-1")
+            _st2 = fold().get("SUB-1", {})
+            expect(f"还没受理 ⇒ 状态 = submitted（不是可动的 todo）"
+                   f"[实测 state={_st2.get('state')} sources={_row2.get('sources')}]",
+                   effective_state(_row2, _st2) == "submitted")
+            expect("受理 applied 后状态 = done",
+                   quiet(cmd_triage, "SUB-1", "applied", "", "cafebabe", "main") == 0
+                   and fold()["SUB-1"]["state"] == "done")
+            expect("受理后来源处置翻成 fixed（否则条目永远 open ✗）",
+                   _read_jsonl(EXTRAS)[0]["disposition"] == "fixed")
+            # ⚠ 受理**之后**要重建 rows：triage 会翻来源处置（fix → fixed），
+            # 拿受理前的快照去 check_plan 会报"两层漂移"（那是快照陈旧，不是真漂移 ✗）。
+            rows3, _u3 = build_queue()
+            _bad = check_plan(rows3)
+            expect(f"受理过的提交**不要求 reading**（受理证据是 commit）[check_plan 红 {_bad} 条]",
+                   _bad == 0)
         finally:
             EVENTS, EXTRAS, INBOX_DIR = saved[0], saved[1], saved[2]
+            globals()["effective_state"] = saved_eff
             globals()["worktree_dirty"] = saved[3]
             globals()["lock_file"] = saved[4]
 
@@ -1577,6 +1805,40 @@ def cmd_selftest(args: argparse.Namespace) -> int:
         if not cond:
             bad += 1
             print(f"FAIL {desc}", file=sys.stderr)
+
+    # ⓪ **CLI 契约对账**（2026-10-12 实测的 bug）：`cmd_submit()` 读 `args.why` / `args.repro`，
+    #    而 argparse 里从没定义过这两个选项 ⇒ 真 CLI 路径 exit 2 / AttributeError，而**自检全绿**
+    #    （它用手工 `Namespace` 绕开了 parser）✗。⇒ 现在就按**真 parser** 对账：
+    #    每个 handler 源码里出现的 `args.<字段>` 都必须是 parser 真能给的。
+    import inspect
+    parser = build_arg_parser()
+    known = set()
+    for act in parser._actions:                      # noqa: SLF001 - 自检要看真定义
+        known.update(act.option_strings)
+    for handler in (cmd_submit, cmd_triage, cmd_release):
+        fields = set(re.findall(r"\bargs\.([A-Za-z_][A-Za-z0-9_]*)",
+                                inspect.getsource(handler)))
+        unknown = sorted(f for f in fields if f"--{f.replace('_', '-')}" not in known)
+        expect(f"`{handler.__name__}` 读的字段都在 argparse 里（缺：{unknown}）", not unknown)
+    probe_args = parser.parse_args(["--submit", "fix", "--id", "X", "--why", "w",
+                                    "--evidence", "e", "--repro", "bash x.sh"])
+    expect("真 parser 接受 `--submit … --why/--evidence/--repro`",
+           probe_args.why == "w" and probe_args.evidence == "e" and probe_args.repro == "bash x.sh")
+
+    # ⓪b **探针退出码约定对账**（2026-10-12 接口 agent 提交 `SUB-vim-exit-inverted`）：
+    #     `run_probe` 的映射按 `probe_kind` 分流，而**四类探针的约定并不相同** ——
+    #     `lang/*.sh` 与 `vim-probe.mjs` 是"exit 0 = 缺口仍在"，`lsp/editor` 是
+    #     "exit 0 = 一致（已变）"。旧代码只有 lang 与"其余按 lsp"两套 ⇒ vim 被判反
+    #     （缺口仍在 ⇒ `fixed` 假绿；已修 ⇒ `reproducing` 假红）✗。
+    #     这里直接对 `judge_rc` 逐档断言（纯函数 ⇒ 不跑真探针也能咬住）。
+    for kind, rc, want in (
+        ("lang", 0, "reproducing"), ("lang", 1, "fixed"),
+        ("vim", 0, "reproducing"), ("vim", 1, "fixed"),        # ← vim 与 lang **同向**
+        ("lsp", 0, "fixed"), ("lsp", 1, "reproducing"),
+        ("editor", 0, "fixed"), ("editor", 1, "reproducing"),
+    ):
+        got = judge_rc(kind, rc)[0]
+        expect(f"`judge_rc({kind!r}, {rc})` = {got}，期望 {want}", got == want)
 
     # ① 读数判定：五种处置 × 两种实读
     cases = [
@@ -1728,7 +1990,15 @@ def _default_owner() -> str:
     return os.environ.get("SOKO_OWNER") or f"{getpass.getuser()}@{socket.gethostname().split('.')[0]}"
 
 
-def main() -> int:
+def build_arg_parser() -> argparse.ArgumentParser:
+    """**唯一的 CLI 契约**（`main()` 与 `--selftest` 共用）。
+
+    ⚠ 为什么抽出来（2026-10-12 实测的 bug）：`cmd_submit()` 读 `args.why` / `args.repro`，
+    而 argparse 里**从没定义过**这两个选项 ⇒ 真 CLI 路径 exit 2（`unrecognized arguments`）
+    或 AttributeError；`--selftest` 却用手工 `Namespace` 绕开了 parser ⇒ **判据通道全绿** ✗。
+    抽成函数之后，"parser 定义"与"handler 读的字段"可以用同一份现实对账（见 selftest 的
+    `CLI 契约对账`）。
+    """
     parser = argparse.ArgumentParser(
         description="「没做完的」唯一机器可重算队列 + 事件调度器（来源与规则见 docstring）")
     parser.add_argument("--json", action="store_true", help="机器可读输出")
@@ -1766,6 +2036,14 @@ def main() -> int:
                         help="**外部提交**：fix/doc/gate/release-blocker（只追加，不改主线 ✗）")
     parser.add_argument("--where", metavar="LOC", help="提交的落点（文件:行 / 台账 id）")
     parser.add_argument("--evidence", metavar="TEXT", help="提交的证据（判据读数；**必填**）")
+    # ⚠ `--why` / `--repro` 是 `cmd_submit()` 读的字段（`args.why` / `args.repro`），
+    # 但 2026-10-12 之前**从没在 argparse 里定义过** ⇒ 真 CLI 路径两种结局都是坏的：
+    #   ① `--submit fix --why …` ⇒ argparse `unrecognized arguments` ⇒ exit 2；
+    #   ② 省略 `--why` ⇒ 进 cmd_submit 后 `AttributeError`（不是 UsageError）⇒ exit 1 + 栈。
+    # 而 `--selftest` 用手工 `Namespace`（`ns(**kw)`）**绕开 argparse** ⇒ 全绿也咬不住 ✗
+    # （"咬不住的守卫等于没有"）⇒ 外部提交面对**四棵 worktree 的接口 agent** 是死的。
+    parser.add_argument("--why", metavar="TEXT", help="提交的理由（**必填**，配 --submit）")
+    parser.add_argument("--repro", metavar="CMD", help="提交的复现/判据命令（配 --submit）")
     parser.add_argument("--patch", metavar="PATH", help="提交的补丁文件（拷进 docs/inbox/<id>.patch）")
     parser.add_argument("--inbox", action="store_true", help="列出外部提交及状态")
     parser.add_argument("--triage", metavar="ID", help="主流受理提交：--to applied|deferred|rejected")
@@ -1774,6 +2052,11 @@ def main() -> int:
     parser.add_argument("--unclaim", action="store_true", help="放掉自己的认领（槽位归还）")
     parser.add_argument("--owner", default=_default_owner(), help="认领者（默认 $SOKO_OWNER 或 用户@主机）")
     parser.add_argument("--force", action="store_true", help="接管**陈旧**锁（进程已死或超 TTL）")
+    return parser
+
+
+def main() -> int:
+    parser = build_arg_parser()
     args = parser.parse_args()
     try:
         _guard_root()
