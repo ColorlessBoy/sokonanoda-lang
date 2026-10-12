@@ -114,32 +114,49 @@ pub(crate) fn pos_within_span(line: u32, character: u32, span: Span) -> bool {
 
 /// **G-36 第三处**：按 **offset** 取"包含该位置的最小 span" ✓（见 [`offset_within_span`] ✓）。
 pub(crate) fn hover_type_at_offset(hovers: &[HoverType], offset: usize) -> Option<&HoverType> {
-    hovers
-        .iter()
-        .filter(|h| offset_within_span(offset, h.span))
-        .min_by_key(|h| {
-            (h.span.end.offset - h.span.start.offset)
-                .try_into()
-                .unwrap_or(u64::MAX)
-        })
+    innermost(hovers.iter().filter(|h| offset_within_span(offset, h.span)))
+}
+
+/// **同 span 多行时，最后一行说了算**（H1 的修法点）。
+///
+/// `hovers` 是**按 elaborate 顺序追加**的（`walk` 一趟下来 push 一行）⇒ 同一段
+/// 源码的**最后一次** elaboration 才是它的结论；同一段被 elaborate 多次时，前面
+/// 那几行是过程产物。实测（`a = b`，`node scripts/ux-probes/lsp-probe.mjs --case
+/// H1-notation-hover-type` 的现场）：记法节点 `a = b` 有 **三行同 span**，第一行
+/// 是**目标常量自己的签名**（`∀ {α : Type 0}, α → α → Prop`，`resolution=None`，
+/// 前端解析记法目标时顺带记下的），后两行才是这个表达式自己的类型 `Prop`——
+/// 取第一行 ⇒ hover 的末块显示"表达式 : **常量的**类型"✗（H1 那条缺口）。
+///
+/// ⚠ 次序是**唯一可用的判据**：这里不能按"有没有 `resolution`""文本像不像类型"
+/// 之类的启发式挑（那正是"猜"✗）。行是按语义顺序追加的这一事实由 `walk` 保证。
+fn innermost<'a, I>(mut rows: I) -> Option<&'a HoverType>
+where
+    I: DoubleEndedIterator<Item = &'a HoverType> + Clone,
+{
+    let width = |h: &HoverType| -> u64 {
+        (h.span.end.offset - h.span.start.offset)
+            .try_into()
+            .unwrap_or(u64::MAX)
+    };
+    let min = rows.clone().map(width).min()?;
+    // 逃生门（反向验证用）：`SOKO_HOVER_FIRST_ROW=1` 回到"取第一个同宽行"
+    // 的旧行为 ⇒ H1 用例必须重新判红（读数见 VERDICT）。
+    if std::env::var_os("SOKO_HOVER_FIRST_ROW").is_some() {
+        return rows.find(|h| width(h) == min);
+    }
+    // `.rev()` 取**最后一个**同宽行（`min_by_key` 给的是第一个 ⇒ 正是 H1 的病）。
+    rows.rev().find(|h| width(h) == min)
 }
 
 pub(crate) fn hover_type_at(hovers: &[HoverType], line: u32, character: u32) -> Option<&HoverType> {
     // 精确命中：包含光标的最小 span 优先。
     // （曾经的「起点 ±2」邻近回退会在 `)` 上命中右侧邻居——括号命中
     // 现在统一走 bracket_hover_at 的括号组匹配。）
-    let exact: Vec<&HoverType> = hovers
-        .iter()
-        .filter(|h| pos_within_span(line, character, h.span))
-        .collect();
-    exact
-        .iter()
-        .min_by_key(|h| {
-            (h.span.end.offset - h.span.start.offset)
-                .try_into()
-                .unwrap_or(u64::MAX)
-        })
-        .copied()
+    innermost(
+        hovers
+            .iter()
+            .filter(|h| pos_within_span(line, character, h.span)),
+    )
 }
 
 /// A resolved hover answer: the source span to highlight and the display text.
@@ -1102,5 +1119,71 @@ def viaPrefix : Wrap := Wrap.mk\ndef viaAlias : Wrap := mk\n";
             }
             other => panic!("an unresolvable position must be an error: {other:?}"),
         }
+    }
+
+    /// **H1**：同一段源码被 elaborate 多次时，**最后一行**才是它的结论
+    /// （前端为记法目标先记的那一行是**目标常量自己的签名**）。
+    /// 这条单测直接钉 `hover_type_at` 的次序语义 —— 不用端到端夹具。
+    #[test]
+    fn innermost_prefers_the_last_row_of_the_same_span() {
+        let span = Span {
+            start: Pos {
+                offset: 0,
+                line: 1,
+                column: 1,
+            },
+            end: Pos {
+                offset: 5,
+                line: 1,
+                column: 6,
+            },
+        };
+        let row = |text: &str, resolution: bool| HoverType {
+            span,
+            text: text.to_string(),
+            scope_names: Vec::new(),
+            resolution: resolution.then(|| ResolvedTarget::Notation {
+                symbol: "=".to_string(),
+                span,
+                module: None,
+            }),
+            binder: false,
+            lexical: false,
+        };
+        let hovers = vec![
+            row("forall {a : Type}, a -> a -> Prop", false), // 常量签名（先记的）
+            row("Prop", false),
+            row("Prop", true), // 表达式自己的类型（最后记的）
+        ];
+        // LSP 坐标是 0 基：第 0 行第 1 列 = span 里的 (line 1, column 2) ✓。
+        let picked = hover_type_at(&hovers, 0, 1).expect("a row covers the cursor");
+        assert_eq!(picked.text, "Prop", "同一 span 取最后一行（H1）");
+        assert!(picked.resolution.is_some(), "最后一行的解析也在");
+        // 宽度不同则**窄的赢**（既有语义不许被次序改掉）。
+        let mut narrow = hovers.clone();
+        narrow.push(HoverType {
+            span: Span {
+                start: Pos {
+                    offset: 1,
+                    line: 1,
+                    column: 2,
+                },
+                end: Pos {
+                    offset: 2,
+                    line: 1,
+                    column: 3,
+                },
+            },
+            text: "narrow".to_string(),
+            scope_names: Vec::new(),
+            resolution: None,
+            binder: false,
+            lexical: false,
+        });
+        assert_eq!(
+            hover_type_at(&narrow, 0, 1).expect("row").text,
+            "narrow",
+            "更窄的 span 仍然优先"
+        );
     }
 }
