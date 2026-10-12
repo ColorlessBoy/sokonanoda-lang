@@ -8237,6 +8237,40 @@ fn mismatch_message_renders_both_sides_with_the_same_notation_style() {
     );
 }
 
+/// **D5 的常驻判据**：`apply <实参给少的点名调用>` 时，`f_ty` 是内核 pp 原文、
+/// 里面还留着没定下来的占位（`?m12`）⇒ 回读在 `?` 上失败，而 `token.rs` 给 `?`
+/// 的是**词法教学文案**（「??? 已移除：未完成的证明请写 sorry」）—— 那句讲的是
+/// **源文件里怎么写洞**，与「这个类型读不回来」毫无关系 ⇒ 占位符泄漏进类型错误 ✗。
+///
+/// 判据：消息里**不许**出现 `???`、不许出现 `sorry` 那句教学文案；必须说真话
+/// （类型文本读不回来 + 出路是把实参补齐）。
+#[test]
+fn apply_with_too_few_arguments_never_leaks_the_lexer_placeholder_text() {
+    const LIB: &str = "def Set (α : Type) : Type := α → Prop\n\
+         def mem {α : Type} (a : α) (A : Set α) : Prop := A a\n\
+         infix:50 \" ∈ \" => mem\n";
+    let src = format!(
+        "{LIB}theorem d5 (α : Type) (a b : α) (A B : Set α) (h : a ∈ A) : a ∈ A := by\n\
+         \x20 apply Eq.subst\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse"));
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["elab-tactic-failed"],
+        "{:?}",
+        out.errors
+    );
+    let msg = &out.errors[0].message;
+    assert!(
+        !msg.contains("???") && !msg.contains("sorry"),
+        "词法教学文案（占位符）不许泄漏进类型错误：{msg:?}"
+    );
+    assert!(
+        msg.contains("读不回来") && msg.contains("实参"),
+        "要说真话（类型文本读不回来）并给出路（把实参补齐）：{msg:?}"
+    );
+}
+
 /// **G-49 的常驻判据**：类型错误的报错文本**不许外泄裸 de Bruijn 编号**
 /// （`$4` ✗），且要**点名**到 binder（`$4(β)` ⇒ 「第 4 个绑元（β）」✓）。
 ///

@@ -2475,10 +2475,19 @@ fn apply_tactic<'a>(
     })?;
     let f_ty_expr = match parse_expr_text(&f_ty) {
         Ok(e) => e,
-        Err(e) => {
+        // **D5：占位符不许泄漏进类型错误。** `f_ty` 是**内核 pp 的原文**；实参没写全时
+        // 它里面还留着内核没定下来的占位（`?m12` 这种）⇒ 回读在 `?` 上失败，而
+        // `token.rs` 给 `?` 的是**词法教学文案**（「??? 已移除：未完成的证明请写
+        // sorry（与官方 Lean 一致）」）—— 那句讲的是**源文件里怎么写洞**，与
+        // 「这个类型读不回来」毫无关系 ⇒ 学习者照着它去改 `sorry`，什么也改不动 ✗。
+        // 这里只说真话：类型文本回读不了（原因通常是实参没写全），出路是把实参补齐。
+        Err(_) => {
             return Err(CompileError::elab(
                 ErrorKind::ElabTacticFailed,
-                format!("无法解析 `{term}` 的类型：{e}"),
+                format!(
+                    "`apply {term}` 判不了：它的类型文本**读不回来**（内核给的答案里还有没定下来的\
+                     占位）——通常是实参没写全。把 `{term}` 的实参补齐（`apply {term} …`）再试一次。"
+                ),
                 span,
             ));
         }
