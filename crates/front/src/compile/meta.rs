@@ -535,10 +535,47 @@ impl<'a> MetaCtx<'a> {
     /// 合一一步：`Yes` 成立 / `No` 不成立 / `Undef` **弃权**（已压进待定队列）。
     pub(crate) fn unify(&mut self, l: &Expr, r: &Expr) -> Tri {
         self.depth = 0;
+        // **C 子项（2026-10-12）**：`Eq.{u} …`（模板，含**层元变量**）与 `Eq …`
+        // （裸 `Ident`）是**同一个头**，但结构分解对不上 ⇒ 判成刚性冲突 ✗
+        // （实测 `[clash] 左=Eq.{u} ｜ 右=Eq`）。
+        //
+        // 出处：全显式 pp 打的是 `@Eq α a x` —— **没有** `.{…}` 层级标记
+        // （层级在 pp 里是隐式的）⇒ 回读成裸 `Ident`；而签名模板的层是
+        // `Eq.{u}`（`u` 是层元变量）。两者语义相同：`@Eq` 在 Lean 里就是
+        // 「宇宙也交给元变量」（`mkFreshLevelMVars` ✓）。
+        //
+        // **只在这一对形状上归一**（一侧 `UniverseApp`、另一侧**同名** `Ident`）
+        // ⇒ 其它任何形状一步都不进 ✓（既有判定面零变化 ✓）；层本身仍由出口的
+        // `levelMVarToParam` / 后续约束处理 ✓（这里**不**丢信息：裸 `Ident` 那侧
+        // 本来就没有层级可言 ✓）。
         self.unify_impl(l, r, true)
     }
 
     fn unify_impl(&mut self, l: &Expr, r: &Expr, allow_unfold: bool) -> Tri {
+        // **C 子项（2026-10-12）**：`Eq.{u} …`（模板，含**层元变量**）与 `Eq …`
+        // （裸 `Ident`）是**同一个头**，但 `App` 分解会把这一对顶到刚性冲突 ✗
+        // （实测 `[clash] 左=Eq.{u} ｜ 右=Eq` —— 归一必须挂在**递归入口**上 ✓，
+        // 只挂 `unify` 顶层会被 `fun` 字段的递归绕过 ✗）。
+        //
+        // 出处：全显式 pp 打的是 `@Eq α a x` —— **没有** `.{…}` 层级标记
+        // （层级在 pp 里是隐式的）⇒ 回读成裸 `Ident`；而签名模板的层是
+        // `Eq.{u}`（`u` 是层元变量）。两者语义相同：`@Eq` 在 Lean 里就是
+        // 「宇宙也交给元变量」（`mkFreshLevelMVars` ✓）。
+        //
+        // **只在这一对形状上归一**（一侧 `UniverseApp`、另一侧**同名** `Ident`）
+        // ⇒ 其它任何形状一步都不进 ✓（既有判定面零变化 ✓）；层本身仍由出口的
+        // `levelMVarToParam` / 后续约束处理 ✓（这里**不**丢信息：裸 `Ident` 那侧
+        // 本来就没有层级可言 ✓）。
+        if let (Expr::UniverseApp { name: a, .. }, Expr::Ident { name: b, .. }) = (l, r) {
+            if a == b {
+                return self.unify_impl(&bare_head(l), r, allow_unfold);
+            }
+        }
+        if let (Expr::Ident { name: a, .. }, Expr::UniverseApp { name: b, .. }) = (l, r) {
+            if a == b {
+                return self.unify_impl(l, &bare_head(r), allow_unfold);
+            }
+        }
         if self.fuel == 0 || self.depth >= self.max_depth {
             // ── **G-88 真修（2026-10-04 ✓）：撞预算 = 加大预算继续算** ─────────────
             // 先前这里是 `return Tri::No;`（原话「预算耗尽 ⇒ 按**无解**处理」✗）——
@@ -601,6 +638,22 @@ impl<'a> MetaCtx<'a> {
         if let Some(m) = meta_of(&r) {
             return self.tri_assign(m, l);
         }
+        // **C 子项（2026-10-12）：实参位要「按尾部对齐」** ——
+        // 一侧可能多出**前导隐式实参**（elaborate 加上的 ✓），逐位对齐会把
+        // `Eq.{u} α ?m2 ?m3` 与 `Eq x a` 摆成 `α ≟ x` ⇒ 假冲突 ✗
+        // （实测：`Eq.subst h h` 的路线②，`[clash] 左=Eq.{u} α ｜ 右=Eq`）。
+        //
+        // 出处（`crate::spine::unify_spine` 的同一条注释 ✓）：内核 pp 会丢
+        // **前导**隐式实参（`Eq.{1} (Set α) A B` 打成 `Eq A B` ✓）⇒ 被丢掉的
+        // 永远是**前面**那些 ⇒ 只有**尾部对齐**才是有意义的对应 ✓。
+        //
+        // 做法：把**长**的那一侧的**前导**实参丢掉，重建成同头、同实参个数的
+        // 应用链，再走原样的逐位分解 ✓。⚠ 只在**同头 + 实参个数不同**时进
+        //（同头判据复用 `spine::same_head`：只比名字、不比层级 ✓）⇒ 其余形状
+        // **逐字节不变** ✓。
+        if let Some((ln, rn)) = tail_aligned_pair(&l, &r) {
+            return self.unify_impl(&ln, &rn, allow_unfold);
+        }
         // 结构分解（**两侧**；今天只做单侧匹配）
         match (&l, &r) {
             (
@@ -615,6 +668,7 @@ impl<'a> MetaCtx<'a> {
                 if h != Tri::Yes {
                     return h;
                 }
+                // **C 子项（2026-10-12）：实参位要「按尾部对齐」** ——
                 return self.unify_impl(a1, a2, allow_unfold);
             }
             (
@@ -914,6 +968,12 @@ fn sort_of_type(t: &Expr) -> Option<u64> {
 }
 
 /// 这个表达式**就是**一个元变量吗？
+/// **只读**：这个表达式**就是**一个元变量吗（`implicit.rs` 的 C 子项要用它判
+/// "模板的头是不是刚性的" ✓ —— 与内部 `meta_of` 同一份判据 ✓）。
+pub(crate) fn meta_of_expr(e: &Expr) -> Option<MetaId> {
+    meta_of(e)
+}
+
 fn meta_of(e: &Expr) -> Option<MetaId> {
     if let Expr::Ident { name, .. } = e {
         if is_meta_name(name) {
@@ -1032,6 +1092,67 @@ fn notation_matches_app(nota: &Expr, app: &Expr) -> bool {
         span,
     };
     tail_aligned_eq(&source, app)
+}
+
+/// 把 `UniverseApp {name, levels}` 降成裸 `Ident {name}`（**只用于上面那一对**：
+/// 另一侧是裸 `Ident` 时层级无从比较 ✓，而它的层仍由出口按 Lean 的
+/// `levelMVarToParam` 处理 ✓）。`Ident` 原样返回 ✓。
+fn bare_head(e: &Expr) -> Expr {
+    match e {
+        Expr::UniverseApp { name, span, .. } => Expr::Ident {
+            name: name.clone(),
+            span: *span,
+        },
+        other => other.clone(),
+    }
+}
+
+/// **按尾部对齐的一对**（C 子项）：同头、实参个数不同 ⇒ 把**长**的那侧的前导
+/// 实参丢掉，返回重建后的 `(左, 右)`；否则 `None`（**其余形状一步都不碰** ✓）。
+fn tail_aligned_pair(l: &Expr, r: &Expr) -> Option<(Expr, Expr)> {
+    // **快路径（零分配）**：先只**数**实参个数 —— `unify_body` 是热路径（每次
+    // 递归比较都过这里），`spine_of` 会为两侧各分配一个 `Vec` ✗。绝大多数调用
+    // 在个数相同 / 头不同时就返回 ⇒ 一次分配都不做 ✓（实测：这一条把
+    // `unit08` 的 release 耗时从 962ms 压回 ~5xx ms ✓）。
+    let (h1, n1) = spine_head_and_len(l);
+    let (h2, n2) = spine_head_and_len(r);
+    if n1 == n2 || !crate::spine::same_head(h1, h2) {
+        return None;
+    }
+    // 只有**真需要重建**时才分配 ✓（罕见形状）。
+    let (_, s1) = crate::spine::spine_of(l);
+    let (_, s2) = crate::spine::spine_of(r);
+    let (n, drop1, drop2) = if s1.len() > s2.len() {
+        (s2.len(), s1.len() - s2.len(), 0)
+    } else {
+        (s1.len(), 0, s2.len() - s1.len())
+    };
+    let rebuild = |head: &Expr, args: &[&Expr], drop: usize| -> Expr {
+        let span = head.span();
+        let mut out = head.clone();
+        for a in args.iter().skip(drop).take(n) {
+            out = Expr::App {
+                fun: Box::new(out),
+                arg: Box::new((*a).clone()),
+                explicit_spine: false,
+                span,
+            };
+        }
+        out
+    };
+    Some((rebuild(h1, &s1, drop1), rebuild(h2, &s2, drop2)))
+}
+
+/// **头 + 实参个数**（**零分配** —— `unify_body` 的热路径快筛 ✓）。
+/// 与 `crate::spine::spine_of` 同一份走法（`App` 链），只是不建 `Vec` ✓。
+fn spine_head_and_len(e: &Expr) -> (&Expr, usize) {
+    let mut n = 0usize;
+    let mut cur = e;
+    while let Expr::App { fun, .. } = cur {
+        n += 1;
+        cur = fun;
+    }
+    (cur, n)
 }
 
 /// 头名（`Ident` / `UniverseApp` 都按名字 ✓）。

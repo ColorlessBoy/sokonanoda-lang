@@ -3172,6 +3172,32 @@ pub(crate) fn infer_type_text_inplace<'a>(
     binder_count: usize,
     univ: Option<&UnivMap<'a>>,
 ) -> Result<String, InplaceFail> {
+    infer_type_text_inplace_expected(env, ctx, binder_srcs, operand, binder_count, univ, None)
+}
+
+/// [`infer_type_text_inplace`] 的**带期望类型版**（C 子项，2026-10-12）。
+///
+/// `expected` = **本项结果的期望类型**（源 AST；`None` ⇒ 与今天逐字节相同 ✓）。
+/// 它**只**喂给 `elab_expr` 的 `expected_src` ⇒ 隐式实参求解器的**路线 ②**
+/// （结果 ≟ 期望类型）拿得到线索 ✓ —— 这正是 `apply` 缺的那一条：`apply t` 只
+/// 问「`t` 的类型是什么」（`#check t`，**没有期望类型**）⇒ `Eq.subst (Eq.symm hx)`
+/// 里的谓词 `p` 没有任何线索可解 ⇒ 报「补不出隐式实参」✗。
+///
+/// **不做最终类型检查**（`elab_expr` 是 infer 语义 ✓）：`apply` 要的是**类型**
+/// （Pi 链 → 子目标），而 `t` 的类型本来就可以与目标不同（`apply And.intro` 的
+/// 类型是 `p → q → p ∧ q`）✓；结论与目标是否相容由 `apply_tactic` 的
+/// [`crate::spine::unify_spine`]（含结论校验 ✓）判 ✓。
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn infer_type_text_inplace_expected<'a>(
+    env: &mut InplaceEnv<'_, 'a>,
+    ctx: &ElabCtx<'a, '_>,
+    binder_srcs: &[(String, Expr)],
+    operand: &Expr,
+    binder_count: usize,
+    univ: Option<&UnivMap<'a>>,
+    // **C 子项**：结果的期望类型（源 AST；`None` ⇒ 今天的行为 ✓）。
+    expected: Option<&Expr>,
+) -> Result<String, InplaceFail> {
     debug_assert_eq!(
         binder_srcs.len(),
         binder_count,
@@ -3218,7 +3244,9 @@ pub(crate) fn infer_type_text_inplace<'a>(
             env.known,
             &mut scratch_hovers,
             None,
-            None,
+            // **C 子项**：`expected` ⇒ 隐式实参求解器的路线 ② 拿得到期望类型 ✓
+            // （`None` 时逐字节等于今天 ✓）。
+            expected,
             ctx,
         )
     });
@@ -3645,6 +3673,84 @@ fn operand_type_expr<'a>(
         .and_then(|text| crate::proof::parse_expr_text(&text).ok())
 }
 
+/// **第二候选**（C 子项）：同一个操作数的类型，但取内核的**全显式 pp** 形态
+/// （`@Eq α x a`），再回读成项。
+///
+/// **为什么必须有**（用户点 3，2026-10-12 实测）：[`operand_type_expr`] 的两条路
+/// 都拿不到**前导隐式实参**——
+/// * 书写类型那条：记法节点 `x = a` 天然只有 2 个操作数（`Eq` 要 3 个：`α` +
+///   两个操作数）；
+/// * 内核 pp 那条：默认档同样只丢**第一个**隐式实参（`Eq x a`，见
+///   `judge::EXPLICIT_PP` 的长注释）。
+///
+/// 于是 `Eq.symm hx`（`hx : x = a`）在路线 ① 里拿 `Eq ?m1 ?m2` 当模板、实际是
+/// `x = a`（2 个操作数）⇒ `unify_extract` 的**右对齐**把前导 `α` 丢掉 ⇒
+/// `elab-implicit-argument-unsolved`（同一个坑也吞掉 `Eq.subst (Eq.symm h) h`）。
+///
+/// **全显式 pp 正是那条缺的信息**：`@Eq α x a` 回读后是**三个实参**的
+/// `App`，`α` 就在第一位 ⇒ 路线 ① 解得出来 ✓。这条是**第二候选**（严格档
+/// 永远先跑、跑不出才试它）⇒ 既有形状**逐字节不变** ✓；且它**只在
+/// `SOKO_METAVAR != 0` 时被调用**（见 `implicit::second_candidate_enabled`）
+/// ⇒ 逃生门 `SOKO_METAVAR=0` 的行为与今天逐字节相同 ✓。
+///
+/// 答不出（内核拒绝 / 回读失败）⇒ `None`，调用方**原样**用主候选 ✓。
+fn operand_type_expr_explicit<'a>(
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    operand: &Expr,
+    env: Option<&mut InplaceEnv<'_, 'a>>,
+) -> Option<Expr> {
+    infer_type_text_explicit(ctx, scope, operand, env)
+        .and_then(|text| crate::proof::parse_expr_text(&text).ok())
+}
+
+/// [`infer_type_text`] 的**全显式 pp** 版（只走判定语义那条路，不进既有函数的
+/// 缓存/影子分档 ⇒ 既有行为零改动 ✓）。
+///
+/// 与 `by.rs` 的 `cases` 被消去项同一条机械（G-71 / T3-B1 ①）：先试**就地**
+/// （活环境上 elaborate，`EXPLICIT_PP` 由 [`crate::judge::judge_infer_inplace_with_explicit`]
+/// 内部置位并还原 ✓），答不出才回落 [`crate::judge::judge_infer_explicit`]
+/// （合成 `#check` 文档、整份前缀重跑）。
+///
+/// ⚠ 这里**不查** `judge_infer_lookup` 的普通槽：全显式文本在缓存里是**另一个
+/// 键**（`pp=explicit`，见 `judge_cache_key`），拿普通槽去命中会读到**非全显式**
+/// 的旧文本 ⇒ 第二候选退化成主候选 ✗。
+fn infer_type_text_explicit<'a>(
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    operand: &Expr,
+    env: Option<&mut InplaceEnv<'_, 'a>>,
+) -> Option<String> {
+    let binders = scope.judge_binders();
+    match (crate::judge::inplace_mode(), env) {
+        (crate::judge::InplaceMode::On, Some(env)) => {
+            crate::judge::judge_infer_inplace_with_explicit(
+                true,
+                env,
+                ctx,
+                &scope.judge_binder_srcs(),
+                operand,
+            )
+            .or_else(|| {
+                crate::judge::judge_infer_explicit(
+                    ctx.prefix_src,
+                    ctx.options,
+                    &binders,
+                    &render_expr(operand),
+                )
+                .ok()
+            })
+        }
+        _ => crate::judge::judge_infer_explicit(
+            ctx.prefix_src,
+            ctx.options,
+            &binders,
+            &render_expr(operand),
+        )
+        .ok(),
+    }
+}
+
 /// `fun (h : P) => h` 的**书写类型** `P -> P`，纯源级走查（**零内核调用**）。
 ///
 /// 只认**一条**形状：所有 binder 都有注解，且体是某个 binder 的**裸名引用**
@@ -3807,8 +3913,23 @@ fn surplus_layers(
     tail
 }
 
+/// **IA-1 的唯一钩子**：头如果是签名带**前导隐式 binder** 的常量/局部名，就把那些
+/// 隐式实参解出来插进去。
+///
+/// `solved_out`（C 子项，2026-10-12）收「本次插进去的**隐式实参**」（按层序；
+/// 只在前导隐式位被解出时非空 ✓）。
+///
+/// **为什么需要**：这条路的调用方（`elab_expr` 的应用臂）紧接着要跑
+/// [`infer_const_universes`] 补**未写的宇宙层** —— 而那个函数的原料是"实参的
+/// **类型**"。`Eq.symm hx` 的**第一个实参**是**隐式**的（`α`），源级 `first`
+/// 却是显式的 `hx`（类型 `x = a`，不是 sort）⇒ 层解不出 ⇒ `u` 停在 `0` ✗
+/// （实测：`Eq.symm hx` 补出隐参之后仍报 `期望 Sort(0)，实际是 Sort(1)` ✓）。
+/// 把插进去的隐式实参交出去，那条路就能用**它**去问层 ✓（与 `Eq.refl n` 的
+/// 显式第一位同一条机械 ✓）。
+///
+/// `None` ⇒ 与今天逐字节相同 ✓。
 #[allow(clippy::too_many_arguments)]
-fn try_implicit_application<'a>(
+fn try_implicit_application_with<'a>(
     builder: &mut EnvBuilder<'a>,
     expr: &Expr,
     explicit_spine: bool,
@@ -3818,6 +3939,7 @@ fn try_implicit_application<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
+    mut solved_out: Option<&mut Vec<Expr>>,
 ) -> Result<Option<ExprPtr<'a>>, CompileError> {
     // Lean 的 `@`：整条脊的实参是**逐位显式**的 ⇒ 不插隐式实参（设计 §7 第 5 条）。
     if explicit_spine {
@@ -4140,6 +4262,18 @@ fn try_implicit_application<'a>(
                             }
                         }
                     }
+                    if let Some(sink) = solved_out.as_mut() {
+                        // `solved` 就是**隐式实参本身**（按层序）⇒ 逐位取名字非空的那些 ✓
+                        // （名空 = 该层没有可用名，插不进去 ✓）。
+                        sink.extend(
+                            extended
+                                .iter()
+                                .take(k)
+                                .zip(solved.iter())
+                                .filter(|(l, _)| !l.name.is_empty())
+                                .map(|(_, v)| v.clone()),
+                        );
+                    }
                     return Ok(Some(out));
                 }
             }
@@ -4181,6 +4315,15 @@ fn try_implicit_application<'a>(
                 sigma.insert(layers[i].name.clone(), (*a).clone());
             }
         }
+        if let Some(sink) = solved_out.as_mut() {
+            sink.extend(
+                layers
+                    .iter()
+                    .take(k)
+                    .filter(|l| !l.name.is_empty())
+                    .filter_map(|l| sigma.get(&l.name).cloned()),
+            );
+        }
         return Ok(Some(out));
     }
     if layers.len() < k + args.len() {
@@ -4212,16 +4355,62 @@ fn try_implicit_application<'a>(
             }),
         ));
     }
+    // **第二候选（C 子项）——必须「按需」**：同一个实参类型的**全显式 pp** 形态
+    // （`@Eq α x a`）能补上主候选缺的**前导隐式实参**（书写类型是记法节点
+    // `x = a` 时只有 2 个操作数 ✗）⇒ `Eq.symm`/`Eq.subst` 一类解得出来 ✓。
+    //
+    // ⚠⚠ **不许预先算**（2026-10-12 实测的性能事故）：第一版在这里对**每个实参**
+    // 先算一遍第二候选 ⇒ 每个应用都多跑一遍**就地 elaborate** ⇒ 真实课程文件慢
+    // **140×** ✗（`I.3/unit08` 397ms → 56.4s）。现在把它做成**按需提供者**：
+    // 求解器**只在主候选解不出那一位**时才问 ✓，且**同一位只算一次**（memo ✓）。
+    // 逃生门 `SOKO_METAVAR=0` ⇒ 提供者恒 `None`（一次都不算 ✓）。
+    let alt_enabled = crate::compile::implicit::second_candidate_enabled();
+    let alt_memo: std::cell::RefCell<Vec<Option<Option<Expr>>>> =
+        std::cell::RefCell::new(vec![None; args.len()]);
+    // 就地环境放 `RefCell` 里 ⇒ 提供者是 **`Fn`**（求解器只需 `&dyn Fn`）✓。
+    let alt_env: std::cell::RefCell<Option<InplaceEnv<'_, 'a>>> =
+        std::cell::RefCell::new(Some(InplaceEnv {
+            builder: &mut *builder,
+            known,
+        }));
+    let alt_type = |slot: usize| -> Option<Expr> {
+        if !alt_enabled {
+            return None;
+        }
+        let mut memo = alt_memo.borrow_mut();
+        if let Some(Some(cached)) = memo.get(slot) {
+            return cached.clone();
+        }
+        let computed = {
+            // **读数**（`SOKO_ALT_COUNT=1`，默认零成本 ✓）：第二候选**真算了几次**。
+            // 判据：它必须只等于**主候选真的解不出过的位数**（个位数），
+            // 绝不是"每个实参一次" ✗（那是 140× 那次的形状 ✓）。
+            if std::env::var_os("SOKO_ALT_COUNT").is_some() {
+                use std::sync::atomic::{AtomicU64, Ordering};
+                static N: AtomicU64 = AtomicU64::new(0);
+                eprintln!("[alt-count] {}", N.fetch_add(1, Ordering::Relaxed) + 1);
+            }
+            let mut guard = alt_env.borrow_mut();
+            let env = guard.as_mut();
+            args.get(slot)
+                .and_then(|a| operand_type_expr_explicit(ctx, scope, a, env))
+        };
+        if let Some(cell) = memo.get_mut(slot) {
+            *cell = Some(computed.clone());
+        }
+        computed
+    };
     // 期望类型/实参类型的 delta 展开要用 `defs` + `is_inductive`（`a ∈ A ∪ B`
     // 是 `Set.mem … (Set.union …)`，展开到 `Or …` 才能反解 `Or.inl` 的另一个析取项）。
     let is_inductive = |n: &str| ctx.inductives.contains_key(n);
     // **M3 的三通道**（**同一个码**，只有 message 说哪一句不同 ✓；D6 = 不新增码）：
     // `Unsolved` = 补不出（既有文案，逐字不变）· `Kind` = 值的 sort 确定不对 · `Clash` = 两条约束刚性冲突。
-    let solved = match crate::compile::implicit::solve_prefix_outcome_with_args(
+    let solved = match crate::compile::implicit::solve_prefix_outcome_with_args_alt(
         &layers,
         &result,
         k,
         &arg_tys,
+        &alt_type,
         &args,
         expected_src,
         ctx.defs,
@@ -4437,6 +4626,15 @@ fn try_implicit_application<'a>(
             sigma.insert(layers[li].name.clone(), (*a).clone());
         }
     }
+    if let Some(sink) = solved_out.as_mut() {
+        sink.extend(
+            layers
+                .iter()
+                .take(k)
+                .filter(|l| !l.name.is_empty())
+                .filter_map(|l| sigma.get(&l.name).cloned()),
+        );
+    }
     Ok(Some(out))
 }
 
@@ -4450,6 +4648,31 @@ fn try_implicit_application<'a>(
 /// （实测 `elab-notation-argument-unsolved`）。所以这里把 `α → β` 与
 /// `α₀ → β₀` 按域/陪域两个位置对齐——仍然是"裸变量匹配"，不引入元变量。
 pub(crate) fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Option<Expr> {
+    unify_extract_with(template, actual, name, true)
+}
+
+/// **不做「剥到结果」那一步**的 [`unify_extract`]（C 子项，2026-10-12）。
+///
+/// 给**路线 ①**用：那里 `actual` 是操作数的**整个类型**（不是某个望远镜的
+/// **结果**）⇒ 「把模板剥到结果，再拿整个 `actual` 当那个变量的值」会给出**错的解**
+/// —— 实测 `congrArg A h`（`A : Set α`）：`(f : α → β)` 那一层的模板是 `α → β`，
+/// 剥到结果 `β` 之后 `unify_extract(β, Set α)` 直接命中「模板就是那个变量」⇒
+/// `β := Set α` ✗（正确是 `Prop` ✓：`Set α` 展开成 `α → Prop`）。
+/// 去掉那一步之后，路线 ① 的 delta 展开兜底就能接管 ⇒ `β := Prop` ✓。
+///
+/// ⚠ **「剥到结果」本身是对的**（`False.elim` 的 `C`、`Exists.intro` 的 `p` 都靠它）
+/// —— 它只在**调用方约定 `actual` 是结果**时成立（记法路径的路线 ② ✓，模板是
+/// **整条望远镜**）⇒ 这里只是**换一条**给路线 ① 用，不动原来那条 ✓。
+pub(crate) fn unify_extract_whole(template: &Expr, actual: &Expr, name: &str) -> Option<Expr> {
+    unify_extract_with(template, actual, name, false)
+}
+
+fn unify_extract_with(
+    template: &Expr,
+    actual: &Expr,
+    name: &str,
+    peel_to_result: bool,
+) -> Option<Expr> {
     if let Expr::Ident { name: n, .. } = template {
         if n == name {
             return Some(actual.clone());
@@ -4464,8 +4687,11 @@ pub(crate) fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Optio
         crate::spine::peel_pi(template),
         crate::spine::peel_pi(actual),
     ) {
-        if let Some(found) = unify_extract(&template_pi.domain, &actual_pi.domain, name)
-            .or_else(|| unify_extract(&template_pi.body, &actual_pi.body, name))
+        if let Some(found) =
+            unify_extract_with(&template_pi.domain, &actual_pi.domain, name, peel_to_result)
+                .or_else(|| {
+                    unify_extract_with(&template_pi.body, &actual_pi.body, name, peel_to_result)
+                })
         {
             return Some(found);
         }
@@ -4476,12 +4702,12 @@ pub(crate) fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Optio
     // 望远镜」（`(w : α) -> ( : p w) -> Exists α p`），而要解的参数常常只出现
     // 在**结果**里（`Exists α p` 的 `p`）——不剥到底就永远匹配不上
     // （L2.7 实测：`⟨a, ⟨b, h⟩⟩` 卡在这儿）。
-    if crate::spine::peel_pi(template).is_some() {
+    if peel_to_result && crate::spine::peel_pi(template).is_some() {
         let mut cur = template.clone();
         while let Some(pi) = crate::spine::peel_pi(&cur) {
             cur = pi.body;
         }
-        if let Some(found) = unify_extract(&cur, actual, name) {
+        if let Some(found) = unify_extract_with(&cur, actual, name, peel_to_result) {
             return Some(found);
         }
     }
@@ -4532,7 +4758,9 @@ pub(crate) fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Optio
         if !crate::spine::mentions(name, template_arg) {
             continue;
         }
-        if let Some(v) = unify_extract(template_arg, &actual_args[a_off + k], name) {
+        if let Some(v) =
+            unify_extract_with(template_arg, &actual_args[a_off + k], name, peel_to_result)
+        {
             match &found {
                 None => found = Some(v),
                 Some(prev) if *prev == v => {}
@@ -5062,7 +5290,8 @@ pub(crate) fn elab_expr<'a>(
             // 头如果是签名带**前导隐式 binder** 的常量/局部名，就把那些隐式实参
             // 解出来插进去。返回 `None` ⇒ 走下面的老路（签名没有隐式 binder 时
             // **逐字节不变**，这是 P1 可独立发布的安全性质，设计 §0）。
-            if let Some(out) = try_implicit_application(
+            let mut solved_implicits: Vec<Expr> = Vec::new();
+            if let Some(out) = try_implicit_application_with(
                 builder,
                 expr,
                 *explicit_spine,
@@ -5072,10 +5301,24 @@ pub(crate) fn elab_expr<'a>(
                 hovers,
                 expected_src,
                 ctx,
+                Some(&mut solved_implicits),
             )? {
                 // ⚠ **这条路会 early-return** ✗ ⇒ G-93 那条补层**必须也挂在这里** ✓
                 // （实测：`myax α a` 走的就是这条 ⇒ 只挂下面那处 ⇒ 它永远补不到 ✗）。
-                let out = infer_const_universes(builder, known, ctx, scope, univ, expr, out)?;
+                //
+                // **C 子项（2026-10-12）**：这条路上**插进去的隐式实参**要一起交给
+                // `infer_const_universes` —— `Eq.symm hx` 的第一位是**隐式**的 `α`，
+                // 只问显式的 `hx`（类型 `x = a`，不是 sort）⇒ 层停在 `0` ✗。
+                let out = infer_const_universes_with(
+                    builder,
+                    known,
+                    ctx,
+                    scope,
+                    univ,
+                    expr,
+                    out,
+                    &solved_implicits,
+                )?;
                 record_hover(hovers, scope, *span, out, None);
                 return Ok(out);
             }
@@ -6985,6 +7228,32 @@ fn infer_const_universes<'a>(
     src: &Expr,
     out: ExprPtr<'a>,
 ) -> Result<ExprPtr<'a>, CompileError> {
+    infer_const_universes_with(builder, known, ctx, scope, univ, src, out, &[])
+}
+
+/// [`infer_const_universes`] 的**带隐式实参版**（C 子项，2026-10-12）。
+///
+/// `solved_implicits` = 调用方**插进去的隐式实参**（按层序；只在前导隐式位被解出
+/// 时非空 ✓）。它只影响**一处**：「第一个实参的类型 ⇒ 层」那一档的**兜底** ——
+/// 源级 `first` 是显式实参、而**隐式第一位**才是那个 `Sort u` 位时（`Eq.symm hx`
+/// 的 `α` ✓），拿显式的 `hx : x = a` 问层永远问不出 ⇒ `u` 停在 `0` ✗
+/// （实测：`期望 Sort(0)，实际是 Sort(1)`）。
+///
+/// ⚠ **顺序纪律**：**先**用源级 `first`（今天的行为，逐字节不变 ✓）；解不出**才**
+/// 用插进去的第一位 ✓ —— 既有形状一步都不进新分支 ✓。
+// C 子项多带一个 `solved_implicits`（8 个）⇒ 越过 clippy 的 7 个阈值 ✓（参数同族 ✓）。
+#[allow(clippy::too_many_arguments)]
+fn infer_const_universes_with<'a>(
+    builder: &mut EnvBuilder<'a>,
+    known: &KnownTable,
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    univ: &UnivMap<'a>,
+    src: &Expr,
+    out: ExprPtr<'a>,
+    // **C 子项**：本调用点插进去的隐式实参（`&[]` ⇒ 今天的行为）。
+    solved_implicits: &[Expr],
+) -> Result<ExprPtr<'a>, CompileError> {
     if std::env::var_os("SOKO_NO_CONST_LEVELS").is_some() {
         return Ok(out);
     }
@@ -7021,7 +7290,8 @@ fn infer_const_universes<'a>(
     let Some(param) = dom0.trim().strip_prefix("Sort ").map(str::trim) else {
         return Ok(out);
     };
-    if !info.universes().iter().any(|u| u == param) {
+    let layer0_domain_is_that_sort = info.universes().iter().any(|u| u == param);
+    if !layer0_domain_is_that_sort {
         return Ok(out);
     }
     let Some(first) = args.first() else {
@@ -7050,6 +7320,23 @@ fn infer_const_universes<'a>(
     // ② **不是语法 sort**（`Set α` 这种 **def** ✓ / 变量 `α` ✓）⇒ 问**它的类型** = sort ✓
     //    （= `universe_level_text_of_operands` 的口径 ✓，G-30 那一档 ✓）。
     //    `Set α` ⇒ `Type 0` ⇒ 层 `1` ✓；`α : Type` ⇒ `Type` ⇒ 层 `1` ✓。
+    //
+    // **C 子项（2026-10-12）：谁才是「决定层的那个实参」** ——
+    // 第 0 层的域是 `Sort <param>`（上面的闸门刚判过 ✓）时，**插进去的第一个隐式
+    // 实参**才是填 `Sort u` 那一位的人（`Eq.symm {α : Sort u} …` 的 `α` ✓）。
+    // 源级的 `first` 是**显式**实参（`Eq.symm hx` 的 `hx : x = a`）⇒ 问出来的是
+    // **`Eq` 自己的层**（`0` ✓）而不是 `α` 的层（`1` ✓）⇒ `u := 0` ✗
+    // （实测：`期望 Sort(0)，实际是 Sort(1)`）。对齐 Lean：`elabArg` 对**每个**
+    // binder 位（含隐式位）都跑一次 `ensureHasType`（`Elab/App.lean:1092-1096`）✓
+    // —— 隐式位也是实参位 ✓。
+    //
+    // ⚠ **只在有插进去的隐式实参时换人** ✗：`Eq.refl n` 的第 0 层域是 `α`
+    // （**不提** `u` ✗）⇒ 仍走源级 `first`（`n : Nat` ⇒ `u = 1` ✓，今天的行为 ✓）。
+    let first = if layer0_domain_is_that_sort && !solved_implicits.is_empty() {
+        &solved_implicits[0]
+    } else {
+        first
+    };
     let level_text = {
         let mut env = InplaceEnv {
             builder: &mut *builder,
@@ -7065,6 +7352,21 @@ fn infer_const_universes<'a>(
                 };
                 universe_level_text_of_operands(&[first], ctx, scope, Some(&mut env))
             }
+        }
+    };
+    // **C 子项（2026-10-12）**：源级第一位问不出层 ⇒ 退一步问**插进去的隐式实参**
+    // （`Eq.symm hx` 的 `α`：第一位隐式、它的类型才是 `Sort u` ✓）。
+    // ⚠ 只在上面**失败**时进 ⇒ 既有形状（`Eq.refl n` / `Eq.mp A A h` 一类）
+    // 一步都不进 ✓。
+    let level_text = match level_text {
+        Some(level) => Some(level),
+        None => {
+            let mut env = InplaceEnv {
+                builder: &mut *builder,
+                known,
+            };
+            let refs: Vec<&Expr> = solved_implicits.iter().collect();
+            universe_level_text_of_operands(&refs, ctx, scope, Some(&mut env))
         }
     };
     let Some(level_text) = level_text else {

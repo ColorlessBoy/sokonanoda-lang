@@ -1443,7 +1443,131 @@ pub(crate) fn unify_spine(
             }
         }
     }
+    // **结论校验**（C 子项，2026-10-12）：上面只做了「同头 + 右对齐」——
+    // **非参数位一个都没比** ⇒ 实参写反也能"匹配" ✗。
+    //
+    // 实测（`docs/gaps/repro` 一族）：`apply Eq.subst α (fun y => A y) x a`
+    // 在目标 `A x` 上（`x`/`a` 写反）**静默通过** —— codomain `A a` 与目标
+    // `A x` 同头、各 1 个实参位、σ 里一个名字都没有 ⇒ `Some({})` ✗，于是
+    // 错行不报错、错在**两行之后**（剩下的子目标里那个 `A x` 就是原目标 ✓）。
+    //
+    // 判据（**结构**，不调内核）：把 σ 代入之后，每个实参位要么是**层参数**
+    // （由 σ 填 ✓），要么与目标对应位**逐字同形** ✓。对不上 ⇒ 当作**没匹配**，
+    // 由调用方（`apply_tactic`）走它既有的失败链（内核 pp 归一 / 头展开 /
+    // 递归展开 / **内核判等兜底** / 报「目标不匹配」✓）—— 那些兜底正是给
+    // "两边只是写法不同"准备的 ✓，而本条拦的是"两边**真的不同**" ✗。
+    for (carg, garg) in cargs.iter().zip(gargs.iter()) {
+        let is_layer_param = matches!(
+            carg,
+            Expr::Ident { name, .. } if layers.iter().any(|(n, _)| n == name)
+        );
+        if is_layer_param {
+            continue;
+        }
+        if !conclusion_arg_compatible(&substitute(carg, &sigma), garg) {
+            return None;
+        }
+    }
     Some(sigma)
+}
+
+/// **结论校验的一对实参位是否相容**（C 子项，2026-10-12）：`true` = 相容（不拦），
+/// `false` = 判为**真的不同** ⇒ 调用方当作"没匹配" ✓。
+///
+/// 判据（**记法感知 + 尾部容忍**，不调内核 ✓）：
+/// * **应用/记法**（`spine_with_notation` 拆出来的实参个数**相同且 > 0**）⇒
+///   头名必须相同（`Ident`/`UniverseApp` 只比名字 ✓），实参位逐个递归 ✓；
+/// * **实参个数不同** ⇒ **不判**（`true`）—— 内核 pp 会丢**前导隐式实参**
+///   （目标写 `x ∈ A` 只有 2 个操作数、codomain 的 pp 是 `Set.mem α x A` ✓），
+///   个数差是**写法**差异不是语义差异 ⇒ 交给调用方既有的归一/内核兜底 ✓；
+/// * **原子**（`Ident`/`UniverseApp`/`Sort`/`Num`）⇒ 逐字比 ✓；
+/// * `Lambda`/`Arrow`/`Forall` ⇒ 结构递归（binder 类型 + 体 ✓）；
+/// * **其余形状**（洞 / `by` / `match` / 集合字面量…）⇒ **不判**（`true`）✓。
+///
+/// 为什么需要它（实测）：`apply Eq.subst α (fun y => A y) x a` 在目标 `A x` 上
+/// （`x`/`a` 写反）时 codomain `A a` 与目标 `A x` 同头、各 1 个实参位、σ 里
+/// 一个名字都没有 ⇒ 旧判据 `Some({})` 静默通过 ✗；本条把 `a` 与 `x` 判成
+/// **真的不同** ⇒ 落到 `apply` 的失败链（归一/展开/内核判等/报错）✓。
+/// 而 `lib/Set` 的 `apply Set.ext …`（codomain 的 lambda 体是 `Set.mem x A`、
+/// 目标写记法 `x ∈ A`）**仍然相容** ✓ —— 个数相同 ⇒ 递归到记法位按 target 拆 ✓。
+fn conclusion_arg_compatible(a: &Expr, b: &Expr) -> bool {
+    let (ha, aa) = spine_with_notation(a);
+    let (hb, ab) = spine_with_notation(b);
+    if aa.len() != ab.len() {
+        return true;
+    }
+    if !aa.is_empty() {
+        return same_head(&ha, &hb)
+            && aa
+                .iter()
+                .zip(ab.iter())
+                .all(|(x, y)| conclusion_arg_compatible(x, y));
+    }
+    match (a, b) {
+        (Expr::Ident { name: x, .. }, Expr::Ident { name: y, .. }) => x == y,
+        (Expr::UniverseApp { name: x, .. }, Expr::UniverseApp { name: y, .. }) => x == y,
+        (Expr::UniverseApp { name: x, .. }, Expr::Ident { name: y, .. })
+        | (Expr::Ident { name: x, .. }, Expr::UniverseApp { name: y, .. }) => x == y,
+        (Expr::Sort { sort: x, .. }, Expr::Sort { sort: y, .. }) => x == y,
+        (Expr::Num { value: x, .. }, Expr::Num { value: y, .. }) => x == y,
+        (
+            Expr::Lambda {
+                binders: bx,
+                body: ox,
+                ..
+            },
+            Expr::Lambda {
+                binders: by,
+                body: oy,
+                ..
+            },
+        ) => {
+            bx.len() == by.len()
+                && bx
+                    .iter()
+                    .zip(by.iter())
+                    .all(|(p, q)| match (p.ty.as_deref(), q.ty.as_deref()) {
+                        (Some(t1), Some(t2)) => conclusion_arg_compatible(t1, t2),
+                        _ => true,
+                    })
+                && conclusion_arg_compatible(ox, oy)
+        }
+        (
+            Expr::Arrow {
+                domain: d1,
+                codomain: c1,
+                ..
+            },
+            Expr::Arrow {
+                domain: d2,
+                codomain: c2,
+                ..
+            },
+        ) => conclusion_arg_compatible(d1, d2) && conclusion_arg_compatible(c1, c2),
+        (
+            Expr::Forall {
+                binders: bx,
+                body: ox,
+                ..
+            },
+            Expr::Forall {
+                binders: by,
+                body: oy,
+                ..
+            },
+        ) => {
+            bx.len() == by.len()
+                && bx
+                    .iter()
+                    .zip(by.iter())
+                    .all(|(p, q)| match (p.ty.as_deref(), q.ty.as_deref()) {
+                        (Some(t1), Some(t2)) => conclusion_arg_compatible(t1, t2),
+                        _ => true,
+                    })
+                && conclusion_arg_compatible(ox, oy)
+        }
+        _ => true,
+    }
 }
 
 /// 把 σ 代入 `expr` 里的命名 Ident（不改 span）。

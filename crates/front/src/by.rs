@@ -2371,6 +2371,20 @@ fn apply_tactic<'a>(
         .into_iter()
         .filter_map(|b| b.ty.map(|ty| (b.name, *ty)))
         .collect();
+    // **C 子项（2026-10-12）**：`apply` 要把**当前目标**当期望类型 ——
+    // `apply t` 的语义是「`t` 的结果证明目标」，而**只问 `t` 的类型**（`#check t`，
+    // 没有期望类型）时，`t` 里那些**只能由目标反解**的隐式实参解不出来 ✗：
+    // 实测 `apply Eq.subst (Eq.symm hx)` 报「`Eq.subst` 有 4 个隐式参数，但补不出来」
+    // （谓词 `p` 只能从「结论 ≟ 目标」解 ✓）。
+    //
+    // ⇒ ① **先跑今天那条**（不带期望类型 ⇒ 答得出就逐字节不变 ✓）；
+    //    ② 答不出才用**带期望类型**的那条（`goal` = 当前目标，源 AST ✓）——
+    //    它把 `expected` 喂给隐式实参求解器的**路线 ②**（结果 ≟ 期望类型）✓。
+    //
+    // ⚠ **只在就地路上有**：慢路（`judge_infer`）合成的是 `#check fun … => t`，
+    // **表达不出**"以 G 为期望类型 elaborate" ⇒ `SOKO_JUDGE_INPLACE=off` 时这条
+    // 能力不可用（原样回落今天那句诊断 ✓，不是回归 ✓）。
+    let apply_goal = nodes[cur].ty.clone();
     let inplace = env.as_deref_mut().and_then(|e| {
         crate::compile::elab::infer_type_text_inplace(
             e,
@@ -2381,6 +2395,18 @@ fn apply_tactic<'a>(
             None,
         )
         .ok()
+        .or_else(|| {
+            crate::compile::elab::infer_type_text_inplace_expected(
+                e,
+                ctx,
+                &binder_srcs,
+                expr,
+                spec.binders.len(),
+                None,
+                Some(&apply_goal),
+            )
+            .ok()
+        })
     });
     let slow = || judge_infer(prefix_src, options, &spec.binders, &term);
     let f_ty = match inplace {
@@ -2436,7 +2462,8 @@ fn apply_tactic<'a>(
         t = pi.body;
     };
     // 位置 spine 合一：codomain 与当前目标头相同、逐参数位对应 → σ。
-    let goal = nodes[cur].ty.clone();
+    // （`apply_goal` 就是它，只是**提前**取了一份给上面的期望类型用 ✓。）
+    let goal = apply_goal;
     // 匹配成功 ⇒ σ；三条源级尝试（原形 / 内核 pp 形 / 头展开一层 / **递归展开**）
     // 都不行 ⇒ `None`（兜底交给下面的内核判等，见 G-109）。
     let matched = match unify_spine(&codomain, &goal, &layers) {

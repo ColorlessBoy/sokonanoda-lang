@@ -10971,3 +10971,87 @@ fn a_failing_declaration_keeps_the_hover_rows_of_its_signature() {
             .collect::<Vec<_>>()
     );
 }
+
+// ---- C 子项（2026-10-12）：`Eq.symm`/`Eq.subst` 一类**隐式实参补不出来**的体验 ----
+
+/// **复现件（用户点 3）**：`Eq.symm hx` / `Eq.subst (Eq.symm hx) h` 的隐式实参
+/// 必须补得出来（真 Lean 4 里两者都合法 ✓）。
+///
+/// 根因（修前）：局部假设的**书写类型**是**记法节点** `x = a`（只有 2 个操作数），
+/// 而 `Eq` 的模板有 3 个实参（`α` + 两个操作数）⇒ `unify_extract` 的**右对齐**
+/// 把前导 `α` 丢掉 ⇒ `elab-implicit-argument-unsolved` ✗。
+/// 修法 = **第二候选**：同一个类型的**全显式 pp** 形态（`@Eq α x a`）✓
+/// （见 `implicit::solve_prefix_outcome_with_args_alt`）。
+#[test]
+fn eq_symm_and_eq_subst_infer_their_implicit_arguments() {
+    let src = concat!(
+        "theorem t_symm (α : Type) (x a : α) (hx : x = a) : a = x := Eq.symm hx\n",
+        "theorem t_subst (α : Type) (P : α -> Prop) (x a : α) (hx : x = a) (hp : P a) :\n",
+        "    P x :=\n",
+        "  Eq.subst (Eq.symm hx) hp\n",
+        // `apply` 那条：`apply` 必须**把当前目标当期望类型** elaborate 项
+        // （否则谓词 `P` 只能从「结论 ≟ 目标」解 ⇒ 补不出来 ✗）。
+        "theorem t_apply (α : Type) (P : α -> Prop) (x a : α) (hx : x = a) (hp : P a) :\n",
+        "    P x := by\n",
+        "  apply Eq.subst (Eq.symm hx)\n",
+        "  exact hp\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert_eq!(
+        report.errors,
+        vec![],
+        "隐式实参必须补得出来：{:?}",
+        report.errors
+    );
+    for name in ["t_symm", "t_subst", "t_apply"] {
+        let d = report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some(name))
+            .unwrap_or_else(|| panic!("declaration {name} missing"));
+        assert_eq!(d.status, DeclStatus::Checked, "{name} 必须 checked");
+    }
+}
+
+/// **`apply` 的结论校验**（C 子项）：`apply` 只做「同头 + 实参位右对齐」的弱匹配
+/// ⇒ 结论与目标**对不上**时会**静默通过**（剩下的子目标里那个原目标就是证据 ✗）。
+/// 这条钉死「写错的那一行必须报错」✓（`Eq.subst α P x a` 的结论是 `P a`，
+/// 目标却是 `P x`）。
+#[test]
+fn apply_rejects_a_conclusion_that_does_not_match_the_goal() {
+    let src = concat!(
+        "theorem t (α : Type) (P : α -> Prop) (a x : α) (ha : P a) : P x := by\n",
+        "  apply Eq.subst α (fun (y : α) => P y) x a\n",
+        "  sorry\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    let err = report
+        .errors
+        .iter()
+        .find(|e| e.code() == "elab-tactic-failed")
+        .unwrap_or_else(|| panic!("必须报 `apply` 目标不匹配：{:?}", report.errors));
+    assert!(
+        err.message.contains("`apply` 的目标不匹配"),
+        "文案要指出是 `apply` 的目标不匹配：{}",
+        err.message
+    );
+    // 报错必须落在**写错的那一行**（`apply` 行），不是两行之后 ✓。
+    let apply_offset = src.find("apply Eq.subst").unwrap();
+    assert_eq!(
+        err.span.start.offset, apply_offset,
+        "诊断必须落在 apply 那一行"
+    );
+    // **对照（不许把判定改严）**：同一条 `apply` 把 `a`/`x` 写对 ⇒ 必须过 ✓。
+    let ok = concat!(
+        "theorem t (α : Type) (P : α -> Prop) (a x : α) (ha : P a) : P x := by\n",
+        "  apply Eq.subst α (fun (y : α) => P y) a x\n",
+        "  sorry\n",
+    );
+    let report_ok = check_document(&parse(ok).unwrap());
+    assert_eq!(
+        report_ok.errors,
+        vec![],
+        "写对的形状不许回归：{:?}",
+        report_ok.errors
+    );
+}

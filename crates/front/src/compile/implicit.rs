@@ -118,6 +118,22 @@ pub(crate) fn leading_implicit(layers: &[Layer]) -> usize {
         .count()
 }
 
+/// **第二候选的按需提供者**（C 子项，2026-10-12）：`alt(slot)` = 第 `slot` 个显式
+/// 实参的**全显式 pp** 类型（`@Eq α x a` ✓；算不出 / 没开 ⇒ `None`）。
+///
+/// ⚠ **必须按需**（实测的性能事故，2026-10-12）：第一版在**调用点**把每个实参的
+/// 第二候选**预先算好** ⇒ 每个应用都多跑一遍**就地 elaborate** ⇒ 真实课程文件慢
+/// **140×** ✗（`I.3/unit08` 397ms → 56.4s；关掉第二候选 1.75s）。现在只在
+/// **主候选解不出那一位**时才问一次 ✓（提供者自己带 memo ⇒ 同一位只算一次 ✓）。
+///
+/// 旧调用方（没有第二候选）传 `&|_| None` ⇒ 那条分支一次都不进 ✓。
+pub(crate) type AltTypeFn<'x> = &'x dyn Fn(usize) -> Option<Expr>;
+
+/// 没有第二候选时的提供者（恒 `None`）——**逐字节等于今天的行为** ✓。
+pub(crate) fn no_alt_type(_slot: usize) -> Option<Expr> {
+    None
+}
+
 /// 解出被跳过的前导 `k` 层。
 ///
 /// **路线 ①（由后续显式实参的类型反解）**：`arg_tys[i]` = 第 `k + i` 层那个
@@ -236,12 +252,45 @@ pub(crate) fn solve_prefix_outcome_with_args(
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
 ) -> crate::compile::meta::MetaSolve {
-    use crate::compile::meta::MetaSolve;
-    if let Some(solved) = solve_prefix_impl(
+    solve_prefix_outcome_with_args_alt(
         layers,
         result,
         k,
         arg_tys,
+        &no_alt_type,
+        arg_vals,
+        expected,
+        defs,
+        is_inductive,
+    )
+}
+
+/// [`solve_prefix_outcome_with_args`] 的**带第二候选版**（C 子项，2026-10-12）。
+///
+/// `arg_tys_alt` 与 `arg_tys` **逐位平行**，装同一个实参类型的**全显式 pp** 形态
+/// （`@Eq α x a`）。三条出口（严格档 / 引擎档 / 待定档）都把它当**兜底**用 ⇒
+/// 主候选解得出来的形状**一步都不进** ✓、`&[]`（旧调用方）逐字节等于今天 ✓。
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn solve_prefix_outcome_with_args_alt(
+    layers: &[Layer],
+    result: &Expr,
+    k: usize,
+    arg_tys: &[Option<Expr>],
+    // **C 子项的第二候选**（与 `arg_tys` 平行；`&[]` ⇒ 今天的行为）。
+    arg_tys_alt: AltTypeFn<'_>,
+    // **G-63 修复**：显式实参**本身** ✓。
+    arg_vals: &[&Expr],
+    expected: Option<&Expr>,
+    defs: &crate::compile::elab::DefTable,
+    is_inductive: &dyn Fn(&str) -> bool,
+) -> crate::compile::meta::MetaSolve {
+    use crate::compile::meta::MetaSolve;
+    if let Some(solved) = solve_prefix_impl_alt(
+        layers,
+        result,
+        k,
+        arg_tys,
+        arg_tys_alt,
         arg_vals,
         expected,
         defs,
@@ -254,22 +303,24 @@ pub(crate) fn solve_prefix_outcome_with_args(
         // **档位**（IA-4 M2）：`Sibling` = E19 的窄版（默认，逐字节等于今天）；
         // `Engine` = 新引擎（真元变量 + 三值合一 + occurs/作用域 + 有界待定 + 出口 zonk）。
         return if metavar_mode() == MetavarMode::Engine {
-            solve_prefix_meta(
+            solve_prefix_meta_alt(
                 layers,
                 result,
                 k,
                 arg_tys,
+                arg_tys_alt,
                 arg_vals,
                 expected,
                 defs,
                 is_inductive,
             )
         } else {
-            match solve_prefix_pending(
+            match solve_prefix_pending_alt(
                 layers,
                 result,
                 k,
                 arg_tys,
+                arg_tys_alt,
                 arg_vals,
                 expected,
                 defs,
@@ -281,6 +332,16 @@ pub(crate) fn solve_prefix_outcome_with_args(
         };
     }
     MetaSolve::Unsolved
+}
+
+/// **第二候选要不要算**（C 子项）：`SOKO_METAVAR=0|off`（严格档逃生门）⇒ **不算** ✓。
+///
+/// 与 [`metavar_enabled`] 同一个口径（同一个开关、同一个只读一次的 `OnceLock`）：
+/// 逃生门要的是"**回到今天的行为**"，而第二候选是一条**新增的解题路** ⇒ 它必须
+/// 跟待定档/引擎档一起被关掉 ✓（否则"关掉第二候选 ⇒ 变绿项判红"这条反向验证
+/// 就没有开关可拉 ✗）。
+pub(crate) fn second_candidate_enabled() -> bool {
+    metavar_enabled()
 }
 
 /// **IA-4 M2 的引擎档**（`SOKO_METAVAR=engine`）：`solve_prefix` 的**一般路径**（应用 / 裸常量 /
@@ -295,12 +356,46 @@ pub(crate) fn solve_prefix_outcome_with_args(
 /// （记法路径那条要，因为 `notation_telescope` 用的是签名原文名 —— M1 实测的坑）。
 /// **元变量不进项**：解不出就返回 `None`，调用方照旧报既有码 ✓。
 // G-63 ③ 多带一个 `arg_vals`（8 个）⇒ 越过 clippy 的 7 个阈值 ✓（参数同族，不引入复杂度 ✓）。
+// 单测（`solve_prefix_pending` 那条同款）直接调这一份 ⇒ 生产路径走 `_alt` ✓。
+#[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 fn solve_prefix_meta(
     layers: &[Layer],
     result: &Expr,
     k: usize,
     arg_tys: &[Option<Expr>],
+    // **G-63 修复**：显式实参**本身**（不是它们的类型 ✗）—— 把显式层的 fresh 名映射掉 ✓。
+    arg_vals: &[&Expr],
+    expected: Option<&Expr>,
+    defs: &crate::compile::elab::DefTable,
+    is_inductive: &dyn Fn(&str) -> bool,
+) -> crate::compile::meta::MetaSolve {
+    solve_prefix_meta_alt(
+        layers,
+        result,
+        k,
+        arg_tys,
+        &no_alt_type,
+        arg_vals,
+        expected,
+        defs,
+        is_inductive,
+    )
+}
+
+/// [`solve_prefix_meta`] 的**带第二候选版**（C 子项）：约束 ③ 的每条方程先试主
+/// 候选；主候选**刚性冲突**（`Tri::No`）时用**全显式 pp** 形态再判一次 ✓。
+///
+/// ⚠ 判据仍是三值合一：第二候选也判 `No` 才真的冲突 ⇒ 今天那些"主候选就冲突"
+/// 的报错**一个都不会消失**（只在主候选冲突、第二候选能解时才转正）✓。
+#[allow(clippy::too_many_arguments)]
+fn solve_prefix_meta_alt(
+    layers: &[Layer],
+    result: &Expr,
+    k: usize,
+    arg_tys: &[Option<Expr>],
+    // **C 子项的第二候选**（与 `arg_tys` 平行；`&[]` ⇒ 今天的行为）。
+    arg_tys_alt: AltTypeFn<'_>,
     // **G-63 修复**：显式实参**本身**（不是它们的类型 ✗）—— 把显式层的 fresh 名映射掉 ✓。
     arg_vals: &[&Expr],
     expected: Option<&Expr>,
@@ -358,11 +453,10 @@ fn solve_prefix_meta(
     for i in 0..k {
         let name = layers[i].name.clone();
         for (j, layer) in layers.iter().enumerate().skip(i + 1) {
-            let Some(actual) = j
-                .checked_sub(k)
-                .and_then(|x| arg_tys.get(x))
-                .and_then(|t| t.as_ref())
-            else {
+            let Some(slot) = j.checked_sub(k) else {
+                continue;
+            };
+            let Some(actual) = arg_tys.get(slot).and_then(|t| t.as_ref()) else {
                 continue;
             };
             if !crate::spine::mentions(&name, &layer.domain) {
@@ -376,7 +470,48 @@ fn solve_prefix_meta(
                     crate::proof::render_expr(actual)
                 );
             }
-            if meta.unify(&template, actual) == crate::compile::meta::Tri::No {
+            let primary = meta.unify(&template, actual);
+            // **第二候选**（C 子项）：主候选是**书写类型**（记法节点天然没有前导
+            // 隐式实参）时上面那条方程**解不出那个参数**（`Eq ?m0 ?m2 ?m3` 对
+            // `a = x`：右对齐之后 `α` 根本不在任何实参位上 ⇒ `?m0` 悬着 ✗）⇒
+            // 用**全显式 pp** 形态（`@Eq α a x`）**再判一次** ✓。
+            //
+            // ⚠ **不是"主候选失败才试"** ✗（与严格档那条不同 ✓）：引擎的合一
+            // **带状态**，主候选可能判 `Yes` 却**留着一个没解的位**（记法只给了
+            // 2 个操作数 ⇒ `?m0` 没被任何方程碰到 ✗）⇒ 必须让第二候选**也参与**
+            // 才能把那个位钉住 ✓。两条都是**追加约束**（合一三值，只会更精确 ✓）；
+            // 任一条判 `No` ⇒ 真的刚性冲突 ⇒ 照旧走通道 ✓。
+            // ⚠ **只在主候选没判 `Yes`**、**且模板的头是刚性的**时才试第二候选
+            // ✗→✓（两条都是实测踩到的）：
+            //
+            // * 主候选判 `Yes` ⇒ 一步都不进 ✓（引擎的合一带状态，追加一条多余方程
+            //   可能在**别的**层上造成假冲突 ✗）；
+            // * 模板的头是**元变量**（`?m1 ?m2` —— `Eq.subst` 的 `p a` 那一层 ✓）
+            //   ⇒ **第二候选对它没有信息**：那一位要解的是**谓词本身**，而不是
+            //   某个实参位 ⇒ 拿 `@Eq α a x` 去套只会撞 occurs check 判 `No` ✗
+            //   （实测：`Eq.subst h h` 的 `p a` 层把整条求解打回 ✗）。刚性的头
+            //   （`Eq.{u} ?m0 ?m2 ?m3` ✓）才是"前导隐式实参缺了"的那个形状 ✓。
+            // ⚠ **判据是「这一位自己的元变量解出来没有」**，不是「主候选判没判
+            // `Yes`」✗→✓（实测踩到）：主候选**可以判 `Yes` 却留着这一位没解** ——
+            // 尾部对齐的归一（`tail_aligned_pair`）会把 `Eq.{u} ?m0 ?m2 ?m3` 与
+            // `Eq b a` 对齐成 `Eq.{u} ?m2 ?m3` 与 `Eq b a` ⇒ `?m2/?m3` 解出、
+            // `?m0` **悬着**，而 `Tri` 仍是 `Yes` ✗（实测 `t_symm`：`α` 没解 ⇒
+            // `discharge unsolved=1`）。所以这一位**没解**就必须让第二候选也参与 ✓。
+            //
+            // ⚠ 另一半（实测踩到）：模板的头是**元变量**时（`?m1 ?m2` —— `Eq.subst`
+            // 的 `p a` 那一层 ✓）第二候选**没有信息**（那一位要解的是**谓词本身**，
+            // 不是某个实参位）⇒ 拿 `@Eq α a x` 去套只会撞 occurs check 判 `No` ✗
+            // ⇒ 照旧跳过 ✓。
+            let layer_unsolved = meta.value(ids[i]).is_none();
+            let tri = if !layer_unsolved || crate::compile::meta::meta_of_expr(&template).is_some()
+            {
+                primary
+            } else if let Some(alt) = arg_tys_alt(slot) {
+                meta.unify(&template, &alt)
+            } else {
+                primary
+            };
+            if tri == crate::compile::meta::Tri::No {
                 return meta.channel();
             }
         }
@@ -502,6 +637,8 @@ pub(crate) fn fill_pending_by_shape(
 ///
 /// ⚠ **待定值从不进入项**：合一在**实参 elaborate 之前**完成 ⇒ 实参拿到的期望类型
 /// 永远是**具体**类型，内核看到的项里没有任何占位符 ✓。
+// 单测（见 `mod tests`）直接调这一份 ⇒ 生产路径走 `_alt` ✓。
+#[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 fn solve_prefix_pending(
     layers: &[Layer],
@@ -514,11 +651,41 @@ fn solve_prefix_pending(
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
 ) -> Option<Vec<Expr>> {
-    solve_prefix_impl(
+    solve_prefix_pending_alt(
         layers,
         result,
         k,
         arg_tys,
+        &no_alt_type,
+        arg_vals,
+        expected,
+        defs,
+        is_inductive,
+    )
+}
+
+/// [`solve_prefix_pending`] 的**带第二候选版**（C 子项，2026-10-12）：见
+/// [`solve_prefix_impl_alt`]（两者共用同一条机械）。
+#[allow(clippy::too_many_arguments)]
+fn solve_prefix_pending_alt(
+    layers: &[Layer],
+    result: &Expr,
+    k: usize,
+    arg_tys: &[Option<Expr>],
+    // **C 子项的第二候选**（与 `arg_tys` 平行；`&[]` ⇒ 今天的行为）。
+    arg_tys_alt: AltTypeFn<'_>,
+    // **G-63 修复**：显式实参**本身**（不是它们的类型 ✗）—— 把显式层的 fresh 名映射掉 ✓。
+    arg_vals: &[&Expr],
+    expected: Option<&Expr>,
+    defs: &crate::compile::elab::DefTable,
+    is_inductive: &dyn Fn(&str) -> bool,
+) -> Option<Vec<Expr>> {
+    solve_prefix_impl_alt(
+        layers,
+        result,
+        k,
+        arg_tys,
+        arg_tys_alt,
         arg_vals,
         expected,
         defs,
@@ -535,6 +702,47 @@ fn solve_prefix_impl(
     result: &Expr,
     k: usize,
     arg_tys: &[Option<Expr>],
+    // **G-63 修复**：显式实参**本身**（不是它们的类型 ✗）—— 把显式层的 fresh 名映射掉 ✓。
+    arg_vals: &[&Expr],
+    expected: Option<&Expr>,
+    defs: &crate::compile::elab::DefTable,
+    is_inductive: &dyn Fn(&str) -> bool,
+    allow_pending: bool,
+) -> Option<Vec<Expr>> {
+    solve_prefix_impl_alt(
+        layers,
+        result,
+        k,
+        arg_tys,
+        &no_alt_type,
+        arg_vals,
+        expected,
+        defs,
+        is_inductive,
+        allow_pending,
+    )
+}
+
+/// [`solve_prefix_impl`] 的**带第二候选版**（C 子项，2026-10-12）：`arg_tys_alt`
+/// 与 `arg_tys` **逐位平行**，装的是同一个实参类型的**全显式 pp** 形态
+/// （`@Eq α x a`，见 `elab.rs::operand_type_expr_explicit`）。
+///
+/// **判据（严格档先跑）**：每个待解位的每条线索都**先试主候选**；主候选拿不到
+/// 才试第二候选。第二候选是 `&[]`（旧调用方）时**一次都不进**那条分支 ⇒
+/// 既有行为逐字节不变 ✓。
+///
+/// **为什么需要它**：主候选对局部变量取**书写类型**（`hx : x = a` 的记法节点
+/// 只有 2 个操作数），而 `Eq` 的模板有 3 个实参 ⇒ `unify_extract` 的**右对齐**
+/// 把前导 `α` 丢掉 ⇒ `Eq.symm hx` / `Eq.subst (Eq.symm h) h` 报
+/// `elab-implicit-argument-unsolved` ✗。全显式形态把 `α` 写回第一位 ⇒ 解得出来 ✓。
+#[allow(clippy::too_many_arguments)]
+fn solve_prefix_impl_alt(
+    layers: &[Layer],
+    result: &Expr,
+    k: usize,
+    arg_tys: &[Option<Expr>],
+    // **C 子项的第二候选**（与 `arg_tys` 平行；`&[]` ⇒ 今天的行为）。
+    arg_tys_alt: AltTypeFn<'_>,
     // **G-63 修复**：显式实参**本身**（不是它们的类型 ✗）—— 把显式层的 fresh 名映射掉 ✓。
     _arg_vals: &[&Expr],
     expected: Option<&Expr>,
@@ -572,24 +780,32 @@ fn solve_prefix_impl(
         // 路线 ①：后续显式层的域 vs 该层实参的类型。
         for (j, layer) in layers.iter().enumerate().skip(i + 1) {
             // `j < k` 的层也是隐式的（还没解出，也没有实参可问）。
-            let Some(actual) = j
-                .checked_sub(k)
-                .and_then(|x| arg_tys.get(x))
-                .and_then(|t| t.as_ref())
-            else {
+            let Some(slot) = j.checked_sub(k) else {
+                continue;
+            };
+            let Some(actual) = arg_tys.get(slot).and_then(|t| t.as_ref()) else {
                 continue;
             };
             let domain = crate::spine::substitute(&layer.domain, &sigma);
             if !crate::spine::mentions(&name, &domain) {
                 continue;
             }
-            let mut v = super::elab::unify_extract(&domain, actual, &name);
+            let mut v = super::elab::unify_extract_whole(&domain, actual, &name);
+            // **第二候选**（C 子项）：主候选是**书写类型**（记法节点天然没有前导
+            // 隐式实参）时上面那条会**右对齐**丢掉 `α` ⇒ 这里用**全显式 pp** 形态
+            // （`@Eq α x a`）再试一次。主候选解得出来 ⇒ 一步都不进 ✓。
+            if v.is_none() {
+                if let Some(alt) = arg_tys_alt(slot) {
+                    v = super::elab::unify_extract_whole(&domain, &alt, &name);
+                }
+            }
             if v.is_none() {
                 let unfolded = unfold(actual);
                 if &unfolded != actual {
-                    v = super::elab::unify_extract(&domain, &unfolded, &name);
+                    v = super::elab::unify_extract_whole(&domain, &unfolded, &name);
                 }
             }
+
             // **模板侧也要能展开**（T-N13，2026-09-30）：记法路径的 `solve_prefix_args`
             // 早就有这一条（R5，2026-09-26 实测：`{∅} ∩ {…}` 一族），而**唯一钩子**
             // 这条路线只展开了**实参侧** ⇒ 同一形状在两条路上判得不一样 ✗。
@@ -623,13 +839,25 @@ fn solve_prefix_impl(
             if v.is_none() && actual_is_unfolded_set {
                 let unfolded_domain = unfold(&domain);
                 if unfolded_domain != domain {
-                    v = super::elab::unify_extract(&unfolded_domain, actual, &name);
+                    v = super::elab::unify_extract_whole(&unfolded_domain, actual, &name);
                     if v.is_none() {
                         let unfolded = unfold(actual);
                         if &unfolded != actual {
-                            v = super::elab::unify_extract(&unfolded_domain, &unfolded, &name);
+                            v = super::elab::unify_extract_whole(
+                                &unfolded_domain,
+                                &unfolded,
+                                &name,
+                            );
                         }
                     }
+                }
+            }
+            // **第二候选的最后一次尝试**（C 子项）：上面所有形态（原样 / 实参展开 /
+            // 模板展开 / 两边展开）都拿不到时，才用**全显式 pp** 形态再试一次 ✓。
+            // 放在最后 ⇒ 既有那些解得出来的形状**一步都不进这里** ✓。
+            if v.is_none() {
+                if let Some(alt) = arg_tys_alt(slot) {
+                    v = super::elab::unify_extract_whole(&domain, &alt, &name);
                 }
             }
             if let Some(v) = v {
@@ -924,5 +1152,72 @@ mod tests {
             &|_| false
         )
         .is_some());
+    }
+
+    /// **C 子项（2026-10-12）：第二候选**（`Eq.symm hx` 一族的最小复现件）。
+    ///
+    /// 形状：`Eq.symm {α : Sort u} {a b : α} (h : Eq.{u} α a b) : Eq.{u} α b a`，
+    /// 实参 `hx` 的**书写类型**是**记法节点** `x = a`（只有 2 个操作数）——
+    /// 而模板 `Eq.{u} ?α ?a ?b` 有 **3** 个实参 ⇒ `unify_extract` 的**右对齐**
+    /// 把前导 `α` 丢掉 ⇒ 严格档解不出 ✗。
+    ///
+    /// 第二候选 = 同一个类型的**全显式 pp** 形态 `@Eq α x a`（3 个实参 ✓）⇒
+    /// `α` 回到第一位 ⇒ 解得出来 ✓。**反向**（`arg_tys_alt = &[]` = 今天的行为）
+    /// 必须仍然 `None` ✓ —— 这一条同时是"第二候选真的在起作用"的守卫 ✓。
+    #[test]
+    fn second_candidate_solves_the_eq_prefix_that_the_notation_type_cannot() {
+        let (layers, result) =
+            telescope("forall {α : Sort u}, {a : α} -> {b : α} -> Eq.{u} α a b -> Eq.{u} α b a")
+                .expect("telescope");
+        let k = leading_implicit(&layers);
+        assert_eq!(k, 3, "`{{α}} {{a}} {{b}}` 三个前导隐式层");
+        let main = crate::proof::parse_expr_text("x = a").expect("parse"); // 记法：2 个操作数
+        let alt = crate::proof::parse_expr_text("@Eq α x a").expect("parse"); // 全显式：3 个实参
+        let expected = crate::proof::parse_expr_text("a = x").expect("parse");
+        let arg_tys = [Some(main)];
+        // ① **只有主候选**（= 今天的行为）：解不出 ✓ —— 反向验证的另一半。
+        assert!(
+            solve_prefix_impl_alt(
+                &layers,
+                &result,
+                k,
+                &arg_tys,
+                &no_alt_type,
+                &[],
+                Some(&expected),
+                &empty_defs(),
+                &|_| false,
+                false,
+            )
+            .is_none(),
+            "没有第二候选时必须仍然解不出（严格档不许猜）"
+        );
+        // ② 带上第二候选 ⇒ 解出来了，且第一位是 `α`（实参自己）✓。
+        // **按需提供者**：只有第 0 位（唯一的显式实参）有第二候选 ✓。
+        let alt_for = |slot: usize| -> Option<Expr> {
+            if slot == 0 {
+                Some(alt.clone())
+            } else {
+                None
+            }
+        };
+        let solved = solve_prefix_impl_alt(
+            &layers,
+            &result,
+            k,
+            &arg_tys,
+            &alt_for,
+            &[],
+            Some(&expected),
+            &empty_defs(),
+            &|_| false,
+            false,
+        )
+        .expect("第二候选必须解得出来");
+        assert_eq!(solved.len(), 3);
+        assert!(
+            matches!(&solved[0], Expr::Ident { name, .. } if name == "α"),
+            "前导 `α` 必须解成实参自己：{solved:?}"
+        );
     }
 }
