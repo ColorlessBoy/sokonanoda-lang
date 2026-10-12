@@ -312,13 +312,19 @@
         "sokonanoda.input.eager": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Replace a notation abbreviation automatically: a **separator closes the word** (`\\alpha` + Space → `α `, `\\a` + Space → `α `, `\\in` + Space → `∈ `) and a completed word lands at once (`\\and` → `∧`) — the same default as Lean 4, no extra key needed. While you keep typing letters a prefix waits (`\\an` waits for `\\and`, `\\in` waits for `\\inter`, `\\a` waits for `\\alpha`); a separator (space/punctuation) closes the word and finishes it (`\\in ` → `∈ `, `\\sub ` → `⊆ `, `\\a ` → `α `). A lone `\\` (set difference) is never touched, and a replacement is one edit, so one undo takes it back. Set this to `false` to turn the automatic replacement off (`Tab`, bound while a `\\`-word is being typed, then becomes the only way). Hover any notation symbol to see its abbreviation."
+          "markdownDescription": "Replace a notation abbreviation automatically: a **separator closes the word** (`\\alpha` + Space → `α `, `\\a` + Space → `α `, `\\in` + Space → `∈ `) and a completed word lands at once (`\\and` → `∧`) — the same default as Lean 4, no extra key needed. While you keep typing letters a prefix waits (`\\an` waits for `\\and`, `\\in` waits for `\\inter`, `\\a` waits for `\\alpha`); a separator (space/punctuation) closes the word and finishes it (`\\in ` → `∈ `, `\\sub ` → `⊆ `, `\\a ` → `α `). A lone `\\` (set difference) is never touched, and a replacement is one edit, so one undo takes it back. Set this to `false` to turn the automatic replacement off (`Tab`, bound while a `\\`-word is being typed, then becomes the only way). Hover any notation symbol to see its abbreviation. Pasting text never triggers a replacement: pasted abbreviations stay exactly as pasted."
+        },
+        "sokonanoda.input.leader": {
+          "type": "string",
+          "default": "\\",
+          "markdownDescription": "The character(s) that start a notation abbreviation (default `\\`, the same default as Lean 4's `lean4.input.leader`). Change it when another extension owns `\\`: **VSCodeVim's `vim.leader` also defaults to `\\`**, and vim takes the key first in NORMAL mode — so with vim, set this and `vim.leader` to the same character (e.g. `,`) and press `i` before typing. Any leader works: with `,` you type `,alpha` → `α`, and `Tab` follows it too. An empty value falls back to `\\`."
         }
       }
     },
     "configurationDefaults": {
       "[sokonanoda]": {
-        "editor.unicodeHighlight.ambiguousCharacters": false
+        "editor.unicodeHighlight.ambiguousCharacters": false,
+        "editor.autoClosingBrackets": "never"
       }
     },
     "keybindings": [

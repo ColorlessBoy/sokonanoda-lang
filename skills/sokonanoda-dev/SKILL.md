@@ -147,6 +147,9 @@ python3 scripts/gap.py check                # 台账契约：缺口复现必须�
   **真 VS Code 集成** `SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh`
   （自动构建 release + stage + 跑 + 记 `docs/e2e/ledger.jsonl`；手册 `docs/E2E.md`。
   改了 `editor/vscode/` 就跑它——被 ignore 的 `bin/` 会让测试静默测旧二进制）；
+  **装/不装 VSCodeVim 各一条真宿主管道**：`node scripts/vscode-input-e2e.mjs`（无 vim，
+  记法输入 + 对照臂）与 `node scripts/vscode-input-vim-e2e.mjs`（真 vim + 真 keydown，
+  A 光标错位 / B normal 模式补刀 / C leader 撞车，8 条用例 × 两条臂）；
 - 协议防漂移：改事件/输出格式必须同步 `docs/protocol.md`
   （`protocol.rs` / `skill.rs` conformance 测试会抓漂移）；
 - **真相层不得绕过**（查询契约见 `docs/protocol.md`）：任何"问内核"的

@@ -102,6 +102,13 @@ const configDefaults = (() => {
 const configValues = { ...configDefaults };
 function setConfig(key, value) {
   configValues[key] = value;
+  // 真宿主里改设置会发 `onDidChangeConfiguration` ⇒ 桩也要发（否则"改设置就地生效"
+  // 这条路径在桩里根本走不到：`sokonanoda.input.leader` 是**激活时读一次**的那个）。
+  const section = `sokonanoda.${key}`;
+  listeners.configuration.fire({
+    affectsConfiguration: (asked) =>
+      asked === section || section.startsWith(`${asked}.`) || asked.startsWith(`${section}.`),
+  });
 }
 function resetConfig() {
   for (const key of Object.keys(configValues)) delete configValues[key];
@@ -589,15 +596,27 @@ function fakeEditor(document, positions, { anchor } = {}) {
   // 见上：P4 的装饰记录（`[{type, ranges}]`，便于断言"成对"✓）。
   const decorationCalls = [];
   const points = positions ?? [{ line: 0, character: 0 }];
-  const selections = points.map((active) => ({
+  let selections = points.map((active) => ({
     active,
     anchor: anchor ?? active,
     isEmpty: anchor === undefined || (anchor.line === active.line && anchor.character === active.character),
   }));
   const editor = {
     document,
-    selections,
-    selection: selections[0],
+    // 真宿主里 `editor.selections = [...]` **同时**更新 `selection`（= 主选区，
+    // 扩展宿主里就是 `selections[0]`）。桩不这么联动，改写器"钉光标"的判据就看不见。
+    get selections() {
+      return selections;
+    },
+    set selections(value) {
+      selections = value;
+    },
+    get selection() {
+      return selections[0];
+    },
+    set selection(value) {
+      selections = [value];
+    },
     editCalls: 0,
     decorationCalls,
     setDecorations(type, ranges) {
@@ -663,10 +682,21 @@ function undo(editor) {
 // 上报（`extensionHostProcess.js` 的
 // `OS=class{constructor(t,e,n){this.reverseEdits=t;this.changes=e;…}}`）。
 // stub 要是写成"新坐标"，eager 路径在真宿主里就会错位而测试全绿。
-function typeText(document, position, text) {
+function typeText(document, position, text, options = {}) {
+  const atCaret = options.atCaret !== false;
   const start = offsetOf(document.getText(), position);
   const before = document.getText();
   document.__setText(before.slice(0, start) + text + before.slice(start));
+  // **真宿主的时序**（本轮真宿主实测，见 `scripts/vscode-input-vim-e2e.mjs` 的 diag
+  // 用例）：`onDidChangeTextDocument` 到达扩展宿主时，**选区事件还没到** ⇒ 编辑器里
+  // 那个光标还是这次编辑**之前**的位置（= 插入点）；事件之后宿主才把它映射到插入文本
+  // 的末尾。改写器的"光标一致性"守卫正是按这条不变量写的 ⇒ 桩必须照这个顺序摆。
+  const editor = vscodeStub.window.activeTextEditor;
+  const sameDocument = () => editor && editor.document === document;
+  const setCaret = (line, character) => {
+    if (sameDocument()) editor.selections = [new vscodeStub.Selection(cursor(line, character), cursor(line, character))];
+  };
+  if (atCaret) setCaret(position.line, position.character);
   listeners.textDocument.fire({
     document,
     contentChanges: [
@@ -678,6 +708,9 @@ function typeText(document, position, text) {
       },
     ],
   });
+  if (!atCaret) return;
+  const after = document.positionAt(start + text.length);
+  setCaret(after.line, after.character);
 }
 
 function resetListeners() {
@@ -2443,6 +2476,103 @@ test("greek letters are identifiers, so their symbols survive as text", async ()
   focus(document, [cursor(0, 3)]);
   await commandHandler(REPLACE_COMMAND)();
   assert.strictEqual(document.getText().codePointAt(0), 0x03bc, "`\\mu` must be U+03BC");
+});
+
+// ── A/B/C：vim 在场才暴露的三条（`.cache/ux/vim/REPORT.md`）────────────────
+// 桩里没有 vim，但**钉光标**与**两道守卫**是纯逻辑，可以在这一层钉死；
+// 「vim 真的会把光标抢走吗」那一步只有真宿主能判 ⇒ `scripts/vscode-input-vim-e2e.mjs`。
+
+test("A: the caret is pinned right after the symbol, not past the auto-paired bracket", async () => {
+  // 有 vim 时 VSCodeVim 会重设光标，把落点推到替换范围末端**再 +1** ⇒ `(` 自动配对出
+  // 的 `)` 被关在 `α` 后面，之后每个键都错位（用户那段证明就是这样烂掉的）。
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "(\\alpha)");
+  const editor = focus(document, [cursor(0, 7)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "(α)", "the abbreviation is replaced");
+  assert.strictEqual(
+    editor.selection.active.character,
+    2,
+    "光标必须钉在 α 之后（`(` 右边第 2 列 = `)` 左边），不是 `)` 右边",
+  );
+});
+
+test("A: every landing point is pinned on its own (multi-cursor)", async () => {
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "(\\alpha) (\\in)");
+  const editor = focus(document, [cursor(0, 7), cursor(0, 13)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "(α) (∈)");
+  assert.deepStrictEqual(
+    editor.selections.map((selection) => [selection.active.line, selection.active.character]),
+    [
+      [0, 2],
+      [0, 6],
+    ],
+    "每个落点各自钉：第一个在 α 之后，第二个在 ∈ 之后",
+  );
+  assert.strictEqual(editor.editCalls, 1, "still one edit = one undo unit");
+});
+
+test("B: a multi-character insert (vim's `o` / paste) never triggers a replacement", async () => {
+  // `\an` 是待定前缀（故意不落定）。vim 的 `o` 在文档里做的是**纯插入**——一次多字符
+  // ⇒ 不许被当成"用户在打字"，更不许拿插入点之前的旧坐标去补刀上一行。
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\an");
+  focus(document, [cursor(0, 3)]);
+  typeText(document, cursor(0, 3), "\nZ");
+  await drain();
+  assert.strictEqual(document.getText(), "\\an\nZ", "multi-char insert must be left alone");
+  assert.strictEqual(document.__undoStack.length, 0, "no edit may be issued at all");
+});
+
+test("B: an insert that is not at the caret is ignored (normal-mode `o`)", async () => {
+  // vim 的 normal 模式：光标停在字符**上**（`\an` 的 `n` = 第 2 列），而 `o` 的插入点
+  // 在行尾（第 3 列）⇒ 光标一致性守卫必须拒掉这一刀。
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\an");
+  focus(document, [cursor(0, 2)]);
+  typeText(document, cursor(0, 3), "\n", { atCaret: false });
+  await drain();
+  assert.strictEqual(document.getText(), "\\an\n", "an insert away from the caret is somebody else's edit");
+  assert.strictEqual(document.__undoStack.length, 0);
+});
+
+test("C: `input.leader` moves the abbreviation leader (and Tab follows it)", async () => {
+  // 对齐 Lean 4 的 `lean4.input.leader`：`\` 同时是 vim 的 leader ⇒ vim 用户把它
+  // （和 `vim.leader`）一起改成 `,` 之类。改一半会被最后那一条抓住。
+  await activateExtension();
+  setConfig("input.leader", ",");
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", ",alph");
+  focus(document, [cursor(0, 5)]);
+  typeText(document, cursor(0, 5), "a");
+  await drain();
+  assert.strictEqual(document.getText(), "α", "`,alpha` ⇒ α");
+
+  const old = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\alph");
+  focus(old, [cursor(0, 5)]);
+  typeText(old, cursor(0, 5), "a");
+  await drain();
+  assert.strictEqual(old.getText(), "\\alpha", "the old leader is plain text once the setting moved");
+
+  const tab = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", ",in");
+  focus(tab, [cursor(0, 3)]);
+  await drain();
+  assert.strictEqual(
+    (vscodeStub.__contexts ?? {})[CONTEXT_KEY],
+    true,
+    "Tab 的 context key 也按配置的 leader 算",
+  );
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(tab.getText(), "∈", "`,in` + Tab ⇒ ∈");
+
+  // 空串退回默认（否则"往回吃到行首"会把整行当缩写词）。
+  setConfig("input.leader", "");
+  const fallback = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\alph");
+  focus(fallback, [cursor(0, 5)]);
+  typeText(fallback, cursor(0, 5), "a");
+  await drain();
+  assert.strictEqual(fallback.getText(), "α", "an empty leader falls back to `\\`");
 });
 
 test("eager mode never fires on a deletion or an undo", async () => {

@@ -253,6 +253,14 @@ own rule, and it is why the short keys are unambiguous. Lean's single-letter key
 that point at *logic* symbols (`\v` → ∨, `\i` → ∩, `\o` → ∘, `\r` → →) are
 deliberately not taken: `\i` giving ∩ while `\in` gives ∈ would be a trap.
 
+`.sokonanoda` files **do not auto-close brackets** (`editor.autoClosingBrackets:
+"never"` for this language): the automatic `)` collides with the automatic notation
+replacement — VS Code forgets which `)` it inserted once the extension edits the
+line, so the `)` you type is no longer skipped over and the line ends up with an
+extra bracket (visible in a whole proof: `exact h))`). Type the closing bracket
+yourself, or set `"[sokonanoda]": { "editor.autoClosingBrackets": "languageDefined" }`
+if you prefer the auto-close and never edit inside a pair.
+
 Two more behaviours worth knowing:
 
 - **How a word lands** (Lean 4's rule): a separator — **Space**, punctuation —
@@ -263,9 +271,41 @@ Two more behaviours worth knowing:
   `sokonanoda.input.eager` off disables the automatic replacement (then `Tab`,
   which the extension also binds while a `\`-word is being typed, is the only
   way to force one).
+- **Pasting never rewrites** — a replacement only fires for a **single character
+  typed at the caret**, so text you paste (even a full `\alpha`) stays exactly as
+  pasted. Press Space or `Tab` after it if you want it turned into a symbol.
 - **Undo** — a replacement is a single edit, so **one undo takes it back in
   one step**; with several cursors, each abbreviation is rewritten in that
   same single edit.
+
+### Vim users (VSCodeVim)
+
+`\` is **also VSCodeVim's leader** (`vim.leader` also defaults to `\`), and vim
+takes the key first in NORMAL mode — so a file that opens in NORMAL mode swallows
+`\alpha` as a vim command before the extension ever sees it. Change **both**
+settings together (that is the same escape hatch Lean 4 offers as
+`lean4.input.leader`):
+
+```json
+{ "sokonanoda.input.leader": ",", "vim.leader": "," }
+```
+
+Then `,alpha` + Space → `α ` — the leader is honoured everywhere (the word before
+the cursor, the `Tab` keybinding's `when` clause, and the "pending word" highlight).
+Also press `i` before typing: NORMAL mode never inserts text, whatever the leader
+is. An empty `sokonanoda.input.leader` falls back to `\`.
+
+Two vim-specific traps are handled for you:
+
+- **The caret stays right after the symbol.** VSCodeVim re-applies its own caret
+  after an extension edit; that used to push the caret **past** an auto-closed `)`,
+  so every following keystroke landed one character too far right (`(\alpha` +
+  Space + `x` came out as `(α) x`). The extension now writes the caret itself after
+  a replacement — the same workaround Lean 4's client uses for vim
+  (`updateUnchangedSelections`).
+- **Vim's own edits are not "typing".** Only a single character inserted **at the
+  caret** can trigger a replacement, so normal-mode `o` / `p` / `P` / `.` no longer
+  rewrite a pending abbreviation on a neighbouring line.
 
 ## Install & use
 

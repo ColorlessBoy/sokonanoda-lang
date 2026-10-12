@@ -9,7 +9,7 @@
 |---|---|---|
 | `extension.js` | 扩展入口：LSP 客户端接线、命令注册、练习树/课程树/项目树/状态栏/inlay/跳洞 | 业务逻辑、kernel 调用 |
 | `src/abbreviations.js` | 记法缩写表（`\and`→`∧`、`\alpha`→`α`，共 75 条）：`crates/front/src/notation_input.rs` 的**逐字镜像**，纯 JSON 数组字面量（Rust 契约测试真解析它；**数组体内不许写注释**） | 自己加/改条目（先改 Rust 表）、非 JSON 的表格式 |
-| `src/abbreviation-rewriter.js` | 缩写改写器状态机：**默认即时替换**（`sokonanoda.input.eager` 默认开；空格/标点封口即换 = Lean 4 的手势，**对用户只教这一条**）、`Tab` 命令与 context key（内部显式路径）、一次 edit = 一个 undo 单元 | 命令注册（在 `extension.js`）、判定/编译 |
+| `src/abbreviation-rewriter.js` | 缩写改写器状态机：**默认即时替换**（`sokonanoda.input.eager` 默认开；空格/标点封口即换 = Lean 4 的手势，**对用户只教这一条**）、leader **可配置**（`sokonanoda.input.leader`，默认 `\`，对齐 `lean4.input.leader`）、`Tab` 命令与 context key（内部显式路径）、一次 edit = 一个 undo 单元。**即时替换只认"单字符 + 落在光标处"的插入**（粘贴 / vim 的 `o`·`p` 不算打字），替换后**显式把光标钉在符号之后**（装了 `vscodevim.vim` 时"没变也要写一遍"——对齐 Lean 4 客户端的 `updateUnchangedSelections`） | 命令注册（在 `extension.js`）、判定/编译 |
 | `project-tree.js` | 项目树渲染（只吃 `soko/project` 的答案：根 = 模块根 + 清单来源 + 计数，子 = 拓扑序模块 + 状态图标；单文件一条占位行）。**请求在 extension.js**，这里只有渲染与"答案指名别的文档 ⇒ 丢弃" | 发请求、判定项目状态 |
 | `server.js` | 服务器获取：平台→target 映射、bundled `bin/<target>/` 解析、exec 位修复、版本锁定下载（**无 `vscode` 依赖，可纯 Node 单测**） | UI/命令逻辑 |
 | `editor/vscode/scripts/stage-lsp.js` | 打包前把构建产物 stage 到 `bin/<target>/`（chmod 755），支持 `--package` 出 host VSIX | 运行时逻辑 |
@@ -18,7 +18,7 @@
 | `README.md` | **Marketplace 页面正文**——安装方式、功能清单、agent 集成卖点 | 与实际行为不符的描述 |
 | `CHANGELOG.md` | 市场可见的版本历史（Keep a Changelog） | 与 commit 内容不符的条目 |
 | `syntaxes/*.tmLanguage.json` | TextMate 语法（即时高亮，LSP 语义高亮的降级层） | — |
-| `language-configuration.json` | 括号配对、注释、缩进 | — |
+| `language-configuration.json` | 括号配对、注释、缩进。⚠ `autoClosingPairs` 与**即时替换冲突**：扩展改过行之后 VS Code 不再跳过它自动补的 `)` ⇒ 整段证明会多出括号（实测 `exact h))`）⇒ `package.json` 的 `configurationDefaults` 给 `[sokonanoda]` 钉 `editor.autoClosingBrackets: "never"` | — |
 
 ## 2. 版本纪律
 
@@ -108,7 +108,8 @@ provenance + Marketplace 发布），历史上 gallery 会间歇超时（`docs/C
 | Infoview **渲染结果**（看不看得见） | `node editor/vscode/test-webview.js`（`npm run test:unit` 的第 3 个文件） | 把**真的** `media/infoview.js` 放进最小 DOM stub 跑，断言 **DOM**：目标行 `.decl-goal-line`、`tok-*` span、空态三态文案、行不可点。**服务端给对了 ≠ 用户看得见** —— R-1（`def` 的值行）与 R-2（目标行）两次事故都是"每层各自绿、用户看不见"，就是缺这一层 | `editor/vscode/test-webview.js` |
 | 静态契约 | `cargo test -p sokonanoda-cli --test extension` | package.json 字段完整性、命令注册一致性、依赖打包安全、bundled 解析/版本一致/市场元数据 | `crates/cli/tests/extension.rs` |
 | 打包冒烟 | CI `Package host VSIX` step | `bin/<target>/` 入包、exec 位、`TargetPlatform` | ci.yml |
-| 宿主接线（stub host） | `node editor/vscode/test-extension-host.js`（`npm run test:unit` 的第 4 个文件） | **行为**：诊断事件过滤/去抖/合并、并发 `soko/goals` 合并、切文件丢弃过期答案、Infoview `decls` 去重、课程树缓存、**项目树三态**（闭包渲染 / 单文件占位 / 丢弃他人答案）、**记法缩写改写器**（**空格封口**、前缀陷阱、孤立 `\`、多光标、一次 undo 单元、默认档 = 即时替换 + `false` 逃生门、Tab 的 context key）。配置默认值**从 `package.json` 播种**（桩不许自带第二份默认值）。用 stub 的 `vscode` / `vscode-languageclient` / `child_process` + 假定时器跑真 `extension.js`，零依赖、毫秒级 | `editor/vscode/test-extension-host.js` |
+| 宿主接线（stub host） | `node editor/vscode/test-extension-host.js`（`npm run test:unit` 的第 4 个文件） | **行为**：诊断事件过滤/去抖/合并、并发 `soko/goals` 合并、切文件丢弃过期答案、Infoview `decls` 去重、课程树缓存、**项目树三态**（闭包渲染 / 单文件占位 / 丢弃他人答案）、**记法缩写改写器**（**空格封口**、前缀陷阱、孤立 `\`、多光标、一次 undo 单元、默认档 = 即时替换 + `false` 逃生门、Tab 的 context key、**钉光标**、**两道守卫**（单字符 / 光标一致性）、`input.leader` 可配置 + 空串退回）。配置默认值**从 `package.json` 播种**（桩不许自带第二份默认值）；`typeText()` 按**真宿主时序**摆光标（内容事件先到 ⇒ 事件里看到的光标是**这次编辑之前**的位置），改它之前先读 `scripts/vscode-input-vim-e2e.mjs` 的 diag 用例。用 stub 的 `vscode` / `vscode-languageclient` / `child_process` + 假定时器跑真 `extension.js`，零依赖、毫秒级 | `editor/vscode/test-extension-host.js` |
+| **vim 真宿主**（A/B/C，`node scripts/vscode-input-vim-e2e.mjs`，8 条用例 × vim / 无 vim） | 同上：真 VS Code + `vscodevim.vim` + 真 keydown，`--list` 看清单。**用户动作 ⇒ 屏幕上那几行**：A `(` `\alpha` ` ` `x` ⇒ `(α x)`、B `\an`+`Esc`+`o` ⇒ 上一行原样、C `,alpha ` ⇒ `α `。⚠ 独立端口 + 唯一工作区名（`document.title` 验身份，撞到别人的窗口**拒绝跑**） | `scripts/vscode-input-vim-e2e.mjs` |
 | 集成测试（**单用例，每环节跑**） | `scripts/vscode-e2e.sh --grep "<用例名>" --profile debug --no-build` | **真宿主 + 真 LSP 的单条用例**（~5 秒，实测）；`--grep`/`--profile`/`--no-build` 三个开关见 `docs/E2E.md` §1b。环节循环的 L4 层，见本文 §4.1 | `editor/vscode/src/test/extension.test.js` |
 | 集成测试（**例行化，全量**） | `SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh`（内部 `npm test` → @vscode/test-electron） | 真宿主端到端：激活、语言 id、诊断、inlay/hover、重启、Infoview、doctor、**项目树**（真 `soko/project` 答案渲染的行）；结果记进 `docs/e2e/ledger.jsonl`（`soko.e2e/1`）。手册 = `docs/E2E.md` | `editor/vscode/src/test/extension.test.js` |
 | 手动验证 | F5 开发宿主 | 全功能（面板、树、inlay、跳转、补全、安装态离线） | — |
@@ -210,8 +211,7 @@ export DEVELOPER_DIR=/Library/Developer/CommandLineTools     # 绕过（只影�
 4. **didOpen 是通知**——不发 id，不期待响应；探针/测试里发 id 会被当作未知请求；
 5. **LSP 帧格式**——头块以 `\r\n\r\n` 结尾；探针/测试必须完整消费头块再读 body；
 6. **设置项**（`contributes.configuration`）：`serverPath` / `serverOverride` /
-   `trace.server` / `input.eager` / **`warmCacheOnOpen`**（T-A52，默认关——激活时
-   后台把工作区根 `build` 一遍预热缓存）。**只在 `activate()` 里读一次**的设置
+   `trace.server` / `input.eager` / **`input.leader`**（默认 `\`；vim 用户改成 `,`）/ **`warmCacheOnOpen`**（T-A52，默认关——激活时后台把工作区根 `build` 一遍预热缓存）。**只在 `activate()` 里读一次**的设置
    （`warmCacheOnOpen` 就是）测试没法事后开：stub 宿主用
    `activateExtension({ warmCacheOnOpen: true })`，真宿主靠夹具工作区的
    `.vscode/settings.json`（`src/test/fixtures/workspace/.vscode/settings.json`）。

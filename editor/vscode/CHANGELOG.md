@@ -2,6 +2,14 @@
 
 ### Added
 
+- **`sokonanoda.input.leader`**（默认 `\`，对齐 Lean 4 的 `lean4.input.leader`）
+  （2026-10-12 用户：「真 VS Code + vim 模式下记法输入全乱了」）：缩写的前导字符
+  **可配置**，`wordBeforeCursor` / `Tab` 键位的 `when` 子句（context key）/ 待定词的
+  高亮一律按它算，改设置**就地生效**（不必重载窗口），空串退回 `\`。
+  **为什么需要**：`\` 同时是 VSCodeVim 的 leader（`vim.leader` 默认也是 `\`），而 vim
+  打开文件默认在 NORMAL 模式、leader 在 normal 模式下**先**拿到按键 ⇒ `\alpha` 整串
+  被 vim 当命令吃掉。vim 用户把两边一起改成 `,` 之类即可（README「Typing notation →
+  Vim users」）。
 - **命令文档随插件分发 + 命令关键字 `F12` 跳文档**（2026-10-11 用户：「把命令文档加入
   vsix，`set_option` `#print` `#check` 等等 F12 跳转到对应文档里」）：`#check` /
   `#reduce` / `#print` / `set_option` 四个**命令字**上按 `F12` ⇒ 打开那一篇文档
@@ -11,8 +19,41 @@
   **边界**：命令**参数**位上的 `F12` 不受影响 —— `#check id` / `#print id` 的 `id`
   仍跳声明，`set_option pp.explicit true` 的选项名/值仍没有落点。
 
+### Changed
+
+- **`.sokonanoda` 里不再自动补右括号/右花括号/引号**（`editor.autoClosingBrackets:
+  "never"`，语言作用域）：**与记法即时替换冲突** —— 扩展发起的替换会让 VS Code 忘掉
+  "这个 `)` 是自动补的"，之后你亲手打的 `)` 就不再被跳过 ⇒ 整段证明会多出括号
+  （实测：`exact h))`、`{a} ⊆ )A := by`）。自动配对在**非 vim** 下也可能踩到，所以
+  按语言关掉；`vim` 用户另见 README「Typing notation → Vim users」。**代价写在明处**：
+  打 `(` 不再自动出现 `)`，要自己打（换来的是文本不会被改坏）。想要回来就设
+  `"[sokonanoda]": { "editor.autoClosingBrackets": "languageDefined" }`。
+- **粘贴的缩写不再被就地改写**（有意的行为变化，是同一条 vim 修复的另一半）：即时替换
+  现在只认**单字符、且落在光标处**的插入（真实打字就是一个键一个字符）。粘贴一整段
+  （含 `\alpha`）**原样保留**，要转符号就在后面按一下空格或 `Tab`。代价写在明处：以前
+  "粘进来顺手就换了"，现在这一步要你自己按 —— 换来的是 **normal 模式的 `o` / `p` /
+  `P` / `.` 不再改你上一行的字**（见 Fixed 第一条）。
+
 ### Fixed
 
+- **vim 模式下记法输入「全乱了」——三个叠加问题一次修**（2026-10-12 用户；真 VS Code
+  + `vscodevim.vim` 1.32.4 + 真按键取证）：
+  1. **光标错位（头号）**：`(` 自动配对出 `)` 之后打 `\alpha` ⇒ 替换本身对，但
+     VSCodeVim 在 insert 模式重设光标，把落点推到替换范围末端再 +1 ⇒ 光标落在 `)`
+     **右边**，之后每个键都错位（实测 `(` `\alpha` ` ` `x` 得到 `(α) x`，用户那段证明
+     变成 `… (α) : Type) (A : Set α)) (a : α)) …`）。⇒ 替换成功后**显式把光标钉在符号
+     之后**（多光标每个落点各自钉），并**对齐 Lean 4 客户端对 vim 的处理**
+     （`VSCodeAbbreviationRewriter`：装了 `vscodevim.vim` 时 `updateUnchangedSelections`
+     —— 光标"看起来没变"也要写一遍，因为 vim 只认扩展显式写下去的那个）。
+  2. **normal 模式偷偷改文本**：`\an`（故意不落定的前缀）+ `Esc` + `o` ⇒ 上一行的
+     `\an` 被补刀成 `∧`（`p` / `P` / `.` 同族）。根因是 `onDidChangeTextDocument`
+     只筛"纯插入"，还拿**旧坐标**去读新文档 ⇒ 现在加两道守卫：**单字符**插入 +
+     **光标一致性**（插入点必须正好是编辑器当前的光标；真宿主实测：内容事件到达扩展
+     宿主时选区事件还没到，所以不变量是「插入点 == 光标」，不是「插入文本末尾 ==
+     光标」。vim 的 normal 模式光标停在字符**上**、`o` 的插入点在行尾 ⇒ 不匹配 ⇒ 拒掉）。
+  3. **`\` 撞 vim 的 leader**：见上面 Added 里的 `sokonanoda.input.leader`。
+  判据：`node scripts/vscode-input-vim-e2e.mjs`（真 VS Code + 真 vim 扩展 + 真 keydown，
+  8 条用例 × vim / 无 vim 两条臂；修前 A/B/C 三条红、修后全绿）。
 - **`#print <名字>` 的名字现在能 `F12` 跳定义**（2026-10-11 用户：「`#print
   Set.singleton` 里 `Set.singleton` 不支持 F12 跳转」）：这条命令以前**一个 hover 行
   都不产生** ⇒ 跳转答 `null`（hover 那半一直是好的：它显示命令自己的输出）⇒ 现在给那个
