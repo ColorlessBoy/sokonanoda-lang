@@ -190,3 +190,4 @@
 {"ts": "2026-10-12T21:53:52+00:00", "event": "claim", "id": "M-03…M-06", "owner": "orchestrator", "resources": ["crates/front"]}
 {"ts": "2026-10-12T21:53:52+00:00", "event": "advance", "id": "M-03…M-06", "to": "done", "commit": "689b5a87", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T21:57:31+00:00", "event": "split", "id": "F12b2-front-intro-notation", "parent": "F12", "title": "front 侧：项位的闭包记法箭头目标仍 0 条候选（intro_count 记法盲）", "owner": "penglingwei@penglingweis-Laptop"}
+{"ts": "2026-10-12T22:13:01+00:00", "event": "reopen", "id": "r20", "reason": "frontE 的修法（wire 显示副本去冗余括号）**违反了既有契约** ⇒ 已 revert（见下），缺口回来", "owner": "penglingwei@penglingweis-Laptop"}
