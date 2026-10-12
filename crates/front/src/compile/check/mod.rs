@@ -1538,6 +1538,14 @@ where
 {
     stage_stats::install();
     stage_stats::PASSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    // **G-100**：这一趟 = **一份环境** ⇒ 压入新的**环境代际**（进程级名字键缓存
+    // [`crate::judge::judge_type_of_constant`] 的失效路径）。本函数是**所有 pass 的
+    // 唯一收口**（`run`/`run_incremental` 都经 `run_pass_in` 到这里，session 直接调
+    // 它 ✓）⇒ 收口处压一次就够 ✓。守卫是**栈式**的：judge 的合成趟（`#check` 文档）
+    // 自己也会压一趟、退出时弹回外层 ⇒ 外层编译刚写下的条目不被它作废 ✓
+    // （否则 `SOKO_JUDGE_INPLACE=off` 那档每问一次判定就冲一次缓存 ✗）。
+    // 逃生门 `SOKO_CACHE_KEY_NO_ENV_GENERATION=1` ⇒ 恒为 0（旧行为）。
+    let _env_generation = crate::judge::fresh_environment();
     // **闭包模块编译次数**（G-29 的精确判据读数，2026-10-07）：只数**真模块**
     // （`path: Some(..)` = 来自 `plan.closure.compilable()` 的源文件），**不数**
     // judge 合成的判定文档（`SourceUnit::single("", file)` ⇒ `path: None`）。

@@ -2402,7 +2402,9 @@ pub fn judge_type_of(
 /// 分钟级）。
 ///
 /// 常量的签名与「谁在用它」无关（名字唯一且单调增长），所以这里的键只有
-/// （选项, 规范名）。**只缓存成功**：失败照旧走原路（那可能只是"还没声明"）。
+/// （**环境代际**, 选项, 规范名）—— 代际见 [`type_of_constant_cache`] 的说明
+/// （**G-100**：同一份环境内命中、跨环境必失效 ✓）。**只缓存成功**：失败照旧走原路
+/// （那可能只是"还没声明"）。
 pub fn judge_type_of_constant(
     prefix_src: &str,
     options: &CompileOptions,
@@ -2419,7 +2421,9 @@ pub fn judge_type_of_constant(
 /// **记法目标签名缓存的唯一持有者**（`judge_type_of_constant` 与就地路**共用** ✓）。
 ///
 /// ⚠ **就地路必须写穿它**（2026-10-09 实测教训 · `b734114d` 抓到的回归）：
-/// 这条缓存的前提是"常量签名与**谁在用它**无关"⇒ 键只有（选项, 规范名）✓。
+/// 这条缓存的前提是"常量签名与**谁在用它**无关"⇒ 键只有（**环境代际**, 选项, 规范名）✓
+/// （**G-100** 起代际进键：同一份环境内命中、跨环境必失效 —— 见
+/// [`type_of_constant_cache`] 的说明）。
 /// 就地路**绕过** `judge_type_of_constant` 之后就**不再写它** ✗ ⇒ 下游
 /// （LSP hover 的 `judge_type_of_constant`）从"命中编译期缓存"退化成
 /// "拿**局部前缀**冷查一次" —— 而那种前缀可能**停在记法中间、解析不过** ✗
@@ -2430,12 +2434,89 @@ fn type_of_constant_cache() -> &'static Mutex<HashMap<String, Result<String, Jud
     CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+/// **环境代际**（G-100）：进程级名字键缓存（[`type_of_constant_cache`]）的**失效路径**。
+///
+/// 那张缓存的前提是「常量的签名与**谁在用它**无关（名字唯一且单调增长）」——
+/// 这在**一份环境内**成立（同一份环境里一个名字不可能有两种签名：重复声明会被内核
+/// 拒绝 ✓），**跨环境不成立** ✗：同一个名字出现在另一个文件 / 另一趟编译 / 用户刚改
+/// 了签名，都会命中旧条目。真 CLI 实测（一个进程编两个文件）：`a.sokonanoda` 的
+/// `soko_shared_op : (α : Type) -> α -> α -> Prop` 被 `b.sokonanoda` 的**同名**常量
+/// （`Prop -> Prop -> Prop`）读了去 ⇒ 记法展开多补一个前导参数 ⇒ `b` 被判红
+/// （`kernel-rejected: 类型不匹配：期望 Sort(0)，实际是 Sort(1)`）✗ —— 复现件
+/// `docs/gaps/repro/G100-process-name-cache-has-no-invalidation.sh`。
+///
+/// ⇒ 键里带上**当前环境的代际**：一趟 pass（= 一份环境，由
+/// [`crate::compile::check`] 的 `run_pass_with` 压栈）内代际不变 ⇒ 缓存照常命中
+/// （`elab_notation` 那笔 O(n²) 的解药一字不动 ✓）；换一份环境 ⇒ 代际必然不同 ⇒
+/// 旧条目**够不着** ✓（读不到就不会答旧签名 ✓）。
+///
+/// **为什么是线程局部 + 栈式**（[`fresh_environment`]）：判定的**合成趟**
+/// （`judge_infer` / `judge_type_of` 合成 `#check` 文档）跑的是"外层编译前缀"的一份
+/// **子环境** —— 它自己的 pass 会压入新代际、退出时**弹回外层那个** ⇒ 外层编译刚写下
+/// 的条目不会被它作废 ✓（否则 `SOKO_JUDGE_INPLACE=off` 那档每问一次判定就把缓存冲
+/// 一次，退化成每问必重编 ✗）。线程局部还让 `build` 的**入口级并行**
+/// （`SOKONANODA_BUILD_JOBS`）各自持有自己的代际 ⇒ 两条并行的编译不互相作废 ✓
+/// （全局计数器只负责**发号**，保证任何两份环境拿到的号都不同 ✓）。
+///
+/// 逃生门（只给反向验证用）：`SOKO_CACHE_KEY_NO_ENV_GENERATION=1` ⇒ 代际恒为 0
+/// （= 今天的行为：键里没有代际）⇒ G-100 的复现件必须重新判红 ✓。
+fn env_generation_disabled() -> bool {
+    std::env::var_os("SOKO_CACHE_KEY_NO_ENV_GENERATION").is_some_and(|v| v == "1")
+}
+
+thread_local! {
+    /// 本线程**当前环境**的代际（`0` = 不在任何环境里 / 逃生门关着）。
+    static ENV_GENERATION: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
+
+/// 代际发号器（全局单调；`0` 留给"没有环境"）。
+static NEXT_ENV_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
+/// 进入一份**新环境**的守卫：分配一个新代际、在本线程生效；`Drop` 时弹回外层。
+pub(crate) struct EnvironmentGuard {
+    previous: u64,
+}
+
+impl Drop for EnvironmentGuard {
+    fn drop(&mut self) {
+        ENV_GENERATION.with(|cell| cell.set(self.previous));
+    }
+}
+
+/// 一趟 pass = 一份环境 ⇒ `run_pass_with`（**所有 pass 的唯一收口**）在开头压入一个
+/// 新代际（栈式，见 [`EnvironmentGuard`]）。逃生门开着 ⇒ 什么都不做（键里没有代际）。
+pub(crate) fn fresh_environment() -> EnvironmentGuard {
+    let previous = ENV_GENERATION.with(std::cell::Cell::get);
+    if !env_generation_disabled() {
+        let fresh = NEXT_ENV_GENERATION.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        ENV_GENERATION.with(|cell| cell.set(fresh));
+    }
+    EnvironmentGuard { previous }
+}
+
+/// 本线程当前环境的代际。
+fn current_env_generation() -> u64 {
+    if env_generation_disabled() {
+        return 0;
+    }
+    ENV_GENERATION.with(std::cell::Cell::get)
+}
+
+/// [`type_of_constant_cache`] 的键（**唯一一处**：读与写共用 ⇒ 不会分叉 ✓）。
+fn type_of_constant_key(options: &CompileOptions, name: &str) -> String {
+    format!(
+        "{}|{}|{name}",
+        current_env_generation(),
+        options_key(options)
+    )
+}
+
 /// 缓存**只读**（`None` = miss）。
 fn type_of_constant_cache_get(
     options: &CompileOptions,
     name: &str,
 ) -> Option<Result<String, Judgement>> {
-    let key = format!("{}|{name}", options_key(options));
+    let key = type_of_constant_key(options, name);
     type_of_constant_cache()
         .lock()
         .ok()
@@ -2452,7 +2533,7 @@ fn type_of_constant_cache_put(
         return;
     }
     const CAP: usize = 4096;
-    let key = format!("{}|{name}", options_key(options));
+    let key = type_of_constant_key(options, name);
     if let Ok(mut c) = type_of_constant_cache().lock() {
         if c.len() < CAP {
             c.insert(key, result.clone());
@@ -4539,5 +4620,51 @@ mod tests {
             Judgement::Error { code, .. } => assert_eq!(code, "parse"),
             other => panic!("expected parse error, got {other:?}"),
         }
+    }
+
+    /// **G-100 判据（键那一半）**：常量签名缓存的名字键必须**按环境代际分段** ——
+    /// 同一份环境内键稳定（缓存照常命中 ✓），换一份环境必换键（旧签名够不着 ✓），
+    /// 嵌套的**合成趟**退出后必须**弹回外层代际**（否则外层编译刚写下的条目会被
+    /// 判定合成趟作废 ⇒ `SOKO_JUDGE_INPLACE=off` 那档退化成每问必重编 ✗）。
+    ///
+    /// 端到端判据（一个进程编两个同名不同签名的文件）：
+    /// `docs/gaps/repro/G100-process-name-cache-has-no-invalidation.sh`
+    /// ⇒ 0 = 缺口仍在 / 1 = 已修。
+    ///
+    /// 反向验证：把 [`type_of_constant_key`] 里的代际那一段删掉 ⇒ 本测试第一段
+    /// （"换环境必须换键"）当场判红 ✓。
+    #[test]
+    fn the_constant_signature_cache_is_scoped_to_one_environment() {
+        let options = CompileOptions::default();
+        let outer = {
+            let _env = fresh_environment();
+            let first = type_of_constant_key(&options, "soko_scoped_op");
+            assert_eq!(
+                first,
+                type_of_constant_key(&options, "soko_scoped_op"),
+                "同一份环境内键必须稳定（否则缓存一次都命中不了 ✗）"
+            );
+            assert_ne!(
+                first,
+                type_of_constant_key(&options, "soko_other_op"),
+                "名字仍然是键的一部分 ✓"
+            );
+            let nested = {
+                let _inner = fresh_environment();
+                type_of_constant_key(&options, "soko_scoped_op")
+            };
+            assert_ne!(first, nested, "嵌套的一趟（合成趟）是另一份环境 ✓");
+            assert_eq!(
+                type_of_constant_key(&options, "soko_scoped_op"),
+                first,
+                "退出嵌套必须弹回外层代际（栈式 ✓）"
+            );
+            first
+        };
+        assert_ne!(
+            type_of_constant_key(&options, "soko_scoped_op"),
+            outer,
+            "换一份环境（新的一趟 pass）必须换键 —— 这就是 G-100 的失效路径 ✓"
+        );
     }
 }
