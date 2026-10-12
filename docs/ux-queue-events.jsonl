@@ -65,3 +65,20 @@
 {"ts": "2026-10-12T13:04:15+00:00", "event": "advance", "id": "r08", "to": "done", "commit": "4925fec3", "reading": "bash scripts/ux-probes/lang/r08-congrarg-empty-binder.sh ⇒ exit 1（编排者独立复跑，构建 stale=false）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T13:58:13+00:00", "event": "reopen", "id": "SUB-keyword-decl-name", "reason": "撤回（1e6ce6d12）：那笔改了判定行为（拒 theorem open）⇒ 整笔退回基线，条目重开待重做", "owner": "orchestrator"}
 {"ts": "2026-10-12T13:58:13+00:00", "event": "reopen", "id": "SUB-duplicate-found-msg", "reason": "撤回（1e6ce6d12）：那笔改了判定行为（拒 theorem open）⇒ 整笔退回基线，条目重开待重做", "owner": "orchestrator"}
+{"ts": "2026-10-12T14:32:01+00:00", "event": "claim", "id": "r07", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T14:32:02+00:00", "event": "advance", "id": "r07", "to": "done", "commit": "f46fdb84", "reading": "bash scripts/ux-probes/lang/r07-*.sh ⇒ exit 1（构建 HEAD=de4fa376 · stale=false）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T14:32:02+00:00", "event": "claim", "id": "r10", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T14:32:02+00:00", "event": "advance", "id": "r10", "to": "done", "commit": "f46fdb84", "reading": "bash scripts/ux-probes/lang/r10-*.sh ⇒ exit 1（构建 HEAD=de4fa376 · stale=false）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T14:32:02+00:00", "event": "claim", "id": "r11", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T14:32:02+00:00", "event": "advance", "id": "r11", "to": "done", "commit": "f46fdb84", "reading": "bash scripts/ux-probes/lang/r11-*.sh ⇒ exit 1（构建 HEAD=de4fa376 · stale=false）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T14:32:02+00:00", "event": "claim", "id": "r23", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T14:32:02+00:00", "event": "advance", "id": "r23", "to": "done", "commit": "f46fdb84", "reading": "bash scripts/ux-probes/lang/r23-*.sh ⇒ exit 1（构建 HEAD=de4fa376 · stale=false）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T14:32:41+00:00", "event": "claim", "id": "SUB-duplicate-found-msg", "owner": "LANG-B", "resources": ["crates/front"]}
+{"ts": "2026-10-12T14:33:34+00:00", "event": "claim", "id": "DOC-DANGLING", "owner": "orchestrator", "resources": ["docs", "scripts"]}
+{"ts": "2026-10-12T14:33:36+00:00", "event": "claim", "id": "C3", "owner": "LSP-B", "resources": ["crates/lsp"]}
+{"ts": "2026-10-12T14:43:58+00:00", "event": "advance", "id": "DOC-DANGLING", "to": "done", "commit": "b59f8cbf", "reading": "见 extras 的 observed 字段（判据命令 + 实测读数）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T14:44:03+00:00", "event": "claim", "id": "STRUCT-SRC-LINES", "owner": "orchestrator", "resources": ["docs", "scripts"]}
+{"ts": "2026-10-12T14:44:03+00:00", "event": "advance", "id": "STRUCT-SRC-LINES", "to": "done", "commit": "85ef4b85", "reading": "见 extras 的 observed 字段（判据命令 + 实测读数）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T14:44:03+00:00", "event": "claim", "id": "CI-WIRE-GUARD", "owner": "orchestrator", "resources": ["docs", "scripts"]}
+{"ts": "2026-10-12T14:44:03+00:00", "event": "advance", "id": "CI-WIRE-GUARD", "to": "done", "commit": "85ef4b85", "reading": "见 extras 的 observed 字段（判据命令 + 实测读数）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T14:44:29+00:00", "event": "submit", "id": "DOC-REFS-CODE", "owner": "penglingwei@penglingweis-Laptop", "kind": "finding", "evidence": "python3 scripts/docs-lint.py --json ⇒ doc_refs_dangling=445 / doc_refs_paths=90（基线内、无新增）；权威处已改写后 469→445"}
