@@ -126,29 +126,25 @@
   `elab-unknown-identifier` 的 span 精确度 · `sorry`/开放练习状态清楚 · hover 签名（编辑器 F7）·
   Build/Clean 的反馈（F14）· 撤销/重做与保存（F15）· 编辑器 F1 的因果对照 `notation-clean-control`。
 
-## 6. 🔄 复跑现状与仍未收口项（2026-10-12 09:2x 主会话复跑，**干净缓存**）
+## 6. 🔄 复跑现状与仍未收口项（2026-10-12 15:5x 主会话复跑，**干净缓存**）
 
-**已修好（探针转 exit 1）**：`r04`（`apply` 结论校验 —— 负例现在报「`apply` 的目标不匹配…」并落在写错那行；
-两条正确用法仍绿）· `r05`/`r08`/`r09`（隐式实参第二候选 + `congrArg` 空名 Pi）· `r12`。独立夹具
-`.cache/ux/main-verify/c-probe.sokonanoda` **9/9 checked、0 诊断**（裸写 `Eq.symm hx` · `exact Eq.subst
-(Eq.symm hx) hp` · `apply Eq.subst (Eq.symm hx)` · 5 个既有绿例 · 用户原来的位置填隐参写法）。
+**已修好（对应探针由「缺口仍在」转「已变 / 一致」）**：
+- **第一批（09:2x）**：`r04`（`apply` 结论校验 —— 负例现在报「`apply` 的目标不匹配…」并落在写错那行；两条正确
+  用法仍绿）· `r05`/`r08`/`r09`（隐式实参第二候选 + `congrArg` 空名 Pi）· `r12`。独立夹具
+  `.cache/ux/main-verify/c-probe.sokonanoda` **9/9 checked、0 诊断**（裸写 `Eq.symm hx` · `exact Eq.subst
+  (Eq.symm hx) hp` · `apply Eq.subst (Eq.symm hx)` · 5 个既有绿例 · 用户原来的位置填隐参写法）。
+- **第二批（长尾 ①–⑤）**：`A1`（`by` 块灯泡插入的是 **tactic** 文本 —— 洞带**位置模式**，`REPORT_SHAPE` 7→8）·
+  `D1`+`r06`（入口自身的 parse 错归因到**自己** = 新码 `entry-parse-failed`；`query check` 与 `grade --json`
+  诊断集**逐条相等**）· `r01`+`r15`（内核拒绝**源级渲染** + span 收到**出错子项**；判定不变：40 文件 × 2 臂
+  对拍 0 差异）· `C1`–`C5`（补全给 **`import` 进来的库名 / prelude 签名 / 行末 binder / 位置分档 / `\in`
+  输入法**）· `m07`（缓存键折进**内建 prelude 摘要** ⇒ 改了 prelude 不再答旧行为）。LSP 探针 `--all`：
+  **8 一致 / 20 不一致 → 13 / 15**（只有 `A1`/`D1`/`C1`–`C5` 转一致，**零回归**）。
 
-**⚠ 探针自己的两个坑（本轮修掉，判据随之修正）**：① **干净缓存纪律** —— 25 条语言探针原先都没隔离缓存
-⇒ 语言改了以后会读 M-07 的旧条目**假红**（`r04` 实测：修好之后探针仍报 exit 0）⇒ 现已全部加 `mktemp`
-缓存 + 关两处产物 + `trap` 清理；② **`r02` 从「缺口」改成「对照臂」** —— 原判据用 `#check <裸常量>`，而
-裸常量走签名源文本捷径、**有意**不受 `pp.explicit` 影响（`reference/commands/set_option.md` §边界）⇒ 改成
-同时断言「`#print` 必须变（`Set α` → `@Set α`）+ `#check` 裸常量必须不变」，exit 0 = 对照成立。
-
-**仍未收口 / 未验证（不许当成已修好）**：① **vim 残留** —— 60ms/字符连打时 vim 臂偶发**丢一个 Enter**
-（实测 1/5；同节奏无 vim 3/3 干净），是掉键不是文本错乱，疑在 VSCodeVim 的 `<CR>` 异步处理，未定性；
-用户原症状（多 `)`）已修（主会话以**磁盘**为准复跑 8 次无 `)` 错乱，修前副本对照臂红）·
-② **编辑器 PM 自述未验证面**：vim 三条新候选没跑 · 首次打开耗时（webview 文本读法失败）· Infoview 逐字
-DOM（只有截图像素 + 内核侧数据）· 大文件/多模块卡顿 · `Rebuild` · 课程/项目视图为空是否设计如此 · `alt+s` ·
-③ **vim 自述未验证面**：`.`（点重复）未单独测 · 初始模式 NORMAL/INSERT **实测不稳定** · `<CR>` 未隔离 ·
-④ **M-07 的探针只验「键的构成」**（`m07` 独立复算 FNV(profile/OS/ARCH) 与产物 `build_stamp` 比对 ⇒ 证明键里
-没有 prelude 摘要）；**行为判据**要改 `prelude/**`（本汇总任务禁改），步骤见 `m07` 脚本头 ·
-⑤ **编辑器/vim 探针未复跑**（需真 VS Code；只跑 `--list`，两者 exit 0）：`node scripts/ux-probes/editor-probe.mjs --list` · `node scripts/ux-probes/vim-probe.mjs --list`。
-
+**⚠ 探针自己的坑（本批修掉，判据随之修正）**：① **干净缓存纪律** —— 25 条语言探针原先都没隔离缓存 ⇒ 语言
+改了以后会读 M-07 的旧条目**假红**（`r04` 实测：修好之后探针仍报 exit 0）⇒ 现已全部加 `mktemp` 缓存 + 关
+两处产物 + `trap` 清理；② **`r02` 从「缺口」改成「对照臂」**（裸常量 `#check` 有意不受 `pp.explicit` 影响）；
+③ **`m07` 判据原先歧义**（分不清"prelude 摘要已折进"与"设了 `SOKO_BUILD_LABEL`" ⇒ 会**假报已修** ✗）⇒ 改成
+三侧可分辨：旧式 ⇒ exit 0 / 新式 ⇒ exit 1 / 两者都不是（设了 label）⇒ **exit 2 UNDECIDABLE**。
 ## 7. 🔁 复核方法（怎么复跑一条）
 
 ```bash

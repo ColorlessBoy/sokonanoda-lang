@@ -2,6 +2,15 @@
 
 ### Added
 
+- **诊断与补全的五条体验修复**（2026-10-12，LSP 侧；插件本体未改）：① `by` 块里点灯泡
+  **不再一点就红** —— 插入文本随洞的**位置模式**定型（tactic 位给 `exact hp`、值位仍给裸
+  `hp`）；② 入口文件自己的语法错**不再甩锅**给被导入的文件（新码 `entry-parse-failed`，
+  红波浪落在**本文件**的真错位置）；③ 内核拒绝**说人话** —— `Pi ( : …)`/`Set.[]`/
+  `第 N 个绑元` 变成源级名字与记法（`∀(α : Sort 1), … (a ∈ A)`），且 span 收到**出错那一项**
+  而不是整条声明；④ 补全终于给 **`import` 进来的库名**（`Set.mem`/`Set.subset_def`…）、
+  prelude 名的**完整签名**、**行末**也给本域假设、候选按位置分档；⑤ `\in` 这类**输入法**
+  进补全（带 `textEdit` ⇒ `∈`）。判据与反向验证见 `docs/ux-findings-2026-10-12.md` 与
+  `scripts/ux-probes/`（`lsp-probe.mjs` 的 `A1`/`C1`–`C5`/`D1` 已由不一致转一致）。
 - **`sokonanoda.input.leader`**（默认 `\`，对齐 Lean 4 的 `lean4.input.leader`）
   （2026-10-12 用户：「真 VS Code + vim 模式下记法输入全乱了」）：缩写的前导字符
   **可配置**，`wordBeforeCursor` / `Tab` 键位的 `when` 子句（context key）/ 待定词的
