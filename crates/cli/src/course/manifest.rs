@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! Course **manifest v2** (`soko.course/2`) parsing, with the v1 flat array
 //! still accepted (ledger G-07; design `docs/design/course-manifest-v2.md`).
 //!

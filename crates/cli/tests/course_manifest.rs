@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! 课程清单 **v2**（`soko.course/2`）与 **v1**（扁平数组）的兼容契约
 //! （台账 G-07；设计 `docs/design/course-manifest-v2.md`）。
 //!

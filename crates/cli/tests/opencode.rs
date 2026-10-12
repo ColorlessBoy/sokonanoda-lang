@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! Environment subcommands + opencode project-config contract: the environment
 //! entrypoint is the `sokonanoda` binary itself (`version`/`doctor`/`setup`/
 //! `update`/`lsp`/`gate`, docs/design/binary-cli.md). The opencode layer must

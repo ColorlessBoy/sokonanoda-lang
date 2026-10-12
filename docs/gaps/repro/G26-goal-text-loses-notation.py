@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 """G-26 自断言复现：**Infoview 的「目标」栏不显示记法（点名形式）**。
 
 用户原话：「infoview 里的 goal 展现没有用 notation 的方式」。

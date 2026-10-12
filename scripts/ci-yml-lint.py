@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 """`.github/workflows/*.yml` 的静态校验（2026-09-26 事故 ✓）。
 
 **事故** ✓：我给 `ci.yml` 加一步时，把新的 `run:` 写进了**上一个 step 的映射里** ✗

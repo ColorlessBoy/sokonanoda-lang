@@ -1,4 +1,4 @@
-# notation 子集（G-04 / WO-011）——第一刀：`∈` / `⊆` / `∅` + 通用 `infix`
+# notation 子集（G-04 / WO-011）——第一刀：`∈` / `⊆` / `∅` + 通用 `infix` ｜ 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only
 
 > 状态：**已落地（as-built）**。工作单 `docs/gaps/WO-011-notation.md`；台账
 > `docs/gaps/ledger.jsonl` 的 G-04。硬规则依据：`REQUIREMENTS.md` §2 第 3 条

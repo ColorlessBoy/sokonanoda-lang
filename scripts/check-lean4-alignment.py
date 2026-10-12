@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 """**卡住 ⇒ 先读 Lean 4** 的守卫（用户 2026-10-05 拍板 ✓；规则见 `AGENTS.md`）。
 
 ## 为什么要有这条守卫 ✗

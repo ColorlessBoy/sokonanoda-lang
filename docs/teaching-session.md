@@ -1,4 +1,4 @@
-# 教学循环：playground.sokonanoda（agents 开课前必读）
+# 教学循环：playground.sokonanoda（agents 开课前必读） ｜ 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only
 
 > 画布：仓库根 `playground.sokonanoda`（学习者与 agent 共同编辑）。
 > 依据：`REQUIREMENTS.md` §6（教学工作流）；事件协议：`docs/protocol.md`。

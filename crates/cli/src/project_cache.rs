@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! 项目闭包缓存的 **CLI 侧薄封装**（T-A01 起实现在 `sokonanoda_front::project::cache`）。
 //!
 //! 为什么留这一层：CLI 的三条命令（`check` / `build` / `query`）与 `course`

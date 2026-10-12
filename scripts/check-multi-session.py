@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 """**多会话 / 多分支守卫**（X2，2026-09-28）：两条**只有 main 出得起**的红线，写成可判红的东西。
 
 用户要求（`docs/PLAN-0.74-0.79.md` X2）：

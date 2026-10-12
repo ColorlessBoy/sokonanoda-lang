@@ -1,4 +1,4 @@
-# 发布手册（RELEASE.md）
+# 发布手册（RELEASE.md） ｜ 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only
 
 发布流水线：`.github/workflows/release.yml`（tag 触发 + `workflow_dispatch`
 dry-run）。**发布已全自动**：bump 两处版本 → commit 推 main → `ci.yml` 的

@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! 记法（G-04 / WO-011，设计 `docs/design/notation-subset.md`）的 CLI 端到端。
 //!
 //! 判据是 **N7 教学契约**：同一命题的两种写法——点名 `Set.mem α a A` 与记法

@@ -1,4 +1,4 @@
-//! In-memory declaration building for front-ends.
+//! In-memory declaration building for front-ends.  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! The parser-style NDJSON path builds an [`ExportFile`] at the very end.
 //! `EnvBuilder` gives the Sokonanoda front-end the same ability: construct

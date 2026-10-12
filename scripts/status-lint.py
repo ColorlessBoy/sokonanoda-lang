@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 """STATUS.md 的 lint（用户 2026-09-26 要求 ✓）—— 见 REQUIREMENTS.md §9。
 
 **为什么** ✓：STATUS.md 曾是 **1534 行 / 67 KB** ✗，含 **163 条 "round N"** ✗ 与

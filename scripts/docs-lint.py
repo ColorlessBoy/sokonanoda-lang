@@ -165,6 +165,28 @@ def live_docs(files: set[str]) -> list[str]:
     return sorted(out)
 
 
+# **文件级历史声明**（2026-10-13）：文件**开头**（前 60 行）出现这一行 ⇒ 该文件里所有
+# `docs/**.md` 指针都按**历史位置**看待（不再逐行加「已删 ⇒ git log …」的尾巴）。
+#
+# 为什么需要它：逐行加尾巴在**代码注释**里会制造大量噪声（实测 `crates/cli/tests/
+# extension.rs` 一个文件 22 处、9 个不同路径），而噪声会让人**不再读注释** ✗。
+# 文件级声明把同一件事说**一次**，且同样是**评审可见**的（写在文件里、diff 里看得见 ✓）。
+# ⚠ 它**不是豁免**：声明必须点名恢复方式（判据会检查同一行/邻近行有 `git log`）✓
+DOC_REF_FILE_MARKER = "doc-refs: history-only"
+
+
+def _declares_history_only(text: str) -> bool:
+    """文件开头是否声明了「本文件的文档指针都是历史位置」（见 `DOC_REF_FILE_MARKER`）。"""
+    head = text.splitlines()[:60]
+    for i, line in enumerate(head):
+        if DOC_REF_FILE_MARKER in line:
+            # ⚠ 声明必须**自带恢复方式**（同一行或紧邻两行内有 `git log`）⇒
+            # 否则它就成了"免检通行证" ✗（咬不住的守卫等于没有 ✓）。
+            near = "\n".join(head[max(0, i - 2) : i + 3])
+            return "git log" in near
+    return False
+
+
 def scan_doc_refs(files: set[str]) -> dict[str, list[str]]:
     """⑧ 扫出**悬空的活指针** ⇒ `{被引用的路径: ["文件:行", …]}`。
 
@@ -191,6 +213,8 @@ def scan_doc_refs(files: set[str]) -> dict[str, list[str]]:
             text = p.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
+        if _declares_history_only(text):
+            continue  # 文件级历史声明（自带恢复方式 ✓，见常量说明）
         for i, line in enumerate(text.splitlines(), 1):
             if any(h in line for h in DOC_REF_HISTORY):
                 continue
@@ -724,6 +748,31 @@ def selftest() -> int:
         _SRC_LINES_OVERRIDE = None
     results.append(("⑨", "基线过期（已降回却留着）", any(
         b.startswith("⑨") and "基线过期" in b for b in bad)))
+
+    # ⑧b **文件级历史声明**：三条方向性用例（与 ⑧ 同款 ✓）
+    m_doc = Path("docs/design/__docref_marker_selftest__.md")
+    m_doc.write_text(
+        "<!-- " + DOC_REF_FILE_MARKER + "：本文件提到的 `docs/**` 均已删除，"
+        "原文 ⇒ git log --all -- <path> -->\n见 `docs/design/__docref_absent__.md`。\n",
+        encoding="utf-8",
+    )
+    try:
+        bad, _ = check_doc_refs(tracked())
+    finally:
+        m_doc.unlink(missing_ok=True)
+    results.append(("⑧", "文件级历史声明生效（不误红）", not any(
+        "__docref_absent__" in b for b in bad)))
+
+    m_doc.write_text(
+        f"<!-- {DOC_REF_FILE_MARKER} -->\n见 `docs/design/__docref_absent__.md`。\n",
+        encoding="utf-8",
+    )
+    try:
+        bad, _ = check_doc_refs(tracked())
+    finally:
+        m_doc.unlink(missing_ok=True)
+    results.append(("⑧", "声明**没写恢复方式** ⇒ 不算（免检通行证 ✗）", any(
+        "__docref_absent__" in b for b in bad)))
 
     ok = all(hit for _, _, hit in results)
     for code, label, hit in results:

@@ -131,3 +131,8 @@
 {"ts": "2026-10-12T16:27:02+00:00", "event": "advance", "id": "N1", "to": "done", "commit": "84765de4", "reading": "lsp-probe --case N1 ⇒ exit 2 → 0（锚点按内容/声明名重定后；编排者独立复跑）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T16:27:02+00:00", "event": "claim", "id": "C3", "owner": "orchestrator", "resources": ["scripts/ux-probes"]}
 {"ts": "2026-10-12T16:27:02+00:00", "event": "advance", "id": "C3", "to": "done", "commit": "84765de4", "reading": "lsp-probe --case C3 ⇒ exit 2 → 0（锚点按内容/声明名重定后；编排者独立复跑）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T16:40:54+00:00", "event": "release", "id": "LEDGER-COURSES-UNREAD", "owner": "probe", "reason": "编排者隔离实验残留的认领（SOKO_QUEUE_EVENTS 重定向时误占真锁）⇒ 归还"}
+{"ts": "2026-10-12T16:41:49+00:00", "event": "claim", "id": "r14", "owner": "orchestrator", "resources": ["crates/cli"]}
+{"ts": "2026-10-12T16:41:57+00:00", "event": "claim", "id": "F3", "owner": "EDITOR-C", "resources": ["editor/vscode"]}
+{"ts": "2026-10-12T16:42:12+00:00", "event": "claim", "id": "G-112", "owner": "FRONT-G", "resources": ["crates/front"]}
+{"ts": "2026-10-12T16:47:30+00:00", "event": "advance", "id": "r14", "to": "done", "commit": "a2720b75", "reading": "r14 探针 exit 0→1（3270→1023 字节）· 去 *_runs 后语义逐字节相同 · 反向=撤接线 ⇒ 单测 FAILED", "reason": null, "owner": "orchestrator"}

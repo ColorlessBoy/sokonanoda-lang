@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! **K1-a（T-K11）的验收判据**：`SOKO_JUDGE_ENV_REUSE` 两态下，同一批语料的
 //! `grade --json` 事件流必须**逐字节相同**（含诊断的码/消息/span）。
 //!

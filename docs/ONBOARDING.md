@@ -1,4 +1,4 @@
-# 接手路径（X1）—— **读这几个就够开工**
+# 接手路径（X1）—— **读这几个就够开工** ｜ 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only
 
 > **这份文件是「接手成本」与「计划」的唯一权威** ✓（2026-09-29 起它 = 接手路径 **+ 开工单**，
 > 原 `docs/NEXT.md` 已并入 ⇒ **不再有第二个文件**；2026-09-30 起 `STATUS.md` 与
@@ -61,8 +61,8 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=32 blocker=0 high=3 medium=19 low=10 -->
-**未完成 32 条**（blocker **0** · high **3** · medium **19** · low **10**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+<!-- QUEUE:COUNTS total=31 blocker=0 high=3 medium=18 low=10 -->
+**未完成 31 条**（blocker **0** · high **3** · medium **18** · low **10**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
 最靠前的 5 条：`F3` · `G-100` · `G-112` · `D2` · `D5`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 

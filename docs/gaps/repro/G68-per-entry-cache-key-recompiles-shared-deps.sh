@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 # G-68 自断言复现：**项目 build/rebuild 的缓存键是 per-entry-closure ⇒ 共享依赖在每个入口里各编一遍**。
 #
 # 退出码（docs/gaps/README.md）：0 = 缺口仍在 · 1 = 已修 · 2 = 环境/前置缺失。

@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! 线 C（记法折叠）的**判别性**端到端：`SOKO_NO_NOTATION_FOLD=1` 关掉折叠之后，
 //! 四个 surface 各自**必须**怎么变（T-C24 的机械判据，设计
 //! `docs/design/vscode-editor-feedback-plan.md` §T-C24）。

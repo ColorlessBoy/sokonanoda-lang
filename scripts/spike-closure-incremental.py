@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 """T-K20 的 spike：量「同进程依次打开多个入口」里有多少编译是白跑的。
 
 设计 `docs/design/closure-incremental.md`。它只**量**，不改任何行为。

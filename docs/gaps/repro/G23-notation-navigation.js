@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 // G-23 自断言复现：**记法符号既不能跳转，hover 也不给原始类型**。
 //
 // 用户原话：「代码里的 notation 不能跳转，hover 信息也没有对应的原始类型」。

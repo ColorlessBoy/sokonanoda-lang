@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! VS Code client contract tests (`editor/vscode/`): the unpackaged extension
 //! is part of the product surface, so its manifest and entry script must stay
 //! consistent with the server's custom goal-view protocol and the CLI's

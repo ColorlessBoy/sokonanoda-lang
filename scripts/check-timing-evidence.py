@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 """**时序证据守卫**（E18，2026-09-28）：动过时序敏感代码的交付，**commit message 里必须有实测计时数字**。
 
 用户原话（D10，[94] 23:18）：

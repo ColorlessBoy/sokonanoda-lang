@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 """A∖B 对账：扩展从 LSP 的 wire 载荷里**读**、但 LSP **从不发**的字段。
 
 为什么需要它（2026-09-24 的教训）：扩展是"**有就渲染**"的宽容实现 ⇒

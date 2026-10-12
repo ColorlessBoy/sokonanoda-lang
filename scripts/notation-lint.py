@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 """courses 的「记法规则」检查器（notation lint）。
 
 规则（2026-09-21 用户拍板，权威出处写在这里，避免下次又靠眼睛）：

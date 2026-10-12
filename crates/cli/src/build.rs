@@ -1,4 +1,4 @@
-//! `sokonanoda build [--clean] [<path> ...]`: warm (and inspect) the shared
+//! `sokonanoda build [--clean] [<path> ...]`: warm (and inspect) the shared  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! persistent compile cache so later `check`/`course`/LSP runs are hits
 //! (docs/design/compile-cache.md; event contract in docs/protocol.md).
 //!

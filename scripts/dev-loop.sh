@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 # **环节循环**：把「改完 Rust → 在真 VS Code 里看到效果」压成一条命令。
 #
 # 为什么需要它：计划（`docs/design/vscode-editor-feedback-plan.md` §0.4）把每环节的
