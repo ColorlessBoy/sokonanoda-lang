@@ -151,8 +151,11 @@ fn compiled_dir() -> Option<PathBuf> {
 ///
 /// ⇒ 把 profile 从戳里去掉：**它不改变"这份二进制算什么"** —— 判定只看
 /// （版本 · 平台 · 内建 prelude · 档位 · 用户源码），而 `cfg!(debug_assertions)`
-/// 在本仓**没有任何一处**参与判定（`git grep debug_assertions crates/{front,kernel,cli,lsp}/src`
-/// 只命中本文件这一行 ✓）。于是同版本的 release / debug 共用同一份条目 ✓
+/// 在本仓**没有任何一处**参与判定：`git grep debug_assertions -- crates/front/src
+/// crates/kernel/src crates/cli/src crates/lsp/src` **只命中本文件**
+/// （本次改的这处 + 下面 [`stamp_of`] 的逃生门分支 + 注释），
+/// `front/src/compile/**`（除本文件）与 `front/src/judge.rs` **一处都没有** ✓。
+/// 于是同版本的 release / debug 共用同一份条目 ✓
 /// （用户要的正是这个），而"不同版本 / 不同平台 / 改了 prelude / 显式 `SOKO_BUILD_LABEL`"
 /// 这些**真正**的构建差异照旧进戳 ✓。
 ///
