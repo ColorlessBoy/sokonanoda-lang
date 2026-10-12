@@ -285,9 +285,16 @@ pub(crate) fn command_position_note(kind: &TokenKind) -> Option<String> {
              要么在 `cases … with` 的分支里直接写 `| 构造子 名字… => tactic`，\
              要么把该子目标的 tactic 直接写进 `by` 块。"
         )),
+        // r17（2026-10-12）：说清「本子集**不支持**」+ 点名替代写法。改前只说
+        // 「不在白名单里」——事实没错，但学习者（尤其从 Lean 教程来的）读不出
+        // 「这是本语言没做，不是你写错了」；而且 `rw [引理]` 那种带 `[` 的写法
+        // 连这一句都拿不到（`[` 在**词法**阶段就失败 ⇒ 见 `token.rs` 的
+        // `lexer_position_note`）。两处口径现在一致：先说不支持、再给出路。
         _ if !crate::tactics::is_tactic(word) && is_lean_common_tactic(word) => Some(format!(
-            "`{word}` 不在本子集的 tactic 白名单里（只有 {}）—— `by` 块遇到不属于它的记号就结束，\
-             所以这条错误报在**下一条命令**的位置上（不是上面那条声明写错了）。",
+            "本子集不支持 `{word}`（不在 tactic 白名单里：只有 {}）—— 请从白名单里挑一个\
+             （`intros` 写成逐个 `intro`，`rw`/`simp` 换成点名 `unfold` 之后再 `exact` / `apply`）。\
+             `by` 块遇到不属于它的记号就结束，所以这条错误报在**下一条命令**的位置上\
+             （不是上面那条声明写错了）。",
             crate::tactics::whitelist_text()
         )),
         _ => None,
