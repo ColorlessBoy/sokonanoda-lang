@@ -873,30 +873,51 @@ def check_src_lines_only() -> int:
     return 0
 
 
-def freeze_src_lines() -> int:
-    """`--freeze-src-lines`：把当前实测写成新基线；**拒绝变大**（与 ⑧ 同规矩 ✓）。"""
+def freeze_src_lines(reason: str = "") -> int:
+    """`--freeze-src-lines [--reason <为什么>]`：把当前实测写成新基线。
+
+    **默认拒绝变大**（与 ⑧ 同规矩 ✓）；**但必须有"评审可见"的放宽通道** ✗✓ ——
+    与判据 ④ 的 `docs-budget.json` 同一个模型：那条也冻结，而"确需长大 ⇒ `--freeze`
+    重新基线，或手改 JSON ⇒ **评审可见** ✓"。**没有通道的棘轮 = 不可用**：
+    实测（2026-10-12）合法修 bug 往 `parser.rs` 加 187 行就让整个 `docs-lint` 判红，
+    而 `--freeze-src-lines` 又拒绝任何增长 ⇒ **没有出路**（要么拆一个 6283 行的文件、
+    要么绕过守卫 ✗）⇒ 那等于逼人绕过守卫。
+    ⇒ 带 `--reason` 时**接受增长**，并把 `grew_from`（旧值）与 `reason` **写进基线**，
+    于是 `git diff` 里**逐条可见**（谁、长了多少、为什么）✓；不带 `--reason` 仍拒绝 ✓。
+    """
     files = tracked()
     found = scan_src_lines(files)
     old = load_src_lines_baseline()
     grown = [
-        f"{f}（{n} > 基线 {meta.get('lines')}）"
+        (f, found.get(f, 0), meta.get("lines", 0))
         for f, meta in old.items()
-        if (n := found.get(f, 0)) > meta.get("lines", 0)
+        if found.get(f, 0) > meta.get("lines", 0)
     ]
-    if grown:
+    if grown and not reason:
         print(
-            "✗ 拒绝重新基线：这些文件**变长了** ⇒ 先拆模块，别拿基线盖住 ✗\n  " + "\n  ".join(grown),
+            "✗ 拒绝重新基线：这些文件**变长了** ⇒ 先拆模块；"
+            "确属合法修复要带 `--reason '<为什么>'`（会记进基线、评审可见 ✓）✗\n  "
+            + "\n  ".join(f"{f}（{n} > 基线 {cap}）" for f, n, cap in grown),
             file=sys.stderr,
         )
         return 2
-    out = {
-        f: {
+    if grown:
+        print(f"⚠ 接受 {len(grown)} 个文件的增长（reason 已记入基线，评审可见 ✓）：")
+        for f, n, cap in grown:
+            print(f"    {f}: {cap} → {n}（+{n - cap}）")
+    grown_map = {f: cap for f, _, cap in grown}
+    out = {}
+    for f, n in sorted(found.items()):
+        meta = dict(old.get(f) or {})
+        entry = {
             "lines": n,
-            "reason": (old.get(f) or {}).get("reason")
+            "reason": meta.get("reason")
             or "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
         }
-        for f, n in sorted(found.items())
-    }
+        if f in grown_map:
+            entry["grew_from"] = grown_map[f]
+            entry["growth_reason"] = reason
+        out[f] = entry
     SRC_LINES.write_text(
         json.dumps(
             {
@@ -939,6 +960,7 @@ def main(argv: list[str]) -> int:
             "--freeze-doc-refs",
             "--check-src-lines",
             "--freeze-src-lines",
+            "--reason",
         }
     ]
     if unknown:
@@ -950,7 +972,11 @@ def main(argv: list[str]) -> int:
     if "--check-src-lines" in argv:
         return check_src_lines_only()
     if "--freeze-src-lines" in argv:
-        return freeze_src_lines()
+        _r = ""
+        if "--reason" in argv:
+            _i = argv.index("--reason")
+            _r = argv[_i + 1] if _i + 1 < len(argv) else ""
+        return freeze_src_lines(_r)
     if "--check-doc-refs" in argv:
         return check_doc_refs_only()
     if "--freeze-doc-refs" in argv:

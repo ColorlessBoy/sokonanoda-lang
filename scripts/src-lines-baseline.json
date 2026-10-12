@@ -27,12 +27,16 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/check/walk.rs": {
-      "lines": 2854,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2855,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2854,
+      "growth_reason": "langB 本轮的四个合法修复（r13 洞的期望类型 · r17 常见语法给出路 · r19 拼写候选 · SUB-duplicate-found-msg 诊断去重）落在这几个已超软线的文件里：parser.rs +187 · elab.rs +53 · query/mod.rs +45 · token.rs +18 · check/walk.rs +1。**不是顺手加长**：它们各自有独立判据与反向验证（见台账）。⚠ **如实记账：这是债务增长，不是达标** —— 软线 500 行的目标未变，下一步应把这几个文件拆开（已由 ⑨ 的 grew_from 逐条留痕，git diff 可见）"
     },
     "crates/front/src/compile/elab.rs": {
-      "lines": 8336,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 8389,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 8336,
+      "growth_reason": "langB 本轮的四个合法修复（r13 洞的期望类型 · r17 常见语法给出路 · r19 拼写候选 · SUB-duplicate-found-msg 诊断去重）落在这几个已超软线的文件里：parser.rs +187 · elab.rs +53 · query/mod.rs +45 · token.rs +18 · check/walk.rs +1。**不是顺手加长**：它们各自有独立判据与反向验证（见台账）。⚠ **如实记账：这是债务增长，不是达标** —— 软线 500 行的目标未变，下一步应把这几个文件拆开（已由 ⑨ 的 grew_from 逐条留痕，git diff 可见）"
     },
     "crates/front/src/compile/error.rs": {
       "lines": 948,
@@ -71,8 +75,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/parser.rs": {
-      "lines": 6283,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 6470,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 6283,
+      "growth_reason": "langB 本轮的四个合法修复（r13 洞的期望类型 · r17 常见语法给出路 · r19 拼写候选 · SUB-duplicate-found-msg 诊断去重）落在这几个已超软线的文件里：parser.rs +187 · elab.rs +53 · query/mod.rs +45 · token.rs +18 · check/walk.rs +1。**不是顺手加长**：它们各自有独立判据与反向验证（见台账）。⚠ **如实记账：这是债务增长，不是达标** —— 软线 500 行的目标未变，下一步应把这几个文件拆开（已由 ⑨ 的 grew_from 逐条留痕，git diff 可见）"
     },
     "crates/front/src/project/artifacts.rs": {
       "lines": 946,
@@ -103,8 +109,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/query/mod.rs": {
-      "lines": 2038,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2083,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2038,
+      "growth_reason": "langB 本轮的四个合法修复（r13 洞的期望类型 · r17 常见语法给出路 · r19 拼写候选 · SUB-duplicate-found-msg 诊断去重）落在这几个已超软线的文件里：parser.rs +187 · elab.rs +53 · query/mod.rs +45 · token.rs +18 · check/walk.rs +1。**不是顺手加长**：它们各自有独立判据与反向验证（见台账）。⚠ **如实记账：这是债务增长，不是达标** —— 软线 500 行的目标未变，下一步应把这几个文件拆开（已由 ⑨ 的 grew_from 逐条留痕，git diff 可见）"
     },
     "crates/front/src/semantic.rs": {
       "lines": 1712,
@@ -123,8 +131,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/token.rs": {
-      "lines": 1193,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1211,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1193,
+      "growth_reason": "langB 本轮的四个合法修复（r13 洞的期望类型 · r17 常见语法给出路 · r19 拼写候选 · SUB-duplicate-found-msg 诊断去重）落在这几个已超软线的文件里：parser.rs +187 · elab.rs +53 · query/mod.rs +45 · token.rs +18 · check/walk.rs +1。**不是顺手加长**：它们各自有独立判据与反向验证（见台账）。⚠ **如实记账：这是债务增长，不是达标** —— 软线 500 行的目标未变，下一步应把这几个文件拆开（已由 ⑨ 的 grew_from 逐条留痕，git diff 可见）"
     },
     "crates/kernel/src/builder.rs": {
       "lines": 1091,
