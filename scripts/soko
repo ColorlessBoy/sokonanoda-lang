@@ -1477,6 +1477,21 @@ async function main(argv) {
         }
         if ((r.status ?? 3) !== 0) return r.status ?? 3
       }
+      // **多会话/工作树门禁**（2026-10-12 并行 agent 基建）：`check-multi-session.py` 在 **worktree**
+      // 里跑时会拦「台账落后 main ⇒ 合回必冲突」（正解 = worktree 隔离 + 台账只在 main 上改 ✓）。
+      // 秒级 ⇒ `--fast` 也跑；在主工作树且不落后时它直接绿 ✓。
+      const multiSession = path.join(REPO, 'scripts', 'check-multi-session.py')
+      if (existsSync(multiSession)) {
+        const ms = spawnSync(python.cmd, [...python.args, multiSession], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (ms.error) {
+          process.stderr.write(`scripts/soko gate: failed to run ${multiSession}: ${ms.error.message}\n`)
+          return 3
+        }
+        if ((ms.status ?? 3) !== 0) return ms.status ?? 3
+      }
       // **队列门禁**（2026-10-12 用户：「这个事件机制不能全依赖大模型运作，而是同时依靠
       // 脚本，比如 python 脚本当成一个事件调度器」）：`ux-queue.py --check` = 覆盖自检
       // （四个来源逐条在队列里 · 探针都有登记 · §0.2 摘要与队列**同数**）+ 调度器不变量

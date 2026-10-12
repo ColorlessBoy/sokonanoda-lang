@@ -48,3 +48,6 @@ __pycache__/
 *.rej
 *~
 dsh-ci-time-*.md
+
+# 并行 agent 的工作树（2026-10-12：4 核 = 4 棵 worktree，`scripts/agent-worktree.sh`）
+.worktrees/

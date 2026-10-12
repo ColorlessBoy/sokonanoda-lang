@@ -713,6 +713,9 @@ jobs:
           if [ "${{ matrix.shard }}" = "1" ]; then
             python3 "$GITHUB_WORKSPACE/scripts/ux-queue.py" --selftest
             python3 "$GITHUB_WORKSPACE/scripts/ux-queue.py" --check
+            # 并行 agent 基建：多会话判据自检（反例必须判红 ✓）+ 真跑（主工作树/不落后 ⇒ 绿）
+            python3 "$GITHUB_WORKSPACE/scripts/check-multi-session.py" --selftest
+            python3 "$GITHUB_WORKSPACE/scripts/check-multi-session.py"
           fi
 
   fast-fail:

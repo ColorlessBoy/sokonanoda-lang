@@ -67,7 +67,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+# **队列状态单点**（2026-10-12 并行 agent 基建）：4 棵 worktree 会各存一份 `docs/ux-queue-events.jsonl`
+# ✗ ⇒ worktree 里的 agent 用 `SOKO_QUEUE_ROOT=<主 checkout>` 把状态（与来源台账）都指回主那份 ✓；
+# 锁本来就在**共享 git 目录**里（`--git-common-dir`）⇒ 4 棵树天然共用一把锁 ✓。
+ROOT = Path(os.environ.get("SOKO_QUEUE_ROOT") or Path(__file__).resolve().parent.parent).resolve()
 GAPS_LEDGER = ROOT / "docs" / "gaps" / "ledger.jsonl"
 INDEX = ROOT / "docs" / "ux-findings-2026-10-12.md"
 EXTRAS = ROOT / "docs" / "ux-queue-extras.jsonl"
@@ -91,6 +94,29 @@ OPEN_DISPOSITIONS = {"fix", "scheduled"}
 
 # §0.2 队列行的 id 形状：字母开头、带 `-` 或 `_`（`Q-…` / `G-110` / `r07` / `A3` / `HANDOFF-…`）
 QUEUE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*[-_][A-Za-z0-9_.\-]+$")
+
+
+def _guard_root() -> None:
+    """`SOKO_QUEUE_ROOT` 指错时要**干净报错**（别丢栈 ✗）。"""
+    if not (ROOT / "scripts" / "ux-queue.py").exists() or not (ROOT / "Cargo.toml").exists():
+        raise UsageError(
+            f"队列根不对：`{ROOT}` 里没有 scripts/ux-queue.py + Cargo.toml ⇒ "
+            f"`SOKO_QUEUE_ROOT` 要指向**主 checkout**（并行 worktree 的队列单点）✗")
+    # **worktree 里必须显式指回主 checkout** ✗ —— 否则 4 棵树各读自己那份副本 ⇒ 队列悄悄分叉
+    # （"登记 ≠ 排期"的同类病：看不见的漂移）。锁本就在共享 git 目录里，状态也必须单点 ✓。
+    def _git(*argv: str) -> str:
+        return subprocess.run(["git", *argv], cwd=ROOT, capture_output=True,
+                              text=True).stdout.strip()
+    gd, gcd = _git("rev-parse", "--git-dir"), _git("rev-parse", "--git-common-dir")
+    if gd and gcd and Path(gd).resolve() != Path(gcd).resolve() and not os.environ.get("SOKO_QUEUE_ROOT"):
+        # `--git-dir` 是相对路径时按 ROOT 解析（`git rev-parse` 的输出可能是相对的 ✓）
+        linked = (Path(gd) if Path(gd).is_absolute() else ROOT / gd).resolve()
+        common = (Path(gcd) if Path(gcd).is_absolute() else ROOT / gcd).resolve()
+        if linked != common:
+            raise UsageError(
+                f"你在**链接工作树**里（{ROOT}）但没设 `SOKO_QUEUE_ROOT` ⇒ 会读写这一份**本地副本**，"
+                f"4 棵树就各有一本账 ✗。正解：`export SOKO_QUEUE_ROOT=<主 checkout>`"
+                f"（`scripts/agent-worktree.sh new <id>` 会把该 export 打出来 ✓）")
 
 
 class UsageError(Exception):
@@ -1243,6 +1269,21 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
                   f"{[c.get('id') for c in live]} ⇒ 等它们收口（或 `--release block` 记录）✗",
                   file=sys.stderr)
             bad += 1
+        branches = subprocess.run(["git", "branch", "--no-merged", "main", "--list", "agent/*",
+                                   "--format=%(refname:short)"], cwd=ROOT, capture_output=True,
+                                  text=True).stdout.split()
+        if branches:
+            print(f"✗ **并行收拢未完成**：还有 {len(branches)} 条 agent 分支没合回 main "
+                  f"{branches} ⇒ `scripts/agent-worktree.sh land <id>`（发版要的是**完整**版本 ✗）",
+                  file=sys.stderr)
+            bad += 1
+        trees = [l.split()[1] for l in subprocess.run(
+            ["git", "worktree", "list", "--porcelain"], cwd=ROOT, capture_output=True,
+            text=True).stdout.splitlines() if l.startswith("worktree ")]
+        extra = [t for t in trees if Path(t).resolve() != ROOT]
+        if extra and not args.force:
+            print(f"⚠ 还有 {len(extra)} 棵 worktree 在（{[Path(t).name for t in extra]}）—— "
+                  f"确认它们的活都合回了再切版（`--force` 越过）", file=sys.stderr)
         dirty = worktree_dirty()
         if dirty:
             print(f"✗ 工作树不干净（{len(dirty.splitlines())} 处）⇒ 先 commit，"
@@ -1650,6 +1691,7 @@ def main() -> int:
     parser.add_argument("--force", action="store_true", help="接管**陈旧**锁（进程已死或超 TTL）")
     args = parser.parse_args()
     try:
+        _guard_root()
         if args.selftest:
             return cmd_selftest(args)
         rows, undecided = build_queue()
