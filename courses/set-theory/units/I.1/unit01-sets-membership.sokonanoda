@@ -13,6 +13,7 @@
 -- ==========================================================================
 import lib.Logic
 import lib.Set
+import lib.Rel
 
 -- ─────────────────────────────────────────────────────────────
 -- 1.1 集合就是"论域上的谓词"
@@ -68,7 +69,7 @@ theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
 -- 练习 4（T 类）：a ∈ A 推出 {a} ⊆ A。
 -- soko:hint 思路：目标是全称命题；intro 一个元素与"它在 {a} 里"。
 -- soko:hint 目标形态：intro 之后手里有 hx : x ∈ {a}，目标是 A x。
--- soko:hint 关键件：Set.mem_singleton_iff α x a 把 hx 变成等式 x = a；再用 Eq.symm 与 Eq.subst 把这个等式搬进目标（本单元还没有 rw，所以写成 exact 的实参）。
+-- soko:hint 关键件：Set.mem_singleton_iff 把 hx 变成等式 x = a；再用 Eq.symm 与 lib.Rel 的 rel_subst_mem 把这个等式搬进目标（本单元还没有 rw，所以写成 exact 的实参）。
 theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : a ∈ A) :
     {a} ⊆ A := by
   sorry
@@ -87,7 +88,7 @@ theorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :
 -- 为真的证明，为假的说明理由（写在注释里）。
 -- soko:hint 思路：(i) 用"a ∈ {a}"沿等式搬过去再展开；(ii) 两个集合相等就逐元素证 ↔。
 -- soko:hint 目标形态：目标是 ({a} = {b}) ↔ a = b，两个方向分别如上。
--- soko:hint 关键件：(i) Eq.subst 把 a ∈ {a} 搬到 {b} 上，再用 Set.mem_singleton_iff 取出等式；(ii) apply Set.ext 之后对每个 x 用 constructor，两边各用一次 Set.mem_singleton_iff 与 Eq.trans。
+-- soko:hint 关键件：(i) lib.Rel 的 rel_subst_mem 把 a ∈ {a} 搬到 {b} 上，再用 Set.mem_singleton_iff 取出等式；(ii) apply Set.ext 之后对每个 x 用 constructor，两边各用一次 Set.mem_singleton_iff 与 Eq.trans。
 theorem singleton_eq_singleton_iff (α : Type) (a b : α) :
     ({a} = {b}) ↔ a = b := by
   sorry
