@@ -343,8 +343,7 @@ fn state_without_runs_keeps_the_text_and_drops_only_the_runs() {
         "slim 版每个 goal 都不该带 runs"
     );
     assert!(
-        slim
-            .goals
+        slim.goals
             .iter()
             .flat_map(|g| g.binders.iter())
             .all(|b| b.ty_runs.is_empty()),

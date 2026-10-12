@@ -4199,11 +4199,14 @@ mod tests {
         // 2026-10-10 抓到的那条漏项（手写文案漏了 `have`）不许回归。
         assert!(msg.contains("have"), "`have` 必须在文案里 ✗：{msg}");
         // `exact?` 本语言**没有实现** ⇒ 文案不许说它在白名单里。
-        assert!(!msg.contains("exact?") , "文案说了没实现的东西 ✗：{msg}");
+        assert!(!msg.contains("exact?"), "文案说了没实现的东西 ✗：{msg}");
         // **r17**：`hax` 不是 Lean 的常见 tactic ⇒ 这条**不许**多嘴说"本子集不支持"
         // （那句话只留给「学习者从 Lean 带过来」的名字；否则每条拼错的名字都套上
         // 一句无关的解释 ✗）。
-        assert!(!msg.contains("不支持"), "`hax` 不该拿 Lean 教学那句 ✗：{msg}");
+        assert!(
+            !msg.contains("不支持"),
+            "`hax` 不该拿 Lean 教学那句 ✗：{msg}"
+        );
     }
 
     /// **r17（2026-10-12）**：从 Lean 教程带过来的 tactic 必须被点名
@@ -4433,9 +4436,7 @@ example : Prop -> Prop := sorry
         );
         // ④ **守卫自己也要咬得住**：判据函数的两个方向 + 「消息里顺笔提到别的词」
         //    不算命中（否则那句会被静默吞掉一半 ✗）。
-        assert!(contains_found_clause(
-            "expected a binder, found `x`"
-        ));
+        assert!(contains_found_clause("expected a binder, found `x`"));
         assert!(!contains_found_clause("expected a binder"));
         assert!(!contains_found_clause("`found` 是关键字，这里要写名字"));
         assert!(!contains_found_clause("foundations"));

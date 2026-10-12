@@ -1748,8 +1748,10 @@ impl QueryDoc {
                         let sub = d
                             .sub_goals
                             .get(index)
-                            .filter(|s| s.span.start.offset == span.start.offset
-                                && s.span.end.offset == span.end.offset)
+                            .filter(|s| {
+                                s.span.start.offset == span.start.offset
+                                    && s.span.end.offset == span.end.offset
+                            })
                             .or_else(|| {
                                 d.sub_goals.iter().find(|s| {
                                     s.span.start.offset == span.start.offset

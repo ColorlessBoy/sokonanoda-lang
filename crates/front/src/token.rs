@@ -382,19 +382,29 @@ impl<'a> Lexer<'a> {
                 // "这个字符不合法"而不是「本子集没有 `rw [..]` 这套写法」✗。
                 // ⇒ 在**词法兜底臂**上补一句出路（parser 的那条注解在这条路上
                 // 没机会说话——词法先失败）。
-                Err(crate::diagnostic::unsupported_bracket_symbol(other).map_or_else(
-                    || self.err_unexpected(start, "a valid .sokonanoda token", &other.to_string()),
-                    |lesson| {
-                        Diagnostic::new(
-                            DiagnosticKind::UnexpectedToken {
-                                found: other.to_string(),
-                                expected: "a valid .sokonanoda token".to_string(),
-                            },
-                            Span::new(start, start),
-                            format!("expected a valid .sokonanoda token, found {other}；{lesson}"),
-                        )
-                    },
-                ))
+                Err(
+                    crate::diagnostic::unsupported_bracket_symbol(other).map_or_else(
+                        || {
+                            self.err_unexpected(
+                                start,
+                                "a valid .sokonanoda token",
+                                &other.to_string(),
+                            )
+                        },
+                        |lesson| {
+                            Diagnostic::new(
+                                DiagnosticKind::UnexpectedToken {
+                                    found: other.to_string(),
+                                    expected: "a valid .sokonanoda token".to_string(),
+                                },
+                                Span::new(start, start),
+                                format!(
+                                    "expected a valid .sokonanoda token, found {other}；{lesson}"
+                                ),
+                            )
+                        },
+                    ),
+                )
             }
         }
     }
