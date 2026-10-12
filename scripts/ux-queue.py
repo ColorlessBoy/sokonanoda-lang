@@ -693,9 +693,19 @@ def write_lock(claims: list[dict]) -> None:
 
 
 def claim_is_live(claim: dict) -> tuple[bool, str]:
+    """活跃判定 = **有 `pid` 就钉进程，没 `pid` 就只受 TTL 约束**。
+
+    ⚠ 为什么"没 `pid` 也算活跃"（2026-10-12 实测的 bug）：`--claim` 是**一次 CLI 调用**，
+    它 `exit` 之后 `os.getpid()` 立刻变成死进程 ⇒ 若把"无 pid"当死，**下一次任何 `--claim`
+    都会把上一条当陈旧认领清掉**（实测：连认领 4 条，锁里永远只剩最后 1 条）⇒
+    文档写的 `--claim <id>` … 干活 … `--advance <id> --to done` **跨调用根本跑不通**，
+    资源互斥（"同一模块同一时间只许一个写者"）也就形同虚设 ✗。
+    ⇒ 规则：`pid` 是**可选**的进程钉（长驻进程/测试用）；没写就按 TTL 计（默认 2h），
+    过期照样可被 `--force` 接管 ✓。
+    """
     pid, age = claim.get("pid"), _age_s(claim.get("ts"))
-    who = (f"{claim.get('owner') or '?'}（pid {pid}·{int(age or 0)}s 前认领 `{claim.get('id')}`"
-           f"·资源 {','.join(claim.get('resources') or []) or '?'}）")
+    who = (f"{claim.get('owner') or '?'}（pid {pid if pid else '—'}·{int(age or 0)}s 前认领 "
+           f"`{claim.get('id')}`·资源 {','.join(claim.get('resources') or []) or '?'}）")
     if pid and not _pid_alive(pid):
         return (False, f"{who} —— 进程已不在")
     if age is not None and age > LOCK_TTL_S:
@@ -737,7 +747,9 @@ def acquire_claim(ident: str, owner: str, resources: list[str], force: bool) -> 
             return False
         print(f"⚠ `--force`：与 {who} 抢同一资源（只在确认它已死/放弃时用）", file=sys.stderr)
         live = [c for c in live if c not in clash]
-    kept = live + [{"id": ident, "owner": owner, "pid": os.getpid(),
+    # ⚠ **不写 `pid`**：`--claim` 是一次 CLI 调用，写自己的 pid 等于"认领随进程一起死"
+    # ⇒ 下一条 `--claim` 会把上一条当陈旧清掉（见 `claim_is_live` 的说明）✗。
+    kept = live + [{"id": ident, "owner": owner,
                     "resources": resources, "ts": _now()}]
     if stale:
         print(f"⏳ 清掉 {len(stale)} 条陈旧认领（进程已死/超 TTL）："
@@ -870,10 +882,10 @@ def cmd_claim(ident: str, owner: str, force: bool, rows: list[dict],
     resources = resources_of(row, touch)
     if not acquire_claim(ident, owner, resources, force):
         return 1
-    append_event({"event": "claim", "id": ident, "owner": owner, "pid": os.getpid(),
+    append_event({"event": "claim", "id": ident, "owner": owner,
                   "resources": resources})
     slots = len(live_claims())
-    print(f"✓ 认领 `{ident}`（owner={owner} · pid {os.getpid()} · 资源 {','.join(resources)} · "
+    print(f"✓ 认领 `{ident}`（owner={owner} · 资源 {','.join(resources)} · "
           f"占用 {slots}/{MAX_SLOTS} 核）⇒ 做完交证据：\n"
           f"    python3 scripts/ux-queue.py --advance {ident} --to done "
           f"--commit <sha> --reading '<判据读数>'")
@@ -907,7 +919,10 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
     if to in {"wo_filed", "blocked"} and not reason:
         print(f"✗ `{to}` 必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
         return 1
-    if frm == "in_progress" and to in {"done", "wo_filed", "blocked", "todo"}:
+    # **收口即放槽**：`--advance` 的每个目标状态都放开认领（不再只在 `in_progress` 时放）——
+    # 否则文档写的 `--claim X` … `--advance X --to done`（不经 `in_progress`）会**漏放锁**，
+    # 槽位一直被自己占着（实测：`--to done` 之后 `live_claims()` 仍是 1）✗。
+    if to in {"done", "wo_filed", "blocked", "todo"}:
         held = [c for c in read_lock()["claims"] if c.get("id") == ident]
         if held and held[0].get("owner") != owner and not force:
             print(f"✗ `{ident}` 被 `{held[0].get('owner')}` 认领着 ⇒ 别替别人收口 ✗",
@@ -974,6 +989,31 @@ def effective_state(row: dict, cur: dict) -> str:
     return {"fix": "todo", "scheduled": "todo", "fixed": "done",
             "wo-filed": "wo_filed", "boundary": "boundary", "control": "control"}.get(
         row.get("disposition"), "todo")
+
+
+def cmd_render(rows: list[dict]) -> int:
+    """把 `docs/ONBOARDING.md` §0.2 的摘要块按**当前队列**重渲染（幂等）。
+
+    ⚠ 为什么必须有这条子命令（2026-10-12 实测）：`--check` 对"摘要与队列不同数"的判红
+    信息写着「跑 `--render` 刷新（**手改文档不算** ✗）」，而 `--render` 当时**根本没定义**
+    （`main` 里调 `cmd_render` ⇒ `NameError`）⇒ **唯一入口的刷新路是死的**：任何人加一条队列
+    条目都会把 `--check` 弄红，且**没有合规的修法**（手改判红）✗。这里补上实现。
+    """
+    text = ONBOARDING.read_text(encoding="utf-8")
+    if ONB_BEGIN not in text or ONB_END not in text:
+        print(f"✗ {_label(ONBOARDING)} 里没有摘要块标记（{ONB_BEGIN} … {ONB_END}）⇒ "
+              f"先手工放一对标记，再跑 `--render` ✗", file=sys.stderr)
+        return 1
+    head, rest = text.split(ONB_BEGIN, 1)
+    _, tail = rest.split(ONB_END, 1)
+    block = render_onboarding(rows)
+    new = head + block + tail
+    if new == text:
+        print(f"✓ 摘要块已是最新（幂等：{report_line(summary(rows))}）")
+        return 0
+    ONBOARDING.write_text(new, encoding="utf-8")
+    print(f"✓ 已重渲染 {_label(ONBOARDING)} 的摘要块 —— {report_line(summary(rows))}")
+    return 0
 
 
 def cmd_next(rows: list[dict], owner: str) -> int:
@@ -1342,6 +1382,9 @@ def selftest_scheduler(expect) -> None:
             rc = fn(*a, **kw)
         return rc
 
+    def m_state(ident: str = "X-1") -> str:
+        return fold().get(ident, {}).get("state", "todo")
+
     with tempfile.TemporaryDirectory() as tmp:
         saved_events, saved_lock = EVENTS, lock_file
         EVENTS = Path(tmp) / "events.jsonl"
@@ -1404,7 +1447,32 @@ def selftest_scheduler(expect) -> None:
             expect(f"释放后只剩 w2（{len(live_claims())}）",
                    [c["owner"] for c in live_claims()] == ["w2"])
             write_lock([])
-            # ⑩ --next 跳过终态 / 对照臂
+            # ⑩ **认领必须活过 CLI 调用**（2026-10-12 实测 bug 的反向验证）：`--claim` 写自己的
+            # pid ⇒ 进程一退，下一条 `--claim` 就把它当陈旧清掉 ⇒ 连认领 2 条只剩最后 1 条 ✗。
+            # 判据：两次 `cmd_claim` 之后**两条都在**（各自独立资源），且锁里**不写 pid**。
+            expect("第 1 条 CLI 认领", quiet(cmd_claim, "X-1", "w1", False, rows, "mod/a") == 0)
+            expect("第 2 条 CLI 认领", quiet(cmd_claim, "X-2", "w2", False, rows, "mod/b") == 0)
+            expect(f"两条 CLI 认领都活着（不是后一条吃掉前一条，实测 {len(live_claims())}）",
+                   len(live_claims()) == 2)
+            expect("CLI 认领不写 pid（否则下一条会把它当陈旧 ✗）",
+                   all("pid" not in c for c in read_lock()["claims"]))
+            # ⑪ **收口即放槽**（文档里的标准流程：`--claim X` … `--advance X --to done`）：
+            # 收口之后锁里**不许再留着它**，否则这个槽位被自己占死（实测修复前：`--to done`
+            # 只在 `frm == in_progress` 时放锁 ⇒ 那条路漏放 ⇒ 槽位不归还 ✗）。
+            # 判据断言的是**锁的状态**（不是内部走哪条分支 ⇒ 无论谁改实现，这条都咬得住）。
+            EVENTS.write_text("", encoding="utf-8")     # 清事件表：X-1 在这套自检前面已被收口过 ⇒ 否则"已是终态"✗
+            # ⚠ 形状有讲究：`cmd_claim` 自己会落一条 claim 事件 ⇒ `fold()` 把状态推成 `in_progress`
+            # ⇒ 那条路**新旧代码都放锁**（实测反向验证 rc=0 ⇒ 咬不住 ✗）。真实漏洞在**状态还是
+            # `todo` 时收口**（认领了但还没落事件；`todo → wo_filed` 是编排者最常用的一条路）。
+            # ⇒ 直接造"锁里有认领、事件表为空"的形状，走 `--to wo_filed`。
+            write_lock([{"id": "X-1", "owner": "w1", "resources": ["mod/a"], "ts": _now()}])
+            expect(f"锁里有认领、状态仍是 todo（{m_state()}）", m_state() == "todo")
+            expect("`todo → wo_filed` 收口",
+                   quiet(cmd_advance, "X-1", "wo_filed", "", "", "定案不做", "w1", False, rows) == 0)
+            expect(f"**收口后槽位归还**（实测 {len(live_claims())} 条 ⇒ 期望 0）",
+                   live_claims() == [])
+            write_lock([])
+            # ⑫ --next 跳过终态 / 对照臂
             nxt = io.StringIO()
             with contextlib.redirect_stdout(nxt):
                 cmd_next(view, "t")
@@ -1569,6 +1637,23 @@ def cmd_selftest(args: argparse.Namespace) -> int:
                 rc = check_uncovered(rows, live=False, timeout=5, undecided=undecided)
             expect(f"缺渲染块 ⇒ 判红（rc={rc}）", rc == 1)
             expect("判红信息里点名了缺渲染块", ONB_BEGIN in err.getvalue())
+            # A2. **`--render` 必须真的能修好它**（2026-10-12 实测：`cmd_render` 当时压根没定义
+            #     ⇒ 判红信息让人跑一条**不存在的**子命令 ⇒ 唯一入口的刷新路是死的 ✗）
+            tmp_onb.write_text("## 0.2 下一步\n\n" + ONB_BEGIN + "\n" + ONB_END + "\n\n"
+                               "| id | 线 |\n|---|---|\n| X-1 | 有行 |\n", encoding="utf-8")
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc_render = cmd_render(rows)
+            expect(f"`--render` 跑得通（rc={rc_render}）", rc_render == 0)
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                _r, _u = build_queue()
+                rc = check_uncovered(_r, live=False, timeout=5, undecided=_u)
+            expect(f"`--render` 之后覆盖自检转绿（rc={rc}）", rc == 0)
+            # A3. 幂等：再跑一次内容不许变
+            once = tmp_onb.read_text(encoding="utf-8")
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                cmd_render(rows)
+            expect("`--render` 幂等（再跑一次内容不变）",
+                   tmp_onb.read_text(encoding="utf-8") == once)
             # B. 补上渲染块 + 行 ⇒ 必须转绿（反向验证的另一半）
             tmp_onb.write_text("## 0.2 下一步\n\n" + render_onboarding(rows) + "\n\n"
                                "| id | 线 |\n|---|---|\n| X-1 | 补上的行 |\n", encoding="utf-8")
@@ -1631,9 +1716,9 @@ def cmd_selftest(args: argparse.Namespace) -> int:
         return 1
     print(f"ux-queue.py selftest: {len(cases)} 条读数判定 + §0.2/摘要块解析 + "
           f"**5 条反向验证**（缺渲染块判红 · 补块转绿 · 幽灵行判红 · 手改计数判红 · 未登记探针判红）"
-          f" + **调度器 20 条**（非法迁移/无证据收口/两层漂移/重开要理由/umbrella 子在开不许收口/"
+          f" + **调度器 22 条**（非法迁移/无证据收口/两层漂移/重开要理由/umbrella 子在开不许收口/"
           f"**4 核槽位满拒第 5 个**/**同资源互斥**/死进程认领不算活跃且可 `--force` 接管/`--release` 只放自己的/"
-          f"--next 跳过终态与对照）+ 真来源解析 全部成立 ✓")
+          f"**认领活过 CLI 调用（不写 pid）**/**收口即放槽**/--next 跳过终态与对照）+ 真来源解析 全部成立 ✓")
     return 0
 
 
