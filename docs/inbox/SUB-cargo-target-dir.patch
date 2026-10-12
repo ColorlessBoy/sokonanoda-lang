@@ -1,0 +1,41 @@
+diff --git a/scripts/soko b/scripts/soko
+index ccbbaa61..f377563d 100755
+--- a/scripts/soko
++++ b/scripts/soko
+@@ -390,16 +390,29 @@ function writeMarker(base, version) {
+ // ── resolution chain ─────────────────────────────────────────────────────────
+ 
+ /// Newest of the contributor builds (`target/release|debug`).
++///
++/// `CARGO_TARGET_DIR` is honoured because the managed per-worktree environment
++/// (`scripts/compile-cache.py env <id>`) sets it to a directory outside the
++/// worktree; without it a freshly built worktree looks "not built" here and the
++/// launcher falls through to the cache/download even though a version-matched
++/// build is sitting right there.
+ function repoBuild(base) {
+   const name = binaryName(base)
++  const roots = [path.join(REPO, 'target')]
++  const cargoTarget = process.env.CARGO_TARGET_DIR
++  if (cargoTarget && cargoTarget !== path.join(REPO, 'target')) {
++    roots.push(path.isAbsolute(cargoTarget) ? cargoTarget : path.resolve(REPO, cargoTarget))
++  }
+   let best
+-  for (const profile of ['release', 'debug']) {
+-    const candidate = path.join(REPO, 'target', profile, name)
+-    try {
+-      const mtime = statSync(candidate).mtimeMs
+-      if (!best || mtime > best.mtime) best = { path: candidate, mtime }
+-    } catch {
+-      // not built
++  for (const root of roots) {
++    for (const profile of ['release', 'debug']) {
++      const candidate = path.join(root, profile, name)
++      try {
++        const mtime = statSync(candidate).mtimeMs
++        if (!best || mtime > best.mtime) best = { path: candidate, mtime }
++      } catch {
++        // not built
++      }
+     }
+   }
+   return best?.path

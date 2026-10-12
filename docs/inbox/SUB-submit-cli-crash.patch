@@ -1,0 +1,15 @@
+diff --git a/scripts/ux-queue.py b/scripts/ux-queue.py
+index 8ed948b8..7c97c6e5 100644
+--- a/scripts/ux-queue.py
++++ b/scripts/ux-queue.py
+@@ -1765,6 +1765,10 @@ def main() -> int:
+     parser.add_argument("--submit", metavar="KIND",
+                         help="**外部提交**：fix/doc/gate/release-blocker（只追加，不改主线 ✗）")
+     parser.add_argument("--where", metavar="LOC", help="提交的落点（文件:行 / 台账 id）")
++    parser.add_argument("--why", metavar="TEXT",
++                        help="提交的**为什么**（必填；与 --evidence 一起是提交的两个硬条件）")
++    parser.add_argument("--repro", metavar="CMD",
++                        help="提交的复现命令（可选；判据读数在 --evidence）")
+     parser.add_argument("--evidence", metavar="TEXT", help="提交的证据（判据读数；**必填**）")
+     parser.add_argument("--patch", metavar="PATH", help="提交的补丁文件（拷进 docs/inbox/<id>.patch）")
+     parser.add_argument("--inbox", action="store_true", help="列出外部提交及状态")
