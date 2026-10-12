@@ -213,9 +213,8 @@ pub(crate) fn code_actions(
         // 灯泡给 0 条（用例实测四处全空）。见下面两个函数的说明。
         notation_ladder_fallbacks(
             &mut actions,
-            &uri,
+            (&uri, src),
             text,
-            src,
             d,
             &options,
             judge_prefix,
@@ -356,9 +355,10 @@ fn edit_fingerprint(edit: Option<&WorkspaceEdit>) -> String {
 /// 逃生门 `SOKO_NO_NOTATION_RFL=1`（反向验证用，见 VERDICT）。
 fn notation_ladder_fallbacks(
     actions: &mut Vec<CodeActionOrCommand>,
-    uri: &Url,
+    // `(uri, src)` 打成一包：本函数原为 8 参 ⇒ clippy `too_many_arguments`（8/7），
+    // CI 的 `lint-clippy` 是 `-D warnings` ⇒ 判红。两者只在本函数里成对使用 ✓。
+    (uri, src): (&Url, &str),
     text: &str,
-    src: &str,
     d: &DeclState,
     options: &CompileOptions,
     judge_prefix: &dyn Fn(usize) -> String,
