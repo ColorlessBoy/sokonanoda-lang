@@ -140,6 +140,10 @@
   输入法**）· `m07`（缓存键折进**内建 prelude 摘要** ⇒ 改了 prelude 不再答旧行为）。LSP 探针 `--all`：
   **8 一致 / 20 不一致 → 13 / 15**（只有 `A1`/`D1`/`C1`–`C5` 转一致，**零回归**）。
 
+**⚠ vim 探针的期望已陈旧（16:5x 实测 7 FAIL，**不是**缺口）**：`diag-caret-shift` 期望 `(α x)` —— 那个 `)` 是
+`autoClosingBrackets` 自动补的，而本批已按设计给 `[sokonanoda]` 钉 `"never"`；`vim-nm-o-prefix`/`vim-nm-enter-prefix`
+期望 `["\\an",""]`，而规范判据 `scripts/vscode-input-vim-e2e.mjs --case normal-o-keeps-pending-prefix`（`\\an · <Esc> · o · Z`
+⇒ `["\\an","Z"]`）**PASS** ✓；`ctl-enter-indent [off]` 是**无 vim 对照臂**却 FAIL（签名 = 掉了一个 `<CR>`）⇒ 判为**探针侧**。
 **⚠ 探针自己的坑（本批修掉，判据随之修正）**：① **干净缓存纪律** —— 25 条语言探针原先都没隔离缓存 ⇒ 语言
 改了以后会读 M-07 的旧条目**假红**（`r04` 实测：修好之后探针仍报 exit 0）⇒ 现已全部加 `mktemp` 缓存 + 关
 两处产物 + `trap` 清理；② **`r02` 从「缺口」改成「对照臂」**（裸常量 `#check` 有意不受 `pp.explicit` 影响）；
