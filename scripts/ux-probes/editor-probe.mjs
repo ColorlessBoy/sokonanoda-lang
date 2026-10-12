@@ -1261,6 +1261,18 @@ function settingsFor() {
     "extensions.autoCheckUpdates": false, "extensions.autoUpdate": false,
     "telemetry.telemetryLevel": "off", "security.workspace.trust.enabled": false,
     "workbench.panel.defaultLocation": "bottom",
+    // **关掉 VS Code 1.141 内置的 AgentHost / AI 面**（2026-10-13，`SUB-copilot-signin-agenthost`）：
+    // 它是**内置**组件（不是扩展）⇒ `--disable-extensions` 管不着；起窗就请求 github 会话
+    // （scopes `read:user,user:email`）⇒ 弹 Copilot 登录框（"Continue without Signing in"）
+    // 并拉起浏览器到 Authorize 页 ✗。实测证据（探针自己的窗口日志）：
+    //   exthost.log  `_doActivateExtension vscode.github-authentication,
+    //                 activationEvent: 'onAuthenticationRequest:github'`
+    //   renderer.log `[CloudSandboxApi] No 'github' session with scopes [...]`
+    //                `[AgentHost] No signed-in session resolved for resource: https://api.github.com`
+    // ⚠ 这不是新发现：本文件 `:342` 早就**手工实测**过"关掉这两个开关 ⇒ 菜单第一项换成
+    // 我们要测的那条 `constructor`"，但那是**一次性实验**、没写进这里 ⇒ 每次起窗照旧触发。
+    // 现在把它固化成设置 ⇒ 顺带修掉 `:339-345` 那条"AI 菜单项被 `<CR>` 抢走"的伪影 ✓。
+    "chat.agent.enabled": false, "chat.disableAIFeatures": true,
   };
 }
 
@@ -1378,6 +1390,26 @@ async function portFree(port, deadline) {
   return false;
 }
 async function quit(profile) {
+  // **先优雅关窗，再兜底 `pkill`**（2026-10-13，`SUB-copilot-signin-agenthost`）：
+  // 原来只有 `pkill` = **SIGTERM(15)** ⇒ 用户屏幕上留下一个
+  // `The window terminated unexpectedly (reason: 'killed', code: '15')` 的"死亡框" ✗。
+  // CDP 的 `Browser.close` 走正常关闭路径（与用户按 ⌘Q 同一条），窗口不留残影；
+  // 关不掉（窗口已死/端口已释放）才退回 `pkill`。
+  try {
+    const ver = await (await fetch(`http://127.0.0.1:${debugPort}/json/version`)).json();
+    if (ver?.webSocketDebuggerUrl) {
+      const ws = new WebSocket(ver.webSocketDebuggerUrl);
+      await new Promise((resolve) => {
+        const done = () => { try { ws.close(); } catch { /* ignore */ } resolve(); };
+        ws.addEventListener("open", () => {
+          try { ws.send(JSON.stringify({ id: 1, method: "Browser.close" })); } catch { /* ignore */ }
+          setTimeout(done, 1500);
+        });
+        ws.addEventListener("error", done);
+        setTimeout(done, 2500);
+      });
+    }
+  } catch { /* 端口已释放（窗口本来就没了）⇒ 直接走下面的兜底 */ }
   try { execFileSync("pkill", ["-f", `user-data-dir=${profile}`]); } catch { /* 已经不在了 */ }
   for (let i = 0; i < 30; i++) {
     try { await cdpTargets(); } catch { return; }
