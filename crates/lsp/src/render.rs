@@ -117,19 +117,25 @@ pub(crate) fn hover_type_at_offset(hovers: &[HoverType], offset: usize) -> Optio
     innermost(hovers.iter().filter(|h| offset_within_span(offset, h.span)))
 }
 
-/// **同 span 多行时，最后一行说了算**（H1 的修法点）。
+/// **同 span 多行时选"这一段源码自己那一行"**（H1 的修法点）。
 ///
-/// `hovers` 是**按 elaborate 顺序追加**的（`walk` 一趟下来 push 一行）⇒ 同一段
-/// 源码的**最后一次** elaboration 才是它的结论；同一段被 elaborate 多次时，前面
-/// 那几行是过程产物。实测（`a = b`，`node scripts/ux-probes/lsp-probe.mjs --case
-/// H1-notation-hover-type` 的现场）：记法节点 `a = b` 有 **三行同 span**，第一行
-/// 是**目标常量自己的签名**（`∀ {α : Type 0}, α → α → Prop`，`resolution=None`，
-/// 前端解析记法目标时顺带记下的），后两行才是这个表达式自己的类型 `Prop`——
-/// 取第一行 ⇒ hover 的末块显示"表达式 : **常量的**类型"✗（H1 那条缺口）。
+/// `hovers` 是**按 elaborate 顺序追加**的，同一段源码会被 elaboration **多次**
+/// 记行 —— 实测（`node scripts/ux-probes/lsp-probe.mjs --case H1-notation-hover-type`
+/// 与 `theorem t (p : Prop) : p ↔ p := by rfl` 的行转储）：记法节点 `a = b` /
+/// `p ↔ p` 上最多有**三行同 span**：
+///   * **目标常量自己的签名**（`∀ {α : Type 0}, α → α → Prop`，`resolution=None`）
+///     —— 前端解析记法目标时顺带记下的**过程产物**；
+///   * **记法节点自己那一行**（`text = Prop`，`resolution = Notation{…}`）✓ 要的就是它；
+///   * **by 引擎**在同一个 span 上记的一行（`text` = 那个证明项的类型，
+///     如 `p ↔ p`）—— `by rfl` 的合成项落在目标 span 上。
 ///
-/// ⚠ 次序是**唯一可用的判据**：这里不能按"有没有 `resolution`""文本像不像类型"
-/// 之类的启发式挑（那正是"猜"✗）。行是按语义顺序追加的这一事实由 `walk` 保证。
-fn innermost<'a, I>(mut rows: I) -> Option<&'a HoverType>
+/// ⚠ 所以"取第一条"（旧）与"取最后一条"（我第一版，实测在 `by rfl` 的声明上
+/// 翻车：末块给 `(a ∈ A) ↔ (a ∈ A)`）**都不对**。判据只能是**语义**：
+/// 记法节点自己那一行的 `resolution` 指向**这个符号自己**（T-D15 的
+/// `ResolvedTarget::Notation`，它的 span 落在本行 span **里面**）—— 这是 front
+/// 已经算好的真相，不是文本启发式 ✓。没有这样一行时退回**旧行为**（第一条），
+/// 改动面最小。
+fn innermost<'a, I>(rows: I) -> Option<&'a HoverType>
 where
     I: DoubleEndedIterator<Item = &'a HoverType> + Clone,
 {
@@ -139,13 +145,23 @@ where
             .unwrap_or(u64::MAX)
     };
     let min = rows.clone().map(width).min()?;
+    let tied: Vec<&'a HoverType> = rows.filter(|h| width(h) == min).collect();
     // 逃生门（反向验证用）：`SOKO_HOVER_FIRST_ROW=1` 回到"取第一个同宽行"
     // 的旧行为 ⇒ H1 用例必须重新判红（读数见 VERDICT）。
-    if std::env::var_os("SOKO_HOVER_FIRST_ROW").is_some() {
-        return rows.find(|h| width(h) == min);
+    if std::env::var_os("SOKO_HOVER_FIRST_ROW").is_none() {
+        let own = tied.iter().rev().find(|h| {
+            matches!(
+                h.resolution.as_ref(),
+                Some(ResolvedTarget::Notation { span, .. })
+                    if span.start.offset >= h.span.start.offset
+                        && span.end.offset <= h.span.end.offset
+            )
+        });
+        if let Some(row) = own {
+            return Some(row);
+        }
     }
-    // `.rev()` 取**最后一个**同宽行（`min_by_key` 给的是第一个 ⇒ 正是 H1 的病）。
-    rows.rev().find(|h| width(h) == min)
+    tied.first().copied()
 }
 
 pub(crate) fn hover_type_at(hovers: &[HoverType], line: u32, character: u32) -> Option<&HoverType> {
@@ -228,6 +244,37 @@ fn balanced_span(text: &str, span: Span) -> Span {
         }
     }
     Span::new(span.start, pos_at(text, i))
+}
+
+/// [`balanced_span`] 的**左边界**版本（H4）：AST 的 span 起点会落在括号
+/// **里面** —— `(a ∈ A) ↔ A a` 的记法节点从 `a` 起（`symbol_span` 只保证符号
+/// 自己准），于是切片右边多出一个 `)` ⇒ 括号不配对 ✗。
+///
+/// 先往左补齐这一层（扫到匹配的开括号），再套 [`balanced_span`] 补右边界 ⇒
+/// 两端都配平。`--` 注释在**左侧**扫描里按行跳过（与 `paren_delta` 同一条）。
+pub(crate) fn balanced_span_both(text: &str, span: Span) -> Span {
+    let bytes = text.as_bytes();
+    // ① 左边界：span 自己的括号净亏空 ⇒ 往左找匹配的开括号。
+    let mut need: i32 = -paren_delta(text, span.start.offset, span.end.offset) as i32;
+    let mut start = span.start.offset;
+    while need > 0 && start > 0 {
+        start -= 1;
+        match bytes[start] {
+            b')' => need += 1,
+            b'(' => need -= 1,
+            // `}` / `{`（集合字面量 `{a}`）走同一套：本语言不会跨类配对。
+            b'}' => need += 1,
+            b'{' => need -= 1,
+            _ => {}
+        }
+    }
+    let span = if start < span.start.offset {
+        Span::new(pos_at(text, start), span.end)
+    } else {
+        span
+    };
+    // ② 右边界：既有 `balanced_span` 的语义（补上 AST 没吃的那个 `)`）。
+    balanced_span(text, span)
 }
 
 /// The interior of a binder annotation span, with one outer `(`/`{` …
@@ -1121,11 +1168,15 @@ def viaPrefix : Wrap := Wrap.mk\ndef viaAlias : Wrap := mk\n";
         }
     }
 
-    /// **H1**：同一段源码被 elaborate 多次时，**最后一行**才是它的结论
-    /// （前端为记法目标先记的那一行是**目标常量自己的签名**）。
-    /// 这条单测直接钉 `hover_type_at` 的次序语义 —— 不用端到端夹具。
+    /// **H1**：同一段源码被 elaborate 多次时，取**这一段源码自己那一行** ——
+    /// 判据是 `resolution = Notation{span 落在本行内}`（front 算好的真相），
+    /// **不是**"取第一条"（那会拿到目标常量自己的签名）也**不是**"取最后一条"
+    /// （by 引擎会在同一个 span 上再记一行"证明项的类型"，实测
+    /// `theorem t (p : Prop) : p ↔ p := by rfl` 上末块会变成 `p ↔ p` ✗）。
+    /// 端到端读数：`node scripts/ux-probes/lsp-probe.mjs --case H1-notation-hover-type`
+    /// 与 `--case H4-notation-hover-slice`（后者的末块类型在同一处翻车过）。
     #[test]
-    fn innermost_prefers_the_last_row_of_the_same_span() {
+    fn innermost_prefers_the_row_owning_the_span() {
         let span = Span {
             start: Pos {
                 offset: 0,
@@ -1138,27 +1189,47 @@ def viaPrefix : Wrap := Wrap.mk\ndef viaAlias : Wrap := mk\n";
                 column: 6,
             },
         };
-        let row = |text: &str, resolution: bool| HoverType {
+        let row = |text: &str, symbol: Option<&str>| HoverType {
             span,
             text: text.to_string(),
             scope_names: Vec::new(),
-            resolution: resolution.then(|| ResolvedTarget::Notation {
-                symbol: "=".to_string(),
-                span,
+            resolution: symbol.map(|symbol| ResolvedTarget::Notation {
+                symbol: symbol.to_string(),
+                span: Span {
+                    start: Pos {
+                        offset: 1,
+                        line: 1,
+                        column: 2,
+                    },
+                    end: Pos {
+                        offset: 2,
+                        line: 1,
+                        column: 3,
+                    },
+                },
                 module: None,
             }),
             binder: false,
             lexical: false,
         };
         let hovers = vec![
-            row("forall {a : Type}, a -> a -> Prop", false), // 常量签名（先记的）
-            row("Prop", false),
-            row("Prop", true), // 表达式自己的类型（最后记的）
+            row("forall {a : Type}, a -> a -> Prop", None), // 目标常量自己的签名（先记的）
+            row("Prop", None),
+            row("Prop", Some("=")), // 记法节点自己那一行 ✓
+            row("a = a", None),     // by 引擎在同一 span 上追加的一行（最后记的）
         ];
-        // LSP 坐标是 0 基：第 0 行第 1 列 = span 里的 (line 1, column 2) ✓。
         let picked = hover_type_at(&hovers, 0, 1).expect("a row covers the cursor");
-        assert_eq!(picked.text, "Prop", "同一 span 取最后一行（H1）");
-        assert!(picked.resolution.is_some(), "最后一行的解析也在");
+        assert_eq!(
+            picked.text, "Prop",
+            "取'这一段源码自己那一行'（H1），不是第一条、也不是最后一条"
+        );
+        // 没有"自己那一行"时退回旧行为（第一条）—— 改动面最小。
+        let without_owner = vec![row("first", None), row("second", None)];
+        assert_eq!(
+            hover_type_at(&without_owner, 0, 1).expect("row").text,
+            "first",
+            "没有 owning 行时退回既定行为（第一条）"
+        );
         // 宽度不同则**窄的赢**（既有语义不许被次序改掉）。
         let mut narrow = hovers.clone();
         narrow.push(HoverType {

@@ -2376,8 +2376,12 @@ fn notation_symbol_hover(
     // 外层表达式的类型：能拿到就附上（`a ∈ A : Prop`），拿不到不编。
     if let Some(h) = render::hover_type_at(&report.hovers, pos.line, pos.character) {
         if !h.binder && !h.text.is_empty() && !h.text.contains('$') {
+            // **H4**：末块的源切片两端都要配平 —— 记法节点的 AST span 起点会落在
+            // 开括号**里面**（`(a ∈ A) ↔ A a` 从 `a` 起）⇒ 直接切会得到
+            // `a ∈ A) ↔ A a`（右括号多一个 ✗）。
+            let slice = render::balanced_span_both(text, h.span);
             let expr = text
-                .get(h.span.start.offset..h.span.end.offset)
+                .get(slice.start.offset..slice.end.offset)
                 .unwrap_or_default()
                 .trim();
             if !expr.is_empty() {
