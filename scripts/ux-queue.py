@@ -617,7 +617,13 @@ def check_uncovered(rows: list[dict], live: bool, timeout: int, undecided: list[
 #   ② 可重算 ⇒ 删掉事件文件就回到"来源台账的处置"（事件不是新真相源，是覆盖层）；
 #   ③ 每条迁移都留痕（谁 / 何时 / 什么证据）。
 
-EVENTS = ROOT / "docs" / "ux-queue-events.jsonl"
+# **事件表路径**（队列状态的唯一真相）。⚠ 允许用 `SOKO_QUEUE_EVENTS` 重定向 —— 这是
+# 给**测试/验证脚本**的：它们会造合成 id（8 路并发认领 `R-*`、未声明资源 `P-*`）来验调度器，
+# 而事件表是**主 checkout 单点**（`SOKO_QUEUE_ROOT`）⇒ 不重定向就会往真台账里灌合成条目、
+# 让"幽灵条目"判据反复假红（接口 agent 提交 `SUB-ghost-guard-diluted` 指出的正是这个，
+# 而"跳过 R-*/P-*"只是治标 —— 那等于**放宽守卫** ✗）。
+EVENTS = Path(os.environ["SOKO_QUEUE_EVENTS"]) if os.environ.get("SOKO_QUEUE_EVENTS") \
+    else ROOT / "docs" / "ux-queue-events.jsonl"
 LOCK_TTL_S = 2 * 60 * 60  # 两小时没心跳 ⇒ 陈旧（默认**只警告**；`--force` 才接管）
 # **并发 = 4 核**（2026-10-12 用户：「允许最多 4 个 subagent，类比 4 核心 cpu」）——
 # 但**同一模块同一时间只允许一个写者** ✗ ⇒ 认领要过**资源矩阵**（不是简单的计数锁）。
@@ -1010,6 +1016,19 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
     if to == "done" and not (commit and reading):
         print("✗ 收口必须带**证据**：`--commit <sha>` + `--reading '<判据读数>'` ✗", file=sys.stderr)
         return 1
+    # ⚠ **commit 必须真的存在**（2026-10-12 接口 agent 提交 `SUB-advance-commit-unchecked`）：
+    # 旧闸门只查"非空字符串" ⇒ 实测 `--commit deadbeefdeadbeef…`（`git cat-file -e` 非零）
+    # **rc 0** 通过，账上留下一个"有 commit"的**假终态**；而 `--release check`（切版收拢）
+    # 也只看 done + 有证据 ⇒ **假证据能把不该入版的条目放进版本** ✗。
+    # 判据：`git cat-file -e <sha>^{commit}`（存在且是 commit 对象）。
+    if to == "done":
+        import subprocess as _sp3
+        probe = _sp3.run(["git", "cat-file", "-e", f"{commit}^{{commit}}"],
+                         cwd=ROOT, capture_output=True, text=True)
+        if probe.returncode != 0:
+            print(f"✗ `--commit {commit}` 在仓库里**不存在**（`git cat-file -e` 非零）"
+                  f" ⇒ 收口证据是假的，不许记 ✗（先把这个环节真的提交掉）", file=sys.stderr)
+            return 1
     if to in {"wo_filed", "blocked"} and not reason:
         print(f"✗ `{to}` 必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
         return 1
@@ -1171,13 +1190,10 @@ def check_plan(rows: list[dict]) -> int:
     disp = {r["id"]: r.get("disposition") for r in rows}
     for ident, cur in sorted(state.items()):
         st = cur.get("state")
-        # ⚠ **合成测试 id 不算幽灵**（2026-10-12 反复踩到）：`--selftest` 的夹具用 `X-*`、
-        # 集群并发验证脚本用 `R-*`（8 路认领）/`P-*`（未声明资源），它们**故意**不登记进来源。
-        # 这些脚本在四棵 worktree 里都会跑，而**事件表是主 checkout 单点**
-        # （`SOKO_QUEUE_ROOT`）⇒ 每跑一次就往真台账里写一条 ⇒ `--check-plan` 反复假红 ✗。
-        # 真幽灵（"来源被删了"）是**别的 id**：那些照样判红 ✓（判据没放宽，只是划出测试命名空间）。
-        if ident.startswith(("R-", "P-")):
-            continue
+        # ⚠ 这里**不划测试命名空间**（2026-10-12 接口 agent 提交 `SUB-ghost-guard-diluted`）：
+        # 曾经为了让验证脚本不弄红而跳过 `R-*`/`P-*` —— 那是**放宽守卫** ✗。正解是让那些脚本
+        # **别往真台账写**（用 `SOKO_QUEUE_EVENTS=<临时文件>`，见 `EVENTS` 的说明）⇒
+        # 幽灵判据保持满强度：任何不在来源里的 id 一律判红 ✓。
         if ident not in known:
             print(f"✗ 事件里的 `{ident}` 不在任何来源里 ⇒ 幽灵条目（删来源了？）✗", file=sys.stderr)
             bad += 1
@@ -1560,6 +1576,11 @@ def selftest_scheduler(expect) -> None:
     def m_state(ident: str = "X-1") -> str:
         return fold().get(ident, {}).get("state", "todo")
 
+    # ⚠ 收口闸门现在会**核 commit 是否真存在**（`git cat-file -e`，见 `cmd_advance`）
+    # ⇒ 自检的夹具必须用**真 sha**（`HEAD`），否则"带证据收口"那条会被新闸门正当拒掉 ✗。
+    real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.strip()
+
     with tempfile.TemporaryDirectory() as tmp:
         saved_events, saved_lock = EVENTS, lock_file
         EVENTS = Path(tmp) / "events.jsonl"
@@ -1572,7 +1593,7 @@ def selftest_scheduler(expect) -> None:
             expect("认领 X-1", quiet(cmd_claim, "X-1", "t", False, rows, "mod/1") == 0)
             rc = quiet(cmd_advance, "X-1", "done", "", "", "", "t", False, rows)
             expect(f"无证据收口必须被拒（rc={rc}）", rc == 1)
-            rc = quiet(cmd_advance, "X-1", "done", "deadbeef", "probe exit 0→1", "", "t",
+            rc = quiet(cmd_advance, "X-1", "done", real_sha, "probe exit 0→1", "", "t",
                        False, rows)
             expect(f"带证据收口必须通过（rc={rc}）", rc == 0)
             # ③ 两层漂移：调度器 done 了，来源处置还是 fix ⇒ check_plan 必须判红
@@ -1591,7 +1612,7 @@ def selftest_scheduler(expect) -> None:
             ids = [r["id"] for r in view]
             expect(f"子任务排在父之前（{ids[:3]}）", ids.index("X-1a") < ids.index("X-1"))
             expect("父转 umbrella", fold()["X-1"]["state"] == "umbrella")
-            rc = quiet(cmd_advance, "X-1", "done", "deadbeef", "读数", "", "t", True, view)
+            rc = quiet(cmd_advance, "X-1", "done", real_sha, "读数", "", "t", True, view)
             expect(f"umbrella 子在开 ⇒ 不许收口（rc={rc}）", rc == 1)
             # ⑥ **4 核槽位**：4 个互不相干的认领都行，第 5 个必须被拒
             write_lock([])
@@ -1667,6 +1688,20 @@ def selftest_scheduler(expect) -> None:
             expect(f"**收口后槽位归还**（实测 {len(live_claims())} 条 ⇒ 期望 0）",
                    live_claims() == [])
             write_lock([])
+            # ⑧b **收口证据里的 commit 必须真存在**（2026-10-12 接口 agent 提交
+            #     `SUB-advance-commit-unchecked`）：假 sha 必须被拒（旧闸门只查非空字符串 ✗）。
+            write_lock([])
+            EVENTS.write_text("", encoding="utf-8")
+            expect("认领 X-1 以测 commit 闸门",
+                   quiet(cmd_claim, "X-1", "w9", False, rows, "mod/z") == 0)
+            fake = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+            expect(f"假 commit `{fake[:8]}…` 收口必须被拒",
+                   quiet(cmd_advance, "X-1", "done", fake, "我编的读数", "", "w9",
+                         False, rows) == 1)
+            expect("真 commit 收口通过",
+                   quiet(cmd_advance, "X-1", "done", real_sha, "读数", "", "w9",
+                         False, rows) == 0)
+            write_lock([])
             # ⑫ --next 跳过终态 / 对照臂
             nxt = io.StringIO()
             with contextlib.redirect_stdout(nxt):
@@ -1688,6 +1723,9 @@ def selftest_release_inbox(expect) -> None:
     # `submitted`（triage 分支修好后），而**发版节点**那几条用例要的是"有条目还没 done"
     # 这个形状（与提交面无关）⇒ 那一段临时把状态口径钉成 `todo`，见 ③。
     saved_eff = globals().get("effective_state")
+    # 受理闸门要求 `--commit` 真有（`cmd_advance` 那条同理）⇒ 夹具用真 sha（`HEAD`）
+    real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.strip()
     with tempfile.TemporaryDirectory() as tmp:
         saved = (EVENTS, EXTRAS, INBOX_DIR, globals()["worktree_dirty"], globals()["lock_file"])
         EVENTS = Path(tmp) / "events.jsonl"
@@ -1724,7 +1762,7 @@ def selftest_release_inbox(expect) -> None:
             expect("triage applied 没 commit ⇒ 拒",
                    quiet(cmd_triage, "SUB-1", "applied", "", "", "main") == 1)
             expect("triage applied 带 commit ⇒ 过",
-                   quiet(cmd_triage, "SUB-1", "applied", "", "deadbeef", "main") == 0)
+                   quiet(cmd_triage, "SUB-1", "applied", "", real_sha, "main") == 0)
             expect("triage rejected 没理由 ⇒ 拒",
                    quiet(cmd_triage, "SUB-1", "rejected", "", "", "main") == 1)
             # ③ 发版节点：克制（<3 条）、收拢（有在飞认领）、入版必须 done
@@ -1796,7 +1834,7 @@ def selftest_release_inbox(expect) -> None:
                    f"[实测 state={_st2.get('state')} sources={_row2.get('sources')}]",
                    effective_state(_row2, _st2) == "submitted")
             expect("受理 applied 后状态 = done",
-                   quiet(cmd_triage, "SUB-1", "applied", "", "cafebabe", "main") == 0
+                   quiet(cmd_triage, "SUB-1", "applied", "", real_sha, "main") == 0
                    and fold()["SUB-1"]["state"] == "done")
             expect("受理后来源处置翻成 fixed（否则条目永远 open ✗）",
                    _read_jsonl(EXTRAS)[0]["disposition"] == "fixed")
@@ -1861,6 +1899,27 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     ):
         got = judge_rc(kind, rc)[0]
         expect(f"`judge_rc({kind!r}, {rc})` = {got}，期望 {want}", got == want)
+
+    # ⓪c **事件表可重定向**（2026-10-12 接口 agent 提交 `SUB-ghost-guard-diluted` 的正解）：
+    #     验证脚本会造合成 id（8 路认领 `R-*` 等），而事件表是**主 checkout 单点**
+    #     ⇒ 不重定向就往真台账灌合成条目；而"跳过 R-*/P-*"是**放宽守卫** ✗。
+    #     判据：设了 `SOKO_QUEUE_EVENTS` 的子进程必须把事件写进**那个文件**、
+    #     真事件表**一字节不动** ✓（用真子进程 ⇒ 咬得住"忘了读这个环境变量"）。
+    #     ⚠ 用 `--advance <已知 id> --to blocked`（`--claim` 会拒绝队列里没有的 id ⇒ 写不出事件）。
+    import subprocess as _sp2
+    real_events = ROOT / "docs" / "ux-queue-events.jsonl"
+    before = real_events.read_text(encoding="utf-8") if real_events.exists() else ""
+    with tempfile.TemporaryDirectory() as _tmp:
+        alt = Path(_tmp) / "alt-events.jsonl"
+        env2 = dict(os.environ, SOKO_QUEUE_ROOT=str(ROOT), SOKO_QUEUE_EVENTS=str(alt))
+        _sp2.run([sys.executable, str(ROOT / "scripts" / "ux-queue.py"),
+                  "--advance", "SUB-probe-build-drift", "--to", "blocked",
+                  "--reason", "selftest-redirect-probe", "--owner", "selftest"],
+                 capture_output=True, text=True, env=env2, cwd=str(ROOT))
+        alt_has = alt.exists() and "selftest-redirect-probe" in alt.read_text(encoding="utf-8")
+        after = real_events.read_text(encoding="utf-8") if real_events.exists() else ""
+    expect("`SOKO_QUEUE_EVENTS` 生效：事件写进重定向的那个文件", alt_has)
+    expect("真事件表**没被写入**（重定向时）", before == after)
 
     # ① 读数判定：五种处置 × 两种实读
     cases = [

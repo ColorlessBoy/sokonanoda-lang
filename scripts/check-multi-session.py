@@ -80,8 +80,44 @@ def file_matches(ref: str, path: str) -> bool:
         return False
 
 
+def worktree_residue(base: str = "main") -> list[str]:
+    """**残留工作树**（= 已经合回 `base` 的 `.worktrees/<id>`）⇒ 建议清理。
+
+    ⚠ 只**报告**、不判红（2026-10-12 接口 agent 提交 `SUB-worktree-cleanup-drift` 的处置）：
+    清理是**编排者**该做的事（`scripts/agent-worktree.sh rm <id>`），而"正在干活"的树**不该**
+    被判红 —— 判红的代价是每个会话都被打断。但**沉默**的代价更大：实测一次收口后
+    `git worktree list` 里躺着 **7 棵**（`h1`/`g110`/`n2`/`r07`/`iface`/`langA`/`lspA`），
+    下一个接手者会以为**有 7 条在飞** ✗（本仓自己的规则："worktree 残留是已知坑"）。
+    ⇒ 判据：`main..agent/<id>` 的 commit 数为 **0**（全合回/零 commit）且工作区干净 ⇒ 点名建议删。
+    """
+    rc, out = git("worktree", "list", "--porcelain")
+    if rc != 0:
+        return []
+    trees: list[tuple[str, str]] = []
+    path = ""
+    for line in out.splitlines():
+        if line.startswith("worktree "):
+            path = line.split(" ", 1)[1]
+        elif line.startswith("branch ") and path:
+            trees.append((path, line.split(" ", 1)[1].removeprefix("refs/heads/")))
+    stuck: list[str] = []
+    for path, branch in trees:
+        if ".worktrees/" not in path or not branch.startswith("agent/"):
+            continue
+        rc_n, n = git("rev-list", "--count", f"{base}..{branch}")
+        rc_d, dirty = git("-C", path, "status", "--porcelain")
+        if rc_n == 0 and int(n or 0) == 0 and rc_d == 0 and not dirty.strip():
+            stuck.append(f"{path}（{branch}）")
+    return stuck
+
+
 def check(base: str = "main") -> int:
     bad: list[str] = []
+
+    # ── 判据 ⓪：残留工作树（只报告不判红，见 `worktree_residue` 的说明）─────────
+    for tree in worktree_residue(base):
+        print(f"⏳ 残留工作树（已全合回 `{base}` 且干净）⇒ 建议 "
+              f"`scripts/agent-worktree.sh rm <id>` 清掉：{tree}", file=sys.stderr)
 
     # ── 判据 ①：链接工作树里不许改共享台账 ──────────────────────────────
     if in_linked_worktree():
