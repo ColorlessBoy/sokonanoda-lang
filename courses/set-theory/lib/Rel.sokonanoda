@@ -334,7 +334,7 @@ theorem Rel.inv_mono_of_inv {A B : Type} (r r' : Rel A B)
 -- 每个等价类**是**一个类（S-B ✓ I.13）：见证就是 `a` 自己 ✓ 逐点定义展开 ✓
 theorem Rel.equivClass_is_class (α : Type) (r : Rel α α) (a : α) :
     Rel.Classes α r (Rel.EquivClass α r a) :=
-  Exists.intro α (fun (a' : α) => ∀ (c : α), Rel.EquivClass α r a c ↔ r a' c) a
+  Exists.intro a
     (fun (c : α) => Iff.intro (fun (h : Rel.EquivClass α r a c) => h) (fun (h : r a c) => h))
 
 -- 自反点属于自己的等价类（S-B ✓ I.13）：两侧是**定义等式** ⇒ 证明就是 `h` ✓

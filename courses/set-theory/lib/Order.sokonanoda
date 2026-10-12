@@ -288,8 +288,7 @@ theorem hasMin_def (α : Type) (r : α → α → Prop) (P : α → Prop) :
 theorem hasMin_intro (α : Type) (r : α → α → Prop) (P : α → Prop) (m : α)
     (hm : P m) (hmin : ∀ (y : α), P y → ¬ (r y m)) : HasMin α r P :=
   Iff.mpr (hasMin_def α r P)
-    (Exists.intro α (fun (m' : α) => P m' ∧ ∀ (y : α), P y → ¬ (r y m')) m
-      (And.intro hm hmin))
+    (Exists.intro m (And.intro hm hmin))
 
 theorem hasMin_elim (α : Type) (r : α → α → Prop) (P : α → Prop)
     (h : HasMin α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
@@ -299,7 +298,7 @@ theorem hasMin_witness (α : Type) (r : α → α → Prop) (P : α → Prop)
     (h : HasMin α r P) : ∃ (m : α), P m :=
   Exists.elim (hasMin_elim α r P h)
     (fun (m : α) (hm : P m ∧ ∀ (y : α), P y → ¬ (r y m)) =>
-      Exists.intro α P m (And.left hm))
+      Exists.intro m (And.left hm))
 
 theorem isWellFounded_intro (α : Type) (r : α → α → Prop)
     (h : ∀ (P : α → Prop), (∃ (x : α), P x) → HasMin α r P) : IsWellFounded α r :=
@@ -314,8 +313,7 @@ theorem hasLeast_def (α : Type) (r : α → α → Prop) (P : α → Prop) :
 theorem hasLeast_intro (α : Type) (r : α → α → Prop) (P : α → Prop) (m : α)
     (hm : P m) (hleast : ∀ (y : α), P y → r m y) : HasLeast α r P :=
   Iff.mpr (hasLeast_def α r P)
-    (Exists.intro α (fun (m1 : α) => P m1 ∧ ∀ (y : α), P y → r m1 y) m
-      (And.intro hm hleast))
+    (Exists.intro m (And.intro hm hleast))
 
 theorem hasLeast_elim (α : Type) (r : α → α → Prop) (P : α → Prop)
     (h : HasLeast α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → r m y :=
@@ -325,7 +323,7 @@ theorem hasLeast_witness (α : Type) (r : α → α → Prop) (P : α → Prop)
     (h : HasLeast α r P) : ∃ (m : α), P m :=
   Exists.elim (hasLeast_elim α r P h)
     (fun (m : α) (hm : P m ∧ ∀ (y : α), P y → r m y) =>
-      Exists.intro α P m (And.left hm))
+      Exists.intro m (And.left hm))
 
 -- ── 空关系（Mathlib `EmptyRelation`；下面两道反例题的样板）────────────────────
 def EmptyRelation (α β : Type) : α → β → Prop :=

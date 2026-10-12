@@ -72,7 +72,7 @@ theorem Set.image_mono {α β : Type} (f : α → β) (A B : Set α)
     Exists.elim α (fun (x : α) => A x ∧ f x = y)
       (y ∈ f '' B) hy
       (fun (x : α) => fun (hx : A x ∧ f x = y) =>
-        Exists.intro α (fun (t : α) => B t ∧ f t = y) x
+        Exists.intro x
           (And.intro (B x) (f x = y)
             (h x (And.left hx))
             (And.right hx)))
