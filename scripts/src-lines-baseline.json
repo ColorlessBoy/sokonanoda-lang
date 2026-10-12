@@ -11,8 +11,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/by.rs": {
-      "lines": 4198,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 4353,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 4198,
+      "growth_reason": "本轮两个 core 的 7 笔修复（语言线 r20/r21/r22/M-03…M-06 + LSP 侧 F12b/C1N3 锚点）：query/mod.rs +17 · semantic.rs +96 · lsp/actions.rs +155 · lsp/lib.rs +2。⚠ 如实：债务增长（四个文件早已超 500 行软线），换来语言线 4 条 + LSP 2 条收口，且 lsp-probe --all 达到 28/28 一致；软线目标未变，actions.rs（1673）/semantic.rs（1808）/query/mod.rs（2131）待拆"
     },
     "crates/front/src/compile/cache.rs": {
       "lines": 1138,
@@ -27,8 +29,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/check/walk.rs": {
-      "lines": 2855,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2876,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2855,
+      "growth_reason": "本轮两个 core 的 7 笔修复（语言线 r20/r21/r22/M-03…M-06 + LSP 侧 F12b/C1N3 锚点）：query/mod.rs +17 · semantic.rs +96 · lsp/actions.rs +155 · lsp/lib.rs +2。⚠ 如实：债务增长（四个文件早已超 500 行软线），换来语言线 4 条 + LSP 2 条收口，且 lsp-probe --all 达到 28/28 一致；软线目标未变，actions.rs（1673）/semantic.rs（1808）/query/mod.rs（2131）待拆"
     },
     "crates/front/src/compile/elab.rs": {
       "lines": 8389,
@@ -59,8 +63,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/display.rs": {
-      "lines": 2183,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2336,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2183,
+      "growth_reason": "本轮两个 core 的 7 笔修复（语言线 r20/r21/r22/M-03…M-06 + LSP 侧 F12b/C1N3 锚点）：query/mod.rs +17 · semantic.rs +96 · lsp/actions.rs +155 · lsp/lib.rs +2。⚠ 如实：债务增长（四个文件早已超 500 行软线），换来语言线 4 条 + LSP 2 条收口，且 lsp-probe --all 达到 28/28 一致；软线目标未变，actions.rs（1673）/semantic.rs（1808）/query/mod.rs（2131）待拆"
     },
     "crates/front/src/judge.rs": {
       "lines": 4670,
@@ -103,12 +109,16 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/query/mod.rs": {
-      "lines": 2114,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2131,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2114,
+      "growth_reason": "本轮两个 core 的 7 笔修复（语言线 r20/r21/r22/M-03…M-06 + LSP 侧 F12b/C1N3 锚点）：query/mod.rs +17 · semantic.rs +96 · lsp/actions.rs +155 · lsp/lib.rs +2。⚠ 如实：债务增长（四个文件早已超 500 行软线），换来语言线 4 条 + LSP 2 条收口，且 lsp-probe --all 达到 28/28 一致；软线目标未变，actions.rs（1673）/semantic.rs（1808）/query/mod.rs（2131）待拆"
     },
     "crates/front/src/semantic.rs": {
-      "lines": 1712,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1808,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1712,
+      "growth_reason": "本轮两个 core 的 7 笔修复（语言线 r20/r21/r22/M-03…M-06 + LSP 侧 F12b/C1N3 锚点）：query/mod.rs +17 · semantic.rs +96 · lsp/actions.rs +155 · lsp/lib.rs +2。⚠ 如实：债务增长（四个文件早已超 500 行软线），换来语言线 4 条 + LSP 2 条收口，且 lsp-probe --all 达到 28/28 一致；软线目标未变，actions.rs（1673）/semantic.rs（1808）/query/mod.rs（2131）待拆"
     },
     "crates/front/src/session.rs": {
       "lines": 1460,
@@ -171,22 +181,20 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/actions.rs": {
-      "lines": 1518,
+      "lines": 1673,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 1318,
-      "growth_reason": "lspD 本轮两修：F12（交给 judge_* 的文档视图把入口 import 行等长改写成注释 ⇒ 合成前缀不再 ImportMustPrecedeDeclarations）+ F6（声明列表 Type 0 按 Lean 4 印成 Type，render.rs 的 lean4_universe_text/runs 同一规则两处复用）⇒ actions.rs +200 · render.rs +251 · lib.rs +8。⚠ 如实：债务增长（三个文件早已超 500 行软线），换来一个'整门课没有 quick fix'的根因收口 + 一条 Lean 4 对齐；软线目标未变，actions.rs/render.rs 待拆"
+      "grew_from": 1518,
+      "growth_reason": "本轮两个 core 的 7 笔修复（语言线 r20/r21/r22/M-03…M-06 + LSP 侧 F12b/C1N3 锚点）：query/mod.rs +17 · semantic.rs +96 · lsp/actions.rs +155 · lsp/lib.rs +2。⚠ 如实：债务增长（四个文件早已超 500 行软线），换来语言线 4 条 + LSP 2 条收口，且 lsp-probe --all 达到 28/28 一致；软线目标未变，actions.rs（1673）/semantic.rs（1808）/query/mod.rs（2131）待拆"
     },
     "crates/lsp/src/lib.rs": {
-      "lines": 3850,
+      "lines": 3852,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 3842,
-      "growth_reason": "lspD 本轮两修：F12（交给 judge_* 的文档视图把入口 import 行等长改写成注释 ⇒ 合成前缀不再 ImportMustPrecedeDeclarations）+ F6（声明列表 Type 0 按 Lean 4 印成 Type，render.rs 的 lean4_universe_text/runs 同一规则两处复用）⇒ actions.rs +200 · render.rs +251 · lib.rs +8。⚠ 如实：债务增长（三个文件早已超 500 行软线），换来一个'整门课没有 quick fix'的根因收口 + 一条 Lean 4 对齐；软线目标未变，actions.rs/render.rs 待拆"
+      "grew_from": 3850,
+      "growth_reason": "本轮两个 core 的 7 笔修复（语言线 r20/r21/r22/M-03…M-06 + LSP 侧 F12b/C1N3 锚点）：query/mod.rs +17 · semantic.rs +96 · lsp/actions.rs +155 · lsp/lib.rs +2。⚠ 如实：债务增长（四个文件早已超 500 行软线），换来语言线 4 条 + LSP 2 条收口，且 lsp-probe --all 达到 28/28 一致；软线目标未变，actions.rs（1673）/semantic.rs（1808）/query/mod.rs（2131）待拆"
     },
     "crates/lsp/src/render.rs": {
       "lines": 1593,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 1342,
-      "growth_reason": "lspD 本轮两修：F12（交给 judge_* 的文档视图把入口 import 行等长改写成注释 ⇒ 合成前缀不再 ImportMustPrecedeDeclarations）+ F6（声明列表 Type 0 按 Lean 4 印成 Type，render.rs 的 lean4_universe_text/runs 同一规则两处复用）⇒ actions.rs +200 · render.rs +251 · lib.rs +8。⚠ 如实：债务增长（三个文件早已超 500 行软线），换来一个'整门课没有 quick fix'的根因收口 + 一条 Lean 4 对齐；软线目标未变，actions.rs/render.rs 待拆"
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/testutil.rs": {
       "lines": 504,

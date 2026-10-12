@@ -177,3 +177,15 @@
 {"ts": "2026-10-12T20:13:21+00:00", "event": "claim", "id": "F6", "owner": "orchestrator", "resources": ["crates/lsp"]}
 {"ts": "2026-10-12T20:13:21+00:00", "event": "advance", "id": "F6", "to": "done", "commit": "92f0088b", "reading": "editor-probe --case goal-on-sorry ⇒ exit 1→0；wire Type 0 8→0；反向=短路 decl_info ⇒ exit 1；Lean4 对照 delabSort", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T20:14:08+00:00", "event": "split", "id": "F12b-notation-blind-intro", "parent": "F12", "title": "∈ 头的目标没有 quick fix：front 的 intro_count 记法盲 + LSP 后备只覆盖 Eq/And/Iff", "owner": "penglingwei@penglingweis-Laptop"}
+{"ts": "2026-10-12T20:43:21+00:00", "event": "claim", "id": "F12b-notation-blind-intro", "owner": "LSP-E", "resources": ["crates/lsp"]}
+{"ts": "2026-10-12T20:43:48+00:00", "event": "claim", "id": "r16", "owner": "FRONT-E", "resources": ["crates/front"]}
+{"ts": "2026-10-12T21:53:42+00:00", "event": "release", "id": "r16", "owner": "FRONT-E", "reason": "frontE 收工（4 commit 已落地并验证）⇒ 归还槽位与 crates/front"}
+{"ts": "2026-10-12T21:53:42+00:00", "event": "release", "id": "F12b-notation-blind-intro", "owner": "LSP-E", "reason": "lspE 收工（3 commit 已落地并验证）⇒ 归还槽位与 crates/lsp"}
+{"ts": "2026-10-12T21:53:51+00:00", "event": "claim", "id": "r20", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T21:53:51+00:00", "event": "advance", "id": "r20", "to": "done", "commit": "1c3bbc07", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T21:53:51+00:00", "event": "claim", "id": "r21", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T21:53:52+00:00", "event": "advance", "id": "r21", "to": "done", "commit": "2930e94a", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T21:53:52+00:00", "event": "claim", "id": "r22", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T21:53:52+00:00", "event": "advance", "id": "r22", "to": "done", "commit": "7b8df6bd", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T21:53:52+00:00", "event": "claim", "id": "M-03…M-06", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T21:53:52+00:00", "event": "advance", "id": "M-03…M-06", "to": "done", "commit": "689b5a87", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
