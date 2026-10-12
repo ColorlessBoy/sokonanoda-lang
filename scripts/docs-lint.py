@@ -63,6 +63,24 @@ MAX_ARCHIVE_BYTES = 2_500_000  # ⑥ 归档总量（本轮实测 2.12 MB）
 
 BUDGET = Path("scripts/docs-budget.json")
 DOC_REFS = Path("scripts/doc-refs-baseline.json")
+SRC_LINES = Path("scripts/src-lines-baseline.json")
+
+# ⑨ 源码行数红线（STRUCT-SRC-LINES，2026-10-12）：`AGENTS.md` 硬规则 5
+# 「文件接近 ~500 行即拆分」此前**只有散文、没有机器判据** ✗ —— 判据 ②（单文件
+# ≤2000 行）**只数文档**，于是 `crates/front/src/parser.rs` 涨到 **6283** 行、
+# `crates/front/src/compile/elab.rs` **8336** 行都无人报 ✗。
+#
+# 口径（与判据 ④/⑧ 同一个"棘轮"模式，三条缺一不可）：
+#  1. **只查生产源码**：`crates/*/src/**/*.rs`，**排除测试聚合文件**
+#     （`tests.rs` / `tests/**` / `*_test.rs`）—— 规则 5 管的是**模块结构**，
+#     而"很多小用例聚在一个文件"是本仓**有意**的形态（`compile/tests.rs` 11162 行
+#     是几百条用例，不是 8000 行的模块）⇒ 对它们判红只会逼人把用例藏起来 ✗。
+#     **如实写明这个边界**：这条不覆盖测试文件（不是"忘了"，是不该管 ✓）。
+#  2. **新文件超 SOFT(=500) ⇒ 判红**：`AGENTS.md` 的规则从今天起**会拦新窟窿** ✓。
+#  3. **存量冻结 + 只许减不许增**：已在基线的文件**不许变长**（变长 ⇒ 判红）；
+#     **降回 ≤SOFT 后必须从基线删掉**（否则判红：基线腐烂 ✗）。
+SRC_SOFT_LINES = 500
+SRC_LINES_EXCLUDE = re.compile(r"(^|/)(tests?\.rs|tests?/)|_test\.rs$")
 
 # ⑧ 文档引用可解析（DOC-DANGLING，2026-10-12）：**活指针必须指得到东西** ✓
 #
@@ -185,6 +203,68 @@ def scan_doc_refs(files: set[str]) -> dict[str, list[str]]:
 
 
 _DOC_REFS_PATHS_OVERRIDE: dict | None = None
+_SRC_LINES_OVERRIDE: dict | None = None
+
+
+def scan_src_lines(files: set[str]) -> dict[str, int]:
+    """⑨ 生产源码里**超过 `SRC_SOFT_LINES`** 的文件 ⇒ `{路径: 行数}`（口径见常量）。"""
+    out: dict[str, int] = {}
+    for f in sorted(files):
+        if not f.endswith(".rs") or not f.startswith("crates/"):
+            continue
+        if "/src/" not in f or SRC_LINES_EXCLUDE.search(f):
+            continue
+        p = Path(f)
+        if not p.exists():
+            continue
+        n = line_count(p)
+        if n > SRC_SOFT_LINES:
+            out[f] = n
+    return out
+
+
+def load_src_lines_baseline() -> dict:
+    if _SRC_LINES_OVERRIDE is not None:  # 自检注入
+        return _SRC_LINES_OVERRIDE
+    if not SRC_LINES.exists():
+        return {}
+    try:
+        return (json.loads(SRC_LINES.read_text(encoding="utf-8")) or {}).get("files") or {}
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def check_src_lines(files: set[str]) -> tuple[list[str], dict]:
+    """⑨ 的判据本体（`--check-src-lines` 单跑 + 自检都打它）。"""
+    found = scan_src_lines(files)
+    base = load_src_lines_baseline()
+    bad: list[str] = []
+    shrunk: list[str] = []
+    for f, n in sorted(found.items()):
+        cap = (base.get(f) or {}).get("lines")
+        if cap is None:
+            bad.append(
+                f"⑨ **新增**超长源码文件 `{f}`：{n} 行 > 软线 {SRC_SOFT_LINES}"
+                f"（`AGENTS.md` 硬规则 5：接近 ~500 行即拆分）"
+                f" ⇒ 拆模块、或按 `--freeze-src-lines` 走**评审可见**的基线（只在存量清单里加 ✗）"
+            )
+        elif n > cap:
+            bad.append(
+                f"⑨ `{f}` **变长**了：{n} > 基线 {cap}（只许减不许增 ✗）"
+                f" ⇒ 拆出去，别往已经超标的文件里加 ✗"
+            )
+        elif n < cap:
+            shrunk.append(f"{f}（{cap} ⇒ {n}）")
+    for f, meta in sorted(base.items()):
+        if f not in found:
+            bad.append(
+                f"⑨ 基线过期：`{f}` 已降到 ≤{SRC_SOFT_LINES} 行（基线记着 {meta.get('lines')}）"
+                f" ⇒ **删掉这条**（基线只许减不许增 ✓）"
+            )
+    stats = {"src_over_soft": len(found), "src_max_lines": max(found.values(), default=0)}
+    if shrunk:
+        stats["src_shrinkable"] = shrunk
+    return bad, stats
 
 
 def load_doc_refs_baseline() -> dict:
@@ -413,6 +493,10 @@ def check() -> tuple[list[str], dict]:
     ref_bad, ref_stats = check_doc_refs(files)
     bad += ref_bad
 
+    # ⑨ 源码行数红线（STRUCT-SRC-LINES）
+    src_bad, src_stats = check_src_lines(files)
+    bad += src_bad
+
     # ⚠ **零扫描 ≠ 绿** ✗✓（E00 切片 B 实测）：`cd scripts && python3 docs-lint.py` 会印
     # 「活文档 **0 个** / 0.00 MB ✓ · 归档 0 个 … 归档索引齐 ✓」并 **exit 0** ✗ ——
     # 各条判据都在"什么都没扫到"上**真空中通过** ✗。判据 ① 的本意是"活文档 ≤ 上限"，
@@ -424,6 +508,7 @@ def check() -> tuple[list[str], dict]:
         "archive_files": len(arch_files),
         "max_live_bytes": MAX_LIVE_BYTES,
         **ref_stats,
+        **src_stats,
     }
     return bad, stats
 
@@ -608,6 +693,38 @@ def selftest() -> int:
     results.append(("⑧", "基线过期（已归零却留着）", any(
         b.startswith("⑧") and "基线过期" in b for b in bad)))
 
+    # ⑨ 源码行数红线：**三条都要咬**（与 ⑧ 同款方向性 ✓）——
+    #   (a) 新文件超软线 ⇒ 判红；(b) 存量**变长** ⇒ 判红；(c) 基线过期 ⇒ 判红。
+    tmp_src = Path("crates/front/src/__srclines_selftest__.rs")
+    tmp_src.write_text("// x\n" * (SRC_SOFT_LINES + 5), encoding="utf-8")
+    try:
+        bad, _ = check_src_lines(tracked())
+    finally:
+        tmp_src.unlink(missing_ok=True)
+    results.append(("⑨", "新增超长源码文件", any(
+        b.startswith("⑨") and "__srclines_selftest__" in b for b in bad)))
+
+    saved_src = load_src_lines_baseline()
+    probe = "crates/front/src/__srclines_grow_selftest__.rs"
+    tmp_src.write_text("// x\n" * (SRC_SOFT_LINES + 50), encoding="utf-8")
+    global _SRC_LINES_OVERRIDE
+    _SRC_LINES_OVERRIDE = {probe: {"lines": SRC_SOFT_LINES + 10, "reason": "自检"}}
+    try:
+        bad, _ = check_src_lines({probe, *tracked()})
+    finally:
+        _SRC_LINES_OVERRIDE = None
+        tmp_src.unlink(missing_ok=True)
+    results.append(("⑨", "存量文件变长", any(
+        b.startswith("⑨") and "__srclines_grow_selftest__" in b for b in bad)))
+
+    _SRC_LINES_OVERRIDE = {"crates/front/src/lib.rs": {"lines": 99999, "reason": "自检"}}
+    try:
+        bad, _ = check_src_lines(tracked())
+    finally:
+        _SRC_LINES_OVERRIDE = None
+    results.append(("⑨", "基线过期（已降回却留着）", any(
+        b.startswith("⑨") and "基线过期" in b for b in bad)))
+
     ok = all(hit for _, _, hit in results)
     for code, label, hit in results:
         print(f"  {'✓' if hit else '✗'} {code} {label}")
@@ -733,6 +850,75 @@ def freeze_doc_refs() -> int:
     return 0
 
 
+def check_src_lines_only() -> int:
+    """`--check-src-lines`：只跑判据 ⑨（STRUCT-SRC-LINES 的判据就是这条 ✓）。"""
+    try:
+        files = tracked()
+    except subprocess.CalledProcessError as e:
+        print(f"docs-lint: 环境错：{e}", file=sys.stderr)
+        return 2
+    bad, stats = check_src_lines(files)
+    if bad:
+        print(f"docs-lint --check-src-lines：{len(bad)} 条不通过 ✗", file=sys.stderr)
+        for b in bad:
+            print(f"  - {b}", file=sys.stderr)
+        return 1
+    print(
+        f"docs-lint --check-src-lines ✓ 超软线({SRC_SOFT_LINES})的生产源码 "
+        f"{stats['src_over_soft']} 个（最长 {stats['src_max_lines']} 行）⇒ **都在基线内、且没有变长** ✓"
+        "（口径：`crates/*/src/**/*.rs`，**不含**测试聚合文件）"
+    )
+    if stats.get("src_shrinkable"):
+        print(f"  ⚠ 可收紧基线：{' · '.join(stats['src_shrinkable'])}")
+    return 0
+
+
+def freeze_src_lines() -> int:
+    """`--freeze-src-lines`：把当前实测写成新基线；**拒绝变大**（与 ⑧ 同规矩 ✓）。"""
+    files = tracked()
+    found = scan_src_lines(files)
+    old = load_src_lines_baseline()
+    grown = [
+        f"{f}（{n} > 基线 {meta.get('lines')}）"
+        for f, meta in old.items()
+        if (n := found.get(f, 0)) > meta.get("lines", 0)
+    ]
+    if grown:
+        print(
+            "✗ 拒绝重新基线：这些文件**变长了** ⇒ 先拆模块，别拿基线盖住 ✗\n  " + "\n  ".join(grown),
+            file=sys.stderr,
+        )
+        return 2
+    out = {
+        f: {
+            "lines": n,
+            "reason": (old.get(f) or {}).get("reason")
+            or "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+        }
+        for f, n in sorted(found.items())
+    }
+    SRC_LINES.write_text(
+        json.dumps(
+            {
+                "_comment": (
+                    "判据 ⑨ 的存量基线（STRUCT-SRC-LINES）：`crates/*/src/**/*.rs` 里超过 "
+                    f"{SRC_SOFT_LINES} 行的生产源码（**不含**测试聚合文件）。"
+                    "**只许减不许增** ✓ —— 变长立刻判红（先拆模块）；降到 ≤ 软线后必须从"
+                    "这里删掉，否则判红（基线腐烂 ✗）。"
+                ),
+                "soft_limit": SRC_SOFT_LINES,
+                "files": out,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    print(f"src-lines 基线已更新：{len(out)} 个文件（最长 {max((v['lines'] for v in out.values()), default=0)} 行）")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     # ⚠ **不许静默回落** ✗✓（E00 切片 B 实测 ✓）：这几个脚本原来用 `"--x" in argv`
     # **子串**判模式 ⇒ **错拼的参数被静默忽略、回落成全量检查并 exit 0** ✗ ⇒
@@ -742,7 +928,18 @@ def main(argv: list[str]) -> int:
         a
         for a in argv
         if a.startswith("-")
-        and a not in {"--help", "-h", "--freeze", "--selftest", "--json", "--check-doc-refs", "--freeze-doc-refs"}
+        and a
+        not in {
+            "--help",
+            "-h",
+            "--freeze",
+            "--selftest",
+            "--json",
+            "--check-doc-refs",
+            "--freeze-doc-refs",
+            "--check-src-lines",
+            "--freeze-src-lines",
+        }
     ]
     if unknown:
         print(f"✗ 未知参数 {unknown} ⇒ 拒绝执行（**不许静默回落全量检查** ✗）", file=sys.stderr)
@@ -750,6 +947,10 @@ def main(argv: list[str]) -> int:
     if "--help" in argv or "-h" in argv:
         print(__doc__)
         return 0
+    if "--check-src-lines" in argv:
+        return check_src_lines_only()
+    if "--freeze-src-lines" in argv:
+        return freeze_src_lines()
     if "--check-doc-refs" in argv:
         return check_doc_refs_only()
     if "--freeze-doc-refs" in argv:
@@ -774,7 +975,9 @@ def main(argv: list[str]) -> int:
     print(
         f"docs-lint ✓ 活文档 {stats['live_files']} 个 / {stats['live_bytes'] / 1e6:.2f} MB "
         f"≤ {MAX_LIVE_BYTES / 1e6:.2f} MB ✓ · 归档 {stats['archive_files']} 个 / "
-        f"{stats['archive_bytes'] / 1e6:.2f} MB ✓ · 垃圾 0 ✓ · 归档索引齐 ✓"
+        f"{stats['archive_bytes'] / 1e6:.2f} MB ✓ · 垃圾 0 ✓ · 归档索引齐 ✓ · "
+        f"悬空文档引用 {stats.get('doc_refs_dangling', 0)} 处（基线内、无新增 ✓）· "
+        f"超软线源码 {stats.get('src_over_soft', 0)} 个（基线内、无变长 ✓）"
     )
     return 0
 

@@ -1,0 +1,190 @@
+{
+  "_comment": "判据 ⑨ 的存量基线（STRUCT-SRC-LINES）：`crates/*/src/**/*.rs` 里超过 500 行的生产源码（**不含**测试聚合文件）。**只许减不许增** ✓ —— 变长立刻判红（先拆模块）；降到 ≤ 软线后必须从这里删掉，否则判红（基线腐烂 ✗）。",
+  "soft_limit": 500,
+  "files": {
+    "crates/cli/src/build.rs": {
+      "lines": 1190,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/ast.rs": {
+      "lines": 927,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/by.rs": {
+      "lines": 3999,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/cache.rs": {
+      "lines": 1045,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/check/kernel_phase.rs": {
+      "lines": 871,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/check/mod.rs": {
+      "lines": 2183,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/check/walk.rs": {
+      "lines": 2854,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/elab.rs": {
+      "lines": 8336,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/error.rs": {
+      "lines": 948,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/goals.rs": {
+      "lines": 1685,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/implicit.rs": {
+      "lines": 1223,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/level.rs": {
+      "lines": 670,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/meta.rs": {
+      "lines": 1849,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/compile/prelude.rs": {
+      "lines": 1389,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/display.rs": {
+      "lines": 2183,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/judge.rs": {
+      "lines": 4543,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/notation_input.rs": {
+      "lines": 1438,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/parser.rs": {
+      "lines": 6283,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/project/artifacts.rs": {
+      "lines": 946,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/project/cache.rs": {
+      "lines": 567,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/project/graph.rs": {
+      "lines": 511,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/project/mod.rs": {
+      "lines": 1258,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/project/session.rs": {
+      "lines": 1425,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/project/tables.rs": {
+      "lines": 501,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/proof.rs": {
+      "lines": 1005,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/query/mod.rs": {
+      "lines": 2038,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/semantic.rs": {
+      "lines": 1712,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/session.rs": {
+      "lines": 1460,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/spine.rs": {
+      "lines": 1950,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/suggest.rs": {
+      "lines": 1245,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/token.rs": {
+      "lines": 1193,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/builder.rs": {
+      "lines": 1091,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/conv.rs": {
+      "lines": 900,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/env.rs": {
+      "lines": 508,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/eval.rs": {
+      "lines": 2220,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/expr.rs": {
+      "lines": 870,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/inductive.rs": {
+      "lines": 2199,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/parser.rs": {
+      "lines": 1579,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/pretty_printer.rs": {
+      "lines": 976,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/util.rs": {
+      "lines": 1868,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/value.rs": {
+      "lines": 577,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/kernel/src/writer.rs": {
+      "lines": 633,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/lsp/src/actions.rs": {
+      "lines": 1318,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/lsp/src/lib.rs": {
+      "lines": 3826,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/lsp/src/render.rs": {
+      "lines": 1342,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/lsp/src/testutil.rs": {
+      "lines": 504,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    }
+  }
+}

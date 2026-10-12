@@ -812,6 +812,18 @@ jobs:
         run: |
           python3 "$GITHUB_WORKSPACE/scripts/ci-yml-lint.py" --selftest
           python3 "$GITHUB_WORKSPACE/scripts/ci-yml-lint.py"
+      - name: Wire 字段接缝对账（A∖B，含反向验证）
+        # **CI-WIRE-GUARD（2026-10-12）**：`AGENTS.md` 验证设计纪律 §3 声称
+        # `scripts/audit-wire-fields.py`「**已进 `scripts/soko gate` 与 CI**」——
+        # 实测**只对了一半** ✗：它在 `scripts/soko gate` 里（soko:1198-1222，连
+        # `--selftest` 一起 ✓），但 **CI 从不跑 `soko gate`**（`ci.yml` 里 4 处
+        # "soko gate" **全是注释** ✗）⇒ 这条**接缝守卫在 CI 上一直空转** ✗。
+        # 而它抓的正是 R-1 那类"数据对了、用户看不见"的事故（`value_runs` 全程三层绿 ✗）。
+        # ⇒ 在这里补上：`--selftest` 先跑（证明它咬得住 R-1 ✓），再跑真检测 ✓。
+        shell: bash
+        run: |
+          python3 "$GITHUB_WORKSPACE/scripts/audit-wire-fields.py" --selftest
+          python3 "$GITHUB_WORKSPACE/scripts/audit-wire-fields.py"
       - name: Machine events are well-formed JSON
         run: |
           printf 'def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n' \
