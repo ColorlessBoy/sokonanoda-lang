@@ -8102,6 +8102,141 @@ fn by_path_names_the_omitted_leading_type_parameter() {
     );
 }
 
+/// **F3 的常驻判据**：`exact <点名调用、实参还没喂>`（目标**不是**函数）时，消息必须
+/// **说出缺几个实参** —— 两条来源都要成立（缺一条就是半修 ✗）：
+///
+/// * ① `def`：`defs`（源级 delta 表）里有它 ⇒ 复用 G-21 那套「声明了 N 个、写了 M 个、
+///   漏了哪个」（`by.rs::short_application_here`）；
+/// * ② `theorem`：表里**没有**它（`walk.rs::def` 只登记 `def`；theorem 不该被 delta
+///   展开 ✓）⇒ 从值**自己的推断类型**里数还差的显式 Pi 层（`by.rs::unfed_layers_note`）。
+///   ⚠ 这一条是 F3 现场（`exact Set.subset_def`）的**真形状**：实测查表落空
+///   （`in_defs=false`），只放宽闸门**修不好** ✗。
+/// * ③ 对照组 A：值不是函数 ⇒ **一个字都不许多**（防空转 / 防假阳性）；
+/// * ④ 对照组 B：目标**自己也是函数** ⇒ 不许多（那时"还差几个"取决于两边定义域对不对
+///   得上，数层数会给出误导性的数 ✗）。
+#[test]
+fn by_path_says_how_many_arguments_are_missing() {
+    const LIB: &str = "def Set (α : Type) : Type := α → Prop\n\
+         def mem {α : Type} (a : α) (A : Set α) : Prop := A a\n\
+         infix:50 \" ∈ \" => mem\n\
+         def myprop2 (α : Type) (A B : Set α) : Prop := ∀ (x : α), x ∈ A → x ∈ B → x ∈ A\n\
+         def myfun {α : Type} (A B : Set α) : myprop2 α A B :=\n\
+         \x20 fun (x : α) (hx : x ∈ A) (_ : x ∈ B) => hx\n\
+         theorem mythm {α : Type} (A B : Set α) : myprop2 α A B := by\n\
+         \x20 intro x hx _\n\
+         \x20 exact hx\n";
+
+    // ① `def`：走声明表那条。
+    let def_case = format!(
+        "{LIB}theorem bad_def (α : Type) (A B : Set α) : myprop2 α B A := by\n\
+         \x20 exact myfun\n"
+    );
+    let out = compile_fol(&parse(&def_case).expect("parse"));
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["elab-tactic-failed"],
+        "F3 改的是**文案**，码一个字不动（内核对它的分类就是普通 Mismatch）：{:?}",
+        out.errors
+    );
+    let msg = &out.errors[0].message;
+    assert!(
+        msg.contains("`myfun` 声明了 2 个参数") && msg.contains("只写了 0 个"),
+        "① `def` 那条必须说出「声明几个、写了几个」：{msg:?}"
+    );
+    assert!(msg.contains("`A`、`B`"), "① 还要点名漏了哪几个：{msg:?}");
+
+    // ② `theorem`：声明表里没有它 ⇒ 从值的推断类型里数。
+    let thm_case = format!(
+        "{LIB}theorem bad_thm (α : Type) (A B : Set α) : myprop2 α B A := by\n\
+         \x20 exact mythm\n"
+    );
+    let out = compile_fol(&parse(&thm_case).expect("parse"));
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["elab-tactic-failed"],
+        "② 同①：码不变：{:?}",
+        out.errors
+    );
+    let msg = &out.errors[0].message;
+    assert!(
+        msg.contains("`mythm` 还是一个**函数**") && msg.contains("还差 2 个实参"),
+        "② `theorem` 那条必须说出「还差几个实参」：{msg:?}"
+    );
+    assert!(
+        msg.contains("（`A`、`B`）"),
+        "② 还要点名缺的是哪几个（内核 pp 里带着 binder 名）：{msg:?}"
+    );
+
+    // ③ 对照组 A：值不是函数（普通类型不匹配）⇒ 不许冒出「还差」。
+    let other = format!(
+        "{LIB}theorem ctrl (α : Type) (a : α) (A B : Set α) (h : a ∈ A) : a ∈ B := by\n\
+         \x20 exact h\n"
+    );
+    let out = compile_fol(&parse(&other).expect("parse"));
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["elab-tactic-failed"],
+        "③ 普通类型不匹配的码不许被改：{:?}",
+        out.errors
+    );
+    assert!(
+        !out.errors[0].message.contains("还差"),
+        "③ 值不是函数 ⇒ 不许说「还差几个实参」（假阳性 ✗）：{:?}",
+        out.errors[0].message
+    );
+
+    // ④ 对照组 B：目标自己也是函数 ⇒ 不许说（数层数会误导）。
+    let fun_goal = format!(
+        "{LIB}theorem ctrl_fun (α : Type) (P Q : Prop) (h : P → Q → Q) : P → Q := by\n\
+         \x20 exact h\n"
+    );
+    let out = compile_fol(&parse(&fun_goal).expect("parse"));
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["elab-tactic-failed"],
+        "④ 码不许被改：{:?}",
+        out.errors
+    );
+    assert!(
+        !out.errors[0].message.contains("还差"),
+        "④ 目标也是函数 ⇒ 不许说「还差几个实参」：{:?}",
+        out.errors[0].message
+    );
+}
+
+/// **D2 的常驻判据**：类型不匹配消息里的**两侧必须同源** —— 期望一侧经
+/// `display_expr` 折过（记法），实际一侧此前是 `judge_infer` 的**内核 pp 原文**
+/// （`Set.mem b B`）⇒ 同一句一半记法一半点名 ✗。现在两侧都过 `fold_for_display`。
+///
+/// 判据用**两侧都带记法**来咬：一条消息里要么都用记法、要么都用点名，
+/// **不许**一侧 `a ∈ A`、另一侧 `Set.mem b B`。
+#[test]
+fn mismatch_message_renders_both_sides_with_the_same_notation_style() {
+    const LIB: &str = "def Set (α : Type) : Type := α → Prop\n\
+         def mem {α : Type} (a : α) (A : Set α) : Prop := A a\n\
+         infix:50 \" ∈ \" => mem\n";
+    let src = format!(
+        "{LIB}theorem d2 (α : Type) (a b : α) (A B : Set α) (hb : b ∈ B) : a ∈ A := by\n\
+         \x20 exact hb\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse"));
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["elab-tactic-failed"],
+        "{:?}",
+        out.errors
+    );
+    let msg = &out.errors[0].message;
+    assert!(
+        msg.contains("期望 `a ∈ A`，实际是 `b ∈ B`"),
+        "两侧都要用记法（同源）：{msg:?}"
+    );
+    assert!(
+        !msg.contains("Set.mem"),
+        "实际一侧不许还是内核 pp 的点名形态：{msg:?}"
+    );
+}
+
 /// **G-49 的常驻判据**：类型错误的报错文本**不许外泄裸 de Bruijn 编号**
 /// （`$4` ✗），且要**点名**到 binder（`$4(β)` ⇒ 「第 4 个绑元（β）」✓）。
 ///

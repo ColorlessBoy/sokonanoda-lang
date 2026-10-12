@@ -1794,13 +1794,14 @@ fn run_tactics<'a>(
                         actual,
                         kind,
                     }) => {
-                        let message = mismatch_message(
+                        let (message, unfed) = mismatch_message(
                             &format!("`have {name}` 的值类型不匹配"),
                             &display_expr(prefix_src, ty),
                             &term,
                             &spec,
                             prefix_src,
                             options,
+                            explicit_pi_layers(ty) > 0,
                         );
                         // **G-21**：与 `exact` 同款现场（值、`have` 的书写类型、
                         // 上下文假设的书写类型）——`have h : mymem a A := …` 是同一个
@@ -1817,7 +1818,13 @@ fn run_tactics<'a>(
                                 ),
                         );
                         return Err(mismatch_error(
-                            kind, message, &expected, &actual, note, *span,
+                            kind,
+                            message,
+                            &expected,
+                            &actual,
+                            note,
+                            short_application_here(defs, &value_expr).or(unfed),
+                            *span,
                         ));
                     }
                     Some(Judgement::Error { message, .. }) => {
@@ -3372,12 +3379,131 @@ fn mismatch_message(
     spec: &OpenGoalSpec,
     prefix_src: &str,
     options: &CompileOptions,
-) -> String {
-    let actual = match judge_infer(prefix_src, options, &spec.binders, term) {
-        Ok(text) => text,
+    // 目标自己**是不是函数类型**（结构走查，见 [`explicit_pi_layers`]）——
+    // 「值还是函数、目标不是」才是「缺实参」那句话成立的形状（F3 的现场）。
+    goal_is_function: bool,
+) -> (String, Option<String>) {
+    // **D2：同一句里的两侧必须同源** —— 期望一侧由调用方经 `display_expr`
+    // （= `render_expr` + `fold_for_display`）折过，而实际一侧此前是
+    // `judge_infer` 的**内核 pp 原文**（`Set.mem b B`）⇒ 同一句里一半记法、
+    // 一半点名，学习者以为两边说的不是一件事 ✗。
+    // 这里把实际一侧也过**同一个** `fold_for_display` ✓（它是**显示路径**：
+    // 折不动就原样返回，判定/解析路径一个字节都不碰 ✓）。
+    //
+    // **F3 第二半**：顺手从**未折的原文**里读「还差几个实参」（[`unfed_layers_note`]）
+    // —— 原文是内核 pp 的**点名形态**（`Iff (Set.subset A B) …`），只含内建记法 ⇒
+    // 回读得回来 ✓；折过的那份带用户记法（`⊆`），回读不了 ✗。
+    let inferred = judge_infer(prefix_src, options, &spec.binders, term);
+    let actual = match &inferred {
+        Ok(text) => crate::compile::fold_for_display(prefix_src, text),
         Err(_) => "（值的类型也读不出来，检查它里面的名字）".to_string(),
     };
-    format!("{what}：期望 `{goal_text}`，实际是 `{actual}`")
+    let unfed = inferred
+        .as_ref()
+        .ok()
+        .and_then(|text| unfed_layers_note(term, written_arguments(term), text, goal_is_function));
+    (
+        format!("{what}：期望 `{goal_text}`，实际是 `{actual}`"),
+        unfed,
+    )
+}
+
+/// 一个类型**自己**有多少层**显式** Pi（`{α : Type} →` 这种隐式层不算）——
+/// 结构走查，**不解析文本** ✓（源级 AST 上直接数）。
+fn explicit_pi_layers(expr: &Expr) -> usize {
+    let mut n = 0;
+    let mut cur = expr;
+    loop {
+        match cur {
+            Expr::Forall { binders, body, .. } => {
+                n += binders
+                    .iter()
+                    .filter(|b| b.style != crate::ast::BinderKind::Implicit)
+                    .count();
+                cur = body;
+            }
+            Expr::Arrow { codomain, .. } => {
+                n += 1;
+                cur = codomain;
+            }
+            _ => return n,
+        }
+    }
+}
+
+/// 值（点名头）自己**写了几个实参** —— 把 `render_expr` 的文本重新读回一条应用脊，
+/// 数它的实参个数（读不回来 ⇒ `0`：note 只是文案，数不出就按"一个都没写"说 ✓）。
+fn written_arguments(term: &str) -> usize {
+    parse_expr_text(term)
+        .map(|e| crate::spine::spine_of(&e).1.len())
+        .unwrap_or(0)
+}
+
+/// **F3 的第二半**：从值自己的**推断类型**里读「还差几个实参」。
+///
+/// 为什么不能只靠 [`short_application_here`]：那张表（`defs`）是**源级 delta 表**，
+/// 只登记 `def`（`walk.rs::def`）—— `theorem` 一个都不在里面（它们**不该**被 delta
+/// 展开 ✓）。而 F3 的现场恰恰是 `exact Set.subset_def`（**theorem**）⇒ 查表落空，
+/// 「缺几个实参」这句话根本发不出来 ✗（实测 `in_defs=false`）。
+/// 值自己的推断类型是更普遍、也更直接的证据：`{α : Sort 1} -> (A : Set α) ->
+/// (B : Set α) -> Iff (Set.subset A B) …` 里前导的**显式** Pi 层就是还缺的那几个
+/// 实参 ✓（隐式层 `{…}` 由 elab 自动补，**不算**）。
+///
+/// ⚠ **说真话**：只在**真的还剩显式 Pi 层**、**且目标自己不是函数**时发话
+/// （`exact h` 里 `h : P -> Q`、目标是 `P` 也算 —— 那确实是「给了一个函数」✓）。
+/// 目标也是函数时**不发话**：那时"还差几个"取决于两边的定义域对不对得上，
+/// 数层数会给出一个**误导性的数**（`A -> B -> Q` 对目标 `P -> Q` 并不是"还差 1 个"）✗。
+/// 一个显式层都不剩 ⇒ `None` ⇒ 消息**一个字节不动** ✓。
+/// ⚠ 入参 `value_ty` 必须是**未折的原文**（折过的带用户记法，`parse_expr_text` 读不回来）。
+fn unfed_layers_note(
+    term: &str,
+    written: usize,
+    value_ty: &str,
+    goal_is_function: bool,
+) -> Option<String> {
+    if goal_is_function {
+        return None;
+    }
+    let ty = parse_expr_text(value_ty).ok()?;
+    let mut names: Vec<Option<String>> = Vec::new();
+    let mut cur = &ty;
+    loop {
+        match cur {
+            Expr::Forall { binders, body, .. } => {
+                for binder in binders {
+                    // 前导隐式参数由 elab 自动补 ⇒ 它**不是**学习者该补的实参 ✗。
+                    if binder.style == crate::ast::BinderKind::Implicit {
+                        continue;
+                    }
+                    names.push(Some(binder.name.clone()));
+                }
+                cur = body;
+            }
+            // 匿名箭头层（`P -> Q`）也是一层要喂的实参，只是没有名字。
+            Expr::Arrow { codomain, .. } => {
+                names.push(None);
+                cur = codomain;
+            }
+            _ => break,
+        }
+    }
+    if names.is_empty() {
+        return None;
+    }
+    let named: Vec<String> = names
+        .iter()
+        .flatten()
+        .map(|name| format!("`{name}`"))
+        .collect();
+    let who = if named.len() == names.len() {
+        format!("（{}）", named.join("、"))
+    } else {
+        String::new()
+    };
+    Some(format!(
+        "`{term}` 还是一个**函数**——还差 {} 个实参{who}，这里只写了 {written} 个",
+        names.len()
+    ))
 }
 
 /// **G-21**：内核这次拒绝的根因形状，是不是「一个项落在了类型位上」。
@@ -3451,6 +3577,17 @@ fn short_application(defs: &DefTable, expr: &Expr) -> Option<String> {
 }
 
 /// 这一个节点（连同它的整条应用脊）是不是「点名调用少写了参数」。
+///
+/// **两种形状，两种说法**（都必须**说真话** —— D5 的同一条纪律）：
+/// * **前移**（`implicit_prefix == 0` 且写了实参）：声明的前导参数是**显式**的
+///   ⇒ 写下的实参整体左移，第一个被顶到类型位上（G-21 的 `mymem a A` 少了 `α`）；
+/// * **还差实参**（其余）：前导隐式参数由 elab 自动补，写下的实参都在对的位置上
+///   ⇒ 值**还是一个函数**，少的只是后面那几个（F3 的 `exact Set.subset_def`
+///   少了 `A`/`B`）。
+///
+/// ⚠ 第二种**不许**照抄第一种的「漏了最前面的**前导类型参数** `α`」：`α` 是隐式、
+/// 自动补的，那句话是**假话**（实测 `exact Set.subset_def` 的 `implicit_prefix = 1`
+/// ⇒ 照抄会把根因说成「漏了 `α`」，而真正少的是显式的 `A`/`B`）✗。
 fn short_application_here(defs: &DefTable, expr: &Expr) -> Option<String> {
     // ⚠ 只认**点名**头：记法节点的 target 也常是已知 def，但记法本来就省前导
     // 类型参数 ⇒ 认它 = 假信号（见 `omitted_argument_note`）✗。
@@ -3464,12 +3601,33 @@ fn short_application_here(defs: &DefTable, expr: &Expr) -> Option<String> {
     if args.len() >= allowed {
         return None;
     }
-    // 参数名取自**声明**（`DefInfo.params`）：它就是学习者该补在最前面的那个名字。
-    let first = info.params.first()?;
+    let written = args.len();
+    let missing = allowed - written;
+    // 参数名取自**声明**（`DefInfo.params`）：它就是学习者该补的那个名字。
+    if info.implicit_prefix == 0 && written > 0 {
+        let first = info.params.first()?;
+        return Some(format!(
+            "`{name}` 声明了 {allowed} 个参数，这里只写了 {written} 个：漏了最前面的**前导类型参数** \
+             `{first}`，后面的实参整体前移（第一个实参被顶到类型位上）"
+        ));
+    }
+    // 显式参数名 = `params` 里跳过前导隐式、再跳过写出来的那些之后的 `missing` 个
+    // （`telescope_arity` 还数了返回类型里的 `->`，那种层没有名字 ⇒ 取不到就不点名）。
+    let names: Vec<String> = info
+        .params
+        .iter()
+        .skip(info.implicit_prefix + written)
+        .take(missing)
+        .map(|p| format!("`{p}`"))
+        .collect();
+    let names = if names.is_empty() {
+        String::new()
+    } else {
+        format!("：漏了 {}", names.join("、"))
+    };
     Some(format!(
-        "`{name}` 声明了 {allowed} 个参数，这里只写了 {} 个：漏了最前面的**前导类型参数** \
-         `{first}`，后面的实参整体前移（第一个实参被顶到类型位上）",
-        args.len()
+        "`{name}` 声明了 {allowed} 个参数，这里只写了 {written} 个：还差 {missing} 个实参{names}\
+         （值还是一个**函数**，不是这里的类型）"
     ))
 }
 
@@ -3488,15 +3646,40 @@ fn short_application_here(defs: &DefTable, expr: &Expr) -> Option<String> {
 /// 而「同一个错、同一个码」正是声明位与 `by` 路径**本来就该一致**的口径 ⇒ 换码
 /// 让两条路给同一条 hint，逐实例的细节放 message ✓。stage 随码变成 `kernel`
 /// （拒它的是内核）✓，span 仍指向**出错的那条 tactic** ✓。
+/// **F3：闸门按形状放宽一格。**
+///
+/// 现场：`exact Set.subset_def`（零实参、目标 Prop、值还是 Pi 望远镜）被内核判成
+/// **普通 Mismatch**（不是「项落在类型位」）⇒ 走的是 `!kernel_says_term_in_type_position`
+/// 那一支、`note` 被**整个丢掉** ⇒ 学习者只看到「期望 `…`，实际是 `{α : Sort 1} -> …`」
+/// 并排，**看不出缺几个实参** ✗。
+///
+/// 形状判据 = `value_unfed`（值仍是 Pi 望远镜 + 点名头 + 实参不够）：两条来源，
+/// **都只说真话** ——
+/// ① [`short_application_here`]（`defs` 里有这个 `def`：声明几个、写了几个、漏的是哪个）；
+/// ② [`unfed_layers_note`]（`defs` 里没有，比如 **theorem** —— 从值自己的推断类型
+///    里数还差的**显式** Pi 层）。
+///
+/// ⚠ **只接 note，不换码**：内核对这次拒绝的分类就是普通 Mismatch（没有项落在类型位上），
+/// 换成 `kernel-expected-sort` 会让 hint 说「① 点名调用漏了前导类型参数」—— 那是**另一件事**
+/// （`Set.subset_def` 的前导 `α` 是隐式、elab 自动补的，缺的是显式的 `A`/`B`）⇒ 说假话 ✗。
+/// 码仍是 `elab-tactic-failed`（这一句 tactic 确实没通过），note 只补进 message ✓。
 fn mismatch_error(
     kind: ErrorKind,
     original: String,
     kernel_expected: &str,
     kernel_actual: &str,
     note: Option<String>,
+    value_unfed: Option<String>,
     span: Span,
 ) -> CompileError {
     if !kernel_says_term_in_type_position(kind) {
+        if let Some(note) = value_unfed {
+            return CompileError::elab(
+                ErrorKind::ElabTacticFailed,
+                format!("{original}。根因：{note}"),
+                span,
+            );
+        }
         return CompileError::elab(ErrorKind::ElabTacticFailed, original, span);
     }
     let reason = match note {
@@ -3559,13 +3742,14 @@ fn exact_tactic(
             actual,
             kind,
         }) => {
-            let message = mismatch_message(
+            let (message, unfed) = mismatch_message(
                 "`exact` 类型不匹配",
                 &display_expr(prefix_src, &nodes[cur].ty),
                 &term,
                 &spec_of(nodes, cur, universe),
                 prefix_src,
                 options,
+                explicit_pi_layers(&nodes[cur].ty) > 0,
             );
             // **G-21**：根因现场 = 交出来的项、当前目标、以及各假设的**书写类型**
             // （`intro h` 的假设类型就是声明类型的一段 —— 夹具里 `h : mymem a A`
@@ -3581,7 +3765,13 @@ fn exact_tactic(
                     ),
             );
             Err(mismatch_error(
-                kind, message, &expected, &actual, note, span,
+                kind,
+                message,
+                &expected,
+                &actual,
+                note,
+                short_application_here(defs, expr).or(unfed),
+                span,
             ))
         }
         Some(Judgement::Error { message, .. }) => Err(CompileError::elab(
