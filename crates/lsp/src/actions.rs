@@ -56,7 +56,14 @@ pub(crate) fn code_actions(
     }
     let options = CompileOptions { prelude: mode };
     // 建议判定需要看到声明本身：给到该声明结束为止的文本。
-    let src = &text[..d.span.end.offset.min(text.len())];
+    //
+    // ⚠ **交给 judge 的是 [`judge_source_view`] 那一份**（F12，2026-10-13）：
+    // 入口自己的 `import` 行在合成判定文件里会落到**闭包声明之后** ⇒
+    // `parse_fragment` 报 `ImportMustPrecedeDeclarations` ⇒ 所有 kernel 终审的
+    // 候选（`rfl` / `exact h` / `Eq.refl …`）一律消失。视图是**等长改写** ⇒
+    // 偏移逐字节不变 ⇒ 下面所有 `d.span` / `hole_range` 一个都不用动 ✓。
+    let judge_src = judge_source_view(&text[..d.span.end.offset.min(text.len())]);
+    let src = judge_src.as_str();
     let mut actions: Vec<CodeActionOrCommand> = Vec::new();
     if d.status == DeclStatus::Failed {
         if d.error.is_some() {
@@ -250,6 +257,80 @@ pub(crate) fn code_actions(
         first.is_preferred = Some(true);
     }
     Some(actions)
+}
+
+/// **交给 `judge_*` 的文档视图**：把入口自己的 `import` 行**等长**改写成注释。
+///
+/// ## 为什么必须有它（F12，2026-10-13）
+///
+/// `judge_*` 合成的判定文件 = **闭包上下文**（`extra_prefix`，LSP 侧由
+/// `front::query::judge_prefix` 给）+ **文档前缀** + 合成声明 —— 拼接点在
+/// `front::judge::synthesized_prefix(extra_prefix, &doc_src[..decl_start])`。
+/// 文档前缀是**原文**，里面就有入口自己的 `import` 行 ⇒ 合成文本里 `import`
+/// 落在**闭包的声明之后**，而 `parse_fragment`
+/// （`front::parser::parse_file_with`）要求 `import` 先于一切声明 ⇒ 整段前缀报
+/// `ImportMustPrecedeDeclarations` ⇒ 所有 `judge_*` 一律
+/// `all_parse_error("前缀源码无法解析")` ⇒ **凡要 kernel 终审的候选全消失**
+/// （`rfl` / `exact h` / `Eq.refl …`），只有不过 judge 的结构性候选
+/// （`constructor` / `intro` / `Restart`）活着 —— 所以现场看起来只坏了"一半"。
+///
+/// 触发条件恰好是"**闭包里真有声明**"：闭包前缀为空时（单文件、或只 import
+/// 一门**零声明**的注释文件 —— `courses/set-theory/lib/Logic.sokonanoda` 正是
+/// 这种），入口的 `import` 仍排在最前 ⇒ 不触发。这就是"单测绿、真机空"的缝。
+///
+/// ## 为什么改在 LSP 侧，而不是 `front::judge`
+///
+/// 判定与建议是两条路。`front` 那一半的修法是让 `synthesized_prefix` 也把文档
+/// 前缀过一遍 `importless_source` —— 那要动**所有** `judge_*` 调用点共享的判定
+/// 代码；本层能做的是**把手里的文本换成等价视图**，判定代码一行不动
+/// （硬规则 1：接受/拒绝、事件计数、`--json` 逐字节不变）。闭包上下文已由
+/// `extra_prefix` 给足 ⇒ 入口那几行 `import` 对判定本来就是冗余的。
+///
+/// ## 为什么是"等长改写"而不是"删行"
+///
+/// `DeclState` 的 `span` / `holes` / `hole_modes` 都是**原文坐标**（`judge_*`
+/// 按它切声明、按它校验"洞就是 `sorry`"）⇒ 删行会让所有偏移失效。把 `import`
+/// 六个字节原地写成 `------`（`--` 起行注释）⇒ **长度逐字节不变**、偏移全部
+/// 照旧 ✓，而 parser 再也看不到 import 命令 ✓。行首判定与
+/// `front::project::importless_source` 的 `is_import_line` 同一条
+/// （`trim_start` 后是 `import ` 或整行 `import`；注释行里的 "import" 字样不动）。
+///
+/// **退役条件**：`front::judge` 的 `synthesized_prefix` 自己把文档前缀过一遍
+/// `importless_source` 之后，本函数与逃生门 `SOKO_NO_JUDGE_IMPORT_BLANK` 一起删。
+fn judge_source_view(text: &str) -> String {
+    if judge_import_blank_disabled() {
+        return text.to_string();
+    }
+    let mut out = String::with_capacity(text.len());
+    for line in text.split_inclusive('\n') {
+        // 行尾原样保留（`\n` / `\r\n` / 无）—— 换行是偏移与行列坐标的骨架。
+        let (body, newline) = match line.strip_suffix('\n') {
+            Some(rest) => match rest.strip_suffix('\r') {
+                Some(body) => (body, "\r\n"),
+                None => (rest, "\n"),
+            },
+            None => (line, ""),
+        };
+        let trimmed = body.trim_start();
+        if trimmed.starts_with("import ") || trimmed == "import" {
+            let indent = body.len() - trimmed.len();
+            out.push_str(&body[..indent]);
+            out.push_str("------");
+            out.push_str(&body[indent + "import".len()..]);
+        } else {
+            out.push_str(body);
+        }
+        out.push_str(newline);
+    }
+    out
+}
+
+/// [`judge_source_view`] 的**逃生门**（反向验证用）：`SOKO_NO_JUDGE_IMPORT_BLANK=1`
+/// ⇒ 不做等长改写 ⇒ F12 的缝立刻回来（单测
+/// `an_imported_library_does_not_kill_the_kernel_verified_actions` 判红，
+/// 真机 `editor-probe --case hole-lightbulb` 也回到 0 条）。
+fn judge_import_blank_disabled() -> bool {
+    std::env::var_os("SOKO_NO_JUDGE_IMPORT_BLANK").is_some()
 }
 
 /// 失败声明标题里的骨架摘要：超 40 字符截断加 `…`。
@@ -579,8 +660,8 @@ pub(crate) fn offset_to_line_col(text: &str, offset: usize) -> (usize, usize) {
 #[cfg(test)]
 mod tests {
     use crate::testutil::{
-        call, did_open, handshake, lsp_pos, offset_of, position_json, shutdown, test_service,
-        wait_diagnostics, URI,
+        call, did_open, did_open_at, handshake, handshake_with_root, lsp_pos, offset_of,
+        position_json, shutdown, test_service, wait_diagnostics, wait_diagnostics_for, URI,
     };
     use crate::Backend;
     use serde_json::json;
@@ -677,6 +758,40 @@ mod tests {
 
     fn titles_of(actions: &[CodeAction]) -> Vec<&str> {
         actions.iter().map(|a| a.title.as_str()).collect()
+    }
+
+    /// `code_actions_at` 的**项目模式**版本：URI 由调用方给（项目夹具在临时
+    /// 目录里，不是 `testutil::URI`）。
+    async fn code_actions_at_uri(
+        service: &mut LspService<Backend>,
+        uri: &Url,
+        src: &str,
+        offset: usize,
+    ) -> Option<Vec<CodeAction>> {
+        let pos = lsp_pos(src, offset);
+        let result = call(
+            service,
+            RpcRequest::build("textDocument/codeAction")
+                .params(json!({
+                    "textDocument": {"uri": uri},
+                    "range": {"start": position_json(pos), "end": position_json(pos)},
+                    "context": {"diagnostics": []},
+                }))
+                .id(81)
+                .finish(),
+        )
+        .await
+        .expect("codeAction must answer");
+        let actions: Option<CodeActionResponse> =
+            serde_json::from_value(result).expect("valid CodeActionResponse");
+        actions.map(|resp| {
+            resp.into_iter()
+                .filter_map(|a| match a {
+                    CodeActionOrCommand::CodeAction(action) => Some(action),
+                    CodeActionOrCommand::Command(_) => None,
+                })
+                .collect()
+        })
     }
 
     const SPINE_WHOLE_DOC: &str = "axiom And : Prop -> Prop -> Prop\n\
@@ -1314,5 +1429,90 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
             keys.push(key);
         }
         shutdown(&mut service).await;
+    }
+
+    // ── F12：**带 `import` 的库**那一半（2026-10-13）────────────────────────
+    //
+    // 现场（真 VS Code + 真课程画布，独立 LSP 客户端复现）：`import lib.Logic`
+    // （一门**零声明**的注释文件）下 `a = a` 的洞给 1 条内核验证过的 `rfl`；
+    // **只要多一行 `import lib.Set`（有声明）就 1ms 返 0 条** —— 课程画布 import
+    // 了 `lib.Set` ⇒ **整门课的洞都没有 quick fix**。
+    //
+    // 根因（`crates/front/src/judge.rs::judge_hole_fill_uncached`）：
+    // `full_prefix = synthesized_prefix(extra_prefix, &doc_src[..decl_start])` ——
+    // **闭包源码在前、入口自己的 `import` 行在后**，而 `parse_fragment`
+    // （`crates/front/src/parser.rs::parse_file_with`）要求 `import` 先于一切声明
+    // ⇒ 整段前缀报 `ImportMustPrecedeDeclarations` ⇒ 所有 `judge_*` 一律
+    // `all_parse_error("前缀源码无法解析")` ⇒ **凡要 kernel 终审的候选全消失**
+    // （结构性候选 `constructor` 不过 judge，所以它还活着 —— 这正是"看似只坏
+    // 一半"）。闭包前缀为空时（单文件 / 只 import 一门零声明的注释文件）入口的
+    // `import` 仍排在最前 ⇒ 不触发 ✓ —— 这就是"单测绿、真机空"的缝。
+    //
+    // 修法在 **LSP 侧**：交给 `judge_*` 的文档视图里把入口自己的 `import` 行
+    // **等长改写成注释**（偏移逐字节不变 ⇒ `DeclState` 的 span/洞位照旧有效）；
+    // 闭包上下文已由 `extra_prefix` 给足，入口的 `import` 对判定是冗余的。
+    //
+    // **反向验证**：`SOKO_NO_JUDGE_IMPORT_BLANK=1`（逃生门）⇒ 本用例判红。
+
+    /// 库模块：**有声明 + 一条记法**（与 `courses/set-theory/lib/Set.sokonanoda`
+    /// 同形状）。`lib.Logic` 那种零声明的注释文件**不触发**这条缝 ⇒ 夹具必须有声明。
+    const IMPORTED_LIB: &str = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+def Set.mem (\u{3b1} : Type) (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+infix:50 \" \u{2208} \" => Set.mem\n";
+
+    /// 入口：`import` + 用库记法 + 一个 `=` 记法头的洞（**要 kernel 终审那一档**）。
+    const IMPORTED_CANVAS: &str = "\
+import SetLib\n\n\
+theorem mem_self (\u{3b1} : Type) (a : \u{3b1}) (A : Set \u{3b1}) (h : a \u{2208} A) : a \u{2208} A := by\n\
+  sorry\n\
+\n\
+theorem eq_self (\u{3b1} : Type) (a : \u{3b1}) : a = a := by\n\
+  sorry\n";
+
+    #[tokio::test]
+    async fn an_imported_library_does_not_kill_the_kernel_verified_actions() {
+        let dir = std::env::temp_dir().join(format!(
+            "sokonanoda-lsp-import-actions-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        std::fs::write(dir.join("SetLib.sokonanoda"), IMPORTED_LIB).expect("write the library");
+        let canvas_path = dir.join("Canvas.sokonanoda");
+        std::fs::write(&canvas_path, IMPORTED_CANVAS).expect("write the canvas");
+        let root = Url::from_directory_path(&dir).expect("dir url");
+        let canvas = Url::from_file_path(&canvas_path).expect("file url");
+
+        let (mut service, mut socket) = test_service();
+        handshake_with_root(&mut service, &root).await;
+        did_open_at(&mut service, &canvas, IMPORTED_CANVAS).await;
+        // ① 闭包是好的（库记法随 import 生效）—— 缺口不在编译，在建议。
+        //    开放练习本身会发 `sorry` 警告（合法状态）⇒ 判据是"**没有别的**诊断"。
+        let diags = wait_diagnostics_for(&mut socket, &canvas, "canvas diagnostics").await;
+        let unexpected: Vec<&str> = diags
+            .diagnostics
+            .iter()
+            .map(crate::testutil::code_of)
+            .filter(|code| *code != "sorry")
+            .collect();
+        assert!(
+            unexpected.is_empty(),
+            "闭包编译是好的（缺口在建议层），不该有 `sorry` 之外的诊断：{unexpected:?}"
+        );
+
+        // ② 第二个洞（`a = a`）必须仍拿到**内核验证过**的 `rfl`。
+        let hole = IMPORTED_CANVAS.rfind("sorry").expect("second hole");
+        let actions = code_actions_at_uri(&mut service, &canvas, IMPORTED_CANVAS, hole)
+            .await
+            .unwrap_or_default();
+        assert!(
+            actions.iter().any(|a| a
+                .title
+                .starts_with("rfl\u{ff08}\u{5185}\u{6838}\u{9a8c}\u{8bc1}")),
+            "带 `import` 的库不得吃掉内核验证过的候选：{actions:?}"
+        );
+        shutdown(&mut service).await;
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
