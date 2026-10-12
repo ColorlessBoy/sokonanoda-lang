@@ -290,10 +290,10 @@ fn check_then_add_decl<'arena>(
             let span = def_eq_error_span(&msg, span, val_span);
             // G-49 / A3：内核原文在构造点人话化 + 折成源级记法（`display` ✓）。
             let mut err =
-                CompileError::kernel(refine_kernel_kind(&msg), msg.as_str(), span, Some(&display));
+                CompileError::kernel(refine_kernel_kind(&msg), msg.as_str(), span, Some(display));
             // 两侧文本（已折过记法 ✓）进 `expected`/`actual` 字段 ✓ ——
             // 「内核说的期望/实际是什么」是协议的稳定面，别让消费者自己再切消息 ✗。
-            if let Some((_, expected, actual)) = render_def_eq_mismatch(&msg, Some(&display)) {
+            if let Some((_, expected, actual)) = render_def_eq_mismatch(&msg, Some(display)) {
                 err.expected = Some(expected);
                 err.actual = Some(actual);
             }
