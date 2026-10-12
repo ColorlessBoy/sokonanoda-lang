@@ -420,7 +420,7 @@ function repoBuild(base) {
       }
     }
   }
-  return best?.path
+  return best
 }
 
 /// Semver-ish tuple from an extension folder name.
@@ -593,6 +593,58 @@ function versionSatisfied(version, reported) {
 /// A repository build is trustworthy only when it reports the pinned version.
 /// A stale `target/` from an earlier round is exactly the drift this launcher
 /// exists to prevent (the opencode plugin used mtime alone and would happily
+function repoBuildPath(base) {
+  return repoBuild(base)?.path
+}
+
+/// **源码 newer than 二进制**（2026-10-12 接口 agent 提交 `SUB-probe-build-drift`）：
+/// 落地一笔修好探针所指缺口的 commit 之后，**主 checkout 的 `target/` 二进制没有重建**
+/// （实测 `target/release/sokonanoda` @15:48 vs 最新 commit @19:58）⇒ 干净的**主 checkout**
+/// 上跑 `r07` 得 `exit 0`（"缺口仍在"），而成同一份源码的 worktree 里得 `exit 1`（已修）
+/// ⇒ **读数取决于"解析到哪个二进制"而不是 commit** ✗（正是仓库点名的病："跨轮比较任何探针
+/// 读数前先确认两次读数来自同一份构建"）。判据：`crates/**/*.rs` + `Cargo.{toml,lock}` 的
+/// 最大 mtime > 二进制 mtime ⇒ `stale: true`。⚠ 只报告，**不改解析顺序**（旧行为逐字节保留 ✓）。
+function buildIdentity(base) {
+  const build = repoBuild(base)          // ⚠ 要**对象**（含 mtime），不是 path
+  if (!build) return undefined
+  let newest = 0
+  let newestFile
+  const consider = (p) => {
+    try {
+      const m = statSync(p).mtimeMs
+      if (m > newest) {
+        newest = m
+        newestFile = p
+      }
+    } catch {
+      // gone
+    }
+  }
+  for (const name of ['Cargo.toml', 'Cargo.lock']) consider(path.join(REPO, name))
+  const walk = (dir) => {
+    let entries
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const ent of entries) {
+      if (ent.name === 'target' || ent.name === '.git' || ent.name === '.worktrees') continue
+      const full = path.join(dir, ent.name)
+      if (ent.isDirectory()) walk(full)
+      else if (ent.name.endsWith('.rs')) consider(full)
+    }
+  }
+  walk(path.join(REPO, 'crates'))
+  return {
+    path: build.path,
+    mtime: new Date(build.mtime).toISOString(),
+    source_newest: newest ? new Date(newest).toISOString() : undefined,
+    source_newest_file: newestFile ? path.relative(REPO, newestFile) : undefined,
+    stale: newest > build.mtime,
+  }
+}
+
 /// run it).
 function repoBuildForVersion(base, version) {
   const build = repoBuild(base)
@@ -601,7 +653,7 @@ function repoBuildForVersion(base, version) {
   if (base !== 'sokonanoda') {
     // The language-server binary has no `--version`; trust a build only when
     // the CLI build of the same tree already proved the version.
-    return versionSatisfied(version, binaryVersion(repoBuild('sokonanoda') ?? '')) ? build : undefined
+    return versionSatisfied(version, binaryVersion(repoBuildPath('sokonanoda') ?? '')) ? build : undefined
   }
   return versionSatisfied(version, binaryVersion(build)) ? build : undefined
 }
@@ -878,6 +930,10 @@ async function main(argv) {
               offline: offline(),
               cli: { path: cli?.path, source: cli?.source, marker: readMarker('sokonanoda') },
               lsp: { path: lsp?.path, source: lsp?.source, marker: readMarker('sokonanoda-lsp') },
+              // **构建身份**（2026-10-12 接口 agent 提交 `SUB-probe-build-drift`）：
+              // 探针读数的可比性靠它 —— `stale: true` = 源码比二进制新 ⇒
+              // **这一次读数不属于当前 commit**（先重建，或换一棵刚编过的树）。
+              build: buildIdentity('sokonanoda'),
             },
             null,
             2,
@@ -892,6 +948,15 @@ async function main(argv) {
         process.stdout.write(`  cache:  ${cacheDir()}${offline() ? ' (offline)' : ''}\n`)
         report('  cli', cli)
         report('  lsp', lsp)
+        // ⚠ **stale 必须出声**：它让"同一份源码两个读数"成为可能（本仓最贵的坑之一）
+        const ident = buildIdentity('sokonanoda')
+        if (ident?.stale) {
+          process.stdout.write(
+            `  ⚠ build: **stale** —— 源码（${ident.source_newest_file} @ ${ident.source_newest}）` +
+              `比二进制（${ident.mtime}）新 ⇒ **这次读数不属于当前 commit** ✗` +
+              `（先 \`cargo build --release\` 或换一棵刚编过的树）\n`,
+          )
+        }
         if (pin.error) process.stdout.write(`${pin.error.message}\n`)
       }
       // `version` is a read-only report: it always succeeds and lets the caller
