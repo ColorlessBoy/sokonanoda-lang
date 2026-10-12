@@ -327,6 +327,28 @@ const CASES = [
       "<Esc>", "@wait:400",
       // **决定性对照**：绕开 macOS 上可能被抢的键位，走命令面板 `Quick Fix...`
       // ⇒ 分清"键位没触发"与"服务端没给候选"（同 `completion-palette` 的手法）。
+      // ⚠ **F12b 取证（2026-10-13）：练习 6 那一臂是探针自己的伪影，不是产品缺口** ——
+      // 打开 `sokonanoda.trace.server: verbose` 抓到 `1-sokonanoda.log`：
+      //   ① 服务端**答对了**：`Received response 'textDocument/codeAction - (43)' in 95ms`
+      //      ⇒ `Result: [{ "kind": "quickfix", "isPreferred": true,
+      //      "title": "constructor（把 `Iff` 目标拆成两个子目标，内核随后逐层判）" }]`；
+      //   ② 可这条应答**被丢掉了**：就在它前面 VS Code 发了 `$/cancelRequest {id:43}`
+      //      + `textDocument/didChange`（version 2）—— 缓冲区里第 93 行的 `sorry`
+      //      **被删掉了**（didChange 文本尾部 `… := by\n  \n`）⇒ 文档一变，正在飞的
+      //      codeAction 请求就被 cancel，应答作废 ✗；
+      //   ③ 删 `sorry` 的那一下是**命令面板那条 `<CR>`**：菜单弹开时第一项是 VS Code
+      //      自带 AI 的 `Rewrite`/`Generate`（`--disable-extension GitHub.copilot-chat`
+      //      在 1.141 上不生效，Chat 面板照旧在）⇒ `<CR>` 顺手把它选中并应用。
+      //      实测反证：把 `chat.disableAIFeatures`/`chat.agent.enabled` 关掉后，第一项
+      //      换成**本探针要测的那条** `constructor` ⇒ 同样被 `<CR>` 应用掉、菜单变空
+      //      （练习 6 ⇒ `[]`）—— 两种环境都读不到"菜单里有我们的候选"，但服务端两次
+      //      都答对了 ⇒ **红在探针的按键时序，不在产品**。
+      // ⚠ 另一条同源发现：`⌘.` 那一臂**从来没触发过**（读数恒为 `[]`）——`chord()` 旧写法
+      // 对非字母键也拼 `Key${…}`（`⌘.` 被发成 `code: "Key."`）⇒ 已修（见 `chord`），
+      // 但 macOS 上该键位仍不触发（探针作者早已注明"可能被抢"）⇒ 判据仍只能靠这条
+      // 命令面板后备。**要真正修掉练习 6 那一臂**，得给"弹开菜单但不按 `<CR>`"找一条
+      // 确定性路径（`⌘.` 在 macOS 上不行；1.141 的 DOM 里也没有 `.lightbulb-glyph`/
+      // `.codicon-lightbulb` ⇒ 灯泡点击也走不通）—— 属于下一轮，别用放宽 `check` 糊过去 ✗。
       "@cmd:Quick Fix", "@wait:1500", "@snap:quickfix-palette", "@shot:quickfix-palette",
       "<Esc>", "@wait:400",
       // **第二个洞（形状对照）**：练习 1 的目标头是**箭头**（`(a ∈ A) → a ∈ B`），
@@ -826,8 +848,15 @@ async function connect(url) {
     },
     async chord(letter, { ctrl = false, shift = false, alt = false, meta = false } = {}) {
       const mods = (ctrl ? 2 : 0) | (alt ? ALT : 0) | (meta ? MOD : 0) | (shift ? 8 : 0);
-      const vk = letter.toUpperCase().charCodeAt(0);
-      const base = { key: letter, code: `Key${letter.toUpperCase()}`, modifiers: mods,
+      // ⚠ **非字母键必须走 `codeOf`/`vkOf`**（2026-10-13 实测）：旧写法对**任意**
+      // `letter` 都拼 `Key${letter.toUpperCase()}` + `charCodeAt(0)` ⇒ `⌘.` 被发成
+      // `code: "Key."` / `vk: 46` ⇒ VS Code 解析不出 `meta+.` 这个 chord ⇒
+      // **键位静默不触发**（`hole-lightbulb` 的 `<M-.>` 那一臂一直读成 `[]`，
+      // 判据全靠命令面板那条后备在扛 —— 而那条后备要按 `<CR>`，见该用例的注释）。
+      // 字母/数字走 `codeOf`/`vkOf` 与旧值**逐字节相同**（`p` ⇒ `KeyP`/80）⇒ 既有
+      // 用例（`⌘⇧P` 一类）零影响 ✓。
+      const vk = vkOf(letter);
+      const base = { key: letter, code: codeOf(letter), modifiers: mods,
         windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk };
       await call("Input.dispatchKeyEvent", { type: "rawKeyDown", ...base });
       await call("Input.dispatchKeyEvent", { type: "keyUp", ...base });
