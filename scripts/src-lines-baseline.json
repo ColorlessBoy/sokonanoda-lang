@@ -11,14 +11,14 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/by.rs": {
-      "lines": 3999,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 4198,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 3999,
+      "growth_reason": "frontD 本轮三修：F3(high 缺实参提示 + 第二来源 unfed_layers_note + 形状护栏) · D2(两侧同源渲染) · D5(不再泄漏词法教学文案) ⇒ by.rs +199。⚠ 如实：债务增长（by.rs 早已超 500 行软线，现 4198 行），换来一个 high 缺口收口 + 两条 medium；软线目标未变，by.rs 仍是最大的待拆文件之一"
     },
     "crates/front/src/compile/cache.rs": {
       "lines": 1138,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 1045,
-      "growth_reason": "frontG 本轮两个 high 修复：G-112（profile 不再进 build_stamp ⇒ 两个构建档共用产物）+ G-100（进程级名字键缓存加环境代际 + 新复现件带对照臂）⇒ cache.rs +93 · judge.rs +127 · check/mod.rs +8。⚠ 如实：债务增长（三个文件早已超 500 行软线），换来两个 high 缺口收口 + 两条带对照臂的复现件；软线目标未变，这三个文件仍待拆"
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/check/kernel_phase.rs": {
       "lines": 871,
@@ -26,9 +26,7 @@
     },
     "crates/front/src/compile/check/mod.rs": {
       "lines": 2191,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 2183,
-      "growth_reason": "frontG 本轮两个 high 修复：G-112（profile 不再进 build_stamp ⇒ 两个构建档共用产物）+ G-100（进程级名字键缓存加环境代际 + 新复现件带对照臂）⇒ cache.rs +93 · judge.rs +127 · check/mod.rs +8。⚠ 如实：债务增长（三个文件早已超 500 行软线），换来两个 high 缺口收口 + 两条带对照臂的复现件；软线目标未变，这三个文件仍待拆"
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/check/walk.rs": {
       "lines": 2855,
@@ -68,9 +66,7 @@
     },
     "crates/front/src/judge.rs": {
       "lines": 4670,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 4543,
-      "growth_reason": "frontG 本轮两个 high 修复：G-112（profile 不再进 build_stamp ⇒ 两个构建档共用产物）+ G-100（进程级名字键缓存加环境代际 + 新复现件带对照臂）⇒ cache.rs +93 · judge.rs +127 · check/mod.rs +8。⚠ 如实：债务增长（三个文件早已超 500 行软线），换来两个 high 缺口收口 + 两条带对照臂的复现件；软线目标未变，这三个文件仍待拆"
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/notation_input.rs": {
       "lines": 1438,
@@ -181,7 +177,7 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/lib.rs": {
-      "lines": 3844,
+      "lines": 3842,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/render.rs": {

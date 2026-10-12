@@ -166,3 +166,10 @@
 {"ts": "2026-10-12T18:44:45+00:00", "event": "advance", "id": "H4", "to": "done", "commit": "84765de4", "reading": "lsp-probe --case H4-notation-hover-slice ⇒ exit 0；反向 SOKO_NO_HOVER_SLICE_BALANCE=1 ⇒ exit 1（判据咬得住）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T19:11:01+00:00", "event": "submit", "id": "PROBE-C1-N3-ANCHORS", "owner": "penglingwei@penglingweis-Laptop", "kind": "finding", "evidence": "回归扫描（`--all`）：改前 **28 条：一致 23 · 不一致 5**（含 C1/N3）；把 JS `TypeError` 归入判据不可用后 ⇒ **一致 23 · 不一致 3 · 判据不可用 2**，且那 3 条正是 frontD 在修的 D2/D5/G1 ✓"}
 {"ts": "2026-10-12T19:11:01+00:00", "event": "triage", "id": "PROBE-C1-N3-ANCHORS", "to": "applied", "reason": "已落地判据侧那一半（TypeError ⇒ 判据不可用）；剩锚点重定", "commit": "56516bcd", "owner": "penglingwei@penglingweis-Laptop"}
+{"ts": "2026-10-12T19:53:30+00:00", "event": "release", "id": "F3", "owner": "FRONT-D", "reason": "frontD 收工（2 commit 已落地并验证）⇒ 归还槽位与 crates/front"}
+{"ts": "2026-10-12T19:53:30+00:00", "event": "claim", "id": "F3", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T19:53:30+00:00", "event": "advance", "id": "F3", "to": "done", "commit": "6f7cf98c", "reading": "见 extras 的 observed（判据 + 改前改后 + 反向验证 + 判定不变对拍）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T19:53:30+00:00", "event": "claim", "id": "D2", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T19:53:31+00:00", "event": "advance", "id": "D2", "to": "done", "commit": "6f7cf98c", "reading": "见 extras 的 observed（判据 + 改前改后 + 反向验证 + 判定不变对拍）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T19:53:31+00:00", "event": "claim", "id": "D5", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-12T19:53:31+00:00", "event": "advance", "id": "D5", "to": "done", "commit": "2dc313a2", "reading": "见 extras 的 observed（判据 + 改前改后 + 反向验证 + 判定不变对拍）", "reason": null, "owner": "orchestrator"}
