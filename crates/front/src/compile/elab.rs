@@ -1883,7 +1883,7 @@ fn application_arg_expected<'a>(
     // ⚠ 慢路文本**必须逐字不变**：`infer_type_text` 内部用的是
     // `&render_expr(operand)`，与这里原来的 `render_expr(head)` **同一份** ✓
     // ⇒ 回落时与今天逐字节相同（缓存键也因此同源 ✓）。
-    let ty_text = infer_type_text(ctx, scope, head, env, Some(univ))?;
+    let ty_text = infer_type_text(ctx, scope, head, env, Some(univ), false)?;
     let (layers, _) = notation_telescope(&ty_text)?;
     let (_, domain) = layers.get(index)?;
     let mut sigma: HashMap<String, Expr> = HashMap::new();
@@ -1912,7 +1912,14 @@ fn universe_level_text_of_operands<'a>(
     mut env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Option<String> {
     for operand in operands {
-        let ty_text = infer_type_text(ctx, scope, operand, InplaceEnv::reborrow(&mut env), None)?;
+        let ty_text = infer_type_text(
+            ctx,
+            scope,
+            operand,
+            InplaceEnv::reborrow(&mut env),
+            None,
+            false,
+        )?;
         // **G-31（第二处，实测未命中大头：unit08 全程 100/226 次）**：第二问要的是
         // **`ty_text` 的类型**（= 它的宇宙）。它以前每次都 `judge_infer` 合成一份
         // `#check`、**整份重编前缀**；这里先试**就地** —— 把类型文本回读成 `#check`
@@ -3318,6 +3325,9 @@ fn infer_type_text<'a>(
     operand: &Expr,
     env: Option<&mut InplaceEnv<'_, 'a>>,
     univ: Option<&UnivMap<'a>>,
+    // **C 子项（2026-10-12）**：要不要**全显式 pp** 那一档（第二候选用 ✓）。
+    // `false` ⇒ **逐字节等于今天** ✓（下面每个分支都先判它 ✓）。
+    explicit: bool,
 ) -> Option<String> {
     let binders = scope.judge_binders();
     // ⚠ 这一行**保持原样**（`&render_expr(operand)` 内联）：它是记法路径守卫
@@ -3331,8 +3341,39 @@ fn infer_type_text<'a>(
     // 记法路径守卫（`scripts/audit-notation-paths.py`）把它算作**同族调用点**
     // —— 与基线里 `judge_infer(… &render_expr(val))` 那条同类 ✓。
     let term = render_expr(operand);
-    let slow = || judge_infer(ctx.prefix_src, ctx.options, &binders, &term).ok();
+    // **全显式档**（第二候选）走 [`crate::judge::judge_infer_explicit`]：
+    // 同一份 `term`、同一把键以外**多一个 `pp=explicit` 标记** ✓（`judge_cache_key`）✓。
+    let slow = || {
+        if explicit {
+            crate::judge::judge_infer_explicit(ctx.prefix_src, ctx.options, &binders, &term).ok()
+        } else {
+            judge_infer(ctx.prefix_src, ctx.options, &binders, &term).ok()
+        }
+    };
     match (crate::judge::inplace_mode(), env) {
+        // **第二候选（C 子项）**：全显式档 —— 先**就地**（`EXPLICIT_PP` 由
+        // [`crate::judge::judge_infer_inplace_with_explicit`] 内部置位并还原 ✓），
+        // 答不出才回落**全显式慢路** ✓。
+        //
+        // ⚠ **不查普通缓存槽**：全显式文本在缓存里是**另一个键**（`pp=explicit` ✓）
+        // ⇒ 拿普通槽去命中会读到**非全显式**的旧文本 ⇒ 第二候选退化成主候选 ✗。
+        (crate::judge::InplaceMode::On, Some(env)) if explicit => {
+            crate::judge::judge_infer_inplace_with_explicit(
+                true,
+                env,
+                ctx,
+                &scope.judge_binder_srcs(),
+                operand,
+            )
+            .or_else(|| {
+                crate::judge::judge_infer_explicit(ctx.prefix_src, ctx.options, &binders, &term)
+                    .ok()
+            })
+        }
+        // 全显式档的其余档位（影子 / 关）：**只跑慢路**（全显式）✓
+        // —— 影子档比的是**同一问的两条路**，与全显式档不是同一问 ⇒ 不参与比对 ✓。
+        (_, _) if explicit => slow(),
+
         (crate::judge::InplaceMode::On, Some(env)) => {
             // ① **命中先走今天那条快路**（一次哈希即可）—— 就地只做未命中那一段 ✓
             //    （理由见 `judge::judge_infer_lookup` 的注释：把廉价命中换成
@@ -3669,7 +3710,7 @@ fn operand_type_expr<'a>(
     if let Some(src) = lambda_source_type(operand) {
         return Some(src);
     }
-    infer_type_text(ctx, scope, operand, env, None)
+    infer_type_text(ctx, scope, operand, env, None, false)
         .and_then(|text| crate::proof::parse_expr_text(&text).ok())
 }
 
@@ -3700,7 +3741,7 @@ fn operand_type_expr_explicit<'a>(
     operand: &Expr,
     env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Option<Expr> {
-    infer_type_text_explicit(ctx, scope, operand, env)
+    infer_type_text(ctx, scope, operand, env, None, true)
         .and_then(|text| crate::proof::parse_expr_text(&text).ok())
 }
 
@@ -3712,45 +3753,6 @@ fn operand_type_expr_explicit<'a>(
 /// 内部置位并还原 ✓），答不出才回落 [`crate::judge::judge_infer_explicit`]
 /// （合成 `#check` 文档、整份前缀重跑）。
 ///
-/// ⚠ 这里**不查** `judge_infer_lookup` 的普通槽：全显式文本在缓存里是**另一个
-/// 键**（`pp=explicit`，见 `judge_cache_key`），拿普通槽去命中会读到**非全显式**
-/// 的旧文本 ⇒ 第二候选退化成主候选 ✗。
-fn infer_type_text_explicit<'a>(
-    ctx: &ElabCtx<'a, '_>,
-    scope: &ElabScope<'a>,
-    operand: &Expr,
-    env: Option<&mut InplaceEnv<'_, 'a>>,
-) -> Option<String> {
-    let binders = scope.judge_binders();
-    match (crate::judge::inplace_mode(), env) {
-        (crate::judge::InplaceMode::On, Some(env)) => {
-            crate::judge::judge_infer_inplace_with_explicit(
-                true,
-                env,
-                ctx,
-                &scope.judge_binder_srcs(),
-                operand,
-            )
-            .or_else(|| {
-                crate::judge::judge_infer_explicit(
-                    ctx.prefix_src,
-                    ctx.options,
-                    &binders,
-                    &render_expr(operand),
-                )
-                .ok()
-            })
-        }
-        _ => crate::judge::judge_infer_explicit(
-            ctx.prefix_src,
-            ctx.options,
-            &binders,
-            &render_expr(operand),
-        )
-        .ok(),
-    }
-}
-
 /// `fun (h : P) => h` 的**书写类型** `P -> P`，纯源级走查（**零内核调用**）。
 ///
 /// 只认**一条**形状：所有 binder 都有注解，且体是某个 binder 的**裸名引用**
@@ -7148,7 +7150,7 @@ fn infer_recursor_universes<'a>(
             builder: &mut *builder,
             known,
         };
-        infer_type_text(ctx, scope, expected, Some(&mut env), None)
+        infer_type_text(ctx, scope, expected, Some(&mut env), None, false)
     };
     // `u` = **期望类型所在的宇宙**（`R : Sort u`）。与 `match` 的动机层级用的是
     // **同一个**口径（`infer_expected_level` ⇒ `sort_text_level`）。
@@ -7342,7 +7344,7 @@ fn infer_const_universes_with<'a>(
             builder: &mut *builder,
             known,
         };
-        let ty_text = infer_type_text(ctx, scope, first, Some(&mut env), None);
+        let ty_text = infer_type_text(ctx, scope, first, Some(&mut env), None, false);
         match ty_text.as_deref().and_then(level_text_of_sort) {
             Some(level) => Some(level),
             None => {
