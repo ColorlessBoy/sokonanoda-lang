@@ -173,6 +173,97 @@ fn query_state_at_a_tactic_shows_the_entering_goal_state() {
     let _ = std::fs::remove_file(path);
 }
 
+/// **r14（2026-10-12）**：`--compact` 不只是"去掉空白"—— 它给**精简视图**
+/// （清空 `goal_runs` / `binders[].ty_runs` 这些**编辑器着色专用**的逐段 kind）。
+///
+/// 为什么钉在 CLI 层：`state` 的**选择语义**由 `front::query::state_at_with` 唯一实现
+/// （`want_runs` 只决定带不带着色 ⇒ 不许分叉 ✗），而"哪个旗标走精简视图"是**出口**的事。
+/// ⇒ 这里断言**两件事**：① 精简后**确实变小**且着色数据被清空；
+/// ② **去掉 `*_runs` 之后两者语义完全相同**（目标文本 / 名字 / `step` / `total` 一字不差）。
+#[test]
+fn query_state_compact_drops_coloring_data_only() {
+    let path = canvas_file("state-compact");
+    let src = CANVAS;
+    let line = src
+        .lines()
+        .position(|l| l.contains("apply And.intro"))
+        .map(|i| i + 1)
+        .expect("needle") as u32;
+    let args = |compact: bool| {
+        let mut v = vec![
+            "state".to_string(),
+            "--file".to_string(),
+            path.to_str().unwrap().to_string(),
+            "--line".to_string(),
+            line.to_string(),
+            "--col".to_string(),
+            "3".to_string(),
+        ];
+        if compact {
+            v.push("--compact".to_string());
+        }
+        v
+    };
+    let a_full = args(false);
+    let args_ref: Vec<&str> = a_full.iter().map(|s| s.as_str()).collect();
+    let (full, c1) = query(&args_ref, None);
+    let a_compact = args(true);
+    let args_c: Vec<&str> = a_compact.iter().map(|s| s.as_str()).collect();
+    let (slim, c2) = query(&args_c, None);
+    assert_eq!((c1, c2), (0, 0));
+    assert_eq!(full["ok"], true);
+    assert_eq!(slim["ok"], true);
+
+    // ① 着色数据被清空（全量那份**必须**有，否则这条测试自己就是空转 ✗）
+    assert!(
+        !full["data"]["goal_runs"].as_array().unwrap().is_empty(),
+        "全量视图必须带着色数据（否则本测试空转 ✗）"
+    );
+    assert!(
+        slim["data"]["goal_runs"].as_array().unwrap().is_empty(),
+        "`--compact` 必须清空 goal_runs"
+    );
+    // `ty_runs` 挂在**绑元**上（`goals[].binders[].ty_runs`），不是 `goals[0]` 自己 ✓
+    let binder_runs = |v: &serde_json::Value| -> Vec<usize> {
+        v["data"]["goals"][0]["binders"]
+            .as_array()
+            .expect("binders")
+            .iter()
+            .map(|b| b["ty_runs"].as_array().map(|r| r.len()).unwrap_or(0))
+            .collect()
+    };
+    assert!(
+        binder_runs(&full).iter().any(|n| *n > 0),
+        "全量视图的绑元必须带 ty_runs（否则本测试空转 ✗）：{:?}",
+        binder_runs(&full)
+    );
+    assert!(
+        binder_runs(&slim).iter().all(|n| *n == 0),
+        "`--compact` 必须清空 binders[].ty_runs：{:?}",
+        binder_runs(&slim)
+    );
+
+    // ② **去掉 `*_runs` 后语义完全相同**（不许分叉 ✗）
+    fn strip(v: &serde_json::Value) -> serde_json::Value {
+        match v {
+            serde_json::Value::Object(m) => serde_json::Value::Object(
+                m.iter()
+                    .filter(|(k, _)| !k.ends_with("_runs"))
+                    .map(|(k, x)| (k.clone(), strip(x)))
+                    .collect(),
+            ),
+            serde_json::Value::Array(a) => serde_json::Value::Array(a.iter().map(strip).collect()),
+            other => other.clone(),
+        }
+    }
+    assert_eq!(
+        strip(&full),
+        strip(&slim),
+        "去掉 *_runs 后语义必须逐字节相同"
+    );
+    let _ = std::fs::remove_file(path);
+}
+
 #[test]
 fn query_state_outside_a_declaration_is_a_structured_error() {
     // A comment-only file: the position is valid but answers nothing.

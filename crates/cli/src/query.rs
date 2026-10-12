@@ -296,7 +296,18 @@ pub(crate) fn run(argv: &[String], root: Option<&str>) -> ExitCode {
                 Ok(cursor) => cursor,
                 Err(envelope) => return print(envelope, &args, 0),
             };
-            match doc.state_at(cursor) {
+            // **r14（2026-10-12）**：`--compact` 不只是"去掉空白"—— 它同时给**精简视图**
+            // （`state_without_runs`：清空 `goal_runs` / `binders[].ty_runs` 这些
+            // **编辑器着色专用**的逐段 kind）。理由：`--compact` 的用户意图就是"更小的输出"，
+            // 而单目标状态实测 **3270 字节**里绝大部分是着色数据（学习者/agent 读它没用）。
+            // ⚠ **只减着色数据**：目标文本、名字、`step`/`total`、选择语义**一律照旧** ✓
+            // （`state_at_with` 是唯一实现，`want_runs` 只决定带不带着色 ⇒ 不许分叉 ✗）。
+            let answer = if args.compact {
+                doc.state_without_runs(cursor)
+            } else {
+                doc.state_at(cursor)
+            };
+            match answer {
                 Ok(answer) => (serde_json::to_value(&answer).unwrap_or(Value::Null), 0),
                 Err(err) => {
                     // `ok:false` 是一个**答案**（问不出来且说明了原因）→ 退出 0；
