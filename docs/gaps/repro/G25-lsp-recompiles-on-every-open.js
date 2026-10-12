@@ -124,7 +124,11 @@ async function responseFor(lsp, id) {
 
 /** 起一个**全新**的 LSP 进程，`didOpen` 入口，返回 `didOpen → 诊断` 的毫秒数。 */
 async function openOnce(dir, entry, cacheDir) {
-  const env = { ...process.env, SOKONANODA_CACHE_DIR: cacheDir };
+  // **结构性判据的来源**（2026-10-12）：`SOKO_LSP_TRACE=1` 每次编译打一行
+  // `LSP_TRACE compile … modules=<真实闭包模块重编数> …`。墙钟比值在本仓是**禁止的判据**
+  // （"同一处连红 3 次"里 3 次都是假红：同代码 44ms↔2431ms）；而 `modules=` 是**计数** ⇒ 噪声免疫。
+  const env = { ...process.env, SOKONANODA_CACHE_DIR: cacheDir, SOKO_LSP_TRACE: '1' };
+  const traceLines = [];
   delete env.SOKONANODA_NO_CACHE;
   delete env.SOKONANODA_BIN;
   delete env.SOKONANODA_LSP_BIN;
@@ -149,7 +153,11 @@ async function openOnce(dir, entry, cacheDir) {
         else queue.push(message);
       }
     });
-    child.stderr.on('data', () => {});
+    child.stderr.on('data', (chunk) => {
+      for (const line of String(chunk).split('\n')) {
+        if (line.includes('LSP_TRACE compile')) traceLines.push(line);
+      }
+    });
     return {
       send(message) {
         const body = Buffer.from(JSON.stringify(message), 'utf8');
@@ -190,8 +198,14 @@ async function openOnce(dir, entry, cacheDir) {
         message.params && message.params.uri === uri(entry)) break;
   }
   const elapsed = Date.now() - started;
+  // `modules=` 是**计数**（真闭包模块重编数）⇒ 结构性判据用这个，不用墙钟 ✓
+  let modules = 0;
+  for (const line of traceLines) {
+    const m = /modules=(\d+)/.exec(line);
+    if (m) modules += Number(m[1]);
+  }
   lsp.stop();
-  return elapsed;
+  return { elapsed, modules };
 }
 
 (async () => {
@@ -220,16 +234,22 @@ async function openOnce(dir, entry, cacheDir) {
   const hot = await openOnce(dir, entry, cacheDir);
 
   console.log('== 两个**独立** LSP 进程打开同一份项目入口 ==');
-  console.log(`   冷开（全新缓存）        = ${cold}ms`);
-  console.log(`   热开（CLI 预热过缓存）  = ${hot}ms   （${(cold / hot).toFixed(1)}×）`);
+  console.log(`   冷开（全新缓存）        = ${cold.elapsed}ms · 重编模块 ${cold.modules}`);
+  console.log(`   热开（CLI 预热过缓存）  = ${hot.elapsed}ms · 重编模块 ${hot.modules}` +
+    `   （墙钟 ${(cold.elapsed / hot.elapsed).toFixed(1)}× · 模块 ${cold.modules}→${hot.modules}）`);
 
-  if (hot * 3 < cold) {
-    console.log('结论：G-25 已修——第二次打开命中了编译缓存，明显快于冷开。');
+  // **判据 = 结构性计数**（2026-10-12 改）：热开必须**真的少重编模块**
+  // —— 墙钟比值在本仓是禁止的判据（实测同代码 44ms↔2431ms；本轮 pre-push 上
+  // `hot*3 < cold` 就因为 42ms vs 15ms 的抖动判了一次假红 ✗）。
+  // 计数是机器无关的：热开命中缓存 ⇒ 真闭包模块重编数应当明显下降。
+  if (hot.modules < cold.modules) {
+    console.log(`结论：G-25 已修——第二次打开命中了编译缓存（重编模块 ${cold.modules} ⇒ ${hot.modules}）。`);
     process.exit(1);
   }
   console.error(
     '结论：G-25 仍在——含 `import` 的文档在 LSP 上不读任何缓存，' +
-      `每次打开都从零重编（冷 ${cold}ms vs 热 ${hot}ms，没有提速）。`,
+      `每次打开都从零重编（重编模块 冷 ${cold.modules} vs 热 ${hot.modules}，没有下降；` +
+      `墙钟 ${cold.elapsed}ms vs ${hot.elapsed}ms 只作参考 ✗）。`,
   );
   process.exit(0);
 })().catch((error) => {
