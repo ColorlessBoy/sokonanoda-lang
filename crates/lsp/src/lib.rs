@@ -3444,16 +3444,28 @@ impl LanguageServer for Backend {
         let symbols = report
             .decls
             .iter()
-            .map(|d| DocumentSymbol {
-                name: decl_name(d),
-                detail: Some(format!("{} — {}", d.kind.as_str(), status_label(d.status))),
-                kind: symbol_kind(d.kind),
-                tags: None,
-                #[allow(deprecated)] // lsp-types field is deprecated in favor of `tags`
-                deprecated: None,
-                range: range_of(d.span),
-                selection_range: range_of(d.span),
-                children: None,
+            .map(|d| {
+                // **N4**：`selectionRange` 必须是**名字 token**（大纲/面包屑/改名
+                // 都靠它），不是整条声明 —— 实测 8/8 条与 `range` 逐字节相同 ✗。
+                // 名字 token 的定位走 front 的**同一个** `decl_name_span`
+                //（prepareRename / project refs 用的就是它，不另写一套）。
+                let name = decl_name(d);
+                let selection = if std::env::var_os("SOKO_NO_SYMBOL_NAME_RANGE").is_some() {
+                    None
+                } else {
+                    sokonanoda_front::references::decl_name_span(doc.text(), d.span, &name)
+                };
+                DocumentSymbol {
+                    name,
+                    detail: Some(format!("{} — {}", d.kind.as_str(), status_label(d.status))),
+                    kind: symbol_kind(d.kind),
+                    tags: None,
+                    #[allow(deprecated)] // lsp-types field is deprecated in favor of `tags`
+                    deprecated: None,
+                    range: range_of(d.span),
+                    selection_range: selection.map(range_of).unwrap_or_else(|| range_of(d.span)),
+                    children: None,
+                }
             })
             .collect();
         Ok(Some(DocumentSymbolResponse::Nested(symbols)))

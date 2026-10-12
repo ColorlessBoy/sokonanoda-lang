@@ -49,6 +49,59 @@ async fn document_symbols_list_declarations() {
     shutdown(&mut service).await;
 }
 
+/// **N4**：`selectionRange` 必须是**名字 token**（大纲/面包屑/改名的落点），
+/// 不是整条声明 —— 实测（真课程画布）8/8 条与 `range` 逐字节相同 ✗。
+///
+/// **反向验证**：`SOKO_NO_SYMBOL_NAME_RANGE=1`（逃生门）⇒ 本用例判红。
+#[tokio::test]
+async fn document_symbol_selection_range_covers_the_name_token() {
+    let src = format!("{VALID}{EXERCISE}");
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, &src).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/documentSymbol")
+            .params(json!({"textDocument": {"uri": URI}}))
+            .id(9)
+            .finish(),
+    )
+    .await
+    .expect("documentSymbol must answer");
+    let symbols: Option<DocumentSymbolResponse> =
+        serde_json::from_value(result).expect("valid DocumentSymbolResponse");
+    let DocumentSymbolResponse::Nested(symbols) =
+        symbols.expect("document symbols must be returned")
+    else {
+        panic!("expected nested document symbols");
+    };
+    let id = symbols
+        .iter()
+        .find(|s| s.name == "id")
+        .expect("symbol for `id`");
+    // 名字 token 在 `def id : …` 的第 0 行第 4..6 列（0 基）。
+    assert_eq!(
+        id.selection_range.start,
+        Position {
+            line: 0,
+            character: 4
+        },
+        "selectionRange 起点 = 名字 token 的起点：{:?}",
+        id.selection_range
+    );
+    assert_eq!(id.selection_range.end.character, 6);
+    assert_ne!(
+        id.selection_range, id.range,
+        "selectionRange 必须**窄于**整条声明"
+    );
+    // 声明名字 hover / F12 都按同一份 token 定位 ⇒ 三处同源（不是各算一份）。
+    let start = offset_of(&src, "id : Prop");
+    assert_eq!(id.selection_range.start.line, 0);
+    assert_eq!(start, 4, "夹具前提：`id` 在第 4 个字节上");
+    shutdown(&mut service).await;
+}
+
 #[tokio::test]
 async fn completion_lists_keywords_sorts_prelude_and_declarations() {
     let src = "def two : Nat := 2\nexample : Sort 1 := sorry\n";
