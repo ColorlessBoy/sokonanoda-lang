@@ -317,6 +317,57 @@ fn state_at_after_apply_lists_every_sub_goal() {
     assert_eq!(state.binders, state.goals[0].binders);
 }
 
+/// **r14（2026-10-12）**：`state_without_runs` 是 `state_at` 的**同一实现**、只少
+/// 着色数据 —— 判据三条一起（缺一条就可能是"顺手把目标也删了"✗）：
+/// ① runs 全空；② **目标/假设文本与 `step`/`total` 与全量版逐字相同**；
+/// ③ 全量版照旧有 runs（别把默认路径改坏 ✗）。
+#[test]
+fn state_without_runs_keeps_the_text_and_drops_only_the_runs() {
+    let doc = doc(CANVAS);
+    let apply_end = CANVAS.find("apply And.intro").expect("tactic") + "apply And.intro".len();
+    let full = doc.state_at(apply_end).expect("answerable");
+    let slim = doc
+        .state_without_runs(apply_end)
+        .expect("slim state answerable");
+    assert!(
+        !full.goal_runs.is_empty() && full.goals.iter().all(|g| !g.goal_runs.is_empty()),
+        "前提：全量版必须带着色数据（否则这条判据咬不住 ✗）"
+    );
+    assert!(
+        slim.goal_runs.is_empty(),
+        "slim 版不该带 goal_runs：{:?}",
+        slim.goal_runs
+    );
+    assert!(
+        slim.goals.iter().all(|g| g.goal_runs.is_empty()),
+        "slim 版每个 goal 都不该带 runs"
+    );
+    assert!(
+        slim
+            .goals
+            .iter()
+            .flat_map(|g| g.binders.iter())
+            .all(|b| b.ty_runs.is_empty()),
+        "slim 版假设的 ty_runs 也要空"
+    );
+    // ② 文本/位置/步数逐字相同（slim 只该少 runs）。
+    assert_eq!(slim.goal, full.goal);
+    assert_eq!(slim.step, full.step);
+    assert_eq!(slim.total, full.total);
+    assert_eq!(slim.span, full.span);
+    let texts = |s: &crate::query::StateAnswer| -> Vec<String> {
+        s.goals.iter().map(|g| g.goal.clone()).collect()
+    };
+    assert_eq!(texts(&slim), texts(&full));
+    let binders = |s: &crate::query::StateAnswer| -> Vec<String> {
+        s.goals
+            .iter()
+            .flat_map(|g| g.binders.iter().map(|b| format!("{}: {}", b.name, b.ty)))
+            .collect()
+    };
+    assert_eq!(binders(&slim), binders(&full), "假设的名字与类型不许变 ✗");
+}
+
 /// **B2 的另一条边界**：光标在**末条 tactic 之内**（非起点）⇒ 取它**作用后**的状态
 /// —— 这正是 Lean 的 `useAfter`（`hoverPos > pos`）在"证明末尾"那一格的行为。
 /// 夹具 `and_swap` 的末两条都是 `sorry`；我们的 `sorry` **不闭合目标**

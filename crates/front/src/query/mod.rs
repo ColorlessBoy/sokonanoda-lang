@@ -1388,6 +1388,25 @@ impl QueryDoc {
     /// 过程后面的空行上时，面板照旧显示该声明的剩余目标 / 「🎉 已无目标 ✓」，
     /// 而不是「光标不在任何声明内」✗。
     pub fn state_at(&self, cursor: usize) -> Result<StateAnswer, QueryError> {
+        self.state_at_with(cursor, true)
+    }
+
+    /// **目标视图的「不要着色数据」版**（r14 / 2026-10-12）：与
+    /// [`Self::goals_without_runs`] 同款、同理由 —— 拿到全量后把
+    /// `goal_runs`/`binders[].ty_runs` **清空** ✓（目标文本、名字、`step`/`total`
+    /// 一律照旧 ✓）。
+    ///
+    /// ⚠ **消费端还没接**（如实记）：`--compact` 是 **CLI** 的旗标
+    /// （`crates/cli/src/query.rs`，只决定 JSON 缩进），而本单只许写
+    /// `crates/front/**` ⇒ 这里先把 front 侧那半做出来（CLI 侧接一根线即可，
+    /// 形状与 LSP 的 `goals_or_without_runs` 同款 ✓）。
+    pub fn state_without_runs(&self, cursor: usize) -> Result<StateAnswer, QueryError> {
+        self.state_at_with(cursor, false)
+    }
+
+    /// [`Self::state_at`] / [`Self::state_without_runs`] 的**唯一实现**
+    /// （`want_runs` 只决定要不要着色数据 —— 选择语义/文本一个字都不许分叉 ✗）。
+    fn state_at_with(&self, cursor: usize, want_runs: bool) -> Result<StateAnswer, QueryError> {
         if cursor > self.text.len() {
             return Err(QueryError::PositionOutOfRange);
         }
@@ -1399,6 +1418,8 @@ impl QueryDoc {
         // 一次 parse，然后每个 goal/binder 纯分类（goal-rendering §2.1）。
         let decls = self.decl_kinds();
         let notations = self.notation_symbols();
+        // `want_runs == false` ⇒ **不算** runs（不是"算了再扔"：省的是那一次
+        // tokenize，正是 r14 要省的东西 ✓）。
         let goal = |g: &ByGoalState| {
             let names: Vec<String> = g.binders.iter().map(|b| b.name.clone()).collect();
             // **显示副本走唯一接口**（A1 / T-N5 ✓）：`by` 步进那份在
@@ -1407,7 +1428,11 @@ impl QueryDoc {
             // （wire 的 `goal` + `goal_runs` 都取自折过的那一份 ⇒ 同源 ✓）。
             let goal = self.display.fold(&g.ty);
             GoalInfo {
-                goal_runs: self.runs(&decls, &notations, &goal, &names),
+                goal_runs: if want_runs {
+                    self.runs(&decls, &notations, &goal, &names)
+                } else {
+                    Vec::new()
+                },
                 goal,
                 binders: g
                     .binders
@@ -1416,7 +1441,11 @@ impl QueryDoc {
                         let ty = self.display.fold(&b.ty);
                         BinderInfo {
                             name: b.name.clone(),
-                            ty_runs: self.runs(&decls, &notations, &ty, &names),
+                            ty_runs: if want_runs {
+                                self.runs(&decls, &notations, &ty, &names)
+                            } else {
+                                Vec::new()
+                            },
                             ty,
                         }
                     })
