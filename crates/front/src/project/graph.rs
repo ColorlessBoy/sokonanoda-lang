@@ -418,11 +418,38 @@ fn visit(
             };
             // 入口的正文**不加**模块名后缀：诊断本就归属这个文件（`file` 字段
             // 已经写着它），而"（probe.d1）"这种后缀对学习者只是噪声。
-            let message = if is_entry {
+            let mut message = if is_entry {
                 diagnostic.message.clone()
             } else {
                 format!("{}（{name}）", diagnostic.message)
             };
+            // **r16（2026-10-13）**：解析失败 ⇒ 报告里**只有**这一条诊断、计数全 0
+            // ⇒ 学习者看不到"这份文件里哪些已经写对了"（r16：一条 `·` 让 4 条写对的
+            // 练习一起消失 ✗）。这里用**恢复式解析**（`parse_recovering_with_inherited`
+            // —— 闭包**手上有 `inherited`**，单文件会话那条路正是拿不到它才关掉恢复的 ✓）
+            // 把"已经解析成功的那些声明"**列进消息**。
+            //
+            // ⚠ **只写消息，不编译、不计数**：真判定一个字不动（声明仍 `load-failed`、
+            // `counts` 仍全 0 —— "一条都没验过"是**诚实**的 ✓，见 `query::check` 的注释）。
+            // 要恢复"已判过的进度"得让闭包对入口做恢复式**编译**，那会改
+            // `Closure::compilable()` / `build.file` 状态 / 事件计数 ⇒ 与"事件计数不变"
+            // 的红线冲突，**留给下一轮**（见 VERDICT 的边界）。
+            if is_entry {
+                let listed = recovered_decl_names(&text, &inherited, diagnostic.span.start.offset);
+                if !listed.is_empty() {
+                    let shown: Vec<&str> = listed.iter().take(3).map(|s| s.as_str()).collect();
+                    let more = if listed.len() > shown.len() {
+                        format!("、…（共 {} 条）", listed.len())
+                    } else {
+                        String::new()
+                    };
+                    message.push_str(&format!(
+                        "（本文件里 `{}`{} 这些声明**已经解析成功**，但因为这一行失败**没有判定**；修好这一行，它们会一起被判定。）",
+                        shown.join("`、`"),
+                        more
+                    ));
+                }
+            }
             diagnostics.push(ProjectDiagnostic {
                 kind: ProjectKind::Error(kind),
                 message,
@@ -491,6 +518,38 @@ fn push_module(
         blocked: false,
     });
     by_name.insert(name.to_string(), index);
+}
+
+/// **r16（2026-10-13）**：恢复式解析一遍，列出**已经解析成功**的顶层声明名
+/// （按源序 ✓）。只给**诊断消息**用 —— 不编译、不计数、不进任何事件 ✓。
+///
+/// 拿不到（词法失败 / 一条都救不回来）⇒ 空 ⇒ 消息与改动前**逐字相同** ✓。
+fn recovered_decl_names(text: &str, inherited: &[NotationDecl], error_at: usize) -> Vec<String> {
+    let Ok(recovered) = crate::parse_recovering_with_inherited(text, inherited) else {
+        return Vec::new();
+    };
+    let mut named: Vec<(usize, usize, String)> =
+        crate::compile::top_level_def_spans(&recovered.file)
+            .into_iter()
+            .map(|(name, span)| (span.start.offset, span.end.offset, name))
+            .collect();
+    named.sort();
+    // ⚠ **坏掉的那一条不许列**：恢复式解析会把"出错那条命令的前半截"也救回来
+    // （**实测**：r16 夹具里 `broken` 连同 `by constructor` 都在恢复出来的命令表里，
+    // 它的 span 在错误**之前**就结束了）⇒ 直接列会把**出错的那条**说成"已经解析成功" ✗。
+    //
+    // 判据（**按内容找、不猜名字** ✓）：最后一条起点在错误之前的声明，且**它的 span
+    // 结束到错误之间只有空白** ⇒ 这个错误就长在它的体内 ⇒ 不列它。
+    // 反例（同一判据必须放行）：项目测试的夹具里 `axiom Other.bullet` 之后还有一条
+    // `infixl` 才到那个裸 `·` ⇒ 中间有非空白文本 ⇒ **保留** `Other.bullet` ✓。
+    if let Some(index) = named.iter().rposition(|(start, _, _)| *start <= error_at) {
+        let end = named[index].1;
+        let tail = text.get(end..error_at).unwrap_or("x");
+        if tail.chars().all(char::is_whitespace) {
+            named.remove(index);
+        }
+    }
+    named.into_iter().map(|(_, _, name)| name).collect()
 }
 
 /// 模块源文本：内存覆盖优先（不读盘），否则读盘。
