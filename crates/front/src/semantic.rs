@@ -357,11 +357,53 @@ pub fn tag_runs_with_notations(
     // 以前只认**上下文里的**绑元（`binders` 参数 ✓）⇒ 文本里 `fun w => …` 的 `w` 掉进
     // `UnknownIdent` ✗（Infoview 按"未知标识符"着色 ✗，台账 G-80 ✓）。
     // **预扫描**：`fun` / `λ` 之后、`=>` 之前的 `Ident` 收进 binders ✓。
-    // ⚠ **只认 λ**，**不认 `∀`/`Forall`** ✗ —— `∀ (x : T), …` 里 `T` 也是 `Ident` ✓，
-    // 收进来就会把**类型名**误标成 binder ✗（宁可少标，不可标错 ✓；G-80 的判据只要求 λ ✓）。
+    //
+    // **r21（2026-10-13 ✓）**：`∀ (α : Type 0) (A B : Set α), …` 的**量词绑元**同样要收 ✓。
+    // 旧版写"只认 λ、不认 `∀`"的理由是怕把**类型名**误标成 binder ✗（`∀ (x : T), …` 里
+    // `T` 也是 `Ident`）—— 那个顾虑由**与 λ 同一条** `in_type` 状态机解决：`:` 之后到
+    // `,`/`)` 之间是类型位 ⇒ 不收 ✓。收尾判据是**深度 0 的 `,`**（`∀` 的 binder 列表
+    // 以它结束；`(A B : Set α)` 里的逗号若将来出现，深度 > 0 ⇒ 不误当结尾 ✓）。
+    // 实测（unit01 `demo_subset_def`）：`ty_runs` 里 `α`/`A`/`B`/`x` 共 12 处由
+    // `unknown_ident` 变 `binder` ✓（编辑器里"未定义标识符"色消失 ✓）。
     {
         let mut i = 0usize;
         while i < toks.len() {
+            // `∀` / `forall`：binder 列表到**深度 0 的 `,`** 为止，之后继续扫正文
+            // （正文里还有嵌套的 `∀`/`λ` ✓ —— `i = j` 让循环从逗号后接着走 ✓）。
+            if matches!(toks[i].kind, TokenKind::Forall) {
+                let mut j = i + 1;
+                let mut depth = 0i32;
+                let mut in_type = false;
+                while j < toks.len() {
+                    match &toks[j].kind {
+                        TokenKind::Colon => in_type = true,
+                        TokenKind::LParen | TokenKind::LBrace | TokenKind::Langle => {
+                            depth += 1;
+                            in_type = false;
+                        }
+                        TokenKind::RParen | TokenKind::RBrace | TokenKind::Rangle => {
+                            depth -= 1;
+                            in_type = false;
+                        }
+                        TokenKind::Comma if depth <= 0 => {
+                            j += 1;
+                            break;
+                        }
+                        TokenKind::Comma => in_type = false,
+                        TokenKind::Ident(name) if !in_type && name != "fun" && name != "λ" => {
+                            names.binders.insert(name.clone());
+                        }
+                        _ => {}
+                    }
+                    j += 1;
+                }
+                i = j;
+                // ⚠ **`continue`，不落到下面的 `head` 分支**：`i` 现在指着正文的
+                // 第一个 token，它本身可能是 `∀`/`fun`（嵌套量词）⇒ 必须让下一轮
+                // **重新判一次**；直接往下走会被结尾的 `i += 1` **跳过一个 token** ✗
+                // （`∀ (x : α), ∀ (y : β), …` 的第二个 `∀` 会被漏掉 ✗）。
+                continue;
+            }
             let head = matches!(&toks[i].kind, TokenKind::Ident(n) if n == "fun" || n == "λ");
             if head {
                 let mut j = i + 1;
@@ -1443,6 +1485,60 @@ end
         assert_eq!(
             tagged(&runs),
             vec![("sorry", SemanticKind::Hole), ("sorry", SemanticKind::Hole),]
+        );
+    }
+
+    /// **r21（2026-10-13 ✓）**：量词绑元在 `ty_runs` 里必须是 `Binder` ✓ ——
+    /// `∀ (α : Type 0) (A B : Set α), …` 的 `α`/`A`/`B` 以前掉进 `UnknownIdent`
+    /// （Infoview 按"未定义标识符"着色 ✗，与学习者"我是不是名字写错了"的焦虑叠加 ✗）。
+    ///
+    /// 两条**反向**守卫一并钉住（"宁可少标，不可标错"）：
+    /// * 类型位（`:` 之后）的 `Type`/`Set` **不是** binder ✓；
+    /// * 深度 0 的 `,` 结束 binder 列表，正文里的 `A`/`x` 仍按**收进来的绑元**着色 ✓；
+    /// * 嵌套 `∀` 也要收（`∀ (x : α), ∀ (y : β), …` 的第二个量词）✓。
+    #[test]
+    fn forall_bound_names_are_binders_not_unknown_idents() {
+        let decls = vec![("Set".to_string(), SemanticKind::DefUse)];
+        let text = "∀ (α : Type 0) (A B : Set α), (∀ (x : α), A x → B x)";
+        let runs = tag_runs(text, &decls, &[]);
+        assert_eq!(
+            tagged(&runs),
+            vec![
+                ("∀", SemanticKind::Keyword),
+                ("α", SemanticKind::Binder),
+                ("Type", SemanticKind::Sort),
+                ("0", SemanticKind::Number),
+                ("A", SemanticKind::Binder),
+                ("B", SemanticKind::Binder),
+                ("Set", SemanticKind::DefUse),
+                ("α", SemanticKind::Binder),
+                ("∀", SemanticKind::Keyword),
+                ("x", SemanticKind::Binder),
+                ("α", SemanticKind::Binder),
+                ("A", SemanticKind::Binder),
+                ("x", SemanticKind::Binder),
+                ("B", SemanticKind::Binder),
+                ("x", SemanticKind::Binder),
+            ]
+        );
+        assert_eq!(
+            runs.iter().map(|r| r.text.as_str()).collect::<String>(),
+            text,
+            "runs 必须逐字节重建原文（成对性不变量 ✓）"
+        );
+        // 嵌套量词：正文紧跟第二个 `∀`（`continue` 那一行防的就是这个漏标 ✓）。
+        let nested = tag_runs("∀ (x : α), ∀ (y : β), y", &[], &[]);
+        assert_eq!(
+            tagged(&nested),
+            vec![
+                ("∀", SemanticKind::Keyword),
+                ("x", SemanticKind::Binder),
+                ("α", SemanticKind::UnknownIdent),
+                ("∀", SemanticKind::Keyword),
+                ("y", SemanticKind::Binder),
+                ("β", SemanticKind::UnknownIdent),
+                ("y", SemanticKind::Binder),
+            ]
         );
     }
 
