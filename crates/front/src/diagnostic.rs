@@ -1,6 +1,7 @@
 //! 解析期诊断：`DiagnosticKind`/`Diagnostic` 及其机器码与教学提示。
 
 use crate::span::Span;
+use crate::token::{Token, TokenKind};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum DiagnosticKind {
@@ -160,6 +161,157 @@ impl Diagnostic {
             }
         }
     }
+}
+
+// ── 源级渲染（R-07）：诊断里**绝不许**出现 Rust 的 `Debug` 串 ────────────────
+//
+// 病根：`parse_command` 的兜底臂把 `Token` 整串 `Debug` 拼进消息 ⇒ 学习者看到
+// `expected a .sokonanoda command, found Token { kind: Ident("·"), span: Span {
+// start: Pos { offset: 148, … } } }`（内部结构 + 字节偏移，没有一个字是他能用的）。
+// 同族还有 `Ident("hax")` / `Eof` 这类 `TokenKind` 的 `Debug`（`{x:?}` 二十来处）。
+//
+// 做法照 Lean 4（`lean4/src/Lean/Parser/Module.lean::mkErrorMessage`）：把意外记号
+// 渲染成**源级文本**（Lean 打 `unexpected token '·'` / `unexpected identifier`），
+// 位置只进诊断的 `span` 字段，**不进消息** ✗。
+
+/// **反向验证逃生门**（R-07）：`SOKO_NO_TOKEN_RENDER=1` ⇒ 退回旧的 `Debug`
+/// 渲染（`Token { … }` / `Ident("…")` 回来）。只给判别性实验用，默认关闭。
+fn legacy_debug_render() -> bool {
+    std::env::var_os("SOKO_NO_TOKEN_RENDER").is_some()
+}
+
+/// [`TokenKind`] 的**源级文本**：学习者写下的那个记号（`` `·` `` / `` `:=` `` /
+/// `` `∀` `` …）——不是 Rust 枚举形状。
+pub(crate) fn token_kind_text(kind: &TokenKind) -> String {
+    if legacy_debug_render() {
+        return format!("{kind:?}");
+    }
+    match kind {
+        TokenKind::Ident(name) => format!("`{name}`"),
+        TokenKind::Num(value) => format!("`{value}`"),
+        TokenKind::Str(text) => format!("`\"{text}\"`"),
+        TokenKind::Sym(symbol) => format!("`{symbol}`"),
+        TokenKind::Hole => "`_`".to_string(),
+        TokenKind::Colon => "`:`".to_string(),
+        TokenKind::ColonEq => "`:=`".to_string(),
+        TokenKind::Arrow => "`->`".to_string(),
+        TokenKind::Plus => "`+`".to_string(),
+        TokenKind::Pipe => "`|`".to_string(),
+        TokenKind::FatArrow => "`=>`".to_string(),
+        TokenKind::Forall => "`∀`".to_string(),
+        TokenKind::At => "`@`".to_string(),
+        TokenKind::LParen => "`(`".to_string(),
+        TokenKind::RParen => "`)`".to_string(),
+        TokenKind::LBrace => "`{`".to_string(),
+        TokenKind::RBrace => "`}`".to_string(),
+        TokenKind::Langle => "`⟨`".to_string(),
+        TokenKind::Rangle => "`⟩`".to_string(),
+        TokenKind::Comma => "`,`".to_string(),
+        TokenKind::Semicolon => "`;`".to_string(),
+        TokenKind::Eof => "输入末尾".to_string(),
+    }
+}
+
+/// [`Token`] 的源级文本（位置信息留在 `Diagnostic::span`，不进消息）。
+///
+/// ⚠ 逃生门开着时退回的是**整个 `Token`** 的 `Debug`（`Token { kind: …, span:
+/// Span { … } }`）—— 那正是 R-07 之前的原样（老代码是 `{tok:?}` ✗）；只退回
+/// `TokenKind` 的 `Debug` 会让「关掉开关 ⇒ 探针必须重新 exit 0」**测不出来**
+/// （`Ident("·")` 里既没有 `Token {` 也没有 `Span {`）✓。
+pub(crate) fn token_text(tok: &Token) -> String {
+    if legacy_debug_render() {
+        return format!("{tok:?}");
+    }
+    token_kind_text(&tok.kind)
+}
+
+/// **命令位置**上的 Lean 常见写法 → 一句「错在哪 + 改成什么」。
+///
+/// 为什么单独有这一层：`by` 块**只在 `crate::tactics::TACTIC_DOCS` 白名单里认
+/// tactic**（`parser::is_tactic_keyword`），所以学习者照 Lean 写 `·` 子弹、`case`
+/// 分支标签或 `simp` 这类本子集没有的 tactic 时，`by` 块**当场结束**、报错点落到
+/// **下一条命令**上 —— 消息必须把「你还在写 Lean、这里已经出了 `by` 块」说清楚，
+/// 否则学习者会去改一条**没错的**声明 ✗。
+pub(crate) fn command_position_note(kind: &TokenKind) -> Option<String> {
+    if legacy_debug_render() {
+        return None;
+    }
+    let word = match kind {
+        TokenKind::Ident(word) => word.as_str(),
+        // `⋅`（U+22C5）不是 Lean 的子弹（子弹是 `·` U+00B7），但两者常被混用
+        // ⇒ 与 `·` 共用同一句提示。
+        TokenKind::Sym(symbol) if symbol == "⋅" => "·",
+        _ => return None,
+    };
+    match word {
+        "·" => Some(
+            "`·` 是 Lean 的子弹（`constructor` 之后给每个子目标分组的记号），本子集没有它：\
+             把 `·` 那一行删掉，在 `by` 块里直接依次写各子目标的 tactic（例如 `constructor` \
+             之后写 `exact hp`、再写 `exact hq`）。"
+                .to_string(),
+        ),
+        "case" | "next" => Some(format!(
+            "`{word}` 是 Lean 的分支标签（给某个子目标命名），本子集没有它：\
+             要么在 `cases … with` 的分支里直接写 `| 构造子 名字… => tactic`，\
+             要么把该子目标的 tactic 直接写进 `by` 块。"
+        )),
+        _ if !crate::tactics::is_tactic(word) && is_lean_common_tactic(word) => Some(format!(
+            "`{word}` 不在本子集的 tactic 白名单里（只有 {}）—— `by` 块遇到不属于它的记号就结束，\
+             所以这条错误报在**下一条命令**的位置上（不是上面那条声明写错了）。",
+            crate::tactics::whitelist_text()
+        )),
+        _ => None,
+    }
+}
+
+/// Lean 4 里常见、**本子集故意没做**的 tactic 关键字（只用于提示，不参与判定）。
+///
+/// ⚠ 它与 [`crate::tactics::TACTIC_DOCS`] 的关系是**单向**的：这里只是"学习者可能
+/// 从 Lean 带过来"的名字，命中后还要过 `!is_tactic(word)` 闸门 ⇒ 哪天某条真进了
+/// 白名单，提示自动闭嘴 ✓（不会说"本语言没有 `simp`" ✗）。
+fn is_lean_common_tactic(word: &str) -> bool {
+    matches!(
+        word,
+        "intros"
+            | "simp"
+            | "simpa"
+            | "simp_all"
+            | "rw"
+            | "rewrite"
+            | "induction"
+            | "omega"
+            | "linarith"
+            | "nlinarith"
+            | "positivity"
+            | "ring"
+            | "ring_nf"
+            | "field_simp"
+            | "norm_num"
+            | "subst"
+            | "contradiction"
+            | "by_contra"
+            | "by_cases"
+            | "contrapose"
+            | "push_neg"
+            | "specialize"
+            | "decide"
+            | "tauto"
+            | "aesop"
+            | "trivial"
+            | "exact_mod_cast"
+            | "interval_cases"
+            | "funext"
+            | "ext"
+            | "refine"
+            | "convert"
+            | "show"
+            | "change"
+            | "conv"
+            | "obtain"
+            | "rcases"
+            | "gcongr"
+            | "norm_cast"
+    )
 }
 
 pub type Result<T> = std::result::Result<T, Diagnostic>;

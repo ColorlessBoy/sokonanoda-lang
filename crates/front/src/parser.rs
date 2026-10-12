@@ -4,7 +4,9 @@ use super::ast::{
     Binder, BinderKind, CasesArm, Command, CtorDecl, Expr, FolFile, HaveValue, IotaRule, MatchArm,
     NotationAssoc, NotationDecl, OpenFilter, Pattern, RecDecl, SortKind, Tactic,
 };
-use super::diagnostic::{Diagnostic, DiagnosticKind, Result};
+use super::diagnostic::{
+    command_position_note, token_kind_text, token_text, Diagnostic, DiagnosticKind, Result,
+};
 use super::span::{Pos, Span};
 use super::token::{
     scan_notation_symbols, tokenize_with_symbols, Token, TokenKind, NOTATION_COMMANDS,
@@ -319,10 +321,7 @@ impl Parser {
             // `export <名字> [<子句>]`（第二刀 §N7）：把命名空间的短名导出给
             // **后续命令 + 导入本文件的调用方**（`open` 只对本文件）。
             TokenKind::Ident(kw) if kw == "export" => self.parse_export_command(),
-            _ => {
-                Err(self
-                    .error_at_current(&format!("expected a .sokonanoda command, found {tok:?}")))
-            }
+            _ => Err(self.expected_command_error(&tok)),
         }
     }
 
@@ -363,7 +362,10 @@ impl Parser {
         let TokenKind::Ident(name) = tok.kind.clone() else {
             return Err(Diagnostic::new(
                 DiagnosticKind::NamespaceShape {
-                    detail: format!("`end` 后面要跟命名空间的名字，found {:?}", tok.kind),
+                    detail: format!(
+                        "`end` 后面要跟命名空间的名字，found {}",
+                        token_kind_text(&tok.kind)
+                    ),
                 },
                 kw.span,
                 "`end` 后面要跟命名空间的名字".to_string(),
@@ -548,7 +550,8 @@ impl Parser {
                         other => {
                             return Err(self.namespace_shape_error(
                                 &format!(
-                                    "`{keyword} Foo (a b)` 里只能是短名，found {other:?}（例如 `{keyword} Foo (mem union)`）"
+                                    "`{keyword} Foo (a b)` 里只能是短名，found {}（例如 `{keyword} Foo (mem union)`）",
+                                    token_kind_text(&other)
                                 ),
                                 self.peek().span,
                             ))
@@ -594,8 +597,8 @@ impl Parser {
                         let tok = self.peek().clone();
                         return Err(self.namespace_shape_error(
                             &format!(
-                                "`{keyword} Foo renaming a => b` 里 `a` 与 `b` 之间要写 `=>`，found {:?}",
-                                tok.kind
+                                "`{keyword} Foo renaming a => b` 里 `a` 与 `b` 之间要写 `=>`，found {}",
+                                token_kind_text(&tok.kind)
                             ),
                             tok.span,
                         ));
@@ -652,7 +655,10 @@ impl Parser {
                 Ok(name)
             }
             other => Err(self.namespace_shape_error(
-                &format!("`{keyword}` 的子句里要跟短名，found {other:?}"),
+                &format!(
+                    "`{keyword}` 的子句里要跟短名，found {}",
+                    token_kind_text(&other)
+                ),
                 tok.span,
             )),
         }
@@ -723,7 +729,10 @@ impl Parser {
             }
             other => Err(Diagnostic::new(
                 DiagnosticKind::NamespaceShape {
-                    detail: format!("`{keyword}` 后面要跟一个名字，found {other:?}"),
+                    detail: format!(
+                        "`{keyword}` 后面要跟一个名字，found {}",
+                        token_kind_text(&other)
+                    ),
                 },
                 tok.span,
                 format!("`{keyword}` 后面要跟一个名字（可点分，例如 A.B）"),
@@ -1099,10 +1108,13 @@ impl Parser {
             other => {
                 return Err(Diagnostic::new(
                     DiagnosticKind::ImportMalformed {
-                        detail: format!("`import` 后面要跟模块名，这里found {other:?}"),
+                        detail: format!(
+                            "`import` 后面要跟模块名，这里found {}",
+                            token_kind_text(&other)
+                        ),
                     },
                     tok.span,
-                    format!("`import` 后面要跟模块名，found {other:?}"),
+                    format!("`import` 后面要跟模块名，found {}", token_kind_text(&other)),
                 ))
             }
         };
@@ -1934,7 +1946,7 @@ impl Parser {
         let TokenKind::Ident(name) = name_tok.kind.clone() else {
             return Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
-                    found: format!("{:?}", name_tok.kind),
+                    found: token_kind_text(&name_tok.kind),
                     expected: "a `let` binder name".to_string(),
                 },
                 name_tok.span,
@@ -1986,7 +1998,7 @@ impl Parser {
             _ => {
                 return Err(Diagnostic::new(
                     DiagnosticKind::UnexpectedToken {
-                        found: format!("{:?}", with_tok.kind),
+                        found: token_kind_text(&with_tok.kind),
                         expected: "`with` after the match scrutinee".to_string(),
                     },
                     with_tok.span,
@@ -2077,7 +2089,7 @@ impl Parser {
             let tok = self.peek().clone();
             return Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
-                    found: format!("{:?}", tok.kind),
+                    found: token_kind_text(&tok.kind),
                     expected: "a pattern".to_string(),
                 },
                 tok.span,
@@ -2760,7 +2772,8 @@ impl Parser {
                     TokenKind::Sym(symbol) => symbol.clone(),
                     other => {
                         return Err(self.error_here(&format!(
-                            "集合建构式 `{{x ∈ A | P x}}` 里，`x` 后面要跟关系符号 `∈`，实际是 {other:?}"
+                            "集合建构式 `{{x ∈ A | P x}}` 里，`x` 后面要跟关系符号 `∈`，实际是 {}",
+                            token_kind_text(&other)
                         )));
                     }
                 };
@@ -2841,7 +2854,7 @@ impl Parser {
         let tok = self.peek().clone();
         Err(Diagnostic::new(
             DiagnosticKind::SetBuilderShape {
-                detail: format!("expected `|`, found {:?}", tok.kind),
+                detail: format!("expected `|`, found {}", token_kind_text(&tok.kind)),
             },
             tok.span,
             "集合建构式要写成 `{x : α | P x}` / `{x ∈ A | P x}`：变量（及其类型或所属集合）与谓词之间用一个 `|` 隔开"
@@ -2857,7 +2870,7 @@ impl Parser {
         let tok = self.peek().clone();
         Err(Diagnostic::new(
             DiagnosticKind::SetBuilderShape {
-                detail: format!("expected `}}`, found {:?}", tok.kind),
+                detail: format!("expected `}}`, found {}", token_kind_text(&tok.kind)),
             },
             tok.span,
             "集合建构式要用 `}` 收尾：`{x : α | P x}` / `{x ∈ A | P x}`".to_string(),
@@ -2887,7 +2900,7 @@ impl Parser {
         if close.kind != TokenKind::RBrace {
             return Err(Diagnostic::new(
                 DiagnosticKind::SetLiteralShape {
-                    detail: format!("expected `}}`, found {:?}", close.kind),
+                    detail: format!("expected `}}`, found {}", token_kind_text(&close.kind)),
                 },
                 close.span,
                 "集合字面量要写成 {a} 或 {a, b}：元素之间用 `,` 隔开，最后用 `}` 收尾".to_string(),
@@ -2936,7 +2949,7 @@ impl Parser {
         if close.kind != TokenKind::Rangle {
             return Err(Diagnostic::new(
                 DiagnosticKind::SetLiteralShape {
-                    detail: format!("expected `⟩`, found {:?}", close.kind),
+                    detail: format!("expected `⟩`, found {}", token_kind_text(&close.kind)),
                 },
                 close.span,
                 "匿名构造子要写成 ⟨a, b⟩：元素之间用 `,` 隔开，最后用 `⟩` 收尾".to_string(),
@@ -2984,7 +2997,7 @@ impl Parser {
                     TokenKind::Ident(name) => self.finish_const(name, tok.span),
                     other => Err(Diagnostic::new(
                         DiagnosticKind::UnexpectedToken {
-                            found: format!("{other:?}"),
+                            found: token_kind_text(&other),
                             expected: "a constant name after `@`".to_string(),
                         },
                         tok.span,
@@ -3093,11 +3106,11 @@ impl Parser {
             TokenKind::Ident(name) => self.finish_const(name, tok.span),
             other => Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
-                    found: format!("{other:?}"),
+                    found: token_kind_text(&other),
                     expected: "an expression".to_string(),
                 },
                 tok.span,
-                format!("expected an expression, found {other:?}"),
+                format!("expected an expression, found {}", token_kind_text(&other)),
             )),
         }
     }
@@ -3173,7 +3186,7 @@ impl Parser {
                 other => {
                     return Err(Diagnostic::new(
                         DiagnosticKind::UnexpectedToken {
-                            found: format!("{other:?}"),
+                            found: token_kind_text(&other),
                             expected: "a numeral after `+`".to_string(),
                         },
                         tok.span,
@@ -3212,7 +3225,7 @@ impl Parser {
             }
             other => Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
-                    found: format!("{other:?}"),
+                    found: token_kind_text(&other),
                     expected: "a universe level".to_string(),
                 },
                 tok.span,
@@ -3457,7 +3470,10 @@ impl Parser {
                     span: Span::new(tok.span.start, end),
                 })
             }
-            other => Err(self.error_here(&format!("expected a binder, found {other:?}"))),
+            other => Err(self.error_here(&format!(
+                "expected a binder, found {}",
+                token_kind_text(&other)
+            ))),
         }
     }
 
@@ -3467,11 +3483,11 @@ impl Parser {
             TokenKind::Ident(name) => Ok(name),
             other => Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
-                    found: format!("{other:?}"),
+                    found: token_kind_text(&other),
                     expected: what.to_string(),
                 },
                 tok.span,
-                format!("expected {what}, found {other:?}"),
+                format!("expected {what}, found {}", token_kind_text(&other)),
             )),
         }
     }
@@ -3491,7 +3507,7 @@ impl Parser {
         if name.ends_with('.') {
             return Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
-                    found: format!("{name:?}"),
+                    found: format!("`{name}`"),
                     expected: "a declaration name that does not end with `.`".to_string(),
                 },
                 tok.span,
@@ -3530,16 +3546,17 @@ impl Parser {
         let tok = self.peek();
         Diagnostic::new(
             DiagnosticKind::UnexpectedToken {
-                found: format!("{:?}", tok.kind),
+                found: token_kind_text(&tok.kind),
                 expected: msg.to_string(),
             },
             tok.span,
-            format!("{msg}, found {:?}", tok.kind),
+            format!("{msg}, found {}", token_kind_text(&tok.kind)),
         )
     }
 
     /// 教学诊断：**消息就是全部**（不要把 token 的 Debug 拼进去）——记法的
-    /// 「位置不对」要读起来像人话（第二刀 §10.1）。
+    /// 「位置不对」要读起来像人话（第二刀 §10.1）。源级渲染见
+    /// [`crate::diagnostic::token_kind_text`]（R-07：那条纪律现在有实现兜底）。
     fn error_at(&self, span: Span, msg: &str) -> Diagnostic {
         Diagnostic::new(
             DiagnosticKind::UnexpectedToken {
@@ -3551,15 +3568,27 @@ impl Parser {
         )
     }
 
-    fn error_at_current(&self, msg: &str) -> Diagnostic {
-        let tok = self.peek();
+    /// **命令位置**的兜底诊断（R-07）：点名**源级**记号 + 「期望什么」，再按
+    /// [`command_position_note`] 附一句教学出路（子弹 / 分支标签 / Lean 的
+    /// 未支持 tactic —— 它们都会让 `by` 块当场结束，报错点落在下一条命令上）。
+    ///
+    /// 老实现把 `Token` 的 `Debug` 整串拼进消息
+    /// （`found Token { kind: Ident("·"), span: Span { … } }`）⇒ 学习者看到的是
+    /// 编译器内部结构 ✗。
+    fn expected_command_error(&self, tok: &Token) -> Diagnostic {
+        let found = token_text(tok);
+        let mut message = format!("expected a .sokonanoda command, found {found}");
+        if let Some(note) = command_position_note(&tok.kind) {
+            message.push('；');
+            message.push_str(&note);
+        }
         Diagnostic::new(
             DiagnosticKind::UnexpectedToken {
-                found: format!("{:?}", tok.kind),
+                found,
                 expected: "a command".to_string(),
             },
             tok.span,
-            msg.to_string(),
+            message,
         )
     }
 }
@@ -3721,8 +3750,9 @@ fn is_expr_keyword(name: &str) -> bool {
 /// **漏了 `have`**——因为不可达，所以没人发现，也**没有任何判据**看着它。
 fn unknown_tactic_message(tok: &Token) -> String {
     format!(
-        "未知 tactic：`by` 块只支持 {}（白名单），发现 {tok:?}",
-        crate::tactics::whitelist_text()
+        "未知 tactic：`by` 块只支持 {}（白名单），发现 {}",
+        crate::tactics::whitelist_text(),
+        token_text(tok)
     )
 }
 
