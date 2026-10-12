@@ -51,6 +51,32 @@ pub enum DiagnosticKind {
     NamespaceShape {
         detail: String,
     },
+    /// **关键字被当成顶层声明名**（SUB-keyword-decl-name，2026-10-12）。
+    ///
+    /// 改前 `expect_decl_name` 只拒 `.` 结尾、**不查关键字表** ⇒ `def match : Nat := 0`
+    /// **判绿**，而引用 `match` 时它被当关键字（表达式层 [`is_expr_keyword`]）⇒
+    /// 报的是**别处**的通用 `unexpected-token`（`expected an expression, found Eof`，
+    /// span 指到文件尾），学习者完全看不出病根在声明名。
+    ///
+    /// **为什么不复用 `UnexpectedToken` / `NamespaceShape`**：前者是通用兜底（工单
+    /// 明确要求专用码），后者讲的是作用域命令的形状、修法完全不同。这里要给的是
+    /// 一句话：「关键字不能当声明名，换个名字」。
+    ///
+    /// **Lean 4 对照**：`src/Lean/Parser/Basic.lean:1030-1042` `tokenFnAux` 先用
+    /// **reserved token 表**（`c.tokens.matchPrefix`）匹配，`match` 命中该表 ⇒ 产
+    /// `.atom` 而非 `ident`；`identFnAux`（`:975`）只接受 `isIdFirst` 或
+    /// `isIdBeginEscape`，而 `isIdBeginEscape`（`src/Init/Meta/Defs.lean:138`）
+    /// = `'«'` ⇒ Lean 里要同名必须写 `«match»`；`Command.lean:123` 的
+    /// `declId := leading_parser ident >> optional (".{" …)` 走的正是 ident parser，
+    /// **不特判关键字**。本仓既无 guillemet 也无关键字闸 ⇒ 与 Lean 的偏离是
+    /// **无意的**（同一份 parser 在 `expect_namespace_name` 上已经做了这件事）⇒
+    /// 对齐做法 = **拒绝 + 指向改名出路**。
+    DeclNameKeyword {
+        /// 被当成声明名的关键字（`match`）。
+        name: String,
+        /// 声明种类的源级写法（`def` / `theorem` / `inductive` …），用于指路。
+        what: String,
+    },
     /// **集合字面量**（第三刀 §12.4）形状不合法：空 `{}`、三个及以上元素、
     /// 缺 `}`。`detail` 是逐原因的正文。
     SetLiteralShape {
@@ -105,6 +131,7 @@ impl Diagnostic {
             DiagnosticKind::NamespaceMismatch { .. } => "parse-namespace-mismatch",
             DiagnosticKind::NamespaceUnclosed { .. } => "parse-namespace-unclosed",
             DiagnosticKind::NamespaceShape { .. } => "parse-namespace-shape",
+            DiagnosticKind::DeclNameKeyword { .. } => "parse-keyword-decl-name",
             DiagnosticKind::SetLiteralShape { .. } => "set-literal-shape",
             DiagnosticKind::SetBuilderShape { .. } => "set-builder-shape",
             DiagnosticKind::SetOptionShape { .. } => "set-option-shape",
@@ -149,6 +176,9 @@ impl Diagnostic {
             }
             DiagnosticKind::NamespaceShape { .. } => {
                 "作用域命令的形状是：namespace Foo（开块）、end Foo（收块，名字必须写出）、open Foo（短名可用，可加点分名字 A.B）。`open` 还能挑名字：open Foo (a b)（只要这两个）、open Foo hiding a b（挡掉这两个）、open Foo renaming a => b（改名），以及只影响一条命令的 open Foo in <命令>；export Foo 同形，但导入本文件的文件也看得到。"
+            }
+            DiagnosticKind::DeclNameKeyword { .. } => {
+                "关键字不能当声明名。换一个名字（例如 matchFoo），或者把它放进 namespace 里用点分名引用。"
             }
             DiagnosticKind::SetLiteralShape { .. } => {
                 "集合字面量的形状是 {a}（单元素）或 {a, b}（两元素）：元素之间用 `,` 隔开，最后用 `}` 收尾；空集写 Set.empty α，三个及以上用 Set.pair 点名嵌套。"

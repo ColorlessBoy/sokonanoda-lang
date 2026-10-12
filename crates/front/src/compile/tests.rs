@@ -4623,13 +4623,13 @@ fn by_block_with_apply_and_rfl_checks() {
 #[test]
 fn partial_by_block_is_open_exercise() {
     let src =
-        "axiom And : Prop -> Prop -> Prop\ntheorem open : (a : Prop) -> And a a -> a := by intro a; intro h\n";
+        "axiom And : Prop -> Prop -> Prop\ntheorem open_proof : (a : Prop) -> And a a -> a := by intro a; intro h\n";
     let report = check_document(&parse(src).unwrap());
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
         .decls
         .iter()
-        .find(|d| d.name.as_deref() == Some("open"))
+        .find(|d| d.name.as_deref() == Some("open_proof"))
         .unwrap();
     assert_eq!(d.status, DeclStatus::Open);
 }
@@ -4638,13 +4638,13 @@ fn partial_by_block_is_open_exercise() {
 fn partial_by_block_records_per_step_states() {
     // Phase 2（soko/stateAt）：每个 tactic 记录执行后的 goal + 上下文 + 源码 span。
     let src =
-        "axiom And : Prop -> Prop -> Prop\ntheorem open : (a : Prop) -> And a a -> a := by intro a; intro h\n";
+        "axiom And : Prop -> Prop -> Prop\ntheorem open_proof : (a : Prop) -> And a a -> a := by intro a; intro h\n";
     let report = check_document(&parse(src).unwrap());
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
         .decls
         .iter()
-        .find(|d| d.name.as_deref() == Some("open"))
+        .find(|d| d.name.as_deref() == Some("open_proof"))
         .unwrap();
     assert_eq!(d.by_steps.len(), 2, "one state per tactic");
     // step 0 = `intro a` 执行后：binder a : Prop，目标剩 `And a a -> a`
