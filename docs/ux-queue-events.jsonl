@@ -63,3 +63,5 @@
 {"ts": "2026-10-12T13:04:09+00:00", "event": "release", "id": "r08", "owner": "LANG-A", "reason": "langA 已收工（3 commit 落地），槽位归还"}
 {"ts": "2026-10-12T13:04:15+00:00", "event": "claim", "id": "r08", "owner": "orchestrator", "resources": ["crates/front"]}
 {"ts": "2026-10-12T13:04:15+00:00", "event": "advance", "id": "r08", "to": "done", "commit": "4925fec3", "reading": "bash scripts/ux-probes/lang/r08-congrarg-empty-binder.sh ⇒ exit 1（编排者独立复跑，构建 stale=false）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T13:58:13+00:00", "event": "reopen", "id": "SUB-keyword-decl-name", "reason": "撤回（1e6ce6d12）：那笔改了判定行为（拒 theorem open）⇒ 整笔退回基线，条目重开待重做", "owner": "orchestrator"}
+{"ts": "2026-10-12T13:58:13+00:00", "event": "reopen", "id": "SUB-duplicate-found-msg", "reason": "撤回（1e6ce6d12）：那笔改了判定行为（拒 theorem open）⇒ 整笔退回基线，条目重开待重做", "owner": "orchestrator"}
