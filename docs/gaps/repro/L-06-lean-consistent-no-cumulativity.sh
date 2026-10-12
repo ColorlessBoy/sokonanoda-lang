@@ -107,12 +107,15 @@ echo "构建身份：$IDENT"
 echo "① 结构（课程绕法，L-06 的 workaround 面）："
 struct_bad=0
 
-elim_hits=$(grep -cE '^def Exists\.elim' "$LIB_EXISTS")
-elim_prop=$(grep -E '^def Exists\.elim' "$LIB_EXISTS" | grep -c '{Q : Prop}')
+# ⚠ 2026-10-12：`Exists.elim` 的关键字从 `def` 改成 `theorem`（prelude 子项 A：类型是 Prop 的证明类
+# 声明一律 theorem）—— **本条缺口的实质是「结论被限制在 `{Q : Prop}`」**，与关键字无关 ⇒ 两种关键字都算在册 ✓
+# （反向仍咬得住：把 `{Q : Prop}` 去掉、或整条改名 ⇒ 下面的计数变 0 ⇒ 判红 ✓）。
+elim_hits=$(grep -cE '^(def|theorem) Exists\.elim' "$LIB_EXISTS")
+elim_prop=$(grep -E '^(def|theorem) Exists\.elim' "$LIB_EXISTS" | grep -c '{Q : Prop}')
 choose_hits=$(grep -cE '^axiom Exists\.choose :' "$UNIT10")
 choose_spec_hits=$(grep -cE '^axiom Exists\.choose_spec :' "$UNIT10")
 equiv_hits=$(grep -cE '^def Set\.Equiv .*: Prop :=' "$LIB_EQUIV")
-echo "   lib/Exists：def Exists.elim ${elim_hits}（期望 1，其中结果限 Prop 的 ${elim_prop} 条，期望 1）"
+echo "   lib/Exists：Exists.elim ${elim_hits}（期望 1，其中结果限 Prop 的 ${elim_prop} 条，期望 1）"
 echo "   单元⑩：axiom Exists.choose ${choose_hits}（期望 1）· Exists.choose_spec ${choose_spec_hits}（期望 1）"
 echo "   lib/Equiv：Set.Equiv … : Prop ${equiv_hits}（期望 1）"
 [ "$elim_hits" = 1 ] && [ "$elim_prop" = 1 ] || { echo "   ✗ lib/Exists 的 Exists.elim 不在册（或结果不再是 Q : Prop）" >&2; struct_bad=1; }
@@ -243,7 +246,9 @@ echo "   反向臂 A：形状换掉 ⇒ 专用码 1 → 0、正向对照 checked
 # ③-B：课程 lib 副本里把 Exists.elim 改名 ⇒ 夹具 B 必须判红并点名它。
 mkdir -p "$TMP/neg-lib/lib"
 cp "$ROOT"/courses/set-theory/lib/*.sokonanoda "$TMP/neg-lib/lib/"
-sed 's/^def Exists\.elim /def Exists.elim_renamed /' "$TMP/neg-lib/lib/Exists.sokonanoda" > "$TMP/neg-lib/lib/Exists.tmp"
+# ⚠ 2026-10-12：同上 —— 关键字改成 `theorem` 后，只匹配 `^def` 的 sed **变成了空操作** ⇒ 反向臂
+# 「改名后仍判绿」会误报成「守卫空转」（这条守卫**咬住了自己的变异失效** ✓ 是它该做的事）。
+sed -E 's/^(def|theorem) Exists\.elim /\1 Exists.elim_renamed /' "$TMP/neg-lib/lib/Exists.sokonanoda" > "$TMP/neg-lib/lib/Exists.tmp"
 mv "$TMP/neg-lib/lib/Exists.tmp" "$TMP/neg-lib/lib/Exists.sokonanoda"
 cp "$TMP/courselib/probe_ok.sokonanoda" "$TMP/neg-lib/probe_ok.sokonanoda"
 OUT_NB="$(grade "$TMP/neg-lib/probe_ok.sokonanoda")"; rc_nb=$?
