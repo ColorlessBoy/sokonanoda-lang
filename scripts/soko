@@ -820,6 +820,56 @@ function report(target, result) {
   process.stdout.write(`${target}: ${result ? `${result.path} [${result.source}]` : 'unresolved'}\n`)
 }
 
+/// What a resolved link reports about **itself** (`version --json` /
+/// `doctor --json`).
+///
+/// ⚠ **`marker` must describe this link, never the cache directory**（E1，
+/// `scripts/ux-probes/lsp-probe.mjs --case E1-version-marker-misleading`）：
+/// `source: "repo-build"` 旁边挂一个 **stale 缓存 marker**（实测：仓库是
+/// 0.90.0，`<cache>/sokonanoda-lsp.version` 却是 0.73.0）⇒ 编辑器读 `marker`
+/// 就把**缓存目录的版本**当成这份构建的版本，显示的版本是误导性的 ✗。取**诚实**
+/// 的那一支（不是"标个 caveat"）：marker 按**赢的那条链接**报告 ——
+///   * **缓存条目**（`cache` / `cache(STALE: …)`）⇒ marker **就是**它自己那份
+///     `<version> <target>` 文件（既有语义逐字节不变，`opencode.rs` 钉着它）；
+///   * **仓库构建 / 显式 override** ⇒ marker = **这条链接自述的版本 + 目标**
+///     （同一个 `<version> <target>` 词汇）。CLI 自己答 `--version`；服务器二进制
+///     没有 `--version`（见 `repoBuildForVersion`）⇒ 用**同树的 CLI** 自述版本，
+///     那正是启动器信任这份构建的**唯一依据**（不是另立一份真相）。
+///
+/// `marker_source` 明说这个串从哪来（`cache-marker` / `binary-version`），
+/// `cache_marker` 仍如实报告缓存目录里那份（诊断要它）—— 但它不再冒充别的链接。
+function linkInfo(base, link, extra = {}) {
+  const cacheMarker = readMarker(base)
+  const source = link?.source
+  if (!link) {
+    return { path: undefined, ...extra, marker: undefined, marker_source: undefined, cache_marker: cacheMarker }
+  }
+  if (source === 'cache' || source.startsWith('cache(')) {
+    return { path: link.path, ...extra, source, marker: cacheMarker, marker_source: 'cache-marker', cache_marker: cacheMarker }
+  }
+  const reported = linkVersion(base, link)
+  const target = platformTarget()
+  return {
+    path: link.path,
+    ...extra,
+    source,
+    marker: reported && target ? `${reported} ${target}` : undefined,
+    marker_source: reported ? 'binary-version' : undefined,
+    cache_marker: cacheMarker,
+  }
+}
+
+/// The version a **non-cache** link reports about itself. The CLI answers
+/// `--version`; the server binary has none (`repoBuildForVersion`), so a
+/// repository-build server is identified by the CLI of the same tree and an
+/// explicit override server is honestly `undefined`（未知就说未知，绝不借缓存
+/// marker 充数 ✗）。
+function linkVersion(base, link) {
+  if (base === 'sokonanoda') return binaryVersion(link.path)
+  if (link.source === 'repo-build') return binaryVersion(repoBuildPath('sokonanoda') ?? '')
+  return undefined
+}
+
 async function main(argv) {
   const [command, ...rest] = argv
   const cliOverride = process.env.SOKONANODA_BIN
@@ -942,8 +992,8 @@ async function main(argv) {
               rust_target: rustTriple(),
               cache: cacheDir(),
               offline: offline(),
-              cli: { path: cli?.path, source: cli?.source, marker: readMarker('sokonanoda') },
-              lsp: { path: lsp?.path, source: lsp?.source, marker: readMarker('sokonanoda-lsp') },
+              cli: linkInfo('sokonanoda', cli),
+              lsp: linkInfo('sokonanoda-lsp', lsp),
               // **构建身份**（2026-10-12 接口 agent 提交 `SUB-probe-build-drift`）：
               // 探针读数的可比性靠它 —— `stale: true` = 源码比二进制新 ⇒
               // **这一次读数不属于当前 commit**（先重建，或换一棵刚编过的树）。
@@ -999,8 +1049,8 @@ async function main(argv) {
               cache: cacheDir(),
               offline: offline(),
               launcher: path.join(REPO, 'scripts', 'soko'),
-              cli: { path: cli?.path, present: Boolean(cli), ready: canExec(cli), marker: readMarker('sokonanoda') },
-              lsp: { path: lsp?.path, present: Boolean(lsp), ready: canExec(lsp), marker: readMarker('sokonanoda-lsp') },
+              cli: linkInfo('sokonanoda', cli, { present: Boolean(cli), ready: canExec(cli) }),
+              lsp: linkInfo('sokonanoda-lsp', lsp, { present: Boolean(lsp), ready: canExec(lsp) }),
             },
             null,
             2,
