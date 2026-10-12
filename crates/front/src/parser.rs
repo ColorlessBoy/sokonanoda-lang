@@ -3615,10 +3615,12 @@ impl Parser {
                     span: Span::new(tok.span.start, end),
                 })
             }
-            other => Err(self.error_here(&format!(
-                "expected a binder, found {}",
-                token_kind_text(&other)
-            ))),
+            // ⚠ **别在这里自带 `found …`**（N3 / `SUB-duplicate-found-msg`）：
+            // [`Parser::error_here`] 会把这个位置的记号追加进来，两处各写一遍 ⇒
+            // `found` 写两遍 ✗（它自己也有 `debug_assert!` 兜底）。
+            // 也不许写成 `"expected a binder, {}"`：那样追加后是
+            // `… , 输入末尾, found 输入末尾`（同一个记号仍说两遍 ✗）。
+            _ => Err(self.error_here("expected a binder")),
         }
     }
 
@@ -3687,15 +3689,37 @@ impl Parser {
         tok
     }
 
+    /// **光秃秃的期望** + 这个位置的记号 —— 唯一的附加点。
+    ///
+    /// ⚠ **`msg` 里自带 `found …` 的，别从这里过**（N3 / `SUB-duplicate-found-msg`）：
+    /// 追加是**无条件**的，两处各写一个 `found` ⇒ 学习者读到
+    /// `expected a binder, found 输入末尾, found 输入末尾`（`found` 写两遍 ✗）。
+    /// 判据 = `expected_found_appended_at_most_once`（本文件单测）+
+    /// `found_appended_message_has_no_duplicate` 的 `debug_assert!`。
+    /// 反向验证逃生门：`SOKO_LEGACY_FOUND_APPEND=1` ⇒ 无条件追加（旧行为回来，
+    /// 上面那条判据当场判红）。**只给判别性实验用**，默认关闭。
     fn error_here(&self, msg: &str) -> Diagnostic {
         let tok = self.peek();
+        let found = token_kind_text(&tok.kind);
+        // 防线（同 `legacy_debug_render` 的款式）：**自带 `found …` 的消息不许
+        // 再走追加**。debug 构建当场炸——那正是"新增调用点又踩同一个坑"要的
+        // 声音；release 交出去的是**没有双写**的那句（不是旧行为）。
+        debug_assert!(
+            legacy_found_append() || !contains_found_clause(msg),
+            "error_here 的 msg 自带 `found …`，再追加一次就会双写：{msg}"
+        );
+        let message = if contains_found_clause(msg) && !legacy_found_append() {
+            msg.to_string()
+        } else {
+            format!("{msg}, found {found}")
+        };
         Diagnostic::new(
             DiagnosticKind::UnexpectedToken {
-                found: token_kind_text(&tok.kind),
+                found,
                 expected: msg.to_string(),
             },
             tok.span,
-            format!("{msg}, found {}", token_kind_text(&tok.kind)),
+            message,
         )
     }
 
@@ -3736,6 +3760,23 @@ impl Parser {
             message,
         )
     }
+}
+
+/// `msg` 里**已经**点了这个位置的记号吗（`…, found X` / `… found X`）？
+///
+/// 判据是**尾部那个 `found` 子句**的形状（单词 + 空格 / 行尾），不是"消息里出现过
+/// found 这个词"：`format!("expected {what}, found {}", …)`（[`Parser::expect_ident`]）
+/// 也算 ✓，而正文里顺笔提到别的词不算 ✗（否则那句话会被静默吞掉一半）。
+fn contains_found_clause(msg: &str) -> bool {
+    msg.ends_with("found") || msg.contains("found ")
+}
+
+/// **反向验证逃生门**（N3 / `SUB-duplicate-found-msg`）：`SOKO_LEGACY_FOUND_APPEND=1`
+/// ⇒ [`Parser::error_here`] 回到**无条件追加**（旧的双写回来）。只给判别性实验用，
+/// 默认关闭；判据见 `crates/front/src/parser.rs` 的
+/// `expected_found_appended_at_most_once`（打开它必须判红）。
+fn legacy_found_append() -> bool {
+    std::env::var_os("SOKO_LEGACY_FOUND_APPEND").is_some()
 }
 
 /// **内建记法**（课程 Lean 化，设计 `docs/design/course-lean-style.md` L2.2）：
@@ -4115,7 +4156,11 @@ mod tests {
         // 2026-10-10 抓到的那条漏项（手写文案漏了 `have`）不许回归。
         assert!(msg.contains("have"), "`have` 必须在文案里 ✗：{msg}");
         // `exact?` 本语言**没有实现** ⇒ 文案不许说它在白名单里。
-        assert!(!msg.contains("exact?"), "文案说了没实现的东西 ✗：{msg}");
+        assert!(!msg.contains("exact?") , "文案说了没实现的东西 ✗：{msg}");
+        // **r17**：`hax` 不是 Lean 的常见 tactic ⇒ 这条**不许**多嘴说"本子集不支持"
+        // （那句话只留给「学习者从 Lean 带过来」的名字；否则每条拼错的名字都套上
+        // 一句无关的解释 ✗）。
+        assert!(!msg.contains("不支持"), "`hax` 不该拿 Lean 教学那句 ✗：{msg}");
     }
 
     #[test]
@@ -4252,6 +4297,64 @@ example : Prop -> Prop := sorry
     fn reports_diagnostic_with_span() {
         let err = parse("def broken : Prop :=\n").unwrap_err();
         assert_eq!(err.span.start.line, 2, "err: {err:?}");
+    }
+
+    /// **N3 / `SUB-duplicate-found-msg`**：`found` 子句**恰好出现一次**。
+    ///
+    /// 病：`parse_binder` 的兜底臂把 `"expected a binder, found {other}"` 交给
+    /// [`Parser::error_here`]，而它**自己又**追加 `", found …"` ⇒ 学习者读到
+    /// `expected a binder, found 输入末尾, found 输入末尾`（同一件事说两遍 ✗）。
+    ///
+    /// ⚠ **只断言文案**：判定（接受/拒绝、span、`code`）一个字都不许变 ——
+    /// 这条测试的夹具**就是**判红的输入，它同时钉住"仍被拒 + 位置不变"。
+    #[test]
+    fn expected_found_appended_at_most_once() {
+        // ① 自带 `found` 的那条（用户报的原文）。
+        let err = parse("def f : Nat := fun\n").unwrap_err();
+        assert_eq!(err.code(), "unexpected-token", "判定不许变：{err:?}");
+        assert_eq!(
+            err.message.matches("found").count(),
+            1,
+            "`found` 出现了 {} 次（应恰好 1 次）：{}",
+            err.message.matches("found").count(),
+            err.message
+        );
+        assert_eq!(
+            err.message, "expected a binder, found 输入末尾",
+            "文案形状变了：{err:?}"
+        );
+        // 位置仍是文件尾（判定/坐标都没动 ✓）。
+        assert_eq!(err.span.start.line, 2, "err: {err:?}");
+        // ② **反向那一半**：本来不带 `found` 的消息照旧拿到追加（别把好的改坏 ✗）。
+        let err = parse("theorem t : True := by\n  have\n").unwrap_err();
+        assert_eq!(err.code(), "unexpected-token", "判定不许变：{err:?}");
+        assert_eq!(
+            err.message.matches("found").count(),
+            1,
+            "`have` 分支的 `found` 应恰好 1 次：{}",
+            err.message
+        );
+        assert!(
+            err.message.contains("输入末尾"),
+            "`have` 分支仍要点名位置：{}",
+            err.message
+        );
+        // ③ 帮手自己（`expect_ident` 那条 format）也在追加点上：
+        //    `def 1 : Prop := Prop` 的 `expected def name, found `1``。
+        let err = parse("def 1 : Prop := Prop\n").unwrap_err();
+        assert!(
+            err.message.matches("found").count() == 1,
+            "`expect_ident` 那条也被双写了：{}",
+            err.message
+        );
+        // ④ **守卫自己也要咬得住**：判据函数的两个方向 + 「消息里顺笔提到别的词」
+        //    不算命中（否则那句会被静默吞掉一半 ✗）。
+        assert!(contains_found_clause(
+            "expected a binder, found `x`"
+        ));
+        assert!(!contains_found_clause("expected a binder"));
+        assert!(!contains_found_clause("`found` 是关键字，这里要写名字"));
+        assert!(!contains_found_clause("foundations"));
     }
 
     #[test]
