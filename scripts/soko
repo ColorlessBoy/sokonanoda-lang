@@ -653,9 +653,16 @@ function repoBuildForVersion(base, version) {
   if (base !== 'sokonanoda') {
     // The language-server binary has no `--version`; trust a build only when
     // the CLI build of the same tree already proved the version.
-    return versionSatisfied(version, binaryVersion(repoBuildPath('sokonanoda') ?? '')) ? build : undefined
+    return versionSatisfied(version, binaryVersion(repoBuildPath('sokonanoda') ?? ''))
+      ? build.path
+      : undefined
   }
-  return versionSatisfied(version, binaryVersion(build)) ? build : undefined
+  // ⚠ 两条契约别混（我第一版混了，两处各错一半）：
+  //   * `repoBuild()` 返回**对象**（`buildIdentity` 要 mtime）；
+  //   * 本函数与 `resolver.probe()` 要的是**路径字符串**（`[object Object]` 就是这么来的 ✗）；
+  //   * `binaryVersion()` 也要**路径字符串**（传对象 ⇒ 静默回落到缓存二进制，
+  //     实测 `version` 报 `cache(STALE: …0.83.0)` 而仓库构建明明在）✗。
+  return versionSatisfied(version, binaryVersion(build.path)) ? build.path : undefined
 }
 
 /// How a binary was found, for `version`/`doctor` reporting.
