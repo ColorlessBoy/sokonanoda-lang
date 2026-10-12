@@ -134,7 +134,9 @@ impl Doc {
                 return vec![diagnostic_from_parse(diag)];
             }
         }
-        report.map(report_diagnostics).unwrap_or_default()
+        report
+            .map(|report| report_diagnostics(report, self.text()))
+            .unwrap_or_default()
     }
 
     /// 当前文本（`doc.text()` 的读法）。
@@ -1828,7 +1830,10 @@ fn tactic_name_type(
 /// elab/kernel errors, one WARNING per `sorry` (Lean-4 aligned), and
 /// syntax-level warnings. Shared by the fresh-compile and cache-hit paths so a
 /// cached open produces exactly the same diagnostics as a recompile.
-fn report_diagnostics(report: &sokonanoda_front::compile::DocumentReport) -> Vec<Diagnostic> {
+fn report_diagnostics(
+    report: &sokonanoda_front::compile::DocumentReport,
+    text: &str,
+) -> Vec<Diagnostic> {
     let mut diagnostics: Vec<_> = report.errors.iter().map(diagnostic_from_compile).collect();
     // 「多余的 `sorry`」（`docs/design/redundant-sorry.md`）：那个洞不是"还没
     // 证出来"，而是多写了一行——由 `redundant-sorry` 那条 warning（带 hint）
@@ -1854,15 +1859,46 @@ fn report_diagnostics(report: &sokonanoda_front::compile::DocumentReport) -> Vec
                 continue;
             }
             let name = d.name.as_deref().unwrap_or("(anonymous)");
+            // 逃生门（反向验证用）：`SOKO_OLD_SORRY_WARNING=1` 回到旧文案
+            //（英文 + 整条声明的 range）⇒ D3 用例必须重新判红。
+            if std::env::var_os("SOKO_OLD_SORRY_WARNING").is_some() {
+                diagnostics.push(Diagnostic {
+                    range: range_of(d.span),
+                    severity: Some(DiagnosticSeverity::WARNING),
+                    code: Some(NumberOrString::String("sorry".to_string())),
+                    source: Some("sokonanoda".to_string()),
+                    message: format!(
+                        "declaration '{}' uses 'sorry' (exercise not yet solved)",
+                        name
+                    ),
+                    ..Diagnostic::default()
+                });
+                continue;
+            }
+            // **D3**：文案用**中文**（与其余诊断一致；旧文案是一句英文 ✗），而且
+            // **只在实际写了 `sorry` 时**才说 sorry —— 空 `by`（源里根本没有
+            // `sorry`）同样是 Open，但它是"还没写"，不是"用了 sorry"（实测旧文案
+            // 两种情形一句英文，学习者被误导 ✗）。
+            //
+            // 判据是**词法事实**（这一格源码是不是字面 `sorry`），不参与任何判定
+            // —— 洞的 span 来自 walk ✓，这里只读它覆盖的文本。
+            let hole = d.holes.iter().min_by_key(|span| span.start.offset).copied();
+            let literal_sorry = hole.is_some_and(|span| {
+                text.get(span.start.offset..span.end.offset)
+                    .is_some_and(|slice| slice.trim() == "sorry")
+            });
+            let message = if literal_sorry {
+                format!("声明 `{name}` 还没证完：`sorry` 那一步要换成真的证明")
+            } else {
+                format!("声明 `{name}` 还没证完：`by` 块里还没有内容，先写下第一步")
+            };
             diagnostics.push(Diagnostic {
-                range: range_of(d.span),
+                // 范围指向**第一个洞**（可点可跳），不再是整条声明 ✓。
+                range: hole.map(range_of).unwrap_or_else(|| range_of(d.span)),
                 severity: Some(DiagnosticSeverity::WARNING),
                 code: Some(NumberOrString::String("sorry".to_string())),
                 source: Some("sokonanoda".to_string()),
-                message: format!(
-                    "declaration '{}' uses 'sorry' (exercise not yet solved)",
-                    name
-                ),
+                message,
                 ..Diagnostic::default()
             });
         }

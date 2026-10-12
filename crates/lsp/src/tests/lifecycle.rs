@@ -183,9 +183,48 @@ async fn sorry_produces_warning_not_error() {
         .find(|d| d.code == Some(NumberOrString::String("sorry".to_string())))
         .expect("sorry warning must exist");
     assert_eq!(sorry.severity, Some(DiagnosticSeverity::WARNING));
+    // **D3（2026-10-12）**：文案改中文、range 指向**那个洞**（可点可跳）——
+    // 旧断言是英文 `uses 'sorry'` + 整条声明的 range（探针实测判红）。
     assert!(
-        sorry.message.contains("uses 'sorry'"),
-        "{:?}",
+        sorry.message.contains("\u{8fd8}\u{6ca1}\u{8bc1}\u{5b8c}"),
+        "sorry 警告要中文（与其余诊断一致）：{:?}",
+        sorry.message
+    );
+    assert!(
+        !sorry.message.contains("uses 'sorry'"),
+        "不许再用英文旧文案：{:?}",
+        sorry.message
+    );
+    let hole = lsp_pos(src, offset_of(src, "sorry"));
+    assert_eq!(
+        sorry.range.start, hole,
+        "range 指向那个洞（不是整条声明）：{:?}",
+        sorry.range
+    );
+}
+
+/// **D3 的第二半**：源里**没有** `sorry`（空 `by`）时不许说"用了 sorry" ——
+/// 它是"还没写"，不是"写了 sorry"。
+#[tokio::test]
+async fn an_empty_by_block_does_not_claim_the_declaration_uses_sorry() {
+    let src = "theorem d3b (p : Prop) (hp : p) : p := by\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let diags = wait_diagnostics(&mut socket, "empty by warning").await;
+    let sorry = diags
+        .diagnostics
+        .iter()
+        .find(|d| d.code == Some(NumberOrString::String("sorry".to_string())))
+        .expect("未完成的声明仍然要有警告");
+    assert!(
+        !sorry.message.contains("uses 'sorry'") && !sorry.message.contains("sorry'"),
+        "空 `by` 不许说 uses 'sorry'：{:?}",
+        sorry.message
+    );
+    assert!(
+        sorry.message.contains("\u{8fd8}\u{6ca1}\u{8bc1}\u{5b8c}"),
+        "空 `by` 也要有中文说明：{:?}",
         sorry.message
     );
 }
