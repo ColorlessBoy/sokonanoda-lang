@@ -500,6 +500,69 @@ fn holes_are_addressable_and_stably_identified() {
     assert!(holes.windows(2).all(|w| w[0].start <= w[1].start));
 }
 
+/// **r13（2026-10-12）**：每个洞都要能答出**期望类型** —— 子洞由走查的
+/// `sub_goals` 给，**主洞**（`by … sorry` 那个）用当前目标 `d.goal` 给。
+///
+/// 修之前主洞恒 `ty: null`：实测 unit01 的五个练习全是 `null`，学习者/agent
+/// 问「我这个洞要证什么」时拿不到答案 ✗。判据两条一起：
+/// ① 每个洞都有 `ty`；② 同址的两个子洞**各拿各的类型**（按位置找会拿错/拿同一条
+/// ⇒ 这条就是那个坑的守卫 ✓）。
+#[test]
+fn every_hole_carries_its_expected_type() {
+    let doc = doc(CANVAS);
+    let holes = doc.holes().expect("the canvas parses");
+    assert_eq!(holes.len(), 3, "{holes:?}");
+    for h in &holes {
+        assert!(
+            h.ty.as_deref().is_some_and(|t| !t.is_empty()),
+            "洞 {} 拿不到期望类型：{h:?}",
+            h.id
+        );
+    }
+    // `open_one (a : Prop) : And a a := sorry` —— 主洞的期望类型就是那个目标本身
+    // （`d.goal` 是**显示副本**、已过记法折叠 ⇒ 这里是 `a ∧ a`，与
+    // `query goals` 的 `goal` 逐字同源 ✓）。
+    let open_one = holes
+        .iter()
+        .find(|h| h.id == "open_one:0")
+        .expect("open_one 的洞");
+    assert_eq!(
+        open_one.ty.as_deref(),
+        Some("a ∧ a"),
+        "主洞要拿**当前目标**（不是 null、也不是别的声明）：{open_one:?}"
+    );
+    // `apply And.intro` 的两个子目标洞同址，但类型不同（`a` / `b`）——按位置
+    // 对齐时必须**各拿各的**（这正是"几处同址"那条注释的判据）。
+    let sub: Vec<&str> = holes
+        .iter()
+        .filter(|h| h.id.starts_with("and_swap:"))
+        .filter_map(|h| h.ty.as_deref())
+        .collect();
+    assert_eq!(sub.len(), 2, "{holes:?}");
+    assert_ne!(sub[0], sub[1], "同址的两个子洞类型被写成同一条了：{sub:?}");
+    // ③ **两个 op 形状一致**（r13 的期望原文）：`query goals` 的 `holes[]` 与
+    //    `query holes` 的 `holes[]` 是同一个洞的两种视图 ⇒ `id`/`start`/`end`/
+    //    `redundant`/`ty` 必须**逐项相同**（这里是那条不变量的守卫；两处各算一遍
+    //    的写法会在这里判红 ✓）。
+    let goals = doc.goals(true).expect("the canvas parses");
+    let from_goals: Vec<(String, usize, usize, bool, Option<String>)> = goals
+        .iter()
+        .flat_map(|d| {
+            d.holes
+                .iter()
+                .map(|h| (h.id.clone(), h.start, h.end, h.redundant, h.ty.clone()))
+        })
+        .collect();
+    let from_holes: Vec<(String, usize, usize, bool, Option<String>)> = holes
+        .iter()
+        .map(|h| (h.id.clone(), h.start, h.end, h.redundant, h.ty.clone()))
+        .collect();
+    assert_eq!(
+        from_holes, from_goals,
+        "`query holes` 与 `query goals` 的 holes[] 形状必须逐项相同"
+    );
+}
+
 #[test]
 fn next_hole_walks_forward_and_backward() {
     let doc = doc(CANVAS);

@@ -44,6 +44,15 @@ pub struct HoleInfo {
     /// 依据（保守）。
     #[serde(default)]
     pub redundant: bool,
+    /// **期望类型**（r13，2026-10-12）：与 `query holes` 的 `LocatedHole.ty`
+    /// **同一份真相、同一口径**（子洞取走查的 `sub_goals`，主洞取当前目标
+    /// `goal`；已过记法折叠）。`None` = 无法确定（诚实，不许拿别的文本凑 ✗）。
+    ///
+    /// 为什么两个 op 都要有：`query goals` 的 `holes[]` 与 `query holes` 的
+    /// `holes[]` 是**同一个洞的两种视图**，形状不一致时消费者要写两套映射
+    /// （`docs/protocol.md`：fields are additive only ⇒ 这是**加字段**，不是改形状 ✓）。
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub ty: Option<String>,
 }
 
 /// 构造子 spine 子洞的期望类型（服务端走查；`ty: None` = 走查无法确定）。

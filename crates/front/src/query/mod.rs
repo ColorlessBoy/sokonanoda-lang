@@ -1711,11 +1711,42 @@ impl QueryDoc {
                 d.holes
                     .iter()
                     .enumerate()
-                    .map(|(index, span)| HoleInfo {
-                        start: span.start.offset,
-                        end: span.end.offset,
-                        id: format!("{}:{index}", decl_name(d)),
-                        redundant: hole_is_redundant(span, redundant_spans),
+                    .map(|(index, span)| {
+                        // **与 `query holes` 同一份真相、同一口径**（r13）：子洞取
+                        // 走查的 `sub_goals`（**按下标对齐** —— 同址的多个子目标
+                        // 按位置找会拿错，实测 `["b","b"]` 而正确是 `["b","a"]`），
+                        // 主洞取当前目标 `goal`。两处都过 `display.fold` ✓。
+                        let sub = d
+                            .sub_goals
+                            .get(index)
+                            .filter(|s| s.span.start.offset == span.start.offset
+                                && s.span.end.offset == span.end.offset)
+                            .or_else(|| {
+                                d.sub_goals.iter().find(|s| {
+                                    s.span.start.offset == span.start.offset
+                                        && s.span.end.offset == span.end.offset
+                                })
+                            });
+                        HoleInfo {
+                            start: span.start.offset,
+                            end: span.end.offset,
+                            id: format!("{}:{index}", decl_name(d)),
+                            redundant: hole_is_redundant(span, redundant_spans),
+                            // ② 主洞（`by … sorry` / 值位的 `sorry`）：期望类型就是
+                            //    走查记下的**当前目标**（显示副本）。
+                            //    反向验证逃生门 `SOKO_HOLES_NO_MAIN_GOAL=1` ⇒ 关掉
+                            //    这一半（主洞回到 `ty: null`，r13 探针回到 exit 0）。
+                            ty: sub
+                                .and_then(|s| s.ty.as_deref())
+                                .map(|t| self.display.fold(t))
+                                .or_else(|| {
+                                    if legacy_holes_no_main_goal() {
+                                        None
+                                    } else {
+                                        goal_display.clone()
+                                    }
+                                }),
+                        }
                     })
                     .collect()
             } else {
@@ -1871,9 +1902,22 @@ impl QueryDoc {
     /// 可能有多个子目标，`soko/nextHole` 的按位置导航在那种情形下不可用
     /// （`docs/protocol.md` 的 Known limitation）。
     ///
+    /// **期望类型的两个来源**（r13 / 2026-10-12）：① 构造子 spine 的**子洞**由走查
+    /// （`sub_goals`，与 `holes` 同源同序）给出；② 剩下的**主洞**（`by … sorry`
+    /// 那个）就是**当前目标本身** ⇒ 用 `d.goal`（与 `query goals` 的 `goal`
+    /// 同一个字段、同一份记法折叠 ✓）。修之前只找 ①，主洞恒 `ty: null` ——
+    /// 学习者/agent 问「我这个洞要证什么」时拿不到答案（实测 unit01 的五个练习
+    /// 全是 `null`）✗。
+    ///
+    /// ⚠ `ty: None` 仍然可能（走查算不出、探针也补不出）——那是**诚实**的
+    /// "无法确定"，不许拿别的文本凑 ✗。
+    ///
     /// 解析失败 ⇒ [`QueryError::NotParsable`]（不是"没有洞"）：空数组是**答案**，
     /// 不能让 agent 把不可解析的画布读成"没有剩下的洞"（G-17）。
     pub fn holes(&self) -> Result<Vec<LocatedHole>, QueryError> {
+        // ⚠ **一份真相**：洞的 `id`/`redundant`/`ty` 全部由 [`Self::decl_info`]
+        // 算一次（`query goals` 的 `holes[]` 读的就是它）——这里只做**投影**。
+        // 修之前这里另有一套 `sub_goals` 查找（第二份真相），两处会漂移 ✗。
         let decls = self.goals(true)?;
         let mut out: Vec<LocatedHole> = decls
             .iter()
@@ -1882,14 +1926,8 @@ impl QueryDoc {
                     id: h.id.clone(),
                     start: h.start,
                     end: h.end,
-                    // 子洞按位置对齐期望类型（几处可能同址，故按位置索引找）。
-                    ty: d
-                        .sub_goals
-                        .iter()
-                        .find(|s| s.start == h.start && s.end == h.end)
-                        .and_then(|s| s.ty.clone()),
+                    ty: h.ty.clone(),
                     decl: d.name.clone(),
-                    // 与 `HoleInfo` 同一来源（`goals` 里算好），不重复判定。
                     redundant: h.redundant,
                 })
             })
@@ -2032,6 +2070,13 @@ fn line_col(span: Span) -> (u32, u32, u32, u32) {
         span.end.line as u32,
         span.end.column as u32,
     )
+}
+
+/// **反向验证逃生门**（r13）：`SOKO_HOLES_NO_MAIN_GOAL=1` ⇒ 主洞不给期望类型
+/// （回到改动前的 `ty: null`；`scripts/ux-probes/lang/r13-holes-no-type.sh`
+/// 回到 exit 0）。只给判别性实验用，默认关闭。
+fn legacy_holes_no_main_goal() -> bool {
+    std::env::var_os("SOKO_HOLES_NO_MAIN_GOAL").is_some()
 }
 
 #[cfg(test)]
