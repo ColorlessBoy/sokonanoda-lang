@@ -134,12 +134,70 @@ function gradeAll(file) {
 //   `@click:<selector>` 点元素 · `@slow:<文本>` 逐字符 150ms（量诊断延迟用）
 // probes（每条 case 末尾多读的几项）：status / problems / infoview / suggest /
 //   quickfix / notifications / markers / lncol / hover
+// ── 画布锚点：**按内容/声明名定位**（2026-10-12）────────────────────────────
+//
+// ⚠ **为什么不再写死行号**：画布 `5c6eeff8` 被重写（旧版 ~103 行 ⇒ 现在 93 行、
+// 没有任何 `def`），一批用例的锚点还写着**旧行号** 92 / 103 / 82 / 35 ⇒
+//   · 92：旧版是练习 5 的 `sorry`，现在**还是** 93 行画布里的练习 6 的 `sorry`
+//     —— 同一个数字落到了**另一道题**上（读数看着像真的，其实换了题 ✗）；
+//   · 103：新画布**根本没有这一行**（`<ctrl+g>` 跳不过去）⇒ 用例静默跑到别处；
+//   · 82 / 35：旧版是练习 4 的证明体 / `set_option pp.explicit`，新版都不是。
+// ⇒ 一律改成**按声明名找洞**（`holeLine('mem_of_subset_singleton')`）：画布再改
+// 行号也不会漂，找不到就**抛错**（`judge` 把抛错判成用例异常，绝不静默假绿 ✓）。
+//
+// 口径与 `lsp-probe.mjs` 的 `codePos` 同族：**跳过注释行**（`--` 开头）——
+// 画布的 `soko:hint` 注释里也会出现 `sorry` 之类的词。
+const CANVAS_REL = join("units", "I.1", "unit01-sets-membership.sokonanoda");
+const CANVAS_SRC = join(REPO, "courses", "set-theory", CANVAS_REL);
+
+/** 画布正文行（1-based）数组；读**仓库真源**（不是镜像工作区，避免旧镜像）。 */
+function canvasLines() {
+  return readFileSync(CANVAS_SRC, "utf8").replace(/\n$/, "").split("\n");
+}
+
+/** 声明 `name` 的 `sorry` 行号（1-based，**跳过注释行**）。找不到就抛错。 */
+function holeLine(name) {
+  const lines = canvasLines();
+  const at = lines.findIndex((l) => !l.trimStart().startsWith("--") && l.includes(`theorem ${name}`));
+  if (at < 0) throw new Error(`画布里找不到声明 ${name}（锚点失效）`);
+  const rel = lines.slice(at).findIndex((l) => !l.trimStart().startsWith("--") && /\bsorry\b/.test(l));
+  if (rel < 0) throw new Error(`声明 ${name} 里找不到 sorry（锚点失效）`);
+  return at + rel + 1;
+}
+
+/** 画布上第一处含 `needle` 的**非注释**行号（1-based）。找不到就抛错。 */
+function canvasLineOf(needle) {
+  const at = canvasLines().findIndex((l) => !l.trimStart().startsWith("--") && l.includes(needle));
+  if (at < 0) throw new Error(`画布里找不到 ${JSON.stringify(needle)}（锚点失效）`);
+  return at + 1;
+}
+
+/** 画布上**最后一个**非注释行号（用于 `prevhole` 的"从文件尾往前跳"）。 */
+function lastCodeLine() {
+  const lines = canvasLines();
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    if (!lines[i].trimStart().startsWith("--") && lines[i].trim() !== "") return i + 1;
+  }
+  throw new Error("画布里找不到任何代码行");
+}
+
+// 命名锚点：**一处定义、多处引用** —— 行号只在 `holeLine` 里算一次。
+const HOLE_EX1 = holeLine("mem_of_subset");
+const HOLE_EX3 = holeLine("mem_of_subset_singleton");
+const HOLE_EX4 = holeLine("subset_of_mem_singleton");
+const HOLE_EX5 = holeLine("singleton_subset_iff");
+const HOLE_EX6 = holeLine("singleton_eq_singleton_iff");
+const LINE_LAST = lastCodeLine();
+// `demo_subset_def` 的证明体那一行（多步证明的"中段"锚点，替代旧画布练习 4 的 `unfold` 行）
+const MID_PROOF = canvasLineOf("exact Set.subset_def α A B");
+log(`画布锚点：ex1=${HOLE_EX1} ex3=${HOLE_EX3} ex4=${HOLE_EX4} ex5=${HOLE_EX5} ex6=${HOLE_EX6} last=${LINE_LAST}`);
+
 const CASES = [
   // ═══ A. 目标 / 信息视图 ═══════════════════════════════════════════════════
-  { id: "goal-on-sorry", note: "**洞上的目标视图**：打开 unit01、光标停在练习5 的 `sorry` 上 ⇒ Infoview 该显示什么（记法/隐式实参/⊢ 行）",
+  { id: "goal-on-sorry", note: "**洞上的目标视图**：打开 unit01、光标停在练习6 的 `sorry` 上 ⇒ Infoview 该显示什么（记法/隐式实参/⊢ 行）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@infoview", "@snap:infoview@open", "@click:.monaco-editor", "<ctrl+g>", "92", "<CR>", "@wait:2500", "@snap:on-sorry", "@shot:on-sorry", "@grade"],
+    steps: ["@wait:2500", "@infoview", "@snap:infoview@open", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "@wait:2500", "@snap:on-sorry", "@shot:on-sorry", "@grade"],
     probes: ["infoview", "status", "markers", "lncol"] },
 
   { id: "goal-after-apply", note: "**`apply` 之后的目标与假设**：练习5 里写 `apply` 到一半 ⇒ 目标被换成什么、假设列有没有 h",
@@ -156,16 +214,16 @@ const CASES = [
       "intro x hx", "@wait:3000", "@snap:after-intro", "@shot:after-intro", "@grade"],
     probes: ["infoview", "status", "markers"] },
 
-  { id: "goal-mid-proof", note: "练习4 已证完的 tactic 序列中段（`unfold` 之后）⇒ 目标/假设怎么渲染（对照 CLI query state）",
+  { id: "goal-mid-proof", note: "**演示题的证明体中段**（`demo_subset_def` 的 `exact Set.subset_def α A B`）⇒ 目标/假设怎么渲染（对照 CLI query state）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@infoview", "@click:.monaco-editor", "<ctrl+g>", "82", "<CR>", "@wait:2500", "@snap:mid-proof", "@grade"],
+    steps: ["@wait:2500", "@infoview", "@click:.monaco-editor", "<ctrl+g>", String(MID_PROOF), "<CR>", "@wait:2500", "@snap:mid-proof", "@grade"],
     probes: ["infoview", "status", "markers"] },
 
-  { id: "hints-visibility", note: "**soko:hint 在编辑器里怎么看**：有没有任何 UI 呈现 4 条 hint（命令 `sokonanoda.revealHint` 存在 ⇒ 手动跑一次）",
+  { id: "hints-visibility", note: "**soko:hint 在编辑器里怎么看**：有没有任何 UI 呈现练习 6 的 3 条 hint（命令 `sokonanoda.revealHint` 存在 ⇒ 手动跑一次）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", "92", "<CR>", "@snap:before-hint",
+    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "@snap:before-hint",
       "@cmd:Sokonanoda: Reveal Hint", "@wait:1200", "@snap:after-hint-cmd"],
     probes: ["status", "notifications", "infoview", "markers"] },
 
@@ -178,33 +236,34 @@ const CASES = [
     probes: ["status", "lncol", "markers", "notifications"],
     check: (r) => { const got = r.snaps.map((x) => x.cursor_line).join(">");
       const tail = got.split(">").slice(-4).join(">");
-      return { ok: tail === "92>103>92>92", why: `alt+n 之后 cursor 轨迹 = ${tail}（期望 92>103>92>92 = 两洞 + 回到第一个洞）` }; } },
+      const want = `${HOLE_EX5}>${HOLE_EX6}>${HOLE_EX5}>${HOLE_EX5}`;
+      return { ok: tail === want, why: `alt+n 之后 cursor 轨迹 = ${tail}（期望 ${want} = 两洞 + 回到第一个洞）` }; } },
 
   { id: "prevhole", note: "**alt+shift+n**（previousHole）从文件尾往前跳：与 alt+n 对称吗",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", "103", "<CR>", "@snap:at-end",
+    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", String(LINE_LAST), "<CR>", "@snap:at-end",
       "<alt+shift+n>", "@wait:800", "@snap:alt-shift-n-1", "<alt+shift+n>", "@wait:800", "@snap:alt-shift-n-2", "@shot:prevhole"],
     probes: ["status", "lncol", "markers", "notifications"] },
 
   { id: "hole-lightbulb", note: "**灯泡 / quick-fix**：`sorry` 上按 `<M-.>` ⇒ 有没有候选（能不能一键插入并过判卷）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", "92", "<CR>", "@snap:on-sorry",
+    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "@snap:on-sorry",
       "<cmd+.>", "@wait:1500", "@snap:quickfix-open", "@shot:quickfix"],
     probes: ["quickfix", "status", "markers", "notifications"] },
 
-  { id: "hole-after-fill", note: "**洞填完的反馈**：把练习5 填成 `constructor` 之后 —— 有没有「这题过了」的可见信号（状态栏/Infoview/通知）",
+  { id: "hole-after-fill", note: "**洞填完的反馈**：把练习6 填成 `constructor` 之后 —— 有没有「这题过了」的可见信号（状态栏/Infoview/通知）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@infoview", "@click:.monaco-editor", "<ctrl+g>", "92", "<CR>", "<End>", "<BS>", "<BS>", "<BS>", "<BS>", "<BS>", "constructor", "@wait:3000", "@snap:after-constructor", "@shot:after-constructor", "@grade"],
+    steps: ["@wait:2500", "@infoview", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "<End>", "<BS>", "<BS>", "<BS>", "<BS>", "<BS>", "constructor", "@wait:3000", "@snap:after-constructor", "@shot:after-constructor", "@grade"],
     probes: ["infoview", "status", "markers", "notifications"] },
 
-  { id: "all-sorry-filled", note: "**两个洞都填完**（练习5 `constructor` + 练习6 的骨架）后：状态栏 / Infoview 有没有「全过」信号",
+  { id: "all-sorry-filled", note: "**两个洞都填完**（练习5 与练习6 都填 `constructor`）后：状态栏 / Infoview 有没有「全过」信号",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@infoview", "@click:.monaco-editor", "<ctrl+g>", "92", "<CR>", "<End>", "<BS>", "<BS>", "<BS>", "<BS>", "<BS>", "constructor",
-      "@wait:2500", "<ctrl+g>", "103", "<CR>", "<End>", "<BS>", "<BS>", "<BS>", "<BS>", "<BS>", "constructor", "@wait:3000", "@snap:both-filled", "@shot:both-filled", "@grade"],
+    steps: ["@wait:2500", "@infoview", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "<End>", "<BS>", "<BS>", "<BS>", "<BS>", "<BS>", "constructor",
+      "@wait:2500", "<ctrl+g>", String(HOLE_EX5), "<CR>", "<End>", "<BS>", "<BS>", "<BS>", "<BS>", "<BS>", "constructor", "@wait:3000", "@snap:both-filled", "@shot:both-filled", "@grade"],
     probes: ["infoview", "status", "markers", "notifications"] },
 
   // ═══ C. 补全 ═════════════════════════════════════════════════════════════
@@ -279,7 +338,7 @@ const CASES = [
   { id: "cmd-statusbar", note: "**alt+s**（Show Exercise Status）在洞上给什么：状态栏/通知里有没有「还差什么」",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", "92", "<CR>", "@snap:before", "<alt+s>", "@wait:1500", "@snap:after-alt-s", "@shot:alt-s"],
+    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "@snap:before", "<alt+s>", "@wait:1500", "@snap:after-alt-s", "@shot:alt-s"],
     probes: ["status", "notifications", "infoview"] },
 
   { id: "cmd-build", note: "**alt+b（Build）**：从零开始第一次按下去 —— 多久、给什么反馈（进度/通知）",
@@ -319,7 +378,7 @@ const CASES = [
   { id: "perf-save-reload", note: "**保存**：`<C-s>` 之后磁盘字节与 DOM 一致（有没有「保存了但判卷看不到」）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", "92", "<CR>", "<End>", "<BS>", "<BS>", "<BS>", "<BS>", "<BS>", "exact h", "@wait:1500", "<cmd+s>", "@wait:1500", "@snap:after-save", "@grade"],
+    steps: ["@wait:2500", "@click:.monaco-editor", "<ctrl+g>", String(HOLE_EX6), "<CR>", "<End>", "<BS>", "<BS>", "<BS>", "<BS>", "<BS>", "exact h", "@wait:1500", "<cmd+s>", "@wait:1500", "@snap:after-save", "@grade"],
     probes: ["status", "markers", "notifications"] },
 
   // ═══ G. vim 模式（只登记**新的**、与已知三条不同的现象）═══════════════════
@@ -357,11 +416,11 @@ const CASES = [
       "<alt+s>", "@wait:1200", "@snap:alt-s", "<alt+n>", "@wait:1200", "@snap:alt-n", "@shot:alt-n"],
     probes: ["status", "notifications"] },
 
-  { id: "caret-line-check", note: "**探针自检**：`<ctrl+g>` 92 之后光标行/可见行/状态栏三个读数是否一致（读数不可信就别下结论）",
+  { id: "caret-line-check", note: "**探针自检**：`<ctrl+g>` 跳到练习 6 的 `sorry` 之后，光标行/可见行/状态栏三个读数是否一致（读数不可信就别下结论）",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
-    steps: ["@wait:2500", "@click:.monaco-editor", "@snap:before", "<ctrl+g>", "92", "<CR>", "@wait:1500",
-      "@snap:at-92", "@shot:at-92", "<ctrl+g>", "5", "<CR>", "@wait:1000", "@snap:at-5"],
+    steps: ["@wait:2500", "@click:.monaco-editor", "@snap:before", "<ctrl+g>", String(HOLE_EX6), "<CR>", "@wait:1500",
+      "@snap:at-hole", "@shot:at-hole", "<ctrl+g>", "5", "<CR>", "@wait:1000", "@snap:at-5"],
     probes: ["status", "lncol"] },
 
   { id: "completion-palette", note: "**决定性对照**：绕开 macOS 的 ⌃Space 抢键，走命令面板 `Trigger Suggest` —— 分清「触发不了」与「弹窗坏了」",
@@ -374,7 +433,7 @@ const CASES = [
     check: (r) => { const s = r.snaps.at(-1).suggest;
       return { ok: !!(s && s.visible && s.count > 0), why: `suggest=${JSON.stringify(s).slice(0, 220)}` }; } },
 
-  { id: "problems-jump-sorry", note: "**Problems 里 `sorry` 警告点下去跳到哪**：警告行写 Ln 90、洞在 Ln 92 —— 跳错地方就是导航坑",
+  { id: "problems-jump-sorry", note: "**Problems 里 `sorry` 警告点下去跳到哪**：警告的行号与洞的实际行号（按声明名算）是否一致 —— 跳错地方就是导航坑",
     file: "units/I.1/unit01-sets-membership.sokonanoda",
     initialFrom: "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
     steps: ["@wait:2500", "@problems", "@wait:1800", "@snap:panel",
@@ -997,6 +1056,8 @@ function ensureWorkspace() {
   }
   log(`工作区自举：${WS}（从 courses/set-theory/ 镜像）`);
 }
+
+
 
 function launch(profile, file) {
   const errLog = join(profile, "vscode-stderr.log");
