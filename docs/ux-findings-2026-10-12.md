@@ -1,8 +1,7 @@
 # 初学者体验缺口台账（2026-10-12）
 
-四条探针线（语言/反馈 · LSP 服务面 · 真 VS Code 全流程 · vim）的**可执行索引**：每条缺口一行，
-带复现命令、归属与复核状态。探针已入库 **`scripts/ux-probes/`**（原先只在 gitignore 的
-`.cache/ux/**` ⇒ clone 就没了 ✗）；本文件是它们的**唯一索引**。
+四条探针线（语言/反馈 · LSP 服务面 · 真 VS Code 全流程 · vim）的**可执行索引**：每条缺口一行，带复现命令、
+归属与复核状态。探针已入库 **`scripts/ux-probes/`**（原先只在 gitignore 的 `.cache/ux/**` ⇒ clone 就没了 ✗）。
 
 ## 1. 构建身份与读数来源（跨轮比较前先读这一节）
 
@@ -19,10 +18,12 @@
 | 本次汇总复跑 | 语言 **25/25 跑过**（23 条 `r*.sh` + 新增 `m03`/`m07`）· LSP **26/26 跑过**（22 缺口 + 4 对照全绿）· 编辑器/vim **未复跑**（需真 VS Code，见 §6.6） |
 | 复跑二进制 | `target/debug/sokonanoda` 2026-10-12 08:39 · sha256 前 16 = **`aa7d77b36f7ce818`**（含 C 线在途改动；VERDICT 用的是 07:47 的 release ⇒ 差异见 §6.2） |
 
-**怎么读复现列**（一律从仓库根执行；脚本抬头各自写明判据）：
-`lang/*.sh`：**exit 0 = 缺口仍在** · 1 = 已不复现。`*-probe.mjs --case <id>`：**exit 1 = 缺口仍在**
-（0 = 观测与用例期望的好行为一致 · 2 = 用法 · 3 = 前置缺失）。`vim-probe.mjs --pair <id>`：
-**exit 0 = 「无 vim 绿 + 有 vim 红」成立**（= 冲突是 vim 特有）。编辑器/vim 需要真 VS Code。
+**处置在哪**：本文件**只做索引**；每条 id 的**处置**（`fix`/`fixed`/`scheduled`/`wo-filed`/`boundary`/`control`）与**当前读数**在
+**`docs/ux-queue-extras.jsonl`** ⇒ 队列由 `python3 scripts/ux-queue.py --json` 统一算（**唯一入口** = `docs/ONBOARDING.md` §0.2）。
+
+**怎么读复现列**（一律从仓库根执行；脚本抬头各自写明判据）：`lang/*.sh`：**exit 0 = 缺口仍在** · 1 = 已不复现。
+`*-probe.mjs --case <id>`：**exit 1 = 缺口仍在**（0 = 与用例期望的好行为一致 · 2 = 用法 · 3 = 前置缺失）。
+`vim-probe.mjs --pair <id>`：**exit 0 = 「无 vim 绿 + 有 vim 红」成立**（= 冲突是 vim 特有）。编辑器/vim 需要真 VS Code。
 
 ## 2. 🔴 blocker / high
 

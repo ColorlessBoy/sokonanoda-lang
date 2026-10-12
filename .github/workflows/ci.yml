@@ -706,6 +706,14 @@ jobs:
         run: |
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" check --shard ${{ matrix.shard }}/3
+          # **队列门禁**（2026-10-12 用户：「不能全依赖大模型运作，而是同时依靠脚本」）：
+          # `ux-queue.py --check` = 覆盖自检（来源逐条在队列里 · 探针都有登记 · §0.2 摘要与
+          # 队列**同数**）+ 调度器不变量（收口有证据 · umbrella 子任务全关 · 两层不漂移）。
+          # 秒级且不分片 ⇒ 只在 shard 1 跑一次 ✓；脱钩必须当场判红 ✗。
+          if [ "${{ matrix.shard }}" = "1" ]; then
+            python3 "$GITHUB_WORKSPACE/scripts/ux-queue.py" --selftest
+            python3 "$GITHUB_WORKSPACE/scripts/ux-queue.py" --check
+          fi
 
   fast-fail:
     # **首个失败就掐掉整轮**（2026-09-25 用户要求 ✓，第 ② 条 ✓）
