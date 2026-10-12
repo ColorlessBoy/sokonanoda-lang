@@ -119,3 +119,15 @@
 {"ts": "2026-10-12T15:51:29+00:00", "event": "advance", "id": "r19", "to": "done", "commit": "b2d99277", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T15:51:30+00:00", "event": "claim", "id": "SUB-duplicate-found-msg", "owner": "orchestrator", "resources": ["crates/front"]}
 {"ts": "2026-10-12T15:51:30+00:00", "event": "advance", "id": "SUB-duplicate-found-msg", "to": "done", "commit": "e386c028", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T16:26:48+00:00", "event": "claim", "id": "r10", "owner": "orchestrator", "resources": ["scripts/ux-probes"]}
+{"ts": "2026-10-12T16:26:49+00:00", "event": "advance", "id": "r10", "to": "done", "commit": "d9248b73", "reading": "bash scripts/ux-probes/lang/r10-*.sh ⇒ exit 1（锚点按声明名/内容修好后，编排者独立复跑）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T16:26:49+00:00", "event": "claim", "id": "r11", "owner": "orchestrator", "resources": ["scripts/ux-probes"]}
+{"ts": "2026-10-12T16:26:49+00:00", "event": "advance", "id": "r11", "to": "done", "commit": "d9248b73", "reading": "bash scripts/ux-probes/lang/r11-*.sh ⇒ exit 1（锚点按声明名/内容修好后，编排者独立复跑）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T16:27:01+00:00", "event": "claim", "id": "H2", "owner": "orchestrator", "resources": ["scripts/ux-probes"]}
+{"ts": "2026-10-12T16:27:01+00:00", "event": "advance", "id": "H2", "to": "done", "commit": "84765de4", "reading": "lsp-probe --case H2 ⇒ exit 2 → 0（锚点按内容/声明名重定后；编排者独立复跑）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T16:27:01+00:00", "event": "claim", "id": "H3", "owner": "orchestrator", "resources": ["scripts/ux-probes"]}
+{"ts": "2026-10-12T16:27:01+00:00", "event": "advance", "id": "H3", "to": "done", "commit": "84765de4", "reading": "lsp-probe --case H3 ⇒ exit 2 → 0（锚点按内容/声明名重定后；编排者独立复跑）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T16:27:02+00:00", "event": "claim", "id": "N1", "owner": "orchestrator", "resources": ["scripts/ux-probes"]}
+{"ts": "2026-10-12T16:27:02+00:00", "event": "advance", "id": "N1", "to": "done", "commit": "84765de4", "reading": "lsp-probe --case N1 ⇒ exit 2 → 0（锚点按内容/声明名重定后；编排者独立复跑）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T16:27:02+00:00", "event": "claim", "id": "C3", "owner": "orchestrator", "resources": ["scripts/ux-probes"]}
+{"ts": "2026-10-12T16:27:02+00:00", "event": "advance", "id": "C3", "to": "done", "commit": "84765de4", "reading": "lsp-probe --case C3 ⇒ exit 2 → 0（锚点按内容/声明名重定后；编排者独立复跑）", "reason": null, "owner": "orchestrator"}
