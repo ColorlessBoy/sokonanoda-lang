@@ -189,3 +189,4 @@
 {"ts": "2026-10-12T21:53:52+00:00", "event": "advance", "id": "r22", "to": "done", "commit": "7b8df6bd", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T21:53:52+00:00", "event": "claim", "id": "M-03…M-06", "owner": "orchestrator", "resources": ["crates/front"]}
 {"ts": "2026-10-12T21:53:52+00:00", "event": "advance", "id": "M-03…M-06", "to": "done", "commit": "689b5a87", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T21:57:31+00:00", "event": "split", "id": "F12b2-front-intro-notation", "parent": "F12", "title": "front 侧：项位的闭包记法箭头目标仍 0 条候选（intro_count 记法盲）", "owner": "penglingwei@penglingweis-Laptop"}
