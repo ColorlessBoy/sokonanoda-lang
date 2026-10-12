@@ -157,3 +157,10 @@
 {"ts": "2026-10-12T17:58:36+00:00", "event": "advance", "id": "F17", "to": "done", "commit": "e56e0c75", "reading": "见 extras 的 observed（判据命令 + 改前改后 + 反向验证）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T18:12:13+00:00", "event": "claim", "id": "SUB-dev-verify-managed-env", "owner": "orchestrator", "resources": ["scripts"]}
 {"ts": "2026-10-12T18:12:14+00:00", "event": "advance", "id": "SUB-dev-verify-managed-env", "to": "done", "commit": "aab657da", "reading": "受管环境 exit 2→0（冷 passes=13 ⇒ 改一行 passes=3）；无 repo-build 时仍 exit 2 且不静默用缓存（要求 source=repo-build）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T18:38:32+00:00", "event": "release", "id": "G-112", "owner": "FRONT-G", "reason": "frontG 早已收工（3 commit 落地并验证）⇒ 归还槽位与 crates/front"}
+{"ts": "2026-10-12T18:40:18+00:00", "event": "claim", "id": "F12", "owner": "LSP-D", "resources": ["crates/lsp"]}
+{"ts": "2026-10-12T18:40:18+00:00", "event": "claim", "id": "F3", "owner": "FRONT-D", "resources": ["crates/front"]}
+{"ts": "2026-10-12T18:44:22+00:00", "event": "claim", "id": "SUB-probe-vscode-isolation", "owner": "orchestrator", "resources": ["scripts"]}
+{"ts": "2026-10-12T18:44:22+00:00", "event": "advance", "id": "SUB-probe-vscode-isolation", "to": "done", "commit": "b2355af1", "reading": "四探针加 --disable-extensions（被测扩展仍加载：prevhole 正常出判定、零激活失败）· 陈旧 profile 开工回收（实测删掉）· 存量 640MB/31 个已清", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T18:44:32+00:00", "event": "claim", "id": "H4", "owner": "orchestrator", "resources": ["scripts/ux-probes"]}
+{"ts": "2026-10-12T18:44:45+00:00", "event": "advance", "id": "H4", "to": "done", "commit": "84765de4", "reading": "lsp-probe --case H4-notation-hover-slice ⇒ exit 0；反向 SOKO_NO_HOVER_SLICE_BALANCE=1 ⇒ exit 1（判据咬得住）", "reason": null, "owner": "orchestrator"}
