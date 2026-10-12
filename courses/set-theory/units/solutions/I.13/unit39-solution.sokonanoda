@@ -36,7 +36,7 @@ theorem relImg_mono (α β : Type) (r : Rel α β) (A B : Set α) (h : A ⊆ B) 
     Exists.elim α (fun (a : α) => A a ∧ r a b)
       (∃ (a : α), B a ∧ r a b) hb
       (fun (a : α) (ha : A a ∧ r a b) =>
-        Exists.intro α (fun (a1 : α) => B a1 ∧ r a1 b) a
+        Exists.intro a
           (And.intro (B a) (r a b)
             ((fun (hu : ∀ (x : α), A x → B x) => hu a (And.left ha)) h) (And.right ha)))
 
@@ -60,7 +60,7 @@ theorem relImg_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : S
         (fun (b : β) (hb : r a b ∧ s b c) =>
           Exists.intro β (fun (b1 : β) => (relImg α β r A) b1 ∧ s b1 c) b
             (And.intro ((relImg α β r A) b) (s b c)
-              (Exists.intro α (fun (a1 : α) => A a1 ∧ r a1 b) a
+              (Exists.intro a
                 (And.intro (And.left ha) (And.left hb)))
               (And.right hb))))
 
@@ -72,7 +72,7 @@ theorem relImg_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : S
       Exists.elim α (fun (a : α) => A a ∧ r a b)
         (∃ (a : α), A a ∧ (r • s) a c) (And.left hb)
         (fun (a : α) (ha : A a ∧ r a b) =>
-          Exists.intro α (fun (a1 : α) => A a1 ∧ (r • s) a1 c) a
+          Exists.intro a
             (And.intro (A a) ((r • s) a c) (And.left ha)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
               (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
                 (And.intro (And.right ha) (And.right hb))))))
@@ -128,7 +128,7 @@ theorem relImg_idRel (α : Type) (A : Set α) :
             rel_subst_right α (fun (u : α) (v : α) => A v) b a b
               (And.right ha) (And.left ha)))
       (fun (h : A b) =>
-        Exists.intro α (fun (a : α) => A a ∧ (idRel α) a b) b
+        Exists.intro b
           (And.intro (A b) ((idRel α) b b) h (Eq.refl.{1} α b))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
 
 theorem kernel_is_equivalence (α β : Type) (f : α → β) :
@@ -156,12 +156,12 @@ theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
     (fun (h : b ∈ (relImg α β r (Set.univ α))) =>
       Exists.elim α (fun (a : α) => (Set.univ α) a ∧ r a b) (∃ (a1 : α), r a1 b) h
         (fun (a : α) (ha : (Set.univ α) a ∧ r a b) =>
-          Exists.intro α (fun (a1 : α) => r a1 b) a (And.right ha)))
+          Exists.intro a (And.right ha)))
     (fun (h : ∃ (a : α), r a b) =>
       Exists.elim α (fun (a : α) => r a b)
         (b ∈ (relImg α β r (Set.univ α))) h
         (fun (a : α) (ha : r a b) =>
-          Exists.intro α (fun (a1 : α) => (Set.univ α) a1 ∧ r a1 b) a
+          Exists.intro a
             (And.intro ((Set.univ α) a) (r a b)
               ((fun (hu : ∀ (x : α), (Set.univ α) x) => hu a) (Set.mem_univ α)) ha)))
 
@@ -172,7 +172,7 @@ theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)
     Exists.elim α (fun (a : α) => A a ∧ r a b)
       (∃ (a : α), A a ∧ r1 a b) hb
       (fun (a : α) (ha : A a ∧ r a b) =>
-        Exists.intro α (fun (a1 : α) => A a1 ∧ r1 a1 b) a
+        Exists.intro a
           (And.intro (And.left ha) (h a b (And.right ha))))
 
 theorem relImg_empty (α β : Type) (r : Rel α β) (b : β) :

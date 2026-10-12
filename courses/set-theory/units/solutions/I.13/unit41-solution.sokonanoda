@@ -13,7 +13,7 @@ theorem demo_hasMin_def (α : Type) (r : Rel α α) (P : α → Prop) :
 
 theorem demo_wf_empty_hasMin (α : Type) (P : α → Prop) (x : α) (hx : P x) :
     HasMin α (fun (_ : α) (_ : α) => False) P :=
-  Exists.intro α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ False) x
+  Exists.intro x
     (And.intro (P x) (∀ (y : α), P y → ¬ False) hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
       (fun (y : α) => fun (hy : P y) => fun (hf : False) => hf))
 
@@ -59,7 +59,7 @@ theorem wf_of_subrel (α : Type) (r r1 : Rel α α) (hwf : IsWellFounded α r)
         (∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r1 y m))
         (hasMin_elim α r P hm)
         (fun (m : α) (hmm : P m ∧ ∀ (y : α), P y → ¬ (r y m)) =>
-          Exists.intro α (fun (m1 : α) => P m1 ∧ ∀ (y : α), P y → ¬ (r1 y m1)) m
+          Exists.intro m
             (And.intro (P m) (∀ (y : α), P y → ¬ (r1 y m)) (And.left hmm)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
               (fun (y : α) => fun (hy : P y) => fun (hy1 : r1 y m) =>
                 (fun (hnot : ¬ (r y m)) => hnot (hsub y m hy1))
@@ -76,7 +76,7 @@ theorem wf_empty (α : Type) : IsWellFounded α (fun (_ : α) (_ : α) => False)
   fun (P : α → Prop) => fun (hne : ∃ (x : α), P x) =>
     Exists.elim α P (∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ False) hne
       (fun (x : α) (hx : P x) =>
-        Exists.intro α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ False) x
+        Exists.intro x
           (And.intro (P x) (∀ (y : α), P y → ¬ False) hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
             (fun (y : α) => fun (hy : P y) => fun (hf : False) => hf)))
 
