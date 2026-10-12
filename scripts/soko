@@ -631,8 +631,15 @@ function buildIdentity(base) {
     for (const ent of entries) {
       if (ent.name === 'target' || ent.name === '.git' || ent.name === '.worktrees') continue
       const full = path.join(dir, ent.name)
-      if (ent.isDirectory()) walk(full)
-      else if (ent.name.endsWith('.rs')) consider(full)
+      if (ent.isDirectory()) {
+        // ⚠ **只算会编进二进制的源**（2026-10-12 修假 stale 实测）：`crates/*/tests/**`
+        // 与 `src/**/tests.rs` **不参与 release 二进制**，可它们改了照样把
+        // `source_newest` 推后 ⇒ `build.stale = true` **假报**（实测：只改了一句注释的
+        // `crates/cli/tests/notation.rs` ⇒ 整个仓库报"二进制陈旧" ✗，而它根本不影响产物）
+        // ⇒ 假信号比没信号更坏（会让人去重建、或反过来不再信这个字段 ✗）。
+        if (ent.name === 'tests') continue
+        walk(full)
+      } else if (ent.name.endsWith('.rs') && ent.name !== 'tests.rs') consider(full)
     }
   }
   walk(path.join(REPO, 'crates'))
