@@ -3699,8 +3699,10 @@ impl LanguageServer for Backend {
             params.range.start,
             // 项目模式下把闭包前缀交给 suggest：入口里对导入名字也有 quick-fix。
             &|offset| doc.query().judge_prefix(offset),
-            // 记法头读取器：`a ∈ A` / `A ⊆ B` 这类**课程库**符号不在内建表里
-            // ⇒ 解析要把闭包记法表一起喂进去（表在 `ProjectReport` 上）。
+            // 目标形状读取器（F12b）：`a ∈ A` / `A ⊆ B` 这类**课程库**符号不在
+            // 内建表里 ⇒ 解析要把闭包记法表一起喂进去（表在 `ProjectReport` 上）。
+            // 一次解析同时给出**箭头层数**与**记法头** —— 形状只有一处实现 ✓
+            // （只给记法头时，`a ∈ A → a ∈ B` 的箭头会被剥掉 ⇒ 灯泡 0 条）。
             &|ty: &str| {
                 let notations = doc
                     .query()
@@ -3708,7 +3710,7 @@ impl LanguageServer for Backend {
                     .map(|project| project.notations.as_slice())
                     .unwrap_or(&[]);
                 let expr = sokonanoda_front::proof::parse_expr_text_with(ty, notations).ok()?;
-                actions::notation_head_operand(&expr, ty)
+                Some(actions::goal_shape(&expr, ty))
             },
         ))
     }
