@@ -385,6 +385,12 @@
       "renewed": "2026-09-30",
       "tier": "spec"
     },
+    "docs/ux-findings-2026-10-12.md": {
+      "expires": "2026-11-12",
+      "renewed": "2026-10-12",
+      "tier": "process",
+      "reason": "UX 探针与缺口台账：四条探针线的可执行索引（process 档，缺口修完即按三选一处置）"
+    },
     "docs/visible-changes.md": {
       "expires": "2027-09-30",
       "reason": "批次 N 收尾的验收索引：用户可见变化 ↔ 断言名，长期有效",
