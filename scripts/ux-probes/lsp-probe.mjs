@@ -249,7 +249,16 @@ function codePos(hay, needle, nth = 1) {
   let seen = 0;
   for (;;) {
     const idx = hay.indexOf(needle, from);
-    if (idx < 0) throw new Error(`夹具里找不到 ${JSON.stringify(needle)}#${nth}`);
+    if (idx < 0) {
+      // ⚠ **判据不可用 ≠ 缺口仍在**（2026-10-12 独立复核 + LSP-B 双双实测）：
+      // 画布在 `5c6eeff8` 被重写后，一批用例的锚点（行号/needle）**在画布上不存在**了
+      // ⇒ `codePos` 抛错 ⇒ 旧代码把它记成「不一致（缺口仍在）」✗ —— 于是
+      // **判据坏掉被读成产品有缺口**（H2/H3/N1/C3 实测全是这个形状）。
+      // ⇒ 打上 `fixture` 标签，让上层判成 **exit 2 = 无法判定**（不是缺口）✓。
+      const e = new Error(`夹具里找不到 ${JSON.stringify(needle)}#${nth}`);
+      e.fixture = true;
+      throw e;
+    }
     const lineStart = hay.lastIndexOf('\n', idx) + 1;
     const line = hay.slice(lineStart, hay.indexOf('\n', idx));
     if (!line.trimStart().startsWith('--')) {
@@ -1172,7 +1181,14 @@ async function main() {
       ]);
       result = { ...r, error: null };
     } catch (error) {
-      result = { ok: false, observed: null, evidence: `用例抛错：${error.message}`, error: error.message };
+      result = {
+        ok: false,
+        observed: null,
+        evidence: `用例抛错：${error.message}`,
+        error: error.message,
+        // 夹具/锚点问题 ⇒ **判据不可用**（不是"缺口仍在"）⇒ 上层走 exit 2 ✓
+        unusable: Boolean(error && error.fixture),
+      };
     }
     results.push({
       id: spec.id,
@@ -1181,6 +1197,7 @@ async function main() {
       blocker: Boolean(spec.blocker),
       expect: spec.expect,
       ok: result.ok,
+      unusable: Boolean(result.unusable),
       observed: result.observed,
       evidence: result.evidence,
       ms: Date.now() - started,
@@ -1188,14 +1205,20 @@ async function main() {
   }
   lsp.stop();
 
-  const gaps = results.filter((r) => !r.ok);
+  const unusable = results.filter((r) => r.unusable);
+  const gaps = results.filter((r) => !r.ok && !r.unusable);
   if (opts.json) {
     process.stdout.write(
       JSON.stringify(
         {
           tool: 'soko-lsp-ux-probe',
           build: { head, 'soko/version': build, exe: opts.exe || `node scripts/soko lsp` },
-          summary: { total: results.length, consistent: results.length - gaps.length, inconsistent: gaps.length },
+          summary: {
+            total: results.length,
+            consistent: results.filter((r) => r.ok).length,
+            inconsistent: gaps.length,
+            unusable: unusable.length,
+          },
           cases: results,
         },
         null,
@@ -1211,10 +1234,21 @@ async function main() {
       process.stdout.write(`      现场：${r.evidence}\n`);
       process.stdout.write(`      观测：${JSON.stringify(r.observed)}\n\n`);
     }
-    process.stdout.write(`合计 ${results.length} 条：一致 ${results.length - gaps.length} · 不一致 ${gaps.length}\n`);
+    process.stdout.write(
+      `合计 ${results.length} 条：一致 ${results.filter((r) => r.ok).length} · 不一致 ${gaps.length}` +
+        (unusable.length ? ` · **判据不可用 ${unusable.length}**` : '') +
+        '\n',
+    );
     if (gaps.length) process.stdout.write(`缺口：${gaps.map((g) => g.id).join(' ')}\n`);
+    if (unusable.length) {
+      process.stdout.write(
+        `判据不可用（**不是缺口**）：${unusable.map((g) => g.id).join(' ')}` +
+          ' ⇒ 锚点/夹具在**当前画布**上不存在（画布重写后未跟上）⇒ 修判据，别当成产品缺口 ✗\n',
+      );
+    }
   }
-  process.exit(gaps.length ? 1 : 0);
+  // **判据不可用优先于缺口**：读不出来就不许判 ✓（`judge_rc` 把 2 判成 `error`）
+  process.exit(unusable.length ? 2 : gaps.length ? 1 : 0);
 }
 
 main().catch((error) => {
