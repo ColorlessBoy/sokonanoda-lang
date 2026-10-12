@@ -85,8 +85,6 @@ pub fn explicit_prelude_mode(src: &str) -> Option<PreludeMode> {
 /// `docs/design/eq-type-level-rewriting.md`）。`Eq.mp`/`Eq.mpr`/`cast` 是
 /// **宇宙多态**的（层级算术 `u+1` 落地后，签名与 Lean core 逐字对齐）。
 pub const PRELUDE_NAMES: &[&str] = &[
-    // ---- r18（2026-10-13）：`id`（源见 [`PRELUDE_ID_SRC`]）----
-    "id",
     "Nat",
     "Nat.zero",
     "Nat.succ",
@@ -209,24 +207,6 @@ pub const PRELUDE_EQ_SRC: &str = include_str!("../../../../prelude/Eq.sokonanoda
 /// （`docs/design/type-level-syntax.md` §5）它们才是宇宙多态的；此前是
 /// Type 0 实例（0.60.0 的残留边界，设计 §4-1 已销账）。
 pub const PRELUDE_L1_SRC: &str = include_str!("../../../../prelude/L1.sokonanoda");
-
-/// **r18（2026-10-13 ✓）**：`id` —— Lean core 最基本的函数（`Lean/Init/Core.lean`：
-/// `@[inline] def id {α : Sort u} (a : α) : α := a`），任何教程都会用，而我们
-/// 报的是 `unknown identifier \`id\``。
-///
-/// ⚠ **为什么这一条写在 Rust 里、而不是 `prelude/L1.sokonanoda`**：本轮的可写范围是
-/// `crates/front/**`（`prelude/**` **不在内** ✗）⇒ 只能在生效源上追加。
-/// **生效源与打印源是同一条**（[`prelude_l1_src`] 被 `install_l1_prelude_src` 与
-/// [`prelude_source`] 共用 ✓）⇒ 两者仍逐字节一致 ✓。
-/// ⚠ **如实记的边界**：磁盘上的 `prelude/L1.sokonanoda` **没有**这一条，它里面那句
-/// `sokonanoda:builtin-rust` 注释也因此**少列了 `id`** ✗ —— 下一轮应把这一条搬回
-/// 源文件并删掉本常量（那是**唯一**能把"文件即真相"补回来的做法 ✓）。
-///
-/// **签名为什么长这样**：与 `Eq` 同族（`axiom Eq {u} : {α : Sort u} -> α -> α -> Prop`）——
-/// 宇宙多态 + 前导隐式 `{α}` + 显式元数 1 ⇒ **两种写法都对**：
-/// `id h`（短写，`α` 由期望类型补）与 `id (a ∈ A) h`（**写全参数的旧写法**，
-/// 与 `Eq α a b` 同一条 G-42 闸门 ✓）。`r18` 探针用的正是后者 ✓。
-pub const PRELUDE_ID_SRC: &str = "def id {u} {α : Sort u} (a : α) : α := a\n";
 
 /// **ST2（v0.77.0）**：`Quot` 五条的类型**源文本** —— 由 [`install_quot_src`] 交给
 /// **前端自己的 elaborator** 建成 `Declar::Quot`（四条）+ `Declar::Axiom`（`Quot.sound`）。
@@ -432,20 +412,13 @@ pub fn prelude_eq_src() -> &'static str {
     }
 }
 
-/// **L1 段**的生效源文本（**含 r18 追加的 `id`** —— 见 [`PRELUDE_ID_SRC`]）。
-///
-/// ⚠ 设了**目录覆盖**（`SOKONANODA_PRELUDE_DIR`）时用覆盖那份（**不含** `id`）：
-/// 覆盖是"整段替换"的语义（`load_prelude_override` 的文档 ✓），覆盖文件自己声明
-/// `id` 就装文件的、不声明就没有 —— 与其它 L1 名字同一条规则 ✓。
+/// **L1 段**的生效源文本。
 pub fn prelude_l1_src() -> &'static str {
     match prelude_override() {
         Some(o) => o.l1.as_str(),
-        None => L1_WITH_ID.get_or_init(|| format!("{PRELUDE_L1_SRC}{PRELUDE_ID_SRC}")),
+        None => PRELUDE_L1_SRC,
     }
 }
-
-/// [`prelude_l1_src`] 的缓存（拼接一次；`&'static str` 借用得出去 ✓）。
-static L1_WITH_ID: std::sync::OnceLock<String> = std::sync::OnceLock::new();
 
 /// **Quot 段**的生效源文本。
 pub fn quot_types_src() -> &'static str {
@@ -663,13 +636,6 @@ pub(crate) const L1_FAMILIES: &[PreludeFamily] = &[
         name: "B10",
         names: &["Classical.em", "Classical.byContradiction"],
         deps: &["B2", "B4", "B5"],
-    },
-    // **r18（2026-10-13）**：`id`（单条命令一个族 —— 让位粒度与别的族一致：
-    // 文件自己声明 `id` ⇒ 用文件的 ✓）。定义体 `a` 不引用任何别的名字 ⇒ `deps` 空 ✓。
-    PreludeFamily {
-        name: "ID",
-        names: &["id"],
-        deps: &[],
     },
 ];
 
