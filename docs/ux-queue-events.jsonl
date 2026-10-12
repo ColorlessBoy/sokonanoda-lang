@@ -138,3 +138,5 @@
 {"ts": "2026-10-12T16:47:30+00:00", "event": "advance", "id": "r14", "to": "done", "commit": "a2720b75", "reading": "r14 探针 exit 0→1（3270→1023 字节）· 去 *_runs 后语义逐字节相同 · 反向=撤接线 ⇒ 单测 FAILED", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T16:57:39+00:00", "event": "claim", "id": "LEDGER-COURSES-UNREAD", "owner": "orchestrator", "resources": ["docs"]}
 {"ts": "2026-10-12T16:57:39+00:00", "event": "advance", "id": "LEDGER-COURSES-UNREAD", "to": "done", "commit": "2b446fff", "reading": "消费者在 courses/（原判据 grep 漏了它）：check.py --selftest exit 0 · test_manifest_v2 exit 0（case_cost_ledger_fields_and_committed_file）⇒ 不是缺口", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T17:19:33+00:00", "event": "claim", "id": "W-4", "owner": "orchestrator", "resources": ["docs", "scripts"]}
+{"ts": "2026-10-12T17:23:13+00:00", "event": "advance", "id": "W-4", "to": "done", "commit": "3e2417cb", "reading": "新包实测：逐键 8 次=8 编译（16–319ms，modules=1 库层不重编）· 真冷开 1.489s（旧 7.8s，快 5.2×）· dev-verify exit 0（冷 passes=13 ⇒ 改一行 passes=3）⇒ 不复现'编辑超级慢'", "reason": null, "owner": "orchestrator"}

@@ -61,8 +61,8 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=30 blocker=0 high=3 medium=18 low=9 -->
-**未完成 30 条**（blocker **0** · high **3** · medium **18** · low **9**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+<!-- QUEUE:COUNTS total=29 blocker=0 high=3 medium=17 low=9 -->
+**未完成 29 条**（blocker **0** · high **3** · medium **17** · low **9**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
 最靠前的 5 条：`F3` · `G-100` · `G-112` · `D2` · `D5`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
@@ -75,7 +75,6 @@
 | 线 | 是什么 | 下一步最小动作 | 判据（可执行） |
 |---|---|---|---|
 | W-3 | 课程侧隐变量适配 | 课程侧整批豁免未删（引擎侧已收口）⇒ 先小批量跑通口径 | `notation-lint` 零旧写法 + 课程门禁 `failed=0` + 计数如实记账 |
-| W-4 | 编辑慢（用户 10-02 报） | 旧包读数不算 ⇒ **在新包上重测**再定位 | `scripts/dev-verify.sh` + 与 `docs/design/edit-latency.md` 同机同口径 |
 | W-5 | prelude 剥离 | 内嵌 Rust 字符串 → 真 `.soko` 文件（建 `crates/prelude/`） | 剥离后 `docs-lint` ✓ + 全课 `--json` 逐字节不变 + 三层测试 |
 | G-112 | 缺口台账（**仍复现**） | release/debug 共用 `.sokonanoda/` 互擦 ⇒ 键或目录带上构建档 | `docs/gaps/repro/G112-*.sh` 转绿 + 两档构建不互擦的实测读数 |
 | G-100 | 缺口台账 | 编译路径的进程级名字键缓存**没有失效路径** ⇒ 加失效路径或收窄 | `python3 scripts/gap.py check` exit 0 + `docs/architecture.md` §6 口径 |
