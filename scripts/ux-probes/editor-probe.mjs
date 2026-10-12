@@ -26,7 +26,16 @@
 
 import { execFileSync, spawn } from "node:child_process";
 import {
-  cpSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, symlinkSync, writeFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { homedir, tmpdir } from "node:os";
@@ -40,6 +49,30 @@ const EXTENSION = join(REPO, "editor/vscode");
 const STATE = join(REPO, ".cache", "ux", "editor");
 const WS = join(STATE, "ws");
 const RUN = join(tmpdir(), "soko-editor-probe"); // ≤103 字符（见 vim probe §7 坑 1）
+
+// **陈旧 profile 清理**（2026-10-13 `SUB-probe-vscode-isolation`）：`prepare()` 只删
+// **同名**的那一个，跑完**从不回收** ⇒ 实测 `TMPDIR/soko-vim-probe` 积了 **31 个
+// profile / 640MB** ✗（每次运行按端口生成新 tag）。这里在**开工时**清掉**超过 6 小时**
+// 的（用 mtime 判，正在跑的不会被误删 ✓；同一轮刚建的也不会 ✓）。
+function pruneStaleProfiles() {
+  let names;
+  try {
+    names = readdirSync(RUN);
+  } catch {
+    return;
+  }
+  const cutoff = Date.now() - 6 * 3600 * 1000;
+  for (const n of names) {
+    if (!n.startsWith("profile-") && !n.startsWith("p-")) continue;
+    const p = join(RUN, n);
+    try {
+      if (statSync(p).mtimeMs < cutoff) rmSync(p, { recursive: true, force: true });
+    } catch {
+      /* 正被别的进程删/用 ⇒ 跳过 ✓ */
+    }
+  }
+}
+
 const VIM_SRC = join(homedir(), ".vscode", "extensions", "vscodevim.vim-1.32.4");
 const BUNDLED_CLI = join(EXTENSION, "bin", "darwin-arm64", "sokonanoda");
 const IS_MAC = process.platform === "darwin";
@@ -1259,6 +1292,13 @@ function launch(profile, file) {
     `--shared-data-dir=${join(profile, "shared")}`,
     `--remote-debugging-port=${debugPort}`,
     `--extensionDevelopmentPath=${EXTENSION}`,
+    // **隔离：不加载用户/内置扩展**（2026-10-13 `SUB-probe-vscode-isolation`）——
+    // 官方 e2e（`editor/vscode/.vscode-test.mjs`）一直带着它，而四个探针都漏了 ⇒
+    // 每次起窗都会加载 VS Code 的**内置**扩展（GitHub 认证 / Settings Sync 一类）⇒
+    // ① 弹 GitHub 登录并拉起浏览器；② 副作用一直在（用户看得见）✗。
+    // ⚠ `--disable-extensions` **不会**关掉被测扩展：我们同时传了
+    // `--extensionDevelopmentPath`（开发模式）⇒ 被测的那个照常加载 ✓。
+    "--disable-extensions",
     "--disable-gpu", "--disable-chromium-sandbox", "--no-first-run",
     "--disable-workspace-trust",
     "--disable-extension", "GitHub.copilot-chat", "--disable-extension", "GitHub.copilot",
@@ -1820,6 +1860,7 @@ if (!existsSync(join(EXTENSION, "bin"))) {
   process.exit(3);
 }
 ensureWorkspace();
+pruneStaleProfiles();  // 陈旧 profile 回收（SUB-probe-vscode-isolation）✓
 // ⚠ **判据侧自检（2026-10-13）：先把每个要 eval 的表达式在本进程"只解析不执行"**。
 //
 // 起因（真实事故，两次同形）：这些表达式写在**模板字面量**里 —— 里面的 `\n`

@@ -34,7 +34,9 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  readdirSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
@@ -52,6 +54,30 @@ const WS = join(STATE, "ws");
 // 仓库路径 + `.cache/ux/vim/run/profile-9501-pair-off/1.14-main.sock` = 118 字符）。
 // `scripts/vscode-input-e2e.mjs` 用 `tmpdir()` 正是这个原因。工作区/产出仍在仓库里。
 const RUN = join(tmpdir(), "soko-vim-probe");
+
+// **陈旧 profile 清理**（2026-10-13 `SUB-probe-vscode-isolation`）：`prepare()` 只删
+// **同名**的那一个，跑完**从不回收** ⇒ 实测 `TMPDIR/soko-vim-probe` 积了 **31 个
+// profile / 640MB** ✗（每次运行按端口生成新 tag）。这里在**开工时**清掉**超过 6 小时**
+// 的（用 mtime 判，正在跑的不会被误删 ✓；同一轮刚建的也不会 ✓）。
+function pruneStaleProfiles() {
+  let names;
+  try {
+    names = readdirSync(RUN);
+  } catch {
+    return;
+  }
+  const cutoff = Date.now() - 6 * 3600 * 1000;
+  for (const n of names) {
+    if (!n.startsWith("profile-") && !n.startsWith("p-")) continue;
+    const p = join(RUN, n);
+    try {
+      if (statSync(p).mtimeMs < cutoff) rmSync(p, { recursive: true, force: true });
+    } catch {
+      /* 正被别的进程删/用 ⇒ 跳过 ✓ */
+    }
+  }
+}
+
 const VIM_SRC = join(homedir(), ".vscode", "extensions", "vscodevim.vim-1.32.4");
 const IS_MAC = process.platform === "darwin";
 const MOD = IS_MAC ? 4 : 2; // CDP modifiers：Alt=1 Ctrl=2 Meta=4 Shift=8
@@ -490,6 +516,13 @@ function launch(profile, file) {
     `--shared-data-dir=${join(profile, "shared")}`,
     `--remote-debugging-port=${debugPort}`,
     `--extensionDevelopmentPath=${EXTENSION}`,
+    // **隔离：不加载用户/内置扩展**（2026-10-13 `SUB-probe-vscode-isolation`）——
+    // 官方 e2e（`editor/vscode/.vscode-test.mjs`）一直带着它，而四个探针都漏了 ⇒
+    // 每次起窗都会加载 VS Code 的**内置**扩展（GitHub 认证 / Settings Sync 一类）⇒
+    // ① 弹 GitHub 登录并拉起浏览器；② 副作用一直在（用户看得见）✗。
+    // ⚠ `--disable-extensions` **不会**关掉被测扩展：我们同时传了
+    // `--extensionDevelopmentPath`（开发模式）⇒ 被测的那个照常加载 ✓。
+    "--disable-extensions",
     "--disable-gpu", "--disable-chromium-sandbox", "--no-first-run",
     "--disable-workspace-trust",
     "--disable-extension", "GitHub.copilot-chat",
@@ -635,6 +668,7 @@ if (!existsSync(join(EXTENSION, "package.json"))) {
   console.error(`error: 扩展目录不完整：${EXTENSION}`); process.exit(3);
 }
 ensureWorkspace();
+pruneStaleProfiles();  // 陈旧 profile 回收（SUB-probe-vscode-isolation）✓
 const identity = buildIdentity();
 if (args.list) {
   for (const c of CASES) console.log(`${c.vim ? "vim " : "novim"} ${c.id.padEnd(24)} ${c.note}`);

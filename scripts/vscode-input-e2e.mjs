@@ -488,6 +488,7 @@ function launch(ws, profile, file, devPath) {
       "--disable-chromium-sandbox",
       "--no-first-run",
       "--disable-workspace-trust",
+      "--disable-extensions",  // 隔离：不加载用户/内置扩展（SUB-probe-vscode-isolation；被测扩展走 --extensionDevelopmentPath ✓）
       "--disable-extension",
       "GitHub.copilot-chat",
       "--disable-extension",
