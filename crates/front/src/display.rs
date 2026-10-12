@@ -307,6 +307,109 @@ impl DisplayNotations {
         self.fold(&crate::proof::render_expr(expr))
     }
 
+    /// **显示副本专用**：去掉**冗余**括号（r20，2026-10-13 ✓）。
+    ///
+    /// ## 为什么需要它
+    ///
+    /// `render_expr`（判定回读通道的渲染器）对操作数**保守补括号**
+    /// （`proof.rs::render_atom` 的表里同时有 `Notation` 与 `SetLiteral`）⇒
+    /// 源码写 `{a} ⊆ A`、Infoview 显示 `({a}) ⊆ A`，`↔` 目标更是
+    /// `(({a}) ⊆ A) ↔ (a ∈ A)`（r20）。**不许**动 `render_atom`：它的输出是
+    /// `judge.rs` 回读的输入，实测去掉 `Notation` 那一格 ⇒
+    /// `cargo test -p sokonanoda-front --lib` **954 passed / 14 failed**（判定路径 ✗）。
+    ///
+    /// ## 判据：**重解析等价**（唯一的放行条件）
+    ///
+    /// 1. 原文本先**读得回来**（`proof::parse_expr_text_with` —— 就是 `judge.rs`
+    ///    用的那条回读通道，记法表用 `self.table`）；读不回来 ⇒ **一个字都不动** ✓。
+    /// 2. 被删的那对括号，**内容自己也要能当表达式读回来**（`proof::parse_expr_text_with`）
+    ///    —— 这一条把 `∀ (α : Type 0) (A : Set α), …` 的**绑元组**排除掉 ✓：
+    ///    `A : Set α` 不是表达式（实测读不回来）⇒ 那对括号**留着** ✓。少了它，
+    ///    实测 unit01 的 `ty` 会被改成 `∀ (α : Type 0) (a : α) A : Set α, …`
+    ///    —— 读回来虽然等价，但**不是给人看的写法** ✗（绑元组括号是 Lean 的形状 ✓）。
+    /// 3. 候选文本**再读一遍**，且 `render_expr(候选) == render_expr(原文)`
+    ///    （**规范形态逐字节相同** ⇒ 两棵 AST 同构；`render_expr` 本来就是
+    ///    "回读不变"的规范渲染器 ✓）。不等 ⇒ 那对括号**不冗余**
+    ///    （`(p → q) ∧ r` 去掉就换意思 ✗）⇒ 保留 ✓。
+    ///
+    /// **收敛**：只数**成功删掉的**括号（每次至少少 2 字节）⇒ 趟数上界 = 原括号数 ✓
+    /// （第一版数的是**尝试次数** ⇒ 预算耗尽时留下"删一半"的结果 ✗ —— 实测
+    /// unit01 的 `ty` 里 `({a})` 没删掉而 `h : ({a}) ⊆ A` 删掉了，两处**不一致** ✗）。
+    /// 只删括号、**不重排一个字节**；括号不配平 / 一步都删不动 ⇒ 原样返回 ✓。
+    ///
+    /// ⚠ **只给 wire 显示副本用**（`query::display_copy`）—— `DeclState` 里那些
+    /// **判定文本**（`d.goal` / `d.sub_goals[].ty` / `d.binders[].ty`，`suggest.rs`
+    /// 的 `OpenGoalSpec` 回读它们）一个字节都不许过这里 ✓。
+    pub fn strip_redundant_parens(&self, text: &str) -> String {
+        if !text.contains('(') {
+            return text.to_string();
+        }
+        let Ok(base) = crate::proof::parse_expr_text_with(text, &self.table) else {
+            return text.to_string();
+        };
+        let canonical = crate::proof::render_expr(&base);
+        let mut current = text.to_string();
+        // 成功删除的次数上界 = 原括号对数（每次删除都让文本短 2 字节）✓。
+        let mut removals = text.matches('(').count();
+        loop {
+            let bytes = current.as_bytes();
+            let mut open = 0usize;
+            let mut removed = false;
+            while open < bytes.len() {
+                if bytes[open] != b'(' {
+                    open += 1;
+                    continue;
+                }
+                // 找与它配对的 `)`（字符串层面；显示文本里没有字符串字面量）。
+                let mut depth = 0i32;
+                let mut close = open;
+                while close < bytes.len() {
+                    match bytes[close] {
+                        b'(' => depth += 1,
+                        b')' => {
+                            depth -= 1;
+                            if depth == 0 {
+                                break;
+                            }
+                        }
+                        _ => {}
+                    }
+                    close += 1;
+                }
+                if close >= bytes.len() {
+                    break; // 不配平 ⇒ 不再试（保守）
+                }
+                // ② 内容必须是**独立表达式**（绑元组 `A : Set α` 不是 ⇒ 留括号 ✓）。
+                let content = &current[open + 1..close];
+                if crate::proof::parse_expr_text_with(content, &self.table).is_err() {
+                    open = close + 1;
+                    continue;
+                }
+                if removals == 0 {
+                    break;
+                }
+                let mut candidate = String::with_capacity(current.len() - 2);
+                candidate.push_str(&current[..open]);
+                candidate.push_str(&current[open + 1..close]);
+                candidate.push_str(&current[close + 1..]);
+                if let Ok(parsed) = crate::proof::parse_expr_text_with(&candidate, &self.table) {
+                    if crate::proof::render_expr(&parsed) == canonical {
+                        current = candidate;
+                        removals -= 1;
+                        removed = true;
+                        break;
+                    }
+                }
+                // 这对**不冗余** ⇒ 跳过它、试它后面的 ✓。
+                open = close + 1;
+            }
+            if !removed {
+                break;
+            }
+        }
+        current
+    }
+
     /// 唯一分段入口 ✓：给**已经折过**的文本打标签。
     ///
     /// ⚠ 入参 `folded` **必须是 `fold`/`render` 的产物** ✓ —— 传点形式文本进来就会
@@ -1316,6 +1419,56 @@ mod tests {
         //    父节点整脊重渲染 ⇒ `(A ∈ B) C`。
         assert_eq!(fold_text("Set.mem a A B C", &dn), "Set.mem a A B C");
         assert_eq!(fold_text("Set.mem α a A B", &dn), "Set.mem α a A B");
+    }
+
+    /// **r20（2026-10-13 ✓）**：显示副本去**冗余**括号 —— 放行条件是**重解析等价**。
+    ///
+    /// 现场：源码写 `{a} ⊆ A`，Infoview 显示 `({a}) ⊆ A`；`↔` 目标更糟
+    /// （`(({a}) ⊆ A) ↔ (a ∈ A)`）。括号来自 `render_expr`（**判定渲染器**）
+    /// 的保守补括号表 ⇒ **不许**动它（实测去掉 `Notation` 那一格 ⇒ 14 条判定路径
+    /// 测试判红 ✗），只能在**显示副本**上做后处理，且必须"去掉之后读回来还是同一个
+    /// 目标"才准去 ✓。
+    #[test]
+    fn redundant_parens_are_stripped_only_when_the_reparse_agrees() {
+        let dn = real_pipeline_notations(&[SHAPES_LIB]);
+        // ① 真缺口（r20 现场，逐字取自 unit01 的 `state` 读数）
+        assert_eq!(dn.strip_redundant_parens("({a}) ⊆ A"), "{a} ⊆ A");
+        assert_eq!(
+            dn.strip_redundant_parens("(({a}) ⊆ A) ↔ (a ∈ A)"),
+            "{a} ⊆ A ↔ a ∈ A"
+        );
+        // ② **不许**去掉**换意思**的括号（反向守卫：`∧` 比 `→` 紧 ⇒ 去掉就变义 ✗）
+        assert_eq!(dn.strip_redundant_parens("(p → q) ∧ r"), "(p → q) ∧ r");
+        assert_eq!(dn.strip_redundant_parens("p ∧ (q → r)"), "p ∧ (q → r)");
+        // ③ 已经是规范形态 / 没有括号 / 读不回来 ⇒ **一个字都不动** ✓
+        assert_eq!(dn.strip_redundant_parens("{a} ⊆ A"), "{a} ⊆ A");
+        assert_eq!(dn.strip_redundant_parens("a ∈ A"), "a ∈ A");
+        assert_eq!(
+            dn.strip_redundant_parens("(x ⊕ y) ⊕ z"),
+            "(x ⊕ y) ⊕ z",
+            "`⊕` 不在记法表里 ⇒ 基线就读不回来 ⇒ 保守返回原文"
+        );
+        assert_eq!(dn.strip_redundant_parens("(a ∈ A"), "(a ∈ A", "括号不配平");
+        // ③′ **绑元组的括号不许删**（内容 `A : Set α` 不是表达式 ⇒ 被内容判据挡住 ✓）——
+        //     少了这条，实测 unit01 的 `ty` 会变成 `∀ (α : Type 0) (a : α) A : Set α, …`
+        //     （读回来等价，但**不是给人看的写法** ✗）。
+        assert_eq!(
+            dn.strip_redundant_parens("∀ (α : Type 0) (A : Set α), ({a}) ⊆ A"),
+            "∀ (α : Type 0) (A : Set α), {a} ⊆ A",
+            "绑元组括号留着、操作数括号去掉"
+        );
+        // ④ **判定渲染器一个字节没动**（红线：它是回读通道的输入）——
+        //    `fold` 仍然产出保守补括号的那一份，去括号是**它之后**的独立一步 ✓。
+        assert_eq!(
+            dn.fold("Set.subset (Set.singleton a) A"),
+            "({a}) ⊆ A",
+            "render_expr/fold 仍然保守补括号 —— r20 只在显示副本上后处理"
+        );
+        assert_eq!(
+            dn.strip_redundant_parens(&dn.fold("Set.subset (Set.singleton a) A")),
+            "{a} ⊆ A",
+            "两步合起来才是 wire 的显示副本"
+        );
     }
 
     /// **折叠规则本身**（两张表显式给，不经源级扫描）：`full = 3`、`prefix = 1`
