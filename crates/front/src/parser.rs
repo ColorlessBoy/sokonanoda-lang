@@ -1291,7 +1291,7 @@ impl Parser {
 
     fn parse_def(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
-        let name = self.expect_decl_name("definition name", "def")?;
+        let name = self.expect_decl_name("definition name")?;
         let name = self.qualify_decl_name(name);
         let mut universe = self.parse_universe_params()?;
         let binders = self.parse_decl_binders(&mut universe)?;
@@ -1316,7 +1316,7 @@ impl Parser {
 
     fn parse_theorem(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
-        let name = self.expect_decl_name("theorem name", "theorem")?;
+        let name = self.expect_decl_name("theorem name")?;
         let name = self.qualify_decl_name(name);
         let mut universe = self.parse_universe_params()?;
         let binders = self.parse_decl_binders(&mut universe)?;
@@ -1788,7 +1788,7 @@ impl Parser {
 
     fn parse_axiom(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
-        let name = self.expect_decl_name("axiom name", "axiom")?;
+        let name = self.expect_decl_name("axiom name")?;
         let name = self.qualify_decl_name(name);
         let mut universe = self.parse_universe_params()?;
         // G-13：与 def/theorem 同序——宇宙参数后先吃 binder 组，再进类型位。
@@ -1882,7 +1882,7 @@ impl Parser {
         // G-05 N3：归纳块的名字也吃命名空间前缀（`namespace Set` 里的
         // `inductive Foo` ⇒ `Set.Foo`），构造子照 R1 从**已加前缀的**类型名
         // 派生规范名（`Set.Foo.mk`）——`ctor`/`rec`/`iota` 自己的名字不动。
-        let name = self.expect_decl_name("inductive name", "inductive")?;
+        let name = self.expect_decl_name("inductive name")?;
         let name = self.qualify_decl_name(name);
         // 零或多个参数 binder（`(A : Type)` / `(A B : Prop)` / `{A B : Type}`），
         // 在 `:` 之前。走 `push_binders` 与箭头/λ/∀/声明 binder 同一套组语法
@@ -1943,7 +1943,7 @@ impl Parser {
 
     fn parse_ctor(&mut self) -> Result<CtorDecl> {
         let start = self.bump().span.start;
-        let name = self.expect_decl_name("constructor name", "ctor")?;
+        let name = self.expect_decl_name("constructor name")?;
         // 字段同样吃 `(A B : Prop)` 组（`parse_binder` 只看 `(`，这里补上 `{`）。
         let binders = self.parse_inductive_binders("constructor 字段")?;
         self.expect_colon("constructor result type")?;
@@ -1959,7 +1959,7 @@ impl Parser {
 
     fn parse_rec(&mut self) -> Result<RecDecl> {
         let start = self.bump().span.start;
-        let name = self.expect_decl_name("recursor name", "rec")?;
+        let name = self.expect_decl_name("recursor name")?;
         let universe = self.parse_universe_params()?;
         self.expect_colon("recursor type")?;
         let ty = self.parse_expr()?;
@@ -1974,7 +1974,7 @@ impl Parser {
 
     fn parse_iota(&mut self) -> Result<IotaRule> {
         let start = self.bump().span.start;
-        let ctor_name = self.expect_decl_name("constructor name", "ctor")?;
+        let ctor_name = self.expect_decl_name("constructor name")?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
         let val = self.parse_expr()?;
         let span = Span::new(start, val.span().end);
@@ -2918,7 +2918,7 @@ impl Parser {
                     other => {
                         return Err(self.error_here(&format!(
                             "集合建构式 `{{x ∈ A | P x}}` 里，`x` 后面要跟关系符号 `∈`，实际是 {}",
-                            token_kind_text(other)
+                            token_kind_text(&other)
                         )));
                     }
                 };
@@ -3615,15 +3615,10 @@ impl Parser {
                     span: Span::new(tok.span.start, end),
                 })
             }
-            // ⚠ **别在这里自己接 ", found …"**：`error_here` 已经接了
-            // （SUB-duplicate-found-msg：以前这里再写一遍 ⇒ 学习者看到
-            // `expected a binder, found Eof, found Eof`，"found" 写两遍）。
-            // 这条兜底臂**本来就**停在 `self.peek()` 那个 token 上（三个成功臂
-            // 都 `bump()` 过、失败臂不动游标）⇒ `error_here` 报的就是 `other`。
-            other => {
-                debug_assert!(self.peek().kind == other, "兜底臂必须停在同一个 token 上");
-                Err(self.error_here("expected a binder"))
-            }
+            other => Err(self.error_here(&format!(
+                "expected a binder, found {}",
+                token_kind_text(&other)
+            ))),
         }
     }
 
@@ -3651,15 +3646,7 @@ impl Parser {
     /// 是一个 `Ident`），于是 `def f.{u}` 曾把名字静默吃成 `f.` 并判卷通过
     /// （G-18：声明变形且不报错）。本子集不支持声明位 `.{u}` 拼写，所以这里
     /// 必须报错而不是猜；点分限定名（`Foo.Bar.baz`）照常通过。
-    ///
-    /// **还要拒关键字**（SUB-keyword-decl-name，2026-10-12）：本函数此前只查
-    /// 「不以 `.` 结尾」，**不查关键字表** ⇒ `def match : Nat := 0` **判绿**，
-    /// 而引用它的那一刻（`def g : Nat := match`）表达式层把裸 `match` 当关键字
-    /// （[`is_expr_keyword`]）⇒ 报的是**别处**的通用 `unexpected-token`
-    /// （`expected an expression, found Eof`，span 指到文件尾）。同一件事在本文件的
-    /// [`Self::expect_namespace_name`] 上**早就做了**（走 [`is_namespace_name_keyword`]）
-    /// ⇒ 那处偏离是**无意的**，这里复用同一个判据（无循环依赖、零新表）。
-    fn expect_decl_name(&mut self, what: &str, keyword: &str) -> Result<String> {
+    fn expect_decl_name(&mut self, what: &str) -> Result<String> {
         let tok = self.peek().clone();
         let name = self.expect_ident(what)?;
         if name.ends_with('.') {
@@ -3672,45 +3659,7 @@ impl Parser {
                 format!("声明名不许以 `.` 结尾（这里读到了 `{name}`）；本语言不支持 `f.{{u}}` 声明位拼写，请写成 `def f {{u}} …`"),
             ));
         }
-        self.reject_keyword_decl_name(&name, what, keyword, tok.span)?;
         Ok(name)
-    }
-
-    /// 声明名的**关键字闸**（SUB-keyword-decl-name）。病根与 Lean 4 对照见
-    /// [`DiagnosticKind::DeclNameKeyword`]。
-    ///
-    /// **闸的落点很关键**：只在**这个裸名会真的变成要引用的那个名字**时才拦。
-    /// 两种写法**用不着**拦，因为引用的名字**带点**、词法把带点的整串当一个
-    /// `Ident`（`A.match` 从来引用得到）：
-    /// * 已经开了 `namespace A` ⇒ parser 随后会 `qualify_decl_name` 成 `A.match`
-    ///   （G-05 N3）⇒ 此时写 `def match` 是**对的**，拦它就是把能用的写法弄坏 ✗；
-    /// * 名字自己就带点（`def A.match`）。
-    ///
-    /// 逃生门 [`keyword_decl_name_allowed`] 开着 ⇒ 整条闸放开（旧行为原样回来）。
-    fn reject_keyword_decl_name(
-        &self,
-        name: &str,
-        what: &str,
-        keyword: &str,
-        span: Span,
-    ) -> Result<()> {
-        if name.contains('.') || self.current_namespace().is_some() {
-            return Ok(());
-        }
-        if keyword_decl_name_allowed_value(keyword_decl_name_allowed(), name) {
-            return Ok(());
-        }
-        let detail = format!(
-            "`{keyword}` 的行首名字不能是关键字 `{name}`（{what}）：这个名字**声明出来也引用不到**——裸的 `{name}` 在表达式位一律被当成关键字拒绝。本语言没有 Lean 4 的 `«{name}»` 转义写法 ⇒ 请换一个名字（例如 `{name}Foo`）；或者把它放进 `namespace A` 里写 `def {name} …`，再用 `A.{name}` 引用（带点的名字引用得到）。"
-        );
-        Err(Diagnostic::new(
-            DiagnosticKind::DeclNameKeyword {
-                name: name.to_string(),
-                what: what.to_string(),
-            },
-            span,
-            detail,
-        ))
     }
 
     fn expect_kind(&mut self, kind: &TokenKind, what: &str) -> Result<()> {
@@ -3738,20 +3687,7 @@ impl Parser {
         tok
     }
 
-    /// 在当前 token 上报错：**本函数负责接 `, found <记号>`**。
-    ///
-    /// ⚠ 调用方**不许**自己在 `msg` 里写 "found …" —— 那会双写
-    /// （SUB-duplicate-found-msg，实测 `def f : Nat := fun` ⇒
-    /// `expected a binder, found Eof, found Eof`）。下面这条 `debug_assert!`
-    /// 就是那道守卫：它让"以后又有人顺手写一遍"在**跑测试时当场**炸，而不是等
-    /// 学习者看到一条结巴的诊断。要提 token 就写**别的前缀**
-    /// （`… 实际是 {}` / `读到 {name}` 之类），或者用 [`Self::expect_ident`]
-    /// 那种自带完整消息、**不**走 `error_here` 的写法。
     fn error_here(&self, msg: &str) -> Diagnostic {
-        debug_assert!(
-            !msg.contains("found "),
-            "error_here 的 msg 不许自带 \"found …\"（会双写）：{msg}"
-        );
         let tok = self.peek();
         Diagnostic::new(
             DiagnosticKind::UnexpectedToken {
@@ -4004,54 +3940,6 @@ fn is_tactic_keyword(name: &str) -> bool {
 /// 再在下一行报一个看不懂的错误。
 fn is_namespace_name_keyword(name: &str) -> bool {
     is_reserved_command(name) || is_expr_keyword(name)
-}
-
-/// **反向验证逃生门**（SUB-keyword-decl-name）：`SOKO_ALLOW_KEYWORD_DECL_NAME=1`
-/// ⇒ 关掉声明名的关键字闸，`def match : Nat := 0` 的**旧行为原样回来**
-/// （parse 通过、`decl.checked`、引用时才在**别处**报通用 `unexpected-token`）。
-/// 只给判别性实验与集成判据用，默认关闭。
-///
-/// 口径与 [`crate::diagnostic`] 的 `SOKO_NO_TOKEN_RENDER` 一致：**只看变量在不在**
-/// （不看值），这样 `=0` 也是"开"——开关的语义是"打开逃生门"。
-pub fn keyword_decl_name_allowed() -> bool {
-    std::env::var_os("SOKO_ALLOW_KEYWORD_DECL_NAME").is_some()
-}
-
-/// [`keyword_decl_name_allowed`] 的**纯函数核**：`allowed` 由调用方喂 ⇒ 可逐值判、
-/// **不必动进程环境**（环境是全局的，在 libtest 里 `set_var` 会与同进程的其它
-/// 测试抢跑——实测过一次 flake）。`true` ⇒ 放行（旧行为）；`false` ⇒ 只拦关键字。
-fn keyword_decl_name_allowed_value(allowed: bool, name: &str) -> bool {
-    allowed || !is_reserved_decl_name(name)
-}
-
-/// **唯一真相**：哪些名字当**裸**声明名是死路 —— 声明得出来、却引用不到。
-///
-/// 判据 = [`is_namespace_name_keyword`]（[`is_reserved_command`] 或
-/// [`is_expr_keyword`]），**与 `namespace`/`end`/`open`/`open (…)` 短名清单同一个
-/// 集合**（[`Self::short_name_ahead`] / [`Self::expect_short_name`] 走的就是它）——
-/// 不另起第二张表，那正是本缺口「两处口径不一致」的病根。
-///
-/// **这不是"关键字一律不许当声明名"的空泛规则，名单是实测出来的**（26 个候选
-/// 逐个跑过，两列读数：表达式位直接引用 / 声明后引用）：
-///
-/// | 类 | 实例 | 表达式位 | 结论 |
-/// |---|---|---|---|
-/// | 保留命令 | `def` `theorem` `open` `import` … | `command keyword … cannot appear inside an expression` | **死路** ⇒ 拦 |
-/// | 记法命令 | `infix` `notation` `set_option` … | 同上 | **死路** ⇒ 拦 |
-/// | 表达式关键字 | `let` `match` `fun` | `expected an expression/a binder, found …` | **死路** ⇒ 拦 |
-/// | **tactic 名** | `use` `intro` `right` `rfl` … | **OK**（`def g : Nat := use` 解析得了） | **能用** ⇒ **不拦** ✗ |
-///
-/// 最后一行是这张表的**重点**：tactic 名只在 `by` 块里是关键字，表达式位是普通
-/// 标识符 ⇒ 把 [`is_tactic_keyword`] 并进来会**误伤本来能用的写法**（实测：`use`
-/// 的 `expr=OK / decl+ref=OK`，且全仓有 ~30 处 `def use x := …` 的正常用法）。
-/// 所以判据**恰好**是 `is_reserved_command ∪ is_expr_keyword ∪ {fun}`，一个不多一个不少。
-/// （`fun` 单列：本文件处处把它与 [`is_expr_keyword`] 并列判
-/// —— `Parser::starts_with_binder_group` / `Parser::starts_with_match_or_let` 的
-/// `is_expr_keyword(name) || name == "fun"` —— 但它**不在**那个表里。
-/// 不动 [`is_expr_keyword`] 本身：那会顺带改掉 `namespace`/`end`/`open` 短名的
-/// 判定（`namespace fun` 今天合法），不在本环节范围。）
-fn is_reserved_decl_name(name: &str) -> bool {
-    is_reserved_command(name) || is_expr_keyword(name) || name == "fun"
 }
 
 /// 保留字 = **声明 / 作用域关键字**（本函数内联）**加上全部命令**（查真相表
@@ -5341,18 +5229,9 @@ end
             "message: {}",
             err.message
         );
-        // 名字位**不再宽松**（SUB-keyword-decl-name，2026-10-12 更正）：命令关键字
-        // 当**裸**声明名 ⇒ 声明出来了却**引用不到**（引用一律撞上面那条表达式位
-        // 规则）⇒ 专用码 `parse-keyword-decl-name` 在声明处**当场**报，而不是等到
-        // 引用时在**别处**报一条看不懂的 `unexpected-token`。
-        // ⚠ 这里原先写的是 `assert!(parse("def theorem : Nat := 1\n").is_ok())` ——
-        // 它只钉住「声明位不报错」，**从没验过这个名字能不能用** ⇒ 是一条**半句判据**
-        // （实测探针：26 个关键字当裸名引用**全部**不可用）。现在两半都钉住。
-        let err = parse("def theorem : Nat := 1\n").expect_err("关键字不能当声明名");
-        assert_eq!(err.code(), "parse-keyword-decl-name");
-        assert_eq!(err.span.start.line, 1, "{err:?}");
-        // 表达式位那条语义**一字未变**（本测试的本来目的）。
-        assert!(parse("def zz : Nat := theorem\n").is_err());
+        // 名字位与其它命令关键字一样宽松（`def theorem := …` 今天也合法）：
+        // 这里刻意只钉住"表达式位被拒"这一条语义。
+        assert!(parse("def theorem : Nat := 1\n").is_ok());
     }
 
     // ---- 记法（G-04 / WO-011，docs/design/notation-subset.md §2）----------
@@ -5801,216 +5680,6 @@ end
         assert_eq!(err.span.start.line, 1);
     }
 
-    /// **SUB-duplicate-found-msg**（2026-10-12）：诊断里 `found` 只许出现**一次**。
-    ///
-    /// 改前 `def f : Nat := fun` ⇒ `expected a binder, found 输入末尾, found 输入末尾`
-    /// （"found" 写两遍）：`parse_binder` 的兜底臂把**自带** `found …` 的文案交给
-    /// `error_here`，而 `error_here` **自己又追加** `", found …"` ⇒ 双写。
-    ///
-    /// 这条同时钉两半：
-    /// 1. **探针那一例**（`def f : Nat := fun`）`found` 恰好一次；
-    /// 2. **同族的 `have` 那一例**（工单点名要一起检查）也恰好一次 —— 它走
-    ///    `error_here("`have` binder name")`，本来就不双写，这里当**回归**钉住。
-    #[test]
-    fn a_binder_diagnostic_says_found_exactly_once() {
-        for (tag, src) in [
-            ("fun", "def f : Nat := fun\n"),
-            ("have", "theorem t : True := by\n  have\n"),
-            ("fun-binder", "def f : (Nat) := fun\n"),
-        ] {
-            let err = parse(src).expect_err(tag);
-            assert_eq!(
-                err.message.matches("found").count(),
-                1,
-                "{tag}: `found` 必须恰好一次，实际是 {:?}",
-                err.message
-            );
-            assert!(
-                !err.message.contains("found 输入末尾, found"),
-                "{tag}: 还是双写：{:?}",
-                err.message
-            );
-        }
-    }
-
-    /// **横向排查的守卫**（SUB-duplicate-found-msg）：`error_here` 的契约是
-    /// **它**负责接 `, found …` ⇒ 调用方的 `msg` 里不许再自带 `found `。
-    ///
-    /// 这条不靠"记住别写"，而是让 `error_here` 里的 `debug_assert!` 在**任何**
-    /// 解析测试里当场炸 ⇒ 以后又有人顺手写一遍，跑测试就红 ✓。
-    #[test]
-    fn error_here_appends_found_once_and_its_contract_holds() {
-        let err = parse("theorem t : True := by\n  have\n").expect_err("have");
-        assert_eq!(err.message.matches("found").count(), 1, "{:?}", err.message);
-        // 演示双写长什么样（契约的反面：msg 自带 "found " ⇒ 结果两次）。
-        let doubled = format!(
-            "{msg}, found {tok}",
-            msg = "expected a binder, found Eof",
-            tok = "Eof"
-        );
-        assert_eq!(doubled.matches("found").count(), 2, "演示双写长什么样");
-    }
-
-    /// **SUB-keyword-decl-name**（2026-10-12）：关键字不能当**顶层声明名**。
-    ///
-    /// 改前：`def match : Nat := 0` **判绿**（`expect_decl_name` 只拒 `.` 结尾），
-    /// 而引用 `match` 时词法/表达式层把它当关键字 ⇒ 报的是**别处**的
-    /// `expected an expression, found 输入末尾`（第 3 行行尾），学习者看不懂。
-    ///
-    /// 三条一起断言（判据不许放宽）：
-    /// 1. **专用码** `parse-keyword-decl-name`（不落进通用 `unexpected-token`）；
-    /// 2. **span 落在 `def match` 那一行**（不是引用处、不是文件尾）；
-    /// 3. **反面对照**：`namespace A … A.match` 点分形式**照常通过**（一直能用，
-    ///    别弄坏），且 `def g : Nat := 0` 这种正常声明不受影响。
-    ///
-    /// 逃生门 `SOKO_ALLOW_KEYWORD_DECL_NAME=1`（反向验证用）在
-    /// [`keyword_decl_name_allowed`]；那条由 `super::tests` 之外的
-    /// `keyword_decl_name_gate_lifts_with_the_escape_hatch` 咬住。
-    #[test]
-    fn keyword_decl_name_is_a_dedicated_parse_error() {
-        let err = parse("def match : Nat := 0\ndef g : Nat := match\n").expect_err("keyword name");
-        assert_eq!(err.code(), "parse-keyword-decl-name");
-        // span 落在 `def match` 那一行（改前是第 3 行行尾 = 文件尾）。
-        assert_eq!(err.span.start.line, 1, "{err:?}");
-        // 消息说清「关键字不能当声明名」，并给名字本身（学习者要看到是哪一个）。
-        assert!(err.message.contains("match"), "{err:?}");
-        assert!(err.message.contains("关键字"), "{err:?}");
-        // ③ print 面：单独一条 `def match : Nat := 0` 改前 exit 0 + `decl.checked`，
-        //    改后必须**判红** ⇒ 这里就是"必须 Err"。
-        assert!(parse("def match : Nat := 0\n").is_err());
-    }
-
-    /// 反面对照：**点分形式一直能用**（`namespace A` 里的 `A.match`）——
-    /// 闸门只挡**声明位的裸关键字名**，不挡限定名。
-    #[test]
-    fn dotted_keyword_name_still_parses() {
-        let parsed = parse("namespace A\ndef match : Nat := 0\nend A\ndef g : Nat := A.match\n")
-            .expect("点分形式一直能用");
-        assert_eq!(parsed.commands.len(), 4, "{parsed:?}");
-    }
-
-    /// 正常声明名不受新闸影响（`match` 出现在**值位**不是名字位）。
-    #[test]
-    fn ordinary_decl_names_are_unaffected_by_the_keyword_gate() {
-        assert!(parse("def g : Nat := 0\n").is_ok());
-        assert!(parse("def match2 : Nat := 0\n").is_ok());
-        assert!(parse("def matcher : Nat := 0\n").is_ok());
-    }
-
-    /// **闸门的名单 = "表达式位引用不到"的那一批**，实测钉死（SUB-keyword-decl-name）。
-    ///
-    /// 两列读数（`expr=` 表达式位直接引用 / `decl+ref=` 声明后引用）在实现处的表里：
-    /// 保留命令 + 记法命令 + `let`/`match`/`fun` ⇒ 两列**都失败**（死路 ⇒ 拦）；
-    /// **tactic 名 ⇒ 两列都 OK**（`def g : Nat := use` 解析得了 ⇒ **不拦** ✗）。
-    /// 这条把两半都咬着：拦的每个都真的用不了，**不拦的**每个都真的能用。
-    #[test]
-    fn the_gated_names_are_exactly_the_ones_that_cannot_be_referenced_bare() {
-        let reserved_commands = [
-            "scoped",
-            "import",
-            "def",
-            "abbrev",
-            "theorem",
-            "example",
-            "axiom",
-            "inductive",
-            "ctor",
-            "rec",
-            "iota",
-            "end",
-            "namespace",
-            "open",
-            "export",
-            "infix",
-            "infixl",
-            "infixr",
-            "prefix",
-            "postfix",
-            "notation",
-            "binder_notation",
-            "set_option",
-        ];
-        let expr_keywords = ["let", "match", "fun"];
-        let mut checked = 0;
-        for name in reserved_commands
-            .iter()
-            .chain(expr_keywords.iter())
-            .copied()
-        {
-            assert!(is_reserved_decl_name(name), "`{name}` 该在闸门名单里");
-            checked += 1;
-            // 声明位：必须**当场**拒（不是等到引用时在别处报一条看不懂的错）。
-            let err = parse(&format!("def {name} : Nat := 0\n"))
-                .expect_err("声明位的裸关键字名该被当场拒");
-            assert_eq!(err.code(), "parse-keyword-decl-name", "{name}");
-            assert_eq!(err.span.start.line, 1, "{name}: span 必须落在声明那一行");
-            // 而且**真的**引用不到（这就是拦它的理由，不是"关键字"三个字）。
-            assert!(
-                parse(&format!("def zz : Nat := {name}\n")).is_err(),
-                "`{name}` 居然引用得到？那就不该拦它"
-            );
-        }
-        assert!(checked >= 25, "名单太小（{checked}）——闸门放水了？");
-        // ⭐ **tactic 名不拦**：它们在 `by` 块里才是关键字，表达式位是普通标识符
-        // （实测 `def g : Nat := use` 解析得了）⇒ 拦它们会**误伤能用的写法**
-        // （全仓 ~30 处 `def use x := …` 都是正常用法）。
-        // ⚠ `match` 同时是 tactic 名**和**表达式关键字（`TACTIC_DOCS` 里有它）
-        // ⇒ 跳过：拦它是对的，理由在表达式那一列，不在 tactic 这一列。
-        let mut tactic_checked = 0;
-        for name in crate::tactics::TACTIC_DOCS.iter().map(|t| t.name) {
-            if is_reserved_decl_name(name) {
-                assert!(
-                    expr_keywords.contains(&name),
-                    "`{name}` 只该因为表达式关键字被拦"
-                );
-                continue;
-            }
-            tactic_checked += 1;
-            assert!(
-                parse(&format!("def {name} : Nat := 0\ndef zz : Nat := {name}\n")).is_ok(),
-                "tactic 名 `{name}` 是能用的写法，不该被拦"
-            );
-        }
-        assert!(tactic_checked >= 10, "tactic 名单太小（{tactic_checked}）");
-        // 名字里**带点**的永远放行（`A.match` 词法上是整串 Ident，引用得到）。
-        assert!(parse("def A.match : Nat := 0\n").is_ok(), "点分名不该被拦");
-        // 近似名不受影响。
-        for name in ["match2", "matcher", "g", "letting", "funny", "defx"] {
-            assert!(!is_reserved_decl_name(name), "{name} 不该在闸门名单里");
-            assert!(parse(&format!("def {name} : Nat := 0\n")).is_ok(), "{name}");
-        }
-    }
-
-    /// **闸门的落点**：已经开了 `namespace A` ⇒ 名字会被限定成 `A.match`（带点、
-    /// 引用得到）⇒ **不许拦**（拦了就是把本来能用的写法弄坏）。
-    #[test]
-    fn a_keyword_name_inside_a_namespace_is_not_gated() {
-        let file = parse("namespace A\ndef match : Nat := 0\nend A\n")
-            .expect("namespace 里的关键字名会被限定成 A.match，必须放行");
-        assert!(
-            matches!(&file.commands[1], Command::Def { name, .. } if name == "A.match"),
-            "{file:?}"
-        );
-    }
-
-    /// 逃生门的**纯函数**那半：`allowed` 喂什么就是什么（不碰进程环境）。
-    ///
-    /// ⚠ 这里**故意不 `set_var`**：libtest 默认多线程、进程环境是**全局**的 ⇒
-    /// 在本进程里设 `SOKO_ALLOW_KEYWORD_DECL_NAME` 会与**同进程**的
-    /// [`keyword_decl_name_is_a_dedicated_parse_error`] 抢跑（实测：一次
-    /// `cargo test -p sokonanoda-front --lib` 把它偶发判红、再跑两次又全绿
-    /// —— 典型的环境竞态 flake ✗）。**逃生门"真的读环境变量"由子进程判**
-    /// （`crates/cli/tests/keyword_decl_name_escape_hatch.rs` 用
-    /// `Command::new(env!("CARGO_BIN_EXE_sokonanoda")).env(...)`，环境是它自己的）。
-    #[test]
-    fn the_escape_hatch_is_a_pure_decision_on_its_input() {
-        // 闸门开着 ⇒ 放行（旧行为）；关着 ⇒ 只有关键字才拦。
-        assert!(keyword_decl_name_allowed_value(true, "match"));
-        assert!(!keyword_decl_name_allowed_value(false, "match"));
-        // 名字不是关键字 ⇒ 两种取值都放行（闸门只认关键字表）。
-        assert!(keyword_decl_name_allowed_value(false, "matchFoo"));
-    }
-
     #[test]
     fn namespace_shape_errors_are_dedicated() {
         let err = parse("namespace\n").expect_err("no name");
@@ -6415,17 +6084,13 @@ end
 
     #[test]
     fn abbrev_is_a_reserved_command_not_an_identifier() {
-        // 与 `def`/`theorem` 同族：命令关键字在**表达式位**被拒。
+        // 与 `def`/`theorem` 同族：命令关键字在**表达式位**被拒（名字位与
+        // `def theorem …` 一样宽松——既有语义，一字不改）。
         let err = parse("def f : Type := abbrev\n").expect_err("abbrev as an expression");
         assert_eq!(err.code(), "unexpected-token");
-        // 名字位同样不再宽松（SUB-keyword-decl-name）：`abbrev` 当裸声明名 ⇒
-        // 声明出来也引用不到 ⇒ 在声明处当场报专用码（这是上面那条规则的**同一件事**
-        // 的另一半；原先这里只断言 `parse(...).is_ok()`，从没验过引用，属半句判据）。
-        let err = parse("def abbrev : Type := Prop\n").expect_err("关键字不能当声明名");
-        assert_eq!(err.code(), "parse-keyword-decl-name");
-        // 反向对照：`abbrev` 真的是命令（把关键字换成 `def` 是合法文件）。
-        assert!(parse("def Set2 : Type := Prop\n").is_ok());
-        assert!(parse("abbrev Set2 : Type := Prop\n").is_ok());
+        // 反向对照：`abbrev` 真的是命令（同样两行把关键字换成 `def` 是合法文件）。
+        assert!(parse("def abbrev : Type := Prop\n").is_ok());
+        assert!(parse("abbrev abbrev : Type := Prop\n").is_ok());
     }
 
     #[test]

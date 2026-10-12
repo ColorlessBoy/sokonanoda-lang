@@ -376,13 +376,7 @@ impl<'a> Lexer<'a> {
             ch if is_math_symbol(ch) => self.lex_symbol(start),
             other => {
                 self.bump();
-                let mut diag =
-                    self.err_unexpected(start, "a valid .sokonanoda token", &other.to_string());
-                if let Some(note) = lexer_position_note(other) {
-                    diag.message.push('；');
-                    diag.message.push_str(note);
-                }
-                Err(diag)
+                Err(self.err_unexpected(start, "a valid .sokonanoda token", &other.to_string()))
             }
         }
     }
@@ -524,26 +518,6 @@ impl<'a> Lexer<'a> {
             Span::new(start, start),
             format!("expected {expected}, found {found}"),
         )
-    }
-}
-
-/// **词法位的教学补白**（r17，2026-10-12）：有些记号在**真实 Lean 里合法**、
-/// 在本子集里没有，而它们撞的是**最底层的词法兜底**（`other` 臂）——那时 parser
-/// 的 `command_position_note` 一律没机会说话（词法在解析**之前**就失败了）⇒
-/// 学习者看到的是最干的一句话 `expected a valid .sokonanoda token, found [` ✗。
-///
-/// 与 parser 那条 note **同一套思路**（点名记号 + 给出替代），只是落点更靠前：
-/// 「词法阶段的 no-note」就是这么漏掉的。表里只放**实测真的会撞上**的记号
-/// （2026-10-12：`rw [Set.mem_singleton_iff]` 报的就是 `found [`；而
-/// `intros` / `simp` / 裸 `rw` 走 parser 那条路、本来就有替代提示 ✓）——
-/// 不认识的记号照旧只说「没有这个记号」（**不猜** ✗）。
-fn lexer_position_note(ch: char) -> Option<&'static str> {
-    match ch {
-        '[' | ']' => Some(
-            "本子集不支持 `[` / `]`（Lean 的 `rw [引理]` / `simp [引理]` 那种列表写法还没有）。\
-             要重写目标请用点名形式：`unfold 名字`（展开定义），或直接写一条已经证过的引理再 `exact` / `apply`。",
-        ),
-        _ => None,
     }
 }
 
@@ -1132,30 +1106,6 @@ mod tests {
         assert_eq!(err.code(), "unterminated-string");
         assert_eq!(err.span.start.column, 10, "span points at the opening `\"`");
         assert_eq!(err.span.start.line, 1);
-    }
-
-    /// **r17**（2026-10-12）：真实 Lean 里合法、本子集没有的记号撞到**词法兜底**
-    /// 时要给「不支持 + 替代」，不能只说 `expected a valid .sokonanoda token, found [`。
-    ///
-    /// 为什么这条判据在**词法层**：`rw [Set.mem_singleton_iff]` 的 `[` 在分词阶段
-    /// 就失败 ⇒ parser 的 `command_position_note` 一律没机会说话（那是 r17 里唯一
-    /// 真正缺提示的一条；`intros`/`simp`/裸 `rw` 走 parser 那条路、本来就有）。
-    #[test]
-    fn a_known_but_unsupported_symbol_gets_a_lexer_note() {
-        let err = tokenize("theorem t : True := by\n  rw [Set.mem_singleton_iff]\n")
-            .expect_err("`[` 是词法错误");
-        assert_eq!(err.code(), "unexpected-token");
-        assert!(err.message.contains("found ["), "{}", err.message);
-        // ① 说清「不支持」；② 给出替代写法。
-        assert!(err.message.contains("不支持"), "{}", err.message);
-        assert!(
-            err.message.contains("unfold") && err.message.contains("exact"),
-            "必须给替代写法：{}",
-            err.message
-        );
-        // 反面：**不认识**的记号照旧不猜（不许为了过探针给所有字符编提示）。
-        let other = tokenize("theorem t : True := by\n  exact ?\n").expect_err("`?` 是词法错误");
-        assert!(!other.message.contains("不支持"), "{}", other.message);
     }
 
     // ---- 声明驱动的符号表（第二刀，设计 §10.2）------------------------------
