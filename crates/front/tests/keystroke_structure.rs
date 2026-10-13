@@ -70,9 +70,9 @@ struct Reading {
     prefix_bytes: u64,
     /// **T2-B 的判据读数**：这一刀**真的 elaborate 了几条命令**（进程级累计取差）。
     ///
-    /// ⚠ **今天它 = 入口命令数（+ 库层那几条）** —— 命令级快照还没做 ⇒ 每刀从第 0 条
-    /// 重走 ✗。**先建先红**：下面的断言**写死今天的行为**（防漂移 ✓）；
-    /// **T2-B 落地后改判成"改最后一条 ⇒ 1"**（**不许放宽** ✗，同 T2-B0 的先例）。
+    /// ✓ **T2-B 已落地**（命令级环境快照 `WalkCheckpoint`）：改**最后一条**命令 ⇒
+    /// 它 = **1**（只重走那一条）。断言在
+    /// [`t2b_last_command_edit_reelaborates_only_that_command`]（`== 1`，**不许放宽** ✗）。
     elaborated_commands: u64,
 }
 
@@ -271,23 +271,25 @@ fn edit_last_decl(text: &str) -> String {
     format!("{}{}{}", &text[..at], edited, &text[end..])
 }
 
-/// **T2-B 的"先建先红"**（2026-10-09）：今天，**改最后一条命令**也要把入口趟的
-/// **每一条命令**从头重走一遍 ✗（命令级环境快照未做）。
+/// **T2-B 的判据**（2026-10-09 落地 · 2026-10-13 订正注释）：改**最后一条命令**时，
+/// 入口趟**只 elaborate 那一条** ✓ —— 命令级环境快照（`WalkCheckpoint` +
+/// `checkpoint()`/`restore_from()`）命中检查点 ⇒ 前缀整段跳过 ✓。
 ///
 /// ## 判据（`PLAN-align-lean4` §3.3 T2-B）
 ///
-/// 改**最后一条** ⇒ [`elaborated_commands_total`] 的增量 = **1**（今天 = 入口命令数
-/// N = [`ENTRY_COMMANDS`]，另加库层那几条）；改第 k 条 ⇒ N−k+1。
-/// **反向验证**：改依赖文件 ⇒ 回到 N。
+/// 改**最后一条** ⇒ [`elaborated_commands_total`] 的增量 = **1** ✓（改前 = 入口命令数
+/// N = [`ENTRY_COMMANDS`]，另加库层那几条）；改第 k 条 ⇒ N−k+1（⚠ 通用窗口**仍未做** ✗，
+/// 见 `docs/perf/ledger.jsonl` 的 `t2b_command_level_env_snapshot` 诚实边界）。
+/// **反向验证**：改依赖文件 ⇒ 回到 N；逃生门 `SOKO_NO_ENTRY_SNAPSHOT=1`
+/// （`project/session.rs`）⇒ 回到"整条重走"⇒ 本判据**判红** ✓。
 ///
-/// ## 为什么这条现在断言的是"今天的行为"
+/// ## 这条名字为什么改过（`still_reelaborates…` ⇒ `reelaborates_only_that_command`）
 ///
-/// T2-B 是多环节件（命令级快照要连 **walk 的累加器**一起留：`known`/`inductives`/
-/// `defs`/`out`/`ops`…，且跨按键要留住 arena）⇒ 本轮先把**读数**立起来 ✓。
-/// **先建先红**的纪律照 T2-B0 的先例：**T2-B 落地后把这里改判成 `== 1`，
-/// 不许放宽** ✗。
+/// 它原名 `t2b_last_command_edit_still_reelaborates_every_entry_command`，是**先建先红**
+/// 阶段的名字（那时断言的是"今天的行为 = 每刀恒 N"）。T2-B 落地后判据已经改成 `== 1`，
+/// 名字却还在说旧事 ⇒ **名字也是注释**，同样会误导下一个读它的人 ✗ ⇒ 一并订正 ✓。
 #[test]
-fn t2b_last_command_edit_still_reelaborates_every_entry_command() {
+fn t2b_last_command_edit_reelaborates_only_that_command() {
     let (entry, text) = gen_project("t2b");
     let mut doc = open_doc(&entry, &text);
     let base = Counters::now();

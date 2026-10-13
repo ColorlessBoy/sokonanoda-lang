@@ -854,8 +854,11 @@ pub fn note_module_compile() {
 /// 的分工见 `run_pass_with` 里的长注释：那个把 **judge 合成文档**也算进去（且**漏掉**
 /// 会话路），这个**只数真模块**、且**老路/会话路同口径**。
 ///
-/// 「改一行 ⇒ 整条闭包重编」的正身就是它：冷开 = 闭包模块数（5）· 改一行 = 库层 + 入口
-/// （4 + 1 = 5，今天）· 修好之后应当是 **1**（只重编入口）。
+/// 「改一行 ⇒ 整条闭包重编」的正身就是它：冷开 = 闭包模块数（5）· **改一行 = 1**
+/// （只重编入口）✓ —— **G-29 已收口**（库层检查点跨调用复用，设计 §33）：库层那 4 个
+/// 模块的源文本一个字节没变 ⇒ 不再重编。判据
+/// `crates/front/tests/g29_closure_recompile.rs::g29_edit_recompiles_the_whole_closure`
+/// 断言 `edit == 1`（**不许放宽** ✗）。
 #[doc(hidden)]
 pub fn closure_module_compiles_total() -> u64 {
     stage_stats::CLOSURE_MODULE_COMPILES.load(std::sync::atomic::Ordering::Relaxed)
@@ -864,13 +867,15 @@ pub fn closure_module_compiles_total() -> u64 {
 /// **T2-B 的判据读数**：入口趟**真的 elaborate 了几条命令**。
 ///
 /// **判据**（`PLAN-align-lean4` §3.3 T2-B）：改**最后一条**命令 ⇒ 这个增量 = **1**
-/// （今天 = 入口文件的命令数 N）；改第 k 条 ⇒ N−k+1。**反向验证**：改依赖文件
-/// ⇒ 回到 N。与 [`closure_module_compiles_total`] 的分工：那个数**模块**、
+/// ✓（**T2-B 已落地**：命令级环境快照 `WalkCheckpoint` + `checkpoint()`/`restore_from()`）；
+/// 改第 k 条 ⇒ N−k+1（⚠ 通用窗口**仍未做** ✗，见 `docs/perf/ledger.jsonl` 的
+/// `t2b_command_level_env_snapshot` 诚实边界）。**反向验证**：改依赖文件 ⇒ 回到 N；
+/// 逃生门 `SOKO_NO_ENTRY_SNAPSHOT=1`（`project/session.rs`）⇒ 回到 T2-B 之前的
+/// "整条重走" ✓。与 [`closure_module_compiles_total`] 的分工：那个数**模块**、
 /// 这个数**命令**（入口趟内部的粒度 ✓）。
 ///
 /// ⚠ 它是**进程级累计**（`atexit` 打，同 [`by_calls_total`] 纪律）⇒ 判据一律
-/// **前后取差** ✓。今天**还没有**命令级快照 ⇒ 每刀恒 = N（**先建先红**：这条读数
-/// 先写死"今天的行为"，T2-B 落地后**改判成 1，不许放宽** ✗）。
+/// **前后取差** ✓。
 #[doc(hidden)]
 pub fn elaborated_commands_total() -> u64 {
     stage_stats::TL_ELABORATED.with(|c| c.get())
