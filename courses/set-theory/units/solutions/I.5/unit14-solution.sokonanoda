@@ -62,7 +62,7 @@ theorem wellFounded_irrefl (α : Type) (r : α → α → Prop)
             (fun (hnot : ¬ (r a m)) => (fun (ham : r a m) => hnot ham) (And.left hmm))
               ((fun (hall : ∀ (y : α), (r a) y → ¬ (r y m)) => hall a haa) (And.right hmm))))
         (hasMin_elim α r (r a) hm))
-      (wellFounded_hasMin α r h (r a) (Exists.intro α (r a) a haa))
+      (wellFounded_hasMin α r h (r a) (Exists.intro a haa))
 
 -- ── 练习 7（L 类）：子关系保持良基 ─────────────────────────────────────────
 theorem wellFounded_of_subrelation (α : Type) (r s : α → α → Prop)

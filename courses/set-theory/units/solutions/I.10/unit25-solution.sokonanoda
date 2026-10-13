@@ -63,7 +63,7 @@ theorem classes_nonempty (α : Type) (r : Rel α α) (he : IsEquivalence α r)
   Exists.elim α (fun (a : α) => ∀ (c : α), C c ↔ r a c) (∃ (a : α), C a)
     ((fun (hs : ∃ (a : α), ∀ (c : α), C c ↔ r a c) => hs) hC)
     (fun (a : α) (ha : ∀ (c : α), C c ↔ r a c) =>
-      Exists.intro α (fun (a' : α) => C a') a
+      Exists.intro a
         (Iff.mpr (ha a) ((fun (hu : ∀ (x : α), r x x) => hu a) (equivalence_refl α r he))))
 
 theorem classes_cover (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a : α) :

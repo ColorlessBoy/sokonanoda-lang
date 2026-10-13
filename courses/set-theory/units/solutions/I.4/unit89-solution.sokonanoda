@@ -42,7 +42,7 @@ theorem surj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β �
       (fun (b : β) (hb : g b = c) =>
         Exists.elim α (fun (a : α) => f a = b) (∃ (a : α), g (f a) = c) (hf b)
           (fun (a : α) (ha : f a = b) =>
-            Exists.intro α (fun (x : α) => g (f x) = c) a
+            Exists.intro a
               (Eq.subst.{1} β (fun (x : β) => g x = c) b (f a) (Eq.symm.{1} β (f a) b ha)
                 hb)))
 

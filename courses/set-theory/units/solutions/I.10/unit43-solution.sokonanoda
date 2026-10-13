@@ -56,14 +56,14 @@ theorem equivClass_eq_of_mem (α : Type) (r : Rel α α) (h : IsEquivalence α r
 
 theorem classes_mem (α : Type) (r : Rel α α) (a : α) :
     Rel.Classes α r (Rel.EquivClass α r a) :=
-  Exists.intro α (fun (b : α) => ∀ (c : α), Rel.EquivClass α r a c ↔ r b c) a
+  Exists.intro a
     (fun (c : α) => Rel.mem_equivClass α r a c)
 
 theorem classes_nonempty (α : Type) (r : Rel α α) (heq : IsEquivalence α r) (C : α → Prop)
     (h : Rel.Classes α r C) : ∃ (a : α), C a :=
   Exists.elim α (fun (b : α) => ∀ (c : α), C c ↔ r b c) (∃ (a : α), C a) h
     (fun (b : α) (hb : ∀ (c : α), C c ↔ r b c) =>
-      Exists.intro α C b (Iff.mpr (hb b) (equivalence_refl α r heq b)))
+      Exists.intro b (Iff.mpr (hb b) (equivalence_refl α r heq b)))
 
 theorem equivClass_subset_self (α : Type) (r : Rel α α) (a c : α)
     (h : Rel.EquivClass α r a c) : Rel.EquivClass α r a c :=

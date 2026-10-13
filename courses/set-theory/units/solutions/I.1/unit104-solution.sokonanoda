@@ -40,4 +40,4 @@ theorem not_forall_imp_exists (α : Type) (P : α → Prop) (h : ¬ (∀ (x : α
     ∃ (x : α), P x :=
   Classical.byContradiction (∃ (x : α), P x)
     (fun (hne : ¬ (∃ (x : α), P x)) =>
-      h (fun (x : α) (hx : P x) => hne (Exists.intro α P x hx)))
+      h (fun (x : α) (hx : P x) => hne (Exists.intro x hx)))

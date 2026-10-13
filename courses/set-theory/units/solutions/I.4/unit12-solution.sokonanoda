@@ -114,7 +114,7 @@ theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
           (fun (x : α) => (Set.univ α x) ∧ ((f x) = y))
           (y ∈ f '' (f ⁻¹' C)) (hC y hy)
           (fun (x : α) => fun (hx : (Set.univ α x) ∧ ((f x) = y)) =>
-            Exists.intro α (fun (t : α) => t ∈ f ⁻¹' C ∧ f t = y) x
+            Exists.intro x
               (And.intro (x ∈ f ⁻¹' C) (f x = y)
                 (Eq.subst.{1} β (fun (z : β) => z ∈ C) y (f x)
                   (Eq.symm.{1} β (f x) y (And.right hx)) hy)
@@ -131,11 +131,11 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
         Exists.elim α (fun (x : α) => ((A ∩ B) x) ∧ (f x = y)) (y ∈ f '' A ∧ y ∈ f '' B) hy
           (fun (x : α) => fun (hx : (x ∈ A ∩ B) ∧ (f x = y)) =>
             And.intro (y ∈ f '' A) (y ∈ f '' B)
-              (Exists.intro α (fun (t : α) => t ∈ A ∧ f t = y) x
+              (Exists.intro x
                 (And.intro (x ∈ A) (f x = y)
                   (And.left (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                   (And.right hx)))
-              (Exists.intro α (fun (t : α) => t ∈ B ∧ f t = y) x
+              (Exists.intro x
                 (And.intro (x ∈ B) (f x = y)
                   (And.right (And.left hx))
                   (And.right hx)))))
@@ -148,7 +148,7 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
             Exists.elim α (fun (x : α) => (B x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
               (And.right hy)
               (fun (x2 : α) => fun (hx2 : (B x2) ∧ ((f x2) = y)) =>
-                Exists.intro α (fun (t : α) => t ∈ A ∩ B ∧ f t = y) x1
+                Exists.intro x1
                   (And.intro (x1 ∈ A ∩ B) (f x1 = y)
                     (And.intro (A x1) (B x1)
                       (And.left hx1)
@@ -350,7 +350,7 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
             (fun (x : α) => fun (hx : (x ∈ A) ∧ ((g ∘ f) x = y)) =>
               Exists.intro β (fun (b : β) => b ∈ f '' A ∧ g b = y) (f x)
                 (And.intro (f x ∈ f '' A) (g (f x) = y)
-                  (Exists.intro α (fun (t : α) => t ∈ A ∧ f t = f x) x
+                  (Exists.intro x
                     (And.intro (x ∈ A) (f x = f x)
                       (And.left hx)
                       (Eq.refl.{1} β (f x))))
@@ -364,7 +364,7 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
                 (y ∈ (g ∘ f) '' A)
                 (And.left hb)
                 (fun (x : α) => fun (hx : (A x) ∧ ((f x) = b)) =>
-                  Exists.intro α (fun (t : α) => (A t) ∧ ((g ∘ f) t) = y) x
+                  Exists.intro x
                     (And.intro (A x) (((g ∘ f) x) = y)
                       (And.left hx)
                       (Eq.trans.{1} γ (g (f x)) (g b) y

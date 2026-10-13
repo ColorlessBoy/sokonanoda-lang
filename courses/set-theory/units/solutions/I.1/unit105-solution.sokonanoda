@@ -18,7 +18,7 @@ theorem not_exists_iff_forall_not (α : Type) (P : α → Prop) :
     ¬ (∃ (x : α), P x) ↔ ∀ (x : α), ¬ (P x) :=
   Iff.intro (¬ (∃ (x : α), P x)) (∀ (x : α), ¬ (P x))
     (fun (h : ¬ (∃ (x : α), P x)) =>
-      fun (x : α) (hx : P x) => h (Exists.intro α P x hx))
+      fun (x : α) (hx : P x) => h (Exists.intro x hx))
     (fun (h : ∀ (x : α), ¬ (P x)) =>
       fun (hex : ∃ (x : α), P x) =>
         Exists.elim α P False hex (fun (x : α) (hx : P x) => h x hx))

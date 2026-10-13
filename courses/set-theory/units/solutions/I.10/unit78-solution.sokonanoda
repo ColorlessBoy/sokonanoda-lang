@@ -22,8 +22,7 @@ theorem classes_of_equivClass (α : Type) (r : Rel α α) (a : α) :
     Rel.Classes α r (Rel.EquivClass α r a) :=
   (fun (hu : Rel.Classes α r (Rel.EquivClass α r a) ↔
       ∃ (b : α), ∀ (c : α), Rel.EquivClass α r a c ↔ r b c) =>
-    Iff.mpr hu (Exists.intro α
-      (fun (b : α) => ∀ (c : α), Rel.EquivClass α r a c ↔ r b c) a
+    Iff.mpr hu (Exists.intro a
       (fun (c : α) => Rel.mem_equivClass α r a c)))
     (Rel.mem_classes α r (Rel.EquivClass α r a))
 
@@ -33,7 +32,7 @@ theorem mem_of_class (α : Type) (r : Rel α α) (C : α → Prop) (a : α)
     ((fun (hu : Rel.Classes α r C ↔ ∃ (b : α), ∀ (c : α), C c ↔ r b c) => Iff.mp hu hC)
       (Rel.mem_classes α r C))
     (fun (b : α) (hb : ∀ (c : α), C c ↔ r b c) =>
-      Exists.intro α (fun (d : α) => r d a) b ((Iff.mp (hb a)) ha))
+      Exists.intro b ((Iff.mp (hb a)) ha))
 
 theorem class_mem_iff (α : Type) (r : Rel α α) (he : IsEquivalence α r) (C : α → Prop)
     (a : α) (b : α) (hC : Rel.Classes α r C) (ha : C a) (hb : C b) : r a b :=

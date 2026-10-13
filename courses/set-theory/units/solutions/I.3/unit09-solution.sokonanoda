@@ -305,7 +305,7 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
                   (fun (g : β → α) =>
                     fun (hg : Set.MapsTo β α g B A ∧
                                   (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) =>
-                      Exists.intro α A (g y)
+                      Exists.intro (g y)
                         (And.left (Set.MapsTo β α g B A)
                           ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hg y hy)))))
 

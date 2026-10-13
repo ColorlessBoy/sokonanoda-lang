@@ -259,12 +259,12 @@ theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
       ((y ∈ (f '' A)) ∧ (y ∈ (f '' B))) h
       (fun (x : α) => fun (hx : (x ∈ (A ∩ B)) ∧ ((f x) = y)) =>
         And.intro (y ∈ (f '' A)) (y ∈ (f '' B))
-          (Exists.intro α (fun (t : α) => (A t) ∧ ((f t) = y)) x
+          (Exists.intro x
             (And.intro (A x) ((f x) = y)
               (And.left (A x) (B x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (And.left hx))
               (And.right hx)))
-          (Exists.intro α (fun (t : α) => (B t) ∧ ((f t) = y)) x
+          (Exists.intro x
             (And.intro (B x) ((f x) = y)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (And.right (A x) (B x)
                 (And.left hx))

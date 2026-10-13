@@ -79,7 +79,7 @@ theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
             ((fun (hall : ∀ (y : α), (fun (z : α) => E x z) y → ¬ (E y m)) =>
               hall x hxx) (And.right hmm))))
       (wellFounded_hasMin α E (ordinal_wellFounded α E x h) (fun (z : α) => E x z)
-        (Exists.intro α (fun (z : α) => E x z) x hxx))
+        (Exists.intro x hxx))
 
 -- ── 练习 5（T 类）：序数之间没有 2-循环 ───────────────────────────────────
 theorem ordinal_asymmetric (α : Type) (E : α → α → Prop) (x y : α)

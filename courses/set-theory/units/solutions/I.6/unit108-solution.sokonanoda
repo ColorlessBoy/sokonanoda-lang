@@ -92,7 +92,7 @@ theorem pred_subset_of_no_gap (α : Type) (E : α → α → Prop) (x : α) (y :
   fun (w : α) (hwx : E w x) =>
     Classical.byContradiction (E w y)
       (fun (hnwy : ¬ (E w y)) =>
-        hno (Exists.intro α (fun (w' : α) => E w' x ∧ ¬ (E w' y)) w
+        hno (Exists.intro w
           (And.intro hwx hnwy)))
 
 theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α)

@@ -39,7 +39,7 @@ theorem injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
 theorem surjective_comp_core (α β γ : Type) (f : α → β) (g : β → γ) (c : γ)
     (a : α) (b : β) (ha : Eq.{1} β (f a) b) (hb : Eq.{1} γ (g b) c) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     ∃ (a1 : α), Eq.{1} γ (g (f a1)) c :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-  Exists.intro α (fun (a1 : α) => Eq.{1} γ (g (f a1)) c) a  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Exists.intro a  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     (Eq.trans.{1} γ (g (f a)) (g b) c
       (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} γ (g u) (g v)) (f a) (f a) b ha  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         (Eq.refl.{1} γ (g (f a)))) hb)
