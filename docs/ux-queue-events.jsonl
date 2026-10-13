@@ -204,3 +204,5 @@
 {"ts": "2026-10-12T23:56:23+00:00", "event": "release", "id": "W-3", "owner": "COURSE-G", "reason": "courseG 收工（3 commit 已落地并验证）⇒ 归还槽位与 courses/set-theory"}
 {"ts": "2026-10-12T23:56:23+00:00", "event": "claim", "id": "r23", "owner": "orchestrator", "resources": ["courses/set-theory"]}
 {"ts": "2026-10-12T23:56:24+00:00", "event": "advance", "id": "r23", "to": "done", "commit": "be0fd5b3", "reading": "r23 探针 exit 0→1（FIXED: 已提供具名搬运引理）· 文件内 Eq.subst 剩余 0 · check.py exit 0（258 目标 0 判负）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-12T23:59:45+00:00", "event": "triage", "id": "SUB-agenthost-patch", "to": "applied", "reason": "补丁已应用并逐条复验（含反向验证）", "commit": "4b687511", "owner": "penglingwei@penglingweis-Laptop"}
+{"ts": "2026-10-12T23:59:45+00:00", "event": "triage", "id": "SUB-copilot-signin-agenthost", "to": "applied", "reason": "补丁已应用并逐条复验（含反向验证）", "commit": "4b687511", "owner": "penglingwei@penglingweis-Laptop"}
