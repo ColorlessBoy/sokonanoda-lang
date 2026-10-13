@@ -566,12 +566,20 @@ pub fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNot
 pub fn display_notations_from_commands(
     commands: &[crate::ast::Command],
 ) -> crate::display::DisplayNotations {
-    // **关掉折叠的开关**（诊断/判别性测试用）：`SOKO_NO_NOTATION_FOLD=1` ⇒ 空表 ⇒
-    // `print_back` 原样返回。它存在的意义是证明"那几条 surface 测试真的抓得住"
-    // ——关掉之后它们**必须全红**（T-C24 的判别性判据）。仿 `SOKO_NO_JUDGE_BATCH`。
-    if std::env::var_os("SOKO_NO_NOTATION_FOLD").is_some() {
-        return crate::display::DisplayNotations::default();
-    }
+    // **关掉折叠的开关**（诊断/判别性测试用）：`SOKO_NO_NOTATION_FOLD=1` ⇒
+    // `fold` 原样返回（见末尾的 `.with_no_fold()` ✓）。它存在的意义是证明"那几条
+    // surface 测试真的抓得住" —— 关掉之后它们**必须全红**（T-C24 的判别性判据）。
+    // 仿 `SOKO_NO_JUDGE_BATCH`。
+    //
+    // ⚠ **只关折叠、不关记法表**（r20，2026-10-13 ✓）：这里以前**提前返回**
+    // `DisplayNotations::default()`（**空表**）⇒ 显示层的**安全检查**
+    // （`strip_redundant_parens` 要把文本读回来才能判"括号冗不冗余"）在关掉那一态
+    // **瞎了** ✗ ⇒ 同一段文本在开关两态之间多出"括号删没删"的差别 ⇒
+    // `crates/cli/tests/notation_fold.rs`（2026-09-26 收紧）的
+    // 「两态只许差箭头别名」当场判红 ✗ —— 这就是 2026-10-13 的第二次同形事故 ✓。
+    // ⇒ 现在表**照旧建**，只在末尾挂 `no_fold`（`fold` 一步都不做 ✓）⇒
+    // 删除决策与开关**无关** ✓。
+    let no_fold = std::env::var_os("SOKO_NO_NOTATION_FOLD").is_some();
     let mut table = crate::notation::notation_table(commands);
     // **内建记法要自己补**（`↔`/`∧`/`∨`/`¬`/`=`/`≠` 不在任何源文本里，
     // parser 有硬编码表）——否则 `Iff` 永远折不成 `↔`。
@@ -623,7 +631,13 @@ pub fn display_notations_from_commands(
             arities.len()
         );
     }
-    crate::display::DisplayNotations::new(table, arities).with_implicit_prefix(implicit_prefixes)
+    let built = crate::display::DisplayNotations::new(table, arities)
+        .with_implicit_prefix(implicit_prefixes);
+    if no_fold {
+        built.with_no_fold()
+    } else {
+        built
+    }
 }
 
 /// **给 front 之外的消费者（LSP hover 等）折一段文本**（T-U11 A 组 ✓ 2026-09-25）。

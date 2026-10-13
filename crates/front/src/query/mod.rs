@@ -1426,7 +1426,10 @@ impl QueryDoc {
             // `by_step_states` 里已经折过（幂等 ✓），而**根状态退回的
             // `d.goal`** 是**判定文本**、一个字节都不能折 ✗ ⇒ 折发生在这里
             // （wire 的 `goal` + `goal_runs` 都取自折过的那一份 ⇒ 同源 ✓）。
-            let goal = self.display.fold(&g.ty);
+            // **r20**：折之后再去冗余括号（同一个 `display_copy` ⇒ 与
+            // `goals` 那边的 `goal` 逐字节一致 ✓ —— 同一个 `d.goal` 在两个视图里
+            // 必须长得一样 ✗）。
+            let goal = self.display_copy(&g.ty);
             GoalInfo {
                 goal_runs: if want_runs {
                     self.runs(&decls, &notations, &goal, &names)
@@ -1438,7 +1441,7 @@ impl QueryDoc {
                     .binders
                     .iter()
                     .map(|b| {
-                        let ty = self.display.fold(&b.ty);
+                        let ty = self.display_copy(&b.ty);
                         BinderInfo {
                             name: b.name.clone(),
                             ty_runs: if want_runs {
@@ -1583,7 +1586,7 @@ impl QueryDoc {
                     .get(check.span.start.offset..check.span.end.offset)
                     .unwrap_or("")
                     .trim();
-                let ty = self.display.fold(&check.text);
+                let ty = self.display_copy(&check.text);
                 // 与 Lean 的 `logInfoAt tk m!"{e} : {type}"` 同形 ✓
                 let text = format!("{expr} : {ty}");
                 out.push(StateMessage {
@@ -1654,8 +1657,10 @@ impl QueryDoc {
     ) -> DeclInfo {
         let name = decl_name(d);
         let binder_names: Vec<String> = d.binders.iter().map(|b| b.name.clone()).collect();
-        let ty_runs = d
-            .ty_text
+        // **r20**：`ty` 与 `ty_runs` 必须取自**同一份**显示副本（成对性不变量：
+        // `runs` 拼回来要逐字节等于 `ty` ✓）⇒ 先算一次，两处共用 ✓。
+        let ty_display: Option<String> = d.ty_text.as_deref().map(|ty| self.display_copy(ty));
+        let ty_runs = ty_display
             .as_deref()
             .map(|ty| self.runs(decls, notations, ty, &binder_names))
             .unwrap_or_default();
@@ -1675,7 +1680,7 @@ impl QueryDoc {
         // `d.goal.clone()` ⇒ 非 `by` 的开放练习在 Infoview 里显示的
         // 是未折的 `Prop -> Prop` ✗（T-U4 的注释写着"显示副本"，
         // 但它当时并没有折 ✗）。
-        let goal_display: Option<String> = d.goal.as_deref().map(|g| self.display.fold(g));
+        let goal_display: Option<String> = d.goal.as_deref().map(|g| self.display_copy(g));
         // 最后一步的全部未闭合目标（当前在前）；非 `by` 的开练习回退到
         // 走查得到的那个目标。**文本与 runs 必须成对产出**（T-A5）：只给
         // 文本不给 runs，声明卡片就只能画纯文本——那正是 R-2 的
@@ -1683,7 +1688,7 @@ impl QueryDoc {
         let goals: Vec<String> = if open {
             d.by_steps
                 .last()
-                .map(|s| s.goals.iter().map(|g| g.ty.clone()).collect())
+                .map(|s| s.goals.iter().map(|g| self.display_copy(&g.ty)).collect())
                 .unwrap_or_else(|| goal_display.clone().into_iter().collect())
         } else {
             Vec::new()
@@ -1698,7 +1703,7 @@ impl QueryDoc {
             status: status_str(d.status).to_string(),
             start: d.span.start.offset,
             end: d.span.end.offset,
-            ty: d.ty_text.clone(),
+            ty: ty_display.clone(),
             ty_runs,
             value: d.val_text.clone(),
             value_runs: d
@@ -1723,7 +1728,7 @@ impl QueryDoc {
                 .binders
                 .iter()
                 .map(|b| {
-                    let ty = self.display.fold(&b.ty);
+                    let ty = self.display_copy(&b.ty);
                     BinderInfo {
                         name: b.name.clone(),
                         ty_runs: self.runs(decls, notations, &ty, &binder_names),
@@ -1769,7 +1774,7 @@ impl QueryDoc {
                             //    这一半（主洞回到 `ty: null`，r13 探针回到 exit 0）。
                             ty: sub
                                 .and_then(|s| s.ty.as_deref())
-                                .map(|t| self.display.fold(t))
+                                .map(|t| self.display_copy(t))
                                 .or_else(|| {
                                     if legacy_holes_no_main_goal() {
                                         None
@@ -1794,7 +1799,7 @@ impl QueryDoc {
                     .map(|sub| SubGoalInfo {
                         start: sub.span.start.offset,
                         end: sub.span.end.offset,
-                        ty: sub.ty.as_deref().map(|t| self.display.fold(t)),
+                        ty: sub.ty.as_deref().map(|t| self.display_copy(t)),
                     })
                     .collect()
             } else {
@@ -1880,6 +1885,27 @@ impl QueryDoc {
     /// LSP hover 的「此处 `sorry` 的期望类型」）✓。
     pub fn fold_display(&self, text: &str) -> String {
         self.display.fold(text)
+    }
+
+    /// **wire 显示副本的唯一入口**（r20，2026-10-13）：折记法 + 去**冗余**括号。
+    ///
+    /// `fold` 幂等（`display.rs` 的注释 ✓）⇒ 对**已经折过**的文本（`ty_text` /
+    /// `by_steps` 那些）再折一次不改变结果 ✓；去括号的放行条件是**重解析等价**
+    /// （`display.rs::strip_redundant_parens` 的三条判据 ✓ —— 读不回来 / 内容不是
+    /// 表达式 / 规范形态不同 ⇒ 一个字不动）。
+    ///
+    /// ⚠ **删除决策与折叠开关无关**（r20 第二次同形事故的修法 ✓）：
+    /// `SOKO_NO_NOTATION_FOLD=1` 现在只关折叠、**表照旧在**
+    /// （`DisplayNotations::no_fold` ✓）⇒ 本方法在开关两态之间**只差箭头别名** ✓
+    /// （判据：`crates/cli/tests/notation_fold.rs` 的两条「只许差箭头别名」✓）。
+    ///
+    /// ⚠ **只给 wire 用**：`DeclState` 里那些**判定文本**（`d.goal` /
+    /// `d.sub_goals[].ty` / `d.binders[].ty` —— `suggest.rs::hole_goal_text` 把它们
+    /// 当 `OpenGoalSpec.ty` **回读**去算 exact/rfl 建议）**一个字节都不许过这里** ✗
+    /// （那是判定输入，改了就是改判定 —— 内核红线）。本方法只做"另做一份给用户看" ✓。
+    fn display_copy(&self, text: &str) -> String {
+        self.display
+            .strip_redundant_parens(&self.display.fold(text))
     }
 
     /// 请求期内核探针后的报告：只补开放练习里 `sub_goals[i].ty == None` 的项

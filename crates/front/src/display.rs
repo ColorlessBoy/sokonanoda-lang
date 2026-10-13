@@ -132,6 +132,19 @@ pub struct DisplayNotations {
     /// 与 `arity` 成对使用：完全应用的两种 pp 形状就是 `arity` 与
     /// `arity - implicit_prefix` 两个实参个数。
     implicit_prefix: HashMap<String, usize>,
+    /// **只关折叠、不关记法表**（`SOKO_NO_NOTATION_FOLD=1`，r20/2026-10-13 ✓）。
+    ///
+    /// 那个开关以前让建表**返回空表** ⇒ `fold` 原样返回 ✓，但**安全检查也瞎了** ✗：
+    /// [`Self::strip_redundant_parens`] 要靠表把文本**读回来**，空表读不回
+    /// `⊆`/`∈` ⇒ 关掉折叠那一态**一个字都不删**、开着那一态照删 ⇒
+    /// 同一段文本在开关两态之间**除了箭头别名还差一对括号** ✗ ——
+    /// 正是 `crates/cli/tests/notation_fold.rs`（2026-09-26 收紧）当场抓住的那条契约 ✗。
+    /// ⇒ 开关从此**只关折叠**（表照旧在 ✓）⇒ 删除决策与开关**无关** ✓
+    /// （判据：`notation_fold.rs` 的两条「只许差箭头别名」✓）。
+    ///
+    /// ⚠ **默认 `false` = 折叠开启**（`Default` 派生 ⇒ 缺省即老行为 ✓，
+    /// 谁忘了设这个字段也**不会**静默关掉折叠 ✗）。
+    no_fold: bool,
 }
 
 impl DisplayNotations {
@@ -167,6 +180,9 @@ impl DisplayNotations {
             table,
             arity,
             implicit_prefix,
+            // 任一张表被要求"别折"⇒ 合并结果也别折 ✓（与 `table` 的合并方向无关：
+            // 折叠是**全局开关**，不是逐表的 ✓）。
+            no_fold: self.no_fold || other.no_fold,
         }
     }
 
@@ -176,12 +192,22 @@ impl DisplayNotations {
             table,
             arity,
             implicit_prefix: HashMap::new(),
+            no_fold: false,
         }
     }
 
     /// 链式补上「前导隐式个数」表（[`Self::new`] 的签名保持不变的原因见那里）。
     pub fn with_implicit_prefix(mut self, implicit_prefix: HashMap<String, usize>) -> Self {
         self.implicit_prefix = implicit_prefix;
+        self
+    }
+
+    /// 链式**关掉折叠、但保留记法表**（`SOKO_NO_NOTATION_FOLD` 的唯一入口，r20 ✓）。
+    ///
+    /// 与 `DisplayNotations::default()`（空表）的差别见 [`Self::no_fold`] 的注释：
+    /// 空表会让**安全检查**也失效 ⇒ 开关两态之间多出"括号删没删"的差别 ✗。
+    pub fn with_no_fold(mut self) -> Self {
+        self.no_fold = true;
         self
     }
 
@@ -199,6 +225,7 @@ impl DisplayNotations {
             table,
             arity,
             implicit_prefix: HashMap::new(),
+            no_fold: false,
         }
     }
 
@@ -287,6 +314,11 @@ fn fold_once(text: &str, notations: &DisplayNotations) -> String {
 impl DisplayNotations {
     /// 唯一转化入口：**文本 → 带记法的文本** ✓。
     pub fn fold(&self, text: &str) -> String {
+        // **只关折叠**（`SOKO_NO_NOTATION_FOLD`，r20）：表照旧在（安全检查要用 ✓），
+        // 但转化**一步都不做** ⇒ 与"空表"那一态逐字节相同 ✓（判别性判据不变 ✓）。
+        if self.no_fold {
+            return text.to_string();
+        }
         // **作用域缓存命中** ⇒ 直接返回 ✓（见 `with_fold_cache` 的注释与 parity 判据 ✓）。
         if let Some(hit) =
             FOLD_CACHE.with(|c| c.borrow().as_ref().and_then(|m| m.get(text).cloned()))
@@ -305,6 +337,119 @@ impl DisplayNotations {
     /// 唯一转化入口（AST 版 ✓）：渲染**之后必过折叠** ✓。
     pub fn render(&self, expr: &Expr) -> String {
         self.fold(&crate::proof::render_expr(expr))
+    }
+
+    /// **显示副本专用**：去掉**冗余**括号（r20，2026-10-13 ✓）。
+    ///
+    /// ## 为什么需要它
+    ///
+    /// `render_expr`（**判定回读通道**的渲染器）对操作数**保守补括号**
+    /// （`proof.rs::render_atom` 的表里同时有 `Notation` 与 `SetLiteral`）⇒
+    /// 源码写 `{a} ⊆ A`、Infoview 显示 `({a}) ⊆ A`，`↔` 目标更是
+    /// `(({a}) ⊆ A) ↔ (a ∈ A)`（r20）。**不许**动 `render_atom`：它的输出是
+    /// `judge.rs` 回读的输入（frontD 实测：去掉 `Notation` 那一格 ⇒
+    /// `cargo test -p sokonanoda-front --lib` **954 passed / 14 failed**，判定路径 ✗）。
+    ///
+    /// ## 判据：**重解析等价**（唯一的放行条件）
+    ///
+    /// 1. 原文本先**读得回来**（`proof::parse_expr_text_with` —— 就是 `judge.rs`
+    ///    用的那条回读通道，记法表用 `self.table`）；读不回来 ⇒ **一个字都不动** ✓。
+    /// 2. 被删的那对括号，**内容自己也要能当表达式读回来**（`proof::parse_expr_text_with`）
+    ///    —— 这一条把 `∀ (α : Type 0) (A : Set α), …` 的**绑元组**排除掉 ✓：
+    ///    `A : Set α` 不是表达式（实测读不回来）⇒ 那对括号**留着** ✓。少了它，
+    ///    实测 unit01 的 `ty` 会被改成 `∀ (α : Type 0) (a : α) A : Set α, …`
+    ///    —— 读回来虽然等价，但**不是给人看的写法** ✗（绑元组括号是 Lean 的形状 ✓）。
+    /// 3. 候选文本**再读一遍**，且 `render_expr(候选) == render_expr(原文)`
+    ///    （**规范形态逐字节相同** ⇒ 两棵 AST 同构；`render_expr` 本来就是
+    ///    "回读不变"的规范渲染器 ✓）。不等 ⇒ 那对括号**不冗余**
+    ///    （`(p → q) ∧ r` 去掉就换意思 ✗）⇒ 保留 ✓。
+    ///
+    /// ## ⚠ 删除决策**必须与折叠开关无关**（2026-10-13 第二次同形事故的教训）
+    ///
+    /// 上一版把这一步接在"开关两态"上时，用的是**当时那份表**——而
+    /// `SOKO_NO_NOTATION_FOLD=1` 那条路以前给的是**空表** ⇒ 关掉折叠那一态
+    /// **读不回** `⊆`/`∈` ⇒ 一个字都不删；开着那一态照删 ⇒ 同一段文本在开关两态
+    /// 之间**除了箭头别名还差一对括号** ✗ ⇒ `crates/cli/tests/notation_fold.rs`
+    /// （2026-09-26 有意收紧的契约）当场判红 ✗。
+    /// ⇒ 现在那条开关**只关折叠**（[`Self::no_fold`]：表照旧在 ✓）⇒ 本函数的
+    /// 输入、判据、输出**两态同形** ⇒ 契约的那条判据由构造保证 ✓。
+    ///
+    /// **收敛**：只数**成功删掉的**括号（每次至少少 2 字节）⇒ 趟数上界 = 原括号数 ✓
+    /// （第一版数的是**尝试次数** ⇒ 预算耗尽时留下"删一半"的结果 ✗ —— 实测
+    /// unit01 的 `ty` 里 `({a})` 没删掉而 `h : ({a}) ⊆ A` 删掉了，两处**不一致** ✗）。
+    /// 只删括号、**不重排一个字节**；括号不配平 / 一步都删不动 ⇒ 原样返回 ✓。
+    ///
+    /// ⚠ **只给 wire 显示副本用**（`query::QueryDoc::display_copy`）—— `DeclState`
+    /// 里那些**判定文本**（`d.goal` / `d.sub_goals[].ty` / `d.binders[].ty`，
+    /// `suggest.rs` 的 `OpenGoalSpec` 回读它们）一个字节都不许过这里 ✓。
+    pub fn strip_redundant_parens(&self, text: &str) -> String {
+        if !text.contains('(') {
+            return text.to_string();
+        }
+        let Ok(base) = crate::proof::parse_expr_text_with(text, &self.table) else {
+            return text.to_string();
+        };
+        let canonical = crate::proof::render_expr(&base);
+        let mut current = text.to_string();
+        // 成功删除的次数上界 = 原括号对数（每次删除都让文本短 2 字节）✓。
+        let mut removals = text.matches('(').count();
+        loop {
+            let bytes = current.as_bytes();
+            let mut open = 0usize;
+            let mut removed = false;
+            while open < bytes.len() {
+                if bytes[open] != b'(' {
+                    open += 1;
+                    continue;
+                }
+                // 找与它配对的 `)`（字符串层面；显示文本里没有字符串字面量）。
+                let mut depth = 0i32;
+                let mut close = open;
+                while close < bytes.len() {
+                    match bytes[close] {
+                        b'(' => depth += 1,
+                        b')' => {
+                            depth -= 1;
+                            if depth == 0 {
+                                break;
+                            }
+                        }
+                        _ => {}
+                    }
+                    close += 1;
+                }
+                if close >= bytes.len() {
+                    break; // 不配平 ⇒ 不再试（保守）
+                }
+                // ② 内容必须是**独立表达式**（绑元组 `A : Set α` 不是 ⇒ 留括号 ✓）。
+                let content = &current[open + 1..close];
+                if crate::proof::parse_expr_text_with(content, &self.table).is_err() {
+                    open = close + 1;
+                    continue;
+                }
+                if removals == 0 {
+                    break;
+                }
+                let mut candidate = String::with_capacity(current.len() - 2);
+                candidate.push_str(&current[..open]);
+                candidate.push_str(&current[open + 1..close]);
+                candidate.push_str(&current[close + 1..]);
+                if let Ok(parsed) = crate::proof::parse_expr_text_with(&candidate, &self.table) {
+                    if crate::proof::render_expr(&parsed) == canonical {
+                        current = candidate;
+                        removals -= 1;
+                        removed = true;
+                        break;
+                    }
+                }
+                // 这对**不冗余** ⇒ 跳过它、试它后面的 ✓。
+                open = close + 1;
+            }
+            if !removed {
+                break;
+            }
+        }
+        current
     }
 
     /// 唯一分段入口 ✓：给**已经折过**的文本打标签。
@@ -1617,6 +1762,99 @@ mod tests {
     }
 
     // ---- 损失护栏（T-C14）----------------------------------------------
+
+    /// **r20（2026-10-13 ✓）**：显示副本去**冗余**括号 —— 放行条件是**重解析等价**。
+    ///
+    /// 现场：源码写 `{a} ⊆ A`，Infoview 显示 `({a}) ⊆ A`；`↔` 目标更糟
+    /// （`(({a}) ⊆ A) ↔ (a ∈ A)`）。括号来自 `render_expr`（**判定渲染器**）
+    /// 的保守补括号表 ⇒ **不许**动它（实测去掉 `Notation` 那一格 ⇒ 14 条判定路径
+    /// 测试判红 ✗），只能在**显示副本**上做后处理，且必须"去掉之后读回来还是同一个
+    /// 目标"才准去 ✓。
+    #[test]
+    fn redundant_parens_are_stripped_only_when_the_reparse_agrees() {
+        let dn = real_pipeline_notations(&[SHAPES_LIB]);
+        // ① 真缺口（r20 现场，逐字取自 unit01 的 `state` 读数）
+        assert_eq!(dn.strip_redundant_parens("({a}) ⊆ A"), "{a} ⊆ A");
+        assert_eq!(
+            dn.strip_redundant_parens("(({a}) ⊆ A) ↔ (a ∈ A)"),
+            "{a} ⊆ A ↔ a ∈ A"
+        );
+        // ② **不许**去掉**换意思**的括号（反向守卫：`∧` 比 `→` 紧 ⇒ 去掉就变义 ✗）
+        assert_eq!(dn.strip_redundant_parens("(p → q) ∧ r"), "(p → q) ∧ r");
+        assert_eq!(dn.strip_redundant_parens("p ∧ (q → r)"), "p ∧ (q → r)");
+        // ③ 已经是规范形态 / 没有括号 / 读不回来 ⇒ **一个字都不动** ✓
+        assert_eq!(dn.strip_redundant_parens("{a} ⊆ A"), "{a} ⊆ A");
+        assert_eq!(dn.strip_redundant_parens("a ∈ A"), "a ∈ A");
+        assert_eq!(
+            dn.strip_redundant_parens("(x ⊕ y) ⊕ z"),
+            "(x ⊕ y) ⊕ z",
+            "`⊕` 不在记法表里 ⇒ 基线就读不回来 ⇒ 保守返回原文"
+        );
+        assert_eq!(dn.strip_redundant_parens("(a ∈ A"), "(a ∈ A", "括号不配平");
+        // ③′ **绑元组的括号不许删**（内容 `A : Set α` 不是表达式 ⇒ 被内容判据挡住 ✓）——
+        //     少了这条，实测 unit01 的 `ty` 会变成 `∀ (α : Type 0) (a : α) A : Set α, …`
+        //     （读回来等价，但**不是给人看的写法** ✗）。
+        assert_eq!(
+            dn.strip_redundant_parens("∀ (α : Type 0) (A : Set α), ({a}) ⊆ A"),
+            "∀ (α : Type 0) (A : Set α), {a} ⊆ A",
+            "绑元组括号留着、操作数括号去掉"
+        );
+        // ④ **判定渲染器一个字节没动**（红线：它是回读通道的输入）——
+        //    `fold` 仍然产出保守补括号的那一份，去括号是**它之后**的独立一步 ✓。
+        assert_eq!(
+            dn.fold("Set.subset (Set.singleton a) A"),
+            "({a}) ⊆ A",
+            "render_expr/fold 仍然保守补括号 —— r20 只在显示副本上后处理"
+        );
+        assert_eq!(
+            dn.strip_redundant_parens(&dn.fold("Set.subset (Set.singleton a) A")),
+            "{a} ⊆ A",
+            "两步合起来才是 wire 的显示副本"
+        );
+    }
+
+    /// **r20 第二次同形事故的守卫**（2026-10-13 ✓）：删除决策**必须与折叠开关无关**。
+    ///
+    /// 事故现场（上一版，已 revert）：`SOKO_NO_NOTATION_FOLD=1` 那条路**提前返回空表**
+    /// ⇒ 关掉折叠那一态**读不回** `⊆`/`∈` ⇒ 一个字都不删；开着那一态照删 ⇒
+    /// 同一段文本在开关两态之间**除了箭头别名还差一对括号** ✗ ⇒
+    /// `crates/cli/tests/notation_fold.rs`（2026-09-26 有意收紧）当场判红 ✗。
+    ///
+    /// 修法 = 开关**只关折叠、不关表**（[`DisplayNotations::no_fold`]）⇒
+    /// 本判据钉住那条不变量：**同一份文本，开关两态的去括号结果只差箭头别名** ✓
+    /// （`no_fold` 那一态连折都不折 ⇒ 直接比"删掉的括号位置相同"）。
+    ///
+    /// ⚠ 这条判据**咬得住历史 bug**：把 `with_no_fold()` 换回
+    /// `DisplayNotations::default()`（空表）⇒ 下面第一条断言立刻判红 ✓
+    /// （关掉那一态会原样返回 `(A ⊆ B) -> …`）。
+    #[test]
+    fn stripping_is_independent_of_the_fold_switch() {
+        let on = real_pipeline_notations(&[SHAPES_LIB]);
+        let off = real_pipeline_notations(&[SHAPES_LIB]).with_no_fold();
+        for raw in [
+            "(A ⊆ B) -> (a : α) -> (a ∈ A) -> a ∈ B",
+            "(({a}) ⊆ A) ↔ (a ∈ A)",
+            "(x : α) -> (x ∈ A) ↔ (x ∈ B)",
+            "(p → q) ∧ r",
+            "∀ (α : Type 0) (A : Set α), ({a}) ⊆ A",
+        ] {
+            let stripped_on = on.strip_redundant_parens(&on.fold(raw));
+            let stripped_off = off.strip_redundant_parens(&off.fold(raw));
+            assert_eq!(
+                stripped_on,
+                stripped_off.replace("->", "→"),
+                "开关两态只许差箭头别名（`->` ⇒ `→`）：\n开 {stripped_on}\n关 {stripped_off}"
+            );
+        }
+        // 反向守卫：关掉折叠**仍然**不许折记法（表在 ≠ 会折 ✓）。
+        assert_eq!(off.fold("Set.subset α A B"), "Set.subset α A B");
+        assert_eq!(on.fold("Set.subset α A B"), "A ⊆ B");
+        // 关掉折叠时**照样**去括号（这正是上一版缺的那一半 ✓）。
+        assert_eq!(
+            off.strip_redundant_parens("(A ⊆ B) -> (a : α) -> (a ∈ A) -> a ∈ B"),
+            "A ⊆ B -> (a : α) -> a ∈ A -> a ∈ B"
+        );
+    }
 
     /// **折叠是幂等的**：把折过的文本再折一次，一个字节都不变。
     ///
