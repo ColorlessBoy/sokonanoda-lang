@@ -46,7 +46,7 @@ theorem relPre_mono (α β : Type) (r : Rel α β) (A B : Set β) (h : A ⊆ B) 
     Exists.elim β (fun (b : β) => A b ∧ r a b)
       (∃ (b : β), B b ∧ r a b) ha
       (fun (b : β) (hb : A b ∧ r a b) =>
-        Exists.intro β (fun (b1 : β) => B b1 ∧ r a b1) b
+        Exists.intro b
           (And.intro
             ((fun (hu : ∀ (x : β), A x → B x) => hu b (And.left hb)) h) (And.right hb)))
 

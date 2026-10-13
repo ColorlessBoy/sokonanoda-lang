@@ -19,7 +19,7 @@ theorem demo_idRel_self (α : Type) (a : α) : idRel α a a :=
 theorem comp_intro (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (b : β) (c : γ)
     (h1 : r a b) (h2 : s b c) : (r • s) a c :=
   (fun (hu : (r • s) a c ↔ ∃ (b1 : β), r a b1 ∧ s b1 c) =>
-    Iff.mpr hu (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
+    Iff.mpr hu (Exists.intro b
       (And.intro h1 h2))) (Rel.comp_apply r s a c)
 
 theorem comp_apply_elim (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ)

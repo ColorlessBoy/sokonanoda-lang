@@ -44,7 +44,7 @@ theorem graph_singleValued (α β : Type) (f : α → β) :
 
 theorem graph_totalRel (α β : Type) (f : α → β) : TotalRel α β (graph α β f) :=
   fun (a : α) =>
-    Exists.intro β (fun (b : β) => Eq.{1} β (f a) b) (f a) (Eq.refl.{1} β (f a))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    Exists.intro (f a) (Eq.refl.{1} β (f a))
 
 theorem singleValued_iff_inv_comp (α β : Type) (r : Rel α β) :
     SingleValued α β r ↔ ∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1 :=
@@ -71,7 +71,7 @@ theorem inv_singleValued_iff_comp_inv (α β : Type) (r : Rel α β) :
     (fun (h : ∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1) =>
       fun (b : β) => fun (a : α) => fun (a1 : α) =>
         fun (h1 : (r ⁻¹) b a) => fun (h2 : (r ⁻¹) b a1) =>
-          h a a1 (Exists.intro β (fun (b1 : β) => r a b1 ∧ (r ⁻¹) b1 a1) b
+          h a a1 (Exists.intro b
             (And.intro h1 h2)))
 
 theorem singleValued_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
@@ -98,7 +98,7 @@ theorem totalRel_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
         Exists.elim γ (fun (c : γ) => s b c)
           (∃ (c : γ), (r • s) a c) (totalRel_apply β γ s hs b)
           (fun (c : γ) (hc : s b c) =>
-            Exists.intro γ (fun (c1 : γ) => (r • s) a c1) c
+            Exists.intro c
               (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
                 (And.intro hb hc))))
 
