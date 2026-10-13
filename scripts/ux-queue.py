@@ -77,6 +77,17 @@ python3 scripts/ux-queue.py --selftest            # 判据通道自检（不碰�
 §0.2 的 `QUEUE:COUNTS` **一律从 `sched_rows()` 的那份视图算**（`json_view` 不再自己从源行另算 ✗）；
 子任务**有源行就用源行**（真处置），`check_plan` 的处置以**来源台账**为权威 ⇒「反向两层漂移」
 对子任务也咬得住 ✓。
+
+**来源可见性**（2026-10-14 · `queueX` 缺陷 ⑥）：上面那条漂移规则要的是**来源的终态**，
+而三个来源加载器是**为队列视图服务的** ⇒ 会把终态行丢掉：`load_gaps()` 对
+`status=="fixed"` 直接 `continue` ✗ ⇒ 「来源终态 `fixed` + 调度器非终态」这条
+**对缺口来源永远咬不住**（实测：`G-110` gap `fixed` + 事件 `in_progress` ⇒ `--check`
+静默假绿 ✗；`G-112` gap `fixed` + 事件 `todo` 同形）。⇒ 口径：**漂移规则的权威表
+必须从全量来源建**（`source_dispositions()` —— 不过滤终态，**三个来源都读**：
+extras 全行 · gap 全 `status`（含 `fixed`，走 `load_gaps(include_terminal=True)`）·
+索引只给身份、处置仍取 extras），且三个来源**逐条**在 `--selftest`
+（`selftest_source_visibility`）里断言「终态看得见」✓ —— 将来加第四个来源就照那份清单
+补一行，**不许只补一处** ✗（AGENTS.md 硬规则 0(b)）。
 """
 
 from __future__ import annotations
@@ -147,8 +158,16 @@ class UsageError(Exception):
 
 # ── 来源 ①：缺口台账 ────────────────────────────────────────────────────────
 
-def load_gaps() -> list[dict]:
-    """`docs/gaps/ledger.jsonl` 里 `status != fixed` 的条目（fixed = 守卫输入，不动 ✗）。"""
+def load_gaps(include_terminal: bool = False) -> list[dict]:
+    """`docs/gaps/ledger.jsonl` 的行 —— 默认**只给 `status != fixed`**（= 队列视图口径）。
+
+    ⚠ **`include_terminal=True` = 全量口径**（`status=="fixed"` 也算）—— **只有
+    `check_plan` 的处置权威表用**（`source_dispositions()`）：`fixed` 的缺口已经
+    **离开 open 视图**，但它的**终态**正是「反向两层漂移」要看的输入 ✗ ——
+    默认口径把它 `continue` 掉 ⇒ 规则对**缺口来源永远咬不住**（2026-10-14 实测：
+    `G-110` gap `fixed` + 事件 `in_progress` ⇒ `--check` 静默假绿 ✗）。
+    两个口径的**处置**都不许改（`fixed` ⇒ `"fixed"`，与 extras 的字段同名同义 ✓）。
+    """
     rows: list[dict] = []
     for lineno, line in enumerate(GAPS_LEDGER.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
@@ -157,11 +176,18 @@ def load_gaps() -> list[dict]:
             entry = json.loads(line)
         except json.JSONDecodeError as err:
             raise UsageError(f"{GAPS_LEDGER}:{lineno} 不是合法 JSON：{err}") from err
-        if entry.get("status") == "fixed":
+        if entry.get("status") == "fixed" and not include_terminal:
             continue
         repro = entry.get("repro") or ""
-        # wo-filed 是**终态**（理由在台账的 `wo`/`notes` 里）⇒ 队列里保留一行、不算 open ✓
-        disposition = "wo-filed" if entry.get("status") == "wo-filed" else "scheduled"
+        # wo-filed 是**终态**（理由在台账的 `wo`/`notes` 里）⇒ 队列里保留一行、不算 open ✓；
+        # fixed 只在**全量口径**下走到这里 ⇒ 终态 `"fixed"`（队列视图里根本到不了这一支 ✓）。
+        disposition = ("fixed" if entry.get("status") == "fixed"
+                       else "wo-filed" if entry.get("status") == "wo-filed" else "scheduled")
+        # ⚠ `where` 的历史形状**不齐**：6 条旧行是**字符串**（`G-77`/`L-07`…`L-10`/`G-86`，
+        # 全在 `fixed` 档）⇒ 全量口径第一次读到它们时 `.get` 一个字符串 ⇒ **丢栈** ✗
+        # （对 open 行也是同一个潜在崩溃）。只认 dict，其余当没有位置线索 ✓。
+        where = entry.get("where")
+        where_area = where.get("area", "") if isinstance(where, dict) else ""
         rows.append({
             "id": entry["id"],
             "sources": ["gap-ledger"],
@@ -170,7 +196,7 @@ def load_gaps() -> list[dict]:
             "repro": f"bash {repro}" if repro.endswith(".sh") else (
                 f"scripts/soko grade {repro}" if repro else "（无复现件）"),
             "disposition": disposition,
-            "owner": entry.get("owner") or (entry.get("where") or {}).get("area", "") or "",
+            "owner": entry.get("owner") or where_area or "",
             "note": (entry.get("wo") or entry.get("wo_planned") or "").split("/")[-1][:40],
             "expect": None,
         })
@@ -189,16 +215,29 @@ def load_index() -> list[dict]:
     列是契约：`| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核 |`（**七列**）。
     处置在 `docs/ux-queue-extras.jsonl`（来源 ③）—— 索引是给人看的一行一条，
     处置是机器账 ⇒ 分开存，两边由 `--check-uncovered` 对账（**双向**）。
+
+    ⚠ **可见性契约**（见 docstring「来源可见性」）：索引这一支提供的是**身份**
+    （`disposition=None` ⇒ 由 extras 填，而 `load_extras()` 不过滤终态 ⇒ 漂移规则
+    照样看得见终态 ✓）；**id 登记过**这一点由 `source_history_ids()` 读本函数保证。
+    ⚠ **§2–§4 里的行不许静默丢**（`AGENTS.md` 硬规则 0(b)）：以前 `len(cells) != 7`
+    直接 `continue` ⇒ 少/多一列的行**整条消失**，队列与漂移规则都看不见它 ✗ ——
+    现在：**长得像数据行**（首格是 id 形状）却不是七列 ⇒ 响亮报错（点名行号 + 列数）。
     """
     rows: list[dict] = []
     section = None
-    for line in INDEX.read_text(encoding="utf-8").splitlines():
+    for lineno, line in enumerate(INDEX.read_text(encoding="utf-8").splitlines(), 1):
         head = re.match(r"^## (\d)", line)
         if head:
             section = head.group(1)
         if not line.startswith("|"):
             continue
         cells = _cells(line)
+        ident0 = cells[0] if cells else ""
+        if (len(cells) != 7 and section in {"2", "3", "4"}
+                and QUEUE_ID_RE.fullmatch(ident0)):
+            raise UsageError(
+                f"{INDEX}:{lineno}：§{section} 的数据行 `{ident0}` 有 {len(cells)} 列（契约是**七列**）"
+                f" —— 别让它**静默消失**（少一列 = 这一条连队列都进不去）✗")
         if len(cells) != 7:
             continue
         ident, facet, _sym, sev, repro, owner, _obs = cells
@@ -227,6 +266,12 @@ def load_index() -> list[dict]:
 # ── 来源 ③：其它来源（`docs/ux-queue-extras.jsonl`） ────────────────────────
 
 def load_extras() -> list[dict]:
+    """`docs/ux-queue-extras.jsonl` 的**全部**行（处置的唯一出处）。
+
+    ⚠ **可见性契约**（见 docstring「来源可见性」）：本加载器**不按处置过滤** ——
+    `fixed`/`wo-filed`（终态）与 `fix`/`scheduled`（open）一视同仁地返回 ⇒
+    漂移规则的权威表可以直接用它 ✓（`selftest_source_visibility` 逐来源断言这一点）。
+    """
     if not EXTRAS.exists():
         return []
     rows: list[dict] = []
@@ -1253,28 +1298,56 @@ def cmd_next(rows: list[dict], owner: str) -> int:
     return 0
 
 
+def source_dispositions() -> dict[str, str | None]:
+    """**全量来源的处置权威表**（`id → disposition`，**终态也在**；`None` = 登记了但没处置）。
+
+    ⚠ 为什么单开一条路（2026-10-14 · `queueX` 缺陷 ⑥，**实测假绿**）：`check_plan` 的
+    权威表原先只从 `rows`/`source_rows` 建，而那两份是**队列视图**口径 —— 来源加载器
+    会把**终态行丢掉**（`load_gaps()` 对 `status=="fixed"` 直接 `continue` ✗）⇒
+    「来源终态 + 调度器非终态」这条**反向两层漂移**对**缺口来源永远咬不住**：
+    夹具 `/tmp/qfix/root2`（gap `G-999` `status=fixed` + `split` 出子任务 + 调度器 `todo`）
+    ⇒ `--check-plan` **exit 0 且完全静默** ✗（真台账同形：`G-110` `in_progress`、
+    `G-112` `todo`）。
+
+    **三个来源各自怎么"看得见"**（编号与本文件的来源分节一致；`selftest_source_visibility`
+    逐条断言；加来源就照这份清单补一行，别只补一处 ✗）：
+      * 来源 ①（`docs/gaps/ledger.jsonl`）：**必须显式要全量** —— `load_gaps()` 默认把
+        `status=="fixed"` 丢掉（那是给队列视图用的），而终态正是漂移规则的输入 ✗；
+      * 来源 ②（索引）：**只给身份**（`disposition=None`）⇒ 它的处置由 extras 那一行提供；
+        没有 extras 行的索引 id 属于「**登记了但没人写处置**」，由 `--check-uncovered`
+        ①/①b 判红（**不是**漂移，也不是幽灵 —— 见 `source_history_ids()`）✓；
+      * 来源 ③（extras）：**不过滤** ⇒ 全量（处置的唯一出处 ✓）。
+    """
+    disp: dict[str, str | None] = {}
+    for entry in load_extras():                       # 来源 ③：处置的唯一出处（不过滤）
+        disp[entry["id"]] = entry["disposition"]
+    for entry in load_gaps(include_terminal=True):    # 来源 ①：全 status（含 fixed）
+        if entry.get("disposition") is not None:
+            disp[entry["id"]] = entry["disposition"]
+    for entry in load_index():                        # 来源 ②：只登记身份（处置在 extras）
+        disp.setdefault(entry["id"], None)
+    return disp
+
+
 def source_history_ids() -> set[str]:
-    """**来源台账里出现过的所有 id**（含 `fixed`/`wo-filed` 等终态）。
+    """**来源台账里出现过的所有 id**（含 `fixed`/`wo-filed` 等终态、**三个来源都算**）。
 
     ⚠ 为什么不能只看 `rows`（那是 open 集合）：条目**收口之后**就离开队列了，
     而它的历史事件仍在（`claim`/`advance`），于是每个已修条目都会在收口那一刻被
     `check_plan` 判成"幽灵条目" ✗（实测：`G-110` 标 `fixed` 后立刻红）。
     幽灵判据要咬的是**从来没登记过的 id**（例如并发测试脚本往共享事件表里写的合成 id）。
+
+    ⚠ **来源可见性**（2026-10-14 · `queueX` 缺陷 ⑥）：这里原先漏了**索引**这一支 ⇒
+    只登记在索引里（还没写处置）的 id 会被误报成"幽灵（删来源了？）"✗；现在
+    三个来源都读（`load_gaps(include_terminal=True)` 见 `source_dispositions()` 的说明），
+    「登记了但没处置」交给 `--check-uncovered` 的 ①/①b（那才是它的判据 ✓）。
     """
     out: set[str] = set()
-    try:
-        for entry in load_extras():
-            out.add(entry["id"])
-    except (UsageError, OSError, KeyError, ValueError):
-        pass
-    try:
-        for line in GAPS_LEDGER.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                ident = json.loads(line).get("id")
-                if ident:
-                    out.add(ident)
-    except (OSError, ValueError):
-        pass
+    for loader in (load_extras, lambda: load_gaps(include_terminal=True), load_index):
+        try:
+            out |= {row["id"] for row in loader()}
+        except (UsageError, OSError, KeyError, ValueError):
+            pass
     return out
 
 
@@ -1287,6 +1360,11 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     **永远咬不住** ✗（2026-10-14 · 缺陷 ②：`F12b2-front-intro-notation` 来源已 `fixed`、
     调度器停在 `todo`，而 `--check` 假绿）。⇒ 这里显式以 `source_rows` 覆盖同 id 的视图处置
     （不传就退回视图；自检的夹具两种形状都造 ✓）。
+
+    ⚠ **来源可见性**（2026-10-14 · 缺陷 ⑥）：`rows`/`source_rows` 都是**队列视图**口径
+    ⇒ **终态行可能根本不在里面**（`load_gaps()` 默认把 `status=="fixed"` 丢掉 ✗）⇒
+    「来源终态 + 调度器非终态」这条**对缺口来源永远咬不住**（`G-110`/`G-112` 实测假绿）。
+    ⇒ 权威表最后由 `source_dispositions()`（**全量**口径，三个来源都读）覆盖一遍 ✓。
     """
     state = fold()
     bad = 0
@@ -1295,6 +1373,11 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     for _r in (source_rows or []):     # **来源的处置是权威**（覆盖视图里可能被遮蔽的值）
         if _r.get("disposition") is not None:
             disp[_r["id"]] = _r["disposition"]
+    # **终态行也要看得见**（缺陷 ⑥）：视图口径会丢终态 ⇒ 权威表用全量来源兜底。
+    # `None`（索引登记过、但还没人写处置）不覆盖 —— 那属于覆盖自检 ①/①b，不是漂移 ✓。
+    for _id, _d in source_dispositions().items():
+        if _d is not None:
+            disp[_id] = _d
     legacy_pointers: list[tuple[str, str]] = []      # 存量非祖先指针（⚠ 报告，不判红）
     for ident, cur in sorted(state.items()):
         st = cur.get("state")
@@ -1492,9 +1575,11 @@ def cmd_schedule(args: argparse.Namespace) -> int:
               f"—— id 是键，形状漂了就没法对账 ✗", file=sys.stderr)
         return 1
     # id 是键：来源（extras / 缺口台账 / 索引）+ 事件表里已有的都不许重（**别覆盖** ✗）
-    taken = set(fold())
-    for loader in (load_extras, load_gaps, load_index):
-        taken |= {row["id"] for row in loader()}
+    # ⚠ **终态 id 也是已用过的 id**（2026-10-14 · `queueX` 缺陷 ⑥ 的同族）：以前这里用
+    # 三个加载器的**默认口径** ⇒ `load_gaps()` 把 `status=="fixed"` 的缺口丢掉 ⇒ 一个已关账
+    # 缺口的 id 可以被**重新排期**（id 是键 ⇒ 那是覆盖、会把两条历史搅在一起）✗
+    # ⇒ 改用 `source_dispositions()`（全量口径，三个来源都读 ✓）。
+    taken = set(fold()) | set(source_dispositions())
     if ident in taken:
         print(f"✗ `{ident}` 已经在队列里（id 是键 ⇒ 换一个 id，别覆盖 ✗）", file=sys.stderr)
         return 1
@@ -2316,6 +2401,163 @@ def selftest_child_drift(expect) -> None:
             globals()["lock_file"] = saved[4]
 
 
+def selftest_source_visibility(expect) -> None:
+    """**漂移规则的来源可见性**（2026-10-14 · `queueX` 缺陷 ⑥）—— 三个来源逐条断言。
+
+    事故：`check_plan` 的权威表 `disp` 只从 `rows`/`source_rows`（**队列视图**口径）建，
+    而 `load_gaps()` 默认把 `status=="fixed"` 丢掉 ✗ ⇒ 「来源终态 + 调度器非终态」这条
+    **反向两层漂移对缺口来源永远咬不住**（复核者夹具 `/tmp/qfix/root2`：
+    gap `G-999` `status=fixed` + `split` 出子任务 + 调度器 `todo` ⇒ `--check-plan`
+    **exit 0 且完全静默** ✗）。夹具按**三个来源各一条终态**造（`G-9` gap `fixed` ·
+    `E-9` extras `fixed` · `I-9` 索引 + extras `wo-filed`），断言：
+      ① `source_dispositions()`（**全量**口径）里三个来源的终态**都看得见**
+         （改前：`G-9` 根本不在表里 ⇒ ① 必红）；
+      ② 三条「来源终态 + 调度器非终态」**都判红**、且判红信息**点名**该 id + 「反向两层漂移」
+         （`E-9`/`I-9` 是**对照组**：改前也红 ⇒ 说明修的是缺口来源那一支，不是换规则 ✗）；
+      ③ **索引可见性**：只在索引里（没处置）的 `I-8` **不算幽灵**（改前误报"不在任何来源里"），
+         但 `--check-uncovered` 的 ①/①b 照样判红它 ⇒ **守卫没被放宽** ✓；
+      ④ **视图零变化**（爆炸半径）：终态行**仍不进** `build_queue()`/`--json.open` ——
+         这条修的是守卫的**输入**，不改队列读数 ✓；
+      ⑤ **同族第二处**：`--schedule` 的"id 是键"闸门也看得见**终态** id（已关账缺口的 id
+         不许被重新排期 ⇒ 那是覆盖历史 ✗）；
+      ⑥ **索引行不许静默丢**：§2–§4 里少一列的数据行 ⇒ 响亮报错（点名行号 + 列数）。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING, globals()["lock_file"],
+                 globals()["probe_inventory"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        ONBOARDING = Path(tmp) / "ONBOARDING.md"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        globals()["probe_inventory"] = lambda: []      # 地面真相不在本夹具的判据里
+        INDEX.write_text(
+            "## 2. 🔴 blocker / high\n\n"
+            "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+            "|---|---|---|---|---|---|---|\n"
+            "| I-9 | 语言 | 夹具：索引里的 id（处置在 extras） | 高 | `bash i9.sh` | front |  |\n"
+            "| I-8 | 语言 | 夹具：**只在索引里、没有处置** | 高 | `bash i8.sh` | front |  |\n",
+            encoding="utf-8")
+        EXTRAS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in (
+            {"id": "P-9", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash p.sh", "disposition": "fix", "why": "夹具：父条目（umbrella）"},
+            {"id": "E-9", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash e.sh", "disposition": "fixed",
+             "why": "夹具（来源③ extras）：终态"},
+            {"id": "I-9", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash i9.sh", "disposition": "wo-filed",
+             "why": "夹具（来源② 索引的 id）：处置在 extras"})), encoding="utf-8")
+        GAPS_LEDGER.write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in (
+            {"id": "G-9", "title": "夹具（来源① gap 台账）：已 fixed", "kind": "tooling",
+             "severity": "painful", "status": "fixed", "found": "2026-01-01",
+             "repro": "docs/gaps/repro/x.sh", "where": {"area": "夹具"}},
+            # ⚠ `G-8` 是 ⑤ 的夹具：**已 fixed 且没有任何事件** ⇒ 只有"来源全量口径"看得见它
+            # （`fold()` 帮不上忙 —— ⑤ 咬的正是"只靠事件表就漏了终态 id"那一支 ✓）。
+            {"id": "G-8", "title": "夹具：已 fixed、无事件（id 不许被重用）", "kind": "tooling",
+             "severity": "painful", "status": "fixed", "found": "2026-01-01",
+             "repro": "docs/gaps/repro/y.sh", "where": {"area": "夹具"}})), encoding="utf-8")
+
+        def out_err(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, buf.getvalue(), err.getvalue()
+
+        try:
+            # 夹具形状 = **真形状**：gap 来源的子任务（`split` ⇒ 调度器 `todo`）；
+            # extras 两条各一条 `claim`（⇒ `in_progress`）；`I-8` 只在索引里、另有事件。
+            append_event({"event": "split", "id": "G-9", "parent": "P-9",
+                          "title": "夹具（来源① gap）：split 出来的子任务", "owner": "t"})
+            for ident in ("E-9", "I-9", "I-8"):
+                append_event({"event": "claim", "id": ident, "owner": "t"})
+
+            rows, _undecided = build_queue()
+            state = fold()
+            view = sched_rows(rows, state)
+
+            # ① 三个来源的终态都在**全量权威表**里（改前 G-9 不在 ⇒ 必红）
+            fdisp = source_dispositions()
+            expect(f"① gap 来源的终态看得见（G-9 → {fdisp.get('G-9')!r}，期望 'fixed'）",
+                   fdisp.get("G-9") == "fixed")
+            expect(f"① extras 来源的终态看得见（E-9 → {fdisp.get('E-9')!r}，期望 'fixed'）",
+                   fdisp.get("E-9") == "fixed")
+            expect(f"① 索引来源的身份看得见（I-9 → {fdisp.get('I-9')!r}，期望 'wo-filed'；"
+                   f"只在索引里的 I-8 → {fdisp.get('I-8')!r}，期望 None=登记了没处置）",
+                   fdisp.get("I-9") == "wo-filed" and "I-8" in fdisp
+                   and fdisp.get("I-8") is None)
+
+            # ② 三条「来源终态 + 调度器非终态」都判红（G-9 是**改前静默**的那一支）
+            rc, _out, err = out_err(check_plan, view, rows)
+            expect(f"② gap 来源：`fixed` + 调度器 `{state['G-9']['state']}` ⇒ 判红"
+                   f"（改前 exit 0 且静默 ✗）", "G-9" in err and "反向两层漂移" in err)
+            expect("② extras 来源：`fixed` + 调度器 `in_progress` ⇒ 判红（对照组）",
+                   "E-9" in err)
+            expect("② 索引来源：`wo-filed` + 调度器 `in_progress` ⇒ 判红（对照组）",
+                   "I-9" in err)
+            expect(f"② 三条都判红、且没有多余的红（实测 {rc} 条；锁/陈旧认领只是 ⏳ 不算红）",
+                   rc == 3)
+
+            # ③ 索引里登记过（没处置）⇒ **不是幽灵**；但覆盖自检照样判红它（守卫不放宽）
+            expect("③ 索引里登记过的 I-8 不被判成幽灵条目（改前误报）", "幽灵" not in err)
+            _s = summary(view)
+            ONBOARDING.write_text(
+                "## 0.2 下一步\n\n" + render_onboarding(view) + "\n\n"
+                "| id | 线 |\n|---|---|\n| P-9 | 夹具 |\n", encoding="utf-8")
+            rc2, _out2, err2 = out_err(check_uncovered, view, False, 5, _undecided)
+            expect(f"③ 但 `--check-uncovered` 照样判红 I-8（rc={rc2}）+ 点名它",
+                   rc2 == 1 and "I-8" in err2 and ("没处置" in err2 or "覆盖漏项" in err2))
+
+            # ④ 视图零变化：终态行**仍不进** `build_queue()` 的 open 视图 —— 这条修的是守卫的
+            #    **输入**，不改队列读数 ✓。⚠ 子任务的**合成行**仍跟**调度器状态**走：`G-9` 是
+            #    `split` 出来的子任务 ⇒ 合成行处置 `fix` ⇒ 它仍在 open —— 这正是让
+            #    「`--json.open` == §0.2 == 视图」保持自洽的那条路（改合成行为终态 ⇒
+            #    "open 里没有、`--next` 却推得出" ✗ 破坏 queueW 的三视图不变量）；漂移由
+            #    `--check` 判红、按它的收口指示 `--advance … --to done` 后就一起消失 ✓。
+            payload = json_view(rows, state, view)
+            expect(f"④ 终态行不进 `build_queue()` 的 rows（实测 ids={sorted(r['id'] for r in rows)}）",
+                   {r["id"] for r in rows} == {"P-9", "E-9", "I-9"})
+            expect(f"④ open/§0.2 仍从**视图**算（{payload['open']} = 合成子任务 G-9 + 父 P-9；"
+                   f"total={_s['total']}）",
+                   payload["open"] == ["G-9", "P-9"] and _s["total"] == len(payload["open"]) == 2
+                   and "QUEUE:COUNTS total=2 " in render_onboarding(view))
+
+            # ⑤ **同族第二处**（AGENTS.md 硬规则 0(b)）：`--schedule` 的"id 是键"闸门也得
+            #    看得见**终态** id —— 否则一个已关账缺口的 id 能被重新排期（= 覆盖历史 ✗）。
+            #    ⚠ 夹具必须是**没有任何事件**的终态 id（`G-8`）：`G-9` 有 `split` 事件 ⇒
+            #    `fold()` 里就有它 ⇒ 旧口径也能拒 ⇒ 这条断言会**空转**（实测踩到过一次 ✗）。
+            #    ⚠ 这一条必须在 ⑥ **之前**跑：它要 `source_dispositions()` 能正常读索引 ✓。
+            args = argparse.Namespace(schedule="x", id="G-8", title="夹具", reason="夹具",
+                                      owner="t", where="", facet="", severity="", repro="")
+            rc3, _out3, err3 = out_err(cmd_schedule, args)
+            expect(f"⑤ 已 fixed、**无事件**的缺口 id 不许被 `--schedule` 重用（rc={rc3}）",
+                   rc3 == 1 and "已经在队列里" in err3)
+
+            # ⑥ 索引里的数据行少一列 ⇒ 响亮报错（不许静默丢）
+            #    ⚠ 夹具里**同时留一条好行**（I-6）—— 否则"一条都没解析出来"那条兜底也会报错，
+            #    分不清到底咬住的是"少一列"还是"整表空"（反向验证就说不清了 ✗）。
+            INDEX.write_text(
+                "## 2. 🔴 blocker / high\n\n"
+                "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                "|---|---|---|---|---|---|---|\n"
+                "| I-6 | 语言 | 夹具：合法行（必须仍解析得出来） | 高 | `bash i6.sh` | front |  |\n"
+                "| I-7 | 语言 | 夹具：少一列 | 高 | `bash i7.sh` | front |\n", encoding="utf-8")
+            try:
+                load_index()
+                expect("⑥ 索引 §2 里少一列的数据行 ⇒ 响亮报错（不许 `continue` 静默丢）", False)
+            except UsageError as exc:
+                expect(f"⑥ 索引里少一列的数据行 ⇒ 响亮报错（点名 I-7 + 列数）：{exc}",
+                       "I-7" in str(exc) and "6 列" in str(exc))
+        finally:
+            (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING) = saved[:5]
+            globals()["lock_file"] = saved[5]
+            globals()["probe_inventory"] = saved[6]
+
+
 def selftest_ancestry_gate(expect) -> None:
     """**祖先性闸门**（2026-10-14 · `queueW` 缺陷 ⑤）：`cat-file -e` 查不出「指针不是 main 祖先」。
 
@@ -2657,7 +2899,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     # ③e **子任务视图**（2026-10-14：源行优先 / 不丢行 / 反向两层漂移咬得住 / `--json` 单一真相 /
     #     视图被遮蔽仍以来源为准 / 三视图同数 —— 还原 ①②③ 任一条都有读数必红 ✗）
     selftest_child_drift(expect)
-    # ③f **祖先性闸门**（2026-10-14：`cat-file -e` 查不出"不是 main 祖先" ⇒ 新增硬拒 + 读侧复查 +
+    # ③f **来源可见性**（2026-10-14：三个来源的终态都要被漂移规则看见 ——
+    #     `load_gaps()` 默认丢 `fixed` ⇒ 反向两层漂移对缺口来源永远咬不住 ✗）
+    selftest_source_visibility(expect)
+    # ③g **祖先性闸门**（2026-10-14：`cat-file -e` 查不出"不是 main 祖先" ⇒ 新增硬拒 + 读侧复查 +
     #     存量带日期豁免且**不静默** ✗）
     selftest_ancestry_gate(expect)
 
@@ -2684,6 +2929,9 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"`--next` 推得出/`--claim` + 带证据收口/缺 `--reading` 判红/两层漂移**不豁免**/真 CLI 路径落地）"
           f" + **子任务视图 14 条**（源行优先/顺序不变/不丢行/无重复/反向两层漂移咬得住/"
           f"**`--json` 单一真相**/视图被遮蔽仍以来源为准/收口转绿/**三视图同数**/`--next` 子集一致）"
+          f" + **来源可见性 14 条**（gap/extras/索引三个来源的终态都进全量权威表/"
+          f"三条反向两层漂移都判红且无多余红/索引登记过的 id 不算幽灵但覆盖自检照样判红/"
+          f"终态行仍不进 open 视图且 open 与 §0.2 同数/**索引少一列的数据行响亮报错/**已关账缺口的 id 不许被重新排期**）"
           f" + **祖先性闸门 9 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/存量带日期**豁免且不静默**/"
           f"真祖先不误伤）"
           f" + 真来源解析 全部成立 ✓")
