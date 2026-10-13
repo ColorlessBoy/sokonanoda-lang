@@ -281,3 +281,4 @@
 {"ts": "2026-10-13T11:59:39+00:00", "event": "reopen", "id": "F12b-notation-blind-intro", "reason": "复原（其处置来源未定位）", "owner": "orchestrator"}
 {"ts": "2026-10-13T11:59:39+00:00", "event": "reopen", "id": "F12b2-front-intro-notation", "reason": "复原（其处置来源未定位）", "owner": "orchestrator"}
 {"ts": "2026-10-13T12:01:10+00:00", "event": "claim", "id": "W-3", "owner": "FRONT-R", "resources": ["crates/front"]}
+{"ts": "2026-10-13T13:40:08+00:00", "event": "claim", "id": "W-3", "owner": "COURSE-S", "resources": ["courses/set-theory"]}
