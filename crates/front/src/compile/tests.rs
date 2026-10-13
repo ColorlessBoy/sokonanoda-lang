@@ -10434,6 +10434,79 @@ theorem t {\u{3b1} \u{3b2} : Type} (f : \u{3b1} \u{2192} \u{3b2}) (A : Set \u{3b
     );
 }
 
+/// **第 5 刀判据**（2026-10-13）：**常量头**的应用要把「下一个实参的期望类型」
+/// 交给那个实参 —— 走**非递归**通道（注册表签名 + 位置代换；`const_arg_expected`）。
+///
+/// 形状与课程 `I.10/unit26-solution:60` **同形**（缩到 12 行）：
+/// `pick α A B (Exists.intro a (And.intro ha hb))`。`pick` 是**常量头**（无前导隐式）
+/// ⇒ 修前 `arg_expected` 三档都答不出 ⇒ 期望类型 `None` ⇒
+/// `Exists.intro a (And.intro ha hb)` 只能从 `And (A a) (B a)` 反解 `p`
+/// （`?p a =?= And (A a) (B a)`：头不同 ⇒ **非模式合一** ⇒ 解不出 ✗）
+/// ⇒ 报 `elab-implicit-argument-unsolved`（**修前实测**：基线二进制在同一条上给
+/// 同一条 diagnostic ✓）。
+///
+/// ⚠ 这条同时是**逐位对齐**的守卫：若「已吃掉的实参」与层错位（拿第 3 层 `B`
+/// 而不是第 4 层 `h`），期望类型就不是 `Exists α (fun x => And (A x) (B x))`
+/// ⇒ 内核当场判红 ✓（`A`/`B` 在签名里可区分）。
+///
+/// **反向验证**（逃生门）：`SOKO_CONST_ARG_EXPECTED=0` ⇒ `natural` 重新判红
+/// （见 `crates/front/src/compile/elab.rs::const_arg_expected`）。
+#[test]
+fn a_constant_head_application_gives_its_next_argument_the_expected_type() {
+    let src = "\
+inductive Exists (A : Type) (p : A -> Prop) : Prop\n\
+ctor intro (w : A) (h : p w) : Exists A p\n\
+end\n\
+def pick (\u{3b1} : Type) (A B : \u{3b1} \u{2192} Prop)\n\
+    (h : Exists \u{3b1} (fun (x : \u{3b1}) => And (A x) (B x))) :\n\
+    Exists \u{3b1} (fun (x : \u{3b1}) => And (A x) (B x)) := h\n\
+theorem natural (\u{3b1} : Type) (A B : \u{3b1} \u{2192} Prop) (a : \u{3b1}) (ha : A a) (hb : B a) :\n\
+    Exists \u{3b1} (fun (x : \u{3b1}) => And (A x) (B x)) :=\n\
+  pick \u{3b1} A B (Exists.intro a (And.intro ha hb))\n\
+theorem old_style (\u{3b1} : Type) (A B : \u{3b1} \u{2192} Prop) (a : \u{3b1}) (ha : A a) (hb : B a) :\n\
+    Exists \u{3b1} (fun (x : \u{3b1}) => And (A x) (B x)) :=\n\
+  pick \u{3b1} A B (Exists.intro \u{3b1} (fun (x : \u{3b1}) => And (A x) (B x)) a (And.intro ha hb))\n";
+    let out = compile_ok(src);
+    for name in ["natural", "old_style"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "`{name}` 必须 checked —— **自然写法**（`Exists.intro a (And.intro ha hb)`）与\
+             **写全前导实参**的旧写法都要绿。事件：{:?}",
+            out.events
+        );
+    }
+}
+
+/// **反向判据（同一格）**：期望类型**对不上**时仍然判红 —— 这条通道不许把
+/// 「目标写错」变成「静默通过」✗。
+///
+/// 夹具与上一条只差目标里的 `A`/`B` 顺序（`pick` 的结论是 `And (A x) (B x)`），
+/// 而 `And.intro ha hb` 的形状**照样**能让「后续实参的类型」这条线索走通 ⇒
+/// 只有**期望类型**这一条能发现不一致 ⇒ 内核判红 ✓。
+#[test]
+fn a_constant_head_expected_type_still_rejects_a_mismatched_goal() {
+    let src = "\
+inductive Exists (A : Type) (p : A -> Prop) : Prop\n\
+ctor intro (w : A) (h : p w) : Exists A p\n\
+end\n\
+def pick (\u{3b1} : Type) (A B : \u{3b1} \u{2192} Prop)\n\
+    (h : Exists \u{3b1} (fun (x : \u{3b1}) => And (A x) (B x))) :\n\
+    Exists \u{3b1} (fun (x : \u{3b1}) => And (A x) (B x)) := h\n\
+theorem wrong (\u{3b1} : Type) (A B : \u{3b1} \u{2192} Prop) (a : \u{3b1}) (ha : A a) (hb : B a) :\n\
+    Exists \u{3b1} (fun (x : \u{3b1}) => And (B x) (A x)) :=\n\
+  pick \u{3b1} A B (Exists.intro a (And.intro ha hb))\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert!(!out.errors.is_empty(), "目标写错必须判红：{:?}", out.events);
+    assert_eq!(
+        out.errors[0].code(),
+        "kernel-rejected",
+        "{:?}",
+        out.errors[0]
+    );
+}
+
 /// **B3-④ / T-N14 判据**（2026-09-30）：记法目标带**前导隐式** binder 时，记法
 /// 展开走 `Expr::App` 臂的**唯一钩子**（不是记法路径自己那套补参机械）。
 ///
