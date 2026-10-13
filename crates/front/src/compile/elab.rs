@@ -2040,6 +2040,52 @@ fn local_arg_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Opt
 /// `fType := body.instantiate1 arg`，下一位的期望类型 = `whnfForall fType` 的域 ✓
 /// （`:1455` `consumeImplicits` 也是先 `whnfCore` ✓）——**def 头由内核展开**，
 /// 于是**不存在**"源级展开留下的裸名"这件事 ✓✓。
+/// **第 4 刀（2026-10-13）的闸门**：`SOKO_LEGACY_NO_EXPECTED=1` ⇒ 恒 `false`
+/// （= 今天的行为 ✓，反向验证用 ✓）。
+fn expected_for_app_args_enabled() -> bool {
+    !matches!(
+        std::env::var("SOKO_LEGACY_NO_EXPECTED").ok().as_deref(),
+        Some("1") | Some("on") | Some("true")
+    )
+}
+
+/// **头是（偏应用的）`fun …` 且 binder 带标注** ⇒ 下一个实参的期望类型 = 那个标注 ✓。
+///
+/// **零内核调用、零文本往返** ✓（这是它与 [`application_arg_expected`] 的关键差别 ——
+/// 后者把头的类型**打成文本再回读**，而那份文本的 pp 档会**错位对齐** ✗）。
+///
+/// 已吃掉的实参代进标注（`fun (a : α) (b : β a) => …` 吃到 `a` 时，`β a` 里的 `a`
+/// 要换成实参 ✓）；拿不到 ⇒ `None`（**绝不返回含不在作用域名字的期望类型** ✗）。
+///
+/// ⚠ **零分配**（`unify_body`/`elab` 都是热路径 ⇒ 先只**数**脊柱、`spine_of` 只在
+/// 真的需要代换时才调 ✓，与 `tail_aligned_pair` 同款纪律 ✓）。
+fn lambda_arg_expected(fun: &Expr, enabled: bool) -> Option<Expr> {
+    if !enabled {
+        return None;
+    }
+    let mut n = 0usize;
+    let mut cur = fun;
+    while let Expr::App { fun, .. } = cur {
+        n += 1;
+        cur = fun;
+    }
+    let Expr::Lambda { binders, .. } = cur else {
+        return None;
+    };
+    let ty = binders.get(n)?.ty.as_deref()?;
+    if n == 0 {
+        return Some(ty.clone());
+    }
+    let (_, args) = crate::spine::spine_of(fun);
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for (k, b) in binders.iter().take(n).enumerate() {
+        if !b.name.is_empty() {
+            sigma.insert(b.name.clone(), args[k].clone());
+        }
+    }
+    Some(crate::spine::substitute(ty, &sigma))
+}
+
 fn kernel_next_arg_expected<'a>(
     fun: &Expr,
     scope: &ElabScope<'a>,
@@ -5657,6 +5703,28 @@ pub(crate) fn elab_expr<'a>(
                     .or(Some(ty)),
                     other => other.map(|(ty, _s)| ty),
                 }
+                // ── **第 4 刀（2026-10-13）**：局部路**答不出**时，头若是
+                // **（偏应用的）`fun …` 且 binder 带标注** ⇒ 用那个标注 ✓ ──────────
+                // 为什么（`[g63] ④` 实测 ✓）：`needs_expected_type` 只认
+                // `SetLiteral`/零元记法/`Lambda` ✗ ⇒ 实参是 **App 形状**时走这一支，
+                // 而这一支只问**局部变量** ✗ ⇒ 头是 λ 时恒 `None` ✗ ⇒ `arg_expected`
+                // 一路 `None` 到 `implicit::solve_prefix_meta_alt` 的**路线④**
+                // **一次都不跑** ✗（`[g63] ④` 在 `lib/Image:101` 等 8 处 **0 条**，
+                // 而 ③ 有 4 条 ✓）⇒「自然写法」补不出前导隐式 ✗。
+                //
+                // **与 Lean 最近** ✓：`Lean/Elab/App.lean:1113`
+                // `fType := (← whnf fType).forallBody.instantiate1 arg` ⇒ 下一个实参的
+                // 期望类型**就是形参的绑定类型** ✓ —— 头是 λ 时那个绑定类型**就在源里**
+                // （binder 的标注 ✓）⇒ 直接取，**不经过内核、不经过文本往返** ✓。
+                //
+                // ⚠ 三条安全性质（面最小 ✓）：① **只在局部路返回 `None` 之后**才试
+                // ⇒ 既有形状（局部头 `h (f x) (…)` 那一族）**一个字节都不动** ✓
+                //（实测：早先版本把 App 实参**一律**改走 `application_arg_expected`
+                // ⇒ 把 `Set.image_subset_iff`（局部头）判红 ✗ —— 这正是本闸门存在的理由 ✓）；
+                // ② 标注里若提到更早的 binder ⇒ 用**已经吃掉的实参**代换 ✓；
+                // ③ 拿不到标注 ⇒ `None`（= 今天的行为，绝不更差 ✓）。
+                // 逃生门 `SOKO_LEGACY_NO_EXPECTED=1` ⇒ **退回今天的行为**（反向验证 ✓）。
+                .or_else(|| lambda_arg_expected(fun, expected_for_app_args_enabled()))
             };
             let fun = elab_expr(builder, fun, scope, univ, known, hovers, None, None, ctx)?;
             let arg = elab_expr(
