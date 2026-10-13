@@ -335,7 +335,7 @@ G-04（`notation`）落地后只加记法层、不改名字——于是"同一�
    门禁 34 个目标全绿（296 checked · 93 open · 0 判负）。标准库随之长出 6 个模块
    （`Exists`/`Prod`/`Rel`/`Fun`/`Image`/`Equiv`），并逼出 §3.2 的三条变形；
 5. **P-C5 ✅**：`gap.py list --kind library` 视图（标准库欠账单独可见）；
-6. **P-C7 ⬜（本轮新增）**：把 6 个模块补进 `lib/Demo.sokonanoda` 的自检入口
+6. ~~**P-C7 ⬜（本轮新增）**：把 6 个模块补进 `lib/Demo.sokonanoda` 的自检入口~~ **✅ 已落地**（2026-10-13 订正：同档别处已记；⬜ 是过期标记 ✗）
    （`Prod`/`Exists`/`Rel`/`Fun`/`Image`/`Equiv` 各一行 `import` + 两条演示）——
    这是 `teaching-project.md:397` 的验收标准最后差的一块（§3.3）；
 7. **P-C8 ⬜（本轮新增）**：**决定 G-16 到底记哪一条**。现在两处 WO 各自"建议 G-16"而

@@ -150,7 +150,7 @@ fn session_compiles_entries_that_import_the_lib_layer() {
 /// ⚠ 该切片**已停** —— §27.2/§28 实测"一次 session 覆盖全部入口"与 per-entry
 /// 前缀冲突，本守卫因此**保持 `#[ignore]`，不是待办** ✗）。
 #[test]
-#[ignore = "TDD 先红守卫：切片 1（按 module_key 复用）尚未实现；实现后删掉本行"]
+#[ignore = "本守卫**保持 ignore**：该切片已停（见上方 doc comment 与台账 G-68 = fixed）——**不是待办** ✗"]
 fn slice1_shared_module_is_compiled_once_across_entries() {
     use sokonanoda_front::project::{compile_plan, plan_project};
     let dir = std::env::temp_dir().join(format!("soko-slice1-once-{}", std::process::id()));
