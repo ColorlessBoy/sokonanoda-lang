@@ -101,27 +101,22 @@ fn cursor_is_on_notation(doc: &str, line: u32, character: u32) -> bool {
     crate::notation_input::symbol_at(doc, offset).is_some()
 }
 
-/// LSP (0-based) 位置 → 字节 offset。越界返回 `None`。
+/// LSP (0-based) 位置 → 字节 offset。行号越界返回 `None`；列越界夹到行尾。
 ///
-/// `character` 按**字符**计数（不是字节）：行里只要有 `α`/`∈` 这类多字节字符，
-/// 按字节算就会错位——实测踩到过（`(h : a ∈ A)` 的 `∈` 前面有 4 个 `α`，
-/// 按字节算的 offset 落到别处 ⇒ 守卫不触发、`rename` 照样改 `h`）。
-/// 与 LSP 侧 `position_to_offset` 同一口径；星平面符号的偏差是 **T-D31** 的
-/// 独立缺口（那边要改成 UTF-16 码元，两边一起改）。
+/// `character` 按 **UTF-16 code unit** 计数（LSP 的 `character` 口径 ✓）——
+/// **唯一归属**是 [`crate::query::offset_of_line_col`]（真相层只该有**一份**
+/// 换算 ✓，`line_col_of` 那条注释立的规矩），这里只做 0-based → 1-based 的适配。
+///
+/// **T-D31 收口（G-36 的 front 侧同族，2026-10-13）**：这里原来按 **`char`** 数 ✗
+/// （`char_indices().nth(character)`），理由是"与 LSP 侧 `position_to_offset`
+/// 同一口径，**两边一起改**"——而 LSP 侧 **2026-10-03 已经改成 UTF-16** ✗
+/// （`lsp/render.rs::line_col_to_offset` 的 G-36 第二处）⇒ 两边**早已分叉**：
+/// 行里有星平面字符（`𝒫`，U+1D4AB：**一个 `char` = 两个 UTF-16 码元**）时，
+/// 按 `char` 算的 offset 会**落在符号之前** ⇒ `cursor_is_on_notation` 不触发 ⇒
+/// 光标在 `⊆` 上仍解析到**外层 binder** —— **与 T-D30 的原始事故同形** ✗。
+/// 判据：`resolve_at_handles_astral_symbols_by_utf16_columns` ✓。
 fn offset_of(doc: &str, line: u32, character: u32) -> Option<usize> {
-    let mut current = 0usize;
-    for (index, text) in doc.split_inclusive('\n').enumerate() {
-        if index == line as usize {
-            let add = text
-                .char_indices()
-                .nth(character as usize)
-                .map(|(i, _)| i)
-                .unwrap_or(text.len());
-            return Some(current + add);
-        }
-        current += text.len();
-    }
-    None
+    crate::query::offset_of_line_col(doc, line as usize + 1, character as usize + 1)
 }
 
 /// LSP (0-based) position inside a front (1-based) span.
@@ -330,6 +325,23 @@ mod tests {
         let target = ResolvedTarget::Declaration {
             name: "ghost".to_string(),
             span: Span::default(),
+        };
+        assert!(references_for(&report.hovers, &target).is_empty());
+    }
+
+    // ---- resolve_at：光标处双向解析（rename / find-references 共用）----
+    // 光标坐标是 LSP 0-based（行号、行内字符），与 front 的行内 1-based 列对齐。
+
+    const SHADOW: &str =
+        "def f : Prop -> Prop -> Prop := fun (x : Prop) => fun (x : Prop) => x\n#check f\n";
+    // offsets (line 0): outer binder "(x : Prop)" 36..46, inner binder 54..64,
+    // inner body use `x` 68..69.
+
+    const CROSS: &str =
+        "def f : Prop -> Prop := fun (x : Prop) => x\ndef g : Prop -> Prop := fun (x : Prop) => x\n";
+    // offsets: f's binder 28..38 (line 0); g's binder 72..82, g's body use
+    // 86..87 — both on line 1, the use at line-character 42.
+
     /// **T-D30 的判据**：光标在 `(h : a ∈ A)` 的 **`∈`** 上时，不得解析到 `h`。
     ///
     /// 改前实测：`resolve_at` 的第二个回退（"找一条 target span 覆盖光标的使用点"）
@@ -384,22 +396,64 @@ theorem t (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n";
         );
     }
 
-// 对照：**同一个 binder 的 `h` 本身**仍然解析得到（别把定义点那一支修坏）
-        // ——它的 span 就是 `(h : a ∈ A)` 那一段（binder 的 span 覆盖整段标注，
-        // 这正是误命中的来源）。
-        let h_col = line_text[..line_text.find("(h :").expect("binder 在那一行")]
-            .chars()
-            .count() as u32
-            + 1;
-        let resolved = resolve_at(SRC, &report.hovers, line, h_col);
-        let Some(ResolvedTarget::Binder(span)) = resolved else {
-            panic!("光标在 `h` 上仍应解析到 binder：{resolved:?}");
-        };
-        let binder_text = &SRC[span.start.offset..span.end.offset];
+    /// **T-D31 的判据（front 侧，2026-10-13）**：`character` 按 **UTF-16 码元** ✓。
+    ///
+    /// 为什么必须有一条**含星平面字符**的判据：老实现按 **`char`** 数 ✗，而既有夹具
+    /// 全是 BMP（`α`/`∈` 都是 1 个码元）⇒ 两种口径**恒等** ⇒ 这个 bug 一直咬不住 ✓。
+    /// 行里出现 `𝒫`（U+1D4AB，**1 个 `char` = 2 个 UTF-16 码元**）时两者分叉：
+    /// 按 `char` 算的 offset 落到**符号后面一格** ⇒ `cursor_is_on_notation` **不触发**
+    /// ⇒ 光标在 `⊆` 上掉进第二个回退 —— 那条回退会拿 **binder 的 span**（覆盖整段
+    /// `(h : 𝒫 ⊆ B)`）去命中**外层 binder `h`** —— **与 T-D30 的原始事故同形** ✗
+    /// （这也是它必须与 T-D30 的守卫同轮的原因）。
+    ///
+    /// **判据 = 守卫在这一行上必须触发** ✓（第一句断言就是它，也是**反向验证**咬的
+    /// 那一口：退回 `char` 版 ⇒ 守卫答 `false` ⇒ 当场判红 ✗）。
+    /// 第二、三句断言用户可见的答案：**记法符号自己**，且**绝不是 `Binder`**。
+    #[test]
+    fn resolve_at_handles_astral_symbols_by_utf16_columns() {
+        const SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n\
+def Set.subset (α : Type) (A : Set α) (B : Set α) : Prop := (x : α) -> x ∈ A -> x ∈ B\n\
+infix:50 \" ⊆ \" => Set.subset\n\
+theorem t (α : Type) (A : Set α) (B : Set α) (𝒫 : Set α) (h : 𝒫 ⊆ B) : 𝒫 ⊆ B := h\n";
+        let report = check_report(SRC);
+        let line = 5u32; // 0-based：`theorem t …` 那一行
+        let line_text = SRC.lines().nth(line as usize).expect("第六行");
         assert!(
-            binder_text.starts_with("(h :") && binder_text.contains('∈'),
-            "解析到的是 `h` 那个 binder：{binder_text:?}"
+            line_text.contains('𝒫'),
+            "夹具必须含星平面字符（否则两种口径恒等、咬不住 ✗）：{line_text:?}"
         );
+        let col = utf16_col(line_text, line_text.find('⊆').expect("那一行有 ⊆"));
+        // ① **守卫必须触发**（这一句是反向验证的那一口）。
+        assert!(
+            cursor_is_on_notation(SRC, line, col),
+            "含 `𝒫` 的行上，光标在 `⊆` 上时守卫**必须**触发 —— \
+             答 `false` 说明列口径退回 `char` 了（`𝒫` = 2 个 UTF-16 码元 ⇒ offset 偏右）✗"
+        );
+        // ② 用户可见的答案：记法符号自己。
+        let resolved = resolve_at(SRC, &report.hovers, line, col);
+        let Some(ResolvedTarget::Notation { symbol, span, .. }) = resolved else {
+            panic!("`𝒫` 之后的 `⊆` 必须按 UTF-16 列命中记法符号自己，实际是 {resolved:?} ✗");
+        };
+        assert_eq!(symbol, "⊆");
+        assert_eq!(&SRC[span.start.offset..span.end.offset], "⊆");
+        // ③ **绝不**是外层 binder（T-D30 的真正意图，一条都不能破）。
+        assert!(
+            !matches!(
+                resolve_at(SRC, &report.hovers, line, col),
+                Some(ResolvedTarget::Binder(_))
+            ),
+            "`⊆` 上绝不许解析到外层 binder `h` ✗（T-D30 的原始事故）"
+        );
+    }
+
+    /// 字节下标 → LSP 的 `character`（**UTF-16 码元** ✓，LSP 口径）。
+    fn utf16_col(line_text: &str, byte_index: usize) -> u32 {
+        line_text[..byte_index]
+            .chars()
+            .map(char::len_utf16)
+            .sum::<usize>() as u32
     }
 
     fn check_report(doc: &str) -> crate::compile::DocumentReport {
