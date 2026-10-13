@@ -150,56 +150,6 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 > 可 grep** ✓，带 **139 条索引** ✓）；**判据与守卫**仍在 `scripts/` 与
 > `crates/**/tests/` 里**真跑** ✓。判据：`python3 scripts/docs-lint.py` ✓（入口 ≤800 行 ✓）。
 
-### 9.1 产品要求（R-1…R-4，**仍生效** ✓）
-
-> 用户 2026-09-24 提出，四条**全部交付**（0.66.0 / 0.67.0）✓；**行为契约仍然有效** ✓
-> —— 交付过程与全部证据在归档里（每条给锚点 ✓）。
-
-| # | 要求（现行规范 ✓） | 交付 | 守卫 / 判据 | 归档锚点 |
-|---|---|---|---|---|
-| **R-1** | Infoview 的 `def` 卡片必须显示第二行 `:= <值>`：`value`/`value_runs` **必须走 wire** ✗（LSP 漏映射 = 用户看不见而三层测试全绿 ✗） | ✅ 0.66.0 | `crates/lsp/src/tests/goals.rs` ✓ · **A∖B 对账** `python3 scripts/audit-wire-fields.py` ✓（回退 R-1 ⇒ 必须报 `value_runs` ✓） | 归档 §R-1 |
-| **R-2** | 目标面板**必须高亮**（`goal_runs`/`goals_runs` 走 wire + `infoview.js` 渲染 `⊢` 行 ✓）；目标文本**完全记法化** ✓；`=` **不得**被词法当声明符号吃掉 ✗ | ✅ 0.66.0 | front 单测（父子成对/对齐/反例）✓ · LSP wire 单测 ✓ · `node editor/vscode/test-webview.js` ✓ · **真宿主 e2e** ✓ · as-built `docs/design/goal-rendering.md` §9 ✓ | 归档 §R-2 |
-| **R-3** | 项目模式在**模块根**建 `.sokonanoda/`：产物落 `<模块根>/.sokonanoda/compiled/<key>.json`，**vscode 与 code agent 共用**（避免重复计算 ✓） | ✅ 0.67.0 | `crates/cli/tests/artifacts.rs`（5 条真进程 ✓）· 设计 `docs/design/project-artifacts.md` ✓ | 归档 §R-3 |
-| **R-4** | VS Code 命令名统一 **`Sokonanoda: <Command> (说明)`**（前缀固定 ✓、命令词首字母大写 ✓、括号中文说明 ✓） | ✅ 0.67.0 | `crates/cli/tests/extension.rs`（声明↔注册一致 ✓）· 同步义务见 §9.2 末条 | 归档 §R-4 |
-
-> **R-2 的 (a) 半仍**未做** ✗**：λ 操作数补不出前导类型参数 ⇒ 属**记法引擎特性**（记法化现场 #1/#3）⇒ 在那之前那两条只能写**显式形式** ✓（豁免注释即为此存在 ✓）。详见归档 §R-2 与 `docs/design/goal-rendering.md` §9。
-
-### 9.2 流程纪律（用户 2026-09-24 拍板；**硬要求** ✓）
-
-**P-1 验证设计纪律** 与 **P-2 并行与 subagent 纪律** 的**正文已收敛到 `AGENTS.md`**（同名小节，逐条可判、含陷阱与先例）——**那里是唯一真相**，此处不复制（避免两处漂移 ✗）。
-一句话提要：**P-1** = 用户可见改动先答"屏幕上会多/少什么"·三层各司其职（真相/wire 契约/用户可见结果）·接缝要有 **A∖B 对账**且**咬得住历史 bug**·「有就渲染」是反模式。
-**P-2** = subagent 只做只读/边界清晰的活、并发 ≤2–4、prompt 自带三样（规则摘要 + **可执行判据** + 不许改什么的边界）、产出验证后并入、发现回写文档、提交粒度不变。
-
-**同步义务**（用户可见改动 = 同一轮五处 ✗）：`editor/vscode/`（README/CHANGELOG/package.json）**与** `skills/` 三个技能 + `AGENTS.md` + `docs/vscode-dev-guide.md` ✓（`crates/cli/tests/skill.rs` / `dsh.rs` 挡住漂移 ✓）。
-
-### 9.3 预算纪律（用户 2026-09-26 ✓）
-
-**① `STATUS.md` 瘦身**（`scripts/status-lint.py` ✓，已进 gate 与 CI ✓）：只留两类 —— 顶部「**当前快照**」（≤40 行 ✓）+ **最近 ≤3 轮**（每轮只写"变了什么 / 现在的状态 / 未决项"，每段 ≤30 行 ✓）；**总行数 ≤240** ✗（`MAX_TOTAL`；2026-09-27 由 200 上调，
-理由在脚本注释里 —— 200 顶格后只能删旧轮 ✗）· **禁词命中 = 0** ✗
-（`在跑`/`进行中`/`未变`/`判据不变`/`待 CI`/`等 CI`/`⏳`）· **净增 ≤60 行**（与 `HEAD` 比 ✗）；
-逐轮过程与瞬时状态进 `docs/STATUS-ARCHIVE.md`（**或干脆不写** ✓ —— CI 页面自有 ✓）；
-未决项用固定措辞「**未决**」✓。
-
-**② 文档瘦身 + 判据守护**（用户原话：「**文档太重了，还没实现多少东西文档先爆炸了**」✗
-—— **落成机制，不要口号** ✗；`scripts/docs-lint.py` ✓，已进 gate 与 CI ✓）：
-三类**分治** ✓ —— **活规范**（短、准）· **过程记录**（只留**结论 + 指针**，
-更早的进 `docs/archive/` ✓）· **垃圾**（直接删 ✓）。**七条判据**（**实测值以脚本为准** ✗）：
-
-① **活文档总量 ≤ 10.0 MB**（`MAX_LIVE_BYTES`；= 仓根 `*.md` + `docs/**`，
-**不含** `docs/archive/**` ✗）；② **单文件 ≤ 2000 行**；③ **入口文件 ≤ 800 行**
-（`scripts/docs-lint.py` 的 `ENTRY_FILES`：`AGENTS.md`/`README.md`/`REQUIREMENTS.md`/
-`ROADMAP.md`/`STATUS.md`/`docs/README.md`/`docs/design/e2-plan.md`；⚠ `docs/ONBOARDING.md`
-**不在其中** —— 它由 ⑦ 的 per-file 上限管 ✓）；④ **设计文档**：`docs/design/**`
-**新增** ≤150 行 ✓、**既有**按 `scripts/docs-budget.json` **冻结**（**只许减不许增** ✗
-—— 要放宽必须手改那份 JSON ⇒ 评审可见 ✓）；⑤ **禁垃圾**：`docs/**` 下不得有
-`.tmpdir` / `.tmp` / `.tmp-<pid>` / `.DS_Store` / `*.orig` / `*.rej` / `*~`
-（**含未跟踪的本地残留** ✗）；⑥ **归档可追溯**（红线 ✓）：`docs/archive/**`
-每个文件必须在 `docs/archive/README.md` 里**被点名** ✓，归档总量 ≤2.5 MB ✓
-（`MAX_ARCHIVE_BYTES`）；⑦ **接手路径**（X1，2026-09-28）：`docs/ONBOARDING.md`
-必读表**每文件 + 合计**都有上限，超标判红 ✓（`docs-budget.json` 的 `onboarding` 一节）。
-
-**红线**（不许动 ✓）：**判定正确性、红线证据与可追溯性** ✗ —— **归档 ≠ 销毁** ✓：任何"证据/判据/复现件"必须**仍能找到** ✓（给归档路径与索引 ✓）；**不许为了让数字变绿而删证据** ✗。**新环节的文档预算** ✓：设计先行**只写契约不写过程** ✗（过程进 commit message 与 `STATUS.md` ✓）。
-
 ### 9.5 2026-09-26 专项：记法 + 隐式参数 + **产品交互面**（用户拍板 ✓）
 
 **用户原话**：「**全面一点，专门针对 notation，产品交互**。包括**多来点隐式参数，让
