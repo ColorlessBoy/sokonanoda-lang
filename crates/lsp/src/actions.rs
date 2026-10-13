@@ -37,6 +37,10 @@ use tower_lsp::lsp_types::*;
 /// The code-action entry: suggestions in order (exact → rfl → refine →
 /// intro), the first one marked preferred. A kernel-rejected declaration
 /// offers at most one action: the restart skeleton for the whole value.
+// 参数 8 个（clippy 上限 7）：第 8 个是 F12b2 新加的**闭包记法表**（`notations`）。
+// 它与 `judge_prefix` 同属「闭包上下文」，本该一起打包成结构体；本轮为把改动面压到最小
+// （不动 4 个调用点）先显式放行 ⇒ **记为一处待收拾的参数膨胀**（见 W-3/后续课题），不是豁免判定。
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn code_actions(
     uri: Url,
     text: &str,
