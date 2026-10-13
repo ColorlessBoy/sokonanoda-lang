@@ -317,7 +317,8 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
 --   ③ 它与 Nat 等势（正向 pred、反向 succ——无限集上的"整体与真部分一样大"）。
 -- 左互逆律 pred (succ x) = x 要对 x 分情况：succ 那一支靠 iota 直接算，
 -- zero 那一支被 x ∈ nonzero 直接否掉（这就是为什么脚手架里要有 succ_ne_zero）。
--- 第一段用点名形式 Set.subset Nat …：⊆ 记法在这里补不出论域（见画布同款注释）。  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+-- 第一段用**记法** `nonzero ⊆ (Set.univ Nat)` ✓（2026-10-13 实测判绿 ✓ ——
+-- 旧注说"⊆ 记法补不出论域 ⇒ 点名"**已过期** ✗，按实际订正 ✓）。
 -- ─────────────────────────────────────────────────────────────
 theorem proper_subset_counterexample :
     nonzero ⊆ (Set.univ Nat) ∧

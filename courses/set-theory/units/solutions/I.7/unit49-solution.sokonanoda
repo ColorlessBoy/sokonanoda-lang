@@ -80,7 +80,7 @@ theorem sInter_union_subset_left (α : Type) (F G : Set (Set α)) :
     (⋂₀ (F ∪ G)) ⊆ (⋂₀ F) :=
   fun (x : α) => fun (h : x ∈ ⋂₀ (F ∪ G)) =>
     Set.mem_sInter_intro α F x (fun (B : Set α) (hB : B ∈ F) =>
-      (fun (hv : ∀ (C : Set α), C ∈ F ∪ G → x ∈ C) => hv B (Or.inl (B ∈ F) (B ∈ G) hB))  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+      (fun (hv : ∀ (C : Set α), C ∈ F ∪ G → x ∈ C) => hv B (Or.inl (B ∈ F) (B ∈ G) hB))  -- soko:notation-ok: G-73 形状 ②：期望类型是 def 头（`B ∈ F ∪ G`）时 `Or.inl` 补不出前导 Prop 实参（2026-10-13 实测：短写 `Or.inl hB` 判红 ✗、写全判绿 ✓）
         ((fun (hu : x ∈ ⋂₀ (F ∪ G) ↔
             ∀ (C : Set α), C ∈ F ∪ G → x ∈ C) =>
           Iff.mp hu h) (Set.mem_sInter_iff α (F ∪ G) x)))

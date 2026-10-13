@@ -187,7 +187,7 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
 -- 这就是"整体与真部分一样大"在本语言里的第一个可判例子（**设计判断**：先给反例，
 -- 不在这里谈"无限"的定义——那需要"有限"，本语言还没有）。
 -- soko:hint 思路：反例取 nonzero 与 Set.univ Nat：正向映射做"减一"（Nat.pred），反向映射做"加一"（Nat.succ）。
--- soko:hint 目标形态：`Set.subset` Nat nonzero (Set.univ Nat) ∧ (nonzero ≠ Set.univ Nat ∧ nonzero ≈ (Set.univ Nat))——第一段是"包含"（⊆ 记法在 nonzero 这个 def 操作数上补不出论域，按设计写点名形式）。
+-- soko:hint 目标形态：`nonzero ⊆ (Set.univ Nat) ∧ (nonzero ≠ Set.univ Nat ∧ nonzero ≈ (Set.univ Nat))`——第一段是"包含"（✓ **`⊆` 记法直接可用** ✓，2026-10-13 实测 ✓；旧注"补不出论域 ⇒ 点名"已过期 ✗）。
 -- soko:hint 关键件：① 目标是 Set.univ，True.intro 即可；② 拿 0 做见证——用 Eq.subst 与 Eq.symm 沿假设把 Set.mem_univ 搬成 0 ∈ nonzero，再喂 Eq.refl；③ 反向那条 MapsTo 用 Nat.succ_ne_zero，左互逆律要对 x 分情况：Nat.rec.{0} 配依赖 motive（zero 支被 hx 直接否掉，succ 支靠 Nat.pred 的 iota 算）。
 -- ─────────────────────────────────────────────────────────────
 theorem proper_subset_counterexample :
