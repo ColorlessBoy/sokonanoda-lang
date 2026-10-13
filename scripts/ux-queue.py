@@ -93,6 +93,16 @@ python3 scripts/ux-queue.py --repoint <id> --commit <sha> --reason '<why>' # 单
 **找不到孪生或有歧义 ⇒ 不硬填** ✗（如实列出 —— 那是真问题）。
 新指针与 `--advance`/`--triage`/`--release` **共用** `closure_pointer_problem()`（别自己再写一遍 ✗）。
 
+⚠ **显式指针也过同一条三关**（2026-10-14 · **第七次独立复核实测 ✗ 后补齐**，`#1`）：
+`--repoint <id> --commit <sha>` 原先**只**走 `closure_pointer_problem()`（存在性 + 祖先性），
+**不比 subject / patch-id** ⇒ 复核者实测 `--repoint G-01 --commit 92ef75e1`（main 的 **M0 根提交**、
+内容完全无关）**rc=0**，再 `--check` 打出「非祖先 0 条 ✓ 没有豁免」、`--release add` 也 rc=0 收下
+⇒ **证据链可被"指向任意祖先"掏空** ✗。⇒ 显式路与自动路**共用** `twin_gate_problem()`
+（三关一处定义 ✓），显式指针过不了三关就**拒**（`#1` 选的是「闸门 + 审计字段」两件都做）。
+⚠ 事件里**记 `subject` + `patch_id`（新旧两侧）**：旧事件只有 `{commit, old, reason, owner}` ⇒
+**事后无从审计** ✗ ⇒ 现在 `_repoint_event()` 是唯一出处，`check_plan` 还会**复查**
+「现在这个指针还是不是当时那个内容」（手改事件表换 `commit` ⇒ 判红 ✓）。
+
 **收口指针必须过祖先性闸门**（2026-10-14 · `queueW` 修三个视图一致性缺陷 ⑤）：`--commit` 不只看
 "对象存在"（`git cat-file -e`），还看 `git merge-base --is-ancestor <sha> HEAD` —— 实测 99 条带
 指针的 `done` 里 **60 条**的指针是 **rebase 前的孪生**（对象在、内容也落了 main，但**解析不到
@@ -1185,6 +1195,11 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
                 cur["repointed_from"] = _from
                 cur["commit"] = ev["commit"]
                 cur["repointed_ts"] = ev.get("ts")
+                # ⭐ **审计字段折进状态**（`#1`）：`check_plan` 的读侧复查要拿它比对
+                # "现在这个指针还是不是当时那个内容"（手改事件表换 commit ⇒ 判红 ✓）。
+                for _k in ("subject", "patch_id"):
+                    if ev.get(_k):
+                        cur[f"repoint_{_k}"] = ev[_k]
         elif kind == "split":
             parent = ev.get("parent")
             if parent:
@@ -1341,7 +1356,8 @@ def _ancestors_by_subject() -> dict[str, list[str]]:
     if _ANCESTORS_BY_SUBJECT is None:
         out: dict[str, list[str]] = {}
         raw = subprocess.run(["git", "log", "--format=%H%x01%s", "HEAD"],
-                             cwd=ROOT, capture_output=True, text=True).stdout
+                             cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+                             errors="replace").stdout
         for line in raw.splitlines():
             if "\x01" in line:
                 sha, subj = line.split("\x01", 1)
@@ -1350,27 +1366,94 @@ def _ancestors_by_subject() -> dict[str, list[str]]:
     return _ANCESTORS_BY_SUBJECT
 
 
+_PATCH_ID_CACHE: dict[str, str | None] = {}
+_SUBJECT_CACHE: dict[str, str] = {}
+
+
+def _commit_subject(commit: str) -> str:
+    """`git log -1 --format=%s`（**UTF-8 固定**；对象不在 ⇒ `""`）。"""
+    if commit not in _SUBJECT_CACHE:
+        _SUBJECT_CACHE[commit] = subprocess.run(
+            ["git", "log", "-1", "--format=%s", commit], cwd=ROOT, capture_output=True,
+            text=True, encoding="utf-8", errors="replace").stdout.strip()
+    return _SUBJECT_CACHE[commit]
+
+
 def _patch_id(commit: str) -> str | None:
-    """`git patch-id --stable`（对 `git show <commit>` 的 diff 算；算不出返回 `None`）。"""
-    show = subprocess.run(["git", "show", commit], cwd=ROOT, capture_output=True, text=True)
-    if show.returncode != 0:
-        return None
-    probe = subprocess.run(["git", "patch-id", "--stable"], cwd=ROOT, input=show.stdout,
-                           capture_output=True, text=True)
-    if probe.returncode != 0 or not probe.stdout.strip():
-        return None
-    return probe.stdout.split()[0]
+    """`git patch-id --stable`（对 `git show <commit>` 的 diff 算；算不出返回 `None`）。
+
+    ⚠ **显式 UTF-8**（`#5a`，2026-10-14 · 第七次独立复核）：旧写法 `text=True` 用
+    `locale.getpreferredencoding()` 解码 ⇒ 非 UTF-8 环境（`LC_ALL=C`）下**在孪生搜索里
+    抛 `UnicodeDecodeError` 栈**（rc=1 ✗，不是契约的 rc=2）；仓库 subject 大量中文 ⇒ 必踩。
+    这里把它钉成 UTF-8（git 的默认输出编码），环境不参与内容判定 ✓。
+    """
+    if commit not in _PATCH_ID_CACHE:
+        _PATCH_ID_CACHE[commit] = None
+        show = subprocess.run(["git", "show", commit], cwd=ROOT, capture_output=True,
+                              text=True, encoding="utf-8", errors="replace")
+        if show.returncode == 0:
+            probe = subprocess.run(["git", "patch-id", "--stable"], cwd=ROOT, input=show.stdout,
+                                   capture_output=True, text=True, encoding="utf-8",
+                                   errors="replace")
+            if probe.returncode == 0 and probe.stdout.strip():
+                _PATCH_ID_CACHE[commit] = probe.stdout.split()[0]
+    return _PATCH_ID_CACHE[commit]
+
+
+def twin_gate_problem(old: str, cand: str) -> str | None:
+    """**孪生三关**（同 subject → `patch-id --stable` 一致 → 是 `HEAD` 的祖先）的**唯一出处**。
+
+    返回 `None` = `cand` 是 `old` 的合法孪生；否则返回判红正文。
+    ⚠ **自动路与显式路共用本函数**（`find_twin()` 的搜索、`cmd_repoint --commit` 的显式指针）
+    —— 别写第二遍 ✗（`AGENTS.md` 硬规则 0(b)：同一规则两处写 ⇒ 下次只改一处又分叉）。
+
+    ⚠ **为什么必须有**（`#1`，2026-10-14 · 第七次独立复核实测 ✗）：`--repoint <id> --commit <sha>`
+    原先**只查存在性 + 祖先性**（`closure_pointer_problem`），**不比 subject / patch-id** ⇒
+    复核者实测 `--repoint G-01 --commit 92ef75e1`（main 的 **M0 根提交**，内容完全无关）
+    **rc=0**，且下一条 `--check` 打出「非祖先 0 条 ✓ 没有豁免」⇒ **证据链被"指向任意祖先"掏空** ✗
+    （而省略 `--commit` 的自动路**本来就过三关** ⇒ 同一规则两条口径）。
+
+    ⚠ **判定顺序**（只影响"先报哪一条"，三关是**合取**）：先**存在性 + 祖先性**
+    （"这个指针在不在 main 的历史上"）⇒ 再 subject ⇒ 再 patch-id。理由：非祖先的指针
+    该拿到**最可操作**的那条诊断（"不是 `HEAD` 的祖先"），别被内容差异掩盖 ✓
+    （也让 `--advance`/`--triage` 那条共用谓词的报错逐字不变 ✓）。
+    """
+    old_subj = _commit_subject(old)
+    if not old_subj:
+        return (f"✗ 旧指针 `{old[:12]}` 读不出 subject（`git log -1` 空 —— 那个对象真的在吗？）"
+                f"⇒ **内容闸门无法核对**（没有可比对的旧内容）⇒ 不许用显式指针硬填 ✗："
+                f"先 `--advance <id> --to todo --reason '<为什么>'` 重开，再按**真落进 main** 的"
+                f"那个 commit 收口 ✓")
+    cand_subj = _commit_subject(cand)
+    if not cand_subj:
+        return (f"✗ 新指针 `{cand[:12]}` 读不出 subject（对象不存在 / 不是 commit）⇒ 内容闸门"
+                f"过不了 ✗")
+    if not commit_is_ancestor(cand):
+        return (f"✗ `{cand[:12]}` **不是 `HEAD` 的祖先**（`git merge-base --is-ancestor` 非零）"
+                f"⇒ 指针解析不到 main 的历史上（孪生三关的第 3 关）✗")
+    if cand_subj != old_subj:
+        return (f"✗ **subject 不一致**：旧 `{old_subj[:60]}` vs 新 `{cand_subj[:60]}`"
+                f"（孪生三关的第 1 关）⇒ 这不是同一个环节的 rebase 孪生 ✗")
+    mine, theirs = _patch_id(old), _patch_id(cand)
+    if mine is None or theirs is None:
+        return (f"✗ `git patch-id --stable` 算不出（旧 {mine or 'N/A'} / 新 {theirs or 'N/A'}）"
+                f"⇒ 内容一致性核不了（孪生三关的第 2 关）✗")
+    if mine != theirs:
+        return (f"✗ **patch-id 不一致**：旧 `{mine[:12]}` vs 新 `{theirs[:12]}`（孪生三关的第 2 关）"
+                f"⇒ 内容**没落** main，只是 subject 撞了 ✗")
+    return None
 
 
 def find_twin(commit: str) -> tuple[str | None, str]:
     """**三关找 rebase 孪生**：同 subject → `patch-id --stable` 一致 → 是 `HEAD` 的祖先。
 
     返回 `(孪生 sha | None, 人话说明)`。**歧义也返回 `None`**（不硬填 ✓）。
+    ⚠ 三关的**规则本体**在 `twin_gate_problem()`（**一处定义**，显式指针那条路也调它 ✓）；
+    本函数只负责"在同 subject 的祖先里**搜索**"这件搜索活。
     """
     if commit in _TWIN_CACHE:
         return _TWIN_CACHE[commit]
-    subj = subprocess.run(["git", "log", "-1", "--format=%s", commit],
-                          cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    subj = _commit_subject(commit)
     if not subj:
         _TWIN_CACHE[commit] = (None, f"`{commit[:8]}` 读不出 subject（对象真的在吗？）")
         return _TWIN_CACHE[commit]
@@ -1379,14 +1462,11 @@ def find_twin(commit: str) -> tuple[str | None, str]:
         _TWIN_CACHE[commit] = (None, f"同 subject 的**祖先** commit **0 个**"
                                      f"（subject：{subj[:70]}）⇒ 没有孪生")
         return _TWIN_CACHE[commit]
-    mine = _patch_id(commit)
-    if mine is None:
-        _TWIN_CACHE[commit] = (None, f"`{commit[:8]}` 的 `git patch-id --stable` 算不出")
-        return _TWIN_CACHE[commit]
-    same = [c for c in cands if _patch_id(c) == mine]
+    same = [c for c in cands if twin_gate_problem(commit, c) is None]
     if not same:
-        _TWIN_CACHE[commit] = (None, f"同 subject 的祖先有 {len(cands)} 个，但 "
-                                     f"`patch-id --stable` **都不一致** ⇒ 内容没落 main")
+        _TWIN_CACHE[commit] = (None, f"同 subject 的祖先有 {len(cands)} 个，但**三关**"
+                                     f"（subject / `patch-id --stable` 一致 / `is-ancestor`）"
+                                     f"一个都不成立 ⇒ 内容没落 main")
         return _TWIN_CACHE[commit]
     if len(same) > 1:
         _TWIN_CACHE[commit] = (None, f"**歧义**：{len(same)} 个祖先的 subject 与 patch-id 都一致"
@@ -1413,10 +1493,27 @@ def repoint_targets() -> list[tuple[str, str, str]]:
     return out
 
 
+def _repoint_event(ident: str, new: str, old: str, reason: str, owner: str) -> dict:
+    """`repoint` 事件的**唯一定义**（`--repoint` 与 `--repoint-all` 共用 ⇒ 别写两遍 ✗）。
+
+    ⚠ **必须带 `subject` + `patch_id`**（`#1` 审计字段，2026-10-14 · 第七次独立复核实测 ✗）：
+    旧事件只有 `{commit, old, reason, owner, ts}` ⇒ **连"换过去的内容是什么"都没留** ⇒
+    事后**无从审计**（复核者实测：`--repoint … --commit <无关祖先>` 之后，账上读不出任何
+    内容痕迹）。现在记**新旧两侧**的 subject + patch-id ⇒ ① 事后可复查"当时三关确实一致"；
+    ② `check_plan` 可复查"现在这个指针还是不是当时那个内容"（手改事件表换 commit ⇒ 判红 ✓）。
+    """
+    return {"event": "repoint", "id": ident, "commit": new, "old": old,
+            "subject": _commit_subject(new), "patch_id": _patch_id(new),
+            "old_subject": _commit_subject(old), "old_patch_id": _patch_id(old),
+            "reason": reason, "owner": owner}
+
+
 def cmd_repoint(ident: str, commit: str, reason: str, owner: str, dry_run: bool) -> int:
     """**回填一条收口指针**（只追加事件）。
 
     `--commit <sha>` 显式给新指针；**省略**（或 `auto`）⇒ 按三关**自动找孪生** ✓。
+    ⚠ **显式指针也过同一条三关**（`twin_gate_problem()`，与自动路**共用** ✓）——
+    见 `twin_gate_problem` 的说明（`#1`：只查祖先性 ⇒ 证据链可被"指向任意祖先"掏空 ✗）。
     """
     state = fold()
     cur = state.get(ident)
@@ -1435,8 +1532,26 @@ def cmd_repoint(ident: str, commit: str, reason: str, owner: str, dry_run: bool)
               f"（`--repoint` 修的是「在 main 上核不到」的指针，**不是**改历史 ✗）",
               file=sys.stderr)
         return 1
-    new, note = (commit.strip(), "（显式给的指针）")
-    if not new or new == "auto":
+    explicit = bool(commit.strip()) and commit.strip() != "auto"
+    if explicit:
+        # ⭐ **显式指针也要过内容闸门**（`#1`，2026-10-14 · 第七次独立复核实测 ✗）：
+        # 旧写法只走 `closure_pointer_problem()`（存在性 + 祖先性）⇒ 实测
+        # `--repoint Q-1 --commit 92ef75e1`（main 的 M0 根提交、内容完全无关）**rc=0**，
+        # 下一条 `--check` 还打出「非祖先 0 条 ✓」⇒ 证据链被"指向任意祖先"掏空 ✗。
+        # ⇒ 与自动路**共用** `twin_gate_problem()`（三关：subject / patch-id / is-ancestor）。
+        new, note = commit.strip(), "（显式给的指针）"
+        why = twin_gate_problem(old, new)
+        if why is not None:
+            print(f"✗ `{ident}`：显式指针 `{new[:12]}` **过不了孪生三关** ⇒ 拒绝 ✗"
+                  f"（`--repoint` 修的是「**同一个环节**在 main 上的孪生」，"
+                  f"不是「随便指一个祖先」✗）", file=sys.stderr)
+            print(f"  {why}", file=sys.stderr)
+            print(f"  ⇒ 正解：① 省略 `--commit` 让三关**自动找孪生**（推荐 ✓）；"
+                  f"或 ② 若那个对象真的不在，先 `--advance {ident} --to todo "
+                  f"--reason '<为什么>'` 重开，再按**真落进 main** 的 commit 重新收口 ✓",
+                  file=sys.stderr)
+            return 1
+    else:
         new, note = find_twin(old)
         if new is None:
             print(f"✗ `{ident}`@`{old[:8]}` **找不到孪生** ⇒ **不硬填** ✗：{note}",
@@ -1452,10 +1567,10 @@ def cmd_repoint(ident: str, commit: str, reason: str, owner: str, dry_run: bool)
     if dry_run:
         print(f"[dry-run] `{ident}`：{old[:8]} → {new[:8]} {note}（**没写事件** ✓）")
         return 0
-    append_event({"event": "repoint", "id": ident, "commit": new, "old": old,
-                  "reason": reason, "owner": owner})
+    append_event(_repoint_event(ident, new, old, reason, owner))
     print(f"✓ 回填 `{ident}`：`{old[:8]}` → `{new[:8]}` {note}"
-          f"（只追加事件：旧指针留在账上 + `repointed_from` ✓）")
+          f"（只追加事件：旧指针留在账上 + `repointed_from` ✓；"
+          f"审计字段 subject/patch-id 已记 ✓）")
     return 0
 
 
@@ -1498,8 +1613,7 @@ def cmd_repoint_all(reason: str, owner: str, dry_run: bool, limit: int) -> int:
         return 1 if no_twin else 0
     for old, ids, twin, _note in plan:
         for ident in ids:
-            append_event({"event": "repoint", "id": ident, "commit": twin, "old": old,
-                          "reason": reason, "owner": owner})
+            append_event(_repoint_event(ident, twin, old, reason, owner))
     print(f"✓ 回填 **{n_ids} 条** / {len(plan)} 个 sha（只追加事件；旧指针留在账上 ✓）")
     # **别信自己的账**：回填完**再问一次 fold**（重新读事件表 ⇒ 真复查 ✓）。
     # ⚠ 复查**只对本批点过名的 id 判红** ✗：`--limit` 是**分批**用的，剩下的非祖先是
@@ -2143,6 +2257,21 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
                       f"`--repoint {ident} --reason '<why>'` 三关自动回填；"
                       f"或按新历史重开再收口 / 改记**真落进 main** 的那个 commit", file=sys.stderr)
                 bad += 1
+            # ⭐ **审计复查**（`#1` 的后半，2026-10-14 · 第七次独立复核）：`repoint` 事件现在
+            # 记了 `subject` + `patch_id` ⇒ 读侧复查"**现在这个指针还是不是当时那个内容**"。
+            # 靶子 = 手改事件表把 `repoint` 的 `commit` 换成别的（审计字段不会跟着变）⇒ 当场判红 ✗。
+            # ⚠ 只对**带审计字段的** repoint 事件生效（旧账 / 手写事件没有该字段 ⇒ 不误判 ✓）。
+            _rec_pid, _rec_subj = cur.get("repoint_patch_id"), cur.get("repoint_subject")
+            if _c and _rec_pid:
+                _now_pid, _now_subj = _patch_id(_c), _commit_subject(_c)
+                if _now_pid != _rec_pid or (_rec_subj and _now_subj != _rec_subj):
+                    print(f"✗ `{ident}` 的收口指针与它的 `repoint` 事件**对不上**："
+                          f"账上记的 subject/patch-id = `{(_rec_subj or '')[:40]}` / "
+                          f"`{_rec_pid[:12]}`，而 `{_c[:12]}` 实际是 "
+                          f"`{_now_subj[:40]}` / `{(_now_pid or 'N/A')[:12]}`"
+                          f" ⇒ 指针被**事后换过**（手改事件表？）✗ —— `--repoint` 的审计字段"
+                          f"就是为这条复查留的 ✓", file=sys.stderr)
+                    bad += 1
         # ── **两层漂移 = 两个方向的同一条不变量**：来源"已关账" ⟺ 调度器"不在做"。
         # 两个方向合起来才是"三视图一致"：open（来源）· `--next`（调度器）· `--check`（对账）。
         _d = disp.get(ident)
@@ -4335,6 +4464,13 @@ def selftest_repoint_and_release_gate(expect) -> None:
             return git("-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local",
                        "commit-tree", f"{real_sha}^{{tree}}", "-m", subject)
 
+        # ⚠ `base_sha` 是**最新**的那个唯一 subject 提交（`git log` 倒序）⇒ 它**可能等于**
+        # `real_sha`(HEAD) ⇒ ⑤b 的"无关祖先"**不能**用 `real_sha`（那正是孪生的基 ✗，实测
+        # 夹具自己踩到：subject/patch-id 全一致 ⇒ 反而 rc=0）。用**根提交**：它有父的
+        # `base_sha` 的 subject 在全历史唯一 ⇒ 根的 subject 必然不同 ✓，且它一定是祖先 ✓。
+        unrelated_anc = git("rev-list", "--max-parents=0", "HEAD").splitlines()[-1] \
+            if git("rev-list", "--max-parents=0", "HEAD") else ""
+
         # 找一个"subject 在全历史里唯一 + 有父"的真祖先当孪生的**基**
         by_subj = _ancestors_by_subject()
         base_sha = ""
@@ -4433,6 +4569,44 @@ def selftest_repoint_and_release_gate(expect) -> None:
                    and "不是 `HEAD` 的祖先" in err)
             rc, err = capture(cmd_repoint, "R-2", bad_sha, "夹具：显式不存在", "t", False)
             expect(f"⑤ 显式给**不存在**的指针 ⇒ 硬拒 rc={rc}", rc == 1 and "不存在" in err)
+
+            # ⑤b ⭐ **显式指针也要过内容闸门 + 事件留审计字段**（`#1`，2026-10-14 · 第七次
+            # 独立复核实测 ✗）：靶子 = `--repoint <id> --commit <一个**是祖先**但内容无关的 sha>`
+            # —— 旧写法只查存在性 + 祖先性 ⇒ **rc=0**，且下一条 `--check` 打出「非祖先 0 条 ✓」
+            # ⇒ 证据链被"指向任意祖先"掏空 ✗。这里把两条腿都钉住：
+            #   · 拒绝（rc=1 + 点名 subject 不一致）+ **零写入**；
+            #   · 正对照：显式给**真孪生** ⇒ 仍 rc=0（**不许误拒** ✗）；
+            #   · 审计字段：事件里必须有新旧两侧的 subject + patch_id（**事后可审计** ✓）；
+            #   · 读侧复查：手改 `repoint` 的 `commit`（审计字段不动）⇒ `check_plan` 判红 ✓。
+            _before = EVENTS.read_text(encoding="utf-8")
+            rc, err = capture(cmd_repoint, "R-2", unrelated_anc, "夹具：显式无关祖先", "t", False)
+            expect(f"⑤b 显式给**是祖先但内容无关**的指针 ⇒ 拒 rc={rc}", rc == 1
+                   and "subject 不一致" in err)
+            expect("⑤b 且**零写入**（假指针一个字都没留下 ✓）",
+                   EVENTS.read_text(encoding="utf-8") == _before)
+            rc, _out = capture(cmd_repoint, "R-2", base_sha, "夹具：显式真孪生", "t", False)
+            expect(f"⑤b 正对照：显式给**真孪生** ⇒ 仍 rc={rc}（不许误拒 ✗）", rc == 0)
+            _reps = [e for e in load_events() if e.get("event") == "repoint"
+                     and e.get("id") == "R-2"]
+            _rep = _reps[-1] if _reps else {}
+            expect("⑤b 事件记了**审计字段**（新旧两侧 subject + patch_id）",
+                   bool(_rep.get("subject") and _rep.get("patch_id")
+                        and _rep.get("old_subject") and _rep.get("old_patch_id")))
+            expect("⑤b 审计字段与事实一致（patch-id 逐字）",
+                   _rep.get("patch_id") == _patch_id(base_sha)
+                   and _rep.get("old_patch_id") == _patch_id(twin))
+            # 读侧复查：手改事件表把 `repoint` 的 `commit` 换成别的（审计字段原样不动）
+            _ev = [json.loads(l) for l in EVENTS.read_text(encoding="utf-8").splitlines()
+                   if l.strip()]
+            for _e in _ev:
+                if _e.get("event") == "repoint" and _e.get("id") == "R-2":
+                    _e["commit"] = unrelated_anc
+            EVENTS.write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in _ev),
+                              encoding="utf-8")
+            rows, _st, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"⑤b 手改 `repoint` 的 commit（审计字段不动）⇒ 判红（实测 {rc}）",
+                   rc == 1 and "对不上" in err)
 
             # ⑥ 不硬填 / 已祖先 / 缺理由 / id 不存在 —— 四条都必须拒，且零写入
             seed(("R-1", twin), ("R-2", lonely))
