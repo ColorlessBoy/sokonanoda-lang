@@ -57,6 +57,7 @@ python3 scripts/ux-queue.py --json                # 机器可读（与 §0.2 对
 python3 scripts/ux-queue.py --schedule <id> --title '<做什么>' --reason '<为什么/下一轮的口径>'
 python3 scripts/ux-queue.py --check-uncovered     # 覆盖自检（源码级，秒级；进 gate --fast）
 python3 scripts/ux-queue.py --check-uncovered --live   # 覆盖 + 读数自检（跑探针，慢）
+python3 scripts/ux-queue.py --repoint-all --reason '<why>' [--dry-run] [--limit N]  # 回填存量指针
 python3 scripts/ux-queue.py --selftest            # 判据通道自检（不碰仓库状态）
 ```
 
@@ -77,12 +78,28 @@ python3 scripts/ux-queue.py --selftest            # 判据通道自检（不碰�
 处置 `fix`、状态 `todo` ⇒ `--json` 的 `open`/`queue`/`view` 查得到、`--next` 按序推得出，
 收口与其它条目**同口径**（`--commit` + `--reading`，**没有豁免** ✗）。
 
+**回填存量收口指针**（2026-10-14 · `RELEASE-EVIDENCE-GATE` · 编排者拍定的口径 ✓）：
+上面那条豁免**不是**长期方案 —— 长期豁免 ⇒ 那 60 条证据在 main 上**永远核不了** ✗。
+口径 = **两步、顺序不许反** ✗：**① 先把存量回填到 0**（`--repoint`）⇒ **② 再把豁免线改成
+「非祖先必须 0 条」的断言**（先收紧会把那 60 条一起拒掉 ✗）。`--repoint`：
+```bash
+python3 scripts/ux-queue.py --repoint-all --reason '<为什么>' --dry-run   # ① 先过目（不写账）
+python3 scripts/ux-queue.py --repoint-all --reason '<为什么>'             # ② 真回填（逐条可回滚）
+python3 scripts/ux-queue.py --repoint <id> --commit <sha> --reason '<why>' # 单条、显式指针
+```
+它是**改账**，不是收口入口：**只追加**一条 `repoint` 事件（`fold()` 覆盖 `commit`，旧 sha 记进
+`repointed_from`），**不动只追加账、不动 git 历史、不改旧事件** ✗。
+孪生按**三关**自动找（**同 subject → `git patch-id --stable` 一致 → `is-ancestor`** ✓）；
+**找不到孪生或有歧义 ⇒ 不硬填** ✗（如实列出 —— 那是真问题）。
+新指针与 `--advance`/`--triage`/`--release` **共用** `closure_pointer_problem()`（别自己再写一遍 ✗）。
+
 **收口指针必须过祖先性闸门**（2026-10-14 · `queueW` 修三个视图一致性缺陷 ⑤）：`--commit` 不只看
-"对象存在"（`git cat-file -e`），还看 `git merge-base --is-ancestor <sha> HEAD` —— 实测 65 条 `done`
-里 **60 条**的指针是 **rebase 前的孪生**（对象在、内容也落了 main，但**解析不到 main 的历史**）✗。
-口径 **只对新增收口**要求祖先性（写入口硬拒 + `check_plan` 复查"先写后 rebase"），**存量**给一条
-**带日期**的豁免（`ANCESTRY_GATE_SINCE`），且每次 `--check` 都打一行 ⚠ 汇总（条数 + 日期 + 为什么 +
-清单）—— **不许静默放过** ✗。
+"对象存在"（`git cat-file -e`），还看 `git merge-base --is-ancestor <sha> HEAD` —— 实测 99 条带
+指针的 `done` 里 **60 条**的指针是 **rebase 前的孪生**（对象在、内容也落了 main，但**解析不到
+main 的历史**）✗。口径 **只对新增收口**要求祖先性（写入口硬拒 + `check_plan` 复查"先写后 rebase"），
+**存量**原先给一条**带日期**的豁免（`ANCESTRY_GATE_SINCE`）——
+⚠ 该豁免（2026-10-14 同日晚）**已按上面的两步收口删掉**：存量全量回填到 0 之后，血缘口径是
+**「非祖先必须 0 条」的断言**，每次 `--check` 都把这条断言打出来（**不许静默** ✓）。
 
 **三个视图必须同数**（2026-10-14 · 同轮 ①②③）：`--json` 的 `open`/`summary`、`--next` 的推序、
 §0.2 的 `QUEUE:COUNTS` **一律从 `sched_rows()` 的那份视图算**（`json_view` 不再自己从源行另算 ✗）；
@@ -1155,6 +1172,19 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
                 # 供**祖先性闸门**按 UTC 时刻分「新增 / 存量」（见 `ANCESTRY_GATE_SINCE`）：
                 # 没有时间戳的 done（旧事件 / triage 受理那一支）按**存量**从宽处理 ✓。
                 cur["advanced_ts"] = ev["ts"]
+        elif kind == "repoint":
+            # **回填收口指针**（2026-10-14 · `RELEASE-EVIDENCE-GATE`）：`--repoint` 只改**指针**。
+            # ⚠ 三条不许动：① **不许动 `state`**（修的是"指针在 main 上核不到"，不是"这条没做完" ✗）；
+            #   ② **不许动 `reading`/`reason`**（证据正文一个字不换，换的只是它指向哪个 commit）；
+            #   ③ **不许改旧事件**（只追加账 ⇒ 原来那条 `advance` 原样留着，旧 sha 记进
+            #      `repointed_from` ⇒ 改账本身可审计、可逐条回滚 ✓）。
+            if ev.get("commit"):
+                _from = list(cur.get("repointed_from") or [])
+                if cur.get("commit") and cur["commit"] not in _from:
+                    _from.append(cur["commit"])
+                cur["repointed_from"] = _from
+                cur["commit"] = ev["commit"]
+                cur["repointed_ts"] = ev.get("ts")
         elif kind == "split":
             parent = ev.get("parent")
             if parent:
@@ -1274,6 +1304,206 @@ def closure_pointer_problem(commit: str) -> str | None:
                 f"不许记 ✗（用**真落进 main 的那个 commit**；口径起点 "
                 f"`ANCESTRY_GATE_SINCE={ANCESTRY_GATE_SINCE}`）")
     return None
+
+
+# ── 收口指针**回填**（`--repoint`，2026-10-14 · `RELEASE-EVIDENCE-GATE`） ─────────
+# 缺口（第六次独立复核实测 ✓）：`--release add/check` 原先**只要求 `done` + 有 `commit`** ⇒
+# **手写的假指针能进发布节点** ✗（实测 `release_add_rc=0`，即使那个 commit 对象**不存在**）。
+# 而存量里 60 条 `done` 指针是 **rebase 孪生**：对象在 ✓、内容也确实落了 main ✓（抽样 3/3
+# `git patch-id --stable` 逐字节一致 ✓），只是指针**解析不到 main 的历史**。
+# 口径（编排者已拍定）：**先把存量回填到 0，再把豁免线改成「必须为空」的断言** ✓。
+#   ⚠ **顺序不许反** ✗：先收紧会把那 60 条一起拒掉。
+#   ⚠ **不选长期豁免** ✗：长期豁免 ⇒ 那 60 条证据在 main 上**永远核不了**；且 main 再 rebase
+#     一次会把口径起点之后的整批一起判红。
+# `--repoint` = **改账**（只追加事件），**不动 git 历史、不改旧事件** ✗：
+#   · 孪生**三关**：**同 subject → `git patch-id --stable` 一致 → `is-ancestor`** ✓
+#     （⚠ 少一关都不行：只比 subject 会撞重名 —— 实测 main 3632 个 commit 里只有 3342 个
+#     唯一 subject ⇒ **有重名**；只比 patch-id 会把"内容相同、语义不同"的两次提交当成一次）；
+#   · 找不到孪生 / 有歧义 ⇒ **不许硬填** ✗（如实列出 —— 那是真问题）；
+#   · 新指针必须过 `closure_pointer_problem()`（与 `--advance`/`--triage`/`--release`
+#     **同一个谓词** ✓ —— 别自己再写一遍 ✗，那是 `AGENTS.md` 硬规则 0(b) 说的病）。
+_TWIN_CACHE: dict[str, tuple[str | None, str]] = {}
+_ANCESTORS_BY_SUBJECT: dict[str, list[str]] | None = None
+
+
+def _ancestors_by_subject() -> dict[str, list[str]]:
+    """`HEAD` 全历史按 subject 分组（**一次** `git log`；`--repoint-all` 要问几十次）。"""
+    global _ANCESTORS_BY_SUBJECT
+    if _ANCESTORS_BY_SUBJECT is None:
+        out: dict[str, list[str]] = {}
+        raw = subprocess.run(["git", "log", "--format=%H%x01%s", "HEAD"],
+                             cwd=ROOT, capture_output=True, text=True).stdout
+        for line in raw.splitlines():
+            if "\x01" in line:
+                sha, subj = line.split("\x01", 1)
+                out.setdefault(subj, []).append(sha)
+        _ANCESTORS_BY_SUBJECT = out
+    return _ANCESTORS_BY_SUBJECT
+
+
+def _patch_id(commit: str) -> str | None:
+    """`git patch-id --stable`（对 `git show <commit>` 的 diff 算；算不出返回 `None`）。"""
+    show = subprocess.run(["git", "show", commit], cwd=ROOT, capture_output=True, text=True)
+    if show.returncode != 0:
+        return None
+    probe = subprocess.run(["git", "patch-id", "--stable"], cwd=ROOT, input=show.stdout,
+                           capture_output=True, text=True)
+    if probe.returncode != 0 or not probe.stdout.strip():
+        return None
+    return probe.stdout.split()[0]
+
+
+def find_twin(commit: str) -> tuple[str | None, str]:
+    """**三关找 rebase 孪生**：同 subject → `patch-id --stable` 一致 → 是 `HEAD` 的祖先。
+
+    返回 `(孪生 sha | None, 人话说明)`。**歧义也返回 `None`**（不硬填 ✓）。
+    """
+    if commit in _TWIN_CACHE:
+        return _TWIN_CACHE[commit]
+    subj = subprocess.run(["git", "log", "-1", "--format=%s", commit],
+                          cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    if not subj:
+        _TWIN_CACHE[commit] = (None, f"`{commit[:8]}` 读不出 subject（对象真的在吗？）")
+        return _TWIN_CACHE[commit]
+    cands = _ancestors_by_subject().get(subj, [])
+    if not cands:
+        _TWIN_CACHE[commit] = (None, f"同 subject 的**祖先** commit **0 个**"
+                                     f"（subject：{subj[:70]}）⇒ 没有孪生")
+        return _TWIN_CACHE[commit]
+    mine = _patch_id(commit)
+    if mine is None:
+        _TWIN_CACHE[commit] = (None, f"`{commit[:8]}` 的 `git patch-id --stable` 算不出")
+        return _TWIN_CACHE[commit]
+    same = [c for c in cands if _patch_id(c) == mine]
+    if not same:
+        _TWIN_CACHE[commit] = (None, f"同 subject 的祖先有 {len(cands)} 个，但 "
+                                     f"`patch-id --stable` **都不一致** ⇒ 内容没落 main")
+        return _TWIN_CACHE[commit]
+    if len(same) > 1:
+        _TWIN_CACHE[commit] = (None, f"**歧义**：{len(same)} 个祖先的 subject 与 patch-id 都一致"
+                                     f"（{'、'.join(c[:8] for c in same)}）⇒ 不硬填")
+        return _TWIN_CACHE[commit]
+    _TWIN_CACHE[commit] = (same[0], f"✓ 同 subject + `patch-id --stable` 一致"
+                                    f"（同 subject 的祖先 {len(cands)} 个里唯一匹配）")
+    return _TWIN_CACHE[commit]
+
+
+def repoint_targets() -> list[tuple[str, str, str]]:
+    """存量里**指针核不到**的 `done` 条目：`[(id, 旧 sha, 记录时刻)]`（按 id 排序）。
+
+    ⚠ 口径与 `check_plan` 的祖先性复查**同一处**：`fold()` 的**事件状态** `state == "done"`
+    （不是 `effective_state` —— 由来源处置推出来的 `done` 没有调度器指针 ✓）。
+    """
+    out: list[tuple[str, str, str]] = []
+    for ident, cur in sorted(fold().items()):
+        if cur.get("state") != "done":
+            continue
+        _c = cur.get("commit")
+        if _c and not commit_is_ancestor(_c):
+            out.append((ident, _c, cur.get("advanced_ts") or ""))
+    return out
+
+
+def cmd_repoint(ident: str, commit: str, reason: str, owner: str, dry_run: bool) -> int:
+    """**回填一条收口指针**（只追加事件）。
+
+    `--commit <sha>` 显式给新指针；**省略**（或 `auto`）⇒ 按三关**自动找孪生** ✓。
+    """
+    state = fold()
+    cur = state.get(ident)
+    if cur is None:
+        raise UsageError(f"事件表里没有 `{ident}` ⇒ `--repoint` 只修**已有**的收口指针"
+                         f"（它是「改账」，不是收口入口 ✗）")
+    if cur.get("state") != "done" or not cur.get("commit"):
+        raise UsageError(f"`{ident}` 不是 done（state={cur.get('state')!r}）或没有 `commit` "
+                         f"⇒ 没有可回填的指针")
+    if not reason:
+        print("✗ `--repoint` 是**改账** ⇒ 必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
+        return 1
+    old = cur["commit"]
+    if commit_is_ancestor(old):
+        print(f"✗ `{ident}` 的指针 `{old[:8]}` **已经是 `HEAD` 的祖先** ⇒ 没有可回填的"
+              f"（`--repoint` 修的是「在 main 上核不到」的指针，**不是**改历史 ✗）",
+              file=sys.stderr)
+        return 1
+    new, note = (commit.strip(), "（显式给的指针）")
+    if not new or new == "auto":
+        new, note = find_twin(old)
+        if new is None:
+            print(f"✗ `{ident}`@`{old[:8]}` **找不到孪生** ⇒ **不硬填** ✗：{note}",
+                  file=sys.stderr)
+            return 1
+    if new == old:
+        print(f"✗ `{ident}` 的新指针与旧指针相同（`{old[:8]}`）⇒ 这不是回填 ✗", file=sys.stderr)
+        return 1
+    why = closure_pointer_problem(new)
+    if why is not None:
+        print(why, file=sys.stderr)
+        return 1
+    if dry_run:
+        print(f"[dry-run] `{ident}`：{old[:8]} → {new[:8]} {note}（**没写事件** ✓）")
+        return 0
+    append_event({"event": "repoint", "id": ident, "commit": new, "old": old,
+                  "reason": reason, "owner": owner})
+    print(f"✓ 回填 `{ident}`：`{old[:8]}` → `{new[:8]}` {note}"
+          f"（只追加事件：旧指针留在账上 + `repointed_from` ✓）")
+    return 0
+
+
+def cmd_repoint_all(reason: str, owner: str, dry_run: bool, limit: int) -> int:
+    """**一条命令把存量非祖先指针推到 0**（按 sha 分组 ⇒ 同一 sha 的所有 id **同批**写）。
+
+    ⚠ `--limit N` = 每批最多处理 **N 个 sha**（整 sha 一起写 ⇒ 账本没有"半截"状态）；
+    下一批重跑同一条命令即可（已回填的不再是非祖先 ⇒ 自动接着往下做 ✓）。
+    ⚠ 找不到孪生的 sha：**如实列出、一条都不写** ✗（那是真问题，报告里点名 ✓）。
+    """
+    if not reason:
+        print("✗ `--repoint-all` 是**改账** ⇒ 必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
+        return 1
+    targets = repoint_targets()
+    if not targets:
+        print("✓ 存量收口指针里**没有非祖先的**（0 条）—— 没什么要回填的 ✓")
+        return 0
+    groups: dict[str, list[str]] = {}
+    for ident, old, _ts in targets:
+        groups.setdefault(old, []).append(ident)
+    shas = sorted(groups)
+    if limit and limit > 0:
+        shas = shas[:limit]
+    plan, no_twin = [], []
+    for old in shas:
+        twin, note = find_twin(old)
+        (plan if twin else no_twin).append((old, sorted(groups[old]), twin, note))
+    print(f"存量非祖先指针：**{len(targets)} 条** / **{len(groups)} 个 sha**"
+          f"（本批 {len(shas)} 个 sha）")
+    for old, ids, _twin, note in no_twin:
+        print(f"  ✗ `{old[:8]}`（{len(ids)} 条：{'、'.join(ids)}）**找不到孪生** ⇒ 不硬填 —— {note}",
+              file=sys.stderr)
+    n_ids = sum(len(ids) for _o, ids, _t, _n in plan)
+    for old, ids, twin, note in plan:
+        print(f"  {'[dry-run] ' if dry_run else ''}{old[:8]} → {twin[:8]}"
+              f"（{len(ids)} 条：{'、'.join(ids)}）{note}")
+    if dry_run:
+        print(f"[dry-run] 计划回填 {n_ids} 条 / {len(plan)} 个 sha"
+              f"{f'；{len(no_twin)} 个 sha 找不到孪生' if no_twin else ''}（**没写任何事件** ✓）")
+        return 1 if no_twin else 0
+    for old, ids, twin, _note in plan:
+        for ident in ids:
+            append_event({"event": "repoint", "id": ident, "commit": twin, "old": old,
+                          "reason": reason, "owner": owner})
+    print(f"✓ 回填 **{n_ids} 条** / {len(plan)} 个 sha（只追加事件；旧指针留在账上 ✓）")
+    # **别信自己的账**：回填完**再问一次 fold**（重新读事件表 ⇒ 真复查 ✓）
+    left = repoint_targets()
+    if left:
+        print(f"✗ 回填后仍有 **{len(left)} 条**非祖先指针 ⇒ 判红 ✗：" +
+              " · ".join(f"{i}@{c[:8]}" for i, c, _t in left), file=sys.stderr)
+        return 1
+    if no_twin:
+        print(f"✗ 还有 **{len(no_twin)} 个 sha** 找不到孪生 ⇒ **没回填到 0** ✗（见上面的清单）",
+              file=sys.stderr)
+        return 1
+    print("✓ 复查：存量非祖先收口指针 **0 条** ✓")
+    return 0
 
 
 def sched_rows(rows: list[dict], state: dict[str, dict]) -> list[dict]:
@@ -4603,6 +4833,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--schedule", metavar="ID",
                         help="**编排者给自己排期**：登记「我排的下一轮要做的事」"
                              "（来源行 + 只追加事件 ⇒ `--json` 的 open / `--next` 查得到）")
+    parser.add_argument("--repoint", metavar="ID",
+                        help="**回填**一条 done 条目的收口指针（省略 `--commit` ⇒ 三关自动找 "
+                             "rebase 孪生；只追加事件 ⇒ 可逐条回滚）")
+    parser.add_argument("--repoint-all", action="store_true",
+                        help="把存量**非祖先**收口指针**批量回填到 0**（找不到孪生的如实列出、不硬填）")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="只打印计划、**不写事件**（配 `--repoint` / `--repoint-all`）")
+    parser.add_argument("--limit", type=int, default=0, metavar="N",
+                        help="`--repoint-all` 每批最多处理 N 个 **sha**（0 = 不限；整 sha 一起写）")
     parser.add_argument("--release", metavar="ACTION",
                         help="发版节点：open/add/block/drop/check/cut（栅栏 + 克制 + 防无限 bug 分支）")
     parser.add_argument("--rel", metavar="ID", help="发版节点 id（默认 REL-<version>）")
@@ -4655,6 +4894,11 @@ def main() -> int:
             return cmd_add_child(args.add_child, args.child, args.title or "", args.owner, view)
         if args.unclaim:
             return cmd_unclaim(args.owner, args.reason or "")
+        if args.repoint:
+            return cmd_repoint(args.repoint, args.commit or "", args.reason or "", args.owner,
+                               args.dry_run)
+        if args.repoint_all:
+            return cmd_repoint_all(args.reason or "", args.owner, args.dry_run, args.limit)
         if args.release:
             return cmd_release(args, view)
         if args.submit:
