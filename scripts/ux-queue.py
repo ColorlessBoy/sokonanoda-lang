@@ -1178,6 +1178,12 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             if to == "applied":
                 cur.update(state="done", owner=None, pid=None,
                            commit=ev.get("commit"), reason=ev.get("reason"))
+                # ⚠ **受理也是收口 ⇒ 必须记 `advanced_ts`**（2026-10-14 · 第六次独立复核实测 ✗）：
+                # 旧代码只有 `advance` 分支写它 ⇒ triage-applied 的指针**永远没有时间戳** ⇒
+                # `check_plan` 的祖先性复查把 `_ts = advanced_ts or ""` 当成"存量"⇒
+                # **记于口径起点之后的假指针被豁免** ✗（见 `ANCESTRY_GATE_SINCE` 的说明）。
+                if ev.get("ts"):
+                    cur["advanced_ts"] = ev["ts"]
             elif to == "rejected":
                 cur.update(state="triage_rejected", owner=None, pid=None, reason=ev.get("reason"))
             elif to == "deferred":
@@ -1208,6 +1214,17 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
 #   · **存量**（`ANCESTRY_GATE_SINCE` **之前**记的 done 指针）**不判红**：它们多是 rebase 前的
 #     孪生，改不动（对象在、历史不在）⇒ 每次 `--check` 打一行 ⚠ 汇总（条数 + 起点的日期 +
 #     为什么豁免 + 清单），**不许静默** ✓。
+#   ⚠ **"存量"这个词只给"带时间戳且早于起点"的那一桶**（2026-10-14 · 第六次独立复核实测 ✗）：
+#     `ts` 是**判"新增/存量"的唯一依据**，而 `fold` 原先**只在 `advance` 分支写
+#     `advanced_ts`** ⇒ `--triage … --to applied` 记的指针**永远没有时间戳** ⇒
+#     读侧 `_ts = advanced_ts or ""` ⇒ `"" < 起点` ⇒ 一条**记于起点之后**的假指针被当成
+#     "存量 rebase 孪生"**豁免**、描述与事实相反 ✗（复核者实测：`--triage --to applied
+#     --commit deadbeef…` ⇒ `--check` rc=0，stderr 只有"⚠ 存量收口指针 1 条 … EXT-1@deadbeef"）。
+#     ⇒ 两处一起修：① `fold` 的 triage-applied 分支**也写 `advanced_ts`**（与 advance 同形）；
+#     ② 读侧**按 ts 分两桶报** —— 有 ts 且 < 起点 = **存量**（豁免）；**没有 ts** = **判不出**
+#     （旧格式/手写事件）⇒ 也从宽，但**不许叫"存量"** ✗（那是在断言一件没核过的事）。
+#     真台账实测：最后一条 `advance`/`triage-applied` **全部**带 ts（0 条无 ts）⇒ 分桶只影响
+#     措辞，不动任何一条的判绿/判红 ✓。
 #   ⚠ 口径**必须用 UTC 完整时刻**，不能只写本地日期 ✗（2026-10-14 **实测踩到**）：事件表的 `ts`
 #     是 `_now()` 写的 **UTC** 串（`2026-10-13T17:55:10+00:00` = 本地 2026-10-14 01:55）⇒ 只比
 #     日期前 10 位会把"今天刚记的"也算成存量 ⇒ 读侧复查当场**空转** ✗。起点 = **闸门落地那一刻**：
@@ -1228,6 +1245,35 @@ def commit_is_ancestor(commit: str) -> bool:
                                cwd=ROOT, capture_output=True, text=True)
         _ANCESTRY_CACHE[commit] = probe.returncode == 0
     return _ANCESTRY_CACHE[commit]
+
+
+def closure_pointer_problem(commit: str) -> str | None:
+    """**收口指针的两条硬拒**（`cmd_advance` 与 `cmd_triage` **共用这一处** ⇒ 同口径 ✓）。
+
+    返回 `None` = 过；否则返回判红正文（调用方 `print(..., file=sys.stderr)` 后 `return 1`）。
+      · **存在性**：`git cat-file -e <sha>^{commit}`（2026-10-12 `SUB-advance-commit-unchecked`）；
+      · **祖先性**：`git merge-base --is-ancestor <sha> HEAD`（2026-10-14 · `queueW` 缺陷 ⑤）。
+
+    ⚠ **两条都必须有，而且两个写入口都必须走它**（2026-10-14 · 第六次独立复核实测 ✗）：
+    `cmd_triage` 原先**一条都没有** ⇒ 复核者实测 `--triage … --to applied --commit
+    deadbeef…deadbeef`（对象**不存在**，`git cat-file -e` rc=128）**rc=0 通过**，账上留下一个
+    "有 commit"的**假终态**；而 `--release add/check` 只看 `done` + 有 `commit` ⇒ **假证据能入版** ✗。
+    ⇒ 抽成**一个**函数（不是把 `cmd_advance` 那两段抄一遍 ✗ —— 抄一遍就是"同一规则两处写"，
+    下次只改一处又会分叉，正是 `AGENTS.md` 硬规则 0(b) 说的病）。
+    """
+    import subprocess as _sp
+    probe = _sp.run(["git", "cat-file", "-e", f"{commit}^{{commit}}"],
+                    cwd=ROOT, capture_output=True, text=True)
+    if probe.returncode != 0:
+        return (f"✗ `--commit {commit}` 在仓库里**不存在**（`git cat-file -e` 非零）"
+                f" ⇒ 收口证据是假的，不许记 ✗（先把这个环节真的提交掉）")
+    if not commit_is_ancestor(commit):
+        return (f"✗ `--commit {commit}` **不是 `HEAD` 的祖先**"
+                f"（`git merge-base --is-ancestor` 非零）⇒ 指针解析不到 main 的历史上"
+                f"（多半是 rebase 前的孪生，或别的分支）⇒ 收口证据在 main 上**找不到**，"
+                f"不许记 ✗（用**真落进 main 的那个 commit**；口径起点 "
+                f"`ANCESTRY_GATE_SINCE={ANCESTRY_GATE_SINCE}`）")
+    return None
 
 
 def sched_rows(rows: list[dict], state: dict[str, dict]) -> list[dict]:
@@ -1373,29 +1419,19 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
     if to == "done" and not (commit and reading):
         print("✗ 收口必须带**证据**：`--commit <sha>` + `--reading '<判据读数>'` ✗", file=sys.stderr)
         return 1
-    # ⚠ **commit 必须真的存在**（2026-10-12 接口 agent 提交 `SUB-advance-commit-unchecked`）：
-    # 旧闸门只查"非空字符串" ⇒ 实测 `--commit deadbeefdeadbeef…`（`git cat-file -e` 非零）
-    # **rc 0** 通过，账上留下一个"有 commit"的**假终态**；而 `--release check`（切版收拢）
-    # 也只看 done + 有证据 ⇒ **假证据能把不该入版的条目放进版本** ✗。
-    # 判据：`git cat-file -e <sha>^{commit}`（存在且是 commit 对象）。
+    # ⚠ **收口指针要过两条硬拒**（**存在性 + 祖先性**，两处写入口共用
+    # `closure_pointer_problem` ⇒ 同口径 ✓）：旧闸门只查"非空字符串" ⇒ 实测
+    # `--commit deadbeefdeadbeef…`（`git cat-file -e` 非零）**rc 0** 通过，账上留下一个
+    # "有 commit"的**假终态**；而 `--release check`（切版收拢）也只看 done + 有证据
+    # ⇒ **假证据能把不该入版的条目放进版本** ✗（2026-10-12 `SUB-advance-commit-unchecked`）。
+    # 2026-10-14（缺陷 ⑤）再加**祖先性**：存在性查不出「指针不是 main 的祖先」—— 实测 32 条
+    # 历史 done 指针是 **rebase 前的孪生**（对象在、内容也落了 main，但
+    # `git merge-base --is-ancestor <sha> HEAD` 非零）⇒ 证据**没法在 main 上核** ✗。
+    # 口径：**新增收口**必须过闸门（存量走 `check_plan` 的带日期豁免，见常量块说明）。
     if to == "done":
-        import subprocess as _sp3
-        probe = _sp3.run(["git", "cat-file", "-e", f"{commit}^{{commit}}"],
-                         cwd=ROOT, capture_output=True, text=True)
-        if probe.returncode != 0:
-            print(f"✗ `--commit {commit}` 在仓库里**不存在**（`git cat-file -e` 非零）"
-                  f" ⇒ 收口证据是假的，不许记 ✗（先把这个环节真的提交掉）", file=sys.stderr)
-            return 1
-        # ⚠ **再加一层祖先性**（2026-10-14 · 缺陷 ⑤）：存在性查不出「指针不是 main 的祖先」
-        # —— 实测 32 条历史 done 指针是 **rebase 前的孪生**（对象在、内容也落了 main，
-        # 但 `git merge-base --is-ancestor <sha> HEAD` 非零）⇒ 证据**没法在 main 上核** ✗。
-        # 口径：**新增收口**必须过闸门（存量走 `check_plan` 的带日期豁免，见常量块说明）。
-        if not commit_is_ancestor(commit):
-            print(f"✗ `--commit {commit}` **不是 `HEAD` 的祖先**"
-                  f"（`git merge-base --is-ancestor` 非零）⇒ 指针解析不到 main 的历史上"
-                  f"（多半是 rebase 前的孪生，或别的分支）⇒ 收口证据在 main 上**找不到**，"
-                  f"不许记 ✗（用**真落进 main 的那个 commit**；口径起点 "
-                  f"`ANCESTRY_GATE_SINCE={ANCESTRY_GATE_SINCE}`）", file=sys.stderr)
+        _why = closure_pointer_problem(commit)
+        if _why is not None:
+            print(_why, file=sys.stderr)
             return 1
     if to in {"wo_filed", "blocked"} and not reason:
         print(f"✗ `{to}` 必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
@@ -1735,7 +1771,8 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     # 合并已经定好的值再抄一遍。删掉它 = 判据与显示读同一份 ✓（`source_dispositions()`
     # 本身也改成由 `build_queue()` 派生 ⇒ 留着的调用点（`cmd_submit`/`cmd_schedule` 的
     # "id 是键"闸门、`open_children` 的兜底）读的仍是同一份 ✓）。
-    legacy_pointers: list[tuple[str, str]] = []      # 存量非祖先指针（⚠ 报告，不判红）
+    legacy_pointers: list[tuple[str, str]] = []      # **存量**（ts < 起点）非祖先指针 ⇒ 报告，不判红
+    undated_pointers: list[tuple[str, str]] = []     # **无 ts** ⇒ 判不出新增/存量 ⇒ 从宽，但**不叫存量** ✗
     rows_by_id = {r["id"]: r for r in rows}
     # ⚠ **判定域 = 视图 ∪ 事件表**（#1 的根本修法，见 `plan_domain`）：`--next`/`--json` 对
     # **无事件**的 id 也能推出状态（`effective_state` 的处置翻译）⇒ 判据必须看见**同一批 id**，
@@ -1790,7 +1827,14 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
                 _ts = cur.get("advanced_ts") or ""
                 # ⚠ 比**完整 UTC 时刻**（事件的 `ts` 就是 UTC 串；只比日期前 10 位会把今天记的
                 # 也算成存量 ⇒ 复查空转 ✗，见 `ANCESTRY_GATE_SINCE` 的说明）
-                if _ts < ANCESTRY_GATE_SINCE:
+                # ⚠ **`ts` 缺席 ≠ 存量**（2026-10-14 · 第六次独立复核实测 ✗）：`""` 字典序最小
+                # ⇒ 旧写法把"**没有时间戳**"（= 判不出来）和"**早于起点**"（= 真存量）混成
+                # 同一个桶，于是**记于起点之后的 triage-applied 假指针**也被叫"存量 rebase
+                # 孪生"（描述与事实相反 ✗）。⇒ 分两桶：有 ts 且 < 起点 = 存量（豁免）；
+                # 无 ts = 判不出（也从宽，但措辞不许下"存量"这个结论 ✗）。
+                if not _ts:
+                    undated_pointers.append((ident, _c))
+                elif _ts < ANCESTRY_GATE_SINCE:
                     legacy_pointers.append((ident, _c))
                 else:
                     print(f"✗ `{ident}` 的收口 commit `{_c}` **不是 `HEAD` 的祖先**"
@@ -1891,8 +1935,19 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
               f"（口径起点 {ANCESTRY_GATE_SINCE}，即闸门落地那一刻 = 本地 2026-10-14 01:54）："
               f"它们是 rebase 前的孪生（对象在、内容也落了 "
               f"main，但指针解析不到 main 的历史）⇒ **只报告、不判红**；**新增收口**必须过"
-              f"祖先性闸门（`cmd_advance` 硬拒 + 此处复查）✓ —— 清单："
+              f"祖先性闸门（`cmd_advance`/`cmd_triage` 硬拒 + 此处复查）✓ —— 清单："
               + " · ".join(f"{i}@{c[:8]}" for i, c in legacy_pointers), file=sys.stderr)
+    if undated_pointers:
+        # ⚠ **这一桶不许叫"存量"** ✗（2026-10-14 · 第六次独立复核实测）：没有 `ts` 就**判不出**
+        # 它记在口径起点之前还是之后（旧格式事件 / 手写事件）⇒ 只能如实说"判不出"，
+        # 从宽处理但**不许**替它下"存量 rebase 孪生"这个结论（那正是改前把一条
+        # **记于起点之后**的 triage-applied 假指针说成"存量"的那个病 ✗）。
+        print(f"⚠ **无时间戳**的收口指针 **{len(undated_pointers)} 条**不是 `HEAD` 的祖先 ⇒ "
+              f"**从宽处理**（**不叫「存量」** ✗：事件里没有 `ts` ⇒ 判不出它记在口径起点 "
+              f"{ANCESTRY_GATE_SINCE} 之前还是之后 —— 旧格式事件 / 手写事件；`advance` 与"
+              f"`triage applied` 现在**都**写 `advanced_ts`，所以这一桶只会随历史缩小 ✓）"
+              f" —— 清单：" + " · ".join(f"{i}@{c[:8]}" for i, c in undated_pointers),
+              file=sys.stderr)
     return bad
 
 
@@ -2062,7 +2117,16 @@ def cmd_inbox(rows: list[dict]) -> int:
 
 
 def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int:
-    """**主流受理提交**：applied 必须带 commit（证据）；rejected/deferred 必须带理由。"""
+    """**主流受理提交**：applied 必须带 commit（证据）；rejected/deferred 必须带理由。
+
+    ⚠ **`applied` 的 commit 要过与 `cmd_advance` 完全相同的两条硬拒**（2026-10-14 ·
+    第六次独立复核实测 ✗）：`applied` 的语义就是"**已进主线**"（`fold` 把它折成 `done`），
+    而这里原先**只查"非空字符串"** ⇒ 复核者实测 `--triage EXT-1 --to applied --commit
+    deadbeef…deadbeef`（对象**不存在**，`git cat-file -e` rc=128）**rc=0** ⇒ 事件表里留下
+    一条 `done + 假指针`，而 `--release add/check` 只看 `done` + 有 commit ⇒ **假证据入版** ✗。
+    祖先性同样缺（对象在、历史不在的孪生指针）。
+    ⇒ 与 `cmd_advance` **共用 `closure_pointer_problem`**（一处定义 ⇒ 两条口径不可能分叉 ✓）。
+    """
     rows = _read_jsonl(EXTRAS)
     if ident not in {r["id"] for r in rows}:
         raise UsageError(f"inbox 里没有 `{ident}`")
@@ -2070,6 +2134,13 @@ def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int
         print("✗ `applied` 必须带 `--commit <sha>`（**受理 = 已进主线**，没 commit 就是没受理 ✗）",
               file=sys.stderr)
         return 1
+    if to == "applied":
+        # ⚠ **在写任何东西之前**判（`EXTRAS.write_text` / `append_event` 都在下面）⇒
+        # 被拒时**来源与事件表一个字节都不动** ✓（半途而废的写入才是最难查的形状 ✗）。
+        _why = closure_pointer_problem(commit)
+        if _why is not None:
+            print(_why, file=sys.stderr)
+            return 1
     if to in {"rejected", "deferred"} and not reason:
         print(f"✗ `{to}` 必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
         return 1
