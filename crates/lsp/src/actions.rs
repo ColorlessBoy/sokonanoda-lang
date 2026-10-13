@@ -1670,4 +1670,62 @@ theorem mem_of_subset (\u{3b1} : Type) (A B : Set \u{3b1}) (a : \u{3b1}) :\n\
         shutdown(&mut service).await;
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    /// 入口：`import` + **记法头 `↔`**（`({a} = {b}) ↔ a = b`，课程画布**练习 6** 的形状）。
+    ///
+    /// **为什么单列一条**（2026-10-13）：练习 6 是 `F12` 真机判据里**唯一**读不到候选的那一臂，
+    /// 而真机那一路的红**已钉死在探针的按键时序**（`⌘.` 在 macOS 不触发；命令面板的 `<CR>`
+    /// 会把菜单第一项应用掉 ⇒ 缓冲区变、请求被 cancel）⇒ **真机读不到 ≠ 服务端没给** ✗。
+    /// 这条把**真相层**钉住：只要闭包编译是好的，`↔` 头的洞上服务端**必须**给出 sokonanoda 候选 ✓
+    /// —— 真机那一臂以后无论怎么修探针，都不许把"服务端不给"当成解释 ✓。
+    /// ⚠ **夹具刻意不含记法**（2026-10-13）：先用**纯 `↔` 头**把"目标头是 Iff 时给不给候选"
+    /// 这一件事**单独**钉住 ✓ —— 混进 `{a}`/`∈` 会让失败同时来自记法解析
+    /// （实测第一版夹具就撞了 `elab-notation-argument-unsolved` ⇒ 红在**前提**、判不了目标 ✗）。
+    const IMPORTED_IFF_CANVAS: &str = "\
+import SetLib\n\n\
+theorem iff_probe (P Q : Prop) : P \u{2194} Q := by\n\
+  sorry\n";
+
+    #[tokio::test]
+    async fn imported_notation_iff_goal_gets_a_sokonanoda_action() {
+        let dir = std::env::temp_dir().join(format!(
+            "sokonanoda-lsp-import-iff-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        std::fs::write(dir.join("SetLib.sokonanoda"), IMPORTED_LIB).expect("write the library");
+        let canvas_path = dir.join("Iff.sokonanoda");
+        std::fs::write(&canvas_path, IMPORTED_IFF_CANVAS).expect("write the canvas");
+        let root = Url::from_directory_path(&dir).expect("dir url");
+        let canvas = Url::from_file_path(&canvas_path).expect("file url");
+
+        let (mut service, mut socket) = test_service();
+        handshake_with_root(&mut service, &root).await;
+        did_open_at(&mut service, &canvas, IMPORTED_IFF_CANVAS).await;
+        let diags = wait_diagnostics_for(&mut socket, &canvas, "iff canvas diagnostics").await;
+        let unexpected: Vec<&str> = diags
+            .diagnostics
+            .iter()
+            .map(crate::testutil::code_of)
+            .filter(|code| *code != "sorry")
+            .collect();
+        assert!(
+            unexpected.is_empty(),
+            "闭包编译是好的（缺口在建议层），不该有 `sorry` 之外的诊断：{unexpected:?}"
+        );
+
+        let hole = IMPORTED_IFF_CANVAS.find("sorry").expect("the hole");
+        let actions = code_actions_at_uri(&mut service, &canvas, IMPORTED_IFF_CANVAS, hole)
+            .await
+            .unwrap_or_default();
+        // 记法头 `↔` 的候选 = 结构性拆分（`constructor`）；它**不**需要 kernel 终审，
+        // 所以哪怕 `judge_*` 那条路出问题，这一条也必须活着 ✓。
+        assert!(
+            actions.iter().any(|a| a.title.starts_with("constructor")),
+            "`↔`（记法头 + 闭包）的洞上必须有 sokonanoda 的 `constructor` 候选（把 `Iff` 拆成两个子目标）：{actions:?}"
+        );
+        shutdown(&mut service).await;
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
