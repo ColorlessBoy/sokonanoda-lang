@@ -58,7 +58,7 @@ theorem relImg_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : S
       Exists.elim β (fun (b : β) => r a b ∧ s b c)
         (∃ (b : β), (relImg α β r A) b ∧ s b c) (And.right ha)
         (fun (b : β) (hb : r a b ∧ s b c) =>
-          Exists.intro β (fun (b1 : β) => (relImg α β r A) b1 ∧ s b1 c) b
+          Exists.intro b
             (And.intro
               (Exists.intro a
                 (And.intro (And.left ha) (And.left hb)))
@@ -92,9 +92,9 @@ theorem relPre_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : S
       Exists.elim β (fun (b : β) => r a b ∧ s b c)
         (∃ (b : β), (relPre β γ s C) b ∧ r a b) (And.right hc)
         (fun (b : β) (hb : r a b ∧ s b c) =>
-          Exists.intro β (fun (b1 : β) => (relPre β γ s C) b1 ∧ r a b1) b
+          Exists.intro b
             (And.intro
-              (Exists.intro γ (fun (c1 : γ) => C c1 ∧ s b c1) c
+              (Exists.intro c
                 (And.intro (And.left hc) (And.right hb)))
               (And.left hb))))
 
@@ -106,7 +106,7 @@ theorem relPre_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : S
       Exists.elim γ (fun (c : γ) => C c ∧ s b c)
         (∃ (c : γ), C c ∧ (r • s) a c) (And.left hb)
         (fun (c : γ) (hc : C c ∧ s b c) =>
-          Exists.intro γ (fun (c1 : γ) => C c1 ∧ (r • s) a c1) c
+          Exists.intro c
             (And.intro (And.left hc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
               (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
                 (And.intro (And.right hb) (And.right hc))))))

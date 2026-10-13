@@ -27,7 +27,7 @@ theorem comp_assoc_fwd (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
       Exists.elim B (fun (b : B) => r a b ∧ s b c)
         (∃ (b : B), r a b ∧ (s • t) b d) (And.left hc)
         (fun (b : B) (hb : r a b ∧ s b c) =>
-          Exists.intro B (fun (b1 : B) => r a b1 ∧ (s • t) b1 d) b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          Exists.intro b
             (And.intro (And.left hb)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
               (Exists.intro C (fun (c1 : C) => s b c1 ∧ t c1 d) c  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
                 (And.intro (And.right hb) (And.right hc))))))
