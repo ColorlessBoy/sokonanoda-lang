@@ -214,3 +214,7 @@
 {"ts": "2026-10-13T01:10:00+00:00", "event": "advance", "id": "r18", "to": "done", "commit": "f07ef34e", "reading": "见 extras 的 observed（判据 + 三条守卫 + 基线对拍）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-13T01:10:01+00:00", "event": "claim", "id": "SUB-keyword-decl-name", "owner": "orchestrator", "resources": ["crates/front"]}
 {"ts": "2026-10-13T01:10:01+00:00", "event": "advance", "id": "SUB-keyword-decl-name", "to": "done", "commit": "957b2268", "reading": "见 extras 的 observed（判据 + 三条守卫 + 基线对拍）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T01:43:11+00:00", "event": "claim", "id": "W-5", "owner": "FRONT-G2", "resources": ["crates/front"]}
+{"ts": "2026-10-13T01:43:19+00:00", "event": "claim", "id": "W-3", "owner": "COURSE-H", "resources": ["courses/set-theory"]}
+{"ts": "2026-10-13T01:50:09+00:00", "event": "claim", "id": "DOC-REFS-CODE", "owner": "orchestrator", "resources": ["docs"]}
+{"ts": "2026-10-13T01:50:10+00:00", "event": "advance", "id": "DOC-REFS-CODE", "to": "done", "commit": "6529d5fe", "reading": "docs-lint --check-doc-refs ⇒ 悬空引用 0 处（445 → 0）；基线也空 ⇒ 新增即判红", "reason": null, "owner": "orchestrator"}

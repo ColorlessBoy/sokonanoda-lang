@@ -1,10 +1,4 @@
 {
   "_comment": "判据 ⑧ 的存量基线（DOC-DANGLING）：这些 `docs/**.md` 路径已不存在，但引用点还没改写成「原文 ⇒ git log --all -- <path>」。**只许减不许增** ✓ —— 新增悬空引用会立刻判红；某条归零后必须从这里删掉（否则判红：基线腐烂 ✗）。",
-  "paths": {
-    "docs/design/site-rebuild/research/R1-design-craft.md": {
-      "count": 1,
-      "reason": "设计文档已收口删除（dae75759 等）；引用点尚未改写成历史指针 —— 存量债务，只许减不许增",
-      "example": "dsh/agent-skills.json:65"
-    }
-  }
+  "paths": {}
 }

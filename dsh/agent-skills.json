@@ -62,7 +62,7 @@
   "not_installed": [
     {
       "repo": "anthropics/skills",
-      "why": "frontend-design 等官方技能仓库**没有 LICENSE 文件**，README 只写「for demonstration and educational purposes only」。许可不明，不入库也不下载。它的原则已被 docs/design/site-rebuild/research/R1-design-craft.md 以引用+分析的形式吸收（R1 §1.2 逐字引用其「AI 设计聚类」清单）。"
+      "why": "frontend-design 等官方技能仓库**没有 LICENSE 文件**，README 只写「for demonstration and educational purposes only」。许可不明，不入库也不下载。它的原则已被 `docs/design/site-rebuild/research/R1-design-craft.md`（**已删** ⇒ 原文 `git log --all -- docs/design/site-rebuild/research/R1-design-craft.md`） 以引用+分析的形式吸收（R1 §1.2 逐字引用其「AI 设计聚类」清单）。"
     }
   ]
 }
