@@ -32,7 +32,7 @@ theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFou
         Exists.elim α (fun (m : α) => ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) False
           (hasMin_elim α r (fun (z : α) => ¬ Acc α r z)
             (wellFounded_hasMin α r hwf (fun (z : α) => ¬ Acc α r z)
-              (Exists.intro α (fun (z : α) => ¬ Acc α r z) x hnx)))
+              (Exists.intro x hnx)))
           (fun (m : α) (hm : ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) =>
             (And.left hm)
               (Acc.intro α r m (fun (y : α) (hy : r y m) =>

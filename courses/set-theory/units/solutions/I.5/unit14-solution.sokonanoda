@@ -103,7 +103,7 @@ theorem no_descending_chain (α : Type) (r : α → α → Prop)
                       (Eq.symm.{1} α m (f n) hn) (hstep n)))
                   ((fun (hall : ∀ (y : α), SeqImage α f y → ¬ (r y m)) =>
                     hall (f (Nat.succ n))
-                      (Exists.intro Nat (fun (k : Nat) => f (Nat.succ n) = f k) (Nat.succ n)  -- soko:notation-ok: G-73 形状 ②（同上）
+                      (Exists.intro (Nat.succ n)
                         (Eq.refl.{1} α (f (Nat.succ n))))) (And.right hmm))))
             (And.left hmm)))
         (hasMin_elim α r (SeqImage α f) hm))
