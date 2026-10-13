@@ -1241,9 +1241,18 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
 # 口径（**带日期的豁免**，**不静默放过** ✗）：
 #   · **新增收口**（本闸门之后写的 `done`）**必须**过祖先性 —— 写入口硬拒（`cmd_advance`）
 #     + 读侧复查（`check_plan`；防"先写后 rebase"：记录时是祖先、之后被 rebase 甩掉 ⇒ 判红）；
-#   · **存量**（`ANCESTRY_GATE_SINCE` **之前**记的 done 指针）**不判红**：它们多是 rebase 前的
-#     孪生，改不动（对象在、历史不在）⇒ 每次 `--check` 打一行 ⚠ 汇总（条数 + 起点的日期 +
-#     为什么豁免 + 清单），**不许静默** ✓。
+#   · **存量**（`ANCESTRY_GATE_SINCE` **之前**记的 done 指针）原先**不判红**（带日期豁免）。
+#
+# ⭐ **`ANCESTRY_GATE_SINCE` 现在只是历史标记，不再是豁免线**（2026-10-14 · 同日晚 ·
+#   `RELEASE-EVIDENCE-GATE` · 编排者拍定的口径 ✓）：豁免**已删**，读侧口径改成
+#   **「非祖先必须 0 条」的断言** —— 理由是长期豁免会让那 60 条证据在 main 上**永远核不了**，
+#   且 main 再 rebase 一次会把口径起点之后的整批一起判红（豁免救不了）✗。
+#   两步走、**顺序不许反** ✗：① `--repoint-all` 把存量**回填到 0**（真台账读数
+#   60 条 → 0 条，38 个 sha **38/38** 找到孪生：同 subject + `git patch-id --stable` 一致 +
+#   `is-ancestor` ✓）⇒ ② 才把豁免线改成断言。
+#   ⚠ **若将来 main 再被整体 rebase** ⇒ 回填过的指针会再次解析不到 main（它们**不是**
+#   "内容没落 main"，是"历史被重写"）⇒ 那时**照同一条命令再回填一次**（`--repoint-all`
+#   幂等：已经是的不会再出现 ✓），**不要**去恢复日期豁免 ✗。
 #   ⚠ **"存量"这个词只给"带时间戳且早于起点"的那一桶**（2026-10-14 · 第六次独立复核实测 ✗）：
 #     `ts` 是**判"新增/存量"的唯一依据**，而 `fold` 原先**只在 `advance` 分支写
 #     `advanced_ts`** ⇒ `--triage … --to applied` 记的指针**永远没有时间戳** ⇒
@@ -2068,8 +2077,7 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     # 合并已经定好的值再抄一遍。删掉它 = 判据与显示读同一份 ✓（`source_dispositions()`
     # 本身也改成由 `build_queue()` 派生 ⇒ 留着的调用点（`cmd_submit`/`cmd_schedule` 的
     # "id 是键"闸门、`open_children` 的兜底）读的仍是同一份 ✓）。
-    legacy_pointers: list[tuple[str, str]] = []      # **存量**（ts < 起点）非祖先指针 ⇒ 报告，不判红
-    undated_pointers: list[tuple[str, str]] = []     # **无 ts** ⇒ 判不出新增/存量 ⇒ 从宽，但**不叫存量** ✗
+    bad_pointers: list[tuple[str, str, str]] = []    # **非祖先收口指针** ⇒ 一律判红（没有豁免 ✓）
     rows_by_id = {r["id"]: r for r in rows}
     # ⚠ **判定域 = 视图 ∪ 事件表**（#1 的根本修法，见 `plan_domain`）：`--next`/`--json` 对
     # **无事件**的 id 也能推出状态（`effective_state` 的处置翻译）⇒ 判据必须看见**同一批 id**，
@@ -2116,29 +2124,25 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
                 print(f"✗ `{ident}` 标了 done 却没有 `commit`+`reading` ⇒ **没证据的收口** ✗",
                       file=sys.stderr)
                 bad += 1
-            # **收口指针必须在 main 的历史上**（2026-10-14 · 缺陷 ⑤）：存在性查不出祖先性 ⇒
-            # 存量（口径起点**之前**记的）走带日期豁免（只报告）；新增（起点**之后**记的，
-            # 含"记录时是祖先、之后被 rebase 甩掉"这种）判红 ✓ —— 见常量块的口径说明。
+            # **收口指针必须在 main 的历史上**（2026-10-14 · 缺陷 ⑤）：存在性查不出祖先性。
+            # ⭐ **口径（2026-10-14 · `RELEASE-EVIDENCE-GATE`）：非祖先必须 0 条，没有豁免** ✓
+            # 这条线原先按 `advanced_ts` 分三桶、给"存量（早于口径起点）"一条**带日期的豁免**。
+            # 存量 60 条（38 个 sha）已用 `--repoint` **全量回填到 0**（38/38 找到孪生：
+            # 同 subject + `git patch-id --stable` 一致 + `is-ancestor`）⇒ 豁免线**删掉**，
+            # 改成下面那条**断言**（每次 `--check` 都打出来 ⇒ 不许静默 ✓）。
+            # ⚠ 为什么不留长期豁免 ✗：长期豁免会让那 60 条证据在 main 上**永远核不了**；
+            # 且 main 再 rebase 一次会把口径起点之后的整批一起判红（豁免根本救不了）。
+            # ⚠ **顺序不许反** ✗：先收紧 = 把还没回填的那 60 条一起拒掉（所以先回填、后收紧）。
             _c = cur.get("commit")
             if _c and not commit_is_ancestor(_c):
                 _ts = cur.get("advanced_ts") or ""
-                # ⚠ 比**完整 UTC 时刻**（事件的 `ts` 就是 UTC 串；只比日期前 10 位会把今天记的
-                # 也算成存量 ⇒ 复查空转 ✗，见 `ANCESTRY_GATE_SINCE` 的说明）
-                # ⚠ **`ts` 缺席 ≠ 存量**（2026-10-14 · 第六次独立复核实测 ✗）：`""` 字典序最小
-                # ⇒ 旧写法把"**没有时间戳**"（= 判不出来）和"**早于起点**"（= 真存量）混成
-                # 同一个桶，于是**记于起点之后的 triage-applied 假指针**也被叫"存量 rebase
-                # 孪生"（描述与事实相反 ✗）。⇒ 分两桶：有 ts 且 < 起点 = 存量（豁免）；
-                # 无 ts = 判不出（也从宽，但措辞不许下"存量"这个结论 ✗）。
-                if not _ts:
-                    undated_pointers.append((ident, _c))
-                elif _ts < ANCESTRY_GATE_SINCE:
-                    legacy_pointers.append((ident, _c))
-                else:
-                    print(f"✗ `{ident}` 的收口 commit `{_c}` **不是 `HEAD` 的祖先**"
-                          f"（记录于 {_ts or '无时间戳'} ≥ 口径起点 {ANCESTRY_GATE_SINCE}）⇒ 证据在 main 上"
-                          f"**找不到**（被 rebase 甩掉了？）✗ —— 按新历史重开再收口，或改记"
-                          f"**真落进 main** 的那个 commit", file=sys.stderr)
-                    bad += 1
+                bad_pointers.append((ident, _c, _ts))
+                print(f"✗ `{ident}` 的收口 commit `{_c}` **不是 `HEAD` 的祖先**"
+                      f"（记录于 {_ts or '无时间戳'}）⇒ 证据在 main 上**找不到**"
+                      f"（被 rebase 甩掉了？）✗ —— 存量孪生指针用 "
+                      f"`--repoint {ident} --reason '<why>'` 三关自动回填；"
+                      f"或按新历史重开再收口 / 改记**真落进 main** 的那个 commit", file=sys.stderr)
+                bad += 1
         # ── **两层漂移 = 两个方向的同一条不变量**：来源"已关账" ⟺ 调度器"不在做"。
         # 两个方向合起来才是"三视图一致"：open（来源）· `--next`（调度器）· `--check`（对账）。
         _d = disp.get(ident)
@@ -2226,25 +2230,17 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
         if c.get("id") not in known and c.get("id") not in state:
             print(f"✗ 认领 `{c.get('id')}` 不在队列里 ⇒ 幽灵认领 ✗", file=sys.stderr)
             bad += 1
-    if legacy_pointers:
-        # **不许静默放过** ✗：存量豁免每次 `--check` 都打出来（条数 + 起点 + 为什么 + 清单）。
-        print(f"⚠ 存量收口指针 **{len(legacy_pointers)} 条**不是 `HEAD` 的祖先 ⇒ **豁免**"
-              f"（口径起点 {ANCESTRY_GATE_SINCE}，即闸门落地那一刻 = 本地 2026-10-14 01:54）："
-              f"它们是 rebase 前的孪生（对象在、内容也落了 "
-              f"main，但指针解析不到 main 的历史）⇒ **只报告、不判红**；**新增收口**必须过"
-              f"祖先性闸门（`cmd_advance`/`cmd_triage` 硬拒 + 此处复查）✓ —— 清单："
-              + " · ".join(f"{i}@{c[:8]}" for i, c in legacy_pointers), file=sys.stderr)
-    if undated_pointers:
-        # ⚠ **这一桶不许叫"存量"** ✗（2026-10-14 · 第六次独立复核实测）：没有 `ts` 就**判不出**
-        # 它记在口径起点之前还是之后（旧格式事件 / 手写事件）⇒ 只能如实说"判不出"，
-        # 从宽处理但**不许**替它下"存量 rebase 孪生"这个结论（那正是改前把一条
-        # **记于起点之后**的 triage-applied 假指针说成"存量"的那个病 ✗）。
-        print(f"⚠ **无时间戳**的收口指针 **{len(undated_pointers)} 条**不是 `HEAD` 的祖先 ⇒ "
-              f"**从宽处理**（**不叫「存量」** ✗：事件里没有 `ts` ⇒ 判不出它记在口径起点 "
-              f"{ANCESTRY_GATE_SINCE} 之前还是之后 —— 旧格式事件 / 手写事件；`advance` 与"
-              f"`triage applied` 现在**都**写 `advanced_ts`，所以这一桶只会随历史缩小 ✓）"
-              f" —— 清单：" + " · ".join(f"{i}@{c[:8]}" for i, c in undated_pointers),
-              file=sys.stderr)
+    # ⭐ **祖先性口径 = 断言「必须为空」**（2026-10-14 · `RELEASE-EVIDENCE-GATE`）：
+    # 这一行原先打的是「⚠ 存量收口指针 N 条 ⇒ 豁免」（**只报告、不判红**），现在换成**断言**——
+    # 存量 60 条 / 38 个 sha 已用 `--repoint` 全量回填到 0 ⇒ **非祖先必须是 0 条** ✓。
+    # ⚠ **每次 `--check` 都要打出来**（绿也要打 ✓）：不许静默 —— 上一版的病正是"看不见"。
+    if bad_pointers:
+        print(f"✗ 收口指针祖先性：**非祖先 {len(bad_pointers)} 条**（口径：存量已全量回填 ⇒ "
+              f"**必须 0 条**，**没有豁免** ✗）："
+              + " · ".join(f"{i}@{c[:8]}" for i, c, _t in bad_pointers), file=sys.stderr)
+    else:
+        print(f"✓ 收口指针祖先性：**非祖先 0 条**（口径：口径起点 {ANCESTRY_GATE_SINCE} 之前"
+              f"记的存量已用 `--repoint` 全量回填到 0 ⇒ 现在**必须**为 0，**没有豁免** ✓）")
     return bad
 
 
@@ -2542,6 +2538,20 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
             print(f"✗ 克制：`{args.id}` 还没 done（或有 done 无证据）⇒ **不许塞进版本** ✗ "
                   f"（宁可下个节点，也别让「修发版 bug」变成无限分支）", file=sys.stderr)
             return 1
+        # ⭐ **证据闸门**（2026-10-14 · `RELEASE-EVIDENCE-GATE`）：缺口 = 原先这里**只看
+        # "done + 有 commit"** ⇒ **手写的假指针能进发布节点** ✗（第六次独立复核实测：
+        # `release_add_rc=0`，即使那个 commit 对象**不存在**）。而 `#2` 之后任何 CLI 写路径
+        # 都造不出该形状（`cmd_advance`/`cmd_triage` 都有存在性 + 祖先性硬拒，且闸门**在写之前**）
+        # ⇒ **只剩手改事件表一条路**，所以闸门必须也长在**入版**这一侧。
+        # ⚠ **共用 `closure_pointer_problem()`**（别自己再写一遍 ✗ —— 那正是硬规则 0(b) 的病：
+        # 同一规则两处写 ⇒ 下次只改一处又分叉）。
+        _why = closure_pointer_problem(cur["commit"])
+        if _why is not None:
+            print(_why, file=sys.stderr)
+            print(f"  ⇒ **入版闸门与收口闸门同口径**（都走 `closure_pointer_problem()` ✓）："
+                  f"存量孪生指针用 `--repoint {args.id} --reason '<why>'` 回填（三关自动找孪生），"
+                  f"或先把这个环节**真的**提交掉再入版 ✓", file=sys.stderr)
+            return 1
         append_event({"event": "release-add", "rel": rel, "id": args.id, "owner": args.owner})
         print(f"✓ `{args.id}` 进 `{rel}`（当前 {len(node['items']) + 1} 条）")
         return 0
@@ -2581,6 +2591,14 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
             if cur.get("state") != "done" or not cur.get("commit"):
                 print(f"✗ 入版条目 `{ident}` 未 done 或无证据 ⇒ **发出去就不是完整可用版本** ✗",
                       file=sys.stderr)
+                bad += 1
+                continue
+            # ⭐ **读侧也过同一道证据闸门**（2026-10-14 · `RELEASE-EVIDENCE-GATE`）：
+            # `add` 只挡"**新**入版的"；手改事件表把现成条目的指针换掉、或把条目**手写进**
+            # `release-add` 事件 ⇒ 只有这里咬得住。两处**共用** `closure_pointer_problem()` ✓。
+            _why = closure_pointer_problem(cur["commit"])
+            if _why is not None:
+                print(f"✗ 入版条目 `{ident}` 的证据过不了闸门：{_why}", file=sys.stderr)
                 bad += 1
         live = live_claims()
         if live:
@@ -4221,28 +4239,301 @@ def selftest_triage_pointer(expect) -> None:
                    rc >= 1)
             expect("⑤ 判红点名 `E-1` + 说「不是 `HEAD` 的祖先」",
                    "E-1" in err and "不是 `HEAD` 的祖先" in err)
-            # ⑥a 起点**之前**（真存量）⇒ 从宽 + **叫「存量」** + 点名（不静默 ✓）
+            # ⑥a 起点**之前**（真存量）⇒ ⭐ **也判红**（2026-10-14 · `RELEASE-EVIDENCE-GATE`）
+            #     ⚠ 这一臂**改前是「从宽 + 叫存量」** —— 豁免已按编排者口径删掉
+            #     （存量全量回填到 0 ⇒ 口径 = "非祖先必须 0 条"的断言）⇒ 期望**反过来**。
             EVENTS.write_text("", encoding="utf-8")
             append_event({"event": "triage", "id": "E-1", "to": "applied", "commit": dangling,
                           "ts": (_cut - _dt.timedelta(minutes=1)).isoformat(), "owner": "t"})
             rows, state, view = snapshot()
             rc, err = capture(check_plan, view, rows)
-            expect(f"⑥a 起点之前的 triage-applied 指针 ⇒ 从宽（红 {rc} 条）", rc == 0)
-            expect("⑥a 且**叫「存量」**+ 起点 + 点名（不许静默放过 ✓）",
-                   "存量" in err and ANCESTRY_GATE_SINCE in err and "E-1@" in err)
-            # ⑥b **没有 ts**（旧格式/手写）⇒ 从宽，但**不许**替它下"存量"这个结论 ✗
+            expect(f"⑥a 起点之前的 triage-applied 指针 ⇒ **也判红**（豁免已删；改前 rc=0 ✗；"
+                   f"实测红 {rc} 条）", rc >= 1)
+            expect("⑥a 判红点名 `E-1`（**不许**再叫「存量收口指针」✗）",
+                   "E-1" in err and "存量收口指针" not in err)
+            # ⑥b **没有 ts**（旧格式/手写）⇒ 同样判红（`ts` 现在**不影响**判绿/判红 ✓）
             #     ⚠ `append_event` 会自动补 `ts` ⇒ 这一臂必须**直接写事件表**。
             EVENTS.write_text(json.dumps(
                 {"event": "triage", "id": "E-1", "to": "applied", "commit": dangling,
                  "owner": "t"}, ensure_ascii=False) + "\n", encoding="utf-8")
             rows, state, view = snapshot()
             rc, err = capture(check_plan, view, rows)
-            expect(f"⑥b **无时间戳**的指针 ⇒ 从宽（红 {rc} 条）", rc == 0)
-            expect("⑥b 但**不许叫「存量」**（判不出新增/存量 ⇒ 只能如实说「无时间戳」✗）",
-                   "无时间戳" in err and "存量收口指针" not in err and "E-1@" in err)
+            expect(f"⑥b **无时间戳**的指针 ⇒ 也判红（`ts` 不再分桶；改前 rc=0 ✗；实测红 {rc} 条）",
+                   rc >= 1)
+            expect("⑥b 判红点名 `E-1` 且**不再有「从宽/存量收口指针」那套分桶**"
+                   "（那个概念已随豁免一起删掉 ✓）",
+                   "E-1" in err and "存量收口指针" not in err and "从宽" not in err)
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
+
+
+def selftest_repoint_and_release_gate(expect) -> None:
+    """**证据闸门 + 指针回填**（2026-10-14 · `RELEASE-EVIDENCE-GATE`）—— 本轮缺口本身的防复发轴。
+
+    缺口（第六次独立复核实测 ✓）：`--release add/check` **只要求 `done` + 有 `commit`** ⇒
+    **手写的假指针能进发布节点** ✗（实测 `release_add_rc=0`，即使那个 commit 对象**不存在**）。
+    病根与修法：入版闸门**必须与收口闸门同口径** ⇒ 两处都走 `closure_pointer_problem()`
+    （存在性 `git cat-file -e` + 祖先性 `git merge-base --is-ancestor`）✓。
+    配套：存量 60 条 rebase 孪生用 `--repoint` 回填到 0（`selftest_ancestry_gate` ③ 钉住
+    「豁免已删、非祖先必须 0 条」）。
+
+    断言（每条都点了名靶子 ⇒ 定向突变必红）：
+      ① 夹具：**真孪生**造得出（同树 + 同父 + 同 subject ⇒ 同 `patch-id --stable`，
+         但**不是** `HEAD` 的祖先）—— 这是「摘掉三关里的任何一关」的靶子；
+      ② `--repoint-all --dry-run` ⇒ rc=0 且**一个字节都不写**；
+      ③ `--repoint` 自动找孪生 ⇒ rc=0 · 指针换成真祖先 · **state 仍是 done** ·
+         **旧事件原样留着** + `repointed_from` 记旧 sha（只追加账、可逐条回滚 ✓）；
+      ④ 回填后 `check_plan` 转绿（**这一对是因果对照**：③ 之前必红、③ 之后必绿）；
+      ⑤ 显式给**非祖先** / **不存在**的指针 ⇒ 硬拒（走 `closure_pointer_problem` 的两半）；
+      ⑥ **找不到孪生 ⇒ 不硬填**（rc=1 且**零写入**）；**已经是祖先 ⇒ 拒**（没有可回填的）；
+         **缺 `--reason` / id 不存在 ⇒ 拒**；
+      ⑦ ⭐ **`--release add` 假指针 ⇒ rc≠0**（**就是本轮的缺口**）+ **不写 `release-add` 事件**；
+         正对照：真祖先 + 真对象 ⇒ **仍 rc=0**（**不许误拒** ✗）；
+      ⑧ `--release check`（读侧，手写 `release-add` 把假指针条目塞进节点）**也咬得住**；
+      ⑨ **真 CLI 路径**（子进程 + `SOKO_QUEUE_EVENTS` 重定向）跑 ⑦ 的两半
+         —— ⚠ 用 `Path(__file__)`，**不是** `ROOT/scripts/ux-queue.py`（那是主仓那份，
+         在 land 之前是旧的 ⇒ 测到的是别的构建 ✗）。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    bad_sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.strip()
+    _TWIN_CACHE.clear()
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
+                 globals()["worktree_dirty"], globals()["probe_inventory"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        globals()["worktree_dirty"] = lambda: ""
+        globals()["probe_inventory"] = lambda: []
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| R-9 | 语言 | 夹具（没处置 ⇒ 不进 rows） | 高 | `bash r.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+
+        def git(*argv) -> str:
+            return subprocess.run(["git", *argv], cwd=ROOT, capture_output=True,
+                                  text=True).stdout.strip()
+
+        def make_twin(sha: str) -> str:
+            """同树 + 同父 + 同 subject ⇒ 同 `patch-id --stable`，但**不是**祖先（新对象、无 ref）。"""
+            return git("-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local",
+                       "commit-tree", f"{sha}^{{tree}}", "-p", f"{sha}^",
+                       "-m", git("log", "-1", "--format=%s", sha))
+
+        def dangling_new(subject: str) -> str:
+            """**没有孪生**的悬垂 commit（subject 独一份）。"""
+            return git("-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local",
+                       "commit-tree", f"{real_sha}^{{tree}}", "-m", subject)
+
+        # 找一个"subject 在全历史里唯一 + 有父"的真祖先当孪生的**基**
+        by_subj = _ancestors_by_subject()
+        base_sha = ""
+        for line in git("log", "--no-merges", "--format=%H%x01%s", "HEAD").splitlines():
+            if "\x01" not in line:
+                continue
+            _h, _s = line.split("\x01", 1)
+            if len(by_subj.get(_s, [])) == 1 and git("rev-parse", "--verify", "--quiet",
+                                                     f"{_h}^"):
+                base_sha = _h
+                break
+        twin = make_twin(base_sha) if base_sha else ""
+        lonely = dangling_new("ux-queue selftest: 这条 subject 独一份（没有孪生）")
+
+        def ext(ident: str) -> dict:
+            return {"id": ident, "source": "ux-index", "facet": "语言", "severity": "medium",
+                    "repro": f"bash {ident}.sh", "disposition": "fixed", "why": "夹具：已关账"}
+
+        def seed(*pairs: tuple[str, str]) -> None:
+            """事件表 = 每条一个 `advance … done`（`ts` 由 `append_event` 补）。"""
+            EVENTS.write_text("", encoding="utf-8")
+            for ident, sha in pairs:
+                append_event({"event": "advance", "id": ident, "to": "done", "commit": sha,
+                              "reading": "夹具读数", "owner": "t"})
+
+        def snapshot():
+            _r, _u = build_queue()
+            _s = fold()
+            return _r, _s, sched_rows(_r, _s)
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, err.getvalue()
+
+        def capture_both(fn, *a, **kw):
+            """`(rc, stdout+stderr)` —— 报告类断言走 stdout、判红走 stderr，两边都要看时用它。"""
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, buf.getvalue() + err.getvalue()
+
+        def ns(**kw):
+            base = dict(release="", rel="", version="", id="", commit="", ci="", reason="",
+                        owner="t", force=False)
+            base.update(kw)
+            return argparse.Namespace(**base)
+
+        try:
+            expect(f"夹具①：真孪生造得出（{base_sha[:8]} → {twin[:8]}）",
+                   bool(twin) and not commit_is_ancestor(twin))
+            _t, _note = find_twin(twin)
+            expect(f"夹具①：三关认得它（孪生 = {(_t or 'None')[:8]}，期望 {base_sha[:8]}）",
+                   _t == base_sha)
+            expect("夹具①：**只比 subject 不够**（孪生与基 subject 相同但 sha 不同 ⇒ "
+                   "真跑得通三关才算数）", twin != base_sha)
+            extra_rows = [ext("R-1"), ext("R-2")]
+            EXTRAS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in extra_rows),
+                              encoding="utf-8")
+            seed(("R-1", twin), ("R-2", twin))
+            rows, _st, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"夹具①：两条孪生指针 ⇒ check_plan **判红 2 条**（实测 {rc}）", rc == 2)
+            expect("夹具①：判红点名 R-1 与 R-2", "R-1" in err and "R-2" in err)
+
+            # ② dry-run ⇒ 一个字节都不写
+            _before = EVENTS.read_text(encoding="utf-8")
+            rc, out = capture_both(cmd_repoint_all, "夹具 dry-run", "t", True, 0)
+            expect(f"② `--repoint-all --dry-run` rc={rc}", rc == 0)
+            expect("② dry-run **零写入**（事件表逐字节不变 ✓）",
+                   EVENTS.read_text(encoding="utf-8") == _before)
+            expect("② dry-run 报告里点名两条 id", "R-1" in out and "R-2" in out)
+
+            # ③ 单条自动找孪生
+            rc, out = capture(cmd_repoint, "R-1", "", "夹具：回填孪生", "t", False)
+            expect(f"③ `--repoint` 自动找孪生 rc={rc}", rc == 0)
+            _s = fold()
+            expect(f"③ 指针换成真祖先（{_s['R-1'].get('commit', '')[:8]}）",
+                   _s["R-1"].get("commit") == base_sha)
+            expect("③ **state 仍是 done**（回填改的是指针，不是「这条做完了吗」✗）",
+                   _s["R-1"].get("state") == "done")
+            expect("③ `reading` 一个字没换", _s["R-1"].get("reading") == "夹具读数")
+            expect("③ **旧事件原样留着**（只追加账 ⇒ 旧 sha 还能审出来 ✓）",
+                   any(e.get("event") == "advance" and e.get("commit") == twin
+                       for e in load_events()))
+            expect("③ `repointed_from` 记了旧 sha", twin in (_s["R-1"].get("repointed_from") or []))
+            rows, _st, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"④ 回填后**少一条红**（还剩 R-2 ⇒ 1 条；实测 {rc}）", rc == 1)
+            expect("④ 剩下的红**只**点名 R-2（R-1 已清 ✓）", "R-2" in err and "R-1" not in err)
+
+            # ⑤ 两条硬拒（共享谓词的两半）
+            rc, err = capture(cmd_repoint, "R-2", lonely, "夹具：显式非祖先", "t", False)
+            expect(f"⑤ 显式给**非祖先**指针 ⇒ 硬拒 rc={rc}", rc == 1
+                   and "不是 `HEAD` 的祖先" in err)
+            rc, err = capture(cmd_repoint, "R-2", bad_sha, "夹具：显式不存在", "t", False)
+            expect(f"⑤ 显式给**不存在**的指针 ⇒ 硬拒 rc={rc}", rc == 1 and "不存在" in err)
+
+            # ⑥ 不硬填 / 已祖先 / 缺理由 / id 不存在 —— 四条都必须拒，且零写入
+            seed(("R-1", twin), ("R-2", lonely))
+            _before = EVENTS.read_text(encoding="utf-8")
+            rc, err = capture(cmd_repoint, "R-2", "", "夹具：找不到孪生", "t", False)
+            expect(f"⑥ **找不到孪生 ⇒ 不硬填** rc={rc}", rc == 1 and "找不到孪生" in err)
+            expect("⑥ 且**零写入**（事件表逐字节不变 ✓）",
+                   EVENTS.read_text(encoding="utf-8") == _before)
+            seed(("R-1", real_sha))
+            rc, err = capture(cmd_repoint, "R-1", "", "夹具：已经是祖先", "t", False)
+            expect(f"⑥ **已经是祖先 ⇒ 拒**（没有可回填的）rc={rc}",
+                   rc == 1 and "已经是 `HEAD` 的祖先" in err)
+            rc, err = capture(cmd_repoint, "R-1", "", "", "t", False)
+            expect(f"⑥ 缺 `--reason` ⇒ 拒 rc={rc}", rc == 1 and "--reason" in err)
+            try:
+                cmd_repoint("NO-SUCH-ID", "", "x", "t", False)
+                expect("⑥ id 不存在 ⇒ UsageError", False)
+            except UsageError:
+                expect("⑥ id 不存在 ⇒ UsageError", True)
+
+            # ⑦ ⭐ 证据闸门：假指针不许入版；真祖先**不许误拒**
+            #    （正对照那条的指针**必须是真祖先** —— 拿孪生当正对照会得到一条假红 ✗）
+            seed(("R-1", real_sha), ("R-2", twin))
+            EVENTS.write_text(EVENTS.read_text(encoding="utf-8")
+                              + json.dumps({"event": "release-open", "id": "REL-0.0.1",
+                                            "version": "0.0.1", "owner": "t"},
+                                           ensure_ascii=False) + "\n", encoding="utf-8")
+            _before = EVENTS.read_text(encoding="utf-8")
+            rc, err = capture(cmd_release, ns(release="add", rel="REL-0.0.1", id="R-2"), [])
+            expect(f"⑦ ⭐ `--release add` **假指针（非祖先）⇒ rc≠0**（实测 {rc}；改前 rc=0 ✗）",
+                   rc != 0)
+            expect("⑦ 判红走的是**收口那一套措辞**（同谓词 ✓）",
+                   "不是 `HEAD` 的祖先" in err and "--repoint" in err)
+            expect("⑦ 被拒时**没写 `release-add` 事件**（闸门在写之前 ✓）",
+                   EVENTS.read_text(encoding="utf-8") == _before)
+            rc, err = capture(cmd_release, ns(release="add", rel="REL-0.0.1", id="R-1"), [])
+            expect(f"⑦ 正对照：**真祖先 + 真对象** ⇒ 仍 **rc=0**（不许误拒 ✗；实测 {rc}）", rc == 0)
+            expect("⑦ 正对照真的写了 `release-add` 事件",
+                   any(e.get("event") == "release-add" and e.get("id") == "R-1"
+                       for e in load_events()))
+            # ⑦b 对象**根本不存在**的指针（手改事件表那一族的第二半）
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "release-open", "id": "REL-0.0.2", "version": "0.0.2",
+                          "owner": "t"})
+            append_event({"event": "release-add", "rel": "REL-0.0.2", "id": "R-3", "owner": "t"})
+            append_event({"event": "advance", "id": "R-3", "to": "done", "commit": bad_sha,
+                          "reading": "假证据", "owner": "t"})
+            rc, err = capture(cmd_release, ns(release="add", rel="REL-0.0.2", id="R-3"), [])
+            expect(f"⑦b `--release add` 对象**不存在** ⇒ rc≠0（实测 {rc}；改前 rc=0 ✗）",
+                   rc != 0 and "不存在" in err)
+            # ⑧ 读侧：手写 `release-add` 把假指针条目**塞进**节点 ⇒ `check` 也咬
+            rc, err = capture(cmd_release, ns(release="check", rel="REL-0.0.2"), [])
+            expect(f"⑧ `--release check` **也咬得住**（手写事件塞进来的假指针）rc={rc}",
+                   rc != 0 and "入版条目 `R-3` 的证据过不了闸门" in err)
+
+            # ⑨ 真 CLI 路径（子进程）—— ⚠ 用 `__file__`（不是主仓那份 ⇒ 否则测到别的构建 ✗）
+            _me = str(Path(__file__).resolve())
+            for _ver, _sha, _want in (("0.0.3", bad_sha, False), ("0.0.4", real_sha, True)):
+                _ev = Path(tmp) / f"cli-{_ver}.jsonl"
+                _ev.write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in (
+                    {"event": "release-open", "id": f"REL-{_ver}", "version": _ver, "owner": "t"},
+                    {"event": "advance", "id": "Z-1", "to": "done", "commit": _sha,
+                     "reading": "夹具", "owner": "t"})), encoding="utf-8")
+                _p = subprocess.run(
+                    [sys.executable, _me, "--release", "add", "--rel", f"REL-{_ver}",
+                     "--id", "Z-1", "--owner", "t"],
+                    capture_output=True, text=True, cwd=str(ROOT),
+                    env=dict(os.environ, SOKO_QUEUE_ROOT=str(ROOT), SOKO_QUEUE_EVENTS=str(_ev)))
+                expect(f"⑨ 真 CLI：`--release add` {'真祖先 ⇒ rc=0' if _want else '假指针 ⇒ rc≠0'}"
+                       f"（实测 rc={_p.returncode}）", (_p.returncode == 0) == _want)
+            # ⑩ CLI 契约：新增的四个开关真在 parser 里
+            _parser = build_arg_parser()
+            _pa = _parser.parse_args(["--repoint", "X", "--reason", "w", "--dry-run",
+                                      "--limit", "3"])
+            expect("⑩ 真 parser 认 `--repoint … --reason/--dry-run/--limit`",
+                   _pa.repoint == "X" and _pa.reason == "w" and _pa.dry_run and _pa.limit == 3)
+            expect("⑩ 真 parser 认 `--repoint-all`",
+                   _parser.parse_args(["--repoint-all"]).repoint_all is True)
+
+            # ⑪ `--repoint-all` 端到端（两条共用一个 sha ⇒ **整 sha 一起写**）
+            seed(("R-1", twin), ("R-2", twin))
+            rc, out = capture_both(cmd_repoint_all, "夹具：整批回填", "t", False, 0)
+            expect(f"⑪ `--repoint-all` 端到端 rc={rc}", rc == 0)
+            expect("⑪ 打完复查 ⇒ 非祖先 **0 条**", "非祖先收口指针 **0 条**" in out)
+            expect("⑪ 两条都换成真祖先",
+                   fold()["R-1"].get("commit") == base_sha
+                   and fold()["R-2"].get("commit") == base_sha)
+            rows, _st, view = snapshot()
+            rc, _e = capture(check_plan, view, rows)
+            expect(f"⑪ 且 `check_plan` 转绿（红 {rc} 条）", rc == 0)
+            # ⑪b **有找不到孪生的 ⇒ 明说没回填到 0**（不许打"0 条"的假绿 ✗）
+            seed(("R-1", twin), ("R-2", lonely))
+            rc, _out = capture(cmd_repoint_all, "夹具：一半找不到孪生", "t", False, 0)
+            expect(f"⑪b 一半找不到孪生 ⇒ rc={rc}（**不许**假绿）", rc == 1)
+            expect("⑪b 找不到孪生的那条**没被硬填**（指针还是旧的）",
+                   fold()["R-2"].get("commit") == lonely)
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+            globals()["worktree_dirty"] = saved[5]
+            globals()["probe_inventory"] = saved[6]
 
 
 def selftest_write_gates(expect) -> None:
@@ -4456,17 +4747,33 @@ def selftest_ancestry_gate(expect) -> None:
             _r2, _s2, _v2 = snapshot()
             rc, err = capture(check_plan, _v2, _r2)
             expect(f"② 新增收口指针非祖先 ⇒ check_plan 判红（红 {rc} 条）", rc >= 1)
-            # ③ 存量（记录时刻 < 口径起点）⇒ 豁免：不判红，但**必须打出来**（不静默 ✗）
+            # ③ **存量**（记录时刻 < 口径起点）⇒ ⭐ **也判红**（2026-10-14 · `RELEASE-EVIDENCE-GATE`）
+            #    ⚠ 这一臂**改前是「不判红 + 打豁免」** —— 豁免已按编排者口径**删掉**
+            #    （存量全量回填到 0 ⇒ 口径改成"非祖先必须 0 条"的断言）⇒ 期望**反过来**。
+            #    这是"把豁免线改回带日期豁免"的**靶子**：改回去 ⇒ 这一臂必红 ✓。
             EVENTS.write_text("", encoding="utf-8")
             append_event({"event": "advance", "id": "G-2", "to": "done", "commit": dangling,
                           "reading": "夹具读数",
                           "ts": (_cut - _dt.timedelta(minutes=1)).isoformat(), "owner": "t"})
             _r3, _s3, _v3 = snapshot()
             rc, err = capture(check_plan, _v3, _r3)
-            expect(f"③ 存量非祖先 ⇒ **不判红**（红 {rc} 条）", rc == 0)
-            expect(f"③ 但**不静默**：stderr 里出现豁免口径（存量 + 起点 + 清单）"
-                   f"[G-2={'G-2@' in err} / 起点={ANCESTRY_GATE_SINCE in err}]",
-                   "存量" in err and ANCESTRY_GATE_SINCE in err and "G-2@" in err)
+            expect(f"③ 存量（早于口径起点）非祖先 ⇒ **也判红**（豁免已删；改前 rc=0 ✗；实测红 {rc} 条）",
+                   rc >= 1)
+            expect("③ 判红点名 `G-2` + 说「不是 `HEAD` 的祖先」+ 给出 `--repoint` 出路"
+                   f"[点名={'G-2' in err} / 祖先性={'不是 `HEAD` 的祖先' in err} / "
+                   f"repoint={'--repoint' in err}]",
+                   "G-2" in err and "不是 `HEAD` 的祖先" in err and "--repoint" in err)
+            # ③b **非祖先 0 条 ⇒ 断言也要打出来**（绿也要可见 ⇒ 不许静默 ✓）
+            #     ⚠ 断言走 **stdout**（✓ 是报告、✗ 才是 stderr）⇒ 这里要自己抓 stdout
+            #     （`capture()` 只回 stderr ⇒ 用它就会**假红** ✗）。
+            EVENTS.write_text("", encoding="utf-8")
+            _r3b, _s3b, _v3b = snapshot()
+            _ob, _eb = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(_ob), contextlib.redirect_stderr(_eb):
+                rc = check_plan(_v3b, _r3b)
+            expect(f"③b 非祖先 0 条 ⇒ 不判红（红 {rc} 条）", rc == 0)
+            expect("③b 且**打出「非祖先 0 条」的断言**（绿也不许静默 ✓）",
+                   "非祖先 0 条" in _ob.getvalue())
             # ④ 真祖先（HEAD）⇒ 收口过、也不判红（别误伤 ✓）
             EVENTS.write_text("", encoding="utf-8")
             rows, _st, view = snapshot()
@@ -4716,9 +5023,13 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     #     两种状态 ⇒ 「来源终态 × 调度器 submitted」那 6 格静默能一路活到自检全绿 ✗
     #     ⇒ 3 来源 × 2 来源终态 × 6 调度器状态 = 36 格，逐格钉「判红点名 + 收口指示可执行」✓）
     selftest_source_state_grid(expect)
-    # ③h **祖先性闸门**（2026-10-14：`cat-file -e` 查不出"不是 main 祖先" ⇒ 新增硬拒 + 读侧复查 +
-    #     存量带日期豁免且**不静默** ✗）
+    # ③h **祖先性闸门**（2026-10-14：`cat-file -e` 查不出"不是 main 祖先" ⇒ 新增硬拒 + 读侧复查。
+    #     ⚠ 口径已于同日改成**「非祖先必须 0 条」的断言**（存量全量回填到 0 ⇒ 豁免已删）✗）
     selftest_ancestry_gate(expect)
+    # ③h2 ⭐ **证据闸门 + 指针回填**（2026-10-14 · `RELEASE-EVIDENCE-GATE`：`--release add/check`
+    #     原先只要 `done` + 有 `commit` ⇒ **手写的假指针能进发布节点** ✗；配套 `--repoint`
+    #     把存量 rebase 孪生回填到 0——三关找孪生、找不到**不硬填**、只追加事件可逐条回滚）
+    selftest_repoint_and_release_gate(expect)
     # ③i **无源子任务**（2026-10-14 · 第六次复核 #1：`sched_rows` 的合成行给自己作出处 ⇒
     #     幽灵判据对它静默，而 `--next` 推得出它 ✗ —— `known` 改回读视图这条必红 ✗）
     selftest_ghost_child(expect)
@@ -4778,15 +5089,27 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"docstring 的四处置 · 冲突轴覆盖所有不等对）：改前 `submitted` 列 6/6 静默、"
           f"`wo_filed` 一向无牙、`boundary`/`control` 12 格静默且被 `--next` 推、"
           f"**删掉覆盖层**后 42 格静默而 `--next` 照推、**终态缺口行让冲突闸门失明** ⇒ 逐格必红 ✗）"
-          f" + **祖先性闸门 9 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/存量带日期**豁免且不静默**/"
-          f"真祖先不误伤）"
+          f" + **祖先性闸门 11 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/"
+          f"⭐ **口径已改成「非祖先必须 0 条」的断言**：存量（记于 `ANCESTRY_GATE_SINCE` **之前**）"
+          f"**也判红** —— 带日期豁免**已按编排者口径删掉** ✗/绿也要打出「非祖先 0 条」·真祖先不误伤）"
+          f" + ⭐ **证据闸门 + 指针回填 40 条**（`RELEASE-EVIDENCE-GATE`：**真孪生夹具**"
+          f"（同树 + 同父 + 同 subject ⇒ 同 `patch-id --stable`、但**非**祖先）/三关认得它/"
+          f"`--dry-run` **零写入**/`--repoint` 自动找孪生 ⇒ 指针换真祖先 · **state 仍 done** · "
+          f"旧事件留着 + `repointed_from` 记旧 sha/回填前红 2 条 ⇒ 回填后红 1 条（**因果对照**）/ "
+          f"显式非祖先与不存在**两半硬拒**/**找不到孪生不硬填**且零写入/已祖先拒/缺 reason 拒/"
+          f"id 不存在 UsageError/ ⭐ **`--release add` 假指针 rc≠0**（**就是本轮的缺口**，改前 rc=0 ✗）"
+          f"+ 被拒时**不写事件** + **正对照真祖先仍 rc=0**（不许误拒）/对象**不存在**那一半/"
+          f"`--release check` **读侧也咬**（手写事件塞进来的）/ **真 CLI 子进程**跑前面两半/"
+          f"`--repoint-all` 端到端 + 一半找不到孪生**不许假绿**/四个新开关真在 parser 里；"
+          f"摘掉任一处 `closure_pointer_problem` 或三关里任一关 ⇒ 对应那条必红 ✗）"
           f" + **无源子任务 10 条**（第六次复核 #1：**判红 + 点名 + 说清「无源子任务」**/"
           f"合成行 `sources` = 诚实的空表且与源行同形/登记来源后转绿/**没有父的幽灵照样判红**/"
           f"仍在 `plan_domain` 与 `--json.open`/`--next` 里 ⇒ **判红 ≠ 从面板消失**；"
           f"把 `known` 改回读视图 ⇒ ① 必红 ✗）"
           f" + **triage 假证据 14 条**（第六次复核 #2：**存在性 + 祖先性两条硬拒**/"
           f"被拒时**一个字节都不写**/真祖先不误伤/起点之后的 triage-applied 假指针**读侧判红**/"
-          f"**措辞分桶**：有 ts 早于起点 = 「存量」✓、**无 ts 不许叫「存量」**✗；"
+          f"⭐ 口径收紧后：**起点之前 / 无 `ts` 的假指针也判红**（`ts` 不再分桶 ⇒ "
+          f"「存量 / 从宽」那套措辞已随豁免一起删掉 ✓）；"
           f"摘掉 `closure_pointer_problem` 或 triage 分支的 `advanced_ts` ⇒ 对应那条必红 ✗）"
           f" + **写入口权威状态 19 条**（第六次复核 #3：来源关账的 reopen **硬拒 + 给出路 + 不写事件**/"
           f"来源关账的父 `--add-child` **硬拒 + 不写 `split`**/"
