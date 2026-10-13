@@ -58,7 +58,7 @@ Known limitation / CI 台账 / 代码里的 TODO / 开工单 §0.2），彼此�
 ```bash
 python3 scripts/ux-queue.py                       # 人看的队列表 + 计数
 python3 scripts/ux-queue.py --json                # 机器可读（与 §0.2 对账用）
-python3 scripts/ux-queue.py --schedule <id> --title '<做什么>' --reason '<为什么/下一轮的口径>'
+python3 scripts/ux-queue.py --schedule <id> --title '<做什么>' --reason '<为什么/下一轮的口径>'  # id ≤ 64 字符
 python3 scripts/ux-queue.py --check-uncovered     # 覆盖自检（源码级，秒级；进 gate --fast）
 python3 scripts/ux-queue.py --check-uncovered --live   # 覆盖 + 读数自检（跑探针，慢）
 python3 scripts/ux-queue.py --repoint-all --reason '<why>' [--dry-run] [--limit N]  # 回填存量指针
@@ -66,6 +66,15 @@ python3 scripts/ux-queue.py --selftest            # 判据通道自检（不碰�
 ```
 
 退出码：0 = 通过 · 1 = 有红（覆盖/读数/§0.2 不一致）· 2 = 用法或环境错误。
+⚠ **环境编码是契约的一部分**（`#5a`，2026-10-14 · 第七次独立复核实测 ✗）：本脚本的数据是
+**UTF-8**（commit subject 大量中文）⇒ 非 UTF-8 环境（例 `LC_ALL=C PYTHONUTF8=0`）**fail fast**：
+**rc=2 + 人话**（说清是环境编码 + 给出 `PYTHONUTF8=1` / `LC_ALL=C.UTF-8` 两条正解），
+**不丢栈** ✗（改前是 `UnicodeEncodeError`/`UnicodeDecodeError` 栈 + rc=1 ✗）。
+孪生/回填路径的 git 读取另有**显式 UTF-8**（`_patch_id`/`_commit_subject`/`_ancestors_by_subject`）
+⇒ 正常环境里内容判定不随 locale 漂 ✓；`main()` 还把任何残留 `UnicodeError` 兜成 rc=2 ✓。
+⚠ **id 有长度上限 `ID_MAX_LEN=64`**（`#5b`，同轮实测 ✗：3003 字符的 id 原先 **rc=0 收下**）：
+`--schedule`/`--submit`/`--add-child` 三个"生 id 的入口"**共用** `_id_length_problem()` ⇒ 拒 ✓
+（真台账在用的最长 id 是 `MODULE-ARTIFACTS-KNIFE2-ARTIFACT-KEY`，37 字符 ⇒ 64 留足余量）。
 
 口径与边界：**本文件 docstring 就是规格**（不另开设计档 ⇒ 免得"文档说的"与"脚本做的"两头漂）；
 门禁：`scripts/soko gate --fast` 与 CI 的 `ledger` job 都跑 `--check`（秒级）⇒ 队列与来源脱钩当场判红 ✗。
@@ -193,6 +202,41 @@ OPEN_DISPOSITIONS = {"fix", "scheduled"}
 
 # §0.2 队列行的 id 形状：字母开头、带 `-` 或 `_`（`Q-…` / `G-110` / `r07` / `A3` / `HANDOFF-…`）
 QUEUE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*[-_][A-Za-z0-9_.\-]+$")
+# **id 长度上限**（`#5b`，2026-10-14 · 第七次独立复核实测 ✗）：`--schedule` 原先只查形状、
+# **没有长度上限** ⇒ 实测 **3003 字符**的 id **rc=0 收下**（写进 extras + 事件表 ⇒ 之后每个
+# 视图 / 对账 / §0.2 都得背着它）✗。取 **64**：真台账在用的最长 id 是
+# `MODULE-ARTIFACTS-KNIFE2-ARTIFACT-KEY`（37 字符）⇒ 留足余量，又挡住"整段话当 id" ✓。
+ID_MAX_LEN = 64
+
+
+def _id_length_problem(ident: str) -> str | None:
+    """**id 长度上限**（`#5b`）—— 三个"生 id 的入口"（`--schedule`/`--submit`/`--add-child`）
+    **共用这一处** ⇒ 不会"只修了 `--schedule`、漏了另外两处" ✗（`AGENTS.md` 硬规则 0(b)）。
+
+    返回 `None` = 过；否则返回判红正文。
+    ⚠ **只闸"生 id 的入口"**：引用**已有** id 的子命令（`--claim`/`--advance`/`--triage`/
+    `--repoint`/`--release add`）不需要长度闸门 —— 那些 id 必须在来源/事件表里存在，
+    超长 id 自然查不到 ✓。
+    """
+    if len(ident) > ID_MAX_LEN:
+        return (f"✗ id 太长：**{len(ident)} 字符 > 上限 {ID_MAX_LEN}**（`ID_MAX_LEN`）⇒ 拒 ✗ "
+                f"—— id 是**键**（要进来源台账 / 事件表 / §0.2 对账 / `--next`），"
+                f"不是标题：把说明写进 `--title`/`--reason`/`--why`，id 留短且唯一 ✓")
+    return None
+
+
+def _id_shape_problem(ident: str) -> str | None:
+    """`--schedule` 的 id 闸门：`QUEUE_ID_RE` 形状 + `_id_length_problem()`（长度只有一处 ✓）。
+
+    ⚠ **形状这一关只在 `--schedule`**（它的 id 要能被 `QUEUE_ID_RE` 解析 ⇒ 才能进 §0.2 对账）；
+    本轮**不扩大**它到 `--submit`/`--add-child` —— 那会顺手改掉外部提交面的既有行为 ✗
+    （实测：既有自检的正对照用的是中文 id `SUB-新-9`，形状闸门一扩大就把它拒了 ✗）——
+    那两处只加**长度**上限（新的那条规则，共用 ✓）。
+    """
+    if not QUEUE_ID_RE.fullmatch(ident):
+        return (f"✗ id `{ident[:60]}` 形状不对：要 `字母开头 + 至少一个 -/_`（例 `MODULE-X-DOWNLOAD`）"
+                f"—— id 是键，形状漂了就没法对账 ✗")
+    return _id_length_problem(ident)
 
 
 def _guard_root() -> None:
@@ -220,6 +264,34 @@ def _guard_root() -> None:
 
 class UsageError(Exception):
     """用法/环境错误（exit 2）——与"判红"（exit 1）分开，别把环境问题当结论。"""
+
+
+def _guard_encoding() -> None:
+    """**环境编码闸门**（`#5a`，2026-10-14 · 第七次独立复核实测 ✗）：非 UTF-8 环境 ⇒ 契约错。
+
+    实测（`LC_ALL=C PYTHONUTF8=0`，而仓库 subject 大量中文）：
+      · 打印中文 ⇒ `UnicodeEncodeError`（stdout 是 US-ASCII）；
+      · 孪生搜索里 `git log`/`git show` 用 `text=True`（= `locale.getpreferredencoding()`）
+        解码中文 subject ⇒ `UnicodeDecodeError`；
+      · 两条都是**未捕获的栈 + rc=1** ✗，而契约里环境错是 **rc=2** ✓。
+    口径：本脚本的数据是 **UTF-8**（git 的默认输出编码）⇒ 环境表示不了它就 **fail fast**
+    （rc=2 + 人话 + 给出正解），**不许丢栈** ✗；也不许用 `errors="replace"` 掩盖 ——
+    那会让 subject 比对**悄悄错**（判定类代码的红线 ✗）。
+    ⚠ 与它配套的两件事（都在本轮落地）：① 孪生/回填路径的 git 读取**显式 UTF-8**
+    （`_patch_id`/`_commit_subject`/`_ancestors_by_subject`）⇒ 正常环境里不随 locale 漂 ✓；
+    ② `main()` 把 `UnicodeError` 也翻成 rc=2（兜底：任何残留的编码错都不是栈 ✓）。
+    """
+    import locale as _locale
+    enc = _locale.getpreferredencoding(False) or ""
+    if not enc:
+        return
+    try:
+        "中".encode(enc)
+    except (UnicodeEncodeError, LookupError):
+        raise UsageError(
+            f"环境编码不是 UTF-8（`locale.getpreferredencoding()` = `{enc}`）⇒ 本脚本的数据是 "
+            f"UTF-8（commit subject 大量中文），在这个环境里读/写都会坏 ✗。"
+            f"正解：`PYTHONUTF8=1` 或 `LC_ALL=C.UTF-8`（或 `LANG=…UTF-8`）再跑 ✓") from None
 
 
 # ── 来源 ①：缺口台账 ────────────────────────────────────────────────────────
@@ -1883,6 +1955,12 @@ def cmd_add_child(parent: str, child: str, title: str, owner: str, rows: list[di
         raise UsageError(f"父条目 `{parent}` 不在队列里")
     if child in known:
         raise UsageError(f"子任务 id `{child}` 已经存在（id 是键，不许重用）")
+    # ⚠ **子任务 id 也是"生 id 的入口"** ⇒ 与 `--schedule`/`--submit` **共用同一个谓词**
+    # （`_id_length_problem`：长度上限；横向排查，别只修一处 ✗）。
+    _shape = _id_length_problem(child)
+    if _shape is not None:
+        print(_shape, file=sys.stderr)
+        return 1
     # ⚠ **父闸门也走权威状态**（`effective_state` + `CLOSED_STATES`，**照 `cmd_claim` 的形状** ——
     # 2026-10-14 · 第六次独立复核实测 ✗）：旧写法只看 `state[父]["state"]`（**调度器写过的**
     # 状态）⇒ 「**来源已关账 + 没有事件**」的父条目在 `state` 里根本没有键 ⇒ 闸门**静默放过**：
@@ -2471,6 +2549,12 @@ def cmd_submit(args: argparse.Namespace) -> int:
     # —— 同一个病、同一份修法，上一轮只修了一处（AGENTS.md 硬规则 0(b)：横向排查）。
     # ⇒ 改用 `source_dispositions()`（全量口径，三个来源都读）+ `fold()`，与 `cmd_schedule`
     # 的 `taken` **逐字同形**（两处以后一起改，别再只改一处 ✗）。
+    # ⚠ **长度上限与 `--schedule` 共用同一个谓词**（`_id_length_problem`；`#5b` 的 3003 字符
+    # id 也能从这条入口进来 ⇒ 横向排查，别只修一处 ✗）。形状这一关**不扩大**到这里 ✓。
+    _shape = _id_length_problem(ident)
+    if _shape is not None:
+        print(_shape, file=sys.stderr)
+        return 1
     taken = set(fold()) | set(source_dispositions())
     if ident in taken:
         print(f"✗ `{ident}` 已经在队列里（id 是键 ⇒ 换一个 id，别覆盖 ✗）", file=sys.stderr)
@@ -2524,9 +2608,11 @@ def cmd_schedule(args: argparse.Namespace) -> int:
         print("✗ 排期必须带 `--title '<做什么>'` + `--reason '<为什么/下一轮的口径>'` "
               "（**没理由的排期 = 又一个查不到的决定** ✗）", file=sys.stderr)
         return 1
-    if not QUEUE_ID_RE.fullmatch(ident):
-        print(f"✗ id `{ident}` 形状不对：要 `字母开头 + 至少一个 -/_`（例 `MODULE-X-DOWNLOAD`）"
-              f"—— id 是键，形状漂了就没法对账 ✗", file=sys.stderr)
+    # ⚠ **形状 + 长度一处定义**（`_id_shape_problem`）：`#5b` 的 3003 字符 id 就是从这里进来的
+    # ⇒ 与 `--submit`/`--add-child` 共用同一个谓词（别写第二遍 ✗）。
+    _shape = _id_shape_problem(ident)
+    if _shape is not None:
+        print(_shape, file=sys.stderr)
         return 1
     # id 是键：来源（extras / 缺口台账 / 索引）+ 事件表里已有的都不许重（**别覆盖** ✗）
     # ⚠ **终态 id 也是已用过的 id**（2026-10-14 · `queueX` 缺陷 ⑥ 的同族）：以前这里用
@@ -4994,6 +5080,129 @@ def selftest_release_branch_fence(expect) -> None:
             globals()["unmerged_agent_branches"] = saved[7]
 
 
+def selftest_id_and_encoding_gates(expect) -> None:
+    """`#5`：**id 长度上限** + **非 UTF-8 环境的契约错**（2026-10-14 · 第七次独立复核实测 ✗）。
+
+    缺口：① `--schedule` 只查 `QUEUE_ID_RE`、**没有长度上限** ⇒ 实测 **3003 字符**的 id
+    **rc=0 收下**（写进 extras + 事件表）✗；② `LC_ALL=C PYTHONUTF8=0` 下打印中文抛
+    `UnicodeEncodeError`、孪生搜索的 `git log`/`git show` 抛 `UnicodeDecodeError`
+    ⇒ **栈 + rc=1** ✗（契约里环境错是 **rc=2** ✓）。
+
+    断言（每条都点了名靶子）：
+      ① 三个**生 id 的入口**（`--schedule`/`--submit`/`--add-child`）对 3000 字符 id **都拒**
+         （横向排查：只修 `--schedule` 会漏另外两处 ✗）+ **零写入**；
+      ② 边界：`ID_MAX_LEN` 字符**过**、`ID_MAX_LEN+1` **拒**（上限是数字，不是形容词 ✓）；
+      ③ `_guard_encoding()` 在 `US-ASCII` 的 locale 下 ⇒ `UsageError`（rc=2 那一类，**不是**栈 ✗）；
+      ④ **真 CLI 路径**（子进程 + `LC_ALL=C PYTHONUTF8=0`）：**没有 Traceback**，且
+         rc ∈ {0, 2}（环境真能表示 UTF-8 的平台走 0 = 正对照；否则必须是 2 + 人话 ✓）
+         —— 这一条咬住的正是"栈 + rc=1"那个形状 ✗。
+    """
+    import contextlib
+    import io
+    import locale
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    long_id = "FX-" + "A" * 3000
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
+                 globals()["worktree_dirty"], globals()["probe_inventory"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        globals()["worktree_dirty"] = lambda: ""
+        globals()["probe_inventory"] = lambda: []
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| R-9 | 语言 | 夹具（没处置 ⇒ 不进 rows） | 高 | `bash r.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        # ⚠ 夹具必须有一个**有处置**的父条目（`build_queue` 把"没处置"的行只放进
+        # `undecided`、**不进 rows** ⇒ `--add-child` 的父闸门会抛 UsageError ✗，实测踩到）。
+        EXTRAS.write_text(json.dumps(
+            {"id": "FX-P", "source": "orchestrator-schedule", "facet": "主线", "severity": "medium",
+             "repro": "bash fx.sh", "disposition": "fix", "why": "夹具：父条目"},
+            ensure_ascii=False) + "\n", encoding="utf-8")
+        EVENTS.write_text("", encoding="utf-8")
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, buf.getvalue() + err.getvalue()
+
+        def sched_ns(ident: str) -> argparse.Namespace:
+            return argparse.Namespace(schedule=ident, id=ident, title="夹具", reason="夹具",
+                                      owner="t", where="", facet="", severity="", repro="")
+
+        def submit_ns(ident: str) -> argparse.Namespace:
+            return argparse.Namespace(submit="fix", id=ident, why="夹具", evidence="rc 0",
+                                      patch="", facet="", severity="", repro="", where="夹具",
+                                      owner="t")
+
+        try:
+            _r, _u = build_queue()
+            rows = _r
+            # ① 三个生 id 的入口都要拒超长 id，且零写入
+            for name, fn, ns in (("--schedule", cmd_schedule, sched_ns(long_id)),
+                                 ("--submit", cmd_submit, submit_ns(long_id))):
+                _before = EVENTS.read_text(encoding="utf-8") + EXTRAS.read_text(encoding="utf-8")
+                rc, out = capture(fn, ns)
+                expect(f"① `{name}` 收 3000 字符 id ⇒ 拒 rc={rc}", rc == 1 and "id 太长" in out)
+                expect(f"① `{name}` 被拒时**零写入**",
+                       EVENTS.read_text(encoding="utf-8") + EXTRAS.read_text(encoding="utf-8")
+                       == _before)
+            # ⚠ 父闸门可能抛 UsageError（父不在队列里）⇒ 兜住它，别让整条自检崩成 rc=2 ✗
+            try:
+                rc, out = capture(cmd_add_child, "FX-P", long_id, "夹具子任务", "t", rows)
+            except UsageError as _err:
+                rc, out = 2, str(_err)
+            expect(f"① `--add-child --child <3000 字符>` ⇒ 拒 rc={rc}",
+                   rc == 1 and "id 太长" in out)
+            expect("① `--add-child` 被拒时**零写入**（没写 `split`）",
+                   EVENTS.read_text(encoding="utf-8") == "")
+            # ② 边界：上限正好过、上限 +1 拒
+            _ok = "FX-" + "B" * (ID_MAX_LEN - 3)
+            _no = "FX-" + "B" * (ID_MAX_LEN - 2)
+            expect(f"② 长度上限是数字：{len(_ok)} 字符 ⇒ 过（`_id_shape_problem` = None）",
+                   len(_ok) == ID_MAX_LEN and _id_shape_problem(_ok) is None)
+            expect(f"② {len(_no)} 字符 ⇒ 拒（> ID_MAX_LEN={ID_MAX_LEN}）",
+                   _id_shape_problem(_no) is not None and "id 太长" in _id_shape_problem(_no))
+            # ③ 编码闸门：locale 表示不了中文 ⇒ UsageError（rc=2 那一类）
+            _saved_enc = locale.getpreferredencoding
+            locale.getpreferredencoding = lambda *a, **kw: "US-ASCII"      # noqa: ARG005
+            try:
+                try:
+                    _guard_encoding()
+                    _rc_enc = 0
+                except UsageError as _e:
+                    _rc_enc, _msg_enc = 2, str(_e)
+                expect(f"③ locale=US-ASCII ⇒ `_guard_encoding` 抛 UsageError（rc={_rc_enc}）",
+                       _rc_enc == 2 and "环境编码不是 UTF-8" in _msg_enc)
+            finally:
+                locale.getpreferredencoding = _saved_enc
+            # ④ 真 CLI 路径：不许有栈，rc 只能是 0（正对照）或 2（契约错）
+            _alt = Path(tmp) / "enc-events.jsonl"
+            _env = dict(os.environ, LC_ALL="C", PYTHONUTF8="0", LANG="C",
+                        SOKO_QUEUE_ROOT=str(ROOT), SOKO_QUEUE_EVENTS=str(_alt))
+            _p = subprocess.run([sys.executable, str(Path(__file__)), "--json"],
+                                capture_output=True, text=True, env=_env, cwd=str(ROOT))
+            _e = (_p.stderr or "") + (_p.stdout or "")
+            expect(f"④ 非 UTF-8 环境下真 CLI **没有 Traceback**（rc={_p.returncode}）",
+                   "Traceback" not in _e)
+            expect(f"④ 真 CLI rc ∈ {{0, 2}}（实测 {_p.returncode}；**不许是 1 + 栈** ✗）",
+                   _p.returncode in (0, 2))
+            expect("④ rc=2 时必须是**人话**（说清环境编码 + 给出正解）",
+                   _p.returncode != 2 or ("环境编码不是 UTF-8" in _e and "PYTHONUTF8=1" in _e))
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+            globals()["worktree_dirty"] = saved[5]
+            globals()["probe_inventory"] = saved[6]
+
+
 def selftest_write_gates(expect) -> None:
     """**两个写入口都要看权威状态**（2026-10-14 · 第六次独立复核实测 ✗）—— #3 的防复发轴。
 
@@ -5519,6 +5728,9 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     #     2026-10-14 · 第七次独立复核实测 ✗：真仓库 15 条未合回 ⇒ `--release check` 永远过不了；
     #     口径选"如实写清 + 不放宽"⇒ 这条臂钉住「`--force` 也 rc=1」，将来偷加旁路当场判红 ✗）
     selftest_release_branch_fence(expect)
+    # ③h5 **id 长度上限 + 非 UTF-8 环境的契约错**（`#5`，2026-10-14 · 第七次独立复核实测 ✗：
+    #     3003 字符 id rc=0 收下 · `LC_ALL=C PYTHONUTF8=0` ⇒ 栈 + rc=1 而不是 rc=2）
+    selftest_id_and_encoding_gates(expect)
     # ③i **无源子任务**（2026-10-14 · 第六次复核 #1：`sched_rows` 的合成行给自己作出处 ⇒
     #     幽灵判据对它静默，而 `--next` 推得出它 ✗ —— `known` 改回读视图这条必红 ✗）
     selftest_ghost_child(expect)
@@ -5604,7 +5816,18 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"来源关账的父 `--add-child` **硬拒 + 不写 `split`**/"
           f"**不许误拒**：来源 `fix` 的 reopen 与拆解仍 rc=0 且转绿/"
           f"`source_closed` ≡ `effective_state(row, {{}}) in CLOSED_STATES` 逐处置成立/**来源关账 + 无事件** ⇒ 也硬拒且**不许**印「非法迁移」✗）"
-          f" + 真来源解析 全部成立 ✓")
+          f" + **切版证据闸门 9 条**（`#2`，第七次复核：`--release cut --commit` 原先**自身零闸门** ⇒ "
+           f"不存在 / 非祖先的 sha **都 rc=0** 并写入 `release-cut` ✗ ⇒ 现在与入版/收口共用 "
+           f"`closure_pointer_problem()`：两条假 sha **都拒 + 零写入**、正对照真祖先仍 rc=0、"
+           f"事件带 `subject`/`patch_id`、缺 `--ci`/`--commit` 仍是用法错 ✓）"
+           f" + **分支栅栏 4 条**（`#4`：未合回 ⇒ 判红 + **逐条** `agent-worktree.sh land` + "
+           f"**明说没有 `--force` 旁路** + ⭐ **`--force` 也 rc=1**（偷加旁路当场判红 ✗）+ "
+           f"正对照合回后 rc=0）"
+           f" + **id 长度 + 环境编码 9 条**（`#5`：3000 字符 id 在 `--schedule`/`--submit`/"
+           f"`--add-child` 三个入口**都拒且零写入**、上限 64 是**数字**（64 过 / 65 拒）、"
+           f"`locale=US-ASCII` ⇒ `UsageError`、真 CLI 在 `LC_ALL=C PYTHONUTF8=0` 下**没有栈**"
+           f"且 rc ∈ {{0,2}}（**不许是 1 + 栈** ✗））"
+           f" + 真来源解析 全部成立 ✓")
     return 0
 
 
@@ -5698,8 +5921,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
 def main() -> int:
     parser = build_arg_parser()
     args = parser.parse_args()
+    # **stdio 钉成 UTF-8**（`#5a` 的第一半）：非 UTF-8 环境下 `print` 中文会抛
+    # `UnicodeEncodeError`（栈 + rc=1 ✗）；`errors="backslashreplace"` ⇒ **打印永不抛**
+    # （报错路径上不能再抛一次 —— 否则人话还没说完就变成栈 ✗）。
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        except (AttributeError, ValueError, OSError):
+            pass
     try:
         _guard_root()
+        _guard_encoding()
         if args.selftest:
             return cmd_selftest(args)
         rows, undecided = build_queue()
@@ -5760,6 +5992,12 @@ def main() -> int:
         return 0
     except UsageError as err:
         print(f"error: {err}", file=sys.stderr)
+        return 2
+    except UnicodeError as err:
+        # **兜底**（`#5a`）：任何残留的编码错都算**环境/契约错**（rc=2 + 人话），
+        # **不许丢栈** ✗（实测改前这里是一条 `UnicodeDecodeError` 栈 + rc=1 ✗）。
+        print(f"error: 编码/环境错误（{err.__class__.__name__}）：{err} ⇒ 本脚本的数据是 UTF-8；"
+              f"用 `PYTHONUTF8=1` 或 `LC_ALL=C.UTF-8` 再跑 ✓", file=sys.stderr)
         return 2
 
 
