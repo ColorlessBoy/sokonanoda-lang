@@ -2419,6 +2419,19 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
 # （`AGENTS.md` 硬规则 0(b)）⇒ 现在与它们**共用** `closure_pointer_problem()`（存在性 +
 # `is-ancestor`），且**闸门在 `check` 之前**（假 sha 先拿"证据是假的"这条诊断 ✓）；
 # `release-cut` 事件另记 `subject` + `patch_id`（同 `#1` 的理由：事后能核"切的是哪个内容" ✓）。
+#
+# ⭐⭐ **"分支必须合回"这条栅栏当前不可满足 —— 如实写在这里，不静默、也不放宽**（`#4`，
+# 2026-10-14 · 第七次独立复核实测 ✗）：真仓库此刻有 **15 条** `agent/*` 没合回 main，
+# 而 `--force` 只越过「条目数 ≥3」与「多余 worktree 提醒」两条**克制**规则 ⇒
+# **`--release check` 现在永远过不了** ✗。口径（二选一里选**如实写清**，不加旁路）：
+#   · **不放宽** ✗：栅栏判红是**真的** —— 未合回 = "发出去的不是完整版本"（用户 2026-10-12
+#     的原话），加 `--force` 旁路等于把这条守卫关掉 ⇒ **不许为了让它绿而放宽**；
+#   · **不静默** ✗：判红信息**逐条**印出 `scripts/agent-worktree.sh land <id>`（可照做 ✓）
+#     + 明说「这条栅栏**没有** `--force` 旁路」（免得有人以为加开关就能发 ✓）；
+#   · **正确做法 = 先合回**（或对已废弃的分支由**人**决定 `git branch -D`）⇒ 合回之后
+#     `--release check` **自然**转绿，不靠任何开关 ✓。
+#   ⚠ `--selftest` 有一条臂钉住"`--force` **不**越过这一条"（改前那条臂没有 ⇒ 将来有人
+#     偷偷加旁路会当场判红 ✗）。
 
 INBOX_DIR = ROOT / "docs" / "inbox"
 RELEASE_KINDS = ("release", "release-blocker")
@@ -2781,9 +2794,23 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
             bad += 1
         branches = unmerged_agent_branches()
         if branches:
+            # ⭐ **这条栅栏没有 `--force` 旁路**（`#4` 的口径，2026-10-14 · 第七次独立复核实测 ✗）：
+            # 实测真仓库有 **15 条** `agent/*` 没合回 main，而 `--force` 只越过「条目数」与
+            # 「worktree 提醒」两条**克制**规则 ⇒ `--release check` **当前永远过不了** ✗。
+            # 处置 = **如实说清 + 给出路**（不静默、也不为让它绿而放宽 ✗）：
+            #   · 栅栏判红是**真的**（未合回 = 版本不完整）⇒ 不许放宽；
+            #   · 出路 = 把活**先合回**（逐条命令印出来 ⇒ 可照做 ✓）；
+            #   · 明确印出"`--force` **不**越过这一条"⇒ 没人会以为加个开关就能发 ✓。
             print(f"✗ **并行收拢未完成**：还有 {len(branches)} 条 agent 分支没合回 main "
-                  f"{branches} ⇒ `scripts/agent-worktree.sh land <id>`（发版要的是**完整**版本 ✗）",
-                  file=sys.stderr)
+                  f"⇒ 发版要的是**完整**版本（`#4`：这条栅栏**没有** `--force` 旁路 —— "
+                  f"`--force` 只越过「条目数 ≥{MIN_ITEMS_PER_RELEASE}」与「多余 worktree 提醒」"
+                  f"两条**克制**规则，**不**越过「分支必须合回」✗）", file=sys.stderr)
+            for _b in branches:
+                _id = _b.split("/", 1)[1] if "/" in _b else _b
+                print(f"    `{_b}` ⇒ `scripts/agent-worktree.sh land {_id}`", file=sys.stderr)
+            print(f"  ⇒ 正解 = **先合回**（逐条 land ✓）；已废弃的分支就**删掉它**"
+                  f"（`git branch -D <branch>`，那是人的决定 —— 脚本不替你做 ✗）⇒ "
+                  f"合回之后 `--release check` 自然转绿（**不靠开关** ✓）", file=sys.stderr)
             bad += 1
         trees = [l.split()[1] for l in subprocess.run(
             ["git", "worktree", "list", "--porcelain"], cwd=ROOT, capture_output=True,
@@ -4882,6 +4909,91 @@ def selftest_release_cut_gate(expect) -> None:
             globals()["unmerged_agent_branches"] = saved[7]
 
 
+def selftest_release_branch_fence(expect) -> None:
+    """⭐⭐ **"分支必须合回"这条栅栏：如实判红 · 给出路 · `--force` 不越过**（`#4`）。
+
+    缺口（2026-10-14 · 第七次独立复核实测 ✗）：真仓库有 **15 条** `agent/*` 没合回 main，
+    而 `--force` 只越过「条目数」与「worktree 提醒」⇒ `--release check` **永远过不了**；
+    旧实现既没说清"这条栅栏没有旁路"，也没有逐条印出可照做的出路 ⇒ 读的人只能猜。
+
+    断言（每条都点了名靶子）：
+      ① 未合回分支 ⇒ **rc=1**，输出**逐条**印 `scripts/agent-worktree.sh land <id>`；
+      ② 输出**明说**「没有 `--force` 旁路」（口径写在白纸黑字里，不是靠读代码猜 ✓）；
+      ③ ⭐ **`--force` 也 rc=1**（**不许有人偷偷加旁路** —— 这条臂就是那个靶子 ✗）；
+      ④ 正对照：合回（分支表为空）⇒ **rc=0**（栅栏不是恒红 ✗）。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.strip()
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
+                 globals()["worktree_dirty"], globals()["probe_inventory"],
+                 globals()["unmerged_agent_branches"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        globals()["worktree_dirty"] = lambda: ""
+        globals()["probe_inventory"] = lambda: []
+        globals()["unmerged_agent_branches"] = lambda: ["agent/alpha", "agent/beta"]
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| R-9 | 语言 | 夹具（没处置 ⇒ 不进 rows） | 高 | `bash r.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        EXTRAS.write_text("".join(
+            json.dumps({"id": f"FX-{i}", "source": "orchestrator-schedule", "facet": "主线",
+                        "severity": "medium", "repro": "bash fx.sh", "disposition": "fixed",
+                        "why": "夹具：已关账"}, ensure_ascii=False) + "\n" for i in (1, 2, 3)),
+            encoding="utf-8")
+        EVENTS.write_text("", encoding="utf-8")
+        for i in (1, 2, 3):
+            append_event({"event": "advance", "id": f"FX-{i}", "to": "done", "commit": real_sha,
+                          "reading": "夹具读数", "owner": "t"})
+        append_event({"event": "release-open", "id": "REL-9.9.9", "version": "9.9.9", "owner": "t"})
+        for i in (1, 2, 3):
+            append_event({"event": "release-add", "rel": "REL-9.9.9", "id": f"FX-{i}", "owner": "t"})
+
+        def ns(**kw):
+            base = dict(release="", rel="", version="9.9.9", id="", commit="", ci="", reason="",
+                        owner="t", force=False)
+            base.update(kw)
+            return argparse.Namespace(**base)
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, buf.getvalue() + err.getvalue()
+
+        try:
+            _r, _u = build_queue()
+            rows = _r
+            rc, out = capture(cmd_release, ns(release="check"), rows)
+            expect(f"① 有未合回分支 ⇒ 判红 rc={rc}", rc == 1 and "并行收拢未完成" in out)
+            expect("① 输出**逐条**给出路（`scripts/agent-worktree.sh land <id>`）",
+                   "agent-worktree.sh land alpha" in out and "agent-worktree.sh land beta" in out)
+            expect("② 输出**明说**这条栅栏没有 `--force` 旁路",
+                   "没有" in out and "`--force` 旁路" in out)
+            rc_f, out_f = capture(cmd_release, ns(release="check", force=True), rows)
+            expect(f"③ ⭐ **`--force` 也 rc={rc_f}**（不许偷偷加旁路 ✗）", rc_f == 1
+                   and "并行收拢未完成" in out_f)
+            globals()["unmerged_agent_branches"] = lambda: []
+            rc, out = capture(cmd_release, ns(release="check"), rows)
+            expect(f"④ 正对照：合回（分支表空）⇒ 仍 rc={rc}（栅栏不是恒红 ✗）", rc == 0)
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+            globals()["worktree_dirty"] = saved[5]
+            globals()["probe_inventory"] = saved[6]
+            globals()["unmerged_agent_branches"] = saved[7]
+
+
 def selftest_write_gates(expect) -> None:
     """**两个写入口都要看权威状态**（2026-10-14 · 第六次独立复核实测 ✗）—— #3 的防复发轴。
 
@@ -5403,6 +5515,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     #     --commit <sha>` 自身一条闸门都没有 ⇒ 不存在的 / 非祖先的 sha **都 rc=0** 并写入
     #     `release-cut` ⇒ 与入版/收口两处**同一规则两条口径**）
     selftest_release_cut_gate(expect)
+    # ③h4 ⭐⭐ **「分支必须合回」栅栏：如实判红 · 逐条给出路 · `--force` 不越过**（`#4`，
+    #     2026-10-14 · 第七次独立复核实测 ✗：真仓库 15 条未合回 ⇒ `--release check` 永远过不了；
+    #     口径选"如实写清 + 不放宽"⇒ 这条臂钉住「`--force` 也 rc=1」，将来偷加旁路当场判红 ✗）
+    selftest_release_branch_fence(expect)
     # ③i **无源子任务**（2026-10-14 · 第六次复核 #1：`sched_rows` 的合成行给自己作出处 ⇒
     #     幽灵判据对它静默，而 `--next` 推得出它 ✗ —— `known` 改回读视图这条必红 ✗）
     selftest_ghost_child(expect)
@@ -5547,7 +5663,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--limit", type=int, default=0, metavar="N",
                         help="`--repoint-all` 每批最多处理 N 个 **sha**（0 = 不限；整 sha 一起写）")
     parser.add_argument("--release", metavar="ACTION",
-                        help="发版节点：open/add/block/drop/check/cut（栅栏 + 克制 + 防无限 bug 分支）")
+                        help="发版节点：open/add/block/drop/check/cut（栅栏 + 克制 + 防无限 bug 分支）"
+                             "。⚠ `--release check` 的「**分支必须合回**」栅栏**没有 `--force` "
+                             "旁路**（`--force` 只越过条目数与 worktree 提醒两条克制规则）—— "
+                             "真仓库当前有 15 条 agent/* 未合回 ⇒ 它**永远过不了**，正确做法 = "
+                             "先 `scripts/agent-worktree.sh land <id>` 合回（或由人删掉废弃分支）✓")
     parser.add_argument("--rel", metavar="ID", help="发版节点 id（默认 REL-<version>）")
     parser.add_argument("--version", metavar="X.Y.Z", help="发版节点的版本号")
     parser.add_argument("--ci", metavar="RUN", help="切版要带 CI run id（判据之一）")
