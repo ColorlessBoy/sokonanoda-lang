@@ -532,21 +532,13 @@ fn remap_span(span: Span, old_cmd: Span, new_cmd: Span, new_src: &str) -> Span {
     }
 }
 
+/// 位置换算：字节 offset → **1-based** 行/列（列按 **UTF-16** code unit ✓）。
+///
+/// **唯一归属**是 [`crate::query::line_col_of`] ✓。**T-D31 收口（2026-10-13）**：
+/// 这里原来是一份**自己写的、按 `char` 数的重复实现** ✗ —— 与真相层分叉，
+/// 正是"列口径有两份"的成因（星平面字符上偏一格 ✓）。
 fn line_col(src: &str, offset: usize) -> (usize, usize) {
-    let mut line = 1usize;
-    let mut col = 1usize;
-    for (i, ch) in src.char_indices() {
-        if i >= offset {
-            break;
-        }
-        if ch == '\n' {
-            line += 1;
-            col = 1;
-        } else {
-            col += 1;
-        }
-    }
-    (line, col)
+    crate::query::line_col_of(src, offset)
 }
 
 /// 逐索引比较文本，返回首个差异位置（短的按缺失处理）。

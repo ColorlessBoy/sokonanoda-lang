@@ -130,6 +130,18 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// 前进一个字符：offset 按**字节** ✓、line 按 `\n` ✓、column 按
+    /// **UTF-16 code unit** ✓（星平面字符算 2 ✓）。
+    ///
+    /// **T-D31 收口（2026-10-13）**：这里原来是 `self.column += 1`（按 **`char`** ✗）——
+    /// 而真相层的列口径（[`crate::query::line_col_of`]）**早就是 UTF-16** ✓
+    /// ⇒ 含星平面字符（`𝒫` U+1D4AB）的行上两边分叉，而既有夹具**全是 BMP**
+    /// ⇒ 两种口径恒等、这个 bug 一直咬不住 ✗。
+    /// 现在累加走**唯一口径** [`crate::query::column_width`] ✓（**不再自己写第二份** ✗）。
+    ///
+    /// 为什么**不**每次 `pos()` 都调 `line_col_of` 反推（那是 Lean 的做法）：
+    /// 词法在每个 token 边界都要位置 ⇒ 逐次反推是 O(该行长度)、整体 O(n²) ✗；
+    /// 这里保留 **O(1) 增量** ✓，但增量的**宽度口径**与真相层共用同一个函数 ✓。
     fn bump(&mut self) -> Option<char> {
         let c = self.chars.next()?;
         self.offset += c.len_utf8();
@@ -137,7 +149,7 @@ impl<'a> Lexer<'a> {
             self.line += 1;
             self.column = 1;
         } else {
-            self.column += 1;
+            self.column += crate::query::column_width(c);
         }
         Some(c)
     }
@@ -662,7 +674,10 @@ pub(crate) fn scan_import_lines(src: &str) -> Vec<(String, Span)> {
         if name.is_empty() || !seen.insert(name.clone()) {
             continue;
         }
-        let column = line[..name_start].chars().count() + 1;
+        // 列按 **UTF-16 code unit**（LSP 口径 ✓）——走唯一口径
+        // [`crate::query::column_width`]（T-D31：这里原来按 `char` 数 ✗）。
+        let width = |s: &str| s.chars().map(crate::query::column_width).sum::<usize>();
+        let column = width(&line[..name_start]) + 1;
         let start = Pos {
             offset: this_line + name_start,
             line: index + 1,
@@ -671,7 +686,7 @@ pub(crate) fn scan_import_lines(src: &str) -> Vec<(String, Span)> {
         let end = Pos {
             offset: start.offset + name.len(),
             line: index + 1,
-            column: column + name.chars().count(),
+            column: column + width(&name),
         };
         out.push((name, Span::new(start, end)));
     }
@@ -1217,5 +1232,41 @@ infixr:80 \" ×ˢ \" => Set.prod\n";
         // ——诊断更教学，也让"入口用了 import 来的 `''`"能被分发逻辑认出来。
         let toks = tokenize("f '' A").unwrap();
         assert_eq!(toks[1].kind, TokenKind::Sym("''".into()));
+    }
+
+    /// **T-D31 同族判据**：[`scan_import_lines`] 的 span 列也必须走唯一口径 ✓。
+    ///
+    /// 它的列原来按 `char` 数 ✗（`line[..name_start].chars().count()`）。`import`
+    /// 前面只有缩进空白 ⇒ **起点**列两种口径恒等，但**模块名本身**可以是星平面
+    /// 字符（`𝒫` 是标识符字符，见 [`is_ident_start`] ✓）⇒ **结束列**会分叉
+    /// （`𝒫` 是 2 个 UTF-16 码元、1 个 `char` ✗）。
+    #[test]
+    fn import_span_columns_are_utf16() {
+        let src = "import 𝒫\nimport Set\n";
+        let got = scan_import_lines(src);
+        assert_eq!(got.len(), 2, "{got:?}");
+        assert_eq!(got[0].0, "𝒫");
+        // ① 与唯一换算**逐位一致** ✓（起点与终点都要）。
+        for (name, span) in &got {
+            for pos in [span.start, span.end] {
+                let (line, col) = crate::query::line_col_of(src, pos.offset);
+                assert_eq!(
+                    (pos.line, pos.column),
+                    (line, col),
+                    "`import {name}` 的 span 端点 {pos:?} 与 `line_col_of` 分叉了 ✗"
+                );
+            }
+        }
+        // ② 具体数字：`import ` 占 7 个码元 ⇒ `𝒫` 从列 8 起、到列 10 止
+        //    （**2** 个 UTF-16 码元；按 `char` 会答 9 ✗）。
+        assert_eq!(got[0].1.start.column, 8);
+        assert_eq!(
+            got[0].1.end.column, 10,
+            "`𝒫` 占 2 个 UTF-16 码元 ⇒ 结束列 10"
+        );
+        assert_eq!(&src[got[0].1.start.offset..got[0].1.end.offset], "𝒫");
+        // ③ BMP 的名字不受影响（两种口径恒等）——留一条"没改坏"的守卫 ✓。
+        assert_eq!(got[1].1.start.column, 8);
+        assert_eq!(got[1].1.end.column, 11, "`Set` 是 3 个码元");
     }
 }

@@ -4,6 +4,22 @@
 //! 边界（CLI 的 `--line/--col`、MCP 的 `line/character`）才换算，且**只有这里**
 //! 一份实现——列口径错了会让所有消费者一起错。
 
+/// **列宽的唯一口径**：一个字符占几个 UTF-16 code unit（星平面 = 2 ✓、BMP = 1 ✓）。
+///
+/// **T-D31 收口（2026-10-13）**：在这之前，列口径在仓库里**有两份**——
+/// [`line_col_of`] 按 UTF-16 ✓，而词法器（`token.rs::Lexer::bump`）按 **`char`** ✗
+/// （`self.column += 1`）。两者只在**含星平面字符**的行上分叉，而既有夹具全是
+/// BMP ⇒ 咬不住 ✓。分叉的后果：`references::pos_within` 拿 LSP 的 UTF-16
+/// `character` 去比**按 `char` 算的** span 列 ⇒ `𝒫`（U+1D4AB，1 `char` = 2 码元）
+/// 之后**判错 span** ✗。
+///
+/// ⇒ 现在**所有**列累加都走这一个函数：[`line_col_of`]、[`offset_of_line_col`]、
+/// [`LineIndex::line_col_of`]、词法器、`scan_import_lines`、`session::line_col`
+/// （后者已直接委派给 [`line_col_of`] ✓）。**再要改口径，只改这里** ✓。
+pub fn column_width(ch: char) -> usize {
+    ch.len_utf16()
+}
+
 /// 位置换算：字节 offset → **1-based** 行/列（列按 UTF-16 code unit，与 LSP 的
 /// `character` 口径一致）。适配器负责把它转成自己要的基数。
 pub fn line_col_of(text: &str, offset: usize) -> (usize, usize) {
@@ -27,7 +43,7 @@ pub fn line_col_of(text: &str, offset: usize) -> (usize, usize) {
             line += 1;
             col = 1;
         } else {
-            col += ch.len_utf16();
+            col += column_width(ch);
         }
     }
     (line, col)
@@ -53,7 +69,7 @@ pub fn offset_of_line_col(text: &str, line: usize, col: usize) -> Option<usize> 
             cur_line += 1;
             cur_col = 1;
         } else {
-            cur_col += ch.len_utf16();
+            cur_col += column_width(ch);
         }
     }
     if cur_line == line {
@@ -100,7 +116,7 @@ impl LineIndex {
             if start + i >= offset {
                 break;
             }
-            col += ch.len_utf16();
+            col += column_width(ch);
         }
         (line, col)
     }
