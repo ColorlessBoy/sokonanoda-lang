@@ -43,23 +43,36 @@ pub fn binder_name_span(doc: &str, binder_span: Span) -> Option<Span> {
 ///   span covers the cursor — the same bidirectional rule as the LSP
 ///   document highlight (crates/lsp/src/render.rs::highlight_uses).
 ///
-/// `None` when the cursor sits on a prelude name, on a **notation symbol**,
-/// or outside any name.
+/// `None` when the cursor sits on a prelude name, on a notation symbol whose
+/// row carries no target, or outside any name.
 ///
 /// **T-D30（正确性 bug）**：`doc` 是必需的——光标落在**记法符号**（`∈`/`⊆`/`∧`…）
-/// 上时必须直接答 `None`。以前没有这条守卫，第二个回退（"找一条 target span
-/// 覆盖光标的使用点"）会命中**外层 binder**：binder 的 span 覆盖**整段类型标注**
-/// （`(h : a ∈ A)`），于是 `∈` 被解析成 `h`，`rename` 会去改 `h`。
-/// 同一个病在 LSP 的 `render.rs::highlight_uses` 里也有一份（documentHighlight）。
+/// 上时**不许掉进第二个回退**（"找一条 target span 覆盖光标的使用点"）：那会命中
+/// **外层 binder**——binder 的 span 覆盖**整段类型标注**（`(h : a ∈ A)`），于是
+/// `∈` 被解析成 `h`，`rename` 会去改 `h`。同一个病在 LSP 的
+/// `render.rs::highlight_uses` 里也有一份（documentHighlight）。
+///
+/// **T-D15 之后这条守卫按新事实给答案**：当初写 `return None` 是因为记法行的
+/// `resolution` **只能是 `None`** ✗（没有别的答案可给）。T-D15 把记法符号变成
+/// **一等目标**（`ResolvedTarget::Notation`，`elab.rs` 记 `symbol_span` ✓）⇒ 光标
+/// 在符号上时**取那条记法行自己的答案** ✓，而不是整条早退。同一条新事实在 LSP
+/// 侧已经落过（`render.rs::highlight_uses` 的 T-D24 换成**词法**答案；那边要
+/// "这个符号在本文里的每一处"，这边只要"是哪一个符号"）⇒ front 侧不再落后。
 pub fn resolve_at(
     doc: &str,
     hovers: &[HoverType],
     line: u32,
     character: u32,
 ) -> Option<ResolvedTarget> {
-    // 光标在记法符号上 ⇒ **不是名字**，两个回退都不该往下走。
+    // 光标在记法符号上 ⇒ 答案只可能是**那条记法行自己**（最内层的一条），
+    // 绝不往下走第二个回退（那才会命中外层 binder ✗）。
     if cursor_is_on_notation(doc, line, character) {
-        return None;
+        return hovers
+            .iter()
+            .filter(|h| pos_within(line, character, h.span))
+            .filter(|h| matches!(h.resolution.as_ref(), Some(ResolvedTarget::Notation { .. })))
+            .min_by_key(|h| h.span.end.offset.saturating_sub(h.span.start.offset))
+            .and_then(|h| h.resolution.clone());
     }
     // Use point: the smallest enclosing hover's own resolution.
     let smallest = hovers
@@ -317,23 +330,6 @@ mod tests {
         let target = ResolvedTarget::Declaration {
             name: "ghost".to_string(),
             span: Span::default(),
-        };
-        assert!(references_for(&report.hovers, &target).is_empty());
-    }
-
-    // ---- resolve_at：光标处双向解析（rename / find-references 共用）----
-    // 光标坐标是 LSP 0-based（行号、行内字符），与 front 的行内 1-based 列对齐。
-
-    const SHADOW: &str =
-        "def f : Prop -> Prop -> Prop := fun (x : Prop) => fun (x : Prop) => x\n#check f\n";
-    // offsets (line 0): outer binder "(x : Prop)" 36..46, inner binder 54..64,
-    // inner body use `x` 68..69.
-
-    const CROSS: &str =
-        "def f : Prop -> Prop := fun (x : Prop) => x\ndef g : Prop -> Prop := fun (x : Prop) => x\n";
-    // offsets: f's binder 28..38 (line 0); g's binder 72..82, g's body use
-    // 86..87 — both on line 1, the use at line-character 42.
-
     /// **T-D30 的判据**：光标在 `(h : a ∈ A)` 的 **`∈`** 上时，不得解析到 `h`。
     ///
     /// 改前实测：`resolve_at` 的第二个回退（"找一条 target span 覆盖光标的使用点"）
@@ -341,8 +337,12 @@ mod tests {
     /// ⇒ `∈` 被解析成 `h`，`rename` 会去改 `h`（同一个病在 LSP 的
     /// `render.rs::highlight_uses` 里也有一份）。
     ///
-    /// 修法：光标落在**记法符号**上就直接答 `None`（判据走词法：本文件声明的 /
-    /// 内建的 / 输入法表里的符号都认得出来）。
+    /// **T-D15 之后判据升级**（不是放宽 ✗）：修法从"答 `None`"改成"**答那条记法行
+    /// 自己**"——记法符号现在是一等目标（`ResolvedTarget::Notation`）⇒ 断言
+    /// `Some(Notation { symbol: "∈", .. })` ✓。两条硬要求一条都不许破：
+    /// ① 解析到的**绝不是外层 binder** ✓；② 目标的 span 是**符号自己**
+    /// （不是整段 `a ∈ A`）✓ —— 后者正是 `rename` 不会把整段表达式改掉的原因
+    /// （`lsp/render.rs::definition_name_span` 对 `Notation` 返 `None` ⇒ 拒改名 ✓）。
     #[test]
     fn resolve_at_does_not_mistake_a_notation_symbol_for_the_enclosing_binder() {
         const SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
@@ -353,16 +353,38 @@ theorem t (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n";
         // 第 4 行（0-based 3）里 `(h : a ∈ A)` 那个 `∈` 的列。
         let line = 3u32;
         let line_text = SRC.lines().nth(line as usize).expect("第四行");
-        // ⚠ `character` 是**字符**计数（LSP 口径），而 Rust 的 `str::find` 给的是
-        // **字节**下标——行里有 `α`/`∈`，两者不等（实测踩到：传字节下标 ⇒ offset
-        // 落到 `) :` 上 ⇒ 守卫不触发）。
-        let col = line_text[..line_text.find('∈').expect("那一行有 ∈")]
-            .chars()
-            .count() as u32;
+        // ⚠ `character` 是 **UTF-16 码元**计数（LSP 口径），而 Rust 的 `str::find`
+        // 给的是**字节**下标——行里有 `α`/`∈`，两者不等（实测踩到：传字节下标 ⇒
+        // offset 落到 `) :` 上 ⇒ 守卫不触发）。
+        let col = utf16_col(line_text, line_text.find('∈').expect("那一行有 ∈"));
         let resolved = resolve_at(SRC, &report.hovers, line, col);
-        assert!(resolved.is_none(), "记法符号上没有名字可解析：{resolved:?}");
+        let Some(ResolvedTarget::Notation { symbol, span, .. }) = resolved else {
+            panic!("光标在 `∈` 上必须解析到记法符号自己（不是 `h`、也不是 None）：{resolved:?}");
+        };
+        assert_eq!(symbol, "∈", "解析到的是哪个符号");
+        // ② 目标的 span 是**符号自己**，不是整段 `a ∈ A`（rename 的护城河）。
+        assert_eq!(
+            &SRC[span.start.offset..span.end.offset],
+            "∈",
+            "记法目标的 span 必须恰好是那个符号（整段表达式会让 rename 改掉一整段 ✗）"
+        );
 
         // 对照：**同一个 binder 的 `h` 本身**仍然解析得到（别把定义点那一支修坏）
+        // ——它的 span 就是 `(h : a ∈ A)` 那一段（binder 的 span 覆盖整段标注，
+        // 这正是误命中的来源）。
+        let h_col = utf16_col(line_text, line_text.find("(h :").expect("binder 在那一行")) + 1;
+        let resolved = resolve_at(SRC, &report.hovers, line, h_col);
+        let Some(ResolvedTarget::Binder(span)) = resolved else {
+            panic!("光标在 `h` 上仍应解析到 binder：{resolved:?}");
+        };
+        let binder_text = &SRC[span.start.offset..span.end.offset];
+        assert!(
+            binder_text.starts_with("(h :") && binder_text.contains('∈'),
+            "解析到的是 `h` 那个 binder：{binder_text:?}"
+        );
+    }
+
+// 对照：**同一个 binder 的 `h` 本身**仍然解析得到（别把定义点那一支修坏）
         // ——它的 span 就是 `(h : a ∈ A)` 那一段（binder 的 span 覆盖整段标注，
         // 这正是误命中的来源）。
         let h_col = line_text[..line_text.find("(h :").expect("binder 在那一行")]

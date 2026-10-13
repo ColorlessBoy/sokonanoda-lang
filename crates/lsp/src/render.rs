@@ -818,7 +818,7 @@ pub(crate) fn prepare_rename(
 }
 
 /// `textDocument/rename`：语义改写（use→def 反向分组 + 定义名 token）。
-/// 位置不可解析 / 新名非法 → `Err`（ResponseError，绝不返回空 edit）。
+/// 位置不可解析 / 新名非法 / 目标是**记法符号** → `Err`（ResponseError，绝不返回空 edit）。
 pub(crate) fn rename(
     text: &str,
     version: i32,
@@ -832,6 +832,20 @@ pub(crate) fn rename(
             "这里没有可以改名的名字",
         ));
     };
+    // **记法符号不是名字 ⇒ 显式拒**（T-D15 之后 `resolve_at` 会答 `Notation`）。
+    //
+    // 为什么必须有这一条（不是防御性代码 ✗）：`Notation` 变体**自带 `symbol_span`**
+    // ⇒ `definition_name_span` 返 `None`（不 push 定义名）之后，下面那句
+    // `references_for` 仍会**按 target 全等**命中**那一个符号 token** ⇒ 产出一条
+    // edit 把 `∈` 改成任意标识符 ✗（比"什么都不做"更糟：记法被悄悄改名）。
+    // `edits.is_empty()` 那条防御够不着它（非空）⇒ 必须在这里拒。
+    // **两条路必须一致**：`prepare_rename` 早就因为 `definition_name_span` 返 `None`
+    // 而拒（`?` 短路），`rename` 不能比它宽 ✗。
+    if matches!(target, ResolvedTarget::Notation { .. }) {
+        return Err(tower_lsp::jsonrpc::Error::invalid_params(
+            "这里没有可以改名的名字",
+        ));
+    }
     // The definition's name token plus every use point, from the semantic
     // use→def map — comments/strings with the same spelling stay untouched.
     let mut spans: Vec<Span> = Vec::new();
