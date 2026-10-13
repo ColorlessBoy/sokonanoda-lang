@@ -431,9 +431,14 @@ fn swap_credential_digest(root: &Path, key: &str, digest: &str) {
     std::fs::write(&path, swapped).unwrap();
 }
 
-/// **反向验证**（实测做在 `artifacts::read_pair()`：把第②道那半段 `bytes`/`digest` 比较
-/// 整段去掉 ⇒ 本判据的**前两臂当场判红**（`左 2 · 右 1`）✓ —— 因为它们**不改载荷**，
-/// 所以红只可能来自第②道被拆掉 ✓）。
+/// **反向验证**（实测 · M4）：把 `read_pair()` 第②道那半段**整段失效**（用
+/// `if digest_hex(&bytes) == "\u{0}never" {` —— ⚠ **必须**仍然"用到" `digest_hex`，
+/// 否则本 crate 的 `-D warnings` 会先把"未用导入"判成**编译错误** ✗ ⇒ 那是**假红**，
+/// 证明不了判据有牙 —— **实测踩过**）⇒ 本判据**当场判红**（`左 2 · 右 1`）✓。
+///
+/// ⚠ **两臂的清单必须"同意"被篡改后的凭据**（`bytes+1` / `"0000…"`）—— 否则拦下它们的
+/// 可能是 §8.3 的清单对账（那是判据 ③ 的地方 ✗），**这一格就白测了**（第②道有没有牙分不
+/// 出来 ✗）。清单同意之后，**唯一**还能拦的就是 §8.2 第②道 ✓。
 #[test]
 fn an_artifact_that_does_not_match_its_credential_is_refused() {
     let (_alpha, beta, key, digest, bytes) = fixture();
@@ -446,10 +451,11 @@ fn an_artifact_that_does_not_match_its_credential_is_refused() {
         1
     );
 
-    // ① 凭据的 `bytes` 加一（载荷**完好** ⇒ 拦下它的只可能是第②道 ✓）。
+    // ① 凭据的 `bytes` 加一（载荷**完好** ⇒ 拦下它的只可能是第②道 ✓）；
+    //    清单**同步**改成加一后的值 ⇒ 清单那一层同意 ⇒ 只剩第②道能拦 ✓。
     let bumped = scratch("credential-bytes");
     plant(&beta, &bumped, &key);
-    write_lock(&bumped, 1, &lock_entry(&key, &digest, bytes));
+    write_lock(&bumped, 1, &lock_entry(&key, &digest, bytes + 1));
     bump_credential_bytes(&bumped, &key);
     let run = build(&bumped, "credential-bytes", &[(GATE, "1")]);
     assert_eq!(
@@ -458,10 +464,10 @@ fn an_artifact_that_does_not_match_its_credential_is_refused() {
     );
     assert_eq!(run.source_lines, 0);
 
-    // ② 凭据的 `digest` 换成别的（同上：载荷没动 ✓）。
+    // ② 凭据的 `digest` 换成别的（同上：载荷没动 ✓、清单同步同意 ✓）。
     let swapped = scratch("credential-digest");
     plant(&beta, &swapped, &key);
-    write_lock(&swapped, 1, &lock_entry(&key, &digest, bytes));
+    write_lock(&swapped, 1, &lock_entry(&key, "0000000000000000", bytes));
     swap_credential_digest(&swapped, &key, &digest);
     let run = build(&swapped, "credential-digest", &[(GATE, "1")]);
     assert_eq!(
