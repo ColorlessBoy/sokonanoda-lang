@@ -1,4 +1,4 @@
-//! A tiny tactic-draft state. Tactics do not add new logic: they build the
+//! A tiny tactic-draft state. Tactics do not add new logic: they build the  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! very lambda expression the kernel will check.
 //!
 //! I9 起，`exact` / `assumption` 的匹配判定走 [`crate::judge`]（合成完整声明

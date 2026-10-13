@@ -1,4 +1,4 @@
-//! 命令走查（`run_pass` 的 `parse → elab → check-then-add` 前两段）：把每个
+//! 命令走查（`run_pass` 的 `parse → elab → check-then-add` 前两段）：把每个  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! `Command` elaborate 成 `PendingOp` / `DeclState` / 错误，**不**调用内核。
 //!
 //! 批次 3 第三刀：从 `check/mod.rs` 的 `run_pass` 主循环整体切出，每个

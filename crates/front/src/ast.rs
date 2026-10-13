@@ -1,4 +1,4 @@
-//! `.sokonanoda` 抽象语法树：排序、表达式、binder、命令与文件结构。
+//! `.sokonanoda` 抽象语法树：排序、表达式、binder、命令与文件结构。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 
 use crate::span::Span;
 use serde::{Deserialize, Serialize};

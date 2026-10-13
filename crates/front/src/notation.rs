@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! 记法表的**唯一重建实现**（T-C04）。
 //!
 //! 设计：`docs/design/notation-aware-printing.md` §3.3。这里放"从源码里收出当前

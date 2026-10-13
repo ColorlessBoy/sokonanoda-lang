@@ -1,4 +1,4 @@
-//! `by` tactic 块引擎：把 `:= by intro a; exact h` 翻译成一个（可能带尾部
+//! `by` tactic 块引擎：把 `:= by intro a; exact h` 翻译成一个（可能带尾部  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! `sorry` 的）lambda AST，交给既有 `open_goal`/`build_theorem`/kernel 分流。
 //!
 //! 判定纪律（REQUIREMENTS §2.8）：每个 tactic 的裁决**永远走 kernel**——

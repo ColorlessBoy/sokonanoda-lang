@@ -1,4 +1,4 @@
-//! 编译入口：`compile_fol`/`check_document`、待执行操作与 hover 解析。
+//! 编译入口：`compile_fol`/`check_document`、待执行操作与 hover 解析。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 
 mod kernel_phase;
 pub(crate) mod level_exit;

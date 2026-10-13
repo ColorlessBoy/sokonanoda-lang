@@ -1,4 +1,4 @@
-//! Goal walk：从「部分作答」恢复剩余目标与子洞期望类型。
+//! Goal walk：从「部分作答」恢复剩余目标与子洞期望类型。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! 本模块承载 open exercise 的语法级 walk（自 check.rs 抽出，2026-09-10）：
 //! * lambda 链逐层消耗声明类型的 Pi；

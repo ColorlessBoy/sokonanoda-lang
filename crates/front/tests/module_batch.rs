@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! **T-C3：等价性判据**（阶段 C 的刹车点）。
 //!
 //! 契约（`docs/design/module-batch.md` §2.3）：对模块根下**每个**文件 `F`，

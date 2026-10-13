@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! 命名空间 / `open` 作用域（G-05，设计 `docs/design/namespace-open.md`）。
 //!
 //! 这个模块是**名字作用域的唯一实现**：parser（声明名加前缀）与 elab

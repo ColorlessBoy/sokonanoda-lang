@@ -1,4 +1,4 @@
-//! 按目标形状的下一步建议（docs/design/hints-suggestions.md §4）。
+//! 按目标形状的下一步建议（docs/design/hints-suggestions.md §4）。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! 优先级：exact（逐洞，kernel 判定）→ rfl（kernel 判定）→ refine → intro
 //! （结构生成，kernel 在学生落笔后终审）。每请求 ≤3 条、每洞候选 ≤4 个；

@@ -1,4 +1,4 @@
-//! 语义着色（design doc F8）：把词法/语法信息分类成带 [`SemanticKind`] 的 token。
+//! 语义着色（design doc F8）：把词法/语法信息分类成带 [`SemanticKind`] 的 token。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! front 拥有全部语言知识；`sokonanoda-lsp` 只负责把 [`SemanticKind`] 映射到
 //! LSP 的 legend（`SemanticTokenType` 常量），不重复任何语言规则。

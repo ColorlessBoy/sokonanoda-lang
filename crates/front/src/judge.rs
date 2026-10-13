@@ -1,4 +1,4 @@
-//! kernel 判定的术语匹配（I9 goal 视图深化）。
+//! kernel 判定的术语匹配（I9 goal 视图深化）。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! 设计（docs/design/i8-i9.md §2）：不发明第二套判定逻辑——把"候选术语 +
 //! 已写 binders"合成一条**完整的声明**（`def _soko_judge_k : <声明类型> :=

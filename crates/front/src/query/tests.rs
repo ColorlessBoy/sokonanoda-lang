@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! `front::query` 的单测：真相层的语义与边界。
 //!
 //! 这里钉的是**语义**（Lean `goalsAt?` 选择、洞 id 稳定性、错误与"正常没有"的

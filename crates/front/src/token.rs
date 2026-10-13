@@ -1,4 +1,4 @@
-//! 词法器：`TokenKind`/`Token`/`Lexer` 与 `tokenize` 入口。
+//! 词法器：`TokenKind`/`Token`/`Lexer` 与 `tokenize` 入口。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! **声明驱动的符号表**（G-04 第二刀，设计 `docs/design/notation-subset.md`
 //! §10.2）：源码里声明过的记法符号（`𝒫`/`ᶜ`/`''`/`⁻¹'`/`×ˢ`…）在**本文件里

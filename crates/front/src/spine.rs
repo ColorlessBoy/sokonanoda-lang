@@ -1,4 +1,4 @@
-//! Pi 望远镜 / 应用 spine 的共享机械。
+//! Pi 望远镜 / 应用 spine 的共享机械。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! 这里的东西原先是 `by.rs` 的私有函数，值位 `apply`（`compile/apply.rs`）
 //! 要用同一套——**两条 `apply` 路径必须共用一份 telescope 机械**，否则

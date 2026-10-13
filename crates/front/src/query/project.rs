@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! 项目状态视图：`QueryDoc::project_view()`（设计 `docs/design/project-view.md`）。
 //!
 //! 只读派生：从**已经编译过的** `ProjectReport` 装配，不重跑内核、不算摘要、

@@ -1,4 +1,4 @@
-//! 内核真相查询层：**编辑器无关**的类型化查询。
+//! 内核真相查询层：**编辑器无关**的类型化查询。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! 这是 `soko/*` 自定义请求、`sokonanoda query` 子命令与 MCP 工具**共用的唯一
 //! 真相**（`docs/design/agent-query-channel.md` H6-A）。任何一个适配器都**不得**

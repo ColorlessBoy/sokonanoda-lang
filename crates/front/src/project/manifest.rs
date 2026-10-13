@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! 项目清单 `sokonanoda.toml`：**存在即项目根**，元数据全部可选。
 //!
 //! 设计：`docs/design/imports-and-projects.md` §4.4（Q1 采用 TOML）。

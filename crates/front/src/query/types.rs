@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! `front::query` 的 wire 类型：**编辑器无关**的内核真相查询结果。
 //!
 //! 这些类型是 `soko/*` 自定义请求与新的 `query` 子命令/MCP 工具**共用的唯一

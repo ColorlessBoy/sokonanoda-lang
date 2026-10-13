@@ -1,4 +1,4 @@
-//! 项目闭包的编译缓存：**一份键，三条命令共用**（`check` / `build` / `query`）。
+//! 项目闭包的编译缓存：**一份键，三条命令共用**（`check` / `build` / `query`）。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! 键 = `ProjectPlan::digest(options)`（拓扑序上每个模块的名字/源/imports + prelude
 //! 模式，见 `docs/design/compile-cache.md` §7）。单文件不走这里（各自的文本键）。

@@ -1,4 +1,4 @@
-//! 闭包加载：从入口出发按 `import` 建图，产出拓扑序与项目级诊断。
+//! 闭包加载：从入口出发按 `import` 建图，产出拓扑序与项目级诊断。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! 规则（设计 `docs/design/imports-and-projects.md` §4.5）：
 //!

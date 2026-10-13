@@ -1,4 +1,4 @@
-//! **显示专用文本**：线 C（goal / 类型行用记法）的编译期护栏。
+//! **显示专用文本**：线 C（goal / 类型行用记法）的编译期护栏。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //!
 //! 设计：`docs/design/notation-aware-printing.md` §3.5；消费者审计见同文 §2。
 //!

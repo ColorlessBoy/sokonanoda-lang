@@ -1,3 +1,4 @@
+// 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 //! **K2 复用的守卫**（T-K20 / 设计 `docs/design/closure-incremental.md` §2.1）。
 //!
 //! 内核预装（`Nat`/`Bool`/`Eq`/L1）是**按整个闭包**决定的 ⇒ 共享一份编译环境
