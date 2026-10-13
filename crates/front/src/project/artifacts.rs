@@ -88,11 +88,11 @@ pub struct ArtifactMeta {
 }
 
 /// 本机的 `os/arch`（与 `compiled/` 的 `platform` 同口径 ✓）。
-fn target() -> String {
+pub(crate) fn target() -> String {
     format!("{}/{}", std::env::consts::OS, std::env::consts::ARCH)
 }
 
-fn prelude_name(options: &CompileOptions) -> &'static str {
+pub(crate) fn prelude_name(options: &CompileOptions) -> &'static str {
     match options.prelude {
         PreludeMode::Full => "full",
         PreludeMode::Bare => "bare",
@@ -100,7 +100,7 @@ fn prelude_name(options: &CompileOptions) -> &'static str {
 }
 
 /// FNV-1a 64 hex（与 `ProjectPlan::digest` / `compile::cache` 同一条哈希函数 ✓）。
-fn digest_hex(bytes: &[u8]) -> String {
+pub(crate) fn digest_hex(bytes: &[u8]) -> String {
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     for byte in bytes {
         hash ^= u64::from(*byte);
@@ -114,7 +114,7 @@ fn digest_hex(bytes: &[u8]) -> String {
 /// **为什么必须挡**：`key` 将来可能来自**下载来的清单**（§8.3）⇒ 它一旦含 `/` 或
 /// `..`，[`payload_path`] 就变成**目录穿越**（写/读到模块根之外）✗。
 /// 这里是一条**低成本、判据明确**的边界（不合法 ⇒ 与"没有产物"同处置 ✓）。
-fn key_is_safe(key: &str) -> bool {
+pub(crate) fn key_is_safe(key: &str) -> bool {
     !key.is_empty()
         && key.len() <= 128
         && key
@@ -222,41 +222,10 @@ fn prune(root: &Path, keep_key: &str) {
     }
 }
 
-/// 读一份产物 —— **三道全过**才返回 `Some`，否则 `None`（**当不存在** ✓ §8.2）。
-///
-/// | 道 | 比什么 | 挡掉什么 |
-/// |---|---|---|
-/// | ① | `meta.json` 的 `format` / `front_version` / `build_stamp` / `target` / `prelude` 与**本机逐项相同** | 跨版本、跨平台、跨 prelude 档、**跨构建**复用 ✗ |
-/// | ② | 载荷字节数 == `meta.bytes` **且** 摘要 == `meta.digest` | **截断/损坏的下载**、磁盘坏了、改了一个字节 ✗ |
-/// | ③ | 调用方给的 `key` **就是文件名**（第③道是"键可重算"的落点：`key` 由**磁盘上的源文本**按 §3 算出 ⇒ 源文本变一个字 ⇒ 键变 ⇒ 旧产物再也匹配不上 ✓） | 错配（拿 A 的产物当 B 的） ✗ |
-///
-/// ⚠ **§8.3 的安全模型必须读懂再用**：三道**挡不住伪造** —— 一个手工构造的
-/// `<key>.bin` + `meta.json`（`digest` 自洽）会被接受，而它的内容可能是一批
-/// **不成立的声明** ⇒ **错编**。所以：① 默认**关**；② 只从固定发布者按 tag 锁定拉；
-/// ③ 用了就**报一行来源**；④ 课程仓可钉 `artifacts.lock.json`。本函数**不负责**这些。
-pub fn read(root: &Path, key: &str, options: &CompileOptions) -> Option<String> {
-    if !key_is_safe(key) {
-        return None;
-    }
-    // ① 凭据必须**先**读出来并逐项相符。
-    let meta_text = std::fs::read_to_string(meta_path(root, key)).ok()?;
-    let meta: ArtifactMeta = serde_json::from_str(&meta_text).ok()?;
-    if meta.format != ARTIFACT_FORMAT
-        || meta.front_version != env!("CARGO_PKG_VERSION")
-        || meta.build_stamp != crate::compile::cache::build_stamp()
-        || meta.target != target()
-        || meta.prelude != prelude_name(options)
-    {
-        return None;
-    }
-    // ② 载荷：字节数与摘要都要对。
-    let bytes = std::fs::read(payload_path(root, key)).ok()?;
-    if bytes.len() != meta.bytes || digest_hex(&bytes) != meta.digest {
-        return None;
-    }
-    // ③ 键即文件名（上面两处路径都由 `key` 构造 ⇒ 天然成立；非法形状在函数入口已拦 ✓）。
-    String::from_utf8(bytes).ok()
-}
+mod lock;
+// **硬规则 5**：读侧（§8.2 三道 + §8.3 清单）整块拆进 `artifacts/lock.rs`；
+// 公开路径用 re-export 保持稳定 ✓（调用方仍写 `artifacts::read` ✓）。
+pub use lock::{lock_allows, lock_path, read, read_shared, LOCK_FILE};
 
 // ───────────────────────────────────────────────────────────────────────────
 // **载荷的合体形**（A = 内核环境文本 + B = 前端表文本）—— T1-B 批 2 的接线前件

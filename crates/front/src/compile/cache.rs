@@ -24,7 +24,7 @@
 //! - Relocate with `SOKONANODA_CACHE_DIR=<dir>` (tests use this).
 
 use super::event::CompileOutput;
-use super::prelude::{CompileOptions, PreludeMode};
+use super::prelude::CompileOptions;
 use super::report::DocumentReport;
 use crate::project::ProjectReport;
 use serde::{Deserialize, Serialize};
@@ -291,147 +291,12 @@ fn builtin_prelude_digest() -> u64 {
     hash
 }
 
-/// 判定开关档位在缓存键里的状态：全部 `SOKO_*` 环境变量折成一份 FNV 哈希。
-///
-/// **2026-10-06 实测修复（CI test 组判红根因）**：缓存键原先只折了
-/// `metavar_state`（MetavarMode 三档），**漏掉** `SOKO_ARG_EXPECTED` /
-/// `SOKO_UNIVERSE_METAVAR` / `SOKO_JUDGE_INPLACE` / `SOKO_NO_CONST_LEVELS`
-/// 等判定开关 ⇒ 同一 src 在开关 A 下跑出的判定被缓存，切到开关 B 仍读旧判定
-/// （b1 测试：`b1-off` 的 t3 红被缓存，`b1-on` 复用时 t3 仍红 ✗）。开关换挡
-/// 后必须 miss。诊断开关（`SOKO_TRACE_*` 等）一起折：诊断场景本就不该命中
-/// 缓存（要跑真实路径）。
-///
-/// ⚠ **键必须顺序无关**（2026-10-06 复核补）：`std::env::vars()` 的**枚举顺序**
-/// 是未指定的 —— 同一组 `SOKO_*` 值、只换环境块的顺序，哈希就不同 ✗（实测：
-/// `env -i A=1 B=2` 与 `env -i B=2 A=1` 在同一缓存目录里留下**两个**条目）。
-/// 那会让 `sokonanoda build` 预热出来的条目被编辑器（**另一个进程**、另一份
-/// 环境顺序）够不着 ✗ —— 正是 G-27 修过的那类「CLI ↔ LSP 复用不了」。
-/// ⇒ **先按名字排序再折**（守卫 `flags_hash_ignores_environment_order`）。
-///
-/// 非 UTF-8 的**值**走 `to_string_lossy`：`vars()` 遇到非 Unicode 会 **panic** ✗，
-/// 而这是编译热路径 —— 不许新增崩溃路径。
-pub fn flags_state() -> u64 {
-    flags_hash(std::env::vars_os().filter_map(|(k, v)| {
-        // 名字做 ASCII 前缀判断 ⇒ 非 UTF-8 的名字不可能带 `SOKO_`，跳过即可。
-        let k = k.into_string().ok()?;
-        k.starts_with("SOKO_")
-            .then(|| (k, v.to_string_lossy().into_owned()))
-    }))
-}
-
-/// [`flags_state`] 的纯函数部分：**排序后**逐个折（分隔符 `0` 不会出现在 UTF-8 里）。
-fn flags_hash<I: IntoIterator<Item = (String, String)>>(vars: I) -> u64 {
-    let mut pairs: Vec<(String, String)> = vars.into_iter().collect();
-    pairs.sort();
-    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-    let mut eat = |byte: u8| {
-        hash ^= u64::from(byte);
-        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
-    };
-    for (k, v) in pairs {
-        for byte in k.bytes() {
-            eat(byte);
-        }
-        eat(0);
-        for byte in v.bytes() {
-            eat(byte);
-        }
-        eat(0);
-    }
-    hash
-}
-
-/// **E3**：覆盖内容的指纹（FNV-1a 64；**只给缓存键用** ✓）。
-pub fn prelude_override_hash(text: &str) -> u64 {
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for b in text.as_bytes() {
-        h ^= u64::from(*b);
-        h = h.wrapping_mul(0x100_0000_01b3);
-    }
-    h
-}
-
-pub fn key(src: &str, options: &CompileOptions) -> String {
-    key_with_build(src, options, build_stamp())
-}
-
-/// Stable FNV-1a 64 hex over (CACHE_FORMAT, CARGO_PKG_VERSION, build stamp,
-/// prelude mode, **metavariable mode**, **`SOKO_*` flags**, source text).
-/// Pure + deterministic.
-///
-/// [`key`] with an explicit build stamp (pure; used by tests).
-pub fn key_with_build(src: &str, options: &CompileOptions, build: u64) -> String {
-    key_parts(
-        CACHE_FORMAT,
-        crate::compile::REPORT_SHAPE,
-        env!("CARGO_PKG_VERSION"),
-        build,
-        options.prelude == PreludeMode::Bare,
-        metavar_state(),
-        flags_state(),
-        // **E3**：覆盖指纹（`0` = 没覆盖 ⇒ 键与今天逐字相同 ✓）。
-        super::prelude::prelude_override_state(),
-        src,
-    )
-}
-
-/// 元变量档位在缓存键里的**状态字节**：`Sibling`（默认档，今天的行为）**保持 0**
-/// ⇒ 老缓存继续可用 ✓；另两档各占一个字节 ⇒ 三档互不污染 ✓。
-fn metavar_state() -> u8 {
-    match super::implicit::metavar_mode() {
-        super::implicit::MetavarMode::Sibling => 0,
-        super::implicit::MetavarMode::Engine => 1,
-        super::implicit::MetavarMode::Off => 2,
-    }
-}
-
-// 参数多是故意的：缓存键必须显式列尽每一个影响判定的维度（格式、形状、版本、
-// build、prelude 形态、元变量开关、SOKO_* 开关、源码），漏一个就是 b1 那类缓存污染。
-#[allow(clippy::too_many_arguments)]
-fn key_parts(
-    format: u32,
-    shape: u32,
-    version: &str,
-    build: u64,
-    prelude_bare: bool,
-    metavar_state: u8,
-    flags_state: u64,
-    prelude_override: u64,
-    src: &str,
-) -> String {
-    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-    let mut eat = |byte: u8| {
-        hash ^= u64::from(byte);
-        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
-    };
-    for byte in format.to_le_bytes() {
-        eat(byte);
-    }
-    // **报告形状版本进键**（值守第 8 单）：形状一变，键就变 ⇒ 整库不命中 ✓
-    // ——不再依赖"记得 bump CACHE_FORMAT"这种自觉 ✗。
-    for byte in shape.to_le_bytes() {
-        eat(byte);
-    }
-    for byte in version.as_bytes() {
-        eat(*byte);
-    }
-    for byte in build.to_le_bytes() {
-        eat(byte);
-    }
-    eat(u8::from(prelude_bare));
-    eat(metavar_state);
-    for byte in flags_state.to_le_bytes() {
-        eat(byte);
-    }
-    // **E3**：prelude 覆盖的指纹进键（`0` = 没覆盖 ⇒ 与今天逐字相同 ✓）。
-    for byte in prelude_override.to_le_bytes() {
-        eat(byte);
-    }
-    for byte in src.as_bytes() {
-        eat(*byte);
-    }
-    format!("{hash:016x}")
-}
+mod keys;
+// **硬规则 5**：键计算整块拆进 `cache/keys.rs`（公开 API 用 re-export 保持稳定 ✓ ——
+// 调用方仍写 `cache::key` / `cache::flags_state` ✓）；`cache.rs` 只剩条目格式与落盘 ✓。
+pub use keys::{
+    content_key, content_key_with_build, flags_state, key, key_with_build, prelude_override_hash,
+};
 
 /// **逃生门（只给反向验证用）**：`SOKO_CACHE_SHAPE=off` ⇒ 关掉"报告形状版本"这一道
 /// 校验 ⇒ 旧形状的条目会被当成**命中**、把旧答案静默回放出来 ✗。
@@ -695,6 +560,9 @@ mod tests {
     }
 
     use super::*;
+    // 拆出去之后这两个只在测试里用（`key_parts`/`flags_hash` 是 `pub(crate)`）✓。
+    use super::keys::{flags_hash, key_parts};
+    use crate::compile::PreludeMode;
     use crate::Span;
 
     fn tmp_dir(tag: &str) -> PathBuf {

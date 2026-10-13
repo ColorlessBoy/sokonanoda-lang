@@ -36,6 +36,15 @@ use crate::compile::{
 use crate::compile::{run_pass_with, split_report, CompileOptions, PassTables, SourceUnit};
 use crate::display::DisplayNotations;
 
+mod artifacts;
+// **硬规则 5**：产物层（§8.3 闸门 + 键拆分 + 读写/装载）整块拆进 `session/artifacts.rs` ✓。
+// `shared_artifacts_enabled` 是公开 API ⇒ re-export（调用方路径不变 ✓）。
+pub use artifacts::shared_artifacts_enabled;
+use artifacts::{
+    artifact_layer_key, load_lib_checkpoint, load_lib_checkpoint_in, read_lib_artifact,
+    write_lib_artifact,
+};
+
 /// **S2 步 2**：某个入口那一趟的**信任前缀**（I8 的 `TrustPlan` + 已缓存失败）。
 ///
 /// 为什么需要：闭包编译今天对入口走的是**整份重查**（`check/mod.rs:608` 原文
@@ -304,9 +313,12 @@ pub fn lib_checkpoint_reset() {
 /// **A5c**（2026-10-09）：算"这个库层闭包的产物键" —— 给**上层**判断"要不要投机预热"用 ✓。
 ///
 /// `None` = 库层为空（单文件 ⇒ 没有产物这一层 ✓）。
+///
+/// ⚠ **它必须与磁盘产物层实际用的那把键逐字一致**（否则"预热跳过"与"产物命中"会打架 ✗）
+/// ⇒ 它是 [`artifact_layer_key`] 的壳体，**不是** `lib_key` 的壳体（2026-10-13 键拆分后 ✓）。
 #[doc(hidden)]
 pub fn lib_artifact_key(lib_units: &[SourceUnit<'_>], options: &CompileOptions) -> Option<String> {
-    (!lib_units.is_empty()).then(|| lib_key(lib_units, options))
+    (!lib_units.is_empty()).then(|| artifact_layer_key(lib_units, options))
 }
 /// 库层摘要（**可复用判据的键**，设计 §33 的不变量 ①）。
 ///
@@ -431,86 +443,6 @@ pub fn module_artifacts_enabled() -> bool {
         && std::env::var_os("SOKONANODA_NO_PROJECT_ARTIFACTS").is_none()
 }
 
-/// **T1-B 批 2**：把一份磁盘产物装成 [`LibCheckpoint`]（`'static` —— 要进线程局部 LRU ✓）。
-///
-/// ⚠ **只装 arena 不装单元**：产物里没有源文本（它存的是**结果** ✓）⇒ 这条路上
-/// **不需要** `leak_lib_units`（省一份泄漏 ✓）。
-///
-/// 装出来的检查点与"整条趟"那份**逐字段可比**：`key`（产物键 = 库层摘要 ✓）·
-/// `shape = None`（整条命中不比形状 —— 键已经把整条源文本折进去了 ✓，与
-/// [`LibCheckpoint`] 的既有约定一致 ✓）· `resume = default`（同上 ✓）·
-/// `ranges` 由**本次的 units** 现算（它是 units 的纯函数 ✓，不存进产物 ✓）。
-fn load_lib_checkpoint(
-    text: &str,
-    key: &str,
-    lib_units: &[SourceUnit<'_>],
-) -> Option<LibCheckpoint<'static>> {
-    let arena: &'static ArenaRef<'static> =
-        Box::leak(Box::new(stumpalo::Arena::new())).as_arena_ref();
-    LEAKED_LIB_ARENAS.fetch_add(1, Ordering::Relaxed);
-    load_lib_checkpoint_in(arena, text, key, lib_units)
-}
-
-/// 装载的**内核**：把产物装进**调用方给的 arena**（寿命由调用方负责 ✓）。
-///
-/// * `'static` arena（LSP 那条路）⇒ 结果进线程局部 LRU ✓；
-/// * **栈上** arena（CLI 那条路）⇒ 结果只活本次调用 ⇒ **零泄漏** ✓。
-fn load_lib_checkpoint_in<'a>(
-    arena: &'a ArenaRef<'a>,
-    text: &str,
-    key: &str,
-    lib_units: &[SourceUnit<'_>],
-) -> Option<LibCheckpoint<'a>> {
-    let (env, tables, facts) = crate::project::artifacts::decode_payload(arena, text).ok()?;
-    let builder = EnvBuilder::from_export_file(arena, env);
-    Some(LibCheckpoint {
-        key: key.to_string(),
-        shape: None,
-        resume: ResumeState::default(),
-        builder,
-        tables,
-        out: facts.out,
-        reports: facts.reports,
-        ranges: facts.ranges.iter().map(|(a, b)| *a..*b).collect(),
-        n_commands: facts.n_commands,
-        prefix_commands: facts.prefix_commands,
-        reuses: 0,
-        // **产物里不存这两张表**（它们是**文本的纯函数** ✓，存了只是把产物撑大 ✗）⇒
-        // 装载时按 `lib_units` 现算**一次** ✓（不是每刀 ✓）。
-        lib_display: crate::compile::display_notations(lib_units),
-        lib_defs: crate::compile::top_level_def_spans_over(lib_units),
-        lib_prefix: facts.lib_prefix,
-    })
-}
-
-/// **T1-B 批 2**：库层趟跑完 ⇒ 写一份产物。**best-effort**（任何一步失败都静默跳过 ✓）：
-/// 产物是**加速件**，写不出来只该"下次还慢"，**绝不该**让本次编译失败或改判 ✗。
-fn write_lib_artifact(
-    root: &std::path::Path,
-    key: &str,
-    lib: &LibCheckpoint<'_>,
-    lib_units: &[SourceUnit<'_>],
-    options: &CompileOptions,
-) {
-    let facts = crate::project::artifacts::LibPassFacts {
-        out: lib.out.clone(),
-        reports: lib.reports.clone(),
-        ranges: crate::compile::unit_ranges(lib_units)
-            .into_iter()
-            .map(|r| (r.start, r.end))
-            .collect(),
-        n_commands: lib.n_commands,
-        prefix_commands: lib.prefix_commands,
-        lib_prefix: lib.lib_prefix.clone(),
-    };
-    let Ok(text) =
-        crate::project::artifacts::encode_payload(&lib.builder.snapshot(), &lib.tables, &facts)
-    else {
-        return;
-    };
-    let _ = crate::project::artifacts::write(root, key, &text, options);
-}
-
 /// 同 [`with_project_session`]，但**每个入口可以带一份信任前缀**（S2 步 2）。
 ///
 /// `entry_trust[i]` = 第 i 个入口的 [`EntryTrust`]；`None`/缺省 ⇒ 那一趟与今天
@@ -594,6 +526,9 @@ fn with_project_session_reusing_at<R>(
     ) -> R,
 ) -> Vec<R> {
     let key = lib_key(lib_units, options);
+    // **产物层那把键**（2026-10-13 键拆分）：检查点的身份恒是 `lib_key`（T-A06 的语义一个字
+    // 不动 ✓），**磁盘产物**的名字才随 §8.3 闸门在两条键之间切换 ✓。
+    let artifact_key = artifact_layer_key(lib_units, options);
     // **逃生门**在这里一次收口：关掉之后 `artifacts_root` 变 `None` ⇒ 读写两条路都不走 ✓。
     let artifacts_root = artifacts_root.filter(|_| module_artifacts_enabled());
     LIB_CHECKPOINTS.with(|slots| {
@@ -638,7 +573,7 @@ fn with_project_session_reusing_at<R>(
             if !lib_units.is_empty()
                 && LEAKED_LIB_ARENAS.load(Ordering::Relaxed) < MAX_LEAKED_LIB_ARENAS
             {
-                if let Some(lib) = crate::project::artifacts::read(root, &key, options)
+                if let Some(lib) = read_lib_artifact(root, &artifact_key, options)
                     .and_then(|text| load_lib_checkpoint(&text, &key, lib_units))
                 {
                     set_last_lib_source(2); // ①.5 磁盘产物
@@ -806,7 +741,7 @@ fn with_project_session_reusing_at<R>(
                 .expect("库层至少一个模块：上面 `lib_units` 非空 ✓");
             // **T1-B 批 2**：把整条库层**写出去**（best-effort —— 写不出来绝不影响本次编译 ✓）。
             if let Some(root) = artifacts_root {
-                write_lib_artifact(root, &key, &lib, lib_units, options);
+                write_lib_artifact(root, &artifact_key, &lib, lib_units, options);
             }
             let out = ENTRY_TAILS.with(|tails| {
                 run_entries(
@@ -955,12 +890,17 @@ pub(crate) fn with_project_session_artifacts_trusted<R>(
 ) -> Vec<R> {
     let arena = stumpalo::Arena::new();
     let on_artifacts = module_artifacts_enabled() && !lib_units.is_empty();
-    let key = on_artifacts.then(|| lib_key(lib_units, options));
+    // `artifact_key` = **磁盘产物**的名字（随 §8.3 闸门切换 ✓）；`checkpoint_key` = 装出来的
+    // 检查点的**身份**（恒为 `lib_key` —— T-A06 的语义不在这一层动 ✓）。
+    let artifact_key = on_artifacts.then(|| artifact_layer_key(lib_units, options));
+    let checkpoint_key = on_artifacts.then(|| lib_key(lib_units, options));
     // ① **产物命中**：栈上 arena ⇒ 装载出来的检查点只活这一次调用 ✓（零泄漏 ✓）。
-    if let (true, Some(key)) = (on_artifacts, key.as_ref()) {
-        if let Some(lib) = crate::project::artifacts::read(root, key, options)
-            .and_then(|text| load_lib_checkpoint_in(arena.as_arena_ref(), &text, key, lib_units))
-        {
+    if let (Some(artifact_key), Some(checkpoint_key)) =
+        (artifact_key.as_ref(), checkpoint_key.as_ref())
+    {
+        if let Some(lib) = read_lib_artifact(root, artifact_key, options).and_then(|text| {
+            load_lib_checkpoint_in(arena.as_arena_ref(), &text, checkpoint_key, lib_units)
+        }) {
             return run_entries(
                 &lib,
                 lib_units,
@@ -982,7 +922,7 @@ pub(crate) fn with_project_session_artifacts_trusted<R>(
         options,
         String::new(),
     );
-    if let Some(key) = key.as_ref() {
+    if let Some(key) = artifact_key.as_ref() {
         write_lib_artifact(root, key, &lib, lib_units, options);
     }
     run_entries(
