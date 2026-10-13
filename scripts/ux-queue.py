@@ -3797,6 +3797,339 @@ def selftest_source_state_grid(expect) -> None:
             globals()["lock_file"] = saved[5]
 
 
+def selftest_ghost_child(expect) -> None:
+    """**无源子任务必须进幽灵判据**（2026-10-14 · 第六次独立复核实测 ✗）—— #1 的防复发轴。
+
+    复核者纯 CLI 复现：`--schedule ADOPT-1` + `--add-child ADOPT-1 --child GHOST-KID-1`
+    ⇒ 改前 `--check` **rc=0 · stderr 0 行**、从不提那个 id，而 `--next` 推得出它、
+    `--json.open` 含它 ✗。病根 = `sched_rows` 给"没有源行的子任务"**合成一行**，
+    而 `check_plan` 的 `known` 读的是**视图** ⇒ **合成行给自己作了证** ✗。
+
+    断言（① 就是"把 `known` 改回读视图"的定向突变靶子：那一改会让 ① 变绿 ⇒ 必红 ✗）：
+      ① 无源子任务 ⇒ `check_plan(view, rows)` **判红 + 点名 + 说清「无源子任务」**；
+      ② 合成行的 `sources` 是**诚实的空表**（不是缺键 ⇒ `--json.view` 与源行同形 schema ✓）；
+      ③ 正对照：把子任务**登记进来源** ⇒ 转绿（守卫不许咬到合法的子任务 ✗）；
+      ④ **不许更松**：**没有父**的幽灵 id（三处都没有）**照样**判红（老那条路还在 ✓）；
+      ⑤ 域没变（`plan_domain` = 视图 ∪ 事件表）且条目**没被藏起来**
+         （仍在 `--json.open` / `--next` 里 —— 会计账口径：判红 ≠ 从面板上消失 ✓）。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+
+        def ext(ident: str, disp: str) -> dict:
+            return {"id": ident, "source": "ux-index", "facet": "语言", "severity": "medium",
+                    "repro": f"bash {ident}.sh", "disposition": disp, "why": "夹具"}
+
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| P-1 | 语言 | 夹具（可拆解的父） | 高 | `bash p.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        EXTRAS.write_text(json.dumps(ext("P-1", "fix"), ensure_ascii=False) + "\n",
+                          encoding="utf-8")
+        EVENTS.write_text("", encoding="utf-8")
+
+        def snapshot():
+            _r, _u = build_queue()
+            _s = fold()
+            return _r, _s, sched_rows(_r, _s)
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, err.getvalue()
+
+        try:
+            rows, state, view = snapshot()
+            rc, err = capture(cmd_add_child, "P-1", "K-1", "夹具子任务", "t", view)
+            expect(f"夹具：拆解成功（rc={rc}）", rc == 0)
+            rows, state, view = snapshot()
+            kid = next((r for r in view if r["id"] == "K-1"), None)
+            src_row = next((r for r in rows if r["id"] == "P-1"), None)
+            expect("② 合成行**在**视图里（不丢行 ✓）", kid is not None)
+            expect("② 合成行的 `sources` = 诚实的空表（改前连键都没有 ⇒ 异形 schema ✗）",
+                   kid is not None and kid.get("sources") == [])
+            expect("② 源行也有 `sources` 键（两处同形）",
+                   src_row is not None and "sources" in src_row)
+            rc, err = capture(check_plan, view, rows)
+            expect(f"① 无源子任务 ⇒ **判红**（改前 rc=0 静默 ✗；实测 {rc}）", rc >= 1)
+            expect("① 判红信息**点名** `K-1` + 说清「无源子任务」",
+                   "K-1" in err and "无源子任务" in err)
+            expect("⑤ 域没变：它仍在 `plan_domain`（视图 ∪ 事件表）里",
+                   "K-1" in plan_domain(view, state))
+            expect("⑤ 条目**没被藏起来**：仍在 `--json.open` / `--next` 里",
+                   "K-1" in open_set(view) and "K-1" in pushable_ids(view, state))
+            with EXTRAS.open("a", encoding="utf-8") as fh:      # ③ 正对照：登记来源
+                fh.write(json.dumps(ext("K-1", "fix"), ensure_ascii=False) + "\n")
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"③ 登记来源之后 ⇒ **转绿**（不许误咬合法子任务；实测红 {rc} 条）", rc == 0)
+            append_event({"event": "advance", "id": "GHOST-X", "to": "blocked",
+                          "reason": "夹具：纯幽灵（三处都没有）", "owner": "t"})
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect("④ **没有父**的幽灵 id 照样判红（老那条路还在 ⇒ 没放宽 ✓）",
+                   rc >= 1 and "GHOST-X" in err and "幽灵条目" in err)
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+
+
+def selftest_triage_pointer(expect) -> None:
+    """**`--triage` 的假证据必须被硬拒**（2026-10-14 · 第六次独立复核实测 ✗）—— #2 的防复发轴。
+
+    复核者纯 CLI 复现：`--submit fix --id EXT-1 …` ⇒ `--triage EXT-1 --to applied
+    --commit deadbeef…`（对象**不存在**，`git cat-file -e` rc=128）⇒ 改前 **rc=0** ⇒
+    事件表里留下 `done + 假指针`，`--check` rc=0、stderr 只有「⚠ 存量收口指针 1 条 …」✗。
+    病根两条：① `cmd_triage` **一条硬拒都没有**（`cmd_advance` 两条都有）；② `fold` 的
+    triage 分支**不写 `advanced_ts`** ⇒ 读侧把它当**存量 rebase 孪生**豁免（描述与事实相反 ✗）。
+
+    断言（①/② 是"把 `closure_pointer_problem` 从 `cmd_triage` 摘掉"的靶子；⑤ 是"把
+    `advanced_ts` 从 triage 分支摘掉"的靶子 ⇒ 两个定向突变各自咬住 ✓）：
+      ① **存在性**硬拒（对象不存在 ⇒ rc=1）；② **祖先性**硬拒（对象存在、非祖先 ⇒ rc=1）；
+      ③ **不许半途而废**：被拒时来源处置与事件表**一个字节都不动**（闸门在写之前 ✓）；
+      ④ 正对照：真祖先 ⇒ rc=0 且来源处置翻成 `fixed`（不许误拒 ✓）；
+      ⑤ 读侧复查：手写「起点之后 + 非祖先」的 triage-applied ⇒ `check_plan` **判红**；
+      ⑥ **措辞分桶**：有 `ts` 且早于起点 ⇒ 从宽且**叫「存量」** ✓；**没有 `ts`** ⇒ 从宽但
+         **不许叫「存量」** ✗（改前两桶混成一个 ⇒ ⑥b 必红 ✗）。
+    """
+    import contextlib
+    import datetime as _dt
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    bad_sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+
+        def ext(ident: str, disp: str) -> dict:
+            return {"id": ident, "source": "external-submission", "facet": "语言",
+                    "severity": "medium", "repro": f"bash {ident}.sh", "disposition": disp,
+                    "why": "夹具：外部提交"}
+
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| E-1 | 语言 | 夹具（外部提交） | 高 | `bash e.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        EXTRAS.write_text(json.dumps(ext("E-1", "fix"), ensure_ascii=False) + "\n",
+                          encoding="utf-8")
+        EVENTS.write_text("", encoding="utf-8")
+        real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                  capture_output=True, text=True).stdout.strip()
+        dangling = subprocess.run(
+            ["git", "-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local",
+             "commit-tree", f"{real_sha}^{{tree}}", "-m", "ux-queue selftest: triage 悬垂"],
+            cwd=ROOT, capture_output=True, text=True).stdout.strip()
+
+        def disp_of(ident: str) -> str:
+            return next((r["disposition"] for r in _read_jsonl(EXTRAS) if r["id"] == ident), "?")
+
+        def triage_events() -> list[dict]:
+            return [e for e in load_events() if e.get("event") == "triage"]
+
+        def snapshot():
+            _r, _u = build_queue()
+            _s = fold()
+            return _r, _s, sched_rows(_r, _s)
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, err.getvalue()
+
+        try:
+            expect(f"夹具：非祖先 sha 造得出且对象存在（{dangling[:8]}…）",
+                   bool(dangling) and not commit_is_ancestor(dangling))
+            rc, err = capture(cmd_triage, "E-1", "applied", "", bad_sha, "t")
+            expect(f"① 对象**不存在** ⇒ 硬拒（改前 rc=0 ✗；实测 {rc}）",
+                   rc == 1 and "不存在" in err)
+            expect("③ 被拒时来源处置**没动**（仍 `fix`）", disp_of("E-1") == "fix")
+            expect("③ 被拒时**没有** triage 事件落表", not triage_events())
+            rc, err = capture(cmd_triage, "E-1", "applied", "", dangling, "t")
+            expect(f"② 对象存在但**非祖先** ⇒ 硬拒（改前 rc=0 ✗；实测 {rc}）",
+                   rc == 1 and "不是 `HEAD` 的祖先" in err)
+            expect("③ 同样一个字节都没写（无半途而废的写入 ✓）",
+                   disp_of("E-1") == "fix" and not triage_events())
+            rc, err = capture(cmd_triage, "E-1", "applied", "", real_sha, "t")
+            expect(f"④ 真祖先 ⇒ 受理通过（**不许误拒**；实测 {rc}）", rc == 0)
+            expect("④ 受理把来源处置翻成 `fixed`（受理 = 关账 ✓）", disp_of("E-1") == "fixed")
+            _cut = _dt.datetime.fromisoformat(ANCESTRY_GATE_SINCE)
+            # ⑤ 起点**之后** + 非祖先 ⇒ 读侧判红（改前 `advanced_ts` 缺席 ⇒ 走豁免桶 ⇒ rc=0 ✗）
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "triage", "id": "E-1", "to": "applied", "commit": dangling,
+                          "ts": (_cut + _dt.timedelta(minutes=1)).isoformat(), "owner": "t"})
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"⑤ 起点之后的 triage-applied 假指针 ⇒ **判红**（改前 rc=0 ✗；实测红 {rc}）",
+                   rc >= 1)
+            expect("⑤ 判红点名 `E-1` + 说「不是 `HEAD` 的祖先」",
+                   "E-1" in err and "不是 `HEAD` 的祖先" in err)
+            # ⑥a 起点**之前**（真存量）⇒ 从宽 + **叫「存量」** + 点名（不静默 ✓）
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "triage", "id": "E-1", "to": "applied", "commit": dangling,
+                          "ts": (_cut - _dt.timedelta(minutes=1)).isoformat(), "owner": "t"})
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"⑥a 起点之前的 triage-applied 指针 ⇒ 从宽（红 {rc} 条）", rc == 0)
+            expect("⑥a 且**叫「存量」**+ 起点 + 点名（不许静默放过 ✓）",
+                   "存量" in err and ANCESTRY_GATE_SINCE in err and "E-1@" in err)
+            # ⑥b **没有 ts**（旧格式/手写）⇒ 从宽，但**不许**替它下"存量"这个结论 ✗
+            #     ⚠ `append_event` 会自动补 `ts` ⇒ 这一臂必须**直接写事件表**。
+            EVENTS.write_text(json.dumps(
+                {"event": "triage", "id": "E-1", "to": "applied", "commit": dangling,
+                 "owner": "t"}, ensure_ascii=False) + "\n", encoding="utf-8")
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"⑥b **无时间戳**的指针 ⇒ 从宽（红 {rc} 条）", rc == 0)
+            expect("⑥b 但**不许叫「存量」**（判不出新增/存量 ⇒ 只能如实说「无时间戳」✗）",
+                   "无时间戳" in err and "存量收口指针" not in err and "E-1@" in err)
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+
+
+def selftest_write_gates(expect) -> None:
+    """**两个写入口都要看权威状态**（2026-10-14 · 第六次独立复核实测 ✗）—— #3 的防复发轴。
+
+    改前实测（纯 CLI，临时根）：
+      · `--advance X --to todo --reason …`（来源 `fixed` + 事件 `done`）⇒ **rc=0** 且打印
+        「✓ 状态回到来源处置」—— **实际没回到**（来源仍是 `fixed`，事件成了 `todo`）⇒
+        下一条 `--check` **判红**（反向两层漂移）、`--next` **又推出它** ✗（对照：来源 `fix`
+        时 reopen rc=0 ✓）；
+      · `--add-child` 到「来源 `fixed` + **无事件**」的父 ⇒ **rc=0**（闸门只看
+        `state[父]["state"]`，而那种父在 `state` 里**根本没有键** ✗）⇒ `split` 把父折成
+        `umbrella` ⇒ `--check` 判红 ✗。
+
+    断言（① ② 是"把闸门改回只看事件状态"的靶子 ⇒ 各自必红 ✗）：
+      ① 来源关账 + 事件终态 ⇒ `--advance --to todo` **硬拒** + 给**走得通**的指示 + 不写事件；
+      ② 来源关账 + **无事件** ⇒ `--add-child` **硬拒** + 不写 `split` 事件；
+      ③ 正对照（**不许误拒**）：来源 `fix` + 事件 `done` ⇒ reopen **rc=0** 且转绿；
+      ④ 正对照（**不许误拒**）：来源 `fix` 的父 ⇒ `--add-child` **rc=0** 且（子任务登记后）转绿；
+      ⑤ **谓词只有一份**：`source_closed(row)` ≡ `effective_state(row, {}) in CLOSED_STATES`
+         逐处置成立（6 个处置全覆盖 ⇒ 以后加处置忘了归类会先红 ✗）。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+
+        def ext(ident: str, disp: str) -> dict:
+            return {"id": ident, "source": "ux-index", "facet": "语言", "severity": "medium",
+                    "repro": f"bash {ident}.sh", "disposition": disp, "why": "夹具"}
+
+        ids = ("X-1", "X-2", "X-3", "P-1", "P-2")
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         + "".join(f"| {i} | 语言 | 夹具 | 高 | `bash {i}.sh` | front |  |\n"
+                                   for i in ids), encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        EXTRAS.write_text("".join(json.dumps(ext(i, d), ensure_ascii=False) + "\n" for i, d in
+                                  (("X-1", "fixed"), ("X-2", "fix"), ("X-3", "fixed"),
+                                   ("P-1", "fixed"), ("P-2", "fix"))), encoding="utf-8")
+        EVENTS.write_text("", encoding="utf-8")
+        real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                  capture_output=True, text=True).stdout.strip()
+
+        def snapshot():
+            _r, _u = build_queue()
+            _s = fold()
+            return _r, _s, sched_rows(_r, _s)
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, err.getvalue()
+
+        try:
+            # ⑤ 谓词等价（纯表，不碰夹具）—— "来源侧"与"调度器侧"两个集合不许各说各话
+            for _d in sorted(DISPOSITIONS):
+                _row = {"id": "Z-9", "disposition": _d}
+                expect(f"⑤ `source_closed({_d})` ≡ `effective_state(row, {{}}) in CLOSED_STATES`",
+                       source_closed(_row) == (effective_state(_row, {}) in CLOSED_STATES))
+            # ① 来源关账 + 事件终态（一致形状）⇒ reopen 硬拒
+            append_event({"event": "advance", "id": "X-1", "to": "done", "commit": real_sha,
+                          "reading": "夹具：已收口", "owner": "t"})
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"① 前置：来源 `fixed` + 事件 `done` 是**一致**的（红 {rc} 条）", rc == 0)
+            rc, err = capture(cmd_advance, "X-1", "todo", "", "", "夹具：重开", "t", False, view)
+            expect(f"① 来源关账 ⇒ reopen **硬拒**（改前 rc=0 制造必红状态 ✗；实测 {rc}）",
+                   rc == 1 and "已关账" in err and "来源处置" in err)
+            expect("① 指示**给得出路**（说清先把来源处置改回 `fix`）",
+                   "--triage X-1 --to deferred" in err)
+            expect("① 被拒时**没有** `reopen` 事件落表",
+                   not [e for e in load_events() if e.get("event") == "reopen"])
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"① 且状态**没被弄红**（红 {rc} 条）", rc == 0)
+            # ①b 来源关账 + **无事件**（`X-3`）⇒ 也必须拒，且**不许**是"非法迁移 `todo → todo`"
+            #     那种信息错（旧闸门只看 `frm in TERMINAL_STATES` ⇒ 这种 id 连分支都进不来 ⇒
+            #     打的是"非法迁移"、也没有出路指示 ✗）—— 这是"分支条件换成权威状态"的靶子 ✓
+            rows, state, view = snapshot()
+            rc, err = capture(cmd_advance, "X-3", "todo", "", "", "夹具：重开", "t", False, view)
+            expect(f"①b 来源关账 + **无事件** ⇒ 也硬拒，且说清「已关账」而**不是**「非法迁移」"
+                   f"（实测 rc={rc}）", rc == 1 and "已关账" in err and "非法迁移" not in err)
+            # ③ 正对照：来源 `fix` + 事件 `done` ⇒ reopen 仍 rc=0 且转绿
+            append_event({"event": "advance", "id": "X-2", "to": "done", "commit": real_sha,
+                          "reading": "夹具：已收口", "owner": "t"})
+            rows, state, view = snapshot()
+            rc, err = capture(cmd_advance, "X-2", "todo", "", "", "夹具：重开", "t", False, view)
+            expect(f"③ 来源 `fix` 的合法 reopen **仍必须 rc=0**（不许误拒；实测 {rc}）", rc == 0)
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"③ 且**转绿**（红 {rc} 条）", rc == 0)
+            # ② 来源关账 + 无事件 ⇒ `--add-child` 硬拒
+            rows, state, view = snapshot()
+            rc, err = capture(cmd_add_child, "P-1", "K-1", "夹具子任务", "t", view)
+            expect(f"② 来源关账的父 ⇒ `--add-child` **硬拒**（改前 rc=0 ✗；实测 {rc}）",
+                   rc == 1 and "已关账" in err)
+            expect("② 被拒时**没有** `split` 事件落表",
+                   not [e for e in load_events() if e.get("event") == "split"])
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"② 且状态没被弄红（红 {rc} 条）", rc == 0)
+            # ④ 正对照：来源 `fix` 的父 ⇒ rc=0；子任务登记来源后转绿
+            rows, state, view = snapshot()
+            rc, err = capture(cmd_add_child, "P-2", "K-2", "夹具子任务", "t", view)
+            expect(f"④ 来源 `fix` 的父 **仍必须 rc=0**（不许误拒；实测 {rc}）", rc == 0)
+            with EXTRAS.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(ext("K-2", "fix"), ensure_ascii=False) + "\n")
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"④ 且**转绿**（红 {rc} 条）", rc == 0)
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+
+
 def selftest_ancestry_gate(expect) -> None:
     """**祖先性闸门**（2026-10-14 · `queueW` 缺陷 ⑤）：`cat-file -e` 查不出「指针不是 main 祖先」。
 
@@ -4148,6 +4481,15 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     # ③h **祖先性闸门**（2026-10-14：`cat-file -e` 查不出"不是 main 祖先" ⇒ 新增硬拒 + 读侧复查 +
     #     存量带日期豁免且**不静默** ✗）
     selftest_ancestry_gate(expect)
+    # ③i **无源子任务**（2026-10-14 · 第六次复核 #1：`sched_rows` 的合成行给自己作出处 ⇒
+    #     幽灵判据对它静默，而 `--next` 推得出它 ✗ —— `known` 改回读视图这条必红 ✗）
+    selftest_ghost_child(expect)
+    # ③j **`--triage` 的假证据**（2026-10-14 · 第六次复核 #2：`cmd_triage` 一条硬拒都没有 +
+    #     `fold` 的 triage 分支不写 `advanced_ts` ⇒ 起点之后的假指针被当"存量"豁免 ✗）
+    selftest_triage_pointer(expect)
+    # ③k **两个写入口的权威状态闸门**（2026-10-14 · 第六次复核 #3：`--advance --to todo` 与
+    #     `--add-child` 都只看事件状态 ⇒ rc=0 制造已知必红的状态 ✗）
+    selftest_write_gates(expect)
 
     # ④ 真来源：三张表 + 台账 + extras 都能解析
     try:
@@ -4200,6 +4542,18 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"**删掉覆盖层**后 42 格静默而 `--next` 照推、**终态缺口行让冲突闸门失明** ⇒ 逐格必红 ✗）"
           f" + **祖先性闸门 9 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/存量带日期**豁免且不静默**/"
           f"真祖先不误伤）"
+          f" + **无源子任务 10 条**（第六次复核 #1：**判红 + 点名 + 说清「无源子任务」**/"
+          f"合成行 `sources` = 诚实的空表且与源行同形/登记来源后转绿/**没有父的幽灵照样判红**/"
+          f"仍在 `plan_domain` 与 `--json.open`/`--next` 里 ⇒ **判红 ≠ 从面板消失**；"
+          f"把 `known` 改回读视图 ⇒ ① 必红 ✗）"
+          f" + **triage 假证据 14 条**（第六次复核 #2：**存在性 + 祖先性两条硬拒**/"
+          f"被拒时**一个字节都不写**/真祖先不误伤/起点之后的 triage-applied 假指针**读侧判红**/"
+          f"**措辞分桶**：有 ts 早于起点 = 「存量」✓、**无 ts 不许叫「存量」**✗；"
+          f"摘掉 `closure_pointer_problem` 或 triage 分支的 `advanced_ts` ⇒ 对应那条必红 ✗）"
+          f" + **写入口权威状态 19 条**（第六次复核 #3：来源关账的 reopen **硬拒 + 给出路 + 不写事件**/"
+          f"来源关账的父 `--add-child` **硬拒 + 不写 `split`**/"
+          f"**不许误拒**：来源 `fix` 的 reopen 与拆解仍 rc=0 且转绿/"
+          f"`source_closed` ≡ `effective_state(row, {{}}) in CLOSED_STATES` 逐处置成立/**来源关账 + 无事件** ⇒ 也硬拒且**不许**印「非法迁移」✗）"
           f" + 真来源解析 全部成立 ✓")
     return 0
 
