@@ -2086,16 +2086,17 @@ impl Parser {
     /// 仍产出 `Binder.ty = None`，由 elaborator 报 `elab-untyped-binder`
     ///（与设计 §3.4 一致）。`v`/`body` 都按完整 term 解析（右结合、可嵌套）。
     fn parse_let(&mut self) -> Result<Expr> {
-        let start = self.bump().span.start;
+        let kw = self.bump();
+        let start = kw.span.start;
         let name_tok = self.peek().clone();
         let TokenKind::Ident(name) = name_tok.kind.clone() else {
-            return Err(Diagnostic::new(
-                DiagnosticKind::UnexpectedToken {
-                    found: token_kind_text(&name_tok.kind),
-                    expected: "a `let` binder name".to_string(),
-                },
-                name_tok.span,
-                "`let` 后面要跟绑定名，例如 let x : Nat := 1; x".to_string(),
+            // **保留关键字当裸名引用**（`SUB-keyword-decl-name`，2026-10-13）：
+            // 落点改到 **`let` 那个 token** 上（以前是它**后面**的 token ——
+            // `:= let` 时那是文件末尾 ✗）、文案给出出路（**只改诊断** ✓）。
+            return Err(self.keyword_bare_name_error(
+                "let",
+                kw.span,
+                "`let` 后面要跟绑定名，例如 `let x : Nat := 1; x`",
             ));
         };
         self.bump();
@@ -2130,11 +2131,29 @@ impl Parser {
     /// 分支顺序任意，前端在降低时按构造子声明序重排；`with` 只是普通标识符，
     /// 由 `scrutinee_depth` 保证它不被吃成 scrutinee 的实参。
     fn parse_match(&mut self) -> Result<Expr> {
-        let start = self.bump().span.start;
+        let kw = self.bump();
+        let start = kw.span.start;
         self.scrutinee_depth += 1;
+        let cursor_before = self.cursor;
         let scrutinee = self.parse_expr();
         self.scrutinee_depth -= 1;
-        let scrutinee = scrutinee?;
+        let scrutinee = match scrutinee {
+            Ok(expr) => expr,
+            Err(err) => {
+                // **保留关键字当裸名引用**（`SUB-keyword-decl-name`，2026-10-13）：
+                // 被匹配项**一个 token 都没吃掉**（`:= match` 后面直接是末尾）⇒
+                // 报在 **`match` 那个 token** 上并给出出路 ✓；吃掉了 token ⇒ 内层
+                // 诊断更准，**原样放行**（不抢它的落点 ✗）。**只改诊断** ✓。
+                if self.cursor == cursor_before {
+                    return Err(self.keyword_bare_name_error(
+                        "match",
+                        kw.span,
+                        "`match` 的被匹配项读不出来（例如 `match c with | … => …`）",
+                    ));
+                }
+                return Err(err);
+            }
+        };
         let with_tok = self.peek().clone();
         match &with_tok.kind {
             TokenKind::Ident(word) if word == "with" => {
@@ -3246,7 +3265,12 @@ impl Parser {
                     expected: "an expression".to_string(),
                 },
                 tok.span,
-                format!("command keyword `{name}` cannot appear inside an expression"),
+                format!(
+                    "command keyword `{name}` cannot appear inside an expression —— \
+                     `{name}` 是**保留关键字**，与它同名的声明**裸名引用不到**\
+                     （本语言没有 Lean 4 的 `«{name}»` 转义）⇒ 请**改名**，\
+                     或写成**点分形式**（`Foo.{name}`）"
+                ),
             )),
             TokenKind::Ident(name) => self.finish_const(name, tok.span),
             other => Err(Diagnostic::new(
@@ -3258,6 +3282,61 @@ impl Parser {
                 format!("expected an expression, found {}", token_kind_text(&other)),
             )),
         }
+    }
+
+    /// **保留关键字当裸名引用**的专用诊断（`SUB-keyword-decl-name`，2026-10-13）。
+    ///
+    /// ## 为什么要有它
+    ///
+    /// [`Self::expect_decl_name`] 只查"不以 `.` 结尾"、**不查关键字表** ⇒ 48 个关键字
+    /// 全部能当 `def`/`theorem`/`axiom`/`inductive`/`ctor` 的名字、声明能判绿；
+    /// 但**裸名永远引用不到**（词法把裸名当关键字）⇒ 引用时报的是**别处**的、
+    /// 误导性的 parse 错 ✗。实测两种形状（2026-10-13）：
+    ///
+    /// * **表达式形态关键字**（`fun`/`let`/`match`）：parser **先**按对应的表达式形态
+    ///   去解析 ⇒ 失败落在**后面的 token** 上（实测 `theorem t : True := match` ⇒
+    ///   `L3:1 [unexpected-token] expected an expression, found 输入末尾` ——
+    ///   指在文件末尾、离真正的错处两行 ✗；`fun`/`let` 同形）；
+    /// * **命令关键字**（`open`/`import`/`infix`…）：落点**本来就对**，但文案只说
+    ///   "命令关键字不能出现在表达式里"、**没说**出路（改名 / 点分形式）⇒
+    ///   用户知道错了、不知道怎么办 ✗（那条文案在本文件 `parse_atom` 里补齐）。
+    ///
+    /// ## 口径（**只改诊断、不改接受/拒绝** ✓）
+    ///
+    /// 本函数**只**在"那条表达式**已经**解析失败"的分支里被调用 ⇒ 接受/拒绝逐字
+    /// 不变 ✓（判据：`cargo test -p sokonanoda-front` 全绿 + 课程语料 `--json` 对拍）。
+    /// 落点 = **关键字那个 token** ✓；文案给出**出路** ✓。
+    ///
+    /// ⚠ **不**把关键字从名字位拒掉：2026-10-13 上一轮"拒绝它"的修法已**撤回**
+    /// （会把 LSP 的 5 条状态用例打红 ⇒ 撞"判定正确性不变"）⇒ 别走那条路 ✗。
+    ///
+    /// ⚠ 与 Lean 4 的关系：Lean 4 里与关键字同名的声明要写 **`«open»`** 转义才引用得到
+    /// （`~/Documents/lean/lean4/src/Lean/Parser/Attr.lean` 的 `«macro»`/`«export»`）；
+    /// 本子集**没有** `«»` ⇒ 裸名**永远**引用不到 ⇒ 这是**有意的宽松分歧**
+    /// （名字位照样接受，只是引用不到），本函数只负责**把话说清楚** ✓。
+    fn keyword_bare_name_error(&self, keyword: &str, span: Span, detail: &str) -> Diagnostic {
+        // ⚠ **`found` 子句恰好一次**（N3 / `SUB-duplicate-found-msg` 的不变量）：
+        // 本函数**不走** `error_here`（它要自带 `expected …` 头）⇒ 自己拼一次
+        // `, found …`、**绝不**再交给 `error_here` 追加 ✗。判据
+        // `parser::tests::expected_found_appended_at_most_once`（`matches("found") == 1` ✓）。
+        let found = token_kind_text(&self.peek().kind);
+        let expected = match keyword {
+            "fun" => "a binder".to_string(),
+            "let" => "a `let` binder name".to_string(),
+            _ => "an expression".to_string(),
+        };
+        Diagnostic::new(
+            DiagnosticKind::UnexpectedToken {
+                found: found.clone(),
+                expected: expected.clone(),
+            },
+            span,
+            format!(
+                "expected {expected}, found {found} —— `{keyword}` 是**保留关键字**：\
+                 {detail}。⚠ 与它同名的声明**裸名引用不到**（本语言没有 Lean 4 的 \
+                 `«{keyword}»` 转义）⇒ 请**改名**，或写成**点分形式**（`Foo.{keyword}`）"
+            ),
+        )
     }
 
     fn finish_const(&mut self, name: String, span: Span) -> Result<Expr> {
@@ -3380,9 +3459,21 @@ impl Parser {
     }
 
     fn parse_lambda(&mut self) -> Result<Expr> {
-        let start = self.bump().span.start;
+        let kw = self.bump();
+        let start = kw.span.start;
         let mut binders = Vec::new();
         while self.peek().kind != TokenKind::FatArrow {
+            // **保留关键字当裸名引用**（`SUB-keyword-decl-name`，2026-10-13）：
+            // `:= fun` 后面什么都没有 ⇒ 以前报在**末尾 token** 上
+            // （实测 `L3:1 [unexpected-token] expected a binder, found 输入末尾` ✗）
+            // ⇒ 落点改到 **`fun` 那个 token**、文案给出出路（**只改诊断** ✓）。
+            if self.at_eof() {
+                return Err(self.keyword_bare_name_error(
+                    "fun",
+                    kw.span,
+                    "`fun` 后面要跟绑定（例如 `fun (x : α) => …`）",
+                ));
+            }
             self.push_binders(&mut binders)?;
         }
         self.expect_kind(&TokenKind::FatArrow, "`=>`")?;
@@ -4407,11 +4498,20 @@ example : Prop -> Prop := sorry
             err.message
         );
         assert_eq!(
-            err.message, "expected a binder, found 输入末尾",
+            err.message,
+            "expected a binder, found 输入末尾 —— `fun` 是**保留关键字**：`fun` 后面要跟\
+             绑定（例如 `fun (x : α) => …`）。⚠ 与它同名的声明**裸名引用不到**\
+             （本语言没有 Lean 4 的 `«fun»` 转义）⇒ 请**改名**，或写成**点分形式**\
+             （`Foo.fun`）",
             "文案形状变了：{err:?}"
         );
-        // 位置仍是文件尾（判定/坐标都没动 ✓）。
-        assert_eq!(err.span.start.line, 2, "err: {err:?}");
+        // ⚠ **2026-10-13（`SUB-keyword-decl-name`）改的是落点，不是 N3 的不变量**：
+        // `fun` 以前报在**末尾 token**（`def f : Nat := fun` 的下一行 = 第 2 行）⇒
+        // 现在报在 **`fun` 那个 token**（第 1 行）上，并附上"裸名引用不到 / 请改名或
+        // 点分形式"的出路 ✓（同类：`let`/`match`/命令关键字 —— 横向排查，不许修单点 ✓）。
+        // **`found` 恰好一次**那条不变量**原样保留** ✓（见上面的 `matches("found")`）。
+        assert_eq!(err.span.start.line, 1, "落点 = `fun` 那个 token：{err:?}");
+        assert_eq!(err.span.start.column, 16, "err: {err:?}");
         // ② **反向那一半**：本来不带 `found` 的消息照旧拿到追加（别把好的改坏 ✗）。
         let err = parse("theorem t : True := by\n  have\n").unwrap_err();
         assert_eq!(err.code(), "unexpected-token", "判定不许变：{err:?}");
@@ -5532,6 +5632,81 @@ end
             "message: {}",
             err.message
         );
+    }
+
+    /// **`SUB-keyword-decl-name`（2026-10-13）**：与关键字同名的声明**裸名引用不到**
+    /// ⇒ 引用时的诊断必须**落在那个关键字 token 上**、并给出出路（改名 / 点分形式）。
+    ///
+    /// ## 两条同族形状（一次治齐，不许修单点）
+    ///
+    /// ① **表达式形态关键字**（`fun`/`let`/`match`）：parser 先按对应形态去解析 ⇒
+    ///    失败**落在后面的 token 上**（实测 `:= match` ⇒ `L3:1 ... found 输入末尾`
+    ///    —— 指在文件末尾，离真正的错处两行 ✗）；
+    /// ② **命令关键字**（`open`/`import`/`infix`…）：落点本来就对，但文案没说出路 ✗。
+    ///
+    /// ## 判据形状（**绑用户动作**：用户写的就是"引用那个名字"）
+    ///
+    /// 夹具第 2 行 `theorem uses_it : True := <kw>` 里 `<kw>` 从第 **27** 列开始
+    /// ⇒ 断言 `err.span.start.line == 2 && err.span.start.column == 27` ✓
+    /// （**断言行列，不是只断言"有错"** —— 落点漂了就是没修好 ✗）。
+    ///
+    /// ## ⚠ 接受/拒绝**逐字不变**（本判据的另一半）
+    ///
+    /// 名字位照样宽松（`theorem open : …` 仍然**判绿**）—— 上一轮"拒绝它"的修法
+    /// 已撤回（会把 LSP 5 条状态用例打红 ⇒ 撞"判定正确性不变" ✗）。下面
+    /// `assert!(parse(...).is_ok())` 就是这条的守卫 ✓。
+    #[test]
+    fn keyword_shaped_decl_names_report_at_the_keyword_token() {
+        // ① 表达式形态关键字：以前落在**后面的 token**（`:= match` 时是文件末尾）。
+        for kw in ["fun", "let", "match"] {
+            let src =
+                format!("theorem {kw} : True := True.intro\ntheorem uses_it : True := {kw}\n");
+            let err = parse(&src).expect_err(&format!("`{kw}` 的引用必须判红（裸名引用不到）"));
+            assert_eq!(err.code(), "unexpected-token", "{kw}");
+            assert_eq!(
+                (err.span.start.line, err.span.start.column),
+                (2, 27),
+                "`{kw}` 的落点必须是**那个关键字 token**（第 2 行第 27 列）：{:?}",
+                err.span
+            );
+            assert!(
+                err.message.contains("保留关键字")
+                    && err.message.contains("裸名引用不到")
+                    && err.message.contains("点分形式"),
+                "`{kw}` 的文案必须给出出路（改名 / 点分形式）：{}",
+                err.message
+            );
+        }
+        // ② 命令关键字：落点本来就对 ⇒ 钉住**文案补上的那一半**（出路）。
+        for kw in ["open", "import", "infix"] {
+            let src =
+                format!("theorem {kw} : True := True.intro\ntheorem uses_it : True := {kw}\n");
+            let err = parse(&src).expect_err(&format!("`{kw}` 的引用必须判红（裸名引用不到）"));
+            assert_eq!(
+                (err.span.start.line, err.span.start.column),
+                (2, 27),
+                "`{kw}` 的落点：{:?}",
+                err.span
+            );
+            // 老文案（两条既有判据 `contains` 的那句）**不许丢** ✓。
+            assert!(
+                err.message.contains("cannot appear inside an expression"),
+                "`{kw}`：老文案被换掉了 ⇒ 两条既有判据会判红：{}",
+                err.message
+            );
+            assert!(
+                err.message.contains("裸名引用不到") && err.message.contains("点分形式"),
+                "`{kw}` 的文案必须给出出路：{}",
+                err.message
+            );
+        }
+        // ③ **接受面一个字节没动**：名字位照样宽松（声明判绿）。
+        for kw in ["fun", "let", "match", "open", "import", "infix"] {
+            assert!(
+                parse(&format!("theorem {kw} : True := True.intro\n")).is_ok(),
+                "`{kw}` 仍然必须能当声明名（上一轮「拒绝它」的修法已撤回 ✗）"
+            );
+        }
     }
 
     #[test]
