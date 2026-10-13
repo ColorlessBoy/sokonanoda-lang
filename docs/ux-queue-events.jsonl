@@ -232,3 +232,4 @@
 {"ts": "2026-10-13T02:20:51+00:00", "event": "triage", "id": "SUB-orphan-deferred-kernel-taxonomy", "to": "applied", "reason": "订正已落进文档（见本 commit）；更正件以本条为准", "commit": "89a4f465", "owner": "penglingwei@penglingweis-Laptop"}
 {"ts": "2026-10-13T02:20:51+00:00", "event": "triage", "id": "SUB-module-artifacts-knife2-unblocked", "to": "applied", "reason": "订正已落进文档（见本 commit）；更正件以本条为准", "commit": "89a4f465", "owner": "penglingwei@penglingweis-Laptop"}
 {"ts": "2026-10-13T02:20:52+00:00", "event": "triage", "id": "SUB-correction-prior-two-submissions", "to": "applied", "reason": "订正已落进文档（见本 commit）；更正件以本条为准", "commit": "89a4f465", "owner": "penglingwei@penglingweis-Laptop"}
+{"ts": "2026-10-13T02:21:33+00:00", "event": "reopen", "id": "MODULE-ARTIFACTS-KNIFE2", "reason": "受理为实现项（阻塞已解除）⇒ 它是**待实现的活**，不是已修 ⇒ 调度状态回 todo", "owner": "penglingwei@penglingweis-Laptop"}
