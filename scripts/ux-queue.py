@@ -909,7 +909,7 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
                 if ev.get(key):
                     cur[key] = ev[key]
             if ev.get("ts"):
-                # 供**祖先性闸门**按日期分「新增 / 存量」（见 `ANCESTRY_GATE_SINCE`）：
+                # 供**祖先性闸门**按 UTC 时刻分「新增 / 存量」（见 `ANCESTRY_GATE_SINCE`）：
                 # 没有时间戳的 done（旧事件 / triage 受理那一支）按**存量**从宽处理 ✓。
                 cur["advanced_ts"] = ev["ts"]
         elif kind == "split":
@@ -963,11 +963,17 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
 #   · **新增收口**（本闸门之后写的 `done`）**必须**过祖先性 —— 写入口硬拒（`cmd_advance`）
 #     + 读侧复查（`check_plan`；防"先写后 rebase"：记录时是祖先、之后被 rebase 甩掉 ⇒ 判红）；
 #   · **存量**（`ANCESTRY_GATE_SINCE` **之前**记的 done 指针）**不判红**：它们多是 rebase 前的
-#     孪生，改不动（对象在、历史不在）⇒ 每次 `--check` 打一行 ⚠ 汇总（条数 + 日期 + 为什么
-#     豁免 + 清单），**不许静默** ✓。
-#   ⚠ 若 main 再被整体 rebase 一次 ⇒ 今天以后记的指针会（**应该**）判红：那时候它们确实
-#     解析不到 main 了 ⇒ 要么按新历史重开再收口，要么**评审可见地**改这一处口径日期。
-ANCESTRY_GATE_SINCE = "2026-10-14"
+#     孪生，改不动（对象在、历史不在）⇒ 每次 `--check` 打一行 ⚠ 汇总（条数 + 起点的日期 +
+#     为什么豁免 + 清单），**不许静默** ✓。
+#   ⚠ 口径**必须用 UTC 完整时刻**，不能只写本地日期 ✗（2026-10-14 **实测踩到**）：事件表的 `ts`
+#     是 `_now()` 写的 **UTC** 串（`2026-10-13T17:55:10+00:00` = 本地 2026-10-14 01:55）⇒ 只比
+#     日期前 10 位会把"今天刚记的"也算成存量 ⇒ 读侧复查当场**空转** ✗。起点 = **闸门落地那一刻**：
+#     UTC `2026-10-13T17:54` = 本地 2026-10-14 01:54（= `3ede788d`）—— 实测最后一条存量指针记于
+#     `2026-10-13T17:21:42Z`（`MODULE-ARTIFACTS-KNIFE2-ARTIFACT-KEY` @ `40e13467`）⇒ 边界两侧
+#     都有余量 ✓（ISO-8601 同格式串的字典序 = 时间序 ✓）。
+#   ⚠ 若 main 再被整体 rebase 一次 ⇒ 这个起点之后记的指针会（**应该**）判红：那时候它们确实
+#     解析不到 main 了 ⇒ 要么按新历史重开再收口，要么**评审可见地**改这一处口径起点。
+ANCESTRY_GATE_SINCE = "2026-10-13T17:54:00+00:00"
 
 _ANCESTRY_CACHE: dict[str, bool] = {}
 
@@ -1116,7 +1122,7 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
             print(f"✗ `--commit {commit}` **不是 `HEAD` 的祖先**"
                   f"（`git merge-base --is-ancestor` 非零）⇒ 指针解析不到 main 的历史上"
                   f"（多半是 rebase 前的孪生，或别的分支）⇒ 收口证据在 main 上**找不到**，"
-                  f"不许记 ✗（用**真落进 main 的那个 commit**；口径日期 "
+                  f"不许记 ✗（用**真落进 main 的那个 commit**；口径起点 "
                   f"`ANCESTRY_GATE_SINCE={ANCESTRY_GATE_SINCE}`）", file=sys.stderr)
             return 1
     if to in {"wo_filed", "blocked"} and not reason:
@@ -1314,16 +1320,18 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
                       f"**两层漂移**（把来源台账改成 fixed/wo-filed）✗", file=sys.stderr)
                 bad += 1
             # **收口指针必须在 main 的历史上**（2026-10-14 · 缺陷 ⑤）：存在性查不出祖先性 ⇒
-            # 存量（口径日期**之前**记的）走带日期豁免（只报告）；新增（日期**之后**记的，
+            # 存量（口径起点**之前**记的）走带日期豁免（只报告）；新增（起点**之后**记的，
             # 含"记录时是祖先、之后被 rebase 甩掉"这种）判红 ✓ —— 见常量块的口径说明。
             _c = cur.get("commit")
             if _c and not commit_is_ancestor(_c):
                 _ts = cur.get("advanced_ts") or ""
-                if _ts[:10] < ANCESTRY_GATE_SINCE:
+                # ⚠ 比**完整 UTC 时刻**（事件的 `ts` 就是 UTC 串；只比日期前 10 位会把今天记的
+                # 也算成存量 ⇒ 复查空转 ✗，见 `ANCESTRY_GATE_SINCE` 的说明）
+                if _ts < ANCESTRY_GATE_SINCE:
                     legacy_pointers.append((ident, _c))
                 else:
                     print(f"✗ `{ident}` 的收口 commit `{_c}` **不是 `HEAD` 的祖先**"
-                          f"（记录于 {_ts or '无时间戳'} ≥ {ANCESTRY_GATE_SINCE}）⇒ 证据在 main 上"
+                          f"（记录于 {_ts or '无时间戳'} ≥ 口径起点 {ANCESTRY_GATE_SINCE}）⇒ 证据在 main 上"
                           f"**找不到**（被 rebase 甩掉了？）✗ —— 按新历史重开再收口，或改记"
                           f"**真落进 main** 的那个 commit", file=sys.stderr)
                     bad += 1
@@ -1370,9 +1378,10 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
             print(f"✗ 认领 `{c.get('id')}` 不在队列里 ⇒ 幽灵认领 ✗", file=sys.stderr)
             bad += 1
     if legacy_pointers:
-        # **不许静默放过** ✗：存量豁免每次 `--check` 都打出来（条数 + 口径日期 + 为什么 + 清单）。
+        # **不许静默放过** ✗：存量豁免每次 `--check` 都打出来（条数 + 起点 + 为什么 + 清单）。
         print(f"⚠ 存量收口指针 **{len(legacy_pointers)} 条**不是 `HEAD` 的祖先 ⇒ **豁免**"
-              f"（口径日期 {ANCESTRY_GATE_SINCE}）：它们是 rebase 前的孪生（对象在、内容也落了 "
+              f"（口径起点 {ANCESTRY_GATE_SINCE}，即闸门落地那一刻 = 本地 2026-10-14 01:54）："
+              f"它们是 rebase 前的孪生（对象在、内容也落了 "
               f"main，但指针解析不到 main 的历史）⇒ **只报告、不判红**；**新增收口**必须过"
               f"祖先性闸门（`cmd_advance` 硬拒 + 此处复查）✓ —— 清单："
               + " · ".join(f"{i}@{c[:8]}" for i, c in legacy_pointers), file=sys.stderr)
@@ -2313,12 +2322,12 @@ def selftest_ancestry_gate(expect) -> None:
     实测（2026-10-14 量）：65 条 `done` 里 **60 条**的 commit 不是 `HEAD` 的祖先
     （去重后 47 个 sha 里 **32 个**是 rebase 前的孪生）—— 对象在 ✓、内容也落了 main ✓，
     但 `git merge-base --is-ancestor <sha> HEAD` 非零 ⇒ 光查存在性 = **假证据** ✗。
-    口径 = **只对新增收口**要求祖先性 + 存量给一条**带日期**的豁免（`ANCESTRY_GATE_SINCE`，
+    口径 = **只对新增收口**要求祖先性 + 存量给一条**带日期**的豁免（`ANCESTRY_GATE_SINCE` =
     每次 `--check` 打一行 ⚠ 汇总（条数 + 日期 + 为什么 + 清单）⇒ **不静默** ✓）。断言：
       ① 非祖先 sha（现场 `git commit-tree` 造一个**悬垂** commit：对象真的存在、但不是祖先）
          ⇒ `cmd_advance … --to done` **硬拒**（写侧）；
-      ② 同一条 sha + 记录时间 ≥ 口径日期 ⇒ `check_plan` **判红**（读侧复查，防"先写后 rebase"）；
-      ③ 同一条 sha 但记录时间**早于**口径日期 ⇒ **不判红**，且 stderr 里必须出现豁免口径
+      ② 同一条 sha + 记录时间 ≥ 口径起点 ⇒ `check_plan` **判红**（读侧复查，防"先写后 rebase"）；
+      ③ 同一条 sha 但记录时间**早于**口径起点 ⇒ **不判红**，且 stderr 里必须出现豁免口径
          （"存量" + 口径日期 + 清单）—— **不许静默放过** ✓；
       ④ 真祖先（`HEAD`）⇒ 收口通过、也不判红（别误伤 ✓）。
     ⚠ ① 会用 `git commit-tree` 往仓库里写一个**悬垂 commit 对象**（无 ref、无副作用；gc 会回收）。
@@ -2385,22 +2394,26 @@ def selftest_ancestry_gate(expect) -> None:
             # 而 ≥1 ⇒ ② 变成**假绿**（实测踩到过：RV-4 里 ② 没报 FAIL ✗）。
             # ⇒ 每一条断言都从**干净的事件表**开始，谁的红就是谁的红。
             EVENTS.write_text("", encoding="utf-8")
-            # ② 新增（记录时间 ≥ 口径日期）却非祖先 ⇒ 读侧判红（写侧本该拦住 ⇒ 复查"先写后 rebase"）
+            # ② 新增（记录时刻 ≥ 口径起点）却非祖先 ⇒ 读侧判红（写侧本该拦住 ⇒ 复查"先写后 rebase"）
+            #    ⚠ 时刻由常量**推**出来（别写字面量：口径起点是 UTC 完整时刻 ⇒ 写死会漂 ✗）。
+            import datetime as _dt
+            _cut = _dt.datetime.fromisoformat(ANCESTRY_GATE_SINCE)
             append_event({"event": "advance", "id": "G-2", "to": "done", "commit": dangling,
-                          "reading": "夹具读数", "ts": f"{ANCESTRY_GATE_SINCE}T00:00:01+00:00",
-                          "owner": "t"})
+                          "reading": "夹具读数",
+                          "ts": (_cut + _dt.timedelta(minutes=1)).isoformat(), "owner": "t"})
             _r2, _s2, _v2 = snapshot()
             rc, err = capture(check_plan, _v2, _r2)
             expect(f"② 新增收口指针非祖先 ⇒ check_plan 判红（红 {rc} 条）", rc >= 1)
-            # ③ 存量（记录时间 < 口径日期）⇒ 豁免：不判红，但**必须打出来**（不静默 ✗）
+            # ③ 存量（记录时刻 < 口径起点）⇒ 豁免：不判红，但**必须打出来**（不静默 ✗）
             EVENTS.write_text("", encoding="utf-8")
             append_event({"event": "advance", "id": "G-2", "to": "done", "commit": dangling,
-                          "reading": "夹具读数", "ts": "2026-10-13T00:00:01+00:00", "owner": "t"})
+                          "reading": "夹具读数",
+                          "ts": (_cut - _dt.timedelta(minutes=1)).isoformat(), "owner": "t"})
             _r3, _s3, _v3 = snapshot()
             rc, err = capture(check_plan, _v3, _r3)
             expect(f"③ 存量非祖先 ⇒ **不判红**（红 {rc} 条）", rc == 0)
-            expect(f"③ 但**不静默**：stderr 里出现豁免口径（存量 + 日期 + 清单）"
-                   f"[G-2={'G-2@' in err} / 日期={ANCESTRY_GATE_SINCE in err}]",
+            expect(f"③ 但**不静默**：stderr 里出现豁免口径（存量 + 起点 + 清单）"
+                   f"[G-2={'G-2@' in err} / 起点={ANCESTRY_GATE_SINCE in err}]",
                    "存量" in err and ANCESTRY_GATE_SINCE in err and "G-2@" in err)
             # ④ 真祖先（HEAD）⇒ 收口过、也不判红（别误伤 ✓）
             EVENTS.write_text("", encoding="utf-8")
