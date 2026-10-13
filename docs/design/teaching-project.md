@@ -463,7 +463,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 > 329 checked · 99 open · 0 判负**（checked 的 −26 正是 `lib/Logic` 少掉的 26 条
 > 声明，**open 不变** ⇒ 练习与题义未动）。P4 的原始方案见提案
 > `prelude/*.sokonanoda` §1.4/§6；课程侧口径见 `course-stdlib.md`。
-> **仍未做（留给后续）**：`lib/Set` 还有 10 条待移的 L3 引理（L-05 遗留）、记法第二刀。
+> **仍未做（留给后续）**：记法第二刀。（2026-10-13 订正：原写「`lib/Set` 还有 10 条待移的 L3 引理」，而同族档已记 `P-C1 ✅ … 已全部执行完`、引理已在 `units/I.3`/`units/I.5`，`lib/Set.sokonanoda` 只剩一行指路注释 ✓）
 
 > 独立于 P1（语言线）：内容可以先写，写的过程就是缺口探测器。设计 =
 > `docs/design/course-stdlib.md`；现场 = 卷 I 试做稿（原文 ⇒ `git log --all -- docs/gaps/spike/README.md`）。
@@ -479,7 +479,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
   设计 `prelude/*.sokonanoda`（含 as-built 修正）；**P4 课程仓跟随已完成**（同日）；
 - **P-C4 ✅**：单元 3–12 **全部落地**（12 单元 93 题 / 解答 0 open / 门禁 34 目标 · 308 checked · 0 判负）；
   方法 = 两轮 workflow（17 + 14 个子代理：实现→独立复核闭环 + 10 张 WO + 4 份设计/调研）；
-  `lib/Set` 里还剩 10 条待移的 L3 引理（属单元③④，未做，记在 L-05）；
+  ~~`lib/Set` 里还剩 10 条待移的 L3 引理~~（**2026-10-13 订正：早已移完**，见上）；
 - **P-C5 ✅**：`gap.py list --kind library` 视图（标准库欠账单独可见）；
 - **P-C7 ✅**：Demo 自检已 import 全部 8 个 lib 模块（每模块一条冒烟定理）；
 - **P-C8 ✅（本轮 workflow 产出）**：10 张 WO 落盘（`docs/gaps/WO-001…010.md`）+ L1 prelude 提案
