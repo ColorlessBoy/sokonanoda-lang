@@ -239,3 +239,4 @@
 {"ts": "2026-10-13T02:30:30+00:00", "event": "triage", "id": "STALE-CODE-COMPROMISES-C1C4", "to": "applied", "reason": "受理为实现项（等 crates/front 释放）", "commit": "3915ec14", "owner": "penglingwei@penglingweis-Laptop"}
 {"ts": "2026-10-13T02:30:30+00:00", "event": "reopen", "id": "STALE-CODE-COMPROMISES-C1C4", "reason": "受理为实现项 ⇒ 待实现的活，不是已修", "owner": "penglingwei@penglingweis-Laptop"}
 {"ts": "2026-10-13T02:40:21+00:00", "event": "claim", "id": "F12", "owner": "orchestrator", "resources": ["scripts/ux-probes"]}
+{"ts": "2026-10-13T02:41:10+00:00", "event": "advance", "id": "F12", "to": "umbrella", "commit": null, "reading": null, "reason": "它自己的活（探针那一臂）已按降级交付收口，但子项 F12b2（front 侧项位）仍 open ⇒ 保持 umbrella ✓", "owner": "penglingwei@penglingweis-Laptop"}
