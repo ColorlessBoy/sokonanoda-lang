@@ -50,7 +50,7 @@ theorem surjective_of_rightInverse (α β : Type) (g : β → α) (f : α → β
 
 theorem bijective_of_inverse (α β : Type) (f : α → β) (g : β → α)
     (h : Function.Inverse α β f g) : Function.Bijective α β f :=
-  And.intro (Function.Injective α β f) (Function.Surjective α β f)
+  And.intro
     (injective_of_leftInverse α β g f (inverse_left α β f g h))
     (surjective_of_rightInverse α β g f (inverse_right α β f g h))
 
@@ -84,5 +84,5 @@ theorem inverse_unique_apply (α β : Type) (f : α → β) (g : β → α) (g1 
 
 theorem inverse_swap (α β : Type) (f : α → β) (g : β → α)
     (h : Function.Inverse α β f g) : Function.Inverse β α g f :=
-  And.intro (Function.LeftInverse β α f g) (Function.RightInverse β α f g)
+  And.intro
     (inverse_right α β f g h) (inverse_left α β f g h)

@@ -57,7 +57,7 @@ theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
     {a, b} ⊆ A ↔ a ∈ A ∧ b ∈ A :=
   Iff.intro  -- soko:notation-ok: 这里可以省前导实参（分支的期望类型传得进去）
     (fun (h : {a, b} ⊆ A) =>
-      And.intro (a ∈ A) (b ∈ A)
+      And.intro
         (h a (Or.inl (a = a) (a = b) (Eq.refl.{1} α a)))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
         (h b (Or.inr (b = a) (b = b) (Eq.refl.{1} α b))))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
     (fun (h : a ∈ A ∧ b ∈ A) => fun (x : α) (hx : x ∈ {a, b}) =>

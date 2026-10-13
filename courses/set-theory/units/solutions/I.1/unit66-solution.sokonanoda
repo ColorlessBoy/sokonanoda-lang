@@ -44,7 +44,7 @@ theorem inter_subset_inter (α : Type) (A B C D : Set α) (h1 : A ⊆ C) (h2 : B
     (A ∩ B) ⊆ (C ∩ D) :=
   fun (a : α) (h : a ∈ (A ∩ B)) =>
     (fun (hu : a ∈ (C ∩ D) ↔ a ∈ C ∧ a ∈ D) =>
-      Iff.mpr hu (And.intro (a ∈ C) (a ∈ D)
+      Iff.mpr hu (And.intro
         (mem_of_subset α A C h1 a (inter_subset_left α A B a h))
         (mem_of_subset α B D h2 a (inter_subset_right α A B a h))))
       (Set.mem_inter_iff a C D)
@@ -61,6 +61,6 @@ theorem subset_inter_of_both (α : Type) (A B C : Set α) (h1 : C ⊆ A) (h2 : C
     C ⊆ (A ∩ B) :=
   fun (a : α) (h : a ∈ C) =>
     (fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =>
-      Iff.mpr hu (And.intro (a ∈ A) (a ∈ B)
+      Iff.mpr hu (And.intro
         (mem_of_subset α C A h1 a h) (mem_of_subset α C B h2 a h)))
       (Set.mem_inter_iff a A B)

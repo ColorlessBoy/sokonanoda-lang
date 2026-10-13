@@ -33,7 +33,7 @@ theorem subset_antisymm_backward (α : Type) (A : Set α) (B : Set α)
 theorem subset_antisymm_pointwise (α : Type) (A : Set α) (B : Set α)
     (hAB : A ⊆ B) (hBA : B ⊆ A) :
     (∀ (x : α), x ∈ A → x ∈ B) ∧ (∀ (x : α), x ∈ B → x ∈ A) :=
-  And.intro (∀ (x : α), x ∈ A → x ∈ B) (∀ (x : α), x ∈ B → x ∈ A)
+  And.intro
     (subset_antisymm_forward α A B hAB hBA) (subset_antisymm_backward α A B hAB hBA)
 
 theorem injOn_id (α : Type) (A : Set α) : Set.InjOn α α (fun (x : α) => x) A :=
@@ -46,5 +46,5 @@ theorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeO
 
 theorem leOn_of_subset_both (α : Type) (A : Set α) (B : Set α)
     (hAB : A ⊆ B) (hBA : B ⊆ A) : LeOn α α A B ∧ LeOn α α B A :=
-  And.intro (LeOn α α A B) (LeOn α α B A) (leOn_of_subset α A B hAB)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+  And.intro (leOn_of_subset α A B hAB)  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
     (leOn_of_subset α B A hBA)

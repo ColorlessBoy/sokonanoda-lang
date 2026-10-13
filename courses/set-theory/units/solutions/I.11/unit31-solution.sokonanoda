@@ -62,7 +62,7 @@ theorem orderIso_upper_bound_pullback (α β : Type) (r : α → α → Prop) (s
       (rel_subst_left β (fun (p : β) (q : β) => s (f a) q) (f a0) (f a) c ha0
         ((fun (hu : ∀ (y : β), (∃ (x : α), A x ∧ Eq.{1} β (f x) y) → s y c) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
           hu (f a) (Exists.intro α (fun (x : α) => A x ∧ Eq.{1} β (f x) (f a)) a  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-            (And.intro (A a) (Eq.{1} β (f a) (f a)) ha (Eq.refl.{1} β (f a))))) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            (And.intro ha (Eq.refl.{1} β (f a))))) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
 
 theorem orderIso_isSup (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
     (f : α → β) (hm : Monotone α β r s f) (hr : OrderReflecting α β r s f)

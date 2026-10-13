@@ -29,7 +29,7 @@ theorem prod_subset_prod (A B : Type) (s s' : Set A) (t t' : Set B)
   fun (p : Prod A B) (hp : p ∈ (s ×ˢ t)) =>
     (fun (h : (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) =>
       Iff.mpr (Set.mem_prod_iff A B s' t' p)
-        (And.intro ((Prod.fst A B p) ∈ s') ((Prod.snd A B p) ∈ t')
+        (And.intro
           ((fun (hu : ∀ (z : A), z ∈ s → z ∈ s') => hu (Prod.fst A B p) (And.left h)) hs)
           ((fun (hu : ∀ (z : B), z ∈ t → z ∈ t') => hu (Prod.snd A B p) (And.right h)) ht)))
       (Iff.mp (Set.mem_prod_iff A B s t p) hp)
@@ -42,13 +42,13 @@ theorem prod_swap (A B : Type) (s : Set A) (t : Set B) :
     (fun (p : Prod A B) (hp : p ∈ (s ×ˢ t)) =>
       (fun (h : (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) =>
         Iff.mpr (Set.mem_prod_mk B A t s (Prod.snd A B p) (Prod.fst A B p))
-          (And.intro ((Prod.snd A B p) ∈ t) ((Prod.fst A B p) ∈ s)
+          (And.intro
             (And.right h) (And.left h)))
         (Iff.mp (Set.mem_prod_iff A B s t p) hp))
     (fun (q : Prod B A) (hq : q ∈ (t ×ˢ s)) =>
       (fun (h : (Prod.fst B A q) ∈ t ∧ (Prod.snd B A q) ∈ s) =>
         Iff.mpr (Set.mem_prod_mk A B s t (Prod.snd B A q) (Prod.fst B A q))
-          (And.intro ((Prod.snd B A q) ∈ s) ((Prod.fst B A q) ∈ t)
+          (And.intro
             (And.right h) (And.left h)))
         (Iff.mp (Set.mem_prod_iff B A t s q) hq))
     (fun (p : Prod A B) (hp : p ∈ (s ×ˢ t)) => Prod.eta A B p)
@@ -68,7 +68,7 @@ theorem prod_swap_mem (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
     (hp : p ∈ (s ×ˢ t)) :
     (prod_mk B A (Prod.snd A B p) (Prod.fst A B p)) ∈ (t ×ˢ s) :=
   Iff.mpr (Set.mem_prod_mk B A t s (Prod.snd A B p) (Prod.fst A B p))
-    (And.intro ((Prod.snd A B p) ∈ t) ((Prod.fst A B p) ∈ s)
+    (And.intro
       (prod_mem_snd A B s t p hp) (prod_mem_fst A B s t p hp))
 
 theorem prod_mem_pair (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B)
@@ -87,7 +87,7 @@ theorem prod_swap_subset_swap (A B : Type) (s s' : Set A) (t t' : Set B)
         (fun (hh' : (Prod.fst A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q))) ∈ s' ∧
             (Prod.snd A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q))) ∈ t') =>
           Iff.mpr (Set.mem_prod_iff B A t' s' q)
-            (And.intro ((Prod.fst B A q) ∈ t') ((Prod.snd B A q) ∈ s')
+            (And.intro
               (rel_subst_left B (fun (u : B) (v : B) => v ∈ t')
                 (Prod.snd A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q)))
                 (Prod.fst B A q) (Prod.fst B A q)
@@ -113,6 +113,6 @@ theorem prod_swap_subset_swap (A B : Type) (s s' : Set A) (t t' : Set B)
         ((fun (hs : ∀ (z : Prod A B), z ∈ (s ×ˢ t) → z ∈ (s' ×ˢ t')) =>
           hs (prod_mk A B (Prod.snd B A q) (Prod.fst B A q))
             (Iff.mpr (Set.mem_prod_mk A B s t (Prod.snd B A q) (Prod.fst B A q))
-              (And.intro ((Prod.snd B A q) ∈ s) ((Prod.fst B A q) ∈ t)
+              (And.intro
                 (And.right hq') (And.left hq')))) h))
       (Iff.mp (Set.mem_prod_iff B A t s q) hq)

@@ -55,6 +55,6 @@ theorem leOn_of_equiv (α : Type) (β : Type) (A : Set α) (B : Set β) (h : A �
     (fun (f : α → β) (g : β → α) (hf : Set.MapsTo α β f A B)
       (hg : Set.MapsTo β α g B A) (hgf : Set.LeftInvOn α β g f A)
       (hfg : Set.RightInvOn α β f g B) =>
-      And.intro (LeOn α β A B) (LeOn β α B A)
+      And.intro
         (leOn_intro α β A B f (injOn_of_leftInv α β f g A hgf) hf)
         (leOn_intro β α B A g (injOn_of_rightInv α β g f B hfg) hg))

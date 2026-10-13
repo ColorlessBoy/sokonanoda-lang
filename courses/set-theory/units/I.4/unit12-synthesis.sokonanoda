@@ -148,9 +148,9 @@ theorem demo_rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Re
           (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) (And.right hb)
           (fun (c : C) => fun (hc2 : s b c ∧ t c d) =>
             Exists.intro c
-              (And.intro (∃ (b2 : B), r a b2 ∧ s b2 c) (t c d)
+              (And.intro
                 (Exists.intro b
-                  (And.intro (r a b) (s b c)
+                  (And.intro
                     (And.left hb)
                     (And.left hc2)))
                 (And.right hc2))))

@@ -46,7 +46,7 @@ theorem mem_inter_sUnion_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α
         (mem_of_mem_sUnion α F c (mem_inter_right α A (⋃₀ F) c h))
         (fun (B : Set α) (hB : B ∈ F ∧ c ∈ B) =>
           Exists.intro (Set α) (fun (D : Set α) => D ∈ F ∧ c ∈ (A ∩ D)) B  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
-            (And.intro (B ∈ F) (c ∈ (A ∩ B)) (And.left hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+            (And.intro (And.left hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
               (mem_inter_intro α A B c (mem_inter_left α A (⋃₀ F) c h)
                 (And.right hB)))))
     (fun (h : ∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B)) =>
@@ -58,7 +58,7 @@ theorem mem_inter_sUnion_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α
             (mem_inter_left α A B c (And.right hB))
             ((fun (hu : c ∈ (⋃₀ F) ↔ ∃ (D : Set α), D ∈ F ∧ c ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
               Iff.mpr hu (Exists.intro (Set α) (fun (D : Set α) => D ∈ F ∧ c ∈ D) B  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
-                (And.intro (B ∈ F) (c ∈ B) (And.left hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+                (And.intro (And.left hB)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
                   (mem_inter_right α A B c (And.right hB)))))
               (Set.mem_sUnion_iff α F c))))
 
@@ -68,7 +68,7 @@ theorem mem_inter_sInter_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α
   Iff.intro (c ∈ (A ∩ (⋂₀ F)))
     (c ∈ A ∧ ∀ (B : Set α), B ∈ F → c ∈ (A ∩ B))
     (fun (h : c ∈ (A ∩ (⋂₀ F))) =>
-      And.intro (c ∈ A) (∀ (B : Set α), B ∈ F → c ∈ (A ∩ B))
+      And.intro
         (mem_inter_left α A (⋂₀ F) c h)
         (fun (B : Set α) (hB : B ∈ F) =>
           mem_inter_intro α A B c (mem_inter_left α A (⋂₀ F) c h)

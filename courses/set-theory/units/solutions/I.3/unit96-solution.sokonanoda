@@ -47,7 +47,7 @@ theorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeO
   (fun (hs : ∀ (x : α), x ∈ A → x ∈ B) =>
     Exists.intro (α → α) (fun (f : α → α) => Set.InjOn α α f A ∧ Set.MapsTo α α f A B)
       (fun (x : α) => x)
-      (And.intro (Set.InjOn α α (fun (x : α) => x) A) (Set.MapsTo α α (fun (x : α) => x) A B)
+      (And.intro
         (injOn_id α A) hs))
     ((fun (hu : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hu h) (Set.subset_def α A B))
 

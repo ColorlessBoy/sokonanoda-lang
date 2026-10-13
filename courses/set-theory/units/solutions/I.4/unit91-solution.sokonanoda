@@ -47,7 +47,7 @@ theorem left_inv_surj (α : Type) (β : Type) (f : α → β) (g : β → α)
 theorem inv_bij (α : Type) (β : Type) (f : α → β) (g : β → α)
     (hfg : ∀ (a : α), g (f a) = a) (hgf : ∀ (b : β), f (g b) = b) :
     BijPair β α g :=
-  And.intro (Injective β α g) (Surjective β α g)
+  And.intro
     (right_inv_inj α β f g hgf) (left_inv_surj α β f g hfg)
 
 theorem inv_unique (α : Type) (β : Type) (f : α → β) (g : β → α) (g' : β → α)

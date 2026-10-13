@@ -58,7 +58,7 @@ theorem demo_hasMin_def (α : Type) (r : Rel α α) (P : α → Prop) :
 theorem demo_wf_empty_hasMin (α : Type) (P : α → Prop) (x : α) (hx : P x) :
     HasMin α (fun (_ : α) (_ : α) => False) P :=
   Exists.intro x
-    (And.intro (P x) (∀ (y : α), P y → ¬ False) hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (And.intro hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
       (fun (y : α) => fun (hy : P y) => fun (hf : False) => hf))
 
 -- ─────────────────────────────────────────────────────────────

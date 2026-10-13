@@ -235,13 +235,12 @@ theorem image_inter_singletons_empty :
 example : Set.mem Two aa  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标里补不出）
     (Set.inter Two (f1 '' ({aa}))
       (f1 '' ({bb}))) :=
-  And.intro (aa ∈ (f1 '' ({aa})))
-    (aa ∈ (f1 '' ({bb})))  -- soko:notation-ok: R1/R2：同上
+  And.intro  -- soko:notation-ok: R1/R2：同上
     (Exists.intro Two (fun (t : Two) => (t = aa) ∧ (Eq.{1} Two (f1 t) aa))
-      aa (And.intro (aa = aa) (Eq.{1} Two (f1 aa) aa)  -- soko:notation-ok: R1/R2：同上
+      aa (And.intro  -- soko:notation-ok: R1/R2：同上
         (Eq.refl.{1} Two aa) (Eq.refl.{1} Two aa)))
     (Exists.intro Two (fun (t : Two) => (t = bb) ∧ (Eq.{1} Two (f1 t) aa))  -- soko:notation-ok: R1/R2：同上
-      bb (And.intro (bb = bb) (Eq.{1} Two (f1 bb) aa)
+      bb (And.intro
         (Eq.refl.{1} Two bb) (Eq.refl.{1} Two aa)))
 
 -- ─────────────────────────────────────────────────────────────
@@ -258,14 +257,14 @@ theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
       (fun (x : α) => (x ∈ (A ∩ B)) ∧ ((f x) = y))
       ((y ∈ (f '' A)) ∧ (y ∈ (f '' B))) h
       (fun (x : α) => fun (hx : (x ∈ (A ∩ B)) ∧ ((f x) = y)) =>
-        And.intro (y ∈ (f '' A)) (y ∈ (f '' B))
+        And.intro
           (Exists.intro x
-            (And.intro (A x) ((f x) = y)
+            (And.intro
               (And.left (A x) (B x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (And.left hx))
               (And.right hx)))
           (Exists.intro x
-            (And.intro (B x) ((f x) = y)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (And.intro  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (And.right (A x) (B x)
                 (And.left hx))
               (And.right hx))))

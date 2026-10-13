@@ -45,7 +45,7 @@ theorem sdiff_empty_eq (α : Type) (A : Set α) : Eq.{1} (Set α) (A \ (∅ α))
           (fun (h : a ∈ (A \ (∅ α))) => mem_of_mem_sdiff α A (∅ α) a h)
           (fun (h : a ∈ A) =>
             (fun (hu : a ∈ (A \ (∅ α)) ↔ a ∈ A ∧ ¬ (a ∈ (∅ α))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
-              Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ (∅ α))) h  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
+              Iff.mpr hu (And.intro h  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
                 (fun (he : a ∈ (∅ α)) => (Iff.mp (Set.mem_empty_iff_false a) he))))
               (Set.mem_sdiff a A (∅ α)))))
 

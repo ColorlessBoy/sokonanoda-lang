@@ -37,7 +37,7 @@ theorem relImg_mono (α β : Type) (r : Rel α β) (A B : Set α) (h : A ⊆ B) 
       (∃ (a : α), B a ∧ r a b) hb
       (fun (a : α) (ha : A a ∧ r a b) =>
         Exists.intro a
-          (And.intro (B a) (r a b)
+          (And.intro
             ((fun (hu : ∀ (x : α), A x → B x) => hu a (And.left ha)) h) (And.right ha)))
 
 theorem relPre_mono (α β : Type) (r : Rel α β) (A B : Set β) (h : A ⊆ B) :
@@ -47,7 +47,7 @@ theorem relPre_mono (α β : Type) (r : Rel α β) (A B : Set β) (h : A ⊆ B) 
       (∃ (b : β), B b ∧ r a b) ha
       (fun (b : β) (hb : A b ∧ r a b) =>
         Exists.intro β (fun (b1 : β) => B b1 ∧ r a b1) b
-          (And.intro (B b) (r a b)
+          (And.intro
             ((fun (hu : ∀ (x : β), A x → B x) => hu b (And.left hb)) h) (And.right hb)))
 
 theorem relImg_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) (c : γ)
@@ -59,7 +59,7 @@ theorem relImg_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : S
         (∃ (b : β), (relImg α β r A) b ∧ s b c) (And.right ha)
         (fun (b : β) (hb : r a b ∧ s b c) =>
           Exists.intro β (fun (b1 : β) => (relImg α β r A) b1 ∧ s b1 c) b
-            (And.intro ((relImg α β r A) b) (s b c)
+            (And.intro
               (Exists.intro a
                 (And.intro (And.left ha) (And.left hb)))
               (And.right hb))))
@@ -73,7 +73,7 @@ theorem relImg_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : S
         (∃ (a : α), A a ∧ (r • s) a c) (And.left hb)
         (fun (a : α) (ha : A a ∧ r a b) =>
           Exists.intro a
-            (And.intro (A a) ((r • s) a c) (And.left ha)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+            (And.intro (And.left ha)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
               (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
                 (And.intro (And.right ha) (And.right hb))))))
 
@@ -93,7 +93,7 @@ theorem relPre_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : S
         (∃ (b : β), (relPre β γ s C) b ∧ r a b) (And.right hc)
         (fun (b : β) (hb : r a b ∧ s b c) =>
           Exists.intro β (fun (b1 : β) => (relPre β γ s C) b1 ∧ r a b1) b
-            (And.intro ((relPre β γ s C) b) (r a b)
+            (And.intro
               (Exists.intro γ (fun (c1 : γ) => C c1 ∧ s b c1) c
                 (And.intro (And.left hc) (And.right hb)))
               (And.left hb))))
@@ -107,7 +107,7 @@ theorem relPre_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : S
         (∃ (c : γ), C c ∧ (r • s) a c) (And.left hb)
         (fun (c : γ) (hc : C c ∧ s b c) =>
           Exists.intro γ (fun (c1 : γ) => C c1 ∧ (r • s) a c1) c
-            (And.intro (C c) ((r • s) a c) (And.left hc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+            (And.intro (And.left hc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
               (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
                 (And.intro (And.right hb) (And.right hc))))))
 
@@ -129,7 +129,7 @@ theorem relImg_idRel (α : Type) (A : Set α) :
               (And.right ha) (And.left ha)))
       (fun (h : A b) =>
         Exists.intro b
-          (And.intro (A b) ((idRel α) b b) h (Eq.refl.{1} α b))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (And.intro h (Eq.refl.{1} α b))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
 
 theorem kernel_is_equivalence (α β : Type) (f : α → β) :
     IsEquivalence α (kernel α β f) :=
@@ -162,7 +162,7 @@ theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
         (b ∈ (relImg α β r (Set.univ α))) h
         (fun (a : α) (ha : r a b) =>
           Exists.intro a
-            (And.intro ((Set.univ α) a) (r a b)
+            (And.intro
               ((fun (hu : ∀ (x : α), (Set.univ α) x) => hu a) (Set.mem_univ α)) ha)))
 
 theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)

@@ -55,7 +55,7 @@ theorem pi_empty_of_empty (ι α : Type) (A : ι → Set α)
 theorem pi_inter_subset (ι α : Type) (A B : ι → Set α) :
     (Set.pi ι α (fun (i : ι) => A i ∩ B i)) ⊆ ((Set.pi ι α A) ∩ (Set.pi ι α B)) :=
   fun (f : ι → α) (hf : f ∈ (Set.pi ι α (fun (i : ι) => A i ∩ B i))) =>
-    And.intro (f ∈ (Set.pi ι α A)) (f ∈ (Set.pi ι α B))
+    And.intro
       (Set.mem_pi_intro ι α A f
         (fun (i : ι) =>
           (fun (hi : f i ∈ (A i ∩ B i)) => And.left hi)
@@ -74,7 +74,7 @@ theorem pi_inter_subset_rev (ι α : Type) (A B : ι → Set α) :
   fun (f : ι → α) (hf : f ∈ ((Set.pi ι α A) ∩ (Set.pi ι α B))) =>
     Set.mem_pi_intro ι α (fun (i : ι) => A i ∩ B i) f
       (fun (i : ι) =>
-        And.intro (f i ∈ A i) (f i ∈ B i)
+        And.intro
           (Set.mem_pi_elim ι α A f i ((fun (hp : (Set.pi ι α A) f ∧ (Set.pi ι α B) f) => And.left hp) hf))
           (Set.mem_pi_elim ι α B f i ((fun (hp : (Set.pi ι α A) f ∧ (Set.pi ι α B) f) => And.right hp) hf)))
 

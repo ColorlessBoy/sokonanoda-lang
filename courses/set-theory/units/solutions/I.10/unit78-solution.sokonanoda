@@ -84,7 +84,7 @@ theorem ofPartition_intro (α : Type) (P : (α → Prop) → Prop) (A : α → P
     (hA : P A) (ha : A a) (hb : A b) : Rel.ofPartition α P a b :=
   (fun (hu : Rel.ofPartition α P a b ↔ ∃ (B : α → Prop), P B ∧ B a ∧ B b) =>
     Iff.mpr hu (Exists.intro (α → Prop) (fun (B : α → Prop) => P B ∧ B a ∧ B b) A  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
-      (And.intro hA (And.intro (A a) (A b) ha hb))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+      (And.intro hA (And.intro ha hb))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
     (Rel.ofPartition_apply α P a b)
 
 theorem mem_of_ofPartition (α : Type) (P : (α → Prop) → Prop) (a : α) (b : α)
@@ -137,9 +137,8 @@ theorem ofPartition_isEquivalence (α : Type) (P : (α → Prop) → Prop)
   (fun (hu : IsEquivalence α (Rel.ofPartition α P) ↔
       Reflexive α (Rel.ofPartition α P) ∧ Symmetric α (Rel.ofPartition α P) ∧
       Transitive α (Rel.ofPartition α P)) =>
-    Iff.mpr hu (And.intro (Reflexive α (Rel.ofPartition α P))
-      (Symmetric α (Rel.ofPartition α P) ∧ Transitive α (Rel.ofPartition α P))
+    Iff.mpr hu (And.intro
       (ofPartition_refl α P h)
-      (And.intro (Symmetric α (Rel.ofPartition α P)) (Transitive α (Rel.ofPartition α P))
+      (And.intro
         (ofPartition_symm α P) (ofPartition_trans α P h))))
     (isEquivalence_def α (Rel.ofPartition α P))

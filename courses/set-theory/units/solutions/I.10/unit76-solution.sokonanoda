@@ -34,10 +34,8 @@ theorem kernel_isEquivalence (α : Type) (β : Type) (f : α → β) :
     IsEquivalence α (kernel α β f) :=
   (fun (hu : IsEquivalence α (kernel α β f) ↔
       Reflexive α (kernel α β f) ∧ Symmetric α (kernel α β f) ∧ Transitive α (kernel α β f)) =>
-    Iff.mpr hu (And.intro (Reflexive α (kernel α β f))
-      (Symmetric α (kernel α β f) ∧ Transitive α (kernel α β f))
-      (kernel_refl α β f) (And.intro (Symmetric α (kernel α β f))
-        (Transitive α (kernel α β f)) (kernel_symm α β f) (kernel_trans α β f))))
+    Iff.mpr hu (And.intro
+      (kernel_refl α β f) (And.intro (kernel_symm α β f) (kernel_trans α β f))))
     (isEquivalence_def α (kernel α β f))
 
 theorem mem_equivClass_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :

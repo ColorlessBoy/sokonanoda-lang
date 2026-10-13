@@ -122,7 +122,7 @@ theorem sdiff_sdiff (α : Type) (A B C : Set α) :
   intro x
   constructor
   intro h
-  exact And.intro (x ∈ A) (¬ (x ∈ B ∪ C))
+  exact And.intro
     (And.left (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
       (And.left h))
     (fun (hbc : x ∈ B ∪ C) =>
@@ -134,8 +134,8 @@ theorem sdiff_sdiff (α : Type) (A B C : Set α) :
           And.right h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
         hbc)
   intro h
-  exact And.intro (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C))
-    (And.intro (x ∈ A) (¬ (x ∈ B))
+  exact And.intro
+    (And.intro
       (And.left h)
       (fun (hb : x ∈ B) =>
         And.right h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）

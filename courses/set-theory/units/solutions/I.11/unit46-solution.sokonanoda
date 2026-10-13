@@ -63,7 +63,7 @@ theorem symmDiff_empty_apply (α : Type) (A : Set α) (x : α) :
     (fun (h : A x) =>
       Or.inl (A x ∧ ¬ ((fun (_ : α) => False) x))
         ((fun (_ : α) => False) x ∧ ¬ (A x))
-        (And.intro (A x) (¬ ((fun (_ : α) => False) x)) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (And.intro h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
           (fun (hf : (fun (_ : α) => False) x) => hf)))
 
 theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
@@ -79,7 +79,7 @@ theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
         (fun (h2 : (Set.univ α) x ∧ ¬ (A x)) => And.right h2) h)
     (fun (h : ¬ (A x)) =>
       Or.inr (A x ∧ ¬ ((Set.univ α) x)) ((Set.univ α) x ∧ ¬ (A x))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-        (And.intro ((Set.univ α) x) (¬ (A x))
+        (And.intro
           ((fun (hu : ∀ (y : α), (Set.univ α) y) => hu x) (Set.mem_univ α)) h))
 
 theorem symmDiff_subset_union (α : Type) (A B : Set α) :

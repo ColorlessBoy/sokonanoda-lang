@@ -65,7 +65,7 @@ theorem demo_strictOf_transitive (α : Type) (r : Rel α α)
     Transitive α (strictOf α r) :=
   fun (a : α) => fun (b : α) => fun (c : α) =>
     fun (hab : strictOf α r a b) => fun (hbc : strictOf α r b c) =>
-      And.intro (r a c) (¬ (a = c))
+      And.intro
         ((fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
           ht a b c (And.left hab) (And.left hbc)) htrans)
         (fun (hac : a = c) =>

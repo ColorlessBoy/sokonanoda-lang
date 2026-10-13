@@ -92,6 +92,6 @@ theorem strictOf_trans (α : Type) (r : α → α → Prop) (h : IsPartialOrder 
     Transitive α (strictOf α r) :=
   fun (a b c : α) (hab : strictOf α r a b) (hbc : strictOf α r b c) =>
     (fun (hgoal : r a c ∧ a ≠ c) => hgoal)
-      (And.intro (r a c) (a ≠ c)
+      (And.intro
         (partialOrder_trans α r h a b c (And.left hab) (And.left hbc))
         (strictOf_neq α r h a b c hab hbc))

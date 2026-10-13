@@ -50,6 +50,5 @@ theorem bij_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β →
     (hf : Injective α β f) (hfs : Surjective α β f)
     (hg : Injective β γ g) (hgs : Surjective β γ g) :
     BijPair α γ (fun (x : α) => g (f x)) :=
-  And.intro (Injective α γ (fun (x : α) => g (f x)))
-    (Surjective α γ (fun (x : α) => g (f x)))
+  And.intro
     (inj_comp α β γ f g hf hg) (surj_comp α β γ f g hfs hgs)

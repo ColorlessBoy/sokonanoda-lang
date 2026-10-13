@@ -120,5 +120,5 @@ theorem graph_comp (α β γ : Type) (f : α → β) (g : β → γ) (a : α) (c
             (And.right hb)))
     (fun (h : Eq.{1} γ (g (f a)) c) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
       Exists.intro β (fun (b : β) => (graph α β f) a b ∧ (graph β γ g) b c) (f a)
-        (And.intro ((graph α β f) a (f a)) ((graph β γ g) (f a) c)
+        (And.intro
           (Eq.refl.{1} β (f a)) h))

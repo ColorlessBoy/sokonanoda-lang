@@ -30,12 +30,12 @@ theorem mem_sdiff_compl (α : Type) (A B : Set α) (a : α) :
   Iff.intro (a ∈ (A \ B)) (a ∈ (A ∩ Bᶜ))
     (fun (h : a ∈ (A \ B)) =>
       (fun (hu : a ∈ (A ∩ Bᶜ) ↔ a ∈ A ∧ a ∈ Bᶜ) =>
-        Iff.mpr hu (And.intro (a ∈ A) (a ∈ Bᶜ)
+        Iff.mpr hu (And.intro
           (mem_of_mem_sdiff α A B a h) (not_mem_of_mem_sdiff α A B a h)))
         (Set.mem_inter_iff a A (Bᶜ)))
     (fun (h : a ∈ (A ∩ Bᶜ)) =>
       (fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =>
-        Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ B))
+        Iff.mpr hu (And.intro
           (And.left ((fun (hv : a ∈ (A ∩ Bᶜ) ↔ a ∈ A ∧ a ∈ Bᶜ) => Iff.mp hv h)
             (Set.mem_inter_iff a A (Bᶜ))))
           (And.right ((fun (hv : a ∈ (A ∩ Bᶜ) ↔ a ∈ A ∧ a ∈ Bᶜ) => Iff.mp hv h)
@@ -46,9 +46,9 @@ theorem mem_sdiff_union (α : Type) (A B C : Set α) (a : α) :
     a ∈ (A \ (B ∪ C)) ↔ a ∈ (A \ B) ∧ a ∈ (A \ C) :=
   Iff.intro (a ∈ (A \ (B ∪ C))) (a ∈ (A \ B) ∧ a ∈ (A \ C))
     (fun (h : a ∈ (A \ (B ∪ C))) =>
-      And.intro (a ∈ (A \ B)) (a ∈ (A \ C))
+      And.intro
         ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =>
-          Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ B))
+          Iff.mpr hu (And.intro
             (mem_of_mem_sdiff α A (B ∪ C) a h)
             (fun (hb : a ∈ B) =>
               not_mem_of_mem_sdiff α A (B ∪ C) a h
@@ -56,7 +56,7 @@ theorem mem_sdiff_union (α : Type) (A B C : Set α) (a : α) :
                   (Set.mem_union a B C)))))
           (Set.mem_sdiff a A B))
         ((fun (hu : a ∈ (A \ C) ↔ a ∈ A ∧ ¬ (a ∈ C)) =>
-          Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ C))
+          Iff.mpr hu (And.intro
             (mem_of_mem_sdiff α A (B ∪ C) a h)
             (fun (hc : a ∈ C) =>
               not_mem_of_mem_sdiff α A (B ∪ C) a h
@@ -65,7 +65,7 @@ theorem mem_sdiff_union (α : Type) (A B C : Set α) (a : α) :
           (Set.mem_sdiff a A C)))
     (fun (h : a ∈ (A \ B) ∧ a ∈ (A \ C)) =>
       (fun (hu : a ∈ (A \ (B ∪ C)) ↔ a ∈ A ∧ ¬ (a ∈ (B ∪ C))) =>
-        Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ (B ∪ C)))
+        Iff.mpr hu (And.intro
           (mem_of_mem_sdiff α A B a (And.left h))
           (fun (hbc : a ∈ (B ∪ C)) =>
             Or.elim (a ∈ B) (a ∈ C) False
@@ -80,7 +80,7 @@ theorem mem_sdiff_empty (α : Type) (A : Set α) (a : α) :
     (fun (h : a ∈ (A \ (∅ α))) => mem_of_mem_sdiff α A (∅ α) a h)
     (fun (h : a ∈ A) =>
       (fun (hu : a ∈ (A \ (∅ α)) ↔ a ∈ A ∧ ¬ (a ∈ (∅ α))) =>  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参
-        Iff.mpr hu (And.intro (a ∈ A) (¬ (a ∈ (∅ α))) h  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参
+        Iff.mpr hu (And.intro h  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参
           (fun (he : a ∈ (∅ α)) => (Iff.mp (Set.mem_empty_iff_false a) he))))
         (Set.mem_sdiff a A (∅ α)))
 

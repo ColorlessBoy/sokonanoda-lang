@@ -328,13 +328,12 @@ def nearStep (a b : Nat) : Prop :=
 -- ─────────────────────────────────────────────────────────────────────────
 theorem nearStep_counterexample :
     Reflexive Nat nearStep ∧ (Symmetric Nat nearStep ∧ ¬ (Transitive Nat nearStep)) := by
-  exact And.intro (Reflexive Nat nearStep)
-    ((Symmetric Nat nearStep) ∧ (¬ (Transitive Nat nearStep)))
+  exact And.intro
     (fun (a : Nat) =>
       Or.inl (a = a)
         (((Nat.succ a) = a) ∨ (a = (Nat.succ a)))
         (Eq.refl.{1} Nat a))
-    (And.intro (Symmetric Nat nearStep) (¬ (Transitive Nat nearStep))
+    (And.intro
       (fun (a b : Nat) => fun (h : nearStep a b) =>
         Or.elim (a = b)
           (((Nat.succ a) = b) ∨ (a = (Nat.succ b)))

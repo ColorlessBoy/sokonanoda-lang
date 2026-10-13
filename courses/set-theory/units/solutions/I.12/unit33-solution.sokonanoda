@@ -28,14 +28,14 @@ theorem powerset_inter (α : Type) (A B : Set α) :
   Set.ext (Set α) (𝒫 (A ∩ B)) (𝒫 A ∩ 𝒫 B) (fun (C : Set α) =>
     Iff.intro (C ∈ 𝒫 (A ∩ B)) (C ∈ (𝒫 A ∩ 𝒫 B))
       (fun (h : C ⊆ A ∩ B) =>
-        And.intro (C ∈ 𝒫 A) (C ∈ 𝒫 B)
+        And.intro
           (fun (x : α) => fun (hx : C x) =>
             (fun (hu : ∀ (y : α), C y → A y ∧ B y) => And.left (hu x hx)) h)
           (fun (x : α) => fun (hx : C x) =>
             (fun (hu : ∀ (y : α), C y → A y ∧ B y) => And.right (hu x hx)) h))
       (fun (h : C ∈ (𝒫 A ∩ 𝒫 B)) =>
         fun (x : α) => fun (hx : C x) =>
-          And.intro (A x) (B x)
+          And.intro
             ((fun (hu : ∀ (y : α), C y → A y) => hu x hx)
               ((fun (hp : C ⊆ A ∧ C ⊆ B) => And.left hp) h))
             ((fun (hu : ∀ (y : α), C y → B y) => hu x hx)

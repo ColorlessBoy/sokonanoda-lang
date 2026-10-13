@@ -68,7 +68,7 @@ theorem addsTo_succ_inv (α : Type) (E : α → α → Prop) (σ : α → α) (z
         (ih : ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z) =>
       fun (y : α) (he : σ b = σ y) =>
         Exists.intro α (fun (z : α) => σ c = σ z ∧ AddsTo α E σ zero a y z) c
-          (And.intro (σ c = σ c) (AddsTo α E σ zero a y c) (Eq.refl.{1} α (σ c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (And.intro (Eq.refl.{1} α (σ c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
             (Eq.subst.{1} α (fun (t : α) => AddsTo α E σ zero a t c) b y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
               (Eq.symm.{1} α y b (hinj y b (Eq.symm.{1} α (σ b) (σ y) he))) hh)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
     x (σ y) v h y (Eq.refl.{1} α (σ y))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
@@ -84,7 +84,7 @@ theorem addsTo_assoc (α : Type) (E : α → α → Prop) (σ : α → α) (zero
         ∃ (u : α), AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c)
     (fun (a : α) => fun (x : α) (y : α) (h : AddsTo α E σ zero x y a) =>
       Exists.intro α (fun (u : α) => AddsTo α E σ zero y zero u ∧ AddsTo α E σ zero x u a)
-        y (And.intro (AddsTo α E σ zero y zero y) (AddsTo α E σ zero x y a)
+        y (And.intro
           (AddsTo.zero α E σ zero y) h))
     (fun (a : α) (b : α) (c : α) (hh : AddsTo α E σ zero a b c)
         (ih : ∀ (x : α) (y : α), AddsTo α E σ zero x y a →
@@ -95,7 +95,7 @@ theorem addsTo_assoc (α : Type) (E : α → α → Prop) (σ : α → α) (zero
             Exists.intro α
               (fun (u' : α) => AddsTo α E σ zero y (σ b) u' ∧ AddsTo α E σ zero x u' (σ c))
               (σ u)
-              (And.intro (AddsTo α E σ zero y (σ b) (σ u)) (AddsTo α E σ zero x (σ u) (σ c))
+              (And.intro
                 (AddsTo.succ α E σ zero y b u
                   (And.left hu))
                 (AddsTo.succ α E σ zero x u c

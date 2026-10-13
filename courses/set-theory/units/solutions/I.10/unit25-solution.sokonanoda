@@ -70,7 +70,7 @@ theorem classes_cover (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a :
     ∃ (C : α → Prop), Rel.Classes α r C ∧ C a :=
   Exists.intro (α → Prop) (fun (C : α → Prop) => Rel.Classes α r C ∧ C a)
     (Rel.EquivClass α r a)
-    (And.intro (Rel.Classes α r (Rel.EquivClass α r a)) ((Rel.EquivClass α r a) a)
+    (And.intro
       ((fun (h : ∃ (a' : α), ∀ (c : α), Rel.EquivClass α r a c ↔ r a' c) => h)
         (Exists.intro α (fun (a' : α) => ∀ (c : α), Rel.EquivClass α r a c ↔ r a' c) a
           (fun (c : α) => Iff.intro (Rel.EquivClass α r a c) (r a c)
