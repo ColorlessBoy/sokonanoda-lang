@@ -36,7 +36,7 @@ theorem choice_weaken (α β : Type) (A : Set α) (B : Set β) (P : α → β �
     (∃ (f : α → β), ∀ (x : α), x ∈ A → P x (f x))
     (choice α β A B P h)
     (fun (f : α → β) (hf : ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)) =>
-      Exists.intro (α → β) (fun (f' : α → β) => ∀ (x : α), x ∈ A → P x (f' x)) f  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+      Exists.intro f
         (fun (x : α) (hx : x ∈ A) =>
           (fun (hfx : f x ∈ B ∧ P x (f x)) => And.right hfx) (hf x hx)))
 
@@ -51,7 +51,7 @@ theorem choice_on_univ (α β : Type) (P : α → β → Prop)
         Exists.elim β (fun (y : β) => P x y)
           (∃ (y : β), y ∈ Set.univ β ∧ P x y) (h x)
           (fun (y : β) (hy : P x y) =>
-            Exists.intro β (fun (y' : β) => y' ∈ Set.univ β ∧ P x y') y
+            Exists.intro y
               (And.intro (Set.mem_univ β y) hy))))
     (fun (f : α → β)
       (hf : ∀ (x : α), x ∈ Set.univ α → f x ∈ Set.univ β ∧ P x (f x)) =>
