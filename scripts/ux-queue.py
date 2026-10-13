@@ -2660,6 +2660,17 @@ def selftest_source_visibility(expect) -> None:
             globals()["probe_inventory"] = saved[6]
 
 
+# ── 「来源 × 调度器状态」网格（`--selftest` 的 ⑤）的两维 ─────────────────────
+# ⚠ **加第四个来源 / 加一个调度器状态只改这里**（格数与自检摘要里的条数都从它算 ✓）——
+# 这一处就是"以后不许再只修一处"的那一处（AGENTS.md 硬规则 0(b)）。
+GRID_PAIRS = (("GF", "gap", "fixed"), ("GW", "gap", "wo-filed"),
+              ("EF", "extras", "fixed"), ("EW", "extras", "wo-filed"),
+              ("IF", "索引+extras", "fixed"), ("IW", "索引+extras", "wo-filed"))
+GRID_STATES = (("todo", "todo"), ("inprog", "in_progress"), ("umb", "umbrella"),
+               ("blk", "blocked"), ("sub", "submitted"), ("trej", "triage_rejected"))
+GRID_CELLS = len(GRID_PAIRS) * len(GRID_STATES)   # 36 = 6 × 6（每格 2 条读数 + 4 条形状/对照）
+
+
 def selftest_source_state_grid(expect) -> None:
     """**来源 × 调度器状态的完整网格**（2026-10-14 · 第三轮独立复核 ⑤）：漏格不许活到自检全绿。
 
@@ -2689,11 +2700,7 @@ def selftest_source_state_grid(expect) -> None:
     import io
     import tempfile
     global EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING
-    grid_pairs = (("GF", "gap", "fixed"), ("GW", "gap", "wo-filed"),
-                  ("EF", "extras", "fixed"), ("EW", "extras", "wo-filed"),
-                  ("IF", "索引+extras", "fixed"), ("IW", "索引+extras", "wo-filed"))
-    grid_states = (("todo", "todo"), ("inprog", "in_progress"), ("umb", "umbrella"),
-                   ("blk", "blocked"), ("sub", "submitted"), ("trej", "triage_rejected"))
+    grid_pairs, grid_states = GRID_PAIRS, GRID_STATES
     with tempfile.TemporaryDirectory() as tmp:
         saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING, globals()["lock_file"])
         EVENTS = Path(tmp) / "events.jsonl"
@@ -2769,10 +2776,10 @@ def selftest_source_state_grid(expect) -> None:
                 rc = check_plan(view, rows)
             text = err.getvalue()
 
-            # ③ 夹具形状（**先证明夹具真造出了那 36 格**，否则下面的断言就是空转 ✗）
+            # ③ 夹具形状（**先证明夹具真造出了那 GRID_CELLS 格**，否则下面的断言就是空转 ✗）
             wrong_state = [f"{p}-{s}" for p, _a, _b in grid_pairs for s, want in grid_states
                            if state.get(f"{p}-{s}", {}).get("state") != want]
-            expect(f"网格夹具：36 格调度器状态都造对了（造错的：{wrong_state or '无'}）",
+            expect(f"网格夹具：{GRID_CELLS} 格调度器状态都造对了（造错的：{wrong_state or '无'}）",
                    not wrong_state)
             fdisp = source_dispositions()
             wrong_disp = [f"{p}-{s}" for p, _a, d in grid_pairs for s, _w in grid_states
@@ -2798,7 +2805,8 @@ def selftest_source_state_grid(expect) -> None:
                         walkable = False
                     expect(f"网格 {ident}：收口指示逐步可执行、且落终态"
                            f"（实测 `{'→'.join(steps) or '无指示'}`）", walkable)
-            expect(f"网格：红条数恰好 36（多一条就是夹具/规则溢出，实测 {rc}）", rc == 36)
+            expect(f"网格：红条数恰好 {GRID_CELLS}（多一条就是夹具/规则溢出，实测 {rc}）",
+                   rc == GRID_CELLS)
             kids = [f"{p}-umb-c" for p, _a, _b in grid_pairs]
             expect(f"网格正对照：非终态来源的 {len(kids)} 个子任务一个都不许红"
                    f"（`fix` 不是终态 ⇒ 规则不该命中）",
@@ -3187,9 +3195,11 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"三条反向两层漂移都判红且无多余红/索引登记过的 id 不算幽灵但覆盖自检照样判红/"
           f"终态行仍不进 open 视图且 open 与 §0.2 同数/**索引少一列的数据行响亮报错/**"
           f"已关账缺口的 id 不许被重新排期/`--submit` 同族闸门也看得见终态 id + 正对照**）"
-          f" + **来源 × 状态网格 76 条**（3 来源 × 2 来源终态 × 6 调度器状态 = **36 格**："
-          f"逐格「判红点名 + 收口指示逐步可执行且落终态」= 72 条 + 夹具形状 2 条 + "
-          f"红条数恰好 36 + 非终态来源的正对照 —— 改前 `submitted` 列 6/6 静默、"
+          f" + **来源 × 状态网格 {2 * GRID_CELLS + 4} 条**"
+          f"（{len(GRID_PAIRS)} 个「来源 × 终态」组合 × {len(GRID_STATES)} 个调度器状态"
+          f" = **{GRID_CELLS} 格**："
+          f"逐格「判红点名 + 收口指示逐步可执行且落终态」= {2 * GRID_CELLS} 条 + 夹具形状 2 条 + "
+          f"红条数恰好 {GRID_CELLS} + 非终态来源的正对照 —— 改前 `submitted` 列 6/6 静默、"
           f"todo/blocked/triage_rejected 的指示是死路 ⇒ 逐格必红 ✗）"
           f" + **祖先性闸门 9 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/存量带日期**豁免且不静默**/"
           f"真祖先不误伤）"
