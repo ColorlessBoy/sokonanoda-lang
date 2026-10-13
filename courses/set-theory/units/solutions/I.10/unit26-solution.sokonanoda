@@ -29,7 +29,7 @@ theorem ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Part
     (Rel.ofPartition α P a a)
     (partition_cover α P hP a)
     (fun (A : α → Prop) (hA : P A ∧ A a) =>
-      Exists.intro (α → Prop) (fun (A' : α → Prop) => P A' ∧ A' a ∧ A' a) A  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+      Exists.intro A
         (And.intro (And.left hA)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
           (And.intro (And.right hA) (And.right hA))))
 
@@ -38,7 +38,7 @@ theorem ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
   Exists.elim (α → Prop) (fun (A : α → Prop) => P A ∧ A a ∧ A b)
     (Rel.ofPartition α P b a) h
     (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
-      Exists.intro (α → Prop) (fun (A' : α → Prop) => P A' ∧ A' b ∧ A' a) A  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+      Exists.intro A
         (And.intro (And.left hA)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
           (And.intro (And.right (And.right hA)) (And.left (And.right hA)))))
 
@@ -57,7 +57,7 @@ theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Par
                 (And.intro (And.left (And.right hA))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
                   (Iff.mpr (hAB c) (And.right (And.right hB))))))
             (partition_disjoint α P hP A B (And.left hA) (And.left hB)
-              (Exists.intro α (fun (x : α) => A x ∧ B x) b
+              (Exists.intro b
                 (And.intro (And.right (And.right hA)) (And.left (And.right hB)))))))
 
 theorem equivalence_ofPartition (α : Type) (P : (α → Prop) → Prop)
@@ -77,7 +77,7 @@ theorem equivClass_of_mem (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Par
         Exists.elim (α → Prop) (fun (B : α → Prop) => P B ∧ B a ∧ B c) (A c) h  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
           (fun (B : α → Prop) (hB : P B ∧ B a ∧ B c) =>
             Iff.mp ((partition_disjoint α P hP B A (And.left hB) hA
-              (Exists.intro α (fun (x : α) => B x ∧ A x) a
+              (Exists.intro a
                 (And.intro (And.left (And.right hB)) ha))) c)
               (And.right (And.right hB))))
       (fun (hc : A c) =>

@@ -83,7 +83,7 @@ theorem classes_agree_on_meet (α : Type) (r : Rel α α) (he : IsEquivalence α
 theorem ofPartition_intro (α : Type) (P : (α → Prop) → Prop) (A : α → Prop) (a : α) (b : α)
     (hA : P A) (ha : A a) (hb : A b) : Rel.ofPartition α P a b :=
   (fun (hu : Rel.ofPartition α P a b ↔ ∃ (B : α → Prop), P B ∧ B a ∧ B b) =>
-    Iff.mpr hu (Exists.intro (α → Prop) (fun (B : α → Prop) => P B ∧ B a ∧ B b) A  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
+    Iff.mpr hu (Exists.intro A
       (And.intro hA (And.intro ha hb))))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
     (Rel.ofPartition_apply α P a b)
 
@@ -113,7 +113,7 @@ theorem partition_blocks_eq (α : Type) (P : (α → Prop) → Prop) (h : Rel.Pa
     (A : α → Prop) (B : α → Prop) (hA : P A) (hB : P B) (x : α) (hxA : A x) (hxB : B x) :
     ∀ (c : α), A c ↔ B c :=
   (partition_disjoint α P h) A B hA hB
-    (Exists.intro α (fun (y : α) => A y ∧ B y) x (And.intro hxA hxB))
+    (Exists.intro x (And.intro hxA hxB))
 
 theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
     (a : α) (b : α) (c : α) (h1 : Rel.ofPartition α P a b) (h2 : Rel.ofPartition α P b c) :
