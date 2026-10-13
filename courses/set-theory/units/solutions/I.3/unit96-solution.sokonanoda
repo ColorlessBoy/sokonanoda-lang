@@ -31,8 +31,7 @@ theorem injOn_id (α : Type) (A : Set α) :
   fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : x = y) => h
 
 theorem leOn_refl (α : Type) (A : Set α) : LeOn α α A A :=
-  Exists.intro (α → α) (fun (f : α → α) => Set.InjOn α α f A ∧ Set.MapsTo α α f A A)
-    (fun (x : α) => x)
+  Exists.intro (fun (x : α) => x)
     (And.intro (Set.InjOn α α (fun (x : α) => x) A) (Set.MapsTo α α (fun (x : α) => x) A A)
       (injOn_id α A) (fun (x : α) (hx : x ∈ A) => hx))
 
@@ -59,7 +58,7 @@ theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β 
 
 theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
     (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
-  Exists.intro (α → β) (fun (k : α → β) => Set.InjOn α β k A ∧ Set.MapsTo α β k A B) f  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+  Exists.intro f
     (And.intro hf hfm)
 
 theorem leOn_trans (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
