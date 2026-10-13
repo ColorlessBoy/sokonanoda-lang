@@ -81,7 +81,7 @@ theorem equivClass_of_mem (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Par
                 (And.intro (And.left (And.right hB)) ha))) c)
               (And.right (And.right hB))))
       (fun (hc : A c) =>
-        Exists.intro (α → Prop) (fun (B : α → Prop) => P B ∧ B a ∧ B c) A  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+        Exists.intro A
           (And.intro hA (And.intro ha hc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
 
 theorem class_eq_block_core (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
@@ -91,7 +91,7 @@ theorem class_eq_block_core (α : Type) (P : (α → Prop) → Prop) (hP : Rel.P
     Iff.intro (A c) (C c)
       (fun (hAc : A c) =>
         Iff.mpr (hC c)
-          (Exists.intro (α → Prop) (fun (B : α → Prop) => P B ∧ B a ∧ B c) A  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+          (Exists.intro A
             (And.intro hA (And.intro ha hAc))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
       (fun (hCc : C c) => Iff.mp (equivClass_of_mem α P hP A hA a ha c) (Iff.mp (hC c) hCc))
 
@@ -118,7 +118,7 @@ theorem block_is_class (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partit
           (fun (c : α) =>
             Iff.intro (C c) (Rel.ofPartition α P a c)
               (fun (hCc : C c) =>
-                Exists.intro (α → Prop) (fun (B : α → Prop) => P B ∧ B a ∧ B c) C  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+                Exists.intro C
                   (And.intro hC (And.intro ha hCc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
               (fun (hac : Rel.ofPartition α P a c) =>
                 Iff.mp (equivClass_of_mem α P hP C hC a ha c) hac))))
@@ -147,9 +147,7 @@ theorem ofPartition_of_classes (α : Type) (r : Rel α α) (he : IsEquivalence �
                   (Iff.mp (hx b) (And.right (And.right hC))))
                 (Iff.mp (hx a) (And.left (And.right hC))))))
     (fun (hab : r a b) =>
-      Exists.intro (α → Prop)
-        (fun (C : α → Prop) => Rel.Classes α r C ∧ C a ∧ C b)
-        (Rel.EquivClass α r a)
+      Exists.intro (Rel.EquivClass α r a)
         (And.intro
           ((fun (h : ∃ (x : α), ∀ (c : α), Rel.EquivClass α r a c ↔ r x c) => h)
             (Exists.intro a
