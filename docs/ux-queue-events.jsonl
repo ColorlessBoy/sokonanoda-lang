@@ -256,3 +256,8 @@
 {"ts": "2026-10-13T09:10:36+00:00", "event": "claim", "id": "W-5", "owner": "FRONT-P", "resources": ["crates/front/src/compile/elab.rs", "crates/front/src/compile/prelude.rs", "crates/front/src/judge.rs"]}
 {"ts": "2026-10-13T10:57:55+00:00", "event": "advance", "id": "W-5", "to": "done", "commit": "d12f20a8", "reading": "撤 prelude 安装期比对排除：判定不变四类全绿（--json 356/356 逐字节相同 · 语料对拍 356/356 · 接受拒绝分布一致）；shadow_diff 474→474 增量全 0（对照 2026-10-08 同撤法 10 入口出 61 处分叉）；反向门两轮都 FAILED 且已还原；课程门禁 2190 checked/0 判负；净零行不破 ⑨", "reason": null, "owner": "FRONT-P"}
 {"ts": "2026-10-13T11:00:32+00:00", "event": "claim", "id": "F12b2-front-intro-notation", "owner": "FRONT-Q", "resources": ["crates/front"]}
+{"ts": "2026-10-13T11:51:31+00:00", "event": "advance", "id": "F12b2-front-intro-notation", "to": "done", "commit": "5fad2edf", "reading": "项位闭包记法箭头目标拿到 intro：新真相层判据改前 0 条必红、改后绿；既有两条判据一字未改仍绿（lsp 全 targets EXIT=0）；反向门三档都咬且已删；语料 251/251 逐字节相同（两侧 sha256 不同）；课程门禁 2190 checked/0 判负", "reason": null, "owner": "FRONT-Q"}
+{"ts": "2026-10-13T11:52:13+00:00", "event": "advance", "id": "F12b-notation-blind-intro", "to": "in_progress", "commit": null, "reading": null, "reason": "它的活早在 23bd48fa 就落地了，补登记", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:52:13+00:00", "event": "advance", "id": "F12b-notation-blind-intro", "to": "done", "commit": "23bd48fa", "reading": "tactic 位闭包记法箭头目标拿到 intro（23bd48fa）；真相层判据绿", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T11:52:52+00:00", "event": "reopen", "id": "F12b2-front-intro-notation", "reason": "补登记尝试受挫：子项处置来源未找到 ⇒ 先复原，留给专门一轮", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:52:52+00:00", "event": "reopen", "id": "F12b-notation-blind-intro", "reason": "同上", "owner": "orchestrator"}

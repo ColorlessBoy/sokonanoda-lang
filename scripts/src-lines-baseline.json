@@ -99,8 +99,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/proof.rs": {
-      "lines": 1012,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1029,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1012,
+      "growth_reason": "F12b2 落地（5fad2edf）：项位的闭包记法箭头目标也拿得到 intro（intro_count 记法盲修好）—— front/src/{lib,proof,suggest}.rs + lsp/src/{actions,lib}.rs 变长（都在超 500 行软线的文件里）。⚠ 如实：债务增长，换来 F12 家族收口（新增真相层判据 + 反向验证咬 + 语料 251/251 逐字节相同 ✓）"
     },
     "crates/front/src/query/mod.rs": {
       "lines": 2140,
@@ -123,14 +125,14 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/suggest.rs": {
-      "lines": 1245,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1336,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1245,
+      "growth_reason": "F12b2 落地（5fad2edf）：项位的闭包记法箭头目标也拿得到 intro（intro_count 记法盲修好）—— front/src/{lib,proof,suggest}.rs + lsp/src/{actions,lib}.rs 变长（都在超 500 行软线的文件里）。⚠ 如实：债务增长，换来 F12 家族收口（新增真相层判据 + 反向验证咬 + 语料 251/251 逐字节相同 ✓）"
     },
     "crates/front/src/token.rs": {
       "lines": 1272,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 1221,
-      "growth_reason": "T-D31 后半落地（b714e16b）：词法器列口径改 UTF-16（token.rs 的 bump 改用它 + scan_import_lines 同改 + query/pos.rs 新增 column_width 唯一口径 + session.rs 删掉按 char 的重复实现 + 新增 6 条含星平面字符的判据）⇒ token.rs 1221→1272 变长。⚠ 如实：债务增长，换来 T-D31 的口径分叉收口（与光标列对齐、单一实现共用 ✓）"
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/kernel/src/builder.rs": {
       "lines": 1091,
@@ -177,12 +179,16 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/actions.rs": {
-      "lines": 1729,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1847,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1729,
+      "growth_reason": "F12b2 落地（5fad2edf）：项位的闭包记法箭头目标也拿得到 intro（intro_count 记法盲修好）—— front/src/{lib,proof,suggest}.rs + lsp/src/{actions,lib}.rs 变长（都在超 500 行软线的文件里）。⚠ 如实：债务增长，换来 F12 家族收口（新增真相层判据 + 反向验证咬 + 语料 251/251 逐字节相同 ✓）"
     },
     "crates/lsp/src/lib.rs": {
-      "lines": 3852,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 3860,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 3852,
+      "growth_reason": "F12b2 落地（5fad2edf）：项位的闭包记法箭头目标也拿得到 intro（intro_count 记法盲修好）—— front/src/{lib,proof,suggest}.rs + lsp/src/{actions,lib}.rs 变长（都在超 500 行软线的文件里）。⚠ 如实：债务增长，换来 F12 家族收口（新增真相层判据 + 反向验证咬 + 语料 251/251 逐字节相同 ✓）"
     },
     "crates/lsp/src/render.rs": {
       "lines": 1607,
