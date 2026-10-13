@@ -1526,8 +1526,16 @@ def cmd_submit(args: argparse.Namespace) -> int:
         print("✗ 提交必须带 `--why '<为什么>'` + `--evidence '<判据读数>'`（**没证据的提交不受理** ✗）",
               file=sys.stderr)
         return 1
-    existing = {r["id"] for r in _read_jsonl(EXTRAS)}
-    if ident in existing:
+    # id 是键：来源（extras / 缺口台账 / 索引，**含终态**）+ 事件表里已有的都不许重（**别覆盖** ✗）。
+    # ⚠ **与 `cmd_schedule` 的闸门同一口径**（2026-10-14 · 第三轮独立复核实测的同族第二处）：
+    # 旧写法只看 `_read_jsonl(EXTRAS)`（只有一个来源、且不看事件表）⇒ 实测
+    # gap `G-1 status=fixed` ⇒ `--submit fix --id G-1` **rc=0 接受**（把一个**已关账缺口**的
+    # id 重新写进来源 = 覆盖历史 ✗），而同一时刻 `--schedule G-1` **rc=1 拒** ✓
+    # —— 同一个病、同一份修法，上一轮只修了一处（AGENTS.md 硬规则 0(b)：横向排查）。
+    # ⇒ 改用 `source_dispositions()`（全量口径，三个来源都读）+ `fold()`，与 `cmd_schedule`
+    # 的 `taken` **逐字同形**（两处以后一起改，别再只改一处 ✗）。
+    taken = set(fold()) | set(source_dispositions())
+    if ident in taken:
         print(f"✗ `{ident}` 已经在队列里（id 是键 ⇒ 换一个 id，别覆盖 ✗）", file=sys.stderr)
         return 1
     patch_note = ""
