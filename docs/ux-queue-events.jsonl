@@ -261,3 +261,22 @@
 {"ts": "2026-10-13T11:52:13+00:00", "event": "advance", "id": "F12b-notation-blind-intro", "to": "done", "commit": "23bd48fa", "reading": "tactic 位闭包记法箭头目标拿到 intro（23bd48fa）；真相层判据绿", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-13T11:52:52+00:00", "event": "reopen", "id": "F12b2-front-intro-notation", "reason": "补登记尝试受挫：子项处置来源未找到 ⇒ 先复原，留给专门一轮", "owner": "orchestrator"}
 {"ts": "2026-10-13T11:52:52+00:00", "event": "reopen", "id": "F12b-notation-blind-intro", "reason": "同上", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:56:29+00:00", "event": "advance", "id": "F12b-notation-blind-intro", "to": "in_progress", "commit": null, "reading": null, "reason": "补登记：活已落地", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:56:29+00:00", "event": "advance", "id": "F12b-notation-blind-intro", "to": "done", "commit": "5fad2edf", "reading": "真相层判据绿 + 反向验证咬 + 语料 251/251 逐字节相同", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T11:56:29+00:00", "event": "advance", "id": "F12b2-front-intro-notation", "to": "in_progress", "commit": null, "reading": null, "reason": "补登记：活已落地", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:56:29+00:00", "event": "advance", "id": "F12b2-front-intro-notation", "to": "done", "commit": "5fad2edf", "reading": "真相层判据绿 + 反向验证咬 + 语料 251/251 逐字节相同", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T11:56:46+00:00", "event": "reopen", "id": "F12b-notation-blind-intro", "reason": "复原：子项处置来源未定位（见 68 轮记录）", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:56:46+00:00", "event": "reopen", "id": "F12b2-front-intro-notation", "reason": "复原：子项处置来源未定位（见 68 轮记录）", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:57:39+00:00", "event": "advance", "id": "F12b-notation-blind-intro", "to": "in_progress", "commit": null, "reading": null, "reason": "补登记：活已落地", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:57:39+00:00", "event": "advance", "id": "F12b-notation-blind-intro", "to": "done", "commit": "5fad2edf", "reading": "真相层判据绿 + 反向验证咬 + 语料 251/251 逐字节相同", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T11:57:39+00:00", "event": "advance", "id": "F12b2-front-intro-notation", "to": "in_progress", "commit": null, "reading": null, "reason": "补登记：活已落地", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:57:39+00:00", "event": "advance", "id": "F12b2-front-intro-notation", "to": "done", "commit": "5fad2edf", "reading": "真相层判据绿 + 反向验证咬 + 语料 251/251 逐字节相同", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T11:58:22+00:00", "event": "reopen", "id": "F12b-notation-blind-intro", "reason": "复原（连红 3 次 => 换招，见 69 轮记录）", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:58:22+00:00", "event": "reopen", "id": "F12b2-front-intro-notation", "reason": "复原（连红 3 次 => 换招，见 69 轮记录）", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:59:25+00:00", "event": "advance", "id": "F12b-notation-blind-intro", "to": "in_progress", "commit": null, "reading": null, "reason": "补登记：活已落地", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:59:25+00:00", "event": "advance", "id": "F12b-notation-blind-intro", "to": "done", "commit": "5fad2edf", "reading": "真相层判据绿 + 反向验证咬 + 语料 251/251 逐字节相同", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T11:59:25+00:00", "event": "advance", "id": "F12b2-front-intro-notation", "to": "in_progress", "commit": null, "reading": null, "reason": "补登记：活已落地", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:59:25+00:00", "event": "advance", "id": "F12b2-front-intro-notation", "to": "done", "commit": "5fad2edf", "reading": "真相层判据绿 + 反向验证咬 + 语料 251/251 逐字节相同", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T11:59:25+00:00", "event": "advance", "id": "F12", "to": "done", "commit": "5fad2edf", "reading": "F12 家族收口：F12b + F12b2 都 done；真相层判据五条全绿；真机那一臂按降级交付(B)记为探针侧已知限制", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T11:59:39+00:00", "event": "reopen", "id": "F12b-notation-blind-intro", "reason": "复原（其处置来源未定位）", "owner": "orchestrator"}
+{"ts": "2026-10-13T11:59:39+00:00", "event": "reopen", "id": "F12b2-front-intro-notation", "reason": "复原（其处置来源未定位）", "owner": "orchestrator"}
