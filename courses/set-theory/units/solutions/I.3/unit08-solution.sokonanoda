@@ -352,8 +352,8 @@ theorem image_preimage_eq_image :
               (f1 x) = y)
             (y ∈ image_preimage) hy
             (fun (x : Two) => fun (hx : x ∈ (f1 ⁻¹' U01) ∧
-                (f1 x) = y) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              Exists.intro Two (fun (t : Two) => (f1 t) = y) x
+                (f1 x) = y) =>
+              Exists.intro x
                 (And.right hx))))
 
 -- 通用小引理：两条包含给相等（就是单元②的 subset_antisymm，这里按 Set.ext 写一遍）。
@@ -372,8 +372,8 @@ theorem image_preimage_image_eq_preimage :
             (f1 x) = y)
           (y ∈ image_preimage) hy
           (fun (x : Two) => fun (hx : x ∈ (f1 ⁻¹' U01) ∧
-              (f1 x) = y) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-            Exists.intro Two (fun (t : Two) => (f1 t) = y) x
+              (f1 x) = y) =>
+            Exists.intro x
               (And.right hx)))
     (fun (y : Two) => fun (hy : y ∈ image_preimage) =>
       Exists.elim Two (fun (x : Two) => (f1 x) = y)
