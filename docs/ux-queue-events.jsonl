@@ -252,3 +252,4 @@
 {"ts": "2026-10-13T07:52:47+00:00", "event": "claim", "id": "T-D31-LEXER-COLUMN-UTF16", "owner": "FRONT-L", "resources": ["crates/front"]}
 {"ts": "2026-10-13T08:23:43+00:00", "event": "claim", "id": "T-D31-LEXER-COLUMN-UTF16", "owner": "FRONT-L", "resources": ["crates/front"]}
 {"ts": "2026-10-13T08:23:43+00:00", "event": "advance", "id": "T-D31-LEXER-COLUMN-UTF16", "to": "done", "commit": "b714e16b", "reading": "词法器列口径改 UTF-16（与光标列对齐，单一 column_width 共用）；新判据 6/6 绿（改前 2/4 红）；反向门 SOKO_LEGACY_CHAR_COLUMNS=1 咬；语料 build.decl 差异 0 + build.file 251/251 逐字节相同；课程门禁 2190 checked/0 判负；front+lsp 1353/0；cli 430/0；fmt exit 0", "reason": null, "owner": "FRONT-L"}
+{"ts": "2026-10-13T08:25:47+00:00", "event": "claim", "id": "MODULE-ARTIFACTS-KNIFE2", "owner": "FRONT-N", "resources": ["crates/front"]}
