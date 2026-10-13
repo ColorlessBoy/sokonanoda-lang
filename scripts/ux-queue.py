@@ -2694,11 +2694,24 @@ def selftest_source_state_grid(expect) -> None:
          ⇒ 防"夹具空转"与"守卫放宽"两类假绿 ✓。
 
     ⚠ 加第四个来源 / 加一个调度器状态时，**改 `grid_pairs`/`grid_states` 一处**即可 ——
-    这就是"以后不许再只修一处"的那一处 ✓。
+    这就是"以后不许再只修一处"的那一处 ✓（⓪ 两条**结构性**断言会先红：网格没覆盖到
+    新状态、或新状态没有出口 ⇒ 逼你一次改齐 ✗）。
     """
     import contextlib
     import io
     import tempfile
+    # ⓪ **结构性守卫**（纯表、不碰夹具）：漏格不许再靠"人记着补" ✗
+    #  ① 网格必须覆盖**所有**非终态 —— 将来往 `SCHED_STATES` 加一个状态而忘了补网格 ⇒ 这条先红；
+    #  ② 每个非终态都必须有**到终态的合法路径** —— `triage_rejected` 曾经一条出口都没有
+    #     ⇒ 判红指示 rc=1（"唯一出路是手改事件表"）✗；这条把它变成表级不变量。
+    _want_states = {st for _s, st in GRID_STATES}
+    _nonterminal = set(SCHED_STATES) - TERMINAL_STATES          # ⚠ `SCHED_STATES` 是**元组**
+    expect(f"网格覆盖**所有**非终态（`SCHED_STATES` 非终态 {sorted(_nonterminal)}"
+           f" vs 网格 {sorted(_want_states)}）—— 加状态忘了补网格 ⇒ 这条先红 ✗",
+           _want_states == _nonterminal)
+    _no_exit = [st for st in sorted(_nonterminal) if not closure_steps(st)]
+    expect(f"每个非终态都有**到终态的合法路径**（无出口的：{_no_exit or '无'}）"
+           f"—— `triage_rejected` 曾经无出口 ⇒ 判红指示 rc=1 ✗", not _no_exit)
     global EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING
     grid_pairs, grid_states = GRID_PAIRS, GRID_STATES
     with tempfile.TemporaryDirectory() as tmp:
