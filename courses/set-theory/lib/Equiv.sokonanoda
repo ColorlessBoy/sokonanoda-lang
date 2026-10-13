@@ -143,11 +143,7 @@ theorem Set.Equiv.mk (α β : Type) (A : Set α) (B : Set β)
     (hgf : Set.LeftInvOn α β g f A)
     (hfg : Set.RightInvOn α β f g B) :
     A ≈ B := by
-  exact Exists.intro (α → β)
-    (fun (f : α → β) => Set.MapsTo α β f A B ∧
-      (∃ (g : β → α), Set.MapsTo β α g B A ∧
-        ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))))
-    f
+  exact Exists.intro f
     (And.intro hf
       (Exists.intro g (And.intro hg (And.intro hgf hfg))))
 
@@ -184,8 +180,7 @@ theorem Set.le_def (α β : Type) (A : Set α) (B : Set β) :
 -- 智能构造子（把嵌套 `∃`/`And` 的隐式实参反解收进库；同 G-73 的处置）
 theorem Set.Le.intro (α β : Type) (A : Set α) (B : Set β) (f : α → β)
     (hinj : Set.InjOn α β f A) (hmap : Set.MapsTo α β f A B) : A ≼ B :=
-  Iff.mpr (Set.le_def α β A B) (Exists.intro (α → β)
-    (fun (f' : α → β) => Set.InjOn α β f' A ∧ Set.MapsTo α β f' A B) f
+  Iff.mpr (Set.le_def α β A B) (Exists.intro f
     (And.intro hinj hmap))
 
 -- 消去子（L2：把"存在一把单射"这条 `∃` 拆开用；同 G-73 的处置）

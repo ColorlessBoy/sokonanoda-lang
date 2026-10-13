@@ -420,7 +420,7 @@ theorem Rel.ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (h : Rel.
                 (And.intro (And.left (And.right hA))
                   (Iff.mpr
                     (partition_disjoint α P h A B (And.left hA) (And.left hB)
-                      (Exists.intro α (fun (x : α) => A x ∧ B x) b  -- soko:notation-ok: 见证位补不出前导类型（手册 G-30 同族）
+                      (Exists.intro b
                         (And.intro (And.right (And.right hA)) (And.left (And.right hB))))
                       c)
                     (And.right (And.right hB))))))))
