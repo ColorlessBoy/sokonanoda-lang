@@ -470,14 +470,13 @@ pub(crate) mod stats {
     pub(crate) static INPLACE_FALLBACK: AtomicU64 = AtomicU64::new(0);
     pub(crate) static INPLACE_SHADOW_SAME: AtomicU64 = AtomicU64::new(0);
     pub(crate) static INPLACE_SHADOW_DIFF: AtomicU64 = AtomicU64::new(0);
-    /// **E4 的判据读数（2026-10-08）**：影子档里因「prelude 安装期」**不比**而
-    /// 提前返回的次数（`elab.rs` 那条排除分支 ✓）。
-    ///
-    /// **为什么要有它**：那条排除分支是 `course-stdlib.md` §7 要撤掉的东西 ——
-    /// 撤掉之后这个数**必须是 0** ✓（"排除不再命中"= 判据本身 ✓）。今天它是
-    /// **> 0** 的（prelude 安装期的判定全走排除 ✓）⇒ 撤之前先把这个数记下来 ✓
-    /// （同 A4b 的"先建读数"纪律 ✓）。
-    pub(crate) static INPLACE_SHADOW_PRELUDE_EXCLUDED: AtomicU64 = AtomicU64::new(0);
+    /// **W-5 第二半的判据读数（2026-10-13）**：影子档的比对**落在 prelude 安装期**的
+    /// 次数（`elab.rs` 影子档 ✓）—— 撤掉那条"安装期不比"的排除之后**必须 > 0** ✓。
+    /// 这就是那个盲区收掉之后**唯一的正读数**：`== 0` ⇒ 要么排除回来了、要么影子档
+    /// 在安装期整段没跑到（两者都是判据要咬的东西 ✗）。
+    /// （2026-10-08 那条 `..._EXCLUDED` 反读数随排除一起**删掉**了：没有写点的计数器
+    /// 是空转 ✗ —— "咬不住的守卫等于没有" ✓。）
+    pub(crate) static INPLACE_SHADOW_PRELUDE_COMPARED: AtomicU64 = AtomicU64::new(0);
     /// **P1-b 第二刀（`by` 路径）**的两个数：`INPLACE_BY_USED` = `judge_render_type`
     /// 那一趟就地答上了（**没跑前缀**）· `INPLACE_BY_FALLBACK` = 就地答不出/开关关着。
     /// ⚠ 单独一组：`INPLACE_USED` 只记 `elab` 那条路，混在一起就**看不出
@@ -706,9 +705,9 @@ pub(crate) mod stats {
         )
     }
 
-    /// 见 [`INPLACE_SHADOW_PRELUDE_EXCLUDED`]：**E4 撤掉排除分支之后必须是 0** ✓。
-    pub fn inplace_shadow_prelude_excluded() -> u64 {
-        INPLACE_SHADOW_PRELUDE_EXCLUDED.load(Ordering::Relaxed)
+    /// 见 [`INPLACE_SHADOW_PRELUDE_COMPARED`]：**W-5 第二半之后必须 > 0** ✓。
+    pub fn inplace_shadow_prelude_compared() -> u64 {
+        INPLACE_SHADOW_PRELUDE_COMPARED.load(Ordering::Relaxed)
     }
 
     pub fn classify() -> (u64, u64, u64, u64, u64, u64, u64) {
@@ -824,9 +823,11 @@ pub(crate) mod stats {
                 }
                 let (used, fallback, same, diff) = inplace();
                 if std::env::var_os("SOKO_JUDGE_INPLACE").is_some() {
+                    // **W-5 第二半**：`prelude_compared` = 安装期**真的比了**的次数（必须 > 0 ✓）。
                     eprintln!(
                         "JUDGE_INPLACE used={used} fallback={fallback} shadow_same={same} \
-                         shadow_diff={diff}"
+                         shadow_diff={diff} prelude_compared={}",
+                        inplace_shadow_prelude_compared()
                     );
                     let (bu, bf) = inplace_by();
                     let (bs, bd) = inplace_by_shadow();
@@ -2164,11 +2165,10 @@ pub fn inplace_by_report() -> (u64, u64) {
     stats::inplace_by()
 }
 
-/// **`by` 影子档的读数**：`(same, diff)`。`diff == 0` 是这一档能开的前提 ✓。
-/// **E4 的判据读数**（2026-10-08）：影子档里因「prelude 安装期」**不比**而提前返回的
-/// 次数 —— 撤掉那条排除分支（`course-stdlib.md` §7 的目标）之后**必须是 0** ✓。
-pub fn inplace_shadow_prelude_excluded() -> u64 {
-    stats::inplace_shadow_prelude_excluded()
+/// **W-5 第二半的判据读数（2026-10-13）**：影子档的比对**落在 prelude 安装期**的次数
+/// —— 撤掉那条"安装期不比"的排除之后**必须 > 0** ✓（`== 0` ⇒ 排除回来了 或 安装期整段没跑 ✗）。
+pub fn inplace_shadow_prelude_compared() -> u64 {
+    stats::inplace_shadow_prelude_compared()
 }
 
 pub fn inplace_by_shadow() -> (u64, u64) {

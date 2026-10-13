@@ -1,33 +1,36 @@
-//! **E4 的判据读数**（2026-10-08）：影子档里那条「prelude 安装期**不比**」的排除分支。
+//! **W-5 第二半的判据**（2026-10-13）：prelude 安装期**不再**排除出影子档比对。
 //!
-//! ## 这条排除是什么
+//! ## 被撤掉的是什么
 //!
-//! `elab.rs` 的影子档（`InplaceMode::Shadow`）里有一段：`prelude_install_active()` 时
-//! **直接返回慢路结果、不比对**（2026-10-06 加的）。理由写在代码注释里：prelude 安装
-//! **进行中**做的判定（`And.rec`/`Or.rec`/`Iff.intro`/`Or.elim`）在慢路那边合成重跑时
-//! **无法重跑 prelude 本身**（`prefix_src` 为空）⇒ 环境里没有 `And` ⇒
-//! `unknown identifier` ⇒ 结构性 `None`（**不是实现 bug**）。
+//! `elab.rs` 的影子档（`InplaceMode::Shadow`）里曾有一段：`prelude_install_active()`
+//! 时**直接返回慢路结果、两条路不比**（2026-10-06 加；2026-10-08 E4 第二步撤过一次、
+//! 实测出 61 处文本分叉后按判据纪律还原）。原文理由 = 安装期的判定在慢路那边合成重跑
+//! 时"无法重跑 prelude 本身"（`prefix_src` 为空）⇒ 环境里没有 `And` ⇒
+//! `unknown identifier` ⇒ 结构性 `None`。
 //!
-//! ## 为什么它是 E4 的目标
+//! ## 为什么现在能撤（W-5 第二半 ✓）
 //!
-//! `docs/design/course-stdlib.md` §7 要撤掉它：prelude 变成**普通源文本**（E1 ✓）之后，
-//! 合成前缀**可以**把 prelude 拼进去 ⇒ 那段安装期的判定**也能比**了 ⇒ 排除不再需要 ✓。
-//! 判据就是本文件读的那个数：**撤掉之后必须是 0** ✓。
+//! * **E1 剥离** ✓：prelude 是**普通源文本**（`prelude/*.sokonanoda` + `include_str!`）；
+//! * **`prelude.rs::prelude_prefix_before`** ✓：安装时把"**本条之前**那段 prelude 源"
+//!   交给 `ctx.prefix_src` ⇒ 合成重跑重建出**同一个环境**（含 `And`/`Or`/`Iff`）
+//!   ⇒ 安装期与用户期走**同一条**比对 ✓；
+//! * E4 第二步那 61 处分叉的**增量**已消失 ⇒ 撤掉之后全语料 `shadow_diff` 增量
+//!   **逐条 0** ✓（读数见 commit message / `VERDICT.md`）。
 //!
-//! ## E4 第二步**试过、实测不成立 ⇒ 已还原**（2026-10-08）—— 断言翻回去了 ✓
+//! 影子档返回的**永远**是 `slow()`（源码重跑那份）⇒ 撤掉排除改的只是"要不要顺带跑一趟
+//! 就地、并逐字比文本"，**不改答案** ✓ —— 另有独立判据守 `--json` 逐字节（默认档与
+//! 影子档**两侧**全语料 356/356 ✓）。
 //!
-//! 第一步留的出口是"撤掉分支之后**必须**把断言从 `> 0` 改成 `== 0`" ✓ —— 第二步做到了，
-//! 但**全课程抽样把它判了回来** ✗：撤掉之后 `shadow_diff` 合计 **61 处**（10 个入口），
-//! 逐条定性 ⇒ **全是文本/显式性层面的**（`fast = Exists α (fun …)` vs
-//! `slow = @Exists α (fun … @And … @Eq β …)` ✓；`Acc.rec` 那类就地路答 `None` 退回慢路 ✓），
-//! **不是语义分歧** ✓，且输出逐字节没变（全量 **252/252** ✓）。
-//! ⇒ 按判据纪律"出 diff 就是真分歧 ⇒ 停下来定性，**不许**放宽 ✗"的**正确处置 =
-//! 还原排除 + 如实登记** ✓（把信噪比坏掉的影子档留着才是放宽 ✗）。
+//! ## 本文件钉两件事（缺一不算 ✓）
 //!
-//! 本文件现在钉三件事（缺一不算 ✓）：
-//! 1. **排除仍在命中**：读数 `> 0` ✓（还原后的**当前行为** ✓；`== 0` 是它的错误出口 ✗）；
-//! 2. **影子档真的跑了**（否则 1 是空转 ✗）：`same > 0` ✓；
-//! 3. **被比较的那批两条路逐字相同**：`diff == 0` ✓（还原之后成立 ✓）。
+//! 1. **安装期的比对真的发生了**：`inplace_shadow_prelude_compared()` 增量 **> 0** ✓
+//!    —— 这是撤掉排除之后**唯一的正读数**，也是判据的**牙齿**：
+//!    排除一旦回来，本夹具的判定**全部**落回安装期 ⇒ 这个数**归零** ⇒ 判据当场判红 ✗
+//!    （**不依赖**谁记得再加一个反计数器 ✓）。
+//!    ⚠ 反向验证实测：临时把排除加回去 ⇒ 读数从 `compared=12` 翻成 `compared=0`
+//!    （同一次读数里 `excluded=189` —— 那个反计数器随排除一起删掉了：**没有写点的
+//!    计数器是空转** ✗，见 `judge.rs` 的说明），断言报 `left: 0`、测试 **FAILED** ✓。
+//! 2. **判定红线**：受信任安装期两条路**逐字相同** ⇒ `shadow_diff` 增量 **== 0** ✓。
 //!
 //! ## 为什么是独立测试文件
 //!
@@ -35,7 +38,7 @@
 //! `judge_inplace_by.rs` 的纪律 ✓）。
 
 use sokonanoda_front::compile::{compile_all_units, CompileOptions, SourceUnit};
-use sokonanoda_front::judge::{inplace_report, inplace_shadow_prelude_excluded};
+use sokonanoda_front::judge::{inplace_report, inplace_shadow_prelude_compared};
 use sokonanoda_front::parse;
 
 /// 一份**必须走 prelude** 的夹具：`And` 的构造/投影都在 prelude 里。
@@ -43,17 +46,17 @@ const FIXTURE: &str =
     "theorem t (A B : Prop) (h : A) (k : B) : A \u{2227} B := by\n  exact \u{27e8}h, k\u{27e9}\n";
 
 #[test]
-fn the_prelude_install_exclusion_is_still_hit_and_the_shadow_agrees() {
+fn the_prelude_install_period_is_compared_now_and_the_two_paths_agree() {
     // 影子档：两条路都跑、比对文本（`SOKO_JUDGE_INPLACE=shadow`）。
     std::env::set_var("SOKO_JUDGE_INPLACE", "shadow");
-    let (_, _, same_before, diff_before) = inplace_report();
-    let before = inplace_shadow_prelude_excluded();
+    let (_, _, _same_before, diff_before) = inplace_report();
+    let compared_before = inplace_shadow_prelude_compared();
     // 单文件（无 import）：prelude 安装 + 本文件的判定都要发生 ✓。
     let file = parse(FIXTURE).expect("夹具 parse");
     let units = [SourceUnit::single("Main", &file)];
     let (out, _reports) = compile_all_units(&units, &CompileOptions::default());
-    let after = inplace_shadow_prelude_excluded();
-    let (_, _, same_after, diff_after) = inplace_report();
+    let compared_after = inplace_shadow_prelude_compared();
+    let (_, _, _same_after, diff_after) = inplace_report();
 
     // 夹具自检：这份夹具必须**编得过**（否则量的是错误路径 ✗）。
     assert!(
@@ -61,21 +64,18 @@ fn the_prelude_install_exclusion_is_still_hit_and_the_shadow_agrees() {
         "夹具必须编得过（否则量的是错误路径）：{:?}",
         out.errors
     );
-    let hits = after - before;
+
+    // ① **W-5 第二半的判据**：安装期的比对**真的发生过** ✓。
+    // 排除一旦回来 ⇒ 本夹具的判定全部落回安装期 ⇒ 这个数归零 ⇒ 这里判红 ✓。
+    let compared = compared_after - compared_before;
     assert!(
-        hits > 0,
-        "**E4 的当前行为**：prelude 安装期的排除分支**必须仍在命中**（实测 {hits} 次）—— \
-         第二步撤过它，实测 `shadow_diff` 合计 61 处（文本/显式性层面 ✗）⇒ 已还原 ✓。\
-         若这里变成 0 ⇒ 有人又撤了它：**先读文件头**（那条路要求 `diff == 0` ✓，做不到就 \
-         不许撤 ✗）。"
+        compared > 0,
+        "**W-5 第二半的判据**：prelude 安装期的比对**必须真的发生过**（实测 {compared} 次）—— \
+         这里是 0 只有两种可能，都是判据要咬的东西：① 有人把「安装期不比」的排除加回来了 ✗；\
+         ② 影子档在安装期整段没跑到（判据空转 ✗，那就先修夹具/接线）。"
     );
-    // ② **`diff` 不许增长**（判定红线：还原之后被比较的那批必须逐字相同 ✓）。
-    //
-    // ⚠ **为什么不钉 `same > 0`**（以前那一臂）：还原排除之后，本夹具的判定**全部**落在
-    // 安装期 ⇒ 都被排除 ⇒ `same` 不可能增长 ✗。① 的"非空转"由 `hits > 0` **本身**保证 ✓
-    // （读数非零就不是空转 ✓）—— 那正是本文件存在的理由（第一步的读数 72 → 现在的读数 ✓）。
-    let _ = (same_before, same_after);
-    // ③ **受信任安装期**的两条路必须逐字相同（判定红线）。
+
+    // ② **判定红线**：受信任安装期两条路必须逐字相同（`shadow_diff` 不许增长 ✓）。
     assert_eq!(
         diff_after, diff_before,
         "**判定红线**：prelude 安装期两条路的文本必须**逐字相同**（`shadow_diff` {} → {}）—— \

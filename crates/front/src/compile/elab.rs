@@ -3767,42 +3767,36 @@ fn infer_type_text<'a>(
         }
         // 影子档：**两条都跑**、比对文本；**返回源码重跑那份** ⇒ 判定逐字节不变 ✓。
         (crate::judge::InplaceMode::Shadow, Some(env)) => {
-            // **prelude 安装期不比（2026-10-06）** —— **E4 第二步试过撤掉，实测不成立，
-            // 本轮按判据纪律还原** ✓（2026-10-08）。
+            // **W-5 第二半（2026-10-13）：prelude 安装期**不再**排除出比对 ⇒ 全量严格比对** ✓
             //
-            // 原文理由：安装期的判定在慢路那边合成重跑时"无法重跑 prelude 本身"
-            // （`prefix_src` 为空）⇒ 环境里没有 `And` ⇒ `unknown identifier` ⇒
-            // 结构性 `None`。
+            // 被撤掉的分支（2026-10-06 加、2026-10-08 E4 第二步撤过一次又按判据纪律还原）
+            // 是这一句：`if prelude_install_active() { 直接返回慢路、不比 }`。原文理由 =
+            // 安装期的判定在慢路那边合成重跑时"无法重跑 prelude 本身"（`prefix_src` 为空）
+            // ⇒ 环境里没有 `And` ⇒ `unknown identifier` ⇒ 结构性 `None`。
             //
-            // **E4 第二步把 `prefix_src` 换成"本条之前的 prelude 源文本"**
-            // （`prelude.rs::prelude_prefix_before` ✓）⇒ 慢路确实**能重跑**那段 prelude 了 ✓
-            // —— 但**撤掉排除之后 `shadow_diff` 不为 0** ✗：全课程抽样实测（10 个入口）
-            // `diff` 合计 **61** 处，逐条定性 ⇒ **全是文本/显式性层面的**，不是语义分歧：
-            // * `by` 路（`JUDGE_INPLACE_BY_FIRST_DIFF`）：
-            //   `fast = Exists α (fun …)` vs `slow = @Exists α (fun … @And … @Eq β …)`
-            //   —— 就地路省掉隐式实参、慢路打 `@` 全显式 ✓（同一个项 ✓）；
-            // * 通用路（`JUDGE_INPLACE_MISMATCH`）：`Acc.rec` 这类就地路**答 `None`**
-            //   （`why=Kernel` ⇒ 退回慢路 ✓）而慢路答得出类型 ✓ —— 结构性 ✓、**不是**错答案 ✓。
+            // **现在为什么能撤**（两条都已落地，缺一条撤了就会出 diff ✗）：
+            // 1. **E1 剥离** ✓：prelude 是**普通源文本**（`prelude/*.sokonanoda` +
+            //    `include_str!` ✓）⇒ 慢路**有能力**把那段文本当普通源重跑；
+            // 2. **`prelude.rs::prelude_prefix_before`** ✓：安装时把"**本条之前**那段
+            //    prelude 源"交给 `ctx.prefix_src` ⇒ 合成重跑重建出**同一个环境**
+            //    （含 `And`/`Or`/`Iff`）⇒ 安装期与用户期走**同一条**比对。
             //
-            // 且**输出逐字节没变** ✓（`scripts/check-json-identity.py` 全量 **252/252** ✓）
-            // ⇒ 这些 diff **不影响判定结果**，只把影子档的信噪比打坏 ✗。
-            // ⇒ 判据纪律（"出 diff 就是真分歧 ⇒ 停下来定性，不许放宽 ✗"）的**正确处置 =
-            // 还原排除 + 如实登记** ✓，而不是把 `diff > 0` 当噪声接受 ✗。
-            // 真正的课题（"安装期两条路的**文本**为什么不一致"）另立 ✓。
-            if prelude_install_active() {
-                // **E4 的读数**（判据见 `crates/front/tests/judge_inplace_shadow_prelude.rs` ✓）：
-                // 这条排除**命中几次** —— 今天它必须 **> 0** ✓（撤掉会引入 61 处文本 diff ✗）。
-                crate::judge::stats::INPLACE_SHADOW_PRELUDE_EXCLUDED
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                return crate::judge::judge_infer_lookup(
-                    "",
-                    ctx.prefix_src,
-                    ctx.options,
-                    &binders,
-                    &term,
-                )
-                .map_or_else(slow, |hit| hit.ok());
-            }
+            // **读数**（全语料 356 个入口，`SOKO_JUDGE_INPLACE=shadow`，见 commit message）：
+            // 撤掉之后安装期**新增 4,544,547 次比对**，而 `shadow_diff` 合计
+            // **474 → 474（增量 0，逐条增量全 0）** ✓ —— 2026-10-08 E4 第二步那次
+            // 同样的撤法在 10 个入口上出 61 处新增分叉 ✗，**今天没有了** ✓
+            //（那之后 586 个 commit 的就地/隐式实参/渲染线上作）。
+            //
+            // 语义上为什么**本来**就安全：影子档两条路里，**返回的永远是** `slow()`
+            // （源码重跑那份 ✓）——撤掉排除改的只是"要不要顺带跑一趟就地、并比文本"，
+            // **不改答案** ✓。反过来说，排除分支的代价是：安装期的判定**没有**被这条
+            // 唯一的两路交叉验证覆盖到（盲区 ✗）。撤掉 = 把盲区收掉 ✓。
+            //
+            // ⚠ **这里没有逃生门**：反向验证用的那个临时开关**已按纪律还原**
+            // （`crates/` 里搜不到它 ✓）。防回归靠
+            // `crates/front/tests/judge_inplace_shadow_prelude.rs` 的**正读数**
+            // `INPLACE_SHADOW_PRELUDE_COMPARED > 0` ✓：排除一旦回来，本夹具的判定
+            // 全部落回安装期 ⇒ 那个数归零 ⇒ 判据**自动判红** ✓（不依赖谁记得加读数）。
             // 命中 ⇒ 两条路**都轮不到**（`On` 档同样直接返回缓存）⇒ 记一笔 same 即可。
             // 不在这里跑就地：那是 15 万次 × ~1 ms 的账 ✗（真正要比的是**未命中**那批）。
             if let Some(hit) =
@@ -3811,6 +3805,12 @@ fn infer_type_text<'a>(
                 crate::judge::stats::INPLACE_SHADOW_SAME
                     .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 return hit.ok();
+            }
+            // **W-5 第二半的判据读数**：这一趟比对**发生在 prelude 安装期** ✓ ——
+            // 撤掉排除后它必须 **> 0**（否则"安装期根本没跑到"也会绿 ✗）。
+            if prelude_install_active() {
+                crate::judge::stats::INPLACE_SHADOW_PRELUDE_COMPARED
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             }
             let old = slow();
             let new = infer_type_text_inplace(
@@ -3824,8 +3824,8 @@ fn infer_type_text<'a>(
             let same = match (&old, &new) {
                 (Some(a), Ok(b)) => a == b,
                 (None, Err(_)) => true,
-                // prelude 安装期已在上方排除（不比）⇒ 走到这里 `slow=None` 只剩
-                // "两条都答不出"一类 ⇒ 保持**严格**判据 ✓。
+                // **W-5 第二半起**：安装期**也在**这里被比（上方只留逃生门那条早退 ✓）
+                // ⇒ `slow=None` 而就地答出来了 = **真分歧** ✓，保持**严格**判据 ✓。
                 _ => false,
             };
             if same {
