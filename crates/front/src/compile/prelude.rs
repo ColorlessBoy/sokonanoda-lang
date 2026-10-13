@@ -154,6 +154,13 @@ pub const PRELUDE_NAMES: &[&str] = &[
     // ---- G-74: 排中律（B10，v0.81.0）----
     "Classical.em",
     "Classical.byContradiction",
+    // ---- r18（2026-10-13）：`id` ----
+    //
+    // 声明在**真源** `prelude/L1.sokonanoda`（`include_str!` 直取 ⇒ Rust 里**没有**
+    // 任何 prelude 文本 ✓）；这里只是补全/材料表的**名字**（LSP 的 `PRELUDE_NAMES`
+    // 回退拿它当"这里有定义"讲给用户 ✓）。计数守卫在
+    // `crate::compile::tests::prelude_names_match_installs`（58 ⇒ 59 ✓）。
+    "id",
 ];
 
 /// Full 模式下**永不**让位的 prelude 名字（`Nat`/`Bool` 家族）。
@@ -636,6 +643,21 @@ pub(crate) const L1_FAMILIES: &[PreludeFamily] = &[
         name: "B10",
         names: &["Classical.em", "Classical.byContradiction"],
         deps: &["B2", "B4", "B5"],
+    },
+    // B11（r18，2026-10-13）：`id` —— Lean core 最基本的函数
+    // （`Init/Prelude.lean:48` 的 `@[inline] def id {α : Sort u} (a : α) : α := a`）。
+    //
+    // ⚠ **必须有一族**：装 L1 是**族驱动**的（`install_l1` 逐族调
+    // `command_belongs_to`）⇒ 源里写了声明但**不属于任何族** ⇒ **静默不装**
+    // （名字消失、用它的人报未知标识符 ✗）—— 实测踩到过一次（源里加了 `def id`、
+    // `#check id` 仍报 `unknown identifier` ✗）。守卫：
+    // `crate::compile::tests::prelude_names_match_installs`（`id` 在
+    // `PRELUDE_NAMES` 里 ⇒ 那条会逐名 `#check` ✓）。
+    // `deps` 为空：`id` 的定义体只用到内建的 `Sort`，不引用任何别的 prelude 名字 ✓。
+    PreludeFamily {
+        name: "B11",
+        names: &["id"],
+        deps: &[],
     },
 ];
 

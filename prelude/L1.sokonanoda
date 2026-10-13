@@ -148,3 +148,26 @@ def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq
 -- 判定不变（实测：prelude 镜像 / 整门课程门禁 / 锚点全绿）：`Theorem` 与
 -- `Definition` 在归约上同类，差别只在 def_eq 的展开（这 20 条从此与用户自己写的
 -- `theorem` 行为一致 ✓）。
+
+-- **r18（2026-10-13）：`id` —— Lean core 最基本的函数**（用户报：`id (b ∈ A) (Eq.subst …)`
+-- 报 `unknown identifier `id``；任何教程都会用它，而报错也没说"本子集没有 id"）。
+--
+-- **位置**：本条放在**全部 `-- sokonanoda:*` 指令登记块之后**（L1 的登记区在文件末尾）
+-- ⇒ 既有声明与登记行的**行号一个都不动** ✓（登记行是 `builtin_directive_span` 的
+-- 纯文本查找锚点、`notation_target_at` 的注释形态也靠它 ⇒ 在登记区**之前**插声明
+-- 会动到那一段的形状 ✗ —— 2026-10-13 实测过一次，`gap.py check` 的 G-96 导航落点
+-- 当场判红 ✗）。
+--
+-- **签名与 Lean 4 逐字对齐**：`~/Documents/lean/lean4/src/Init/Prelude.lean:48`
+-- 写的是 `@[inline] def id {α : Sort u} (a : α) : α := a`（`@[inline]` 是本子集
+-- 没有的属性语法 ⇒ 省略；`{u}` 是本子集显式写出的宇宙 binder ⇒ 补上 ✓）。
+-- 结果是 `α : Sort u`（**未必是 Prop**）⇒ 按 2026-10-11 那条规则（证明类才写
+-- `theorem`）本条写 `def` ✓ —— 与 Lean 4 的 `def` 一致 ✓。
+--
+-- **判定影响**：只**放宽接受面** —— 以前用 `id` 的文件报 `unknown identifier `id``、
+-- 现在能过；能证的照样能证 ✓。课程语料**没有一处**在代码里用 `id`
+-- （14 处命中全在注释里）⇒ 全量 `--json` 对拍差异 0 ✓（见本轮 commit）。
+-- 守卫：`prelude_mirror.rs` 的三段真源 + 镜像逐字节（本条进的是**真源文件**，
+-- 不是 Rust 字面量 ✓）；`compile/tests.rs::prelude_names_match_installs`
+-- 的名单计数 58 ⇒ 59（`id` 真的装进了环境 ✓）。
+def id {u} {α : Sort u} (a : α) : α := a

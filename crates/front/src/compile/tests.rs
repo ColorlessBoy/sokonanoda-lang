@@ -2152,10 +2152,12 @@ fn prelude_names_match_installs() {
     //      `Quot.exact`，v0.77.0/0.81.0）
     // + 2（B10：`Classical.em`/`Classical.byContradiction`，G-74）
     // + 1（B6：`Iff.rfl`，2026-10-10 —— 与 Lean core 的 `protected theorem
-    //      Iff.rfl` 命名对齐，`rfl` 认 `Iff` 头那件事的配套）= 58。
+    //      Iff.rfl` 命名对齐，`rfl` 认 `Iff` 头那件事的配套）
+    // + 1（r18：`id`，2026-10-13 —— Lean core 最基本的函数
+    //      `Init/Prelude.lean:48`；声明在真源 `prelude/L1.sokonanoda`）= 59。
     assert_eq!(
         super::PRELUDE_NAMES.len(),
-        58,
+        59,
         "PRELUDE_NAMES drifted: {:?}",
         super::PRELUDE_NAMES
     );
