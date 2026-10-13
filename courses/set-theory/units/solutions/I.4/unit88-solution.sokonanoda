@@ -46,4 +46,4 @@ theorem surj_of_surj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g
   fun (c : γ) =>
     Exists.elim α (fun (a : α) => g (f a) = c) (∃ (b : β), g b = c) (hgf c)
       (fun (a : α) (ha : g (f a) = c) =>
-        Exists.intro β (fun (b : β) => g b = c) (f a) ha)
+        Exists.intro (f a) ha)

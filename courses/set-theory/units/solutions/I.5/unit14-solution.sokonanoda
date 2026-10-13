@@ -108,8 +108,8 @@ theorem no_descending_chain (α : Type) (r : α → α → Prop)
             (And.left hmm)))
         (hasMin_elim α r (SeqImage α f) hm))
       (wellFounded_hasMin α r h (SeqImage α f)
-        (Exists.intro α (SeqImage α f) (f Nat.zero)  -- soko:notation-ok: G-73 形状 ②（同上）
-          (Exists.intro Nat (fun (k : Nat) => f Nat.zero = f k) Nat.zero
+        (Exists.intro (f Nat.zero)
+          (Exists.intro Nat.zero
             (Eq.refl.{1} α (f Nat.zero)))))
 
 -- ── 练习 9（D 类）：空关系是良基的 ────────────────────────────────────────
