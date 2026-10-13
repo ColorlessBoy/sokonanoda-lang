@@ -2388,6 +2388,14 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
 #   * 外部提交 = 一条 `source=external-submission` 的队列条目 + `docs/inbox/<id>.patch`；外部 agent
 #     **只提交不改主线** ✗（提交面是 append-only 的），主流（主会话）`--triage` 决定 applied/deferred/
 #     rejected —— 这就是"一次只有一个写者"在跨 agent 场景下的落法 ✓。
+#
+# ⭐ **切版指针也过证据闸门**（`#2`，2026-10-14 · 第七次独立复核实测 ✗）：`--release cut --commit <sha>`
+# 原先**自身一条闸门都没有** ⇒ 干净夹具（3 条 done 入版、`--release check` rc=0）里
+# `--commit deadbeef…`（对象**不存在**）与「存在但**非祖先**」**都 rc=0** 并写入 `release-cut` ✗
+# —— 入版/收口两处都要求"证据必须是真的"，切版这一处却什么都收 ⇒ **同一规则两处口径**
+# （`AGENTS.md` 硬规则 0(b)）⇒ 现在与它们**共用** `closure_pointer_problem()`（存在性 +
+# `is-ancestor`），且**闸门在 `check` 之前**（假 sha 先拿"证据是假的"这条诊断 ✓）；
+# `release-cut` 事件另记 `subject` + `patch_id`（同 `#1` 的理由：事后能核"切的是哪个内容" ✓）。
 
 INBOX_DIR = ROOT / "docs" / "inbox"
 RELEASE_KINDS = ("release", "release-blocker")
@@ -2631,6 +2639,18 @@ def release_nodes() -> dict[str, dict]:
     return out
 
 
+def unmerged_agent_branches() -> list[str]:
+    """`main` 上**没合回**的 `agent/*` 分支（发版栅栏的输入；抽成函数便于 selftest 隔离 ✓）。
+
+    ⚠ **这条栅栏没有 `--force` 旁路**（`#4` 的口径，见 `cmd_release` 的说明）：发版要的是
+    "**完整**版本" ⇒ 未合回的分支就是"还差东西"，`--force` 只越过**条目数**与 worktree
+    两条（那两条是"克制"），不越过"并行收拢未完成" ✗。
+    """
+    return subprocess.run(["git", "branch", "--no-merged", "main", "--list", "agent/*",
+                           "--format=%(refname:short)"], cwd=ROOT, capture_output=True,
+                          text=True, encoding="utf-8").stdout.split()
+
+
 def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
     state = fold()
     nodes = release_nodes()
@@ -2653,7 +2673,8 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
         print(f"✓ 开节点 `{ident}`（version {args.version}）—— 栅栏：\n"
               f"   ① 入版条目 `--release add <id>`（**只能加 done 且有证据的**）\n"
               f"   ② 收拢：所有写者停手（认领清零）、工作树干净\n"
-              f"   ③ `--release check` 过一遍，再 `--release cut --commit <sha> --ci <run>`")
+              f"   ③ `--release check` 过一遍，再 `--release cut --commit <sha> --ci <run>`"
+              f"（切版指针也过**证据闸门**：存在性 + `is-ancestor` ✓）")
         return 0
     rel = args.rel or (f"REL-{args.version}" if args.version else "")
     if not rel or rel not in nodes:
@@ -2735,9 +2756,7 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
                   f"{[c.get('id') for c in live]} ⇒ 等它们收口（或 `--release block` 记录）✗",
                   file=sys.stderr)
             bad += 1
-        branches = subprocess.run(["git", "branch", "--no-merged", "main", "--list", "agent/*",
-                                   "--format=%(refname:short)"], cwd=ROOT, capture_output=True,
-                                  text=True).stdout.split()
+        branches = unmerged_agent_branches()
         if branches:
             print(f"✗ **并行收拢未完成**：还有 {len(branches)} 条 agent 分支没合回 main "
                   f"{branches} ⇒ `scripts/agent-worktree.sh land <id>`（发版要的是**完整**版本 ✗）",
@@ -2764,10 +2783,27 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
     if action == "cut":
         if not args.commit or not args.ci:
             raise UsageError("`--release cut` 要配 `--commit <sha>` + `--ci <run-id>`（两者都是判据）")
+        # ⭐ **切版指针也要过证据闸门**（`#2`，2026-10-14 · 第七次独立复核实测 ✗）：
+        # 干净夹具（3 条 done 入版 · `--release check` rc=0）里 `--release cut --commit deadbeef…`
+        # （对象**不存在**）与「存在但**非祖先**」**都 rc=0** 并写入 `release-cut` ✗
+        # ⇒ **同一规则两处口径**（`AGENTS.md` 硬规则 0(b)）⇒ 与收口/入版**共用**
+        # `closure_pointer_problem()`（别自己再写一遍 ✗）。
+        # ⚠ 放在 `check` **之前**：假 sha 该拿到"证据是假的"这条诊断，而不是先看一屏栅栏读数 ✓。
+        _why = closure_pointer_problem(args.commit)
+        if _why is not None:
+            print(f"✗ `--release cut --commit {args.commit[:12]}` 过不了**证据闸门**：{_why}",
+                  file=sys.stderr)
+            print(f"  ⇒ 切版指针与收口/入版指针**同一处口径**（都走 `closure_pointer_problem()` ✓）："
+                  f"切版 commit 必须是 main 上**真实存在、且是 `HEAD` 祖先**的那一个 ✗ "
+                  f"（假 sha / 别的分支上的 sha 都不算判据）", file=sys.stderr)
+            return 1
         if cmd_release(argparse.Namespace(**{**vars(args), "release": "check"}), rows) != 0:
             return 1
-        append_event({"event": "release-cut", "id": rel, "commit": args.commit,
-                      "ci": args.ci, "owner": args.owner})
+        # ⚠ **切版事件也留审计字段**（同 `#1` 的理由：`{commit, ci}` 事后核不出"切的是哪个内容"）：
+        # `release-cut` 事件记 `subject` + `patch_id` ⇒ 账上能复查"当时切的是哪一个 commit" ✓。
+        append_event({"event": "release-cut", "id": rel, "commit": args.commit, "ci": args.ci,
+                      "subject": _commit_subject(args.commit), "patch_id": _patch_id(args.commit),
+                      "owner": args.owner})
         print(f"✓ 节点 `{rel}` 切了：commit {args.commit[:8]} · CI {args.ci} ⇒ "
               f"下个节点至少隔 {MIN_HOURS_BETWEEN_RELEASES}h、至少 {MIN_ITEMS_PER_RELEASE} 条 ✓")
         return 0
@@ -4710,6 +4746,119 @@ def selftest_repoint_and_release_gate(expect) -> None:
             globals()["probe_inventory"] = saved[6]
 
 
+def selftest_release_cut_gate(expect) -> None:
+    """⭐ **切版指针的证据闸门**（`#2`，2026-10-14 · 第七次独立复核实测 ✗）。
+
+    缺口：`--release cut --commit <sha>` **自身一条闸门都没有** —— 干净夹具（3 条 done 入版、
+    `--release check` rc=0）里 `--commit deadbeef…`（对象**不存在**）与「存在但**非祖先**」
+    **都 rc=0** 并写入 `release-cut` ✗ ⇒ 入版/收口两处都要求"证据必须是真的"，切版这一处
+    什么都收 ⇒ **同一规则两处口径**（`AGENTS.md` 硬规则 0(b)）。
+
+    断言（每条都点了名靶子 ⇒ 定向突变必红）：
+      ① 不存在 / 非祖先的切版指针 ⇒ **rc=1 且零写入**（**就是本轮的缺口**，改前 rc=0 ✗）；
+      ② 正对照：真祖先 + 真对象 ⇒ **仍 rc=0**（**不许误拒** ✗）；
+      ③ 切版事件记了 `subject` + `patch_id`（审计字段，同 `#1` 的理由）；
+      ④ 缺 `--ci` / 缺 `--commit` ⇒ 用法错（rc=2，原有口径不变 ✓）。
+    ⚠ 用 `unmerged_agent_branches()` 的**接缝**把真仓库的 15 条未合回分支隔离掉
+    （否则夹具的 `check` 永远过不去 ⇒ 正对照测不了；`#4` 的那条臂反过来要它返回非空 ✓）。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.strip()
+    dangling = subprocess.run(["git", "-c", "user.name=ux-queue-selftest",
+                               "-c", "user.email=selftest@local", "commit-tree",
+                               f"{real_sha}^{{tree}}", "-m", "ux-queue selftest: 切版夹具的悬垂"],
+                              cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    bad_sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
+                 globals()["worktree_dirty"], globals()["probe_inventory"],
+                 globals()["unmerged_agent_branches"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        globals()["worktree_dirty"] = lambda: ""
+        globals()["probe_inventory"] = lambda: []
+        globals()["unmerged_agent_branches"] = lambda: []
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| R-9 | 语言 | 夹具（没处置 ⇒ 不进 rows） | 高 | `bash r.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        EXTRAS.write_text("".join(
+            json.dumps({"id": f"FX-{i}", "source": "orchestrator-schedule", "facet": "主线",
+                        "severity": "medium", "repro": "bash fx.sh", "disposition": "fixed",
+                        "why": "夹具：已关账"}, ensure_ascii=False) + "\n" for i in (1, 2, 3)),
+            encoding="utf-8")
+        EVENTS.write_text("", encoding="utf-8")
+        for i in (1, 2, 3):
+            append_event({"event": "advance", "id": f"FX-{i}", "to": "done", "commit": real_sha,
+                          "reading": "夹具读数", "owner": "t"})
+        append_event({"event": "release-open", "id": "REL-9.9.9", "version": "9.9.9", "owner": "t"})
+        for i in (1, 2, 3):
+            append_event({"event": "release-add", "rel": "REL-9.9.9", "id": f"FX-{i}", "owner": "t"})
+
+        def ns(**kw):
+            base = dict(release="", rel="", version="9.9.9", id="", commit="", ci="", reason="",
+                        owner="t", force=False)
+            base.update(kw)
+            return argparse.Namespace(**base)
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, buf.getvalue() + err.getvalue()
+
+        try:
+            _r, _u = build_queue()
+            rows = _r
+            rc, out = capture(cmd_release, ns(release="check"), rows)
+            expect(f"夹具：干净节点 `--release check` rc={rc}（下面三条都在这上面比）", rc == 0)
+            # ① 两条假指针都必须拒，且零写入
+            _before = EVENTS.read_text(encoding="utf-8")
+            rc, out = capture(cmd_release, ns(release="cut", commit=bad_sha, ci="1"), rows)
+            expect(f"① `cut --commit deadbeef…`（对象**不存在**）⇒ 拒 rc={rc}", rc == 1
+                   and "证据闸门" in out and "不存在" in out)
+            expect("① 且**零写入**（没写 `release-cut` ✓）",
+                   EVENTS.read_text(encoding="utf-8") == _before)
+            rc, out = capture(cmd_release, ns(release="cut", commit=dangling, ci="1"), rows)
+            expect(f"① `cut --commit <存在但非祖先>` ⇒ 拒 rc={rc}", rc == 1
+                   and "证据闸门" in out and "不是 `HEAD` 的祖先" in out)
+            expect("① 且**零写入**（没写 `release-cut` ✓）",
+                   EVENTS.read_text(encoding="utf-8") == _before)
+            # ② 正对照：真祖先 + 真对象 ⇒ 仍 rc=0（**不许误拒** ✗）
+            rc, out = capture(cmd_release, ns(release="cut", commit=real_sha, ci="7"), rows)
+            expect(f"② 正对照：`cut --commit <真祖先>` ⇒ 仍 rc={rc}（不许误拒 ✗）", rc == 0)
+            _cuts = [e for e in load_events() if e.get("event") == "release-cut"]
+            expect("② 真写了 `release-cut` 事件", len(_cuts) == 1 and _cuts[0].get("ci") == "7")
+            # ③ 审计字段
+            expect("③ 切版事件记了 `subject` + `patch_id`（事后可核「切的是哪个内容」✓）",
+                   bool(_cuts and _cuts[0].get("subject") and _cuts[0].get("patch_id")
+                        and _cuts[0]["patch_id"] == _patch_id(real_sha)))
+            # ④ 原有两条用法错不变
+            for kw, what in ((dict(release="cut", commit=real_sha), "缺 `--ci`"),
+                             (dict(release="cut", ci="1"), "缺 `--commit`")):
+                try:
+                    capture(cmd_release, ns(**kw), rows)
+                    _rc = 0
+                except UsageError:
+                    _rc = 2
+                expect(f"④ {what} ⇒ 用法错 rc={_rc}（原有口径不变 ✓）", _rc == 2)
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+            globals()["worktree_dirty"] = saved[5]
+            globals()["probe_inventory"] = saved[6]
+            globals()["unmerged_agent_branches"] = saved[7]
+
+
 def selftest_write_gates(expect) -> None:
     """**两个写入口都要看权威状态**（2026-10-14 · 第六次独立复核实测 ✗）—— #3 的防复发轴。
 
@@ -5204,6 +5353,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     #     原先只要 `done` + 有 `commit` ⇒ **手写的假指针能进发布节点** ✗；配套 `--repoint`
     #     把存量 rebase 孪生回填到 0——三关找孪生、找不到**不硬填**、只追加事件可逐条回滚）
     selftest_repoint_and_release_gate(expect)
+    # ③h3 ⭐ **切版指针的证据闸门**（`#2`，2026-10-14 · 第七次独立复核实测 ✗：`--release cut
+    #     --commit <sha>` 自身一条闸门都没有 ⇒ 不存在的 / 非祖先的 sha **都 rc=0** 并写入
+    #     `release-cut` ⇒ 与入版/收口两处**同一规则两条口径**）
+    selftest_release_cut_gate(expect)
     # ③i **无源子任务**（2026-10-14 · 第六次复核 #1：`sched_rows` 的合成行给自己作出处 ⇒
     #     幽灵判据对它静默，而 `--next` 推得出它 ✗ —— `known` 改回读视图这条必红 ✗）
     selftest_ghost_child(expect)
