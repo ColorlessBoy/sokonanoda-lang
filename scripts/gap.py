@@ -22,7 +22,8 @@
 **2026-10-02（用户实测报的两个洞 ⇒ 已堵）**：
   ① `check`：「没有复现件 / 路径不存在 / 是目录 / 类型不认识」以前**一律跳过、计不进 bad** ✗
      ⇒ 「自称 `fixed`」与「有东西真验过」在输出里**长得一模一样** ✗（实测 8 条被跳过，
-     6 条写着 `fixed`）。现在：**`status == "fixed"` 必须够得着会跑的复现件，否则判红** ✗；
+     5 条写着 `fixed` —— 与 `entry_verdict()` 那段注释同数；旧文档写 6 是**错**的，
+     2026-10-14 第三轮复核实测更正 ✓）。现在：**`status == "fixed"` 必须够得着会跑的复现件，否则判红** ✗；
      `open`/`wo-filed`/`workaround` 允许没有（那正是「还没做」）✓。`timeout` 保持"响亮
      跳过"，但**汇总里必须数出来**（它没被验证 ✗）。
   ② `close`：以前只在 `kind in {"script","sokonanoda"}` 时预检 ✗ ⇒ `repro` 为空的条目
@@ -361,6 +362,12 @@ def cmd_show(args: argparse.Namespace) -> int:
 def wo_prompt(entry: dict) -> str:
     repro = entry.get("repro") or "（缺）"
     cmd = f"bash {repro}" if str(repro).endswith(".sh") else f"scripts/soko grade {repro}"
+    # ⚠ `where` 的历史形状**不齐**（2026-10-14 · 第三轮独立复核实测）：台账里**5 条**旧行是
+    # **字符串**（`L-07`…`L-10`/`G-86`，全在 `fixed` 档），另有 `G-77` 是 `None`
+    # ⇒ 旧写法 `.get` 一个字符串 ⇒ **AttributeError 丢栈** ✗（连 `next` 都跑不出来）。
+    # 与 `ux-queue.py` 的 `load_gaps()` 同一口径：**只认 dict**，其余当"没有位置线索" ✓。
+    where = entry.get("where")
+    where = where if isinstance(where, dict) else {}
     return "\n".join([
         f"# 工作单 {entry.get('wo_planned') or '（未编号）'} —— {entry['id']} {entry['title']}",
         "",
@@ -370,8 +377,8 @@ def wo_prompt(entry: dict) -> str:
         f"- 复现：`{cmd}`",
         f"- 期望（官方 Lean 4 语义）：{entry.get('expected_lean', '（未填）')}",
         f"- 今天：{entry.get('today', '（未填）')}",
-        f"- 位置线索：{(entry.get('where') or {}).get('area', '（未填）')}",
-        f"  {(entry.get('where') or {}).get('note', '')}".rstrip(),
+        f"- 位置线索：{where.get('area', '（未填）')}",
+        f"  {where.get('note', '')}".rstrip(),
         f"- 现有绕行（与代价）：{entry.get('workaround', '（无）')}",
         f"- 被它挡住的东西：{'、'.join(entry.get('blocks') or []) or '（未标）'}",
         "",

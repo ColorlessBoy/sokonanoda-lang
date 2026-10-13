@@ -183,9 +183,12 @@ def load_gaps(include_terminal: bool = False) -> list[dict]:
         # fixed 只在**全量口径**下走到这里 ⇒ 终态 `"fixed"`（队列视图里根本到不了这一支 ✓）。
         disposition = ("fixed" if entry.get("status") == "fixed"
                        else "wo-filed" if entry.get("status") == "wo-filed" else "scheduled")
-        # ⚠ `where` 的历史形状**不齐**：6 条旧行是**字符串**（`G-77`/`L-07`…`L-10`/`G-86`，
-        # 全在 `fixed` 档）⇒ 全量口径第一次读到它们时 `.get` 一个字符串 ⇒ **丢栈** ✗
-        # （对 open 行也是同一个潜在崩溃）。只认 dict，其余当没有位置线索 ✓。
+        # ⚠ `where` 的历史形状**不齐**：**5 条**旧行是**字符串**（`L-07`…`L-10`/`G-86`，
+        # 全在 `fixed` 档；`G-77` 的 `where` 是 `None` ⇒ 走"没有位置线索"那一支，
+        # 2026-10-14 第三轮复核实测更正 —— 旧注释把 `G-77` 也算进「字符串」= 6 条 ✗），
+        # ⇒ 全量口径第一次读到它们时 `.get` 一个字符串 ⇒ **丢栈** ✗
+        # （对 open 行也是同一个潜在崩溃；`gap.py:wo_prompt` 已按同一形状补了守卫 ✓）。
+        # 只认 dict，其余当没有位置线索 ✓。
         where = entry.get("where")
         where_area = where.get("area", "") if isinstance(where, dict) else ""
         rows.append({
