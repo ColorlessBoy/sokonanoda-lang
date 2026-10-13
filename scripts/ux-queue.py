@@ -43,6 +43,7 @@ Known limitation / CI 台账 / 代码里的 TODO / 开工单 §0.2），彼此�
 ```bash
 python3 scripts/ux-queue.py                       # 人看的队列表 + 计数
 python3 scripts/ux-queue.py --json                # 机器可读（与 §0.2 对账用）
+python3 scripts/ux-queue.py --schedule <id> --title '<做什么>' --reason '<为什么/下一轮的口径>'
 python3 scripts/ux-queue.py --check-uncovered     # 覆盖自检（源码级，秒级；进 gate --fast）
 python3 scripts/ux-queue.py --check-uncovered --live   # 覆盖 + 读数自检（跑探针，慢）
 python3 scripts/ux-queue.py --selftest            # 判据通道自检（不碰仓库状态）
@@ -54,7 +55,16 @@ python3 scripts/ux-queue.py --selftest            # 判据通道自检（不碰�
 门禁：`scripts/soko gate --fast` 与 CI 的 `ledger` job 都跑 `--check`（秒级）⇒ 队列与来源脱钩当场判红 ✗。
 调度器（2026-10-12 用户：「不能全依赖大模型运作，而是同时依靠脚本」）：`--next` 取序 · `--claim` 认领
 （写锁，别人持锁判红）· `--advance … --to done --commit … --reading …` 收口（**没证据不许收口**）·
-`--add-child` 就地拆解（子任务插在父之前、父转 umbrella）· 状态 = `docs/ux-queue-events.jsonl` 的**只追加**事件折叠。
+`--add-child` 就地拆解（子任务插在父之前、父转 umbrella）· **`--schedule <id> --title … --reason …`**
+登记**编排者（主进程）自己排的期** · 状态 = `docs/ux-queue-events.jsonl` 的**只追加**事件折叠。
+
+**`--schedule` 补的是什么**（2026-10-13 · `SUB-queue-registration-gaps` ①，**真实咬到过**）：
+上一轮明确判定「下一轮要做（有预算空间时）把 L0 减到 1533 以下」，但 `--add-child` 是给**缺口**用的
+（得先有父条目）、`--submit` 是给**外部 agent**用的（它进的是"等主流受理"的提交面）⇒ 编排者给自己
+排的期**没有入口**，只能写进 commit message ⇒ `--json` 的 `open` 里查不到 ⇒ **下一个 agent 不会知道** ✗。
+⇒ `--schedule` 与 `--submit` **同形**（来源行 + 一条只追加事件），但语义是"**我自己排的期**"：
+处置 `fix`、状态 `todo` ⇒ `--json` 的 `open`/`queue`/`view` 查得到、`--next` 按序推得出，
+收口与其它条目**同口径**（`--commit` + `--reading`，**没有豁免** ✗）。
 """
 
 from __future__ import annotations
@@ -917,6 +927,13 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
         elif kind == "submit":
             cur.update(state="submitted" if cur.get("state") == "todo" else cur["state"],
                        owner=ev.get("owner"), kind=ev.get("kind"))
+        elif kind == "schedule":
+            # **编排者给自己排期**（`SUB-queue-registration-gaps` ①，2026-10-13）：与 `submit`
+            # 同形（来源行 + 只追加事件），但**状态是 `todo`**（可动 ⇒ `--json` 的 `open` 查得到、
+            # `--next` 推得出来 ✓）。⚠ 不能借用 `submit`：那条把状态钉成 `submitted` = "等主流
+            # 受理"（外部提交面的语义），与"**我自己排的期**"正相反 ✗。
+            cur.update(state="todo", owner=ev.get("owner"), title=ev.get("title"),
+                       reason=ev.get("reason"))
     return state
 
 
@@ -1332,6 +1349,58 @@ def cmd_submit(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_schedule(args: argparse.Namespace) -> int:
+    """**编排者（主进程）给自己排期**：`--schedule <id> --title <做什么> --reason <为什么>`。
+
+    ⚠ 为什么需要（`SUB-queue-registration-gaps` ①，2026-10-13 **真实咬到过**）：上一轮明确判定
+    「下一轮要做（有预算空间时）把 L0 减到 1533 以下」，但 `--add-child` 是给**缺口**用的
+    （得先有父条目、父转 umbrella）、`--submit` 是给**外部 agent**用的（进"等主流受理"的提交面）
+    ⇒ 编排者给自己排的期**没有入口**，只能写进 commit message ⇒ `--json` 的 `open` 里查不到
+    ⇒ **下一个 agent 不会知道** ✗。
+
+    形状与 `--submit` **同形**（来源行 + 一条只追加事件），但语义/归属不同：
+      * 来源 = `docs/ux-queue-extras.jsonl`（`source=orchestrator-schedule`）⇒ 它进
+        `build_queue()` 的 `rows` ⇒ `--json` 的 `open`/`queue`/`view` 查得到、`--next` 推得出 ✓；
+      * 处置 = `fix`（= 还没做完）⇒ 与其它条目**同口径**：收口必须 `--commit` + `--reading`，
+        `check_plan` 的"两层漂移"判据一视同仁（**没有新豁免** ✗）；
+      * 事件 = `schedule`（`fold()` 折成 `todo`；只追加、可重算 ✓）。
+    """
+    if not args.schedule:
+        raise UsageError("`--schedule` 要配 `--id <新id>`")
+    ident = args.id or args.schedule
+    if not args.title or not args.reason:
+        print("✗ 排期必须带 `--title '<做什么>'` + `--reason '<为什么/下一轮的口径>'` "
+              "（**没理由的排期 = 又一个查不到的决定** ✗）", file=sys.stderr)
+        return 1
+    if not QUEUE_ID_RE.fullmatch(ident):
+        print(f"✗ id `{ident}` 形状不对：要 `字母开头 + 至少一个 -/_`（例 `MODULE-X-DOWNLOAD`）"
+              f"—— id 是键，形状漂了就没法对账 ✗", file=sys.stderr)
+        return 1
+    # id 是键：来源（extras / 缺口台账 / 索引）+ 事件表里已有的都不许重（**别覆盖** ✗）
+    taken = set(fold())
+    for loader in (load_extras, load_gaps, load_index):
+        taken |= {row["id"] for row in loader()}
+    if ident in taken:
+        print(f"✗ `{ident}` 已经在队列里（id 是键 ⇒ 换一个 id，别覆盖 ✗）", file=sys.stderr)
+        return 1
+    entry = {"id": ident, "source": "orchestrator-schedule", "facet": args.facet or "主线",
+             "severity": args.severity or "medium",
+             "repro": args.repro or "（无复现件：判据见 where）",
+             "disposition": "fix", "owner": args.owner,
+             "why": f"[schedule] {args.title} —— {args.reason}",
+             "where": args.where or "（未写落点）"}
+    with EXTRAS.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    append_event({"event": "schedule", "id": ident, "owner": args.owner,
+                  "title": args.title, "reason": args.reason})
+    print(f"✓ 已排期 `{ident}`（owner={args.owner} · {entry['facet']} · {entry['severity']}）\n"
+          f"  做什么：{args.title}\n  为什么：{args.reason}\n"
+          f"  查得到：`python3 scripts/ux-queue.py --json` 的 `open`（或 `--next`）；"
+          f"收口与其它条目同口径：`--claim {ident}` … `--advance {ident} --to done "
+          f"--commit <sha> --reading '<判据读数>'`")
+    return 0
+
+
 def cmd_inbox(rows: list[dict]) -> int:
     """列出**外部提交**及其状态（submitted / applied / deferred / rejected）。
 
@@ -1558,6 +1627,17 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
 
 
 # ── 输出 ───────────────────────────────────────────────────────────────────
+
+def json_view(rows: list[dict], state: dict[str, dict], view: list[dict]) -> dict:
+    """`--json` 的**唯一**载荷（`main()` 与 `--selftest` 共用同一份 ⇒ 自检断言的是真输出）。
+
+    ⚠ 抽出来的理由（2026-10-13，`SUB-queue-registration-gaps` ①）：自检必须断言**真 `--json`
+    载荷**里的 `open`/`state`，而不是自检自己拼的一份副本 —— 否则"入口登记了、`--json` 却查不到"
+    这种形状照样全绿（"咬不住的守卫等于没有" ✗）。载荷本身与抽出来之前**逐字节相同** ✓。
+    """
+    return {"summary": summary(rows), "open": sorted(open_set(rows)), "queue": rows,
+            "state": state, "view": view}
+
 
 def print_table(rows: list[dict]) -> None:
     print(f"{'id':<12}{'面':<10}{'严重度':<9}{'处置':<10}{'归属':<12}判据 / 复现")
@@ -1880,6 +1960,121 @@ def selftest_release_inbox(expect) -> None:
             globals()["lock_file"] = saved[4]
 
 
+def selftest_schedule(expect) -> None:
+    """**编排者给自己排期**的登记入口（`SUB-queue-registration-gaps` ①，2026-10-13）。
+
+    这条缺口**真实咬到过**：上一轮明确判定「下一轮要做（有预算空间时）把 L0 减到 1533 以下」，
+    但 `--add-child` 是给**缺口**用的（得先有父条目）、`--submit` 是给**外部 agent**用的
+    ⇒ 编排者给自己排的期**没有入口**，只能写进 commit message ⇒ `--json` 的 `open` 里查不到
+    ⇒ **下一个 agent 不会知道** ✗。
+
+    判据（缺一条这条缺口就还没补上）：
+      ① `--schedule` 之后**真 `--json` 载荷**（`json_view()` —— 与 `main()` 同一条路，不是自检
+         自己拼的副本）的 `open` 里**查得到**它、`fold()` 的状态 = `todo`（⇒ `--next` 推得出 ✓）；
+      ② 它与其它条目**同口径**：`--claim` → `--advance … --to done --commit … --reading …` 能
+         正常收口；且"来源处置没翻"照样触发两层漂移判红（**没有新豁免** ✓）；
+      ③ **缺 `--reading` 的收口判红**（证据纪律一视同仁 ✓）；
+      ④ 走的是**真 CLI 路径**（`main()` + `sys.argv`）—— 把入口关掉，这条自检必须判红 ✗
+         （断言的是"条目真的落进了来源"，不只是 rc ⇒ 只查 rc 咬不住"关掉入口" ✗）。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"], sys.argv[:])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        # 最小夹具：缺口台账空 · 索引一行（**没处置 ⇒ 不进 rows**）⇒ `rows` 里只剩排期条目 ✓
+        INDEX.write_text(
+            "## 2. 🔴 blocker / high\n\n"
+            "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"   # **七列**契约
+            "|---|---|---|---|---|---|---|\n"
+            "| X-1 | 语言 | 夹具（没处置 ⇒ 不进 rows） | 高 | `bash x.sh` | front |  |\n",
+            encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                  capture_output=True, text=True).stdout.strip()
+
+        def quiet(fn, *a, **kw) -> int:
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                return fn(*a, **kw)
+
+        def ns(**kw):
+            base = dict(schedule="", id="", title="", reason="", owner="orch", where="",
+                        facet="", severity="", repro="")
+            base.update(kw)
+            return argparse.Namespace(**base)
+
+        def snapshot():
+            _rows, _u = build_queue()
+            _state = fold()
+            return _rows, _state, sched_rows(_rows, _state)
+
+        try:
+            # ① 缺 `--title`/`--reason` ⇒ 拒（**没理由的排期 = 又一个查不到的决定** ✗）
+            expect("排期缺 title/reason ⇒ 拒",
+                   quiet(cmd_schedule, ns(schedule="S-1", title="", reason="有理由")) == 1)
+            # ② 带 title + reason ⇒ 进队（来源行 + 一条**只追加**事件）
+            expect("带 title/reason 的排期 ⇒ 过",
+                   quiet(cmd_schedule, ns(schedule="S-1", title="下一轮：下载路径端到端判据",
+                                          reason="编排者排期（本轮预算不够）")) == 0)
+            expect("只追加事件里留下 schedule（谁/为什么都在）",
+                   any(e.get("event") == "schedule" and e.get("id") == "S-1"
+                       for e in load_events()))
+            # ③ **真 `--json` 载荷**：`open` 查得到 + 状态 `todo`（= "下一个 agent 能知道" ✓）
+            rows, state, view = snapshot()
+            payload = json_view(rows, state, view)
+            expect(f"`--json` 的 open 含排期条目（实测 {payload['open']}）",
+                   "S-1" in payload["open"])
+            expect(f"`--json` 的状态 = todo（实测 "
+                   f"{payload['state'].get('S-1', {}).get('state')}）",
+                   payload["state"].get("S-1", {}).get("state") == "todo")
+            # ④ `--next` 按序推得出来（真 `cmd_next` + 真 view；夹具里只剩它一条 ⇒ 必须头一个）
+            nxt = io.StringIO()
+            with contextlib.redirect_stdout(nxt):
+                cmd_next(view, "orch")
+            _first = (nxt.getvalue().splitlines() or [""])[0]
+            expect(f"`--next` 推出排期条目（实测首行 `{_first[:36]}…`）",
+                   nxt.getvalue().startswith("S-1"))
+            # ⑤ 同口径：`--claim` ⇒ `in_progress`；**缺 `--reading` 的收口必须判红** ✗
+            expect("认领排期条目",
+                   quiet(cmd_claim, "S-1", "orch", False, view, "scripts/ux-queue.py") == 0)
+            expect("缺 `--reading` 的收口 ⇒ 判红（与既有条目同口径 ✓）",
+                   quiet(cmd_advance, "S-1", "done", real_sha, "", "", "orch",
+                         False, view) == 1)
+            # ⑥ 带证据收口 ⇒ 过；**但来源处置没翻 ⇒ 两层漂移照样判红**（排期条目不豁免 ✓）
+            expect("带 `--commit`+`--reading` 的收口 ⇒ 过",
+                   quiet(cmd_advance, "S-1", "done", real_sha,
+                         "ux-queue.py --selftest exit 0", "", "orch", False, view) == 0)
+            _rows2, _st2, view2 = snapshot()
+            expect("收口后来源处置仍是 fix ⇒ 两层漂移判红（**没有新豁免** ✓）",
+                   check_plan(view2) >= 1)
+            _raw = _read_jsonl(EXTRAS)
+            if _raw:                 # 反向验证（入口改成只写事件）时可能没有来源行 ⇒ 别丢栈
+                _raw[0]["disposition"] = "fixed"
+                EXTRAS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n"
+                                          for r in _raw), encoding="utf-8")
+            _rows3, _st3, view3 = snapshot()
+            expect("来源翻 fixed 之后 ⇒ check_plan 转绿（与既有条目同一条路 ✓）",
+                   check_plan(view3) == 0)
+            # ⑦ **真 CLI 路径**（反向验证的咬点）：`main()` 读 `sys.argv` ⇒ 关掉入口这条必红 ✗
+            sys.argv = ["ux-queue.py", "--schedule", "S-2", "--title", "真 CLI 路径",
+                        "--reason", "反向验证：关掉入口必须判红", "--owner", "orch"]
+            rc = quiet(main)
+            expect(f"真 CLI 路径 `--schedule` ⇒ rc 0（实测 {rc}）", rc == 0)
+            expect("真 CLI 路径**真的落进了来源**（只查 rc 咬不住关掉入口 ✗）",
+                   "S-2" in {r["id"] for r in _read_jsonl(EXTRAS)})
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+            sys.argv[:] = saved[5]
+
+
 def cmd_selftest(args: argparse.Namespace) -> int:
     """判据通道自检：**故意造四种形状**，每一种都必须被判红/判绿正确。
 
@@ -1904,7 +2099,7 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     known = set()
     for act in parser._actions:                      # noqa: SLF001 - 自检要看真定义
         known.update(act.option_strings)
-    for handler in (cmd_submit, cmd_triage, cmd_release):
+    for handler in (cmd_submit, cmd_triage, cmd_release, cmd_schedule):
         fields = set(re.findall(r"\bargs\.([A-Za-z_][A-Za-z0-9_]*)",
                                 inspect.getsource(handler)))
         unknown = sorted(f for f in fields if f"--{f.replace('_', '-')}" not in known)
@@ -1968,10 +2163,32 @@ def cmd_selftest(args: argparse.Namespace) -> int:
         got, _ = reading_ok(row, verdict)
         expect(f"reading_ok({row['disposition']}, {verdict}) = {got}，期望 {want}", got == want)
 
-    # ② §0.2 解析：真文件必须读得出 ≥1 行（否则"唯一入口"名存实亡）
+    # ② §0.2 解析：真文件的**机器入口**必须读得出、且**与队列同数**。
+    #    ⚠ 2026-10-13 修订（本轮实测到的**既有红**，不是本轮新增 ✗）：原判据是「§0.2 表里
+    #    读得出 ≥1 行 id 形状的行」，而它与「§0.2 陈旧行判据」在**粗粒度线全部收口**之后
+    #    互相矛盾 —— `06d7e193` 的 W-3 收口把表里最后一个 id 形状行（`| W-3 |`）摘掉
+    #    （**必须摘**：留着就触发 `check_uncovered` 的"§0.2 陈旧行"判红 ✗），表里只剩
+    #    `| Q |`（不是 id 形状 ⇒ 不参与机器对账）⇒ 原判据**恒红**：实测 HEAD（`119ba4ab`）
+    #    上 `--selftest` = exit 1，唯一 FAIL 就是 `FAIL §0.2 能读出队列行` ✗。
+    #    而 `load_onboarding_queue()` 自己的 docstring 写的口径（2026-10-12 修订）是
+    #    「§0.2 = **脚本渲染的摘要块** + 粗粒度的线」⇒ 机器入口 = 摘要块。
+    #    ⇒ 判据换成对**真文件**断言三件（**不是放宽**：新增的两条原来一个字都没查 ✗）：
+    #       (a) 表能解析（形状是契约，抛 UsageError 就判红）；
+    #       (b) 表里 id 形状的行都必须在队列里（幽灵行判红 —— 真文件版，原来只在夹具里查）；
+    #       (c) 摘要块**必须存在**且**与队列同数**（手改/陈旧 ⇒ 当场判红；原判据对摘要块
+    #           **一个字都没查** ✗）。
     try:
         ids = load_onboarding_queue()
-        expect("§0.2 能读出队列行", len(ids) >= 1)
+        doc_counts = load_onboarding_counts()
+        _rows_real, _und_real = build_queue()
+        _view_real = sched_rows(_rows_real, fold())
+        _known_real = {r["id"] for r in _view_real} | source_history_ids()
+        _want_real = {"total": summary(_view_real)["total"], **summary(_view_real)["counts"]}
+        _ghosts = sorted(set(ids) - _known_real)
+        expect(f"§0.2 表能解析、且表里的行都在队列里（幽灵：{_ghosts}）", not _ghosts)
+        expect(f"§0.2 有**渲染摘要块**（实测 {doc_counts}）", doc_counts is not None)
+        expect(f"§0.2 摘要与真队列**同数**（文档 {doc_counts} vs 实测 {_want_real}）"
+               f"—— 不同数就跑 `--render`（手改文档不算 ✗）", doc_counts == _want_real)
     except UsageError as err:
         expect(f"§0.2 解析不许抛 UsageError：{err}", False)
 
@@ -2071,6 +2288,9 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     selftest_scheduler(expect)
     # ③c 提交面 + 发版节点（证据 / 克制 / 收拢 / 防无限分支）
     selftest_release_inbox(expect)
+    # ③d **编排者给自己排期**（`SUB-queue-registration-gaps` ①：真 `--json` 的 open / 同口径收口 /
+    #     缺 `--reading` 判红 / 真 CLI 路径 —— 关掉入口这条必红 ✗）
+    selftest_schedule(expect)
 
     # ④ 真来源：三张表 + 台账 + extras 都能解析
     try:
@@ -2090,7 +2310,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"**5 条反向验证**（缺渲染块判红 · 补块转绿 · 幽灵行判红 · 手改计数判红 · 未登记探针判红）"
           f" + **调度器 22 条**（非法迁移/无证据收口/两层漂移/重开要理由/umbrella 子在开不许收口/"
           f"**4 核槽位满拒第 5 个**/**同资源互斥**/死进程认领不算活跃且可 `--force` 接管/`--release` 只放自己的/"
-          f"**认领活过 CLI 调用（不写 pid）**/**收口即放槽**/--next 跳过终态与对照）+ 真来源解析 全部成立 ✓")
+          f"**认领活过 CLI 调用（不写 pid）**/**收口即放槽**/--next 跳过终态与对照）"
+          f" + **编排者排期 13 条**（缺理由拒/只追加事件/**真 `--json` 的 `open` 含它且状态 todo**/"
+          f"`--next` 推得出/`--claim` + 带证据收口/缺 `--reading` 判红/两层漂移**不豁免**/真 CLI 路径落地）"
+          f" + 真来源解析 全部成立 ✓")
     return 0
 
 
@@ -2132,10 +2355,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--to", metavar="STATE", help=f"迁移目标：{list(SCHED_STATES)}")
     parser.add_argument("--commit", metavar="SHA", help="收口/切版证据①：commit（`--advance --to done` 与 `--release cut` 共用）")
     parser.add_argument("--reading", metavar="TEXT", help="收口证据②：判据读数")
-    parser.add_argument("--reason", metavar="TEXT", help="wo_filed / blocked / 重开的理由")
+    parser.add_argument("--reason", metavar="TEXT", help="wo_filed / blocked / 重开 / 排期的理由")
     parser.add_argument("--add-child", metavar="PARENT", help="就地拆解：给父条目加一个子任务")
     parser.add_argument("--child", metavar="ID", help="子任务 id（配 --add-child）")
-    parser.add_argument("--title", metavar="TEXT", help="子任务标题（配 --add-child）")
+    parser.add_argument("--title", metavar="TEXT", help="标题（配 --add-child / --schedule）")
+    parser.add_argument("--schedule", metavar="ID",
+                        help="**编排者给自己排期**：登记「我排的下一轮要做的事」"
+                             "（来源行 + 只追加事件 ⇒ `--json` 的 open / `--next` 查得到）")
     parser.add_argument("--release", metavar="ACTION",
                         help="发版节点：open/add/block/drop/check/cut（栅栏 + 克制 + 防无限 bug 分支）")
     parser.add_argument("--rel", metavar="ID", help="发版节点 id（默认 REL-<version>）")
@@ -2144,7 +2370,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--id", metavar="ID", help="条目 id（配 --release add/block/drop）")
     parser.add_argument("--submit", metavar="KIND",
                         help="**外部提交**：fix/doc/gate/release-blocker（只追加，不改主线 ✗）")
-    parser.add_argument("--where", metavar="LOC", help="提交的落点（文件:行 / 台账 id）")
+    parser.add_argument("--where", metavar="LOC", help="落点（文件:行 / 台账 id；配 --submit / --schedule）")
     parser.add_argument("--evidence", metavar="TEXT", help="提交的证据（判据读数；**必填**）")
     # ⚠ `--why` / `--repro` 是 `cmd_submit()` 读的字段（`args.why` / `args.repro`），
     # 但 2026-10-12 之前**从没在 argparse 里定义过** ⇒ 真 CLI 路径两种结局都是坏的：
@@ -2153,7 +2379,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     # 而 `--selftest` 用手工 `Namespace`（`ns(**kw)`）**绕开 argparse** ⇒ 全绿也咬不住 ✗
     # （"咬不住的守卫等于没有"）⇒ 外部提交面对**四棵 worktree 的接口 agent** 是死的。
     parser.add_argument("--why", metavar="TEXT", help="提交的理由（**必填**，配 --submit）")
-    parser.add_argument("--repro", metavar="CMD", help="提交的复现/判据命令（配 --submit）")
+    parser.add_argument("--repro", metavar="CMD", help="复现/判据命令（配 --submit / --schedule）")
     parser.add_argument("--patch", metavar="PATH", help="提交的补丁文件（拷进 docs/inbox/<id>.patch）")
     parser.add_argument("--inbox", action="store_true", help="列出外部提交及状态")
     parser.add_argument("--triage", metavar="ID", help="主流受理提交：--to applied|deferred|rejected")
@@ -2192,6 +2418,8 @@ def main() -> int:
             return cmd_release(args, view)
         if args.submit:
             return cmd_submit(args)
+        if args.schedule:
+            return cmd_schedule(args)
         if args.inbox:
             return cmd_inbox(view)
         if args.triage:
@@ -2217,13 +2445,7 @@ def main() -> int:
         if args.check_uncovered:
             return check_uncovered(view, live=args.live, timeout=args.timeout, undecided=undecided)
         if args.json:
-            print(json.dumps({
-                "summary": summary(rows),
-                "open": sorted(open_set(rows)),
-                "queue": rows,
-                "state": state,
-                "view": view,
-            }, ensure_ascii=False, indent=2))
+            print(json.dumps(json_view(rows, state, view), ensure_ascii=False, indent=2))
             return 0
         print_table(view)
         return 0
