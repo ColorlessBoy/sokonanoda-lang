@@ -56,7 +56,7 @@ theorem mem_image_union (α : Type) (β : Type) (f : α → β) (A B : Set α) (
 
 theorem mem_sUnion_of_mem_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
     (hA : A ∈ F) (hx : x ∈ A) : x ∈ (⋃₀ F) :=
-  (fun (hu : x ∈ (⋃₀ F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =>  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+  (fun (hu : x ∈ (⋃₀ F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =>
     Iff.mpr hu (Exists.intro A
       (And.intro hA hx))) (Set.mem_sUnion_iff α F x)
 
