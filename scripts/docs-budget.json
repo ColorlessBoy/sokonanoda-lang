@@ -14,7 +14,7 @@
     "docs/design/ci-parallelism.md": 240,
     "docs/design/command-naming.md": 104,
     "docs/design/course-gate-in-ci.md": 274,
-    "docs/design/course-stdlib.md": 389,
+    "docs/design/course-stdlib.md": 378,
     "docs/design/declaration-incremental.md": 309,
     "docs/design/deepseek-harness.md": 438,
     "docs/design/docs-diet.md": 110,

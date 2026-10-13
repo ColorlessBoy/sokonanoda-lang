@@ -207,3 +207,10 @@
 {"ts": "2026-10-12T23:59:45+00:00", "event": "triage", "id": "SUB-agenthost-patch", "to": "applied", "reason": "补丁已应用并逐条复验（含反向验证）", "commit": "4b687511", "owner": "penglingwei@penglingweis-Laptop"}
 {"ts": "2026-10-12T23:59:45+00:00", "event": "triage", "id": "SUB-copilot-signin-agenthost", "to": "applied", "reason": "补丁已应用并逐条复验（含反向验证）", "commit": "4b687511", "owner": "penglingwei@penglingweis-Laptop"}
 {"ts": "2026-10-13T00:01:56+00:00", "event": "triage", "id": "SUB-ci-failures-ledger-stale", "to": "applied", "reason": "压缩腾行 + 补记 3 条 + 收紧上限（docs-lint exit 0）", "commit": "6a737bfa", "owner": "penglingwei@penglingweis-Laptop"}
+{"ts": "2026-10-13T01:10:00+00:00", "event": "release", "id": "r20", "owner": "FRONT-F", "reason": "frontF 收工（3 commit 已 land 并验证）⇒ 归还槽位与 crates/front"}
+{"ts": "2026-10-13T01:10:00+00:00", "event": "claim", "id": "r20", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-13T01:10:00+00:00", "event": "advance", "id": "r20", "to": "done", "commit": "8751d01c", "reading": "见 extras 的 observed（判据 + 三条守卫 + 基线对拍）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T01:10:00+00:00", "event": "claim", "id": "r18", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-13T01:10:00+00:00", "event": "advance", "id": "r18", "to": "done", "commit": "f07ef34e", "reading": "见 extras 的 observed（判据 + 三条守卫 + 基线对拍）", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T01:10:01+00:00", "event": "claim", "id": "SUB-keyword-decl-name", "owner": "orchestrator", "resources": ["crates/front"]}
+{"ts": "2026-10-13T01:10:01+00:00", "event": "advance", "id": "SUB-keyword-decl-name", "to": "done", "commit": "957b2268", "reading": "见 extras 的 observed（判据 + 三条守卫 + 基线对拍）", "reason": null, "owner": "orchestrator"}

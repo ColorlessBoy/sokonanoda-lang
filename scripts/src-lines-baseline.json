@@ -23,8 +23,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/check/mod.rs": {
-      "lines": 2191,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2205,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2191,
+      "growth_reason": "frontF 三笔（r20 显示副本去冗余括号 · r18 prelude id 进真源 · SUB-keyword-decl-name 关键字名诊断）⇒ parser.rs +175 · query/mod.rs +26；另 22 个文件因判据 ⑧ 的**文件级历史声明**各 +1 行（顶格文件已并入已有行、净 0 行 ✓）。⚠ 如实：债务增长，换来 3 条收口（含队列从 7 → 4）；软线目标未变"
     },
     "crates/front/src/compile/check/walk.rs": {
       "lines": 2876,
@@ -55,12 +57,16 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/prelude.rs": {
-      "lines": 1389,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1411,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1389,
+      "growth_reason": "frontF 三笔（r20 显示副本去冗余括号 · r18 prelude id 进真源 · SUB-keyword-decl-name 关键字名诊断）⇒ parser.rs +175 · query/mod.rs +26；另 22 个文件因判据 ⑧ 的**文件级历史声明**各 +1 行（顶格文件已并入已有行、净 0 行 ✓）。⚠ 如实：债务增长，换来 3 条收口（含队列从 7 → 4）；软线目标未变"
     },
     "crates/front/src/display.rs": {
-      "lines": 2183,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2421,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2183,
+      "growth_reason": "frontF 三笔（r20 显示副本去冗余括号 · r18 prelude id 进真源 · SUB-keyword-decl-name 关键字名诊断）⇒ parser.rs +175 · query/mod.rs +26；另 22 个文件因判据 ⑧ 的**文件级历史声明**各 +1 行（顶格文件已并入已有行、净 0 行 ✓）。⚠ 如实：债务增长，换来 3 条收口（含队列从 7 → 4）；软线目标未变"
     },
     "crates/front/src/judge.rs": {
       "lines": 4670,
@@ -71,8 +77,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/parser.rs": {
-      "lines": 6471,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 6646,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 6471,
+      "growth_reason": "frontF 三笔（r20 显示副本去冗余括号 · r18 prelude id 进真源 · SUB-keyword-decl-name 关键字名诊断）⇒ parser.rs +175 · query/mod.rs +26；另 22 个文件因判据 ⑧ 的**文件级历史声明**各 +1 行（顶格文件已并入已有行、净 0 行 ✓）。⚠ 如实：债务增长，换来 3 条收口（含队列从 7 → 4）；软线目标未变"
     },
     "crates/front/src/project/artifacts.rs": {
       "lines": 946,
@@ -103,8 +111,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/query/mod.rs": {
-      "lines": 2114,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2140,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2114,
+      "growth_reason": "frontF 三笔（r20 显示副本去冗余括号 · r18 prelude id 进真源 · SUB-keyword-decl-name 关键字名诊断）⇒ parser.rs +175 · query/mod.rs +26；另 22 个文件因判据 ⑧ 的**文件级历史声明**各 +1 行（顶格文件已并入已有行、净 0 行 ✓）。⚠ 如实：债务增长，换来 3 条收口（含队列从 7 → 4）；软线目标未变"
     },
     "crates/front/src/semantic.rs": {
       "lines": 1808,

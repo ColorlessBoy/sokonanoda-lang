@@ -376,14 +376,3 @@ G-04（`notation`）落地后只加记法层、不改名字——于是"同一�
 
 
 ---
-
-## 7. 后续任务：prelude 剥离成真实 soko 文件（2026-10-06 记档，未执行）
-
-> **状态**：待办（用户 2026-10-06 指定"后面做"，不做排期）。**过期规则**：剥离落地后删除本节。
-
-prelude 现为内嵌 Rust 字符串常量（`crates/front/src/compile/prelude.rs` 的
-`PRELUDE_EQ_SRC`/`PRELUDE_L1_SRC`/`QUOT_TYPES_SRC`），`crates/prelude/` 不存在。
-慢路合成重跑不含 prelude ⇒ prelude 安装期（`prelude_install_active` 已置位）的
-recursor 判定无法重跑 ⇒ shadow 比对将该期**排除出比对**（`elab.rs` 分支，2026-10-06）。
-剥离后慢路纳入 prelude ⇒ recursor 判定可重跑 ⇒ 可撤排除分支、恢复全量严格比对。
-落地要求：课程用例 + 三层测试 + 白名单 + `include_str!` 保持编译期常量语义。
