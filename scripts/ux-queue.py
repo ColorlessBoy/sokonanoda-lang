@@ -12,6 +12,10 @@ Known limitation / CI 台账 / 代码里的 TODO / 开工单 §0.2），彼此�
 * `--check-uncovered` —— **覆盖自检**：任何来源里存在、而队列不知道的条目 ⇒ 判红 ✗；
   任何 `scheduled` 条目没进 `docs/ONBOARDING.md` §0.2 表 ⇒ 判红 ✗；
   §0.2 表里有、队列没有 ⇒ 判红 ✗（**双向**，防两头漂移）。
+  ⚠ **第二向原先只写在规格里、没实现**（`#3`，2026-10-14 · 第七次独立复核实测 ✗）：一条
+  `scheduled` 而 §0.2 无该行 ⇒ 合并的 `--check` **rc=0 · 从不点名**，而 `--next` 推得出它、
+  `--json.open` 含它 ⇒ 三视图打架；`--selftest` 那条臂也没有鉴别力（只断言"补上行 ⇒ 转绿"，
+  **删掉那行照样绿** ✗）⇒ 现在两向都有牙，自检有「删行 ⇒ 必红 + 点名」的对照臂 ✓。
 * `--check-uncovered --live` —— 再加上**读数自检**：逐条跑探针，实读与「台账写的处置」
   不符 ⇒ 判红 ✗（例：写着 `fix` 的条目探针已经 exit 1 ⇒ 该改成 `fixed` 并记账）。
 
@@ -443,6 +447,11 @@ def load_onboarding_queue() -> list[str]:
     文档 ✗，而且"登记 ≠ 排期"的病根不在文档而在没有执行器。现在：
       ① §0.2 = 一行**脚本渲染的摘要**（标记块，`--render` 写；计数不符即判红）+ 粗粒度的线；
       ② 细粒度队列的**唯一机器入口 = `python3 scripts/ux-queue.py --next/--json`** ✓。
+    ⚠ **哪些条目必须在 §0.2 里有行**（`#3`，2026-10-14 · 第七次独立复核实测 ✗ 后明确）：
+    只有处置 = `scheduled`（= **排期**，见 docstring 的「处置」一节）的条目 ——
+    上面那句"不再逐条列 open"说的是 `fix`（细粒度队列）**不要求**进 §0.2 ✓。
+    两个方向都由 `check_uncovered` 判：§0.2 有而队列没有 ⇒ 幽灵行 ✗；队列是 `scheduled`
+    而 §0.2 没行 ⇒ 缺行 ✗（旧实现**只有前一向** ⇒ 缺行静默而 `--next` 照样推 ✗）。
     """
     ids: list[str] = []
     for line in _onboarding_section():
@@ -773,6 +782,20 @@ def check_uncovered(rows: list[dict], live: bool, timeout: int, undecided: list[
         if disp not in OPEN_DISPOSITIONS:
             print(f"✗ §0.2 陈旧行：`{ident}` 的处置已是 `{disp}`（终态），§0.2 该把它摘掉 ✗",
                   file=sys.stderr)
+            bad += 1
+    # ⭐ **双向的另一半**（`#3`，2026-10-14 · 第七次独立复核实测 ✗）：docstring 的「处置」一节
+    # 与 `--check-uncovered` 的 help 都承诺「**任何 `scheduled` 条目没进 §0.2 表 ⇒ 判红**」，
+    # 而这里**只有 §0.2 → 队列那一向**（幽灵行 / 陈旧行）⇒ 实测：一条 `scheduled`、§0.2 无该行
+    # ⇒ 合并的 `--check` **rc=0 · 从不点名** ✗，而 `--next` 推得出它、`--json.open` 含它
+    # ⇒ 三个视图打架（「唯一入口」看不见这条排期）。`scheduled` 的语义就是「§0.2 里必须有它
+    # 的一行」⇒ 缺行即判红 ✓（`fix` 是细粒度队列，**不要求**进 §0.2 —— 那是 `load_onboarding_queue`
+    # 说的"40+ 条明细塞不进有行数上限的必读文档" ✓，所以只对 `scheduled` 判）。
+    for _r in rows:
+        if _r["disposition"] == "scheduled" and _r["id"] not in doc_ids:
+            print(f"✗ §0.2 缺行：`{_r['id']}` 是 `scheduled`（= **排期**），但 "
+                  f"{_label(ONBOARDING)} §0.2 表里没有它的一行 ⇒ 「唯一入口」看不见这条排期 ✗ "
+                  f"（补一行；或把处置改成 `fix`（细粒度队列）/ `wo-filed`（定案不做）—— "
+                  f"**别让处置与入口两头漂移** ✗）", file=sys.stderr)
             bad += 1
     if doc_counts is None:
         print(f"✗ §0.2 没有**渲染摘要块**（{ONB_BEGIN} … {ONB_END}）⇒ 唯一入口与队列脱钩 ✗ "
@@ -5295,6 +5318,29 @@ def cmd_selftest(args: argparse.Namespace) -> int:
                 _r, _u = build_queue()
                 rc = check_uncovered(_r, live=False, timeout=5, undecided=_u)
             expect(f"补上渲染块与行 ⇒ 转绿（rc={rc}）", rc == 0)
+            # B2. ⭐ **双向的另一半必须有牙**（`#3`，2026-10-14 · 第七次独立复核实测 ✗）：
+            #     B 只断言"补上行 ⇒ 转绿"，而**删掉那一行照样 rc=0** ✗（同一臂的反向没有鉴别力）
+            #     ⇒ 这里删掉 §0.2 那一行（渲染块留着）⇒ **必须判红 + 点名 X-1**。
+            tmp_onb.write_text("## 0.2 下一步\n\n" + render_onboarding(rows) + "\n\n"
+                               "| id | 线 |\n|---|---|\n", encoding="utf-8")
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                _r, _u = build_queue()
+                rc = check_uncovered(_r, live=False, timeout=5, undecided=_u)
+            expect(f"B2 **删掉 `scheduled` 的 §0.2 行 ⇒ 判红**（rc={rc}）", rc == 1)
+            expect("B2 判红信息里**点名**了那条 id", "X-1" in err.getvalue())
+            expect("B2 判红信息说的是「§0.2 缺行」",
+                   "§0.2 缺行" in err.getvalue())
+            # B3. 正对照：处置换成 `fix`（细粒度队列）⇒ **不要求**进 §0.2 ⇒ 仍转绿 ✓
+            #     （`load_onboarding_queue` 的口径：§0.2 不逐条列 open 明细 ⇒ 只有 `scheduled`
+            #      才要求有行 —— 这一臂钉住"没有把 `fix` 也一起判红" ✗）
+            tmp_extras.write_text(json.dumps(
+                {"id": "X-1", "source": "ux-index", "facet": "语言", "severity": "high",
+                 "repro": "bash x.sh", "disposition": "fix", "why": "夹具"},
+                ensure_ascii=False) + "\n", encoding="utf-8")
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                _r, _u = build_queue()
+                rc = check_uncovered(_r, live=False, timeout=5, undecided=_u)
+            expect(f"B3 正对照：`fix` 不要求进 §0.2 ⇒ 仍转绿（rc={rc}）", rc == 0)
             # C. §0.2 里有、队列里没有 ⇒ 幽灵行判红（点名它）
             tmp_onb.write_text("## 0.2 下一步\n\n" + render_onboarding(rows) + "\n\n"
                                "| id | 线 |\n|---|---|\n| X-1 | 有行 |\n| Q-9 | 幽灵 |\n",
