@@ -23,18 +23,20 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/check/mod.rs": {
-      "lines": 2205,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2210,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2205,
+      "growth_reason": "STALE-CODE-COMPROMISES-C1C4 落地（四处过期妥协）：① 记法守卫按 T-D15 新事实给答案（front+lsp，含 render.rs 拒 Notation 的 3 行）② 层级语法收 max/imax ③ 光标列改 UTF-16 ④ 过期注释订正 ⇒ elab.rs +136 · check/mod.rs +5 · parser.rs +218 · references.rs +156（都在超 500 行软线的文件里）。⚠ 如实：债务增长，换来四条'旧开发路径妥协'的清掉 + front 978/0 · lsp 247/0 · 语料对拍 0 差异 ✓"
     },
     "crates/front/src/compile/check/walk.rs": {
       "lines": 2876,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/elab.rs": {
-      "lines": 8498,
+      "lines": 8634,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 8389,
-      "growth_reason": "引擎修落地（25e02d8c）：期望类型通道不再在源级剥 Π，改问内核「偏应用的下一个实参」（含 suspect 判据 + kernel_next_arg_expected + 全显式 pp）⇒ elab.rs +119/−10。⚠ 如实：债务增长（elab.rs 早已超 500 行软线），换来「前端源级展开的 de Bruijn 差一」这一整族的收口（S3-min 判绿 · 课程现场判绿 · 语料 251/251 逐字节相同 ✓）"
+      "grew_from": 8498,
+      "growth_reason": "STALE-CODE-COMPROMISES-C1C4 落地（四处过期妥协）：① 记法守卫按 T-D15 新事实给答案（front+lsp，含 render.rs 拒 Notation 的 3 行）② 层级语法收 max/imax ③ 光标列改 UTF-16 ④ 过期注释订正 ⇒ elab.rs +136 · check/mod.rs +5 · parser.rs +218 · references.rs +156（都在超 500 行软线的文件里）。⚠ 如实：债务增长，换来四条'旧开发路径妥协'的清掉 + front 978/0 · lsp 247/0 · 语料对拍 0 差异 ✓"
     },
     "crates/front/src/compile/error.rs": {
       "lines": 948,
@@ -73,8 +75,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/parser.rs": {
-      "lines": 6646,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 6838,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 6646,
+      "growth_reason": "STALE-CODE-COMPROMISES-C1C4 落地（四处过期妥协）：① 记法守卫按 T-D15 新事实给答案（front+lsp，含 render.rs 拒 Notation 的 3 行）② 层级语法收 max/imax ③ 光标列改 UTF-16 ④ 过期注释订正 ⇒ elab.rs +136 · check/mod.rs +5 · parser.rs +218 · references.rs +156（都在超 500 行软线的文件里）。⚠ 如实：债务增长，换来四条'旧开发路径妥协'的清掉 + front 978/0 · lsp 247/0 · 语料对拍 0 差异 ✓"
     },
     "crates/front/src/project/artifacts.rs": {
       "lines": 946,
@@ -101,11 +105,17 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/proof.rs": {
-      "lines": 1005,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1012,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1005,
+      "growth_reason": "STALE-CODE-COMPROMISES-C1C4 落地（四处过期妥协）：① 记法守卫按 T-D15 新事实给答案（front+lsp，含 render.rs 拒 Notation 的 3 行）② 层级语法收 max/imax ③ 光标列改 UTF-16 ④ 过期注释订正 ⇒ elab.rs +136 · check/mod.rs +5 · parser.rs +218 · references.rs +156（都在超 500 行软线的文件里）。⚠ 如实：债务增长，换来四条'旧开发路径妥协'的清掉 + front 978/0 · lsp 247/0 · 语料对拍 0 差异 ✓"
     },
     "crates/front/src/query/mod.rs": {
       "lines": 2140,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+    },
+    "crates/front/src/references.rs": {
+      "lines": 536,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/semantic.rs": {
@@ -181,8 +191,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/render.rs": {
-      "lines": 1593,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1607,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1593,
+      "growth_reason": "STALE-CODE-COMPROMISES-C1C4 落地（四处过期妥协）：① 记法守卫按 T-D15 新事实给答案（front+lsp，含 render.rs 拒 Notation 的 3 行）② 层级语法收 max/imax ③ 光标列改 UTF-16 ④ 过期注释订正 ⇒ elab.rs +136 · check/mod.rs +5 · parser.rs +218 · references.rs +156（都在超 500 行软线的文件里）。⚠ 如实：债务增长，换来四条'旧开发路径妥协'的清掉 + front 978/0 · lsp 247/0 · 语料对拍 0 差异 ✓"
     },
     "crates/lsp/src/testutil.rs": {
       "lines": 504,
