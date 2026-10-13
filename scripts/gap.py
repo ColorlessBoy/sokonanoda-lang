@@ -689,12 +689,38 @@ def cmd_selftest(args: argparse.Namespace) -> int:
         if got != want:
             bad += 1
             print(f"FAIL {desc}: entry_verdict -> {got!r}，期望 {want!r}", file=sys.stderr)
-    total = len(cases) + len(verdict_cases)
+    # **`where` 的历史形状不齐**（2026-10-14 · 第三轮独立复核实测）：台账里 **5 条**旧行是
+    # **字符串**（`L-07`…`L-10`/`G-86`，全在 `fixed` 档）+ `G-77` 是 `None`，而 `wo_prompt()`
+    # 原先直接 `(entry.get('where') or {}).get(...)` ⇒ **AttributeError 丢栈**（`gap.py next`
+    # 整条命令跑不出来 ✗）。⇒ 三形都钉住：dict（正常路径）· 字符串（历史形状）· 缺失
+    # （`G-77`）—— 后两形必须**不抛**、且位置线索印成「（未填）」✓。
+    prompt_cases = [
+        ("`where` 是 dict ⇒ 用它的 area",
+         {"area": "crates/front", "note": "夹具"}, "crates/front"),
+        ("`where` 是**字符串**（5 条历史行的形状）⇒ 不丢栈、当没有线索",
+         "crates/front/src/x.rs（历史形状）", "（未填）"),
+        ("`where` 缺失（`G-77` 的形状）⇒ 不丢栈、当没有线索", None, "（未填）"),
+    ]
+    for desc, where, want_area in prompt_cases:
+        entry = {"id": "W-1", "title": "夹具", "repro": "docs/gaps/repro/x.sh"}
+        if where is not None:
+            entry["where"] = where
+        try:
+            text = wo_prompt(entry)
+            ok, note = f"- 位置线索：{want_area}" in text, ""
+        except Exception as exc:                      # noqa: BLE001 - 夹具要抓住"丢栈"本身
+            ok, note = False, f"{type(exc).__name__}: {exc}"
+        if not ok:
+            bad += 1
+            print(f"FAIL {desc}：wo_prompt 没给出期望的位置线索（{note or '内容不符'}）",
+                  file=sys.stderr)
+    total = len(cases) + len(verdict_cases) + len(prompt_cases)
     if bad:
         print(f"gap.py selftest: {bad}/{total} 条判据不成立。", file=sys.stderr)
         return 1
     print(f"gap.py selftest: {len(cases)} 条 judge 判据 + {len(verdict_cases)} 条"
-          f"「够不够得着复现件」判据（四形）+ clean_env 剔除覆盖 全部成立。")
+          f"「够不够得着复现件」判据（四形）+ {len(prompt_cases)} 条 `wo_prompt` 的 `where` 三形"
+          f"（dict/字符串/缺失）+ clean_env 剔除覆盖 全部成立。")
     return 0
 
 
