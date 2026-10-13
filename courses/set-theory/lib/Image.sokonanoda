@@ -98,7 +98,7 @@ theorem Set.image_subset_iff {α β : Type} (f : α → β) (A : Set α) (B : Se
 theorem Set.mem_image_intro {α β : Type} (f : α → β) (A : Set α) (y : β)
     (x : α) (hx : x ∈ A) (hxy : f x = y) : y ∈ f '' A :=
   (fun (h : ∃ (x' : α), x' ∈ A ∧ f x' = y) => h)
-    (Exists.intro α (fun (x' : α) => x' ∈ A ∧ f x' = y) x (And.intro hx hxy))
+    (Exists.intro x (And.intro hx hxy))
 
 theorem Set.mem_image_elim {α β : Type} (f : α → β) (A : Set α) (y : β) (C : Prop)
     (h : y ∈ f '' A) (k : ∀ (x : α), x ∈ A → f x = y → C) : C :=

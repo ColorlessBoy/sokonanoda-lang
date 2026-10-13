@@ -114,7 +114,7 @@ theorem block_is_class (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partit
     (partition_nonempty α P hP C hC)
     (fun (a : α) (ha : C a) =>
       (fun (h : ∃ (b : α), ∀ (c : α), C c ↔ Rel.ofPartition α P b c) => h)
-        (Exists.intro α (fun (b : α) => ∀ (c : α), C c ↔ Rel.ofPartition α P b c) a
+        (Exists.intro a
           (fun (c : α) =>
             Iff.intro (C c) (Rel.ofPartition α P a c)
               (fun (hCc : C c) =>
@@ -152,7 +152,7 @@ theorem ofPartition_of_classes (α : Type) (r : Rel α α) (he : IsEquivalence �
         (Rel.EquivClass α r a)
         (And.intro
           ((fun (h : ∃ (x : α), ∀ (c : α), Rel.EquivClass α r a c ↔ r x c) => h)
-            (Exists.intro α (fun (x : α) => ∀ (c : α), Rel.EquivClass α r a c ↔ r x c) a
+            (Exists.intro a
               (fun (c : α) => Iff.intro (Rel.EquivClass α r a c) (r a c)
                 (fun (h : Rel.EquivClass α r a c) => h) (fun (h : r a c) => h))))
           (And.intro
