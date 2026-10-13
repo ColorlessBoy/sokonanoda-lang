@@ -249,3 +249,4 @@
 {"ts": "2026-10-13T05:02:12+00:00", "event": "submit", "id": "T-D31-LEXER-COLUMN-UTF16", "owner": "penglingwei@penglingweis-Laptop", "kind": "finding", "evidence": "T-D31 的**另一半**：词法器 column 按 char 累加，而 query::line_col_of 按 UTF-16 ⇒ pos_within 拿 LSP 的 UTF-16 character 去比 char 列 ⇒ **含星平面字符（如 𝒫 U+1D4AB）时偏** ✗。**上一片只改了 references.rs 的光标列口径（09421a6a），没动词法器** ✗（如实）。"}
 {"ts": "2026-10-13T05:02:12+00:00", "event": "triage", "id": "T-D31-LEXER-COLUMN-UTF16", "to": "applied", "reason": "受理为实现项（口径分叉的另一半）", "commit": "9bcf7033", "owner": "penglingwei@penglingweis-Laptop"}
 {"ts": "2026-10-13T05:02:12+00:00", "event": "reopen", "id": "T-D31-LEXER-COLUMN-UTF16", "reason": "受理为实现项 ⇒ 待实现的活，不是已修", "owner": "penglingwei@penglingweis-Laptop"}
+{"ts": "2026-10-13T07:52:47+00:00", "event": "claim", "id": "T-D31-LEXER-COLUMN-UTF16", "owner": "FRONT-L", "resources": ["crates/front"]}
