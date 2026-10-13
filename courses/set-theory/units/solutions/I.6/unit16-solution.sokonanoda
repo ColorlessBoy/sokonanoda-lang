@@ -63,7 +63,7 @@ theorem asymmetric_of_wellFounded (α : Type) (E : α → α → Prop)
   fun (hab : E a b) (hba : E b a) =>
     asymmetric_body α E a b hab hba
       (wellFounded_hasMin α E hwf (fun (z : α) => E a z ∨ E b z)
-        (Exists.intro α (fun (z : α) => E a z ∨ E b z) b (Or.inl hab)))
+        (Exists.intro b (Or.inl hab)))
 
 -- ── 练习 4（L 类）：序数不属于自己 ────────────────────────────────────────
 theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)

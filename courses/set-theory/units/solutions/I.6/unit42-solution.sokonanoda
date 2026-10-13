@@ -58,7 +58,7 @@ theorem hasMin_of_hasLeast_strict (α : Type) (r : Rel α α)
 theorem wellOrder_univ_hasLeast (α : Type) (r : Rel α α) (h : IsWellOrder α r) (a : α) :
     HasLeast α r (fun (_ : α) => True) :=
   wellOrder_hasLeast α r h (fun (_ : α) => True)
-    (Exists.intro α (fun (_ : α) => True) a True.intro)
+    (Exists.intro a True.intro)
 
 theorem wellOrder_hasLeast_singleton (α : Type) (r : Rel α α) (h : IsWellOrder α r)
     (a : α) : HasLeast α r (fun (x : α) => Eq.{1} α x a) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
@@ -71,5 +71,5 @@ theorem wellOrder_hasLeast_singleton (α : Type) (r : Rel α α) (h : IsWellOrde
 theorem wellOrder_hasLeast_pair (α : Type) (r : Rel α α) (h : IsWellOrder α r) (a b : α) :
     HasLeast α r (fun (x : α) => Eq.{1} α x a ∨ Eq.{1} α x b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   wellOrder_hasLeast α r h (fun (x : α) => Eq.{1} α x a ∨ Eq.{1} α x b)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-    (Exists.intro α (fun (x : α) => Eq.{1} α x a ∨ Eq.{1} α x b) a  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (Exists.intro a  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
       (Or.inl (Eq.{1} α a a) (Eq.{1} α a b) (Eq.refl.{1} α a)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
