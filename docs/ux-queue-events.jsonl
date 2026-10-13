@@ -242,3 +242,5 @@
 {"ts": "2026-10-13T02:41:10+00:00", "event": "advance", "id": "F12", "to": "umbrella", "commit": null, "reading": null, "reason": "它自己的活（探针那一臂）已按降级交付收口，但子项 F12b2（front 侧项位）仍 open ⇒ 保持 umbrella ✓", "owner": "penglingwei@penglingweis-Laptop"}
 {"ts": "2026-10-13T03:47:59+00:00", "event": "claim", "id": "STALE-CODE-COMPROMISES-C1C4", "owner": "FRONT-H", "resources": ["crates/front"]}
 {"ts": "2026-10-13T03:48:01+00:00", "event": "claim", "id": "W-3", "owner": "COURSE-I", "resources": ["courses/set-theory"]}
+{"ts": "2026-10-13T04:49:33+00:00", "event": "claim", "id": "STALE-CODE-COMPROMISES-C1C4", "owner": "FRONT-H", "resources": ["crates/front"]}
+{"ts": "2026-10-13T04:49:33+00:00", "event": "advance", "id": "STALE-CODE-COMPROMISES-C1C4", "to": "done", "commit": "fd06ba1e", "reading": "四处全部落地（front 978/0 · lsp 247/0 · gap.py check exit 0 · check.py 2190 checked/0 判负 · notation-lint exit 0）；u+v 按与 Lean 4 一致记 wo_filed", "reason": null, "owner": "FRONT-H"}
