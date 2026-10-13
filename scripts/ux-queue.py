@@ -65,6 +65,18 @@ python3 scripts/ux-queue.py --selftest            # 判据通道自检（不碰�
 ⇒ `--schedule` 与 `--submit` **同形**（来源行 + 一条只追加事件），但语义是"**我自己排的期**"：
 处置 `fix`、状态 `todo` ⇒ `--json` 的 `open`/`queue`/`view` 查得到、`--next` 按序推得出，
 收口与其它条目**同口径**（`--commit` + `--reading`，**没有豁免** ✗）。
+
+**收口指针必须过祖先性闸门**（2026-10-14 · `queueW` 修三个视图一致性缺陷 ⑤）：`--commit` 不只看
+"对象存在"（`git cat-file -e`），还看 `git merge-base --is-ancestor <sha> HEAD` —— 实测 65 条 `done`
+里 **60 条**的指针是 **rebase 前的孪生**（对象在、内容也落了 main，但**解析不到 main 的历史**）✗。
+口径 **只对新增收口**要求祖先性（写入口硬拒 + `check_plan` 复查"先写后 rebase"），**存量**给一条
+**带日期**的豁免（`ANCESTRY_GATE_SINCE`），且每次 `--check` 都打一行 ⚠ 汇总（条数 + 日期 + 为什么 +
+清单）—— **不许静默放过** ✗。
+
+**三个视图必须同数**（2026-10-14 · 同轮 ①②③）：`--json` 的 `open`/`summary`、`--next` 的推序、
+§0.2 的 `QUEUE:COUNTS` **一律从 `sched_rows()` 的那份视图算**（`json_view` 不再自己从源行另算 ✗）；
+子任务**有源行就用源行**（真处置），`check_plan` 的处置以**来源台账**为权威 ⇒「反向两层漂移」
+对子任务也咬得住 ✓。
 """
 
 from __future__ import annotations
@@ -896,6 +908,10 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             for key in ("commit", "reading", "reason"):
                 if ev.get(key):
                     cur[key] = ev[key]
+            if ev.get("ts"):
+                # 供**祖先性闸门**按日期分「新增 / 存量」（见 `ANCESTRY_GATE_SINCE`）：
+                # 没有时间戳的 done（旧事件 / triage 受理那一支）按**存量**从宽处理 ✓。
+                cur["advanced_ts"] = ev["ts"]
         elif kind == "split":
             parent = ev.get("parent")
             if parent:
@@ -937,25 +953,70 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
     return state
 
 
+# ── 祖先性闸门（2026-10-14 · `queueW` 修三个视图一致性缺陷 ⑤） ──────────────────
+# 旧闸门**只查存在性**（`git cat-file -e <sha>^{commit}`，见 `cmd_advance`）⇒ 查不出
+# 「指针**不是 main 的祖先**」✗ —— 实测（2026-10-14 量）：65 条 `done` 里 **32 条**的
+# commit 是 **rebase 前的孪生**（对象还在 ✓、内容也落了 main ✓，但
+# `git merge-base --is-ancestor <sha> HEAD` 非零 ⇒ 指针在 main 的历史上**找不到**）⇒
+# 「有 commit」看着像证据，其实**没法在 main 上核**。
+# 口径（**带日期的豁免**，**不静默放过** ✗）：
+#   · **新增收口**（本闸门之后写的 `done`）**必须**过祖先性 —— 写入口硬拒（`cmd_advance`）
+#     + 读侧复查（`check_plan`；防"先写后 rebase"：记录时是祖先、之后被 rebase 甩掉 ⇒ 判红）；
+#   · **存量**（`ANCESTRY_GATE_SINCE` **之前**记的 done 指针）**不判红**：它们多是 rebase 前的
+#     孪生，改不动（对象在、历史不在）⇒ 每次 `--check` 打一行 ⚠ 汇总（条数 + 日期 + 为什么
+#     豁免 + 清单），**不许静默** ✓。
+#   ⚠ 若 main 再被整体 rebase 一次 ⇒ 今天以后记的指针会（**应该**）判红：那时候它们确实
+#     解析不到 main 了 ⇒ 要么按新历史重开再收口，要么**评审可见地**改这一处口径日期。
+ANCESTRY_GATE_SINCE = "2026-10-14"
+
+_ANCESTRY_CACHE: dict[str, bool] = {}
+
+
+def commit_is_ancestor(commit: str) -> bool:
+    """`git merge-base --is-ancestor <commit> HEAD`（按 sha 记忆化：`--check` 要问几十次）。"""
+    if commit not in _ANCESTRY_CACHE:
+        probe = subprocess.run(["git", "merge-base", "--is-ancestor", commit, "HEAD"],
+                               cwd=ROOT, capture_output=True, text=True)
+        _ANCESTRY_CACHE[commit] = probe.returncode == 0
+    return _ANCESTRY_CACHE[commit]
+
+
 def sched_rows(rows: list[dict], state: dict[str, dict]) -> list[dict]:
-    """把**拆解出来的子任务**并进队列视图：插在它父条目的**前面**（执行顺序 = 队列顺序）。"""
+    """把**拆解出来的子任务**并进队列视图：插在它父条目的**前面**（执行顺序 = 队列顺序）。
+
+    ⚠ **子任务有源行 ⇒ 用源行**（2026-10-14 · `queueW` 修三个视图一致性缺陷 ①）：
+    旧代码给**每个**子任务都合成一行、且硬编码 `disposition="fix"` ⇒ 两处坏在同一处：
+      · 合成行里的 `fix` 把源行的**真处置**（`fixed`/`wo-filed`）盖掉；
+      · 合成行**先进 `out`** ⇒ 走到该 id 的**源行时 `id in seen` ⇒ 源行被丢弃** ✗。
+    实测后果（"队列空了吗"三个视图三个答案）：`F12b-notation-blind-intro` /
+    `F12b2-front-intro-notation` 在 `docs/ux-queue-extras.jsonl` 里明明是 `fixed`，
+    视图里却是 `fix` ⇒ ① `--next` 把**已经做完**的推出来；② `check_plan` 的 `disp` 取到
+    被遮蔽的 `fix` ⇒「反向两层漂移」**对子任务永远咬不住**（`--check` 假绿）；
+    ③ §0.2（`summary(view)`）报 2 条，而 `--json.open`（当时只从源行算）报 0 条 ✗。
+    ⇒ 口径：**有源行就用源行**（只挪位置、**不丢行** ✗），**没有源行的子任务才合成**
+    （合成行的 `repro` 里写明"拆解自哪条"）；子任务仍插在父**之前** ⇒ 顺序不变 ✓。
+    """
     kids: dict[str, list[str]] = {}
     for ident, cur in state.items():
         par = cur.get("parent")
         if par:
             kids.setdefault(par, []).append(ident)
-    child_ids = [c for kids_of in kids.values() for c in kids_of]
-    extra = {ident: {"id": ident, "facet": "队列", "severity": "medium", "disposition": "fix",
-                     "repro": f"（拆解自 `{state[ident].get('parent')}`："
-                              f"{state[ident].get('title') or ''}）",
-                     "owner": state[ident].get("owner") or "", "where": _label(EVENTS)}
-             for ident in child_ids}
+    by_id = {row["id"]: row for row in rows}
+    extra: dict[str, dict] = {}
+    for ident, cur in state.items():
+        if not cur.get("parent"):
+            continue
+        src = by_id.get(ident)
+        extra[ident] = src if src is not None else {
+            "id": ident, "facet": "队列", "severity": "medium", "disposition": "fix",
+            "repro": f"（拆解自 `{cur.get('parent')}`：{cur.get('title') or ''}）",
+            "owner": cur.get("owner") or "", "where": _label(EVENTS)}
     out: list[dict] = []
     seen: set[str] = set()
     for row in rows:
         for ident in kids.get(row["id"], []):
             if ident not in seen:
-                out.append({**extra[ident], "id": ident})
+                out.append(extra[ident])
                 seen.add(ident)
         if row["id"] not in seen:
             out.append(row)
@@ -963,6 +1024,7 @@ def sched_rows(rows: list[dict], state: dict[str, dict]) -> list[dict]:
     for ident, row in extra.items():          # 父条目不在队列里（异常形状）也别丢
         if ident not in seen:
             out.append(row)
+            seen.add(ident)
     return out
 
 
@@ -1045,6 +1107,17 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
         if probe.returncode != 0:
             print(f"✗ `--commit {commit}` 在仓库里**不存在**（`git cat-file -e` 非零）"
                   f" ⇒ 收口证据是假的，不许记 ✗（先把这个环节真的提交掉）", file=sys.stderr)
+            return 1
+        # ⚠ **再加一层祖先性**（2026-10-14 · 缺陷 ⑤）：存在性查不出「指针不是 main 的祖先」
+        # —— 实测 32 条历史 done 指针是 **rebase 前的孪生**（对象在、内容也落了 main，
+        # 但 `git merge-base --is-ancestor <sha> HEAD` 非零）⇒ 证据**没法在 main 上核** ✗。
+        # 口径：**新增收口**必须过闸门（存量走 `check_plan` 的带日期豁免，见常量块说明）。
+        if not commit_is_ancestor(commit):
+            print(f"✗ `--commit {commit}` **不是 `HEAD` 的祖先**"
+                  f"（`git merge-base --is-ancestor` 非零）⇒ 指针解析不到 main 的历史上"
+                  f"（多半是 rebase 前的孪生，或别的分支）⇒ 收口证据在 main 上**找不到**，"
+                  f"不许记 ✗（用**真落进 main 的那个 commit**；口径日期 "
+                  f"`ANCESTRY_GATE_SINCE={ANCESTRY_GATE_SINCE}`）", file=sys.stderr)
             return 1
     if to in {"wo_filed", "blocked"} and not reason:
         print(f"✗ `{to}` 必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
@@ -1199,12 +1272,24 @@ def source_history_ids() -> set[str]:
     return out
 
 
-def check_plan(rows: list[dict]) -> int:
-    """**调度器不变量**：状态与来源不许漂移、收口必须有证据、umbrella 不许空、锁要新鲜。"""
+def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
+    """**调度器不变量**：状态与来源不许漂移、收口必须有证据、umbrella 不许空、锁要新鲜。
+
+    ⚠ `source_rows` = **来源台账的行**（`build_queue()` 的产物；`main()` 传的就是它）。
+    处置（`disposition`）的**权威是来源**，不是视图 —— 视图里子任务的行曾经被合成行遮蔽
+    （见 `sched_rows` 的说明）：`disp` 一旦只从视图取 ⇒「反向两层漂移」对子任务
+    **永远咬不住** ✗（2026-10-14 · 缺陷 ②：`F12b2-front-intro-notation` 来源已 `fixed`、
+    调度器停在 `todo`，而 `--check` 假绿）。⇒ 这里显式以 `source_rows` 覆盖同 id 的视图处置
+    （不传就退回视图；自检的夹具两种形状都造 ✓）。
+    """
     state = fold()
     bad = 0
     known = {r["id"] for r in rows} | source_history_ids()
     disp = {r["id"]: r.get("disposition") for r in rows}
+    for _r in (source_rows or []):     # **来源的处置是权威**（覆盖视图里可能被遮蔽的值）
+        if _r.get("disposition") is not None:
+            disp[_r["id"]] = _r["disposition"]
+    legacy_pointers: list[tuple[str, str]] = []      # 存量非祖先指针（⚠ 报告，不判红）
     for ident, cur in sorted(state.items()):
         st = cur.get("state")
         # ⚠ 这里**不划测试命名空间**（2026-10-12 接口 agent 提交 `SUB-ghost-guard-diluted`）：
@@ -1228,6 +1313,20 @@ def check_plan(rows: list[dict]) -> int:
                 print(f"✗ `{ident}` 调度器里 done，来源处置却是 `{disp.get(ident)}` ⇒ "
                       f"**两层漂移**（把来源台账改成 fixed/wo-filed）✗", file=sys.stderr)
                 bad += 1
+            # **收口指针必须在 main 的历史上**（2026-10-14 · 缺陷 ⑤）：存在性查不出祖先性 ⇒
+            # 存量（口径日期**之前**记的）走带日期豁免（只报告）；新增（日期**之后**记的，
+            # 含"记录时是祖先、之后被 rebase 甩掉"这种）判红 ✓ —— 见常量块的口径说明。
+            _c = cur.get("commit")
+            if _c and not commit_is_ancestor(_c):
+                _ts = cur.get("advanced_ts") or ""
+                if _ts[:10] < ANCESTRY_GATE_SINCE:
+                    legacy_pointers.append((ident, _c))
+                else:
+                    print(f"✗ `{ident}` 的收口 commit `{_c}` **不是 `HEAD` 的祖先**"
+                          f"（记录于 {_ts or '无时间戳'} ≥ {ANCESTRY_GATE_SINCE}）⇒ 证据在 main 上"
+                          f"**找不到**（被 rebase 甩掉了？）✗ —— 按新历史重开再收口，或改记"
+                          f"**真落进 main** 的那个 commit", file=sys.stderr)
+                    bad += 1
         # **反向两层漂移**（`SUB-inflight-claims-never-closed`，2026-10-12）：
         # 上面只查了 `done` + 来源不是终态这一个方向；**反方向一直没人查** ✗ ——
         # 实测事故：`r07`/`G-110` 的修复早已落地、来源处置也已是 `fixed`，但事件表里
@@ -1270,6 +1369,13 @@ def check_plan(rows: list[dict]) -> int:
         if c.get("id") not in known and c.get("id") not in state:
             print(f"✗ 认领 `{c.get('id')}` 不在队列里 ⇒ 幽灵认领 ✗", file=sys.stderr)
             bad += 1
+    if legacy_pointers:
+        # **不许静默放过** ✗：存量豁免每次 `--check` 都打出来（条数 + 口径日期 + 为什么 + 清单）。
+        print(f"⚠ 存量收口指针 **{len(legacy_pointers)} 条**不是 `HEAD` 的祖先 ⇒ **豁免**"
+              f"（口径日期 {ANCESTRY_GATE_SINCE}）：它们是 rebase 前的孪生（对象在、内容也落了 "
+              f"main，但指针解析不到 main 的历史）⇒ **只报告、不判红**；**新增收口**必须过"
+              f"祖先性闸门（`cmd_advance` 硬拒 + 此处复查）✓ —— 清单："
+              + " · ".join(f"{i}@{c[:8]}" for i, c in legacy_pointers), file=sys.stderr)
     return bad
 
 
@@ -1631,11 +1737,16 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
 def json_view(rows: list[dict], state: dict[str, dict], view: list[dict]) -> dict:
     """`--json` 的**唯一**载荷（`main()` 与 `--selftest` 共用同一份 ⇒ 自检断言的是真输出）。
 
-    ⚠ 抽出来的理由（2026-10-13，`SUB-queue-registration-gaps` ①）：自检必须断言**真 `--json`
-    载荷**里的 `open`/`state`，而不是自检自己拼的一份副本 —— 否则"入口登记了、`--json` 却查不到"
-    这种形状照样全绿（"咬不住的守卫等于没有" ✗）。载荷本身与抽出来之前**逐字节相同** ✓。
+    ⚠ **单一真相**（2026-10-14 · 缺陷 ③）：`summary`/`open` 一律取 `view`
+    （= `sched_rows(rows, state)`）—— `--next`（`cmd_next`）与 §0.2（`main()` → `cmd_render`
+    → `render_onboarding`、`--check` → `check_uncovered`）消费的**就是这一份**。
+    旧代码只从**源行** `rows` 算 `open`/`summary` ⇒ 实测三个视图打架：
+    `--json.open = []` 而 §0.2 的 `QUEUE:COUNTS total=2`、`--next` 还推得出
+    `F12b-notation-blind-intro` ✗ ⇒「队列空了吗」**三个视图三个答案**。
+    `queue` 仍是**源行**（与 `view` 是两个视角：来源台账 / 调度器视图）；`open` 里的每个 id
+    都能在 `view` 里查到它那一行 ✓（没有源行的子任务只出现在 `view`）。
     """
-    return {"summary": summary(rows), "open": sorted(open_set(rows)), "queue": rows,
+    return {"summary": summary(view), "open": sorted(open_set(view)), "queue": rows,
             "state": state, "view": view}
 
 
@@ -2053,7 +2164,7 @@ def selftest_schedule(expect) -> None:
                          "ux-queue.py --selftest exit 0", "", "orch", False, view) == 0)
             _rows2, _st2, view2 = snapshot()
             expect("收口后来源处置仍是 fix ⇒ 两层漂移判红（**没有新豁免** ✓）",
-                   check_plan(view2) >= 1)
+                   check_plan(view2, _rows2) >= 1)
             _raw = _read_jsonl(EXTRAS)
             if _raw:                 # 反向验证（入口改成只写事件）时可能没有来源行 ⇒ 别丢栈
                 _raw[0]["disposition"] = "fixed"
@@ -2061,7 +2172,7 @@ def selftest_schedule(expect) -> None:
                                           for r in _raw), encoding="utf-8")
             _rows3, _st3, view3 = snapshot()
             expect("来源翻 fixed 之后 ⇒ check_plan 转绿（与既有条目同一条路 ✓）",
-                   check_plan(view3) == 0)
+                   check_plan(view3, _rows3) == 0)
             # ⑦ **真 CLI 路径**（反向验证的咬点）：`main()` 读 `sys.argv` ⇒ 关掉入口这条必红 ✗
             sys.argv = ["ux-queue.py", "--schedule", "S-2", "--title", "真 CLI 路径",
                         "--reason", "反向验证：关掉入口必须判红", "--owner", "orch"]
@@ -2073,6 +2184,245 @@ def selftest_schedule(expect) -> None:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
             sys.argv[:] = saved[5]
+
+
+def selftest_child_drift(expect) -> None:
+    """**子任务视图的三条不变量**（2026-10-14 · `queueW` 修三个视图一致性缺陷 ①②③）。
+
+    真实事故：`F12b-notation-blind-intro` / `F12b2-front-intro-notation` 在
+    `docs/ux-queue-extras.jsonl` 里已是 `fixed`，调度器却停在 `todo`（被 reopen 过）——
+    「反向两层漂移」本该判红 ✗，但 `sched_rows` 给子任务合成的行硬编码 `disposition="fix"`
+    且**先进 `out`** ⇒ 源行被 `id in seen` 丢掉 ⇒ `check_plan` 的 `disp` 取到被遮蔽的 `fix`
+    ⇒ **`--check` 假绿**；同时 §0.2 报 2 条、`--json.open` 报 0 条、`--next` 还推得出 ⇒
+    「队列空了吗」**三个视图三个答案** ✗。
+
+    夹具走**真生产路径**（`build_queue` + `fold` + `sched_rows` + `check_plan`/`json_view`/
+    `render_onboarding`/`cmd_next`，与 `main()` 同一份视图），断言：
+      ① 子任务**有源行** ⇒ 视图里就是那一行（真处置 `fixed`，不是合成的 `fix`）；
+      ② 源行一条**不丢**（视图 ⊇ 源行）· 视图里**无重复 id** · 子任务仍插在父之前；
+      ③ 源 `fixed` + 调度器非终态 ⇒ `check_plan` **判红**（反向两层漂移对子任务咬得住 ✓）；
+      ④ **单一真相**：视图里 open 的子任务（含**没有源行**的合成行）必须在 `--json` 载荷的
+         `open` 里 —— 还原 `json_view`（只从源行算）这条必红 ✗；
+      ⑤ **处置的权威是来源**：视图那一行被遮蔽成 `fix` 时，`check_plan(view, source_rows)`
+         照样判红 —— 还原「`disp` 取源处置」这条必红 ✗；
+      ⑥ 收口（in_progress → done，真 sha + 读数）后转绿；⑦ 三条视图**读数一致**
+         （`--json.open` == 视图 open == §0.2 的 `total` == `--next` 推的那条）。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| Z-9 | 语言 | 夹具（没处置 ⇒ 不进 rows） | 高 | `bash z.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        EXTRAS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in (
+            {"id": "K-1", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash x.sh", "disposition": "fix", "why": "夹具：父条目（umbrella）"},
+            {"id": "K-2", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash y.sh", "disposition": "fixed",
+             "why": "夹具：**有源行**的子任务（真处置 fixed）"})), encoding="utf-8")
+        real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                  capture_output=True, text=True).stdout.strip()
+
+        def quiet(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc
+
+        def snapshot():
+            _r, _u = build_queue()
+            _s = fold()
+            return _r, _s, sched_rows(_r, _s)
+
+        try:
+            # 夹具形状 = **真历史**：先 `split`（K-2 有源行是**之后**才登记进 extras 的 ⇒
+            # `cmd_add_child` 的"id 已是键"那道闸门挡不住这种真形状 ⇒ 直接落事件 ✓）；
+            # K-3 没有源行 ⇒ 走合成行那条路。
+            append_event({"event": "split", "id": "K-2", "parent": "K-1",
+                          "title": "有源行的子任务", "owner": "t"})
+            append_event({"event": "split", "id": "K-3", "parent": "K-1",
+                          "title": "没有源行的子任务（合成行）", "owner": "t"})
+            rows, state, view = snapshot()
+            ids = [r["id"] for r in view]
+            k2 = next(r for r in view if r["id"] == "K-2")
+            expect(f"① 子任务有源行 ⇒ 视图用**源行**（K-2 处置 = {k2.get('disposition')}，期望 fixed）",
+                   k2.get("disposition") == "fixed")
+            expect("① 子任务仍插在父**之前**（顺序不变）",
+                   ids.index("K-2") < ids.index("K-1") and ids.index("K-3") < ids.index("K-1"))
+            expect(f"② 源行一条不丢（视图 {len(ids)} 行 ⊇ 源行 {len(rows)} 行）",
+                   {r["id"] for r in rows} <= set(ids))
+            expect(f"② 视图里没有重复 id（{len(ids)} 行 / {len(set(ids))} 个 id）",
+                   len(ids) == len(set(ids)))
+            expect(f"③ 源 `fixed` + 调度器 `{state['K-2']['state']}` ⇒ 反向两层漂移判红",
+                   check_plan(view, rows) >= 1)
+            payload = json_view(rows, state, view)
+            expect(f"④ 合成子任务（K-3 没源行）必须在 `--json` 的 open 里（实测 {payload['open']}）",
+                   "K-3" in payload["open"])
+            expect("④ `--json` 的 open == 视图的 open 集合（单一真相）",
+                   payload["open"] == sorted(open_set(view)))
+            shadow = [{**r, "disposition": "fix"} if r["id"] == "K-2" else r for r in view]
+            expect("⑤ 视图那一行被遮蔽时，处置仍以**来源**为准 ⇒ 照样判红",
+                   check_plan(shadow, rows) >= 1)
+            expect("认领 K-2（**认领即 `in_progress`** —— `fold()` 那条口径）",
+                   quiet(cmd_claim, "K-2", "t", False, view, "mod/x") == 0)
+            expect(f"⑥ K-2 → done（commit {real_sha[:8]} + 读数）",
+                   quiet(cmd_advance, "K-2", "done", real_sha, "夹具读数：check_plan 转绿",
+                         "", "t", False, view) == 0)
+            rows2, state2, view2 = snapshot()
+            expect("⑥ 收口后 check_plan 转绿（K-2 done + 来源 fixed）",
+                   check_plan(view2, rows2) == 0)
+            payload2 = json_view(rows2, state2, view2)
+            _s2 = summary(view2)
+            _pushable = sorted(
+                r["id"] for r in view2
+                if effective_state(r, state2.get(r["id"], {}))
+                not in TERMINAL_STATES | {"umbrella", "blocked", "boundary", "control"})
+            expect(f"⑦ 三视图**同数**：`--json.open`={payload2['open']} · 视图 open="
+                   f"{sorted(open_set(view2))} · §0.2 total={_s2['total']}",
+                   payload2["open"] == sorted(open_set(view2))
+                   and _s2["total"] == len(payload2["open"])
+                   and f"QUEUE:COUNTS total={_s2['total']} " in render_onboarding(view2))
+            expect(f"⑦ `check_plan` 绿 ⇒ `--next` 推得出的（{_pushable}）都在 `--json.open` 里"
+                   f"（**这正是原来坏掉的方向**：--next 推 F12b 而 --json.open 是空的 ✗）",
+                   set(_pushable) <= set(payload2["open"]))
+            nxt = io.StringIO()
+            with contextlib.redirect_stdout(nxt):
+                cmd_next(view2, "t")
+            _first = (nxt.getvalue().splitlines() or [""])[0]
+            expect(f"⑦ `--next` 推的就是 `--json.open` 里那条（实测首行 `{_first[:24]}…`）",
+                   _first.startswith("K-3") and _first.split(" · ")[0] in payload2["open"])
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+
+
+def selftest_ancestry_gate(expect) -> None:
+    """**祖先性闸门**（2026-10-14 · `queueW` 缺陷 ⑤）：`cat-file -e` 查不出「指针不是 main 祖先」。
+
+    实测（2026-10-14 量）：65 条 `done` 里 **60 条**的 commit 不是 `HEAD` 的祖先
+    （去重后 47 个 sha 里 **32 个**是 rebase 前的孪生）—— 对象在 ✓、内容也落了 main ✓，
+    但 `git merge-base --is-ancestor <sha> HEAD` 非零 ⇒ 光查存在性 = **假证据** ✗。
+    口径 = **只对新增收口**要求祖先性 + 存量给一条**带日期**的豁免（`ANCESTRY_GATE_SINCE`，
+    每次 `--check` 打一行 ⚠ 汇总（条数 + 日期 + 为什么 + 清单）⇒ **不静默** ✓）。断言：
+      ① 非祖先 sha（现场 `git commit-tree` 造一个**悬垂** commit：对象真的存在、但不是祖先）
+         ⇒ `cmd_advance … --to done` **硬拒**（写侧）；
+      ② 同一条 sha + 记录时间 ≥ 口径日期 ⇒ `check_plan` **判红**（读侧复查，防"先写后 rebase"）；
+      ③ 同一条 sha 但记录时间**早于**口径日期 ⇒ **不判红**，且 stderr 里必须出现豁免口径
+         （"存量" + 口径日期 + 清单）—— **不许静默放过** ✓；
+      ④ 真祖先（`HEAD`）⇒ 收口通过、也不判红（别误伤 ✓）。
+    ⚠ ① 会用 `git commit-tree` 往仓库里写一个**悬垂 commit 对象**（无 ref、无副作用；gc 会回收）。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| Z-9 | 语言 | 夹具（没处置 ⇒ 不进 rows） | 高 | `bash z.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                  capture_output=True, text=True).stdout.strip()
+        # **非祖先指针**：拿 HEAD 的树现场造一个**悬垂** commit（HEAD 是它的父 ⇒ 它是后代，
+        # 不是祖先 ⇒ `merge-base --is-ancestor` 必非零；对象真的存在 ⇒ `cat-file -e` 通过）。
+        dangling = subprocess.run(
+            ["git", "-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local",
+             "commit-tree", f"{real_sha}^{{tree}}", "-m", "ux-queue selftest: 悬垂 commit"],
+            cwd=ROOT, capture_output=True, text=True).stdout.strip()
+        if not dangling:     # 造不出来（只读仓库之类）⇒ 退回到"现成的非祖先指针"
+            dangling = next((c for c in {e.get("commit") for e in load_events() if e.get("commit")}
+                             if not commit_is_ancestor(c)), "")
+        expect(f"夹具：非祖先 sha 造得出且对象存在（{dangling[:8]}…）",
+               bool(dangling) and not commit_is_ancestor(dangling))
+        EXTRAS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in (
+            {"id": "G-1", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash g.sh", "disposition": "fix", "why": "夹具：真祖先那条"},
+            {"id": "G-2", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash h.sh", "disposition": "fixed",
+             "why": "夹具：非祖先指针那条"})), encoding="utf-8")
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, err.getvalue()
+
+        def snapshot():
+            _r, _u = build_queue()
+            _s = fold()
+            return _r, _s, sched_rows(_r, _s)
+
+        try:
+            rows, _st, view = snapshot()
+            rc, err = capture(cmd_advance, "G-1", "in_progress", "", "", "", "t", False, view)
+            expect(f"G-1 → in_progress（前置）rc={rc}", rc == 0)
+            rows, _st, view = snapshot()
+            rc, err = capture(cmd_advance, "G-1", "done", dangling, "读数：非祖先指针",
+                              "", "t", False, view)
+            expect(f"① 非祖先 sha 收口 ⇒ **硬拒**（rc={rc}）",
+                   rc == 1 and "不是 `HEAD` 的祖先" in err)
+            # ⚠ 清事件表再往下走：① 若被**还原掉**（写侧不拦），它会往事件表里落一条
+            # `G-1 done + commit=悬垂` ⇒ ② 的 `check_plan` 会因为**别的**红（G-1 两层漂移）
+            # 而 ≥1 ⇒ ② 变成**假绿**（实测踩到过：RV-4 里 ② 没报 FAIL ✗）。
+            # ⇒ 每一条断言都从**干净的事件表**开始，谁的红就是谁的红。
+            EVENTS.write_text("", encoding="utf-8")
+            # ② 新增（记录时间 ≥ 口径日期）却非祖先 ⇒ 读侧判红（写侧本该拦住 ⇒ 复查"先写后 rebase"）
+            append_event({"event": "advance", "id": "G-2", "to": "done", "commit": dangling,
+                          "reading": "夹具读数", "ts": f"{ANCESTRY_GATE_SINCE}T00:00:01+00:00",
+                          "owner": "t"})
+            _r2, _s2, _v2 = snapshot()
+            rc, err = capture(check_plan, _v2, _r2)
+            expect(f"② 新增收口指针非祖先 ⇒ check_plan 判红（红 {rc} 条）", rc >= 1)
+            # ③ 存量（记录时间 < 口径日期）⇒ 豁免：不判红，但**必须打出来**（不静默 ✗）
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "advance", "id": "G-2", "to": "done", "commit": dangling,
+                          "reading": "夹具读数", "ts": "2026-10-13T00:00:01+00:00", "owner": "t"})
+            _r3, _s3, _v3 = snapshot()
+            rc, err = capture(check_plan, _v3, _r3)
+            expect(f"③ 存量非祖先 ⇒ **不判红**（红 {rc} 条）", rc == 0)
+            expect(f"③ 但**不静默**：stderr 里出现豁免口径（存量 + 日期 + 清单）"
+                   f"[G-2={'G-2@' in err} / 日期={ANCESTRY_GATE_SINCE in err}]",
+                   "存量" in err and ANCESTRY_GATE_SINCE in err and "G-2@" in err)
+            # ④ 真祖先（HEAD）⇒ 收口过、也不判红（别误伤 ✓）
+            EVENTS.write_text("", encoding="utf-8")
+            rows, _st, view = snapshot()
+            rc, _e = capture(cmd_advance, "G-1", "in_progress", "", "", "", "t", False, view)
+            expect(f"G-1 → in_progress（rc={rc}）", rc == 0)
+            rows, _st, view = snapshot()
+            rc, err = capture(cmd_advance, "G-1", "done", real_sha, "读数：真祖先", "", "t",
+                              False, view)
+            expect(f"④ 真祖先（HEAD）⇒ 收口通过（rc={rc}）", rc == 0)
+            _raw = _read_jsonl(EXTRAS)      # 收口要把来源处置一并翻成终态（否则那是**两层漂移**）
+            for _row in _raw:
+                if _row.get("id") == "G-1":
+                    _row["disposition"] = "fixed"
+            EXTRAS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in _raw),
+                              encoding="utf-8")
+            _r4, _s4, _v4 = snapshot()
+            rc, err = capture(check_plan, _v4, _r4)
+            expect(f"④ 且不误伤（红 {rc} 条）", rc == 0)
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
 
 
 def cmd_selftest(args: argparse.Namespace) -> int:
@@ -2291,6 +2641,12 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     # ③d **编排者给自己排期**（`SUB-queue-registration-gaps` ①：真 `--json` 的 open / 同口径收口 /
     #     缺 `--reading` 判红 / 真 CLI 路径 —— 关掉入口这条必红 ✗）
     selftest_schedule(expect)
+    # ③e **子任务视图**（2026-10-14：源行优先 / 不丢行 / 反向两层漂移咬得住 / `--json` 单一真相 /
+    #     视图被遮蔽仍以来源为准 / 三视图同数 —— 还原 ①②③ 任一条都有读数必红 ✗）
+    selftest_child_drift(expect)
+    # ③f **祖先性闸门**（2026-10-14：`cat-file -e` 查不出"不是 main 祖先" ⇒ 新增硬拒 + 读侧复查 +
+    #     存量带日期豁免且**不静默** ✗）
+    selftest_ancestry_gate(expect)
 
     # ④ 真来源：三张表 + 台账 + extras 都能解析
     try:
@@ -2313,6 +2669,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"**认领活过 CLI 调用（不写 pid）**/**收口即放槽**/--next 跳过终态与对照）"
           f" + **编排者排期 13 条**（缺理由拒/只追加事件/**真 `--json` 的 `open` 含它且状态 todo**/"
           f"`--next` 推得出/`--claim` + 带证据收口/缺 `--reading` 判红/两层漂移**不豁免**/真 CLI 路径落地）"
+          f" + **子任务视图 14 条**（源行优先/顺序不变/不丢行/无重复/反向两层漂移咬得住/"
+          f"**`--json` 单一真相**/视图被遮蔽仍以来源为准/收口转绿/**三视图同数**/`--next` 子集一致）"
+          f" + **祖先性闸门 9 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/存量带日期**豁免且不静默**/"
+          f"真祖先不误伤）"
           f" + 真来源解析 全部成立 ✓")
     return 0
 
@@ -2432,7 +2792,7 @@ def main() -> int:
         if args.render:
             return cmd_render(view)
         if args.check_plan or args.check:
-            bad = check_plan(view)
+            bad = check_plan(view, rows)     # 处置以**来源行**为权威（见 `check_plan` 的说明）
             if args.check:
                 bad += check_uncovered(view, live=args.live, timeout=args.timeout,
                                        undecided=undecided)
