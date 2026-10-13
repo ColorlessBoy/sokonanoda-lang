@@ -296,3 +296,4 @@
 {"ts": "2026-10-13T14:35:31+00:00", "event": "release", "id": "W-3", "owner": "COURSE-S", "reason": null}
 {"ts": "2026-10-13T14:35:31+00:00", "event": "advance", "id": "W-3", "to": "in_progress", "commit": null, "reading": null, "reason": "收口（原认领者已交付并 land）", "owner": "orchestrator"}
 {"ts": "2026-10-13T14:35:31+00:00", "event": "advance", "id": "W-3", "to": "done", "commit": "6f5e26ba", "reading": "课程侧 89 处改自然写法（78 处经两条独立基线通道确认真解锁，0 分歧）· 2190 checked 一个没掉 · notation-lint exit 0 · 进度 54->42 · 删 59 条失效豁免标记（770->711，只删不增）· 余 33 处基线也红=引擎边界", "reason": null, "owner": "orchestrator"}
+{"ts": "2026-10-13T14:37:16+00:00", "event": "claim", "id": "SUB-queue-registration-gaps", "owner": "QUEUE-T", "resources": ["scripts/ux-queue.py"]}
