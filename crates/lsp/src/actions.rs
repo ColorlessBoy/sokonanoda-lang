@@ -1688,10 +1688,8 @@ theorem iff_probe (P Q : Prop) : P \u{2194} Q := by\n\
 
     #[tokio::test]
     async fn imported_notation_iff_goal_gets_a_sokonanoda_action() {
-        let dir = std::env::temp_dir().join(format!(
-            "sokonanoda-lsp-import-iff-{}",
-            std::process::id()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("sokonanoda-lsp-import-iff-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("create temp dir");
         std::fs::write(dir.join("SetLib.sokonanoda"), IMPORTED_LIB).expect("write the library");
