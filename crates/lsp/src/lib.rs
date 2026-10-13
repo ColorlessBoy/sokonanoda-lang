@@ -3699,6 +3699,14 @@ impl LanguageServer for Backend {
             params.range.start,
             // 项目模式下把闭包前缀交给 suggest：入口里对导入名字也有 quick-fix。
             &|offset| doc.query().judge_prefix(offset),
+            // **闭包记法表**（F12b2）：front 的 `intro_count`/`intro_text` 读的是
+            // **目标文本**（源码级、课程一律写记法）⇒ 表必须一起喂进去，否则
+            // `a ∈ A → a ∈ B` 这类目标在 front 侧**读不回来** ⇒ 项位 0 条候选。
+            // 单文件/无项目 ⇒ 空表 ⇒ 与改前逐字节相同 ✓。
+            doc.query()
+                .project_report_ref()
+                .map(|project| project.notations.as_slice())
+                .unwrap_or(&[]),
             // 目标形状读取器（F12b）：`a ∈ A` / `A ⊆ B` 这类**课程库**符号不在
             // 内建表里 ⇒ 解析要把闭包记法表一起喂进去（表在 `ProjectReport` 上）。
             // 一次解析同时给出**箭头层数**与**记法头** —— 形状只有一处实现 ✓

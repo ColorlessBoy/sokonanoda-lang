@@ -83,8 +83,25 @@ pub struct ProofState {
 }
 
 impl ProofState {
+    /// 起一个以 `goal_text` 为目标的草稿状态（**只带内建记法表**）。
     pub fn start(goal_text: &str) -> Result<Self, ProofError> {
-        let goal = parse_expr_text(goal_text)?;
+        Self::start_with(goal_text, &[])
+    }
+
+    /// 同 [`ProofState::start`]，但**带继承记法表**（`inherited`：闭包/前缀里
+    /// 已经声明过的 `infix` / `notation`）。
+    ///
+    /// **为什么需要它**（F12b2，2026-10-13）：目标文本是**源码级文本**，课程一律写
+    /// 记法（`a ∈ A` / `A ⊆ B`），而 `∈` 是**被导入模块**声明的 ⇒ 只带内建表读不
+    /// 回来（`parse_expr_text` 报 parse）⇒ 依赖"读目标"的那一层（建议层的
+    /// `intro_count`/`intro_text`）在闭包记法目标上**一条都不产生** ✗。
+    /// 解析走 [`parse_expr_text_with`] —— **与判卷通道同一条**（`judge.rs` 的
+    /// `by` 块目标/项文本回读），不另造第二条 ✗。
+    pub fn start_with(
+        goal_text: &str,
+        inherited: &[crate::ast::NotationDecl],
+    ) -> Result<Self, ProofError> {
+        let goal = parse_expr_text_with(goal_text, inherited)?;
         Ok(Self {
             goal,
             goal_source: goal_text.to_string(),

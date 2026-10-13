@@ -13,6 +13,10 @@
 //! （`a = a` / `p ∧ q` / `A ↔ B` 都是 `Expr::Notation`）⇒ 这些目标上梯子是
 //! 0 条。本文件补两条后备（`notation_ladder_fallbacks` / 失败声明的整值 rfl），
 //! 候选照旧交 kernel 终审；front 学会记法头之后整体删掉。
+//! ⚠ **F12b2 之后**：**箭头头**那一档 front 已经学会（表喂进
+//! `suggest_with_notations`）⇒ 与 front 的 `Intro` 候选是同一条编辑（A5 去重）；
+//! 仍在 front 之外的只有 **`=` 记法头的 rfl** 与 **`∧`/`↔` 记法头的
+//! `constructor`** 两档。
 //!
 //! kernel 拒绝的失败声明（`DeclStatus::Failed`）没有洞，编辑目标是整个
 //! 值位（tokenize 定位 `:=` 与值首）。`front::suggest` 的失败声明建议梯子：
@@ -26,7 +30,7 @@ use sokonanoda_front::compile::{
 };
 use sokonanoda_front::judge::{self as front_judge, Judgement};
 use sokonanoda_front::suggest::{self, SuggestionKind};
-use sokonanoda_front::{tokenize, TokenKind};
+use sokonanoda_front::{tokenize, NotationDecl, TokenKind};
 use std::collections::HashMap;
 use tower_lsp::lsp_types::*;
 
@@ -42,13 +46,16 @@ pub(crate) fn code_actions(
     // 判据前缀提供者（**闭包上下文**）：项目模式下 `suggest` 靠它看见被导入的
     // 名字；单文件传 `&|_| String::new()`。按声明起点问，便于将来按偏移裁剪。
     judge_prefix: &dyn Fn(usize) -> String,
+    // **闭包记法表**（`import` 进来的模块声明的 `infix`/`notation`）：front 的
+    // `suggest` 要读**目标文本**（源码级、课程一律写记法）⇒ 表必须一起给它
+    // （F12b2）。空表 = 单文件路径，与改前逐字节相同 ✓。
+    notations: &[NotationDecl],
     // **目标形状读取器**：把一段目标/类型文本读成 [`GoalShape`]（箭头层数 +
     // 记法头）。
     //
     // 为什么是回调而不是表：解析要带**闭包记法表**（`a ∈ A` / `A ⊆ B` 这些课程库
-    // 符号不在内建表里），而那张表的元素类型 `front::ast::NotationDecl` 落在 front
-    // 的**私有模块**里（`mod ast;` 没有 `pub use`）⇒ 下游 crate 命名不了它。
-    // 调用方（`lib.rs`）手里有 `ProjectReport::notations`，由它把表喂进解析 ✓。
+    // 符号不在内建表里）⇒ 调用方（`lib.rs`）手里有 `ProjectReport::notations`，
+    // 由它把表喂进解析 ✓（[`NotationDecl`] 现在是 front 的公开类型 ✓）。
     goal: &dyn Fn(&str) -> Option<GoalShape>,
 ) -> Option<CodeActionResponse> {
     let d = decl_at(&report.decls, pos.line, pos.character)?;
@@ -70,8 +77,9 @@ pub(crate) fn code_actions(
         if d.error.is_some() {
             let decl_src =
                 &text[d.span.start.offset.min(text.len())..d.span.end.offset.min(text.len())];
-            let suggestions = suggest::suggest_with(
+            let suggestions = suggest::suggest_with_notations(
                 &judge_prefix(d.span.start.offset),
+                notations,
                 src,
                 Some(decl_src),
                 &options,
@@ -146,9 +154,17 @@ pub(crate) fn code_actions(
             }
         }
     } else {
-        for suggestion in
-            suggest::suggest_with(&judge_prefix(d.span.start.offset), src, None, &options, d)
-        {
+        // **闭包记法表一路传下去**（F12b2）：`suggest` 的 `intro_count`/`intro_text`
+        // 读的是**目标文本**（源码级，课程一律写记法）⇒ 不给表就判 0 ⇒
+        // 项位（`:= sorry`）的闭包记法箭头目标**一条候选都没有** ✗。
+        for suggestion in suggest::suggest_with_notations(
+            &judge_prefix(d.span.start.offset),
+            notations,
+            src,
+            None,
+            &options,
+            d,
+        ) {
             match &suggestion.kind {
                 SuggestionKind::Exact {
                     binder,
@@ -198,8 +214,9 @@ pub(crate) fn code_actions(
                         continue;
                     };
                     // **同一个形状读取器**（F12b）：这条守卫以前自己 `parse_expr_text`
-                    // （内建表）⇒ 闭包记法目标上会把 front 的候选**丢掉**（与
-                    // `suggest::intro_count` 同一条记法盲）。形状只有一处实现 ✓。
+                    // （内建表）⇒ 闭包记法目标上会把 front 的候选**丢掉**；现在两边
+                    // 都用闭包记法表解析（F12b2 起 front 的 `intro_count` 也拿到了表
+                    // ⇒ 这一档对**两个位置**都成立）。形状只有一处实现 ✓。
                     let Some(intros) = intro_count(goal, goal_text) else {
                         continue;
                     };
@@ -419,12 +436,17 @@ fn edit_fingerprint(edit: Option<&WorkspaceEdit>) -> String {
 /// `refine_template` 来自 walk 的构造子识别；而课程一律写**记法**
 /// （`a = a` / `p ∧ q` / `A ↔ B` 都是 `Expr::Notation`，不是 `Ident` 应用节点）
 /// ⇒ 这些目标上梯子是 **0 条**。三级后备：
-///   * **箭头/量词头**（F12b）⇒ `intro x`（只 tactic 位）。为什么 LSP 得自己给：
-///     front 的 `intro_count` **与** `intro_text` 都用 `parse_expr_text`
-///     （**只带内建表**，`crates/front/src/suggest.rs:556` / `proof.rs:87`）⇒
-///     闭包记法（`∈` / `⊆`）的目标解析失败 ⇒ 一条 `Intro` 都不产生。而本函数
-///     以前只问"**体内**是不是记法头"，[`peel_binders`] 把箭头剥掉 ⇒ 连"目标头
-///     是箭头"都看不出来 ⇒ 真机课程画布练习 1（`a ∈ A → a ∈ B`）0 条。
+///   * **箭头/量词头**（F12b）⇒ `intro x`。**F12b2 起 front 那半已经学会**
+///     （`intro_count`/`intro_text` 现在拿得到闭包记法表 ⇒ 目标文本
+///     `a ∈ A → a ∈ B` 读得回来）⇒ 这一档与 front 的 `Intro` 候选**逐字节同一条
+///     编辑、同一句标题**（A5 的指纹去重收掉重复项，用户只看见一条 ✓）。
+///     保留它是**兜底**：本函数不依赖 front 的建议梯子本身（哪怕 `Intro` 那条
+///     因为别的原因没产生，箭头头这一档照样给得出 `intro x`）✓。
+///     ⚠ 历史（为什么当初 LSP 得自己给）：front 的 `intro_count`/`intro_text`
+///     用 `parse_expr_text`（**只带内建表**）⇒ 闭包记法（`∈` / `⊆`）的目标解析
+///     失败 ⇒ 一条 `Intro` 都不产生；而本函数以前只问"**体内**是不是记法头"，
+///     [`peel_binders`] 把箭头剥掉 ⇒ 连"目标头是箭头"都看不出来 ⇒ 真机课程画布
+///     练习 1（`a ∈ A → a ∈ B`）0 条。
 ///   * **`=` 记法头** ⇒ `rfl`（tactic 位）/ `Eq.refl <左操作数>`（项位），
 ///     候选**照旧交 kernel 终审**（`judge_hole_fill_with` / `judge_value_replace_with`）
 ///     ⇒ 判不过就**不出现**，零假绿面 ✓；
@@ -444,13 +466,14 @@ fn edit_fingerprint(edit: Option<&WorkspaceEdit>) -> String {
 /// `Eq.refl` 的首个参数是隐式的，判卷层能从期望类型反解（实测 `a = a` 上
 /// `Eq.refl a` 判 `Match`）。副作用：生成的是 `Eq.refl a` 而不是 front 那条
 /// `Eq.refl.{u} α a`；两者在真 Lean 4 里**都合法**（`Init/Core.lean` 的
-/// `Eq.refl` 首参就是隐式）。`intro` 这一级只给 **tactic 位**：项位要
-/// `fun (x : T) => sorry`，那个文本得真剥一层才知道 `T`（front 的 `intro_text`）
-/// ⇒ 项位的闭包记法箭头目标**仍然 0 条**（宁少给，不给错的 ✗）。
+/// `Eq.refl` 首参就是隐式）。`intro` 这一级**只给 tactic 位**（F12b 时的取舍）：
+/// 项位要 `fun (x : T) => sorry`，那个文本得真剥一层才知道 `T`（front 的
+/// `intro_text`）—— **项位由 front 那条给**（F12b2 已通：判据
+/// `imported_term_position_notation_arrow_goal_gets_the_intro_step` ✓）。
 ///
-/// **退役判据**：front 的 `intro_count`/`intro_text`/`refl_candidate`/refine
-/// 识别学会（带闭包记法表的）记法头之后，这个函数应当**整体删掉**
-/// （判定形状只允许有一个实现）。
+/// **退役判据**：front 的 `refl_candidate` / refine 识别也学会（带闭包记法表的）
+/// 记法头之后，这个函数应当**整体删掉**（判定形状只允许有一个实现）——
+/// 箭头头那一档**已经**被 front 覆盖（F12b2），`=`/`∧`/`↔` 两档仍在 front 之外。
 /// 逃生门 `SOKO_NO_NOTATION_RFL=1`（反向验证用，见 VERDICT）。
 fn notation_ladder_fallbacks(
     actions: &mut Vec<CodeActionOrCommand>,
@@ -539,8 +562,17 @@ fn notation_ladder_fallbacks(
 /// **形状后备阶梯的逃生门**（反向验证用）：`SOKO_NO_NOTATION_RFL=1` 时
 /// `notation_ladder_fallbacks` 的**三级**（箭头头的 `intro` · 开放练习的
 /// rfl/constructor · 判红声明的 rfl 整值）**整体关闭** ⇒ 步骤 A3/A4 必须回到
-/// "不一致"（读数见 `.cache/ux/fix-lspA/VERDICT.md`），F12b 的
-/// `imported_notation_arrow_goal_gets_the_intro_step` 也必须回到判红。
+/// "不一致"（读数见 `.cache/ux/fix-lspA/VERDICT.md`）。
+/// ⚠ **F12b2 之后它不再单独咬 F12b 那条判据**（如实）：`imported_notation_arrow_goal_gets_the_intro_step`
+/// 现在由 **front** 那条 `Intro` 候选满足（闭包记法表进了 `intro_count`/
+/// `intro_text`）⇒ **只关本阶梯，它照样绿**（实测 ✓）—— 那正是"退役判据"想要的
+/// 方向：箭头头这一档的所有权已经从 LSP 后备**移回 front** ✓。
+/// ⇒ F12b 那条的反向验证要**两条通道一起关**（本逃生门 **+** front 侧那条
+/// 一次性闸门：让 `suggest_with_notations` 把表当空表用，读数见 VERDICT）⇒
+/// tactic 位与项位的箭头头判据**一起**判红 ✓。那条闸门是**一次性的**、跑完已
+/// 还原（`grep` = 0 ✗ 不留）。
+/// 本逃生门**单独**仍咬得住的是 `=`/`∧`/`↔` 那两档（A3 的
+/// `A3-codeaction-ladder-thin` ⇒ exit 1 ✓）。
 ///
 /// 名字保留 `…NOTATION_RFL`（2026-10-13）：它是 A3/A4 那两轮**已在台账里**的
 /// 逃生门名，改名会让那两条反向验证失效 ✗ —— 语义已扩到整条阶梯，名字按"历史
@@ -658,7 +690,8 @@ fn push_action(actions: &mut Vec<CodeActionOrCommand>, title: String, edit: Work
 ///
 /// **走同一个形状读取器**（F12b）：以前这里自己 `parse_expr_text`（**内建**记法表）
 /// ⇒ 闭包记法（`∈` / `⊆`）的目标读不出来 ⇒ front 那条 `Intro` 候选会被这条守卫
-/// **丢掉**（与 `front::suggest::intro_count` 同一条记法盲）。形状只有一处实现 ✓。
+/// **丢掉**。F12b2 起 front 的 `intro_count` 也拿到同一张表（`suggest_with_notations`）
+/// ⇒ 守卫与生产者**同解**（都用闭包记法表解析同一段目标文本）✓。形状只有一处实现 ✓。
 fn intro_count(goal: &dyn Fn(&str) -> Option<GoalShape>, goal_text: &str) -> Option<usize> {
     goal(goal_text)
         .map(|shape| shape.binders)
@@ -1602,16 +1635,18 @@ theorem eq_self (\u{3b1} : Type) (a : \u{3b1}) : a = a := by\n\
     //
     // 根因是**两层各自的"记法盲"**，而单测夹具全都没有 `import`（这正是
     // "单测绿、真机空"的缝）：
-    //   * front `suggest::intro_count`（`crates/front/src/suggest.rs:556`）用
-    //     `parse_expr_text`（**只带内建表**）⇒ `∈` 不在表里 ⇒ 解析失败 ⇒
-    //     `SuggestionKind::Intro` 一条都不产生；
+    //   * front `suggest::intro_count` 用 `parse_expr_text`（**只带内建表**）
+    //     ⇒ `∈` 不在表里 ⇒ 解析失败 ⇒ `SuggestionKind::Intro` 一条都不产生；
     //   * LSP 的 `notation_ladder_fallbacks` 只认 `Eq`/`And`/`Iff` 三个**体内**
     //     记法头，而 [`peel_binders`] 把箭头剥掉 ⇒ 连"目标头是箭头"都看不出来
     //     （`Set.mem` 不在硬编码的三族里）⇒ 0 条。
     //
     // 本判据钉的是 **LSP 侧那一半**：闭包记法表在手时，箭头头必须给得出
     // `intro x`（结构性，与 `constructor` 同档 —— 内核在学生写下的每一步之后
-    // 照旧终审）。front 侧那一半（`intro_count` 的记法盲）**未动**，见报告。
+    // 照旧终审）。**front 侧那一半已由 F12b2 收口**（`suggest_with_notations`：
+    // 表喂进 `intro_count`/`intro_text` 走的那条解析通道）⇒ 这一档现在**两条路
+    // 都给**（同一句标题、同一条编辑 ⇒ A5 去重后用户只看见一条 ✓），
+    // 判据对**两个位置**都成立（tactic 位见本用例，项位见下面 F12b2 那条）。
 
     /// 入口：`import` + **箭头头**（`a ∈ A → a ∈ B`，课程画布练习 1 的形状）。
     const IMPORTED_ARROW_CANVAS: &str = "\
@@ -1666,6 +1701,89 @@ theorem mem_of_subset (\u{3b1} : Type) (A B : Set \u{3b1}) (a : \u{3b1}) :\n\
             first_edit(intro).1,
             "intro x",
             "tactic 位的箭头头 ⇒ 插入的就是 `intro x`（`fun (x : T) => sorry` 是项 ✗）"
+        );
+        shutdown(&mut service).await;
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // ── F12b2：**同一形状、同一套判据**，只换洞的**位置模式**（2026-10-13）──
+    //
+    // 现场：`front::suggest` 的 `intro_count` / `intro_text`
+    // （`crates/front/src/suggest.rs`）读目标文本走 `parse_expr_text`（**只带内建
+    // 表**）⇒ 闭包记法（`∈` / `⊆`）的目标**读不回来** ⇒ `SuggestionKind::Intro`
+    // 一条都不产生。tactic 位那条由 `notation_ladder_fallbacks` 兜住了（F12b），
+    // 而它**只给 tactic 位**（项位要 `fun (x : T) => sorry`，那个文本得真剥一层
+    // 才知道 `T`）⇒ **F12b2 补的就是这一格**：把闭包记法表喂进
+    // `intro_count`/`intro_text` 走的那条解析通道（`parse_expr_text_with` +
+    // `ProofState::start_with`），**不为项位另立一套语义** ✓。
+    //
+    // 判据与 `imported_notation_arrow_goal_gets_the_intro_step` **成对**：同一个
+    // 目标文本（`a ∈ A → a ∈ B`），只把 `:= by sorry`（tactic 位）换成
+    // `:= sorry`（项位）⇒ 候选的**标题逐字相同**（同一步骤同一句话），
+    // **插入文本按位置模式定型**（A1 ✓）。改前这里是 **0 条候选**。
+
+    /// 入口：`import` + **项位** + 闭包记法箭头目标（与 F12b 的夹具同形，去掉 `by`）。
+    const IMPORTED_TERM_ARROW_CANVAS: &str = "\
+import SetLib\n\n\
+def mem_of_subset_term (\u{3b1} : Type) (A B : Set \u{3b1}) (a : \u{3b1}) :\n\
+    a \u{2208} A \u{2192} a \u{2208} B :=\n\
+  sorry\n";
+
+    #[tokio::test]
+    async fn imported_term_position_notation_arrow_goal_gets_the_intro_step() {
+        let dir = std::env::temp_dir().join(format!(
+            "sokonanoda-lsp-import-term-arrow-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        std::fs::write(dir.join("SetLib.sokonanoda"), IMPORTED_LIB).expect("write the library");
+        let canvas_path = dir.join("TermArrow.sokonanoda");
+        std::fs::write(&canvas_path, IMPORTED_TERM_ARROW_CANVAS).expect("write the canvas");
+        let root = Url::from_directory_path(&dir).expect("dir url");
+        let canvas = Url::from_file_path(&canvas_path).expect("file url");
+
+        let (mut service, mut socket) = test_service();
+        handshake_with_root(&mut service, &root).await;
+        did_open_at(&mut service, &canvas, IMPORTED_TERM_ARROW_CANVAS).await;
+        // 前提：闭包编译是好的（缺口在**建议**层，不是判定层）。
+        let diags = wait_diagnostics_for(&mut socket, &canvas, "term arrow diagnostics").await;
+        let unexpected: Vec<&str> = diags
+            .diagnostics
+            .iter()
+            .map(crate::testutil::code_of)
+            .filter(|code| *code != "sorry")
+            .collect();
+        assert!(
+            unexpected.is_empty(),
+            "闭包编译是好的（缺口在建议层），不该有 `sorry` 之外的诊断：{unexpected:?}"
+        );
+
+        let hole = IMPORTED_TERM_ARROW_CANVAS.find("sorry").expect("the hole");
+        let actions = code_actions_at_uri(&mut service, &canvas, IMPORTED_TERM_ARROW_CANVAS, hole)
+            .await
+            .unwrap_or_default();
+        let intro = actions
+            .iter()
+            .find(|a| a.title.contains("\u{5f15}\u{5165} "))
+            .unwrap_or_else(|| {
+                panic!(
+                    "**项位**的 `a \u{2208} A \u{2192} a \u{2208} B`（箭头头 + 闭包记法）\
+必须有 sokonanoda 的候选（改前 0 条）：{actions:?}"
+                )
+            });
+        // 同一步骤、同一句话 —— 标题与 tactic 位那条**逐字相同**（同一套判据 ✓）。
+        assert_eq!(
+            intro.title,
+            "\u{5f15}\u{5165} 1 \u{4e2a} binder\u{ff08}\u{628a}\u{8bc1}\u{660e}\u{5199}\u{6210} lambda \u{7684}\u{7b2c}\u{4e00}\u{6b65}\u{ff09}",
+            "项位与 tactic 位的 intro 候选必须是**同一句话**（判据同一套）"
+        );
+        // **插入文本按位置模式定型**（A1）：项位 ⇒ `fun (x : T) => sorry`，
+        // 而 `T` 只有把目标文本用**闭包记法表**读回来才剥得出来（`a ∈ A`）。
+        assert_eq!(
+            first_edit(intro).1,
+            "fun (x : a \u{2208} A) => sorry",
+            "项位的箭头头 ⇒ 插入的是 `fun (x : T) => sorry`（`intro x` 是 tactic ✗）"
         );
         shutdown(&mut service).await;
         let _ = std::fs::remove_dir_all(&dir);

@@ -34,12 +34,13 @@
 //! 内建版 ✓）；多洞仍走逐洞 `judge_terms`（其余洞保持 `sorry` ⇒ `judge_hole_fill`
 //! 的合成声明必然 Open，bump 不出"这一填对不对"，见 `judgement_of`）。
 
+use crate::ast::NotationDecl;
 use crate::compile::{CompileOptions, DeclState, DeclStatus, HoleMode};
 use crate::judge::{
     judge_hole_fill_with, judge_terms_with, judge_value_replace_with, GoalBinderSpec, Judgement,
     OpenGoalSpec,
 };
-use crate::proof::parse_expr_text;
+use crate::proof::{parse_expr_text, parse_expr_text_with};
 use crate::token::{tokenize, Token, TokenKind};
 use crate::{BinderKind, Expr};
 
@@ -110,6 +111,29 @@ pub fn suggest(
 /// 前缀只进 `judge_*` 合成文件，**不参与**返回建议的任何坐标（span 仍是文档坐标）。
 pub fn suggest_with(
     extra_prefix: &str,
+    prefix_src: &str,
+    decl_src: Option<&str>,
+    options: &CompileOptions,
+    d: &DeclState,
+) -> Vec<Suggestion> {
+    suggest_with_notations(extra_prefix, &[], prefix_src, decl_src, options, d)
+}
+
+/// 同 [`suggest_with`]，但额外带上**闭包记法表**（`notations`：被导入模块里
+/// 已经声明过的 `infix` / `notation`）。
+///
+/// **为什么需要它**（F12b2，2026-10-13）：`intro_count` / `intro_text` 判的是
+/// **目标文本**的形状，而目标文本是**源码级文本**——课程一律写记法
+/// （`a ∈ A → a ∈ B`、`A ⊆ B`），其中 `∈`/`⊆` 是**被导入模块**声明的 ⇒ 只带内建
+/// 表的 `parse_expr_text` 读不回来 ⇒ 这两个函数直接判 0 ⇒ 项位（`:= sorry`）的
+/// 闭包记法箭头目标**一条候选都没有**。表由调用方给（LSP 手里有
+/// `ProjectReport::notations`；表元素类型 `NotationDecl` 是 front 的公开类型），
+/// 解析仍走**同一条**既有通道 [`crate::proof::parse_expr_text_with`] ✓。
+///
+/// 空表 ⇒ 与 [`suggest_with`] **逐字节相同**（单文件/无闭包路径零影响 ✓）。
+pub fn suggest_with_notations(
+    extra_prefix: &str,
+    notations: &[NotationDecl],
     prefix_src: &str,
     decl_src: Option<&str>,
     options: &CompileOptions,
@@ -270,9 +294,11 @@ pub fn suggest_with(
             verified: false,
         });
     }
-    if intro_count(d) > 0 {
+    if intro_count(d, notations) > 0 {
         // Intro 的文本也按**落点那一个洞**的位置模式定型（同一个 `hole_range` 规则 ✓）。
-        if let Some(text) = first_hole_mode(d).and_then(|m| intro_text(m, d.goal.as_deref()?)) {
+        if let Some(text) =
+            first_hole_mode(d).and_then(|m| intro_text(m, d.goal.as_deref()?, notations))
+        {
             out.push(Suggestion {
                 kind: SuggestionKind::Intro { text },
                 verified: false,
@@ -302,8 +328,12 @@ fn first_hole_mode(d: &DeclState) -> Option<HoleMode> {
 /// 两条路都先让 [`crate::proof::ProofState`] 真的剥一层 —— 剥不动（目标不是
 /// Pi/Arrow）就没有这一条建议（与今天同一条守卫 ✓）。名字沿用项位那条的 `x` ✓
 /// （`intro x` 是重命名，与本语言的语义一致）。
-fn intro_text(mode: HoleMode, goal_text: &str) -> Option<String> {
-    let mut state = crate::proof::ProofState::start(goal_text).ok()?;
+///
+/// **记法表一路传下去**（F12b2）：目标文本里的 `∈`/`⊆` 是闭包声明的记法 ⇒
+/// 用 [`crate::proof::ProofState::start_with`]（= 同一条 `parse_expr_text_with`
+/// 通道）读，否则项位连 `T` 都剥不出来（`fun (x : a ∈ A) => sorry` 的那个类型）。
+fn intro_text(mode: HoleMode, goal_text: &str, notations: &[NotationDecl]) -> Option<String> {
+    let mut state = crate::proof::ProofState::start_with(goal_text, notations).ok()?;
     state.intro("x").ok()?;
     match mode {
         HoleMode::Tactic => Some("intro x".to_string()),
@@ -549,11 +579,17 @@ fn top_binders(d: &DeclState) -> Vec<String> {
 }
 
 /// goal 是 Forall/Arrow 时的 intro 层数；0 表示不适用。
-fn intro_count(d: &DeclState) -> usize {
+///
+/// **读目标走继承记法表**（F12b2）：目标文本是**源码级文本**，课程一律写记法
+/// （`a ∈ A` 的 `∈` 是 `import` 进来的模块声明的）⇒ 只带内建表读不回来
+/// （`parse_expr_text` 报 parse ⇒ 今天直接返回 0）⇒ 项位的闭包记法箭头目标
+/// **一条候选都没有** ✗。这里与 [`intro_text`] 用**同一个** `notations`
+/// （调用方给；空表 ⇒ 与改前逐字节相同 ✓）。
+fn intro_count(d: &DeclState, notations: &[NotationDecl]) -> usize {
     let Some(goal) = &d.goal else {
         return 0;
     };
-    let Ok(goal) = parse_expr_text(goal) else {
+    let Ok(goal) = parse_expr_text_with(goal, notations) else {
         return 0;
     };
     match &goal {
@@ -641,6 +677,61 @@ mod tests {
             .clone();
         let prefix = &doc[..d.span.end.offset.min(doc.len())];
         suggest(prefix, None, &CompileOptions::default(), &d)
+    }
+
+    /// **F12b2（2026-10-13）**：目标文本是**源码级文本**，课程一律写**记法**
+    /// （`a ∈ A` 的 `∈` 是**别处**声明的）⇒ `intro_count`/`intro_text` 只带内建
+    /// 表就**读不回来** ⇒ 项位（`:= sorry`）的闭包记法箭头目标**一条候选都没有**
+    /// ✗。本用例把两档并排钉住：
+    ///   * 给表（[`suggest_with_notations`]，调用方 = LSP，表来自
+    ///     `ProjectReport::notations`）⇒ **必须有** `Intro`，且插入文本按**项位**
+    ///     定型（`fun (x : a ∈ A) => sorry` —— 那个 `a ∈ A` 只有用表读回来才剥得出）；
+    ///   * 不给表（[`suggest`]，改前的行为）⇒ **0 条**（同一份目标文本）。
+    ///
+    /// **反向验证**：把 `suggest_with_notations` 的表当空表用（一次性闸门）⇒
+    /// 本用例判红（读数见 `.cache/ux/fix-frontQ/VERDICT.md`）。
+    #[test]
+    fn closure_notation_arrow_goal_needs_the_table_to_offer_intro() {
+        // 记法**在本文件里**声明（同一条 `notation_table` 通道；LSP 侧的表来自
+        // 闭包 —— 两处都是"目标文本之外声明的记法"这同一件事）。
+        let doc = "def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+def Set.mem (\u{3b1} : Type) (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+def mem_arrow_term (\u{3b1} : Type) (A B : Set \u{3b1}) (a : \u{3b1}) : a \u{2208} A \u{2192} a \u{2208} B :=\n\
+  sorry\n";
+        let file = parse(doc).expect("parses");
+        let notations = crate::notation::notation_table(&file.commands);
+        let report = check_document(&file);
+        let d = report
+            .decls
+            .iter()
+            .find(|d| d.status == DeclStatus::Open)
+            .expect("open exercise")
+            .clone();
+        assert_eq!(
+            d.hole_modes,
+            vec![HoleMode::Term],
+            "夹具要的是**项位**（`:= sorry`，不是 `by`）"
+        );
+        let prefix = &doc[..d.span.end.offset.min(doc.len())];
+
+        // ① 带表 ⇒ `Intro`，文本按项位定型。
+        let with_table =
+            suggest_with_notations("", &notations, prefix, None, &CompileOptions::default(), &d);
+        assert_eq!(
+            kinds(&with_table),
+            vec![SuggestionKind::Intro {
+                text: "fun (x : a \u{2208} A) => sorry".to_string()
+            }],
+            "带闭包记法表时，项位的箭头目标必须有 `intro` 候选（文本是项 ✗ `intro x`）"
+        );
+
+        // ② 不带表（改前的行为）⇒ 0 条 —— 这就是 F12b2 的那条缝。
+        let without_table = suggest(prefix, None, &CompileOptions::default(), &d);
+        assert!(
+            kinds(&without_table).is_empty(),
+            "不带记法表时 `a \u{2208} A \u{2192} a \u{2208} B` 读不回来 ⇒ 0 条（改前读数）：{without_table:?}"
+        );
     }
 
     /// 文档里第一个 failed 声明的建议（decl_src 切片与 actions 一致）。

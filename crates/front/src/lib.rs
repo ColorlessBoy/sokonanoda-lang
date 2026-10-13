@@ -43,8 +43,8 @@ mod span;
 mod token;
 
 pub use ast::{
-    Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, NotationAssoc, OpenFilter,
-    RecDecl, SortKind, Tactic,
+    Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, NotationAssoc, NotationDecl,
+    OpenFilter, RecDecl, SortKind, Tactic,
 };
 pub use diagnostic::{Diagnostic, DiagnosticKind, Result};
 pub use parser::{
