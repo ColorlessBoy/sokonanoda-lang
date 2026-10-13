@@ -718,7 +718,57 @@ TRANSITIONS = {
     "umbrella":    {"done", "wo_filed"},
     "done":        {"todo"},       # 只能靠 `--advance … --to todo --reason …`（重开）
     "wo_filed":    {"todo"},
+    # **外部提交面的两个状态也必须有出口**（2026-10-14 · 第三轮独立复核实测）：
+    #   · `triage_rejected` 原先**一个出口都没有** ✗ ⇒ 判红时打印的收口指示
+    #     `--advance <id> --to wo_filed --reason …` **实测 rc=1 非法迁移** ⇒ 唯一出路是
+    #     **手改事件表**（"规则在脚本里"这条就断了）。**拒收也是终局之一** ⇒ 要能记账：
+    #     `wo_filed` = 收下这次拒收（`cmd_advance` 强制 `--reason` ✓）· `todo` = 退回重开。
+    #   · `submitted` 的**正常**出口是 `--triage`（applied/deferred/rejected ✓），但删掉
+    #     `check_plan` 里那个 `submitted` 豁免之后（见那里的注释），漂移规则**也会对它**
+    #     打印 `--advance …` 收口指示 ⇒ 表里没有出口的话那条指示同样是死路
+    #     （实测 `submitted → done` / `→ wo_filed` 都不合法）。⚠ 直接 `--advance` 绕过
+    #     `--triage` **不会**变成后门：那时来源处置还是 `fix` ⇒ `check_plan` 的
+    #     「done 而来源不是终态」照样判红 ✓（纪律没松）。
+    "submitted":       {"done", "wo_filed", "todo"},
+    "triage_rejected": {"wo_filed", "todo"},
 }
+
+
+def closure_steps(frm: str, want: str = "done", limit: int = 4) -> list[str]:
+    """从 `frm` 走到 `want` 的**最短合法迁移序列**（不再走就退到任一终态；`TRANSITIONS` 是唯一出处）。
+
+    ⚠ 为什么需要（2026-10-14 · 第三轮复核实测的**同族第三处**）：判红信息里手写的
+    `--advance <id> --to done …` 假设"下一步就合法"，而表里 `todo → done` / `blocked → done`
+    **故意**不合法（收口要先 `--claim`/`--advance … --to in_progress`；`--selftest` 有一条
+    `todo → done 必须被拒` 的判据钉着它）⇒ 照指示敲就是 rc=1（实测：36 格网格里有 12 格
+    的指示非法；删掉 `submitted` 豁免后变 **18 格**）。同理 `triage_rejected` 原先没有出口。
+    ⇒ 指示改成**按表算出来的步序列**（每一步都能直接敲），并由网格自检逐格核对：
+    把指示里的每一步按 `TRANSITIONS` 走一遍 —— 走不通就判红（守卫咬得住"指示是死路" ✗）。
+    返回 `[]` = 表里确实无路可走 ⇒ 调用方要**如实说"只能手改事件表"**，不许再给一条死路指示 ✗。
+    """
+    for target in [want] + sorted(TERMINAL_STATES - {want}):
+        queue: list[list[str]] = [[frm]]
+        seen = {frm}
+        while queue:
+            path = queue.pop(0)
+            if path[-1] == target:
+                return path[1:]
+            if len(path) > limit:
+                continue
+            for nxt in sorted(TRANSITIONS.get(path[-1], set())):
+                if nxt not in seen:
+                    seen.add(nxt)
+                    queue.append(path + [nxt])
+    return []
+
+
+def _step_cmd(ident: str, to: str) -> str:
+    """把一步迁移渲染成**可直接执行**的一条命令（`done` 要证据、`wo_filed` 要理由 ✓）。"""
+    if to == "done":
+        return f"`--advance {ident} --to done --commit <sha> --reading '<读数>'`"
+    if to == "wo_filed":
+        return f"`--advance {ident} --to wo_filed --reason '<为什么不做>'`"
+    return f"`--advance {ident} --to {to}`"
 
 
 def _now() -> str:
@@ -1435,15 +1485,21 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
         # ⇒ 网格逐格钉住（`selftest_source_state_grid`）：删掉这个豁免前 6 格静默、删掉后 36 格全红 ✓。
         _d = disp.get(ident)
         if _d in {"fixed", "wo-filed"} and st not in TERMINAL_STATES:
+            # **收口指示由表算出来**（同族第三处，见 `closure_steps`）：手写 `--to done`
+            # 在 `todo`/`blocked`/`submitted`/`triage_rejected` 上都是**非法迁移**（rc=1）✗
+            _want = "done" if _d == "fixed" else "wo_filed"
+            _steps = closure_steps(st, _want)
+            _hint = (" → ".join(_step_cmd(ident, _s) for _s in _steps) if _steps
+                     else "⚠ `TRANSITIONS` 里没有可执行路径 ⇒ 只能手改事件表，并在 commit "
+                          "里写明为什么（别再照一条死路指示敲 ✗）")
             if _d == "fixed":
                 print(f"✗ `{ident}` 来源处置已是 `fixed`（终态），调度器却停在 `{st}` ⇒ "
                       f"**反向两层漂移**：**修好了没登记** ⇒ 队列多报、`--next` 会把做完的推出来 ✗"
-                      f"（收口：`--advance {ident} --to done --commit <sha> --reading '<读数>'`）",
+                      f"（收口：{_hint}）",
                       file=sys.stderr)
             else:
                 print(f"✗ `{ident}` 来源处置已是 `wo-filed`（终态），调度器却停在 `{st}` ⇒ "
-                      f"**反向两层漂移**（收口：`--advance {ident} --to wo_filed "
-                      f"--reason '<为什么不做>'`）", file=sys.stderr)
+                      f"**反向两层漂移**（收口：{_hint}）", file=sys.stderr)
             bad += 1
         if st == "umbrella":
             kids = cur.get("children", [])
