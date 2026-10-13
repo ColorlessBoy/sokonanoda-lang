@@ -40,9 +40,9 @@ theorem comp_assoc_bwd (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
       Exists.elim C (fun (c : C) => s b c ∧ t c d)
         (∃ (c : C), (r • s) a c ∧ t c d) (And.right hb)
         (fun (c : C) (hc : s b c ∧ t c d) =>
-          Exists.intro C (fun (c1 : C) => (r • s) a c1 ∧ t c1 d) c  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          Exists.intro c
             (And.intro
-              (Exists.intro B (fun (b1 : B) => r a b1 ∧ s b1 c) b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+              (Exists.intro b
                 (And.intro (And.left hb) (And.left hc)))
               (And.right hc))))
 
@@ -61,13 +61,13 @@ theorem inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
         Exists.elim B (fun (b : B) => r a b ∧ s b c)
           (∃ (b : B), (s ⁻¹) c b ∧ (r ⁻¹) b a) h
           (fun (b : B) (hb : r a b ∧ s b c) =>
-            Exists.intro B (fun (b1 : B) => (s ⁻¹) c b1 ∧ (r ⁻¹) b1 a) b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            Exists.intro b
               (And.intro (And.right hb) (And.left hb))))
       (fun (h : (s ⁻¹ • r ⁻¹) c a) =>
         Exists.elim B (fun (b : B) => (s ⁻¹) c b ∧ (r ⁻¹) b a)
           (∃ (b : B), r a b ∧ s b c) h
           (fun (b : B) (hb : (s ⁻¹) c b ∧ (r ⁻¹) b a) =>
-            Exists.intro B (fun (b1 : B) => r a b1 ∧ s b1 c) b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            Exists.intro b
               (And.intro (And.right hb) (And.left hb)))))
 
 theorem comp_mono_left (A B C : Type) (r r1 : Rel A B) (s : Rel B C)
@@ -76,7 +76,7 @@ theorem comp_mono_left (A B C : Type) (r r1 : Rel A B) (s : Rel B C)
   Exists.elim B (fun (b : B) => r a b ∧ s b c)
     (∃ (b : B), r1 a b ∧ s b c) hac
     (fun (b : B) (hb : r a b ∧ s b c) =>
-      Exists.intro B (fun (b1 : B) => r1 a b1 ∧ s b1 c) b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      Exists.intro b
         (And.intro (h a b (And.left hb)) (And.right hb)))
 
 theorem comp_mono_right (A B C : Type) (r : Rel A B) (s s1 : Rel B C)
@@ -85,7 +85,7 @@ theorem comp_mono_right (A B C : Type) (r : Rel A B) (s s1 : Rel B C)
   Exists.elim B (fun (b : B) => r a b ∧ s b c)
     (∃ (b : B), r a b ∧ s1 b c) hac
     (fun (b : B) (hb : r a b ∧ s b c) =>
-      Exists.intro B (fun (b1 : B) => r a b1 ∧ s1 b1 c) b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      Exists.intro b
         (And.intro (And.left hb) (h b c (And.right hb))))
 
 theorem inv_mono (A B : Type) (r r1 : Rel A B)
