@@ -3386,17 +3386,31 @@ impl Parser {
         Ok(Expr::Ident { name, span })
     }
 
-    /// 源码层**宇宙层级表达式**：`u`、`3`、`u+1`、`u+1+1`（括号可省/可加）。
+    /// 源码层**宇宙层级表达式**：`u`、`3`、`u+1`、`u+1+1`、`max u v`、`imax u v`
+    /// （括号可省/可加）。
     ///
-    /// 语法面（设计 `docs/design/type-level-syntax.md` §5，白名单同轮更新）：
-    /// 层级 = 原子 (`+` 数字)*；原子 = 数字 | 标识符 | `(` 层级 `)`。`+` 右边
-    /// **只收数字**（Lean 的 `u+n` 形式）——`u+v`/`max u v` 要内核的
-    /// `Level::Max`，而 `EnvBuilder` 没有公开构造入口（硬规则 1：内核零改动），
-    /// 所以它们不在语法面内，报一条专用诊断。
+    /// 语法面（设计 `docs/design/type-level-syntax.md` §5）：
+    /// 层级 = 原子 (`+` 数字)*；原子 = 数字 | 标识符 | `max` 原子 原子 |
+    /// `imax` 原子 原子 | `(` 层级 `)`。
     ///
-    /// 返回**层级文本**（如 `"u+1"`）：AST 的层级槽位本来就是文本
+    /// **`max`/`imax` 已进语法面（2026-10-13）** ✓ —— 旧注释写的理由
+    /// 「`u+v`/`max u v` 要内核的 `Level::Max`，而 `EnvBuilder` 没有公开构造入口」
+    /// **今天已失效** ✗：`EnvBuilder::level_max` / `level_imax` 在 `3e0930ec`
+    /// （2026-10-06）就已加上且是 `pub`（`crates/kernel/src/builder.rs:448/453` ✓，
+    /// 同轮起 `compile/check/level_exit.rs` 就在用 ✓）⇒ 原来的"权宜之计"没有理由了。
+    ///
+    /// **`u+v` 仍不收，但理由换了**（旧理由 ✗ ⇒ 真理由 ✓）：**两个层级变量之间没有
+    /// 加法** —— 内核 `Level` 只有 `zero`/`succ`/`max`/`imax`/`param`/`mvar`
+    /// （`crates/kernel/src/level.rs` ✓），而 **Lean 4 自己也不收**
+    /// （`~/Documents/lean/lean4/src/Lean/Parser/Level.lean`：
+    /// `addLit := trailing_parser:65 " + " >> numLit` —— **只收数字后缀** ✓）
+    /// ⇒ 给它编一套语义就是**自创机制** ✗（`AGENTS.md`：对齐 Lean 4，禁止自创）。
+    /// 上界写 `max u v` / `imax u v` ✓。
+    ///
+    /// 返回**层级文本**（如 `"u+1"` / `"max u v"`）：AST 的层级槽位本来就是文本
     /// （`SortKind::Level` 与 `UniverseApp.levels`），这里只把"名字"放宽成
-    /// "名字 + 数字后缀"，翻译成内核层级由 elab 的 `level_ptr` 一处完成。
+    /// "名字 + 数字后缀 / `max`·`imax` 组合"，翻译成内核层级由 elab 的 `level_ptr`
+    /// 一处完成 ✓（**文本 ↔ 内核层级只有那一处**）。
     fn parse_level_text(&mut self) -> Result<String> {
         let mut text = self.parse_level_atom()?;
         while self.peek().kind == TokenKind::Plus {
@@ -3414,7 +3428,8 @@ impl Parser {
                             expected: "a numeral after `+`".to_string(),
                         },
                         tok.span,
-                        "层级加法只收数字后缀（例如 `u+1`）；`max`/`u+v` 不在本语言的层级语法面内"
+                        "层级加法只收数字后缀（例如 `u+1`）—— 两个层级变量之间没有加法\
+                         （Lean 4 的层级语法同样只收 `+ 数字`）；要上界写 `max u v` / `imax u v`"
                             .to_string(),
                     ));
                 }
@@ -3436,8 +3451,32 @@ impl Parser {
         )
     }
 
-    /// [`parse_level_text`] 的原子：数字、标识符或括号层级。
+    /// [`parse_level_text`] 的原子：数字、标识符、**`max`/`imax` 组合**或括号层级。
+    ///
+    /// `max`/`imax` 是**前缀算子、恰好吃两个原子**（内核的 `Level::Max`/`IMax` 是
+    /// 二元的 ✓，`EnvBuilder::level_max`/`level_imax` 就是它们 ✓）。与 Lean 4 的
+    /// 优先级一致（`Level.lean` 的 `max` 吃 `levelParser maxPrec` 的原子 ⇒
+    /// 复合操作数要括号 ✓，`+` 在 **`max` 之外** ⇒ `max u v+1` = `(max u v)+1` ✓）。
     fn parse_level_atom(&mut self) -> Result<String> {
+        // ⚠ `max`/`imax` **不是保留字** —— 它们可以是用户声明的宇宙参数名
+        // （`axiom A {max} : Sort max`）✓。只有后面**确实跟得上一个层级原子**时才当
+        // 算子，否则退回"裸标识符 = 层级参数"那条老路 ⇒ **既有输入的含义一个不变** ✓。
+        let op = match &self.peek().kind {
+            TokenKind::Ident(name) if name == "max" || name == "imax" => Some(name.clone()),
+            _ => None,
+        };
+        if let Some(op) = op {
+            if self.next_starts_level_atom() {
+                self.bump();
+                let lhs = self.parse_level_atom()?;
+                let rhs = self.parse_level_atom()?;
+                return Ok(format!(
+                    "{op} {} {}",
+                    parenthesize_level_atom(&lhs),
+                    parenthesize_level_atom(&rhs)
+                ));
+            }
+        }
         let tok = self.bump();
         match tok.kind {
             TokenKind::Num(value) => Ok(value),
@@ -3456,6 +3495,31 @@ impl Parser {
                 "expected a universe level".to_string(),
             )),
         }
+    }
+
+    /// `max`/`imax` 后面**跟得上一个层级原子**吗（数字 / 标识符 / `(`，且**同一行**）。
+    ///
+    /// 这一眼是为了"`max` 也能当宇宙参数名"那条老路不被抢走（见 [`Self::parse_level_atom`]）：
+    /// 后面跟不上的（行尾、`:=`、下一个命令的关键字…）⇒ 它是**名字** ✓。
+    ///
+    /// ⚠ **"同一行"是刻意加的一条闸门**（与 Lean 4 的贪婪 `many1` **不同**，
+    /// 白纸黑字记偏离 ✓）：Lean 的 `Level.max` 吃 `many1 (levelParser maxPrec)`，
+    /// 换行也是空白 ⇒ `Sort max` + 换行 + `axiom B …` 在 Lean 里会被吃成
+    /// `max axiom B` ✗。本语言的**层级表达式一律写在一行内**（`Sort (max u v)` ✓），
+    /// 加这一眼就能让 `axiom A {max} : Sort max` 后面跟下一条命令时**照旧**把 `max`
+    /// 读成参数名 ⇒ **既有输入的含义一个不变** ✓（这是本仓的红线：只许多接受 ✗）。
+    fn next_starts_level_atom(&self) -> bool {
+        let (Some(op), Some(next)) = (
+            self.tokens.get(self.cursor),
+            self.tokens.get(self.cursor + 1),
+        ) else {
+            return false;
+        };
+        next.span.start.line == op.span.start.line
+            && matches!(
+                next.kind,
+                TokenKind::Num(_) | TokenKind::Ident(_) | TokenKind::LParen
+            )
     }
 
     fn parse_lambda(&mut self) -> Result<Expr> {
@@ -4117,6 +4181,41 @@ fn is_namespace_name_keyword(name: &str) -> bool {
     is_reserved_command(name) || is_expr_keyword(name)
 }
 
+/// 层级原子文本嵌进 `max`/`imax` 时要不要加括号：**复合的**要（`max (u+1) v` ✓），
+/// 裸名/数字不要（`max u v` ✓ —— 与 Lean 的打印一致）。
+///
+/// 为什么不加就会坏：文本是**回读**用的（`proof.rs::render_expr` ↔ `parse_level_text`
+/// ↔ `level_ptr`）——`max u+1 v` 回读时 `+1` 会粘到 `u` 上（`max` 吃的是原子 ✓），
+/// 于是 `max (u+1) v` 与 `max u (v+1)` 变成同一个文本 ✗（静默错义）。
+fn parenthesize_level_atom(text: &str) -> String {
+    let simple = !text.is_empty()
+        && text
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '\'');
+    if simple {
+        text.to_string()
+    } else {
+        format!("({text})")
+    }
+}
+
+/// 层级文本是不是**复合**的（`u+1` / `max u v` / `imax u v`）——即"不能拿 `univ`
+/// 表直接查"的那一类。
+///
+/// **唯一归属**：文本语法的形状只有 `parser` 知道（`parse_level_text` 是它的生产者）
+/// ⇒ 消费端（`elab.rs` 的 `SortKind::Level` 分支、`proof.rs` 的渲染）一律问这里，
+/// 不许各自写 `contains('+')` ✗（那正是"加了 `max` 却漏了一处"的来源）。
+pub(crate) fn is_compound_level_text(text: &str) -> bool {
+    if text.contains('+') {
+        return true;
+    }
+    let head = text.trim_start();
+    ["max", "imax"].iter().any(|op| {
+        head.strip_prefix(op)
+            .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+    })
+}
+
 /// 保留字 = **声明 / 作用域关键字**（本函数内联）**加上全部命令**（查真相表
 /// [`crate::commands::COMMAND_DOCS`]）。
 ///
@@ -4633,10 +4732,95 @@ example : Prop -> Prop := sorry
         );
     }
 
+    /// **`max`/`imax` 进语法面**（2026-10-13）—— 订正那条已失效的理由。
+    ///
+    /// 旧注释（`parse_level_text` 上）写的是「`max u v` 要内核的 `Level::Max`，而
+    /// `EnvBuilder` 没有公开构造入口」✗ —— **那个入口在 `3e0930ec`（2026-10-06）
+    /// 就已加上且是 `pub`**（`crates/kernel/src/builder.rs` 的
+    /// `level_max`/`level_imax` ✓，同轮起 `compile/check/level_exit.rs` 就在用 ✓）
+    /// ⇒ 原来的"权宜之计"没有理由了 ⇒ 语法面补上 ✓。
+    ///
+    /// **判据**（改前**拒** ✗ ⇒ 改后**收** ✓；反向验证见 `level_ptr` 的 `max` 臂：
+    /// 撤掉 `level_max` 那一行 ⇒ 本判据判红）：
+    /// ① `Sort (max u v)` / `Sort max u v`（括号可省）⇒ 文本 `"max u v"`；
+    /// ② `imax` 同形；③ `Eq.{max u v}` 的宇宙实参也是同一条文本；
+    /// ④ **复合操作数要括号**（`max (u+1) v` ≠ `max u (v+1)`）；
+    /// ⑤ `Type (max u v)` = `Sort (max u v + 1)` ⇒ 文本 `"max u v+1"`
+    ///    （`+` 在 `max` **之外** —— 与 Lean 的优先级一致 ✓）。
     #[test]
-    fn level_arithmetic_rejects_non_numeric_suffix() {
-        // `+` 右边只收数字（Lean 的 `u+n`）：`u+v`/`max` 不在语法面内，
-        // 报专用诊断而不是静默吞掉（内核 `Level::Max` 无公开构造入口）。
+    fn level_arithmetic_parses_max_and_imax() {
+        let file = parse(
+            "axiom A {u, v} : Sort (max u v)\n\
+             axiom B {u, v} : Sort max u v\n\
+             axiom C {u, v} : Sort (imax u v)\n\
+             axiom D {u, v} : Eq.{max u v} Prop Prop Prop\n\
+             axiom E {u, v} : Sort (max (u+1) v)\n\
+             axiom F {u, v} : Sort (max u (v+1))\n\
+             axiom G {u, v} : Type (max u v)\n",
+        )
+        .unwrap();
+        let sort_of = |i: usize| match &file.commands[i] {
+            Command::Axiom {
+                ty: Expr::Sort { sort, .. },
+                ..
+            } => sort.clone(),
+            other => panic!("expected Sort at {i}: {other:?}"),
+        };
+        assert_eq!(sort_of(0), SortKind::Level("max u v".to_string()));
+        // 括号可省（与 `Sort u+1` ≡ `Sort (u+1)` 同一条 ✓）。
+        assert_eq!(sort_of(1), SortKind::Level("max u v".to_string()));
+        assert_eq!(sort_of(2), SortKind::Level("imax u v".to_string()));
+        // ④ 复合操作数**必须**带括号，且两种括号位置**不许**塌成同一个文本 ✗。
+        assert_eq!(sort_of(4), SortKind::Level("max (u+1) v".to_string()));
+        assert_eq!(sort_of(5), SortKind::Level("max u (v+1)".to_string()));
+        assert_ne!(sort_of(4), sort_of(5), "两种括号位置不许同形 ✗");
+        // ⑤ `Type X` = `Sort (X+1)` ⇒ `+1` 加在 `max` **之外**。
+        assert_eq!(sort_of(6), SortKind::Level("max u v+1".to_string()));
+        // ③ 宇宙实参位置走同一条文本。
+        let Command::Axiom { ty, .. } = &file.commands[3] else {
+            panic!("expected axiom");
+        };
+        fn head(expr: &Expr) -> &Expr {
+            match expr {
+                Expr::App { fun, .. } => head(fun),
+                other => other,
+            }
+        }
+        let Expr::UniverseApp { levels, .. } = head(ty) else {
+            panic!("expected UniverseApp head, got {ty:?}");
+        };
+        assert_eq!(levels, &["max u v".to_string()]);
+    }
+
+    /// **`max`/`imax` 也能当宇宙参数名**（它们**不是保留字** ✓）：后面跟不上一层
+    /// 级原子时退回"裸标识符 = 层级参数"那条老路 ⇒ **既有输入的含义一个不变** ✓。
+    ///
+    /// 反向守卫：把 `next_starts_level_atom` 那一眼去掉（无条件当算子）⇒ 本判据判红。
+    #[test]
+    fn max_stays_a_plain_universe_parameter_when_no_atom_follows() {
+        let file = parse("axiom A {max} : Sort max\naxiom B {imax} : Sort imax\n").unwrap();
+        let sort_of = |i: usize| match &file.commands[i] {
+            Command::Axiom {
+                ty: Expr::Sort { sort, .. },
+                ..
+            } => sort.clone(),
+            other => panic!("expected Sort at {i}: {other:?}"),
+        };
+        assert_eq!(sort_of(0), SortKind::Level("max".to_string()));
+        assert_eq!(sort_of(1), SortKind::Level("imax".to_string()));
+    }
+
+    /// **`u+v` 仍拒 —— 但理由换了**（旧理由「`EnvBuilder` 没有公开构造入口」✗ 已失效）。
+    ///
+    /// 真理由：**两个层级变量之间没有加法** —— 内核 `Level` 只有
+    /// `zero`/`succ`/`max`/`imax`/`param`/`mvar`，而 **Lean 4 自己也不收**
+    /// （`~/Documents/lean/lean4/src/Lean/Parser/Level.lean`：
+    /// `addLit := trailing_parser:65 " + " >> numLit` —— **只收数字后缀** ✓）
+    /// ⇒ 给它编语义就是**自创机制** ✗（`AGENTS.md` 禁止）。
+    ///
+    /// 判据：诊断里必须**指路** `max u v`（不是只喊"不支持" ✗）。
+    #[test]
+    fn level_arithmetic_rejects_a_sum_of_two_level_variables() {
         for src in [
             "axiom A {u, v} : Sort (u+v)\n",
             "axiom A {u, v} : Eq.{u+v} Prop Prop Prop\n",
@@ -4645,6 +4829,14 @@ example : Prop -> Prop := sorry
             assert!(
                 err.message.contains("层级加法只收数字后缀"),
                 "{src:?} → {err:?}"
+            );
+            assert!(
+                err.message.contains("max u v"),
+                "拒绝必须**指路**（写 `max u v`），不能只喊不支持：{src:?} → {err:?}"
+            );
+            assert!(
+                !err.message.contains("不在本语言的层级语法面内"),
+                "旧理由（`max` 不在语法面内）已失效，不许再出现在诊断里 ✗：{err:?}"
             );
         }
     }

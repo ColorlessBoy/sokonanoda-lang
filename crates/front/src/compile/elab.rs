@@ -1360,48 +1360,179 @@ pub(crate) fn collect_uparams<'a>(
     builder.alloc_levels_slice(&levels)
 }
 
-/// 层级**文本** → 内核层级（`EnvBuilder` 的公开 API：`zero`/`succ`/
-/// `level_param`，硬规则 1 内核零改动）。
+/// 层级**文本** → 内核层级（`EnvBuilder` 的公开 API：`zero`/`succ`/`level_param`/
+/// **`level_max`/`level_imax`** ✓ —— 后两个在 `3e0930ec`（2026-10-06）加上且是 `pub`）。
 ///
 /// 文本语法（parser 的 `parse_level_text`，设计 `docs/design/type-level-syntax.md` §5）：
-/// `3`、`u`、`u+1`、`u+1+1`——首段是数字或已声明的宇宙参数，其余每段必须是
-/// 数字（各加一次 `succ`）。`u+v`/`max` 不在语法面内，落到 `unknown universe
-/// level` 诊断。
+/// ```text
+/// level := atom ('+' NUM)*
+/// atom  := 'max' atom atom | 'imax' atom atom | '(' level ')' | NUM | IDENT
+/// ```
+/// 例：`3`、`u`、`u+1`、`u+1+1`、`max u v`、`max (u+1) v`、`imax u v`、`max u v+1`。
+///
+/// **`max`/`imax`（2026-10-13）** ✓：旧注释说它们"不在语法面内" ✗ —— 那条理由
+/// （`EnvBuilder` 没有公开构造入口）**今天已失效**，见 `parse_level_text` 的长注释。
+/// ⚠ 优先级照 Lean 4（`Lean/Parser/Level.lean`：`max` 吃**原子**、`+` 在它**之外**）
+/// ⇒ `max u v+1` 解析成 `(max u v)+1` ✓ —— `Type (max u v)` 生成的正是这个文本 ✓。
+///
+/// **`u+v` 仍落 `unknown universe level`** ✓：两个层级变量之间没有加法（内核 `Level`
+/// 无加法；Lean 4 也只收 `+ 数字`）⇒ 不是缺口，见 `parse_level_text`。
+///
+/// 认不出（未声明的参数名、语法坏了）⇒ `unknown universe level <整段文本>` ✓。
 pub(crate) fn level_ptr<'a>(
     builder: &mut EnvBuilder<'a>,
     level: &str,
     univ: &UnivMap<'a>,
     span: Span,
 ) -> Result<LevelPtr<'a>, CompileError> {
-    let unknown = |level: &str| {
+    let unknown = || {
         CompileError::elab(
             ErrorKind::ElabUnknownUniverseLevel,
             format!("unknown universe level `{level}`"),
             span,
         )
     };
-    let mut parts = level.split('+');
-    let head = parts.next().unwrap_or(level);
-    let mut out = if let Ok(n) = head.parse::<u64>() {
-        let mut out = builder.zero();
-        for _ in 0..n {
-            out = builder.succ(out);
-        }
-        out
-    } else if let Some(level) = univ.get(head).copied() {
-        level
-    } else {
-        return Err(unknown(level));
+    let Some(tokens) = tokenize_level_text(level) else {
+        return Err(unknown());
     };
-    for part in parts {
-        let Ok(n) = part.parse::<u64>() else {
-            return Err(unknown(level));
-        };
-        for _ in 0..n {
-            out = builder.succ(out);
+    let mut parser = LevelTextParser {
+        tokens: &tokens,
+        pos: 0,
+        builder,
+        univ,
+    };
+    match parser.parse_level() {
+        // **整段都要吃干净**（多余 token ⇒ 语法坏了 ⇒ 不许静默取前缀 ✗）。
+        Some(out) if parser.pos == parser.tokens.len() => Ok(out),
+        _ => Err(unknown()),
+    }
+}
+
+/// 层级文本的**词法**（`+`/`(`/`)` 单字符；标识符与数字是连续段；空白跳过）。
+///
+/// 认不出（`u+v` 里的 `v` 走得到这里但语法面不收、非法字符…）⇒ `None`。
+fn tokenize_level_text(text: &str) -> Option<Vec<LevelToken>> {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = Vec::new();
+    let mut i = 0usize;
+    let is_ident = |c: char| c.is_alphanumeric() || c == '_' || c == '\'';
+    while i < chars.len() {
+        let c = chars[i];
+        if c.is_whitespace() {
+            i += 1;
+            continue;
+        }
+        match c {
+            '+' => {
+                out.push(LevelToken::Plus);
+                i += 1;
+            }
+            '(' => {
+                out.push(LevelToken::LParen);
+                i += 1;
+            }
+            ')' => {
+                out.push(LevelToken::RParen);
+                i += 1;
+            }
+            _ if c.is_ascii_digit() => {
+                let start = i;
+                while i < chars.len() && chars[i].is_ascii_digit() {
+                    i += 1;
+                }
+                let digits: String = chars[start..i].iter().collect();
+                // 超出 `u64` ⇒ 认不出（parser 早已在解析期报"层级过大" ✓，这里是兜底）。
+                out.push(LevelToken::Num(digits.parse().ok()?));
+            }
+            _ if is_ident(c) => {
+                let start = i;
+                while i < chars.len() && is_ident(chars[i]) {
+                    i += 1;
+                }
+                out.push(LevelToken::Ident(chars[start..i].iter().collect()));
+            }
+            _ => return None,
         }
     }
-    Ok(out)
+    Some(out)
+}
+
+/// 层级文本的一个 token。
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum LevelToken {
+    Ident(String),
+    Num(u64),
+    Plus,
+    LParen,
+    RParen,
+}
+
+/// 层级文本的**递归下降**（语法见 [`level_ptr`] 的文档；与 parser 的生产端一一对应）。
+struct LevelTextParser<'a, 'b> {
+    tokens: &'b [LevelToken],
+    pos: usize,
+    builder: &'b mut EnvBuilder<'a>,
+    univ: &'b UnivMap<'a>,
+}
+
+impl<'a, 'b> LevelTextParser<'a, 'b> {
+    fn peek(&self) -> Option<&LevelToken> {
+        self.tokens.get(self.pos)
+    }
+
+    /// 取一个 token（克隆 —— token 很小，且这里不在热路径上 ✓；克隆是为了不与
+    /// `self.builder` 的可变借用打架）。
+    fn bump(&mut self) -> Option<LevelToken> {
+        let token = self.tokens.get(self.pos)?.clone();
+        self.pos += 1;
+        Some(token)
+    }
+
+    /// `level := atom ('+' NUM)*`（`+` 右边**只收数字** —— Lean 的 `u+n` 形式 ✓）。
+    fn parse_level(&mut self) -> Option<LevelPtr<'a>> {
+        let mut out = self.parse_atom()?;
+        while matches!(self.peek(), Some(LevelToken::Plus)) {
+            self.pos += 1;
+            let n = match self.bump()? {
+                LevelToken::Num(n) => n,
+                _ => return None,
+            };
+            for _ in 0..n {
+                out = self.builder.succ(out);
+            }
+        }
+        Some(out)
+    }
+
+    /// `atom := 'max' atom atom | 'imax' atom atom | '(' level ')' | NUM | IDENT`。
+    fn parse_atom(&mut self) -> Option<LevelPtr<'a>> {
+        match self.bump()? {
+            LevelToken::Num(n) => {
+                let mut out = self.builder.zero();
+                for _ in 0..n {
+                    out = self.builder.succ(out);
+                }
+                Some(out)
+            }
+            // **`max`/`imax`：用 `EnvBuilder` 的公开构造入口** ✓（`3e0930ec` 起 `pub`）。
+            LevelToken::Ident(name) if name == "max" => {
+                let lhs = self.parse_atom()?;
+                let rhs = self.parse_atom()?;
+                Some(self.builder.level_max(lhs, rhs))
+            }
+            LevelToken::Ident(name) if name == "imax" => {
+                let lhs = self.parse_atom()?;
+                let rhs = self.parse_atom()?;
+                Some(self.builder.level_imax(lhs, rhs))
+            }
+            LevelToken::Ident(name) => self.univ.get(&name).copied(),
+            LevelToken::LParen => {
+                let inner = self.parse_level()?;
+                matches!(self.bump()?, LevelToken::RParen).then_some(inner)
+            }
+            LevelToken::Plus | LevelToken::RParen => None,
+        }
+    }
 }
 
 pub(crate) fn kernel_binder_style(kind: &BinderKind) -> BinderStyle {
@@ -5263,11 +5394,16 @@ pub(crate) fn elab_expr<'a>(
             sort: SortKind::Level(name),
             span,
         } => {
-            // `Sort u`（纯名字）与 `Sort (u+1)`（层级算术）走同一条：名字先在
-            // 本声明的宇宙参数里找；带 `+` 的层级文本交给 `level_ptr`。
+            // `Sort u`（纯名字）与**复合**层级文本（`u+1` / `max u v` / `imax u v`）
+            // 走同一条：名字先在本声明的宇宙参数里找；复合的交给 `level_ptr` ✓。
+            // ⚠ 判"复合"**问 parser 的唯一归属**（`is_compound_level_text`）——
+            // 这里原来写死 `contains('+')` ✗ ⇒ 加 `max` 时会**静默漏掉这一处**
+            // （`Sort (max u v)` 会报"universe variable `max u v` is not declared" ✗）。
             let level = match univ.get(name).copied() {
                 Some(level) => level,
-                None if name.contains('+') => level_ptr(builder, name, univ, *span)?,
+                None if crate::parser::is_compound_level_text(name) => {
+                    level_ptr(builder, name, univ, *span)?
+                }
                 None => {
                     return Err(CompileError::elab(
                         ErrorKind::ElabUnknownUniverseLevel,

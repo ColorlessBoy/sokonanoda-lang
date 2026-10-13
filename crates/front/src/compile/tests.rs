@@ -2753,6 +2753,61 @@ def step {u} (α : Sort u) (a : α) : Sort (u+1) := Sort u\n";
     );
 }
 
+/// **层级 `max`/`imax` 端到端进内核**（2026-10-13）—— 判据是"**收**"，
+/// 不是"解析器认得"（解析器那条在 `parser::tests::level_arithmetic_parses_max_and_imax` ✓）。
+///
+/// **改前基线**：下面这些**全部**在**解析期**判红 ✗
+/// （`层级加法只收数字后缀…；max/u+v 不在本语言的层级语法面内`）——
+/// 理由是「`EnvBuilder` 没有公开构造入口」✗，而那个入口在 `3e0930ec`（2026-10-06）
+/// 已 `pub`（`builder.rs` 的 `level_max`/`level_imax` ✓）⇒ 妥协没有理由了 ✓。
+///
+/// ⚠ **`max u v` 是符号层**：`.{max u v}` 这种**宇宙实参**位置在良类型项里用不上 ——
+/// `Eq.{k}` 要 `Prop : Sort k` 即 `1 ≤ k`，符号层证不出来 ⇒ 内核判拒
+/// （**Lean 同样拒** ✗ —— 不是我们的缺口，也不是本片造成的）。
+/// 实测：连 `Eq.{1} Prop Prop Prop` 本身就判拒（`Prop : Sort 1`，而 `Eq.{1}` 要
+/// `α : Sort 1` ⇒ `Prop : Prop` ✗）⇒ 本判据**不拿它当靶子**。
+/// 宇宙实参位置的**文本**由 parser 判据钉（`level_arithmetic_parses_max_and_imax`
+/// 的 `Eq.{max u v}` ✓），**翻译成内核层**由下面 `Sort` 那几条钉 ✓。
+///
+/// **反向验证**：把 `elab::LevelTextParser::parse_atom` 的 `max` 臂撤掉
+/// （或让 `builder.level_max` 换成 `lhs`）⇒ 本判据判红 ✓。
+#[test]
+fn level_max_and_imax_elaborate_end_to_end() {
+    let src = "\
+axiom A {u, v} : Sort (max u v)\n\
+axiom B {u, v} : Sort (imax u v)\n\
+axiom C {u, v} : Sort max u v\n\
+axiom D {u, v} : {α : Sort (max u v)} -> α -> α\n\
+axiom E {u, v} : Type (max u v)\n\
+axiom F {u, v} : Sort (max (u+1) v)\n\
+def idm {u} (α : Sort u) : Sort u := α\n";
+    let out = compile_fol(&parse(src).expect("parse max/imax levels"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "`max`/`imax` 层级必须端到端过内核（改前这些全在解析期判红 ✗）：{:?}",
+        out.errors
+    );
+}
+
+/// **`max` 真的走了 `level_ptr`**（不是被静默忽略 ✗）：参数名写错时，
+/// 诊断必须点名**整段层级文本** ⇒ 说明它进了新的那条路 ✓。
+///
+/// 为什么需要这条：只断言"合法输入变绿"**咬不住**"`max` 被当成裸名字、
+/// 只是恰好也绿了"那一类假修 ✗。这里用一个**未声明的** `w` 把那条路逼出来。
+#[test]
+fn level_max_with_an_undeclared_parameter_is_rejected() {
+    let out = compile_fol(&parse("axiom A {u, v} : Sort (max u w)\n").expect("parses"));
+    assert!(
+        out.errors
+            .iter()
+            .any(|e| e.message.contains("unknown universe level") && e.message.contains("max u w")),
+        "`max u w`（`w` 未声明）必须落 `unknown universe level `max u w`` ⇒ \
+         证明 `max` 真的交给了 `level_ptr`：{:?}",
+        out.errors.iter().map(|e| &e.message).collect::<Vec<_>>()
+    );
+}
+
 /// **L-03 / B8 的让位**：文件自己声明 `Eq.rec` ⇒ B8 整族（含 `Eq.ndrec`/`Eq.mp`/
 /// `Eq.mpr`/`cast`）让位，而 `Eq` prelude 与 B7（`Eq.symm`）照常装着——B8 的依赖
 /// 是 EQ（`Eq` 公理族），不是 B7。这条同时钉住"族粒度"与"依赖方向"。

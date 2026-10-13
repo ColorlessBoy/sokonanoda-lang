@@ -397,10 +397,17 @@ pub fn render_expr(expr: &Expr) -> String {
             SortKind::Prop => "Prop".to_string(),
             SortKind::Type => "Type".to_string(),
             SortKind::Sort(n) => format!("Sort {n}"),
-            // 层级算术文本（`u+1`）加括号：`Sort (u+1)` 与 `Sort u+1` 都能回读
-            // （parser 的 `parse_level_text`），但带括号的形态在 render→parse
-            // 往返里没有歧义（设计 `docs/design/type-level-syntax.md` §5）。
-            SortKind::Level(name) if name.contains('+') => format!("Sort ({name})"),
+            // **复合**层级文本（`u+1` / `max u v` / `imax u v`）加括号：
+            // `Sort (u+1)` 与 `Sort u+1` 都能回读（parser 的 `parse_level_text`），
+            // 但带括号的形态在 render→parse 往返里没有歧义
+            // （设计 `docs/design/type-level-syntax.md` §5）。
+            // ⚠ 判"复合"问 parser 的唯一归属（`is_compound_level_text`）——
+            // 这里原来写死 `contains('+')` ✗（加 `max` 时会渲染成 `Sort max u v`，
+            // 虽然回读仍同义，但与 `Sort (max u v)` 两种写法并存、且 `Type (max u v)`
+            // 那条 `max u v+1` 的文本会更难读 ✓）。
+            SortKind::Level(name) if crate::parser::is_compound_level_text(name) => {
+                format!("Sort ({name})")
+            }
             SortKind::Level(name) => format!("Sort {name}"),
         },
         Expr::Ident { name, .. } => name.clone(),
