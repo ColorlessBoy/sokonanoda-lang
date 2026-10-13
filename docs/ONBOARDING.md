@@ -61,9 +61,9 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=7 blocker=0 high=0 medium=7 low=0 -->
-**未完成 7 条**（blocker **0** · high **0** · medium **7** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
-最靠前的 5 条：`F12b-notation-blind-intro` · `F12b2-front-intro-notation` · `MODULE-ARTIFACTS-KNIFE2` · `SUB-budget-over-applied` · `SUB-l0-archive-plan`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
+<!-- QUEUE:COUNTS total=4 blocker=0 high=0 medium=4 low=0 -->
+**未完成 4 条**（blocker **0** · high **0** · medium **4** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+最靠前的 5 条：`F12b-notation-blind-intro` · `F12b2-front-intro-notation` · `MODULE-ARTIFACTS-KNIFE2` · `SUB-queue-registration-gaps`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
 > **口径（2026-10-12 清台账 + 事件调度器）**：**明细只活在脚本里** —— `--next` 取队列 · `--claim <id>` 认领（**最多 4 个并发（"4 核"）**，写锁 + 
@@ -74,7 +74,6 @@
 
 | 线 | 是什么 | 下一步最小动作 | 判据（可执行） |
 |---|---|---|---|
-| W-3 | 课程侧隐变量适配 | 课程侧整批豁免未删（引擎侧已收口）⇒ 先小批量跑通口径 | `notation-lint` 零旧写法 + 课程门禁 `failed=0` + 计数如实记账 |
 | Q | 调度器自身的缺口（接口 agent 的 **13 条提交** + `Q-1`） | `--submit`/`--inbox`/受理四态/`--claim` 原子性（**已修**）· 其余按 `--inbox` 逐条受理 | `python3 scripts/ux-queue.py --inbox` 无 `todo` 残留 + `--selftest` exit 0 |
 
 > **`G-110` 已收口**（2026-10-12 · commit `ead7829f`）：`assumption` 现在搜遍全部局部假设
