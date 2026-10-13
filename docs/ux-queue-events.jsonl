@@ -238,3 +238,4 @@
 {"ts": "2026-10-13T02:30:29+00:00", "event": "submit", "id": "STALE-CODE-COMPROMISES-C1C4", "owner": "penglingwei@penglingweis-Laptop", "kind": "finding", "evidence": "四处各自的自认理由都已失效（T-D15 干掉约束 · EnvBuilder 入口 2026-10-06 已 pub · LSP 侧 2026-10-03 已改 UTF-16 · T2-B 已落地并接线）"}
 {"ts": "2026-10-13T02:30:30+00:00", "event": "triage", "id": "STALE-CODE-COMPROMISES-C1C4", "to": "applied", "reason": "受理为实现项（等 crates/front 释放）", "commit": "3915ec14", "owner": "penglingwei@penglingweis-Laptop"}
 {"ts": "2026-10-13T02:30:30+00:00", "event": "reopen", "id": "STALE-CODE-COMPROMISES-C1C4", "reason": "受理为实现项 ⇒ 待实现的活，不是已修", "owner": "penglingwei@penglingweis-Laptop"}
+{"ts": "2026-10-13T02:40:21+00:00", "event": "claim", "id": "F12", "owner": "orchestrator", "resources": ["scripts/ux-probes"]}
