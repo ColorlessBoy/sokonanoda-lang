@@ -1424,8 +1424,17 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
         # **只有 claim、没有 advance** ⇒ 调度器停在 `in_progress` ⇒ 仍算 **open**：
         # 队列对"还剩什么"**多报**，`--next` 会把**已经做完**的条目推荐出来 ✗。
         # ⇒ 补上这个方向：来源已是终态、调度器却没到终态 ⇒ 判红（并指名怎么收口 ✓）。
+        # ⚠ **`submitted` 不豁免**（2026-10-14 · 第三轮独立复核实测）：`37139ca7` 曾在这里
+        # 加过 `and st != "submitted"`（**没写理由** ✗）。实测它的**唯一**观察效果就是让
+        # 「来源已是终态 × 调度器 `submitted`」这一格**静默**（3 来源 × {fixed,wo-filed}
+        # = **6/6 格静默**，而同一时刻 `--next` 照样把那条推出来 —— `submitted` 既不在
+        # `TERMINAL_STATES`、也不在 `cmd_next` 跳过的 {umbrella,blocked,boundary,control}
+        # 里 ⇒ 正是本规则要咬的「来源终态 + 调度器非终态」）。
+        # 正常提交路径**不受影响**：`cmd_submit` 写的处置是 `fix`（非终态）⇒ 这一支根本
+        # 进不来（`cmd_triage` 受理/拒收才把处置翻成 `fixed`/`wo-filed`，那时也应该收口 ✓）。
+        # ⇒ 网格逐格钉住（`selftest_source_state_grid`）：删掉这个豁免前 6 格静默、删掉后 36 格全红 ✓。
         _d = disp.get(ident)
-        if _d in {"fixed", "wo-filed"} and st not in TERMINAL_STATES and st != "submitted":
+        if _d in {"fixed", "wo-filed"} and st not in TERMINAL_STATES:
             if _d == "fixed":
                 print(f"✗ `{ident}` 来源处置已是 `fixed`（终态），调度器却停在 `{st}` ⇒ "
                       f"**反向两层漂移**：**修好了没登记** ⇒ 队列多报、`--next` 会把做完的推出来 ✗"
