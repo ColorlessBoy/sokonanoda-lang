@@ -114,7 +114,7 @@ theorem comp_idRel (A B : Type) (r : Rel A B) : Eq.{1} (Rel A B) (r • idRel B)
             rel_subst_right B (fun (u : B) (v : B) => r a v) b1 b1 b (And.right hb)
               (And.left hb)))
       (fun (h : r a b) =>
-        Exists.intro B (fun (b1 : B) => r a b1 ∧ (idRel B) b1 b) b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        Exists.intro b
           (And.intro h (Eq.refl.{1} B b))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
 
 theorem idRel_apply (α : Type) (a b : α) :
@@ -129,11 +129,11 @@ theorem inv_comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (c : C) (a : A
       Exists.elim B (fun (b : B) => r a b ∧ s b c)
         (∃ (b : B), (s ⁻¹) c b ∧ (r ⁻¹) b a) h
         (fun (b : B) (hb : r a b ∧ s b c) =>
-          Exists.intro B (fun (b1 : B) => (s ⁻¹) c b1 ∧ (r ⁻¹) b1 a) b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          Exists.intro b
             (And.intro (And.right hb) (And.left hb))))
     (fun (h : (s ⁻¹ • r ⁻¹) c a) =>
       Exists.elim B (fun (b : B) => (s ⁻¹) c b ∧ (r ⁻¹) b a)
         (∃ (b : B), r a b ∧ s b c) h
         (fun (b : B) (hb : (s ⁻¹) c b ∧ (r ⁻¹) b a) =>
-          Exists.intro B (fun (b1 : B) => r a b1 ∧ s b1 c) b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          Exists.intro b
             (And.intro (And.right hb) (And.left hb))))

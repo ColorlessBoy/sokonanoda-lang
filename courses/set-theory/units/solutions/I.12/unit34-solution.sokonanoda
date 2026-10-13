@@ -73,7 +73,7 @@ theorem surjective_of_comp_surjective (α β γ : Type) (f : α → β) (g : β 
       (∃ (b : β), Eq.{1} γ (g b) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
       ((fun (hu : ∀ (y : γ), ∃ (a : α), Eq.{1} γ (g (f a)) y) => hu) h c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
       (fun (a : α) (ha : Eq.{1} γ (g (f a)) c) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-        Exists.intro β (fun (b : β) => Eq.{1} γ (g b) c) (f a) ha)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        Exists.intro (f a) ha)
 
 theorem bijective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     (hf : Function.Bijective α β f) (hg : Function.Bijective β γ g) :

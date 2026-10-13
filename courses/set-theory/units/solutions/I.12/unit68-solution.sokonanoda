@@ -48,8 +48,7 @@ theorem subset_sUnion_powerset (α : Type) (A : Set α) :
   fun (a : α) (ha : a ∈ A) =>
     (fun (hu : a ∈ (⋃₀ (𝒫 A)) ↔
         ∃ (B : Set α), B ∈ (𝒫 A) ∧ a ∈ B) =>
-      Iff.mpr hu (Exists.intro (Set α)
-        (fun (B : Set α) => B ∈ (𝒫 A) ∧ a ∈ B) A
+      Iff.mpr hu (Exists.intro A
         (And.intro (powerset_self_mem α A) ha)))
       (Set.mem_sUnion_iff α (𝒫 A) a)
 
