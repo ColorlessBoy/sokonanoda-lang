@@ -1797,7 +1797,7 @@ pub(crate) fn arg_expected_enabled() -> bool {
 /// 形状：`h : ¬ (P ∨ Q)` 写成 `h (Or.inl hp)` ⇒ 实参的期望类型 = `h` 的域 `P ∨ Q` ✓
 /// （`¬ X` 是 **def 头** ⇒ δ 展开一次 ✓）；`Or.inl` 的 `?B` 由此定下 ✓（台账 G-30b ✗）。
 /// **闸门见 [`arg_expected_enabled`]** ✓（**默认开**；`SOKO_ARG_EXPECTED=0|off` ⇒ 本函数恒 `None` ✓）。
-fn b1_local_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Option<Expr> {
+fn b1_local_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Option<(Expr, bool)> {
     if !arg_expected_enabled() {
         return None;
     }
@@ -1817,7 +1817,7 @@ fn b1_local_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Opti
 /// ③ **保守边界** ✓：要剥到的那个域的**前面**若引用了更早的 binder（`A`/`B` ✓），
 ///    不代换就**答不对** ✗ ⇒ **宁可不答** ✗（返回 `None` ✓ = 今天的行为 ✓），
 ///    绝不返回一个含**不在作用域的名字**的"期望类型" ✗（那会让下游 elaborat 到错项 ✗）。
-fn local_arg_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Option<Expr> {
+fn local_arg_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Option<(Expr, bool)> {
     // **① 头可以是部分应用** ✓：数一下已经吃掉几个实参 ✓。
     let (name, applied) = match fun {
         Expr::Ident { name, .. } => (name.as_str(), 0usize),
@@ -1834,13 +1834,22 @@ fn local_arg_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Opt
     let mut cur = scope.src_tys.get(idx)?.as_ref()?.clone();
     // 跳到**第 `applied` 个 Π 层**：它的域正是本实参的期望类型 ✓。
     let mut seen = 0usize;
+    // **B1d（2026-10-13）**：源级展开留下的**裸形参名**（见 `_` 臂）⇒ 命中即 `suspect` ✓。
+    let mut unbound: Vec<String> = Vec::new();
+    // **B1e**：**已经吃掉**的那些 Π 层的 binder 名 —— 源级剥 Π **不把已吃掉的实参代换进
+    // 后面的域** ✗ ⇒ 域里出现它们 = **漏出去的形参名** ⇒ `suspect` ✓。
+    // 实测（S3 的第二个实参）：`h (f x) (…)` 的域是 `mem x (img f A)` —— 那个 `x` 是
+    // `sub` 的 binder，本该代换成 `(f x)` ✗。
+    let mut consumed: Vec<String> = Vec::new();
     for _ in 0..8 {
         match &cur {
             Expr::Arrow {
                 domain, codomain, ..
             } => {
                 if seen == applied {
-                    return Some(domain.as_ref().clone());
+                    let dom = domain.as_ref().clone();
+                    let suspect = mentions_names(&dom, &unbound) || mentions_names(&dom, &consumed);
+                    return Some((dom, suspect));
                 }
                 seen += 1;
                 cur = codomain.as_ref().clone();
@@ -1853,19 +1862,99 @@ fn local_arg_expected(fun: &Expr, scope: &ElabScope<'_>, defs: &DefTable) -> Opt
                         if mentions_any(ty, scope, &binders[..]) {
                             return None;
                         }
-                        return Some(ty.as_ref().clone());
+                        // **B1d/B1e（2026-10-13）**：`suspect` = 这个域提到了**不该出现的裸名**
+                        // （被展开 `def` 的**前导隐式**形参名，或**已经吃掉**的 Π 层 binder 名）
+                        // ⇒ 那个裸名在调用者作用域里会解析成**同名的别的变量** ⇒ 期望类型**错的** ✗
+                        // （调用方据此改用**内核**那条通道 —— 方案 (b) 的最小切片 ✓）。
+                        let ty = ty.as_ref().clone();
+                        let suspect =
+                            mentions_names(&ty, &unbound) || mentions_names(&ty, &consumed);
+                        return Some((ty, suspect));
+                    }
+                    if !b.name.is_empty() {
+                        consumed.push(b.name.clone());
                     }
                     seen += 1;
                 }
                 cur = body.as_ref().clone();
             }
-            _ => match crate::spine::unfold_one(&cur, defs, None) {
-                Some(next) if next != cur => cur = next,
-                _ => return None,
-            },
+            _ => {
+                // **B1d**：展开**之前**记下这个 def 的**前导隐式**形参名 ✗ —— 源级展开
+                // （`spine.rs::unfold_one_with`）**只代换显式形参** ⇒ 前导隐式以**裸名**
+                // 留在展开体里（`spine.rs:135` 注释自认「前导那几个保持原名不代换 …
+                // 这是源级展开的已知边界」）✗ ⇒ 那个名字在调用者作用域里会解析成**同名的
+                // 别的变量** ⇒ 期望类型**错的** ✗✗。
+                if let Some((head, _)) = crate::spine::head_and_args(&cur) {
+                    if let Some(info) = defs.get(head) {
+                        let k = info.implicit_prefix.min(info.params.len());
+                        unbound.extend(info.params[..k].iter().cloned());
+                    }
+                }
+                match crate::spine::unfold_one(&cur, defs, None) {
+                    Some(next) if next != cur => cur = next,
+                    _ => return None,
+                }
+            }
         }
     }
     None
+}
+
+/// **`fun` 的"下一个实参"的期望类型** —— 走**内核**那条路（方案 (b) 的最小切片 ✓）。
+///
+/// `fun` 是一条**偏应用**（`h` / `h (f x)` / …）⇒ 它的类型就是"下一个实参要吃的东西"：
+/// `whnf` 之后取**第 0 个 Π 层**的域 ✓✓。
+///
+/// **与 Lean 4 同构**：`Lean/Elab/App.lean:1113` 的 `addArgAndContinue` 每吃一个实参就
+/// `fType := body.instantiate1 arg`，下一位的期望类型 = `whnfForall fType` 的域 ✓
+/// （`:1455` `consumeImplicits` 也是先 `whnfCore` ✓）——**def 头由内核展开**，
+/// 于是**不存在**"源级展开留下的裸名"这件事 ✓✓。
+fn kernel_next_arg_expected<'a>(
+    fun: &Expr,
+    scope: &ElabScope<'a>,
+    ctx: &ElabCtx<'a, '_>,
+    env: Option<&mut InplaceEnv<'_, 'a>>,
+    univ: &UnivMap<'a>,
+) -> Option<Expr> {
+    // ⚠ **必须取「全显式 pp」形态**（最后一个 `true` ✓）—— 默认档的 pp **只丢第一个
+    // 隐式实参**（`img {α β} f A` 打成 `img β f A` ✓，见 `judge::EXPLICIT_PP` 的长注释
+    // 与 G-71）✗ ⇒ 那份文本**回读成项**时会**错位对齐**（`α := β, β := f, f := A`）✗
+    // ⇒ 期望类型是错的 ✗（本轮实测：`mem (f x) (img β f A)` ⇒ 展开成 `A a` ⇒
+    // `[clash] 左=Ex ｜ 右=A a` ✗）。全显式档打的是 `@img α β f A` ✓ ⇒ 回读**逐位对齐** ✓。
+    // 这条机械**现成**（C 子项的 `operand_type_expr_explicit` 就是它 ✓）。
+    // **逃生门**（反向验证 ✓）：`SOKO_KERNEL_ARG_PP=default` ⇒ 退回**默认 pp 档**
+    // （只丢第一个隐式实参的那一档 ✗）⇒ 判据**必须重新判红** ✓。
+    let explicit_pp = std::env::var("SOKO_KERNEL_ARG_PP").ok().as_deref() != Some("default");
+    let ty_text = infer_type_text(ctx, scope, fun, env, Some(univ), explicit_pp)?;
+    let (layers, _) = notation_telescope(&ty_text)?;
+    let (_, domain) = layers.first()?;
+    Some(domain.clone())
+}
+
+/// `e` 里有没有引用 `names` 里的**裸名**（同 [`mentions_any`]，但直接收名字表 ✓）。
+fn mentions_names(e: &Expr, names: &[String]) -> bool {
+    if names.is_empty() {
+        return false;
+    }
+    fn walk(e: &Expr, names: &[String]) -> bool {
+        match e {
+            Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => names.contains(name),
+            Expr::App { fun, arg, .. } => walk(fun, names) || walk(arg, names),
+            Expr::Forall { binders, body, .. } | Expr::Lambda { binders, body, .. } => {
+                binders
+                    .iter()
+                    .any(|b| b.ty.as_deref().is_some_and(|t| walk(t, names)))
+                    || walk(body, names)
+            }
+            Expr::Arrow {
+                domain, codomain, ..
+            } => walk(domain, names) || walk(codomain, names),
+            Expr::Plus { lhs, rhs, .. } => walk(lhs, names) || walk(rhs, names),
+            Expr::Let { val, body, .. } => walk(val, names) || walk(body, names),
+            _ => false,
+        }
+    }
+    walk(e, names)
 }
 
 /// `e` 里有没有引用**更早的 binder**（保守判据 ✓ —— 只看**裸名** ✓，命中就放弃 ✓）。
@@ -5407,11 +5496,31 @@ pub(crate) fn elab_expr<'a>(
                     Some(&mut InplaceEnv { builder, known }),
                     univ,
                 )
-                .or_else(|| b1_local_expected(fun, scope, ctx.defs))
+                .or_else(|| b1_local_expected(fun, scope, ctx.defs).map(|(ty, _s)| ty))
             } else {
                 // **B1 片**：头是**局部变量** ⇒ 用书写类型剥到实参位 ✓
                 // （零内核调用 ⇒ 不会像 `application_arg_expected` 那样递归栈溢出 ✗）。
-                b1_local_expected(fun, scope, ctx.defs)
+                //
+                // **(b) 的最小切片（2026-10-13）**：局部路答出的域若**提到不该出现的裸名**
+                // （`suspect` ✓）⇒ 那个答案是**错的** ⇒ 这一处改用**内核**那条通道
+                // （`kernel_next_arg_expected`：问 `fun` 这条**偏应用**的类型、取 whnf 后
+                // 第 0 个 Π 层的域 ✓ —— 与 `Lean/Elab/App.lean:1113` 同构 ✓）。
+                //
+                // ⚠ 三条安全性质：① **只在 `suspect` 时**才多问一次内核 ⇒ 既有形状
+                // **零额外开销、逐字节不变** ✓；② 内核也答不出 ⇒ **退回老答案**（= 今天的行为，
+                // 绝不更差 ✓）；③ 老风险（`application_arg_expected` 要问头类型 ⇒ 每个实参都问
+                // 会递归栈溢出）**只在这一小撮形状上**出现 ✓。
+                match b1_local_expected(fun, scope, ctx.defs) {
+                    Some((ty, true)) => kernel_next_arg_expected(
+                        fun,
+                        scope,
+                        ctx,
+                        Some(&mut InplaceEnv { builder, known }),
+                        univ,
+                    )
+                    .or(Some(ty)),
+                    other => other.map(|(ty, _s)| ty),
+                }
             };
             let fun = elab_expr(builder, fun, scope, univ, known, hovers, None, None, ctx)?;
             let arg = elab_expr(
