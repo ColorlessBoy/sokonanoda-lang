@@ -2086,6 +2086,122 @@ fn lambda_arg_expected(fun: &Expr, enabled: bool) -> Option<Expr> {
     Some(crate::spine::substitute(ty, &sigma))
 }
 
+/// **第 5 刀（2026-10-13）的闸门**：`SOKO_CONST_ARG_EXPECTED=0|off` ⇒ 恒 `None`
+/// （= 今天的行为 ✓，反向验证用 ✓）。
+fn const_arg_expected_enabled() -> bool {
+    !matches!(
+        std::env::var("SOKO_CONST_ARG_EXPECTED").ok().as_deref(),
+        Some("0") | Some("off")
+    )
+}
+
+/// **常量头的下一个实参期望类型**（**第 5 刀**，2026-10-13）—— **零内核调用、零递归** ✓。
+///
+/// ## 它补的是哪一格
+///
+/// App 臂里 `arg_expected` 的三档都**不认常量头** ✗：① [`b1_local_expected`] 只认
+/// **局部变量**；② [`kernel_next_arg_expected`] 只在①报 `suspect` 时兜底；③
+/// [`lambda_arg_expected`] 只认 `fun …` 头。⇒ `partition_disjoint α P h A B hA hB
+/// (Exists.intro b hb)` 这种「**常量头**的应用、最后一个实参是**自己也吃期望类型**的
+/// 构造子」拿不到期望类型 ✗。
+///
+/// 后果（实测 ✓）：`Exists.intro b hb` 只能从 `hb : A b ∧ B b` 反解 `p`
+/// （`?p b =?= A b ∧ B b`：`b` 出现在右边 ⇒ **非模式合一** ⇒ occurs ⇒ 解不出 ✗）
+/// ⇒ 报 `elab-implicit-argument-unsolved`（课程侧那一批 `G-73 形状 ②` 的
+/// `soko:notation-ok` 豁免就是它逼出来的 ✓）。
+///
+/// ## 与 Lean 4 同构（`Lean/Elab/App.lean`）
+///
+/// `:1113` 的 `addArgAndContinue` 每吃一个实参就 `fType := body.instantiate1 arg`
+/// ⇒ **下一个实参的期望类型 = 形参的绑定类型**（已吃掉的实参代进去 ✓）；
+/// `:1455` 的 `consumeImplicits` 也是先 `whnfCore` ✓。本函数把同一条机制落在
+/// **注册表签名**上（[`KnownName::signature`] + [`crate::compile::implicit::telescope`]
+/// —— 与 [`try_implicit_application_with`] **同一份**文本、同一份解析 ✓）：
+/// 零内核调用、零前缀重编、**零递归** ✓（那条会重编前缀的
+/// [`application_arg_expected`] 在这条形状上会爆栈 ✗）。
+///
+/// ## 三条保守边界（宁可 `None` = 今天的行为，绝不返回**错的**期望类型 ✗）
+///
+/// ① **便宜闸门**：**实参**必须是一个应用、且它的头是「签名带**前导隐式**」的已知
+///    常量 —— 只有这种形状**真的需要**期望类型（前导隐式只能从期望类型反解 ✓）；
+///    别的形状自己解得出来 ⇒ 闸门之外**一次都不进**（既有形状零开销 ✓）。
+/// ② 只认**没有前导隐式**的被应用常量（`implicit_prefix() == 0`）：有前导隐式时
+///    「短写 / 旧写法」两种读法都合法 ⇒ 实参与层**不保证逐位对齐** ✗（那条由
+///    [`try_implicit_application_with`] 管：它解得出来时**已经**给每个实参发期望类型 ✓）。
+///    同时要求被吃掉的层与**目标层**全是显式层（`{}` 夹在中间时逐位对齐同样不成立 ✗）。
+/// ③ 实参个数**不少于**层数 ⇒ `None`（富余实参是路线③ 的形状：下一次应用的对象是
+///    **结果**而不是形参 ✗）。头名被**局部变量遮蔽** ⇒ `None`（局部那一档已经答过，
+///    绝不回落到同名常量 ✗）。
+fn const_arg_expected<'a>(
+    fun: &Expr,
+    arg: &Expr,
+    scope: &ElabScope<'a>,
+    known: &KnownTable,
+    ctx: &ElabCtx<'a, '_>,
+) -> Option<Expr> {
+    if !const_arg_expected_enabled() {
+        return None;
+    }
+    // ① 便宜闸门（**零解析、零内核调用**）：实参是应用、头是「有前导隐式」的已知常量。
+    let (arg_head, arg_args) = crate::spine::spine_of(arg);
+    if arg_args.is_empty() {
+        return None;
+    }
+    let arg_name = match arg_head {
+        Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => name.as_str(),
+        _ => return None,
+    };
+    // 遮蔽：局部名不是常量（局部那一档已经答过 ✓）。⚠ 与 `resolve_known` 不同，
+    // 这里**不**为局部名回落（否则会拿同名常量的签名当期望类型 ✗）。
+    if scope.names.iter().any(|n| n == arg_name) {
+        return None;
+    }
+    let arg_decl = match known.get(arg_name) {
+        Some(decl) => decl,
+        None => known
+            .get(&resolve_known(known, ctx.ns, arg_name, arg_head.span(), &scope.names).ok()?)?,
+    };
+    if arg_decl.implicit_prefix() == 0 {
+        return None;
+    }
+    // ② 被应用的常量那一格：头是 `Ident`/`UniverseApp`、未被遮蔽、**没有前导隐式**。
+    let (head, args) = crate::spine::spine_of(fun);
+    if args.is_empty() {
+        return None;
+    }
+    let raw_head = match head {
+        Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => name.as_str(),
+        _ => return None,
+    };
+    if scope.names.iter().any(|n| n == raw_head) {
+        return None;
+    }
+    let canonical = resolve_known(known, ctx.ns, raw_head, head.span(), &scope.names).ok()?;
+    let declared = known.get(&canonical)?;
+    if declared.implicit_prefix() != 0 {
+        return None;
+    }
+    let (layers, _result) = crate::compile::implicit::telescope(declared.signature()?)?;
+    // ③ 逐位对齐的前提：被吃掉的层与**目标层**都必须是显式层。
+    if args.len() >= layers.len()
+        || layers[..=args.len()]
+            .iter()
+            .any(|l| l.style != BinderKind::Explicit)
+    {
+        return None;
+    }
+    // 已吃掉的实参按**位置**代进下一层的域 —— 与 Lean 的 `body.instantiate1 arg`
+    // 同一件事（差别只是我们用源级签名而不是内核 whnf ⇒ 零内核调用 ✓）。
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for (i, a) in args.iter().enumerate() {
+        let name = &layers[i].name;
+        if !name.is_empty() {
+            sigma.insert(name.clone(), (*a).clone());
+        }
+    }
+    Some(crate::spine::substitute(&layers[args.len()].domain, &sigma))
+}
+
 fn kernel_next_arg_expected<'a>(
     fun: &Expr,
     scope: &ElabScope<'a>,
@@ -5725,6 +5841,14 @@ pub(crate) fn elab_expr<'a>(
                 // ③ 拿不到标注 ⇒ `None`（= 今天的行为，绝不更差 ✓）。
                 // 逃生门 `SOKO_LEGACY_NO_EXPECTED=1` ⇒ **退回今天的行为**（反向验证 ✓）。
                 .or_else(|| lambda_arg_expected(fun, expected_for_app_args_enabled()))
+                // ── **第 5 刀（2026-10-13）· 常量头那一格** ────────────────────
+                // 上面三档都不认**常量头** ✗ ⇒ `partition_disjoint … (Exists.intro b hb)`
+                // 拿不到期望类型（实测：`elab-implicit-argument-unsolved` ✗）。
+                // 这一档走**注册表签名**（非递归、零内核调用）——
+                // 与 `Lean/Elab/App.lean:1113` 的 `body.instantiate1 arg` 同构 ✓。
+                // 放在**最后**：前面三档答得出来就一步都不进 ⇒ 既有形状逐字节不变 ✓。
+                // 逃生门 `SOKO_CONST_ARG_EXPECTED=0|off` ⇒ 退回今天的行为（反向验证 ✓）。
+                .or_else(|| const_arg_expected(fun, arg, scope, known, ctx))
             };
             let fun = elab_expr(builder, fun, scope, univ, known, hovers, None, None, ctx)?;
             let arg = elab_expr(
