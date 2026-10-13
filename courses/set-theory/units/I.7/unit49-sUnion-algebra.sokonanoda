@@ -124,8 +124,9 @@ theorem sInter_subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α)
 -- soko:hint 目标形态：`⋂(F ∪ G) ⊆ ⋂F`。
 -- soko:hint 关键件：`Set.mem_sInter_intro`（**库刚补的那条** ✓）· `Set.mem_sInter_iff`
 --   （**绑定形态先落地** ✓）· `Or.inl` ✓
---   ⚠ **本条的 `⊆` 记法补不出前导类型参数** ✗（内核会直接提示"请写出点名形式"✓）
---   ⇒ 解答里写成 `Set.subset α …` 并加行内标记 ✓（**G-73 第十七例**，见手册 ✓）  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+--   ✓ **`⊆` 记法在本条可用**（2026-10-13 实测 ✓）：目标 `(⋂₀ (F ∪ G)) ⊆ (⋂₀ F)` 判绿 ✓；
+--   连 G-73 第十七例的**原始触发形状**（操作数写成广义交的**展开形态**）也判绿 ✓
+--   ⇒ 解答写记法即可、**不必**点名形式 ✓（既有漂移已订正：解答本就用记法 ✓）。
 theorem sInter_union_subset_left (α : Type) (F G : Set (Set α)) :
     (⋂₀ (F ∪ G)) ⊆ (⋂₀ F) := by
   sorry
@@ -143,7 +144,7 @@ theorem sInter_mono_apply (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x : α
 -- soko:hint 思路：直接把练习 9 的结果喂给库里的引入子。
 -- soko:hint 目标形态：`F ⊆ G → ⋂G ⊆ ⋂F`。
 -- soko:hint 关键件：`Set.mem_sInter_intro`（**库刚补的那条** ✓）+ 练习 9 ✓
---   ⚠ `⊆` 记法在此补不出前导类型参数 ✗ ⇒ 解答写 `Set.subset α …` 并加行内标记 ✓  -- soko:notation-ok: `⊆` 在此补不出前导类型参数（G-73 第十七例），按内核提示改点名
+--   ✓ **`⊆` 记法在此可用**（2026-10-13 实测 ✓）：目标 `(⋂₀ G) ⊆ (⋂₀ F)` 判绿 ✓ ⇒ 写记法即可 ✓。
 theorem sInter_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
     (⋂₀ G) ⊆ (⋂₀ F) := by
   sorry
