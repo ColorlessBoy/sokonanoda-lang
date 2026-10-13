@@ -37,6 +37,17 @@ Known limitation / CI 台账 / 代码里的 TODO / 开工单 §0.2），彼此�
 `scheduled` 的行**逐条**落在 §0.2 里，`fix` 的行是"本轮要做、还没做完"。
 ⚠ `fixed` / `wo-filed` / `boundary` / `control` **不进 open 集合**，但它们**留在队列里**
 （= 会计上的"已关账"，**不许从队列里删除** ✗ —— 删条目 = 把守卫关掉 ✗）。
+⇒ 判据里的"已关账"**就是这四个**（`CLOSED_DISPOSITIONS`，与上面这句同源）；
+`--next` 的"不在做"是 `CLOSED_STATES = {done, wo_filed} ∪ {boundary, control}`。
+
+**权威状态只有一份**（2026-10-14 · 第五轮独立复核）：`effective_state(row, cur)` ——
+事件表有该 id ⇒ 事件状态优先；**没有事件**（= 上面那句"删掉事件文件就回到来源台账的处置"，
+一条合法操作 ✓）⇒ 由**来源处置**翻译（`DISPOSITION_STATES`）。判据与显示**读同一份**：
+`--next` 的可动（`is_pushable`）· `--json.open`/§0.2 的对账 · `--check` 的两层漂移
+（`check_plan`，域 = `plan_domain` = **视图 ∪ 事件表** ⇒ **无事件的 id 也进判定** ✗ 不许再
+只遍历 `state`）都调它 —— 谁都不许自己再算第三遍 ✗。**两层漂移 = 一条不变量的两个方向**：
+来源"已关账" ⟺ 调度器"不在做"（`done`/`wo_filed` 这一向要求来源记的是**工作结论**
+`WORK_DONE_DISPOSITIONS` ⇒ 与"关没关账"是两个问题，见常量块 ✓）。
 
 ## 用法
 
@@ -721,6 +732,36 @@ SCHED_STATES = ("todo", "in_progress", "blocked", "done", "wo_filed", "umbrella"
                 "submitted", "triage_rejected")
 TRIAGE_STATES = {"submitted", "triage_rejected"}
 TERMINAL_STATES = {"done", "wo_filed"}
+# ── **"已关账"的单一出处**（2026-10-14 · 第五轮独立复核：`--check` 的判据域与
+#    `effective_state` 的域不一致 ⇒ 三族静默格）
+#
+# 本文件 docstring 的「处置」一节**就是规格**：`fixed` / `wo-filed` / `boundary` / `control`
+# 四个处置**并称"已关账"**、**都不进 open 集合** ✓。而判据原先只认 `{fixed, wo-filed}` ✗
+# ⇒ 两处不一致（复核者实测：`boundary`/`control` × 6 个调度器状态 = **12 格静默且被
+# `--next` 推出来** ✗）。⇒ 谓词改成与 docstring **同源**，两侧各写成**一处**定义：
+#   · `CLOSED_DISPOSITIONS` —— **来源侧**"已关账"（= `DISPOSITIONS - OPEN_DISPOSITIONS`；
+#     自检里有一条**结构性**守卫钉死这条恒等式 ⇒ 以后加处置忘了归类会先红 ✗）；
+#   · `DERIVED_CLOSED_STATES` / `CLOSED_STATES` —— **调度器侧**"不在做"。
+#     `boundary`/`control` **只可能由处置派生**（`TRANSITIONS` 里没有它们的入口 ⇒
+#     只有"没有事件"时才出现）⇒ 它们与来源的 `boundary`/`control` 正是**一致**的形状 ✓
+#     （真台账唯一一行 `r02` = `control` + 无事件 ⇒ 不红 · 不推 · 不进 open ✓；
+#      反过来说：这一支若不认它们，`r02` 会被误判成"来源关账而调度器没关账" ✗）。
+#   · `WORK_DONE_DISPOSITIONS` —— 来源里记的**工作结论**（`done`/`wo_filed` 的对应物）。
+#     ⚠ 它**故意**比 `CLOSED_DISPOSITIONS` 小：`boundary`/`control` 的语义是"**从来不算
+#     缺口**"，而 `done`/`wo_filed` 是调度器记下的"**我做完了 / 定案不做**"这个结论 ⇒
+#     调度器记了结论而来源写着"从来不算缺口"**仍然是漂移**（来源必须记同一个结论）。
+#     两个集合回答的是两个不同的问题（"关没关账" vs "结论记的是哪一个"）⇒ 这一处是
+#     **更严**（没有任何一格从红变绿），不是"两处不一致" ✓。
+CLOSED_DISPOSITIONS = {"fixed", "wo-filed", "boundary", "control"}
+WORK_DONE_DISPOSITIONS = {"fixed", "wo-filed"}
+DERIVED_CLOSED_STATES = {"boundary", "control"}
+CLOSED_STATES = TERMINAL_STATES | DERIVED_CLOSED_STATES
+# `--next` 的口径 = 已关账 **再加** `umbrella`/`blocked` —— 这两个是"**开着但不可动**"，
+# 不是已关账 ⇒ 与 `CLOSED_STATES` 分开（否则 `--check` 会把"拆解中 / 被阻塞"误判成关账 ✗）。
+NOT_PUSHABLE_STATES = CLOSED_STATES | {"umbrella", "blocked"}
+# 处置 → 无事件时的**派生状态**（唯一映射表：`effective_state` 与自检的网格都读它 ✓）
+DISPOSITION_STATES = {"fix": "todo", "scheduled": "todo", "fixed": "done",
+                      "wo-filed": "wo_filed", "boundary": "boundary", "control": "control"}
 # **允许的迁移表 = 规则的唯一出处**（改这里才改得动行为）
 TRANSITIONS = {
     "todo":        {"in_progress", "blocked", "umbrella", "wo_filed"},
@@ -771,6 +812,19 @@ def closure_steps(frm: str, want: str = "done", limit: int = 4) -> list[str]:
                     seen.add(nxt)
                     queue.append(path + [nxt])
     return []
+
+
+def closure_target(disp: str | None) -> str | None:
+    """来源处置对应的**平账目标态**（`fixed`→`done` · `wo-filed`→`wo_filed`）。
+
+    `boundary`/`control` ⇒ `None`（**如实**）：它们在 `TRANSITIONS` 里**没有入口**
+    （只由处置派生 ⇒ 无事件时才出现）⇒ 平账**不是**"再做一步迁移"，而是
+    **删掉事件表里那几条**（回到来源台账的处置）**或**改来源处置 ✓ ——
+    调用方据此打印"表里没有能平账的迁移"，而不是印一条**死路指示** ✗
+    （旧代码对所有处置都印 `--to done`/`--to wo_filed`，而 `boundary`/`control` 走到那些
+    终态会**再**撞上 `WORK_DONE_DISPOSITIONS` 那一条 ⇒ 照指示敲只会换个红 ✗）。
+    """
+    return {"fixed": "done", "wo-filed": "wo_filed"}.get(disp or "")
 
 
 def _step_cmd(ident: str, to: str) -> str:
@@ -1252,7 +1306,9 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
                         if not (c.get("id") == ident and c.get("owner") == holder)])
     if to == "done":
         kids = cur.get("children", [])
-        open_kids = [k for k in kids if state.get(k, {}).get("state") not in TERMINAL_STATES]
+        # ⚠ "子任务关了没有"只有**一处**口径（`open_children` ⇒ `effective_state` +
+        # `CLOSED_STATES`）：否则 `--check` 的"子任务全关了"提示与这里的闸门会各说各话 ✗。
+        open_kids = open_children(kids, rows, state)
         if kids and open_kids:
             print(f"✗ `{ident}` 是 umbrella，还有 {len(open_kids)} 个子任务没关：{open_kids} ✗",
                   file=sys.stderr)
@@ -1305,14 +1361,76 @@ def cmd_unclaim(owner: str, reason: str) -> int:
 
 
 def effective_state(row: dict, cur: dict) -> str:
-    """事件状态优先；没有事件 ⇒ 用来源的处置翻译（`fix`/`scheduled` 都是**可动**的 todo）。"""
+    """**权威状态**：`--next` / `--json` / §0.2 / `check_plan` 的漂移判据**共用这一份**。
+
+    事件状态优先；没有事件 ⇒ 用来源的处置翻译（`fix`/`scheduled` 都是**可动**的 todo）✓。
+
+    ⚠ **已关账的处置不许被 `external-submission` 分支短路**（2026-10-14 · 第五轮独立复核）：
+    旧代码把 `external-submission` 判断放在处置表**之前** ⇒ 一条 `disposition=fixed` 的
+    外部提交（它的 `triage` 早已 applied）在**没有事件**（= docstring 明说的合法操作
+    "删掉事件文件就回到来源台账的处置"）时被翻译成 `submitted`（**非终态**）⇒ 真台账上
+    **42 条**这样的条目被 `--next` 推出来，而 `--json.open=[]`、§0.2 `total=0`、
+    `--check` 也看不见（判据域只含有事件的 id ✗）⇒ **三个视图三个答案** ✗。
+    ⇒ 口径：**关账的处置先答**（`fixed`→done · `wo-filed`→wo_filed · `boundary`→boundary ·
+    `control`→control，见 `DISPOSITION_STATES`/`CLOSED_STATES`）；只有**开着**的处置
+    （`fix`/`scheduled`）才轮到"外部提交在受理前不是可动的 todo" ⇒ `submitted` ✓。
+    这与 `cmd_submit` 的既有口径自洽：**正常提交路径写的处置是 `fix`**（非终态）
+    ⇒ 这一支不进短路；`--triage` 受理/拒收把处置翻成 `fixed`/`wo-filed` 时，
+    该条目本来就该是 `done`/`wo_filed` ✓。
+    """
     if cur.get("state"):
         return cur["state"]
+    mapped = DISPOSITION_STATES.get(row.get("disposition"))
+    if mapped in CLOSED_STATES:
+        return mapped
     if "external-submission" in (row.get("sources") or []):
         return "submitted"          # 外部提交在受理前不是"可动的 todo"（没人认领它）
-    return {"fix": "todo", "scheduled": "todo", "fixed": "done",
-            "wo-filed": "wo_filed", "boundary": "boundary", "control": "control"}.get(
-        row.get("disposition"), "todo")
+    return mapped or "todo"
+
+
+def is_pushable(row: dict, cur: dict, owner: str | None = None) -> bool:
+    """`--next` 的可动判据（**唯一出处**：`cmd_next` / 自检的三视图断言 / 网格都调它 ✓）。
+
+    ⚠ 为什么抽出来（2026-10-14 · 第五轮复核的**同族第五处**）：这条口径原先在
+    `cmd_next` 里写死一遍、又在 `--selftest` 的"三视图同数"断言里**手抄一遍** ⇒
+    "哪些条目可动"有两个真相（改一处不改另一处 ⇒ 断言自己就漂移了 ✗）。
+    """
+    st = effective_state(row, cur)
+    if st in NOT_PUSHABLE_STATES:
+        return False
+    return not (st == "in_progress" and cur.get("owner") not in (None, owner))
+
+
+def pushable_ids(view: list[dict], state: dict[str, dict],
+                  owner: str | None = None) -> list[str]:
+    """`--next` **推得出来的** id 集合（同一个 `is_pushable` ⇒ 读数与真命令同源 ✓）。"""
+    return sorted(r["id"] for r in view if is_pushable(r, state.get(r["id"], {}), owner))
+
+
+def open_children(children: list[str], rows: list[dict], state: dict[str, dict]) -> list[str]:
+    """父条目仍**没关**的子任务（**唯一出处**：`check_plan` 的提示 与 `cmd_advance` 的闸门共用）。
+
+    ⚠ 同一条"关了没有"的口径不许有两份（否则 `--check` 说"子任务全关了"而 `--advance`
+    照样拒收口 ✗）：这里也走 `effective_state` + `CLOSED_STATES` —— 子任务**没有事件**时
+    由它自己的处置定（`fixed`/`wo-filed`/`boundary`/`control` = 已关账 ✓），有事件时由事件定。
+    """
+    by_id = {r["id"]: r for r in rows}
+    return [k for k in children
+            if effective_state(by_id.get(k, {"id": k}), state.get(k, {})) not in CLOSED_STATES]
+
+
+def plan_domain(rows: list[dict], state: dict[str, dict]) -> list[str]:
+    """`check_plan` 的**判定域**（**一处定义**）：视图里的每个 id ∪ 事件表里的每个 id。
+
+    ⚠ 为什么要有这个名字（2026-10-14 · 第五轮独立复核的**最重一族**）：漂移判据原先的域是
+    `for ident, cur in sorted(state.items())` —— **只遍历"有事件"的 id** ✗，而
+    `effective_state`（`--next`/`--json` 用的那份）**能对"无事件"的 id 推出** `todo`/`submitted`
+    ⇒ **判据域 ⊊ 生效域** ⇒ 复核者实测：删掉事件文件（docstring 明说的合法操作）后
+    `--check` rc=0 · stderr 0 行，而 `--next` 照样推 42 条 ⇒ 三视图不一致 ✗。
+    ⇒ 域 = **视图 ∪ 事件表**（与 `--next` 迭代的 `sched_rows(rows, state)` 同一份）✓；
+    两边的**状态**都由 `effective_state` 算（不自己再算一遍 ✗ —— 那会造出第三个真相）。
+    """
+    return sorted({r["id"] for r in rows} | set(state))
 
 
 def cmd_render(rows: list[dict]) -> int:
@@ -1344,11 +1462,11 @@ def cmd_next(rows: list[dict], owner: str) -> int:
     state = fold()
     for row in sched_rows(rows, state):
         cur = state.get(row["id"], {})
+        # ⚠ 可动判据只有**一处**（`is_pushable` ⇒ `effective_state` + `NOT_PUSHABLE_STATES`）：
+        # `--check` 的漂移判据、`--json.open` 的对账、自检的三视图断言都读同一份 ✓
+        if not is_pushable(row, cur, owner):
+            continue
         st = effective_state(row, cur)
-        if st in TERMINAL_STATES or st in {"umbrella", "blocked", "boundary", "control"}:
-            continue
-        if st == "in_progress" and cur.get("owner") not in (None, owner):
-            continue
         print(f"{row['id']} · {row.get('facet','?')} · {row.get('severity','?')} · "
               f"{st} · owner={cur.get('owner') or row.get('owner') or '-'}")
         print(f"  判据：{row.get('repro','')}")
@@ -1426,6 +1544,19 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     ⇒ **终态行可能根本不在里面**（`load_gaps()` 默认把 `status=="fixed"` 丢掉 ✗）⇒
     「来源终态 + 调度器非终态」这条**对缺口来源永远咬不住**（`G-110`/`G-112` 实测假绿）。
     ⇒ 权威表最后由 `source_dispositions()`（**全量**口径，三个来源都读）覆盖一遍 ✓。
+
+    ⚠ **判定域 = 视图 ∪ 事件表**（2026-10-14 · 第五轮独立复核 ①）：原先的域是
+    `sorted(state.items())` —— **只遍历"有事件"的 id** ✗，而 `--next`/`--json` 用的
+    `effective_state` **能对"无事件"的 id 推出状态**（处置翻译）⇒ **判据域 ⊊ 生效域**。
+    实测（真台账 + 按 docstring 的合法操作删掉事件文件）：改前 `--check` **rc=0 · stderr 0 行**，
+    而 `--next` 照样推 **42 条**（42/42 的权威处置都是 `fixed` = 已关账）⇒ 三个视图三个答案 ✗；
+    **只把域对齐**（不动权威口径）⇒ 同一条命令 **rc=1 · 42 个 id 被点名** ✓（域就是那个洞）；
+    再把共享权威（`effective_state` 的短路顺序）修对 ⇒ 两边**一致地**判"已关账"（0 红 ✓）。
+    ⇒ 域由 `plan_domain()` 一处定义；**状态**一律由 `effective_state()` 算（不自己再算一遍 ✗）。
+    ⚠ **两个状态名不要混用**：证据类判据（`done` 的 commit+reading / `wo_filed` 与
+    `triage_rejected` 的理由 / `umbrella` 的子任务）只认 `cur["state"]`（调度器**写过**的状态）
+    —— 由来源处置推出来的状态**不需要**调度器证据（证据在来源台账里）⇒ 否则删掉事件文件后
+    每条已关账的条目都会被误判"没证据的收口" ✗；漂移类判据认**权威状态**。
     """
     state = fold()
     bad = 0
@@ -1440,8 +1571,24 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
         if _d is not None:
             disp[_id] = _d
     legacy_pointers: list[tuple[str, str]] = []      # 存量非祖先指针（⚠ 报告，不判红）
-    for ident, cur in sorted(state.items()):
-        st = cur.get("state")
+    rows_by_id = {r["id"]: r for r in rows}
+    # ⚠ **判定域 = 视图 ∪ 事件表**（#1 的根本修法，见 `plan_domain`）：`--next`/`--json` 对
+    # **无事件**的 id 也能推出状态（`effective_state` 的处置翻译）⇒ 判据必须看见**同一批 id**，
+    # 否则"删掉事件文件"（docstring 明说的合法操作）会让判据**静默**而 `--next` 照样推 ✗。
+    for ident in plan_domain(rows, state):
+        cur = state.get(ident, {})
+        row = rows_by_id.get(ident) or {"id": ident}
+        if disp.get(ident) is not None:
+            # 处置的权威是**来源** ⇒ 权威状态也按来源算（视图那一行可能被合成行遮蔽 ✓）
+            row = {**row, "disposition": disp[ident]}
+        # 两个状态名各司其职，**不混用**：
+        #   · `st_ev` = 调度器**写过**的状态 ⇒ 证据类判据（done 的证据 / wo_filed 的理由 /
+        #     triage_rejected 的理由 / umbrella 的子任务）只认它 —— 由**来源处置推出来**的
+        #     状态**不需要**调度器证据（它的证据在来源台账里：`fixed`/`wo-filed` 本身就是
+        #     处置结论）⇒ 否则删掉事件文件后每条已关账的条目都会被判"没证据的收口" ✗✗；
+        #   · `st` = **权威状态**（`effective_state`，与 `--next` 同一个函数）⇒ 漂移类判据认它。
+        st_ev = cur.get("state")
+        st = effective_state(row, cur)
         # ⚠ 这里**不划测试命名空间**（2026-10-12 接口 agent 提交 `SUB-ghost-guard-diluted`）：
         # 曾经为了让验证脚本不弄红而跳过 `R-*`/`P-*` —— 那是**放宽守卫** ✗。正解是让那些脚本
         # **别往真台账写**（用 `SOKO_QUEUE_EVENTS=<临时文件>`，见 `EVENTS` 的说明）⇒
@@ -1450,18 +1597,14 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
             print(f"✗ 事件里的 `{ident}` 不在任何来源里 ⇒ 幽灵条目（删来源了？）✗", file=sys.stderr)
             bad += 1
             continue
-        if st == "triage_rejected" and not cur.get("reason"):
+        if st_ev == "triage_rejected" and not cur.get("reason"):
             print(f"✗ `{ident}` 是 `triage_rejected` 却没写理由 ⇒ 拒收也要讲清为什么 ✗",
                   file=sys.stderr)
             bad += 1
-        if st == "done":
+        if st_ev == "done":
             if not (cur.get("commit") and (cur.get("reading") or cur.get("triage") == "applied")):
                 print(f"✗ `{ident}` 标了 done 却没有 `commit`+`reading` ⇒ **没证据的收口** ✗",
                       file=sys.stderr)
-                bad += 1
-            if disp.get(ident) not in {"fixed", "wo-filed"}:
-                print(f"✗ `{ident}` 调度器里 done，来源处置却是 `{disp.get(ident)}` ⇒ "
-                      f"**两层漂移**（把来源台账改成 fixed/wo-filed）✗", file=sys.stderr)
                 bad += 1
             # **收口指针必须在 main 的历史上**（2026-10-14 · 缺陷 ⑤）：存在性查不出祖先性 ⇒
             # 存量（口径起点**之前**记的）走带日期豁免（只报告）；新增（起点**之后**记的，
@@ -1479,48 +1622,78 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
                           f"**找不到**（被 rebase 甩掉了？）✗ —— 按新历史重开再收口，或改记"
                           f"**真落进 main** 的那个 commit", file=sys.stderr)
                     bad += 1
+        # ── **两层漂移 = 两个方向的同一条不变量**：来源"已关账" ⟺ 调度器"不在做"。
+        # 两个方向合起来才是"三视图一致"：open（来源）· `--next`（调度器）· `--check`（对账）。
+        _d = disp.get(ident)
+        # **正向**：调度器记了一个**工作结论**（`done`/`wo_filed`，都带证据：commit+reading /
+        # reason）⇒ 来源必须记**同一个结论**（`fixed`/`wo-filed` ✗ `boundary`/`control` 不算 ——
+        # 它们的语义是"从来不算缺口"，见 `WORK_DONE_DISPOSITIONS`）。
+        # ⚠ **镜像方向原先一条牙都没有**（第五轮复核 ④）：`--advance X --to wo_filed --reason …`
+        # （来源仍 `fix`）⇒ `--check` 静默、`--next` 不动它（终态），而 `--json.open`/§0.2
+        # **永远报"1 条未完成"** ✗ ⇒ 三视图不一致。这里把 `done` 那一向的牙**对称**补上 ✓。
+        if st_ev == "done" and _d not in WORK_DONE_DISPOSITIONS:
+            print(f"✗ `{ident}` 调度器里 done，来源处置却是 `{_d}` ⇒ "
+                  f"**两层漂移**（把来源台账改成 fixed/wo-filed）✗", file=sys.stderr)
+            bad += 1
+        if st_ev == "wo_filed" and _d not in WORK_DONE_DISPOSITIONS:
+            print(f"✗ `{ident}` 调度器里 wo_filed（**定案不做**，带理由），来源处置却是 `{_d}` ⇒ "
+                  f"**两层漂移**：来源没记这个结论 ⇒ `--json.open`/§0.2 会**永远**把它算成"
+                  f"未完成 ✗（收口：把来源台账改成 `wo-filed`，或 "
+                  f"`--advance {ident} --to todo --reason '<为什么>'` 退回重开）", file=sys.stderr)
+            bad += 1
         # **反向两层漂移**（`SUB-inflight-claims-never-closed`，2026-10-12）：
         # 上面只查了 `done` + 来源不是终态这一个方向；**反方向一直没人查** ✗ ——
         # 实测事故：`r07`/`G-110` 的修复早已落地、来源处置也已是 `fixed`，但事件表里
         # **只有 claim、没有 advance** ⇒ 调度器停在 `in_progress` ⇒ 仍算 **open**：
         # 队列对"还剩什么"**多报**，`--next` 会把**已经做完**的条目推荐出来 ✗。
-        # ⇒ 补上这个方向：来源已是终态、调度器却没到终态 ⇒ 判红（并指名怎么收口 ✓）。
+        # ⇒ 补上这个方向：来源已关账、调度器却没到"不在做" ⇒ 判红（并指名怎么收口 ✓）。
         # ⚠ **`submitted` 不豁免**（2026-10-14 · 第三轮独立复核实测）：`37139ca7` 曾在这里
         # 加过 `and st != "submitted"`（**没写理由** ✗）。实测它的**唯一**观察效果就是让
         # 「来源已是终态 × 调度器 `submitted`」这一格**静默**（3 来源 × {fixed,wo-filed}
         # = **6/6 格静默**，而同一时刻 `--next` 照样把那条推出来 —— `submitted` 既不在
-        # `TERMINAL_STATES`、也不在 `cmd_next` 跳过的 {umbrella,blocked,boundary,control}
-        # 里 ⇒ 正是本规则要咬的「来源终态 + 调度器非终态」）。
+        # `TERMINAL_STATES`、也不在 `NOT_PUSHABLE_STATES` 里 ⇒ 正是本规则要咬的形状）。
         # 正常提交路径**不受影响**：`cmd_submit` 写的处置是 `fix`（非终态）⇒ 这一支根本
         # 进不来（`cmd_triage` 受理/拒收才把处置翻成 `fixed`/`wo-filed`，那时也应该收口 ✓）。
         # ⇒ 网格逐格钉住（`selftest_source_state_grid`）：删掉这个豁免前 6 格静默、删掉后 36 格全红 ✓。
-        _d = disp.get(ident)
-        if _d in {"fixed", "wo-filed"} and st not in TERMINAL_STATES:
+        # ⚠ **口径与 docstring 同源**（第五轮复核 ②）：docstring 把**四个**处置并称"已关账"、
+        # 都不进 open 集合 ⇒ 谓词认 `CLOSED_DISPOSITIONS`（四个），**不是**只认两个 ✗ ——
+        # 否则 `boundary`/`control` × 6 个调度器状态 = **12 格静默且被 `--next` 推** ✗
+        # （真台账唯一一行 `r02` 就是 `control` ⇒ 这条只差一条命令之遥）。
+        # ⚠ **`st` 用权威状态而不是事件状态**：无事件的 id 由处置派生（`fixed`→done ⇒ 一致、
+        # 不红 ✓），有事件的 id 由事件定（`in_progress` ⇒ 红 ✓）⇒ 判据域与 `--next` **同一份**。
+        if _d in CLOSED_DISPOSITIONS and st not in CLOSED_STATES:
             # **收口指示由表算出来**（同族第三处，见 `closure_steps`）：手写 `--to done`
-            # 在 `todo`/`blocked`/`submitted`/`triage_rejected` 上都是**非法迁移**（rc=1）✗
-            _want = "done" if _d == "fixed" else "wo_filed"
-            _steps = closure_steps(st, _want)
-            _hint = (" → ".join(_step_cmd(ident, _s) for _s in _steps) if _steps
-                     else "⚠ `TRANSITIONS` 里没有可执行路径 ⇒ 只能手改事件表，并在 commit "
-                          "里写明为什么（别再照一条死路指示敲 ✗）")
-            if _d == "fixed":
-                print(f"✗ `{ident}` 来源处置已是 `fixed`（终态），调度器却停在 `{st}` ⇒ "
-                      f"**反向两层漂移**：**修好了没登记** ⇒ 队列多报、`--next` 会把做完的推出来 ✗"
-                      f"（收口：{_hint}）",
-                      file=sys.stderr)
+            # 在 `todo`/`blocked`/`submitted`/`triage_rejected` 上都是**非法迁移**（rc=1）✗；
+            # 而 `boundary`/`control` 在 `TRANSITIONS` 里**没有入口** ⇒ 正如实说"没有能平账的
+            # 迁移"（`closure_target` 返回 `None`），**不许**印一条照做只会换个红的死路指示 ✗。
+            _want = closure_target(_d)
+            if _want is None:
+                _hint = (f"⚠ 来源处置 `{_d}` 是**派生态**（`TRANSITIONS` 里没有它的入口）⇒ "
+                         f"表里**没有能平账的迁移**：要么把事件表里 `{ident}` 的这几条删掉"
+                         f"（回到来源台账的处置 ✓），要么把来源处置改成 `fix`/`fixed`/`wo-filed`"
+                         f"（改完再按对应的收口路走）")
             else:
-                print(f"✗ `{ident}` 来源处置已是 `wo-filed`（终态），调度器却停在 `{st}` ⇒ "
-                      f"**反向两层漂移**（收口：{_hint}）", file=sys.stderr)
+                _steps = closure_steps(st, _want)
+                _hint = (" → ".join(_step_cmd(ident, _s) for _s in _steps) if _steps
+                         else "⚠ `TRANSITIONS` 里没有可执行路径 ⇒ 只能手改事件表，并在 commit "
+                              "里写明为什么（别再照一条死路指示敲 ✗）")
+            _why = {"fixed": "：**修好了没登记** ⇒ 队列多报、`--next` 会把做完的推出来",
+                    "wo-filed": "：定案不做的条目还留在调度器里（算成还没做完）",
+                    "boundary": "：来源说它是**边界 / 设计如此**（不算缺口）",
+                    "control": "：来源说它是**对照臂 / 探针自检**（不算缺口）"}.get(_d, "")
+            print(f"✗ `{ident}` 来源处置已是 `{_d}`（**已关账**，不进 open 集合），调度器却停在 "
+                  f"`{st}` ⇒ **反向两层漂移**{_why} ✗（收口：{_hint}）", file=sys.stderr)
             bad += 1
-        if st == "umbrella":
+        if st_ev == "umbrella":
             kids = cur.get("children", [])
+            open_kids = open_children(kids, rows, state)
             if not kids:
                 print(f"✗ `{ident}` 是 umbrella 却没有子任务 ⇒ 拆解没落地 ✗", file=sys.stderr)
                 bad += 1
-            elif all(state.get(k, {}).get("state") in TERMINAL_STATES for k in kids):
+            elif not open_kids:
                 print(f"⏳ `{ident}` 的子任务全关了 ⇒ 该收口了（`--advance {ident} --to done "
                       f"--commit … --reading …`）", file=sys.stderr)
-        if st == "wo_filed" and not cur.get("reason"):
+        if st_ev == "wo_filed" and not cur.get("reason"):
             print(f"✗ `{ident}` 是 wo_filed 却没写理由 ✗", file=sys.stderr)
             bad += 1
     claims = read_lock()["claims"]
@@ -2462,10 +2635,9 @@ def selftest_child_drift(expect) -> None:
                    check_plan(view2, rows2) == 0)
             payload2 = json_view(rows2, state2, view2)
             _s2 = summary(view2)
-            _pushable = sorted(
-                r["id"] for r in view2
-                if effective_state(r, state2.get(r["id"], {}))
-                not in TERMINAL_STATES | {"umbrella", "blocked", "boundary", "control"})
+            # ⚠ 这里**不许再手抄一遍**可动口径（2026-10-14 · 第五轮复核的同族第五处）：
+            # 原先这行把 `cmd_next` 的判据抄了一遍 ⇒ "哪些条目可动"有两个真相。
+            _pushable = pushable_ids(view2, state2)
             expect(f"⑦ 三视图**同数**：`--json.open`={payload2['open']} · 视图 open="
                    f"{sorted(open_set(view2))} · §0.2 total={_s2['total']}",
                    payload2["open"] == sorted(open_set(view2))
