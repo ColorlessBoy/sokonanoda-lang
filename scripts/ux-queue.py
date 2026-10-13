@@ -3264,7 +3264,11 @@ GRID_GAP_DISPOSITIONS = ("fixed", "wo-filed", "scheduled")
 GRID_CONFLICTS = tuple((_v, _a) for _v in sorted(OPEN_DISPOSITIONS)
                        for _a in GRID_GAP_DISPOSITIONS if _v != _a)
 GRID_CONFLICT_STATES = (("noev", None), ("done", "done"), ("wof", "wo_filed"))
-GRID_CONFLICT_CELLS = len(GRID_CONFLICTS) * len(GRID_CONFLICT_STATES)      # 4 × 3 = 12
+# = **5 × 3 = 15 格**（`|OPEN_DISPOSITIONS|` 2 × `GRID_GAP_DISPOSITIONS` 3 − **1 个相等对**
+#   `scheduled`×`scheduled`）。⚠ 这一行注释原写 `4 × 3 = 12`，与实测 **5 × 3 = 15** 不符 ✗
+#   （2026-10-14 · 第六次独立复核实测；自检收尾打印里的两个因子**本来就是 `len()` 算的**
+#   ⇒ 它一直印 15 ✓，只有这处注释在漂）⇒ 注释改成由表推出来的口径，**别手抄因子** ✗。
+GRID_CONFLICT_CELLS = len(GRID_CONFLICTS) * len(GRID_CONFLICT_STATES)
 
 
 def selftest_source_state_grid(expect) -> None:
