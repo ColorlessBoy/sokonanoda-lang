@@ -19,7 +19,7 @@ Known limitation / CI 台账 / 代码里的 TODO / 开工单 §0.2），彼此�
 
 | # | 来源 | 它是什么 | 谁在维护 |
 |---|---|---|---|
-| ① | `docs/gaps/ledger.jsonl` 里 `status != fixed` | 历史缺口台账（126 条） | `scripts/gap.py` |
+| ① | `docs/gaps/ledger.jsonl`（**全部 `status`**，含 `fixed`） | 历史缺口台账（126 条） | `scripts/gap.py` |
 | ② | `docs/ux-findings-2026-10-12.md` §2–§4 的**每一行** | 四条探针线（语言/LSP/编辑器/vim）的索引 | 探针入库时 |
 | ③ | `docs/ux-queue-extras.jsonl` | 其余来源（ROADMAP §10 / `docs/protocol.md` 的 Known limitation / `docs/CI-FAILURES.md` / 代码里的 `TODO`/`FIXME` / `docs/design/*` 的"未做/第二刀"措辞） | 扫描时逐条登记 |
 | ④ | `docs/ONBOARDING.md` §0.2 的表 | **唯一入口**（权威）；只消费、不生成 | 开工单 |
@@ -89,22 +89,38 @@ python3 scripts/ux-queue.py --selftest            # 判据通道自检（不碰�
 子任务**有源行就用源行**（真处置），`check_plan` 的处置以**来源台账**为权威 ⇒「反向两层漂移」
 对子任务也咬得住 ✓。
 
-**来源可见性**（2026-10-14 · `queueX` 缺陷 ⑥）：上面那条漂移规则要的是**来源的终态**，
-而三个来源加载器是**为队列视图服务的** ⇒ 会把终态行丢掉：`load_gaps()` 对
-`status=="fixed"` 直接 `continue` ✗ ⇒ 「来源终态 `fixed` + 调度器非终态」这条
-**对缺口来源永远咬不住**（实测：`G-110` gap `fixed` + 事件 `in_progress` ⇒ `--check`
-静默假绿 ✗；`G-112` gap `fixed` + 事件 `todo` 同形）。⇒ 口径：**漂移规则的权威表
-必须从全量来源建**（`source_dispositions()` —— 不过滤终态，**三个来源都读**：
-extras 全行 · gap 全 `status`（含 `fixed`，走 `load_gaps(include_terminal=True)`）·
-索引只给身份、处置仍取 extras），且三个来源**逐条**在 `--selftest`
-（`selftest_source_visibility`）里断言「终态看得见」✓ —— 将来加第四个来源就照那份清单
-补一行，**不许只补一处** ✗（AGENTS.md 硬规则 0(b)）。
+**一份输入，一份合并**（2026-10-14 · 第五次独立复核的「跨来源处置冲突」✗）：来源只从
+`source_rows()`（**全量**：extras 全行 · gap 全 `status` 含 `fixed` · 索引只给身份）读一次，
+`build_queue()` 合并它（**「一个 id 只能有一个处置」的闸门就在这个循环里**）⇒ 合并出来的
+行**就是权威行**。下游一律读它：`--next`（`cmd_next`）· `--json`（`json_view`）· §0.2
+（`render_onboarding`）· `check_plan`（漂移判据）· `source_dispositions()`（派生视图）。
+⚠ **闸门必须看得见终态行** ✗：复核者 A/B 实测 —— 同一个 done 事件 + 同一个 extras(`fix`) 行，
+**只加一行 gap `status=fixed`**，改前就把 `--check` 的 rc=1 变成 **rc=0 静默** ✗（因为
+`build_queue()` 用的 `load_gaps()` 默认口径把那行 `continue` 掉了，而 `check_plan` 的权威表
+走另一条全量读法 ⇒ **同一个 `effective_state` 喂两种行、得两个状态**：`--next` 推 `todo`、
+`--check` 判 `done`）。而同样冲突但 gap `status=wo-filed` ⇒ **rc=2** ✓ = **闸门有牙、
+只是被那个过滤器绕开** ⇒ 终态缺口行**必须**得到同一条判红（rc=2，**不许更松** ✗）。
+终态行**留在队列里**（= 上面「处置」一节的"已关账，不许从队列里删除 ✗"）但**不进 open** ✓。
 
-**来源 × 调度器状态的网格**（2026-10-14 · 第三轮复核 ⑤）：光"每个来源都看得见"还不够 ——
-规则里**再写死一个状态豁免**（实测：`and st != "submitted"`）就能让整整**一列 6 格静默**
-（而 `--next` 照样推得出来），且旧夹具只造 todo/in_progress 两种状态 ⇒ 漏格活到自检全绿 ✗。
-⇒ 判据是**两维网格**：3 来源 × 2 来源终态 × 6 调度器状态 = 36 格，逐格断「判红点名 +
-收口指示**逐步可执行**」（`selftest_source_state_grid`）。**加来源 / 加状态只改那一处**
+**来源可见性**（2026-10-14 · `queueX` 缺陷 ⑥；第五次复核统一成一份输入）：漂移规则要的是
+**来源的终态**，而 `load_gaps()` 的默认口径把 `status=="fixed"` 直接 `continue` ✗ ⇒
+「来源终态 `fixed` + 调度器非终态」这条**对缺口来源永远咬不住**（实测：`G-110` gap `fixed`
++ 事件 `in_progress` ⇒ `--check` 静默假绿 ✗；`G-112` gap `fixed` + 事件 `todo` 同形）。
+**上一轮的补法**（单开一条全量读法 `source_dispositions()` 并覆盖视图行）把这条修好了，
+却造出**两份输入** ⇒ 就是上面那个"喂两种行得两个状态" ✗。⇒ 现在的口径：**全量输入 +
+一次合并**（`source_rows()` / `build_queue()`），三个来源**逐条**在 `--selftest`
+（`selftest_source_visibility` + `selftest_source_state_grid` 的**冲突轴**）里断言
+「终态看得见**且**过同一道冲突闸门」✓ —— 将来加第四个来源就照那份清单补一行，
+**不许只补一处** ✗（AGENTS.md 硬规则 0(b)）。
+
+**来源 × 调度器状态的网格**（2026-10-14 · 第三轮复核 ⑤；第五次复核加**冲突轴**）：光
+"每个来源都看得见"还不够 —— 规则里**再写死一个状态豁免**（实测：`and st != "submitted"`）
+就能让整整**一列 6 格静默**（而 `--next` 照样推得出来），且旧夹具只造 todo/in_progress
+两种状态 ⇒ 漏格活到自检全绿 ✗。⇒ 判据是**两维网格**：3 来源 × 2 来源终态 × 6 调度器状态
+= 36 格，逐格断「判红点名 + 收口指示**逐步可执行**」（`selftest_source_state_grid`）。
+⚠ **网格的轴原先全是"单来源"**（每个 id 只被一个来源登记）⇒ 「**同一个 id 被两个来源
+登记、处置冲突**」这一族**结构上看不见** ✗ ⇒ 第五次复核加**冲突轴**（`GRID_CONFLICTS`：
+视图处置 × 来源处置 × 三态，**单来源臂做正对照**）。**加来源 / 加状态只改那一处**
 （`grid_pairs`/`grid_states`），指示本身由 `closure_steps()` 按 `TRANSITIONS` 算出
 ⇒ 表里没有的路**不会被印成指示** ✓。
 """
@@ -178,14 +194,23 @@ class UsageError(Exception):
 # ── 来源 ①：缺口台账 ────────────────────────────────────────────────────────
 
 def load_gaps(include_terminal: bool = False) -> list[dict]:
-    """`docs/gaps/ledger.jsonl` 的行 —— 默认**只给 `status != fixed`**（= 队列视图口径）。
+    """`docs/gaps/ledger.jsonl` 的行 —— 默认**只给 `status != fixed`**（= **只读消费方**口径）。
 
-    ⚠ **`include_terminal=True` = 全量口径**（`status=="fixed"` 也算）—— **只有
-    `check_plan` 的处置权威表用**（`source_dispositions()`）：`fixed` 的缺口已经
-    **离开 open 视图**，但它的**终态**正是「反向两层漂移」要看的输入 ✗ ——
-    默认口径把它 `continue` 掉 ⇒ 规则对**缺口来源永远咬不住**（2026-10-14 实测：
-    `G-110` gap `fixed` + 事件 `in_progress` ⇒ `--check` 静默假绿 ✗）。
+    ⚠ **`include_terminal=True` = 全量口径**（`status=="fixed"` 也算）—— **队列与判据的
+    唯一输入走这一支**（`source_rows()` ⇒ `build_queue()`）：`fixed` 的缺口虽然已经
+    **离开 open 视图**，但它仍是**登记过的一个处置**，两个地方必须看得见它 ✗ ——
+      ① 「**一个 id 只能有一个处置**」的冲突闸门（`build_queue()` 的合并）：
+         默认口径把它 `continue` 掉 ⇒ 闸门对**终态缺口行完全瞎**（2026-10-14 · 第五次
+         独立复核实测：同一个 done 事件 + 同一个 extras(`fix`) 行，**只加一行 gap
+         `status=fixed`** 就把 `--check` 的 rc=1 变成 rc=0 静默 ✗，而同样冲突但 gap
+         `status=wo-filed` ⇒ rc=2 当场判红 ✓ —— 闸门有牙，只是被这个过滤器绕开了）；
+      ② 「来源终态 + 调度器非终态」的**反向两层漂移**（`check_plan`）：`G-110` gap
+         `fixed` + 事件 `in_progress` ⇒ 默认口径下静默假绿 ✗（`queueX` 缺陷 ⑥）。
     两个口径的**处置**都不许改（`fixed` ⇒ `"fixed"`，与 extras 的字段同名同义 ✓）。
+
+    ⚠ **默认口径只剩"只要 open 的只读消费方"**（`--check-uncovered` 的覆盖 ①）：它问的是
+    "**还有哪条没进队列**"，终态行不进 open ⇒ 不需要它们 ✓。**队列/判据一律不许用它** ✗
+    —— 那正是"两份输入"的病根（见 `source_rows()` 的说明）。
     """
     rows: list[dict] = []
     for lineno, line in enumerate(GAPS_LEDGER.read_text(encoding="utf-8").splitlines(), 1):
@@ -329,6 +354,34 @@ def load_extras() -> list[dict]:
     return rows
 
 
+def source_rows() -> list[dict]:
+    """**全量来源输入 —— 唯一的一处**（三个加载器各读一次，终态一行不丢）。
+
+    ⚠ **为什么必须有这个名字**（2026-10-14 · 第五次独立复核实测的「跨来源处置冲突」✗）：
+    在这之前，同一个 id 会**被两处分别读出来**，而两处的过滤器不同 ⇒ 同一个
+    `effective_state()` 喂两种行、得两个状态 ✗：
+
+      | 读法 | 谁在用 | 缺口 `status=fixed` 的行 |
+      |---|---|---|
+      | `load_gaps()`（**默认**，丢 `fixed`） | `build_queue()` 的**合并**（= 「一个 id 只能有一个处置」的闸门 + `--next`/`--json` 的视图行） | **看不见** ✗ |
+      | `load_gaps(include_terminal=True)` | `check_plan` 的处置权威表（`source_dispositions()`，**覆盖**视图那一行） | 看得见 ⇒ 权威 `fixed` ⇒ 派生 `done` ✓ |
+
+      ⇒ 视图行说 `fix`（`--next` 推它、`--json.open` 含它），权威行说 `fixed`
+      （`--check` 判它 `done` ⇒ 两条漂移规则都放过）—— **同一个 id、两个状态、两种绿** ✗。
+      而**冲突闸门只长在合并里** ⇒ 它对终态缺口行**完全瞎**：复核者的 A/B 实测，
+      同一个 done 事件 + 同一个 extras(`fix`) 行，**只加一行 `status=fixed` 的缺口行**
+      就把 rc=1 变成 rc=0 静默 ✗（gap `wo-filed` 的同样冲突 ⇒ rc=2 ✓ = 闸门有牙，
+      只是被默认口径绕开）。
+
+    ⇒ 口径：**合并（`build_queue()`）走全量输入**，于是
+      ① 冲突闸门对三个来源的**每一行**都看得见（终态行也一样 ⇒ rc=2，与 `wo-filed`
+         的对照**对称**，不许更松 ✗）；
+      ② 合并出来的那一行**就是权威行** ⇒ `--next`/`--json`/§0.2/`check_plan` 读的是
+         **同一份**（`source_dispositions()` 也改成由它派生 ⇒ 不再有第二次读来源 ✗）。
+    """
+    return load_extras() + load_gaps(include_terminal=True) + load_index()
+
+
 # ── 来源 ④：`docs/ONBOARDING.md` §0.2 的表（**唯一入口**，只消费） ────────────
 
 ONB_BEGIN = "<!-- QUEUE:SUMMARY:BEGIN -->"
@@ -422,12 +475,27 @@ def build_queue() -> tuple[list[dict], list[str]]:
     **合并规则**：`extras` 是**处置的唯一出处**（索引只有 reference）；同一个 id 出现两处
     就合并来源、处置冲突即判红 ✗。`disposition is None` 的条目**不静默丢** ——
     收集起来由覆盖自检判红（"索引里有、账上没处置" = 没人认领 ✗）。
+
+    ⚠ **输入 = `source_rows()`（全量，终态一行不丢）**（2026-10-14 · 第五次独立复核）：
+    这里曾经写 `load_extras() + load_gaps() + load_index()` —— `load_gaps()` 的**默认口径**
+    把 `status=="fixed"` 的缺口行丢掉，而**「一个 id 只能有一个处置」的闸门就长在这个循环里**
+    ⇒ 闸门对**终态缺口行完全瞎** ✗（实测：同一个 done 事件 + 同一个 extras(`fix`) 行，
+    只加一行 gap `status=fixed` ⇒ `--check` 从 rc=1 变 rc=0 静默；而同样冲突但 gap
+    `status=wo-filed` ⇒ rc=2 —— 闸门有牙，只是被这个过滤器绕开）。
+    全量输入之后：**合并出来的行就是权威行** ⇒ 下游（`--next`/`--json`/§0.2/`check_plan`/
+    `source_dispositions()`）读的是同一份，`effective_state` 不再"喂两种行得两个状态" ✓；
+    终态行**留在队列里**（= docstring「处置」一节的"已关账，不许从队列里删除 ✗"），
+    但**不进 open 集合**（`open_set()`/`summary()` 只看 `OPEN_DISPOSITIONS` ✓）。
     """
     merged: dict[str, dict] = {}
-    for row in load_extras() + load_gaps() + load_index():
+    # 处置的**出处**（id → 谁写的那一条），只为冲突信息**点名**用：两个来源各说各话时，
+    # "谁 vs 谁"必须能从判红信息里读出来（只报两个处置名的话，人还得自己回台账里翻 ✗）。
+    prov: dict[str, str] = {}
+    for row in source_rows():
         ident = row["id"]
         if ident not in merged:
             merged[ident] = row
+            prov[ident] = _src_label(row)
             continue
         old = merged[ident]
         old["sources"] = sorted(set(old["sources"] + row["sources"]))
@@ -436,10 +504,14 @@ def build_queue() -> tuple[list[dict], list[str]]:
         if old["disposition"] is None:
             old["disposition"] = row["disposition"]
             old["expect"] = row.get("expect")
+            prov[ident] = _src_label(row)
         elif old["disposition"] != row["disposition"]:
             raise UsageError(
-                f"id `{ident}` 在两处来源里处置不一致：{old['disposition']} vs {row['disposition']}"
-                f"（{old['sources']}）—— 一个 id 只能有一个处置 ✗")
+                f"id `{ident}` 在两处来源里处置不一致：`{old['disposition']}`"
+                f"（{prov[ident]}）vs `{row['disposition']}`（{_src_label(row)}）"
+                f"—— **一个 id 只能有一个处置** ✗；这是**跨来源处置冲突**，不是漂移："
+                f"两边说的不是同一件事，脚本无从判断谁对 ⇒ 先把两处改成同一个处置"
+                f"（终态的缺口行也**照样**过这道闸门，不因为它 `status=fixed` 就看不见 ✗）")
         for key in ("owner", "note", "where"):
             if not old.get(key) and row.get(key):
                 old[key] = row[key]
@@ -447,6 +519,17 @@ def build_queue() -> tuple[list[dict], list[str]]:
     rows = [v for v in merged.values() if v["disposition"] is not None]
     rows.sort(key=lambda r: (SEVERITY_RANK[r["severity"]], r["id"]))
     return rows, undecided
+
+
+def _src_label(row: dict) -> str:
+    """来源行的**人话出处**（冲突信息里点名"谁 vs 谁"用；不参与任何判定 ✓）。"""
+    srcs = row.get("sources") or []
+    if "gap-ledger" in srcs:
+        return "缺口台账 `docs/gaps/ledger.jsonl`"
+    if "extras" in srcs:
+        extra = [s for s in srcs if s != "extras"]
+        return "`docs/ux-queue-extras.jsonl`" + (f"（{extra[0]}）" if extra else "")
+    return f"`{INDEX.name}` 索引（无处置）"
 
 
 def open_set(rows: list[dict]) -> set[str]:
@@ -1220,8 +1303,22 @@ def cmd_claim(ident: str, owner: str, force: bool, rows: list[dict],
     if row is None and ident not in state:
         raise UsageError(f"队列里没有 `{ident}` ⇒ 先把它登记进来源（`--json` 看现有 id）")
     cur = state.get(ident, {})
-    if cur.get("state") in TERMINAL_STATES:
-        print(f"✗ `{ident}` 已是终态 `{cur['state']}` ⇒ 要重开得先 "
+    # ⚠ **已关账（权威状态）就不许认领**（2026-10-14 · 第五次独立复核的同族）：旧写法只看
+    # `cur["state"]`（调度器**写过**的状态）⇒ 「**来源已关账 + 没有事件**」的 id 在
+    # `state` 里根本没有键 ⇒ 闸门静默放过：`--claim` 返回 0，而**下一条 `--check` 立刻判红**
+    # （来源 `fixed` + 调度器 `in_progress` ⇒ 反向两层漂移）。判据不是"没静默"就够了 ——
+    # 写侧也不许**主动制造**一个已知必红的形状 ✗。
+    # ⚠ 这条闸门在**全量输入**（`source_rows()`）之后尤其必要：终态缺口行现在**在视图里**
+    # （`build_queue()` 不再把它丢掉）⇒ 以前那种 id 走 `row is None` 那一支被**顺带**拦住，
+    # 现在会走到这里 ⇒ 不补这条就是**本轮新开的洞** ✗。
+    # 口径 = **与 `check_plan` 的反向漂移判据同一个谓词**（`effective_state` + `CLOSED_STATES`
+    # ⇒ 一处定义）：`fixed`/`wo-filed`/`boundary`/`control` 与派生的 `done`/`wo_filed`/
+    # `boundary`/`control` 一律拒；`submitted`/`triage_rejected`/`umbrella`/`blocked`
+    # **不在这里拦**（它们的"能不能动"是另一条规则的事，别顺手放宽/收紧 ✗）。
+    st = effective_state(row or {"id": ident}, cur)
+    if cur.get("state") in TERMINAL_STATES or st in CLOSED_STATES:
+        got = cur.get("state") or f"由来源处置 `{row.get('disposition') if row else '?'}` 派生"
+        print(f"✗ `{ident}` 已是终态 `{got}`（权威状态 `{st}`）⇒ 要重开得先 "
               f"`--advance {ident} --to todo --reason '<为什么>'` ✗", file=sys.stderr)
         return 1
     resources = resources_of(row, touch)
@@ -1504,31 +1601,31 @@ def cmd_next(rows: list[dict], owner: str) -> int:
 def source_dispositions() -> dict[str, str | None]:
     """**全量来源的处置权威表**（`id → disposition`，**终态也在**；`None` = 登记了但没处置）。
 
-    ⚠ 为什么单开一条路（2026-10-14 · `queueX` 缺陷 ⑥，**实测假绿**）：`check_plan` 的
-    权威表原先只从 `rows`/`source_rows` 建，而那两份是**队列视图**口径 —— 来源加载器
-    会把**终态行丢掉**（`load_gaps()` 对 `status=="fixed"` 直接 `continue` ✗）⇒
-    「来源终态 + 调度器非终态」这条**反向两层漂移**对**缺口来源永远咬不住**：
-    夹具 `/tmp/qfix/root2`（gap `G-999` `status=fixed` + `split` 出子任务 + 调度器 `todo`）
-    ⇒ `--check-plan` **exit 0 且完全静默** ✗（真台账同形：`G-110` `in_progress`、
-    `G-112` `todo`）。
+    ⚠ **现在它是 `build_queue()` 的派生视图，不是第二次读来源**（2026-10-14 · 第五次独立
+    复核的「跨来源处置冲突」）：上一轮（`queueX` 缺陷 ⑥）为了让漂移规则看得见终态缺口行，
+    单开了**第二条读来源的路**（`load_gaps(include_terminal=True)`）并让 `check_plan` 用它
+    **覆盖**视图行 —— 那修好了"终态看得见"，却造出了**两份输入** ✗：
+      * `build_queue()` 的合并仍用 `load_gaps()` 默认口径 ⇒ **冲突闸门对终态缺口行瞎**，
+        而且 `--next`/`--json` 读的是视图行（extras `fix`）；
+      * 这份表读全量 ⇒ `check_plan` 读的是权威行（gap `fixed`）⇒ 同一个 `effective_state`
+        **喂两种行得两个状态**（`--next` 说 `todo`、`--check` 说 `done`）✗。
+    ⇒ 根本修法在**输入**那一层：`source_rows()` 全量 + `build_queue()` 合并（含冲突闸门）
+    ⇒ 合并出来的行**就是权威行**；本函数退化成它的投影（`None` 那一支 = 索引里登记过、
+    还没人写处置的 id ⇒ 由 `--check-uncovered` 的 ①/①b 判红，不是漂移、也不是幽灵 ✓）。
 
     **三个来源各自怎么"看得见"**（编号与本文件的来源分节一致；`selftest_source_visibility`
     逐条断言；加来源就照这份清单补一行，别只补一处 ✗）：
       * 来源 ①（`docs/gaps/ledger.jsonl`）：**必须显式要全量** —— `load_gaps()` 默认把
-        `status=="fixed"` 丢掉（那是给队列视图用的），而终态正是漂移规则的输入 ✗；
+        `status=="fixed"` 丢掉（那只留给"只要 open 的只读消费方"），而终态行既要在
+        **冲突闸门**里、又要在漂移规则里看得见 ✗ ⇒ 走 `source_rows()`；
       * 来源 ②（索引）：**只给身份**（`disposition=None`）⇒ 它的处置由 extras 那一行提供；
-        没有 extras 行的索引 id 属于「**登记了但没人写处置**」，由 `--check-uncovered`
-        ①/①b 判红（**不是**漂移，也不是幽灵 —— 见 `source_history_ids()`）✓；
+        没有 extras 行的索引 id 属于「**登记了但没人写处置**」⇒ 本表里是 `None` ✓；
       * 来源 ③（extras）：**不过滤** ⇒ 全量（处置的唯一出处 ✓）。
     """
-    disp: dict[str, str | None] = {}
-    for entry in load_extras():                       # 来源 ③：处置的唯一出处（不过滤）
-        disp[entry["id"]] = entry["disposition"]
-    for entry in load_gaps(include_terminal=True):    # 来源 ①：全 status（含 fixed）
-        if entry.get("disposition") is not None:
-            disp[entry["id"]] = entry["disposition"]
-    for entry in load_index():                        # 来源 ②：只登记身份（处置在 extras）
-        disp.setdefault(entry["id"], None)
+    rows, undecided = build_queue()
+    disp: dict[str, str | None] = {r["id"]: r["disposition"] for r in rows}
+    for ident in undecided:
+        disp.setdefault(ident, None)
     return disp
 
 
@@ -1564,10 +1661,16 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     调度器停在 `todo`，而 `--check` 假绿）。⇒ 这里显式以 `source_rows` 覆盖同 id 的视图处置
     （不传就退回视图；自检的夹具两种形状都造 ✓）。
 
-    ⚠ **来源可见性**（2026-10-14 · 缺陷 ⑥）：`rows`/`source_rows` 都是**队列视图**口径
-    ⇒ **终态行可能根本不在里面**（`load_gaps()` 默认把 `status=="fixed"` 丢掉 ✗）⇒
-    「来源终态 + 调度器非终态」这条**对缺口来源永远咬不住**（`G-110`/`G-112` 实测假绿）。
-    ⇒ 权威表最后由 `source_dispositions()`（**全量**口径，三个来源都读）覆盖一遍 ✓。
+    ⚠ **来源可见性**（2026-10-14 · 缺陷 ⑥；第五次复核把口径**统一成一份输入**）：
+    这里原先有两份输入 —— `rows`/`source_rows` 是**视图**口径（`load_gaps()` 默认把
+    `status=="fixed"` 丢掉 ✗），于是「来源终态 + 调度器非终态」对缺口来源**永远咬不住**
+    （`G-110`/`G-112` 实测假绿），补法是**再开一条全量读法**（`source_dispositions()`）
+    并在这里覆盖一遍 ⇒ 修好了那一条，却让**同一个 id 有两个出处**：视图行（extras `fix`）
+    与权威行（gap `fixed`）⇒ 同一个 `effective_state` **喂两种行得两个状态**
+    （`--next` 推 `todo`、这里判 `done`）✗。
+    ⇒ 现在**只有一份输入**：`build_queue()` 用 `source_rows()`（全量）合并 ⇒ **视图行就是
+    权威行**；本函数只认 `rows`（+ `source_rows` 对"视图被遮蔽"的防御，`selftest_child_drift`
+    ⑤ 钉着它）—— 没有第三遍 ✗。
 
     ⚠ **判定域 = 视图 ∪ 事件表**（2026-10-14 · 第五轮独立复核 ①）：原先的域是
     `sorted(state.items())` —— **只遍历"有事件"的 id** ✗，而 `--next`/`--json` 用的
@@ -1589,11 +1692,14 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     for _r in (source_rows or []):     # **来源的处置是权威**（覆盖视图里可能被遮蔽的值）
         if _r.get("disposition") is not None:
             disp[_r["id"]] = _r["disposition"]
-    # **终态行也要看得见**（缺陷 ⑥）：视图口径会丢终态 ⇒ 权威表用全量来源兜底。
-    # `None`（索引登记过、但还没人写处置）不覆盖 —— 那属于覆盖自检 ①/①b，不是漂移 ✓。
-    for _id, _d in source_dispositions().items():
-        if _d is not None:
-            disp[_id] = _d
+    # ⚠ **不再有三遍**（2026-10-14 · 第五次独立复核）：这里原先还有一遍
+    # `for _id, _d in source_dispositions().items(): disp[_id] = _d` —— 那是"两份输入"的
+    # 第二次读来源（`source_rows`/`rows` 是**视图**口径、`source_dispositions()` 是**全量**
+    # 口径）⇒ 同一个 id 的处置有两个出处。现在**输入只有一份**（`source_rows()` 全量 +
+    # `build_queue()` 的合并 ⇒ 视图行**就是**权威行），所以那一遍是纯冗余：它只会把
+    # 合并已经定好的值再抄一遍。删掉它 = 判据与显示读同一份 ✓（`source_dispositions()`
+    # 本身也改成由 `build_queue()` 派生 ⇒ 留着的调用点（`cmd_submit`/`cmd_schedule` 的
+    # "id 是键"闸门、`open_children` 的兜底）读的仍是同一份 ✓）。
     legacy_pointers: list[tuple[str, str]] = []      # 存量非祖先指针（⚠ 报告，不判红）
     rows_by_id = {r["id"]: r for r in rows}
     # ⚠ **判定域 = 视图 ∪ 事件表**（#1 的根本修法，见 `plan_domain`）：`--next`/`--json` 对
@@ -2694,11 +2800,17 @@ def selftest_source_visibility(expect) -> None:
          （`E-9`/`I-9` 是**对照组**：改前也红 ⇒ 说明修的是缺口来源那一支，不是换规则 ✗）；
       ③ **索引可见性**：只在索引里（没处置）的 `I-8` **不算幽灵**（改前误报"不在任何来源里"），
          但 `--check-uncovered` 的 ①/①b 照样判红它 ⇒ **守卫没被放宽** ✓；
-      ④ **视图零变化**（爆炸半径）：终态行**仍不进** `build_queue()`/`--json.open` ——
-         这条修的是守卫的**输入**，不改队列读数 ✓；
-      ⑤ **同族第二处**：`--schedule` 的"id 是键"闸门也看得见**终态** id（已关账缺口的 id
+      ④ **终态行在队列里、但不在 open 里**（2026-10-14 · 第五次复核**改了这条的口径**）：
+         改前这条写的是「终态行**仍不进** `build_queue()` 的 rows」—— 那正是**病根的口径** ✗
+         （终态缺口行不进合并 ⇒ ①「一个 id 只能有一个处置」的闸门看不见它、②`--next`/`--json`
+         拿不到权威行 ⇒ 同一个 `effective_state` 喂两种行得两个状态 ✗）。现在的口径与
+         docstring 的「处置」一节同源：**已关账的条目留在队列里**（会计上不许删 ✗）
+         **但不在 open / §0.2 / `--next` 里** ✓；要判的是**漂移**（由 `check_plan` 出）✓。
+      ⑤ **一份输入**：`build_queue()` 的键 = 三个来源的全部 id（∪ 未定处置）—— 改前终态缺口行
+         **不在** `rows` 里 ⇒ 这条必红 ✗（它咬住的正是"冲突闸门对终态缺口行瞎"那个历史 bug）；
+      ⑥ **同族第二处**：`--schedule` 的"id 是键"闸门也看得见**终态** id（已关账缺口的 id
          不许被重新排期 ⇒ 那是覆盖历史 ✗）；
-      ⑥ **索引行不许静默丢**：§2–§4 里少一列的数据行 ⇒ 响亮报错（点名行号 + 列数）。
+      ⑦ **索引行不许静默丢**：§2–§4 里少一列的数据行 ⇒ 响亮报错（点名行号 + 列数）。
     """
     import contextlib
     import io
@@ -2790,31 +2902,72 @@ def selftest_source_visibility(expect) -> None:
             expect(f"③ 但 `--check-uncovered` 照样判红 I-8（rc={rc2}）+ 点名它",
                    rc2 == 1 and "I-8" in err2 and ("没处置" in err2 or "覆盖漏项" in err2))
 
-            # ④ 视图零变化：终态行**仍不进** `build_queue()` 的 open 视图 —— 这条修的是守卫的
-            #    **输入**，不改队列读数 ✓。⚠ 子任务的**合成行**仍跟**调度器状态**走：`G-9` 是
-            #    `split` 出来的子任务 ⇒ 合成行处置 `fix` ⇒ 它仍在 open —— 这正是让
-            #    「`--json.open` == §0.2 == 视图」保持自洽的那条路（改合成行为终态 ⇒
-            #    "open 里没有、`--next` 却推得出" ✗ 破坏 queueW 的三视图不变量）；漂移由
-            #    `--check` 判红、按它的收口指示 `--advance … --to done` 后就一起消失 ✓。
+            # ④ **终态行在队列里、但不在 open 里**（口径在第五次复核改了，见 docstring）：
+            #    改前这条断的是"终态行**仍不进** `build_queue()` 的 rows"——**那正是病根** ✗
+            #    （终态缺口行不进合并 ⇒ 冲突闸门看不见它、`--next`/`--json` 拿不到权威行）。
+            #    现在与 docstring「处置」一节同源：**已关账的条目留在队列里**（会计上不许删 ✗）
+            #    **但不在 open / §0.2 / `--next` 里** ✓；要判的是**漂移**（由 `check_plan` 出）。
+            #    ⚠ 两种形状要分开说（别把"无事件"与"有事件"混成一条断言 ✗）：
+            #      · `G-8`（终态缺口 + **零事件**）⇒ 状态由**处置派生** `done` ⇒ **不进 open、
+            #        不被推**（改前它连 `rows` 都进不去 —— 那正是冲突闸门瞎掉的原因 ✗）；
+            #      · `G-9`（终态缺口 + `split` 事件 ⇒ 调度器 `todo`）⇒ 视图行**用源行**（真处置
+            #        `fixed`，**不是**合成行的 `fix` ✗）⇒ `check_plan` 判「反向两层漂移」（②已断），
+            #        而它**仍在 open / 被推**是**对的**：调度器说它没做完 ⇒ 两个视图与那条红
+            #        讲的是**同一个故事**（按收口指示 `--advance … --to done` 走完一起消失 ✓）。
             payload = json_view(rows, state, view)
-            expect(f"④ 终态行不进 `build_queue()` 的 rows（实测 ids={sorted(r['id'] for r in rows)}）",
-                   {r["id"] for r in rows} == {"P-9", "E-9", "I-9"})
-            expect(f"④ open/§0.2 仍从**视图**算（{payload['open']} = 合成子任务 G-9 + 父 P-9；"
-                   f"total={_s['total']}）",
-                   payload["open"] == ["G-9", "P-9"] and _s["total"] == len(payload["open"]) == 2
-                   and "QUEUE:COUNTS total=2 " in render_onboarding(view))
+            expect(f"④ 终态缺口行**在** `build_queue()` 的 rows 里（面板 = 会计账，不许删 ✗；"
+                   f"实测 ids={sorted(r['id'] for r in rows)}）",
+                   {r["id"] for r in rows} == {"P-9", "E-9", "I-9", "G-9", "G-8"})
+            expect(f"④ open/§0.2 = **来源口径**（`disposition ∈ OPEN_DISPOSITIONS`）⇒ 只有父 "
+                   f"`P-9`（{payload['open']}；total={_s['total']}）—— 终态缺口行一律不算未完成 ✓",
+                   payload["open"] == ["P-9"] and _s["total"] == len(payload["open"]) == 1
+                   and "QUEUE:COUNTS total=1 " in render_onboarding(view))
+            _g9 = next(r for r in view if r["id"] == "G-9")
+            expect(f"④ `G-9` 的视图行 = **源行**（真处置 `{_g9.get('disposition')}`，不是合成行的 "
+                   f"`fix` ✗）—— 改前它被 `load_gaps()` 默认口径丢掉 ⇒ 合成行硬编码 `fix` ⇒ "
+                   f"`--json.open` 说它没做完、而来源说它已关账（同一个 id 两个状态 ✗）",
+                   _g9.get("disposition") == "fixed")
+            # ⚠ **边界（如实记，不许说成"一致" ✗）**：`G-9` **有** `split` 事件 ⇒ 调度器说它
+            #   `todo` ⇒ `--next` 推它（`is_pushable` 是**调度器口径**），而 `open` 是**来源
+            #   口径**（`fixed` ∉ OPEN）⇒ 两边**故意不同**：这个 id 正处在漂移里，`check_plan`
+            #   为它判红并给出收口指示（②已断）⇒ 按指示走完两处一起收敛 ✓。口径本身在
+            #   `selftest_child_drift` ⑦ 钉着（**绿的时候** `--next` ⊆ `open`）。
+            expect(f"④ `G-9` 被 `--next` 推（调度器 `{state['G-9']['state']}`）而**不在** open "
+                   f"（来源 `fixed`）—— 这正是②那条红在说的形状（不是静默：`--check` 点名它）",
+                   "G-9" in pushable_ids(view, state) and "G-9" not in open_set(view))
+            _leak4 = sorted(i for i in ("G-8", "E-9", "I-9")
+                            if i in open_set(view) or i in pushable_ids(view, state))
+            expect(f"④ **零事件**的已关账行（`G-8`/`E-9`/`I-9`）既不进 open、也不被 `--next` 推"
+                   f"（实测漏进去的：{_leak4 or '无'}）—— 改前 `G-8` 连 `rows` 都进不去 ✗",
+                   not _leak4)
 
-            # ⑤ **同族第二处**（AGENTS.md 硬规则 0(b)）：`--schedule` 的"id 是键"闸门也得
+            # ⑤ **一份输入**（第五次复核的根因）：队列（合并）的键 = 三个来源的**全部** id
+            #    ⇒ 冲突闸门与漂移规则不可能再看漏一行。⚠ 这条是**结构性**守卫：它咬住的正是
+            #    "终态缺口行不进 `build_queue()` ⇒ 冲突闸门对它瞎"那个历史 bug（改前必红 ✗）。
+            #    ⚠ 比对的是**加载器**（不是 `source_dispositions()`）—— 拿派生视图比自己会
+            #    变成恒真式（tautology），咬不住任何东西 ✗。
+            _all_ids = ({e["id"] for e in load_extras()}
+                        | {e["id"] for e in load_gaps(include_terminal=True)}
+                        | {e["id"] for e in load_index()})
+            _in_queue = {r["id"] for r in rows} | set(_undecided)
+            expect(f"⑤ 队列的键 == 三个来源的全部 id（{len(_in_queue)} vs {len(_all_ids)}；"
+                   f"漏的：{sorted(_all_ids - _in_queue) or '无'}）—— 改前终态缺口行不在里面 ✗",
+                   _in_queue == _all_ids)
+            expect("⑤ 权威表是**同一份**的投影（`source_dispositions()` ⊇ 队列键；不再是自己"
+                   "读一遍来源 ⇒ 不可能与视图两个口径）",
+                   set(source_dispositions()) == _all_ids)
+
+            # ⑥ **同族第二处**（AGENTS.md 硬规则 0(b)）：`--schedule` 的"id 是键"闸门也得
             #    看得见**终态** id —— 否则一个已关账缺口的 id 能被重新排期（= 覆盖历史 ✗）。
             #    ⚠ 夹具必须是**没有任何事件**的终态 id（`G-8`）：`G-9` 有 `split` 事件 ⇒
             #    `fold()` 里就有它 ⇒ 旧口径也能拒 ⇒ 这条断言会**空转**（实测踩到过一次 ✗）。
-            #    ⚠ 这一条必须在 ⑥ **之前**跑：它要 `source_dispositions()` 能正常读索引 ✓。
+            #    ⚠ 这一条必须在 ⑦ **之前**跑：它要 `source_dispositions()` 能正常读索引 ✓。
             args = argparse.Namespace(schedule="x", id="G-8", title="夹具", reason="夹具",
                                       owner="t", where="", facet="", severity="", repro="")
             rc3, _out3, err3 = out_err(cmd_schedule, args)
-            expect(f"⑤ 已 fixed、**无事件**的缺口 id 不许被 `--schedule` 重用（rc={rc3}）",
+            expect(f"⑥ 已 fixed、**无事件**的缺口 id 不许被 `--schedule` 重用（rc={rc3}）",
                    rc3 == 1 and "已经在队列里" in err3)
-            # ⑤b **同族第二处**（2026-10-14 · 第三轮复核实测）：`--submit` 的同一闸门
+            # ⑥b **同族第二处**（2026-10-14 · 第三轮复核实测）：`--submit` 的同一闸门
             #     原先只看 `_read_jsonl(EXTRAS)` ⇒ gap `fixed` 的 id **rc=0 被接受** ✗，
             #     而同一时刻 `--schedule` 拒 ✓（同一个病只修了一处）。⇒ 两条来源臂都用
             #     **无事件**的 id 钉住（`G-8` = 缺口 `fixed`；`I-8` = 只在索引里、没处置），
@@ -2825,15 +2978,15 @@ def selftest_source_visibility(expect) -> None:
                 return argparse.Namespace(**base)
 
             rc4, _out4, err4 = out_err(cmd_submit, _submit_ns("G-8"))
-            expect(f"⑤b 已 fixed、**无事件**的缺口 id 不许被 `--submit` 重用（rc={rc4}；"
+            expect(f"⑥b 已 fixed、**无事件**的缺口 id 不许被 `--submit` 重用（rc={rc4}；"
                    f"改前 rc=0 静默接受 ✗）", rc4 == 1 and "已经在队列里" in err4)
             rc5, _out5, err5 = out_err(cmd_submit, _submit_ns("I-8"))
-            expect(f"⑤b 只在索引里（没处置）的 id 也不许被 `--submit` 重用（rc={rc5}）",
+            expect(f"⑥b 只在索引里（没处置）的 id 也不许被 `--submit` 重用（rc={rc5}）",
                    rc5 == 1 and "已经在队列里" in err5)
             rc6, _out6, _err6 = out_err(cmd_submit, _submit_ns("SUB-新-9"))
-            expect(f"⑤b 正对照：三来源都没有的新 id 仍可提交（rc={rc6}）", rc6 == 0)
+            expect(f"⑥b 正对照：三来源都没有的新 id 仍可提交（rc={rc6}）", rc6 == 0)
 
-            # ⑥ 索引里的数据行少一列 ⇒ 响亮报错（不许静默丢）
+            # ⑦ 索引里的数据行少一列 ⇒ 响亮报错（不许静默丢）
             #    ⚠ 夹具里**同时留一条好行**（I-6）—— 否则"一条都没解析出来"那条兜底也会报错，
             #    分不清到底咬住的是"少一列"还是"整表空"（反向验证就说不清了 ✗）。
             INDEX.write_text(
@@ -2844,9 +2997,9 @@ def selftest_source_visibility(expect) -> None:
                 "| I-7 | 语言 | 夹具：少一列 | 高 | `bash i7.sh` | front |\n", encoding="utf-8")
             try:
                 load_index()
-                expect("⑥ 索引 §2 里少一列的数据行 ⇒ 响亮报错（不许 `continue` 静默丢）", False)
+                expect("⑦ 索引 §2 里少一列的数据行 ⇒ 响亮报错（不许 `continue` 静默丢）", False)
             except UsageError as exc:
-                expect(f"⑥ 索引里少一列的数据行 ⇒ 响亮报错（点名 I-7 + 列数）：{exc}",
+                expect(f"⑦ 索引里少一列的数据行 ⇒ 响亮报错（点名 I-7 + 列数）：{exc}",
                        "I-7" in str(exc) and "6 列" in str(exc))
         finally:
             (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING) = saved[:5]
@@ -2894,6 +3047,22 @@ GRID_TERMINAL_PAIR_REDS = (sum(1 for _p, _s, d in GRID_PAIRS
 GRID_TERMINAL_CTRL_REDS = len(GRID_TERMINAL_OPEN) * len(GRID_TERMINAL)
 GRID_TERMINAL_REDS = GRID_TERMINAL_PAIR_REDS + GRID_TERMINAL_CTRL_REDS
 GRID_REDS = GRID_CELLS + GRID_TERMINAL_REDS               # 48 + 8 = 56（判红格总数）
+# ⭐ **第五轴 = 跨来源处置冲突**（2026-10-14 · 第五次独立复核实测 ✗）：上面四层每一格都是
+# **单来源**（一个 id 只被一个来源登记）⇒「**同一个 id 被两个来源登记、处置不一致**」这一族
+# 在网格里**结构上看不见** ✗。它只有**终态缺口行**能造出来（`load_gaps()` 默认把
+# `status=="fixed"` 丢掉），后果是**同一个 `effective_state` 喂两种行得两个状态**：
+# `--next`/`--json` 读视图行（extras `fix`）⇒ 推 `todo`；`check_plan` 读权威行（gap `fixed`）
+# ⇒ 判 `done` ⇒ 两条漂移规则都放过（rc=0 静默 ✗），而 gap `wo-filed` 的同样冲突 rc=2 ✓。
+# ⇒ 轴 = **视图开着的处置 × 缺口加载器的值域**里**所有不等对**（相等对不是冲突 ⇒ 排除）：
+#   · 值域 = `GRID_GAP_DISPOSITIONS`（`load_gaps()` 只会给 `fixed`/`wo-filed`/`scheduled`），
+#     逐对在夹具里用**真加载器**核一遍（见 ⑨ 的 `load_gaps` 断言 ⇒ 不是"我以为它会这么翻译" ✗）；
+#   · 状态轴 = `GRID_CONFLICT_STATES`（无事件 / done / wo_filed）—— 冲突是**输入层**的事，
+#     调度器状态**一格都不许**改变结论（"只在某一态静默"那一族正是改前的形状 ✗）。
+GRID_GAP_DISPOSITIONS = ("fixed", "wo-filed", "scheduled")
+GRID_CONFLICTS = tuple((_v, _a) for _v in sorted(OPEN_DISPOSITIONS)
+                       for _a in GRID_GAP_DISPOSITIONS if _v != _a)
+GRID_CONFLICT_STATES = (("noev", None), ("done", "done"), ("wof", "wo_filed"))
+GRID_CONFLICT_CELLS = len(GRID_CONFLICTS) * len(GRID_CONFLICT_STATES)      # 4 × 3 = 12
 
 
 def selftest_source_state_grid(expect) -> None:
@@ -2940,8 +3109,29 @@ def selftest_source_state_grid(expect) -> None:
 
     结构性守卫（纯表、不碰夹具）：⓪① 覆盖**所有**非终态 · ⓪② 每个非终态都有**到终态的
     合法路径** · ⓪③ 覆盖**所有**处置（`DISPOSITIONS`）· ⓪④ "已关账"恰好是 docstring 的
-    那四个（`DISPOSITIONS` 的**不相交划分**）—— 加状态 / 加处置而忘了补网格或忘了归类
+    那四个（`DISPOSITIONS` 的**不相交划分**）· ⓪⑤ **冲突轴**覆盖**所有**「视图处置 × 缺口
+    处置」不等对 + 状态轴含「无事件 + 两个终态」—— 加状态 / 加处置而忘了补网格或忘了归类
     ⇒ **先红** ✗。
+
+    **第五轴 = 跨来源处置冲突**（2026-10-14 · 第五次独立复核实测 ✗）：上面每一格都是
+    **单来源**（一个 id 只被一个来源登记）⇒「**同一个 id 被两个来源登记、处置不一致**」
+    这一族**结构上看不见** ✗ —— 而它只有**终态缺口行**造得出来（`load_gaps()` 默认把
+    `status=="fixed"` 丢掉）⇒ ①「一个 id 只能有一个处置」的闸门（长在 `build_queue()` 的
+    合并里）对它**瞎**；②`check_plan` 的权威表走**另一条**全量读法 ⇒ 同一个
+    `effective_state` 喂两种行得两个状态（`--next` 推 `todo`、`--check` 判 `done`）✗。
+    复核者 A/B：同一个 done 事件 + 同一个 extras(`fix`) 行，**只加一行 gap `status=fixed`**
+    ⇒ 改前 rc=1 → **rc=0 静默** ✗（gap `wo-filed` 的同样冲突改前就 rc=2 ✓ = 闸门有牙、
+    只是被那个过滤器绕开）。⇒ 逐格（`GRID_CONFLICTS` × `GRID_CONFLICT_STATES` = **12 格**）断：
+      a) **单来源臂**（A/B 的 A）**不许**判成冲突，且读数 = 漂移规则的正常判据（无事件 0、
+         `done`/`wo_filed` 1）⇒ 判红**可归属**到"多了一行终态登记"（防整轴恒红的空转夹具 ✗）；
+      b) **双来源臂**（B）**rc=2 当场判红**、点名该 id + 两个处置 + **各自出处**；
+         `fixed` 与 `wo-filed` 两支**逐格同判** ⇒ **不许更松** ✗；
+      c) `--next`/`--json` 与 `--check` **走同一条闸门**（同一个输入 ⇒ 不可能"一个命令静默、
+         另一个推得出来" ✗）；
+      d) 轴的前提由**真加载器**核（`load_gaps(include_terminal=True)` 把夹具那行翻成同一个
+         处置）⇒ 不是硬编码假设 ✓。
+    判据打在**真 CLI 路径**（`main()` + `sys.argv`，`--check-plan` 正是 `soko gate`/CI 跑的
+    `--check` 里的同一条）⇒ 咬的是用户敲的那条命令 ✓。
     """
     import contextlib
     import io
@@ -2972,6 +3162,17 @@ def selftest_source_state_grid(expect) -> None:
            f"否则判据的谓词会与 docstring 两处不一致 ✗",
            OPEN_DISPOSITIONS | CLOSED_DISPOSITIONS == set(DISPOSITIONS)
            and not (OPEN_DISPOSITIONS & CLOSED_DISPOSITIONS))
+    #  ⑤ **冲突轴必须覆盖所有的"不等对"**（第五次复核）：加一个开放处置、或给缺口加载器加
+    #     一个值域，而忘了补冲突轴 ⇒ 这条**先红** ✗（"结构上看不见"不许再靠人记着补）。
+    _want_cx = {(v, a) for v in OPEN_DISPOSITIONS for a in GRID_GAP_DISPOSITIONS if v != a}
+    expect(f"⑤ 冲突轴覆盖**所有**「视图处置 × 缺口处置」不等对"
+           f"（应有 {len(_want_cx)} 对 {sorted(_want_cx)} vs 轴里 {len(set(GRID_CONFLICTS))} 对）"
+           f"—— 相等对不是冲突（那是两处记账一致 ✓）⇒ 排除",
+           set(GRID_CONFLICTS) == _want_cx)
+    expect(f"⑤ 冲突轴的状态轴覆盖「无事件 + 两个终态」（{[s for s, _w in GRID_CONFLICT_STATES]}）"
+           f"—— 冲突是**输入层**的事，调度器状态一格都不许改变结论（改前"
+           f"「无事件」那两格还被 `--next` 推 ✗）",
+           [w for _s, w in GRID_CONFLICT_STATES] == [None, "done", "wo_filed"])
     global EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING
     grid_pairs, grid_states = GRID_PAIRS, GRID_STATES
     with tempfile.TemporaryDirectory() as tmp:
@@ -3279,6 +3480,112 @@ def selftest_source_state_grid(expect) -> None:
                    f"⇒ 判红信息如实说'没有能平账的迁移'是对的 ✓",
                    _rc_dead == GRID_REDS and "两层漂移" in _line9
                    and "反向两层漂移" not in _line9)
+
+            # ⭐ ⑨ **第五轴 = 跨来源处置冲突**（2026-10-14 · 第五次独立复核实测 ✗）：
+            #    上面每一格都是**单来源**（一个 id 只被一个来源登记）⇒「同一个 id 被两个来源
+            #    登记、处置不一致」这一族**结构上看不见** ✗ —— 而它的后果最重：**只有终态缺口
+            #    行**能造出它（`load_gaps()` 默认把 `status=="fixed"` 丢掉），于是
+            #      ① 「一个 id 只能有一个处置」的闸门（长在 `build_queue()` 的合并里）对它**瞎**；
+            #      ② `check_plan` 的权威表走**另一条**全量读法 ⇒ 同一个 `effective_state`
+            #         喂两种行得两个状态（`--next` 推 `todo`、`--check` 判 `done`）✗。
+            #    复核者的 A/B：同一个 done 事件 + 同一个 extras(`fix`) 行，**只加一行 gap
+            #    `status=fixed`** ⇒ 改前 rc=1 → **rc=0 静默** ✗；而 gap `wo-filed` 的同样冲突
+            #    改前就 rc=2 ✓（= 闸门有牙，只是被那个过滤器绕开）。
+            #    ⇒ 逐格断（4 组「视图处置 × 来源处置」× 3 个调度器状态 = 12 格）：
+            #      a) **单来源臂**（只有 extras 那一行，= A/B 的 A）**不许**冲突 ⇒ 判红可归属 ✓
+            #        （防"整轴恒红"的空转夹具 ✗）；
+            #      b) **双来源臂**必须冲突 ⇒ 真 CLI 路径 `--check-plan` **rc=2**、点名该 id +
+            #        两个处置的**出处**（终态那一支与 `wo-filed` 对照**逐格同判** ⇒ 不许更松 ✗）；
+            #      c) 状态（无事件 / done / wo_filed）**一格都不许改变结论** —— 冲突是输入层的
+            #        事，调度器状态管不着 ⇒ "只在某一态静默"那一族**结构上**不可能再出现 ✓。
+            _cx = Path(tmp) / "cx"
+            _cx.mkdir()
+            _cx_saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING)
+            _argv_saved = list(sys.argv)
+            try:
+                for _cvi, (_vdisp, _adisp) in enumerate(GRID_CONFLICTS):
+                    for _csuf, _cstate in GRID_CONFLICT_STATES:
+                        ident = f"CX{_cvi}-{_csuf}"
+                        EVENTS = _cx / f"events-{ident}.jsonl"
+                        EXTRAS = _cx / "extras.jsonl"
+                        INDEX = _cx / "index.md"
+                        GAPS_LEDGER = _cx / "ledger.jsonl"
+                        ONBOARDING = _cx / "ONBOARDING.md"
+                        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                                         "|---|---|---|---|---|---|---|\n"
+                                         f"| {ident} | 语言 | 夹具：跨来源冲突 | 高 | `bash c.sh` "
+                                         "| front |  |\n", encoding="utf-8")
+                        ONBOARDING.write_text("### 0.2 夹具\n", encoding="utf-8")
+                        _gaprow = {"id": ident, "title": f"夹具 {ident}", "kind": "tooling",
+                                   "severity": "painful", "status": _adisp, "found": "2026-01-01",
+                                   "repro": f"docs/gaps/repro/{ident}.sh",
+                                   "where": {"area": "夹具"}}
+                        _extrarow = {"id": ident, "source": "ux-index", "facet": "语言",
+                                     "severity": "medium", "repro": f"bash {ident}.sh",
+                                     "disposition": _vdisp, "why": "夹具：视图（extras）那一行"}
+                        EXTRAS.write_text(json.dumps(_extrarow, ensure_ascii=False) + "\n",
+                                          encoding="utf-8")
+                        # 事件（`done` 要真 sha + 读数 ⇒ 证据判据不会多出红来 ✗）
+                        if _cstate == "done":
+                            EVENTS.write_text(json.dumps(
+                                {"event": "advance", "id": ident, "to": "done",
+                                 "commit": real_sha, "reading": "夹具：done", "owner": "夹具"},
+                                ensure_ascii=False) + "\n", encoding="utf-8")
+                        elif _cstate == "wo_filed":
+                            EVENTS.write_text(json.dumps(
+                                {"event": "advance", "id": ident, "to": "wo_filed",
+                                 "reason": "夹具：定案不做", "owner": "夹具"},
+                                ensure_ascii=False) + "\n", encoding="utf-8")
+                        else:
+                            EVENTS.write_text("", encoding="utf-8")
+
+                        def _cli(argv: list[str]) -> tuple[int, str, str]:
+                            """**真 CLI 路径**（`main()` 读 `sys.argv`）—— 判据打在 `--check-plan`
+                            这一条上（`soko gate`/CI 跑的 `--check` 也走它）⇒ 咬的是**用户敲的
+                            那一条命令**，不是内部函数 ✓。"""
+                            sys.argv = ["ux-queue.py", *argv]
+                            _b, _e = io.StringIO(), io.StringIO()
+                            with contextlib.redirect_stdout(_b), contextlib.redirect_stderr(_e):
+                                _rc = main()
+                            return _rc, _b.getvalue(), _e.getvalue()
+
+                        # a) **单来源臂**（A/B 的 A）：只有视图那一行 ⇒ 不许有冲突
+                        GAPS_LEDGER.write_text("", encoding="utf-8")
+                        _rc_a, _o_a, _e_a = _cli(["--check-plan"])
+                        expect(f"⑨ {ident} 单来源臂（只有 extras `{_vdisp}`、状态 `{_csuf}`）"
+                               f"**不许**判成处置冲突（实测 rc={_rc_a}；`error:` 说明撞上了闸门 ⇒ "
+                               f"整轴就是恒红的空转夹具 ✗）",
+                               "处置不一致" not in _e_a)
+                        expect(f"⑨ {ident} 单来源臂的读数（rc={_rc_a}）= 漂移规则的正常判据"
+                               f"（无事件/两处一致 ⇒ 0；`done`/`wo_filed` + 来源开着 ⇒ 1）",
+                               _rc_a == (0 if _cstate is None else 1))
+                        # b) **双来源臂**（A/B 的 B）：加一行**终态缺口行** ⇒ 必须硬判红
+                        GAPS_LEDGER.write_text(json.dumps(_gaprow, ensure_ascii=False) + "\n",
+                                               encoding="utf-8")
+                        _rc_b, _o_b, _e_b = _cli(["--check-plan"])
+                        expect(f"⑨ {ident} 双来源臂（extras `{_vdisp}` + gap `{_adisp}`、"
+                               f"状态 `{_csuf}`）⇒ **rc=2 当场判红**（实测 rc={_rc_b}）—— "
+                               f"改前 `{_adisp}`=fixed 这一支**全静默** ✗（"
+                               f"`wo-filed` 那一支改前也 rc=2 ⇒ 两行**必须同判** ＝ 不许更松 ✗）",
+                               _rc_b == 2)
+                        expect(f"⑨ {ident} 的判红信息**点名**该 id + 两个处置 + 各自出处"
+                               f"（不能只报两个词：人还得自己回台账里翻 ✗）",
+                               ident in _e_b and f"`{_vdisp}`" in _e_b and f"`{_adisp}`" in _e_b
+                               and "extras" in _e_b and "缺口台账" in _e_b)
+                        expect(f"⑨ {ident} 冲突 ⇒ `--next`/`--json` **也**走同一条闸门"
+                               f"（同一个输入 ⇒ 不可能『一个命令静默、另一个推得出来』✗）",
+                               _cli(["--next"])[0] == 2 and _cli(["--json"])[0] == 2)
+                        # d) **轴的前提是真的**：夹具那一行 `status=<adisp>` 必须被**真加载器**
+                        #    翻成同一个处置 —— 否则上面 b) 咬的是"我以为的翻译"（空转 ✗）。
+                        _loaded = load_gaps(include_terminal=True)
+                        expect(f"⑨ {ident}：缺口加载器把 `status={_adisp}` 翻成 `{_adisp}`"
+                               f"（实测 {_loaded[0].get('disposition') if _loaded else '（没读到）'}）"
+                               f"—— 轴的前提由**真加载器**核过，不是硬编码假设 ✓",
+                               len(_loaded) == 1 and _loaded[0].get("disposition") == _adisp)
+            finally:
+                (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING) = _cx_saved
+                sys.argv[:] = _argv_saved
         finally:
             (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING) = saved[:5]
             globals()["lock_file"] = saved[5]
@@ -3661,8 +3968,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"**`--json` 单一真相**/视图被遮蔽仍以来源为准/收口转绿/**三视图同数**/`--next` 子集一致）"
           f" + **来源可见性 17 条**（gap/extras/索引三个来源的终态都进全量权威表/"
           f"三条反向两层漂移都判红且无多余红/索引登记过的 id 不算幽灵但覆盖自检照样判红/"
-          f"终态行仍不进 open 视图且 open 与 §0.2 同数/**索引少一列的数据行响亮报错/**"
-          f"已关账缺口的 id 不许被重新排期/`--submit` 同族闸门也看得见终态 id + 正对照**）"
+          f"**终态行进 `build_queue()` 的 rows（合并 = 权威）但不进 open/§0.2/`--next`**"
+          f"（第五次复核把这条的口径从病根改成不变量）/**一份输入**：队列的键 = 三来源全部 id/"
+          f"**索引少一列的数据行响亮报错/**已关账缺口的 id 不许被重新排期/"
+          f"`--submit` 同族闸门也看得见终态 id + 正对照**）"
           f" + **来源 × 处置 × 调度器状态网格**"
           f"（{len(GRID_PAIRS)} 个「来源 × 已关账处置」组合 = 3 来源 × docstring 的 "
           f"{len(CLOSED_DISPOSITIONS)} 个已关账处置 × {len(GRID_STATES)} 个调度器状态"
@@ -3672,10 +3981,15 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f" + {len(GRID_NOEVENT_OPEN)} + {GRID_TERMINAL_CTRL_REDS} 格正对照："
           f"逐格「判红点名 + 收口指示**真走得通**，或 `boundary`/`control` **如实说没有平账路**」"
           f" + 夹具形状 4 条 + 域/三视图/子任务口径 + **判红格总数恰好 {GRID_REDS}**"
-          f" + 4 条**结构性**守卫（覆盖所有非终态/所有处置 · 每个非终态有出口 · 已关账 = "
-          f"docstring 的四处置）：改前 `submitted` 列 6/6 静默、`wo_filed` 一向无牙、"
-          f"`boundary`/`control` 12 格静默且被 `--next` 推、**删掉覆盖层**后 42 格静默而 "
-          f"`--next` 照推 ⇒ 逐格必红 ✗）"
+          f" + {len(GRID_CONFLICTS)} × {len(GRID_CONFLICT_STATES)} = **{GRID_CONFLICT_CELLS} 格**"
+          f"**跨来源处置冲突轴**（第五次复核：网格原先每格都是**单来源** ⇒ 这一族结构上看不见 ✗；"
+          f"逐格 = 单来源臂不许冲突 + 双来源臂**真 CLI `--check-plan` rc=2**、点名 id + 两处置 + "
+          f"**各自出处**、`fixed` 与 `wo-filed` 两支**同判**（不许更松 ✗）、`--next`/`--json` "
+          f"走同一条闸门 + 轴的前提由**真加载器**核）"
+          f" + 5 条**结构性**守卫（覆盖所有非终态/所有处置 · 每个非终态有出口 · 已关账 = "
+          f"docstring 的四处置 · 冲突轴覆盖所有不等对）：改前 `submitted` 列 6/6 静默、"
+          f"`wo_filed` 一向无牙、`boundary`/`control` 12 格静默且被 `--next` 推、"
+          f"**删掉覆盖层**后 42 格静默而 `--next` 照推、**终态缺口行让冲突闸门失明** ⇒ 逐格必红 ✗）"
           f" + **祖先性闸门 9 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/存量带日期**豁免且不静默**/"
           f"真祖先不误伤）"
           f" + 真来源解析 全部成立 ✓")
