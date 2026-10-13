@@ -156,7 +156,7 @@ pub struct EnvSnapshot<'a> {           // Clone = O(1)
   （今天该夹具 = **43**，入口 12 条 + 库层 + pass2）；改第 k 条 ⇒ N−k+1；
   **反向验证**：改依赖文件 ⇒ 回到 N。
 * 守卫：`crates/front/tests/keystroke_structure.rs::
-  t2b_last_command_edit_still_reelaborates_every_entry_command`（今天断言 `≥ N`，
+  t2b_last_command_edit_reelaborates_only_that_command`（今天断言 `≥ N`，
   **T2-B 落地后改判成 `== 1`，不许放宽** ✗）。
 * 红线：全课程 `--json` 逐字节 + `keystroke_structure.rs` 既有四条断言**一个字不放松**。
 

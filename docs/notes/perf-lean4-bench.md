@@ -309,7 +309,7 @@ goal median **4.52 → 1.29ms**（全表 ⇒ `docs/design/persistent-declaration
 * **T2-B（入口趟命令级环境快照）—— ⏳ 进行中**：在命令边界留
   `(环境快照, walk 累加器, 报告片段)`，编辑后从**最后一个文本未变的命令**接着编。
   **读数已先建先红** ✓：`elaborated_commands_total()`（`crates/front/src/compile/mod.rs`）
-  立在 `crates/front/tests/keystroke_structure.rs::t2b_last_command_edit_still_reelaborates_every_entry_command`
+  立在 `crates/front/tests/keystroke_structure.rs::t2b_last_command_edit_reelaborates_only_that_command`
   —— 今天"改最后一条"= **43 条**（入口 12 + 库层 + pass2），目标 = **1**。
 * **还差的第三件（真正决定 goal 延迟的那件）**：把 goal **按命令发布**（编到哪条就能问哪条）
   —— Lean 侧的对照实现就是 `AsyncList` + `waitFindAtPos` ✓。**T2-B 只解决"从哪条开始编"，
