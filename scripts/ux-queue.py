@@ -1405,9 +1405,33 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
         raise UsageError(f"队列里没有 `{ident}`")
     cur = state.get(ident, {})
     frm = cur.get("state", "todo")
-    if to == "todo" and frm in TERMINAL_STATES:
+    # ⚠ **"已关账"用权威状态判**（`effective_state` + `CLOSED_STATES`，与 `cmd_claim` /
+    # `check_plan` 同一个谓词 —— 2026-10-14 · 第六次独立复核实测 ✗）：旧写法只看**事件状态**
+    # `frm in TERMINAL_STATES` ⇒ 两种坏形状：
+    #   ① 「来源已关账 + **无事件**」的 id 连这个分支都进不来 ⇒ 掉进"非法迁移 `todo → todo`"
+    #      （信息错、也没有出路指示 ✗）；
+    #   ② 「来源已关账 + 事件终态」进来之后**照写 `reopen` 事件** ⇒ 造出
+    #      「来源 `fixed` + 事件 `todo`」的**必红**状态（下一条 `--check` = 反向两层漂移 ✗、
+    #      `--next` 又把它推出来 ✗），而它打印的却是「✓ 状态回到来源处置」—— **与事实相反**
+    #      （来源根本没回到，是**事件覆盖**了来源）✗。对照：来源 `fix` + 事件 `done` 时
+    #      reopen rc=0 ✓（那个 `done` 正是要重开的东西）⇒ **不许误拒** ✗。
+    row = next((r for r in rows if r["id"] == ident), None) or {"id": ident}
+    if to == "todo" and effective_state(row, cur) in CLOSED_STATES:
         if not reason:
             print("✗ 重开终态条目必须写 `--reason '<为什么>'` ✗", file=sys.stderr)
+            return 1
+        # **来源侧**还关着账 ⇒ 光写事件改不动它（来源是权威 ⇒ `check_plan` 立刻判红）✗
+        if source_closed(row):
+            _d = row.get("disposition")
+            print(f"✗ `{ident}` 的**来源处置**是 `{_d}`（**已关账**）⇒ 光写 `reopen` 事件"
+                  f"**回不到来源处置** ✗：来源才是权威（`--check` 会判「来源关账 + 调度器 "
+                  f"todo」= **反向两层漂移**，`--next` 又会把它推出来）—— 要重开就**先把来源"
+                  f"处置改回 `fix`**：\n"
+                  f"    · extras 里的条目：`--triage {ident} --to deferred --reason '<为什么>'`"
+                  f"（**同轮**把来源翻成 `fix` + 事件回 `todo` ✓）\n"
+                  f"    · 缺口台账里的条目：直接改 {_label(GAPS_LEDGER)} 那一行的 `status`"
+                  f"（脚本没有 CLI 入口）\n"
+                  f"  改完再 `--advance {ident} --to todo --reason '<为什么>'` ✓", file=sys.stderr)
             return 1
         append_event({"event": "reopen", "id": ident, "reason": reason, "owner": owner})
         print(f"✓ 重开 `{ident}`（{frm} → todo）⇒ 状态回到来源处置，事件留痕 ✓")
@@ -1475,8 +1499,24 @@ def cmd_add_child(parent: str, child: str, title: str, owner: str, rows: list[di
         raise UsageError(f"父条目 `{parent}` 不在队列里")
     if child in known:
         raise UsageError(f"子任务 id `{child}` 已经存在（id 是键，不许重用）")
-    if state.get(parent, {}).get("state") in TERMINAL_STATES:
-        print(f"✗ 父条目 `{parent}` 已终态 ⇒ 先 `--advance {parent} --to todo --reason …` ✗",
+    # ⚠ **父闸门也走权威状态**（`effective_state` + `CLOSED_STATES`，**照 `cmd_claim` 的形状** ——
+    # 2026-10-14 · 第六次独立复核实测 ✗）：旧写法只看 `state[父]["state"]`（**调度器写过的**
+    # 状态）⇒ 「**来源已关账 + 没有事件**」的父条目在 `state` 里根本没有键 ⇒ 闸门**静默放过**：
+    # `--add-child` rc=0，而 `split` 事件把父折叠成 `umbrella` ⇒ 下一条 `--check` 立刻判红
+    # （来源 `fixed` + 调度器 `umbrella` = 反向两层漂移）✗ —— 写侧不许**主动制造**一个已知必红的形状。
+    # 口径与 `cmd_claim` / `check_plan` 的漂移判据**同一个谓词** ⇒ 三处不可能各说各话 ✓；
+    # 这一改**只严不松**（`TERMINAL_STATES ⊆ CLOSED_STATES`，另加 `boundary`/`control` 两个派生态）。
+    _prow = next((r for r in rows if r["id"] == parent), None) or {"id": parent}
+    _pst = effective_state(_prow, state.get(parent, {}))
+    if _pst in CLOSED_STATES:
+        _pd = _prow.get("disposition")
+        _how = (f"**先把来源处置改回 `fix`**（`--triage {parent} --to deferred --reason '<为什么>'`"
+                f" 同轮翻来源 ✓），再 `--advance {parent} --to todo --reason …` ✓"
+                if source_closed(_prow) else
+                f"先 `--advance {parent} --to todo --reason '<为什么>'` ✓")
+        print(f"✗ 父条目 `{parent}` 已是**已关账**状态 `{_pst}`"
+              f"（来源处置 `{_pd}`）⇒ 不许再拆解：`split` 事件会把父折成 `umbrella`，"
+              f"而来源仍是关账的 ⇒ 下一条 `--check` **必红**（反向两层漂移）✗ —— {_how}",
               file=sys.stderr)
         return 1
     if not acquire_claim(f"split:{parent}", owner, resources_of(
@@ -1534,6 +1574,25 @@ def effective_state(row: dict, cur: dict) -> str:
     if "external-submission" in (row.get("sources") or []):
         return "submitted"          # 外部提交在受理前不是"可动的 todo"（没人认领它）
     return mapped or "todo"
+
+
+def source_closed(row: dict) -> bool:
+    """**来源侧「已关账」**（唯一谓词）：处置 ∈ `CLOSED_DISPOSITIONS`。
+
+    等价于 `effective_state(row, {}) in CLOSED_STATES`（同一份 `DISPOSITION_STATES` 口径；
+    自检有一条**结构性**守卫逐处置断言这个等价 —— 加处置忘了归类会先红 ✗）。
+
+    ⚠ 为什么写侧闸门**必须**用它，而不是 `effective_state(row, cur)`（2026-10-14 · 第六次
+    独立复核实测 ✗）：`effective_state` 在"**事件**已终态"时也答"已关账" ⇒ 拿它当
+    "来源能不能动"的判据会把**合法**的 reopen 一并拒掉 ✗（来源 `fix` + 事件 `done` 是
+    **正常**形状：那个 `done` 正是要重开的东西）。写侧问的是"**来源**放不放行" ⇒ 只能看处置。
+
+    用途（**一处定义、三处消费**）：
+      · `cmd_advance --to todo`：来源关着账 ⇒ 光写 `reopen` 事件**回不到来源处置** ✗；
+      · `cmd_add_child` 的父闸门：来源关着账的父条目**不许**再拆解（拆了必红）✗；
+      · 自检的结构性守卫（`source_closed` ≡ `effective_state(row, {}) in CLOSED_STATES`）。
+    """
+    return row.get("disposition") in CLOSED_DISPOSITIONS
 
 
 def is_pushable(row: dict, cur: dict, owner: str | None = None) -> bool:
