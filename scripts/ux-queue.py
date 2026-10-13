@@ -1244,6 +1244,17 @@ def sched_rows(rows: list[dict], state: dict[str, dict]) -> list[dict]:
     ③ §0.2（`summary(view)`）报 2 条，而 `--json.open`（当时只从源行算）报 0 条 ✗。
     ⇒ 口径：**有源行就用源行**（只挪位置、**不丢行** ✗），**没有源行的子任务才合成**
     （合成行的 `repro` 里写明"拆解自哪条"）；子任务仍插在父**之前** ⇒ 顺序不变 ✓。
+
+    ⚠ **合成行不该有"出处"**（2026-10-14 · 第六次独立复核实测 ✗）：它是**视图的投影**，
+    来源台账里**没有**这一行 ⇒ 它的 `sources` 只能是**诚实的空表** `[]`，**不许**拿这一行的
+    存在去给"这个 id 有没有出处"作证。旧代码连 `sources` 键都没有 ⇒ 两处坏在同一处：
+      · `--json.view` 里合成行与源行**异形 schema**（少 `sources` ⇒ 按源行形状读的消费者
+        `KeyError` ✗ —— 补成 `[]` = "**没有来源**"，不是"忘了写" ✓）；
+      · `check_plan` 的幽灵判据原先读 `ids(rows=视图)` ⇒ **合成行给自己作了证** ⇒
+        「无源子任务」对幽灵判据**不可见** ✗（复核者纯 CLI 复现：`--schedule ADOPT-1` +
+        `--add-child ADOPT-1 --child GHOST-KID-1` ⇒ `--check` rc=0 · stderr 0 行 · 从不提它，
+        而 `--next` 推得出它、`--json.open` 含它 ⇒ 三视图不一致 ✗）。
+    ⇒ 「有没有出处」**只由 `check_plan` 问来源台账**（三处）定，视图行不能作证 ✓。
     """
     kids: dict[str, list[str]] = {}
     for ident, cur in state.items():
@@ -1259,7 +1270,11 @@ def sched_rows(rows: list[dict], state: dict[str, dict]) -> list[dict]:
         extra[ident] = src if src is not None else {
             "id": ident, "facet": "队列", "severity": "medium", "disposition": "fix",
             "repro": f"（拆解自 `{cur.get('parent')}`：{cur.get('title') or ''}）",
-            "owner": cur.get("owner") or "", "where": _label(EVENTS)}
+            "owner": cur.get("owner") or "", "where": _label(EVENTS),
+            # ⚠ `sources: []` = **诚实的"没有来源"**（不是"忘了写"）：合成行是视图的投影，
+            # 台账里没有它那一行 ⇒ 不许拿它给自己作出处（见本函数 docstring 的说明）。
+            # 与源行**同形 schema** ⇒ `--json` 的消费者不必分两种形状读 ✓。
+            "sources": []}
     out: list[dict] = []
     seen: set[str] = set()
     for row in rows:
@@ -1680,6 +1695,14 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     **只把域对齐**（不动权威口径）⇒ 同一条命令 **rc=1 · 42 个 id 被点名** ✓（域就是那个洞）；
     再把共享权威（`effective_state` 的短路顺序）修对 ⇒ 两边**一致地**判"已关账"（0 红 ✓）。
     ⇒ 域由 `plan_domain()` 一处定义；**状态**一律由 `effective_state()` 算（不自己再算一遍 ✗）。
+
+    ⚠ **域 ⊇ 出处**（2026-10-14 · 第六次独立复核实测 ✗）：**判定的域**（上面那条 = 视图 ∪
+    事件表）与**"这个 id 有没有出处"**是**两个**问题，别混用同一份输入 ✗ ——
+    `sched_rows` 会给**没有源行的子任务**合成一行（`sources=[]`），而旧代码拿**视图**当
+    `known` ⇒ **合成行给自己作了证** ⇒「无源子任务」静默 ✗（`--add-child` 只写 `split`
+    事件、三个来源里都没有那一行）。⇒ `known` **只从来源台账算**（`source_rows` 或单输入
+    夹具的 `rows`）+ `source_history_ids()`；**视图行不能作证** ✓（`selftest_ghost_child`
+    逐条钉着它，改前那一臂必红 ✗）。
     ⚠ **两个状态名不要混用**：证据类判据（`done` 的 commit+reading / `wo_filed` 与
     `triage_rejected` 的理由 / `umbrella` 的子任务）只认 `cur["state"]`（调度器**写过**的状态）
     —— 由来源处置推出来的状态**不需要**调度器证据（证据在来源台账里）⇒ 否则删掉事件文件后
@@ -1687,7 +1710,19 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     """
     state = fold()
     bad = 0
-    known = {r["id"] for r in rows} | source_history_ids()
+    # ⚠ **幽灵判据只认来源台账，不认视图行**（2026-10-14 · 第六次独立复核实测 ✗）：
+    # 这里原先写 `{r["id"] for r in rows}`，而 `rows` 是**视图**（`main()` 传的是
+    # `sched_rows(rows, state)`）⇒ `sched_rows` 给"没有源行的子任务"合成的那一行
+    # **给自己作了证** ⇒ 幽灵判据被它自己的合成行绕过 ✗（复核者纯 CLI 复现：
+    # `--schedule ADOPT-1` + `--add-child ADOPT-1 --child GHOST-KID-1` ⇒ `--check` rc=0 ·
+    # stderr 0 行 · 从不提那个 id，而 `--next` 推得出它、`--json.open` 含它 ⇒ 三视图不一致 ✗）。
+    # ⇒ 域仍然 = **视图 ∪ 事件表**（`plan_domain`，第五轮那个洞的修法不变 ✓），
+    # 但「**有没有出处**」只问**来源台账**：有 `source_rows`（真 CLI 路径 `check_plan(view, rows)`）
+    # 就用它；单输入夹具（`check_plan(rows)`）退回 `rows`。
+    # ⚠ 这一改**只严不松**：`{ids(source_rows)} ⊆ {ids(视图)}`（视图 = 源行 + 合成行）
+    # ⇒ `known` 只会变小（少认了合成行），没有任何一格从红变绿 ✓。
+    src = rows if source_rows is None else source_rows
+    known = {r["id"] for r in src} | source_history_ids()
     disp = {r["id"]: r.get("disposition") for r in rows}
     for _r in (source_rows or []):     # **来源的处置是权威**（覆盖视图里可能被遮蔽的值）
         if _r.get("disposition") is not None:
@@ -1722,7 +1757,20 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
         # **别往真台账写**（用 `SOKO_QUEUE_EVENTS=<临时文件>`，见 `EVENTS` 的说明）⇒
         # 幽灵判据保持满强度：任何不在来源里的 id 一律判红 ✓。
         if ident not in known:
-            print(f"✗ 事件里的 `{ident}` 不在任何来源里 ⇒ 幽灵条目（删来源了？）✗", file=sys.stderr)
+            # ⚠ **无源子任务**（2026-10-14 · 第六次独立复核实测 ✗）：`--add-child` 只写
+            # `split` 事件 ⇒ 子任务在**三个来源里都没有行**。旧代码被 `sched_rows` 的
+            # 合成行绕开 ⇒ 静默；现在合成行的 `sources` 是空的、判据只认台账 ⇒ 判红并
+            # **点名怎么补**（写进 extras 那一行就是它的出处 ✓）。
+            if cur.get("parent"):
+                print(f"✗ 子任务 `{ident}` 在**三个来源**（{_label(EXTRAS)} / "
+                      f"{_label(GAPS_LEDGER)} / {_label(INDEX)}）里都查不到 ⇒ **无源子任务** ✗ "
+                      f"（拆解自 `{cur.get('parent')}`）：`--add-child` **只写 `split` 事件**，"
+                      f"视图里那一行是**合成的**（`sources=[]` ⇒ 不能给自己作出处）⇒ "
+                      f"把它登记进 {_label(EXTRAS)}（`disposition=fix` + `why`）再 `--check` ✓",
+                      file=sys.stderr)
+            else:
+                print(f"✗ 事件里的 `{ident}` 不在任何来源里 ⇒ 幽灵条目（删来源了？）✗",
+                      file=sys.stderr)
             bad += 1
             continue
         if st_ev == "triage_rejected" and not cur.get("reason"):
@@ -2679,7 +2727,11 @@ def selftest_child_drift(expect) -> None:
     `render_onboarding`/`cmd_next`，与 `main()` 同一份视图），断言：
       ① 子任务**有源行** ⇒ 视图里就是那一行（真处置 `fixed`，不是合成的 `fix`）；
       ② 源行一条**不丢**（视图 ⊇ 源行）· 视图里**无重复 id** · 子任务仍插在父之前；
-      ③ 源 `fixed` + 调度器非终态 ⇒ `check_plan` **判红**（反向两层漂移对子任务咬得住 ✓）；
+      ③ 源 `fixed` + 调度器非终态 ⇒ `check_plan` **判红**（反向两层漂移对子任务咬得住 ✓；
+         **点名 `K-2`** ⇒ 读数可归属 ✓）；
+      ③b **无源子任务判红**（2026-10-14 · 第六次复核 #1）：`K-3` 是"只有 `split` 事件、
+         三处来源都没有"的子任务 ⇒ 判红 + 点名 + 说清「无源子任务」；随后**登记进来源**
+         （真工作流的形状）⇒ ⑥/⑦ 才可能转绿 ✓。**改前这一臂静默**（合成行给自己作出处 ✗）。
       ④ **单一真相**：视图里 open 的子任务（含**没有源行**的合成行）必须在 `--json` 载荷的
          `open` 里 —— 还原 `json_view`（只从源行算）这条必红 ✗；
       ⑤ **处置的权威是来源**：视图那一行被遮蔽成 `fix` 时，`check_plan(view, source_rows)`
@@ -2743,8 +2795,13 @@ def selftest_child_drift(expect) -> None:
                    {r["id"] for r in rows} <= set(ids))
             expect(f"② 视图里没有重复 id（{len(ids)} 行 / {len(set(ids))} 个 id）",
                    len(ids) == len(set(ids)))
-            expect(f"③ 源 `fixed` + 调度器 `{state['K-2']['state']}` ⇒ 反向两层漂移判红",
-                   check_plan(view, rows) >= 1)
+            _buf, _err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(_buf), contextlib.redirect_stderr(_err):
+                _rc3 = check_plan(view, rows)
+            expect(f"③ 源 `fixed` + 调度器 `{state['K-2']['state']}` ⇒ 反向两层漂移判红"
+                   f"（**点名 K-2** ⇒ 读数可归属 ✓；实测红 {_rc3} 条）",
+                   _rc3 >= 1 and "K-2" in _err.getvalue()
+                   and "反向两层漂移" in _err.getvalue())
             payload = json_view(rows, state, view)
             expect(f"④ 合成子任务（K-3 没源行）必须在 `--json` 的 open 里（实测 {payload['open']}）",
                    "K-3" in payload["open"])
@@ -2753,6 +2810,21 @@ def selftest_child_drift(expect) -> None:
             shadow = [{**r, "disposition": "fix"} if r["id"] == "K-2" else r for r in view]
             expect("⑤ 视图那一行被遮蔽时，处置仍以**来源**为准 ⇒ 照样判红",
                    check_plan(shadow, rows) >= 1)
+            # ⚠ **无源子任务现在判红**（2026-10-14 · 第六次复核 #1）：这个夹具原先靠"合成行
+            # 给自己作出处"让 K-3 **静默** —— 那正是病根本身 ✗ ⇒ 先断言它**被判红并点名**，
+            # 再按真工作流把它**登记进来源**（否则 ⑥/⑦ 的"转绿 / 三视图同数"永远不成立 ✗）。
+            _b3, _e3 = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(_b3), contextlib.redirect_stderr(_e3):
+                _rc3b = check_plan(view, rows)
+            expect(f"③b 无源子任务 `K-3` ⇒ **判红 + 点名**（改前静默 ✗；实测红 {_rc3b} 条）",
+                   _rc3b >= 1 and "K-3" in _e3.getvalue()
+                   and "无源子任务" in _e3.getvalue())
+            with EXTRAS.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(
+                    {"id": "K-3", "source": "ux-index", "facet": "语言", "severity": "medium",
+                     "repro": "bash z3.sh", "disposition": "fix",
+                     "why": "夹具：拆解出来的子任务**要登记来源**（第六次复核 #1）"},
+                    ensure_ascii=False) + "\n")
             expect("认领 K-2（**认领即 `in_progress`** —— `fold()` 那条口径）",
                    quiet(cmd_claim, "K-2", "t", False, view, "mod/x") == 0)
             expect(f"⑥ K-2 → done（commit {real_sha[:8]} + 读数）",
@@ -3964,8 +4036,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"**认领活过 CLI 调用（不写 pid）**/**收口即放槽**/--next 跳过终态与对照）"
           f" + **编排者排期 13 条**（缺理由拒/只追加事件/**真 `--json` 的 `open` 含它且状态 todo**/"
           f"`--next` 推得出/`--claim` + 带证据收口/缺 `--reading` 判红/两层漂移**不豁免**/真 CLI 路径落地）"
-          f" + **子任务视图 14 条**（源行优先/顺序不变/不丢行/无重复/反向两层漂移咬得住/"
-          f"**`--json` 单一真相**/视图被遮蔽仍以来源为准/收口转绿/**三视图同数**/`--next` 子集一致）"
+          f" + **子任务视图 15 条**（源行优先/顺序不变/不丢行/无重复/反向两层漂移咬得住**且点名 K-2**/"
+          f"**`--json` 单一真相**/视图被遮蔽仍以来源为准/"
+          f"**③b 无源子任务判红 + 点名 + 说清「无源子任务」**（第六次复核 #1）/收口转绿/"
+          f"**三视图同数**/`--next` 子集一致）"
           f" + **来源可见性 17 条**（gap/extras/索引三个来源的终态都进全量权威表/"
           f"三条反向两层漂移都判红且无多余红/索引登记过的 id 不算幽灵但覆盖自检照样判红/"
           f"**终态行进 `build_queue()` 的 rows（合并 = 权威）但不进 open/§0.2/`--next`**"
