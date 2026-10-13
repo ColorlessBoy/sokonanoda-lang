@@ -206,3 +206,4 @@
 {"ts": "2026-10-12T23:56:24+00:00", "event": "advance", "id": "r23", "to": "done", "commit": "be0fd5b3", "reading": "r23 探针 exit 0→1（FIXED: 已提供具名搬运引理）· 文件内 Eq.subst 剩余 0 · check.py exit 0（258 目标 0 判负）", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-12T23:59:45+00:00", "event": "triage", "id": "SUB-agenthost-patch", "to": "applied", "reason": "补丁已应用并逐条复验（含反向验证）", "commit": "4b687511", "owner": "penglingwei@penglingweis-Laptop"}
 {"ts": "2026-10-12T23:59:45+00:00", "event": "triage", "id": "SUB-copilot-signin-agenthost", "to": "applied", "reason": "补丁已应用并逐条复验（含反向验证）", "commit": "4b687511", "owner": "penglingwei@penglingweis-Laptop"}
+{"ts": "2026-10-13T00:01:56+00:00", "event": "triage", "id": "SUB-ci-failures-ledger-stale", "to": "applied", "reason": "压缩腾行 + 补记 3 条 + 收紧上限（docs-lint exit 0）", "commit": "6a737bfa", "owner": "penglingwei@penglingweis-Laptop"}
