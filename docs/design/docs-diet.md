@@ -57,7 +57,7 @@
 
 | 文件 | 前 | 去向 |
 |---|---|---|
-| `docs/STATUS-ARCHIVE.md` | 571 KB / 7392 行 | **活文档 120 KB**（留最近 8 段）· 更早 ⇒ `docs/archive/status-archive-older-rounds.md.gz`（186 KB） |
+| `docs/archive/status-removed-rounds-2026-10-13.md.gz` | 571 KB / 7392 行 | **活文档 120 KB**（留最近 8 段）· 更早 ⇒ `docs/archive/status-archive-older-rounds.md.gz`（186 KB） |
 | `docs/design/vscode-editor-feedback-plan.md`（E1 计划） | 283 KB / 4375 行 | **活文档 19 KB**（收口索引 + 现行结论 + 124 条清单）· 逐字原文 ⇒ `…-full-2026-09-26.md.gz`（114 KB） |
 | `docs/notes/settheory-survey/learning-difficulties.md` | 267 KB | **归档** ⇒ `docs/archive/settheory-survey-2026-09-26/learning-difficulties.md.gz`（93 KB） |
 | `docs/design/e2-plan.md`（E2 计划） | 254 KB / 3105 行 | **活文档 31 KB / 379 行**（现行契约 + 一行一条收口索引）· 逐字原文 ⇒ `e2-plan-full-2026-09-26.md.gz`（89 KB） |

@@ -24,7 +24,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 KEEP_ALWAYS = {
     "docs/ONBOARDING.md", "docs/README.md",
-    "docs/STATUS-ARCHIVE.md", "docs/architecture.md", "docs/protocol.md",
+    "docs/archive/status-removed-rounds-2026-10-13.md.gz", "docs/architecture.md", "docs/protocol.md",
     "docs/TESTING.md", "docs/PERF.md", "docs/RELEASE.md", "docs/E2E.md",
     "docs/LESSONS.md", "docs/CI-FAILURES.md", "docs/vscode-dev-guide.md",
     "docs/design/e2-plan.md",

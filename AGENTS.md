@@ -405,7 +405,7 @@ CI 的**快层** job：**每次 rust 改动的 push** 跑一组 **smoke**（**~1
 ## 收尾义务
 
 - 落 commit 前更新 `STATUS.md`（只保留最近 3 轮，旧轮归档
-  `docs/STATUS-ARCHIVE.md`）；
+  `docs/archive/status-removed-rounds-2026-10-13.md.gz`）；
 - **文档预算**（用户 2026-09-26：「文档太重了，还没实现多少东西文档先爆炸了」）：
   `python3 scripts/docs-lint.py`（已进 `scripts/soko gate` 与 CI）—— **判据 ①–⑦**
   （**实测值**，别抄旧数字 ✗）：① 活文档 **≤10.0 MB** · ② 单文件 **≤2000 行** ·

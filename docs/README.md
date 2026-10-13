@@ -39,7 +39,7 @@
 | `protocol.md` | `--json` 事件、`soko/*` 自定义请求的对外契约 | 改事件/输出格式前 |
 | `TESTING.md` | 测试地图（哪类改动跑哪层） | 加测试时 |
 | `RELEASE.md` | 发布手册（main 全绿自动 tag、8 平台 + 9 VSIX、Marketplace） | 发版前 |
-| `STATUS-ARCHIVE.md` | STATUS 的历史轮次（**只留最近 12 段** ✓；`STATUS.md` 移出的段落 ⇒ `docs/archive/`，更早的 ⇒ `git log --all -- docs/STATUS-ARCHIVE.md`） | 查旧轮/缺陷修复时间线 |
+| `STATUS-ARCHIVE.md` | STATUS 的历史轮次（**只留最近 12 段** ✓；`STATUS.md` 移出的段落 ⇒ `docs/archive/`，更早的 ⇒ `git log --all -- docs/archive/status-removed-rounds-2026-10-13.md.gz`） | 查旧轮/缺陷修复时间线 |
 | `vscode-dev-guide.md` | VS Code 扩展开发规范（版本纪律、测试三层、常见坑） | 改 `editor/vscode/` 前 |
 | `LESSONS.md` | 经验台账（subagent/流程教训） | 接手/复盘 |
 | `PERF.md` | 性能测试结构、阈值原则与基线 | 改动涉及热路径/验收 |
@@ -108,7 +108,7 @@
 > 归档目录只留**最近 3 轮**（`docs/archive/README.md` 逐个点名 ✓）。
 >
 > **已删除（不归档）** ✗：2026-09-29 的计划/交接类（`docs/HANDOVER.md`、`docs/E2-HANDOVER.md`、
-> `docs/NEXT.md`、`docs/PLAN-0.74-0.79.md` 等）—— 内容已并入 `docs/ONBOARDING.md` 与 `docs/STATUS-ARCHIVE.md`。
+> `docs/NEXT.md`、`docs/PLAN-0.74-0.79.md` 等）—— 内容已并入 `docs/ONBOARDING.md` 与 `docs/archive/status-removed-rounds-2026-10-13.md.gz`。
 >
 > **不许动的例外** ✗（有真消费者，动了就判红）：`docs/gaps/repro/**`（复现被
 > `gap.py check` 在 gate + CI 三片矩阵里真跑 ✓）、`docs/protocol.md`

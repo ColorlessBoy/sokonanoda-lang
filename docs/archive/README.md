@@ -39,4 +39,4 @@
 > **接手 / 计划的唯一入口 = `docs/ONBOARDING.md`**（接手路径 + 开工单 + 计划索引 §2）；
 > 仍在维护的总账是 `STATUS.md`（流水）、`REQUIREMENTS.md`（权威）、
 > `docs/design/e2-plan.md`（`scripts/plan.py` 的判据输入）。
-> 机制：`scripts/docs-gc.py`（报告式，不自删）· `scripts/docs-expiry-check.py`（过期日期）。
+> 机制：`scripts/docs-gc.py`（报告式，不自删）· `scripts/docs-expiry-check.py`（过期日期）。  ⭐ 2026-10-13 从 `STATUS.md` 移入的旧轮（按 AGENTS.md「只保留最近 3 轮」）· `status-removed-rounds-2026-10-13.md.gz` ✓  ⭐ 2026-10-13 `REQUIREMENTS.md` §9 最老 3 条正文（原文）· `requirements-sec9-removed-2026-10-13.md.gz` ✓
