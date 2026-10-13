@@ -280,3 +280,4 @@
 {"ts": "2026-10-13T11:59:25+00:00", "event": "advance", "id": "F12", "to": "done", "commit": "5fad2edf", "reading": "F12 家族收口：F12b + F12b2 都 done；真相层判据五条全绿；真机那一臂按降级交付(B)记为探针侧已知限制", "reason": null, "owner": "orchestrator"}
 {"ts": "2026-10-13T11:59:39+00:00", "event": "reopen", "id": "F12b-notation-blind-intro", "reason": "复原（其处置来源未定位）", "owner": "orchestrator"}
 {"ts": "2026-10-13T11:59:39+00:00", "event": "reopen", "id": "F12b2-front-intro-notation", "reason": "复原（其处置来源未定位）", "owner": "orchestrator"}
+{"ts": "2026-10-13T12:01:10+00:00", "event": "claim", "id": "W-3", "owner": "FRONT-R", "resources": ["crates/front"]}
