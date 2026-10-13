@@ -75,7 +75,7 @@ theorem algebraic_is_partialOrder (α : Type) (r : Rel α α)
     (fun (a : α) => h1 a (Eq.refl.{1} α a))
     (fun (a : α) (b : α) => fun (hab : r a b) => fun (hba : r b a) => h2 a b hab hba)
     (fun (a : α) (b : α) (c : α) => fun (hab : r a b) => fun (hbc : r b c) =>
-      h3 a c (Exists.intro α (fun (b1 : α) => r a b1 ∧ r b1 c) b
+      h3 a c (Exists.intro b
         (And.intro hab hbc)))
 
 theorem demo_strictOrder_iff (α : Type) (r : Rel α α) :
@@ -92,7 +92,7 @@ theorem demo_strictOf_transitive (α : Type) (r : Rel α α)
     Transitive α (strictOf α r) :=
   fun (a : α) => fun (b : α) => fun (c : α) =>
     fun (hab : strictOf α r a b) => fun (hbc : strictOf α r b c) =>
-      And.intro  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      And.intro
         ((fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
           ht a b c (And.left hab) (And.left hbc)) htrans)
         (fun (hac : Eq.{1} α a c) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来

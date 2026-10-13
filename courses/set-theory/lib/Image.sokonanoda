@@ -84,8 +84,8 @@ theorem Set.image_subset_iff {α β : Type} (f : α → β) (A : Set α) (B : Se
     Iff.intro (f '' A ⊆ B) (A ⊆ f ⁻¹' B)
       (fun (h : f '' A ⊆ B) =>
         fun (x : α) => fun (hx : A x) =>
-          h (f x) (Exists.intro α (fun (t : α) => A t ∧ f t = f x) x
-            (And.intro hx (Eq.refl.{1} β (f x)))))  -- soko:notation-ok: And.intro 短写对 Eq 结果的**应用**（Eq.refl …）仍解不出前导 Prop
+          h (f x) (Exists.intro x
+            (And.intro hx (Eq.refl.{1} β (f x)))))
       (fun (h : A ⊆ f ⁻¹' B) =>
         fun (y : β) => fun (hy : y ∈ f '' A) =>
           Exists.elim α (fun (x : α) => A x ∧ f x = y) (y ∈ B) hy
