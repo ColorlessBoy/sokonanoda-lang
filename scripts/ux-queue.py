@@ -88,6 +88,14 @@ extras 全行 · gap 全 `status`（含 `fixed`，走 `load_gaps(include_termina
 索引只给身份、处置仍取 extras），且三个来源**逐条**在 `--selftest`
 （`selftest_source_visibility`）里断言「终态看得见」✓ —— 将来加第四个来源就照那份清单
 补一行，**不许只补一处** ✗（AGENTS.md 硬规则 0(b)）。
+
+**来源 × 调度器状态的网格**（2026-10-14 · 第三轮复核 ⑤）：光"每个来源都看得见"还不够 ——
+规则里**再写死一个状态豁免**（实测：`and st != "submitted"`）就能让整整**一列 6 格静默**
+（而 `--next` 照样推得出来），且旧夹具只造 todo/in_progress 两种状态 ⇒ 漏格活到自检全绿 ✗。
+⇒ 判据是**两维网格**：3 来源 × 2 来源终态 × 6 调度器状态 = 36 格，逐格断「判红点名 +
+收口指示**逐步可执行**」（`selftest_source_state_grid`）。**加来源 / 加状态只改那一处**
+（`grid_pairs`/`grid_states`），指示本身由 `closure_steps()` 按 `TRANSITIONS` 算出
+⇒ 表里没有的路**不会被印成指示** ✓。
 """
 
 from __future__ import annotations
@@ -2612,6 +2620,24 @@ def selftest_source_visibility(expect) -> None:
             rc3, _out3, err3 = out_err(cmd_schedule, args)
             expect(f"⑤ 已 fixed、**无事件**的缺口 id 不许被 `--schedule` 重用（rc={rc3}）",
                    rc3 == 1 and "已经在队列里" in err3)
+            # ⑤b **同族第二处**（2026-10-14 · 第三轮复核实测）：`--submit` 的同一闸门
+            #     原先只看 `_read_jsonl(EXTRAS)` ⇒ gap `fixed` 的 id **rc=0 被接受** ✗，
+            #     而同一时刻 `--schedule` 拒 ✓（同一个病只修了一处）。⇒ 两条来源臂都用
+            #     **无事件**的 id 钉住（`G-8` = 缺口 `fixed`；`I-8` = 只在索引里、没处置），
+            #     外加**正对照**：一个三来源都没有的新 id 必须仍被接受（防"闸门变成全拒" ✗）。
+            def _submit_ns(ident: str) -> argparse.Namespace:
+                base = dict(submit="fix", id=ident, why="夹具", evidence="rc 0", patch="",
+                            facet="", severity="", repro="", where="夹具", owner="t")
+                return argparse.Namespace(**base)
+
+            rc4, _out4, err4 = out_err(cmd_submit, _submit_ns("G-8"))
+            expect(f"⑤b 已 fixed、**无事件**的缺口 id 不许被 `--submit` 重用（rc={rc4}；"
+                   f"改前 rc=0 静默接受 ✗）", rc4 == 1 and "已经在队列里" in err4)
+            rc5, _out5, err5 = out_err(cmd_submit, _submit_ns("I-8"))
+            expect(f"⑤b 只在索引里（没处置）的 id 也不许被 `--submit` 重用（rc={rc5}）",
+                   rc5 == 1 and "已经在队列里" in err5)
+            rc6, _out6, _err6 = out_err(cmd_submit, _submit_ns("SUB-新-9"))
+            expect(f"⑤b 正对照：三来源都没有的新 id 仍可提交（rc={rc6}）", rc6 == 0)
 
             # ⑥ 索引里的数据行少一列 ⇒ 响亮报错（不许静默丢）
             #    ⚠ 夹具里**同时留一条好行**（I-6）—— 否则"一条都没解析出来"那条兜底也会报错，
@@ -2632,6 +2658,154 @@ def selftest_source_visibility(expect) -> None:
             (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING) = saved[:5]
             globals()["lock_file"] = saved[5]
             globals()["probe_inventory"] = saved[6]
+
+
+def selftest_source_state_grid(expect) -> None:
+    """**来源 × 调度器状态的完整网格**（2026-10-14 · 第三轮独立复核 ⑤）：漏格不许活到自检全绿。
+
+    事故：漂移规则漏了 `submitted` 那一格 —— 复核者的网格夹具实测
+    {fixed,wo-filed} × {todo,in_progress,umbrella,blocked} **24/24 判红**，而 `submitted`
+    那一列 **6/6 静默**（同一时刻 `--next` 照样把那条推出来 ✗）；病根是规则里写死的
+    `and st != "submitted"`。而**旧自检夹具只造两种状态**（`split` ⇒ todo、`claim` ⇒
+    in_progress）⇒ **漏格能一路活到自检全绿** ✗（`AGENTS.md` 硬规则 0(b)：收到一条 ⇒
+    先问"同类还有哪些"，一次改齐 + 落**可查**的守卫）。
+
+    ⇒ 夹具改成**两维网格**：3 来源（① 缺口台账 / ③ extras / ② 索引+extras）
+    × 2 来源终态（`fixed` / `wo-filed`）× 6 调度器状态（todo / in_progress / umbrella /
+    blocked / submitted / triage_rejected）= **36 格**，逐格断言：
+
+      ① 判红**并点名**该 id + 「反向两层漂移」（改前 `submitted` 那 6 格静默 ⇒ 这条必红 ✗）；
+      ② 判红信息里的**收口指示逐步走一遍**都合法、且落终态（改前 `todo`/`blocked` 的
+         `→done` 与 `triage_rejected` 的 `→wo_filed` 是死路 ⇒ 这条必红 ✗）—— 指示由
+         `closure_steps()` 按 `TRANSITIONS` 算出，这条断言就是"指示不许是死路"的守卫 ✓；
+      ③ **夹具形状对**（36 格状态都造对 + 六个来源终态在全量权威表里看得见）+ **正对照**
+         （非终态来源的 6 个子任务**一个都不许红**；红条数恰好 36 ⇒ 没有多余红）
+         ⇒ 防"夹具空转"与"守卫放宽"两类假绿 ✓。
+
+    ⚠ 加第四个来源 / 加一个调度器状态时，**改 `grid_pairs`/`grid_states` 一处**即可 ——
+    这就是"以后不许再只修一处"的那一处 ✓。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING
+    grid_pairs = (("GF", "gap", "fixed"), ("GW", "gap", "wo-filed"),
+                  ("EF", "extras", "fixed"), ("EW", "extras", "wo-filed"),
+                  ("IF", "索引+extras", "fixed"), ("IW", "索引+extras", "wo-filed"))
+    grid_states = (("todo", "todo"), ("inprog", "in_progress"), ("umb", "umbrella"),
+                   ("blk", "blocked"), ("sub", "submitted"), ("trej", "triage_rejected"))
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING, globals()["lock_file"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        ONBOARDING = Path(tmp) / "ONBOARDING.md"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        try:
+            gaps: list[dict] = []
+            extras: list[dict] = []
+            index: list[str] = []
+            for prefix, source, disp in grid_pairs:
+                for suffix, _st in grid_states:
+                    ident = f"{prefix}-{suffix}"
+                    if source == "gap":
+                        gaps.append({"id": ident, "title": f"夹具 {ident}", "kind": "tooling",
+                                     "severity": "painful", "status": disp, "found": "2026-01-01",
+                                     "repro": f"docs/gaps/repro/{ident}.sh",
+                                     "where": {"area": "夹具"}})
+                        continue
+                    if source == "索引+extras":
+                        index.append(ident)
+                    extras.append({"id": ident, "source": "ux-index", "facet": "语言",
+                                   "severity": "medium", "repro": f"bash {ident}.sh",
+                                   "disposition": disp,
+                                   "why": f"夹具（来源 {source}）：终态 `{disp}`"})
+                # umbrella 格各要一个子任务（否则「umbrella 却没有子任务」会多一条红 ⇒
+                # 红条数就说不清了 ✗）；子任务处置 = `fix`（**非终态**）⇒ 它自己不许红
+                # ⇒ 它同时是"守卫没放宽"的**正对照** ✓。
+                extras.append({"id": f"{prefix}-umb-c", "source": "ux-index", "facet": "语言",
+                               "severity": "medium", "repro": "bash c.sh", "disposition": "fix",
+                               "why": "夹具：umbrella 的子任务（非终态 ⇒ 不许红）"})
+            GAPS_LEDGER.write_text(
+                "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in gaps), encoding="utf-8")
+            EXTRAS.write_text(
+                "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in extras), encoding="utf-8")
+            INDEX.write_text(
+                "## 2. 🔴 blocker / high\n\n"
+                "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                "|---|---|---|---|---|---|---|\n" + "".join(
+                    f"| {i} | 语言 | 夹具（索引身份，处置在 extras） | 高 | `bash {i}.sh` | front |  |\n"
+                    for i in index), encoding="utf-8")
+
+            def grid_events(ident: str, suffix: str) -> list[dict]:
+                """每格用**真实事件形状**造出目标状态（夹具不许自己拼状态 ✗）。"""
+                if suffix == "todo":
+                    return [{"event": "claim", "id": ident, "owner": "夹具"},
+                            {"event": "release", "id": ident, "owner": "夹具", "reason": "夹具"}]
+                if suffix == "inprog":
+                    return [{"event": "claim", "id": ident, "owner": "夹具"}]
+                if suffix == "umb":
+                    return [{"event": "split", "id": f"{ident}-c", "parent": ident,
+                             "owner": "夹具", "title": "夹具：umbrella 的子任务"}]
+                if suffix == "blk":
+                    return [{"event": "advance", "id": ident, "to": "blocked", "owner": "夹具",
+                             "reason": "夹具：阻塞"}]
+                if suffix == "sub":
+                    return [{"event": "submit", "id": ident, "owner": "夹具", "kind": "finding"}]
+                return [{"event": "triage", "id": ident, "to": "rejected", "owner": "夹具",
+                         "reason": "夹具：拒收"}]
+
+            for prefix, _source, _disp in grid_pairs:
+                for suffix, _st in grid_states:
+                    for ev in grid_events(f"{prefix}-{suffix}", suffix):
+                        append_event(ev)
+
+            rows, _undecided = build_queue()
+            state = fold()
+            view = sched_rows(rows, state)
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = check_plan(view, rows)
+            text = err.getvalue()
+
+            # ③ 夹具形状（**先证明夹具真造出了那 36 格**，否则下面的断言就是空转 ✗）
+            wrong_state = [f"{p}-{s}" for p, _a, _b in grid_pairs for s, want in grid_states
+                           if state.get(f"{p}-{s}", {}).get("state") != want]
+            expect(f"网格夹具：36 格调度器状态都造对了（造错的：{wrong_state or '无'}）",
+                   not wrong_state)
+            fdisp = source_dispositions()
+            wrong_disp = [f"{p}-{s}" for p, _a, d in grid_pairs for s, _w in grid_states
+                          if fdisp.get(f"{p}-{s}") != d]
+            expect(f"网格夹具：3 来源 × 2 来源终态在**全量权威表**里都看得见"
+                   f"（看不见/不对的：{wrong_disp or '无'}）", not wrong_disp)
+
+            # ①② 逐格：判红点名 + 收口指示逐步可执行
+            for prefix, source, disp in grid_pairs:
+                for suffix, want in grid_states:
+                    ident = f"{prefix}-{suffix}"
+                    st = state.get(ident, {}).get("state")
+                    red = f"`{ident}`" in text and "反向两层漂移" in text
+                    expect(f"网格 {ident}（{source}·`{disp}` × `{want}`）⇒ 判红并点名"
+                           f"「反向两层漂移」（改前静默的那 6 格 = `submitted` 列 ✗）", red)
+                    steps = re.findall(rf"--advance {re.escape(ident)} --to (\w+)", text)
+                    here, walkable = st, bool(steps)
+                    for nxt in steps:
+                        if nxt not in TRANSITIONS.get(here, set()):
+                            walkable = False
+                        here = nxt
+                    if walkable and here not in TERMINAL_STATES:
+                        walkable = False
+                    expect(f"网格 {ident}：收口指示逐步可执行、且落终态"
+                           f"（实测 `{'→'.join(steps) or '无指示'}`）", walkable)
+            expect(f"网格：红条数恰好 36（多一条就是夹具/规则溢出，实测 {rc}）", rc == 36)
+            kids = [f"{p}-umb-c" for p, _a, _b in grid_pairs]
+            expect(f"网格正对照：非终态来源的 {len(kids)} 个子任务一个都不许红"
+                   f"（`fix` 不是终态 ⇒ 规则不该命中）",
+                   not any(f"`{k}`" in text for k in kids))
+        finally:
+            (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING) = saved[:5]
+            globals()["lock_file"] = saved[5]
 
 
 def selftest_ancestry_gate(expect) -> None:
@@ -2978,7 +3152,11 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     # ③f **来源可见性**（2026-10-14：三个来源的终态都要被漂移规则看见 ——
     #     `load_gaps()` 默认丢 `fixed` ⇒ 反向两层漂移对缺口来源永远咬不住 ✗）
     selftest_source_visibility(expect)
-    # ③g **祖先性闸门**（2026-10-14：`cat-file -e` 查不出"不是 main 祖先" ⇒ 新增硬拒 + 读侧复查 +
+    # ③g **来源 × 状态 的完整网格**（2026-10-14 · 第三轮复核 ⑤：旧夹具只造 todo/in_progress
+    #     两种状态 ⇒ 「来源终态 × 调度器 submitted」那 6 格静默能一路活到自检全绿 ✗
+    #     ⇒ 3 来源 × 2 来源终态 × 6 调度器状态 = 36 格，逐格钉「判红点名 + 收口指示可执行」✓）
+    selftest_source_state_grid(expect)
+    # ③h **祖先性闸门**（2026-10-14：`cat-file -e` 查不出"不是 main 祖先" ⇒ 新增硬拒 + 读侧复查 +
     #     存量带日期豁免且**不静默** ✗）
     selftest_ancestry_gate(expect)
 
@@ -3005,9 +3183,14 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"`--next` 推得出/`--claim` + 带证据收口/缺 `--reading` 判红/两层漂移**不豁免**/真 CLI 路径落地）"
           f" + **子任务视图 14 条**（源行优先/顺序不变/不丢行/无重复/反向两层漂移咬得住/"
           f"**`--json` 单一真相**/视图被遮蔽仍以来源为准/收口转绿/**三视图同数**/`--next` 子集一致）"
-          f" + **来源可见性 14 条**（gap/extras/索引三个来源的终态都进全量权威表/"
+          f" + **来源可见性 17 条**（gap/extras/索引三个来源的终态都进全量权威表/"
           f"三条反向两层漂移都判红且无多余红/索引登记过的 id 不算幽灵但覆盖自检照样判红/"
-          f"终态行仍不进 open 视图且 open 与 §0.2 同数/**索引少一列的数据行响亮报错/**已关账缺口的 id 不许被重新排期**）"
+          f"终态行仍不进 open 视图且 open 与 §0.2 同数/**索引少一列的数据行响亮报错/**"
+          f"已关账缺口的 id 不许被重新排期/`--submit` 同族闸门也看得见终态 id + 正对照**）"
+          f" + **来源 × 状态网格 76 条**（3 来源 × 2 来源终态 × 6 调度器状态 = **36 格**："
+          f"逐格「判红点名 + 收口指示逐步可执行且落终态」= 72 条 + 夹具形状 2 条 + "
+          f"红条数恰好 36 + 非终态来源的正对照 —— 改前 `submitted` 列 6/6 静默、"
+          f"todo/blocked/triage_rejected 的指示是死路 ⇒ 逐格必红 ✗）"
           f" + **祖先性闸门 9 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/存量带日期**豁免且不静默**/"
           f"真祖先不误伤）"
           f" + 真来源解析 全部成立 ✓")
