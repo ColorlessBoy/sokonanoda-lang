@@ -32,9 +32,7 @@
     },
     "crates/front/src/compile/elab.rs": {
       "lines": 8702,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 8634,
-      "growth_reason": "frontJ 第 4 刀落地（ecba7433）：实参期望类型送进隐式求解（elab.rs +68），解锁课程「自然写法」4 处（lib/Image:101 · unit25:75 · unit26:117 · unit26:155）⇒ elab.rs 变长。⚠ 如实：债务增长，换来整门课 0 回归（2190 checked 逐字不变 ✓）+ 4 处翻绿 + 反向门咬 ✓"
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/error.rs": {
       "lines": 948,
@@ -117,7 +115,7 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/session.rs": {
-      "lines": 1460,
+      "lines": 1452,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/spine.rs": {
@@ -129,8 +127,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/token.rs": {
-      "lines": 1221,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1272,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1221,
+      "growth_reason": "T-D31 后半落地（b714e16b）：词法器列口径改 UTF-16（token.rs 的 bump 改用它 + scan_import_lines 同改 + query/pos.rs 新增 column_width 唯一口径 + session.rs 删掉按 char 的重复实现 + 新增 6 条含星平面字符的判据）⇒ token.rs 1221→1272 变长。⚠ 如实：债务增长，换来 T-D31 的口径分叉收口（与光标列对齐、单一实现共用 ✓）"
     },
     "crates/kernel/src/builder.rs": {
       "lines": 1091,
