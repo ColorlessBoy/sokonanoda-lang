@@ -99,9 +99,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
                     (And.intro
                       ((r • s) a c)
                       (t c d)
-                      (Exists.intro B
-                        (fun (b2 : B) => (r a b2) ∧ (s b2 c))
-                        b
+                      (Exists.intro b
                         (And.intro
                           (And.left hb)
                           (And.left hc)))
@@ -118,9 +116,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
                 ((r • (s • t)) a d)
                 (And.left hc)
                 (fun (b : B) => fun (hb : (r a b) ∧ (s b c)) =>
-                  Exists.intro B
-                    (fun (b2 : B) => (r a b2) ∧ ((s • t) b2 d))
-                    b
+                  Exists.intro b
                     (And.intro
                       (And.left hb)
                       (Exists.intro C
@@ -237,15 +233,11 @@ theorem classes_isPartition (A : Type) (r : Rel A A)
          ¬ (∃ (x : A), (x ∈ C) ∧ (x ∈ D)))
       -- ② 覆盖
       (fun (a : A) =>
-        Exists.intro (Set A)
-          (fun (C : Set A) => (C ∈ (classes A r)) ∧ (a ∈ C))
-          (EquivClass A r a)
+        Exists.intro (EquivClass A r a)
           (And.intro
             ((EquivClass A r a) ∈ (classes A r))
             (a ∈ (EquivClass A r a))
-            (Exists.intro A
-              (fun (a2 : A) => (EquivClass A r a) = (EquivClass A r a2))
-              a (Eq.refl.{1} (Set A) (EquivClass A r a)))
+            (Exists.intro a (Eq.refl.{1} (Set A) (EquivClass A r a)))
             (hrefl a)))
       -- ③ 不相等就不交
       (fun (C D : Set A) =>
