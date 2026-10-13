@@ -56,9 +56,7 @@ theorem cantor_no_le : ¬ ((𝒫 (@Set.univ Nat)) ≼ (@Set.univ Nat)) :=
            (hf : Set.InjOn (Set Nat) Nat f (𝒫 (@Set.univ Nat)))
            (_ : Set.MapsTo (Set Nat) Nat f (𝒫 (@Set.univ Nat)) (@Set.univ Nat)) =>
         (fun (hnot : ¬ (f (cantorDiagonal f) ∈ cantorDiagonal f)) =>
-          hnot (Exists.intro (Set Nat)  -- soko:notation-ok: 见证位补不出前导类型（手册 G-30 同族）
-            (fun (S : Set Nat) => f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S))
-            (cantorDiagonal f)
+          hnot (Exists.intro (cantorDiagonal f)
             (And.intro (Eq.refl.{1} Nat (f (cantorDiagonal f))) hnot)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
           (fun (hA : f (cantorDiagonal f) ∈ cantorDiagonal f) =>
             Exists.elim (Set Nat)

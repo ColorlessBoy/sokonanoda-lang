@@ -93,7 +93,7 @@ theorem pi_nonempty_of_choice (ι α : Type) (A : ι → Set α)
               (And.intro (Set.mem_univ α x) hx))))
     (fun (f : ι → α)
       (hf : ∀ (i : ι), i ∈ Set.univ ι → f i ∈ Set.univ α ∧ f i ∈ A i) =>
-      Exists.intro (ι → α) (fun (f' : ι → α) => f' ∈ (Set.pi ι α A)) f  -- soko:notation-ok: G-73 形状 ②（同上）
+      Exists.intro f
         (Set.mem_pi_intro ι α A f
           (fun (i : ι) =>
             (fun (hi : f i ∈ Set.univ α ∧ f i ∈ A i) => And.right hi) (hf i (Set.mem_univ ι i)))))
