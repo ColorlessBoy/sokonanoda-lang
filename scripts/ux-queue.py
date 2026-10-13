@@ -1492,16 +1492,24 @@ def cmd_repoint_all(reason: str, owner: str, dry_run: bool, limit: int) -> int:
             append_event({"event": "repoint", "id": ident, "commit": twin, "old": old,
                           "reason": reason, "owner": owner})
     print(f"✓ 回填 **{n_ids} 条** / {len(plan)} 个 sha（只追加事件；旧指针留在账上 ✓）")
-    # **别信自己的账**：回填完**再问一次 fold**（重新读事件表 ⇒ 真复查 ✓）
+    # **别信自己的账**：回填完**再问一次 fold**（重新读事件表 ⇒ 真复查 ✓）。
+    # ⚠ 复查**只对本批点过名的 id 判红** ✗：`--limit` 是**分批**用的，剩下的非祖先是
+    # **下一批的活**、不是这一批的失败 —— 否则"成功的一批"会打 rc=1 ⇒ **读数与事实相反** ✗。
+    done_ids = {i for _o, ids, _t, _n in plan for i in ids}
     left = repoint_targets()
-    if left:
-        print(f"✗ 回填后仍有 **{len(left)} 条**非祖先指针 ⇒ 判红 ✗：" +
-              " · ".join(f"{i}@{c[:8]}" for i, c, _t in left), file=sys.stderr)
+    stuck = [(i, c) for i, c, _t in left if i in done_ids]
+    if stuck:
+        print(f"✗ 本批点过名的 **{len(stuck)} 条没写进去**（重新 fold 后仍是非祖先）⇒ 判红 ✗：" +
+              " · ".join(f"{i}@{c[:8]}" for i, c in stuck), file=sys.stderr)
         return 1
     if no_twin:
         print(f"✗ 还有 **{len(no_twin)} 个 sha** 找不到孪生 ⇒ **没回填到 0** ✗（见上面的清单）",
               file=sys.stderr)
         return 1
+    if left:
+        print(f"⏳ 还剩 **{len(left)} 条** / **{len({c for _i, c, _t in left})} 个 sha** 非祖先"
+              f" ⇒ 下一批（重跑同一条命令即可，已回填的不会再出现）✓")
+        return 0
     print("✓ 复查：存量非祖先收口指针 **0 条** ✓")
     return 0
 
