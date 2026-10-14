@@ -239,12 +239,42 @@ def _id_shape_problem(ident: str) -> str | None:
     return _id_length_problem(ident)
 
 
+# **队列根必须齐的 5 份**（`#5`，2026-10-14 · 第八次独立复核实测 ✗）—— **一处定义**：
+# 工具**无条件读**的每一份都在这里（`AGENTS.md` 硬规则 0(b)：横向排查，不许只修点名的那一个）。
+# ⚠ **可选项不在这里**（且写明理由，免得下一个人"顺手"把它们也塞进来）：
+#   · `docs/ux-queue-extras.jsonl` —— `load_extras()` 显式 `if not EXTRAS.exists(): return []`；
+#   · 事件表 `docs/ux-queue-events.jsonl` —— `load_events()` 同样容忍缺失（它是**覆盖层**，
+#     docstring 明说"删掉事件文件就回到来源台账的处置"）；
+#   · 锁文件在**共享 git 目录**里（`--git-common-dir`，见 `lock_file()`），不是仓库文件。
+# 缺它们**不会丢栈**（有显式的缺失分支）⇒ 不算"环境必需" ✓。
+REQUIRED_ROOT_FILES: tuple[tuple[str, str], ...] = (
+    ("scripts/ux-queue.py", "队列脚本自己（也是「根指对了」的标记）"),
+    ("Cargo.toml", "仓库标记"),
+    ("docs/gaps/ledger.jsonl", "来源 ①：缺口台账"),
+    ("docs/ux-findings-2026-10-12.md", "来源 ②：UX 索引"),
+    ("docs/ONBOARDING.md", "来源 ④：§0.2 唯一入口"),
+)
+
+
 def _guard_root() -> None:
-    """`SOKO_QUEUE_ROOT` 指错时要**干净报错**（别丢栈 ✗）。"""
-    if not (ROOT / "scripts" / "ux-queue.py").exists() or not (ROOT / "Cargo.toml").exists():
+    """`SOKO_QUEUE_ROOT` 指错 / 缺必需文件时要**干净报错**（rc=2 + 一行人话，别丢栈 ✗）。
+
+    ⚠ **只查 2 个文件是不够的**（`#5`，2026-10-14 · 第八次独立复核实测 ✗）：旧写法只查
+    `scripts/ux-queue.py` + `Cargo.toml`，而工具**实际无条件读 5 份**（见
+    `REQUIRED_ROOT_FILES`）⇒ 删掉 `docs/ONBOARDING.md`（或索引 / 缺口台账）之后 `--check`
+    抛 **`FileNotFoundError` 栈 + rc=1** ✗（实测：ledger/索引 = 23 行栈、ONBOARDING = 28 行栈），
+    而契约里**环境错是 rc=2 + 人话** ✓ —— `main()` 只兜 `UsageError`/`UnicodeError`，
+    `OSError` 一路穿到顶层 ⇒ 栈。
+    ⚠ 这正是 `#5a` 声称修好的那一类（"环境错 = rc=2 且不丢栈"）⇒ **横向排查**：把工具
+    实际读的**每一份**都查上 ✓（`REQUIRED_ROOT_FILES` 一处定义，缺哪份**点名哪份** ✓）。
+    """
+    missing = [(rel, what) for rel, what in REQUIRED_ROOT_FILES if not (ROOT / rel).exists()]
+    if missing:
         raise UsageError(
-            f"队列根不对：`{ROOT}` 里没有 scripts/ux-queue.py + Cargo.toml ⇒ "
-            f"`SOKO_QUEUE_ROOT` 要指向**主 checkout**（并行 worktree 的队列单点）✗")
+            f"队列根不对 / 缺必需文件：`{ROOT}` 里没有 "
+            + "、".join(f"`{rel}`（{what}）" for rel, what in missing)
+            + " ⇒ `SOKO_QUEUE_ROOT` 要指向**主 checkout**（并行 worktree 的队列单点）；"
+              "文件被删/被挪就用 `git restore <那个文件>` 找回来 ✗")
     # **worktree 里必须显式指回主 checkout** ✗ —— 否则 4 棵树各读自己那份副本 ⇒ 队列悄悄分叉
     # （"登记 ≠ 排期"的同类病：看不见的漂移）。锁本就在共享 git 目录里，状态也必须单点 ✓。
     def _git(*argv: str) -> str:
@@ -5385,7 +5415,11 @@ def selftest_id_and_encoding_gates(expect) -> None:
       ③ `_guard_encoding()` 在 `US-ASCII` 的 locale 下 ⇒ `UsageError`（rc=2 那一类，**不是**栈 ✗）；
       ④ **真 CLI 路径**（子进程 + `LC_ALL=C PYTHONUTF8=0`）：**没有 Traceback**，且
          rc ∈ {0, 2}（环境真能表示 UTF-8 的平台走 0 = 正对照；否则必须是 2 + 人话 ✓）
-         —— 这一条咬住的正是"栈 + rc=1"那个形状 ✗。
+         —— 这一条咬住的正是"栈 + rc=1"那个形状 ✗；
+      ⑤ ⭐ **队列根必须齐 5 份**（`#5`，第八次复核）：缺必需文件 ⇒ `_guard_root` 抛
+         `UsageError`（rc=2，**不是** `FileNotFoundError` 栈 + rc=1 ✗）且**点名**缺哪份；
+      ⑥ **横向排查的守卫**：三个无条件读取的来源文件（缺口台账 / 索引 / `ONBOARDING.md`）
+         必须都在 `REQUIRED_ROOT_FILES` 里（以后换文件名忘了同步闸门 ⇒ 这一条先红 ✗）。
     """
     import contextlib
     import io
@@ -5486,6 +5520,37 @@ def selftest_id_and_encoding_gates(expect) -> None:
                    _p.returncode in (0, 2))
             expect("④ rc=2 时必须是**人话**（说清环境编码 + 给出正解）",
                    _p.returncode != 2 or ("环境编码不是 UTF-8" in _e and "PYTHONUTF8=1" in _e))
+            # ⑤ ⭐ **队列根必须齐 5 份**（`#5`，2026-10-14 · 第八次独立复核实测 ✗）：旧 `_guard_root`
+            #    只查 `scripts/ux-queue.py` + `Cargo.toml`，而工具**实际无条件读 5 份** ⇒ 删掉
+            #    索引 / 缺口台账 / `docs/ONBOARDING.md` ⇒ **`FileNotFoundError` 栈 + rc=1** ✗
+            #    （实测 23 / 23 / 28 行栈），而契约里环境错是 **rc=2 + 人话** ✓。
+            #    ⚠ 夹具**不删真文件**：把 `REQUIRED_ROOT_FILES` 临时加一条不存在的路径 ⇒
+            #    咬住的是同一段代码（"缺哪份就点哪份名"）✓。
+            _saved_req = REQUIRED_ROOT_FILES
+            # ⚠ 哨兵路径**故意不带 `docs/` 前缀**（那会被 `scripts/docs-lint.py` 的
+            #   "悬空文档引用"判据抓成一条**假**引用 ✗ —— 实测踩到）。本闸门只问
+            #   `ROOT / rel` 存不存在 ⇒ 名字是什么不重要 ✓。
+            _sentinel = "__selftest_missing_required_file__"
+            globals()["REQUIRED_ROOT_FILES"] = _saved_req + ((_sentinel, "夹具：故意不存在"),)
+            try:
+                try:
+                    _guard_root()
+                    _rc_root, _msg_root = 0, ""
+                except UsageError as _e:
+                    _rc_root, _msg_root = 2, str(_e)
+            finally:
+                globals()["REQUIRED_ROOT_FILES"] = _saved_req
+            expect(f"⑤ 缺必需文件 ⇒ `_guard_root` 抛 UsageError（rc={_rc_root}，不是栈 ✗）",
+                   _rc_root == 2)
+            expect("⑤ 且**点名**缺的是哪一份（不是一句「根不对」就完了 ✓）",
+                   _sentinel in _msg_root)
+            # ⑥ **横向排查不许漏**（硬规则 0(b)）：三个**无条件读取**的来源文件必须都在
+            #    `REQUIRED_ROOT_FILES` 里 —— 以后有人把 INDEX/台账/ONBOARDING 换成别的文件却
+            #    忘了同步闸门 ⇒ 这一条先红 ✗（⚠ 用 `saved` 里的**真路径**，不是夹具的临时路径）。
+            _need = {str(Path(_p).relative_to(ROOT)) for _p in (saved[3], saved[2], ONBOARDING)}
+            _have = {rel for rel, _w in _saved_req}
+            expect(f"⑥ `REQUIRED_ROOT_FILES` 覆盖三个无条件读取的来源文件（缺：{sorted(_need - _have)}）",
+                   _need <= _have)
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
@@ -6119,7 +6184,7 @@ def cmd_selftest(args: argparse.Namespace) -> int:
            f" + **发版节点接缝 10 条**（`#2`，第八次复核：⭐ **`--release open` 之后 `check_plan` 仍 rc=0**（**改前 rc=1 + 幽灵条目** ✗）· 节点 id 进 `known` · **不许放宽**：手写无 `release-open` 的 `release-add` 照样判红 + 点名 · 正对照 `add`/`check`/`cut` 三条后续步骤仍 rc=0） + **分支栅栏 4 条**（`#4`：未合回 ⇒ 判红 + **逐条** `agent-worktree.sh land` + "
            f"**明说没有 `--force` 旁路** + ⭐ **`--force` 也 rc=1**（偷加旁路当场判红 ✗）+ "
            f"正对照合回后 rc=0）"
-           f" + **id 长度 + 环境编码 9 条**（`#5`：3000 字符 id 在 `--schedule`/`--submit`/"
+           f" + **id 长度 + 环境编码 + 队列根 13 条**（`#5`：3000 字符 id 在 `--schedule`/`--submit`/"
            f"`--add-child` 三个入口**都拒且零写入**、上限 64 是**数字**（64 过 / 65 拒）、"
            f"`locale=US-ASCII` ⇒ `UsageError`、真 CLI 在 `LC_ALL=C PYTHONUTF8=0` 下**没有栈**"
            f"且 rc ∈ {{0,2}}（**不许是 1 + 栈** ✗））"
