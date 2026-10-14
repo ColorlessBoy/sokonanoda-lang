@@ -86,7 +86,10 @@ cmd_list() {
   done < <(git -C "$ROOT" branch --list 'agent/*' --format='%(refname:short)')
   [ "$bad" = 0 ] && info "（无 ✓）"
   info ""
-  info "── 各树脏不脏（`*` = 有未提交改动）──"
+  # ⚠ 这行原来是 `（\`*\` = 有未提交改动）`：反引号在双引号里 = **命令替换** ⇒ `list` 每次都在
+  #   stderr 报 `f: command not found`、标题渲染成「（ = 有未提交改动）」✗；且 `git worktree list`
+  #   与 porcelain **从不打 `*`**（实测 grep = 0）⇒ 那个承诺本来就是假的。改成如实描述。
+  info "── 各树脏不脏（下面逐棵点名未提交改动）──"
   git -C "$ROOT" worktree list --porcelain | awk '/^worktree /{p=$2} /^branch /{b=$2} /^$/{if(p)printf "  %-58s %s\n", p, b; p=""}'
   while IFS= read -r w; do
     [ -d "$w" ] || continue
