@@ -2514,6 +2514,16 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
         if st_ev == "wo_filed" and not cur.get("reason"):
             print(f"✗ `{ident}` 是 wo_filed 却没写理由 ✗", file=sys.stderr)
             bad += 1
+    # ⭐ **发版节点的读侧复查**（`#3`，2026-10-14 · 第八次独立复核实测 ✗）—— 与 `repoint` 的
+    # 读侧复查（上面那一支）**同一形状**：`#1` 给 `repoint` 补了读侧 ⇒ 手改事件表换 commit
+    # 会被咬 ✓；而 `release-cut` 只有**写侧**闸门 ⇒ 手写假 `release-cut` **无人咬** ✗
+    #（且 `#2` 写进事件的 `subject`/`patch_id` 一个读者都没有 ✗）。
+    # ⚠ **一处定义**：判据在 `cut_audit_problem()`（`--release check` 也调它 ✓）。
+    for _rel, _node in sorted(release_nodes().items()):
+        _cut_why = cut_audit_problem(_node)
+        if _cut_why is not None:
+            print(_cut_why, file=sys.stderr)
+            bad += 1
     claims = read_lock()["claims"]
     live = [c for c in claims if claim_is_live(c)[0]]
     stale = [c for c in claims if not claim_is_live(c)[0]]
@@ -2823,9 +2833,48 @@ def release_nodes() -> dict[str, dict]:
             node = out[ev["rel"]]
             node["blockers"][ev["id"]] = node["blockers"].get(ev["id"], 0) + 1
         elif kind == "release-cut" and ev.get("id") in out:
+            # ⚠ **审计字段必须折进来**（`#3`，2026-10-14 · 第八次独立复核实测 ✗）：旧写法只留
+            # `{commit, ci, ts}` ⇒ `#2` 写进事件的 `subject`/`patch_id` **一个读者都没有** ✗
+            #（"咬不住的守卫等于没有"）⇒ `cut_audit_problem()` 读不到它，读侧复查无从谈起。
             out[ev["id"]]["cut"] = {"commit": ev.get("commit"), "ci": ev.get("ci"),
-                                    "ts": ev.get("ts")}
+                                    "ts": ev.get("ts"),
+                                    "subject": ev.get("subject"), "patch_id": ev.get("patch_id")}
     return out
+
+
+def cut_audit_problem(node: dict) -> str | None:
+    """**切版事件的读侧复查**（`#3`，2026-10-14 · 第八次独立复核实测 ✗）—— 与 `repoint` 的
+    读侧复查**同一形状**（**一处定义**；`--release check` 与 `--check` 都调它 ✓）。
+
+    缺口（两条，同一条病根）：
+      · `#2` 给 `release-cut` 记了 `subject` + `patch_id` 并声称「事后能核」✓，而**实测没有
+        任何生产代码读这两个字段** ✗（`release_nodes()` 折叠时把它们丢了；唯一读者是自检
+        自己的断言 ✓）⇒ **咬不住的守卫** ✗；
+      · `release-cut` 与 `repoint` **不对称**：`#1` 给 `repoint` 补了**读侧复查**
+        （手改事件表换 `commit` ⇒ `check_plan` 判红 ✓），而 `release-cut` **只有写侧闸门**
+        ⇒ **手写一条假 `release-cut` 无人咬** ✗。
+
+    靶子 = 手写 `release-cut`：审计字段（`subject`/`patch_id`）与 `commit` **对不上**
+    ⇒ 当场判红 ✗（正常 CLI 路径写不出这个形状：`cmd_release cut` 的两个字段就是从
+    `args.commit` **现算**的 ✓）。
+
+    ⚠ **只对带审计字段的** `release-cut` 生效（旧账 / 手写事件没有该字段 ⇒ 不误判 ✓ ——
+    与 `check_plan` 的 repoint 复查、`closure_pointer_problem` 的分工同口径）。
+    ⚠ `patch_id` 是**主判据**（十六进制 ⇒ 与编码无关）；`subject` 是旁证 ⇒ 两侧都过
+    `_subject_text()`（**同一处**折算 —— 不许两边口径不同 ✗）。
+    """
+    cut = (node or {}).get("cut") or {}
+    commit, rec_pid, rec_subj = cut.get("commit"), cut.get("patch_id"), cut.get("subject")
+    if not commit or not rec_pid:
+        return None
+    now_pid, now_subj = _patch_id(commit), _subject_text(_commit_subject(commit))
+    if now_pid != rec_pid or (rec_subj and now_subj != rec_subj):
+        return (f"✗ 发版节点 `{(node or {}).get('id')}` 的 `release-cut` 与它的审计字段"
+                f"**对不上**：账上记的 subject/patch-id = `{(rec_subj or '')[:40]}` / "
+                f"`{rec_pid[:12]}`，而 `{commit[:12]}` 实际是 `{now_subj[:40]}` / "
+                f"`{(now_pid or 'N/A')[:12]}` ⇒ 切版指针被**事后换过**（手改事件表？）✗ "
+                f"—— `release-cut` 的审计字段就是为这条复查留的 ✓")
+    return None
 
 
 def release_node_ids() -> set[str]:
@@ -2950,6 +2999,13 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
         elif len(node["items"]) < MIN_ITEMS_PER_RELEASE and not args.force:
             print(f"✗ 克制：本节点才 {len(node['items'])} 条 < {MIN_ITEMS_PER_RELEASE} 条 ⇒ "
                   f"再攒攒（`--force --reason …` 可越过）✗", file=sys.stderr)
+            bad += 1
+        # ⭐ **节点级读侧复查**（`#3`，2026-10-14 · 第八次独立复核实测 ✗）：`release-cut` 的
+        # 审计字段（`subject`/`patch_id`）与 `commit` **对不上** ⇒ 判红（手写假 `release-cut`
+        # 原先**无人咬** ✗）。⚠ 与 `--check` **共用** `cut_audit_problem()`（一处定义 ✓）。
+        _cut_why = cut_audit_problem(node)
+        if _cut_why is not None:
+            print(_cut_why, file=sys.stderr)
             bad += 1
         for ident in node["items"]:
             cur = state.get(ident, {})
@@ -4987,7 +5043,10 @@ def selftest_release_cut_gate(expect) -> None:
       ① 不存在 / 非祖先的切版指针 ⇒ **rc=1 且零写入**（**就是本轮的缺口**，改前 rc=0 ✗）；
       ② 正对照：真祖先 + 真对象 ⇒ **仍 rc=0**（**不许误拒** ✗）；
       ③ 切版事件记了 `subject` + `patch_id`（审计字段，同 `#1` 的理由）；
-      ④ 缺 `--ci` / 缺 `--commit` ⇒ 用法错（rc=2，原有口径不变 ✓）。
+      ④ 缺 `--ci` / 缺 `--commit` ⇒ 用法错（rc=2，原有口径不变 ✓）；
+      ⑤ ⭐ **读侧复查**（`#3`，第八次复核）：手写假 `release-cut`（审计字段与 `commit`
+         对不上）⇒ **`--release check` 与 `check_plan` 两条读侧都判红 + 点名** ✓
+         （改前**两条都静默** ✗ —— 审计字段没有任何生产读者 = 咬不住的守卫 ✗）。
     ⚠ 用 `unmerged_agent_branches()` 的**接缝**把真仓库的 15 条未合回分支隔离掉
     （否则夹具的 `check` 永远过不去 ⇒ 正对照测不了；`#4` 的那条臂反过来要它返回非空 ✓）。
     """
@@ -5080,6 +5139,23 @@ def selftest_release_cut_gate(expect) -> None:
                 except UsageError:
                     _rc = 2
                 expect(f"④ {what} ⇒ 用法错 rc={_rc}（原有口径不变 ✓）", _rc == 2)
+            # ⑤ ⭐ **读侧复查**（`#3`，2026-10-14 · 第八次独立复核实测 ✗）：`#2` 记进事件的
+            #    `subject`/`patch_id` 原先**一个读者都没有**（`release_nodes()` 折叠时把它们
+            #    丢了 ⇒ 唯一读者是自检自己的断言 ✗）⇒ **手写一条假 `release-cut` 无人咬** ✗。
+            #    现在 `cut_audit_problem()` 在**两条读侧**（`--release check` 与 `check_plan`）
+            #    都咬 ✓ —— 本臂就是那个靶子（**改前必红** ✗）。
+            _legit = [e for e in load_events() if e.get("event") == "release-cut"][-1]
+            append_event({"event": "release-cut", "id": "REL-9.9.9", "commit": dangling,
+                          "ci": "7", "subject": _legit.get("subject"),
+                          "patch_id": _legit.get("patch_id")})
+            _rows2, _u2 = build_queue()
+            _view2 = sched_rows(_rows2, fold())
+            rc, out = capture(check_plan, _view2, _rows2)
+            expect(f"⑤ 手写假 `release-cut`（commit 与审计字段对不上）⇒ `check_plan` 判红 rc={rc}",
+                   rc >= 1 and "release-cut" in out and "对不上" in out)
+            rc, out = capture(cmd_release, ns(release="check", rel="REL-9.9.9"), _view2)
+            expect(f"⑤ 且 `--release check` 也判红 rc={rc}（两条读侧**共用一处判据** ✓）",
+                   rc == 1 and "对不上" in out)
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
