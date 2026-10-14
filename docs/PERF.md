@@ -687,3 +687,25 @@ scripts/perf-check.sh --case judge_prefix_with_imported --threshold 50   # 单�
 scripts/perf-check.sh --list                                             # 台账里有哪些 (scope, case) ✓
 scripts/perf-ledger.sh                                                   # 全量四套件 → docs/perf/ledger.jsonl（提交它 ✓）
 ```
+
+## 读数身份：陈旧构建 / debug / 跨引擎缓存（2026-10-14 BUILD-Q）
+
+**跨轮比较任何读数前，先确认"这是哪份构建"** —— `scripts/soko version --json` 的 `build`
+现在描述**会跑的那条链接**：`profile`（release/debug）· `mtime` · `source_newest` · `stale`
+（源码比二进制新 ⇒ **这次读数不属于当前 commit** ✗）。
+
+* **判据入口已把它变成前置**（不再是"只报告"）：`courses/set-theory/tools/check.py` 与
+  `scripts/soko gate` 在 `source == repo-build` 且 `build.stale` 时**拒绝判绿** + 给正解
+  （`cargo build --release -p sokonanoda-cli --locked` / `scripts/soko update`）；
+  `profile == debug` 只**响亮警告**（同一份判卷慢约 2×：258 个目标的课程门禁实测从约
+  1–2 分钟变成 >20 分钟 ⇒ 撞调用方超时 ✗）。解析侧同步改成 **release 优先**
+  （同 profile 内仍按 mtime；版本对得上的 debug 树不会被丢掉 ✓）。
+* ⚠ **量对照时两个 `NO_*ARTIFACTS` 逃生门不够** ✗：全局编译缓存的键 = 版本 · 平台 ·
+  **内建 prelude 摘要** · `SOKO_BUILD_LABEL`（`crates/front/src/compile/cache.rs:125-178`），
+  **不含 `crates/front`/`crates/kernel` 的其余源码** ⇒ 实测（同一夹具、同一路径、同一份空
+  缓存目录起步）：旧引擎 `exit 1` → 新引擎 `exit 0` → **旧引擎再来一次 `exit 0`**
+  （回放了新引擎的判定 ✗）。⇒ 每份构建用**隔离的 `SOKONANODA_CACHE_DIR`**
+  （或不同的 `SOKO_BUILD_LABEL`）。
+* 读数与反向验证（陈旧 ⇒ 改前 `exit 1` + 假红 / 改后 `exit 2`；新鲜 ⇒ **258 目标 ·
+  2190 checked · 915 open · 0 判负**）见 commit `e4ee1ecf`（`scripts/soko`）与
+  `b7a576aa`（`check.py`，含六条夹具自检臂）。

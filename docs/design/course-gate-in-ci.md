@@ -149,22 +149,6 @@ AGENTS.md 点名「缓存过期是历史上最常见的故障源」，`gate` 也
 解析不到任何可信二进制 ⇒ exit 2（前置缺失），**不判绿**。CI 里因为显式给了当轮构建的
 `target/debug/sokonanoda`，这条前置恒定成立。
 
-**BUILD-STALE 闸门（2026-10-14 BUILD-Q，第十二次复核）**：上面那条只挡**标签文案里写了**
-`STALE`/`unknown`/`unverified` 的情形 ✗，而**仓库构建**的 `source` 恰好是干净的 `repo-build`
-⇒ 启动器早就算出的 `build.stale`（源码比二进制新）**没有消费者** ✗（"守卫看得见却不用"）。
-实测代价：陈旧引擎把**同一份课程**判出 **14 条假红**，重建后同一棵树 **0 判负**
-⇒ 判负不是课程坏了，是**读数不属于当前 commit**。现在 `resolve_channel()` 在版本交叉核对
-之后多一条前置：启动器选出来的链接是 `repo-build` 且 `build.stale` ⇒ **exit 2** + 人话
-（二进制 mtime / 最新源文件 / 为何不可信）+ 正解
-（`cargo build --release -p sokonanoda-cli --locked` 或 `scripts/soko update`）；
-同一处对 `build.profile == "debug"` **只警告不拒绝**（比 release 慢约 2×，拒绝会打断
-"编 debug（21s）⇒ 判卷"的本地内环；要消灭的是静默 ✗）。**显式 `--bin`/`SOKONANODA_BIN`
-不受这条约束**（逃生门语义不许改：`scripts/kernel-diff.sh` 这类 A/B 对拍**本来就要求**
-"旧的那一份"能被判 ⇒ 拿 stale 去拦会打断它们）。`--selftest` 用夹具仓逐条咬住这六条
-（陈旧⇒拒 / 新鲜⇒放行 / release 优先 / debug 出声 / 版本对不上仍拒 / 显式 override 不受约束）。
-`scripts/soko gate` 侧同一条闸门在 **cargo 步骤之前**拒绝（别让人等完 fmt/clippy/test 才听说构建旧了），
-exit 3。
-
 ## 5 失败时的可读输出与 CI 界面
 
 - **人读**（本地/日志）：保留今天的表，判负行后追加缩进块：
@@ -249,8 +233,6 @@ exit 3。
 7. **§4.4 的前置判卷命令**已实现：`--bin`/`SOKONANODA_BIN` 时比对二进制自报版本与
    `sokonanoda-version.txt`（优先）/`Cargo.toml`，不一致 ⇒ exit 2；走启动器时读
    `scripts/soko version --json`，`cli.source` 含 `STALE`/`unknown`/`unverified` ⇒ exit 2。
-   **2026-10-14 追加**：`cli.source == repo-build` 且 `build.stale` ⇒ exit 2（§4.4 的
-   BUILD-STALE 闸门，含"给正解"与人话）；`build.profile == debug` ⇒ stderr 警告（不拒）。
 8. **计数不锁**：当轮实测 **34 个目标 · 315 checked · 96 open · 0 判负**（课程内容与
    另一条线在并行增长——正是"不锁计数"的理由）。`--ledger` 默认写
    `docs/courses/ledger.jsonl`（`soko.course-ledger/1`，字段照 §3），本轮没有跑它，
