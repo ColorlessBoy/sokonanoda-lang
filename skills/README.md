@@ -86,8 +86,8 @@ ln -s "$PWD/skills/sokonanoda-teacher" ~/.agents/skills/sokonanoda-teacher
 #       customSkillDirs: ["/abs/path/to/sokonanoda-lang/skills"]
 ```
 
-其他 harness 若需要 LSP：`.opencode/lsp/sokonanoda-lsp.sh` shim →
-`scripts/soko lsp`。
+其他 harness 若需要 LSP：`.opencode/lsp/sokonanoda-lsp.sh` shim → **只做转发**给
+`scripts/soko lsp`（自己不选二进制 ⇒ 链只有一条，与 DSH 接线同源；`SOKONANODA_BIN` 是逃生门）。
 
 ## 守护
 

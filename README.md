@@ -224,12 +224,13 @@ Code agents are first-class users of this repo, two ways:
   (frozen kernel, Lean-4-subset syntax, kernel-only judging) and the
   TDD/docs-first workflow.
 
-Editor feedback for agents needs no extra tooling: the repo-root
-`opencode.json` starts the LSP through `.opencode/lsp/sokonanoda-lsp.sh`, which
-resolves an installed VS Code extension binary, a local build, or the
-version-pinned GitHub Release binary (auto-download; set
-`SOKONANODA_LSP_OFFLINE=1` to forbid the network step). CLI-based agents get
-the same contract via `--json` and `watch`.
+Editor feedback for agents needs no extra tooling: opencode's plugin
+(`.opencode/plugins/sokonanoda.ts`) wires the native `sokonanoda-lsp` and rewrites
+`lsp.command` (`opencode.json` has no `lsp` block). Other harnesses use the
+`.opencode/lsp/sokonanoda-lsp.sh` shim — **forward only** to `scripts/soko lsp`
+(`SOKONANODA_BIN` is the escape hatch), which resolves a version-matched repo
+build, the cache, or the pinned Release (`SOKONANODA_OFFLINE=1` forbids the
+download); CLI agents get the same contract via `--json`/`watch`.
 
 ## Development principles
 

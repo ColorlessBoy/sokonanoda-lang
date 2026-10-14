@@ -350,9 +350,9 @@ that any skill-aware agent (Claude Code, opencode, …) can load:
 | `sokonanoda-dev` | A careful contributor to the compiler stack (frozen kernel, TDD discipline) |
 | `sokonanoda-ci` | A disciplined releaser (CI verification, release pipeline) |
 
-The repo-root `opencode.json` already wires the language server for
-`.sokonanoda` files, so opening this repo in opencode gives you
-kernel-checked diagnostics in the agent's own editor loop. The same
+opencode's startup plugin (`.opencode/plugins/sokonanoda.ts`) already wires the
+language server for `.sokonanoda` files, so opening this repo in opencode gives
+you kernel-checked diagnostics in the agent's own editor loop. The same
 `--json` event stream (`sokonanoda --json file`, `sokonanoda watch`)
 is the integration surface for any tooling you want to build.
 
