@@ -1064,23 +1064,17 @@ mod tests {
             false,
         )
         .is_none());
-        // **默认开**（2026-10-01 用户拍板；同轮复核这条后果后接受 ✓）：同一条
-        // 输入走 [`solve_prefix`] ⇒ 待定档按"**域同形 ⇒ 跟已解兄弟**"把 `B` 解成 `A`
-        // 的值 `Nat`（`{A B : Prop}` 两层域同形）。⚠ 这是**有意**的接受面变宽（刀2 的
-        // 规则本身）；"严格档不许猜"由上面那条钉死 ✓。
-        let guessed = solve_prefix(
-            &layers,
-            &result,
-            2,
-            &[Some(crate::proof::parse_expr_text("Nat").unwrap())],
-            None,
-            &empty_defs(),
-            &|_| false,
-        )
-        .expect("默认态：待定档把 `B` 与同形兄弟 `A` 合一");
+        // **默认档 = 引擎档**（IA-4 M4 起）：同一条输入走 [`solve_prefix`] ⇒ **仍 `None`** ✓
+        // —— E19 的"域同形 ⇒ 跟已解兄弟"在 **`Prop` 位**上已被收窄掉（2026-10-14 `adc4ced4`：
+        // `pp_shape::borrowable`「`Prop` 位不借」✓，理由 = **命题是内容、不是形状**）。
+        // ⚠ 旧断言（2026-10-01）钉的是那次**有意**的接受面变宽（E19 刀2 的偏离），它自
+        // 2026-10-14 起只保留在**类型参数位**上 ⇒ 旧断言不再成立 ✓；它真正钉的那件事换层
+        // 钉住：`Type` 位 ⇒ `pending_solver_unifies_same_shape_siblings_and_never_guesses` ④ ·
+        // `Sibling` 档 ⇒ 同测试 ① · `Prop` 位不借 ⇒ `pp_shape::tests` ✓。
+        let arg = [Some(crate::proof::parse_expr_text("Nat").unwrap())];
         assert!(
-            matches!(&guessed[1], Expr::Ident { name, .. } if name == "Nat"),
-            "`B` 必须跟同形兄弟 `A := Nat` 的值：{guessed:?}"
+            solve_prefix(&layers, &result, 2, &arg, None, &empty_defs(), &|_| false).is_none(),
+            "`Prop` 位不许借同形兄弟的值 ✗（命题是内容、不是形状）"
         );
     }
 

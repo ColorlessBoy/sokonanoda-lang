@@ -207,3 +207,39 @@ fn spine_unreadable(
     // ③-b **旧写法（逐位对齐 `layers[0..]`）可证明读不通** ✓。
     !super::elab::args_fit_layers_in_order(&layers[..args.len()], &args, ctx, scope, None)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn expr(text: &str) -> Expr {
+        crate::proof::parse_expr_text(text).expect("parse")
+    }
+
+    /// **E19 借用的收窄**（2026-10-14 `adc4ced4`）：`Prop` 位**不借**、`Type` 位照旧借 ✓。
+    ///
+    /// 起因：`And.intro {a b : Prop}` 两位的域都是 `Prop` ⇒ `same_shape` 判同形 ⇒ `a`
+    /// 借走 `b` 的值 ⇒ **命题的内容被丢掉** ✗（实测：`I.4/unit12-solution:351`）。
+    /// 端到端那条在 `implicit::tests::solve_prefix_reads_the_expected_type` ✓。
+    #[test]
+    fn borrowable_refuses_prop_slots_and_keeps_type_slots() {
+        let prop = expr("Prop");
+        let type0 = expr("Type 0");
+        assert!(
+            crate::spine::same_shape(&prop, &prop) && crate::spine::same_shape(&type0, &type0),
+            "两条同形（判据前半段）⇒ 收窄只动 `Prop` 那一侧 ✓"
+        );
+        assert!(
+            !borrowable(&prop, &prop),
+            "`Prop` 位不许借 ✗（命题是内容、不是形状）"
+        );
+        assert!(
+            borrowable(&type0, &type0),
+            "`Type` 位照旧借 ✓（E19 的设计场景）"
+        );
+        assert!(
+            !borrowable(&type0, &prop),
+            "不同形 ⇒ 不借 ✓（`same_shape` 仍是必要条件）"
+        );
+    }
+}
