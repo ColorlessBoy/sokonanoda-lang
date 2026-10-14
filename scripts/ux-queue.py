@@ -2068,7 +2068,19 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
         with lock_guard():
             held = [c for c in read_lock()["claims"] if c.get("id") == ident]
             if held and held[0].get("owner") != owner and not force:
-                print(f"✗ `{ident}` 被 `{held[0].get('owner')}` 认领着 ⇒ 别替别人收口 ✗",
+                # ⚠ **持有者本人也会走到这里**（`AGENT-CANNOT-HAND-BACK`，2026-10-14）：
+                # 闸门只比"锁里的 owner == 本次的 owner"，而认领与收口是**两次调用**
+                # ⇒ 认领时写了 `--owner X`、收口时没写 ⇒ 本人被当成"别人" ✗（实测见
+                # `_default_owner` 的说明）。**闸门不放宽**（别人的认领照样拒 ✓）——
+                # 缺的是"本人怎么证明自己是本人"这条路 ⇒ 判红信息里必须**把它写出来** ✗
+                # （"守卫看着在、其实缺一条路"的病根就是：守卫不说路在哪）。
+                print(f"✗ `{ident}` 被 `{held[0].get('owner')}` 认领着 ⇒ 别替别人收口 ✗\n"
+                      f"   · **如果 `{held[0].get('owner')}` 就是你**（认领与收口要**同一个身份**）："
+                      f"收口时带上 `--owner {held[0].get('owner')}`，"
+                      f"或在会话里 `export SOKO_AGENT={held[0].get('owner')}`"
+                      f"（之后每条命令的 `--owner` 默认值都是它 ✓）\n"
+                      f"   · 否则等同资源的那个收口 —— **别拿 `--force` 顶**"
+                      f"（那是给**陈旧**锁（进程已死 / 超 TTL）用的，不是替别人收口的旁路 ✗）",
                       file=sys.stderr)
                 return 1
             holder = held[0].get("owner") if held else owner
@@ -3632,6 +3644,163 @@ def selftest_scheduler(expect) -> None:
             expect(f"**收口后槽位归还**（实测 {len(live_claims())} 条 ⇒ 期望 0）",
                    live_claims() == [])
             write_lock([])
+            # ⑪b **持有者本人的交接路**（`AGENT-CANNOT-HAND-BACK`，2026-10-14 · spineM 实测 ✗）：
+            #     认领闸门只比「锁里的 owner == 本次的 owner」，而认领与收口是**两次调用** ⇒
+            #     认领时写了 `--owner X`、收口时没写（编排者给的模板就是这样）⇒ **本人被当成别人**
+            #     （夹具实测改前：`--claim FX-HAND --owner SELF` + `--advance FX-HAND --to blocked`
+            #     （无 `--owner`）⇒ **rc=1 且锁还攥在自己手里** ✗）。修法 = 身份的**默认值**按会话
+            #     解析（`_default_owner()`：`$SOKO_AGENT` → `$SOKO_OWNER` → `用户@主机`），
+            #     **闸门谓词一个字没改** ⇒ 四臂：自己 ⇒ 放行 + 放锁 · 别人 ⇒ 仍拒（两个目标都测）·
+            #     无认领 ⇒ 正常 · 横向（受闸门的四个目标一起放行，别只修 `blocked` ✗）。
+            _saved_agent = os.environ.get("SOKO_AGENT")
+
+            def _as_agent(value, fn):
+                """临时把会话身份设成 `value` 跑 `fn()`（跑完**逐字还原**环境 ✓）。"""
+                if value is None:
+                    os.environ.pop("SOKO_AGENT", None)
+                else:
+                    os.environ["SOKO_AGENT"] = value
+                try:
+                    return fn()
+                finally:
+                    if _saved_agent is None:
+                        os.environ.pop("SOKO_AGENT", None)
+                    else:
+                        os.environ["SOKO_AGENT"] = _saved_agent
+
+            def _held(ident: str = "X-2") -> list[str]:
+                return [c.get("owner") for c in live_claims() if c.get("id") == ident]
+
+            def _own(to: str, frm: str = "todo", reason: str = "一轮做完，条目未完") -> int:
+                """造「X-2 被 SELF 持有 + 会话身份 SELF」的形状，收口到 `to`（返回 rc）。"""
+                EVENTS.write_text("", encoding="utf-8")
+                write_lock([{"id": "X-2", "owner": "SELF", "resources": ["mod/2"], "ts": _now()}])
+                if frm == "in_progress":
+                    quiet(cmd_advance, "X-2", "in_progress", "", "", "", "SELF", False, rows)
+                return _as_agent("SELF", lambda: quiet(
+                    cmd_advance, "X-2", to, real_sha, "读数", reason, _default_owner(), False, rows))
+
+            expect("⑪b 会话身份 = 认领者（`$SOKO_AGENT` 进 `_default_owner`）",
+                   _as_agent("SELF", _default_owner) == "SELF")
+            rc = _own("blocked")
+            expect(f"⑪b **本人** `--to blocked` 放行（rc={rc} ⇒ 期望 0）", rc == 0)
+            expect(f"⑪b 锁**真的释放**（实测 {_held()} ⇒ 期望 []）", _held() == [])
+            expect(f"⑪b 状态 = blocked（实测 {m_state('X-2')}）", m_state("X-2") == "blocked")
+            # 正对照①：**别人的**认领 + `--to blocked` ⇒ 仍拒 + 锁不动
+            EVENTS.write_text("", encoding="utf-8")
+            write_lock([{"id": "X-2", "owner": "SELF", "resources": ["mod/2"], "ts": _now()}])
+            rc = _as_agent("OTHER", lambda: quiet(
+                cmd_advance, "X-2", "blocked", "", "", "一轮做完，条目未完",
+                _default_owner(), False, rows))
+            expect(f"⑪b 正对照：**别人** `--to blocked` 仍被拒（rc={rc} ⇒ 期望 1）", rc == 1)
+            expect(f"⑪b 正对照：锁没被放掉（实测 {_held()} ⇒ 期望 ['SELF']）", _held() == ["SELF"])
+            # 正对照②：**别人的**认领 + `--to done` ⇒ 仍拒（别把整条闸门关掉 ✗）
+            EVENTS.write_text("", encoding="utf-8")
+            write_lock([{"id": "X-2", "owner": "SELF", "resources": ["mod/2"], "ts": _now()}])
+            expect("⑪b 正对照：先造 in_progress（`todo → done` 本就不合法 ⇒ 别拿非法迁移冒充闸门）",
+                   quiet(cmd_advance, "X-2", "in_progress", "", "", "", "SELF", False, rows) == 0)
+            rc = _as_agent("OTHER", lambda: quiet(
+                cmd_advance, "X-2", "done", real_sha, "读数", "", _default_owner(), False, rows))
+            expect(f"⑪b 正对照：**别人** `--to done` 仍被拒（rc={rc} ⇒ 期望 1）", rc == 1)
+            # 无认领 ⇒ 正常（锁里没有它 ⇒ 闸门与身份都无关，别误伤）
+            EVENTS.write_text("", encoding="utf-8")
+            write_lock([])
+            expect(f"⑪b 无认领时锁是空的（实测 {live_claims()}）", live_claims() == [])
+            rc = _as_agent("SELF", lambda: quiet(
+                cmd_advance, "X-2", "blocked", "", "", "无认领也允许（本来就没锁）",
+                _default_owner(), False, rows))
+            expect(f"⑪b 无认领 `--to blocked` 正常（rc={rc} ⇒ 期望 0）", rc == 0)
+            # 横向（`AGENTS.md` 硬规则 0(b)）：修的是**身份解析**（一处），不是 `blocked` 独有 ⇒
+            # 受闸门的四个目标逐格走同一条臂（`todo → done` 不合法 ⇒ 那两个先到 `in_progress`）
+            for _to, _frm in (("wo_filed", "todo"), ("todo", "in_progress"), ("done", "in_progress")):
+                rc = _own(_to, frm=_frm, reason="横向臂")
+                expect(f"⑪b 横向：本人 `--to {_to}`（起始 {_frm}）rc={rc}（期望 0）+ 放锁",
+                       rc == 0 and _held() == [])
+            write_lock([])
+            EVENTS.write_text("", encoding="utf-8")
+            # 身份解析的两条边界：`$SOKO_OWNER` 是**旧名**（照旧生效 ⇒ 没破坏既有语义）；
+            # 两个都设且不一致 ⇒ `_guard_owner` 判红（rc=2 那一族，别静默挑一个 ✗）
+            _saved_legacy = os.environ.get("SOKO_OWNER")
+            try:
+                os.environ.pop("SOKO_AGENT", None)
+                os.environ["SOKO_OWNER"] = "LEGACY"
+                expect("⑪b 只设 `$SOKO_OWNER` ⇒ 旧名照旧生效（既有语义没动）",
+                       _default_owner() == "LEGACY")
+                os.environ["SOKO_AGENT"] = "SESSION"
+                expect("⑪b `$SOKO_AGENT`（会话身份）优先于旧名", _default_owner() == "SESSION")
+                _conflict = False
+                try:
+                    _guard_owner()
+                except UsageError:
+                    _conflict = True
+                expect("⑪b 两个身份源不一致 ⇒ `_guard_owner` 判红（不许静默挑一个 ✗）", _conflict)
+                os.environ["SOKO_OWNER"] = "SESSION"
+                _conflict = False
+                try:
+                    _guard_owner()
+                except UsageError:
+                    _conflict = True
+                expect("⑪b 两个身份源一致 ⇒ 不误红", not _conflict)
+            finally:
+                os.environ.pop("SOKO_AGENT", None)
+                if _saved_legacy is None:
+                    os.environ.pop("SOKO_OWNER", None)
+                else:
+                    os.environ["SOKO_OWNER"] = _saved_legacy
+            # ⑪c **真 CLI 子进程**（跨调用共用会话身份 ⇒ 本人交接 rc=0 + 锁释放）：
+            #     ⚠ 判据要求「真起了子进程」的**证据** ⇒ 这里给三件：`Popen` 的真 `pid`
+            #     （≠ 本进程）、`wait()` 的真退出码、以及**只有子进程写得出来**的产物
+            #     （夹具根里的锁文件 + 事件表）。夹具根**自带 `git init`** ⇒ 锁是**真锁文件**，
+            #     但整棵树在临时目录里 ⇒ **不碰真台账/真锁** ✓（不是 stub 掉闸门的臂 ✓）。
+            _cli = Path(tmp) / "cliroot"
+            (_cli / "scripts").mkdir(parents=True, exist_ok=True)
+            (_cli / "docs" / "gaps").mkdir(parents=True, exist_ok=True)
+            subprocess.run(["git", "init", "-q", str(_cli)], capture_output=True)
+            (_cli / "Cargo.toml").write_text("", encoding="utf-8")
+            (_cli / "scripts" / "ux-queue.py").write_text("# 根标记（`_guard_root` 的必需文件）\n",
+                                                          encoding="utf-8")
+            (_cli / "docs" / "gaps" / "ledger.jsonl").write_text("", encoding="utf-8")
+            (_cli / "docs" / "ux-findings-2026-10-12.md").write_text(
+                "## 2 高\n\n| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核 |\n"
+                "|---|---|---|---|---|---|---|\n| FX-CLI | 主线 | 夹具 | 中 | `true` | fixtures | — |\n",
+                encoding="utf-8")
+            (_cli / "docs" / "ONBOARDING.md").write_text(
+                "### 0.2 队列\n\n<!-- QUEUE:SUMMARY:BEGIN -->\n"
+                "<!-- QUEUE:COUNTS total=0 blocker=0 high=0 medium=0 low=0 -->\n**占位**\n"
+                "<!-- QUEUE:SUMMARY:END -->\n\n## 3 下节\n", encoding="utf-8")
+            (_cli / "docs" / "ux-queue-extras.jsonl").write_text(json.dumps({
+                "id": "FX-CLI", "source": "orchestrator-schedule", "facet": "主线",
+                "severity": "medium", "repro": "true", "disposition": "fix",
+                "owner": "fixtures", "why": "真 CLI 子进程夹具"}, ensure_ascii=False) + "\n",
+                encoding="utf-8")
+            _cli_env = dict(os.environ, SOKO_QUEUE_ROOT=str(_cli), SOKO_AGENT="SELF")
+            _cli_env.pop("SOKO_OWNER", None)
+            _cli_ev = _cli / "docs" / "ux-queue-events.jsonl"
+            _me = str(Path(__file__).resolve())
+            _p1 = subprocess.Popen(
+                [sys.executable, _me, "--claim", "FX-CLI", "--owner", "SELF",
+                 "--touch", "scripts/ux-queue.py"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=str(_cli),
+                env=_cli_env)
+            _p1.communicate()
+            expect(f"⑪c 真子进程 `--claim`：pid={_p1.pid}（≠ 本进程 {os.getpid()}）rc={_p1.wait()}",
+                   _p1.returncode == 0 and _p1.pid != os.getpid())
+            _p2 = subprocess.Popen(
+                [sys.executable, _me, "--advance", "FX-CLI", "--to", "blocked",
+                 "--reason", "一轮做完，条目未完"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=str(_cli),
+                env=_cli_env)
+            _p2.communicate()
+            _rc2 = _p2.wait()
+            _cli_lock = _cli / ".git" / "soko-ux-queue.lock"
+            _cli_held = ([c.get("id") for c in
+                          json.loads(_cli_lock.read_text(encoding="utf-8"))["claims"]]
+                         if _cli_lock.exists() else [])
+            _cli_events = _cli_ev.read_text(encoding="utf-8").splitlines()
+            expect(f"⑪c 真子进程 `--advance --to blocked`：pid={_p2.pid} rc={_rc2}（期望 0）"
+                   f" ⇒ 本人交接路通 ✓", _rc2 == 0)
+            expect(f"⑪c 子进程的产物（事件 {len(_cli_events)} 行 · 锁 {_cli_held}）⇒ "
+                   f"2 行 + 锁已释放", len(_cli_events) == 2 and _cli_held == [])
             # ⑧b **收口证据里的 commit 必须真存在**（2026-10-12 接口 agent 提交
             #     `SUB-advance-commit-unchecked`）：假 sha 必须被拒（旧闸门只查非空字符串 ✗）。
             write_lock([])
@@ -7112,7 +7281,11 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"**5 条反向验证**（缺渲染块判红 · 补块转绿 · 幽灵行判红 · 手改计数判红 · 未登记探针判红）"
           f" + **调度器 22 条**（非法迁移/无证据收口/两层漂移/重开要理由/umbrella 子在开不许收口/"
           f"**4 核槽位满拒第 5 个**/**同资源互斥**/死进程认领不算活跃且可 `--force` 接管/`--release` 只放自己的/"
-          f"**认领活过 CLI 调用（不写 pid）**/**收口即放槽**/--next 跳过终态与对照）"
+          f"**认领活过 CLI 调用（不写 pid）**/**收口即放槽**/--next 跳过终态与对照/"
+          f"⭐ **本人交接路**（`$SOKO_AGENT` 进 `_default_owner` ⇒ 自己 `--to blocked`/`done`/"
+          f"`wo_filed`/`todo` 放行 + **真放锁**，别人**两个目标都仍拒**，无认领正常，"
+          f"`$SOKO_OWNER` 旧名照旧 + 两个身份源不一致判红，**真 CLI 子进程**（自带 `git init` "
+          f"的夹具根 ⇒ 真锁文件、不碰真台账）跨调用交接 rc=0）"
           f" + **编排者排期 13 条**（缺理由拒/只追加事件/**真 `--json` 的 `open` 含它且状态 todo**/"
           f"`--next` 推得出/`--claim` + 带证据收口/缺 `--reading` 判红/两层漂移**不豁免**/真 CLI 路径落地）"
           f" + **子任务视图 15 条**（源行优先/顺序不变/不丢行/无重复/反向两层漂移咬得住**且点名 K-2**/"
@@ -7196,9 +7369,54 @@ def cmd_selftest(args: argparse.Namespace) -> int:
 
 
 def _default_owner() -> str:
+    """**认领者身份的唯一出处**：`$SOKO_AGENT`（会话身份）→ `$SOKO_OWNER`（旧名）→ `用户@主机`。
+
+    ⚠ **为什么需要 `$SOKO_AGENT`**（`AGENT-CANNOT-HAND-BACK`，2026-10-14 · spineM 实测 ✗）：
+    认领闸门（`cmd_advance`）判"是不是自己"**只有一处谓词** —— `锁里的 owner == 本次的 owner`。
+    这在**同一条命令行**里永远成立（认领与收口都不写 `--owner` ⇒ 两次都解析成 `用户@主机` ✓）；
+    但只要认领时显式写了 `--owner SPINE-M`、收口时**没写**（编排者给的模板就是这样：
+    `--claim <id> --owner <ID> --touch <res>` … `--advance <id> --to done --commit … --reading …`
+    ⇒ 后一条**没有 `--owner`**）⇒ 收口的 owner 变成 `用户@主机` ≠ 锁里的 `SPINE-M`
+    ⇒ 闸门把**持有者本人**当成"别人"，判红「别替别人收口」✗ 而**锁还攥在自己手里**
+    ⇒ 条目既收不了口、也交不回去（唯一出路是编排者手敲 `--unclaim --owner SPINE-M`）。
+    实测（`SOKO_QUEUE_ROOT` 指夹具）：`--claim FX-HAND --owner SELF` 之后
+    `--advance FX-HAND --to blocked --reason …`（无 `--owner`）⇒ **rc=1 + 锁未释放** ✗；
+    `--to done` 同形（同一段闸门）⇒ 这不是 `blocked` 独有的洞，是**身份跨调用丢了** ✗。
+
+    ⇒ 口径：**身份必须跨调用稳定**，而"哪个 agent 在跑"只有**环境**知道（`--owner` 是每次
+    调用各写各的）。所以 `--owner` 的**默认值**按会话身份解析 —— 认领/收口/`--unclaim`/`--next`
+    **同一个默认值**（都在 `_default_owner()` 这一处 ⇒ 不可能"两个视图两个答案" ✓）。
+    ⚠ 这是**同一条身份源的第三个拼法**（CLI 显式 > `$SOKO_AGENT` > `$SOKO_OWNER` > `用户@主机`），
+    不是第三种身份源：**闸门比的还是一个 `owner` 字符串**，谓词一个字没改 ⇒ **没放宽** ✗
+    （别人的认领照样拒，见 `_guard_owner` 与自检的两条对照臂 ✓）。
+    ⚠ **不设 `$SOKO_AGENT`（也不设 `$SOKO_OWNER`）⇒ 行为与本改动前逐字节相同** ✓
+    （默认仍是 `用户@主机`）—— 这条"惰性"是故意的：**修的是缺的那条路，不是把闸门关掉** ✓。
+    """
     import getpass
     import socket
-    return os.environ.get("SOKO_OWNER") or f"{getpass.getuser()}@{socket.gethostname().split('.')[0]}"
+    agent = (os.environ.get("SOKO_AGENT") or "").strip()
+    legacy = (os.environ.get("SOKO_OWNER") or "").strip()
+    if agent or legacy:
+        return agent or legacy
+    return f"{getpass.getuser()}@{socket.gethostname().split('.')[0]}"
+
+
+def _guard_owner() -> None:
+    """两个身份环境变量**同时设且不一致** ⇒ rc=2 + 人话（别静默挑一个 ✗）。
+
+    ⚠ 与 `_guard_root`/`_guard_encoding` 同一族（环境错 = rc=2、不丢栈 ✓），也与
+    `scripts/soko` 的版本钉口径同源：**多个源必须一致，不一致就指名** ✗
+    （"判不了 ≠ 绿"——静默按 `$SOKO_AGENT` 走会让另一份声明变成假话）。
+    ⚠ 只有**两个都设且不同**才红 ⇒ 今天（没人设 `$SOKO_AGENT`）**零行为变化** ✓。
+    """
+    agent = (os.environ.get("SOKO_AGENT") or "").strip()
+    legacy = (os.environ.get("SOKO_OWNER") or "").strip()
+    if agent and legacy and agent != legacy:
+        raise UsageError(
+            f"身份环境变量**两个都设了且不一致**：`SOKO_AGENT={agent}` vs "
+            f"`SOKO_OWNER={legacy}` ⇒ 认领/收口会各解析成一个身份（闸门把本人当别人 ✗）"
+            f" —— 只留一个（`unset SOKO_OWNER` 或 `unset SOKO_AGENT`），"
+            f"或把两者改成同一个值 ✓")
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -7279,7 +7497,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--facet", metavar="F", default="", help="提交的面（默认 主线）")
     parser.add_argument("--severity", metavar="S", default="", help="提交的严重度（默认 medium）")
     parser.add_argument("--unclaim", action="store_true", help="放掉自己的认领（槽位归还）")
-    parser.add_argument("--owner", default=_default_owner(), help="认领者（默认 $SOKO_OWNER 或 用户@主机）")
+    parser.add_argument("--owner", default=_default_owner(),
+                        help="认领者（默认 $SOKO_AGENT → $SOKO_OWNER → 用户@主机；"
+                             "认领与收口要用**同一个**身份，否则闸门把本人当别人 ✗）")
     parser.add_argument("--force", action="store_true", help="接管**陈旧**锁（进程已死或超 TTL）")
     return parser
 
@@ -7298,6 +7518,7 @@ def main() -> int:
     try:
         _guard_root()
         _guard_encoding()
+        _guard_owner()
         if args.selftest:
             return cmd_selftest(args)
         rows, undecided = build_queue()
