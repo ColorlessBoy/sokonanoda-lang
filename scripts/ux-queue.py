@@ -16,6 +16,12 @@ Known limitation / CI 台账 / 代码里的 TODO / 开工单 §0.2），彼此�
   `scheduled` 而 §0.2 无该行 ⇒ 合并的 `--check` **rc=0 · 从不点名**，而 `--next` 推得出它、
   `--json.open` 含它 ⇒ 三视图打架；`--selftest` 那条臂也没有鉴别力（只断言"补上行 ⇒ 转绿"，
   **删掉那行照样绿** ✗）⇒ 现在两向都有牙，自检有「删行 ⇒ 必红 + 点名」的对照臂 ✓。
+  §0.2 的**渲染块逐行逐字节**必须等于 `render_onboarding()` 的输出（`ONBOARDING-LIST-NO-GUARD`，
+  2026-10-15 · 第十三次独立复核实测 ✗）：原先只解析**表格行**与 **COUNTS 行** ⇒ 块里那句
+  「最靠前的 5 条：…」**零守卫** —— 把它改成「（无）」（COUNTS 一个字不动）⇒ `--check` **rc=0
+  且不点名**，而 `--next` 照推那条、`--json.open` 照含它（= ② 的静默格）；换成幽灵 id 同样
+  rc=0 ✗。而块**自称**「本块由脚本渲染，手改会被 `--check` 判红」—— 那句话只对 COUNTS 行
+  成立 ✗。⇒ 现在比对**整个块**（`--render` 幂等 ⇒ 比对是免费的：纯内存、无子进程 ✓）。
 * `--check-uncovered --live` —— 再加上**读数自检**：逐条跑探针，实读与「台账写的处置」
   不符 ⇒ 判红 ✗（例：写着 `fix` 的条目探针已经 exit 1 ⇒ 该改成 `fixed` 并记账）。
 
@@ -595,6 +601,35 @@ def load_onboarding_counts() -> dict[str, int] | None:
     return None
 
 
+def load_onboarding_block() -> list[str] | None:
+    """§0.2 渲染块的**原文行**（含 `ONB_BEGIN` / `ONB_END` 两行；没有完整块 ⇒ `None`）。
+
+    ⚠ **为什么需要单独读它**（`ONBOARDING-LIST-NO-GUARD`，2026-10-15 · 第十三次独立复核实测 ✗）：
+    ② 原先只有两处解析 —— **表格行**（`load_onboarding_queue`）与 **COUNTS 行**
+    （`load_onboarding_counts`）⇒ 块里那句「最靠前的 5 条：…」**零守卫** ✗。实测（真 clone 夹具 +
+    一条开着条目 + `--render`）：把它改成「（无）」（**COUNTS 一个字不动**）⇒ `--check` **rc=0
+    且不点名**，而 `--next` 仍推得出那条、`--json.open` 仍含它 ⇒ 命中 ② 的形状（`--check` 绿
+    且不点名 ∧ `--next` 会推出该条）；换成幽灵 `GHOST-13` 同样 rc=0 ✗。而块**自称**「本块由脚本
+    渲染，手改会被 `--check` 判红」—— 那句话**只对 COUNTS 行成立** ✗。
+    ⇒ 判据 = `check_uncovered` ② 把本函数的原文与 `render_onboarding()` 的输出**逐行逐字节**比对
+    （`--render` 幂等 ⇒ 比对**免费**：纯内存、无子进程 ✓；读入即 UTF-8 + 换行归一化 ⇒
+    "逐行逐字节"是这里能达到的最强口径）。
+
+    ⚠ **比对的是原文，不是 strip 过的内容** ✗：`cmd_render` 是从 `ONB_BEGIN` 起**整段重写**的
+    ⇒ 缩进 / 前后空行 / 多余的空白都属于"与脚本渲染的结果不同"，就该判红并让人跑 `--render` ✓。
+    ⚠ 只有 `BEGIN` 没有 `END` ⇒ 返回 `None`（与"没有块"同一处判红，不另开一条形状 ✗）。
+    """
+    lines = _onboarding_section()
+    for i, line in enumerate(lines):
+        if line.strip() != ONB_BEGIN:
+            continue
+        for j in range(i + 1, len(lines)):
+            if lines[j].strip() == ONB_END:
+                return lines[i:j + 1]
+        return None
+    return None
+
+
 def render_onboarding(rows: list[dict]) -> str:
     """把 §0.2 的摘要块渲染成文本（**由脚本生成** ⇒ 文档不可能与队列漂移 ✓）。"""
     s = summary(rows)
@@ -929,6 +964,38 @@ def check_uncovered(rows: list[dict], live: bool, timeout: int, undecided: list[
             print(f"✗ §0.2 摘要与队列**不同数**：文档 {doc_counts} vs 实测 {want} ⇒ "
                   f"跑 `--render` 刷新（**手改文档不算** ✗）", file=sys.stderr)
             bad += 1
+        # ⭐ **渲染块的每一行都要对**（`ONBOARDING-LIST-NO-GUARD`，2026-10-15 · 第十三次独立复核实测 ✗）：
+        # 上面那条只比 `QUEUE:COUNTS` 那一行 ⇒ 块里「最靠前的 5 条：…」**零守卫** ✗（实测：改成
+        # 「（无）」（COUNTS 不动）/ 换成幽灵 id ⇒ rc=0 且不点名，而 `--next` 照推、`--json.open`
+        # 照含它）。⇒ 判据 = 与 `render_onboarding()` 的**逐行逐字节**比对：它同时覆盖 COUNTS、
+        # 计数行、清单句与两个标记（**一处比对 = 整块都咬住** ✓）；`--render` 幂等 ⇒ 免费 ✓。
+        _want_block = render_onboarding(rows).splitlines()
+        _got_block = load_onboarding_block()
+        if _got_block != _want_block:
+            bad += 1
+            print(f"✗ §0.2 的**渲染块**与 `render_onboarding()` **逐行逐字节不同** ⇒ 跑 "
+                  f"`python3 scripts/ux-queue.py --render` 刷新（**手改文档不算** ✗）—— "
+                  f"本块自称「本块由脚本渲染，手改会被 `--check` 判红」，而 ② 原先只解析"
+                  f"**表格行**与 **COUNTS 行** ⇒ 「最靠前的 5 条」那句**零守卫** ✗"
+                  f"（改前实测：改成「（无）」/ 换成幽灵 id 都 rc=0 不点名，而 `--next` 照推该条）",
+                  file=sys.stderr)
+            if _got_block is None:
+                print(f"   （§0.2 里没有 `{ONB_BEGIN}` … `{ONB_END}` 的**完整块**）",
+                      file=sys.stderr)
+            else:
+                _n = max(len(_got_block), len(_want_block))
+                _diffs = 0
+                for _i in range(_n):
+                    _g = _got_block[_i] if _i < len(_got_block) else "<缺行>"
+                    _w = _want_block[_i] if _i < len(_want_block) else "<多行>"
+                    if _g == _w:
+                        continue
+                    _diffs += 1
+                    if _diffs <= 3:      # 只列前 3 处（点名够用；块一共 5 行 ✓）
+                        print(f"   第 {_i + 1} 行：文档 `{_g[:110]}` vs 渲染 `{_w[:110]}`",
+                              file=sys.stderr)
+                if _diffs > 3:
+                    print(f"   （共 {_diffs} 行不同，只列前 3 处）", file=sys.stderr)
 
     # ④ 读数（`--live`）
     if live and not bad:
@@ -6952,9 +7019,14 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     global INDEX, EXTRAS, ONBOARDING, GAPS_LEDGER
     import tempfile
     bad = 0
+    # **`expect` 调用点数**（2026-10-15）：读数里给出来 ⇒ "自检加了几条臂"是可核的数字，
+    # 不是一句"我加了臂" ✓（臂数写死在下面那句 summary 里会漂 ✗ ⇒ 这里**现数**）。
+    expect_calls = 0
 
     def expect(desc: str, cond: bool) -> None:
         nonlocal bad
+        nonlocal expect_calls
+        expect_calls += 1
         if not cond:
             bad += 1
             print(f"FAIL {desc}", file=sys.stderr)
@@ -7189,6 +7261,51 @@ def cmd_selftest(args: argparse.Namespace) -> int:
                 rc = check_uncovered(_r, live=False, timeout=5, undecided=_u)
             expect(f"手改摘要计数 ⇒ 判红（rc={rc}）", rc == 1)
             expect("判红信息里点名了不同数", "不同数" in err.getvalue())
+            # F. ⭐ **渲染块的清单句也要有守卫**（`ONBOARDING-LIST-NO-GUARD`，2026-10-15 ·
+            #    第十三次独立复核实测 ✗）：② 原先只解析**表格行**与 **COUNTS 行** ⇒ 块里那句
+            #    「最靠前的 5 条：…」**零守卫** —— 把它改成「（无）」（**COUNTS 一个字不动**）
+            #    ⇒ `--check` **rc=0 且不点名**，而 `--next` 照推那条、`--json.open` 照含它
+            #    （= 命中 ② 的形状）；换成幽灵 id 同样 rc=0 ✗。而块**自称**「手改会被 `--check`
+            #    判红」—— 只对 COUNTS 行成立 ✗。
+            #    ⇒ 靶子 = 把"只比 COUNTS"改回"整块逐行比对"的前一步（还原这条修法 ⇒ 下面
+            #    三条 F 臂必红 ✓）。三臂：改清单 ⇒ 判红 + 点名 · 幽灵 id ⇒ 判红 + 点名 ·
+            #    原文一个字不动 ⇒ rc=0（正对照，钉住"比对不会假红/不误伤" ✓）。
+            _good_block = render_onboarding(rows)
+            _list_line = [ln for ln in _good_block.splitlines() if ln.startswith("最靠前的 5 条：")][0]
+            _fixture_tail = "\n\n| id | 线 |\n|---|---|\n| X-1 | 有行 |\n"
+            # F1 **清单句**改「（无）」：COUNTS / 计数行 / 表格行**全部不动** ⇒ 旧判据全绿
+            tmp_onb.write_text("## 0.2 下一步\n\n"
+                               + _good_block.replace(_list_line, "最靠前的 5 条：（无）")
+                               + _fixture_tail, encoding="utf-8")
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                _r, _u = build_queue()
+                rc = check_uncovered(_r, live=False, timeout=5, undecided=_u)
+            expect(f"F1 手改**清单句**（COUNTS 不动）⇒ 判红（rc={rc}；改前 rc=0 ✗）", rc == 1)
+            expect("F1 判红信息里点名了那条 id（文档 vs 渲染两行都给）",
+                   "X-1" in err.getvalue())
+            expect("F1 判红信息里说清「渲染块逐行逐字节不同」并给出路 `--render`",
+                   "逐行逐字节不同" in err.getvalue() and "--render" in err.getvalue())
+            # F2 幽灵 id：清单里写一个队列没有的 id ⇒ 同样咬住（**不许只认"空清单"那一种形状** ✗）
+            tmp_onb.write_text("## 0.2 下一步\n\n"
+                               + _good_block.replace(_list_line,
+                                                     "最靠前的 5 条：`GHOST-13`（全量见 `--json`）")
+                               + _fixture_tail, encoding="utf-8")
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                _r, _u = build_queue()
+                rc = check_uncovered(_r, live=False, timeout=5, undecided=_u)
+            expect(f"F2 清单里换成**幽灵 id** ⇒ 判红（rc={rc}；改前 rc=0 ✗）", rc == 1)
+            expect("F2 判红信息里点名了幽灵 id", "GHOST-13" in err.getvalue())
+            # F3 正对照：块**原文一个字不动** ⇒ rc=0（`--render` 幂等 ⇒ 比对是免费的、也不假红）
+            tmp_onb.write_text("## 0.2 下一步\n\n" + _good_block + _fixture_tail, encoding="utf-8")
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                _r, _u = build_queue()
+                rc = check_uncovered(_r, live=False, timeout=5, undecided=_u)
+            expect(f"F3 正对照：渲染块未改动 ⇒ rc=0（rc={rc}）", rc == 0)
+            expect(f"F3 且 `render_onboarding()` 与文档块**逐行相同**（比对免费：纯内存、无子进程）",
+                   load_onboarding_block() == _good_block.splitlines())
             # E. 探针覆盖牙：地面真相里多一个**没人登记**的探针 ⇒ 判红
             globals()["probe_inventory"] = lambda: ["scripts/ux-probes/lang/zz-未登记.sh"]
             tmp_onb.write_text("## 0.2 下一步\n\n" + render_onboarding(rows) + "\n\n"
@@ -7275,10 +7392,13 @@ def cmd_selftest(args: argparse.Namespace) -> int:
         expect(f"真来源解析不许抛 UsageError：{err}", False)
 
     if bad:
-        print(f"ux-queue.py selftest: {bad} 条判据不成立 ✗", file=sys.stderr)
+        print(f"ux-queue.py selftest: {bad} 条判据不成立 ✗（共跑 {expect_calls} 个 `expect` 调用点）",
+              file=sys.stderr)
         return 1
     print(f"ux-queue.py selftest: {len(cases)} 条读数判定 + §0.2/摘要块解析 + "
-          f"**5 条反向验证**（缺渲染块判红 · 补块转绿 · 幽灵行判红 · 手改计数判红 · 未登记探针判红）"
+          f"**8 条反向验证**（缺渲染块判红 · 补块转绿 · 幽灵行判红 · 手改计数判红 · 未登记探针判红 · "
+          f"⭐ **渲染块的清单句**：手改清单（COUNTS 不动）判红 + 点名 · 幽灵 id 判红 + 点名 · "
+          f"原文不动 ⇒ rc=0（`ONBOARDING-LIST-NO-GUARD`））"
           f" + **调度器 22 条**（非法迁移/无证据收口/两层漂移/重开要理由/umbrella 子在开不许收口/"
           f"**4 核槽位满拒第 5 个**/**同资源互斥**/死进程认领不算活跃且可 `--force` 接管/`--release` 只放自己的/"
           f"**认领活过 CLI 调用（不写 pid）**/**收口即放槽**/--next 跳过终态与对照/"
@@ -7364,7 +7484,8 @@ def cmd_selftest(args: argparse.Namespace) -> int:
            f"`--add-child` 三个入口**都拒且零写入**、上限 64 是**数字**（64 过 / 65 拒）、"
            f"`locale=US-ASCII` ⇒ `UsageError`、真 CLI 在 `LC_ALL=C PYTHONUTF8=0` 下**没有栈**"
            f"且 rc ∈ {{0,2}}（**不许是 1 + 栈** ✗））"
-           f" + 真来源解析 全部成立 ✓")
+           f" + 真来源解析 全部成立 ✓"
+           f" + **`expect` 调用点 {expect_calls} 个**（现数 ⇒ 加臂/删臂时这个数字自己会动 ✓）")
     return 0
 
 
