@@ -1044,7 +1044,7 @@ def selftest_build_trust(failures: list[str], tmp: Path, channel: Channel) -> in
     made: list[Path] = []
     saved = {key: os.environ.get(key) for key in
              ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN", "SOKONANODA_VERSION",
-              "SOKONANODA_CACHE_DIR", "SOKONANODA_OFFLINE")}
+              "SOKONANODA_CACHE_DIR", "SOKONANODA_OFFLINE", "CARGO_TARGET_DIR")}
 
     def fixture(tag: str, *, profiles: tuple[str, ...] = ("release",),
                 stale_source: bool = False, pin_text: str | None = None) -> Path:
@@ -1077,7 +1077,12 @@ def selftest_build_trust(failures: list[str], tmp: Path, channel: Channel) -> in
     try:
         # 夹具环境必须**不带任何覆盖**（否则走 `--bin` 分支，闸门根本没被问到 ✗），
         # 缓存指到夹具自己的空目录（不读也不写真缓存）。
-        for key in ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN", "SOKONANODA_VERSION"):
+        # ⚠ **`CARGO_TARGET_DIR` 也要剥**（2026-10-14 实测被自己的臂咬住 ✓）：受管环境
+        #   （`compile-cache.py env`）把它指到 worktree 外的 target ⇒ 夹具的启动器会**同时**
+        #   看见外层的 `release` 构建 ⇒ "release 优先"直接选它、夹具的 `debug` 永远轮不上
+        #   ⇒ ④ 号臂当场判红（stderr 空）✓ —— **夹具不密封，臂就咬不住** ✓。
+        for key in ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN", "SOKONANODA_VERSION",
+                    "CARGO_TARGET_DIR"):
             os.environ.pop(key, None)
         os.environ["SOKONANODA_CACHE_DIR"] = str(tmp / "build-trust-cache")
         os.environ["SOKONANODA_OFFLINE"] = "1"
