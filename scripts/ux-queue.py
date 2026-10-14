@@ -2950,6 +2950,10 @@ def release_scan() -> tuple[dict[str, dict], list[tuple[str | None, str]]]:
     **rc=0 且不点名**（同样三条按**正确顺序** ⇒ rc=1、点名「与审计字段对不上」）✗。
     那正是"**事后可复查**"的破口：CLI 写过的形状可复查，**手改 / 重排**能让假 cut 完全逃过
     **两条读侧** ✗（`release-add`/`block`/`drop` 同族 —— 硬规则 0(b)：一起修 ✓）。
+    ⚠ 但**别把这条读成"`items` 逐字节相同"** ✗（`#4`，2026-10-14 · 第十次独立复核实测 ✗）：
+    `items` 是**追加序**列表、`release-drop` 按**值**删 ⇒ 把 `add`/`drop` 的相对顺序也换掉时，
+    **次序与成员都可能变**（drop 落在它的 add **之前**就删不掉）。真正的不变量只有
+    「**成员判据**顺序无关」+「**同判**」（`selftest_release_order_and_content` ①b 逐条钉着 ✓）。
 
     ⇒ 两件事**一起**做（缺一不可）：
       ① **节点登记与事件折叠分两趟**：先扫**全部** `release-open` 把节点集合收齐（顺序无关 ✓）
@@ -3037,7 +3041,8 @@ def release_scan() -> tuple[dict[str, dict], list[tuple[str | None, str]]]:
 def release_nodes() -> dict[str, dict]:
     """发版节点（`kind=release` 的事件折叠）：{节点id: {items, blockers, cut, cuts, …}}。
 
-    ⚠ **唯一出处 = `release_scan()`**（顺序无关的折叠 + 事件层问题清单都从它来 ✓）；
+    ⚠ **唯一出处 = `release_scan()`**（顺序无关的**成员判据** + 事件层问题清单都从它来 ✓；
+    ⚠ `items` 本身是**追加序**列表 ⇒ 别当集合用，见 `release_scan` 的说明）；
     本函数只把节点表那一半交出去（`release_node_ids()` / `cmd_release` / 两条读侧都读它 ✓）。
     ⚠ 返回的每个节点多带一个 `cuts`（**全部** cut，按追加顺序）与 `disorder`（乱序事件名）
     —— 读者别自己再扫一遍事件表（`AGENTS.md` 硬规则 0(b)：同一规则不许两处写 ✗）。
@@ -3059,7 +3064,13 @@ def cut_audit_problems(node: dict) -> list[str]:
       · ⭐ **只审最后一个 cut**（`#2`，2026-10-14 · 第九次独立复核实测 ✗）：折叠只留
         `node["cut"]` = **最后一条** ⇒ 手写两条 cut（**先假、后一致**）时，早先那条假 cut
         对判据**零输入**（`--check` 绿 ✗）。
-        `--release check` ⇒ 第二次 cut rc=1，实测 ✓）⇒ **只有手改能造** ⇒ 读侧必须**逐条**审 ✓。
+        ⚠ **机制陈述已改正**（`#5`，2026-10-14 · 第十次独立复核实测 ✗）：这里原先写
+        「CLI 路径造不出这个形状（`--release cut` 会先跑 `--release check` ⇒ **第二次 cut
+        rc=1**，实测 ✓）」—— **与实测不符** ✗：`--release check` 里**没有**"已经切过"这条
+        规则 ⇒ **合法**首切（树干净）之后再 `--release cut` **rc=0 并写入第二条 `release-cut`**
+        （实测见 VERDICT；自检 ⑥b 用**写路径**钉着它 ✓）。被挡的从来不是"第二条"，而是
+        **审计字段与 `commit` 对不上**的那一条 —— 而 CLI 的两个字段是从 `args.commit`
+        **现算**的 ⇒ **CLI 写不出假 cut** ✓（这一句才成立）⇒ 读侧必须**逐条**审 ✓。
 
     靶子 = 手写 `release-cut`：审计字段（`subject`/`patch_id`）与 `commit` **对不上**
     ⇒ 当场判红 ✗（正常 CLI 路径写不出这个形状：`cmd_release cut` 的两个字段就是从
@@ -5689,7 +5700,8 @@ def selftest_release_order_and_content(expect) -> None:
         ⇒ 真台账 + `release-add` + **假审计** `release-cut` 重排后：`items=[]`、`cut=None`
         ⇒ `--check` **rc=0 且不点名**（同三条按正序 ⇒ rc=1、点名「与审计字段对不上」）✗；
       · **`#2` 只审最后一个 cut**：手写两条（**先假、后一致**）⇒ 折叠只留最后一条 ⇒ 早先那条
-        假 cut 对判据**零输入**（`--check` 绿 ✗；CLI 路径被 `--release check` 挡住 ⇒ 只有手改 ✓）；
+        假 cut 对判据**零输入**（`--check` 绿 ✗）。⚠ **不是**"CLI 造不出两条 cut"（那是 `#5`
+        改正掉的错话 ✗：合法首切之后再切 **rc=0**）—— 挡住的是**假** cut（审计字段现算 ⇒
         CLI 写不出）⇒ 这一族只有**手改**能造 ✓）；
       · **`#3` `--check` 对节点内容全盲**：节点里一条**未 done** 的入版条目 + **合法形状**的
         cut ⇒ `--check` **rc=0** ✗ —— 而 `soko gate --fast` 与 CI 的 `ledger` job 跑的正是它 ✗；
@@ -5698,13 +5710,25 @@ def selftest_release_order_and_content(expect) -> None:
         `--check` 必红 ✗。
 
     断言（每条都点名靶子 ⇒ 定向突变必红）：
-      ① **顺序无关**：同一批事件两种顺序 ⇒ `items`/`blockers`/`cuts` **逐字节相同**
-         （旧折叠：乱序折出 `items=[]` · `cut=None` ✗）；
+      ① **成员判据顺序无关**：同一批事件两种顺序 ⇒ 下面这个夹具（只把 `release-open` 挪到
+         末尾）折出**同一份** `items`/`blockers`/`cuts`（旧折叠：乱序折出 `items=[]` ·
+         `cut=None` ✗）。⚠ **`items` 是"追加序"列表，不是集合**（`#4`，第十轮复核）：把
+         `add`/`drop` 的**相对顺序**也换掉 ⇒ 成员与次序**都可能不同** ⇒ ①b 逐条钉住这件事
+         （旧 commit 说的"两种顺序折出**同一份** `items`"/"逐字段相同"**是假的** ✗）；
+      ①b **追加序语义**（同事件多重集、换顺序）：`items` 按**追加序**（drop 按值删）⇒
+         换序后**次序/成员都可能变**；但**判据必须同判**（两序都 rc=1、都点名「对不上」✓）
+         —— 即"顺序无关"只承诺**成员判据**与**同判**，不承诺"同一份列表" ✓；
       ② **两种顺序同判**：都判红、都点名「对不上」（旧折叠：乱序 rc=0 静默 ✗）；
       ③ 乱序**另外**点名「乱序」（顺序无关 ≠ 把乱序当合法 ✗）；
       ④ **孤儿**：引用没有 `release-open` 的节点 ⇒ 判红 + 点名；正对照（节点都在）⇒ 不误报 ✓；
       ⑤ **每一条 cut 都审**：先假后一致 ⇒ 判红且点名「第 1/2 条」；正对照两条都一致 ⇒ rc=0；
-      ⑥ **CLI 路径挡得住**：假 cut 之后 `--release cut` rc=1 **且零写入**（⇒ `#2` 只有手改能造 ✓）；
+      ⑥ **假 cut 挡得住**：假 cut 之后 `--release cut` rc=1 **且零写入**（⇒ **假** cut 只有手改
+         能造 ✓）；⚠ **不是**"CLI 造不出两条 cut"（那是旧 commit 的错话 ✗）：⑥b 用**写路径**
+         连写两条**合法** cut ⇒ rc=0 且 `cuts` 真的变 2（见 ⑥b）；
+      ⑥b **CLI 能写多条 cut**（`#5`，第十轮复核）：合法首切之后再 `--release cut` ⇒ **rc=0**、
+         `cuts` 从 1 变 2、两条审计都对得上 ⇒ 读侧 `--check` 仍 rc=0（旧 commit 说"第二次 cut
+         rc=1 ⇒ CLI 造不出两条 cut"**与实测不符** ✗ —— 被挡的从来不是"第二条"，而是
+         **审计字段与 commit 对不上**的那一条 = **假** cut ✓）；
       ⑦ **`--check` 看得见节点内容**：未 done 的入版条目 ⇒ 判红 + 点名条目 + 点名节点；
          正对照全 done ⇒ rc=0（**不许误拒** ✗）；
       ⑧ **不许放宽**：同一形状 `--release check` **仍拒**（rc=1 + 同一句话 ✓）；
@@ -5808,7 +5832,16 @@ def selftest_release_order_and_content(expect) -> None:
                 return head + body
             if order == "reordered":          # 只把 `release-open` 挪到末尾
                 return body + head
-            return head + body if order == "ok" else body + head
+            if order == "rev":                # `add` 的相对顺序反掉、`drop` 仍在它们**之后**
+                _ra = [e for e in body if e["event"] == "release-add"]
+                _rr = [e for e in body if e["event"] != "release-add"]
+                return head + list(reversed(_ra)) + _rr
+            # `dropfirst`：`release-drop` 落在它的 `release-add` **之前**（`#4`）——
+            # 同一多重集的另一种排列 ⇒ `drop` 按**值**删 ⇒ 它删不掉任何东西 ✗
+            _adds = [e for e in body if e["event"] == "release-add"]
+            _drop = [e for e in body if e["event"] == "release-drop"]
+            _rest = [e for e in body if e["event"] not in ("release-add", "release-drop")]
+            return head + _adds[:3] + _drop + _adds[3:] + _rest
 
         try:
             # ① ② ③ **顺序轴**（`#1`）
@@ -5826,14 +5859,44 @@ def selftest_release_order_and_content(expect) -> None:
                                 "cut_commit": (node().get("cut") or {}).get("commit"),
                                 "plan_rc": prc, "plan": pout, "rel_rc": rrc, "rel": rout}
             _ok, _re = reads["ok"], reads["reordered"]
-            expect(f"① **顺序无关**：两种顺序折出的 `items` 逐字节相同"
-                   f"（正序 {_ok['items']} vs 乱序 {_re['items']}；**改前乱序折出 []** ✗）",
+            expect(f"① **成员判据**顺序无关（本夹具只把 `release-open` 挪到末尾）：两种顺序折出的 "
+                   f"`items` 相同（正序 {_ok['items']} vs 乱序 {_re['items']}；"
+                   f"**改前乱序折出 []** ✗）",
                    _ok["items"] == _re["items"] == ["FX-1", "FX-2", "FX-3"])
             expect(f"① 且 `blockers` 相同（{_ok['blockers']} vs {_re['blockers']}；"
                    f"**改前乱序折出 {{}}** ✗）", _ok["blockers"] == _re["blockers"] == {"FX-1": 1})
             expect(f"① 且 `cut`（最后一条）相同（{str(_ok['cut_commit'])[:8]} vs "
                    f"{str(_re['cut_commit'])[:8]}；**改前乱序折出 None** ✗）",
                    _ok["cut_commit"] == _re["cut_commit"])
+            # ①b ⭐ **`items` 是"追加序"列表，不是集合**（`#4`，第十轮独立复核实测 ✗）：
+            #   同**一**批事件（同一多重集）换个顺序 ⇒ `items` 的**次序 / 成员都可能变**
+            #   （`release-add` 按追加序 append、`release-drop` 按**值**删 ⇒ drop 落在它的 add
+            #   **之前**就删不掉）。⚠ 旧 commit / 旧 label 说"两种顺序折出**同一份** `items`"、
+            #   "逐字段相同"**是假的** ✗ —— 真正的不变量只有「**成员判据**顺序无关」+「**同判**」✓。
+            #   ⚠ **不许改行为去迎合描述** ✗：追加序**是对的**（事件表就是只追加账）⇒ 只钉语义 ✓。
+            _orders: dict[str, dict] = {}
+            for _o in ("rev", "dropfirst"):
+                done_events()
+                for _ev_o in batch(_o):
+                    append_event(_ev_o)
+                _rc_o, _out_o = plan()
+                _orders[_o] = {"items": list(node().get("items") or []),
+                               "rc": _rc_o, "out": _out_o}
+            _rv, _df = _orders["rev"], _orders["dropfirst"]
+            expect(f"①b **追加序语义**：把 add/drop 的相对顺序也反掉 ⇒ `items` **次序不同**"
+                   f"（正序 {_ok['items']} vs 逆序 {_rv['items']}）—— ⇒ 「两种顺序折出同一份 "
+                   f"`items`」是**假话** ✗",
+                   _ok["items"] == ["FX-1", "FX-2", "FX-3"]
+                   and _rv["items"] == ["FX-3", "FX-2", "FX-1"])
+            expect(f"①b 且 `drop` 落在它的 `add` **之前** ⇒ **连成员都不同**"
+                   f"（正序 {_ok['items']} vs dropfirst {_df['items']}）—— `release-drop` 按"
+                   f"**值**删 ⇒ 那时它删不掉任何东西 ✓",
+                   _df["items"] == ["FX-1", "FX-2", "FX-3", "FX-4"])
+            expect(f"①b 但**判据同判**：三种顺序都 rc≥1 且都点名「对不上」"
+                   f"（{_ok['plan_rc']} / {_rv['rc']} / {_df['rc']}）—— 「顺序无关」只承诺"
+                   f"**成员判据 + 同判**，不承诺「同一份列表」 ✓",
+                   _ok["plan_rc"] >= 1 and _rv["rc"] >= 1 and _df["rc"] >= 1
+                   and all("对不上" in _orders[_o]["out"] for _o in ("rev", "dropfirst")))
             expect(f"② 正序：`--check` rc={_ok['plan_rc']} 且点名「对不上」（两条读侧都点 ✓）",
                    _ok["plan_rc"] >= 1 and "对不上" in _ok["plan"] and "对不上" in _ok["rel"])
             expect(f"② ⭐ 乱序**同判**：`--check` rc={_re['plan_rc']} 且点名「对不上」"
@@ -5864,8 +5927,10 @@ def selftest_release_order_and_content(expect) -> None:
             _before = EVENTS.read_text(encoding="utf-8")
             krc, kout = capture(cmd_release, ns(release="cut", rel="REL-9.9.9", commit=real_sha,
                                                 ci="9"), view())
-            expect(f"⑥ 假 cut 之后 `--release cut` 被挡 rc={krc}（**CLI 造不出两条 cut** ⇒ "
-                   f"`#2` 只有手改能造 ✓）", krc == 1 and "对不上" in kout)
+            expect(f"⑥ **假** cut 之后 `--release cut` 被挡 rc={krc}（被挡的是**审计字段与 "
+                   f"commit 对不上**的那一条 ⇒ **假** cut 只有手改能造 ✓；"
+                   f"⚠ **不是**「CLI 造不出两条 cut」—— 那句是旧 commit 的错话 ✗，⑥b 钉正 ✓）",
+                   krc == 1 and "对不上" in kout)
             expect("⑥ 且**零写入**（没写第二条 cut ✓）",
                    EVENTS.read_text(encoding="utf-8") == _before)
             legit_cut("2")
@@ -5882,6 +5947,25 @@ def selftest_release_order_and_content(expect) -> None:
             legit_cut("2")
             rc, out = plan()
             expect(f"⑤ 正对照：两条 cut **都一致** ⇒ rc={rc}（**不许误拒** ✗）", rc == 0)
+            # ⑥b ⭐ **CLI 能写多条 cut**（`#5`，2026-10-14 · 第十次独立复核实测 ✗）：
+            #   合法首切之后再 `--release cut` ⇒ **rc=0** 并写入第二条 `release-cut`。旧 commit
+            #   说「第二次 cut rc=1 ⇒ CLI 造不出两条 cut」**与实测不符** ✗ —— 被挡的从来不是
+            #   「第二条」，而是**审计字段与 `commit` 对不上**的那一条（= **假** cut ✓）。
+            #   ⚠ 判据打在**写路径**（`cmd_release` 的 `cut` 分支）上，不是 `legit_cut()` 那种
+            #   直接 append（那测的还是读侧 ✗）；本函数的 `worktree_dirty`/`unmerged_agent_branches`
+            #   已 stub 成「干净」⇒ 栅栏不会替它挡 ✓（`--force` 都不需要）。
+            done_events(("FX-1", "FX-2", "FX-3"))
+            open_and_add()
+            _c1, _o1 = capture(cmd_release, ns(release="cut", rel="REL-9.9.9", commit=real_sha,
+                                               ci="1"), view())
+            _c2, _o2 = capture(cmd_release, ns(release="cut", rel="REL-9.9.9", commit=real_sha,
+                                               ci="2"), view())
+            _n_cuts = len(node().get("cuts") or [])
+            _c3, _o3 = plan()
+            expect(f"⑥b 合法首切 rc={_c1} ⇒ **再切一次 rc={_c2}**（旧话「第二次 cut rc=1」与实测"
+                   f"不符 ✗）· `cuts` = {_n_cuts} 条 · 两条审计都对得上 ⇒ 读侧 `--check` "
+                   f"rc={_c3}（**不许误拒** ✗）",
+                   _c1 == 0 and _c2 == 0 and _n_cuts == 2 and _c3 == 0)
             # ⑦ ⑧ **节点内容轴**（`#3`）
             write_extras([(f"FX-{i}", "fixed", "夹具：已关账") for i in (1, 2, 3)]
                          + [("FX-4", "fix", "夹具：**还没做完**（未 done）")])
