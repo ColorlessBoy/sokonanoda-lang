@@ -711,29 +711,53 @@ function repoBuildForVersion(base, version) {
 /// 判据前的**一声喊**（"别让它静默地慢 / 静默地用旧构建" ✗）：`stale`（源码比
 /// 二进制新 ⇒ 这次读数不属于当前 commit）与 `debug`（同一份工作慢约 2×）各一行。
 ///
-/// ⚠ **只给人看/判据前**的入口用（`version` 人读分支 · `doctor` · `gate`）✓；
+/// ⚠ **只给人看/判据前**的入口用（`version` 人读分支 · `doctor` · `gate` · `lsp`）✓；
 /// ⚠ **绝不挂到转发路径上**（`scripts/soko grade|query|course …`）✗：复现件
 /// `courses/set-theory/gaps/*.sh` 把 **stderr 与 stdout 合并**成 JSON 再 `json.load`
 /// （实测 C-05：`node … query check … > /tmp/c05-repro.json 2>&1`）⇒ 多一行警告
 /// 就会把复现件打成 `BAD C-05: grader output is not JSON` ✗ —— 而那批脚本
 /// 故意剥掉 `SOKONANODA_BIN`（它们测的就是启动器自己的解析链）⇒ 恰是最容易踩到的路。
-function buildWarning(identity) {
+///
+/// `label`/`pkg` 是给**第二条链接**（LSP）用的（2026-10-15 `LSP-BINARY-STALE-NO-WARNING`）：
+/// 不写参数时输出与旧版**逐字节相同** ✓（`label` 默认 `build`、`pkg` 默认 CLI 的包名）。
+function buildWarning(identity, label = 'build', pkg = 'sokonanoda-cli') {
   const lines = []
   if (identity?.stale) {
     lines.push(
-      `  ⚠ build: **stale** —— 源码（${identity.source_newest_file} @ ${identity.source_newest}）` +
+      `  ⚠ ${label}: **stale** —— 源码（${identity.source_newest_file} @ ${identity.source_newest}）` +
         `比二进制（${identity.mtime}）新 ⇒ **这次读数不属于当前 commit** ✗` +
-        `（先 \`cargo build --release -p sokonanoda-cli\` 或换一棵刚编过的树）\n`,
+        `（先 \`cargo build --release -p ${pkg}\` 或换一棵刚编过的树）\n`,
     )
   }
   if (identity?.profile === 'debug') {
     lines.push(
-      `  ⚠ build: **debug** 构建（${identity.path}）—— 同一份判卷比 release 慢约 2×` +
+      `  ⚠ ${label}: **debug** 构建（${identity.path}）—— 同一份判卷比 release 慢约 2×` +
         `（课程门禁 258 个目标实测从约 1–2 分钟变成 >20 分钟）⇒ 判据请用 ` +
-        `\`cargo build --release -p sokonanoda-cli\` 的产物\n`,
+        `\`cargo build --release -p ${pkg}\` 的产物\n`,
     )
   }
   return lines
+}
+
+/// **LSP 的构建身份**（2026-10-15 修 `LSP-BINARY-STALE-NO-WARNING`，第十四次复核实测）。
+///
+/// 病根：`build` 那个块**一直只描述 CLI**（`buildIdentity('sokonanoda', cli)`）⇒
+/// 「源码比二进制新」这件事**只对 CLI 出声** ✗，而**编辑器跑的是 `sokonanoda-lsp`** ✗
+/// —— 实测 `target/release/sokonanoda-lsp` 是 **10-13 09:44** 的二进制，早于 10-14 的
+/// 引擎身份与隐变量两族修复（两个摘要串都不含它），而 `doctor --json` 照报
+/// `lsp.ready: true`、零警告 ⇒ **编辑器那条路静默跑旧引擎** ✗。这是 stale 族
+/// （`STALE-BUILD-NO-CONSUMER` → `DEBUG-BUILD-SHADOWS-RELEASE`）**同一条链上的第三个链接** ✓。
+///
+/// ⚠ 与 `build` 的**一处有意不同**：**只在 `lsp.source === 'repo-build'` 时才给**
+/// （不给"首选仓库构建"的诊断回落）—— 要的是**"跑的那份陈旧"** ✓，不是"这棵树里
+/// 有份旧产物" ✗。缓存/下载/扩展由**版本钉**把关（`canExec` 会拒），显式 override 是
+/// 逃生门 ⇒ 都不拿"仓库构建陈旧"去吓人 ✓（与 `gate`/`check.py` 只在 repo-build 上判同口径 ✓）。
+/// ⚠ **已知的粗口径**：`buildIdentity` 扫的是 `crates/**`（除 `tests/`、`tests.rs`）——
+/// 对 LSP 来说，只改 `crates/cli/**` 也会报 stale（假阳性）。**有意保留**：宁可多报
+/// 也不漏报 ✓（漏报 = 编辑器静默跑旧引擎，正是本条要修的洞 ✗）；消息里点名了最新的
+/// 源文件，人能自己判 ✓。
+function lspBuildIdentity(lsp) {
+  return lsp?.source === 'repo-build' ? buildIdentity('sokonanoda-lsp', lsp) : undefined
 }
 
 /// **拒绝**用陈旧的仓库构建判定：一条给操作者的正解（重建 release，无需联网）。
@@ -1077,6 +1101,11 @@ async function main(argv) {
               // ⚠ 描述**会跑的那条链接**（`cli`）✓，`profile` 明说 release/debug
               // （2026-10-14 BUILD-Q：debug 会静默慢 10×+ ⇒ 消费者要能看见它）。
               build: buildIdentity('sokonanoda', cli),
+              // ⚠ **LSP 也有一份**（2026-10-15 `LSP-BINARY-STALE-NO-WARNING`）：
+              // 编辑器跑的是 `sokonanoda-lsp`，而上面那个块只描述 CLI ✗ ⇒
+              // 「源码比二进制新」对**编辑器那条路**一直零警告 ✗（同一条链的第三个链接）。
+              // `lsp_build` 只在 `lsp.source === 'repo-build'` 时出现（见 `lspBuildIdentity` ✓）。
+              lsp_build: lspBuildIdentity(lsp),
             },
             null,
             2,
@@ -1094,6 +1123,11 @@ async function main(argv) {
         // ⚠ **stale / debug 必须出声**：前者让"同一份源码两个读数"成为可能
         // （本仓最贵的坑之一），后者让"同一份判卷慢 10×+"成为可能 ✓。
         for (const line of buildWarning(buildIdentity('sokonanoda', cli))) process.stdout.write(line)
+        // ⚠ **编辑器那条路也要出声**（2026-10-15）：`build` 只描述 CLI ⇒ 以前
+        // `sokonanoda-lsp` 陈旧时 `version` **一个字都不说** ✗。
+        for (const line of buildWarning(lspBuildIdentity(lsp), 'lsp build', 'sokonanoda-lsp')) {
+          process.stdout.write(line)
+        }
         if (pin.error) process.stdout.write(`${pin.error.message}\n`)
       }
       // `version` is a read-only report: it always succeeds and lets the caller
@@ -1130,6 +1164,12 @@ async function main(argv) {
               // opencode 插件的 provision 就会因为"源码刚改过"去下载/刷新，
               // 那是另一条链路的行为 ✗（`version --json` 的 `build` 与本字段同源 ✓）。
               build: buildIdentity('sokonanoda', cli),
+              // ⚠ **LSP 一份**（2026-10-15 `LSP-BINARY-STALE-NO-WARNING`）：同一条
+              // "只报告、不改 `ready`" 的口径 ✓ —— 编辑器**必须**能启动（拒绝启动比
+              // 跑一份旧引擎更坏 ✗），但要**看得见**它跑的是不是当前 commit 的引擎 ✓。
+              // ⚠ 只在 `lsp.source === 'repo-build'` 时出现（`lspBuildIdentity` ✓）：
+              // 要的是"**跑的那份**陈旧"，不是"这棵树里有份旧产物" ✗。
+              lsp_build: lspBuildIdentity(lsp),
             },
             null,
             2,
@@ -1145,6 +1185,12 @@ async function main(argv) {
         report('  cli', cli)
         report('  lsp', lsp)
         for (const line of buildWarning(buildIdentity('sokonanoda', cli))) process.stdout.write(line)
+        // ⚠ **LSP 的陈旧也要出声**（2026-10-15）：以前 `doctor` 只报 CLI 的构建身份，
+        // 于是"编辑器跑旧引擎"这件事在就绪报告里**一个字都没有** ✗（`ready` 仍是 yes ✓
+        // —— 能不能跑与算不算数是两回事，见 `--json` 分支的说明 ✓）。
+        for (const line of buildWarning(lspBuildIdentity(lsp), 'lsp build', 'sokonanoda-lsp')) {
+          process.stdout.write(line)
+        }
         process.stdout.write(`  ready:    ${ready ? 'yes' : 'no'}\n`)
       }
       return ready ? 0 : 3
@@ -1842,6 +1888,17 @@ async function main(argv) {
       // `lsp` must reach the server binary; the CLI would re-dispatch it, but
       // going straight there keeps stdout a pure LSP frame stream.
       const args = command === 'lsp' ? rest : [command, ...rest]
+      if (command === 'lsp') {
+        // ⚠ **编辑器那条路也要出声**（2026-10-15 `LSP-BINARY-STALE-NO-WARNING`）：
+        // 这是**唯一**真正启动 LSP 的入口（VS Code 扩展 / opencode 插件 / shim 都走它）
+        // ⇒ 不在这里喊，"跑旧引擎"就永远静默 ✗。
+        // ⚠ **只警告、不拒绝**（与 `gate` 的 exit 3 有意不同 ✓）：编辑器没有"换个引擎"的
+        // 选项，拒绝启动 = 整个 LSP 挂掉，比跑一份旧引擎**更坏** ✗；而 stderr 是 LSP 的
+        // **日志**通道（协议走 stdout）⇒ 一行警告是安全的 ✓（**不许**写 stdout ✗）。
+        for (const line of buildWarning(lspBuildIdentity(found), 'lsp build', 'sokonanoda-lsp')) {
+          process.stderr.write(line)
+        }
+      }
       const result = spawnSync(found.path, args, { stdio: 'inherit' })
       if (result.error) {
         process.stderr.write(`scripts/soko: failed to run ${found.path}: ${result.error.message}\n`)
