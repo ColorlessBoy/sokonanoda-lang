@@ -92,6 +92,39 @@ jobs:
       - name: 判据自检（控制组判绿、三个漂移方向都必须判红）
         run: python3 scripts/tactic-docs-lint.py --selftest
 
+  # **两个接线守卫**（2026-10-15 LINK-B 新增，洞 `CHECKERS-NOT-IN-CI`）：
+  # `check-doc-drift.py`（harness 接线的文档漂移：三处 README ↔ 实现）与
+  # `check-launcher-extension-link.py`（启动器的「VS Code 扩展自带」链接：
+  # C1–C4 四条「用户动作 ⇒ 可见结果」）。两个都**只进了 `scripts/soko gate`**，
+  # 而 CI 这条路上等于没有 ✗ —— 与「咬不住的守卫等于没有」同族 ✓。
+  #
+  # ⚠ **为什么不挂在 `gates-fast` 里**（虽然那是最省事的写法 ✗）：`gates-fast` 由
+  # `changes` 的 `rust`/`courses` 过滤器驱动 ⇒ **只改文档 / 只改 STATUS.md 的推送
+  # 根本不碰它** ✗ ⇒ 守卫**永远不跑** ✗。这正是本文件里 `status-lint` 已经踩过的坑
+  # （见上面那条注释：实测 `675491b` 只改 docs ⇒ `gates-fast` skipped ✓），而
+  # `check-doc-drift.py` 恰恰是**文档**漂移的守卫 ⇒ 挂在 rust 过滤器后面是结构性错误 ✗。
+  # ⇒ 照 `status-lint`/`docs-lint`/`tactic-docs-lint` 的形状：**独立 job、不设 `if:`、
+  # 不加过滤器** ✓（顺带避开"skipped 的依赖会拖垮 `auto-tag`"那个坑 ✓）。
+  # 步骤形状与 `gates-fast` 里的同名两步**逐字同源**（判据 + `--selftest`）✓。
+  #
+  # 依赖：`check-doc-drift.py` 只要 python3 ✓；`check-launcher-extension-link.py`
+  # 还要 `node`（runner 自带）——**探不到就 exit 3、绝不静默通过** ✓（与 gate 其它步
+  # 同一条纪律 ✓）。两者都是亚秒级 ⇒ 永远跑 ✓。
+  wiring-lint:
+    name: wiring-lint（harness 接线文档漂移 + 启动器扩展链接）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: harness 接线的文档漂移（三处 README ↔ 实现）+ 自检
+        run: |
+          python3 scripts/check-doc-drift.py
+          python3 scripts/check-doc-drift.py --selftest
+      - name: 启动器「VS Code 扩展自带」链接（C1–C4，含 canExec 不许松）+ 自检
+        run: |
+          python3 scripts/check-launcher-extension-link.py
+          python3 scripts/check-launcher-extension-link.py --selftest
+
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
     runs-on: ubuntu-24.04
