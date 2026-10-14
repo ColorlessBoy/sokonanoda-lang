@@ -268,3 +268,132 @@ pub(crate) fn peel_expected_src_named(expected: &Expr) -> Option<(String, Expr)>
         _ => None,
     }
 }
+
+/// **后序结构化重写**：先递归重建子节点，再把 `f` 作用在重建后的节点上
+/// （`f` 返回 `None` ⇒ 该节点原样 ✓）。span 与其余字段逐字保留 ✓。
+///
+/// 与 [`mentions_names`] **同一份遍历形状**（漏一个变体就会漏一次重写 ✗ ——
+/// 那条注释里的 `Expr::Notation` 漏检就是同一个坑 ✓）。
+pub(crate) fn rewrite_bottom_up(e: &Expr, f: &mut impl FnMut(&Expr) -> Option<Expr>) -> Expr {
+    fn go(e: &Expr, f: &mut impl FnMut(&Expr) -> Option<Expr>) -> Expr {
+        let rebuilt = match e {
+            Expr::Ident { .. }
+            | Expr::UniverseApp { .. }
+            | Expr::Sort { .. }
+            | Expr::Num { .. }
+            | Expr::Hole { .. }
+            | Expr::By { .. } => e.clone(),
+            Expr::App {
+                fun,
+                arg,
+                explicit_spine,
+                span,
+            } => Expr::App {
+                fun: Box::new(go(fun, f)),
+                arg: Box::new(go(arg, f)),
+                explicit_spine: *explicit_spine,
+                span: *span,
+            },
+            Expr::SetLiteral { elements, span } => Expr::SetLiteral {
+                elements: elements.iter().map(|x| go(x, f)).collect(),
+                span: *span,
+            },
+            Expr::AnonCtor { elements, span } => Expr::AnonCtor {
+                elements: elements.iter().map(|x| go(x, f)).collect(),
+                span: *span,
+            },
+            Expr::Forall {
+                binders,
+                body,
+                span,
+            } => Expr::Forall {
+                binders: binders.iter().map(|b| rebuild_binder(b, f)).collect(),
+                body: Box::new(go(body, f)),
+                span: *span,
+            },
+            Expr::Lambda {
+                binders,
+                body,
+                span,
+            } => Expr::Lambda {
+                binders: binders.iter().map(|b| rebuild_binder(b, f)).collect(),
+                body: Box::new(go(body, f)),
+                span: *span,
+            },
+            Expr::Arrow {
+                domain,
+                codomain,
+                span,
+            } => Expr::Arrow {
+                domain: Box::new(go(domain, f)),
+                codomain: Box::new(go(codomain, f)),
+                span: *span,
+            },
+            Expr::Plus { lhs, rhs, span } => Expr::Plus {
+                lhs: Box::new(go(lhs, f)),
+                rhs: Box::new(go(rhs, f)),
+                span: *span,
+            },
+            Expr::Let {
+                binder,
+                val,
+                body,
+                span,
+            } => Expr::Let {
+                binder: rebuild_binder(binder, f),
+                val: Box::new(go(val, f)),
+                body: Box::new(go(body, f)),
+                span: *span,
+            },
+            Expr::Match {
+                scrutinee,
+                arms,
+                span,
+            } => Expr::Match {
+                scrutinee: Box::new(go(scrutinee, f)),
+                arms: arms
+                    .iter()
+                    .map(|arm| crate::ast::MatchArm {
+                        pattern: arm.pattern.clone(),
+                        guard: arm.guard.as_ref().map(|g| go(g, f)),
+                        body: go(&arm.body, f),
+                        span: arm.span,
+                    })
+                    .collect(),
+                span: *span,
+            },
+            Expr::Notation {
+                symbol,
+                symbol_span,
+                target,
+                assoc,
+                lhs,
+                rhs,
+                alternatives,
+                span,
+            } => Expr::Notation {
+                symbol: symbol.clone(),
+                symbol_span: *symbol_span,
+                target: target.clone(),
+                assoc: *assoc,
+                lhs: lhs.as_ref().map(|x| Box::new(go(x, f))),
+                rhs: rhs.as_ref().map(|x| Box::new(go(x, f))),
+                alternatives: alternatives.clone(),
+                span: *span,
+            },
+        };
+        f(&rebuilt).unwrap_or(rebuilt)
+    }
+    fn rebuild_binder(
+        b: &crate::ast::Binder,
+        f: &mut impl FnMut(&Expr) -> Option<Expr>,
+    ) -> crate::ast::Binder {
+        crate::ast::Binder {
+            name: b.name.clone(),
+            ty: b.ty.as_ref().map(|t| Box::new(go(t, f))),
+            style: b.style.clone(),
+            span: b.span,
+        }
+    }
+    go(e, f)
+}

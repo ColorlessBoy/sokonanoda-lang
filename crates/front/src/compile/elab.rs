@@ -616,7 +616,12 @@ impl<'a> ElabScope<'a> {
     /// （`Eq.{1} Nat 1 1` pp 成 `Eq 1 1`，回读成 `@Eq 1 1` ⇒ `α := 1`），
     /// 于是任何「隐式命题里含 `=`」的短写法（`And.intro h1 h2`、`And.left h`…）
     /// 都被解错、判红。书写类型是 `1 = 1`（记法节点），`unify_extract` 认得。
-    fn source_type_of(&self, name: &str) -> Option<Expr> {
+    /// 作用域里的**局部名**表（声明序）—— 给「遮蔽判据」与 `resolve_known` 用 ✓。
+    pub(crate) fn local_names(&self) -> &[String] {
+        &self.names
+    }
+
+    pub(crate) fn source_type_of(&self, name: &str) -> Option<Expr> {
         self.names
             .iter()
             .rposition(|candidate| candidate == name)
@@ -4141,7 +4146,7 @@ fn operand_type_expr_explicit<'a>(
 ///
 /// 其余形状（`fun (x : α) => f x` 之类）返回 `None` ⇒ 调用方照旧问内核，
 /// **不比今天差** ✓。
-fn lambda_source_type(operand: &Expr) -> Option<Expr> {
+pub(crate) fn lambda_source_type(operand: &Expr) -> Option<Expr> {
     let Expr::Lambda { binders, body, .. } = operand else {
         return None;
     };
@@ -4321,6 +4326,15 @@ fn try_implicit_application_with<'a>(
     ctx: &ElabCtx<'a, '_>,
     mut solved_out: Option<&mut Vec<Expr>>,
 ) -> Result<Option<ExprPtr<'a>>, CompileError> {
+    // **期望类型的源级展开兜底**（SPINE-N，2026-10-14）：期望类型是「带前导隐式
+    // 形参的**记法头**」（`(r • r) a c`）时，今天的 δ 展开**只代换显式形参** ⇒
+    // 结果留着签名形参裸名 ✗ ⇒ 求解器把带自由名的 `p` 交下去（`unknown identifier B`）。
+    // 这里先补前导实参、再按 `Old` 读法展到归纳头（**零内核调用**，见
+    // `expected_spine::expected_to_inductive`）；展不动/今天没坏 ⇒ **原样** ✓。
+    // 闸门 `SOKO_EXPECTED_SPINE=0|off`（反向验证 ✓）。
+    let expected_spine = expected_src
+        .and_then(|e| crate::compile::expected_spine::expected_to_inductive(e, ctx, scope, known));
+    let expected_src: Option<&Expr> = expected_spine.as_ref().or(expected_src);
     // Lean 的 `@`：整条脊的实参是**逐位显式**的 ⇒ 不插隐式实参（设计 §7 第 5 条）。
     if explicit_spine {
         return Ok(None);

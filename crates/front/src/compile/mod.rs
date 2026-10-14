@@ -6,6 +6,7 @@ pub(crate) mod elab;
 mod error;
 mod event;
 mod expected;
+mod expected_spine;
 mod goals;
 pub mod hints;
 mod implicit;
