@@ -122,6 +122,20 @@ python3 scripts/ux-queue.py --repoint <id> --commit <sha> --reason '<why>' # 单
 **事后无从审计** ✗ ⇒ 现在 `_repoint_event()` 是唯一出处，`check_plan` 还会**复查**
 「现在这个指针还是不是当时那个内容」（手改事件表换 `commit` ⇒ 判红 ✓）。
 
+⭐ **内容锚覆盖全部四条"写指针"的路径**（`ADVANCE-POINTER-NO-CONTENT-AUDIT`，2026-10-15 ·
+第十三次独立复核实测 ✗）：上面那套原先只有 `repoint`（`#1`）与 `release-cut`（`#2`）**各写一遍**，
+而 `--advance --to done` / `--triage --to applied` 这两条**最主要**的收口写路径**一个字段都不记**
+⇒ 它们的指针只有**祖先性**、没有**内容锚**：复核者实测（夹具，事件表只改一行）把 `advance` 的
+`commit` 从 `f46fdb84` 改成 main 根 `92ef75e1`（**祖先、内容完全无关**）⇒ `--check` **rc=0 静默**、
+还打出「✓ 非祖先 0 条」（`triage applied` 同判）✗ ⇒ **同一本账里两种强度**；缺口正是
+"rebase 甩掉、或有人手改成另一个祖先时无人咬"。⇒ 现在四处**共用** `_pointer_audit()`
+（`advance` / `triage applied` / `repoint` / `release-cut`）、**折在一处**（`_fold_pointer_audit()`
+⇒ 状态键 `ptr_subject` / `ptr_patch_id`）、**读侧复查一处**（`check_plan` 的 `ptr_*` 那一段；
+`release-cut` 那一支走 `cut_audit_problems`）⇒ 同一个形状，**不是第二套** ✗。
+⚠ **兜底**：只对**带审计字段**的指针生效 ⇒ 存量事件**逐条仍绿** ✓（真台账 116 条 done 指针里
+69 条有锚、47 条没有 —— 30 条 `advance` + 17 条 `triage` 的旧事件）；要接上守卫就照 `repoint`
+的**补账形状**（**同指针**再追加一条带审计字段的同形事件 ⇒ `fold` 不会造出假历史 ✓）。
+
 **收口指针必须过祖先性闸门**（2026-10-14 · `queueW` 修三个视图一致性缺陷 ⑤）：`--commit` 不只看
 "对象存在"（`git cat-file -e`），还看 `git merge-base --is-ancestor <sha> HEAD` —— 实测 99 条带
 指针的 `done` 里 **60 条**的指针是 **rebase 前的孪生**（对象在、内容也落了 main，但**解析不到
@@ -1406,6 +1420,11 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             for key in ("commit", "reading", "reason"):
                 if ev.get(key):
                     cur[key] = ev[key]
+            if ev.get("commit"):
+                # ⭐ **指针 + 内容锚一起折**（`ADVANCE-POINTER-NO-CONTENT-AUDIT`）：收口事件现在
+                # 记了 `subject`/`patch_id`（`_pointer_audit`）⇒ 读侧复查能咬住"手改事件表把
+                # commit 换成另一个祖先" ✓（改前这两条写路径一个字段都不记 ⇒ rc=0 静默 ✗）。
+                _fold_pointer_audit(cur, ev)
             if ev.get("ts"):
                 # 供**祖先性闸门**按 UTC 时刻分「新增 / 存量」（见 `ANCESTRY_GATE_SINCE`）：
                 # 没有时间戳的 done（旧事件 / triage 受理那一支）按**存量**从宽处理 ✓。
@@ -1431,11 +1450,10 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
                 cur["repointed_from"] = _from
                 cur["commit"] = ev["commit"]
                 cur["repointed_ts"] = ev.get("ts")
-                # ⭐ **审计字段折进状态**（`#1`）：`check_plan` 的读侧复查要拿它比对
-                # "现在这个指针还是不是当时那个内容"（手改事件表换 commit ⇒ 判红 ✓）。
-                for _k in ("subject", "patch_id"):
-                    if ev.get(_k):
-                        cur[f"repoint_{_k}"] = ev[_k]
+                # ⭐ **审计字段折进状态**（`#1`；`ADVANCE-POINTER-NO-CONTENT-AUDIT` 起键名
+                # `ptr_*` 且三条写路径共用 —— 见 `_fold_pointer_audit` 的说明）：
+                # `check_plan` 的读侧复查要拿它比对"现在这个指针还是不是当时那个内容"。
+                _fold_pointer_audit(cur, ev)
         elif kind == "split":
             parent = ev.get("parent")
             if parent:
@@ -1477,6 +1495,12 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             if to == "applied":
                 cur.update(state="done", owner=None, pid=None,
                            commit=ev.get("commit"), reason=ev.get("reason"))
+                # ⭐ **受理也是收口 ⇒ 指针 + 内容锚一起折**（`ADVANCE-POINTER-NO-CONTENT-AUDIT`，
+                # 2026-10-15 · 第十三次独立复核实测 ✗）：`--triage --to applied` 原先只记
+                # `commit`（只有祖先性、没有内容锚）⇒ 手改成另一个祖先时 rc=0 静默。
+                # 这里**无条件**调（`applied` 一定会写 `commit` 字段 —— 哪怕是 `None`）：
+                # 指针被写 ⇒ 锚就跟着换/清（见 `_fold_pointer_audit` ✓）。
+                _fold_pointer_audit(cur, ev)
                 # ⚠ **受理也是收口 ⇒ 必须记 `advanced_ts`**（2026-10-14 · 第六次独立复核实测 ✗）：
                 # 旧代码只有 `advance` 分支写它 ⇒ triage-applied 的指针**永远没有时间戳** ⇒
                 # `check_plan` 的祖先性复查把 `_ts = advanced_ts or ""` 当成"存量"⇒
@@ -1705,6 +1729,47 @@ def _patch_id(commit: str) -> str | None:
     return _PATCH_ID_CACHE[commit]
 
 
+def _pointer_audit(commit: str) -> dict:
+    """**指针的内容锚**（`subject` + `patch_id`）—— 所有"写指针"的事件**共用这一处** ✓。
+
+    ⚠ **为什么必须统一**（`ADVANCE-POINTER-NO-CONTENT-AUDIT`，2026-10-15 · 第十三次独立复核实测 ✗）：
+    审计形状原先只有 `repoint`（`#1`）与 `release-cut`（`#2`）两处、且**各写了一遍**，而
+    `--advance --to done` / `--triage --to applied` 这两条**最主要**的收口写路径**一个字段都不记**
+    ⇒ 它们的收口指针只有**祖先性**、没有**内容锚**：实测（夹具，事件表只改一行）把 `advance`
+    事件的 commit 从 `f46fdb84` 改成 main 根 `92ef75e1`（**祖先、内容完全无关**）⇒ `--check`
+    **rc=0 静默**、还打出「✓ 非祖先 0 条」（`triage applied` 同判）✗ ⇒ **同一本账里两种强度**；
+    缺口正是"rebase 甩掉、或有人手改成另一个祖先时无人咬"。
+    ⇒ 现在**四条写路径**（`advance` / `triage applied` / `repoint` / `release-cut`）都走本函数，
+    读侧复查（`check_plan` 的 `ptr_*` 那一段 + `cut_audit_problems`）逐条覆盖它们 ✓
+    （**同一个形状**，不是第二套 ✗ —— `AGENTS.md` 硬规则 0(b)）。
+
+    ⚠ `subject` 走 `_subject_text()`（**唯一的折算处**）：`release-cut` 原先直接写
+    `_commit_subject()` 的**原文** ⇒ 非法字节会带孤立代理进 UTF-8 事件表（`json.dumps(...,
+    ensure_ascii=False)` + `write_text(utf-8)` 会抛 `UnicodeEncodeError`）；对**合法 UTF-8 是
+    恒等** ⇒ 既有读数一个字节不变 ✓。`patch_id` 是**主判据**（十六进制 ⇒ 与编码无关 ✓）。
+    """
+    return {"subject": _subject_text(_commit_subject(commit)), "patch_id": _patch_id(commit)}
+
+
+def _fold_pointer_audit(cur: dict, ev: dict) -> None:
+    """把事件的**内容锚**折进状态（`ptr_subject` / `ptr_patch_id`）—— **一处定义** ✓。
+
+    ⚠ **锚永远属于"当前指针"**：`commit` 被写 ⇒ 锚跟着换；事件**没有**审计字段 ⇒ **清掉旧锚** ✗。
+    为什么必须清（不是"留着更安全"）：旧锚是**旧指针**的 —— 留着会让读侧复查拿"旧锚"去比
+    "新指针"，把一条**合法**的指针写入判成"事后被换过" ⇒ **误判存量** ✗（存量事件全都没有
+    审计字段，而真台账里就有"先 repoint（带锚）后 advance（旧格式无锚）"的 id）。
+    ⚠ 调用点**只在"这一条事件真的写了 `commit`"**时（三条写路径 ✓）；没有指针写入的事件
+    （`claim` / `reopen` / `submit` / …）**不许动锚** ✓。
+    ⚠ 键名从 `repoint_*` 改成 `ptr_*`（`#1` 时的旧名）：锚现在由三条写路径共写，再叫
+    `repoint_*` 就是**名字撒谎** ✗（`--json.state` 的键名随之改名 —— 可见但**不放宽任何判据** ✓）。
+    """
+    cur.pop("ptr_subject", None)
+    cur.pop("ptr_patch_id", None)
+    for key in ("subject", "patch_id"):
+        if ev.get(key):
+            cur[f"ptr_{key}"] = ev[key]
+
+
 def twin_gate_problem(old: str, cand: str) -> str | None:
     """**孪生三关**（同 subject → `patch-id --stable` 一致 → 是 `HEAD` 的祖先）的**唯一出处**。
 
@@ -1807,9 +1872,10 @@ def _repoint_event(ident: str, new: str, old: str, reason: str, owner: str) -> d
     内容痕迹）。现在记**新旧两侧**的 subject + patch-id ⇒ ① 事后可复查"当时三关确实一致"；
     ② `check_plan` 可复查"现在这个指针还是不是当时那个内容"（手改事件表换 commit ⇒ 判红 ✓）。
     """
+    _new, _old = _pointer_audit(new), _pointer_audit(old)
     return {"event": "repoint", "id": ident, "commit": new, "old": old,
-            "subject": _subject_text(_commit_subject(new)), "patch_id": _patch_id(new),
-            "old_subject": _subject_text(_commit_subject(old)), "old_patch_id": _patch_id(old),
+            "subject": _new["subject"], "patch_id": _new["patch_id"],
+            "old_subject": _old["subject"], "old_patch_id": _old["patch_id"],
             "reason": reason, "owner": owner}
 
 
@@ -2163,8 +2229,16 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
             print(f"✗ `{ident}` 是 umbrella，还有 {len(open_kids)} 个子任务没关：{open_kids} ✗",
                   file=sys.stderr)
             return 1
-    append_event({"event": "advance", "id": ident, "to": to, "commit": commit or None,
-                  "reading": reading or None, "reason": reason or None, "owner": owner})
+    _rec = {"event": "advance", "id": ident, "to": to, "commit": commit or None,
+            "reading": reading or None, "reason": reason or None, "owner": owner}
+    if commit:
+        # ⭐ **收口事件记内容锚**（`ADVANCE-POINTER-NO-CONTENT-AUDIT`，2026-10-15 · 第十三次独立
+        # 复核实测 ✗）：原先这条路径**一个审计字段都不记** ⇒ 指针只有祖先性、没有内容锚
+        # （实测：把事件表里这条 `commit` 换成另一个**祖先** ⇒ `--check` rc=0 静默 ✗）。
+        # 形状与 `--repoint` / `--release cut` **同一处定义**（`_pointer_audit`）⇒ 读侧复查
+        # （`check_plan` 的 `ptr_*` 那一段）逐条咬得住 ✓（不是第二套 ✗）。
+        _rec.update(_pointer_audit(commit))
+    append_event(_rec)
     print(f"✓ `{ident}`：{frm} → {to}" + (f" · commit {commit[:8]}" if commit else "")
           + (f" · 理由：{reason}" if reason else ""))
     return 0
@@ -2615,21 +2689,31 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
                       f"`--repoint {ident} --reason '<why>'` 三关自动回填；"
                       f"或按新历史重开再收口 / 改记**真落进 main** 的那个 commit", file=sys.stderr)
                 bad += 1
-            # ⭐ **审计复查**（`#1` 的后半，2026-10-14 · 第七次独立复核）：`repoint` 事件现在
-            # 记了 `subject` + `patch_id` ⇒ 读侧复查"**现在这个指针还是不是当时那个内容**"。
-            # 靶子 = 手改事件表把 `repoint` 的 `commit` 换成别的（审计字段不会跟着变）⇒ 当场判红 ✗。
-            # ⚠ 只对**带审计字段的** repoint 事件生效（旧账 / 手写事件没有该字段 ⇒ 不误判 ✓）。
+            # ⭐ **审计复查**（`#1` 的后半，2026-10-14 · 第七次独立复核；⭐ `ADVANCE-POINTER-NO-
+            # CONTENT-AUDIT` 起**覆盖全部三条写路径**，2026-10-15 · 第十三次独立复核实测 ✗）：
+            # 收口事件现在记了 `subject` + `patch_id` ⇒ 读侧复查"**现在这个指针还是不是当时那个
+            # 内容**"。靶子 = 手改事件表把 `commit` 换成别的（审计字段不会跟着变）⇒ 当场判红 ✗。
+            # ⚠ 改前这一条**只对 `repoint` 事件生效**（`repoint_patch_id`）⇒ `--advance --to done`
+            # 与 `--triage --to applied` 的指针**只有祖先性**：实测把 `advance` 的 commit 换成
+            # main 根 `92ef75e1`（**祖先、内容无关**）⇒ **rc=0 静默** ✗（同一本账两种强度）。
+            # ⇒ 锚改由三条写路径共写、**折在一处**（`_fold_pointer_audit` ⇒ `ptr_*`）⇒ 本条
+            # 复查逐条覆盖它们 ✓（**同一个形状**，不是第二套 ✗）。
+            # ⚠ **兜底**：只对**带审计字段**的指针生效（存量事件 / 手写事件没有该字段 ⇒ 不误判 ✓
+            # —— 与 `cut_audit_problems` 同口径；真台账 82 条 advance-done + 39 条 triage-applied
+            # 全都没有该字段 ⇒ 逐条仍绿 ✓）。
             # ⚠ subject 两侧都过 `_subject_text()`（**同一处**折算 ⇒ 非法字节不会两边口径不同 ✗）。
-            _rec_pid, _rec_subj = cur.get("repoint_patch_id"), cur.get("repoint_subject")
+            _rec_pid, _rec_subj = cur.get("ptr_patch_id"), cur.get("ptr_subject")
             if _c and _rec_pid:
                 _now_pid, _now_subj = _patch_id(_c), _subject_text(_commit_subject(_c))
                 if _now_pid != _rec_pid or (_rec_subj and _now_subj != _rec_subj):
-                    print(f"✗ `{ident}` 的收口指针与它的 `repoint` 事件**对不上**："
+                    print(f"✗ `{ident}` 的收口指针与写它的那条事件（`advance` / `triage applied` / "
+                          f"`repoint`）**对不上**："
                           f"账上记的 subject/patch-id = `{(_rec_subj or '')[:40]}` / "
                           f"`{_rec_pid[:12]}`，而 `{_c[:12]}` 实际是 "
                           f"`{_now_subj[:40]}` / `{(_now_pid or 'N/A')[:12]}`"
-                          f" ⇒ 指针被**事后换过**（手改事件表？）✗ —— `--repoint` 的审计字段"
-                          f"就是为这条复查留的 ✓", file=sys.stderr)
+                          f" ⇒ 指针被**事后换过**（手改事件表？）✗ —— 收口事件的审计字段"
+                          f"（`subject`/`patch_id`，`_pointer_audit` 一处定义）就是为这条复查留的 ✓",
+                          file=sys.stderr)
                     bad += 1
         # ⭐ **事件层：`advance` 的 `to` 必须是一个调度器状态**（`#1`，2026-10-14 · 第十次
         # 独立复核实测 ✗）：`fold` 把 `bad_to` 折进来（见那里的说明）⇒ 这里判红 + **点名那个
@@ -3011,8 +3095,15 @@ def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int
                 line = json.dumps(row, ensure_ascii=False)
         out.append(line)
     EXTRAS.write_text("\n".join(out) + "\n", encoding="utf-8")
-    append_event({"event": "triage", "id": ident, "to": to, "reason": reason or None,
-                  "commit": commit or None, "owner": owner})
+    _rec = {"event": "triage", "id": ident, "to": to, "reason": reason or None,
+            "commit": commit or None, "owner": owner}
+    if commit:
+        # ⭐ **受理 = 已进主线 ⇒ 也要内容锚**（`ADVANCE-POINTER-NO-CONTENT-AUDIT`，2026-10-15 ·
+        # 第十三次独立复核实测 ✗）：`--triage --to applied` 原先只记 `commit`（只有祖先性）⇒
+        # 实测把事件表里这条 `commit` 换成另一个**祖先** ⇒ `--check` rc=0 静默 ✗。
+        # 与 `--advance` / `--repoint` / `--release cut` **同一处定义**（`_pointer_audit`）✓。
+        _rec.update(_pointer_audit(commit))
+    append_event(_rec)
     print(f"✓ `{ident}` ⇒ {to}（来源处置 → `{want}`）"
           + (f" · commit {commit[:8]}" if commit else "")
           + (f" · {reason}" if reason else ""))
@@ -3526,9 +3617,11 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
             return 1
         # ⚠ **切版事件也留审计字段**（同 `#1` 的理由：`{commit, ci}` 事后核不出"切的是哪个内容"）：
         # `release-cut` 事件记 `subject` + `patch_id` ⇒ 账上能复查"当时切的是哪一个 commit" ✓。
+        # ⚠ 与另外三条写指针的路径**共用 `_pointer_audit()`**（`ADVANCE-POINTER-NO-CONTENT-AUDIT`
+        # 起统一）：原先这里直接写 `_commit_subject()` 的**原文**（漏了 `_subject_text()` 折算 ⇒
+        # 非法字节会带孤立代理进 UTF-8 事件表）⇒ 现在四处同一处定义 ✓（合法 UTF-8 下逐字节不变 ✓）。
         append_event({"event": "release-cut", "id": rel, "commit": args.commit, "ci": args.ci,
-                      "subject": _commit_subject(args.commit), "patch_id": _patch_id(args.commit),
-                      "owner": args.owner})
+                      **_pointer_audit(args.commit), "owner": args.owner})
         print(f"✓ 节点 `{rel}` 切了：commit {args.commit[:8]} · CI {args.ci} ⇒ "
               f"下个节点至少隔 {MIN_HOURS_BETWEEN_RELEASES}h、至少 {MIN_ITEMS_PER_RELEASE} 条 ✓")
         return 0
@@ -7011,6 +7104,222 @@ def selftest_ancestry_gate(expect) -> None:
             globals()["lock_file"] = saved[4]
 
 
+def selftest_pointer_content_audit(expect) -> None:
+    """**收口指针的内容锚**（`ADVANCE-POINTER-NO-CONTENT-AUDIT`，2026-10-15 · 第十三次独立复核实测 ✗）。
+
+    缺口：`--advance --to done` 与 `--triage --to applied` 的收口指针**只有祖先性、没有内容锚**
+    ⇒ 把事件表里那条 `commit` 换成**另一个祖先**（复核者实测：`f46fdb84` → main 根 `92ef75e1`，
+    祖先、内容完全无关）⇒ `--check` **rc=0 静默**、还打出「✓ 非祖先 0 条」✗ —— 而 `repoint`
+    换 `commit`（审计字段不动）⇒ rc=1 点名「指针被事后换过」⇒ **同一本账里两种强度**；
+    缺口正是"rebase 甩掉、或有人手改成另一个祖先时无人咬"。
+
+    臂（每条都从**干净事件表**开始 ⇒ 谁的红就是谁的红 ✓）：
+      ① **写侧**：`--advance --to done` 的事件**带** `subject` + `patch_id`（与 git 现算逐字节一致）
+         且 `fold` 折出 `ptr_*`；同一夹具**一个字不改** ⇒ `check_plan` rc=0（不误伤）；
+      ② **读侧**：手改那条 `commit` 为**另一个祖先**（祖先性照样过）⇒ 判红 + 点名「指针被事后
+         换过」（**改前 rc=0 静默 ✗** = 本轮的靶子）；且红**不是**祖先性那条（`other` 真是祖先 ✓）；
+      ③ 正对照：换成**非祖先** ⇒ rc=1 且报「不是 `HEAD` 的祖先」（祖先性那条改前改后都咬 ✓）；
+      ④ `--triage --to applied` 同形（写侧带锚 + 手改 ⇒ 判红 + 点名）；
+      ⑤ **兜底**：**存量形状**（无审计字段）⇒ **不判红**（真台账 82 条 advance-done +
+         39 条 triage-applied 全都没有该字段 ⇒ 逐条仍绿 ✓）；
+      ⑥ **边界（如实钉住）**：存量形状**没有锚** ⇒ 同一条手改**咬不住**（rc=0）—— 这是"兜底"
+         的代价，出路见 ⑦（不是"忘了修"，是**量出来的**边界 ✓）；
+      ⑦ **补账**：照 `repoint` 的补账形状（**同指针**再追加一条**带审计字段**的同形事件）⇒
+         读侧复查**开始有输入** ⇒ 同一条手改**当场判红**（= 补账真有效、不是空转 ✓）；
+      ⑧ **既有守卫的牙重验**：`repoint` 换 `commit` 而审计字段不动 ⇒ 判红 + 点名
+         （本轮把折叠键名从 `repoint_*` 统一成 `ptr_*` ⇒ 这条臂钉住"改名没把牙改掉" ✓）。
+    ⚠ 夹具只用**临时台账**（`EVENTS`/`EXTRAS`/`INDEX`/`GAPS_LEDGER` + 临时锁）⇒ 不碰真台账 ✓；
+      往真仓库写的只有一个**悬垂 commit 对象**（无 ref、无副作用，gc 会回收 ✓）。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| Z-9 | 语言 | 夹具（没处置 ⇒ 不进 rows） | 高 | `bash z.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        # 四个夹具条目**来源就是终态**（`fixed`）⇒ 收口后不产生"两层漂移"的红，
+        # 于是每条臂的红都只能是**内容锚**那一条（谁的红就是谁的红 ✓）。
+        EXTRAS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in (
+            {"id": "P-1", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash p1.sh", "disposition": "fixed", "why": "夹具：advance 内容锚"},
+            {"id": "P-2", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash p2.sh", "disposition": "fixed", "why": "夹具：triage applied 内容锚"},
+            {"id": "P-3", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash p3.sh", "disposition": "fixed", "why": "夹具：存量形状 + 补账"},
+            {"id": "P-4", "source": "ux-index", "facet": "语言", "severity": "medium",
+             "repro": "bash p4.sh", "disposition": "fixed", "why": "夹具：repoint 既有牙重验"},
+        )), encoding="utf-8")
+
+        def _git(*argv):
+            return subprocess.run(["git", *argv], cwd=ROOT, capture_output=True,
+                                  text=True).stdout.strip()
+
+        real_sha = _git("rev-parse", "HEAD")
+        # **另一个祖先**：从 `HEAD~1` 起找第一个 `patch-id` 与 `HEAD` 不同的（内容无关的祖先 ✓）。
+        # ⚠ 不能写死 sha（main 会被 rebase ⇒ 数字/哈希都会漂 ✗）；也不能用 `HEAD~1` 就假定它
+        # 内容不同（空提交 / 同一补丁重放都可能同 id）⇒ **现找 + 当场断言** ✓。
+        other = ""
+        for _n in range(1, 6):
+            _cand = _git("rev-parse", f"HEAD~{_n}")
+            if _cand and _patch_id(_cand) and _patch_id(_cand) != _patch_id(real_sha):
+                other = _cand
+                break
+        # **非祖先**：拿 HEAD 的树现场造一个**悬垂** commit（对象真的存在 ✓、但不是祖先 ✓）。
+        dangling = _git("-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local",
+                        "commit-tree", f"{real_sha}^{{tree}}", "-m",
+                        "ux-queue selftest: 内容锚的悬垂 commit")
+        expect(f"夹具：另一个**祖先** sha 找得到且内容不同（{other[:8]}…）",
+               bool(other) and commit_is_ancestor(other)
+               and _patch_id(other) != _patch_id(real_sha))
+        expect(f"夹具：**非祖先** sha 造得出（{dangling[:8]}…）",
+               bool(dangling) and not commit_is_ancestor(dangling))
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, err.getvalue()
+
+        def snapshot():
+            _r, _u = build_queue()
+            _s = fold()
+            return _r, _s, sched_rows(_r, _s)
+
+        def last_event(ident: str, kind: str) -> dict:
+            return next(e for e in reversed(load_events())
+                        if e.get("id") == ident and e.get("event") == kind)
+
+        def patch_event_commit(ident: str, kind: str, new_commit: str) -> None:
+            """**手改事件表一行**（= 复核者的靶子：只动 `commit`，审计字段一个字不动 ✓）。"""
+            lines = []
+            for line in EVENTS.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    ev = json.loads(line)
+                    if ev.get("id") == ident and ev.get("event") == kind:
+                        ev["commit"] = new_commit
+                        line = json.dumps(ev, ensure_ascii=False)
+                lines.append(line)
+            EVENTS.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        try:
+            # ── ① 写侧：`--advance --to done` 记内容锚；不改 ⇒ rc=0（正对照） ──────────────
+            EVENTS.write_text("", encoding="utf-8")
+            rows, _st, view = snapshot()
+            rc, _e = capture(cmd_advance, "P-1", "in_progress", "", "", "", "t", False, view)
+            expect(f"① `P-1` → in_progress（前置）rc={rc}", rc == 0)
+            rows, _st, view = snapshot()
+            rc, err = capture(cmd_advance, "P-1", "done", real_sha, "读数：内容锚", "", "t",
+                              False, view)
+            expect(f"① `--advance --to done` rc={rc}", rc == 0)
+            _ev = last_event("P-1", "advance")
+            expect("① 事件带 `subject` + `patch_id`（**改前一个字段都没有** ✗）",
+                   bool(_ev.get("subject")) and bool(_ev.get("patch_id")))
+            expect("① 锚与 git 现算**逐字节一致**"
+                   f"（patch_id {(_ev.get('patch_id') or '')[:12]}…）",
+                   _ev.get("patch_id") == _patch_id(real_sha)
+                   and _ev.get("subject") == _subject_text(_commit_subject(real_sha)))
+            _s1 = fold().get("P-1", {})
+            expect("① `fold` 折出 `ptr_subject`/`ptr_patch_id`（读侧复查的输入 ✓）",
+                   _s1.get("ptr_patch_id") == _patch_id(real_sha)
+                   and _s1.get("ptr_subject") == _subject_text(_commit_subject(real_sha)))
+            _r1, _s1b, _v1 = snapshot()
+            rc, err = capture(check_plan, _v1, _r1)
+            expect(f"① 且**一个字不改 ⇒ rc=0**（不误伤；实测红 {rc} 条）", rc == 0)
+            # ── ② 读侧：手改 `commit` 为**另一个祖先** ⇒ 判红 + 点名（改前 rc=0 ✗） ─────────
+            patch_event_commit("P-1", "advance", other)
+            _r2, _s2, _v2 = snapshot()
+            rc, err = capture(check_plan, _v2, _r2)
+            expect(f"② 手改成**另一个祖先**（`{other[:8]}` 真是祖先）⇒ **判红**"
+                   f"（**改前 rc=0 静默** ✗；实测红 {rc} 条）", rc >= 1)
+            expect("② 点名 `P-1` + 说「指针被**事后换过**」+ 给出处（收口事件的审计字段）",
+                   "P-1" in err and "事后换过" in err and "审计字段" in err)
+            expect("② 红**不是**祖先性那条（`other` 真是祖先 ⇒ 咬它的只能是内容锚 ✓）",
+                   "不是 `HEAD` 的祖先" not in err)
+            # ── ③ 正对照：换成**非祖先** ⇒ 祖先性那条照样咬（改前改后都咬 ✓） ──────────────
+            patch_event_commit("P-1", "advance", dangling)
+            _r3, _s3, _v3 = snapshot()
+            rc, err = capture(check_plan, _v3, _r3)
+            expect(f"③ 正对照：换成**非祖先** ⇒ rc=1 且报「不是 `HEAD` 的祖先」（实测红 {rc} 条）",
+                   rc >= 1 and "不是 `HEAD` 的祖先" in err)
+            # ── ④ `--triage --to applied` 同形 ─────────────────────────────────────────
+            EVENTS.write_text("", encoding="utf-8")
+            rc, _e = capture(cmd_triage, "P-2", "applied", "", real_sha, "t")
+            expect(f"④ `--triage --to applied` rc={rc}", rc == 0)
+            _ev = last_event("P-2", "triage")
+            expect("④ triage 事件带 `subject` + `patch_id`（改前没有 ✗）",
+                   bool(_ev.get("subject")) and _ev.get("patch_id") == _patch_id(real_sha))
+            _r4, _s4, _v4 = snapshot()
+            rc, err = capture(check_plan, _v4, _r4)
+            expect(f"④ 且不改 ⇒ rc=0（实测红 {rc} 条）", rc == 0)
+            patch_event_commit("P-2", "triage", other)
+            _r5, _s5, _v5 = snapshot()
+            rc, err = capture(check_plan, _v5, _r5)
+            expect(f"④ 手改成另一个祖先 ⇒ 判红 + 点名（**改前 rc=0 静默** ✗；实测红 {rc} 条）",
+                   rc >= 1 and "P-2" in err and "事后换过" in err)
+            # ── ⑤⑥⑦ 存量形状（兜底 / 边界 / 补账） ────────────────────────────────────
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "advance", "id": "P-3", "to": "done", "commit": real_sha,
+                          "reading": "读数：存量形状（无审计字段）", "owner": "t"})
+            _r6, _s6, _v6 = snapshot()
+            rc, err = capture(check_plan, _v6, _r6)
+            expect(f"⑤ **兜底**：存量形状（无审计字段）⇒ **不判红**（实测红 {rc} 条；"
+                   f"真台账 82 + 39 条都长这样 ✓）", rc == 0)
+            expect("⑤ 且不许误报「指针被事后换过」", "事后换过" not in err)
+            # ⑥ **边界（如实钉住）**：没有锚 ⇒ 同一条手改**咬不住** —— 这是兜底的代价，不是"忘了修"
+            patch_event_commit("P-3", "advance", other)
+            _r7, _s7, _v7 = snapshot()
+            rc, err = capture(check_plan, _v7, _r7)
+            expect(f"⑥ 边界（如实）：存量形状**没有锚** ⇒ 同一条手改 rc=0（咬不住；出路见 ⑦）",
+                   rc == 0)
+            # ⑦ **补账**：照 `repoint` 的补账形状（**同指针**再追加一条**带审计字段**的同形事件）
+            _dup = dict(last_event("P-3", "advance"))
+            _dup["commit"] = real_sha          # **同指针** ⇒ 不制造假历史 ✓
+            _dup.update(_pointer_audit(real_sha))
+            append_event(_dup)
+            _r8, _s8, _v8 = snapshot()
+            rc, err = capture(check_plan, _v8, _r8)
+            expect(f"⑦ 补账（同指针 + 审计字段）⇒ 仍 rc=0（实测红 {rc} 条）", rc == 0)
+            expect("⑦ 且 `fold` 现在折出了锚（补账**真的**把守卫接上了 ✓）",
+                   bool(fold().get("P-3", {}).get("ptr_patch_id")))
+            patch_event_commit("P-3", "advance", other)
+            _r9, _s9, _v9 = snapshot()
+            rc, err = capture(check_plan, _v9, _r9)
+            expect(f"⑦ 补账之后**同一条手改当场判红** + 点名（实测红 {rc} 条）",
+                   rc >= 1 and "P-3" in err and "事后换过" in err)
+            # ── ⑧ `repoint` 既有牙重验（折叠键名从 `repoint_*` 统一成 `ptr_*` 后） ──────────
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "advance", "id": "P-4", "to": "done", "commit": real_sha,
+                          "reading": "读数：repoint 前置", "owner": "t"})
+            _audit = _pointer_audit(other)
+            append_event({"event": "repoint", "id": "P-4", "commit": other, "old": real_sha,
+                          **_audit, "old_subject": _subject_text(_commit_subject(real_sha)),
+                          "old_patch_id": _patch_id(real_sha), "reason": "夹具", "owner": "t"})
+            _r10, _s10, _v10 = snapshot()
+            rc, err = capture(check_plan, _v10, _r10)
+            expect(f"⑧ `repoint` 到真祖先 + 锚一致 ⇒ rc=0（统一键名没把绿路改红 ✓；实测红 {rc} 条）",
+                   rc == 0)
+            patch_event_commit("P-4", "repoint", real_sha)
+            _r11, _s11, _v11 = snapshot()
+            rc, err = capture(check_plan, _v11, _r11)
+            expect(f"⑧ `repoint` 换 `commit` 而审计字段不动 ⇒ 判红 + 点名「指针被事后换过」"
+                   f"（**既有守卫的牙**，实测红 {rc} 条）",
+                   rc >= 1 and "P-4" in err and "事后换过" in err)
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+
+
 def cmd_selftest(args: argparse.Namespace) -> int:
     """判据通道自检：**故意造四种形状**，每一种都必须被判红/判绿正确。
 
@@ -7379,6 +7688,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     # ③k **两个写入口的权威状态闸门**（2026-10-14 · 第六次复核 #3：`--advance --to todo` 与
     #     `--add-child` 都只看事件状态 ⇒ rc=0 制造已知必红的状态 ✗）
     selftest_write_gates(expect)
+    # ③l ⭐ **收口指针的内容锚**（`ADVANCE-POINTER-NO-CONTENT-AUDIT`，2026-10-15 · 第十三次独立
+    #     复核实测 ✗：`--advance --to done` / `--triage --to applied` 的指针只有祖先性 ⇒ 换成
+    #     另一个**祖先** rc=0 静默；而 `repoint` 同形 ⇒ rc=1 ⇒ 同一本账两种强度）
+    selftest_pointer_content_audit(expect)
 
     # ④ 真来源：三张表 + 台账 + extras 都能解析
     try:
