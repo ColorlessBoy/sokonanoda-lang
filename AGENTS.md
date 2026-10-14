@@ -197,8 +197,8 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 - **DeepSeek Harness**：技能与 `/sokonanoda-*` 命令自动可用（`.agents/skills/`），
   但 LSP 需显式启用 `dsh web --patch ./dsh/cordis.patch.yml`；且**服务端诊断不会被
   投递给 agent** ⇒ 判卷一律走 CLI `--json`（`docs/design/deepseek-harness.md`）。
-- 其他 harness 可用 `.opencode/lsp/sokonanoda-lsp.sh` shim →
-  `scripts/soko lsp`。
+- 其他 harness 可用 `.opencode/lsp/sokonanoda-lsp.sh` shim → **只做转发**给
+  `scripts/soko lsp`（自己不选二进制 ⇒ 链只有一条，与 DSH 接线同源；`SOKONANODA_BIN` 是逃生门）。
 
 goal 视图走自定义请求
 `soko/goals` / `soko/hints` / `soko/nextHole` / `soko/stateAt` /
