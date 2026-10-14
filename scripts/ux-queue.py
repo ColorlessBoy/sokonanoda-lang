@@ -2552,16 +2552,14 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
         if st_ev == "wo_filed" and not cur.get("reason"):
             print(f"✗ `{ident}` 是 wo_filed 却没写理由 ✗", file=sys.stderr)
             bad += 1
-    # ⭐ **发版节点的读侧复查**（`#3`，2026-10-14 · 第八次独立复核实测 ✗）—— 与 `repoint` 的
-    # 读侧复查（上面那一支）**同一形状**：`#1` 给 `repoint` 补了读侧 ⇒ 手改事件表换 commit
-    # 会被咬 ✓；而 `release-cut` 只有**写侧**闸门 ⇒ 手写假 `release-cut` **无人咬** ✗
-    #（且 `#2` 写进事件的 `subject`/`patch_id` 一个读者都没有 ✗）。
-    # ⚠ **一处定义**：判据在 `cut_audit_problem()`（`--release check` 也调它 ✓）。
-    for _rel, _node in sorted(release_nodes().items()):
-        _cut_why = cut_audit_problem(_node)
-        if _cut_why is not None:
-            print(_cut_why, file=sys.stderr)
-            bad += 1
+    # ⭐ **发版节点的读侧复查**（`#3` 第八次 + 第九次独立复核实测 ✗）——
+    # 与 `repoint` 的读侧复查（上面那一支）**同一形状**，判据**一处定义**在
+    # `release_read_problems()`（`--release check` 也调它 ✓）。逐族：
+    #   · **事件层**（`#1` 第九次）：**顺序敏感** ⇒ 把 `release-add`/`block`/`drop`/`cut`
+    #     写在 `release-open` 之前就**同族静默丢弃** ⇒ 假 cut 对两条读侧**零输入** ✗。
+    for _why in release_read_problems(state):
+        print(_why, file=sys.stderr)
+        bad += 1
     claims = read_lock()["claims"]
     live = [c for c in claims if claim_is_live(c)[0]]
     stale = [c for c in claims if not claim_is_live(c)[0]]
@@ -2844,40 +2842,108 @@ def worktree_dirty() -> str:
                           text=True).stdout.strip()
 
 
-def release_nodes() -> dict[str, dict]:
-    """发版节点（`kind=release` 的事件折叠）：{版本: {items, blockers, cut, attempts}}。"""
-    out: dict[str, dict] = {}
-    for ev in load_events():
+RELEASE_EVENT_KINDS = ("release-open", "release-add", "release-drop", "release-block",
+                       "release-cut")
+
+
+def release_scan() -> tuple[dict[str, dict], list[tuple[str | None, str]]]:
+    """发版节点的折叠 —— **唯一出处**：返回 `(节点表, 事件层的读侧问题清单)`。
+
+    ⚠ **折叠必须顺序无关**（`#1`，2026-10-14 · 第九次独立复核实测 ✗）：旧写法把"这个节点
+    存在吗"判在**事件流里的位置**上（`elif kind == "release-add" and ev.get("rel") in out`）
+    ⇒ 只要把 `release-add`/`release-block`/`release-drop`/`release-cut` 写在 `release-open`
+    **之前**，它们就**同族静默丢弃** ✗ —— 复核者实测：真台账 + `release-add` + **假审计**
+    `release-cut`，**放在 `release-open` 之前** ⇒ `items=[]`、`cut=None` ⇒ `--check`
+    **rc=0 且不点名**（同样三条按**正确顺序** ⇒ rc=1、点名「与审计字段对不上」）✗。
+    那正是"**事后可复查**"的破口：CLI 写过的形状可复查，**手改 / 重排**能让假 cut 完全逃过
+    **两条读侧** ✗（`release-add`/`block`/`drop` 同族 —— 硬规则 0(b)：一起修 ✓）。
+
+    ⇒ 两件事**一起**做（缺一不可）：
+      ① **节点登记与事件折叠分两趟**：先扫**全部** `release-open` 把节点集合收齐（顺序无关 ✓）
+         ⇒ 四条写事件的成员判据不再依赖"open 是否已经出现过"；
+      ② **乱序照样判红**（`idx < first_open` 的事件进 `node["disorder"]`）· **孤儿也判红**
+         （引用了**从来没有** `release-open` 的节点 id ⇒ 进返回的第二项）——
+         ⚠ 不许"因为顺序无关就把它当合法" ✗：事件表是**只追加**账，四条 CLI 路径
+         （`--release open/add/block/drop/cut`）**都先写 open** ⇒ 乱序只可能来自**手改**，
+         而手改正是本判据的靶子 ✓。
+
+    ⚠ **只严不松**：两趟折叠之后 `items`/`blockers`/`cuts` 只会**多**出来（旧写法丢掉的），
+    而乱序 / 孤儿**各自**是一条红 ⇒ **没有任何"改前红"的形状在改后变绿** ✓
+    （乱序夹具里 `--release check` 的「空节点不成立」被"乱序 + 审计对不上"两条红替代 ✓）。
+    """
+    events = load_events()
+    first_open: dict[str, int] = {}
+    for idx, ev in enumerate(events):
+        if ev.get("event") == "release-open" and ev.get("id"):
+            first_open.setdefault(ev["id"], idx)
+    nodes: dict[str, dict] = {
+        ident: {"id": ident, "version": None, "items": [], "blockers": {}, "ts": None,
+                "cut": None, "disorder": []}
+        for ident in first_open}
+    problems: list[tuple[str | None, str]] = []
+    for idx, ev in enumerate(events):
         kind = ev.get("event")
+        if kind not in RELEASE_EVENT_KINDS:
+            continue
+        ident = ev.get("id") if kind in ("release-open", "release-cut") else ev.get("rel")
+        if not ident:
+            problems.append((None, f"✗ 发版事件 `{kind}` 没写节点 id（`release-open`/`release-cut` "
+                                   f"用 `id`、其余三条用 `rel`）⇒ 这条事件对节点表**零输入** ✗"))
+            continue
+        if ident not in nodes:
+            problems.append((ident,
+                             f"✗ 发版事件 `{kind}` 引用了一个**从来没有** `release-open` 的节点 "
+                             f"`{ident}` ⇒ **孤儿**：旧折叠把它静默丢掉（`… in out` 判据恒假 ✗）"
+                             f"—— 节点 id 的形状是 `REL-<version>` ⇒ 要么先 "
+                             f"`--release open --version …`，要么把这条事件删掉重写 ✓"))
+            continue
+        node = nodes[ident]
+        if idx < first_open[ident]:
+            node["disorder"].append(kind)
         if kind == "release-open":
-            # ⚠ **别覆盖已有节点**（2026-10-12 接口 agent 提交 `SUB-release-drop-resets-attempts`）：
-            # `release-open` 对同一个版本可以再来一次（重开节点），而 `blockers` 是**试修计数**
-            # ⇒ 覆盖 = 把"同一问题最多试修 3 次"的账清零 ⇒ 防无限 bug 分支的守卫形同虚设 ✗。
-            prev = out.get(ev["id"]) or {}
-            out[ev["id"]] = {"id": ev["id"], "version": ev.get("version"),
-                             "items": prev.get("items", []),
-                             "blockers": dict(prev.get("blockers", {})),
-                             "ts": ev.get("ts"), "cut": prev.get("cut")}
-        elif kind == "release-add" and ev.get("rel") in out:
-            out[ev["rel"]]["items"].append(ev["id"])
-        elif kind == "release-drop" and ev.get("rel") in out:
-            node = out[ev["rel"]]
+            # ⚠ **别覆盖 `items`/`blockers`/`cuts`**（2026-10-12 接口 agent 提交
+            # `SUB-release-drop-resets-attempts`）：`release-open` 对同一个版本可以再来一次
+            # （重开节点），而 `blockers` 是**试修计数** ⇒ 覆盖 = 把"同一问题最多试修 3 次"
+            # 的账清零 ⇒ 防无限 bug 分支的守卫形同虚设 ✗。
+            node["version"], node["ts"] = ev.get("version"), ev.get("ts")
+        elif kind == "release-add":
+            node["items"].append(ev.get("id"))
+        elif kind == "release-drop":
             node["items"] = [i for i in node["items"] if i != ev.get("id")]
             # ⚠ **不动 `blockers`**：`drop` 是"带着已知问题发版"的合法出路，但试修计数是
             # **跨节点累计的历史**（同一问题试修过 3 次就是 3 次）⇒ 把它一起 pop 掉
             # 就等于"drop 一次又能 block 3 次、再 drop、再 3 次……"无限循环 ✗
             #（用户 2026-10-12 明确要求"同一问题最多试修 3 次，第 4 次走 drop 带已知问题发版"）。
-        elif kind == "release-block" and ev.get("rel") in out:
-            node = out[ev["rel"]]
-            node["blockers"][ev["id"]] = node["blockers"].get(ev["id"], 0) + 1
-        elif kind == "release-cut" and ev.get("id") in out:
+        elif kind == "release-block":
+            node["blockers"][ev.get("id")] = node["blockers"].get(ev.get("id"), 0) + 1
+        elif kind == "release-cut":
             # ⚠ **审计字段必须折进来**（`#3`，2026-10-14 · 第八次独立复核实测 ✗）：旧写法只留
             # `{commit, ci, ts}` ⇒ `#2` 写进事件的 `subject`/`patch_id` **一个读者都没有** ✗
-            #（"咬不住的守卫等于没有"）⇒ `cut_audit_problem()` 读不到它，读侧复查无从谈起。
-            out[ev["id"]]["cut"] = {"commit": ev.get("commit"), "ci": ev.get("ci"),
-                                    "ts": ev.get("ts"),
-                                    "subject": ev.get("subject"), "patch_id": ev.get("patch_id")}
-    return out
+            #（"咬不住的守卫等于没有"）⇒ 读侧复查无从谈起。
+            node["cut"] = {"commit": ev.get("commit"), "ci": ev.get("ci"),
+                           "ts": ev.get("ts"),
+                           "subject": ev.get("subject"), "patch_id": ev.get("patch_id")}
+    for ident, node in sorted(nodes.items()):
+        if node["disorder"]:
+            _kinds = "、".join(f"`{k}`" for k in node["disorder"])
+            problems.append((ident,
+                             f"✗ 发版节点 `{ident}` 的事件**乱序**：{len(node['disorder'])} 条"
+                             f"（{_kinds}）出现在它的**第一条** `release-open` **之前** ⇒ "
+                             f"事件表是**只追加**账、四条 CLI 写路径都**先写 open** ⇒ 这个形状"
+                             f"只可能来自**手改**（也正是「假 cut 逃过两条读侧」那个洞的造法 ✗）"
+                             f"—— 按追加顺序重排，或把这几条删掉重写 ✓"))
+    return nodes, problems
+
+
+def release_nodes() -> dict[str, dict]:
+    """发版节点（`kind=release` 的事件折叠）：{节点id: {items, blockers, cut, cuts, …}}。
+
+    ⚠ **唯一出处 = `release_scan()`**（顺序无关的折叠 + 事件层问题清单都从它来 ✓）；
+    本函数只把节点表那一半交出去（`release_node_ids()` / `cmd_release` / 两条读侧都读它 ✓）。
+    ⚠ 返回的每个节点多带一个 `disorder`（乱序事件名）—— 读者别自己再扫一遍事件表
+    （`AGENTS.md` 硬规则 0(b)：同一规则不许两处写 ✗）。
+    """
+    return release_scan()[0]
 
 
 def cut_audit_problem(node: dict) -> str | None:
@@ -2913,6 +2979,26 @@ def cut_audit_problem(node: dict) -> str | None:
                 f"`{(now_pid or 'N/A')[:12]}` ⇒ 切版指针被**事后换过**（手改事件表？）✗ "
                 f"—— `release-cut` 的审计字段就是为这条复查留的 ✓")
     return None
+
+
+def release_read_problems(state: dict[str, dict], rel: str | None = None) -> list[str]:
+    """**发版节点的读侧判据（一处定义）** —— `check_plan`（= `--check`，gate/CI 跑的那条）
+    与 `--release check` **共用** ✓。逐族：
+
+      · **事件层**（`#1`）：乱序 / 孤儿 —— `release-add`/`block`/`drop`/`cut` **同族** ✓
+        （旧折叠按事件流位置判成员 ⇒ 重排即可让它们静默消失 ✗）。
+
+    `rel` 给了就只算那一个节点（`--release check` 只审自己的节点 ✓）；不给就全审（`--check` ✓）。
+    """
+    nodes, problems = release_scan()
+    out = [msg for _r, msg in problems if rel is None or _r == rel]
+    for _rel, _node in sorted(nodes.items()):
+        if rel is not None and _rel != rel:
+            continue
+        _why = cut_audit_problem(_node)
+        if _why is not None:
+            out.append(_why)
+    return out
 
 
 def release_node_ids() -> set[str]:
@@ -3038,12 +3124,13 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
             print(f"✗ 克制：本节点才 {len(node['items'])} 条 < {MIN_ITEMS_PER_RELEASE} 条 ⇒ "
                   f"再攒攒（`--force --reason …` 可越过）✗", file=sys.stderr)
             bad += 1
-        # ⭐ **节点级读侧复查**（`#3`，2026-10-14 · 第八次独立复核实测 ✗）：`release-cut` 的
-        # 审计字段（`subject`/`patch_id`）与 `commit` **对不上** ⇒ 判红（手写假 `release-cut`
-        # 原先**无人咬** ✗）。⚠ 与 `--check` **共用** `cut_audit_problem()`（一处定义 ✓）。
-        _cut_why = cut_audit_problem(node)
-        if _cut_why is not None:
-            print(_cut_why, file=sys.stderr)
+        # ⭐ **节点级读侧复查**（`#3` 第八次 · 第九次独立复核实测 ✗）—— 逐族：
+        #   · **事件层**：乱序 / 孤儿（`release-add`/`block`/`drop`/`cut` **同族** ✓）。
+        # ⚠ 与 `--check` **共用** `release_read_problems()`（一处定义 ✓）：旧写法把"入版条目
+        # 必须 done"这条规则**只**长在这里 ⇒ `--check` 对节点内容**全盲**（rc=0 ✗）—— 而
+        # `soko gate --fast` 与 CI 的 `ledger` job 跑的正是 `--check` ✗。
+        for _why in release_read_problems(state, rel):
+            print(_why, file=sys.stderr)
             bad += 1
         for ident in node["items"]:
             cur = state.get(ident, {})
@@ -5305,8 +5392,177 @@ def selftest_release_open_seam(expect) -> None:
                           "owner": "t"})
             _rows2, _u2 = build_queue()
             rc, out = capture(check_plan, sched_rows(_rows2, fold()), _rows2)
-            expect(f"④ 手写 `release-add`（无 `release-open`、id 无来源）⇒ 判红 rc={rc}",
-                   rc == 1 and "GHOST-SEAM-9" in out and "幽灵" in out)
+            # ⚠ **两条红**（不是一条）：`#1`（第九次复核）之后，`release-add` 引用一个
+            # **从来没有 `release-open`** 的节点 `REL-0.0.1` 还会被**孤儿判据**点名 ⇒
+            # 读数从 1 条变 2 条（**只严不松** ✓ —— 幽灵那条一个字没放宽）。
+            expect(f"④ 手写 `release-add`（无 `release-open`、id 无来源）⇒ 判红 rc={rc}（≥1）",
+                   rc >= 1 and "GHOST-SEAM-9" in out and "幽灵" in out)
+            expect("④ 且**孤儿判据**同时点名那个不存在的节点 `REL-0.0.1`"
+                   "（`#1`：旧折叠把它静默丢掉 ✗）",
+                   "REL-0.0.1" in out and "孤儿" in out)
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+            globals()["worktree_dirty"] = saved[5]
+            globals()["probe_inventory"] = saved[6]
+            globals()["unmerged_agent_branches"] = saved[7]
+
+
+def selftest_release_order_and_content(expect) -> None:
+    """⭐ **发版节点的三根新轴**（`#1`/`#2`/`#3`，2026-10-14 · 第九次独立复核实测 ✗）。
+
+    三件缺口（各有实测复现 ✓，**只有手改事件表**造得出来 —— 那正是它们该被咬住的理由）：
+      · **`#1` 顺序敏感**：`release-add`/`release-block`/`release-drop`/`release-cut` 写在
+        `release-open` **之前** ⇒ 旧折叠的成员判据（`… in out`）恒假 ⇒ **同族静默丢弃** ✗
+        ⇒ 真台账 + `release-add` + **假审计** `release-cut` 重排后：`items=[]`、`cut=None`
+        ⇒ `--check` **rc=0 且不点名**（同三条按正序 ⇒ rc=1、点名「与审计字段对不上」）✗；
+
+    断言（每条都点名靶子 ⇒ 定向突变必红）：
+      ① **顺序无关**：同一批事件两种顺序 ⇒ `items`/`blockers`/`cut` **逐字节相同**
+         （旧折叠：乱序折出 `items=[]` · `cut=None` ✗）；
+      ② **两种顺序同判**：都判红、都点名「对不上」（旧折叠：乱序 rc=0 静默 ✗）；
+      ③ 乱序**另外**点名「乱序」（顺序无关 ≠ 把乱序当合法 ✗）；
+      ④ **孤儿**：引用没有 `release-open` 的节点 ⇒ 判红 + 点名；正对照（节点都在）⇒ 不误报 ✓；
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.strip()
+    fake_pid = "deadbeef" * 5
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
+                 globals()["worktree_dirty"], globals()["probe_inventory"],
+                 globals()["unmerged_agent_branches"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        globals()["worktree_dirty"] = lambda: ""
+        globals()["probe_inventory"] = lambda: []
+        globals()["unmerged_agent_branches"] = lambda: []
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| R-9 | 语言 | 夹具（没处置 ⇒ 不进 rows） | 高 | `bash r.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+
+        def write_extras(rows) -> None:
+            EXTRAS.write_text("".join(
+                json.dumps({"id": i, "source": "orchestrator-schedule", "facet": "主线",
+                            "severity": "medium", "repro": f"bash {i}.sh", "disposition": d,
+                            "why": w}, ensure_ascii=False) + "\n" for i, d, w in rows),
+                encoding="utf-8")
+
+        def ns(**kw):
+            base = dict(release="", rel="", version="9.9.9", id="", commit="", ci="", reason="",
+                        owner="t", force=False)
+            base.update(kw)
+            return argparse.Namespace(**base)
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, buf.getvalue() + err.getvalue()
+
+        def view():
+            _rows, _u = build_queue()
+            return sched_rows(_rows, fold())
+
+        def plan():
+            """**真 CLI 的 `--check` 那一半**：`main()` 里就是 `check_plan(view, rows)`。"""
+            _rows, _u = build_queue()
+            return capture(check_plan, sched_rows(_rows, fold()), _rows)
+
+        def rel_check():
+            _rows, _u = build_queue()
+            return capture(cmd_release, ns(release="check", rel="REL-9.9.9"),
+                           sched_rows(_rows, fold()))
+
+        def node() -> dict:
+            return release_nodes().get("REL-9.9.9", {})
+
+        def done_events(ids=("FX-1", "FX-2", "FX-3", "FX-4")) -> None:
+            EVENTS.write_text("", encoding="utf-8")
+            for i in ids:
+                append_event({"event": "advance", "id": i, "to": "done", "commit": real_sha,
+                              "reading": "夹具读数", "owner": "t"})
+
+        def open_and_add(ids=("FX-1", "FX-2", "FX-3")) -> None:
+            append_event({"event": "release-open", "id": "REL-9.9.9", "version": "9.9.9",
+                          "owner": "t"})
+            for i in ids:
+                append_event({"event": "release-add", "rel": "REL-9.9.9", "id": i, "owner": "t"})
+
+        def legit_cut(ci: str) -> None:
+            append_event({"event": "release-cut", "id": "REL-9.9.9", "commit": real_sha,
+                          "ci": ci, "subject": _commit_subject(real_sha),
+                          "patch_id": _patch_id(real_sha), "owner": "t"})
+
+        def batch(order: str) -> list[dict]:
+            """同一批事件（open + add×4 + block + drop + **假审计** cut）—— 两种顺序。"""
+            body = [{"event": "release-add", "rel": "REL-9.9.9", "id": i, "owner": "t"}
+                    for i in ("FX-1", "FX-2", "FX-3", "FX-4")]
+            body += [{"event": "release-block", "rel": "REL-9.9.9", "id": "FX-1",
+                      "reason": "夹具：阻塞", "owner": "t"},
+                     {"event": "release-drop", "rel": "REL-9.9.9", "id": "FX-4",
+                      "reason": "夹具：已知问题", "owner": "t"},
+                     {"event": "release-cut", "id": "REL-9.9.9", "commit": real_sha, "ci": "7",
+                      "subject": "伪造的 subject（与 commit 对不上）", "patch_id": fake_pid,
+                      "owner": "t"}]
+            head = [{"event": "release-open", "id": "REL-9.9.9", "version": "9.9.9",
+                     "owner": "t"}]
+            return head + body if order == "ok" else body + head
+
+        try:
+            # ① ② ③ **顺序轴**（`#1`）
+            write_extras([(f"FX-{i}", "fixed", "夹具：已关账") for i in (1, 2, 3, 4)])
+            reads: dict[str, dict] = {}
+            for order in ("ok", "reordered"):
+                done_events()
+                for ev in batch(order):
+                    append_event(ev)
+                prc, pout = plan()
+                rrc, rout = rel_check()
+                reads[order] = {"items": list(node().get("items") or []),
+                                "blockers": dict(node().get("blockers") or {}),
+                                "cuts": len(node().get("cuts") or []),
+                                "cut_commit": (node().get("cut") or {}).get("commit"),
+                                "plan_rc": prc, "plan": pout, "rel_rc": rrc, "rel": rout}
+            _ok, _re = reads["ok"], reads["reordered"]
+            expect(f"① **顺序无关**：两种顺序折出的 `items` 逐字节相同"
+                   f"（正序 {_ok['items']} vs 乱序 {_re['items']}；**改前乱序折出 []** ✗）",
+                   _ok["items"] == _re["items"] == ["FX-1", "FX-2", "FX-3"])
+            expect(f"① 且 `blockers` 相同（{_ok['blockers']} vs {_re['blockers']}；"
+                   f"**改前乱序折出 {{}}** ✗）", _ok["blockers"] == _re["blockers"] == {"FX-1": 1})
+            expect(f"① 且 `cut`（最后一条）相同（{str(_ok['cut_commit'])[:8]} vs "
+                   f"{str(_re['cut_commit'])[:8]}；**改前乱序折出 None** ✗）",
+                   _ok["cut_commit"] == _re["cut_commit"])
+            expect(f"② 正序：`--check` rc={_ok['plan_rc']} 且点名「对不上」（两条读侧都点 ✓）",
+                   _ok["plan_rc"] >= 1 and "对不上" in _ok["plan"] and "对不上" in _ok["rel"])
+            expect(f"② ⭐ 乱序**同判**：`--check` rc={_re['plan_rc']} 且点名「对不上」"
+                   f"（**改前 rc=0 且不点名 —— 假 cut 逃过两条读侧** ✗）",
+                   _re["plan_rc"] >= 1 and "对不上" in _re["plan"] and "对不上" in _re["rel"])
+            expect("③ 乱序**另外**点名「乱序」（顺序无关 ≠ 把乱序当合法 ✗）",
+                   "乱序" in _re["plan"] and "乱序" not in _ok["plan"])
+            # ④ **孤儿轴**（`#1` 同族）
+            done_events()
+            for ev in batch("ok"):
+                append_event(ev)
+            append_event({"event": "release-add", "rel": "REL-0.0.1", "id": "FX-1", "owner": "t"})
+            rc, out = plan()
+            expect(f"④ 孤儿（`REL-0.0.1` 从来没有 `release-open`）⇒ 判红 rc={rc} + 点名「孤儿」",
+                   rc >= 1 and "REL-0.0.1" in out and "孤儿" in out)
+            done_events()
+            for ev in batch("ok"):
+                append_event(ev)
+            _rc, _out = plan()
+            expect("④ 正对照：同批事件都有 `release-open` ⇒ 输出里**没有**「孤儿」（不误报 ✓）",
+                   "孤儿" not in _out)
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
@@ -6085,6 +6341,12 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     #     三个 `selftest_release_*` 原先**都只调 `cmd_release`、从不调 `check_plan`**
     #     ⇒ 这条接缝没有任何自检跑过 ✗）
     selftest_release_open_seam(expect)
+    # ③h3c ⭐⭐ **发版节点的三根新轴 + `#4`**（2026-10-14 · 第九次独立复核实测 ✗）：
+    #     `#1` **事件顺序敏感** ⇒ `release-add`/`block`/`drop`/`cut` 同族静默丢弃（假 cut
+    #     逃过**两条读侧** ✗）· `#2` 折叠**只留最后一个** cut（先假后一致 ⇒ 早先那条零输入 ✗）·
+    #     `#3` `--check` 对**节点内容全盲**（入版条目未 done 也 rc=0 ✗ —— 而 gate/CI 跑的
+    #     就是它 ✗）· `#4` `--triage --to rejected` **自造下一条 `--check` 必红** ✗）
+    selftest_release_order_and_content(expect)
     # ③h4 ⭐⭐ **「分支必须合回」栅栏：如实判红 · 逐条给出路 · `--force` 不越过**（`#4`，
     #     2026-10-14 · 第七次独立复核实测 ✗：真仓库 15 条未合回 ⇒ `--release check` 永远过不了；
     #     口径选"如实写清 + 不放宽"⇒ 这条臂钉住「`--force` 也 rc=1」，将来偷加旁路当场判红 ✗）
