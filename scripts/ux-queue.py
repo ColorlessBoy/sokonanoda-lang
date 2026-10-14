@@ -1311,7 +1311,24 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             if cur["state"] == "in_progress":
                 cur.update(state="todo", owner=None, pid=None)
         elif kind == "advance":
-            cur.update(state=ev.get("to"), owner=None, pid=None)
+            # ⭐ **`to` 必须校验**（`#1`，2026-10-14 · 第十次独立复核实测 ✗）：写侧有两道闸门
+            # （`cmd_advance`：① `to ∈ SCHED_STATES`、② `to ∈ TRANSITIONS[frm]`），而读侧
+            # 原先**一道都没有** ⇒ 手写 `{"event":"advance","to":"boundary"}`（`control` 同判）
+            # ⇒ `--check` **rc=0 且从不点名** ✗，而 `--json.open`/§0.2 按**来源处置**算
+            # （照样报"还没做完"）、`--next` 按**事件态**算（不推它）⇒ **三视图不一致** ——
+            # `:992` 那句「`boundary`/`control` 只可能由处置派生」原先只有**写侧**保证 ✓、
+            # 读侧没牙 ✗（CLI 写不出 ⇒ 只有手改能造，而手改正是本判据的靶子 ✓）。
+            # ⚠ **横向**：判据取「`to ∈ SCHED_STATES`」而不是"只认那两个派生态" —— 它与写侧
+            # 的第一道闸门**同一份**口径（不另写一份列表 ✗）⇒ `boundary`/`control` **和表外的
+            # 任何值**（`nonsense`）一起被咬住 ✓；而 `blocked`/`umbrella`/`submitted`/
+            # `triage_rejected` 都在 `SCHED_STATES` 里 ⇒ **一格都不动** ✓（它们只是由别的写
+            # 路径产生，或本来就是"开着但不可动"，不是非法值）。
+            # ⚠ **非法 `to` 不许静默丢弃** ✗：原值折进 `bad_to`（状态仍按账上写的折 ⇒ 读数
+            # 能**点名那个值**）⇒ `check_plan` 据此判红 + 给出路 ✓。
+            _to = ev.get("to")
+            if _to not in SCHED_STATES:
+                cur["bad_to"] = _to
+            cur.update(state=_to, owner=None, pid=None)
             for key in ("commit", "reading", "reason"):
                 if ev.get(key):
                     cur[key] = ev[key]
@@ -2342,6 +2359,8 @@ def source_history_ids() -> set[str]:
     return out
 
 
+
+
 def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     """**调度器不变量**：状态与来源不许漂移、收口必须有证据、umbrella 不许空、锁要新鲜。
 
@@ -2498,6 +2517,28 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
                           f" ⇒ 指针被**事后换过**（手改事件表？）✗ —— `--repoint` 的审计字段"
                           f"就是为这条复查留的 ✓", file=sys.stderr)
                     bad += 1
+        # ⭐ **事件层：`advance` 的 `to` 必须是一个调度器状态**（`#1`，2026-10-14 · 第十次
+        # 独立复核实测 ✗）：`fold` 把 `bad_to` 折进来（见那里的说明）⇒ 这里判红 + **点名那个
+        # 值** + 给出路。⚠ 这一条**只认事件层**（账上有没有一条 CLI 写不出来的 `advance`），
+        # 与来源处置**无关** ⇒ `boundary`/`control` × 8 个「来源 × 处置」组合**逐格同判** ✓
+        # （不是"只在某一格静默"那一族 ✗ —— 网格 `selftest_source_state_grid` 的新列逐格钉着）。
+        # ⚠ **别把它写成漂移规则** ✗：漂移规则问的是"来源与调度器同不同口径"，而这一格问的是
+        # "这条事件是不是写侧**根本造不出来**的" ⇒ 两者**都要有**（来源 `boundary` + 手写
+        # `to=boundary` 在漂移口径下**一致**、但它仍是一条不该存在的账 ✗）。
+        if "bad_to" in cur:
+            _bad = cur.get("bad_to")
+            print(f"✗ `{ident}` 的事件表里有一条 `advance` 的 `to` = `{_bad}` ⇒ "
+                  f"**不是调度器状态** ✗（`--advance` 只认 {list(SCHED_STATES)}；"
+                  f"`cmd_advance` 的第一道闸门就是它 ⇒ 写侧**造不出**这个形状 ⇒ 只可能来自"
+                  f"**手改事件表**）⇒ 这条状态**不可信**：`--json.open`/§0.2 按**来源处置**算"
+                  f"、`--next` 按**事件态**算 ⇒ **三视图不一致**（改前这一族 `--check` 绿且"
+                  f"不点名 ✗）。⚠ `boundary`/`control` **只由来源处置派生**（`TRANSITIONS` 里"
+                  f"没有它们的入口）⇒ 要表达「边界 / 对照」就改**来源台账那一行的处置**，"
+                  f"别手写 `advance --to boundary` ✓。出路（二选一）："
+                  f"① 把这条 `advance` 从事件表里删掉（状态回到来源处置的派生值 ✓）；"
+                  f"② 把它改成 `SCHED_STATES` 里的合法目标（并按 `TRANSITIONS` 补全证据 / "
+                  f"理由 —— 写侧 `--advance` 会替你拒非法迁移 ✓）", file=sys.stderr)
+            bad += 1
         # ── **两层漂移 = 两个方向的同一条不变量**：来源"已关账" ⟺ 调度器"不在做"。
         # 两个方向合起来才是"三视图一致"：open（来源）· `--next`（调度器）· `--check`（对账）。
         _d = disp.get(ident)
@@ -2989,7 +3030,7 @@ def cut_audit_problems(node: dict) -> list[str]:
         ⇒ **手写一条假 `release-cut` 无人咬** ✗；
       · ⭐ **只审最后一个 cut**（`#2`，2026-10-14 · 第九次独立复核实测 ✗）：折叠只留
         `node["cut"]` = **最后一条** ⇒ 手写两条 cut（**先假、后一致**）时，早先那条假 cut
-        对判据**零输入**（`--check` 绿 ✗）。⚠ CLI 路径造不出这个形状（`--release cut` 会先跑
+        对判据**零输入**（`--check` 绿 ✗）。
         `--release check` ⇒ 第二次 cut rc=1，实测 ✓）⇒ **只有手改能造** ⇒ 读侧必须**逐条**审 ✓。
 
     靶子 = 手写 `release-cut`：审计字段（`subject`/`patch_id`）与 `commit` **对不上**
@@ -4119,26 +4160,45 @@ GRID_PAIRS = (("GF", "gap", "fixed"), ("GW", "gap", "wo-filed"),
               # ⇒ 来源轴扩到**全部四个已关账处置**，由结构性守卫钉住"一个都不许漏" ✓。
               ("EB", "extras", "boundary"), ("EC", "extras", "control"))
 GRID_STATES = (("todo", "todo"), ("inprog", "in_progress"), ("umb", "umbrella"),
-               ("blk", "blocked"), ("sub", "submitted"), ("trej", "triage_rejected"))
+               ("blk", "blocked"), ("sub", "submitted"), ("trej", "triage_rejected"),
+               # ⭐ **第六列：事件态 = 派生的已关账状态**（`#2`，2026-10-14 · 第十次独立复核
+               # 实测 ✗）：`boundary`/`control` **不在 `SCHED_STATES` 里**（它们只由来源处置
+               # 派生）⇒ 旧网格**结构上看不见这一族** ✗ —— 而"手写一条
+               # `{"event":"advance","to":"boundary"}`"正是 `#1` 那一格（改前 `--check` 绿且
+               # 不点名 ✗）。⚠ 这一列**不是**"再列两个状态"，而是**派生**出来的：
+               # `set(CLOSED_STATES) - set(SCHED_STATES)`（结构性守卫 ⓪① 钉着这条恒等式 ⇒
+               # 以后加一个派生态而忘了补网格**先红** ✗）。
+               ("bnd", "boundary"), ("ctl", "control"))
+# ⭐ **正对照轴：开着的来源处置 × 合法的非终态事件态 ⇒ 必须全绿**（`#2` 的同一条要求：
+# "含 `blocked`/`umbrella` 的正对照"）—— 上面那 8 个 pair 的处置**全是已关账**，所以
+# `blocked`/`umbrella` 在网格里**恒红**（红的是"来源关账 × 调度器在做"，不是这两个状态本身）
+# ⇒ 光有那 48 格**分不清**"判红是因为非法 `to` 还是因为两层漂移" ✗。这一轴把"合法 `to`"
+# 那一半单独钉住：开着的处置 + 合法事件态 ⇒ **rc 必须不被这一列污染**（判红数不许变）✓。
+GRID_OPEN_EVENT_DISPS = (("fix", "fix"), ("sched", "scheduled"))
+GRID_OPEN_EVENT = (("todo", "todo"), ("inprog", "in_progress"), ("blk", "blocked"),
+                   ("umb", "umbrella"), ("sub", "submitted"), ("trej", "triage_rejected"))
 # ⭐ **第三轴 = 无事件 / 有事件**（第五轮复核 ①，**最重的一族**）：有事件那一轴由
-# `GRID_STATES` 的 6 个状态构成（每格都用**真事件**造出来 ✓）；**无事件**那一轴
+# `GRID_STATES` 的 `len(GRID_STATES)` 个状态构成（每格都用**真事件**造出来 ✓）；**无事件**那一轴
 # （= docstring 明说的合法操作"删掉事件文件就回到来源台账的处置" ✓）的状态由**来源处置
 # 派生**（`DISPOSITION_STATES`）⇒ 每个 pair 一格，**非缺口来源**的 pair 再加一格带
 # `external-submission` 标记（`effective_state` 的那个短路分支正是这一族 42 格的病根 ✗；
 # 缺口来源的行 `sources=["gap-ledger"]` ⇒ 没有这个标记，不硬凑 ✓）。
 GRID_LAYERS = (("ev", "有事件（事件造状态）"), ("noev", "无事件（处置派生状态）"))
-GRID_CELLS = len(GRID_PAIRS) * len(GRID_STATES)          # 48 = 8 × 6（**有事件**层）
+# ⚠ 因子**一律由表算**（别手抄 ✗ —— 上一版这里写死 `48 = 8 × 6`，加第六列之后就成了假话；
+# 第六次复核已经因为"手抄因子"抓到过一次同类问题）。
+GRID_CELLS = len(GRID_PAIRS) * len(GRID_STATES)          # 64 = 8 × 8（**有事件**层）
 GRID_NOEVENT_CELLS = len(GRID_PAIRS) + sum(              # 14 = 8 + 6（非缺口来源的标记格）
     1 for _p, _s, _d in GRID_PAIRS if _s != "gap")
 # 无事件层的**正对照**（防"整层恒绿"的空转夹具 ✗）：**开着**的处置 ⇒ 派生 `todo`/`submitted`
 # ⇒ 必须**可推**且**在 open 里**（否则"已关账的都不推"这条断言等于没测 ✗）。
 GRID_NOEVENT_OPEN = (("PF", "fix", None), ("PFx", "fix", "external-submission"),
                      ("PS", "scheduled", None))
-# ⭐ **第四轴 = 终态层**（第五轮复核 ④）：`GRID_STATES` 只覆盖**非终态**（结构性守卫 ⓪① 钉着），
-# 而「来源 `fix` + 调度器 `wo_filed`」这一族住在**终态**里 —— 改前 **`done` 那一向有牙、
-# `wo_filed` 这一向一条都没有** ✗（`--check` 静默 · `--next` 不动它 · 而 `--json.open`/§0.2
-# 永远报"还没做完"）。⇒ 终态层逐格钉：来源记的是**工作结论**（`fixed`/`wo-filed`）⇒ 一致 ✓；
-# 否则（`boundary`/`control` = "从来不算缺口"，或还开着的 `fix`/`scheduled`）⇒ **正向两层漂移** ✗。
+# ⭐ **第四轴 = 终态层**（第五轮复核 ④）：`GRID_STATES` 覆盖**非终态 + 派生的已关账态**
+# （结构性守卫 ⓪① 钉着），而「来源 `fix` + 调度器 `wo_filed`」这一族住在**终态**里 ——
+# 改前 **`done` 那一向有牙、`wo_filed` 这一向一条都没有** ✗（`--check` 静默 · `--next` 不动它 ·
+# 而 `--json.open`/§0.2 永远报"还没做完"）。⇒ 终态层逐格钉：来源记的是**工作结论**
+# （`fixed`/`wo-filed`）⇒ 一致 ✓；否则（`boundary`/`control` = "从来不算缺口"，或还开着的
+# `fix`/`scheduled`）⇒ **正向两层漂移** ✗。
 GRID_TERMINAL = (("done", "done"), ("wof", "wo_filed"))
 GRID_TERMINAL_CELLS = len(GRID_PAIRS) * len(GRID_TERMINAL)
 GRID_TERMINAL_OPEN = (("PF", "fix"), ("PS", "scheduled"))    # 正对照（开着的处置 + 终态 ⇒ 必红）
@@ -4146,7 +4206,8 @@ GRID_TERMINAL_PAIR_REDS = (sum(1 for _p, _s, d in GRID_PAIRS
                                if d not in WORK_DONE_DISPOSITIONS) * len(GRID_TERMINAL))
 GRID_TERMINAL_CTRL_REDS = len(GRID_TERMINAL_OPEN) * len(GRID_TERMINAL)
 GRID_TERMINAL_REDS = GRID_TERMINAL_PAIR_REDS + GRID_TERMINAL_CTRL_REDS
-GRID_REDS = GRID_CELLS + GRID_TERMINAL_REDS               # 48 + 8 = 56（判红格总数）
+# 判红格总数（因子由表算 ✓；`GRID_OPEN_EVENT` 那一轴是**正对照**（合法 `to` ⇒ 0 红）⇒ 不加）。
+GRID_REDS = GRID_CELLS + GRID_TERMINAL_REDS               # 64 + 8 = 72
 # ⭐ **第五轴 = 跨来源处置冲突**（2026-10-14 · 第五次独立复核实测 ✗）：上面四层每一格都是
 # **单来源**（一个 id 只被一个来源登记）⇒「**同一个 id 被两个来源登记、处置不一致**」这一族
 # 在网格里**结构上看不见** ✗。它只有**终态缺口行**能造出来（`load_gaps()` 默认把
@@ -4187,16 +4248,30 @@ def selftest_source_state_grid(expect) -> None:
     `effective_state` 把 `external-submission` 短路放在处置表**之前** ⇒ 已关账的处置被
     翻译成 `submitted`（非终态）。
 
-    ⇒ 夹具 = **三轴**：8 个「来源 × 处置」组合（3 来源 × docstring 的**全部四个**已关账处置）
-    × 6 个调度器状态 × 2 层，逐格断言：
+    事故三（第十轮 · `#2`）：`GRID_STATES` 只有 `SCHED_STATES` 的**非终态**（6 个）⇒
+    「**事件态 = `boundary`/`control`**」这一列**结构上看不见** ✗ —— 而 `boundary`/`control`
+    **不在 `SCHED_STATES` 里**（只由来源处置派生、`TRANSITIONS` 里没有入口 ⇒ 写侧造不出来）
+    ⇒ 手写 `{"event":"advance","to":"boundary"}` 的 `--check` **rc=0 且从不点名** ✗
+    （`--json.open`/§0.2 照样报"还没做完"、`--next` 不推 ⇒ 三视图不一致）。⇒ 第六列由
+    **`set(CLOSED_STATES) - set(SCHED_STATES)` 派生**（⓪① 钉着这条恒等式）+ 一条**正对照轴**
+    （开着的处置 × 合法的非终态事件态 ⇒ 必须**一格都不红**，否则"判红"分不清是非法 `to`
+    还是两层漂移 ✗）。
 
-      **有事件层**（`GRID_CELLS` = 8 × 6 = 48 格，每格用真事件造状态）：
+    ⇒ 夹具 = **四轴 + 正对照**：8 个「来源 × 处置」组合（3 来源 × docstring 的**全部四个**
+    已关账处置）× `len(GRID_STATES)` 个调度器 / 事件状态 × 2 层，逐格断言：
+
+      **有事件层**（`GRID_CELLS` = `len(GRID_PAIRS)` × `len(GRID_STATES)` 格，每格用真事件造状态）：
       ① 判红**并点名**该 id + 「反向两层漂移」（改前 `submitted` 那 6 格静默 ⇒ 这条必红 ✗）；
+      ①b ⭐ **非法 `to` 那一列**（`boundary`/`control`）：判红 + 点名**那个值** + 「不是调度器
+          状态」+ 给出路（改前这一列**不存在** ⇒ 8 格静默 ✗；第十轮 `#1`/`#2` 的靶子）；
       ② 判红信息里的**收口指示逐步走一遍**都合法、且落终态（改前 `todo`/`blocked` 的
-         `→done` 与 `triage_rejected` 的 `→wo_filed` 是死路 ⇒ 这条必红 ✗）；而
-         `boundary`/`control` 在 `TRANSITIONS` 里**没有入口** ⇒ 指示必须**如实说"没有能平账
-         的迁移"**且**不许**印 `--advance`（⑥ 再把那条老"死路"真走一遍 ⇒ 仍然红 ⇒ 证明
-         不印它是对的 ✓，不是偷懒 ✗）。
+          `→done` 与 `triage_rejected` 的 `→wo_filed` 是死路 ⇒ 这条必红 ✗）；而
+          `boundary`/`control`（**作为来源处置**）在 `TRANSITIONS` 里**没有入口** ⇒ 指示必须
+          **如实说「没有能平账的迁移」**且**不许**印 `--advance`（⑥ 再把那条老「死路」真走
+          一遍 ⇒ 仍然红 ⇒ 证明不印它是对的 ✓，不是偷懒 ✗）。
+      **正对照轴**（`GRID_OPEN_EVENT_DISPS` × `GRID_OPEN_EVENT` = **开着的**处置 × **合法**事件态）：
+      ①c 判红数**一格都不许多**、这些 id **一个都不许被点名**（`blocked`/`umbrella` 是**设计**
+          ——「开着但不可动」，`submitted`/`triage_rejected` 也合法 ⇒ 不许误拒 ✗；第十轮 `#1`）。
       **无事件层**（`GRID_NOEVENT_CELLS` = 14 格，**一事件都不写** —— 这一层就是
       "删掉覆盖层"那一臂的守卫 ✓）：
       ③ 权威状态 = 处置派生出的状态（`fixed`→done · `wo-filed`→wo_filed ·
@@ -4207,15 +4282,16 @@ def selftest_source_state_grid(expect) -> None:
          ⇒ **这条必红** ✗（这正是第五轮那个洞本身）；
       ⑥ 正对照：开着的 3 格**必须**可推 + **必须**在 open 里（防"整层恒绿"的空转夹具 ✗）；
       ⑦ 子任务"关了没有"与 `--check` **同一口径**（`open_children`）。
-      **形状/正对照**：48 格状态都造对 + 12 格都**没有事件** + 八个来源终态在全量权威表里
-      看得见 + 非终态来源的 8 个子任务一个都不许红 + 红条数恰好 48（没有多余红）
-      ⇒ 防"夹具空转"与"守卫放宽"两类假绿 ✓。
+      **形状/正对照**：`GRID_CELLS` 格状态都造对 + 12 格都**没有事件** + 八个来源终态在全量
+      权威表里看得见 + 非终态来源的 8 个子任务一个都不许红 + 红条数恰好 `GRID_REDS`
+      （没有多余红）⇒ 防「夹具空转」与「守卫放宽」两类假绿 ✓。
 
-    结构性守卫（纯表、不碰夹具）：⓪① 覆盖**所有**非终态 · ⓪② 每个非终态都有**到终态的
-    合法路径** · ⓪③ 覆盖**所有**处置（`DISPOSITIONS`）· ⓪④ "已关账"恰好是 docstring 的
-    那四个（`DISPOSITIONS` 的**不相交划分**）· ⓪⑤ **冲突轴**覆盖**所有**「视图处置 × 缺口
-    处置」不等对 + 状态轴含「无事件 + 两个终态」—— 加状态 / 加处置而忘了补网格或忘了归类
-    ⇒ **先红** ✗。
+    结构性守卫（纯表、不碰夹具）：⓪① 覆盖**所有**非终态 **∪ 所有派生的已关账态** ·
+    ⓪①b 派生那一列**恰好** = `set(CLOSED_STATES) - set(SCHED_STATES)` · ⓪② 每个非终态都有
+    **到终态的合法路径** · ⓪③ 覆盖**所有**处置（`DISPOSITIONS`）· ⓪④「已关账」恰好是
+    docstring 的那四个（`DISPOSITIONS` 的**不相交划分**）· ⓪⑥ 正对照轴覆盖**每个**合法非终态 ·
+    ⓪⑤ **冲突轴**覆盖**所有**「视图处置 × 缺口处置」不等对 + 状态轴含「无事件 + 两个终态」
+    —— 加状态 / 加处置 / 加派生态而忘了补网格或忘了归类 ⇒ **先红** ✗。
 
     **第五轴 = 跨来源处置冲突**（2026-10-14 · 第五次独立复核实测 ✗）：上面每一格都是
     **单来源**（一个 id 只被一个来源登记）⇒「**同一个 id 被两个来源登记、处置不一致**」
@@ -4249,12 +4325,32 @@ def selftest_source_state_grid(expect) -> None:
     #     —— 判据的谓词与 docstring 从此**同源**，谁想再"只认两个"必须先改这一条 ✓。
     _want_states = {st for _s, st in GRID_STATES}
     _nonterminal = set(SCHED_STATES) - TERMINAL_STATES          # ⚠ `SCHED_STATES` 是**元组**
-    expect(f"网格覆盖**所有**非终态（`SCHED_STATES` 非终态 {sorted(_nonterminal)}"
-           f" vs 网格 {sorted(_want_states)}）—— 加状态忘了补网格 ⇒ 这条先红 ✗",
-           _want_states == _nonterminal)
+    #  ⭐ **第六列是"派生的已关账态"**（`#2`，第十轮）：它**不是**再列两个状态，而是
+    #  `set(CLOSED_STATES) - set(SCHED_STATES)` —— 即"判据认它已关账、而写侧**造不出**它"
+    #  的那一族（`boundary`/`control`）。⚠ 这条恒等式与下面的覆盖断言**一起**才咬得住：
+    #  以后往 `DERIVED_CLOSED_STATES` 加一个派生态 ⇒ **先红** ✗（"结构上看不见"不许再靠人记 ✗）。
+    _derived = set(CLOSED_STATES) - set(SCHED_STATES)
+    expect(f"「派生的已关账态」**恰好** = `set(CLOSED_STATES) - set(SCHED_STATES)`"
+           f"（{sorted(_derived)} vs `DERIVED_CLOSED_STATES` {sorted(DERIVED_CLOSED_STATES)}）"
+           f"—— 它们是「判据认它已关账、而 `--advance` / `TRANSITIONS` **造不出**」的那一族"
+           f"⇒ 事件表里出现它只可能来自**手改**（`#1` 的靶子 ✓）",
+           _derived == set(DERIVED_CLOSED_STATES))
+    expect(f"网格覆盖**所有**非终态 **∪ 所有派生的已关账态**（`SCHED_STATES` 非终态 "
+           f"{sorted(_nonterminal)} ∪ 派生 {sorted(_derived)} vs 网格 {sorted(_want_states)}）"
+           f"—— 加状态 / 加派生态忘了补网格 ⇒ 这条先红 ✗"
+           f"（改前第六列**不存在** ⇒ 手写 `to=boundary`/`control` 这一族结构上看不见 ✗）",
+           _want_states == _nonterminal | _derived)
     _no_exit = [st for st in sorted(_nonterminal) if not closure_steps(st)]
     expect(f"每个非终态都有**到终态的合法路径**（无出口的：{_no_exit or '无'}）"
            f"—— `triage_rejected` 曾经无出口 ⇒ 判红指示 rc=1 ✗", not _no_exit)
+    #  ⭐ **正对照轴**（`#2` 的同一条要求：含 `blocked`/`umbrella` 的正对照）：开着的处置 ×
+    #  **合法**的非终态事件态 ⇒ 判红数一格都不许多。⚠ 轴必须覆盖**每个**合法非终态 ——
+    #  漏一个（例如 `blocked`）就分不清"判红是因为非法 `to` 还是因为两层漂移" ✗。
+    _ctrl_states = {st for _s, st in GRID_OPEN_EVENT}
+    expect(f"正对照轴覆盖**每个**合法非终态事件态（应有 {sorted(_nonterminal)} vs 轴里 "
+           f"{sorted(_ctrl_states)}）—— `blocked`/`umbrella` 是**设计**（「开着但不可动」）"
+           f"⇒ 它们不许被误判成非法 `to` ✗",
+           _ctrl_states == _nonterminal)
     _want_disps = {d for _p, _s, d in GRID_PAIRS} | {d for _p, d, _e in GRID_NOEVENT_OPEN}
     expect(f"网格覆盖**所有**处置（`DISPOSITIONS` {sorted(DISPOSITIONS)}"
            f" vs 网格 {sorted(_want_disps)}；已关账的走 `GRID_PAIRS`、开着的走 "
@@ -4279,6 +4375,7 @@ def selftest_source_state_grid(expect) -> None:
            [w for _s, w in GRID_CONFLICT_STATES] == [None, "done", "wo_filed"])
     global EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING
     grid_pairs, grid_states = GRID_PAIRS, GRID_STATES
+    _st_by_suffix = {s: st for s, st in grid_states}      # 一格一个状态（判据按 suffix 取 ✓）
     with tempfile.TemporaryDirectory() as tmp:
         saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING, globals()["lock_file"])
         EVENTS = Path(tmp) / "events.jsonl"
@@ -4365,6 +4462,21 @@ def selftest_source_state_grid(expect) -> None:
                                    "facet": "语言", "severity": "medium",
                                    "repro": f"bash {prefix}.sh", "disposition": disp,
                                    "why": f"夹具（终态层正对照）：开着的处置 `{disp}` × `{_tst}`"})
+            # ⭐ **正对照轴**（`#2`，第十轮）：**开着的**处置 × **合法**的非终态事件态 ⇒ 必须全绿。
+            #  ⚠ 为什么必须有它：上面 8 个 pair 的处置**全是已关账** ⇒ `blocked`/`umbrella` 在网格里
+            #  **恒红**（红的是"来源关账 × 调度器在做"，不是这两个状态本身）⇒ 光有那些格**分不清**
+            #  "判红是因为非法 `to` 还是因为两层漂移" ✗（改前正是这一族让 `#1` 那一格藏得住 ✓）。
+            for prefix, disp in GRID_OPEN_EVENT_DISPS:
+                for suffix, _ost in GRID_OPEN_EVENT:
+                    ident = f"PO{prefix}-{suffix}"
+                    extras.append({"id": ident, "source": "ux-index", "facet": "语言",
+                                   "severity": "medium", "repro": f"bash {prefix}.sh",
+                                   "disposition": disp,
+                                   "why": f"夹具（正对照轴）：开着的处置 `{disp}` × 合法事件态 `{_ost}`"})
+                    if suffix == "umb":       # umbrella 格要一个**有来源**的子任务（否则多一条红 ✗）
+                        extras.append({"id": f"{ident}-c", "source": "ux-index", "facet": "语言",
+                                       "severity": "medium", "repro": "bash c.sh",
+                                       "disposition": "fix", "why": "夹具：正对照 umbrella 的子任务"})
             GAPS_LEDGER.write_text(
                 "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in gaps), encoding="utf-8")
             EXTRAS.write_text(
@@ -4391,6 +4503,13 @@ def selftest_source_state_grid(expect) -> None:
                              "reason": "夹具：阻塞"}]
                 if suffix == "sub":
                     return [{"event": "submit", "id": ident, "owner": "夹具", "kind": "finding"}]
+                # ⭐ **第六列：手写的非法 `to`**（`#2`，第十轮）—— 形状就是"手改事件表"本身
+                # （`--advance --to boundary` rc=2 ⇒ CLI **写不出** ⇒ 只有手改能造 ✓）。
+                # ⚠ 这一列的红**来自事件层**（`fold` 折出 `bad_to` ⇒ `check_plan` 判红），
+                # 与来源处置无关 ⇒ 8 格**逐格同判** ✓（不是"只在某一格静默"那一族 ✗）。
+                if suffix in ("bnd", "ctl"):
+                    return [{"event": "advance", "id": ident, "to": _st_by_suffix[suffix],
+                             "owner": "夹具"}]
                 # ⚠ **`triage_rejected` 这一列现在只能由事件表直接表达**（`#4`，2026-10-14 ·
                 # 第九次独立复核实测 ✗）：`fold` 的 `triage --to rejected` 已改成折成
                 # `wo_filed`（终态 —— 与来源侧的 `wo-filed` **同一个结论** ✓，理由见 `fold`
@@ -4421,6 +4540,10 @@ def selftest_source_state_grid(expect) -> None:
                                   "reading": "夹具：终态层正对照" if _tst == "done" else None,
                                   "reason": "夹具：终态层正对照" if _tst == "wo_filed" else None,
                                   "owner": "夹具"})
+            for prefix, _disp in GRID_OPEN_EVENT_DISPS:   # 正对照轴：合法事件态 ⇒ 不许红 ✓
+                for suffix, _ost in GRID_OPEN_EVENT:
+                    for ev in grid_events(f"PO{prefix}-{suffix}", suffix):
+                        append_event(ev)
 
             rows, _undecided = build_queue()
             state = fold()
@@ -4462,6 +4585,18 @@ def selftest_source_state_grid(expect) -> None:
                     ident = f"{prefix}-{suffix}"
                     st = state.get(ident, {}).get("state")
                     line = next((ln for ln in text.splitlines() if f"`{ident}`" in ln), "")
+                    if want not in SCHED_STATES:
+                        # ⭐ **①b 非法 `to` 那一列**（`#2`，第十轮）：判红**来自事件层** ——
+                        # 点名**那个值** + 「不是调度器状态」+ 给出路；⚠ 与来源处置**无关**
+                        # ⇒ 8 格**逐格同判**（改前这一列不存在 ⇒ 8 格静默 ✗）。
+                        expect(f"网格 {ident}（{source}·`{disp}` × 事件态 `{want}`）⇒ 判红并点名"
+                               f"那个值 + 「不是调度器状态」（改前这一列**结构上不存在** ⇒ "
+                               f"8 格静默 ✗；`--advance --to {want}` rc=2 ⇒ CLI 写不出 ✗）",
+                               f"`{want}`" in line and "不是调度器状态" in line)
+                        expect(f"网格 {ident}：判红信息**给出路**（删掉那条事件 / 改成合法目标；"
+                               f"`boundary`/`control` 只由**来源处置**派生）",
+                               "只由来源处置派生" in line and "出路" in line)
+                        continue
                     expect(f"网格 {ident}（{source}·`{disp}` × `{want}`）⇒ 判红并点名"
                            f"「反向两层漂移」（改前静默的是 `submitted` 那一列 —— 当时 6 格、现在 8 格 ✗）",
                            "反向两层漂移" in line)
@@ -4483,6 +4618,29 @@ def selftest_source_state_grid(expect) -> None:
                         walkable = False
                     expect(f"网格 {ident}：收口指示逐步可执行、且落终态"
                            f"（实测 `{'→'.join(steps) or '无指示'}`）", walkable)
+
+            # ⭐ ①c **正对照轴**（`#2`，第十轮）：**开着的**处置 × **合法**事件态 ⇒ 一格都不许红、
+            #  这些 id 一个都不许被点名 —— `blocked`/`umbrella` 是**设计**（「开着但不可动」）、
+            #  `submitted`/`triage_rejected` 也是合法状态 ⇒ **不许误拒** ✗。
+            #  ⚠ 这一轴是"分得清"的关键：8 个 pair 全是**已关账**处置 ⇒ 上面那些格**恒红**
+            #  ⇒ 光看红条数分不清"红是因为非法 `to` 还是因为两层漂移" ✗（改前正是这一族
+            #  让 `#1` 那一格藏得住 ✓）。
+            _ctrl_ids = [f"PO{p}-{s}" for p, _d in GRID_OPEN_EVENT_DISPS
+                         for s, _o in GRID_OPEN_EVENT]
+            _ctrl_want = {f"PO{p}-{s}": st for p, _d in GRID_OPEN_EVENT_DISPS
+                          for s, st in GRID_OPEN_EVENT}
+            _ctrl_red = [i for i in _ctrl_ids if f"`{i}`" in text]
+            _ctrl_kids_red = [f"PO{p}-umb-c" for p, _d in GRID_OPEN_EVENT_DISPS
+                              if f"`PO{p}-umb-c`" in text]
+            _ctrl_bad_state = [f"{i}:{state.get(i, {}).get('state')}≠{st}"
+                               for i, st in _ctrl_want.items()
+                               if state.get(i, {}).get("state") != st]
+            expect(f"①c 正对照轴：开着的处置 × **合法**事件态 {len(_ctrl_ids)} 格 ⇒ **一格都不许红**"
+                   f"（`blocked`/`umbrella` 是设计、`submitted`/`triage_rejected` 也合法 ⇒ "
+                   f"不许误拒 ✗；实测红的：{_ctrl_red or '无'}）—— 这一轴把「非法 `to`」与"
+                   f"「两层漂移」**分开** ✓", not _ctrl_red and not _ctrl_kids_red)
+            expect(f"①c 且这些格的调度器状态都造对了（不对的：{_ctrl_bad_state or '无'}）"
+                   f"—— 夹具不许空转（逐格用**真事件**造状态 ✓）", not _ctrl_bad_state)
 
             # ⭐ ④⑤⑥ **无事件层**（第五轮复核 ①：一事件都不写 ⇒ 状态由来源处置派生）
             by_id = {r["id"]: r for r in view}
@@ -5493,6 +5651,7 @@ def selftest_release_order_and_content(expect) -> None:
         ⇒ `--check` **rc=0 且不点名**（同三条按正序 ⇒ rc=1、点名「与审计字段对不上」）✗；
       · **`#2` 只审最后一个 cut**：手写两条（**先假、后一致**）⇒ 折叠只留最后一条 ⇒ 早先那条
         假 cut 对判据**零输入**（`--check` 绿 ✗；CLI 路径被 `--release check` 挡住 ⇒ 只有手改 ✓）；
+        CLI 写不出）⇒ 这一族只有**手改**能造 ✓）；
       · **`#3` `--check` 对节点内容全盲**：节点里一条**未 done** 的入版条目 + **合法形状**的
         cut ⇒ `--check` **rc=0** ✗ —— 而 `soko gate --fast` 与 CI 的 `ledger` job 跑的正是它 ✗；
       · **`#4`（弱形式）**：`fold` 的 `triage --to rejected` 折出的状态与它自己的注释、
@@ -5594,7 +5753,7 @@ def selftest_release_order_and_content(expect) -> None:
                           "patch_id": _patch_id(real_sha), "owner": "t"})
 
         def batch(order: str) -> list[dict]:
-            """同一批事件（open + add×4 + block + drop + **假审计** cut）—— 两种顺序。"""
+            """同一批事件（open + add×4 + block + drop + **假审计** cut）—— **四种**顺序。"""
             body = [{"event": "release-add", "rel": "REL-9.9.9", "id": i, "owner": "t"}
                     for i in ("FX-1", "FX-2", "FX-3", "FX-4")]
             body += [{"event": "release-block", "rel": "REL-9.9.9", "id": "FX-1",
@@ -5606,6 +5765,10 @@ def selftest_release_order_and_content(expect) -> None:
                       "owner": "t"}]
             head = [{"event": "release-open", "id": "REL-9.9.9", "version": "9.9.9",
                      "owner": "t"}]
+            if order == "ok":
+                return head + body
+            if order == "reordered":          # 只把 `release-open` 挪到末尾
+                return body + head
             return head + body if order == "ok" else body + head
 
         try:
@@ -5632,8 +5795,6 @@ def selftest_release_order_and_content(expect) -> None:
             expect(f"① 且 `cut`（最后一条）相同（{str(_ok['cut_commit'])[:8]} vs "
                    f"{str(_re['cut_commit'])[:8]}；**改前乱序折出 None** ✗）",
                    _ok["cut_commit"] == _re["cut_commit"])
-            expect(f"① 且 `cuts` 条数相同（{_ok['cuts']} vs {_re['cuts']}；"
-                   f"**改前乱序折出 0** ✗）", _ok["cuts"] == _re["cuts"] == 1)
             expect(f"② 正序：`--check` rc={_ok['plan_rc']} 且点名「对不上」（两条读侧都点 ✓）",
                    _ok["plan_rc"] >= 1 and "对不上" in _ok["plan"] and "对不上" in _ok["rel"])
             expect(f"② ⭐ 乱序**同判**：`--check` rc={_re['plan_rc']} 且点名「对不上」"
@@ -6267,6 +6428,7 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     expect("真 parser 接受 `--submit … --why/--evidence/--repro`",
            probe_args.why == "w" and probe_args.evidence == "e" and probe_args.repro == "bash x.sh")
 
+
     # ⓪b **探针退出码约定对账**（2026-10-12 接口 agent 提交 `SUB-vim-exit-inverted`）：
     #     `run_probe` 的映射按 `probe_kind` 分流，而**四类探针的约定并不相同** ——
     #     `lang/*.sh` 与 `vim-probe.mjs` 是"exit 0 = 缺口仍在"，`lsp/editor` 是
@@ -6555,21 +6717,28 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"`--submit` 同族闸门也看得见终态 id + 正对照**）"
           f" + **来源 × 处置 × 调度器状态网格**"
           f"（{len(GRID_PAIRS)} 个「来源 × 已关账处置」组合 = 3 来源 × docstring 的 "
-          f"{len(CLOSED_DISPOSITIONS)} 个已关账处置 × {len(GRID_STATES)} 个调度器状态"
+          f"{len(CLOSED_DISPOSITIONS)} 个已关账处置 × {len(GRID_STATES)} 个「调度器 / 事件」状态"
           f" = **{GRID_CELLS} 格**「有事件」层 · **{GRID_NOEVENT_CELLS} 格**「无事件」层"
           f"（状态由处置派生 · = docstring 的『删掉事件文件』那一臂）+ **{GRID_TERMINAL_CELLS} 格**"
           f"终态层（`done`/`wo_filed` 与来源的工作结论对账 ⇒ 镜像方向也有牙）"
-          f" + {len(GRID_NOEVENT_OPEN)} + {GRID_TERMINAL_CTRL_REDS} 格正对照："
+          f" + {len(GRID_NOEVENT_OPEN)} + {GRID_TERMINAL_CTRL_REDS} + "
+          f"{len(GRID_OPEN_EVENT_DISPS) * len(GRID_OPEN_EVENT)} 格正对照："
           f"逐格「判红点名 + 收口指示**真走得通**，或 `boundary`/`control` **如实说没有平账路**」"
+          f"（最后一族 = **开着的处置 × 合法事件态 ⇒ 一格都不许红**，第十轮 `#2`）"
           f" + 夹具形状 4 条 + 域/三视图/子任务口径 + **判红格总数恰好 {GRID_REDS}**"
+          f"（第六列 = 手写 `to=boundary`/`control`：**判据认它已关账、而写侧造不出** ⇒ "
+          f"逐格点名 + 给出路；改前这一列**结构上不存在** ✗）"
           f" + {len(GRID_CONFLICTS)} × {len(GRID_CONFLICT_STATES)} = **{GRID_CONFLICT_CELLS} 格**"
           f"**跨来源处置冲突轴**（第五次复核：网格原先每格都是**单来源** ⇒ 这一族结构上看不见 ✗；"
           f"逐格 = 单来源臂不许冲突 + 双来源臂**真 CLI `--check-plan` rc=2**、点名 id + 两处置 + "
           f"**各自出处**、`fixed` 与 `wo-filed` 两支**同判**（不许更松 ✗）、`--next`/`--json` "
           f"走同一条闸门 + 轴的前提由**真加载器**核）"
-          f" + 5 条**结构性**守卫（覆盖所有非终态/所有处置 · 每个非终态有出口 · 已关账 = "
-          f"docstring 的四处置 · 冲突轴覆盖所有不等对）：改前 `submitted` 列 6/6 静默、"
+          f" + 7 条**结构性**守卫（覆盖所有非终态 **∪ 所有派生的已关账态**/派生态 = "
+          f"`CLOSED_STATES - SCHED_STATES`/所有处置 · 每个非终态有出口 · 已关账 = "
+          f"docstring 的四处置 · **正对照轴覆盖每个合法非终态** · 冲突轴覆盖所有不等对）："
+          f"改前 `submitted` 列 6/6 静默、"
           f"`wo_filed` 一向无牙、`boundary`/`control` 12 格静默且被 `--next` 推、"
+          f"**手写 `advance.to=boundary`/`control` 8 格静默**（第十轮 `#1`/`#2`）、"
           f"**删掉覆盖层**后 42 格静默而 `--next` 照推、**终态缺口行让冲突闸门失明** ⇒ 逐格必红 ✗）"
           f" + **祖先性闸门 11 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/"
           f"⭐ **口径已改成「非祖先必须 0 条」的断言**：存量（记于 `ANCESTRY_GATE_SINCE` **之前**）"
