@@ -2704,18 +2704,22 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
 # `is-ancestor`），且**闸门在 `check` 之前**（假 sha 先拿"证据是假的"这条诊断 ✓）；
 # `release-cut` 事件另记 `subject` + `patch_id`（同 `#1` 的理由：事后能核"切的是哪个内容" ✓）。
 #
-# ⭐⭐ **"分支必须合回"这条栅栏当前不可满足 —— 如实写在这里，不静默、也不放宽**（`#4`，
-# 2026-10-14 · 第七次独立复核实测 ✗）：真仓库此刻有 **15 条** `agent/*` 没合回 main，
-# 而 `--force` 只越过「条目数 ≥3」与「多余 worktree 提醒」两条**克制**规则 ⇒
-# **`--release check` 现在永远过不了** ✗。口径（二选一里选**如实写清**，不加旁路）：
-#   · **不放宽** ✗：栅栏判红是**真的** —— 未合回 = "发出去的不是完整版本"（用户 2026-10-12
-#     的原话），加 `--force` 旁路等于把这条守卫关掉 ⇒ **不许为了让它绿而放宽**；
-#   · **不静默** ✗：判红信息**逐条**印出 `scripts/agent-worktree.sh land <id>`（可照做 ✓）
-#     + 明说「这条栅栏**没有** `--force` 旁路」（免得有人以为加开关就能发 ✓）；
-#   · **正确做法 = 先合回**（或对已废弃的分支由**人**决定 `git branch -D`）⇒ 合回之后
-#     `--release check` **自然**转绿，不靠任何开关 ✓。
-#   ⚠ `--selftest` 有一条臂钉住"`--force` **不**越过这一条"（改前那条臂没有 ⇒ 将来有人
-#     偷偷加旁路会当场判红 ✗）。
+# ⭐⭐ **"分支必须合回"这条栅栏：判据已从 hash 祖先性换成"活有没有进 main"**（`#4` + `#4b`，
+# 2026-10-14 · 第七次 + 第十一次独立复核实测 ✗）：
+#   · `#4`（第七次复核）：栅栏**意图对**（未合回 = "发出去的不是完整版本"，用户 2026-10-12 的
+#     原话），而 `--force` 只越过「条目数 ≥3」与「多余 worktree 提醒」两条**克制**规则 ⇒
+#     口径 = **如实写清 + 逐条给出路 + 不加旁路**（不许为了让它绿而放宽 ✗）；
+#   · `#4b`（第十一次复核）：**判据量错了对象** ✗ —— 旧写法 `git branch --no-merged main` 量的是
+#     **hash 祖先性**，而 `land` 走 **rebase + 快进**、`main` **自己也会被 rebase**（真仓库
+#     reflog：`main@{1}: rebase (finish)`）⇒ 每条**已 land** 的分支顶端都是**孤儿 commit**
+#     ⇒ 真仓库实测数到 **17 条**"未合回"，而 `git cherry` 逐条穷尽后 **main 没有的提交 = 0** ✗
+#     ⇒ 判据换成 `branch_missing_commits()`（`git cherry` 的 `+` 行 = **patch-id 等价**，
+#     与 `--repoint` 找孪生**同一件仪器** ✓）⇒ 真仓库 **17 → 0** ✓。
+#   ⚠ **一处都没有放宽** ✗：真有 `+` 提交的分支**照样判红**（`--selftest` 两向都钉着 ✓）；
+#     量不出来的分支**也判红**（`None ≠ []` ⇒ 仪器坏了不会被读成"已合回" ✗）；
+#     `agent/*` 的分支面**从 17 条扩到全部**（真仓库实测 40 条）⇒ 覆盖只会更宽 ✓。
+#   ⚠ `--selftest` 有三条臂钉住这条口径：①"`--force` **不**越过"（偷加旁路当场判红 ✗）·
+#     ⑥"已 land（rebase 后）的不算未合回" · ⑦"真有未合回的仍红"（**两个方向** ✓）。
 
 INBOX_DIR = ROOT / "docs" / "inbox"
 RELEASE_KINDS = ("release", "release-blocker")
@@ -3184,16 +3188,64 @@ def release_node_ids() -> set[str]:
     return set(release_nodes())
 
 
+def agent_branches() -> list[str]:
+    """本地 `agent/*` 分支名（分支栅栏的**输入面**）。
+
+    ⚠ **读不出来 ≠ 已合回** ✗：`git branch` 非零（不在仓库里 / git 不在）时若退回空表，
+    栅栏会**静默放行** —— 那正是本文件反复记的病（"守卫看着在、其实量错了"）。
+    ⇒ 这里 `raise UsageError`（rc=2 + 人话，**响亮**）。
+    """
+    probe = _git_text(["branch", "--list", "agent/*", "--format=%(refname:short)"])
+    if probe.returncode != 0:
+        raise UsageError(f"读不出 `agent/*` 分支（`git branch` rc={probe.returncode}）"
+                         f"⇒ 分支栅栏**量不了**（**不许**把它读成「已合回」✗）")
+    return probe.stdout.split()
+
+
+def branch_missing_commits(branch: str) -> list[str] | None:
+    """`branch` 上**活还没进 `main`** 的提交（= `git cherry main <branch>` 的 `+` 行）。
+
+    ⚠ **为什么判据不是祖先性**（`#4b`，2026-10-14 · 第十一次独立复核，实测 ✗）：
+    `scripts/agent-worktree.sh land` 走 **rebase + 快进**，而 `main` **自己也会被 rebase**
+    （真仓库 reflog 实测：`main@{1}: rebase (finish)`）⇒ 每条已 land 的分支，其**顶端是
+    孤儿 commit**（活已进 main、hash 换了）⇒ `git branch --no-merged main` 把**已合回**的
+    判成"未合回" ✗。真仓库实测：栅栏数到 **17 条**，而这 17 条里 `git cherry` 报 `+` 的
+    提交 **0 个**（逐条穷尽）⇒ 栅栏意图对、判据量错了对象。
+    `git cherry` 按 **patch-id** 判（与本文件 `--repoint` 找孪生**同一件仪器** ✓）——
+    它是能识别"rebase 后内容已进 main"的判据 ✓。
+
+    返回 `+` 行的提交 sha 列表；**`None` = 量不出来**（`git cherry` 非零）。
+    ⚠ `None` 与 `[]` **必须分开** ✗：混在一起 ⇒ 仪器坏了被读成"已合回" ⇒ 静默放行。
+
+    边界（2026-10-14 夹具实测，`.cache/ux/fix-fenceH/probe_cherry.sh`）：
+      · **空分支**（tip == `main`，无独有提交）⇒ `git cherry` 空输出 ⇒ `[]` ⇒ 不算未合回 ✓
+        （它本来就没有活）；
+      · **空提交**（`--allow-empty`，patch-id 为空）与**分支上的 merge 提交** ⇒ 恒 `+`
+        （patch-id 匹配不上）⇒ 判红 —— 这是**保守方向**（判红 ≠ 放行），故**不**过滤 ✗；
+        栅栏正文会**点名**那几个提交（含 subject）⇒ 人看得出"这是个空提交"再决定删分支 ✓。
+    """
+    probe = _git_text(["cherry", "main", branch])
+    if probe.returncode != 0:
+        return None
+    return [l[2:].split()[0] for l in probe.stdout.splitlines() if l.startswith("+")]
+
+
 def unmerged_agent_branches() -> list[str]:
-    """`main` 上**没合回**的 `agent/*` 分支（发版栅栏的输入；抽成函数便于 selftest 隔离 ✓）。
+    """**活没进 `main`** 的 `agent/*` 分支（发版栅栏的输入；抽成函数便于 selftest 隔离 ✓）。
 
     ⚠ **这条栅栏没有 `--force` 旁路**（`#4` 的口径，见 `cmd_release` 的说明）：发版要的是
-    "**完整**版本" ⇒ 未合回的分支就是"还差东西"，`--force` 只越过**条目数**与 worktree
+    "**完整**版本" ⇒ 活没合回的分支就是"还差东西"，`--force` 只越过**条目数**与 worktree
     两条（那两条是"克制"），不越过"并行收拢未完成" ✗。
+
+    ⚠ 判据 = `branch_missing_commits()`（**一处定义** ✓）；量不出来的分支**也进**返回表
+    （判红 ⇒ **不静默放行** ✗）。
     """
-    return subprocess.run(["git", "branch", "--no-merged", "main", "--list", "agent/*",
-                           "--format=%(refname:short)"], cwd=ROOT, capture_output=True,
-                          text=True, encoding="utf-8").stdout.split()
+    out = []
+    for b in agent_branches():
+        missing = branch_missing_commits(b)
+        if missing is None or missing:
+            out.append(b)
+    return out
 
 
 def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
@@ -3312,20 +3364,39 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
             bad += 1
         branches = unmerged_agent_branches()
         if branches:
-            # ⭐ **这条栅栏没有 `--force` 旁路**（`#4` 的口径，2026-10-14 · 第七次独立复核实测 ✗）：
-            # 实测真仓库有 **15 条** `agent/*` 没合回 main，而 `--force` 只越过「条目数」与
-            # 「worktree 提醒」两条**克制**规则 ⇒ `--release check` **当前永远过不了** ✗。
+            # ⭐ **判据已从「hash 祖先性」换成「活有没有进 main」**（`#4b`，2026-10-14 ·
+            # 第十一次独立复核实测 ✗）：旧写法 `git branch --no-merged main` 量的是**祖先性**，
+            # 而 `land` 走 rebase + 快进、`main` **自己也会被 rebase** ⇒ 每条**已 land** 的分支
+            # 顶端都是孤儿 commit ⇒ 实测真仓库数到 **17 条**"未合回"，而 `git cherry` 逐条
+            # 穷尽后 **main 没有的提交 = 0** ✗（栅栏意图对、判据量错了对象）。
+            # 现在 = `unmerged_agent_branches()`（`git cherry` 的 `+` 行，与 `--repoint`
+            # 找孪生**同一件仪器** ✓）⇒ 真仓库 **17 → 0** ✓。
+            # ⚠ **没有放宽** ✗：真有 `+` 提交的分支**照样判红**（自检 `#4b` 两向都钉着 ✓）。
+            # ⚠ **这条栅栏没有 `--force` 旁路**（`#4` 的口径）：`--force` 只越过「条目数」与
+            # 「worktree 提醒」两条**克制**规则 ⇒ 它**不**越过「分支必须合回」✗。
             # 处置 = **如实说清 + 给出路**（不静默、也不为让它绿而放宽 ✗）：
-            #   · 栅栏判红是**真的**（未合回 = 版本不完整）⇒ 不许放宽；
+            #   · 栅栏判红是**真的**（活没合回 = 版本不完整）⇒ 不许放宽；
             #   · 出路 = 把活**先合回**（逐条命令印出来 ⇒ 可照做 ✓）；
             #   · 明确印出"`--force` **不**越过这一条"⇒ 没人会以为加个开关就能发 ✓。
-            print(f"✗ **并行收拢未完成**：还有 {len(branches)} 条 agent 分支没合回 main "
-                  f"⇒ 发版要的是**完整**版本（`#4`：这条栅栏**没有** `--force` 旁路 —— "
+            print(f"✗ **并行收拢未完成**：还有 {len(branches)} 条 agent 分支的**活没进 main**"
+                  f"（`git cherry main <branch>` 报了 `+`）⇒ 发版要的是**完整**版本"
+                  f"（`#4`：这条栅栏**没有** `--force` 旁路 —— "
                   f"`--force` 只越过「条目数 ≥{MIN_ITEMS_PER_RELEASE}」与「多余 worktree 提醒」"
                   f"两条**克制**规则，**不**越过「分支必须合回」✗）", file=sys.stderr)
             for _b in branches:
                 _id = _b.split("/", 1)[1] if "/" in _b else _b
-                print(f"    `{_b}` ⇒ `scripts/agent-worktree.sh land {_id}`", file=sys.stderr)
+                _missing = branch_missing_commits(_b)
+                if _missing is None:
+                    # ⚠ **量不出来 ≠ 已合回** ✗（混在一起 ⇒ 仪器坏了被读成"已合回" ⇒ 静默放行）。
+                    print(f"    `{_b}` ⇒ ⚠ **量不出来**（`git cherry` 非零）⇒ 判红"
+                          f"（**不许**把它读成「已合回」✗）", file=sys.stderr)
+                    continue
+                _named = "、".join(f"`{c[:8]}` {_commit_subject(c)[:40]}".strip()
+                                   for c in _missing[:3])
+                _tail = f" … 等 {len(_missing)} 个" if len(_missing) > 3 else ""
+                print(f"    `{_b}` ⇒ main 里没有的提交 **{len(_missing)} 个**"
+                      f"（{_named}{_tail}）⇒ `scripts/agent-worktree.sh land {_id}`",
+                      file=sys.stderr)
             print(f"  ⇒ 正解 = **先合回**（逐条 land ✓）；已废弃的分支就**删掉它**"
                   f"（`git branch -D <branch>`，那是人的决定 —— 脚本不替你做 ✗）⇒ "
                   f"合回之后 `--release check` 自然转绿（**不靠开关** ✓）", file=sys.stderr)
@@ -5455,8 +5526,11 @@ def selftest_release_cut_gate(expect) -> None:
       ⑤ ⭐ **读侧复查**（`#3`，第八次复核）：手写假 `release-cut`（审计字段与 `commit`
          对不上）⇒ **`--release check` 与 `check_plan` 两条读侧都判红 + 点名** ✓
          （改前**两条都静默** ✗ —— 审计字段没有任何生产读者 = 咬不住的守卫 ✗）。
-    ⚠ 用 `unmerged_agent_branches()` 的**接缝**把真仓库的 15 条未合回分支隔离掉
+    ⚠ 用 `unmerged_agent_branches()` 的**接缝**把真仓库的 `agent/*` 分支面隔离掉
     （否则夹具的 `check` 永远过不去 ⇒ 正对照测不了；`#4` 的那条臂反过来要它返回非空 ✓）。
+    ⚠ 实测数字（`#4b` 后）：真仓库 `git branch --no-merged main` 报 **17 条**、
+    而 `unmerged_agent_branches()` 报 **0 条**（40 条 `agent/*` 的 `git cherry` `+` 合计 = 0）
+    —— 接缝在这里**只影响夹具**，与真仓库读数无关 ✓。
     """
     import contextlib
     import io
@@ -6014,17 +6088,43 @@ def selftest_release_order_and_content(expect) -> None:
 
 
 def selftest_release_branch_fence(expect) -> None:
-    """⭐⭐ **"分支必须合回"这条栅栏：如实判红 · 给出路 · `--force` 不越过**（`#4`）。
+    """⭐⭐ **"分支必须合回"这条栅栏：如实判红 · 给出路 · `--force` 不越过**（`#4`）
+    + ⭐⭐ **判据从「hash 祖先性」换成「活有没有进 main」**（`#4b`，2026-10-14 · 第十一次复核）。
 
-    缺口（2026-10-14 · 第七次独立复核实测 ✗）：真仓库有 **15 条** `agent/*` 没合回 main，
-    而 `--force` 只越过「条目数」与「worktree 提醒」⇒ `--release check` **永远过不了**；
+    缺口 A（`#4`，2026-10-14 · 第七次独立复核实测 ✗）：真仓库有 `agent/*` 没合回 main，
+    而 `--force` 只越过「条目数」与「worktree 提醒」⇒ `--release check` **过不了**；
     旧实现既没说清"这条栅栏没有旁路"，也没有逐条印出可照做的出路 ⇒ 读的人只能猜。
+
+    缺口 B（`#4b`，同轮实测 ✗）：栅栏**意图对**（"活没合回 = 版本不完整"），但旧判据
+    `git branch --no-merged main` 量的是 **hash 祖先性**，而 `land` 走 **rebase + 快进**、
+    `main` **自己也会被 rebase** ⇒ 每条**已 land** 的分支顶端都是**孤儿 commit**
+    ⇒ 真仓库实测数到 **17 条**"未合回"，而 `git cherry` 逐条穷尽后 **main 没有的提交 = 0** ✗
+    ⇒ 判据换成 `git cherry`（**patch-id 等价**，与 `--repoint` 找孪生**同一件仪器** ✓）。
 
     断言（每条都点了名靶子）：
       ① 未合回分支 ⇒ **rc=1**，输出**逐条**印 `scripts/agent-worktree.sh land <id>`；
       ② 输出**明说**「没有 `--force` 旁路」（口径写在白纸黑字里，不是靠读代码猜 ✓）；
       ③ ⭐ **`--force` 也 rc=1**（**不许有人偷偷加旁路** —— 这条臂就是那个靶子 ✗）；
       ④ 正对照：合回（分支表为空）⇒ **rc=0**（栅栏不是恒红 ✗）。
+      —— 以下 `#4b` 用**真夹具仓**（`git init` 出来的 `main` + `agent/*`）跑**真仪器**：
+      ⑤ ⭐ **改前的假阳性复现**：夹具里 `agent/landed`（patch-id 与 main 一致、hash 不同）
+         **确实被** `git branch --no-merged main` 报出来（⇒ 旧判据的靶子真的在夹具里）；
+      ⑥ ⭐ **已 land（rebase 后）的分支不被算未合回**：`unmerged_agent_branches()` 里
+         **没有** `agent/landed`（`branch_missing_commits` = `[]`）；
+      ⑦ ⭐ **真有未合回的必须仍红**：`agent/other` / `agent/emptycommit` **仍在**返回表里
+         （**两个方向都钉** ✓ —— ⑤⑥ 是"改前必红 / 改后必绿"的因果对照）；
+      ⑧ **空分支**（tip == `main`）**不**算未合回（它本来就没有活）；
+      ⑨ **边界：名字不匹配 `agent/*`**（`feature/not-agent` 带 `+` 提交）**不进**栅栏
+         —— 范围与改前一致（只 `agent/*`），如实钉住；
+      ⑩ **量不出来 ⇒ 判红**：不存在的分支 ⇒ `branch_missing_commits` = `None` 且
+         `unmerged_agent_branches()` **仍把它算进红表**（不许静默放行 ✗）；
+      ⑪ **读不出来 ⇒ 响亮**：`ROOT` 指向非 git 目录 ⇒ `agent_branches()` 抛 `UsageError`
+         （**不许**退回空表 = 静默放行 ✗）；
+      ⑫ **已知边界（断言当前行为防漂移）**：分支上的**空提交** / **merge 提交**恒 `+`
+         ⇒ 判红（**保守方向**，如实钉住；栅栏正文点名那几个提交供人裁决）。
+      ⑬/⑭ **端到端两个方向**（真 `cmd_release check` + 真夹具仓）：真有未合回 ⇒ rc=1 +
+         **点名**（含提交数 + subject，且**不**点名已 land 的那条）；**全部已 land**
+         （= **真仓库的形状**：rebase 孪生 + `main` 被 rebase）⇒ **rc=0**。
     """
     import contextlib
     import io
@@ -6035,7 +6135,8 @@ def selftest_release_branch_fence(expect) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
                  globals()["worktree_dirty"], globals()["probe_inventory"],
-                 globals()["unmerged_agent_branches"])
+                 globals()["agent_branches"], globals()["branch_missing_commits"],
+                 globals()["ROOT"])
         EVENTS = Path(tmp) / "events.jsonl"
         EXTRAS = Path(tmp) / "extras.jsonl"
         INDEX = Path(tmp) / "index.md"
@@ -6043,7 +6144,10 @@ def selftest_release_branch_fence(expect) -> None:
         globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
         globals()["worktree_dirty"] = lambda: ""
         globals()["probe_inventory"] = lambda: []
-        globals()["unmerged_agent_branches"] = lambda: ["agent/alpha", "agent/beta"]
+        # ⚠ **stub 的是输入面 + 单分支读数**（不是 `unmerged_agent_branches` 本身 ✗）：
+        # 这样 `unmerged_agent_branches()` 的**真循环**照样跑（判据链更完整 ✓）。
+        globals()["agent_branches"] = lambda: ["agent/alpha", "agent/beta"]
+        globals()["branch_missing_commits"] = lambda b: ["a" * 40]
         INDEX.write_text("## 2. 🔴 blocker / high\n\n"
                          "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
                          "|---|---|---|---|---|---|---|\n"
@@ -6075,6 +6179,8 @@ def selftest_release_branch_fence(expect) -> None:
                 rc = fn(*a, **kw)
             return rc, buf.getvalue() + err.getvalue()
 
+        # 真仪器（stub 只服务 ①–④ 的消息层；`#4b` 的夹具臂必须打**真**函数上 ✓）
+        # ⚠ 真函数就是 `saved[7]`/`saved[8]`（上面在装 stub **之前**取的 ✓）
         try:
             _r, _u = build_queue()
             rows = _r
@@ -6082,20 +6188,165 @@ def selftest_release_branch_fence(expect) -> None:
             expect(f"① 有未合回分支 ⇒ 判红 rc={rc}", rc == 1 and "并行收拢未完成" in out)
             expect("① 输出**逐条**给出路（`scripts/agent-worktree.sh land <id>`）",
                    "agent-worktree.sh land alpha" in out and "agent-worktree.sh land beta" in out)
+            expect("①b 输出**点名** main 里没有的提交数（判据是 patch-id，不是祖先性）",
+                   "main 里没有的提交" in out and "**1 个**" in out)
             expect("② 输出**明说**这条栅栏没有 `--force` 旁路",
                    "没有" in out and "`--force` 旁路" in out)
             rc_f, out_f = capture(cmd_release, ns(release="check", force=True), rows)
             expect(f"③ ⭐ **`--force` 也 rc={rc_f}**（不许偷偷加旁路 ✗）", rc_f == 1
                    and "并行收拢未完成" in out_f)
-            globals()["unmerged_agent_branches"] = lambda: []
+            globals()["agent_branches"] = lambda: []
             rc, out = capture(cmd_release, ns(release="check"), rows)
             expect(f"④ 正对照：合回（分支表空）⇒ 仍 rc={rc}（栅栏不是恒红 ✗）", rc == 0)
+
+            # ── `#4b`：**真夹具仓**跑**真仪器**（判据 = patch-id 等价，不是祖先性）──────────
+            globals()["agent_branches"] = saved[7]
+            globals()["branch_missing_commits"] = saved[8]
+            repo = Path(tmp) / "fixture"
+            repo.mkdir()
+
+            def g(*argv: str) -> subprocess.CompletedProcess:
+                return subprocess.run(
+                    ["git", *argv], cwd=repo, capture_output=True, text=True,
+                    env=dict(os.environ, GIT_AUTHOR_NAME="fixture", GIT_AUTHOR_EMAIL="f@local",
+                             GIT_COMMITTER_NAME="fixture", GIT_COMMITTER_EMAIL="f@local"))
+
+            g("init", "-q", "-b", "main")
+            (repo / "a").write_text("1\n", encoding="utf-8")
+            g("add", "a"); g("commit", "-qm", "A")
+            (repo / "b").write_text("2\n", encoding="utf-8")
+            g("add", "b"); g("commit", "-qm", "B")
+            g("branch", "agent/empty")                     # ⑧ 空分支（tip == main）
+            g("checkout", "-q", "-b", "agent/emptycommit")  # ⑫ 空提交 + 真未合回提交
+            g("commit", "-q", "--allow-empty", "-m", "empty work")
+            (repo / "c").write_text("z\n", encoding="utf-8")
+            g("add", "c"); g("commit", "-qm", "real pending work")
+            g("checkout", "-q", "-b", "agent/landed", "main~1")   # ⑤⑥ rebase 孪生
+            (repo / "d").write_text("y\n", encoding="utf-8")
+            g("add", "d"); g("commit", "-qm", "landed work")
+            landed = g("rev-parse", "HEAD").stdout.strip()
+            g("checkout", "-q", "main")
+            g("cherry-pick", landed)                       # 同 patch-id、不同 hash ⇒ main 里有了
+            g("checkout", "-q", "-b", "agent/other", "main")      # ⑦ 真未合回（另一条）
+            (repo / "e").write_text("m\n", encoding="utf-8")
+            g("add", "e"); g("commit", "-qm", "other pending work")
+            g("branch", "feature/not-agent", "agent/other")       # ⑨ 名字不匹配（带 + 提交）
+            # ⑫ 分支上的 merge 提交（另一条 `agent/*`）
+            g("checkout", "-q", "-b", "agent/merge", "main")
+            (repo / "f").write_text("n\n", encoding="utf-8")
+            g("add", "f"); g("commit", "-qm", "merge side")
+            g("checkout", "-q", "-b", "agent/side", "main")
+            (repo / "g").write_text("o\n", encoding="utf-8")
+            g("add", "g"); g("commit", "-qm", "side work")
+            g("checkout", "-q", "agent/merge")
+            g("merge", "--no-ff", "-q", "-m", "merge side into branch", "agent/side")
+
+            globals()["ROOT"] = repo                      # 真仪器打到夹具仓上
+            _anc = g("branch", "--no-merged", "main", "--list", "agent/*",
+                     "--format=%(refname:short)").stdout.split()
+            expect(f"⑤ ⭐ 改前判据在夹具里**确实**报出 rebase 孪生 `agent/landed`"
+                   f"（`--no-merged` = {sorted(_anc)}）", "agent/landed" in _anc)
+            expect("⑤b 夹具里 `agent/landed` **不是** main 的祖先（假阳性的形状真的造出来了）",
+                   g("merge-base", "--is-ancestor", "agent/landed", "main").returncode != 0)
+            _red = unmerged_agent_branches()
+            expect(f"⑥ ⭐ **已 land（rebase 后）的分支不算未合回**：`agent/landed` 不在 {_red}",
+                   "agent/landed" not in _red)
+            expect("⑥b `agent/landed` 的 `branch_missing_commits` = `[]`（活确实进了 main）",
+                   branch_missing_commits("agent/landed") == [])
+            expect(f"⑦ ⭐ **真有未合回仍红**：`agent/other` ∈ {_red}", "agent/other" in _red)
+            expect(f"⑦b `agent/emptycommit`（真未合回提交）∈ {_red}", "agent/emptycommit" in _red)
+            expect("⑦c 真未合回的那条**点名了提交数**（`agent/other` = 1 个）",
+                   len(branch_missing_commits("agent/other") or []) == 1)
+            expect(f"⑧ **空分支**（tip == main）不算未合回：`agent/empty` ∉ {_red}",
+                   "agent/empty" not in _red)
+            expect(f"⑨ **边界**：名字不匹配 `agent/*` 的 `feature/not-agent` ∉ {_red}"
+                   f"（范围与改前一致 —— 它带 + 提交）",
+                   "feature/not-agent" not in _red
+                   and g("cherry", "main", "feature/not-agent").stdout.count("+") == 1)
+            expect("⑩ **量不出来 ⇒ 判红**：不存在的分支 ⇒ `branch_missing_commits` = `None`",
+                   branch_missing_commits("agent/不存在") is None)
+            globals()["agent_branches"] = lambda: ["agent/不存在"]
+            expect("⑩b 量不出来的分支**仍进**红表（不许静默放行 ✗）",
+                   unmerged_agent_branches() == ["agent/不存在"])
+            globals()["agent_branches"] = saved[7]
+            globals()["ROOT"] = Path(tmp) / "not-a-repo"
+            (Path(tmp) / "not-a-repo").mkdir()
+            try:
+                agent_branches()
+                _loud = False
+            except UsageError:
+                _loud = True
+            expect("⑪ **读不出来 ⇒ 响亮**：非 git 目录 ⇒ `agent_branches()` 抛 `UsageError`"
+                   "（**不许**退回空表 = 静默放行 ✗）", _loud)
+            globals()["ROOT"] = repo
+            expect(f"⑫ **已知边界（断言当前行为）**：分支上的 merge 提交恒 `+` ⇒ `agent/merge` "
+                   f"∈ {_red}（**保守方向**：判红 ≠ 放行）", "agent/merge" in _red)
+            expect("⑫b 空提交也恒 `+`（`agent/emptycommit` 报 2 个）",
+                   len(branch_missing_commits("agent/emptycommit") or []) == 2)
+
+            # ── `#4b` 端到端：**真 `cmd_release check`** 打在**真夹具仓**上（两个方向）──────
+            def reseed_events(head: str) -> None:
+                """把 3 条入版条目重新指向 `head`（夹具仓的 HEAD ⇒ 指针是它的祖先 ✓）。"""
+                EVENTS.write_text("", encoding="utf-8")
+                for i in (1, 2, 3):
+                    append_event({"event": "advance", "id": f"FX-{i}", "to": "done",
+                                  "commit": head, "reading": "夹具读数", "owner": "t"})
+                append_event({"event": "release-open", "id": "REL-9.9.9", "version": "9.9.9",
+                              "owner": "t"})
+                for i in (1, 2, 3):
+                    append_event({"event": "release-add", "rel": "REL-9.9.9", "id": f"FX-{i}",
+                                  "owner": "t"})
+
+            reseed_events(g("rev-parse", "HEAD").stdout.strip())
+            rc, out = capture(cmd_release, ns(release="check"), rows)
+            expect(f"⑬ ⭐ **正对照：真有未合回 ⇒ 仍 rc={rc}**，且**点名** `agent/other`"
+                   f"（端到端：真 `cmd_release check` + 真夹具仓）",
+                   rc == 1 and "并行收拢未完成" in out
+                   and "agent-worktree.sh land other" in out)
+            expect("⑬b 点名里带**提交数**与 **subject**（人看得出缺的是哪个活）",
+                   "main 里没有的提交 **1 个**" in out and "other pending work" in out)
+            expect("⑬c 已 land 的 `agent/landed` **不在**这条栅栏的点名里",
+                   "`agent/landed` ⇒" not in out)
+
+            # ⑭ **绿对照 = 真仓库的形状**：main 被 rebase 过 + 分支是 rebase 孪生 ⇒ rc=0
+            repo2 = Path(tmp) / "fixture2"
+            repo2.mkdir()
+
+            def g2(*argv: str) -> subprocess.CompletedProcess:
+                return subprocess.run(
+                    ["git", *argv], cwd=repo2, capture_output=True, text=True,
+                    env=dict(os.environ, GIT_AUTHOR_NAME="fixture", GIT_AUTHOR_EMAIL="f@local",
+                             GIT_COMMITTER_NAME="fixture", GIT_COMMITTER_EMAIL="f@local"))
+
+            g2("init", "-q", "-b", "main")
+            (repo2 / "a").write_text("1\n", encoding="utf-8")
+            g2("add", "a"); g2("commit", "-qm", "A")
+            (repo2 / "b").write_text("2\n", encoding="utf-8")
+            g2("add", "b"); g2("commit", "-qm", "B")
+            g2("checkout", "-q", "-b", "agent/twin", "main~1")
+            (repo2 / "c").write_text("3\n", encoding="utf-8")
+            g2("add", "c"); g2("commit", "-qm", "landed work")
+            twin = g2("rev-parse", "HEAD").stdout.strip()
+            g2("checkout", "-q", "main")
+            g2("cherry-pick", twin)
+            globals()["ROOT"] = repo2
+            expect("⑭ 夹具：`--no-merged` **确实**报 `agent/twin`（真仓库形状的假阳性复现）",
+                   "agent/twin" in g2("branch", "--no-merged", "main", "--list", "agent/*",
+                                      "--format=%(refname:short)").stdout.split())
+            reseed_events(g2("rev-parse", "HEAD").stdout.strip())
+            rc, out = capture(cmd_release, ns(release="check"), rows)
+            expect(f"⑭b ⭐⭐ **绿对照：全部已 land（rebase 孪生 + main 被 rebase）⇒ rc={rc}**"
+                   f"（**就是真仓库的形状**；改前这里恒 rc=1 ⇒ 发版发不出去 ✗）",
+                   rc == 0 and "并行收拢未完成" not in out)
+            globals()["ROOT"] = repo
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
             globals()["worktree_dirty"] = saved[5]
             globals()["probe_inventory"] = saved[6]
-            globals()["unmerged_agent_branches"] = saved[7]
+            globals()["agent_branches"] = saved[7]
+            globals()["branch_missing_commits"] = saved[8]
+            globals()["ROOT"] = saved[9]
 
 
 def selftest_id_and_encoding_gates(expect) -> None:
@@ -6817,8 +7068,11 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     #     就是它 ✗）· `#4` `--triage --to rejected` **自造下一条 `--check` 必红** ✗）
     selftest_release_order_and_content(expect)
     # ③h4 ⭐⭐ **「分支必须合回」栅栏：如实判红 · 逐条给出路 · `--force` 不越过**（`#4`，
-    #     2026-10-14 · 第七次独立复核实测 ✗：真仓库 15 条未合回 ⇒ `--release check` 永远过不了；
-    #     口径选"如实写清 + 不放宽"⇒ 这条臂钉住「`--force` 也 rc=1」，将来偷加旁路当场判红 ✗）
+    #     2026-10-14 · 第七次独立复核实测 ✗：`--release check` 过不了；口径选"如实写清 +
+    #     不放宽"⇒ 这条臂钉住「`--force` 也 rc=1」，将来偷加旁路当场判红 ✗）
+    #     + ⭐⭐ `#4b`（第十一次复核实测 ✗：判据量的是 **hash 祖先性** ⇒ 真仓库 17 条"未合回"
+    #     而 `git cherry` 的 `+` 合计 = **0**）⇒ 判据换成 **patch-id 等价**，并用**真夹具仓**
+    #     钉住**两个方向**：已 land（rebase 后）的不算未合回 · 真有未合回的仍红 ✓
     selftest_release_branch_fence(expect)
     # ③h5 **id 长度上限 + 非 UTF-8 环境的契约错**（`#5`，2026-10-14 · 第七次独立复核实测 ✗：
     #     3003 字符 id rc=0 收下 · `LC_ALL=C PYTHONUTF8=0` ⇒ 栈 + rc=1 而不是 rc=2）
@@ -6919,9 +7173,13 @@ def cmd_selftest(args: argparse.Namespace) -> int:
            f"不存在 / 非祖先的 sha **都 rc=0** 并写入 `release-cut` ✗ ⇒ 现在与入版/收口共用 "
            f"`closure_pointer_problem()`：两条假 sha **都拒 + 零写入**、正对照真祖先仍 rc=0、"
            f"事件带 `subject`/`patch_id`、缺 `--ci`/`--commit` 仍是用法错 ✓）"
-           f" + **发版节点接缝 10 条**（`#2`，第八次复核：⭐ **`--release open` 之后 `check_plan` 仍 rc=0**（**改前 rc=1 + 幽灵条目** ✗）· 节点 id 进 `known` · **不许放宽**：手写无 `release-open` 的 `release-add` 照样判红 + 点名 · 正对照 `add`/`check`/`cut` 三条后续步骤仍 rc=0） + **分支栅栏 4 条**（`#4`：未合回 ⇒ 判红 + **逐条** `agent-worktree.sh land` + "
+           f" + **发版节点接缝 10 条**（`#2`，第八次复核：⭐ **`--release open` 之后 `check_plan` 仍 rc=0**（**改前 rc=1 + 幽灵条目** ✗）· 节点 id 进 `known` · **不许放宽**：手写无 `release-open` 的 `release-add` 照样判红 + 点名 · 正对照 `add`/`check`/`cut` 三条后续步骤仍 rc=0） + **分支栅栏 25 条**（`#4`：未合回 ⇒ 判红 + **逐条** `agent-worktree.sh land` + "
            f"**明说没有 `--force` 旁路** + ⭐ **`--force` 也 rc=1**（偷加旁路当场判红 ✗）+ "
-           f"正对照合回后 rc=0）"
+           f"正对照合回后 rc=0；⭐ `#4b` 判据换成 **patch-id 等价**（`git cherry`）——**真夹具仓**"
+           f"钉两个方向：**已 land（rebase 后）的不算未合回** ✓ · **真有未合回的仍红** ✓（含"
+           f"**端到端**：真 `cmd_release check` 在夹具上 rc=1 + 点名 / 全部已 land ⇒ rc=0），"
+           f"外加空分支 / 名字不匹配 / 量不出来 ⇒ 判红 / 非 git 目录 ⇒ 响亮 / 空提交与 merge 提交"
+           f"恒 `+` 的**已知边界**；改前实测：真仓库 `--no-merged` **17 条** 而 `git cherry` 的 `+` = **0**）"
            f" + **id 长度 + 环境编码 + 队列根 13 条**（`#5`：3000 字符 id 在 `--schedule`/`--submit`/"
            f"`--add-child` 三个入口**都拒且零写入**、上限 64 是**数字**（64 过 / 65 拒）、"
            f"`locale=US-ASCII` ⇒ `UsageError`、真 CLI 在 `LC_ALL=C PYTHONUTF8=0` 下**没有栈**"
@@ -6988,8 +7246,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
                         help="发版节点：open/add/block/drop/check/cut（栅栏 + 克制 + 防无限 bug 分支）"
                              "。⚠ `--release check` 的「**分支必须合回**」栅栏**没有 `--force` "
                              "旁路**（`--force` 只越过条目数与 worktree 提醒两条克制规则）—— "
-                             "真仓库当前有 15 条 agent/* 未合回 ⇒ 它**永远过不了**，正确做法 = "
-                             "先 `scripts/agent-worktree.sh land <id>` 合回（或由人删掉废弃分支）✓")
+                             "判据 = `git cherry main <branch>` 的 `+` 行（**活有没有进 main**，"
+                             "不是 hash 祖先性：`land` 走 rebase + 快进、`main` 自己也会被 rebase）"
+                             "⇒ 真有未合回时正确做法 = 先 `scripts/agent-worktree.sh land <id>` "
+                             "合回（或由人删掉废弃分支）✓")
     parser.add_argument("--rel", metavar="ID", help="发版节点 id（默认 REL-<version>）")
     parser.add_argument("--version", metavar="X.Y.Z", help="发版节点的版本号")
     parser.add_argument("--ci", metavar="RUN", help="切版要带 CI run id（判据之一）")
