@@ -19,13 +19,16 @@
 //     5. version-marked download cache (legacy)
 //     6. version-pinned GitHub Release download (universal fallback VSIX)
 //
-//     ⚠ Step 4 is the one link of either chain that is **not** policed: a
+//     ⚠ Step 4 is the one link of either server chain that is **not** policed: a
 //     contributor build is picked by existence alone. So before running it we
-//     **judge and report** it (`warnWorkspaceBuild`) — stale (older than the
-//     newest engine source in that checkout) or a version that disagrees with
-//     this extension. **Warn only**: the order above is unchanged, and the
-//     editor has no "pick another engine" fallback, so refusing to start would
-//     be worse than running an old engine (same shape as `scripts/soko lsp`).
+//     **judge and report** it (`warnUnpolicedBinary`, kind `lsp`) — stale (older
+//     than the newest engine source in that checkout) or a version that
+//     disagrees with this extension. **Warn only**: the order above is
+//     unchanged, and the editor has no "pick another engine" fallback, so
+//     refusing to start would be worse than running an old engine (same shape as
+//     `scripts/soko lsp`). The **CLI** chain (`resolveCliCommand`) has the same
+//     kind of unpoliced links and goes through the very same judgement
+//     (`warnUnpolicedBinary`, kind `cli`).
 //
 // `resolveServerCommand` returns `{command, source}` where `source` is one of
 // `bundled` | `setting` | `env` | `workspace` | `cache` (and the caller adds
@@ -243,15 +246,68 @@ function versionMatches(version, reported) {
   return want[1] === got[1] && want[2] === got[2] && want[3] === got[3];
 }
 
-/// **Report** the workspace build the override branch is about to run
-/// (2026-10-15 CHAIN-Z, hole `VSCODE-OVERRIDE-NO-STALE`).
+/// The **judgement** half of the unpoliced-binary warning: is the binary that is
+/// about to run older than the newest engine source of the tree it came from,
+/// and does its self-reported version disagree with this extension?
 ///
-/// Why: the default (non-override) path is policed — the bundled server is built
-/// from the same tag as the extension and the cache is marker-checked. The
-/// `override === true` branch instead runs `target/{debug,release}` with **no
-/// version check and no staleness check at all** ⇒ a contributor could be
-/// judging with an engine that does not match the pinned version, or that
-/// predates the sources in this checkout, and see **zero signal**.
+/// Facts only — the callers own the sentence (a language server and a CLI are not
+/// the same thing to a reader). **One implementation** for every unpoliced link,
+/// so there is no second rule set (the shape `scripts/soko`'s `buildWarning`
+/// uses):
+///   * the override branch's `workspace` server build (`warnUnpolicedBinary`
+///     kind `lsp` — 2026-10-15 CHAIN-Z, hole `VSCODE-OVERRIDE-NO-STALE`);
+///   * `resolveCliCommand`'s `workspace` **and** `PATH` CLI links (kind `cli` —
+///     hole `VSCODE-CLI-RESOLVER-NO-VERSION`).
+///
+/// ⚠ `undefined`/`false` distinction: a version that cannot be read is **"cannot
+/// tell"**, never "mismatch" (`versionMatches`' contract) ⇒ silence, not a false
+/// alarm. The same goes for a binary whose mtime the injected fs cannot report.
+function judgeUnpolicedBinary(options) {
+  const { binary, root, version } = options;
+  const fsImpl = options.fs ?? fs;
+  const probe = options.probeVersion ?? spawnBinaryVersion;
+
+  const mtime = statMtime(binary, fsImpl);
+  const newest = root ? newestEngineSource(root, fsImpl) : { mtime: 0 };
+  // ⚠ Staleness is only claimed for a build of **this** tree (`root`): a bare
+  // name (the `PATH` link) belongs to no tree we can compare against, and
+  // `statSync("sokonanoda")` is not even a path.
+  const stale = root !== undefined && mtime !== undefined && newest.mtime > mtime;
+
+  // ⚠ **Which binary answers the version.** An LSP has no `--version`, so — like
+  // `scripts/soko`'s `repoBuildForVersion` — a server build is identified by the
+  // CLI of the **same tree**. A CLI is asked directly. Asking the *server* for
+  // `--version` would start an LSP on stdio and block `spawnSync` for its whole
+  // 15s timeout — the trap `cliBinaryName` exists to prevent.
+  const probed =
+    options.cli ??
+    (root ? preferredTreeBinary(root, cliBinaryName(options.platform), fsImpl) : undefined);
+  const reported = probed ? probe(probed) : undefined;
+  return {
+    mtime,
+    newest,
+    stale,
+    probed,
+    reported,
+    mismatch: versionMatches(version, reported) === false,
+  };
+}
+
+/// **Report** an unpoliced binary that is about to run — stale, or a version that
+/// disagrees with this extension. Generalization of 2026-10-15 CHAIN-Z's
+/// `warnWorkspaceBuild` (same function, same judgements, now also serving the CLI
+/// chain — hole `VSCODE-CLI-RESOLVER-NO-VERSION`).
+///
+/// Why this exists: every **policed** link is checked by construction — the
+/// bundled binaries are built from the same tag as the extension, the download is
+/// version-pinned, the server cache is marker-checked. The links picked by
+/// **existence alone** are the ones that can silently run an engine that is not
+/// this commit's or not this version's. There are exactly three, and they all go
+/// through here:
+///   1. the override branch's `workspace` server build;
+///   2. `resolveCliCommand`'s `workspace` CLI build;
+///   3. `resolveCliCommand`'s `PATH` fallback (version only — no tree to be stale
+///      against).
 ///
 /// ⚠ **Warn only — never refuse, never re-order** (the shape `scripts/soko lsp`
 /// and the opencode plugin already use): the editor has no "pick another engine"
@@ -260,34 +316,47 @@ function versionMatches(version, reported) {
 /// `console.warn` in the extension, so this never touches the LSP stdout stream.
 ///
 /// ⚠ It describes **the binary that will actually run** (`binary`) — not "some
-/// old artifact in this tree" — which is the only thing worth warning about.
-function warnWorkspaceBuild(options) {
-  const { binary, root, version, profile, platform } = options;
-  const fsImpl = options.fs ?? fs;
+/// old artifact in this tree" — which is the only thing worth warning about. It
+/// stays silent when the checkout's *source* merely changed: a bundled/released
+/// artifact is naturally older than a working tree, so only a build of the tree
+/// itself is ever judged (that is why the staleness half needs `root`).
+///
+/// `kind` picks the **sentence** only (`lsp` = the override branch's server,
+/// `cli` = `resolveCliCommand`); the judgements are `judgeUnpolicedBinary`'s, and
+/// the `lsp` pair is byte-for-byte what CHAIN-Z shipped.
+function warnUnpolicedBinary(options) {
+  const { binary, root, version, profile, kind = "lsp" } = options;
   const log = options.log;
-  if (!log || !root) return;
-  const probe = options.probeVersion ?? spawnBinaryVersion;
+  const isCli = kind === "cli";
+  if (!log) return;
+  if (!isCli && !root) return; // the LSP sentence describes a workspace build
+  const { mtime, newest, stale, probed, reported, mismatch } = judgeUnpolicedBinary(options);
 
-  const mtime = statMtime(binary, fsImpl);
-  const newest = newestEngineSource(root, fsImpl);
-  if (mtime !== undefined && newest.mtime > mtime) {
+  if (stale) {
     const where = newest.file ? path.relative(root, newest.file) : "?";
     log(
-      `语言服务器是 workspace 构建（${profile}），但它**早于本检出最新的引擎源**：` +
+      `${isCli ? "命令行" : "语言服务器"}是 workspace 构建（${profile}），但它**早于本检出最新的引擎源**：` +
         `${binary} @ ${new Date(mtime).toISOString()} < ${where} @ ${new Date(newest.mtime).toISOString()} ⇒ ` +
-        `编辑器里的判定**可能不属于当前 commit** ✗` +
-        `（正解：cargo build --release -p sokonanoda-lsp --locked，或在设置里关掉 sokonanoda.serverOverride）`,
+        `${isCli ? "课程地图/预热的判定" : "编辑器里的判定"}**可能不属于当前 commit** ✗` +
+        `（正解：cargo build --release -p ${isCli ? "sokonanoda-cli" : "sokonanoda-lsp"} --locked` +
+        `${isCli ? "）" : "，或在设置里关掉 sokonanoda.serverOverride）"}`,
     );
   }
 
-  const cli = preferredTreeBinary(root, cliBinaryName(options.platform), fsImpl);
-  const reported = cli ? probe(cli) : undefined;
-  if (versionMatches(version, reported) === false) {
-    log(
-      `语言服务器与扩展**版本不一致**：workspace 构建自述 v${reported}（据同树 CLI ${cli}），` +
-        `而本扩展是 v${version} ⇒ 编辑器里的判定**可能不属于这个版本** ✗` +
-        `（正解：cargo build --release -p sokonanoda-lsp --locked，或关掉 sokonanoda.serverOverride 用自带的那份）`,
-    );
+  if (mismatch) {
+    if (isCli) {
+      log(
+        `命令行与扩展**版本不一致**：${root ? "workspace 构建" : "PATH 上的"} ${binary} 自述 v${reported}，` +
+          `而本扩展是 v${version} ⇒ 课程地图/预热的判定**可能不属于这个版本** ✗` +
+          `（正解：cargo build --release -p sokonanoda-cli --locked，或让 VSIX 自带的那份生效）`,
+      );
+    } else {
+      log(
+        `语言服务器与扩展**版本不一致**：workspace 构建自述 v${reported}（据同树 CLI ${probed}），` +
+          `而本扩展是 v${version} ⇒ 编辑器里的判定**可能不属于这个版本** ✗` +
+          `（正解：cargo build --release -p sokonanoda-lsp --locked，或关掉 sokonanoda.serverOverride 用自带的那份）`,
+      );
+    }
   }
 }
 
@@ -328,10 +397,29 @@ function resolveBundledServer(options) {
   return resolveBundledBinary({ ...options, baseName: "sokonanoda-lsp" });
 }
 
-/// Resolve the `sokonanoda` CLI (used by the course map): bundled in the VSIX
-/// first, then a workspace build, then PATH. No network, no cargo needed.
+/// Resolve the `sokonanoda` CLI (used by the course map and the build/clean
+/// commands): bundled in the VSIX first, then a workspace build, then PATH. No
+/// network, no cargo needed.
+///
+/// ⚠ The chain is `bundled → workspace → PATH`, and the **last two links are
+/// picked by existence alone** — exactly the shape the override branch's
+/// `workspace` link had before CHAIN-Z (hole `VSCODE-CLI-RESOLVER-NO-VERSION`).
+/// So each is **judged and reported** before it is handed back:
+///   * `workspace` — stale (older than this tree's newest engine source) or a
+///     version that disagrees with this extension;
+///   * `PATH` — version only (a bare name belongs to no tree).
+/// The **bundled** CLI needs no judgement: it is built from the same tag as the
+/// extension, which is the same reason the bundled *server* needs none (and why
+/// a dev checkout being newer must **not** be reported here — that would scare
+/// users about the released engine the policy deliberately prefers).
+///
+/// ⚠ **Warn only.** The returned command is byte-for-byte what the old
+/// `firstExisting(builtBinaryCandidates(...))` pair produced — the pick, the
+/// order and the fallbacks are unchanged. The editor has no "pick another
+/// engine" fallback, so refusing to run would be worse than running an old CLI;
+/// `runCourseCommand`'s caller still gets a command either way.
 function resolveCliCommand(options) {
-  const { extensionPath, roots = [], platform, arch, log } = options;
+  const { extensionPath, roots = [], platform, arch, log, version } = options;
   const fsImpl = options.fs ?? fs;
   const bundled = resolveBundledBinary({
     extensionPath,
@@ -343,9 +431,41 @@ function resolveCliCommand(options) {
   });
   if (bundled) return bundled;
   const cliName = cliBinaryName(platform);
-  const found = firstExisting(builtBinaryCandidates(roots, cliName), fsImpl);
-  if (found) return found;
-  return "sokonanoda";
+  // ⚠ `candidates[0]` **就是**旧实现的
+  // `firstExisting(builtBinaryCandidates(roots, cliName), fsImpl)`（同一个顺序：
+  // 每个 root 先 `debug` 后 `release`）⇒ **选谁跑一个字都不改**；新增的只是
+  // "跑之前先判一次、陈旧/版本不符就出声" ✓（只警告不拒绝）。
+  const found = workspaceBuildCandidates(roots, cliName, fsImpl)[0];
+  if (found) {
+    warnUnpolicedBinary({
+      binary: found.path,
+      root: found.root,
+      profile: found.profile,
+      platform,
+      version,
+      kind: "cli",
+      // ⚠ A CLI answers `--version` **itself** — unlike an LSP, which has to
+      // borrow the CLI of its tree. Do not hand this the server's name.
+      cli: found.path,
+      fs: fsImpl,
+      log,
+      probeVersion: options.probeVersion,
+    });
+    return found.path;
+  }
+  // The PATH link: last resort, and just as unpoliced (a bare name resolves
+  // wherever `PATH` points). No `root` ⇒ no staleness claim, version only.
+  warnUnpolicedBinary({
+    binary: cliName,
+    platform,
+    version,
+    kind: "cli",
+    cli: cliName,
+    fs: fsImpl,
+    log,
+    probeVersion: options.probeVersion,
+  });
+  return cliName;
 }
 
 /// Auto-download cache directory for the language server binary (legacy
@@ -456,9 +576,9 @@ function downloadUrl(version, platform, arch, alpine = false) {
 /// `setting → env → bundled → workspace → cache`.
 ///
 /// ⚠ The `workspace` link is judged before it is handed back
-/// (`warnWorkspaceBuild`): stale or version-mismatched builds are **reported via
-/// `log`**. Warning never changes the returned `{command, source}` — the order
-/// above and the pick are exactly what they were.
+/// (`warnUnpolicedBinary`, kind `lsp`): stale or version-mismatched builds are
+/// **reported via `log`**. Warning never changes the returned
+/// `{command, source}` — the order above and the pick are exactly what they were.
 /// `probeVersion(binary) -> "x.y.z" | undefined` is injectable so plain-Node
 /// tests never have to spawn a real binary.
 function resolveServerCommand(options) {
@@ -498,12 +618,13 @@ function resolveServerCommand(options) {
     const candidates = workspaceBuildCandidates(roots, binaryName(platform), fsImpl);
     const found = candidates[0];
     if (found) {
-      warnWorkspaceBuild({
+      warnUnpolicedBinary({
         binary: found.path,
         root: found.root,
         profile: found.profile,
         platform,
         version,
+        kind: "lsp",
         fs: fsImpl,
         log,
         probeVersion: options.probeVersion,

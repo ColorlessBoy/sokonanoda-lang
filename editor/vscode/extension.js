@@ -40,6 +40,10 @@ const notationInput = require("./src/abbreviation-rewriter");
 let client;
 let serverOptions;
 let extensionRoot;
+// `resolveCliCommand()` 判 CLI 版本时的基准（与 `extensionRoot` 同源、同生命周期：
+// 两者都只有 `activate()` 拿得到 `context`）。`undefined` ⇒ `versionMatches` 回
+// "判不了" ⇒ **不出声**（绝不拿"判不了"当"不匹配" ✗）。
+let extensionVersionCache;
 let lastResolution; // {command, source} of the last successful resolveServerForStart
 
 // 例行化 e2e 的诊断日志：`scripts/vscode-e2e.sh` 设 `SOKO_E2E_LOG` 时启用。
@@ -128,12 +132,20 @@ function resolveServerCommand(context) {
 // Same discovery pattern as the server, but for the `sokonanoda` CLI binary:
 // bundled in the VSIX first (course map works with nothing installed), then
 // workspace `target/{debug,release}` builds, then PATH.
+//
+// ⚠ `version` is what makes the CLI chain's unpoliced links judgeable (hole
+// `VSCODE-CLI-RESOLVER-NO-VERSION`): the workspace build and the PATH fallback
+// are picked by existence alone, and the course map / build / clean commands all
+// run whatever comes back. The judgement happens inside the resolver, so **every**
+// consumer is covered — including `runCourseCommand`, which has no version gate
+// of its own. Warn only: the returned command is unchanged.
 function resolveCliCommand() {
   return server.resolveCliCommand({
     extensionPath: extensionRoot,
     roots: discoveryRoots(),
     platform: process.platform,
     arch: process.arch,
+    version: extensionVersionCache,
     log: (message) => console.warn(`[sokonanoda] ${message}`),
   });
 }
@@ -2875,6 +2887,7 @@ async function uninstallCli() {
 
 async function activate(context) {
   extensionRoot = context.extensionPath;
+  extensionVersionCache = extensionVersion(context);
 
   // **模块级进度状态必须回到初始态**：`compileShown` / `compileShowTimer` 是
   // 跨调用活着的（`$/progress` 的处理器挂在模块作用域上）。激活再来一次时

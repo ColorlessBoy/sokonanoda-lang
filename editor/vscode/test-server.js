@@ -472,6 +472,197 @@ async function run() {
     assert.deepStrictEqual(logs, []);
   });
 
+  // ── VSCODE-CLI-RESOLVER-NO-VERSION (2026-10-15 CLI-A) ──────────────────
+  // `resolveCliCommand`'s chain is `bundled → workspace → PATH`, and the **last
+  // two links are picked by existence alone** — the same shape the override
+  // branch's `workspace` link had before CHAIN-Z. Both are now judged before
+  // they are handed back. Readings are the **number of `log` lines** (the
+  // user-visible signal), and the pick must not move: the reference for "who
+  // runs" is the pre-fix `firstExisting(builtBinaryCandidates(...))` pair.
+  const CLI_ARGS = { extensionPath: "/ext", platform: "darwin", arch: "arm64", version: "0.7.0" };
+
+  const cliWith = (extra) => {
+    const logs = [];
+    const command = server.resolveCliCommand({
+      ...CLI_ARGS,
+      roots: ["/ws"],
+      log: (message) => logs.push(message),
+      ...extra,
+    });
+    return { command, logs };
+  };
+
+  await test("resolveCliCommand: a version-mismatched workspace CLI is reported", () => {
+    const { command, logs } = cliWith({
+      fs: fakeFs({ existing: [WS_CLI], executable: [WS_CLI] }),
+      probeVersion: () => "0.6.0",
+    });
+    assert.strictEqual(command, WS_CLI, "the pick must not move");
+    assert.strictEqual(logs.length, 1, logs.join("\n"));
+    assert.ok(logs[0].includes("版本不一致"), logs[0]);
+    assert.ok(logs[0].includes("v0.6.0") && logs[0].includes("v0.7.0"), logs[0]);
+    assert.ok(logs[0].includes("sokonanoda-cli"), logs[0]);
+  });
+
+  await test("resolveCliCommand: a workspace CLI older than the engine source is reported", () => {
+    const { command, logs } = cliWith({
+      fs: fakeFs({
+        existing: [WS_CLI],
+        executable: [WS_CLI],
+        mtimes: { [WS_CLI]: 1000, "/ws/Cargo.toml": 2000 },
+      }),
+      probeVersion: () => "0.7.0",
+    });
+    assert.strictEqual(command, WS_CLI);
+    assert.strictEqual(logs.length, 1, logs.join("\n"));
+    assert.ok(logs[0].includes("早于本检出最新的引擎源"), logs[0]);
+    assert.ok(logs[0].includes("Cargo.toml"), logs[0]);
+  });
+
+  await test("resolveCliCommand: matching + fresh workspace CLI stays silent (positive control)", () => {
+    const { command, logs } = cliWith({
+      fs: fakeFs({
+        existing: [WS_CLI],
+        executable: [WS_CLI],
+        mtimes: { [WS_CLI]: 5000, "/ws/Cargo.toml": 1000 },
+      }),
+      probeVersion: () => "0.7.0",
+    });
+    assert.strictEqual(command, WS_CLI);
+    assert.deepStrictEqual(logs, []);
+  });
+
+  await test("resolveCliCommand: the probe asks the CLI, never the server (no 15s hang)", () => {
+    // `binaryName()` returns the **server** name; asking *it* for `--version`
+    // starts an LSP on stdio and blocks `spawnSync` for its whole 15s timeout
+    // (CHAIN-Z's first attempt). Both names exist in the tree here, so a wrong
+    // implementation would visibly probe the LSP.
+    const seen = [];
+    const { logs } = cliWith({
+      fs: fakeFs({ existing: [WS_CLI, WS_LSP], executable: [WS_CLI, WS_LSP] }),
+      probeVersion: (binary) => {
+        seen.push(binary);
+        return "0.6.0";
+      },
+    });
+    assert.deepStrictEqual(seen, [WS_CLI]);
+    assert.ok(!seen[0].endsWith("sokonanoda-lsp"), seen[0]);
+    assert.strictEqual(logs.length, 1, logs.join("\n"));
+  });
+
+  await test("resolveCliCommand: a CLI that cannot answer --version stays silent (cannot tell)", () => {
+    // `versionMatches` returning `undefined` is "cannot tell", never "mismatch"
+    // — warning on it would be noise, not a signal.
+    const { logs } = cliWith({
+      fs: fakeFs({ existing: [WS_CLI], executable: [WS_CLI] }),
+      probeVersion: () => undefined,
+    });
+    assert.deepStrictEqual(logs, []);
+  });
+
+  await test("resolveCliCommand: bundled CLI wins and nothing is reported (policy unchanged)", () => {
+    // The same stale + mismatched workspace CLI as above, with a bundled CLI
+    // present: bundled wins and **nothing** is reported (the bundled CLI is
+    // built from the same tag as the extension — no judgement needed, and a dev
+    // checkout being newer must not scare anyone about the released engine).
+    const bundledCli = path.join("/ext", "bin", "darwin-arm64", "sokonanoda");
+    const { command, logs } = cliWith({
+      fs: fakeFs({
+        existing: [bundledCli, WS_CLI],
+        executable: [bundledCli, WS_CLI],
+        mtimes: { [WS_CLI]: 1000, "/ws/Cargo.toml": 2000 },
+      }),
+      probeVersion: () => "0.6.0",
+    });
+    assert.strictEqual(command, bundledCli);
+    assert.deepStrictEqual(logs, []);
+  });
+
+  await test("resolveCliCommand: a mismatched CLI on PATH is reported (version only)", () => {
+    const logs = [];
+    const command = server.resolveCliCommand({
+      ...CLI_ARGS,
+      roots: [],
+      log: (message) => logs.push(message),
+      probeVersion: () => "0.6.0",
+      fs: fakeFs(),
+    });
+    assert.strictEqual(command, "sokonanoda", "the PATH fallback must stay the fallback");
+    assert.strictEqual(logs.length, 1, logs.join("\n"));
+    assert.ok(logs[0].includes("PATH 上的"), logs[0]);
+    assert.ok(logs[0].includes("版本不一致"), logs[0]);
+  });
+
+  await test("resolveCliCommand: a matching CLI on PATH stays silent (positive control)", () => {
+    const logs = [];
+    const command = server.resolveCliCommand({
+      ...CLI_ARGS,
+      roots: [],
+      log: (message) => logs.push(message),
+      probeVersion: () => "0.7.0",
+      fs: fakeFs(),
+    });
+    assert.strictEqual(command, "sokonanoda");
+    assert.deepStrictEqual(logs, []);
+  });
+
+  await test("resolveCliCommand: no log callback stays silent and never throws", () => {
+    let command;
+    assert.doesNotThrow(() => {
+      command = server.resolveCliCommand({
+        ...CLI_ARGS,
+        roots: ["/ws"],
+        probeVersion: () => "0.6.0",
+        fs: fakeFs({
+          existing: [WS_CLI],
+          executable: [WS_CLI],
+          mtimes: { [WS_CLI]: 1000, "/ws/Cargo.toml": 2000 },
+        }),
+      });
+    });
+    assert.strictEqual(command, WS_CLI);
+  });
+
+  await test("resolveCliCommand: the pick is byte-for-byte the old firstExisting() pair", () => {
+    // The reference is the pre-fix expression, evaluated from the same exported
+    // helpers ⇒ a future edit that re-orders the chain or drops a fallback fails
+    // here, not in a user's course map.
+    const fsImpl = fakeFs({ existing: [WS_CLI], executable: [WS_CLI] });
+    const old = server.firstExisting(server.builtBinaryCandidates(["/ws"], "sokonanoda"), fsImpl);
+    const logs = [];
+    const command = server.resolveCliCommand({
+      ...CLI_ARGS,
+      roots: ["/ws"],
+      log: (message) => logs.push(message),
+      probeVersion: () => "0.6.0",
+      fs: fsImpl,
+    });
+    assert.strictEqual(old, WS_CLI);
+    assert.strictEqual(command, old);
+  });
+
+  await test("resolveCliCommand: the workspace CLI lookup uses the Windows .exe name", () => {
+    const winCli = path.join("/ws", "target", "release", "sokonanoda.exe");
+    const seen = [];
+    const logs = [];
+    const command = server.resolveCliCommand({
+      extensionPath: "/ext",
+      roots: ["/ws"],
+      platform: "win32",
+      arch: "x64",
+      version: "0.7.0",
+      log: (message) => logs.push(message),
+      probeVersion: (binary) => {
+        seen.push(binary);
+        return "0.6.0";
+      },
+      fs: fakeFs({ existing: [winCli], executable: [winCli] }),
+    });
+    assert.strictEqual(command, winCli);
+    assert.deepStrictEqual(seen, [winCli]);
+    assert.strictEqual(logs.length, 1, logs.join("\n"));
+  });
+
   await test("resolveServerCommand: no bundled falls back to cache only when current", () => {
     const previousHome = process.env.HOME;
     process.env.HOME = path.join("/home", "test");
