@@ -149,6 +149,25 @@ main 的历史**）✗。口径 **只对新增收口**要求祖先性（写入�
 子任务**有源行就用源行**（真处置），`check_plan` 的处置以**来源台账**为权威 ⇒「反向两层漂移」
 对子任务也咬得住 ✓。
 
+**事件表的词汇表 / 必填字段 / 值域**（`EVENT-FIELD-NO-GUARD`，2026-10-15 · 第十四次独立复核
+实测 ✗）：`fold()` 原先对**认不出的 `event` 值**静默（分派是一串 `if/elif`、**没有 `else`**
+⇒ 事件从链尾**漏下去**：读过了、什么都没折），对 `{"event":"repoint","id":…}`（**缺
+`commit`** —— 那一支唯一的输入）同样静默 ⇒ 夹具（真台账 + **追加一行**）上 `--check` **rc=0
+且零点名** ✗。两格都是"**静默忽略**"、不是"静默漏项"（状态退回来源处置 ⇒ 仍 open、仍被
+`--next` 推）⇒ 修法是**加断言**、不改任何一格的状态读数 ✓。口径（与既有的 `advance.to` 非法值
+**同一个形状** —— 第十轮 `#1`，不发明第二套 ✗）：
+`EVENT_KINDS`（词汇表**一处** = `FOLD_EVENT_KINDS` + `RELEASE_EVENT_KINDS`）·
+`EVENT_REQUIRED_FIELDS`（**每个事件类型的必填字段清单一处**，只列"缺了会让这一支什么都不折"的
+字段）· `TRIAGE_TO_DISPOSITION`（`triage.to` 的值域 = 写侧那一张表，写读同源）⇒ `fold()` 记
+**原值**（`bad_events`，与 `bad_to` 同形）⇒ `check_plan()` 判红 + **点名那个值 / 那个字段** +
+给出路 ✓。⚠ **缺 `id`/`event` 的行**（这一族里**最静默**的一格：`fold` 直接 `continue` ⇒ 整行
+丢掉、连计数都不加）由 `load_events()` 判（rc=2 + 点名行号，与"不是合法 JSON"**同一个契约** ✓）。
+⚠ **前向兼容没有静默通道**：加一个事件类型 = 写路径 + 在 `EVENT_KINDS` 登记 + 在
+`EVENT_REQUIRED_FIELDS` 写明必填字段（`--selftest` 的结构性守卫钉着"分派分支 / 登记表 /
+必填表"三者一致 ⇒ 漏一处**先红** ✗）；**未登记的类型一律判红**（与"未定处置 ⇒ rc=2"同源），
+判红信息点名那个值并写清"若你确实加了新写路径 ⇒ 登记它"（**如实说明的已知边界**：事件表是主
+checkout 单点、脚本每棵树一份 ⇒ 旧脚本读到新类型会判红；没有环境变量旁路 —— 旁路就是新的静默面 ✗）。
+
 **一份输入，一份合并**（2026-10-14 · 第五次独立复核的「跨来源处置冲突」✗）：来源只从
 `source_rows()`（**全量**：extras 全行 · gap 全 `status` 含 `fixed` · 索引只给身份）读一次，
 `build_queue()` 合并它（**「一个 id 只能有一个处置」的闸门就在这个循环里**）⇒ 合并出来的
@@ -1362,6 +1381,16 @@ def drop_claim(ident: str, owner: str) -> None:
 
 
 def load_events() -> list[dict]:
+    """读事件表（**所有读者的唯一入口**：`fold` / `release_scan` / `--json` …）。
+
+    ⚠ **表本身坏了要响亮**（`EVENT-FIELD-NO-GUARD`，2026-10-15 · 第十四次独立复核实测 ✗）：
+    改前只查"是不是合法 JSON"，而**缺 `id`/`event` 的行**照样读进来 ⇒ `fold()` 里那句
+    `if not ident or not kind: continue` 把它**整行丢掉**（连 `cur["events"]` 都不加）
+    ⇒ 账上有一行"谁都看不见"的垃圾而 `--check` **rc=0** ✗（这是这一族里**最静默**的一格：
+    值不认识那一格至少还把条目折出来了）。
+    ⇒ 在这一处判红 —— 与"不是合法 JSON"**同一个契约**（表坏了 = rc=2 + 人话；而"账上有一条
+    写侧造不出来的事件" = rc=1，见 `fold` 的 `bad_events` / `check_plan`）✓。
+    """
     if not EVENTS.exists():
         return []
     out: list[dict] = []
@@ -1369,9 +1398,22 @@ def load_events() -> list[dict]:
         if not line.strip():
             continue
         try:
-            out.append(json.loads(line))
+            rec = json.loads(line)
         except json.JSONDecodeError as err:
             raise UsageError(f"{_label(EVENTS)}:{lineno} 不是合法 JSON：{err}") from err
+        if not isinstance(rec, dict):
+            raise UsageError(
+                f"{_label(EVENTS)}:{lineno} 不是**事件对象**（JSON 顶层必须是 `{{...}}`，"
+                f"读到 {type(rec).__name__}）⇒ 这一行对状态**零输入** ✗ —— 事件表是**只追加**账，"
+                f"每一行都必须是一条 `{{'event': …, 'id': …}}` ✓")
+        _missing = [f for f in ("event", "id") if not rec.get(f)]
+        if _missing:
+            raise UsageError(
+                f"{_label(EVENTS)}:{lineno} 缺 `{'`/`'.join(_missing)}` ⇒ **不是一条事件** ✗ "
+                f"（`fold()` 原先直接 `continue` ⇒ **整行静默丢掉**、连事件计数都不加 ✗）—— "
+                f"每条事件都要能被**归属**：补上 `id`（条目键）与 `event`（类型，见 "
+                f"`EVENT_KINDS`），或删掉这一行 ✓")
+        out.append(rec)
     return out
 
 
@@ -1382,8 +1424,106 @@ def append_event(rec: dict) -> None:
         handle.write(json.dumps({"ts": _now(), **rec}, ensure_ascii=False) + "\n")
 
 
+# ── **事件表的词汇表 + 必填字段**（`EVENT-FIELD-NO-GUARD`，2026-10-15 · 第十四次独立复核
+#    实测 ✗ —— 本会话已修过 `advance.to` 的非法值（第十轮 `#1`，有牙 ✓）⇒ **照它的形状补** ✓）──
+#
+# 复核者实测（真 CLI + 事件表重定向到夹具 = 真台账 + 追加一行）：
+#   · `{"event":"advnace","id":…,"to":"done",…}`（**类型拼错**）⇒ `--check` **rc=0 · 零点名** ✗；
+#   · `{"event":"repoint","id":…}`（**缺 `commit`**）⇒ 同判 ✗。
+# 为什么静默（**两条机制，都在 `fold()` 里** —— 复核者问的"是 `continue` 还是字典 `get` 回落"）：
+#   ① **值不认识** ⇒ 分派是一串 `if kind == … / elif …`、**没有 `else`** ⇒ 整条事件从链尾
+#      **漏下去**（= 回落：状态只剩 `setdefault` 的 `todo`）—— 事件"读过了、什么都没折"；
+#   ② **连字段都没有**（缺 `id`/`event`）⇒ `if not ident or not kind: continue` ⇒ **整行丢掉**，
+#      连 `cur["events"]` 都不加（这一格现在由 `load_events()` 判，见那里的说明 ✓）。
+# 判据口径（与 `advance.to` 非法值**同一个形状** ✓，不发明第二套 ✗）：
+#   · 词汇表 = **一处定义**（`EVENT_KINDS`）—— 它恰好是写侧 `append_event` 调用点的全集：
+#     `FOLD_EVENT_KINDS`（`fold` 分派的九族）+ `RELEASE_EVENT_KINDS`（进 `release_scan` 的五族）；
+#   · 必填字段 = **一处定义**（`EVENT_REQUIRED_FIELDS`）—— 只列"缺了会让这一支**什么都不折**"
+#     （静默 no-op）的字段（逐族理由见那张表）；
+#   · `fold()` 把**原值**折进状态（`bad_events`，与 `bad_to` 同形）⇒ `check_plan()` 判红 +
+#     **点名那个值 / 那个字段** + 给出路 ✓（"咬不住的守卫等于没有"：判红信息要能让人改对）。
+# ⚠ **前向兼容没有静默通道**（本仓库**没有**"未知类型从宽"的约定 ⇒ 照"不许静默"的总口径做 ✓）：
+#   加一个事件类型 = ① 加写路径 + ② 在 `EVENT_KINDS` 里登记 + ③ 在 `EVENT_REQUIRED_FIELDS`
+#   里写明它的必填字段；`--selftest` 有**结构性**守卫（`selftest_event_vocabulary`：分派分支 /
+#   登记表 / 必填表**三者**不一致 ⇒ **先红** ✗）⇒ 漏一处不会变成新的静默面。
+#   ⚠ **加字段是兼容的、加类型不是**（本文件既有约定，如实写清）：读侧只认它要的键
+#   （`ev.get(…)`）⇒ 事件里多带 `subject`/`patch_id` 之类的**新字段**对旧读者**无害** ✓
+#   （审计字段就是这么加的：`_pointer_audit`）；而**新类型**在旧读者眼里等于"整条事件白写"
+#   ⇒ 必须登记（否则就是本判据要咬的"静默忽略"）✓。
+#   **未登记的类型一律判红**（与"未定处置 ⇒ rc=2"同源）；判红信息点名那个值，并写清"若你确实
+#   加了新写路径 ⇒ 登记它（一处一行）"。⚠ **如实说明的已知边界**：事件表是**主 checkout 单点**、
+#   脚本是**每棵树一份** ⇒ 旧脚本读到新类型会判红（没有环境变量旁路 —— 旁路就是新的静默面 ✗）；
+#   代价是"红得可自解释"，换来的是"账上不许有谁都认不出的形状" ✓。
+FOLD_EVENT_KINDS = ("claim", "release", "advance", "repoint", "split", "reopen",
+                    "triage", "submit", "schedule")
+# 发版节点五族**不由 `fold` 折叠**（它们进 `release_scan()` 的节点表）—— 但**同属**事件表的
+# 合法词汇 ⇒ `EVENT_KINDS` 必须认它们（否则真 CLI 的 `--release open/add/block/drop/cut`
+# 一写就误红 ✗）。⚠ 这五个常量原先定义在 `release_scan` 那一节（`:3119`）⇒ **移到这一处**
+# 与 `FOLD_EVENT_KINDS` 并列（词汇表**只有一处** ✓；那一节留了一行指针注释）。
+RELEASE_EVENT_KINDS = ("release-open", "release-add", "release-drop", "release-block",
+                       "release-cut")
+EVENT_KINDS = FOLD_EVENT_KINDS + RELEASE_EVENT_KINDS
+# 每个事件类型的**必填字段清单**（横向排查的落点：加一个类型 ⇒ 这里必须有一行 —— 结构性守卫钉着）。
+# ⚠ 只列"缺了会让这一支**什么都不折**（静默 no-op）"的字段；**证据类字段**（`reading`/`reason`/
+#   `title`/`kind`/`evidence`/`owner`…）**不在这里**，逐族理由：
+#   · `claim`：`owner` 缺了只影响显示与 `--next` 的"别人持锁"过滤 —— **认领的权威是锁**
+#     （`read_lock()`），事件只是留痕 ⇒ 缺了不是静默（条目**更**可见），且"幽灵认领"另有牙 ✓；
+#   · `release`（`--unclaim` 放锁）：与 `claim` 同形（权威在锁文件）✓；
+#   · `reopen`：`reason` 缺了状态照样回 `todo`（理由只给人看；`--advance --to todo` 写侧强制它）✓；
+#   · `submit` / `schedule`：`owner`/`kind`/`title` 缺了状态照样折（`submitted`/`todo`）✓；
+#   · `advance`：`to` 的值域由**既有的 `bad_to`** 判（第十轮 `#1`；网格那一族 **16 格**
+#     = 8 个「来源 × 处置」pair × {`boundary`,`control`}，逐格钉着那两句正文）
+#     ⇒ 表驱动的"缺字段"检查**跳过它**（`EVENT_FIELDS_VALUE_CHECKED`）⇒ 同一格不会两条红 ✗。
+EVENT_REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
+    "claim": (), "release": (), "reopen": (), "submit": (), "schedule": (),
+    "advance": ("to",),
+    # ⭐ 本轮新增（`bad_events`）—— 缺了 ⇒ 这一支**一个字段都不折**：
+    #   · `repoint`：`commit` 是它**唯一**的作用（`if ev.get("commit"):`）⇒ 缺了整条事件白写 ✗；
+    #   · `triage`：`to` 是它唯一的作用（三选一）⇒ 缺了 / 表外值都白写 ✗；
+    #   · `split`：`parent` 缺了 ⇒ 父**不会**转 `umbrella`（拆解没落地），而子任务照样进事件表 ✗。
+    "repoint": ("commit",), "split": ("parent",), "triage": ("to",),
+    # 发版节点五族：缺节点 id（`id`/`rel`）由 `release_scan()` 的读侧问题清单判红
+    # （"没写节点 id" / "孤儿" —— 已有牙 ✓）⇒ 它们本来就不由 `fold` 折 ⇒ **不重复判** ✗
+    # （`selftest_event_vocabulary` 有一条夹具臂**真跑一遍** `release-add` 缺 `rel` 来证明有牙）。
+    "release-open": ("id",), "release-add": ("rel",), "release-drop": ("rel",),
+    "release-block": ("rel",), "release-cut": ("id",),
+}
+# ⚠ **值域判据已经包含"缺"**（`None` 不在词表里 ⇒ 判红）的字段：表驱动的"缺字段"检查跳过它们
+#   （判在各自那一支里）—— 否则同一条事件会出**两条**红（判红条数是自检的断言，别让它说不清 ✗）。
+EVENT_FIELDS_VALUE_CHECKED = {("advance", "to"), ("triage", "to")}
+# `triage` 的 `to` **值域** = `cmd_triage` 的"to → 来源处置"表（**同一处定义** ⇒ 写读不分叉 ✓）：
+# 写侧原先直接 `{"applied": …}[to]` ⇒ 表外的 `to` 抛 `KeyError` 栈（rc=1 无出路）⇒ 现在写侧也过
+# 这一张表（`cmd_triage` 的第一道闸门，与 `cmd_advance` 的 `to ∈ SCHED_STATES` **同形** ✓）。
+TRIAGE_TO_DISPOSITION = {"applied": "fixed", "rejected": "wo-filed", "deferred": "fix"}
+
+
+def _note_event_problem(cur: dict, kind: str, why: str, field: str | None = None,
+                        value=None) -> None:
+    """把**事件层不该有的形状**折进状态（**唯一出处** ⇒ `check_plan` 据此判红 + 点名 ✓）。
+
+    形状与 `bad_to` **同一套**（`fold()` 记**原值**、`check_plan()` 判红 + 给出路）——
+    两处问的是同一个问题："账上这一条**写侧造不出来**"（`cmd_advance`/`cmd_repoint`/
+    `cmd_triage`/`cmd_add_child` 的闸门 + 每个调用点固定写的字段）⇒ 不是两套判据 ✓。
+
+    `why` ∈ {`unknown-kind`（类型不在 `EVENT_KINDS`）· `missing-field`（必填字段缺）·
+    `bad-value`（值不在词表里，如 `triage.to`）}；`value` 记**原值** ⇒ 判红信息能点名它 ✓。
+    """
+    cur.setdefault("bad_events", []).append({"kind": kind, "why": why,
+                                             "field": field, "value": value})
+
+
 def fold(events: list[dict] | None = None) -> dict[str, dict]:
-    """事件 → 状态（可重算；事件文件不是真相源，是覆盖层）。"""
+    """事件 → 状态（可重算；事件文件不是真相源，是覆盖层）。
+
+    ⚠ **两条"静默忽略"的老路，现在都有牙**（`EVENT-FIELD-NO-GUARD`，2026-10-15 · 第十四次
+    独立复核实测 ✗；形状照 `advance.to` 非法值那一格 —— 第十轮 `#1` ✓）：
+      · **认不出的 `event` 值**（`advnace` 之类）：分派是一串 `if/elif`、**没有 `else`** ⇒
+        事件从链尾漏下去（回落）⇒ 记进 `bad_events`（`unknown-kind`）由 `check_plan` 判红；
+      · **缺必填字段**（`repoint` 缺 `commit`、`triage` 缺/错 `to`、`split` 缺 `parent`）：
+        那一支唯一的作用就是那个字段 ⇒ 缺了"什么都不折" ⇒ 记进 `bad_events` 判红 ✓。
+    ⚠ 缺 `id`/`event` 的行**进不来这里**（`load_events()` 已判红，rc=2 —— 见那里的说明 ✓）；
+    下面那句 `continue` 只服务**显式传入的内存列表**（今天没有调用点）⇒ 不再是静默面 ✓。
+    """
     state: dict[str, dict] = {}
     for ev in (load_events() if events is None else events):
         ident, kind = ev.get("id"), ev.get("event")
@@ -1392,6 +1532,20 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
         cur = state.setdefault(ident, {"id": ident, "state": "todo", "owner": None,
                                        "children": [], "events": 0})
         cur["events"] += 1
+        if kind not in EVENT_KINDS:
+            # ⭐ **拼错 / 未知的事件类型不许静默**（`EVENT-FIELD-NO-GUARD`）：原值是**唯一**能
+            # 让人改对的信息 ⇒ 记原值（`bad_events`）⇒ `check_plan` 点名它 + 给出路 ✓。
+            # ⚠ 折出的状态**与改前逐字节相同**（改前也是从链尾漏下去 ⇒ 只剩 `setdefault` 的
+            # `todo`）⇒ 三个视图（`--json.open` / `--next` / `--check`）的读数不变，
+            # 变的只是"这一条现在**会红**" ✓（不静默 ≠ 改语义）。
+            _note_event_problem(cur, kind, "unknown-kind", value=kind)
+            continue
+        if kind in FOLD_EVENT_KINDS:
+            for _f in EVENT_REQUIRED_FIELDS[kind]:
+                if (kind, _f) in EVENT_FIELDS_VALUE_CHECKED:
+                    continue                      # 值域判据已含"缺" ⇒ 不重复判（见常量的说明）
+                if not ev.get(_f):
+                    _note_event_problem(cur, kind, "missing-field", field=_f)
         if kind == "claim":
             cur.update(state="in_progress", owner=ev.get("owner"), pid=ev.get("pid"),
                        claimed_at=ev.get("ts"))
@@ -1435,6 +1589,9 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             #   ② **不许动 `reading`/`reason`**（证据正文一个字不换，换的只是它指向哪个 commit）；
             #   ③ **不许改旧事件**（只追加账 ⇒ 原来那条 `advance` 原样留着，旧 sha 记进
             #      `repointed_from` ⇒ 改账本身可审计、可逐条回滚 ✓）。
+            # ⚠ **`commit` 是这一支唯一的输入**（`EVENT-FIELD-NO-GUARD`，2026-10-15）：缺了 ⇒
+            # 这条事件"什么都不折"（静默 no-op）⇒ `fold` 已按 `EVENT_REQUIRED_FIELDS` 记进
+            # `bad_events`（`missing-field`）⇒ `check_plan` 判红 + 点名 `commit` ✓。
             if ev.get("commit"):
                 _from = list(cur.get("repointed_from") or [])
                 # ⚠ **指针没换 ⇒ 不记 `repointed_from`**（`#4`，2026-10-14 · 第八次独立复核实测 ✗）：
@@ -1456,6 +1613,9 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
                 _fold_pointer_audit(cur, ev)
         elif kind == "split":
             parent = ev.get("parent")
+            # ⚠ **`parent` 缺了 ⇒ 拆解没落地**（父不会转 `umbrella`，而子任务照样进事件表）——
+            # `EVENT-FIELD-NO-GUARD`（2026-10-15）：`fold` 已记 `bad_events`（`missing-field`）
+            # ⇒ `check_plan` 判红 + 点名 `parent` ✓（不再是"子任务凭空出现"的静默形状）。
             if parent:
                 par = state.setdefault(parent, {"id": parent, "state": "umbrella",
                                                 "owner": None, "children": [], "events": 0})
@@ -1492,6 +1652,16 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             # 见 `selftest_source_state_grid` 的 `trej` 列）—— 这里改的只是
             # **`--triage` 那一条写路径折出来的状态** ✓。
             to = ev.get("to")
+            if to not in TRIAGE_TO_DISPOSITION:
+                # ⭐ 与 `advance.to` **同一个形状**（第十轮 `#1`）：`to` 是这一支**唯一**的作用
+                # ⇒ 缺了 / 表外值都"什么都不折"（静默 no-op）⇒ 记原值 + 由 `check_plan` 判红 +
+                # **点名那个值** ✓。⚠ 值域取 `TRIAGE_TO_DISPOSITION`（= `cmd_triage` 那一张表，
+                # **同一处定义** ⇒ 写读不分叉；写侧现在也过这张表 ⇒ "写侧造不出来"成立 ✓）。
+                # ⚠ **"缺"与"错值"分开报**（判红信息要能让人一眼改对）：缺 ⇒ `missing-field`
+                # （点名那个**字段**）、表外值 ⇒ `bad-value`（点名那个**值**）✓。
+                _note_event_problem(cur, "triage",
+                                    "bad-value" if ev.get("to") else "missing-field",
+                                    field="to", value=to)
             if to == "applied":
                 cur.update(state="done", owner=None, pid=None,
                            commit=ev.get("commit"), reason=ev.get("reason"))
@@ -2737,6 +2907,51 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
                   f"② 把它改成 `SCHED_STATES` 里的合法目标（并按 `TRANSITIONS` 补全证据 / "
                   f"理由 —— 写侧 `--advance` 会替你拒非法迁移 ✓）", file=sys.stderr)
             bad += 1
+        # ⭐ **事件层：类型 / 必填字段 / 值域**（`EVENT-FIELD-NO-GUARD`，2026-10-15 · 第十四次
+        # 独立复核实测 ✗）：`fold` 把"写侧造不出来的形状"折进 `bad_events`（与上面 `bad_to`
+        # **同一个形状**）⇒ 这里判红 + **点名那个值 / 那个字段** + 给出路。改前两格
+        # （`{"event":"advnace",…}` · `{"event":"repoint",…}` 缺 `commit`）`--check` **rc=0 且
+        # 零点名** ✗ —— 它们是"**静默忽略**"（事件读了、什么都没折），不是"静默漏项"
+        # （状态退回来源处置 ⇒ 仍 open、仍被 `--next` 推）⇒ 判红是**加一条断言**，
+        # 不改任何一格的状态读数 ✓（自检有"状态与改前逐字节相同 + 仍在 open/`--next` 里"的臂）。
+        # ⚠ **位置与 `bad_to` 同处**（都在幽灵判据的 `continue` 之后）：幽灵 id 先按幽灵判红
+        # （那个 id 已经红了、不是静默）⇒ 这一族只对**有出处的 id** 点名事件层的形状 ✓。
+        for _p in cur.get("bad_events") or []:
+            _k, _why = _p.get("kind"), _p.get("why")
+            if _why == "unknown-kind":
+                print(f"✗ `{ident}` 的事件表里有一条**认不出的 `event`** = `{_k}` ⇒ "
+                      f"**不是事件类型** ✗（`EVENT_KINDS` = {list(EVENT_KINDS)}；写侧 "
+                      f"`append_event` 的每个调用点都在这张表里 ⇒ 写侧**造不出**这个形状 ⇒ "
+                      f"只可能来自**手改事件表**）—— 这一条**读了但什么都没折**（`fold()` 的"
+                      f"分派是一串 `if/elif`、**没有 `else`** ⇒ 从链尾漏下去），而改前这一格 "
+                      f"`--check` **rc=0 且从不点名** ✗。出路（三选一）：① 改成表里**真想要的那个"
+                      f"类型**（并按该类型的必填字段补全 —— 见 `EVENT_REQUIRED_FIELDS`）；"
+                      f"② 若你确实**加了新的写路径** ⇒ 在 `EVENT_KINDS` + `EVENT_REQUIRED_FIELDS` "
+                      f"里登记它（一处各一行 ✓，`--selftest` 有结构性守卫）；③ 删掉这一条 ✓",
+                      file=sys.stderr)
+                bad += 1
+            elif _why == "missing-field":
+                _f = _p.get("field")
+                print(f"✗ `{ident}` 的事件表里有一条 `{_k}` **缺必填字段 `{_f}`** ⇒ "
+                      f"这一支**什么都不折**（静默 no-op：`{_k}` 的必填字段清单在 "
+                      f"`EVENT_REQUIRED_FIELDS`，一处定义）✗ —— 写侧 `append_event` 的调用点"
+                      f"**每次都写它** ⇒ 写侧**造不出**这个形状 ⇒ 只可能来自**手改事件表**；"
+                      f"而改前这一格 `--check` **rc=0 且从不点名** ✗。出路（二选一）："
+                      f"① 按写侧的**真形状**补全（`repoint` 走 `--repoint <id> --commit <sha> "
+                      f"--reason '<why>'`；`split` 走 `--add-child <parent> --child <id> …`）"
+                      f"⇒ 重写这一条；② 删掉这一条 ✓", file=sys.stderr)
+                bad += 1
+            elif _why == "bad-value":
+                _f, _v = _p.get("field"), _p.get("value")
+                print(f"✗ `{ident}` 的事件表里有一条 `{_k}` 的 `{_f}` = `{_v}` ⇒ "
+                      f"**不在词表里** ✗（`triage.to` 只认 {sorted(TRIAGE_TO_DISPOSITION)}；"
+                      f"`cmd_triage` 的第一道闸门就是它 ⇒ 写侧**造不出**这个形状）—— 这一条"
+                      f"**什么都不折**（静默 no-op），而改前这一格 `--check` **rc=0 且从不点名** ✗"
+                      f"（与 `advance.to` 非法值同形 —— 那一格第十轮 `#1` 已修 ✓）。出路："
+                      f"改成三个合法值之一（`applied` 要 `commit`、`rejected`/`deferred` 要 "
+                      f"`reason` —— 写侧 `--triage` 会替你拒 ✗），或删掉这一条 ✓",
+                      file=sys.stderr)
+                bad += 1
         # ── **两层漂移 = 两个方向的同一条不变量**：来源"已关账" ⟺ 调度器"不在做"。
         # 两个方向合起来才是"三视图一致"：open（来源）· `--next`（调度器）· `--check`（对账）。
         _d = disp.get(ident)
@@ -3051,6 +3266,12 @@ def cmd_inbox(rows: list[dict]) -> int:
 def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int:
     """**主流受理提交**：applied 必须带 commit（证据）；rejected/deferred 必须带理由。
 
+    ⚠ **第一道闸门 = `to` 的值域**（`EVENT-FIELD-NO-GUARD`，2026-10-15 · 第十四次独立复核实测 ✗
+    的同族）：原先**一条都没有**，表外的 `to` 直接掉进下面那句 `{...}[to]` ⇒ `KeyError` **栈**
+    （rc=1、没有出路，也不算"写侧造不出来"）⇒ 现在与 `cmd_advance` 的第一道闸门
+    （`to ∈ SCHED_STATES`）**同形**：值域取 `TRIAGE_TO_DISPOSITION`（**一处定义** —— `fold` 的
+    读侧判据读的也是它 ⇒ 写读不分叉 ✓）；**在写任何东西之前**判 ⇒ 被拒时零写入 ✓。
+
     ⚠ **`applied` 的 commit 要过与 `cmd_advance` 完全相同的两条硬拒**（2026-10-14 ·
     第六次独立复核实测 ✗）：`applied` 的语义就是"**已进主线**"（`fold` 把它折成 `done`），
     而这里原先**只查"非空字符串"** ⇒ 复核者实测 `--triage EXT-1 --to applied --commit
@@ -3062,6 +3283,13 @@ def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int
     rows = _read_jsonl(EXTRAS)
     if ident not in {r["id"] for r in rows}:
         raise UsageError(f"inbox 里没有 `{ident}`")
+    # ⚠ **第一道闸门 = `to` 的值域**（`EVENT-FIELD-NO-GUARD`，2026-10-15 · 第十四次独立复核
+    # 实测 ✗ 的同族）：原先这里**一条都没有**，表外的 `to` 直接掉进下面那句
+    # `{"applied": …}[to]` ⇒ **`KeyError` 栈**（rc=1、没有出路、也不算"写侧造不出来"）。
+    # ⇒ 与 `cmd_advance` 的第一道闸门（`to ∈ SCHED_STATES`）**同形**：值域取
+    # `TRIAGE_TO_DISPOSITION`（**一处定义**，`fold` 的读侧判据读的也是它 ✓ ⇒ 写读不分叉）。
+    if to not in TRIAGE_TO_DISPOSITION:
+        raise UsageError(f"`--to` 只能是 {sorted(TRIAGE_TO_DISPOSITION)}（给的是 `{to}`）")
     if to == "applied" and not commit:
         print("✗ `applied` 必须带 `--commit <sha>`（**受理 = 已进主线**，没 commit 就是没受理 ✗）",
               file=sys.stderr)
@@ -3079,7 +3307,9 @@ def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int
     # ⚠ 只写事件还不够：**来源处置**才是 open 集合的口径（`OPEN_DISPOSITIONS`）
     # ⇒ 受理/拒收必须同轮把 extras 那行翻成终态，否则这条提交**永远是 open**
     # （`--check-uncovered` 会把它算进"未完成"，而 `--inbox` 又显示已受理 ⇒ 自相矛盾 ✗）。
-    want = {"applied": "fixed", "rejected": "wo-filed", "deferred": "fix"}[to]
+    # ⚠ **值域表只有一处**（`TRIAGE_TO_DISPOSITION`，与 `fold` 的读侧判据同源 ✓）——
+    # 原先这里手写一遍字面 dict，而 `fold` 的读侧**没有**任何值域检查 ⇒ 两处各写各的 ✗。
+    want = TRIAGE_TO_DISPOSITION[to]
     # ⚠ 逐行改写（**保住抬头的 `#` 注释**）—— 整文件重排会把 `docs/ux-queue-extras.jsonl`
     # 顶部的说明段（它就是这份台账的协议）整段抹掉 ✗。
     lines = EXTRAS.read_text(encoding="utf-8").splitlines()
@@ -3116,8 +3346,10 @@ def worktree_dirty() -> str:
                           text=True).stdout.strip()
 
 
-RELEASE_EVENT_KINDS = ("release-open", "release-add", "release-drop", "release-block",
-                       "release-cut")
+# ⚠ `RELEASE_EVENT_KINDS` **已移到 `fold()` 前面**（与 `FOLD_EVENT_KINDS` 并列 ⇒ 事件表的
+# 词汇表**只有一处** `EVENT_KINDS` ✓ —— `EVENT-FIELD-NO-GUARD`，2026-10-15）：那一族不由
+# `fold` 折叠（它们进下面的 `release_scan()`），但**同属**合法词汇 ⇒ 读侧判"认不出的类型"
+# 时必须认得它们，否则真 CLI 的 `--release open/add/block/drop/cut` 一写就误红 ✗。
 
 
 def release_scan() -> tuple[dict[str, dict], list[tuple[str | None, str]]]:
@@ -4720,7 +4952,8 @@ def selftest_source_state_grid(expect) -> None:
       **有事件层**（`GRID_CELLS` = `len(GRID_PAIRS)` × `len(GRID_STATES)` 格，每格用真事件造状态）：
       ① 判红**并点名**该 id + 「反向两层漂移」（改前 `submitted` 那 6 格静默 ⇒ 这条必红 ✗）；
       ①b ⭐ **非法 `to` 那一列**（`boundary`/`control`）：判红 + 点名**那个值** + 「不是调度器
-          状态」+ 给出路（改前这一列**不存在** ⇒ 8 格静默 ✗；第十轮 `#1`/`#2` 的靶子）；
+          状态」+ 给出路（改前这一列**不存在** ⇒ **16 格**静默 ✗ = 8 个 pair × {`boundary`,`control`}
+          —— 因子由表算、**别手抄** ✗；第十轮 `#1`/`#2` 的靶子）；
       ② 判红信息里的**收口指示逐步走一遍**都合法、且落终态（改前 `todo`/`blocked` 的
           `→done` 与 `triage_rejected` 的 `→wo_filed` 是死路 ⇒ 这条必红 ✗）；而
           `boundary`/`control`（**作为来源处置**）在 `TRANSITIONS` 里**没有入口** ⇒ 指示必须
@@ -5045,10 +5278,11 @@ def selftest_source_state_grid(expect) -> None:
                     if want not in SCHED_STATES:
                         # ⭐ **①b 非法 `to` 那一列**（`#2`，第十轮）：判红**来自事件层** ——
                         # 点名**那个值** + 「不是调度器状态」+ 给出路；⚠ 与来源处置**无关**
-                        # ⇒ 8 格**逐格同判**（改前这一列不存在 ⇒ 8 格静默 ✗）。
+                        # ⇒ **16 格**（8 pair × 2 态）**逐格同判**（改前这一列不存在 ⇒ 静默 ✗）。
                         expect(f"网格 {ident}（{source}·`{disp}` × 事件态 `{want}`）⇒ 判红并点名"
                                f"那个值 + 「不是调度器状态」（改前这一列**结构上不存在** ⇒ "
-                               f"8 格静默 ✗；`--advance --to {want}` rc=2 ⇒ CLI 写不出 ✗）",
+                               f"**16 格**（8 pair × 2 态）静默 ✗；`--advance --to {want}` "
+                               f"rc=2 ⇒ CLI 写不出 ✗）",
                                f"`{want}`" in line and "不是调度器状态" in line)
                         expect(f"网格 {ident}：判红信息**给出路**（删掉那条事件 / 改成合法目标；"
                                f"`boundary`/`control` 只由**来源处置**派生）",
@@ -7320,6 +7554,191 @@ def selftest_pointer_content_audit(expect) -> None:
             globals()["lock_file"] = saved[4]
 
 
+def selftest_event_vocabulary(expect) -> None:
+    """**事件表的词汇表 / 必填字段 / 值域**（`EVENT-FIELD-NO-GUARD`，2026-10-15 · 第十四次独立
+    复核实测 ✗）—— 逐条钉住本轮那两格 + 横向排查的每一族。
+
+    复核者实测（真 CLI，事件表重定向到夹具 = 真台账 + **追加一行**；条目来源处置 `fix`）：
+      · `{"event":"advnace","id":…,"to":"done",…}`（类型拼错）⇒ 改前 `--check` **rc=0 · 零点名** ✗；
+      · `{"event":"repoint","id":…}`（缺 `commit`）⇒ 同判 ✗。
+    两格都是"**静默忽略**"（状态退回来源处置 ⇒ 仍 open、仍被 `--next` 推）⇒ 本轮加的是
+    **断言**、不是改语义 ⇒ ①b 专门钉"折出的状态与改前逐字节相同 + 仍在 `open`/推序里" ✓。
+
+    断言（① ② ③ ④ 就是"把判据摘掉"的定向突变靶子 —— 摘掉对应那一段 ⇒ 那几条必红 ✗）：
+      ⓪ 结构性：`EVENT_REQUIRED_FIELDS` 覆盖**恰好** `EVENT_KINDS` · `FOLD_EVENT_KINDS`
+         **恰好** = `fold()` 源码里的分派分支（加一个分支忘了登记 ⇒ **先红** ✗）·
+         `EVENT_FIELDS_VALUE_CHECKED` ⊆ 必填表（被"值域判据"跳过的字段必须**真是**必填）·
+         发版五族的必填字段**真有牙**（夹具真跑 `release-add` 缺 `rel` ⇒ 判红 ⇒ 证明
+         "不在 `fold` 里重复判"**不是漏判** ✓）；
+      ① 非法 `event` 值 ⇒ `--check-plan` **rc=1** + 点名那个值 + 「不是事件类型」+ 出路；
+      ①b 同一条折出的**状态与改前逐字节相同**（仍 `todo`）且仍在 `open`/`--next` 里
+         ⇒ "不静默 ≠ 改语义" ✓（`bad_events` 记了原值 ⇒ 点名有据）；
+      ①c 正对照：同形状的**合法** `advance` ⇒ rc=0、不点名 ✓；
+      ② `repoint` 缺 `commit` ⇒ rc=1 + 点名 `commit` + 出路；②c 正对照：带真 sha ⇒ rc=0 ✓；
+      ③ `triage` 缺 `to` / `to` 表外值 ⇒ rc=1 + 点名（缺时点名 `to`、错值点名那个值）；
+         ③c 正对照：`--to deferred` ⇒ rc=0 ✓；③d **写侧**同一条值域闸门
+         （`cmd_triage --to nonsense` **在写任何东西之前**被拒 ⇒ 事件表/来源一个字节不动 ✓）；
+      ④ `split` 缺 `parent` ⇒ rc=1 + 点名 `parent`；④c 正对照：带 `parent` + 子任务有来源 ⇒ rc=0 ✓；
+      ⑤ 缺 `id`/`event` 的行 / JSON 非对象行 ⇒ `load_events()` **响亮**（rc=2 + 点名行号，
+         与"不是合法 JSON"**同一个契约**）—— 这一格不再是"整行静默丢掉" ✓。
+    判据打在**真 CLI 路径**（`main()` + `sys.argv`；`--check-plan` 正是 gate/CI 跑的 `--check`
+    里的同一条）✓。
+    """
+    import contextlib
+    import inspect
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING
+    # ⓪ **结构性守卫**（纯表，不碰夹具）：漏一处登记不许再靠"人记着补" ✗
+    expect(f"事件类型登记表覆盖**恰好** `EVENT_KINDS`（{sorted(EVENT_REQUIRED_FIELDS)} vs "
+           f"{sorted(EVENT_KINDS)}）—— 加一个事件类型而忘了写它的必填字段 ⇒ **先红** ✗",
+           set(EVENT_REQUIRED_FIELDS) == set(EVENT_KINDS))
+    _dispatched = set(re.findall(r'kind == "([a-z_-]+)"', inspect.getsource(fold)))
+    expect(f"`FOLD_EVENT_KINDS` **恰好** = `fold()` 源码里的分派分支（源码 {sorted(_dispatched)} "
+           f"vs 登记 {sorted(FOLD_EVENT_KINDS)}）—— 加一个 `elif kind == …` 而忘了登记 ⇒ "
+           f"它会被判成「认不出的类型」（**先红** ✗）",
+           _dispatched == set(FOLD_EVENT_KINDS))
+    _required_pairs = {(k, f) for k in FOLD_EVENT_KINDS for f in EVENT_REQUIRED_FIELDS[k]}
+    expect(f"被「值域判据」跳过的字段**都在**必填表里（{sorted(EVENT_FIELDS_VALUE_CHECKED)} ⊆ "
+           f"必填表）—— 跳过一个**不是必填**的字段 = 悄悄放宽 ✗",
+           EVENT_FIELDS_VALUE_CHECKED <= _required_pairs)
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING, globals()["lock_file"],
+                 list(sys.argv))
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        ONBOARDING = Path(tmp) / "ONBOARDING.md"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        try:
+            # 终态层要**真 sha**（祖先性闸门会核 ✓）；这里只要"真祖先" ⇒ HEAD 就够
+            real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                      capture_output=True, text=True).stdout.strip()
+            INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                             "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                             "|---|---|---|---|---|---|---|\n"
+                             "| EV-P | 语言 | 夹具（`split` 的父：索引给身份、处置在 extras） | 高 | "
+                             "`bash EV-P.sh` | front |  |\n", encoding="utf-8")
+            GAPS_LEDGER.write_text("", encoding="utf-8")
+            ONBOARDING.write_text("### 0.2 夹具\n", encoding="utf-8")
+            EXTRAS.write_text("".join(json.dumps(
+                {"id": i, "source": "ux-index", "facet": "语言", "severity": "medium",
+                 "repro": f"bash {i}.sh", "disposition": "fix",
+                 "why": f"夹具（{why}）"}, ensure_ascii=False) + "\n"
+                for i, why in (("EV-A", "事件词汇表"), ("EV-B", "repoint 必填"),
+                               ("EV-P", "split 的父"), ("EV-K", "split 的子（有来源 ⇒ 不许红）"))),
+                encoding="utf-8")
+
+            def _cli(argv: list[str]) -> tuple[int, str, str]:
+                """**真 CLI 路径**（`main()` 读 `sys.argv`）⇒ 咬的是用户敲的那条命令 ✓。"""
+                sys.argv = ["ux-queue.py", *argv]
+                _b, _e = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stdout(_b), contextlib.redirect_stderr(_e):
+                    _rc = main()
+                return _rc, _b.getvalue(), _e.getvalue()
+
+            def _events(*evs: dict) -> None:
+                EVENTS.write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in evs),
+                                  encoding="utf-8")
+
+            # ── ① 非法 `event` 值（本轮靶子 1） ─────────────────────────────────────────
+            _events({"event": "advnace", "id": "EV-A", "to": "done", "commit": real_sha,
+                     "reading": "夹具：拼错的类型", "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"① 非法 `event` 值（`advnace`）⇒ **rc=1**（改前 rc=0 零点名 ✗；实测 {rc}）",
+                   rc == 1)
+            expect("① 判红**点名那个值** + 「不是事件类型」+ 写出路（`EVENT_KINDS`）",
+                   "`advnace`" in err and "不是事件类型" in err and "EVENT_KINDS" in err)
+            _r, _u = build_queue()
+            _s, _v = fold(), sched_rows(_r, fold())
+            expect("①b 折出的**状态与改前逐字节相同**（仍 `todo` —— 改前也是从链尾漏下去）"
+                   "⇒ 判红是**加断言**、不是改语义 ✓",
+                   _s.get("EV-A", {}).get("state") == "todo")
+            expect("①b 且条目**没被藏起来**（仍在 `open` / `--next` 里 —— 复核者的方向 ✓）",
+                   "EV-A" in open_set(_v) and "EV-A" in pushable_ids(_v, _s))
+            expect("①b `bad_events` 记了**原值**（点名有据 ✓）",
+                   [p.get("value") for p in _s.get("EV-A", {}).get("bad_events") or []]
+                   == ["advnace"])
+            # ①c 正对照：同形状的**合法**事件 ⇒ rc=0（防"整格恒红"的空转夹具 ✗）
+            _events({"event": "advance", "id": "EV-A", "to": "blocked", "reason": "夹具：合法",
+                     "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"①c 正对照：同形状的**合法** `advance` ⇒ rc=0（实测 {rc}）",
+                   rc == 0 and "`EV-A`" not in err)
+            # ── ② `repoint` 缺 `commit`（本轮靶子 2） ───────────────────────────────────
+            _events({"event": "repoint", "id": "EV-B", "old": real_sha, "reason": "夹具：缺 commit",
+                     "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"② `repoint` 缺 `commit` ⇒ **rc=1**（改前 rc=0 零点名 ✗；实测 {rc}）", rc == 1)
+            expect("② 判红**点名 `commit`**（必填字段）+ 写出路（`--repoint … --commit`）",
+                   "`EV-B`" in err and "缺必填字段 `commit`" in err and "--repoint" in err)
+            _events({"event": "repoint", "id": "EV-B", "commit": real_sha, "old": real_sha,
+                     "reason": "夹具：合法", "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"②c 正对照：带真 sha 的 `repoint` ⇒ rc=0（实测 {rc}）",
+                   rc == 0 and "`EV-B`" not in err)
+            # ── ③ `triage` 的 `to`（同族：值域 = 写侧唯一那张表） ────────────────────────
+            _events({"event": "triage", "id": "EV-A", "reason": "夹具：缺 to", "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"③ `triage` 缺 `to` ⇒ **rc=1** + 点名 `to`（改前 rc=0 零点名 ✗；实测 {rc}）",
+                   rc == 1 and "缺必填字段 `to`" in err)
+            _events({"event": "triage", "id": "EV-A", "to": "nonsense", "reason": "夹具",
+                     "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"③ `triage.to` 表外值 ⇒ **rc=1** + 点名那个值 + 「不在词表里」"
+                   f"（与 `advance.to` 非法值**同形**；实测 {rc}）",
+                   rc == 1 and "`nonsense`" in err and "不在词表里" in err)
+            _events({"event": "triage", "id": "EV-A", "to": "deferred", "reason": "夹具：合法",
+                     "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"③c 正对照：`--to deferred` + 理由 ⇒ rc=0（实测 {rc}）",
+                   rc == 0 and "`EV-A`" not in err)
+            # ③d 写侧同一条闸门（"写侧造不出来"这条前提要**真**成立 ✓）：被拒时零写入
+            _before = (EXTRAS.read_text(encoding="utf-8"), EVENTS.read_text(encoding="utf-8"))
+            sys.argv = ["ux-queue.py", "--triage", "EV-A", "--to", "nonsense", "--reason", "夹具"]
+            _b, _e = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(_b), contextlib.redirect_stderr(_e):
+                _rc_w = main()
+            expect(f"③d **写侧**：`--triage --to nonsense` ⇒ 用法错 rc=2 + 人话（改前是 "
+                   f"`KeyError` 栈 rc=1；实测 {_rc_w}）", _rc_w == 2 and "error:" in _e.getvalue())
+            expect("③d 且被拒时**事件表与来源一个字节都不动**（半途而废的写入最难查 ✗）",
+                   (EXTRAS.read_text(encoding="utf-8"), EVENTS.read_text(encoding="utf-8"))
+                   == _before)
+            # ── ④ `split` 缺 `parent`（同族第三处：父不会转 umbrella ⇒ 拆解没落地） ──────
+            _events({"event": "split", "id": "EV-K", "title": "夹具：缺 parent", "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"④ `split` 缺 `parent` ⇒ **rc=1** + 点名 `parent`（实测 {rc}）",
+                   rc == 1 and "缺必填字段 `parent`" in err)
+            _events({"event": "split", "id": "EV-K", "parent": "EV-P", "title": "夹具：合法",
+                     "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"④c 正对照：带 `parent` + 子任务有来源 ⇒ rc=0（实测 {rc}）",
+                   rc == 0 and "`EV-K`" not in err and "`EV-P`" not in err)
+            expect("④c 且父**真的**转成了 umbrella（夹具不许空转 ✓）",
+                   fold().get("EV-P", {}).get("state") == "umbrella")
+            # ── ⑤ 行级：缺 `id`/`event` / JSON 非对象 ⇒ `load_events()` 响亮（rc=2） ──────
+            _events({"id": "EV-A", "to": "blocked", "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"⑤ 缺 `event` 的行 ⇒ **rc=2 + 点名行号**（改前 `fold` 直接 `continue` ⇒ "
+                   f"整行静默丢掉 ✗；实测 {rc}）",
+                   rc == 2 and ":1" in err and "缺 `event`" in err)
+            EVENTS.write_text("[1, 2, 3]\n", encoding="utf-8")
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"⑤ JSON 非对象行 ⇒ **rc=2 + 人话**（改前 `ev.get` 抛 `AttributeError` 栈 ✗；"
+                   f"实测 {rc}）", rc == 2 and "不是**事件对象**" in err)
+            # ⓪ 发版五族：必填字段（节点 id）**真有牙** ⇒ "不在 `fold` 里重复判"不是漏判 ✓
+            _events({"event": "release-add", "id": "REL-X", "owner": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"⓪ 发版五族的必填字段**已有牙**：`release-add` 缺 `rel` ⇒ rc≥1 + "
+                   f"「没写节点 id」（`release_scan` 的读侧问题清单 ✓；实测 {rc}）",
+                   rc >= 1 and "没写节点 id" in err)
+        finally:
+            (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, ONBOARDING) = saved[:5]
+            globals()["lock_file"] = saved[5]
+            sys.argv = saved[6]
+
+
 def cmd_selftest(args: argparse.Namespace) -> int:
     """判据通道自检：**故意造四种形状**，每一种都必须被判红/判绿正确。
 
@@ -7692,6 +8111,11 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     #     复核实测 ✗：`--advance --to done` / `--triage --to applied` 的指针只有祖先性 ⇒ 换成
     #     另一个**祖先** rc=0 静默；而 `repoint` 同形 ⇒ rc=1 ⇒ 同一本账两种强度）
     selftest_pointer_content_audit(expect)
+    # ③m ⭐ **事件表的词汇表 / 必填字段 / 值域**（`EVENT-FIELD-NO-GUARD`，2026-10-15 · 第十四次
+    #     独立复核实测 ✗：`fold()` 对"认不出的 `event` 值"（分派**没有 `else`** ⇒ 从链尾漏下去）
+    #     与 `{"event":"repoint",…}` 缺 `commit`（那一支唯一的输入）**静默忽略** ⇒ `--check`
+    #     rc=0 零点名；形状照既有的 `advance.to` 非法值（第十轮 `#1`）✓）
+    selftest_event_vocabulary(expect)
 
     # ④ 真来源：三张表 + 台账 + extras 都能解析
     try:
@@ -7754,7 +8178,7 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"docstring 的四处置 · **正对照轴覆盖每个合法非终态** · 冲突轴覆盖所有不等对）："
           f"改前 `submitted` 列 6/6 静默、"
           f"`wo_filed` 一向无牙、`boundary`/`control` 12 格静默且被 `--next` 推、"
-          f"**手写 `advance.to=boundary`/`control` 8 格静默**（第十轮 `#1`/`#2`）、"
+          f"**手写 `advance.to=boundary`/`control` 16 格静默**（= 8 pair × 2 态；第十轮 `#1`/`#2`）、"
           f"**删掉覆盖层**后 42 格静默而 `--next` 照推、**终态缺口行让冲突闸门失明** ⇒ 逐格必红 ✗）"
           f" + **祖先性闸门 11 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/"
           f"⭐ **口径已改成「非祖先必须 0 条」的断言**：存量（记于 `ANCESTRY_GATE_SINCE` **之前**）"
@@ -7797,6 +8221,16 @@ def cmd_selftest(args: argparse.Namespace) -> int:
            f"`--add-child` 三个入口**都拒且零写入**、上限 64 是**数字**（64 过 / 65 拒）、"
            f"`locale=US-ASCII` ⇒ `UsageError`、真 CLI 在 `LC_ALL=C PYTHONUTF8=0` 下**没有栈**"
            f"且 rc ∈ {{0,2}}（**不许是 1 + 栈** ✗））"
+           f" + **事件表词汇表 / 必填字段 / 值域 23 条**（`EVENT-FIELD-NO-GUARD`，第十四次复核 ✗："
+           f"非法 `event` 值（`advnace`）与 `repoint` 缺 `commit` 原先 `--check` **rc=0 零点名** ⇒ "
+           f"现在 `fold` 记原值（`bad_events`）+ `check_plan` **判红 + 点名 + 出路**，形状与既有的 "
+           f"`advance.to` 非法值同源；⓪ 结构性：登记表 = `EVENT_KINDS` · `FOLD_EVENT_KINDS` = "
+           f"`fold()` 源码里的分派分支 · 发版五族的必填字段**真有牙**（缺 `rel` ⇒ 判红）；"
+           f"①/②/③/④ 逐族（非法类型 · 缺 `commit` · `triage.to` 缺/错值 · 缺 `parent`）"
+           f"判红 + 点名，①b 钉**状态与改前逐字节相同**（判红 ≠ 改语义）、①c/②c/③c/④c 四条"
+           f"**正对照**（合法事件仍 rc=0）、③d 写侧同一条值域闸门（`--to nonsense` ⇒ rc=2 + "
+           f"零写入，改前是 `KeyError` 栈）、⑤ 缺 `id`/`event` 的行与 JSON 非对象行由 "
+           f"`load_events()` 判（rc=2 + 点名行号，改前**整行静默丢掉** ✗））"
            f" + 真来源解析 全部成立 ✓"
            f" + **`expect` 调用点 {expect_calls} 个**（现数 ⇒ 加臂/删臂时这个数字自己会动 ✓）")
     return 0
