@@ -37,6 +37,10 @@ pub mod tactics;
 
 mod ast;
 mod diagnostic;
+// 引擎身份摘要（CACHE-KEY-NO-ENGINE-IDENTITY）：编译期由 `build.rs` 注入
+// `SOKO_ENGINE_DIGEST`，生产路径的消费点是 `compile::cache::build_stamp`
+// ⇒ 折进**全局缓存键**（算法与"覆盖哪些目录"见模块自己的头注释 ✓）。
+mod engine_digest;
 mod parser;
 mod reference_docs;
 mod span;

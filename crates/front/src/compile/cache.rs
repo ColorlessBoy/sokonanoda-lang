@@ -17,7 +17,8 @@
 //!
 //! The kernel stays the single judge: an entry only holds a report the kernel
 //! produced for exactly that content, and the key embeds the compiler version +
-//! build stamp, so a new binary always misses. Nothing is ever *inferred* from
+//! build stamp (**including the engine's own source digest** — see
+//! [`build_stamp`]), so a new binary always misses. Nothing is ever *inferred* from
 //! the cache — a hit only skips redundant work.
 //!
 //! - Disable with `SOKONANODA_NO_CACHE=1`.
@@ -60,6 +61,12 @@ use std::path::{Path, PathBuf};
 /// `docs/gaps/repro/G112-two-builds-of-one-version-cannot-share-the-artifact-dir.sh`
 /// （0 = 缺口仍在 / 1 = 已修）＋逃生门 `SOKO_CACHE_KEY_KEEP_PROFILE=1`（回到旧行为，
 /// 复现件必须重新判红 ✓）。
+/// `7`（2026-10-14 / **CACHE-KEY-NO-ENGINE-IDENTITY**）：**引擎源码摘要进
+/// `build_stamp`**（键的构成**又**变了 ⇒ 本常量自己的规矩说要 bump）——**仍然不 bump**，
+/// 两条理由都写实：① **M-07 那条先例**：新源码编出来的二进制**自带**新键（旧条目必然
+/// 够不着 ✓），bump 只会额外作废**不受影响**的条目；② 逃生门
+/// `SOKO_CACHE_KEY_NO_ENGINE_ID=1` 要能算出**与旧二进制逐字相同**的键（反向验证的
+/// "改前"那一臂就靠它 ✓），bump 会把这条通道一起切断 ✗（判据见 `engine_identity`）。
 pub const CACHE_FORMAT: u32 = 7;
 
 /// One cached compile: the document report (for the LSP) and, when the
@@ -181,16 +188,45 @@ fn compiled_dir() -> Option<PathBuf> {
 /// "纯函数、跨进程稳定"这条前提（同一个进程内先问一次键、再读一次覆盖，值就变了 ✗），
 /// 而且覆盖本来就有自己的键分量（[`super::prelude::prelude_override_state`] ✓）。
 /// 这里只要**内建**那三段的字节 + 两张名字表。
+///
+/// ## **CACHE-KEY-NO-ENGINE-IDENTITY（2026-10-14）**：引擎**源码摘要**也是构建身份
+///
+/// 事故（buildQ 实测）：上面的分量凑起来**不含 `crates/front`/`crates/kernel` 的其余
+/// 源码** ⇒ **同版本、同平台、只改了引擎源码**时键**逐字相同** ⇒ 跨引擎量同一棵树会
+/// **回放**旧引擎的判定 ✗（同一夹具同一路径、同一份空缓存起步、两个 `NO_*ARTIFACTS`
+/// 逃生门都开：旧引擎 `exit 1` → 新引擎 `exit 0` → **旧引擎再来一次 `exit 0`**）。
+/// 两个逃生门只保证"不写模块根产物"，**全局缓存照写照读**
+/// （`project/cache.rs::enabled` 那句"只写全局"）⇒ 身份必须进**全局键**。
+///
+/// ⇒ 折进 [`crate::engine_digest::engine_identity`]（`build.rs` 编译期算好的源码摘要；
+/// 覆盖范围、逃生门、以及"为什么不是哈希 `current_exe()`"见那个模块的头注释 ✓）。
+/// 于是"改一行 `crates/front`/`crates/kernel`"= **另一个构建** ⇒ 全部缓存键
+/// （含模块层产物键，`project::ProjectPlan::module_keys` 走的也是 [`key`]）一起变 ⇒ 必 miss ✓。
+///
+/// **代价（如实）**：既有缓存条目**全部失效一次**（键变了 ⇒ 旧条目够不着；`--clean`
+/// 是同一个清理面，不产生清不掉的孤儿 ✓），而且**此后每次改 front/kernel 源码**都会
+/// 整库失效 —— 这正是要的语义（改了引擎就不许答旧答案），但它确实让"改一行、热跑"
+/// 的迭代多付一次冷编译。
 pub fn build_stamp() -> u64 {
     stamp_with_prelude_digest(builtin_prelude_digest())
 }
 
-/// [`build_stamp`] 的**纯函数**那一半（可单测 ✓）：`(OS, ARCH, prelude 摘要[, label][, profile])`。
+/// [`build_stamp`] 的**纯函数**那一半（可单测 ✓）：`(OS, ARCH[, 引擎身份], prelude 摘要
+/// [, label][, profile])`。
 ///
 /// 单独拆出来是为了让"prelude 摘要确实折进去了"有**可执行的判据** ——
 /// 传两个不同的摘要必须得到两个不同的 stamp（否则就是在自证空转 ✗）。
+///
+/// `label` 也走形参（生产路径就是 `option_env!("SOKO_BUILD_LABEL")`，**语义一字未改**）：
+/// `option_env!` 是编译期取值 ⇒ 一个测试进程只能看一种取值，拿不到"设了 vs 没设"的
+/// 对照 ✗；做成形参之后 [`the_explicit_build_label_still_discriminates`] 才可执行 ✓。
 fn stamp_with_prelude_digest(prelude_digest: u64) -> u64 {
-    stamp_of(prelude_digest, keep_profile_in_stamp())
+    stamp_of(
+        crate::engine_digest::engine_identity(),
+        prelude_digest,
+        keep_profile_in_stamp(),
+        option_env!("SOKO_BUILD_LABEL"),
+    )
 }
 
 /// **逃生门（只给反向验证用）**：`SOKO_CACHE_KEY_KEEP_PROFILE=1` ⇒ profile 重新进
@@ -207,10 +243,15 @@ fn keep_profile_in_stamp() -> bool {
     )
 }
 
-/// [`stamp_with_prelude_digest`] 的**纯函数**内核（`keep_profile` 是显式形参 ⇒
-/// 两个 profile 都能在**同一个**测试进程里判 ✓，见
-/// `the_build_stamp_no_longer_folds_the_profile`）。
-fn stamp_of(prelude_digest: u64, keep_profile: bool) -> u64 {
+/// [`stamp_with_prelude_digest`] 的**纯函数**内核（`engine` 与 `keep_profile` 都是显式形参 ⇒
+/// 两个 profile、有/无引擎身份都能在**同一个**测试进程里判 ✓，见
+/// `the_build_stamp_no_longer_folds_the_profile` 与 `the_default_build_stamp_folds_the_engine_identity`）。
+fn stamp_of(
+    engine: Option<&str>,
+    prelude_digest: u64,
+    keep_profile: bool,
+    label: Option<&str>,
+) -> u64 {
     // FNV-1a 64 over the compile-time identity string. 纯函数、跨进程稳定。
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     let mut eat = |byte: u8| {
@@ -234,13 +275,24 @@ fn stamp_of(prelude_digest: u64, keep_profile: bool) -> u64 {
     for byte in std::env::consts::ARCH.bytes() {
         eat(byte);
     }
+    // **CACHE-KEY-NO-ENGINE-IDENTITY**：引擎源码摘要（**必需分量**，排在 prelude 与
+    // 可选 label **之前** —— 与 M-07 排 prelude 的理由同款：label 是可选尾巴，加它的人
+    // 要的是"再区分一层"，不该改变必需分量的位置 ✓）。`None` = 逃生门 ⇒ 这一段
+    // **整个不折**（折 8 个零字节**不等于**不折 ⇒ 逃生门必须能算出与旧二进制
+    // **逐字相同**的键，否则反向验证那一臂就不是"改前"✗）。
+    if let Some(engine) = engine {
+        eat(b'/');
+        for byte in engine.bytes() {
+            eat(byte);
+        }
+    }
     // **M-07**：内建 prelude 的摘要（排在 label 之前 —— label 是可选尾巴，
     // 加它的人要的是"再区分一层"，不该改变下面这个必需分量的位置 ✓）。
     eat(b'/');
     for byte in prelude_digest.to_le_bytes() {
         eat(byte);
     }
-    if let Some(label) = option_env!("SOKO_BUILD_LABEL") {
+    if let Some(label) = label {
         eat(0);
         for byte in label.bytes() {
             eat(byte);
@@ -478,24 +530,86 @@ mod tests {
     fn the_build_stamp_no_longer_folds_the_profile() {
         let digest = 0x1111_2222_3333_4444;
         assert_ne!(
-            stamp_of(digest, true),
-            stamp_of(digest, false),
+            stamp_of(None, digest, true, None),
+            stamp_of(None, digest, false, None),
             "逃生门（keep_profile）必须真的改变戳 —— 否则它挡不住任何东西 ✗"
         );
         assert_eq!(
-            stamp_of(digest, false),
-            stamp_of(digest, false),
+            stamp_of(None, digest, false, None),
+            stamp_of(None, digest, false, None),
             "默认那一份必须是纯函数（两个 profile 的构建会算出同一个戳 ✓）"
         );
         assert_ne!(
-            stamp_of(digest, false),
-            stamp_of(digest ^ 1, false),
+            stamp_of(None, digest, false, None),
+            stamp_of(None, digest ^ 1, false, None),
             "去掉 profile 之后，prelude 摘要**仍然**必须参与戳（M-07 的红线 ✓）"
         );
         assert_eq!(
-            stamp_of(digest, false),
-            stamp_with_prelude_digest(digest),
-            "默认路径（没设 SOKO_CACHE_KEY_KEEP_PROFILE）走的必须是不带 profile 那一份"
+            stamp_of(None, digest, false, None),
+            stamp_of(None, digest, false, None),
+            "逃生门那一份必须是纯函数 —— 「改前」臂就靠它（与旧二进制**逐字相同**这件事\
+             由三步夹具端到端钉住：单测进程里没有旧二进制 ✗）"
+        );
+    }
+
+    /// **`SOKO_BUILD_LABEL` 的既有语义不许变**（本轮的硬要求）：它仍是"**显式**再区分
+    /// 一层"的编译期尾巴 —— 显式设值 ⇒ 进戳；两个不同的 label ⇒ 两个不同的戳。
+    ///
+    /// 生产路径一字未改（`stamp_with_prelude_digest` 仍然只从
+    /// `option_env!("SOKO_BUILD_LABEL")` 取值 ✓）；这里只是把它做成**显式形参**，
+    /// 好让"设了 vs 没设"在一个测试进程里可判 ✓。
+    #[test]
+    fn the_explicit_build_label_still_discriminates() {
+        let digest = 0x1111_2222_3333_4444;
+        assert_ne!(
+            stamp_of(Some("e"), digest, false, Some("probe")),
+            stamp_of(Some("e"), digest, false, None),
+            "显式 SOKO_BUILD_LABEL 必须仍然进戳（语义不许变 ✓）"
+        );
+        assert_ne!(
+            stamp_of(Some("e"), digest, false, Some("probe")),
+            stamp_of(Some("e"), digest, false, Some("other")),
+            "两个不同的 label 必须是两个不同的戳 ✓"
+        );
+        assert_eq!(
+            stamp_of(Some("e"), digest, false, None),
+            stamp_of(Some("e"), digest, false, None),
+            "纯函数 ✓"
+        );
+    }
+
+    /// **CACHE-KEY-NO-ENGINE-IDENTITY 判据（纯函数那一半）**：默认路径**必须**折引擎
+    /// 源码摘要，且对身份的**内容**敏感。
+    ///
+    /// 为什么这条能咬住缺口：缺口 = 键里少一个"这份引擎是什么"的分量 ⇒ 两个不同的引擎
+    /// 算出同一个键。这里把两半都钉住：① 默认那一份 ≠ 不折身份那一份（**不许空转** ✗）；
+    /// ② 两个不同的身份 ≠ 同一个戳（内容敏感 ✓）。
+    ///
+    /// 反向验证（实测，见 `.cache/ux/fix-cacheR/VERDICT.md`）：`SOKO_CACHE_KEY_NO_ENGINE_ID=1`
+    /// ⇒ 三步夹具回到 `1 ⇒ 0 ⇒ 0` ✓；`crates/front/build.rs` 的摘要少折一棵输入树 ⇒
+    /// `crate::engine_digest` 的「接线」判据当场判红 ✓。
+    #[test]
+    fn the_default_build_stamp_folds_the_engine_identity() {
+        let digest = 0x1111_2222_3333_4444;
+        let identity = crate::engine_digest::engine_identity();
+        assert!(
+            identity.is_some(),
+            "默认（没设 SOKO_CACHE_KEY_NO_ENGINE_ID）**必须**有引擎身份"
+        );
+        assert_ne!(
+            stamp_of(identity, digest, false, None),
+            stamp_of(None, digest, false, None),
+            "默认路径必须折引擎身份（否则跨引擎量同一棵树会回放旧判定 ✗）"
+        );
+        assert_ne!(
+            stamp_of(Some("aaaa"), digest, false, None),
+            stamp_of(Some("bbbb"), digest, false, None),
+            "两个不同的引擎身份不许折成同一个戳（内容敏感 ✓）"
+        );
+        assert_eq!(
+            stamp_of(Some("aaaa"), digest, false, None),
+            stamp_of(Some("aaaa"), digest, false, None),
+            "纯函数 ⇒ 同输入同戳 ✓"
         );
     }
 

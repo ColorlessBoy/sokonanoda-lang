@@ -700,12 +700,12 @@ scripts/perf-ledger.sh                                                   # 全�
   `profile == debug` 只**响亮警告**（同一份判卷慢约 2×：258 个目标的课程门禁实测从约
   1–2 分钟变成 >20 分钟 ⇒ 撞调用方超时 ✗）。解析侧同步改成 **release 优先**
   （同 profile 内仍按 mtime；版本对得上的 debug 树不会被丢掉 ✓）。
-* ⚠ **量对照时两个 `NO_*ARTIFACTS` 逃生门不够** ✗：全局编译缓存的键 = 版本 · 平台 ·
-  **内建 prelude 摘要** · `SOKO_BUILD_LABEL`（`crates/front/src/compile/cache.rs:125-178`），
-  **不含 `crates/front`/`crates/kernel` 的其余源码** ⇒ 实测（同一夹具、同一路径、同一份空
-  缓存目录起步）：旧引擎 `exit 1` → 新引擎 `exit 0` → **旧引擎再来一次 `exit 0`**
-  （回放了新引擎的判定 ✗）。⇒ 每份构建用**隔离的 `SOKONANODA_CACHE_DIR`**
-  （或不同的 `SOKO_BUILD_LABEL`）。
+* ⚠ **跨引擎量同一棵树：2026-10-14 起安全** ✓（CACHE-KEY-NO-ENGINE-IDENTITY）—— 全局缓存的键
+  现在折**引擎源码摘要**（`crates/front/src` + `crates/kernel/src` + `include_str!` 的 `prelude/`/
+  `reference/`，`crates/front/build.rs` 编译期算 ⇒ `compile::cache::build_stamp`）⇒ 同一夹具同一
+  路径、同一份空缓存：旧引擎 `exit 1` → 新引擎 `exit 0` → **旧引擎再量 `exit 1`** ✓（改前 `exit 0`
+  ✗：回放了新引擎的判定）。两个 `NO_*ARTIFACTS` 逃生门 + 隔离 `SOKONANODA_CACHE_DIR` 仍是**读数
+  卫生**（少读陈旧条目），但不再是"会不会假绿"的前提 ✓；反向验证 = `SOKO_CACHE_KEY_NO_ENGINE_ID=1`。
 * 读数与反向验证（陈旧 ⇒ 改前 `exit 1` + 假红 / 改后 `exit 2`；新鲜 ⇒ **258 目标 ·
   2190 checked · 915 open · 0 判负**）见 commit `e4ee1ecf`（`scripts/soko`）与
   `b7a576aa`（`check.py`，含六条夹具自检臂）。

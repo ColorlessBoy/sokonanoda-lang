@@ -113,7 +113,7 @@ pub fn compiled_at(root: &Path) -> PathBuf {
     artifacts_dir(root).join("compiled")
 }
 
-/// 逃生门：`SOKONANODA_NO_PROJECT_ARTIFACTS=1` ⇒ 完全退回今天的行为（只写全局）。
+/// 逃生门：`SOKONANODA_NO_PROJECT_ARTIFACTS=1` ⇒ 退回"只写全局"（⚠ **全局键带引擎身份**：`compile::cache::build_stamp` ⇒ 不再意味着跨引擎会回放假绿 ✓）。
 fn enabled() -> bool {
     std::env::var_os("SOKONANODA_NO_PROJECT_ARTIFACTS").is_none()
 }
