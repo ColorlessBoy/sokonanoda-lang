@@ -275,11 +275,15 @@ def _guard_encoding() -> None:
         解码中文 subject ⇒ `UnicodeDecodeError`；
       · 两条都是**未捕获的栈 + rc=1** ✗，而契约里环境错是 **rc=2** ✓。
     口径：本脚本的数据是 **UTF-8**（git 的默认输出编码）⇒ 环境表示不了它就 **fail fast**
-    （rc=2 + 人话 + 给出正解），**不许丢栈** ✗；也不许用 `errors="replace"` 掩盖 ——
-    那会让 subject 比对**悄悄错**（判定类代码的红线 ✗）。
-    ⚠ 与它配套的两件事（都在本轮落地）：① 孪生/回填路径的 git 读取**显式 UTF-8**
-    （`_patch_id`/`_commit_subject`/`_ancestors_by_subject`）⇒ 正常环境里不随 locale 漂 ✓；
-    ② `main()` 把 `UnicodeError` 也翻成 rc=2（兜底：任何残留的编码错都不是栈 ✓）。
+    （rc=2 + 人话 + 给出正解），**不许丢栈** ✗。
+    ⚠ **判定类**读取**不许**用 `errors="replace"` 掩盖 —— 那会让 subject / patch-id 比对
+    **悄悄错**（判定类代码的红线 ✗）：判定类 git 读取只有**一处**（`_git_text()`，
+    `errors="surrogateescape"` ⇒ **逐字节保真** ✓，见那里的实测）。
+    ⚠ **展示**类例外**只有一处**且必须写明理由：`run_probe()` 的 tail（判定只看 `rc`）。
+    ⚠ 与它配套的三件事：① 判定类 git 读取**显式 UTF-8 + surrogateescape**（`_git_text()`）
+    ⇒ 既不随 locale 漂 ✓、也不把字节折成 U+FFFD ✓；② `main()` 把 `UnicodeError` 也翻成
+    rc=2（兜底：任何残留的编码错都不是栈 ✓）；③ 进事件表的 subject 过 `_subject_text()`
+    （孤立代理不能直接进 UTF-8 文件 ⇒ 折成可见转义；**判定**走 `patch_id` ✓）。
     """
     import locale as _locale
     enc = _locale.getpreferredencoding(False) or ""
@@ -698,6 +702,14 @@ def run_probe(row: dict, timeout: int) -> tuple[str, str]:
     cmd = row["repro"]
     argv = ["bash", "-c", cmd] if cmd.startswith(("bash ", "node ")) else ["bash", "-c", cmd]
     try:
+        # ⚠ **本文件唯一允许 `errors="replace"` 的地方**（`#1` 的横向排查结论，2026-10-14）：
+        # 这条 `subprocess` 读的是**探针的输出**，而它在这里**只用于展示** ——
+        # 判定完全由 `rc` 决定（`judge_rc(kind, rc)`，`rc` 是整数、不经文本层 ✓），
+        # 文本只进 `tail`（下面那一行，截断成一行给人看）。
+        # ⇒ 它不是"内容比对"⇒ `replace` 不会让任何判定**悄悄错** ✓（`_guard_encoding` 禁的是
+        # 判定类读取，见那里的口径）；反过来，若在这里用 `surrogateescape`，孤立代理会一路
+        # 流进报告文本（`print` 只能靠 `backslashreplace` 兜住），**可读性更差** ⇒ 展示用 `replace` ✓。
+        # ⚠ **判定类** git 读取不许照抄这里 ⇒ 一律走 `_git_text()`（逐字节保真 ✓）。
         proc = subprocess.run(argv, cwd=ROOT, capture_output=True, text=True,
                               encoding="utf-8", errors="replace", env=_clean_env(),
                               timeout=timeout)
@@ -1444,15 +1456,64 @@ def closure_pointer_problem(commit: str) -> str | None:
 _TWIN_CACHE: dict[str, tuple[str | None, str]] = {}
 _ANCESTORS_BY_SUBJECT: dict[str, list[str]] | None = None
 
+# ── **判定类 git 读取的唯一出处**（`#1`，2026-10-14 · 第八次独立复核实测 ✗） ────────
+# 缺口：`5c4e1779` 给 `_guard_encoding` 的 docstring 白纸黑字写了「**不许**用
+# `errors="replace"` 掩盖 —— 那会让 subject 比对**悄悄错**（判定类代码的红线 ✗）」，
+# 而**同一个 commit 自己**的 `_commit_subject`/`_patch_id`/`_ancestors_by_subject`
+# 三处**全都**传了 `errors="replace"` ⇒ **代码与自己的注释互相打脸** ✗。
+# 实测后果（本文件 `.cache/ux/fix-utf8E/s1_utf8.py` 的夹具，两个自建仓 commit）：
+#   两个 commit 的 diff 只差**一个非法字节**（`0x80` vs `0x81`）⇒ 都折成 U+FFFD ⇒
+#   我们的 `_patch_id` **两者相同**、而 **git 自己的** `patch-id --stable` **两者不同**
+#   ⇒ 孪生三关的第 2 关**假绿** ⇒ `--repoint <id> --commit <内容真不同的那个>` **rc=0** ✗
+#   （指针被指向内容真不同的 commit，且下一条 `--check` 也绿 —— 证据链被掏空）。
+# 口径（**二选一，选前者**）：
+#   · ✅ `errors="surrogateescape"` —— **逐字节保真**：`git show` 的字节原样回灌给
+#     `git patch-id`（`subprocess` 的 stdin/stdout 都按同一对 `encoding/errors` 包成
+#     `TextIOWrapper`）⇒ 哈希的就是**真字节** ⇒ 与 git 自己的算法**逐位一致** ✓；
+#   · ✗ 「遇到非法字节就拒（rc=2）」—— 会把**真的**含非法字节的孪生**误拒** ✗
+#     （比原缺口更糟：把合法证据判成环境错）；而非法字节在这里**本来就该被如实比对**。
+# ⚠ **一处定义**：本文件里所有"读了要拿来做判定"的 git 调用**都走 `_git_text()`** ⇒
+#   以后不会再有"只改一处、另一处又漂"（`AGENTS.md` 硬规则 0(b)）✗。
+# ⚠ 唯一允许 `errors="replace"` 的地方是**展示**：`run_probe()` 的 tail（判定只看 rc）。
+_GIT_TEXT: dict = {"text": True, "encoding": "utf-8", "errors": "surrogateescape"}
+
+
+def _git_text(argv: list[str], stdin: str | None = None) -> subprocess.CompletedProcess:
+    """**判定类** git 读取（唯一出处）：UTF-8 + `surrogateescape` ⇒ **逐字节保真** ✓。
+
+    ⚠ 别退回 `text=True`（= locale 编码 ⇒ `LC_ALL=C` 下抛 `UnicodeDecodeError` 栈 ✗，
+    见 `_guard_encoding`），也别退回 `errors="replace"`（⇒ 判定**悄悄错** ✗，见上面）。
+    """
+    return subprocess.run(["git", *argv], cwd=ROOT, capture_output=True,
+                          input=stdin, **_GIT_TEXT)
+
+
+def _subject_text(subject: str) -> str:
+    """subject 折成**能进 UTF-8 事件表**的文本（写入与读侧复查**共用本函数** ✓）。
+
+    ⚠ 为什么需要（`#1` 的配套）：`surrogateescape` 解出的**孤立代理**（= 原字节非 UTF-8）
+    **不能直接进 UTF-8 文件** —— `json.dumps(ensure_ascii=False)` + `write_text(utf-8)`
+    会抛 `UnicodeEncodeError`（`main()` 会把它翻成 rc=2 ✓ 不丢栈，但那本来是判定场景 ✗）。
+    ⇒ 折成**可见转义**（`\\x80` 之类）：对**合法 UTF-8 是恒等**（既有 subject 一个字节不变 ✓）。
+    **判定**不靠它（靠 `patch_id`，十六进制 ⇒ 永远 ASCII ✓），它只是"事后能核"的旁证。
+
+    ⚠ **如实说明**：这是**防御性**守卫，不是"本平台已复现"的路径 —— 实测本机
+    （macOS + 系统 iconv）`git log --format=%s` / `git cat-file commit` 对**非法字节的
+    commit message** 会**归一化成合法 UTF-8**（`0x80` → `c2 80`，即 U+0080）⇒ subject 这一路
+    拿不到孤立代理。但（a）**别的平台/带 `encoding` 头的 commit** 未必如此，而代价是一条
+    `UnicodeEncodeError` 栈路；（b）本函数是**写入与复查的唯一折算处** ⇒ 两侧同源 ✓。
+    真正**天天走** `surrogateescape` 的是 `_patch_id()` 的 `git show` **diff 字节**
+    （非法字节就在那里，且它逐字节回灌给 `git patch-id` ⇒ 与 git 自己逐位一致，见那里的读数 ✓）。
+    """
+    return subject.encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
+
 
 def _ancestors_by_subject() -> dict[str, list[str]]:
     """`HEAD` 全历史按 subject 分组（**一次** `git log`；`--repoint-all` 要问几十次）。"""
     global _ANCESTORS_BY_SUBJECT
     if _ANCESTORS_BY_SUBJECT is None:
         out: dict[str, list[str]] = {}
-        raw = subprocess.run(["git", "log", "--format=%H%x01%s", "HEAD"],
-                             cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
-                             errors="replace").stdout
+        raw = _git_text(["log", "--format=%H%x01%s", "HEAD"]).stdout
         for line in raw.splitlines():
             if "\x01" in line:
                 sha, subj = line.split("\x01", 1)
@@ -1466,11 +1527,9 @@ _SUBJECT_CACHE: dict[str, str] = {}
 
 
 def _commit_subject(commit: str) -> str:
-    """`git log -1 --format=%s`（**UTF-8 固定**；对象不在 ⇒ `""`）。"""
+    """`git log -1 --format=%s`（**UTF-8 + 逐字节保真**；对象不在 ⇒ `""`）。"""
     if commit not in _SUBJECT_CACHE:
-        _SUBJECT_CACHE[commit] = subprocess.run(
-            ["git", "log", "-1", "--format=%s", commit], cwd=ROOT, capture_output=True,
-            text=True, encoding="utf-8", errors="replace").stdout.strip()
+        _SUBJECT_CACHE[commit] = _git_text(["log", "-1", "--format=%s", commit]).stdout.strip()
     return _SUBJECT_CACHE[commit]
 
 
@@ -1481,15 +1540,17 @@ def _patch_id(commit: str) -> str | None:
     `locale.getpreferredencoding()` 解码 ⇒ 非 UTF-8 环境（`LC_ALL=C`）下**在孪生搜索里
     抛 `UnicodeDecodeError` 栈**（rc=1 ✗，不是契约的 rc=2）；仓库 subject 大量中文 ⇒ 必踩。
     这里把它钉成 UTF-8（git 的默认输出编码），环境不参与内容判定 ✓。
+
+    ⚠ **`surrogateescape` 而不是 `replace`**（`#1`，2026-10-14 · 第八次独立复核实测 ✗）：
+    见 `_GIT_TEXT` 的说明 —— `replace` 会把 diff 里的非法字节折成 U+FFFD ⇒ 两个**内容不同**
+    的 commit 得到**同一个** patch-id ⇒ 第 2 关假绿 ✗。逐字节保真后与 git 自己的
+    `patch-id --stable` **逐位一致** ✓（两个读数见 `.cache/ux/fix-utf8E/VERDICT.md`）。
     """
     if commit not in _PATCH_ID_CACHE:
         _PATCH_ID_CACHE[commit] = None
-        show = subprocess.run(["git", "show", commit], cwd=ROOT, capture_output=True,
-                              text=True, encoding="utf-8", errors="replace")
+        show = _git_text(["show", commit])
         if show.returncode == 0:
-            probe = subprocess.run(["git", "patch-id", "--stable"], cwd=ROOT, input=show.stdout,
-                                   capture_output=True, text=True, encoding="utf-8",
-                                   errors="replace")
+            probe = _git_text(["patch-id", "--stable"], stdin=show.stdout)
             if probe.returncode == 0 and probe.stdout.strip():
                 _PATCH_ID_CACHE[commit] = probe.stdout.split()[0]
     return _PATCH_ID_CACHE[commit]
@@ -1598,8 +1659,8 @@ def _repoint_event(ident: str, new: str, old: str, reason: str, owner: str) -> d
     ② `check_plan` 可复查"现在这个指针还是不是当时那个内容"（手改事件表换 commit ⇒ 判红 ✓）。
     """
     return {"event": "repoint", "id": ident, "commit": new, "old": old,
-            "subject": _commit_subject(new), "patch_id": _patch_id(new),
-            "old_subject": _commit_subject(old), "old_patch_id": _patch_id(old),
+            "subject": _subject_text(_commit_subject(new)), "patch_id": _patch_id(new),
+            "old_subject": _subject_text(_commit_subject(old)), "old_patch_id": _patch_id(old),
             "reason": reason, "owner": owner}
 
 
@@ -2362,9 +2423,10 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
             # 记了 `subject` + `patch_id` ⇒ 读侧复查"**现在这个指针还是不是当时那个内容**"。
             # 靶子 = 手改事件表把 `repoint` 的 `commit` 换成别的（审计字段不会跟着变）⇒ 当场判红 ✗。
             # ⚠ 只对**带审计字段的** repoint 事件生效（旧账 / 手写事件没有该字段 ⇒ 不误判 ✓）。
+            # ⚠ subject 两侧都过 `_subject_text()`（**同一处**折算 ⇒ 非法字节不会两边口径不同 ✗）。
             _rec_pid, _rec_subj = cur.get("repoint_patch_id"), cur.get("repoint_subject")
             if _c and _rec_pid:
-                _now_pid, _now_subj = _patch_id(_c), _commit_subject(_c)
+                _now_pid, _now_subj = _patch_id(_c), _subject_text(_commit_subject(_c))
                 if _now_pid != _rec_pid or (_rec_subj and _now_subj != _rec_subj):
                     print(f"✗ `{ident}` 的收口指针与它的 `repoint` 事件**对不上**："
                           f"账上记的 subject/patch-id = `{(_rec_subj or '')[:40]}` / "
