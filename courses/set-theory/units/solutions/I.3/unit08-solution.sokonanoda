@@ -260,11 +260,11 @@ theorem aa_mem_inter_image :
       (Set.inter Two (f1 '' ({aa}))
         (f1 '' ({bb}))) := by
   exact And.intro  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-    (Exists.intro Two (fun (t : Two) => (Eq.{1} Two t aa) ∧ (Eq.{1} Two (f1 t) aa))
-      aa (And.intro  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    (Exists.intro aa
+      (And.intro
         (Eq.refl.{1} Two aa) (Eq.refl.{1} Two aa)))
-    (Exists.intro Two (fun (t : Two) => (Eq.{1} Two t bb) ∧ (Eq.{1} Two (f1 t) aa))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-      bb (And.intro
+    (Exists.intro bb
+      (And.intro
         (Eq.refl.{1} Two bb) (Eq.refl.{1} Two aa)))
 
 -- 练习 6（D 类，必破）：两侧不等——左边是 ∅，右边含 aa。

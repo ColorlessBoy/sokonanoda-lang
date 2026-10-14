@@ -67,7 +67,7 @@ theorem idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
 theorem subset_comp_self_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
     ∀ (a : α) (c : α), r a c → (r • r) a c :=
   fun (a : α) => fun (c : α) => fun (hac : r a c) =>
-    Exists.intro α (fun (b : α) => r a b ∧ r b c) a
+    Exists.intro a
       (And.intro ((fun (hu : ∀ (x : α), r x x) => hu a) h) hac)
 
 theorem comp_idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :

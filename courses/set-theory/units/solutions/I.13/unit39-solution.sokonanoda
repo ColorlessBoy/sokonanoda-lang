@@ -73,8 +73,8 @@ theorem relImg_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : S
         (∃ (a : α), A a ∧ (r • s) a c) (And.left hb)
         (fun (a : α) (ha : A a ∧ r a b) =>
           Exists.intro a
-            (And.intro (And.left ha)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-              (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
+            (And.intro (And.left ha)
+              (Exists.intro b
                 (And.intro (And.right ha) (And.right hb))))))
 
 theorem relImg_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) :
@@ -107,8 +107,8 @@ theorem relPre_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : S
         (∃ (c : γ), C c ∧ (r • s) a c) (And.left hb)
         (fun (c : γ) (hc : C c ∧ s b c) =>
           Exists.intro c
-            (And.intro (And.left hc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-              (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
+            (And.intro (And.left hc)
+              (Exists.intro b
                 (And.intro (And.right hb) (And.right hc))))))
 
 theorem relPre_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) :

@@ -99,7 +99,7 @@ theorem totalRel_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
           (∃ (c : γ), (r • s) a c) (totalRel_apply β γ s hs b)
           (fun (c : γ) (hc : s b c) =>
             Exists.intro c
-              (Exists.intro β (fun (b1 : β) => r a b1 ∧ s b1 c) b
+              (Exists.intro b
                 (And.intro hb hc))))
 
 theorem singleValued_idRel (α : Type) : SingleValued α α (idRel α) :=
@@ -119,6 +119,6 @@ theorem graph_comp (α β γ : Type) (f : α → β) (g : β → γ) (a : α) (c
               (f a) (f a) b (And.left hb) (Eq.refl.{1} γ (g (f a))))
             (And.right hb)))
     (fun (h : Eq.{1} γ (g (f a)) c) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-      Exists.intro β (fun (b : β) => (graph α β f) a b ∧ (graph β γ g) b c) (f a)
+      Exists.intro (f a)
         (And.intro
           (Eq.refl.{1} β (f a)) h))

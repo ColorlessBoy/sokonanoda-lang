@@ -340,8 +340,8 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
                   (congrArg.{1} g (And.left hb))
                   (And.right hb)))
           (fun (h : (fun (a : α) => fun (c : γ) => g (f a) = c) a c) =>
-            Exists.intro β (fun (b : β) => f a = b ∧ g b = c) (f a)
-              (And.intro (Eq.refl.{1} β (f a)) h))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            Exists.intro (f a)
+              (And.intro (Eq.refl.{1} β (f a)) h))))
     (Set.ext γ ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =>
       Iff.intro (y ∈ (g ∘ f) '' A) (y ∈ g '' (f '' A))
         (fun (hy : y ∈ (g ∘ f) '' A) =>

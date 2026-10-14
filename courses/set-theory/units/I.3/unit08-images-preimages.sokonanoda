@@ -236,11 +236,11 @@ example : Set.mem Two aa  -- soko:notation-ok: R1/R2：点名叫法写全前导�
     (Set.inter Two (f1 '' ({aa}))
       (f1 '' ({bb}))) :=
   And.intro  -- soko:notation-ok: R1/R2：同上
-    (Exists.intro Two (fun (t : Two) => (t = aa) ∧ (Eq.{1} Two (f1 t) aa))
-      aa (And.intro  -- soko:notation-ok: R1/R2：同上
+    (Exists.intro aa
+      (And.intro
         (Eq.refl.{1} Two aa) (Eq.refl.{1} Two aa)))
-    (Exists.intro Two (fun (t : Two) => (t = bb) ∧ (Eq.{1} Two (f1 t) aa))  -- soko:notation-ok: R1/R2：同上
-      bb (And.intro
+    (Exists.intro bb
+      (And.intro
         (Eq.refl.{1} Two bb) (Eq.refl.{1} Two aa)))
 
 -- ─────────────────────────────────────────────────────────────
