@@ -1364,6 +1364,24 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             # 这条跨 agent 通道无法被追踪（谁受理了 / 什么时候 / 带哪个 commit 都看不到）✗。
             # 映射口径：受理 = 这一条**关账**（`done`）· 退回 = 回到 `todo`（可重开）·
             # 拒收 = `wo_filed`（终态，理由必填 —— `cmd_triage` 已经强制了）。
+            # ⚠ **`rejected` 折出的状态必须与上面这行注释一致 = `wo_filed`（终态）**
+            # （`#4`，2026-10-14 · 第九次独立复核实测 ✗）：旧代码折的是**非终态**的
+            # `triage_rejected` ⇒ 注释与代码**两处不一致** ✗，后果是**写侧自造下一条
+            # `--check` 必红** —— `cmd_triage --to rejected` 在**同一条命令**里已经把来源处置
+            # 翻成 `wo-filed`（终态），调度器却停在非终态 ⇒「来源已关账 × 调度器还在做」
+            # = **反向两层漂移** ✗（实测 `folded_state=triage_rejected` ·
+            # `source_disposition=wo-filed` · `--check` rc=1）。
+            # ⇒ 为什么改**代码**而不是改注释（两条理由同向）：
+            #   ① **来源是权威**（本文件反复钉的口径）⇒ 来源 `wo-filed` ⇒ 折出的状态**必须**
+            #      `wo_filed`，否则同一本账自相矛盾；
+            #   ② **`applied` 与 `rejected` 必须对称**：受理（`applied`）**一条命令落终态**
+            #      （`done` ⇒ `--check` rc=0 ✓，`selftest_release_inbox` 钉着它）；拒收若还要
+            #      多敲一条 `--advance … --to wo_filed` 才平账，**合法的拒收动作就会让
+            #      gate/CI 判红**（`soko gate --fast` 与 CI 的 `ledger` job 跑的正是 `--check`）✗。
+            # ⚠ `triage_rejected` **仍然是被承认的调度器状态**（`SCHED_STATES`/`TRANSITIONS`
+            # 一个字不动 ⇒ 旧账 / 手写事件里的它照样被折叠、照样被判据咬住，
+            # 见 `selftest_source_state_grid` 的 `trej` 列）—— 这里改的只是
+            # **`--triage` 那一条写路径折出来的状态** ✓。
             to = ev.get("to")
             if to == "applied":
                 cur.update(state="done", owner=None, pid=None,
@@ -1375,7 +1393,9 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
                 if ev.get("ts"):
                     cur["advanced_ts"] = ev["ts"]
             elif to == "rejected":
-                cur.update(state="triage_rejected", owner=None, pid=None, reason=ev.get("reason"))
+                # ⚠ 与来源侧同结论（`cmd_triage` 把 extras 那行翻成 `wo-filed` ⇒ 终态）：
+                # 折成 `wo_filed`，**不是** `triage_rejected`（理由见上面那一段 ✓）。
+                cur.update(state="wo_filed", owner=None, pid=None, reason=ev.get("reason"))
             elif to == "deferred":
                 cur.update(state="todo", owner=None, pid=None, reason=ev.get("reason"))
             cur["triage"] = to
@@ -4371,8 +4391,16 @@ def selftest_source_state_grid(expect) -> None:
                              "reason": "夹具：阻塞"}]
                 if suffix == "sub":
                     return [{"event": "submit", "id": ident, "owner": "夹具", "kind": "finding"}]
-                return [{"event": "triage", "id": ident, "to": "rejected", "owner": "夹具",
-                         "reason": "夹具：拒收"}]
+                # ⚠ **`triage_rejected` 这一列现在只能由事件表直接表达**（`#4`，2026-10-14 ·
+                # 第九次独立复核实测 ✗）：`fold` 的 `triage --to rejected` 已改成折成
+                # `wo_filed`（终态 —— 与来源侧的 `wo-filed` **同一个结论** ✓，理由见 `fold`
+                # 那一支），而 `TRANSITIONS` 里**没有**到 `triage_rejected` 的入口
+                # （`--advance --to triage_rejected` 恒非法）⇒ **CLI 造不出它**。
+                # 但判据**仍然必须认识它**（旧账 / 手写事件里可能有这种形状）⇒ 网格**继续覆盖
+                # 这一列**（结构性守卫 ⓪① 也钉着"覆盖所有非终态"✓），形状用**真事件形状**的
+                # `advance`（`fold` 的 advance 分支照折 ⇒ 夹具**不自己拼状态** ✓）。
+                return [{"event": "advance", "id": ident, "to": "triage_rejected",
+                         "owner": "夹具", "reason": "夹具：拒收"}]
 
             for prefix, _source, _disp in grid_pairs:
                 for suffix, _st in grid_states:
@@ -5456,9 +5484,9 @@ def selftest_release_open_seam(expect) -> None:
 
 
 def selftest_release_order_and_content(expect) -> None:
-    """⭐ **发版节点的三根新轴**（`#1`/`#2`/`#3`，2026-10-14 · 第九次独立复核实测 ✗）。
+    """⭐ **发版节点的三根新轴**（`#1`/`#2`/`#3`）+ `#4`（2026-10-14 · 第九次独立复核实测 ✗）。
 
-    三件缺口（各有实测复现 ✓，**只有手改事件表**造得出来 —— 那正是它们该被咬住的理由）：
+    四件缺口（各有实测复现 ✓，前三件**只有手改事件表**造得出来 —— 那正是它们该被咬住的理由）：
       · **`#1` 顺序敏感**：`release-add`/`release-block`/`release-drop`/`release-cut` 写在
         `release-open` **之前** ⇒ 旧折叠的成员判据（`… in out`）恒假 ⇒ **同族静默丢弃** ✗
         ⇒ 真台账 + `release-add` + **假审计** `release-cut` 重排后：`items=[]`、`cut=None`
@@ -5467,6 +5495,9 @@ def selftest_release_order_and_content(expect) -> None:
         假 cut 对判据**零输入**（`--check` 绿 ✗；CLI 路径被 `--release check` 挡住 ⇒ 只有手改 ✓）；
       · **`#3` `--check` 对节点内容全盲**：节点里一条**未 done** 的入版条目 + **合法形状**的
         cut ⇒ `--check` **rc=0** ✗ —— 而 `soko gate --fast` 与 CI 的 `ledger` job 跑的正是它 ✗；
+      · **`#4`（弱形式）**：`fold` 的 `triage --to rejected` 折出的状态与它自己的注释、
+        以及**来源侧**（`cmd_triage` 同轮翻成 `wo-filed`）**两处都不一致** ⇒ 写侧自造下一条
+        `--check` 必红 ✗。
 
     断言（每条都点名靶子 ⇒ 定向突变必红）：
       ① **顺序无关**：同一批事件两种顺序 ⇒ `items`/`blockers`/`cuts` **逐字节相同**
@@ -5479,6 +5510,9 @@ def selftest_release_order_and_content(expect) -> None:
       ⑦ **`--check` 看得见节点内容**：未 done 的入版条目 ⇒ 判红 + 点名条目 + 点名节点；
          正对照全 done ⇒ rc=0（**不许误拒** ✗）；
       ⑧ **不许放宽**：同一形状 `--release check` **仍拒**（rc=1 + 同一句话 ✓）；
+      ⑨ `#4`：`--triage --to rejected` ⇒ 折出 `wo_filed`（**= 来源 `wo-filed` 的结论**）·
+         `--check` **rc=0**（改前 rc=1 ✗）；且 `triage_rejected` **仍是被承认的状态**
+         （网格 `trej` 列钉着它 ⇒ 不是"删掉状态换绿" ✗）。
     """
     import contextlib
     import io
@@ -5667,6 +5701,26 @@ def selftest_release_order_and_content(expect) -> None:
             legit_cut("8")
             rc, out = plan()
             expect(f"⑦ 正对照：4 条**全 done** + 合法 cut ⇒ rc={rc}（**不许误拒** ✗）", rc == 0)
+            # ⑨ **`#4` 轴**：`--triage --to rejected` 不许自造必红
+            write_extras([("FX-T", "fix", "夹具：外部提交（待受理）")])
+            EVENTS.write_text("", encoding="utf-8")
+            trc, _tout = capture(cmd_triage, "FX-T", "rejected", "夹具：拒收", "", "t")
+            _st = (fold().get("FX-T") or {}).get("state")
+            _disp = next(r.get("disposition") for r in _read_jsonl(EXTRAS)
+                         if r.get("id") == "FX-T")
+            expect(f"⑨ `--triage --to rejected` rc={trc}", trc == 0)
+            expect(f"⑨ 折出的状态 = `wo_filed`（实测 `{_st}`）—— **与来源侧同一个结论**"
+                   f"（改前折成**非终态** `triage_rejected` ⇒ 注释与代码两处不一致 ✗）",
+                   _st == "wo_filed")
+            expect(f"⑨ 且恰好 = `DISPOSITION_STATES['wo-filed']`（来源 `{_disp}`）⇒ "
+                   f"**注释 / 代码 / 来源三处同源** ✓",
+                   _st == DISPOSITION_STATES["wo-filed"] == _disp.replace("-", "_"))
+            rc, out = plan()
+            expect(f"⑨ 拒收之后 `--check` **rc={rc}**（**改前 rc=1 —— 写侧自造必红** ✗）"
+                   f"[首条红：{(out.splitlines() or [''])[0][:60]}]", rc == 0)
+            expect("⑨ 而 `triage_rejected` **仍是被承认的状态**（`SCHED_STATES` + `TRANSITIONS` "
+                   "里都还在 ⇒ 不是「删掉状态换绿」✗）",
+                   "triage_rejected" in SCHED_STATES and "triage_rejected" in TRANSITIONS)
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
