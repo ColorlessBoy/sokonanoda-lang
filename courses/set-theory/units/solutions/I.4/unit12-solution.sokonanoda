@@ -348,8 +348,8 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
           Exists.elim α (fun (x : α) => (A x) ∧ (((g ∘ f) x) = y))
             (y ∈ g '' (f '' A)) hy
             (fun (x : α) => fun (hx : (x ∈ A) ∧ ((g ∘ f) x = y)) =>
-              Exists.intro β (fun (b : β) => b ∈ f '' A ∧ g b = y) (f x)
-                (And.intro (f x ∈ f '' A) (g (f x) = y)
+              Exists.intro (f x)
+                (And.intro
                   (Exists.intro x
                     (And.intro
                       (And.left hx)

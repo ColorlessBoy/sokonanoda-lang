@@ -49,6 +49,29 @@ grep -rnE "Exists\.intro α|Set\.subset α|Set\.mem α" courses/set-theory/ --in
 **门禁** ✓：`check.py` **258 目标 · 2190 checked · 0 判负**（一个没掉 ✓）·
 `notation-lint` exit 0 · 豁免标记 **711 → 709**（**只减不增** ✓）。
 
+## ★ 2026-10-14 **LAST-P 轮：最后 1 处已解锁 ⇒ `IMPLICIT-13-REMAINING` 13/13 结案** ✓
+
+**结论** ✓：`I.4/unit12-solution:351` 的**自然写法**（`Exists.intro (f x) (And.intro …)`）
+在**默认引擎**上 `grade` **exit 0** ✓（改前 exit 1 `kernel-expected-sort`）⇒
+**课程树该处已改自然写法** ✓、**标记 698 → 698**（**只减不增** ✓）。
+
+**根因（钉到行 ✓）**：两处**独立**缺陷叠在同一格上 ——
+① `crates/front/src/compile/pp_shape.rs`（新模块）的「**pp 形态常量脊不是合法的源级项**」：
+`operand_type_expr` 问内核要来的类型文本是 **pp 形态**（**只丢第一个隐式实参**）——
+`Function.comp`（`{α}{β}{γ}(g)(f) -> α -> γ`，**6 层**、`implicit_prefix = 3`）渲成
+`Function.comp β γ g f x`（**5 个实参**）⇒ 旧写法逐位对齐把它读成
+`α:=β, β:=γ, γ:=g, g:=f, f:=x` ⇒ **结果类型 `α → γ` 变成 `β → g`**（`g` 是**函数**、
+却被当类型用）⇒ 内核 `expected a sort, got: Pi ( : β), γ` ✓。判据（三条合取 ✓）：
+头是常量 · `implicit_prefix >= 2` · **实参比层数正好少一**且**逐位对齐可证明读不通**
+⇒ 该类型当作「拿不到类型」交回**路线②（期望类型）** ✓。
+② `meta::MetaCtx::default_unresolved` 的 E19 借用规则在 **`Prop` 位**上也生效
+（`And.intro {a b : Prop}` 两位域**都是 `Prop`** ⇒ `same_shape` 判同形 ⇒ `a` 借走 `b` 的值 ✗）
+⇒ `pp_shape::borrowable` 收窄到「**`Prop` 位不借**」✓（`Type` 位的 E19 行为不变 ✓）。
+
+**判据读数** ✓：该处 **exit 1 → exit 0** ✓ · 树上 12 处 **7/7 绿**（**一处没掉** ✓）·
+`lib/Rel` **59/0** ✓ · `lib/Set` **28/0** ✓ · 门禁 **258 目标 · 2190 checked · 915 open · 0 判负** ✓ ·
+反向验证 `SOKO_PP_SHAPE=0` ⇒ 该处**回红**（诊断逐字相同 ✓）· **零内核改动** ✓。
+
 ## ★ 2026-10-14 **SPINE-M 轮：13 处的根因逐处量清 · 决定性修法实测 7/13 · 但带 4 处库回归 ⇒ 回退** ✗
 
 **SPINE-N 轮（2026-10-14）结论** ✓：**引擎修已落地**（`crates/front`：`expected_spine` 前导实参补齐 + 源级 δ 展开，
