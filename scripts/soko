@@ -1653,6 +1653,18 @@ async function main(argv) {
       // **真拦** ✓，那时它确实是病态。判红了就 `python3 scripts/target-hygiene.py --reclaim` ✓。
       // 健康时 0.3 秒（实测 1.7 GB / 23,498 文件）；病态规模约 16–21 秒（实测速率
       // 43–59k files/s 外推到 91.8 万文件）⇒ 只在**该知道的时候**才慢 ✓ ⇒ `--fast` 也跑 ✓。
+      // **判红但不短路**（2026-10-15 修 `CACHE-GUARD-NO-HEADROOM`，第十四次复核实测）：
+      // `target/` 体积与编译缓存预算这两步都是**磁盘**判据，而它们以前 `return` 得
+      // **太早** ⇒ 后面那些**与磁盘无关**的判据（e2e 台账 / multi-session / 队列门禁 /
+      // 缺口台账）**一次都不跑** ✗ —— 实测：`gate --fast` 里缓存守卫一红，multi-session
+      // 与 `ux-queue --check` 就没跑（而单独跑 `--check` = **0** ✓）⇒ **一条无关的红
+      // 把别的判据全藏起来** ✗。现在**记下**它、把余下步骤跑完，最后当退出码交出去
+      // （**牙还在**：真超预算仍判红并点名 ✓）。退出码口径 = **先失败者优先**
+      // （与别步的短路顺序一致 ✓）；`defer` 只认第一条。
+      let deferredStatus = 0
+      const defer = (code) => {
+        if (!deferredStatus) deferredStatus = code
+      }
       const targetHygiene = path.join(REPO, 'scripts', 'target-hygiene.py')
       if (!existsSync(targetHygiene)) {
         process.stderr.write(
@@ -1672,9 +1684,10 @@ async function main(argv) {
       if (hygieneStatus === 1 || hygieneStatus === 3) {
         process.stderr.write(
           `scripts/soko gate: target/ 体积判红（exit ${hygieneStatus}）—— ` +
-            '回收：`python3 scripts/target-hygiene.py --reclaim` ✓\n',
+            '回收：`python3 scripts/target-hygiene.py --reclaim` ✓\n' +
+            '  （余下步骤照跑：磁盘判据不许把别的判据藏起来 ✓）\n',
         )
-        return hygieneStatus
+        defer(hygieneStatus)
       }
       if (hygieneStatus === 2) {
         process.stderr.write(
@@ -1720,7 +1733,10 @@ async function main(argv) {
       // **编译缓存预算**（2026-10-12 用户：「rust 编译器对编译缓存文件的管理非常差，经常占了一百多 G……
       // 多 workspace 会放大这种问题，现在收口到我们这边来管理」）：`compile-cache.py status --quiet`
       // 报一行总量（跨工作树，硬链接去重 ⇒ 与 `du` 同口径 ✓），**超预算判红** ✗。
-      // 预算 = `SOKO_CACHE_BUDGET_GB` 或 `.cache/compile/registry.json`（默认 60 G）。
+      // 预算 = `SOKO_CACHE_BUDGET_GB` 或 `.cache/compile/registry.json`（默认 60 G）；
+      // **回收目标** = 预算 − 余量（默认 5% ⇒ 57 G）—— 判红线**不动** ✓（见 `compile-cache.py`）。
+      // ⚠ **判红但不短路**（同上）：这一步以前 `return cc.status` ⇒ multi-session 与
+      //   队列门禁**一次都不跑** ✗（第十四次复核：那两步在本次 gate 里没跑，单独跑 = 0 ✓）。
       const cacheMgr = path.join(REPO, 'scripts', 'compile-cache.py')
       if (existsSync(cacheMgr)) {
         const cc = spawnSync(python.cmd, [...python.args, cacheMgr, 'status', '--quiet'], {
@@ -1731,7 +1747,15 @@ async function main(argv) {
           process.stderr.write(`scripts/soko gate: failed to run ${cacheMgr}: ${cc.error.message}\n`)
           return 3
         }
-        if ((cc.status ?? 3) !== 0) return cc.status ?? 3
+        if ((cc.status ?? 3) !== 0) {
+          process.stderr.write(
+            'scripts/soko gate: 编译缓存**超预算**（上面那一行有总量与预算）—— ' +
+              '回收：`python3 scripts/compile-cache.py reclaim --to-budget` ✓\n' +
+              '  （余下步骤照跑：磁盘判据不许把别的判据藏起来 ✓；' +
+              '回收目标 = 预算 − 余量 ⇒ 收完还剩一次构建的余量 ✓）\n',
+          )
+          defer(cc.status ?? 3)
+        }
       }
       // **多会话/工作树门禁**（2026-10-12 并行 agent 基建）：`check-multi-session.py` 在 **worktree**
       // 里跑时会拦「台账落后 main ⇒ 合回必冲突」（正解 = worktree 隔离 + 台账只在 main 上改 ✓）。
@@ -1766,17 +1790,18 @@ async function main(argv) {
         if ((q.status ?? 3) !== 0) return q.status ?? 3
       }
       const ledgerCheck = path.join(REPO, 'scripts', 'gap.py')
-      if (fast) return 0
-      if (!existsSync(ledgerCheck)) return 0
+      if (fast) return deferredStatus
+      if (!existsSync(ledgerCheck)) return deferredStatus
       const ledger = spawnSync(python.cmd, [...python.args, ledgerCheck, 'check'], {
         stdio: 'inherit',
         cwd: REPO,
       })
       if (ledger.error) {
         process.stderr.write(`scripts/soko gate: failed to run ${ledgerCheck}: ${ledger.error.message}\n`)
-        return 3
+        return deferredStatus || 3
       }
-      return ledger.status ?? 3
+      // **先失败者优先**：磁盘判据（`defer`）排在台账门禁之前 ⇒ 它的退出码优先 ✓。
+      return deferredStatus || (ledger.status ?? 3)
     }
 
     case 'mcp': {
