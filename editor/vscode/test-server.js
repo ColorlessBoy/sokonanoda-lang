@@ -10,7 +10,9 @@ const assert = require("assert");
 const server = require("./server");
 
 // ── A tiny injectable fs ────────────────────────────────────────────────
-function fakeFs({ existing = [], executable = [], contents = {} } = {}) {
+// `mtimes` / `dirs` are only needed by the workspace-build judgement
+// (stale + version); every other test keeps the original three maps.
+function fakeFs({ existing = [], executable = [], contents = {}, mtimes = {}, dirs = {} } = {}) {
   const files = new Set(existing);
   const exec = new Set(executable);
   const calls = { chmod: [] };
@@ -29,7 +31,41 @@ function fakeFs({ existing = [], executable = [], contents = {} } = {}) {
       if (Object.prototype.hasOwnProperty.call(contents, p)) return contents[p];
       throw new Error(`ENOENT: ${p}`);
     },
+    statSync: (p) => {
+      if (!Object.prototype.hasOwnProperty.call(mtimes, p)) throw new Error(`ENOENT: ${p}`);
+      return { mtimeMs: mtimes[p] };
+    },
+    readdirSync: (p) => {
+      if (!Object.prototype.hasOwnProperty.call(dirs, p)) throw new Error(`ENOTDIR: ${p}`);
+      return dirs[p].map((entry) => ({
+        name: entry.name,
+        isDirectory: () => entry.directory === true,
+      }));
+    },
   };
+}
+
+/// Directory tree for `newestEngineSource`'s `crates/**` walk, given a list of
+/// `crates/<crate>/<dir>/<file>` leaves.
+function engineDirs(root, leaves) {
+  const dirs = {};
+  const add = (dir, entry) => {
+    dirs[dir] ??= [];
+    dirs[dir].push(entry);
+  };
+  add(root, { name: "crates", directory: true });
+  for (const leaf of leaves) {
+    const parts = leaf.split("/");
+    let dir = path.join(root, "crates");
+    for (const part of parts.slice(0, -1)) {
+      if (!(dirs[dir] ?? []).some((e) => e.name === part)) {
+        add(dir, { name: part, directory: true });
+      }
+      dir = path.join(dir, part);
+    }
+    add(dir, { name: parts[parts.length - 1], directory: false });
+  }
+  return dirs;
 }
 
 // ── Harness ─────────────────────────────────────────────────────────────
@@ -320,6 +356,120 @@ async function run() {
       }),
       { command: workspace, source: "workspace" },
     );
+  });
+
+  // ── VSCODE-OVERRIDE-NO-STALE (2026-10-15 CHAIN-Z) ──────────────────────
+  // The `workspace` link is the only one in either chain that is picked by
+  // **existence alone**, so it is judged before it is handed back: stale, or a
+  // version that disagrees with this extension. Readings are the **number of
+  // `log` lines** (the user-visible signal), and the pick must not move.
+  const WS_LSP = path.join("/ws", "target", "release", "sokonanoda-lsp");
+  const WS_CLI = path.join("/ws", "target", "release", "sokonanoda");
+  const BUNDLED_SERVER = path.join("/ext", "bin", "darwin-arm64", "sokonanoda-lsp");
+
+  const overrideWith = (extra) => {
+    const logs = [];
+    const found = server.resolveServerCommand({
+      ...ARGS,
+      override: true,
+      roots: ["/ws"],
+      log: (message) => logs.push(message),
+      ...extra,
+    });
+    return { found, logs };
+  };
+
+  await test("resolveServerCommand: override reports a stale workspace build", () => {
+    const { found, logs } = overrideWith({
+      fs: fakeFs({
+        existing: [WS_LSP],
+        executable: [WS_LSP],
+        mtimes: { [WS_LSP]: 1000, "/ws/Cargo.toml": 2000 },
+      }),
+    });
+    assert.deepStrictEqual(found, { command: WS_LSP, source: "workspace" });
+    assert.strictEqual(logs.length, 1, logs.join("\n"));
+    assert.ok(logs[0].includes("早于本检出最新的引擎源"), logs[0]);
+    assert.ok(logs[0].includes("Cargo.toml"), logs[0]);
+    assert.ok(logs[0].includes(WS_LSP), logs[0]);
+  });
+
+  await test("resolveServerCommand: override reports a version-mismatched workspace build", () => {
+    const { found, logs } = overrideWith({
+      fs: fakeFs({ existing: [WS_LSP, WS_CLI], executable: [WS_LSP, WS_CLI] }),
+      probeVersion: () => "0.6.0",
+    });
+    assert.deepStrictEqual(found, { command: WS_LSP, source: "workspace" });
+    assert.strictEqual(logs.length, 1, logs.join("\n"));
+    assert.ok(logs[0].includes("版本不一致"), logs[0]);
+    assert.ok(logs[0].includes("v0.6.0") && logs[0].includes("v0.7.0"), logs[0]);
+  });
+
+  await test("resolveServerCommand: matching + fresh workspace build stays silent (positive control)", () => {
+    const { found, logs } = overrideWith({
+      fs: fakeFs({
+        existing: [WS_LSP, WS_CLI],
+        executable: [WS_LSP, WS_CLI],
+        mtimes: { [WS_LSP]: 5000, "/ws/Cargo.toml": 1000 },
+      }),
+      probeVersion: () => "0.7.0",
+    });
+    assert.deepStrictEqual(found, { command: WS_LSP, source: "workspace" });
+    assert.deepStrictEqual(logs, []);
+  });
+
+  await test("resolveServerCommand: a test-only source edit is not stale (no false alarm)", () => {
+    // `crates/*/tests/**` is not compiled into the binary ⇒ a newer test file
+    // must not invent a stale build (`scripts/soko::newestEngineSource` rule).
+    const { logs } = overrideWith({
+      fs: fakeFs({
+        existing: [WS_LSP],
+        executable: [WS_LSP],
+        mtimes: {
+          [WS_LSP]: 2000,
+          "/ws/crates/front/src/lib.rs": 1000,
+          "/ws/crates/front/tests/foo.rs": 3000,
+        },
+        dirs: engineDirs("/ws", ["front/src/lib.rs", "front/tests/foo.rs"]),
+      }),
+    });
+    assert.deepStrictEqual(logs, []);
+  });
+
+  await test("resolveServerCommand: the crates walk does bite when real source is newer", () => {
+    // Reverse direction of the test above: same fixture, `lib.rs` moved past the
+    // binary ⇒ exactly one warning naming the file. Without this the guard
+    // above could pass by never looking at anything.
+    const { logs } = overrideWith({
+      fs: fakeFs({
+        existing: [WS_LSP],
+        executable: [WS_LSP],
+        mtimes: { [WS_LSP]: 2000, "/ws/crates/front/src/lib.rs": 3000 },
+        dirs: engineDirs("/ws", ["front/src/lib.rs"]),
+      }),
+    });
+    assert.strictEqual(logs.length, 1, logs.join("\n"));
+    assert.ok(logs[0].includes(path.join("crates", "front", "src", "lib.rs")), logs[0]);
+  });
+
+  await test("resolveServerCommand: default path ignores workspace builds entirely (policy unchanged)", () => {
+    // The very same stale + mismatched workspace build, with `override` off: the
+    // bundled server wins and **nothing** is reported (the default policy must
+    // not change, and users must not be scared by a contributor's tree).
+    const logs = [];
+    const found = server.resolveServerCommand({
+      ...ARGS,
+      roots: ["/ws"],
+      log: (message) => logs.push(message),
+      probeVersion: () => "0.6.0",
+      fs: fakeFs({
+        existing: [BUNDLED_SERVER, WS_LSP, WS_CLI],
+        executable: [BUNDLED_SERVER, WS_LSP, WS_CLI],
+        mtimes: { [WS_LSP]: 1000, "/ws/Cargo.toml": 2000 },
+      }),
+    });
+    assert.deepStrictEqual(found, { command: BUNDLED_SERVER, source: "bundled" });
+    assert.deepStrictEqual(logs, []);
   });
 
   await test("resolveServerCommand: no bundled falls back to cache only when current", () => {
