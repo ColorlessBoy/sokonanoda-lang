@@ -347,7 +347,17 @@ impl FakeRepo {
             .env_remove("SOKONANODA_VERSION")
             .env_remove("SOKONANODA_RELEASE_BASE")
             .env_remove("SOKONANODA_REPO")
-            .env_remove("SOKONANODA_HOME");
+            .env_remove("SOKONANODA_HOME")
+            // An inherited `CARGO_TARGET_DIR` (the managed environments export
+            // it — `scripts/compile-cache.py env <id>`) points the launcher at
+            // **this worktree's** contributor build, which the launcher prefers
+            // over the cache ⇒ the fixture would read `cli.source == "repo-build"`
+            // instead of the cache entry it planted (2026-10-15 LINK-B 实测：
+            // 导出该变量 ⇒ `repo-build`，期望 `cache` ✗). Detach it so the
+            // judgement is about the fixture, not about the build environment —
+            // same shape as `module_artifacts_download.rs`（`env -u
+            // CARGO_TARGET_DIR` ✓）.
+            .env_remove("CARGO_TARGET_DIR");
         for (key, value) in env {
             if value.is_empty() {
                 command.env_remove(key);
