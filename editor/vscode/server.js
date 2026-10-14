@@ -491,15 +491,48 @@ function serverVersionMarker() {
   return serverDest() + ".version";
 }
 
+/// 规范 marker 值：`<version> <vsce-target>` —— 这一格的**写读两端唯一的词汇来源**
+/// （规范定义在 `crates/cli/src/env/target.rs` 的 `expected_marker`；`scripts/soko`
+/// 的 `markerExpected` / `writeMarker` 与它同源）。平台不支持 ⇒ `undefined`。
+function serverMarkerValue(version, platform, arch, alpine = false) {
+  const target = platformTarget(platform, arch, alpine);
+  if (!target) return undefined;
+  return `${version} ${target}`;
+}
+
+/// **写端（唯一入口）**：把规范 marker 写进缓存并返回写下的值；平台不支持时
+/// 不写、返回 `undefined`。⚠ 它必须与读端 `cachedServerIsCurrent` 共用
+/// `serverMarkerValue` —— 洞 `LSP-SLOT-CROSS-SEAM-DRIFT` 的修法就是让两端
+/// **不可能各写各的**（旧实现写 `String(version)`，而启动器要两字段 ⇒ 扩展自己
+/// 下进缓存的 LSP 被启动器判 `cache(STALE: …)` 并拒绝 exec ✗，2026-10-15 实测 ✓）。
+function writeServerMarker(version, platform, arch, alpine = false, fsImpl = fs) {
+  const value = serverMarkerValue(version, platform, arch, alpine);
+  if (value === undefined) return undefined;
+  fsImpl.writeFileSync(serverVersionMarker(), `${value}\n`);
+  return value;
+}
+
 /// The cached server binary is reusable only when its recorded version marker
-/// matches the current extension version.
-function cachedServerIsCurrent(version, fsImpl = fs) {
+/// matches the current extension version **and** this host's target.
+///
+/// ⚠ 旧实现只比 `<version>`（单字段）⇒ **两端各自自洽、跨接缝却互不相认**：
+/// 扩展自己下完 LSP 写单字段，启动器按 `fields[1] !== target` 判 `cache(STALE: …)`
+/// 并**拒绝 exec** ✗（用户装通用 VSIX、扩展自己把 LSP 下进缓存、之后离线 ⇒
+/// 一份**能用的** LSP 被拒）。⇒ 修法是**写读一起改成规范两字段**，不是放宽任何
+/// 一端：target 正是防"同版本、错平台"的那一半（收掉 = 松 `canExec` ✗），而版本
+/// 比对仍是**严格相等**（`String(version)`，比启动器那条版本钉更窄 ⇒ 只紧不松 ✓）。
+function cachedServerIsCurrent({ version, platform, arch, alpine = false }, fsImpl = fs) {
+  // **一次算、两处用**（与 `installBundledCli` 的 CLI 槽位同一口径）：`target`
+  // 同时是"写端写什么"和"读端比什么"的一半 ⇒ 分开算就有漂移的余地 ✗。
+  // 不支持的平台没有可复用的条目（也没有下载构建）。
+  const expected = serverMarkerValue(version, platform, arch, alpine);
+  if (expected === undefined) return false;
   const dest = serverDest();
   if (!fsImpl.existsSync(dest)) return false;
   const marker = serverVersionMarker();
   if (!fsImpl.existsSync(marker)) return false;
   try {
-    return fsImpl.readFileSync(marker, "utf8").trim() === String(version);
+    return fsImpl.readFileSync(marker, "utf8").trim() === expected;
   } catch {
     return false;
   }
@@ -598,7 +631,8 @@ function resolveServerCommand(options) {
 
   const bundled = () =>
     resolveBundledServer({ extensionPath, platform, arch, alpine, fs: fsImpl, log });
-  const cached = () => (cachedServerIsCurrent(version, fsImpl) ? serverDest() : undefined);
+  const cached = () =>
+    (cachedServerIsCurrent({ version, platform, arch, alpine }, fsImpl) ? serverDest() : undefined);
 
   if (override) {
     if (typeof setting === "string" && setting.trim() !== "") {
@@ -678,7 +712,7 @@ async function downloadLspBinary(options) {
 
   const dir = serverCacheDir();
   const dest = serverDest();
-  if (cachedServerIsCurrent(version)) return dest;
+  if (cachedServerIsCurrent({ version, platform, arch, alpine })) return dest;
 
   fs.mkdirSync(dir, { recursive: true });
   const tmp = dest + ".tmp.tar.gz";
@@ -710,7 +744,18 @@ async function downloadLspBinary(options) {
         // read-only cache dir: the caller surfaces the spawn failure
       }
     }
-    fs.writeFileSync(serverVersionMarker(), String(version));
+    // 版本标记：走**写端唯一入口** `writeServerMarker` ⇒ 与读端
+    // `cachedServerIsCurrent` 共用 `serverMarkerValue`（规范词汇 =
+    // `<version> <vsce-target>`，同 `scripts/soko` 的 `writeMarker` /
+    // `crates/cli/src/env/target.rs` 的 `expected_marker`；洞
+    // `LSP-SLOT-CROSS-SEAM-DRIFT`，2026-10-15）。
+    // ⚠ 旧实现只写 `<version>` ⇒ 扩展自己的读端认它、启动器却判
+    // `cache(STALE: expected <v> <target>, found <v>)` 并**拒绝 exec** ✗
+    // ⇒ 两端一次改齐（只改写端会反过来让读端认不出刚下的那份 ⇒ **每次启动重下**，
+    // 那才是真回归 ✗）。
+    // `downloadUrl` 已返回 URL ⇒ `platformTarget(platform, arch, alpine)` 必存在
+    // （`downloadUrl` 就是按同一对参数挑 target 的 ✓）。
+    writeServerMarker(version, platform, arch, alpine);
     return dest;
   } catch (error) {
     try {
@@ -851,6 +896,8 @@ module.exports = {
   serverCacheDir,
   serverDest,
   serverVersionMarker,
+  serverMarkerValue,
+  writeServerMarker,
   cachedServerIsCurrent,
   entryWrittenByOtherVersion,
   projectArtifactsWrittenByOtherVersion,

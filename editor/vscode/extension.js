@@ -1907,24 +1907,36 @@ async function runDoctor(context, { notify = true, show = false } = {}) {
     }
 
     // 5. download cache marker (CLI/universal fallback only).
+    // ⚠ 这是同一个槽位的**第三个读点**（横向排查，洞 `LSP-SLOT-CROSS-SEAM-DRIFT`）：
+    // marker 的规范词汇是 `<version> <vsce-target>`（`server.serverMarkerValue`，
+    // 与写端 / `cachedServerIsCurrent` / 启动器同源）⇒ 旧写法拿 `marker === extVersion`
+    // 比单字段，会让**正确的**缓存永远显示"!= 扩展 v…；可运行 sokonanoda update"
+    // ⇒ 假诊断（只是报告，不拦；但会把人引去白跑 update ✗）。
     let markerVersion;
+    let markerExpected;
     try {
       const marker = server.serverVersionMarker();
       markerVersion = fs.existsSync(marker)
         ? String(fs.readFileSync(marker, "utf8")).trim()
         : undefined;
+      markerExpected = server.serverMarkerValue(
+        extVersion,
+        process.platform,
+        process.arch,
+        server.isAlpineLinux(process.platform),
+      );
     } catch (error) {
       markerVersion = `unreadable: ${error?.message ?? error}`;
     }
-    if (markerVersion === extVersion) {
-      lines.push(`[ok] 5/6 ${DOCTOR_CHECKS[4]}：缓存 marker = 扩展 v${extVersion}`);
+    if (markerVersion !== undefined && markerVersion === markerExpected) {
+      lines.push(`[ok] 5/6 ${DOCTOR_CHECKS[4]}：缓存 marker = ${markerExpected}`);
     } else if (markerVersion === undefined) {
       lines.push(
         `[info] 5/6 ${DOCTOR_CHECKS[4]}：无下载缓存（仅影响 CLI/universal 兜底，不影响内置服务器）`,
       );
     } else {
       lines.push(
-        `[info] 5/6 ${DOCTOR_CHECKS[4]}：缓存 marker ${markerVersion} != 扩展 v${extVersion}；可运行 sokonanoda update`,
+        `[info] 5/6 ${DOCTOR_CHECKS[4]}：缓存 marker ${markerVersion} != ${markerExpected}；可运行 sokonanoda update`,
       );
     }
 

@@ -494,6 +494,10 @@ const serverStub = {
   firstExisting: (candidates) => candidates[0],
   platformTarget: () => "darwin-arm64",
   serverVersionMarker: () => "/stub/version",
+  // 规范 marker 词汇（`<version> <vsce-target>`）：doctor 5/6 与真实现**同源**地用
+  // `serverMarkerValue` 比对（洞 `LSP-SLOT-CROSS-SEAM-DRIFT`，2026-10-15）。
+  serverMarkerValue: (version) => `${version} ${serverStub.platformTarget()}`,
+  isAlpineLinux: () => false,
   // **版本切换检测**（2026-10-11）：真实现读 `<模块根>/.sokonanoda/compiled/` 的
   // 条目文件名（`server.js::projectArtifactsWrittenByOtherVersion`，它的单元判据在
   // `test-server.js`）。宿主层只关心**接线**：这里让用例按需造"旧版本写的产物"。

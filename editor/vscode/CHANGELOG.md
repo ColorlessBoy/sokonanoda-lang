@@ -46,6 +46,15 @@
 
 ### Fixed
 
+- **扩展自己下进缓存的 LSP，启动器不再当成陈旧拒绝**（2026-10-15；通用 VSIX + 扩展
+  回退下载 + 之后离线 ⇒ `scripts/soko lsp` / opencode shim 拒绝一份**能用的**服务器）。
+  根因是 marker 的**写端与读端不同源**：下载路写单字段 `<version>`，而启动器
+  （`scripts/soko` 的 `markerExpected`）与规范（`crates/cli/src/env/target.rs` 的
+  `expected_marker`）要 `<version> <vsce-target>`。⇒ 写端与扩展自己的闸门
+  `cachedServerIsCurrent` **一次改齐**到规范两字段（`serverMarkerValue` 是两端唯一的
+  词汇来源）；**不放宽任何一端** —— target 仍防"同版本、错平台"，版本比对仍是严格相等。
+  顺带：**启动器/`sokonanoda setup` 装的那份**现在扩展也认（此前会白重下一次）；
+  doctor 的「下载缓存」一行不再把正确的缓存报成 `!= 扩展 v…`。
 - **vim 模式下记法输入「全乱了」——三个叠加问题一次修**（2026-10-12 用户；真 VS Code
   + `vscodevim.vim` 1.32.4 + 真按键取证）：
   1. **光标错位（头号）**：`(` 自动配对出 `)` 之后打 `\alpha` ⇒ 替换本身对，但

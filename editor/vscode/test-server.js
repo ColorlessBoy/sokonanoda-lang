@@ -4,6 +4,7 @@
 // No VS Code, no network, no Rust needed — pure Node with an injected fs.
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const assert = require("assert");
 
@@ -669,10 +670,14 @@ async function run() {
     try {
       const dest = server.serverDest();
       const marker = server.serverVersionMarker();
+      // ⚠ marker 是**规范两字段** `<version> <vsce-target>`（ARGS = darwin/arm64）
+      // —— 与写端 `writeServerMarker` / 启动器 `markerExpected` 同一份词汇
+      // （洞 `LSP-SLOT-CROSS-SEAM-DRIFT`：旧断言钉的是单字段 `"0.7.0\n"`，
+      // 正是"写端只写单字段"这个漂移被冻结下来的那一处 ⇒ 跟着改 ✓）。
       const current = fakeFs({
         existing: [dest, marker],
         executable: [dest],
-        contents: { [marker]: "0.7.0\n" },
+        contents: { [marker]: "0.7.0 darwin-arm64\n" },
       });
       assert.deepStrictEqual(server.resolveServerCommand({ ...ARGS, fs: current }), {
         command: dest,
@@ -682,13 +687,75 @@ async function run() {
       const stale = fakeFs({
         existing: [dest, marker],
         executable: [dest],
-        contents: { [marker]: "0.6.0\n" },
+        contents: { [marker]: "0.6.0 darwin-arm64\n" },
       });
       assert.strictEqual(server.resolveServerCommand({ ...ARGS, fs: stale }).command, undefined);
+      // 同版本、**错平台**同样不许复用 —— target 正是防这一半（不许放宽 ✓）。
+      const wrongTarget = fakeFs({
+        existing: [dest, marker],
+        executable: [dest],
+        contents: { [marker]: "0.7.0 linux-x64\n" },
+      });
+      assert.strictEqual(server.resolveServerCommand({ ...ARGS, fs: wrongTarget }).command, undefined);
+      // 单字段（旧写端的产物）也不许复用：两端词汇必须一致，否则启动器会拒它 ✗。
+      const singleField = fakeFs({
+        existing: [dest, marker],
+        executable: [dest],
+        contents: { [marker]: "0.7.0\n" },
+      });
+      assert.strictEqual(
+        server.resolveServerCommand({ ...ARGS, fs: singleField }).command,
+        undefined,
+      );
       // No bundled, no cache -> undefined (caller then downloads).
       assert.strictEqual(server.resolveServerCommand({ ...ARGS, fs: fakeFs() }).command, undefined);
     } finally {
       process.env.HOME = previousHome;
+    }
+  });
+
+  await test("LSP marker vocabulary: one source for the write and the read end", () => {
+    // 规范 = `crates/cli/src/env/target.rs` 的 `expected_marker`（`<version> <vsce-target>`）。
+    assert.strictEqual(server.serverMarkerValue("0.7.0", "darwin", "arm64"), "0.7.0 darwin-arm64");
+    assert.strictEqual(server.serverMarkerValue("0.7.0", "darwin", "x64"), "0.7.0 darwin-x64");
+    assert.strictEqual(server.serverMarkerValue("0.7.0", "linux", "x64", true), "0.7.0 alpine-x64");
+    assert.strictEqual(server.serverMarkerValue("0.7.0", "win32", "arm64"), "0.7.0 win32-arm64");
+    // 平台不支持 ⇒ 没有词汇（调用方按"没有可复用条目"处理）。
+    assert.strictEqual(server.serverMarkerValue("0.7.0", "linux", "ia32"), undefined);
+
+    // **跨端往返**：写端写什么 ⇒ 读端必须认什么（洞 `LSP-SLOT-CROSS-SEAM-DRIFT`
+    // 的接缝守卫 —— 旧实现两端各自自洽，这条往返才会红 ✓）。用真 fs + 临时 HOME。
+    const previousHome = process.env.HOME;
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "soko-marker-"));
+    process.env.HOME = home;
+    try {
+      const dest = server.serverDest();
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, "#!/bin/sh\n");
+      const written = server.writeServerMarker("0.7.0", "darwin", "arm64");
+      assert.strictEqual(written, "0.7.0 darwin-arm64");
+      assert.strictEqual(fs.readFileSync(server.serverVersionMarker(), "utf8"), "0.7.0 darwin-arm64\n");
+      assert.strictEqual(
+        server.cachedServerIsCurrent({ version: "0.7.0", platform: "darwin", arch: "arm64" }),
+        true,
+      );
+      // 版本不符 / 平台不符 / 单字段（旧写端）⇒ 都不认。
+      assert.strictEqual(
+        server.cachedServerIsCurrent({ version: "0.6.0", platform: "darwin", arch: "arm64" }),
+        false,
+      );
+      assert.strictEqual(
+        server.cachedServerIsCurrent({ version: "0.7.0", platform: "linux", arch: "x64" }),
+        false,
+      );
+      fs.writeFileSync(server.serverVersionMarker(), "0.7.0\n");
+      assert.strictEqual(
+        server.cachedServerIsCurrent({ version: "0.7.0", platform: "darwin", arch: "arm64" }),
+        false,
+      );
+    } finally {
+      process.env.HOME = previousHome;
+      fs.rmSync(home, { recursive: true, force: true });
     }
   });
 
