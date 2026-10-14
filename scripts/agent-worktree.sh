@@ -9,9 +9,15 @@
 #
 # 用法：
 #   scripts/agent-worktree.sh new <id>      # 建 .worktrees/<id> + 分支 agent/<id>（从 main 的 HEAD）
-#   scripts/agent-worktree.sh list          # 列出工作树 / 未合回的 agent 分支 / 每棵树干不干净
+#   scripts/agent-worktree.sh list          # 列出工作树 / **活没进 main** 的 agent 分支 / 每棵树干不干净
 #   scripts/agent-worktree.sh land <id>     # **只能在主工作树的 main 上跑**：rebase + 快进合回
-#   scripts/agent-worktree.sh rm <id>       # 清理（默认拒绝未合回的分支；--force 才强删）
+#   scripts/agent-worktree.sh rm <id>       # 清理（默认拒绝**活没进 main** 的分支；--force 才强删）
+#
+# ⚠ **「合没合回」的判据 = `git cherry <BASE> <branch>` 的 `+` 行**（patch-id 等价），**不是祖先性** ✗：
+#   `land` 走 **rebase + 快进**、而 `main` **自己也会被 rebase** ⇒ 已 land 的分支顶端是**孤儿 commit**
+#   （活已进 main、hash 换了）⇒ 祖先性把**陈旧**误判成「未合回」，与发版栅栏互相锁死 ✗。
+#   **一处定义** = 下面的 `branch_missing_commits()`（与 `scripts/ux-queue.py` 同名函数**同一件仪器** ✓）；
+#   `git cherry` 非零 = **量不出来** ⇒ 一律按「未合回」处理（`None ≠ []` ✗ 别静默放行）。
 #
 # 环境（`new` 会把这几行打出来，进 worktree 前 source 一下）：
 #   CARGO_TARGET_DIR=<worktree>/target            # **独立**：共享会被 cargo 加锁串行 ✗
@@ -28,6 +34,21 @@ die() { printf '%s\n' "✗ $*" >&2; exit 1; }
 info() { printf '%s\n' "$*"; }
 
 in_main() { [ "$(git -C "$ROOT" rev-parse --git-dir)" = "$(git -C "$ROOT" rev-parse --git-common-dir)" ]; }
+
+# branch_missing_commits <branch> —— 打印该分支上**活还没进 $BASE** 的提交 sha（每行一个）。
+# 判据 = `git cherry "$BASE" <branch>` 的 `+` 行（patch-id 等价）——与
+# `scripts/ux-queue.py:branch_missing_commits()` **同一件仪器** ✓；**一处定义**（cmd_list 与 cmd_rm 都调它 ✓）。
+# 返回 0 = 量出来了（可能一行都没有 ⇒ 活已全进 $BASE ✓）；**1 = 量不出来**（`git cherry` 非零）。
+# ⚠ `None ≠ []`：调用方**必须**把 1 当「未合回」（拒删 / 点名）——绝不许读成「已合回」✗。
+# ⚠ 边界（与 ux-queue.py 同口径；夹具实测 /tmp/cleanJ-fixture）：空分支（tip == $BASE）⇒ 空输出 ✓；
+#   **空提交**（`--allow-empty`，patch-id 为空）与**分支上的 merge 提交** ⇒ 恒 `+` ⇒ 判「未合回」
+#   ——这是**保守方向**（判「未合回」≠ 放行），故**不**过滤 ✗。
+branch_missing_commits() {
+  local branch=${1:?用法: branch_missing_commits <branch>} out
+  out=$(git -C "$ROOT" cherry "$BASE" "$branch" 2>/dev/null) || return 1
+  printf '%s\n' "$out" | awk '/^\+/{print $2}'
+  return 0
+}
 
 cmd_new() {
   local id=${1:?用法: agent-worktree.sh new <id>}
@@ -51,10 +72,19 @@ cmd_list() {
   info "── 工作树 ──"
   git -C "$ROOT" worktree list
   info ""
-  info "── 未合回 $BASE 的 agent 分支 ──"
-  local unmerged
-  unmerged=$(git -C "$ROOT" branch --no-merged "$BASE" --list 'agent/*' --format='%(refname:short)')
-  if [ -z "$unmerged" ]; then info "（无 ✓）"; else printf '  %s\n' $unmerged; fi
+  info "── 活没进 $BASE 的 agent 分支（判据 = git cherry $BASE <b> 的 + 行 = patch-id 等价，**不是祖先性** ✗）──"
+  local b missing bad=0
+  while IFS= read -r b; do
+    [ -n "$b" ] || continue
+    if ! missing=$(branch_missing_commits "$b"); then
+      info "  ⚠ ${b}：量不出来（git cherry 非零 ⇒ 不敢读成『已合回』 ✗）"
+      bad=$((bad + 1)); continue
+    fi
+    [ -n "$missing" ] || continue
+    info "  ${b}（$(printf '%s\n' "$missing" | wc -l | tr -d ' ') 个提交的改动不在 $BASE 上）"
+    bad=$((bad + 1))
+  done < <(git -C "$ROOT" branch --list 'agent/*' --format='%(refname:short)')
+  [ "$bad" = 0 ] && info "（无 ✓）"
   info ""
   info "── 各树脏不脏（`*` = 有未提交改动）──"
   git -C "$ROOT" worktree list --porcelain | awk '/^worktree /{p=$2} /^branch /{b=$2} /^$/{if(p)printf "  %-58s %s\n", p, b; p=""}'
@@ -91,10 +121,21 @@ cmd_land() {
 cmd_rm() {
   local id=${1:?用法: agent-worktree.sh rm <id>}
   local branch="agent/$id" path="$WT_DIR/$id" force=${2:-}
-  local merged
-  merged=$(git -C "$ROOT" branch --merged "$BASE" --list "$branch" --format='%(refname:short)')
-  if [ -z "$merged" ] && [ "$force" != "--force" ]; then
-    die "${branch} 还没合回 ${BASE} ⇒ 要么 land，要么 --force（**会丢提交** ✗）"
+  # 安全闸：判「活有没有进 $BASE」（`git cherry` 的 `+` 行 = patch-id 等价），**不是祖先性** ✗。
+  # ⚠ 换判据后**只松开一处**：rebase 孪生（活已进 main、hash 换了）不再被拒 ✓；
+  #   **真有未合回提交**的分支**照样拒** ✓；**量不出来**（git cherry 非零）**也拒** ✓（`None ≠ []`）。
+  local missing n
+  if ! missing=$(branch_missing_commits "$branch"); then
+    if [ "$force" = "--force" ]; then
+      info "⚠ 量不出 ${branch} 有没有未合回的提交（git cherry ${BASE} ${branch} 非零：分支不在或仓库坏了）——按 --force 继续（**这是你按的旁路，不是判据说『已合回』** ✗）"
+      missing=""
+    else
+      die "量不出 ${branch} 有没有未合回的提交（git cherry ${BASE} ${branch} 非零：分支不在或仓库坏了）⇒ **拒删**（量不出来 ≠ 已合回 ✗）；确认后加 --force"
+    fi
+  fi
+  if [ -n "$missing" ] && [ "$force" != "--force" ]; then
+    n=$(printf '%s\n' "$missing" | wc -l | tr -d ' ')
+    die "${branch} 还有 ${n} 个提交的改动不在 ${BASE} 上（判据 = git cherry ${BASE} ${branch} 的 + 行 = patch-id 等价，**不是祖先性**）⇒ 要么 land，要么 --force（**真丢这 ${n} 个提交** ✗）"
   fi
   if [ -d "$path" ]; then
     git -C "$ROOT" worktree remove "$path" ${force:+--force} || die "worktree remove 失败（有未提交改动？加 --force）"
@@ -109,5 +150,6 @@ case "${1:-}" in
   list) shift; cmd_list "$@" ;;
   land) shift; cmd_land "$@" ;;
   rm) shift; cmd_rm "$@" ;;
-  *) sed -n '3,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  # 用法展示 = 文件头的整块注释（到第一个空行为止 ⇒ 以后加注释行不会再被截断 ✗）
+  *) sed -n '3,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac
