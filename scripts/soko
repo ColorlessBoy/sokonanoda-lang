@@ -1668,6 +1668,32 @@ async function main(argv) {
         )
         return 3
       }
+      // **harness 接线的文档漂移**（2026-10-15 LINK-B，洞 `DOC-DRIFT-CHECKER-NOT-COMMITTED`）：
+      // 三处（`README.md` / `skills/README.md` / `editor/vscode/README.md`）刚与实现对齐过，
+      // 而当时那个 checker 只是**证据件**（`.cache/**` 不 commit）⇒ 对齐做完了、**没有守卫
+      // 钉住它** ✗（`AGENTS.md`：**咬不住的守卫等于没有** ✓）。本步把它收进 `scripts/`
+      // 并**每次 gate 都跑**：先量事实（`opencode.json` 无 `lsp` 块 · shim 只转发 ·
+      // `scripts/soko` **读** `SOKONANODA_OFFLINE`、从不读 LSP 那个别名 · 插件改写
+      // `lsp.sokonanoda.command`），再对文档；漂移就**点名哪一处** ✗。快（毫秒级）
+      // ⇒ `--fast` 也跑 ✓；`--selftest` 把三处旧文放回去、每处都必须判红 ✓。
+      const docDrift = path.join(REPO, 'scripts', 'check-doc-drift.py')
+      if (!existsSync(docDrift)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, docDrift)} —— 接线漂移无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      for (const extra of [[], ['--selftest']]) {
+        const step = spawnSync(python.cmd, [...python.args, docDrift, ...extra], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (step.error) {
+          process.stderr.write(`scripts/soko gate: failed to run ${docDrift}: ${step.error.message}\n`)
+          return 3
+        }
+        if ((step.status ?? 3) !== 0) return step.status ?? 3
+      }
       // **启动器「VS Code 扩展自带」链接**（2026-10-15 LINK-B，洞 `SOKO-EXTENSION-LINK-UNWIRED`）：
       // 那一格曾被文档写着、`extensionServer()` 写着、`canExec()` 的分支写着，**却没有调用点** ✗
       // ⇒ 通用 VSIX + 没跑过「Install CLI」+ 离线时 `scripts/soko lsp` 只能下载/被拒。
