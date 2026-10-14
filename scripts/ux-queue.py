@@ -2359,6 +2359,34 @@ def source_history_ids() -> set[str]:
     return out
 
 
+# ── 「不许更松」对照集（`#3`，2026-10-14 · 第十次独立复核实测 ✗） ─────────────────
+# 上一轮（`#3` 的「`--check` 看得见节点内容」）在 commit 里写「`--release check` 的既有读数
+# **一个字不动**」，而复核者自造的对照集里**恰好没有** `--release check` ⇒ 断言与实测不符 ✗
+# （实测：那条读数**多了**一句「（发版节点 `REL-9.9.9` 的**内容**也受 `--check` 复查 …）」）。
+# ⇒ 病根不是"那次写错了"，是**对照集本身有取样偏差**：手挑的命令清单必然漏掉被改到的路径。
+# 修法（两半，缺一不可）：
+#   ① 对照集**写进脚本**（下面这份），改到哪条命令就把它点进来 ✓；
+#   ② `--selftest` 有一条**结构性**守卫：入口从 `main()` 的分派分支**自动**推出、
+#      `--release` 的动作从 `cmd_release` 的分支**自动**推出，逐个核它在这份清单
+#      （或带理由的 `NOT_LOOSER_EXEMPT`）里 ⇒ **漏项当场判红** ✗
+#      （"下次记得"不是纪律，**会判红的结构**才是 ✓）。
+# ⚠ 逐字节比的**方法**（本轮实测见 VERDICT）：同一批夹具 + 同一批命令，改前 / 改后各跑一遍
+# `(rc, stdout, stderr)` 比字节 —— ⚠ **不许只挑"我觉得没被改到"的那几条** ✗（那正是 #3 的病）。
+NOT_LOOSER_COMMANDS = (
+    "--check-plan", "--check", "--check-uncovered", "--json", "--next", "--render", "--inbox",
+    "--claim", "--unclaim", "--advance", "--add-child",
+    "--repoint", "--repoint-all",
+    "--release open", "--release add", "--release block",
+    "--release drop", "--release check", "--release cut",
+    "--submit", "--schedule", "--triage",
+    "(无参数：表格)",
+)
+# **不在**对照集里的入口 —— 每条必须写明**理由**（不许默默漏掉 ✗）：
+#   · `--selftest`：它自己的读数（臂数 / expect 数）**本轮就该变**（本轮 +N 条臂）⇒
+#     逐字节比的对象是「同一输入下的既有读数」，不是判据通道本身 ✓。
+NOT_LOOSER_EXEMPT = {
+    "--selftest": "判据通道自己的读数（臂数/expect 数）本轮**就该变** ⇒ 不在逐字节比里",
+}
 
 
 def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
@@ -3073,8 +3101,17 @@ def release_item_problem(ident: str, cur: dict, rel: str | None = None) -> str |
     **合法形状**的 cut ⇒ `--check` **rc=0** ✗（`#3`，2026-10-14 · 第九次独立复核实测）——
     而 `soko gate --fast` 与 CI 的 `ledger` job 跑的**正是 `--check`** ⇒ 那个洞长在 gate/CI 上 ✗。
     ⇒ 两处**共用**这一处判据（`AGENTS.md` 硬规则 0(b)：同一规则不许两处写 ✗）。
-    ⚠ `rel` 只在 `--check` 那一侧传（多印一句"节点内容也受 `--check` 复查"✓，判红**点名节点** ✓）；
-    **不传时读数与改前逐字节一致**（`--release check` 的既有硬拒读数一个字不动 ✓）。
+    ⚠ **`rel` 的实情 —— 这里原先写的是假话**（`#3`，2026-10-14 · 第十次独立复核实测 ✗）：
+    旧文写「`rel` 只在 `--check` 那一侧传 …… **不传时读数与改前逐字节一致**（`--release check`
+    的既有硬拒读数**一个字不动** ✓）」，而实测：`release_read_problems()` 把**每个节点自己的
+    id** 传进来 ⇒ 从**两条读侧**（`--check` 与 `--release check`）走到的 `rel` **都不是 `None`**
+    ⇒ 那句「（发版节点 … 的**内容**也受 `--check` 复查 …）」**两侧都会印**；`rel=None` 只有
+    `cmd_release` 里那次"只为判空"的探测调用（读数不落地）。⇒ 上一轮那条断言**与实测不符** ✗
+    （实测 `--release check` 的读数**多了这一句** —— rc / 规则 / 红条数都不变 ⇒ **不是放宽**，
+    但"一个字不动"是假的 ✗）。
+    ⚠ **教训已落成结构**（不是"下次记得"）：对照集写进 `NOT_LOOSER_COMMANDS`，
+    `--selftest` 的 ⓪d 守卫从 `main()` / `cmd_release` **自动**推出"必须比对的入口与动作"
+    ⇒ 改到某条命令却忘了把它点进对照集就**先红** ✗。
     """
     if (cur or {}).get("state") != "done" or not (cur or {}).get("commit"):
         return (f"✗ 入版条目 `{ident}` 未 done 或无证据 ⇒ **发出去就不是完整可用版本** ✗"
@@ -3094,6 +3131,8 @@ def release_read_problems(state: dict[str, dict], rel: str | None = None) -> lis
         ⇒ 一条未 done 的入版条目 + 合法形状的 cut ⇒ rc=0 ✗（gate/CI 跑的就是它 ✗）。
 
     `rel` 给了就只算那一个节点（`--release check` 只审自己的节点 ✓）；不给就全审（`--check` ✓）。
+    ⚠ 但**下传给 `release_item_problem` 的永远是"节点自己的 id"**（见那里的说明：`--check`
+    那一侧也印那句"节点内容也受 `--check` 复查" ⇒ 上一轮"一个字不动"的说法与实测不符 ✗）。
     """
     nodes, problems = release_scan()
     out = [msg for _r, msg in problems if rel is None or _r == rel]
@@ -6428,6 +6467,32 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     expect("真 parser 接受 `--submit … --why/--evidence/--repro`",
            probe_args.why == "w" and probe_args.evidence == "e" and probe_args.repro == "bash x.sh")
 
+    # ⓪d ⭐ **「不许更松」对照集必须无漏项**（`#3`，2026-10-14 · 第十次独立复核实测 ✗）：
+    #     上一轮在 commit 里写「`--release check` 的既有读数**一个字不动**」，而复核者自造的
+    #     对照集里**恰好没有** `--release check` ⇒ 断言与实测不符 ✗（实测：那条读数**多了**
+    #     一句「（发版节点 `REL-9.9.9` 的**内容**也受 `--check` 复查 …）」）。⇒ 病根是
+    #     **取样偏差**：手挑的命令清单必然漏掉被改到的路径。修法 = 把"对照集必须覆盖**每个**
+    #     入口"变成**会判红的结构**：入口从 `main()` 的分派分支**自动**推出（加一个子命令
+    #     ⇒ 这条先红 ✗），`--release` 的动作从 `cmd_release` 的分支**自动**推出（加一个动作
+    #     ⇒ 也先红 ✗）。⚠ 不在清单里的入口必须进 `NOT_LOOSER_EXEMPT` **并写明理由** ✗。
+    _dispatch = sorted(set(re.findall(r"if args\.([A-Za-z_][A-Za-z0-9_]*)",
+                                      inspect.getsource(main))))
+    _missing = [d for d in _dispatch
+                if not any(c == f"--{d.replace('_', '-')}"
+                           or c.startswith(f"--{d.replace('_', '-')} ")
+                           for c in NOT_LOOSER_COMMANDS)
+                and f"--{d.replace('_', '-')}" not in NOT_LOOSER_EXEMPT]
+    expect(f"「不许更松」对照集覆盖 `main()` 的**每个**分派入口（漏的：{_missing or '无'}）"
+           f"—— 改到某条命令却忘了把它点进对照集 ⇒ **先红** ✗（#3 的取样偏差就是这么来的）",
+           not _missing)
+    _rel_actions = sorted(set(re.findall(r'action == "([a-z]+)"',
+                                         inspect.getsource(cmd_release))))
+    _missing_rel = [a for a in _rel_actions if f"--release {a}" not in NOT_LOOSER_COMMANDS]
+    expect(f"对照集覆盖 `--release` 的**每个**动作（{_rel_actions}；漏的：{_missing_rel or '无'}）"
+           f"—— ⚠ **动作级**也要无漏项：`#3` 漏掉的正是 `--release check` **这一个动作**，"
+           f"不是整个 `--release` ✗", not _missing_rel)
+    expect("对照集里**必须有** `--release check`（`#3` 点名的取样偏差就是漏了它 ✗）",
+           "--release check" in NOT_LOOSER_COMMANDS)
 
     # ⓪b **探针退出码约定对账**（2026-10-12 接口 agent 提交 `SUB-vim-exit-inverted`）：
     #     `run_probe` 的映射按 `probe_kind` 分流，而**四类探针的约定并不相同** ——
