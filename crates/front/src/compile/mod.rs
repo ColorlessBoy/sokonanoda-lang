@@ -5,6 +5,7 @@ mod check;
 pub(crate) mod elab;
 mod error;
 mod event;
+mod expected;
 mod goals;
 pub mod hints;
 mod implicit;

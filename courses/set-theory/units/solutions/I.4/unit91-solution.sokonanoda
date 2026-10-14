@@ -29,7 +29,7 @@ theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
 theorem bij_id (α : Type) : BijPair α α (fun (x : α) => x) :=
   And.intro (Injective α α (fun (x : α) => x)) (Surjective α α (fun (x : α) => x))
     (fun (a : α) (b : α) (h : a = b) => h)
-    (fun (b : α) => Exists.intro α (fun (a : α) => a = b) b (Eq.refl.{1} α b))
+    (fun (b : α) => Exists.intro b (Eq.refl.{1} α b))
 
 theorem right_inv_inj (α : Type) (β : Type) (f : α → β) (g : β → α)
     (hgf : ∀ (b : β), f (g b) = b) : Injective β α g :=

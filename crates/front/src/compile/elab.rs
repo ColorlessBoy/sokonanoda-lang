@@ -2,6 +2,7 @@
 
 use super::check::quiet_catch;
 use super::error::{CompileError, ErrorKind};
+use super::expected::{drop_expected_src_layer_unfolding, mentions_any, mentions_names};
 use super::prelude::CompileOptions;
 use super::report::ResolvedTarget;
 use super::scope::NamespaceScope;
@@ -2222,64 +2223,6 @@ fn kernel_next_arg_expected<'a>(
     let (layers, _) = notation_telescope(&ty_text)?;
     let (_, domain) = layers.first()?;
     Some(domain.clone())
-}
-
-/// `e` 里有没有引用 `names` 里的**裸名**（同 [`mentions_any`]，但直接收名字表 ✓）。
-fn mentions_names(e: &Expr, names: &[String]) -> bool {
-    if names.is_empty() {
-        return false;
-    }
-    fn walk(e: &Expr, names: &[String]) -> bool {
-        match e {
-            Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => names.contains(name),
-            Expr::App { fun, arg, .. } => walk(fun, names) || walk(arg, names),
-            Expr::Forall { binders, body, .. } | Expr::Lambda { binders, body, .. } => {
-                binders
-                    .iter()
-                    .any(|b| b.ty.as_deref().is_some_and(|t| walk(t, names)))
-                    || walk(body, names)
-            }
-            Expr::Arrow {
-                domain, codomain, ..
-            } => walk(domain, names) || walk(codomain, names),
-            Expr::Plus { lhs, rhs, .. } => walk(lhs, names) || walk(rhs, names),
-            Expr::Let { val, body, .. } => walk(val, names) || walk(body, names),
-            _ => false,
-        }
-    }
-    walk(e, names)
-}
-
-/// `e` 里有没有引用**更早的 binder**（保守判据 ✓ —— 只看**裸名** ✓，命中就放弃 ✓）。
-fn mentions_any(e: &Expr, scope: &ElabScope<'_>, earlier: &[crate::ast::Binder]) -> bool {
-    let mut names: Vec<&str> = earlier.iter().map(|b| b.name.as_str()).collect();
-    names.retain(|n| !n.is_empty());
-    if names.is_empty() {
-        return false;
-    }
-    // 作用域里**同名**的那些**不是**这一组的 ⇒ 也算"更早的" ✓（保守方向安全 ✓）。
-    let _ = scope;
-    fn walk(e: &Expr, names: &[&str]) -> bool {
-        match e {
-            Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => {
-                names.contains(&name.as_str())
-            }
-            Expr::App { fun, arg, .. } => walk(fun, names) || walk(arg, names),
-            Expr::Forall { binders, body, .. } | Expr::Lambda { binders, body, .. } => {
-                binders
-                    .iter()
-                    .any(|b| b.ty.as_deref().is_some_and(|t| walk(t, names)))
-                    || walk(body, names)
-            }
-            Expr::Arrow {
-                domain, codomain, ..
-            } => walk(domain, names) || walk(codomain, names),
-            Expr::Plus { lhs, rhs, .. } => walk(lhs, names) || walk(rhs, names),
-            Expr::Let { val, body, .. } => walk(val, names) || walk(body, names),
-            _ => false,
-        }
-    }
-    walk(e, &names)
 }
 
 fn needs_expected_type(expr: &Expr) -> bool {
@@ -5397,25 +5340,6 @@ fn peel_expected_src(expected: Option<&Expr>) -> Option<(BinderStyle, Expr, Expr
     }
 }
 
-/// Source-level mirror of [`drop_expected_layer`].
-fn drop_expected_src_layer(expected: Option<&Expr>) -> Option<Expr> {
-    match expected? {
-        Expr::Arrow { codomain, .. } => Some(codomain.as_ref().clone()),
-        Expr::Forall { binders, body, .. } if !binders.is_empty() => {
-            if binders.len() > 1 {
-                Some(Expr::Forall {
-                    binders: binders[1..].to_vec(),
-                    body: body.clone(),
-                    span: binders[0].span,
-                })
-            } else {
-                Some(body.as_ref().clone())
-            }
-        }
-        _ => None,
-    }
-}
-
 /// `⟨a, b⟩` 的目标构造子：由**期望类型**的头决定（L2.7，路线 C）。
 ///
 /// 认三类（顺序即优先级）：
@@ -5894,7 +5818,13 @@ pub(crate) fn elab_expr<'a>(
                         // still loses one layer so later untyped binders
                         // stay aligned with the declared type.
                         rest = drop_expected_layer(rest);
-                        rest_src = drop_expected_src_layer(rest_src.as_ref());
+                        // **期望类型的源级 δ 展开**（2026-10-14）：声明类型是
+                        // **def 应用**（`Function.Surjective α β f`）时
+                        // `drop_expected_src_layer` 剥不开 ⇒ 先源级展开一层再剥 ✓
+                        // （零内核调用；见 `drop_expected_src_layer_unfolding`）。
+                        // 展开不出来 ⇒ 逐字等于今天（`None`）✓。
+                        rest_src =
+                            drop_expected_src_layer_unfolding(rest_src.as_ref(), ctx, &binder.name);
                         (
                             t,
                             kernel_binder_style(&binder.style),

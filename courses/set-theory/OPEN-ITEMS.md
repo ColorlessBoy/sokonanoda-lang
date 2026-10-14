@@ -4,6 +4,51 @@
 > 且**当时正挂在内核线的在途改动里**（本仓库有并行会话）⇒ 课程侧的未结项登记在本文件 ✓
 > （它是**课程**的未完成度，不是语言的缺口 ✓）。**格式固定**：编号 · 状态 · 零件判据 · 缺什么。
 
+## ★ 2026-10-14 **隐变量适配收口复测**（W-3 遗留的 42 处）—— **8 处解锁 · 1 处真边界**
+
+**为什么登记在这里** ✓：W-3 被标 `done`（`06d7e193`），但它的收口 commit **自己写着**
+「进度 grep **54 → 42**」而 **42 处不在任何账上** ✗（队列 `open` 无 W-3、`ONBOARDING §0.2`
+已摘掉 W-3、本文件也没登记 ⇒ 只活在 commit message + `STATUS.md` 一句里 ✗）——
+**本条就是把那 42 处搬进账** ✓（用户 2026-10-14：「隐变量尽量和 lean4 对齐，**不要留半成品**」✓）。
+
+**读数（确切命令 ✓）**：
+```bash
+grep -rnE "Exists\.intro α|Set\.subset α|Set\.mem α" courses/set-theory/ --include="*.sokonanoda" | grep -v "/gaps/" | wc -l
+```
+**42 → 34**（本轮解锁 **8** 处 ✓）。
+
+**34 处的分层（逐处）**：
+
+* **33 = 两份教学对照页的"地板"**（**故意保留** ✓，不是未适配 ✗）：
+  `units/notation-cheatsheet.sokonanoda` **19** 命中 = 8 注释（速查表本体 + 三条使用规则）
+  + 11 代码（9 个 `demo_*_pointful` 的签名 + `𝒫`/`ᶜ` 两个"底下站着什么"演示）；
+  `units/solutions/notation-cheatsheet-solution.sokonanoda` **14** 命中 = 9 个
+  `demo_*_pointful` 的签名与体。
+  **判据**：画布文件头自述「③ **10 对演示 + 3 道练习**：它们是**证据**，不是课文 ——
+  每一对把同一个命题的**记法版与点名版并排写一遍**」✓ ⇒ 点名形式就是这一页要展示的东西 ✓。
+* **1 = 仍红（真边界 ✗）**：
+  `units/solutions/I.13/unit37-solution.sokonanoda:70` 的
+  `Exists.intro α (fun (b : α) => r a b ∧ r b c) a` 改自然写法后报
+  `elab-unknown-identifier B` ✗。
+  **根因（已钉）**：`crates/front/src/spine.rs::unfold_to_inductive` 对 **`@`-全显式 pp 形态**
+  （`@Rel.comp α α α r r a c`）**先用 `UnfoldAlign::Short` 错位对齐** ✗，而它的 `done()`
+  只判「头是不是归纳」⇒ **错位结果照样被收下** ✗ ⇒ 解出的谓词里留着 `Rel.comp` 的签名形参名
+  `B`（**不在作用域**）⇒ 误导性诊断。
+  **不是**"隐式类型参数没从期望类型取到"那一格 ✓（那一格本轮已补 ✓）。
+  **候选修法（未做 ✗）**：`unfold_to_inductive` 的读法选择加一条「`@` 形态 ⇒ 先 `Old`」，
+  或 `done()` 之外再加一条「展开后不许留签名形参裸名」的判据。
+  **复现**：把该行改成 `Exists.intro a` ⇒ `grade` exit 1（原样 ⇒ exit 0）。
+
+**本轮解锁的 8 处**（改前 `exit 1` ⇒ 改后 `exit 0` ✓；逐处读数见
+`.cache/ux/fix-implK/VERDICT.md` §1.2）：`I.2/unit07:70` · `I.4/unit87:52` · `I.4/unit91:32` ·
+`I.11/unit31:64` · `I.12/unit35:48` · `I.6/unit109:70,86,95`。
+**引擎侧三处**（都在 `crates/front/src/compile/elab.rs`）：① 期望类型的**源级 δ 展开**
+（声明类型是 **def 应用**时 `fun` 体拿不到期望类型 ✗）· ② 期望类型的 **binder 名对齐**
+（pp 往返的防撞改名 `x___` 会留成**自由名** ✗）· ③ `mentions_names`/`mentions_any` 的
+**遍历形状**补齐到与 `spine::mentions` 同款（`Expr::Notation` 整片漏检 ⇒ `suspect` 判不准 ✗）。
+**门禁** ✓：`check.py` **258 目标 · 2190 checked · 0 判负**（一个没掉 ✓）·
+`notation-lint` exit 0 · 豁免标记 **711 → 709**（**只减不增** ✓）。
+
 ## ★ 2026-10-08 收口批次（**一次收 20 条** ✓）
 
 **触发** ✓：内核侧 **G-73 家族**（`docs/gaps/ledger.jsonl` 的 G-73 / G-85 等）**已 `fixed`** ✓

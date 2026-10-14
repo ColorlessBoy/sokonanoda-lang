@@ -45,7 +45,7 @@ theorem injective_of_leftInverse (α β : Type) (g : β → α) (f : α → β)
 theorem surjective_of_rightInverse (α β : Type) (g : β → α) (f : α → β)
     (h : Function.RightInverse α β g f) : Function.Surjective α β f :=
   fun (y : β) =>
-    Exists.intro α (fun (x : α) => Eq.{1} β (f x) y) (g y)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    Exists.intro (g y)
       (rightInverse_apply α β g f h y)
 
 theorem bijective_of_inverse (α β : Type) (f : α → β) (g : β → α)

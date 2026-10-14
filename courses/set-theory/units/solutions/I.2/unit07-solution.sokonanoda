@@ -67,7 +67,7 @@ theorem leftInverse_injective (α β : Type) (f : α → β) (g : β → α)
 theorem surjective_of_rightInverse (α β : Type) (f : α → β) (g : β → α)
     (h : Function.RightInverse α β g f) : Function.Surjective α β f := by
   intro y
-  exact Exists.intro α (fun (x : α) => f x = y) (g y) (h y)
+  exact Exists.intro (g y) (h y)
 
 -- 题 6：数据版 iff。
 --   "→"：有单射与右逆 hg ⇒ 左逆：对每个 x，用单射把目标 `g (f x) = x` 化成

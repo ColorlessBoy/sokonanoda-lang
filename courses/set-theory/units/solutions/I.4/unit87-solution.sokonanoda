@@ -49,4 +49,4 @@ theorem inj_id (α : Type) : Injective α α (fun (x : α) => x) :=
   fun (a : α) (b : α) (h : a = b) => h
 
 theorem surj_id (α : Type) : Surjective α α (fun (x : α) => x) :=
-  fun (b : α) => Exists.intro α (fun (a : α) => a = b) b (Eq.refl.{1} α b)
+  fun (b : α) => Exists.intro b (Eq.refl.{1} α b)
