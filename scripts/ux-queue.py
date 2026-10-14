@@ -143,7 +143,6 @@ main 的历史**）✗。口径 **只对新增收口**要求祖先性（写入�
 **存量**原先给一条**带日期**的豁免（`ANCESTRY_GATE_SINCE`）——
 ⚠ 该豁免（2026-10-14 同日晚）**已按上面的两步收口删掉**：存量全量回填到 0 之后，血缘口径是
 **「非祖先必须 0 条」的断言**，每次 `--check` 都把这条断言打出来（**不许静默** ✓）。
-
 **三个视图必须同数**（2026-10-14 · 同轮 ①②③）：`--json` 的 `open`/`summary`、`--next` 的推序、
 §0.2 的 `QUEUE:COUNTS` **一律从 `sched_rows()` 的那份视图算**（`json_view` 不再自己从源行另算 ✗）；
 子任务**有源行就用源行**（真处置），`check_plan` 的处置以**来源台账**为权威 ⇒「反向两层漂移」
@@ -1065,8 +1064,92 @@ def check_uncovered(rows: list[dict], live: bool, timeout: int, undecided: list[
 # 而事件表是**主 checkout 单点**（`SOKO_QUEUE_ROOT`）⇒ 不重定向就会往真台账里灌合成条目、
 # 让"幽灵条目"判据反复假红（接口 agent 提交 `SUB-ghost-guard-diluted` 指出的正是这个，
 # 而"跳过 R-*/P-*"只是治标 —— 那等于**放宽守卫** ✗）。
-EVENTS = Path(os.environ["SOKO_QUEUE_EVENTS"]) if os.environ.get("SOKO_QUEUE_EVENTS") \
-    else ROOT / "docs" / "ux-queue-events.jsonl"
+#
+# ⭐ **`SOKO_QUEUE_EVENTS` 的解析只有这一处**（`EVENTS-FLAG-ABS-PATH-BREAKS-SELFTEST`，
+# 2026-10-15 · 第十五次独立复核实测 ✗）：旧写法是**裸 `Path(os.environ[...])`** ⇒ 相对值按
+# **进程 cwd** 解析，而同一个变量在两个进程里 cwd 不同（父 = 调用者的目录，子进程 = 它自己的
+# 夹具根）⇒ **同一个值解析出两个文件**：读的时候找不到、写的时候写歪 ✗。
+# 实测（真 clone 夹具，`SOKO_QUEUE_EVENTS=/tmp/…/abs-events.jsonl` 跑 `--selftest`）：
+#   · 父进程按**夹具根**算 `_cli/docs/ux-queue-events.jsonl`、子进程按**继承来的绝对值**算 ⇒
+#     子进程把两条合成事件（`--claim`/`--advance FX-CLI`）写进那个文件（**+2 行** ✗）、
+#     父进程读 `_cli_ev` ⇒ `FileNotFoundError` 栈 + **rc=1**（判据一行都不打 ✗）；
+#   · 正对照：不带变量 ⇒ rc=0/零写入 ✓；**镜像相对值**（`docs/ux-queue-events.jsonl`）⇒
+#     子进程 cwd = 夹具根 ⇒ 碰巧指到同一个文件 ⇒ rc=0/零写入 ✓（**碰巧**，不是机制 ✓）。
+# ⇒ 口径：**相对值按 `ROOT` 解析**（与 `ROOT` 自己同一套解析 ⇒ 同一个根的两个进程必得
+# 同一个文件 ✓），绝对值原样保留（隔离脚本照旧用 `/tmp/…` ✓）。
+
+
+def events_path_for(raw: str | None, root: Path | None = None) -> Path:
+    """`SOKO_QUEUE_EVENTS` 的**唯一解析处**（父子共用 ⇒ 不会一边按 cwd、一边按根 ✗）。
+
+    相对值 ⇒ `<root>/<raw>`（`root` 默认 `ROOT`）· 绝对值 ⇒ 原样（只做 `resolve()` 规范化）。
+    ⚠ **基准是"队列根"而不是 cwd**：事件表是**这个根**的状态，不是"我站在哪儿"的状态。
+    """
+    if not raw:
+        return ((root or ROOT) / "docs" / "ux-queue-events.jsonl").resolve()
+    path = Path(raw)
+    return (path if path.is_absolute() else (root or ROOT) / path).resolve()
+
+
+EVENTS = events_path_for(os.environ.get("SOKO_QUEUE_EVENTS"))
+
+# **git 发现类变量**（同一个缺口的**横向排查**，2026-10-15）：它们也是"同一个变量、两个进程
+# 各按自己的 cwd 解析"那一类 —— 而本脚本**每一处** git 调用都显式给了 `cwd`（队列根 / 夹具仓）
+# ⇒ 发现**必须**从 cwd 走；环境里带着它们就等于让"cwd 是哪棵树"被一个环境变量顶掉。
+# 实测（真夹具，`GIT_DIR=<外层>/.git`）：
+#   · ⑪c 子进程的锁落到**外层** `.git`（不是 `_cli/.git`）⇒ ⑪c 的锁证据**空转**（`_cli_held`
+#     的 `if exists else []` 兜底把"没写"读成"已释放"）；
+#   · `git init <夹具根>` 被 GIT_DIR 顶掉 ⇒ 夹具根**根本没建出 `.git`**；
+#   · `--selftest` 的**夹具仓臂一次红 9 条**（`agent_branches()` 读到外层仓库的分支）。
+# ⇒ 修法**必须是全局的**（`_sanitize_git_discovery()` 在 `main()` 里一处摘掉）：红的那些臂里
+#   有的是**子进程**（继承环境）、有的是**父进程内**对夹具仓的 git 调用（`agent_branches()` /
+#   `cmd_release`）—— 只在派发点摘（子进程那一半）盖不住后者，实测仍红 5 条 ✗。
+GIT_DISCOVERY_VARS = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                       "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES")
+
+
+def _sanitize_git_discovery() -> None:
+    """把 **git 发现类变量**从本进程环境里摘掉（`GIT_DISCOVERY_VARS`）—— 一处生效，全局一致。
+
+    ⚠ **不静默**（仓库口径："判不了 ≠ 绿" / 悄悄改掉用户的环境也是同一种病）：真的摘掉了就
+    大声说一句 —— 否则"为什么我的 `GIT_DIR` 没生效"要查半天。
+    ⚠ 只摘**发现类**：`GIT_AUTHOR_*`/`GIT_COMMITTER_*`（夹具要的提交身份）与 `GIT_CONFIG_*`
+    一个字不动 ✓（它们不改变"哪棵树"）。
+    """
+    dropped = [k for k in GIT_DISCOVERY_VARS if os.environ.pop(k, None) is not None]
+    if dropped:
+        print("⚠ 环境里有 " + "、".join(f"`{k}`" for k in dropped)
+              + " ⇒ 本进程内**已摘掉**：本脚本一律按**队列根 / 夹具仓的 cwd** 解析 git"
+                "（否则同一个变量会在父子进程里解析出**两棵树**：锁写歪、历史读错 ✗）",
+              file=sys.stderr)
+
+
+def _guard_events_env() -> None:
+    """`SOKO_QUEUE_EVENTS` 指到**结构性错值**时要**干净报错**（rc=2 + 一行人话，别丢栈 ✗）。
+
+    ⚠ 为什么要有这一关（同一个缺口的横向排查）：实测两个错值都丢栈 + **rc=1**，而契约是
+    "环境错 = rc=2 + 人话"（`#5a`）：
+      · 指到一个**目录** ⇒ `load_events()` 的 `read_text` 抛 `IsADirectoryError`（21 行栈 ✗）；
+      · 父级是个**文件**（例 `/etc/hosts/x.jsonl`）⇒ `append_event` 的 `mkdir` 抛
+        `FileExistsError`（**写侧**才炸 ⇒ 同一个错值读侧静默、写侧栈 ✗）。
+    ⚠ **"文件不存在"是合法的，这一关不许拦** ✗：事件表是**覆盖层**（`load_events()` 显式容忍
+    缺失，docstring 明说"删掉事件文件就回到来源台账的处置"）⇒ 只拦上面两种**结构**错。
+    """
+    raw = os.environ.get("SOKO_QUEUE_EVENTS")
+    if not raw:
+        return
+    if EVENTS.is_dir():
+        raise UsageError(
+            f"`SOKO_QUEUE_EVENTS` 指到了**目录**（`{EVENTS}`）⇒ 它要的是**事件表文件**的路径 ✗ "
+            f"（原值 `{raw}`；相对值按 `SOKO_QUEUE_ROOT` 解析 ⇒ 要隔离就用 "
+            f"`SOKO_QUEUE_EVENTS=/tmp/…/events.jsonl`）")
+    if EVENTS.parent.exists() and not EVENTS.parent.is_dir():
+        raise UsageError(
+            f"`SOKO_QUEUE_EVENTS` 的**父级不是目录**（`{EVENTS.parent}`）⇒ 事件表写不进去 ✗ "
+            f"（原值 `{raw}`；相对值按 `SOKO_QUEUE_ROOT` 解析 ⇒ 要隔离就用 "
+            f"`SOKO_QUEUE_EVENTS=/tmp/…/events.jsonl`）")
+
+
 LOCK_TTL_S = 2 * 60 * 60  # 两小时没心跳 ⇒ 陈旧（默认**只警告**；`--force` 才接管）
 # **并发 = 4 核**（2026-10-12 用户：「允许最多 4 个 subagent，类比 4 核心 cpu」）——
 # 但**同一模块同一时间只允许一个写者** ✗ ⇒ 认领要过**资源矩阵**（不是简单的计数锁）。
@@ -1393,8 +1476,16 @@ def load_events() -> list[dict]:
     """
     if not EVENTS.exists():
         return []
+    try:
+        _raw = EVENTS.read_text(encoding="utf-8")
+    except OSError as err:
+        # **读不了 = 环境错（rc=2 + 人话），不许丢栈** ✗（`#5a` 的契约；实测
+        # `SOKO_QUEUE_EVENTS=<目录>` 改前在这里抛 `IsADirectoryError` 21 行栈 + rc=1）。
+        # ⚠ 结构错值在 `_guard_events_env()` 就拦掉了；这里是**兜底**（权限 / 半路消失 …）。
+        raise UsageError(f"读不了事件表 `{_label(EVENTS)}`：{err} ⇒ 它要的是**可读的文件**"
+                         f"（`SOKO_QUEUE_EVENTS` 的相对值按 `SOKO_QUEUE_ROOT` 解析）") from err
     out: list[dict] = []
-    for lineno, line in enumerate(EVENTS.read_text(encoding="utf-8").splitlines(), 1):
+    for lineno, line in enumerate(_raw.splitlines(), 1):
         if not line.strip():
             continue
         try:
@@ -4147,7 +4238,7 @@ def selftest_scheduler(expect) -> None:
             _cli = Path(tmp) / "cliroot"
             (_cli / "scripts").mkdir(parents=True, exist_ok=True)
             (_cli / "docs" / "gaps").mkdir(parents=True, exist_ok=True)
-            subprocess.run(["git", "init", "-q", str(_cli)], capture_output=True)
+            subprocess.run(["git", "init", "-q", str(_cli)], capture_output=True, cwd=str(_cli))
             (_cli / "Cargo.toml").write_text("", encoding="utf-8")
             (_cli / "scripts" / "ux-queue.py").write_text("# 根标记（`_guard_root` 的必需文件）\n",
                                                           encoding="utf-8")
@@ -4165,16 +4256,35 @@ def selftest_scheduler(expect) -> None:
                 "severity": "medium", "repro": "true", "disposition": "fix",
                 "owner": "fixtures", "why": "真 CLI 子进程夹具"}, ensure_ascii=False) + "\n",
                 encoding="utf-8")
-            _cli_env = dict(os.environ, SOKO_QUEUE_ROOT=str(_cli), SOKO_AGENT="SELF")
-            _cli_env.pop("SOKO_OWNER", None)
+            # ⭐ **子进程的事件表 = 它自己那个根的那一份**（`EVENTS-FLAG-ABS-PATH-BREAKS-SELFTEST`，
+            #    2026-10-15 · 第十五次独立复核实测 ✗）：夹具根是 `_cli`（子进程的
+            #    `SOKO_QUEUE_ROOT`）⇒ 它的事件表必须是 `_cli/docs/ux-queue-events.jsonl`。
+            #    旧写法**继承**父进程的 `SOKO_QUEUE_EVENTS`：父按**夹具根**算、子按**继承来的值**
+            #    算 ⇒ 同一个变量两边解析不一致 ⇒ 子进程把两条合成事件写进那个文件（实测 +2 行 ✗）、
+            #    父进程读 `_cli_ev` 找不到 ⇒ `FileNotFoundError` 栈（判据一行都不打）✗。
+            #    ⇒ 显式把**这个根**的事件表路径交给它（绝对值 ⇒ 父子必得同一个文件 ✓）；
+            #    ⚠ **git 发现类变量**另在 `main()` 里全局摘掉（`_sanitize_git_discovery()`）：
+            #    子进程要解析的是**它自己那棵树**（`git init` 的夹具根）—— 继承 `GIT_DIR`
+            #    会让它的锁落到**父进程那棵树**上（实测：`_cli/.git` 里没有锁、外层 `.git`
+            #    里才有 ⇒ 本臂的锁证据空转 ✗）。
             _cli_ev = _cli / "docs" / "ux-queue-events.jsonl"
+            _cli_guard = _cli / ".git" / "soko-ux-queue.guard"
+            _cli_env = dict(os.environ, SOKO_QUEUE_ROOT=str(_cli), SOKO_AGENT="SELF",
+                            SOKO_QUEUE_EVENTS=str(_cli_ev))
+            _cli_env.pop("SOKO_OWNER", None)
+            # ⭐ **泄漏臂**（本缺口的靶子）：子进程的合成事件**不许**写进"父进程那一份"
+            #    （= `SOKO_QUEUE_EVENTS` 覆盖值；没设就是**真台账** —— 那时这一臂盯的是
+            #    "真台账一字节不动" ✓）。改前实测：`SOKO_QUEUE_EVENTS=<绝对路径>` ⇒ 那个文件
+            #    **+2 行** ✗ ⇒ 本臂必红；改后两边各写各的 ⇒ 一致 ✓。
+            _outer_ev = events_path_for(os.environ.get("SOKO_QUEUE_EVENTS"))
+            _outer_before = _outer_ev.read_text(encoding="utf-8") if _outer_ev.exists() else None
             _me = str(Path(__file__).resolve())
             _p1 = subprocess.Popen(
                 [sys.executable, _me, "--claim", "FX-CLI", "--owner", "SELF",
                  "--touch", "scripts/ux-queue.py"],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=str(_cli),
                 env=_cli_env)
-            _p1.communicate()
+            _o1, _e1 = _p1.communicate()
             expect(f"⑪c 真子进程 `--claim`：pid={_p1.pid}（≠ 本进程 {os.getpid()}）rc={_p1.wait()}",
                    _p1.returncode == 0 and _p1.pid != os.getpid())
             _p2 = subprocess.Popen(
@@ -4182,17 +4292,33 @@ def selftest_scheduler(expect) -> None:
                  "--reason", "一轮做完，条目未完"],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=str(_cli),
                 env=_cli_env)
-            _p2.communicate()
+            _o2, _e2 = _p2.communicate()
             _rc2 = _p2.wait()
             _cli_lock = _cli / ".git" / "soko-ux-queue.lock"
             _cli_held = ([c.get("id") for c in
                           json.loads(_cli_lock.read_text(encoding="utf-8"))["claims"]]
                          if _cli_lock.exists() else [])
-            _cli_events = _cli_ev.read_text(encoding="utf-8").splitlines()
+            # ⚠ **产物读要防御**（同一个缺口）：子进程没写出 `_cli_ev` 时**不许**丢栈 ✗
+            #   —— 旧写法直接 `read_text` ⇒ `FileNotFoundError`（判据一行都不打）⇒ 把
+            #   子进程的 rc / stderr 尾巴写进判据正文，让人一眼看到**为什么**没写出来 ✓。
+            _cli_events = (_cli_ev.read_text(encoding="utf-8").splitlines()
+                           if _cli_ev.exists() else [])
+            _outer_after = _outer_ev.read_text(encoding="utf-8") if _outer_ev.exists() else None
             expect(f"⑪c 真子进程 `--advance --to blocked`：pid={_p2.pid} rc={_rc2}（期望 0）"
                    f" ⇒ 本人交接路通 ✓", _rc2 == 0)
             expect(f"⑪c 子进程的产物（事件 {len(_cli_events)} 行 · 锁 {_cli_held}）⇒ "
-                   f"2 行 + 锁已释放", len(_cli_events) == 2 and _cli_held == [])
+                   f"2 行 + 锁已释放"
+                   + ("" if _cli_ev.exists() else
+                      f" ⚠ `{_label(_cli_ev)}` **不存在** ⇒ 子进程没写出它的产物："
+                      f"rc1={_p1.returncode}·stderr1={(_e1 or '').strip()[-160:]!r} / "
+                      f"rc2={_rc2}·stderr2={(_e2 or '').strip()[-160:]!r}"),
+                   len(_cli_events) == 2 and _cli_held == [])
+            expect(f"⑪c 子进程**在自己的夹具根里取过锁**（`{_label(_cli_guard)}` 存在 ⇒ 锁没写歪到"
+                   f"父进程那棵树 / 别的根）", _cli_guard.exists())
+            expect(f"⑪c 子进程的合成事件**没写进父进程那一份**（`{_label(_outer_ev)}`："
+                   f"{'不存在' if _outer_before is None else str(len(_outer_before.splitlines())) + ' 行'}"
+                   f" ⇒ {'不存在' if _outer_after is None else str(len(_outer_after.splitlines())) + ' 行'}）",
+                   _outer_before == _outer_after)
             # ⑧b **收口证据里的 commit 必须真存在**（2026-10-12 接口 agent 提交
             #     `SUB-advance-commit-unchecked`）：假 sha 必须被拒（旧闸门只查非空字符串 ✗）。
             write_lock([])
@@ -7070,6 +7196,34 @@ def selftest_id_and_encoding_gates(expect) -> None:
             _have = {rel for rel, _w in _saved_req}
             expect(f"⑥ `REQUIRED_ROOT_FILES` 覆盖三个无条件读取的来源文件（缺：{sorted(_need - _have)}）",
                    _need <= _have)
+            # ⑦ ⭐ **`SOKO_QUEUE_EVENTS` 的"结构错值" = rc=2 + 人话**（同一个缺口的横向排查，
+            #    2026-10-15 · 第十五次独立复核实测 ✗）：实测两个错值都**丢栈 + rc=1**（指到目录 ⇒
+            #    `load_events` 的 `IsADirectoryError` 21 行栈；父级是文件 ⇒ `append_event` 的
+            #    `mkdir` 抛 `FileExistsError`），而契约是"环境错 = rc=2 + 人话"（`#5a`）。
+            #    ⚠ 判据**真起子进程**：闸门长在 `main()` 里，只有真 CLI 才走到它 ✓
+            #    （与 ④ 同一个形状）；正对照 = 合法文件路径仍 rc=0（**不许误拒** ✓）。
+            #    ⚠ "**文件不存在**"是合法状态（事件表是覆盖层）⇒ 正对照用的就是"还没建的文件" ✓。
+            _ev_dir = Path(tmp) / "events-dir"
+            _ev_dir.mkdir()
+            _ev_ok = Path(tmp) / "events-ok.jsonl"
+            (Path(tmp) / "afile").write_text("", encoding="utf-8")
+            _ev_parent_file = Path(tmp) / "afile" / "events.jsonl"
+            for _what, _val, _want, _needle in (
+                    ("指到目录", _ev_dir, 2, "**目录**"),
+                    ("父级是文件", _ev_parent_file, 2, "**父级不是目录**"),
+                    ("正对照：合法文件路径", _ev_ok, 0, "")):
+                _pr = subprocess.run(
+                    [sys.executable, str(Path(__file__)), "--json"],
+                    capture_output=True, text=True, cwd=str(ROOT),
+                    env=dict(os.environ, SOKO_QUEUE_ROOT=str(ROOT),
+                             SOKO_QUEUE_EVENTS=str(_val)))
+                _pe = (_pr.stderr or "") + (_pr.stdout or "")
+                expect(f"⑦ `SOKO_QUEUE_EVENTS` {_what} ⇒ rc={_pr.returncode}（期望 {_want}）"
+                       f"且**没有 Traceback**", _pr.returncode == _want
+                       and "Traceback" not in _pe)
+                if _needle:
+                    expect(f"⑦ {_what} 的 rc=2 是**人话**（点名 + 给出正解 ✓）",
+                           _needle in _pe and "SOKO_QUEUE_ROOT" in _pe)
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
@@ -8142,7 +8296,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"⭐ **本人交接路**（`$SOKO_AGENT` 进 `_default_owner` ⇒ 自己 `--to blocked`/`done`/"
           f"`wo_filed`/`todo` 放行 + **真放锁**，别人**两个目标都仍拒**，无认领正常，"
           f"`$SOKO_OWNER` 旧名照旧 + 两个身份源不一致判红，**真 CLI 子进程**（自带 `git init` "
-          f"的夹具根 ⇒ 真锁文件、不碰真台账）跨调用交接 rc=0）"
+          f"的夹具根 ⇒ 真锁文件、不碰真台账 + ⭐ **子进程的事件表 = 它自己那个根的那一份**"
+          f"（第十五次复核 ✗：改前继承父进程的 `SOKO_QUEUE_EVENTS` ⇒ 绝对路径时把 2 行合成事件"
+          f"写进那个文件 + 父进程读不到 ⇒ 栈；现在另有**泄漏臂**（合成事件没写进父进程那一份）"
+          f"+ **锁证据不空转**（`_cli/.git/soko-ux-queue.guard` 真存在））跨调用交接 rc=0）"
           f" + **编排者排期 13 条**（缺理由拒/只追加事件/**真 `--json` 的 `open` 含它且状态 todo**/"
           f"`--next` 推得出/`--claim` + 带证据收口/缺 `--reading` 判红/两层漂移**不豁免**/真 CLI 路径落地）"
           f" + **子任务视图 15 条**（源行优先/顺序不变/不丢行/无重复/反向两层漂移咬得住**且点名 K-2**/"
@@ -8217,10 +8374,12 @@ def cmd_selftest(args: argparse.Namespace) -> int:
            f"**端到端**：真 `cmd_release check` 在夹具上 rc=1 + 点名 / 全部已 land ⇒ rc=0），"
            f"外加空分支 / 名字不匹配 / 量不出来 ⇒ 判红 / 非 git 目录 ⇒ 响亮 / 空提交与 merge 提交"
            f"恒 `+` 的**已知边界**；改前实测：真仓库 `--no-merged` **17 条** 而 `git cherry` 的 `+` = **0**）"
-           f" + **id 长度 + 环境编码 + 队列根 13 条**（`#5`：3000 字符 id 在 `--schedule`/`--submit`/"
+           f" + **id 长度 + 环境编码 + 队列根 + 事件表旗标 20 条**（`#5`：3000 字符 id 在 `--schedule`/`--submit`/"
            f"`--add-child` 三个入口**都拒且零写入**、上限 64 是**数字**（64 过 / 65 拒）、"
            f"`locale=US-ASCII` ⇒ `UsageError`、真 CLI 在 `LC_ALL=C PYTHONUTF8=0` 下**没有栈**"
-           f"且 rc ∈ {{0,2}}（**不许是 1 + 栈** ✗））"
+           f"且 rc ∈ {{0,2}}（**不许是 1 + 栈** ✗）/⭐ **`SOKO_QUEUE_EVENTS` 结构错值 = rc=2 + 人话**"
+           f"（第十五次复核 ✗：指到**目录** / **父级是文件** 改前都是**栈 + rc=1** ⇒ 现在真 CLI "
+           f"（`--json`）逐值判 rc=2 + 点名 + **没有 Traceback**，正对照=合法文件路径仍 rc=0 ✓））"
            f" + **事件表词汇表 / 必填字段 / 值域 23 条**（`EVENT-FIELD-NO-GUARD`，第十四次复核 ✗："
            f"非法 `event` 值（`advnace`）与 `repoint` 缺 `commit` 原先 `--check` **rc=0 零点名** ⇒ "
            f"现在 `fold` 记原值（`bad_events`）+ `check_plan` **判红 + 点名 + 出路**，形状与既有的 "
@@ -8384,7 +8543,9 @@ def main() -> int:
         except (AttributeError, ValueError, OSError):
             pass
     try:
+        _sanitize_git_discovery()
         _guard_root()
+        _guard_events_env()
         _guard_encoding()
         _guard_owner()
         if args.selftest:
