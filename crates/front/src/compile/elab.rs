@@ -3985,7 +3985,7 @@ fn type_head(e: &Expr) -> Option<String> {
 ///
 /// 这里要的只是"两种写法是不是同一个类型"的**启发式**（决定试哪种读法 ✓，
 /// **不是判定** ✗ —— 判定永远走 kernel ✓），所以比归一的 pp 文本是合适的 ✓。
-fn args_fit_layers_in_order<'a>(
+pub(crate) fn args_fit_layers_in_order<'a>(
     layers: &[crate::compile::implicit::Layer],
     args: &[&Expr],
     ctx: &ElabCtx<'a, '_>,
@@ -4079,7 +4079,7 @@ fn type_head_fits_layer<'a>(
 /// **绕开内核 pp** —— pp 会丢隐式实参（实测：`Set.image α β f A` 打成
 /// `Set.image β f A`），而这份文本会被**回读成项**再 elaborate ⇒ 静默换成另一个
 /// 解（`α := β`）✗。剩下的形状才问内核（pp 文本 → `parse_expr_text`）。
-fn operand_type_expr<'a>(
+pub(crate) fn operand_type_expr<'a>(
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
     operand: &Expr,
@@ -4737,18 +4737,7 @@ fn try_implicit_application_with<'a>(
     // （`Set.inter Set.univ A`、`Set.union Set.empty A`）拿不到期望类型 ⇒
     // `Set.univ` 停在 Pi 上 ⇒ 内核报
     // `期望 (Set.[] $1)，实际是 Pi (α : Sort(1)), (Set.[] $0)` ✗（实测）。
-    let mut arg_tys: Vec<Option<Expr>> = Vec::with_capacity(args.len());
-    for a in &args {
-        arg_tys.push(operand_type_expr(
-            ctx,
-            scope,
-            a,
-            Some(&mut InplaceEnv {
-                builder: &mut *builder,
-                known,
-            }),
-        ));
-    }
+    let arg_tys = crate::compile::pp_shape::arg_types(&args, ctx, scope, known, &mut *builder);
     // **第二候选（C 子项）——必须「按需」**：同一个实参类型的**全显式 pp** 形态
     // （`@Eq α x a`）能补上主候选缺的**前导隐式实参**（书写类型是记法节点
     // `x = a` 时只有 2 个操作数 ✗）⇒ `Eq.symm`/`Eq.subst` 一类解得出来 ✓。

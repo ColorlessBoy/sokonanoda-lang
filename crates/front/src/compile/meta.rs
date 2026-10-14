@@ -806,7 +806,7 @@ impl<'a> MetaCtx<'a> {
                     continue;
                 };
                 let tj = self.zonk(&self.store.mvars[j].ty.clone());
-                if crate::spine::same_shape(&ti, &tj) {
+                if crate::compile::pp_shape::borrowable(&ti, &tj) {
                     picked = Some(v);
                     break;
                 }

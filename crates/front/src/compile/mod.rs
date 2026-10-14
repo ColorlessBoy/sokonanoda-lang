@@ -12,6 +12,7 @@ pub mod hints;
 mod implicit;
 mod level;
 mod meta;
+mod pp_shape;
 mod prelude;
 mod report;
 mod scope;
