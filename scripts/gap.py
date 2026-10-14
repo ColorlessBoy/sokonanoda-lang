@@ -31,6 +31,15 @@
      ⇒ **拒绝关账**并打印原因 ✓。
   两条判据都长在 `entry_verdict()` 里（`check` 与 `close` **共用一份**）⇒ `selftest`
   用「有/无复现件 × `fixed`/`open`」四形把它钉住 ✓。
+
+**2026-10-14（「守卫看着在、其实没有」的同族一例 ✗ ⇒ 已堵）**：README「状态词表」与设计
+  §6.2 给每个状态词都写了一句义务（`wo-filed` = **有 WO** · `wontfix` = **须写理由** ·
+  `workaround` = **须写清代价**），而 `gap.py` 里**一条校验都没有** ✗。实测（真 CLI 夹具，
+  读数见 `.cache/ux/fix-wofixI/VERDICT.md`）：`wo-filed` 而 `wo`/`wo_planned` 全空、
+  `wontfix` 而理由空、`status=wip`（词表外）三条**全 exit 0** ✗ —— agent 可以自己把一条缺口
+  「定案不做」、停在 `wo-filed`，**既不写 WO 也不写 `wontfix` 理由** ✗。现在：状态词自带的
+  义务由 `status_verdict()` 判 ✓，且**先于**「复现件够不够得着」问它 ✓（义务与有没有复现件
+  无关 ✓）；`selftest` 两向都钉（违规 ⇒ 判红 ✓ / 合规 ⇒ 不判红 ✓）。
 """
 
 from __future__ import annotations
@@ -284,14 +293,93 @@ def judge(entry: dict, kind: str, code: int) -> tuple[str, str, bool]:
 UNREACHABLE_KINDS = {"none", "missing", "dir", "unknown"}
 
 
+# **状态词自带的义务**（2026-10-14 ✓）：README「状态词表」与设计 §6.2 逐词写了一句义务
+# （`wo-filed` = 有 WO · `wontfix` = 须写理由 · `workaround` = 须写清代价），而此前
+# **一条守卫都没有** ✗ ⇒ 实测（真 CLI 夹具）三条违规条目全 exit 0 ✗。义务与「有没有
+# 复现件」**无关** ⇒ 判在 `entry_verdict()` 的**最前面** ✓（夹具形状见 `selftest` 的
+# `guard_cases` ✓；读数见 `.cache/ux/fix-wofixI/VERDICT.md`）。
+STATUS_VOCAB = ("open", "wo-filed", "fixed", "workaround", "wontfix")
+# `wontfix` 的理由字段：`reason` 是正名 ✓，`why` 是别名（`repro_slow` 里已有 `why` 的先例 ✓）。
+REASON_FIELDS = ("reason", "why")
+
+
+def _nonempty_str(entry: dict, fields: tuple[str, ...]) -> bool:
+    """这些字段里**有一个**是非空字符串 ⇒ True（空串/纯空白/非字符串一律不算「写了」✗）。"""
+    return any(isinstance(entry.get(f), str) and entry.get(f).strip() for f in fields)
+
+
+def status_verdict(entry: dict) -> tuple[str, str] | None:
+    """状态词自带的义务 ⇒ `(说明, verdict)`；义务已满足、或这个词没有额外义务 ⇒ None。
+
+    逐条对着白纸黑字（`docs/gaps/README.md`「状态词表」· 设计 `docs/design/teaching-project.md` §6.2）：
+      * `wo-filed`（**有 WO**）：`wo` 必须是非空路径，**且那里真的有一个文件** ✓
+        —— 设计 §6.2：「`wo` 只在**工作单文件已经写出来**时填路径（状态同时改 `wo-filed`）；
+        还没写就放 `wo_planned`，别指向不存在的文件」⇒ **只有 `wo_planned` 的条目还没到
+        `wo-filed`** ✗（它该留在 `open`；定案不做则该是 `wontfix` + `reason`）。
+      * `wontfix`（**须写理由**）：`reason`（或 `why`）非空 ✓ —— 理由要写**定案的出处** ✓。
+      * `workaround`（**长期绕行，须写清代价**）：`workaround` 字段非空 ✓
+        （守卫能机械检查的是「写了」这一半；「写清代价」那一半靠评审 ✓）。
+      * **词表外**的状态词：判红 ✗ —— 以前拼错/自造的状态词**静默跳过** ✗：既不触发任何
+        判据、也不计进 `list` 的「未关账」（实测夹具 `status=wip` ⇒ `check` exit 0 ✗）。
+    """
+    status = entry.get("status")
+    if status not in STATUS_VOCAB:
+        return (
+            f"✗ 状态词 {status!r} 不在词表里（{'/'.join(STATUS_VOCAB)}）⇒ 判红"
+            f"（拼错/自造的状态词以前**静默跳过** ✗：既不触发判据、也不计进「未关账」）",
+            "bad",
+        )
+    if status == "wo-filed":
+        wo = entry.get("wo")
+        if not isinstance(wo, str) or not wo.strip():
+            return (
+                f"✗ `wo-filed` 的语义是「**有 WO**」，但 `wo` 是空的"
+                f"（`wo_planned`={entry.get('wo_planned')!r}）⇒ 判红"
+                f"（WO 还没写出来就**不是** `wo-filed`：放 `wo_planned`、状态留 `open`；"
+                f"定案不做 ⇒ `wontfix` + `reason`）",
+                "bad",
+            )
+        path = ROOT / wo
+        if not path.is_file():
+            return (
+                f"✗ `wo-filed` 的 `wo` 指着 {wo!r}，但那里**没有文件**"
+                f"（{'路径不存在' if not path.exists() else '那是个目录'}）⇒ 判红"
+                f"（设计 §6.2：`wo` 只在工作单文件**已经写出来**时填路径）",
+                "bad",
+            )
+    if status == "wontfix" and not _nonempty_str(entry, REASON_FIELDS):
+        return (
+            f"✗ `wontfix` 的语义是「**须写理由**」，但 {'/'.join(REASON_FIELDS)} 是空的 ⇒ 判红"
+            f"（写清**定案的出处**：哪一天、哪份文档/谁拍的板）",
+            "bad",
+        )
+    if status == "workaround" and not _nonempty_str(entry, ("workaround",)):
+        return (
+            "✗ `workaround` 的语义是「长期绕行，**须写清代价**」，"
+            "但 `workaround` 字段是空的 ⇒ 判红（绕行是什么、代价是什么，各写一句）",
+            "bad",
+        )
+    return None
+
+
 def entry_verdict(entry: dict, kind: str, code: int, note: str = "") -> tuple[str, str]:
     """一条台账条目 × 一次复现结果 ⇒ `(打印行, verdict)`，verdict ∈ {ok, bad, skip}。
 
     **`check` 与 `close` 共用这一份判定**（契约只有一处 ✓）；两个洞的判据都长在这里，
     所以 `--selftest` 能直接把四种形状钉住 ✓。
+
+    **顺序**（2026-10-14）：先问状态词自己的义务（`status_verdict()`）✓，再问复现件够不够
+    得着 ✓ —— 一条 `wo-filed` 就算复现件跑得再漂亮，只要 `wo` 是空的就**仍然是红** ✗
+    （状态词是台账对读者做的承诺，与复现件无关 ✓）。
     """
     eid = entry.get("id", "?")
     status = entry.get("status", "?")
+    guard = status_verdict(entry)
+    if guard is not None:
+        why, verdict = guard
+        # 状态词不是字符串（`status: null` 之类）也要**印得出来、不丢栈** ✓
+        shown = status if isinstance(status, str) else repr(status)
+        return (f"{eid:<6}{shown:<12}{'状态词':<12}{why}", verdict)
     fixed = status == "fixed"
     if kind in UNREACHABLE_KINDS:
         why = note or "没有复现文件"
@@ -652,13 +740,51 @@ def cmd_selftest(args: argparse.Namespace) -> int:
         ("有复现件 + open + 缺口仍在 = 通过", {"id": "X", "status": "open"}, "script", 0, "ok"),
         ("**无复现件 + fixed = 判红**（洞 1）", {"id": "X", "status": "fixed"}, "none", -1, "bad"),
         ("无复现件 + open = 允许跳过", {"id": "X", "status": "open"}, "none", -1, "skip"),
-        ("无复现件 + wo-filed = 允许跳过", {"id": "X", "status": "wo-filed"}, "none", -1, "skip"),
+        # ⚠ 2026-10-14：`wo-filed` 这一形的**期望变了**（判据只紧不松 ✓）—— 以前是
+        # 「无复现件 ⇒ 跳过」✗，现在**先过状态词守卫**：`wo-filed` 必须真有 WO ✗ ⇒
+        # 「没有 WO 的 wo-filed」判红 ✓（由 guard_cases 钉）；而「允许没有复现件」那一半
+        # 由**带真 WO** 的这一形继续钉住 ✓。
+        ("无复现件 + wo-filed（**有真 WO**）= 允许跳过",
+         {"id": "X", "status": "wo-filed", "wo": "docs/gaps/README.md"}, "none", -1, "skip"),
         ("**路径不存在 + fixed = 判红**（洞 1）", {"id": "X", "status": "fixed"}, "missing", -1, "bad"),
         ("路径不存在 + open = 允许跳过", {"id": "X", "status": "open"}, "missing", -1, "skip"),
         ("目录型 + fixed = 判红", {"id": "X", "status": "fixed"}, "dir", -1, "bad"),
         ("类型不认识 + fixed = 判红", {"id": "X", "status": "fixed"}, "unknown", -1, "bad"),
         ("超时 + fixed = 跳过（计数，不判红）", {"id": "X", "status": "fixed"}, "timeout", -1, "skip"),
         ("script exit 2（环境异常）+ fixed = 判红", {"id": "X", "status": "fixed"}, "script", 2, "bad"),
+    ]
+    # **状态词义务的钉子**（2026-10-14）：`wo-filed`/`wontfix`/`workaround` 的语义此前
+    # **一条守卫都没有** ✗（真 CLI 夹具实测三条违规条目全 exit 0 ✗）⇒ **两向都钉**：
+    # 违规 ⇒ bad ✓、合规 ⇒ 不 bad ✓（正对照防「误拒」✗），且判红行必须**点名** ✓。
+    guard_cases = [
+        # (说明, 条目, 期望 verdict, 判红理由里必须出现的字（点名 ✓；合规档给空串）)
+        ("wo-filed 无 wo = 判红", {"id": "X", "status": "wo-filed"}, "bad", "有 WO"),
+        ("wo-filed 只有 wo_planned = 判红（WO 还没写 ⇒ 不是 wo-filed）",
+         {"id": "X", "status": "wo-filed", "wo_planned": "WO-054"}, "bad", "WO-054"),
+        ("wo-filed + wo 路径不存在 = 判红",
+         # ⚠ 夹具路径**故意不用 `docs/…`**：`docs-lint` ⑧ 把源码里出现的 `docs/**` 指针
+         # 当悬空文档引用数（实测：夹具写成 docs/gaps 下一个不存在的文件 ⇒ ⑧ 判红 ✗）。
+         {"id": "X", "status": "wo-filed", "wo": "crates/WO-000-nope.md"}, "bad", "路径不存在"),
+        ("wo-filed + wo 是目录 = 判红",
+         {"id": "X", "status": "wo-filed", "wo": "docs/gaps/repro"}, "bad", "目录"),
+        ("**wo-filed + wo 指向真文件 = 不判红**（正对照）",
+         {"id": "X", "status": "wo-filed", "wo": "docs/gaps/README.md"}, "skip", ""),
+        ("wontfix 无理由 = 判红", {"id": "X", "status": "wontfix"}, "bad", "须写理由"),
+        ("wontfix + reason 是纯空白 = 判红",
+         {"id": "X", "status": "wontfix", "reason": "   "}, "bad", "须写理由"),
+        ("**wontfix + reason = 不判红**（正对照）",
+         {"id": "X", "status": "wontfix", "reason": "定案不做（出处：2026-10-10 设计 T-D20）"},
+         "skip", ""),
+        ("**wontfix + why（别名）= 不判红**（正对照）",
+         {"id": "X", "status": "wontfix", "why": "定案不做（出处：2026-09-27 E07）"}, "skip", ""),
+        ("workaround 没写代价 = 判红", {"id": "X", "status": "workaround"}, "bad", "须写清代价"),
+        ("**workaround + 代价 = 不判红**（正对照）",
+         {"id": "X", "status": "workaround", "workaround": "绕行=手工复制；代价=不可扩展"},
+         "skip", ""),
+        ("状态词不认识 = 判红（以前静默跳过 ✗）", {"id": "X", "status": "wip"}, "bad", "不在词表里"),
+        ("状态词缺失 = 判红", {"id": "X"}, "bad", "不在词表里"),
+        ("**open 没有额外义务 = 不判红**（不该加守卫的那一档 ✓）",
+         {"id": "X", "status": "open"}, "skip", ""),
     ]
     bad = 0
     saved = {k: os.environ.get(k) for k in ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN")}
@@ -689,6 +815,15 @@ def cmd_selftest(args: argparse.Namespace) -> int:
         if got != want:
             bad += 1
             print(f"FAIL {desc}: entry_verdict -> {got!r}，期望 {want!r}", file=sys.stderr)
+    for desc, entry, want, hint in guard_cases:
+        # 夹具一律走「没有复现件」那一形（= 真账里「停在 wo-filed」的实际形状 ✓）
+        line, got = entry_verdict(entry, "none", -1, "self-test")
+        if got != want:
+            bad += 1
+            print(f"FAIL {desc}: entry_verdict -> {got!r}，期望 {want!r}", file=sys.stderr)
+        elif hint and hint not in line:
+            bad += 1
+            print(f"FAIL {desc}: 判红行没有点名 {hint!r}（印出来的是：{line}）", file=sys.stderr)
     # **`where` 的历史形状不齐**（2026-10-14 · 第三轮独立复核实测）：台账里 **5 条**旧行是
     # **字符串**（`L-07`…`L-10`/`G-86`，全在 `fixed` 档）+ `G-77` 是 `None`，而 `wo_prompt()`
     # 原先直接 `(entry.get('where') or {}).get(...)` ⇒ **AttributeError 丢栈**（`gap.py next`
@@ -714,13 +849,14 @@ def cmd_selftest(args: argparse.Namespace) -> int:
             bad += 1
             print(f"FAIL {desc}：wo_prompt 没给出期望的位置线索（{note or '内容不符'}）",
                   file=sys.stderr)
-    total = len(cases) + len(verdict_cases) + len(prompt_cases)
+    total = len(cases) + len(verdict_cases) + len(prompt_cases) + len(guard_cases)
     if bad:
         print(f"gap.py selftest: {bad}/{total} 条判据不成立。", file=sys.stderr)
         return 1
     print(f"gap.py selftest: {len(cases)} 条 judge 判据 + {len(verdict_cases)} 条"
-          f"「够不够得着复现件」判据（四形）+ {len(prompt_cases)} 条 `wo_prompt` 的 `where` 三形"
-          f"（dict/字符串/缺失）+ clean_env 剔除覆盖 全部成立。")
+          f"「够不够得着复现件」判据（四形）+ {len(guard_cases)} 条状态词义务判据"
+          f"（`wo-filed`/`wontfix`/`workaround`/词表外，两向）+ {len(prompt_cases)} 条"
+          f"`wo_prompt` 的 `where` 三形（dict/字符串/缺失）+ clean_env 剔除覆盖 全部成立。")
     return 0
 
 

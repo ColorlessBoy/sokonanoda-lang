@@ -103,9 +103,9 @@ scripts/soko grade docs/gaps/repro/G01-course-signature-mutations.sokonanoda # �
 
 ## 状态词表
 
-`open`（已记账，未派工）→ `wo-filed`（有 WO）→ `fixed`（`fixed_in` 必填版本）；
-另有 `workaround`（长期绕行，须写清代价）与 `wontfix`（须写理由）。
-`wo_planned` 是**计划编号**（WO 文件还没写出来时不填 `wo` 路径，免得指向不存在的文件）。
+`open`（已记账，未派工）→ `wo-filed`（**有 WO**：`wo` 是路径、**且那个文件真的在**）→ `fixed`（`fixed_in` 必填版本）；
+另有 `workaround`（长期绕行，**须写清代价**：`workaround` 字段非空）与 `wontfix`（**须写理由**：`reason`／`why` 非空）。
+**每条义务都有守卫**（`scripts/gap.py::status_verdict`，`check`/`selftest` 两向钉住；词表外的状态词同样判红）——`wo_planned` 是**计划编号**（WO 文件还没写出来时不填 `wo` 路径，免得指向不存在的文件 ⇒ 那时**还不是** `wo-filed`：状态留 `open`；定案不做 ⇒ `wontfix` + 理由）。
 
 ## 与既有 backlog 的关系
 
