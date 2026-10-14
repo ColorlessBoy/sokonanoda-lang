@@ -1158,7 +1158,66 @@ def _guard_events_env() -> None:
 LOCK_TTL_S = 2 * 60 * 60  # 两小时没心跳 ⇒ 陈旧（默认**只警告**；`--force` 才接管）
 # **并发 = 4 核**（2026-10-12 用户：「允许最多 4 个 subagent，类比 4 核心 cpu」）——
 # 但**同一模块同一时间只允许一个写者** ✗ ⇒ 认领要过**资源矩阵**（不是简单的计数锁）。
-MAX_SLOTS = int(os.environ.get("SOKO_QUEUE_SLOTS", "4") or 4)
+#
+# ── **`SOKO_QUEUE_SLOTS` 的取值域**（2026-10-15 · 第十六次独立复核实测 ✗）────────────
+# 它是 **REQUIREMENTS §9.19 明文旋钮**，旧写法却是模块级裸 `int(...)`：
+#   · 非整数（`abc` / `3.5`）⇒ **导入期**抛 `ValueError` —— `main()` 里那一排闸门**根本轮不到**
+#     （实测 2 行栈 + **rc=1** ✗），而契约是"环境错 = rc=2 + 人话"（`#5a`）；
+#   · `0` / `-1` 更坏：`int()` 照收 ⇒ `len(live) >= MAX_SLOTS` **恒真** ⇒ **每一个** `--claim`
+#     都判「槽位已满」（调度器静默锁死 ✗），而 `--check` 照旧 rc=0 ⇒ **没有任何读数会红** ✗。
+#     §9.19 的原话是「并发上限 4 = "4 核"，`SOKO_QUEUE_SLOTS` **可调**」⇒ 它是**上限**，
+#     没有任何"关掉调度"的文档语义 ⇒ 值域 = **正整数**（<1 判 rc=2，见 `_guard_slots_env()`）。
+# ⚠ **接缝（与 `_guard_events_env()` 不同的一处）**：那个守的值是"**稍后**才被函数消费"的路径
+#   ⇒ 闸门长在 `main()` 里就够；`MAX_SLOTS` 是**导入期求值的常量** ⇒ 若它自己会抛，
+#   闸门永远够不着。⇒ 修法必须是**两半**：① 导入期只能取**不抛**的默认值（保证活到 `main()`）；
+#   ② 判定交给 `main()` 里的闸门（rc=2 + 人话）。两半**共用同一个解析函数**（下面这一处）
+#   —— 各写一份解析就是"同一个值两处解析"那一族（本会话刚修过 ✗）。
+SLOTS_DEFAULT = 4
+
+
+def _parse_slots_env(raw: str | None) -> tuple[int, str]:
+    """`SOKO_QUEUE_SLOTS` 的**唯一解析处** ⇒ `(值, 人话)`；`人话 == ""` 即合法。
+
+    ⚠ **不抛异常**：模块级导入必须活到 `main()`（否则闸门够不着 —— 那正是本缺口 ✗）。
+    不设 / 空串 ⇒ `SLOTS_DEFAULT`；非法（非整数 / <1）⇒ 也返回 `SLOTS_DEFAULT` + 人话
+    （这个默认值只服务"导入期不炸"，真跑 CLI 时 `_guard_slots_env()` 先判红 ⇒ 到不了使用点）。
+    ⚠ 合法值**照旧走 `int()`** ⇒ 以前能用的写法（含 `" 4"` 这类前后空格、`"+4"`）**逐字节不变** ✓
+    （"不许放宽"的另一面：也不许收紧到把旧的正整数写法判红 ✗）。
+    """
+    if not (raw or "").strip():
+        return SLOTS_DEFAULT, ""
+    try:
+        slots = int(raw)
+    except ValueError:
+        return SLOTS_DEFAULT, (
+            f"`SOKO_QUEUE_SLOTS` **不是整数**（原值 `{raw}`）⇒ 它要的是**并发上限**"
+            f"（正整数，默认 {SLOTS_DEFAULT}）✗。正解：`SOKO_QUEUE_SLOTS=4`，"
+            f"或 `unset SOKO_QUEUE_SLOTS` 回到默认 {SLOTS_DEFAULT}")
+    if slots < 1:
+        return SLOTS_DEFAULT, (
+            f"`SOKO_QUEUE_SLOTS` 必须是**正整数**（原值 `{raw}` = {slots}）⇒ 上限 <1 会让"
+            f"**每一个** `--claim` 都判「{slots} 个槽位已满」（`len(live) >= {slots}` 恒真 ⇒ "
+            f"调度器静默锁死 ✗），而 `--check` 照旧 rc=0 ⇒ 没有读数会红 ✗。"
+            f"§9.19 只说它是「并发上限 4 可调」，没有「关掉调度」的语义 ⇒ 值域是正整数。"
+            f"正解：`SOKO_QUEUE_SLOTS=4`，或 `unset SOKO_QUEUE_SLOTS` 回到默认 {SLOTS_DEFAULT}")
+    return slots, ""
+
+
+# 导入期那**一次**解析的产物：值给 `MAX_SLOTS`、人话给闸门（**一处解析、一处判定** ⇒ 结构上不会漂 ✓）
+MAX_SLOTS, _SLOTS_ENV_ERROR = _parse_slots_env(os.environ.get("SOKO_QUEUE_SLOTS"))
+
+
+def _guard_slots_env() -> None:
+    """`SOKO_QUEUE_SLOTS` **取值域错** ⇒ rc=2 + 人话 + 给正解（别丢栈 ✗；`#5a` 契约）。
+
+    ⚠ 与 `_guard_events_env()` 同一族（环境错 = rc=2），但守的**接缝**不同：那个守"稍后消费"
+    的路径、这个守**导入期求值的常量**（见 `_parse_slots_env()` 上方那段）⇒ 判定用导入期
+    那次解析的产物 `_SLOTS_ENV_ERROR`，**不再解析一遍**（同一个进程里 `os.environ` 不会变；
+    一次解析 ⇒ 不可能出现"常量与判定各说各话"✗）。
+    ⚠ 实测的三种错值都走这一关：`abc` / `3.5`（旧：栈 + rc=1 ✗）· `0` / `-1`（旧：rc=0 静默 ✗）。
+    """
+    if _SLOTS_ENV_ERROR:
+        raise UsageError(_SLOTS_ENV_ERROR)
 # `owner` → 它要写的资源（粗粒度 = 仓库里"改动过的 crate"那一层）
 RESOURCE_OF_OWNER = {
     "front": "crates/front/**", "lsp": "crates/lsp/**", "cli": "crates/cli/**",
@@ -7305,6 +7364,50 @@ def selftest_id_and_encoding_gates(expect) -> None:
                 if _needle:
                     expect(f"⑦ {_what} 的 rc=2 是**人话**（点名 + 给出正解 ✓）",
                            _needle in _pe and "SOKO_QUEUE_ROOT" in _pe)
+            # ⑧ ⭐ **`SOKO_QUEUE_SLOTS` 的"取值域"= 正整数**（同一个缺口的横向排查，2026-10-15 ·
+            #    第十六次独立复核实测 ✗）：旧写法是**模块级**裸 `int(os.environ.get(...))` ⇒
+            #      · 非整数（`abc`/`3.5`）在**导入期**就抛 `ValueError` ⇒ `main()` 那一排闸门
+            #        **根本轮不到**（实测 2 行栈 + **rc=1** ✗）；
+            #      · `0`/`-1` 更坏：`int()` 照收 ⇒ `len(live) >= MAX_SLOTS` **恒真** ⇒ 每个
+            #        `--claim` 都判「槽位已满」（**静默锁死调度器** ✗）而 `--check` 仍 rc=0
+            #        ⇒ **没有任何读数会红** ✗。
+            #    契约 = "环境错 = rc=2 + 人话"（`#5a`）；§9.19 的原话是「并发上限 4 可调」
+            #    ⇒ 值域 = **正整数**（<1 没有"关掉调度"的文档语义）。
+            #    ⚠ 判据**真起子进程**（闸门长在 `main()` 里 ⇒ 只有真 CLI 走得到 ✓，与 ④⑦ 同形）；
+            #    ⚠ **正对照必须在同一张表里**（`1`/`4`/`8`/空串 = 合法 ⇒ rc=0 照旧 ✓）——
+            #    否则"只拦不误拒"这半边没人验 ✗（"不许放宽"的另一面）。
+            #    ⚠ 合法性判据**不许只看 rc**：`--help` 的 `**N 核**` 是**用户可见**的容量读数
+            #    ⇒ 再断言 `=8` 真的把 8 送到那句话里（值生效，不只是"没崩" ✓）。
+            _slots_ev = Path(tmp) / "slots-events.jsonl"
+            for _what, _val, _want, _needle in (
+                    ("非整数 `abc`", "abc", 2, "**不是整数**"),
+                    ("非整数 `3.5`", "3.5", 2, "**不是整数**"),
+                    ("零 `0`（旧：静默锁死 ✗）", "0", 2, "必须是**正整数**"),
+                    ("负 `-1`（旧：静默锁死 ✗）", "-1", 2, "必须是**正整数**"),
+                    ("正对照：`1`", "1", 0, ""),
+                    ("正对照：`4`（默认值，显式给）", "4", 0, ""),
+                    ("正对照：`8`", "8", 0, ""),
+                    ("正对照：空串（= 不设 ⇒ 默认 4）", "", 0, "")):
+                _sr = subprocess.run(
+                    [sys.executable, str(Path(__file__)), "--json"],
+                    capture_output=True, text=True, cwd=str(ROOT),
+                    env=dict(os.environ, SOKO_QUEUE_ROOT=str(ROOT),
+                             SOKO_QUEUE_EVENTS=str(_slots_ev), SOKO_QUEUE_SLOTS=_val))
+                _se = (_sr.stderr or "") + (_sr.stdout or "")
+                expect(f"⑧ `SOKO_QUEUE_SLOTS={_val or '（空串）'}` {_what} ⇒ rc={_sr.returncode}"
+                       f"（期望 {_want}）且**没有 Traceback**",
+                       _sr.returncode == _want and "Traceback" not in _se)
+                if _needle:
+                    expect(f"⑧ {_what} 的 rc=2 是**人话**（点名变量 + 给出正解 ✓）",
+                           _needle in _se and "SOKO_QUEUE_SLOTS=4" in _se)
+            # ⑧b **值真的生效**（"没崩"≠"用上了"）：`--help` 里那句容量是用户可见读数
+            _sh = subprocess.run(
+                [sys.executable, str(Path(__file__)), "--help"],
+                capture_output=True, text=True, cwd=str(ROOT),
+                env=dict(os.environ, SOKO_QUEUE_ROOT=str(ROOT), SOKO_QUEUE_SLOTS="8"))
+            _she = (_sh.stderr or "") + (_sh.stdout or "")
+            expect(f"⑧b `SOKO_QUEUE_SLOTS=8` 的容量**进了用户可见的 `--help`**（rc={_sh.returncode}"
+                   f"；找 `**8 核**`）", _sh.returncode == 0 and "**8 核**" in _she)
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
@@ -8509,12 +8612,18 @@ def cmd_selftest(args: argparse.Namespace) -> int:
            f"**端到端**：真 `cmd_release check` 在夹具上 rc=1 + 点名 / 全部已 land ⇒ rc=0），"
            f"外加空分支 / 名字不匹配 / 量不出来 ⇒ 判红 / 非 git 目录 ⇒ 响亮 / 空提交与 merge 提交"
            f"恒 `+` 的**已知边界**；改前实测：真仓库 `--no-merged` **17 条** 而 `git cherry` 的 `+` = **0**）"
-           f" + **id 长度 + 环境编码 + 队列根 + 事件表旗标 20 条**（`#5`：3000 字符 id 在 `--schedule`/`--submit`/"
+           f" + **id 长度 + 环境编码 + 队列根 + 事件表旗标 + 槽位旋钮 33 条**（`#5`："
+           f"3000 字符 id 在 `--schedule`/`--submit`/"
            f"`--add-child` 三个入口**都拒且零写入**、上限 64 是**数字**（64 过 / 65 拒）、"
            f"`locale=US-ASCII` ⇒ `UsageError`、真 CLI 在 `LC_ALL=C PYTHONUTF8=0` 下**没有栈**"
           f"且 rc ∈ {{0,2}}（**不许是 1 + 栈** ✗）/⭐ **`SOKO_QUEUE_EVENTS` 结构错值 = rc=2 + 人话**"
           f"（第十五次复核 ✗：指到**目录** / **父级是文件** 改前都是**栈 + rc=1** ⇒ 现在真 CLI "
-          f"（`--json`）逐值判 rc=2 + 点名 + **没有 Traceback**，正对照=合法文件路径仍 rc=0 ✓））"
+          f"（`--json`）逐值判 rc=2 + 点名 + **没有 Traceback**，正对照=合法文件路径仍 rc=0 ✓）"
+          f"/⭐ **`SOKO_QUEUE_SLOTS` 取值域 = 正整数**（第十六次复核 ✗：非整数在**导入期**抛 "
+          f"⇒ 栈 + rc=1（`main()` 的闸门够不着）、`0`/`-1` 被 `int()` 照收 ⇒ 每个 `--claim` "
+          f"都判「槽位已满」而 `--check` 仍 rc=0（**静默锁死** ✗）⇒ 现在真 CLI 逐值判 "
+          f"rc=2 + 点名 + 给出正解，正对照 `1`/`4`/`8`/空串仍 rc=0，且 `=8` 的容量进了"
+          f"**用户可见**的 `--help`（值真生效，不只是「没崩」✓）））"
            f" + **事件表词汇表 / 必填字段 / 值域 23 条**（`EVENT-FIELD-NO-GUARD`，第十四次复核 ✗："
            f"非法 `event` 值（`advnace`）与 `repoint` 缺 `commit` 原先 `--check` **rc=0 零点名** ⇒ "
            f"现在 `fold` 记原值（`bad_events`）+ `check_plan` **判红 + 点名 + 出路**，形状与既有的 "
@@ -8681,6 +8790,7 @@ def main() -> int:
         _sanitize_git_discovery()
         _guard_root()
         _guard_events_env()
+        _guard_slots_env()
         _guard_encoding()
         _guard_owner()
         if args.selftest:
