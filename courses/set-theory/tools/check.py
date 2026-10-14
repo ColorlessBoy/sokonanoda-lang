@@ -40,7 +40,16 @@ v2 `{schema, volumes[].chapters[].units[]}`；`flatten_manifest()` 把 v2 展平
   cwd 再判一个带 `import lib.*` 的目标；
 * **G-15 已修（WO-010，0.59.0）**（诊断位置自带单位与坐标空间）：失败信息三段式——权威段（标签 + 绝对路径 + 退出码）、
   参考段（诊断原样，标注 span 只作参考）、定位段（`--only <标签> --bisect`：按顶层
-  声明边界二分，结论**不依赖诊断 span**）。
+  声明边界二分，结论**不依赖诊断 span**）；
+* **BUILD-STALE**（2026-10-14，第十二次复核的坑 1「守卫看得见却不用」）：启动器
+  （`scripts/soko version --json`）早就算出 `build.stale`（源码比二进制新），但**没有
+  消费者** ✗ ⇒ 陈旧引擎把同一份课程判出 **14 条假红**（而重建后 0 判负）。现在
+  `resolve_channel()` 把它变成**前置判据**：启动器选出来的链接是 `repo-build` 且
+  `stale` ⇒ `Prerequisite`（**exit 2**）+ 人话 + 正解
+  （`cargo build --release -p sokonanoda-cli` 或 `scripts/soko update`）✓；
+  同一处还**警告 debug 构建**（比 release 慢约 2×，见坑 2）。`--selftest` 用夹具仓
+  把"陈旧 ⇒ 拒 / 新鲜 ⇒ 放行 / release 优先 / debug 出声 / 版本对不上仍拒 /
+  显式 `--bin` 不受约束"六条逐条咬住 ✓。
 
 用法：
 
@@ -59,6 +68,8 @@ python3 courses/set-theory/tools/check.py --ledger           # 追加一条成�
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import re
@@ -228,6 +239,44 @@ def resolve_channel(root: Path, explicit: str | None) -> Channel:
             f"钉 {report.get('version')}（{path} [{source}]）——\n"
             f"  ⚠ 这正是 E2-HANDOVER §5 记的那次事故（marker 写 0.65.5、二进制其实是 0.65.4）✗\n"
             f"  先跑 `scripts/soko update` 再重试——不判绿。"
+        )
+    # ⚠ **陈旧的仓库构建 ⇒ 拒绝判绿**（2026-10-14 BUILD-Q，坑 1 的**消费者**）。
+    #   病根：`scripts/soko version --json` 早就算出 `build.stale`（源码比二进制新），
+    #   可**没有消费者** ✗ —— 上面那条黑名单只看 `source` 的**文案**里有没有
+    #   `STALE`/`unknown`/`unverified`，而**仓库构建**的 source 恰好是干净的
+    #   `repo-build` ⇒ 「守卫看得见却不用」✗。
+    #   实测代价（第十二次复核）：陈旧引擎把**同一份课程**判出 **14 条假红**
+    #   （`checked` 也比新鲜态少），而 `cargo build --release -p sokonanoda-cli`
+    #   之后同一棵树是 **0 判负** ⇒ 那些判负不是课程坏了，是**读数不属于当前 commit** ✗。
+    #   ⇒ 这是"拿引擎判绿"的**唯一接缝**（`main()` 里 G1–G7 全在它之后）✓：
+    #     `stale` ⇒ `Prerequisite`（exit 2）+ 人话 + 正解。
+    #   ⚠ **只在启动器选出来的 `repo-build` 上判**：`--bin`/`SOKONANODA_BIN` 是显式
+    #     逃生门，而 A/B 对拍工具（`scripts/kernel-diff.sh` 拿两个二进制判同一棵树）
+    #     **本来就要求**"旧的那一份"能被判 ⇒ 拿 stale 去拦会打断它们 ✗（语义不许改）。
+    build = report.get("build") or {}
+    if source == "repo-build" and build.get("stale"):
+        raise Prerequisite(
+            f"判卷二进制是**陈旧的仓库构建**：{path} [repo-build, {build.get('profile') or '?'}]\n"
+            f"  二进制 mtime: {build.get('mtime')}\n"
+            f"  最新源文件:   {build.get('source_newest_file')} @ {build.get('source_newest')}\n"
+            f"  ⇒ 源码比二进制新 ⇒ **这次判卷不属于当前 commit**（同一份源码会有两个读数）✗\n"
+            f"  正解（无需联网，约 2 分钟）：cargo build --release -p sokonanoda-cli --locked\n"
+            f"  想改判已发布版本：scripts/soko update\n"
+        )
+    # ⚠ **debug 构建要出声**（2026-10-14 BUILD-Q，坑 2 的第二半）：解析优先级已改成
+    #   release 先（`scripts/soko` 的 `repoBuildCandidates`）⇒ 这里只剩"没有版本对得上的
+    #   release"的情形。**警告而不拒绝**：debug 是仓库自己记录过的本地迭代配置
+    #   （`GRADE_TIMEOUT` 的标定就用它），拒绝会打断"编 debug（21s）⇒ 判卷"的内环 ✓；
+    #   要消灭的是**静默** ✗（实测：debug 让 258 个目标的门禁从约 1–2 分钟变成 >20 分钟，
+    #   撞上调用方超时 ⇒ 124，与"判负"完全是两回事）。
+    if source == "repo-build" and build.get("profile") == "debug":
+        print(
+            "warning: 判卷引擎是 **debug** 构建（同一份判卷比 release 慢约 2×；\n"
+            "  本门禁 258 个目标实测从约 1–2 分钟变成 >20 分钟，可能撞上单目标 600s\n"
+            "  上限 ⇒ 假红/超时，不是课程坏了）\n"
+            f"  引擎：{path}\n"
+            "  判据请用 release：cargo build --release -p sokonanoda-cli --locked\n",
+            file=sys.stderr,
         )
     return Channel([path], source, path, report.get("version"))
 
@@ -955,6 +1004,156 @@ def _evaluate_selftest(failures: list) -> None:
         failures.append(f"evaluate 自检失败（正控制）：干净的一行被判负 —— reasons={clean['reasons']}")
 
 
+def selftest_build_trust(failures: list[str], tmp: Path, channel: Channel) -> int:
+    """**构建闸门自检**（2026-10-14 BUILD-Q）：陈旧/新鲜/优先级/逃生门六条断言。
+
+    为什么需要它：坑 1 的病根正是「**算得出 `build.stale`、没人消费**」✗ ⇒
+    修法若没有一条**能咬住**的守卫，同一个接缝下一轮还会静默回来
+    （`AGENTS.md`：**咬不住的守卫等于没有**）。这里造**夹具仓**（真 `scripts/soko`
+    + 判卷二进制的副本 + 受控 mtime），逐条断言：
+
+    ① 陈旧（源码比二进制新）⇒ `resolve_channel` **必须拒绝**（exit 2 那条路）；
+    ② 新鲜 ⇒ **照旧放行**（正控制：闸门不许误伤）；
+    ③ release 与 debug 都在、debug 更新 ⇒ **必须解析到 release**（坑 2 的第一层）；
+    ④ 只有 debug ⇒ **仍放行**（不许打断 debug 内环），且警告**真的出声**；
+    ⑤ 版本钉对不上 ⇒ **仓库构建仍必须被拒**（旧守卫一条不许松）；
+    ⑥ 显式 `--bin` ⇒ **不受 stale 闸门约束**（逃生门语义不许改：A/B 对拍要它）。
+
+    返回造出来的夹具数（早退路径自己记 failure ⇒ 调用方不必再补一条）。
+    """
+    def expect(desc: str, ok: bool) -> None:
+        if not ok:
+            failures.append(f"构建闸门自检失败：{desc}")
+
+    root = repo_root()
+    if root is None or not (root / "scripts" / "soko").is_file():
+        failures.append("构建闸门自检跑不了：找不到语言仓的 scripts/soko")
+        return 0
+    if shutil.which("node") is None:
+        # 不静默跳过（同 `scripts/soko gate` 对 python3 的口径）：`--bin` 判卷在没有
+        # node 的机器上合法，但那样**这条闸门根本没被验过** ⇒ 如实报出来。
+        failures.append(
+            "构建闸门自检跑不了：找不到 node（启动器是 node 程序）⇒ 陈旧构建闸门没被验过 ✗"
+        )
+        return 0
+    pin = channel.version
+    if not pin:
+        failures.append("构建闸门自检跑不了：判卷通道没有版本钉（夹具造不出可比的版本）")
+        return 0
+    binary = "sokonanoda.exe" if os.name == "nt" else "sokonanoda"
+    made: list[Path] = []
+    saved = {key: os.environ.get(key) for key in
+             ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN", "SOKONANODA_VERSION",
+              "SOKONANODA_CACHE_DIR", "SOKONANODA_OFFLINE")}
+
+    def fixture(tag: str, *, profiles: tuple[str, ...] = ("release",),
+                stale_source: bool = False, pin_text: str | None = None) -> Path:
+        home = tmp / f"build-trust-{tag}"
+        (home / "scripts").mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / "scripts" / "soko", home / "scripts" / "soko")
+        stamp = time.time()
+        if pin_text is None:
+            manifest = home / "Cargo.toml"
+            manifest.write_text(f'[package]\nname = "fixture"\nversion = "{pin}"\n',
+                                encoding="utf-8")
+            os.utime(manifest, (stamp - 60, stamp - 60))   # 明确比二进制旧，别靠同一秒的巧合
+        else:
+            (home / "sokonanoda-version.txt").write_text(f"{pin_text}\n", encoding="utf-8")
+        for profile in profiles:
+            target = home / "target" / profile
+            target.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(channel.path, target / binary)
+            os.chmod(target / binary, 0o755)
+            os.utime(target / binary, (stamp, stamp))
+        if stale_source:
+            source = home / "crates" / "front" / "src" / "fixture.rs"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("-- 夹具：只为把 mtime 推后（内容不参与判定）\n", encoding="utf-8")
+            later = stamp + 3600
+            os.utime(source, (later, later))
+        made.append(home)
+        return home
+
+    try:
+        # 夹具环境必须**不带任何覆盖**（否则走 `--bin` 分支，闸门根本没被问到 ✗），
+        # 缓存指到夹具自己的空目录（不读也不写真缓存）。
+        for key in ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN", "SOKONANODA_VERSION"):
+            os.environ.pop(key, None)
+        os.environ["SOKONANODA_CACHE_DIR"] = str(tmp / "build-trust-cache")
+        os.environ["SOKONANODA_OFFLINE"] = "1"
+
+        # ① 陈旧 ⇒ 必须拒绝（本闸门的存在理由）
+        stale_home = fixture("stale", stale_source=True)
+        try:
+            resolve_channel(stale_home, None)
+            expect("陈旧仓库构建（源码比二进制新）**没有被拒绝** —— 闸门失效", False)
+        except Prerequisite as error:
+            text = str(error)
+            expect(f"拒绝理由要点名「陈旧」（实得：{text.splitlines()[0][:90]}）", "陈旧" in text)
+            expect("拒绝理由要给出正解 `cargo build --release -p sokonanoda-cli`",
+                   "cargo build --release -p sokonanoda-cli" in text)
+
+        # ② 正控制：同一夹具、**没有**更晚的源码 ⇒ 必须照旧放行
+        fresh_home = fixture("fresh")
+        try:
+            fresh = resolve_channel(fresh_home, None)
+            expect(f"新鲜仓库构建必须报 repo-build（实得 {fresh.source}）",
+                   fresh.source == "repo-build")
+        except Prerequisite as error:
+            expect(f"新鲜仓库构建被误拒（闸门误伤）：{error}", False)
+
+        # ③ 坑 2：debug 更新也**不许**遮蔽 release
+        both_home = fixture("both", profiles=("release", "debug"))
+        newer = time.time() + 600
+        os.utime(both_home / "target" / "debug" / binary, (newer, newer))
+        try:
+            both = resolve_channel(both_home, None)
+            expect("debug 比 release 新时仍必须解析到 release（坑 2：debug 遮蔽 release）"
+                   f"—— 实得 {both.path}",
+                   both.path.endswith(str(Path("release") / binary)))
+        except Prerequisite as error:
+            expect(f"release 与 debug 都在时被误拒：{error}", False)
+
+        # ④ 只有 debug ⇒ 仍放行（本地内环）+ 警告**真的出声**（不许静默地慢）
+        debug_home = fixture("debug-only", profiles=("debug",))
+        noise = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(noise):
+                debug_channel = resolve_channel(debug_home, None)
+            expect(f"只有 debug 时不许拒绝（会打断本地 debug 内环）：{debug_channel.source}",
+                   debug_channel.source == "repo-build")
+        except Prerequisite as error:
+            expect(f"只有 debug 的树被误拒：{error}", False)
+        expect(f"debug 构建必须出声（stderr 实得：{noise.getvalue()[:60]!r}）",
+               "debug" in noise.getvalue())
+
+        # ⑤ 版本钉对不上 ⇒ 仓库构建仍必须被拒（旧守卫一条不许松）
+        pin_home = fixture("bad-pin", pin_text="9.9.9")
+        try:
+            bad = resolve_channel(pin_home, None)
+            expect("版本钉对不上（9.9.9 vs 二进制自报）时仍把仓库构建交给了判卷 —— 旧守卫松了",
+                   bad.source != "repo-build")
+        except Prerequisite as error:
+            expect(f"版本钉对不上时的拒绝理由不该是「陈旧」：{error}", "陈旧" not in str(error))
+
+        # ⑥ 显式 override 不受 stale 闸门约束（逃生门语义不许改）
+        try:
+            override = resolve_channel(stale_home, channel.path)
+            expect(f"显式 --bin/SOKONANODA_BIN 没走 override 分支（实得 {override.source}）",
+                   override.source.startswith("override"))
+        except Prerequisite as error:
+            expect(f"显式 --bin 被 stale 闸门拦了（逃生门语义被改 ✗）：{error}", False)
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        for home in made:
+            shutil.rmtree(home, ignore_errors=True)
+    return len(made)
+
+
 def selftest(channel: Channel, check_py: Path) -> int:
     failures: list[str] = []
     tmp = Path(tempfile.mkdtemp(prefix="soko-course-selftest-"))
@@ -1074,6 +1273,11 @@ def selftest(channel: Channel, check_py: Path) -> int:
     elif sample["elapsed_ms"] != 1 or sample["course"] != "selftest":
         failures.append(f"成本台账字段值不对：{sample}")
 
+    # ⑥ **构建闸门**（2026-10-14 BUILD-Q）：陈旧 ⇒ 拒绝 · 新鲜 ⇒ 照旧 ·
+    #    release 优先 · debug 出声 · 版本对不上仍拒 · 显式 --bin 不受 stale 约束。
+    #    早退路径自己记 failure ⇒ 这里不必再补一条（但它返回 0 时必须有 failure ✓）。
+    selftest_build_trust(failures, tmp, channel)
+
     print(f"--selftest：判卷通道 [{channel.source}] {channel.path}"
           + (f"（v{channel.version}）" if channel.version else ""))
     if failures:
@@ -1083,7 +1287,8 @@ def selftest(channel: Channel, check_py: Path) -> int:
         return 1
     print("  ✓ 正控制（另一个 cwd + import lib.*）判绿 · ✓ 故意坏的单元被判负 · "
           "✓ 二分点名坏声明 · ✓ **缓存冷热一致 + 坏产物不被静默采信** · "
-          "✓ G6 三类结构非法被判负 + 合法 v2 判绿 · ✓ 成本台账字段齐全")
+          "✓ G6 三类结构非法被判负 + 合法 v2 判绿 · ✓ 成本台账字段齐全 · "
+          "✓ **陈旧构建被拒 + 新鲜照旧 + release 优先 + debug 出声 + 逃生门不受约束**")
     print("--selftest PASS")
     return 0
 
