@@ -1297,7 +1297,15 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             #      `repointed_from` ⇒ 改账本身可审计、可逐条回滚 ✓）。
             if ev.get("commit"):
                 _from = list(cur.get("repointed_from") or [])
-                if cur.get("commit") and cur["commit"] not in _from:
+                # ⚠ **指针没换 ⇒ 不记 `repointed_from`**（`#4`，2026-10-14 · 第八次独立复核实测 ✗）：
+                # 存量 **61 条** `repoint` 事件**没有审计字段**（`subject`/`patch_id`）⇒ 读侧复查
+                # 对它们**零输入**（守卫空转 ✗）⇒ 回填办法 = 用**同一形状**只追加一条**同指针**的
+                # `repoint` 事件来补审计字段。若不判"指针是否真的换了"，那条补账会把**当前** sha
+                # 也塞进 `repointed_from`（它记的是"**从哪个 sha 换过来的**"）⇒ 账上多一条**假历史** ✗。
+                # ⇒ 只有 `ev["commit"] != cur["commit"]` 才记 ✓（`cmd_repoint` 本来就拒
+                # `new == old` ⇒ 这条分支只服务**审计回填**）。
+                if (cur.get("commit") and cur["commit"] != ev["commit"]
+                        and cur["commit"] not in _from):
                     _from.append(cur["commit"])
                 cur["repointed_from"] = _from
                 cur["commit"] = ev["commit"]
