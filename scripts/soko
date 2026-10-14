@@ -390,7 +390,8 @@ function writeMarker(base, version) {
 
 // ── resolution chain ─────────────────────────────────────────────────────────
 
-/// Newest of the contributor builds (`<cargo target dir>/release|debug`).
+/// Every contributor build on disk (`<cargo target dir>|<repo>/target` ×
+/// `release|debug`)，**release 优先、同 profile 内按 mtime 新者优先**。
 ///
 /// ⚠ **必须认 `CARGO_TARGET_DIR`**（2026-10-12 接口 agent 提交 `SUB-cargo-target-dir`）：
 /// `scripts/agent-worktree.sh new` 打印的唯一推荐路径是
@@ -399,8 +400,17 @@ function writeMarker(base, version) {
 /// 二进制在 `<repo>/target/` **根本不存在** ⇒ 旧实现（只看 `REPO/target`）解析不到
 /// `cli`/`lsp`（实测两者都是空对象）、离线时直接判"没有"，AGENTS.md 承诺的解析顺序
 /// "版本匹配的仓库构建 → 缓存 → 下载"在受管环境下不成立 ✗。
-/// 顺序保持原样（`release` → `debug`，按 mtime 取最新）——**只多认一个根** ✓。
-function repoBuild(base) {
+///
+/// ⚠ **`release` 必须优先于 `debug`**（2026-10-14 BUILD-Q，坑 2 的第一层）：
+/// 旧实现跨 profile **只按 mtime 取最新** ⇒ 刚 `cargo build -p sokonanoda-cli`
+/// （debug，21s）的那份**慢**二进制会**遮蔽**稍旧的 release ✗ —— 同一份源码、
+/// **同一个版本号**（`--version` 分辨不出来），可代价是实打实的：课程门禁
+/// （258 个目标、每个一次 `grade`）实测从**约 1–2 分钟**变成 **>20 分钟**
+/// ⇒ 撞上调用方的超时（`timeout` 124）⇒ **假红换成了超时** ✗。
+/// 口径：**同 profile 内仍按 mtime 取最新**（旧语义保留 ✓），跨 profile 改成
+/// **release 先**；debug 只在"没有 release"或"release 版本对不上"时才会被选中 ✓
+/// （`repoBuildForVersion` 逐个试 ⇒ 不许因为偏爱 release 而丢掉一棵**能用的** debug 树 ✗）。
+function repoBuildCandidates(base) {
   const name = binaryName(base)
   const roots = []
   const custom = process.env.CARGO_TARGET_DIR
@@ -409,19 +419,25 @@ function repoBuild(base) {
     roots.push(path.resolve(custom))
   }
   if (!roots.includes(path.join(REPO, 'target'))) roots.push(path.join(REPO, 'target'))
-  let best
+  const found = []
   for (const root of roots) {
     for (const profile of ['release', 'debug']) {
       const candidate = path.join(root, profile, name)
       try {
-        const mtime = statSync(candidate).mtimeMs
-        if (!best || mtime > best.mtime) best = { path: candidate, mtime }
+        found.push({ path: candidate, profile, mtime: statSync(candidate).mtimeMs })
       } catch {
         // not built
       }
     }
   }
-  return best
+  const rank = (c) => (c.profile === 'release' ? 0 : 1)
+  return found.sort((a, b) => rank(a) - rank(b) || b.mtime - a.mtime)
+}
+
+/// 首选的那份贡献者构建（release 优先）。返回**对象**（`buildIdentity` 要 mtime）✓
+/// —— 与 `repoBuildPath()`/`repoBuildForVersion()` 要的**路径字符串**是两条契约，别混 ✗。
+function repoBuild(base) {
+  return repoBuildCandidates(base)[0]
 }
 
 /// Semver-ish tuple from an extension folder name.
@@ -605,8 +621,19 @@ function repoBuildPath(base) {
 /// ⇒ **读数取决于"解析到哪个二进制"而不是 commit** ✗（正是仓库点名的病："跨轮比较任何探针
 /// 读数前先确认两次读数来自同一份构建"）。判据：`crates/**/*.rs` + `Cargo.{toml,lock}` 的
 /// 最大 mtime > 二进制 mtime ⇒ `stale: true`。⚠ 只报告，**不改解析顺序**（旧行为逐字节保留 ✓）。
-function buildIdentity(base) {
-  const build = repoBuild(base)          // ⚠ 要**对象**（含 mtime），不是 path
+///
+/// ⚠ **要描述"会跑的那一个"**（2026-10-14 BUILD-Q，坑 1 的接缝）：`build.stale` 现在有
+/// **消费者**了（`courses/set-theory/tools/check.py` 拿它决定"这次判卷算不算数" ✓）⇒
+/// 它必须描述 `cli.path` 那条链接，而不是"首选的那份仓库构建" ✗ —— 偏爱 release 之后
+/// 两者会在"release 版本对不上、debug 顶上"时分叉（旧实现只描述 mtime 最新的那份，
+/// 而 `repoBuildForVersion` 可能选了另一份）✗。`link` 就是 `probe()`/`resolve()` 的结果 ✓；
+/// 不是仓库构建（缓存/下载/扩展/显式 override）时退回"首选仓库构建"**只作诊断** ✓
+/// （消费者只在 `source === 'repo-build'` 时读 `stale`）。
+function buildIdentity(base, link) {
+  const candidates = repoBuildCandidates(base)
+  const build = (link && link.source === 'repo-build'
+    ? candidates.find((c) => c.path === link.path)
+    : undefined) ?? candidates[0]
   if (!build) return undefined
   let newest = 0
   let newestFile
@@ -646,6 +673,7 @@ function buildIdentity(base) {
   walk(path.join(REPO, 'crates'))
   return {
     path: build.path,
+    profile: build.profile,
     mtime: new Date(build.mtime).toISOString(),
     source_newest: newest ? new Date(newest).toISOString() : undefined,
     source_newest_file: newestFile ? path.relative(REPO, newestFile) : undefined,
@@ -655,14 +683,14 @@ function buildIdentity(base) {
 
 /// run it).
 function repoBuildForVersion(base, version) {
-  const build = repoBuild(base)
-  if (!build) return undefined
+  const candidates = repoBuildCandidates(base)
+  if (!candidates.length) return undefined
   if (!version) return undefined
   if (base !== 'sokonanoda') {
     // The language-server binary has no `--version`; trust a build only when
     // the CLI build of the same tree already proved the version.
     return versionSatisfied(version, binaryVersion(repoBuildPath('sokonanoda') ?? ''))
-      ? build.path
+      ? candidates[0].path
       : undefined
   }
   // ⚠ 两条契约别混（我第一版混了，两处各错一半）：
@@ -670,7 +698,55 @@ function repoBuildForVersion(base, version) {
   //   * 本函数与 `resolver.probe()` 要的是**路径字符串**（`[object Object]` 就是这么来的 ✗）；
   //   * `binaryVersion()` 也要**路径字符串**（传对象 ⇒ 静默回落到缓存二进制，
   //     实测 `version` 报 `cache(STALE: …0.83.0)` 而仓库构建明明在）✗。
-  return versionSatisfied(version, binaryVersion(build.path)) ? build.path : undefined
+  // ⚠ **逐个试、release 先**（2026-10-14 BUILD-Q）：偏爱 release **但不许**因此丢掉
+  //   一棵版本对得上的 debug 树 ✗（实测场景：release 还是上一版的、debug 刚编对 ⇒
+  //   旧口径"按 mtime 取最新"能选对，一味先看 release 反而会退到缓存/下载）。
+  //   都对不上 ⇒ `undefined`（回落缓存 → 下载，旧语义逐字节保留 ✓）。
+  for (const candidate of candidates) {
+    if (versionSatisfied(version, binaryVersion(candidate.path))) return candidate.path
+  }
+  return undefined
+}
+
+/// 判据前的**一声喊**（"别让它静默地慢 / 静默地用旧构建" ✗）：`stale`（源码比
+/// 二进制新 ⇒ 这次读数不属于当前 commit）与 `debug`（同一份工作慢约 2×）各一行。
+///
+/// ⚠ **只给人看/判据前**的入口用（`version` 人读分支 · `doctor` · `gate`）✓；
+/// ⚠ **绝不挂到转发路径上**（`scripts/soko grade|query|course …`）✗：复现件
+/// `courses/set-theory/gaps/*.sh` 把 **stderr 与 stdout 合并**成 JSON 再 `json.load`
+/// （实测 C-05：`node … query check … > /tmp/c05-repro.json 2>&1`）⇒ 多一行警告
+/// 就会把复现件打成 `BAD C-05: grader output is not JSON` ✗ —— 而那批脚本
+/// 故意剥掉 `SOKONANODA_BIN`（它们测的就是启动器自己的解析链）⇒ 恰是最容易踩到的路。
+function buildWarning(identity) {
+  const lines = []
+  if (identity?.stale) {
+    lines.push(
+      `  ⚠ build: **stale** —— 源码（${identity.source_newest_file} @ ${identity.source_newest}）` +
+        `比二进制（${identity.mtime}）新 ⇒ **这次读数不属于当前 commit** ✗` +
+        `（先 \`cargo build --release -p sokonanoda-cli\` 或换一棵刚编过的树）\n`,
+    )
+  }
+  if (identity?.profile === 'debug') {
+    lines.push(
+      `  ⚠ build: **debug** 构建（${identity.path}）—— 同一份判卷比 release 慢约 2×` +
+        `（课程门禁 258 个目标实测从约 1–2 分钟变成 >20 分钟）⇒ 判据请用 ` +
+        `\`cargo build --release -p sokonanoda-cli\` 的产物\n`,
+    )
+  }
+  return lines
+}
+
+/// **拒绝**用陈旧的仓库构建判定：一条给操作者的正解（重建 release，无需联网）。
+/// 与 `check.py` 的 `Prerequisite` 同口径（那边 exit 2，这边 `gate` exit 3）✓。
+function staleBuildRefusal(identity) {
+  return (
+    `scripts/soko: 拒绝用**陈旧的仓库构建**判定 —— ${identity.path} [repo-build, ${identity.profile}]\n` +
+    `  二进制 mtime: ${identity.mtime}\n` +
+    `  最新源文件:   ${identity.source_newest_file} @ ${identity.source_newest}\n` +
+    `  ⇒ 源码比二进制新 ⇒ **这次判卷不属于当前 commit**（同一份源码会有两个读数）✗\n` +
+    `  正解（无需联网，约 2 分钟）：cargo build --release -p sokonanoda-cli --locked\n` +
+    `  想改判"已发布版本"：scripts/soko update\n`
+  )
 }
 
 /// How a binary was found, for `version`/`doctor` reporting.
@@ -998,7 +1074,9 @@ async function main(argv) {
               // **构建身份**（2026-10-12 接口 agent 提交 `SUB-probe-build-drift`）：
               // 探针读数的可比性靠它 —— `stale: true` = 源码比二进制新 ⇒
               // **这一次读数不属于当前 commit**（先重建，或换一棵刚编过的树）。
-              build: buildIdentity('sokonanoda'),
+              // ⚠ 描述**会跑的那条链接**（`cli`）✓，`profile` 明说 release/debug
+              // （2026-10-14 BUILD-Q：debug 会静默慢 10×+ ⇒ 消费者要能看见它）。
+              build: buildIdentity('sokonanoda', cli),
             },
             null,
             2,
@@ -1013,15 +1091,9 @@ async function main(argv) {
         process.stdout.write(`  cache:  ${cacheDir()}${offline() ? ' (offline)' : ''}\n`)
         report('  cli', cli)
         report('  lsp', lsp)
-        // ⚠ **stale 必须出声**：它让"同一份源码两个读数"成为可能（本仓最贵的坑之一）
-        const ident = buildIdentity('sokonanoda')
-        if (ident?.stale) {
-          process.stdout.write(
-            `  ⚠ build: **stale** —— 源码（${ident.source_newest_file} @ ${ident.source_newest}）` +
-              `比二进制（${ident.mtime}）新 ⇒ **这次读数不属于当前 commit** ✗` +
-              `（先 \`cargo build --release\` 或换一棵刚编过的树）\n`,
-          )
-        }
+        // ⚠ **stale / debug 必须出声**：前者让"同一份源码两个读数"成为可能
+        // （本仓最贵的坑之一），后者让"同一份判卷慢 10×+"成为可能 ✓。
+        for (const line of buildWarning(buildIdentity('sokonanoda', cli))) process.stdout.write(line)
         if (pin.error) process.stdout.write(`${pin.error.message}\n`)
       }
       // `version` is a read-only report: it always succeeds and lets the caller
@@ -1052,6 +1124,12 @@ async function main(argv) {
               launcher: path.join(REPO, 'scripts', 'soko'),
               cli: linkInfo('sokonanoda', cli, { present: Boolean(cli), ready: canExec(cli) }),
               lsp: linkInfo('sokonanoda-lsp', lsp, { present: Boolean(lsp), ready: canExec(lsp) }),
+              // ⚠ **只报告、不改 `ready`**（2026-10-14 BUILD-Q）：`ready` 答的是
+              // "能不能跑"，而 `stale` 答的是"这份构建算不算数"——判据入口
+              // （`gate` / `check.py`）才拒绝 ✓；`doctor` 若把 stale 并进 `ready`，
+              // opencode 插件的 provision 就会因为"源码刚改过"去下载/刷新，
+              // 那是另一条链路的行为 ✗（`version --json` 的 `build` 与本字段同源 ✓）。
+              build: buildIdentity('sokonanoda', cli),
             },
             null,
             2,
@@ -1066,6 +1144,7 @@ async function main(argv) {
         process.stdout.write(`  cache:    ${cacheDir()}\n`)
         report('  cli', cli)
         report('  lsp', lsp)
+        for (const line of buildWarning(buildIdentity('sokonanoda', cli))) process.stdout.write(line)
         process.stdout.write(`  ready:    ${ready ? 'yes' : 'no'}\n`)
       }
       return ready ? 0 : 3
@@ -1100,6 +1179,19 @@ async function main(argv) {
       const r = resolver('sokonanoda', cliOverride)
       const found = await r.resolve()
       if (!canExec(found)) return refuseUntrusted('sokonanoda', found, r.pin)
+      // ⚠ **陈旧的仓库构建 ⇒ 拒绝**（2026-10-14 BUILD-Q，坑 1 的消费者）：
+      // `build.stale` 以前只有 `version` 会打印 ⇒ 「守卫看得见却不用」✗（复核实测：
+      // `check.py` 拿着陈旧引擎判出 **14 条假红**，而仓库自己早就算出 `stale=true`）。
+      // 这里是**选二进制的那一步** ⇒ 该拒绝；而且要在 cargo 步骤**之前**拒绝，
+      // 别让人等完 fmt/clippy/test 才听说构建是旧的 ✓。
+      // ⚠ 只在 `source === 'repo-build'` 时判定：显式 override（`SOKONANODA_BIN`）
+      // 是逃生门、缓存/下载按 marker 与版本钉把关 ⇒ 都不拿"仓库构建陈旧"去拦 ✗。
+      const identity = found.source === 'repo-build' ? buildIdentity('sokonanoda', found) : undefined
+      if (identity?.stale) {
+        process.stderr.write(staleBuildRefusal(identity))
+        return 3
+      }
+      for (const line of buildWarning(identity)) process.stderr.write(line)
       const fast = rest.includes('--fast')
       const cargoGate = spawnSync(found.path, ['gate', ...rest], { stdio: 'inherit' })
       if (cargoGate.error) {
