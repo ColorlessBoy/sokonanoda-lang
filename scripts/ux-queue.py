@@ -2559,6 +2559,8 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     #     写在 `release-open` 之前就**同族静默丢弃** ⇒ 假 cut 对两条读侧**零输入** ✗。
     #   · **cut 审计**（`#2` 第九次）：只审**最后一个** cut ⇒ 先假后一致的两条里那条假的
     #     跑掉 ✗（`#3` 第八次：手写假 `release-cut` 原先**无人咬** ✗）。
+    #   · **节点内容**（`#3` 第九次）：入版条目必须 `done` ⇒ 旧 `--check` **对节点内容全盲**
+    #     （rc=0 ✗）—— 而 `soko gate --fast` 与 CI 的 `ledger` job 跑的**正是 `--check`** ✗。
     for _why in release_read_problems(state):
         print(_why, file=sys.stderr)
         bad += 1
@@ -3002,6 +3004,24 @@ def cut_audit_problems(node: dict) -> list[str]:
     return out
 
 
+def release_item_problem(ident: str, cur: dict, rel: str | None = None) -> str | None:
+    """**入版条目的证据判据（一处定义）**：入版条目必须 `done` **且有证据**（`commit`）。
+
+    ⚠ 这条规则原先**只长在 `--release check` 里**（`cmd_release` 的 `check` 分支），而
+    `check_plan`（= `--check`）**对节点内容全盲** ⇒ 节点里放一条**未 done** 的条目 +
+    **合法形状**的 cut ⇒ `--check` **rc=0** ✗（`#3`，2026-10-14 · 第九次独立复核实测）——
+    而 `soko gate --fast` 与 CI 的 `ledger` job 跑的**正是 `--check`** ⇒ 那个洞长在 gate/CI 上 ✗。
+    ⇒ 两处**共用**这一处判据（`AGENTS.md` 硬规则 0(b)：同一规则不许两处写 ✗）。
+    ⚠ `rel` 只在 `--check` 那一侧传（多印一句"节点内容也受 `--check` 复查"✓，判红**点名节点** ✓）；
+    **不传时读数与改前逐字节一致**（`--release check` 的既有硬拒读数一个字不动 ✓）。
+    """
+    if (cur or {}).get("state") != "done" or not (cur or {}).get("commit"):
+        return (f"✗ 入版条目 `{ident}` 未 done 或无证据 ⇒ **发出去就不是完整可用版本** ✗"
+                + (f"（发版节点 `{rel}` 的**内容**也受 `--check` 复查 —— `soko gate --fast` 与 "
+                   f"CI 的 `ledger` job 跑的就是它 ✓）" if rel else ""))
+    return None
+
+
 def release_read_problems(state: dict[str, dict], rel: str | None = None) -> list[str]:
     """**发版节点的读侧判据（一处定义）** —— `check_plan`（= `--check`，gate/CI 跑的那条）
     与 `--release check` **共用** ✓。逐族：
@@ -3009,6 +3029,8 @@ def release_read_problems(state: dict[str, dict], rel: str | None = None) -> lis
       · **事件层**（`#1`）：乱序 / 孤儿 —— `release-add`/`block`/`drop`/`cut` **同族** ✓
         （旧折叠按事件流位置判成员 ⇒ 重排即可让它们静默消失 ✗）。
       · **cut 审计**（`#2`/`#3`）：**每一条** cut（不只最后一个 ✓）。
+      · **节点内容**（`#3`）：入版条目必须 `done` 且有证据 —— `--check` 原先对节点内容**全盲**
+        ⇒ 一条未 done 的入版条目 + 合法形状的 cut ⇒ rc=0 ✗（gate/CI 跑的就是它 ✗）。
 
     `rel` 给了就只算那一个节点（`--release check` 只审自己的节点 ✓）；不给就全审（`--check` ✓）。
     """
@@ -3018,6 +3040,10 @@ def release_read_problems(state: dict[str, dict], rel: str | None = None) -> lis
         if rel is not None and _rel != rel:
             continue
         out += cut_audit_problems(_node)
+        for _ident in _node.get("items") or []:
+            _why = release_item_problem(_ident, (state or {}).get(_ident) or {}, _rel)
+            if _why is not None:
+                out.append(_why)
     return out
 
 
@@ -3147,6 +3173,7 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
         # ⭐ **节点级读侧复查**（`#3` 第八次 · 第九次独立复核实测 ✗）—— 逐族：
         #   · **事件层**：乱序 / 孤儿（`release-add`/`block`/`drop`/`cut` **同族** ✓）。
         #   · **cut 审计**：**每一条** cut（不只最后一个 ✓）。
+        #   · **节点内容**：入版条目必须 `done` 且有证据。
         # ⚠ 与 `--check` **共用** `release_read_problems()`（一处定义 ✓）：旧写法把"入版条目
         # 必须 done"这条规则**只**长在这里 ⇒ `--check` 对节点内容**全盲**（rc=0 ✗）—— 而
         # `soko gate --fast` 与 CI 的 `ledger` job 跑的正是 `--check` ✗。
@@ -3155,10 +3182,9 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
             bad += 1
         for ident in node["items"]:
             cur = state.get(ident, {})
-            if cur.get("state") != "done" or not cur.get("commit"):
-                print(f"✗ 入版条目 `{ident}` 未 done 或无证据 ⇒ **发出去就不是完整可用版本** ✗",
-                      file=sys.stderr)
-                bad += 1
+            # 「done + 有证据」那一条已由上面的 `release_read_problems()` 报过（**一处定义** ✓）
+            # ⇒ 这里只补**它没有的那一半**：指针要过 `closure_pointer_problem()`（存在性 + 祖先性）。
+            if release_item_problem(ident, cur) is not None:
                 continue
             # ⭐ **读侧也过同一道证据闸门**（2026-10-14 · `RELEASE-EVIDENCE-GATE`）：
             # `add` 只挡"**新**入版的"；手改事件表把现成条目的指针换掉、或把条目**手写进**
@@ -5439,6 +5465,8 @@ def selftest_release_order_and_content(expect) -> None:
         ⇒ `--check` **rc=0 且不点名**（同三条按正序 ⇒ rc=1、点名「与审计字段对不上」）✗；
       · **`#2` 只审最后一个 cut**：手写两条（**先假、后一致**）⇒ 折叠只留最后一条 ⇒ 早先那条
         假 cut 对判据**零输入**（`--check` 绿 ✗；CLI 路径被 `--release check` 挡住 ⇒ 只有手改 ✓）；
+      · **`#3` `--check` 对节点内容全盲**：节点里一条**未 done** 的入版条目 + **合法形状**的
+        cut ⇒ `--check` **rc=0** ✗ —— 而 `soko gate --fast` 与 CI 的 `ledger` job 跑的正是它 ✗；
 
     断言（每条都点名靶子 ⇒ 定向突变必红）：
       ① **顺序无关**：同一批事件两种顺序 ⇒ `items`/`blockers`/`cuts` **逐字节相同**
@@ -5448,6 +5476,9 @@ def selftest_release_order_and_content(expect) -> None:
       ④ **孤儿**：引用没有 `release-open` 的节点 ⇒ 判红 + 点名；正对照（节点都在）⇒ 不误报 ✓；
       ⑤ **每一条 cut 都审**：先假后一致 ⇒ 判红且点名「第 1/2 条」；正对照两条都一致 ⇒ rc=0；
       ⑥ **CLI 路径挡得住**：假 cut 之后 `--release cut` rc=1 **且零写入**（⇒ `#2` 只有手改能造 ✓）；
+      ⑦ **`--check` 看得见节点内容**：未 done 的入版条目 ⇒ 判红 + 点名条目 + 点名节点；
+         正对照全 done ⇒ rc=0（**不许误拒** ✗）；
+      ⑧ **不许放宽**：同一形状 `--release check` **仍拒**（rc=1 + 同一句话 ✓）；
     """
     import contextlib
     import io
@@ -5617,6 +5648,25 @@ def selftest_release_order_and_content(expect) -> None:
             legit_cut("2")
             rc, out = plan()
             expect(f"⑤ 正对照：两条 cut **都一致** ⇒ rc={rc}（**不许误拒** ✗）", rc == 0)
+            # ⑦ ⑧ **节点内容轴**（`#3`）
+            write_extras([(f"FX-{i}", "fixed", "夹具：已关账") for i in (1, 2, 3)]
+                         + [("FX-4", "fix", "夹具：**还没做完**（未 done）")])
+            done_events(("FX-1", "FX-2", "FX-3"))
+            open_and_add(("FX-1", "FX-2", "FX-3", "FX-4"))
+            legit_cut("7")
+            rc, out = plan()
+            expect(f"⑦ 节点里一条**未 done** 的入版条目 ⇒ `--check` 判红 rc={rc} + 点名 `FX-4`"
+                   f"（**改前 rc=0 —— 对节点内容全盲** ✗）", rc >= 1 and "FX-4" in out)
+            expect("⑦ 且点名它属于哪个节点（判红**可归属** ✓）", "REL-9.9.9" in out)
+            rc2, out2 = rel_check()
+            expect(f"⑧ **不许放宽**：同一形状 `--release check` 仍拒 rc={rc2} + 同一句话 ✓",
+                   rc2 == 1 and "FX-4" in out2 and "未 done" in out2)
+            write_extras([(f"FX-{i}", "fixed", "夹具：已关账") for i in (1, 2, 3, 4)])
+            done_events()
+            open_and_add(("FX-1", "FX-2", "FX-3", "FX-4"))
+            legit_cut("8")
+            rc, out = plan()
+            expect(f"⑦ 正对照：4 条**全 done** + 合法 cut ⇒ rc={rc}（**不许误拒** ✗）", rc == 0)
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
