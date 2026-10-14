@@ -739,10 +739,14 @@ async function downloadLspBinary(options) {
 /// **没有自带二进制**（调用方给"请先重新安装插件"的人话）。
 function installBundledCli(options) {
   const { extensionPath, platform, arch, version, fsImpl = fs } = options;
+  // **一次算、两处用**（挑自带二进制 + 下面写 marker）：`alpine` 决定 target，而 target
+  // 同时是"自带二进制在哪个目录"和"marker 写什么"的一半 ⇒ 分开算就有漂移的余地 ✗。
+  const alpine = isAlpineLinux(platform, fsImpl);
   const src = resolveBundledBinary({
     extensionPath,
     platform,
     arch,
+    alpine,
     baseName: "sokonanoda",
     fs: fsImpl,
   });
@@ -784,8 +788,19 @@ function installBundledCli(options) {
       // 只读缓存目录：让调用方在 spawn 失败时给可行动的文案
     }
   }
-  // 版本标记（与 LSP 的 `serverVersionMarker` 同款机制）
-  fsImpl.writeFileSync(dest + ".version", `${version}\n`);
+  // 版本标记：**规范词汇 = `<version> <vsce-target>`** —— 三处同源（`crates/cli/src/env/target.rs`
+  // 的 `expected_marker` · `scripts/soko` 的 `markerExpected` 与下载路 `writeMarker` ·
+  // `crates/cli/tests/launcher.rs` 的下载断言 ✓）。
+  // ⚠ 旧实现只写 `<version>` ⇒ 启动器按 `fields[1] !== target` 判
+  // `cache(STALE: expected <v> <target>, found <v>)` 并**拒绝 exec** ✗ ——
+  // 用户刚跑过「Install CLI」、那份 CLI 却仍被当成陈旧（2026-10-15 LINK-B 实测 ✓）。
+  // ⇒ 洞 `INSTALL-BUNDLED-CLI-MARKER-DRIFT` 走 **① 写端对齐规范**；
+  // **不选**「启动器收单字段」那条：target 正是防"同版本、错平台"的那一半，收掉 = 松 `canExec` ✗。
+  // `src` 存在 ⇒ `platformTarget` 必存在（`resolveBundledBinary` 就是按它挑的 ✓）。
+  fsImpl.writeFileSync(
+    dest + ".version",
+    `${version} ${platformTarget(platform, arch, alpine)}\n`,
+  );
   return { dest, source: src, aligned: false, version, previousVersion, staleBackups };
 }
 
