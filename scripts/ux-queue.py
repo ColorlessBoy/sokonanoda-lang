@@ -143,6 +143,15 @@ main 的历史**）✗。口径 **只对新增收口**要求祖先性（写入�
 **存量**原先给一条**带日期**的豁免（`ANCESTRY_GATE_SINCE`）——
 ⚠ 该豁免（2026-10-14 同日晚）**已按上面的两步收口删掉**：存量全量回填到 0 之后，血缘口径是
 **「非祖先必须 0 条」的断言**，每次 `--check` 都把这条断言打出来（**不许静默** ✓）。
+⚠ ⭐ **这条断言的覆盖域 = 每个 id 的现行（fold 后）指针**，措辞必须与机制一样宽
+（`HISTORICAL-POINTERS-NOT-COVERED`，2026-10-15 · 第十五次独立复核实测 ✗）：旧措辞只说
+「非祖先 0 条」，读起来像"这本账里一条非祖先指针都没有"，而**被后来的指针覆盖掉的历史指针**
+不在覆盖域内（真台账实测：现行 0 条 ✓，历史里还有 **80 条**非祖先 = 61 `advance` +
+19 `triage-applied`）⇒ 现在 `--check` 说「**现行指针**非祖先 N 条」，并另打一行
+「历史（被覆盖）指针 N 条 / 非祖先 M 条 —— **只报告、不判红**」（`superseded_pointers()`
+一处算）。**为什么不把历史指针也纳入覆盖**：它们**不再是任何条目的证据**，而 `--repoint`
+只搬得动现行指针（账是只追加的 ⇒ 历史事件不许改）⇒ 判红会是一条**没有出路**的红 ✗。
+
 **三个视图必须同数**（2026-10-14 · 同轮 ①②③）：`--json` 的 `open`/`summary`、`--next` 的推序、
 §0.2 的 `QUEUE:COUNTS` **一律从 `sched_rows()` 的那份视图算**（`json_view` 不再自己从源行另算 ✗）；
 子任务**有源行就用源行**（真处置），`check_plan` 的处置以**来源台账**为权威 ⇒「反向两层漂移」
@@ -1077,8 +1086,6 @@ def check_uncovered(rows: list[dict], live: bool, timeout: int, undecided: list[
 #     子进程 cwd = 夹具根 ⇒ 碰巧指到同一个文件 ⇒ rc=0/零写入 ✓（**碰巧**，不是机制 ✓）。
 # ⇒ 口径：**相对值按 `ROOT` 解析**（与 `ROOT` 自己同一套解析 ⇒ 同一个根的两个进程必得
 # 同一个文件 ✓），绝对值原样保留（隔离脚本照旧用 `/tmp/…` ✓）。
-
-
 def events_path_for(raw: str | None, root: Path | None = None) -> Path:
     """`SOKO_QUEUE_EVENTS` 的**唯一解析处**（父子共用 ⇒ 不会一边按 cwd、一边按根 ✗）。
 
@@ -1148,8 +1155,6 @@ def _guard_events_env() -> None:
             f"`SOKO_QUEUE_EVENTS` 的**父级不是目录**（`{EVENTS.parent}`）⇒ 事件表写不进去 ✗ "
             f"（原值 `{raw}`；相对值按 `SOKO_QUEUE_ROOT` 解析 ⇒ 要隔离就用 "
             f"`SOKO_QUEUE_EVENTS=/tmp/…/events.jsonl`）")
-
-
 LOCK_TTL_S = 2 * 60 * 60  # 两小时没心跳 ⇒ 陈旧（默认**只警告**；`--force` 才接管）
 # **并发 = 4 核**（2026-10-12 用户：「允许最多 4 个 subagent，类比 4 核心 cpu」）——
 # 但**同一模块同一时间只允许一个写者** ✗ ⇒ 认领要过**资源矩阵**（不是简单的计数锁）。
@@ -1840,6 +1845,59 @@ def commit_is_ancestor(commit: str) -> bool:
                                cwd=ROOT, capture_output=True, text=True)
         _ANCESTRY_CACHE[commit] = probe.returncode == 0
     return _ANCESTRY_CACHE[commit]
+
+
+def superseded_pointers() -> list[tuple[str, str, str]]:
+    """**被后来的指针覆盖掉的历史指针**：`[(id, commit, 写它的事件 kind)]`（按事件顺序）。
+
+    ⚠ **为什么要单独有一条**（`HISTORICAL-POINTERS-NOT-COVERED`，2026-10-15 · 第十五次独立
+    复核实测 ✗）：`--check` 的祖先性断言原先只说「**非祖先 0 条**」—— 读起来像"这本账里
+    一条非祖先指针都没有" ✗，而**机制只审每个 id 的现行（fold 后）指针** ⇒ **措辞比机制宽**。
+    实测（真台账，2026-10-15）：现行指针非祖先 **0 条** ✓，而被覆盖的历史指针里仍有
+    **80 条**非祖先（61 条 `advance→done` + 19 条 `triage→applied`，跨 76 个 id）——
+    它们**不在任何判据的覆盖内**，读的人却以为在 ✓（不是假绿，是**措辞**病）。
+    ⇒ 处置：**报出来、不判红**（`check_plan` 那一段写清了为什么选"改准措辞"而不是"纳入覆盖"）。
+
+    口径与 `fold()` 的**写指针分支**逐条对齐（**多一族 = 假报，少一族 = 措辞又比机制宽** ✗）：
+      · `advance` 且带 `commit`（重开/中间态不带 ⇒ 那一支什么都不折 ✓）；
+      · `triage` 且 `to == "applied"`（`fold` **无条件**写 `commit`，可能是 `None` ⇒ 也算"写"）；
+      · `repoint` 且带 `commit`。
+    ⚠ **"没换值"不算被覆盖**（同一 sha 再写一遍 = 审计回填的合法形状）：`--repoint` 会用
+    "同指针 + 补审计字段"的事件补账 ⇒ 按"上一次写入 ≠ 这一次写入"判定，否则会把**现行指针
+    自己**报成历史 ✗（实测：按"除最后一条以外全算"会多报 68 条）。
+    ⚠ `release-cut` 的指针**不在这里**（它是发版节点的指针，另有读侧复查 `cut_audit_problems`）。
+    """
+    last: dict[str, tuple[str | None, str]] = {}
+    out: list[tuple[str, str, str]] = []
+    for ev in load_events():
+        kind, ident, new = ev.get("event"), ev.get("id"), ev.get("commit")
+        if not ident:
+            continue
+        if kind == "advance":
+            if not new:
+                continue
+        elif kind == "triage":
+            if ev.get("to") != "applied":
+                continue
+            new = new or None
+        elif kind == "repoint":
+            if not new:
+                continue
+        else:
+            continue
+        prev = last.get(ident)
+        if prev and prev[0] and prev[0] != new:
+            out.append((ident, prev[0], prev[1]))
+        last[ident] = (new, kind)
+    return out
+
+
+def _kind_breakdown(items: list[tuple[str, str, str]]) -> str:
+    """`[(id, commit, kind)]` ⇒ `61 条 `advance` + 19 条 `triage``（判据正文里的**可核对**明细）。"""
+    counts: dict[str, int] = {}
+    for _i, _c, kind in items:
+        counts[kind] = counts.get(kind, 0) + 1
+    return " + ".join(f"{n} 条 `{k}`" for k, n in sorted(counts.items(), key=lambda kv: -kv[1]))
 
 
 def closure_pointer_problem(commit: str) -> str | None:
@@ -3146,13 +3204,36 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     # 这一行原先打的是「⚠ 存量收口指针 N 条 ⇒ 豁免」（**只报告、不判红**），现在换成**断言**——
     # 存量 60 条 / 38 个 sha 已用 `--repoint` 全量回填到 0 ⇒ **非祖先必须是 0 条** ✓。
     # ⚠ **每次 `--check` 都要打出来**（绿也要打 ✓）：不许静默 —— 上一版的病正是"看不见"。
+    #
+    # ⭐⭐ **措辞必须与机制一样宽**（`HISTORICAL-POINTERS-NOT-COVERED`，2026-10-15 · 第十五次
+    #   独立复核实测 ✗）：上面这条断言只覆盖**每个 id 的现行（fold 后）指针**，而旧措辞是
+    #   「非祖先 0 条」—— 读起来像"这本账里一条非祖先指针都没有" ✗：实测真台账**现行 0 条** ✓
+    #   而**被覆盖的历史指针**里还有 **80 条**非祖先（61 `advance` + 19 `triage-applied`）。
+    #   ⇒ 二选一里选 **①"把措辞改准"**（不是②"把历史指针也纳入覆盖"），两条理由：
+    #     (a) **被覆盖的指针不再是任何条目的证据**：`--release add/check`、`done` 的证据链读的
+    #         都是**现行**指针 ⇒ 历史指针非祖先**不构成**"证据在 main 上核不到"；
+    #     (b) ⭐ **判红会是一条没有出路的红** ✗：`--repoint` 只搬得动**现行**指针，而账是
+    #         **只追加**的（历史事件一个字不许改，见 `cmd_repoint` 的说明）⇒ 历史指针**永远**
+    #         修不掉；再加上 main 每次整体 rebase 都会把整批历史指针变成非祖先（`ANCESTRY_GATE_
+    #         SINCE` 那一段早已写明这个预期）⇒ 选 ② 就是造一台**假红机器**（仓库口径：每条红都要
+    #         有出路）。
+    #   ⇒ 历史指针**报出来、不判红**（`superseded_pointers()` 一处算 ⇒ 措辞与机制同源 ✓）。
+    _hist = superseded_pointers()
+    _hist_bad = [(i, c, k) for i, c, k in _hist if not commit_is_ancestor(c)]
     if bad_pointers:
-        print(f"✗ 收口指针祖先性：**非祖先 {len(bad_pointers)} 条**（口径：存量已全量回填 ⇒ "
-              f"**必须 0 条**，**没有豁免** ✗）："
+        print(f"✗ 收口指针祖先性：**现行指针非祖先 {len(bad_pointers)} 条**（口径：**每个 id 的"
+              f"现行（fold 后）指针**必须解析到 main 的历史上 ⇒ 存量已全量回填 ⇒ **必须 0 条**，"
+              f"**没有豁免** ✗）："
               + " · ".join(f"{i}@{c[:8]}" for i, c, _t in bad_pointers), file=sys.stderr)
     else:
-        print(f"✓ 收口指针祖先性：**非祖先 0 条**（口径：口径起点 {ANCESTRY_GATE_SINCE} 之前"
-              f"记的存量已用 `--repoint` 全量回填到 0 ⇒ 现在**必须**为 0，**没有豁免** ✓）")
+        print(f"✓ 收口指针祖先性：**现行指针非祖先 0 条**（口径：口径起点 {ANCESTRY_GATE_SINCE} "
+              f"之前记的存量已用 `--repoint` 全量回填到 0 ⇒ **每个 id 的现行（fold 后）指针**"
+              f"现在**必须**为 0，**没有豁免** ✓）")
+    print(f"  ⓘ 历史（被覆盖）指针：**{len(_hist)} 条**，其中**非祖先 {len(_hist_bad)} 条**"
+          + (f"（{_kind_breakdown(_hist_bad)}）" if _hist_bad else "")
+          + " —— **只报告、不判红**：它们已被后来的指针覆盖、**不再是任何条目的证据**，"
+            "而 `--repoint` 只搬得动**现行**指针（历史事件只追加 ⇒ 判红会是一条**没有出路**"
+            "的红 ✗；main 整体 rebase 时它们必然整批变非祖先）")
     return bad
 
 
@@ -7360,13 +7441,22 @@ def selftest_ancestry_gate(expect) -> None:
     实测（2026-10-14 量）：65 条 `done` 里 **60 条**的 commit 不是 `HEAD` 的祖先
     （去重后 47 个 sha 里 **32 个**是 rebase 前的孪生）—— 对象在 ✓、内容也落了 main ✓，
     但 `git merge-base --is-ancestor <sha> HEAD` 非零 ⇒ 光查存在性 = **假证据** ✗。
-    口径 = **只对新增收口**要求祖先性 + 存量给一条**带日期**的豁免（`ANCESTRY_GATE_SINCE` =
-    每次 `--check` 打一行 ⚠ 汇总（条数 + 日期 + 为什么 + 清单）⇒ **不静默** ✓）。断言：
+    口径 = **每个 id 的现行（fold 后）指针必须能解析到 main 的历史上**（存量已用 `--repoint`
+    全量回填到 0 ⇒ 断言「必须 0 条、没有豁免」；带日期的豁免**已删**）—— 每次 `--check` 都打
+    一行断言（**绿也要打** ⇒ 不静默 ✓）。断言：
       ① 非祖先 sha（现场 `git commit-tree` 造一个**悬垂** commit：对象真的存在、但不是祖先）
          ⇒ `cmd_advance … --to done` **硬拒**（写侧）；
       ② 同一条 sha + 记录时间 ≥ 口径起点 ⇒ `check_plan` **判红**（读侧复查，防"先写后 rebase"）；
-      ③ 同一条 sha 但记录时间**早于**口径起点 ⇒ **不判红**，且 stderr 里必须出现豁免口径
-         （"存量" + 口径日期 + 清单）—— **不许静默放过** ✓；
+      ③ 同一条 sha 但记录时间**早于**口径起点 ⇒ ⭐ **也判红**（豁免已按编排者口径删掉：
+         存量 60 条 / 38 个 sha 全量回填到 0 ⇒ 口径改成"必须 0 条"的断言）—— 这一臂是
+         "把带日期的豁免改回去"的靶子 ✗；
+      ③b 干净事件表 ⇒ **不判红**，且**绿行也必须打出来**（不许静默 ✓）；
+      ③c ⭐⭐ **措辞与机制同宽**（`HISTORICAL-POINTERS-NOT-COVERED`，2026-10-15 · 第十五次独立
+         复核实测 ✗）：**现行指针是真祖先 + 被它覆盖的历史指针是非祖先** ⇒ **不判红**（历史指针
+         已不是证据，且 `--repoint` 搬不动它 ⇒ 判红 = 没有出路的红 ✗），但绿行必须说
+         「**现行指针**非祖先 0 条」+ 历史桶（条数 / 非祖先数 / **只报告、不判红**）—— 改前
+         这两样都没有（旧措辞只说「非祖先 0 条」⇒ 措辞比机制宽）⇒ 本臂在改前**必红** ✓；
+      ③d **反对照**（不许放宽 ✗）：同一枚非祖先 sha 当**现行**指针 ⇒ 判红 + 点名 + 措辞照旧 ✓；
       ④ 真祖先（`HEAD`）⇒ 收口通过、也不判红（别误伤 ✓）。
     ⚠ ① 会用 `git commit-tree` 往仓库里写一个**悬垂 commit 对象**（无 ref、无副作用；gc 会回收）。
     """
@@ -7469,6 +7559,47 @@ def selftest_ancestry_gate(expect) -> None:
             expect(f"③b 非祖先 0 条 ⇒ 不判红（红 {rc} 条）", rc == 0)
             expect("③b 且**打出「非祖先 0 条」的断言**（绿也不许静默 ✓）",
                    "非祖先 0 条" in _ob.getvalue())
+            # ③c ⭐⭐ **措辞必须与机制一样宽**（`HISTORICAL-POINTERS-NOT-COVERED`，2026-10-15 ·
+            #     第十五次独立复核实测 ✗）：祖先性断言只审**现行（fold 后）指针**，而旧措辞是
+            #     「非祖先 0 条」（读起来像"这本账里一条非祖先指针都没有" ✗）。这一臂造**恰好
+            #     相反**的形状：**现行指针是真祖先** + **被它覆盖掉的那枚历史指针是非祖先** ⇒
+            #       · `check_plan` 必须 **rc=0**（历史指针**不判红**：它已不是任何条目的证据，
+            #         而 `--repoint` 只搬得动现行指针 ⇒ 判红会是一条**没有出路**的红 ✗）；
+            #       · stdout 必须同时打出「**现行指针**非祖先 0 条」+ 历史桶明细
+            #         （「历史（被覆盖）指针 … 非祖先 1 条」+「只报告、不判红」）✓。
+            #     ⚠ 改前这一臂**必红**：旧措辞里没有"现行"二字、也没有历史桶 ⇒ 措辞病当场现形 ✓。
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "advance", "id": "G-2", "to": "done", "commit": dangling,
+                          "reading": "夹具读数（这枚会被下一条覆盖）",
+                          "ts": (_cut + _dt.timedelta(minutes=2)).isoformat(), "owner": "t"})
+            append_event({"event": "advance", "id": "G-2", "to": "done", "commit": real_sha,
+                          "reading": "夹具读数（现行指针 = 真祖先）",
+                          "ts": (_cut + _dt.timedelta(minutes=3)).isoformat(), "owner": "t"})
+            _r3c, _s3c, _v3c = snapshot()
+            _oc, _ec = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(_oc), contextlib.redirect_stderr(_ec):
+                rc = check_plan(_v3c, _r3c)
+            _outc = _oc.getvalue()
+            expect(f"③c 现行指针是真祖先 + **历史指针非祖先** ⇒ **不判红**（红 {rc} 条：历史指针"
+                   f"已不是证据、`--repoint` 也搬不动它 ⇒ 判红 = 没有出路的红 ✗）", rc == 0)
+            expect("③c 措辞与机制同宽：绿行说「**现行指针**非祖先 0 条」"
+                   f"[现行={'现行指针非祖先 0 条' in _outc}]", "现行指针非祖先 0 条" in _outc)
+            expect("③c 且**历史桶报出来**（「历史（被覆盖）指针」+「非祖先 1 条」+「只报告、不判红」）"
+                   f"[桶={'历史（被覆盖）指针' in _outc} / 数={'非祖先 1 条' in _outc} / "
+                   f"不判红={'只报告、不判红' in _outc}]",
+                   "历史（被覆盖）指针" in _outc and "非祖先 1 条" in _outc
+                   and "只报告、不判红" in _outc)
+            # ③d **反对照**（不许放宽 ✗）：同一枚非祖先 sha 当**现行**指针（去掉覆盖它的那条）
+            #     ⇒ 必须判红，且红行的措辞也说「**现行指针**非祖先 1 条」✓。
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "advance", "id": "G-2", "to": "done", "commit": dangling,
+                          "reading": "夹具读数（现行 = 非祖先）",
+                          "ts": (_cut + _dt.timedelta(minutes=2)).isoformat(), "owner": "t"})
+            _r3d, _s3d, _v3d = snapshot()
+            rc, err = capture(check_plan, _v3d, _r3d)
+            expect(f"③d 同一枚 sha 当**现行**指针 ⇒ 判红（红 {rc} 条）", rc >= 1)
+            expect("③d 且红行说的是「**现行指针**非祖先 1 条」+ 点名 `G-2`（措辞不许再宽 ✗）",
+                   "现行指针非祖先 1 条" in err and "G-2" in err)
             # ④ 真祖先（HEAD）⇒ 收口过、也不判红（别误伤 ✓）
             EVENTS.write_text("", encoding="utf-8")
             rows, _st, view = snapshot()
@@ -8337,9 +8468,13 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"`wo_filed` 一向无牙、`boundary`/`control` 12 格静默且被 `--next` 推、"
           f"**手写 `advance.to=boundary`/`control` 16 格静默**（= 8 pair × 2 态；第十轮 `#1`/`#2`）、"
           f"**删掉覆盖层**后 42 格静默而 `--next` 照推、**终态缺口行让冲突闸门失明** ⇒ 逐格必红 ✗）"
-          f" + **祖先性闸门 11 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/"
+          f" + **祖先性闸门 16 条**（非祖先 sha 收口**硬拒**/新增非祖先判红/"
           f"⭐ **口径已改成「非祖先必须 0 条」的断言**：存量（记于 `ANCESTRY_GATE_SINCE` **之前**）"
-          f"**也判红** —— 带日期豁免**已按编排者口径删掉** ✗/绿也要打出「非祖先 0 条」·真祖先不误伤）"
+          f"**也判红** —— 带日期豁免**已按编排者口径删掉** ✗/绿也要打出「非祖先 0 条」·真祖先不误伤/"
+          f"⭐⭐ **措辞与机制同宽**（`HISTORICAL-POINTERS-NOT-COVERED`，第十五次复核 ✗）：现行指针"
+          f"真祖先 + **历史指针非祖先** ⇒ **不判红**，且绿行说「**现行指针**非祖先 0 条」+ 历史桶"
+          f"（条数 / 非祖先数 / **只报告、不判红**）—— 改前这两样都没有 ⇒ 本臂改前必红；"
+          f"反对照：同一枚 sha 当**现行**指针 ⇒ 判红 + 点名 + 措辞照旧 ✓）"
           f" + ⭐ **证据闸门 + 指针回填 40 条**（`RELEASE-EVIDENCE-GATE`：**真孪生夹具**"
           f"（同树 + 同父 + 同 subject ⇒ 同 `patch-id --stable`、但**非**祖先）/三关认得它/"
           f"`--dry-run` **零写入**/`--repoint` 自动找孪生 ⇒ 指针换真祖先 · **state 仍 done** · "
@@ -8377,9 +8512,9 @@ def cmd_selftest(args: argparse.Namespace) -> int:
            f" + **id 长度 + 环境编码 + 队列根 + 事件表旗标 20 条**（`#5`：3000 字符 id 在 `--schedule`/`--submit`/"
            f"`--add-child` 三个入口**都拒且零写入**、上限 64 是**数字**（64 过 / 65 拒）、"
            f"`locale=US-ASCII` ⇒ `UsageError`、真 CLI 在 `LC_ALL=C PYTHONUTF8=0` 下**没有栈**"
-           f"且 rc ∈ {{0,2}}（**不许是 1 + 栈** ✗）/⭐ **`SOKO_QUEUE_EVENTS` 结构错值 = rc=2 + 人话**"
-           f"（第十五次复核 ✗：指到**目录** / **父级是文件** 改前都是**栈 + rc=1** ⇒ 现在真 CLI "
-           f"（`--json`）逐值判 rc=2 + 点名 + **没有 Traceback**，正对照=合法文件路径仍 rc=0 ✓））"
+          f"且 rc ∈ {{0,2}}（**不许是 1 + 栈** ✗）/⭐ **`SOKO_QUEUE_EVENTS` 结构错值 = rc=2 + 人话**"
+          f"（第十五次复核 ✗：指到**目录** / **父级是文件** 改前都是**栈 + rc=1** ⇒ 现在真 CLI "
+          f"（`--json`）逐值判 rc=2 + 点名 + **没有 Traceback**，正对照=合法文件路径仍 rc=0 ✓））"
            f" + **事件表词汇表 / 必填字段 / 值域 23 条**（`EVENT-FIELD-NO-GUARD`，第十四次复核 ✗："
            f"非法 `event` 值（`advnace`）与 `repoint` 缺 `commit` 原先 `--check` **rc=0 零点名** ⇒ "
            f"现在 `fold` 记原值（`bad_events`）+ `check_plan` **判红 + 点名 + 出路**，形状与既有的 "
