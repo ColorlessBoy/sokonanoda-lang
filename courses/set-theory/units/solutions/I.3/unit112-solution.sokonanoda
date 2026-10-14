@@ -184,7 +184,7 @@ theorem cbRel_total (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g 
     Or.elim (x ∈ cbC0 α β A B f g) (¬ (x ∈ cbC0 α β A B f g))
       (∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y)
       (fun (hxC0 : x ∈ cbC0 α β A B f g) =>
-        Exists.intro β (cbTotal α β A B f g x) (f x)
+        Exists.intro (f x)
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
           (And.intro (hfB x hx)
             (Or.inl (cbRelL α β (cbC0 α β A B f g) f x (f x))
@@ -196,7 +196,7 @@ theorem cbRel_total (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g 
             (fun (hnx : ¬ (x ∈ g '' B)) =>
               hxNC0 (cbC0_sdiff α β A B f g x (And.intro hx hnx))))
           (fun (b : β) (hb : b ∈ B) (hgb : g b = x) =>
-            Exists.intro β (cbTotal α β A B f g x) b
+            Exists.intro b
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
               (And.intro hb
                 (Or.inr (cbRelL α β (cbC0 α β A B f g) f x b)

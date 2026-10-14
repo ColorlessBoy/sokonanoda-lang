@@ -42,7 +42,7 @@ theorem right_inv_inj (α : Type) (β : Type) (f : α → β) (g : β → α)
 
 theorem left_inv_surj (α : Type) (β : Type) (f : α → β) (g : β → α)
     (hfg : ∀ (a : α), g (f a) = a) : Surjective β α g :=
-  fun (a : α) => Exists.intro β (fun (b : β) => g b = a) (f a) (hfg a)
+  fun (a : α) => Exists.intro (f a) (hfg a)
 
 theorem inv_bij (α : Type) (β : Type) (f : α → β) (g : β → α)
     (hfg : ∀ (a : α), g (f a) = a) (hgf : ∀ (b : β), f (g b) = b) :
