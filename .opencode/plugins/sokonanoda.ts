@@ -2,9 +2,10 @@
 // without any shell script:
 //
 //   - at startup (best effort) resolve the language server — env override →
-//     repo build → VS Code extension bundle → cache → version-pinned download;
+//     **版本匹配**的仓库构建（release 优先）→ **缓存（marker 对上版本钉）** →
+//     VS Code 扩展自带 → 版本锁定下载;
 //   - rewrite `lsp.sokonanoda.command` to the native binary via `config`;
-//   - expose the cache directory to all shells via `shell.env`.
+//   - expose the same resolution's CLI directory to all shells via `shell.env`.
 //
 // Cross-platform (macOS/Linux/Windows): uses fetch + `tar` (present on
 // Windows 10+, macOS, Linux), never bash. Failures never block the session.
@@ -13,6 +14,11 @@
 // course repo; the version chain is
 // `SOKONANODA_VERSION` → `sokonanoda-version.txt` → `requires` → `Cargo.toml`
 // and mirrors `scripts/soko` exactly (WO-001). Design: docs/design/onboarding.md.
+//
+// ⚠ 2026-10-15 CHAIN-X（洞 `OPENCODE-PLUGIN-OWN-RESOLVER`）：这条链以前是**平行**的第二套
+// —— 仓库构建跨 profile 只按 mtime、不查版本、没有 stale 概念，且**扩展排在缓存之前**
+// ⇒ 编辑器可能选到版本不匹配或陈旧的二进制、**零信号** ✗。现在照 `scripts/soko` 的形状对齐
+// （release 优先 · 版本校验 · 陈旧出声 · 缓存先于扩展 · 认 `CARGO_TARGET_DIR`/`SOKONANODA_CACHE_DIR`）。
 import { spawnSync } from "node:child_process"
 import {
   chmodSync,
@@ -32,6 +38,9 @@ import type { Plugin } from "@opencode-ai/plugin"
 const RELEASES = "https://github.com/ColorlessBoy/sokonanoda-lang/releases/download"
 
 function cacheDir(): string {
+  // ⚠ `SOKONANODA_CACHE_DIR` 必须认（2026-10-15 CHAIN-X）：`scripts/soko` 与 CLI
+  // （`crates/cli/src/env/target.rs`）都认 ⇒ 不认就是"CLI 写到 A、插件去 B 找" ✗。
+  if (process.env.SOKONANODA_CACHE_DIR) return process.env.SOKONANODA_CACHE_DIR
   const home = process.env.HOME ?? process.env.USERPROFILE ?? ""
   return path.join(home, ".local", "share", "sokonanoda", "bin")
 }
@@ -155,20 +164,131 @@ function markerMatches(dir: string, base: string, version: string | undefined): 
   }
 }
 
-/// Newest of the contributor builds (`target/release|debug`).
-function repoBuild(repo: string, base: string): string | undefined {
+/// Contributor builds on disk: `<CARGO_TARGET_DIR>|<repo>/target` × `release|debug`.
+///
+/// ⚠ **照 `scripts/soko` 的 `repoBuildCandidates` 对齐**（2026-10-15 CHAIN-X）：旧实现四处与启动器不同，每一处都**零信号**：
+/// **跨 profile 只按 mtime**（刚编的 debug 会遮蔽稍旧的 release：同一份源码、**同一个
+/// 版本号**，`--version` 分辨不出来，而判卷实测从约 1–2 分钟变成 >20 分钟）·
+/// **不认 `CARGO_TARGET_DIR`**（worktree 里 `<repo>/target` 根本不存在 ⇒ 刚编好的看不见）·
+/// **不查版本**（上一轮留下的 `target/` 被静默使用）· **没有 stale 概念**。
+/// 口径与启动器一致：**release 先**、同 profile 内按 mtime 新者优先。
+function repoBuildCandidates(
+  repo: string,
+  base: string,
+): { path: string; profile: string; mtime: number }[] {
   const name = binaryName(base)
-  let best: { path: string; mtime: number } | undefined
-  for (const profile of ["release", "debug"]) {
-    const candidate = path.join(repo, "target", profile, name)
-    try {
-      const mtime = statSync(candidate).mtimeMs
-      if (!best || mtime > best.mtime) best = { path: candidate, mtime }
-    } catch {
-      // not built
+  const roots: string[] = []
+  const custom = process.env.CARGO_TARGET_DIR
+  // `CARGO_TARGET_DIR` 允许相对路径（相对当前工作目录，cargo 的口径）⇒ 先 resolve。
+  if (custom) roots.push(path.resolve(custom))
+  const own = path.join(repo, "target")
+  if (!roots.includes(own)) roots.push(own)
+  const found: { path: string; profile: string; mtime: number }[] = []
+  for (const root of roots) {
+    for (const profile of ["release", "debug"]) {
+      const candidate = path.join(root, profile, name)
+      try {
+        found.push({ path: candidate, profile, mtime: statSync(candidate).mtimeMs })
+      } catch {
+        // not built
+      }
     }
   }
-  return best?.path
+  const rank = (c: { profile: string }) => (c.profile === "release" ? 0 : 1)
+  return found.sort((a, b) => rank(a) - rank(b) || b.mtime - a.mtime)
+}
+
+/// The version a CLI build reports about itself (`sokonanoda --version`). The
+/// language server has **no** `--version`, so — exactly like `scripts/soko`'s
+/// `repoBuildForVersion` — a server build is trusted only when the CLI of the
+/// **same tree** proves the version (a build that cannot answer is not trusted).
+function binaryVersion(binary: string | undefined): string | undefined {
+  if (!binary) return undefined
+  let probe
+  try {
+    probe = spawnSync(binary, ["--version"], { encoding: "utf8", timeout: 15_000 })
+  } catch {
+    return undefined
+  }
+  if (probe.status !== 0) return undefined
+  const match = /(\d+\.\d+\.\d+)/.exec(`${probe.stdout ?? ""}${probe.stderr ?? ""}`)
+  return match?.[1]
+}
+
+/// The contributor build that reports the pinned version — **release first**.
+/// A `target/` left over from an earlier round must never be used silently.
+function repoBuildForVersion(
+  repo: string,
+  base: string,
+  version: string | undefined,
+): string | undefined {
+  if (!version) return undefined
+  const candidates = repoBuildCandidates(repo, base)
+  if (!candidates.length) return undefined
+  if (base !== "sokonanoda") {
+    // The server binary cannot speak for itself: trust a build only when the
+    // CLI build of the same tree already proved the version.
+    const cli = repoBuildCandidates(repo, "sokonanoda")[0]?.path
+    return versionSatisfied(version, binaryVersion(cli) ?? "") ? candidates[0].path : undefined
+  }
+  for (const candidate of candidates) {
+    if (versionSatisfied(version, binaryVersion(candidate.path) ?? "")) return candidate.path
+  }
+  return undefined
+}
+
+/// The newest engine source in the checkout (`crates/**` `*.rs` except `tests/`
+/// and `tests.rs`, plus `Cargo.{toml,lock}`) — the same walk `scripts/soko` uses.
+/// `0` = **no** engine source (a course repository) ⇒ nothing to compare against,
+/// and that is **not** "very old" ✗.
+function newestEngineSource(repo: string): number {
+  let newest = 0
+  const consider = (file: string) => {
+    try {
+      const mtime = statSync(file).mtimeMs
+      if (mtime > newest) newest = mtime
+    } catch {
+      // gone
+    }
+  }
+  for (const name of ["Cargo.toml", "Cargo.lock"]) consider(path.join(repo, name))
+  const walk = (dir: string) => {
+    let entries
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      if (entry.name === "target" || entry.name === ".git" || entry.name === ".worktrees") continue
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        if (entry.name === "tests") continue
+        walk(full)
+      } else if (entry.name.endsWith(".rs") && entry.name !== "tests.rs") consider(full)
+    }
+  }
+  walk(path.join(repo, "crates"))
+  return newest
+}
+
+/// ⚠ **出声**（照 `scripts/soko` 的 stale 族对齐）：源码比二进制新 ⇒ 编辑器跑的是**不属于
+/// 当前 commit** 的引擎。⚠ **只喊不拦**（编辑器**必须**能启动），要消灭的是**静默** ✗。
+function staleWarning(repo: string, binary: string): void {
+  let mtime
+  try {
+    mtime = statSync(binary).mtimeMs
+  } catch {
+    return
+  }
+  const newest = newestEngineSource(repo)
+  if (newest > mtime) {
+    console.warn(
+      `[sokonanoda] ⚠ 语言服务器不是当前 commit 的引擎：${binary}（${new Date(mtime).toISOString()}）` +
+        `早于本检出最新的引擎源（${new Date(newest).toISOString()}）⇒ 编辑器里的判定可能不属于这棵树 ✗` +
+        `（正解：cargo build --release -p sokonanoda-lsp --locked）`,
+    )
+  }
 }
 
 /// Semver-ish tuple parsed from an extension folder name
@@ -201,7 +321,12 @@ function compareVersion(a: [number, number, number], b: [number, number, number]
 /// Server bundled by an installed VS Code extension (zero network). Picks the
 /// highest version instead of the newest mtime: VS Code keeps several versions
 /// on disk (profiles, lazy deletion), and mtime does not track version order.
-function extensionServer(target: string): string | undefined {
+///
+/// ⚠ **先挑与版本钉匹配的那份**（2026-10-15 CHAIN-X）：旧实现只按"目录名里版本最大"
+/// 挑 ⇒ 仓库钉 0.90.0、盘上只有 0.83.0 的扩展时会**静默**拿它当语言服务器 ✗（与
+/// `scripts/soko` 相反：那边**缓存先于扩展**，而缓存是**按版本钉校验过**的）。
+/// 一份都不匹配时仍返回最高的（编辑器**必须**能启动），但要**出声** ✓。
+function extensionServer(target: string, version: string | undefined): string | undefined {
   const home = process.env.HOME ?? process.env.USERPROFILE ?? ""
   const roots = [
     ".vscode/extensions",
@@ -237,13 +362,25 @@ function extensionServer(target: string): string | undefined {
       }
     }
   }
-  candidates.sort((a, b) => {
+  const order = (a: typeof candidates[number], b: typeof candidates[number]) => {
     if (a.version && b.version) return compareVersion(b.version, a.version) || b.mtime - a.mtime
     if (a.version) return -1
     if (b.version) return 1
     return b.mtime - a.mtime
-  })
-  return candidates[0]?.path
+  }
+  const matching = candidates.filter(
+    (c) => c.version && versionSatisfied(version, c.version.join(".")),
+  )
+  const pool = matching.length ? matching : candidates
+  const best = pool.sort(order)[0]
+  if (best && !matching.length && version) {
+    console.warn(
+      `[sokonanoda] ⚠ VS Code 扩展自带的语言服务器与仓库版本钉不一致：${best.path}` +
+        `（v${(best.version ?? []).join(".") || "?"} ≠ v${version}）⇒ 缓存里也没有版本匹配的条目，` +
+        `只能先用它（编辑器里的判定可能不属于这棵树 ✗）`,
+    )
+  }
+  return best?.path
 }
 
 /// Version-pinned download + extract (fetch + `tar`; no shell).
@@ -291,23 +428,28 @@ async function downloadBinary(
 async function resolveServer(repo: string | undefined): Promise<string | undefined> {
   const explicit = process.env.SOKONANODA_LSP_BIN
   if (explicit && existsSync(explicit)) return explicit
+  const version = repo ? readVersion(repo) : undefined
   if (repo) {
-    const local = repoBuild(repo, "sokonanoda-lsp")
-    if (local) return local
+    // ⚠ 版本匹配 + release 优先 + 认 `CARGO_TARGET_DIR`（照 `scripts/soko` 对齐）✓；
+    // 选到之后**必须**看它陈不陈旧（`staleWarning`，只喊不拦 ✓）。
+    const local = repoBuildForVersion(repo, "sokonanoda-lsp", version)
+    if (local) {
+      staleWarning(repo, local)
+      return local
+    }
   }
+  const dir = cacheDir()
+  const cached = path.join(dir, binaryName("sokonanoda-lsp"))
+  // ⚠ **缓存排在扩展之前**（2026-10-15 CHAIN-X）：缓存条目是**按版本钉校验过**的
+  // （`markerMatches`），而扩展那份只按"目录名里版本最大"挑 ⇒ 旧顺序会拿一份**与仓库
+  // 版本不匹配**的服务器压住匹配的缓存 ✗。与 `scripts/soko` 的顺序一致 ✓。
+  // G-16：没有版本钉时缓存**不可用**（没有东西可比）——上面那条 `markerMatches` 会拒。
+  if (existsSync(cached) && markerMatches(dir, "sokonanoda-lsp", version)) return cached
   const target = platformTarget()
   if (target) {
-    const bundled = extensionServer(target)
+    const bundled = extensionServer(target, version)
     if (bundled) return bundled
   }
-  const cached = path.join(cacheDir(), binaryName("sokonanoda-lsp"))
-  const version = repo ? readVersion(repo) : undefined
-  // The cache is usable only when its marker matches the pinned version. With
-  // no pin there is nothing to compare against, so the cache must not be used
-  // (G-16: a silently exec'd old binary is worse than no language server — the
-  // repository build above and the extension bundle are the version-checked
-  // paths, and SOKONANODA_LSP_BIN stays the explicit escape hatch).
-  if (existsSync(cached) && markerMatches(cacheDir(), "sokonanoda-lsp", version)) return cached
   if (!version) return undefined
   const downloaded = await downloadBinary(version, "sokonanoda-lsp", "sokonanoda-lsp")
   // Offline / download failure: the matching cache entry (if any) was already
@@ -318,12 +460,17 @@ async function resolveServer(repo: string | undefined): Promise<string | undefin
 export const Sokonanoda: Plugin = async ({ directory }) => {
   const repo = findRepoRoot(directory)
   const server = await resolveServer(repo).catch(() => undefined)
+  const version = repo ? readVersion(repo) : undefined
+  // ⚠ **PATH 也走同一条解析链**（2026-10-15 CHAIN-X）：旧实现无条件把**缓存目录**塞到
+  // PATH 最前 ⇒ 就算这棵树刚编好一份**版本匹配**的 CLI，shell 里的 `sokonanoda` 仍是
+  // 缓存里那份（**同版本号、可能更旧的引擎**，零信号 ✗）。现在：有版本匹配的仓库构建
+  // 就暴露它的目录，否则才回落到缓存 —— 与 `scripts/soko` 的顺序一致 ✓。
+  const cli = repo ? repoBuildForVersion(repo, "sokonanoda", version) : undefined
+  const cliDir = cli ? path.dirname(cli) : cacheDir()
   // Best effort: fetch the matching CLI too, so `sokonanoda` works in shells.
   if (repo && !process.env.SOKONANODA_OFFLINE) {
-    const version = readVersion(repo)
     if (version) await downloadBinary(version, "sokonanoda-cli", "sokonanoda").catch(() => undefined)
   }
-  const cache = cacheDir()
   return {
     config: async (cfg) => {
       if (!server) return
@@ -344,8 +491,8 @@ export const Sokonanoda: Plugin = async ({ directory }) => {
     "shell.env": async (_input, output) => {
       output.env ??= {}
       const current = output.env.PATH ?? process.env.PATH ?? ""
-      if (!current.split(path.delimiter).includes(cache)) {
-        output.env.PATH = `${cache}${path.delimiter}${current}`
+      if (!current.split(path.delimiter).includes(cliDir)) {
+        output.env.PATH = `${cliDir}${path.delimiter}${current}`
       }
     },
   }
