@@ -249,11 +249,23 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
 
 ### H1 —— 二进制可达（解 G5；P0）
 1. 新增 **`scripts/soko`**（Node ESM，零依赖、跨平台、可 commit、可执行位入 git）：
-   解析顺序 = `$SOKONANODA_BIN` → `target/{release,debug}/sokonanoda`（按 mtime）→
+   解析顺序 = `$SOKONANODA_BIN` → `target/{release,debug}/sokonanoda`（**release 优先**，
+   同 profile 内按 mtime；2026-10-14 BUILD-Q：跨 profile 只按 mtime 会让刚编的 **debug**
+   遮蔽稍旧的 release ⇒ 同一份源码、同一个版本号，判卷却慢 10×+ —— 课程门禁 258 个目标
+   实测从约 1–2 分钟变成 >20 分钟、撞调用方超时 ✗；偏爱 release 但**逐个试版本**
+   ⇒ 版本对得上的 debug 树不会被丢掉 ✓）→
    `~/.local/share/sokonanoda/bin/sokonanoda`（缓存）→ VS Code 扩展内嵌（按目录名
    版本号取最高、跳过 `.obsolete`）→ 版本锁定下载（`$SOKONANODA_OFFLINE=1` 可关）
    → 报错并给出可复制的下一步。**语义与 `.opencode/plugins/sokonanoda.ts` 的解析链
    完全一致**，抽出的正是它的 `findRepoRoot`/`repoBuild`/`extensionServer`/`markerMatches`。
+   - `version --json` 的 `build` 字段 = **会跑的那条链接**的构建身份
+     （`path`/`profile`/`mtime`/`source_newest`/`stale`）：`stale=true` = 源码比二进制新
+     ⇒ **这次读数不属于当前 commit**。它现在有**消费者**（`courses/set-theory/tools/check.py`
+     与 `scripts/soko gate`：`stale` ⇒ 拒绝判绿 + 给正解 `cargo build --release -p
+     sokonanoda-cli`）；`profile=debug` ⇒ 响亮警告（**不拒绝**：debug 是本地内环的正规配置，
+     要消灭的是"静默地慢"）。⚠ 这两条信号**只挂人看/判据前的入口**，**不挂转发路径**
+     （`grade`/`query`）：`courses/set-theory/gaps/*.sh` 把 stderr 与 stdout 合并成 JSON
+     再 `json.load` ⇒ 多一行警告会把复现件打成 "grader output is not JSON" ✗。
    - 子命令直通：`scripts/soko doctor --json`、`scripts/soko grade playground.sokonanoda`。
    - **版本源链**（WO-001 / G-11）：`$SOKONANODA_VERSION`（release tag，带不带 `v`
      都收）→ `<repo>/sokonanoda-version.txt` → `<repo>/sokonanoda.toml` 的 `requires`
