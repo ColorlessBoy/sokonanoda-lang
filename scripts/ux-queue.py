@@ -362,8 +362,15 @@ def load_gaps(include_terminal: bool = False) -> list[dict]:
         repro = entry.get("repro") or ""
         # wo-filed 是**终态**（理由在台账的 `wo`/`notes` 里）⇒ 队列里保留一行、不算 open ✓；
         # fixed 只在**全量口径**下走到这里 ⇒ 终态 `"fixed"`（队列视图里根本到不了这一支 ✓）。
+        # ⚠ `wontfix`/`workaround` 也是**终态**（`docs/gaps/README.md` 的状态词表：`open` →
+        # `wo-filed` → `fixed`，另有 `workaround`（须写代价）与 `wontfix`（须写理由））⇒
+        # 与 `wo-filed` **同档**，落成终态 `"wo-filed"` ✓。
+        # 2026-10-14 复核实测：`wofI` 把 `G-54`/`G-101` 改成正确的 `wontfix` 之后，本映射
+        # **不认识** `wontfix`（全文 0 命中）⇒ 那两条落成 `scheduled`（= **排期**）⇒ §0.2
+        # 双向判据立刻判红「是 scheduled 却不在 §0.2 表里」✗ = **两个台账的词表分叉**。
         disposition = ("fixed" if entry.get("status") == "fixed"
-                       else "wo-filed" if entry.get("status") == "wo-filed" else "scheduled")
+                       else "wo-filed" if entry.get("status") in ("wo-filed", "wontfix", "workaround")
+                       else "scheduled")
         # ⚠ `where` 的历史形状**不齐**：**5 条**旧行是**字符串**（`L-07`…`L-10`/`G-86`，
         # 全在 `fixed` 档；`G-77` 的 `where` 是 `None` ⇒ 走"没有位置线索"那一支，
         # 2026-10-14 第三轮复核实测更正 —— 旧注释把 `G-77` 也算进「字符串」= 6 条 ✗），
