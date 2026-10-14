@@ -12,8 +12,8 @@
 //   ./scripts/soko grade playground.sokonanoda
 //   ./scripts/soko gate                 # contributors: cargo gate + course gate
 //
-// It resolves the binaries exactly like `.opencode/plugins/sokonanoda.ts` does
-// (explicit override → repository build → cache with a matching version marker
+// It resolves the binaries in the same order as `.opencode/plugins/sokonanoda.ts`
+// does (explicit override → repository build → cache with a matching version marker
 // → language server bundled by an installed VS Code extension → version-pinned
 // download) and then execs the resolved binary, passing every argument through.
 //
@@ -364,7 +364,10 @@ function readMarker(base) {
 }
 
 /// A cache entry is usable only when its marker is `<version> <target>`
-/// (the same marker `sokonanoda setup` and the VSIX write).
+/// (`sokonanoda setup` and the pinned download write exactly that; ⚠ **not**
+/// what the VSIX's "Install CLI" writes — `editor/vscode/server.js` writes the
+/// bare `<version>` ⇒ the launcher judges that entry `cache(STALE: …)`, 2026-10-15
+/// LINK-B 实测 ✓).
 function markerMatches(base, version) {
   return markerExpected(version, readMarker(base))
 }
@@ -466,7 +469,17 @@ function compareVersion(a, b) {
 
 /// Server bundled by an installed VS Code extension (zero network). Picks the
 /// highest version rather than the newest mtime: several versions stay on disk.
-function extensionServer(target) {
+///
+/// ⚠ **版本匹配优先**（2026-10-15 LINK-B，照 `.opencode/plugins/sokonanoda.ts`
+/// 的 CHAIN-X 口径 ✓）：只按"目录名里版本最大"挑 ⇒ 仓库钉 0.90.0、盘上只有 0.83.0
+/// 的扩展时会**静默**拿它当语言服务器 ✗ —— 与缓存 marker 同一条纪律：**没校验过的
+/// 产物不许 exec**（G-16）✓。
+/// ⚠ **与插件有意不同的一处**（写清楚，免得下一个人"对齐"回去 ✗）：一份都不匹配
+/// 时插件仍返回最高的（编辑器没有"换个引擎"的选项，必须能启动 ✓），**启动器不给**
+/// —— 它还有下载/拒绝两条路，跑一份不属于这棵树的引擎会让判卷静默错 ✗。
+/// 返回 `{path, version, matched}`：`matched:false` **只用于拒绝时的点名**，
+/// `probe()` 不会把它当链接交出去 ✓（`canExec` 只认匹配的那份 ⇒ 语义不松 ✓）。
+function extensionServer(target, version) {
   const home = process.env.HOME ?? process.env.USERPROFILE ?? ''
   const roots = [
     '.vscode/extensions',
@@ -504,12 +517,23 @@ function extensionServer(target) {
     if (b.version) return 1
     return b.mtime - a.mtime
   })
-  return candidates[0]?.path
+  const matching = candidates.filter(candidate =>
+    versionSatisfied(version, candidate.version ? candidate.version.join('.') : ''),
+  )
+  const best = (matching.length ? matching : candidates)[0]
+  if (!best) return undefined
+  return { path: best.path, version: best.version, matched: matching.length > 0 }
 }
 
 /// Why the last download attempt failed, for the operator-facing message.
 /// Silence here is what turns "network needs a proxy" into a mystery.
 let lastDownloadError
+
+/// The extension bundle the last probe **saw but refused** (version mismatch).
+/// The link is version-checked, so a user who *has* the extension installed must
+/// still be told why it was not used — otherwise the refusal reads as "nothing
+/// resolved" and the obvious question ("I have the VSIX!") has no answer ✗.
+let extensionNearMiss
 
 /// Fetch the tarball bytes. Node's `fetch` ignores HTTPS_PROXY, while a machine
 /// behind a proxy usually has a `curl` that honours it (and `curl` also handles
@@ -876,23 +900,58 @@ function resolver(base, override) {
     cached,
     pin,
     version,
+    /// The cache link **as it is on disk** — verified (`cache`) or not
+    /// (`cache(STALE: …)` / `cache(unverified: …)`). The unverified shapes are
+    /// only ever *reported*: `canExec` is the gate that refuses them.
+    cacheEntry() {
+      if (!existsSync(cached)) return undefined
+      const marker = readMarker(base)
+      if (markerMatches(base, version)) return { path: cached, source: 'cache' }
+      if (!version) {
+        return {
+          path: cached,
+          source: `cache(${pin.constraint ? `unverified: requires ${pin.constraint}` : 'unknown repo version'}: found ${marker ?? 'no marker'})`,
+        }
+      }
+      return { path: cached, source: `cache(STALE: expected ${version.text} ${platformTarget()}, found ${marker ?? 'no marker'})` }
+    },
+    /// The **VS Code extension** link（2026-10-15 LINK-B）。本文件头注释与
+    /// `AGENTS.md` 一直写着这一格，`extensionServer()` 正是为它写的、`canExec()`
+    /// 也留着 `extension` 分支 —— 但**没有任何调用点** ⇒ 链接是死的：通用 VSIX +
+    /// 没跑过「Install CLI」+ 离线时，`scripts/soko lsp` 只能下载（或被拒）✗。
+    /// ⚠ **只给语言服务器**：文档承诺的就是它（CLI 那一份由扩展自己的
+    /// 「Install CLI」装进缓存 ⇒ 归缓存链接管 ✓）。
+    /// ⚠ **只给版本匹配的那份**：链上其余各格都按版本钉校验过，这一格不例外 ⇒
+    /// 不匹配就**当没有这一格**（只把候选记下来，拒绝时点名 ✓）。
+    extensionLink() {
+      if (base !== 'sokonanoda-lsp') return undefined
+      const target = platformTarget()
+      if (!target) return undefined
+      const found = extensionServer(target, version)
+      if (!found) return undefined
+      if (!found.matched) {
+        extensionNearMiss =
+          `${found.path} [v${(found.version ?? []).join('.') || '?'}]` +
+          ` —— 与版本钉 v${version?.text ?? '?'} 不匹配 ⇒ 不 exec`
+        return undefined
+      }
+      return { path: found.path, source: 'extension' }
+    },
     /// Which link of the chain wins, without downloading anything.
     probe() {
       if (override && existsSync(override)) return { path: override, source: 'override' }
       const build = repoBuildForVersion(base, version)
       if (build) return { path: build, source: 'repo-build' }
-      if (existsSync(cached)) {
-        const marker = readMarker(base)
-        if (markerMatches(base, version)) return { path: cached, source: 'cache' }
-        if (!version) {
-          return {
-            path: cached,
-            source: `cache(${pin.constraint ? `unverified: requires ${pin.constraint}` : 'unknown repo version'}: found ${marker ?? 'no marker'})`,
-          }
-        }
-        return { path: cached, source: `cache(STALE: expected ${version.text} ${platformTarget()}, found ${marker ?? 'no marker'})` }
-      }
-      return undefined
+      const onDisk = this.cacheEntry()
+      if (canExec(onDisk)) return onDisk
+      // ⚠ 链上的下一格（头注释 / `AGENTS.md` / opencode 插件都把它排在**缓存与
+      // 下载之间** ✓）：缓存缺失或 marker 对不上时才看扩展 ✓。
+      const bundled = this.extensionLink()
+      if (bundled) return bundled
+      // Offline / failed download / constraint-only: hand back what is on disk
+      // so the caller can report *what* it is — `canExec()` above is the single
+      // gate that decides whether it may actually run.
+      return onDisk
     },
     async resolve() {
       const found = this.probe()
@@ -958,6 +1017,7 @@ function refuseUntrusted(base, found, pin) {
       `(offline=${offline() ? 'yes' : 'no'}).\n` +
       `${pinReport(pin)}\n` +
       `  cache:            ${cacheDir()} (marker: ${readMarker(base) ?? 'none'})\n` +
+      (extensionNearMiss ? `  extension:        ${extensionNearMiss}\n` : '') +
       (pin.error
         ? ''
         : `Next: run \`scripts/soko update\` to refresh the cache to the pinned version, or\n` +
@@ -1607,6 +1667,32 @@ async function main(argv) {
           `scripts/soko gate: ${path.relative(REPO, docsLint)} --selftest 失败 —— 文档判据咬不住（exit 3）。\n`,
         )
         return 3
+      }
+      // **启动器「VS Code 扩展自带」链接**（2026-10-15 LINK-B，洞 `SOKO-EXTENSION-LINK-UNWIRED`）：
+      // 那一格曾被文档写着、`extensionServer()` 写着、`canExec()` 的分支写着，**却没有调用点** ✗
+      // ⇒ 通用 VSIX + 没跑过「Install CLI」+ 离线时 `scripts/soko lsp` 只能下载/被拒。
+      // 修好之后必须有守卫（否则下次重构又能静默拆掉 ✓）：四条判据全用**自带夹具**
+      // （临时 HOME/缓存 + 空 `CARGO_TARGET_DIR` + offline），其中 C2/C4 专门咬
+      // "`canExec` 不许松"（版本不匹配的扩展**不许** exec、CLI **不许**从扩展里跑）✓。
+      // ⚠ 与 `crates/cli/tests/launcher.rs` 互补：那是**冻结用例**且夹具不设 `HOME`
+      // ⇒ 测不了"扩展在场/版本对不对"这一格 ✓。约 0.3 秒 ⇒ `--fast` 也跑 ✓。
+      const extLink = path.join(REPO, 'scripts', 'check-launcher-extension-link.py')
+      if (!existsSync(extLink)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, extLink)} —— 扩展链接无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      for (const extra of [[], ['--selftest']]) {
+        const step = spawnSync(python.cmd, [...python.args, extLink, ...extra], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (step.error) {
+          process.stderr.write(`scripts/soko gate: failed to run ${extLink}: ${step.error.message}\n`)
+          return 3
+        }
+        if ((step.status ?? 3) !== 0) return step.status ?? 3
       }
       // **tactic 清单三处一致**（L4，设计 `docs/design/tactic-docs.md` §4.2）：
       // 表（`tactics.rs` 的 `name:`）↔ parser 的 tactic 臂 ↔ `reference/tactics/*.md`。

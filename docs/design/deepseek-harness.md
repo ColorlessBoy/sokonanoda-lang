@@ -32,7 +32,7 @@ opencode 的文档与契约测试。
 |---|---|---|
 | agent 入口 | `AGENTS.md` | 阅读顺序、硬规则速记、命令、收尾义务 |
 | 三个技能 | `skills/sokonanoda-{teacher,dev,ci}/SKILL.md` | Agent Skill（frontmatter `name`+`description`；teacher 另有 `references/`） |
-| 启动插件 | `.opencode/plugins/sokonanoda.ts`（当时 301 行，现 352 行） | provision CLI/LSP（env → 仓库构建 → VS Code 扩展自带 → 缓存 → 版本锁定下载）、改写 `lsp.sokonanoda.command`、`shell.env` 注入 PATH |
+| 启动插件 | `.opencode/plugins/sokonanoda.ts`（当时 301 行，现 352 行） | provision CLI/LSP（env → 仓库构建 → 缓存 → VS Code 扩展自带 → 版本锁定下载）、改写 `lsp.sokonanoda.command`、`shell.env` 注入 PATH |
 | 非 opencode shim | `.opencode/lsp/sokonanoda-lsp.sh` | → `sokonanoda lsp` |
 | 斜杠命令 | `.opencode/command/sokonanoda/{setup,update,version,doctor,check,gate,round}.md` | `/sokonanoda/*`，都是薄封装（调二进制子命令） |
 | 主 agent | `.opencode/agent/teacher.md` | 「老师」角色（mode: primary，Tab 切换） |
@@ -250,10 +250,10 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
 ### H1 —— 二进制可达（解 G5；P0）
 1. 新增 **`scripts/soko`**（Node ESM，零依赖、跨平台、可 commit、可执行位入 git）：
    解析顺序 = `$SOKONANODA_BIN` → `target/{release,debug}/sokonanoda`（**release 优先**，同 profile 内按 mtime）→
-   `~/.local/share/sokonanoda/bin/sokonanoda`（缓存）→ VS Code 扩展内嵌（按目录名
-   版本号取最高、跳过 `.obsolete`）→ 版本锁定下载（`$SOKONANODA_OFFLINE=1` 可关）
-   → 报错并给出可复制的下一步。**语义与 `.opencode/plugins/sokonanoda.ts` 的解析链
-   完全一致**，抽出的正是它的 `findRepoRoot`/`repoBuild`/`extensionServer`/`markerMatches`。
+   `~/.local/share/sokonanoda/bin/sokonanoda`（缓存）→ VS Code 扩展内嵌（**版本匹配优先**；
+   一份都不匹配就当没有这一格、跳过 `.obsolete`）→ 版本锁定下载（`$SOKONANODA_OFFLINE=1` 可关）
+   → 报错并给出可复制的下一步。**语义与 `.opencode/plugins/sokonanoda.ts` 的解析链一致**
+   （唯一有意不同：扩展那份**版本不匹配**时插件仍用它、启动器拒绝）；抽出的正是它的 `findRepoRoot`/`repoBuild`/`extensionServer`/`markerMatches`。
    - 子命令直通：`scripts/soko doctor --json`、`scripts/soko grade playground.sokonanoda`。
    - **版本源链**（WO-001 / G-11）：`$SOKONANODA_VERSION`（release tag，带不带 `v`
      都收）→ `<repo>/sokonanoda-version.txt` → `<repo>/sokonanoda.toml` 的 `requires`

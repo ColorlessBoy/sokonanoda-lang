@@ -190,7 +190,7 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 两种接线：
 
 - **opencode**：启动插件自动接线（解析原生 `sokonanoda-lsp`——仓库构建 /
-  VS Code 扩展自带 / 缓存 / 版本锁定下载（`fetch`+`tar`，跨平台、零 bash）
+  缓存（marker 匹配）/ VS Code 扩展自带（**版本匹配优先**）/ 版本锁定下载（`fetch`+`tar`，跨平台、零 bash）
   ——并改写 `lsp.command`；`shell.env` 注入 PATH；`opencode.json` 不含 lsp
   命令）；另有 `skills/` 自动加载、`/sokonanoda/*` 命令、`teacher` 主 agent、
   Lean 工具链命令 deny。
