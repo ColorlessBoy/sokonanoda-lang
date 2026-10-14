@@ -2339,8 +2339,13 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     # 就用它；单输入夹具（`check_plan(rows)`）退回 `rows`。
     # ⚠ 这一改**只严不松**：`{ids(source_rows)} ⊆ {ids(视图)}`（视图 = 源行 + 合成行）
     # ⇒ `known` 只会变小（少认了合成行），没有任何一格从红变绿 ✓。
+    # ⚠ **发版节点也要算出处**（`#2`，2026-10-14 · 第八次独立复核实测 ✗）：`--release open`
+    # 只写 `release-open` 事件（**没有来源行**，那是它正确的形状 —— 节点不是工作条目）
+    # ⇒ 不认它就会在**开节点之后的下一条 `--check`** 判「幽灵条目」✗（gate/CI 第一步就撞红）。
+    # ⇒ `known` 加上 `release_node_ids()`（**只认 `release-open`**；没有它的 id 照样判红 ✓，
+    # 见该函数的说明与 `selftest_release_open_seam` 的「不许放宽」臂）。
     src = rows if source_rows is None else source_rows
-    known = {r["id"] for r in src} | source_history_ids()
+    known = {r["id"] for r in src} | source_history_ids() | release_node_ids()
     disp = {r["id"]: r.get("disposition") for r in rows}
     for _r in (source_rows or []):     # **来源的处置是权威**（覆盖视图里可能被遮蔽的值）
         if _r.get("disposition") is not None:
@@ -2821,6 +2826,32 @@ def release_nodes() -> dict[str, dict]:
             out[ev["id"]]["cut"] = {"commit": ev.get("commit"), "ci": ev.get("ci"),
                                     "ts": ev.get("ts")}
     return out
+
+
+def release_node_ids() -> set[str]:
+    """**发版节点**的 id 集合（`release-open` 建的 ⇒ `--release open` 是唯一出处）。
+
+    ⚠ 为什么幽灵判据必须认识它（`#2`，2026-10-14 · 第八次独立复核实测 ✗）：
+    `cmd_release open` 原先**只写 `release-open` 事件、不登记来源行**，而幽灵判据
+    （`check_plan`）只认三个来源（缺口台账 / 索引 / extras）⇒ 开节点后**下一条 `--check`
+    当场判红**「`REL-9.9.9` 不在任何来源里 ⇒ 幽灵条目」✗ —— 而 `scripts/soko gate --fast`
+    与 CI 的 `ledger` job 跑的正是 `--check` ⇒ **§9.20 发版工作流第一步就撞红** ✗
+    （实测：开节点前 rc=0 ⇒ 开节点后 rc=1；三个 `selftest_release_*` 都只调 `cmd_release`、
+    **从不调 `check_plan`** ⇒ 这条接缝没有任何自检跑过 ✗）。
+
+    口径（**二选一，选这条**）：**让幽灵判据认识发版节点** ✓ —— 而**不是**给 `open`
+    补一条来源行 ✗。理由：来源行 = **工作条目**（会进 `--next` / `--json.open` /
+    §0.2 的"未完成"计数）⇒ 补来源行等于把**节点**算成"没做完的活"，那是**为绿而改语义** ✗；
+    节点不是工作条目，它的出处就是它自己的创建事件 ✓。
+
+    ⚠ **不是放水**（自检 `selftest_release_open_seam` 逐条钉着）：
+      · 只认 `release-open`（**节点自己的创建事件**，形状固定、只能由 `cmd_release` 写）；
+      · 手写一条 `release-open` 与手写一条来源行**同权**（都是显式登记）—— 而**没有**
+        `release-open` 的 id（例如手写一条 `release-add` 引用一个不存在的条目）**照样判红** ✓。
+    ⚠ **一处定义**：节点集合由 `release_nodes()` 算（它就是"发版节点是什么"的唯一出处）
+    ⇒ 不在这里再扫一遍事件、也不另写一套判据（`AGENTS.md` 硬规则 0(b)）✓。
+    """
+    return set(release_nodes())
 
 
 def unmerged_agent_branches() -> list[str]:
@@ -5057,6 +5088,119 @@ def selftest_release_cut_gate(expect) -> None:
             globals()["unmerged_agent_branches"] = saved[7]
 
 
+def selftest_release_open_seam(expect) -> None:
+    """⭐ **`--release open` 与幽灵判据的接缝**（`#2`，2026-10-14 · 第八次独立复核实测 ✗）。
+
+    缺口：`cmd_release open` **只写 `release-open` 事件、不登记来源行**（那是它正确的形状 ——
+    节点不是工作条目），而幽灵判据只认三个来源 ⇒ 开节点后**下一条 `--check` 判红**
+    「`REL-9.9.9` 不在任何来源里 ⇒ 幽灵条目」✗。而 `scripts/soko gate --fast` 与 CI 的
+    `ledger` job 跑的正是 `--check` ⇒ **§9.20 发版工作流第一步就撞红** ✗，且输出/文档一个字
+    没提要"先登记"。
+    ⚠ **这条接缝原先没有任何自检跑过** ✗：三个 `selftest_release_*` **都只调 `cmd_release`、
+    从不调 `check_plan`** ⇒ 本函数专钉它（**改前必红 / 改后必绿**）。
+
+    断言（每条都点了名靶子）：
+      ① 基线：干净夹具 `check_plan` **rc=0**（下面那条红不是"夹具本来就红"）；
+      ② ⭐ `cmd_release open` rc=0 ⇒ **紧接着 `check_plan` 仍 rc=0**（**改前这里是 rc=1 +
+         「幽灵条目」** ✗）；
+      ③ 正对照：`--release add/check/cut` 三条后续步骤**仍 rc=0**（**别为绿而放宽** ✗）；
+      ④ **不是放水**：节点 id 确实进了 `known`（`release_node_ids()`），但手写一条**没有
+         `release-open`** 的 `release-add`（引用无来源的 id）⇒ **照样判红 + 点名** ✓。
+    """
+    import contextlib
+    import io
+    import tempfile
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.strip()
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
+                 globals()["worktree_dirty"], globals()["probe_inventory"],
+                 globals()["unmerged_agent_branches"])
+        EVENTS = Path(tmp) / "events.jsonl"
+        EXTRAS = Path(tmp) / "extras.jsonl"
+        INDEX = Path(tmp) / "index.md"
+        GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
+        globals()["worktree_dirty"] = lambda: ""
+        globals()["probe_inventory"] = lambda: []
+        globals()["unmerged_agent_branches"] = lambda: []
+        INDEX.write_text("## 2. 🔴 blocker / high\n\n"
+                         "| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核（观察） |\n"
+                         "|---|---|---|---|---|---|---|\n"
+                         "| R-9 | 语言 | 夹具（没处置 ⇒ 不进 rows） | 高 | `bash r.sh` | front |  |\n",
+                         encoding="utf-8")
+        GAPS_LEDGER.write_text("", encoding="utf-8")
+        EXTRAS.write_text("".join(
+            json.dumps({"id": f"FX-{i}", "source": "orchestrator-schedule", "facet": "主线",
+                        "severity": "medium", "repro": "bash fx.sh", "disposition": "fixed",
+                        "why": "夹具：已关账"}, ensure_ascii=False) + "\n" for i in (1, 2, 3)),
+            encoding="utf-8")
+        EVENTS.write_text("", encoding="utf-8")
+        for i in (1, 2, 3):
+            append_event({"event": "advance", "id": f"FX-{i}", "to": "done", "commit": real_sha,
+                          "reading": "夹具读数", "owner": "t"})
+
+        def ns(**kw):
+            base = dict(release="", rel="", version="9.9.9", id="", commit="", ci="", reason="",
+                        owner="t", force=False)
+            base.update(kw)
+            return argparse.Namespace(**base)
+
+        def capture(fn, *a, **kw):
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, buf.getvalue() + err.getvalue()
+
+        def view():
+            """当前夹具的**队列视图**（= `main()` 喂给 `check_plan`/`cmd_release` 的那一份）。"""
+            _rows, _u = build_queue()
+            return sched_rows(_rows, fold())
+
+        def plan():
+            """**真 CLI 的 `--check` 那一半**：`main()` 里就是 `check_plan(view, rows)`。"""
+            _rows, _u = build_queue()
+            return capture(check_plan, sched_rows(_rows, fold()), _rows)
+
+        try:
+            # ① 基线
+            rc, out = plan()
+            expect(f"① 基线：干净夹具 `check_plan` rc={rc}（下面那条红不是夹具自带的）", rc == 0)
+            # ② 开节点 ⇒ 接缝必须仍是绿的（**改前这里是 rc=1 + 幽灵条目** ✗）
+            nrc, nout = capture(cmd_release, ns(release="open"), view())
+            expect(f"② `--release open` rc={nrc}（开节点本身一直是绿的）", nrc == 0)
+            rc, out = plan()
+            expect(f"② ⭐ 开节点后 `check_plan` 仍 rc={rc}（**改前 rc=1 + 幽灵条目** ✗）", rc == 0)
+            expect("② 且输出里不再把 `REL-9.9.9` 当幽灵条目点名",
+                   "REL-9.9.9" not in out)
+            # ③ 正对照：发版工作流后续步骤仍能走（**别为绿而放宽** ✗）
+            for i in (1, 2, 3):
+                arc, _o = capture(cmd_release, ns(release="add", rel="REL-9.9.9", id=f"FX-{i}"),
+                                  view())
+                expect(f"③ 正对照 `--release add FX-{i}` rc={arc}（入版闸门不受影响 ✓）", arc == 0)
+            crc, cout = capture(cmd_release, ns(release="check", rel="REL-9.9.9"), view())
+            expect(f"③ 正对照 `--release check` rc={crc}（节点就绪，不是恒红 ✗）", crc == 0)
+            krc, kout = capture(cmd_release, ns(release="cut", rel="REL-9.9.9", commit=real_sha,
+                                                ci="7"), view())
+            expect(f"③ 正对照 `--release cut --commit <真祖先> --ci 7` rc={krc}", krc == 0)
+            # ④ **不是放水**：没有 `release-open` 的 id 照样判红
+            expect("④ 节点 id 确实进了 `known`（`release_node_ids()`）",
+                   "REL-9.9.9" in release_node_ids())
+            append_event({"event": "release-add", "rel": "REL-0.0.1", "id": "GHOST-SEAM-9",
+                          "owner": "t"})
+            _rows2, _u2 = build_queue()
+            rc, out = capture(check_plan, sched_rows(_rows2, fold()), _rows2)
+            expect(f"④ 手写 `release-add`（无 `release-open`、id 无来源）⇒ 判红 rc={rc}",
+                   rc == 1 and "GHOST-SEAM-9" in out and "幽灵" in out)
+        finally:
+            EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
+            globals()["lock_file"] = saved[4]
+            globals()["worktree_dirty"] = saved[5]
+            globals()["probe_inventory"] = saved[6]
+            globals()["unmerged_agent_branches"] = saved[7]
+
+
 def selftest_release_branch_fence(expect) -> None:
     """⭐⭐ **"分支必须合回"这条栅栏：如实判红 · 给出路 · `--force` 不越过**（`#4`）。
 
@@ -5786,6 +5930,12 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     #     --commit <sha>` 自身一条闸门都没有 ⇒ 不存在的 / 非祖先的 sha **都 rc=0** 并写入
     #     `release-cut` ⇒ 与入版/收口两处**同一规则两条口径**）
     selftest_release_cut_gate(expect)
+    # ③h3b ⭐ **`--release open` 与幽灵判据的接缝**（`#2`，2026-10-14 · 第八次独立复核实测 ✗：
+    #     `open` 只写 `release-open` 事件、不登记来源行 ⇒ 开节点后下一条 `--check` 判
+    #     「幽灵条目」✗，而 `soko gate --fast` 与 CI 的 `ledger` job 跑的正是 `--check`；
+    #     三个 `selftest_release_*` 原先**都只调 `cmd_release`、从不调 `check_plan`**
+    #     ⇒ 这条接缝没有任何自检跑过 ✗）
+    selftest_release_open_seam(expect)
     # ③h4 ⭐⭐ **「分支必须合回」栅栏：如实判红 · 逐条给出路 · `--force` 不越过**（`#4`，
     #     2026-10-14 · 第七次独立复核实测 ✗：真仓库 15 条未合回 ⇒ `--release check` 永远过不了；
     #     口径选"如实写清 + 不放宽"⇒ 这条臂钉住「`--force` 也 rc=1」，将来偷加旁路当场判红 ✗）
@@ -5882,7 +6032,7 @@ def cmd_selftest(args: argparse.Namespace) -> int:
            f"不存在 / 非祖先的 sha **都 rc=0** 并写入 `release-cut` ✗ ⇒ 现在与入版/收口共用 "
            f"`closure_pointer_problem()`：两条假 sha **都拒 + 零写入**、正对照真祖先仍 rc=0、"
            f"事件带 `subject`/`patch_id`、缺 `--ci`/`--commit` 仍是用法错 ✓）"
-           f" + **分支栅栏 4 条**（`#4`：未合回 ⇒ 判红 + **逐条** `agent-worktree.sh land` + "
+           f" + **发版节点接缝 10 条**（`#2`，第八次复核：⭐ **`--release open` 之后 `check_plan` 仍 rc=0**（**改前 rc=1 + 幽灵条目** ✗）· 节点 id 进 `known` · **不许放宽**：手写无 `release-open` 的 `release-add` 照样判红 + 点名 · 正对照 `add`/`check`/`cut` 三条后续步骤仍 rc=0） + **分支栅栏 4 条**（`#4`：未合回 ⇒ 判红 + **逐条** `agent-worktree.sh land` + "
            f"**明说没有 `--force` 旁路** + ⭐ **`--force` 也 rc=1**（偷加旁路当场判红 ✗）+ "
            f"正对照合回后 rc=0）"
            f" + **id 长度 + 环境编码 9 条**（`#5`：3000 字符 id 在 `--schedule`/`--submit`/"
