@@ -211,8 +211,30 @@ jobs:
   # ⚠ **判据一条都没松** ✗：两条命令逐字与原来在 `ledger` shard 1 里跑的那两条相同 ✓；
   # 门禁强度也**没松** —— 本 job 已进 `auto-tag` / `mark-verified` / `fast-fail` 的
   # `needs`（原来由 `ledger` 顶着的三道闸，现在由它顶 ✓）。
+  #
+  # ⭐ **同族剩余缺口一并收口**（2026-10-15，洞 `LEDGER-SHARD1-REMAINING-GUARDS` ✓）：
+  # `check-multi-session.py`（自检 + 真跑）与 `compile-cache.py --selftest` 原先**也**长在
+  # `ledger` shard 1 的同一个 `if [ "${{ matrix.shard }}" = "1" ]` 里 ✗ ⇒ 同一形状的洞：
+  # **纯 docs 推送时它们也不跑** ✗（机械推导读数见 `ledger` 那个 step 的注释 ✓）。
+  #
+  # ⚠ **为什么当初没一起搬**（jbZ 的判断 ✓）："它们要 `ledger` 先建 CLI/LSP 产物
+  # （`Build CLI for the gap repros` 那步）" —— ⭐ **这条前提实测不成立** ✗：
+  #   · `check-multi-session.py` **只 spawn `git`**（`grep -n subprocess.run` ⇒ 两处，
+  #     都是 `["git", …]` ✓；`worktree_residue` 的 `rev-list`/`status` 也走同一处 ✓）；
+  #   · `compile-cache.py --selftest` 是**纯函数级**（源码自己写着"不碰真盘 ✓"，只碰
+  #     `tempfile` ✓；`cmd_env` 那一段还把 `REPO`/`MAIN_WORKTREE` 换成 `/m/…` 假路径 ✓）。
+  #   **实测**（`env -i` + **无** `target/release/sokonanoda` + **无** `SOKONANODA_BIN`，
+  #   忠实复现 CI 处境 ✓）：这几条命令**全部 rc=0** —— 多会话自检 **0.33s** ·
+  #   多会话真跑 **7.37s**（本机 85 棵工作树；CI 上 1 棵 ⇒ 亚秒 ✓）· 编译缓存自检 **0.17s**
+  #   ⇒ **能自带前提 ⇒ 不需要那 146s 的构建** ✓（`ledger (1)` 实测该步 146.0s ✓）。
+  # ⇒ 走**①（能自带前提的自带）**：命令**逐字同源** ✓，只多一行**自带 git 前提**
+  #   （见下面那一步的注释：CI 检出里本地分支 `main` 不是总有 ✗）。
+  # ⚠ **实测耗时**（真 CI run `38692915634` 的 `ledger (1)` 日志 ✓）：多会话两条 + 编译缓存
+  #   自检 + 缓存读数在 runner 上合计 **0.158s**（06:35:25.8108 → 06:35:25.9686 ✓）
+  #   ⇒ 加进本 job（真 CI 17s ✓）是**噪声级** ✓；本机同口径 0.33 + 7.37 + 0.17 = 7.87s，
+  #   差的是"85 棵工作树 vs 1 棵"（真跑那条会遍历 `git worktree list` ✓）。
   queue-lint:
-    name: queue-lint（队列覆盖自检 + 调度器不变量；不设 if 过滤器 ⇒ 每推必跑）
+    name: queue-lint（队列 + 多会话台账 + 编译缓存判据；不设 if 过滤器 ⇒ 每推必跑）
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -225,6 +247,33 @@ jobs:
         run: |
           python3 scripts/ux-queue.py --selftest
           python3 scripts/ux-queue.py --check
+      - name: 多会话台账守卫（共享台账只在 main 上改）+ 自检
+        # 与原先长在 `ledger` shard 1 里的那两条**逐字同源** ✓（搬过来，不是另写一份 ✗）。
+        #
+        # ⚠ **先自带 git 前提**（2026-10-15 · 本洞的修法① ✓，形状照 `stY` 给夹具自带
+        # git 前提的做法 ✓）：`check-multi-session.py` 的默认基线是**本地分支** `main`，
+        # 而 `actions/checkout` **只在"推的就是 main"时才建它** ✗ ——
+        # `getCheckoutInfo`（v5 的 `ref-helper.ts` ✓）：`REFS/HEADS/*` ⇒ `result.ref = <分支>`
+        # + `startPoint` ⇒ `git checkout -B <分支>` ✓；`REFS/PULL/*` ⇒ `result.ref =
+        # refs/remotes/pull/<n>/merge`、**没有 startPoint** ⇒ 裸检出 ⇒ **detached** ✗。
+        # ⇒ 分支推送 / PR 上 `--base main` 会 **rc=2「找不到基线分支 main」** ✗ ——
+        # 那是**环境错**（用法错），不是判红 ✗（实测：合成 PR 形状的仓库 —— detached HEAD +
+        # 只有 `refs/remotes/origin/main` —— 里同一条命令 **rc=2** ✓，补上 `main` 后 **rc=0** ✓）。
+        # `fetch-depth: 0` ⇒ `getRefSpecForAllHistory` = `+refs/heads/*:refs/remotes/origin/*`
+        # ⇒ **`origin/main` 一定在** ✓ ⇒ 本地没有 `main` 就拿它补一个 ✓；
+        # **推的就是 main 时这一行什么都不做** ✓（保持与 shard 1 逐字同源的跑法 ✓，
+        # 真 CI 读数："multi-session: ✓ 主工作树 · 分支 `main`" ✓）。
+        # ⚠ **不改成 `--base origin/main`** ✗：那会让脚本里"`cur == base` ⇒ 在 main 上不判落后"
+        # 的短路失效（`main` ≠ `origin/main` ✓）⇒ 与 `e2e-ledger` **每轮往 main 回提交**
+        # 撞车时**假红** ✗（真 CI 里那条回提交 job 就在 `needs` 里 ✓）。
+        run: |
+          git rev-parse --verify -q main >/dev/null || git branch main refs/remotes/origin/main
+          python3 scripts/check-multi-session.py --selftest
+          python3 scripts/check-multi-session.py
+      - name: 编译缓存判据自检（回收顺序 / 预算反向验证）
+        # 与原先长在 `ledger` shard 1 里的那一条**逐字同源** ✓（搬过来，不是另写一份 ✗）。
+        # 纯函数级 ⇒ 无前提（实测 `env -i` 下 rc=0 · 0.17s ✓）。
+        run: python3 scripts/compile-cache.py --selftest
 
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
@@ -949,18 +998,21 @@ jobs:
         run: |
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" check --shard ${{ matrix.shard }}/3
-          # **队列门禁已搬走**（2026-10-15，洞 `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH` ✓）：
-          # `ux-queue.py --selftest` / `--check` 原先长在这里的 shard 1 ✗，而本 job 挂着
-          # `if: rust || courses` ⇒ **纯 docs 推送时它整个被 skip** ⇒ 队列守卫在最常见的
+          # **队列/多会话守卫已搬走**（2026-10-15：洞 `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH`
+          # ✓ 与**同族的** `LEDGER-SHARD1-REMAINING-GUARDS` ✓）：
+          # `ux-queue.py --selftest` / `--check`、`check-multi-session.py`（自检 + 真跑）、
+          # `compile-cache.py --selftest` 原先**都**长在这里的 shard 1 ✗，而本 job 挂着
+          # `if: rust || courses` ⇒ **纯 docs 推送时它整个被 skip** ⇒ 这些守卫在最常见的
           # 推送形态上等于没有 ✗。⇒ 现在它们在**没有 `if:` 的 `queue-lint` job** 里
           # （每推必跑 ✓，形状照 `wiring-lint` ✓；理由与实测读数见那个 job 的注释 ✓）。
           # ⚠ **别把它们再抄回这里** ✗：那只会重复跑，且**仍然**盖不住纯 docs 推送 ✓。
+          #
+          # ⚠ **留下的这一条不是守卫、是读数** ✓（别跟着搬 ✗）：`compile-cache.py status
+          # --quiet` 量的是**本 job 自己那 146s 构建**写出来的 `target/`（`managed_entries`
+          # 含主工作树的 `target/` ✓；真 CI 读数 **1.4 GB / 预算 200 GB** ✓，见 run
+          # `38692915634` 的 `ledger (1)` 日志 ✓）⇒ 搬去一个**不构建**的 job 就只剩
+          # runner 自带的噪声（≈0）✗ ⇒ 它**故意留在这里** ✓（预算 200 G ⇒ 只报数不判红 ✓）。
           if [ "${{ matrix.shard }}" = "1" ]; then
-            # 并行 agent 基建：多会话判据自检（反例必须判红 ✓）+ 真跑（主工作树/不落后 ⇒ 绿）
-            python3 "$GITHUB_WORKSPACE/scripts/check-multi-session.py" --selftest
-            python3 "$GITHUB_WORKSPACE/scripts/check-multi-session.py"
-            # 编译缓存总管：判据自检（回收顺序/预算反向验证）；CI 上不设预算 ⇒ 只报数不判红 ✓
-            python3 "$GITHUB_WORKSPACE/scripts/compile-cache.py" --selftest
             SOKO_CACHE_BUDGET_GB=200 python3 "$GITHUB_WORKSPACE/scripts/compile-cache.py" status --quiet
           fi
 
