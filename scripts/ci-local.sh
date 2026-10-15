@@ -160,6 +160,35 @@ python3 scripts/audit-notation-paths.py --self-test || exit 1
 python3 scripts/audit-wire-fields.py --selftest || exit 1
 python3 scripts/docs-lint.py --selftest || exit 1' 
 
+# **队列不变量**（洞 `CI-LOCAL-NO-QUEUE-CHECK`，2026-10-15 ✓）—— 与 CI 的 `ledger` job
+# （shard 1 · 第 863 行那个 step）**逐字同源** ✓：`ux-queue.py --check` = 覆盖自检
+# （来源逐条在队列里 · 探针都有登记 · §0.2 摘要与队列同数）+ 调度器不变量（收口有证据 ·
+# umbrella 子任务全关 · 两层不漂移 · **收口指针祖先性** ✓）。
+# ⚠ 此前 ci-local **根本不跑它** ✗ ⇒ **本地判据集 ⊂ CI 判据集** ⇒ `ledger (1)` 能
+# **连续 20 轮 failure 而本地永远绿** ✗（实测 `38455544309` → `38675647735` = 20 轮 ✓）。
+# ⚠ **ROOT 口径**（本步唯一的坑 ✗，两半都实测过）：队列是**主 checkout 单点**，而
+# `ux-queue.py` 在**链接工作树**里没设 `SOKO_QUEUE_ROOT` 会**干净拒绝**（rc=2 + 人话 ✓）
+# ⇒ 照抄 CI 那行会让**每棵工作树**里这一步假红 ✗。
+# ⚠ 更隐蔽的另一半 ✗：**不许沿用继承来的 `SOKO_QUEUE_ROOT`** —— `compile-cache.py env <wt>`
+# 会把它导成**工作树自己**（`scripts/compile-cache.py:411`），而工作树里那份
+# `docs/ux-queue-events.jsonl` 是**开树时的过期副本**（实测：工作树 654 行 / `846a0779…`
+# vs 主 checkout 655 行 / `b5e71ecb…`）⇒ 守卫会**静默审错对象**（"咬不住的守卫" ✗）。
+# ⇒ **一律**用 `git worktree list` **第一行 = 主工作树**（`agent-worktree.sh:25` 的契约 ✓）
+# 覆盖它；量不到（不是 git 仓库）就不设、让脚本按自己的位置回落 ✓。
+# 秒级（实测 3.9s ✓）⇒ 与 docs-lint / status-lint 同档，**`--fast` 也跑** ✓
+#（pre-push 正是要拦住 `ledger` 那种红的路径 ✓）。
+# ⚠ **`--selftest` 故意没跟进来**（如实登记，不是漏了 ✓）：它 13.2s 且含**真并发**臂
+# （8 路抢同一资源 ⇒ 时序敏感）⇒ 塞进 pre-push 等于把"假红"风险加到每次推送 ✗；
+# CI 的 shard 1 仍在跑它 ✓（要本地跑：`SOKO_QUEUE_ROOT=<主 checkout> python3 scripts/ux-queue.py --selftest`）。
+run "gates：队列不变量（收口证据 · 祖先性 ✓）" "ledger" bash -c '
+set -u
+root=$(git worktree list --porcelain | sed -n "1s/^worktree //p")
+if [ -n "$root" ]; then
+  export SOKO_QUEUE_ROOT="$root"
+  echo "  （队列单点 = $root ✓）"
+fi
+python3 scripts/ux-queue.py --check || exit 1'
+
 # ④ editor（CI job `editor`）
 run "editor：stub 宿主" "editor" node editor/vscode/test-extension-host.js
 
