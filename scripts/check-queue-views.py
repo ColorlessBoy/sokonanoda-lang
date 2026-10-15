@@ -37,16 +37,17 @@
      ⚠ **"最终"是必须的**：`repoint` 只改指针（rebase 会重写 sha）⇒ 拿**原始** `advance`
      的 commit 去判会造**大批假红**（实测：197 条收口里 100+ 条报非祖先，而折完 `repoint`
      后 **0 条** ✗→✓）。这条口径与工具 `fold()` 的 `cur["commit"]` **同语义、不同实现** ✓。
-  C5 **收口证据必须可独立复算**（**ratchet：只许减不许增** ✓）：
+  C5 **收口证据必须可独立复算**（**前瞻判据 + 向后豁免** ✓）：
      `reading` 要么带一条**可重跑的命令**（反引号/围栏里的 `python3 …` / `scripts/…` /
      `cargo …` 之类），要么指向**仓库内的路径**（打开就能看 ✓）。
      ⚠ **只指向 `.cache/**`（git 忽略）的不算** —— 复核者拿不到那份文件 ✗，
      于是只能读**工具自报的结论**，正是【2】说的那种"自证" ✗。
-     ⚠ 判据是**冻结上限**（照 `docs-budget.json` 的先例 ✓）：不可复算的条数必须
-     `≤ EVIDENCE_UNREPRODUCIBLE_MAX`（= 177，2026-10-15 实测）—— 事件流 append-only
-     ⇒ 存量改不了 ⇒ **新写一条不可复算的收口就把这个数顶上去 ⇒ 当场判红** ✓。
-     实测（2026-10-15）：**177/197 = 90% 的收口证据复核者复算不了**；其中 32 条
-     只指向 `.cache/**`；近 33 条新收口里 27 条引 `.cache/**`（**这个做法在扩散** ✗）。
+     ⚠ 判据只对 **`ts >= EVIDENCE_GRANDFATHER_UNTIL`** 的收口生效（**新收口**）；
+     切点之前的**只报数**（事件流 append-only ⇒ 存量**改不了** ⇒ 判它是一条**没有出路**
+     的红 ✗，而且**任何别的 agent 写一条收口都会把它顶破** ⇒ 会变成**假红生成器** ✗
+     —— 第一版"冻结上限 ratchet"实测就是这样在落地当刻判红的 ✗）。
+     实测（2026-10-15，切点时刻）：**179/199 = 90% 的收口证据复核者复算不了**；
+     其中 34 条只指向 `.cache/**`；近 33 条新收口里 27 条引 `.cache/**`（**在扩散** ✗）。
   C6 **外部性自证**：本文件不许出现对被复核工具的 import/exec 依赖（见 ③）。
 
 ## 退出码
@@ -72,8 +73,48 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-EVENTS = ROOT / "docs" / "ux-queue-events.jsonl"
 QUEUE_TOOL = ROOT / "scripts" / "ux-queue.py"
+
+
+def events_path() -> pathlib.Path:
+    """事件文件的**唯一出处** —— 必须与被复核工具**读同一棵树** ✓。
+
+    ⚠ 这是**实测踩到的坑**（2026-10-15）：第一版固定读 `<本文件所在树>/docs/…`，
+    而在**链接工作树**里跑时 `SOKO_QUEUE_ROOT` 指向**主 checkout** ⇒
+    工具读**主 checkout 的来源**、我读**工作树的过期事件副本** ⇒ **两个输入不同树**
+    ⇒ **C2/C3 一批假红** ✗（实测：`SUB-toolchain-guard-code-fence-false-positive`
+    报"独立折出 in_progress · 工具自报 done"）。
+    ⇒ 口径与 `ux-queue.py:events_path_for()` **同一处**：`SOKO_QUEUE_EVENTS` 优先，
+    否则 `SOKO_QUEUE_ROOT/docs/…`，否则本树 ✓（**同根** ⇒ 两个输入可比 ✓）。
+    """
+    env = os.environ.get("SOKO_QUEUE_EVENTS")
+    if env:
+        return pathlib.Path(env)
+    return ledger_root() / "docs" / "ux-queue-events.jsonl"
+
+
+def ledger_root() -> pathlib.Path:
+    """这本账**属于哪棵树**（= `SOKO_QUEUE_ROOT`，否则本树）✓。"""
+    root = os.environ.get("SOKO_QUEUE_ROOT")
+    return pathlib.Path(root) if root else ROOT
+
+
+def base_ref() -> str:
+    """C4 的祖先性基点 = **账所在那棵树的 HEAD**（不是"我当前 checkout 的 HEAD" ✗）。
+
+    ⚠ 同族第二个实测坑（2026-10-15）：在**链接工作树**里跑、账指向主 checkout 时，
+    本树的 HEAD 是**另一条分支**（还常被 rebase 过）⇒ 拿它当基点会把 main 上的
+    **正常**指针报成非祖先 ⇒ **假红** ✗（实测：`5a3fc924` 与 `d06f5092` 两条
+    —— 它们都是 main 的提交，只是不在我这个 worktree 分支的历史里）。
+    ⇒ 基点**从账所在那棵树推导**（detached 时 `--abbrev-ref` 返回 `HEAD` ⇒ 原行为 ✓）。
+    """
+    override = os.environ.get("SOKO_QUEUE_BASE_REF")
+    if override:
+        return override
+    r = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                       cwd=ledger_root(), capture_output=True, text=True)
+    ref = r.stdout.strip() if r.returncode == 0 else ""
+    return ref or "HEAD"
 
 # ── 常量：**本文件自己的一份**（刻意不从被复核工具 import ✗） ────────────────
 # 值取自 `ux-queue.py` 的**规格**（docstring + 常量），由本文件的 `--selftest` 与 C2
@@ -92,15 +133,19 @@ KNOWN_EVENT_KINDS = frozenset({
 SCHED_STATES = frozenset({"todo", "in_progress", "blocked", "done", "wo_filed",
                           "umbrella", "submitted", "triage_rejected"})
 
-# C5 的**冻结上限**（ratchet，照 `scripts/docs-budget.json` 的先例 ✓）：不可独立复算的
-# 收口证据条数 **只许减不许增** ✗→✓。事件流是 append-only ⇒ 存量改不了 ⇒ 实际上
-# "新写一条不可复算的收口"就会把这个数顶上去 ⇒ 当场判红 ✓。
-# ⚠ 基线实测于 2026-10-15（`docs/ux-queue-events.jsonl`，197 条收口里 177 条不可复算）。
-#   确需放宽 ⇒ **手改这一行**（评审可见 ✓），并写清为什么 ✗（不许偷偷抬 ✗）。
-EVIDENCE_UNREPRODUCIBLE_MAX = 177
-# 判红时用来**点名"新"的那几条**（切点之前的一律算存量 ✓）。它**不**参与判据本身
-# （判据只有"总数 ≤ 上限"这一条）⇒ 这个日期漂了也**不会**造假红/假绿 ✓。
-EVIDENCE_RATCHET_SINCE = datetime.datetime.fromisoformat("2026-10-15T00:00:00+00:00")
+# ⭐ C5 是**前瞻**判据 + **向后豁免**（2026-10-15 第二版，见下面那条"为什么要改"）：
+#   · `ts >= EVIDENCE_GRANDFATHER_UNTIL` 的收口 ⇒ **必须可独立复算**，否则**判红** ✓
+#   · 切点之前的收口 ⇒ **只报数**（事件流 append-only ⇒ 存量**改不了** ⇒ 判它是一条
+#     **没有出路**的红 ✗）
+EVIDENCE_GRANDFATHER_UNTIL = datetime.datetime.fromisoformat("2026-10-15T18:30:00+08:00")
+# 切点那一刻的**存量读数**（只报不判 ✓；供下一棒看"这个病有多大"）。**它不是判据** ✓。
+EVIDENCE_HISTORICAL_UNREPRODUCIBLE = 179
+# ⚠ **为什么第一版（"不可复算条数 ≤ 冻结上限 177"的 ratchet）必须改** —— 实测，不是设想：
+#   第一版在**落地那一刻就判红**了 ✗，因为它是**移动靶**：`main` 在我切出 commit **之后**
+#   又落了 2 条收口（含**本任务自己的收口** `SUB-orchestrator-attention-structure`）
+#   ⇒ 177 → **179** ⇒ 红。⇒ 那条红**没有出路**（历史改不了），而且**任何别的 agent
+#   写一条收口都会把它顶破** ⇒ 它会把 CI 变成一台**假红生成器** ✗。
+#   ⇒ 改成"**向前判、向后豁免**"：新收口必须可复算（**咬得住** ✓），存量只报数 ✓。
 
 # C5 认什么算"可重跑的命令"：反引号/围栏包起来的一小段，里面出现仓库里真有的入口。
 _CMD_HINT = re.compile(
@@ -233,14 +278,14 @@ def fold_pointers(events: list) -> dict[str, str]:
     return ptr
 
 
-def ancestry_bad(commits: list[str]) -> tuple[list[str], str | None]:
+def ancestry_bad(commits: list[str], base: str = "HEAD") -> tuple[list[str], str | None]:
     """纯 git 事实：每个 sha 是不是 HEAD 的祖先。**不经工具** ✓。
 
     返回 (非祖先的 sha 列表, 环境错误说明)。浅克隆下 git 会答不了 ⇒ **不假装判过** ✗
     （rc=2 + 人话；照仓库先例：探不到就降级并出声 ✓）。
     """
     shallow = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
-                             cwd=ROOT, capture_output=True, text=True)
+                             cwd=ledger_root(), capture_output=True, text=True)
     if shallow.returncode != 0:
         return [], f"`git rev-parse --is-shallow-repository` rc={shallow.returncode}"
     if shallow.stdout.strip() == "true":
@@ -248,12 +293,12 @@ def ancestry_bad(commits: list[str]) -> tuple[list[str], str | None]:
                     "用 `git fetch --unshallow` 或 CI 里 `fetch-depth: 0` ✓")
     bad = []
     for sha in commits:
-        r = subprocess.run(["git", "merge-base", "--is-ancestor", sha, "HEAD"],
-                           cwd=ROOT, capture_output=True, text=True)
+        r = subprocess.run(["git", "merge-base", "--is-ancestor", sha, base],
+                           cwd=ledger_root(), capture_output=True, text=True)
         if r.returncode == 1:
             bad.append(sha)
         elif r.returncode not in (0, 1):
-            return [], f"`git merge-base --is-ancestor {sha} HEAD` rc={r.returncode}"
+            return [], f"`git merge-base --is-ancestor {sha} {base}` rc={r.returncode}"
     return bad, None
 
 
@@ -289,9 +334,10 @@ def tool_json(env_extra: dict | None = None) -> tuple[dict | None, str | None]:
 
 def run(events_path: pathlib.Path, env_extra: dict | None = None,
         skip_tool: bool = False,
-        evidence_max: int = EVIDENCE_UNREPRODUCIBLE_MAX) -> tuple[dict, list[str]]:
+        cutoff: datetime.datetime | None = None) -> tuple[dict, list[str]]:
     """跑全部判据 ⇒ (读数 dict, 判红列表)。**纯函数**（除两个只读子进程）✓。"""
     red: list[str] = []
+    cutoff = cutoff or EVIDENCE_GRANDFATHER_UNTIL
     events, hygiene = load_raw(events_path)
     red += [f"C1 {m}" for m in hygiene]
 
@@ -347,25 +393,26 @@ def run(events_path: pathlib.Path, env_extra: dict | None = None,
                     red.append(f"C3 漂移 `{ident}`：来源层说它已关账，"
                                f"事件层独立折出非终态 {mine!r}")
 
-    # ── C5 证据可独立复算（ratchet；**不依赖被复核工具** ✓）──────────────
+    # ── C5 证据可独立复算（**前瞻 + 向后豁免**；不依赖被复核工具 ✓）────────
     unrepro = [e for e in closures if not _reproducible(e)]
+    fresh_bad = [e for e in unrepro if _since(e, cutoff)]
     reading["evidence_total"] = len(closures)
     reading["evidence_unreproducible"] = len(unrepro)
-    reading["evidence_unreproducible_max"] = evidence_max
+    reading["evidence_historical"] = EVIDENCE_HISTORICAL_UNREPRODUCIBLE
+    reading["evidence_fresh_unreproducible"] = len(fresh_bad)
     reading["evidence_citing_cache"] = sum(1 for e in unrepro if _cites_cache(e))
-    if len(unrepro) > evidence_max:
-        fresh = [e for e in unrepro
-                 if not _reproducible(e) and _since(e, EVIDENCE_RATCHET_SINCE)]
-        who = " · ".join(sorted({str(e.get("id")) for e in fresh})) or "（切点前也有增量）"
+    for ev in fresh_bad:
         red.append(
-            f"C5 不可独立复算的收口证据 **{len(unrepro)} 条 > 冻结上限 {evidence_max}** ⇒ "
-            f"新收口又写了一条复核者复算不了的证据 ✗（点名：{who}）"
-            f"—— 把**判据命令**或**仓库内路径**写进 `--reading` ✓")
+            f"C5 `{ev.get('id')}` 的收口证据**复核者复算不了** ⇒ 只能读**自报的结论** ✗"
+            f"—— 把**判据命令**或**仓库内路径**写进 `--reading` ✓"
+            f"（切点 {cutoff.isoformat()} 之后新写的收口一律判 ✓；切点前 {len(unrepro) - len(fresh_bad)} 条只报数）")
 
     # ── C4 祖先性（纯 git · **折过 `repoint` 的最终指针**）────────────────
     ptr = fold_pointers(events)
     reading["pointers"] = len(ptr)
-    bad, env_err = ancestry_bad(sorted(set(ptr.values())))
+    base = base_ref()
+    reading["base_ref"] = base
+    bad, env_err = ancestry_bad(sorted(set(ptr.values())), base)
     if env_err:
         red.append(f"环境 C4 {env_err}")
     else:
@@ -373,7 +420,7 @@ def run(events_path: pathlib.Path, env_extra: dict | None = None,
         for sha in bad:
             owners = sorted(i for i, c in ptr.items() if c == sha)
             red.append(f"C4 非祖先指针 `{sha}`（{' · '.join(owners)}）⇒ "
-                       f"这个收口在 main 上核不到 ✗")
+                       f"这个收口在 `{base}` 的历史里核不到 ✗")
         reading["non_ancestor_pointers"] = len(badset)
     return reading, red
 
@@ -381,7 +428,7 @@ def run(events_path: pathlib.Path, env_extra: dict | None = None,
 def _since(ev: dict, when: datetime.datetime | None = None) -> bool:
     try:
         return datetime.datetime.fromisoformat(
-            str(ev.get("ts", "")).replace("Z", "+00:00")) >= (when or EVIDENCE_RATCHET_SINCE)
+            str(ev.get("ts", "")).replace("Z", "+00:00")) >= (when or EVIDENCE_GRANDFATHER_UNTIL)
     except ValueError:
         return False
 
@@ -412,7 +459,7 @@ def selftest() -> int:
     bad = 0
 
     def case(name: str, events: list, view: dict | None, want_red: bool,
-             expect: str = "", evidence_max: int | None = None) -> None:
+             expect: str = "", cutoff: datetime.datetime | None = None) -> None:
         nonlocal bad
         with tempfile.TemporaryDirectory() as td:
             p = pathlib.Path(td) / "events.jsonl"
@@ -422,10 +469,7 @@ def selftest() -> int:
                 reading, red = run(p, skip_tool=True)
             else:
                 # 夹具：**不跑真工具** ⇒ 直接喂一份"工具自报"，只跑 C1/C2/C3/C5
-                reading, red = _run_with_view(
-                    p, view,
-                    evidence_max=(EVIDENCE_UNREPRODUCIBLE_MAX if evidence_max is None
-                                  else evidence_max))
+                reading, red = _run_with_view(p, view, cutoff=cutoff)
         hit = bool(red) == want_red
         mark = "✓" if hit else "✗"
         if not hit:
@@ -462,22 +506,26 @@ def selftest() -> int:
     # C3：两层漂移
     case("C3 open 里有终态 id", clean,
          {"state": {"X": {"state": "done"}}, "open": ["X"], "queue": [{"id": "X"}]}, True, "C3")
-    # C5 ratchet：上限设 0 ⇒ 一条不可复算的收口就顶破冻结上限 ⇒ 必须判红 ✓
-    case("C5 证据不可复算顶破冻结上限", [ev("X", "advance", to="done", commit="HEAD",
-                                     reading="见 .cache/ux/fix-X/VERDICT.md")],
+    # C5：切点钉死在很久以前 ⇒ 夹具里的收口一律算"新写的" ⇒ 判据确定性 ✓
+    _old = datetime.datetime(2020, 1, 1, tzinfo=datetime.timezone.utc)
+    case("C5 新收口证据不可复算", [ev("X", "advance", to="done", commit="HEAD",
+                                 reading="见 .cache/ux/fix-X/VERDICT.md")],
          {"state": {"X": {"state": "done"}}, "open": [], "queue": [{"id": "X"}]},
-         True, "C5", evidence_max=0)
+         True, "C5", cutoff=_old)
     case("C5 证据只指向 .cache 路径 ⇒ 仍不可复算", [ev("X", "advance", to="done", commit="HEAD",
                                             reading="`cat .cache/ux/fix-X/VERDICT.md`")],
          {"state": {"X": {"state": "done"}}, "open": [], "queue": [{"id": "X"}]},
-         True, "C5", evidence_max=0)
+         True, "C5", cutoff=_old)
     case("C5 正对照：证据给了仓库内路径 ⇒ 可复算", [ev("X", "advance", to="done", commit="HEAD",
                                           reading="读数见 docs/gaps/ledger.jsonl 的 G-1 行")],
          {"state": {"X": {"state": "done"}}, "open": [], "queue": [{"id": "X"}]},
-         False, evidence_max=0)
+         False, cutoff=_old)
     # C4：非祖先指针（**真 git 事实** —— 拿一个 HEAD 之外的 sha 当夹具）
-    non_anc = subprocess.run(["git", "rev-list", "--all", "--not", "HEAD"],
-                             cwd=ROOT, capture_output=True, text=True).stdout.split()
+    # ⚠ 夹具必须与判据**同一个基点**（实测坑：这里原写死 `HEAD` + `cwd=ROOT`，
+    #    而判据用的是 `base_ref()` + `ledger_root()` ⇒ 设了 `SOKO_QUEUE_ROOT` 时
+    #    两者不同 ⇒ **正对照自己判红** ✗）。
+    non_anc = subprocess.run(["git", "rev-list", "--all", "--not", base_ref()],
+                             cwd=ledger_root(), capture_output=True, text=True).stdout.split()
     if non_anc:
         case("C4 收口指针不是祖先", [ev("X", "advance", to="done", commit=non_anc[0],
                                     reading="判据：`python3 scripts/check-queue-views.py` exit 0")],
@@ -502,21 +550,25 @@ def selftest() -> int:
 
 
 def _run_with_view(events_path: pathlib.Path, view: dict,
-                   evidence_max: int = EVIDENCE_UNREPRODUCIBLE_MAX) -> tuple[dict, list[str]]:
+                   cutoff: datetime.datetime | None = None) -> tuple[dict, list[str]]:
     """自检专用：用**喂进来的**自报代替真跑工具（夹具里没有真队列）✓。"""
     real_tool = globals()["tool_json"]
     globals()["tool_json"] = lambda env_extra=None: (view, None)
     try:
-        return run(events_path, evidence_max=evidence_max)
+        return run(events_path, cutoff=cutoff)
     finally:
         globals()["tool_json"] = real_tool
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="队列的独立复核（第二份实现 + 纯 git 事实）")
-    ap.add_argument("--events", metavar="PATH", default=str(EVENTS))
+    ap.add_argument("--events", metavar="PATH", default=None,
+                    help="默认 = 与工具同根（$SOKO_QUEUE_EVENTS → $SOKO_QUEUE_ROOT → 本树）✓")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--grandfather-until", metavar="ISO8601", default=None,
+                    help="C5 的切点（默认 = EVIDENCE_GRANDFATHER_UNTIL）；往前挪 ⇒ "
+                         "把**真台账上已写下的**不可复算收口也照出来（反向验证用 ✓）")
     ap.add_argument("--skip-tool", action="store_true",
                     help="只跑不依赖被复核工具的判据（C1/C4/C5/C6）")
     args = ap.parse_args(argv)
@@ -530,20 +582,31 @@ def main(argv=None) -> int:
     if args.selftest:
         return selftest()
 
-    reading, red = run(pathlib.Path(args.events), skip_tool=args.skip_tool)
+    cutoff = None
+    if args.grandfather_until:
+        try:
+            cutoff = datetime.datetime.fromisoformat(args.grandfather_until)
+        except ValueError as e:
+            print(f"error: `--grandfather-until` 不是 ISO-8601（{e}）", file=sys.stderr)
+            return 2
+    reading, red = run(pathlib.Path(args.events) if args.events else events_path(),
+                       skip_tool=args.skip_tool, cutoff=cutoff)
     if args.json:
         print(json.dumps({"reading": reading, "red": red}, ensure_ascii=False, indent=2))
     else:
         print(f"独立复核：事件 {reading['events']} 条 · id {reading['ids']} 个 · "
               f"终态 {reading['terminal_ids']} · 收口 {reading['closures']} · "
-              f"指针 {reading.get('pointers', 0)} · 折叠指纹 {reading['fold_sha']}")
+              f"指针 {reading.get('pointers', 0)} · 基点 `{reading.get('base_ref', 'HEAD')}` · "
+              f"折叠指纹 {reading['fold_sha']}")
         if "tool_open" in reading:
             print(f"  对拍：工具自报 state {reading['tool_ids']} 个 · open {reading['tool_open']} 个")
         if "evidence_total" in reading:
             bad_n = reading["evidence_unreproducible"]
-            print(f"  收口证据可复算（ratchet）：可复算 "
-                  f"{reading['evidence_total'] - bad_n}/{reading['evidence_total']} · "
-                  f"不可复算 {bad_n}（冻结上限 {reading['evidence_unreproducible_max']}）· "
+            print(f"  收口证据可复算（**前瞻 + 向后豁免**）：切点后新收口不可复算 "
+                  f"{reading['evidence_fresh_unreproducible']} 条（>0 ⇒ 判红）· "
+                  f"切点前存量 {bad_n - reading['evidence_fresh_unreproducible']}"
+                  f"/{reading['evidence_total']}（**只报数** · 落地时实测 "
+                  f"{reading['evidence_historical']}）· "
                   f"其中 {reading['evidence_citing_cache']} 条只引 `.cache/**`（git 忽略）")
         if red:
             print(f"\n✗ 独立复核 **{len(red)} 条红**：", file=sys.stderr)

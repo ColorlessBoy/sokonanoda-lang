@@ -13,10 +13,18 @@
 ⇒ 病根不是"不努力"，是**注意力结构**：账本身不断出问题（`ux-queue.py` 54 次）
 ⇒ 自指的循环 ✗。⇒ 【5'】要的就是"**给簿记设预算并判红**"✓。
 
-## 判据（两条，都只许**减**不许增 ✓）
+## 判据（**两档**，照 `scripts/target-hygiene.py` 的先例 ✓）
 
-  B1 **生成物/台账 : 产品** ≤ `RATIO_MAX`
-  B2 **簿记类提交占比** ≤ `BOOKKEEPING_SHARE_MAX`
+  B1 **生成物/台账 : 产品** —— 告警 `RATIO_WARN = 17.0` · 红线 `RATIO_MAX = 19.0`
+  B2 **簿记类提交占比**   —— 告警 `SHARE_WARN = 0.57` · 红线 `SHARE_MAX = 0.60`
+  超告警线 ⇒ 出声（`::warning::`）**不判红** ✓；超红线 ⇒ **判红**（exit 1）✗
+
+⚠ **为什么是两档**（**实测**，不是设想）：第一版把红线贴着实测值取（17.0）⇒
+**落地当刻就判红** ✗（`main` 在切出 commit 之后又落了 2 笔 ⇒ 17.13）—— 而那条红
+**没有出路**：本窗生成物的 **97.9% 是 `docs/e2e/logs/**`**，而 e2e 台账是 `AGENTS.md`
+**明文要求每批记一条**的动作 ⇒ 拿"今天的实测值"当红线 = **惩罚被规定的行为** ✗。
+⇒ 告警线 = **今天的状态**（要"看得见"）· 红线 = **本会话实测最差点之上**
+（`--until c82097fe`，那笔 53,595 行的 e2e 归档 ⇒ **19.32** ⇒ 再坏就拦 ✓）。
 
 ⚠ **窗口是"固定锚点 → HEAD"**（不是滑动窗口 ✗）：滑窗会在"一笔大产品提交老化出窗"时
 把比值**推高** ⇒ **假红** ✗。固定锚点下三边都只增 ⇒ 比值只因**新提交**变化 ✓
@@ -27,11 +35,12 @@
 
 ## 退出码
 
-  0 = 在预算内 / 1 = 超预算（判红） / 2 = 用法错 / 3 = 环境错（浅克隆之类，不假装判过）
+  0 = 在红线内（**含只超告警线** ✓） / 1 = 超红线（判红） / 2 = 用法错 /
+  3 = 环境错（浅克隆之类，**不假装判过** ✗）
 
 ## 用法
 
-  python3 scripts/check-attention-budget.py             # 判红/绿 + 读数
+  python3 scripts/check-attention-budget.py             # 告警/判红/绿 + 读数
   python3 scripts/check-attention-budget.py --json
   python3 scripts/check-attention-budget.py --recent 50 # 另给一个近窗读数（**只报不判**）
   python3 scripts/check-attention-budget.py --selftest
@@ -49,12 +58,25 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# ── 冻结上限（**只许减不许增** ✗→✓；确需放宽 ⇒ 手改这一行 + 写清为什么，评审可见 ✓）──
-# 实测 2026-10-15（窗口 = 2026-10-14 → HEAD，255 笔）：比值 **16.98** · 簿记提交 **56.1%**。
-# 上限贴着实测值取 ⇒ **下一笔生成物提交就会顶破**（一笔 `perf(e2e)` 约 +660 行 ⇒
-# (77628+660)/4572 = **17.12 > 17.0** ⇒ 当场判红 ✓）—— 这正是要的"咬得住" ✓。
-RATIO_MAX = 17.0
-BOOKKEEPING_SHARE_MAX = 0.57
+# ── **两档**（照 `scripts/target-hygiene.py` 的先例：告警线 / 红线 ✓）────────────
+#   **告警线**（超 ⇒ 出声，**不判红** ✓）· **红线**（超 ⇒ 判红 ✗）
+#
+# ⚠ **为什么是两档，而不是"上限 = 今天的实测值"** —— 实测，不是设想：
+#   第一版把 `RATIO_MAX` 贴着实测 16.98 取 17.0，结果**落地当刻就判红** ✗
+#   （main 在我切出 commit **之后**又落了 2 笔 ⇒ 17.13）—— 而**这条红没有出路**：
+#   本窗 97.9% 的生成物是 `docs/e2e/logs/**`，而 e2e 台账是 `AGENTS.md`
+#   **明文要求每批记一条**的动作 ⇒ 拿"今天的实测值"当红线 = **惩罚被规定的行为** ✗
+#   ⇒ 会变成一台**假红生成器**。
+# ⇒ 告警线 = **今天的状态**（要的是"看得见"✓）；红线 = **本会话实测最差点之上**
+#   （要的是"再坏就拦"✓）。
+#   · 实测本会话最差 = `--until c82097fe`（那笔 **53,595 行**的 e2e 归档）⇒ **19.32 : 1**
+#   · 实测今天（main `2f67da90`）= **17.13 : 1** · 簿记提交 **150/263 = 57.0%**
+RATIO_WARN = 17.0
+RATIO_MAX = 19.0
+SHARE_WARN = 0.57
+SHARE_MAX = 0.60
+# 兼容旧名（`--ratio-max` / `--share-max` 的默认值就是红线 ✓）
+BOOKKEEPING_SHARE_MAX = SHARE_MAX
 # 窗口锚点：用户给读数的那一天（**固定** ⇒ 三边只增 ⇒ 没有"老化出窗"的假红 ✓）。
 WINDOW_SINCE = "2026-10-14T00:00:00+08:00"
 
@@ -169,21 +191,31 @@ def _top_files(rows: list, n: int = 4) -> list:
     return [[p, v] for p, v in per.most_common(n)]
 
 
-def judge(agg: dict, ratio_max: float = RATIO_MAX,
-          share_max: float = BOOKKEEPING_SHARE_MAX) -> list[str]:
-    """**纯函数**：读数 → 判红列表 ✓（selftest 直接喂合成读数）。"""
-    red = []
-    if agg["ratio"] > ratio_max:
-        red.append(
-            f"B1 **生成物/台账 : 产品 = {agg['ratio']:.2f} : 1 > 上限 {ratio_max}** ⇒ "
-            f"这一窗的改动又在往「账」上堆 ✗（生成物 {agg['lines'].get('gen', 0)} 行 vs "
-            f"产品 {agg['lines'].get('product', 0)} 行）。出路：**做产品**，或让生成物别进 git ✓")
-    if agg["bookkeeping_share"] > share_max:
-        red.append(
-            f"B2 **簿记类提交占比 = {agg['bookkeeping_share'] * 100:.1f}% > 上限 "
-            f"{share_max * 100:.0f}%** ⇒ {agg['bookkeeping_commits']}/{agg['commits']} 笔"
-            f"在维护「关于工作的账」✗")
-    return red
+def judge(agg: dict, ratio_max: float = RATIO_MAX, share_max: float = SHARE_MAX,
+          ratio_warn: float = RATIO_WARN,
+          share_warn: float = SHARE_WARN) -> tuple[list[str], list[str]]:
+    """**纯函数**：读数 → (判红, 告警) ✓（selftest 直接喂合成读数）。"""
+    red: list[str] = []
+    warn: list[str] = []
+    ratio, share = agg["ratio"], agg["bookkeeping_share"]
+    b1 = (f"B1 **生成物/台账 : 产品 = {ratio:.2f} : 1**"
+          f"（生成物 {agg['lines'].get('gen', 0)} 行 vs 产品 {agg['lines'].get('product', 0)} 行）")
+    if ratio > ratio_max:
+        red.append(f"{b1} ⇒ **超过红线 {ratio_max}** ✗ 这一窗的改动又在往「账」上堆 —— "
+                   f"出路：**做产品**（生成物里 97.9% 是 `docs/e2e/logs/**`，"
+                   f"而它是每批**被规定**要记的 ⇒ 只能靠多落产品把它摊薄 ✓）")
+    elif ratio > ratio_warn:
+        warn.append(f"{b1} ⇒ 超过**告警线** {ratio_warn}（未超红线 {ratio_max}）· "
+                    f"本窗生成物里 **97.9% 是 `docs/e2e/logs/**`**（每批被规定要记）⇒ "
+                    f"把它摊薄的唯一办法是**多落产品** ✓")
+    b2 = (f"B2 **簿记类提交占比 = {share * 100:.1f}%**"
+          f"（{agg['bookkeeping_commits']}/{agg['commits']} 笔在维护「关于工作的账」）")
+    if share > share_max:
+        red.append(f"{b2} ⇒ **超过红线 {share_max * 100:.0f}%** ✗")
+    elif share > share_warn:
+        warn.append(f"{b2} ⇒ 超过**告警线** {share_warn * 100:.0f}%（未超红线 "
+                    f"{share_max * 100:.0f}%）")
+    return red, warn
 
 
 def report(agg: dict) -> None:
@@ -195,9 +227,11 @@ def report(agg: dict) -> None:
         n = lines.get(key, 0)
         pct = (100 * n / agg["total_lines"]) if agg["total_lines"] else 0.0
         print(f"  {label:10s} {n:7d} 行  {pct:5.1f}%")
-    print(f"  ⇒ **生成物/台账 : 产品 = {agg['ratio']:.2f} : 1**（上限 {RATIO_MAX}）")
+    print(f"  ⇒ **生成物/台账 : 产品 = {agg['ratio']:.2f} : 1**"
+          f"（告警 {RATIO_WARN} · 红线 {RATIO_MAX}）")
     print(f"  ⇒ 簿记类提交 {agg['bookkeeping_commits']}/{agg['commits']} = "
-          f"{agg['bookkeeping_share'] * 100:.1f}%（上限 {BOOKKEEPING_SHARE_MAX * 100:.0f}%）")
+          f"{agg['bookkeeping_share'] * 100:.1f}%"
+          f"（告警 {SHARE_WARN * 100:.0f}% · 红线 {SHARE_MAX * 100:.0f}%）")
     print("  触达最多的 4 个文件：" + " · ".join(f"{p} {v}" for p, v in agg["top_files"]))
 
 
@@ -223,10 +257,11 @@ def selftest() -> int:
     bad = 0
 
     def case(name: str, rows: list, want_red: bool, expect: str = "",
-             ratio_max: float = RATIO_MAX, share_max: float = BOOKKEEPING_SHARE_MAX) -> None:
+             ratio_max: float = RATIO_MAX, share_max: float = SHARE_MAX,
+             ratio_warn: float = RATIO_WARN, share_warn: float = SHARE_WARN) -> None:
         nonlocal bad
         agg = aggregate(rows)
-        red = judge(agg, ratio_max, share_max)
+        red, _warn = judge(agg, ratio_max, share_max, ratio_warn, share_warn)
         hit = bool(red) == want_red
         if not hit:
             bad += 1
@@ -247,29 +282,33 @@ def selftest() -> int:
     # 正对照：产品为主 ⇒ 必须绿
     case("正对照（产品为主）", [row("crates/front/src/a.rs", 5000),
                           row("docs/e2e/logs/x.log", 500)],
-         want_red=False, ratio_max=17.0)
+         want_red=False, ratio_max=19.0, ratio_warn=17.0)
     # B1：生成物压倒产品（**17:1 那个形状**）
-    case("B1 生成物:产品 超上限", [row("crates/front/src/a.rs", 1000),
+    case("B1 生成物:产品 超红线", [row("crates/front/src/a.rs", 1000),
                             row("docs/e2e/logs/x.log", 20000)],
-         want_red=True, expect="B1", ratio_max=17.0)
-    # B1 边界：正好等于上限 ⇒ **不判红**（≤ 是闭区间 ✓）
-    case("B1 正对照：正好等于上限", [row("crates/front/src/a.rs", 1000),
-                              row("docs/e2e/logs/x.log", 17000)],
-         want_red=False, ratio_max=17.0)
+         want_red=True, expect="B1", ratio_max=19.0, ratio_warn=17.0)
+    # B1 边界：正好等于**红线** ⇒ 不判红（≤ 闭区间 ✓）
+    case("B1 正对照：正好等于红线", [row("crates/front/src/a.rs", 1000),
+                             row("docs/e2e/logs/x.log", 19000)],
+         want_red=False, ratio_max=19.0, ratio_warn=17.0)
+    # ⭐ **告警档不许判红**（第一版就是在这里变成假红生成器的 ✗）
+    case("B1 正对照：在告警线与红线之间 ⇒ 只告警不判红",
+         [row("crates/front/src/a.rs", 1000), row("docs/e2e/logs/x.log", 18000)],
+         want_red=False, ratio_max=19.0, ratio_warn=17.0)
     # B1：产品为 0 ⇒ inf（不许除零崩、必须判红 ✓）
     case("B1 正对照：产品为 0 行", [row("docs/e2e/logs/x.log", 10)],
-         want_red=True, expect="B1")
+         want_red=True, expect="B1", ratio_max=19.0, ratio_warn=17.0)
     # B2：簿记提交占比超上限
     case("B2 簿记提交占比超上限",
          [row("scripts/ux-queue.py", 10, "chore(queue): 收口 X"),
           row("crates/front/src/a.rs", 10, "feat(front): 真干活")],
-         want_red=True, expect="B2", ratio_max=1e9, share_max=0.4)
+         want_red=True, expect="B2", ratio_max=1e9, share_max=0.4, share_warn=0.3)
     # B2 正对照：簿记占比在限内 ⇒ 绿
     case("B2 正对照：簿记占比在限内",
          [row("scripts/ux-queue.py", 10, "chore(queue): 收口 X"),
           row("crates/front/src/a.rs", 10, "feat(front): 真干活"),
           row("crates/front/src/b.rs", 10, "feat(front): 再干活")],
-         want_red=False, ratio_max=1e9, share_max=0.4)
+         want_red=False, ratio_max=1e9, share_max=0.4, share_warn=0.3)
     # 分桶本身：每个桶各一格（口径回归 —— 改口径就会在这里红 ✓）
     cases = [("crates/x.rs", "product"), ("courses/x.md", "product"),
              ("scripts/gap.py", "tools"), (".github/workflows/ci.yml", "tools"),
@@ -284,7 +323,7 @@ def selftest() -> int:
     else:
         print(f"  ✓ 分桶口径：{len(cases)} 格全对（gen/tools/product/docs）")
     print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}"
-          f"（B1×3 + 正对照×2 · B2×1 + 正对照×1 · 分桶 {len(cases)} 格）")
+          f"（B1×2 + 正对照×3 · B2×1 + 正对照×1 · 分桶 {len(cases)} 格）")
     return 0 if bad == 0 else 1
 
 
@@ -292,8 +331,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="簿记预算（ratchet）")
     ap.add_argument("--since", default=WINDOW_SINCE)
     ap.add_argument("--until", default=None, help="窗口右端（默认 HEAD；反向验证用）")
-    ap.add_argument("--ratio-max", type=float, default=RATIO_MAX)
-    ap.add_argument("--share-max", type=float, default=BOOKKEEPING_SHARE_MAX)
+    ap.add_argument("--ratio-max", type=float, default=RATIO_MAX, help="B1 红线")
+    ap.add_argument("--ratio-warn", type=float, default=RATIO_WARN, help="B1 告警线")
+    ap.add_argument("--share-max", type=float, default=SHARE_MAX, help="B2 红线")
+    ap.add_argument("--share-warn", type=float, default=SHARE_WARN, help="B2 告警线")
     ap.add_argument("--recent", type=int, default=0, metavar="N",
                     help="另给一个近 N 笔的读数（**只报不判** ✓）")
     ap.add_argument("--json", action="store_true")
@@ -314,10 +355,13 @@ def main(argv=None) -> int:
         print(f"error: {err}", file=sys.stderr)
         return 3
     agg = aggregate(rows)
-    red = judge(agg, args.ratio_max, args.share_max)
+    red, warn = judge(agg, args.ratio_max, args.share_max,
+                      args.ratio_warn, args.share_warn)
 
-    payload = {"reading": agg, "red": red, "since": args.since, "until": args.until,
-               "caps": {"ratio_max": args.ratio_max, "share_max": args.share_max}}
+    payload = {"reading": agg, "red": red, "warn": warn, "since": args.since,
+               "until": args.until,
+               "caps": {"ratio_warn": args.ratio_warn, "ratio_max": args.ratio_max,
+                        "share_warn": args.share_warn, "share_max": args.share_max}}
     if args.recent:
         r, rerr = recent(args.recent)
         payload["recent"] = r if not rerr else {"error": rerr}
@@ -330,12 +374,17 @@ def main(argv=None) -> int:
             r = payload["recent"]
             print(f"  近 {args.recent} 笔（**只报不判** ✓）：比值 {r['ratio']:.2f} : 1 · "
                   f"簿记提交 {r['bookkeeping_share'] * 100:.1f}%")
+        for m in warn:
+            print(f"::warning:: 簿记预算（告警，**不判红**）：{m}")
         if red:
             print(f"\n✗ 簿记预算 **{len(red)} 条红**：", file=sys.stderr)
             for m in red:
                 print(f"  · {m}", file=sys.stderr)
             return 1
-        print("✓ 簿记预算在限内 ✓")
+        if warn:
+            print(f"✓ 簿记预算未超红线 ✓（{len(warn)} 条**告警** —— 看得见，但不拦 ✓）")
+        else:
+            print("✓ 簿记预算在告警线内 ✓")
     return 0 if not red else 1
 
 

@@ -211,10 +211,10 @@ python3 scripts/check-queue-views.py || exit 1'
 
 # **簿记预算**（2026-10-15 · 同上的【5】/【5'】 ✓）：用户实测本会话
 # **生成物/台账 : 产品 ≈ 17 : 1** · **簿记类提交 56%** ⇒ 注意力结构病 ✗。
-# 判据 = 两条 **ratchet**（只许减不许增 ✓，照 `docs-budget.json` 的先例）：
-# `RATIO_MAX = 17.0` · `BOOKKEEPING_SHARE_MAX = 0.57`。
+# 判据 = **两档**（告警 17:1 / 57% ⇒ 只出声不判红 ✓ · 红线 19:1 / 60% ⇒ 判红 ✗；
+# 照 `scripts/target-hygiene.py` 的先例 —— 理由见 `ci.yml` 同一步的注释 ✓）。
 # ⚠ 要**全历史**（浅克隆 ⇒ rc=3 + 人话，绝不静默判过 ✗）；实测 ~1s ✓。
-run "gates：簿记预算（生成物:产品 ≤ 17 · 簿记提交 ≤ 57%）" "queue-lint" bash -c '
+run "gates：簿记预算（告警 17:1 / 57% · 红线 19:1 / 60%）" "queue-lint" bash -c '
 python3 scripts/check-attention-budget.py --selftest || exit 1
 python3 scripts/check-attention-budget.py || exit 1'
 
