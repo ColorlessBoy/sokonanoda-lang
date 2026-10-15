@@ -194,6 +194,30 @@ if [ -n "$root" ]; then
 fi
 python3 scripts/ux-queue.py --check || exit 1'
 
+# **队列的独立复核**（2026-10-15 · `SUB-orchestrator-attention-structure` 【1】/【2】 ✓）：
+# 病根是**判据的所有权** —— `ux-queue.py` 同时定义队列语义/守卫/证据规则/**复核判据**
+# ⇒ 工具错 = 账错 = 过程错，没有外部检查能发现它 ✗。`check-queue-views.py` 用
+# **第二份实现**（自己折原始事件流）+ **纯 git 事实**（`merge-base --is-ancestor`）
+# 与它**对拍** ⇒ 工具自报的结论只是**被告**，不是判据 ✓。
+# ⚠ 它与上一步同源（都要 `SOKO_QUEUE_ROOT` 指向主 checkout ✓ —— 链接工作树里
+# 那份 `docs/ux-queue-events.jsonl` 是过期副本 ✗）。
+# 实测 1.5s（含 `ux-queue.py --json` 一次）⇒ 与 docs-lint 同档 ✓。
+run "gates：队列独立复核（第二份实现 + 纯 git 事实 + 证据可复算 ratchet）" "queue-lint" bash -c '
+set -u
+root=$(git worktree list --porcelain | sed -n "1s/^worktree //p")
+if [ -n "$root" ]; then export SOKO_QUEUE_ROOT="$root"; fi
+python3 scripts/check-queue-views.py --selftest || exit 1
+python3 scripts/check-queue-views.py || exit 1'
+
+# **簿记预算**（2026-10-15 · 同上的【5】/【5'】 ✓）：用户实测本会话
+# **生成物/台账 : 产品 ≈ 17 : 1** · **簿记类提交 56%** ⇒ 注意力结构病 ✗。
+# 判据 = 两条 **ratchet**（只许减不许增 ✓，照 `docs-budget.json` 的先例）：
+# `RATIO_MAX = 17.0` · `BOOKKEEPING_SHARE_MAX = 0.57`。
+# ⚠ 要**全历史**（浅克隆 ⇒ rc=3 + 人话，绝不静默判过 ✗）；实测 ~1s ✓。
+run "gates：簿记预算（生成物:产品 ≤ 17 · 簿记提交 ≤ 57%）" "queue-lint" bash -c '
+python3 scripts/check-attention-budget.py --selftest || exit 1
+python3 scripts/check-attention-budget.py || exit 1'
+
 # **编译缓存判据自检**（2026-10-15 · 同族的 `LEDGER-SHARD1-REMAINING-GUARDS` ✓）：
 # 它此前**只在 CI 跑** ✗（`scripts/soko` 的 gate 段跑的是 `status --quiet` —— 那是**预算
 # 判红**，**不是**判据通道自检 ✗）⇒ 又一处"本地判据集 ⊂ CI 判据集"（本文件上面那条

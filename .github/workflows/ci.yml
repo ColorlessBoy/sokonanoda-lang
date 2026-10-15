@@ -274,6 +274,39 @@ jobs:
         # 与原先长在 `ledger` shard 1 里的那一条**逐字同源** ✓（搬过来，不是另写一份 ✗）。
         # 纯函数级 ⇒ 无前提（实测 `env -i` 下 rc=0 · 0.17s ✓）。
         run: python3 scripts/compile-cache.py --selftest
+      - name: 队列**独立**复核（第二份实现 + 纯 git 事实 + 证据可复算 ratchet）
+        # 2026-10-15 · `SUB-orchestrator-attention-structure`【1】/【2】 ✓。
+        # 病根 = **判据的所有权**：`ux-queue.py` 同时定义队列语义/守卫/证据规则/**复核判据**
+        # ⇒ 工具错 = 账错 = 过程错，**没有外部检查**能发现它 ✗（它本会话被改 54 次、
+        # 自报 16 轮"独立"复核，而复核者与实现者是同一个进程 ✗）。
+        # `check-queue-views.py` **不 import** 它（`C6` 自证 + `--selftest` 钉着 ✓），
+        # 只读**原始读数**（事件流 + 纯 git `merge-base --is-ancestor`）⇒ 它的自报结论
+        # 是**被告**，不是判据 ✓。判据：C1 原始层卫生 · C2 两份实现折出**同一状态**
+        # （差分测试）· C3 两层不漂移（两个方向都判）· C4 指针祖先性（折过 `repoint` 的
+        # **最终**指针 ✓ —— 拿原始 sha 判会造 100+ 条假红 ✗）· C5 收口证据可独立复算
+        # （**ratchet**：不可复算的条数 ≤ 冻结上限，只许减不许增 ✓）。
+        # 实测 1.5s · 本 job 本来就 `fetch-depth: 0`（C4 要全历史 ✓）。
+        run: |
+          python3 scripts/check-queue-views.py --selftest
+          python3 scripts/check-queue-views.py
+      - name: "簿记预算（生成物/台账 : 产品 ≤ 17 · 簿记类提交 ≤ 57%）"
+        # ⚠ 名字**必须加引号** ✗→✓：裸标量里的 ` : ` 会被 YAML 当成**又一层映射** ⇒
+        # `ci-yml-lint` 当场判红（实测 `.github/workflows/ci.yml:292:27 mapping values are
+        # not allowed here` ✓）—— 这正是那个"严格 loader"存在的理由 ✓。
+        # 2026-10-15 · 同上的【5】/【5'】 ✓。用户实测本会话（2026-10-14 起 246 笔）：
+        # **生成物/台账 76,280 行 : 产品 4,572 行 ≈ 17 : 1** · **队列/CI/基建类提交 137/246
+        # = 56%** · 改动最频繁的前 4 个文件**全是队列簿记**（合计 259 次触达）✗。
+        # ⇒ 病根是**注意力结构**（时间花在维护"关于工作的账"上，而账本身又不断出问题）✗。
+        # 判据 = 两条 **ratchet**（照 `docs-budget.json` 的先例：只许减不许增 ✓）：
+        # `RATIO_MAX = 17.0`（贴着实测 16.98 ⇒ **下一笔 `perf(e2e)` 约 +660 行就顶破** ✓）
+        # · `BOOKKEEPING_SHARE_MAX = 0.57`（实测 56.1%）。
+        # ⚠ **窗口是固定锚点 → HEAD，不是滑窗** ✗：滑窗会在"一笔大产品提交老化出窗"时
+        # 把比值推高 ⇒ **假红** ✗（实测近 50 笔读数是 72.97 : 1 —— 那是**只报不判**的
+        # 近窗读数 ✓，见 `--recent`）。锚点往前推 = 批次边界上的手改（评审可见 ✓）。
+        # ⚠ 浅克隆 ⇒ **rc=3 + 人话**（绝不静默判过 ✗）；本 job 有 `fetch-depth: 0` ✓。
+        run: |
+          python3 scripts/check-attention-budget.py --selftest
+          python3 scripts/check-attention-budget.py
 
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
