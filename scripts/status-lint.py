@@ -29,12 +29,39 @@ from pathlib import Path
 # 实际后果是"逼着删历史"。240 给一轮留出余量；`MAX_GROWTH`（单次净增 ≤60）**不动** ✓
 # —— 防"一轮灌几十行"的那条判据仍然在岗 ✓。**后续统一 refactor 时清理**（把旧轮
 # 真正搬进归档目录 `docs/archive/`，那里不受冻结表管 ✓，再把上限调回 200）。
-MAX_TOTAL = 240
+#
+# ⭐⭐ **2026-10-16：这条上限不再写在这里**（用户 2026-10-15【②】的**横向**落地）——
+# 上面那句"再把上限调回 200"就是本条 ratchet 的**收敛目标**（floor = 200 ✓），
+# 而 240 = **落地时的种子**（`tighten()` 只看上一轮、**不看实测** ⇒ 单调不增、永不高于种子 ✓）。
+# 真正的 caps 在 `docs/threshold-ratchet.json`（**tracked**），由
+# `python3 scripts/check-threshold-ratchet.py --open-round` 每轮降一档（**−10 行/轮**）✓。
+# ⚠ 状态缺失/坏 ⇒ 入口闸门**响亮退出（exit 2）**，绝不静默退回种子判过 ✗（与 ② 同口径）。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import threshold_ratchet  # noqa: E402  （同目录库：登记表 + `tighten()` 的唯一出处 ✓）
+
+_RATCHET_CAPS, _RATCHET_ERROR = threshold_ratchet.caps_or_error()
+MAX_TOTAL = _RATCHET_CAPS["status_total_lines"]   # ① 总行数（种子 240；收敛目标 200）
 MAX_SECTION = 30
 MAX_SNAPSHOT = 40
 MAX_GROWTH = 60
 BANNED = ("在跑", "进行中", "未变", "判据不变", "待 CI", "等 CI", "⏳")
 SNAPSHOT_TITLE = "当前快照"
+
+
+def _ratchet_gate() -> int | None:
+    """ratchet 状态坏 ⇒ **响亮**（exit 2）。**绝不静默退回种子判过** ✗（照 ② 的口径 ✓）。"""
+    if _RATCHET_ERROR:
+        print(f"error: {_RATCHET_ERROR}", file=sys.stderr)
+        return 2
+    return None
+
+
+def reading(lines=None, path: str = "STATUS.md") -> dict:
+    """① 的**读数**（**一处定义**：`main()` 的判据与 `check-threshold-ratchet.py --measure`
+    读的是同一个数 ⇒ 不抄第二份口径 ✗）。`lines` 已读好就直接喂（省一次读盘 ✓）。"""
+    if lines is None:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+    return {"status_total_lines": len(lines)}
 
 
 def sections(lines):
@@ -149,6 +176,10 @@ def selftest() -> int:
 
 def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    # ⭐ **ratchet 状态闸门在最前**（状态坏 ⇒ 什么模式都不假装判过 ✓）
+    _gate = _ratchet_gate()
+    if _gate is not None:
+        return _gate
     # ⚠ **不许静默回落** ✗✓（E00 切片 B 实测 ✓）：这几个脚本原来用 `"--x" in argv`
     # **子串**判模式 ⇒ **错拼的参数被静默忽略、回落成全量检查并 exit 0** ✗ ⇒
     # 表现是「**自检没跑，退出码却是绿的**」✗（我上次"它没有自检"的错结论就是这么来的 ✓）。
@@ -164,6 +195,7 @@ def main(argv=None) -> int:
         print("STATUS.md 不存在 ✗", file=sys.stderr)
         return 2
     lines = path.read_text(encoding="utf-8").splitlines()
+    n_total = reading(lines)["status_total_lines"]      # ① 的读数**一处定义** ✓
     g = growth("STATUS.md")
     bad = judge(lines, g)
 
@@ -172,7 +204,7 @@ def main(argv=None) -> int:
         for b in bad[:20]:
             print(f"  - {b}", file=sys.stderr)
         return 1
-    print(f"status-lint ✓ 总行数 {len(lines)} ≤ {MAX_TOTAL} ✓ · 禁词 0 ✓ · "
+    print(f"status-lint ✓ 总行数 {n_total} ≤ {MAX_TOTAL} ✓ · 禁词 0 ✓ · "
           f"段数 {len(sections(lines))} ✓ · 净增 {g if g is not None else '未测'} ≤ {MAX_GROWTH} ✓")
     return 0
 

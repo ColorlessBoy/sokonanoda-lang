@@ -89,8 +89,23 @@ MAX_RCGU_O_WARN = 250_000              # deps/*.rcgu.o 个数（病态值 966,85
 MAX_RCGU_O = 600_000
 MAX_TARGET_BYTES_WARN = 40 * 1024**3   # target/ 总量 **40 GB ⇒ 报警**（用户指定 ✓）
 MAX_TARGET_BYTES = 100 * 1024**3       # 100 GB ⇒ 判红
-MAX_INCREMENTAL_WARN = 20 * 1024**3    # target/debug/incremental/（病态值 82 GB）
-MAX_INCREMENTAL_BYTES = 60 * 1024**3
+# ⭐⭐ **2026-10-16：incremental 的两档不再写在这里**（用户 2026-10-15【②】的**横向**落地）——
+# 改前实测：`MAX_INCREMENTAL_WARN = 20 GiB` 而实测 **3.50 GiB**（5.7×）· `MAX_INCREMENTAL_BYTES`
+# = 60 GiB（17×）⇒ 两档都贴在现状上方 ⇒ **永远绿 ⇒ 装饰** ✗（用户 2026-09-26：「不许靠抬上限
+# 达标 —— 上限方向只能是收紧」✗）。真正的 caps 在 `docs/threshold-ratchet.json`（**tracked**），
+# 由 `python3 scripts/check-threshold-ratchet.py --open-round` 每轮降一档：
+#   · 告警线 种子 20 GiB · −2 GiB/轮 · 收敛目标 6 GiB；
+#   · 红线   种子 60 GiB · −6 GiB/轮 · 收敛目标 18 GiB（**告警线 < 红线**是状态不变量 ✓）。
+# ⚠ 状态缺失/坏 ⇒ 入口闸门**响亮退出（exit 3）**，绝不静默退回种子判过 ✗（与 ② 同口径）。
+# ⚠ 上面那三条（`MAX_RCGU_O*` / `MAX_TARGET_BYTES*`）**有意不动**：实测 230,813（+8%）与
+# 38.5 GB（+4%）⇒ **已经是活的阈值**（照 ② 学的先例：`recompile-budget.json` `max_by_calls=1`
+# 而实测 1 ✓）⇒ 不是装饰性的，见 `scripts/threshold_ratchet.py` 的 `EXCLUDED` 登记 ✓。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import threshold_ratchet  # noqa: E402  （同目录库：登记表 + `tighten()` 的唯一出处 ✓）
+
+_RATCHET_CAPS, _RATCHET_ERROR = threshold_ratchet.caps_or_error()
+MAX_INCREMENTAL_WARN = _RATCHET_CAPS["target_incremental_warn_bytes"]   # 种子 20 GiB（实测 3.50）
+MAX_INCREMENTAL_BYTES = _RATCHET_CAPS["target_incremental_max_bytes"]   # 种子 60 GiB
 # 同级第二套 target（例如 `fuzz/target`）—— **不是**红的：`fuzz/` 有自己的
 # `Cargo.toml`、**不在 workspace members 里** ⇒ 它自带一套 target 是**正常**的 ✓。
 # 但它是**同一块盘上的**可回收空间 ⇒ 大到值得看一眼时报一声 ✓（小的时候闭嘴，
@@ -664,6 +679,12 @@ def main() -> int:
     ap.add_argument("--reclaim", action="store_true", help="回收：定向删除 deps/ + incremental/")
     ap.add_argument("--selftest", action="store_true", help="离线判据通道自检")
     a = ap.parse_args()
+
+    # ⭐ **ratchet 状态闸门在最前**（状态坏 ⇒ 什么模式都不假装判过 ✓）—— 与既有
+    # `EXIT_USAGE=3` 同档：这是**环境错**，不是"体积判红" ✗。
+    if _RATCHET_ERROR:
+        print(f"error: {_RATCHET_ERROR}", file=sys.stderr)
+        return EXIT_USAGE
 
     if a.selftest:
         return selftest()

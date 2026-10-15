@@ -55,13 +55,37 @@ from pathlib import Path
 # 结果：docs-lint 在 origin/main 上长期判红 ⇒ CI 连续红 ⇒ 有人用 SOKO_SKIP_HOOK=1 绕过，
 # 门禁失去意义。放宽到 10 MB 让判据重新只拦"真的文档爆炸"（≥10 MB 才是量级异常）。
 # 其余判据（单文件 / 入口 ≤800 行 / 设计文档冻结 / 归档索引）**一律不动** —— 那几条才在干活。
-MAX_LIVE_BYTES = 10_000_000  # ① 活文档总量（本轮实测 3.06 MB；减肥前 8.84 MB）
+#
+# ⭐⭐ **2026-10-16：①②⑥ 的三条上限不再写在这里**（用户 2026-10-15【②】的**横向**落地）——
+# 上面那段"放宽到 10 MB"的理由本身没错，错的是**解法**：上限贴在实测上方 ⇒ **永远绿 ⇒ 装饰** ✗
+# （用户 2026-09-26 拍过板：「**不许靠抬上限达标 —— 上限方向只能是收紧**」✗）。
+# ⇒ 真正的 caps 在 **`docs/threshold-ratchet.json`**（**tracked** ⇒ 逐轮进 git），由
+# `python3 scripts/check-threshold-ratchet.py --open-round` **每轮降一档**（`tighten()` 只看
+# 上一轮、**不看实测** ⇒ 单调不增、**永不高于种子** ✓）；本文件只**消费**它（下面那两行）✓。
+# ⚠ **状态缺失/坏 ⇒ 入口闸门响亮退出（exit 2）**，**绝不静默退回种子判过** ✗（与 ② 同口径）——
+# 见 `_ratchet_gate()`（`main()` 与 `--selftest` 的第一行都调它 ✓）。
+# ⚠ 消费点是**接缝**（A 层产出 caps、B 层消费）：`scripts/check-threshold-ratchet.py` 有
+# **A∖B 对账**（本文件里找不到 `_RATCHET_CAPS["docs_live_bytes"]` 就判红 ✗）⇒ 谁把这两行改回
+# 常量，谁就当场被咬住 ✓（照 `audit-wire-fields.py` 的先例）。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import threshold_ratchet  # noqa: E402  （同目录库：登记表 + `tighten()` 的唯一出处 ✓）
+
+_RATCHET_CAPS, _RATCHET_ERROR = threshold_ratchet.caps_or_error()
+MAX_LIVE_BYTES = _RATCHET_CAPS["docs_live_bytes"]  # ① 活文档总量（种子 10 MB；落地实测 6.41 MB）
 MAX_FILE_LINES = 2000  # ② 任何单个活文档
 MAX_ENTRY_LINES = 800  # ③ 接手必读的入口文件
 MAX_NEW_DESIGN_LINES = 150  # ④ docs/design/** 新增文件
 MAX_NEW_LINES_DEFAULT = 400  # ④ 其它目录新增文件
 MIN_FROZEN = 20  # ④ 冻结下限（空/极短文件也允许 20 行，免得一行都不能加）
-MAX_ARCHIVE_BYTES = 2_500_000  # ⑥ 归档总量（本轮实测 2.12 MB）
+MAX_ARCHIVE_BYTES = _RATCHET_CAPS["docs_archive_bytes"]  # ⑥ 归档总量（种子 2.5 MB；实测 0.95 MB）
+
+
+def _ratchet_gate() -> int | None:
+    """ratchet 状态坏 ⇒ **响亮**（exit 2）。**绝不静默退回种子判过** ✗（照 ② 的口径 ✓）。"""
+    if _RATCHET_ERROR:
+        print(f"error: {_RATCHET_ERROR}", file=sys.stderr)
+        return 2
+    return None
 
 BUDGET = Path("scripts/docs-budget.json")
 DOC_REFS = Path("scripts/doc-refs-baseline.json")
@@ -649,6 +673,10 @@ def selftest() -> int:
     推送一起拦下 ⇒ 真阻塞 ✓）。
     """
     global _SANDBOX, MAX_LIVE_BYTES, _DOC_REFS_PATHS_OVERRIDE, _SRC_LINES_OVERRIDE
+    # ⚠ **自检也要过 ratchet 闸门**（状态坏 ⇒ 自检**不许**报绿：它量的正是那批 caps ✓）
+    _gate = _ratchet_gate()
+    if _gate is not None:
+        return _gate
     sandbox = Path(tempfile.mkdtemp(prefix="docs-lint-selftest-"))
     # 既有文件先复制进沙箱：判据读到的就是"真仓库这批文档被改后"的样子（逐字节 ✓）。
     for rel in SELFTEST_MUTATED_FILES:
@@ -1116,6 +1144,10 @@ def freeze_src_lines(reason: str = "") -> int:
 
 
 def main(argv: list[str]) -> int:
+    # ⭐ **ratchet 状态闸门在最前**（连 `--help` 都不放过 ⇒ 状态坏时**什么模式都不假装判过** ✓）
+    _gate = _ratchet_gate()
+    if _gate is not None:
+        return _gate
     # ⚠ **不许静默回落** ✗✓（E00 切片 B 实测 ✓）：这几个脚本原来用 `"--x" in argv`
     # **子串**判模式 ⇒ **错拼的参数被静默忽略、回落成全量检查并 exit 0** ✗ ⇒
     # 表现是「**自检没跑，退出码却是绿的**」✗（我上次"它没有自检"的错结论就是这么来的 ✓）。

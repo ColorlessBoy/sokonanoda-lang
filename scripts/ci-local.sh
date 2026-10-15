@@ -227,6 +227,14 @@ run "gates：簿记预算（告警 17:1 / 57% · 红线 19:1 / 60%）" "queue-li
 python3 scripts/check-attention-budget.py --selftest || exit 1
 python3 scripts/check-attention-budget.py || exit 1'
 
+# **横向阈值 ratchet**（2026-10-16 · 用户 2026-10-15【②】的**横向**落地）：上面那条是**簿记**
+# 的两档；这条是**横向**那批装饰性上限（登记表 = 唯一出处：`scripts/threshold_ratchet.py` ✓）。
+# 判：caps 单调不增 + 永不高于种子 · **接缝**（7/7 消费点真的读 ratchet ✗ 改回常量当场红）·
+# 开轮纪律（基点后 > 40 笔没开轮 ⇒ 判红）✓。⚠ 实测 ~1.3s（**不跑** 4 个消费者 ⇒ 不需要 target/ ✓）。
+run "gates：横向阈值 ratchet（状态 + 接缝 + 开轮纪律）" "queue-lint" bash -c '
+python3 scripts/check-threshold-ratchet.py --selftest || exit 1
+python3 scripts/check-threshold-ratchet.py || exit 1'
+
 # **编译缓存判据自检**（2026-10-15 · 同族的 `LEDGER-SHARD1-REMAINING-GUARDS` ✓）：
 # 它此前**只在 CI 跑** ✗（`scripts/soko` 的 gate 段跑的是 `status --quiet` —— 那是**预算
 # 判红**，**不是**判据通道自检 ✗）⇒ 又一处"本地判据集 ⊂ CI 判据集"（本文件上面那条

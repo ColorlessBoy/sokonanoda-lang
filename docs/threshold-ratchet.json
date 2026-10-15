@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "round": 0,
+  "head": "2de19e7298c0c3000091c23c85c3b9f9dfec0759",
+  "at": "2026-10-15T17:38:25+00:00",
+  "caps": {
+    "docs_live_bytes": 10000000,
+    "docs_archive_bytes": 2500000,
+    "status_total_lines": 240,
+    "site_text_bytes": 122880,
+    "site_hero_bytes": 409600,
+    "target_incremental_warn_bytes": 21474836480,
+    "target_incremental_max_bytes": 64424509440
+  },
+  "history": [
+    {
+      "round": 0,
+      "head": "2de19e7298c0c3000091c23c85c3b9f9dfec0759",
+      "at": "2026-10-15T17:38:25+00:00",
+      "caps": {
+        "docs_live_bytes": 10000000,
+        "docs_archive_bytes": 2500000,
+        "status_total_lines": 240,
+        "site_text_bytes": 122880,
+        "site_hero_bytes": 409600,
+        "target_incremental_warn_bytes": 21474836480,
+        "target_incremental_max_bytes": 64424509440
+      },
+      "reading": {
+        "docs_live_bytes": 6412893,
+        "docs_archive_bytes": 949721,
+        "status_total_lines": 85,
+        "site_text_bytes": 60823,
+        "site_hero_bytes": 221763,
+        "target_incremental_warn_bytes": 3756781568,
+        "target_incremental_max_bytes": 3756781568
+      },
+      "reading_missing": null
+    }
+  ]
+}

@@ -53,15 +53,52 @@ DATA = os.path.join(SITE, "data", "site.json")
 PAGES = ["index.html"]
 
 # 体积预算（原始字节，不含字体）。它是"再加一个页面/一个库之前，先想想"的闸门。
-SIZE_BUDGET = 120 * 1024
+#
+# ⭐⭐ **2026-10-16：两条预算不再写在这里**（用户 2026-10-15【②】的**横向**落地）——
+# 上限贴在实测上方 ⇒ **永远绿 ⇒ 装饰** ✗（用户 2026-09-26：「不许靠抬上限达标 —— 上限方向
+# 只能是收紧」✗）。真正的 caps 在 `docs/threshold-ratchet.json`（**tracked**），由
+# `python3 scripts/check-threshold-ratchet.py --open-round` 每轮降一档（−10%/轮）✓：
+#   · `site_text_bytes` 种子 120 KB（落地实测 **60,823 B**）· 收敛目标 75 KB；
+#   · `site_hero_bytes` 种子 400 KB（落地实测两版 **216+209 KB**，取大 221,763 B）· 目标 240 KB。
+# ⚠ 状态缺失/坏 ⇒ 入口闸门**响亮退出（exit 3）**，绝不静默退回种子判过 ✗（与 ② 同口径）。
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import threshold_ratchet  # noqa: E402  （同目录库：登记表 + `tighten()` 的唯一出处 ✓）
+
+_RATCHET_CAPS, _RATCHET_ERROR = threshold_ratchet.caps_or_error()
+SIZE_BUDGET = _RATCHET_CAPS["site_text_bytes"]     # html+css+js 合计（种子 120 KB）
 # 头图是**真截图**（不是装饰位图），所以有位图预算：一张、有上限。
 HERO = "assets/hero-vscode.png"
 # 两版配色（用户 2026-10-09）：站点跟随系统配色，暗色页上贴亮色截图会刺眼 ⇒ 头图也两版。
 # **两张必须是同一裁切几何**（同一靶子、同一 VSIX，只换 workbench.colorTheme）——
 # 尺寸不一致就说明其中一张是别的什么截的，判红（见 check_assets）。
 HERO_DARK = "assets/hero-vscode-dark.png"
-HERO_BUDGET = 400 * 1024
+HERO_BUDGET = _RATCHET_CAPS["site_hero_bytes"]    # 每版头图（种子 400 KB）
 BITMAP_EXT = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".bmp", ".ico")
+
+
+def _ratchet_gate() -> int | None:
+    """ratchet 状态坏 ⇒ **响亮**（exit 3，与"找不到 index.html"同一档）。绝不静默判过 ✗。"""
+    if _RATCHET_ERROR:
+        print(f"site: error: {_RATCHET_ERROR}", file=sys.stderr)
+        return 3
+    return None
+
+
+def size_readings(files: list[str]) -> dict:
+    """体积**读数**（**一处定义**：`check_assets` 的判据与
+    `check-threshold-ratchet.py --measure` 读的是同一段代码 ⇒ 不抄第二份口径 ✗）。
+
+    头图那条取**两版里大的**（判据是"**每版** ≤ 上限" ⇒ 绑定的那版才是读数 ✓）。
+    """
+    total = sum(os.path.getsize(f) for f in files if f.endswith((".html", ".css", ".js")))
+    hero = max(os.path.getsize(os.path.join(SITE, HERO)),
+               os.path.getsize(os.path.join(SITE, HERO_DARK)))
+    return {"site_text_bytes": total, "site_hero_bytes": hero}
+
+
+def reading(files: list[str] | None = None) -> dict:
+    """读数入口（给 ratchet 的 `--measure` 用；不传 `files` ⇒ 自己走一遍 `walk_site()` ✓）。"""
+    return size_readings(walk_site() if files is None else files)
 
 # 写死的版本号：拒 IP（127.0.0.1），抓 `v0.62.0` 与 `0.62.0`。
 VERSION_LITERAL = re.compile(r"(?<![\d.])0\.\d+\.\d+(?![\d.])")
@@ -446,7 +483,7 @@ def check_assets(files: list[str], pages: dict[str, PageParser]) -> str:
     dark_kb = sizes[HERO_DARK][0] // 1024
     detail = (f"头图两版 {light_kb}+{dark_kb} KB（各 ≤{HERO_BUDGET // 1024} KB，{width}×{height}，"
               f"尺寸一致）")
-    total = sum(os.path.getsize(f) for f in files if f.endswith((".html", ".css", ".js")))
+    total = size_readings(files)["site_text_bytes"]   # 读数**一处定义**（与 ratchet --measure 同源 ✓）
     if total > SIZE_BUDGET:
         raise Failure(f"html+css+js 共 {total} 字节，超过预算 {SIZE_BUDGET}")
     return f"{detail}；html+css+js {total} 字节（预算 {SIZE_BUDGET}）"
@@ -951,7 +988,27 @@ def main(argv: list[str] | None = None) -> int:
     parser_args = argparse.ArgumentParser(description="站点总验收（单页站点）")
     parser_args.add_argument("--browser", action="store_true", help="额外跑真 Chrome 渲染检查")
     parser_args.add_argument("--json", dest="as_json", action="store_true", help="机器可读输出")
+    parser_args.add_argument("--only", default="", metavar="NAMES",
+                             help="只跑这几项（逗号分隔；**未知名字 ⇒ rc=2**，不许静默回落全量 ✗）"
+                                  "—— 给「单点复现 / 咬住证明」用（例：`--only assets`）")
     args = parser_args.parse_args(argv)
+
+    # ⭐ **ratchet 状态闸门在最前**（状态坏 ⇒ 什么模式都不假装判过 ✓）
+    _gate = _ratchet_gate()
+    if _gate is not None:
+        return _gate
+
+    want = [n.strip() for n in args.only.split(",") if n.strip()]
+    known = [name for name, _fn in CHECKS] + ["render", "layout"]
+    unknown_only = [n for n in want if n not in known]
+    if unknown_only:
+        # 照本仓纪律：**不许静默回落**（错拼的名字 ⇒ 拒绝执行，而不是"当没写"✗）
+        print(f"site: ✗ 未知的 `--only` 项 {unknown_only}（可选项：{known}）⇒ 拒绝执行",
+              file=sys.stderr)
+        return 2
+    checks = [(n, fn) for n, fn in CHECKS if not want or n in want]
+    browser_checks = [(n, fn) for n, fn in (("render", check_render), ("layout", check_layout))
+                      if args.browser and (not want or n in want)]
 
     if not os.path.exists(INDEX):
         print(f"site: 找不到 {rel(INDEX)}", file=sys.stderr)
@@ -966,20 +1023,19 @@ def main(argv: list[str] | None = None) -> int:
 
     results: list[dict] = []
     failed = False
-    for name, fn in CHECKS:
+    for name, fn in checks:
         try:
             results.append({"check": name, "ok": True, "detail": fn(files, pages)})
         except Failure as error:
             results.append({"check": name, "ok": False, "detail": str(error)})
             failed = True
 
-    if args.browser:
-        for name, fn in (("render", check_render), ("layout", check_layout)):
-            try:
-                results.append({"check": name, "ok": True, "detail": fn()})
-            except Failure as error:
-                results.append({"check": name, "ok": False, "detail": str(error)})
-                failed = True
+    for name, fn in browser_checks:
+        try:
+            results.append({"check": name, "ok": True, "detail": fn()})
+        except Failure as error:
+            results.append({"check": name, "ok": False, "detail": str(error)})
+            failed = True
 
     if args.as_json:
         print(json.dumps({"ok": not failed, "checks": results}, ensure_ascii=False, indent=2))
