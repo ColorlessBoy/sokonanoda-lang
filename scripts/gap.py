@@ -11,7 +11,8 @@
   python3 scripts/gap.py selftest             # 自检 judge() 的判定规则（不跑判卷，秒级）
   python3 scripts/gap.py close <id> --version 0.59.0 [--note "..."]   # 写 fixed_in（重跑 repro 确认已绿）
 
-退出码：0 = 正常 / 1 = 有偏差（`check`）或用法错误 / 2 = 台账读不出来。
+退出码：0 = 正常 / 1 = 有偏差（`check`）或用法错误 / 2 = 台账读不出来
+**或环境变量值域错**（**不假装判过** ✗；见 `_guard_repro_timeout_env()`）。
 零依赖（python3 标准库）；repro 脚本的约定见 `docs/gaps/README.md`
 （exit 0 = 缺口仍在且与台账一致；exit 1 = 行为变了）。
 
@@ -61,7 +62,75 @@ ROOT = Path(__file__).resolve().parent.parent
 # （旁证：CI 的 `test` job 跑 19 分 25 秒 ✓，而本地同一条 `cargo test --workspace` 只要 161 秒 ✓
 # ⇒ CI 约慢 **7 倍** ✓）。⇒ 旧预算 120s 是**按快机器定的** ✗ ⇒ CI 必红 ✓。
 # 调大到 300s ✓：**真挂住仍会超时判红** ✓（不掩盖真回归 ✓），只是不再因"机器慢"而红 ✓。
-REPRO_TIMEOUT_S = int(os.environ.get("SOKO_GAP_REPRO_TIMEOUT", "300"))
+#
+# **2026-10-16（`GAP-REPRO-TIMEOUT-ENV-NO-GUARD`：模块级裸 `int()` = 崩溃/假绿两形 ⇒ 已堵）**：
+#   旧写法就是下面这一行的 `int(os.environ.get(...))` —— 它**两向都错** ✗：
+#     ① `SOKO_GAP_REPRO_TIMEOUT=abc` ⇒ **导入期** `ValueError` ⇒ **Traceback + rc=1**
+#        （**崩溃而不是判定** ✗；契约是"环境错 = rc=2 + 人话"，见 `docs/gaps/README.md`）；
+#     ② `-5` / `0` ⇒ `int()` **照收**，而它被原样交给 `Popen.communicate(timeout=…)` ⇒
+#        **每一条** `.sh` 复现件都**立刻** `TimeoutExpired`（实测 0.00s）⇒ 全部落进
+#        `entry_verdict()` 的「环境慢 ⇒ **响亮跳过**」档 ⇒ `check` 照旧 **rc=0**
+#        （`--strict` 才判红）⇒ **一条都没被验证**却看不见红 ✗ = **假绿**。
+#   ⇒ 修法照 `scripts/ux-queue.py` 的 `_guard_slots_env()`（本仓已有的"环境变量值域闸门"范式 ✓），
+#     且**接缝相同**（守的是**导入期求值的常量**）⇒ 必须是**两半**：
+#       ① 导入期只能取**不抛**的默认值（保证活到 `main()` —— 否则闸门永远够不着 ✗）；
+#       ② 判定交给 `main()` 里的 `_guard_repro_timeout_env()`（**rc=2 + 人话 + 正解** ✓）。
+#     两半**共用同一个解析函数** `_parse_repro_timeout_env()`（**一处解析、一处判定** ⇒ 结构上不会漂 ✓）。
+REPRO_TIMEOUT_DEFAULT = 300
+
+
+def _parse_repro_timeout_env(raw: str | None) -> tuple[int, str]:
+    """`SOKO_GAP_REPRO_TIMEOUT` 的**唯一解析处** ⇒ `(值, 人话)`；`人话 == ""` 即合法。
+
+    ⚠ **不抛异常**：模块级导入必须活到 `main()`（否则闸门够不着 —— 那正是本缺口 ✗）。
+    不设 / 空串 ⇒ `REPRO_TIMEOUT_DEFAULT`；非法（非整数 / <1）⇒ 也返回默认 + 人话
+    （这个默认值只服务"导入期不炸"，真跑 CLI 时 `_guard_repro_timeout_env()` 先判红 ⇒ 到不了使用点）。
+    ⚠ 合法值**照旧走 `int()`** ⇒ 以前能用的写法（含 `" 300"` 这类前后空格、`"+300"`）**逐字节不变** ✓
+    （"不许放宽"的另一面：也不许收紧到把旧的正整数写法判红 ✗）。
+    """
+    if not (raw or "").strip():
+        return REPRO_TIMEOUT_DEFAULT, ""
+    try:
+        secs = int(raw)
+    except ValueError:
+        return REPRO_TIMEOUT_DEFAULT, (
+            f"`SOKO_GAP_REPRO_TIMEOUT` **不是整数**（原值 `{raw}`）⇒ 它要的是"
+            f"**单个复现件的秒数上限**（正整数，默认 {REPRO_TIMEOUT_DEFAULT}）✗。"
+            f"正解：`SOKO_GAP_REPRO_TIMEOUT=300`，"
+            f"或 `unset SOKO_GAP_REPRO_TIMEOUT` 回到默认 {REPRO_TIMEOUT_DEFAULT}")
+    if secs < 1:
+        return REPRO_TIMEOUT_DEFAULT, (
+            f"`SOKO_GAP_REPRO_TIMEOUT` 必须是**正整数**（原值 `{raw}` = {secs}）⇒ 它被原样交给"
+            f"`Popen.communicate(timeout=…)`，而**负超时/零超时** = 子进程刚 spawn 就判"
+            f"`TimeoutExpired` ⇒ **每一条** `.sh` 复现件都落进「环境慢 ⇒ 响亮跳过」档 ⇒ "
+            f"`check` 照旧 **rc=0** ⇒ **一条都没被验证**却看不见红 ✗（假绿）。"
+            f"它没有任何「关掉超时」的文档语义 ⇒ 值域是正整数。"
+            f"正解：`SOKO_GAP_REPRO_TIMEOUT=300`，"
+            f"或 `unset SOKO_GAP_REPRO_TIMEOUT` 回到默认 {REPRO_TIMEOUT_DEFAULT}")
+    return secs, ""
+
+
+# 导入期那**一次**解析的产物：值给 `REPRO_TIMEOUT_S`、人话给闸门（**一处解析、一处判定** ✓）
+REPRO_TIMEOUT_S, _REPRO_TIMEOUT_ENV_ERROR = _parse_repro_timeout_env(
+    os.environ.get("SOKO_GAP_REPRO_TIMEOUT"))
+
+
+def _guard_repro_timeout_env() -> int | None:
+    """`SOKO_GAP_REPRO_TIMEOUT` **取值域错** ⇒ rc=2 + 人话 + 给正解（别丢栈 ✗）。
+
+    ⚠ 与 `scripts/ux-queue.py` 的 `_guard_slots_env()` **同一族**（环境错 = rc=2），
+    接缝也相同：守的是**导入期求值的常量** ⇒ 判定用导入期那次解析的产物
+    `_REPRO_TIMEOUT_ENV_ERROR`，**不再解析一遍**（同一个进程里 `os.environ` 不会变；
+    一次解析 ⇒ 不可能出现"常量与判定各说各话" ✗）。
+    实测的四种错值都走这一关：`abc` / `3.5`（旧：栈 + rc=1 ✗）· `-5` / `0`（旧：rc=0 静默 ✗）。
+    返回 `None` = 合法（继续派发）；否则就是**该直接返回的退出码**。
+    """
+    if _REPRO_TIMEOUT_ENV_ERROR:
+        print(f"error: {_REPRO_TIMEOUT_ENV_ERROR}", file=sys.stderr)
+        return 2
+    return None
+
+
 LEDGER = ROOT / "docs" / "gaps" / "ledger.jsonl"
 SEVERITY_ORDER = {"blocker": 0, "painful": 1, "nice": 2}
 OPEN_STATUSES = {"open", "workaround", "wo-filed"}
@@ -849,18 +918,108 @@ def cmd_selftest(args: argparse.Namespace) -> int:
             bad += 1
             print(f"FAIL {desc}：wo_prompt 没给出期望的位置线索（{note or '内容不符'}）",
                   file=sys.stderr)
-    total = len(cases) + len(verdict_cases) + len(prompt_cases) + len(guard_cases)
+    # **`SOKO_GAP_REPRO_TIMEOUT` 的值域闸门**（2026-10-16 · `GAP-REPRO-TIMEOUT-ENV-NO-GUARD`）：
+    # 旧写法是**模块级裸 `int()`** ⇒ `abc` 丢栈（rc=1）、`-5`/`0` 静默收下（rc=0 ⇒ 全部复现件
+    # 立刻超时 ⇒ 全落"响亮跳过"档 ⇒ 假绿）✗。**两向都钉**：
+    #   · 错值 ⇒ `人话` 必须非空、**点名变量**、**给正解**，且**不抛**（`(值, 人话)` 二元组 ✓）；
+    #   · 合法值 ⇒ `人话` 必须为空且值**逐字节不变**（`" 300"` / `"+300"` 这些旧写法不许被收紧 ✗）。
+    timeout_env_cases = [
+        # (说明, raw, 期望值, 期望人话里的关键字（"" = 必须无话）)
+        ("不设 ⇒ 默认", None, REPRO_TIMEOUT_DEFAULT, ""),
+        ("空串 ⇒ 默认", "", REPRO_TIMEOUT_DEFAULT, ""),
+        ("纯空白 ⇒ 默认", "   ", REPRO_TIMEOUT_DEFAULT, ""),
+        ("**`abc` ⇒ 人话**（旧：栈 + rc=1 ✗）", "abc", REPRO_TIMEOUT_DEFAULT, "不是整数"),
+        ("**`3.5` ⇒ 人话**（旧：栈 + rc=1 ✗）", "3.5", REPRO_TIMEOUT_DEFAULT, "不是整数"),
+        ("**`-5` ⇒ 人话**（旧：rc=0 静默 ✗）", "-5", REPRO_TIMEOUT_DEFAULT, "正整数"),
+        ("**`0` ⇒ 人话**（旧：rc=0 静默 ✗）", "0", REPRO_TIMEOUT_DEFAULT, "正整数"),
+        ("`300` ⇒ 照旧", "300", 300, ""),
+        ("`600` ⇒ 照旧", "600", 600, ""),
+        ("**`\" 300\"`（前后空格）⇒ 照旧**（不许收紧 ✗）", " 300", 300, ""),
+        ("**`\"+300\"` ⇒ 照旧**（不许收紧 ✗）", "+300", 300, ""),
+    ]
+    for desc, raw, want_secs, hint in timeout_env_cases:
+        try:
+            got_secs, got_why = _parse_repro_timeout_env(raw)
+        except Exception as exc:                      # noqa: BLE001 - 夹具要抓住"丢栈"本身
+            bad += 1
+            print(f"FAIL {desc}：`_parse_repro_timeout_env` **抛了**（{type(exc).__name__}: {exc}）"
+                  f"—— 它必须不抛（导入期要活到 `main()`）", file=sys.stderr)
+            continue
+        if got_secs != want_secs:
+            bad += 1
+            print(f"FAIL {desc}：值 -> {got_secs}，期望 {want_secs}", file=sys.stderr)
+        elif bool(got_why) != bool(hint):
+            bad += 1
+            print(f"FAIL {desc}：人话的有无不对（{'有' if got_why else '无'} ⇒ {got_why[:60]!r}）",
+                  file=sys.stderr)
+        elif hint and hint not in got_why:
+            bad += 1
+            print(f"FAIL {desc}：人话没点名 {hint!r}（印出来的是：{got_why[:80]}）", file=sys.stderr)
+        elif hint and ("unset SOKO_GAP_REPRO_TIMEOUT" not in got_why):
+            bad += 1
+            print(f"FAIL {desc}：人话没给**正解**（`unset SOKO_GAP_REPRO_TIMEOUT`）"
+                  f"（印出来的是：{got_why[:80]}）", file=sys.stderr)
+    # ⚠ **闸门的端到端**也要钉（`GAP-REPRO-TIMEOUT-ENV-NO-GUARD` 的判据就是这个）：
+    # **真起子进程 + 真 CLI**（不是 monkeypatch 模块全局 —— 那测的是"我改的那个变量"，
+    # 不是真路径 ✗；本仓自己的口径："跑真程序 + 真协议，不是把正则抄一遍" ✓）。
+    # ⚠ **递归闸**：子进程里不再起子进程（否则 5^N 爆炸 ✗）—— 子进程只跑"解析 + 闸门"。
+    if not os.environ.get("SOKO_GAP_SELFTEST_CHILD"):
+        for desc, raw, want_rc, want_tail in (
+            ("`abc` ⇒ rc=2 + 人话（旧：栈 + rc=1 ✗）", "abc", 2, "不是整数"),
+            ("`3.5` ⇒ rc=2 + 人话（旧：栈 + rc=1 ✗）", "3.5", 2, "不是整数"),
+            ("`-5` ⇒ rc=2 + 人话（旧：rc=0 静默 ✗）", "-5", 2, "正整数"),
+            ("`0` ⇒ rc=2 + 人话（旧：rc=0 静默 ✗）", "0", 2, "正整数"),
+            ("**正对照** `300` ⇒ rc=0（合法值照旧）", "300", 0, ""),
+            ("**正对照** `600` ⇒ rc=0（合法值照旧）", "600", 0, ""),
+        ):
+            env = dict(os.environ)
+            env["SOKO_GAP_REPRO_TIMEOUT"] = raw
+            env["SOKO_GAP_SELFTEST_CHILD"] = "1"
+            try:
+                proc = subprocess.run(
+                    [sys.executable, str(ROOT / "scripts" / "gap.py"), "selftest"],
+                    cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+                    errors="replace", env=env, timeout=120,
+                )
+            except (OSError, subprocess.SubprocessError) as exc:
+                bad += 1
+                print(f"FAIL 端到端 {desc}：子进程起不来（{type(exc).__name__}: {exc}）",
+                      file=sys.stderr)
+                continue
+            if proc.returncode != want_rc:
+                bad += 1
+                print(f"FAIL 端到端 {desc}：rc={proc.returncode}，期望 {want_rc}"
+                      f"（stderr 尾：{proc.stderr.strip().splitlines()[-1][:100] if proc.stderr.strip() else '（空）'}）",
+                      file=sys.stderr)
+            elif want_rc != 0 and "Traceback" in proc.stderr:
+                bad += 1
+                print(f"FAIL 端到端 {desc}：rc 对了但**丢栈** ✗（判据是「判定」不是「崩溃」）",
+                      file=sys.stderr)
+            elif want_tail and want_tail not in proc.stderr:
+                bad += 1
+                print(f"FAIL 端到端 {desc}：stderr 没点名 {want_tail!r}", file=sys.stderr)
+    total = len(cases) + len(verdict_cases) + len(prompt_cases) + len(guard_cases) \
+        + len(timeout_env_cases)
     if bad:
         print(f"gap.py selftest: {bad}/{total} 条判据不成立。", file=sys.stderr)
         return 1
     print(f"gap.py selftest: {len(cases)} 条 judge 判据 + {len(verdict_cases)} 条"
           f"「够不够得着复现件」判据（四形）+ {len(guard_cases)} 条状态词义务判据"
           f"（`wo-filed`/`wontfix`/`workaround`/词表外，两向）+ {len(prompt_cases)} 条"
-          f"`wo_prompt` 的 `where` 三形（dict/字符串/缺失）+ clean_env 剔除覆盖 全部成立。")
+          f"`wo_prompt` 的 `where` 三形（dict/字符串/缺失）+ {len(timeout_env_cases)} 条"
+          f"`SOKO_GAP_REPRO_TIMEOUT` 值域闸门（两向：错值必须有人话 / 合法值必须逐字节不变）"
+          f"+ clean_env 剔除覆盖 全部成立。")
     return 0
 
 
 def main() -> int:
+    # ⭐ **环境变量值域闸门**（`GAP-REPRO-TIMEOUT-ENV-NO-GUARD`）：派发**之前**判
+    # ⇒ `abc` 不再丢栈、`-5`/`0` 不再静默收下，两者都给 rc=2 + 人话 + 正解 ✓。
+    # ⚠ 位置在 `argparse` **之前**：值域错是"这台机器的环境坏了" ⇒ 连 `--help` 也不该
+    # 假装正常（同 `ux-queue.py` 的 `_guard_*` 一族：它们在 `parse_args` 之前跑 ✓）。
+    rc = _guard_repro_timeout_env()
+    if rc is not None:
+        return rc
     parser = argparse.ArgumentParser(description="课程驱动缺口台账工具（docs/gaps/ledger.jsonl）")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
