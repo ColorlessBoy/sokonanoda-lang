@@ -183,12 +183,29 @@ fn end_mismatch_is_a_dedicated_parse_error_with_exit_1() {
     );
     let (code, events) = grade_json(&file);
     assert_eq!(code, 1, "events: {events:?}");
+    // **G-117（2026-10-15）之后这里断言的是"三个视图同一份编译"的读数**：
+    // `grade` 的单文件回退改走恢复式解析（`crates/cli/src/check_recovery.rs`）⇒
+    // ① `end Bar` 自己的诊断**加上**文件尾"`namespace Foo` 没闭合"（恢复式解析
+    //    一次失败一条诊断、继续往下走 ⇒ 两条都如实报）；
+    // ② 坏命令**前面**的 `def x` 照常被检查（`Foo.x`）。
+    // 编辑器（LSP）**一直**是这两个读数 —— 实测 2026-10-15
+    // `publishDiagnostics` = 这 2 条 · `documentSymbol` = 1 条（`Foo.x`）✓；
+    // `query check` 同形（`failed` 2 条 · `decl_checked` 1）✓。
+    // ⚠ 旧断言（1 条诊断 + "nothing may be checked"）钉的正是**那个分叉** ✗
+    //    —— 它把"CLI 看不到救回的声明"当成了正确行为。
     assert_eq!(
         diagnostic_codes(&events),
-        vec!["parse-namespace-mismatch".to_string()],
+        vec![
+            "parse-namespace-unclosed".to_string(),
+            "parse-namespace-mismatch".to_string()
+        ],
         "events: {events:?}"
     );
-    assert_eq!(counts(&events).0, 0, "nothing may be checked: {events:?}");
+    assert_eq!(
+        checked_names(&events),
+        vec!["Foo.x".to_string()],
+        "坏命令**前面**的声明照常受检（与编辑器一致）：{events:?}"
+    );
 }
 
 #[test]
@@ -350,22 +367,38 @@ fn open_shadowed_names_warn_but_still_exit_0() {
 
 #[test]
 fn open_clause_shape_errors_are_dedicated_with_exit_1() {
-    for (tag, src) in [
-        ("empty-only", "open Foo ()\n"),
-        ("renaming-no-arrow", "open Foo renaming a b\n"),
-        ("import-body", "open Foo in import Bar\n"),
-        ("export-in", "export Foo in #check x\n"),
-        ("combined-clauses", "open Foo (a b) renaming a => c\n"),
+    for (tag, src, want) in [
+        ("empty-only", "open Foo ()\n", vec!["parse-namespace-shape"]),
+        (
+            "renaming-no-arrow",
+            "open Foo renaming a b\n",
+            vec!["parse-namespace-shape"],
+        ),
+        (
+            "import-body",
+            "open Foo in import Bar\n",
+            vec!["parse-namespace-shape"],
+        ),
+        // **G-117 之后**：恢复式解析把 `export Foo in` 后面的 `#check x` 救回来当
+        // 一条命令 ⇒ 它自己再报一条 `elab-unknown-identifier`（`x` 在这份文件里
+        // **确实**没定义 ⇒ 不是假错，是**级联**）。编辑器实测同形（2026-10-15
+        // `publishDiagnostics` = 这 2 条 ✓）⇒ 这正是 G-117 要的"三个视图同一份编译" ✓。
+        (
+            "export-in",
+            "export Foo in #check x\n",
+            vec!["parse-namespace-shape", "elab-unknown-identifier"],
+        ),
+        (
+            "combined-clauses",
+            "open Foo (a b) renaming a => c\n",
+            vec!["parse-namespace-shape"],
+        ),
     ] {
         let dir = temp_dir(tag);
         let file = write(&dir, "Bad.sokonanoda", src);
         let (code, events) = grade_json(&file);
         assert_eq!(code, 1, "{tag}: {events:?}");
-        assert_eq!(
-            diagnostic_codes(&events),
-            vec!["parse-namespace-shape".to_string()],
-            "{tag}: {events:?}"
-        );
+        assert_eq!(diagnostic_codes(&events), want, "{tag}: {events:?}");
         assert_eq!(counts(&events).0, 0, "{tag}: nothing may be checked");
     }
 }

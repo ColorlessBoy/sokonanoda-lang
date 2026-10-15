@@ -2,10 +2,14 @@
 # G-117 —— **同一次编译的两个视图读数不一致**：`query check` 与 `grade --json`
 # 在"入口文件有 parse 错"时对**同一份输入**给出不同答案。
 #
-# ⚠ **台账登记状态**：本条**尚未**写进 `docs/gaps/ledger.jsonl` ——
-# 红线 X2 规定**共享台账只在 `main` 上改** ✗（`scripts/soko gate --fast` 会判红 ✓）。
-# 本复现件与它的读数先落在分支里当证据 ✓；登记（一行 JSON）由 `main` 侧补 ✓。
-# 证据与完整读数：`.cache/ux/fix-ui1/VERDICT.md` §8.3 ✓。
+# ✅ **2026-10-15 已修**（本复现件自断言 ⇒ 现在 exit 1「已修」✓）：
+# 修法 = `crates/cli/src/check_recovery.rs` —— 单文件回退改走 `Session::update`
+# （与 `query check` 的 `QueryDoc::set_text` **同一个编译者** ⇒ 一致性是构造出来的 ✓）。
+# ⚠ 台账（`docs/gaps/ledger.jsonl`）的关账由 `main` 侧做（红线 X2：共享台账只在
+# `main` 上改 ✗）—— 在它落之前 `scripts/gap.py check` 会**如实判红**（复现件已翻成
+# exit 1 = 已修，而台账还写 `open`）✓，那正是这套门禁设计的行为 ✓。
+# 证据与完整读数：`.cache/ux/fix-ui1/VERDICT.md` §8.3（发现轮）·
+# `.cache/ux/fix-g117/VERDICT.md`（收口轮）✓。
 #
 # 现场（2026-10-15，`AGENT-DOES-NOT-PRODUCE-USER-INPUTS` 的生成式夹具第一次跑起来
 # 就撞上的 —— 不是人报的 ✓）：
@@ -22,22 +26,30 @@
 #       intro h
 #       exact h
 #
-#   实测读数：
+#   实测读数（**改前**）：
 #     query check --file <夹具>  ⇒ counts = {decl_checked: 2, …}      ← 恢复式解析救回的
 #                                                                      声明**被算上了** ✓
 #     grade  --json <夹具>       ⇒ 只有 1 条 diagnostic，**零** decl.checked 事件 ✗
+#   实测读数（**改后**）：
+#     grade  --json <夹具>       ⇒ 2 条 decl.checked + 1 条 diagnostic · exit 1 ✓
+#                                  （那一条诊断与改前**逐字节相同** · 事件流纯新增 2 行 ✓）
 #
 # 为什么这是缺口（**仓库自己的文档写着**）：`crates/cli/tests/query.rs` 的头注释 ——
 #   "`query check` and `--json` must agree, because they are two views of the same
 #    compile — a divergence would mean a second source of truth (the exact failure
 #    mode this design exists to prevent)."
-# ⇒ 这就是那个分叉 ✗。而且用户 2026-10-15 亲报的形态正是「**声明列表不回来**」——
-# 走 `grade` 通道的人（编辑器/`soko grade`）**看不到**那两条好声明 ✓。
+# ⇒ 这就是那个分叉 ✗。
 #
-# 根因线索（**已定性，未修** —— 这是本条目要交出去的东西）：
-#   `crates/cli/src/check.rs:102-126` 的单文件回退分支在 `parsed` 为 `Err(diag)` 时
-#   **直接印诊断就返回**，没有走恢复式解析；而 `query check` 那条路
-#   （`QueryDoc::check()`）会恢复 ⇒ **两个消费者各走一条路** ✗。
+# ⚠ **影响面（2026-10-15 用户更正，实测复核 ✓）**：**不是**编辑器 —— LSP 那条路走
+# `QueryDoc`（会恢复），实测 `soko/stateAt` 在这份夹具上 `line 2`（`a` 的 `intro`）与
+# `line 8`（`c` 的 `intro`）都答 `goals=1 · binders=1` ✓、`documentSymbol` = 2 ✓
+# ⇒ **编辑器一直看得见好的声明** ✓。它影响的是 **`grade` 这一条 CLI 通道**
+# （命令行 / agent / CI 用的那条）✗ —— 台账 `blocks` 里"编辑器 Infoview 看不到"
+# 那句**不准确**，已在 `main` 侧更正 ✓。
+#
+# 根因（**已定性并已修**）：`crates/cli/src/check.rs:102-126` 的单文件回退分支在
+# `parsed` 为 `Err(diag)` 时**直接印诊断就返回**，没有走恢复式解析；而 `query check`
+# 那条路（`QueryDoc::set_text` → `Session::update`）会恢复 ⇒ **两个消费者各走一条路** ✗。
 #   ⚠ 与 `SUB-parse-error-kills-whole-file`（已修）**不是**同一处：那次修的是
 #   `project/graph.rs` 的闭包入口与 `judge.rs` 的合成前缀，**没动** CLI 的单文件回退。
 #

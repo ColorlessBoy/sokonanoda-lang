@@ -9,7 +9,7 @@ use crate::json_report::{print_json_line, report_json, span_json};
 use sokonanoda_front::compile::cache::{self, CachedCompile};
 use sokonanoda_front::compile::{
     compile_all_with, prelude_mode_from_source, CheckEvent, CompileOptions, CompileOutput,
-    DocumentReport, PreludeMode,
+    CompileStage, DocumentReport, PreludeMode,
 };
 use sokonanoda_front::project::ProjectReport;
 use sokonanoda_front::{parse, FolFile};
@@ -102,26 +102,21 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
     let file = match parsed {
         Ok(file) => file,
         Err(diag) => {
+            // **G-117（2026-10-15）**：这里以前**直接印诊断就返回** ✗ ⇒ 单文件
+            // parse 失败时 `grade --json` 一条 `decl.checked` 都不发，而
+            // `query check` 走 `QueryDoc` → `Session::update`（带恢复式解析）
+            // 算得出救回的声明 ⇒ **同一次编译两个答案** ✗。
+            // 现在交给 `check_recovery::compile_recovering`：它调用**同一个**
+            // `Session::update` ⇒ 一致性是构造出来的 ✓（机制与 Lean 4 对照见该文件）。
+            let output = crate::check_recovery::compile_recovering(src, options, &diag);
             if json {
-                print_json_line(&serde_json::json!({
-                    "type": "diagnostic",
-                    "stage": "parse",
-                    "code": diag.code(),
-                    "message": diag.message,
-                    "hint": diag.hint(),
-                    "span": span_json(diag.span),
-                }));
+                report_json(&output, src);
             } else {
-                eprintln!(
-                    "{}:{}:{}: error[{}]: {}",
-                    label,
-                    diag.span.start.line,
-                    diag.span.start.column,
-                    diag.stage_code(),
-                    diag.message
-                );
+                // 人类视图**保留入口标签**（这条路的用户可能是 stdin / `--text`
+                // ⇒ `<stdin>:5:29: error[…]`；其余路径仍不带标签 ⇒ 逐字节不变 ✓）。
+                report_output_labeled(&output, src, 0, Some(label));
             }
-            return false;
+            return output.errors.is_empty();
         }
     };
     let (output, _report) = compile_cached(&file, src, &options);
@@ -267,6 +262,24 @@ pub(crate) fn compile_cached(
 }
 
 pub(crate) fn report_output(output: &CompileOutput, src: &str, seen_events: usize) {
+    report_output_labeled(output, src, seen_events, None);
+}
+
+/// 同 [`report_output`]，但给**诊断/警告行**加**入口标签**前缀（`label:line:col:`）。
+///
+/// 只有**单文件 parse 失败的回退路**用它（`check_recovery`）：那条路的产物里
+/// **同时**有"救回来的声明"与"坏命令的诊断"，而它的用户可能是 stdin / `--text`
+/// （`label = <stdin>`）⇒ 不印名字就分不清这条错误属于谁 ✗（2026-10-15 G-117
+/// 的第一版把 `label` 弄丢过一次，靠这条补回 ✓）。
+///
+/// **其余调用方一律不传标签**（`None`）⇒ 解析成功的单文件路径、项目路径与 REPL
+/// 的逐字节不变 ✓。
+pub(crate) fn report_output_labeled(
+    output: &CompileOutput,
+    src: &str,
+    seen_events: usize,
+    label: Option<&str>,
+) {
     for event in output.events.iter().skip(seen_events) {
         match event {
             CheckEvent::DeclarationChecked { name } => println!("checked declaration {name}"),
@@ -283,23 +296,32 @@ pub(crate) fn report_output(output: &CompileOutput, src: &str, seen_events: usiz
             CheckEvent::ExerciseOpen { .. } => println!("exercise open (fill the sorry)"),
         }
     }
+    let at = |span: sokonanoda_front::Span| match label {
+        Some(label) => format!("{label}:{}:{}", span.start.line, span.start.column),
+        None => format!("{}:{}", span.start.line, span.start.column),
+    };
     for warning in &output.warnings {
         eprintln!(
-            "{}:{}: warning[{}]: {}",
-            warning.span.start.line,
-            warning.span.start.column,
+            "{}: warning[{}]: {}",
+            at(warning.span),
             warning.code(),
             warning.message
         );
     }
     for err in &output.errors {
-        eprintln!(
-            "{}:{}: error[{}]: {}",
-            err.span.start.line,
-            err.span.start.column,
-            err.code(),
-            err.message
-        );
+        // **parse 阶段的诊断印 stage（`parse`）、其余印具体码** —— 这不是新规矩，
+        // 而是**逐字保留旧形**：G-117 之前那条回退分支印的就是 `diag.stage_code()`
+        // （= `error[parse]`），项目闭包路径的人类视图也印 `error[parse]`
+        // （`crates/cli/tests/project_features.rs:323` 与 `cli.rs:372/436` 钉着它）
+        // ⇒ 本洞对人类视图的改动**只是新增 `checked declaration` 行**、诊断行不动 ✓
+        // （与 `--json` 那一行逐字节不变同形 ✓）。
+        // 救回来的声明上真正的 elaboration 错走具体码（与 [`report_output`] 同形）。
+        let code = if err.stage() == CompileStage::Parse {
+            err.stage().code()
+        } else {
+            err.code()
+        };
+        eprintln!("{}: error[{}]: {}", at(err.span), code, err.message);
     }
 }
 

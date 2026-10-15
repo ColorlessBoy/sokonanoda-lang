@@ -3,6 +3,7 @@
 
 mod build;
 mod check;
+mod check_recovery;
 mod course;
 mod env;
 mod help;

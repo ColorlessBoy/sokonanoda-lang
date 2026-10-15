@@ -19,15 +19,18 @@
 //! ## 这一层**不**断言什么（如实写明边界）
 //!
 //! * 不断言"渲染出来长什么样" —— 那是 e2e 那一层的事（三层各司其职 ✓）；
-//! * 不断言 `grade --json` 的**事件流** —— 实测它与 `query check` 在"入口有
-//!   parse 错"时**不一致**（`query check` 报 `decl_checked:2`、`grade --json`
-//!   一条 `decl.checked` 都不发 ✗）⇒ 缺口本体、复现件与读数见
-//!   `docs/gaps/repro/G117-grade-json-vs-query-check-divergence.sh`（**自断言**：
-//!   exit 0 = 缺口仍在 ✓）与 `.cache/ux/fix-ui1/VERDICT.md` §8.3；
-//!   判据落本文件末尾的
-//!   [`known_gap_grade_json_emits_nothing_for_a_parse_failed_entry`]。
-//!   ⚠ **台账登记须在 `main` 上做**（红线 X2：`docs/gaps/ledger.jsonl` 只在 `main` 上改 ✗）
-//!   —— 本分支**不带**那条登记 ✓（`scripts/soko gate --fast` 会判红 ✗）。
+//! * 不断言**声明栏 / Infoview 的渲染** —— LSP 那一层的事（`soko/stateAt` 实测：
+//!   坏命令**前后**两条好定理都有 goal，见
+//!   `docs/gaps/repro/G117-grade-json-vs-query-check-divergence.sh` 的说明 ✓）。
+//!
+//! ## G-117（2026-10-15，**已修**）：`grade --json` 与 `query check` 的两个读数
+//!
+//! 原来这一层**不**断言 `grade --json` 的事件流：实测它与 `query check` 在"入口有
+//! parse 错"时**不一致**（`query check` 报 `decl_checked:2`、`grade --json` 一条
+//! `decl.checked` 都不发 ✗）。修法 = `crates/cli/src/check_recovery.rs`（单文件回退
+//! 改走 `Session::update`，与 `query check` **同一个编译者** ⇒ 一致性是构造出来的 ✓）。
+//! 现在两个方向都钉住，判据落本文件末尾的
+//! [`grade_json_and_query_check_agree_on_a_parse_failed_entry`] ✓。
 
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -207,29 +210,30 @@ fn the_entry_layer_consumes_every_generated_family() {
     assert!(all.len() >= 36, "夹具总数实测 {}", all.len());
 }
 
-/// **已知缺口（断言当前行为，防漂移）**：`grade --json` 与 `query check`
-/// 在"入口有 parse 错"时**读数不一致** ✗。
+/// **G-117 的守卫（已翻面）**：`grade --json` 与 `query check` 在"入口有 parse 错"时
+/// **必须给出同一个读数** ✓。
 ///
-/// 实测（2026-10-15，同一份夹具 `negative/missing-type`）：
+/// 这条判据原来是 `known_gap_grade_json_emits_nothing_for_a_parse_failed_entry`
+/// （断言**当前错行为**、并写明"谁修好了它这条会立刻判红，逼他回来翻过来"）——
+/// 2026-10-15 修好（`crates/cli/src/check_recovery.rs`：单文件回退改走
+/// `Session::update`，与 `query check` **同一个编译者**）⇒ 按它自己的指示翻面 ✓。
+///
+/// 实测（2026-10-15，同一份夹具 `negative/missing-type`，改前 → 改后）：
 ///
 /// ```text
-/// query check  ⇒ counts = {decl_checked: 2, …}      ← 恢复式解析的声明被算上了 ✓
-/// grade --json ⇒ 只有 1 条 diagnostic，**零** decl.checked 事件 ✗
+/// query check  ⇒ counts = {decl_checked: 2, …} · failed = [unexpected-token]   （不变 ✓）
+/// grade --json ⇒ 改前：只有 1 条 diagnostic、**零** decl.checked 事件 ✗
+///                改后：2 条 decl.checked + 1 条 diagnostic ✓ · exit 1 ✓
 /// ```
 ///
 /// 仓库自己的文档写着这两个视图是**同一份真相**（`crates/cli/tests/query.rs` 的头注释：
 /// "`query check` and `--json` must agree, because they are two views of the same
-/// compile — a divergence would mean a second source of truth"）⇒ 这就是那个分叉 ✗。
+/// compile — a divergence would mean a second source of truth"）⇒ 这里断言的就是它 ✓。
 ///
-/// ⚠ **这条断言的是"当前行为"，不是"正确行为"** —— 它存在的意义是：
-/// ① 把这个分叉**写进判据**（不然它只是一条口头结论 ✗）；② 谁修好了它，
-/// **这条会立刻判红**，逼他回来把 `assert` 翻过来、并把缺口关账 ✓。
-///
-/// 根因线索（已定性，未修）：`crates/cli/src/check.rs:102-126` 的单文件回退分支
-/// 在 `parsed` 为 `Err` 时**直接印诊断返回**，没有走恢复式解析；而
-/// `query check` 的 `QueryDoc::check()` 那条路会恢复 ⇒ 两个消费者各走一条路 ✗。
+/// ⚠ **两个方向都钉住**：读数**一致**（`decl_events == counts.decl_checked`）**且**
+/// 坏命令的诊断**还在**、退出码**仍是 1** —— 只钉前者会允许"把错吞掉去凑一致" ✗。
 #[test]
-fn known_gap_grade_json_emits_nothing_for_a_parse_failed_entry() {
+fn grade_json_and_query_check_agree_on_a_parse_failed_entry() {
     let input = fixtures::negative_observation_inputs()
         .into_iter()
         .find(|i| i.id == "negative/missing-type")
@@ -239,14 +243,20 @@ fn known_gap_grade_json_emits_nothing_for_a_parse_failed_entry() {
     std::fs::write(&path, &input.source).expect("write fixture");
 
     // ① `query check` 这一半：**该有的在** ✓（修 `prefix_recovery` 之后）。
-    let (counts, _, _) = check(&input);
+    let (counts, failed, query_exit) = check(&input);
     assert_eq!(
         count(&counts, "decl_checked"),
         2,
         "`query check` 这一半必须已经好了（坏命令**前后**两条定理都在）"
     );
+    assert_eq!(
+        failed,
+        vec!["unexpected-token"],
+        "坏命令的诊断不许被吞掉（放开判定去凑一致是反方向的修法 ✗）"
+    );
+    assert_eq!(query_exit, 1, "解析失败是拒绝 ⇒ exit 1");
 
-    // ② `grade --json` 这一半：**实测当前一条声明事件都不发** ✗ —— 缺口本体。
+    // ② `grade --json` 这一半：与 ① **同一个读数** ✓ —— G-117 的本体。
     let out = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
         .arg("grade")
         .arg(&path)
@@ -274,16 +284,29 @@ fn known_gap_grade_json_emits_nothing_for_a_parse_failed_entry() {
         .count();
     let _ = std::fs::remove_dir_all(&dir);
 
+    assert_eq!(
+        out.status.code(),
+        Some(1),
+        "真语法错仍必须是拒绝 ⇒ exit 1（不许为了让两视图一致就把错吞掉 ✗）"
+    );
     assert!(
         events.iter().any(|e| e["type"] == "diagnostic"),
         "坏命令必须留下诊断（这一半两个通道都该有）"
     );
+    let diagnostics = events.iter().filter(|e| e["type"] == "diagnostic").count();
     assert_eq!(
-        decl_events, 0,
-        "⭐ `grade --json` 现在**开始发声明事件了** ⇒ 缺口很可能已被修好 ✓ \
-         ⇒ 请把这条判据翻成「两个通道一致」（`decl_events == 2`）、把 \
-         `docs/gaps/repro/G117-grade-json-vs-query-check-divergence.sh` 翻成 exit 1、\
-         在 `main` 上关掉台账里那条缺口（红线 X2）、并把本条改名去掉 `known_gap_` ✓。\
-         实测事件：{events:?}"
+        diagnostics,
+        failed.len(),
+        "两个视图的诊断条数也必须一致（query failed={failed:?}）"
+    );
+    assert_eq!(
+        decl_events,
+        count(&counts, "decl_checked") as usize,
+        "⭐ G-117：`grade --json` 与 `query check` 必须给出**同一个** decl.checked 读数 \
+         （同一次编译的两个视图 —— `crates/cli/tests/query.rs` 头注释）。实测事件：{events:?}"
+    );
+    assert_eq!(
+        decl_events, 2,
+        "恢复式解析救回的两条定理**该在**（坏命令前后的 `a` / `c`）"
     );
 }

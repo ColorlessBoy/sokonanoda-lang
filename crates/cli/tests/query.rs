@@ -129,6 +129,95 @@ fn query_check_counts_match_the_json_event_stream() {
     let _ = std::fs::remove_file(path);
 }
 
+/// **入口解析失败**的夹具：坏命令**前后**各一条好定理（`fixtures` 的
+/// `negative/missing-type` 同形）。
+///
+/// 为什么这条必须单独有：上面那条 parity 判据用的 `CANVAS` **解析得过** ⇒
+/// 它守不住"入口 parse 失败"这条缝 —— G-117（2026-10-15）正是在那条缝里活了
+/// 一整轮：`query check` 走 `QueryDoc` → `Session::update`（带恢复式解析，救回 2 条），
+/// 而 `grade --json` 走 `check.rs` 的 `Err` 分支**直接印诊断就返回**（0 条）✗。
+/// 头注释那条不变量（"two views of the same compile"）对**这份**输入同样成立 ✓。
+const PARSE_FAILED: &str = "\
+theorem a (p : Prop) : p → p := by
+  intro h
+  exact h
+
+theorem broken (p : Prop) : := by
+  intro h
+
+theorem c (r : Prop) : r → r := by
+  intro h
+  exact h
+";
+
+#[test]
+fn query_check_and_json_agree_when_the_entry_fails_to_parse() {
+    let path = std::env::temp_dir().join(format!(
+        "sokonanoda-query-parse-failed-{}-{}.sokonanoda",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::write(&path, PARSE_FAILED).expect("write fixture");
+
+    let (value, code) = query(&["check", "--file", path.to_str().unwrap()], None);
+    assert_eq!(code, 1, "解析失败是拒绝 ⇒ exit 1：{value}");
+    assert_eq!(value["ok"], true);
+    let counts = &value["data"]["counts"];
+    assert_eq!(
+        counts["decl_checked"].as_u64(),
+        Some(2),
+        "恢复式解析救回的两条定理**该在**：{counts}"
+    );
+    let failed: Vec<&str> = value["data"]["failed"]
+        .as_array()
+        .map(|a| a.iter().filter_map(|f| f["code"].as_str()).collect())
+        .unwrap_or_default();
+    assert_eq!(
+        failed,
+        vec!["unexpected-token"],
+        "坏命令的诊断**不许被吞掉**（放开判定去凑一致是反方向的修法 ✗）"
+    );
+
+    // 另一个视图：`grade --json`（**同一个消费者路径**，`env::grade` →
+    // `check::check_source(json=true)`）。
+    let out = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+        .args(["grade", path.to_str().unwrap(), "--json"])
+        .env("SOKONANODA_CACHE_DIR", cache_dir("json-parse-failed"))
+        .output()
+        .expect("run grade --json");
+    assert_eq!(
+        out.status.code(),
+        Some(1),
+        "解析失败仍然必须是拒绝 ⇒ exit 1（不许为了让两视图一致把错吞掉）"
+    );
+    let stream = String::from_utf8_lossy(&out.stdout);
+    let count_of = |kind: &str| {
+        stream
+            .lines()
+            .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+            .filter(|event| event["type"] == kind)
+            .count()
+    };
+    assert_eq!(
+        counts["decl_checked"].as_u64().unwrap() as usize,
+        count_of("decl.checked"),
+        "G-117：解析失败的入口上，两个视图必须给出**同一个** decl.checked 读数 \
+         （query={} · grade={}）：{stream}",
+        counts["decl_checked"],
+        count_of("decl.checked")
+    );
+    assert_eq!(
+        count_of("diagnostic"),
+        failed.len(),
+        "两个视图的诊断条数也必须一致（query failed={failed:?}）：{stream}"
+    );
+    assert!(
+        count_of("diagnostic") >= 1,
+        "真语法错必须留下诊断：{stream}"
+    );
+    let _ = std::fs::remove_file(path);
+}
+
 #[test]
 fn query_state_at_a_tactic_shows_the_entering_goal_state() {
     let path = canvas_file("state");
