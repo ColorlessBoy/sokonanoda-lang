@@ -183,13 +183,56 @@ def write_fixture(root: Path, entries: int, mode: str) -> tuple[list[str], int, 
     return entry_paths, sigma, distinct
 
 
-def measure(cmd: list[str], root: Path, entries: list[str], cache: Path) -> int | None:
-    """冷编一次，返回 `by_calls`（拿不到 ⇒ None）。"""
+def fixture_env(env_extra: dict[str, str]) -> dict[str, str]:
+    """夹具子进程的环境（**纯函数** ⇒ `--selftest` 能直接断言它 ✓）。
+
+    ⚠ **不变量（2026-10-15 CD-Y，洞 `CACHE-DIR-OVERLOAD-2-MORE`）**：
+    **绝不动 `SOKONANODA_CACHE_DIR`** ✗ —— 它**同时**是启动器 `scripts/soko` 的
+    「二进制缓存槽」（`cacheDir()`，`scripts/soko:116`）⇒ 把它指到空目录 = 把二进制
+    解析链弄瞎 ✗。冷编译缓存走 `SOKONANODA_NO_CACHE`（CLI 的**专用**开关 ✓，见 `measure`）。
+    """
     env = dict(os.environ)
-    env["SOKONANODA_CACHE_DIR"] = str(cache)
-    env["SOKONANODA_NO_PROJECT_ARTIFACTS"] = "1"  # 全落临时缓存，夹具目录零残留
-    env["SOKO_STAGE_STATS"] = "1"
-    shutil.rmtree(cache, ignore_errors=True)
+    env["SOKONANODA_NO_CACHE"] = "1"  # 冷编译缓存：读/写全关 ⇒ 0 命中全编 ✓
+    env["SOKONANODA_OFFLINE"] = "1"  # 解析不到就立刻出声，不空等网络 ✓
+    env["SOKONANODA_NO_PROJECT_ARTIFACTS"] = "1"  # 夹具目录零残留 ✓
+    env.update(env_extra)
+    return env
+
+
+def measure(cmd: list[str], root: Path, entries: list[str]) -> int | None:
+    """冷编一次，返回 `by_calls`（拿不到 ⇒ None）。
+
+    ## 这条臂要的是**冷编译缓存**（每个入口的库闭包必须真编 ⇒ `by_calls` 才有意义），
+    ## 但**不许**换掉 `SOKONANODA_CACHE_DIR` ✗
+
+    ① 冷缓存走 `SOKONANODA_NO_CACHE=1` ⇒ `front::compile::cache::root()` 直接返回
+    `None`（`crates/front/src/compile/cache.rs:109`）⇒ 读/写全关、0 命中全编 ✓ ——
+    与"把缓存目录指到空目录"**语义等价**（本洞有等价性读数：同一夹具 `by_calls` 逐字相同），
+    但**不占用任何别的格子** ✓。
+
+    ② 旧实现（～2026-10-15）把 `SOKONANODA_CACHE_DIR` 指到**空临时目录** ✗ —— 而
+    **同一个变量还是启动器的「二进制缓存槽」**（`cacheDir()`）⇒ 子进程里那一格
+    **必然为空** ✗ ⇒ 启动器只剩「仓库构建 / 下载」两条路。⚠ 工作树里 `<repo>/target`
+    **根本不存在**（本仓 worktree 编到 `CARGO_TARGET_DIR` ✓，而启动器自己就认它 ——
+    `repoBuildCandidates()`，2026-10-12 `SUB-cargo-target-dir` ✓）⇒ 一棵**刚
+    `scripts/soko setup` 过、还没编过**的工作树**结构性假红** ✗ —— 实测（S3 形状 =
+    工作树未编过 + `CARGO_TARGET_DIR=<空>` + 缓存槽里有一份**版本匹配**的 0.91.0，
+    启动器**本该**解析到它 ✓）：启动器 rc=3
+    `refusing to run an unverified sokonanoda binary — nothing resolved (offline=yes)
+    … (marker: none)` ⇒ 本判据 exit 2 = **判据红** ✗（同形状改后 exit 0 ✓；
+    `--selftest` 也一样：改前 exit 2 ✗ ⇒ 改后 5 条腿全过 ✓）。
+
+    ③ `SOKONANODA_OFFLINE=1`：解析不到就**立刻**用启动器自己的话出声 ✓（不再空等网络
+    ~60s ✗，也不**悄悄换成下载来的发布二进制**去量 —— 那是**探针身份**事故 ✗）。
+    ⚠ 它在这条臂上只作用于**启动器**那条「下载一个二进制」的获取路径 ✓ —— CLI 侧
+    `offline()` 只被 `setup` 与 `doctor`/`version` 的报告读
+    （`crates/cli/src/env/target.rs:77` · `env/mod.rs:97,120,154`）⇒ 对 `build` **零影响**，
+    **判据一条没动** ✓（夹具的 import 全是同目录的**本地**模块 ✓）。
+
+    ④ `CARGO_TARGET_DIR` **原样透传**：⇒ 本洞的修法**不是**"再教一遍 `CARGO_TARGET_DIR`"
+    （那件事早就成立 ✓），而是**别把解析链弄瞎** ✓。
+    """
+    env = fixture_env({"SOKO_STAGE_STATS": "1"})
     clean = subprocess.run(
         cmd + ["build", "--json", "--clean", str(root)],
         capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, cwd=REPO, timeout=120,
@@ -230,7 +273,7 @@ def run_once(cmd: list[str], entries: int, mode: str) -> tuple[int | None, int, 
     tmp = Path(tempfile.mkdtemp(prefix="g68-guard-"))
     try:
         paths, sigma, distinct = write_fixture(tmp, entries, mode)
-        got = measure(cmd, tmp, paths, tmp / ".cache")
+        got = measure(cmd, tmp, paths)
         return got, sigma, distinct
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -255,6 +298,29 @@ def selftest(cmd: list[str], budget: int) -> int:
         (2, "split", "red", 1, "**仍能造出重复**：两个**不同的库闭包签名**（e0 只 import Shared；e1 import Shared+Extra）⇒ 分两组 ⇒ Shared 被编 **2** 次 ⇒ 必须判红"),
     ]
     bad = 0
+    # **夹具环境的不变量**（2026-10-15 CD-Y，洞 `CACHE-DIR-OVERLOAD-2-MORE` ✓）：
+    # 旧实现把 `SOKONANODA_CACHE_DIR` 指到空临时目录 ✗ —— 而它**同时**是启动器的
+    # 「二进制缓存槽」⇒ worktree 里（`<repo>/target` 不存在、构建在 `CARGO_TARGET_DIR`）
+    # 只剩"仓库构建 / 下载"两条路 ⇒ **刚 `scripts/soko setup` 过、还没编过的树结构性假红** ✗
+    # （实测启动器 rc=3 ⇒ 本判据 exit 2 ✓）。⇒ 钉住：那份环境必须**原样保留** ✓，
+    # 冷缓存必须走 `SOKONANODA_NO_CACHE` ✓。**咬得住的守卫**（把旧写法放回来 ⇒ 判红 ✓）。
+    # 先判它（纯函数、零编译）⇒ 不变量破了就不必再烧 5 次编译 ✗。
+    saved = os.environ.get("SOKONANODA_CACHE_DIR")
+    os.environ["SOKONANODA_CACHE_DIR"] = "/probe/ambient-binary-cache"
+    try:
+        env = fixture_env({})
+        got_env = (env.get("SOKONANODA_CACHE_DIR"), env.get("SOKONANODA_NO_CACHE"),
+                   env.get("SOKONANODA_OFFLINE"))
+    finally:
+        if saved is None:
+            os.environ.pop("SOKONANODA_CACHE_DIR", None)
+        else:
+            os.environ["SOKONANODA_CACHE_DIR"] = saved
+    ok = got_env == ("/probe/ambient-binary-cache", "1", "1")
+    print(f"   [{'ok' if ok else 'BAD'}] 夹具环境：`SOKONANODA_CACHE_DIR` "
+          f"**原样保留**（={got_env[0]!r}）· 冷缓存走 `SOKONANODA_NO_CACHE`（={got_env[1]!r}）· "
+          f"离线（={got_env[2]!r}）—— 动了缓存槽 ⇒ 启动器的二进制解析链会瞎 ✗")
+    bad += 0 if ok else 1
     for entries, mode, want, bound, why in cases:
         got, sigma, distinct = run_once(cmd, entries, mode)
         if got is None:
@@ -272,7 +338,7 @@ def selftest(cmd: list[str], budget: int) -> int:
         print(f"selftest: ✗ {bad} 条反向验证失败 —— 守卫咬不住", file=sys.stderr)
         return 1
     print(f"selftest: ✓ 反向验证全过（重复场景判红、无重复场景不红、计数器失效判 2；"
-          f"台账上界 max_by_calls={budget} 未被放宽 ✓）")
+          f"台账上界 max_by_calls={budget} 未被放宽 ✓；夹具环境不动启动器的缓存槽 ✓）")
     return 0
 
 
