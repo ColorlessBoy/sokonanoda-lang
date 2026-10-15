@@ -9,6 +9,14 @@
 - ⚠ **`crates/kernel/**` 一字节未动** ✓ · `docs-lint` 0 ✓ · `status-lint` 0 ✓ · `ux-queue --check/--selftest` 0 ✓ · `ci-yml-lint` 0 ✓（新步骤名字里的 ` : ` 必须加引号 —— 裸标量会被 YAML 当**第二层映射**，实测 `ci.yml:292:27` 判红 ✓）
 - **边界（如实）**：另五条原因【3】横向排查 /【4】判据绑用户可见结果 /【6】垃圾回收 /【7】端到端目标 —— **只落纪律，没落机械守卫**（理由逐条写在 `.cache/ux/fix-oaY/VERDICT.md`）；`docs/e2e/**` 与 `.cache/**` 不可写 ⇒ "减少生成物进 git" 未落地
 
+## `soko update` 的 404 + 一条清理环境的命令（2026-10-15 · `SUB-soko-update-cli-404` / `SUB-no-version-cleanup-command`，未发版）
+- ⭐ **404 的机制**（本地 HTTP release 夹具复现，`/tmp` 隔离 cache/HOME，**不碰用户环境**）：`ensure(force)` 把 `resolver().version`（**对象**）传给 `download()` ⇒ URL 插值成 `v[object Object]` ⇒ curl 把 `[` 当 URL glob（exit 3）、Node `fetch` 拿 **HTTP 404**。`setup` 走 `resolve()`（传 `version.text`）**一直是对的** ⇒ 只有强制刷新那条路坏，且此前**没有守卫**（`launcher.rs` 只钉了 `setup`）✗
+- ⭐ **夹具改前读数**：服务器收到 `GET /v[object%20Object]/sokonanoda-cli-…` 与 `…-lsp-…`，再收到 `GET /v0.91.0/sokonanoda-lsp-…`（LSP 靠 `resolve()` 的第二次侥幸下成）⇒ 与用户实测**逐字同形**（`cli [repo-build]` + `lsp [download]` + `fetch failed: HTTP 404`）。**改后**：两条请求都是 `/v0.91.0/…`、两 marker 都是 `0.91.0 darwin-arm64`、rc=0 ✓
+- ⭐ **修法**：`download()` 归一化并**拒绝非版本**（拼不出 URL 就报错，不造坏 URL）· `ensure` 传 `.text` · 失败信息打**实际 `url:`**，`HTTP 404` 给"资产不存在"的出路（`gh release view … --json assets` / 仓库构建），不再把人引去查代理 ✓
+- ⭐ **新命令 `scripts/soko prune`**（**不叫 `clean`**：那会转发给 `sokonanoda clean` 的**编译缓存** ⇒ 撞名 ✗）：默认 dry-run · `--yes` 真删 · `--check` 有可清的就 exit 3。夹具（**8 个扩展 + 两半 marker 不一致 + 15 条悬空 `.obsolete`**）：改前 `prune` = `error: unrecognized subcommand`（rc=2、fingerprint 不变）⇒ 改后 dry-run 报 7 余 + 15 悬空 + cache 不一致且 **fingerprint 不变**（零删除）· `--check` rc=3 · `--yes` ⇒ **8 → 1** 个扩展 · sokonanoda `.obsolete` 条目 **15 → 0** · 两 marker **0.83.0/0.73.0 → 0.91.0/0.91.0**；**别人的目录与 `.obsolete` 条目一字节未动** ✓
+- ⭐ **正对照**：版本一致夹具 ⇒ `already unified`、`--check` rc=0、`--yes` 后 fingerprint **逐字节不变**（不误删）· **反向验证**：`extensions.json` 指**旧版** ⇒ 旧版与最新都保留、只删中间那个 ✓
+- **判据**：`crates/cli/tests/launcher.rs` 两条新测试（`update_forces_a_refresh_at_the_pinned_version` · `prune_is_a_dry_run_until_yes_and_unifies_the_three_sources`）⇒ launcher **10/10** · skill **5/5** · dsh **8/8** ✓ · ⚠ **`crates/kernel/**` 一字节未动** ✓
+
 ## `#check <def>` 带定义体 + 记法（2026-10-15）：**用户新需求，有意偏离 Lean 4**（未发版）
 - ⭐ **用户原话**（15:22）：「我想让 `#check Set.subset` 也支持针对 def 的优化」⇒ 要 `def Set.subset : ∀ {α : Type}, Set α → Set α → Prop` / `:= fun {α : Type 0} (A B : Set α) => ∀ (x : α), x ∈ A → x ∈ B`；15:2x 明确授权「**`#check` 我是新加需求，偏离 lean4 没问题**」⇒ 登记 `REQUIREMENTS.md` **§9.22**，并改掉 `docs/design/notation-subset.md` 那条"print-back 继续显示点名形式"的旧决定 ✓
 - ⭐ **改前 ⇒ 改后**（`--root courses/set-theory`，用户那条命令逐字节）：`Set.subset: {α : Type} -> (A : Set α) -> (B : Set α) -> Prop`（只有类型、点形式）⇒ `def Set.subset : ∀ {α : Type}, Set α → Set α → Prop := fun {α : Type 0} (A B : Set α) => ∀ (x : α), x ∈ A → x ∈ B` ✓（**① 带定义体 ＋ ② 记法**，两件都核过）
@@ -17,13 +25,7 @@
 - ⚠ **两条 golden 按新契约更新并定性**（都是"用户要改的那一面"本身）：`crates/cli/tests/cli.rs` 两条 `#check id` 断言（改前 `id: Prop -> Prop`）· `crates/cli/tests/artifacts.rs` 的产物 schema `r8 → r9`（`CheckInfo::text` 的含义变了 ⇒ `REPORT_SHAPE` 8 → 9，老产物整库不命中 ✓）；`protocol.rs` 的 `inferred_type`/`text` 断言**不动** ✓
 - **判据**：`crates/cli/tests/check_def_card.rs` **3 条**（用户那条命令逐字节 · 终端输出 · 只给 def 的反向验证）· `crates/front/src/compile/tests.rs` **2 条**（卡片形状逐字节 · def-only 反向验证）· 反向验证：撤掉卡片 ⇒ 两条判红 ✓
 
-## 清台账第 8 轮（2026-10-15）：**缓存守卫的余量与顺序 + LSP 陈旧可见**（未发版）
-- ⭐ **`CACHE-GUARD-NO-HEADROOM`**：缓存守卫是 `gate --fast` 的**第 20/22 步**，旧实现 `return` 太早 ⇒ 一红即短路后面 **2 步**（完整 gate 3 步：multi-session · 队列门禁 · 缺口台账）⇒ **一条与磁盘无关的红把别的判据全藏起来** ✗ ⇒ 改成**判红但不短路**（`defer` + 尾巴 `return deferredStatus || …`，先失败者优先）。夹具实测（越线 ⇒ 远超预算）：**改前 rc=1 且那两步各 0 次；改后 rc=1（牙还在、点名了）且两步各 1 次** ✓；正对照（预算充足）⇒ 改前/改后都是 rc=0 且两步都跑 ✓
-- ⭐ **回收余量**：`reclaim --to-budget` 旧口径**贴着判红线收** ⇒ 收完只差 0.1–0.3 G ⇒ **下一次 `gate --fast` 自己就把它顶过线** ✗ ⇒ 改成**滞回**：触发 = **进门时越线**、目标 = **判红线 − 余量**（`SOKO_CACHE_RESERVE_GB` / registry `reserve_gb`，默认 **5% 预算**）。⚠ **判红线口径不动**（真超预算仍判红 ✓）；⚠ 触发条件**不许**改成"超目标" ✗（没越线时也去删别人正在用的受管 target = 误伤）。夹具（等比 MB 模型，走**真 `cmd_reclaim`**）：改前余量 **51,552 B**、收不到目标 ⇒ 改后 **555,360 B ≥ 余量 322,122 B**、收到目标 ✓；真缓存越线时 `reclaim --to-budget` 落到**回收目标以下** ✓
-- ⭐ **受管根量错一套**（同族实测）：受管根是**仓库级共享**的（`env <id>` 由主 checkout 生成），旧实现却按**当前 checkout** 算 ⇒ **在链接工作树里**（并行 agent 一律在那儿跑 gate）一条受管 target 都枚举不到 ⇒ 守卫**没有牙** ✗（实测同一时刻：主 checkout 与 worktree 差的就是 `.cache/compile/targets/*`）⇒ 受管根 + 安全断言 + 孤儿扫描全部收口到 `MAIN_WORKTREE` ✓（改后两边同数 ✓）
-- ⭐ **`LSP-BINARY-STALE-NO-WARNING`**（stale 族**第三个链接**）：`build` 块一直**只描述 CLI** ⇒ 编辑器跑旧引擎**零警告** ✗ ⇒ 补 `lsp_build`（`doctor --json` / `version --json`）+ 三处人话（`doctor` · `version` · **`scripts/soko lsp`** 的 stderr）+ 正解。⚠ **只在 `source === 'repo-build'` 时给**（要的是"**跑的那份**陈旧"）· ⚠ **不改 `ready`** ✓（"能不能跑" ≠ "算不算数"，与 CLI 侧同口径）。夹具（临时目录 + 复制的二进制）：改前 `lsp_build` 缺失 + **0 行警告** ⇒ 改后 `stale: true` + 三处各 1 行 ✓；正对照（新鲜 LSP / 走缓存）⇒ **0 行警告** ✓
-- ⚠ **横向（同一族的其余链接，本轮只报不改）**：`.opencode/plugins/sokonanoda.ts` **自带一份解析链**（`repoBuild` 只按 mtime 跨 profile、**不查版本**、**无 stale 概念**；`extensionServer` 还排在缓存**之前** ⇒ 与 `scripts/soko` 顺序不同）⇒ **三个洞**，但 `.opencode/**` **不在本轮可写范围** ✗；**缓存**那条更活：**同版本号、更旧引擎** ⇒ 本 worktree 课程门禁量出**成批假判负**，而 `version --json` 的 `build` 是 `null`（**零信号**）⇒ 语义两难（已发布产物天然比开发中的源码旧）+ 另一个消费者在 `courses/**`（**不可写**）⇒ 如实留缺口
-- **两个闸门不破** ✓：陈旧 CLI ⇒ `gate` **exit 3** · `check.py` **exit 2**（改前/改后同读数 ✓）· `compile-cache.py --selftest` **16/16** ✓ · `crates/kernel/**` **一字节未动** ✓ · 反向验证三条（临时还原 ⇒ 夹具各自回到旧行为，跑完 `grep` = 0 ✓）
+## 清台账第 8 轮（2026-10-15）—— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md`
 
 ## 清台账第 7 轮（2026-10-15）：**队列 0 · 隐变量 13/13 收口 · 构建链与缓存身份两族修完**（未发版）
 - ⭐ **队列 0 条**，三元组证明：`--json open=[] total=0` == `--next`「没有可动的条目」== §0.2 `QUEUE:COUNTS total=0` ✓（第十三/十四次复核各自独立 fold 530 条事件、与 `--json.state` 逐字段 0 差异 ✓）

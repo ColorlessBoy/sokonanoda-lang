@@ -21,8 +21,8 @@ scripts/soko doctor --json; echo "EXIT=$?"
 ## 汇报字段
 
 `ready` / `version` / `version_source` / `version_constraint` / `version_error` /
-`target` / `rust_target` / `cache` / `offline` / `launcher` / `cli` / `lsp`；后两者
-各含 `path` / `present` / `ready` / `marker`。
+`target` / `rust_target` / `cache` / `offline` / `launcher` / `cli` / `lsp` /
+`versions`；`cli`/`lsp` 各含 `path` / `present` / `ready` / `marker`。
 
 `version` 来自**版本钉源链**（`SOKONANODA_VERSION` → `sokonanoda-version.txt` →
 `sokonanoda.toml` 的 `requires` → `Cargo.toml`），`version_source` 指名中的哪个；
@@ -31,6 +31,14 @@ scripts/soko doctor --json; echo "EXIT=$?"
 
 `marker` 形如 `<version> <target>`，必须与 `version` 一致；不等就是
 缓存过期。`present: true` 但 `ready: false` 正是"文件在、版本不对"这一种情形。
+
+`versions` 答的是**另一个问题**——"这台机器上有几份版本"。它列每个 VS Code
+扩展根里 sokonanoda 的版本、`in_use`（`extensions.json` 说 VS Code 正在用的那份）、
+`keep`/`remove`（`prune` 会留/删哪些），以及两半缓存 `marker`。`versions.unified:
+false` ⇒ 跑 `scripts/soko prune`（默认 dry-run；`--yes` 才真删；`--check` 有可清的
+就 exit 3）。⚠ **它只报告、不改 `ready`**：`ready` 答"能不能跑"，`versions` 答
+"环境干不干净"——后者并进 `ready` 会让 provision 去下载/刷新，而那只修缓存、
+**修不了扩展目录的堆积** ✗（见 `skills/sokonanoda-update/SKILL.md`）。
 
 ## 纪律
 

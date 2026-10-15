@@ -59,7 +59,8 @@ scripts/soko query check --file playground.sokonanoda   # 同一判卷的单 JSO
 scripts/soko query state --file playground.sokonanoda --line 327 --col 4
 scripts/soko query project --file course/unit11-project/Exercises.sokonanoda  # 项目闭包状态（根/清单/模块）
 scripts/soko version --json               # 仓库版本 + 解析来源 + 缓存标记
-scripts/soko update                       # 刷新缓存；0=写成了 3=没写成（stderr 给 download 原因）
+scripts/soko update                       # 刷新缓存；0=写成了 3=没写成（stderr 给 URL + download 原因 + 出路）
+scripts/soko prune                        # 统一版本：清多余扩展目录 + 悬空 .obsolete + 对齐两半缓存标记（dry-run；--yes 才删；--check 判红）
 ```
 
 - **判卷有两个视图，同一份真相**：`grade --json` = 全量事件流（既有消费者不变），
@@ -72,8 +73,7 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
 - **DeepSeek Harness** 里那七个查询还包成 MCP 工具
   （`mcp__sokonanoda__{check,state,goals,holes,hints,reduce,project}`，需
   `dsh web --patch ./dsh/cordis.patch.yml`）：有工具就直接调，别绕 shell。
-
-- **`scripts/soko` 是 harness 中立的启动器**（零依赖 Node，跨平台、无 bash）：
+- **`scripts/soko` 是 harness 中立的启动器**（零依赖 Node、跨平台、无 bash）：
   解析顺序 = `$SOKONANODA_BIN` → 版本**匹配**的仓库构建 → 缓存（标记
   `<version> <target>` 必须与**版本钉**一致）→ VS Code 扩展自带 →
   按版本钉锁定下载；其余子命令原样转发给 `sokonanoda` CLI。

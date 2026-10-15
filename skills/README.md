@@ -11,8 +11,8 @@ conformance 测试守护这些文件不与真实工具漂移：`crates/cli/tests
 | `sokonanoda-teacher/` | 当老师的 agent | 角色定义与五条不可违反规则、教学循环、判卷事件决策表、出题规范与适配规则、解答钥匙使用守则；参考件：`references/events.md`（事件形状）、`references/curriculum.md`（题池地图）、`references/zh-style.md`（文风约束） |
 | `sokonanoda-dev/` | 接手开发的 agent | 接手清单、硬规则、TDD 三层与文档先行工作流、CI 门禁形态 |
 | `sokonanoda-ci/` | 推代码/发布/查 CI 的 agent | 本地验证纪律（退出码、无 grep 掩膜）、GitHub Actions 陷阱台账、`gh` 排错三板斧、失败必录 |
-| `sokonanoda-update/` | **人工**运维命令 | 把缓存的 CLI + LSP 刷到仓库版本：何时需要、确切命令、**退出码语义**（`0` = 缓存写成了；`3` = `cache NOT refreshed` + `download:` 原因，即使有可用回退）、唯一可信判据（缓存 `marker` + 缓存二进制自述版本；`source` 不含 `STALE` **不算**）、"缓存写不进去"的三种处置 |
-| `sokonanoda-doctor/` | **人工**运维命令 | 只读就绪诊断：`scripts/soko doctor --json`、退出码语义、要汇报的字段、下一步指向 `setup`/`update` |
+| `sokonanoda-update/` | **人工**运维命令 | 把缓存的 CLI + LSP 刷到仓库版本：何时需要、确切命令、**退出码语义**（`0` = 缓存写成了；`3` = `cache NOT refreshed` + `url:` + `download:` 原因，即使有可用回退）、唯一可信判据（缓存 `marker` + 缓存二进制自述版本；`source` 不含 `STALE` **不算**）、`HTTP 404` 的两种成因与出路、`scripts/soko prune`（扩展目录堆积是另一件事） |
+| `sokonanoda-doctor/` | **人工**运维命令 | 只读就绪诊断：`scripts/soko doctor --json`、退出码语义、要汇报的字段（含 `versions` 的版本散布读数）、下一步指向 `setup`/`update`/`prune` |
 
 前三个是**角色技能**（模型按任务加载）；后两个是**运维命令**（只给人用）：
 DSH 入口带 `disable-model-invocation: true`，所以它们不进模型目录——模型侧的
@@ -26,6 +26,7 @@ DSH 入口带 `disable-model-invocation: true`，所以它们不进模型目录�
 ```bash
 scripts/soko setup          # 版本锁定的 CLI + LSP → 缓存（幂等；零 cargo）
 scripts/soko doctor --json  # 0=就绪 3=未就绪
+scripts/soko prune          # 统一版本：清多余扩展目录 + 悬空 .obsolete + 对齐两半缓存标记（默认 dry-run）
 scripts/soko grade playground.sokonanoda --json   # 判卷
 scripts/soko gate           # 贡献者门禁（调用 cargo）
 ```

@@ -12,6 +12,31 @@
   `#print` 与 `--json` 的 `inferred_type` 也**一个字节都没变**（判定路径读的是后者）。
   **这是有意偏离 Lean 4**（Lean 的 `#check id` 只打签名），用户同日明确授权。
   判据：`crates/cli/tests/check_def_card.rs` · `crates/front/src/compile/tests.rs`。
+- **`scripts/soko prune`：一条清理环境的命令**（2026-10-15 用户新需求：「帮我清理环境吧，
+  这种版本不统一出现好多好多次了」）。默认 **dry-run**，`--yes` 才真删，`--check` 有可清的
+  就 exit 3。一次收口三处：① `~/.vscode/extensions/` 下多余的 sokonanoda 版本目录
+  （`code --install-extension` 不删旧版，只写 `.obsolete`）；② 指向已删目录的 `.obsolete`
+  残留；③ 两半互相不一致的缓存 `marker`（对齐到版本钉）。`extensions.json` 说 VS Code
+  **正在用**的那份永不删，别的发布者的扩展与 `.obsolete` 条目一个字节都不动。名字用
+  `prune` 而非 `clean`：`scripts/soko clean` 会转发给 `sokonanoda clean`（**编译缓存**）⇒ 撞名 ✗。
+  判据：`crates/cli/tests/launcher.rs` 的 `prune_is_a_dry_run_until_yes_and_unifies_the_three_sources`。
+
+### Fixed
+
+- **`scripts/soko update` 报 `HTTP 404`、缓存永远刷不成**（2026-10-15 用户实测
+  `SUB-soko-update-cli-404`）。根因：`ensure(force)` 把 `resolver().version`（**对象**
+  `{major,minor,patch,text}`）传给 `download()` ⇒ URL 插值成
+  `…/releases/download/v[object Object]/…` ⇒ curl 把 `[` 当 URL glob（exit 3）、
+  Node `fetch` 拿 404。`setup` 走 `resolve()`（传 `version.text`）所以一直是对的
+  ⇒ 只有**强制刷新**那条路坏，而且**没有守卫**（`launcher.rs` 此前只钉 `setup`）✗。
+  修法：`download()` 归一化并**拒绝非版本**（拼不出 URL 就报错，不造坏 URL）；
+  `ensure` 传 `.text`。失败信息现在打**实际请求的 `url:`**，`HTTP 404` 给
+  "资产不存在"的出路（`gh release view … --json assets` / 仓库构建），不再把人引去查代理。
+  判据：`crates/cli/tests/launcher.rs` 的 `update_forces_a_refresh_at_the_pinned_version`
+  （每次请求都带 `/v<pin>/`、恰好两次）。
+- **`scripts/soko doctor` 现在会报"版本不统一"**（扩展目录 / 两半 `marker` 的散布，
+  `--json` 新增 `versions`）并指向 `prune`。与 `stale` 同一条纪律：**只报告、不改
+  `ready`** —— `ready` 答"能不能跑"，版本散布答"环境干不干净"。
 
 ## [0.91.0] - 2026-10-15
 

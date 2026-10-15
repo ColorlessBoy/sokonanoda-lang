@@ -178,7 +178,11 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 **判据**：`crates/cli/tests/check_def_card.rs`（用户那条命令逐字节 ＋ 终端输出 ＋ 只给 def 的
 反向验证）· `crates/front/src/compile/tests.rs` 两条单测 · `REPORT_SHAPE` 8 → 9
 （`CheckInfo::text` 的**含义**变了 ⇒ 旧产物必须整库不命中 ✓）。
-**过程与读数**：`STATUS.md` + `.cache/ux/fix-pnZ/VERDICT.md`。
+
+### 9.23 2026-10-15 **一条清理环境的命令 + `soko update` 的 404**（用户原话 ✓）
+
+**用户原话（17:23）**：「帮我清理环境吧，**这种版本不统一出现好多好多次了**」（同轮实测 `scripts/soko update` 报 `fetch failed: HTTP 404`，而**同一个 URL 用 curl 是 200**）。**要求**：① 给**一条**命令把"版本不统一"的**三处**一次收口 —— 多余的 VS Code 扩展目录（`code --install-extension` 不删旧版、只写 `.obsolete`；实测 **8 个**）· 指向已删目录的 `.obsolete` 残留（**15 条**）· 两半不一致的缓存 `marker`（CLI `0.83.0` / LSP `0.73.0`）；**默认 dry-run，`--yes` 才真删**（删除不可逆 ✗）；`extensions.json` 说 VS Code **正在用**的那份**永不删**，别的发布者的目录与条目**一个字节不动**。② **根治**那半：404 必须修（它就是缓存两半漂移的**直接机制** —— 强制刷新把版本**对象**插进 URL ⇒ `v[object Object]`），失败时打**实际 URL** + 给"404 是资产不存在、不是网络"的出路（不许再把人引去查代理 ✗）。③ **不许靠抬文档上限达标**（`scripts/docs-budget.json` 一个字不动 ✓）。
+**落地**：`scripts/soko prune`（**不叫 `clean`** —— 那会转发给 `sokonanoda clean` 的**编译缓存** ⇒ 撞名 ✗）· `doctor` 报版本散布（`--json` 的 `versions`，**只报告、不改 `ready`**）· `download()` 归一化并**拒绝非版本**（拼不出 URL 就报错）· `ensure` 传 `.text`。**判据**：`crates/cli/tests/launcher.rs` 的 `update_forces_a_refresh_at_the_pinned_version`（每次请求都带 `/v<pin>/`、恰好两次）与 `prune_is_a_dry_run_until_yes_and_unifies_the_three_sources`（dry-run 零删除 · `--check` exit 3 · `--yes` 后 8 → 1 个扩展 · 两 marker 一致 · sokonanoda 的 `.obsolete` 条目 0，别人的条目保留）。**读数**：`STATUS.md` · `.cache/ux/fix-w3/VERDICT.md`。
 
 ### 9.5 2026-09-26 专项：记法 + 隐式参数 + **产品交互面**（用户拍板 ✓）
 

@@ -30,8 +30,40 @@ CLI + LSP 到缓存（幂等、跨平台、零 cargo）。**它的契约是"缓�
 
 - 写成功 → exit `0`，两个 `source` 是 `download(forced)`（或 `download`）；
 - **没写成功 → exit `3`**，stderr 打 `cache NOT refreshed` + 每个失败的
-  `download: <原因>`，并说明这次实际用的是哪个回退（`repo-build` /
-  `override` / `cache`）。回退可用**不代表**刷新成功，两者必须分开读。
+  `download: <原因>` **和实际请求的 `url:`**，并说明这次实际用的是哪个回退
+  （`repo-build` / `override` / `cache`）。回退可用**不代表**刷新成功，两者必须分开读。
+
+### `HTTP 404` ≠ 网络问题（2026-10-15 实测修好的那个）
+
+`download: fetch failed: HTTP 404` 说明**那个 URL 上没有资产**，不是连不上网
+（stderr 现在会打 `url:` 那行 —— 先看它，别去查代理）。两种可能：
+
+1. **URL 本身拼错了**（`SUB-soko-update-cli-404` 的根因，已修）：旧实现把版本
+   **对象**插进 URL ⇒ `…/download/v[object Object]/…` ⇒ curl 把 `[` 当 glob、
+   Node fetch 拿 404。现在 `download()` 只接受 `x.y.z` 字符串、拒绝非版本；
+   判据 `crates/cli/tests/launcher.rs` 的 `update_forces_a_refresh_at_the_pinned_version`
+   （钉住"**每次请求都带 `/v<pin>/`、恰好两次**"）。
+2. **这个版本真的没有该资产**（还没发版/资产名变了）：按 stderr 的
+   `gh release view v<ver> --json assets --jq '.assets[].name'` 对照；真缺就
+   `cargo build --release -p sokonanoda-cli --locked` 用仓库构建，别装 Rust 之外
+   的东西、也别改 `releases/latest`。
+
+### 扩展目录堆积是**另一件事**：`scripts/soko prune`
+
+`update` 只修**缓存**两半。`~/.vscode/extensions/` 下的多个 sokonanoda 版本是
+**VS Code 的簿记**（`code --install-extension` 不删旧版，只写进 `.obsolete`）——
+`update` 碰不到它们。一条命令收口：
+
+```bash
+scripts/soko prune            # dry-run：列 keep/remove + 悬空 .obsolete + 两半 marker
+scripts/soko prune --yes      # 真清：多余扩展目录 + 悬空 .obsolete + 对齐两半 marker
+scripts/soko prune --check    # 只判定：有可清的就 exit 3（可当门禁）
+```
+
+⚠ 默认 **dry-run**（删除不可逆）；`extensions.json` 说 VS Code **正在用**的那份
+**永不删**；只动 `sokonanoda-lang.sokonanoda-*` 目录与它自己的 `.obsolete` 条目，
+别的扩展与别的条目一个字节都不动。`prune` **不装新版**：盘上没有与版本钉匹配的
+扩展时它会说出来并给 `code --install-extension` 的出路（静默会让人以为"统一了" ✗）。
 
 ### ⚠️ 别把"能跑"当成"刷好了"
 
