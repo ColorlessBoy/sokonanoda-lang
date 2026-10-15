@@ -160,10 +160,15 @@ python3 scripts/audit-notation-paths.py --self-test || exit 1
 python3 scripts/audit-wire-fields.py --selftest || exit 1
 python3 scripts/docs-lint.py --selftest || exit 1' 
 
-# **队列不变量**（洞 `CI-LOCAL-NO-QUEUE-CHECK`，2026-10-15 ✓）—— 与 CI 的 `ledger` job
-# （shard 1 · 第 863 行那个 step）**逐字同源** ✓：`ux-queue.py --check` = 覆盖自检
+# **队列不变量**（洞 `CI-LOCAL-NO-QUEUE-CHECK`，2026-10-15 ✓）—— 与 CI 的 `queue-lint` job
+# **逐字同源** ✓：`ux-queue.py --check` = 覆盖自检
 # （来源逐条在队列里 · 探针都有登记 · §0.2 摘要与队列同数）+ 调度器不变量（收口有证据 ·
 # umbrella 子任务全关 · 两层不漂移 · **收口指针祖先性** ✓）。
+# ⚠ **本步的 job 标签曾是 `ledger`** ✗⇒✓（2026-10-15）：它原先是"`ledger` shard 1 的
+# `if [ "${{ matrix.shard }}" = "1" ]` 里那一段"，而洞 `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH`
+# 已把 `ux-queue.py` 搬进**不设 `if:` 的 `queue-lint` job** ✓（同族的
+# `LEDGER-SHARD1-REMAINING-GUARDS` 又把多会话守卫与 `compile-cache.py --selftest` 搬了过去 ✓）
+# ⇒ 标签跟着改，别让"这一步对应哪个 job"悄悄漂移 ✗。
 # ⚠ 此前 ci-local **根本不跑它** ✗ ⇒ **本地判据集 ⊂ CI 判据集** ⇒ `ledger (1)` 能
 # **连续 20 轮 failure 而本地永远绿** ✗（实测 `38455544309` → `38675647735` = 20 轮 ✓）。
 # ⚠ **ROOT 口径**（本步唯一的坑 ✗，两半都实测过）：队列是**主 checkout 单点**，而
@@ -180,7 +185,7 @@ python3 scripts/docs-lint.py --selftest || exit 1'
 # ⚠ **`--selftest` 故意没跟进来**（如实登记，不是漏了 ✓）：它 13.2s 且含**真并发**臂
 # （8 路抢同一资源 ⇒ 时序敏感）⇒ 塞进 pre-push 等于把"假红"风险加到每次推送 ✗；
 # CI 的 `queue-lint` job（不设 `if:` ⇒ 每推必跑）仍在跑它 ✓（要本地跑：`SOKO_QUEUE_ROOT=<主 checkout> python3 scripts/ux-queue.py --selftest`）。
-run "gates：队列不变量（收口证据 · 祖先性 ✓）" "ledger" bash -c '
+run "gates：队列不变量（收口证据 · 祖先性 ✓）" "queue-lint" bash -c '
 set -u
 root=$(git worktree list --porcelain | sed -n "1s/^worktree //p")
 if [ -n "$root" ]; then
@@ -188,6 +193,20 @@ if [ -n "$root" ]; then
   echo "  （队列单点 = $root ✓）"
 fi
 python3 scripts/ux-queue.py --check || exit 1'
+
+# **编译缓存判据自检**（2026-10-15 · 同族的 `LEDGER-SHARD1-REMAINING-GUARDS` ✓）：
+# 它此前**只在 CI 跑** ✗（`scripts/soko` 的 gate 段跑的是 `status --quiet` —— 那是**预算
+# 判红**，**不是**判据通道自检 ✗）⇒ 又一处"本地判据集 ⊂ CI 判据集"（本文件上面那条
+# `CI-LOCAL-NO-QUEUE-CHECK` 的同族病 ✓）。纯函数级（只碰 `tempfile` ✓；实测在**非 git
+# 目录** `/tmp` 下也 rc=0 ✓）· 实测 0.10–0.17s ⇒ 与 docs-lint 同档，`--fast` 也跑 ✓。
+# ⚠ **`check-multi-session.py --selftest` 故意没跟进来**（如实登记 ✓，不是漏了）：
+# 它有一条"工作区的 `docs/gaps/ledger.jsonl` 必须与 HEAD **逐字节一致**"的断言，而
+# **主 checkout 上改台账是编排者的常态**（改完才 commit ✓）⇒ 那种状态下它 **rc=1** ✗
+#（实测：合成夹具里给台账追加一行、不提交 ⇒ rc=1 + "✗ selftest 反例失败：工作区的
+# `docs/gaps/ledger.jsonl` 与 HEAD 逐字节不一致" ✓）⇒ 塞进 pre-push 就是**假红生成器** ✗。
+# 它在**链接工作树**里是有牙的 ✓（那里台账本来就该等于 HEAD ✓），而 CI（干净检出）与
+# `queue-lint` job（每推必跑 ✓）都在跑它 ✓。
+run "gates：编译缓存判据自检（回收顺序 / 预算反向验证）" "queue-lint" python3 scripts/compile-cache.py --selftest
 
 # ④ editor（CI job `editor`）
 run "editor：stub 宿主" "editor" node editor/vscode/test-extension-host.js
