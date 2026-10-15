@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# post-rewrite —— **手动 `git rebase` 之后**的收口指针回填触发器（`LAND-REBASE-STALES-CLOSURE-SHAS`
+# 的第三条路，2026-10-16）。
+#
+# ⚠ **为什么挂在这里**（`git` 的钩子语义，实测 ✓）：`post-rewrite` 是**唯一**在
+#   `git rebase` / `git commit --amend` **刚刚改写完提交**那一刻被调用、且能把
+#   `<old-sha> <new-sha>` 对照表从 **stdin** 交出来的钩子 ✓ —— 那正是"分支提交被重写成
+#   孪生"这个事件的**唯一可观测点** ✓。而本仓 `core.hooksPath = scripts/githooks`
+#   **早就装好了**（`scripts/install-hooks.sh` ✓，与 `pre-commit` / `commit-msg` /
+#   `pre-push` 同一处）⇒ 这不是"新造一条安装步骤" ✗，是**把已有的触发面接上** ✓。
+#
+# ⚠ **本文件只做转发** ✗：判据、逃生门、口径**全在**
+#   `scripts/check-queue-rewrite-trigger.py --from-hook`（**唯一一处实现** —— 钩子里再写一遍
+#   就是 `AGENTS.md` 硬规则 0(b) 说的"同一规则两处写 ⇒ 下次只改一处又分叉"✗）。
+#
+# ⚠ **永不阻塞 rebase**：`git` 本来就不看 `post-rewrite` 的退出码；这里再显式 `exit 0`
+#   一次 ⇒ 账目问题**不会**让 `git rebase` 失败（那会把人引到错的地方 ✗）。代价是
+#   **每一档都必须印字**（绿也要出声 ✓，见那个文件的 docstring）。
+#
+# 逃生门：`SOKO_SKIP_HOOK=1 git rebase …`（例外要在 `STATUS.md` 写明原因 ✗）。
+set -uo pipefail
+# ⚠ **`GIT_DIR` 必须摘掉**（2026-10-16 实测 ✗）：`git rebase` 在**链接工作树**里会把
+#   `GIT_DIR`（= 那棵工作树的 git 目录，实测 `GIT_DIR=…/.git/worktrees/wt`）交给本钩子，
+#   而它**优先于 cwd** 决定仓库发现 ⇒ 从这里起每一句 `git` 都可能量到**另一棵树**
+#   （实测后果：触发器把**主 checkout** 误判成"链接工作树" ⇒ 在最需要它的那一刻空转 ✗）。
+#   `scripts/check-queue-rewrite-trigger.py` 自己也有 `clean_git_env()`（**唯一一处** ✓），
+#   这里只是**别在进它之前**就已经量错 ✓。
+root=$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR -u GIT_INDEX_FILE -u GIT_PREFIX \
+  git rev-parse --show-toplevel 2>/dev/null || pwd)
+trigger="$root/scripts/check-queue-rewrite-trigger.py"
+if [ ! -f "$trigger" ]; then
+  printf '%s\n' "[post-rewrite] ⓘ 找不到 $trigger ⇒ 跳过（本仓没有这条触发器）✓"
+  exit 0
+fi
+if ! command -v python3 >/dev/null 2>&1; then
+  printf '%s\n' "[post-rewrite] ⚠ 没有 python3 ⇒ **判不了**（判不了不是绿 ✗）⇒ 手动补跑：" \
+    "  SOKO_QUEUE_ROOT=\$(git worktree list --porcelain | sed -n '1s/^worktree //p') python3 scripts/ux-queue.py --repoint-all --reason '手动 rebase 后回填'" >&2
+  exit 0
+fi
+python3 "$trigger" --from-hook "${1:-}"
+exit 0
