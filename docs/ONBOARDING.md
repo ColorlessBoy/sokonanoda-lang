@@ -61,9 +61,9 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=2 blocker=0 high=0 medium=1 low=1 -->
-**未完成 2 条**（blocker **0** · high **0** · medium **1** · low **1**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
-最靠前的 5 条：`LEDGER-SHARD1-REMAINING-GUARDS` · `G69-NO-EVENT-CHECK`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
+<!-- QUEUE:COUNTS total=7 blocker=0 high=4 medium=2 low=1 -->
+**未完成 7 条**（blocker **0** · high **4** · medium **2** · low **1**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+最靠前的 5 条：`SUB-eqsubst-clue-order-clash` · `SUB-orchestrator-attention-structure` · `SUB-parse-error-kills-whole-file` · `SUB-soko-update-cli-404` · `SUB-no-version-cleanup-command`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
 > **口径（2026-10-12 清台账 + 事件调度器）**：**明细只活在脚本里** —— `--next` 取队列 · `--claim <id>` 认领（**最多 4 个并发（"4 核"）**，写锁 + 
