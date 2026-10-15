@@ -1693,6 +1693,12 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     // 这里**不要求 fixture 里有 `def`**（本 fixture 只有 theorem）：有 `value` 的声明，
     // 必须同时带 `value_runs`，且 runs 能重建 value。**"字段必须在 wire 里"的强判据**
     // 由 `scripts/audit-wire-fields.py` 守（已进 gate 与 CI）——那条才是主守卫。
+    //
+    // ⚠ **本循环在它自己的夹具上是空转的**（2026-10-16 实测：`units/u01.sokonanoda`
+    // 的 8 条声明里**带 `value` 的 0 条** ⇒ `withValue` 恒为空 ⇒ 循环体从不执行 ✗）。
+    // **非空转**的那一半在下面第三层的过程态用例里（生成式夹具的 `def` 后续命令 ⇒
+    // 真载荷 → 真渲染器 ⇒ 断言 `.decl-val-line` **真的画出来了** ✓）；本条保留原样
+    //（不为了让它"看起来有事做"而改夹具 —— 那会动到别的用例的计数 ✗）。
     const withValue = decls.filter((d) => typeof d.value === "string" && d.value.length > 0);
     for (const d of withValue) {
       assert.ok(
@@ -2041,6 +2047,236 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
           emptySentence ? emptySentence.textContent : "(声明栏里没有 .empty 元素)"
         }`,
     );
+  });
+
+  // ── 第三层（续）：**过程态 / 差分 / 边界**三族（`E2E-COVERAGE-4-OF-36`）─────
+  //
+  // pr1 如实标注的边界：第三层当时只覆盖 `negative` 家族 + 一条干净对照 = **4/36** ✗；
+  // 过程态（24 份）/ 差分（6 份）/ 边界（3 份）三族只到 **wire 层**
+  // （`crates/lsp/tests/process_state_goals_wire.rs` 只取两份代表性输入）。
+  // 本轮把这三族接上**同一份输入面**（`sokonanoda fixtures --json`）—— 是**扩覆盖**，
+  // 不是新造 ✓（生成器与 front / CLI / LSP 三层共用同一份 ✓）。
+  //
+  // **用户动作**（`AGENTS.md` 验证设计纪律 0(a)）：用户做的是**打开一份写了一半的
+  // 文件**（`by` 块的目标还没关，后面还接着别的命令），然后**看 Infoview 的声明栏**。
+  // ⇒ 判据绑在"**声明栏里画出了哪几行 / 哪几行目标**"上 —— 不是"链路通" ✗，
+  // 也不是"没有诊断" ✗（用户的原话形态是「声明列表**不回来**」= 该有的没有了 ✗）。
+  //
+  // **屏幕上会多/少什么**（硬规则 1）—— 三族各自的答案：
+  //  * 过程态：目标未关的那条（`a`）卡片上**多一行** `目标 ⊢ …`；它**后面**那条
+  //    命令（`b` / `example` / `def`）**该有一行** —— 改前（`638fb911`：`intro` /
+  //    `unfold` / `unfold … at` 三处参数表把下一行顶格的命令关键字吃成 binder）
+  //    那一行**整行不见** ✗（实测：wire 上只剩 `a`，`n=1 < 2`）；
+  //  * 差分：**删掉收尾那一行** ⇒ `a` 的卡片上**多出**一行目标，而**两条声明都不许少**
+  //    （"变体之间只差该差的那一点"）；
+  //  * 边界：未关块在**文件尾**（**对照**：改前也解析正常 ✓）⇒ 1 行；后面跟**两条**
+  //    ⇒ 3 行；后续命令**被缩进** ⇒ 2 行。
+  //
+  // ⚠ **正对照没有被放宽**：上面那条 `negative` 家族的用例**逐字不动** ——
+  // 干净文件仍必须两条声明都在 + **0 error**，每个坏输入仍必须 **≥1 条 Error** ✓。
+
+  /// 一份输入的**屏幕读数**：真链路载荷（真 VS Code + 真 LSP + 真扩展）+ 真渲染器
+  /// （`media/infoview.js`）⇒ 声明栏画了哪几行、几行目标。
+  async function familyScreen(input) {
+    const slug = input.id.replace(/[^a-z0-9]+/gi, "-");
+    const uri = await writeDoc(`third-layer-family-${slug}.sokonanoda`, input.source);
+    // ⚠ 与上面那条同一条等待（`openAndSettle`）：`did_open` **不 await 编译** ⇒
+    //   只等"载荷属于这份文档"会读到打开瞬间那一份**空**答案 ✗（实测踩过）。
+    const decls = await openAndSettle(uri, input.id);
+    const errors = vscode.languages
+      .getDiagnostics(uri)
+      .filter((d) => d.severity === vscode.DiagnosticSeverity.Error);
+    const root = renderInfoview(hostMessages(decls, errors.length));
+    return {
+      input,
+      decls,
+      names: decls.map((d) => (d.name ? d.name : "?")),
+      errors,
+      screen: declRowsOnScreen(root),
+      goalLines: domByClass(root, "decl-goal-line").length,
+      valueLines: domByClass(root, "decl-val-line").map((line) => line.textContent),
+    };
+  }
+
+  /// 三族**共同**的阴性断言（"该有的在不在" ✓ —— 不是"没有诊断" ✗）+ 屏幕读数。
+  function assertFamilyContent(reading) {
+    const { input, decls, names, screen, goalLines, errors } = reading;
+    const line =
+      `第三层读数 · ${input.id} · 用户动作=打开这份文件 ⇒ ` +
+      `屏幕（Infoview 声明栏）画了 ${screen.length} 行 [${screen.join(", ")}] · ` +
+      `目标行 ${goalLines} 条 · Problems ${errors.length} 条 error`;
+    console.log(line);
+    assert.ok(
+      decls.every((d) => d.name),
+      `${input.id}：载荷里每条声明都该有名字（没有名字 = 屏幕上画成 "?"）\n${line}`,
+    );
+    // ⭐ 阴性断言：**该有的**声明一条都不许少（生成器给的 `judged` 是下界）。
+    assert.ok(
+      decls.length >= input.expect.judged,
+      `${input.id}：声明栏该有 **≥${input.expect.judged}** 条声明（生成器的"该有的"），` +
+        `实际 ${decls.length} 条 ${JSON.stringify(names)} ⇒ **该有的没有了** ✗\n${line}`,
+    );
+    // ⭐ 阴性断言：未关目标要**看得见**（不是只有名字）。
+    assert.ok(
+      goalLines >= input.expect.open,
+      `${input.id}：目标行该有 **≥${input.expect.open}** 条（未关目标要在卡片上看得见），` +
+        `实际 ${goalLines} 条 ⇒ 用户看不见"还欠什么" ✗\n${line}`,
+    );
+    // ⭐ **渲染结果**：屏幕上画的行必须与载荷**逐条对上**（画少了 = 用户看不见）。
+    assert.deepStrictEqual(
+      screen,
+      names,
+      `${input.id}：屏幕上画的行必须与载荷**逐条对上**（画少了 = 用户看不见）\n${line}`,
+    );
+  }
+
+  test("第三层：过程态 —— 目标未关的 by 块后面那条命令，声明栏里该有一行", async () => {
+    const dump = generatedInputs();
+    const inputs = dump.inputs.filter((input) => input.family === "process-state");
+    assert.ok(
+      inputs.length >= 24,
+      `过程态家族该有 24 份（4 处参数表 × 3 种后续命令 × 有无空行），实际 ` +
+        `${inputs.length} ⇒ 这条判据**静默少跑** ✗`,
+    );
+    const terminators = new Set();
+    const followers = new Set();
+    for (const input of inputs) {
+      const [, terminator, follower] = input.id.split("/");
+      terminators.add(terminator);
+      followers.add(follower);
+      const reading = await familyScreen(input);
+      assertFamilyContent(reading);
+      // ⭐ 这一族**独有**的判据：未关块**后面**那条命令必须画在屏幕上 ——
+      //    改前（`638fb911`）它整行不见（旧 parser 把顶格的命令关键字吃成 binder）✗
+      const followerOnScreen =
+        follower === "example"
+          ? reading.decls.some((d) => d.kind === "example")
+          : reading.screen.includes("b");
+      assert.ok(
+        followerOnScreen,
+        `${input.id}：未关块**后面**那条 \`${follower}\` 命令必须出现在声明栏里 —— ` +
+          `实际屏幕 ${JSON.stringify(reading.screen)} · kinds ` +
+          `${JSON.stringify(reading.decls.map((d) => d.kind))} ⇒ **该有的没有了** ✗`,
+      );
+      // 未关的那条（`a`）必须**看得见目标**，不只是有个名字。
+      assert.ok(
+        reading.goalLines >= 1,
+        `${input.id}：未关的 \`a\` 卡片上该有一行 \`目标 ⊢ …\`（用户看的正是"还欠什么"）`,
+      );
+      // ⭐ **横向排查**（`AGENTS.md` 硬规则 0(b)：同类问题不许修单点）——
+      //    T-D52 的那条接缝（`def` 卡片的第二行 `:= <值>`）在**真链路**上也要有人验：
+      //    原来第三层只断言**载荷里有** `value`/`value_runs`（"数据在" ✗，见上面
+      //    `declarations panel lists a project unit's declarations` 的注释），
+      //    而"**画出来没有**"只有 `test-webview.js` 的**桩宿主**验过 ⇒
+      //    **真载荷 → 真渲染器**这一跳**没人验** ✗ —— 那正是 T-D52 的病根
+      //    （"e2e 全绿却用户看不见"）。这里用同一份生成式输入面（`def` 后续命令）
+      //    把它补上，**不另造输入** ✓。
+      if (follower === "def") {
+        const defDecl = reading.decls.find((d) => d.kind === "def" && d.value);
+        assert.ok(
+          defDecl,
+          `${input.id}：后面那条 \`def\` 必须带 \`value\`（R-1 的**载荷**那一半）—— ` +
+            `实际 ${JSON.stringify(reading.decls.map((d) => [d.kind, d.value]))}`,
+        );
+        assert.ok(
+          reading.valueLines.some(
+            (text) => text.includes(":=") && text.includes(defDecl.value),
+          ),
+          `${input.id}：\`def\` 卡片上必须**真的画出**第二行 \`:= ${defDecl.value}\` —— ` +
+            `实际画了 ${JSON.stringify(reading.valueLines)} ⇒ **数据对了 ≠ 用户看见了** ✗`,
+        );
+      }
+    }
+    // **修实例不修类** ✗：四处参数表 × 三种后续命令都得真的跑到。
+    assert.deepStrictEqual(
+      [...terminators].sort(),
+      ["cases", "intro", "unfold", "unfold-at"],
+      "四处参数表（`intro` / `unfold` / `unfold … at` / `cases` 分支 binder）都得跑到",
+    );
+    assert.deepStrictEqual(
+      [...followers].sort(),
+      ["def", "example", "theorem"],
+      "三种后续命令（`theorem` / `example` / `def`）都得跑到",
+    );
+  });
+
+  test("第三层：差分 —— 删掉那一行，声明栏多出一行目标而两条声明都不少", async () => {
+    const dump = generatedInputs();
+    const inputs = dump.inputs.filter((input) => input.family === "differential");
+    assert.strictEqual(inputs.length, 6, `差分该有 6 份（3 对变体），实际 ${inputs.length}`);
+    const groups = new Map();
+    for (const input of inputs) {
+      const [, group] = input.id.split("/");
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push(input);
+    }
+    assert.deepStrictEqual(
+      [...groups.keys()].sort(),
+      ["delete-line", "sorry", "terminator"],
+      "差分的三对变体（`sorry` 有/无 · `删掉一行` · 换收尾 tactic）都得跑到",
+    );
+    for (const [group, pair] of groups) {
+      assert.strictEqual(pair.length, 2, `差分 \`${group}\` 该是**一对**变体`);
+      const readings = [];
+      for (const input of pair) {
+        const reading = await familyScreen(input);
+        assertFamilyContent(reading);
+        readings.push(reading);
+      }
+      const [first, second] = readings;
+      // ⭐ 差分的判据：**变体之间只差该差的那一点** ——
+      //    声明**一条都不许少**（两份的屏幕行逐条相同），
+      //    而"目标关不关"只按生成器的期望差开（`delete-line` 那一对是 0 ⇒ 1）。
+      assert.deepStrictEqual(
+        second.screen,
+        first.screen,
+        `差分 \`${group}\`：两个变体的声明栏行必须**逐条相同**（变体不许让声明消失 ✗）—— ` +
+          `${first.input.id} ⇒ ${JSON.stringify(first.screen)} vs ` +
+          `${second.input.id} ⇒ ${JSON.stringify(second.screen)}`,
+      );
+      assert.strictEqual(
+        Math.abs(second.goalLines - first.goalLines),
+        Math.abs(second.input.expect.open - first.input.expect.open),
+        `差分 \`${group}\`：两个变体的**目标行数之差**必须正好是生成器期望的那一点 —— ` +
+          `${first.input.id} 画了 ${first.goalLines} 行目标（期望 open=${first.input.expect.open}）· ` +
+          `${second.input.id} 画了 ${second.goalLines} 行目标（期望 open=${second.input.expect.open}）` +
+          ` ⇒ 用户"删掉那一行"之后该**多出一行目标**，多/少别的地方都不算 ✓`,
+      );
+    }
+  });
+
+  test("第三层：边界 —— 未关块在文件尾（对照）/ 后面跟两条 / 后续命令被缩进", async () => {
+    const dump = generatedInputs();
+    const inputs = dump.inputs.filter((input) => input.family === "boundary");
+    assert.strictEqual(inputs.length, 3, `边界该有 3 份，实际 ${inputs.length}`);
+    // 逐 id 钉死屏幕上的行（这三份的声明名是确定的）——
+    // 第一份是**对照**：它在改前（`638fb911`）也解析正常 ✓ ⇒ 咬住证明的
+    // "**可归属**"就靠它（坏版本下它仍绿，另两份红）。
+    const want = {
+      "boundary/unclosed-at-eof": ["a"],
+      "boundary/two-followers": ["a", "b", "c"],
+      "boundary/unclosed-then-indented": ["a", "b"],
+    };
+    assert.deepStrictEqual(
+      inputs.map((input) => input.id).sort(),
+      Object.keys(want).sort(),
+      "边界的三个 id 必须**都在**（少一个 ⇒ 判据静默少跑 ✗）",
+    );
+    for (const input of inputs) {
+      const reading = await familyScreen(input);
+      assertFamilyContent(reading);
+      assert.deepStrictEqual(
+        reading.screen,
+        want[input.id],
+        `${input.id}：边界变体的屏幕行是确定的 —— 期望 ${JSON.stringify(want[input.id])}，` +
+          `实际 ${JSON.stringify(reading.screen)}`,
+      );
+      assert.strictEqual(
+        reading.goalLines,
+        1,
+        `${input.id}：恰好一条未关目标 ⇒ 卡片上恰好 1 行目标，实际 ${reading.goalLines}`,
+      );
+    }
   });
 
   test("open declaration ships coloured goal runs to the Infoview", async () => {
