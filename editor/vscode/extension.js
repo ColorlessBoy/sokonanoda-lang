@@ -701,6 +701,7 @@ class InfoviewProvider {
     this._ready = false;
     this._lastState = undefined; // {uri, state} — replayed when the view returns
     this._lastDecls = undefined; // last soko/goals decls (cursor moves don't touch it)
+    this._lastDeclsUri = undefined; // which document that payload belongs to (e2e)
     this._lastStatus = undefined; // last {state, decls?} progress snapshot
   }
 
@@ -779,6 +780,20 @@ class InfoviewProvider {
     return Array.isArray(this._lastDecls) ? this._lastDecls : [];
   }
 
+  /// **e2e 用（2026-10-16）**：上面那份载荷**属于哪一份文档**（`uri.toString()`）。
+  ///
+  /// 为什么非要有它：`setDecls` 是**整表重建**、不校验来源 ⇒ 切文档时
+  /// `lastDecls()` 会**先**停在上一份的答案上 ✗。e2e 若只等"载荷非空"，就会拿
+  /// **上一份文档**的声明去断言**这一份**（第三层的假绿）✗。
+  /// 有了它，第三层的等待条件是"**这份 uri** 的答案到了"——
+  /// 而"答案到了但一条声明都没有"（= 用户报的「声明列表**不回来**」）**照样**
+  /// 会满足这个条件 ⇒ 判据判红的是**读数**，不是超时 ✓。
+  ///
+  /// 生产路径零行为变化（只是把已有的事实读出来；`_post` 发的仍是 `decls` ✓）。
+  lastDeclsUri() {
+    return this._lastDeclsUri;
+  }
+
   /// E30：e2e 用它断言"项目区块收到了什么"（与 `lastDecls` 同款）。
   lastProject() {
     return this._lastProject;
@@ -797,8 +812,10 @@ class InfoviewProvider {
     return this._lastState ? this._lastState.state : null;
   }
 
-  setDecls(decls) {
+  setDecls(decls, uri) {
     this._lastDecls = decls;
+    // 载荷**属于哪一份文档**（e2e 的 `lastDeclsUri()` 读它；见那里的注释）。
+    if (uri !== undefined) this._lastDeclsUri = String(uri);
     // Webview 的 `decls` 是整表重建（50 条 ≈ 1200 个 DOM 节点）：内容没变就别发。
     // 一次诊断事件原本会发两遍（树 + ensureDeclarations 各一次）。
     const fingerprint = declsFingerprint(decls);
@@ -2941,7 +2958,7 @@ async function activate(context) {
   // released (`retainContextWhenHidden: false`); the provider caches the last
   // state/decls/status and replays them on the next `ready` (docs/design §5).
   infoviewProvider = new InfoviewProvider(context.extensionUri, provider);
-  provider.onDecls = (decls) => infoviewProvider.setDecls(decls);
+  provider.onDecls = (decls, uri) => infoviewProvider.setDecls(decls, uri);
   provider.onState = (uriString, state) => infoviewProvider.setState(uriString, state);
   provider.onStatus = (status) => infoviewProvider.setStatus(status);
   context.subscriptions.push(

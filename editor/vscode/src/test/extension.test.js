@@ -12,6 +12,8 @@ const assert = require("assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const vm = require("vm");
+const { execFileSync } = require("child_process");
 const vscode = require("vscode");
 
 const EXTENSION_ID = "sokonanoda-lang.sokonanoda";
@@ -68,6 +70,10 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
   // 且不污染夹具工作区。
   let tmpDir;
   let extensionApi;
+  // 哪些 URI **收到过**诊断发布（含**空**诊断 —— 干净文件也会发一条空表）。
+  // 第三层用它当"服务器把这份文档**编译完了**"的信号（见 `waitForCompile`）。
+  let diagnosed;
+  let diagnosedSub;
 
   suiteSetup(async () => {
     console.log(`sokonanoda-lsp binary: ${SERVER_BINARY}`);
@@ -90,9 +96,15 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       console.log(`--- doctor failed: ${error?.message ?? error}`);
     }
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sokonanoda-vscode-test-"));
+    // 诊断发布事件是**全窗口**的；只关心我们自己写出来的那几个 uri。
+    diagnosed = new Set();
+    diagnosedSub = vscode.languages.onDidChangeDiagnostics((event) => {
+      for (const uri of event.uris) diagnosed.add(uri.toString());
+    });
   });
 
   suiteTeardown(() => {
+    diagnosedSub?.dispose();
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -1693,6 +1705,342 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
         `${d.name} 的 value_runs 必须能重建 value（与 ty_runs 同款守卫）`,
       );
     }
+  });
+
+  // ── 第三层：**用户看到的东西**（生成式夹具，2026-10-16）─────────────────────
+  //
+  // 缺口 `AGENT-DOES-NOT-PRODUCE-USER-INPUTS`（2026-10-15，high）的**第三层**。
+  // 用户的结构性诊断（主因）：
+  //   **"仪表够用，缺的是'用户会输入什么'—— Agent 从不喂那个输入"** ✗
+  // 前两层已经接上生成器（`crates/front/src/fixtures.rs`，36 份：过程态 24 /
+  // 差分 6 / 阴性 3 / 边界 3）：
+  //   * 真相层 `crates/front/tests/process_state_fixtures.rs`（8 passed）
+  //   * 入口层 `crates/cli/tests/process_state_entry.rs`（5 passed）
+  // 而**第三层当时没落**（`docs/e2e/**` 那一轮不可写）⇒ "用户看到的**渲染结果**"
+  // 没人验 ✗ —— 本用例就是补它。
+  //
+  // **输入面**：`sokonanoda fixtures --json`（`crates/cli/src/fixtures.rs`）——
+  // 与上面两层**同一份生成器** ✓，**不是**这里手写的实例 ✗（手写实例正是这条 bug
+  // 的病根：修 `SUB-parse-error-kills-whole-file` 时只补了两条手写用例，
+  // 同类换个 tactic 就没人管 ✗）。
+  //
+  // **用户动作 ⇒ 可见结果**（`AGENTS.md` 验证纪律 0(a)）：用户做的事是
+  // **打开一份写了一半的文件**（中间夹着一条坏命令），然后**看 Infoview 的声明栏**。
+  // ⇒ 判据绑在"**声明栏里画出了哪几行**"上 —— 不是"链路通" ✗，也不是"没有诊断" ✗
+  //（用户报的原话是「声明列表**不回来**」= **该有的没有了** ✗）。
+
+  /// 被测的 CLI（`fixtures --json` 的出口）。解析顺序与扩展**同源**：
+  /// bundled `bin/<target>/`（`scripts/vscode-e2e.sh` stage 的那份）→ 仓库
+  /// `target/debug|release/`。
+  function findCliBinary() {
+    const cliName = process.platform === "win32" ? "sokonanoda.exe" : "sokonanoda";
+    const binDir = path.join(__dirname, "..", "..", "bin");
+    if (fs.existsSync(binDir)) {
+      for (const entry of fs.readdirSync(binDir)) {
+        const candidate = path.join(binDir, entry, cliName);
+        if (fs.existsSync(candidate)) return candidate;
+      }
+    }
+    for (const profile of ["debug", "release"]) {
+      const candidate = path.join(REPO_ROOT, "target", profile, cliName);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+    return undefined;
+  }
+
+  /// `sokonanoda fixtures --json` ⇒ 生成器的**全部**输入（schema `soko.fixtures/1`）。
+  function generatedInputs() {
+    const cli = findCliBinary();
+    assert.ok(
+      cli,
+      "第三层要 `sokonanoda fixtures --json` 交出的输入面：找不到 CLI —— " +
+        "先跑 `scripts/vscode-e2e.sh`（它构建 + stage 到 editor/vscode/bin/<target>/）",
+    );
+    const out = execFileSync(cli, ["fixtures", "--json"], {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    const dump = JSON.parse(out);
+    assert.strictEqual(
+      dump.schema,
+      "soko.fixtures/1",
+      "输入面的 schema 是这一层的版本闸（变了就要一起改这里）",
+    );
+    assert.ok(
+      Array.isArray(dump.inputs) && dump.inputs.length > 0,
+      `生成器不许是空的（否则这一层空转）：${JSON.stringify(dump).slice(0, 200)}`,
+    );
+    return dump;
+  }
+
+  // ── 最小 DOM 桩 + 真渲染器 ──────────────────────────────────────────────
+  //
+  // **为什么要在 e2e 里再渲染一遍**：真 VS Code 的扩展宿主**读不到 webview 的
+  // DOM**（平台不暴露 iframe，见本文件 T-A5 那条的注释）⇒ e2e 单独能拿到的最强
+  // 事实只是"webview **收到了什么**"。那正是"数据在"✗ —— 而用户看到的是**画出来
+  // 的行**。所以这里把**真链路拿到的载荷**喂给**真渲染器**（`media/infoview.js`，
+  // 不是复刻一份 ✗），数它画了几行 `.decl`。桩与 `editor/vscode/test-webview.js`
+  // 的 DOM 桩**同形状**（那一层是渲染的常规守卫；这里只用它把第三层的读数补齐）。
+  function makeDomStub() {
+    const makeNode = (tag) => {
+      const node = {
+        tagName: tag,
+        className: "",
+        attributes: {},
+        listeners: {},
+        text: "",
+        childNodes: [],
+        appendChild(child) {
+          this.childNodes.push(child);
+          return child;
+        },
+        removeChild(child) {
+          const index = this.childNodes.indexOf(child);
+          if (index >= 0) this.childNodes.splice(index, 1);
+          return child;
+        },
+        setAttribute(name, value) {
+          this.attributes[name] = value;
+        },
+        addEventListener(type, handler) {
+          this.listeners[type] = handler;
+        },
+      };
+      Object.defineProperty(node, "firstChild", {
+        get() {
+          return this.childNodes[0] || null;
+        },
+      });
+      Object.defineProperty(node, "textContent", {
+        get() {
+          if (this.childNodes.length > 0) {
+            return this.childNodes.map((child) => child.textContent).join("");
+          }
+          return this.text;
+        },
+        set(value) {
+          this.text = String(value);
+          this.childNodes.length = 0;
+        },
+      });
+      return node;
+    };
+    const root = makeNode("div");
+    root.id = "root";
+    const document = {
+      body: makeNode("body"),
+      createElement: (tag) => makeNode(tag),
+      createTextNode: (text) => {
+        const node = makeNode("#text");
+        node.textContent = String(text);
+        return node;
+      },
+      getElementById: (id) => (id === "root" ? root : null),
+    };
+    return { document, root };
+  }
+
+  /// 把**主机真的会发的那几条消息**喂给真 `media/infoview.js`，读回 DOM。
+  function renderInfoview(messages) {
+    const { document, root } = makeDomStub();
+    const listeners = {};
+    const sandbox = {
+      document,
+      window: {
+        addEventListener(type, handler) {
+          listeners[type] = handler;
+        },
+      },
+      acquireVsCodeApi: () => ({ postMessage: () => {} }),
+      console,
+    };
+    const source = fs.readFileSync(
+      path.join(__dirname, "..", "..", "media", "infoview.js"),
+      "utf8",
+    );
+    vm.runInNewContext(source, sandbox, { filename: "infoview.js" });
+    assert.ok(listeners.message, "infoview.js 必须注册 window message 监听（协议入口）");
+    for (const message of messages) listeners.message({ data: message });
+    return root;
+  }
+
+  function domDescendants(node, out = []) {
+    out.push(node);
+    for (const child of node.childNodes) domDescendants(child, out);
+    return out;
+  }
+
+  function domByClass(root, className) {
+    return domDescendants(root).filter(
+      (node) =>
+        typeof node.className === "string" && node.className.split(" ").includes(className),
+    );
+  }
+
+  /// **屏幕读数**：声明栏画了几行、名字分别是什么。
+  function declRowsOnScreen(root) {
+    return domByClass(root, "decl").map((row) => {
+      const name = domByClass(row, "decl-name")[0];
+      return name ? name.textContent : "?";
+    });
+  }
+
+  /// 主机（`InfoviewProvider`）真的会发的两条消息（`_post` 都盖 `protocol: 1`）。
+  function hostMessages(decls, errors) {
+    return [
+      { protocol: 1, type: "status", state: "ready", decls: decls.length, errors },
+      { protocol: 1, type: "decls", decls },
+    ];
+  }
+
+  /// 打开一份新写的文档，并等**编译之后**的那一份声明载荷。
+  ///
+  /// ## 为什么不能只等"载荷属于这份文档"（**实测踩到过** ✗）
+  ///
+  /// `did_open` **不 await 编译**（`crates/lsp/src/lib.rs:2685`：记下文本就返回，
+  /// 编译在别的任务里跑 —— 那是 T-A30 为了不堵消息循环）。而 LSP 对
+  /// 「服务器还没编译这份文档」与「parse 失败」**同答空**（`goal_decls` 的契约）
+  /// ⇒ 打开瞬间那一份 `soko/goals` 答案**可能是空的**。只等"uri 对上了"就会读到
+  /// 那一份 —— 本用例第一版正因此**在干净文件上判红过一次**（读数：
+  /// `屏幕画了 0 行 []`）。
+  ///
+  /// ## 判据（两步，都可归属）
+  ///
+  /// ① **编译完了**：这份 uri 收到过诊断发布 —— 含**空**表（干净文件也发，
+  ///    `crates/lsp/src/lib.rs:977-981` 对 `out` 里每一项**无条件** `publish_diagnostics`）
+  ///    ⇒ 这就是"服务器已经编译完这份文档"的信号 ✓；
+  /// ② **重取一次**：`refresh()` + `ensureDeclarations()` —— 与扩展自己在
+  ///    `onDidChangeDiagnostics` 里做的**同一条两步**（`extension.js:3002-3016`；
+  ///    它有个 150ms 去抖）。这里显式走一遍是为了让等待**确定**，不是替用户动作 ✗；
+  ///    ⚠ 它**不削弱判据**：坏输入下重取回来的**还是空** ⇒ 判红的是读数 ✓。
+  async function openAndSettle(uri, desc) {
+    diagnosed.delete(uri.toString());
+    await showDoc(uri);
+    await waitFor(`${desc}：Problems 面板更新（= 服务器把这份文档编译完了）`, () =>
+      diagnosed.has(uri.toString()),
+    );
+    extensionApi.goals.refresh();
+    await extensionApi.goals.ensureDeclarations();
+    await waitFor(`${desc}：Infoview 收到**这份文档**的声明载荷`, () =>
+      extensionApi.infoview.lastDeclsUri() === uri.toString(),
+    );
+    return extensionApi.infoview.lastDecls();
+  }
+
+  test("第三层：坏命令夹在中间，声明栏仍然画出该有的行（生成式夹具）", async () => {
+    const dump = generatedInputs();
+    const negatives = dump.inputs.filter((input) => input.family === "negative");
+    assert.ok(
+      negatives.length > 0,
+      "`negative` 家族空了 ⇒ 这条判据会空转（用户报的就是这一族）",
+    );
+
+    // **正对照 ②（先做）**：一条真语法错**必须**报出来 —— 不许为了让这条绿而
+    // 放宽。它同时是下面那个"服务器答了这份文档"的先行信号。
+    const clean = dump.inputs.find((input) => input.id === "differential/delete-line/full");
+    assert.ok(clean, "生成器必须给出「删掉一行」的**完整版**当正对照");
+    {
+      const uri = await writeDoc("third-layer-clean.sokonanoda", clean.source);
+      const decls = await openAndSettle(uri, `正对照 ${clean.id}`);
+      const names = decls.map((d) => d.name);
+      const errors = vscode.languages
+        .getDiagnostics(uri)
+        .filter((d) => d.severity === vscode.DiagnosticSeverity.Error);
+      const screen = declRowsOnScreen(renderInfoview(hostMessages(decls, errors.length)));
+      console.log(
+        `第三层读数 · ${clean.id} · 用户动作=打开这份文件 ⇒ ` +
+          `屏幕（Infoview 声明栏）画了 ${screen.length} 行 [${screen.join(", ")}] · ` +
+          `Problems ${errors.length} 条 error`,
+      );
+      assert.ok(
+        names.includes("a") && names.includes("b"),
+        `正对照：干净文件的两条声明都必须回来，实际 = ${JSON.stringify(names)}`,
+      );
+      assert.strictEqual(
+        errors.length,
+        0,
+        `正对照：干净文件不该有 error（放宽判据的另一种形式 ✗），实际 = ${JSON.stringify(
+          vscode.languages.getDiagnostics(uri).map((d) => d.message),
+        )}`,
+      );
+      assert.strictEqual(
+        screen.length,
+        decls.length,
+        `屏幕上画的行数必须等于载荷条数（画少了 = 用户看不见）：屏幕 ${JSON.stringify(screen)}`,
+      );
+    }
+
+    for (const input of negatives) {
+      const slug = input.id.replace(/[^a-z0-9]+/gi, "-");
+      const uri = await writeDoc(`third-layer-${slug}.sokonanoda`, input.source);
+      // ⚠ 打开**之后**要等"编译完了"再读 —— 见 `openAndSettle` 的注释
+      //   （`did_open` 不 await 编译；只等 uri 会读到打开瞬间那一份空答案 ✗）。
+      //   "答案到了但一条声明都没有"（用户报的「声明列表不回来」）**照样**满足
+      //   这个条件 ⇒ 下面判红的是**读数**，不是超时 ✓。
+      const decls = await openAndSettle(uri, input.id);
+
+      const names = decls.map((d) => d.name);
+      const diagnostics = vscode.languages.getDiagnostics(uri);
+      const errors = diagnostics.filter((d) => d.severity === vscode.DiagnosticSeverity.Error);
+
+      // ② **正对照**：真语法错仍必须报出来（这条不是"没有诊断" ✗，是"必须有"✓）。
+      assert.ok(
+        errors.length > 0,
+        `${input.id}：中间那条坏命令**必须**报出 error（不许为了让 e2e 绿而放宽判据 ✗），` +
+          `实际诊断 = ${JSON.stringify(diagnostics.map((d) => [d.severity, d.message]))}`,
+      );
+
+      // ③ ⭐ **阴性断言**：坏命令**前后**两条好定理都要在（用户的原话是
+      //    「声明列表**不回来**」= 该有的没有了 ✗）。
+      assert.ok(
+        names.includes("a"),
+        `${input.id}：坏命令**之前**那条「theorem a」必须还在声明栏里 —— ` +
+          `实际 = ${JSON.stringify(names)}（0 条 = 用户看到的「文件没解析成功…」✗）`,
+      );
+      assert.ok(
+        names.includes("c"),
+        `${input.id}：坏命令**之后**那条「theorem c」必须还在声明栏里（这正是 ` +
+          `SUB-parse-error-kills-whole-file 的病根：一处语法错废掉整份文件）—— ` +
+          `实际 = ${JSON.stringify(names)}`,
+      );
+
+      // ④ ⭐ **渲染结果**：真载荷 → 真渲染器 → 屏幕上画出来的行。
+      const screen = declRowsOnScreen(renderInfoview(hostMessages(decls, errors.length)));
+      console.log(
+        `第三层读数 · ${input.id} · 用户动作=打开这份文件 ⇒ ` +
+          `屏幕（Infoview 声明栏）画了 ${screen.length} 行 [${screen.join(", ")}] · ` +
+          `Problems ${errors.length} 条 error（第一条：${errors[0].message}）`,
+      );
+      assert.ok(
+        screen.includes("a") && screen.includes("c"),
+        `${input.id}：屏幕上必须**真的画出** a 与 c 两行 —— 实际画了 ${JSON.stringify(screen)}`,
+      );
+      assert.strictEqual(
+        screen.length,
+        decls.length,
+        `${input.id}：屏幕上画的行数必须等于载荷条数（画少了 = 用户看不见）：` +
+          `屏幕 ${JSON.stringify(screen)} vs 载荷 ${JSON.stringify(names)}`,
+      );
+    }
+
+    // ⑤ **改前屏幕上是什么**（用户可见症状的对照）：真渲染器对**空载荷 + 有错**
+    //    画的是那句「文件没解析成功…」+ **0 行**声明 —— 这正是用户 2026-10-15
+    //    报的那一格。它把上面的读数钉在一个**有意义的零点**上。
+    const emptyScreen = renderInfoview(hostMessages([], 1));
+    assert.strictEqual(
+      declRowsOnScreen(emptyScreen).length,
+      0,
+      "空载荷就该画 0 行（这条对照是上面「画了 N 行」的零点）",
+    );
+    const emptyText = domByClass(emptyScreen, "decls")[0];
+    const emptySentence = emptyText ? domByClass(emptyText, "empty")[0] : undefined;
+    assert.ok(
+      emptySentence && emptySentence.textContent.includes("文件没解析成功"),
+      "空载荷 + 有错 ⇒ **声明栏**（`div.decls`）必须说「文件没解析成功…」" +
+        `（用户 2026-10-15 看到的就是这句）—— 实际 = ${
+          emptySentence ? emptySentence.textContent : "(声明栏里没有 .empty 元素)"
+        }`,
+    );
   });
 
   test("open declaration ships coloured goal runs to the Infoview", async () => {
