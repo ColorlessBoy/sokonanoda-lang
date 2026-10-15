@@ -3554,16 +3554,30 @@ def cmd_inbox(rows: list[dict]) -> int:
     行里**没有** `source` 键 ⇒ 旧写法 `r.get("source") == "external-submission"` **恒为假**
     ⇒ `--inbox` 永远答「（inbox 空：还没有外部提交）」，而同一时刻 extras 里明明有那些行 ✗
     ⇒ 提交者看不到自己的提交（也无法跟踪受理状态），整条"发现→提交→受理"通道没有回执。
+
+    ⚠ **列宽按数据算**（`RELEASE-ADD-HINT-MISMATCH` ②，2026-10-15 · 第十七次独立复核实测 ✗）：
+    旧写法写死 `{id:<14}{st:<11}` ⇒ 长 id 溢出列宽、与状态**粘成一个词**
+    （实测 `SUB-wontfix-parking-no-guarddone`）✗ —— 详见下面那段。
     """
     state = fold()
     subs = [r for r in rows if "external-submission" in (r.get("sources") or [])]
     if not subs:
         print("（inbox 空：还没有外部提交）")
         return 0
+    # ⚠ **列宽按数据算**（`RELEASE-ADD-HINT-MISMATCH` ②，2026-10-15 · 第十七次独立复核实测 ✗）：
+    # 旧写法是写死的 `{id:<14}{st:<11}` ⇒ 长 id（实测 `SUB-wontfix-parking-no-guard` = **29**
+    # 字符）**溢出列宽**、与状态**粘成一个词**（`SUB-wontfix-parking-no-guarddone`）✗ ——
+    # 纯显示缺陷，但"看不见列边界"就等于看不清状态（`--inbox` 的全部用处就是看状态）。
+    # ⇒ 宽度 = 本批数据的**最长值 + 2**（列间留分隔 ✓）；状态列同理（`triage_rejected` 15 字符
+    # > 11 也会粘 —— 横向一起收口，不许只修 id 那一列 ✗）。
+    _lines = []
     for r in sorted(subs, key=lambda r: r["id"]):
-        cur = state.get(r["id"], {})
+        _lines.append((r, state.get(r["id"], {})))
+    _wid = max(len(r["id"]) for r, _c in _lines) + 2
+    _wst = max(len(_c.get("state", "submitted")) for _r, _c in _lines) + 2
+    for r, cur in _lines:
         st = cur.get("state", "submitted")
-        print(f"{r['id']:<14}{st:<11}{r.get('severity','?'):<8}{r.get('where','')}")
+        print(f"{r['id']:<{_wid}}{st:<{_wst}}{r.get('severity','?'):<8}{r.get('where','')}")
         print(f"  为什么：{r.get('why') or r.get('note','')}")
         if cur.get("commit"):
             print(f"  收口：{cur['commit'][:8]} · {cur.get('reading','')}")
@@ -4002,14 +4016,47 @@ def cmd_release(args: argparse.Namespace, rows: list[dict]) -> int:
         ident = f"REL-{args.version}"
         append_event({"event": "release-open", "id": ident, "version": args.version,
                       "owner": args.owner})
-        print(f"✓ 开节点 `{ident}`（version {args.version}）—— 栅栏：\n"
-              f"   ① 入版条目 `--release add <id>`（**只能加 done 且有证据的**）\n"
+        # ⚠ 栅栏正文里的命令**必须照抄就能跑**（`RELEASE-ADD-HINT-MISMATCH`，2026-10-15 · 第十七次
+        # 独立复核实测 ✗）：旧文写 `--release add <id>`（**位置参数**）⇒ 真 CLI 报
+        # `unrecognized arguments: <id>`（rc=2，实测）—— 而 `--id` 才是它读的开关 ✗。
+        # ⚠ 并且**说清"不用带 `--rel`"**：节点 id 的三级解析见下面那段（唯一开着的节点会推断 ✓）
+        # ⇒ 这三步照抄可跑（改前 `--release add --id X` **不带 `--rel`/`--version`** 是
+        # rc=2「没有这个发版节点：``」✗ = 打印的指示 ≠ 实际行为）。
+        print(f"✓ 开节点 `{ident}`（version {args.version}）—— 栅栏（**照抄就能跑** ✓）：\n"
+              f"   ① 入版条目 `--release add --id <id>`（**只能加 done 且有证据的**；节点刚开 ⇒ "
+              f"后面三步都不用带 `--rel` —— 脚本会从**唯一开着的**节点推断 ✓）\n"
               f"   ② 收拢：所有写者停手（认领清零）、工作树干净\n"
               f"   ③ `--release check` 过一遍，再 `--release cut --commit <sha> --ci <run>`"
               f"（切版指针也过**证据闸门**：存在性 + `is-ancestor` ✓）")
         return 0
+    # ⭐ **节点 id 的三级解析**（`RELEASE-ADD-HINT-MISMATCH`，2026-10-15 · 第十七次独立复核实测 ✗）：
+    #   ① `--rel` 显式给 ⇒ 用它（**权威**，永远优先 ✓）；
+    #   ② `--version` 给 ⇒ `REL-<version>`（写侧的老口径，一个字不动 ✓）；
+    #   ③ 两个都没给 ⇒ **从当前唯一"开着"的节点推断**（开着 = 还没 `cut`）—— 这正是
+    #      `--release open` 打印的栅栏第一步的形状（`--release add --id X`，紧接着
+    #      `--release check` / `--release cut`）；改前 ③ 落成**空串** ⇒ rc=2
+    #      「没有这个发版节点：``」✗ ⇒ 打印的指示与实际行为不一致（不静默，但会误导）。
+    #   ⚠ **歧义不许猜**（rc=2 + 人话，与文件里其余用法/环境错同档 ✓）：
+    #      开着 **0** 个 ⇒ 点名"先 `--release open`"；开着 **≥2** 个 ⇒ 点名那几个 + 要求显式
+    #      `--rel`（脚本不替你猜要往哪个节点里加 ✗）。
+    #   ⚠ **不是放宽**：① ② 两条照旧（正对照）；只有"**唯一**的开节点"才推断，而那个节点
+    #      本来就是**唯一可能**的落点 ✓（`--release open` 是节点的唯一出处 ✓）。
     rel = args.rel or (f"REL-{args.version}" if args.version else "")
-    if not rel or rel not in nodes:
+    if not rel:
+        _open = sorted(i for i, n in nodes.items() if not n["cut"])
+        if len(_open) == 1:
+            rel = _open[0]
+        elif not _open:
+            raise UsageError(
+                f"现在**没有开着的**发版节点 ⇒ 先 `--release open --version <x.y.z>` ✗"
+                f"（`--release add/check/cut` 的节点 id 要么显式给 `--rel`、要么从**唯一开着的**"
+                f"节点推断 —— 一个开着的都没有就无从推断）")
+        else:
+            raise UsageError(
+                f"有 **{len(_open)} 个开着的**发版节点（"
+                f"{'、'.join(f'`{i}`' for i in _open)}）⇒ **歧义**：必须显式给 `--rel <节点id>` ✗"
+                f"（脚本不替你猜要往哪个节点里加 ✗）")
+    if rel not in nodes:
         raise UsageError(f"没有这个发版节点：`{rel}`（先 `--release open --version …`）")
     node = nodes[rel]
     if action == "add":
@@ -4606,6 +4653,13 @@ def selftest_release_inbox(expect) -> None:
                 rc = fn(*a, **kw)
             return rc
 
+        def cap(fn, *a, **kw) -> tuple[int, str]:
+            """`quiet` 的**带读数**版 —— 栅栏正文 / `--inbox` 的列要断言**用户可见的输出** ✓。"""
+            buf, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = fn(*a, **kw)
+            return rc, buf.getvalue() + err.getvalue()
+
         def ns(**kw):
             base = dict(submit="", id="", why="", evidence="", patch="", facet="", severity="",
                         repro="", where="", owner="t", release="", rel="", version="", commit="",
@@ -4710,6 +4764,80 @@ def selftest_release_inbox(expect) -> None:
             _bad = check_plan(rows3)
             expect(f"受理过的提交**不要求 reading**（受理证据是 commit）[check_plan 红 {_bad} 条]",
                    _bad == 0)
+            # ── ⑦ `RELEASE-ADD-HINT-MISMATCH`（第十七次独立复核 ✗，两条小缺陷同族） ────────────
+            #   ① 栅栏正文**照抄就能跑**：旧文写 `--release add <id>`（**位置参数**）⇒ 真 CLI 报
+            #      `unrecognized arguments: <id>` rc=2 ✗ —— 而 `--id` 才是 parser 认的开关；
+            #   ② 节点 id 的**第三级解析**（唯一开着的节点）：旧文 `rel = args.rel or
+            #      (f"REL-{args.version}" if args.version else "")` 在这一级落成**空串** ⇒
+            #      rc=2「没有这个发版节点：``」✗ = 打印的指示 ≠ 实际行为（照栅栏做必失败）。
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "advance", "id": "SUB-1", "to": "done", "commit": real_sha,
+                          "reading": "夹具：入版证据", "owner": "t"})
+            _rc_o, _out_o = cap(cmd_release, ns(release="open", version="9.9.8"), rows3)
+            expect(f"⑦ 开节点 `REL-9.9.8` rc={_rc_o}", _rc_o == 0)
+            expect("⑦ 栅栏正文写的是 `--release add --id <id>`（`--id` 才是 parser 认的开关 ✓）",
+                   "--release add --id <id>" in _out_o)
+            expect("⑦ 且正文**不再**出现位置参数写法 `--release add <id>`（改前正是它 ⇒ "
+                   "`unrecognized arguments` rc=2 ✗）", "--release add <id>" not in _out_o)
+            expect("⑦ 且正文说清「不用带 `--rel`」（唯一开着的节点会推断 ✓）",
+                   "唯一开着的" in _out_o)
+            # ② 照栅栏原样做：**不带 `--rel`/`--version`** ⇒ 从唯一开着的节点推断 ⇒ rc=0
+            _rc_i, _out_i = cap(cmd_release, ns(release="add", id="SUB-1"), rows3)
+            expect(f"⑦ ⭐ **照栅栏原样做**（`add --id SUB-1`，不带 `--rel`/`--version`）⇒ rc={_rc_i}"
+                   f"（改前 rc=2「没有这个发版节点：``」✗）", _rc_i == 0)
+            expect("⑦ 且真的落进了那个开着的节点（`REL-9.9.8`）", "`REL-9.9.8`" in _out_i)
+            # ②b/②c 正对照：显式 `--rel` 与老的 `--version` 口径**照旧**（不许放宽 ✗）
+            expect("⑦ 正对照：显式 `--rel REL-9.9.8` ⇒ 仍 rc=0",
+                   cap(cmd_release, ns(release="add", id="SUB-1", rel="REL-9.9.8"),
+                           rows3)[0] == 0)
+            expect("⑦ 正对照：老的 `--version 9.9.8` 口径 ⇒ 仍 rc=0",
+                   cap(cmd_release, ns(release="add", id="SUB-1", version="9.9.8"),
+                           rows3)[0] == 0)
+            # ②d 显式给**错的** `--rel` ⇒ **原有的**读数逐字照旧（别顺手改口径 ✗）
+            _msg_bad = ""
+            try:
+                cap(cmd_release, ns(release="add", id="SUB-1", rel="REL-9.9.9"), rows3)
+                _rc_bad = 0
+            except UsageError as _err_bad:
+                _rc_bad, _msg_bad = 2, str(_err_bad)
+            expect(f"⑦ 显式 typo `--rel REL-9.9.9` ⇒ 仍 rc={_rc_bad} + 点名那个节点（读数照旧 ✓）",
+                   _rc_bad == 2 and "没有这个发版节点：`REL-9.9.9`" in _msg_bad)
+            # ②e **歧义不许猜**：再开一个 ⇒ 两个开着 ⇒ rc=2 + 点名两个 + 要求显式 `--rel`
+            expect("⑦ 再开 `REL-9.9.7` ⇒ rc=0",
+                   cap(cmd_release, ns(release="open", version="9.9.7"), rows3)[0] == 0)
+            _msg_amb = ""
+            try:
+                cap(cmd_release, ns(release="add", id="SUB-1"), rows3)
+                _rc_amb = 0
+            except UsageError as _err_amb:
+                _rc_amb, _msg_amb = 2, str(_err_amb)
+            expect(f"⑦ 两个开着 ⇒ 推断**歧义** ⇒ rc={_rc_amb} + 点名两个节点 + 要求显式 `--rel`",
+                   _rc_amb == 2 and "REL-9.9.7" in _msg_amb and "REL-9.9.8" in _msg_amb
+                   and "歧义" in _msg_amb)
+            # ②f **0 个开着** ⇒ rc=2 + 说清"先 open"（第三级推断没有输入时**响亮** ✓）
+            EVENTS.write_text("", encoding="utf-8")
+            _msg_none = ""
+            try:
+                cap(cmd_release, ns(release="add", id="SUB-1"), rows3)
+                _rc_none = 0
+            except UsageError as _err_none:
+                _rc_none, _msg_none = 2, str(_err_none)
+            expect(f"⑦ 0 个开着 ⇒ rc={_rc_none} + 说清「先 `--release open --version`」",
+                   _rc_none == 2 and "没有开着的" in _msg_none and "--release open" in _msg_none)
+            # ③ `--inbox` 的**列边界**（纯显示缺陷：长 id 与状态原先粘成一个词 ✗ ——
+            #    写死的 `{id:<14}` 对 29 字符的 id 溢出 ⇒ 实测 `SUB-wontfix-parking-no-guarddone`）
+            expect("⑦ 长 id 的提交进得来（29 字符，`--submit` 的形状闸门放行）",
+                   quiet(cmd_submit, ns(submit="fix", id="SUB-wontfix-parking-no-guard",
+                                        why="夹具：长 id 的列边界", evidence="夹具读数",
+                                        where="docs/gaps/README.md:107")) == 0)
+            _rows_ib, _u_ib = build_queue()
+            _rc_ib, _out_ib = cap(cmd_inbox, _rows_ib)
+            _long = [l for l in _out_ib.splitlines()
+                     if l.startswith("SUB-wontfix-parking-no-guard")]
+            expect(f"⑦ `--inbox` rc={_rc_ib} 且长 id 那一行**列间有分隔**（id 与状态不许粘 ✗；"
+                   f"实测 `{_long[0][:56] if _long else '（没这行）'}`）",
+                   _rc_ib == 0 and bool(_long)
+                   and re.match(r"^SUB-wontfix-parking-no-guard\s\s+", _long[0]) is not None)
         finally:
             EVENTS, EXTRAS, INBOX_DIR = saved[0], saved[1], saved[2]
             globals()["effective_state"] = saved_eff
