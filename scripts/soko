@@ -363,11 +363,19 @@ function readMarker(base) {
   }
 }
 
-/// A cache entry is usable only when its marker is `<version> <target>`
-/// (`sokonanoda setup` and the pinned download write exactly that; ⚠ **not**
-/// what the VSIX's "Install CLI" writes — `editor/vscode/server.js` writes the
-/// bare `<version>` ⇒ the launcher judges that entry `cache(STALE: …)`, 2026-10-15
-/// LINK-B 实测 ✓).
+/// A cache entry is usable only when its marker is `<version> <target>` — the
+/// **one canonical vocabulary of this slot** (`crates/cli/src/env/target.rs`
+/// `expected_marker`; here `markerExpected` / `writeMarker`).
+///
+/// ⚠ Both of the VSIX's write ends in `editor/vscode/server.js` are **now
+/// same-source with it** (LSP slot: `serverMarkerValue` → `writeServerMarker`;
+/// CLI slot: `installBundledCli`) ⇒ nothing the extension writes gets judged
+/// `cache(STALE: …)` any more. Same-source is not tidiness: on 2026-10-15 LINK-B
+/// measured the real accident this line used to describe — "Install CLI" wrote
+/// the bare `<version>` ⇒ a **usable** binary was refused exec ✗. It was fixed
+/// by aligning the writer (markC `a5feb8b5`), **never** by dropping the `target`
+/// half — that half is what stops "same version, wrong platform", so relaxing it
+/// here would loosen `canExec` ✗.
 function markerMatches(base, version) {
   return markerExpected(version, readMarker(base))
 }
