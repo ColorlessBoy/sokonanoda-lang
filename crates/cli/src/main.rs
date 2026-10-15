@@ -6,6 +6,7 @@ mod check;
 mod check_recovery;
 mod course;
 mod env;
+mod fixtures;
 mod help;
 mod json_report;
 mod project_cache;
@@ -169,6 +170,11 @@ fn main() -> ExitCode {
             },
         },
         Some("course") => course::course(&positionals[1..], all, json),
+        // **判据的输入面**（`AGENT-DOES-NOT-PRODUCE-USER-INPUTS`）：把
+        // `front::fixtures::all()` 原样交出来，e2e（真 VS Code，Node 侧）据此
+        // 拿到"用户会输入什么" —— 一份输入面，三层共读 ✓。
+        // 详情与契约见 `crates/cli/src/fixtures.rs` 的模块文档。
+        Some("fixtures") => fixtures::fixtures_cmd(&positionals[1..], json),
         None => check_path_or_stdin(None, json, bare, root, no_project),
         // **未知子命令**（用户 2026-10-08：「cli 很多命令有问题」✗）：以前**任何**没匹配上的
         // 位置参数都被当成**文件路径** ⇒ `sokonanoda rebuild` 报的是

@@ -37,6 +37,12 @@ pub(crate) fn print_help() {
     println!("                                (single file ⇒ project:null + reason)");
     println!("    input: --file <path> | --text <src> | stdin;  --compact for one line");
     println!("    exit: 0 ok (open `sorry` is legal) · 1 kernel-rejected · 2 usage");
+    println!("  sokonanoda fixtures [--json]    the judges' INPUT surface (generative fixtures:");
+    println!("                                  half-finished `by` blocks / a bad command between");
+    println!("                                  good ones / differential variants). `--json` =");
+    println!("                                  ONE object (schema soko.fixtures/1) — the e2e");
+    println!("                                  suite reads it so all three layers share ONE");
+    println!("                                  input surface. Does not read any .sokonanoda.");
     println!("  sokonanoda --json <file>        emit JSON Lines events (agent/service view)");
     println!("  sokonanoda --bare <file>        compile with no prelude (file is self-contained);");
     println!(
