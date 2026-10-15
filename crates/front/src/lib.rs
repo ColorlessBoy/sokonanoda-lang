@@ -22,6 +22,11 @@ pub mod commands;
 pub mod compile;
 pub mod depgraph;
 pub mod display;
+// **判据的输入面**（生成式夹具）：把「用户会输入什么」变成判据的常规输入 ——
+// 过程态 / 未关目标 / 差分变体 / 边界变体（`AGENT-DOES-NOT-PRODUCE-USER-INPUTS`）。
+// 它只产出源文本，**不进判定路径** ✓；消费方见 `crates/front/tests/` 与
+// `crates/cli/tests/process_state_entry.rs`。
+pub mod fixtures;
 pub mod judge;
 pub mod lean4_universe;
 pub mod notation;
@@ -43,6 +48,10 @@ mod diagnostic;
 // ⇒ 折进**全局缓存键**（算法与"覆盖哪些目录"见模块自己的头注释 ✓）。
 mod engine_digest;
 mod parser;
+// 判卷**合成前缀**的解析（严格优先、恢复式兜底）—— `judge.rs` 在 `docs-lint`
+// 判据 ⑨ 的存量基线上（**只许减不许增**）⇒ 实现落在新文件里，`judge.rs` 那边
+// 只把 `parse_prefix` 的函数体换成一行转发（净增 0 行 ✓）。
+mod prefix_recovery;
 mod reference_docs;
 mod span;
 // `parser.rs` 的**边界用例**（`SUB-parse-error-kills-whole-file`）：那个文件在

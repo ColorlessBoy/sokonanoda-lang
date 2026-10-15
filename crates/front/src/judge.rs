@@ -3590,7 +3590,7 @@ fn synthesized_prefix(extra_prefix: &str, doc_prefix: &str) -> String {
 /// 必须容忍，并且**保持命名空间打开**（拼在后面的合成 `#check`/合成声明要落在
 /// 里面，引用才按 N4 解析）。
 fn parse_prefix(prefix_src: &str) -> Result<FolFile, ()> {
-    crate::parse_fragment(prefix_src).map_err(|_| ())
+    crate::prefix_recovery::parse_prefix_recovering(prefix_src)
 }
 
 /// 声明名 token 在命令切片内的区间（切片相对偏移）：`example` 返回关键字
