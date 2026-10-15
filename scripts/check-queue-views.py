@@ -246,7 +246,13 @@ def fold_raw(events: list) -> dict[str, str]:
 
 
 def closure_events(events: list) -> list[dict]:
-    """收口事件 = 会写指针的那些（C4/C5 的对象）✓。"""
+    """**收口事件** = 会写指针的那些（`advance --to done` / `triage --to applied`）✓。
+
+    ⚠ 这是**全部**收口事件（含**被后来覆盖的**）—— C4 的指针折法与"历史读数"用它 ✓；
+    ⚠ **C5 不许用它** ✗：一条 `done` 被重开再收口之后，**旧的** `advance` 事件仍然在表里
+    （事件流 append-only ✓），但它**已经不是这条目今天带着的证据**了 ⇒ 拿它判 = 判**历史快照**
+    ✗。C5 的对象是 `effective_closures()` ✓。
+    """
     out = []
     for ev in events:
         kind, to = ev.get("event"), ev.get("to")
@@ -255,6 +261,33 @@ def closure_events(events: list) -> list[dict]:
         elif kind == "triage" and to == "applied":
             out.append(ev)
     return out
+
+
+def effective_closures(events: list, states: dict[str, str]) -> list[dict]:
+    """**每 id 当前生效的那一条**收口事件（= 它今天带着的证据）✓ —— C5 的唯一对象。
+
+    ⚠ **为什么必须有这一层**（2026-10-15 实测，**我的第一版在这里判了假红** ✗）：
+    `SUB-soko-update-cli-404` 与 `SUB-no-version-cleanup-command` 被**合法重开再收口**
+    （`--triage --to deferred` → `--advance --to in_progress` → `--advance --to done
+    --reading '<可复算的>'`）⇒ 表里对每个 id 各有 **2 条** `advance --to done`：
+      · 旧的（`reading` 只引 `.cache/**` ⇒ 不可复算）—— **已被覆盖** ✗
+      · 新的（`reading` 带 `crates/cli/tests/launcher.rs` 等仓库路径 ⇒ 可复算 ✓）
+    第一版把**两条都**判了 ⇒ 报"切点后 2 条不可复算" ⇒ **假红** ✗ ——
+    而"重开就是为了改写证据"这件事**已经做对了**，判它等于**罚一次正确的操作** ✗。
+
+    ⇒ 口径与仓库既有纪律**同源**：`ux-queue.py --check` 对**历史（被覆盖）指针**的做法是
+    「**只报告、不判红** —— 它们已被后来的指针覆盖、**不再是任何条目的证据**」
+    （实测读数：现行非祖先 **0** 条 · 历史被覆盖 **108** 条只报告 ✓）⇒ 这里照抄这个形状 ✓。
+
+    生效口径（与 `fold()` 同语义）：**每个 id 取最后一条收口事件**，且该 id 的**最终状态**
+    必须是终态（`TERMINAL_STATES`）—— 重开后还没收口的条目**没有**生效证据，不进判据 ✓。
+    """
+    last: dict[str, dict] = {}
+    for ev in closure_events(events):
+        ident = ev.get("id")
+        if isinstance(ident, str) and ident:
+            last[ident] = ev
+    return [ev for ident, ev in last.items() if states.get(ident) in TERMINAL_STATES]
 
 
 def fold_pointers(events: list) -> dict[str, str]:
@@ -394,9 +427,14 @@ def run(events_path: pathlib.Path, env_extra: dict | None = None,
                                f"事件层独立折出非终态 {mine!r}")
 
     # ── C5 证据可独立复算（**前瞻 + 向后豁免**；不依赖被复核工具 ✓）────────
-    unrepro = [e for e in closures if not _reproducible(e)]
+    # ⚠ 对象是 `effective`（每 id 当前生效的那一条），**不是** `closures`（全部，含被覆盖的）
+    #   —— 见 `effective_closures()` 的说明（第一版在这里判了假红 ✗）。
+    effective = effective_closures(events, st)
+    superseded = len(closures) - len(effective)
+    unrepro = [e for e in effective if not _reproducible(e)]
     fresh_bad = [e for e in unrepro if _since(e, cutoff)]
-    reading["evidence_total"] = len(closures)
+    reading["evidence_total"] = len(effective)
+    reading["evidence_superseded"] = superseded
     reading["evidence_unreproducible"] = len(unrepro)
     reading["evidence_historical"] = EVIDENCE_HISTORICAL_UNREPRODUCIBLE
     reading["evidence_fresh_unreproducible"] = len(fresh_bad)
@@ -516,6 +554,28 @@ def selftest() -> int:
                                             reading="`cat .cache/ux/fix-X/VERDICT.md`")],
          {"state": {"X": {"state": "done"}}, "open": [], "queue": [{"id": "X"}]},
          True, "C5", cutoff=_old)
+    # ⭐ **被覆盖的坏收口 + 生效的好收口 ⇒ 不许判红**（2026-10-15 **真台账**踩到的形状 ✓）：
+    #   一条 `done` 被合法重开再收口之后，**旧的**坏事件仍在表里（append-only）⇒ 拿它判
+    #   就是判**历史快照** ✗ —— 而"重开改写证据"这件事**已经做对了**，判它 = 罚正确操作 ✗。
+    case("C5 正对照：被覆盖的坏收口 + 生效的好收口 ⇒ 不红",
+         [ev("X", "advance", to="done", commit="HEAD", ts="2026-10-15T12:00:00+00:00",
+             reading="读数见 .cache/ux/fix-X/VERDICT.md"),
+          ev("X", "triage", to="deferred", ts="2026-10-15T12:01:00+00:00", reason="重收口"),
+          ev("X", "advance", to="in_progress", ts="2026-10-15T12:02:00+00:00"),
+          ev("X", "advance", to="done", commit="HEAD", ts="2026-10-15T12:03:00+00:00",
+             reading="判据：`python3 scripts/check-queue-views.py` exit 0")],
+         {"state": {"X": {"state": "done"}}, "open": [], "queue": [{"id": "X"}]},
+         False, cutoff=_old)
+    # 反向：**生效的那一条**坏 ⇒ 必须红（判据的牙没被上面那条正对照拔掉 ✓）
+    case("C5 生效的收口坏 ⇒ 判红", [
+        ev("X", "advance", to="done", commit="HEAD", ts="2026-10-15T12:00:00+00:00",
+           reading="判据：`python3 scripts/check-queue-views.py` exit 0"),
+        ev("X", "triage", to="deferred", ts="2026-10-15T12:01:00+00:00", reason="重收口"),
+        ev("X", "advance", to="in_progress", ts="2026-10-15T12:02:00+00:00"),
+        ev("X", "advance", to="done", commit="HEAD", ts="2026-10-15T12:03:00+00:00",
+           reading="已修（读数见 .cache/ux/fix-X/VERDICT.md）")],
+        {"state": {"X": {"state": "done"}}, "open": [], "queue": [{"id": "X"}]},
+        True, "C5", cutoff=_old)
     case("C5 正对照：证据给了仓库内路径 ⇒ 可复算", [ev("X", "advance", to="done", commit="HEAD",
                                           reading="读数见 docs/gaps/ledger.jsonl 的 G-1 行")],
          {"state": {"X": {"state": "done"}}, "open": [], "queue": [{"id": "X"}]},
@@ -545,7 +605,7 @@ def selftest() -> int:
     if not red:
         bad += 1
         print("  ✗ 正对照：拿非事件文件当输入竟然不判红")
-    print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}（C1×3 · C2×2 · C3×1 · C4×1 · C5×2 · C6×1 + 正对照）")
+    print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}（C1×3 · C2×2 · C3×1 · C4×1 · C5×3 · C6×1 + 正对照×3）")
     return 0 if bad == 0 else 1
 
 
@@ -602,11 +662,13 @@ def main(argv=None) -> int:
             print(f"  对拍：工具自报 state {reading['tool_ids']} 个 · open {reading['tool_open']} 个")
         if "evidence_total" in reading:
             bad_n = reading["evidence_unreproducible"]
-            print(f"  收口证据可复算（**前瞻 + 向后豁免**）：切点后新收口不可复算 "
+            print(f"  收口证据可复算（**前瞻 + 向后豁免**）：对象 = **每 id 当前生效的那一条**"
+                  f"（{reading['evidence_total']} 条 · 另有 **{reading['evidence_superseded']}** "
+                  f"条被覆盖的**只报数不判** ✓ —— 照 `--check` 对历史指针的先例）· "
+                  f"切点后新收口不可复算 "
                   f"{reading['evidence_fresh_unreproducible']} 条（>0 ⇒ 判红）· "
                   f"切点前存量 {bad_n - reading['evidence_fresh_unreproducible']}"
-                  f"/{reading['evidence_total']}（**只报数** · 落地时实测 "
-                  f"{reading['evidence_historical']}）· "
+                  f"/{reading['evidence_total']}（**只报数**）· "
                   f"其中 {reading['evidence_citing_cache']} 条只引 `.cache/**`（git 忽略）")
         if red:
             print(f"\n✗ 独立复核 **{len(red)} 条红**：", file=sys.stderr)
