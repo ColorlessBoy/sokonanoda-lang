@@ -130,15 +130,61 @@ def classify(stderr_text: str) -> tuple[int, int, int]:
     return files, beats, modules
 
 
-def run_build(cmd: list[str], args: list[str], env_extra: dict[str, str], cache: Path,
-              cwd: Path | None = None) -> tuple[int, str, str, float] | None:
+def fixture_env(env_extra: dict[str, str]) -> dict[str, str]:
+    """夹具子进程的环境（**纯函数** ⇒ `--selftest` 能直接断言它 ✓）。
+
+    ⚠ **不变量（2026-10-15 PC-Z，洞 `PROGRESS-CADENCE-WORKTREE-FRAGILE`）**：
+    **绝不动 `SOKONANODA_CACHE_DIR`** ✗ —— 它**同时**是启动器 `scripts/soko` 的
+    「二进制缓存槽」（`cacheDir()`）⇒ 把它指到空目录 = 把二进制解析链弄瞎 ✗。
+    冷编译缓存走 `SOKONANODA_NO_CACHE`（CLI 的**专用**开关 ✓，见 `run_build`）。
+    """
     env = dict(os.environ)
-    env["SOKONANODA_CACHE_DIR"] = str(cache)
+    env["SOKONANODA_NO_CACHE"] = "1"  # 冷编译缓存：读/写全关 ⇒ 0 命中全编 ✓
+    env["SOKONANODA_OFFLINE"] = "1"  # 解析不到就立刻出声，不空等网络 ✓
     env["SOKONANODA_NO_PROJECT_ARTIFACTS"] = "1"
     env["SOKO_BUILD_NO_TICK"] = ""  # 清掉外部干扰（下面按需再设）
     env.pop("SOKO_BUILD_NO_TICK", None)
     env.update(env_extra)
-    shutil.rmtree(cache, ignore_errors=True)
+    return env
+
+
+def run_build(cmd: list[str], args: list[str], env_extra: dict[str, str],
+              cwd: Path | None = None) -> tuple[int, str, str, float] | None:
+    """跑一次夹具编译（**冷缓存** + **离线** ✓）。
+
+    ## 冷缓存走 `SOKONANODA_NO_CACHE`，**不许**换掉 `SOKONANODA_CACHE_DIR` ✗
+
+    ① 这条臂要的是**冷编译缓存**：120 个文件必须**真编**，命中缓存就没有逐文件进度行
+    了 ✓。CLI 为这件事留了**专用开关** —— `SOKONANODA_NO_CACHE=1` ⇒
+    `front::compile::cache::root()` 直接返回 `None`
+    （`crates/front/src/compile/cache.rs:109`）⇒ 读/写全关、0 命中全编 ✓
+    （`crates/cli/tests/judge_batch.rs:41` 用的就是它 ✓）。语义与"空缓存目录"**等价**，
+    但**不占用任何别的格子** ✓。
+
+    ② 旧实现（2026-10-08 ～ 2026-10-15）把 `SOKONANODA_CACHE_DIR` 指到**空临时目录** ✗
+    —— 而**同一个变量还是启动器的「二进制缓存槽」**（`cacheDir()`）⇒ 子进程里那一格
+    **必然为空** ✗ ⇒ 启动器只剩「仓库构建 / 下载」两条路。⚠ 工作树里 `<repo>/target`
+    **根本不存在**（本仓 worktree 编到 `CARGO_TARGET_DIR` ✓）⇒ 一棵**刚
+    `scripts/soko setup` 过、还没编过**的工作树**结构性假红** ✗ —— 实测（`pcZ`：往
+    `.cache/soko/pcZ/` 放一份**版本匹配**的 0.91.0 二进制，启动器**本该**解析到它 ✓）：
+    启动器 rc=3 `refusing to run an unverified sokonanoda binary — nothing resolved
+    (offline=no) … (marker: none)` ⇒ 本判据 exit 2 = **判据红** ✗。下载那条路更糟：
+    通了就**悄悄换成下载来的发布二进制**去量（**探针身份** ✗ —— 量到的不是被测代码），
+    不通就是 ~60s 网络空等 ✗。
+
+    ⇒ ③ `SOKONANODA_OFFLINE=1`：解析不到就**立刻**用启动器自己的话出声 ✓（不再空等
+    网络 ✓；与 `check-lsp-marker-seam.py` 的离线夹具同一条纪律 ✓）。它**只**关掉
+    「下载一个二进制」这条**获取**路径，**判据一条没动** ✓ —— 两臂的夹具都没有
+    import ⇒ 编译过程本来就不碰网络（CLI 的 `offline()` 只用在
+    `crates/cli/src/env/mod.rs` 的 `setup`/报告 ✓）。
+
+    ④ `CARGO_TARGET_DIR` **原样透传**：启动器自己就认它（`repoBuildCandidates()`，
+    2026-10-12 `SUB-cargo-target-dir` ✓）⇒ worktree 里刚编好的那份会被解析到 ✓
+    （实测 `version --json` ⇒ `source: repo-build` ·
+    `.cache/compile/targets/pcZ/debug/sokonanoda` ✓）。⇒ 本洞的修法**不是**"再教一遍
+    `CARGO_TARGET_DIR`"（那件事已经成立 ✓），而是**别把解析链弄瞎** ✓。
+    """
+    env = fixture_env(env_extra)
     t0 = time.time()
     proc = subprocess.run(cmd + args, capture_output=True, text=True, encoding="utf-8",
                           errors="replace", env=env, cwd=str(cwd or REPO), timeout=300)
@@ -181,10 +227,33 @@ def selftest() -> int:
     print(f"   [{'ok' if ok else 'BAD'}] 分类器：合成流 ⇒ 文件 {files} / 心跳 {beats} / 模块 {modules}"
           f"（期望 2/1/1）")
     bad += 0 if ok else 1
+    # **夹具环境的不变量**（2026-10-15 PC-Z，洞 `PROGRESS-CADENCE-WORKTREE-FRAGILE` ✓）：
+    # 旧实现把 `SOKONANODA_CACHE_DIR` 指到空临时目录 ✗ —— 而它**同时**是启动器的
+    # 「二进制缓存槽」⇒ worktree 里（`<repo>/target` 不存在、构建在 `CARGO_TARGET_DIR`）
+    # 只剩"仓库构建/下载"两条路 ⇒ **刚 `scripts/soko setup` 过、还没编过的树结构性假红** ✗
+    # （实测启动器 rc=3 ⇒ 本判据 exit 2 ✓）。⇒ 钉住：那份环境必须**原样保留** ✓，
+    # 冷缓存必须走 `SOKONANODA_NO_CACHE` ✓。**咬得住的守卫**（把旧写法放回来 ⇒ 判红 ✓）。
+    saved = os.environ.get("SOKONANODA_CACHE_DIR")
+    os.environ["SOKONANODA_CACHE_DIR"] = "/probe/ambient-binary-cache"
+    try:
+        env = fixture_env({})
+        got_env = (env.get("SOKONANODA_CACHE_DIR"), env.get("SOKONANODA_NO_CACHE"),
+                   env.get("SOKONANODA_OFFLINE"))
+    finally:
+        if saved is None:
+            os.environ.pop("SOKONANODA_CACHE_DIR", None)
+        else:
+            os.environ["SOKONANODA_CACHE_DIR"] = saved
+    ok = got_env == ("/probe/ambient-binary-cache", "1", "1")
+    print(f"   [{'ok' if ok else 'BAD'}] 夹具环境：`SOKONANODA_CACHE_DIR` "
+          f"**原样保留**（={got_env[0]!r}）· 冷缓存走 `SOKONANODA_NO_CACHE`（={got_env[1]!r}）· "
+          f"离线（={got_env[2]!r}）—— 动了缓存槽 ⇒ 启动器的二进制解析链会瞎 ✗")
+    bad += 0 if ok else 1
     if bad:
         print(f"selftest: ✗ {bad} 条反向验证失败 —— 判据咬不住", file=sys.stderr)
         return 1
-    print("selftest: ✓ 反向验证全过（造稀/造静判红、逐文件不红、分类器数得准）")
+    print("selftest: ✓ 反向验证全过（造稀/造静判红、逐文件不红、分类器数得准、"
+          "夹具环境不动启动器的缓存槽）")
     return 0
 
 
@@ -214,7 +283,7 @@ def main(argv: list[str]) -> int:
         for i in range(args.files):
             (cadence_dir / f"f{i:04}.sokonanoda").write_text(
                 SMALL_DECL.format(i=i), encoding="utf-8")
-        got = run_build(cmd, ["build", str(cadence_dir)], {}, tmp / ".cache1")
+        got = run_build(cmd, ["build", str(cadence_dir)], {})
         if got is None:
             print("error: 节奏臂跑不起来 —— exit 2", file=sys.stderr)
             return 2
@@ -230,8 +299,7 @@ def main(argv: list[str]) -> int:
         beat_dir.mkdir(parents=True, exist_ok=True)
         body = "".join(BIG_DECL.format(i=i) for i in range(HEART_DECLS))
         (beat_dir / "slow.sokonanoda").write_text(body, encoding="utf-8")
-        got = run_build(cmd, ["build", str(beat_dir)], {"SOKO_BUILD_TICK_MS": str(TICK_MS)},
-                        tmp / ".cache2")
+        got = run_build(cmd, ["build", str(beat_dir)], {"SOKO_BUILD_TICK_MS": str(TICK_MS)})
         if got is None:
             print("error: 心跳臂跑不起来 —— exit 2", file=sys.stderr)
             return 2
