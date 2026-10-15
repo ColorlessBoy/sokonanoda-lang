@@ -1947,16 +1947,77 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
 #     解析不到 main 了 ⇒ 要么按新历史重开再收口，要么**评审可见地**改这一处口径起点。
 ANCESTRY_GATE_SINCE = "2026-10-13T17:54:00+00:00"
 
-_ANCESTRY_CACHE: dict[str, bool] = {}
+_ANCESTRY_CACHE: dict[str, int] = {}
+_SHALLOW_REPO: bool | None = None
 
 
-def commit_is_ancestor(commit: str) -> bool:
-    """`git merge-base --is-ancestor <commit> HEAD`（按 sha 记忆化：`--check` 要问几十次）。"""
+def ancestry_rc(commit: str) -> int:
+    """`git merge-base --is-ancestor <commit> HEAD` 的**原始退出码**（唯一出处；按 sha 记忆化）。
+
+    ⚠ **为什么必须留着 rc 本身**（`ANCESTOR-CHECK-RC128-VS-RC1`，2026-10-15 · 编排者实测 ✗）：
+    改前这里只折成 `returncode == 0` 一个布尔 ⇒ **两件完全不同的事同判** ✗：
+      · `rc=1` = **真非祖先**（对象在、历史也在，只是不在 `HEAD` 的历史上 —— rebase 前的孪生、
+        侧支的提交 …）；
+      · `rc=128` = **答不上来**（`fatal: Not a valid commit name` —— 这个仓里**没有这个对象**：
+        浅克隆 / 部分克隆 / 从没 fetch 过）。
+    实测（真 `git clone --depth 1 file://…` 夹具）：改前把 `rc=128` 也报成「**不是 `HEAD` 的
+    祖先**（被 rebase 甩掉了？）」⇒ 排查被引向 rebase，而真因是**浅克隆里对象根本没下载**
+    （同族已修过一条：CI 的 `fetch-depth: 0` = `LEDGER-SHALLOW-CHECKOUT-FALSE-RED` ✓ ——
+    这条只是让"为什么红"说得准，**不是替代它** ✗）。
+    ⚠ **判红口径一个字不改** ✗：`commit_is_ancestor()` 仍然只认 `rc == 0` ⇒ `rc=128` 与 `rc=1`
+    **都不是祖先** ⇒「必须 0 条、没有豁免」照旧（浅克隆**仍判红**，只是人话变准 ✓）。
+    """
     if commit not in _ANCESTRY_CACHE:
         probe = subprocess.run(["git", "merge-base", "--is-ancestor", commit, "HEAD"],
                                cwd=ROOT, capture_output=True, text=True)
-        _ANCESTRY_CACHE[commit] = probe.returncode == 0
+        _ANCESTRY_CACHE[commit] = probe.returncode
     return _ANCESTRY_CACHE[commit]
+
+
+def commit_is_ancestor(commit: str) -> bool:
+    """`rc == 0` ⇒ 是祖先（**判定谓词**：所有判绿/判红都只认它 ✓）。
+
+    ⚠ **诊断措辞不许从这里出** ✗ —— 它把 rc 折成布尔，而"折成布尔"正是本条缺口的形状；
+    要人话就走 `ancestry_diagnosis()`（同一次探针、两档措辞 ⇒ 判据与人话不可能分叉 ✓）。
+    """
+    return ancestry_rc(commit) == 0
+
+
+def _is_shallow_repo() -> bool:
+    """`git rev-parse --is-shallow-repository`（进程内记忆化；**只给诊断用**）。
+
+    ⚠ 判定**不读**它（判绿/判红只看 `ancestry_rc()`）—— 它只把"历史深度不够"这句人话
+    **落实成可核的读数**：浅克隆里 `rc=128` ⇒ 点名"本仓是浅克隆"，而不是"被 rebase 甩掉" ✓。
+    量不出来（老 git / 不是仓）⇒ `False`（**少说一句，绝不猜** ✗）。
+    """
+    global _SHALLOW_REPO
+    if _SHALLOW_REPO is None:
+        probe = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
+                               cwd=ROOT, capture_output=True, text=True)
+        _SHALLOW_REPO = probe.returncode == 0 and probe.stdout.strip() == "true"
+    return _SHALLOW_REPO
+
+
+def ancestry_diagnosis(commit: str) -> str | None:
+    """`None` = 是祖先；否则 = **按 rc 分档**的人话（**诊断的唯一出处** ✓）。
+
+    两档（与 `ancestry_rc()` 同一份读数 ⇒ 判据与人话不可能分叉 ✓）：
+      · `rc=1` ⇒ 「**不是 `HEAD` 的祖先**」（这句原文**一个字不改** —— 既有自检臂按它咬 ✓）；
+      · `rc` 非零且非 1（`128`：`fatal: Not a valid commit name`）⇒ 「**查不到这个对象**」，
+        浅克隆时顺带点名 `--is-shallow-repository` 的读数（把"深度不够"从猜测变成读数 ✓）。
+    """
+    rc = ancestry_rc(commit)
+    if rc == 0:
+        return None
+    if rc == 1:
+        return ("**不是 `HEAD` 的祖先**（`git merge-base --is-ancestor` rc=1：对象在、只是不在 "
+                "`HEAD` 的历史上 —— rebase 前的孪生 / 侧支的提交）")
+    _deep = ("；本仓是**浅克隆**（`git rev-parse --is-shallow-repository` = true ⇒ **历史深度"
+             "不够**，先 `git fetch --unshallow` 再复核 —— 多半**不是** rebase ✗）"
+             if _is_shallow_repo() else "")
+    return (f"**查不到这个对象**（`git merge-base --is-ancestor` rc={rc}：`fatal: Not a valid "
+            f"commit name` ⇒ 这个仓里**没有它** —— 浅克隆 / 部分克隆 / 从没 fetch 过？"
+            f"{_deep}）")
 
 
 def superseded_pointers() -> list[tuple[str, str, str]]:
@@ -2033,9 +2094,11 @@ def closure_pointer_problem(commit: str) -> str | None:
         return (f"✗ `--commit {commit}` 在仓库里**不存在**（`git cat-file -e` 非零）"
                 f" ⇒ 收口证据是假的，不许记 ✗（先把这个环节真的提交掉）")
     if not commit_is_ancestor(commit):
-        return (f"✗ `--commit {commit}` **不是 `HEAD` 的祖先**"
-                f"（`git merge-base --is-ancestor` 非零）⇒ 指针解析不到 main 的历史上"
-                f"（多半是 rebase 前的孪生，或别的分支）⇒ 收口证据在 main 上**找不到**，"
+        # ⚠ 措辞走**诊断的唯一出处**（`ancestry_diagnosis()` ⇒ rc=1「真非祖先」/ rc=128「查不到
+        # 这个对象（浅克隆？）」**分档**；改前这里把两档都说成"多半是 rebase 前的孪生" ✗）。
+        # 判红与否**一个字不改**（上面 `commit_is_ancestor` 仍然只认 rc=0 ✓）。
+        return (f"✗ `--commit {commit}` {ancestry_diagnosis(commit)}"
+                f" ⇒ 指针解析不到 main 的历史上 ⇒ 收口证据在 main 上**找不到**，"
                 f"不许记 ✗（用**真落进 main 的那个 commit**；口径起点 "
                 f"`ANCESTRY_GATE_SINCE={ANCESTRY_GATE_SINCE}`）")
     return None
@@ -2250,8 +2313,8 @@ def twin_gate_problem(old: str, cand: str) -> str | None:
         return (f"✗ 新指针 `{cand[:12]}` 读不出 subject（对象不存在 / 不是 commit）⇒ 内容闸门"
                 f"过不了 ✗")
     if not commit_is_ancestor(cand):
-        return (f"✗ `{cand[:12]}` **不是 `HEAD` 的祖先**（`git merge-base --is-ancestor` 非零）"
-                f"⇒ 指针解析不到 main 的历史上（孪生三关的第 3 关）✗")
+        return (f"✗ `{cand[:12]}` {ancestry_diagnosis(cand)}"
+                f" ⇒ 指针解析不到 main 的历史上（孪生三关的第 3 关）✗")
     if cand_subj != old_subj:
         return (f"✗ **subject 不一致**：旧 `{old_subj[:60]}` vs 新 `{cand_subj[:60]}`"
                 f"（孪生三关的第 1 关）⇒ 这不是同一个环节的 rebase 孪生 ✗")
@@ -2420,8 +2483,13 @@ def cmd_repoint_all(reason: str, owner: str, dry_run: bool, limit: int) -> int:
     for old in shas:
         twin, note = find_twin(old)
         (plan if twin else no_twin).append((old, sorted(groups[old]), twin, note))
-    print(f"存量非祖先指针：**{len(targets)} 条** / **{len(groups)} 个 sha**"
-          f"（本批 {len(shas)} 个 sha）")
+    # ⚠ 措辞按 rc 分档（`ANCESTOR-CHECK-RC128-VS-RC1`）：浅克隆里这些不是"非祖先"，而是
+    #   "对象根本没下载" ⇒ 别把两种形状混成一句（判红与否一个字不改 ✓）。
+    _missing_n = sum(1 for _i, _c, _t in targets if ancestry_rc(_c) != 1)
+    print(f"存量**核不到**的收口指针：**{len(targets)} 条** / **{len(groups)} 个 sha**"
+          f"（本批 {len(shas)} 个 sha）"
+          + (f"；其中**查不到对象**（浅克隆 / 部分克隆）**{_missing_n} 条**"
+             f" —— 先 `git fetch --unshallow` 再复核 ✗" if _missing_n else ""))
     for old, ids, _twin, note in no_twin:
         print(f"  ✗ `{old[:8]}`（{len(ids)} 条：{'、'.join(ids)}）**找不到孪生** ⇒ 不硬填 —— {note}",
               file=sys.stderr)
@@ -3142,11 +3210,20 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
             if _c and not commit_is_ancestor(_c):
                 _ts = cur.get("advanced_ts") or ""
                 bad_pointers.append((ident, _c, _ts))
-                print(f"✗ `{ident}` 的收口 commit `{_c}` **不是 `HEAD` 的祖先**"
-                      f"（记录于 {_ts or '无时间戳'}）⇒ 证据在 main 上**找不到**"
-                      f"（被 rebase 甩掉了？）✗ —— 存量孪生指针用 "
-                      f"`--repoint {ident} --reason '<why>'` 三关自动回填；"
-                      f"或按新历史重开再收口 / 改记**真落进 main** 的那个 commit", file=sys.stderr)
+                # ⚠ 人话走**诊断的唯一出处**（`ancestry_diagnosis()` ⇒ 两档：rc=1「真非祖先」/
+                # rc=128「查不到这个对象（浅克隆？）」）。改前这里两档都说「**不是 `HEAD` 的
+                # 祖先**（被 rebase 甩掉了？）」⇒ 浅克隆（对象没下载）被报成 rebase 病 ✗
+                # （`ANCESTOR-CHECK-RC128-VS-RC1`，2026-10-15 编排者实测）。
+                # ⚠ **判红口径一个字不改**：`bad += 1` 与 `bad_pointers` 的域（rc≠0）照旧 ⇒
+                # 浅克隆**仍然红**，只是"为什么红"说得准 ✓。
+                _way = (f"；⚠ **浅克隆**里先 `git fetch --unshallow`（CI 用 `fetch-depth: 0`）"
+                        f"再复核 —— 别照着 rebase 去查 ✗"
+                        if ancestry_rc(_c) != 1 else "")
+                print(f"✗ `{ident}` 的收口 commit `{_c}` {ancestry_diagnosis(_c)}"
+                      f"（记录于 {_ts or '无时间戳'}）⇒ 证据在 main 上**找不到** ✗ —— "
+                      f"存量孪生指针用 `--repoint {ident} --reason '<why>'` 三关自动回填；"
+                      f"或按新历史重开再收口 / 改记**真落进 main** 的那个 commit{_way}",
+                      file=sys.stderr)
                 bad += 1
             # ⭐ **审计复查**（`#1` 的后半，2026-10-14 · 第七次独立复核；⭐ `ADVANCE-POINTER-NO-
             # CONTENT-AUDIT` 起**覆盖全部三条写路径**，2026-10-15 · 第十三次独立复核实测 ✗）：
@@ -3378,8 +3455,16 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
     #   ⇒ 历史指针**报出来、不判红**（`superseded_pointers()` 一处算 ⇒ 措辞与机制同源 ✓）。
     _hist = superseded_pointers()
     _hist_bad = [(i, c, k) for i, c, k in _hist if not commit_is_ancestor(c)]
+    # ⚠ **再分一档**（`ANCESTOR-CHECK-RC128-VS-RC1`）：rc≠1 的那些**不是"非祖先"**，而是
+    #   "这个仓里查不到对象"（浅克隆 / 部分克隆）⇒ 计数与判红**一个字不改**（域仍是 rc≠0 ✓），
+    #   只是把"为什么核不到"说准（否则浅克隆里读者会以为历史被 rebase 过 ✗）。
+    _hist_missing = [(i, c, k) for i, c, k in _hist_bad if ancestry_rc(c) != 1]
+    _bad_missing = [(i, c) for i, c, _t in bad_pointers if ancestry_rc(c) != 1]
     if bad_pointers:
-        print(f"✗ 收口指针祖先性：**现行指针非祖先 {len(bad_pointers)} 条**（口径：**每个 id 的"
+        print(f"✗ 收口指针祖先性：**现行指针非祖先 {len(bad_pointers)} 条**"
+              + (f"（其中**查不到对象 {len(_bad_missing)} 条**：浅克隆 / 部分克隆 ⇒ 先 "
+                 f"`git fetch --unshallow` 再复核，**不是** rebase ✗）" if _bad_missing else "")
+              + f"（口径：**每个 id 的"
               f"现行（fold 后）指针**必须解析到 main 的历史上 ⇒ 存量已全量回填 ⇒ **必须 0 条**，"
               f"**没有豁免** ✗）："
               + " · ".join(f"{i}@{c[:8]}" for i, c, _t in bad_pointers), file=sys.stderr)
@@ -3388,6 +3473,8 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
               f"之前记的存量已用 `--repoint` 全量回填到 0 ⇒ **每个 id 的现行（fold 后）指针**"
               f"现在**必须**为 0，**没有豁免** ✓）")
     print(f"  ⓘ 历史（被覆盖）指针：**{len(_hist)} 条**，其中**非祖先 {len(_hist_bad)} 条**"
+          + (f"（其中**查不到对象 {len(_hist_missing)} 条**：浅克隆 / 部分克隆，**不是** rebase ✗）"
+             if _hist_missing else "")
           + (f"（{_kind_breakdown(_hist_bad)}）" if _hist_bad else "")
           + " —— **只报告、不判红**：它们已被后来的指针覆盖、**不再是任何条目的证据**，"
             "而 `--repoint` 只搬得动**现行**指针（历史事件只追加 ⇒ 判红会是一条**没有出路**"
@@ -8049,6 +8136,51 @@ def selftest_ancestry_gate(expect) -> None:
             _r4, _s4, _v4 = snapshot()
             rc, err = capture(check_plan, _v4, _r4)
             expect(f"④ 且不误伤（红 {rc} 条）", rc == 0)
+            # ⑤ ⭐⭐ **rc=128（对象不在）与 rc=1（真非祖先）必须分档**（`ANCESTOR-CHECK-RC128-VS-RC1`，
+            #     2026-10-15 · 编排者实测 ✗）：改前 `commit_is_ancestor` 只留 `rc == 0` 一个布尔 ⇒
+            #     浅克隆（`git clone --depth 1`）里 `merge-base --is-ancestor` 返回 **128**
+            #     （`fatal: Not a valid commit name`：对象**根本没下载**）却被报成「不是 `HEAD` 的
+            #     祖先（被 rebase 甩掉了？）」⇒ 排查被引向 rebase ✗。
+            #     口径：**判红与否一个字不改**（rc≠0 都不是祖先 ⇒ ⑤c/⑤d 仍判红 ✓），
+            #     只让 `ancestry_diagnosis()` 分两档说话（两档都从**同一次探针**出 ⇒ 不会分叉 ✓）。
+            _miss = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"   # 对象**不在**这个仓里（= 浅克隆形状）
+            expect(f"⑤a `ancestry_rc(<对象不在>)` = **128**（实测 {ancestry_rc(_miss)}）",
+                   ancestry_rc(_miss) == 128)
+            expect(f"⑤a `ancestry_rc(<悬垂对象>)` = **1**（对象在、真非祖先；实测 "
+                   f"{ancestry_rc(dangling) if dangling else '—'}）",
+                   bool(dangling) and ancestry_rc(dangling) == 1)
+            expect("⑤b 对象不在 ⇒ 人话点名「**查不到这个对象**」+ 给浅克隆出路，"
+                   "**不许**说「不是 `HEAD` 的祖先」（改前就是那句 ✗）",
+                   "查不到这个对象" in (ancestry_diagnosis(_miss) or "")
+                   and "不是 `HEAD` 的祖先" not in (ancestry_diagnosis(_miss) or ""))
+            expect("⑤b 真非祖先 ⇒ 仍说「**不是 `HEAD` 的祖先**」（既有臂按这句咬 ⇒ 一个字不改 ✓）",
+                   "不是 `HEAD` 的祖先" in (ancestry_diagnosis(dangling) or ""))
+            expect("⑤c **判定谓词不变**：两档都**不是**祖先（rc≠0 ⇒ False）",
+                   commit_is_ancestor(_miss) is False and commit_is_ancestor(dangling) is False)
+            expect("⑤c 正对照：真祖先（HEAD）仍是 True（不许误伤 ✓）",
+                   commit_is_ancestor(real_sha) is True)
+            # ⑤d **读侧端到端**（这条就是"浅克隆夹具"的臂内复刻）：对象不在的现行指针 ⇒
+            #     **仍判红**（**不许把红洗成绿** ✗）+ 点名"查不到这个对象" + 给 `--unshallow` 出路。
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "advance", "id": "G-2", "to": "done", "commit": _miss,
+                          "reading": "夹具读数（对象不在 = 浅克隆形状）",
+                          "ts": (_cut + _dt.timedelta(minutes=4)).isoformat(), "owner": "t"})
+            _r5, _s5, _v5 = snapshot()
+            rc, err = capture(check_plan, _v5, _r5)
+            expect(f"⑤d 对象不在的现行指针 ⇒ **仍判红**（红 {rc} 条；判红口径不变 ✓）", rc >= 1)
+            expect("⑤d 红行点名「**查不到这个对象**」（rc=128 档）+ 给出 `--unshallow` 出路 + 点名 `G-2`",
+                   "查不到这个对象" in err and "unshallow" in err and "G-2" in err)
+            expect("⑤d 且**不**再说「不是 `HEAD` 的祖先」（改前那句把人往 rebase 引 ✗）",
+                   "不是 `HEAD` 的祖先" not in err)
+            # ⑤e **正对照**：真非祖先（对象在、rc=1）⇒ 也判红、但说"不是 `HEAD` 的祖先" ✓
+            EVENTS.write_text("", encoding="utf-8")
+            append_event({"event": "advance", "id": "G-2", "to": "done", "commit": dangling,
+                          "reading": "夹具读数（真非祖先）",
+                          "ts": (_cut + _dt.timedelta(minutes=5)).isoformat(), "owner": "t"})
+            _r5e, _s5e, _v5e = snapshot()
+            rc, err = capture(check_plan, _v5e, _r5e)
+            expect(f"⑤e 正对照：真非祖先 ⇒ 也判红（红 {rc} 条）+ 说「不是 `HEAD` 的祖先」",
+                   rc >= 1 and "不是 `HEAD` 的祖先" in err)
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
