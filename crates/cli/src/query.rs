@@ -152,7 +152,20 @@ fn load_document(doc: &mut QueryDoc, src: &str) {
     };
     let project_entry = doc.path.clone().filter(|_| has_imports(src));
     let Some(entry) = project_entry else {
-        doc.set_text(src, 1, None);
+        // **prelude 模式必须**从这份文本算出来传进去**（2026-10-15，G-117 的横向）：
+        // 以前传 `None` = "沿用当前模式"，而 `QueryDoc::new()` 是 `PreludeMode::Full`
+        // （`crates/front/src/query/mod.rs:499`）⇒ **文件级 `-- sokonanoda:prelude none`
+        // 指令在 `query` 通道被整个忽略** ✗ —— 实测同一份
+        // `-- sokonanoda:prelude none` + `def two : Nat := 2`：
+        // `grade --json` ⇒ `elab-unknown-identifier`（Bare，honors 指令 ✓）·
+        // `query check` ⇒ `ok:true` / `decl_checked:1`（Full，忽略指令 ✗）⇒ 又是
+        // "同一次编译两个答案" ✗。LSP 那条路本来就传 `Some(mode)`
+        // （`crates/lsp/src/lib.rs:1088`）⇒ 这里补上，三个视图同源 ✓。
+        //
+        // 对**没写指令**的文件这是**逐字节无变化**的：`prelude_mode_from_source`
+        // 返回 `Full`，与 `QueryDoc::new()` 的初值相同 ⇒ `set_text` 里
+        // `mode != self.mode` 不成立 ✓。
+        doc.set_text(src, 1, Some(options.prelude));
         return;
     };
     let (plan, digest) =

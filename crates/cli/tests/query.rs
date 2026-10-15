@@ -218,6 +218,67 @@ fn query_check_and_json_agree_when_the_entry_fails_to_parse() {
     let _ = std::fs::remove_file(path);
 }
 
+/// 文件级 **prelude 指令**（`-- sokonanoda:prelude none`）必须在**两个视图里都算数**。
+///
+/// G-117 的**横向**（同类：同一次编译两个答案）：`load_document` 以前给
+/// `QueryDoc::set_text` 传 `mode = None`（= 沿用 `QueryDoc::new()` 的 `Full`）
+/// ⇒ `query` 通道**整个忽略**这条指令 ✗，而 `grade`（`check.rs` 的
+/// `prelude_mode_from_source`）与 LSP（`crates/lsp/src/lib.rs:1088` 的
+/// `Some(mode)`）都honors 它 ⇒ 三个视图里有一个在说另一种话 ✗。
+///
+/// 这里用**Bare 才合法**的 `def two : Nat := 2`（`Nat` 只在 Full 下由 prelude 安装）
+/// 当判别器：指令被忽略 ⇒ 它变成 `decl_checked`（假绿 ✗）；honors 它 ⇒ 两条通道都
+/// 报 `elab-unknown-identifier` ✓。
+#[test]
+fn prelude_directive_is_honoured_by_both_views() {
+    let path = std::env::temp_dir().join(format!(
+        "sokonanoda-query-prelude-{}-{}.sokonanoda",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::write(&path, "-- sokonanoda:prelude none\ndef two : Nat := 2\n")
+        .expect("write fixture");
+
+    let (value, code) = query(&["check", "--file", path.to_str().unwrap()], None);
+    assert_eq!(code, 1, "Bare 下 `Nat` 未声明 ⇒ 拒绝、exit 1：{value}");
+    assert_eq!(
+        value["data"]["counts"]["decl_checked"].as_u64(),
+        Some(0),
+        "指令被忽略就会假绿成 1 ✗：{value}"
+    );
+    let failed: Vec<&str> = value["data"]["failed"]
+        .as_array()
+        .map(|a| a.iter().filter_map(|f| f["code"].as_str()).collect())
+        .unwrap_or_default();
+    assert_eq!(failed, vec!["elab-unknown-identifier"], "{value}");
+
+    let out = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+        .args(["grade", path.to_str().unwrap(), "--json"])
+        .env("SOKONANODA_CACHE_DIR", cache_dir("json-prelude"))
+        .output()
+        .expect("run grade --json");
+    assert_eq!(out.status.code(), Some(1));
+    let stream = String::from_utf8_lossy(&out.stdout);
+    let count_of = |kind: &str| {
+        stream
+            .lines()
+            .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+            .filter(|event| event["type"] == kind)
+            .count()
+    };
+    assert_eq!(
+        count_of("decl.checked"),
+        0,
+        "两个视图必须都 honors 指令（grade 说 checked ⇒ 它忽略了指令）：{stream}"
+    );
+    assert_eq!(
+        count_of("diagnostic"),
+        failed.len(),
+        "两个视图的诊断条数也必须一致：{stream}"
+    );
+    let _ = std::fs::remove_file(path);
+}
+
 #[test]
 fn query_state_at_a_tactic_shows_the_entering_goal_state() {
     let path = canvas_file("state");
