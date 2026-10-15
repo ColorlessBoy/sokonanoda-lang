@@ -525,6 +525,10 @@ def _fixture_repo(tmp: Path) -> tuple[Path, str | None]:
 
     ⚠ 仓里还要有 `scripts/check-guard-bite.py` + `docs/guard-bite.jsonl`
     （④ 的判定入口 —— `--open-round` 会调它 ✓；**照真仓的形状**，不是打桩 ✗）。
+    ⚠ 还要有 `.github/workflows/ci.yml`（2026-10-16 加）：咬住证明的判据 **C4 接线**
+    要核"每个 `ci_job` 都在 `ci.yml` 里**真的存在且真的有一跑它**" ⇒ 夹具里没有那份
+    工作流时，**真台账**（它声明了 `ci_job: editor` ✓）会以"判不了接线"判红 ✗。
+    同一条口径：**照真仓的形状**（拷真文件），不是把 C4 关掉 ✗。
     """
     repo = tmp / "repo"
     repo.mkdir(parents=True, exist_ok=True)
@@ -542,7 +546,8 @@ def _fixture_repo(tmp: Path) -> tuple[Path, str | None]:
         _git(["commit", "-q", "-m", subject], repo)
 
     # ④ 的判定入口：**照真仓的形状**（拷真文件，不打桩 ✗）
-    for rel in ("scripts/check-guard-bite.py", "docs/guard-bite.jsonl"):
+    for rel in ("scripts/check-guard-bite.py", "docs/guard-bite.jsonl",
+                ".github/workflows/ci.yml"):
         src, dst = ROOT / rel, repo / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         if src.exists():

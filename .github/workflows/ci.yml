@@ -355,9 +355,19 @@ jobs:
         # 覆盖基线以来**新增/修改的每个守卫**都必须有一行 ✓（缺 ⇒ 判红 ⇒ **不算收口** ✗）。
         # ⚠ **`--reopen-empty` 是【①】的翻账入口**（守卫空了 ⇒ **reopen 它关掉的那条** ✓）：
         # 本步**不**自动写台账（CI 里不写 ✗）—— 它由外部验收方在主 checkout 上跑 ✓。
+        #
+        # ⚠⚠ **`--job queue-lint` 是必须的**（2026-10-16 CI 实测红 ✗→✓）：
+        # 本 job 只有 5 分钟、**不装 `editor/vscode/node_modules`、也没有真 VS Code**，
+        # 而台账里有 4 条证明要的正是那些（`scripts/third-layer-bite.sh` 环境缺失 ⇒ **exit 3**，
+        # 而 `pass` 期望 0 ⇒ 判红）⇒ "一条命令扫全部"在 CI 上**必然假红**（红的是"环境不在"、
+        # **不是**"守卫咬不住" ✗ —— 读数不可归属 ✗）。⇒ 台账用 `ci_job` **分派**，
+        # 本步跑**本 job 的那批** ✓；`ci_job: editor` 那批由 `editor` job 跑（它**已经**
+        # 建 debug LSP/CLI + `npm ci` ✓ ⇒ 只需补 VS Code 缓存与那一跑 ✓）。
+        # ⚠ **这不是放宽** ✗：判据 **C4** 会核"每个 `ci_job` 都真的存在且真的有一跑它"——
+        # 把证明标到一个不存在的 job ⇒ **判红**（藏起来 = 空转 ✗）。
         run: |
-          python3 scripts/check-guard-bite.py --selftest
-          python3 scripts/check-guard-bite.py --check --all
+          python3 scripts/check-guard-bite.py --selftest --job queue-lint
+          python3 scripts/check-guard-bite.py --check --all --job queue-lint
 
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
@@ -1271,6 +1281,31 @@ jobs:
       - name: Install editor test dependencies
         working-directory: editor/vscode
         run: npm ci --no-fund --no-audit
+      - name: Cache the VS Code download（第三层咬住证明要真 VS Code）
+        # 与 `e2e` job 逐字同一条（钉住版本后这份缓存长期有效 ✓）。
+        uses: actions/cache@v4
+        with:
+          path: editor/vscode/.vscode-test/vscode-*
+          key: vscode-${{ runner.os }}-${{ env.SOKO_EDITOR_VSCODE }}
+      - name: "咬住证明（`ci_job: editor` 那一批：第三层 + 桥）"
+        # 2026-10-16 · 用户 2026-10-15【④】的分派面（`docs/guard-bite.jsonl` 的 `ci_job` ✓）。
+        # 这一批证明要 **Rust + `editor/vscode/node_modules` + 真 VS Code** —— 本 job
+        # **已经**备齐前三样（`cargo build` 建的是 **debug**，正是
+        # `scripts/third-layer-bite.sh` 的 `PROFILE=debug` ✓；`stage-lsp.js --profile debug`
+        # 也已跑过 ✓）⇒ 只补 VS Code 缓存 + 这一跑 ✓。
+        # ⚠ **为什么不在 `queue-lint`**（实测）：那个 job 只有 5 分钟、没有 node_modules
+        # ⇒ 这 4 条会以 **exit 3**（"环境不在"）判红 ⇒ **假红**（读数不可归属 ✗）。
+        # ⚠ **为什么不是放宽** ✗：判据 **C4** 核"每个 `ci_job` 都真的存在且真的有一跑它"
+        # （本步就是 `--job editor` 那一跑 ✓）—— 把证明标到不存在的 job ⇒ 判红 ✗。
+        # ⚠ **如实标注代价**：本 job 的条件是 `rust || editor` 改动（`scripts/**`、
+        # `.github/workflows/**` 都算 `rust` ✓）⇒ **纯 docs 推送不跑这一批** ——
+        # 它们**物理上**跑不进 `queue-lint` 的 5 分钟预算 ✓，不是口径松了 ✓。
+        # Linux 上 Electron 要显示器（`xvfb-run` 在 ubuntu-24.04 镜像里预装 ✓，与 `e2e` 同）。
+        env:
+          SOKO_EDITOR_VSCODE: "1.138.0"
+          SOKO_VSCODE_TEST_VERSION: "1.138.0"
+        run: |
+          xvfb-run -a python3 scripts/check-guard-bite.py --check --all --job editor
       - name: Download + resolution logic unit tests
         # 纯 Node.js 单元测试：server.js 的 bundled 解析/版本锁定 URL/平台映射，
         # 以及 followRedirects 与 tar 解压逻辑；不依赖 Rust / VS Code，秒级完成。

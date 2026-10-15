@@ -29,6 +29,19 @@
 * **C3 翻账（用户【①】）**：`--reopen-empty` —— 咬住证明**失效**的那一行，
   如果它点名了 `queue_id`，就**把那条已 done 的条目 reopen**（回 `todo`）✓，
   **不是**只记一条新账 ✗ ⇒ **"绿"不再免费** ✓。
+* **C4 接线（2026-10-16，CI 实测红 ✗→✓）**：每条证明**声明它在哪个 CI job 里跑**
+  （台账字段 `ci_job`，缺省 = `queue-lint`）⇒ 那个 job 必须在 `.github/workflows/ci.yml`
+  里**真的存在**、且**真的有一跑它**（那个 job 的文本里出现 `--job <名字>`）✗→✓。
+  ⚠ 为什么必须分派（**实测**）：`queue-lint` 是 `timeout-minutes: 5`、**不装
+  `editor/vscode/node_modules`、也没有真 VS Code** —— 而第三层那几条证明要的正是那些
+  （`scripts/third-layer-bite.sh` 环境缺失 ⇒ **exit 3**，而 `pass` 期望 0 ⇒ 判红 ✓）。
+  ⇒ "一条命令扫全部"（`--all` 不分工）在 CI 上**必然红**，红的是"环境不在"、
+  **不是**"守卫咬不住" ✗ —— 那是**假红**（读数不可归属 ✗）。
+  ⚠ **这不是放宽** ✗：C4 保证**没有一条证明能靠"搬去一个不存在的 job"蒙混** ——
+  声明了 job 而**没人跑它** ⇒ 判红 ✓（**空转闸** ✓）。要一次全跑（开发机）用 `--job all` ✓。
+  ⚠ **分派的代价如实标注** ✗：`ci_job: <非默认>` 的那几条只在那个 job 的触发条件成立时
+  跑（`editor` job 的条件是 `rust || editor` 改动）⇒ **纯 docs 推送不跑第三层那几条** ——
+  它们**物理上**跑不进 `queue-lint` 的 5 分钟预算 ✓（不是口径松了 ✓）。
 
 ## 一处定义（`AGENTS.md` 硬规则 0(b)）
 
@@ -43,7 +56,8 @@
 
   python3 scripts/check-guard-bite.py                 # C1（基线..HEAD 的守卫）+ C2（逐条真跑）
   python3 scripts/check-guard-bite.py --since <sha>   # 覆盖面改成 <sha>..HEAD
-  python3 scripts/check-guard-bite.py --all           # C2 跑**台账里每一条**（不只范围内的）
+  python3 scripts/check-guard-bite.py --all           # C2 跑**本 job 的**每一条（不只范围内的）
+  python3 scripts/check-guard-bite.py --all --job all # C2 跑**台账里每一条**（开发机；CI 分派跑 ✗）
   python3 scripts/check-guard-bite.py --list          # 只印：台账覆盖了谁 · 谁是 grandfathered
   python3 scripts/check-guard-bite.py --reopen-empty  # ⭐ ① 翻账：咬不住的 ⇒ reopen 它关掉的那条
   python3 scripts/check-guard-bite.py --selftest      # 正反两向（含"bite 返回 0 ⇒ 必须判红"）
@@ -53,6 +67,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -61,6 +76,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ROOT / "docs" / "guard-bite.jsonl"
 NONBITING_FIXTURE = ROOT / "scripts" / "fixtures" / "guard-bite-nonbiting.jsonl"
+CI_YML = ROOT / ".github" / "workflows" / "ci.yml"
+
+# ── **证明在哪个 CI job 里跑**（C4；唯一一处 ✓）───────────────────────────────
+# 缺省 = 跑 `--all` 的那个"每推必跑"的 job（`ci.yml` 的 `queue-lint`，无 `if` 过滤器 ✓）。
+DEFAULT_JOB = "queue-lint"
+# `--job all` = **不分工**（开发机一次全跑；CI 分派跑，理由见 docstring 的 C4 ✓）。
+JOB_ALL = "all"
+# job 名的合法形状（`ci.yml` 里 `  <name>:` 那一层）
+_JOB_KEY_RE = re.compile(r"^  ([A-Za-z0-9_-]+):(\s|$)")
 
 # ── **守卫的枚举**（唯一一处 ✓）──────────────────────────────────────────────
 # 口径 = `scripts/` 下**判红用的**脚本（`check-*` / `*-lint.py` / 两本台账 / 审计）。
@@ -84,6 +108,61 @@ def guard_scripts(root: Path = ROOT) -> list[str]:
 
 def is_guard(path: str) -> bool:
     return any(fnmatch.fnmatch(path, g) for g in GUARD_GLOBS)
+
+
+def entry_job(e: dict) -> str:
+    """这条证明声明在哪个 CI job 里跑（缺省 = `DEFAULT_JOB` ✓）。"""
+    return str(e.get("ci_job") or DEFAULT_JOB)
+
+
+def job_blocks(text: str) -> dict[str, str]:
+    """`ci.yml` 里每个 job 的**文本块**（`  <name>:` 到下一个同缩进的键）。
+
+    只做**文本**扫描（与 `scripts/check-ci-gate-coverage.py` 同一条路 ✓）——
+    C4 要的是"这个 job 里到底有没有那一跑"，不是"YAML 能不能解析" ✗。
+    """
+    blocks: dict[str, list[str]] = {}
+    cur: str | None = None
+    for line in text.splitlines():
+        m = _JOB_KEY_RE.match(line)
+        if m:
+            cur = m.group(1)
+            blocks.setdefault(cur, [])
+        if cur is not None:
+            blocks[cur].append(line)
+    return {k: "\n".join(v) for k, v in blocks.items()}
+
+
+def wiring_problems(root: Path, entries: list[dict]) -> list[str]:
+    """**C4 接线**：每条证明声明的 `ci_job` 都要在 `ci.yml` 里存在且**真的跑它** ✓。
+
+    ⚠ 这是"分派"的**空转闸**（docstring C4）：没有它，把一条证明标成
+    `ci_job: 某个不存在的 job` 就等于**把它藏起来** ✗ —— 那才是放宽 ✗。
+    """
+    jobs = sorted({entry_job(e) for e in entries})
+    if not jobs:
+        return []
+    yml = root / ".github" / "workflows" / "ci.yml"
+    if not yml.exists():
+        return [f"**C4 接线** ✗：`{yml}` 不在 ⇒ 判不了 `ci_job` 的接线"
+                f"（**不假装判过** ✗）"]
+    blocks = job_blocks(yml.read_text(encoding="utf-8", errors="replace"))
+    red: list[str] = []
+    for j in jobs:
+        blk = blocks.get(j)
+        if blk is None:
+            red.append(f"**C4 接线** ✗：台账里有条目声明 `ci_job: {j}`，"
+                       f"而 `{yml.name}` 里**没有这个 job** ⇒ 那条证明**没有任何 CI 会跑它**"
+                       f"（藏起来 = 空转 ✗）")
+            continue
+        if "check-guard-bite.py" not in blk:
+            red.append(f"**C4 接线** ✗：`ci_job: {j}` 的那个 job 里**没有任何一步**跑 "
+                       f"`check-guard-bite.py` ⇒ 那批证明在 CI 里**空转** ✗")
+            continue
+        if j != DEFAULT_JOB and f"--job {j}" not in blk:
+            red.append(f"**C4 接线** ✗：`ci_job: {j}` 的那个 job 里**没有** `--job {j}` "
+                       f"⇒ 它跑的是**默认 job 的那批**，这批仍然没人跑 ✗")
+    return red
 
 
 def _git(root: Path, argv: list[str]) -> tuple[str, str | None]:
@@ -148,8 +227,12 @@ def run_proof(cmd: str, root: Path, timeout: int = PROOF_TIMEOUT_S) -> tuple[int
 
 
 def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
-          reopen_empty: bool = False, quiet: bool = False) -> int:
-    """C1 覆盖 + C2 咬得住（+ C3 翻账）。返回退出码 ✓。"""
+          reopen_empty: bool = False, quiet: bool = False,
+          job: str = DEFAULT_JOB) -> int:
+    """C1 覆盖 + C2 咬得住（+ C3 翻账 + C4 接线）。返回退出码 ✓。
+
+    `job` = 这一次跑**哪个 CI job 的那批证明**（`JOB_ALL` ⇒ 不分工，开发机用 ✓）。
+    """
     entries, coverage_since, err = load_ledger(ledger_path)
     if err:
         print(f"error: {err}", file=sys.stderr)
@@ -166,10 +249,22 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
         print(f"error: {cerr}", file=sys.stderr)
         return 3
 
+    # **本 job 的那批**（C4 的分派面 ✓）：`JOB_ALL` = 不分工。
+    pool = entries if job == JOB_ALL else [e for e in entries if entry_job(e) == job]
+
     red: list[str] = []
     if not quiet:
-        print(f"咬住证明（台账 `{ledger_path.name}` · 覆盖基线 `{base[:12]}`）："
-              f"{len(entries)} 条证明 · 基线以来新增/修改的守卫 {len(scope)} 个")
+        print(f"咬住证明（台账 `{ledger_path.name}` · 覆盖基线 `{base[:12]}` · "
+              f"job `{job}`）：{len(entries)} 条证明 · 本 job {len(pool)} 条 · "
+              f"基线以来新增/修改的守卫 {len(scope)} 个")
+
+    # ── C2 空转闸：`--job <名字>` 必须在台账里**真有人声明** ────────────────
+    #   ⚠ 没有这一条，`--job 打错的名字` ⇒ **0 条证明、全绿** ⇒ "跑了"其实是空转 ✗
+    #   （与 C4 对称：C4 管"声明的 job 有人跑"，这一条管"跑的名字有人声明" ✓）。
+    if job != JOB_ALL and not pool:
+        red.append(f"**C2 空转** ✗：`--job {job}` 在台账里**没有任何条目**声明它 ⇒ "
+                   f"这一跑**什么都没跑**（空转 ✗；台账里声明的 job："
+                   f"{' · '.join(sorted({entry_job(e) for e in entries}))}）")
 
     # ── C1 覆盖 ─────────────────────────────────────────────────────────
     missing = [g for g in scope if g not in by_guard]
@@ -182,8 +277,16 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
         print(f"  ✓ C1 覆盖：基线以来的 {len(scope)} 个守卫都有证明"
               + (f"（{', '.join(scope)}）" if scope else "（本窗没有新增/修改的守卫）"))
 
+    # ── C4 接线（分派的空转闸 ✓）──────────────────────────────────────────
+    c4 = wiring_problems(root, entries)
+    red.extend(c4)
+    if not quiet and not c4:
+        jobs = sorted({entry_job(e) for e in entries})
+        print(f"  ✓ C4 接线：台账点名的 {len(jobs)} 个 job 都在 `{CI_YML.name}` 里且**真的跑它**"
+              f"（{' · '.join(jobs)}）")
+
     # ── C2 咬得住 ───────────────────────────────────────────────────────
-    targets = entries if run_all else [e for e in entries if e["guard"] in scope]
+    targets = pool if run_all else [e for e in pool if e["guard"] in scope]
     if run_all:
         # `--all` 另加一条：台账里点名的守卫**必须真的存在**（防表自己腐烂 ✗）
         for e in entries:
@@ -281,8 +384,13 @@ def list_coverage(root: Path, ledger_path: Path) -> int:
     allg = guard_scripts(root)
     print(f"台账 `{ledger_path}`：{len(entries)} 条证明 · 覆盖基线 `{coverage_since[:12]}`")
     for e in entries:
-        print(f"  ✓ {e['guard']}\n      坏输入：{e.get('bug', '')[:110]}\n"
+        print(f"  ✓ {e['guard']}  [job {entry_job(e)}]\n"
+              f"      坏输入：{e.get('bug', '')[:110]}\n"
               f"      bite：`{e['bite']['cmd'][:110]}` ⇒ 期望 rc={e['bite']['expect_rc']}")
+    for j in sorted({entry_job(e) for e in entries}):
+        n = sum(1 for e in entries if entry_job(e) == j)
+        print(f"  · job `{j}`：{n} 条" + ("（默认，`--all` 就跑这批 ✓）"
+                                          if j == DEFAULT_JOB else "（`--job %s` ✓）" % j))
     rest = [g for g in allg if g not in covered]
     print(f"\n⚠ **grandfathered**（基线之前就存在、**不在强制面内** ✗ —— "
           f"如实划的口径，不是豁免 ✓）：{len(rest)} 个")
@@ -292,7 +400,7 @@ def list_coverage(root: Path, ledger_path: Path) -> int:
 
 
 # ── 判据通道自检（反向验证：故意造出该现象 ⇒ 必须判红）──────────────────────
-def selftest() -> int:
+def selftest(job: str = DEFAULT_JOB) -> int:
     bad = 0
 
     def gate(name: str, ok: bool, note: str = "") -> None:
@@ -301,11 +409,11 @@ def selftest() -> int:
             bad += 1
         print(f"  {'✓' if ok else '✗'} {name}{('：' + note) if note else ''}")
 
-    print("咬住证明自检（**真跑**，每条都带正反两向 ✓）：")
+    print(f"咬住证明自检（**真跑**，每条都带正反两向 ✓ · job `{job}`）：")
 
-    # ── 正对照：**真台账**逐条跑 ⇒ 必须 rc=0，且每条的 bite 必须真的非 0 ──
-    rc = check(ROOT, LEDGER, None, run_all=True, quiet=True)
-    gate("正对照：**真台账**（`--all` 逐条真跑）⇒ rc=0", rc == 0, f"rc={rc}")
+    # ── 正对照：**真台账**里**本 job 的**每条逐条跑 ⇒ 必须 rc=0，且 bite 必须真的非 0 ──
+    rc = check(ROOT, LEDGER, None, run_all=True, quiet=True, job=job)
+    gate(f"正对照：**真台账**（`--all` 逐条真跑 · job `{job}`）⇒ rc=0", rc == 0, f"rc={rc}")
     entries, _cs, err = load_ledger(LEDGER)
     gate("正对照：真台账读得进来且非空", not err and bool(entries),
          f"{len(entries)} 条" + (f" · {err}" if err else ""))
@@ -388,6 +496,41 @@ def selftest() -> int:
         rc_m = check(ROOT, tmp / "nope.jsonl", None, run_all=True, quiet=True)
         gate("反向⑥：台账**不存在** ⇒ rc=3（不假装判过 ✗）", rc_m == 3, f"rc={rc_m}")
 
+        # ── 反向⑦：**C4 接线** —— 声明了一个 `ci.yml` 里没有的 job ⇒ 判红 ──
+        #   （**分派的空转闸**：没有它，把证明标成不存在的 job 就等于藏起来 ✗）
+        #   ⚠ 这条夹具**其余都合法**（pass/bite 都对）⇒ 判红**可归属**到 C4 ✓。
+        ghost = tmp / "ghost-job.jsonl"
+        ghost.write_text(
+            f"# coverage_since: {head}\n"
+            + json.dumps({"guard": "scripts/check-attention-budget.py",
+                          "ci_job": "no-such-job-in-ci-yml",
+                          "bug": "故意：把证明声明到一个不存在的 CI job（= 藏起来）",
+                          "pass": {"cmd": "true", "expect_rc": 0},
+                          "bite": {"cmd": "false", "expect_rc": 1}},
+                         ensure_ascii=False) + "\n", encoding="utf-8")
+        rc_g = check(ROOT, ghost, None, run_all=True, quiet=True)
+        gate("反向⑦：**C4 接线** —— `ci_job` 指向不存在的 job（藏起来 = 空转）⇒ 判红 rc=1",
+             rc_g == 1, f"rc={rc_g}")
+
+        # ── 反向⑧：job 存在、但**里面没有那一跑** ⇒ 判红（同上，另一档）──────
+        unwired = tmp / "unwired-job.jsonl"
+        unwired.write_text(
+            f"# coverage_since: {head}\n"
+            + json.dumps({"guard": "scripts/check-attention-budget.py",
+                          "ci_job": "lint-fmt",
+                          "bug": "故意：job 是真的，但里面没有 `--job lint-fmt` 那一跑",
+                          "pass": {"cmd": "true", "expect_rc": 0},
+                          "bite": {"cmd": "false", "expect_rc": 1}},
+                         ensure_ascii=False) + "\n", encoding="utf-8")
+        rc_u = check(ROOT, unwired, None, run_all=True, quiet=True)
+        gate("反向⑧：job 存在但**没有那一跑**（`--job <名字>` 不在）⇒ 判红 rc=1",
+             rc_u == 1, f"rc={rc_u}")
+
+        # ── 反向⑨：`--job <没人声明的名字>` ⇒ 判红（**空转闸**：0 条不许算绿 ✗）──
+        rc_e = check(ROOT, LEDGER, None, run_all=True, quiet=True, job="no-such-job")
+        gate("反向⑨：`--job <台账里没人声明的名字>`（0 条 = 空转）⇒ 判红 rc=1",
+             rc_e == 1, f"rc={rc_e}")
+
     # ── 正对照：**真坏输入**被咬住的形状（`--until c82097fe` = 历史最差点）──
     entries2, _cs2, _e2 = load_ledger(LEDGER)
     hist = next((e for e in entries2
@@ -401,7 +544,7 @@ def selftest() -> int:
         gate("⭐ 正对照：历史最差点被咬住", False, "台账里没有 check-attention-budget 那一行 ✗")
 
     print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}"
-          f"（正对照 4 + 反向 6 + 真跑台账）")
+          f"（正对照 4 + 反向 9 + 真跑台账）")
     return 0 if bad == 0 else 1
 
 
@@ -410,7 +553,12 @@ def main(argv=None) -> int:
     ap.add_argument("--root", default=str(ROOT))
     ap.add_argument("--ledger", default=str(LEDGER))
     ap.add_argument("--since", default=None, help="覆盖面 = <sha>..HEAD（默认台账的 coverage_since）")
-    ap.add_argument("--all", action="store_true", help="C2 跑台账里**每一条**（不只范围内的）")
+    ap.add_argument("--all", action="store_true",
+                    help="C2 跑**本 job 的**每一条（不只范围内的）")
+    ap.add_argument("--job", default=DEFAULT_JOB,
+                    help=f"跑哪个 CI job 的那批证明（台账的 `ci_job`；缺省 `{DEFAULT_JOB}`；"
+                         f"`{JOB_ALL}` = 不分工，开发机一次全跑 ✓）。"
+                         f"⚠ 每个 `ci_job` 都必须在 `ci.yml` 里**真的有一跑** ⇒ 否则 C4 判红 ✗")
     ap.add_argument("--check", action="store_true",
                     help="（默认动作；显式写出来给调用方用 ✓ —— `check-attention-budget.py "
                          "--open-round` 就是这么调的 ✓）")
@@ -427,7 +575,7 @@ def main(argv=None) -> int:
             pass
 
     if args.selftest:
-        return selftest()
+        return selftest(args.job)
 
     root = Path(args.root).resolve()
     ledger = Path(args.ledger)
@@ -435,7 +583,8 @@ def main(argv=None) -> int:
         ledger = (root / ledger).resolve()
     if args.list:
         return list_coverage(root, ledger)
-    return check(root, ledger, args.since, args.all, reopen_empty=args.reopen_empty)
+    return check(root, ledger, args.since, args.all, reopen_empty=args.reopen_empty,
+                 job=args.job)
 
 
 if __name__ == "__main__":
