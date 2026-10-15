@@ -57,7 +57,7 @@ fn dump() -> Value {
     serde_json::from_str(&stdout).unwrap_or_else(|err| {
         panic!(
             "`fixtures --json` 必须交出一个可解析的 JSON 对象：{err}\nstdout 前 200 字：{}",
-            &stdout.chars().take(200).collect::<String>()
+            stdout.chars().take(200).collect::<String>()
         )
     })
 }
