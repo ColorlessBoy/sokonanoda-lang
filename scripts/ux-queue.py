@@ -1689,7 +1689,10 @@ def _note_event_problem(cur: dict, kind: str, why: str, field: str | None = None
     `cmd_triage`/`cmd_add_child` 的闸门 + 每个调用点固定写的字段）⇒ 不是两套判据 ✓。
 
     `why` ∈ {`unknown-kind`（类型不在 `EVENT_KINDS`）· `missing-field`（必填字段缺）·
-    `bad-value`（值不在词表里，如 `triage.to`）}；`value` 记**原值** ⇒ 判红信息能点名它 ✓。
+    `bad-value`（值不在词表里 / **类型不对**）}；`value` 记**原值** ⇒ 判红信息能点名它 ✓。
+    ⚠ `bad-value` 现有两个来源（判红正文按 `_k` 分派，见 `check_plan`）：`triage.to`
+    （**值**不在 `TRIAGE_TO_DISPOSITION`）与 `split.parent`（**类型**不是字符串 —— 父条目是
+    `state` 的键 ⇒ 非字符串连词表都进不去；`EVENT-ID-TYPE-NO-GUARD` 的同族，2026-10-15）✓。
     """
     cur.setdefault("bad_events", []).append({"kind": kind, "why": why,
                                              "field": field, "value": value})
@@ -1800,13 +1803,28 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             # ⚠ **`parent` 缺了 ⇒ 拆解没落地**（父不会转 `umbrella`，而子任务照样进事件表）——
             # `EVENT-FIELD-NO-GUARD`（2026-10-15）：`fold` 已记 `bad_events`（`missing-field`）
             # ⇒ `check_plan` 判红 + 点名 `parent` ✓（不再是"子任务凭空出现"的静默形状）。
+            # ⭐ **非字符串父条目**（`EVENT-ID-TYPE-NO-GUARD` 的**同族**，2026-10-15 · 第十七次
+            # 独立复核实测 ✗）：`parent` 与 `id` 一样是**键** —— 它先在这里 `state.setdefault`
+            # 当键、再在 `sched_rows()` 的 `kids.setdefault(par, …)` 当**第二次**键 ⇒
+            # `list`/`dict` 抛 `TypeError: cannot use 'list' as a dict key`（10 行栈）、
+            # `int`/`bool`/`float` 造出非字符串键 ⇒ `plan_domain()` 的 `sorted()` 抛
+            # `TypeError: '<' not supported between …`（12 行栈）—— 两条都是 **rc=1 + 丢栈 +
+            # 零点名** ✗。⇒ 判据形状照它**已有的** `missing-field`/`bad-value` 那一套（不发明
+            # 第二套 ✗）：**truthy 非字符串 = `bad-value`**（点名字段 + 类型 + 值），并且
+            # **一个字段都不折**（`cur["parent"]` 也不留那个非字符串 —— 否则崩点只是从
+            # `fold` 挪到 `sched_rows` ✗）。⚠ `parent` 是**假值**（缺/`""`）那一格照旧走
+            # `missing-field`（`EVENT_REQUIRED_FIELDS` 那条），`cur["parent"]` 的原值也照旧
+            # 折（`""` 与 `None` 的读数**不许**变 ✗）。
+            if parent and not isinstance(parent, str):
+                _note_event_problem(cur, "split", "bad-value", field="parent", value=parent)
+                parent = None
             if parent:
                 par = state.setdefault(parent, {"id": parent, "state": "umbrella",
                                                 "owner": None, "children": [], "events": 0})
                 par["state"] = "umbrella"
                 if ident not in par["children"]:
                     par["children"].append(ident)
-            cur.update(parent=ev.get("parent"), title=ev.get("title") or cur.get("title") or ident)
+            cur.update(parent=parent, title=ev.get("title") or cur.get("title") or ident)
         elif kind == "reopen":
             cur.update(state="todo", owner=None, pid=None, reason=ev.get("reason"))
         elif kind == "triage":
@@ -1836,7 +1854,13 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
             # 见 `selftest_source_state_grid` 的 `trej` 列）—— 这里改的只是
             # **`--triage` 那一条写路径折出来的状态** ✓。
             to = ev.get("to")
-            if to not in TRIAGE_TO_DISPOSITION:
+            # ⭐ **类型先过闸**（`EVENT-ID-TYPE-NO-GUARD` 的同族，2026-10-15 · 第十七次独立复核
+            # 实测 ✗）：值域表 `TRIAGE_TO_DISPOSITION` 是**字典** ⇒ 对 `list`/`dict` 做
+            # `in` 会抛 `TypeError: unhashable type`（10 行栈 + rc=1 + 零点名 ✗），而它要的
+            # 答案（"这个值不在词表里"）**同一个分支已经会印** ⇒ 先判 `isinstance(to, str)`
+            # 就够：非字符串真值落进**已有**的 `bad-value`（点名那个值 ✓），假值落进
+            # `missing-field` —— 与改前**逐字相同**，只是不再丢栈 ✓。
+            if not isinstance(to, str) or to not in TRIAGE_TO_DISPOSITION:
                 # ⭐ 与 `advance.to` **同一个形状**（第十轮 `#1`）：`to` 是这一支**唯一**的作用
                 # ⇒ 缺了 / 表外值都"什么都不折"（静默 no-op）⇒ 记原值 + 由 `check_plan` 判红 +
                 # **点名那个值** ✓。⚠ 值域取 `TRIAGE_TO_DISPOSITION`（= `cmd_triage` 那一张表，
@@ -3188,13 +3212,31 @@ def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
                 bad += 1
             elif _why == "bad-value":
                 _f, _v = _p.get("field"), _p.get("value")
-                print(f"✗ `{ident}` 的事件表里有一条 `{_k}` 的 `{_f}` = `{_v}` ⇒ "
-                      f"**不在词表里** ✗（`triage.to` 只认 {sorted(TRIAGE_TO_DISPOSITION)}；"
-                      f"`cmd_triage` 的第一道闸门就是它 ⇒ 写侧**造不出**这个形状）—— 这一条"
-                      f"**什么都不折**（静默 no-op），而改前这一格 `--check` **rc=0 且从不点名** ✗"
-                      f"（与 `advance.to` 非法值同形 —— 那一格第十轮 `#1` 已修 ✓）。出路："
-                      f"改成三个合法值之一（`applied` 要 `commit`、`rejected`/`deferred` 要 "
-                      f"`reason` —— 写侧 `--triage` 会替你拒 ✗），或删掉这一条 ✓",
+                # ⚠ **`bad-value` 现在有两个来源，两句话**（`EVENT-ID-TYPE-NO-GUARD` 的同族横向
+                # 排查，2026-10-15 · 第十七次独立复核）：`triage.to` 是**值**不在词表里；
+                # `split.parent` 是**类型**不对（父条目是 `state` 的**键** ⇒ 非字符串连词表都
+                # 进不去）。⇒ 按 `_k` 分派、**同一处定义**（不再各写一套判红）✓；两个子句都
+                # 保留各自的关键词（`不在词表里` / `不是字符串`）⇒ 既有断言不被改写 ✓。
+                if _k == "triage":
+                    _detail = (f"**不在词表里** ✗（`triage.to` 只认 {sorted(TRIAGE_TO_DISPOSITION)}；"
+                               f"`cmd_triage` 的第一道闸门就是它 ⇒ 写侧**造不出**这个形状）")
+                    _before = ("改前这一格 `--check` **rc=0 且从不点名** ✗（与 `advance.to` 非法值"
+                               "同形 —— 那一格第十轮 `#1` 已修 ✓）")
+                    _way = (f"改成三个合法值之一（`applied` 要 `commit`、`rejected`/`deferred` 要 "
+                            f"`reason` —— 写侧 `--triage` 会替你拒 ✗），或删掉这一条 ✓")
+                else:
+                    _detail = (f"**不是字符串** ✗（读到 {type(_v).__name__}）—— `{_k}.{_f}` 的值要当"
+                               f"**键**用（`fold()` 的 `state.setdefault` 与 `sched_rows()` 的 "
+                               f"`kids.setdefault` 各当一次）⇒ 非字符串不是「值不认识」，而是"
+                               f"**这一支根本折不出来**（`list`/`dict` 抛 `unhashable type`、"
+                               f"`int` 让 `plan_domain()` 的 `sorted()` 比不了）；`--add-child` "
+                               f"写侧只写字符串 ⇒ 写侧**造不出**这个形状）")
+                    _before = ("改前这一格 `--check` 丢 `TypeError` 栈 + **rc=1、零点名** ✗"
+                               "（`split.parent` 实测 10 / 12 行栈）")
+                    _way = (f"改成**字符串**（写侧 `--add-child <parent> --child <id> …` 写的就是"
+                            f"字符串 ✓），或删掉这一条 ✓")
+                print(f"✗ `{ident}` 的事件表里有一条 `{_k}` 的 `{_f}` = `{_v}` ⇒ {_detail}"
+                      f"—— 这一条**什么都不折**（静默 no-op），而{_before}。出路：{_way}",
                       file=sys.stderr)
                 bad += 1
         # ── **两层漂移 = 两个方向的同一条不变量**：来源"已关账" ⟺ 调度器"不在做"。
@@ -3671,6 +3713,22 @@ def release_scan() -> tuple[dict[str, dict], list[tuple[str | None, str]]]:
         if not ident:
             problems.append((None, f"✗ 发版事件 `{kind}` 没写节点 id（`release-open`/`release-cut` "
                                    f"用 `id`、其余三条用 `rel`）⇒ 这条事件对节点表**零输入** ✗"))
+            continue
+        # ⭐ **不可哈希的节点 id 也要在这里拦**（`EVENT-ID-TYPE-NO-GUARD` 的同族，2026-10-15 ·
+        # 第十七次独立复核实测 ✗）：`ident` 要当**节点表的键**（`ident not in nodes`）⇒
+        # `list`/`dict` 抛 `TypeError: cannot use 'list' as a dict key`（**19 行栈** + rc=1 +
+        # 零点名 ✗，实测 `release-add`/`release-drop` 的 `rel`）。⇒ 与"没写节点 id"**同一个
+        # 分支、同一句话**（rc=1 + 点名 + 出路，不发明第二套 ✗），只多点名**类型与值** ✓。
+        # ⚠ **可哈希**的非字符串（`int`/`bool`/`float`）走得下去 ⇒ 落进下面那条**已有的**
+        # "孤儿"判据（rc=1 + 点名）—— 那一格**读数一个字不动** ✓（只换**改前丢栈**的形状）。
+        # ⚠ `release-open`/`release-cut` 的 `id` 走不到这里（`load_events()` 已按"键"判了
+        # rc=2 ✓ —— 两档的分界见那里的说明）。
+        if isinstance(ident, (list, dict)):
+            problems.append((None, f"✗ 发版事件 `{kind}` 没写节点 id（`release-open`/`release-cut` "
+                                   f"用 `id`、其余三条用 `rel`）⇒ 这条事件对节点表**零输入** ✗"
+                                   f"（读到 {type(ident).__name__} `{ident!r}` ⇒ **非字符串当不了"
+                                   f"键**：改前在 `ident not in nodes` 抛 `TypeError: unhashable "
+                                   f"type` 栈 ✗）"))
             continue
         if ident not in nodes:
             problems.append((ident,
@@ -8214,6 +8272,52 @@ def selftest_event_vocabulary(expect) -> None:
                 expect(f"⑤e `event` = {type(_bad).__name__} ⇒ **已有牙**：rc=1 + "
                        f"「不是事件类型」（实测 rc={rc}）",
                        rc == 1 and "不是事件类型" in err and STACK_HEADER not in err)
+            # ── ⑤f **同族横向收口**：另外三个**当键用 / 进字典成员测试**的字段，非字符串
+            #    （`list`/`dict` 这些**不可哈希**的）改前都丢 `TypeError` 栈 + rc=1 零点名 ✗
+            #    ⇒ 现在落进各自**已有**的具名判据（rc=1 + 点名，**一处定义**）✓。
+            #    ⚠ 三格的判据不同源：`triage.to` = 值域表（dict 成员测试）· `split.parent` =
+            #    键（`state` + `sched_rows` 各当一次）· `release-*.rel` = 节点表的键。
+            for _ev, _needle, _what in (
+                    ({"event": "triage", "id": "EV-A", "to": ["applied"]}, "不在词表里",
+                     "`triage.to` = list（值域表是 dict ⇒ `in` 抛 unhashable）"),
+                    ({"event": "triage", "id": "EV-A", "to": {"x": 1}}, "不在词表里",
+                     "`triage.to` = dict"),
+                    ({"event": "split", "id": "EV-K", "parent": ["EV-P"], "title": "夹具"},
+                     "不是字符串", "`split.parent` = list（父条目是 `state` 的**键**）"),
+                    ({"event": "split", "id": "EV-K", "parent": 123, "title": "夹具"},
+                     "不是字符串", "`split.parent` = int（会让 `sorted()` 比不了）"),
+                    ({"event": "release-add", "rel": ["REL-9.9.9"], "id": "EV-K"},
+                     "没写节点 id", "`release-add.rel` = list（节点表的键）"),
+                    ({"event": "release-drop", "rel": {"x": 1}, "id": "EV-K"},
+                     "没写节点 id", "`release-drop.rel` = dict")):
+                _events(_ev)
+                rc, out, err = _cli(["--check-plan"])
+                expect(f"⑤f {_what} ⇒ **rc=1 + 点名 + 0 栈**（改前 `TypeError` 栈 + 零点名 ✗；"
+                       f"实测 rc={rc}）",
+                       rc == 1 and _needle in err and STACK_HEADER not in err)
+            # ⑤f' **既有读数不动**：`rel` 是**可哈希**的非字符串（`int`/`bool`/`float`）⇒ 走得下去、
+            #     仍落进**原有的**"孤儿"判据 —— 那一格改前就有牙（rc=1 + 点名）⇒ **一个字不动** ✓
+            #     （本轮只换**改前丢栈**的形状；"不许更松"的另一面是"别顺手改既有读数" ✗）。
+            _events({"event": "release-add", "rel": 123, "id": "EV-K"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"⑤f' `release-add.rel` = int ⇒ 仍走**原有的**「孤儿」判据（rc=1 + 点名，"
+                   f"读数不动 ✓；实测 rc={rc}）",
+                   rc == 1 and "孤儿" in err and STACK_HEADER not in err)
+            # ⑤g 正对照：同一批字段的**合法字符串**值照旧（拆解真落地 + 值域合法）——
+            #     防"整格恒红"的空转夹具 ✗。
+            _events({"event": "split", "id": "EV-K", "parent": "EV-P", "title": "夹具：合法"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"⑤g 正对照：`split.parent` 是字符串 ⇒ rc=0 且父**真转 umbrella**"
+                   f"（实测 rc={rc}）",
+                   rc == 0 and "`EV-K`" not in err and fold().get("EV-P", {}).get("state") == "umbrella")
+            # ⑤h **回归臂**：`split.parent` 的**假值**那一格（缺 / `""`）仍走 `missing-field`，
+            #     且 `cur["parent"]` 的**原值照旧折**（`""` 不许被我改成 `None` —— 那是读数漂移 ✗）。
+            _events({"event": "split", "id": "EV-K", "parent": "", "title": "夹具"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"⑤h `split.parent` = `\"\"`（假值）⇒ 仍 `missing-field` + rc=1（实测 rc={rc}）",
+                   rc == 1 and "缺必填字段 `parent`" in err and STACK_HEADER not in err)
+            expect("⑤h 且 `cur[\"parent\"]` 折的仍是**原值** `\"\"`（不是 `None` —— 读数不许漂 ✗）",
+                   fold().get("EV-K", {}).get("parent") == "")
             # ⓪ 发版五族：必填字段（节点 id）**真有牙** ⇒ "不在 `fold` 里重复判"不是漏判 ✓
             _events({"event": "release-add", "id": "REL-X", "owner": "夹具"})
             rc, out, err = _cli(["--check-plan"])
