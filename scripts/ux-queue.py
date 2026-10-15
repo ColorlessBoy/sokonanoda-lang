@@ -325,6 +325,22 @@ REQUIRED_ROOT_FILES: tuple[tuple[str, str], ...] = (
 )
 
 
+def _main_worktree() -> str:
+    """本仓的**主工作树**路径（`git worktree list --porcelain` 第一行 = 主工作树 ✓）。
+
+    ⚠ **口径不是新造的**：`scripts/ci-local.sh:198` 早就用同一条
+    （`git worktree list --porcelain | sed -n "1s/^worktree //p"`）把队列单点**覆盖**成主
+    checkout —— 那里的注释还记着为什么（链接工作树里那份 `docs/ux-queue-events.jsonl` 是
+    **开树时的过期副本** ⇒ 守卫会**静默审错对象** ✗）。这里只是把同一句话写进人话里，
+    让 rc=2 直接给出**可复制的正解**（而不是一句"指向主 checkout"要人自己找 ✓）。
+    量不到（不是 git 仓库 / git 不在）⇒ 回落成占位符，**判据不受影响**（判据只看 `gd != gcd` ✓）。
+    """
+    out = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=ROOT,
+                         capture_output=True, text=True).stdout
+    first = next((line for line in out.splitlines() if line.startswith("worktree ")), "")
+    return first[len("worktree "):].strip() or "<主 checkout>"
+
+
 def _guard_root() -> None:
     """`SOKO_QUEUE_ROOT` 指错 / 缺必需文件时要**干净报错**（rc=2 + 一行人话，别丢栈 ✗）。
 
@@ -336,6 +352,22 @@ def _guard_root() -> None:
     `OSError` 一路穿到顶层 ⇒ 栈。
     ⚠ 这正是 `#5a` 声称修好的那一类（"环境错 = rc=2 且不丢栈"）⇒ **横向排查**：把工具
     实际读的**每一份**都查上 ✓（`REQUIRED_ROOT_FILES` 一处定义，缺哪份**点名哪份** ✓）。
+
+    ⭐⭐ **`QUEUE-ROOT-GUARD-CHECKS-SET-NOT-WHERE`（2026-10-16）—— 守卫从「设没设」升级为
+    「指向哪」**：旧条件是 `... and not os.environ.get("SOKO_QUEUE_ROOT")` ⇒ 它只问**变量设没设**
+    ✗，不问**指向哪** ✗ ⇒ `SOKO_QUEUE_ROOT=<worktree>`（或 `=.` 而 cwd 在工作树里）**被放行**
+    ⇒ `ROOT` = 工作树、祖先性闸门的 `HEAD`（`ancestry_rc()` 里 `cwd=ROOT` 那一次探针）=
+    **分支 tip** ⇒ 一条**只在分支上存在**的 commit 被**收下**（`rc=0` **绿** ✗），而事件写进
+    **另一份** `docs/ux-queue-events.jsonl`（主 checkout 看不见 ⇒ "4 棵树各有一本账" ✗）。
+    **实测（真链接工作树夹具）**：`ROOT=<worktree>` + 分支独有 sha ⇒ `--advance --to done`
+    **rc=0 绿** + 事件落进工作树那份（798 行）而主 checkout 那份**一字节未动**（797 行）✗；
+    同一 sha 在 `ROOT=<主 checkout>` 上 ⇒ **rc=1**「不是 `HEAD` 的祖先」✓。
+    ⇒ **判据**：`ROOT` 是链接工作树（`--git-dir != --git-common-dir`）就**一律拒**，
+    **不管变量设没设**（设成工作树正是本缺口；设成主 checkout 时 `gd == gcd` ⇒ 不受影响 ✓）。
+    ⚠ **没有打死合法的链接工作树用法** ✗：口径仍只在 `cwd=ROOT` 上问 git ⇒
+    「在链接工作树里跑 + `SOKO_QUEUE_ROOT=<主 checkout>`」（`agent-worktree.sh:27` 的契约、
+    `compile-cache.py:425` 的 export、`ci-local.sh:201` 的覆盖）全部 `gd == gcd` ⇒ **照旧绿** ✓；
+    `_fixture_queue_root()` 造的是**独立 `git init` 仓**（`gd == gcd`）⇒ 自检夹具面不受影响 ✓。
     """
     missing = [(rel, what) for rel, what in REQUIRED_ROOT_FILES if not (ROOT / rel).exists()]
     if missing:
@@ -350,14 +382,28 @@ def _guard_root() -> None:
         return subprocess.run(["git", *argv], cwd=ROOT, capture_output=True,
                               text=True).stdout.strip()
     gd, gcd = _git("rev-parse", "--git-dir"), _git("rev-parse", "--git-common-dir")
-    if gd and gcd and Path(gd).resolve() != Path(gcd).resolve() and not os.environ.get("SOKO_QUEUE_ROOT"):
+    # ⚠ **`not os.environ.get("SOKO_QUEUE_ROOT")` 已删**（`QUEUE-ROOT-GUARD-CHECKS-SET-NOT-WHERE`）：
+    # 那一句把守卫降级成"设没设"，而**设成工作树**正是要拦的形状 ✗（见 docstring 的实测）。
+    if gd and gcd and Path(gd).resolve() != Path(gcd).resolve():
         # `--git-dir` 是相对路径时按 ROOT 解析（`git rev-parse` 的输出可能是相对的 ✓）
         linked = (Path(gd) if Path(gd).is_absolute() else ROOT / gd).resolve()
         common = (Path(gcd) if Path(gcd).is_absolute() else ROOT / gcd).resolve()
         if linked != common:
+            main = _main_worktree()
+            if os.environ.get("SOKO_QUEUE_ROOT"):
+                raise UsageError(
+                    f"`SOKO_QUEUE_ROOT` 指到了**链接工作树**（`{ROOT}`）⇒ 队列状态会落进**这棵树自己的"
+                    f"那份副本**（`docs/ux-queue-events.jsonl`），主 checkout **看不见** ⇒ 4 棵树就"
+                    f"各有一本账 ✗；而且收口的**祖先性闸门**会拿**这棵树的分支 tip** 当基点"
+                    f"（`ancestry_rc()` 的 `cwd=ROOT`）⇒ 一条**只在分支上存在**的 commit 会被"
+                    f"**收下**（`rc=0` 绿 ✗）。\n"
+                    f"    正解：`export SOKO_QUEUE_ROOT={main}`（**必须是主 checkout**，不是任何"
+                    f"工作树 —— 它就是队列状态与来源台账的单点 ✓）"
+                    f"（`scripts/agent-worktree.sh new <id>` / `scripts/compile-cache.py env <id>` "
+                    f"都会把该 export 打出来 ✓）")
             raise UsageError(
                 f"你在**链接工作树**里（{ROOT}）但没设 `SOKO_QUEUE_ROOT` ⇒ 会读写这一份**本地副本**，"
-                f"4 棵树就各有一本账 ✗。正解：`export SOKO_QUEUE_ROOT=<主 checkout>`"
+                f"4 棵树就各有一本账 ✗。正解：`export SOKO_QUEUE_ROOT={main}`"
                 f"（`scripts/agent-worktree.sh new <id>` 会把该 export 打出来 ✓）")
 
 
@@ -7967,6 +8013,57 @@ def selftest_id_and_encoding_gates(expect) -> None:
             _have = {rel for rel, _w in _saved_req}
             expect(f"⑥ `REQUIRED_ROOT_FILES` 覆盖三个无条件读取的来源文件（缺：{sorted(_need - _have)}）",
                    _need <= _have)
+            # ⑥b ⭐⭐ **`SOKO_QUEUE_ROOT` 的"指向哪" = 必须主 checkout**（`QUEUE-ROOT-GUARD-CHECKS-SET-NOT-WHERE`，
+            #     2026-10-16 · 本会话实测 ✗）：旧守卫的第三个合取项是
+            #     `and not os.environ.get("SOKO_QUEUE_ROOT")` ⇒ 它只问**设没设** ✗、不问**指向哪** ✗
+            #     ⇒ `SOKO_QUEUE_ROOT=<链接工作树>` 被放行 ⇒ 实测（真夹具）`--advance --to done`
+            #     带一枚**只在分支上存在**的 sha ⇒ **rc=0 绿** + 事件落进**工作树那份**
+            #     `docs/ux-queue-events.jsonl`（主 checkout **一字节未动** ⇒ 账分叉 ✗）；
+            #     同一枚 sha 在 `ROOT=<主 checkout>` 上 ⇒ **rc=1**「不是 `HEAD` 的祖先」✓。
+            #     ⚠ 判据**真起子进程**（闸门长在 `main()` 里 ⇒ 只有真 CLI 走得到 ✓，与 ④⑦⑧ 同形）。
+            #     ⚠ 夹具 = **一次性仓 + 它自己的链接工作树**（`git init` + `git worktree add`）
+            #     ⇒ 真形状、且**一个字节都不碰真仓的 `.git/worktrees/`** ✓（`_fixture_queue_root()`
+            #     的先例：夹具自带 `.git` ⇒ 锁/状态全在临时目录 ✓）。
+            #     ⚠ **正对照必须在同一张表里**（"不许放宽"的另一面 = **不许误拒** ✓）：
+            #     ① 主 checkout ⇒ rc=0；② **在链接工作树里跑 + 指回主 checkout**（`agent-worktree.sh:27`
+            #     的契约、`compile-cache.py:425` 的 export、`ci-local.sh:201` 的覆盖）⇒ rc=0 ✓
+            #     —— 否则就是把**本仓大量在用的合法工作流**一起打死 ✗。
+            _wtb = Path(tmp) / "wtbase"
+            subprocess.run(["git", "init", "-q", str(_wtb)], capture_output=True)
+            (_wtb / "seed.txt").write_text("x", encoding="utf-8")
+            _wi = ("-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local")
+            subprocess.run(["git", *_wi, "add", "seed.txt"], cwd=_wtb, capture_output=True)
+            subprocess.run(["git", *_wi, "commit", "-qm", "seed"], cwd=_wtb, capture_output=True)
+            _wt = Path(tmp) / "wtlinked"
+            subprocess.run(["git", "worktree", "add", "-q", "--detach", str(_wt), "HEAD"],
+                           cwd=_wtb, capture_output=True)
+            for _rel, _why in REQUIRED_ROOT_FILES:      # 根要齐（`_guard_root` 先查这一关 ✓）
+                (_wt / _rel).parent.mkdir(parents=True, exist_ok=True)
+                (_wt / _rel).write_text("", encoding="utf-8")
+            # 正对照②要"**从工作树里**跑真脚本" ⇒ 把真脚本放进夹具工作树（`__file__` 决定回落根 ✓）
+            (_wt / "scripts" / "ux-queue.py").write_text(
+                Path(__file__).read_text(encoding="utf-8"), encoding="utf-8")
+            _wt_ev = Path(tmp) / "wt-events.jsonl"
+            for _what, _root, _script, _want, _needle in (
+                    ("指到**链接工作树**（本缺口）", _wt, Path(__file__), 2, "链接工作树"),
+                    ("正对照：指到**主 checkout**", ROOT, Path(__file__), 0, ""),
+                    ("正对照：**在工作树里跑 + 指回主 checkout**（合法工作流）",
+                     ROOT, _wt / "scripts" / "ux-queue.py", 0, "")):
+                _wr = subprocess.run(
+                    [sys.executable, str(_script), "--json"],
+                    capture_output=True, text=True, cwd=str(_root),
+                    env=dict(os.environ, SOKO_QUEUE_ROOT=str(_root),
+                             SOKO_QUEUE_EVENTS=str(_wt_ev)))
+                _we = (_wr.stderr or "") + (_wr.stdout or "")
+                expect(f"⑥b `SOKO_QUEUE_ROOT` {_what} ⇒ rc={_wr.returncode}（期望 {_want}）"
+                       f"且**没有 Traceback**", _wr.returncode == _want
+                       and STACK_HEADER not in (_wr.stderr or ""))
+                if _needle:
+                    # ⚠ 人话里点名的必须是**那个仓自己的**主工作树（= 夹具仓的基座 `_wtb`，
+                    #   不是真仓的 `ROOT` ✗ —— 第一版写成 `str(ROOT)` ⇒ 当场判红，实测）✓
+                    expect(f"⑥b {_what} 的 rc=2 是**人话**（点名 `SOKO_QUEUE_ROOT` + 给出主 checkout ✓）",
+                           _needle in _we and "SOKO_QUEUE_ROOT" in _we
+                           and str(_wtb) in _we)
             # ⑦ ⭐ **`SOKO_QUEUE_EVENTS` 的"结构错值" = rc=2 + 人话**（同一个缺口的横向排查，
             #    2026-10-15 · 第十五次独立复核实测 ✗）：实测两个错值都**丢栈 + rc=1**（指到目录 ⇒
             #    `load_events` 的 `IsADirectoryError` 21 行栈；父级是文件 ⇒ `append_event` 的
