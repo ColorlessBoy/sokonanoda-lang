@@ -110,8 +110,21 @@ jobs:
   # 依赖：`check-doc-drift.py` 只要 python3 ✓；`check-launcher-extension-link.py`
   # 还要 `node`（runner 自带）——**探不到就 exit 3、绝不静默通过** ✓（与 gate 其它步
   # 同一条纪律 ✓）。两者都是亚秒级 ⇒ 永远跑 ✓。
+  #
+  # ⭐ 2026-10-15 CMT-G 增补**第三个**：`check-lsp-marker-seam.py`（洞
+  # `LSP-MARKER-NO-COMMITTED-GUARD`）—— LSP 槽位的 marker 有**一个写端 + 三个读点**
+  # （`editor/vscode/server.js` 写端与 `cachedServerIsCurrent` · `scripts/soko`
+  # `markerExpected` · `editor/vscode/extension.js` doctor 5/6）。lspF 轮（`1b6b7eb5`）
+  # 把它们一次改齐，但跨接缝探针只活在 `.cache/ux/fix-lspF/`（**不 commit** ✗）
+  # ⇒ 照 `check-launcher-extension-link.py` 的形状收进 `scripts/` ✓。
+  # C1–C6 盖 LSP 槽位；**C7 是横向排查**（硬规则 0(b)）收的**第二个槽位**：扩展
+  # 「Install CLI」写端 `installBundledCli`（洞 `INSTALL-BUNDLED-CLI-MARKER-DRIFT`，
+  # markC `a5feb8b5`）的证据同样只在 `.cache/ux/fix-markC/`，而今天没有任何 committed
+  # 判据盖住它（`test-server.js` 只盖 LSP 槽位 · `test-extension-host.js` 把
+  # `installBundledCli` 整个 stub 掉 ✗）⇒ 一并收进来 ✓。
+  # 依赖 `node` + `tar`（runner 自带）⇒ 同一条纪律：探不到就 exit 3 ✓；约 1.5 秒 ⇒ 永远跑 ✓。
   wiring-lint:
-    name: wiring-lint（harness 接线文档漂移 + 启动器扩展链接）
+    name: wiring-lint（harness 接线文档漂移 + 启动器扩展链接 + LSP 槽位 marker 跨接缝）
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -124,6 +137,10 @@ jobs:
         run: |
           python3 scripts/check-launcher-extension-link.py
           python3 scripts/check-launcher-extension-link.py --selftest
+      - name: LSP/CLI 槽位 marker 跨接缝（C1–C7，含两条负对照不许松）+ 自检
+        run: |
+          python3 scripts/check-lsp-marker-seam.py
+          python3 scripts/check-lsp-marker-seam.py --selftest
 
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
