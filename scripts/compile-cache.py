@@ -44,13 +44,16 @@ python3 scripts/compile-cache.py --json              # 机器读（进 gate 的�
 python3 scripts/compile-cache.py --selftest          # 判据通道自检（回收顺序 / 死树识别 / 预算 / 余量）
 ```
 
-退出码：0 = 正常 · 1 = 超预算（判红）· 2 = 用法/环境错。
+退出码：0 = 正常 · 1 = 超预算（判红）· 2 = 用法/环境错 ——
+**含 GB 旋钮的值域错**（`SOKO_CACHE_BUDGET_GB` / `SOKO_CACHE_RESERVE_GB` / `set-budget <GB>`，
+**rc=2 + 人话 + 正解**，**不丢栈** ✗⇒✓；唯一判定处 `_guard_gb_knobs()`）。
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -269,6 +272,93 @@ def save_registry(data: dict) -> None:
     REGISTRY.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+# ── **GB 旋钮的值域闸门**（洞 `COMPILE-CACHE-GB-ENVS-NO-GUARD`，2026-10-16）──────────────
+# 旧写法是**裸 `int(float(env) * 1024**3)`**（`budget_bytes` / `reserve_bytes`）⇒ **两向都错** ✗：
+#   · 非数字 / 非有限（`abc` · `nan` · `inf`）⇒ `ValueError` / `OverflowError` + **Traceback**
+#     ⇒ **崩溃而不是判定** ✗（契约是"环境错 = rc=2 + 人话"，见本文件抬头）；
+#   · `SOKO_CACHE_RESERVE_GB=-5` ⇒ `max(0, …)` **静默吞掉**负号 ⇒ 余量 **0 G**
+#     ⇒ `reclaim_target` = **判红线本身** ⇒ **正是 2026-10-15 刚修的 `CACHE-GUARD-NO-HEADROOM`**
+#     （贴着线收 ⇒ 下一次 `gate --fast` 自己就把它顶过线）✗ —— 而**没有任何读数会红** ✗。
+# 修法照本仓已有的「环境变量值域闸门」范式（`gap.py` 的 `_parse_repro_timeout_env()` +
+# `_guard_repro_timeout_env()`；`ux-queue.py` 的 `_parse_slots_env()` 同族 ✓）：
+#   ① `_parse_gb_env()` —— **唯一读取+解析处**、**永不抛**（导入期/判定期都要活到 `main()`）；
+#   ② `_guard_gb_knobs()` —— 在 `main()` 里判 **rc=2 + 人话 + 正解** ✓。
+# ⚠ **两个纯函数必须继续实时读 `os.environ`** ✗⇒✓：`--selftest` 会在**运行中途**设/删这两个
+#   变量（`SOKO_CACHE_BUDGET_GB=0.000000001` 那几条既有判据）⇒ **冻结成模块常量会打死它们** ✗
+#   （解析放在函数内、闸门复用**同一个** `_parse_gb_env()` ⇒ 一处解析、一处判定，不会漂 ✓）。
+# ⚠ 值域（**不许放宽，也不许收紧** ✗）：
+#   · `SOKO_CACHE_BUDGET_GB` = **判红线** ⇒ **正数**（≤0 ⇒ 每一棵树都"超预算" ⇒ 判红线**永远红**
+#     = 噪声；它没有任何"关掉预算"的文档语义 —— 同 `SOKO_QUEUE_SLOTS` 的推理 ✓）；
+#   · `SOKO_CACHE_RESERVE_GB` = **回收余量** ⇒ **正数**（`0` 就是 **`CACHE-GUARD-NO-HEADROOM`
+#     那个状态本身**：`reclaim_target` = 判红线 ⇒ 下一次 `gate --fast` 自己就把它顶过线；
+#     `reserve` 的存在理由就是"留出一次构建的余量"（见本文件 §3）⇒ 它不是可选项 ✓；
+#     ⚠ 旧代码的 `max(0, …)` 把**负数**静默变成 `0` —— 两向都落进那个状态 ⇒ 值域 = 正数）。
+#   · 合法值**照旧走 `float()`** ⇒ 以前能用的写法（`200` · `60` · `0.5` · `" 200"` · `"+200"`）
+#     **逐字节不变** ✓（"不许放宽"的另一面：也不许收紧到把旧写法判红 ✗）。
+GB_BUDGET_ENV = "SOKO_CACHE_BUDGET_GB"
+GB_RESERVE_ENV = "SOKO_CACHE_RESERVE_GB"
+# 两个旋钮的**唯一描述表**（闸门与消费点共用 ⇒ 人话不会两处漂 ✗）
+GB_ENV_KNOBS: dict[str, dict] = {
+    GB_BUDGET_ENV: {
+        "what": "**判红线**",
+        "why": "预算 ≤0 会让**每一棵树**都「超预算」⇒ 判红线**永远红**（那不是判据，是噪声），"
+               "而它没有任何「关掉预算」的文档语义",
+        "fix": f"`unset {GB_BUDGET_ENV}` 回到默认 {DEFAULT_BUDGET_GB} G，或 `{GB_BUDGET_ENV}=60`",
+    },
+    GB_RESERVE_ENV: {
+        "what": "**回收余量**",
+        "why": "余量 **0 G** ⇒ `reclaim_target` = **判红线本身** ⇒ **`CACHE-GUARD-NO-HEADROOM` "
+               "复发**（贴着线收 ⇒ 下一次 `gate --fast` 自己就把它顶过线）—— 旧写法 "
+               "`max(0, …)` 把**负数静默变成 `0`** ⇒ 两向都落进这个状态 ✗",
+        "fix": f"`unset {GB_RESERVE_ENV}` 回到默认（5% 预算），或 `{GB_RESERVE_ENV}=2`",
+    },
+}
+
+
+def _parse_gb_value(name: str, raw: object, *, what: str,
+                    why: str, fix: str) -> tuple[float | None, str]:
+    """`(GB, 人话)`：`人话 == ""` ⇒ 合法；`GB is None` ⇒ 这个值**用不了**（调用方走自己的默认链）。
+
+    **永不抛**（模块导入与 `main()` 的闸门都要活到能判红；`raw` 也可能是 registry 里的任意
+    JSON 值 ⇒ `TypeError` 也要接住 ✓）。合法值**照旧 `float()`** ⇒ 旧写法逐字节不变 ✓。
+    **值域 = 正数**（两个旋钮都是"越大越保守"的阈值，`0`/负数都没有文档语义 ✓）。
+    """
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return None, ""                       # 不设 / 空串 / 纯空白 ⇒ 与"没设"同口径 ✓
+    try:
+        gb = float(raw)                       # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None, (f"`{name}` **不是数字**（原值 `{raw!r}`）⇒ 它要的是{what}的 **GB 数**"
+                      f"（正数）✗。正解：{fix}")
+    if not math.isfinite(gb):
+        return None, (f"`{name}` 必须是**有限**的 GB 数（原值 `{raw!r}` = {gb}）⇒ "
+                      f"`nan` / `inf` 不是 GB 数（`int(nan * 1024**3)` 会丢栈 ✗）。正解：{fix}")
+    if gb <= 0:
+        return None, (f"`{name}` 必须是**正数**（原值 `{raw!r}` = {gb}）⇒ {why}。正解：{fix}")
+    return gb, ""
+
+
+def _parse_gb_env(name: str) -> tuple[float | None, str]:
+    """环境变量 `name` 的**唯一读取+解析点**（消费点与闸门共用 ⇒ 一处解析、一处判定 ✓）。"""
+    return _parse_gb_value(name, os.environ.get(name), **GB_ENV_KNOBS[name])
+
+
+def _guard_gb_knobs() -> int | None:
+    """两个 GB 旋钮**取值域错** ⇒ rc=2 + 人话 + 正解（**别丢栈** ✗）。返回 `None` = 合法。
+
+    ⚠ 位置在 `argparse` **之前**（同 `gap.py` 的 `_guard_repro_timeout_env()`）：值域错是
+    "**这台机器的环境坏了**" ⇒ 连 `--help` / `env` / `--selftest` 都不该假装正常 ✓。
+    （⚠ 如实：`ux-queue.py` 那一族闸门在 `parse_args` **之后**跑 —— 两种位置本仓都有先例；
+    这里选"之前"，因为这两个值**每个子命令**都会消费：`env` 读预算、`status`/`reclaim` 读两者 ✓。）
+    """
+    problems = [why for why in (_parse_gb_env(n)[1] for n in GB_ENV_KNOBS) if why]
+    if not problems:
+        return None
+    for p in problems:
+        print(f"error: {p}", file=sys.stderr)
+    return 2
+
+
 def budget_bytes(reg: dict | None = None) -> int:
     """预算字节数。⚠ `reg` 的**空字典**是合法入参（= "没有 registry"）⇒ 走默认值。
 
@@ -278,10 +368,15 @@ def budget_bytes(reg: dict | None = None) -> int:
     `--selftest` 的 `budget_bytes({}) == DEFAULT_BUDGET_GB` **永久判红** —— 而这条 selftest
     已进 `scripts/soko gate` 与 CI（任何设过预算的机器 gate 假红 ✗）。
     判据用 `is None`（只有真的没传才回落）✓。
+
+    ⚠ **值域**（2026-10-16 · 洞 `COMPILE-CACHE-GB-ENVS-NO-GUARD` ✗⇒✓）：环境变量这条走
+    `_parse_gb_env()` ⇒ 非数字 / `nan` / `inf` / ≤0 **不再丢栈**（旧写法 `float(env)` 直接抛 ✗），
+    而是**用不了** ⇒ 落回 registry/默认；**真跑 CLI 时 `_guard_gb_knobs()` 先判 rc=2 + 人话** ✓
+    （这里落回默认只服务"导入期/被绕过时不炸" —— 判据在闸门，不在这里 ✓）。
     """
-    env = os.environ.get("SOKO_CACHE_BUDGET_GB")
-    if env:
-        return int(float(env) * 1024**3)
+    gb, _why = _parse_gb_env(GB_BUDGET_ENV)
+    if gb is not None:
+        return int(gb * 1024**3)
     if reg is None:
         reg = load_registry()
     return int(float(reg.get("budget_gb", DEFAULT_BUDGET_GB)) * 1024**3)
@@ -299,10 +394,13 @@ def reserve_bytes(reg: dict | None = None) -> int:
     余量取值：`SOKO_CACHE_RESERVE_GB` → `registry.json` 的 `reserve_gb` →
     默认 **5% 预算**（60 G ⇒ 3 G；实测一次 `gate --fast` 的增量约 **0.3 G** ⇒ 10× 余量 ✓）。
     ⚠ 与 `budget_bytes` 同口径：**空 dict ≠ 没传**（`{}` = "没有 registry" ⇒ 走默认 ✓）。
+    ⚠ **值域**（2026-10-16 · 洞 `COMPILE-CACHE-GB-ENVS-NO-GUARD` ✗⇒✓）：环境变量这条走
+    `_parse_gb_env()` ⇒ **负数不再被 `max(0, …)` 静默吞掉**（那会让余量 0 G ⇒ `reclaim_target`
+    = 判红线本身 ⇒ `CACHE-GUARD-NO-HEADROOM` 复发 ✗）；非法值落回默认链、**闸门判 rc=2 + 人话** ✓。
     """
-    env = os.environ.get("SOKO_CACHE_RESERVE_GB")
-    if env:
-        return max(0, int(float(env) * 1024**3))
+    gb, _why = _parse_gb_env(GB_RESERVE_ENV)
+    if gb is not None:
+        return max(0, int(gb * 1024**3))
     if reg is None:
         reg = load_registry()
     if "reserve_gb" in reg:
@@ -497,11 +595,18 @@ def cmd_reclaim(to_budget: bool) -> int:
 
 
 def selftest() -> int:
-    """判据通道自检：**回收顺序**与**预算判定**必须咬得住（纯函数级，不碰真盘 ✓）。"""
+    """判据通道自检：**回收顺序** · **预算判定** · **GB 旋钮的值域**必须咬得住。
+
+    ⚠ 2026-10-16 起**不再是"纯函数级"**：GB 旋钮那几条会**真起子进程跑真 CLI**
+    （`env probe` ⇒ **零写入、不扫盘** ✓）—— 因为"我改的那个变量"不是判据，真路径才是 ✓。
+    除 `tempfile` 与那几个只读子进程外不碰真盘 ✓（实测 `env -i` 下仍 rc=0 ✓）。
+    """
     bad = 0
+    checks = 0
 
     def expect(desc: str, cond: bool) -> None:
-        nonlocal bad
+        nonlocal bad, checks
+        checks += 1
         if not cond:
             bad += 1
             print(f"FAIL {desc}", file=sys.stderr)
@@ -547,6 +652,147 @@ def selftest() -> int:
     expect("registry 的 `reserve_gb` 生效", reserve_bytes({"budget_gb": 60, "reserve_gb": 4}) == 4 * 1024**3)
     expect("空 dict ⇒ 默认余量（同 `budget_bytes` 口径：**空 dict ≠ 没传** ✓）",
            reserve_bytes({}) == int(DEFAULT_BUDGET_GB * DEFAULT_RESERVE_FRAC) * 1024**3)
+
+    # ── **GB 旋钮的值域闸门**（2026-10-16 · 洞 `COMPILE-CACHE-GB-ENVS-NO-GUARD`）──────────
+    # 旧写法是裸 `int(float(env) * 1024**3)` ⇒ `abc` 丢栈（rc=1）、`SOKO_CACHE_RESERVE_GB=-5`
+    # 被 `max(0, …)` **静默**吞掉 ⇒ 余量 **0 G** ⇒ 判红线自身成了回收目标 ✗。**两向都钉**：
+    #   · 错值 ⇒ `人话` 必须非空、**点名变量**、**说清后果**、**给正解**，且**不抛**（二元组 ✓）；
+    #   · 合法值 ⇒ `人话` 必须为空且**值逐字节不变**（`" 200"` / `"+200"` / `0.000000001`
+    #     这些旧写法不许被收紧 ✗）。
+    gb_env_cases = [
+        # (说明, name, raw（None = 不设）, 期望 GB（None = 用不了）, 人话里必须出现的关键字)
+        ("不设 ⇒ 无值无话", GB_BUDGET_ENV, None, None, ""),
+        ("空串 ⇒ 无值无话", GB_BUDGET_ENV, "", None, ""),
+        ("纯空白 ⇒ 无值无话（旧：`float('  ')` 丢栈 ✗）", GB_BUDGET_ENV, "   ", None, ""),
+        ("**`abc` ⇒ 人话**（旧：栈 + rc=1 ✗）", GB_BUDGET_ENV, "abc", None, "不是数字"),
+        ("**`nan` ⇒ 人话**（旧：`int(nan)` 丢栈 ✗）", GB_BUDGET_ENV, "nan", None, "有限"),
+        ("**`inf` ⇒ 人话**（旧：`int(inf)` 丢栈 ✗）", GB_BUDGET_ENV, "inf", None, "有限"),
+        ("**`-5` ⇒ 人话**（旧：预算负数 ⇒ 判红线永远红 ✗）", GB_BUDGET_ENV, "-5", None, "正数"),
+        ("**`0` ⇒ 人话**（旧：预算 0 ⇒ 判红线永远红 ✗）", GB_BUDGET_ENV, "0", None, "正数"),
+        ("`200`（**CI 口径**）⇒ 照旧 ✓", GB_BUDGET_ENV, "200", 200.0, ""),
+        ("`60` ⇒ 照旧 ✓", GB_BUDGET_ENV, "60", 60.0, ""),
+        ("`0.5` ⇒ 照旧 ✓", GB_BUDGET_ENV, "0.5", 0.5, ""),
+        ("**`\" 200\"`（前后空格）⇒ 照旧**（不许收紧 ✗）", GB_BUDGET_ENV, " 200", 200.0, ""),
+        ("**`\"+200\"` ⇒ 照旧**（不许收紧 ✗）", GB_BUDGET_ENV, "+200", 200.0, ""),
+        ("`0.000000001` ⇒ 照旧（**既有判据在用** ✓）", GB_BUDGET_ENV, "0.000000001", 1e-9, ""),
+        ("不设 ⇒ 无值无话（余量）", GB_RESERVE_ENV, None, None, ""),
+        ("**`abc` ⇒ 人话**（旧：栈 + rc=1 ✗）", GB_RESERVE_ENV, "abc", None, "不是数字"),
+        ("**`-5` ⇒ 人话**（旧：`max(0,…)` 静默吞 ⇒ 余量 0 G ✗）", GB_RESERVE_ENV, "-5", None, "正数"),
+        ("**`0` ⇒ 人话**（`0` = **余量 0 G = `CACHE-GUARD-NO-HEADROOM` 那个状态本身** ✗）",
+         GB_RESERVE_ENV, "0", None, "正数"),
+        ("`2` ⇒ 照旧 ✓", GB_RESERVE_ENV, "2", 2.0, ""),
+        ("**`\" 2\"` ⇒ 照旧**（不许收紧 ✗）", GB_RESERVE_ENV, " 2", 2.0, ""),
+        ("**`\"+2\"` ⇒ 照旧**（不许收紧 ✗）", GB_RESERVE_ENV, "+2", 2.0, ""),
+        ("**`nan` ⇒ 人话**（旧：`int(nan)` 丢栈 ✗）", GB_RESERVE_ENV, "nan", None, "有限"),
+    ]
+    saved_gb_env = {k: os.environ.get(k) for k in GB_ENV_KNOBS}
+    try:
+        for desc, name, raw, want_gb, hint in gb_env_cases:
+            checks += 1
+            for k in GB_ENV_KNOBS:
+                os.environ.pop(k, None)
+            if raw is not None:
+                os.environ[name] = raw
+            try:
+                got_gb, got_why = _parse_gb_env(name)
+            except Exception as exc:                  # noqa: BLE001 - 夹具要抓住"丢栈"本身
+                bad += 1
+                print(f"FAIL {desc}：`_parse_gb_env` **抛了**（{type(exc).__name__}: {exc}）"
+                      f"—— 它必须不抛（导入期与闸门都要活到 `main()`）", file=sys.stderr)
+                continue
+            if got_gb != want_gb:
+                bad += 1
+                print(f"FAIL {desc}：值 -> {got_gb!r}，期望 {want_gb!r}", file=sys.stderr)
+            elif bool(got_why) != bool(hint):
+                bad += 1
+                print(f"FAIL {desc}：人话的有无不对（{'有' if got_why else '无'} ⇒ {got_why[:60]!r}）",
+                      file=sys.stderr)
+            elif hint and hint not in got_why:
+                bad += 1
+                print(f"FAIL {desc}：人话没点名 {hint!r}（印出来的是：{got_why[:80]}）", file=sys.stderr)
+            elif hint and name not in got_why:
+                bad += 1
+                print(f"FAIL {desc}：人话没**点名变量**（印出来的是：{got_why[:80]}）", file=sys.stderr)
+            elif hint and "正解" not in got_why:
+                bad += 1
+                print(f"FAIL {desc}：人话没给**正解**（印出来的是：{got_why[:80]}）", file=sys.stderr)
+    finally:
+        for k, v in saved_gb_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    # ── `set-budget <GB>` 的**同一个值域**（同族：旧写法 `float(args.arg)` 裸解析 ⇒ 栈 + rc=1；
+    # `-5` 更坏 —— 它把负预算**写进 registry.json 并且一直留着** ✗）────────────────────────
+    for desc, raw, want_gb, hint in (
+        ("`set-budget abc` ⇒ 人话（旧：栈 + rc=1 ✗）", "abc", None, "不是数字"),
+        ("`set-budget -5` ⇒ 人话（旧：把负预算**写进 registry 留着** ✗）", "-5", None, "正数"),
+        ("`set-budget 0` ⇒ 人话（预算 0 ⇒ 判红线永远红 ✗）", "0", None, "正数"),
+        ("`set-budget` 裸跑（空串）⇒ 无值无话（用法错由 `main()` 单说 ✓）", "", None, ""),
+        ("`set-budget 60` ⇒ 照旧 ✓", "60", 60.0, ""),
+        ("`set-budget \" 60\"` ⇒ 照旧（不许收紧 ✗）", " 60", 60.0, ""),
+    ):
+        checks += 1
+        got_gb, got_why = _parse_gb_value("set-budget <GB>", raw, what="**预算**（判红线）",
+                                          why="它写进 `registry.json` ⇒ 预算 ≤0 会让**每一棵树**"
+                                              "都「超预算」（判红线永远红），而且**会一直留着** ✗",
+                                          fix="`python3 scripts/compile-cache.py set-budget 60`")
+        if got_gb != want_gb:
+            bad += 1
+            print(f"FAIL {desc}：值 -> {got_gb!r}，期望 {want_gb!r}", file=sys.stderr)
+        elif bool(got_why) != bool(hint):
+            bad += 1
+            print(f"FAIL {desc}：人话的有无不对（{'有' if got_why else '无'}）", file=sys.stderr)
+        elif hint and (hint not in got_why or "set-budget <GB>" not in got_why):
+            bad += 1
+            print(f"FAIL {desc}：人话没点名 `set-budget <GB>` / {hint!r}"
+                  f"（印出来的是：{got_why[:80]}）", file=sys.stderr)
+
+    # ⚠ **闸门的端到端**也要钉（洞的判据就是"CLI ⇒ rc=2 + 人话"）：**真起子进程 + 真 CLI**
+    # （不是 monkeypatch 模块全局 —— 那测的是"我改的那个变量"，不是真路径 ✗；本仓口径：
+    # "跑真程序 + 真协议，不是把正则抄一遍" ✓）。子进程走 `env probe`（**零写入**、不扫盘 ✓）。
+    # ⚠ **递归闸**：子进程里不再起子进程（`SOKO_CACHE_SELFTEST_CHILD`）✗。
+    if not os.environ.get("SOKO_CACHE_SELFTEST_CHILD"):
+        for desc, delta, want_rc, want_tail in (
+            ("`SOKO_CACHE_BUDGET_GB=abc` ⇒ rc=2 + 人话（旧：栈 + rc=1 ✗）",
+             {GB_BUDGET_ENV: "abc"}, 2, "不是数字"),
+            ("`SOKO_CACHE_RESERVE_GB=-5` ⇒ rc=2 + 人话（旧：**rc=0 静默** ✗）",
+             {GB_RESERVE_ENV: "-5"}, 2, "正数"),
+            ("`SOKO_CACHE_RESERVE_GB=0` ⇒ rc=2 + 人话（余量 0 G = 那个 bug 的状态本身 ✗）",
+             {GB_RESERVE_ENV: "0"}, 2, "正数"),
+            ("`SOKO_CACHE_BUDGET_GB=-5` ⇒ rc=2 + 人话（旧：判红线永远红 ✗）",
+             {GB_BUDGET_ENV: "-5"}, 2, "正数"),
+            ("**正对照** `SOKO_CACHE_BUDGET_GB=200`（CI 口径）⇒ rc=0", {GB_BUDGET_ENV: "200"}, 0, ""),
+            ("**正对照** 两个都不设 ⇒ rc=0", {}, 0, ""),
+        ):
+            checks += 1
+            env = {k: v for k, v in os.environ.items() if k not in GB_ENV_KNOBS}
+            env.update({k: v for k, v in delta.items() if v is not None})
+            env["SOKO_CACHE_SELFTEST_CHILD"] = "1"
+            try:
+                proc = subprocess.run(
+                    [sys.executable, str(Path(__file__).resolve()), "env", "probe"],
+                    capture_output=True, text=True, encoding="utf-8", errors="replace",
+                    env=env, timeout=60)
+            except (OSError, subprocess.SubprocessError) as exc:
+                bad += 1
+                print(f"FAIL 端到端 {desc}：子进程起不来（{type(exc).__name__}: {exc}）",
+                      file=sys.stderr)
+                continue
+            tail = proc.stderr.strip().splitlines()[-1][:110] if proc.stderr.strip() else "（空）"
+            if proc.returncode != want_rc:
+                bad += 1
+                print(f"FAIL 端到端 {desc}：rc={proc.returncode}，期望 {want_rc}（stderr 尾：{tail}）",
+                      file=sys.stderr)
+            elif want_rc != 0 and "Traceback" in proc.stderr:
+                bad += 1
+                print(f"FAIL 端到端 {desc}：rc 对了但**丢栈** ✗（判据是「判定」不是「崩溃」）",
+                      file=sys.stderr)
+            elif want_tail and want_tail not in proc.stderr:
+                bad += 1
+                print(f"FAIL 端到端 {desc}：stderr 没点名 {want_tail!r}（stderr 尾：{tail}）",
+                      file=sys.stderr)
 
     # 孤儿的判定：`<worktree>/target` 在、工作树已消失 ⇒ 必须被枚举成 dead（可回收）
     import tempfile as _tf
@@ -615,15 +861,24 @@ def selftest() -> int:
             globals()[k] = v
 
     if bad:
-        print(f"compile-cache.py selftest: {bad} 条判据不成立 ✗", file=sys.stderr)
+        print(f"compile-cache.py selftest: {bad}/{checks} 条判据不成立 ✗", file=sys.stderr)
         return 1
-    print("compile-cache.py selftest: 19 条成立 ✓（死树优先 · LRU 最旧优先 · 预算反向验证 · "
+    # ⚠ 条数是**当场数出来的**（`checks`）—— 别写死数字 ✗（"每个数字当场核"：写死的 19
+    # 在本轮加了 22 + 6 + 6 = 34 条之后就变成假读数了 ✓）。
+    print(f"compile-cache.py selftest: {checks} 条成立 ✓（死树优先 · LRU 最旧优先 · 预算反向验证 · "
           "registry/默认预算 · **空 dict ≠ 没传** · **回收余量 5% / `reserve_gb` / 判红线口径不变** · "
-          "**孤儿 target 被枚举成 dead** · **受管面跟随主工作树** · **`cmd_env` 的根口径：队列单点=主工作树 / 编译缓存=当前 checkout**）")
+          "**GB 旋钮的值域闸门（两向：错值必须有人话/点名/正解，合法值必须逐字节不变）** · "
+          "**孤儿 target 被枚举成 dead** · **受管面跟随主工作树** · "
+          "**`cmd_env` 的根口径：队列单点=主工作树 / 编译缓存=当前 checkout**）")
     return 0
 
 
 def main() -> int:
+    # ⭐ **GB 旋钮的值域闸门**（洞 `COMPILE-CACHE-GB-ENVS-NO-GUARD`）：派发**之前**判
+    # ⇒ `abc`/`nan`/`inf` 不再丢栈、`-5` 不再被静默吞掉（余量 0 G），两者都给 rc=2 + 人话 + 正解 ✓。
+    rc = _guard_gb_knobs()
+    if rc is not None:
+        return rc
     ap = argparse.ArgumentParser(description="编译缓存总管（跨工作树：登记 · 计量 · 预算 · 回收 · sccache）")
     ap.add_argument("cmd", nargs="?", default="status",
                     choices=["status", "env", "reclaim", "set-budget", "selftest"])
@@ -642,8 +897,23 @@ def main() -> int:
     if args.cmd == "reclaim":
         return cmd_reclaim(args.to_budget)
     if args.cmd == "set-budget":
+        # **同一个值域**（`_parse_gb_value` = 唯一解析处 ✓）：`set-budget abc` 旧写法是
+        # `float(args.arg)` ⇒ **栈 + rc=1**（同族崩溃形 ✗）；而 `set-budget -5` 更坏 ——
+        # 它把负预算**写进 registry.json 并且一直留着**（比环境变量更难发现 ✗）⇒ 拒绝写 ✓。
+        gb, why = _parse_gb_value(
+            "set-budget <GB>", args.arg, what="**预算**（判红线）",
+            why="它写进 `registry.json` ⇒ 预算 ≤0 会让**每一棵树**都「超预算」"
+                "（判红线永远红），而且**会一直留着**（比环境变量更难发现 ✗）",
+            fix="`python3 scripts/compile-cache.py set-budget 60`")
+        if why:
+            print(f"error: {why}", file=sys.stderr)
+            return 2
+        if gb is None:                        # 裸跑 `set-budget`（没给值）
+            print("error: 用法：`python3 scripts/compile-cache.py set-budget <GB>`"
+                  "（例如 `set-budget 60`；GB 数，正数）✗", file=sys.stderr)
+            return 2
         reg = load_registry()
-        reg["budget_gb"] = float(args.arg)
+        reg["budget_gb"] = gb
         save_registry(reg)
         print(f"✓ 预算设为 {args.arg} GB（写进 {REGISTRY}）")
         return 0

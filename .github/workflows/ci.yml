@@ -284,7 +284,8 @@ jobs:
           python3 scripts/check-multi-session.py
       - name: 编译缓存判据自检（回收顺序 / 预算反向验证）
         # 与原先长在 `ledger` shard 1 里的那一条**逐字同源** ✓（搬过来，不是另写一份 ✗）。
-        # 纯函数级 ⇒ 无前提（实测 `env -i` 下 rc=0 · 0.17s ✓）。
+        # 无前提（实测 `env -i` 下 rc=0 ✓）。⚠ 2026-10-16 起**不再是"纯函数级"**：GB 旋钮那几条
+        # 会真起子进程跑真 CLI（`env probe` ⇒ 零写入、不扫盘 ✓）⇒ 实测 **0.5s**（原 0.17s ✓）。
         run: python3 scripts/compile-cache.py --selftest
       - name: 队列**独立**复核（第二份实现 + 纯 git 事实 + 证据可复算 ratchet）
         # 2026-10-15 · `SUB-orchestrator-attention-structure`【1】/【2】 ✓。
