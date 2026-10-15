@@ -17,7 +17,7 @@
 > 下一轮开工前先确认发版闭环（`gh release list` + 版本文件干净），
 > **不许 bump 版本、不许 commit/push、不许碰 `STATUS.md`/台账/版本文件/Cargo 文件**。
 >
-> **上游调研**：`docs/notes/perf-lean4-interactive-incremental.md`（2026-10-07，Lean 4
+> **上游调研**：`docs/archive/docs-diet-2026-10-15/perf-lean4-interactive-incremental.md.gz`（**已归档**，2026-10-07，Lean 4
 > 四层缓存 + 本仓库差距）。⚠ **它有两处已被 2026-10-08 的提交推翻**，见 §0.2 ①/② ——
 > 下一轮**以本文为准**，perf-lean4 只当 Lean 侧机制引用。
 
@@ -806,7 +806,7 @@ A/B（同一二进制）：默认 **5 次/704ms** vs `SOKO_JUDGE_INPLACE=off` �
 
 * 内核线的 WIP 停在 `stash@{0}: d68f2fe9-envprov-wip-1005-1010`（A2b 的同族）；
   开工前先读 `docs/notes/HANDOFF-kernel.md` 并确认归属。
-* `docs/notes/perf-lean4-interactive-incremental.md` 的两处过期（§0.2 ①/②）：
+* `docs/archive/docs-diet-2026-10-15/perf-lean4-interactive-incremental.md.gz`（**已归档**）的两处过期（§0.2 ①/②）：
   **不要**按它去实现 §4.0/§4.1；引用时只引 Lean 侧机制。
 
 ---

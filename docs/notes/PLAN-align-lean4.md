@@ -4,7 +4,7 @@
 > `docs/gaps/ledger.jsonl`、`docs/notes/HANDOFF-kernel.md`）。本文只写
 > **现象 → 根因（`文件:行`）→ 分阶段任务 → 判据 → 批次 + 工作量**。
 >
-> **上游**：`docs/notes/perf-lean4-interactive-incremental.md`（2026-10-07，Lean 4 四层缓存）。
+> **上游**（**已归档** ⇒ `docs/archive/docs-diet-2026-10-15/perf-lean4-interactive-incremental.md.gz`，2026-10-07，Lean 4 四层缓存）。
 > ⚠ 那份的基线是 **`0.82.0` / `567caf0c`**，其中 **§4.0/§4.1（"把库层检查点交给 `QueryDoc`"）
 > 已被 0.83.0–0.85.2 的提交推翻**（`ArenaRef: !Send` ⇒ 持有者改成线程局部，见
 > `docs/design/incremental-environment.md` §33.1②）⇒ **本文以当前树为准**，
@@ -714,7 +714,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 |---|---|---|
 | "`EnvBuilder` 今天**没有 `Clone`**" | `docs/design/module-artifacts.md:66` | `crates/kernel/src/builder.rs:37` 已有 `#[derive(Clone)]`（2026-10-08 · G-29）⇒ 刀 1b 的"卡点"**已消失** |
 | "`snapshot()`/`with_env()`（T-K12/K1-b）**零生产调用**" | `docs/design/incremental-environment.md:1179`（原文） | **只对 `snapshot()` 成立**；`with_env()` 有 7 处生产调用（`elab.rs:3052`/`:3194`/`:6987`/`:7016`、`level_exit.rs:170`、`kernel_phase.rs:216`、`walk.rs:352`） |
-| "LSP 带 `import` 的文档整个绕开 `QueryDoc` 的会话增量 ⇒ **服务器跑的就是 CLI 那条冷路**" | `docs/notes/perf-lean4-interactive-incremental.md:311`/`:330-332`（0.82.0 写的） | **半真**：它确实绕开**单文件 `Session`**，但走的是**项目 session** + 线程局部检查点（`query/mod.rs:653`/`:662`）⇒ "等于 CLI 冷路"**不成立**；"把检查点交给 `QueryDoc`"也**已被推翻** |
+| "LSP 带 `import` 的文档整个绕开 `QueryDoc` 的会话增量 ⇒ **服务器跑的就是 CLI 那条冷路**" | `docs/archive/docs-diet-2026-10-15/perf-lean4-interactive-incremental.md.gz`（**已归档**）`:311`/`:330-332`（0.82.0 写的） | **半真**：它确实绕开**单文件 `Session`**，但走的是**项目 session** + 线程局部检查点（`query/mod.rs:653`/`:662`）⇒ "等于 CLI 冷路"**不成立**；"把检查点交给 `QueryDoc`"也**已被推翻** |
 
 ---
 
@@ -732,10 +732,10 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 ---
 
-## 11. 执行进度与读数（as-built · **已归档** ⇒ [`PLAN-align-lean4-as-built.md`](PLAN-align-lean4-as-built.md)）
+## 11. 执行进度与读数（as-built · **已归档** ⇒ [`docs/archive/docs-diet-2026-10-15/PLAN-align-lean4-as-built.md.gz`](../archive/docs-diet-2026-10-15/PLAN-align-lean4-as-built.md.gz)）
 
 > **2026-10-09 归档**：本节全系列（§11.1–§11.25）**原样搬到**
-> [`docs/notes/PLAN-align-lean4-as-built.md`](PLAN-align-lean4-as-built.md) ✓ —— 原因是本文
+> [`docs/archive/docs-diet-2026-10-15/PLAN-align-lean4-as-built.md.gz`](../archive/docs-diet-2026-10-15/PLAN-align-lean4-as-built.md.gz) ✓ —— 原因是本文
 > 顶到了 `docs-lint` 判据②的**单文件上限 2000 行** ✗。
 > **内容一字未改** ✓（只搬不改）；**追加纪律不变**（只追加读数与落点、每条自带构建身份 ✓）。
 > ⇒ 下一棒要找**历史读数/落点**去那份文件 ✓；**新的一轮**仍追加在本文末尾 ✓。
@@ -1351,7 +1351,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 * ✅ **T1-C 收口（第 54 轮）**：契约 = **键优先、mtime 只兜底** —— **mtime 变、内容不变 ⇒ 不许 miss** ✓ · **内容变、mtime 不变 ⇒ 必须 miss** ✓（后者要命：否则"改完再把时间戳改回去"就能读到**旧环境** = 静默错判 ✗✗）。 守卫 `crates/front/tests/t1c_key_beats_mtime.rs` 用**产物文件本身**观测（命中 ⇒ 不重写 ⇒ mtime 不动 ✓）； **反向验证已做**：给 `lib_key` 临时混入时钟 ⇒ 判据**判红** ✓（守卫有牙 ✓，已还原 ✓）。
 * **批 3 状态**：`clean` ✓ · 原子 ✓ · 并发取证 ✓ · 损坏（三道，已有判据）✓ · **离线 = 本版 n/a**（不联网 ✓）· **课程门禁 ✓**（`gate --fast` PASS ✓）⇒ **批 3 收口**； 方向① 只剩 §8.4 的**下载线**（独立工作流，未开工）。
 * 验证：front **全部目标 35/35** 绿 · fmt 干净 · clippy **0** 报错 ✓。
-* ⭐ **四方向结账（第 55 轮 · 全量 `scripts/soko gate` PASS ✓）**：**①** T1-A ✓ · T1-B 批 1/2/3 ✓✓ · 有界化 ✓ · **T1-C 契约+守卫 ✓**；**②** T1-A ✓（跨条目复用） · 静默期修复 ✓ · **T2-B0 ✓✓**（两张派生表 O(闭包)→O(入口)）· T2-B **缓做** （已量上界 ≈30–40ms、前置件大）；**③** T3 ✓ **全收口**（合成趟 Σ20→0 · A7 靶子关闭（memo 命中 90.3% ✓）· **T3-D 死线已删** ✓）； **④** T4-A ✓（契约+守卫）· T4-B 前置件就绪（**阻塞①已核实**：CLI 确实传 sink ⇒ 需先给 session 开 sink 通道）· T4-C 未做（大件 ✗）。**读数**：真实连续键入 **78.0ms** · 产物 **14×**（前端 · §31）· **9×**（CLI · §36）· 冷开第一刀 **333 → 127.2ms**（A5c/A5d ✓）。⭐ **但北极星要按两个口径读**（第 64 轮 · 并行线的真读数 `docs/notes/perf-lean4-bench.md` ✓）：**诊断全量落地 soko 81.4ms vs Lean 218.1ms ⇒ 快 2.7×** ✓✓； **goal 更新完成 soko 81.4ms vs Lean 3.1ms ⇒ 慢 26×** ✗✗（Lean 靠 **per-command 快照** ✓ = 方向② **T2-B** 那一格 ✓，前置件 T2-A **并行线在飞** ✓）⇒ **"打平并超过"只在诊断口径成立，整体还没达成** ✗。 ⚠ 那份实测的**臂 B′（开档即敲）232.7ms** 是 **A5c/A5d 之前**的数（它自己写着 `warm-library built=true 217ms` ✓） —— 那条**预热赛跑**已被本线拆掉 ⇒ 同臂现在 **127.2ms** ✓，重测时要换新数 ✓。
+* ⭐ **四方向结账（第 55 轮 · 全量 `scripts/soko gate` PASS ✓）**：**①** T1-A ✓ · T1-B 批 1/2/3 ✓✓ · 有界化 ✓ · **T1-C 契约+守卫 ✓**；**②** T1-A ✓（跨条目复用） · 静默期修复 ✓ · **T2-B0 ✓✓**（两张派生表 O(闭包)→O(入口)）· T2-B **缓做** （已量上界 ≈30–40ms、前置件大）；**③** T3 ✓ **全收口**（合成趟 Σ20→0 · A7 靶子关闭（memo 命中 90.3% ✓）· **T3-D 死线已删** ✓）； **④** T4-A ✓（契约+守卫）· T4-B 前置件就绪（**阻塞①已核实**：CLI 确实传 sink ⇒ 需先给 session 开 sink 通道）· T4-C 未做（大件 ✗）。**读数**：真实连续键入 **78.0ms** · 产物 **14×**（前端 · §31）· **9×**（CLI · §36）· 冷开第一刀 **333 → 127.2ms**（A5c/A5d ✓）。⭐ **但北极星要按两个口径读**（第 64 轮 · 并行线的真读数 `docs/archive/docs-diet-2026-10-15/perf-lean4-bench.md.gz`（**已归档**）✓）：**诊断全量落地 soko 81.4ms vs Lean 218.1ms ⇒ 快 2.7×** ✓✓； **goal 更新完成 soko 81.4ms vs Lean 3.1ms ⇒ 慢 26×** ✗✗（Lean 靠 **per-command 快照** ✓ = 方向② **T2-B** 那一格 ✓，前置件 T2-A **并行线在飞** ✓）⇒ **"打平并超过"只在诊断口径成立，整体还没达成** ✗。 ⚠ 那份实测的**臂 B′（开档即敲）232.7ms** 是 **A5c/A5d 之前**的数（它自己写着 `warm-library built=true 217ms` ✓） —— 那条**预热赛跑**已被本线拆掉 ⇒ 同臂现在 **127.2ms** ✓，重测时要换新数 ✓。
 
 * ⚠ **§21 的天花板要按 A6b 之后重估（第 58 轮 · 只读）**：`TcCache::new`（`kernel/src/util.rs:1291`）今天已是 **10 张空 HashMap + 三个定长数组**（`Box<[u64;1024]>` ×2 + `whnf_admit` ✓ —— A6b 已把 **4 MiB 预分配**拿掉 ✓） ⇒ 单次 ≈ **2–3µs**（不是 §20 量到的 9.2µs ✗）⇒ 稳态那一刀 `tc=4225` ⇒ 全部 ≈ **10ms / 79.7ms（~13%）** ✓。 ⇒ **"按趟复用 TcCache"（§21 候选 1）今天的天花板只有 ~10ms**，而它要动 `with_tc` 的签名链 + 内核相位 ✗ ⇒ **性价比已经不高**：下一棒别照 §20 的旧数字投 2–3 轮进去 ✓（真要碰，先重量单价再决定 ✗）。
 
@@ -1364,7 +1364,7 @@ LSP 单测（`cargo test -p sokonanoda-lsp`）。
 
 * ⚠ **在制品协调（第 63 轮）**：并行线正在 `crates/kernel/{builder,util}.rs` 上做 **`EnvBuilder::clone` 常量化**（新用例 `builder::tests::env_clone_cost_is_constant_in_declaration_count` ✓ —— 那正是 **T2-A（声明表持久化/COW）** 这条 XL 前置件 ✓，也是解锁 T2-B 深水区的那一件 ✓）。 它**当前未提交且未绿**（全量 gate 判红 = 它的新用例 ✗，不是本线的改动 ✓）⇒ 本线**不碰**那两个文件， 等它落地后再重量北极星（克隆常量化会直接改热按键的成本结构 ✓）。
 
-* ⚠ **goal 口径的臂"试过、挂住、已撤"（第 65 轮 · 时间盒）**：照 `perf-lean4-bench.md` §3.3 的 方法在**本仓探针**里加一条 goal 臂（编辑刀 = 在 `↔ (A ⊆ (f ⁻¹' B)) := by` 后插 `constructor` ✓ ⇒ 真的改目标 ✓），用 `soko/goals` 问"换没换" ✓ —— **首问就挂死在 `wait_for` 上** ✗ （编译落定前 `soko/goals` 不答该请求 ⇒ 探针阻塞 ✗）。⇒ 按纪律**已还原**（树绿 ✓）。 **下一棒要做这条臂**：先确认"未落定时 `soko/goals` 到底答不答"（要么加超时、要么只问 **落定之后**那一次、把"立刻"那一问改成**带超时的旁路** ✓）—— 别照 §3.3 直接照搬 ✗。
+* ⚠ **goal 口径的臂"试过、挂住、已撤"（第 65 轮 · 时间盒）**：照 `docs/archive/docs-diet-2026-10-15/perf-lean4-bench.md.gz`（**已归档**）§3.3 的 方法在**本仓探针**里加一条 goal 臂（编辑刀 = 在 `↔ (A ⊆ (f ⁻¹' B)) := by` 后插 `constructor` ✓ ⇒ 真的改目标 ✓），用 `soko/goals` 问"换没换" ✓ —— **首问就挂死在 `wait_for` 上** ✗ （编译落定前 `soko/goals` 不答该请求 ⇒ 探针阻塞 ✗）。⇒ 按纪律**已还原**（树绿 ✓）。 **下一棒要做这条臂**：先确认"未落定时 `soko/goals` 到底答不答"（要么加超时、要么只问 **落定之后**那一次、把"立刻"那一问改成**带超时的旁路** ✓）—— 别照 §3.3 直接照搬 ✗。
 
 * ⭐ **跨入口臂也钉住状态了（第 66 轮）**：那条臂此前只清 LSP 自己的 cache 目录 ✗，**没清模块根** ⇒ 同一构建在两轮里读出过 **689.7 / 664.8 / 911.1ms**（结构计数 `modules=5`/复用 3 **vs** `8`/复用 0 ✗） —— 那是**状态差**、不是性能差 ✓。⇒ 现在开头统一清 `<模块根>/.sokonanoda/{artifacts,compiled}` ✓ ⇒ 连跑两次：**663.5 / 675.8ms**，**结构计数逐位相同**（`modules=5` · 复用 3 · `by=21` ✓） ⇒ 这一臂的读数从此**可跨轮比较** ✓（墙钟 ±2% 是正常的 ✓，结构计数才是判据 ✓）。
 

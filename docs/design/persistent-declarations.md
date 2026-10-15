@@ -197,7 +197,7 @@ pub struct EnvSnapshot<'a> {           // Clone = O(1)
 
 > ⚠ **它单独不解决 goal 延迟**：T2-B 只回答"**从哪条开始编**"；要 goal 进 3ms 量级
 > 还需要**按命令发布** goal 状态（Lean 的 `AsyncList` + `waitFindAtPos`，见
-> `docs/notes/perf-lean4-bench.md` §8.1/§8.3）✓。
+> `docs/archive/docs-diet-2026-10-15/perf-lean4-bench.md.gz`（**已归档**）§8.1/§8.3）✓。
 
 ## 7. 第三件：**按命令发布 goal**（对齐 Lean `AsyncList`/`waitFindSnapAtPos`）—— 可落地方案
 
