@@ -23,6 +23,7 @@ pub mod compile;
 pub mod depgraph;
 pub mod display;
 pub mod judge;
+pub mod lean4_universe;
 pub mod notation;
 pub mod notation_input;
 pub mod project;

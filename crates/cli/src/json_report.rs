@@ -37,11 +37,20 @@ pub(crate) fn report_json(output: &CompileOutput, src: &str) {
                 "type": "example.checked",
                 "human": "checked example",
             })),
-            TypeChecked { text, span } => {
+            TypeChecked { text, span, decl } => {
                 let expr_src = expr_text(src, *span);
+                // **`#check <裸 def 名>`（2026-10-15 用户新需求）**：`human` 换成
+                // **声明卡片**（`def … := …`，与 Infoview 卡片同形 ✓）；
+                // payload（`text`/`inferred_type`/`span`）**一个字节都没动** ✓
+                // —— `docs/protocol.md` 的 `expr.typed` 契约照旧，
+                // 判定路径读的也是 `inferred_type`（= `text`）✓。
+                let human = match decl {
+                    Some(card) => card.clone(),
+                    None => format!("{expr_src}: {text}"),
+                };
                 print_json_line(&serde_json::json!({
                     "type": "expr.typed",
-                    "human": format!("{expr_src}: {text}"),
+                    "human": human,
                     "text": expr_src,
                     "inferred_type": text,
                     "span": span_json(*span),

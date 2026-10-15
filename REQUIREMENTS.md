@@ -150,6 +150,36 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 > 可 grep** ✓，带 **139 条索引** ✓）；**判据与守卫**仍在 `scripts/` 与
 > `crates/**/tests/` 里**真跑** ✓。判据：`python3 scripts/docs-lint.py` ✓（入口 ≤800 行 ✓）。
 
+### 9.22 2026-10-15 **`#check <def>` 带定义体 + 记法渲染**（用户明确要求，**有意偏离 Lean 4** ✓）
+
+**用户原话（2026-10-15 15:22）**：
+> 「我想让 **`#check Set.subset`** 也支持针对 def 的优化，例如 `#check Set.subset` 显示
+> `def Set.subset : ∀ {α : Type}, Set α → Set α → Prop`
+> `:= fun {α : Type 0} (A B : Set α) => ∀ (x : α), x ∈ A → x ∈ B`」
+
+**同日 15:2x 的授权**（用户第二次拍板）：「**`#check` 我是新加需求，偏离 lean4 没问题**」
+⇒ 本条是**用户新加的需求** ＋ **有意偏离 Lean 4**（硬规则 3 的"子集"边界在此**由用户显式放开** ✗→✓）；
+也**取代** `docs/design/notation-subset.md` 里那条"print-back 继续显示点名形式"的旧决定（那一行已改 ✓）。
+
+**要求（两件缺一不可 ✗）**：① `#check <裸 def 名>` 要**带定义体**（`:= …`）；
+② 类型与定义体都要**记法渲染**（`∀`/`→`/`∈`，**不是** `forall`/`->`/`Set.mem`）。
+
+**边界（一条都不许含糊）**：
+* **只给 `def`** ✗ —— `theorem`/`opaque`/`axiom`/`inductive`/构造子/递归子、以及一切
+  **非裸标识符**的 `#check` 一律**只打签名**（逐字节回到今天 ✓）；
+* **`#print` 一个字节都不动** ✗（它的形状是既有契约）；`#check` 的
+  `inferred_type` / `text`（**判定路径**读的那两个字段）也**一个字节都不动** ✗ ——
+  卡片只进 `CheckEvent::TypeChecked::decl` 这个**显示**字段
+  （`judge::judge_type_of` ⇒ 记法目标签名读的是 `text` ✓）；
+* 记法**只在记法表里有对应符号时**才用；没有的仍走点名形式（**不许猜** ✗）；
+* 卡片**与 Infoview 的声明卡片逐字节同形**（类型那一半过 `lean4_universe_text`：
+  `Type 0` → `Type`；定义体那一半不过）⇒ 命令行与编辑器**终于同一个形状** ✓。
+
+**判据**：`crates/cli/tests/check_def_card.rs`（用户那条命令逐字节 ＋ 终端输出 ＋ 只给 def 的
+反向验证）· `crates/front/src/compile/tests.rs` 两条单测 · `REPORT_SHAPE` 8 → 9
+（`CheckInfo::text` 的**含义**变了 ⇒ 旧产物必须整库不命中 ✓）。
+**过程与读数**：`STATUS.md` + `.cache/ux/fix-pnZ/VERDICT.md`。
+
 ### 9.5 2026-09-26 专项：记法 + 隐式参数 + **产品交互面**（用户拍板 ✓）
 
 **用户原话**：「**全面一点，专门针对 notation，产品交互**。包括**多来点隐式参数，让

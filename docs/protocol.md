@@ -72,13 +72,12 @@ Example:
 
 ```json
 {"type":"decl.checked","name":"id","human":"checked declaration id"}
-{"type":"expr.typed","human":"id: Prop -> Prop","inferred_type":"Prop -> Prop","span":{"start":{"offset":52,"line":2,"column":8},"end":{"offset":54,"line":2,"column":10}},"text":"id"}
+{"type":"expr.typed","human":"def id : Prop → Prop := fun (x : Prop) => x","inferred_type":"Prop -> Prop","span":{"start":{"offset":52,"line":2,"column":8},"end":{"offset":54,"line":2,"column":10}},"text":"id"}
 {"type":"exercise.open","human":"exercise open (fill the sorry)","name":"ex"}
 {"type":"diagnostic","stage":"kernel","code":"kernel-rejected","message":"rejected: def_eq failed","span":{...}}
 ```
 
-`text` is always the exact source slice of the checked expression, so a model
-can re-run or display it without re-parsing.
+`text` is always the exact source slice of the checked expression, so a model can re-run or display it without re-parsing. `human` for `#check <bare def name>` is the **declaration card** (`def <name> : <type> := <value>`, notation-folded; 2026-10-15, `REQUIREMENTS.md` §9.22); `inferred_type` stays the **type** (`theorem`/`axiom`/`inductive`/non-identifier `#check` keep `"<source slice>: <type>"`).
 
 `warning` events use the same span shape as diagnostics but carry no `stage`
 and never change the exit code. Codes today:

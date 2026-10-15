@@ -1,3 +1,11 @@
+## `#check <def>` 带定义体 + 记法（2026-10-15）：**用户新需求，有意偏离 Lean 4**（未发版）
+- ⭐ **用户原话**（15:22）：「我想让 `#check Set.subset` 也支持针对 def 的优化」⇒ 要 `def Set.subset : ∀ {α : Type}, Set α → Set α → Prop` / `:= fun {α : Type 0} (A B : Set α) => ∀ (x : α), x ∈ A → x ∈ B`；15:2x 明确授权「**`#check` 我是新加需求，偏离 lean4 没问题**」⇒ 登记 `REQUIREMENTS.md` **§9.22**，并改掉 `docs/design/notation-subset.md` 那条"print-back 继续显示点名形式"的旧决定 ✓
+- ⭐ **改前 ⇒ 改后**（`--root courses/set-theory`，用户那条命令逐字节）：`Set.subset: {α : Type} -> (A : Set α) -> (B : Set α) -> Prop`（只有类型、点形式）⇒ `def Set.subset : ∀ {α : Type}, Set α → Set α → Prop := fun {α : Type 0} (A B : Set α) => ∀ (x : α), x ∈ A → x ∈ B` ✓（**① 带定义体 ＋ ② 记法**，两件都核过）
+- **实现**：`walk::check` 取裸标识符的规范名+指针（`resolve_known`，与 `#print` 同口径）⇒ 内核阶段命中 `Declar::Definition` 才产卡片（新文件 `crates/front/src/compile/check/decl_card.rs`；`Type 0` → `Type` 的规则从 `crates/lsp/src/render.rs` 搬进**新模块** `crates/front/src/lean4_universe.rs`，两条出口**同一份实现**）；卡片进 `CheckEvent::TypeChecked.decl`（**显示**字段），`text`/`inferred_type`（**判定**路径读的）**一个字节没动** ✓
+- ⭐ **既有行为不破（读数）**：`#check <theorem>/<axiom>/<inductive>/<构造子>/<非标识符>` 与 `#print` **逐字节不变**（`check_def_card.rs` 断言 + 语料对拍）；`cargo test -p sokonanoda-front --lib` **994 passed · 0 failed · 0 ignored**（基线 992 + 本笔 2 条 ✓）；`-p sokonanoda-cli` **44 个测试二进制全 ok**；`-p sokonanoda-lsp --lib` **248 passed**；`crates/kernel/**` **一字节未动** ✓
+- ⚠ **两条 golden 按新契约更新并定性**（都是"用户要改的那一面"本身）：`crates/cli/tests/cli.rs` 两条 `#check id` 断言（改前 `id: Prop -> Prop`）· `crates/cli/tests/artifacts.rs` 的产物 schema `r8 → r9`（`CheckInfo::text` 的含义变了 ⇒ `REPORT_SHAPE` 8 → 9，老产物整库不命中 ✓）；`protocol.rs` 的 `inferred_type`/`text` 断言**不动** ✓
+- **判据**：`crates/cli/tests/check_def_card.rs` **3 条**（用户那条命令逐字节 · 终端输出 · 只给 def 的反向验证）· `crates/front/src/compile/tests.rs` **2 条**（卡片形状逐字节 · def-only 反向验证）· 反向验证：撤掉卡片 ⇒ 两条判红 ✓
+
 ## 清台账第 8 轮（2026-10-15）：**缓存守卫的余量与顺序 + LSP 陈旧可见**（未发版）
 - ⭐ **`CACHE-GUARD-NO-HEADROOM`**：缓存守卫是 `gate --fast` 的**第 20/22 步**，旧实现 `return` 太早 ⇒ 一红即短路后面 **2 步**（完整 gate 3 步：multi-session · 队列门禁 · 缺口台账）⇒ **一条与磁盘无关的红把别的判据全藏起来** ✗ ⇒ 改成**判红但不短路**（`defer` + 尾巴 `return deferredStatus || …`，先失败者优先）。夹具实测（越线 ⇒ 远超预算）：**改前 rc=1 且那两步各 0 次；改后 rc=1（牙还在、点名了）且两步各 1 次** ✓；正对照（预算充足）⇒ 改前/改后都是 rc=0 且两步都跑 ✓
 - ⭐ **回收余量**：`reclaim --to-budget` 旧口径**贴着判红线收** ⇒ 收完只差 0.1–0.3 G ⇒ **下一次 `gate --fast` 自己就把它顶过线** ✗ ⇒ 改成**滞回**：触发 = **进门时越线**、目标 = **判红线 − 余量**（`SOKO_CACHE_RESERVE_GB` / registry `reserve_gb`，默认 **5% 预算**）。⚠ **判红线口径不动**（真超预算仍判红 ✓）；⚠ 触发条件**不许**改成"超目标" ✗（没越线时也去删别人正在用的受管 target = 误伤）。夹具（等比 MB 模型，走**真 `cmd_reclaim`**）：改前余量 **51,552 B**、收不到目标 ⇒ 改后 **555,360 B ≥ 余量 322,122 B**、收到目标 ✓；真缓存越线时 `reclaim --to-budget` 落到**回收目标以下** ✓
@@ -16,18 +24,7 @@
 - ⚠ **第十四次复核点出两个真缺口（已登记 high）**：① §0.2 渲染块的「最靠前的 5 条」清单**零守卫**（删条目 ⇒ `--check` 仍绿而 `--next` 照推 ✗）② `advance`/`triage` 的收口指针**只有祖先性、没有内容锚**（换成另一个祖先 sha 静默通过 ✗）
 - ⚠ **独立复核连续 13 次各证伪一处** ✓（含 **8 次**抓到不实的话/数字 · **18 次**纠正判据/前提）⇒ 「队列空」这类声明**必须**用能推序的视图 + 独立复核才算数
 
-## 清台账第 6 轮（2026-10-14）：**来源可见性修复 + 两条隐藏项收口**（未发版）
-- ⚠ 第 5 轮"队列归零"被**第二次独立复核打折** ✓：`G-110`/`G-112`（gap 台账 `status=fixed`、调度器 `in_progress`/`todo`）
-  **三个视图与 `--check` 对它们全部沉默** ✗ —— 不是被收口，是**按构造看不见** ✗（根因：`load_gaps()` 对 `fixed` 直接 continue ⇒ 不进 rows ⇒ 漂移规则永不命中）
-- **修**（`d26f1c4e`）：`source_dispositions()` 全量权威表 + `check_plan` 叠兜底 + `source_history_ids` 三个来源都读 +
-  `load_index` 少列**响亮报错**（原来静默丢行）+ `cmd_schedule` 的 taken 用全量口径 ⇒ ⭐ **横向排查三个来源**（硬规则 0(b) ✓），
-  反向验证：复核者夹具改前 exit 0 静默 ⇒ 改后 **exit 1** 点名；变异体 A/B/C 分别判红 ✓；`expect` 调用点 **122 → 136**
-- **两条收口**（都真做完，按证据收口）：`G-110 → done @ 03ad5ee2` · `G-112 → done @ f3ada3a4`（**都是 main 祖先** ✓；
-  台账原记的 `ead7829f`/`23bd48fa` 一类是 rebase 孪生 ✗）⇒ ⭐ **我在主 checkout 独立复跑两条复现件：都 exit 1（已修）** ✓
-- **三元组**（收口后）：`--json open=[] total=0` == `--next`「没有可动的条目」== §0.2 `total=0` ✓
-- **60 条非祖先指针**（`done` 99 条 = 祖先 39 + 存量 60）：60/60 的 subject 在 main 历史里有同款、抽样 patch-id 4/4 一致
-  ⇒ 内容都落了 ✓；**口径建议 = 加只追加的 `--repoint` 回填**（不重写 git 历史、不长期豁免 ✓）——**本轮不改** ✓
-- ⚠ 观察项：`gap.py:373 wo_prompt()` 对**字符串 where** 会崩（6 条历史行，全在 fixed 档 ⇒ 今天不可达 ✗）；7 个并行 worktree 的 §0.2 块仍是旧值（工具只在主 checkout 认权威 ✓）
+## 清台账第 6 轮（2026-10-14）：**来源可见性修复 + 两条隐藏项收口** —— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md`
 
 ## 未决项（**权威 = `docs/ONBOARDING.md` §0.2**；**2026-10-13 订正**：这里曾写「现存 6 条」而权威表实测 3 条 ⇒ 以权威表为准，本条不再自己数 ✗）。⚠ 本节下方两条是**收口记录**，**不是**未决项 —— 2026-10-02 前它写着"只有这两条"而两条都已 ✅ ⇒ 读它的人会以为"队列空了"（#4/#5/#6 三处用户报障就这样掉线过））
 ## 已发布线：`v0.79.0`（E19 甲案 + P 组 · 批次 N 66/66）· `v0.80.0` · `v0.81.0` · `v0.82.0` · **`v0.83.0`（最新 ✓ · 2026-10-08 · Release 26 资产 ✓）** —— 逐轮记录 ⇒ `docs/archive/status-removed-rounds-2026-10-13.md.gz` ✓

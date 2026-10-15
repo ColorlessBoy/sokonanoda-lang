@@ -203,7 +203,12 @@ fn a_project_build_writes_its_artifact_into_the_module_root() {
     // 剩下的目标 = tactic 位 ⇒ 灯泡插 `exact hp`；声明值位/项内部的洞 = 项位 ⇒ 插 `hp`）
     // ⇒ 老条目没有这个字段 ⇒ 整库不命中、重编 ✓。**回放老条目 = 把"tactic 位插项文本、
     // 判卷红"那个坏行为放回来** ✗ —— 所以这里必须同步（同一条规矩 ✓）。
-    assert_eq!(meta["schema"], "soko.artifacts/2.r8");
+    // ⚠ **r8 → r9**：`#check <裸 def 名>` 的**声明卡片**（2026-10-15 用户新需求，
+    // `REQUIREMENTS.md` §9）把 `CheckInfo::text` 的**含义**改了 —— 以前对一切
+    // `#check` 都是"内核类型文本"，现在 `#check <裸 def 名>` 是
+    // `def <名字> : <类型> := <定义体>`（`CheckEvent::type_display`）⇒
+    // 老条目回放的是"只有类型、点名形式"的旧答案 ⇒ 必须整库不命中（同一条规矩 ✓）。
+    assert_eq!(meta["schema"], "soko.artifacts/2.r9");
     assert!(meta["compiler"].as_str().is_some_and(|v| !v.is_empty()));
     // ⑤ 项目条目**不再**落全局缓存（分工：项目条目只认模块根）。
     assert!(

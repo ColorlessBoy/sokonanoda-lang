@@ -135,7 +135,7 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
    **记法是例外面**（G-04/0.59.0）：`infix:N`/`infixl:N`/`infixr:N`/`notation`
    是用户自定义的源级糖——不引入新语义、不产生事件，点名形式永久可用且两种写法
    判卷一致；边界（文件内作用域、补前导类型参数、第二刀未做项）见
-   `docs/design/notation-subset.md`；
+   `docs/design/notation-subset.md`（⚠ 该档那条「print-back 继续显示点名形式」**已被用户 2026-10-15 的需求取代**：`#check <裸 def 名>` 现在印**声明卡片** `def … := …`，**有意偏离 Lean 4** ⇒ `REQUIREMENTS.md` §9.22）；
    **课程一律写记法**（2026-09-21 用户拍板，脚本判红）：`Eq.{1} T a b` → `a = b`、
    `Set.mem α a A` → `a ∈ A`、`And X Y` → `X ∧ Y`、基础类型省前导隐式实参
    （`And.left h` / `Or.inl h` / `Exists.intro w hw`；**课标库前导类型参数已隐式** ⇒

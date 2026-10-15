@@ -1,6 +1,18 @@
 // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 ## [Unreleased]
 
+### Added
+
+- **`#check <def>` 印声明卡片（带定义体 + 记法）**（2026-10-15 用户新需求，`REQUIREMENTS.md`
+  §9.22）：光标放在 `#check Set.subset` 那一行时，命令输出从
+  `Set.subset: {α : Type} -> (A : Set α) -> (B : Set α) -> Prop`（只有类型、点形式）变成
+  `def Set.subset : ∀ {α : Type}, Set α → Set α → Prop := fun {α : Type 0} (A B : Set α) => ∀ (x : α), x ∈ A → x ∈ B`
+  —— 与 Infoview 的声明卡片**逐字节同形**。**边界**：只有 `def` 有卡片（`theorem` /
+  `axiom` / `inductive` / 构造子 / 递归子、以及非裸标识符的 `#check` **一个字节都没变**）；
+  `#print` 与 `--json` 的 `inferred_type` 也**一个字节都没变**（判定路径读的是后者）。
+  **这是有意偏离 Lean 4**（Lean 的 `#check id` 只打签名），用户同日明确授权。
+  判据：`crates/cli/tests/check_def_card.rs` · `crates/front/src/compile/tests.rs`。
+
 ## [0.91.0] - 2026-10-15
 
 ### Fixed

@@ -1054,8 +1054,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
     ) {
         let idx = c.idx;
         let templates = c.templates;
-        // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
-        // （后者返回的是 `Cow` 自身的寿命参数，会把 `ElabCtx` 逼到 `'arena`）。
+        // 用 `&c.prefix_src`（Deref）而不是 `Cow::as_ref()`（后者的寿命参数会把 `ElabCtx` 逼到 `'arena`）。
         let prefix_src: &str = &c.prefix_src;
         let trusted = c.trusted;
         let options = local(c.options);
@@ -2543,8 +2542,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         ) {
             Ok(e) => {
                 // **U2（2026-10-05 ✓）**：裸常量（不带 `.{n}` 的 `Ident`）⇒ 带上**签名源文本** ✓
-                // （渲染侧用它 ✓，见 `kernel_phase.rs` 的 `PendingOp::Check` 分支 ✓）。
-                // ⚠ 只在**渲染**上生效 ✓ —— 判定路径不动 ✓。
+                // （渲染侧用它；⚠ 只在**渲染**上生效 ✓ —— 判定路径不动 ✓）。
                 let sig = match expr {
                     Expr::Ident { name, .. } => self
                         .known
@@ -2553,9 +2551,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         .map(str::to_string),
                     _ => None,
                 };
-                // **R1c-2b（2026-10-05）**：`#check` 也走出口 ✓ ——
-                // **对齐 Lean `BuiltinCommand.lean:435`**：
-                // `let e ← Term.levelMVarToParam (← instantiateMVars e)` ✓。
+                use super::kernel_phase::decl_card; // 2026-10-15：`#check <def>` 的卡片目标
+                let card = decl_card::card_target(&self.known, &self.ns, &mut self.builder, expr);
+                // **R1c-2b（2026-10-05）**：`#check` 也走出口 ✓（对齐 Lean `BuiltinCommand.lean:435`）。
                 let (e, _) =
                     crate::compile::check::level_exit::discharge_expr(&mut self.builder, e, &[]);
                 self.ops.push(PendingOp::Check {
@@ -2564,6 +2562,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     span: expr.span(),
                     cmd: idx,
                     sig,
+                    card,
                     pp: self.pp,
                 });
                 self.cmd_hovers.push(CmdHover {

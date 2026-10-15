@@ -642,10 +642,10 @@ fn assemble_report(snaps: &[CmdSnapshot], spans: &[Span]) -> DocumentReport {
         warnings.extend(snap.warnings.iter().cloned());
         for event in &snap.events {
             match event {
-                CheckEvent::TypeChecked { text, span } => {
+                CheckEvent::TypeChecked { span, .. } => {
                     checks.push(crate::compile::CheckInfo {
                         span: *span,
-                        text: text.clone(),
+                        text: event.type_display().unwrap_or_default().to_string(),
                         // **真命令下标**（`snaps` 的下标 = 命令下标，与 `hover_cmds`
                         // 同一条纪律 ✓）。以前恒 0（"单文档里没意义"）—— 但**项目模式**
                         // 的入口报告也走这里，而 `splice_entry_report` **按 cmd 去重**

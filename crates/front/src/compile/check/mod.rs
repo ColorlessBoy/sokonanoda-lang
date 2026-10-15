@@ -103,13 +103,13 @@ pub(crate) enum PendingOp<'a> {
         env_at: usize,
         span: Span,
         cmd: usize,
-        /// **U2（2026-10-05 ✓）**：`#check <裸常量>` 时带上**签名源文本** ✓ ——
-        /// 渲染**它**而不是实例化后的类型 ✓，因为裸写法的层被默认成 `0` ✗
-        /// ⇒ `#check Quot.lift` 会渲成 `{A r B : Prop}` ✗（**给用户的建议错** ✓ = G-63 ✓）。
-        /// **Lean 4 对照** ✓：`#check Quot.lift` 显示的是 `.{u, v}` **层参数形式** ✓。
-        /// ⚠ **只影响渲染** ✓ —— 判定路径一个字都不动 ✓（零行为变化 ✓）。
+        /// **U2（2026-10-05 ✓）**：`#check <裸常量>` 带上**签名源文本** ✓ —— 裸写法的层被默认成 `0` ✗
+        /// （`#check Quot.lift` 会渲成 `{A r B : Prop}` = G-63），Lean 4 显示 `.{u, v}` 层参数形式 ✓。
+        /// ⚠ **只影响渲染** ✓ —— 判定路径一个字都不动 ✓。
         sig: Option<String>,
-        /// 这条命令**当时**的 `set_option pp.*` 档（设计 `docs/design/set-option-pp.md`）。
+        /// **2026-10-15 用户新需求**：`#check <裸标识符>` 的规范名 + 内核指针（`None` = 不给卡片；形状/边界见 `decl_card.rs`）。
+        card: Option<(String, NamePtr<'a>)>,
+        /// 这条命令**当时**的 `set_option pp.*` 档（`docs/design/set-option-pp.md`）。
         pp: PpFlags,
     },
     Reduce {

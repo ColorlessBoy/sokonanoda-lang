@@ -89,6 +89,95 @@ fn accepts_open_exercise() {
     assert_eq!(out.events, vec![CheckEvent::ExerciseOpen { name: None }]);
 }
 
+/// **`#check <裸 def 名>` 的声明卡片**（2026-10-15 用户新需求，`REQUIREMENTS.md` §9）。
+///
+/// 用户原话：「`#check Set.subset` 显示 `def Set.subset : ∀ {α : Type}, Set α → Set α → Prop`
+/// `:= fun {α : Type 0} (A B : Set α) => ∀ (x : α), x ∈ A → x ∈ B`」——
+/// **两件缺一不可**：① 带定义体 ＋ ② 记法渲染（`∀`/`→`/`∈`，不是
+/// `forall`/`->`/`Set.mem`）。
+///
+/// 这里用**自足夹具**（不依赖 `courses/**`）：课程里那条的逐字读数在
+/// `crates/cli/tests/check_def_card.rs`。
+#[test]
+fn check_on_a_bare_def_renders_the_declaration_card() {
+    let src = "infix:50 \" ∈ \" => mem\n\
+               def mem {α : Type} (a : α) (A : α -> Prop) : Prop := A a\n\
+               def subset {α : Type} (A B : α -> Prop) : Prop := forall (x : α), x ∈ A -> x ∈ B\n\
+               #check subset\n";
+    let file = parse(src).unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![]);
+    let (text, card) = out
+        .events
+        .iter()
+        .find_map(|e| match e {
+            CheckEvent::TypeChecked { text, decl, .. } => Some((text.clone(), decl.clone())),
+            _ => None,
+        })
+        .expect("`#check subset` 必须产 `TypeChecked`");
+    let card = card.expect("`#check <裸 def 名>` 必须带声明卡片");
+    // ① **带定义体**。
+    assert!(card.contains(" := "), "① 必须有定义体：{card}");
+    // ② **记法**（`∀`/`→`/`∈`），且**不许**有点名形式。
+    assert!(
+        card.contains('∀') && card.contains('→') && card.contains('∈'),
+        "② 必须是记法：{card}"
+    );
+    for pointed in ["forall", "->", "mem"] {
+        assert!(!card.contains(pointed), "② 不许出现 {pointed:?}：{card}");
+    }
+    // 形状：`def <名字> : <类型> := <定义体>`（与 Infoview 声明卡片同形）。
+    assert_eq!(
+        card,
+        "def subset : ∀ {α : Type}, (α → Prop) → (α → Prop) → Prop := \
+         fun {α : Type 0} (A B : α → Prop) => ∀ (x : α), x ∈ A → x ∈ B"
+    );
+    // ⚠ **判定路径读的 `text` 一个字节都没动**（仍是**类型**）——
+    // `judge::judge_type_of` ⇒ 记法目标签名靠它 ✓。
+    assert_eq!(
+        text,
+        "{α : Type} -> (A : α -> Prop) -> (B : α -> Prop) -> Prop"
+    );
+}
+
+/// **反向验证**（2026-10-15 用户判据 ②）：卡片**只给 `def`** ✗ ——
+/// `theorem` / `inductive` / 构造子 / 一切**非裸标识符**的 `#check` 都必须
+/// `decl == None`（显示逐字节回到"只有类型" ✓）。
+#[test]
+fn check_declaration_card_is_def_only_and_never_touches_other_shapes() {
+    let src = "\
+inductive Box : Type
+ctor mk : Box
+end
+theorem t : ∀ (P : Prop), P -> P := fun (P : Prop) (hp : P) => hp
+def d : Box -> Box := fun (b : Box) => b
+#check t
+#check Box
+#check Box.mk
+#check d
+#check (fun (b : Box) => b)
+";
+    let file = parse(src).unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![]);
+    let cards: Vec<(String, Option<String>)> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::TypeChecked { text, decl, .. } => Some((text.clone(), decl.clone())),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(cards.len(), 5, "五条 `#check` 都要有事件：{cards:?}");
+    // 顺序：`t`（theorem）/ `Box`（inductive）/ `Box.mk`（构造子）/
+    // `d`（def ⇒ **唯一**有卡片的那条）/ 非裸标识符。
+    assert!(cards[0].1.is_none(), "theorem 不给卡片：{:?}", cards[0]);
+    assert!(cards[1].1.is_none(), "inductive 不给卡片：{:?}", cards[1]);
+    assert!(cards[2].1.is_none(), "构造子不给卡片：{:?}", cards[2]);
+    assert!(cards[3].1.is_some(), "def 必须给卡片：{:?}", cards[3]);
+    assert!(cards[4].1.is_none(), "非裸标识符不给卡片：{:?}", cards[4]);
+}
+
 #[test]
 fn checks_dependent_forall_with_lambda() {
     let file = parse(

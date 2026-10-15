@@ -271,9 +271,11 @@ pub(crate) fn report_output(output: &CompileOutput, src: &str, seen_events: usiz
         match event {
             CheckEvent::DeclarationChecked { name } => println!("checked declaration {name}"),
             CheckEvent::ExampleChecked => println!("checked example"),
-            CheckEvent::TypeChecked { text, span } => {
-                println!("{}: {text}", expr_text(src, *span));
-            }
+            CheckEvent::TypeChecked { text, span, decl } => match decl {
+                // `#check <裸 def 名>`：印**声明卡片**（与 `--json` 的 `human` 同源 ✓）
+                Some(card) => println!("{card}"),
+                None => println!("{}: {text}", expr_text(src, *span)),
+            },
             CheckEvent::Reduced { text, span } => {
                 println!("{} => {text}", expr_text(src, *span));
             }

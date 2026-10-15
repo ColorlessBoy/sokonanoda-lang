@@ -454,11 +454,12 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   （记法符号 `⊆`/`∈`、标识符、类型行）**都不做链接**（2026-10-08 用户拍板：
   「符号 notation 啥的不需要跳转链接，声明列表里开头的 theorem 名字能跳转就行」）；
   **命令输出**（C3/2026-10-08，**2026-10-09 补齐记法/高亮与项目模式**）：光标停在
-  `#check`/`#print` 那一**行**时，面板底部多一块「命令输出」——`#check` ⇒
-  `表达式 : 类型`（**类型那一半折记法**，`->` ⇒ `→`，与目标行同一观感）、`#print` ⇒
-  定义文本（`def … := fun (n : Nat) => …` 会打出 **λ 本体**）；两块都走与目标/条件
-  **同一批 runs**（`tok-*` 上色 ✓）。按**行**取，与 Lean 的
-  `getInteractiveDiagnostics{lineRange?}` 同口径；`#check` 的 inlay hint 照旧并存 ✓。
+  `#check`/`#print` 那一**行**时，面板底部多一块「命令输出」——`#check <裸 def 名>` ⇒
+  **声明卡片** `def <名字> : <类型> := <定义体>`（两半都折记法，2026-10-15 用户新需求，
+  `REQUIREMENTS.md` §9.22；`theorem`/`axiom`/`inductive`/非标识符仍是 `表达式 : 类型`，
+  与 Lean 4 **有意不同**）、`#print` ⇒ 定义文本（`def … := fun (n : Nat) => …` 会打出
+  **λ 本体**）；两块都走与目标/条件 **同一批 runs**（`tok-*` 上色 ✓）。按**行**取，与
+  Lean 的 `getInteractiveDiagnostics{lineRange?}` 同口径；`#check` 的 inlay hint 照旧并存 ✓。
   **带 `import` 的文件同样有效**（课程文件都有 `import`；`#print` 在项目模式里曾经整条不显示 ✗）。
   ⚠ `#print` 打的是**环境里**的声明 ⇒ 对 `sorry` 体的**开放练习**会报 `unknown identifier`
   （它还没进环境），那不是"没反应"而是如实报错。

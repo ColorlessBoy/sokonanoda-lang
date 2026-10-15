@@ -96,7 +96,13 @@ fn cli_checks_a_valid_file_via_stdin() {
     );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("checked declaration id"));
-    assert!(stdout.contains("id: Prop -> Prop"));
+    // **2026-10-15 用户新需求**（`REQUIREMENTS.md` §9）：`#check <裸 def 名>` 印
+    // **声明卡片**（`def <名字> : <类型> := <定义体>`，两半都过记法折叠）。
+    // 改前这里是 `id: Prop -> Prop`（**只有类型、点名形式** ✗）。
+    assert!(
+        stdout.contains("def id : Prop → Prop := fun (x : Prop) => x"),
+        "stdout: {stdout}"
+    );
 }
 
 #[test]
@@ -510,7 +516,12 @@ fn repl_accumulates_declarations_and_checks_them() {
         stdout.contains("checked declaration id"),
         "stdout: {stdout}"
     );
-    assert!(stdout.contains("id: Prop -> Prop"), "stdout: {stdout}");
+    // 同 [`cli_checks_a_valid_file_via_stdin`]：REPL 走的是**同一条** `report_output`
+    // ⇒ 卡片形状必须一致（2026-10-15 用户新需求）。
+    assert!(
+        stdout.contains("def id : Prop → Prop := fun (x : Prop) => x"),
+        "stdout: {stdout}"
+    );
 }
 
 #[test]

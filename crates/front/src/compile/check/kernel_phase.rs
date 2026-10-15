@@ -1,10 +1,12 @@
-//! 待执行操作（`PendingOp`）的**内核阶段**：环境和 `EnvBuilder` 定稿后，按命令
-//! 序把每个操作送进内核（check-then-add）、产生事件与错误、给增量会话算签名与
-//! early cutoff，最后组装 `DocumentReport`。
+//! 待执行操作（`PendingOp`）的**内核阶段**：环境和 `EnvBuilder` 定稿后，按命令序把每个
+//! 操作送进内核（check-then-add）、产生事件与错误、给增量会话算签名与 early cutoff，
+//! 最后组装 `DocumentReport`。
 //!
-//! 从 `run_pass` 尾部整体切出（I16 batch 3 收尾的模块化），行为逐字节不变：
-//! 这里的代码就是把原来那个 1000+ 行函数的后半段原样搬过来，只把外层局部变量
-//! 变成 `Walked` 的字段。
+//! 从 `run_pass` 尾部整体切出（I16 batch 3 收尾的模块化），行为逐字节不变：这里就是把
+//! 原来那个 1000+ 行函数的后半段原样搬过来，只把外层局部变量变成 `Walked` 的字段。
+
+#[path = "decl_card.rs"]
+pub(super) mod decl_card; // 新代码进新文件（判据 ⑨：本文件只许减不许增 ✗）
 
 use super::{
     declar_signature, failed_state, inductive_signature, op_cmd, quiet_catch, resolve_hovers,
@@ -23,14 +25,10 @@ use std::collections::HashMap;
 /// 把一条命令的 **`set_option pp.*` 档**叠加到内核 pp 选项上
 /// （设计 `docs/design/set-option-pp.md` §3.4）。
 ///
-/// **只碰四个字段**（`all` / `explicit` / `universes` / `notation`）——
-/// **绝不碰 `proofs`** ✗：内核阶段开头就全局置了 `proofs = true`
-/// （见上面 `env.config.pp_options.proofs = true` 的注释），把它打回 `false`
-/// 会让证明项重新印成 `_`（行为回归 ✗）。调用方负责**保存并还原**
-/// （`let saved = env.config.pp_options.clone(); … env.config.pp_options = saved;`）。
-///
-/// `explicit_extra` 是 **G-71 的内部档**（`judge::explicit_pp_active()`，tactic
-/// 上下文要把类型文本再回读成项）——它与用户档是**或**的关系：任一为真即全显式 ✓。
+/// **只碰四个字段**（`all`/`explicit`/`universes`/`notation`）、**绝不碰 `proofs`** ✗
+/// （内核阶段开头全局置了 `proofs = true` ⇒ 打回 `false` 会让证明项重新印成 `_` ✗）；
+/// 调用方负责保存并还原。`explicit_extra` 是 **G-71 的内部档**
+/// （`judge::explicit_pp_active()`）——与用户档是**或**的关系 ✓。
 fn apply_pp_flags(
     opts: &mut sokonanoda::pretty_printer::PpOptions,
     pp: PpFlags,
@@ -586,18 +584,18 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     span,
                     cmd,
                     sig,
+                    card,
                     pp,
                 } => {
+                    // 2026-10-15 用户新需求：卡片只服务**显示**（见 `decl_card.rs`）。
+                    let decl = decl_card::check_decl_card(env, card.as_ref(), &display, pp);
                     // **U2（2026-10-05 ✓）**：裸常量 ⇒ 直接渲**签名源文本** ✓
                     // （`{A : Sort u} -> …` 层参数形式 ✓，对齐 Lean `#check` 的显示 ✓）。
                     // ⚠ **只走渲染** ✓：不碰 `infer_closed_type`、不碰判定 ✓。
                     if let Some(text) = sig {
                         out.push_event(
                             cmd,
-                            CheckEvent::TypeChecked {
-                                text: text.clone(),
-                                span,
-                            },
+                            CheckEvent::TypeChecked { text: text.clone(), span, decl },
                         );
                         continue;
                     }
@@ -623,7 +621,9 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     });
                     env.config.pp_options = saved_pp;
                     match checked {
-                        Ok(text) => out.push_event(cmd, CheckEvent::TypeChecked { text, span }),
+                        Ok(text) => {
+                            out.push_event(cmd, CheckEvent::TypeChecked { text, span, decl })
+                        }
                         Err(msg) => out.push_error(
                             j,
                             CompileError::kernel(
@@ -743,9 +743,9 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
             .iter()
             .zip(out.event_cmds.iter())
             .filter_map(|(event, cmd)| match event {
-                CheckEvent::TypeChecked { text, span } => Some(crate::compile::report::CheckInfo {
+                CheckEvent::TypeChecked { span, .. } => Some(crate::compile::report::CheckInfo {
                     span: *span,
-                    text: text.clone(),
+                    text: event.type_display().unwrap_or_default().to_string(),
                     cmd: *cmd,
                 }),
                 _ => None,

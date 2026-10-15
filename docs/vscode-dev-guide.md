@@ -346,7 +346,7 @@ git tag v0.X.Y && git push origin v0.X.Y
 > 历史教训（2026-09-09）：server 早已实现 GitHub Release 自动下载
 > （rust-analyzer 模式），README 的 Quick start 还在教 `cargo build`；
 > agent skills 是项目最大卖点，市场介绍里只字未提。过时的门面 =
-> 用户以为插件不可用。
+> 用户以为插件不可用。⚠ **命令输出的形状也算门面**（2026-10-15）：`#check <裸 def 名>` 现在印**声明卡片**（`def … := …`，与 Infoview 同形，**有意偏离 Lean 4**）⇒ 同轮同步 `CHANGELOG.md`/`README.md`/teacher 技能/`docs/protocol.md`/`REQUIREMENTS.md` §9.22。
 
 ### 必须同步的三个门面文件
 

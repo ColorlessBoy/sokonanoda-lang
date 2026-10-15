@@ -122,7 +122,13 @@ skills.
 - Go-to-definition, rename and find references — all **across imported
   modules**; document highlight stays within the file
 - Inlay hints showing the expected type at each hole — and the result of
-  every `#check` (`#check Nat` → `Nat : Type 0`, Lean-Infoview style)
+  every `#check` (`#check Nat` → `Nat : Type 0`, Lean-Infoview style);
+  `#check <def>` shows the **declaration card** instead — type *and*
+  `:= <body>`, notation-folded, exactly like the Infoview card
+  (`#check Set.subset` → `def Set.subset : ∀ {α : Type}, Set α → Set α → Prop :=
+  fun {α : Type 0} (A B : Set α) => ∀ (x : α), x ∈ A → x ∈ B`). Only `def`
+  gets a body (a `theorem`/`axiom`/`inductive` still shows the type only) —
+  this is a **deliberate** divergence from Lean 4, requested 2026-10-15
 - `set_option pp.explicit true` (a line in the file, Lean-compatible) makes
   `#print` / `#check <expr>` / `#reduce` show **implicit arguments**
   (`… := @Iff.refl (@Set.mem α a A)`); `pp.all true` is the sledgehammer.

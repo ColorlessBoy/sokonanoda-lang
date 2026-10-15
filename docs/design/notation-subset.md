@@ -398,7 +398,7 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
   `∪`/`∩`/`\`（形状同 `infixl`/`infix`，词法已就位）、`ᶜ`（postfix，U+1D9C
   同样是字母）、`scoped`/`open scoped`、集合字面量 `{a}`/`{a,b}`。
 - **跨 `import` 的记法传播**。
-- **print-back（源码级 pp）**：goal/hover/错误文本里的类型继续显示点名形式。
+- ~~**print-back（源码级 pp）**：goal/hover/错误文本里的类型继续显示点名形式。~~ **⛔ 本条已被用户需求取代（2026-10-15 ✓，不是"以后再说"）**：① **前半句早已不成立**（线 C 从 0.65.0 起就让 goal/hover/错误文本折记法，见 §附 与 `docs/design/notation-aware-printing.md`；本行是 §7 这份第一刀清单的**原文遗留**，一直没回改 ✗）；② **后半句由用户 2026-10-15 15:22 明确推翻**：`#check <裸 def 名>` 现在印**声明卡片** `def <名字> : <类型> := <定义体>`（类型与定义体**都**过 `fold`，类型那一半再过 `lean4_universe_text`），**刻意偏离 Lean 4**（Lean 的 `#check id` 只打 `.signature c`）——用户同日 15:2x 授权：「**`#check` 我是新加需求，偏离 lean4 没问题**」；**边界**：只给 `def`（`theorem`/`axiom`/`inductive`/构造子/递归子仍只打签名 ✓）、`#print` 一个字节未动 ✗、判定路径读的 `inferred_type` 也一个字节未动 ✗；权威条目 `REQUIREMENTS.md` **§9.22**，判据 `crates/cli/tests/check_def_card.rs`。
 - **binder 记法**（`∃ x,`、`∀ x ∈ s,`）：台账 `notes` 原话「另立」。
 - **一般隐式实参推断**（`mem2 x s` 这类点名省略仍然报错，N4.3 是护城河）。
 - **`_` 占位符 / 元变量 / 一般合一**。
