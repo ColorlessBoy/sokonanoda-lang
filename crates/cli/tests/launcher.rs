@@ -771,3 +771,232 @@ fn setup_downloads_the_version_pinned_by_the_course_repo() {
     );
     repo.cleanup();
 }
+
+/// 6. **`update` 是"强制刷新"，它也必须请求版本钉的 URL** —— 不是只有 `setup`。
+///
+/// 回归的是 `SUB-soko-update-cli-404`（2026-10-15 用户实测：`scripts/soko update`
+/// 报 `fetch failed: HTTP 404`，而**同一个 URL 用 curl 是 200**）。根因是
+/// `ensure(force)` 把 `resolver().version`（**对象**）传给 `download()` ⇒ URL 变成
+/// `…/download/v[object Object]/…` ⇒ curl 把 `[` 当 glob（exit 3）、Node fetch 404。
+/// `setup` 走 `resolve()`（传 `version.text`）所以一直是对的 ⇒ 上面那条测试**只钉了
+/// `setup`**，`update` 那条路**没有守卫**（这正是它悄悄坏了很久的原因）✗。
+///
+/// 判据（咬得住历史 bug）：**每一次请求都带 `/v<pin>/`，一次都不许出现
+/// `[object Object]`；而且恰好两次请求**（CLI + LSP 各一次强制下载 —— 旧实现会多出
+/// 两次坏 URL 的尝试）。
+#[cfg(unix)]
+#[test]
+fn update_forces_a_refresh_at_the_pinned_version() {
+    let what = "update_forces_a_refresh_at_the_pinned_version";
+    if !require_node(what) {
+        return;
+    }
+    let repo = FakeRepo::new("soko-update-pinned");
+    repo.write("sokonanoda-version.txt", "0.42.0\n");
+    let tarball = cli_and_lsp_tarball(&repo.root);
+    let (base, log) = serve_bytes(std::fs::read(&tarball).expect("read tarball"));
+
+    let out = repo.run_env(
+        &["update"],
+        &[
+            ("SOKONANODA_RELEASE_BASE", &base),
+            ("SOKONANODA_OFFLINE", ""),
+        ],
+    );
+    let (stdout, stderr) = text(&out);
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "update must refresh both binaries:\n--- stdout ---\n{stdout}--- stderr ---\n{stderr}"
+    );
+    let requests = log.lock().expect("log lock");
+    assert_eq!(
+        requests.len(),
+        2,
+        "a forced refresh downloads each binary exactly once: {requests:?}"
+    );
+    let joined = requests.join("\n");
+    assert!(
+        joined.contains("/v0.42.0/sokonanoda-cli-") && joined.contains("/v0.42.0/sokonanoda-lsp-"),
+        "update must address the pinned version for BOTH assets: {joined}"
+    );
+    assert!(
+        !joined.contains("object") && !joined.contains("%5B"),
+        "a forced refresh must never build a URL out of the version OBJECT \
+         (`v[object Object]` is the SUB-soko-update-cli-404 bug): {joined}"
+    );
+    for base in ["sokonanoda", "sokonanoda-lsp"] {
+        assert_eq!(
+            std::fs::read_to_string(repo.cache.join(format!("{base}.version")))
+                .expect("marker")
+                .trim(),
+            format!("0.42.0 {}", marker_target()),
+            "{base} marker must be written from the pinned *string*, not the object"
+        );
+    }
+    repo.cleanup();
+}
+
+/// 7. **一条清理环境的命令**（`SUB-no-version-cleanup-command`）：`prune` 默认
+/// dry-run、`--yes` 才真删，并且一次把**三处**收口 —— 8 个扩展目录、两半不一致的
+/// cache marker、指向已删目录的 `.obsolete` 残留。
+///
+/// 判据绑**用户动作**（硬规则 0(a)）：跑一条命令 ⇒ 版本统一。
+/// * dry-run：**一个字节都不删**（目录还在、marker 未动）；
+/// * `--check`：有不一致就 **exit 3**（不许静默）；
+/// * `--yes`：只剩 1 个扩展（最新）、两个 marker 都变成 `<pin> <target>`、
+///   sokonanoda 的 `.obsolete` 条目 0 —— 而**别人的**条目与目录一个都不许动。
+///
+/// 夹具形状照用户 2026-10-15 的实测（`~/.vscode/extensions/` 下 8 个 sokonanoda
+/// 扩展 · cache `0.83.0`/`0.73.0` 两半不一致 · `.obsolete` 15 条残留）。
+#[cfg(unix)]
+#[test]
+fn prune_is_a_dry_run_until_yes_and_unifies_the_three_sources() {
+    let what = "prune_is_a_dry_run_until_yes_and_unifies_the_three_sources";
+    if !require_node(what) {
+        return;
+    }
+    let repo = FakeRepo::new("soko-prune");
+    repo.write("sokonanoda-version.txt", "0.42.0\n");
+    let home = repo.root.join("home");
+    let ext = home.join(".vscode/extensions");
+    std::fs::create_dir_all(&ext).expect("create extensions dir");
+    // 8 个 sokonanoda 扩展（用户实测的那一组），外加一个**别人的**扩展。
+    for version in [
+        "0.31.0",
+        "0.31.0-darwin-arm64",
+        "0.37.3",
+        "0.38.0",
+        "0.38.1",
+        "0.38.2",
+        "0.39.0",
+        "0.40.0",
+    ] {
+        std::fs::create_dir_all(ext.join(format!("sokonanoda-lang.sokonanoda-{version}")))
+            .expect("create extension dir");
+    }
+    std::fs::create_dir_all(ext.join("eamodio.gitlens-19.2.0")).expect("create other extension");
+    std::fs::write(
+        ext.join("extensions.json"),
+        "[{\"identifier\":{\"id\":\"sokonanoda-lang.sokonanoda\"},\"version\":\"0.40.0\"}]\n",
+    )
+    .expect("write extensions.json");
+    let mut obsolete = serde_json::Map::new();
+    for version in [
+        "0.10.0", "0.11.0", "0.12.0", "0.13.0", "0.14.0", "0.15.0", "0.16.0", "0.17.0", "0.18.0",
+        "0.19.0", "0.20.0", "0.21.0", "0.22.0", "0.23.0", "0.24.0",
+    ] {
+        obsolete.insert(
+            format!("sokonanoda-lang.sokonanoda-{version}"),
+            serde_json::Value::Bool(true),
+        );
+    }
+    obsolete.insert(
+        "eamodio.gitlens-18.0.0".to_string(),
+        serde_json::Value::Bool(true),
+    );
+    std::fs::write(
+        ext.join(".obsolete"),
+        serde_json::to_string(&obsolete).expect("serialize .obsolete"),
+    )
+    .expect("write .obsolete");
+    // cache 两半互相不一致（用户实测 0.83.0 / 0.73.0）。
+    repo.cached("sokonanoda", Some(&format!("0.41.0 {}", marker_target())));
+    repo.cached(
+        "sokonanoda-lsp",
+        Some(&format!("0.40.0 {}", marker_target())),
+    );
+
+    let tarball = cli_and_lsp_tarball(&repo.root);
+    let (base, _log) = serve_bytes(std::fs::read(&tarball).expect("read tarball"));
+    let home_str = home.to_str().expect("home is utf8");
+    let env: &[(&str, &str)] = &[
+        ("HOME", home_str),
+        ("SOKONANODA_RELEASE_BASE", &base),
+        ("SOKONANODA_OFFLINE", ""),
+    ];
+
+    // (a) dry-run：报出来，但**一个字节都不删**。
+    let dry = repo.run_env(&["prune"], env);
+    let (dry_out, dry_err) = text(&dry);
+    assert_eq!(dry.status.code(), Some(0), "dry-run must succeed:\n{dry_err}");
+    assert!(
+        dry_out.contains("dry-run") && dry_out.contains("nothing was deleted"),
+        "dry-run must say that nothing was deleted: {dry_out}"
+    );
+    assert_eq!(
+        std::fs::read_dir(&ext)
+            .expect("read extensions")
+            .filter_map(Result::ok)
+            .filter(|e| e.file_name().to_string_lossy().starts_with("sokonanoda-lang."))
+            .count(),
+        8,
+        "a dry-run must not delete a single extension dir"
+    );
+    assert_eq!(
+        std::fs::read_to_string(repo.cache.join("sokonanoda.version"))
+            .expect("cli marker")
+            .trim(),
+        format!("0.41.0 {}", marker_target()),
+        "a dry-run must not touch the cache markers"
+    );
+
+    // (b) --check：有不一致就判红（不许静默）。
+    let check = repo.run_env(&["prune", "--check"], env);
+    assert_eq!(
+        check.status.code(),
+        Some(3),
+        "--check must exit 3 while the environment is scattered"
+    );
+
+    // (c) --yes：三处一次收口。
+    let applied = repo.run_env(&["prune", "--yes"], env);
+    let (applied_out, applied_err) = text(&applied);
+    assert_eq!(
+        applied.status.code(),
+        Some(0),
+        "prune --yes must succeed:\n--- stdout ---\n{applied_out}--- stderr ---\n{applied_err}"
+    );
+    let remaining: Vec<String> = std::fs::read_dir(&ext)
+        .expect("read extensions")
+        .filter_map(Result::ok)
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .filter(|name| name.starts_with("sokonanoda-lang."))
+        .collect();
+    assert_eq!(
+        remaining,
+        vec!["sokonanoda-lang.sokonanoda-0.40.0".to_string()],
+        "exactly the newest (and in-use) extension must survive"
+    );
+    assert!(
+        ext.join("eamodio.gitlens-19.2.0").is_dir(),
+        "prune must never touch another publisher's extension"
+    );
+    let marked: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(ext.join(".obsolete")).expect(".obsolete"))
+            .expect("parse .obsolete");
+    let sokonanoda_entries = marked
+        .as_object()
+        .expect("object")
+        .keys()
+        .filter(|key| key.starts_with("sokonanoda-lang."))
+        .count();
+    assert_eq!(
+        sokonanoda_entries, 0,
+        "every dangling sokonanoda .obsolete entry must be dropped: {marked}"
+    );
+    assert!(
+        marked.get("eamodio.gitlens-18.0.0").is_some(),
+        "prune must keep other publishers' .obsolete entries: {marked}"
+    );
+    for base in ["sokonanoda", "sokonanoda-lsp"] {
+        assert_eq!(
+            std::fs::read_to_string(repo.cache.join(format!("{base}.version")))
+                .expect("marker")
+                .trim(),
+            format!("0.42.0 {}", marker_target()),
+            "{base} marker must be aligned to the pin"
+        );
+    }
+    repo.cleanup();
+}

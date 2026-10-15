@@ -475,6 +475,183 @@ function compareVersion(a, b) {
   return 0
 }
 
+/// Every VS Code-family extension directory this host may have sokonanoda in.
+/// **一处定义**（`extensionServer` 与 `prune` 共用 ✓）：漏一个根 = `prune` 清不干净、
+/// 或解析链看不见一份已装的扩展，两个 bug 同源 ✗。
+function extensionRoots() {
+  const home = process.env.HOME ?? process.env.USERPROFILE ?? ''
+  return [
+    '.vscode/extensions',
+    '.vscode-insiders/extensions',
+    '.vscode-oss/extensions',
+    '.cursor/extensions',
+    '.windsurf/extensions',
+    '.vscode-server/extensions',
+  ].map(rel => path.join(home, rel))
+}
+
+/// The version VS Code is **currently using** in `root`（`extensions.json`）。
+/// `prune` 拿它当"**不许删**"的硬约束（判据 ③：正在被用的那份删掉 = 编辑器下次
+/// 启动少一个扩展 ✗）；解析链不消费它 ✓。
+function extensionInUse(root) {
+  try {
+    const listed = JSON.parse(readFileSync(path.join(root, 'extensions.json'), 'utf8'))
+    const entry = (Array.isArray(listed) ? listed : []).find(
+      e => e?.identifier?.id === 'sokonanoda-lang.sokonanoda',
+    )
+    return typeof entry?.version === 'string' ? entry.version : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/// Every `sokonanoda-lang.sokonanoda-*` directory in `root`, with the version from
+/// its name and whether VS Code marked it obsolete. Non-sokonanoda entries are
+/// never returned ⇒ `prune` 的删除面**从构造上**只可能是本扩展的目录 ✓。
+function sokonanodaExtensionDirs(root) {
+  let entries
+  try {
+    entries = readdirSync(root)
+  } catch {
+    return []
+  }
+  const obsolete = obsoleteEntries(root)
+  const dirs = []
+  for (const entry of entries) {
+    if (!entry.startsWith('sokonanoda-lang.sokonanoda-')) continue
+    const version = entryVersion(entry)
+    if (!version) continue
+    dirs.push({
+      name: entry,
+      version,
+      path: path.join(root, entry),
+      obsolete: obsolete.has(entry),
+    })
+  }
+  return dirs
+}
+
+/// The whole "version scatter" inventory `prune` reports (and, with `--yes`,
+/// repairs): per extension root the surplus dirs + dangling `.obsolete` entries,
+/// and the two cache markers against the pin. **Read-only** — no writes here ✓.
+///
+/// Why a command and not "the extension cleans itself"（`SUB-no-version-cleanup-command`）:
+/// `code --install-extension` never removes the previous version — VS Code only
+/// records it in `.obsolete` and, on some platforms, never deletes it ⇒ N manual
+/// installs leave N directories ✗. A running extension cannot delete its own
+/// siblings (it cannot even know which one is running, and deleting behind
+/// VS Code's bookkeeping races its own cleanup) ⇒ the **launcher** is the only
+/// place with both the knowledge (the pin) and the right to delete ✓.
+///
+/// Keeper rule（判据 ①/③）：① the version `extensions.json` says VS Code is
+/// **using** is never removed; ② the newest **non-obsolete** dir matching the pin
+/// is kept; ③ fall back to the newest non-obsolete, then the newest. Everything
+/// else is surplus. When the pin matches nothing on disk, the newest is still
+/// kept — pruning must not leave the user with zero extensions ✗.
+function pruneInventory(pin) {
+  const version = pin.version
+  const roots = []
+  for (const root of extensionRoots()) {
+    if (!existsSync(root)) continue
+    const dirs = sokonanodaExtensionDirs(root)
+    const danglingObsolete = [...obsoleteEntries(root)].filter(
+      name => name.startsWith('sokonanoda-lang.sokonanoda-') && !existsSync(path.join(root, name)),
+    )
+    if (!dirs.length && !danglingObsolete.length) continue
+    const inUse = extensionInUse(root)
+    const keep = new Set()
+    const used = inUse ? dirs.find(dir => dir.version.join('.') === inUse) : undefined
+    if (used) keep.add(used.name)
+    const newest = list => [...list].sort((a, b) => compareVersion(b.version, a.version))
+    const matching = version
+      ? newest(dirs.filter(dir => !dir.obsolete && versionSatisfied(version, dir.version.join('.'))))
+      : []
+    const best = matching[0] ?? newest(dirs.filter(dir => !dir.obsolete))[0] ?? newest(dirs)[0]
+    if (best) keep.add(best.name)
+    roots.push({
+      root,
+      inUse,
+      dirs,
+      keep: dirs.filter(dir => keep.has(dir.name)).map(dir => dir.name),
+      remove: dirs.filter(dir => !keep.has(dir.name)).map(dir => dir.name),
+      danglingObsolete,
+      // 保留的那一份**是否就是版本钉**（`prune` 只清多余、**不装**新版 ⇒ 这一格
+      // 可能是 false，要如实说，并给装 VSIX 的出路 —— 静默会让人以为"统一了" ✗）。
+      pinMatched: Boolean(
+        version && dirs.some(dir => keep.has(dir.name) && versionSatisfied(version, dir.version.join('.'))),
+      ),
+    })
+  }
+  const markers = {
+    cli: readMarker('sokonanoda'),
+    lsp: readMarker('sokonanoda-lsp'),
+    expected: version ? `${version.text} ${platformTarget()}` : undefined,
+  }
+  markers.unified =
+    markerMatches('sokonanoda', version) && markerMatches('sokonanoda-lsp', version)
+  return { roots, markers }
+}
+
+/// Drop the sokonanoda `.obsolete` entries that point at a directory that is
+/// gone (or is being removed in this same run). VS Code's bookkeeping is
+/// append-only and never prunes itself ⇒ 15 stale entries survive every cleanup ✗.
+/// Returns the names dropped; **only rewrites the file when something dropped** ✓.
+function pruneObsolete(root, removing) {
+  const file = path.join(root, '.obsolete')
+  let marked
+  try {
+    marked = JSON.parse(readFileSync(file, 'utf8'))
+  } catch {
+    return []
+  }
+  if (!marked || typeof marked !== 'object') return []
+  const dropped = []
+  for (const name of Object.keys(marked)) {
+    if (!name.startsWith('sokonanoda-lang.sokonanoda-')) continue
+    if (existsSync(path.join(root, name)) && !removing.has(name)) continue
+    delete marked[name]
+    dropped.push(name)
+  }
+  if (dropped.length) writeFileSync(file, `${JSON.stringify(marked, null, 2)}\n`)
+  return dropped
+}
+
+/// 机器可读的"版本不统一"读数 —— `doctor --json` 与 `prune --json` **同一份形状** ✓
+/// （`AGENTS.md` 硬规则 0(b)：同一件事只有一处定义，否则两个视图会漂移 ✗）。
+function versionScatter() {
+  const inv = pruneInventory(versionSource())
+  return {
+    extension_roots: inv.roots.map(r => ({
+      root: r.root,
+      in_use: r.inUse,
+      keep: r.keep,
+      remove: r.remove,
+    })),
+    surplus: inv.roots.reduce((n, r) => n + r.remove.length, 0),
+    dangling_obsolete: inv.roots.reduce((n, r) => n + r.danglingObsolete.length, 0),
+    cache: inv.markers,
+    unified: inv.markers.unified && inv.roots.every(r => !r.remove.length && !r.danglingObsolete.length),
+  }
+}
+
+/// `doctor` 的"版本不统一"警告（**只报告、不改 `ready`**）。空数组 = 干净 ⇒
+/// 不输出任何东西（干净时刷屏会让真正的警告贬值 ✗）。
+function scatterWarning(scatter) {
+  if (scatter.unified) return []
+  const lines = [
+    `  versions: NOT unified — ${scatter.surplus} surplus extension dir(s) · ` +
+      `${scatter.dangling_obsolete} dangling .obsolete entr(ies) · ` +
+      `cache ${scatter.cache.unified ? 'unified' : 'markers differ'}\n`,
+  ]
+  for (const r of scatter.extension_roots) {
+    if (r.remove.length) {
+      lines.push(`    ${r.root}: keep ${r.keep.join(', ') || '(none)'} · remove ${r.remove.length}\n`)
+    }
+  }
+  lines.push('    Next: `scripts/soko prune` (dry-run) then `scripts/soko prune --yes`\n')
+  return lines
+}
+
 /// Server bundled by an installed VS Code extension (zero network). Picks the
 /// highest version rather than the newest mtime: several versions stay on disk.
 ///
@@ -488,15 +665,7 @@ function compareVersion(a, b) {
 /// 返回 `{path, version, matched}`：`matched:false` **只用于拒绝时的点名**，
 /// `probe()` 不会把它当链接交出去 ✓（`canExec` 只认匹配的那份 ⇒ 语义不松 ✓）。
 function extensionServer(target, version) {
-  const home = process.env.HOME ?? process.env.USERPROFILE ?? ''
-  const roots = [
-    '.vscode/extensions',
-    '.vscode-insiders/extensions',
-    '.vscode-oss/extensions',
-    '.cursor/extensions',
-    '.windsurf/extensions',
-    '.vscode-server/extensions',
-  ].map(rel => path.join(home, rel))
+  const roots = extensionRoots()
   const name = binaryName('sokonanoda-lsp')
   const candidates = []
   for (const root of roots) {
@@ -537,6 +706,12 @@ function extensionServer(target, version) {
 /// Silence here is what turns "network needs a proxy" into a mystery.
 let lastDownloadError
 
+/// The URL the last download attempt actually asked for（`SUB-soko-update-cli-404`）:
+/// "fetch failed: HTTP 404" without the URL leaves the operator unable to tell
+/// *what* was missing — and the 404 was in fact a URL the launcher built wrong,
+/// not a missing asset. Always print what was requested.
+let lastDownloadUrl
+
 /// The extension bundle the last probe **saw but refused** (version mismatch).
 /// The link is version-checked, so a user who *has* the extension installed must
 /// still be told why it was not used — otherwise the refusal reads as "nothing
@@ -565,6 +740,18 @@ function fetchTarball(url) {
 }
 
 /// Version-pinned download + extract (`curl`-or-`fetch` + `tar`; no shell).
+///
+/// ⚠ **`version` 必须是 `x.y.z`**（`SUB-soko-update-cli-404`，2026-10-15 用户实测）：
+/// 这里是**唯一拼 release URL 的地方**，所以归一化也收在这一处 ✓。`ensure(force)`
+/// 曾经把 `resolver().version`（**对象** `{major,minor,patch,text}`）直接传进来 ⇒
+/// `${version}` 插值成 `[object Object]` ⇒ URL 变成
+/// `…/releases/download/v[object Object]/sokonanoda-cli-<triple>.tar.gz`
+/// ⇒ curl 把 `[` 当 URL glob（`bad range`，exit 3）、Node `fetch` 拿到 **HTTP 404**
+/// ⇒ `scripts/soko update`（**强制刷新**那条路）**永远**写不成缓存：CLI 有仓库构建
+/// 兜底所以只报错，LSP 落到 `resolve()` 那条**用 `version.text`** 的路才侥幸下成
+/// ⇒ 两个 marker 从此各走各的（实测 `0.83.0` vs `0.73.0` ✗）。**非版本一律拒绝，
+/// 绝不拼 URL** —— 拼出一个"看起来像 URL"的坏地址比直接报错更坏（它 404 得像
+/// "资产不存在"，把人引去查 release ✗）。
 async function download(base, version) {
   const triple = rustTriple()
   if (!triple) {
@@ -575,9 +762,15 @@ async function download(base, version) {
     lastDownloadError = 'SOKONANODA_OFFLINE is set'
     return undefined
   }
+  const anchor = fullVersion(typeof version === 'string' ? version : version?.text)
+  if (!anchor) {
+    lastDownloadError = `refusing to build a release URL from a non-version (${JSON.stringify(version)})`
+    return undefined
+  }
   const pkg = base === 'sokonanoda-lsp' ? 'sokonanoda-lsp' : 'sokonanoda-cli'
   const dest = path.join(cacheDir(), binaryName(base))
-  const url = `${releaseBase()}/v${version}/${pkg}-${triple}.tar.gz`
+  const url = `${releaseBase()}/v${anchor.text}/${pkg}-${triple}.tar.gz`
+  lastDownloadUrl = url
   lastDownloadError = undefined
   let tmp
   try {
@@ -605,7 +798,7 @@ async function download(base, version) {
         // read-only cache dir
       }
     }
-    writeMarker(base, version)
+    writeMarker(base, anchor.text)
     return existsSync(dest) ? dest : undefined
   } catch (error) {
     lastDownloadError = String(error?.message ?? error)
@@ -1068,7 +1261,10 @@ function pythonCommand() {
 async function ensure(base, override, { force = false } = {}) {
   const r = resolver(base, override)
   if (force && r.version) {
-    const downloaded = await download(base, r.version)
+    // ⚠ `.text`（不是 `r.version`）：`download` 要的是 `x.y.z` 字符串，传对象会
+    // 拼出 `v[object Object]`（`SUB-soko-update-cli-404`）。`download` 自己也归一化
+    // 并拒绝非版本（单一入口的守卫），这里显式传字符串是**调用点的正确形状** ✓。
+    const downloaded = await download(base, r.version.text)
     if (downloaded) return { path: downloaded, source: 'download(forced)', refreshed: true }
   }
   const result = await r.resolve()
@@ -1080,6 +1276,30 @@ async function ensure(base, override, { force = false } = {}) {
 
 function report(target, result) {
   process.stdout.write(`${target}: ${result ? `${result.path} [${result.source}]` : 'unresolved'}\n`)
+}
+
+/// The **actionable** half of a download failure（`SUB-soko-update-cli-404` 判据 ③）。
+///
+/// ⚠ 404 与"网络不通"是**两码事**，出路也相反：老话术一律说"检查代理/网络"，
+/// 而用户实测网络是好的（同一 URL 用 curl 是 200）⇒ 把人引向错误的方向 ✗。
+/// `HTTP 404` 只可能意味着**这个 URL 上没有资产**：要么 release/资产名不对，
+/// 要么（就是本次这个 bug）URL 本身拼错了 —— 两种都要先让人**看见 URL**，
+/// 再给"离线也能自救"的那条路（仓库构建 / 缓存）✓。
+function downloadAdvice(error, version) {
+  if (/\bHTTP 404\b/.test(error ?? '')) {
+    return (
+      `Next: the release does not serve the URL above (HTTP 404). Compare it with the release's\n` +
+      `      asset list before touching the network — a 404 is not a connectivity problem:\n` +
+      `        gh release view v${version ?? '?'} --json assets --jq '.assets[].name'\n` +
+      `      If the asset really is missing, this pin has no matching binary yet; build the\n` +
+      `      repository one instead (no network, no release needed) and re-run:\n` +
+      `        cargo build --release -p sokonanoda-cli --locked\n`
+    )
+  }
+  return (
+    `Next: allow network access (behind a proxy, export HTTPS_PROXY so curl can use it),\n` +
+    `      or point SOKONANODA_BIN / SOKONANODA_LSP_BIN at existing binaries.\n`
+  )
 }
 
 /// What a resolved link reports about **itself** (`version --json` /
@@ -1150,6 +1370,11 @@ async function main(argv) {
           '                                     (exit 3 when the cache could not be written)\n' +
           '  scripts/soko version [--json]      repo version + resolution + cache markers\n' +
           '  scripts/soko doctor [--json]       readiness report; exit 3 when not ready\n' +
+          '  scripts/soko prune [--yes|--check] unify the versions on this machine: remove\n' +
+          '                                     surplus VS Code extension dirs + dangling\n' +
+          '                                     .obsolete entries and align the two cache\n' +
+          '                                     markers (dry-run unless --yes; --check exits 3\n' +
+          '                                     when something would be pruned)\n' +
           '  scripts/soko lsp                   run the language server on stdio\n' +
           '  scripts/soko mcp                   run the MCP stdio server (harness tools)\n' +
           '  scripts/soko gate                  contributor gate: cargo (fmt/clippy/test/anchor)\n' +
@@ -1181,8 +1406,10 @@ async function main(argv) {
       const force = command === 'update'
       const cli = await ensure('sokonanoda', cliOverride, { force })
       const cliDownloadError = lastDownloadError
+      const cliDownloadUrl = lastDownloadUrl
       const lsp = await ensure('sokonanoda-lsp', lspOverride, { force })
       const lspDownloadError = lastDownloadError
+      const lspDownloadUrl = lastDownloadUrl
       report('cli', cli)
       report('lsp', lsp)
       const version = pin.version?.text
@@ -1199,10 +1426,10 @@ async function main(argv) {
             `  target:  ${rustTriple() ?? platformTarget() ?? 'unknown'}\n` +
             `  offline: ${offline() ? 'yes (SOKONANODA_OFFLINE)' : 'no'}\n` +
             (version ? `  release: ${releaseBase()}/v${version}/\n` : '') +
+            (lastDownloadUrl ? `  url:     ${lastDownloadUrl}\n` : '') +
             (lastDownloadError ? `  download: ${lastDownloadError}\n` : '') +
             (pin.error ? `${pinReport(pin)}\n` : '') +
-            'Next: allow network access (behind a proxy, export HTTPS_PROXY so curl can use it),\n' +
-            '      or point SOKONANODA_BIN / SOKONANODA_LSP_BIN at existing binaries.\n',
+            downloadAdvice(lastDownloadError, version),
         )
         return 3
       }
@@ -1213,24 +1440,27 @@ async function main(argv) {
       // that nothing was refreshed.
       if (force) {
         const missed = [
-          ['cli', cli, cliDownloadError],
-          ['lsp', lsp, lspDownloadError],
+          ['cli', cli, cliDownloadError, cliDownloadUrl],
+          ['lsp', lsp, lspDownloadError, lspDownloadUrl],
         ].filter(([, r]) => !r.refreshed)
         if (missed.length) {
           process.stderr.write(
             `scripts/soko update: cache NOT refreshed for v${version ?? '?'}\n` +
               missed
                 .map(
-                  ([name, r, error]) =>
-                    `  ${name}: ${r.path} [${r.source}] — download: ${error ?? 'unknown error'}\n`,
+                  ([name, r, error, url]) =>
+                    `  ${name}: ${r.path} [${r.source}] — download: ${error ?? 'unknown error'}\n` +
+                    (url ? `        url: ${url}\n` : ''),
                 )
                 .join('') +
               `  cache:  ${cacheDir()}\n` +
               'The binaries above are usable, so nothing else is broken — but the cache you asked\n' +
               'to refresh was not written.\n' +
-              'Next: make sure the cache directory is writable and the network is reachable\n' +
-              '      (behind a proxy, export HTTPS_PROXY so curl can use it), or point\n' +
-              '      SOKONANODA_CACHE_DIR at a writable directory.\n',
+              (missed.some(([, , error]) => /\bHTTP 404\b/.test(error ?? ''))
+                ? downloadAdvice('HTTP 404', version)
+                : 'Next: make sure the cache directory is writable and the network is reachable\n' +
+                  '      (behind a proxy, export HTTPS_PROXY so curl can use it), or point\n' +
+                  '      SOKONANODA_CACHE_DIR at a writable directory.\n'),
           )
           return 3
         }
@@ -1339,6 +1569,12 @@ async function main(argv) {
               // ⚠ 在 `repo-build` 与缓存/下载链接上出现（`lspBuildIdentity` ✓）：
               // 要的是"**跑的那份**陈旧/外来"，不是"这棵树里有份旧产物" ✗。
               lsp_build: lspBuildIdentity(lsp),
+              // **版本不统一**（`SUB-no-version-cleanup-command`）：扩展目录 / 两半
+              // marker 的散布。与 `stale` 同一条纪律：**只报告、不改 `ready`** ——
+              // `ready` 答"能不能跑"，而"盘上有几个版本"答的是"环境干不干净"；
+              // 把后者并进 `ready` 会让 opencode 的 provision 去下载/刷新 ✗
+              // （那是另一条链路，且**修不了**扩展目录的堆积）✓。
+              versions: versionScatter(),
             },
             null,
             2,
@@ -1360,9 +1596,139 @@ async function main(argv) {
         for (const line of buildWarning(lspBuildIdentity(lsp), 'lsp build', 'sokonanoda-lsp')) {
           process.stdout.write(line)
         }
+        // **版本不统一要出声**（判据 ③：不许静默）——但**不**并进 `ready` ✓。
+        for (const line of scatterWarning(versionScatter())) process.stdout.write(line)
         process.stdout.write(`  ready:    ${ready ? 'yes' : 'no'}\n`)
       }
       return ready ? 0 : 3
+    }
+
+    case 'prune': {
+      // **一条清理环境的命令**（`SUB-no-version-cleanup-command`，用户原话
+      // 「帮我清理环境吧，这种版本不统一出现好多好多次了」）。
+      //
+      // ⚠ **名字为什么是 `prune` 而不是 `clean`**：`scripts/soko clean` 会被
+      // 转发给 `sokonanoda clean`（**编译缓存**，`build|clean|rebuild` 那一族，
+      // `AGENTS.md` 已写死）⇒ 叫 `clean` 会**撞名**：用户以为在清版本，实际清了
+      // 编译缓存 ✗。`prune` 是"剪掉多余的"，不与任何既有子命令重叠，也不与
+      // `update`（刷新缓存）重叠 ✓。
+      //
+      // ⚠ **默认 dry-run**（删除不可逆）：不带 `--yes` 一个字节都不删 ✓。
+      // `--check` = 只判定（有可清的就 exit 3，可当门禁用）；`--yes` = 真清。
+      const pin = versionSource()
+      const apply = rest.includes('--yes')
+      const check = rest.includes('--check')
+      const asJson = rest.includes('--json')
+      const inv = pruneInventory(pin)
+      const surplus = inv.roots.reduce((n, r) => n + r.remove.length, 0)
+      const dangling = inv.roots.reduce((n, r) => n + r.danglingObsolete.length, 0)
+      const unified = inv.markers.unified
+      const clean = surplus === 0 && dangling === 0 && unified
+
+      const applied = { removed: [], obsolete: [], cache: [] }
+      if (apply) {
+        for (const r of inv.roots) {
+          const removing = new Set(r.remove)
+          for (const name of r.remove) {
+            rmSync(path.join(r.root, name), { recursive: true, force: true })
+            applied.removed.push(path.join(r.root, name))
+          }
+          for (const name of pruneObsolete(r.root, removing)) {
+            applied.obsolete.push(path.join(r.root, name))
+          }
+        }
+        // Cache 两半对齐：这是"版本不统一"里**唯一**由 `update` 的 404 直接造成的一半
+        // （实测 CLI 0.83.0 / LSP 0.73.0）⇒ 一条命令要能把它一起收口 ✓。
+        if (!unified && pin.version) {
+          for (const base of ['sokonanoda', 'sokonanoda-lsp']) {
+            const dest = await download(base, pin.version.text)
+            applied.cache.push({ base, ok: Boolean(dest), error: lastDownloadError, url: lastDownloadUrl })
+          }
+        }
+      }
+
+      if (asJson) {
+        process.stdout.write(
+          `${JSON.stringify(
+            {
+              dry_run: !apply,
+              clean,
+              surplus,
+              dangling_obsolete: dangling,
+              version: pin.version?.text,
+              extensions: inv.roots.map(r => ({
+                root: r.root,
+                in_use: r.inUse,
+                keep: r.keep,
+                remove: r.remove,
+                dangling_obsolete: r.danglingObsolete,
+              })),
+              cache: inv.markers,
+              applied,
+            },
+            null,
+            2,
+          )}\n`,
+        )
+      } else {
+        process.stdout.write(`scripts/soko prune${apply ? '' : ' (dry-run)'}\n`)
+        if (!inv.roots.length) process.stdout.write('  extensions: none found\n')
+        for (const r of inv.roots) {
+          process.stdout.write(`  extensions: ${r.root}\n`)
+          for (const name of r.keep) process.stdout.write(`    keep    ${name}\n`)
+          for (const name of r.remove) process.stdout.write(`    remove  ${name}\n`)
+          if (r.danglingObsolete.length) {
+            process.stdout.write(`    .obsolete: ${r.danglingObsolete.length} dangling entr(ies)\n`)
+          }
+        }
+        process.stdout.write(
+          `  cache:      cli ${inv.markers.cli ?? '(no marker)'} · lsp ${inv.markers.lsp ?? '(no marker)'}\n` +
+            `              expected ${inv.markers.expected ?? '(no pin)'} ⇒ ` +
+            `${unified ? 'unified' : 'NOT unified'}\n`,
+        )
+        // `prune` 不装新版 ⇒ 盘上可能没有与版本钉匹配的扩展。**必须说出来**（否则
+        // "清干净了"会被读成"版本统一了"，而编辑器仍跑旧扩展 ✗）。
+        for (const r of inv.roots) {
+          if (!r.pinMatched && pin.version) {
+            process.stdout.write(
+              `  note:       no installed extension matches the pin v${pin.version.text} in ${r.root}\n` +
+                `              (kept the newest). Install the matching VSIX to finish the job:\n` +
+                `                code --install-extension sokonanoda-<target>.vsix\n`,
+            )
+          }
+        }
+        if (clean) {
+          process.stdout.write('  verdict:    already unified — nothing to prune\n')
+        } else {
+          process.stdout.write(
+            `  verdict:    ${surplus} surplus extension dir(s) · ${dangling} dangling .obsolete ` +
+              `entr(ies)${unified ? '' : ' · cache markers differ'}\n`,
+          )
+        }
+        if (apply) {
+          process.stdout.write(
+            `  applied:    removed ${applied.removed.length} dir(s) · dropped ${applied.obsolete.length} ` +
+              `.obsolete entr(ies)` +
+              (applied.cache.length
+                ? ` · cache refreshed ${applied.cache.filter(c => c.ok).length}/${applied.cache.length}\n`
+                : '\n'),
+          )
+        } else if (!clean) {
+          process.stdout.write('  dry-run:    nothing was deleted — re-run with --yes to apply\n')
+        }
+      }
+
+      if (check && !clean) return 3
+      // `--yes` promised a unified environment; a cache that could not be
+      // refreshed must not look like success (same discipline as `update` ✓).
+      if (apply && !unified && applied.cache.some(c => !c.ok)) {
+        process.stderr.write(
+          'scripts/soko prune: extension clutter was removed, but the cache markers could not be\n' +
+            '  unified. Run `scripts/soko update` and read its report (it prints the URL + advice).\n',
+        )
+        return 3
+      }
+      return 0
     }
 
     case 'gate': {
