@@ -174,6 +174,58 @@ jobs:
           python3 scripts/ci-push-range.py --check-wiring
           python3 scripts/ci-push-range.py --selftest
 
+  # ⭐ **队列门禁独立成 job、且不设 `if:`**（2026-10-15，洞
+  # `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH`，high ✓）—— 形状**照抄**上面的 `wiring-lint` ✓。
+  #
+  # **病根（实测，每一环都有读数 ✓）**：`ux-queue.py --check` 原本只长在 `ledger` 的
+  # shard 1 里（那个 `if [ "${{ matrix.shard }}" = "1" ]` ✓），而 `ledger` 挂着
+  # `if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'` ✗
+  # ⇒ **纯 docs 推送**（改了队列/台账/STATUS 这些 `docs/**` 文件、又不在 `docs/gaps/**` 下）
+  # 时 `rust`/`courses` 全 false ⇒ `ledger` **整个 skipped** ✗ ⇒ **队列自己的守卫不跑** ✗。
+  # 实测（85 轮普查 ✓）：`gates-fast=skipped` 的 run 有 **34 个**，其中 `ledger (1)`
+  # **34/34 全部 ABSENT（skipped）**；而 `ledger (1)` 一旦真跑就长期红 ——
+  # `38455544309` → `38675647735` 这段 **56 轮**里它**跑过 21 次、21 次全 failure、
+  # 0 次 success**（其余 26 次 skipped、9 次随 run cancelled）✗
+  # ⇒ 这正是"**咬不住的守卫等于没有**"：队列守卫在本会话最常见的推送形态上等于没有 ✗。
+  #
+  # ⚠ **为什么不能靠放宽 `ledger` 的 `if:`** ✗（这一半的归因**是错的** ✓，实测否掉）：
+  # `rust` 过滤器**早就**含 `docs/gaps/**` + `scripts/**` + `.github/workflows/**`
+  # （见 `changes` job 的 `filters:` ✓）⇒ 它读的就是那三个已是 `false` 的 output
+  # ⇒ **放宽 `if:` 零效果** ✗；而且把 `test` 的 4×3 矩阵在纯文档推送上一并叫醒
+  # = **33–35 分钟** ✗（正是批次制要省的成本 ✓）。
+  # ⇒ 正解 = **把这条检查搬到一个没有 `if:` 的 job 里** ✓（"每推必跑"的先例就是
+  # `wiring-lint`：它 2026-10-14 23:15Z 引入后 **17 轮里 0 次 skipped**（16 success +
+  # 1 随 run cancelled；cancelled 那轮本 job 也可能没起跑 ⇒ 只说"没被 skip" ✗ 不说"跑完了"），
+  # 含 **3 个 `gates-fast=skipped` 的纯 docs 轮** —— `38663715016` /
+  # `38657859995` / `38657810157`，那三轮 `ledger` 全是 ABSENT 而它照跑 ✓）。
+  #
+  # ⚠ **`fetch-depth: 0` 不是可选项** ✗：`ux-queue.py --check` 有一条**祖先性断言**
+  # （每个 id 的现行收口指针必须过 `git merge-base --is-ancestor <sha> HEAD` ✓）。
+  # **实测**（`git clone --depth 1` 的浅克隆里跑同一条命令）：rc=**1** + "现行指针非祖先
+  # **158 条**（其中查不到对象 158 条）" ⇒ **假红 270 条** ✗ —— 与
+  # `LEDGER-SHALLOW-CHECKOUT-FALSE-RED` 同因（`is-ancestor` 在缺对象时返回 **128** ✗）。
+  # ⇒ 照 `ledger` job 的先例给全历史 ✓。
+  #
+  # ⚠ **耗时**：`--check` 实测 3.9s（`scripts/ci-local.sh` 的读数 ✓）、`--selftest` 13.2s
+  # ⇒ 与 `wiring-lint` 同档 ⇒ `timeout-minutes: 5` 给足余量 ✓。
+  # ⚠ **判据一条都没松** ✗：两条命令逐字与原来在 `ledger` shard 1 里跑的那两条相同 ✓；
+  # 门禁强度也**没松** —— 本 job 已进 `auto-tag` / `mark-verified` / `fast-fail` 的
+  # `needs`（原来由 `ledger` 顶着的三道闸，现在由它顶 ✓）。
+  queue-lint:
+    name: queue-lint（队列覆盖自检 + 调度器不变量；不设 if 过滤器 ⇒ 每推必跑）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # 祖先性断言要全历史（见本 job 上面的注释：浅克隆 ⇒ 假红 270 条 ✗）。
+          fetch-depth: 0
+      - name: 队列门禁（覆盖自检 + 调度器不变量）+ 自检
+        # 与原先长在 `ledger` shard 1 里的那两条**逐字同源** ✓（搬过来，不是另写一份 ✗）。
+        run: |
+          python3 scripts/ux-queue.py --selftest
+          python3 scripts/ux-queue.py --check
+
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
     runs-on: ubuntu-24.04
@@ -203,7 +255,10 @@ jobs:
   # workflow_dispatch 恰是这条规则的例外，GITHUB_TOKEN 触发它有效。
   # 幂等：tag 已存在就跳过（版本号没变时每个 push 都不会重复发布）。
   auto-tag:
-    needs: [lint-fmt, lint-clippy, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
+    # ⚠ `queue-lint` 在这里**不是装饰** ✗（2026-10-15，洞 `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH`）：
+    # 队列门禁原先由 `ledger` 顶着（`ledger` 在 `needs` 里 ✓）⇒ 搬去独立 job 后，
+    # **不补这一条就等于把"队列不一致不许发版"这道闸悄悄拆掉** ✗ —— 门禁强度必须**不变** ✓。
+    needs: [lint-fmt, lint-clippy, queue-lint, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
@@ -346,7 +401,7 @@ jobs:
   # ⚠ **不**进 `auto-tag` 的 `needs` ✗：标记是**旁路记账**，不许有能力挡住发版 ✓。
   mark-verified:
     name: mark-verified（重活真跑过且全绿 ⇒ 推进「已验证点」标记）
-    needs: [changes, lint-fmt, lint-clippy, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
+    needs: [changes, lint-fmt, lint-clippy, queue-lint, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
     if: >-
       always()
       && github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -894,13 +949,13 @@ jobs:
         run: |
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" check --shard ${{ matrix.shard }}/3
-          # **队列门禁**（2026-10-12 用户：「不能全依赖大模型运作，而是同时依靠脚本」）：
-          # `ux-queue.py --check` = 覆盖自检（来源逐条在队列里 · 探针都有登记 · §0.2 摘要与
-          # 队列**同数**）+ 调度器不变量（收口有证据 · umbrella 子任务全关 · 两层不漂移）。
-          # 秒级且不分片 ⇒ 只在 shard 1 跑一次 ✓；脱钩必须当场判红 ✗。
+          # **队列门禁已搬走**（2026-10-15，洞 `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH` ✓）：
+          # `ux-queue.py --selftest` / `--check` 原先长在这里的 shard 1 ✗，而本 job 挂着
+          # `if: rust || courses` ⇒ **纯 docs 推送时它整个被 skip** ⇒ 队列守卫在最常见的
+          # 推送形态上等于没有 ✗。⇒ 现在它们在**没有 `if:` 的 `queue-lint` job** 里
+          # （每推必跑 ✓，形状照 `wiring-lint` ✓；理由与实测读数见那个 job 的注释 ✓）。
+          # ⚠ **别把它们再抄回这里** ✗：那只会重复跑，且**仍然**盖不住纯 docs 推送 ✓。
           if [ "${{ matrix.shard }}" = "1" ]; then
-            python3 "$GITHUB_WORKSPACE/scripts/ux-queue.py" --selftest
-            python3 "$GITHUB_WORKSPACE/scripts/ux-queue.py" --check
             # 并行 agent 基建：多会话判据自检（反例必须判红 ✓）+ 真跑（主工作树/不落后 ⇒ 绿）
             python3 "$GITHUB_WORKSPACE/scripts/check-multi-session.py" --selftest
             python3 "$GITHUB_WORKSPACE/scripts/check-multi-session.py"
@@ -921,7 +976,10 @@ jobs:
     # 快层红时它们**根本不会起跑** ✓ ⇒ 那部分②已经覆盖 ✓；② 真正补的是
     # "**慢 job 自己早早失败**"（例如 `test (sokonanoda-cli)` 第 3 分钟红 ✓，
     # 其余 job 还在跑 ✓）⇒ 这里把整轮掐掉 ✓，不再空等 ✓。
-    needs: [changes, lint-fmt, lint-clippy, gates-fast, test, gates-course, ledger, contract, editor, e2e, e2e-macos, e2e-ledger]
+    # ⚠ 补 `queue-lint`（2026-10-15，洞 `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH` ✓）：队列门禁
+    # 原先由 `ledger` 顶着 ⇒ 搬去独立 job 后不补这一条，**它红了就不会掐整轮** ✗
+    #（那正是本 job 存在的意义 ✓ —— 队列检查是秒级的，最适合当早期红灯 ✓）。
+    needs: [changes, lint-fmt, lint-clippy, queue-lint, gates-fast, test, gates-course, ledger, contract, editor, e2e, e2e-macos, e2e-ledger]
     if: ${{ always() && contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-24.04
     permissions:
