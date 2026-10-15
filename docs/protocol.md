@@ -688,7 +688,8 @@ Request params: `{"textDocument": {"uri"}}`. Response:
                            "writers": [{"compiler": "0.87.2",
                                         "build_stamp": "0123456789abcdef",
                                         "entries": 1}],
-                           "stale": true, "current": "0.87.3"}},
+                           "stale": true, "current": "0.87.3",
+                           "current_stamp": "fedcba9876543210"}},
  "reason": null}
 ```
 
@@ -716,26 +717,25 @@ Request params: `{"textDocument": {"uri"}}`. Response:
   empty tree.
 - `artifacts` (R-3 / 0.67.0) is a **read-only snapshot of the module root's
   `<root>/.sokonanoda/`**: the directory path, how many `compiled/*.json`
-  entries it holds, their total bytes, and **which compiler wrote them**.
-  `null` when the directory does not exist (nothing was built yet,
-  or `SOKONANODA_NO_PROJECT_ARTIFACTS=1` was used) — it is **never created** by
-  reading the view. This is what makes "vscode and code agents read the compiled
-  data from the project root" checkable instead of folklore.
-- **`compiler` is the *real* writer, per entry** (2026-10-10 user report): each
-  entry file is named `<compiler>+<build_stamp>+<key>.json`, so the server
-  counts writers from the **file names** — it does **not** trust
-  `meta.json.compiler`, which is refreshed to "whoever wrote last" and therefore
-  used to claim a version that compiled nothing (the user's words: 「这个版本号
-  是假的……失去了这个版本号的意义」). `writers[]` is the honest histogram (most
-  entries first); `entries - Σ writers[].entries` = entries with an **unrecorded**
-  writer (the older `<key>.json` naming). `compiler` is `writers[0].compiler`
-  (`null` when there are no attributable entries).
+  entries it holds, their total bytes, and **which compiler wrote them**;
+  `null` when the directory does not exist (nothing built yet, or
+  `SOKONANODA_NO_PROJECT_ARTIFACTS=1`), and reading **never creates** it.
+- **`compiler` is the *real* writer, per entry** (2026-10-10 user report): entry
+  files are named `<compiler>+<build_stamp>+<key>.json`, so writers are counted
+  from the **file names** — never from `meta.json.compiler` (refreshed to
+  "whoever wrote last"). `writers[]` is the honest histogram (most entries
+  first); `entries - Σ writers[].entries` = **unrecorded** writers (the older
+  `<key>.json` naming); `compiler` = `writers[0].compiler` (`null` if none).
 - **`stale`** = at least one entry was written by a *different* build
-  (`compiler` or `build_stamp` differs, or its writer is unrecorded). Those
+  (`compiler` or `build_stamp` differs, or its writer is unrecorded); those
   entries can never be replayed (the key folds version + stamp), so the Infoview
-  appends a "建议 Rebuild" hint next to the honest version — that hint is the
-  user-visible half of the same report. `current` is the running server's own
-  version, so the hint can name both sides without the client guessing.
+  appends a "建议 Rebuild" hint next to the honest version. `current` is the
+  running server's own version, so the hint can name both sides.
+- **`current_stamp`** = the running server's own `build_stamp`: the *build
+  identity* of `current`, symmetric with `writers[].build_stamp` (2026-10-15
+  user report). The predicate above is "version **or** stamp differs", so a
+  client told only the versions sees two *identical* version numbers; given both
+  stamps it names the difference, and prints **no** stamp when they agree.
 - Read-only derivation: the answer comes from the already-compiled closure
   (no recompile, no cache write, no digest). `uri`/`version` are echoed so a
   client can drop answers for another document (same discipline as

@@ -989,6 +989,136 @@ test("project: the artifact version is the real writer, with a rebuild hint on m
   assert.ok(!legacy.includes("由编译器 0.87.3"), `不许冒充当前编译器：${legacy}`);
 });
 
+// **2026-10-15 用户实测②（用户 15:04 亲报）**：「我能看到『产物：248 条 · 1.2 GiB ·
+// 由编译器 0.91.0 写入 · 当前编译器 0.91.0 ⇒ 建议 Rebuild』这种提醒，**显然不正确嘛**」。
+//
+// 根因：`stale` 的判据是「版本**或**构建戳不同」（服务端 `query/project.rs`），而这一行
+// 只印**版本** ⇒ 同版本号、不同构建时两边印出**同一个版本号**，读者只能读成误报 ✗。
+// 提示本身是对的（`build_stamp` 含引擎源码摘要 ⇒ 加引擎身份**之前**写下的产物不可能
+// 被命中 ✓、Rebuild 真修得好 ✓）—— 病在**文案丢了构建身份** ✗。
+//
+// 判据：① 同版本不同戳 ⇒ **点名构建**（两边都印戳 + 说清"同一版本号但不是同一份构建"）；
+// ② 同版本同戳 ⇒ **不印戳**（那是噪声，用户 2026-10-15：「单一写者且戳相同 ⇒ 照旧不提示」）；
+// ③ 缺 `current_stamp`（老服务端）⇒ 照旧只报版本，**不猜** ✗（宽容消费者的反面：
+//    没有构建身份时宁可少说，也不许编一个）。
+test("project: the same version with a different build stamp names the build (2026-10-15)", () => {
+  const project = (artifacts) => ({
+    entry: "units.u01",
+    root: "/repo/courses/set-theory",
+    manifest: null,
+    modules: [],
+    counts: { modules: 1, decls: 0, compiled: 1, failed: 0, open_exercises: 0 },
+    artifacts,
+  });
+  const lineFor = (artifacts) => {
+    const { root, send } = loadInfoview();
+    send({ protocol: 1, type: "project", project: project(artifacts), reason: null });
+    return textOf(byClass(root, "project-artifacts")[0]);
+  };
+
+  // ① 用户现场：**同一个版本号 0.91.0**，写者与当前是两份不同的构建
+  //    （加引擎源码摘要之前写下的产物 vs 之后的二进制）。
+  const sameVersion = lineFor({
+    entries: 248,
+    bytes: 1288490188,
+    compiler: "0.91.0",
+    writers: [{ compiler: "0.91.0", build_stamp: "4bafbf66e3d531e5", entries: 248 }],
+    stale: true,
+    current: "0.91.0",
+    current_stamp: "e5f6a7b8c9d0a1b2",
+  });
+  assert.ok(
+    sameVersion.includes("由编译器 0.91.0（构建 4bafbf66e3d531e5）写入"),
+    `写者要带上自己的构建身份：${sameVersion}`,
+  );
+  assert.ok(
+    sameVersion.includes("当前编译器 0.91.0（构建 e5f6a7b8c9d0a1b2）"),
+    `当前要带上自己的构建身份（否则两个版本号一模一样 ✗）：${sameVersion}`,
+  );
+  assert.ok(
+    sameVersion.includes("同一版本号但不是同一份构建"),
+    `必须点明差别在哪，否则读者只能读成误报：${sameVersion}`,
+  );
+  assert.ok(sameVersion.includes("建议 Rebuild"), sameVersion);
+
+  // ② 同版本**同**戳 ⇒ 戳是噪声，不许印（照旧只有版本号）。
+  const sameStamp = lineFor({
+    entries: 248,
+    bytes: 1288490188,
+    compiler: "0.91.0",
+    writers: [{ compiler: "0.91.0", build_stamp: "4bafbf66e3d531e5", entries: 248 }],
+    stale: false,
+    current: "0.91.0",
+    current_stamp: "4bafbf66e3d531e5",
+  });
+  assert.ok(sameStamp.includes("由编译器 0.91.0 写入"), sameStamp);
+  assert.ok(!sameStamp.includes("构建"), `同戳不许印构建戳（噪声）：${sameStamp}`);
+  assert.ok(!sameStamp.includes("Rebuild"), sameStamp);
+
+  // ③ 老服务端（只有 `current`，没有 `current_stamp`）⇒ 照旧只报版本，**不猜** ✗。
+  const oldServer = lineFor({
+    entries: 248,
+    bytes: 1288490188,
+    compiler: "0.91.0",
+    writers: [{ compiler: "0.91.0", build_stamp: "4bafbf66e3d531e5", entries: 248 }],
+    stale: true,
+    current: "0.91.0",
+  });
+  assert.ok(oldServer.includes("当前编译器 0.91.0 ⇒ 建议 Rebuild"), oldServer);
+  assert.ok(
+    !oldServer.includes("构建"),
+    `没有当前构建身份时不许编一个/印一个半截：${oldServer}`,
+  );
+
+  // ④ 混合目录里**同版本不同戳**的那一格也要带戳 —— 否则「0.91.0（247）· 0.91.0（2）」
+  //    与①同病（两个一样的版本号，读不出为什么是两个）✗。
+  const mixedSameVersion = lineFor({
+    entries: 249,
+    bytes: 1288490188,
+    compiler: "0.91.0",
+    writers: [
+      { compiler: "0.91.0", build_stamp: "4bafbf66e3d531e5", entries: 247 },
+      { compiler: "0.91.0", build_stamp: "e5f6a7b8c9d0a1b2", entries: 2 },
+    ],
+    stale: true,
+    current: "0.91.0",
+    current_stamp: "e5f6a7b8c9d0a1b2",
+  });
+  assert.ok(
+    mixedSameVersion.includes("0.91.0（247，构建 4bafbf66e3d531e5）"),
+    `旧构建那一格要带自己的戳：${mixedSameVersion}`,
+  );
+  assert.ok(
+    mixedSameVersion.includes("0.91.0（2）"),
+    `与当前同戳的那一格**不**带戳：${mixedSameVersion}`,
+  );
+  assert.ok(mixedSameVersion.includes("同一版本号但不是同一份构建"), mixedSameVersion);
+
+  // ⑤ **多数派恰好是当前这份构建**（用户切回旧二进制就是这个形状）⇒ 少数派才是
+  //    "同版本的**另一份**构建"。这时当前这侧**照样**要带自己的戳、照样要点明差别：
+  //    只看 `writers[0]`（多数派）会漏掉它 ✗ —— `some` 才覆盖两种顺序。
+  const majorityIsCurrent = lineFor({
+    entries: 249,
+    bytes: 1288490188,
+    compiler: "0.91.0",
+    writers: [
+      { compiler: "0.91.0", build_stamp: "e5f6a7b8c9d0a1b2", entries: 247 },
+      { compiler: "0.91.0", build_stamp: "4bafbf66e3d531e5", entries: 2 },
+    ],
+    stale: true,
+    current: "0.91.0",
+    current_stamp: "e5f6a7b8c9d0a1b2",
+  });
+  assert.ok(
+    majorityIsCurrent.includes("当前编译器 0.91.0（构建 e5f6a7b8c9d0a1b2）"),
+    `多数派是当前构建时，当前这侧也要带构建身份：${majorityIsCurrent}`,
+  );
+  assert.ok(
+    majorityIsCurrent.includes("同一版本号但不是同一份构建"),
+    `少数派是同版本的别的构建 ⇒ 照样要点明：${majorityIsCurrent}`,
+  );
+});
+
 test("project: no project tells the reason apart, never a blank (E30)", () => {
   // 没有项目时也要**说出原因**（单文件 / 解不出路径 / 先修语法）——
   // 空区块会让用户以为"面板坏了"✗（与 T-B12 的三态同一个道理）。

@@ -301,7 +301,18 @@
   ///   * `stale` ⇒ 追加「当前编译器 X ⇒ 建议 Rebuild（Alt+Shift+B）」。
   ///     `stale` 的语义是"有产物不是这份编译器写的 ⇒ 键不同 ⇒ **不可能被命中**"
   ///     （条目键里带版本 + 构建戳），所以这条提示是**可执行**的、不是装饰。
-  /// **判据**：`test-webview.js` 的四条（单一/混合/未记录/非 stale 无提示）。
+  ///
+  /// **2026-10-15 用户实测②（同版本号、不同构建）**：`stale` 的判据是
+  /// 「版本**或**构建戳不同」，而上面只印版本 ⇒ 同版本不同构建时两边印出
+  /// **同一个版本号**：「由编译器 0.91.0 写入 · 当前编译器 0.91.0 ⇒ 建议
+  /// Rebuild」—— 用户原话「显然不正确嘛」✗。提示其实**是对的**（引擎源码摘要
+  /// 进了 `build_stamp` ⇒ 加引擎身份之前写的产物不可能被命中 ✓、Rebuild 真修得好 ✓），
+  /// 病在**文案丢了构建身份**：读者无法知道到底哪里不同 ⇒ 看起来像误报 ✗。
+  /// ⇒ 写者与当前**版本相同但戳不同**时，两边都补上「（构建 <stamp16>）」并
+  /// 点明「同一版本号但不是同一份构建」（同 `AGENTS.md`「探针读数必须带构建身份」）。
+  /// ⚠ 缺 `current_stamp`（老服务端）⇒ **不猜**、不印戳，照旧只报版本 ✓。
+  /// **判据**：`test-webview.js` 的五条（单一/混合/未记录/非 stale 无提示/
+  /// **同版本不同戳点名构建**）。
   function artifactsLine(artifacts) {
     // `num` 在 `renderProject` 里是局部常量 ⇒ 这里自带一个（同一条口径：
     // 非数字当 0，绝不把 `undefined` 画上屏）。
@@ -309,6 +320,18 @@
     const writers = Array.isArray(artifacts.writers) ? artifacts.writers : [];
     const entries = n(artifacts.entries);
     const bytes = bytesText(artifacts.bytes);
+    // 当前的构建身份：**没有就不猜**（老服务端只发 `current`）✗。
+    const currentStamp =
+      typeof artifacts.current_stamp === "string" ? artifacts.current_stamp : "";
+    // 「同版本号、不同构建」：这正是"印两个一样的版本号"的来源 ⇒ 要印戳 + 说清差别。
+    // 判据三条缺一不可：版本与当前**相同** ✓、两边戳**都有** ✓、戳**不同** ✓
+    // （戳相同时印它只是噪声 —— 用户 2026-10-15：「单一写者且戳相同 ⇒ 照旧不提示」）。
+    const otherBuild = (writer) =>
+      writer.compiler === artifacts.current &&
+      currentStamp !== "" &&
+      typeof writer.build_stamp === "string" &&
+      writer.build_stamp !== "" &&
+      writer.build_stamp !== currentStamp;
     let written;
     if (writers.length === 0) {
       // 老服务端（只有 `compiler`）/ 空目录 / 全是旧命名（写者未记录）。
@@ -318,18 +341,34 @@
           ? "编译器版本未记录（旧格式）"
           : "还没有";
     } else if (writers.length === 1) {
-      written = `由编译器 ${writers[0].compiler} 写入`;
+      const only = writers[0];
+      written = otherBuild(only)
+        ? `由编译器 ${only.compiler}（构建 ${only.build_stamp}）写入`
+        : `由编译器 ${only.compiler} 写入`;
     } else {
       // 混合：最多列两个写者，其余折成「等 N 个版本」（面板不是日志 ✗）。
+      // 版本相同但构建不同的那一格要带上自己的戳（否则「0.91.0（247）· 0.91.0（2）」
+      // 与单写者那条同病：两个一样的版本号，读不出为什么是两个 ✗）。
       const shown = writers
         .slice(0, 2)
-        .map((w) => `${w.compiler}（${n(w.entries)}）`)
+        .map((w) =>
+          otherBuild(w)
+            ? `${w.compiler}（${n(w.entries)}，构建 ${w.build_stamp}）`
+            : `${w.compiler}（${n(w.entries)}）`,
+        )
         .join(" · ");
       const more = writers.length > 2 ? ` 等 ${writers.length} 个版本` : "";
       written = `由编译器 ${shown}${more}写入`;
     }
+    // 「到底哪里不同」：只在**版本号相同**时才需要说（版本不同时那一行自明 ✓）。
+    // ⚠ 用 `some`（不是 `writers[0]`）：`compiler` 是**多数派**写者，多数派完全可能
+    // 恰好是当前这份构建，而少数派才是同版本的**另一份**构建（用户切回旧二进制就会
+    // 这样）⇒ 只看 `writers[0]` 会漏掉那一格、当前这侧也就不带构建身份 ✗。
+    const sameVersionOtherBuild = writers.some(otherBuild);
+    const stamp = sameVersionOtherBuild ? `（构建 ${currentStamp}）` : "";
+    const why = sameVersionOtherBuild ? " ⇒ 同一版本号但不是同一份构建" : "";
     const stale = artifacts.stale === true
-      ? ` · 当前编译器 ${artifacts.current || "?"} ⇒ 建议 Rebuild（Alt+Shift+B）`
+      ? ` · 当前编译器 ${artifacts.current || "?"}${stamp}${why} ⇒ 建议 Rebuild（Alt+Shift+B）`
       : "";
     return `产物：${entries} 条 · ${bytes} · ${written}${stale}`;
   }

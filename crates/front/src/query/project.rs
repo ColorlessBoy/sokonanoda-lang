@@ -124,6 +124,11 @@ impl ProjectView {
             writers,
             stale,
             current: current_compiler.to_string(),
+            // 当前的**构建身份**（与 `writers[].build_stamp` 对称）：`stale` 是
+            // 「版本**或**戳不同」，只送版本时"同版本不同构建"会印成两个一样的
+            // 版本号 ⇒ 客户端说不出哪里不同 ✗（2026-10-15 用户实测）。
+            // 值现成：`current_stamp` 上面和条目比较时已经取了 ✓。
+            current_stamp,
         })
     }
 
@@ -264,6 +269,26 @@ mod tests {
         assert_eq!(snapshot.writers[0].build_stamp, stamp);
         assert!(!snapshot.stale, "当前编译器写的产物不许报 stale");
         assert_eq!(snapshot.current, current);
+        // **构建身份两边对称**（2026-10-15 用户实测②）：写者那侧一直是
+        // `writers[].build_stamp`，当前这侧现在也有 `current_stamp` ⇒ 客户端
+        // 才说得出「同版本号但不是同一份构建」（只送版本时它只能印两个一样的版本号 ✗）。
+        assert_eq!(
+            snapshot.current_stamp, stamp,
+            "当前这侧要送自己的构建戳（`current` 的构建身份）"
+        );
+        // 序列化断言（wire 契约的真相层）：字段名就是 `current_stamp`，
+        // 客户端 `artifactsLine` 读的正是这个名字（`audit-wire-fields.py` 也扫它）。
+        let wire = serde_json::to_value(&snapshot).expect("artifacts must serialize");
+        assert_eq!(
+            wire.get("current_stamp").and_then(|value| value.as_str()),
+            Some(stamp.as_str()),
+            "`current_stamp` 必须在 wire 里（读了但从不发 = R-1/T-D52 那种静默降级）：{wire}"
+        );
+        assert_eq!(
+            wire.get("current").and_then(|value| value.as_str()),
+            Some(current),
+            "`current` 照旧：{wire}"
+        );
 
         // ③ **旧命名**（`<key>.json`，本次改动之前写的产物）⇒ 写者**未记录**：
         //    如实说 `None` + `stale`（它们同样不可能被这份编译器命中 ⇒ 建议 Rebuild），
@@ -357,6 +382,77 @@ mod tests {
             "有产物不是当前编译器写的 ⇒ stale（提示 Rebuild；修前这里会静默说「都是 0.87.3」✗）"
         );
         assert_eq!(snapshot.current, current, "提示要能说出当前版本");
+
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// **2026-10-15 用户实测②（用户 15:04 亲报）**：「产物：248 条 · 1.2 GiB · 由编译器
+    /// 0.91.0 写入 · 当前编译器 0.91.0 ⇒ 建议 Rebuild」——「**显然不正确嘛**」。
+    ///
+    /// 这是**新夹具的真相层**：同一版本号、**不同 `build_stamp`**。服务端判据本来就是
+    /// 「版本**或**戳不同」（不许为了让文案好看把戳从判据里拿掉 ✗），所以 `stale` 是
+    /// **对的**（那些条目的键里带戳 ⇒ 不可能被命中 ✓、Rebuild 真修得好 ✓）；错的只是
+    /// **读的人拿不到构建身份**：只送 `current` 时两边印同一个版本号 ⇒ 看起来像误报 ✗。
+    ///
+    /// 所以这里钉两件事：① `stale` 照旧为真（语义**不放宽** ✗）；
+    /// ② `current_stamp` 与 `writers[0].build_stamp` **都在 wire 里**、而且**不同**
+    /// ⇒ 客户端有料可说「同一版本号但不是同一份构建」✓。
+    ///
+    /// **反向验证**：把 `current_stamp` 从 `ProjectArtifacts` 拿掉 ⇒ 第 ② 条当场判红
+    /// （`test-webview.js` 侧同一场景会退回"两个相同版本号"✗，两处读数见 VERDICT）。
+    #[test]
+    fn same_version_different_build_stamp_is_stale_and_carries_both_stamps() {
+        let root = tmp("same-version-other-build");
+        let (current, stamp) = crate::project::cache::current_writer();
+        // 一份**不同**的构建戳（同版本号）：加引擎源码摘要之前写下的产物就是这种形状。
+        let other_stamp = if stamp == "0123456789abcdef" {
+            "fedcba9876543210"
+        } else {
+            "0123456789abcdef"
+        };
+        let compiled = root.join(".sokonanoda/compiled");
+        std::fs::create_dir_all(&compiled).expect("mkdir compiled");
+        std::fs::write(
+            compiled.join(format!("{current}+{other_stamp}+k1.json")),
+            b"{}",
+        )
+        .expect("write other-build entry");
+
+        let snapshot = ProjectView::artifacts_of(&root).expect("snapshot");
+        // ① 语义**不放宽**：版本相同、戳不同 ⇒ 仍然 stale（键不同 ⇒ 命中不了）。
+        assert!(
+            snapshot.stale,
+            "同版本不同构建戳必须仍然 stale（判据是「版本或戳不同」，不许为了让文案好看放宽 ✗）"
+        );
+        // ② 两边都有构建身份，而且**不同** ⇒ 客户端说得出差别在哪。
+        assert_eq!(
+            snapshot.writers.len(),
+            1,
+            "只有一份构建写过：{:?}",
+            snapshot.writers
+        );
+        assert_eq!(
+            snapshot.writers[0].compiler, current,
+            "写者版本**与当前相同**（这正是用户现场：两个版本号一模一样 ✗）"
+        );
+        assert_eq!(snapshot.writers[0].build_stamp, other_stamp);
+        assert_ne!(
+            snapshot.writers[0].build_stamp, snapshot.current_stamp,
+            "戳必须真的不同（否则这一格退化成「同构建」⇒ 面板不该提示）"
+        );
+        assert_eq!(snapshot.current_stamp, stamp, "当前这侧的构建身份");
+
+        let wire = serde_json::to_value(&snapshot).expect("artifacts must serialize");
+        assert_eq!(
+            wire["current_stamp"].as_str(),
+            Some(stamp.as_str()),
+            "wire 里要有 `current_stamp`：{wire}"
+        );
+        assert_eq!(
+            wire["writers"][0]["build_stamp"].as_str(),
+            Some(other_stamp),
+            "wire 里要有写者的 `build_stamp`：{wire}"
+        );
 
         let _ = std::fs::remove_dir_all(&root);
     }
