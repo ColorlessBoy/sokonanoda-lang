@@ -5,6 +5,24 @@ name: ci
 # 于是"连推 10 个"就把 runner 配额和队列一起堵死 ✗（本 session 实测过 ✓）。
 # `cancel-in-progress: true` 与"推前先关旧 run"（`scripts/ci-push.sh` ✓）**互补** ✓：
 # 前者管 CI 侧 ✓、后者管本地侧 ✓ —— 两层都不依赖我记得 ✓。
+#
+# ⭐ **2026-10-15（洞 `PUSH-RANGE-HIDES-RELEASE`，high）：`true` 保留，但它的正确性现在
+# **依赖 `changes` job 的推送范围**（见那个 job 的注释 ✓）** —— 取消**不丢验证**的理由是
+# **覆盖关系** ✓：新 run 的基点 = **上一个已验证点**，而"已验证点"只在**重活真跑过且全绿**的
+# 那一轮推进 ⇒ 被取消的那一轮**没有**推进它 ⇒ 新范围 ⊇ 旧范围 ✓（被取消那轮的改动都是新 sha
+# 的祖先、且都在基点之后 ✓）。⇒ **不取消反而更差** ✗：新 run 自己也会跑重活（范围是脏的 ✓），
+# 两条重活同时在飞 = 正是 2026-09-25 要避免的排队拥塞 ✗。
+#
+# ⚠ **为什么 (B)「仅当新 run 自己会跑真活时才 cancel」做不到** ✗（用户 2026-10-15 点名问过 ✓）：
+# `concurrency` 是**静态**的 —— run 创建时求值，允许的上下文只有 `github`/`inputs`/`vars`
+# （`needs`/`steps` 不在其中 ✗）⇒ "新 run 会不会跑真活"要先**检出仓库 + 算范围**才知道，
+# 那时 run 早已创建完 ✗。三条出路都核过：
+#   ① 把 `changes` 拆成独立 workflow 再 `workflow_dispatch` 主 workflow：**可以**，但
+#      dispatch 的 `github.event_name`/`sha` 全变 ✗ ⇒ `auto-tag`（`if: event_name == 'push'`）、
+#      `e2e-ledger`、`e2e-macos` 的判据全要重写 ⇒ **为省一次取消动整条发布链** ✗（正是本轮要修的链 ✓）；
+#   ② 用 `github.event.commits` 的静态启发式：**它答不了这个问题** ✗ —— "新 run 会不会跑真活"
+#      取决于**相对上一个已验证点的范围**，而不是这一推自己碰了什么（这就是本洞的定义 ✓）；
+#   ③ 只做 (A)：**已足够** ✓（覆盖关系就是证据 ✓，判据 `scripts/ci-push-range.py --selftest` ✓）。
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -123,8 +141,18 @@ jobs:
   # 判据盖住它（`test-server.js` 只盖 LSP 槽位 · `test-extension-host.js` 把
   # `installBundledCli` 整个 stub 掉 ✗）⇒ 一并收进来 ✓。
   # 依赖 `node` + `tar`（runner 自带）⇒ 同一条纪律：探不到就 exit 3 ✓；约 1.5 秒 ⇒ 永远跑 ✓。
+  #
+  # ⭐ 2026-10-15 增补**第四个**：`scripts/ci-push-range.py`（洞 `PUSH-RANGE-HIDES-RELEASE`）——
+  # `changes` job 的推送范围基点从"本次推送自己"改成"上一个已验证点"（见那个 job 的注释 ✓）。
+  # **为什么必须挂在这条 job 上**（而不是只留在本地）：那个洞的病根就是「**改了判据却没人验**」
+  # （同族第四次 ✓），而 `changes` 自己**不在任何过滤器后面** ✓ ⇒ 把它的判据挂在这里，
+  # **每推必跑**（含纯 docs 推送 ✓ —— 那正是洞发生的场景 ✓）。
+  # 两条判据：`--check-wiring` 咬接线（`changes` 真的把算出来的 `base` 传给了 paths-filter ✗✓、
+  # 标记的 save/restore 前缀一致 ✗✓、写标记的 job 的 `if` 带状态函数 ✓）；`--selftest` 在
+  # **合成夹具仓库**上跑范围语义（含**正对照**：连续两次纯 docs ⇒ 仍不跑重活 ✓；
+  # 含**负对照**：旧口径下同一推送 rust=false ⇒ 洞复现 ✓）。亚秒级 ⇒ 永远跑 ✓。
   wiring-lint:
-    name: wiring-lint（harness 接线文档漂移 + 启动器扩展链接 + LSP 槽位 marker 跨接缝）
+    name: wiring-lint（harness 接线文档漂移 + 启动器扩展链接 + LSP 槽位 marker 跨接缝 + 推送范围基点）
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -141,6 +169,10 @@ jobs:
         run: |
           python3 scripts/check-lsp-marker-seam.py
           python3 scripts/check-lsp-marker-seam.py --selftest
+      - name: 推送范围基点（(A) 的范围语义 + 接线，改了判据必须有人验）
+        run: |
+          python3 scripts/ci-push-range.py --check-wiring
+          python3 scripts/ci-push-range.py --selftest
 
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
@@ -208,6 +240,28 @@ jobs:
     # **只跑相关的**（2026-09-25 用户要求 ✓："现在 github action 过于阻碍开发进度了" ✓）：
     # 纯文档 / 纯课程改动**不该**跑 4 路 crate 矩阵与 e2e ✗（它们是大头 ✓）。
     # 用生态里最常见的 paths-filter ✓（按大版本钉 ✓，与仓库其它 action 同风格 ✓）。
+    #
+    # ⭐ **2026-10-15（洞 `PUSH-RANGE-HIDES-RELEASE`，high）：范围不再是"本次推送自己"** ✗。
+    # 病根（实测，每一环都有读数 ✓）：paths-filter 在 push 上按 `github.event.before..sha` 算
+    # （`src/main.ts:144,168-196` ⇒ `git diff`，`src/git.ts:56`）⇒ **纯 docs 推送把"还没被任何
+    # 一轮 CI 验过的祖先"从视野里藏掉** ✗：
+    #   · 发版推送 `cb8edd77` 那一轮重活**全排上** ✓（run 38662022022：31 job / 29 success），
+    #     但它红在 `ledger (1)`（G-25，00:51:10）**且** 00:56:36 被 cancel ⇒ **没有任何一轮绿过它** ✗；
+    #   · 紧随其后的纯 docs 推送（`c11cbc10`，run 38663715016）按**自己的范围**算 ⇒ 三个标志全 false
+    #     ✗ ⇒ `gates-fast`/`ledger`/`contract`/`test`/`e2e`/`gates-course` 全 **skipped** ✗
+    #     （**19 个 job 只跑 7 个** ✓）⇒ `auto-tag` **从不触发** ✗（它的 `needs` 里有 skipped，
+    #     而 skip **沿依赖链传播** —— 机制见本文件 `e2e-ledger` 的注释，2026-09-26 实验证实 ✓）
+    #     ⇒ `v0.91.0` 发不出去 ✗（远端 tag 最新仍是 v0.90.0）；
+    #   · 同形第二对（更干净）：`84f6233b`（run 38657810157，**9 个 job cancelled**）被 30 秒后的
+    #     纯 docs `8e92cd6d`（run 38657859995，**7 success + 12 skipped**）顶掉 ⇒ 那个修复**从未被验证** ✗。
+    # **修法 (A)**：基点 = **上一个已验证点**（`scripts/ci-push-range.py` 算，机制/边界见它的文档）——
+    # 标记（`actions/cache`，只由 `mark-verified` 在"重活真跑过且全绿"时写 ✓）→ 最近 tag →
+    # 仓库根提交；**每一步都朝"更保守"退**，绝不朝"更少验证"退 ✓。
+    # 分类**仍然只有一份实现**（下面的 `filters:` ✓）—— 本脚本在 `--explain`/`--selftest` 里
+    # **读同一份**做判据，不另立一份 ✗。
+    # ⚠ **正对照**（最容易做错的地方 ✗）：连续两次纯 docs 推送**仍不该**跑重活 ✓；
+    # 判据 = `python3 scripts/ci-push-range.py --selftest`（含这条 ✓）与 `--check-wiring`（咬接线 ✓），
+    # 两者都进了 `wiring-lint` job（**不设 `if:` ⇒ 每推必跑** ✓）与 `scripts/ci-local.sh` ⓪ ✓。
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -216,9 +270,30 @@ jobs:
       courses: ${{ steps.f.outputs.courses }}
     steps:
       - uses: actions/checkout@v5
+      # ① 取回「上一个已验证点」标记（只在 main 的 push 上；PR 走 paths-filter 自己的 PR 分支 ✓）。
+      # ⚠ `key` 故意用一个**永不精确命中**的值 ⇒ 走 `restore-keys` 前缀匹配 = **最近创建的那个** ✓
+      # （每个标记的 key 带 `run_id` ⇒ 唯一 ✓，不会被"已存在"挡住 ✗）。
+      - name: 取回已验证点标记（上一个"重活全绿"的 sha）
+        id: verified
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/restore@v4
+        with:
+          path: .ci-verified
+          key: ci-verified-marker-restore-only-${{ github.run_id }}
+          restore-keys: |
+            ci-verified-marker-
+      # ② 算基点（**唯一实现** = `scripts/ci-push-range.py` ✓；它同时打印三组读数，给第 ④ 步对账 ✓）
+      - name: 算推送范围基点（上一个已验证点，而不是"上一次推送"）
+        id: base
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: python3 scripts/ci-push-range.py --before "${{ github.event.before }}" >> "$GITHUB_OUTPUT"
       - uses: dorny/paths-filter@v4
         id: f
         with:
+          # ③ 把基点交给它（它的 `base` 入参 ✓，`src/main.ts:32`）：40 位 sha ⇒ `git.getChanges(base, head)`
+          # ✓；**空值 = PR / 首推** ⇒ 走它自己的事件分支（PR 用 base 分支 ✓、首推用 NULL_SHA 全 added ✓）
+          # ⇒ 那两条路径的**原行为逐字不变** ✓。
+          base: ${{ steps.base.outputs.base }}
           filters: |
             rust:
               - "crates/**"
@@ -246,6 +321,58 @@ jobs:
             courses:
               - "courses/**"
               - "playground.sokonanoda"
+      # ④ **接缝对账**（验证设计纪律 ③ ✓）：本脚本（可本地单测的那份 ✓）的读数 vs paths-filter
+      # 的读数。**危险方向**（脚本说该跑重活、它说干净 ⇒ 洞还在 ✗）**判红** ✗；
+      # 安全方向（脚本干净、它说脏 ⇒ 只是多跑）只 `::warning::` ✓ —— 不制造假红 ✓。
+      - name: 对账（范围读数 vs paths-filter 读数）
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          SOKO_RANGE_RUST: ${{ steps.base.outputs.rust }}
+          SOKO_RANGE_COURSES: ${{ steps.base.outputs.courses }}
+          SOKO_RANGE_EDITOR: ${{ steps.base.outputs.editor }}
+          SOKO_DORNY_RUST: ${{ steps.f.outputs.rust }}
+          SOKO_DORNY_COURSES: ${{ steps.f.outputs.courses }}
+          SOKO_DORNY_EDITOR: ${{ steps.f.outputs.editor }}
+        run: python3 scripts/ci-push-range.py --cross-check
+
+  # ⭐ **记下「已验证点」**（2026-10-15，`PUSH-RANGE-HIDES-RELEASE` 的另一半 ✓）：
+  # **只有"重活真跑过且全绿"的那一轮**才把标记推进到本 sha ✓；纯 docs 轮（重活全 skipped）
+  # **不推进** ✗ ⇒ 下一次 `changes` 从"上一个已验证点"算范围 ⇒ **未验证的祖先不会被藏掉** ✓，
+  # 而**连续两次纯 docs 仍不跑重活** ✓（正对照，判据在 `--selftest` 里 ✓）。
+  # ⚠ `if` **必须**带状态函数 `always()` ✗✓（2026-09-26 实验：`needs` 里有 skipped ⇒ 本 job 被
+  # 拖成 skipped ✗，机制见 `e2e-ledger` 的注释 ✓）—— 这里**正是**要它在"有 skipped 依赖"时也求值 ✓。
+  # ⚠ `perf-gate` **故意不在 `needs` 里** ✓：它是"只报不拦"（`continue-on-error: true`）⇒
+  # 让它拦住标记会把"性能只报"变成"验证点不推进" ✗。
+  # ⚠ **不**进 `auto-tag` 的 `needs` ✗：标记是**旁路记账**，不许有能力挡住发版 ✓。
+  mark-verified:
+    name: mark-verified（重活真跑过且全绿 ⇒ 推进「已验证点」标记）
+    needs: [changes, lint-fmt, lint-clippy, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
+    if: >-
+      always()
+      && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && !contains(needs.*.result, 'failure')
+      && !contains(needs.*.result, 'cancelled')
+      && (needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true' || needs.changes.outputs.editor == 'true')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # **审计留痕**：把 needs 的结论逐条打出来 —— 标记"验证过什么"必须可回看 ✓
+      #（「有就渲染」是反模式的反面：这里把依据**显式**写进日志 ✓）。
+      - name: 记下这一轮真验了什么 + 写标记
+        env:
+          SOKO_NEEDS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          python3 -c 'import json,os; d=json.loads(os.environ["SOKO_NEEDS"]); print("needs 结论：", {k: v["result"] for k, v in d.items()})'
+          mkdir -p .ci-verified
+          printf '%s\n' "${GITHUB_SHA}" > .ci-verified/sha
+          echo "已验证点 → ${GITHUB_SHA}（rust=${{ needs.changes.outputs.rust }} · courses=${{ needs.changes.outputs.courses }} · editor=${{ needs.changes.outputs.editor }}）"
+      # key 唯一（带 run_id ✓）⇒ 每轮一个新条目；`changes` 的 restore-keys 取**最近创建**的那个 ✓。
+      - name: 存标记
+        uses: actions/cache/save@v4
+        with:
+          path: .ci-verified
+          key: ci-verified-marker-${{ github.sha }}-${{ github.run_id }}
 
   test:
     needs: [changes, lint-fmt, lint-clippy, gates-fast]

@@ -5,6 +5,12 @@
 # 把旧的没跑完的先关了**" ✓ —— 理由充分 ✓：旧的 run 量的是**已被取代的代码** ✗，
 # 既占 runner 配额 ✓、又让队列更堵 ✗（本 session 里我连推 10 个 ⇒ 队列瘫痪 ✗）。
 #
+# ⭐ **2026-10-15（洞 `PUSH-RANGE-HIDES-RELEASE`）：这条"关旧 run"与 ci.yml 顶层的
+# `cancel-in-progress: true` 都**不会丢验证** ✓ —— 理由是**覆盖关系**：新 run 的推送范围
+# 基点是**上一个已验证点**（只在"重活真跑过且全绿"时推进 ✓，见 `scripts/ci-push-range.py`），
+# 被关掉那一轮**没有**推进它 ⇒ 新范围 ⊇ 旧范围 ✓。所以**别**因为"怕丢验证"而加 `--no-cancel` ✗：
+# 那只会让两条重活同时在飞（新 run 的范围是脏的 ⇒ 它自己也会跑重活 ✓）。
+#
 # 用法：
 #   scripts/ci-push.sh                 # 关掉旧的未完成 run ⇒ `git push` ⇒ 打印新一轮 id
 #   scripts/ci-push.sh --watch         # 推完接着 `ci-watch.sh --follow` ✓（**一红就退** ✓）

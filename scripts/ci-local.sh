@@ -60,6 +60,15 @@ summary() {
 # `yaml.safe_load` 静默取最后一个（所以我"验过了"是假的 ✗），而 **GitHub 拒绝整个
 # workflow** ✗ ⇒ 整轮 0 job、0 秒失败 ✗。**这条脚本是唯一能在 push 前拦住它的地方** ✓。
 run "workflow：YAML 严格校验（禁重复键）" "gates" python3 scripts/ci-yml-lint.py
+# ⭐ **推送范围基点**（2026-10-15，洞 `PUSH-RANGE-HIDES-RELEASE` ✓）—— 与 CI 的 `wiring-lint`
+# 里那两步**逐字同源** ✓：`--check-wiring` 咬 `ci.yml` 的接线（`changes` 真的把算出来的 `base`
+# 传给 paths-filter ✗✓、标记的 save/restore 前缀一致 ✗✓、写标记的 job 的 `if` 带状态函数 ✓），
+# `--selftest` 在**合成夹具仓库**上跑范围语义（含**正对照**：连续两次纯 docs ⇒ 仍不跑重活 ✓；
+# 含**负对照**：旧口径下同一推送 rust=false ⇒ 洞复现 ✓）。亚秒级 ⇒ 进 ⓪ ✓（**改了判据必须有人验** ✓）。
+run "workflow：推送范围基点（(A) 的范围语义 + 接线）" "wiring-lint" bash -c '
+set -u
+python3 scripts/ci-push-range.py --check-wiring || exit 1
+python3 scripts/ci-push-range.py --selftest || exit 1'
 
 # ① lint（CI job `lint`）—— 注意：**绝不** `cargo fmt --all`（kernel 的 rustfmt.toml 要 nightly ✓）
 run "lint：fmt"  "lint" cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
