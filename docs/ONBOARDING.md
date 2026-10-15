@@ -61,8 +61,8 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=11 blocker=0 high=9 medium=2 low=0 -->
-**未完成 11 条**（blocker **0** · high **9** · medium **2** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+<!-- QUEUE:COUNTS total=10 blocker=0 high=8 medium=2 low=0 -->
+**未完成 10 条**（blocker **0** · high **8** · medium **2** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
 最靠前的 5 条：`CI-LOCAL-NO-QUEUE-CHECK` · `CONCURRENCY-CANCELS-REAL-WORK` · `DOCSLINT-SELFTEST-POLLUTES-REAL-REPO` · `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH` · `PUSH-RANGE-HIDES-RELEASE`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
